@@ -37,6 +37,7 @@ export default async function DashboardPage() {
   return (
     <main style={{ padding: '2rem', maxWidth: 800 }}>
       <h1>발행 기록 대시보드</h1>
+      <p><a href="/dashboard/insights">→ 인사이트 대시보드</a></p>
 
       {loadError && (
         <p style={{ color: 'red' }}>데이터 로드 오류: {loadError}</p>

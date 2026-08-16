@@ -1,0 +1,66 @@
+<!-- @dsCard group="Components" viewport="700x430" name="Core — Button · Badge · Card · Progress · Gauge" subtitle="The foundational primitives" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; padding: 22px; background: var(--bg-app); }
+  .wrap { display: flex; flex-direction: column; gap: 18px; }
+  .label { font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .panel { background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js?v=2"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { Button, Badge, Card, ProgressBar, StatGauge } = window.DothegyWorksDesignSystem_cddc62;
+  function Demo() {
+    return (
+      <div className="wrap">
+        <div>
+          <div className="label">Buttons</div>
+          <div className="row">
+            <Button variant="primary">지금 수집</Button>
+            <Button variant="neutral">저장</Button>
+            <Button variant="outline" size="sm">CSV 내보내기</Button>
+            <Button variant="ghost">닫기</Button>
+            <Button variant="destructive" size="sm">삭제</Button>
+            <Button disabled>수정 (Auth 연결 후)</Button>
+          </div>
+        </div>
+        <div>
+          <div className="label">Badges</div>
+          <div className="row">
+            <Badge tone="success" dot>정상</Badge>
+            <Badge tone="warning" dot>주의</Badge>
+            <Badge tone="danger" dot>생산필요</Badge>
+            <Badge tone="violet">슈퍼어드민</Badge>
+            <Badge tone="info">어드민</Badge>
+            <Badge tone="neutral" solid>팀원</Badge>
+          </div>
+        </div>
+        <div className="row" style={{ alignItems: "stretch", gap: 14 }}>
+          <Card title="티그레 6구 세트" subtitle="3PL창고" style={{ flex: 1 }}>
+            <StatGauge value={108} caption="목표 2,500" size="md" />
+          </Card>
+          <Card title="개인별 달성률" subtitle="이번 주" style={{ flex: 1 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              <div><div style={{fontSize:12,color:"var(--text-muted)",marginBottom:4}}>태민</div><ProgressBar value={38} showLabel /></div>
+              <div><div style={{fontSize:12,color:"var(--text-muted)",marginBottom:4}}>준혁</div><ProgressBar value={82} showLabel /></div>
+              <div><div style={{fontSize:12,color:"var(--text-muted)",marginBottom:4}}>남헌</div><ProgressBar value={104} showLabel /></div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+</script>
+</body>
+</html>

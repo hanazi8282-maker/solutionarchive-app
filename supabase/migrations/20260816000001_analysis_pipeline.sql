@@ -4,7 +4,7 @@
 -- analysis_inputs   : 수집 원문 (리뷰/광고/상세페이지)
 -- analysis_aspects  : 속성별 중요도·만족도·기회점수 및 분류 태그
 -- analysis_angles   : 속성에서 도출한 소구 앵글/카피 초안
--- 정책: admin+(super_admin/admin) 전체. anon 정책 없음.
+-- 정책: 없음. RLS 만 켜서 service_role 외 전부 차단(deny-all).
 -- 가역: 동명 rollback 파일 참조(20260816000001_analysis_pipeline_rollback.sql).
 -- ============================================================
 
@@ -75,39 +75,16 @@ CREATE INDEX IF NOT EXISTS idx_analysis_angles_project
 CREATE INDEX IF NOT EXISTS idx_analysis_angles_aspect
   ON public.analysis_angles (aspect_id);
 
--- ── RLS: admin+(super_admin/admin) 전체 ──────────────────────
--- member 직접 접근 불필요(전부 service_role 경유). anon 정책 없음.
+-- ── RLS: 정책 없이 활성화만 (deny-all) ───────────────────────
+-- 정책이 하나도 없는 상태로 RLS 를 켜면 authenticated/anon 은 전부 차단되고
+-- service_role(RLS 우회)만 통과한다. 이 파이프라인의 접근은 전부 서버
+-- Route Handler 의 service_role 경유이므로 이 상태로 동작한다.
+-- platform_credentials 와 동일 패턴.
+-- 사용자 세션 기반 접근이 필요해지면 그때 정책을 별도 마이그레이션으로 추가한다.
 ALTER TABLE public.analysis_projects ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "analysis_projects: admin+ 전체" ON public.analysis_projects;
-CREATE POLICY "analysis_projects: admin+ 전체"
-  ON public.analysis_projects FOR ALL TO authenticated
-  USING ((get_user_role())::text = ANY (ARRAY['super_admin'::text, 'admin'::text]))
-  WITH CHECK ((get_user_role())::text = ANY (ARRAY['super_admin'::text, 'admin'::text]));
-
-ALTER TABLE public.analysis_inputs ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "analysis_inputs: admin+ 전체" ON public.analysis_inputs;
-CREATE POLICY "analysis_inputs: admin+ 전체"
-  ON public.analysis_inputs FOR ALL TO authenticated
-  USING ((get_user_role())::text = ANY (ARRAY['super_admin'::text, 'admin'::text]))
-  WITH CHECK ((get_user_role())::text = ANY (ARRAY['super_admin'::text, 'admin'::text]));
-
-ALTER TABLE public.analysis_aspects ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "analysis_aspects: admin+ 전체" ON public.analysis_aspects;
-CREATE POLICY "analysis_aspects: admin+ 전체"
-  ON public.analysis_aspects FOR ALL TO authenticated
-  USING ((get_user_role())::text = ANY (ARRAY['super_admin'::text, 'admin'::text]))
-  WITH CHECK ((get_user_role())::text = ANY (ARRAY['super_admin'::text, 'admin'::text]));
-
-ALTER TABLE public.analysis_angles ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "analysis_angles: admin+ 전체" ON public.analysis_angles;
-CREATE POLICY "analysis_angles: admin+ 전체"
-  ON public.analysis_angles FOR ALL TO authenticated
-  USING ((get_user_role())::text = ANY (ARRAY['super_admin'::text, 'admin'::text]))
-  WITH CHECK ((get_user_role())::text = ANY (ARRAY['super_admin'::text, 'admin'::text]));
+ALTER TABLE public.analysis_inputs   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.analysis_aspects  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.analysis_angles   ENABLE ROW LEVEL SECURITY;
 
 -- ── 컬럼 의미 주석 ───────────────────────────────────────────
 COMMENT ON COLUMN public.analysis_aspects.importance IS 'I_k: 속성 k의 중요도';

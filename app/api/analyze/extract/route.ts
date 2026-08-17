@@ -245,15 +245,33 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
 // (Vercel 함수가 중간에 죽으면 status 가 processing 에 영구히 갇히기 때문)
 const STALE_AFTER_MS = 10 * 60 * 1000
 
-/** 지금 추출을 새로 시작할 수 있는 상태인지 판정한다. */
-function canStart(status: string, startedAt: string | null): { ok: true } | { ok: false; reason: string } {
+/** force 로 재분석을 허용하는 상태. 사람 검수가 끝난 이후 단계는 제외한다. */
+const REANALYZABLE = ['extracted']
+
+/**
+ * 지금 추출을 새로 시작할 수 있는 상태인지 판정한다.
+ * force=true 면 extracted 상태에서도 재분석을 허용한다(기존 aspects 는 교체된다).
+ * 단 실행 중(fresh processing)은 force 여도 막는다 — 같은 프로젝트에 잡이 둘 붙으면
+ * 서로의 결과를 덮어쓰기 때문이다.
+ */
+function canStart(
+  status: string,
+  startedAt: string | null,
+  force = false,
+): { ok: true } | { ok: false; reason: string } {
   if (status === 'collecting' || status === 'failed') return { ok: true }
   if (status === 'processing') {
     const t = startedAt ? Date.parse(startedAt) : NaN
     if (Number.isFinite(t) && Date.now() - t > STALE_AFTER_MS) return { ok: true } // stale 복구
     return { ok: false, reason: '이미 분석이 진행 중입니다.' }
   }
-  return { ok: false, reason: '이미 분석이 끝난 프로젝트입니다.' }
+  if (force && REANALYZABLE.includes(status)) return { ok: true }
+  return {
+    ok: false,
+    reason: REANALYZABLE.includes(status)
+      ? '이미 분석이 끝난 프로젝트입니다. 다시 분석하려면 force 옵션이 필요합니다.'
+      : '검수 이후 단계라 재분석할 수 없습니다.',
+  }
 }
 
 /** 프로바이더가 돌려준 HTTP 상태로 사용자 문구를 고른다. */
@@ -453,6 +471,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '프로젝트 정보가 없습니다.' }, { status: 400 })
   }
 
+  // 재분석 플래그. 이미 extracted 인 프로젝트를 다시 돌릴 때만 의미가 있다.
+  const force = body?.force === true
+
   // 1. 현재 상태 조회
   const { data: project, error: projectError } = await supabase
     .from('analysis_projects')
@@ -465,11 +486,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '프로젝트를 찾을 수 없습니다.' }, { status: 404 })
   }
 
-  // 2. 시작 가능 상태인지 판정 (stale processing 은 재시도 허용)
-  const verdict = canStart(project.status, project.extract_started_at)
+  // 2. 시작 가능 상태인지 판정 (stale processing 은 재시도 허용, force 면 재분석 허용)
+  const verdict = canStart(project.status, project.extract_started_at, force)
   if (!verdict.ok) {
     return NextResponse.json({ error: verdict.reason, status: project.status }, { status: 409 })
   }
+  const isReanalysis = force && REANALYZABLE.includes(project.status)
 
   // 3. 원문이 있는지 먼저 확인 — 없으면 잡을 만들지 않는다
   const { count, error: countError } = await supabase
@@ -519,6 +541,8 @@ export async function POST(req: Request) {
       provider,
       started_at: locked[0].extract_started_at,
       attempts: locked[0].extract_attempts,
+      // 재분석이면 기존 aspects 가 교체된다는 사실을 호출자가 알 수 있게 한다.
+      reanalysis: isReanalysis,
     },
     { status: 202 },
   )
@@ -573,5 +597,9 @@ export async function GET(req: Request) {
     aspects_count: count ?? 0,
     maturity_stage: project.maturity_stage,
     finished_at: project.extract_finished_at,
+    attempts: project.extract_attempts,
+    // 이 상태에서 POST { force: true } 로 재분석을 시작할 수 있는지.
+    // (재분석하면 기존 aspects 는 삭제되고 새로 저장된다)
+    can_reanalyze: REANALYZABLE.includes(project.status),
   })
 }

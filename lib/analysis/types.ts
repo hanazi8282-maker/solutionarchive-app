@@ -37,6 +37,31 @@ export type PersonaRole = (typeof PERSONA_ROLES)[number]
 export const VALUE_REALIZATION_FREQUENCIES = ['HIGH', 'MEDIUM', 'LOW'] as const
 export type ValueRealizationFrequency = (typeof VALUE_REALIZATION_FREQUENCIES)[number]
 
+// ── Stage3(사분면) ───────────────────────────────────────────
+// 중요도/만족도의 중앙값을 기준으로 4분면 분류. 검수 완료 시점에 계산한다.
+export const QUADRANTS = ['TABLE_STAKES', 'DIFFERENTIATOR', 'OVER_INVESTED', 'IGNORE'] as const
+export type Quadrant = (typeof QUADRANTS)[number]
+
+export const QUADRANT_LABELS: Record<Quadrant, string> = {
+  TABLE_STAKES:   '기본기 (중요·충족 — 없으면 탈락, 있어도 차별화 안 됨)',
+  DIFFERENTIATOR: '차별화 기회 (중요·미충족 — 소구점의 본진)',
+  OVER_INVESTED:  '과잉투자 (덜 중요·충족 — 자원 회수 대상)',
+  IGNORE:         '무시 (덜 중요·미충족 — 건드리지 않음)',
+}
+
+// ── Stage4(앵글 생성) ────────────────────────────────────────
+export const ANGLE_TYPES = [
+  'PAS', 'MECHANISM', 'COMPARISON', 'SOCIAL_PROOF',
+  'FEAR_FOMO', 'ASPIRATION', 'REATTRIBUTION', 'SELF_SELECTION',
+] as const
+export type AngleType = (typeof ANGLE_TYPES)[number]
+
+export const OUTPUT_TYPES = ['COPY', 'STRUCTURE', 'OFFER', 'PRODUCT_SPEC', 'BASELINE_SPEC'] as const
+export type OutputType = (typeof OUTPUT_TYPES)[number]
+
+export const SUBSTANTIATION_VERDICTS = ['SUBSTANTIATED', 'EXPERIENTIAL', 'UNSUBSTANTIATED'] as const
+export type SubstantiationVerdict = (typeof SUBSTANTIATION_VERDICTS)[number]
+
 export type AnalysisProject = {
   id: string
   competitor_url: string

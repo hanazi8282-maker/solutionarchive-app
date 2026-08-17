@@ -37,7 +37,9 @@ function resolveProvider(): LlmProvider {
 const ANTHROPIC_MODEL = 'claude-opus-5'
 // gemini-2.5-flash 는 신규 사용자에게 404(no longer available) 를 돌려준다.
 // alias(gemini-flash-latest) 대신 버전 고정 모델을 쓴다.
-const GEMINI_MODEL = 'gemini-3.6-flash'
+// 모델별로 무료 티어 일일 요청 한도가 따로 걸린다(gemini-3.6-flash 는 20건/일).
+// 한도가 소진되면 모델만 바꿔 우회할 수 있어야 하므로 환경변수로 뺀다.
+const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-3.6-flash'
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com'
 
 const MAX_OUTPUT_TOKENS = 32000

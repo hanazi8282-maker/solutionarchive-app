@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import {
   ASPECT_LAYERS,
@@ -14,8 +14,10 @@ import {
   type ValueRealizationFrequency,
 } from '@/lib/analysis/types'
 
-// LLM 호출이 길어질 수 있어 함수 실행시간을 늘린다 (Vercel 상한에 맞춘 값)
-export const maxDuration = 60
+// 응답은 202 로 즉시 나가지만, after() 안의 추출 작업은 같은 인스턴스에서
+// 계속 돌기 때문에 함수 실행시간 상한이 그대로 적용된다. 긴 입력을 감당하려면
+// 여유가 필요하므로 Fluid compute 상한까지 올린다.
+export const maxDuration = 300
 
 // ── LLM 프로바이더 전환 ──────────────────────────────────────────
 // LLM_PROVIDER=gemini (기본) | anthropic
@@ -33,7 +35,9 @@ function resolveProvider(): LlmProvider {
 }
 
 const ANTHROPIC_MODEL = 'claude-opus-5'
-const GEMINI_MODEL = 'gemini-2.5-flash'
+// gemini-2.5-flash 는 신규 사용자에게 404(no longer available) 를 돌려준다.
+// alias(gemini-flash-latest) 대신 버전 고정 모델을 쓴다.
+const GEMINI_MODEL = 'gemini-3.6-flash'
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com'
 
 const MAX_OUTPUT_TOKENS = 32000
@@ -126,20 +130,39 @@ function pickText(value: unknown): string | null {
 /** 모델이 요청 자체를 거부했을 때. 502가 아니라 사용자 메시지로 안내한다. */
 class ModelRefusalError extends Error {}
 
+/** 프로바이더가 HTTP 에러를 돌려줬을 때. 402/429(사용량 한도)를 구분하기 위해 상태코드를 보존한다. */
+class ProviderHttpError extends Error {
+  status: number
+  constructor(status: number, message: string) {
+    super(message)
+    this.status = status
+  }
+}
+
 async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
   // 기본 프로바이더가 gemini 이므로, ANTHROPIC_API_KEY 가 없는 환경에서
   // 모듈 로드만으로 SDK 생성자가 터지지 않도록 지연 생성한다.
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-  const message = await anthropic.messages
-    .stream({
-      model: ANTHROPIC_MODEL,
-      max_tokens: MAX_OUTPUT_TOKENS,
-      output_config: { effort: 'medium' },
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    })
-    .finalMessage()
+  let message
+  try {
+    message = await anthropic.messages
+      .stream({
+        model: ANTHROPIC_MODEL,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        output_config: { effort: 'medium' },
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      })
+      .finalMessage()
+  } catch (e) {
+    // SDK 에러의 status 를 보존해 402/429(사용량 한도)를 구분할 수 있게 한다.
+    const status = (e as { status?: number })?.status
+    if (typeof status === 'number') {
+      throw new ProviderHttpError(status, `anthropic ${status}: ${e instanceof Error ? e.message : String(e)}`)
+    }
+    throw e
+  }
 
   if (message.stop_reason === 'refusal') throw new ModelRefusalError('anthropic refused')
 
@@ -183,7 +206,7 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
 
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
-    throw new Error(`gemini ${res.status}: ${detail.slice(0, 500)}`)
+    throw new ProviderHttpError(res.status, `gemini ${res.status}: ${detail.slice(0, 500)}`)
   }
 
   const json = (await res.json()) as GeminiResponse
@@ -209,65 +232,85 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
     .trim()
 }
 
-// ── 소구점 분석 Stage1~2 실행 ────────────────────────────────────
-export async function POST(req: Request) {
+// ── 잡 상태 전이 규칙 ────────────────────────────────────────────
+// processing 이 이 시간보다 오래 방치되면 죽은 잡으로 보고 재시도를 허용한다.
+// (Vercel 함수가 중간에 죽으면 status 가 processing 에 영구히 갇히기 때문)
+const STALE_AFTER_MS = 10 * 60 * 1000
+
+/** 지금 추출을 새로 시작할 수 있는 상태인지 판정한다. */
+function canStart(status: string, startedAt: string | null): { ok: true } | { ok: false; reason: string } {
+  if (status === 'collecting' || status === 'failed') return { ok: true }
+  if (status === 'processing') {
+    const t = startedAt ? Date.parse(startedAt) : NaN
+    if (Number.isFinite(t) && Date.now() - t > STALE_AFTER_MS) return { ok: true } // stale 복구
+    return { ok: false, reason: '이미 분석이 진행 중입니다.' }
+  }
+  return { ok: false, reason: '이미 분석이 끝난 프로젝트입니다.' }
+}
+
+/** 프로바이더가 돌려준 HTTP 상태로 사용자 문구를 고른다. */
+function describeFailure(e: unknown): string {
+  if (e instanceof ModelRefusalError) return '분석이 거부되었습니다. 입력 내용을 확인해주세요.'
+  if (e instanceof ProviderHttpError && (e.status === 402 || e.status === 429)) {
+    return `사용량 한도를 초과했습니다. (HTTP ${e.status})`
+  }
+  return e instanceof Error ? e.message : String(e)
+}
+
+// ── 백그라운드 추출 본체 ─────────────────────────────────────────
+// after() 안에서 응답 전송 후에 실행된다. 여기서 던지는 예외는 사용자에게
+// 전달되지 않으므로, 모든 실패를 status='failed' + extract_error 로 남긴다.
+async function runExtraction(projectId: string, provider: LlmProvider) {
   const supabase = await createClient()
-  if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })
-
-  const provider = resolveProvider()
-  const requiredKey = provider === 'gemini' ? 'GEMINI_API_KEY' : 'ANTHROPIC_API_KEY'
-  if (!process.env[requiredKey]) {
-    console.error(`[analyze/extract] ${requiredKey} is not set (provider=${provider})`)
-    return NextResponse.json({ error: '분석 엔진이 설정되지 않았습니다.' }, { status: 500 })
+  if (!supabase) {
+    console.error('[analyze/extract] background: DB 연결 실패')
+    return
   }
 
-  const body = await req.json().catch(() => null)
+  const startedAt = Date.now()
 
-  const projectId = typeof body?.project_id === 'string' ? body.project_id.trim() : ''
-  if (!projectId) {
-    return NextResponse.json({ error: '프로젝트 정보가 없습니다.' }, { status: 400 })
+  const fail = async (message: string) => {
+    console.error(`[analyze/extract] project=${projectId} failed: ${message}`)
+    await supabase
+      .from('analysis_projects')
+      .update({
+        status: 'failed',
+        extract_error: message.slice(0, 1000),
+        extract_finished_at: new Date().toISOString(),
+      })
+      .eq('id', projectId)
   }
 
-  // 1. 프로젝트 조회
+  // 1. 프롬프트 재료 조회
   const { data: project, error: projectError } = await supabase
     .from('analysis_projects')
     .select('id, competitor_url, product_elevator_pitch, purpose, seller_own_guess')
     .eq('id', projectId)
     .single()
 
-  if (projectError || !project) {
-    console.error('[analyze/extract] project fetch error:', projectError?.message)
-    return NextResponse.json({ error: '프로젝트를 찾을 수 없습니다.' }, { status: 404 })
-  }
+  if (projectError || !project) return fail('프로젝트를 찾을 수 없습니다.')
 
-  // 2. 연결된 수집 원문 전부 조회
   const { data: inputs, error: inputsError } = await supabase
     .from('analysis_inputs')
     .select('source_type, raw_text, created_at')
     .eq('project_id', projectId)
     .order('created_at', { ascending: true })
 
-  if (inputsError) {
-    console.error('[analyze/extract] inputs fetch error:', inputsError.message)
-    return NextResponse.json({ error: '수집 원문 조회 실패' }, { status: 500 })
-  }
-  if (!inputs || inputs.length === 0) {
-    return NextResponse.json({ error: '수집 원문이 1개 이상 필요합니다.' }, { status: 400 })
-  }
+  if (inputsError) return fail(`수집 원문 조회 실패: ${inputsError.message}`)
+  if (!inputs || inputs.length === 0) return fail('수집 원문이 1개 이상 필요합니다.')
 
-  // 3. 사용자 프롬프트 구성 (총량 상한을 넘기면 뒤쪽 입력은 자른다)
+  // 2. 사용자 프롬프트 구성 (총량 상한을 넘기면 뒤쪽 입력은 자른다)
   const parts: string[] = []
   let used = 0
   let truncatedInputs = 0
   for (let i = 0; i < inputs.length; i++) {
-    const row = inputs[i]
-    const text = String(row.raw_text ?? '').slice(0, MAX_CHARS_PER_INPUT)
+    const text = String(inputs[i].raw_text ?? '').slice(0, MAX_CHARS_PER_INPUT)
     if (used + text.length > MAX_CHARS_TOTAL) {
       truncatedInputs = inputs.length - i
       break
     }
     used += text.length
-    parts.push(`### 입력 ${i + 1} (source_type: ${row.source_type})\n${text}`)
+    parts.push(`### 입력 ${i + 1} (source_type: ${inputs[i].source_type})\n${text}`)
   }
 
   const userPrompt = [
@@ -285,34 +328,27 @@ export async function POST(req: Request) {
     '위 원문들을 바탕으로 Stage1과 Stage2를 수행하고, 지정된 JSON 형식 하나만 출력해라.',
   ].join('\n')
 
-  // 4. 모델 호출 (프로바이더별로 분기, 이후 처리는 동일)
+  // 3. 모델 호출 (프로바이더별로 분기, 이후 처리는 동일)
   let rawText = ''
-  const startedAt = Date.now()
   try {
     rawText =
       provider === 'gemini'
         ? await callGemini(SYSTEM_PROMPT, userPrompt)
         : await callAnthropic(SYSTEM_PROMPT, userPrompt)
-
     if (!rawText) throw new Error('empty model output')
-    console.log(`[analyze/extract] provider=${provider} took ${Date.now() - startedAt}ms`)
+    console.log(
+      `[analyze/extract] project=${projectId} provider=${provider} took ${Date.now() - startedAt}ms`,
+    )
   } catch (e) {
-    const detail = e instanceof Error ? e.message : String(e)
-    if (e instanceof ModelRefusalError) {
-      console.error(`[analyze/extract] provider=${provider} refused the request:`, detail)
-      return NextResponse.json({ error: '분석이 거부되었습니다. 입력 내용을 확인해주세요.' }, { status: 502 })
-    }
-    console.error(`[analyze/extract] provider=${provider} model call failed:`, detail)
-    return NextResponse.json({ error: '분석 호출에 실패했습니다.' }, { status: 502 })
+    return fail(describeFailure(e))
   }
 
-  // 5. JSON 파싱
+  // 4. JSON 파싱
   let parsed: Record<string, unknown>
   try {
     parsed = parseJsonObject(rawText)
   } catch (e) {
-    console.error('[analyze/extract] JSON parse failed:', e instanceof Error ? e.message : String(e))
-    return NextResponse.json({ error: '분석 결과를 해석하지 못했습니다.' }, { status: 502 })
+    return fail(`분석 결과를 해석하지 못했습니다: ${e instanceof Error ? e.message : String(e)}`)
   }
 
   const rawStage = Number(parsed.maturity_stage)
@@ -321,7 +357,7 @@ export async function POST(req: Request) {
 
   const rawAspects = Array.isArray(parsed.aspects) ? parsed.aspects : []
 
-  // 6. aspects 정규화
+  // 5. aspects 정규화
   // opportunity_score 는 DB generated 컬럼이므로 절대 payload 에 넣지 않는다.
   const aspectRows = rawAspects
     .map(item => {
@@ -349,44 +385,185 @@ export async function POST(req: Request) {
     })
     .filter((r): r is NonNullable<typeof r> => r !== null)
 
-  // 7. aspects INSERT
-  let insertedAspects: { id: string }[] = []
-  if (aspectRows.length > 0) {
-    const { data: inserted, error: aspectError } = await supabase
-      .from('analysis_aspects')
-      .insert(aspectRows)
-      .select('id')
+  // 6. 기존 aspects 제거 후 새로 저장 (재시도 시 중복 누적 방지)
+  //    analysis_angles.aspect_id 는 ON DELETE 절이 없어 angle 이 달린 aspect 는
+  //    삭제가 막힌다(23503). 그 경우 사용자가 원인을 알 수 있게 명시한다.
+  const { error: deleteError } = await supabase
+    .from('analysis_aspects')
+    .delete()
+    .eq('project_id', projectId)
 
-    if (aspectError) {
-      console.error('[analyze/extract] aspects insert error:', aspectError.message)
-      return NextResponse.json({ error: '속성 저장에 실패했습니다.' }, { status: 500 })
-    }
-    insertedAspects = inserted ?? []
+  if (deleteError) {
+    return fail(
+      deleteError.code === '23503'
+        ? '이미 소구 앵글이 생성된 속성이 있어 재분석할 수 없습니다. 앵글을 먼저 삭제해주세요.'
+        : `기존 속성 삭제에 실패했습니다: ${deleteError.message}`,
+    )
   }
 
-  // 8. 프로젝트 Stage2 결과 + status 갱신
-  const { data: updatedProject, error: updateError } = await supabase
+  if (aspectRows.length > 0) {
+    const { error: aspectError } = await supabase.from('analysis_aspects').insert(aspectRows)
+    if (aspectError) return fail(`속성 저장에 실패했습니다: ${aspectError.message}`)
+  }
+
+  // 7. Stage2 결과 + 완료 상태 기록
+  const { error: updateError } = await supabase
     .from('analysis_projects')
     .update({
       maturity_stage: maturityStage,
       maturity_notes: pickText(parsed.maturity_notes),
       m_meta_signal: pickBool(parsed.m_meta_signal),
       status: 'extracted',
+      extract_error: null,
+      extract_finished_at: new Date().toISOString(),
     })
     .eq('id', projectId)
-    .select('id, status, maturity_stage, maturity_notes, m_meta_signal')
-    .single()
 
-  if (updateError) {
-    console.error('[analyze/extract] project update error:', updateError.message)
-    return NextResponse.json({ error: '프로젝트 갱신에 실패했습니다.' }, { status: 500 })
+  if (updateError) return fail(`프로젝트 갱신에 실패했습니다: ${updateError.message}`)
+
+  console.log(
+    `[analyze/extract] project=${projectId} extracted aspects=${aspectRows.length} inputs=${parts.length}` +
+      (truncatedInputs > 0 ? ` skipped=${truncatedInputs}` : ''),
+  )
+}
+
+// ── POST: 잡 시작만 하고 즉시 반환 ───────────────────────────────
+export async function POST(req: Request) {
+  const supabase = await createClient()
+  if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })
+
+  const provider = resolveProvider()
+  const requiredKey = provider === 'gemini' ? 'GEMINI_API_KEY' : 'ANTHROPIC_API_KEY'
+  if (!process.env[requiredKey]) {
+    console.error(`[analyze/extract] ${requiredKey} is not set (provider=${provider})`)
+    return NextResponse.json({ error: '분석 엔진이 설정되지 않았습니다.' }, { status: 500 })
   }
 
+  const body = await req.json().catch(() => null)
+  const projectId = typeof body?.project_id === 'string' ? body.project_id.trim() : ''
+  if (!projectId) {
+    return NextResponse.json({ error: '프로젝트 정보가 없습니다.' }, { status: 400 })
+  }
+
+  // 1. 현재 상태 조회
+  const { data: project, error: projectError } = await supabase
+    .from('analysis_projects')
+    .select('id, status, extract_started_at, extract_attempts')
+    .eq('id', projectId)
+    .single()
+
+  if (projectError || !project) {
+    console.error('[analyze/extract] project fetch error:', projectError?.message)
+    return NextResponse.json({ error: '프로젝트를 찾을 수 없습니다.' }, { status: 404 })
+  }
+
+  // 2. 시작 가능 상태인지 판정 (stale processing 은 재시도 허용)
+  const verdict = canStart(project.status, project.extract_started_at)
+  if (!verdict.ok) {
+    return NextResponse.json({ error: verdict.reason, status: project.status }, { status: 409 })
+  }
+
+  // 3. 원문이 있는지 먼저 확인 — 없으면 잡을 만들지 않는다
+  const { count, error: countError } = await supabase
+    .from('analysis_inputs')
+    .select('id', { count: 'exact', head: true })
+    .eq('project_id', projectId)
+
+  if (countError) {
+    console.error('[analyze/extract] inputs count error:', countError.message)
+    return NextResponse.json({ error: '수집 원문 조회 실패' }, { status: 500 })
+  }
+  if (!count || count === 0) {
+    return NextResponse.json({ error: '수집 원문이 1개 이상 필요합니다.' }, { status: 400 })
+  }
+
+  // 4. 조건부 UPDATE 로 락 획득.
+  //    .eq('status', 조회 시점 상태) 가 낙관적 락이다 — 그 사이 다른 요청이
+  //    상태를 바꿨다면 0행이 돌아오고, 여기서 409 로 끊는다.
+  const { data: locked, error: lockError } = await supabase
+    .from('analysis_projects')
+    .update({
+      status: 'processing',
+      extract_started_at: new Date().toISOString(),
+      extract_finished_at: null,
+      extract_error: null,
+      extract_attempts: (project.extract_attempts ?? 0) + 1,
+    })
+    .eq('id', projectId)
+    .eq('status', project.status)
+    .select('id, status, extract_started_at, extract_attempts')
+
+  if (lockError) {
+    console.error('[analyze/extract] lock update error:', lockError.message)
+    return NextResponse.json({ error: '분석 시작에 실패했습니다.' }, { status: 500 })
+  }
+  if (!locked || locked.length === 0) {
+    return NextResponse.json({ error: '이미 분석이 진행 중입니다.' }, { status: 409 })
+  }
+
+  // 5. 응답을 먼저 보내고, 실제 추출은 그 뒤에 이어서 실행한다.
+  after(() => runExtraction(projectId, provider))
+
+  return NextResponse.json(
+    {
+      status: 'processing',
+      project_id: projectId,
+      provider,
+      started_at: locked[0].extract_started_at,
+      attempts: locked[0].extract_attempts,
+    },
+    { status: 202 },
+  )
+}
+
+// ── GET: 폴링용 상태 조회 ────────────────────────────────────────
+export async function GET(req: Request) {
+  const supabase = await createClient()
+  if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })
+
+  const projectId = new URL(req.url).searchParams.get('project_id')?.trim() ?? ''
+  if (!projectId) {
+    return NextResponse.json({ error: '프로젝트 정보가 없습니다.' }, { status: 400 })
+  }
+
+  const { data: project, error } = await supabase
+    .from('analysis_projects')
+    .select('id, status, maturity_stage, extract_started_at, extract_finished_at, extract_error, extract_attempts')
+    .eq('id', projectId)
+    .single()
+
+  if (error || !project) {
+    return NextResponse.json({ error: '프로젝트를 찾을 수 없습니다.' }, { status: 404 })
+  }
+
+  if (project.status === 'processing') {
+    const t = project.extract_started_at ? Date.parse(project.extract_started_at) : NaN
+    return NextResponse.json({
+      status: 'processing',
+      started_at: project.extract_started_at,
+      elapsed_ms: Number.isFinite(t) ? Date.now() - t : null,
+      attempts: project.extract_attempts,
+    })
+  }
+
+  if (project.status === 'failed') {
+    return NextResponse.json({
+      status: 'failed',
+      error: project.extract_error ?? '알 수 없는 오류로 실패했습니다.',
+      attempts: project.extract_attempts,
+    })
+  }
+
+  // extracted 이후 단계(reviewed 등)도 완료로 본다.
+  const { count } = await supabase
+    .from('analysis_aspects')
+    .select('id', { count: 'exact', head: true })
+    .eq('project_id', projectId)
+
   return NextResponse.json({
-    project: updatedProject,
-    provider,
-    aspects_inserted: insertedAspects.length,
-    inputs_used: parts.length,
-    ...(truncatedInputs > 0 ? { inputs_skipped: truncatedInputs } : {}),
+    status: project.status,
+    aspects_count: count ?? 0,
+    maturity_stage: project.maturity_stage,
+    finished_at: project.extract_finished_at,
   })
 }

@@ -54,7 +54,10 @@ Stage1 — 각 텍스트에서 반복되는 속성(aspect)을 추출해라. 각 
 - aspect_layer: PRODUCT(제품 물성) / PROCESS(구매·사용 프로세스) / OUTCOME(사용 결과·정체성) 중 하나
 - importance(0~10): 이 속성이 얼마나 자주·강하게 언급되는가
 - satisfaction(0~10): 현재 얼마나 충족되고 있는가 (불만이 많으면 낮게)
-- attribution: PRODUCT_FAULT(제품 탓) / USER_FAULT(사용자 탓으로 서술됨) / ENVIRONMENT 중 하나
+- attribution: PRODUCT_FAULT(제품 탓) / USER_FAULT(사용자 탓으로 서술됨) / ENVIRONMENT 중 하나.
+  해당 속성이 불만·페인이 아니라 단순 만족·칭찬(만족도가 중요도보다 높거나 비슷한 경우)이면
+  attribution은 반드시 null로 남겨라. PRODUCT_FAULT/USER_FAULT/ENVIRONMENT는 실제로
+  부정적 경험을 서술하는 속성에만 붙인다.
 - pain_timing: PRE_PURCHASE(구매 전에도 알 수 있음) / POST_PURCHASE(구매 후에만 알게 됨)
 - persona_role: 이 텍스트를 쓴 사람이 BUYER/USER/PAYER/INFLUENCER 중 누구인지
   (아기·반려동물 등 대리소비면 proxy_consumption=true)
@@ -65,6 +68,11 @@ Stage1 — 각 텍스트에서 반복되는 속성(aspect)을 추출해라. 각 
 "많이 언급되는 것"과 "중요한 것"을 구분해라 — 다들 만족하는 속성(예: 기본 품질)은
 importance는 높아도 satisfaction도 높게 나오는 게 정상이다. 실제 페인/불만이
 뚜렷한 속성일수록 satisfaction을 낮게 매겨라.
+
+안전성·부작용·금기·주의사항과 관련된 언급(예: 특정 상황에서 신중해야 한다,
+초기 부작용, 기저질환 관련 경고 등)이 원문에 있으면, 다른 속성 점수가 낮게
+나오더라도 반드시 별도 속성으로 추출해라 — 이건 나중에 법적·안전 검토에 쓰이는
+중요한 신호라 빈도가 낮아도 누락하면 안 된다.
 
 Stage2 — 전체 텍스트를 보고:
 - maturity_stage(1~5): 1=시장창출(직접편익 위주, 주장 겹침 거의 없음),

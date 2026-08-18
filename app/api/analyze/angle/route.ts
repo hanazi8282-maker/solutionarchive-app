@@ -166,7 +166,7 @@ ${ANGLE_TYPE_GUIDE}
   "headline_draft": "산출물 한 줄",
   "reason": "이 문구를 만든 근거 한 줄" }`
 
-const REWRITE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 게이트를 통과시키는 편집자다.
+const COPY_REWRITE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 게이트를 통과시키는 편집자다.
 입력으로 받은 문구는 근거 없이 성능·효능을 주장(UNSUBSTANTIATED)한다고 판정됐다.
 
 성능·효능 주장을 완전히 제거하고, 대신 "불안 해소 장치"로 다시 써라.
@@ -178,6 +178,49 @@ const REWRITE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 게이트를
 
 반드시 JSON만 출력해라. 형식:
 { "headline_draft": "다시 쓴 문구 한 줄", "reason": "무엇을 어떻게 바꿨는지 한 줄" }`
+
+// BASELINE_SPEC / PRODUCT_SPEC 은 소비자 노출물이 아니라 내부 문서다.
+// COPY 용 재작성 지시(불안 해소 장치 / 막연한 행동 유도 폴백)를 그대로 적용하면
+// "직접 확인해보세요" 같은 설득형 CTA 가 사양서·개선과제 메모에 박힌다.
+// 그래서 재작성 지시를 산출물 유형별로 갈라, 사양 계열은 사실 서술만 하게 한다.
+const SPEC_REWRITE_SYSTEM_PROMPT = `너는 내부 문서를 다듬는 편집자다.
+입력으로 받은 문장은 근거 없이 성능·효능을 주장(UNSUBSTANTIATED)한다고 판정됐다.
+
+이 문장은 광고 카피가 아니다. 소비자에게 노출되지 않는 내부 문서다:
+- BASELINE_SPEC: 경쟁 진입을 위해 반드시 충족해야 하는 기본 사양 요약
+- PRODUCT_SPEC: 차기 제품에서 무엇을 고쳐야 하는지 적은 개선 과제 메모
+
+근거 없는 효능·성능·결과 주장만 제거하고, 나머지는 사실을 담담하게 나열하는
+서술문으로만 다시 써라. 설득하려 하지 마라.
+
+금지:
+- 행동 유도(CTA). '~하세요', '~해보세요', '~확인해보세요', '~바꾸세요' 같은 명령·권유 문장을 쓰지 마라.
+- 구매자를 향해 말 걸지 마라. 읽는 사람은 소비자가 아니라 내부 담당자다.
+- 불안 해소 장치(사용 가이드·자가 점검법 안내)로 바꾸지 마라. 그건 카피용 처방이다.
+- 감탄·강조·수식(확실히, 압도적, 완벽히)을 붙이지 마라.
+
+써야 할 형태: 충족해야 할 사양 항목 나열, 또는 고쳐야 할 문제의 사실 기술.
+예) '약산성 pH 5.5, 비건 인증, 실리콘·설페이트 무첨가를 기본 사양으로 충족할 것.'
+예) '지성 두피에서 오후 시간대 유분·체취 제어가 유지되지 않는 문제를 차기 제품에서 개선할 것.'
+
+원문(aspect 의 notes, 프로젝트 입력 리뷰/광고 원문)에 실제로 존재하는 사실만 써라.
+원문에 없는 성분·수치·정책·인증을 지어내지 마라.
+
+반드시 JSON만 출력해라. 형식:
+{ "headline_draft": "다시 쓴 문장 한 줄", "reason": "무엇을 어떻게 바꿨는지 한 줄" }`
+
+/**
+ * 재작성 지시는 산출물 유형에 따라 갈린다.
+ * COPY/OFFER/STRUCTURE 는 소비자 노출물이라 기존 카피용 지시(막연한 행동 유도 폴백 포함)를 쓰고,
+ * BASELINE_SPEC/PRODUCT_SPEC 은 내부 문서라 사실 서술 전용 지시를 쓴다.
+ * 프롬프트와 라벨(mode)을 함께 돌려주는 이유: 둘을 따로 계산하면 응답의 rewrite_mode 가
+ * 실제로 쓰인 프롬프트와 어긋나도 아무도 모른다(감사 경로가 거짓말을 한다).
+ */
+function rewriteInstructionFor(outputType: OutputType): { prompt: string; mode: 'copy' | 'spec' } {
+  return outputType === 'BASELINE_SPEC' || outputType === 'PRODUCT_SPEC'
+    ? { prompt: SPEC_REWRITE_SYSTEM_PROMPT, mode: 'spec' }
+    : { prompt: COPY_REWRITE_SYSTEM_PROMPT, mode: 'copy' }
+}
 
 // 실증 판정은 writer 가 아니라 이 프롬프트를 쓰는 별도 호출이 담당한다.
 // (writer 가 자기 문구를 스스로 판정하면 "1인칭 경험담이라 검증 대상 아님"으로 면죄부를 준다)
@@ -370,6 +413,8 @@ type GeneratedAngle = {
   writerReason: string
   rewritten: boolean
   rewriteReason?: string
+  /** 재작성 지시가 카피용이었는지 사양용이었는지 — 유형별 분기가 실제로 걸렸는지 확인용 */
+  rewriteMode?: 'copy' | 'spec'
   /** 이 앵글에 쓴 LLM 호출 수 */
   llmCalls: number
 }
@@ -454,15 +499,19 @@ async function generateAngle(
   let judged = await judgeHeadline(provider, headline, target, plan.outputType, evidence, 'angle:judge')
   llmCalls++
 
-  // 실증 게이트: 근거 없는 성능 주장이면 성능 주장을 빼고 불안 해소 장치로 다시 쓴다.
+  // 실증 게이트: 근거 없는 성능 주장이면 성능 주장을 빼고 다시 쓴다.
+  // 무엇으로 다시 쓰는지는 산출물 유형이 정한다 — 카피는 불안 해소 장치로,
+  // 사양(BASELINE_SPEC/PRODUCT_SPEC)은 설득 없는 사실 서술로.
   let rewritten = false
   let rewriteReason: string | undefined
+  let rewriteMode: 'copy' | 'spec' | undefined
   let headlineOriginal: string | undefined
 
   if (judged.verdict === 'UNSUBSTANTIATED') {
+    const instruction = rewriteInstructionFor(plan.outputType)
     const rw = await callLlmJson(
       provider,
-      REWRITE_SYSTEM_PROMPT,
+      instruction.prompt,
       [
         `## 원래 문구 (UNSUBSTANTIATED 판정)`,
         headline,
@@ -486,6 +535,7 @@ async function generateAngle(
       headline = newHeadline
       rewritten = true
       rewriteReason = typeof rw.reason === 'string' ? rw.reason.trim() : ''
+      rewriteMode = instruction.mode
 
       // 재심사. 이걸 안 하면 성능 주장을 걷어낸 안전한 문구에
       // "근거 없는 효능 주장" 라벨이 그대로 붙어 저장된다(정합성 버그).
@@ -506,6 +556,7 @@ async function generateAngle(
     writerReason,
     rewritten,
     rewriteReason,
+    rewriteMode,
     llmCalls,
   }
 }
@@ -727,6 +778,7 @@ export async function POST(req: Request) {
       reason: g.writerReason,
       rewritten: g.rewritten,
       ...(g.rewriteReason ? { rewrite_reason: g.rewriteReason } : {}),
+      ...(g.rewriteMode ? { rewrite_mode: g.rewriteMode } : {}),
       llm_calls: g.llmCalls,
     })),
   })

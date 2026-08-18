@@ -8,7 +8,7 @@ import {
   type SubstantiationVerdict,
 } from '@/lib/analysis/types'
 import {
-  callLlmJson,
+  callLlmJsonWithModel,
   describeFailure,
   requiredKeyFor,
   resolveProvider,
@@ -417,12 +417,16 @@ type GeneratedAngle = {
   rewriteMode?: 'copy' | 'spec'
   /** 이 앵글에 쓴 LLM 호출 수 */
   llmCalls: number
+  /** 이 앵글을 만든 실제 모델명(호출 순). 모델이 바뀌어 결과가 달라졌을 때 추적용. */
+  models: string[]
 }
 
 type JudgeResult = {
   verdict: SubstantiationVerdict
   reason: string
   evidenceQuote: string | null
+  /** 이 판정을 낸 실제 모델명 */
+  model: string
 }
 
 function pickEnum<T extends string>(v: unknown, allowed: readonly T[]): T | null {
@@ -442,7 +446,7 @@ async function judgeHeadline(
   evidence: EvidenceCorpus,
   label: 'angle:judge' | 'angle:rejudge',
 ): Promise<JudgeResult> {
-  const parsed = await callLlmJson(
+  const { data: parsed, model } = await callLlmJsonWithModel(
     provider,
     JUDGE_SYSTEM_PROMPT,
     buildJudgePrompt(headline, aspects, outputType, evidence),
@@ -469,7 +473,7 @@ async function judgeHeadline(
     }
   }
 
-  return { verdict, reason, evidenceQuote: verdict === 'SUBSTANTIATED' ? quote : null }
+  return { verdict, reason, evidenceQuote: verdict === 'SUBSTANTIATED' ? quote : null, model }
 }
 
 async function generateAngle(
@@ -488,8 +492,16 @@ async function generateAngle(
   const userPrompt = buildUserPrompt({ ...plan, groupedAspects: target }, project, candidates)
 
   let llmCalls = 0
-  const parsed = await callLlmJson(provider, SYSTEM_PROMPT, userPrompt, 'angle:generate')
+  // 호출마다 실제 사용된 모델을 모은다 — 도중에 모델이 폴백되면 앵글 하나 안에서도 섞일 수 있다.
+  const models: string[] = []
+  const { data: parsed, model: writerModel } = await callLlmJsonWithModel(
+    provider,
+    SYSTEM_PROMPT,
+    userPrompt,
+    'angle:generate',
+  )
   llmCalls++
+  models.push(writerModel)
 
   const angleType = pickEnum<AngleType>(parsed.angle_type, ANGLE_TYPES) ?? plan.angleType
   let headline = typeof parsed.headline_draft === 'string' ? parsed.headline_draft.trim() : ''
@@ -498,6 +510,7 @@ async function generateAngle(
   // 판정 권한은 writer 에 없다. 별도 judge 호출이 원문 근거만 보고 판정한다.
   let judged = await judgeHeadline(provider, headline, target, plan.outputType, evidence, 'angle:judge')
   llmCalls++
+  models.push(judged.model)
 
   // 실증 게이트: 근거 없는 성능 주장이면 성능 주장을 빼고 다시 쓴다.
   // 무엇으로 다시 쓰는지는 산출물 유형이 정한다 — 카피는 불안 해소 장치로,
@@ -509,7 +522,7 @@ async function generateAngle(
 
   if (judged.verdict === 'UNSUBSTANTIATED') {
     const instruction = rewriteInstructionFor(plan.outputType)
-    const rw = await callLlmJson(
+    const { data: rw, model: rewriteModel } = await callLlmJsonWithModel(
       provider,
       instruction.prompt,
       [
@@ -528,6 +541,7 @@ async function generateAngle(
       'angle:rewrite',
     )
     llmCalls++
+    models.push(rewriteModel)
 
     const newHeadline = typeof rw.headline_draft === 'string' ? rw.headline_draft.trim() : ''
     if (newHeadline) {
@@ -541,6 +555,7 @@ async function generateAngle(
       // "근거 없는 효능 주장" 라벨이 그대로 붙어 저장된다(정합성 버그).
       judged = await judgeHeadline(provider, headline, target, plan.outputType, evidence, 'angle:rejudge')
       llmCalls++
+      models.push(judged.model)
       // 재차 UNSUBSTANTIATED 여도 여기서 정지한다. 루프 금지.
     }
   }
@@ -558,6 +573,7 @@ async function generateAngle(
     rewriteReason,
     rewriteMode,
     llmCalls,
+    models,
   }
 }
 
@@ -582,8 +598,9 @@ export async function POST(req: Request) {
   if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })
 
   const provider = resolveProvider()
+  // mock 은 키가 필요 없으므로 requiredKey 가 null 이다.
   const requiredKey = requiredKeyFor(provider)
-  if (!process.env[requiredKey]) {
+  if (requiredKey && !process.env[requiredKey]) {
     console.error(`[analyze/angle] ${requiredKey} is not set (provider=${provider})`)
     return NextResponse.json({ error: '분석 엔진이 설정되지 않았습니다.' }, { status: 500 })
   }
@@ -759,6 +776,9 @@ export async function POST(req: Request) {
     status: dryRun ? project.status : 'angled',
     dry_run: dryRun,
     provider,
+    // 실제로 응답을 만든 모델. 폴백이 일어나면 2개 이상이 찍힌다 —
+    // "결과가 달라졌는데 어느 모델이었나"를 사후에 가릴 수 있는 유일한 기록이다.
+    models_used: [...new Set(generated.flatMap(g => g.models))],
     angles_created: anglesCreated,
     elapsed_ms: Date.now() - startedAt,
     llm_calls_total: llmCallsTotal,
@@ -780,6 +800,7 @@ export async function POST(req: Request) {
       ...(g.rewriteReason ? { rewrite_reason: g.rewriteReason } : {}),
       ...(g.rewriteMode ? { rewrite_mode: g.rewriteMode } : {}),
       llm_calls: g.llmCalls,
+      models: g.models,
     })),
   })
 }

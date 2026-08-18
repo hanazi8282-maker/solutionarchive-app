@@ -1,6 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse, after } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import {
+  callLlmWithModel,
+  describeFailure,
+  parseJsonObject,
+  requiredKeyFor,
+  resolveProvider,
+  type LlmProvider,
+} from '@/lib/analysis/llm'
 import {
   ASPECT_LAYERS,
   ATTRIBUTIONS,
@@ -19,30 +26,8 @@ import {
 // 여유가 필요하므로 Fluid compute 상한까지 올린다.
 export const maxDuration = 300
 
-// ── LLM 프로바이더 전환 ──────────────────────────────────────────
-// LLM_PROVIDER=gemini (기본) | anthropic
-// 시스템 프롬프트·기대 JSON 스키마·파싱 로직은 두 프로바이더가 완전히 공유한다.
-// 프로바이더별로 다른 것은 "호출 방식과 텍스트를 꺼내는 방법" 뿐이다.
-type LlmProvider = 'gemini' | 'anthropic'
-
-const DEFAULT_PROVIDER: LlmProvider = 'gemini'
-
-function resolveProvider(): LlmProvider {
-  const raw = (process.env.LLM_PROVIDER ?? '').trim().toLowerCase()
-  if (raw === 'anthropic') return 'anthropic'
-  if (raw === 'gemini') return 'gemini'
-  return DEFAULT_PROVIDER
-}
-
-const ANTHROPIC_MODEL = 'claude-opus-5'
-// gemini-2.5-flash 는 신규 사용자에게 404(no longer available) 를 돌려준다.
-// alias(gemini-flash-latest) 대신 버전 고정 모델을 쓴다.
-// 모델별로 무료 티어 일일 요청 한도가 따로 걸린다(gemini-3.6-flash 는 20건/일).
-// 한도가 소진되면 모델만 바꿔 우회할 수 있어야 하므로 환경변수로 뺀다.
-const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-3.6-flash'
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com'
-
-const MAX_OUTPUT_TOKENS = 32000
+// LLM 프로바이더 전환(gemini/anthropic/mock)·재시도·Gemini 모델 폴백은
+// lib/analysis/llm.ts 가 전담한다. 여기서는 프롬프트 구성과 결과 정규화만 한다.
 
 // 컨텍스트 폭주 방지: 입력 1건당 / 전체 합계 상한
 const MAX_CHARS_PER_INPUT = 8000
@@ -93,23 +78,6 @@ Stage2 — 전체 텍스트를 보고:
     "notes": "이 속성 판단 근거 한 줄" }] }`
 
 // ── 파싱 헬퍼 ────────────────────────────────────────────────────
-/** 코드블록/앞뒤 잡텍스트를 방어하며 JSON 객체를 추출한다. */
-function parseJsonObject(raw: string): Record<string, unknown> {
-  const stripped = raw
-    .trim()
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/```$/, '')
-    .trim()
-  try {
-    return JSON.parse(stripped) as Record<string, unknown>
-  } catch {
-    const start = stripped.indexOf('{')
-    const end = stripped.lastIndexOf('}')
-    if (start === -1 || end <= start) throw new Error('JSON object not found in model output')
-    return JSON.parse(stripped.slice(start, end + 1)) as Record<string, unknown>
-  }
-}
-
 /** 허용된 enum 값이면 그대로, 아니면 null (DB CHECK 위반 방지) */
 function pickEnum<T extends string>(value: unknown, allowed: readonly T[]): T | null {
   return typeof value === 'string' && (allowed as readonly string[]).includes(value)
@@ -132,114 +100,6 @@ function pickText(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const t = value.trim()
   return t ? t : null
-}
-
-// ── 프로바이더별 호출 ────────────────────────────────────────────
-// 두 함수 모두 "모델이 낸 원문 텍스트" 하나만 돌려준다. 이후 파싱은 공유한다.
-
-/** 모델이 요청 자체를 거부했을 때. 502가 아니라 사용자 메시지로 안내한다. */
-class ModelRefusalError extends Error {}
-
-/** 프로바이더가 HTTP 에러를 돌려줬을 때. 402/429(사용량 한도)를 구분하기 위해 상태코드를 보존한다. */
-class ProviderHttpError extends Error {
-  status: number
-  constructor(status: number, message: string) {
-    super(message)
-    this.status = status
-  }
-}
-
-async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
-  // 기본 프로바이더가 gemini 이므로, ANTHROPIC_API_KEY 가 없는 환경에서
-  // 모듈 로드만으로 SDK 생성자가 터지지 않도록 지연 생성한다.
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-  let message
-  try {
-    message = await anthropic.messages
-      .stream({
-        model: ANTHROPIC_MODEL,
-        max_tokens: MAX_OUTPUT_TOKENS,
-        output_config: { effort: 'medium' },
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
-      })
-      .finalMessage()
-  } catch (e) {
-    // SDK 에러의 status 를 보존해 402/429(사용량 한도)를 구분할 수 있게 한다.
-    const status = (e as { status?: number })?.status
-    if (typeof status === 'number') {
-      throw new ProviderHttpError(status, `anthropic ${status}: ${e instanceof Error ? e.message : String(e)}`)
-    }
-    throw e
-  }
-
-  if (message.stop_reason === 'refusal') throw new ModelRefusalError('anthropic refused')
-
-  return message.content
-    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-    .map(b => b.text)
-    .join('')
-    .trim()
-}
-
-// Gemini generateContent 응답 중 우리가 실제로 쓰는 부분만 좁게 타이핑한다.
-type GeminiResponse = {
-  candidates?: {
-    content?: { parts?: { text?: string; thought?: boolean }[] }
-    finishReason?: string
-  }[]
-  promptFeedback?: { blockReason?: string }
-}
-
-async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY as string
-  const url = `${GEMINI_BASE_URL}/v1beta/models/${GEMINI_MODEL}:generateContent`
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': apiKey,
-    },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-      generationConfig: {
-        // JSON 모드 — Anthropic 쪽과 동일한 스키마를 그대로 받는다.
-        responseMimeType: 'application/json',
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
-        temperature: 0,
-      },
-    }),
-  })
-
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '')
-    throw new ProviderHttpError(res.status, `gemini ${res.status}: ${detail.slice(0, 500)}`)
-  }
-
-  const json = (await res.json()) as GeminiResponse
-
-  if (json.promptFeedback?.blockReason) {
-    throw new ModelRefusalError(`gemini blocked: ${json.promptFeedback.blockReason}`)
-  }
-
-  const candidate = json.candidates?.[0]
-  if (candidate?.finishReason === 'SAFETY' || candidate?.finishReason === 'PROHIBITED_CONTENT') {
-    throw new ModelRefusalError(`gemini finishReason: ${candidate.finishReason}`)
-  }
-  if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
-    // MAX_TOKENS 등 — JSON 이 잘렸을 수 있으므로 파싱 실패 원인 추적용으로 남긴다.
-    console.warn('[analyze/extract] gemini finishReason:', candidate.finishReason)
-  }
-
-  // thought 파트(사고 과정)는 본문이 아니므로 제외한다.
-  return (candidate?.content?.parts ?? [])
-    .filter(p => p?.thought !== true && typeof p?.text === 'string')
-    .map(p => p.text as string)
-    .join('')
-    .trim()
 }
 
 // ── 잡 상태 전이 규칙 ────────────────────────────────────────────
@@ -274,15 +134,6 @@ function canStart(
       ? '이미 분석이 끝난 프로젝트입니다. 다시 분석하려면 force 옵션이 필요합니다.'
       : '검수 이후 단계라 재분석할 수 없습니다.',
   }
-}
-
-/** 프로바이더가 돌려준 HTTP 상태로 사용자 문구를 고른다. */
-function describeFailure(e: unknown): string {
-  if (e instanceof ModelRefusalError) return '분석이 거부되었습니다. 입력 내용을 확인해주세요.'
-  if (e instanceof ProviderHttpError && (e.status === 402 || e.status === 429)) {
-    return `사용량 한도를 초과했습니다. (HTTP ${e.status})`
-  }
-  return e instanceof Error ? e.message : String(e)
 }
 
 // ── 백그라운드 추출 본체 ─────────────────────────────────────────
@@ -356,16 +207,15 @@ async function runExtraction(projectId: string, provider: LlmProvider) {
     '위 원문들을 바탕으로 Stage1과 Stage2를 수행하고, 지정된 JSON 형식 하나만 출력해라.',
   ].join('\n')
 
-  // 3. 모델 호출 (프로바이더별로 분기, 이후 처리는 동일)
+  // 3. 모델 호출 (프로바이더 분기·재시도·모델 폴백은 llm.ts 가 처리한다)
   let rawText = ''
   try {
-    rawText =
-      provider === 'gemini'
-        ? await callGemini(SYSTEM_PROMPT, userPrompt)
-        : await callAnthropic(SYSTEM_PROMPT, userPrompt)
-    if (!rawText) throw new Error('empty model output')
+    // 이 결과를 어느 모델이 만들었는지 남긴다. 폴백으로 모델이 바뀌면
+    // 같은 입력에도 결과가 달라지는데, 이 로그가 없으면 사후에 가릴 방법이 없다.
+    const call = await callLlmWithModel(provider, SYSTEM_PROMPT, userPrompt, 'extract')
+    rawText = call.text
     console.log(
-      `[analyze/extract] project=${projectId} provider=${provider} took ${Date.now() - startedAt}ms`,
+      `[analyze/extract] project=${projectId} provider=${provider} model=${call.model} took ${Date.now() - startedAt}ms`,
     )
   } catch (e) {
     return fail(describeFailure(e))
@@ -461,8 +311,9 @@ export async function POST(req: Request) {
   if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })
 
   const provider = resolveProvider()
-  const requiredKey = provider === 'gemini' ? 'GEMINI_API_KEY' : 'ANTHROPIC_API_KEY'
-  if (!process.env[requiredKey]) {
+  // mock 은 키가 필요 없으므로 requiredKey 가 null 이다.
+  const requiredKey = requiredKeyFor(provider)
+  if (requiredKey && !process.env[requiredKey]) {
     console.error(`[analyze/extract] ${requiredKey} is not set (provider=${provider})`)
     return NextResponse.json({ error: '분석 엔진이 설정되지 않았습니다.' }, { status: 500 })
   }

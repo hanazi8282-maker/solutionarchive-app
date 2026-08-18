@@ -26,10 +26,11 @@ type ScoredAspect = { id: string; importance: number | string | null; satisfacti
 
 /**
  * 중요도/만족도 중앙값을 기준으로 각 속성의 사분면을 계산한다.
- *   I >= mI && S >= mS → TABLE_STAKES    (중요·충족)
- *   I >= mI && S <  mS → DIFFERENTIATOR  (중요·미충족 = 소구점 본진)
- *   I <  mI && S >= mS → OVER_INVESTED   (덜 중요·충족)
- *   I <  mI && S <  mS → IGNORE          (덜 중요·미충족)
+ *   I >= mI && S >  mS → TABLE_STAKES    (중요·충족)
+ *   I >= mI && S <= mS → DIFFERENTIATOR  (중요·미충족 = 소구점 본진)
+ *   I <  mI && S >  mS → OVER_INVESTED   (덜 중요·충족)
+ *   I <  mI && S <= mS → IGNORE          (덜 중요·미충족)
+ * 만족도가 중앙값과 같으면 충족으로 보지 않고 기회 쪽(DIFFERENTIATOR/IGNORE)으로 보낸다.
  * 점수가 없는(null) 속성은 분류에서 제외한다 — 중앙값을 왜곡시키기 때문.
  */
 function computeQuadrants(aspects: ScoredAspect[]): Record<string, Quadrant> {
@@ -46,8 +47,8 @@ function computeQuadrants(aspects: ScoredAspect[]): Record<string, Quadrant> {
   for (const a of scored) {
     out[a.id] =
       a.i >= mI
-        ? a.s >= mS ? 'TABLE_STAKES' : 'DIFFERENTIATOR'
-        : a.s >= mS ? 'OVER_INVESTED' : 'IGNORE'
+        ? a.s > mS ? 'TABLE_STAKES' : 'DIFFERENTIATOR'
+        : a.s > mS ? 'OVER_INVESTED' : 'IGNORE'
   }
   return out
 }

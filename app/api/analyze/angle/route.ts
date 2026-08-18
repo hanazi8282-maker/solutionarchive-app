@@ -158,18 +158,13 @@ const SYSTEM_PROMPT = `너는 이커머스 소구점 발굴 파이프라인의 S
 
 ${ANGLE_TYPE_GUIDE}
 
-실증 게이트(중요):
-성능·효능·수치를 주장하는 문구를 쓸 때는 근거 수준을 스스로 판정해라.
-- SUBSTANTIATED: 임상·인체적용시험·인증 등 제시된 근거로 뒷받침되는 주장
-- EXPERIENTIAL: 사용감·경험 서술이라 검증 대상이 아닌 표현
-- UNSUBSTANTIATED: 근거 없이 성능·효능을 단정하는 주장
-성능 주장이 전혀 없으면 EXPERIENTIAL 로 판정해라.
+작성 제약:
+원문에 근거가 없는 효능·결과·변화는 단정하지 마라. 1인칭 경험담 형식으로 우회하는 것도 금지다.
 
 반드시 JSON만 출력해라. 형식:
 { "angle_type": "배정된 유형 또는 허용 후보 중 하나",
   "headline_draft": "산출물 한 줄",
-  "substantiation_verdict": "SUBSTANTIATED|EXPERIENTIAL|UNSUBSTANTIATED",
-  "reason": "판정 근거 한 줄" }`
+  "reason": "이 문구를 만든 근거 한 줄" }`
 
 const REWRITE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 게이트를 통과시키는 편집자다.
 입력으로 받은 문구는 근거 없이 성능·효능을 주장(UNSUBSTANTIATED)한다고 판정됐다.
@@ -181,6 +176,138 @@ const REWRITE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 게이트를
 
 반드시 JSON만 출력해라. 형식:
 { "headline_draft": "다시 쓴 문구 한 줄", "reason": "무엇을 어떻게 바꿨는지 한 줄" }`
+
+// 실증 판정은 writer 가 아니라 이 프롬프트를 쓰는 별도 호출이 담당한다.
+// (writer 가 자기 문구를 스스로 판정하면 "1인칭 경험담이라 검증 대상 아님"으로 면죄부를 준다)
+const JUDGE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 심사자다. 카피를 고치지 마라. 판정만 해라.
+
+판정 분류:
+- SUBSTANTIATED: 임상·인체적용시험·시험성적서·인증 등 원문에 제시된 근거로 뒷받침되는 주장
+- EXPERIENTIAL: 사용감·경험 서술이라 검증 대상이 아닌 표현
+- UNSUBSTANTIATED: 근거 없이 성능·효능·결과를 단정하는 주장
+
+경험담·1인칭 서술 형식으로 포장됐더라도, 효능·결과·변화를 암시하거나 단정하는 내용이면(예: '~가 멈췄다', '~이 좋아졌다') 반드시 UNSUBSTANTIATED로 판정해라. '형식이 경험담이라 검증 대상이 아니다'는 사유는 허용하지 않는다 — 실제 근거(임상·시험 성적서·인증) 유무만으로 판정해라.
+
+반대로 결과·변화·효능을 전혀 암시하지 않는 순수 감각/사용감/취향/형태 서술은 EXPERIENTIAL 이다.
+이런 표현까지 UNSUBSTANTIATED 로 떨어뜨리지 마라 — 과잉 판정도 오판이다.
+
+대조 예시:
+- "머리 감고 나면 개운하다" → EXPERIENTIAL (결과를 주장하지 않는 순수 사용감)
+- "머리 감는 법을 바꿨더니 탈모가 멈추기 시작했습니다" → UNSUBSTANTIATED (1인칭이지만 결과를 단정)
+- "펌프가 한 손으로 눌려서 편하다" → EXPERIENTIAL (형태·사용감 서술)
+- "펌프를 바꿨더니 두피 트러블이 사라졌습니다" → UNSUBSTANTIATED (1인칭이지만 변화를 단정)
+
+SUBSTANTIATED 로 판정하려면 아래 '수집 원문'에서 근거가 되는 문장을 글자 그대로 인용해
+evidence_quote 에 넣어야 한다. 인용할 문장이 없으면 SUBSTANTIATED 는 금지다.
+요약·의역·짜깁기는 인용이 아니다.
+
+반드시 JSON만 출력해라. 형식:
+{ "verdict": "SUBSTANTIATED|EXPERIENTIAL|UNSUBSTANTIATED",
+  "reason": "판정 사유 한 줄",
+  "evidence_quote": "원문에서 그대로 인용한 문장 또는 null" }`
+
+// judge 프롬프트에는 원문(corpus)이 앵글마다 반복 실려나가므로
+// extract 의 상한(8k/120k)을 그대로 쓰면 토큰이 폭증한다. 여기서는 따로 좁게 잡는다.
+const MAX_EVIDENCE_CHARS_PER_INPUT = 3000
+const MAX_EVIDENCE_CHARS_TOTAL = 20000
+
+// 실증 근거(임상·시험성적서·인증)는 리뷰가 아니라 광고/상세페이지에 들어있다.
+// created_at 순으로 넣고 뒤를 자르면 근거가 든 광고가 먼저 잘려 SUBSTANTIATED 가 구조적으로 불가능해진다.
+const EVIDENCE_SOURCE_PRIORITY: Record<string, number> = { ad: 0, detail_page: 1, review: 2 }
+
+type EvidenceInputRow = { source_type: string | null; raw_text: string | null }
+
+/** judge 에 넘길 근거 원문. normalized 는 인용 검증(공백 무시 비교)용 사본. */
+type EvidenceCorpus = { text: string; normalized: string }
+
+/** 연속 공백을 1칸으로 축약 — 모델이 줄바꿈/공백만 다르게 인용해도 통과시키기 위함. */
+function normalizeWhitespace(s: string): string {
+  return s.replace(/\s+/g, ' ').trim()
+}
+
+function buildEvidenceCorpus(inputs: EvidenceInputRow[]): EvidenceCorpus {
+  const sorted = [...inputs].sort(
+    (a, b) =>
+      (EVIDENCE_SOURCE_PRIORITY[a.source_type ?? ''] ?? 99) -
+      (EVIDENCE_SOURCE_PRIORITY[b.source_type ?? ''] ?? 99),
+  )
+
+  const parts: string[] = []
+  let used = 0
+  let truncated = false
+
+  for (let i = 0; i < sorted.length; i++) {
+    const full = String(sorted[i].raw_text ?? '')
+    let text = full.slice(0, MAX_EVIDENCE_CHARS_PER_INPUT)
+    if (text.length < full.length) truncated = true
+
+    const remain = MAX_EVIDENCE_CHARS_TOTAL - used
+    if (remain <= 0) {
+      truncated = true
+      break
+    }
+    if (text.length > remain) {
+      text = text.slice(0, remain)
+      truncated = true
+    }
+
+    used += text.length
+    parts.push(`### 원문 ${i + 1} (source_type: ${sorted[i].source_type ?? '-'})\n${text}`)
+  }
+
+  // 잘렸다는 사실을 알려야 judge 가 "근거 없음"과 "잘림"을 혼동하지 않는다.
+  if (truncated) parts.push('(원문 일부 생략됨)')
+
+  const text = parts.length > 0 ? parts.join('\n\n') : '(수집된 원문 없음)'
+  return { text, normalized: normalizeWhitespace(text) }
+}
+
+// 산출물 유형별로 "소비자 노출물인가"가 다르다. PRODUCT_SPEC 을 광고 주장으로 오인하면 오탐이 난다.
+const OUTPUT_TYPE_JUDGE_NOTE: Record<string, string> = {
+  COPY: '소비자에게 실제로 노출되는 카피 문구다.',
+  OFFER: '소비자에게 제시되는 오퍼(보장·교환·환불 등 거래 조건) 문구다.',
+  BASELINE_SPEC: '광고 문구가 아니라 반드시 충족해야 할 기본 사양 요약이다.',
+  PRODUCT_SPEC:
+    '소비자 노출물이 아니라 내부용 차기 제품 개선 과제 메모다. 광고 주장이 아니므로 과잉 판정하지 마라.',
+}
+
+/**
+ * judge 에게 줄 프롬프트.
+ * writer 의 reason 은 절대 넣지 않는다 — judge 가 writer 의 자기 정당화에 앵커링된다.
+ * 점수(I/S)·사분면도 판정과 무관하므로 뺀다.
+ */
+function buildJudgePrompt(
+  headline: string,
+  aspects: AspectRow[],
+  outputType: OutputType,
+  evidence: EvidenceCorpus,
+): string {
+  const lines = ['## 심사 대상 문구', headline || '(문구 없음)', '', '## 이 문구가 근거로 삼은 속성']
+
+  if (aspects.length === 0) {
+    lines.push('- (연결된 속성 없음)')
+  } else {
+    for (const a of aspects) {
+      lines.push(
+        `- 속성명: ${a.name}`,
+        `  레이어: ${a.aspect_layer ?? '-'}`,
+        `  판단근거: ${a.notes ?? '-'}`,
+      )
+    }
+  }
+
+  lines.push(
+    '',
+    '## 산출물 유형',
+    `- ${outputType}: ${OUTPUT_TYPE_JUDGE_NOTE[outputType] ?? ''}`,
+    '',
+    '## 수집 원문 (근거 후보 전문)',
+    evidence.text,
+    '',
+    '위 원문에 없는 근거를 지어내지 마라. 원문에 임상·시험·인증 언급이 없으면 SUBSTANTIATED 는 불가능하다.',
+  )
+  return lines.join('\n')
+}
 
 function aspectBlock(a: AspectRow): string {
   return [
@@ -222,19 +349,80 @@ function buildUserPrompt(plan: AnglePlan, project: ProjectRow, candidates: Angle
   return head.join('\n')
 }
 
-// ── 앵글 1건 생성 (LLM 2회까지: 생성 → 필요 시 재작성) ───────────
+// ── 앵글 1건 생성 ────────────────────────────────────────────────
+// write → judge → (UNSUBSTANTIATED 면) rewrite → re-judge 에서 정지.
+// 평시 2호출, 최악 4호출. 재차 UNSUBSTANTIATED 여도 루프하지 않는다(비용 폭주 방지).
 type GeneratedAngle = {
   plan: AnglePlan
   angleType: AngleType
   headline: string
+  /** rewrite 전 원문 (rewrite 했을 때만) */
+  headlineOriginal?: string
+  /** 최종(재심사 반영) 판정 */
   verdict: SubstantiationVerdict
-  reason: string
+  /** judge 판정 사유 */
+  verdictReason: string
+  /** SUBSTANTIATED 근거 인용 (코드 검증을 통과한 것만) */
+  evidenceQuote: string | null
+  /** writer 의 작성 근거 — 감사용. judge 에는 넘기지 않는다. */
+  writerReason: string
   rewritten: boolean
   rewriteReason?: string
+  /** 이 앵글에 쓴 LLM 호출 수 */
+  llmCalls: number
+}
+
+type JudgeResult = {
+  verdict: SubstantiationVerdict
+  reason: string
+  evidenceQuote: string | null
 }
 
 function pickEnum<T extends string>(v: unknown, allowed: readonly T[]): T | null {
   return typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : null
+}
+
+/**
+ * 실증 판정 1회. 프롬프트만으로는 막히지 않는 두 가지를 코드로 막는다.
+ *  (A) 인용 환각 — SUBSTANTIATED 인데 인용이 없거나 원문에 없으면 UNSUBSTANTIATED 로 강등
+ *  (B) fail-close — 파싱이 어긋나면 통과(EXPERIENTIAL)가 아니라 UNSUBSTANTIATED
+ */
+async function judgeHeadline(
+  provider: LlmProvider,
+  headline: string,
+  aspects: AspectRow[],
+  outputType: OutputType,
+  evidence: EvidenceCorpus,
+  label: 'angle:judge' | 'angle:rejudge',
+): Promise<JudgeResult> {
+  const parsed = await callLlmJson(
+    provider,
+    JUDGE_SYSTEM_PROMPT,
+    buildJudgePrompt(headline, aspects, outputType, evidence),
+    label,
+  )
+
+  let verdict =
+    pickEnum<SubstantiationVerdict>(parsed.verdict, SUBSTANTIATION_VERDICTS) ?? 'UNSUBSTANTIATED'
+  let reason = typeof parsed.reason === 'string' ? parsed.reason.trim() : ''
+  let quote =
+    typeof parsed.evidence_quote === 'string' && parsed.evidence_quote.trim()
+      ? parsed.evidence_quote.trim()
+      : null
+
+  if (verdict === 'SUBSTANTIATED') {
+    const needle = normalizeWhitespace(quote ?? '')
+    if (!needle || !evidence.normalized.includes(needle)) {
+      console.warn(
+        `[analyze/angle] ${label}: SUBSTANTIATED 강등 — ${needle ? '인용이 원문에 없음' : '인용 없음'} quote=${JSON.stringify((quote ?? '').slice(0, 120))}`,
+      )
+      verdict = 'UNSUBSTANTIATED'
+      reason = `${reason || '(사유 없음)'} / 코드검증: 원문 인용이 확인되지 않아 강등`
+      quote = null
+    }
+  }
+
+  return { verdict, reason, evidenceQuote: verdict === 'SUBSTANTIATED' ? quote : null }
 }
 
 async function generateAngle(
@@ -242,6 +430,7 @@ async function generateAngle(
   plan: AnglePlan,
   project: ProjectRow,
   aspectsById: Map<string, AspectRow>,
+  evidence: EvidenceCorpus,
 ): Promise<GeneratedAngle> {
   // 규칙으로 확정된 유형은 후보를 1개로 고정하고, 4순위(기본값)일 때만 성숙도 후보군을 준다.
   const candidates = plan.rule.startsWith('4순위')
@@ -251,19 +440,24 @@ async function generateAngle(
   const target = plan.groupedAspects ?? (plan.aspectId ? [aspectsById.get(plan.aspectId)!] : [])
   const userPrompt = buildUserPrompt({ ...plan, groupedAspects: target }, project, candidates)
 
+  let llmCalls = 0
   const parsed = await callLlmJson(provider, SYSTEM_PROMPT, userPrompt, 'angle:generate')
+  llmCalls++
 
   const angleType = pickEnum<AngleType>(parsed.angle_type, ANGLE_TYPES) ?? plan.angleType
   let headline = typeof parsed.headline_draft === 'string' ? parsed.headline_draft.trim() : ''
-  const verdict =
-    pickEnum<SubstantiationVerdict>(parsed.substantiation_verdict, SUBSTANTIATION_VERDICTS) ??
-    'EXPERIENTIAL'
-  const reason = typeof parsed.reason === 'string' ? parsed.reason.trim() : ''
+  const writerReason = typeof parsed.reason === 'string' ? parsed.reason.trim() : ''
+
+  // 판정 권한은 writer 에 없다. 별도 judge 호출이 원문 근거만 보고 판정한다.
+  let judged = await judgeHeadline(provider, headline, target, plan.outputType, evidence, 'angle:judge')
+  llmCalls++
 
   // 실증 게이트: 근거 없는 성능 주장이면 성능 주장을 빼고 불안 해소 장치로 다시 쓴다.
   let rewritten = false
   let rewriteReason: string | undefined
-  if (verdict === 'UNSUBSTANTIATED') {
+  let headlineOriginal: string | undefined
+
+  if (judged.verdict === 'UNSUBSTANTIATED') {
     const rw = await callLlmJson(
       provider,
       REWRITE_SYSTEM_PROMPT,
@@ -272,22 +466,43 @@ async function generateAngle(
         headline,
         '',
         `## 판정 사유`,
-        reason || '(없음)',
+        judged.reason || '(없음)',
         '',
         `## 맥락`,
         userPrompt,
       ].join('\n'),
       'angle:rewrite',
     )
+    llmCalls++
+
     const newHeadline = typeof rw.headline_draft === 'string' ? rw.headline_draft.trim() : ''
     if (newHeadline) {
+      headlineOriginal = headline
       headline = newHeadline
       rewritten = true
       rewriteReason = typeof rw.reason === 'string' ? rw.reason.trim() : ''
+
+      // 재심사. 이걸 안 하면 성능 주장을 걷어낸 안전한 문구에
+      // "근거 없는 효능 주장" 라벨이 그대로 붙어 저장된다(정합성 버그).
+      judged = await judgeHeadline(provider, headline, target, plan.outputType, evidence, 'angle:rejudge')
+      llmCalls++
+      // 재차 UNSUBSTANTIATED 여도 여기서 정지한다. 루프 금지.
     }
   }
 
-  return { plan, angleType, headline, verdict, reason, rewritten, rewriteReason }
+  return {
+    plan,
+    angleType,
+    headline,
+    headlineOriginal,
+    verdict: judged.verdict,
+    verdictReason: judged.reason,
+    evidenceQuote: judged.evidenceQuote,
+    writerReason,
+    rewritten,
+    rewriteReason,
+    llmCalls,
+  }
 }
 
 /** 동시 실행 상한을 두고 순서를 보존하며 처리한다. */
@@ -322,6 +537,9 @@ export async function POST(req: Request) {
   if (!projectId) {
     return NextResponse.json({ error: '프로젝트 정보가 없습니다.' }, { status: 400 })
   }
+  // 프롬프트를 여러 번 돌려보려면 기존 앵글이 남아 있어야 비교 기준선이 생긴다.
+  // dry_run 이면 DELETE/INSERT/status 전환을 전부 건너뛰고 생성 결과만 돌려준다.
+  const dryRun = body?.dry_run === true
 
   const { data: project, error: projectError } = await supabase
     .from('analysis_projects')
@@ -357,6 +575,19 @@ export async function POST(req: Request) {
   }
 
   const aspectsById = new Map(list.map(a => [a.id, a]))
+
+  // judge 가 볼 근거 원문. 앵글마다 재조회하면 N배 DB 왕복이라 요청당 1회만 읽는다.
+  const { data: rawInputs, error: inputsError } = await supabase
+    .from('analysis_inputs')
+    .select('source_type, raw_text')
+    .eq('project_id', projectId)
+    .returns<EvidenceInputRow[]>()
+
+  if (inputsError) {
+    console.error('[analyze/angle] inputs fetch error:', inputsError.message)
+    return NextResponse.json({ error: '수집 원문 조회 실패' }, { status: 500 })
+  }
+  const evidence = buildEvidenceCorpus(rawInputs ?? [])
 
   // 1. 설계도 확정 (LLM 호출 전에 코드가 규칙으로 결정)
   const plans: AnglePlan[] = []
@@ -405,58 +636,69 @@ export async function POST(req: Request) {
   let generated: GeneratedAngle[]
   try {
     generated = await mapWithLimit(plans, CONCURRENCY, p =>
-      generateAngle(provider, p, project, aspectsById),
+      generateAngle(provider, p, project, aspectsById, evidence),
     )
   } catch (e) {
     const detail = describeFailure(e)
     console.error(`[analyze/angle] project=${projectId} generation failed: ${detail}`)
     return NextResponse.json({ error: `앵글 생성에 실패했습니다: ${detail}` }, { status: 502 })
   }
+  const llmCallsTotal = generated.reduce((sum, g) => sum + g.llmCalls, 0)
   console.log(
-    `[analyze/angle] project=${projectId} provider=${provider} ${plans.length}건 ${Date.now() - startedAt}ms`,
+    `[analyze/angle] project=${projectId} provider=${provider} ${plans.length}건 llm=${llmCallsTotal}회 ${Date.now() - startedAt}ms${dryRun ? ' (dry_run)' : ''}`,
   )
 
   // 4. 기존 앵글 교체 후 저장 (재실행 시 중복 누적 방지)
-  const { error: deleteError } = await supabase
-    .from('analysis_angles')
-    .delete()
-    .eq('project_id', projectId)
-  if (deleteError) {
-    return NextResponse.json({ error: `기존 앵글 삭제 실패: ${deleteError.message}` }, { status: 500 })
+  //    dry_run 이면 여기 전체를 건너뛴다 — 기존 앵글이 기준선으로 남아야 비교가 된다.
+  let anglesCreated = 0
+
+  if (!dryRun) {
+    const { error: deleteError } = await supabase
+      .from('analysis_angles')
+      .delete()
+      .eq('project_id', projectId)
+    if (deleteError) {
+      return NextResponse.json({ error: `기존 앵글 삭제 실패: ${deleteError.message}` }, { status: 500 })
+    }
+
+    const rows = generated.map(g => ({
+      project_id: projectId,
+      aspect_id: g.plan.aspectId,
+      angle_type: g.angleType,
+      output_type: g.plan.outputType,
+      headline_draft: g.headline || null,
+      // 재심사까지 마친 최종 판정을 저장한다.
+      substantiation_verdict: g.verdict,
+    }))
+
+    const { data: inserted, error: insertError } = await supabase
+      .from('analysis_angles')
+      .insert(rows)
+      .select('id')
+
+    if (insertError) {
+      return NextResponse.json({ error: `앵글 저장 실패: ${insertError.message}` }, { status: 500 })
+    }
+    anglesCreated = inserted?.length ?? 0
+
+    const { error: statusError } = await supabase
+      .from('analysis_projects')
+      .update({ status: 'angled' })
+      .eq('id', projectId)
+
+    if (statusError) {
+      return NextResponse.json({ error: `상태 변경 실패: ${statusError.message}` }, { status: 500 })
+    }
   }
 
-  const rows = generated.map(g => ({
-    project_id: projectId,
-    aspect_id: g.plan.aspectId,
-    angle_type: g.angleType,
-    output_type: g.plan.outputType,
-    headline_draft: g.headline || null,
-    substantiation_verdict: g.verdict,
-  }))
-
-  const { data: inserted, error: insertError } = await supabase
-    .from('analysis_angles')
-    .insert(rows)
-    .select('id')
-
-  if (insertError) {
-    return NextResponse.json({ error: `앵글 저장 실패: ${insertError.message}` }, { status: 500 })
-  }
-
-  const { error: statusError } = await supabase
-    .from('analysis_projects')
-    .update({ status: 'angled' })
-    .eq('id', projectId)
-
-  if (statusError) {
-    return NextResponse.json({ error: `상태 변경 실패: ${statusError.message}` }, { status: 500 })
-  }
-
+  // DB 에는 verdict 만 남으므로, 판정 사유·인용·재작성 이력은 이 응답이 유일한 감사 경로다.
   return NextResponse.json({
-    status: 'angled',
+    status: dryRun ? project.status : 'angled',
+    dry_run: dryRun,
     provider,
-    angles_created: inserted?.length ?? 0,
+    angles_created: anglesCreated,
     elapsed_ms: Date.now() - startedAt,
+    llm_calls_total: llmCallsTotal,
     gate_rewritten: generated.filter(g => g.rewritten).length,
     skipped_for_product_spec: skipped.map(s => s.aspect.name),
     angles: generated.map(g => ({
@@ -466,10 +708,14 @@ export async function POST(req: Request) {
       output_type: g.plan.outputType,
       rule: g.plan.rule,
       headline_draft: g.headline,
+      ...(g.headlineOriginal ? { headline_original: g.headlineOriginal } : {}),
       substantiation_verdict: g.verdict,
-      reason: g.reason,
+      verdict_reason: g.verdictReason,
+      evidence_quote: g.evidenceQuote,
+      reason: g.writerReason,
       rewritten: g.rewritten,
       ...(g.rewriteReason ? { rewrite_reason: g.rewriteReason } : {}),
+      llm_calls: g.llmCalls,
     })),
   })
 }

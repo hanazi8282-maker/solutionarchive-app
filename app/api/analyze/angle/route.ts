@@ -669,6 +669,13 @@ export async function POST(req: Request) {
       headline_draft: g.headline || null,
       // 재심사까지 마친 최종 판정을 저장한다.
       substantiation_verdict: g.verdict,
+      // 판정 근거 — 응답에만 있으면 요청이 끝나는 순간 사라져 사후 추적이 불가능하다.
+      substantiation_reason: g.verdictReason || null,
+      // 코드 검증(원문 포함 여부)을 통과한 인용만 들어온다. 아니면 이미 null 이다.
+      substantiation_evidence: g.evidenceQuote,
+      // 재작성이 없었으면 undefined 이므로 null 로 눕힌다.
+      headline_original: g.headlineOriginal ?? null,
+      gate_rewritten: g.rewritten,
     }))
 
     const { data: inserted, error: insertError } = await supabase

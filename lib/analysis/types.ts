@@ -82,3 +82,51 @@ export type AnalysisInput = {
   raw_text: string
   created_at: string | null
 }
+
+export const ANGLE_TYPE_LABELS: Record<AngleType, string> = {
+  PAS:            '문제-자극-해결',
+  MECHANISM:      '고유 메커니즘',
+  COMPARISON:     '직접 비교',
+  SOCIAL_PROOF:   '사회적 증거',
+  FEAR_FOMO:      '공포·FOMO',
+  ASPIRATION:     '열망 변신',
+  REATTRIBUTION:  '귀책 전가',
+  SELF_SELECTION: '자기 선택',
+}
+
+export const OUTPUT_TYPE_LABELS: Record<OutputType, string> = {
+  COPY:          '카피',
+  STRUCTURE:     '구성안',
+  OFFER:         '오퍼',
+  PRODUCT_SPEC:  '제품 개선 메모',
+  BASELINE_SPEC: '기본기 메모',
+}
+
+// 소비자에게 그대로 노출되는 산출물인지, 내부 검토용 메모인지.
+// 화면에서 이 둘을 절대 헷갈리면 안 되므로 시각 처리의 분기 기준이 된다.
+export const INTERNAL_OUTPUT_TYPES: OutputType[] = ['PRODUCT_SPEC', 'BASELINE_SPEC']
+
+export function isInternalOutput(t: OutputType | null): boolean {
+  return t !== null && INTERNAL_OUTPUT_TYPES.includes(t)
+}
+
+export const SUBSTANTIATION_VERDICT_LABELS: Record<SubstantiationVerdict, string> = {
+  SUBSTANTIATED:   '근거 있음',
+  EXPERIENTIAL:    '체험 기반',
+  UNSUBSTANTIATED: '근거 없음 · 순화됨',
+}
+
+export const PERSONA_ROLE_LABELS: Record<PersonaRole, string> = {
+  BUYER:      '구매자',
+  USER:       '사용자',
+  PAYER:      '결제자',
+  INFLUENCER: '영향자',
+}
+
+// QUADRANT_LABELS 는 검수 화면용 설명문이라 길다. 배지에는 이 짧은 쪽을 쓴다.
+export const QUADRANT_SHORT_LABELS: Record<Quadrant, string> = {
+  TABLE_STAKES:   '기본기',
+  DIFFERENTIATOR: '차별화 기회',
+  OVER_INVESTED:  '과잉투자',
+  IGNORE:         '무시',
+}

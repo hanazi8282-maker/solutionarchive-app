@@ -817,7 +817,7 @@ export async function GET(req: Request) {
 
   const { data: project, error: projectError } = await supabase
     .from('analysis_projects')
-    .select('id, status, purpose, maturity_stage')
+    .select('id, status, purpose, maturity_stage, competitor_url, product_elevator_pitch')
     .eq('id', projectId)
     .single()
 
@@ -825,9 +825,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: '프로젝트를 찾을 수 없습니다.' }, { status: 404 })
   }
 
+  // 실증 게이트 흔적(gate_rewritten/headline_original/substantiation_reason)까지 함께
+  // 내려준다. 결과 화면이 재작성 이력을 펼쳐 보여주려면 이 4개 컬럼이 필요하다.
   const { data: angles, error } = await supabase
     .from('analysis_angles')
-    .select('id, aspect_id, angle_type, output_type, headline_draft, substantiation_verdict, created_at')
+    .select('id, aspect_id, angle_type, output_type, headline_draft, substantiation_verdict, substantiation_reason, substantiation_evidence, headline_original, gate_rewritten, created_at')
     .eq('project_id', projectId)
     .order('created_at', { ascending: true })
 
@@ -835,19 +837,34 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: '앵글 조회 실패' }, { status: 500 })
   }
 
-  // 앵글에 붙은 속성 이름을 같이 돌려준다 (화면에서 바로 쓰기 위함)
+  // 사분면·페르소나·인지시점은 analysis_angles 가 아니라 analysis_aspects 에만 있다.
+  // 화면이 배지로 표시하려면 조인해서 내려줘야 한다.
   const { data: aspects } = await supabase
     .from('analysis_aspects')
-    .select('id, name, quadrant')
+    .select('id, name, quadrant, persona_role, pain_timing, attribution, opportunity_score')
     .eq('project_id', projectId)
-  const nameById = new Map((aspects ?? []).map(a => [a.id, a.name]))
+  const aspectById = new Map((aspects ?? []).map(a => [a.id, a]))
 
   return NextResponse.json({
     project,
-    angles: (angles ?? []).map(a => ({
-      ...a,
-      aspect_name: a.aspect_id ? (nameById.get(a.aspect_id) ?? null) : null,
-    })),
+    angles: (angles ?? []).map(a => {
+      const aspect = a.aspect_id ? (aspectById.get(a.aspect_id) ?? null) : null
+      return {
+        ...a,
+        aspect_name: aspect?.name ?? null,
+        aspect_quadrant: aspect?.quadrant ?? null,
+        aspect_persona_role: aspect?.persona_role ?? null,
+        aspect_pain_timing: aspect?.pain_timing ?? null,
+        aspect_attribution: aspect?.attribution ?? null,
+        aspect_opportunity_score: aspect?.opportunity_score ?? null,
+      }
+    }),
+    // TABLE_STAKES 는 앵글로 개별 생성되지 않고 BASELINE_SPEC 1건으로 묶이면서
+    // aspect_id 가 null 이 된다(POST 핸들러 참조). 그래서 "무엇이 기본기인지"는
+    // 앵글이 아니라 속성 쪽에서 직접 가져와야 화면에 그릴 수 있다.
+    table_stakes_aspects: (aspects ?? [])
+      .filter(a => a.quadrant === 'TABLE_STAKES')
+      .sort((x, y) => Number(y.opportunity_score ?? 0) - Number(x.opportunity_score ?? 0)),
     count: angles?.length ?? 0,
   })
 }

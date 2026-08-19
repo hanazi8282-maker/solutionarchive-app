@@ -89,6 +89,7 @@ export default function AnalyzeReviewPage() {
   const [aspects, setAspects] = useState<AspectRow[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -158,8 +159,33 @@ export default function AnalyzeReviewPage() {
     }
   }
 
+  // 앵글 생성은 검수가 끝난(reviewed) 프로젝트에서만 시작할 수 있다.
+  // 성공하면 서버가 status 를 'angled' 로 올리므로 결과 화면으로 넘긴다.
+  async function generateAngles() {
+    setGenerating(true); setError(''); setNotice('')
+    try {
+      const res = await fetch('/api/analyze/angle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error ?? '앵글 생성에 실패했습니다.')
+        return
+      }
+      window.location.href = `/analyze/${projectId}/angles`
+    } catch {
+      setError('네트워크 오류가 발생했습니다.')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   const confirmedCount = aspects.filter(a => a.human_confirmed).length
   const reviewable = project ? REVIEWABLE.includes(project.status) : false
+  const canGenerateAngles = project?.status === 'reviewed'
+  const hasAngles = project ? ['angled', 'done'].includes(project.status) : false
 
   if (loading) {
     return <main className="mx-auto max-w-5xl p-8"><p className="text-sm">불러오는 중...</p></main>
@@ -351,6 +377,32 @@ export default function AnalyzeReviewPage() {
             : confirmedCount === aspects.length
               ? "저장하면 상태가 'reviewed' 로 바뀝니다."
               : `아직 ${aspects.length - confirmedCount}개가 미확인입니다. 전부 확인해야 'reviewed' 로 넘어갑니다.`}
+        </p>
+      </section>
+
+      {/* ── 앵글 생성 (Stage4) ─────────────────────────────────── */}
+      <section className="space-y-1 border-t pt-6">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="border rounded px-4 py-2 text-sm disabled:opacity-50"
+            onClick={generateAngles}
+            disabled={generating || !canGenerateAngles}
+          >
+            {generating ? '앵글 생성 중... (1~2분)' : '앵글 생성'}
+          </button>
+          {hasAngles && (
+            <a className="border rounded px-4 py-2 text-sm" href={`/analyze/${projectId}/angles`}>
+              앵글 결과 보기
+            </a>
+          )}
+        </div>
+        <p className="text-sm text-gray-500">
+          {canGenerateAngles
+            ? '차별화 속성별로 카피 초안을 만들고 실증 게이트를 통과시킵니다. 기존 앵글은 교체됩니다.'
+            : hasAngles
+              ? '이미 앵글이 생성된 프로젝트입니다. 다시 만들려면 검수를 저장해 reviewed 로 되돌리세요.'
+              : `앵글 생성은 검수 완료(reviewed) 상태에서만 가능합니다. 현재 상태는 '${project?.status ?? '-'}' 입니다.`}
         </p>
       </section>
     </main>

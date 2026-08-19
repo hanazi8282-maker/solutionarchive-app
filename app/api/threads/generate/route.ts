@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
 import fs from 'fs'
 import path from 'path'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // ── 파일 읽기 헬퍼 ────────────────────────────────────────────────
 function readFile(filePath: string): string {
@@ -91,6 +85,17 @@ export async function POST(req: Request) {
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = await createClient()
+  if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })
+
+  // Anthropic SDK 는 키가 없으면 생성자에서 던진다. 모듈 최상위에 두면
+  // 빌드의 page-data 수집 단계에서 터지므로 핸들러 안에서 만든다.
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  if (!anthropicKey) {
+    return NextResponse.json({ error: '생성 엔진이 설정되지 않았습니다.' }, { status: 500 })
+  }
+  const anthropic = new Anthropic({ apiKey: anthropicKey })
 
   // ── 1. 코퍼스 청크 ──────────────────────────────────────────────
   const chunk = pickCorpusChunk()

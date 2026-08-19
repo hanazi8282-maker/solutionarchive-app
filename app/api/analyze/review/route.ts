@@ -147,9 +147,24 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: message, status: current.status }, { status: 409 })
   }
 
-  // 0-1. 기존 reviewed_at 을 먼저 읽어둔다.
-  //   reviewed_at 은 "사람이 처음 확인 표시한 시각"이라 재저장 때마다 갱신되면
-  //   의미가 없어진다. 이미 값이 있으면 그대로 두고, 없을 때만 지금 시각을 넣는다.
+  // 0-1. 쓰기 전에 이 프로젝트의 속성을 한 번만 읽어 두 가지를 한꺼번에 해결한다.
+  //   (a) 소유 검증 — payload 의 id 가 정말 이 프로젝트의 속성인가
+  //   (b) 기존 reviewed_at — 최초 1회만 기록하기 위해 원래 값이 필요하다
+  //   같은 조건(project_id)의 같은 테이블이라 조회를 나눌 이유가 없다.
+  //
+  //   (a) 가 필요한 이유: UPDATE ... WHERE id=? AND project_id=? 는 대상이 없어도
+  //   에러가 아니라 0행이다. 그래서 예전에는 존재하지 않는 id 를 보내도 200 이
+  //   나가고 아무것도 저장되지 않았다 — 클라이언트는 저장에 성공했다고 믿었다.
+  //
+  //   가장 흔한 실제 시나리오: 검수 화면을 열어둔 채 누군가 재추출을 돌리면
+  //   기존 aspects 가 삭제되고 새 id 로 다시 생기는데(extract 의 delete→insert),
+  //   화면에 남은 옛 id 로 저장하면 전부 조용히 사라진다.
+  //
+  //   루프 안에서 걸러내면 앞쪽 속성은 이미 쓰인 뒤라 부분 저장이 남는다.
+  //   요청 전체를 실패로 처리하려면 한 건도 쓰기 전에 판정해야 한다.
+  //
+  //   (b) 가 필요한 이유: reviewed_at 은 "사람이 처음 확인 표시한 시각"이라
+  //   재저장 때마다 갱신되면 의미가 없어진다. 이미 값이 있으면 그대로 둔다.
   const { data: existing, error: existingError } = await supabase
     .from('analysis_aspects')
     .select('id, reviewed_at')
@@ -159,17 +174,42 @@ export async function PUT(req: Request) {
     console.error('[analyze/review] existing aspects fetch error:', existingError.message)
     return NextResponse.json({ error: '속성 조회에 실패했습니다.' }, { status: 500 })
   }
-  const reviewedAtById = new Map((existing ?? []).map(a => [a.id, a.reviewed_at as string | null]))
+  // 이 Map 하나가 소유 목록이자 reviewed_at 원본이다 — has() 가 곧 소유 확인.
+  const reviewedAtById = new Map(
+    (existing ?? []).map(a => [a.id as string, a.reviewed_at as string | null]),
+  )
   const now = new Date().toISOString()
 
-  // 1. 속성별 갱신 (opportunity_score 는 generated 컬럼이라 payload 에 넣지 않는다)
-  //    llm_* 는 절대 payload 에 넣지 않는다 — 그게 원본 보존의 전부다.
+  const unknownIds: string[] = []
   for (const item of rawAspects) {
     const a = (item ?? {}) as Record<string, unknown>
     const id = typeof a.id === 'string' ? a.id : ''
     if (!id) {
       return NextResponse.json({ error: '속성 id가 없습니다.' }, { status: 400 })
     }
+    if (!reviewedAtById.has(id)) unknownIds.push(id)
+  }
+
+  if (unknownIds.length > 0) {
+    console.error(
+      `[analyze/review] unknown aspect ids for project=${projectId}: ${unknownIds.join(', ')}`,
+    )
+    return NextResponse.json(
+      {
+        error:
+          `이 프로젝트에 없는 속성 ${unknownIds.length}건이 포함돼 저장을 중단했습니다. ` +
+          '화면을 새로고침한 뒤 다시 시도해주세요. (재분석으로 속성이 교체되면 발생합니다)',
+        unknown_aspect_ids: unknownIds,
+      },
+      { status: 409 },
+    )
+  }
+
+  // 1. 속성별 갱신 (opportunity_score 는 generated 컬럼이라 payload 에 넣지 않는다)
+  //    llm_* 는 절대 payload 에 넣지 않는다 — 그게 원본 보존의 전부다.
+  for (const item of rawAspects) {
+    const a = (item ?? {}) as Record<string, unknown>
+    const id = a.id as string
 
     const name = typeof a.name === 'string' ? a.name.trim() : ''
     if (!name) {
@@ -178,7 +218,7 @@ export async function PUT(req: Request) {
 
     const confirmed = a.human_confirmed === true
 
-    const { error } = await supabase
+    const { data: updatedRows, error } = await supabase
       .from('analysis_aspects')
       .update({
         name,
@@ -196,10 +236,27 @@ export async function PUT(req: Request) {
       })
       .eq('id', id)
       .eq('project_id', projectId) // 다른 프로젝트의 속성을 건드리지 못하게 잠근다
+      .select('id') // 실제로 몇 행이 바뀌었는지 확인하려면 반환을 받아야 한다
 
     if (error) {
       console.error('[analyze/review] aspect update error:', error.message)
       return NextResponse.json({ error: '속성 저장에 실패했습니다.' }, { status: 500 })
+    }
+
+    // 위에서 선검증을 했는데도 0행이면, 검증과 이 UPDATE 사이에 행이 사라진 것이다
+    // (동시에 돌아간 재추출의 delete). 조용히 넘기면 그 속성만 저장 안 된 채
+    // 성공 응답이 나가므로 여기서 끊는다.
+    if (!updatedRows || updatedRows.length === 0) {
+      console.error(`[analyze/review] zero-row update: project=${projectId} aspect=${id}`)
+      return NextResponse.json(
+        {
+          error:
+            '저장 도중 속성이 삭제됐습니다. 다른 곳에서 재분석이 실행됐을 수 있습니다. ' +
+            '화면을 새로고침한 뒤 다시 시도해주세요.',
+          aspect_id: id,
+        },
+        { status: 409 },
+      )
     }
   }
 

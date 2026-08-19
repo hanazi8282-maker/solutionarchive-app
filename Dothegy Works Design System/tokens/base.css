@@ -1,0 +1,49 @@
+/* ============================================================
+   Dothegy Works — base element styles & a few shared utilities.
+   Tokens live in tokens/*.css; this file styles the document
+   shell so cards, specimens and kits get the right defaults.
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  color: var(--text-body);
+  background: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background var(--dur-base) var(--ease-standard), color var(--dur-base) var(--ease-standard);
+}
+
+/* Tell the UA which scheme is active so form controls/scrollbars match */
+:root { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }
+
+/* Tabular figures everywhere numbers matter by default */
+.dgy-tnum { font-variant-numeric: tabular-nums; }
+.dgy-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Section caps label used in sidebar + table headers */
+.dgy-caps {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+a { color: var(--text-link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
+}

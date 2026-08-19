@@ -242,23 +242,48 @@ async function runExtraction(projectId: string, provider: LlmProvider) {
       const a = (item ?? {}) as Record<string, unknown>
       const name = pickText(a.name)
       if (!name) return null
+
+      // 정규화는 한 번만 하고 실제 컬럼과 llm_* 에 같은 값을 넣는다.
+      // pickEnum/pickScore 를 두 번 부르면 나중에 한쪽 인자만 바뀌었을 때
+      // 원본과 실제값이 조용히 어긋난다 — 그 순간 diff 는 거짓말을 시작한다.
+      const aspectLayer = pickEnum<AspectLayer>(a.aspect_layer, ASPECT_LAYERS)
+      const importance = pickScore(a.importance)
+      const satisfaction = pickScore(a.satisfaction)
+      const attribution = pickEnum<Attribution>(a.attribution, ATTRIBUTIONS)
+      const painTiming = pickEnum<PainTiming>(a.pain_timing, PAIN_TIMINGS)
+      const personaRole = pickEnum<PersonaRole>(a.persona_role, PERSONA_ROLES)
+      const proxyConsumption = pickBool(a.proxy_consumption)
+      const isSegmentationAxis = pickBool(a.is_segmentation_axis)
+
       return {
         project_id: projectId,
         name,
-        aspect_layer: pickEnum<AspectLayer>(a.aspect_layer, ASPECT_LAYERS),
-        importance: pickScore(a.importance),
-        satisfaction: pickScore(a.satisfaction),
-        attribution: pickEnum<Attribution>(a.attribution, ATTRIBUTIONS),
-        pain_timing: pickEnum<PainTiming>(a.pain_timing, PAIN_TIMINGS),
-        persona_role: pickEnum<PersonaRole>(a.persona_role, PERSONA_ROLES),
-        proxy_consumption: pickBool(a.proxy_consumption),
-        is_segmentation_axis: pickBool(a.is_segmentation_axis),
+        aspect_layer: aspectLayer,
+        importance,
+        satisfaction,
+        attribution,
+        pain_timing: painTiming,
+        persona_role: personaRole,
+        proxy_consumption: proxyConsumption,
+        is_segmentation_axis: isSegmentationAxis,
         value_realization_frequency: pickEnum<ValueRealizationFrequency>(
           a.value_realization_frequency,
           VALUE_REALIZATION_FREQUENCIES,
         ),
         human_confirmed: false, // 사람 검수 전
         notes: pickText(a.notes),
+
+        // ── LLM 원본 스냅샷 ──────────────────────────────────────
+        // 검수 PUT 은 이 컬럼들을 payload 에 넣지 않으므로, 사람이 위쪽 실제
+        // 컬럼을 고쳐도 여기 값은 추출 당시 그대로 남는다. 이 쌍이 교정 diff 다.
+        llm_aspect_layer: aspectLayer,
+        llm_importance: importance,
+        llm_satisfaction: satisfaction,
+        llm_attribution: attribution,
+        llm_pain_timing: painTiming,
+        llm_persona_role: personaRole,
+        llm_proxy_consumption: proxyConsumption,
+        llm_is_segmentation_axis: isSegmentationAxis,
       }
     })
     .filter((r): r is NonNullable<typeof r> => r !== null)

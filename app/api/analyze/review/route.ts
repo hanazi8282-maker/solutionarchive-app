@@ -147,7 +147,23 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: message, status: current.status }, { status: 409 })
   }
 
+  // 0-1. 기존 reviewed_at 을 먼저 읽어둔다.
+  //   reviewed_at 은 "사람이 처음 확인 표시한 시각"이라 재저장 때마다 갱신되면
+  //   의미가 없어진다. 이미 값이 있으면 그대로 두고, 없을 때만 지금 시각을 넣는다.
+  const { data: existing, error: existingError } = await supabase
+    .from('analysis_aspects')
+    .select('id, reviewed_at')
+    .eq('project_id', projectId)
+
+  if (existingError) {
+    console.error('[analyze/review] existing aspects fetch error:', existingError.message)
+    return NextResponse.json({ error: '속성 조회에 실패했습니다.' }, { status: 500 })
+  }
+  const reviewedAtById = new Map((existing ?? []).map(a => [a.id, a.reviewed_at as string | null]))
+  const now = new Date().toISOString()
+
   // 1. 속성별 갱신 (opportunity_score 는 generated 컬럼이라 payload 에 넣지 않는다)
+  //    llm_* 는 절대 payload 에 넣지 않는다 — 그게 원본 보존의 전부다.
   for (const item of rawAspects) {
     const a = (item ?? {}) as Record<string, unknown>
     const id = typeof a.id === 'string' ? a.id : ''
@@ -160,6 +176,8 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: '속성 이름은 비울 수 없습니다.' }, { status: 400 })
     }
 
+    const confirmed = a.human_confirmed === true
+
     const { error } = await supabase
       .from('analysis_aspects')
       .update({
@@ -169,7 +187,11 @@ export async function PUT(req: Request) {
         satisfaction: pickScore(a.satisfaction),
         attribution: pickEnum<Attribution>(a.attribution, ATTRIBUTIONS),
         pain_timing: pickEnum<PainTiming>(a.pain_timing, PAIN_TIMINGS),
-        human_confirmed: a.human_confirmed === true,
+        human_confirmed: confirmed,
+        // 확인 표시된 속성에만, 그것도 최초 1회만 시각을 남긴다.
+        // 확인을 해제해도 지우지 않는다 — "언제 사람 손을 탔는가"의 기록이라
+        // 되돌린 사실 자체는 지워질 이유가 없다.
+        reviewed_at: confirmed ? (reviewedAtById.get(id) ?? now) : reviewedAtById.get(id) ?? null,
         notes: typeof a.notes === 'string' && a.notes.trim() ? a.notes.trim() : null,
       })
       .eq('id', id)

@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
 import { fetchInsights } from '@/lib/threads/insights'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export async function GET(req: Request) { return POST(req) }
 
@@ -14,6 +9,9 @@ export async function POST(req: Request) {
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = await createClient()
+  if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })
 
   const token = process.env.THREADS_ACCESS_TOKEN!
 

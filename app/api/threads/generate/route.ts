@@ -1,3 +1,15 @@
+// ⚠️ 크론에서 의도적으로 제외됨 — 되돌리기 전에 읽을 것.
+//
+// 이 라우트는 지금 두 가지가 모두 없어서 크론에 걸면 매일 500 만 낸다(실측 확인함):
+//   1. ANTHROPIC_API_KEY 미설정 → 아래 가드에서 즉시 500 ("생성 엔진이 설정되지 않았습니다")
+//   2. 결과를 INSERT 할 thread_posts 테이블이 이 프로젝트의 Supabase 에 없음
+//      (키를 넣어도 그다음 INSERT 에서 다시 500)
+//   덧붙여 content/corpus/ 디렉터리도 없어 코퍼스 청크가 항상 비어 있다.
+// 위 셋이 갖춰지면 vercel.json 에 다시 추가한다: "30 11 * * *" (20:30 KST).
+//
+// vercel.json 은 순수 JSON 이라 주석을 못 넣는다(주석·미지원 키 모두 배포를 깨뜨림).
+// 그래서 이 설명이 라우트 파일에 있다.
+
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'

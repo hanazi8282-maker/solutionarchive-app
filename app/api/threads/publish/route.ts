@@ -15,7 +15,15 @@ import { createClient } from '@/lib/supabase/server'
 import { publishPostWithReply } from '@/lib/threads/publish'
 import { ensureValidToken } from '@/lib/threads/token'
 
-export async function GET(req: Request) { return POST(req) }
+// GET 은 발행을 트리거하지 않는다. 크론이던 시절엔 GET→POST alias 가 있었지만,
+// 수동 전용이 된 지금은 시크릿을 아는 사람이 주소창에 URL 을 붙여넣는 것만으로
+// 실제 발행이 나가는 사고 경로가 된다. 405 로 명시적으로 막는다.
+export async function GET() {
+  return NextResponse.json(
+    { error: 'POST 전용입니다. 발행은 사람이 검수 후 POST 로 호출합니다. (CLAUDE.md §10)' },
+    { status: 405, headers: { Allow: 'POST' } },
+  )
+}
 
 export async function POST(req: Request) {
   const auth = req.headers.get('authorization')

@@ -1,3 +1,15 @@
+// ⛔ 크론 금지 — 사람 트리거 전용 (CLAUDE.md §10)
+//
+// CLAUDE.md §10: "자동 발행 API 사용 안 함 (계정 제재 리스크 회피). 사람 최종 검수 필수."
+// 이 라우트는 사람이 초안을 검수한 뒤 직접 호출하는 수동 발행 API다.
+// vercel.json 의 crons 에 절대 추가하지 말 것 — 추가하는 순간 §10 위반이 된다.
+// 콘텐츠 초안 생성(generate)·성과 수집(collect-metrics)은 '발행'이 아니라서 크론 대상이다.
+//
+// 인증은 CRON_SECRET 을 그대로 쓴다(크론용으로 만든 이름이지만 여기서는 수동 호출용
+// 공유 시크릿 역할). 호출 예:
+//   curl -X POST -H "Authorization: Bearer $CRON_SECRET" \
+//        https://solutionarch.vercel.app/api/threads/publish
+
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { publishPostWithReply } from '@/lib/threads/publish'

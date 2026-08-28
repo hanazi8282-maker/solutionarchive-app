@@ -9,18 +9,25 @@
 --   적용이 no-op 이었다고 해서 롤백도 안전한 게 아니다.
 --
 --   지워지는 것:
---     - content_items 21행 (소재은행 T1-1~T3-6)
---     - hypotheses 7행 (H1~H7)
---     - channels 2행 (solutionarchive / 역전비결)
+--     - channels / content_items / hypotheses 의 시드 행
 --     - posts 전체 + CASCADE 로 metric_snapshots 전체
 --     - benchmarks / learnings 전체
---   전부 재생성 비용이 큰 수작업 산출물이다. 시드 SQL 은
---   레포의 content_items_seed.sql 에 일부만 남아 있고, hypotheses·channels 는
---   레포에 시드 파일이 없다.
+--
+--   ⚠️ 2026-08-28 정정: 이 자리에 원래 "content_items 21행 / hypotheses 7행 /
+--      channels 2행이 이미 존재하며 재생성 비용이 큰 수작업 산출물"이라고
+--      적혀 있었다. 사실이 아니었다. 운영 DB 실측 결과 7개 테이블이 전부
+--      0행이었다(api_tokens 만 1행). 그 숫자들은 과거 세션의 기억에서 온
+--      것이지 DB 조회 결과가 아니었고, 이 주석이 그 기억을 사실처럼 굳혔다.
+--
+--      시드는 20260828000001_content_loop_seed.sql 이 처음으로 넣는다.
+--      즉 이 롤백을 돌리면 그 시드도 함께 사라진다. 다만 그 시드는 레포에
+--      SQL 로 남아 있으므로 재적용하면 그대로 복구된다 — 되돌릴 수 없는 것은
+--      시드가 아니라 posts / metric_snapshots 에 쌓인 실측 데이터다.
+--      그쪽은 지나간 시점의 조회수라 어떤 방법으로도 다시 만들 수 없다.
 --
 --   이 파일의 실제 용도는 로컬·프리뷰 브랜치를 깨끗이 리셋하는 것뿐이다.
 --
--- 실행 전 반드시 백업:
+-- 실행 전 반드시 백업(시드는 레포에서 복구되지만 측정치는 못 되살린다):
 --   SELECT * FROM public.content_items;
 --   SELECT * FROM public.hypotheses;
 --   SELECT * FROM public.channels;

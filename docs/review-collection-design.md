@@ -503,6 +503,53 @@ EPS 는 임계값을 하나 더 도입하는 방식이다. 정수 비교는 그 
 
 ---
 
+## 5.6 러너 — 남의 서버에 대한 규칙이 걸려 있는 코드
+
+`lib/review/runner.ts`. 외부 세계를 전부 **포트로 주입받는다**(네트워크·DB·
+시계·sleep). DB 없이 가짜 포트로 전 경로를 테스트하기 위해서다 —
+마이그레이션 적용을 기다리지 않고 검증할 수 있는 게 이 구조 덕이다.
+셀프테스트 61건(`scripts/review-runner-selftest.mjs`).
+
+### 규칙을 코드로 못 박은 지점
+
+| 규칙 | 구현 | 테스트가 고정하는 것 |
+|---|---|---|
+| robots Disallow 는 요청하지 않는다 | 판정 후 `continue` | 금지면 robots.txt 외 요청이 0건 |
+| robots.txt 를 못 읽으면 안 간다 | 5xx·네트워크 오류 → `unreadable` | 503 일 때 요청 0건 |
+| robots 는 호스트당 한 번만 묻는다 | `RobotsCache` | 여러 페이지를 돌아도 robots.txt 1회 |
+| 403/429 는 재시도하지 않는다 | 즉시 `aborted` | 요청 1건에서 멈추고 남은 타깃도 안 건드린다 |
+| 요청 간격 | `Pacer` | 연속 요청 사이에 실제로 잔다 |
+| 일일 상한 | `dailyRequestCap - requestsToday` | 상한이 2면 요청도 2건 |
+| 사람이 끈 소스는 안 건드린다 | `enabled` 검사 | robots.txt 조차 안 받는다 |
+| 페이지마다 커서 즉시 저장 | 페이지 루프 안에서 `saveTargetProgress` | 중간 실패 시에도 직전 커서가 남는다 |
+| 타깃당 페이지 상한 | `MAX_PAGES_PER_TARGET = 20` | 60페이지짜리도 20에서 멈춘다 |
+
+### 증분 종료가 순서 변동에 견딘다
+
+기준일보다 오래된 리뷰를 **연속 5개** 만나야 종료한다. 테스트가 두 방향을
+고정한다 — 연속 5개면 다음 페이지를 안 받고, 중간에 최신 리뷰 하나가 끼면
+연속이 끊겨 계속 읽는다.
+
+### 지문을 못 만들면 적재하지 않는다
+
+정체성 재료(seq·판매처·작성자·작성일)가 전부 비면 `computeFingerprint` 가
+null 을 돌려주고, 러너가 파싱 실패로 센다.
+
+여기서 "본문 해시를 정체성으로 쓰면 되지 않나"는 함정이다. 그러면 수정된
+리뷰가 매번 새 리뷰로 들어가 `importance` 를 부풀린다 — 키를 둘로 나눈
+이유를 정면으로 어긴다. 반대로 빈 조합으로 키를 만들면 그 상품의 모든 리뷰가
+같은 `identity_key` 를 갖게 되어 하나만 남고 전부 사라진다. 더 나쁘다.
+그래서 지문을 포기하고 시끄럽게 실패한다.
+
+### Node 타입 스트리핑 제약 (기록)
+
+`constructor(private readonly x: T) {}` 형태의 파라미터 프로퍼티를 쓸 수 없다.
+코드를 생성하는 TS 문법이라 `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` 로 죽는다.
+`lib/review/*` 와 `lib/insight/*` 는 Next 빌드가 아니라 Node 스크립트가
+직접 로드하므로 이 제약을 받는다. 필드를 명시하고 생성자에서 대입할 것.
+
+---
+
 ## 6. Day2 해소 경로 — 이번 작업의 본론
 
 ```
@@ -658,7 +705,7 @@ content_items (status='proposed')
 
 2. ✅ `lib/review/types.ts` + `lib/review/health.ts` + 셀프테스트 40건
 3. ✅ `lib/review/adapters/danawa.ts` + 픽스처 4종 + 셀프테스트 44건
-4. `lib/review/runner.ts` — robots·간격·커서·건강도 (소스 무관)
+4. ✅ `lib/review/fingerprint.ts` + `lib/review/runner.ts` + 셀프테스트 61건
 5. `scripts/review-collect.mjs` + 워크플로
 6. `scripts/insight-loop.mjs` 에 소스 경보 최상단 출력 추가
 7. 12개 프로젝트에 다나와 타깃 매핑(사람이 상품 선택)

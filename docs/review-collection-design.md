@@ -706,7 +706,52 @@ content_items (status='proposed')
 2. ✅ `lib/review/types.ts` + `lib/review/health.ts` + 셀프테스트 40건
 3. ✅ `lib/review/adapters/danawa.ts` + 픽스처 4종 + 셀프테스트 44건
 4. ✅ `lib/review/fingerprint.ts` + `lib/review/runner.ts` + 셀프테스트 61건
-5. `scripts/review-collect.mjs` + 워크플로
+5. ✅ `lib/review/store.ts` + `scripts/review-collect.mjs` + 워크플로
+   + `scripts/review-migration-verify.mjs` (마이그레이션 적용 확인, 읽기 전용)
 6. `scripts/insight-loop.mjs` 에 소스 경보 최상단 출력 추가
 7. 12개 프로젝트에 다나와 타깃 매핑(사람이 상품 선택)
 8. dry-run 며칠 → 실제 적재 → extract → 검수 → diff 리포트
+
+---
+
+## 12. 미룬 트랙 — O_k 공식 회귀 테스트 (착수 전)
+
+수집 트랙을 닫은 뒤에 볼 것. 아이디어는 성립하는데 **선행 조건이 하나 있고,
+그걸 안 풀면 회귀 테스트가 없는 것보다 나쁘다** — 없으면 조심하는데
+있으면 믿어버린다.
+
+### 왜 성립하는가
+
+필요한 재료가 이미 다 있다. `analysis_aspects` 한 행에 `llm_*` 8종(LLM 원본)과
+사람 교정값이 **같이** 들어 있고 `reviewed_at` 으로 검수 시점이 박혀 있다.
+검수 통과한 케이스는 그 자체가 완성된 픽스처다 — 만들 게 아니라 떠내면 된다.
+
+방식은 다나와 픽스처와 같다(§5.5). `human_confirmed=true` 인 행에서
+`importance` / `satisfaction` / `quadrant` 를 뽑아 고정하고, 공식을 고칠 때마다
+어느 케이스의 사분면이 뒤집히는지 본다.
+
+### 선행 조건 — 이걸 먼저 풀어야 한다
+
+1. **SQL 과 TS 의 공식이 같은지 확인하는 테스트가 먼저다.**
+   `opportunity_score` 는 DB generated 컬럼이다:
+
+   ```sql
+   opportunity_score numeric GENERATED ALWAYS AS
+     (importance + greatest(importance - satisfaction, 0)) STORED
+   ```
+
+   공식이 SQL 안에 있으므로 회귀 테스트는 TS 복제본을 검증하게 된다.
+   두 곳이 어긋나면 **테스트는 통과하고 실제 값은 다르다.** 실DB 값과
+   TS 계산이 일치하는지 확인하는 테스트가 회귀 테스트보다 먼저 있어야 한다.
+
+2. **`quadrant` 경계값의 정의 위치를 확인할 것.**
+   `TABLE_STAKES` / `DIFFERENTIATOR` / `OVER_INVESTED` / `IGNORE` 를 가르는
+   기준이 추출 프롬프트에 있는지, 코드에 있는지, 사람 판단인지 아직 확인하지
+   않았다. 프롬프트 안에 있으면 그건 LLM 출력이라 "공식"이 아니고,
+   회귀 테스트의 대상이 달라진다.
+
+3. **공식을 SQL 에서 빼서 한 곳에만 두는 게 나은지도 같이 검토할 것.**
+   generated 컬럼의 장점은 앱이 무엇을 하든 값이 항상 일관된다는 것이고,
+   단점은 공식 변경이 마이그레이션이 되고 테스트가 복제본을 보게 된다는 것이다.
+   TS 로 옮기면 테스트가 진짜를 보지만, 앱을 우회한 INSERT 가 값을 비울 수 있다.
+   둘 중 어느 쪽이 이 프로젝트에 맞는지는 정해진 답이 없다 — 결정하고 기록할 것.

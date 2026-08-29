@@ -149,10 +149,14 @@ const results = []
 for (const src of SOURCES) {
   const robotsRes = await get(`${src.origin}/robots.txt`)
   const groups = robotsRes.status === 200 ? parseRobots(robotsRes.body) : []
+  // ⚠️ 같은 User-agent 그룹이 여러 번 나오는 사이트를 눈에 띄게 표시한다.
+  //    화해가 그랬고, 병합하지 않은 파서는 뒤 그룹의 Disallow 를 통째로
+  //    무시해 판정이 뒤집혔다. 새 소스를 추가할 때 이 표시를 먼저 볼 것.
+  const starGroups = groups.filter((x) => x.agents.includes('*')).length
   const robotsNote =
     robotsRes.status === 200
-      ? `${groups.length}개 그룹`
-      : `robots.txt ${robotsRes.status ?? robotsRes.error}`
+      ? `${groups.length}개 그룹${starGroups > 1 ? ` ⚠️ * 그룹 ${starGroups}개(병합 대상)` : ''}`
+      : `robots.txt ${robotsRes.status ?? robotsRes.error} — 규칙을 읽지 못함`
 
   // robots.txt 를 읽지 못했으면(5xx·네트워크 오류) 그 소스는 통째로 건너뛴다.
   // RFC 9309 는 5xx 를 "전부 금지"로 다루라고 한다. 404 는 "규칙 없음 = 허용"이라

@@ -257,18 +257,34 @@ identity_key = sha256("danawa" | product_ref | seller | author_masked | written_
 가면 "좋아요"와 "좋아요!"가 같은 해시가 되는데, 그건 수정 감지의 민감도를
 떨어뜨린다.
 
-### 리뷰가 수정되면
+### 리뷰가 수정되면 — 감지하고 기록만 한다
 
-같은 `identity_key` 가 다시 오고 `content_hash` 만 달라진다.
+같은 `identity_key` 가 다시 오고 `content_hash` 만 달라진 경우다.
 
-- `content_hash` 같음 → 완전 중복. 건너뛴다
-- `content_hash` 다름 → **수정된 리뷰.** `revision_count` 를 올리고
-  `last_seen_at` 만 갱신한다. **재적재하지 않는다**
+| 하는 일 | 하지 않는 일 |
+|---|---|
+| `revision_count += 1` | ❌ `analysis_inputs.raw_text` 갱신 |
+| `content_hash` 를 새 값으로 교체 | ❌ 재분석 큐에 올리기 |
+| `last_seen_at` 갱신 | ❌ `analysis_aspects` 재계산 |
+| 야간 보고에 "수정 감지 N건" 한 줄 | ❌ 새 `analysis_inputs` 행 추가 |
 
-재적재하지 않는 게 판단이다. 이미 분석에 반영된 의견인데 수정본을 또 넣으면
-같은 사람 의견이 두 번 세어진다 — 위에서 피하려던 바로 그 오염이다.
-수정 사실은 `revision_count` 로 남으니 "이 소스는 리뷰가 자주 고쳐진다"를
-나중에 알 수 있다.
+**`extract` 를 자동 실행하지 않기로 한 것과 같은 이유다.** 리뷰가 수정됐다고
+매일 밤 값이 갱신되면, 그 입력에서 나온 `analysis_aspects` 가 사람이 검수해
+둔 교정값과 어긋나기 시작한다. 그리고 재적재하면 같은 사람 의견이 두 번
+세어져 `importance` 가 부풀려진다 — 애초에 키를 둘로 나눈 이유였던 바로 그
+오염이다.
+
+`content_hash` 는 **제약이 아니라 관측값**이라는 게 여기서 드러난다. 아무것도
+막지 않고, 아무것도 트리거하지 않는다. "이 소스는 리뷰가 얼마나 고쳐지는가"를
+재는 계기판이다.
+
+수정이 잦다면 그건 **사람이 봐야 할 신호**이지 자동으로 처리할 일이 아니다.
+`revision_count` 가 눈에 띄게 쌓이면 해당 프로젝트를 다시 `extract` 할지
+사람이 판단한다. 그 판단 근거만 야간 보고가 제공한다.
+
+한 가지 부수 사실: 원문은 30일 뒤 비워지므로, 그 이후에 감지된 수정은
+어차피 갱신할 대상이 없다. 위 규칙은 30일 이내에도 같게 적용된다 —
+보관 기간에 따라 동작이 달라지면 그 자체가 추적 불가능한 변수가 된다.
 
 ### 순서가 바뀌면
 
@@ -518,6 +534,11 @@ content_items (status='proposed')
 
 - 보존 **30일**. `collected_at + 30d` 지난 수집분의 `raw_text` 를 `null` 로
   비운다. 행은 남긴다 — 몇 건을 언제 어디서 받았는지는 계속 필요하다.
+
+  ⚠️ **`analysis_inputs.raw_text` 는 현재 `NOT NULL` 이다.** 이 설계가
+  성립하려면 제약을 풀어야 한다. 마이그레이션에 포함한다. 빈 문자열로
+  대체하는 방법도 있지만, 그러면 "원문이 없다"와 "원문이 빈 문자열이다"를
+  구분할 수 없고 `length(raw_text)=0` 같은 조건이 두 경우를 뭉갠다.
 - 사람이 붙여넣은 행(`source_key IS NULL`)은 **건드리지 않는다.** 다시 구할 수
   없는 데이터다.
 - 지문은 `review_fingerprints` 에 남아 중복 판정이 계속 산다.
@@ -533,7 +554,21 @@ content_items (status='proposed')
 
 ## 11. 구현 순서 (승인 후)
 
-1. 마이그레이션 SQL 4종 작성 → **사용자가 대시보드에서 실행**
+1. ✅ **마이그레이션 SQL 작성 완료** → 사용자가 대시보드에서 실행 (대기 중)
+
+   ```
+   supabase/migrations/20260829000003_review_collection.sql        (+rollback)
+   supabase/migrations/20260829000004_content_items_proposed.sql   (+rollback)
+   ```
+
+   003 먼저, 004 나중에. 004 는 Threads 소재 연결용이라 **미뤄도 된다** —
+   003 만으로 §6 의 Day2 경로가 성립한다.
+
+   ⚠️ 003 에 **파괴적 변경이 하나** 있다. `analysis_inputs.raw_text` 의
+   `NOT NULL` 을 푼다. 원문 30일 폐기 설계가 그것 없이는 성립하지 않는다(§9).
+   롤백 파일 A 단계가 "되돌릴 수 없는 지점"을 먼저 확인시킨다 — 폐기가 한 번이라도
+   돌았으면 `NOT NULL` 복원은 실패하고, 그 원문은 이미 없다.
+
 2. `lib/review/types.ts` + `lib/review/health.ts` + 셀프테스트
 3. `lib/review/adapters/danawa.ts` — 파서를 픽스처로 먼저 테스트
 4. `lib/review/runner.ts` — robots·간격·커서·건강도 (소스 무관)

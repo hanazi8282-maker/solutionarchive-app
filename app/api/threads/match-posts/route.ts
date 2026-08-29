@@ -35,6 +35,7 @@
 //    vercel.json 은 순수 JSON 이라 주석을 못 넣는다. 그래서 이 설명이 여기 있다.
 
 import { NextResponse } from 'next/server'
+import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
 import { ensureValidToken } from '@/lib/threads/token'
 import { matchDrafts, type DraftRow, type ThreadsPost } from '@/lib/threads/match'
@@ -52,10 +53,8 @@ const LOOKBACK_DAYS = 14
 export async function GET(req: Request) { return POST(req) }
 
 export async function POST(req: Request) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = requireCronAuth(req)
+  if (denied) return denied
 
   const supabase = await createClient()
   if (!supabase) {

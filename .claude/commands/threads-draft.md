@@ -1,5 +1,5 @@
 ---
-description: Threads 초안 4~5편을 생성해 posts(draft)와 drafts/YYYY-MM-DD.md 에 저장한다.
+description: Threads 초안 4~5편을 생성해 posts(draft)와 drafts/YYYY-MM-DD.md 에 저장한다. 검증된 패턴(learned-patterns.md)을 반영한다.
 argument-hint: [편수, 기본 5] [--dry-run]
 ---
 
@@ -10,12 +10,35 @@ Threads 초안을 생성한다. 대상: $ARGUMENTS (비었으면 5편)
 
 ## 1. 재료 로드
 
-먼저 가이드 3종을 **전부** 읽는다. 요약본이나 기억으로 대신하지 마라 —
+먼저 가이드를 **전부** 읽는다. 요약본이나 기억으로 대신하지 마라 —
 문체 지문과 플랫폼 규칙은 세부가 전부다.
+
+사람이 쓴 가이드 3종 (정체성·플랫폼 규칙의 정본):
 
 - `content/guides/voice-guide.md` — 화자의 문체 지문
 - `content/guides/viral-patterns-linkedin.md` — 구조적 통찰(LinkedIn 기준)
 - `content/guides/seo-guide.md` — Threads 플랫폼 규칙
+
+기계가 쓴 파일 2종 (실측에서 나온 것 — 사람이 고치지 마라):
+
+- `content/guides/learned-patterns.md` — 저장 글에서 추출돼 성과로 검증된 패턴
+- `content/corpus/rejected-patterns.md` — 성과가 나빠 기각된 패턴. **다시 제안하지 마라**
+
+⚠️ 우선순위가 셋으로 갈린다. 헷갈리면 이 순서다:
+
+1. **`learnings` 테이블의 confirmed 학습** — 실측이 문서를 이긴다(아래 참조).
+2. **`learned-patterns.md` 의 "기본값"·"권장" 패턴** — 실제 발행 성과로
+   검증된 것이다. 소재에 맞으면 우선 쓴다. "참고" 등급은 아직 검증 대기라
+   말 그대로 참고만 한다.
+3. **사람이 쓴 가이드 3종** — 나머지 전부.
+
+단, **voice-guide 의 문체 지문은 이 우선순위 밖이다.** 어떤 검증된 패턴도
+합쇼체·1인칭·서사 아크를 덮어쓰지 못한다. 패턴은 "무엇을 어떤 구조로
+말하는가"를 정하고, voice-guide 는 "누가 말하는가"를 정한다. 성과가 좋다는
+이유로 화자를 바꾸면 남는 차별점이 없다.
+
+`learned-patterns.md` 가 "아직 반영된 패턴이 없다" 상태인 것은 정상이다 —
+저장 글이 근거 2건 이상 쌓이기 전까지는 비어 있다.
 
 그다음 DB 에서 읽는다(읽기 전용):
 

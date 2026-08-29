@@ -11,6 +11,7 @@
 //        https://solutionarch.vercel.app/api/threads/publish
 
 import { NextResponse } from 'next/server'
+import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
 import { publishPostWithReply } from '@/lib/threads/publish'
 import { ensureValidToken } from '@/lib/threads/token'
@@ -26,10 +27,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = requireCronAuth(req)
+  if (denied) return denied
 
   const supabase = await createClient()
   if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })

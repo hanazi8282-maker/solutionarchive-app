@@ -54,6 +54,35 @@ t('제품 토큰 정확 일치 시 그 그룹을 쓴다 — 금지 경로', allo
 const caseTest = `User-agent: ${TOKEN.toUpperCase()}\nDisallow: /nope\n\nUser-agent: *\nAllow: /\n`
 t('User-agent 대소문자 무시', allowed(caseTest, '/nope'), false)
 
+// ── 같은 UA 그룹이 여러 번 나오는 경우 (RFC 9309 §2.2.1: 합쳐야 한다) ──
+// 실측에서 발견한 실제 사례다. 화해(hwahae.co.kr)가 이 형태이고, 첫 그룹만
+// 보면 "전부 허용"이 되어 사이트가 명시적으로 막은 상품·리뷰 페이지를 긁는다.
+const split = [
+  'User-agent: *',
+  'Allow: /',
+  '',
+  'User-agent: *',
+  'Disallow: /product-information',
+  'Disallow: /goods-view',
+  '',
+].join('\n')
+t('갈라진 * 그룹 병합 — 뒤 그룹의 Disallow 가 살아난다', allowed(split, '/product-information'), false)
+t('갈라진 * 그룹 병합 — 두 번째 Disallow 도 살아난다', allowed(split, '/goods-view/1'), false)
+t('갈라진 * 그룹 병합 — 막지 않은 경로는 그대로 허용', allowed(split, '/awards/home'), true)
+
+const splitSpecific = [
+  `User-agent: ${TOKEN}`,
+  'Allow: /',
+  '',
+  `User-agent: ${TOKEN}`,
+  'Disallow: /nope',
+  '',
+  'User-agent: *',
+  'Disallow: /',
+].join('\n')
+t('제품 토큰 그룹도 여러 개면 병합', allowed(splitSpecific, '/nope'), false)
+t('제품 토큰 그룹 병합 시 * 그룹은 무시', allowed(splitSpecific, '/yes'), true)
+
 // ── 파싱 잡항목 ───────────────────────────────────────────────────
 t('주석 제거', allowed('# hi\nUser-agent: *   # inline\nDisallow: /admin\n', '/admin/1'), false)
 t('CRLF 줄바꿈', allowed('User-agent: *\r\nDisallow: /a\r\n', '/a/b'), false)

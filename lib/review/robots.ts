@@ -76,14 +76,31 @@ export function robotsVerdict(
   if (groups.length === 0) return { allowed: true, reason: 'robots.txt 에 규칙 없음' }
 
   const token = productToken.toLowerCase()
-  const specific = groups.find((g) => g.agents.some((a) => a !== '*' && a === token))
-  const star = groups.find((g) => g.agents.includes('*'))
-  const group = specific ?? star
 
-  if (!group) return { allowed: true, reason: '해당하는 User-agent 그룹 없음' }
+  // ⚠️ 같은 User-agent 에 대한 그룹이 여러 번 나오면 규칙을 **전부 합친다**
+  //    (RFC 9309 §2.2.1). 첫 그룹만 쓰면 안 된다.
+  //
+  //    실제 사례가 있다. 화해(hwahae.co.kr)의 robots.txt 는 이렇게 생겼다:
+  //
+  //      User-agent: *
+  //      Allow: /
+  //
+  //      User-agent: *
+  //      Disallow: /product-information
+  //      Disallow: /goods-view
+  //      ...
+  //
+  //    첫 그룹만 보면 "전부 허용"이 되어, 사이트가 명시적으로 막은 상품·리뷰
+  //    페이지를 긁게 된다. 이 버그를 실측 중에 발견했다.
+  const matching = groups.filter((g) => g.agents.some((a) => a !== '*' && a === token))
+  const selected = matching.length > 0 ? matching : groups.filter((g) => g.agents.includes('*'))
+
+  if (selected.length === 0) return { allowed: true, reason: '해당하는 User-agent 그룹 없음' }
+
+  const rules = selected.flatMap((g) => g.rules)
 
   let best: { allow: boolean; path: string } | null = null
-  for (const rule of group.rules) {
+  for (const rule of rules) {
     // 빈 Disallow 는 "전부 허용"을 뜻한다. 빈 문자열은 모든 경로의 접두사라
     // 거르지 않으면 항상 최단 일치로 걸린다.
     if (rule.path === '') continue

@@ -55,6 +55,33 @@ const SOURCES = [
   { key: 'danawa', name: '다나와', origin: 'https://prod.danawa.com', paths: ['/'] },
   { key: 'amazon', name: 'Amazon', origin: 'https://www.amazon.com', paths: ['/'] },
   { key: 'iherb', name: 'iHerb', origin: 'https://www.iherb.com', paths: ['/'] },
+  { key: 'hwahae', name: '화해 (뷰티 리뷰)', origin: 'https://www.hwahae.co.kr', paths: ['/'] },
+  { key: 'glowpick', name: '글로우픽 (뷰티 리뷰)', origin: 'https://www.glowpick.com', paths: ['/'] },
+]
+
+/**
+ * 심화 단계 — 홈페이지가 열린다고 리뷰가 열리는 건 아니다.
+ *
+ * 1단계는 "문 앞까지 가는가"만 잰다. 리뷰 원문이 실제로 오는지는 따로 봐야
+ * 한다. Amazon 이 정확히 그 함정이었다: /product-reviews/ 가 HTTP 200 에
+ * 319KB 를 주지만 내용은 로그인 페이지다. 상태 코드만 봤으면 "된다"고
+ * 적었을 것이다.
+ *
+ * needle 은 "리뷰 원문이 왔다"를 가르는 문자열이다. 없으면 껍데기다.
+ */
+const REVIEW_DEPTH = [
+  {
+    name: '다나와 판매처 리뷰',
+    url: 'https://prod.danawa.com/info/dpg/ajax/companyProductReview.ajax.php?prodCode=102126566&page=1',
+    needle: /상품리뷰|별점|유용한 리뷰순/,
+    note: '여러 쇼핑몰 리뷰를 집약한다 — 쿠팡·11번가를 직접 못 가도 여기서 만난다',
+  },
+  {
+    name: 'Amazon 리뷰 페이지',
+    url: 'https://www.amazon.com/product-reviews/B08N5WRWNW',
+    needle: /data-hook="review"/,
+    note: 'HTTP 200 이지만 로그인 벽일 수 있다 — needle 로 가른다',
+  },
 ]
 
 /**
@@ -193,6 +220,35 @@ say('|---|---|---|---|---|')
 for (const r of results) {
   const mark = { ok: '✅ ok', 'robots-disallow': '⛔ robots-disallow', blocked: '❌ blocked', error: '⚠️ error', skipped: '⏭️ skipped' }[r.verdict]
   say(`| ${r.source} | \`${r.path}\` | ${mark} | ${r.detail} | ${r.robotsNote} |`)
+}
+
+// ── 심화: 리뷰 원문이 실제로 오는가 ──────────────────────────────
+say('')
+say('## 리뷰 원문 도달 여부 (상태 코드가 아니라 내용으로 판정)')
+say('')
+say('| 대상 | 판정 | 근거 | 비고 |')
+say('|---|---|---|---|')
+
+for (const d of REVIEW_DEPTH) {
+  const res = await get(d.url)
+  let mark
+  let why
+  if (res.status === null) {
+    mark = '⚠️ error'
+    why = res.error ?? '알 수 없음'
+  } else if (res.status !== 200) {
+    mark = '❌ blocked'
+    why = `HTTP ${res.status}`
+  } else if (d.needle.test(res.body)) {
+    mark = '✅ 리뷰 원문 확인'
+    why = `HTTP 200 · ${(res.bytes / 1024).toFixed(0)}KB · 리뷰 마커 있음`
+  } else {
+    mark = '❌ 껍데기'
+    why = `HTTP 200 · ${(res.bytes / 1024).toFixed(0)}KB 인데 리뷰 마커 없음` +
+      (/sign in|Enter your email/i.test(res.body) ? ' (로그인 벽)' : '')
+  }
+  say(`| ${d.name} | ${mark} | ${why} | ${d.note} |`)
+  await sleep(GAP_MS)
 }
 
 // ── 공식 API 도달성 ───────────────────────────────────────────────

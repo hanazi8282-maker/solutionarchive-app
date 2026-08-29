@@ -3,41 +3,48 @@
 피드백 루프 설계안(`feedback-loop-design.md`) §0.5 를 실제로 돌리기 위해
 사람이 직접 해야 하는 일들. 2026-08-29 세션 기준.
 
-순서가 중요하다. 3 → 1 → 2 로 하면 크론이 빈 테이블을 읽고 조용히 no-op 한다.
+순서가 중요하다. 마이그레이션(§2)을 건너뛰고 루프부터 돌리면 빈 테이블을 읽고
+단계마다 실패한다.
 
 ---
 
-## 스파이크 검증 결과 (2026-08-29, 먼저 읽을 것)
+## 실행 환경 판정 (2026-08-29 갱신, 먼저 읽을 것)
 
-설계안 §0.5 의 미검증 리스크 — "Claude Code CLI 가 Vercel 서버리스에서
-정상 실행되는가" — 를 실제 preview 배포에서 측정했다.
+**야간 배치는 GitHub Actions 에서 돈다.** 처음엔 Vercel 서버리스에 올렸고
+바이너리 실행까지는 성립했지만, 300초 천장·크론 3중 발화·SSO 로 인한 수동
+트리거 불가가 실측으로 드러나 옮겼다. 근거 전문은
+`docs/insight-loop-handover.md` §6.
 
-측정값 (`/api/test/claude-headless`, region iad1, preview):
+측정값 — GitHub Actions 러너 (실행 33242830873):
 
-- `node` — v24.18.0 / linux / x64 / 2279MB / 2 vCPU
-- `spawn` — child_process 정상 (exit 0)
-- `binary` — 214MB 다운로드+압축해제 **2.37초**
-- `version` — `claude --version` → `2.1.251 (Claude Code)`, exit 0, **14ms**
-- `headless` — **미검증** (`CLAUDE_CODE_OAUTH_TOKEN` 미설정으로 스킵)
+- 러너 — ubuntu-latest / linux / x64 / Node v24.19.0
+- 설치 — `npm i -g @anthropic-ai/claude-code@2.1.251` **2,598ms**
+- 바이너리 — **204.4MB**, `CLAUDE_CLI_PATH` 로 확보 **0ms**
+- version — `claude --version` → `2.1.251 (Claude Code)`, exit 0, **14ms**
+- egress IP — `172.174.166.201` (Azure 대역)
+- headless — **미검증** (`CLAUDE_CODE_OAUTH_TOKEN` 미설정으로 보류)
 
-판정: **바이너리 확보·실행 경로는 Vercel 에서 성립한다.** 설계안이 우려한
-"spawn 이 안 될 것"과 "다운로드가 너무 느릴 것"은 둘 다 사실이 아니었다.
-GitHub Actions 대안은 아직 필요 없다 — 토큰 등록 후 6단계까지 통과하면
-그때 최종 확정한다.
+측정값 — Vercel preview (과거 스파이크, region iad1, 참고용):
 
-### 왜 의존성으로 넣지 않았는가
+- spawn 정상 / 214MB 확보 **2.37초** / `--version` exit 0 **14ms**
+
+즉 **두 환경 모두 CLI 자체는 돈다.** Vercel 을 떠난 이유는 CLI 가 아니라
+런타임 제약이다. 남은 미검증은 `claude -p` 의 실제 추론 하나뿐이고,
+토큰만 넣으면 프로브 한 번으로 판정된다(§5).
+
+### 왜 npm 의존성으로 넣지 않는가
 
 Claude Code 2.x 는 npm 패키지가 아니라 플랫폼별 네이티브 바이너리다.
 `@anthropic-ai/claude-code` 는 178KB 런처 껍데기이고, 실행 파일은
-`@anthropic-ai/claude-code-linux-x64`(압축 해제 214MB)에 있다.
-Vercel 서버리스 번들 상한이 250MB 라 의존성으로 넣으면 Next.js 런타임과
-합쳐 상한을 넘길 위험이 크다. 그래서 실행 시점에 /tmp(512MB)로 받는다.
+`@anthropic-ai/claude-code-linux-x64`(압축 해제 204MB)에 있다.
+`package.json` 의 dependencies 에 넣으면 Vercel 빌드가 매번 이걸 받고
+서버리스 번들 상한(250MB)에 붙는다 — 상시 라우트에는 필요도 없는 무게다.
 
-콜드스타트마다 재다운로드되지만 실측 2.37초라 나이틀리 배치에는 무시할
-만한 비용이다.
+Actions 잡에서만 전역 설치하고 `CLAUDE_CLI_PATH` 로 넘긴다.
+`lib/insight/claude-cli.ts` 의 /tmp 다운로드 경로는 그대로 남겨뒀다 —
+Actions 가 아닌 곳(예: 로컬 디버그)에서 돌릴 때의 대비책이다.
 
 ---
-
 ## 1. Notion 인박스 DB — 완료됨
 
 설계안 §1. 2026-08-29 기준 생성 완료, 저장 시작된 상태.
@@ -100,39 +107,48 @@ claude setup-token
    말 것. `.env.local` 에 적더라도 그 파일이 `.gitignore` 에 있는지
    먼저 확인할 것.
 
-### 3-2. Vercel 환경변수 등록
+### 3-2. GitHub 리포 시크릿 등록
 
-Vercel 대시보드 → 프로젝트 `solutionarchive-app` → Settings →
-Environment Variables →
+Vercel 이 아니라 **GitHub** 다. 야간 루프가 Actions 에서 돌기 때문이다.
 
-- Key: `CLAUDE_CODE_OAUTH_TOKEN`
-- Value: 위에서 발급받은 토큰
-- Environments: **Production 과 Preview 둘 다 체크**
+리포 → Settings → Secrets and variables → **Actions** → New repository secret
 
-⚠️ Preview 를 빼면 스파이크·수동 검증이 전부 실패한다. 실제로 이번 세션에서
-   6단계가 스킵된 이유가 정확히 이것이다.
+| 이름 | 값 |
+|---|---|
+| `CLAUDE_CODE_OAUTH_TOKEN` | 위에서 발급받은 토큰 |
+| `NEXT_PUBLIC_SUPABASE_URL` | `.env.local` 과 같은 값 |
+| `SUPABASE_SERVICE_ROLE_KEY` | `.env.local` 과 같은 값 |
 
-등록 후에는 **재배포가 필요하다** — Vercel 환경변수는 빌드/런타임 시점에
-주입되므로 기존 배포에는 소급 적용되지 않는다.
+선택: `ANTHROPIC_API_KEY`(헤드리스가 막혔을 때의 대체 경로),
+`NOTION_API_KEY` / `NOTION_INSIGHT_DB_ID`(Notion 경로를 쓸 때만).
+
+`GITHUB_TOKEN` 은 **넣지 않는다.** Actions 가 잡마다 발급하는 기본 토큰을
+쓰고 워크플로가 `permissions: contents: write` 로 범위를 좁힌다. PAT 을
+만들면 권한이 이 리포 밖으로 넓어지기만 한다.
+
+⚠️ 시크릿 이름을 `GITHUB_` 로 시작하게 만들 수 없다(GitHub 예약 접두사).
+   그래서 위 표에도 없다.
+
+Vercel 쪽에 `CLAUDE_CODE_OAUTH_TOKEN` 을 넣을 필요는 없어졌다. 이미 넣었다면
+지우는 게 낫다 — 안 쓰이는 자격증명이 한 군데 더 있는 셈이다.
 
 ### 3-3. 등록 확인
 
-재배포 후 스파이크 라우트를 다시 호출하면 6단계까지 판정이 나온다.
-호출 방법은 아래 §5 참조.
+§5 의 프로브를 한 번 돌린다.
 
 ---
 
-## 4. ⚠️ `CRON_SECRET` 미설정 — 보안 확인 필요
+## 4. ⚠️ `CRON_SECRET` — 보안 확인 필요
 
 스파이크 도중 발견한 별건이다. **Preview 환경에 `CRON_SECRET` 이 설정되어
-있지 않다.** 확인 방법과 근거:
+있지 않았다.** 근거:
 
 ```
-curl -X POST -H "Authorization: Bearer undefined" <preview-url>/api/test/claude-headless
+curl -X POST -H "Authorization: Bearer undefined" <preview-url>/api/...
 → HTTP 200 (통과해버린다)
 ```
 
-크론 라우트들은 전부 아래 형태로 인증한다:
+크론 라우트들이 전부 아래 형태로 인증하고 있었다:
 
 ```ts
 if (auth !== `Bearer ${process.env.CRON_SECRET}`) return 401
@@ -145,47 +161,72 @@ if (auth !== `Bearer ${process.env.CRON_SECRET}`) return 401
 - `/api/threads/refresh-token` — 토큰을 회전시킨다
 - `/api/threads/match-posts`, `/api/threads/collect-metrics` — DB 에 쓴다
 
-Preview 는 Deployment Protection 이 걸려 있어 외부에서 바로 도달하지는
-않지만, **Production 에도 같은 변수가 비어 있는지 반드시 확인해야 한다.**
-Production 은 보호가 없고 `publish` 는 되돌릴 수 없다.
+**코드 쪽은 수정됐다.** `lib/cron-auth.ts` 로 가드를 통일했고, 변수가 없으면
+비교하지 않고 무조건 500 으로 거부한다. preview 에서 차단을 실측 확인했다.
 
-(Production 쪽은 확인 자체가 부작용을 일으키므로 — 통과하면 그 순간
-라우트가 실제로 실행된다 — Claude 가 확인하지 않았다. 대시보드에서
-직접 볼 것.)
+**남은 일**: Vercel 대시보드에서 Production/Preview 양쪽에 `CRON_SECRET` 을
+실제로 설정한다. 설정 전까지 크론 라우트는 전부 500 이다(의도된 동작이다 —
+열려 있는 것보다 낫다).
 
-권장: `CRON_SECRET` 을 Production/Preview 양쪽에 설정하고, 라우트의 가드를
-"환경변수가 없으면 무조건 거부"로 바꾼다(별도 작업).
+프로덕션에 값이 있는지는 사람이 대시보드에서 본다. 확인 자체가 부작용이라
+(통과하면 그 순간 라우트가 실행된다) Claude 가 확인하지 않았다. 다만
+프로덕션은 Vercel SSO 뒤에 있어 외부 요청이 302 로 튕기는 것은 확인했다.
 
 ---
 
-## 5. 스파이크 라우트 호출 방법
+## 5. 프로브 실행 — 헤드리스 최종 판정
 
-Preview 는 Deployment Protection 때문에 먼저 공유 링크로 쿠키를 받아야 한다.
-(Vercel 대시보드 → 배포 → Share 에서 링크 생성)
+읽기 전용이고(`permissions: contents: read`) 아무것도 쓰지 않는다.
 
 ```bash
-BASE="https://<preview-url>"
-curl -s -c /tmp/vc.jar -L "$BASE/?_vercel_share=<token>" -o /dev/null
-
-curl -s -b /tmp/vc.jar -X POST "$BASE/api/test/claude-headless" \
-  -H "Authorization: Bearer $CRON_SECRET" | python -m json.tool
+gh workflow run insight-headless-probe.yml
+RUN=$(gh run list --workflow=insight-headless-probe.yml --limit 1 --json databaseId -q '.[0].databaseId')
+gh run watch "$RUN" --exit-status || true
+gh run view "$RUN" --log | sed -n '/헤드리스 실행 판정/,$p'
 ```
 
-응답은 단계별 판정(`stages[]`)과 종합 `verdict` 를 준다:
+결과는 Actions 잡 요약 패널에도 그대로 남는다. 판정 4단계:
 
-- `vercel-viable` — 6단계까지 통과. §2~6 로직 조립 진행 가능
-- `inconclusive` — 5단계까지 통과, 토큰만 없음
-- `vercel-blocked` — 어느 단계에서 왜 막혔는지가 `stages` 에 있다.
-  이 경우 설계안의 대안(GitHub Actions 무료 티어로 이 스텝만 분리)으로 전환
+- `viable` — 실제 추론까지 통과. **Pro 구독 헤드리스 경로 확정, API 과금 없음**
+- `inconclusive` — 토큰이 없거나 응답이 예상 밖. 어느 단계인지 목록에 있다
+- `blocked` — 막혔다. 리포 변수 `INSIGHT_LLM_PROVIDER=anthropic` +
+  `ANTHROPIC_API_KEY` 시크릿으로 넘긴다. 나머지 전 단계 코드는 그대로 쓴다
 
-⚠️ 이 라우트는 임시다. 최종 판정이 끝나면
-   `app/api/test/claude-headless/` 를 삭제하고 결론만 이 문서에 남긴다.
+프롬프트는 정답이 하나뿐인 걸 묻는다(6×7). 모델이 무슨 말이든 뱉으면
+"돌았다"고 착각하기 쉬워서다.
 
 ---
 
-## 6. 아직 안 한 것
+## 6. 야간 루프 실행
 
-- 설계안 §2~6 로직(`/api/cron/nightly-insight-loop`) — 6단계 판정 대기 중
-- 수동 트리거 경로(`/insight-review` 또는 curl 엔드포인트) — 위와 함께
-- 크론 등록(`vercel.json`) — 며칠 수동 호출로 검증한 뒤에
-- `insight-guide.md` / `threads-draft.md` 패치 — 패치안 문서 미확보
+### 수동 (권장 — 처음 며칠)
+
+```bash
+gh workflow run nightly-insight-loop.yml -f dry_run=true
+```
+
+`dry_run` 기본값이 true 다. 판정만 하고 DB 쓰기·가이드 커밋을 하지 않는다.
+슬래시 명령 `/insight-review` 가 이걸 감싸고 결과 해석까지 한다.
+
+실제 반영은 `-f dry_run=false`. 이 루프는 사람 승인 없이 main 에 커밋하는
+유일한 경로다 — 며칠 dry-run 으로 판정을 눈으로 본 뒤에 열 것.
+
+### 자동
+
+`0 19 * * *` (UTC) = KST 04:00. 워크플로가 머지되는 순간부터 돈다.
+바로 열고 싶지 않으면 GitHub Actions 화면에서 워크플로를 Disable 해두고,
+검증이 끝난 뒤 Enable 한다.
+
+⚠️ Actions 스케줄은 정시를 보장하지 않는다(수십 분 지연, 고부하 시 건너뜀).
+   04:00 을 고른 덕에 07:00 까지 3시간 여유가 있고, 하루 건너뛰어도 다음 밤이
+   같은 일을 한다 — 전 단계가 멱등이다.
+
+---
+
+## 7. 아직 안 한 것
+
+- 마이그레이션 2개 적용 (§2) — 사용자가 대시보드에서 직접
+- 시크릿 등록 (§3-2), `CRON_SECRET` 설정 (§4)
+- 헤드리스 판정 (§5)
+- `insight-guide.md` / `threads-draft-insight-patch.md` /
+  `corpus-seed-template.md` 대조 — 세 문서 모두 두 세션 연속 미확보

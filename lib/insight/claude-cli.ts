@@ -188,6 +188,17 @@ export async function extractSingleFile(
  * 번들 → /tmp 캐시 → 다운로드 순으로 시도한다.
  */
 export async function resolveClaudeBinary(): Promise<ResolvedBinary> {
+  // GitHub Actions 는 풀 VM 이라 npm 으로 전역 설치하는 게 정상 경로다.
+  // 워크플로가 설치한 경로를 CLAUDE_CLI_PATH 로 넘겨 214MB 재다운로드를
+  // 통째로 건너뛴다. 이 분기가 없으면 Actions 에서도 매 실행 npm 레지스트리를
+  // 때리게 되고, 레지스트리가 흔들리는 날 밤에 루프가 통째로 죽는다.
+  const override = process.env.CLAUDE_CLI_PATH
+  if (override) {
+    const size = await fileSize(override)
+    if (!size) throw new Error(`CLAUDE_CLI_PATH 가 가리키는 파일이 없다: ${override}`)
+    return { path: override, source: 'bundled', sizeBytes: size, downloadMs: 0 }
+  }
+
   const bundled = findBundledBinary()
   if (bundled) {
     const size = await fileSize(bundled)

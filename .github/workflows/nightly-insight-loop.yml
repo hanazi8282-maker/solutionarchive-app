@@ -1,0 +1,86 @@
+# 나이틀리 인사이트 루프 — 저장 글 분석 → 패턴화 → 성과 판정 → 가이드 반영/회수.
+#
+# 왜 Vercel 크론이 아니라 여기인가 (근거는 scripts/insight-loop.mjs 헤더에 상세):
+#   1) Vercel Pro 의 300초 천장 < 분석 최악 1,200초 → 매일 밤 절반만 도는 루프가 된다
+#   2) 같은 리포에 Vercel 프로젝트가 3개라 크론이 3중으로 발화한다
+#   3) public 리포라 Actions 표준 러너 분(minute)이 무제한이다
+#
+# ⚠️ 이 워크플로는 사람 승인 없이 main 에 커밋한다(CLAUDE.md §10 예외,
+#    이 파이프라인 한정). 쓸 수 있는 경로는 lib/insight/github.ts 의
+#    허용목록 2개뿐이고, 그 목록을 넓히는 건 보안 변경이다.
+
+name: Nightly Insight Loop
+
+on:
+  schedule:
+    # 19:00 UTC = KST 04:00. Actions 스케줄은 정시를 보장하지 않지만
+    # (수십 분 지연·고부하 시 건너뜀) 07:00 까지 3시간 여유가 있고,
+    # 하루 건너뛰어도 다음 밤이 같은 일을 한다 — 전 단계가 멱등이다.
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '판정만 하고 DB 쓰기·커밋을 하지 않는다'
+        type: boolean
+        default: true
+      analyze_limit:
+        description: '이번 실행에서 분석할 최대 건수 (비우면 10)'
+        type: string
+        default: ''
+
+# 앞 실행이 아직 돌고 있으면 새 실행을 시작하지 않는다. 두 인스턴스가 같은
+# pending 행을 동시에 분석하면 같은 패턴이 두 번 계수되고, 가설 코드 발급이
+# 경합해 UNIQUE 제약에 걸린다.
+concurrency:
+  group: insight-loop
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # 풀 VM 이라 그냥 전역 설치한다. 버전을 고정하는 이유는
+      # lib/insight/claude-cli.ts 와 같다 — 'latest' 면 어느 날 밤 조용히
+      # 다른 바이너리를 집어오고 재현 불가능한 실패가 된다.
+      - name: Install Claude Code CLI
+        run: |
+          npm i -g @anthropic-ai/claude-code@2.1.251
+          echo "CLAUDE_CLI_PATH=$(which claude)" >> "$GITHUB_ENV"
+          claude --version
+
+      - name: Run insight loop
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # 헤드리스가 막혔을 때만 쓰는 유료 경로. 시크릿이 없으면 빈 값이고,
+          # INSIGHT_LLM_PROVIDER 가 claude-cli 인 한 참조되지 않는다.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          INSIGHT_LLM_PROVIDER: ${{ vars.INSIGHT_LLM_PROVIDER || 'claude-cli' }}
+          INSIGHT_ANALYZE_LIMIT: ${{ inputs.analyze_limit || vars.INSIGHT_ANALYZE_LIMIT || '10' }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_INSIGHT_DB_ID: ${{ secrets.NOTION_INSIGHT_DB_ID }}
+          # 기본 토큰으로 충분하다 — 이 리포의 2개 파일에만 쓰기 때문.
+          # 별도 PAT 을 만들면 권한이 리포 밖으로 넓어지기만 한다.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_OWNER: ${{ github.repository_owner }}
+          GITHUB_REPO: ${{ github.event.repository.name }}
+          GITHUB_BRANCH: main
+        run: |
+          node scripts/insight-loop.mjs \
+            --trigger=${{ github.event_name == 'workflow_dispatch' && 'manual' || 'cron' }} \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

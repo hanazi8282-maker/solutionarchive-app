@@ -197,7 +197,7 @@ export function renderLearnedPatterns(rows: PatternRow[]): string {
     '>',
     '>    출처: 사용자가 저장한 Threads 글에서 추출된 패턴 중,',
     '>    실제 발행 성과로 검증됐거나 검증 대기 중인 것.',
-    '>    생성 로직: lib/insight/patterns.ts, 실행: /api/cron/nightly-insight-loop',
+    '>    생성 로직: lib/insight/patterns.ts, 실행: .github/workflows/nightly-insight-loop.yml',
     '',
     '강조 수준은 실측 성과로 정해진다:',
     '',

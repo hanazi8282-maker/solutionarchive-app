@@ -11,7 +11,7 @@
 //   "undefined" 로 바뀐다.** 그 값을 보낸 사람은 누구나 통과한다.
 //
 //   preview 환경에서 실제로 통과하는 것을 확인했다:
-//     curl -X POST -H "Authorization: Bearer undefined" .../api/test/claude-headless
+//     curl -X POST -H "Authorization: Bearer undefined" .../api/threads/publish
 //     → HTTP 200
 //
 //   영향받는 라우트에 /api/threads/publish 가 있다. 그건 Threads 에 실제로

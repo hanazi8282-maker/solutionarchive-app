@@ -1,5 +1,9 @@
 // 나이틀리 인사이트 루프 — 저장 글 분석 → 패턴화 → 성과 판정 → 가이드 반영/회수.
 //
+// 실행 주체는 **GitHub Actions** 다(.github/workflows/nightly-insight-loop.yml).
+// 이 파일은 순수 로직만 담고, 트리거·인증·로그 출력은 scripts/insight-loop.mjs
+// 와 워크플로가 맡는다.
+//
 // ⏰ 스케줄: 0 19 * * * (UTC) = 매일 KST 04:00.
 //
 //    왜 04:00 인가. 요구는 "세션 사용량 0%일 때"였지만 그건 실시간으로 감지할
@@ -12,25 +16,22 @@
 //    post_performance 가 가장 최신인 시점을 고른다. 판정이 하루 묵은 지표로
 //    내려지면 승격/기각이 하루씩 밀린다.
 //
-// ⛔ 이 라우트는 아무것도 발행하지 않는다(CLAUDE.md §10). Threads API 를
+//    ⚠️ Actions 의 schedule 은 정시를 보장하지 않는다(수십 분 지연, 고부하 시
+//       건너뜀). 04:00 을 고른 덕에 07:00 까지 3시간의 지연 여유가 있고,
+//       하루 건너뛰어도 다음 밤이 같은 일을 한다 — 전 단계가 멱등이다.
+//
+// ⛔ 이 루프는 아무것도 발행하지 않는다(CLAUDE.md §10). Threads API 를
 //    부르지 않는다. 쓰는 곳은 Supabase 와, GitHub 의 **2개 파일뿐**이다.
 //
-// ⚠️ 이 라우트는 사람 승인 없이 main 에 커밋한다(§10 예외, 이 파이프라인 한정).
+// ⚠️ 이 루프는 사람 승인 없이 main 에 커밋한다(§10 예외, 이 파이프라인 한정).
 //    그래서 안전장치가 3겹이다:
 //      1. lib/insight/github.ts 의 경로 허용목록 — 2개 파일 외에는 물리적으로 못 쓴다
 //      2. guard_hypothesis_promotion 트리거 — 표본 5개 미만 승격을 DB 가 막는다
 //      3. insight_loop_runs 로그 — 매 실행이 무엇을 바꿨는지 행으로 남는다
-//
-// 수동 실행(아침 확인용 백업 경로):
-//   curl -X POST -H "Authorization: Bearer $CRON_SECRET" \
-//     "https://<host>/api/cron/nightly-insight-loop?dry=1"
-//   dry=1 이면 판정만 하고 DB 쓰기·커밋을 하지 않는다.
 
-import { NextResponse } from 'next/server'
-import { requireCronAuth } from '@/lib/cron-auth'
-import { createClient } from '@/lib/supabase/server'
-import { extractInsight, activeProvider } from '@/lib/insight/llm'
-import { notionConfig, fetchPending, markSynced } from '@/lib/insight/notion'
+import type { createClient } from '../supabase/server'
+import { extractInsight, activeProvider } from './llm.ts'
+import { notionConfig, fetchPending, markSynced } from './notion.ts'
 import {
   decide,
   shouldReflect,
@@ -41,48 +42,50 @@ import {
   MIN_EVIDENCE_TO_REFLECT,
   type PatternRow,
   type PerfSummary,
-} from '@/lib/insight/patterns'
-import { resolveRepoRef, putFile, autoCommitMessage } from '@/lib/insight/github'
-
-export const runtime = 'nodejs'
-export const maxDuration = 300
-export const dynamic = 'force-dynamic'
+} from './patterns.ts'
+import { resolveRepoRef, putFile, autoCommitMessage } from './github.ts'
 
 /**
  * 1회 실행당 분석 건수 상한.
  *
- * 헤드리스 실행도 결국 Claude Pro 구독의 같은 사용량 풀을 쓴다(설계안 §0.5).
+ * 헤드리스 실행도 결국 Claude Pro 구독의 같은 사용량 풀을 쓴다.
  * 상한이 없으면 어느 날 밤 30건이 밀려들어와 낮 인터랙티브 한도를 깎는다.
  * 남은 건은 다음 밤으로 넘어간다 — 급할 게 없는 배치다.
+ *
+ * Vercel 서버리스(maxDuration 300초) 시절에는 이 값이 곧 시한폭탄이었다.
+ * 건당 최대 120초 × 10건 = 1,200초라 3~4건째에서 함수가 죽는다. Actions 로
+ * 옮기면서 그 천장이 사라졌다(job 6시간). 값은 그대로 두되 이유가 바뀌었다 —
+ * 이제 이 상한은 런타임 제약이 아니라 **구독 사용량 예산**이다.
  */
 const ANALYZE_LIMIT = Number(process.env.INSIGHT_ANALYZE_LIMIT ?? 10)
 
-interface StepLog {
+export interface StepLog {
   name: string
   ok: boolean
   ms: number
   detail: Record<string, unknown>
 }
 
-type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
-
-export async function GET(req: Request) {
-  return POST(req)
+export interface LoopResult {
+  ok: boolean
+  dryRun: boolean
+  trigger: string
+  provider: string
+  totalMs: number
+  counts: { ingested: number; analyzed: number; patterns: number; promoted: number; rejected: number }
+  commitSha: string | null
+  decisions: Array<Record<string, unknown>>
+  steps: StepLog[]
+  warning?: string
 }
 
-export async function POST(req: Request) {
-  const denied = requireCronAuth(req)
-  if (denied) return denied
+type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
 
-  const url = new URL(req.url)
-  const dryRun = url.searchParams.get('dry') === '1'
-  const trigger = url.searchParams.get('trigger') === 'manual' ? 'manual' : 'cron'
-
-  const supabase = await createClient()
-  if (!supabase) {
-    return NextResponse.json({ ok: false, message: 'Supabase 환경변수 없음' }, { status: 500 })
-  }
-
+export async function runInsightLoop(
+  supabase: Supa,
+  opts: { dryRun: boolean; trigger: string },
+): Promise<LoopResult> {
+  const { dryRun, trigger } = opts
   const startedAt = new Date().toISOString()
   const t0 = Date.now()
   const steps: StepLog[] = []
@@ -465,7 +468,7 @@ export async function POST(req: Request) {
     if (error) fatal = `실행 로그 기록 실패: ${error.message}`
   }
 
-  return NextResponse.json({
+  return {
     ok,
     dryRun,
     trigger,
@@ -476,9 +479,8 @@ export async function POST(req: Request) {
     decisions,
     steps,
     ...(fatal ? { warning: fatal } : {}),
-  })
+  }
 }
-
 /**
  * post_performance 집계.
  *

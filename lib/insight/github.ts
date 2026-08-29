@@ -17,7 +17,7 @@
 //    이 목록 밖의 파일은 물리적으로 쓸 수 없다. 이 목록을 넓히는 변경은
 //    보안 변경이다 — 사람이 검토해야 한다.
 
-import { LEARNED_PATTERNS_PATH, REJECTED_PATTERNS_PATH } from './patterns'
+import { LEARNED_PATTERNS_PATH, REJECTED_PATTERNS_PATH } from './patterns.ts'
 
 /** 이 파이프라인이 쓸 수 있는 유일한 경로. 넓히지 말 것. */
 const ALLOWED_PATHS: ReadonlySet<string> = new Set([

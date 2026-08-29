@@ -1,6 +1,7 @@
 # 인사이트 피드백 루프 — 인수인계 보고서
 
-> 2026-08-29 세션 산출물. 브랜치 `feat/insight-feedback-loop`.
+> 2026-08-29 세션 산출물. PR #9 는 main 에 머지됨(`86d7d72`).
+> 실행 환경 이관은 브랜치 `feat/insight-loop-on-actions` (PR 대기).
 > 이 문서 하나만 들고 다음 대화로 넘어가면 된다.
 > 원 설계안은 `feedback-loop-design.md`, 설정 절차는 `docs/insight-loop-setup.md`.
 
@@ -9,8 +10,13 @@
 ## 0. 한 줄 요약
 
 저장한 Threads 글 → LLM 구조 분석 → 패턴 누적 → 가설 발급 → 기존 발행·수집
-파이프라인으로 성과 측정 → 가이드에 자동 반영 또는 회수. 코드는 전부 작성·배포됐고
-빌드는 green 이다. **남은 것은 사람이 해야 하는 3가지뿐이다** (§5).
+파이프라인으로 성과 측정 → 가이드에 자동 반영 또는 회수.
+
+야간 배치의 실행 환경은 Vercel 크론이 아니라 **GitHub Actions** 다. 처음엔
+Vercel 에 올렸다가 300초 천장과 크론 3중 발화가 실측으로 드러나 옮겼다(§6).
+Vercel 에는 상시 라우트(capture / match / collect / refresh)만 남는다.
+
+**남은 것은 사람이 해야 하는 3가지뿐이다** (§5).
 
 ---
 
@@ -18,15 +24,29 @@
 
 ### 새 파일
 
-- `lib/insight/claude-cli.ts` — Vercel 안에서 Claude Code 바이너리 확보·실행
+**로직 (`lib/insight/*` — 이 트리는 Next 빌드에 안 들어간다. Node 스크립트 전용)**
+
+- `lib/insight/loop.ts` — **파이프라인 본체**(순수 로직). 단계는 §2
+- `lib/insight/claude-cli.ts` — Claude Code 바이너리 확보·실행
 - `lib/insight/llm.ts` — 프로바이더 seam (claude-cli / anthropic / mock)
 - `lib/insight/patterns.ts` — **승격·기각 판정과 가이드 렌더링(순수 함수)**
 - `lib/insight/github.ts` — Contents API 커밋 + **경로 허용목록**
 - `lib/insight/notion.ts` — Notion 인박스 동기화(선택, 미검증)
-- `lib/cron-auth.ts` — 크론 인증 공통화 (취약점 수정)
+
+**실행 (GitHub Actions)**
+
+- `.github/workflows/nightly-insight-loop.yml` — 19:00 UTC + `workflow_dispatch`
+- `.github/workflows/insight-headless-probe.yml` — 읽기 전용 환경 판정
+- `scripts/insight-loop.mjs` — 루프 진입점. 잡 요약 패널에 결과를 남긴다
+- `scripts/insight-headless-probe.mjs` — `claude -p` 4단계 판정
+
+**Vercel (상시 라우트만)**
+
 - `app/api/insight/capture/route.ts` — 저장 엔드포인트(정본 캡처 경로)
-- `app/api/cron/nightly-insight-loop/route.ts` — 7단계 파이프라인
-- `app/api/test/claude-headless/route.ts` — 스파이크(검증 끝나면 삭제)
+- `lib/cron-auth.ts` — 크론 인증 공통화 (취약점 수정)
+
+**그 외**
+
 - `.claude/commands/insight-review.md` — 수동 트리거 슬래시 명령
 - `content/guides/learned-patterns.md` — **기계 소유**. 검증된 패턴
 - `content/corpus/rejected-patterns.md` — **기계 소유**. 기각 로그
@@ -38,15 +58,23 @@
 
 ### 수정된 파일
 
-- `vercel.json` — `framework: nextjs` 추가(§6 참조) + 나이틀리 크론 등록
+- `vercel.json` — `framework: nextjs` 추가(§7 참조). 나이틀리 크론은 제거됨
+- `tsconfig.json` — `allowImportingTsExtensions`. `lib/insight` 안의 상대 import 에
+  `.ts` 확장자를 붙였다. Node 타입 스트리핑이 확장자 없는 상대 경로를 못 푼다
 - `.claude/commands/threads-draft.md` — 기계 소유 파일 2종을 읽도록 + 우선순위 규칙
 - `app/api/threads/*/route.ts` 5종 — 인증을 `requireCronAuth` 로 통일
+
+### 삭제된 파일
+
+- `app/api/cron/nightly-insight-loop/route.ts` → `lib/insight/loop.ts` 로 이동
+- `app/api/test/claude-headless/route.ts` — 스파이크. 판정해야 할 환경이
+  Vercel 에서 Actions 러너로 바뀌어 프로브 워크플로가 대체한다
 
 ---
 
 ## 2. 어떻게 도는가
 
-`POST /api/cron/nightly-insight-loop` — 매일 **KST 04:00** (`0 19 * * *` UTC).
+`.github/workflows/nightly-insight-loop.yml` — 매일 **KST 04:00** (`0 19 * * *` UTC).
 
 1. **ingest** — Notion 인박스에서 pending 행 → `saved_examples`
    (환경변수 없으면 skip. 정본은 `/api/insight/capture`)
@@ -154,26 +182,35 @@ Notion 연동은 토큰·DB공유·속성이름이 전부 맞아야 하는데, �
 
 ### ✅ 실측으로 검증됨
 
-- **Vercel 서버리스에서 Claude Code CLI 실행** — preview(iad1) 실측:
-  spawn 정상 / 214MB 바이너리 확보 **2.37초** / `claude --version` exit 0 **14ms**.
-  설계안이 우려한 "spawn 불가"·"다운로드 과다"는 둘 다 사실이 아니었다.
+- **Actions 러너에서 Claude Code CLI 실행** — 실행 33242830873 실측:
+  `npm i -g` **2,598ms** / 바이너리 **204.4MB** / `CLAUDE_CLI_PATH` 로 확보 **0ms** /
+  `claude --version` → `2.1.251 (Claude Code)` exit 0 **14ms**.
+  러너 Node **v24.19.0**, egress IP `172.174.166.201`(Azure 대역).
+- **Node 타입 스트리핑 체인** — 위 실행에서 `.mjs` → `lib/insight/*.ts` import 가
+  러너에서 실제로 해석됐다. 로컬 Node 만 되고 CI 는 안 되는 경우를 배제했다.
+- **Vercel 서버리스에서도 CLI 는 돌았다**(과거 스파이크, iad1): 214MB 확보
+  2.37초 / `--version` exit 0 14ms. 설계안이 우려한 "spawn 불가"·"다운로드 과다"는
+  둘 다 사실이 아니었다. Vercel 을 떠난 이유는 이것과 무관하다(§6).
 - **판정 로직 41건** — 표본 가드, 임계치 경계, 좀비 패턴 방지, 기준선 부재 시
   승격 금지, strength 상한, 렌더 결정성, 기각 로그.
 - **tar 파서 11건** — 실제 npm tarball 대상.
 - **인증 취약점 수정** — `Bearer undefined` 가 배포된 preview 에서 401/500 으로
   막히는 것 확인. `/api/threads/publish` 포함.
-- **파이프라인 오류 격리** — 로컬에서 테이블 없는 상태로 dry-run 실행 시
-  단계별로 실패가 격리되고 500 없이 구조화된 결과를 반환.
+- **파이프라인 오류 격리** — 새 스크립트 경로로 로컬 dry-run 실행 시 단계별로
+  실패가 격리되고(없는 테이블 2개만 실패) 나머지가 정상 진행됨.
 - **입력 검증** — capture 의 401/400/400 경로 전부 확인.
-- **빌드** — `next build` green, 두 신규 라우트 등록 확인.
+- **빌드** — `next build` green. 라우트 2개 제거 후 재빌드도 green.
 
 ### ❌ 아직 검증 안 됨
 
-- **`claude -p` 실제 추론** — `CLAUDE_CODE_OAUTH_TOKEN` 미등록으로 스파이크
-  6단계가 스킵됐다. **이 파이프라인 전체가 걸린 유일한 미검증 전제다.**
+- **`claude -p` 실제 추론** — `CLAUDE_CODE_OAUTH_TOKEN` 미등록으로 프로브의
+  headless 단계가 보류(`inconclusive`). **이 파이프라인 전체가 걸린 유일한
+  미검증 전제다.** 시크릿만 넣으면 프로브 한 번으로 판정된다.
 - **전 단계 E2E** — 마이그레이션 미적용이라 실제 테이블로 돌려보지 못했다.
 - **Notion 동기화** — 실제 DB ID·속성명을 확인할 수 없어 코드가 전부 추정이다.
-- **GitHub 자동 커밋** — `GITHUB_TOKEN` 미등록이라 실제 커밋을 못 해봤다.
+- **GitHub 자동 커밋** — 실제 커밋을 못 해봤다. Actions 기본 토큰을 쓰므로
+  별도 PAT 발급은 필요 없어졌지만, 커밋이 실제로 2개 파일에만 생기는지는
+  첫 실행에서 눈으로 확인해야 한다.
 - **판정→가이드 반영의 실제 사이클** — 발행 성과가 쌓여야 도는데 표본이 없다.
 
 ---
@@ -191,33 +228,94 @@ supabase/migrations/20260829000002_insight_patterns.sql
 
 순서대로. 2번이 1번의 테이블을 FK 로 참조한다.
 
-### ② 환경변수 등록 — Vercel (Production + Preview 둘 다)
+### ② 시크릿 등록 — 두 군데로 갈린다
 
-| 변수 | 필수 | 용도 |
+야간 배치가 Actions 로 옮겨가면서 변수가 사는 곳이 나뉘었다. 같은 값을 양쪽에
+넣지 말고 **아래 표대로 한 곳에만** 넣는다. 두 곳에 두면 나중에 한쪽만 갱신됐을 때
+어느 값이 실제로 쓰였는지 못 가린다.
+
+**GitHub 리포 시크릿** (Settings → Secrets and variables → Actions)
+
+| 이름 | 필수 | 용도 |
+|---|---|---|
+| `CLAUDE_CODE_OAUTH_TOKEN` | **필수** | `claude setup-token` 으로 발급 |
+| `NEXT_PUBLIC_SUPABASE_URL` | **필수** | 루프가 Supabase 를 직접 읽고 쓴다 |
+| `SUPABASE_SERVICE_ROLE_KEY` | **필수** | 같음 |
+| `ANTHROPIC_API_KEY` | 선택 | 헤드리스가 막혔을 때의 유료 대체 경로 |
+| `NOTION_API_KEY` / `NOTION_INSIGHT_DB_ID` | 선택 | Notion 경로를 쓸 때만 |
+
+`GITHUB_TOKEN` 은 **넣지 않는다.** Actions 가 잡마다 발급하는 기본 토큰을 쓰고,
+워크플로가 `permissions: contents: write` 로 범위를 이 리포로 좁힌다. 별도 PAT 을
+만들면 권한이 리포 밖으로 넓어지기만 한다.
+
+리포 변수(Variables)로 `INSIGHT_LLM_PROVIDER`(기본 `claude-cli`),
+`INSIGHT_ANALYZE_LIMIT`(기본 10)을 둘 수 있다. 없으면 기본값이다.
+
+**Vercel 환경변수** (Production + Preview 둘 다)
+
+| 이름 | 필수 | 용도 |
 |---|---|---|
 | `CRON_SECRET` | **필수** | 지금 비어 있다. 없으면 모든 크론 라우트가 500 |
-| `CLAUDE_CODE_OAUTH_TOKEN` | **필수** | `claude setup-token` 으로 발급 |
-| `GITHUB_TOKEN` | **필수** | 가이드 자동 커밋용. `contents:write` 권한 |
-| `INSIGHT_LLM_PROVIDER` | 선택 | 기본 `claude-cli`. 문제 시 `anthropic`/`mock` |
-| `INSIGHT_ANALYZE_LIMIT` | 선택 | 기본 10 |
-| `NOTION_API_KEY` / `NOTION_INSIGHT_DB_ID` | 선택 | Notion 경로를 쓸 때만 |
 
 등록 후 **재배포 필요** (환경변수는 소급 적용 안 됨).
 
-### ③ 스파이크 재실행 → 최종 판정
+⚠️ 프로덕션에 `CRON_SECRET` 이 설정돼 있는지는 대시보드에서 사람이 확인한다.
+Claude 가 확인하지 않은 이유는 확인 자체가 부작용이기 때문이다 — 통과하면
+`/api/threads/publish` 가 Threads 에 실제로 발행한다. 다만 프로덕션은 Vercel SSO
+뒤에 있어(외부 요청이 302 로 튕긴다) 실제 노출 위험은 preview 쪽이 컸다.
+
+### ③ 프로브 실행 → 헤드리스 최종 판정
+
+시크릿을 넣은 뒤 한 번 돌린다. 읽기 전용이라 안전하다.
 
 ```bash
-curl -s -X POST -H "Authorization: Bearer $CRON_SECRET" \
-  "<preview>/api/test/claude-headless" | python -m json.tool
+gh workflow run insight-headless-probe.yml
+gh run watch "$(gh run list --workflow=insight-headless-probe.yml --limit 1 --json databaseId -q '.[0].databaseId')"
 ```
 
-`verdict: vercel-viable` 이면 헤드리스 경로 확정. `vercel-blocked` 면
-`INSIGHT_LLM_PROVIDER=anthropic` 으로 넘기거나 GitHub Actions 로 분리한다
-(이 경우에도 나머지 6단계 코드는 그대로 쓴다).
+판정 `viable` 이면 Pro 구독 헤드리스 경로 확정 — API 과금이 없다.
+`blocked` 이면 리포 변수 `INSIGHT_LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`
+시크릿으로 넘긴다. 나머지 전 단계 코드는 그대로 쓴다.
 
 ---
 
-## 6. 별건 — 이 프로젝트 배포가 전부 죽어 있었다
+## 6. 왜 Vercel 이 아니라 GitHub Actions 인가
+
+처음엔 Vercel 크론에 올렸다. 옮긴 근거는 셋 다 실측이다.
+
+**① 300초 천장이 실제 결함이었다.** Vercel Pro 의 `maxDuration` 은 300초인데,
+분석 단계는 건당 최대 120초(`lib/insight/llm.ts`)이고 `ANALYZE_LIMIT` 이 10이다.
+최악 1,200초라 함수가 3~4건째에서 죽는다. 죽으면 이미 `analyzed` 로 바뀐 행은
+남고 패턴화·판정·커밋은 통째로 안 돈다 — **매일 밤 절반만 도는 루프**가 된다.
+스파이크가 이걸 못 잡은 이유는 질문이 "바이너리가 도는가"였지 "10건을 다 도는가"가
+아니었기 때문이다. Actions 는 job 당 6시간이라 이 천장이 없다.
+
+**② 크론이 3중으로 발화하고 있었다.** 같은 리포에 Vercel 프로젝트가 3개 붙어
+있고(`solutionarchive-app` / `solutionarchive` / `solutionarch`) 셋 다 main
+프로덕션이 READY 다. `vercel.json` 의 크론은 세 곳에 각각 등록되므로, 서로 모르는
+세 인스턴스가 같은 시각에 같은 pending 행을 분석하고 각자 H8 을 발급하려 든다.
+Actions 는 리포당 하나이고 `concurrency` 그룹으로 한 번 더 막는다.
+
+**③ 이 리포는 public 이라 표준 러너 분(minute)이 무제한이다.** 프라이빗 2,000분
+전제보다 유리하다.
+
+부수 효과로 **수동 트리거가 실제로 가능해졌다.** 프로덕션에 Vercel SSO 가 걸려
+있어 외부 curl 은 302 로 튕긴다 — 예전 `/insight-review` 의 curl 경로는 애초에
+동작하지 않았을 것이다. 이제 `workflow_dispatch` 버튼 하나이고 `dry_run` 기본값이
+true 다. 214MB 재다운로드도 사라졌다(`CLAUDE_CLI_PATH` 분기).
+
+**Actions 쪽 약점도 있다.** 스케줄이 정시를 보장하지 않고(수십 분 지연, 고부하 시
+건너뜀), 60일간 리포에 활동이 없으면 스케줄이 자동 비활성화된다. 전자는 04:00 을
+고른 덕에 07:00 까지 3시간 여유가 있고 하루 건너뛰어도 다음 밤이 같은 일을 한다
+(전 단계 멱등). 후자는 §8 체크리스트에 남겼다.
+
+**Vercel 에 남긴 것**: `capture`(아이폰 단축어가 때리는 상시 엔드포인트라 옮길 수
+없다), `match-posts`·`collect-metrics`(매시간, 짧고 가볍다), `refresh-token`,
+`publish`, 대시보드.
+
+---
+
+## 7. 별건 — 이 프로젝트 배포가 전부 죽어 있었다 (해결)
 
 작업 중 발견했다. **최근 20건 배포가 전원 ERROR, 프로덕션 포함.**
 
@@ -225,17 +323,22 @@ curl -s -X POST -H "Authorization: Bearer $CRON_SECRET" \
 (API 상 `framework: null`). `next build` 는 매번 성공한 뒤
 "No Output Directory named public" 으로 통째로 버려지고 있었다.
 
-`vercel.json` 에 `"framework": "nextjs"` 를 박아 고쳤고 preview 는 복구됐다.
-**이 커밋이 main 에 머지돼야 프로덕션이 복구된다.** 그전까지 프로덕션은
-실패한 배포들 이전의 오래된 빌드를 서빙한다.
+`vercel.json` 에 `"framework": "nextjs"` 를 박아 고쳤다. PR #9 가 머지되면서
+프로덕션 배포가 `READY` 로 복구된 것을 확인했다(`dpl_HQ9qXDem...`, sha `86d7d72`).
 
 ---
 
-## 7. 남은 리스크
+## 8. 남은 리스크
 
+0. **Vercel 프로젝트가 3개다** — 같은 리포에 `solutionarchive-app` /
+   `solutionarchive` / `solutionarch` 가 물려 있고 셋 다 main 프로덕션이 살아
+   있다. 푸시 한 번에 빌드가 3번 돌고, `vercel.json` 의 남은 크론 3개도 3중으로
+   발화한다(매처·수집기가 매시간 3번씩). 야간 루프는 Actions 로 빼서 이 문제를
+   벗어났지만 **나머지 크론은 여전히 3중이다.** 어느 하나를 정본으로 정하고
+   나머지 둘을 삭제하거나 일시정지하는 판단이 필요하다 — 도메인이 붙어 있을 수
+   있어 Claude 가 임의로 지우지 않았다.
 1. **헤드리스 인증이 안 될 가능성** — 유일한 미검증 전제. 안 되면 API 과금
-   경로(`anthropic`)로 가거나 GitHub Actions 로 이 단계만 분리한다. seam 은
-   이미 만들어져 있어 전환 비용은 환경변수 하나다.
+   경로(`anthropic`)로 넘긴다. seam 이 이미 있어 전환 비용은 변수 하나다.
 2. **자동 커밋이 main 을 건드린다** — 안전장치 3겹(경로 허용목록 / DB 트리거 /
    실행 로그)을 뒀지만, 처음 며칠은 `/insight-review`(dry-run 기본)로 판정만
    보고 실제 반영은 눈으로 확인한 뒤 여는 걸 권한다. 크론을 바로 열지 말 것.
@@ -251,21 +354,26 @@ curl -s -X POST -H "Authorization: Bearer $CRON_SECRET" \
 
 ---
 
-## 8. 다음에 확인할 것
+## 9. 다음에 확인할 것
 
-- [ ] 스파이크 6단계 통과 여부 (→ 프로바이더 확정)
+- [x] ~~PR #9 머지 → 프로덕션 배포 복구~~ (`86d7d72`, 확인 완료)
+- [x] ~~스파이크 라우트 삭제~~ (프로브 워크플로가 대체)
+- [ ] `feat/insight-loop-on-actions` → main 머지
+- [ ] 프로브 판정 `viable` 여부 (→ 프로바이더 확정)
 - [ ] 마이그레이션 적용 후 dry-run 전 단계 ok 인지
 - [ ] 저장 글 3~4건 넣고 `patternize` 가 실제로 패턴을 만드는지
-- [ ] `pattern_key` 가 같은 패턴에서 실제로 수렴하는지 (위 리스크 6)
-- [ ] `GITHUB_TOKEN` 넣고 커밋이 2개 파일에만 생기는지
-- [ ] 며칠 dry-run 관찰 후 크론 활성화 판단
-- [ ] 스파이크 라우트(`app/api/test/claude-headless/`) 삭제
+- [ ] `pattern_key` 가 같은 패턴에서 실제로 수렴하는지 (리스크 7)
+- [ ] 첫 실전 실행에서 커밋이 2개 파일에만 생기는지
+- [ ] 며칠 dry-run 관찰 후 `dry_run=false` 자동 실행 활성화 판단
 - [ ] 프로덕션 `CRON_SECRET` 설정 여부 확인 (지금 비어 있을 가능성 높음)
-- [ ] `feat/insight-feedback-loop` → main 머지 (프로덕션 배포 복구 포함)
+- [ ] Vercel 프로젝트 3개 중 정본 하나만 남길지 판단 (리스크 0)
+- [ ] 머지 후 `insight-headless-probe.yml` 의 `push` 트리거 제거
+- [ ] 60일 무활동 시 Actions 스케줄 자동 비활성화 — 승격이 오래 없으면
+      커밋도 없어 조용히 멈출 수 있다. 분기에 한 번 실행 이력 확인
 
 ---
 
-## 9. 첨부 문서 미확보 건
+## 10. 첨부 문서 미확보 건
 
 이번 세션과 직전 세션 모두 `insight-guide.md`, `threads-draft-insight-patch.md`,
 `corpus-seed-template.md` 3종이 전달되지 않았다(`feedback-loop-design.md` 만 도착).

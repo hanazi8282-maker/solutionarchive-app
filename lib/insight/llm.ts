@@ -17,7 +17,7 @@
 //
 // 선택: INSIGHT_LLM_PROVIDER = claude-cli(기본) | anthropic | mock
 
-import { resolveClaudeBinary, runClaude } from './claude-cli'
+import { resolveClaudeBinary, runClaude } from './claude-cli.ts'
 
 export type InsightProvider = 'claude-cli' | 'anthropic' | 'mock'
 

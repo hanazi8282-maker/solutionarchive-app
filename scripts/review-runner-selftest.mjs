@@ -7,7 +7,10 @@
 // 여기서 고정하는 건 "리뷰를 잘 가져오는가"가 아니라 **남의 서버에 대한
 // 규칙을 지키는가**와 **조용히 망가지지 않는가**다.
 
-import { createHash } from 'node:crypto'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
 import {
   runCollection,
   STALE_STREAK_TO_STOP,
@@ -18,6 +21,8 @@ import { computeFingerprint, normalizeText } from '../lib/review/fingerprint.ts'
 
 let pass = 0
 let fail = 0
+const here = path.dirname(fileURLToPath(import.meta.url))
+
 const t = (name, got, want) => {
   if (got === want) pass++
   else {
@@ -442,6 +447,106 @@ for (const code of [403, 429]) {
 
 // ── UA 는 위장하지 않는다 ─────────────────────────────────────────
 ok('제품 토큰이 브라우저를 사칭하지 않는다', !/mozilla|chrome|safari/i.test(PRODUCT_TOKEN))
+
+// ── 러너 × 실제 다나와 어댑터 (통합) ──────────────────────────────
+//
+// ⚠️ 위 테스트는 전부 가짜 어댑터를 쓴다. 그래서 러너의 규칙은 검증되지만
+//    **다나와 어댑터와 러너가 실제로 맞물리는지는 검증되지 않는다.**
+//    nextRequest 가 만드는 URL 을 러너가 그대로 쓰는지, parse 가 돌려주는
+//    nextCursor 를 러너가 제대로 이어받는지가 그 틈이다.
+//
+//    픽스처가 있으니 네트워크 없이 그 틈을 메울 수 있다. 안 하면
+//    "각 부품은 통과했는데 붙이면 안 되는" 상태를 실행에서 처음 안다.
+{
+  const fixture = async (name) =>
+    fs.readFile(path.join(here, '..', 'fixtures', 'review', 'danawa', name), 'utf8')
+
+  const many = await fixture('many.html')
+  const page2 = await fixture('page2.html')
+  const empty = await fixture('empty.html')
+
+  const seenUrls = []
+  const inputs = []
+  const saves = []
+  const seenFp = new Map()
+  let clock = 2_000_000
+
+  const ports = {
+    now: () => new Date(clock),
+    async sleep(ms) {
+      clock += ms
+    },
+    async fetchText(url) {
+      seenUrls.push(url)
+      clock += 10
+      if (url.endsWith('/robots.txt')) {
+        return { status: 200, body: 'User-agent: *\nAllow: /\n' }
+      }
+      const page = new URL(url).searchParams.get('page')
+      if (page === '1') return { status: 200, body: many }
+      if (page === '2') return { status: 200, body: page2 }
+      return { status: 200, body: empty }
+    },
+    store: {
+      async loadSource() {
+        return {
+          key: 'danawa',
+          enabled: true,
+          minIntervalMs: 4000,
+          dailyRequestCap: 200,
+          requestsToday: 0,
+        }
+      },
+      async listDueTargets() {
+        return [
+          {
+            id: 'tgt1',
+            projectId: 'proj1',
+            sourceKey: 'danawa',
+            productRef: '93387356',
+            cursor: null,
+            lastReviewAt: null,
+            consecutiveEmpty: 0,
+          },
+        ]
+      },
+      async saveTargetProgress(p) {
+        saves.push(p)
+      },
+      async recordFingerprint(fp) {
+        if (seenFp.has(fp.identityKey)) {
+          return seenFp.get(fp.identityKey) === fp.contentHash ? 'duplicate' : 'revised'
+        }
+        seenFp.set(fp.identityKey, fp.contentHash)
+        return 'new'
+      },
+      async appendInput(i) {
+        inputs.push(i)
+        return `in${inputs.length}`
+      },
+      async linkFingerprint() {},
+      async updateSourceHealth() {},
+    },
+  }
+
+  const r = await runCollection(danawaAdapter, { dryRun: false, targetLimit: 1 }, ports)
+
+  ok(
+    '어댑터가 만든 URL 을 러너가 그대로 쓴다',
+    seenUrls.some((u) => u.includes('companyProductReview.ajax.php') && u.includes('prodCode=93387356')),
+  )
+  ok('page=1 부터 시작한다', seenUrls.some((u) => u.endsWith('page=1')))
+  ok('커서를 받아 page=2 로 넘어간다', seenUrls.some((u) => u.endsWith('page=2')))
+  t('빈 페이지에서 멈춘다', r.pagesFetched, 3)
+  t('실제 픽스처에서 20건을 파싱한다', r.stats.reviewsParsed, 20)
+  t('파싱 실패 0', r.stats.parseFailures, 0)
+  t('20건 전부 신규로 적재된다', inputs.length, 20)
+  t('폴백 키 없음 — 다나와 seq 를 전부 읽었다', r.stats.fallbackKeys, 0)
+  t('health ok', r.health.health, 'ok')
+  ok('마지막 저장의 커서가 null — 타깃 종료', saves[saves.length - 1].cursor === null)
+  ok('본문이 실제로 들어간다', inputs.every((i) => i.text.length > 0))
+  ok('프로젝트 id 가 실려 간다', inputs.every((i) => i.projectId === 'proj1'))
+}
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {

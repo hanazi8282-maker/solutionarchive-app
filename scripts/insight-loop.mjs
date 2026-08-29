@@ -49,6 +49,19 @@ const say = (s) => {
 
 say(`## 인사이트 루프 ${dryRun ? '(dry-run — 판정만)' : ''}`)
 say('')
+
+// ── 리뷰 수집 소스 경보 — 다른 무엇보다 위에 온다 ─────────────────
+//
+// 리뷰 수집은 별도 잡(nightly-review-collect)이 돌린다. 그 잡의 실패는
+// 그쪽 로그에만 남아서, 아침에 이 보고만 보는 사람은 며칠씩 모른다.
+// 수집이 죽으면 분석 재료가 끊기고 결국 이 루프의 판정도 굶는다.
+//
+// ⚠️ ok 인 소스는 한 줄도 찍지 않는다. 늘 있는 줄은 곧 안 읽는 줄이 된다.
+for (const line of await sourceAlerts(supabase)) {
+  say(line)
+  say('')
+}
+
 say(`- 결과: ${result.ok ? '전 단계 정상' : '실패한 단계 있음'} · ${(result.totalMs / 1000).toFixed(1)}초 · provider=${result.provider} · trigger=${result.trigger}`)
 say(`- 집계: 수집 ${result.counts.ingested} / 분석 ${result.counts.analyzed} / 패턴 ${result.counts.patterns} / 승격 ${result.counts.promoted} / 기각 ${result.counts.rejected}`)
 if (result.commitSha) say(`- 커밋: \`${result.commitSha}\``)
@@ -84,6 +97,35 @@ if (dryRun) {
 // 사라지지만, 요약은 그 실행에서 무엇이 바뀌었는지 한 화면에 보여준다.
 if (process.env.GITHUB_STEP_SUMMARY) {
   await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n')
+}
+
+/**
+ * 리뷰 수집 소스 중 정상이 아닌 것만 경보 줄로 만든다.
+ *
+ * ⚠️ 테이블이 없을 때 조용히 빈 배열을 돌려주지 않는다. 그건 "확인할 수
+ *    없는데 정상이라고 답하는" 형태이고, 이 프로젝트에서 반복해 잡은
+ *    실패다. 미적용이면 미적용이라고 말한다.
+ */
+async function sourceAlerts(supabase) {
+  const { data, error } = await supabase
+    .from('review_sources')
+    .select('key, enabled, health, health_detail, health_checked_at')
+    .neq('health', 'ok')
+
+  if (error) {
+    // 리뷰 수집 계층 자체가 아직 없는 상태. 사고가 아니라 미적용이다.
+    if (error.code === 'PGRST205') {
+      return ['ℹ️ 리뷰 수집 계층 미적용 — 마이그레이션 003 을 아직 실행하지 않았다']
+    }
+    return [`⚠️ 소스 상태를 읽지 못했다: ${error.message}`]
+  }
+
+  return (data ?? []).map((s) => {
+    const icon = s.health === 'broken' ? '🚨' : '⚠️'
+    const stopped = s.enabled ? '' : ' · 소스가 꺼져 있다'
+    const when = s.health_checked_at ? ` (${s.health_checked_at.slice(0, 16).replace('T', ' ')})` : ''
+    return `${icon} 소스 경보: ${s.key} = ${s.health} — ${s.health_detail ?? '사유 미기록'}${stopped}${when}`
+  })
 }
 
 function summarizeDetail(name, d) {

@@ -708,7 +708,7 @@ content_items (status='proposed')
 4. ✅ `lib/review/fingerprint.ts` + `lib/review/runner.ts` + 셀프테스트 61건
 5. ✅ `lib/review/store.ts` + `scripts/review-collect.mjs` + 워크플로
    + `scripts/review-migration-verify.mjs` (마이그레이션 적용 확인, 읽기 전용)
-6. `scripts/insight-loop.mjs` 에 소스 경보 최상단 출력 추가
+6. ✅ `scripts/insight-loop.mjs` 에 소스 경보 최상단 출력 추가
 7. 12개 프로젝트에 다나와 타깃 매핑(사람이 상품 선택)
 8. dry-run 며칠 → 실제 적재 → extract → 검수 → diff 리포트
 

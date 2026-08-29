@@ -194,8 +194,15 @@ export const danawaAdapter: ReviewSourceAdapter = {
       if (review) reviews.push(review)
     }
 
-    const page = ctx.cursor ? Number(ctx.cursor) : 1
-    const nextCursor = String(Number.isFinite(page) ? page : 1)
+    // ⚠️ 커서는 **방금 가져온 페이지 번호**다. ctx.cursor 를 그대로 돌려주면
+    //    안 된다 — nextRequest 가 cursor+1 을 요청하므로, 커서가 제자리에
+    //    머물면 같은 페이지를 영원히 다시 받는다.
+    //
+    //    nextRequest 와 계산이 대칭이어야 한다:
+    //      요청한 페이지 = cursor 가 없으면 1, 있으면 cursor + 1
+    //    통합 테스트가 이 비대칭을 잡았다(부품별 테스트는 둘 다 통과했다).
+    const fetchedPage = ctx.cursor ? Number(ctx.cursor) + 1 : 1
+    const nextCursor = String(Number.isFinite(fetchedPage) ? fetchedPage : 1)
 
     return { reviews, nextCursor, parseFailures }
   },

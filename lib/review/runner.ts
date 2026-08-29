@@ -235,6 +235,15 @@ export async function runCollection(
     targetsVisited++
 
     let cursor = target.cursor
+
+    // ⚠️ 증분 기준선은 **실행 시작 시점 값으로 고정**한다. 이걸 진행하면서
+    //    갱신하면, 첫 실행(baseline=null)에서 1페이지를 읽고 그 최신 날짜를
+    //    기준으로 삼는 순간 2페이지의 과거 리뷰가 전부 "이미 본 것"이 되어
+    //    한 페이지만 긁고 멈춘다. 과거를 훑어야 하는 첫 실행이 가장 크게
+    //    망가진다. 통합 테스트가 이걸 잡았다.
+    const baselineReviewAt = target.lastReviewAt
+
+    // 저장용은 따로 둔다. 이번 실행에서 본 가장 최신 리뷰 날짜다.
     let lastReviewAt = target.lastReviewAt
     let staleStreak = 0
     let collected = 0
@@ -288,7 +297,7 @@ export async function runCollection(
 
       const pageResult = await ingestPage(
         parsed.reviews,
-        { target, lastReviewAt, sourceKey: adapter.key },
+        { target, lastReviewAt: baselineReviewAt, sourceKey: adapter.key },
         opts,
         ports,
         stats,

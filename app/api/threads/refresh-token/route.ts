@@ -5,15 +5,14 @@
 // Threads 장기 토큰은 60일이 지나면 갱신 자체가 불가능해져 수동 재인증밖에 답이 없다.
 
 import { NextResponse } from 'next/server'
+import { requireCronAuth } from '@/lib/cron-auth'
 import { ensureValidToken } from '@/lib/threads/token'
 
 export async function GET(req: Request) { return POST(req) }
 
 export async function POST(req: Request) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = requireCronAuth(req)
+  if (denied) return denied
 
   const creds = await ensureValidToken()
 

@@ -19,6 +19,7 @@
 //     https://<preview-url>/api/test/claude-headless
 
 import { NextResponse } from 'next/server'
+import { requireCronAuth } from '@/lib/cron-auth'
 import os from 'node:os'
 import { spawn } from 'node:child_process'
 import {
@@ -73,10 +74,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = requireCronAuth(req)
+  if (denied) return denied
 
   const stages: Stage[] = []
   const t0 = Date.now()

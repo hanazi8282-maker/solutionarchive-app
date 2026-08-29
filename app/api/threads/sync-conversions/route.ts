@@ -9,15 +9,14 @@
 // 그래서 이 설명이 라우트 파일에 있다.
 
 import { NextResponse } from 'next/server'
+import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(req: Request) { return POST(req) }
 
 export async function POST(req: Request) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = requireCronAuth(req)
+  if (denied) return denied
 
   const supabase = await createClient()
   if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })

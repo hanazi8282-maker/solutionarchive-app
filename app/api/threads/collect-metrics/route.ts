@@ -27,6 +27,7 @@
 // 함수에 있고 scripts/threads-collect-selftest.mjs 가 검증한다. 여기는 실행만 한다.
 
 import { NextResponse } from 'next/server'
+import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
 import { fetchInsights, type ThreadsUsage } from '@/lib/threads/insights'
 import { ensureValidToken } from '@/lib/threads/token'
@@ -45,10 +46,8 @@ const CALL_SPACING_MS = 200
 export async function GET(req: Request) { return POST(req) }
 
 export async function POST(req: Request) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = requireCronAuth(req)
+  if (denied) return denied
 
   const supabase = await createClient()
   if (!supabase) {

@@ -104,6 +104,29 @@ t('90점 → 4.5', __internal.toFiveScale(90), 4.5)
   ok('내용이 있으면 커서가 이어진다', r.nextCursor !== null)
 }
 
+// ⚠️ 커서 **값**을 검증한다. 위처럼 null 여부만 보면 커서가 제자리에
+//    머무는 걸 못 잡는다. 실제로 그 버그가 있었고, 통합 테스트에서야
+//    드러났다 — 단위에서 잡혔어야 할 것이다.
+//
+//    nextRequest 는 cursor+1 을 요청하므로, parse 는 **방금 가져온
+//    페이지 번호**를 돌려줘야 한다. 둘이 비대칭이면 같은 페이지를
+//    영원히 다시 받는다.
+{
+  t('첫 페이지(cursor=null)를 읽으면 커서는 1', danawaAdapter.parse(many, ctx(null)).nextCursor, '1')
+  t('cursor=1 로 요청한 페이지는 2 → 커서도 2', danawaAdapter.parse(page2, ctx('1')).nextCursor, '2')
+  t('cursor=7 이면 가져온 건 8', danawaAdapter.parse(many, ctx('7')).nextCursor, '8')
+
+  // nextRequest 와 parse 가 대칭인지 — 한 바퀴 돌려 본다.
+  let cursor = null
+  const pages = []
+  for (let i = 0; i < 4; i++) {
+    const url = danawaAdapter.nextRequest({ productRef: 'p', cursor }).url
+    pages.push(new URL(url).searchParams.get('page'))
+    cursor = danawaAdapter.parse(many, ctx(cursor)).nextCursor
+  }
+  t('페이지가 1,2,3,4 로 전진한다', pages.join(','), '1,2,3,4')
+}
+
 // 2페이지도 항목이 있다 — 페이지네이션이 실제로 동작한다
 {
   const p1 = danawaAdapter.parse(many, ctx('1'))

@@ -3,7 +3,6 @@
   "crons": [
     { "path": "/api/threads/refresh-token", "schedule": "0 19 * * 0" },
     { "path": "/api/threads/match-posts", "schedule": "0 * * * *" },
-    { "path": "/api/threads/collect-metrics", "schedule": "30 * * * *" },
-    { "path": "/api/cron/nightly-insight-loop", "schedule": "0 19 * * *" }
+    { "path": "/api/threads/collect-metrics", "schedule": "30 * * * *" }
   ]
 }

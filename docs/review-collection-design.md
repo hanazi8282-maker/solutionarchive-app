@@ -30,11 +30,19 @@
 목록을 통째로 무시했다. RFC 9309 §2.2.1 대로 같은 UA 그룹을 병합하도록
 고치자 리뷰 경로가 전부 금지로 바뀌었다. `lib/review/robots.ts` + 셀프테스트 31건.
 
-글로우픽은 `ClaudeBot` / `GPTBot` / `Bytespider` / `meta-externalagent` 를
-명시적으로 `Disallow: /` 한다. `*` 는 허용이라 규칙상 우리가 가도 되지만,
-**AI 크롤러를 원하지 않는다는 의사는 분명하다.** CSR 이라 어차피 headless
-브라우저가 필요한데, 그 의사를 보고도 브라우저를 띄우는 건 하지 않는 게 맞다고
-본다. 판단은 사람이 한다.
+글로우픽은 **제외 확정**(2026-08-29 사용자 결정). `ClaudeBot` / `GPTBot` /
+`Bytespider` / `meta-externalagent` 를 명시적으로 `Disallow: /` 한다.
+`*` 는 허용이라 규칙의 문자는 통과하지만, **자동 수집을 원하지 않는다는
+의사표시로 읽는 게 맞다.** CSR 이라 headless 브라우저까지 띄워야 하는데,
+그 의사를 보고도 브라우저를 띄우는 건 우회에 가깝다.
+
+### 파서 버그가 판정을 뒤집었던 건 — 전체 재검증 완료
+
+고친 파서로 12개 소스를 다시 판정했고 **바뀐 건 화해 하나뿐**이었다.
+버그는 `User-agent: *` 그룹이 두 번 이상 나오는 robots.txt 에서만 발현하는데,
+12곳 중 그 형태가 화해뿐이었다. 상세는 `review-source-findings.md`.
+
+재발 방지로 프로브 출력에 `⚠️ * 그룹 N개(병합 대상)` 경고를 넣었다.
 
 ## 2. 가장 중요한 구조 결정 — 원문 테이블을 새로 만들지 않는다
 
@@ -84,13 +92,32 @@ interface ParseResult {
 }
 
 interface ParsedReview {
-  externalId: string | null        // 있으면 지문의 1순위
+  externalId: string | null        // 다나와 리뷰 seq. 지문의 1순위 (§4.5)
   text: string
   rating: number | null            // 다나와는 100점 척도 → 5점으로 정규화
   seller: string | null            // ★ 다나와의 핵심 — 11번가·롯데하이마트 등
+  authorMasked: string | null      // 'vl****'. seq 폴백 시 지문 재료
   writtenAt: string | null         // ISO date
 }
 ```
+
+### 다나와에서 이 필드들이 실제로 어디서 나오는지 (실측 확인)
+
+`prodCode=102126566&page=1` 응답에서 전부 확인했다. 파서를 짜기 전에
+구조를 확정해 둔다.
+
+| 필드 | 출처 |
+|---|---|
+| `externalId` | `id="danawa-prodBlog-companyReview-button-side-<seq>"` |
+| `rating` | `<span class="star_mask" style="width:100%">100점</span>` |
+| `seller` | `<span class="mall">` 안의 `img[alt]` 또는 숨김 `<span>` |
+| `writtenAt` | `<span class="date">2025.09.06.</span>` |
+| `authorMasked` | `<span class="name">vl****</span>` |
+| `text` | `<div class="rvw_atc">` 이하 |
+
+리뷰 항목 경계는 `<li class="danawa-prodBlog-companyReview-clazz-more">` 다.
+**항목 수와 seq 수가 어긋나면 그게 곧 `parseFailures`** 다 — 실측에서는
+3:3 으로 일치했다.
 
 `seller` 를 1급 필드로 둔다. 다나와가 여러 몰의 리뷰를 집약해서 오고, 그게
 쿠팡·11번가를 직접 못 가는 것을 메우는 유일한 통로다. **몰별 비교 축이
@@ -127,10 +154,6 @@ interface ParsedReview {
 | `status` | `active` / `exhausted` / `failed` |
 | `consecutive_empty` | 연속 신규 0건 횟수. §5 의 입력 |
 
-체크포인트를 run 이 아니라 **타깃**에 두는 게 핵심이다. Actions 잡이 중간에
-죽어도 다음 실행이 각 타깃의 `cursor` 에서 그냥 이어간다 — 재개를 위한 별도
-복구 로직이 없다.
-
 ### `review_collection_runs` — 실행 이력
 
 `started_at` / `finished_at` / `source_key` / `status(running|ok|failed|interrupted)` /
@@ -143,11 +166,200 @@ interface ParsedReview {
 
 ### `review_fingerprints` — 중복 제거 (원문 폐기 후에도 남는다)
 
-`(source_key, fingerprint)` UNIQUE. `fingerprint` 는 `externalId` 가 있으면
-그것, 없으면 정규화 텍스트의 sha256 앞 32자. `analysis_input_id` 를 nullable
-FK 로 달아 어느 입력으로 들어갔는지 추적하되, 원문이 폐기되면 null 이 된다.
+→ 상세는 **§4.5**. 이 설계에서 원문 삭제와 증분 수집이 정면으로 부딪히는
+유일한 지점이라 절을 따로 뒀다.
 
-지문만 남기므로 행당 100바이트 미만이다. 원문을 지워도 중복 판정은 영구히 산다.
+---
+
+## 4.5 중복 제거 키 — 원문을 지운 뒤에도 "이미 본 리뷰"를 아는 방법
+
+### 원칙
+
+원문을 지우면 판별 근거가 사라진다. 해결은 하나뿐이다 —
+**지문을 원문에서 파생시키되, 지문이 원문에 의존하지 않게 만든다.**
+한 번 계산해 저장하면 원문이 없어도 비교가 된다.
+
+그래서 **원문 30일 / 지문 무기한**이다.
+
+### 키는 두 개다. 역할이 다르다
+
+| 키 | 역할 | 구성 |
+|---|---|---|
+| `identity_key` | **"같은 리뷰인가"** 판별 | 아래 참조. 본문을 넣지 않는다 |
+| `content_hash` | **"내용이 바뀌었는가"** 감지 | `sha256(normalize(text))` |
+
+UNIQUE 는 `identity_key` 에만 건다. `content_hash` 는 제약이 아니라 관측값이다.
+
+### 왜 하나로는 안 되는가
+
+어느 쪽으로 만들어도 한쪽 오류가 생긴다.
+
+- **본문만 해싱** → 짧고 흔한 리뷰가 충돌한다. 실측 응답에도
+  "가벼운데 성능도 만족합니다!" 같은 문장이 있었다. 서로 다른 사람의 리뷰를
+  중복으로 판정해 **진짜 신규를 버린다.**
+- **본문까지 넣어 해싱** → 리뷰가 수정되면 다른 지문이 되어 **중복 적재**된다.
+
+**둘 중 중복 적재가 훨씬 비싸다.** 이 파이프라인의 산출물이 속성별
+`importance` 인데, 같은 리뷰가 두 번 들어가면 그 불만이 두 번 세어져
+중요도가 부풀려진다. 조용히 왜곡되고 나중에 추적이 안 된다. 반대로 리뷰
+하나를 덜 모으는 건 하루 수십 건 규모에서 감당된다.
+
+그래서 **정체성과 내용을 분리**한다.
+
+### `identity_key` 구성 — 다나와가 리뷰 ID 를 노출한다 (실측 확인)
+
+미확인 항목이었는데 확인했다. 다나와 리뷰 AJAX 응답에 **리뷰별 고유 seq 가
+있다.**
+
+```html
+<button class="edit_opt_btn" id="danawa-prodBlog-companyReview-button-side-252495223">
+<a href="#" class="btn_editopt" id="danawa-prodBlog-companyReview-button-block-252495223">
+```
+
+`prodCode=102126566&page=1` 실측: 리뷰 항목 3개 / 고유 seq 3개
+(`252495223`, `00443587321`, `00443587322`) — 1:1 로 대응한다.
+
+seq 형식이 섞여 있는 것(9자리 vs 11자리 0 패딩)으로 보아 판매처별로 다른
+ID 공간에서 온 값이 그대로 실려 오는 듯하다. 그래서 seq 단독으로 쓰지 않고
+**상품으로 범위를 좁힌다.**
+
+```
+identity_key = sha256("danawa" | product_ref | review_seq)
+```
+
+`product_ref` 는 다나와 pcode 다. 같은 상품 페이지 안에서 seq 는 유일함을
+실측으로 확인했고, 상품이 다르면 애초에 다른 타깃이다.
+
+**seq 를 못 찾은 경우의 폴백**(다나와가 구조를 바꿔 seq 가 사라지면):
+
+```
+identity_key = sha256("danawa" | product_ref | seller | author_masked | written_at)
+```
+
+수정에 견디도록 **본문을 넣지 않는다.** 다만 이 폴백에는 남는 손실이 있다 —
+같은 사람이 같은 날 같은 판매처에서 같은 상품에 리뷰를 두 개 쓰면 두 번째를
+중복으로 버린다. `author_masked` 가 `vl****` 로 마스킹돼 있고 `written_at` 에
+시각이 없어(`2025.09.06.` 형식) 충돌 확률이 실제보다 높다. seq 가 살아 있는
+한 이 손실은 발생하지 않는다.
+
+폴백으로 떨어지는 순간을 놓치면 안 되므로, seq 미발견은 `parseFailures` 로
+집계해 §5 의 건강도에 반영한다. 절반 이상이 폴백이면 `broken` 이다.
+
+### 짧고 흔한 본문이 뭉개지지 않는 이유
+
+`identity_key` 에 본문이 없다. "빠른배송 잘 받았습니다"가 100개 있어도
+각각 다른 seq 를 갖기 때문에 전부 다른 리뷰로 들어간다.
+
+`content_hash` 는 뭉칠 수 있지만 **제약이 아니라서 아무것도 막지 않는다.**
+같은 `identity_key` 가 다시 왔을 때 내용이 바뀌었는지 비교하는 데만 쓴다.
+
+`normalize` 는 공백 압축과 트림 정도만 한다. 소문자화·구두점 제거까지
+가면 "좋아요"와 "좋아요!"가 같은 해시가 되는데, 그건 수정 감지의 민감도를
+떨어뜨린다.
+
+### 리뷰가 수정되면
+
+같은 `identity_key` 가 다시 오고 `content_hash` 만 달라진다.
+
+- `content_hash` 같음 → 완전 중복. 건너뛴다
+- `content_hash` 다름 → **수정된 리뷰.** `revision_count` 를 올리고
+  `last_seen_at` 만 갱신한다. **재적재하지 않는다**
+
+재적재하지 않는 게 판단이다. 이미 분석에 반영된 의견인데 수정본을 또 넣으면
+같은 사람 의견이 두 번 세어진다 — 위에서 피하려던 바로 그 오염이다.
+수정 사실은 `revision_count` 로 남으니 "이 소스는 리뷰가 자주 고쳐진다"를
+나중에 알 수 있다.
+
+### 순서가 바뀌면
+
+**지문 기반이라 무영향이다.** 순서에 의존하는 판정이 없다.
+
+다만 **커서는 순서에 의존한다**(§4.6). 커서는 효율을 위한 것이고,
+정확성의 최종 방어선은 지문이다. 커서가 틀려 이미 본 페이지를 다시 읽어도
+지문이 전부 걸러낸다.
+
+### 테이블
+
+```sql
+review_fingerprints
+  id                uuid PK
+  source_key        text NOT NULL          -- 'danawa'
+  identity_key      text NOT NULL          -- sha256 hex
+  content_hash      text NOT NULL          -- sha256 hex
+  product_ref       text                   -- 다나와 pcode
+  written_at        date
+  first_seen_at     timestamptz NOT NULL DEFAULT now()
+  last_seen_at      timestamptz NOT NULL DEFAULT now()
+  revision_count    integer NOT NULL DEFAULT 0
+  key_kind          text NOT NULL           -- 'seq' | 'composite' (폴백 추적용)
+  analysis_input_id uuid REFERENCES analysis_inputs(id) ON DELETE SET NULL
+
+  UNIQUE (source_key, identity_key)
+```
+
+인덱스는 셋이다.
+
+- `UNIQUE (source_key, identity_key)` — 중복 판정 본체.
+  조회 후 삽입이 아니라 **삽입 시도가 곧 중복 검사**다. 동시 실행에도 안전하다
+- `(source_key, product_ref, written_at DESC)` — 증분 종료 판정이
+  타깃별 최신 리뷰 날짜를 본다
+- `(analysis_input_id)` — 원문 폐기 배치가 역방향으로 찾는다
+
+**`ON DELETE SET NULL` 이 핵심이다.** `analysis_inputs` 는
+`analysis_projects` 에 `ON DELETE CASCADE` 로 매달려 있다. 프로젝트를 지우면
+입력이 함께 사라지는데, 그때 지문까지 CASCADE 로 딸려 죽으면 프로젝트를
+다시 만들었을 때 **이미 본 리뷰를 전부 다시 긁는다.**
+
+### 보관 기간과 용량
+
+지문은 **무기한**이다. 지우면 증분 수집이 무너진다.
+
+행당 약 120바이트. 하루 50건 × 365일 = 18,250행 ≈ **연 2.2MB**.
+원문을 지우는 이유였던 500MB 압박과 상충하지 않는다.
+
+---
+
+## 4.6 체크포인트와 커서
+
+### 체크포인트를 run 이 아니라 타깃에 둔다
+
+**페이지 하나를 처리할 때마다 `cursor` 를 즉시 갱신한다.** 그래서 Actions
+잡이 SIGKILL 로 죽어도 다음 실행이 각 타깃의 커서에서 그냥 이어간다 —
+**재개를 위한 별도 복구 로직이 없다.**
+
+run 단위에 체크포인트를 두면 "어디까지 했는지"를 run 로그에서 복원해야 하고,
+그 복원 코드가 곧 버그가 된다. 죽는 방식이 여러 가지라(타임아웃·OOM·러너
+회수) 복원 경로를 전부 테스트할 수도 없다.
+
+### 다나와 커서의 실제 형태
+
+`cursor` 는 페이지 번호다. 종료 신호는 **응답에 리뷰 항목이 0개**인 것이다 —
+실측에서 `page=2` 가 항목 0개를 돌려주며 자연스럽게 끝났다(그 상품 리뷰 3건,
+1페이지에 전부).
+
+```
+nextRequest(target) →
+  https://prod.danawa.com/info/dpg/ajax/companyProductReview.ajax.php
+    ?prodCode=<product_ref>&page=<cursor+1>
+```
+
+### 증분 종료 조건 — 순서 변동에 견디게
+
+정렬이 흔들리면 페이지 경계가 밀려 일부를 건너뛴다. 그래서 종료 조건을
+"페이지 끝"이 아니라 이렇게 둔다.
+
+> `written_at` 이 `last_review_at` 보다 오래된 리뷰를 **연속 5개** 만나면
+> 그 타깃을 그 실행에서 종료한다.
+
+한두 개가 순서에서 튀어도 조기 종료하지 않는다. 그리고 놓친 게 있어도
+다음 실행이 다시 훑고, 이미 본 건 지문이 걸러낸다.
+
+### 실행 간 상태 정리
+
+실행 시작 시 `running` 으로 남아 있는 이전 run 을 `interrupted` 로 정리한다.
+잡이 죽으면 `finished_at` 을 못 쓰는데, 그걸 성공으로 착각하면 안 된다.
+
+---
 
 ### 기존 테이블 변경 2건
 

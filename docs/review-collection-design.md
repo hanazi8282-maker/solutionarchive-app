@@ -853,3 +853,113 @@ parse:       nextCursor    = cursor        ← 비대칭
 - **`nightly-review-collect.yml` 은 GitHub 에 등록조차 안 됐다.** 기본
   브랜치에 없고 트리거된 적도 없다. 로컬 YAML 파싱은 통과했지만 Actions
   스키마 검증은 머지 후에 받는다.
+
+---
+
+## §12. 적용 확인 기록 (2026-08-31)
+
+마이그레이션 003/004 를 적용하려고 붙었는데, **이미 적용돼 있었다.** 그래서
+SQL 은 한 줄도 실행하지 않았다. 아래는 "실행"이 아니라 "실측"의 기록이다.
+
+### 12.1 실행하지 않은 이유 — 이미 적용돼 있다
+
+DB 는 `qmgrfqjfxqhxuufrnkwf`(solutionarchive). 확인 경로는 Supabase CLI 의
+`supabase db query --linked` 다 — Management API 를 타므로 DB 비밀번호가
+필요 없다.
+
+> ⚠️ Supabase **MCP 는 여기서 쓰면 안 된다.** `get_project_url` 이
+> `hrplbrstntyanzwxcsft`(dothegy-os)를 돌려준다. 이 레포에 붙어 있어도
+> MCP 가 보는 DB 는 다른 프로젝트다. 이번에도 그대로 확인됐다.
+
+003/004 가 만들기로 한 것이 전부 있다:
+
+- 테이블 4종 — `review_sources` / `review_targets` /
+  `review_collection_runs` / `review_fingerprints`
+- 인덱스 6종 — `review_targets_due_idx`, `review_collection_runs_recent_idx`,
+  `review_fingerprints_target_recent_idx`, `review_fingerprints_input_idx`,
+  `analysis_inputs_purgeable_idx`, `content_items_proposed_idx`
+- RLS — `review_*` 4종 모두 `enabled=true` / `forced=true` (정책 없음 =
+  service_role 전용)
+- 시드 — `danawa` 1행(enabled=true, health=ok, 4000ms, 상한 200)
+- 확장 컬럼 — `analysis_inputs.{source_key,collected_at,purged_at}`,
+  `content_items.{source_aspect_id,proposed_at}`
+
+핵심 제약 3종도 실측했다(설계 의도대로다):
+
+| 확인 | 결과 |
+|---|---|
+| `analysis_inputs.raw_text` nullable | `is_nullable = YES` — 30일 폐기의 전제 성립 |
+| `review_fingerprints_source_identity_key` | `UNIQUE (source_key, identity_key)` |
+| `review_fingerprints_analysis_input_id_fkey` | `confdeltype = 'n'` = **SET NULL** (CASCADE 아님) |
+
+세 번째가 가장 중요했다. `c`(CASCADE)였다면 프로젝트를 지울 때 지문이 딸려
+죽고 재수집이 전량 반복된다. `n` 이라 안전하다.
+
+`analysis_inputs_purge_trace_check`, `review_sources_disabled_needs_reason`,
+`review_sources_min_interval_check`, `review_targets_project_source_product_key`,
+`content_items_status_check`(= proposed/available/used/retired) 도 전부 붙어 있다.
+
+즉 §11 의 "마이그레이션 SQL 이 파서를 통과한 적이 없다"는 **해소됐다.**
+파싱은 물론이고 의도한 제약까지 그대로 걸렸다.
+
+### 12.2 검증기 자체의 거짓 실패를 고쳤다 (§7.1 사례 6번)
+
+`scripts/review-migration-verify.mjs` 가 8건 중 2건을 ❌ 로 보고했다.
+사유는 `예상 밖 응답 status=206`.
+
+원인은 DB 가 아니라 검증기다. PostgREST 는 `count=exact` 와 `limit(1)` 을
+같이 쓰면 **행이 2개 이상인 테이블에 206 Partial Content** 를 준다.
+`analysis_inputs` 10행, `content_items` 21행이라 둘만 206 이었다.
+`review_sources` 는 1행이라 200 이었고, 그래서 이 버그가 여태 안 보였다.
+
+`status !== 200` → `status !== 200 && status !== 206` 으로 고쳤다. 8/8 통과.
+
+§7.1 은 "확인 실패를 양성으로 읽지 마라"였는데, 이건 그 반대 방향의 같은
+병이다 — **정상을 실패로 읽는 검증기.** 거짓 통과만큼 비싸진 않지만,
+멀쩡한 DB 를 두고 마이그레이션을 다시 때리게 만들 수 있었다.
+
+### 12.3 🔴 정본 Vercel 프로젝트가 크론을 한 번도 못 돌렸다
+
+여기서 멈췄다. 아래는 확인된 사실이다.
+
+레포 하나에 Vercel 프로젝트가 셋 붙어 있다(전부 `hanazi8282-maker/solutionarchive-app`):
+
+| 프로젝트 | 크론 결과 | CRON_SECRET |
+|---|---|---|
+| `solutionarchive-app` (정본) | **500 × 6회/3h** | 없음 |
+| `solutionarchive` | (동일 증상) | 없음 |
+| `solutionarch` | **200** — 실제로 도는 건 여기다 | 있음 |
+
+크론은 스케줄대로 정확히 발화하고 있다(매처 :00, 수집 :30). 실패는 스케줄이
+아니라 설정이다. 인증 없이 정본을 찔러 확인했다:
+
+```
+GET https://solutionarchive-app.vercel.app/api/threads/match-posts
+→ 500 {"error":"Server misconfigured",
+       "message":"CRON_SECRET 환경변수가 설정되지 않았다. ..."}
+```
+
+`solutionarch` 만 401(= 비밀은 있고 헤더가 없다)을 준다. 실제 200 로그도
+거기서만 나온다:
+
+```
+07:01 GET /api/threads/match-posts 200
+      [match] 초안 3 / 게시물 0 → 연결 0, 보류 3, 실패 0
+06:30 GET /api/threads/collect-metrics 200
+```
+
+**§7.2 의 교과서적 사례다.** `lib/cron-auth.ts` 의 fail-closed 설계는
+의도대로 정확히 동작했다 — 비밀이 없으면 조용히 열리는 대신 시끄럽게 닫혔다.
+그런데 그 "시끄러움"이 아무한테도 안 들렸다. 안전장치가 제대로 걸린 것과
+파이프라인이 도는 것은 별개다.
+
+영향: 정본 기준으로 매처·수집기가 **한 번도 돌지 않았다.** 실제 매칭은
+`solutionarch` 가 대신 하고 있어 데이터는 비어 있지 않지만, "어느 프로젝트가
+정본인가"와 "어느 프로젝트가 일하는가"가 어긋나 있다.
+
+### 12.4 하지 않은 것
+
+- **마이그레이션 SQL 실행** — 이미 적용돼 있어 건드리지 않았다.
+- **GitHub Actions 리뷰 수집 dry_run 트리거** — 12.3 에서 멈춰서 못 갔다.
+- **Vercel 환경변수 수정·프로젝트 정리** — 정본을 고르고 나머지를 지우는
+  건 되돌리기 어렵고, 어느 쪽을 남길지가 사람 판단이다.

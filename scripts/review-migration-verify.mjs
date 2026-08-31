@@ -48,7 +48,11 @@ const columns = (table, cols) => async () => {
     .limit(1)
 
   if (error) throw new Error(`${error.code ?? '?'} ${error.message || '(메시지 없음)'}`)
-  if (status !== 200) throw new Error(`예상 밖 응답 status=${status}`)
+  // 200 과 206 둘 다 정상이다. PostgREST 는 count=exact 와 limit 를 같이 쓰면
+  // 일부만 돌려줄 때 206 Partial Content 를 낸다 — 행이 2개 이상인 테이블은
+  // 항상 206 이다(실측: analysis_inputs 10행, content_items 21행이 206).
+  // 200 만 통과시키면 컬럼이 전부 있는데도 실패로 찍혀 거짓 실패를 낸다.
+  if (status !== 200 && status !== 206) throw new Error(`예상 밖 응답 status=${status}`)
   return `${count ?? 0}행`
 }
 

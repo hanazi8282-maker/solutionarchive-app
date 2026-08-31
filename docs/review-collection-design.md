@@ -963,3 +963,131 @@ GET https://solutionarchive-app.vercel.app/api/threads/match-posts
 - **GitHub Actions 리뷰 수집 dry_run 트리거** — 12.3 에서 멈춰서 못 갔다.
 - **Vercel 환경변수 수정·프로젝트 정리** — 정본을 고르고 나머지를 지우는
   건 되돌리기 어렵고, 어느 쪽을 남길지가 사람 판단이다.
+
+---
+
+## §13. 정본 Vercel 프로젝트 전환 (2026-08-31)
+
+§12.3 의 후속. **정본을 `solutionarchive-app` → `solutionarch` 로 옮겼다.**
+안 도는 쪽을 살리는 것보다 이미 도는 쪽을 승격하는 게 실패 지점이 적다는
+판단이다.
+
+### 13.1 승격 전 확인 3건
+
+| 확인 | 결과 |
+|---|---|
+| 배포 코드가 최신인가 | 프로덕션 sha `2460791` = `origin/main` HEAD (PR #10 반영). READY |
+| Meta OAuth 콜백이 어디를 가리키나 | `https://solutionarch.vercel.app/api/threads/callback` 하나뿐 — 코드 기본값과 일치 |
+| 프로덕션 환경변수 | `CRON_SECRET` ✅ / Supabase 2종 ✅ / Threads 토큰 ✅ / `THREADS_APP_ID`·`SECRET` ❌ → 사후 등록 |
+
+두 번째는 사람이 Meta 콘솔에서 직접 확인했다(로그인 화면이라 대신 열지 않는다).
+
+**Supabase 연결도 확인했다.** 로그의 `[match] 초안 3` 이 solutionarchive DB
+(`qmgrfqjfxqhxuufrnkwf`)의 `posts` draft 3건과 일치한다 — MCP 가 보는
+dothegy-os 가 아니라 올바른 프로젝트를 보고 있다.
+
+**환경변수 확인은 대시보드가 아니라 라우트 응답으로 갈랐다.** 인증 헤더 없이
+찌르면 `CRON_SECRET` 유무가 500/401 로 갈리고(`lib/cron-auth.ts` 가
+fail-closed 라 성립), 콜백에 무효 code 를 주면 `THREADS_APP_ID/SECRET` 유무가
+500/502 로 갈린다. 무효 code 는 토큰을 발급할 수 없고 교환 실패 시 DB 에 손대기
+전에 리턴하므로 안전하다.
+
+### 13.2 `THREADS_APP_ID/SECRET` 은 세 프로젝트 어디에도 없었다
+
+Meta 콘솔에는 있었고 Vercel 로 옮겨지지 않은 상태였다. 최초 토큰은 배포가 아닌
+경로로 받아 `scripts/threads-token-seed.mjs` 로 심은 것으로 보인다.
+
+**돌고 있던 크론은 이 값과 무관하다.** 두 변수는 리포 전체에서
+`app/api/threads/callback/route.ts` 한 곳에만 나온다. 매처·수집기는
+`CRON_SECRET` + Supabase + DB 의 `api_tokens` 만 쓰고, 토큰 갱신은
+`th_refresh_token` 그랜트라 client_secret 이 필요 없다.
+
+영향받는 건 **재인증 경로 하나**다. 갱신이 60일 안에 한 번도 못 돌면 토큰이
+만료되고 `th_refresh_token` 은 만료된 토큰을 못 되살린다. 그때 유일한 복구
+수단이 콜백 라우트다. 현재 토큰 만료 `2026-10-25`(55일 남음).
+
+그래서 `callback/route.ts` 의 "임시 파일 — 토큰 발급 완료 후 삭제할 것" 주석을
+고쳤다. 몇 달간 안 불리는 파일이라 다음 세션이 "안 쓰이니 지워도 된다"고
+읽기 쉽다. **상시 유지 대상이다.**
+
+### 13.3 나머지 두 프로젝트 — Pause 함 (삭제 안 함)
+
+`solutionarchive-app` 과 `solutionarchive` 를 Pause 했다. 확인:
+
+```
+solutionarchive-app.vercel.app  → 503 DEPLOYMENT_PAUSED
+solutionarchive.vercel.app      → 503 DEPLOYMENT_PAUSED
+solutionarch.vercel.app         → 401 (살아 있음)
+```
+
+**Pause 가 크론까지 멈춘다는 것을 실측으로 확인했다.** Pause 전에는 두 곳이
+매 :00/:30 마다 500 을 찍었는데, Pause 후 08:00 틱에서 두 프로젝트 모두
+호출 기록이 없다. 3중 발화가 1중이 됐다.
+
+**아직 남은 것:** Settings → Cron Jobs 의 개별 비활성화와 Git 연결 해제는
+API·MCP 로 되지 않아 못 했다(Vercel CLI 는 이 환경에서 미로그인). 대시보드에서
+사람이 해야 한다. Pause 로 실행은 이미 멈췄으니 급하지는 않다.
+
+### 13.4 승격 후 재확인 — 통과
+
+`solutionarch` 08:01 틱:
+
+```
+08:01 GET /api/threads/match-posts 200
+      [match] 초안 3 / 게시물 0 → 연결 0, 보류 3, 실패 0
+```
+
+### 13.5 🔴 Actions 워크플로는 아직 못 돌린다 — 이유가 둘이다
+
+9단계(`nightly-review-collect.yml` dry_run)를 트리거하지 못했다.
+
+**(1) 워크플로가 GitHub 에 등록돼 있지 않다.** `workflow_dispatch` 는 파일이
+기본 브랜치에 있어야 잡힌다. 이 파일은 `feat/review-source-probe` 에만 있고,
+API 로 직접 찔러도 404 다.
+
+```
+POST /actions/workflows/nightly-review-collect.yml/dispatches → 404 Not Found
+```
+
+같은 브랜치의 `review-source-probe.yml` 이 등록돼 있는 건 그쪽에 `on: push` 가
+있어 실제로 돌았기 때문이다. 이건 `schedule` + `workflow_dispatch` 뿐이다.
+**PR #11 이 main 에 들어가야 풀린다.**
+
+**(2) 더 큰 문제 — 리포에 Actions 시크릿이 하나도 없다.**
+
+```
+GET /actions/secrets → total_count: 0
+```
+
+그래서 **PR #10 이 옮겨 놓은 야간 인사이트 루프가 이관 이후 두 번 다 실패했다.**
+
+```
+2026-08-29 21:35  Nightly Insight Loop  failure  25s
+2026-08-30 21:52  Nightly Insight Loop  failure  31s
+  → ❌ NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 미설정
+```
+
+`nightly-review-collect.yml` 도 같은 두 시크릿을 읽으므로, 머지만 해서는
+똑같이 실패한다. **시크릿 등록이 선행 조건이다.**
+
+§7.2 가 또 맞았다 — Vercel 크론을 Actions 로 옮긴 것 자체는 성공했고
+워크플로도 "정상적으로" 등록·발화했다. 25초 만에 죽는다는 것만 아무도 안 봤다.
+
+### 13.6 로컬 dry-run 으로 대신 확인한 것
+
+Actions 를 못 돌리는 대신 같은 스크립트를 로컬에서 돌렸다. 워크플로가 하는
+일과 동일하다(`--dry` + `--source=danawa` + `--targets=10`).
+
+```
+## 리뷰 수집 (dry-run — 적재하지 않음)
+- 소스 danawa · 1.3초 · 타깃 0개 · 요청 0건
+- 파싱 0건(실패 0) · 신규 0건 · 폴백키 0건 · robots 회피 0건
+```
+
+**타깃 0개가 예상된 정상값이다**(7단계 상품 매핑 전). 종료코드 0,
+`review_sources.health = ok`, `review_collection_runs` 0행(dry-run 은 쓰지
+않는다) 확인.
+
+부수 소득: `lib/review/store.ts` 와 러너가 **실제 DB 에 대고 처음 돌았다**.
+§11 의 미검증 항목 중 읽기 경로는 이걸로 해소됐다. 쓰기 경로(UNIQUE 위반이
+정말 `23505` 로 오는지)는 여전히 첫 실수집에서 확인된다.

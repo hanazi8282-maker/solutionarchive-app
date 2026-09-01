@@ -32,6 +32,16 @@ export interface ExtractionInput {
   rawText: string
   sourceUrl?: string | null
   userNote?: string | null
+  /**
+   * 이미 쓰이고 있는 pattern_key 목록. 없으면 빈 배열처럼 취급한다.
+   *
+   * ⚠️ 이게 없으면 파이프라인이 조용히 고장난다. patternize 는 pattern_key
+   *    를 **완전 문자열 일치**로 누적하는데(loop.ts), 모델이 글 하나만 보고
+   *    자유롭게 slug 를 지으면 같은 구조도 매번 다른 표현이 된다. 근거가
+   *    2건에서 발급되는 가설이 영영 안 나오고, 에러는 하나도 안 난다.
+   *    실측 근거: docs/review-collection-design.md §13.9 / §13.11.
+   */
+  knownKeys?: string[]
 }
 
 export interface ExtractionResult {
@@ -69,9 +79,28 @@ export function normalizePatternKey(raw: string): string {
 
 function buildPrompt(input: ExtractionInput): string {
   const note = input.userNote?.trim()
+  const known = (input.knownKeys ?? []).filter(Boolean)
+
+  // 키 재사용 지시. 목록이 비면 이 블록 자체를 넣지 않는다 — 빈 목록을
+  // 보여주면 "고를 게 없다"가 아니라 "아무거나 만들라"로 읽힌다.
+  const reuseBlock = known.length
+    ? [
+        '',
+        '이미 쓰이고 있는 pattern_key 목록이다:',
+        ...known.map((k) => `- ${k}`),
+        '',
+        '이 글의 구조적 장치가 위 중 하나와 **같은 것**이면, 표현을 바꾸지 말고',
+        '그 key 를 문자 그대로 다시 써라. 어느 것과도 다를 때만 새 key 를 만든다.',
+        '같은 구조를 다른 말로 적으면 근거가 나뉘어 아무것도 축적되지 않는다.',
+        '훅 문장이 다르다는 이유만으로 새 key 를 만들지 마라 — 전개 순서와',
+        '마무리 형태가 같으면 같은 패턴이다.',
+      ]
+    : []
+
   return [
     '아래는 사용자가 "인사이트가 있다"고 판단해 저장한 Threads 글이다.',
     '이 글이 왜 좋은 글인지 구조적으로 분석하라.',
+    ...reuseBlock,
     '',
     '판정 기준 3종 중 하나로 insight_type 을 정한다:',
     '- actionable: 읽고 바로 행동을 바꿀 수 있는 구체적 지침',

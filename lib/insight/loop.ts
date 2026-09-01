@@ -59,6 +59,15 @@ import { resolveRepoRef, putFile, autoCommitMessage } from './github.ts'
  */
 const ANALYZE_LIMIT = Number(process.env.INSIGHT_ANALYZE_LIMIT ?? 10)
 
+/**
+ * 프롬프트에 실어 보낼 기존 pattern_key 개수 상한.
+ *
+ * 전부 보내면 패턴이 쌓일수록 프롬프트가 무한정 길어지고, 오래된 사장 패턴이
+ * 새 글의 판단을 끌어당긴다. 근거가 많은 순으로 자른다 — 실제로 축적되고
+ * 있는 패턴일수록 다시 맞을 확률이 높다.
+ */
+const KNOWN_KEY_LIMIT = 60
+
 export interface StepLog {
   name: string
   ok: boolean
@@ -146,17 +155,41 @@ export async function runInsightLoop(
   })
 
   // ── 2) 분석 — pending 저장 글을 LLM 으로 구조 분석 ─────────────
-  const analyzed: Array<{ id: string; key: string; title: string; description: string; insightType: string }> = []
+  const analyzed: Array<{
+    id: string
+    ref: string
+    key: string
+    title: string
+    description: string
+    insightType: string
+  }> = []
 
   await step('analyze', async () => {
     const { data, error } = await supabase
       .from('saved_examples')
-      .select('id, source_url, raw_text, user_note')
+      .select('id, notion_page_id, source_url, raw_text, user_note')
       .eq('analysis_status', 'pending')
       .order('saved_at', { ascending: true })
       .limit(ANALYZE_LIMIT)
 
     if (error) throw new Error(`pending 조회 실패: ${error.message}`)
+
+    // 이미 쓰이는 key 를 모델에게 보여준다. 안 보여주면 매번 새 표현을 지어
+    // patternize 의 완전 일치 누적이 성립하지 않는다(§13.11).
+    const { data: keyRows, error: keyErr } = await supabase
+      .from('insight_patterns')
+      .select('pattern_key')
+      .order('evidence_count', { ascending: false })
+      .limit(KNOWN_KEY_LIMIT)
+
+    // 키 목록을 못 읽었으면 조용히 빈 목록으로 넘어가지 않는다. 그대로 두면
+    // "수렴이 안 되는" 실행이 정상처럼 보인다 (CLAUDE.md §7.1).
+    if (keyErr) throw new Error(`기존 pattern_key 조회 실패: ${keyErr.message}`)
+
+    // 같은 배치 안에서 방금 만들어진 key 도 뒤 글이 볼 수 있어야 한다.
+    // DB 것만 넘기면 첫 배치(=DB 가 빈 상태)에서는 서로를 못 보고 갈린다.
+    const knownKeys = new Set<string>((keyRows ?? []).map((r) => r.pattern_key).filter(Boolean))
+    const keyAssignments: Array<{ ref: string; key: string }> = []
 
     const rows = data ?? []
     let failed = 0
@@ -168,6 +201,7 @@ export async function runInsightLoop(
           rawText: row.raw_text ?? '',
           sourceUrl: row.source_url,
           userNote: row.user_note,
+          knownKeys: [...knownKeys],
         })
 
         if (!dryRun) {
@@ -188,8 +222,13 @@ export async function runInsightLoop(
 
         // 일반화 불가는 패턴으로 만들지 않는다(설계안 §3).
         if (result.is_generalizable) {
+          // 뒤 글이 이 key 를 볼 수 있어야 같은 배치 안에서도 뭉친다.
+          knownKeys.add(result.pattern_key)
+          keyAssignments.push({ ref: row.notion_page_id, key: result.pattern_key })
+
           analyzed.push({
             id: row.id,
+            ref: row.notion_page_id,
             key: result.pattern_key,
             title: result.pattern_title,
             description: [result.extracted_pattern, '', `왜 통하는가: ${result.why_it_works}`].join('\n'),
@@ -219,6 +258,10 @@ export async function runInsightLoop(
       failed,
       failures: failures.slice(0, 5),
       generalizable: analyzed.length,
+      // 어느 행이 어느 key 를 받았는지. 이게 없으면 "신규 3" 만 남아 수렴
+      // 여부를 사후에 확인할 방법이 없다(§13.11).
+      keyAssignments,
+      knownKeysSeeded: (keyRows ?? []).length,
       limit: ANALYZE_LIMIT,
       dryRun,
     }

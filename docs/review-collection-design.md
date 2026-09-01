@@ -2075,3 +2075,98 @@ MAX_PAGES_PER_TARGET; page++)` 가 break 없이 완주하면 그대로 남는다
   실수집 첫날에 확인된다
 - **증분 종료.** `lastReviewAt` 이 null 이라 `이미 본 구간 도달` 경로가
   한 번도 안 탔다. 2회차 실행에서 처음 검증된다
+
+---
+
+## §13.18 매핑 검증 재확인과 시각 정정 (2026-09-02 01:40 KST)
+
+### 검증 근거를 정확히 적는다 — "에러가 안 났다"가 아니다
+
+앞 절이 "검증까지 마쳤다"로만 적어 근거가 모호했다. 실제로 무엇을 봤는지
+분리해 적는다.
+
+INSERT 에 `ON CONFLICT (project_id, source_key, product_ref) DO NOTHING` 을
+걸었다. **이건 제약 위반을 조용히 삼킨다.** 무에러 응답은 "12건 다
+들어갔다"의 근거가 못 된다. CLI 는 rowcount 도 안 돌려줬다.
+
+그래서 판정은 전부 사후 SELECT 로 했다:
+
+- `count(*)=12` / `distinct project_id=12` / `distinct product_ref=12`
+- `status='active'` 12 / `source_key='danawa'` 12
+- 초기 상태 `cursor is null` 12 / `total_collected=0` 12
+- 조인 검사 — 12행 전부 `competitor_url` 의 pcode 와 `product_ref` 일치
+
+**삽입 직전 이 테이블이 0행이었으므로**(§13.10 4단계에서 `targets: 0` 확인)
+0 → 12 · distinct 12 는 한 건도 드롭되지 않았음을 산술적으로 확정한다.
+제약도 실재한다 — `review_targets_project_source_product_key UNIQUE
+(project_id, source_key, product_ref)`, FK 2종(`analysis_projects`
+ON DELETE CASCADE / `review_sources`).
+
+### 브랜드 교체 3건 — 프로젝트 레코드 갱신 확인
+
+조인으로 pitch·URL·product_ref·label 이 한 제품을 가리키는지 봤다.
+
+```
+4fc8e9c7  유산균 경쟁 분석 (유한양행 엘레나 UREX ... 90캡슐)      pcode=29304419
+f966b3e9  무선이어폰 경쟁 분석 (BOSE QC 이어버드 2)                pcode=94085129
+9f12cebe  무선이어폰 경쟁 분석 (젠하이저 모멘텀 트루 와이어리스 3) pcode=94085210
+```
+
+컬리·apple.com·samsung.com URL 은 전부 교체됐다. 원값은 §13.15 에 있다.
+
+### 편향 발견의 §1.1 승격 확인
+
+`### 1.1 다나와 소스의 구조적 편향` 이 `## 1. 소스 판정`(19행)과
+`## 2.`(94행) 사이에 있다. `origin/main` 반영 확인(`52dc4a8`).
+
+### ⚠️ 시각 정정 — "어젯밤"은 아직 오지 않았다
+
+`pattern_key` 수정 머지는 2026-09-01T14:15Z(= 09-01 23:15 KST)였고,
+이 글을 쓰는 시점은 2026-09-01T16:38Z(= **09-02 01:38 KST**)다.
+
+스케줄은 UTC 다.
+
+- `Nightly Review Collect` `0 18 * * *` = **03:00 KST** — 약 1시간 20분 뒤
+- `Nightly Insight Loop` `0 19 * * *` = **04:00 KST** — 약 2시간 20분 뒤
+
+**수정본은 스케줄로 아직 한 번도 안 돌았다.** Nightly Insight Loop 의
+`schedule` 실행은 08-29 / 08-30 / 08-31 세 번뿐이고 전부 마이그레이션
+이전의 실패다. 그 뒤는 전부 `workflow_dispatch` 다.
+
+DB 도 일치한다 — `insight_patterns` 0 · `saved_examples` 0 ·
+`insight_loop_runs` 0 · `review_collection_runs` 0 ·
+`analysis_inputs(danawa)` 0 · `review_fingerprints` 0.
+**지금까지 전부 dry-run 이라 아무것도 쓰지 않았다.**
+
+### DB 읽기 경로 검증에는 최소 두 밤이 필요하다
+
+`knownKeys` 의 DB 조회 경로가 실제로 도는 걸 보려면 두 조건이 같이 있어야
+한다.
+
+1. `saved_examples` 에 pending 글이 있어야 한다 — 없으면 분석 0건이고
+   패턴도 안 생긴다
+2. `insight_patterns` 에 **이전 배치**의 키가 남아 있어야 한다 —
+   `기존 key N개를 프롬프트에 제공` 에서 N>0 이 되는 게 그 증거다
+
+즉 글이 들어온 뒤 **최소 두 밤**이다. 한 밤으로는 §13.12 와 같은
+`기존 key 0개` 만 다시 본다.
+
+### 오늘 밤 결정 — 스케줄에 맡기고, 시드는 넣지 않는다
+
+- **수집**: 수동 실행하지 않는다. 03:00 스케줄이 `--dry` 없이 첫 실적재를
+  한다. 수동으로 먼저 돌리면 커서가 전진한 상태에서 스케줄이 이어 돌아
+  "첫 실행" 로그가 둘로 갈린다
+- **인사이트**: `saved_examples` 를 비워 둔다. 04:00 루프는 분석 0건으로
+  조용히 끝난다. 정상이다. 검증용 시드를 진짜 패턴 저장소에 영구히 남기지
+  않는다 — 진짜 저장 글은 capture 경로로 쌓이게 둔다
+
+### 내일 아침 볼 것
+
+- `review_collection_runs` 에 행이 생겼는가, `analysis_inputs(danawa)` 와
+  `review_fingerprints` 가 몇 건인가 (dry-run 파싱량 1269건이 상한)
+- **쓰기 경로** — UNIQUE 위반이 정말 `23505` 로 오는지(§11 미검증 항목)
+- `review_targets` 의 `cursor` 가 전진했는지, `total_collected` 가 붙었는지
+- 상한에 걸렸던 5개(`18753650` `5922857` `89523488` `18938615` `71645780`)가
+  다음 밤에 이어 읽는지
+- `신규 N건` 이 이제 진짜 값이다. dry-run 의 "0" 과 의미가 다르다
+  (렌더 구분은 아직 안 고쳤다 — §13.17)

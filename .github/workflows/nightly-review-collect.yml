@@ -15,9 +15,15 @@ name: Nightly Review Collect
 
 on:
   schedule:
-    # 18:00 UTC = KST 03:00. 인사이트 루프(KST 04:00)보다 한 시간 앞이다.
+    # 17:37 UTC = KST 02:37. 인사이트 루프(KST 03:41)보다 한 시간 앞이다.
     # 둘은 서로 의존하지 않지만 같은 시각에 겹칠 이유도 없다.
-    - cron: '0 18 * * *'
+    #
+    # ⚠️ 정각(`0 18`)을 쓰지 않는다. 정각·30분은 전 세계 크론이 몰리는
+    #    시각이라 Actions 가 스케줄 실행을 뒤로 미루거나 통째로 건너뛴다.
+    #    실측: 2026-09-01 18:00 UTC 에 예정된 첫 실행이 1시간이 지나도
+    #    발화하지 않았고, 이 워크플로의 `schedule` 실행 이력은 그때까지
+    #    0건이었다(수동 실행만 있었다). 어중간한 분으로 옮긴다.
+    - cron: '37 17 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -33,6 +39,10 @@ on:
         description: '이번 실행에서 훑을 최대 타깃 수'
         type: string
         default: '10'
+      purge_apply:
+        description: '원문 폐기를 실제로 실행한다(끄면 대상만 센다). 되돌릴 수 없다'
+        type: boolean
+        default: false
 
 # 두 실행이 겹치면 같은 타깃의 커서를 서로 덮어쓴다.
 concurrency:
@@ -67,3 +77,18 @@ jobs:
             --source=${{ inputs.source || 'danawa' }} \
             --targets=${{ inputs.targets || '10' }} \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
+
+      # 원문 보존 기간(설계 §9) 집행. 수집이 실패해도 돌아야 한다 —
+      # 수집 실패를 이유로 보존 기간이 밀리면, 지우기로 한 원문이 남는다.
+      #
+      # ⚠️ 기본이 dry-run 이다. 되돌릴 수 없는 동작이라 `purge_apply` 를
+      #    명시적으로 켜야 실제로 지운다. 며칠 dry-run 으로 대상 건수를 눈으로
+      #    보고 나서 켜는 것을 권한다.
+      - name: Purge expired raw text
+        if: always()
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/review-purge.mjs \
+            ${{ ((github.event_name == 'workflow_dispatch' && inputs.purge_apply) || vars.REVIEW_PURGE_APPLY == 'true') && '--apply' || '' }}

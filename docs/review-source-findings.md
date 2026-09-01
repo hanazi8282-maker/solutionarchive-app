@@ -150,3 +150,109 @@ robots 파서에 버그가 있었으므로 **이 표 전체의 신뢰도가 의�
 - User-Agent 위장 — 하지 않았다. 403 이 답이다
 - robots.txt Disallow 경로 요청 — 요청 자체를 보내지 않았다
 - 재시도 — 한 번 보고 결과를 적었다
+
+---
+
+## 2차 소스 실측 — 확장 후보 10곳 (2026-09-02)
+
+다나와 하나로는 카테고리가 제품에 갇힌다(§1.1 편향). SaaS·앱까지 넓히기
+위해 후보를 실측했다. **방법론은 1차와 같다** — robots 를 이 리포의
+RFC 9309 파서(`lib/review/robots.ts`)로 먼저 읽고, 허용일 때만 요청하고,
+상태코드가 아니라 **기대하는 내용의 표지**로 판정했다. 우회는 하지 않았다.
+
+### 판정표
+
+| 소스 | robots | 실제 도달 | 판정 |
+|---|---|---|---|
+| **Apple App Store RSS** | 허용 | 200 · 리뷰 35건 본문 확인 | ✅ **즉시 채택** |
+| **Google Play** | 허용 | 200 · 리뷰 본문 확인 | ✅ 채택 가능(파싱 난이도 높음) |
+| YouTube Data API | 해당 없음(공식 API) | 키 필요 | 🔑 사용자 키 필요 |
+| 네이버 검색 API | 해당 없음(공식 API) | 키 필요 | 🔑 사용자 키 필요 |
+| G2 | 허용 | **403 · captcha** | ⛔ 차단 |
+| Capterra | 허용 | **403 · Cloudflare** | ⛔ 차단 |
+| Trustpilot | **Disallow: /** | 요청 안 함 | ⛔ robots 금지 |
+| Product Hunt | 허용 | 200 이나 Captcha 페이지 | ⛔ 사실상 차단 |
+| 화해(재확인) | Disallow: /goods-view | — | ⛔ 변동 없음 |
+| 글로우픽(재확인) | **robots 자체가 403** | — | ⛔ 판단 불가 → 가지 않음 |
+
+### ✅ Apple App Store RSS — 확정. 이번 확장의 본체다
+
+`https://itunes.apple.com/kr/rss/customerreviews/id=<앱ID>/sortBy=mostRecent/json`
+
+실측(Slack, id=1459969523):
+
+```
+HTTP 200 · entry 35건
+평점  : 1
+제목  : 환불
+본문  : ㅋㅋ1달러 결제했더니 더보려면 더 결제해야된다고함 결제 자동으로 되고 …
+작성자: 이게머냐구욬ㅋㅋㅋ · 날짜: 2026-08-26T22:59:35-07:00
+버전  : 6.53.1
+```
+
+**애플이 공식으로 제공하는 RSS 다.** 키도, 인증도, 우회도 필요 없다.
+평점·제목·본문·작성자·날짜에 더해 **앱 버전**까지 온다 — 다나와에 없던
+축이다. "어느 버전부터 불만이 늘었나"를 볼 수 있다.
+
+SaaS 확장에 이게 결정적인 이유: **SaaS 는 앱이 있다.** 다나와가 못 담는
+Slack·Notion·Figma·토스·뱅크샐러드가 전부 여기 있다.
+
+### ✅ Google Play — 되지만 파싱이 비싸다
+
+robots 는 `/store/apps/details` 를 막지 않고, 200 으로 오며, **리뷰 본문이
+실제로 HTML 안에 있다.** `AF_initDataCallback(...)` 블롭 13개 중 하나에
+한국어 리뷰가 들어 있다(개발자 답변까지 포함).
+
+다만 구글 내부 직렬화 포맷이라 구조가 문서화돼 있지 않고 언제든 바뀐다.
+Apple RSS 가 안정적인 계약인 것과 대조된다. **Apple 을 먼저 붙이고,
+안드로이드 전용 앱이 필요해질 때 Play 를 붙이는 순서가 맞다.**
+
+### 🔑 공식 API 2종 — robots 는 판정 기준이 아니다
+
+프로브가 `openapi.naver.com/robots.txt` 에서 `Disallow: /` 를,
+`googleapis.com/robots.txt` 에서 404 를 받았다. **이걸 "차단"으로 읽으면
+틀린다.**
+
+**robots.txt 는 크롤러를 규율하는 문서이고, 키를 발급받아 쓰는 공식 API 는
+그 대상이 아니다.** 이 경우 지켜야 할 것은 각 API 의 이용약관과 쿼터다.
+1차 실측 때 세운 "robots 를 못 읽으면 가지 않는다" 규칙을 API 에 그대로
+적용하면 **합법적이고 공식적인 경로를 스스로 막게 된다.**
+
+- **YouTube Data API** — `commentThreads` 로 영상 댓글 수집. 무료 쿼터
+  일 10,000 units. 리뷰 영상 댓글은 "사용 경험"의 밀도가 높다
+- **네이버 검색 API** — 블로그·카페 검색. 국내 제품 사용후기의 주 서식지다
+
+둘 다 **사용자가 키를 발급해야 한다**(§아래).
+
+### ⛔ SaaS 리뷰 집계 3사 — 전부 막혔다
+
+G2·Capterra 는 robots 상으로는 허용인데 실제 요청이 403 이다. G2 는
+captcha, Capterra 는 Cloudflare. **robots 가 허용해도 서버가 막으면 막힌
+것이다** — 규칙과 실행이 다를 수 있다는 걸 다시 확인했다.
+Trustpilot 은 robots 단계에서 `Disallow: /` 다.
+
+**우회하지 않는다.** 세 곳 다 기록만 남기고 넘어간다. SaaS 리뷰는
+App Store RSS 로 대체한다 — 오히려 한국어 사용자 목소리는 이쪽이 많다.
+
+### ⚠️ 이번 프로브에서 내가 낸 검사 오류 2건 (§7.1)
+
+기록해 둔다. 같은 실수를 반복하지 않기 위해서다.
+
+1. **표지 함수가 길이만 봤다.** Capterra 의 403 응답(5486B)을
+   "본문 5486B" 로 찍어 도달한 것처럼 보이게 했다. 상태코드를 표지 판정에
+   함께 넣지 않은 탓이다. 길이는 내용의 증거가 아니다
+2. **공식 API 에 robots 를 적용했다.** 위에 적은 대로 범주 오류다.
+   규칙을 기계적으로 넓히면 보수적인 쪽으로도 틀릴 수 있다
+
+### 사람이 해야 할 일 (자동화가 못 뚫는 지점)
+
+자동화로 안 되는 건 **키 발급 두 건뿐**이다. 둘 다 무료다.
+
+- **YouTube Data API 키** — Google Cloud Console → 프로젝트 생성 →
+  YouTube Data API v3 사용 설정 → API 키 발급.
+  발급 후 `gh secret set YOUTUBE_API_KEY -R hanazi8282-maker/solutionarchive-app`
+- **네이버 검색 API** — developers.naver.com → 애플리케이션 등록 →
+  검색 API 선택 → Client ID / Secret 발급.
+  `gh secret set NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET`
+
+Apple App Store RSS 와 Google Play 는 **사람이 할 일이 없다.**

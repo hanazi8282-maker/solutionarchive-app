@@ -138,7 +138,12 @@ function summarizeDetail(name, d) {
       // 알 수 없고, dry-run 은 행을 failed 로 못박지도 않아 DB 에도 안 남는다.
       // 사유를 못 보면 실패를 셀 수만 있고 판단할 수 없다(CLAUDE.md §7.1).
       const failures = d.failures ?? []
-      return failures.length ? `${base}\n${failures.map((f) => `  - ⚠️ ${f}`).join('\n')}` : base
+      const lines = []
+      // 행 ↔ key 대응. 개수만 보면 수렴과 분산이 같은 숫자로 보인다(§13.11).
+      if (d.knownKeysSeeded !== undefined) lines.push(`  - 기존 key ${d.knownKeysSeeded}개를 프롬프트에 제공`)
+      for (const a of d.keyAssignments ?? []) lines.push(`  - ${a.ref} → \`${a.key}\``)
+      for (const f of failures) lines.push(`  - ⚠️ ${f}`)
+      return lines.length ? `${base}\n${lines.join('\n')}` : base
     }
     case 'patternize': {
       const base = `신규 ${(d.new ?? []).length} / 보강 ${(d.reinforced ?? []).length} / 신규가설 ${(d.newHypotheses ?? []).join(', ') || '없음'}`

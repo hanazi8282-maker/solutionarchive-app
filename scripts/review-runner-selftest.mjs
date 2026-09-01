@@ -112,6 +112,9 @@ function makeHarness({
       const page = new URL(url).searchParams.get('page')
       if (pageStatus[page] != null) {
         const s = pageStatus[page]
+        // 객체면 본문까지 지정한 것이다. 403 이 차단인지 쿼터 소진인지는
+        // 본문 표지로 갈리므로, 그 경로를 테스트하려면 본문이 필요하다.
+        if (typeof s === 'object') return { status: s.status, body: s.body ?? '' }
         return s === null ? { status: null, body: '', error: 'ECONNRESET' } : { status: s, body: '' }
       }
       return { status: 200, body: pages[page] ?? '' }
@@ -241,6 +244,38 @@ for (const code of [403, 429]) {
   })
   const r = await run(h)
   t('차단되면 남은 타깃을 건드리지 않는다', r.targetsVisited, 1)
+}
+
+// ── 쿼터 소진 vs 차단 (러너 ↔ 분류기 경계면) ──────────────────────
+//
+// health.ts 의 분류기 단위 테스트와 별개로, **러너가 실제로 그 분류를 쓰는지**
+// 를 본다. 부품이 각각 통과해도 붙이면 안 될 수 있다(CLAUDE.md §7.1).
+const quotaAdapter = { ...fakeAdapter, key: 'quota-fake', quotaMarkers: ['quotaexceeded'] }
+const runQuota = (h, over = {}) =>
+  runCollection(quotaAdapter, { dryRun: false, targetLimit: 5, ...over }, h.ports)
+
+{
+  const h = makeHarness({ pageStatus: { 1: { status: 403, body: '{"error":{"reason":"quotaExceeded"}}' } } })
+  const r = await runQuota(h)
+  t('쿼터 표지가 있으면 quotaExhaustedResponses 로 센다', r.stats.quotaExhaustedResponses, 1)
+  t('쿼터 소진은 blockedResponses 로 세지 않는다', r.stats.blockedResponses, 0)
+  t('쿼터 소진이면 health 가 broken 이 아니다', r.health.health, 'ok')
+  t('쿼터 소진이면 소스를 끄지 않는다', r.health.disable, false)
+  t('쿼터 소진이어도 더 두드리지 않는다', r.requests, 1)
+}
+{
+  // 같은 403 인데 표지가 없으면 차단이다 — 안전한 쪽 기본값
+  const h = makeHarness({ pageStatus: { 1: { status: 403, body: 'Forbidden' } } })
+  const r = await runQuota(h)
+  t('표지 없는 403 은 차단으로 센다', r.stats.blockedResponses, 1)
+  t('표지 없는 403 은 소스를 끈다', r.health.disable, true)
+}
+{
+  // 쿼터 표지를 선언하지 않은 어댑터(다나와 같은 스크래핑 소스)는 기존 동작 그대로
+  const h = makeHarness({ pageStatus: { 1: { status: 403, body: '{"error":{"reason":"quotaExceeded"}}' } } })
+  const r = await run(h)
+  t('표지 미선언 어댑터는 쿼터 본문이어도 차단으로 센다', r.stats.blockedResponses, 1)
+  t('표지 미선언 어댑터는 쿼터로 세지 않는다', r.stats.quotaExhaustedResponses, 0)
 }
 
 // ── 요청 간격 ─────────────────────────────────────────────────────

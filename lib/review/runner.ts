@@ -12,7 +12,7 @@
 
 import { parseRobots, robotsVerdict, type RobotsGroup } from './robots.ts'
 import { computeFingerprint } from './fingerprint.ts'
-import { judgeHealth, type HealthVerdict, type RunStats } from './health.ts'
+import { judgeHealth, classifyBlockedResponse, type HealthVerdict, type RunStats } from './health.ts'
 import type { Fingerprint, ParsedReview, ReviewSourceAdapter, TargetState } from './types.ts'
 
 /** robots.txt 와 대조할 제품 토큰(RFC 9309 §2.2.1). UA 문자열 전체가 아니다. */
@@ -109,6 +109,7 @@ const emptyStats = (): RunStats => ({
   newReviews: 0,
   fallbackKeys: 0,
   blockedResponses: 0,
+  quotaExhaustedResponses: 0,
 })
 
 /** 호스트별 robots 캐시. 한 실행 안에서 같은 호스트를 두 번 묻지 않는다. */
@@ -276,10 +277,22 @@ export async function runCollection(
       const res = await ports.fetchText(req.url)
       requests++
 
-      // 차단은 재시도하지 않는다. 두드릴수록 영구 차단에 가까워진다.
+      // 403/429 는 두 사건이 겹쳐 있다 — 차단과 쿼터 소진.
+      //
+      // 공식 API 는 일일 한도를 다 쓰면 403 을 준다. 그걸 차단으로 세면
+      // **정상적인 한도 소진이 "차단당했다"로 기록되고 소스가 꺼진다.**
+      // 표지를 못 읽으면 차단으로 본다(안전한 쪽). 근거는 health.ts.
       if (res.status === 403 || res.status === 429) {
-        stats.blockedResponses++
-        outcome = `차단 응답 ${res.status} — 실행을 중단한다`
+        const kind = classifyBlockedResponse(res.body, adapter.quotaMarkers)
+        if (kind === 'quota') {
+          stats.quotaExhaustedResponses++
+          outcome = `쿼터 소진 ${res.status} — 오늘 몫을 다 썼다. 소스는 유지한다`
+        } else {
+          stats.blockedResponses++
+          outcome = `차단 응답 ${res.status} — 실행을 중단한다`
+        }
+        // 어느 쪽이든 더 두드리지 않는다. 차단이면 영구 차단에 가까워지고,
+        // 쿼터면 어차피 오늘은 더 못 받는다.
         status = 'active'
         aborted = true
         break
@@ -349,10 +362,21 @@ export async function runCollection(
       })
     }
 
+    // ⚠️ dry-run 의 신규 건수는 0 이 아니라 **측정 안 함**이다. ingestPage 가
+    //    `if (opts.dryRun) continue` 를 newCount++ 앞에서 하므로 구조상 항상 0이다.
+    //    "새 게 없다"와 "세지 않았다"를 같은 글자로 찍으면 안 된다(§7.1).
+    //
+    // ⚠️ outcome 이 '진행' 으로 남았다는 것은 20페이지 루프가 break 없이
+    //    완주했다는 뜻이다 = 상한에 걸려 잘렸다. 그 사실이 이름에 안 드러나면
+    //    "정상 진행"으로 읽힌다. 안전장치가 걸린 것을 정상으로 읽지 마라(§7.2).
+    const capped = outcome === '진행'
+    const label = capped ? `페이지 상한 ${MAX_PAGES_PER_TARGET} 도달 — 다음 실행에서 이어 읽는다` : outcome
+    const newLabel = opts.dryRun ? '신규 —(dry-run 은 판정하지 않음)' : `신규 ${collected}건`
+
     perTarget.push({
       targetId: target.id,
       productRef: target.productRef,
-      outcome: `${outcome} · 신규 ${collected}건`,
+      outcome: `${label} · ${newLabel}`,
     })
   }
 

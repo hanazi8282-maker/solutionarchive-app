@@ -8,6 +8,7 @@
 
 import {
   judgeHealth,
+  classifyBlockedResponse,
   alertLine,
   MIN_PARSE_SAMPLE,
   PARSE_RATE_NUM,
@@ -36,6 +37,7 @@ const run = (over = {}, emptyBefore = 0) =>
       newReviews: 5,
       fallbackKeys: 0,
       blockedResponses: 0,
+      quotaExhaustedResponses: 0,
       ...over,
     },
     consecutiveEmptyBefore: emptyBefore,
@@ -151,6 +153,65 @@ t(
   t('degraded 경보는 ⚠️', degraded.startsWith('⚠️'), true)
   t('degraded 경보에는 중단 문구가 없다', degraded.includes('중단'), false)
 }
+
+// ── 쿼터 소진 vs 차단 ─────────────────────────────────────────────
+//
+// 공식 API 는 일일 한도를 다 쓰면 403 을 준다. 그걸 차단으로 세면 정상적인
+// 한도 소진이 "차단당했다"로 기록되고 소스가 꺼진다. 다음날 아침 사람은
+// disabled_reason 을 보고 차단당한 줄 안다 — §7.1 이 실패 쪽에서 재발한다.
+
+// 분류기: 판단할 수 없으면 차단이다
+t('분류: 표지 목록 없으면 차단', classifyBlockedResponse('quota exceeded', undefined), 'blocked')
+t('분류: 표지 목록 비면 차단', classifyBlockedResponse('quota exceeded', []), 'blocked')
+t('분류: 본문 비면 차단', classifyBlockedResponse('', ['quota']), 'blocked')
+t('분류: 본문 공백뿐이면 차단', classifyBlockedResponse('   ', ['quota']), 'blocked')
+t('분류: 본문 null 이면 차단', classifyBlockedResponse(null, ['quota']), 'blocked')
+t('분류: 표지가 안 보이면 차단', classifyBlockedResponse('forbidden', ['quotaexceeded']), 'blocked')
+t('분류: 표지 보이면 쿼터', classifyBlockedResponse('{"reason":"quotaExceeded"}', ['quotaexceeded']), 'quota')
+t('분류: 대소문자 무시', classifyBlockedResponse('QuotaExceeded', ['quotaexceeded']), 'quota')
+t('분류: 여러 표지 중 하나만 맞아도 쿼터', classifyBlockedResponse('rateLimitExceeded', ['quotaexceeded', 'ratelimitexceeded']), 'quota')
+t('분류: 빈 표지 항목은 무시', classifyBlockedResponse('forbidden', ['', '  ']), 'blocked')
+
+// 판정: 쿼터 소진은 소스를 끄지 않는다
+{
+  const q = run({ quotaExhaustedResponses: 1, newReviews: 0 })
+  t('쿼터 소진은 broken 이 아니다', q.health, 'ok')
+  t('쿼터 소진은 소스를 끄지 않는다', q.disable, false)
+  t('쿼터 소진 사유가 detail 에 남는다', q.detail.includes('쿼터 소진'), true)
+  t('쿼터 소진은 차단이 아님을 명시한다', q.detail.includes('차단이 아니'), true)
+  t('쿼터 소진이면 경보 줄이 없다', alertLine('yt', q), null)
+}
+
+// ⚠️ 가장 중요한 경계 — 연속 0건 카운터를 올리면 안 된다.
+//    올리면 사흘 뒤 "연속 3회 신규 0건 — 증분이 끝났거나 조용히 막혔을 수
+//    있다"가 뜬다. 원인은 쿼터인데 증분 종료로 진단된다.
+t(
+  '쿼터 소진은 연속 0건 카운터를 올리지 않는다',
+  run({ quotaExhaustedResponses: 1, newReviews: 0 }, 2).consecutiveEmptyAfter,
+  2,
+)
+t(
+  '쿼터 소진이 반복돼도 degraded 로 넘어가지 않는다',
+  run({ quotaExhaustedResponses: 1, newReviews: 0 }, 9).health,
+  'ok',
+)
+
+// 우선순위: 차단 > 파싱 성공률 > 쿼터
+t(
+  '차단과 쿼터가 함께면 차단이 이긴다',
+  run({ blockedResponses: 1, quotaExhaustedResponses: 1 }).health,
+  'broken',
+)
+t(
+  '차단과 쿼터가 함께면 소스를 끈다',
+  run({ blockedResponses: 1, quotaExhaustedResponses: 1 }).disable,
+  true,
+)
+t(
+  '파서가 깨졌으면 쿼터 소진일 때도 그 사실이 먼저 드러난다',
+  run({ quotaExhaustedResponses: 1, reviewsParsed: 5, parseFailures: 15 }).health,
+  'broken',
+)
 
 // ── 상수가 설계 문서와 일치하는지 ────────────────────────────────
 t('표본 문턱 10', MIN_PARSE_SAMPLE, 10)

@@ -39,8 +39,43 @@ export interface RunStats {
   newReviews: number
   /** externalId 를 못 찾아 폴백 조합으로 지문을 만든 수. */
   fallbackKeys: number
-  /** HTTP 403 / 429 를 받은 횟수. */
+  /** 차단으로 판정된 403 / 429 횟수. 쿼터 소진은 여기 세지 않는다. */
   blockedResponses: number
+  /**
+   * 쿼터 소진으로 판정된 403 / 429 횟수.
+   *
+   * ⚠️ 이 필드가 없던 시절에는 쿼터 소진이 `blockedResponses` 로 세어졌고,
+   *    그러면 **정상적인 일일 한도 소진이 "차단당했다"로 기록되고 소스가
+   *    꺼졌다.** 다음날 아침 사람은 `disabled_reason: 차단 응답 403` 을 보고
+   *    차단당한 줄 안다. 상태 코드만으로 성공/실패를 판정하지 말라는
+   *    CLAUDE.md §7.1 이 실패 쪽에서 재발하는 형태다.
+   */
+  quotaExhaustedResponses: number
+}
+
+/**
+ * 403/429 응답이 차단인가 쿼터 소진인가.
+ *
+ * ⚠️ **판단할 수 없으면 차단이다.** 표지 목록이 없거나, 본문이 비었거나,
+ *    표지가 안 보이면 전부 `blocked` 다. 확인 불가를 양성으로 접지 않는다
+ *    (§7.1). 두 오판의 비용이 대칭이 아니라서 그렇다 —
+ *      · 차단을 쿼터로 오인 → 차단당한 소스를 계속 두드린다. 영구 차단에 가까워진다
+ *      · 쿼터를 차단으로 오인 → 소스가 하루 꺼진다. 되살리는 건 UPDATE 한 줄이다
+ */
+export function classifyBlockedResponse(
+  body: string | null | undefined,
+  quotaMarkers: string[] | null | undefined,
+): 'quota' | 'blocked' {
+  if (!quotaMarkers || quotaMarkers.length === 0) return 'blocked'
+
+  const text = (body ?? '').toLowerCase()
+  if (!text.trim()) return 'blocked'
+
+  for (const marker of quotaMarkers) {
+    const m = marker?.trim().toLowerCase()
+    if (m && text.includes(m)) return 'quota'
+  }
+  return 'blocked'
 }
 
 export interface HealthInput {
@@ -75,8 +110,9 @@ export interface HealthVerdict {
  *
  *   1. 차단 응답(403/429) 1회라도  → broken + 즉시 중단
  *   2. 파싱 성공률 < 8/10 (표본 10 이상) → broken + 중단
- *   3. 연속 신규 0건 3회 이상 → degraded (중단하지 않는다)
- *   4. 그 외 → ok
+ *   3. 쿼터 소진 → ok (중단하지 않고, 연속 0건도 올리지 않는다)
+ *   4. 연속 신규 0건 3회 이상 → degraded (중단하지 않는다)
+ *   5. 그 외 → ok
  *
  * 1이 2보다 위인 이유: 차단당하면 응답 본문이 차단 페이지라 파싱도 같이
  * 깨진다. 그때 "파서가 깨졌다"고 보고하면 사람이 엉뚱한 데를 고친다.
@@ -139,7 +175,31 @@ export function judgeHealth(input: HealthInput): HealthVerdict {
     }
   }
 
-  // ── 3) 연속 신규 0건 ───────────────────────────────────────
+  // ── 3) 쿼터 소진 ───────────────────────────────────────────
+  //
+  // 정상 종료다. 소스를 끄지 않는다 — 내일 한도가 리셋되면 그대로 재개된다.
+  //
+  // ⚠️ 연속 0건 카운터를 올리지 않는 것이 이 분기의 핵심이다.
+  //    쿼터가 소진되면 그날 신규가 0건일 수 있는데, 그걸 세면 사흘 뒤
+  //    "연속 3회 신규 0건 — 증분이 끝났거나 조용히 막혔을 수 있다" 가 뜬다.
+  //    **원인이 쿼터인데 증분 종료로 진단된다.** 차단을 신규 0건과 다른
+  //    사건으로 다루는 것(위 1번)과 같은 이유다.
+  //
+  // 파싱 성공률 검사(2번)보다 아래인 이유: 러너가 403 을 받으면 파싱 전에
+  // 끊으므로 쿼터 응답 본문은 parseFailures 에 안 섞인다. 즉 파싱 지표는
+  // 이날 실제로 받아온 페이지들의 독립적인 신호이고, 파서가 진짜로 깨졌다면
+  // 쿼터가 소진된 날에도 그 사실이 먼저 드러나야 한다.
+  if (stats.quotaExhaustedResponses > 0) {
+    return {
+      health: 'ok',
+      detail: `쿼터 소진 ${stats.quotaExhaustedResponses}건 — 오늘 몫을 다 썼다. 차단이 아니며 다음 실행에서 재개된다`,
+      disable: false,
+      consecutiveEmptyAfter: consecutiveEmptyBefore,
+      warnings,
+    }
+  }
+
+  // ── 4) 연속 신규 0건 ───────────────────────────────────────
   const emptyAfter = stats.newReviews === 0 ? consecutiveEmptyBefore + 1 : 0
 
   if (emptyAfter >= MAX_CONSECUTIVE_EMPTY) {

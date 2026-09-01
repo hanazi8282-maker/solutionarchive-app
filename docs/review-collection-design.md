@@ -1091,3 +1091,74 @@ Actions 를 못 돌리는 대신 같은 스크립트를 로컬에서 돌렸다. 
 부수 소득: `lib/review/store.ts` 와 러너가 **실제 DB 에 대고 처음 돌았다**.
 §11 의 미검증 항목 중 읽기 경로는 이걸로 해소됐다. 쓰기 경로(UNIQUE 위반이
 정말 `23505` 로 오는지)는 여전히 첫 실수집에서 확인된다.
+
+---
+
+## §13.7 야간루프 실패 원인 재판정 (2026-09-01)
+
+§13.5 는 야간 인사이트 루프가 죽는 원인을 **Actions 시크릿 0개**로 적었다.
+시크릿을 넣은 뒤 다시 돌려 보니 **그게 유일한 원인이 아니었다.**
+
+### 무엇이 달라졌나
+
+시크릿 2종(`NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`)은
+2026-08-31 08:11 에 등록됐다. 그런데 같은 날 23:09 스케줄 실행
+(run `33449485292`)이 **또 실패했다.**
+
+시크릿은 정상 주입됐다. 잡 환경에 `***` 로 마스킹돼 찍혔고, 무엇보다
+**PostgREST 가 실제 응답을 돌려줬다** — 연결 실패가 아니라 스키마 조회
+실패다. 즉 인증·네트워크 계층은 이미 통과했다.
+
+```
+❌ analyze  — pending 조회 실패: Could not find the table 'public.saved_examples'
+❌ measure  — 패턴 조회 실패:   Could not find the table 'public.insight_patterns'
+❌ reflect  — 패턴 전체 조회 실패: (동일)
+⚠️ 실행 로그 기록 실패:          public.insight_loop_runs 없음
+✅ ingest    건너뜀 — Notion 미설정(정상)
+✅ patternize 건너뜀 — 신규 분석 없음
+```
+
+### 진짜 원인 — 인사이트 마이그레이션 001/002 가 미적용이다
+
+`supabase db query --linked` 로 실측했다(§12.1 과 같은 경로, MCP 아님).
+public 스키마 17개 테이블 전량:
+
+```
+analysis_angles analysis_aspects analysis_inputs analysis_projects api_tokens
+benchmarks channels content_items hypotheses learnings metric_snapshots
+post_performance posts review_collection_runs review_fingerprints
+review_sources review_targets
+```
+
+`saved_examples` / `insight_patterns` / `insight_loop_runs` **셋 다 없다.**
+
+```
+supabase/migrations/20260829000001_saved_examples.sql    ← 미적용
+supabase/migrations/20260829000002_insight_patterns.sql  ← 미적용
+```
+
+§12.1 에서 리뷰 수집 003/004 가 "이미 적용돼 있었다"를 확인했을 때, **같은
+자리에 있던 001/002 는 확인하지 않았다.** 003/004 만 조회했고 그게 있으니
+같은 배치의 나머지도 있으리라 가정했다. §7.1 의 변형이다 — 확인하지 않은
+것을 확인한 것 옆에 두었다는 이유로 양성으로 접었다.
+
+### 2단계 검증의 선행 조건이 셋으로 늘었다
+
+`lib/insight/loop.ts:151` 의 `analyze` 는 `saved_examples` 의 `pending` 행을
+순회하면서만 LLM 을 부른다. 따라서 "LLM 분석 단계까지 실제로 돈다"를 보려면:
+
+1. `CLAUDE_CODE_OAUTH_TOKEN` 등록 (여전히 미등록 — `gh secret list` 2종뿐)
+2. 마이그레이션 001/002 적용 (사람이 대시보드에서. 인수인계서 §5① )
+3. `saved_examples` 에 `analysis_status='pending'` 행 최소 1건
+
+**3번이 새로 드러난 함정이다.** 0건이면 루프는 LLM 을 한 번도 부르지 않고
+`analyzed 0` 으로 **성공 종료한다.** 초록불을 "헤드리스 경로 검증됨"으로
+읽으면 §7.1 사례가 하나 더 늘어난다. 헤드리스 자체의 판정은 DB 와 무관한
+`insight-headless-probe.yml` 로 따로 받는 게 맞다(인수인계서 §5③).
+
+### 부수 확인 — §13.3 의 잔여 작업은 해소됐다
+
+§13.3 이 "API·MCP 로 안 돼 못 했다"고 남긴 Git 연결 해제가 되어 있다.
+Vercel API 상 `solutionarchive` / `solutionarchive-app` 둘 다 `link: null`,
+`solutionarch` 만 `github:hanazi8282-maker/solutionarchive-app` 로 물려 있다.
+HTTP 실측도 그대로다 — 503 / 503 / 401.

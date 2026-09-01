@@ -29,34 +29,15 @@
 import { NextResponse } from 'next/server'
 import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
+import { saveExample, type CaptureInput } from '@/lib/insight/capture'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-interface CaptureBody {
-  url?: string
-  text?: string
-  note?: string
-  /** 멱등성 키를 직접 주고 싶을 때(Notion 동기화가 쓴다). 없으면 URL 로 만든다. */
-  key?: string
-}
-
-/**
- * 멱등성 키.
- *
- * 같은 글을 두 번 저장해도 한 행이어야 한다. 중복이 쌓이면 evidence_count 가
- * 부풀어 "2건 이상 반복 관찰"이라는 반영 기준이 거짓으로 충족된다 —
- * 근거 없는 패턴이 가이드에 들어가는 가장 현실적인 경로다.
- */
-function idempotencyKey(body: CaptureBody): string | null {
-  if (body.key?.trim()) return body.key.trim()
-  const url = body.url?.trim()
-  if (url) return `url:${url.split(/[?#]/)[0]}`
-  // URL 도 key 도 없으면 원문 자체로 키를 만든다(같은 원문 = 같은 글).
-  const text = body.text?.trim()
-  if (text) return `text:${text.slice(0, 200)}`
-  return null
-}
+// 저장 본체와 멱등성 키는 lib/insight/capture.ts 로 옮겼다.
+// 캡처 경로가 둘(이 라우트 + 카카오 웹훅)이 되면서, 로직이 갈리면 같은 글이
+// 경로에 따라 다른 행이 된다. 그러면 evidence_count 가 부풀어 "2건 이상
+// 반복 관찰"이라는 반영 기준이 거짓으로 충족된다.
 
 export async function POST(req: Request) {
   const denied = requireCronAuth(req)
@@ -67,53 +48,41 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, message: 'Supabase 환경변수 없음' }, { status: 500 })
   }
 
-  let body: CaptureBody
+  let body: CaptureInput
   try {
-    body = (await req.json()) as CaptureBody
+    body = (await req.json()) as CaptureInput
   } catch {
     return NextResponse.json({ ok: false, message: 'JSON 파싱 실패' }, { status: 400 })
   }
 
-  const key = idempotencyKey(body)
-  if (!key) {
+  // 이미 있으면 새 행을 만들지 않는다. 나중에 원문을 채워 다시 보내는 경우를
+  // 위해 ignoreDuplicates 는 끄되, 분석 결과 컬럼은 건드리지 않는다
+  // (upsert payload 에 아예 없으므로 기존 분석이 지워지지 않는다).
+  const store = {
+    async upsertSavedExample(row: Record<string, unknown>) {
+      const { data, error } = await supabase
+        .from('saved_examples')
+        .upsert(row, { onConflict: 'notion_page_id', ignoreDuplicates: false })
+        .select('id, notion_page_id, analysis_status')
+        .single()
+      return { data: data ?? null, error: error ? { message: error.message } : null }
+    },
+    async requeueFailed(id: string) {
+      const { error } = await supabase
+        .from('saved_examples')
+        .update({ analysis_status: 'pending', analysis_error: null })
+        .eq('id', id)
+      return { error: error ? { message: error.message } : null }
+    },
+  }
+
+  const result = await saveExample(body, store)
+  if (!result.ok) {
     return NextResponse.json(
-      { ok: false, message: 'url / text / key 중 최소 하나는 필요하다' },
-      { status: 400 },
+      { ok: false, message: result.message, detail: result.detail },
+      { status: result.failure === 'no-key' ? 400 : 500 },
     )
   }
 
-  const { data, error } = await supabase
-    .from('saved_examples')
-    .upsert(
-      {
-        notion_page_id: key,
-        source_url: body.url?.trim() ?? null,
-        raw_text: body.text?.trim() ?? null,
-        user_note: body.note?.trim() ?? null,
-        saved_at: new Date().toISOString(),
-        synced_at: new Date().toISOString(),
-      },
-      // 이미 있으면 덮어쓰지 않는다. 나중에 원문을 채워 다시 보내는 경우를
-      // 위해 ignoreDuplicates 는 끄되, 분석 결과 컬럼은 건드리지 않는다
-      // (upsert payload 에 아예 없으므로 기존 분석이 지워지지 않는다).
-      { onConflict: 'notion_page_id', ignoreDuplicates: false },
-    )
-    .select('id, notion_page_id, analysis_status')
-    .single()
-
-  if (error) {
-    return NextResponse.json(
-      { ok: false, message: '저장 실패', detail: error.message },
-      { status: 500 },
-    )
-  }
-
-  return NextResponse.json({
-    ok: true,
-    saved: data,
-    message:
-      data?.analysis_status === 'pending'
-        ? '저장됨. 다음 나이틀리 실행에서 분석된다.'
-        : '저장됨(이미 분석된 글이다).',
-  })
+  return NextResponse.json({ ok: true, saved: result.saved, message: result.message })
 }

@@ -67,6 +67,13 @@ export async function POST(req: Request) {
         .single()
       return { data: data ?? null, error: error ? { message: error.message } : null }
     },
+    async requeueFailed(id: string) {
+      const { error } = await supabase
+        .from('saved_examples')
+        .update({ analysis_status: 'pending', analysis_error: null })
+        .eq('id', id)
+      return { error: error ? { message: error.message } : null }
+    },
   }
 
   const result = await saveExample(body, store)

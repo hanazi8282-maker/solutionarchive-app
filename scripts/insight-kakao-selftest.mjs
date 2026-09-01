@@ -134,6 +134,66 @@ const fakeStore = (result) => ({
   eq('키 없음: DB 를 부르지 않는다', store.calls.length, 0)
 }
 
+// ── 5b) failed 행 재대기 — 조용히 죽는 경로를 막는다 ───────────────────
+// URL 만 저장된 행은 다음 밤 analyze 에서 throw 되고 'failed' 로 못박힌다.
+// analyze 는 pending 만 고르므로, 원문을 나중에 보내도 raw_text 만 채워지고
+// 그 행은 영영 분석되지 않는다. 원문이 실제로 들어왔을 때만 되돌린다.
+const failedStore = (status) => ({
+  calls: [],
+  requeued: [],
+  async upsertSavedExample(row) {
+    this.calls.push(row)
+    return { data: { id: 'f1', notion_page_id: 'url:x', analysis_status: status }, error: null }
+  },
+  async requeueFailed(id) {
+    this.requeued.push(id)
+    return { error: null }
+  },
+})
+
+{
+  const s = failedStore('failed')
+  const r = await saveExample({ url: 'https://a.com/p/1', text: '원문을 나중에 채워 보낸다' }, s)
+  eq('재대기: failed + 원문 → requeue 호출', s.requeued.length, 1)
+  eq('재대기: 안내 문구', r.message, '원문을 채웠다. 다음 나이틀리 실행에서 다시 분석된다.')
+}
+{
+  const s = failedStore('failed')
+  await saveExample({ url: 'https://a.com/p/1' }, s)
+  eq('재대기: failed 인데 원문 없으면 requeue 안 함', s.requeued.length, 0)
+}
+{
+  const s = failedStore('analyzed')
+  const r = await saveExample({ url: 'https://a.com/p/1', text: '이미 분석된 글에 원문을 또 보낸다' }, s)
+  eq('재대기: analyzed 는 되돌리지 않는다(중복 근거 방지)', s.requeued.length, 0)
+  eq('재대기: analyzed 안내 유지', r.message, '저장됨(이미 분석된 글이다).')
+}
+{
+  const s = failedStore('failed')
+  const r = await saveExample({ url: 'https://a.com/p/1' }, s)
+  ok('failed 행: 원문 없으면 그 사실을 알린다', r.message.includes('분석에 실패한 상태'))
+}
+{
+  // requeue 가 실패해도 저장 자체는 성공이다. 다만 삼키지 않는다.
+  const s = {
+    async upsertSavedExample() {
+      return { data: { id: 'f1', notion_page_id: 'url:x', analysis_status: 'failed' }, error: null }
+    },
+    async requeueFailed() {
+      return { error: { message: 'permission denied' } }
+    },
+  }
+  const r = await saveExample({ url: 'https://a.com/p/1', text: '원문을 채워 보낸다 충분히 길게' }, s)
+  eq('재대기 실패: 저장은 성공으로 둔다', r.ok, true)
+  ok('재대기 실패: 사유를 알린다', r.message.includes('permission denied'))
+}
+{
+  // requeueFailed 구현이 없어도 저장은 정상 동작해야 한다(선택 메서드).
+  const s = fakeStore({ data: { id: 'f1', notion_page_id: 'url:x', analysis_status: 'failed' }, error: null })
+  const r = await saveExample({ url: 'https://a.com/p/1', text: '원문을 채워 보낸다 충분히 길게' }, s)
+  eq('재대기: 구현 없어도 저장 성공', r.ok, true)
+}
+
 // ── 6) 발신자 허용목록은 fail-closed 여야 한다 ─────────────────────────
 // 라우트의 senderAllowed 와 같은 규칙을 여기서 고정한다.
 function senderAllowed(payload, env) {

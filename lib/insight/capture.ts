@@ -55,6 +55,11 @@ export interface CaptureStore {
     data: { id: string; notion_page_id: string; analysis_status: string } | null
     error: { message: string } | null
   }>
+  /**
+   * 실패로 못박힌 행을 다시 대기열에 올린다. 원문이 새로 들어왔을 때만 부른다.
+   * 구현이 없으면 재시도 기능만 빠지고 저장은 정상 동작한다.
+   */
+  requeueFailed?(id: string): Promise<{ error: { message: string } | null }>
 }
 
 /**
@@ -95,13 +100,48 @@ export async function saveExample(
     return { ok: false, saved: null, message: '저장 실패', failure: 'db', detail: error.message }
   }
 
+  // ⚠️ 실패로 못박힌 행에 원문이 새로 들어오면 다시 대기열에 올린다.
+  //
+  //    이게 없으면 조용히 죽는 경로가 생긴다. URL 만 저장된 행은 다음 밤
+  //    analyze 에서 `원문(raw_text)이 비어 분석할 수 없다` 로 throw 되고,
+  //    loop.ts 가 그 행을 `analysis_status='failed'` 로 못박는다(무한 재시도
+  //    방지). 그런데 analyze 는 `pending` 만 고르므로, **나중에 원문을 보내도
+  //    raw_text 만 채워지고 그 행은 영영 분석되지 않는다.**
+  //
+  //    사용자에게는 "다시 보내면 원문이 채워집니다"라고 안내하는데, 하룻밤이
+  //    지난 뒤엔 그 말이 거짓이 된다 — 채워지긴 하지만 아무 일도 안 일어난다.
+  //
+  //    되돌리는 조건을 **원문이 실제로 들어왔을 때 + 현재 failed 일 때**로
+  //    좁힌다. `analyzed` 를 되돌리면 같은 글이 다시 분석돼 evidence_count 가
+  //    부풀고, 원문 없이 되돌리면 다음 밤에 같은 이유로 또 실패한다.
+  const hasText = Boolean(input.text?.trim())
+  let requeued = false
+  if (hasText && data?.analysis_status === 'failed' && store.requeueFailed) {
+    const { error: reErr } = await store.requeueFailed(data.id)
+    if (reErr) {
+      // 저장 자체는 성공했으므로 실패로 뒤집지 않는다. 다만 삼키지도 않는다.
+      return {
+        ok: true,
+        saved: data,
+        message: `저장됨. 다만 재분석 대기열 등록에 실패했다(${reErr.message}).`,
+      }
+    }
+    requeued = true
+  }
+
+  if (requeued) {
+    return { ok: true, saved: data, message: '원문을 채웠다. 다음 나이틀리 실행에서 다시 분석된다.' }
+  }
+
   return {
     ok: true,
     saved: data,
     message:
       data?.analysis_status === 'pending'
         ? '저장됨. 다음 나이틀리 실행에서 분석된다.'
-        : '저장됨(이미 분석된 글이다).',
+        : data?.analysis_status === 'failed'
+          ? '저장됨. 다만 이 글은 분석에 실패한 상태다 — 원문을 함께 보내면 다시 시도한다.'
+          : '저장됨(이미 분석된 글이다).',
   }
 }
 

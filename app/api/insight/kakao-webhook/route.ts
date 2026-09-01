@@ -131,6 +131,13 @@ export async function POST(req: Request) {
         .single()
       return { data: data ?? null, error: error ? { message: error.message } : null }
     },
+    async requeueFailed(id: string) {
+      const { error } = await supabase
+        .from('saved_examples')
+        .update({ analysis_status: 'pending', analysis_error: null })
+        .eq('id', id)
+      return { error: error ? { message: error.message } : null }
+    },
   }
 
   // 예산을 넘기면 우리가 먼저 끊는다. 저장은 계속 진행될 수 있으므로
@@ -166,5 +173,7 @@ export async function POST(req: Request) {
     )
   }
 
-  return skillText(`저장했습니다. (원문 ${share.text.length}자)\n오늘 밤 분석에 들어갑니다.`)
+  // 저장 본체가 돌려준 문구를 그대로 쓴다. "다시 분석된다"(실패 행 재대기)와
+  // "분석된다"(신규)를 라우트가 다시 판단하면 두 곳이 갈린다.
+  return skillText(`저장했습니다. (원문 ${share.text.length}자)\n${result.message}`)
 }

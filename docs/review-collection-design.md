@@ -1241,3 +1241,116 @@ HTTP 실측도 그대로다 — 503 / 503 / 401.
 시드/정리 SQL 은 `notion_page_id` 접두사 `verify-2b-` 로 표시한다. 진짜 저장 글이
 아니라 검증 부산물이므로 판정 후 한 줄로 지운다. 실제 저장 글은 7단계 이후
 인박스가 돌기 시작하면 자연히 쌓인다.
+
+---
+
+## §13.9 2단계 통과 — 야간 인사이트 루프 전 단계 검증 (2026-09-01)
+
+### 2-a — 헤드리스 판정 `viable`
+
+토큰 등록 후 재실행(run `33477777051`). §13.8 이 미리 못박은 통과 기준 셋이
+전부 바뀌었다.
+
+```
+- ✅ `env`      — CLAUDE_CODE_OAUTH_TOKEN 주입됨 (108자)
+- ✅ `binary`   — bundled · 204.4MB · 확보 0ms
+- ✅ `version`  — 2.1.251 (Claude Code) · 13ms
+- ✅ `headless` — 추론 정상 · 2786ms · 응답 "42"
+### 판정: **viable**
+```
+
+**인수인계서 §4 의 "❌ `claude -p` 실제 추론"이 해소됐다.** 이 파이프라인의
+유일한 미검증 전제였다. `ANTHROPIC_API_KEY` 과금 경로는 필요 없다.
+
+### 마이그레이션 001/002 — 이름이 아니라 제약까지 확인했다
+
+테이블 3종이 생긴 것만으로 "적용됨"으로 접지 않았다(§7.1). 실측:
+
+- 제약 14종 — `saved_examples` 4 / `insight_patterns` 6 / `insight_loop_runs` 2
+- `trg_guard_hypothesis_promotion` 트리거 — 인수인계서 §3④ 의 표본 가드
+- `hypotheses.source` 컬럼 — 사람 가설과 자동 가설을 status 가 아닌 출처로 가른다
+
+### 2-b — 초안 3건 시드 → dry-run, 전 단계 정상
+
+run `33478234560` (브랜치 ref, 아래 사유). 요약 전문:
+
+```
+- 결과: 전 단계 정상 · 67.8초 · provider=claude-cli · trigger=manual
+- 집계: 수집 0 / 분석 3 / 패턴 3 / 승격 0 / 기각 0
+- ✅ ingest     건너뜀 — Notion 미설정
+- ✅ analyze    (64735ms) 선택 3 / 성공 3 / 실패 0 / 일반화가능 3
+- ✅ patternize (2091ms)  신규 3 / 보강 0 / 신규가설 없음
+- ✅ measure    건너뜀 — 반영된 패턴 없음
+- ✅ reflect    렌더 530B / 활성패턴 0
+```
+
+**LLM 이 실제로 불렸다.** analyze 가 64.7초를 썼고 3건 모두 구조 추출에
+성공했다. §13.8 이 근거로 든 `extractInsight` 가 `dryRun` 가드 밖이라는
+읽기가 실행으로 확인됐다.
+
+**dry-run 이 아무것도 안 쓴다는 것도 실측했다.** 실행 후 `saved_examples`
+3행은 여전히 `pending` 이었고 `insight_patterns` 는 0행이었다.
+
+### 🔴 리스크 6 이 첫 실측 증거를 남겼다 — key 가 수렴하지 않는다
+
+시드 3건 중 둘(`be0bd0da` / `68e9bab7`)은 **주제·가설(H1)·콘텐츠코드(T1-3)가
+같고 훅만 다른 쌍**이다. 같은 패턴으로 뭉쳐야 한다. 나온 key 는 셋 다 다르다.
+
+```
+- `specific-anomaly-to-universal-question`
+- `anomaly-confession-question`
+- `confession-then-reframe`
+```
+
+앞의 둘이 그 쌍으로 보인다(셋째 `confession-then-reframe` 은 "솔직히
+말하면"으로 시작하는 `2e067d2f` 와 맞물린다). 확정은 아니다 — 요약은 key 를
+분석 순서대로만 찍고 어느 행에서 나왔는지는 안 남긴다.
+
+**영향이 크다.** `patternize` 는 같은 `pattern_key` 로 근거가 **2건** 모여야
+가설을 발급한다. key 가 매번 갈라지면 `evidence_count` 가 1에서 안 올라가고,
+가설이 안 나오고, `measure` 가 볼 게 없고, `reflect` 가 렌더할 활성 패턴이
+없다. 이번 실행의 "신규가설 없음 / 반영된 패턴 없음 / 활성패턴 0" 이 정확히
+그 모습이다. **에러 없이 루프만 안 도는 형태** — 인수인계서 §3③ 이 경계한 것과
+같은 계열이다.
+
+표본 2건·1회 실행이므로 확정된 결함으로 적지 않는다. 다만 "며칠 돌린 뒤
+`insight_patterns` 를 열어 보라"(리스크 6)를 기다릴 것 없이 **지금 첫 신호가
+나왔다.** 실수집 전에 볼 것:
+
+- key 를 LLM 자유 생성에 맡길지, 후보 집합에서 고르게 할지
+- `normalizePatternKey`(`lib/insight/llm.ts:57`)가 어디까지 정규화하는지
+- 어느 행에서 어느 key 가 나왔는지 요약에 남길지
+
+### 부수 수정 — 요약이 판단 근거를 버리고 있었다
+
+첫 dry-run(run `33477897473`, main ref)은 **3건 중 1건 실패**였는데
+요약에 `실패 1` 만 찍혔다. 사유가 어디에도 없다 — `analyze` 는 `failures`
+배열을 만들지만 `summarizeDetail`(`scripts/insight-loop.mjs:130`)이 개수만
+렌더링하고 버렸고, dry-run 은 행을 `failed` 로 못박지 않아 DB 에도 안 남는다.
+`patternize` 의 key 문자열도 같이 버려지고 있었다.
+
+**실패를 셀 수만 있고 판단할 수 없는 상태**라 §7.1 위반이다. 고쳤다
+(`11bafac`) — `analyze` 는 실패 사유를, `patternize` 는 실제 key 를 요약에
+남긴다. 위 §13.9 의 key 목록이 이 수정으로 처음 보인 것이다.
+
+재실행은 3/3 성공이라 그 1건은 일시적 실패였다. **사유는 영영 모른다** —
+바로 그게 이 수정을 한 이유다.
+
+⚠️ 이 커밋은 `feat/review-source-probe` 에 올라갔다. **PR #11 의 범위가
+리뷰 수집 프로브 + 이 수정으로 늘었다.** 머지 전에 알고 있을 것.
+
+### 브랜치 ref 로 돌린 이유
+
+수정본을 검증하려면 그 코드가 도는 실행이 필요한데, main 머지는 3단계
+승인 사항이다. `nightly-insight-loop.yml` 이 브랜치에도 있고 브랜치가
+`origin/main`(`2460791`)을 포함하므로 `--ref feat/review-source-probe` 로
+머지 없이 돌렸다.
+
+### 시드 정리함 — 스케줄 실행은 dry-run 이 아니다
+
+워크플로의 `--dry` 는 `workflow_dispatch` + `inputs.dry_run` 일 때만 붙는다.
+**`schedule` 실행에는 안 붙는다.** 시드를 두면 오늘 밤 04:00 크론이 검증용
+행을 실제 데이터로 분석해 `insight_patterns` 에 테스트 패턴을 쓴다.
+
+검증이 끝난 즉시 지웠다(`verify-2b-%` 3행). 확인: `saved_examples` 0행,
+`insight_patterns` 0행. 재현이 필요하면 시드 SQL 한 줄로 다시 넣는다.

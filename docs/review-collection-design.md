@@ -1162,3 +1162,82 @@ supabase/migrations/20260829000002_insight_patterns.sql  ← 미적용
 Vercel API 상 `solutionarchive` / `solutionarchive-app` 둘 다 `link: null`,
 `solutionarch` 만 `github:hanazi8282-maker/solutionarchive-app` 로 물려 있다.
 HTTP 실측도 그대로다 — 503 / 503 / 401.
+
+---
+
+## §13.8 2-a 헤드리스 프로브 기준선 (2026-09-01)
+
+2단계(야간루프 전체 검증)를 둘로 갈랐다.
+
+- **2-a** — `insight-headless-probe.yml`. DB 와 무관하게 `claude -p` 추론만 판정
+- **2-b** — `saved_examples` 에 시드를 넣고 `nightly-insight-loop` dry-run
+
+가른 이유는 §13.7 ③ 이다. 마이그레이션을 적용해도 `saved_examples` 가 비어
+있으면 `analyze` 는 LLM 을 한 번도 안 부르고 성공으로 끝난다. 두 검증을
+한 실행에 섞으면 그 초록불이 무엇을 뜻하는지 갈라낼 수 없다.
+
+### 기준선 실행 — 토큰 없을 때의 출력을 먼저 박아둔다
+
+토큰 등록 **전에** 한 번 돌렸다(run `33475956778`, `workflow_dispatch`, main).
+"토큰이 들어오면 무엇이 달라져야 하는가"를 사후에 정하지 않기 위해서다.
+
+```
+러너: linux/x64 · Node v24.19.0 · egress 172.184.214.214
+- ❌ `env`      — 토큰 없음 — 리포 시크릿에 CLAUDE_CODE_OAUTH_TOKEN 을 넣어야 한다
+- ✅ `binary`   — bundled · 204.4MB · 확보 0ms
+- ✅ `version`  — 2.1.251 (Claude Code) · 14ms
+- ❌ `headless` — 토큰 없음 — 시도 안 함(판정 보류)
+### 판정: **inconclusive**
+```
+
+`binary` 가 `bundled · 0ms` 인 것은 §4 의 `CLAUDE_CLI_PATH` 분기가 러너에서
+계속 먹고 있다는 뜻이다(214MB 재다운로드 없음).
+
+### ⚠️ 이 워크플로의 conclusion 은 판정이 아니다
+
+`scripts/insight-headless-probe.mjs` 는 **종료 코드가 항상 0** 이다. 판정을
+보고하는 게 목적이고 "안 된다"도 유효한 판정이라, 실패로 붉히지 않는 설계다.
+그래서 이 실행도 `conclusion: success` 로 끝났다 — **아무것도 검증되지 않은
+채로.**
+
+§7.1 의 교과서적 형태이고, 스크립트 자신은 정직하다(단계별 ❌ 와 판정 문자열을
+남긴다). 위험한 건 **읽는 쪽**이다. 이 워크플로를 볼 때는 conclusion 이 아니라
+잡 요약의 `### 판정:` 줄을 읽는다. 초록불을 근거로 쓰지 마라.
+
+### 통과 기준 — 미리 못박는다
+
+토큰 등록 후 재실행에서 **셋이 동시에** 바뀌어야 통과다.
+
+- `env` → ✅ (`CLAUDE_CODE_OAUTH_TOKEN 주입됨 (N자)`)
+- `headless` → ✅ (`추론 정상`, 응답에 `42` 포함)
+- 판정 → **`viable`**
+
+프롬프트가 `6 times 7` 인 이유도 같은 규약이다 — 모델이 무슨 말이든 뱉으면
+"돌았다"고 읽히지 않도록, 정답이 하나뿐인 것을 묻고 문자열까지 대조한다.
+`exit 0` 인데 응답이 예상 밖이면 `viable` 이 아니라 `inconclusive` 다.
+
+### 2-b 시드 설계 — 초안 3건, 그중 2건은 수렴 시험 쌍
+
+`posts` 의 draft 3건을 쓴다(로그의 `[match] 초안 3` 과 같은 행).
+
+| 초안 | 코드 | 가설 | 성격 |
+|---|---|---|---|
+| `be0bd0da` | T1-3 | H1 | 기저귀 리뷰·아기 — 훅 A |
+| `68e9bab7` | T1-3 | H1 | 같은 주제, 훅 B ← **수렴 시험 쌍** |
+| `2e067d2f` | T3-5 | H5 | 리서치 자동화 환각 |
+
+앞의 둘은 주제·가설이 같고 훅만 다르다. 여기서 **같은 `pattern_key` 가 나오는지**
+가 인수인계서 리스크 6(키가 안 뭉치면 근거가 1에서 안 올라가고 아무것도
+반영되지 않는다)의 직접 시험이다. `patternize` 요약이 `new: [key...]` 를 그대로
+출력하므로 dry-run 만으로 눈에 보인다.
+
+**dry-run 이 2-b 에 성립하는 근거 2개** (`lib/insight/loop.ts` 실측):
+
+- `extractInsight` 호출이 `dryRun` 가드 **밖**이다(:166). dry-run 이어도 LLM 은
+  실제로 불린다. 건너뛰는 건 DB 쓰기뿐이다.
+- 시드 행은 `analyzed` 로 안 바뀐다(:173). `pending` 으로 남아 몇 번이든
+  재실행할 수 있다. `insight_loop_runs` 기록도 안 남는다(:452).
+
+시드/정리 SQL 은 `notion_page_id` 접두사 `verify-2b-` 로 표시한다. 진짜 저장 글이
+아니라 검증 부산물이므로 판정 후 한 줄로 지운다. 실제 저장 글은 7단계 이후
+인박스가 돌기 시작하면 자연히 쌓인다.

@@ -132,10 +132,22 @@ function summarizeDetail(name, d) {
   switch (name) {
     case 'ingest':
       return `발견 ${d.found} / 반영 ${d.inserted}`
-    case 'analyze':
-      return `선택 ${d.picked} / 성공 ${d.succeeded} / 실패 ${d.failed} / 일반화가능 ${d.generalizable}`
-    case 'patternize':
-      return `신규 ${(d.new ?? []).length} / 보강 ${(d.reinforced ?? []).length} / 신규가설 ${(d.newHypotheses ?? []).join(', ') || '없음'}`
+    case 'analyze': {
+      const base = `선택 ${d.picked} / 성공 ${d.succeeded} / 실패 ${d.failed} / 일반화가능 ${d.generalizable}`
+      // 실패 사유를 여기서 버리면 요약에 "실패 1"만 남는다. 무엇을 고쳐야 할지
+      // 알 수 없고, dry-run 은 행을 failed 로 못박지도 않아 DB 에도 안 남는다.
+      // 사유를 못 보면 실패를 셀 수만 있고 판단할 수 없다(CLAUDE.md §7.1).
+      const failures = d.failures ?? []
+      return failures.length ? `${base}\n${failures.map((f) => `  - ⚠️ ${f}`).join('\n')}` : base
+    }
+    case 'patternize': {
+      const base = `신규 ${(d.new ?? []).length} / 보강 ${(d.reinforced ?? []).length} / 신규가설 ${(d.newHypotheses ?? []).join(', ') || '없음'}`
+      // key 값 자체가 인수인계서 리스크 6(같은 패턴에 매번 다른 key 가 붙으면
+      // 근거가 1에서 안 올라가고 아무것도 반영되지 않는다)의 유일한 판단
+      // 근거다. 개수만 찍으면 수렴과 분산이 같은 숫자로 보인다.
+      const keys = [...(d.new ?? []), ...(d.reinforced ?? [])]
+      return keys.length ? `${base}\n${keys.map((k) => `  - \`${k}\``).join('\n')}` : base
+    }
     case 'measure':
       return `평가 ${d.evaluated}건`
     case 'reflect':

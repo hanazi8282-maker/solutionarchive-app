@@ -135,8 +135,15 @@ if (fatal) {
   say(
     `- 소스 \`${result.sourceKey}\` · ${((Date.now() - started) / 1000).toFixed(1)}초 · 타깃 ${result.targetsVisited}개 · 요청 ${result.requests}건`,
   )
+  // ⚠️ dry-run 의 "신규 0건" 은 0 이 아니라 **측정 안 함**이다.
+  //    lib/review/runner.ts 가 `if (opts.dryRun) continue` 를 newCount++ 앞에서
+  //    한다 — 지문을 쓰지 않으므로 중복 판정 자체를 못 한다. 구조상 항상 0이다.
+  //    그런데 같은 글자로 찍으면 "새 게 없다"와 "세지 않았다"가 구별되지 않고,
+  //    실수집에서 진짜 0건이 나온 날과도 구별되지 않는다(CLAUDE.md §7.1).
+  const newLabel = dryRun ? '신규 —(dry-run 은 판정하지 않음)' : `신규 ${s.newReviews}건`
+  const quotaLabel = s.quotaExhaustedResponses > 0 ? ` · 쿼터 소진 ${s.quotaExhaustedResponses}건` : ''
   say(
-    `- 파싱 ${s.reviewsParsed}건(실패 ${s.parseFailures}) · 신규 ${s.newReviews}건 · 폴백키 ${s.fallbackKeys}건 · robots 회피 ${result.robotsSkips}건`,
+    `- 파싱 ${s.reviewsParsed}건(실패 ${s.parseFailures}) · ${newLabel} · 폴백키 ${s.fallbackKeys}건 · robots 회피 ${result.robotsSkips}건${quotaLabel}`,
   )
 
   for (const w of result.health.warnings) say(`- ⚠️ ${w}`)

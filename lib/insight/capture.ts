@@ -187,3 +187,27 @@ export function parseShare(utteranceRaw: string): ParsedShare {
 
   return { url, text, empty: !url && !text && rest.length === 0 }
 }
+
+/**
+ * 거부된 요청의 로그 한 줄.
+ *
+ * ⚠️ 발신자 id 를 반드시 싣는다 — 부트스트랩이 여기에 걸려 있다.
+ *
+ * `KAKAO_ALLOWED_USER_IDS` 는 fail-closed 라 비어 있으면 모든 요청을 막는다.
+ * 그런데 거기 넣을 값(`userRequest.user.id`)을 알아내는 유일한 방법이
+ * **거부된 첫 요청의 로그**다. 사유만 남기고 id 를 빼면 사람은 영원히
+ * 허용목록을 채울 수 없다 — 공유해도 화면엔 "등록되지 않은 발신자입니다"만
+ * 뜨고 로그엔 사유만 남아, **막힌 이유는 보이는데 푸는 열쇠는 안 보인다.**
+ * 인수인계 문서 §11 "사람이 할 일" 2번이 전제하는 절차가 코드에 없었다.
+ *
+ * ⚠️ 응답에는 절대 싣지 않는다. 허용목록의 존재와 동작 방식을 외부에
+ * 노출한다. id 는 **서버 로그에만** 남는다.
+ *
+ * botUserKey 는 채널 범위의 불투명 값이라 그 자체로 신원을 드러내지 않는다.
+ * 모든 거부에 남기는 이유는, 남이 이 URL 을 찾아 두드릴 때도 같은 줄이
+ * 그것을 드러내기 때문이다.
+ */
+export function rejectionLogLine(reason: string, userId?: string | null): string {
+  const id = (userId ?? '').trim()
+  return `[kakao-webhook] rejected: ${reason} · user.id=${id || '(없음)'}`
+}

@@ -1,0 +1,13 @@
+# Supabase CLI 설정. 이 파일은 Edge Function 배포를 재현 가능하게 만들려고
+# 추가했다 — `--no-verify-jwt` 를 매번 손으로 붙이면 언젠가 빠뜨리고, 그날
+# 카카오는 401 만 받는다(그 증상은 지금 고치는 egress 차단과 구분이 안 된다).
+#
+# 생략한 섹션은 CLI 기본값이 채운다. DB/Auth/Storage 설정은 원격 프로젝트가
+# 정본이고 여기서 관리하지 않는다.
+
+project_id = "qmgrfqjfxqhxuufrnkwf"
+
+[functions.kakao-webhook]
+# 카카오는 Authorization 헤더를 보내지 않는다. 근거와 보안 판단은
+# supabase/functions/kakao-webhook/index.ts 헤더 주석 참조.
+verify_jwt = false

@@ -12,7 +12,7 @@
 //   - simpleText.text 최대 1000자
 //   - 스킬 타임아웃 5초
 
-import { parseShare, extractUrl, idempotencyKey, saveExample, MIN_TEXT_CHARS } from '../lib/insight/capture.ts'
+import { parseShare, extractUrl, idempotencyKey, saveExample, MIN_TEXT_CHARS, rejectionLogLine } from '../lib/insight/capture.ts'
 
 let pass = 0
 const fails = []
@@ -211,6 +211,26 @@ eq('허용목록: 등록된 id 통과', senderAllowed(withId('u1'), { KAKAO_ALLO
 eq('허용목록: 미등록 id 차단', senderAllowed(withId('u9'), { KAKAO_ALLOWED_USER_IDS: 'u1,u2' }).ok, false)
 eq('허용목록: id 없으면 차단', senderAllowed({}, { KAKAO_ALLOWED_USER_IDS: 'u1' }).ok, false)
 eq('허용목록: 공백 항목 무시', senderAllowed(withId('u2'), { KAKAO_ALLOWED_USER_IDS: ' u1 , u2 ' }).ok, true)
+
+// ── 거부 로그에 발신자 id 가 남는가 ────────────────────────────────────
+// ⚠️ 허용목록은 fail-closed 인데, 거기 넣을 값을 알아내는 유일한 경로가
+//    거부된 첫 요청의 로그다. 이 줄에서 id 가 빠지면 사람은 막힌 이유는
+//    보면서 푸는 열쇠는 못 본다 — 조용한 교착이다.
+{
+  const line = rejectionLogLine('KAKAO_ALLOWED_USER_IDS 미설정 — 잠긴 상태다', 'abc123XYZ')
+  ok('거부로그: 발신자 id 가 남는다', line.includes('abc123XYZ'), line)
+  ok('거부로그: 사유도 함께 남는다', line.includes('미설정'), line)
+  ok('거부로그: 태그가 붙는다', line.startsWith('[kakao-webhook] rejected:'), line)
+
+  const noId = rejectionLogLine('userRequest.user.id 없음', undefined)
+  ok('거부로그: id 가 없으면 (없음) 으로 명시', noId.includes('(없음)'), noId)
+  ok('거부로그: undefined 를 그대로 흘리지 않는다', !noId.includes('undefined'), noId)
+
+  const blank = rejectionLogLine('허용목록에 없는 발신자', '   ')
+  ok('거부로그: 공백 id 도 (없음) 으로 본다', blank.includes('(없음)'), blank)
+
+  eq('거부로그: 한 줄이다', rejectionLogLine('r', 'i').includes(String.fromCharCode(10)), false)
+}
 
 // ── 결과 ───────────────────────────────────────────────────────────────
 console.log('')

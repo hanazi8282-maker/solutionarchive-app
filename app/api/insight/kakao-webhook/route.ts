@@ -25,7 +25,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { saveExample, parseShare, MIN_TEXT_CHARS } from '@/lib/insight/capture'
+import { saveExample, parseShare, MIN_TEXT_CHARS, rejectionLogLine } from '@/lib/insight/capture'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -98,7 +98,10 @@ export async function POST(req: Request) {
   if (!gate.ok) {
     // 왜 막혔는지는 서버 로그에만 남긴다. 응답으로 알려주면 허용목록의
     // 존재와 동작 방식을 외부에 노출한다.
-    console.warn(`[kakao-webhook] rejected: ${gate.reason}`)
+    //
+    // ⚠️ 발신자 id 를 반드시 함께 남긴다. 허용목록에 넣을 값을 알아내는
+    //    유일한 경로가 이 줄이다 — 근거는 rejectionLogLine 주석 참조.
+    console.warn(rejectionLogLine(gate.reason ?? '사유 불명', payload.userRequest?.user?.id))
     return skillText('등록되지 않은 발신자입니다.')
   }
 

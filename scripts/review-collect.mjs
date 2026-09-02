@@ -22,8 +22,9 @@ import { runCollection, USER_AGENT } from '../lib/review/runner.ts'
 import { createReviewStore } from '../lib/review/store.ts'
 import { alertLine } from '../lib/review/health.ts'
 import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
+import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 
-const ADAPTERS = { danawa: danawaAdapter }
+const ADAPTERS = { danawa: danawaAdapter, appstore: appstoreAdapter }
 
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry')

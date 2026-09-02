@@ -1,0 +1,7 @@
+{"feed":{"author":{"name":{"label":"iTunes Store"}, "uri":{"label":"http://www.apple.com/itunes/"}}, "updated":{"label":"2026-09-01T13:03:07-07:00"}, "rights":{"label":"Copyright 2008 Apple Inc."}, "title":{"label":"iTunes Store:사용자 후기"}, "icon":{"label":"http://phobos.apple.com/favicon.ico"}, "link":[
+{"attributes":{"rel":"alternate", "type":"text/html", "href":"https://apps.apple.com/WebObjects/MZStore.woa/wa/viewGrouping?cc=kr&id=29141"}}, 
+{"attributes":{"rel":"self", "href":"https://itunes.apple.com/kr/rss/customerreviews/id=1459969523/sortBy=mostRecent/page=2/json"}}, 
+{"attributes":{"rel":"first", "href":"https://itunes.apple.com/kr/rss/customerreviews/page=1/id=1459969523/sortby=mostrecent/xml?urlDesc=/customerreviews/id=1459969523/sortBy=mostRecent/page=2/json"}}, 
+{"attributes":{"rel":"last", "href":"https://itunes.apple.com/kr/rss/customerreviews/page=1/id=1459969523/sortby=mostrecent/xml?urlDesc=/customerreviews/id=1459969523/sortBy=mostRecent/page=2/json"}}, 
+{"attributes":{"rel":"previous", "href":"https://itunes.apple.com/kr/rss/customerreviews/page=1/id=1459969523/sortby=mostrecent/xml?urlDesc=/customerreviews/id=1459969523/sortBy=mostRecent/page=2/json"}}, 
+{"attributes":{"rel":"next", "href":"https://itunes.apple.com/kr/rss/customerreviews/page=3/id=1459969523/sortby=mostrecent/xml?urlDesc=/customerreviews/id=1459969523/sortBy=mostRecent/page=2/json"}}], "id":{"label":"https://itunes.apple.com/kr/rss/customerreviews/id=1459969523/sortBy=mostRecent/page=2/json"}}}

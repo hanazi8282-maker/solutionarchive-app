@@ -11,6 +11,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
+import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import {
   runCollection,
   STALE_STREAK_TO_STOP,
@@ -581,6 +582,99 @@ ok('제품 토큰이 브라우저를 사칭하지 않는다', !/mozilla|chrome|s
   ok('마지막 저장의 커서가 null — 타깃 종료', saves[saves.length - 1].cursor === null)
   ok('본문이 실제로 들어간다', inputs.every((i) => i.text.length > 0))
   ok('프로젝트 id 가 실려 간다', inputs.every((i) => i.projectId === 'proj1'))
+}
+
+// ── 러너 × 실제 App Store 어댑터 (통합) ───────────────────────────
+//
+// 다나와와 같은 이유로 붙여 본다. 소스가 늘어날 때마다 이 경계면을 따로
+// 테스트하지 않으면, "각 부품은 통과했는데 붙이면 안 되는" 상태를 실행에서
+// 처음 알게 된다.
+//
+// App Store 만의 경계가 하나 더 있다 — **애플의 페이지 상한 10**. 러너의
+// MAX_PAGES_PER_TARGET(20)보다 낮아서, 어댑터가 먼저 멈추지 않으면 11페이지에서
+// HTTP 400 을 받고 러너가 그 타깃을 failed 로 찍는다. 정상적인 경계가 고장으로
+// 기록되는 형태다(§7.2).
+{
+  const p1 = await fs.readFile(path.join(here, '..', 'fixtures', 'appstore', 'page1.json'), 'utf8')
+  const pEmpty = await fs.readFile(path.join(here, '..', 'fixtures', 'appstore', 'page-empty.json'), 'utf8')
+
+  const seenUrls = []
+  const inputs = []
+  const saves = []
+  const seenFp = new Map()
+  let clock = 3_000_000
+
+  const ports = {
+    now: () => new Date(clock),
+    async sleep(ms) {
+      clock += ms
+    },
+    async fetchText(url) {
+      seenUrls.push(url)
+      clock += 10
+      if (url.endsWith('/robots.txt')) return { status: 200, body: 'User-agent: *\nAllow: /\n' }
+      const page = Number(url.match(/page=(\d+)/)[1])
+      // 애플은 11페이지부터 400 을 준다. 어댑터가 거기 도달하면 이게 터진다.
+      if (page > 10) return { status: 400, body: '' }
+      return { status: 200, body: page === 1 ? p1 : pEmpty }
+    },
+    store: {
+      async loadSource() {
+        return { key: 'appstore', enabled: true, minIntervalMs: 1000, dailyRequestCap: 200, requestsToday: 0 }
+      },
+      async listDueTargets() {
+        return [
+          {
+            id: 'tgt-app',
+            projectId: 'proj-app',
+            sourceKey: 'appstore',
+            productRef: 'kr:1459969523',
+            cursor: null,
+            lastReviewAt: null,
+            consecutiveEmpty: 0,
+          },
+        ]
+      },
+      async saveTargetProgress(p) {
+        saves.push(p)
+      },
+      async recordFingerprint(fp) {
+        if (seenFp.has(fp.identityKey)) {
+          return seenFp.get(fp.identityKey) === fp.contentHash ? 'duplicate' : 'revised'
+        }
+        seenFp.set(fp.identityKey, fp.contentHash)
+        return 'new'
+      },
+      async appendInput(i) {
+        inputs.push(i)
+        return `in${inputs.length}`
+      },
+      async linkFingerprint() {},
+      async updateSourceHealth() {},
+    },
+  }
+
+  const r = await runCollection(appstoreAdapter, { dryRun: false, targetLimit: 1 }, ports)
+
+  ok('어댑터가 만든 RSS URL 을 러너가 그대로 쓴다', seenUrls.some((u) => u.includes('/rss/customerreviews/id=1459969523')))
+  ok('국가가 URL 에 반영된다', seenUrls.some((u) => u.includes('/kr/rss/')))
+  ok('page=1 부터 시작한다', seenUrls.some((u) => u.includes('/page=1/')))
+  ok('커서를 받아 page=2 로 넘어간다', seenUrls.some((u) => u.includes('/page=2/')))
+  t('빈 페이지에서 멈춘다', r.pagesFetched, 2)
+  t('실제 픽스처에서 35건을 파싱한다', r.stats.reviewsParsed, 35)
+  t('파싱 실패 0', r.stats.parseFailures, 0)
+  t('35건 전부 신규로 적재된다', inputs.length, 35)
+  t('폴백 키 없음 — 애플 리뷰 id 를 전부 읽었다', r.stats.fallbackKeys, 0)
+  t('차단으로 세지 않는다', r.stats.blockedResponses, 0)
+  t('health ok', r.health.health, 'ok')
+  ok('마지막 저장의 커서가 null — 타깃 종료', saves[saves.length - 1].cursor === null)
+  ok('본문이 실제로 들어간다', inputs.every((i) => i.text.length > 0))
+  ok('제목·버전이 본문에 붙어 있다', inputs.some((i) => i.text.includes('(v') && i.text.startsWith('[')))
+
+  // ⚠️ 가장 중요한 경계 — 400 을 한 번도 받지 않았어야 한다.
+  //    받았다면 어댑터가 애플 상한을 넘어선 것이고, 러너가 그 타깃을
+  //    failed 로 찍는다.
+  ok('애플 페이지 상한을 넘지 않는다(400 요청 0건)', !seenUrls.some((u) => Number((u.match(/page=(\d+)/) || [0, 0])[1]) > 10))
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

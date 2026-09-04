@@ -65,10 +65,12 @@ description: >
    - 둘 다 탈락 → ★ 양쪽 공통 구멍. 최고 가치. 신규 규칙 후보
    - **한쪽만 탈락 → ★★ 조건부 규칙의 증거. cross-decisions.md 갱신 대상**
 
-> **문서 미비**: G-R 질문표는 `references/pdp-gate.md`에만 있다.
-> `references/solfa-gate.md`에는 G-R 섹션이 없다(G-0~G-10 + 부록뿐).
-> 솔파 쪽 역방향이 필요하면 pdp 쪽 질문표를 쓰되 그 사실을 사용자에게 명시하고,
-> 솔파 전용 G-R 절차를 지어내지 않는다.
+G-R 질문표는 양쪽에 다 있다 — `references/solfa-gate.md` G-R,
+`references/pdp-gate.md` G-R. 질문표 행 번호는 각 게이트 항목(G-x / P-x)에 1:1로 대응한다.
+
+역방향 엔트리 템플릿은 `references/<자료>-decisions.md`의 `역방향 엔트리 템플릿`에 있다.
+`출처: 외부관찰` 플래그를 반드시 단다. `구멍` 결론이면 `## 5. 신규 규칙 후보`에
+`발견 경로: 외부관찰(G-R 구멍)`로 엔트리를 함께 만든다.
 
 ## 평가 모드
 

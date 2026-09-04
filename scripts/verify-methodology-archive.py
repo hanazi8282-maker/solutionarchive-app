@@ -34,10 +34,10 @@ CORPUS_FILES = [
 ]
 
 # provenance=False 인 자료는 05-provenance.md 가 아예 없다.
-# 솔파는 원문 대조 인덱스가 작성된 적이 없다 (README/01 은 05 를 참조하지만 문서는 부재).
+# 2026-09-05 솔파 05 가 작성되면서 두 자료 모두 True 가 됐다.
 CORPORA = {
     "pdp": {"headings": 95, "rule": "P", "rule_max": 14, "provenance": True},
-    "solfa": {"headings": 119, "rule": "R", "rule_max": 14, "provenance": False},
+    "solfa": {"headings": 119, "rule": "R", "rule_max": 14, "provenance": True},
 }
 CROSS_MAX = 12
 SOURCE_MARKER_EXEMPT = {"0-1", "0-2", "0-3"}

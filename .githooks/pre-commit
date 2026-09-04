@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# content-gate 스킬의 references/ 를 정본과 동기화한 상태로 유지한다.
+#
+# 04-decisions.md 는 append-only 판정 로그라 계속 자란다. 동기화를 잊으면
+# 스킬이 옛날 규칙으로 판정한다. 그래서 검사에서 그치지 않고 직접 맞춘 뒤
+# 스테이징까지 해서 커밋에 태운다.
+#
+# 설치 (클론마다 1회): git config core.hooksPath .githooks
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+SYNC="$ROOT/scripts/sync-content-skill.sh"
+REFS="$ROOT/.claude/skills/content-gate/references"
+
+[ -f "$SYNC" ] || exit 0
+
+if bash "$SYNC" --check >/dev/null 2>&1; then
+  exit 0
+fi
+
+echo "[pre-commit] content-gate references 가 정본과 어긋났다. 동기화한다."
+if ! bash "$SYNC"; then
+  echo "[pre-commit] 동기화 실패. 커밋을 중단한다." >&2
+  exit 1
+fi
+git add -- "$REFS"
+echo "[pre-commit] references/ 를 갱신해 이번 커밋에 포함했다."

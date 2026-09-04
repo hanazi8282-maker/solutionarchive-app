@@ -39,10 +39,12 @@ description: >
 - ★ Ⅰ에서 이미 본 항목은 건너뛴다 (pdp P-3·P-7 / solfa G-2·G-4)
 - 규칙 충돌 시 `references/pdp-decisions.md`(P-01~P-14) 또는
   `references/solfa-decisions.md`(R-01~R-14)를 적용한다
-- 구조가 막히면 해당 쪽 `*-excerpts.md`의 반례·before/after에서 제안한다
+- 구조가 막히면 `references/pdp-excerpts.md` 또는 `references/solfa-excerpts.md`의
+  반례·원리·before/after에서 제안한다
 
 **Ⅳ. 충돌 3건** — X-1(감·재능) / X-2(알고리즘) / X-3(진위)를 만나면
 판정하고 **반드시 기록**한다. 이게 이 아카이브의 유일한 학습 입력이다.
+세 충돌의 정의와 양쪽 입장은 `references/cross-decisions.md`의 미해결 충돌 절에 있다.
 
 **Ⅴ. 로그** — 출력 마지막에 판정 로그 엔트리를 복사 가능한 코드블록으로 제시한다.
 `출처`(자체발행/외부관찰), `방법론`(솔파/프드프/교차), **예측** 필수.

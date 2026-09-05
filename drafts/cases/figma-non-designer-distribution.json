@@ -1,0 +1,76 @@
+{
+  "slug": "figma-non-designer-distribution",
+  "brand_name": "Figma",
+  "market": "디자인 협업 소프트웨어",
+  "geo": "GLOBAL",
+  "business_model": "SAAS",
+  "buyer_type": "B2B",
+  "purchase_frequency": "CONTRACT",
+  "price_band": "ENTERPRISE",
+  "bottleneck": "DISTRIBUTION",
+  "outcome_status": "active",
+  "period_start": "2016-01-01",
+  "period_end": "2025-03-31",
+  "summary": "디자인 도구의 시장 규모는 '디자이너 수'로 잘린다. 피그마는 그 천장을 도구를 브라우저 링크 위에 올려 넘겼다 — 파일을 보려고 설치·구매할 필요가 없으니 개발자·PM·마케터가 그냥 들어온다. 월 활성 사용자 1,300만 명 중 3분의 2가 디자이너가 아니고, 그 비디자이너가 유료 좌석의 진입로가 됐다. 조선미녀와 같은 DISTRIBUTION 병목이지만 유통망을 뚫은 게 아니라 제품 자체를 유통 단위로 만든 방식이다.",
+  "tags": ["SaaS", "PLG", "브라우저", "협업", "확산단위"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "PRODUCT_FEATURE",
+      "claim": "제품을 브라우저에서 돌려 '파일 열기'의 값을 0 으로 만들었다. 링크 하나가 곧 배포이므로 확산 단위가 '설치한 디자이너'가 아니라 '링크를 받은 사람'이 된다. 그 결과 사용자 구성이 디자인 직군 밖으로 넘어갔다 — MAU 1,300만 명 중 3분의 2가 디자이너가 아니고 개발자만 30%다.",
+      "outcome_direction": "positive",
+      "metric_name": "월 활성 사용자 중 비디자이너 비중",
+      "metric_before": null,
+      "metric_after": 66,
+      "metric_unit": "%",
+      "observed_period_start": "2025-01-01",
+      "observed_period_end": "2025-03-31"
+    },
+    {
+      "lever": "PACKAGING",
+      "claim": "확산으로 들어온 계정을 좌석·제품 단위로 쪼개 팔아 확장 매출로 바꿨다. 유료 고객 76%가 2개 이상 제품을 쓰고, 순매출유지율은 132%다. 다만 이 구조는 아직 침투 초기다 — Forbes Global 2000 의 78%가 쓰는데 그중 연 10만 달러 이상 쓰는 곳은 24%뿐이다.",
+      "outcome_direction": "positive",
+      "metric_name": "순매출유지율 (NDR)",
+      "metric_before": 134,
+      "metric_after": 132,
+      "metric_unit": "%",
+      "observed_period_start": "2024-12-31",
+      "observed_period_end": "2025-03-31"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1579878/000162828025033742/figma-sx1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2025-07-01",
+      "snippet": "two-thirds of our monthly active users are not designers",
+      "supports_claim": "MAU 1,300만 명과 비디자이너 3분의 2, 개발자 30%. EDGAR 접수일 2025-07-01 을 직접 확인했다. 66% 는 'two-thirds' 를 옮긴 값이라 반올림된 자기보고 수치다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1579878/000162828025033742/figma-sx1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2025-07-01",
+      "snippet": null,
+      "supports_claim": "2025-03-31 기준 NDR 132%(2024-12-31 기준 134%), 연 1만 달러 이상 고객 총유지율 96%, 유료 고객 450,000곳·연 1만 달러 이상 10,517곳, 2개 이상 제품 사용 76%, Global 2000 침투 78% 중 10만 달러 이상 24%, LTM 매출 8.21억 달러·매출총이익률 91%."
+    },
+    {
+      "move": 0,
+      "url": "https://techcrunch.com/2025/07/01/figma-files-for-an-ipo-reveals-increase-in-revenue-and-profitability/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2025-07-01",
+      "snippet": null,
+      "supports_claim": "S-1 제출 사실과 주요 수치의 독립 보도. 회사가 낸 숫자를 옮긴 기사라 수치 자체의 교차검증은 아니고, 공시 존재와 날짜의 확인으로만 쓴다."
+    }
+  ]
+}

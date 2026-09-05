@@ -1,0 +1,76 @@
+{
+  "slug": "slack-bottom-up-conversion",
+  "brand_name": "Slack",
+  "market": "업무 협업 메신저",
+  "geo": "GLOBAL",
+  "business_model": "SAAS",
+  "buyer_type": "B2B",
+  "purchase_frequency": "CONTRACT",
+  "price_band": "ENTERPRISE",
+  "bottleneck": "CONVERSION",
+  "outcome_status": "active",
+  "period_start": "2014-01-01",
+  "period_end": "2019-01-31",
+  "summary": "무료 팀을 유료 계약으로 바꾸는 전환 병목을, 영업이 위에서 파는 대신 팀이 아래에서 쓰다가 한계에 부딪히게 만들어 풀었다. 무료 플랜의 제약(메시지 1만 건 열람 제한)이 팀 규모가 커질수록 저절로 압력이 되고, 그 압력이 좌석 확장으로 이어져 순매출유지율 143%가 나왔다. 노션과 같은 CONVERSION 병목이지만 노션이 템플릿이라는 진입 콘텐츠로 풀었다면 슬랙은 제품 안의 한계선으로 풀었다. 다만 상장 시점까지도 손실은 계속됐다.",
+  "tags": ["SaaS", "PLG", "프리미엄", "좌석확장", "바텀업"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "PRICING",
+      "claim": "무료 플랜을 기능 체험판이 아니라 '팀이 커지면 반드시 걸리는 한계선'으로 설계했다. 결제 결정을 구매팀이 아니라 이미 쓰고 있는 팀이 내리게 만든 구조이고, 결과는 계약 이후의 좌석·플랜 확장으로 나타났다 — 순매출유지율 143%.",
+      "outcome_direction": "positive",
+      "metric_name": "순매출유지율 (NDR)",
+      "metric_before": 171,
+      "metric_after": 143,
+      "metric_unit": "%",
+      "observed_period_start": "2017-01-31",
+      "observed_period_end": "2019-01-31"
+    },
+    {
+      "lever": "PACKAGING",
+      "claim": "아래에서 들어온 팀 계정을 대형 계약으로 끌어올리는 것이 매출의 축이 됐다. 연 10만 달러 이상 지출 고객 575곳이 FY2019 매출의 약 40%를 차지했다. 다만 전환이 매출을 키우는 동안에도 손실은 줄지 않았다 — 매출이 3.8배 되는 사이 순손실은 거의 그대로였다.",
+      "outcome_direction": "mixed",
+      "metric_name": "연간 매출",
+      "metric_before": 105.2,
+      "metric_after": 400.6,
+      "metric_unit": "백만달러",
+      "observed_period_start": "2017-01-31",
+      "observed_period_end": "2019-01-31"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1764925/000162828019004786/slacks-1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2019-04-26",
+      "snippet": null,
+      "supports_claim": "2019-01-31 기준 순매출유지율 143%와 3년 추이 171% → 152% → 143%. 무료 플랜의 메시지 1만 건 열람 제한과 바텀업 도입 구조 서술. EDGAR 접수일 2019-04-26 을 직접 확인했다. 무료→유료 전환율 자체는 S-1 에 없다 — 미공시이지 0 이 아니다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1764925/000162828019004786/slacks-1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2019-04-26",
+      "snippet": null,
+      "supports_claim": "연 10만 달러 이상 고객 575곳 = FY2019 매출 약 40%. 매출 105.2 → 220.5 → 400.6백만 달러, 순손실 146.9 → 140.1 → 138.9백만 달러."
+    },
+    {
+      "move": 0,
+      "url": "https://techcrunch.com/2019/04/26/slack-files-to-go-public/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2019-04-26",
+      "snippet": null,
+      "supports_claim": "S-1 공개 사실과 주요 수치의 독립 보도. 회사 숫자를 옮긴 기사라 수치의 교차검증이 아니라 공시 존재·날짜의 확인으로만 쓴다."
+    }
+  ]
+}

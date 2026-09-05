@@ -1,0 +1,98 @@
+{
+  "slug": "warby-parker-home-try-on",
+  "brand_name": "Warby Parker",
+  "market": "안경 · 아이웨어",
+  "geo": "US",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "OCCASIONAL",
+  "price_band": "MID",
+  "bottleneck": "TRUST",
+  "outcome_status": "active",
+  "period_start": "2010-01-01",
+  "period_end": "2026-06-30",
+  "summary": "'안경은 써 보지 않으면 못 산다'는 신뢰 병목을 무료 홈 트라이온(프레임 5개를 5일간 집에서)으로 풀어 온라인 안경 판매를 성립시켰다. 이 케이스의 값은 성공담이 아니라 그 장치를 15년 만에 스스로 폐기했다는 데 있다. 매장이 298곳까지 깔리자 신뢰를 푸는 값이 배송에서 매장으로 옮겨 갔고, 회사는 자기 상징을 끄면서 재고평가손 245.6만 달러를 인식했다. 병목을 푸는 장치에는 유효기간이 있다.",
+  "tags": ["D2C", "홈트라이온", "옴니채널", "신뢰장치", "장치폐기"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "OFFER",
+      "claim": "구매 전에 실물을 만져 보는 비용을 회사가 떠안았다 — 프레임 5개를 5일간 무료 배송·반송. 신뢰를 확인하는 시점을 결제 이후가 아니라 이전으로 옮긴 것이고, S-1 은 이 프로그램을 '전환율이 높아 스스로 비용을 회수하는 바이럴 인지 프로그램'으로 설명한다.",
+      "outcome_direction": "positive",
+      "metric_name": "재구매 고객 비중",
+      "metric_before": 38,
+      "metric_after": 42,
+      "metric_unit": "%",
+      "observed_period_start": "2019-01-01",
+      "observed_period_end": "2020-12-31"
+    },
+    {
+      "lever": "CHANNEL",
+      "claim": "매장이 298곳까지 깔리자 홈 트라이온을 2025년 말로 종료했다. 근거는 '최근 이용자 대부분이 매장에서 30분 거리에 산다'였다. 같은 병목(신뢰)을 더 싼 장치로 옮겨 탄 것이지만 대가가 있었다 — 종료 발표 이후 1년간 활성고객 증가율이 절반 아래로 떨어졌다.",
+      "outcome_direction": "mixed",
+      "metric_name": "활성고객 증가율 (전년 동기 대비, 최근 12개월 활성 기준)",
+      "metric_before": 9.0,
+      "metric_after": 4.1,
+      "metric_unit": "%",
+      "observed_period_start": "2025-06-30",
+      "observed_period_end": "2026-06-30"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1504776/000162828021017546/warbyparkerincs-1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2021-08-24",
+      "snippet": null,
+      "supports_claim": "홈 트라이온의 구조(프레임 5개·5일·무료)와 재구매 고객 비중 2019년 38% → 2020년 42%. 상장 신고서라 자기보고이지만 허위기재에 법적 책임이 따른다. EDGAR 접수일 2021-08-24 를 직접 확인했다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.earnestanalytics.com/insights/eyeing-warby-parkers-s-1",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": true,
+      "is_regulatory_filing": false,
+      "published_at": null,
+      "snippet": null,
+      "supports_claim": "카드 거래 패널로 본 신규/재구매 비중 추이가 S-1 방향과 일치. 표본 기반 추정이라 is_estimate=true 로 잡았고, 게시일은 확인하지 못했다 — '게시일 없음'이 아니라 확인 실패다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1504776/000150477625000024/warbyparkerincearningsrele.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2025-08-07",
+      "snippet": "one-time inventory write-downs of $2,456 thousand primarily related to the decision to sunset our Home Try-On program",
+      "supports_claim": "종료 결정과 재고평가손 245.6만 달러, 그리고 직전 시점 활성고객 2.60백만명·증가율 9.0%. 8-K 원문을 직접 읽었다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1504776/000150477626000015/warbyparkerincearningsrele.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2026-08-06",
+      "snippet": null,
+      "supports_claim": "종료 1년 뒤 활성고객 2.71백만명·증가율 4.1%, 객단가 336달러(+6.6%), 매장 352곳. 여러 2차 매체가 '이커머스 매출 -0.3%'를 이 분기 수치로 쓰는데 8-K 본문에는 채널별 분해가 없어 이 초안에 넣지 않았다 (§7.1)."
+    },
+    {
+      "move": 1,
+      "url": "https://www.retaildive.com/news/warby-parker-ends-home-try-on-program-focuses-stores-digital-q2/757070/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2025-08-08",
+      "snippet": null,
+      "supports_claim": "'최근 홈 트라이온 이용자 대부분이 매장에서 30분 거리'라는 종료 근거. 공시 본문이 아니라 실적발표 콜 발언을 옮긴 독립 보도다."
+    }
+  ]
+}

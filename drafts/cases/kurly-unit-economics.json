@@ -1,0 +1,82 @@
+{
+  "slug": "kurly-unit-economics",
+  "brand_name": "컬리 (마켓컬리)",
+  "market": "신선식품 새벽배송 이커머스",
+  "geo": "KR",
+  "business_model": "MARKETPLACE_SELLER",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "MID",
+  "bottleneck": "UNIT_ECONOMICS",
+  "outcome_status": "active",
+  "period_start": "2021-01-01",
+  "period_end": "2024-12-31",
+  "summary": "새벽배송은 주문 1건마다 콜드체인·물류 고정비가 붙어서 매출이 늘수록 손실도 같이 커지는 구조였다. 컬리는 성장률을 낮추고 물류 효율·수익성 위주로 방향을 틀어 영업손실을 2,334억(2022)에서 183억(2024)까지 줄였고 창사 이래 첫 연간 조정 EBITDA 흑자를 냈다. 다만 영업이익은 여전히 적자다 — 캐스퍼와 같은 UNIT_ECONOMICS 병목을 광고비가 아니라 물류 원가 쪽에서 만난 사례다.",
+  "tags": [
+    "새벽배송",
+    "콜드체인",
+    "물류원가",
+    "수익성전환",
+    "이커머스"
+  ],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "OPERATIONS",
+      "claim": "외형 성장 속도를 낮추고 물류센터 가동 효율·객단가·판관비 쪽으로 축을 옮겼다. 매출 증가율은 한 자릿수(+6%)로 내려앉았지만 영업손실이 3년 만에 2,334억 원에서 183억 원으로 줄었다.",
+      "outcome_direction": "positive",
+      "metric_name": "연결 영업손실",
+      "metric_before": -2334,
+      "metric_after": -183,
+      "metric_unit": "억원",
+      "observed_period_start": "2022-01-01",
+      "observed_period_end": "2024-12-31"
+    },
+    {
+      "lever": "OPERATIONS",
+      "claim": "2024년에 창사 이래 첫 연간 조정 EBITDA 흑자(137억 원)를 냈다. 다만 조정 EBITDA 흑자와 영업이익 흑자는 다르다 — 영업이익은 여전히 적자이고, 이 구분을 지우면 사례를 잘못 읽게 된다.",
+      "outcome_direction": "mixed",
+      "metric_name": "연간 조정 EBITDA",
+      "metric_before": -1077,
+      "metric_after": 137,
+      "metric_unit": "억원",
+      "observed_period_start": "2023-01-01",
+      "observed_period_end": "2024-12-31"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.yna.co.kr/view/AKR20250305064700030",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": true,
+      "is_regulatory_filing": false,
+      "published_at": "2025-03-05",
+      "snippet": null,
+      "supports_claim": "2024년 매출 2조1,956억 원(+6%), 영업손실 183억 원, 조정 EBITDA 137억 원, 거래액 3조1,148억 원(+12%). 회사가 실적 발표에서 낸 잠정치를 매체가 옮긴 것이라 매체는 2차이지만 내용은 자기보고이고, 감사 전 잠정치라 is_estimate=true 로 잡았다."
+    },
+    {
+      "move": 0,
+      "url": "https://dart.fss.or.kr/dsab007/main.do",
+      "source_tier": "tertiary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": null,
+      "snippet": null,
+      "supports_claim": "확인 실패 항목이다. DART 공시 검색이 JS/POST 기반이라 컬리 감사보고서 원문을 열지 못했고 접수일도 못 얻었다. '공시가 없다'가 아니라 '대조하지 못했다'이며, 원문을 못 봤으므로 is_regulatory_filing 을 false 로 둔다 — true 로 두면 등급 산식이 이 행 하나로 A 를 줘 버린다. 승인 전 사람이 DART 에서 원문을 확인해야 한다 (§7.1)."
+    },
+    {
+      "move": 1,
+      "url": "https://www.mk.co.kr/news/business/11258033",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": true,
+      "is_regulatory_filing": false,
+      "published_at": "2025-03-05",
+      "snippet": null,
+      "supports_claim": "첫 연간 조정 EBITDA 흑자 전환과 '영업이익은 여전히 적자'라는 구분. 같은 실적 발표를 다룬 다른 매체이지만 출처가 같은 발표라 독립 카운트로 세지 않는다."
+    }
+  ]
+}

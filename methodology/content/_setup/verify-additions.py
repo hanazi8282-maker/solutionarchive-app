@@ -94,9 +94,29 @@ def check_paths():
             if not os.path.exists(target):
                 FAIL.append(f"[PATH] {f}: 깨진 참조 `{ref}` → {target} 없음")
 
+# ── C. 지문 누락 검사 ───────────────────────────────────────────
+def check_fingerprint():
+    """게이트: 통과 인데 지문이 비어 있으면 = 판정을 안 한 것"""
+    for f in glob.glob(f"{ROOT}/*/04-decisions.md") + [f"{ROOT}/cross-decisions.md"]:
+        if not os.path.exists(f):
+            continue
+        s = open(f, encoding="utf-8").read()
+        # 템플릿(```로 감싼 블록)은 제외하고 실제 엔트리만 본다
+        body = re.sub(r"```.*?```", "", s, flags=re.S)
+        for m in re.finditer(r"^### (LOG-\S+).*?(?=^### |\Z)", body, flags=re.M | re.S):
+            entry, code = m.group(0), m.group(1)
+            if re.search(r"게이트\s*[:：].*통과", entry):
+                fp = re.search(r"지문\s*[:：]\s*(.*)", entry)
+                val = fp.group(1).strip() if fp else ""
+                # 무내용 표기도 실패
+                if not val or val in {"—", "-", "확인함", "문제 없음", "적절함", "N/A"}:
+                    FAIL.append(f"[FP] {f}: {code} — 게이트 통과인데 지문이 비었음 "
+                                f"(판정을 안 했거나 무내용 표기)")
+
 if __name__ == "__main__":
     check_namespace()
     check_paths()
+    check_fingerprint()
     if FAIL:
         print("\n".join(FAIL)); print(f"\n실패 {len(FAIL)}건"); sys.exit(1)
     print("네임스페이스·경로 검사 통과 ✅"); sys.exit(0)

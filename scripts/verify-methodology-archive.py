@@ -14,9 +14,10 @@ verify-solfa-archive.py 는 평면 레이아웃 전용이라 이 스크립트가
   6. C-01~C-12 참조가 cross-decisions.md 에 정의되어 있는가
   7. 코드 네임스페이스 규약을 지키는가 (게이트 G- / 규칙 R-·P- 제로패딩 / 로그 3~4글자 접두어)
   8. 백틱으로 적힌 `*.md` 상대경로 참조가 실제로 존재하는가
+  9. `게이트: 통과` 인 판정 로그 엔트리에 지문(Fingerprint)이 채워져 있는가
 
-7·8 은 _setup/verify-additions.py 에 따로 있던 검사를 옮겨 온 것이다.
-§n-m 댕글링 검사(4번)가 잡지 못하는 두 사고 유형을 덮는다.
+7·8·9 는 _setup/verify-additions.py 에 따로 있던 검사를 옮겨 온 것이다.
+§n-m 댕글링 검사(4번)가 잡지 못하는 세 사고 유형을 덮는다.
 
 사용: py scripts/verify-methodology-archive.py
 종료코드 0 = 통과, 1 = 실패
@@ -76,6 +77,14 @@ CODE_DEFS = [
 ]
 # 아직 정의되지 않았지만 "승격 예정"으로 본문에 언급되는 것
 CODE_DEF_EXEMPT = {"R-15", "P-15", "C-15"}
+
+# 지문(Fingerprint) 검사
+FP_ENTRY_RE = re.compile(r"^### (LOG-\S+).*?(?=^### |\Z)", re.MULTILINE | re.DOTALL)
+FP_TEMPLATE_CODE = "LOG-YYYYMMDD"
+# 로그 템플릿이 `- **지문** ★:` 형태라 볼드·별표를 건너뛰지 않으면 실제 엔트리에서
+# 필드를 못 찾고 전부 "비었음"으로 오탐한다.
+FP_FIELD_RE = re.compile(r"지문\s*\**\s*★?\s*\**\s*[:：]\s*(.*)")
+FP_EMPTY_VALUES = {"—", "-", "확인함", "문제 없음", "적절함", "N/A", "없음"}
 
 HEADING_RE = re.compile(r"^###\s+(\d+-\d+)\.\s*(.*)$", re.MULTILINE)
 XREF_RE = re.compile(r"§(\d+-\d+)")
@@ -281,6 +290,40 @@ def check_paths():
     print(f"    (제외: 디렉터리 {list(SKIP_DIRS)}, 파일 {sorted(SKIP_FILES)})")
 
 
+def check_fingerprint():
+    """`게이트: 통과` 인데 지문이 비면 = 판정한 게 아니라 적기만 한 것."""
+    targets = [corpus_dir(n) / "04-decisions.md" for n in CORPORA]
+    targets.append(BASE / "cross-decisions.md")
+    entries = 0
+    empty = 0
+    for path in targets:
+        if not path.exists():
+            continue
+        rel = path.relative_to(BASE).as_posix()
+        # ``` 로 감싼 블록은 작성용 템플릿이다. 실제 엔트리만 본다.
+        body = re.sub(r"```.*?```", "", path.read_text(encoding="utf-8"), flags=re.S)
+        for m in FP_ENTRY_RE.finditer(body):
+            entry, code = m.group(0), m.group(1)
+            if code.startswith(FP_TEMPLATE_CODE):   # 템플릿 자체는 엔트리가 아니다
+                continue
+            entries += 1
+            if not re.search(r"게이트\s*[:：].*통과", entry):
+                continue
+            fp = FP_FIELD_RE.search(entry)
+            val = fp.group(1).strip() if fp else ""
+            if not val or val in FP_EMPTY_VALUES:
+                empty += 1
+                fail(f"[FP] {rel}: {code} — 게이트 통과인데 지문이 비었다 "
+                     f"(판정을 안 했거나 무내용 표기)")
+    print(f"    판정 로그 엔트리 {entries} 개, 지문 미기입 {empty} 개")
+    if entries == 0:
+        # ★ 0건 통과와 "검사할 게 없어서 통과"는 다른 사건이다. 구분해서 남긴다.
+        notes.append(
+            "판정 로그 엔트리가 0건이라 지문 검사가 아무것도 검증하지 못했다 "
+            "(템플릿만 있음). 첫 루프 회전 전까지는 이 검사를 근거로 쓰지 마라."
+        )
+
+
 def main():
     print(f"대상: {BASE}\n")
 
@@ -354,6 +397,9 @@ def main():
 
     print("\n[8] 백틱 .md 경로 참조 실존")
     check_paths()
+
+    print("\n[9] 판정 로그 지문(Fingerprint)")
+    check_fingerprint()
 
     print("\n" + "=" * 50)
     for note in notes:

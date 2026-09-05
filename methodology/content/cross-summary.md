@@ -2,7 +2,6 @@
 
 > **성격**: 두 방법론이 **같은 질문에 어떤 답을 하는가**를 충돌시킨 문서. append-only.
 > **성격**: 프로젝트 지식 주입용 요약본. 상세 근거는 원본 `cross-decisions.md` 참조
-> **위치**: `methodology/content/cross-summary.md`
 > **참조**: `solfa/04-decisions.md`(R-01~R-14) / `pdp/04-decisions.md`(P-01~P-14)
 
 ---
@@ -104,4 +103,3 @@ cross-decisions.md       C-01 ~ C-nn
 ---
 
 > 각 C-xx의 상세 근거·원문 인용·조건 초안은 **`cross-decisions.md` 원본**에 있다.
-> 판정이 애매하거나 조건을 확정해야 할 때는 원본을 대화에 첨부한다.

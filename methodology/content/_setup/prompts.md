@@ -70,7 +70,7 @@ solutionarchive 리포에서 작업해줘. 방법론 아카이브에 두 번째 
 6. 커밋:
    docs(methodology): 프드프 릴스 방법론 아카이브 + 교차 판정 체계
 
-   - pdp/: 본문 §0~§12 소분류 95개, 게이트 P-0~P-13, 규칙 P-01~P-14 SEED
+   - pdp/: 본문 §0~§12 소분류 95개, 게이트 G-0~G-13, 규칙 P-01~P-14 SEED
    - cross-decisions.md: 솔파×프드프 교차 판정 C-01~C-12
      (불변원리 3 / 조건부규칙 5 / 미해결충돌 3 / 고유자산 1)
    - 00-gate.md: 통합 게이트 (공통관문 → 조건분기 → 매체별 → 충돌로깅)
@@ -130,9 +130,9 @@ description: >
   - 결정한 이유를 한 줄로 명시한다
 
 **Ⅲ. 매체별 게이트** — 한쪽만 돈다.
-  - 프드프면 `references/pdp-gate.md` P-0~P-13
+  - 프드프면 `references/pdp-gate.md` G-0~G-13
   - 솔파면 `references/solfa-gate.md` G-0~G-10
-  - ★ Ⅰ에서 이미 본 항목은 건너뛴다 (pdp P-3·P-7 / solfa G-2·G-4)
+  - ★ Ⅰ에서 이미 본 항목은 건너뛴다 (pdp G-3·G-7 / solfa G-2·G-4)
 
 **Ⅳ. 충돌 3건** — X-1(감·재능) / X-2(알고리즘) / X-3(진위)를 만나면
   판정하고 **반드시 기록**한다. 이게 이 아카이브의 유일한 학습 입력이다.
@@ -308,7 +308,7 @@ methodology/content/00-gate.md 로 이 초안을 검증하고 첫 루프를 돌�
 - D+7, D+30 리마인더 날짜를 계산해서 알려줘.
 
 ## 커밋
-`log(decisions): D-YYYYMMDD-nn 판정 기록 — <글 식별자>`
+`log(decisions): LOG-YYYYMMDD-nn 판정 기록 — <글 식별자>`
 ```
 
 ---

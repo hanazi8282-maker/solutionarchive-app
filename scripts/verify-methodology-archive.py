@@ -62,7 +62,13 @@ LOG_PREFIXES = ["LOG-", "UPD-", "NEW-", "XUP-"]
 # _setup/ 은 프롬프트 원문이라 본문에 든 경로가 전부 "예시"다. 빼지 않으면
 # 경로 검사에서만 오탐 19건, 로그 접두어 검사에서 1건이 더 나오고,
 # 그러면 사람이 검증기 출력을 통째로 무시하게 된다.
-SKIP_DIRS = ("_setup",)
+#
+# eval/results/ 는 평가 러너가 만든 산출물이다. 안에 든 백틱 경로는 우리가 쓴
+# 참조가 아니라 **모델 응답을 그대로 옮긴 인용**이라, 검사 8 이 그걸 실제 파일로
+# 알고 찾다가 깨진 참조로 잡는다. 실제로 그렇게 났다 (`pdp-excerpts.md` 등 2건).
+# 인용을 고쳐서 통과시키면 증거가 훼손되고, 놔두면 오탐이 매 실행마다 늘어난다.
+# 정본 무결성 대상이 아니므로 뺀다 — manifest-methodology.py 도 같은 이유로 뺀다.
+SKIP_DIRS = ("_setup", "eval/results")
 SKIP_FILES = {
     "insight-guide.md",  # 아카이브 밖 문서
     "SKILL.md",          # .claude/skills 쪽 문서

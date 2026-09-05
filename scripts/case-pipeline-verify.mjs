@@ -1,0 +1,220 @@
+#!/usr/bin/env node
+// 20260906000001(case_studies / case_moves / case_evidence) 적용 확인.
+//
+// 사용:
+//   node --env-file=.env.local scripts/case-pipeline-verify.mjs
+//   node --env-file=.env.local scripts/case-pipeline-verify.mjs --probe
+//
+// 기본은 읽기 전용. `--probe` 는 CHECK 제약이 실제로 **막는지** 확인하려고
+// INSERT 를 시도하고 즉시 지운다. PostgREST 로는 제약을 읽을 수 없어서,
+// "막아야 할 것을 넣어 보고 거절당하는지" 말고는 확인할 방법이 없다.
+//
+// ⚠️ head:true 를 쓰지 않는다. 없는 테이블에도 에러 없이 204 를 돌려준다(실측).
+//
+// §7.1 — 세 상태를 구분한다: ✅ 양성 / ❌ 음성 / ⚠️ 확인 불가.
+//    확인 불가가 하나라도 있으면 exit 2. 그걸 "적용됨"으로 접지 않는다.
+
+import { createClient } from '../lib/supabase/server.ts'
+
+const PROBE = process.argv.includes('--probe')
+const PROBE_SLUG = '__probe-case-pipeline__'
+
+const supabase = await createClient()
+if (!supabase) {
+  console.error('⚠️ 확인 불가 — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 미설정')
+  console.error('   "적용 안 됐다"가 아니라 "확인을 못 했다"다.')
+  process.exit(2)
+}
+
+let positive = 0
+let negative = 0
+let unknown = 0
+
+class Verdict extends Error {
+  constructor(kind, msg) { super(msg); this.kind = kind }
+}
+const absent = (m) => new Verdict('absent', m)
+const unsure = (m) => new Verdict('unknown', m)
+
+const check = async (label, fn) => {
+  try {
+    const msg = await fn()
+    positive++
+    console.log(`  ✅ ${label}${msg ? ` — ${msg}` : ''}`)
+  } catch (e) {
+    if (e instanceof Verdict && e.kind === 'absent') {
+      negative++
+      console.log(`  ❌ ${label} — 확인해보니 없다: ${e.message}`)
+    } else {
+      unknown++
+      console.log(`  ⚠️ ${label} — 확인 불가: ${e.message}`)
+    }
+  }
+}
+
+const classify = (error) => {
+  const code = error.code ?? ''
+  const msg = error.message || '(메시지 없음)'
+  if (code === '42P01' || code === '42703' || code === 'PGRST205' || /does not exist/i.test(msg)) {
+    return absent(`${code} ${msg}`)
+  }
+  return unsure(`${code} ${msg}`)
+}
+
+const columns = (table, cols) => async () => {
+  const { error, count, status } = await supabase
+    .from(table).select(cols, { count: 'exact' }).limit(1)
+  if (error) throw classify(error)
+  if (status !== 200 && status !== 206) throw unsure(`예상 밖 응답 status=${status}`)
+  return `${count ?? 0}행`
+}
+
+/** 넣어 보고 CHECK 로 막히는지 본다. 안 막히면 넣힌 행을 지우고 음성으로 올린다. */
+const rejects = (table, row, cleanup) => async () => {
+  const { error } = await supabase.from(table).insert(row)
+  if (!error) {
+    if (cleanup) await cleanup()
+    throw absent('들어갔다 — 제약이 안 걸려 있다')
+  }
+  if (!/check constraint|violates unique/i.test(error.message)) throw classify(error)
+  return `막았다 (${error.code})`
+}
+
+console.log('# 케이스스터디 파이프라인 마이그레이션 적용 확인\n')
+console.log(`모드: ${PROBE ? '읽기 + 제약 프로브(INSERT 후 삭제)' : '읽기 전용'}\n`)
+
+console.log('## 20260906000001 — 3테이블\n')
+
+await check('case_studies 주요 컬럼', columns('case_studies',
+  'id, slug, brand_name, business_model, buyer_type, purchase_frequency, price_band, '
+  + 'bottleneck, outcome_status, period_start, period_end, summary, tags, review_status, '
+  + 'researched_by, reviewed_by, reviewed_at, created_at'))
+
+await check('case_moves 주요 컬럼', columns('case_moves',
+  'id, case_study_id, lever, claim, outcome_direction, metric_name, metric_before, '
+  + 'metric_after, metric_unit, observed_period_start, observed_period_end, '
+  + 'evidence_grade, review_status, created_at'))
+
+await check('case_evidence 주요 컬럼', columns('case_evidence',
+  'id, case_study_id, case_move_id, url, domain, source_tier, is_self_reported, is_estimate, '
+  + 'is_regulatory_filing, '
+  + 'published_at, retrieved_at, snippet, supports_claim, created_at'))
+
+// ★ 있으면 안 되는 것도 본다. 설계에서 명시적으로 뺀 컬럼이다
+//   (valid_until — 채울 근거가 없어서 전부 NULL 로 남고, NULL 이 "유효기간
+//   없음"으로 읽힌다. profile_clicks 가 실제로 그 꼴이었다).
+await check('case_moves.valid_until 이 없는가 (설계상 없어야 정상)', async () => {
+  const { error } = await supabase.from('case_moves').select('valid_until').limit(1)
+  if (!error) throw absent('valid_until 이 있다 — 설계와 다르다. 누가 추가했는지 확인하라')
+  // ★ 테이블 자체가 없으면 이 검사는 아무것도 확인하지 못한다. "컬럼이 없다"로
+  //   찍으면 미적용 상태에서 초록불이 뜬다 — 공허하게 참인 검사다 (§7.1).
+  //   42703(컬럼 없음)일 때만 양성이고, 42P01/PGRST205(테이블 없음)는 확인 불가다.
+  const code = error.code ?? ''
+  if (code === '42P01' || code === 'PGRST205') {
+    throw unsure(`case_moves 테이블 자체가 없어 컬럼 유무를 판정할 수 없다 (${code})`)
+  }
+  if (code !== '42703') throw classify(error)
+  return '없다 (observed_period_start/end 로 대체)'
+})
+
+if (PROBE) {
+  console.log('\n## 제약 프로브 (양성 = 정상 INSERT / 음성 = 거절돼야 정상)\n')
+
+  const cleanup = async () => {
+    await supabase.from('case_studies').delete().like('slug', '__probe-case-pipeline%')
+  }
+  await cleanup() // 이전 실행이 중간에 죽었을 수 있다
+
+  let studyId = null
+
+  await check('정상 INSERT 가 되고 기본값이 채워지는가', async () => {
+    const { data, error } = await supabase.from('case_studies')
+      .insert({ slug: PROBE_SLUG, brand_name: '검증용', bottleneck: 'TRUST', business_model: 'D2C' })
+      .select('id, outcome_status, review_status, tags')
+    if (error) throw classify(error)
+    const row = data[0]
+    studyId = row.id
+    // ★ 기본값이 'active' 면 "확인 안 함"이 "정상 영업 중"으로 접힌다.
+    if (row.outcome_status !== 'unknown') {
+      throw absent(`outcome_status 기본값이 '${row.outcome_status}' 다 — 'unknown' 이어야 한다`)
+    }
+    if (row.review_status !== 'draft') {
+      throw absent(`review_status 기본값이 '${row.review_status}' 다 — 'draft' 여야 한다`)
+    }
+    return `unknown / draft / tags=${JSON.stringify(row.tags)}`
+  })
+
+  if (!studyId) {
+    unknown++
+    console.log('  ⚠️ 이후 프로브 — 확인 불가: 기준 케이스를 못 만들어 제약을 시험할 수 없다')
+    console.log('     "제약이 없다"가 아니다.')
+  } else {
+    await check('어휘 밖 bottleneck 을 막는가', rejects('case_studies',
+      { slug: '__probe-case-pipeline-2__', brand_name: 'x', bottleneck: 'VIBES' },
+      async () => { await supabase.from('case_studies').delete().eq('slug', '__probe-case-pipeline-2__') }))
+
+    await check('slug 중복을 막는가', rejects('case_studies',
+      { slug: PROBE_SLUG, brand_name: '중복' }, null))
+
+    await check('300자 넘는 스니펫을 막는가', rejects('case_evidence',
+      { case_study_id: studyId, url: 'https://example.com', snippet: '가'.repeat(301) }, null))
+
+    await check('이름·단위 없는 수치를 막는가', rejects('case_moves',
+      { case_study_id: studyId, lever: 'PRICING', claim: '가격 올렸더니 잘 됨', metric_after: 42 }, null))
+
+    await check('관측 기간 역전을 막는가', rejects('case_moves',
+      { case_study_id: studyId, lever: 'PRICING', claim: 'x',
+        observed_period_start: '2026-01-01', observed_period_end: '2025-01-01' }, null))
+
+    await check('어휘 밖 evidence_grade 를 막는가', rejects('case_moves',
+      { case_study_id: studyId, lever: 'PRICING', claim: 'x', evidence_grade: 'S' }, null))
+
+    await check('2차로 표시된 법정 공시를 막는가', rejects('case_evidence',
+      { case_study_id: studyId, url: 'https://www.sec.gov/probe',
+        source_tier: 'secondary', is_regulatory_filing: true }, null))
+
+    await check('CASCADE 로 자식이 같이 지워지는가', async () => {
+      const { error: mErr, data: mRows } = await supabase.from('case_moves')
+        .insert({ case_study_id: studyId, lever: 'CONTENT', claim: '프로브' }).select('id')
+      if (mErr) throw classify(mErr)
+      const moveId = mRows[0].id
+      const { error: eErr } = await supabase.from('case_evidence')
+        .insert({ case_study_id: studyId, case_move_id: moveId, url: 'https://example.com/probe' })
+      if (eErr) throw classify(eErr)
+
+      await cleanup()
+
+      const { count: mLeft, error: e1 } = await supabase.from('case_moves')
+        .select('id', { count: 'exact' }).eq('id', moveId).limit(1)
+      if (e1) throw classify(e1)
+      const { count: eLeft, error: e2 } = await supabase.from('case_evidence')
+        .select('id', { count: 'exact' }).eq('case_move_id', moveId).limit(1)
+      if (e2) throw classify(e2)
+      if ((mLeft ?? 0) !== 0 || (eLeft ?? 0) !== 0) {
+        throw absent(`케이스를 지웠는데 무브 ${mLeft}행 / 근거 ${eLeft}행이 남았다 — CASCADE 가 없다`)
+      }
+      studyId = null
+      return '무브·근거가 같이 지워졌다'
+    })
+  }
+
+  await cleanup()
+  const { count: left } = await supabase.from('case_studies')
+    .select('id', { count: 'exact' }).like('slug', '__probe-case-pipeline%').limit(1)
+  if (left) {
+    unknown++
+    console.log(`  ⚠️ 프로브 행 ${left}건이 남아 있다 — slug LIKE '__probe-case-pipeline%' 를 직접 지워라`)
+  }
+}
+
+console.log(`\n---\n양성 ${positive} / 음성 ${negative} / 확인 불가 ${unknown}`)
+
+if (unknown) {
+  console.log('\n⚠️ 확인 불가가 있다. 이걸 "적용됨"으로 읽지 마라 (CLAUDE.md §7.1).')
+  process.exit(2)
+}
+if (negative) {
+  console.log('\n❌ 미적용/불일치 항목이 있다. Supabase 대시보드 SQL Editor 에서 실행하라 (§12-5).')
+  process.exit(1)
+}
+console.log('\n✅ 전부 적용됐다. case-review.mjs commit 을 써도 된다.')

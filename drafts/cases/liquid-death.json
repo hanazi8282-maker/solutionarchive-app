@@ -1,0 +1,73 @@
+{
+  "slug": "liquid-death",
+  "brand_name": "Liquid Death",
+  "market": "생수 · 무알콜 음료",
+  "geo": "US",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "AWARENESS",
+  "outcome_status": "active",
+  "period_start": "2019-01-01",
+  "period_end": "2024-12-31",
+  "summary": "제품 차별화가 사실상 불가능한 카테고리(생수)에서 제품이 아니라 포장과 세계관으로 차별화했다. 물을 맥주·에너지드링크의 문법(캔·헤비메탈·유머)으로 옮겨서 '건강한 물'이 아니라 '술 대신 들 수 있는 것'의 자리를 잡았다.",
+  "tags": ["브랜딩", "코모디티탈출", "숏폼", "캔음료", "카테고리전환"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "POSITIONING",
+      "claim": "물을 '건강 음료'가 아니라 '술자리에서 들고 있어도 이상하지 않은 캔'으로 포지셔닝했다. 경쟁 상대를 에비앙이 아니라 맥주로 잡은 것이다. 첫 마케팅 영상 제작비는 1500달러였다.",
+      "outcome_direction": "positive",
+      "metric_name": "연매출",
+      "metric_before": 45,
+      "metric_after": 263,
+      "metric_unit": "백만달러",
+      "observed_period_start": "2021-01-01",
+      "observed_period_end": "2023-12-31"
+    },
+    {
+      "lever": "PACKAGING",
+      "claim": "2023년부터 아이스티 등 물 밖 SKU를 붙여 객단가·믹스를 올렸다. 브랜드 세계관을 먼저 세워 두면 카테고리를 넓힐 때 재설명이 필요 없다는 사례다.",
+      "outcome_direction": "positive",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": "2023-01-01",
+      "observed_period_end": null
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://sacra.com/c/liquid-death/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": true,
+      "published_at": null,
+      "snippet": "2021년 4500만 달러 → 2022년 1억 1000만 달러(+144%) → 2023년 2억 6300만 달러(+139%)로 추정.",
+      "supports_claim": "연매출 추이. ⚠️ 비상장사라 감사받은 숫자가 아니다. Sacra 추정치 — is_estimate=true."
+    },
+    {
+      "move": 0,
+      "url": "https://dot.la/liquid-death-raises-funding-2658386936.html",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "published_at": null,
+      "snippet": null,
+      "supports_claim": "2021년 4500만 달러 기준점의 출처(투자사 Science Inc. 공동창업자 발언). ⚠️ 여기서 언급된 2022년 1억 3000만 달러는 실적이 아니라 전망치인데, 여러 사례 글이 실적처럼 인용하고 있다. 이 초안에는 전망치를 쓰지 않았다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.foodbusinessnews.net/articles/22382-liquid-death-valued-at-700-million-in-latest-raise",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "published_at": null,
+      "snippet": null,
+      "supports_claim": "2022년 10월 7억 달러 밸류에이션 투자 유치 사실. 매출 수치 자체를 확인해 주지는 않는다."
+    }
+  ]
+}

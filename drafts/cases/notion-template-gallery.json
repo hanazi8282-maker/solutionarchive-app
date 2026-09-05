@@ -1,0 +1,83 @@
+{
+  "slug": "notion-template-gallery",
+  "brand_name": "Notion",
+  "market": "협업 · 문서 SaaS",
+  "geo": "US 본사 · 글로벌",
+  "business_model": "SAAS",
+  "buyer_type": "B2B2C",
+  "purchase_frequency": "CONTRACT",
+  "price_band": "LOW",
+  "bottleneck": "CONVERSION",
+  "outcome_status": "active",
+  "period_start": "2019-01-01",
+  "period_end": "2023-06-30",
+  "summary": "'무엇이든 할 수 있다'가 곧 '무엇부터 할지 모르겠다'가 되는 제품이었다. 기능을 더 넣는 대신 남이 만든 완성품(템플릿)을 첫 화면에 놓아 활성화 구간을 건너뛰게 했고, 그 템플릿을 회사가 아니라 사용자가 만들게 했다.",
+  "tags": ["PLG", "템플릿", "커뮤니티", "빈페이지문제", "UGC"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "PACKAGING",
+      "claim": "빈 워크스페이스(blank page problem)를 기능 개선이 아니라 '남이 이미 만들어 둔 결과물'로 우회했다. 템플릿 갤러리를 정식 제품 표면으로 올리고 제작자 프로필·카테고리를 붙였다.",
+      "outcome_direction": "positive",
+      "metric_name": "갤러리 등재 템플릿 수",
+      "metric_before": 600,
+      "metric_after": 5000,
+      "metric_unit": "개",
+      "observed_period_start": "2022-06-21",
+      "observed_period_end": "2023-06-21"
+    },
+    {
+      "lever": "COMMUNITY",
+      "claim": "템플릿 판매 수익을 회사가 가져가지 않고 제작자에게 전부 남겼다. 그 결과 앰배서더가 노션 위에서 자기 사업을 만들었고, 유통을 회사 밖 사람들이 대신했다.",
+      "outcome_direction": "positive",
+      "metric_name": "앰배서더 시범 프로그램 초기 지원자",
+      "metric_before": null,
+      "metric_after": 400,
+      "metric_unit": "명",
+      "observed_period_start": null,
+      "observed_period_end": null
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.notion.com/blog/new-template-gallery",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "published_at": "2023-06-21",
+      "snippet": "지난 1년간 템플릿이 5100만 회 복제됐고, 갤러리 템플릿은 600개에서 5000개 이상으로, 카테고리는 21개에서 250개 이상으로 늘었다.",
+      "supports_claim": "템플릿 수 600 → 5000개, 직전 1년 복제 5100만 회. ⚠️ 노션 자사 블로그다 — 자기보고."
+    },
+    {
+      "move": 0,
+      "url": "https://foundationinc.co/lab/notion-strategy",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "published_at": null,
+      "snippet": null,
+      "supports_claim": "커뮤니티·템플릿 중심 성장 서사. ⚠️ 마케팅 에이전시 해설글이라 수치의 독립 확인은 아니다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.daytona.io/dotfiles/building-a-global-community-at-notion",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "published_at": null,
+      "snippet": "'Notion Pros'라는 실험으로 시작했고, 노션으로 만든 랜딩 페이지에 곧바로 400건의 지원이 들어왔다.",
+      "supports_claim": "앰배서더 프로그램 초기 지원자 400명. ⚠️ 노션 커뮤니티 담당자 인터뷰라 primary 이면서 자기보고다."
+    },
+    {
+      "move": 1,
+      "url": "https://bettermode.com/blog/notion-community-led-growth",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "published_at": null,
+      "snippet": null,
+      "supports_claim": "앰배서더가 지역 커뮤니티를 운영하는 구조. ⚠️ 커뮤니티 SaaS 업체의 사례 마케팅 글이다."
+    }
+  ]
+}

@@ -30,6 +30,7 @@ _setup/prompt-G-loop.md        d04ada682bf34a985504ee646847236d  lines:262
 _setup/prompts.md              812a132a6bb277f8be5738b3ebbfb52b  lines:475
 cross-decisions.md             2f8e4d1d0099d581a80df4916d17435e  cross:12
 cross-summary.md               29b4c00e842fcc742dfff65d70660b47  lines:106
+eval/_scratch/q21-variant.md   e683930c0530628e01af6284e4accb4c  lines:45
 eval/answers.md                7848a3bc95d9d3d6dd7c6b5ac52bb49c  as:30
 eval/questions.md              fbcb1e860cd9a60b735b50f02faa4bb4  qs:30
 eval-set.md                    0c5f938c51a33d8e41916c809ea8771e  lines:165

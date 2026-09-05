@@ -63,6 +63,9 @@
 
 **예외통과일 때는 필수**: 떨어질 뻔했는데 통과시킨 근거가 지문이다.
 
+> ⚠️ **예측 포맷**: 자연어 예측은 자동 채점이 안 된다.
+> `../prediction-schema.md`의 구조화 포맷(metric/direction/baseline/threshold/horizon/because)을 쓴다.
+
 ### 1-2. 발행 후 — 성과 기입 (D+7 / D+30)
 
 같은 엔트리에 **추가 append**한다. 원 엔트리는 손대지 않는다.

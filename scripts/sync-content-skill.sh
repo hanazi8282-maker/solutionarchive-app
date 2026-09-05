@@ -8,6 +8,10 @@
 # 01-methodology.md 와 05-provenance.md 는 의도적으로 제외한다.
 # 01 은 각각 300KB 를 넘어 컨텍스트를 전부 먹는다. 필요하면 정본을 직접 연다.
 #
+# prediction-schema.md 는 반대로 반드시 넣는다. 스킬이 로그 엔트리에 예측을
+# 적으려면 포맷을 알아야 한다. 없으면 자연어 예측이 나가고 채점이 전량 보류된다.
+# ⛔ eval/answers.md 는 절대 넣지 않는다. 정답을 컨텍스트에 넣으면 평가가 죽는다.
+#
 # pre-commit hook 설치 (클론마다 1회):
 #   git config core.hooksPath .githooks
 set -euo pipefail
@@ -20,6 +24,7 @@ DST="$ROOT/.claude/skills/content-gate/references"
 MAP=(
   "00-gate.md=00-gate.md"
   "cross-decisions.md=cross-decisions.md"
+  "prediction-schema.md=prediction-schema.md"
   "solfa-gate.md=solfa/02-gate.md"
   "solfa-excerpts.md=solfa/03-excerpts.md"
   "solfa-decisions.md=solfa/04-decisions.md"

@@ -21,7 +21,7 @@
 _setup/eval-namheon-Q1-Q10.md  8d8deaa7d7af471ddb228bdb09a8ffd7  lines:23
 _setup/HANDOVER-LOG.md         963f1ef2f8c9637455bf1133bbaa9bcc  lines:233
 _setup/HANDOVER-SEED.md        95511954c1710713bb5bd126559a4c5b  lines:793
-_setup/infra-decisions.md      3cb5182e4d03182a7c223ebee880ec83  lines:283
+_setup/infra-decisions.md      4ffb7b78736132259156c97b3d56dbee  lines:293
 _setup/MASTER-PROMPT.md        16d4e358877fb254a2ea1dc2a353d294  lines:505
 _setup/project-setup-v2.md     7055b8b6ee0d03065a015995883be869  lines:216
 _setup/prompt-A-updated.md     7d377bef468d95f51152722938c82d2c  lines:144

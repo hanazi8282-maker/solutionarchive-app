@@ -7,6 +7,12 @@ export interface ThreadsMetrics {
   reposts: number
   quotes: number
   shares: number
+  /**
+   * 미디어 단위 클릭 수. 2026-09-05 실측으로 API 가 준다는 것을 확인했다.
+   * ⚠️ 계정 단위 지표인 `profile_clicks` 와 다른 값이다. 같은 칸에 넣지 마라.
+   * (`methodology/content/prediction-schema.md` §1 보조지표 / §7-1)
+   */
+  clicks: number
 }
 
 /**
@@ -33,7 +39,10 @@ export async function fetchInsights(
   // 여기서 바로 console 에 찍으면 매시 수십 줄이 쌓여 정작 볼 때 안 보인다.
   onUsage?: (usage: ThreadsUsage) => void,
 ): Promise<ThreadsMetrics> {
-  const metrics = ['views', 'likes', 'replies', 'reposts', 'quotes', 'shares']
+  // 이 배열이 곧 수집 범위다. 여기 없는 지표는 API 가 줘도 영영 안 들어온다.
+  // 실제로 clicks 가 그랬다 — 미디어 인사이트에 있는데 6개로 하드코딩돼 있어
+  // 한 번도 요청되지 않았다. 하드코딩된 이 목록은 가용성의 증거가 아니다.
+  const metrics = ['views', 'likes', 'replies', 'reposts', 'quotes', 'shares', 'clicks']
   const url = `${BASE}/${mediaId}/insights?metric=${metrics.join(',')}&access_token=${token}`
 
   const res = await fetch(url)
@@ -62,5 +71,6 @@ export async function fetchInsights(
     reposts: result.reposts ?? 0,
     quotes:  result.quotes  ?? 0,
     shares:  result.shares  ?? 0,
+    clicks:  result.clicks  ?? 0,
   }
 }

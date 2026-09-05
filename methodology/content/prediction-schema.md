@@ -43,31 +43,49 @@
 
 ## 1. 지표 정의
 
-### 1-1. 우선순위 (남헌 확정, 2026-09-04)
+### 1-1. 우선순위 (남헌 확정 2026-09-04 → **2026-09-05 재조정**)
 
 ```
-저장률 > 좋아요율 > 공유율 > 조회수
+좋아요율 > 공유율 > 답글율 > 조회수
 ```
+
+> **[2026-09-05 변경] `save_rate` 를 우선순위에서 뺐다.** Threads API 가
+> `saves` 를 주지 않는 것이 실호출로 확정됐다(§7-2). 원래 1순위 지표였고
+> 가중치 8이었다. 이 줄을 지우지 않는 이유는, 지우면 다음 사람이 "왜 저장률이
+> 없지"를 다시 조사하기 때문이다. **없어서 뺀 것이지 안 중요해서 뺀 게 아니다.**
+>
+> ⚠️ 이 문서 **아래쪽 예시(§3·§4·§6·§9)는 아직 `save_rate` 를 쓴다.** 예시는
+> 스키마 문법을 보여주려고 쓴 것이고 §6 지문은 평가 문항이 원문 실측에 묶여
+> 있어 손대지 않았다. **실제 예측을 쓸 때는 `save_rate` 를 `like_rate` 로
+> 읽어라.** 예시를 그대로 복사하면 전부 `보류`로 빠진다.
 
 **모두 비율(rate)로 본다.** 원시 카운트가 아니다.
 
 | 지표 | 계산식 | 가중치 | 근거 |
 |---|---|---|---|
-| **`save_rate`** | `saves / views` | **8** | 프드프 §1-3 — 릴스·피드형은 저장이 결정적 |
-| **`like_rate`** | `likes / views` | **4** | 즉각 반응. 노이즈 있으나 표본이 크다 |
-| **`share_rate`** | `(reposts + quotes) / views` | **2** | 솔파 §2-9 4번(공유 이유)의 실측치 |
+| **`like_rate`** | `likes / views` | **8** | 즉각 반응. 노이즈 있으나 표본이 크다 |
+| **`share_rate`** | `(reposts + quotes) / views` | **4** | 솔파 §2-9 4번(공유 이유)의 실측치 |
+| **`reply_rate`** | `replies / views` | **2** | 논란·질문형. 보조에서 승격됐다 |
 | **`views`** | 원시 카운트 | **1** | 도달. 단독으로는 판정 근거로 약함 |
+
+~~`save_rate` = `saves / views` (가중치 8)~~ — **API 미제공. 사용 금지.**
+쓰면 분자가 영원히 없어서 전부 `보류`로 빠진다.
 
 **왜 비율인가**: 조회수는 로그정규 분포에 가까워서 단일 건 비교가 거의 무의미하다. 비율로 바꾸면 **도달 편차가 상쇄**되고 콘텐츠 자체의 반응 강도만 남는다.
 
 **보조 지표** (예측에 쓸 수 있으나 우선순위 밖)
 
-| 지표 | 계산식 | 용도 |
-|---|---|---|
-| `reply_rate` | `replies / views` | 논란·질문형 콘텐츠 |
-| `profile_ctr` | `profile_visits / views` | 가치 사다리 다음 계단 진입 (프드프 §8-6) |
-| `nonfollower_ratio` | `nonfollower_views / views` | 솔파 §9-3 비구독자 90% 치환 |
-| `link_ctr` | `link_clicks / views` | 전환 목적 콘텐츠 |
+| 지표 | 계산식 | 용도 | 가용성 (2026-09-05 실호출) |
+|---|---|---|---|
+| `click_rate` | `clicks / views` | 전환 목적 콘텐츠. **유일하게 새로 쓸 수 있는 지표** | ✅ 미디어·계정 양쪽 |
+| ~~`profile_ctr`~~ | ~~`profile_visits / views`~~ | 가치 사다리 다음 계단 진입 (프드프 §8-6) | ❌ `profile_visits` 없음 |
+| ~~`nonfollower_ratio`~~ | ~~`nonfollower_views / views`~~ | 솔파 §9-3 비구독자 90% 치환 | ❌ `nonfollower_views` 없음 |
+| ~~`link_ctr`~~ | ~~`link_clicks / views`~~ | 전환 목적 콘텐츠 | ❌ `link_clicks` 없음. `clicks` 로 대체 |
+
+> **`profile_visits` 는 저장 프록시로 쓸 수 없다.** §7-2 의 프록시 제안은
+> "`profile_visits` 가 있으면"이 전제였는데, 실호출 결과 그 필드 자체가 없다.
+> 제안을 채택한 게 아니라 **닫았다**. `clicks` 는 프로필 방문이 아니라
+> 본문 링크·첨부 클릭이라 "나중에 다시 보겠다" 신호가 아니다. 프록시로 쓰지 마라.
 
 ⚠️ **분모가 0이면 판정 불가.** `views < 100`이면 자동 `보류` 처리한다(표본 부족).
 
@@ -81,7 +99,14 @@ metrics collector의 스냅샷 버킷을 그대로 쓴다.
 | `h24` | 발행 후 24시간 | **기본 판정 시점** |
 | `h168` | 발행 후 7일 | 최종 판정. 장기 저장·공유 반영 |
 
-**기본값 = `h168`.** 저장은 늦게 붙는다. 다만 빠른 피드백이 필요하면 `h24`로 예측할 수 있다.
+**기본값 = `h168`.** ~~저장은 늦게 붙는다.~~ 다만 빠른 피드백이 필요하면 `h24`로 예측할 수 있다.
+
+> **[2026-09-05] 기본값 `h168` 의 근거가 약해졌다.** "저장은 늦게 붙는다"가
+> 유일한 근거였는데 `saves` 자체가 없어졌다(§7-2). `like_rate` 는 저장보다
+> 훨씬 빨리 수렴하므로 `h24` 가 기본값이 되어야 할 수 있다.
+> **다만 지금 바꾸지 않는다** — 실측 없이 바꾸면 근거 없는 값이 근거 없는 값으로
+> 바뀔 뿐이다. h1/h24/h168 3버킷을 다 수집하고 있으니, 첫 10건이 쌓이면
+> `like_rate` 의 h24↔h168 편차를 재서 결정한다. **미결 과제.**
 
 ---
 
@@ -351,27 +376,83 @@ lower = (p + z²/2n − z·√(p(1−p)/n + z²/4n²)) / (1 + z²/n)
 | `replies` | Threads insights | ✅ |
 | `reposts` | Threads insights | ✅ |
 | `quotes` | Threads insights | ✅ |
-| `saves` | Threads insights | **⚠️ 확인 필요** |
-| `profile_visits` | Threads insights | 선택 |
-| `link_clicks` | Threads insights | 선택 |
-| `nonfollower_views` | Threads insights | 선택 |
+| `shares` | Threads insights | 선택 (수집 중) |
+| `clicks` | Threads insights | 선택 — **API 는 주는데 collector 가 안 받는다** |
+| ~~`saves`~~ | — | ❌ **API 미제공 (2026-09-05 확정, §7-2)** |
+| ~~`profile_visits`~~ | — | ❌ API 미제공 |
+| ~~`link_clicks`~~ | — | ❌ API 미제공 (`clicks` 가 대응) |
+| ~~`nonfollower_views`~~ | — | ❌ API 미제공 |
 
-### 7-2. ⚠️ `saves` 가용성 확인 필요
+`metric_snapshots` 의 `profile_clicks` / `follows` 컬럼은 존재하지만 collector 가
+NULL 로 둔다(`app/api/threads/collect-metrics/route.ts`). 컬럼이 있다고 값이
+있는 게 아니다.
 
-**저장률이 1순위 지표인데, Threads API가 `saves`를 주는지 확인이 안 됐다.**
+### 7-2. ~~⚠️ `saves` 가용성 확인 필요~~ → **확인 완료: 없다 (2026-09-05)**
 
-- 주면 → 그대로 진행
-- 안 주면 → **우선순위 재조정 필요**: `like_rate` > `share_rate` > `reply_rate` > `views`
-- 대안: 프로필 방문(`profile_visits`)을 저장의 프록시로 — 저장과 프로필 방문은 둘 다 "나중에 다시 보겠다"는 신호
+**확인 방법**: `.env.local` 의 `THREADS_ACCESS_TOKEN` 으로 `graph.threads.net`
+실호출. 문서 추정이 아니라 API 가 직접 열거한 목록이다.
 
-**이 확인이 끝나기 전에는 `save_rate`를 예측에 쓰지 말 것.** 쓰면 전부 `보류`로 빠진다.
+미디어 레벨 (`/{media-id}/insights?metric=saves`) → HTTP 400:
+
+```json
+{"error":{"message":"metric[0] must be one of the following values:
+  clicks, likes, quotes, replies, reposts, shares, views",
+  "code":100,"type":"THApiException"}}
+```
+
+계정 레벨 (`/me/threads_insights`) → HTTP 400:
+
+```
+metric[0] must be one of the following values: likes, replies,
+followers_count, follower_demographics, reposts, views, quotes, clicks
+```
+
+**결론 3가지**
+
+1. `saves` 는 **두 레벨 모두에 없다.** `save_rate` 폐기 → §1-1 재조정 완료.
+2. `profile_visits` 도 **없다.** 이 절 초안의 "저장 프록시" 대안은 성립하지 않는다.
+   `nonfollower_views`, `link_clicks` 도 마찬가지로 없다.
+3. **`clicks` 는 있는데 우리가 안 받고 있었다.** `lib/threads/insights.ts` 의
+   `metrics` 배열이 `['views','likes','replies','reposts','quotes','shares']`
+   로 하드코딩돼 있다. 이건 API 의 한계가 아니라 우리 코드의 선택이다.
+   → 미결 과제로 남긴다(이번 작업 범위 아님).
+
+⚠️ **`lib/threads/insights.ts` 의 하드코딩된 6개 목록은 가용성의 증거가 아니다.**
+그건 "우리가 요청하는 것"이지 "API 가 주는 것"이 아니다. 실제로 이 파일을 근거로
+한 번 잘못 결론냈다. 가용성은 반드시 실호출 또는 400 열거로 확인한다 (CLAUDE.md §7.1).
 
 ### 7-3. 연결 지점
 
 기존 인프라와의 접합:
 - **matcher**: Dice 계수 0.82/0.08로 발행 글 ↔ draft 레코드 연결 (이미 있음)
 - **여기서 필요한 것**: draft 레코드 ↔ **판정 로그 엔트리(`LOG-xxx`)** 연결
-- 방법: `posts` 테이블에 `decision_log_code` 컬럼 추가, 또는 별도 매핑 테이블
+- **방법 (남헌 확정 2026-09-05, Option B)**: 별도 매핑 테이블
+  **`post_decision_link`** 을 만든다. `posts` 테이블은 건드리지 않는다.
+
+| 컬럼 | 타입 | 설명 |
+|---|---|---|
+| `post_id` | FK → `posts(id)` | 발행 글 |
+| `decision_log_code` | text, CHECK `LOG-YYYYMMDD-nn` | 판정 로그 엔트리 |
+| `role` | `primary` \| `paired_control` \| `paired_variant` | **paired 예측 구분용** |
+| `created_at` | timestamptz | |
+
+확정 근거 3가지 (남헌):
+1. **트랙 경계** — `posts` 는 제품 트랙(solutionarchive-app)의 핵심 테이블이다.
+   방법론 트랙 때문에 컬럼을 추가하면 HANDOVER-SEED.md §2 의 두 트랙 분리
+   원칙이 흐려진다. 별도 테이블이 경계를 유지한다.
+2. **롤백** — 테이블 drop 이 컬럼 drop 보다 안전하다. `posts` 를 안 건드린다.
+3. **paired 예측** — §2-1 의 `paired` 기준선(A/B 성격 실험)은 한 판정에 두
+   발행이 붙는다. 컬럼 추가안(Option A)은 1:1 이라 불가능하고, 나중에 또
+   마이그레이션해야 한다. `role` 컬럼이 이걸 푼다.
+
+거부된 대안은 마이그레이션 파일 헤더에 남겨 뒀다:
+`supabase/migrations/20260905000001_post_decision_log_link.sql`
+- **(A) `posts.decision_log_code` 컬럼 추가** — 위 3가지 이유로 거부. 주석으로 보존.
+- **(C) 판정 로그를 DB 테이블로 이관** — 판정 로그의 정본은
+  `methodology/content/*/04-decisions.md` 이고 그건 append-only 마크다운이다.
+  정본을 둘로 만들면 어느 쪽이 진짜인지 모르게 된다. 거부.
+
+⚠️ **적용 안 함.** SQL 만 작성했다. 남헌이 Supabase 대시보드에서 직접 실행한다.
 
 ---
 

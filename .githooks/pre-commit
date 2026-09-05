@@ -12,16 +12,36 @@ ROOT="$(git rev-parse --show-toplevel)"
 SYNC="$ROOT/scripts/sync-content-skill.sh"
 REFS="$ROOT/.claude/skills/content-gate/references"
 
-[ -f "$SYNC" ] || exit 0
-
-if bash "$SYNC" --check >/dev/null 2>&1; then
-  exit 0
+if [ -f "$SYNC" ] && ! bash "$SYNC" --check >/dev/null 2>&1; then
+  echo "[pre-commit] content-gate references 가 정본과 어긋났다. 동기화한다."
+  if ! bash "$SYNC"; then
+    echo "[pre-commit] 동기화 실패. 커밋을 중단한다." >&2
+    exit 1
+  fi
+  git add -- "$REFS"
+  echo "[pre-commit] references/ 를 갱신해 이번 커밋에 포함했다."
 fi
 
-echo "[pre-commit] content-gate references 가 정본과 어긋났다. 동기화한다."
-if ! bash "$SYNC"; then
-  echo "[pre-commit] 동기화 실패. 커밋을 중단한다." >&2
-  exit 1
+# ── MANIFEST 드리프트 검사 (INF-01) ────────────────────────────────
+# md5 가 바뀌는 것 자체는 막지 않는다. 정본은 append-only 라 판정 로그가 붙으면
+# 당연히 바뀐다. 막는 것은 사본 사고(solfa==pdp) / 구버전 되돌림(구조 카운트 감소)
+# / 누락 세 가지다. 셋 다 실제로 난 사고다.
+MANIFEST_SCRIPT="$ROOT/scripts/manifest-methodology.py"
+if [ -f "$MANIFEST_SCRIPT" ]; then
+  PY_BIN=""
+  for c in py python3 python; do
+    if command -v "$c" >/dev/null 2>&1; then PY_BIN="$c"; break; fi
+  done
+  if [ -z "$PY_BIN" ]; then
+    # 파이썬이 없다고 조용히 넘어가면 "검사했다"와 "검사 못 했다"가 섞인다.
+    echo "[pre-commit] 파이썬이 없어 MANIFEST 를 대조하지 못했다. 커밋을 중단한다." >&2
+    exit 1
+  fi
+  if ! PYTHONIOENCODING=utf-8 "$PY_BIN" "$MANIFEST_SCRIPT" --check; then
+    echo "[pre-commit] MANIFEST 대조 실패. 위 항목을 확인해라." >&2
+    echo "[pre-commit] 의도한 변경이면 py scripts/manifest-methodology.py --write 후 다시 커밋." >&2
+    exit 1
+  fi
+  PYTHONIOENCODING=utf-8 "$PY_BIN" "$MANIFEST_SCRIPT" --write >/dev/null
+  git add -- "$ROOT/methodology/content/MANIFEST.txt"
 fi
-git add -- "$REFS"
-echo "[pre-commit] references/ 를 갱신해 이번 커밋에 포함했다."

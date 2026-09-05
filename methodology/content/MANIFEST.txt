@@ -1,0 +1,48 @@
+# methodology/content 무결성 매니페스트 (INF-01)
+#
+# 생성: py scripts/manifest-methodology.py --write
+# 대조: py scripts/manifest-methodology.py --check   (pre-commit 훅이 자동 실행)
+#
+# 형식: <경로>  <md5>  <구조 카운트...>
+#
+# 구조 카운트 정의
+#   subs    `### n-m.` 소분류 헤딩 수
+#   marks   그중 출처 마커 `[...]` 가 붙은 것 (verify 검사 3 과 같은 정의)
+#   gates   `G-n` 게이트 코드 종류 수 / GR   `G-R` 역방향 질문표 유무
+#   rules   `R-nn`·`P-nn` 규칙 코드 종류 수 / logs  판정 로그 엔트리 수
+#   cross   `C-nn` 교차 코드 종류 수 / qs  `### Qn` 문항 수
+#   lines   줄 수 (그 외 파일)
+#
+# ⚠️ md5 가 바뀌는 것 자체는 정상이다 (04-decisions.md 는 append-only).
+#    훅이 막는 것은 **구조 카운트가 줄어드는 것** 과 **solfa/pdp md5 동일** 이다.
+#    카운트가 줄었다면 구버전을 덮어썼거나 사본을 잘못 넣은 것이다.
+
+00-gate.md                     ae6421ef4fd63fc537c6c56e8893abee  gates:5  GR:yes
+_setup/eval-namheon-Q1-Q10.md  8d8deaa7d7af471ddb228bdb09a8ffd7  lines:23
+_setup/HANDOVER-LOG.md         963f1ef2f8c9637455bf1133bbaa9bcc  lines:233
+_setup/HANDOVER-SEED.md        95511954c1710713bb5bd126559a4c5b  lines:793
+_setup/infra-decisions.md      3cb5182e4d03182a7c223ebee880ec83  lines:283
+_setup/MASTER-PROMPT.md        16d4e358877fb254a2ea1dc2a353d294  lines:505
+_setup/project-setup-v2.md     7055b8b6ee0d03065a015995883be869  lines:216
+_setup/prompt-A-updated.md     7d377bef468d95f51152722938c82d2c  lines:144
+_setup/prompt-B-CC.md          d191a368e92653eee312b3f15438fc10  lines:159
+_setup/prompt-G-loop.md        d04ada682bf34a985504ee646847236d  lines:262
+_setup/prompts.md              812a132a6bb277f8be5738b3ebbfb52b  lines:475
+cross-decisions.md             e0f7fcd9fc14ba4bc0c44df97072d928  cross:12
+cross-summary.md               29b4c00e842fcc742dfff65d70660b47  lines:106
+eval/answers.md                7848a3bc95d9d3d6dd7c6b5ac52bb49c  as:30
+eval/questions.md              fbcb1e860cd9a60b735b50f02faa4bb4  qs:30
+eval-set.md                    0c5f938c51a33d8e41916c809ea8771e  lines:165
+pdp/01-methodology.md          0262bfa7298cbcd95e57d753ace733b2  subs:95  marks:92
+pdp/02-gate.md                 22be978090cafaa7091bb99c4492b22d  gates:14  GR:yes
+pdp/03-excerpts.md             932132e9a578e9184a48f47680be60a8  lines:334
+pdp/04-decisions.md            c214eb121bb39f11eed63d7a91a350d5  rules:16  logs:0
+pdp/05-provenance.md           6b166b2f0c0062ec47c0a88d0201fd4e  lines:137
+pdp/README.md                  2118e351eeae5262f8c2e0d7a45592b0  lines:143
+prediction-schema.md           07cd6fddc7e04c7f87b31424af266515  lines:432
+solfa/01-methodology.md        1ed1b6754884836563341554907c868e  subs:119  marks:116
+solfa/02-gate.md               0a201dea15624785873709e07446ae64  gates:12  GR:yes
+solfa/03-excerpts.md           33ff71a6f3f6fac87aaf2c3fce548a01  lines:259
+solfa/04-decisions.md          b49031fd2b52bfd91a120f3800a480b9  rules:15  logs:0
+solfa/05-provenance.md         b59b70ca13b4f3966e09e609c65ef4c3  lines:132
+solfa/README.md                2bc0dfcbd247cdcb1539967126b4428c  lines:140

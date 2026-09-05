@@ -99,14 +99,28 @@ const supabase = createClient(url, key)
 
 const { readLinks } = await import('../lib/predictions/link.ts')
 
-/** metric_snapshots + posts 를 스냅샷 형태로 정규화한다. */
+/** metric_snapshots + posts 를 스냅샷 형태로 정규화한다.
+ *
+ * ★ `posts.format` 컬럼은 **없다**(2026-09-06 실측: posts 는 id, channel_id,
+ *   external_id, published_at, body, char_count, content_code, pattern,
+ *   hook_type, closing_type, topic_tag, ... 다). 첫 버전이 `format` 을 select
+ *   해서 42703 으로 죽었다 — 링크 테이블이 없던 동안 이 경로가 한 번도 안
+ *   돌아서 안 드러났던 버그다.
+ *
+ *   `median_format_k` 가 말하는 "형식"(캡션형 vs 기획형, prediction-schema.md
+ *   §2)에 가장 가까운 실재 컬럼은 `pattern` 이다. 그래서 pattern 을 형식
+ *   태그로 쓴다. `content_code`(T1-3 같은 소재 코드)는 형식이 아니라 주제라
+ *   쓰지 않았다. pattern 이 비면 `null` 로 두고, 그러면 score.ts 가
+ *   median_format_k 를 "기준선 못 구함"으로 처리한다 — 임의로 median_all 로
+ *   갈아타지 않는다.
+ */
 async function loadSnapshots() {
   const { data, error } = await supabase
     .from('metric_snapshots')
-    .select('post_id, hours_since_publish, views, likes, replies, reposts, quotes, posts(published_at, format)')
+    .select('post_id, hours_since_publish, views, likes, replies, reposts, quotes, posts(published_at, pattern)')
   if (error) throw new Error(`metric_snapshots 조회 실패: ${error.message}`)
   const bucketOf = h => (h <= 1.5 ? 'h1' : h <= 30 ? 'h24' : 'h168')
-  return (data ?? []).map(r => ({
+  const rows = (data ?? []).map(r => ({
     postId: r.post_id,
     publishedAt: r.posts?.published_at ?? null,
     bucket: bucketOf(Number(r.hours_since_publish)),
@@ -115,11 +129,28 @@ async function loadSnapshots() {
     replies: r.replies ?? 0,
     reposts: r.reposts ?? 0,
     quotes: r.quotes ?? 0,
-    format: r.posts?.format ?? null,
-  })).filter(s => s.publishedAt)
+    format: r.posts?.pattern == null ? null : String(r.posts.pattern),
+  }))
+  const kept = rows.filter(s => s.publishedAt)
+  // 버린 행을 조용히 삼키지 않는다. published_at 이 비면 기준선 정렬(시점 비교)을
+  // 할 수 없어서 뺀 것이지, 그 글에 데이터가 없다는 뜻이 아니다 (§7.1).
+  if (rows.length !== kept.length) {
+    console.log(`  ⚠️ 스냅샷 ${rows.length - kept.length}건을 뺐다 — posts.published_at 이 비어 있어 시점 비교 불가. "데이터 없음"이 아니다.`)
+  }
+  return kept
 }
 
 const snapshots = await loadSnapshots()
+console.log(`실측 스냅샷 ${snapshots.length}개 (post ${new Set(snapshots.map(s => s.postId)).size}건)`)
+if (snapshots.length === 0 && withPreds.length > 0) {
+  // 예측은 있는데 실측이 하나도 없다 = 채점을 못 하는 상태다. 아래로 내려가면
+  // 전부 "보류"로 찍히는데, 그건 "노이즈 범위였다"는 판정과 글자가 같아서
+  // 구분이 안 된다. 여기서 끊고 확인 불가로 말한다.
+  console.error('')
+  console.error('✗ metric_snapshots 가 비어 있다. 예측은 있는데 실측이 없으니 채점할 수 없다.')
+  console.error('  이건 "전부 보류"가 아니라 "아직 못 쟀다"다 — 수집기(/api/threads/collect-metrics)가 돌았는지 확인하라.')
+  process.exit(2)
+}
 const scoredEntries = []
 const unscorable = []
 

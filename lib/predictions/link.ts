@@ -1,18 +1,20 @@
 // 발행 글 ↔ 판정 로그 엔트리 연결. prediction-schema.md §7-3 Option B.
 //
-// ⚠️ **현재 스텁이다.** 대상 테이블 `post_decision_link` 가 아직 없다.
-// 마이그레이션(`supabase/migrations/20260905000001_post_decision_log_link.sql`)은
-// 작성만 돼 있고, §12-5 규약상 CLI/MCP 로 실행하지 않는다 —
-// 남헌이 Supabase 대시보드 SQL Editor 에서 직접 실행한다.
+// **[2026-09-06] 마이그레이션 적용 확인됨.** 스텁 해제.
+// `20260905000001_post_decision_log_link.sql` 이 대시보드에서 실행됐고,
+// `scripts/predictions-migration-verify.mjs --probe` 로 직접 확인했다 —
+// 4컬럼 존재, role CHECK 가 'variant' 를 23514 로 거절, 형식 CHECK 가
+// 'LOG-123' 을 거절, 정상 role 은 INSERT 통과(테스트 행은 삭제).
+// "적용했다고 들었다"가 아니라 실측이다 (CLAUDE.md §7.1).
 //
-// 적용 후 할 일: 아래 LINK_TABLE_READY 를 true 로 바꾼다. 그 전까지 이 모듈은
-// **INSERT 를 시도하지 않고 `skipped` 를 돌려준다.** 실패를 삼키는 게 아니라
-// 애초에 시도하지 않았다는 걸 호출부가 구분할 수 있게 상태로 준다 — 없는
-// 테이블에 INSERT 하면 발행 경로 전체가 에러로 끊긴다.
+// 이 플래그를 지우지 않고 남겨 둔다. 다른 환경(로컬 스택·프리뷰 브랜치)에서는
+// 테이블이 없을 수 있고, 그때 이 모듈은 **INSERT 를 시도하지 않고 `skipped`**
+// 를 돌려준다. 실패를 삼키는 게 아니라 애초에 시도하지 않았다는 걸 호출부가
+// 구분할 수 있게 상태로 준다.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export const LINK_TABLE_READY = false
+export const LINK_TABLE_READY = true
 
 export const LINK_TABLE = 'post_decision_link'
 

@@ -34,6 +34,13 @@
 
 ### 2-2. 방법론 트랙 — `solutionarchive-private/methodology/content/` (**이 문서의 범위**)
 
+> **[2026-09-06 확인] 리포 이름이 실제와 다르다.** `solutionarchive-private` 라는
+> 리포는 존재하지 않는다. 방법론 아카이브는 제품 트랙과 **같은 리포**
+> (`github.com/hanazi8282-maker/solutionarchive-app`)의 `methodology/content/`
+> 아래에 있다. 즉 §2-1 과 §2-2 는 리포가 갈린 게 아니라 **한 리포 안의 두 트랙**이다.
+> 위 경로 표기는 그대로 두되(상호참조가 걸려 있다) 실제 위치는 이쪽이다.
+> 브랜치는 `docs/solfa-methodology`.
+
 콘텐츠 제작 방법론 강의 전집을 **정보 손실 없이 재구조화**해서, 읽는 문서가 아니라 **프롬프트에 부품처럼 끼워 넣는 원료 + 발행 전 검증 게이트 + append-only 판정 로그**로 작동시키는 시스템.
 
 **두 트랙의 접점**: 방법론 아카이브가 Threads 콘텐츠 품질을 올리고, 그 Threads가 제품의 build-in-public 채널이 된다. 그리고 `#전이가능프레임` 항목은 제품 기획·랜딩 카피에도 적용된다.

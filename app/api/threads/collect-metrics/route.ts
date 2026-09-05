@@ -43,13 +43,13 @@ import {
 // 한도를 독점하지 않게 늦춘다. 창에 드는 글은 보통 한 자릿수라 총 지연은 2초 미만이다.
 const CALL_SPACING_MS = 200
 
-// metric_snapshots.clicks 컬럼이 대시보드에서 적용됐는지 여부.
-// §12-5 규약상 마이그레이션은 CLI/MCP 로 못 돌리고 사람이 SQL Editor 에서
-// 실행한다. 그 사이에 clicks 를 payload 에 넣으면 INSERT 가 통째로 깨져
-// 이미 되던 6개 지표 수집까지 멈춘다. 그래서 컬럼이 생길 때까지는 요청만
-// 하고 저장은 건너뛴다 — 적용 후 이 값을 true 로 바꾸면 그때부터 쌓인다.
+// metric_snapshots.clicks 컬럼이 적용됐는지 여부.
+// [2026-09-06] 적용 확인됨 — `scripts/predictions-migration-verify.mjs` 로
+// 컬럼 존재와 profile_clicks 분리 유지를 직접 조회했다. 그래서 true 다.
+// 플래그 자체는 남긴다: 컬럼이 없는 환경에서 clicks 를 payload 에 넣으면
+// INSERT 가 통째로 깨져 이미 되던 6개 지표 수집까지 멈추기 때문이다.
 // (마이그레이션: supabase/migrations/20260905000002_metric_snapshots_clicks.sql)
-const CLICKS_COLUMN_READY = false
+const CLICKS_COLUMN_READY = true
 
 export async function GET(req: Request) { return POST(req) }
 

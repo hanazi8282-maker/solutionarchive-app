@@ -17,7 +17,7 @@ import {
   scoreOne, tallyByRule, wilsonLower, ruleAction,
 } from '../lib/predictions/score.ts'
 import { parseDecisionLog, extractPredictions } from '../lib/predictions/parse-log.ts'
-import { LOG_CODE_RE, LINK_TABLE_READY, linkDecisionLog } from '../lib/predictions/link.ts'
+import { LOG_CODE_RE, linkDecisionLog, readLinks } from '../lib/predictions/link.ts'
 
 let passed = 0
 const failures = []
@@ -223,17 +223,43 @@ throws('paired 인데 paired_with 가 없으면 던진다',
     '    baseline: paired', '    threshold: 1.0mad', '    horizon: h168', '    because: C-12']),
   /paired_with/)
 
-// ── 9) 링크 (스텁 상태 확인) ──────────────────────────────────
+// ── 9) 링크 ───────────────────────────────────────────────────
 check('LOG 코드 형식 통과', LOG_CODE_RE.test('LOG-20260910-01'))
 check('XUP 도 통과', LOG_CODE_RE.test('XUP-20260910-99'))
 check('무패딩은 거부', !LOG_CODE_RE.test('LOG-20260910-1'))
 check('한 자리 접두어는 거부', !LOG_CODE_RE.test('L-20260910-01'))
 
-const stub = await linkDecisionLog(null, { postId: 'x', decisionLogCode: 'LOG-20260910-01' })
-eq('테이블 미적용이면 skipped (failed 아님)', stub.status, LINK_TABLE_READY ? 'linked' : 'skipped')
-if (!LINK_TABLE_READY) check('스텁 사유에 마이그레이션 번호가 있다', /20260905000001/.test(stub.reason), stub.reason)
-const badCode = await linkDecisionLog(null, { postId: 'x', decisionLogCode: 'LOG-2026-1' })
+// 가짜 클라이언트. 예전엔 여기에 null 을 넘겼는데, 그건 LINK_TABLE_READY 가
+// false 라 INSERT 까지 안 내려간다는 데 기댄 테스트였다. 플래그가 true 가 된
+// 순간(2026-09-06) null 역참조로 죽었다 — 스텁 상태에만 맞던 테스트였다는 뜻이다.
+// 이제는 응답을 흉내 내서 linked / exists / failed 세 갈래를 다 밟는다.
+const fakeClient = (error) => ({
+  from: () => ({
+    insert: async () => ({ error }),
+    select: () => ({ eq: async () => ({ data: [{ post_id: 'p1', role: 'primary' }], error }) }),
+  }),
+})
+
+const okLink = await linkDecisionLog(fakeClient(null), { postId: 'x', decisionLogCode: 'LOG-20260910-01' })
+eq('정상 INSERT 는 linked', okLink.status, 'linked')
+
+const dup = await linkDecisionLog(fakeClient({ code: '23505', message: 'duplicate key' }),
+  { postId: 'x', decisionLogCode: 'LOG-20260910-01' })
+eq('중복(23505)은 실패가 아니라 exists', dup.status, 'exists')
+
+const boom = await linkDecisionLog(fakeClient({ code: '23503', message: 'FK 위반' }),
+  { postId: 'x', decisionLogCode: 'LOG-20260910-01' })
+eq('그 밖의 DB 에러는 failed', boom.status, 'failed')
+
+const badCode = await linkDecisionLog(fakeClient(null), { postId: 'x', decisionLogCode: 'LOG-2026-1' })
 eq('코드 형식이 틀리면 failed', badCode.status, 'failed')
+
+// readLinks 의 핵심 계약: 못 읽었을 때 [] 가 아니라 null 이다.
+// 0건과 확인 불가를 같은 값으로 주면 채점기가 "발행이 없다"로 오독한다.
+const readErr = await readLinks(fakeClient({ code: '42P01', message: 'no table' }), 'LOG-20260910-01')
+eq('읽기 실패는 빈 배열이 아니라 null', readErr, null)
+const readOk = await readLinks(fakeClient(null), 'LOG-20260910-01')
+eq('정상 읽기는 배열', Array.isArray(readOk) ? readOk.length : 'not-array', 1)
 
 // ── 결과 ──────────────────────────────────────────────────────
 console.log(`\n통과 ${passed} / 실패 ${failures.length}`)

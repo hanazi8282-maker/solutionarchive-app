@@ -7,5 +7,10 @@ methodology/content/pdp/04-decisions.md merge=union
 methodology/content/cross-decisions.md merge=union
 methodology/content/eval-set.md merge=union
 
+# _setup 의 인프라 판정 로그·인수인계 LOG 도 append-only 다. 상태 마킹만 덧붙이는
+# 문서라 3-way 머지가 붙을 이유가 없다.
+methodology/content/_setup/infra-decisions.md merge=union
+methodology/content/_setup/HANDOVER-LOG.md merge=union
+
 # 셸 스크립트는 CRLF 로 체크아웃되면 실행이 깨진다.
 *.sh text eol=lf

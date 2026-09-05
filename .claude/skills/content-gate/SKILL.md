@@ -34,9 +34,9 @@ description: >
 - 결정한 이유를 한 줄로 명시한다
 
 **Ⅲ. 매체별 게이트** — 한쪽만 돈다.
-- 프드프면 `references/pdp-gate.md` P-0~P-13
+- 프드프면 `references/pdp-gate.md` G-0~G-13
 - 솔파면 `references/solfa-gate.md` G-0~G-10
-- ★ Ⅰ에서 이미 본 항목은 건너뛴다 (pdp P-3·P-7 / solfa G-2·G-4)
+- ★ Ⅰ에서 이미 본 항목은 건너뛴다 (pdp G-3·G-7 / solfa G-2·G-4)
 - 규칙 충돌 시 `references/pdp-decisions.md`(P-01~P-14) 또는
   `references/solfa-decisions.md`(R-01~R-14)를 적용한다
 - 구조가 막히면 `references/pdp-excerpts.md` 또는 `references/solfa-excerpts.md`의
@@ -66,7 +66,7 @@ description: >
    - **한쪽만 탈락 → ★★ 조건부 규칙의 증거. cross-decisions.md 갱신 대상**
 
 G-R 질문표는 양쪽에 다 있다 — `references/solfa-gate.md` G-R,
-`references/pdp-gate.md` G-R. 질문표 행 번호는 각 게이트 항목(G-x / P-x)에 1:1로 대응한다.
+`references/pdp-gate.md` G-R. 질문표 행 번호는 각 게이트 항목(G-x)에 1:1로 대응한다.
 
 역방향 엔트리 템플릿은 `references/<자료>-decisions.md`의 `역방향 엔트리 템플릿`에 있다.
 `출처: 외부관찰` 플래그를 반드시 단다. `구멍` 결론이면 `## 5. 신규 규칙 후보`에

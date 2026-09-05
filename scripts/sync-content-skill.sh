@@ -35,7 +35,11 @@ CHECK=0
 mkdir -p "$DST"
 
 # 자료가 둘이 되면서 solfa/ 에 pdp 사본이 잘못 들어간 사고가 한 번 있었다.
-# 게이트 문서는 접두사가 서로 달라 값싸게 구별된다. 엉뚱한 원본을 복사하기 전에 막는다.
+# 엉뚱한 원본을 복사하기 전에 막는다.
+#
+# 예전에는 게이트 항목 접두어(G- vs P-)로 구별했는데, 네임스페이스 규약이
+# 정리되면서 양쪽 다 G- 를 쓰게 돼 그 방법이 죽었다. 지금은 제목줄에 박힌
+# 자료명으로 가른다 — 프드프 게이트만 `# 02. ... — 프드프` 를 갖는다.
 guard() {
   local path="$1" pattern="$2" label="$3"
   [ -f "$path" ] || return 0
@@ -44,8 +48,18 @@ guard() {
     return 1
   fi
 }
-guard "$SRC/solfa/02-gate.md" '^## G-0\.' "G-0" || exit 1
-guard "$SRC/pdp/02-gate.md"   '^## P-0\.' "P-0" || exit 1
+guard_absent() {
+  local path="$1" pattern="$2" label="$3"
+  [ -f "$path" ] || return 0
+  if grep -q "$pattern" "$path"; then
+    echo "GUARD    $path 제목줄에 $label 이 있다. 원본이 뒤바뀌었을 수 있다." >&2
+    return 1
+  fi
+}
+guard        "$SRC/solfa/02-gate.md" '^## G-0\.'      "게이트 헤딩 G-0"   || exit 1
+guard_absent "$SRC/solfa/02-gate.md" '^# 02\..*프드프' "프드프 제목"        || exit 1
+guard        "$SRC/pdp/02-gate.md"   '^## G-0\.'      "게이트 헤딩 G-0"   || exit 1
+guard        "$SRC/pdp/02-gate.md"   '^# 02\..*프드프' "프드프 제목"        || exit 1
 
 drift=0
 for entry in "${MAP[@]}"; do

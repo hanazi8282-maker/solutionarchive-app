@@ -41,11 +41,12 @@
 
 ### 세팅 프롬프트
 
+세팅·운용 프롬프트는 **상위 폴더**에 있다. 이 폴더에는 없다.
+
 | 파일 | 대상 |
 |---|---|
-| `prompts/claude-code.md` | Claude Code — 리포 커밋, 스킬 생성, 루프 실행 |
-| `prompts/project-setup.md` | Claude Project — 지식 업로드 목록 + 커스텀 인스트럭션 |
-| `prompts/hermes-loop.md` | hermes-loop 담당 — Notion 스키마 확장, 리마인더, 분기 리포트 |
+| `../_setup/prompts.md` | Claude Code(리포·스킬) / Cowork(평가·역방향·정방향) / hermes-loop |
+| `../_setup/project-setup-v2.md` | Claude Project 지식 구성 + 커스텀 인스트럭션 |
 
 ---
 

@@ -28,7 +28,7 @@ _setup/prompt-A-updated.md     7d377bef468d95f51152722938c82d2c  lines:144
 _setup/prompt-B-CC.md          d191a368e92653eee312b3f15438fc10  lines:159
 _setup/prompt-G-loop.md        d04ada682bf34a985504ee646847236d  lines:262
 _setup/prompts.md              812a132a6bb277f8be5738b3ebbfb52b  lines:475
-cross-decisions.md             e0f7fcd9fc14ba4bc0c44df97072d928  cross:12
+cross-decisions.md             2f8e4d1d0099d581a80df4916d17435e  cross:12
 cross-summary.md               29b4c00e842fcc742dfff65d70660b47  lines:106
 eval/answers.md                7848a3bc95d9d3d6dd7c6b5ac52bb49c  as:30
 eval/questions.md              fbcb1e860cd9a60b735b50f02faa4bb4  qs:30
@@ -36,13 +36,13 @@ eval-set.md                    0c5f938c51a33d8e41916c809ea8771e  lines:165
 pdp/01-methodology.md          0262bfa7298cbcd95e57d753ace733b2  subs:95  marks:92
 pdp/02-gate.md                 22be978090cafaa7091bb99c4492b22d  gates:14  GR:yes
 pdp/03-excerpts.md             932132e9a578e9184a48f47680be60a8  lines:334
-pdp/04-decisions.md            c214eb121bb39f11eed63d7a91a350d5  rules:16  logs:0
+pdp/04-decisions.md            8efadfbad8d569b6e821bf81937bb006  rules:16  logs:0
 pdp/05-provenance.md           6b166b2f0c0062ec47c0a88d0201fd4e  lines:137
 pdp/README.md                  2118e351eeae5262f8c2e0d7a45592b0  lines:143
-prediction-schema.md           07cd6fddc7e04c7f87b31424af266515  lines:432
+prediction-schema.md           79ee9211d7ea83895b375d2e197217c4  lines:513
 solfa/01-methodology.md        1ed1b6754884836563341554907c868e  subs:119  marks:116
 solfa/02-gate.md               0a201dea15624785873709e07446ae64  gates:12  GR:yes
 solfa/03-excerpts.md           33ff71a6f3f6fac87aaf2c3fce548a01  lines:259
-solfa/04-decisions.md          b49031fd2b52bfd91a120f3800a480b9  rules:15  logs:0
+solfa/04-decisions.md          b5ad56a411849d6b67aaedec026fa85c  rules:15  logs:0
 solfa/05-provenance.md         b59b70ca13b4f3966e09e609c65ef4c3  lines:132
 solfa/README.md                2bc0dfcbd247cdcb1539967126b4428c  lines:140

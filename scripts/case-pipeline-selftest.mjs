@@ -117,6 +117,22 @@ eq('다른 도메인 2건이면 A',
 //   시범 5건에서 캐스퍼 S-1 과 듀오링고 8-K 가 블로그 2개보다 낮게 나왔다.
 eq('법정 공시 1건이면 자기보고여도 A',
   gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true }]).grade, 'A')
+// ★ L-56: 공시 안에 있어도 발행사가 스스로 정의·집계한 지표는 A 를 만들지 않는다.
+//   Nubank 20-F 가 본문에서 "not independently verified" 라고 밝힌 ARPAC 이,
+//   "법정 공시 1건"이라는 이유만으로 A 로 올라가 있었다.
+eq('발행사 자체 정의 지표는 공시여도 A 가 아니다',
+  gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true }]).grade, 'C')
+check('그 이유는 자기보고 1차 단독으로 읽힌다',
+  /자기보고 1차뿐/.test(gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true }]).reason))
+// 같은 지표라도 독립 도메인이 하나 더 붙으면 B 로 올라간다 — 이게 L-58 이 노리는 경로다.
+eq('자체 정의 지표 + 독립 2차 1건이면 B',
+  gradeMove(M, [
+    { url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true },
+    { url: 'https://www.reuters.com/y', source_tier: 'secondary', is_self_reported: false },
+  ]).grade, 'B')
+// 재무제표 본문 수치는 플래그를 달지 않는다 — 기존 A 경로가 그대로 살아 있어야 한다.
+eq('플래그 없는 공시는 여전히 A',
+  gradeMove(M, [{ url: 'https://www.sec.gov/z', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: false }]).grade, 'A')
 eq('추정 딱지가 붙은 공시는 A 가 아니다',
   gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_estimate: true }]).grade, 'C')
 {

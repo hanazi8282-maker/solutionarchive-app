@@ -123,6 +123,11 @@ async function commit() {
     console.log(`✅ case_moves [${m.row.evidence_grade}] ${m.row.lever} — ${m.grade_reason}`)
   }
 
+  // ★ 마이그 20260906000003(is_issuer_defined_metric) 이 적용됐는지 첫 행에서 확인한다.
+  //   미적용이면 PostgREST 가 PGRST204 로 거절한다 — 그때는 그 축을 빼고 저장하되,
+  //   조용히 떨어뜨리지 않고 크게 경고한다. retrieved_at 이 그렇게 사라졌었다(L-59).
+  let issuerAxis = true
+  let droppedIssuerAxis = 0
   let evCount = 0
   for (const e of evidence) {
     const row = {
@@ -138,10 +143,26 @@ async function commit() {
       snippet: e.snippet ?? null,
       supports_claim: e.supports_claim ?? null,
     }
-    must(await supabase.from('case_evidence').insert(row).select('id'), 'case_evidence INSERT')
+    // retrieved_at 은 NOT NULL DEFAULT now() 다 — 비었으면 키를 아예 안 넣어야 기본값이 산다.
+    if (e.retrieved_at) row.retrieved_at = e.retrieved_at
+    if (issuerAxis) row.is_issuer_defined_metric = e.is_issuer_defined_metric ?? false
+
+    let res = await supabase.from('case_evidence').insert(row).select('id')
+    if (res.error && /is_issuer_defined_metric/.test(res.error.message ?? '')) {
+      issuerAxis = false
+      delete row.is_issuer_defined_metric
+      res = await supabase.from('case_evidence').insert(row).select('id')
+    }
+    if (!issuerAxis && (e.is_issuer_defined_metric ?? false)) droppedIssuerAxis++
+    must(res, 'case_evidence INSERT')
     evCount++
   }
   console.log(`✅ case_evidence ${evCount}행`)
+  if (!issuerAxis) {
+    console.log('⚠️ is_issuer_defined_metric 컬럼이 DB 에 없다 — 마이그 20260906000003 미적용.')
+    console.log(`   그 축을 뺀 채로 저장했다. 초안에서 true 였던 근거 ${droppedIssuerAxis}건이 DB 에는 안 들어갔다.`)
+    console.log('   → 마이그 적용 후 그 행들을 다시 채워야 등급 재계산이 재현된다.')
+  }
   console.log('\n전부 review_status=draft 다. 승인은 사람이:')
   console.log(`  node --env-file=.env.local scripts/case-review.mjs show --slug ${slug}`)
 }
@@ -249,6 +270,9 @@ async function decide(status) {
         await supabase.from('case_moves').update({ review_status: status }).eq('id', m.id).select('id'),
         'case_moves UPDATE',
       )
+      // 아래 --case 경고가 이 스냅샷을 다시 읽는다. 갱신해 두지 않으면 방금 승인한
+      // 무브를 "아직 draft 다"라고 보고한다 — 거짓 경보도 오보다(§7.1).
+      m.review_status = status
       console.log(`✅ ${status} — [${m.evidence_grade}] ${m.lever}: ${m.claim.slice(0, 50)}`)
       if (status === 'approved' && m.outcome_direction === 'negative' && m.evidence_grade !== 'A') {
         console.log(`   ⚠️ 부정 사례인데 등급 ${m.evidence_grade} 다. 승인은 됐지만 발행 대상은 아니다.`)

@@ -33,6 +33,14 @@ export type Evidence = {
   is_estimate?: boolean
   /** 법정 공시 문서인가 (DART 감사보고서, SEC S-1/10-K/8-K). */
   is_regulatory_filing?: boolean
+  /**
+   * 이 근거가 뒷받침하는 **수치**가 발행사가 스스로 정의·집계한 지표인가.
+   * 법정 공시 안에 있어도 감사인 의견·제3자 검증 범위 밖인 숫자가 여기 해당한다 —
+   * DAU·활성고객수·ARPAC·NDR·재구매율 같은 운영 지표, 그리고 문서가 명시적으로
+   * '독립 검증되지 않았다'고 밝힌 숫자. 재무제표 본문 수치(매출·원가·충당금)는 아니다.
+   * true 면 '허위기재에 법적 책임이 따른다'는 A 등급의 전제가 성립하지 않는다.
+   */
+  is_issuer_defined_metric?: boolean
   published_at?: string | null
   retrieved_at?: string | null
   snippet?: string | null
@@ -86,7 +94,8 @@ export type GradeResult = { grade: Grade; reason: string }
 /**
  * 무브 하나의 근거 등급.
  *
- *   A = 법정 공시 1개  또는  비자기보고 1차 출처 1개  또는  독립 도메인 2개 이상
+ *   A = 법정 공시 1개(발행사 자체 정의 지표 제외)  또는  비자기보고 1차 출처 1개
+ *       또는  독립 도메인 2개 이상
  *   B = 자기보고 1차 출처 1개 + 다른 도메인의 출처 1개
  *   C = 근거는 있으나 위에 못 미침
  *   D = 수치 자체가 없다 (서술만)
@@ -97,6 +106,10 @@ export type GradeResult = { grade: Grade; reason: string }
  * ★ **추정치(is_estimate)도 뒷받침에 세지 않는다.** 시범 5건에서 발견한 구멍이다 —
  *   비상장사 매출은 조사기관 추정치뿐인데, tier 와 self_reported 만 보면
  *   "비자기보고 2차 2곳"이라 A 가 나온다. 아무도 실측한 적 없는 숫자다.
+ * ★ **법정 공시라도 발행사가 스스로 정의·집계한 운영 지표(is_issuer_defined_metric)는
+ *   A 를 만들지 않는다.** L-56 에서 발견한 구멍이다 — Nubank 20-F 가 본문에서
+ *   "not independently verified by any third party" 라고 밝힌 ARPAC 을, 산식은
+ *   "법정 공시 1건"이라는 이유로 A 로 올리고 있었다. 문서 자신보다 관대한 산식이다.
  * ★ 근거가 0개인데 수치가 있는 건 등급이 아니라 **오류**다. validateDraft 가
  *   막는다 — LLM 환각이 수치로 들어오는 경로가 거기 하나뿐이다.
  */
@@ -112,7 +125,14 @@ export function gradeMove(move: Move, evidence: Evidence[]): GradeResult {
   // ★ 법정 공시가 먼저다. 자기보고이지만 허위기재에 법적 책임이 따르는 문서라,
   //   출처를 안 밝힌 블로그 2개보다 아래에 두는 건 산식이 틀린 것이다.
   //   (시범 5건에서 캐스퍼 S-1·듀오링고 8-K 가 실제로 C 로 떨어졌다)
-  const attested = evidence.filter(e => e.is_regulatory_filing && !e.is_estimate)
+  //
+  // ★ 단, 그 법적 책임은 **문서 전체**가 아니라 검증 범위 안의 수치에만 붙는다.
+  //   Nubank 20-F 는 본문에서 ARPAC·NPS 등을 두고 "not independently verified by
+  //   any third party" 라고 스스로 밝힌다. 그런 숫자를 "법정 공시니까 A" 로 올리면
+  //   산식이 문서의 자기 부인보다 관대해진다 (L-56). is_issuer_defined_metric 로
+  //   그 수치를 빼고, 나머지 경로(독립 도메인 2곳 등)로 다시 판정하게 둔다.
+  const attested = evidence.filter(e =>
+    e.is_regulatory_filing && !e.is_estimate && !e.is_issuer_defined_metric)
   if (attested.length >= 1) {
     return { grade: 'A', reason: `법정 공시 ${attested.length}건 (자기보고이나 법적 책임이 따르는 문서)` }
   }

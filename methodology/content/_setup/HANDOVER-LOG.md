@@ -126,9 +126,12 @@ Claude Code 마지막 보고 기준 미정리 항목:
 | L-50 | 신규 초안 5건의 **승인·반려 판단** — Warby Parker / Oatly / Figma / 컬리 / Slack | 2026-09-06 | 0d | **[해소 2026-09-06]** 남헌이 "완료 기준(C등급 이상 무브 2개)으로 자동 판정" 을 지시 → 5건 전부 충족하여 `approved` 커밋. 근거표 §2-9. 이의가 있으면 `review_status` 만 개별 수정하면 되는 가역 조치다 | `drafts/cases/` 에 draft 로만 있고 **DB 미기록**이다. 등급은 Warby A2 / Oatly A2 / Figma A2 / Slack A2 / 컬리 C2. 병목은 TRUST · SUPPLY · DISTRIBUTION · UNIT_ECONOMICS · CONVERSION. 절차는 L-45 와 같고 **L-43 이 풀려야 실행된다** |
 | L-51 | ⚠️ **컬리 DART 원문 대조 실패** | 2026-09-06 | 0d | **미해결 (확인 불가)** | `dart.fss.or.kr/dsab007/main.do` 가 JS/POST 기반이라 감사보고서 원문을 못 열었다. **"공시가 없다"가 아니라 "대조하지 못했다"다.** 수치는 2025-03-05 실적발표 잠정치를 매체가 옮긴 것이라 `is_self_reported=true` · `is_estimate=true` 로 잡았고, 미대조 행은 `is_regulatory_filing=false` 로 낮췄다 — true 로 두면 등급 산식이 그 한 행으로 A 를 준다. 승인 전 사람이 DART 에서 원문 확인 필요 |
 | L-52 | ⚠️ **마이그레이션 `20260906000002_posts_pending_review` 대시보드 적용** | 2026-09-06 | 0d | **미해결 (남헌 전용)** | 적용 전이라 발행-대기 초안이 `posts.status='draft'` 로 누워 있다. **이건 "게이트를 안 돌렸다"는 뜻이 아니다** — CHECK 가 `pending_review` 를 23514 로 거절해서 폴백한 것이고, `scripts/case-draft-stage.mjs` 가 그 사실을 화면에 찍고 **exit 3** 로 구분해 낸다. 적용 후 같은 스크립트를 재실행하면 정상 값으로 올라간다. §12-5 상 CLI·MCP 직접 실행 금지 |
-| L-53 | 매칭 커버리지 — **병목 7종 중 3종만 짝이 있다** | 2026-09-06 | 0d | **미해결 (데이터 부족)** | 짝 있음: CONVERSION(Notion·Slack) / UNIT_ECONOMICS(Casper·컬리) / DISTRIBUTION(조선미녀·Figma). 브랜드 1곳뿐: TRUST(Warby) · RETENTION(Duolingo) · SUPPLY(Oatly). **AWARENESS 는 0곳** — Liquid Death 가 등급 미달로 `draft` 라서다(L-47). `case-match.mjs --bottleneck AWARENESS` 는 exit 1(음성)로 "조회는 정상인데 선례가 없다"를 명시한다 — 크래시와 구분된다 |
+| L-53 | 매칭 커버리지 — **병목 7종 중 3종만 짝이 있다** | 2026-09-06 | 0d | **[해소 2026-09-06 5차]** 케이스 5건 추가(Carvana·Chewy·Peloton·e.l.f.·Nubank)로 **7종 전부 approved 2건 이상**. DB 실측: case_studies 15건(approved 14 / draft 1=Liquid Death), case_moves 30개(approved 28). 근거표 §2-10 | 짝 있음: CONVERSION(Notion·Slack) / UNIT_ECONOMICS(Casper·컬리) / DISTRIBUTION(조선미녀·Figma). 브랜드 1곳뿐: TRUST(Warby) · RETENTION(Duolingo) · SUPPLY(Oatly). **AWARENESS 는 0곳** — Liquid Death 가 등급 미달로 `draft` 라서다(L-47). `case-match.mjs --bottleneck AWARENESS` 는 exit 1(음성)로 "조회는 정상인데 선례가 없다"를 명시한다 — 크래시와 구분된다 |
 | L-54 | U-3(관찰) ②항 **댓글 실물 미확보** — 예외통과로 초안이 나갔다 | 2026-09-06 | 0d | **미해결 (1회차 / 3회 누적 시 강제 중단)** | 레퍼런스 `LOG-20260905-01~04` 4건 모두 근거가 좋아요·공유 스크린샷까지고 댓글 본문이 없다. 통과로 적으면 거짓, 탈락으로 적으면 "관찰을 안 했다"가 되어 역시 거짓 → **예외통과 + 사유 명시**로 처리하고 규칙 후보 `NEW-20260906-01` 을 남겼다. 같은 사유 3회 반복 시 초안을 멈추고 댓글 확보 가능한 대상으로 G-R 재실행 |
 | L-55 | PMF 수요축은 **`--project` 를 줘야만 계산된다** | 2026-09-06 | 0d | **미해결 (설계 한계, 기록만)** | `case-match.mjs --slug` 만으로 돌리면 수요축이 `null` 이라 사분면이 나오지 않는다. 케이스는 남의 브랜드 관측이고 `analysis_aspects` 는 우리 프로젝트 수요라 자동 연결 고리가 없다. **0 으로 채우지 않는다** — 수요 없음과 수요 미조회는 다른 사건이다(§7.1) |
+| L-56 | ⚠️ **Nubank 케이스의 등급 A 는 "수치가 검증됐다"는 뜻이 아니다** | 2026-09-06 | 0d | **미해결 (기록만 — 근거 약함, 승인은 유지)** | 이 케이스 수치(고객 수 53.9→74.6백만, ARPAC 4.5→7.8달러, 서빙비 0.8달러)는 전부 회사가 스스로 정의하고 집계한 운영지표다. 20-F 본문이 **"not independently verified by any third party"** 라고 명시하는데, 등급 산식은 `is_regulatory_filing=true` 1건이면 A 를 준다. 즉 A 는 "허위기재에 법적 책임이 따르는 문서에 적혔다"이지 "제3자가 실측했다"가 아니다. 이 간극을 케이스 단위 근거 행(`move=null`)에 원문 인용과 함께 박아 뒀다. **인용해서 콘텐츠로 낼 때는 "회사 발표 기준"을 반드시 붙일 것.** 산식 자체를 바꿀지는 남헌 판단 |
+| L-57 | ⚠️ **SUPPLY 페어가 대조가 아니라 반복이다** | 2026-09-06 | 0d | **미해결 (커버리지 품질)** | SUPPLY 짝이 Oatly · Peloton 인데 **둘 다 같은 실패형**이다 — 공급 병목을 위탁이 아니라 자체 생산 증설로 풀었다가 수요 반전으로 되돌린 사례. 무브 4개가 전부 `outcome_direction=negative` 다. 숫자상 페어는 섰지만 매칭에서 "이 병목을 어떻게 푸나"를 물으면 **"자체 생산은 하지 마라" 한 방향만 나온다.** 성공 대조군(위탁·유연생산으로 공급을 푼 사례) 1건이 붙기 전에는 SUPPLY 를 "커버 완료"로 읽지 말 것 |
+| L-58 | 5차 배치 10개 무브가 **발행사 규제공시 단일 출처에 몰려 있다** | 2026-09-06 | 0d | **미해결 (기록만)** | Carvana·Chewy·Peloton·e.l.f.·Nubank 의 근거 24건 중 22건이 SEC 공시(S-1/10-K/20-F)이고, 도메인이 다른 독립 2차는 2건뿐이다(Retail Dive 2024-03-21 / CNBC 2022-07-12). 게시일 미상 0%는 달성했지만 **교차 확인의 폭은 오히려 좁아졌다** — 규제공시를 우선하라는 기준을 따른 결과이고 등급 산식도 A 를 주지만, 회사가 안 쓴 각도(고객 불만·경쟁사 반응·사후 평가)는 이 배치에 하나도 안 들어 있다. 깊이 보강 라운드에서 케이스당 독립 2차 1건 이상을 목표로 할 것 |
 
 ### 2-3. 미착수 작업
 
@@ -441,6 +444,87 @@ DART 원문 대조에 실패했다(L-51 — "공시가 없다"가 아니라 "대
 3. **RETENTION·SUPPLY 각 1건** — 넣으면 7종 중 6종이 매칭 가능해진다.
 4. 그 다음은 폭이 아니라 **깊이** — 같은 병목에 3번째 브랜드를 넣어 선례축이 0.4→1.0 으로 붙게 한다
    (현재 산식은 케이스 2건에서 포화한다).
+
+### 2-10. 케이스스터디 트랙 2026-09-06 5차 (병목 7종 페어 완성, append-only)
+
+세션이 리셋된 상태에서 시작했다. 그래서 **로그의 서술을 근거로 쓰지 않고 DB 에 직접 쿼리해서
+현재 상태를 먼저 실측했다.** 아래 (1)과 (2)를 섞어 적지 않는 게 이 절의 목적이다(§7.1).
+
+#### (1) 세션 리셋 전에 **이미 돼 있던 것** (이번에 확인만 했다)
+
+- `case_studies` 10건 / `case_moves` 20개 / `case_evidence` 38건 — §2-9 (4)의 기록과 실측이 일치.
+- `kurly-unit-economics` 는 여전히 `approved` 다. **건드리지 않았다.**
+- L-51(컬리 DART 원문 대조 실패)이 이 문서 안에 **"대조하지 못했다"** 표현 그대로 살아 있다.
+  "공시가 없다"로 바뀌어 있지 않다. 원문 확인함. DART 대조는 이번 라운드 범위 밖 — 백로그 유지.
+- `drafts/threads/` 초안 2건, `posts` 행 `b0133f9a-…` 는 그대로.
+
+#### (2) 확인해 보니 **아직 안 돼 있던 것**
+
+- ⚠️ **마이그레이션 `20260906000002_posts_pending_review` 는 미적용이다.** L-52 는 해소가 아니다.
+  로그 서술만 보면 애매해서 **실측했다** — `scripts/case-draft-stage.mjs` 를 다시 돌렸고
+  `pending_review` INSERT 가 23514 로 거절돼 폴백 배너와 함께 **exit 3** 이 났다.
+  `posts.b0133f9a-…` 는 `status='draft'` · `published_at=null` 그대로다.
+  → 대시보드(ref `qmgrfqjfxqhxuufrnkwf`) SQL Editor 실행 대기. §12-5 상 CLI·MCP 실행 금지.
+
+#### (3) 이번에 **새로 한 것** — 케이스 5건 추가
+
+미페어 병목 4종(TRUST +1 / RETENTION +1 / SUPPLY +1 / AWARENESS +2)을 채웠다.
+브랜드 선정 기준은 **게시일이 확인되는 규제 공시가 있는 곳** — 게시일 미상 비율 0%를 유지하려고
+전부 상장사(SEC 공시)로 갔다. Liquid Death 는 지시대로 손대지 않았다(비상장·추정치 구조 문제, L-47).
+
+**판정표** — 자동 규칙 `C등급 이상 무브 2개 → approved` 를 그대로 적용했고,
+전부 충족해서 5건 모두 `reviewed_by='자동규칙(C등급이상 무브2)'` 로 승인했다(사람 승인 `남헌` 과 구분됨).
+
+| 케이스 | 병목 | 무브(등급·방향) | 근거 | 핵심 수치 | 판정 |
+|---|---|---|---|---|---|
+| `carvana-360-imaging-trust` | TRUST | PRODUCT_FEATURE [A] positive / OFFER [A] positive | 4건 (S-1 2017-03-31) | 판매 2,105→18,761대, 시장 3→21개 | ✅ approved |
+| `chewy-autoship-retention` | RETENTION | PACKAGING [A] positive / PRODUCT_FEATURE [A] positive | 4건 (10-K 2024-03-20 + Retail Dive 2024-03-21) | Autoship 매출비중 70.5→76.2%, 고객당 434→555달러 | ✅ approved |
+| `peloton-owned-manufacturing-exit` | SUPPLY | OPERATIONS [A] **negative** / PARTNERSHIP [A] **negative** | 5건 (10-K 2022-09-07 + CNBC 2022-07-12) | 진부재고 충당금 38.7→224.9백만달러, Output Park 86.6백만달러 매각전환 | ✅ approved |
+| `elf-beauty-awareness-engine` | AWARENESS | CONTENT [A] positive / POSITIONING [A] positive | 6건 (10-K 2021-05-27 · 2024-05-23) | 마케팅비중 16→25%, 순매출 318.1→1,023.9백만달러 | ✅ approved |
+| `nubank-word-of-mouth-acquisition` | AWARENESS | COMMUNITY [A] positive / PRICING [A] positive | 5건 (20-F 2023-04-20) | 고객 53.9→74.6백만명, ARPAC 4.5→7.8달러 | ✅ approved (단 **L-56**) |
+
+- `validate --all` **error 0** (exit 0), `case-pipeline-selftest.mjs` **58/0** 통과.
+- Peloton 무브 2개는 `negative` 인데 **둘 다 A** 라 설계 §2-4 상 발행 가능하다.
+  (A 미만이면 저장은 되고 발행만 잠긴다 — 이번엔 해당 없음.)
+- **이번 라운드는 새 Threads 초안을 만들지 않았다.** 커버리지만 채웠다.
+
+#### (4) 근거가 약한 지점 — 숨기지 않고 등재했다 (L-56 · L-57 · L-58)
+
+- **L-56** Nubank 의 A 등급은 "검증된 수치"가 아니다. 20-F 스스로 운영지표가 제3자 검증을 안 거쳤다고
+  적어 놨는데 산식은 공시 1건으로 A 를 준다. 케이스 단위 근거 행에 그 원문을 박아 뒀다.
+- **L-57** SUPPLY 페어(Oatly·Peloton)가 **같은 실패형의 반복**이다. 무브 4개 전부 negative.
+  숫자상 짝은 섰지만 "그럼 어떻게 푸나"에 대한 답이 한 방향뿐이다.
+- **L-58** 5차 배치 근거 24건 중 22건이 발행사 규제공시다. 독립 2차는 2건뿐 — 게시일 미상 0%와
+  교차 확인 폭은 서로 반대로 움직였다.
+
+#### (5) 병목×케이스 커버리지 (DB 실측 2026-09-06, 5차 이후)
+
+케이스 **15건**(approved 14 / draft 1) · 무브 **30개**(approved 28 / draft 2)
+
+| 병목 | approved 케이스 | 짝 | 비고 |
+|---|---|---|---|
+| AWARENESS | e.l.f. · Nubank | ✅ | 5차 신규 2건. Liquid Death 는 `draft` 유지(L-47) |
+| TRUST | Warby Parker · Carvana | ✅ | 5차 신규 1건 |
+| CONVERSION | Notion · Slack | ✅ | 변동 없음 |
+| RETENTION | Duolingo · Chewy | ✅ | 5차 신규 1건 |
+| UNIT_ECONOMICS | Casper · 컬리 | ✅ | 컬리 근거 보강 미완(L-51) |
+| DISTRIBUTION | 조선미녀 · Figma | ✅ | 변동 없음 |
+| SUPPLY | Oatly · Peloton | ✅ | 5차 신규 1건. **다만 대조가 아니라 반복(L-57)** |
+
+**→ 병목 7종 전부 페어 완성(7/7). M1 조건인 "병목당 케이스 2건"은 수치상 충족됐다.**
+단 SUPPLY 는 방향이 한쪽뿐이라 실질 매칭 품질은 6.5/7 로 읽는 게 정직하다(L-57).
+
+#### (6) 다음 우선순위 — 자체 판단
+
+**폭 확장보다 깊이·근거 보강이 먼저다.** 7종이 다 찼으므로 다음 케이스 1건이 커버리지에 주는
+한계 효용은 0 에 가깝고, 지금 병목은 "선례가 없다"가 아니라 **"선례의 근거가 한쪽으로 쏠려 있다"**다.
+
+1. **SUPPLY 성공 대조군 1건** (L-57) — 유일하게 폭이 아직 부족한 자리. 페어가 반복이라 매칭 답이 편향된다.
+2. **컬리 DART 원문 대조** (L-51) — 유일하게 `is_regulatory_filing=false` 로 낮춰 둔 케이스이고,
+   UNIT_ECONOMICS 페어 한쪽이 C2 다. 사람이 DART 에서 원문을 열어야 풀린다.
+3. **마이그 `20260906000002` 적용** (L-52) — 남헌 전용. 이게 풀려야 발행-대기 상태가 생초안과 구분된다.
+4. **케이스당 독립 2차 1건 보강** (L-58) — 회사가 안 쓴 각도를 넣는 작업. 4건은 지금 공시 단일 출처다.
+5. 그 다음이 3번째 브랜드(선례축 0.4→1.0). **지금 넣으면 위 4개를 미룬 채 숫자만 늘리는 게 된다.**
 
 
 ---

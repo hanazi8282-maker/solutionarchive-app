@@ -12,7 +12,13 @@
   "period_start": "2016-01-01",
   "period_end": "2025-03-31",
   "summary": "디자인 도구의 시장 규모는 '디자이너 수'로 잘린다. 피그마는 그 천장을 도구를 브라우저 링크 위에 올려 넘겼다 — 파일을 보려고 설치·구매할 필요가 없으니 개발자·PM·마케터가 그냥 들어온다. 월 활성 사용자 1,300만 명 중 3분의 2가 디자이너가 아니고, 그 비디자이너가 유료 좌석의 진입로가 됐다. 조선미녀와 같은 DISTRIBUTION 병목이지만 유통망을 뚫은 게 아니라 제품 자체를 유통 단위로 만든 방식이다.",
-  "tags": ["SaaS", "PLG", "브라우저", "협업", "확산단위"],
+  "tags": [
+    "SaaS",
+    "PLG",
+    "브라우저",
+    "협업",
+    "확산단위"
+  ],
   "researched_by": "claude-code (Opus 5)",
   "moves": [
     {
@@ -71,6 +77,32 @@
       "published_at": "2025-07-01",
       "snippet": null,
       "supports_claim": "S-1 제출 사실과 주요 수치의 독립 보도. 회사가 낸 숫자를 옮긴 기사라 수치 자체의 교차검증은 아니고, 공시 존재와 날짜의 확인으로만 쓴다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.mostlymetrics.com/p/figma-ipo-s1-breakdown",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": false,
+      "published_at": "2025-07-02",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Net Dollar Retention (NDR): 134% in 2024; 132% as of Q1 2025",
+      "supports_claim": "S-1 밖에서 134 → 132% 를 둘 다 싣고 있는 유일한 출처(2026-09-06 본문 직접 대조). 같은 매체가 별도 글에서 Figma 의 NDR 산식이 역방향이라 최근 12개월 이탈 고객이 계산에 안 보인다고 지적한다. ★ 원문 해설이지 독립 실측이 아니라 tertiary 로 둔다(L-58)."
+    },
+    {
+      "move": 1,
+      "url": "https://tomtunguz.com/figma-s1-analysis/",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": false,
+      "published_at": "2025-07-02",
+      "retrieved_at": "2026-09-06",
+      "snippet": null,
+      "supports_claim": "벤처투자자 Tomasz Tunguz 의 S-1 분석. 132% 가 본문에 실린 것을 2026-09-06 직접 대조했다. 스니펫은 문장 원형을 확정하지 못해 비워 둔다(§7.1). 원문 해설이라 tertiary."
     }
   ]
 }

@@ -68,8 +68,26 @@ const item = {
 }
 
 // ── 2) 초안 행 ────────────────────────────────────────────────
+//
+// ★ 등급을 여기 하드코딩하지 않는다. 재채점(case-review.mjs regrade)으로 바뀌는 값이라
+//   박아 두면 초안 안의 출처 표기가 조용히 옛말이 된다. 실제로 '등급 A' 로 적혀 있었는데
+//   L-56 백필 후 이 무브는 B 가 됐다 — 발행 대기 중인 글이 틀린 근거 표기를 달고 있었다.
+const moveRes = await supabase.from('case_moves')
+  .select('lever, evidence_grade, outcome_direction, case_studies(bottleneck)')
+  .eq('id', MOVE_ID).maybeSingle()
+if (moveRes.error || !moveRes.data) {
+  console.error(`⚠️ 확인 불가: case_moves ${MOVE_ID} 조회 실패 — ${moveRes.error?.code ?? '행 없음'} ${moveRes.error?.message ?? ''}`)
+  process.exit(2)
+}
+const move = moveRes.data
+const bottleneck = move.case_studies?.bottleneck ?? '?'
+if (move.evidence_grade !== 'A') {
+  console.log(`⚠️ 이 초안이 딛고 선 무브의 등급이 ${move.evidence_grade} 다 (A 가 아니다).`)
+  console.log('   저장은 하되 그 사실을 초안 메모에 적는다. 발행 여부는 사람이 다시 판단할 자리다.')
+}
+
 const notes = [
-  `케이스 ${CASE_SLUG} / case_moves ${MOVE_ID} (TRUST · CHANNEL · 등급 A · mixed)`,
+  `케이스 ${CASE_SLUG} / case_moves ${MOVE_ID} (${bottleneck} · ${move.lever} · 등급 ${move.evidence_grade} · ${move.outcome_direction})`,
   `판정 로그 ${LOG_CODE} / 게이트 판정 전문 drafts/threads/2026-09-06-warby-home-try-on.md`,
   `게이트: 예외통과 (U-3 ②항 미충족 — 레퍼런스 4건의 댓글 실물 미확보)`,
   `자기답글(고정 댓글, ${[...selfReply].length}자):\n${selfReply}`,

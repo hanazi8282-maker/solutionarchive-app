@@ -1,0 +1,103 @@
+{
+  "slug": "peloton-owned-manufacturing-exit",
+  "brand_name": "Peloton",
+  "market": "커넥티드 피트니스 기기 · 구독",
+  "geo": "US 본사 / 글로벌 판매",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "ONE_OFF",
+  "price_band": "HIGH",
+  "bottleneck": "SUPPLY",
+  "outcome_status": "pivoted",
+  "period_start": "2020-12-01",
+  "period_end": "2022-09-07",
+  "summary": "2020년 펠로톤의 병목은 수요가 아니라 공급이었다 — 주문을 받아도 못 보냈다. 회사는 이걸 위탁 확대가 아니라 자체 생산능력 확보로 풀었다(프리코 인수, 오하이오 Peloton Output Park 신설). 그런데 수요가 꺾이자 같은 설비와 재고가 정확히 반대로 작동했다. FY2022 초과·진부 재고 충당금 조정액은 224.9백만 달러로 전년 38.7백만 달러의 5.8배가 됐고, 2022-07-12 회사는 자체 생산에서 전면 철수해 대만 Rexon 위탁으로 되돌아갔다. 오하이오 공장은 86.6백만 달러를 넣은 채 '팔 건물'이 됐다. 오틀리와 같은 실패 형태이고, 그래서 SUPPLY 병목에서 자체 생산은 되돌릴 수 없는 베팅이라는 점이 두 사례에서 반복 관측된다.",
+  "tags": ["커넥티드피트니스", "생산능력", "수직계열화", "실패사례", "재고", "위탁생산", "negative"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "OPERATIONS",
+      "claim": "배송 지연이라는 공급 병목을 자체 생산능력 확보로 풀기로 하고 설비와 재고를 앞당겨 쌓았다. 수요가 반전되자 그 재고가 그대로 손실이 됐다 — 초과·진부 재고 충당금 조정액이 한 해 만에 38.7백만 달러에서 224.9백만 달러로 늘었다. 회사 스스로 10-K 위험요인에 '최근 소비자 수요 감소와 재고 증가를 겪었다'고 적었다.",
+      "outcome_direction": "negative",
+      "metric_name": "초과·진부 재고 충당금 조정액 (excess and obsolete inventory reserve adjustments)",
+      "metric_before": 38.7,
+      "metric_after": 224.9,
+      "metric_unit": "백만 USD",
+      "observed_period_start": "2021-07-01",
+      "observed_period_end": "2022-06-30"
+    },
+    {
+      "lever": "PARTNERSHIP",
+      "claim": "2022-07-12 자체 생산에서 전면 철수하고 기존 위탁사인 대만 Rexon Industrial 과의 관계를 확대한다고 발표했다. 2021년 5월에 짓겠다고 발표했던 오하이오 Peloton Output Park 은 86.6백만 달러를 투입한 시점에 '매각용 산업건물'로 용도가 바뀌었다. 공급 병목을 자체 설비로 푸는 선택은 되돌릴 때 투입액을 거의 그대로 버리게 된다.",
+      "outcome_direction": "negative",
+      "metric_name": "Peloton Output Park 누적 투자액 (매각 대상으로 전환)",
+      "metric_before": 0,
+      "metric_after": 86.6,
+      "metric_unit": "백만 USD",
+      "observed_period_start": "2021-05-01",
+      "observed_period_end": "2022-06-30"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1639825/000163982522000117/pton-20220630.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2022-09-07",
+      "retrieved_at": "2026-09-06",
+      "snippet": "We have recently experienced a decrease in consumer demand and an increase in our inventory levels. Inventory levels in excess of consumer demand has resulted in, and may continue to result in inventory write-downs or write-offs and the sale of excess inventory at discounted prices",
+      "supports_claim": "FY2022 10-K(회계연도 종료 2022-06-30, EDGAR 접수일 2022-09-07) 위험요인. 수요 감소와 재고 증가가 동시에 왔다는 것을 회사가 직접 인정한 문장."
+    },
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1639825/000163982522000117/pton-20220630.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2022-09-07",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Impairment expense 390.5 4.5 1.2 Excess and obsolete inventory reserve adjustments 224.9 38.7 ( 1.2 )",
+      "supports_claim": "현금흐름표 조정 항목. 왼쪽부터 FY2022·FY2021·FY2020 이다. 38.7 → 224.9 백만 달러가 무브 수치의 출처다. 같은 줄의 손상차손 390.5백만 달러도 같은 방향의 신호지만 재고만이 아니라 영업권·자산 손상을 포함하므로 무브 수치로는 쓰지 않았다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1639825/000163982522000117/pton-20220630.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2022-09-07",
+      "retrieved_at": "2026-09-06",
+      "snippet": "On July 12, 2022, we announced we are exiting all owned-manufacturing operations and our expansion of our current relationship with Taiwanese manufacturer Rexon Industrial Corp.",
+      "supports_claim": "자체 생산 전면 철수와 위탁 확대의 원문 근거. 날짜(2022-07-12)와 상대사(Rexon Industrial Corp.)가 공시에 그대로 적혀 있다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1639825/000163982522000117/pton-20220630.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2022-09-07",
+      "retrieved_at": "2026-09-06",
+      "snippet": "While we previously intended to use Peloton Output Park to manufacture some of our Connected Fitness Products, we currently are marketing and intend to sell the Ohio facility. As of June 30, 2022, we had invested approximately $86.6 million to build an industrial building for sale.",
+      "supports_claim": "86.6백만 달러 수치의 출처. 주의 — 이 금액은 '오하이오 부지에 실제로 집행한 금액'이지 2021년 5월 발표 당시 예고했던 총투자 계획액이 아니다. 계획액과 집행액을 섞어 쓰지 않기 위해 무브 수치는 집행액만 썼다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.cnbc.com/2022/07/12/peloton-to-outsource-all-manufacturing-as-part-of-its-turnaround-efforts.html",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2022-07-12",
+      "retrieved_at": "2026-09-06",
+      "snippet": null,
+      "supports_claim": "발표 당일 독립 보도. 게시일은 URL 경로(2022/07/12)와 검색 결과에서 확인했다. 10-K 가 사후에 요약한 것과 달리 발표 시점의 맥락(구독 사업 중심 전환, Tonic 공장 가동 중단)을 담고 있다. 스니펫은 원문 문장을 글자 그대로 확보하지 못해 비워 뒀다."
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "slug": "nubank-word-of-mouth-acquisition",
+  "brand_name": "Nubank (Nu Holdings)",
+  "market": "디지털 은행 · 신용카드",
+  "geo": "BR / MX / CO",
+  "business_model": "SERVICE",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "AWARENESS",
+  "outcome_status": "active",
+  "period_start": "2013-01-01",
+  "period_end": "2022-12-31",
+  "summary": "브라질 은행 시장에서 신규 진입자의 병목은 인지였다. 지점도 광고 예산도 없는 회사를 사람들이 알 방법이 없었다. 누방크는 그걸 광고로 풀지 않고 '광고 없이 알려지는 상품'을 만드는 쪽으로 풀었다 — 20-F 에 따르면 창업 이래 매년 평균 고객의 약 80~90%를 구전이나 기존 고객의 무상 추천으로, 직접 마케팅비 없이 획득했다. 고객 수는 2021년 말 53.9백만 명에서 2022년 말 74.6백만 명이 됐다. 수익화는 획득 이후로 미뤘다: 월 ARPAC 은 4.5달러에서 7.8달러로 올랐고 고객당 서비스 비용은 0.8달러로 유지됐다. 인지 병목을 마케팅 예산이 아니라 상품 구조로 푼 형태다.",
+  "tags": ["핀테크", "디지털뱅크", "구전", "추천", "무료상품", "라틴아메리카"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "COMMUNITY",
+      "claim": "유료 획득 대신 구전과 기존 고객의 무상 추천을 주 채널로 삼았다. 회사는 창업 이래 매년 평균 고객의 약 80~90%를 직접 마케팅비 없이 이렇게 획득했다고 공시한다. 고객 수는 1년 만에 53.9백만 명에서 74.6백만 명으로 20.7백만 명 늘었다.",
+      "outcome_direction": "positive",
+      "metric_name": "누적 고객 수",
+      "metric_before": 53.9,
+      "metric_after": 74.6,
+      "metric_unit": "백만 명",
+      "observed_period_start": "2021-12-31",
+      "observed_period_end": "2022-12-31"
+    },
+    {
+      "lever": "PRICING",
+      "claim": "수수료 없는 저마찰 상품을 입구로 걸어 인지를 사고, 수익화는 획득 이후 교차판매로 미뤘다. 고객당 서비스 비용이 0.8달러로 그대로인 동안 월 ARPAC 만 4.5달러에서 7.8달러로 올랐다 — 획득 단가를 광고비가 아니라 초기 상품 가격에 넣은 구조의 뒷단이다.",
+      "outcome_direction": "positive",
+      "metric_name": "월 활성 고객당 매출 (Monthly ARPAC)",
+      "metric_before": 4.5,
+      "metric_after": 7.8,
+      "metric_unit": "USD",
+      "observed_period_start": "2021-01-01",
+      "observed_period_end": "2022-12-31"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1691493/000129281423001671/nuform20f_2022.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2023-04-20",
+      "retrieved_at": "2026-09-06",
+      "snippet": "we (1) acquired approximately 80%-90% of our customers organically on average per year since our inception, either through word-of-mouth or a direct unpaid referral from an existing customer without incurring direct marketing expenses",
+      "supports_claim": "FY2022 20-F(EDGAR 접수일 2023-04-20). Nu Holdings 는 케이맨 법인이라 10-K 가 아니라 20-F 를 낸다. 80~90%는 회사가 밝힌 범위이지 단일 실측치가 아니다 — 무브 수치로 쓰지 않고 서술로만 뒀다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1691493/000129281423001671/nuform20f_2022.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2023-04-20",
+      "retrieved_at": "2026-09-06",
+      "snippet": "We reached 74.6 million customers as of December 31, 2022, an increase of 38% compared to 53.9 million customers as of December 31, 2021, resulting in a net addition of 20.7 million customers over the 12-month period",
+      "supports_claim": "고객 수 53.9 → 74.6백만 명의 출처. 회사 정의상 '계좌를 개설했고 상각·차단·자진해지되지 않은 개인 및 SME'다 — 활성 고객이 아니라 누적 개설 기준이다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1691493/000129281423001671/nuform20f_2022.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2023-04-20",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Monthly ARPAC was US$7.8 for the year ended December 31, 2022, compared to US$4.5 for the year ended December 31, 2021 (a 66% increase YoY compared to a US$4.7 on an FX neutral basis).",
+      "supports_claim": "ARPAC 4.5 → 7.8달러의 출처. 괄호 안 FX 중립 기준 4.7달러가 함께 적혀 있다 — 환율 효과를 뺀 증가폭은 공시된 66%보다 작다. 이 케이스를 인용할 때 66%만 떼어 쓰면 과장이 된다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1691493/000129281423001671/nuform20f_2022.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2023-04-20",
+      "retrieved_at": "2026-09-06",
+      "snippet": "our monthly average cost to serve per active customer remained stable at US$0.8 in 2022 and 2021, reinforcing the operational leverage advantage of our model",
+      "supports_claim": "고객당 서비스 비용이 고정된 채 ARPAC 만 올랐다는 근거. '획득을 공짜로 하면 남는 건 서빙 단가뿐'이라는 이 케이스의 구조를 뒷받침한다."
+    },
+    {
+      "url": "https://www.sec.gov/Archives/edgar/data/1691493/000129281423001671/nuform20f_2022.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2023-04-20",
+      "retrieved_at": "2026-09-06",
+      "snippet": "monthly ARPAC, monthly average cost to serve per customer, client acquisition cost and our NPS, among other metrics, which are not independently verified by any third party",
+      "supports_claim": "케이스 단위 경고. 이 케이스의 수치는 전부 회사가 스스로 정의하고 스스로 집계한 운영지표이고, 20-F 본문이 '제3자의 독립 검증을 받지 않았다'고 명시한다. 등급 산식은 법정 공시라는 이유로 A 를 주지만, 그 A 는 '숫자가 검증됐다'는 뜻이 아니라 '허위기재에 법적 책임이 따르는 문서에 적혔다'는 뜻이다. 이 간극은 L-코드로 등재했다."
+    }
+  ]
+}

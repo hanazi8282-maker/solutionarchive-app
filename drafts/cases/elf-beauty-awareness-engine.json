@@ -1,0 +1,115 @@
+{
+  "slug": "elf-beauty-awareness-engine",
+  "brand_name": "e.l.f. Beauty",
+  "market": "매스 화장품 · 색조",
+  "geo": "US",
+  "business_model": "WHOLESALE",
+  "buyer_type": "B2B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "AWARENESS",
+  "outcome_status": "active",
+  "period_start": "2020-04-01",
+  "period_end": "2024-03-31",
+  "summary": "엘프의 병목은 제품도 유통도 아니라 인지였다 — 회사는 FY2024 10-K 본문에 '우리 브랜드 인지도는 기존 매스 뷰티 브랜드에 비해 낮다고 본다'고 직접 쓴다. 대응은 예산을 아끼는 쪽이 아니라 반대였다. 마케팅·디지털 지출을 FY2021 49.7백만 달러(순매출의 약 16%)에서 FY2024 256.0백만 달러(약 25%)로 올렸다. 저가 브랜드가 매출의 4분의 1을 인지에 쓰는 구조다. 같은 기간 순매출은 318.1백만 달러에서 1,023.9백만 달러가 됐다. 인지 병목에서는 '싸니까 마케팅비를 못 쓴다'가 아니라 '싸기 때문에 인지에 몰아야 한다'는 반대 방향의 선택이 나올 수 있다는 사례다.",
+  "tags": ["뷰티", "인지도", "마케팅비중", "가격대조", "소셜", "매스브랜드"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "CONTENT",
+      "claim": "인지 병목을 예산 절감이 아니라 예산 비중 확대로 풀었다. 마케팅·디지털 지출을 순매출의 약 16%에서 약 25%로 올렸다 — 저가 매스 브랜드에서 흔한 배분이 아니다. 매체는 전통 매체가 아니라 디지털·소셜 쪽에 몰았다고 회사가 같은 문단에서 밝힌다.",
+      "outcome_direction": "positive",
+      "metric_name": "마케팅·디지털 지출이 순매출에서 차지하는 비중",
+      "metric_before": 16,
+      "metric_after": 25,
+      "metric_unit": "%",
+      "observed_period_start": "2020-04-01",
+      "observed_period_end": "2024-03-31"
+    },
+    {
+      "lever": "POSITIONING",
+      "claim": "프레스티지 제품과의 1:1 가격 대조(11달러 대 38달러 식)를 공시 본문에 넣을 정도로 전면화해서, 브랜드를 따로 설명하지 않아도 '아는 그 제품의 저가판'으로 인지되게 했다. 인지도가 낮은 브랜드가 남의 인지도를 빌리는 방식이다. 같은 기간 순매출은 318.1백만 달러에서 1,023.9백만 달러로 늘었다.",
+      "outcome_direction": "positive",
+      "metric_name": "연간 순매출",
+      "metric_before": 318.1,
+      "metric_after": 1023.9,
+      "metric_unit": "백만 USD",
+      "observed_period_start": "2020-04-01",
+      "observed_period_end": "2024-03-31"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1600033/000160003321000030/elf-20210331.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2021-05-27",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Total expenses for marketing and digital in the year ended March 31, 2021 were $49.7 million, approximately 16% of our net sales.",
+      "supports_claim": "FY2021 10-K(회계연도 종료 2021-03-31, EDGAR 접수일 2021-05-27). 비중 16%의 출발점."
+    },
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1600033/000160003324000020/elf-20240331.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2024-05-23",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Total expenses for marketing and digital in the fiscal year ended March 31, 2024 were $256.0 million, approximately 25% of our net sales.",
+      "supports_claim": "FY2024 10-K(회계연도 종료 2024-03-31, EDGAR 접수일 2024-05-23). 비중 25%의 도착점. 두 수치가 같은 회사의 같은 항목 정의(marketing and digital)라서 3년 간격 비교가 성립한다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1600033/000160003324000020/elf-20240331.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2024-05-23",
+      "retrieved_at": "2026-09-06",
+      "snippet": "We believe that our brand awareness is relatively low in comparison to legacy mass beauty brands. This represents an opportunity for us, and we have a multi-faceted strategy to build brand awareness, affinity and loyalty.",
+      "supports_claim": "병목이 인지라는 것을 회사가 직접 규정한 문장. 매출 1,000백만 달러를 넘긴 해의 10-K 에도 이 문장이 남아 있다는 게 이 케이스의 핵심 — 인지 병목은 매출이 커져도 자동으로 풀리지 않는다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1600033/000160003324000020/elf-20240331.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2024-05-23",
+      "retrieved_at": "2026-09-06",
+      "snippet": "the e.l.f. Cosmetics Halo Glow Liquid Filter at $14 versus a prestige item at $49, and the e.l.f. SKIN Holy Hydration! Makeup Melting Cleansing Balm at $11 versus a prestige item at $38.",
+      "supports_claim": "가격 대조가 마케팅 카피가 아니라 10-K 사업 설명에 들어가 있다는 근거. 프레스티지 제품명은 공시에도 익명이다 — '어느 제품 대비'인지는 회사가 밝히지 않았고, 우리도 추정해서 채우지 않았다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1600033/000160003321000030/elf-20210331.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2021-05-27",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Net sales increased $35.3 million, or 12%, to $318.1 million in the year ended March 31, 2021, from $282.9 million in the year ended March 31, 2020.",
+      "supports_claim": "순매출 318.1백만 달러(FY2021)의 출처."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1600033/000160003324000020/elf-20240331.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2024-05-23",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Net sales increased $445.1 million, or 77%, to $1,023.9 million in the fiscal year ended March 31, 2024, from $578.8 million in the fiscal year ended March 31, 2023.",
+      "supports_claim": "순매출 1,023.9백만 달러(FY2024)의 출처. 다만 공시는 이 증가를 '리테일러·이커머스 채널 전반의 강세'로 설명하지 가격 대조 포지셔닝에 귀속하지 않는다. 이 무브의 수치는 인과가 아니라 같은 기간의 결과로만 읽어야 한다."
+    }
+  ]
+}

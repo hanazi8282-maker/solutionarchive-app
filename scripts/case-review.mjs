@@ -19,13 +19,14 @@
 //   node --env-file=.env.local scripts/case-review.mjs approve --slug notion --move 0 --by 남헌
 //   node --env-file=.env.local scripts/case-review.mjs approve --slug notion --case   --by 남헌
 //   node --env-file=.env.local scripts/case-review.mjs reject  --slug notion --move 1 --by 남헌
+//   node --env-file=.env.local scripts/case-review.mjs regrade [--slug notion] [--dry]
 //
 // 종료 코드: 0 정상 / 1 음성(거절·불일치) / 2 확인 불가(테이블 없음·설정 없음 등)
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
-import { validateDraft, toRows } from '../lib/cases/draft.ts'
+import { validateDraft, toRows, gradeMove } from '../lib/cases/draft.ts'
 
 const DRAFT_DIR = path.join(process.cwd(), 'drafts', 'cases')
 
@@ -296,13 +297,91 @@ async function decide(status) {
   }
 }
 
+// ────────────────────────────────────────────────────────────
+// regrade — 저장된 등급을 DB 근거로 다시 계산한다
+// ────────────────────────────────────────────────────────────
+//
+// 등급 산식(lib/cases/draft.ts::gradeMove)을 고치면, 이미 들어간 무브의
+// evidence_grade 는 옛 산식 결과로 남는다. 초안 JSON 을 다시 commit 하는 건
+// 답이 아니다 — 그건 승인 상태까지 새로 만드는 짓이다. 그래서 등급만 다시 쓴다.
+//
+// ★ review_status 는 건드리지 않는다. 등급이 내려가도 승인은 사람이 다시 판단한다.
+//
+// ★ is_issuer_defined_metric 이 없으면 **계산하지 않는다**(§7.1).
+//   그 축이 없는 채로 돌리면 전부 false 로 읽혀서 옛 산식과 같은 답이 나오고,
+//   그게 "재계산했더니 그대로였다"처럼 보인다. 확인 불가는 확인 불가로 끝낸다.
+async function regrade() {
+  const dry = flag('dry')
+  const slug = opt('slug')
+
+  const axisProbe = await supabase.from('case_evidence').select('id, is_issuer_defined_metric').limit(1)
+  if (axisProbe.error) {
+    console.error(`✗ 확인 불가: case_evidence.is_issuer_defined_metric 없음 — ${axisProbe.error.code} ${axisProbe.error.message}`)
+    console.error('  → 20260906000003_case_evidence_issuer_defined_metric.sql 미적용이다.')
+    console.error('    이 축 없이 재계산하면 옛 산식과 같은 답이 나온다. 그래서 계산하지 않고 멈춘다(§7.1).')
+    console.error('    §12-5 규약상 대시보드 SQL Editor 에서만 적용한다. 파일 아래쪽 주석 처리된 백필 12쌍도 같이 실행해야 한다.')
+    // 여기서 process.exit 를 부르면 방금 끝난 fetch 의 핸들이 살아 있어 윈도우 노드가
+    // libuv assertion 으로 죽는다(종료코드 127). 확인 불가는 2 로 나가야 한다.
+    process.exitCode = 2
+    return
+  }
+
+  const studies = must(
+    await supabase.from('case_studies').select('id, slug, brand_name')
+      .order('slug', { ascending: true }),
+    'case_studies SELECT',
+  ).filter(s => !slug || s.slug === slug)
+  if (slug && studies.length === 0) { console.error(`✗ 음성: slug=${slug} 없음`); process.exit(1) }
+
+  const before = {}
+  const after = {}
+  let changed = 0
+  let total = 0
+
+  for (const s of studies) {
+    const moves = await fetchMoves(s.id)
+    const evidence = must(
+      await supabase.from('case_evidence')
+        .select('case_move_id, url, source_tier, is_self_reported, is_estimate, is_regulatory_filing, is_issuer_defined_metric')
+        .eq('case_study_id', s.id),
+      'case_evidence SELECT',
+    )
+    for (const m of moves) {
+      total++
+      const mine = evidence.filter(e => e.case_move_id === m.id)
+      const { grade, reason } = gradeMove(m, mine)
+      before[m.evidence_grade] = (before[m.evidence_grade] ?? 0) + 1
+      after[grade] = (after[grade] ?? 0) + 1
+      if (grade === m.evidence_grade) continue
+      changed++
+      console.log(`${dry ? '·' : '✅'} ${s.slug} / ${m.lever}: ${m.evidence_grade} → ${grade} — ${reason}`)
+      if (!dry) {
+        must(
+          await supabase.from('case_moves').update({ evidence_grade: grade }).eq('id', m.id).select('id'),
+          'case_moves UPDATE',
+        )
+      }
+      if (m.review_status === 'approved' && grade > m.evidence_grade) {
+        console.log(`   ⚠️ 이미 승인된 무브의 등급이 내려갔다. 승인은 그대로 둔다 — 사람이 다시 판단할 자리다.`)
+      }
+    }
+  }
+
+  const fmt = (h) => ['A', 'B', 'C', 'D'].map(g => `${g}${h[g] ?? 0}`).join(' · ')
+  console.log(`\n무브 ${total}개 / 바뀐 것 ${changed}개`)
+  console.log(`  이전 ${fmt(before)}`)
+  console.log(`  이후 ${fmt(after)}`)
+  if (dry) console.log('\n(--dry 였다. DB 는 안 바뀌었다)')
+}
+
 switch (cmd) {
   case 'commit': await commit(); break
   case 'list': await list(); break
   case 'show': await show(); break
   case 'approve': await decide('approved'); break
   case 'reject': await decide('rejected'); break
+  case 'regrade': await regrade(); break
   default:
-    console.error('명령: commit | list | show | approve | reject')
+    console.error('명령: commit | list | show | approve | reject | regrade')
     process.exit(2)
 }

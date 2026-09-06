@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 20260906000001(case_studies / case_moves / case_evidence) 적용 확인.
+// 20260906000001(3테이블) · 20260906000002(posts.status 어휘) · 20260906000003(is_issuer_defined_metric) 적용 확인.
 //
 // 사용:
 //   node --env-file=.env.local scripts/case-pipeline-verify.mjs
@@ -117,6 +117,23 @@ await check('case_moves.valid_until 이 없는가 (설계상 없어야 정상)',
   return '없다 (observed_period_start/end 로 대체)'
 })
 
+console.log('\n## 20260906000003 — case_evidence.is_issuer_defined_metric (L-56)\n')
+
+// ★ 이건 **컬럼** 추가라서 select(컬럼명) 이 맞는 확인 방법이다.
+//   바로 아래 20260906000002 와 확인 방법이 다른 이유를 그쪽 주석에 적어 뒀다.
+await check('is_issuer_defined_metric 컬럼', columns('case_evidence', 'id, is_issuer_defined_metric'))
+
+// 백필은 통과/실패가 아니라 **진척도**다. 0 이어도 정상이다 — 스키마만 적용하고
+// 판정(어떤 근거가 감사 범위 밖인가)은 사람이 따로 검토해 넣기로 한 설계다.
+{
+  const { count, error } = await supabase.from('case_evidence')
+    .select('id', { count: 'exact' }).eq('is_issuer_defined_metric', true).limit(1)
+  const { count: total } = await supabase.from('case_evidence').select('id', { count: 'exact' }).limit(1)
+  console.log(error
+    ? `  · 백필 진척도 — 확인 불가 (컬럼이 없다: ${error.code})`
+    : `  · 백필 진척도 — ${count ?? 0} / ${total ?? 0} 행이 '발행사 자체 정의 지표'로 표시돼 있다`)
+}
+
 if (PROBE) {
   console.log('\n## 제약 프로브 (양성 = 정상 INSERT / 음성 = 거절돼야 정상)\n')
 
@@ -204,6 +221,65 @@ if (PROBE) {
   if (left) {
     unknown++
     console.log(`  ⚠️ 프로브 행 ${left}건이 남아 있다 — slug LIKE '__probe-case-pipeline%' 를 직접 지워라`)
+  }
+}
+
+console.log('\n## 20260906000002 — posts.status 어휘에 pending_review 가 있는가 (L-52)\n')
+
+// ★★ 확인 방법을 틀리기 쉬운 자리다. 실제로 틀렸다.
+//
+//   이 마이그레이션은 컬럼을 추가하지 않는다. posts_status_check 의 **허용 값**에
+//   'pending_review' 를 더할 뿐이다. 그런데 6차 라운드에서 임시 스크립트가
+//   `supabase.from('posts').select('pending_review')` 로 확인했다 — 값을 컬럼명
+//   자리에 넣은 것이라 적용됐든 안 됐든 42703 이 돌아온다. 그 42703 을
+//   "미적용"으로 읽어서 이미 적용된 마이그를 미적용이라고 보고했다.
+//
+//   "내 쿼리가 틀렸다"를 "확인 결과 음성"으로 접은 것이고, 정확히 §7.1 이 막으라는
+//   실수다. 어휘는 읽어서 알 수 없다 — **넣어 봐야** 안다. 그래서 이 검사는
+//   --probe 에서만 판정하고, 그 밖에서는 양성으로 접지 않고 확인 불가로 남긴다.
+if (!PROBE) {
+  unknown++
+  console.log("  ⚠️ 확인 불가 — CHECK 어휘는 INSERT 를 해 봐야 안다. --probe 로 다시 돌려라")
+  console.log("     (읽기만으로 '적용됨'이라고 답할 수 있는 방법이 없다. 없다고 답하지도 않는다)")
+} else {
+  const { data: ch } = await supabase.from('channels').select('id').limit(1)
+  const channelId = ch?.[0]?.id ?? null
+  // content_code 는 content_items 를 가리키는 FK 라서(posts_content_code_fkey) 아무 문자열이나
+  // 넣으면 23503 이 난다. 그건 CHECK 어휘와 무관한 실패인데 "확인 불가"로 찍혀서 또 헷갈린다.
+  // 컬럼이 nullable 이니 null 로 두고, 지울 때는 body 표식으로 찾는다.
+  const probeBody = '__probe-posts-status__ 검증용 프로브'
+  const cleanPosts = async () => { await supabase.from('posts').delete().eq('body', probeBody) }
+
+  if (!channelId) {
+    unknown++
+    console.log('  ⚠️ 확인 불가 — channels 행이 없어 probe posts 행을 만들 수 없다. "어휘가 없다"가 아니다')
+  } else {
+    await cleanPosts()
+    const mkRow = (status) => ({
+      channel_id: channelId, body: probeBody, char_count: probeBody.length,
+      content_code: null, status, published_at: null,
+    })
+
+    await check("status='pending_review' 가 통과하는가", async () => {
+      const { data, error } = await supabase.from('posts').insert(mkRow('pending_review')).select('id, status')
+      if (error) {
+        if (error.code === '23514') throw absent("CHECK 가 'pending_review' 를 거부했다 (23514) — 마이그 미적용")
+        throw classify(error)
+      }
+      await cleanPosts()
+      return `들어갔다 (status=${data[0].status})`
+    })
+
+    // 오타까지 통과하면 CHECK 가 아예 안 걸린 것이다. 넓힌 게 아니라 열어 둔 것.
+    await check("오타 'pending_reviw' 는 막는가", rejects('posts', mkRow('pending_reviw'), cleanPosts))
+
+    await cleanPosts()
+    const { count: leftPosts } = await supabase.from('posts')
+      .select('id', { count: 'exact' }).eq('body', probeBody).limit(1)
+    if (leftPosts) {
+      unknown++
+      console.log(`  ⚠️ 프로브 posts ${leftPosts}행이 남아 있다 — body='${probeBody}' 를 직접 지워라`)
+    }
   }
 }
 

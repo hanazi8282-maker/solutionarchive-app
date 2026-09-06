@@ -123,8 +123,12 @@ Claude Code 마지막 보고 기준 미정리 항목:
 | L-45 | 초안 5건의 **승인·반려 판단** | 2026-09-06 | 0d | **[해소 2026-09-06]** 4건 DB 반영 완료 — 무브 8개 전부 `approved`, `reviewed_by=남헌`. Liquid Death 는 commit 만 하고 `draft` 유지(보류이지 반려가 아니다, L-47) | `drafts/cases/*.json` 5건은 로컬 파일이고 **DB 미기록**이다. 절차: `case-review.mjs commit <slug>` (review_status='draft' 로 들어감) → `approve --by <이름> --move <n>`. **`--by` 없는 승인은 검수가 아니다** — 누가 승인했는지 없는 승인은 기록으로 못 쓴다 |
 | L-46 | 케이스 콘텐츠의 **발행 게이트 — 기존 R/P/C 재사용 범위** | 2026-09-06 | 0d | **[해소 2026-09-06]** 대조 완료 — 결론은 "C-01~C-12 를 `case_moves` 에 직접 걸지 않는다(층위가 다르다)". `docs/case-study-pipeline-design.md` §2-6 | M1 범위. "새 게이트를 만들지 않는다"는 원칙은 확정. 다만 케이스 무브는 자사 VOC 가 아니라 **타사 관측**이라 C-01~C-12 교차판정 중 그대로 못 쓰는 항목이 있는지 아직 대조하지 않았다 |
 | L-47 | Liquid Death 케이스가 등급 미달 (C1·D1) | 2026-09-06 | 0d | **미해결 (기록만)** | 비상장사라 매출이 전부 Sacra **추정치**다(`is_estimate=true`). 실측 출처가 나오기 전에는 PMF 스코어링 입력으로 쓰지 말 것. **버리지는 않는다** — 근거 축(evidence_grade)과 검수 축(review_status)은 별개다 |
-| L-50 | 신규 초안 5건의 **승인·반려 판단** — Warby Parker / Oatly / Figma / 컬리 / Slack | 2026-09-06 | 0d | **미해결 (남헌 전용, 승인 대기)** | `drafts/cases/` 에 draft 로만 있고 **DB 미기록**이다. 등급은 Warby A2 / Oatly A2 / Figma A2 / Slack A2 / 컬리 C2. 병목은 TRUST · SUPPLY · DISTRIBUTION · UNIT_ECONOMICS · CONVERSION. 절차는 L-45 와 같고 **L-43 이 풀려야 실행된다** |
+| L-50 | 신규 초안 5건의 **승인·반려 판단** — Warby Parker / Oatly / Figma / 컬리 / Slack | 2026-09-06 | 0d | **[해소 2026-09-06]** 남헌이 "완료 기준(C등급 이상 무브 2개)으로 자동 판정" 을 지시 → 5건 전부 충족하여 `approved` 커밋. 근거표 §2-9. 이의가 있으면 `review_status` 만 개별 수정하면 되는 가역 조치다 | `drafts/cases/` 에 draft 로만 있고 **DB 미기록**이다. 등급은 Warby A2 / Oatly A2 / Figma A2 / Slack A2 / 컬리 C2. 병목은 TRUST · SUPPLY · DISTRIBUTION · UNIT_ECONOMICS · CONVERSION. 절차는 L-45 와 같고 **L-43 이 풀려야 실행된다** |
 | L-51 | ⚠️ **컬리 DART 원문 대조 실패** | 2026-09-06 | 0d | **미해결 (확인 불가)** | `dart.fss.or.kr/dsab007/main.do` 가 JS/POST 기반이라 감사보고서 원문을 못 열었다. **"공시가 없다"가 아니라 "대조하지 못했다"다.** 수치는 2025-03-05 실적발표 잠정치를 매체가 옮긴 것이라 `is_self_reported=true` · `is_estimate=true` 로 잡았고, 미대조 행은 `is_regulatory_filing=false` 로 낮췄다 — true 로 두면 등급 산식이 그 한 행으로 A 를 준다. 승인 전 사람이 DART 에서 원문 확인 필요 |
+| L-52 | ⚠️ **마이그레이션 `20260906000002_posts_pending_review` 대시보드 적용** | 2026-09-06 | 0d | **미해결 (남헌 전용)** | 적용 전이라 발행-대기 초안이 `posts.status='draft'` 로 누워 있다. **이건 "게이트를 안 돌렸다"는 뜻이 아니다** — CHECK 가 `pending_review` 를 23514 로 거절해서 폴백한 것이고, `scripts/case-draft-stage.mjs` 가 그 사실을 화면에 찍고 **exit 3** 로 구분해 낸다. 적용 후 같은 스크립트를 재실행하면 정상 값으로 올라간다. §12-5 상 CLI·MCP 직접 실행 금지 |
+| L-53 | 매칭 커버리지 — **병목 7종 중 3종만 짝이 있다** | 2026-09-06 | 0d | **미해결 (데이터 부족)** | 짝 있음: CONVERSION(Notion·Slack) / UNIT_ECONOMICS(Casper·컬리) / DISTRIBUTION(조선미녀·Figma). 브랜드 1곳뿐: TRUST(Warby) · RETENTION(Duolingo) · SUPPLY(Oatly). **AWARENESS 는 0곳** — Liquid Death 가 등급 미달로 `draft` 라서다(L-47). `case-match.mjs --bottleneck AWARENESS` 는 exit 1(음성)로 "조회는 정상인데 선례가 없다"를 명시한다 — 크래시와 구분된다 |
+| L-54 | U-3(관찰) ②항 **댓글 실물 미확보** — 예외통과로 초안이 나갔다 | 2026-09-06 | 0d | **미해결 (1회차 / 3회 누적 시 강제 중단)** | 레퍼런스 `LOG-20260905-01~04` 4건 모두 근거가 좋아요·공유 스크린샷까지고 댓글 본문이 없다. 통과로 적으면 거짓, 탈락으로 적으면 "관찰을 안 했다"가 되어 역시 거짓 → **예외통과 + 사유 명시**로 처리하고 규칙 후보 `NEW-20260906-01` 을 남겼다. 같은 사유 3회 반복 시 초안을 멈추고 댓글 확보 가능한 대상으로 G-R 재실행 |
+| L-55 | PMF 수요축은 **`--project` 를 줘야만 계산된다** | 2026-09-06 | 0d | **미해결 (설계 한계, 기록만)** | `case-match.mjs --slug` 만으로 돌리면 수요축이 `null` 이라 사분면이 나오지 않는다. 케이스는 남의 브랜드 관측이고 `analysis_aspects` 는 우리 프로젝트 수요라 자동 연결 고리가 없다. **0 으로 채우지 않는다** — 수요 없음과 수요 미조회는 다른 사건이다(§7.1) |
 
 ### 2-3. 미착수 작업
 
@@ -324,6 +328,120 @@ Claude Code 마지막 보고 기준 미정리 항목:
   이건 L-50(신규 5건 승인)이 풀리면 바로 충족된다 —
   DISTRIBUTION(조선미녀+Figma) / UNIT_ECONOMICS(Casper+컬리) / CONVERSION(Notion+Slack).
 - 지시대로 **M1 은 이번 라운드에 시작하지 않았다.**
+
+### 2-9. 케이스스터디 트랙 — 2026-09-06 4차 (Phase 2 자동승인 → M1 → M2 발행-대기, append-only)
+
+> ⚠️ **§2-8 의 "M1 은 이번 라운드에 시작하지 않았다"는 그 시점의 사실이고 지금은 아니다.**
+> 남헌 지시로 이번 라운드에 Phase 2 → M1 → M2 를 이어서 돌렸다. §2-8 을 고치지 않고 덧붙인다.
+
+**⚠️ 먼저 밝힐 해석 — "Phase 2 케이스 5건 추가"를 신규 리서치가 아니라 "지난 라운드 초안 5건 처리"로 읽었다.**
+
+프롬프트의 선정 기준 4개가 이미 만들어 둔 5건과 1:1 로 맞아떨어졌다 —
+① UNIT_ECONOMICS 를 다른 브랜드로("컬리류 커머스도 좋고") → 컬리, ② CONVERSION 을 다른 브랜드로("Slack류 협업툴") → Slack,
+③ TRUST·SUPPLY 중 최소 1개 → Warby(TRUST)·Oatly(SUPPLY) **둘 다**, ④ 최소 1건 실패 사례 → Oatly·Casper(negative).
+"컬리류"·"Slack류"라는 표현 자체가 그 초안들을 지칭한다. 새 5건을 더 리서치하면 총 15건이 되는데
+프롬프트의 목표("병목 페어링 조건 충족")는 이미 이 5건으로 달성된다. **새 리서치는 하지 않았다.**
+이 해석이 틀렸다면 다음 라운드에 5건을 추가로 리서치하면 된다 — 되돌릴 것이 없다.
+
+**⚠️ 이름 충돌 — 설계 문서의 M1/M2/M3 과 프롬프트의 M1/M2 가 다르다.**
+`docs/case-study-pipeline-design.md` 는 M0(리서치)/M1(승인)/M2(매칭)/M3(콘텐츠) 로 번호를 매겼고,
+프롬프트는 M1=매칭+스코어링 / M2=콘텐츠로 불렀다. **이 로그는 프롬프트 쪽 이름을 따른다.**
+설계 문서 번호를 고치지 않았다 — 문서는 그 시점 결정의 기록이다.
+
+#### (1) Phase 2 — 자동 승인 판정표
+
+완료 기준은 Phase 1 설계에서 이미 확정된 **"C등급 이상 무브 2개"** 를 그대로 적용했다.
+`reviewed_by` 에는 사람 이름 대신 `자동규칙(C등급이상 무브2)` 를 박았다 — 누가 승인했는지 속이지 않기 위해서다.
+
+| 케이스 | 병목 | 무브 (레버 / 등급 / 방향) | 근거 | 판정 |
+|---|---|---|---|---|
+| Warby Parker `warby-parker-home-try-on` | TRUST | CHANNEL **A** mixed / OFFER **A** positive | 5건 (SEC S-1·8-K×2 = 법정공시 3, retaildive 2차 1, earnestanalytics 추정 1) | **approved** — A2 |
+| Oatly `oatly-capacity-overbuild` | SUPPLY | **A** negative / **A** negative | 4건 | **approved** — A2 |
+| Figma `figma-non-designer-distribution` | DISTRIBUTION | **A** positive / **A** positive | 3건 | **approved** — A2 |
+| Slack `slack-bottom-up-conversion` | CONVERSION | **A** positive / **A** mixed | 3건 | **approved** — A2 |
+| 컬리 `kurly-unit-economics` | UNIT_ECONOMICS | **C** positive / **C** mixed | 3건 (전부 2차·잠정치) | **approved** — C2 (기준 최저선 통과) |
+| *(지난 라운드)* Liquid Death | AWARENESS | **C** / **D** | 3건 (전부 Sacra 추정) | **draft 유지** — 기준 미달, 보류이지 반려가 아니다 (L-47) |
+
+⚠️ **컬리는 기준을 통과했지만 근거가 가장 약하다.** 3건 전부 2차 매체가 옮긴 잠정 실적이고,
+DART 원문 대조에 실패했다(L-51 — "공시가 없다"가 아니라 "대조하지 못했다"). 자동 규칙은 C2 를 통과시키지만,
+**PMF 스코어링에 컬리를 입력으로 쓸 때는 이 한계를 같이 봐야 한다.** 남헌이 `review_status` 만 `draft` 로
+되돌리면 되는 가역 조치다.
+
+#### (2) Phase 3 — M1 매칭 + PMF 스코어링
+
+- `lib/cases/match.ts` (순수 함수) + `scripts/case-match.mjs` (CLI). 커밋 `c8a5db1`.
+- 매칭 규칙: 같은 `bottleneck` · **같은 `case_study_id` 는 자기 자신과 매칭 안 됨** · 케이스와 무브가 **둘 다** approved ·
+  등급 D 배제 · 정렬 `match_score(=등급×10+패싯일치) desc → slug → lever`.
+  패싯(`business_model`/`buyer_type`/`price_band`)은 **거르지 않고 정렬만 한다** — 거르면 짝이 사라진다.
+- PMF 2축: **수요축** = `opportunity_score` 정규화(DB 생성 컬럼, 앱에서 재계산 안 함) / **선례축** = 등급·케이스 수.
+  사분면은 두 축이 다 있을 때만 낸다.
+- 자가검증 `scripts/case-match-selftest.mjs` → **51 통과 / 0 실패**. 지시된 두 케이스가 실제로 들어 있다 —
+  자기 브랜드 배제(§2 그룹), 근거 0건일 때 `no_match`(음성)와 `not_run`(확인 불가)의 구분(§1 그룹).
+
+**실제 실행 3종:**
+
+| 명령 | exit | 결과 |
+|---|---|---|
+| `--slug casper-dtc-unit-economics` | 0 | 컬리 무브 2건 매칭(C). Casper 자기 무브 2건은 제외됨. 선례축 0.400, 수요축 null → **사분면 안 냄** |
+| `--slug notion-template-gallery --project fdc81766…` | 0 | Slack 무브 2건(둘 다 A, `business_model` 일치). 수요축 0.850 / 선례축 0.800 → **PROVEN_DEMAND** |
+| `--bottleneck AWARENESS` | 1 | **음성** — "조회는 정상인데 AWARENESS 선례가 0건이다 (미승인 2건 제외)". 크래시(exit 2)와 구분됨 |
+
+**⚠️ 이번 라운드에 잡은 결함 2건 (둘 다 실데이터 대조에서 나왔다):**
+
+1. **`supabase.from is not a function`** — `createClient()` 가 async 인데 `await` 없이 불러 Promise 를 썼다.
+   정상 동작하는 `case-review.mjs:40` 과 대조해 확인. 경고 주석을 붙여 재발을 막았다.
+2. **`demandAxis` 무음 포화 (§7.2 위반)** — 기본 척도를 `importanceMax=5` 로 뒀는데 실측 `opportunity_score`
+   최대가 **17** 이었다. `Math.min(1, 17/10)` 이 조용히 1.0 으로 클램프돼 **"척도 가정이 틀렸다"와 "수요가 최대다"가
+   화면에서 똑같이 보였다.** 척도를 실측(importance 3~9 / satisfaction 1~10)에 맞춰 10 으로 고치고,
+   상한을 넘는 값이 오면 **포화시키지 않고 `null`(확인 불가)로 돌린다.** 셀프테스트 7-6/7-7/7-8 추가.
+   안전장치가 걸린 걸 정상으로 읽으면 안 된다 — 이번엔 그게 정확히 일어날 뻔했다.
+
+#### (3) Phase 4 — M2 발행-대기 초안 1건
+
+- 소재: `case_moves c7317212-…` (Warby Parker / TRUST / CHANNEL / 등급 **A** / `mixed`)
+- 산출물: `drafts/threads/2026-09-06-warby-home-try-on.{md,body.txt,selfreply.txt}` · 판정 로그 `LOG-20260906-01`
+- 저장: `content_items CS-20260906-01`(proposed) → `posts b0133f9a-…`(424자, `published_at=null`) →
+  `post_decision_link` **linked**
+- **게이트는 새로 만들지 않았다.** `.claude/skills/content-gate/` 의 `00-gate.md`(U-1~U-3) + `pdp/02-gate.md`(G-0~G-13) 그대로.
+  Threads = 스크롤 피드이므로 D-1 에 따라 프드프 계열.
+- 판정: **U-1 통과 / U-2 통과 / U-3 예외통과(②항 미충족)**, G-0~G-13 중 G-3·G-7 은 U-1·U-2 와 중복이라 건너뛰고
+  G-9 는 적용 조건(제작 30분 초과) 밖, 나머지 **전부 통과**. 충돌 X-2(알고리즘)는 솔파 채택(발행 후 아무 작업 안 함),
+  X-3(진위)은 통합 판정선 ④ 공통 최저선만 적용되고 충족.
+- **U-3 를 통과로 적지 않았다.** 레퍼런스 4건의 근거가 좋아요·공유 스크린샷까지고 댓글 본문을 확보하지 못했다.
+  억지로 통과시키는 대신 예외통과로 표시하고 규칙 후보 `NEW-20260906-01` 을 남겼다 (L-54).
+- 예측 2건(`like_rate`/`share_rate`, `median_all`+`20pct`+`h168`)이 `lib/predictions/parse-log.ts` 로
+  **에러 0건 · 예측 2건** 파싱되는 것을 실제로 돌려 확인했다.
+  ⚠️ 지금 채점하면 **보류**가 나오는데 그건 예측이 틀린 게 아니라 발행 누적이 0건이라 표본이 없는 것이다
+  (`prediction-schema.md` §2-3). 보류를 무효로 읽으면 P-03·P-09 신뢰도가 근거 없이 깎인다.
+
+**⛔ 발행하지 않았다.** CLAUDE.md §10 — 어떤 Threads API 도 호출하지 않았다.
+`scripts/case-draft-stage.mjs` 에는 발행 API 호출 경로 자체가 없다. 게시 버튼은 남헌이 앱에서 직접 누른다.
+현재 `posts.status` 는 마이그레이션 미적용 때문에 `draft` 로 폴백돼 있고(L-52), 스크립트가 그 사실을
+화면에 찍고 **exit 3** 으로 구분해 낸다 — 조용히 눕히면 "게이트 통과한 발행-대기"와 "생초안"이 같은 값이 된다.
+
+#### (4) 현재 DB 총량과 병목별 분포 (실측 2026-09-06)
+
+케이스 **10건**(approved 9 / draft 1) · 무브 **20개**(approved 18) · 근거 **38건**
+
+| 병목 | approved 케이스 | 매칭 가능? | 다음에 채울 것 |
+|---|---|---|---|
+| CONVERSION | Notion · Slack | ✅ 짝 있음 | — |
+| UNIT_ECONOMICS | Casper · 컬리 | ✅ 짝 있음 | 컬리 근거 보강(L-51) |
+| DISTRIBUTION | 조선미녀 · Figma | ✅ 짝 있음 | — |
+| TRUST | Warby Parker | △ 1곳 | **1건 추가 — 최우선** (이미 콘텐츠가 나간 축이라 비교 수요가 곧 생긴다) |
+| RETENTION | Duolingo | △ 1곳 | 1건 추가 |
+| SUPPLY | Oatly | △ 1곳 | 1건 추가 |
+| AWARENESS | 없음 | ❌ 0곳 | **Liquid Death 를 살리거나(추정치 아닌 출처) 다른 브랜드 2건** |
+
+**다음 라운드 제안 (커버리지 관점, 우선순위순):**
+
+1. **TRUST 1건** — M2 첫 콘텐츠가 TRUST 에서 나왔는데 정작 짝이 없다. 콘텐츠를 더 뽑으려면 여기가 먼저다.
+2. **AWARENESS 2건** — 7종 중 유일한 0곳. 여기는 1건이 아니라 2건을 한 번에 넣어야 짝이 선다.
+   Liquid Death 는 비상장사라 추정치 문제가 구조적이다(L-47) — 상장사나 공시 있는 브랜드로 가는 게 빠르다.
+3. **RETENTION·SUPPLY 각 1건** — 넣으면 7종 중 6종이 매칭 가능해진다.
+4. 그 다음은 폭이 아니라 **깊이** — 같은 병목에 3번째 브랜드를 넣어 선례축이 0.4→1.0 으로 붙게 한다
+   (현재 산식은 케이스 2건에서 포화한다).
+
 
 ---
 

@@ -1020,9 +1020,14 @@ influencers-time·techcrunch/figma·substack/duolingo·bettermode·foundationinc
 | `95d91623…` | slack / PRICING | B→C | 없음 | 파이프라인 내부 | approved 재검토 — TechCrunch 기사에 NDR 없음, S-1 자기보고 1차뿐 |
 | `c7317212…` | warby / CHANNEL | B→C | `CS-20260906-01`(proposed) → post `b0133f9a`(**draft**) | 파이프라인 내부 | approved 재검토 + 초안은 CG-1 로 이미 draft 강등됨(§2-16 (5)). 본문에 귀속 문구 넣어 재스테이지하거나 소재 교체 |
 
-**approved 값은 이 라운드에서 안 건드렸다.** 표·권고만. 최종 변경은 사람이 무브별로.
-자동 규칙(`C등급 이상 무브 2개 → approved`)은 여전히 충족(전부 C 이상)이라, 케이스 승인 자체는 안 깨진다 —
-바뀐 건 "그 무브를 콘텐츠 근거로 인용할 때 CG-1 이 귀속 문구를 요구한다" 뿐이다.
+**[결정 2026-09-07] 남헌이 6건 전부 `approved` 유지로 결정.** `case-review.mjs approve --by 남헌` 로
+6개 무브 재승인(등급 C 기준으로 명시 재affirm). regrade 는 `review_status` 를 안 건드리므로 원래도
+`approved` 상태였지만, 강등 이후의 판단임을 기록으로 남기려고 다시 찍었다.
+- 이유: 강등은 "근거가 가짜"가 아니라 "교차 확인이 약함". C 무브는 CG-1(귀속 문구 요구)이 발행 안전을 담당.
+  전부 1차 공시(또는 감사재무) 수치이고 문제는 "회사만 냈다" 뿐.
+- `casper/CHANNEL` 은 `outcome_direction=negative` + 등급 C 라 스크립트가 "승인은 됐지만 발행 대상은 아니다"
+  경고를 찍는다 — 의도된 동작(부정 사례 비-A 는 "이렇게 하면 됩니다" 로 안 나감).
+자동 규칙(`C등급 이상 무브 2개 → approved`)도 여전히 충족이라 케이스 승인(15건)도 그대로다.
 
 **(2) 롤백 컴패니언** — `20260907000002_backfill_observation_keys_rollback.sql` 신설(리포 관례).
 백필이 UPDATE 한 **71행**(id 목록으로 명시 지정)의 `observation_key` / `supports_metric` 를 NULL 로 되돌린다.
@@ -1037,10 +1042,13 @@ influencers-time·techcrunch/figma·substack/duolingo·bettermode·foundationinc
 | `duol-shareholder-letter-2023q4` (구 `duol-ir-2023q4`) | IR 페이지 — "65% DAU Growth … Q4 2023" 확인 |
 | `sensortower-panel-2023q3` | 블로그 본문 — "Duolingo DAUs and MAUs increased 56% and 37% YoY" 확인. is_estimate=true 라 교차확인엔 안 셈 |
 
-**남은 것(사람 판단, 우선순위 순)** — 3·4 는 2026-09-07 처리 완료, 아래가 최종:
+**남은 것** — 1·3·4 는 2026-09-07 처리 완료. 실제로 열려 있는 건 아래 한 줄뿐:
 
-1. **강등 승인 무브 6건**: §2-17 (1) 표의 권고대로 무브별 approved 유지/취소 결정. 전부 "파이프라인 내부"라 언제 해도 안전.
-   자동규칙("C 이상 무브 2개")은 여전히 충족이라 케이스 승인 자체는 안 깨진다 — 바뀐 건 CG-1 이 귀속 문구를 요구한다는 것뿐.
+- **Warby Threads 초안 발행 여부** — 초안은 `pending_review` 로 게이트 통과 상태. Threads 앱에서 사람이 직접
+  게시할지 말지만 남았다(§10, 어떤 API 도 안 씀). 발행 시 `posts.status='published'` + `published_at`/`external_id`/`permalink` 수기 입력.
+
+처리 완료 기록:
+1. ~~강등 승인 무브 6건 approve/cancel~~ → **6건 전부 approved 유지로 결정·재승인 완료**(§2-17 (1) 하단).
 2. **백필/롤백 SQL 대시보드 실행** — 이미 `.env.local` 로 DB 반영됨(11차). 재실행 불필요. 롤백 파일은 보험.
    다른 환경(스테이징 등)에 이 스키마를 복제하면 그때 forward 실행.
 3. ~~Warby Threads 초안 재작성·재스테이지~~ → **처리 완료(2026-09-07).** §4 를 등급 C 기준으로 전면 재작성,
@@ -1276,7 +1284,7 @@ L-56 백필 후 그 무브는 B 가 됐는데, `pending_review` 로 누워 있�
 | 2026-09-07 | **케이스스터디 9차 — CG-1 게이트 + RETENTION 재조사** | L-62 결정을 게이트 `CG-1` 로 구현(`lib/cases/publish-gate.ts`, `case-draft-stage.mjs` 미통과 시 `draft` 로 눕히고 exit 4, 발행 API 없음) / 접두사 `CG-` 새로 채번(사고 4 재발 방지) / selftest **74 0** · 변이 테스트 6건 실패 확인 · Warby(B) 회귀 exit 0 · C등급 E2E 차단 exit 4 → 문구 추가 후 exit 0 / RETENTION 무브 4개 웹서치 직접 재조사 → L-61 **양성 해소**(web.archive.org 스냅샷), Sensor Tower 추정치 1행 추가, 나머지 2건은 **확인 결과 음성** / `regrade` 재실행 **바뀐 것 0개**(A13 B5 C13 D1 유지) / `--probe` 양성 16 · 음성 0 · 확인 불가 0 | L-61, L-62 | L-64 |
 | 2026-09-07 | 10차 — L-60+L-64 원 관측 키 설계 | 마이그 `20260907000001`(observation_key·supports_metric) 작성 / `foldObservations` + `gradeMove` 재작성 / selftest 88·0 / verify `--probe` 에 마이그4 검사 4개 / `regrade` 커버리지 가드 + `--force`는 `--dry` 전용 / 설계문서 §8 | — | **투영 A13·B5·C13 → A12·B0·C19** (백필 전이라 판정 아님). 마이그 미적용 |
 | 2026-09-07 | 11차 — 관측 키 전량 백필 + 재채점 실반영 | 남헌이 `20260907000001` 적용(`--probe` 양성 21·exit 0) / 근거 72행을 ~48개 문서로 묶어 조사 — 국내 매체·Retail Dive·TechCrunch·Duolingo IR·Sensor Tower 재fetch, medium·indigo9digital 은 web.archive.org 스냅샷으로 확인(둘 다 Casper S-1 재작성), SEC 공시 ~30행은 문서 재식별 + 지난 라운드 대조 인용 / 백필 마이그 `20260907000002`(관측 키 67/72, sm 46T·20F·6N, 스키마 변경 없음) / 남헌 지시로 `.env.local` 직접 적용 + `regrade` 실반영 **A13·B5·C13·D1 → A12·B0·C19·D1**, 바뀐 것 6, 멱등 확인, `review_status` 불변 / Warby Threads 초안(post `b0133f9a`)이 CG-1 재게이트로 `pending_review`→`draft` | **L-60, L-64** | 잠정 15→4(전부 등급 확정) |
-| 2026-09-07 | 12차 — 뒷정리 | 강등 승인 무브 6건 분류: `posts` 발행 0건이라 전부 "파이프라인 내부", 소급 취소 위험 없음(warby 만 draft post 1개, 나머지 5개는 참조 content/post 자체 없음) / 롤백 컴패니언 2개 신설(`20260907000001`·`000002` `_rollback.sql`) / 앵커 4개 원문 재대조 — 전부 확인, `sm` 판정 유지 / **Warby 초안 §4 재작성 + 귀속 문구 추가 → CG-1 통과, `pending_review` 복귀**(커밋 `d15702f`) / figma/PF TechCrunch 링크 재확인: 404·스냅샷 없음, "two-thirds not designers" 는 S-1 수치임을 WebSearch 로 확인 → 행 변경 없음 | — | approved 값 미변경(표·권고만). 남은 것: 강등 무브 6건 approve/cancel 결정 + Warby 게시 버튼(둘 다 사람) |
+| 2026-09-07 | 12차 — 뒷정리 | 강등 승인 무브 6건 분류: `posts` 발행 0건이라 전부 "파이프라인 내부", 소급 취소 위험 없음(warby 만 draft post 1개, 나머지 5개는 참조 content/post 자체 없음) / 롤백 컴패니언 2개 신설(`20260907000001`·`000002` `_rollback.sql`) / 앵커 4개 원문 재대조 — 전부 확인, `sm` 판정 유지 / **Warby 초안 §4 재작성 + 귀속 문구 추가 → CG-1 통과, `pending_review` 복귀**(커밋 `d15702f`) / figma/PF TechCrunch 링크 재확인: 404·스냅샷 없음, "two-thirds not designers" 는 S-1 수치임을 WebSearch 로 확인 → 행 변경 없음 / **강등 6건 전부 `approved` 유지로 재승인**(`approve --by 남헌`, 등급 C 기준 재affirm) | — | 열린 것은 Warby 초안 게시 버튼(사람)뿐 |
 
 ---
 

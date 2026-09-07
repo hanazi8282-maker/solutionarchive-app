@@ -983,13 +983,22 @@ influencers-time·techcrunch/figma·substack/duolingo·bettermode·foundationinc
 - `case-pipeline-selftest.mjs` — 88 / 0(백필은 데이터라 셀프테스트 대상 아님).
 - 마이그 SQL 정적 검사 — 키 전부 CHECK 정규식 통과, 케이스 단위 행에 `sm=true` 없음.
 
-**(5) 남은 것**
+**(5) 하류 정합 — Warby Threads 초안 재게이트 (사고 12 / L-63 패턴, 처리 완료)**
 
-- 승인(`review_status`)은 6개 강등 무브 전부 `approved` 그대로다. C 등급 무브를 인용하는 발행 초안은 게이트
-  `CG-1`(§2-14) 이 출처 귀속 문구를 요구하므로, 발행 파이프라인 쪽은 자동으로 보수적으로 처리된다.
-  다만 "C 로 내려간 승인 무브를 계속 approved 로 둘지" 는 사람이 케이스별로 다시 볼 자리다(자동 강등 안 함).
-- 잠정 4건은 등급 확정이라 추가 조치 불필요. 정 재확인하려면 figma/PF 의 TechCrunch 링크(현재 404)를
-  wayback 에서 찾아 sm 을 재판정하면 표시가 사라진다 — 등급은 안 바뀐다.
+`warby/CHANNEL` 이 B→C 로 내려가자 `posts b0133f9a`(status=`pending_review`, Warby 홈트라이온 Threads 초안)가
+스테일해졌다. `case-draft-stage.mjs` 재실행 → **CG-1 이 막았다**(등급 C 인용인데 본문에 출처 귀속 문구 없음)
+→ `status='draft'` 로 눕힘, exit 0, **발행·API 호출 없음**. `case-draft-stage.mjs` L136 이 정확히 이 경우
+("이미 pending_review 였던 글이 나중에 강등돼 막히는 경우")를 예상하고 있었다.
+`drafts/threads/2026-09-06-warby-home-try-on.md` 의 하드코딩된 "등급 A" 2곳을 C 로 정정하고 "왜 이 무브를
+골랐나" 절이 재작성 필요임을 표시(커밋 `e75bed1`). 손으로 쓴 기획 문서라 L-63 의 DB 조회 메모 수정으로는 안 따라온다.
+
+**(6) 남은 것 — 사람 판단**
+
+- 승인(`review_status`)은 6개 강등 무브 전부 `approved` 그대로다(regrade 는 등급만 바꾸고 승인은 안 건드린다).
+  "C 로 내려간 승인 무브를 계속 approved 로 둘지" 는 사람이 케이스별로 다시 볼 자리.
+- Warby Threads 초안: 본문에 출처 귀속 문구를 넣어 다시 스테이지하거나, 이 무브로 첫 콘텐츠를 낼지 자체를 재검토.
+- 잠정 4건(bj/CHANNEL·figma/PF·slack/PRICING·warby/CHANNEL)은 등급 확정이라 조치 불필요. figma/PF 의
+  TechCrunch 링크(404)를 wayback 에서 찾아 `sm` 을 재판정하면 표시만 사라진다 — 등급은 안 바뀐다.
 
 ---
 

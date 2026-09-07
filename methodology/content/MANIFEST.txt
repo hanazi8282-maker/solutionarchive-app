@@ -19,7 +19,7 @@
 
 00-gate.md                     1f7aa8f2d1d382996e51ed652d14ad67  gates:7  GR:yes
 _setup/eval-namheon-Q1-Q10.md  8d8deaa7d7af471ddb228bdb09a8ffd7  lines:23
-_setup/HANDOVER-LOG.md         4fa1531efdda20a8a36889a5ff010b0e  lines:1274
+_setup/HANDOVER-LOG.md         819d4da9c98a03b945754a5f055089ca  lines:1290
 _setup/HANDOVER-SEED.md        c3a978326198880bce6c28b3dd64fe94  lines:800
 _setup/infra-decisions.md      4ffb7b78736132259156c97b3d56dbee  lines:293
 _setup/MASTER-PROMPT.md        16d4e358877fb254a2ea1dc2a353d294  lines:505

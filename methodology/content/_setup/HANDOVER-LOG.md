@@ -1037,14 +1037,30 @@ influencers-time·techcrunch/figma·substack/duolingo·bettermode·foundationinc
 | `duol-shareholder-letter-2023q4` (구 `duol-ir-2023q4`) | IR 페이지 — "65% DAU Growth … Q4 2023" 확인 |
 | `sensortower-panel-2023q3` | 블로그 본문 — "Duolingo DAUs and MAUs increased 56% and 37% YoY" 확인. is_estimate=true 라 교차확인엔 안 셈 |
 
-**남은 것(사람 판단, 우선순위 순)** — §2-18 없음, 아래가 최종:
+**남은 것(사람 판단, 우선순위 순)** — 3·4 는 2026-09-07 처리 완료, 아래가 최종:
 
-1. **백필/롤백 SQL 을 대시보드에 실행할지 결정** — 이미 `.env.local` 로 DB 반영됐으므로(11차) 대시보드 재실행은
-   불필요. 롤백 파일은 "되돌려야 할 때"용 보험. 다른 환경(스테이징 등)에 이 스키마를 복제한다면 그때 forward 실행.
-2. **강등 승인 무브 6건**: 위 표의 권고대로 무브별 approved 유지/취소 결정. 전부 "파이프라인 내부"라 언제 해도 안전.
-3. **Warby Threads 초안**(`b0133f9a`): 본문에 출처 귀속 문구를 넣어 `case-draft-stage.mjs` 재실행(→ pending_review 복귀)
-   하거나, 등급 C 소재를 첫 콘텐츠로 안 쓰기로 하고 소재 교체. `drafts/threads/2026-09-06-warby-home-try-on.md` §4 재작성.
-4. **(선택) figma/PF 의 TechCrunch 404 링크**: wayback 에서 찾아 `sm` 재판정 → 잠정 표시만 사라짐(등급 불변).
+1. **강등 승인 무브 6건**: §2-17 (1) 표의 권고대로 무브별 approved 유지/취소 결정. 전부 "파이프라인 내부"라 언제 해도 안전.
+   자동규칙("C 이상 무브 2개")은 여전히 충족이라 케이스 승인 자체는 안 깨진다 — 바뀐 건 CG-1 이 귀속 문구를 요구한다는 것뿐.
+2. **백필/롤백 SQL 대시보드 실행** — 이미 `.env.local` 로 DB 반영됨(11차). 재실행 불필요. 롤백 파일은 보험.
+   다른 환경(스테이징 등)에 이 스키마를 복제하면 그때 forward 실행.
+3. ~~Warby Threads 초안 재작성·재스테이지~~ → **처리 완료(2026-09-07).** §4 를 등급 C 기준으로 전면 재작성,
+   본문·자기답글에 자기 귀속 문구("8-K에 적힌 자기 수치일 뿐, 제3자 검증을 받지 않았다") 추가 → `case-draft-stage.mjs`
+   재실행 → CG-1 통과, `posts b0133f9a` status=`pending_review` 복귀(471자). 커밋 `d15702f`. **소재는 유지하기로 결정**
+   (등급 C 는 "숫자가 틀렸다"가 아니라 "Warby 만 말했다" — 회사 자신의 결정을 회사 자신의 수치로 다루는 글이라
+   귀속만 명시하면 오히려 더 정직). 발행 여부(게시 버튼)는 여전히 사람 몫.
+4. ~~figma/PF 의 TechCrunch 404 링크 재판정~~ → **처리 완료(아래).**
+
+**(4-후속) figma/PF TechCrunch 링크 재확인 결과 (2026-09-07)**
+
+- 근거 행 `42ffcb12` 의 URL `techcrunch.com/2025/07/01/figma-files-for-an-ipo-reveals-increase-in-revenue-and-profitability`
+  은 **현재 404 이고 wayback 스냅샷도 없다**(같은 날짜 TechCrunch Figma 기사 `figma-moves-closer-to-a-blockbuster-ipo…`
+  는 스냅샷이 있으나 본문에 "designer / two-thirds / 66%" 가 **없다** — 다른 기사다).
+- 대신 **WebSearch 로 "two-thirds of monthly active users are not designers" 의 출처가 Figma S-1 자체임을 확인**했다
+  (mostlymetrics·tanayj·fortune·designbuddies 등 다수가 전부 S-1 로 귀속). 즉 이 수치는 어느 매체가 실었든 **S-1 재작성**이다.
+- 조치: `observation_key='figma-s1-2025'` 유지(오히려 근거 강화됨), `supports_metric=false` 유지(IPO 소식 보도이지
+  수치 검증 출처가 아니라는 지난 라운드 판정이 맞다). **행 변경 없음.** figma/PF 는 C·잠정 그대로 — 잠정은 이 행이
+  "교차 확인 후보인데 안 세짐" 이라 붙는 표시이고, 등급 C 는 Figma S-1(`e2010b09`, 같은 무브, sm=true) 하나로도 확정이다.
+- 별도 데이터 정리거리: 이 근거 행의 URL 이 죽었다. 살아 있는 S-1 보도 링크나 S-1 원문으로 교체하면 깔끔하다(등급 무관).
 
 ---
 
@@ -1260,7 +1276,7 @@ L-56 백필 후 그 무브는 B 가 됐는데, `pending_review` 로 누워 있�
 | 2026-09-07 | **케이스스터디 9차 — CG-1 게이트 + RETENTION 재조사** | L-62 결정을 게이트 `CG-1` 로 구현(`lib/cases/publish-gate.ts`, `case-draft-stage.mjs` 미통과 시 `draft` 로 눕히고 exit 4, 발행 API 없음) / 접두사 `CG-` 새로 채번(사고 4 재발 방지) / selftest **74 0** · 변이 테스트 6건 실패 확인 · Warby(B) 회귀 exit 0 · C등급 E2E 차단 exit 4 → 문구 추가 후 exit 0 / RETENTION 무브 4개 웹서치 직접 재조사 → L-61 **양성 해소**(web.archive.org 스냅샷), Sensor Tower 추정치 1행 추가, 나머지 2건은 **확인 결과 음성** / `regrade` 재실행 **바뀐 것 0개**(A13 B5 C13 D1 유지) / `--probe` 양성 16 · 음성 0 · 확인 불가 0 | L-61, L-62 | L-64 |
 | 2026-09-07 | 10차 — L-60+L-64 원 관측 키 설계 | 마이그 `20260907000001`(observation_key·supports_metric) 작성 / `foldObservations` + `gradeMove` 재작성 / selftest 88·0 / verify `--probe` 에 마이그4 검사 4개 / `regrade` 커버리지 가드 + `--force`는 `--dry` 전용 / 설계문서 §8 | — | **투영 A13·B5·C13 → A12·B0·C19** (백필 전이라 판정 아님). 마이그 미적용 |
 | 2026-09-07 | 11차 — 관측 키 전량 백필 + 재채점 실반영 | 남헌이 `20260907000001` 적용(`--probe` 양성 21·exit 0) / 근거 72행을 ~48개 문서로 묶어 조사 — 국내 매체·Retail Dive·TechCrunch·Duolingo IR·Sensor Tower 재fetch, medium·indigo9digital 은 web.archive.org 스냅샷으로 확인(둘 다 Casper S-1 재작성), SEC 공시 ~30행은 문서 재식별 + 지난 라운드 대조 인용 / 백필 마이그 `20260907000002`(관측 키 67/72, sm 46T·20F·6N, 스키마 변경 없음) / 남헌 지시로 `.env.local` 직접 적용 + `regrade` 실반영 **A13·B5·C13·D1 → A12·B0·C19·D1**, 바뀐 것 6, 멱등 확인, `review_status` 불변 / Warby Threads 초안(post `b0133f9a`)이 CG-1 재게이트로 `pending_review`→`draft` | **L-60, L-64** | 잠정 15→4(전부 등급 확정) |
-| 2026-09-07 | 12차 — 뒷정리 | 강등 승인 무브 6건 분류: `posts` 발행 0건이라 전부 "파이프라인 내부", 소급 취소 위험 없음(warby 만 draft post 1개, 나머지 5개는 참조 content/post 자체 없음) / 롤백 컴패니언 `20260907000002_..._rollback.sql` 신설(71행 id 지정 NULL 복원) / 앵커 4개(chwy-10k·duol-8k·duol-ir·sensortower) 원문 재대조 — 전부 확인, `sm` 판정 유지 | — | approved 값 미변경(표·권고만). 남은 것은 §2-17 하단 4개 사람 판단 항목 |
+| 2026-09-07 | 12차 — 뒷정리 | 강등 승인 무브 6건 분류: `posts` 발행 0건이라 전부 "파이프라인 내부", 소급 취소 위험 없음(warby 만 draft post 1개, 나머지 5개는 참조 content/post 자체 없음) / 롤백 컴패니언 2개 신설(`20260907000001`·`000002` `_rollback.sql`) / 앵커 4개 원문 재대조 — 전부 확인, `sm` 판정 유지 / **Warby 초안 §4 재작성 + 귀속 문구 추가 → CG-1 통과, `pending_review` 복귀**(커밋 `d15702f`) / figma/PF TechCrunch 링크 재확인: 404·스냅샷 없음, "two-thirds not designers" 는 S-1 수치임을 WebSearch 로 확인 → 행 변경 없음 | — | approved 값 미변경(표·권고만). 남은 것: 강등 무브 6건 approve/cancel 결정 + Warby 게시 버튼(둘 다 사람) |
 
 ---
 

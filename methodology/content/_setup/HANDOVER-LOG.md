@@ -1002,6 +1002,52 @@ influencers-time·techcrunch/figma·substack/duolingo·bettermode·foundationinc
 
 ---
 
+### 2-17. 12차 — 강등 승인 무브 분류 + 롤백 컴패니언 + 앵커 재대조 (2026-09-07, append-only)
+
+11차의 뒷정리 라운드. 새 조사·백필은 없다(11차에 72행 전량 적용·regrade 완료). 세 가지를 마감했다.
+
+**(1) 강등된 승인 무브 6건 분류 — 전부 "파이프라인 내부", 발행된 것 없음**
+
+`posts` 테이블 실측: 총 4행, `published_at` 있음 **0**, `external_id` 있음 **0**, `status='published'` **0**.
+즉 이 프로젝트에서 **아직 아무것도 발행되지 않았다.** 6건 전부 소급 취소 위험(이력 왜곡)이 없다.
+
+| case_move_id | 무브 | 구→신 등급 | 참조 content/post | 분류 | 권고 |
+|---|---|---|---|---|---|
+| `922b24b9…` | beauty-of-joseon / CHANNEL | A→C | 없음 | 파이프라인 내부 | approved 재검토 — 뉴스1·THE VC 가 동일 감사재무(독립 관측 1개), 더벨은 다른 범위 |
+| `555c99db…` | casper / CHANNEL | B→C | 없음 | 파이프라인 내부 | approved 재검토 — a16z 글이 16%를 S-1 인용으로 명시(wayback 확인), 자기보고 1차뿐 |
+| `2ebfbc62…` | chewy / PACKAGING | B→C | 없음 | 파이프라인 내부 | approved 재검토 — Retail Dive 가 76%를 CFO 발언으로 귀속, 10-K 와 동일 관측 |
+| `73551871…` | figma / PRODUCT_FEATURE | B→C | 없음 | 파이프라인 내부 | approved 재검토 — TechCrunch 는 S-1 재작성(현재 404, 지난 판정 유지), 자기보고 1차뿐 |
+| `95d91623…` | slack / PRICING | B→C | 없음 | 파이프라인 내부 | approved 재검토 — TechCrunch 기사에 NDR 없음, S-1 자기보고 1차뿐 |
+| `c7317212…` | warby / CHANNEL | B→C | `CS-20260906-01`(proposed) → post `b0133f9a`(**draft**) | 파이프라인 내부 | approved 재검토 + 초안은 CG-1 로 이미 draft 강등됨(§2-16 (5)). 본문에 귀속 문구 넣어 재스테이지하거나 소재 교체 |
+
+**approved 값은 이 라운드에서 안 건드렸다.** 표·권고만. 최종 변경은 사람이 무브별로.
+자동 규칙(`C등급 이상 무브 2개 → approved`)은 여전히 충족(전부 C 이상)이라, 케이스 승인 자체는 안 깨진다 —
+바뀐 건 "그 무브를 콘텐츠 근거로 인용할 때 CG-1 이 귀속 문구를 요구한다" 뿐이다.
+
+**(2) 롤백 컴패니언** — `20260907000002_backfill_observation_keys_rollback.sql` 신설(리포 관례).
+백필이 UPDATE 한 **71행**(id 목록으로 명시 지정)의 `observation_key` / `supports_metric` 를 NULL 로 되돌린다.
+스키마(20260907000001)는 안 건드린다 — 그건 그 파일의 롤백을 따로. 적용은 §12-5 대로 사람이.
+
+**(3) 앵커 4개 재대조(복붙 아님, 원문 재확인)**
+
+| 관측 키 | 재대조 결과 (이번 세션 직접 fetch) |
+|---|---|
+| `chwy-10k-fy2023` | SEC curl — "Autoship customer sales as a percentage of net sales 76…" + "fiscal year ended January 28, 2024" 확인 |
+| `duol-8k-2023q2` | SEC curl — "DAUs increased 62% to 21.4 million" 확인. Q2 수치라 무브(Q4 10→27)를 직접 안 받침 → `sm=NULL` 유지가 맞다 |
+| `duol-shareholder-letter-2023q4` (구 `duol-ir-2023q4`) | IR 페이지 — "65% DAU Growth … Q4 2023" 확인 |
+| `sensortower-panel-2023q3` | 블로그 본문 — "Duolingo DAUs and MAUs increased 56% and 37% YoY" 확인. is_estimate=true 라 교차확인엔 안 셈 |
+
+**남은 것(사람 판단, 우선순위 순)** — §2-18 없음, 아래가 최종:
+
+1. **백필/롤백 SQL 을 대시보드에 실행할지 결정** — 이미 `.env.local` 로 DB 반영됐으므로(11차) 대시보드 재실행은
+   불필요. 롤백 파일은 "되돌려야 할 때"용 보험. 다른 환경(스테이징 등)에 이 스키마를 복제한다면 그때 forward 실행.
+2. **강등 승인 무브 6건**: 위 표의 권고대로 무브별 approved 유지/취소 결정. 전부 "파이프라인 내부"라 언제 해도 안전.
+3. **Warby Threads 초안**(`b0133f9a`): 본문에 출처 귀속 문구를 넣어 `case-draft-stage.mjs` 재실행(→ pending_review 복귀)
+   하거나, 등급 C 소재를 첫 콘텐츠로 안 쓰기로 하고 소재 교체. `drafts/threads/2026-09-06-warby-home-try-on.md` §4 재작성.
+4. **(선택) figma/PF 의 TechCrunch 404 링크**: wayback 에서 찾아 `sm` 재판정 → 잠정 표시만 사라짐(등급 불변).
+
+---
+
 
 ## 3. 사고 이력 (append-only) ★ 반드시 읽을 것
 
@@ -1213,7 +1259,8 @@ L-56 백필 후 그 무브는 B 가 됐는데, `pending_review` 로 누워 있�
 | 2026-09-07 | **케이스스터디 8차 — 재채점 실반영** | 남헌이 마이그 `20260906000003` + 백필 12쌍 적용(근거 17/71 표시) / `case-review.mjs regrade` 실행 → 무브 **12개 강등, A25→A13 · B0→B5 · C6→C13**, 백필 목록 밖은 불변, 재실행 시 0개(멱등) / `--probe` 양성 16 · 음성 0 · 확인불가 0 · exit 0 / 초안 메모의 하드코딩된 `등급 A` 를 DB 조회로 교체(L-63) / selftest 62/0 · 매칭 51/0 · 커버리지 7/7 | L-56, L-63 | L-62 |
 | 2026-09-07 | **케이스스터디 9차 — CG-1 게이트 + RETENTION 재조사** | L-62 결정을 게이트 `CG-1` 로 구현(`lib/cases/publish-gate.ts`, `case-draft-stage.mjs` 미통과 시 `draft` 로 눕히고 exit 4, 발행 API 없음) / 접두사 `CG-` 새로 채번(사고 4 재발 방지) / selftest **74 0** · 변이 테스트 6건 실패 확인 · Warby(B) 회귀 exit 0 · C등급 E2E 차단 exit 4 → 문구 추가 후 exit 0 / RETENTION 무브 4개 웹서치 직접 재조사 → L-61 **양성 해소**(web.archive.org 스냅샷), Sensor Tower 추정치 1행 추가, 나머지 2건은 **확인 결과 음성** / `regrade` 재실행 **바뀐 것 0개**(A13 B5 C13 D1 유지) / `--probe` 양성 16 · 음성 0 · 확인 불가 0 | L-61, L-62 | L-64 |
 | 2026-09-07 | 10차 — L-60+L-64 원 관측 키 설계 | 마이그 `20260907000001`(observation_key·supports_metric) 작성 / `foldObservations` + `gradeMove` 재작성 / selftest 88·0 / verify `--probe` 에 마이그4 검사 4개 / `regrade` 커버리지 가드 + `--force`는 `--dry` 전용 / 설계문서 §8 | — | **투영 A13·B5·C13 → A12·B0·C19** (백필 전이라 판정 아님). 마이그 미적용 |
-| 2026-09-07 | 11차 — 관측 키 전량 백필 + 재채점 실반영 | 남헌이 `20260907000001` 적용(`--probe` 양성 21·exit 0) / 근거 72행을 ~48개 문서로 묶어 조사 — 국내 매체·Retail Dive·TechCrunch·Duolingo IR·Sensor Tower 재fetch, medium·indigo9digital 은 web.archive.org 스냅샷으로 확인(둘 다 Casper S-1 재작성), SEC 공시 ~30행은 문서 재식별 + 지난 라운드 대조 인용 / 백필 마이그 `20260907000002`(관측 키 67/72, sm 46T·20F·6N, 스키마 변경 없음) / 남헌 지시로 `.env.local` 직접 적용 + `regrade` 실반영 **A13·B5·C13·D1 → A12·B0·C19·D1**, 바뀐 것 6, 멱등 확인, `review_status` 불변 | **L-60, L-64** | 잠정 15→4(전부 등급 확정). 강등된 승인 무브 6개를 approved 로 계속 둘지는 사람 재검토 자리 |
+| 2026-09-07 | 11차 — 관측 키 전량 백필 + 재채점 실반영 | 남헌이 `20260907000001` 적용(`--probe` 양성 21·exit 0) / 근거 72행을 ~48개 문서로 묶어 조사 — 국내 매체·Retail Dive·TechCrunch·Duolingo IR·Sensor Tower 재fetch, medium·indigo9digital 은 web.archive.org 스냅샷으로 확인(둘 다 Casper S-1 재작성), SEC 공시 ~30행은 문서 재식별 + 지난 라운드 대조 인용 / 백필 마이그 `20260907000002`(관측 키 67/72, sm 46T·20F·6N, 스키마 변경 없음) / 남헌 지시로 `.env.local` 직접 적용 + `regrade` 실반영 **A13·B5·C13·D1 → A12·B0·C19·D1**, 바뀐 것 6, 멱등 확인, `review_status` 불변 / Warby Threads 초안(post `b0133f9a`)이 CG-1 재게이트로 `pending_review`→`draft` | **L-60, L-64** | 잠정 15→4(전부 등급 확정) |
+| 2026-09-07 | 12차 — 뒷정리 | 강등 승인 무브 6건 분류: `posts` 발행 0건이라 전부 "파이프라인 내부", 소급 취소 위험 없음(warby 만 draft post 1개, 나머지 5개는 참조 content/post 자체 없음) / 롤백 컴패니언 `20260907000002_..._rollback.sql` 신설(71행 id 지정 NULL 복원) / 앵커 4개(chwy-10k·duol-8k·duol-ir·sensortower) 원문 재대조 — 전부 확인, `sm` 판정 유지 | — | approved 값 미변경(표·권고만). 남은 것은 §2-17 하단 4개 사람 판단 항목 |
 
 ---
 

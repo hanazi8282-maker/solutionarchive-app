@@ -129,6 +129,10 @@ async function commit() {
   //   조용히 떨어뜨리지 않고 크게 경고한다. retrieved_at 이 그렇게 사라졌었다(L-59).
   let issuerAxis = true
   let droppedIssuerAxis = 0
+  // ★ 마이그 20260907000001(observation_key / supports_metric) 도 같은 방식으로 다룬다.
+  //   두 축은 한 마이그에서 같이 생기므로 플래그 하나로 묶는다.
+  let obsAxis = true
+  let droppedObsAxis = 0
   let evCount = 0
   for (const e of evidence) {
     const row = {
@@ -147,6 +151,12 @@ async function commit() {
     // retrieved_at 은 NOT NULL DEFAULT now() 다 — 비었으면 키를 아예 안 넣어야 기본값이 산다.
     if (e.retrieved_at) row.retrieved_at = e.retrieved_at
     if (issuerAxis) row.is_issuer_defined_metric = e.is_issuer_defined_metric ?? false
+    // ★ 이 둘은 `?? false` 로 접지 않는다. NULL 이 "확인 안 함"의 표기라서,
+    //   기본값을 false 로 박으면 "확인했고 아니다"와 구분이 사라진다(§7.1).
+    if (obsAxis) {
+      row.observation_key = e.observation_key ?? null
+      row.supports_metric = e.supports_metric ?? null
+    }
 
     let res = await supabase.from('case_evidence').insert(row).select('id')
     if (res.error && /is_issuer_defined_metric/.test(res.error.message ?? '')) {
@@ -154,7 +164,14 @@ async function commit() {
       delete row.is_issuer_defined_metric
       res = await supabase.from('case_evidence').insert(row).select('id')
     }
+    if (res.error && /observation_key|supports_metric/.test(res.error.message ?? '')) {
+      obsAxis = false
+      delete row.observation_key
+      delete row.supports_metric
+      res = await supabase.from('case_evidence').insert(row).select('id')
+    }
     if (!issuerAxis && (e.is_issuer_defined_metric ?? false)) droppedIssuerAxis++
+    if (!obsAxis && (e.observation_key || e.supports_metric !== undefined)) droppedObsAxis++
     must(res, 'case_evidence INSERT')
     evCount++
   }
@@ -163,6 +180,11 @@ async function commit() {
     console.log('⚠️ is_issuer_defined_metric 컬럼이 DB 에 없다 — 마이그 20260906000003 미적용.')
     console.log(`   그 축을 뺀 채로 저장했다. 초안에서 true 였던 근거 ${droppedIssuerAxis}건이 DB 에는 안 들어갔다.`)
     console.log('   → 마이그 적용 후 그 행들을 다시 채워야 등급 재계산이 재현된다.')
+  }
+  if (!obsAxis) {
+    console.log('⚠️ observation_key / supports_metric 컬럼이 DB 에 없다 — 마이그 20260907000001 미적용.')
+    console.log(`   그 축을 뺀 채로 저장했다. 초안에 적혀 있던 근거 ${droppedObsAxis}건의 관측 키·수치 뒷받침이 DB 에는 안 들어갔다.`)
+    console.log('   → 마이그 적용 후 그 행들을 다시 채워야 L-60·L-64 판정이 재현된다.')
   }
   console.log('\n전부 review_status=draft 다. 승인은 사람이:')
   console.log(`  node --env-file=.env.local scripts/case-review.mjs show --slug ${slug}`)
@@ -326,6 +348,47 @@ async function regrade() {
     return
   }
 
+  // ★ 같은 함정이 한 겹 더 있다(L-60·L-64). 컬럼은 있는데 **전부 NULL** 인 상태다.
+  //   그때 재채점하면 교차 확인 경로가 통째로 죽어서 등급이 우수수 내려가는데,
+  //   그게 "근거가 약하다"인지 "백필을 안 했다"인지 결과만 봐서는 구분이 안 된다.
+  //   컬럼 유무(42703)로는 잡히지 않는 상태라 **커버리지를 세어서** 막는다.
+  //   ★ 컬럼이 아예 없을 때도 결과는 똑같다. 산식은 이미 새 규칙이라
+  //     읽어 오지 못한 축을 전부 "미기재"로 보고 등급을 내린다. 그래서
+  //     미적용과 미백필을 **같은 이유로 같이 막는다**.
+  const obsProbe = await supabase.from('case_evidence').select('id, observation_key, supports_metric')
+  let obsAxisReady = false
+  let obsWhy = ''
+  if (obsProbe.error) {
+    obsWhy = `컬럼이 없다 — 마이그 20260907000001 미적용 (${obsProbe.error.code})`
+    console.log(`⚠️ observation_key / supports_metric 없음 — 마이그 20260907000001 미적용 (${obsProbe.error.code}).`)
+  } else {
+    const keyed = obsProbe.data.filter(r => (r.observation_key ?? '').trim()).length
+    const marked = obsProbe.data.filter(r => r.supports_metric !== null).length
+    console.log(`· 관측 키 커버리지 — ${keyed} / ${obsProbe.data.length} 행, 수치 뒷받침 기재 ${marked} / ${obsProbe.data.length} 행`)
+    obsAxisReady = keyed > 0
+    if (!obsAxisReady) obsWhy = '컬럼은 있는데 관측 키가 한 행도 없다 — 백필 전이다'
+  }
+  if (!obsAxisReady && !flag('force')) {
+    console.error(`✗ 확인 불가: ${obsWhy}.`)
+    console.error('  이 상태로 재채점하면 교차 확인 경로가 전부 "미기재"로 죽어 등급이 내려간다.')
+    console.error('  그 하락은 근거가 약해서가 아니라 아직 안 적어서다. 둘을 같은 결과로 만들지 않는다(§7.1).')
+    console.error('  → 20260907000001 을 적용하고 파일 (4) 백필 지침대로 채운 뒤 다시 돌려라.')
+    console.error('  → 하락 폭을 미리 보고 싶으면 `regrade --dry --force` 로 투영만 낼 수 있다.')
+    process.exitCode = 2
+    return
+  }
+  if (!obsAxisReady) {
+    // --force 는 "보여만 달라"까지다. 백필 전 투영을 DB 에 쓰면 그 순간
+    // "안 적었다"가 "약하다"로 굳어 버린다. 되돌릴 방법은 사람 기억뿐이다.
+    if (!dry) {
+      console.error('✗ 거부: --force 는 --dry 와만 같이 쓴다.')
+      console.error('  백필 전 투영을 실제 등급으로 쓰면 "미기재"가 "근거 약함"으로 굳는다.')
+      process.exitCode = 2
+      return
+    }
+    console.log(`⚠️ --force — ${obsWhy}. 아래 등급은 **투영**이지 판정이 아니다(§7.1).`)
+  }
+
   const studies = must(
     await supabase.from('case_studies').select('id, slug, brand_name')
       .order('slug', { ascending: true }),
@@ -337,19 +400,22 @@ async function regrade() {
   const after = {}
   let changed = 0
   let total = 0
+  let provisionalCount = 0
 
   for (const s of studies) {
     const moves = await fetchMoves(s.id)
     const evidence = must(
       await supabase.from('case_evidence')
-        .select('case_move_id, url, source_tier, is_self_reported, is_estimate, is_regulatory_filing, is_issuer_defined_metric')
+        .select('case_move_id, url, source_tier, is_self_reported, is_estimate, is_regulatory_filing, is_issuer_defined_metric'
+          + (obsProbe.error ? '' : ', observation_key, supports_metric'))
         .eq('case_study_id', s.id),
       'case_evidence SELECT',
     )
     for (const m of moves) {
       total++
       const mine = evidence.filter(e => e.case_move_id === m.id)
-      const { grade, reason } = gradeMove(m, mine)
+      const { grade, reason, provisional } = gradeMove(m, mine)
+      if (provisional) provisionalCount++
       before[m.evidence_grade] = (before[m.evidence_grade] ?? 0) + 1
       after[grade] = (after[grade] ?? 0) + 1
       if (grade === m.evidence_grade) continue
@@ -371,6 +437,10 @@ async function regrade() {
   console.log(`\n무브 ${total}개 / 바뀐 것 ${changed}개`)
   console.log(`  이전 ${fmt(before)}`)
   console.log(`  이후 ${fmt(after)}`)
+  if (provisionalCount > 0) {
+    console.log(`  ⚠️ 그중 ${provisionalCount}개는 **잠정**이다 — 관측 키 미기재라 교차 확인 여부를 판정하지 못했다.`)
+    console.log('     이 등급은 "근거가 약하다"가 아니라 "아직 확인하지 않았다"의 표기다(§7.1).')
+  }
   if (dry) console.log('\n(--dry 였다. DB 는 안 바뀌었다)')
 }
 

@@ -134,6 +134,28 @@ await check('is_issuer_defined_metric 컬럼', columns('case_evidence', 'id, is_
     : `  · 백필 진척도 — ${count ?? 0} / ${total ?? 0} 행이 '발행사 자체 정의 지표'로 표시돼 있다`)
 }
 
+console.log('\n## 20260907000001 — case_evidence.observation_key / supports_metric (L-60·L-64)\n')
+
+await check('observation_key / supports_metric 컬럼', columns('case_evidence',
+  'id, observation_key, supports_metric'))
+
+// ★ 이 마이그는 컬럼이 생긴 것만으로 일이 끝나지 않는다. 두 축 다 NULL 을 허용하고,
+//   NULL 은 "아니다"가 아니라 "확인 안 했다"라서 **백필 진척도까지 봐야** 상태를 안다.
+//   커버리지 0 이면 case-review.mjs regrade 가 멈춘다(--force 필요) — 그것도 여기 적어 둔다.
+{
+  const { data, error } = await supabase.from('case_evidence').select('observation_key, supports_metric')
+  if (error) {
+    console.log(`  · 백필 진척도 — 확인 불가 (컬럼이 없다: ${error.code})`)
+  } else {
+    const keyed = data.filter(r => (r.observation_key ?? '').trim()).length
+    const marked = data.filter(r => r.supports_metric !== null).length
+    console.log(`  · 백필 진척도 — 관측 키 ${keyed} / ${data.length} 행, 수치 뒷받침 기재 ${marked} / ${data.length} 행`)
+    if (keyed === 0) {
+      console.log('    ⚠️ 키가 한 행도 없다. 이 상태의 regrade 결과는 판정이 아니라 투영이다 (§7.1).')
+    }
+  }
+}
+
 if (PROBE) {
   console.log('\n## 제약 프로브 (양성 = 정상 INSERT / 음성 = 거절돼야 정상)\n')
 
@@ -189,6 +211,32 @@ if (PROBE) {
     await check('2차로 표시된 법정 공시를 막는가', rejects('case_evidence',
       { case_study_id: studyId, url: 'https://www.sec.gov/probe',
         source_tier: 'secondary', is_regulatory_filing: true }, null))
+
+    // ── 20260907000001 의 CHECK 두 개. 컬럼만 생기고 제약을 빠뜨리면
+    //    'CHWY 10K' 같은 제각각 키가 들어와 축이 조용히 무의미해진다.
+    await check('모양 안 맞는 관측 키를 막는가', rejects('case_evidence',
+      { case_study_id: studyId, url: 'https://example.com/probe-key',
+        observation_key: 'CHWY 10K_2023' }, null))
+
+    await check('빈 문자열 관측 키를 막는가', rejects('case_evidence',
+      { case_study_id: studyId, url: 'https://example.com/probe-key2',
+        observation_key: '' }, null))
+
+    // 무브에 붙지 않은 근거에는 받칠 수치 자체가 없다.
+    await check('무브 없는 근거의 supports_metric=true 를 막는가', rejects('case_evidence',
+      { case_study_id: studyId, case_move_id: null,
+        url: 'https://example.com/probe-metric', supports_metric: true }, null))
+
+    // 양성 쪽도 본다 — 정상 키가 거절당하면 정규식이 너무 좁은 것이다.
+    await check('정상 관측 키는 통과하는가', async () => {
+      const { data, error } = await supabase.from('case_evidence')
+        .insert({ case_study_id: studyId, url: 'https://example.com/probe-ok',
+          observation_key: 'chwy-10k-fy2023', supports_metric: false })
+        .select('id, observation_key, supports_metric')
+      if (error) throw classify(error)
+      await supabase.from('case_evidence').delete().eq('id', data[0].id)
+      return `${data[0].observation_key} / supports_metric=${data[0].supports_metric}`
+    })
 
     await check('CASCADE 로 자식이 같이 지워지는가', async () => {
       const { error: mErr, data: mRows } = await supabase.from('case_moves')

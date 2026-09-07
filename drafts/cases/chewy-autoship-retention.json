@@ -1,0 +1,91 @@
+{
+  "slug": "chewy-autoship-retention",
+  "brand_name": "Chewy",
+  "market": "반려동물 용품 · 사료 온라인 소매",
+  "geo": "US",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "MID",
+  "bottleneck": "RETENTION",
+  "outcome_status": "active",
+  "period_start": "2019-01-01",
+  "period_end": "2024-01-28",
+  "summary": "사료는 떨어지면 다시 사야 하는 물건이라 재구매가 당연할 것 같지만, 실제로는 '떨어졌을 때 어디서 사느냐'가 매번 다시 열리는 선택이다. 츄이는 그 선택 자체를 없애는 쪽(Autoship 정기배송)에 매출을 걸었고, FY2023 에는 전체 순매출의 76.2%가 Autoship 고객에게서 나왔다(FY2021 70.5%). 주목할 점은 활성 고객 수가 같은 기간 오히려 줄었다는 것이다(20,663→20,083천 명). 고객을 더 데려와서 큰 게 아니라 있는 고객의 이탈 경로를 막아서 커진 구조다 — 활성 고객당 순매출은 434달러에서 555달러로 올랐다.",
+  "tags": ["반려동물", "정기배송", "구독", "리텐션", "락인", "고객당매출"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "PACKAGING",
+      "claim": "같은 상품을 '정기배송(Autoship)'이라는 포장으로 다시 팔아, 재구매 시점마다 열리던 선택을 한 번의 설정으로 닫았다. 신규 획득이 아니라 기존 고객의 매출 비중을 옮기는 쪽에 걸었고, 실제로 활성 고객 수가 줄어든 3년 동안 Autoship 매출 비중은 계속 올라갔다.",
+      "outcome_direction": "positive",
+      "metric_name": "Autoship 고객 매출이 순매출에서 차지하는 비중",
+      "metric_before": 70.5,
+      "metric_after": 76.2,
+      "metric_unit": "%",
+      "observed_period_start": "2021-02-01",
+      "observed_period_end": "2024-01-28"
+    },
+    {
+      "lever": "PRODUCT_FEATURE",
+      "claim": "원격 수의사 상담(Connect with a Vet)을 2021년에 전 고객으로 열되 Autoship 고객에게만 무료로 남겨, 구독을 끊을 때 잃는 것이 '할인'이 아니라 '서비스 접근권'이 되게 했다. 같은 기간 활성 고객당 순매출은 434달러에서 555달러로 올랐다.",
+      "outcome_direction": "positive",
+      "metric_name": "활성 고객당 순매출 (net sales per active customer)",
+      "metric_before": 434,
+      "metric_after": 555,
+      "metric_unit": "USD",
+      "observed_period_start": "2021-02-01",
+      "observed_period_end": "2024-01-28"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1766502/000176650224000014/chwy-20240128.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2024-03-20",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Autoship customer sales $ 8,493,199 $ 7,407,930 $ 6,324,145 14.7 % 17.1 % Autoship customer sales as a percentage of net sales 76.2 % 73.2 % 70.5 %",
+      "supports_claim": "FY2023 10-K(회계연도 종료 2024-01-28, EDGAR 접수일 2024-03-20) MD&A 표. 왼쪽부터 FY2023·FY2022·FY2021 이다. 76.2 / 73.2 / 70.5 % 가 원문 값 그대로다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.retaildive.com/news/chewy-sales-gain-active-customers-decline/710989/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2024-03-21",
+      "retrieved_at": "2026-09-06",
+      "snippet": null,
+      "supports_claim": "같은 실적을 다룬 독립 업계지 보도. 게시일 2024-03-21 을 본문에서 확인했다. Autoship 비중 약 76%와 활성 고객 감소를 함께 짚고 있어, '고객이 줄었는데 매출은 늘었다'는 이 케이스의 구조를 회사 공시 밖에서도 확인해 준다. 스니펫은 원문 문장을 글자 그대로 확보하지 못해 비워 뒀다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1766502/000176650224000014/chwy-20240128.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2024-03-20",
+      "retrieved_at": "2026-09-06",
+      "snippet": "In 2021, we expanded access to Connect with a Vet to all Chewy customers, with access remaining free of charge for our Autoship customers and in 2022, we further expanded this access to all registered Chewy customers.",
+      "supports_claim": "원격 수의사 상담이 Autoship 전용 무료 혜택이었다는 근거. 단, 2022년에 전 등록 고객으로 무료 범위가 넓어졌으므로 '구독 전용 혜택'이었던 기간은 사실상 2021년 한 해다 — 무브 주장에서 이 장치의 유효기간이 짧았다는 점을 빼면 과장이 된다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1766502/000176650224000014/chwy-20240128.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2024-03-20",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Active customers 20,083 20,405 20,663 (1.6) % (1.2) % Net sales per active customer $ 555 $ 496 $ 434 11.9 % 14.3 %",
+      "supports_claim": "활성 고객 수(천 명)와 고객당 순매출. 고객은 20,663→20,083 로 줄고 고객당 매출은 434→555 달러로 올랐다. 다만 공시는 이 상승을 Connect with a Vet 에 귀속하지 않는다 — 기능 도입 시점과 지표 추이를 각각 밝힐 뿐이다. 인과가 아니라 동반 관측으로만 쓴다."
+    }
+  ]
+}

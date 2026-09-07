@@ -1,0 +1,95 @@
+{
+  "slug": "beauty-of-joseon",
+  "brand_name": "조선미녀 (Beauty of Joseon)",
+  "market": "스킨케어 / 선케어",
+  "geo": "KR 본사 · 매출 90%+ 해외 (US 중심)",
+  "business_model": "MARKETPLACE_SELLER",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "DISTRIBUTION",
+  "outcome_status": "active",
+  "period_start": "2019-03-01",
+  "period_end": "2024-12-31",
+  "summary": "국내가 아니라 미국 아마존을 1차 시장으로 잡은 K뷰티 브랜드. 국내 인지도를 쌓은 뒤 해외로 나가는 순서를 뒤집었고, 단일 히어로 SKU(선크림)로 아마존 카테고리 상위를 먼저 점유했다. 매출의 90% 이상이 해외에서 나온다.",
+  "tags": ["K뷰티", "아마존", "틱톡", "해외역직구", "히어로SKU"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "CHANNEL",
+      "claim": "국내 유통망을 먼저 깔지 않고 미국 아마존을 1차 시장으로 삼았다. 국내 인지도는 해외 성과를 역수입해서 만들었다 ('미국에서 더 유명한 브랜드'로 국내 역주행).",
+      "outcome_direction": "positive",
+      "metric_name": "연매출",
+      "metric_before": 400,
+      "metric_after": 3237,
+      "metric_unit": "억원",
+      "observed_period_start": "2022-01-01",
+      "observed_period_end": "2024-12-31"
+    },
+    {
+      "lever": "POSITIONING",
+      "claim": "'한국 선크림'이 아니라 쌀 추출물·나이아신아마이드·프로바이오틱스를 결합한 데일리 톤업 선크림이라는 하위 카테고리를 정의해서 밀었다. 원산지가 아니라 제형·성분으로 검색어를 잡은 것이다.",
+      "outcome_direction": "positive",
+      "metric_name": "아마존 선크림 카테고리 순위",
+      "metric_before": null,
+      "metric_after": 1,
+      "metric_unit": "위",
+      "observed_period_start": null,
+      "observed_period_end": null
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://thevc.kr/goodaiglobal/financials",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": null,
+      "snippet": "별도 기준 매출액 2023년 1394억원 → 2024년 3216.8억원(+130.8%).",
+      "supports_claim": "전자공시(DART) 재무제표를 집계한 DB. ⚠️ 연결 3309억 / 별도 3237억(또는 3216.8억)으로 기준마다 수치가 다르다 — 이 초안은 별도 기준을 썼다. 원 감사보고서 대조는 아직 안 했다."
+    },
+    {
+      "move": 0,
+      "url": "https://m.thebell.co.kr/m/newsview.asp?newskey=202604161521168360101179",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2026-04-16",
+      "snippet": null,
+      "supports_claim": "공시 기준 매출 급증과 멀티레이블 전환. ⚠️ 2024년 이후 수치는 티르티르·라카 등 인수 브랜드가 섞인 지주사 실적이라 '조선미녀 브랜드 매출'과 같지 않다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.news1.kr/industry/distribution/5889369",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "published_at": null,
+      "snippet": null,
+      "supports_claim": "연도별 매출(2022년 400억 → 2023년 1400억 → 2024년 3237억)의 원 출처. ⚠️ 기사 게시일을 확인하지 못했다 — 최신성 판단 불가."
+    },
+    {
+      "move": 0,
+      "url": "https://m.ddaily.co.kr/page/view/2024021515283620782",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "published_at": "2024-02-15",
+      "snippet": "1억원이었던 연 매출이 3년 만에 1400억원으로 폭증했고, 매출의 90% 이상이 해외에서 발생한다.",
+      "supports_claim": "해외 매출 비중 90%+ 와 성장 배수. ⚠️ [카페24x기업 공식몰] 태그가 붙은 협업 기사라 사실상 브랜드 발표를 옮긴 것이다 — is_self_reported=true 로 잡았다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.syncly.kr/blog/beauty-of-joseon-kbeauty-marketing-agency-growth",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "published_at": "2026-06-15",
+      "snippet": "'맑은쌀 선크림'이 아마존 선크림 부문 1위, 올리브영 글로벌 선케어 매출 1위.",
+      "supports_claim": "아마존 카테고리 1위. ⚠️ 뉴스1·딜사이트를 재인용한 마케팅 블로그다(3차). 본문 표기 게시일(2026-06-15)과 메타데이터 게시일(2026-09-04)이 다른데, 이른 쪽을 적었다."
+    }
+  ]
+}

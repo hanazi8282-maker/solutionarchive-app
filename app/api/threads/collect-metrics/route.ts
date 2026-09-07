@@ -43,6 +43,14 @@ import {
 // 한도를 독점하지 않게 늦춘다. 창에 드는 글은 보통 한 자릿수라 총 지연은 2초 미만이다.
 const CALL_SPACING_MS = 200
 
+// metric_snapshots.clicks 컬럼이 적용됐는지 여부.
+// [2026-09-06] 적용 확인됨 — `scripts/predictions-migration-verify.mjs` 로
+// 컬럼 존재와 profile_clicks 분리 유지를 직접 조회했다. 그래서 true 다.
+// 플래그 자체는 남긴다: 컬럼이 없는 환경에서 clicks 를 payload 에 넣으면
+// INSERT 가 통째로 깨져 이미 되던 6개 지표 수집까지 멈추기 때문이다.
+// (마이그레이션: supabase/migrations/20260905000002_metric_snapshots_clicks.sql)
+const CLICKS_COLUMN_READY = true
+
 export async function GET(req: Request) { return POST(req) }
 
 export async function POST(req: Request) {
@@ -141,11 +149,17 @@ export async function POST(req: Request) {
 
   for (const a of plan.actions) {
     try {
-      const metrics = await fetchInsights(a.mediaId, creds.accessToken, u => { usageBox.current = u })
+      const { clicks, ...core } = await fetchInsights(
+        a.mediaId, creds.accessToken, u => { usageBox.current = u },
+      )
+      // clicks 는 컬럼이 준비된 뒤에만 저장한다. 위 CLICKS_COLUMN_READY 참고.
+      const metrics = CLICKS_COLUMN_READY ? { ...core, clicks } : core
 
       // profile_clicks / follows 는 넣지 않는다. Threads 에서 이 둘은 미디어가
       // 아니라 계정 단위 인사이트라 이 호출로는 얻을 수 없다. 0 으로 채우면
       // "측정했더니 0"과 "측정 안 함"이 구분되지 않으므로 null 로 둔다.
+      // ⚠️ 미디어 단위 clicks 를 profile_clicks 칸에 넣지 마라. 다른 값이다.
+      // 넣으면 "프로필 클릭"이라는 이름 아래 다른 지표가 쌓여 되돌릴 수 없다.
       //
       // source 도 넣지 않는다 — 컬럼 DEFAULT 가 'api' 다. 여기서 명시하면
       // 나중에 DEFAULT 를 바꿔도 이 라우트만 따라오지 않는다.

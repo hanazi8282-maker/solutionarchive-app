@@ -1,0 +1,91 @@
+{
+  "slug": "carvana-360-imaging-trust",
+  "brand_name": "Carvana",
+  "market": "온라인 중고차 소매",
+  "geo": "US",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "ONE_OFF",
+  "price_band": "HIGH",
+  "bottleneck": "TRUST",
+  "outcome_status": "active",
+  "period_start": "2013-01-01",
+  "period_end": "2016-12-31",
+  "summary": "실물을 못 보고 수천만 원짜리 중고차를 사게 만드는 게 이 사업의 유일한 병목이었다. 카바나는 그걸 '더 좋은 사진'이 아니라 '결함까지 보여 주는 사진'으로 풀었다 — 360도 촬영 기술의 목적을 상장 신고서에 '투명성'이라고 직접 못 박고, 차량의 features 뿐 아니라 imperfections 를 보게 한다고 썼다. 여기에 7일 반품을 붙여 판매 대수 자체를 '반품을 뺀 순액'으로 정의했다. 반품이 예외 처리가 아니라 상시 옵션이라는 뜻이다. 2014~2016 판매 대수는 2,105대에서 18,761대로 늘었다.",
+  "tags": ["중고차", "온라인전환", "투명성", "반품보장", "고관여", "이미징"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "PRODUCT_FEATURE",
+      "claim": "실물 확인을 대체하는 장치로 360도 차량 이미징을 만들고, 그 목적을 '장점을 잘 보이게'가 아니라 '결함(imperfections)까지 보이게'로 잡았다. 신뢰 병목에서는 좋은 정보를 더 주는 것보다 불리한 정보를 먼저 주는 쪽이 작동한다는 선택이다.",
+      "outcome_direction": "positive",
+      "metric_name": "연간 소매 판매 대수 (retail units sold, 반품 순액)",
+      "metric_before": 2105,
+      "metric_after": 18761,
+      "metric_unit": "대",
+      "observed_period_start": "2014-01-01",
+      "observed_period_end": "2016-12-31"
+    },
+    {
+      "lever": "OFFER",
+      "claim": "무료 홈딜리버리와 7일 반품을 한 묶음으로 걸어 실물 확인 없는 구매의 하방을 없앴다. 회사는 핵심 지표인 판매 대수 자체를 '7일 반품 정책에 따른 반품을 뺀 순액'으로 정의하고, 시장 진입의 정의에도 무료 홈딜리버리 제공을 포함시켰다 — 반품과 배송이 마케팅 문구가 아니라 사업 정의에 들어가 있다.",
+      "outcome_direction": "positive",
+      "metric_name": "기말 진출 시장 수 (metropolitan area)",
+      "metric_before": 3,
+      "metric_after": 21,
+      "metric_unit": "개",
+      "observed_period_start": "2014-01-01",
+      "observed_period_end": "2016-12-31"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1690820/000119312517106717/d297157ds1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2017-03-31",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Our proprietary 360-degree vehicle imaging technology provides transparency by allowing customers to view vehicle features and imperfections.",
+      "supports_claim": "S-1 원문(접수번호 0001193125-17-106717, EDGAR 접수일 2017-03-31 직접 확인). 360도 이미징의 목적을 회사가 'transparency' 로 규정한 문장 — 신뢰 병목을 겨냥한 장치라는 근거다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1690820/000119312517106717/d297157ds1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2017-03-31",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Number of markets at period end 3 9 21 Retail units sold 2,105 6,523 18,761 Inventory units available on website 652 1,842 7,310",
+      "supports_claim": "S-1 Selected Other Data 표. 왼쪽부터 2014·2015·2016 회계연도다. 판매 대수 2,105→6,523→18,761, 시장 수 3→9→21. 두 무브의 수치가 모두 이 표에서 나온다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1690820/000119312517106717/d297157ds1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2017-03-31",
+      "retrieved_at": "2026-09-06",
+      "snippet": "We define retail units sold as the number of vehicles sold to customers in a given period, net of returns under our seven-day return policy.",
+      "supports_claim": "7일 반품이 상시 옵션이라는 근거. 판매 지표의 정의 자체에 반품 차감이 들어가 있다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1690820/000119312517106717/d297157ds1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2017-03-31",
+      "retrieved_at": "2026-09-06",
+      "snippet": "We define a market as a metropolitan area in which we have commenced local advertising and offer free home delivery to customers with a Carvana employee and branded delivery truck.",
+      "supports_claim": "시장 수 3→21 이라는 수치의 정의. '무료 홈딜리버리를 제공하는 지역'이 곧 시장이므로, 시장 수 증가는 반품·배송 묶음을 실제로 깐 지역이 늘었다는 뜻이다. 다만 시장 수 증가를 반품 정책의 효과로 회사가 귀속한 문장은 공시에 없다 — 인과가 아니라 확산 범위로 읽어야 한다."
+    }
+  ]
+}

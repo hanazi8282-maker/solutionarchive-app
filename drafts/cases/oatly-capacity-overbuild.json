@@ -1,0 +1,87 @@
+{
+  "slug": "oatly-capacity-overbuild",
+  "brand_name": "Oatly",
+  "market": "귀리 음료 · 식물성 대체유",
+  "geo": "SE 본사 / US·EU·CN 판매",
+  "business_model": "WHOLESALE",
+  "buyer_type": "B2B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "SUPPLY",
+  "outcome_status": "pivoted",
+  "period_start": "2019-01-01",
+  "period_end": "2023-12-31",
+  "summary": "상장 신고서에 '우리 성장의 가장 큰 제약은 생산능력'이라고 못 박고 자체 공장 증설에 크게 투자했다. 그런데 수요가 계획을 따라오지 않자 같은 설비가 반대로 작동했다 — 신설 공장의 저가동률이 고정비 흡수를 망가뜨려 분기 매출총이익률이 29.9%에서 9.5%로 무너졌다. 공급 병목을 자체 생산으로 푸는 선택의 하방선을 보여 주는 실패 사례이고, 이후 회사는 자체 생산 비중을 줄이고 위탁 생산 쪽으로 되돌렸다.",
+  "tags": ["식물성", "생산능력", "설비투자", "실패사례", "고정비", "negative"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "OPERATIONS",
+      "claim": "공급 병목을 위탁 생산이 아니라 자체 공장 증설로 풀기로 했다. 수요가 계획에 못 미치자 신설 설비의 저가동률이 마진을 잡아먹었고, 회사 스스로 마진 하락분 2,040bp 중 970bp 를 '신설 시설의 단기 저가동'으로 귀속시켰다.",
+      "outcome_direction": "negative",
+      "metric_name": "매출총이익률 (1분기)",
+      "metric_before": 29.9,
+      "metric_after": 9.5,
+      "metric_unit": "%",
+      "observed_period_start": "2021-01-01",
+      "observed_period_end": "2022-03-31"
+    },
+    {
+      "lever": "OPERATIONS",
+      "claim": "상장 시점에 이미 공장 4곳을 돌리면서 3곳을 더 짓거나 계획 중이었다. '수요가 공급을 계속 앞선다'를 전제로 한 증설이었고, 전제가 틀렸을 때 되돌릴 수 없는 종류의 투자였다.",
+      "outcome_direction": "negative",
+      "metric_name": "가동 중 + 건설·계획 중 생산 공장 수 (F-1 공시 기준)",
+      "metric_before": 4,
+      "metric_after": 7,
+      "metric_unit": "개",
+      "observed_period_start": "2021-01-01",
+      "observed_period_end": "2021-04-19"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1843586/000119312521121323/d123209df1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2021-04-19",
+      "snippet": "We believe the greatest constraint on our growth has been production capacity.",
+      "supports_claim": "병목이 공급이라는 것을 회사가 직접 규정한 문장. Oatly 는 외국 사기업이라 S-1/10-K 가 아니라 F-1/20-F 를 낸다. EDGAR 접수일 2021-04-19 를 직접 확인했다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1843586/000156459022017667/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2022-05-04",
+      "snippet": null,
+      "supports_claim": "2022년 1분기 실적 6-K (접수번호 0001564590-22-017667). 매출총이익률 9.5%(전년 동기 29.9%)와 하락 2,040bp 의 회사 자체 분해 — 자체생산 전환 +250bp / 신설 설비 저가동 -970bp / 원자재·물류·전력 -760bp / EMEA 위탁망 통합 -290bp."
+    },
+    {
+      "move": 0,
+      "url": "https://www.foodbusinessnews.net/articles/21281-oatly-sales-up-in-quarter-margins-tighten",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": null,
+      "snippet": null,
+      "supports_claim": "같은 분기를 다룬 업계지 독립 보도. 게시일 확인 실패 — 실적 발표 직후로 보이지만 추측해서 채우지 않았다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1843586/000119312521121323/d123209df1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": "2021-04-19",
+      "snippet": null,
+      "supports_claim": "F-1 시점 가동 공장 4곳 + 싱가포르·마안산·피터버러 3곳 건설·계획 중. 7 은 계획을 포함한 수이지 완공 수가 아니다 — 실제 완공 여부는 20-F 원문을 대조하지 않았다."
+    }
+  ]
+}

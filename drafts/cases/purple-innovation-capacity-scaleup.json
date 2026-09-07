@@ -1,0 +1,132 @@
+{
+  "slug": "purple-innovation-capacity-scaleup",
+  "brand_name": "Purple Innovation",
+  "market": "매트리스 · 침구",
+  "geo": "US",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "ONE_OFF",
+  "price_band": "HIGH",
+  "bottleneck": "SUPPLY",
+  "outcome_status": "active",
+  "period_start": "2018-01-01",
+  "period_end": "2019-12-31",
+  "summary": "퍼플의 병목은 수요가 아니라 자기 공장이었다. 킹사이즈 폴리머를 한 장으로 성형할 수 있는 기계가 시중에 없어 회사가 직접 설계·제작했고(Mattress Max), 그래서 생산능력을 늘리려면 기계를 새로 '만들어야' 했다. 2018년에 그 제약이 실제로 터졌다 — 매출은 285.8백만 달러로 늘었는데 매출총이익률은 43.2%에서 39.4%로 떨어졌고, 회사는 10-K 에 원인을 '제조 공정의 비효율'이라고 직접 적었다. 2019년에 설비를 늘리고 공정·물류를 고쳤다. 설비 취득원가는 15.5 → 19.8백만 달러, 건설 중 설비는 2.9 → 5.3백만 달러로 늘었고, 매출총이익률은 44.1%로 회복돼 2018년의 하락분을 되돌리고 2017년 수준을 넘었다. 영업손익도 -16.9백만 달러에서 +16.2백만 달러로 흑자 전환했다. 오틀리·펠로톤과 같은 SUPPLY 병목·같은 OPERATIONS 레버인데 결과가 반대다 — 두 실패는 수요보다 먼저 크게 지었고, 퍼플은 수요가 이미 밀려 있는 상태에서 그만큼만 늘렸다.",
+  "tags": ["매트리스", "생산능력", "수직계열화", "자체설비", "성공사례", "SUPPLY", "positive"],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "OPERATIONS",
+      "claim": "자체 제작 설비를 늘리고 공정·물류 비효율을 걷어냈다. 1년 전 회사가 직접 '제조 공정의 비효율' 탓이라고 적었던 마진 하락(43.2 → 39.4%)이 되돌아와, 매출총이익률이 44.1%가 됐다. 같은 문서에서 회사가 밝힌 개선 원인이 '운영·물류 효율'이라 원인과 결과가 같은 발행처 안에서 맞물린다.",
+      "outcome_direction": "positive",
+      "metric_name": "매출총이익률 (gross profit percentage)",
+      "metric_before": 39.4,
+      "metric_after": 44.1,
+      "metric_unit": "%",
+      "observed_period_start": "2018-01-01",
+      "observed_period_end": "2019-12-31"
+    },
+    {
+      "lever": "OPERATIONS",
+      "claim": "증설이 말이 아니라 실제 집행으로 재무제표에 남았다 — 생산설비 취득원가가 15.465 → 19.761백만 달러(+27.8%)로, 건설 중 설비는 2.895 → 5.278백만 달러로 늘었다. 같은 기간 순매출은 285.8 → 428.4백만 달러(+49.9%)로 설비보다 빠르게 늘었다. 오틀리가 매출보다 공장을 먼저 늘려 가동률이 무너진 것과 정확히 반대 순서다.",
+      "outcome_direction": "positive",
+      "metric_name": "생산설비 취득원가 (Equipment, 건설 중 설비 제외)",
+      "metric_before": 15.465,
+      "metric_after": 19.761,
+      "metric_unit": "백만 USD",
+      "observed_period_start": "2018-01-01",
+      "observed_period_end": "2019-12-31"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1643953/000121390020005734/f10k2019_purpleinnovation.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": false,
+      "published_at": "2020-03-09",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Revenues, net $ 428,358 100.0 % $ 285,791 100.0 % Cost of revenues 239,387 55.9 173,189 60.6 Gross profit 188,971 44.1 112,602 39.4",
+      "supports_claim": "FY2019 10-K(EDGAR 접수 2020-03-09) 손익계산서. 39.4 → 44.1% 의 출처다. 감사인 의견 범위 안의 재무제표 수치라 is_issuer_defined_metric=false — 회사가 스스로 정의한 운영지표가 아니다(L-56 판정)."
+    },
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1643953/000121390020005734/f10k2019_purpleinnovation.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": false,
+      "published_at": "2020-03-09",
+      "retrieved_at": "2026-09-06",
+      "snippet": "The gross profit percentage increased to 44.1% of net revenues in 2019 from 39.4% in 2018. The increase was primarily driven by efficiencies in operations and logistics and higher margins due to product mix",
+      "supports_claim": "MD&A 의 인과 서술. 마진 회복의 원인을 회사가 '운영·물류 효율'로 지목한다. 다만 제품 믹스 효과도 같이 적혀 있어 마진 개선분 전부를 생산능력 해소로 돌리면 과장이 된다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1643953/000121390019004081/f10k2018_purpleinnovation.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": false,
+      "published_at": "2019-03-14",
+      "retrieved_at": "2026-09-06",
+      "snippet": "The gross profit percentage decreased to 39.4% of net revenues through December 31, 2018 from 43.2% through December 31, 2017 primarily due to increased product costs, inefficiencies in the manufacturing process, and a shift in sales mix to higher sales with wholesale pricing.",
+      "supports_claim": "before 값(39.4%)이 '원래 그 수준'이 아니라 '떨어진 값'이라는 근거. 1년 전 문서에서 회사가 하락 원인을 제조 비효율로 적었다 — 같은 지표의 하락과 회복을 서로 다른 두 공시가 각각 설명한다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1643953/000121390020005734/f10k2019_purpleinnovation.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": false,
+      "published_at": "2020-03-09",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Equipment $ 19,761 $ 15,465 Equipment in progress 5,278 2,895 Leasehold improvements 7,040 3,359 Furniture and fixtures 4,252 2,817 Office equipment 1,523 799 Equipment under capital lease 662 159 Total property and equipment 38,516 25,494",
+      "supports_claim": "재무제표 주석 6(유형자산). 15,465 → 19,761 천달러가 무브 수치의 출처이고, 건설 중 설비 2,895 → 5,278 천달러가 '증설이 아직 진행 중'이라는 근거다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1643953/000121390020005734/f10k2019_purpleinnovation.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": false,
+      "published_at": "2020-03-09",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Equipment in progress reflects equipment, primarily related to mattress manufacturing, which is being constructed and was not in service at December 31, 2019 or December 31, 2018.",
+      "supports_claim": "건설 중 설비가 매트리스 제조 설비라는 것을 회사가 명시한 문장. 증설 대상이 무엇인지 특정된다."
+    },
+    {
+      "url": "https://www.sec.gov/Archives/edgar/data/1643953/000121390019004081/f10k2018_purpleinnovation.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": false,
+      "published_at": "2019-03-14",
+      "retrieved_at": "2026-09-06",
+      "snippet": "Because of the unique features of our Mattress Max machines, new machines are not readily available and must be constructed. We also have experienced inefficiencies in sourcing of materials and production of finished products.",
+      "supports_claim": "케이스 단위 근거. 이 케이스의 병목이 왜 SUPPLY 인지의 원문 근거다 — 생산능력을 사올 수 없고 만들어야 한다는 제약을 회사가 위험요인에 직접 적었다."
+    },
+    {
+      "url": "https://bedtimesmagazine.com/2020/09/purple-innovation-sets-itself-up-for-rosy-future/",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": false,
+      "published_at": "2020-09-15",
+      "retrieved_at": "2026-09-06",
+      "snippet": null,
+      "supports_claim": "업계지 BedTimes 의 CEO(Joe Megibow) 인터뷰. 취임 당시 60일 이상 출하 적체가 있었고 Mattress Max 3대를 새로 투입했으며 2018년 대비 생산능력이 두 배가 됐다는 서술, 그리고 '도매 확대를 막고 있던 주된 요인이 생산능력이었다'는 발언이 실려 있다. ★ 내용이 전부 CEO 발언이라 독립 확인이 아니다 — is_self_reported=true 로 두었고 등급 산식의 교차 확인에는 세지 않는다. 스니펫은 본문을 직접 대조하지 못해 비워 두고 요약만 남긴다(§7.1)."
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "slug": "duolingo-streak",
+  "brand_name": "Duolingo",
+  "market": "언어학습 앱",
+  "geo": "US 본사 · 글로벌",
+  "business_model": "SUBSCRIPTION",
+  "buyer_type": "B2C",
+  "purchase_frequency": "CONTRACT",
+  "price_band": "LOW",
+  "bottleneck": "RETENTION",
+  "outcome_status": "active",
+  "period_start": "2018-01-01",
+  "period_end": "2023-12-31",
+  "summary": "2018년 DAU 성장이 꺾였을 때 신규 획득을 더 밀지 않고 '새는 양동이' 쪽을 먼저 막았다. 게임 업계의 일간 리텐션 지표 체계를 그대로 들여와서, 교육 앱을 게임처럼 계측했다.",
+  "tags": [
+    "리텐션",
+    "게임화",
+    "스트릭",
+    "구독",
+    "새는양동이"
+  ],
+  "researched_by": "claude-code (Opus 5)",
+  "moves": [
+    {
+      "lever": "PRODUCT_FEATURE",
+      "claim": "신규 사용자 획득 대신 기존 사용자 유지에 자원을 몰았다. Zynga식 주간 리텐션 지표를 일간 모델로 바꿔 신규·기존·복귀·부활 사용자의 합이 DAU가 되게 계측하고, 몇 년째 움직이지 않던 '기존(CURR)' 구간을 표적으로 삼았다.",
+      "outcome_direction": "positive",
+      "metric_name": "일간 활성 사용자(DAU), 4분기 기준",
+      "metric_before": 10,
+      "metric_after": 27,
+      "metric_unit": "백만명",
+      "observed_period_start": "2021-10-01",
+      "observed_period_end": "2023-12-31"
+    },
+    {
+      "lever": "COMMUNITY",
+      "claim": "장기 스트릭 사용자에게 등급(Streak Society)을 주는 지위 계층을 붙였다. 보상이 아니라 '쌓아 온 것을 잃는 비용'을 만드는 쪽이다.",
+      "outcome_direction": "positive",
+      "metric_name": "유료 구독 갱신율 상승폭",
+      "metric_before": null,
+      "metric_after": 20,
+      "metric_unit": "%",
+      "observed_period_start": null,
+      "observed_period_end": null
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://investors.duolingo.com/news-releases/news-release-details/duolingo-reports-65-dau-growth-45-revenue-growth-and-record",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": null,
+      "snippet": "2023년 4분기 DAU가 전년 대비 65% 늘었다. 2021년 4분기 약 1000만 명에서 2023년 4분기 약 2700만 명이 됐다.",
+      "supports_claim": "DAU 1000만(21년 4분기) → 2700만(23년 4분기). ⚠️ 발표일을 확인하지 못했다 — '게시일 없음'이 아니라 '확인 실패'다. 재검수 때 채워야 한다. [2026-09-06 정정] IR 사이트의 보도자료는 공시 문서 자체가 아니라 그 요약이므로 is_regulatory_filing 을 false 로 내렸다. 이 플래그는 URL 이 sec.gov/Archives 또는 dart.fss.or.kr 원문일 때만 true 로 쓴다. 같은 무브에 8-K 원문 근거가 따로 있어 등급은 변하지 않는다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1562088/000156208823000173/duolingo_q2-2023xshareho.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "published_at": null,
+      "snippet": "2023년 2분기 DAU가 62% 증가한 2140만 명, MAU는 50% 증가한 7410만 명, DAU/MAU 29%로 최고치.",
+      "supports_claim": "분기별 DAU 추이의 공시 원문(8-K). 3차 블로그가 적어 둔 1600만→3000만과 다르다는 점을 확인해 준다."
+    },
+    {
+      "move": 0,
+      "url": "https://marishalakhiani.substack.com/p/breaking-down-duolingos-growth-model",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "published_at": null,
+      "snippet": null,
+      "supports_claim": "2018년 DAU 성장 둔화 → 리텐션 우선 전환의 서사. 지표 체계(Zynga 변형) 설명. ⚠️ 이 계열의 3차 글들이 DAU 를 1600만→3000만으로 적어 놓았는데 공시 수치(1000만→2700만)와 다르다. 서사만 참고하고 수치는 쓰지 않았다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.influencers-time.com/duolingo-streak-society-case-study-20-renewal-lift/",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "published_at": null,
+      "snippet": null,
+      "supports_claim": "Streak Society 도입 후 유료 갱신율 20% 상승. ⚠️ 출처가 이 사례 글 하나뿐이고 기준선·기간이 명시돼 있지 않다. 재확인 전에는 인용하면 안 된다."
+    }
+  ]
+}

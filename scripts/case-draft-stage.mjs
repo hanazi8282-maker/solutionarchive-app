@@ -12,7 +12,7 @@
 //   3) post_decision_link 로 판정 로그 LOG-20260906-01 과 연결
 //
 // ⚠️ pending_review 는 마이그레이션 20260906000002 가 적용돼야 들어간다.
-//    §12-5 상 마이그레이션은 대시보드에서만 돌리므로, 미적용 상태에서는
+//    §12-5 상 마이그레이션은 사람이 `supabase db query --linked -f` 또는 대시보드로 적용하므로, 미적용 상태에서는
 //    23514(check_violation) 가 난다. 그때 조용히 draft 로 눕히고 끝내면
 //    "게이트 통과한 발행-대기"와 "아직 게이트도 안 돈 생초안"이 같은 값이
 //    되어 버린다 (§7.1: 확인 실패를 정상으로 접지 마라). 그래서 폴백은
@@ -188,8 +188,8 @@ if (fellBack) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.log("⚠️ status='draft' 로 폴백했다. 이건 '게이트를 안 돌린 초안'이라는 뜻이 아니다.")
   console.log('   마이그레이션 20260906000002_posts_pending_review.sql 가 아직 적용되지 않아')
-  console.log("   CHECK 가 'pending_review' 를 거부했다 (23514). 대시보드 SQL Editor 에서")
-  console.log('   적용한 뒤 이 스크립트를 다시 돌리면 정상 값으로 올라간다 (§12-5).')
+  console.log("   CHECK 가 'pending_review' 를 거부했다 (23514). `supabase db query --linked -f")
+  console.log('   supabase/migrations/20260906000002_posts_pending_review.sql` (또는 대시보드) 로 적용한 뒤 재실행 (§12-5).')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 }
 console.log('⛔ 발행하지 않았다. 어떤 Threads API 도 호출하지 않았다 (CLAUDE.md §10).')

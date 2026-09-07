@@ -53,7 +53,7 @@ const die = (kind, msg) => {
   console.error(`✗ ${kind}: ${msg}`)
   if (/42P01|PGRST205|does not exist/i.test(msg)) {
     console.error('  → 20260906000001_case_study_pipeline.sql 이 아직 적용되지 않았다.')
-    console.error('    §12-5 규약상 대시보드 SQL Editor 에서만 실행한다. CLI 로 적용하지 마라.')
+    console.error('    §12-5: 사람이 `supabase db query --linked -f supabase/migrations/20260906000001_case_study_pipeline.sql` (또는 대시보드) 로 적용. MCP 는 회사 DB 라 금지.')
   }
   process.exit(2)
 }
@@ -341,7 +341,7 @@ async function regrade() {
     console.error(`✗ 확인 불가: case_evidence.is_issuer_defined_metric 없음 — ${axisProbe.error.code} ${axisProbe.error.message}`)
     console.error('  → 20260906000003_case_evidence_issuer_defined_metric.sql 미적용이다.')
     console.error('    이 축 없이 재계산하면 옛 산식과 같은 답이 나온다. 그래서 계산하지 않고 멈춘다(§7.1).')
-    console.error('    §12-5 규약상 대시보드 SQL Editor 에서만 적용한다. 파일 아래쪽 주석 처리된 백필 12쌍도 같이 실행해야 한다.')
+    console.error('    §12-5: 사람이 `supabase db query --linked -f` (또는 대시보드) 로 적용한다. 파일 아래쪽 주석 처리된 백필 12쌍도 같이 실행해야 한다.')
     // 여기서 process.exit 를 부르면 방금 끝난 fetch 의 핸들이 살아 있어 윈도우 노드가
     // libuv assertion 으로 죽는다(종료코드 127). 확인 불가는 2 로 나가야 한다.
     process.exitCode = 2

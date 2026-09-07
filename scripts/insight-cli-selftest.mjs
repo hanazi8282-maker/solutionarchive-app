@@ -18,7 +18,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-import { extractSingleFile } from '../lib/insight/claude-cli.ts'
+import { extractSingleFile, buildChildEnv } from '../lib/insight/claude-cli.ts'
 
 let passed = 0
 const failures = []
@@ -137,10 +137,44 @@ async function testDeterministic() {
   check('결정성: 두 번 추출한 결과가 동일', hashes[0] === hashes[1], hashes.join(' vs '))
 }
 
+// ── 5) buildChildEnv — 자격증명 격리 (Risk 3) ──────────────────────
+// 화이트리스트를 주면 process.env 를 상속하지 않아야 한다. 이게 새면 LLM 이
+// 조종하는 서브프로세스에 DB 관리자 키가 그대로 넘어간다.
+function testChildEnvIsolation() {
+  const parent = {
+    PATH: '/usr/bin:/bin',
+    LANG: 'en_US.UTF-8',
+    SUPABASE_SERVICE_ROLE_KEY: 'super-secret-admin-key',
+    NEXT_PUBLIC_SUPABASE_URL: 'https://x.supabase.co',
+    CLAUDE_CODE_OAUTH_TOKEN: 'oauth-abc',
+    RANDOM_OTHER: 'leak-me',
+  }
+
+  // 화이트리스트 없음 → 기존 동작(전량 상속). insight-loop 무영향 보장.
+  const inherited = buildChildEnv(parent)
+  check('격리: 화이트리스트 없으면 부모 env 상속', inherited.SUPABASE_SERVICE_ROLE_KEY === 'super-secret-admin-key')
+  check('격리: 상속 모드에서도 고정 claude 변수 주입', inherited.DISABLE_AUTOUPDATER === '1')
+
+  // 화이트리스트 있음 → SERVICE_ROLE_KEY 는 없어야, OAuth 토큰은 있어야.
+  const isolated = buildChildEnv(parent, { CLAUDE_CODE_OAUTH_TOKEN: parent.CLAUDE_CODE_OAUTH_TOKEN })
+  check('격리: SUPABASE_SERVICE_ROLE_KEY 가 자식에 없다', isolated.SUPABASE_SERVICE_ROLE_KEY === undefined,
+    '이게 새면 Risk 3 완화가 무력하다')
+  check('격리: NEXT_PUBLIC_SUPABASE_URL 도 없다(화이트리스트에 안 넣었으므로)', isolated.NEXT_PUBLIC_SUPABASE_URL === undefined)
+  check('격리: RANDOM_OTHER 도 없다', isolated.RANDOM_OTHER === undefined)
+  check('격리: 화이트리스트에 명시한 OAuth 토큰은 있다', isolated.CLAUDE_CODE_OAUTH_TOKEN === 'oauth-abc')
+  check('격리: PATH 는 실행에 필요하므로 유지', isolated.PATH === '/usr/bin:/bin')
+  check('격리: 고정 claude 변수 주입', isolated.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC === '1')
+
+  // 화이트리스트가 고정 변수를 덮어쓸 수 있는가(HOME 커스터마이즈 등) — 마지막 스프레드라 가능해야
+  const override = buildChildEnv(parent, { HOME: '/custom/home' })
+  check('격리: 화이트리스트가 고정 변수보다 우선', override.HOME === '/custom/home')
+}
+
 async function main() {
   await fs.rm(TMP, { recursive: true, force: true })
   await fs.mkdir(TMP, { recursive: true })
 
+  testChildEnvIsolation()
   await testExtractsRealFile()
   await testExtractsLaterEntry()
   await testMissingFileThrows()

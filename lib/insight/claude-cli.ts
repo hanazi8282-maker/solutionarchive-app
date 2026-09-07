@@ -241,11 +241,69 @@ export interface RunResult {
   ms: number
 }
 
+export interface RunClaudeOpts {
+  timeoutMs?: number
+  maxOutputBytes?: number
+  /**
+   * 작업 디렉터리. 기본 `/tmp`(Vercel 런타임 전용). GitHub Actions 처럼 체크아웃한
+   * 리포에서 돌릴 때는 그 경로를 넘긴다.
+   */
+  cwd?: string
+  /**
+   * ⚠️ 자격증명 격리 (2026-09-08 추가 — Risk 3).
+   *
+   * **주면**: 자식 프로세스 env = `{ PATH, TMPDIR류, 고정 claude 런타임 변수, ...이 맵 }`.
+   *   `process.env` 를 통째로 상속하지 **않는다.** LLM 이 조종하는 서브프로세스에
+   *   `SUPABASE_SERVICE_ROLE_KEY` 같은 DB 관리자급 키가 넘어가지 않게 하는 용도다.
+   *   호출자(오케스트레이터)가 자식에게 넘길 변수만 명시적으로 담는다.
+   * **안 주면**: 기존 동작(`...process.env` 상속). insight-loop 는 이 경로라 무영향.
+   */
+  env?: Record<string, string | undefined>
+  /** stream-json 라이브 파싱용. 완성된 stdout 줄마다 호출된다(누적 stdout 도 그대로 유지). */
+  onStdoutLine?: (line: string) => void
+}
+
+// claude 런타임이 반드시 필요로 하는 고정 변수. env 화이트리스트를 써도 이건 들어간다.
+const FIXED_CLAUDE_ENV: Record<string, string> = {
+  HOME: CLAUDE_HOME,
+  CLAUDE_CONFIG_DIR: path.join(CLAUDE_HOME, '.claude'),
+  // 자동 업데이터가 읽기 전용 FS 에 쓰려다 죽는 걸 막는다.
+  DISABLE_AUTOUPDATER: '1',
+  DISABLE_TELEMETRY: '1',
+  DISABLE_ERROR_REPORTING: '1',
+  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+}
+
+/**
+ * 자식 프로세스에 넘길 env 를 만든다. 순수 함수 — 격리 규칙을 selftest 로 고정한다.
+ *
+ * `whitelist` 를 주면 `process.env` 를 **상속하지 않는다.** PATH·임시디렉터리·고정
+ * claude 변수 + whitelist 만 담는다. `SUPABASE_SERVICE_ROLE_KEY` 같은 DB 관리자급
+ * 키가 LLM 이 조종하는 서브프로세스로 새는 것을 막는 용도다(Risk 3).
+ * `whitelist` 가 없으면 기존 동작(전량 상속). insight-loop 는 이 경로라 무영향.
+ */
+export function buildChildEnv(
+  parentEnv: NodeJS.ProcessEnv,
+  whitelist?: Record<string, string | undefined>,
+): Record<string, string | undefined> {
+  if (!whitelist) return { ...parentEnv, ...FIXED_CLAUDE_ENV }
+  return {
+    PATH: parentEnv.PATH,
+    LANG: parentEnv.LANG,
+    TMPDIR: parentEnv.TMPDIR,
+    TEMP: parentEnv.TEMP,
+    TMP: parentEnv.TMP,
+    SystemRoot: parentEnv.SystemRoot, // Windows 에서 node 가 이걸 요구한다
+    ...FIXED_CLAUDE_ENV,
+    ...whitelist,
+  }
+}
+
 /** claude 바이너리를 인자와 함께 실행한다. stdout/stderr 를 상한까지만 모은다. */
 export async function runClaude(
   binaryPath: string,
   args: string[],
-  opts: { timeoutMs?: number; maxOutputBytes?: number } = {},
+  opts: RunClaudeOpts = {},
 ): Promise<RunResult> {
   const timeoutMs = opts.timeoutMs ?? 120_000
   const maxOutput = opts.maxOutputBytes ?? 2_000_000
@@ -253,25 +311,21 @@ export async function runClaude(
 
   await fs.mkdir(CLAUDE_HOME, { recursive: true })
 
+  const childEnv = buildChildEnv(process.env, opts.env)
+
   return new Promise<RunResult>((resolve) => {
     const child = spawn(binaryPath, args, {
-      env: {
-        ...process.env,
-        HOME: CLAUDE_HOME,
-        CLAUDE_CONFIG_DIR: path.join(CLAUDE_HOME, '.claude'),
-        // 자동 업데이터가 읽기 전용 FS 에 쓰려다 죽는 걸 막는다.
-        DISABLE_AUTOUPDATER: '1',
-        DISABLE_TELEMETRY: '1',
-        DISABLE_ERROR_REPORTING: '1',
-        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
-      },
-      cwd: '/tmp',
+      // 이 리포 tsconfig 는 process.env.NODE_ENV 를 브랜드 타입으로 좁혀서
+      // ProcessEnv 가 순수 Record 가 아니다. 값 형태는 동일하므로 캐스팅한다.
+      env: childEnv as NodeJS.ProcessEnv,
+      cwd: opts.cwd ?? '/tmp',
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
     let stdout = ''
     let stderr = ''
     let timedOut = false
+    let lineBuf = ''
 
     const timer = setTimeout(() => {
       timedOut = true
@@ -279,7 +333,17 @@ export async function runClaude(
     }, timeoutMs)
 
     child.stdout.on('data', (d) => {
-      if (stdout.length < maxOutput) stdout += d.toString()
+      const s = d.toString()
+      if (stdout.length < maxOutput) stdout += s
+      if (opts.onStdoutLine) {
+        lineBuf += s
+        let nl: number
+        while ((nl = lineBuf.indexOf('\n')) >= 0) {
+          const line = lineBuf.slice(0, nl)
+          lineBuf = lineBuf.slice(nl + 1)
+          try { opts.onStdoutLine(line) } catch { /* 콜백 오류가 실행을 죽이지 않게 */ }
+        }
+      }
     })
     child.stderr.on('data', (d) => {
       if (stderr.length < maxOutput) stderr += d.toString()
@@ -299,6 +363,10 @@ export async function runClaude(
 
     child.on('close', (code, signal) => {
       clearTimeout(timer)
+      // 개행으로 안 끝난 마지막 줄도 흘려보낸다.
+      if (opts.onStdoutLine && lineBuf.length) {
+        try { opts.onStdoutLine(lineBuf) } catch { /* noop */ }
+      }
       resolve({ exitCode: code, signal, stdout, stderr, timedOut, ms: Date.now() - started })
     })
   })

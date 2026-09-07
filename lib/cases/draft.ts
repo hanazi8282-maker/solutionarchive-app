@@ -41,6 +41,20 @@ export type Evidence = {
    * true 면 '허위기재에 법적 책임이 따른다'는 A 등급의 전제가 성립하지 않는다.
    */
   is_issuer_defined_metric?: boolean
+  /**
+   * 이 근거가 전하는 **원 관측**의 식별자. 같은 관측을 옮겨 적은 행끼리 같은 값을
+   * 갖는다 (10-K 원문과 그것을 받아쓴 기사 → 둘 다 `chwy-10k-fy2023`).
+   * 등급 산식의 "독립"은 도메인이 아니라 이 키의 가짓수로 센다 (L-60).
+   * `null`/`undefined` 는 "독립이 아니다"가 아니라 **"확인하지 않았다"**이고,
+   * 산식은 확인하지 않은 것을 독립으로 세지 않는다 (§7.1).
+   */
+  observation_key?: string | null
+  /**
+   * 이 근거가 무브의 **수치**(metric_before→metric_after)를 직접 받치는가.
+   * 기능의 존재·시기·메커니즘 같은 서사만 받치면 `false` (L-64).
+   * `null`/`undefined` 는 "확인하지 않았다"이고 수치 뒷받침으로 세지 않는다.
+   */
+  supports_metric?: boolean | null
   published_at?: string | null
   retrieved_at?: string | null
   snippet?: string | null
@@ -89,18 +103,56 @@ export function domainOf(url: string): string | null {
   } catch { return null }
 }
 
-export type GradeResult = { grade: Grade; reason: string }
+export type GradeResult = {
+  grade: Grade
+  reason: string
+  /**
+   * 독립성·수치 뒷받침을 판정할 축(`observation_key` / `supports_metric`)이
+   * 비어 있어 **보수적으로** 매긴 등급인가. true 면 "근거가 약하다"가 아니라
+   * "약한지 강한지 아직 안 적었다"는 뜻이다 — 이 둘을 섞으면 §7.1 위반이다.
+   */
+  provisional?: boolean
+  /** 미기재 때문에 세지 못한 근거 행 수. 사람이 뭘 채워야 하는지 알려 준다. */
+  unkeyed?: number
+}
+
+/**
+ * 근거를 **원 관측** 단위로 접는다 (L-60).
+ *
+ * `observation_key` 가 있으면 그것으로, 없으면 세지 않는다. 도메인으로 대신
+ * 세면 "S-1 을 읽고 쓴 뉴스레터 2곳"이 독립 2건이 된다 — 그게 고치려는 결함이다.
+ * 그래서 이 함수는 키 없는 행을 **버리고**, 몇 건을 버렸는지 함께 돌려준다.
+ */
+export function foldObservations(evidence: Evidence[]): { keys: Set<string>; unkeyed: number } {
+  const keys = new Set<string>()
+  let unkeyed = 0
+  for (const e of evidence) {
+    const k = e.observation_key?.trim()
+    if (k) keys.add(k)
+    else unkeyed++
+  }
+  return { keys, unkeyed }
+}
 
 /**
  * 무브 하나의 근거 등급.
  *
  *   A = 법정 공시 1개(발행사 자체 정의 지표 제외)  또는  비자기보고 1차 출처 1개
- *       또는  독립 도메인 2개 이상
- *   B = 자기보고 1차 출처 1개 + 다른 도메인의 출처 1개
+ *       또는  **서로 다른 원 관측 2개 이상**
+ *   B = 자기보고 1차 출처 1개 + **다른 원 관측** 1개
  *   C = 근거는 있으나 위에 못 미침
  *   D = 수치 자체가 없다 (서술만)
  *
- * ★ "독립"은 도메인이 다른 것으로 센다. 같은 보도자료를 받아쓴 기사 5개는 1개다.
+ * ★ [L-60, 2026-09-07] "독립"을 **도메인이 아니라 `observation_key`** 로 센다.
+ *   도메인으로 세면 S-1 하나를 읽고 쓴 뉴스레터 2곳이 독립 2건이 된다 —
+ *   도메인은 2개지만 관측은 1개다. 키가 없는 행은 "독립이 아니다"가 아니라
+ *   **"확인하지 않았다"**라서 세지 않고, 그렇게 매긴 등급에는 `provisional` 를 켠다.
+ * ★ [L-64, 2026-09-07] 교차 확인 경로는 `supports_metric === true` 인 행만 센다.
+ *   무브는 수치 하나만 담지 않는다 — chewy/PRODUCT_FEATURE 는 "기능이 Autoship
+ *   전용이었다"와 "고객당 순매출 434→555"를 함께 담는다. 앞쪽만 다루는 독립 매체
+ *   1건이 뒤쪽 수치의 등급을 올리면, **아무도 확인하지 않은 숫자가 B 가 된다.**
+ *   반면 공시·비자기보고 1차 경로는 `false` 만 뺀다(개수를 세는 경로가 아니라
+ *   문서 성격을 보는 경로라, 미기재를 배제로 읽으면 근거 없이 A 가 무너진다).
  * ★ 3차 출처(요약 블로그·해설 영상)는 **수치를 뒷받침하는 데 세지 않는다.**
  *   원 수치를 옮겨 적은 것이라 독립적인 확인이 아니다. C 를 만드는 데는 쓴다.
  * ★ **추정치(is_estimate)도 뒷받침에 세지 않는다.** 시범 5건에서 발견한 구멍이다 —
@@ -131,13 +183,20 @@ export function gradeMove(move: Move, evidence: Evidence[]): GradeResult {
   //   any third party" 라고 스스로 밝힌다. 그런 숫자를 "법정 공시니까 A" 로 올리면
   //   산식이 문서의 자기 부인보다 관대해진다 (L-56). is_issuer_defined_metric 로
   //   그 수치를 빼고, 나머지 경로(독립 도메인 2곳 등)로 다시 판정하게 둔다.
-  const attested = evidence.filter(e =>
+  //
+  // ★ 여기(문서 성격 경로)에서는 `supports_metric === false` 인 행만 뺀다.
+  //   "이 문서는 수치를 안 다룬다"고 **적힌** 것만 배제한다. 미기재(null)까지
+  //   빼면 백필 전에 A 가 통째로 무너지는데, 그건 근거가 나빠져서가 아니라
+  //   아직 안 적어서다 — 그 둘을 같은 결과로 만들면 §7.1 위반이다.
+  const onMetric = evidence.filter(e => e.supports_metric !== false)
+
+  const attested = onMetric.filter(e =>
     e.is_regulatory_filing && !e.is_estimate && !e.is_issuer_defined_metric)
   if (attested.length >= 1) {
     return { grade: 'A', reason: `법정 공시 ${attested.length}건 (자기보고이나 법적 책임이 따르는 문서)` }
   }
 
-  const nonSelfPrimary = evidence.filter(e =>
+  const nonSelfPrimary = onMetric.filter(e =>
     e.source_tier === 'primary' && !e.is_self_reported && !e.is_estimate)
   if (nonSelfPrimary.length >= 1) {
     return { grade: 'A', reason: `비자기보고 1차 출처 ${nonSelfPrimary.length}건` }
@@ -146,34 +205,61 @@ export function gradeMove(move: Move, evidence: Evidence[]): GradeResult {
   // 수치를 확인해 주는 출처만 센다. 3차·자기보고·추정치를 뺀다.
   // 당사자가 자기 수치를 말한 건 그 수치의 독립적인 확인이 아니다.
   // (이걸 빼지 않으면 "브랜드 블로그 + 그걸 받아쓴 기사" 조합이 A 가 된다)
+  //
+  // ★ 교차 확인 경로는 규칙이 다르다. 여기는 **개수를 세는** 경로라,
+  //   미기재를 통과시키면 세면 안 될 것을 센다. `supports_metric === true`
+  //   (수치를 실제로 담고 있다고 확인한 행) 만 세고, 독립성은 `observation_key`
+  //   로 접는다. 둘 중 하나라도 비어 있으면 그 행은 교차 확인에 못 쓴다.
   const corroborating = evidence.filter(e =>
     !e.is_self_reported && !e.is_estimate
     && (e.source_tier === 'primary' || e.source_tier === 'secondary'))
-  const domains = new Set(corroborating.map(e => domainOf(e.url)).filter(Boolean) as string[])
-  if (domains.size >= 2) {
-    return { grade: 'A', reason: `독립 도메인 ${domains.size}곳이 뒷받침` }
+  const usable = corroborating.filter(e => e.supports_metric === true)
+  const folded = foldObservations(usable)
+  // 세지 못한 이유를 한 덩어리로 만든다. "왜 안 올랐나"를 사람이 바로 알아야 한다.
+  const unkeyed = corroborating.length - usable.length + folded.unkeyed
+  const shortfall = unkeyed > 0
+    ? ` (교차 확인 후보 ${corroborating.length}건 중 ${unkeyed}건은 관측 키·수치 뒷받침 미기재라 세지 않았다)`
+    : ''
+
+  if (folded.keys.size >= 2) {
+    return { grade: 'A', reason: `서로 다른 원 관측 ${folded.keys.size}개가 뒷받침${shortfall}` }
   }
 
-  const selfPrimary = evidence.filter(e => e.source_tier === 'primary' && e.is_self_reported)
+  const selfPrimary = onMetric.filter(e => e.source_tier === 'primary' && e.is_self_reported)
   if (selfPrimary.length >= 1) {
-    const selfDomains = new Set(selfPrimary.map(e => domainOf(e.url)).filter(Boolean) as string[])
+    const selfFolded = foldObservations(selfPrimary)
     // B 로 올려 주는 "다른 출처"는 3차 요약글이면 안 된다. 그건 당사자 발표를
-    // 옮겨 적은 것이라 교차 확인이 아니다.
-    const other = corroborating.filter(e => {
-      const d = domainOf(e.url)
-      return d !== null && !selfDomains.has(d)
-    })
-    if (other.length >= 1) {
-      return { grade: 'B', reason: '자기보고 1차 + 다른 도메인의 비추정 출처 1건' }
+    // 옮겨 적은 것이라 교차 확인이 아니다. 이제는 도메인이 아니라 관측으로 가른다 —
+    // 도메인만 보면 Retail Dive 기사가 Chewy 10-K 와 '다른 출처'로 세어졌다(L-61).
+    if (selfFolded.unkeyed > 0) {
+      // 자기보고 쪽 관측을 모르면 "다른 관측인가"를 물을 수가 없다. 확인 불가다.
+      return {
+        grade: 'C',
+        reason: `자기보고 1차 ${selfPrimary.length}건의 관측 키가 미기재라 교차 확인 여부를 판정할 수 없다${shortfall}`,
+        provisional: true,
+        unkeyed: selfFolded.unkeyed + unkeyed,
+      }
     }
-    return { grade: 'C', reason: '자기보고 1차뿐 — 교차 확인 없음' }
+    const other = [...folded.keys].filter(k => !selfFolded.keys.has(k))
+    if (other.length >= 1) {
+      return { grade: 'B', reason: `자기보고 1차 + 다른 원 관측 ${other.length}개(${other.join(', ')})${shortfall}` }
+    }
+    return {
+      grade: 'C',
+      reason: `자기보고 1차뿐 — 다른 원 관측 없음${shortfall}`,
+      ...(unkeyed > 0 ? { provisional: true, unkeyed } : {}),
+    }
   }
 
   const estimates = evidence.filter(e => e.is_estimate)
-  if (estimates.length > 0 && domains.size === 0) {
-    return { grade: 'C', reason: `추정치뿐 (${estimates.length}건) — 실측 출처 없음` }
+  if (estimates.length > 0 && folded.keys.size === 0) {
+    return { grade: 'C', reason: `추정치뿐 (${estimates.length}건) — 실측 출처 없음${shortfall}` }
   }
-  return { grade: 'C', reason: `교차 확인 없음 — 근거 ${evidence.length}건 / 독립 실측 도메인 ${domains.size}곳` }
+  return {
+    grade: 'C',
+    reason: `교차 확인 없음 — 근거 ${evidence.length}건 / 독립 원 관측 ${folded.keys.size}개${shortfall}`,
+    ...(unkeyed > 0 ? { provisional: true, unkeyed } : {}),
+  }
 }
 
 export type Issue = { level: 'error' | 'warn'; where: string; message: string }

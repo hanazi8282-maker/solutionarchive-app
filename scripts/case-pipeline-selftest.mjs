@@ -14,7 +14,7 @@
 
 import {
   BUSINESS_MODEL, BOTTLENECK, LEVER, SNIPPET_MAX, SLUG_RE,
-  domainOf, gradeMove, validateDraft, toRows,
+  domainOf, foldObservations, gradeMove, validateDraft, toRows,
 } from '../lib/cases/draft.ts'
 import { attributionGate } from '../lib/cases/publish-gate.ts'
 
@@ -89,10 +89,10 @@ eq('비자기보고 1차 1건이면 A',
 //   tier 만 보면 A 로 올라간다 — 이게 이 파일에서 가장 잡고 싶은 오류다.
 eq('자기보고 1차 단독은 A 가 아니다',
   gradeMove(M, [{ url: 'https://blog.acme.com/x', source_tier: 'primary', is_self_reported: true }]).grade, 'C')
-eq('자기보고 1차 + 다른 도메인이면 B',
+eq('자기보고 1차 + 다른 원 관측이면 B',
   gradeMove(M, [
-    { url: 'https://blog.acme.com/x', source_tier: 'primary', is_self_reported: true },
-    { url: 'https://news.example.com/y', source_tier: 'secondary' },
+    { url: 'https://blog.acme.com/x', source_tier: 'primary', is_self_reported: true, observation_key: 'acme-blog-2024' },
+    { url: 'https://news.example.com/y', source_tier: 'secondary', observation_key: 'news-reporting-2024', supports_metric: true },
   ]).grade, 'B')
 // 당사자 발표를 옮겨 적은 3차 요약글은 교차 확인이 아니다. B 로 올려 주면 안 된다.
 eq('자기보고 1차 + 3차 요약글은 B 가 아니라 C',
@@ -108,10 +108,10 @@ eq('같은 도메인 3건은 독립 2곳이 아니다',
     { url: 'https://news.example.com/2', source_tier: 'secondary' },
     { url: 'https://news.example.com/3', source_tier: 'secondary' },
   ]).grade, 'C')
-eq('다른 도메인 2건이면 A',
+eq('서로 다른 원 관측 2건이면 A',
   gradeMove(M, [
-    { url: 'https://news.example.com/1', source_tier: 'secondary' },
-    { url: 'https://other.example.org/2', source_tier: 'secondary' },
+    { url: 'https://news.example.com/1', source_tier: 'secondary', observation_key: 'reporter-a-2024', supports_metric: true },
+    { url: 'https://other.example.org/2', source_tier: 'secondary', observation_key: 'reporter-b-2024', supports_metric: true },
   ]).grade, 'A')
 
 // ★ 법정 공시는 자기보고여도 A 다. 이 축이 없으면 등급이 뒤집힌다 —
@@ -123,13 +123,17 @@ eq('법정 공시 1건이면 자기보고여도 A',
 //   "법정 공시 1건"이라는 이유만으로 A 로 올라가 있었다.
 eq('발행사 자체 정의 지표는 공시여도 A 가 아니다',
   gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true }]).grade, 'C')
-check('그 이유는 자기보고 1차 단독으로 읽힌다',
-  /자기보고 1차뿐/.test(gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true }]).reason))
-// 같은 지표라도 독립 도메인이 하나 더 붙으면 B 로 올라간다 — 이게 L-58 이 노리는 경로다.
-eq('자체 정의 지표 + 독립 2차 1건이면 B',
+{
+  // 관측 키가 있으면 "자기보고 1차뿐", 없으면 "판정할 수 없다" — 이유가 갈려야 한다.
+  const keyed = gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true, observation_key: 'nu-20f-2023' }])
+  check('키가 있으면 이유가 "자기보고 1차뿐"으로 읽힌다', /자기보고 1차뿐/.test(keyed.reason))
+  check('그때는 잠정 등급이 아니다', keyed.provisional !== true)
+}
+// 같은 지표라도 **다른 원 관측**이 하나 더 붙으면 B 로 올라간다 — 이게 L-58 이 노리는 경로다.
+eq('자체 정의 지표 + 다른 원 관측 1건이면 B',
   gradeMove(M, [
-    { url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true },
-    { url: 'https://www.reuters.com/y', source_tier: 'secondary', is_self_reported: false },
+    { url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true, observation_key: 'nu-20f-2023' },
+    { url: 'https://www.reuters.com/y', source_tier: 'secondary', is_self_reported: false, observation_key: 'reuters-reporting-2023', supports_metric: true },
   ]).grade, 'B')
 // 재무제표 본문 수치는 플래그를 달지 않는다 — 기존 A 경로가 그대로 살아 있어야 한다.
 eq('플래그 없는 공시는 여전히 A',
@@ -279,8 +283,73 @@ eq('정상 초안은 error 0', errorsOf(base()).length, 0)
   d.evidence.push({ move: 0, url: 'https://another.example.org/z', source_tier: 'secondary' })
   check('근거 없는 두 번째 무브는 error 로 잡힌다', hasError(d, /moves\[1\].*근거가 0건/))
   const { moves } = toRows(d)
-  eq('0번은 독립 도메인 2곳이라 A', moves[0].row.evidence_grade, 'A')
+  // ★ L-60 회귀. 도메인이 둘이지만 관측 키가 없다 → 독립인지 **모른다**. A 가 아니다.
+  eq('0번은 도메인 2곳이어도 관측 키가 없으면 A 가 아니다', moves[0].row.evidence_grade, 'C')
   eq('1번은 자기 근거 0건이라 D', moves[1].row.evidence_grade, 'D')
+}
+{
+  // 같은 데이터에 관측 키·수치 뒷받침을 채우면 그때 A 가 된다 — 축이 실제로 작동하는지.
+  const d = base()
+  d.evidence[0].observation_key = 'reporter-a-2023'
+  d.evidence[0].supports_metric = true
+  d.evidence.push({
+    move: 0, url: 'https://another.example.org/z', source_tier: 'secondary',
+    observation_key: 'reporter-b-2023', supports_metric: true,
+  })
+  eq('키를 채우면 같은 데이터가 A 로 올라간다', toRows(d).moves[0].row.evidence_grade, 'A')
+}
+
+// ── 6-1) L-60 / L-64 — 원 관측 키와 수치 뒷받침 ──────────────
+{
+  // ★ L-60. 같은 공시를 옮겨 적은 매체 2곳은 도메인 2개지만 관측 1개다.
+  //   9차에 확보한 Retail Dive 원문이 정확히 이 모양이었다("according to the CFO").
+  const sameObservation = [
+    { url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true, observation_key: 'chwy-10k-fy2023' },
+    { url: 'https://www.retaildive.com/y', source_tier: 'secondary', is_self_reported: false, observation_key: 'chwy-10k-fy2023', supports_metric: true },
+  ]
+  eq('같은 공시를 받아쓴 매체는 도메인이 달라도 B 를 만들지 못한다',
+    gradeMove(M, sameObservation).grade, 'C')
+  check('그 이유에 "다른 원 관측 없음"이 있다',
+    /다른 원 관측 없음/.test(gradeMove(M, sameObservation).reason))
+
+  // ★ L-64. 서사만 받치는 독립 매체는 수치의 등급을 올리지 못한다.
+  const narrativeOnly = [
+    { url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true, observation_key: 'chwy-10k-fy2023' },
+    { url: 'https://www.dvm360.com/y', source_tier: 'secondary', is_self_reported: false, observation_key: 'dvm360-reporting-2020', supports_metric: false },
+  ]
+  eq('수치를 안 받치는 독립 매체는 B 를 만들지 못한다', gradeMove(M, narrativeOnly).grade, 'C')
+  // 같은 행이 수치까지 받치면 그때는 B 다 — 차이를 만드는 게 supports_metric 하나뿐인지.
+  const sameButOnMetric = [narrativeOnly[0], { ...narrativeOnly[1], supports_metric: true }]
+  eq('그 행이 수치까지 받치면 B 가 된다', gradeMove(M, sameButOnMetric).grade, 'B')
+
+  // ★ 미기재는 "아니다"가 아니라 "모른다". 등급은 보수적으로, 대신 provisional 로 표시.
+  const unkeyed = gradeMove(M, [
+    { url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true },
+    { url: 'https://www.reuters.com/y', source_tier: 'secondary', is_self_reported: false },
+  ])
+  eq('키 미기재면 B 가 아니라 C', unkeyed.grade, 'C')
+  check('그 C 는 잠정(provisional)으로 표시된다', unkeyed.provisional === true)
+  check('세지 못한 건수를 돌려준다', unkeyed.unkeyed >= 1)
+  check('이유가 "판정할 수 없다"로 읽힌다', /판정할 수 없다/.test(unkeyed.reason))
+
+  // 문서 성격 경로(공시 1건 = A)는 키가 없어도 살아 있어야 한다.
+  // 여기까지 보수적으로 막으면 백필 전에 A 가 통째로 무너진다 — 근거가 아니라 표기의 문제다.
+  eq('키가 없어도 재무제표 공시는 여전히 A',
+    gradeMove(M, [{ url: 'https://www.sec.gov/z', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true }]).grade, 'A')
+  // 단, 그 공시가 "수치를 안 다룬다"고 **적혀** 있으면 A 를 만들지 못한다.
+  eq('수치를 안 받친다고 적힌 공시는 A 가 아니다',
+    gradeMove(M, [{ url: 'https://www.sec.gov/z', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, supports_metric: false }]).grade, 'C')
+
+  // foldObservations 자체
+  const folded = foldObservations([
+    { url: 'https://a.com', observation_key: 'k1' },
+    { url: 'https://b.com', observation_key: 'k1' },
+    { url: 'https://c.com', observation_key: 'k2' },
+    { url: 'https://d.com' },
+    { url: 'https://e.com', observation_key: '   ' },
+  ])
+  eq('관측 키 2종으로 접힌다', folded.keys.size, 2)
+  eq('키 없는 행·공백 키는 미기재로 센다', folded.unkeyed, 2)
 }
 
 // ── 7) 어휘 사본이 마이그레이션과 어긋나지 않는가 ────────────

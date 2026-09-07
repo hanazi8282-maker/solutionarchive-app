@@ -18,6 +18,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":2})
 - ✅ `stage` 발행 대기 스테이징 ({"staged":2})
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":14})
+- 결과: partial · 막힘 1 · 실패 0
+- ⛔ 발행하지 않았다. Threads API 를 호출하지 않았다 (CLAUDE.md §10).
 
 _실행 키 `cmo-2026-09-07-local` · 상세 상태는 reports/status/DASHBOARD.md_
 

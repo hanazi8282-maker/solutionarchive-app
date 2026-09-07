@@ -11,7 +11,8 @@
       "drafted": 2,
       "manifests": 2,
       "staged": 2,
-      "commented": 1
+      "commented": 1,
+      "committed_files": 14
     }
   }
 }

@@ -313,7 +313,7 @@ if (isMain()) {
   // 이미 큐에 있는 것과 이미 적립된 브랜드는 뺀다. 최종 중복 방어선은
   // case_studies.slug UNIQUE 다 — 여기선 사람이 보는 낭비를 줄이는 정도다.
   const pending = await supabase.from('research_queue')
-    .select('brand_name').in('status', ['queued', 'claimed'])
+    .select('brand_name, reason, status').in('status', ['queued', 'claimed'])
   if (pending.error) {
     console.error(`⚠️ 확인 불가: research_queue 조회 실패 — ${pending.error.code ?? ''} ${pending.error.message}${missingHint(pending.error.code)}`)
     process.exit(2)
@@ -322,6 +322,13 @@ if (isMain()) {
     ...(pending.data ?? []).map((r) => r.brand_name),
     ...(studies ?? []).map((s) => s.brand_name),
   ])
+  // 큐에 아직 claim 안 된 항목이 있으면 그 자체가 이번 --claim 의 대상이다.
+  // 특히 미claim 실패 사례(failure_quota)가 이미 있으면, 새 계획이 그 슬롯을
+  // excludeBrands 로 걸러 내더라도 할당량은 실질적으로 충족된 상태다 —
+  // buildPlan 이 같은 placeholder brand_name 을 다시 만들지 못해 0건으로
+  // 접히던 것이 이전 partial 런에서 queue 를 blocked 로 만든 원인이었다.
+  const queuedRows = (pending.data ?? []).filter((r) => r.status === 'queued')
+  const queuedFailure = queuedRows.filter((r) => r.reason === 'failure_quota').length
 
   const feedback = readOpenFeedback()
   let plan
@@ -333,13 +340,28 @@ if (isMain()) {
   }
 
   const quota = enforceFailureQuota(plan)
-  if (!quota.ok) {
+  if (!quota.ok && queuedFailure === 0) {
     console.error(`✗ 음성: ${quota.reason}`)
     console.error('  아무것도 쓰지 않았다. 큐를 비우거나 --plan N 을 키워서 다시 돌려라.')
     process.exit(1)
   }
+  const quotaNote = quota.ok
+    ? quota.reason
+    : `새 계획엔 failure_quota 0건이지만 큐에 미claim 실패 사례 ${queuedFailure}건이 이미 있다 — 할당량 충족으로 본다`
+  if (!quota.ok) console.log(`ℹ️ ${quotaNote}`)
 
-  console.log(`# 조사 계획 ${plan.length}건 (요청 ${n}) — ${quota.reason}`)
+  // 새로 넣을 계획이 전부 걸러졌지만 큐에 이미 claim 가능한 항목이 있으면,
+  // 빈 배열 insert 로 죽지 말고 정상 종료한다. 다음 --claim 이 그걸 집는다.
+  if (plan.length === 0) {
+    if (queuedRows.length === 0) {
+      console.error('✗ 음성: 새 계획 0건 + 큐에 대기 항목도 0건이다. --plan N 을 키워라.')
+      process.exit(1)
+    }
+    console.log(`✅ 새로 추가할 계획 항목이 없다 — 큐에 이미 claim 가능한 ${queuedRows.length}건이 있다 (실패 사례 ${queuedFailure}건 포함)`)
+    process.exit(0)
+  }
+
+  console.log(`# 조사 계획 ${plan.length}건 (요청 ${n}) — ${quotaNote}`)
   for (const r of plan) {
     console.log(`- ${r.brand_name} · ${r.target_bottleneck ?? '병목미정'} · ${r.reason} · p${r.priority}`)
     if (r.notes) console.log(`    ${r.notes}`)

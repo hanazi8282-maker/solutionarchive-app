@@ -204,6 +204,39 @@ AI 인사이트는 "그렇구나"로 끝나면 안 된다. 인사이트는 **액
 - 출력: "복사" 또는 "이미지 내보내기" → 사람이 각 플랫폼에 직접 발행.
 - **자동 발행 API 사용 안 함** (계정 제재 리스크 회피). 사람 최종 검수 필수.
 
+### 10.1 에이전트 자동 DB 쓰기 허용 범위
+
+무인 루프(`scripts/cmo-daily.mjs` 등)가 사람 승인 없이 할 수 있는 것과 없는 것.
+**이건 권고가 아니라 권한 경계다** — 문서로만 적어 두면 지켜지지 않는다는 걸
+이 리포에서 여러 번 확인했다. 그래서 각 항목은 코드·env·도구 목록으로 강제된다.
+
+**허용 (무인 루프가 스스로 한다)**
+
+- **케이스 적립** — `case_studies` / `case_moves` / `case_evidence` 에 INSERT.
+  단, 전부 `review_status='draft'` 로만 들어간다. 자동 승인 경로는 존재하지 않는다.
+- **초안 staging** — `content_items`(`status='proposed'`) / `posts`
+  (`status IN ('draft','pending_review')`, **`published_at` 은 항상 NULL**).
+- **조사 큐·실행 상태** — `research_queue` / `agent_runs` / `agent_run_steps`.
+- **reports/ 파일** — `reports/` · `drafts/cases/` · `drafts/threads/` · `ops/state/`
+  4개 프리픽스에만 커밋한다. 그 밖의 경로가 스테이징에 있으면 커밋하지 않고 실패한다.
+
+**금지 (사람만 한다)**
+
+- **승인·등급 변경** — `review_status` 를 `approved`/`rejected` 로 바꾸는 것,
+  `evidence_grade` 를 손으로 올리는 것. (`regrade` 는 근거에서 계산하는 것이라
+  별개이고, 그것도 사람이 실행한다.)
+- **발행** — 어떤 SNS 발행 API 도 호출하지 않는다. 무인 루프의 환경에
+  `THREADS_ACCESS_TOKEN` 자체가 없다. 정책이 아니라 구조다.
+- **마이그레이션 적용** — 무인 루프에는 그 권한이 없고 도구도 부여하지 않는다
+  (Supabase MCP 미부여). 스키마 변경이 필요하면 파일만 만들고 "미적용"을
+  보고에 명시한다. 적용은 사람이 `supabase db query --linked -f` 또는 대시보드로 한다.
+- **`methodology/` 수정** — MANIFEST md5 대조가 걸린 append-only 아카이브다.
+  커밋 화이트리스트 밖이라 스테이징 단계에서 막힌다.
+
+**서브에이전트는 DB 를 아예 못 만진다.** LLM 이 조종하는 자식 프로세스에는
+`SUPABASE_SERVICE_ROLE_KEY` 를 넘기지 않는다(env 화이트리스트). DB 를 만지는 일은
+전부 오케스트레이터가 하며, 그 경로가 한 파일에 모여 있어 사람이 검토할 수 있다.
+
 ---
 
 ## 12. 미확정 / 확인 필요 (작업 전 사용자 확인)

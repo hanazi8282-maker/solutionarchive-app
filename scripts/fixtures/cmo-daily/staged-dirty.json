@@ -1,0 +1,20 @@
+{
+  "_why": "커밋 화이트리스트 음성 픽스처. 무인 루프가 절대 만지면 안 되는 경로들이 섞여 있다.",
+  "_note": "methodology/ 는 MANIFEST md5 대조가 걸린 append-only 아카이브다. 여기가 바뀌면 pre-commit 이 깨지고, 무엇보다 방법론 정본이 기계에 의해 조용히 수정된다. CLAUDE.md 와 .github/workflows 도 같은 층위다 — 자기 자신의 규칙과 실행 조건을 스스로 고치는 루프는 안전장치가 없는 것과 같다.",
+  "paths": [
+    "reports/2026-09-08/DIGEST.md",
+    "drafts/threads/2026-09-08-acme-tea.body.txt",
+    "methodology/content/pdp/04-decisions.md",
+    "CLAUDE.md",
+    ".github/workflows/daily-cmo-loop.yml",
+    "lib/cases/publish-gate.ts",
+    ".env.local"
+  ],
+  "expected_offenders": [
+    "methodology/content/pdp/04-decisions.md",
+    "CLAUDE.md",
+    ".github/workflows/daily-cmo-loop.yml",
+    "lib/cases/publish-gate.ts",
+    ".env.local"
+  ]
+}

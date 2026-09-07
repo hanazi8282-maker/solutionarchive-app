@@ -3,16 +3,15 @@
   "date": "2026-09-07",
   "dryRun": false,
   "state": {
-    "blocked": 0,
-    "failed": 2,
+    "blocked": 1,
+    "failed": 0,
     "counts": {
       "cases_reachable": 1,
-      "claimed": 1,
-      "attempted": 1,
-      "new_drafts": 0,
       "angles": 2,
-      "drafted": 0,
-      "raw_only": 1
+      "drafted": 2,
+      "manifests": 2,
+      "staged": 2,
+      "commented": 1
     }
   }
 }

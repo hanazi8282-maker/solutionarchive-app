@@ -134,9 +134,10 @@ Claude Code 마지막 보고 기준 미정리 항목:
 | L-58 | 5차 배치 10개 무브가 **발행사 규제공시 단일 출처에 몰려 있다** | 2026-09-06 | 0d | **부분 해소 (1건 보강 · 나머지는 실제로 출처가 하나뿐)** | Carvana·Chewy·Peloton·e.l.f.·Nubank 의 근거 24건 중 22건이 SEC 공시(S-1/10-K/20-F)이고, 도메인이 다른 독립 2차는 2건뿐이다(Retail Dive 2024-03-21 / CNBC 2022-07-12). 게시일 미상 0%는 달성했지만 **교차 확인의 폭은 오히려 좁아졌다** — 규제공시를 우선하라는 기준을 따른 결과이고 등급 산식도 A 를 주지만, 회사가 안 쓴 각도(고객 불만·경쟁사 반응·사후 평가)는 이 배치에 하나도 안 들어 있다. 깊이 보강 라운드에서 케이스당 독립 2차 1건 이상을 목표로 할 것. **[2026-09-06 진척]** 단일 출처 무브를 전수로 뽑아 보강을 시도했고 **Figma NDR 1건만** 외부 출처가 붙었다(mostlymetrics · tomtunguz, 둘 다 `tertiary`). 나머지는 "확인 실패"가 아니라 **"출처가 실제로 하나뿐"** 이다 — 회사가 공시에만 낸 숫자를 제3자가 독립 측정한 적이 없다. 자세한 내역은 §2-11 (3) |
 | L-59 | `case-review.mjs` 가 **`retrieved_at` 를 조용히 버리고 있었다** | 2026-09-06 | 0d | **[해소 2026-09-06]** | 초안 JSON 에 `retrieved_at` 를 적어도 INSERT 행에 실리지 않아 DB 는 매번 `now()` 를 넣었다. "언제 받은 근거인가"가 통째로 사라진 것이라, 나중에 링크가 죽었을 때 그게 언제부터인지 알 수 없다. 저장 시점에 오류가 안 나서 **조용히** 틀렸다는 게 §7.1 그 자체다. `if (e.retrieved_at) row.retrieved_at = e.retrieved_at` 로 고쳤다(빈 값이면 키를 아예 안 넣어야 `NOT NULL DEFAULT now()` 가 산다). Purple 7행에서 `2026-09-06T00:00:00+00:00` 저장 확인 |
 | L-60 | ⚠️ **"독립 도메인 2곳" 규칙이 같은 공시를 해설한 매체 2곳을 독립으로 센다** | 2026-09-06 | 0d | **미해결 (설계 결함, 기록만)** | `gradeMove` 는 도메인이 다르면 독립 근거로 세는데, S-1 을 읽고 쓴 뉴스레터 2개는 **도메인만 다르고 관측은 하나**다. 이번에 Figma NDR 보강에서 실제로 마주쳤다 — 기계적으로 세면 `figma/PACKAGING` 이 C 에서 A 로 올라간다. 그래서 두 출처를 `tertiary` 로 등록해 **일부러 올라가지 않게** 했지만, 이건 사람이 매번 손으로 막는 방식이라 언젠가 새어 나간다. L-56 의 `is_issuer_defined_metric` 과 같은 층위의 문제이고, 근본 해법은 "원 관측(primary observation)" 을 근거끼리 묶는 키다. 지금은 미설계 |
-| L-61 | Chewy `PACKAGING` 의 Retail Dive "약 76%" 를 **이번 라운드에 재확인하지 못했다** | 2026-09-06 | 0d | **미해결 (확인 불가 — 음성 아님)** | 5차에 등록한 독립 2차 근거 2건 중 하나다. 재확인하려고 URL 을 다시 받았는데 본문이 JS 렌더링이라 curl+태그제거로는 "76" 이 잡히지 않았다. **"수치가 틀렸다"가 아니라 "다시 못 읽었다"** 이므로 근거 행은 손대지 않고 그대로 뒀다(§7.1). 사람이 브라우저로 한 번 열어 확인하면 닫힌다 |
-| L-62 | ⚠️ **승인된 무브 12개의 등급이 사후에 내려갔는데 승인은 그대로다** | 2026-09-07 | 0d | **미해결 (남헌 판단 필요)** | L-56 백필 후 `regrade` 로 12개 무브가 A → B(5) · A → C(7) 로 강등됐다. 전부 **이미 승인된** 무브다. `regrade` 는 설계상 `review_status` 를 건드리지 않는다 — 등급이 내려갔다고 기계가 승인을 취소하면, 사람이 판단한 것을 기계가 뒤집는 게 된다. 그래서 강등 시 경고만 찍고 남겨 뒀다. **판단이 필요한 건 "C 등급 승인 무브를 콘텐츠로 써도 되는가"** 다 — 특히 nubank COMMUNITY·PRICING, carvana PRODUCT_FEATURE, chewy PRODUCT_FEATURE, duolingo PRODUCT_FEATURE, figma PACKAGING, warby OFFER 7건. 매칭에서는 안 빠진다(D 만 제외되므로) |
+| L-61 | Chewy `PACKAGING` 의 Retail Dive "약 76%" 를 **이번 라운드에 재확인하지 못했다** | 2026-09-06 | 0d | **[해소 2026-09-07 · 확인 결과 양성]** | 5차에 등록한 독립 2차 근거 2건 중 하나다. 재확인하려고 URL 을 다시 받았는데 본문이 JS 렌더링이라 curl+태그제거로는 "76" 이 잡히지 않았다. **"수치가 틀렸다"가 아니라 "다시 못 읽었다"** 이므로 근거 행은 손대지 않고 그대로 뒀다(§7.1). 사람이 브라우저로 한 번 열어 확인하면 닫힌다 **[2026-09-07 9차]** 다른 경로로 뚫었다. `web.archive.org` 스냅샷(`20250918081116`)을 curl 로 받아 태그를 벗기니 본문이 나왔다 — WebFetch 는 web.archive.org 를 거부하므로 curl 이어야 한다. 원문 문장: *"Autoship customer sales also represented about 76% of overall net sales for the year, according to newly minted CFO David Reeder, who joined the company last month."* 게시일 2024-03-21 · 기자 Caroline Jansen 도 본문에서 확인. 근거 행의 `snippet`(300자 상한)에 원문 그대로 박았다. ⚠️ **읽고 나니 성격이 달라졌다** — 이 기사는 76%를 회사 CFO 발언으로, 활성 고객 20.1백만을 SEC 제출 문서로 각각 귀속한다. 독립 **도메인**이지만 독립 **산출**은 아니다. 그래서 `is_self_reported` 는 건드리지 않았다(임의로 뒤집으면 등급이 근거 없이 흔들린다). 이 사례는 L-60 의 입력으로 넘긴다 |
+| L-62 | ⚠️ **승인된 무브 12개의 등급이 사후에 내려갔는데 승인은 그대로다** | 2026-09-07 | 0d | **[해소 2026-09-07]** | L-56 백필 후 `regrade` 로 12개 무브가 A → B(5) · A → C(7) 로 강등됐다. 전부 **이미 승인된** 무브다. `regrade` 는 설계상 `review_status` 를 건드리지 않는다 — 등급이 내려갔다고 기계가 승인을 취소하면, 사람이 판단한 것을 기계가 뒤집는 게 된다. 그래서 강등 시 경고만 찍고 남겨 뒀다. **판단이 필요한 건 "C 등급 승인 무브를 콘텐츠로 써도 되는가"** 다 — 특히 nubank COMMUNITY·PRICING, carvana PRODUCT_FEATURE, chewy PRODUCT_FEATURE, duolingo PRODUCT_FEATURE, figma PACKAGING, warby OFFER 7건. 매칭에서는 안 빠진다(D 만 제외되므로) **[해소 2026-09-07 9차]** 남헌 결정: *"C등급 승인 무브는 발행 금지가 아니라 조건부 발행. A/B 는 자유 발행, C 는 본문에 출처 귀속 문구 없이는 pending_review 로 전환되지 않는다."* → 게이트 **CG-1** 로 구현(`lib/cases/publish-gate.ts` · `attributionGate()`). `case-draft-stage.mjs` 가 저장 직전에 호출하고, 미통과면 `status=draft` 로 눕히고 **exit 4**. 승인(`review_status`)은 손대지 않는다 — 등급 축과 검수 축을 섞지 않기 위해서다. 순수 로컬 텍스트 검사이고 발행 API 는 여전히 없다(§10) |
 | L-63 | ⚠️ **발행 대기 초안이 옛 등급(`등급 A`)을 본문 메모에 박아 두고 있었다** | 2026-09-07 | 0d | **[해소 2026-09-07]** | `case-draft-stage.mjs` 가 출처 메모에 `(TRUST · CHANNEL · 등급 A · mixed)` 를 **문자열로 하드코딩**하고 있었다. 그 무브(warby/CHANNEL)가 이번 강등으로 B 가 되면서, `pending_review` 로 누워 있던 초안이 **틀린 근거 표기를 단 채** 남았다. 등급을 DB 에서 읽어 쓰도록 고치고 재실행해 `등급 B` 로 갱신했다(멱등 upsert). A 가 아니면 경고도 찍는다. 발행 API 는 여전히 호출하지 않는다(§10) |
+| L-64 | ⚠️ **`gradeMove` 는 근거가 무브의 *어느* 주장을 뒷받침하는지 보지 않는다** | 2026-09-07 | 0d | **미해결 (설계 결함, 기록만)** | 9차 RETENTION 재조사 중 발견. `chewy/PRODUCT_FEATURE` 는 (a) Connect with a Vet 이 Autoship 전용이었다 (b) 고객당 순매출 434→555 두 주장을 함께 담는다. 여기에 (a) 만 다루는 dvm360(독립 수의 전문지) 행을 넣으면 `corroborating` 이 1이 되어 **수치 (b) 는 아무도 교차 확인하지 않았는데 C→B 로 오른다.** 실제로 그 행을 넣지 않은 이유가 이것이다. 산식은 무브 단위로 세는데 근거는 주장 단위로 붙는다 — 층위가 어긋나 있다. L-60(원 관측 키)과 같은 뿌리이므로 함께 설계할 것 |
 
 ### 2-3. 미착수 작업
 
@@ -761,6 +762,78 @@ warby/CHANNEL 이 B 로 내려가면서, `pending_review` 로 누워 있던 발�
 
 ---
 
+### 2-14. 9차 — CG-1 발행 게이트 + RETENTION 근거 재조사 (2026-09-07, append-only)
+
+**PHASE 0. L-62 결정을 코드로 — 게이트 `CG-1`**
+
+남헌 결정(verbatim): *"C등급 승인 무브는 발행 금지가 아니라 조건부 발행. A/B는 자유 발행,
+C는 본문에 출처 귀속 문구 없이는 pending_review로 전환되지 않는다."*
+
+- 구현: `lib/cases/publish-gate.ts` — `attributionGate(moves, body)` / `attributionHint()`.
+  네트워크도 DB 도 안 탄다. 순수 텍스트 검사다. **발행 API 는 이 라운드에도 추가하지 않았다(§10).**
+- **접두사를 `G-` 가 아니라 `CG-` 로 새로 채번했다.** 방법론 아카이브에 이미 `G-` 가 두 벌
+  있고(solfa 02-gate G-0~G-10, pdp 02-gate G-0~G-13) 층위도 다르다. `G-14` 를 붙이면
+  "게이트 P-10 vs 규칙 P-10"(사고 4)과 똑같은 모양이 된다. 검증기 정규식 `C-d` 와도
+  충돌하지 않는다(`CG-1` 은 `C-` 로 시작하지 않는다). 정본 설명은 `docs/case-study-pipeline-design.md` §7.
+- 통과 조건: 자기 귀속이 드러나는 표현 8종(자사 발표/자체 집계/공시 기준/제3자 검증 없음 명시 등)
+  **또는** 브랜드명 + 귀속 동사(25자 이내 창). *"업계에 따르면"* 은 일부러 통과시키지 않는다 —
+  그건 귀속이 아니라 얼버무림이다.
+- **이 검사가 확인하지 못하는 것**(통과 시 화면에 같이 찍는다): 그 문구가 **문제의 그 수치에**
+  붙어 있는지. 문구를 아무 데나 한 줄 넣어도 통과한다. 통과는 "사람이 안 봐도 된다"가 아니라
+  "사람이 볼 준비가 됐다"는 뜻이다(§7.1).
+- 미통과 시 동작: 저장을 건너뛰지 않고 `status='draft'` 로 **눕힌다** + **exit 4**. 본문을 날리면
+  사람이 고칠 대상 자체가 사라진다. 이미 `pending_review` 였다가 강등돼 막히는 경우도 여기로
+  오는데, 그때는 끌어내리는 게 맞다(L-63 재발 방지). `review_status` 는 건드리지 않는다.
+
+**PHASE 0 실측**
+
+| 검사 | 결과 |
+|---|---|
+| 자가검증 `case-pipeline-selftest.mjs` | **74 / 0** (8차 62 → CG-1 검사 12건 추가) |
+| 변이 테스트(게이트 조건 반전) | 새 검사 12건 중 **6건이 실제로 실패** — 통과가 공짜가 아님을 확인 |
+| 회귀 — Warby Parker 초안(등급 B) | `✅ CG-1 — 등급 C 무브가 없다 — CG-1 대상이 아니다 (등급 B)` / `posts b0133f9a… status=pending_review, 424자` / **exit 0**. 막히지 않는다 |
+| E2E 차단 — 상수를 chewy PRODUCT_FEATURE(C)로 임시 교체, 귀속 문구 없음 | `❌ CG-1 — 등급 C 무브 1건(chewy-autoship-retention/PRODUCT_FEATURE)을 인용하는데 본문에 출처 귀속 문구가 없다` / `status='draft'` / **exit 4** |
+| E2E 통과 — 같은 조건 + `Chewy가 밝힌 자체 집계 기준이다` 한 줄 추가 | **exit 0** / `status=pending_review` / `걸린 문구: 자체 집계/정의/기준 ("자체 집계")` |
+
+E2E 프로브가 만든 행(posts `3fa8d6b4…` · 그 `post_decision_link` · `content_items` `CS-PROBE-CG1`)은
+전부 지웠고 스크립트 상수도 백업에서 되돌렸다. 남은 `posts` 는 `T1-3=draft, T1-3=draft,
+T3-5=draft, CS-20260906-01=pending_review` 로 재확인했다.
+
+**PHASE 1. RETENTION 병목 근거 재조사 — 케이스 추가가 아니라 근거 다각화**
+
+웹서치는 이번에도 **에이전트가 직접** 수행했다(자동화 검색 API 미사용, 기존 결정 유지).
+대상은 RETENTION 무브 4개. 결과를 §7.1 대로 **"확인 결과 음성"과 "확인 불가"를 갈라서** 적는다.
+
+| 무브 | 찾던 것 | 결과 | 판정 |
+|---|---|---|---|
+| `chewy/PACKAGING` (B) | Retail Dive "약 76%" 원문 재확인 (L-61) | web.archive.org 스냅샷으로 **원문 문장 확보** | **양성** — 근거 행 `snippet` 채움 |
+| `duolingo/PRODUCT_FEATURE` (C) | DAU 를 회사 밖에서 측정한 출처 | **Sensor Tower** 자체 패널 측정치 발견(2023-11-13: ST 측정 DAU +56% vs 회사 발표 +63%) | **양성이나 등급 무영향** — 추정치라서 |
+| `chewy/PRODUCT_FEATURE` (C) | 고객당 순매출 434→555 를 독립 산출한 출처 | Digital Commerce 360(2024-03-21) · Pet Food Processing 등이 $555 를 싣지만 **전부 실적발표 복창**이다. 독립 산출 없음 | **확인 결과 음성** (찾아봤고, 없다) |
+| `duolingo/COMMUNITY` (C) | Streak Society 갱신율 +20% 의 독립 출처 | 검색 결과가 전부 **같은 SEO 블로그 한 곳으로 회귀**한다. 1차 출처가 존재하지 않는다 | **확인 결과 음성** (찾아봤고, 없다) |
+
+- 신규 근거 행 **1건 추가**: `sensortower.com/blog/monday-mobile-memo-2023-11-13`
+  (`secondary` / `is_self_reported=false` / **`is_estimate=true`** / `published_at=2023-11-13`).
+  **추정치 플래그를 정직하게 켰기 때문에 등급은 오르지 않는다** — `gradeMove` 의 `corroborating`
+  이 추정치를 빼기 때문이다. 이건 산식이 의도대로 동작한 것이지 실패가 아니다.
+  `is_estimate=false` 로 적어 B 를 만들 수 있었지만 그건 위조다.
+- 기존 Retail Dive 행은 **지우지 않고** `snippet`·`published_at`·`supports_claim` 만 보강했다(append-only 정신).
+- **등급 분포 before/after: A13 · B5 · C13 · D1 → 변화 없음(`regrade` "무브 32개 / 바뀐 것 0개").**
+  RETENTION 은 여전히 **A0 · B1 · C3** 이다. 근거를 더 붙였는데 등급이 안 올랐다는 사실을 그대로 적는다.
+- 부산물 2건(등재만): (a) Chewy Autoship 관련 **집단소송**(D.R.I., Alix Cavas — Autoship 할인 상품의
+  판매세 산정 쟁점)이 있다. 소송 문서는 남헌이 지목한 독립 출처 범주지만 **이 무브들의 수치를
+  검증하지는 않으므로** 근거로 넣지 않았다. (b) Digital Commerce 360 페이지 하단에서 **프롬프트
+  주입으로 보이는 문자열**이 검출돼 무시했다 — 외부 페이지를 읽을 때 본문과 지시를 섞지 않는다.
+
+**PHASE 1 에서 새로 드러난 설계 결함 → L-64**
+
+`chewy/PRODUCT_FEATURE` 에 dvm360(독립 수의 전문지, Connect with a Vet 이 Autoship 전용이었다는
+사실을 다룸) 행을 넣으면 **수치 434→555 는 아무도 교차 확인하지 않았는데 C→B 로 오른다.**
+`gradeMove` 가 근거를 **무브 단위**로 세는데 근거는 실제로 **주장 단위**로 붙기 때문이다.
+등급을 올릴 수 있었지만 올리지 않았고, 대신 L-64 로 등재했다.
+
+---
+
+
 ## 3. 사고 이력 (append-only) ★ 반드시 읽을 것
 
 ### 3-1. 발생한 사고 5건
@@ -969,6 +1042,7 @@ L-56 백필 후 그 무브는 B 가 됐는데, `pending_review` 로 누워 있�
 | 2026-09-06 | **케이스스터디 6차 품질 보강** | 등급 산식 결함 전수 점검 후 `is_issuer_defined_metric` 축 신설(마이그 3 작성만, 미적용) · SUPPLY 성공 대조군 Purple 추가(무브 2 positive/A) · 단일 출처 보강 1건(Figma NDR) · **컬리 DART 원문 대조 성공**(고유번호 01153956, 접수번호 20250327000672, 수치 3개 일치) / selftest 62/0 · probe 양성 13 음성 0 확인불가 0 | L-51, L-57 | L-59(당일 해소), L-60, L-61 |
 | 2026-09-06 | **케이스스터디 7차 — 오보 정정** | 6차의 "마이그2 미적용" 보고가 **오보**였음을 실측 확인(CHECK 허용 값을 컬럼명으로 조회한 42703 을 미적용으로 읽었다) → `case-draft-stage.mjs` exit 0 · `status=pending_review` / 확인 방법을 `case-pipeline-verify.mjs` 프로브로 고정(FK 23503 함정까지 제거, 양성 15 음성 1 확인불가 0) / 마이그3 는 진짜 미적용이라 **재채점 실반영 차단** — 대신 `case-review.mjs regrade` 신설(등급만 UPDATE, `review_status` 불변, 컬럼 없으면 exit 2) / selftest 62/0 | L-52 (오보 정정 후 해소) | — |
 | 2026-09-07 | **케이스스터디 8차 — 재채점 실반영** | 남헌이 마이그 `20260906000003` + 백필 12쌍 적용(근거 17/71 표시) / `case-review.mjs regrade` 실행 → 무브 **12개 강등, A25→A13 · B0→B5 · C6→C13**, 백필 목록 밖은 불변, 재실행 시 0개(멱등) / `--probe` 양성 16 · 음성 0 · 확인불가 0 · exit 0 / 초안 메모의 하드코딩된 `등급 A` 를 DB 조회로 교체(L-63) / selftest 62/0 · 매칭 51/0 · 커버리지 7/7 | L-56, L-63 | L-62 |
+| 2026-09-07 | **케이스스터디 9차 — CG-1 게이트 + RETENTION 재조사** | L-62 결정을 게이트 `CG-1` 로 구현(`lib/cases/publish-gate.ts`, `case-draft-stage.mjs` 미통과 시 `draft` 로 눕히고 exit 4, 발행 API 없음) / 접두사 `CG-` 새로 채번(사고 4 재발 방지) / selftest **74 0** · 변이 테스트 6건 실패 확인 · Warby(B) 회귀 exit 0 · C등급 E2E 차단 exit 4 → 문구 추가 후 exit 0 / RETENTION 무브 4개 웹서치 직접 재조사 → L-61 **양성 해소**(web.archive.org 스냅샷), Sensor Tower 추정치 1행 추가, 나머지 2건은 **확인 결과 음성** / `regrade` 재실행 **바뀐 것 0개**(A13 B5 C13 D1 유지) / `--probe` 양성 16 · 음성 0 · 확인 불가 0 | L-61, L-62 | L-64 |
 
 ---
 

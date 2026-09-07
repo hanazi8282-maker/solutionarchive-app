@@ -6,13 +6,17 @@
 -- ★ 조사 방식(11차): 근거 72행을 원 URL 기준 ~48개 문서로 묶어 각각 확인.
 --   - 재fetch 성공: 국내 매체(뉴스1·더벨·디지털데일리·연합·매경), Retail Dive 2건,
 --     TechCrunch(slack), Duolingo IR, Sensor Tower, Syncly, THE VC.
+--   - 1차 fetch 실패분은 web.archive.org 스냅샷으로 뚫었다: medium/@venturetwins
+--     (Cloudflare 403 → wayback 20240203164711), indigo9digital(→ wayback 20250803090020).
+--     둘 다 Casper S-1 재작성으로 확정 — casper-s1-2020 동일 키.
 --   - SEC 공시(10-K/S-1/20-F/F-1/6-K/실적발표) 약 30행: 전문이 커서 WebFetch 로는
 --     표까지 재추출이 안 된다. 문서종류·회계연도는 재확인했고(예: Chewy 10-K FYE
 --     2024-01-28, Nubank 20-F 2022, ARPAC 문장 직접 확인), 표 수치는 지난 라운드가
 --     curl 로 대조해 스니펫에 박아 둔 인용을 근거로 키를 매겼다. §7.1 상 이 행들은
 --     "이번 라운드 신규 대조"가 아니라 "지난 라운드 대조 + 문서 재식별"이다.
---   - 재확인 실패(NULL 유지): medium/@venturetwins(Cloudflare 403),
---     TechCrunch/figma(현재 404), indigo9digital(미fetch), influencers-time(출처 없는 'reportedly').
+--   - 끝내 NULL: influencers-time(출처 없는 'reportedly', 원 관측 식별 불가),
+--     techcrunch/figma(현재 404 — 지난 라운드 판정 'S-1 재작성, 수치 뒷받침 아님' 유지, sm=false),
+--     그리고 서사만 받치는 3차 글 3건(substack/duolingo, bettermode·foundationinc/notion) 은 sm=false 만.
 --
 -- ★ 키 규약: <발행주체>-<문서종류>-<기간>, 소문자·하이픈. "이 행이 사라지면
 --   우리가 잃는 관측이 무엇인가" 로 갈랐다. 같은 공시를 옮겨 적은 매체(귀속 문구
@@ -20,12 +24,13 @@
 --   회사 밖 독립 측정(Sensor Tower 패널, Earnest 카드 패널) 만 별도 키 — 다만
 --   둘 다 is_estimate=true 라 교차 확인 카운트에는 안 들어간다.
 --
--- ★ 백필 후 재채점 시뮬레이션(오프라인, 실 gradeMove): A13·B5·C13·D1 → A12·B0·C19·D1.
+-- ★ 백필 후 재채점(실 gradeMove, DB 반영 완료 2026-09-07): A13·B5·C13·D1 → A12·B0·C19·D1.
 --   바뀐 6개 = beauty-of-joseon/CHANNEL(A→C) + 기존 B 5건 전부 C. --force 투영과
---   같은 등급이나 잠정(provisional) 표시가 15 → 5 로 준다. 남은 5개는 2차 출처가
---   "재작성으로 판정됨(sm=false)" 이거나 "재확인 실패" 라서 붙은 표시다.
+--   같은 등급이나 잠정(provisional) 표시가 15 → 4 로 준다. 남은 4개(bj/CHANNEL,
+--   figma/PF, slack/PRICING, warby/CHANNEL)는 2차 출처를 "재작성으로 판정(sm=false)"해서
+--   붙은 표시라 등급은 확정이다. regrade 재실행 시 바뀐 것 0(멱등). review_status 는 안 건드렸다.
 --
--- ★ 스키마 변경 없음. UPDATE 만. §12-5 대로 적용은 남헌이 대시보드 SQL Editor 에서.
+-- ★ 스키마 변경 없음. UPDATE 만. 이 파일은 2026-09-07 에 남헌 승인 하에 직접 적용됐다(§12-5 예외).
 
 BEGIN;
 
@@ -35,7 +40,7 @@ BEGIN;
 UPDATE public.case_evidence SET observation_key='bedtimes-ceo-interview-2020', supports_metric=NULL
  WHERE id='8c4eb842-42bc-490f-b051-71817579115c';
 
--- ── casper-s1-2020 (2행) ──────────────────────────────────────────────
+-- ── casper-s1-2020 (4행) ──────────────────────────────────────────────
 --   [6e49f997] casper-dtc-unit-economics / OFFER (undefined)  primary
 --   근거: Casper S-1(2020-01-10). 판매·마케팅비 원 수치(43%->35%).
 UPDATE public.case_evidence SET observation_key='casper-s1-2020', supports_metric=true
@@ -44,6 +49,19 @@ UPDATE public.case_evidence SET observation_key='casper-s1-2020', supports_metri
 --   근거: Casper S-1. '재구매 고객 16%' 등 원 수치.
 UPDATE public.case_evidence SET observation_key='casper-s1-2020', supports_metric=true
  WHERE id='ebcbc7c8-9b18-45d0-9a3f-c1a21bf16461';
+--   [1553a883] casper-dtc-unit-economics / OFFER (undefined)  secondary
+--   근거: indigo9digital(Tricia McKinnon). web.archive.org(20250803090020) 스냅샷으로 확인 —
+--     '2017 Casper sales and marketing expenses were 43% of revenue and in 2018 they were 35%'.
+--     43%/35% 는 S-1 공시 수치이고 독립 측정 주장 없음(Gartner 인용은 업계 평균용) -> S-1 재작성, 동일 키.
+UPDATE public.case_evidence SET observation_key='casper-s1-2020', supports_metric=true
+ WHERE id='1553a883-fdae-40d9-acd1-ac05fa58d3a2';
+--   [afd7e22e] casper-dtc-unit-economics / CHANNEL (undefined)  secondary
+--   근거: medium/@venturetwins(Justine Olivia Moore, a16z, 2020-01-12). web.archive.org
+--     (20240203164711) 스냅샷으로 확인 — 'Given Casper's 16% repeat purchase rate ...' 를
+--     LTV 계산 입력으로 쓰고 'the S-1 states that repeat customers ...' 로 명시 귀속.
+--     16% 는 S-1 수치, 독립 카드 패널 데이터 아님 -> S-1 재작성, 동일 키. (10차 잠정 해소)
+UPDATE public.case_evidence SET observation_key='casper-s1-2020', supports_metric=true
+ WHERE id='afd7e22e-cdd9-47b6-a28c-4b4c83de4755';
 
 -- ── chwy-10k-fy2023 (4행) ─────────────────────────────────────────────
 --   [568c481d] chewy-autoship-retention / PRODUCT_FEATURE (undefined)  primary
@@ -354,12 +372,6 @@ UPDATE public.case_evidence SET observation_key='wrby-s1-2021', supports_metric=
  WHERE id='0484a126-6aec-4644-9072-f98308246212';
 
 -- ── 재확인 실패 / 원 관측 식별 불가 — NULL 유지 (§7.1: NULL 은 "아니다" 가 아니라 "확인 안 함") ──
---   [1553a883] casper-dtc-unit-economics / OFFER (undefined)  secondary  https://www.indigo9digital.com/blog/caspermarketingforgrowth
---   indigo9digital 블로그. 이번 라운드 재확인 못함(미fetch). S-1 파생인지 독자 보도인지 불명 -> NULL(§7.1). 이 무브는 S-1 만으로 attested A 유지.
---   (observation_key = NULL, supports_metric = NULL — 손대지 않는다)
---   [afd7e22e] casper-dtc-unit-economics / CHANNEL (undefined)  secondary  https://medium.com/@venturetwins/four-things-to-learn-about-d2c-economics-from-caspers-s-1-9e117e446cc1
---   medium/@venturetwins. Cloudflare 403 - 재확인 실패. 제목이 'from Casper S-1' 라 파생 추정되나 확인 불가 -> NULL(§7.1).
---   (observation_key = NULL, supports_metric = NULL — 손대지 않는다)
 --   [ae42a448] duolingo-streak / COMMUNITY (undefined)  tertiary  https://www.influencers-time.com/duolingo-streak-society-case-study-20-renewal-lift/
 --   influencers-time: '20% renewal lift ... Duolingo reportedly achieved'. 출처 없는 'reportedly', 기준선·기간 불명. 원 관측 식별 불가 -> NULL(§7.1).
 --   (observation_key = NULL, supports_metric = NULL — 손대지 않는다)
@@ -376,15 +388,16 @@ UPDATE public.case_evidence SET supports_metric=false WHERE id='42f17ce4-868a-4d
 --   foundationinc 마케팅 에이전시 해설글. 수치의 독립 확인 아님. 재작성.
 UPDATE public.case_evidence SET supports_metric=false WHERE id='842475ae-66f5-4f02-8701-465d410a25e5';  -- 관측 키는 NULL, 수치 미담김은 확인됨
 
--- 백필 요약: observation_key 65/72 행, supports_metric true 44 · false 20 · NULL 8.
+-- 백필 요약: observation_key 67/72 행, supports_metric true 46 · false 20 · NULL 6.
+--   (casper 2행이 wayback 확인으로 NULL→casper-s1-2020 으로 옮겨졌다. 파일 상단 참조.)
 
 COMMIT;
 
 -- ============================================================
--- 적용 후 확인 (대시보드에서 아래를 돌린다)
+-- 적용 후 확인 — 2026-09-07 실행 완료 (실측값 기록)
 -- ============================================================
---   node --env-file=.env.local scripts/case-pipeline-verify.mjs --probe
---     기대: observation_key 커버리지 65/72, exit 0
---   node --env-file=.env.local scripts/case-review.mjs regrade --dry
---     기대: A13·B5·C13·D1 → A12·B0·C19·D1, 바뀐 것 6, 잠정 5
---   확인되면: node --env-file=.env.local scripts/case-review.mjs regrade  (--dry 없이)
+--   case-pipeline-verify.mjs --probe   → 양성 21 · 음성 0 · 확인 불가 0 · exit 0
+--                                        (관측 키 커버리지 67/72, 수치 뒷받침 66/72)
+--   case-review.mjs regrade --dry      → A13·B5·C13·D1 → A12·B0·C19·D1, 바뀐 것 6, 잠정 4
+--   case-review.mjs regrade            → 실반영 완료. 재실행 시 바뀐 것 0(멱등).
+--   ⚠️ review_status(승인) 는 안 건드렸다 — 6개 강등 무브는 사람이 다시 판단할 자리다.

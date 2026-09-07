@@ -133,11 +133,11 @@ Claude Code 마지막 보고 기준 미정리 항목:
 | L-57 | ⚠️ **SUPPLY 페어가 대조가 아니라 반복이다** | 2026-09-06 | 0d | **[해소 2026-09-06]** 성공 대조군 Purple Innovation 추가 | SUPPLY 짝이 Oatly · Peloton 인데 **둘 다 같은 실패형**이다 — 공급 병목을 위탁이 아니라 자체 생산 증설로 풀었다가 수요 반전으로 되돌린 사례. 무브 4개가 전부 `outcome_direction=negative` 다. 숫자상 페어는 섰지만 매칭에서 "이 병목을 어떻게 푸나"를 물으면 **"자체 생산은 하지 마라" 한 방향만 나온다.** 성공 대조군(위탁·유연생산으로 공급을 푼 사례) 1건이 붙기 전에는 SUPPLY 를 "커버 완료"로 읽지 말 것. **[해소 2026-09-06]** `purple-innovation-capacity-scaleup` 추가 — 자체 Mattress Max 설비 증설로 공급 병목을 **푼** 쪽이고 무브 2개가 전부 `positive` · A 다(매출총이익률 39.4→44.1%, 설비 취득원가 15,465→19,761천달러, 10-K 2020-02-27 원문 인용). SUPPLY 는 이제 성공 1 : 실패 2 로 **대조 가능한 페어**다 |
 | L-58 | 5차 배치 10개 무브가 **발행사 규제공시 단일 출처에 몰려 있다** | 2026-09-06 | 0d | **부분 해소 (1건 보강 · 나머지는 실제로 출처가 하나뿐)** | Carvana·Chewy·Peloton·e.l.f.·Nubank 의 근거 24건 중 22건이 SEC 공시(S-1/10-K/20-F)이고, 도메인이 다른 독립 2차는 2건뿐이다(Retail Dive 2024-03-21 / CNBC 2022-07-12). 게시일 미상 0%는 달성했지만 **교차 확인의 폭은 오히려 좁아졌다** — 규제공시를 우선하라는 기준을 따른 결과이고 등급 산식도 A 를 주지만, 회사가 안 쓴 각도(고객 불만·경쟁사 반응·사후 평가)는 이 배치에 하나도 안 들어 있다. 깊이 보강 라운드에서 케이스당 독립 2차 1건 이상을 목표로 할 것. **[2026-09-06 진척]** 단일 출처 무브를 전수로 뽑아 보강을 시도했고 **Figma NDR 1건만** 외부 출처가 붙었다(mostlymetrics · tomtunguz, 둘 다 `tertiary`). 나머지는 "확인 실패"가 아니라 **"출처가 실제로 하나뿐"** 이다 — 회사가 공시에만 낸 숫자를 제3자가 독립 측정한 적이 없다. 자세한 내역은 §2-11 (3) |
 | L-59 | `case-review.mjs` 가 **`retrieved_at` 를 조용히 버리고 있었다** | 2026-09-06 | 0d | **[해소 2026-09-06]** | 초안 JSON 에 `retrieved_at` 를 적어도 INSERT 행에 실리지 않아 DB 는 매번 `now()` 를 넣었다. "언제 받은 근거인가"가 통째로 사라진 것이라, 나중에 링크가 죽었을 때 그게 언제부터인지 알 수 없다. 저장 시점에 오류가 안 나서 **조용히** 틀렸다는 게 §7.1 그 자체다. `if (e.retrieved_at) row.retrieved_at = e.retrieved_at` 로 고쳤다(빈 값이면 키를 아예 안 넣어야 `NOT NULL DEFAULT now()` 가 산다). Purple 7행에서 `2026-09-06T00:00:00+00:00` 저장 확인 |
-| L-60 | ⚠️ **"독립 도메인 2곳" 규칙이 같은 공시를 해설한 매체 2곳을 독립으로 센다** | 2026-09-06 | 0d | **미해결 (설계 결함, 기록만)** | `gradeMove` 는 도메인이 다르면 독립 근거로 세는데, S-1 을 읽고 쓴 뉴스레터 2개는 **도메인만 다르고 관측은 하나**다. 이번에 Figma NDR 보강에서 실제로 마주쳤다 — 기계적으로 세면 `figma/PACKAGING` 이 C 에서 A 로 올라간다. 그래서 두 출처를 `tertiary` 로 등록해 **일부러 올라가지 않게** 했지만, 이건 사람이 매번 손으로 막는 방식이라 언젠가 새어 나간다. L-56 의 `is_issuer_defined_metric` 과 같은 층위의 문제이고, 근본 해법은 "원 관측(primary observation)" 을 근거끼리 묶는 키다. 지금은 미설계  **[2026-09-07 10차 진척]** 설계 확정 + 코드 반영 완료, **마이그 `20260907000001` 미적용이라 미해결 유지.** 해법은 `case_evidence.observation_key` — 독립성을 도메인이 아니라 **원 관측 키의 가짓수**로 센다. `foldObservations()` 로 접고, 자기보고 1차의 키와 **다른 키**가 있어야 B 다. 키 규약 `<발행주체>-<문서종류>-<기간>`, CHECK 로 모양 강제(빈 문자열도 거절). 설계·버린 안은 `docs/case-study-pipeline-design.md` §8. 백필 전 투영: A13·B5·C13 → A12·B0·C19(§2-15) |
+| L-60 | ⚠️ **"독립 도메인 2곳" 규칙이 같은 공시를 해설한 매체 2곳을 독립으로 센다** | 2026-09-06 | 0d | **미해결 (설계 결함, 기록만)** | `gradeMove` 는 도메인이 다르면 독립 근거로 세는데, S-1 을 읽고 쓴 뉴스레터 2개는 **도메인만 다르고 관측은 하나**다. 이번에 Figma NDR 보강에서 실제로 마주쳤다 — 기계적으로 세면 `figma/PACKAGING` 이 C 에서 A 로 올라간다. 그래서 두 출처를 `tertiary` 로 등록해 **일부러 올라가지 않게** 했지만, 이건 사람이 매번 손으로 막는 방식이라 언젠가 새어 나간다. L-56 의 `is_issuer_defined_metric` 과 같은 층위의 문제이고, 근본 해법은 "원 관측(primary observation)" 을 근거끼리 묶는 키다. 지금은 미설계  **[2026-09-07 10차 진척]** 설계 확정 + 코드 반영 완료, **마이그 `20260907000001` 미적용이라 미해결 유지.** 해법은 `case_evidence.observation_key` — 독립성을 도메인이 아니라 **원 관측 키의 가짓수**로 센다. `foldObservations()` 로 접고, 자기보고 1차의 키와 **다른 키**가 있어야 B 다. 키 규약 `<발행주체>-<문서종류>-<기간>`, CHECK 로 모양 강제(빈 문자열도 거절). 설계·버린 안은 `docs/case-study-pipeline-design.md` §8. 백필 전 투영: A13·B5·C13 → A12·B0·C19(§2-15)  **[2026-09-07 11차]** 마이그 `20260907000001` 적용됨(남헌). 근거 72행 전량 조사해 백필 마이그 `20260907000002` 작성(관측 키 65/72, 재확인 실패 7행은 NULL). 백필 후 시뮬 A12·B0·C19·D1(§2-16). **적용·실반영은 남헌 대기 → 그때 해소.** |
 | L-61 | Chewy `PACKAGING` 의 Retail Dive "약 76%" 를 **이번 라운드에 재확인하지 못했다** | 2026-09-06 | 0d | **[해소 2026-09-07 · 확인 결과 양성]** | 5차에 등록한 독립 2차 근거 2건 중 하나다. 재확인하려고 URL 을 다시 받았는데 본문이 JS 렌더링이라 curl+태그제거로는 "76" 이 잡히지 않았다. **"수치가 틀렸다"가 아니라 "다시 못 읽었다"** 이므로 근거 행은 손대지 않고 그대로 뒀다(§7.1). 사람이 브라우저로 한 번 열어 확인하면 닫힌다 **[2026-09-07 9차]** 다른 경로로 뚫었다. `web.archive.org` 스냅샷(`20250918081116`)을 curl 로 받아 태그를 벗기니 본문이 나왔다 — WebFetch 는 web.archive.org 를 거부하므로 curl 이어야 한다. 원문 문장: *"Autoship customer sales also represented about 76% of overall net sales for the year, according to newly minted CFO David Reeder, who joined the company last month."* 게시일 2024-03-21 · 기자 Caroline Jansen 도 본문에서 확인. 근거 행의 `snippet`(300자 상한)에 원문 그대로 박았다. ⚠️ **읽고 나니 성격이 달라졌다** — 이 기사는 76%를 회사 CFO 발언으로, 활성 고객 20.1백만을 SEC 제출 문서로 각각 귀속한다. 독립 **도메인**이지만 독립 **산출**은 아니다. 그래서 `is_self_reported` 는 건드리지 않았다(임의로 뒤집으면 등급이 근거 없이 흔들린다). 이 사례는 L-60 의 입력으로 넘긴다 |
 | L-62 | ⚠️ **승인된 무브 12개의 등급이 사후에 내려갔는데 승인은 그대로다** | 2026-09-07 | 0d | **[해소 2026-09-07]** | L-56 백필 후 `regrade` 로 12개 무브가 A → B(5) · A → C(7) 로 강등됐다. 전부 **이미 승인된** 무브다. `regrade` 는 설계상 `review_status` 를 건드리지 않는다 — 등급이 내려갔다고 기계가 승인을 취소하면, 사람이 판단한 것을 기계가 뒤집는 게 된다. 그래서 강등 시 경고만 찍고 남겨 뒀다. **판단이 필요한 건 "C 등급 승인 무브를 콘텐츠로 써도 되는가"** 다 — 특히 nubank COMMUNITY·PRICING, carvana PRODUCT_FEATURE, chewy PRODUCT_FEATURE, duolingo PRODUCT_FEATURE, figma PACKAGING, warby OFFER 7건. 매칭에서는 안 빠진다(D 만 제외되므로) **[해소 2026-09-07 9차]** 남헌 결정: *"C등급 승인 무브는 발행 금지가 아니라 조건부 발행. A/B 는 자유 발행, C 는 본문에 출처 귀속 문구 없이는 pending_review 로 전환되지 않는다."* → 게이트 **CG-1** 로 구현(`lib/cases/publish-gate.ts` · `attributionGate()`). `case-draft-stage.mjs` 가 저장 직전에 호출하고, 미통과면 `status=draft` 로 눕히고 **exit 4**. 승인(`review_status`)은 손대지 않는다 — 등급 축과 검수 축을 섞지 않기 위해서다. 순수 로컬 텍스트 검사이고 발행 API 는 여전히 없다(§10) |
 | L-63 | ⚠️ **발행 대기 초안이 옛 등급(`등급 A`)을 본문 메모에 박아 두고 있었다** | 2026-09-07 | 0d | **[해소 2026-09-07]** | `case-draft-stage.mjs` 가 출처 메모에 `(TRUST · CHANNEL · 등급 A · mixed)` 를 **문자열로 하드코딩**하고 있었다. 그 무브(warby/CHANNEL)가 이번 강등으로 B 가 되면서, `pending_review` 로 누워 있던 초안이 **틀린 근거 표기를 단 채** 남았다. 등급을 DB 에서 읽어 쓰도록 고치고 재실행해 `등급 B` 로 갱신했다(멱등 upsert). A 가 아니면 경고도 찍는다. 발행 API 는 여전히 호출하지 않는다(§10) |
-| L-64 | ⚠️ **`gradeMove` 는 근거가 무브의 *어느* 주장을 뒷받침하는지 보지 않는다** | 2026-09-07 | 0d | **미해결 (설계 결함, 기록만)** | 9차 RETENTION 재조사 중 발견. `chewy/PRODUCT_FEATURE` 는 (a) Connect with a Vet 이 Autoship 전용이었다 (b) 고객당 순매출 434→555 두 주장을 함께 담는다. 여기에 (a) 만 다루는 dvm360(독립 수의 전문지) 행을 넣으면 `corroborating` 이 1이 되어 **수치 (b) 는 아무도 교차 확인하지 않았는데 C→B 로 오른다.** 실제로 그 행을 넣지 않은 이유가 이것이다. 산식은 무브 단위로 세는데 근거는 주장 단위로 붙는다 — 층위가 어긋나 있다. L-60(원 관측 키)과 같은 뿌리이므로 함께 설계할 것  **[2026-09-07 10차 진척]** 설계 확정 + 코드 반영 완료, **마이그 `20260907000001` 미적용이라 미해결 유지.** 해법은 `case_evidence.supports_metric` — 수치를 직접 받치는 행만 교차 확인으로 센다(서사만 받치면 false). 문서 성격 경로(법정 공시·비자기보고 1차)는 이 축을 요구하지 않고 `false` **명시된** 행만 제외한다 — 그쪽 A 는 개수가 아니라 문서의 책임에서 나오기 때문이다. 주장이 3개 이상인 무브는 무브를 쪼개는 게 맞다는 게 §8-4 결론 |
+| L-64 | ⚠️ **`gradeMove` 는 근거가 무브의 *어느* 주장을 뒷받침하는지 보지 않는다** | 2026-09-07 | 0d | **미해결 (설계 결함, 기록만)** | 9차 RETENTION 재조사 중 발견. `chewy/PRODUCT_FEATURE` 는 (a) Connect with a Vet 이 Autoship 전용이었다 (b) 고객당 순매출 434→555 두 주장을 함께 담는다. 여기에 (a) 만 다루는 dvm360(독립 수의 전문지) 행을 넣으면 `corroborating` 이 1이 되어 **수치 (b) 는 아무도 교차 확인하지 않았는데 C→B 로 오른다.** 실제로 그 행을 넣지 않은 이유가 이것이다. 산식은 무브 단위로 세는데 근거는 주장 단위로 붙는다 — 층위가 어긋나 있다. L-60(원 관측 키)과 같은 뿌리이므로 함께 설계할 것  **[2026-09-07 10차 진척]** 설계 확정 + 코드 반영 완료, **마이그 `20260907000001` 미적용이라 미해결 유지.** 해법은 `case_evidence.supports_metric` — 수치를 직접 받치는 행만 교차 확인으로 센다(서사만 받치면 false). 문서 성격 경로(법정 공시·비자기보고 1차)는 이 축을 요구하지 않고 `false` **명시된** 행만 제외한다 — 그쪽 A 는 개수가 아니라 문서의 책임에서 나오기 때문이다. 주장이 3개 이상인 무브는 무브를 쪼개는 게 맞다는 게 §8-4 결론  **[2026-09-07 11차]** 백필에서 `supports_metric` 44 true · 20 false · 8 NULL 로 기재. 서사만 받치는 행(Connect-with-a-Vet, 인지도 전략 서술 등) `false` 명시. 마이그 `20260907000002`, **적용·실반영은 남헌 대기 → 그때 해소.**(§2-16) |
 
 ### 2-3. 미착수 작업
 
@@ -913,6 +913,80 @@ L-60 은 앞쪽(관측)이 접힌 것이고, L-64 는 뒤쪽(주장)이 접힌 �
 3. `case-pipeline-verify.mjs --probe` → `case-review.mjs regrade --dry` → 확인 후 실반영.
 
 
+---
+
+### 2-16. 11차 — 관측 키 전량 백필 조사 (2026-09-07, append-only)
+
+남헌이 `20260907000001` 을 대시보드에서 적용했다(§2-15 (7) 1번 완료). `--probe` 실측 **양성 21 · 음성 0 ·
+확인 불가 0 · exit 0** — 컬럼 2개 생겼고 CHECK 프로브(모양·빈 문자열·무브 없는 `supports_metric=true`
+거절 / 정상 키 통과) 전부 정상. 백필 진척도는 이 시점 **관측 키 0 / 72**.
+
+이번 라운드는 §2-15 (7) 2번 — **근거 72행의 `observation_key` / `supports_metric` 를 실제 조사로 채우는**
+백필이다. 산출물은 마이그 `20260907000002_backfill_observation_keys.sql`(스키마 변경 없음, UPDATE 만).
+**적용은 §12-5 대로 남헌이 대시보드에서.**
+
+**(0) 조사 방식 — 72행을 원 URL 기준 ~48개 문서로 묶었다**
+
+- **재fetch 성공(이번 라운드 신규 확인)**: 뉴스1·더벨·디지털데일리·연합뉴스·매일경제, Retail Dive 2건
+  (chewy·warby), TechCrunch(slack), Duolingo IR 릴리스, Sensor Tower, Syncly, THE VC.
+- **SEC 공시 약 30행(10-K·S-1·20-F·F-1·6-K·실적발표)**: 전문이 커서 WebFetch 로는 표까지 재추출이 안 된다.
+  **문서종류·회계연도는 재확인**했고(Chewy 10-K FYE 2024-01-28, Nubank 20-F 2022, ARPAC 문장 `US$7.8 …
+  compared to US$4.5` 는 직접 확인), 표 수치는 **지난 라운드가 curl 로 대조해 스니펫에 박아 둔 인용**을
+  근거로 키를 매겼다. §7.1 상 이 행들은 "이번 라운드 신규 대조"가 아니라 **"지난 라운드 대조 + 문서 재식별"**이다.
+- **재확인 실패 → NULL 유지(§7.1)**: `medium/@venturetwins`(Cloudflare 403), `techcrunch/figma`(현재 404),
+  `indigo9digital`(미fetch), `influencers-time`(출처 없는 "reportedly", 원 관측 식별 불가).
+
+**(1) 키 판정 규칙 적용 결과**
+
+- 같은 공시를 옮겨 적은 매체(귀속 문구 "according to … CFO", "실적발표에서")는 **원 문서와 같은 키**로 묶었다.
+  Retail Dive/chewy → `chwy-10k-fy2023`, foodbusinessnews/oatly → `oatly-6k-2022q1`, TechCrunch·mostlymetrics·
+  tomtunguz → 각 S-1 키.
+- **회사 밖 독립 측정만 별도 키**: `sensortower-panel-2023q3`(Duolingo), `earnest-panel-warby-s1era`(Warby).
+  둘 다 `is_estimate=true` 라 교차 확인 카운트에는 안 들어간다 → 등급에 영향 없음.
+- **beauty-of-joseon/CHANNEL**: 뉴스1 + THE VC 는 둘 다 구다이글로벌 감사재무 수치(2024 ≈ 3237억) →
+  `goodaiglobal-financials-fy2024` 동일 키. 더벨은 2025 연결(1.47조, DART) → 다른 키·`sm=false`.
+  디지털데일리는 대표 인터뷰(자기보고) → 별도 키·`sm=false`.
+
+**(2) 백필 규모**: `observation_key` **65 / 72 행**(NULL 7), `supports_metric` **true 44 · false 20 · NULL 8**.
+케이스 단위 근거 3행(nubank·purple×2)은 CHECK 대로 `supports_metric=NULL`.
+
+**(3) 백필 후 재채점 — 오프라인 시뮬레이션(실 `gradeMove`, DB 미반영)**
+
+```
+이전  A13 · B5 · C13 · D1
+이후  A12 · B0 · C19 · D1     (바뀐 것 6 / 잠정 5)
+```
+
+| 무브 | 전 → 후 | 이유 |
+|---|---|---|
+| beauty-of-joseon / CHANNEL | A → C | 교차 확인 후보(뉴스1·THE VC·더벨) 중 독립 원 관측 1개뿐. 더벨은 다른 범위. |
+| casper / CHANNEL | B → C | medium 재확인 실패(sm=NULL) → 자기보고 1차(S-1)뿐. **잠정.** |
+| chewy / PACKAGING | B → C | Retail Dive 가 76%를 CFO 발언으로 귀속 → 10-K 와 동일 관측. |
+| figma / PRODUCT_FEATURE | B → C | TechCrunch 는 S-1 재작성(sm=false). 자기보고 1차(S-1)뿐. **잠정.** |
+| slack / PRICING | B → C | TechCrunch 기사에 NDR 언급 없음(fetch 로 확인, sm=false). 자기보고 1차(S-1)뿐. **잠정.** |
+| warby / CHANNEL | B → C | Retail Dive 는 종료 근거만, 증가율 수치 없음(fetch 로 확인, sm=false). **잠정.** |
+
+`--force` 투영(§2-15 (3))과 **등급은 같다**. 백필의 값은 (a) 6개 강등이 "안 적어서"가 아니라 **실제 판정**임을
+확인한 것과 (b) 잠정 표시를 **15 → 5** 로 줄인 것이다. 남은 잠정 5개 중 4개는 2차 출처를 "재작성으로 판정
+(`sm=false`)"해서 붙은 표시라 등급은 확정이고, **1개(casper/CHANNEL)만 진짜 열린 항목** — medium 을
+브라우저로 열어 독립 카드 패널 데이터가 있는지 보면 닫힌다(있으면 B 로 복귀 가능).
+
+**(4) 검사**
+
+- `case-pipeline-verify.mjs --probe` — **양성 21 · 음성 0 · 확인 불가 0 · exit 0**(마이그 4 적용 후).
+- `case-pipeline-selftest.mjs` — 88 / 0(변동 없음, 백필은 데이터라 셀프테스트 대상 아님).
+- `case-review.mjs regrade --dry --force` — A12·B0·C19·D1 / 바뀐 것 6 / **잠정 15**(백필 전).
+- 오프라인 시뮬(`gradeMove` 직접 호출, 제안 키 오버레이) — A12·B0·C19·D1 / 바뀐 것 6 / **잠정 5**(백필 후).
+- 마이그 SQL 정적 검사 — 키 65개 전부 CHECK 정규식 통과, 케이스 단위 행에 `sm=true` 없음.
+
+**(5) 남헌이 할 일**
+
+1. `20260907000002_backfill_observation_keys.sql` 을 대시보드 SQL Editor 에서 적용(§12-5). BEGIN/COMMIT 1건.
+2. `case-pipeline-verify.mjs --probe` → 관측 키 커버리지 **65 / 72**, exit 0 확인.
+3. `case-review.mjs regrade --dry` (이번엔 `--force` 불필요 — 키가 채워졌다) → A12·B0·C19·D1 / 바뀐 것 6 /
+   잠정 5 확인 후 `regrade` (`--dry` 없이) 로 실반영. 승인(`review_status`)은 안 건드린다 — 사람이 다시 판단.
+4. **casper/CHANNEL 잠정 해소**: `medium.com/@venturetwins/four-things-to-learn-about-d2c-economics-from-caspers-s-1`
+   를 브라우저로 열어 재구매 16%가 S-1 인용인지 독립 카드 데이터인지 확인 → `afd7e22e` 행 백필.
 
 ---
 
@@ -1127,6 +1201,7 @@ L-56 백필 후 그 무브는 B 가 됐는데, `pending_review` 로 누워 있�
 | 2026-09-07 | **케이스스터디 8차 — 재채점 실반영** | 남헌이 마이그 `20260906000003` + 백필 12쌍 적용(근거 17/71 표시) / `case-review.mjs regrade` 실행 → 무브 **12개 강등, A25→A13 · B0→B5 · C6→C13**, 백필 목록 밖은 불변, 재실행 시 0개(멱등) / `--probe` 양성 16 · 음성 0 · 확인불가 0 · exit 0 / 초안 메모의 하드코딩된 `등급 A` 를 DB 조회로 교체(L-63) / selftest 62/0 · 매칭 51/0 · 커버리지 7/7 | L-56, L-63 | L-62 |
 | 2026-09-07 | **케이스스터디 9차 — CG-1 게이트 + RETENTION 재조사** | L-62 결정을 게이트 `CG-1` 로 구현(`lib/cases/publish-gate.ts`, `case-draft-stage.mjs` 미통과 시 `draft` 로 눕히고 exit 4, 발행 API 없음) / 접두사 `CG-` 새로 채번(사고 4 재발 방지) / selftest **74 0** · 변이 테스트 6건 실패 확인 · Warby(B) 회귀 exit 0 · C등급 E2E 차단 exit 4 → 문구 추가 후 exit 0 / RETENTION 무브 4개 웹서치 직접 재조사 → L-61 **양성 해소**(web.archive.org 스냅샷), Sensor Tower 추정치 1행 추가, 나머지 2건은 **확인 결과 음성** / `regrade` 재실행 **바뀐 것 0개**(A13 B5 C13 D1 유지) / `--probe` 양성 16 · 음성 0 · 확인 불가 0 | L-61, L-62 | L-64 |
 | 2026-09-07 | 10차 — L-60+L-64 원 관측 키 설계 | 마이그 `20260907000001`(observation_key·supports_metric) 작성 / `foldObservations` + `gradeMove` 재작성 / selftest 88·0 / verify `--probe` 에 마이그4 검사 4개 / `regrade` 커버리지 가드 + `--force`는 `--dry` 전용 / 설계문서 §8 | — | **투영 A13·B5·C13 → A12·B0·C19** (백필 전이라 판정 아님). 마이그 미적용 |
+| 2026-09-07 | 11차 — 관측 키 전량 백필 조사 | 남헌이 `20260907000001` 적용(`--probe` 양성 21·exit 0) / 근거 72행을 ~48개 문서로 묶어 조사 — 국내 매체·Retail Dive·TechCrunch·Duolingo IR·Sensor Tower 등 재fetch, SEC 공시 ~30행은 문서 재식별 + 지난 라운드 대조 인용 사용, 4개 소스 재확인 실패(NULL) / 백필 마이그 `20260907000002` 작성(관측 키 65/72, sm 44T·20F·8N, 스키마 변경 없음) / 오프라인 시뮬 A12·B0·C19·D1, 바뀐 것 6, 잠정 15→5 | — | **적용·실반영 남헌 대기.** casper/CHANNEL 1건만 진짜 잠정(medium 브라우저 확인 필요) |
 
 ---
 

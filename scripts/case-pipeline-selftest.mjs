@@ -16,6 +16,7 @@ import {
   BUSINESS_MODEL, BOTTLENECK, LEVER, SNIPPET_MAX, SLUG_RE,
   domainOf, gradeMove, validateDraft, toRows,
 } from '../lib/cases/draft.ts'
+import { attributionGate } from '../lib/cases/publish-gate.ts'
 
 let passed = 0
 const failures = []
@@ -310,6 +311,49 @@ eq('정상 slug', SLUG_RE.test('acme-tea-2023'), true)
 eq('끝 하이픈 거부', SLUG_RE.test('acme-'), false)
 eq('연속 하이픈 거부', SLUG_RE.test('a--b'), false)
 eq('한글 slug 거부', SLUG_RE.test('에이스메'), false)
+
+// ── 9) CG-1 발행 게이트 (L-62) ────────────────────────────────
+//
+// 등급 C 는 "근거가 없다"가 아니라 "제3자 확인이 없다"이다. 그래서 발행 금지가 아니라
+// 조건부 발행으로 정했다 — 본문이 그 숫자의 출처를 밝히면 나간다. 여기서 지켜야 할 건
+// 두 방향이다: 문구가 없는데 통과시키지 않는가, 그리고 대상이 아닌 초안을 붙잡지 않는가.
+{
+  const cMove = { evidence_grade: 'C', lever: 'PRODUCT_FEATURE', slug: 'chewy-autoship-retention', brand_name: 'Chewy' }
+  const bMove = { evidence_grade: 'B', lever: 'PACKAGING', slug: 'chewy-autoship-retention', brand_name: 'Chewy' }
+
+  // (a) C 등급인데 귀속 문구가 없다 → 막아야 한다
+  const noAttr = '활성 고객당 순매출이 434달러에서 555달러로 올랐다. 구독을 끊을 때 잃는 것이 할인이 아니라 서비스 접근권이 되게 했다.'
+  const rA = attributionGate([cMove], noAttr)
+  eq('CG-1 — C 등급 + 귀속 문구 없음은 막는다', rA.ok, false)
+  check('CG-1 — 막은 이유에 어느 무브인지 적는다', /chewy-autoship-retention\/PRODUCT_FEATURE/.test(rA.reason), rA.reason)
+
+  // (b) 같은 본문에 귀속 문구를 넣으면 통과해야 한다
+  const withAttr = `${noAttr} 회사가 밝힌 자체 집계 기준이다.`
+  const rB = attributionGate([cMove], withAttr)
+  eq('CG-1 — C 등급 + 귀속 문구 있음은 통과', rB.ok, true)
+  check('CG-1 — 걸린 문구를 돌려준다', typeof rB.matched === 'string' && rB.matched.length > 0, JSON.stringify(rB.matched))
+  check('CG-1 — 통과해도 확인 못 한 것을 말한다', typeof rB.caveat === 'string' && rB.caveat.length > 0, JSON.stringify(rB.caveat))
+
+  // 브랜드 이름을 직접 대는 형태도 귀속이다
+  eq('CG-1 — "Chewy가 밝힌" 도 귀속으로 센다',
+    attributionGate([cMove], `${noAttr} Chewy가 밝힌 수치다.`).ok, true)
+
+  // "업계에 따르면" 은 주체를 흐린다. 귀속이 아니다.
+  eq('CG-1 — "업계에 따르면" 은 통과시키지 않는다',
+    attributionGate([cMove], `${noAttr} 업계에 따르면 그렇다.`).ok, false)
+
+  // B·A 는 이 게이트 대상이 아니다. 대상이 아닌 걸 붙잡으면 게이트가 무시당한다.
+  eq('CG-1 — B 등급만이면 대상 아님', attributionGate([bMove], noAttr).ok, true)
+  eq('CG-1 — A 등급만이면 대상 아님', attributionGate([{ ...bMove, evidence_grade: 'A' }], noAttr).ok, true)
+  check('CG-1 — 대상 아닐 때 그 사실을 말한다', /대상이 아니다/.test(attributionGate([bMove], noAttr).reason))
+
+  // 여러 무브 중 하나라도 C 면 대상이다
+  eq('CG-1 — 무브 중 하나만 C 여도 대상', attributionGate([bMove, cMove], noAttr).ok, false)
+
+  // 무브가 없으면 붙잡을 근거도 없다 (D 등급 단독은 애초에 수치가 없어 다른 검사가 막는다)
+  eq('CG-1 — 무브 0건이면 대상 아님', attributionGate([], noAttr).ok, true)
+}
+
 
 // ── 결과 ──────────────────────────────────────────────────────
 console.log(`\n통과 ${passed} / 실패 ${failures.length}`)

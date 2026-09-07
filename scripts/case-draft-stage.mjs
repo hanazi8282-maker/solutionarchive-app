@@ -18,10 +18,12 @@
 //    되어 버린다 (§7.1: 확인 실패를 정상으로 접지 마라). 그래서 폴백은
 //    하되 **폴백했다는 사실을 화면에 크게 남기고 종료 코드도 다르게** 낸다.
 //
-// 종료 코드: 0 = pending_review 로 저장 / 3 = draft 폴백(마이그 미적용) / 2 = 확인 불가
+// 종료 코드: 0 = pending_review 로 저장 / 2 = 확인 불가 / 3 = draft 폴백(마이그 미적용)
+//            4 = CG-1 게이트 미통과 (등급 C 인용인데 귀속 문구 없음 → draft 로 눕힘)
 import { readFileSync } from 'node:fs'
 import { createClient } from '../lib/supabase/server.ts'
 import { linkDecisionLog } from '../lib/predictions/link.ts'
+import { attributionGate, attributionHint } from '../lib/cases/publish-gate.ts'
 
 const CHANNEL_ID = '64558fd1-06a5-4440-8fb1-bb78375479e0' // threads / @solution_arch_
 const CASE_SLUG = 'warby-parker-home-try-on'
@@ -73,7 +75,7 @@ const item = {
 //   박아 두면 초안 안의 출처 표기가 조용히 옛말이 된다. 실제로 '등급 A' 로 적혀 있었는데
 //   L-56 백필 후 이 무브는 B 가 됐다 — 발행 대기 중인 글이 틀린 근거 표기를 달고 있었다.
 const moveRes = await supabase.from('case_moves')
-  .select('lever, evidence_grade, outcome_direction, case_studies(bottleneck)')
+  .select('lever, evidence_grade, outcome_direction, case_studies(bottleneck, brand_name)')
   .eq('id', MOVE_ID).maybeSingle()
 if (moveRes.error || !moveRes.data) {
   console.error(`⚠️ 확인 불가: case_moves ${MOVE_ID} 조회 실패 — ${moveRes.error?.code ?? '행 없음'} ${moveRes.error?.message ?? ''}`)
@@ -122,6 +124,36 @@ async function write(status) {
     return await supabase.from('posts').update(row).eq('id', existing.data.id).select('id,status').single()
   }
   return await supabase.from('posts').insert(row).select('id,status').single()
+}
+
+// ── 2-1) CG-1 발행 게이트 ─────────────────────────────────────
+//
+// 등급 C 무브를 인용하는 초안은 본문에 출처 귀속 문구가 있어야 pending_review 로 간다
+// (L-62 결정). 순수 로컬 텍스트 검사다 — 어떤 외부 API 도 부르지 않는다.
+//
+// ★ 막힐 때 저장을 통째로 건너뛰지 않는다. status='draft' 로 눕혀 둔다. 초안 본문을
+//   날리면 사람이 고칠 대상 자체가 사라진다. 대신 exit 4 로 "게이트에서 막혔다"를 구분한다.
+//   이미 pending_review 였던 글이 나중에 강등돼 막히는 경우도 여기로 온다 — 그때는
+//   **끌어내리는 게 맞다.** 등급이 내려간 글을 발행 대기에 그대로 두면 L-63 의 재발이다.
+const gate = attributionGate(
+  [{ ...move, slug: CASE_SLUG, brand_name: move.case_studies?.brand_name ?? null }],
+  body,
+)
+console.log(`${gate.ok ? '✅' : '❌'} ${gate.code} — ${gate.reason}`)
+if (gate.matched) console.log(`   걸린 문구: ${gate.matched}`)
+if (gate.caveat) console.log(`   ⚠️ ${gate.caveat}`)
+
+if (!gate.ok) {
+  const res = await write('draft')
+  if (res.error) {
+    console.error(`⚠️ 확인 불가: posts 저장 실패 — ${res.error.code} ${res.error.message}`)
+    process.exit(2)
+  }
+  console.log(`\n❌ ${gate.code} 미통과 — status='draft' 로 눕혔다 (posts ${res.data.id}).`)
+  console.log('   pending_review 로 올리려면 본문을 고치고 다시 돌려라.\n')
+  for (const line of attributionHint()) console.error(`   ${line}`)
+  console.error('\n⛔ 발행하지 않았다. 어떤 Threads API 도 호출하지 않았다 (CLAUDE.md §10).')
+  process.exit(4)
 }
 
 {

@@ -1,9 +1,12 @@
-# Threads 초안 — Warby Parker 홈 트라이온 종료 (발행 대기)
+# Threads 초안 — Warby Parker 홈 트라이온 종료 (재검토 필요)
 
-- **상태**: 발행 대기 (`posts.status`). **발행하지 않았다.** CLAUDE.md §10 — 게시 버튼은 사람이 직접 누른다.
+- **상태**: `posts.status='draft'` (2026-09-07 CG-1 재게이트로 `pending_review`→`draft`). **발행하지 않았다.** CLAUDE.md §10 — 게시 버튼은 사람이 직접 누른다.
 - **판정 로그**: `LOG-20260906-01` (`methodology/content/pdp/04-decisions.md` §4)
 - **출처 케이스**: `warby-parker-home-try-on` / 무브 `c7317212-7ef6-41c6-8e48-5fe4244ca61c`
-  (TRUST · CHANNEL · 등급 A · outcome_direction=mixed)
+  (TRUST · CHANNEL · **등급 C** · outcome_direction=mixed)
+  - ⚠️ 2026-09-07 11차 재채점으로 이 무브가 **B→C** 강등됐다(관측 키 백필, [[project-solutionarchive-case-study-pipeline]]).
+    CG-1 게이트가 이제 이 초안을 막는다 — 본문에 출처 귀속 문구(예: "회사가 실적발표에서 밝힌")를 넣거나,
+    이 무브로 첫 콘텐츠를 내보낼지 자체를 사람이 다시 판단해야 한다. §4 의 "왜 이 무브를 골랐나" 는 옛 등급 A 기준이라 재작성 필요.
 - **매체**: Threads (스크롤 피드) → D-1 에 따라 **프드프 게이트**
 - **본문 424자** (Threads 상한 500자) / 자기답글 311자
 
@@ -98,7 +101,7 @@ sec.gov/Archives/edgar/data/1504776/000150477626000015/warbyparkerincearningsrel
 M1 매칭 결과 TRUST 병목은 **케이스 1곳(Warby Parker)뿐**이다 — 선례축 계산에서 짝이 없다.
 그런데도 이 무브를 첫 콘텐츠로 고른 이유는 세 가지다.
 
-1. **등급 A 이면서 outcome_direction 이 mixed** 다. 성공담도 실패담도 아니라서 "이렇게 하면 됩니다" 로 미끄러지지 않는다.
+1. ~~**등급 A 이면서 outcome_direction 이 mixed** 다.~~ ⚠️ **2026-09-07 재채점으로 등급 C.** outcome_direction 이 mixed 라 "이렇게 하면 됩니다" 로 미끄러지지 않는다는 점은 유효하지만, "1차 공시 근거뿐" 논거(아래 2번)는 등급 C(제3자 확인 없음)와 충돌한다 — 이 절 전체를 다시 써야 한다.
 2. **근거가 전부 1차 공시**다. 8-K 두 건에서 숫자를 직접 읽었고, 유일하게 2차인 retaildive 는 발언 출처로만 썼다. G-5 를 자기 이력 없이 통과할 수 있는 몇 안 되는 무브다.
 3. **인과를 단정할 수 없다는 사실 자체가 글의 재료**가 된다 — 8-K 에 채널별 분해가 없다는 것을 리서치 단계에서 이미 잡아 뒀다(§7.1). 그걸 숨기지 않고 본문에 쓰면 G-6 ②번 의심이 동시에 지워진다.
 

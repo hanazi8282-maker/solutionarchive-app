@@ -42,3 +42,4 @@ next-env.d.ts
 # Python 캐시 (verify-methodology-archive.py 실행 부산물)
 __pycache__/
 *.pyc
+.tmp-*

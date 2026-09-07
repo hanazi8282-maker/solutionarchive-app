@@ -37,7 +37,7 @@ eval-set.md                    0c5f938c51a33d8e41916c809ea8771e  lines:165
 pdp/01-methodology.md          0262bfa7298cbcd95e57d753ace733b2  subs:95  marks:92
 pdp/02-gate.md                 22be978090cafaa7091bb99c4492b22d  gates:14  GR:yes
 pdp/03-excerpts.md             932132e9a578e9184a48f47680be60a8  lines:334
-pdp/04-decisions.md            41dc3a3b10393a185acb6f9b1e6d8190  rules:16  logs:0
+pdp/04-decisions.md            72ecc2bf39b7be4ba1ddb272fd1a5627  rules:16  logs:0
 pdp/05-provenance.md           cae070c2d0dfc7e5cc56718d7ab8a64a  lines:137
 pdp/README.md                  dc96519181a12e412fb6314b1fc90549  lines:143
 prediction-schema.md           e46ea81d7f9d550c69206d19f4a84ad0  lines:524

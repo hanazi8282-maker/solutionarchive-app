@@ -1,0 +1,12 @@
+{
+  "_why": "커밋 화이트리스트 양성 픽스처. 4개 프리픽스 안의 경로만 들어 있다.",
+  "paths": [
+    "reports/2026-09-08/DIGEST.md",
+    "reports/2026-09-08/research/acme-tea.md",
+    "reports/status/DASHBOARD.md",
+    "drafts/cases/acme-tea.json",
+    "drafts/threads/2026-09-08-acme-tea.body.txt",
+    "drafts/threads/2026-09-08-acme-tea.stage.json",
+    "ops/state/cmo-2026-09-08-cron.jsonl"
+  ]
+}

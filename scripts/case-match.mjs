@@ -32,7 +32,7 @@ async function q(table, select, what) {
   if (error) {
     console.error(`⚠️ ${what} 조회 실패 — ${error.code ?? ''} ${error.message}`)
     if (error.code === '42P01' || error.code === 'PGRST205') {
-      console.error('   마이그레이션 20260906000001 미적용일 수 있다. §12-5 대시보드에서 실행한다.')
+      console.error('   마이그레이션 20260906000001 미적용일 수 있다. `supabase db query --linked -f` 또는 대시보드로 적용 (§12-5).')
     }
     return null
   }

@@ -338,7 +338,7 @@ if (unknown) {
   process.exit(2)
 }
 if (negative) {
-  console.log('\n❌ 미적용/불일치 항목이 있다. Supabase 대시보드 SQL Editor 에서 실행하라 (§12-5).')
+  console.log('\n❌ 미적용/불일치 항목이 있다. 사람이 `supabase db query --linked -f supabase/migrations/<file>.sql` (또는 대시보드) 로 적용하라 (§12-5).')
   process.exit(1)
 }
 console.log('\n✅ 전부 적용됐다. case-review.mjs commit 을 써도 된다.')

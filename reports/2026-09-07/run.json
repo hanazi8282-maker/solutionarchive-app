@@ -1,0 +1,18 @@
+{
+  "runKey": "cmo-2026-09-07-local",
+  "date": "2026-09-07",
+  "dryRun": false,
+  "state": {
+    "blocked": 1,
+    "failed": 0,
+    "counts": {
+      "cases_reachable": 1,
+      "angles": 2,
+      "drafted": 2,
+      "manifests": 2,
+      "staged": 2,
+      "commented": 1,
+      "committed_files": 14
+    }
+  }
+}

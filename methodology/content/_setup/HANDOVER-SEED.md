@@ -676,7 +676,14 @@ references/
 ### 12-5. 기술 제약 (전부 실제 사고에서 나옴)
 
 - `opportunity_score`는 **DB 생성 컬럼** — 애플리케이션 코드에서 절대 쓰지 말 것
-- DB 마이그레이션은 **Supabase 대시보드 SQL Editor로만** (CLI 금지, MCP는 회사 프로젝트에 잠김)
+- **DB 마이그레이션 적용 경로 (2026-09-08 이원화 — 실측 근거 있음):**
+  - **사람이 직접 모는 대화형 세션** → `supabase db query --linked -f <migration.sql>` **허용** (2026-09-07 `20260907000003_post_replies` 로 검증됨).
+    또는 대시보드 SQL Editor. ⚠️ `supabase db push` 는 금지 — `_rollback.sql` 파일까지 마이그레이션으로 인식해 CREATE 직후 DROP.
+  - **자동화된 무인 루프** (GitHub Actions 로 도는 부서 루프 등) → 마이그레이션 적용 능력이 **설정 레벨에서 없음.**
+    `.claude/agents/*.md` 에서 `mcp__supabase__apply_migration`/`execute_sql` 도구를 뺐다(프롬프트 금지 아니라 도구 부재).
+  - **Supabase MCP (`mcp__supabase__*`) 는 이 리포에서 회사 운영 DB "Dothegy OS"(ref `hrplbrstntyanzwxcsft`)를 가리킨다.**
+    SolutionArchive 정본은 `qmgrfqjfxqhxuufrnkwf` (`supabase/config.toml` / `.temp/linked-project.json`). MCP 로 마이그레이션·쿼리 금지.
+    스키마 확인·SELECT 는 `supabase db query --linked` 또는 `.env.local` 클라이언트로.
 - `GEMINI_MODEL`은 모듈 로드 시점 상수 — 변경하려면 서버 재시작
 - Gemini 쿼터는 **모델별**(프로젝트별 아님). 작은 핑 요청은 일일 한도 소진 시에도 200 반환
 - `git push --force` to main 차단 / Supabase 프로덕션 쓰기 소프트 차단

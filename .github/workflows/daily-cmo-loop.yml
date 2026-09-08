@@ -1,0 +1,122 @@
+# CMO 데일리 루프 — 조사 → 적립 → 초안 → 게이트 → 스테이징 → 다이제스트.
+#
+# 런북 정본: .claude/commands/cmo-daily.md
+# 오케스트레이터: scripts/cmo-daily.mjs (단계 정의·화이트리스트가 전부 거기 있다)
+#
+# ⛔ 이 워크플로는 **발행하지 않는다.**
+#    THREADS_ACCESS_TOKEN 을 env 에 넣지 않는다. 넣지 않는 것이 정책이 아니라
+#    구조다 — 자격증명이 프로세스에 없으면 발행은 불가능하다 (CLAUDE.md §10).
+#    ANTHROPIC_API_KEY 도 넣지 않는다. 헤드리스는 OAuth 토큰으로 돈다.
+#
+# ⚠️ 이 워크플로는 사람 승인 없이 커밋한다. 쓸 수 있는 경로는
+#    scripts/cmo-daily.mjs 의 COMMIT_PREFIXES 4개뿐이고, 그 밖의 파일이
+#    스테이징에 있으면 **커밋하지 않고 실패한다.** 그 목록을 넓히는 건 보안 변경이다.
+
+name: Daily CMO Loop
+
+on:
+  # ⏸️ 스케줄 비활성 (2026-09-08). 감독하 라이브 검증(workflow_dispatch dry_run →
+  #    본실행 1회)이 끝난 뒤 아래 블록의 주석을 풀어 활성화한다. GitHub 의
+  #    schedule 은 기본 브랜치에서만 발화하므로, main 머지 전에 주석을 풀면
+  #    검증도 하기 전에 첫 크론이 무장된다. 그래서 머지는 이 상태로 하고
+  #    활성화는 별도 1줄 커밋으로 한다.
+  # schedule:
+  #   # 20:17 UTC = KST 05:17.
+  #   #
+  #   # ⚠️ 정각을 피한다. 전 세계 크론이 정각에 몰려 Actions 가 스케줄 실행을
+  #   #    미루거나 통째로 건너뛴다 (같은 리포에서 2026-09-01 에 실제로 겪었다).
+  #   # ⚠️ 기존 크론과 겹치지 않게 잡았다:
+  #   #      nightly-insight-loop  18:41 UTC (KST 03:41)
+  #   #      daily-cmo-loop        20:17 UTC (KST 05:17)  ← 이것
+  #   #    겹치면 러너 경합보다도 **같은 테이블을 두 루프가 동시에 쓰는** 게 문제다.
+  #   - cron: '17 20 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'DB·git 을 건드리지 않고 계획만 낸다'
+        type: boolean
+        default: true
+      research_target:
+        description: '오늘 조사할 건수 (비우면 2)'
+        type: string
+        default: '2'
+      draft_target:
+        description: '오늘 쓸 초안 건수 (비우면 2)'
+        type: string
+        default: '2'
+
+# 앞 실행이 아직 돌고 있으면 새 실행을 시작하지 않는다.
+# 두 인스턴스가 같은 큐 항목을 claim 하면 같은 브랜드를 두 번 조사하고,
+# 서로 다른 slug 를 지어 내서 중복 케이스가 된다 (UNIQUE 로도 못 막는다).
+concurrency:
+  group: cmo-daily
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    # 조사 2건(각 15분) + 초안 2건(각 12분) + 해설 8분 = 최악 62분. 여유 포함 90.
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # 풀 VM 이라 전역 설치가 정상 경로다. 버전을 고정하는 이유는
+      # lib/insight/claude-cli.ts 와 같다 — 'latest' 면 어느 날 밤 조용히 다른
+      # 바이너리를 집어오고 재현 불가능한 실패가 된다.
+      - name: Install Claude Code CLI
+        run: |
+          npm i -g @anthropic-ai/claude-code@2.1.251
+          echo "CLAUDE_CLI_PATH=$(which claude)" >> "$GITHUB_ENV"
+          claude --version
+
+      # 루프를 돌리기 전에 로컬 검사부터 통과시킨다. 화이트리스트·게이트·상태기록이
+      # 깨진 채로 무인 루프를 돌리면 그날 밤 산출물을 아무도 믿을 수 없다.
+      - name: Selftest
+        run: node scripts/cmo-daily-selftest.mjs
+
+      - name: Run CMO daily loop
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # 커밋·푸시용. 이 리포의 4개 프리픽스에만 쓴다.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CMO_RESEARCH_TARGET: ${{ inputs.research_target || vars.CMO_RESEARCH_TARGET || '2' }}
+          CMO_DRAFT_TARGET: ${{ inputs.draft_target || vars.CMO_DRAFT_TARGET || '2' }}
+          # ⛔ THREADS_ACCESS_TOKEN 을 여기 넣지 마라. 넣는 순간 §10 의 구조적
+          #    보장이 사라진다. 발행은 사람이 앱에서 한다.
+          # ⛔ ANTHROPIC_API_KEY 도 넣지 마라. 헤드리스가 조용히 유료 경로로
+          #    새는 것을 막는다.
+        run: |
+          node scripts/cmo-daily.mjs \
+            --trigger=${{ github.event_name == 'workflow_dispatch' && 'manual' || 'cron' }} \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
+
+      # 실패해도 올린다. 실패한 실행의 산출물이 가장 알고 싶은 것이다 —
+      # 커밋 전에 죽으면 리포에는 한 줄도 안 남는다.
+      - name: Upload run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmo-daily-${{ github.run_id }}
+          path: |
+            reports/
+            ops/state/
+            drafts/cases/
+            drafts/threads/
+          retention-days: 14
+          if-no-files-found: warn
+
+# 실패해도 재시도하지 않는다. 전 단계가 멱등이라 다음 밤이 같은 일을 다시 한다.
+# 붙잡고 재시도하면 같은 브랜드를 두 번 조사하거나 같은 초안을 두 번 스테이징한다.

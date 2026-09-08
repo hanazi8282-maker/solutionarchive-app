@@ -444,6 +444,11 @@ async function main() {
       '-p', analystPrompt(raw, date),
       '--output-format', 'json',
       '--allowedTools', AGENT_TOOLS['sa-cmo-analyst'],
+      // research/draft 스텝과 같은 권한 모드. 없으면 헤드리스 CI 에서 첫 Read 가
+      // 권한 프롬프트에 걸려 즉시 exit 1 로 죽는다 (2026-09-08 첫 본실행에서 관측:
+      // analyst 가 ~5초 만에 exit 1, 해설 없이 폴백). read-only 라 acceptEdits 는
+      // 무해하고 세 호출의 플래그를 일치시킨다.
+      '--permission-mode', 'acceptEdits',
       '--max-turns', '12',
     ], { cwd: repoRoot, env: agentEnv, timeoutMs: 8 * 60_000 })
 

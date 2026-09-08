@@ -609,6 +609,22 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
 }
 
 // ════════════════════════════════════════════════════════════
+// 17) 세 헤드리스 호출이 전부 --permission-mode 를 준다
+//     (없으면 CI 에서 첫 도구 사용이 권한 프롬프트에 걸려 즉시 죽는다)
+// ════════════════════════════════════════════════════════════
+{
+  const src = fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')
+  // 인자 배열 안에 AGENT_TOOLS['...'] 의 `]` 가 있어 non-greedy `]` 로는 못 자른다.
+  // 배열이 닫히고 옵션 객체가 오는 `], {` 까지를 한 호출로 본다.
+  const calls = [...src.matchAll(/runClaude\(claudeBin,\s*\[([\s\S]*?)\]\s*,\s*\{/g)].map((m) => m[1])
+  eq('헤드리스 — runClaude 호출 3개 (researcher·writer·analyst)', calls.length, 3)
+  calls.forEach((body, i) => {
+    check(`헤드리스 — ${i + 1}번째 runClaude 가 --permission-mode 를 준다`, /--permission-mode/.test(body))
+    check(`헤드리스 — ${i + 1}번째 runClaude 가 --allowedTools 를 준다`, /--allowedTools/.test(body))
+  })
+}
+
+// ════════════════════════════════════════════════════════════
 // 결과
 // ════════════════════════════════════════════════════════════
 console.log(`\n통과 ${passed} / 실패 ${failures.length}`)

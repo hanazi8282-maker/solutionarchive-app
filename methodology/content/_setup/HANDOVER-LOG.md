@@ -1072,6 +1072,41 @@ influencers-time·techcrunch/figma·substack/duolingo·bettermode·foundationinc
 
 ---
 
+### 2-18. 에이전트 조직 트랙 — CMO 데일리 루프 스케줄 가동 (2026-09-09, append-only)
+
+> 케이스스터디 트랙과 다른 축이다. `feat/agent-ops`(PR #21, 2026-09-08 main 머지)로
+> 들어온 `.github/workflows/daily-cmo-loop.yml` — 조사→적립→초안→게이트→스테이징→다이제스트
+> 10스텝을 헤드리스 `claude -p`(OAUTH 토큰) 로 매일 무인 실행한다. **발행은 하지 않는다**
+> (THREADS_ACCESS_TOKEN·ANTHROPIC_API_KEY 를 env 에 넣지 않는 구조적 보장, CLAUDE.md §10).
+
+**가동 시작: 2026-09-09 KST.** cron `17 20 * * *` = **20:17 UTC = KST 05:17**
+(nightly-insight-loop 18:41 UTC 와 안 겹치게 — 러너 경합보다 같은 테이블 동시 쓰기가 문제).
+첫 자동 발화는 2026-09-08 20:17 UTC(= 2026-09-09 05:17 KST). 활성화는 schedule 블록
+주석 해제 1커밋으로 했다(머지는 비활성 상태로 → GitHub schedule 이 기본 브랜치에서만
+발화하므로 검증 전 무장을 피하려는 것). **되돌리려면 schedule 블록을 다시 주석 처리한다.**
+
+**감독하 라이브 검증 이력**
+
+| 시각(UTC) | run | 결과 |
+|---|---|---|
+| 2026-09-08 09:23 | 34209686764 | dry_run — 10스텝 계획만, DB·git 무변 |
+| 2026-09-08 09:26 | 34210021608 | 본실행 첫 완주(19m42s) — 조사 2·초안 2 적립. 단 analyst 해설이 권한 프롬프트로 ~5s exit 1 → 폴백(원자료만) |
+| 2026-09-08 09:56 | 34212740122 | **지출한도 실패** — research/draft 헤드리스 호출이 claim 직후 2s 만에 exit 1. §7.1: 코드 문제로 오인하지 않았다(30분 전 같은 토큰으로 완주, 한도 회복 후 재실행 clean). 순수 한도 |
+| 2026-09-08 15:21 | 34244204608 | **재완주(23m42s) · exit 0 · 10스텝 전부 ✅.** analyst 해설 생성됨(`performance.md` `# 해설`, `commented:1`) — 8bc8250 의 `--permission-mode` 픽스가 실제로 동작. 초안 2/2(kurly·oatly, 둘 다 CG-1 통과 후 pending_review). research_queue claim → `done` 마감(queue_done:1, queue_failed:0) |
+
+**알려진 이슈 (지금은 손 안 댐 — 기록만)**
+
+| # | 이슈 | 성격 |
+|---|---|---|
+| Q-1 | 수동 dispatch 를 같은 날 2회+ 하면 run_key(`cmo-<date>-<trigger>`)가 겹친다. tracker 가 `upsert(onConflict:run_key)` 라 행은 안 늘지만 DASHBOARD 가 **첫 실행의 시작시각**을 표시한다(15:21 런인데 `09:27~09:57` 로 나옴). 크론은 trigger=cron·매일 다른 날짜라 안 겹친다 — 수동 검증에서만 보이는 표시 오차 |
+| Q-2 | DASHBOARD 가 **마지막 스텝을 1스텝 지연** 표시(`9/10 …◐`). digest 스텝이 커밋 전에 status-render 를 호출해 자기 자신을 ◐(진행)으로 찍기 때문. 실제로는 10/10 green(`결과: ok · 실패 0`) |
+| Q-3 | 커버리지 포화(7/7 병목·갭 0) 상태면 `--plan N` 이 실패쿼터 슬롯 **1건만** 생성 → **조사가 목표(2)보다 적게 돈다**(15:21 런에서 claim 1). `queue` 스텝은 GREEN — AC-20(과다실행 방지, `research_queue` 오늘 ≤5)상 정상 동작이다. 케이스 반려·`reports/feedback/` 유입으로 갭이 생기면 자동 회복. **결함 아님** |
+| Q-4 | 고아 `failed` 큐 행 `ff16440e`(09:56 한도실패 런의 claim). `--claim` 은 `status='queued'` 만 집으므로 이 행은 계속 `failed` 로 남는다. 재조사하려면 사람이 `research-queue.mjs --add` 로 다시 넣는다. 무해 |
+
+**Risk 1 유지 확인**: `.env.local` 의 Supabase 정본 ref = `qmgrfqjfxqhxuufrnkwf` (고정). Supabase MCP 는 Dothegy OS 를 보므로 SolutionArchive 큐 조회는 MCP 가 아니라 `scripts/research-queue.mjs --list` + `.env.local` 로 한다.
+
+---
+
 
 ## 3. 사고 이력 (append-only) ★ 반드시 읽을 것
 
@@ -1285,6 +1320,7 @@ L-56 백필 후 그 무브는 B 가 됐는데, `pending_review` 로 누워 있�
 | 2026-09-07 | 10차 — L-60+L-64 원 관측 키 설계 | 마이그 `20260907000001`(observation_key·supports_metric) 작성 / `foldObservations` + `gradeMove` 재작성 / selftest 88·0 / verify `--probe` 에 마이그4 검사 4개 / `regrade` 커버리지 가드 + `--force`는 `--dry` 전용 / 설계문서 §8 | — | **투영 A13·B5·C13 → A12·B0·C19** (백필 전이라 판정 아님). 마이그 미적용 |
 | 2026-09-07 | 11차 — 관측 키 전량 백필 + 재채점 실반영 | 남헌이 `20260907000001` 적용(`--probe` 양성 21·exit 0) / 근거 72행을 ~48개 문서로 묶어 조사 — 국내 매체·Retail Dive·TechCrunch·Duolingo IR·Sensor Tower 재fetch, medium·indigo9digital 은 web.archive.org 스냅샷으로 확인(둘 다 Casper S-1 재작성), SEC 공시 ~30행은 문서 재식별 + 지난 라운드 대조 인용 / 백필 마이그 `20260907000002`(관측 키 67/72, sm 46T·20F·6N, 스키마 변경 없음) / 남헌 지시로 `.env.local` 직접 적용 + `regrade` 실반영 **A13·B5·C13·D1 → A12·B0·C19·D1**, 바뀐 것 6, 멱등 확인, `review_status` 불변 / Warby Threads 초안(post `b0133f9a`)이 CG-1 재게이트로 `pending_review`→`draft` | **L-60, L-64** | 잠정 15→4(전부 등급 확정) |
 | 2026-09-07 | 12차 — 뒷정리 | 강등 승인 무브 6건 분류: `posts` 발행 0건이라 전부 "파이프라인 내부", 소급 취소 위험 없음(warby 만 draft post 1개, 나머지 5개는 참조 content/post 자체 없음) / 롤백 컴패니언 2개 신설(`20260907000001`·`000002` `_rollback.sql`) / 앵커 4개 원문 재대조 — 전부 확인, `sm` 판정 유지 / **Warby 초안 §4 재작성 + 귀속 문구 추가 → CG-1 통과, `pending_review` 복귀**(커밋 `d15702f`) / figma/PF TechCrunch 링크 재확인: 404·스냅샷 없음, "two-thirds not designers" 는 S-1 수치임을 WebSearch 로 확인 → 행 변경 없음 / **강등 6건 전부 `approved` 유지로 재승인**(`approve --by 남헌`, 등급 C 기준 재affirm) | — | 열린 것은 Warby 초안 게시 버튼(사람)뿐 |
+| 2026-09-09 | **CMO 데일리 루프 스케줄 가동** | 지출한도 회복 확인(남헌) → 라이브 재완주(run 34244204608, exit 0·10스텝·analyst 해설 생성·초안 2/2·큐 done) → `daily-cmo-loop.yml` schedule 주석 해제 1커밋(cron `17 20 * * *` = 20:17 UTC) → HANDOVER §2-18 신설(가동일·검증 이력·알려진 이슈 Q-1~Q-4) → AC-25 `/cmo` 대화형 실발화 확인 | — | §2-18 (Q-1 run_key 겹침 · Q-2 대시보드 1스텝 지연 · Q-3 커버리지 포화 시 조사<목표 · Q-4 고아 failed 큐행) — 전부 "기록만" |
 
 ---
 

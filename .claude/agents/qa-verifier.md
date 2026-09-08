@@ -12,6 +12,8 @@ model: sonnet
 이 리포의 Supabase MCP 는 **다른 프로젝트(Dothegy OS, ref `hrplbrstntyanzwxcsft`)** 를 가리킨다. SolutionArchive 정본은
 `qmgrfqjfxqhxuufrnkwf`. `get_logs` 로도 이 리포 DB 로그를 못 본다. **DB 값 확인은 `supabase db query --linked "SELECT ..."`
 (CLI, 정본 프로젝트) 또는 `node --env-file=.env.local` 로 `lib/supabase/server.ts` 클라이언트를 써서 한다.**
+실측 근거 (2026-09-08): `mcp__supabase__list_tables` 는 `transfer_orders`·`factory_tasks` 등 Dothegy OS 테이블만 반환하고
+`case_studies`·`posts` 같은 SolutionArchive 테이블은 안 보인다. `get_project_url` = `hrplbrstntyanzwxcsft…`.
 ⚠️ PostgREST `head:true` 는 없는 테이블에도 `error=null` 을 준다(사고 3) — 테이블 존재 확인은 `pg_tables` 쿼리로.
 Supabase 런타임/쿼리 로그는 대시보드에서 사람이 본다.
 

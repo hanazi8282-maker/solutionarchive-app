@@ -12,6 +12,9 @@ model: opus
 이 리포의 Supabase MCP 는 **다른 프로젝트(회사 운영 DB "Dothegy OS", ref `hrplbrstntyanzwxcsft`)** 를 가리킨다.
 SolutionArchive 정본은 `qmgrfqjfxqhxuufrnkwf`. MCP 로 이 리포 스키마를 볼 수 없고, `execute_sql` 은 회사 DB 에 쿼리가 나간다.
 그래서 MCP 도구를 뺐다. **현재 스키마는 `supabase/migrations/*.sql` 파일을 Read 로 읽어 파악한다** — 그게 스키마의 정본이다.
+
+실측 근거 (2026-09-08): `mcp__supabase__list_tables` 는 `transfer_orders`·`factory_tasks` 등 Dothegy OS 테이블을 반환하고
+`case_studies`·`case_moves` 같은 SolutionArchive 테이블은 하나도 반환하지 않는다. `get_project_url` 도 `hrplbrstntyanzwxcsft…`.
 `lib/**/*.ts` 의 `.from('<table>')` 호출과 타입 정의도 교차 근거로 쓴다.
 
 ## 입력

@@ -13,6 +13,11 @@ model: opus
   이유: 이 세션/리포에 연결된 Supabase MCP 는 **다른 프로젝트(회사 운영 DB "Dothegy OS", ref `hrplbrstntyanzwxcsft`)** 를
   가리킨다. SolutionArchive 정본 프로젝트는 `qmgrfqjfxqhxuufrnkwf` (`supabase/config.toml` / `supabase/.temp/linked-project.json`)다.
   MCP 로 마이그레이션을 적용하면 **회사 운영 DB에 스키마 변경이 들어간다.** 프롬프트로 "하지 마"가 아니라 도구 자체를 뺐다.
+  실측 근거 (2026-09-08): `mcp__supabase__list_tables` 를 호출하면 `transfer_orders`·`transfer_order_items`·`factory_tasks`·
+  `factory_resources`·`inventory_reconciliation_log` 등 **Dothegy OS 발주·공장 테이블**이 돌아온다. SolutionArchive 정본
+  스키마(`case_studies`·`case_moves`·`posts`·`research_queue`·`agent_runs` …)는 하나도 안 보인다. `mcp__supabase__get_project_url`
+  도 `hrplbrstntyanzwxcsft.supabase.co` 를 반환한다. 즉 MCP 로 이 리포의 스키마를 조회하면 "테이블 없음"이 나오고, 그걸
+  음성으로 접으면 §7.1 위반이다. 이 리포의 스키마 정본은 `supabase/migrations/*.sql`, 값 확인은 `.env.local` 클라이언트다.
 - **너는 마이그레이션을 DB에 적용하지 않는다.** 마이그레이션 **파일만** 만든다:
   `supabase/migrations/YYYYMMDDNNNNNN_<name>.sql` + 같은 이름의 `_rollback.sql` 쌍.
   `BEGIN; ... COMMIT;` + `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`. 롤백은 역순 `DROP ... IF EXISTS`.

@@ -30,8 +30,8 @@ _이번 실행은 해설을 생성하지 못했다 — analyst exit 1. 원자료
 
 ## 다음 주 주목 지표
 
-- `like_rate` — elf-beauty-awareness-engine (이번에 스테이징한 초안의 예측)
-- `reply_rate` — elf-beauty-awareness-engine (이번에 스테이징한 초안의 예측)
+- `like_rate` — 지난 예측이 보류다(표본 부족). 다음 주 실측을 본다.
+- `share_rate` — 지난 예측이 보류다(표본 부족). 다음 주 실측을 본다.
 
 ## 실행 기록
 

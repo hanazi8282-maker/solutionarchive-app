@@ -606,6 +606,12 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   const empty = buildDecisionLogEntries({ date: '2026-09-08', runKey: 'x', jobs: [] })
   eq('decision-log — 0건이면 엔트리 0', (empty.match(/^## /gm) || []).length, 0)
   check('decision-log — 0건이면 그 사실을 적는다', empty.includes('스테이징한 초안 없음'))
+
+  // ★ 같은 날 재실행이 이전 매니페스트를 물려받지 않게, stage 스텝이 0건일 때
+  //   매니페스트를 `[]` 로 덮는다 (DIGEST N 과 decision-log 엔트리 수가 갈라지던 버그).
+  const daily = fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')
+  check('stage — 스테이징 0건이면 매니페스트를 [] 로 덮는다',
+    /!stageFiles\.length[\s\S]{0,400}writeFileSync\(stageManifestPath, '\[\]/.test(daily))
 }
 
 // ════════════════════════════════════════════════════════════

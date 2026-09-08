@@ -388,9 +388,17 @@ async function main() {
   })
 
   // ── S7 stage ────────────────────────────────────────────────
+  const stageManifestPath = path.join(repoRoot, 'ops', 'state', `${runKey}-stage.json`)
   await runStep('stage', async () => {
     if (dryRun) return { status: 'skipped', detail: { reason: 'dry-run — DB 에 스테이징하지 않는다' } }
-    if (!stageFiles.length) return { status: 'skipped', detail: { reason: '스테이징 매니페스트 0건' } }
+    if (!stageFiles.length) {
+      // ★ 매니페스트를 이번 실행 기준으로 비워 둔다. 같은 날 재실행이 이전 실행의
+      //   매니페스트를 물려받으면 decision-log-entries.md·"다음 주 주목 지표"가
+      //   지난 실행 값을 보여준다 (2026-09-08 재실행에서 관측: DIGEST N=0 인데
+      //   decision-log 엔트리 1).
+      try { fs.mkdirSync(path.dirname(stageManifestPath), { recursive: true }); fs.writeFileSync(stageManifestPath, '[]\n', 'utf-8') } catch { /* 못 써도 skip 은 유지 */ }
+      return { status: 'skipped', detail: { reason: '스테이징 매니페스트 0건' } }
+    }
 
     const jobs = []
     for (const f of stageFiles) {

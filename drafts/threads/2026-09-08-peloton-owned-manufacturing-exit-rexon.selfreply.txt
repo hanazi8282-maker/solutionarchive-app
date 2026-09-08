@@ -1,0 +1,12 @@
+근거 원문 (직접 읽은 것만 답니다)
+
+Rexon Industrial과의 관계 확대, 2022-07-12 발표는 Peloton FY2022 10-K(회계연도 종료 2022-06-30, EDGAR 접수 2022-09-07)에 있다.
+sec.gov/Archives/edgar/data/1639825/000163982522000117/pton-20220630.htm
+
+원문: "On July 12, 2022, we announced we are exiting all owned-manufacturing operations and our expansion of our current relationship with Taiwanese manufacturer Rexon Industrial Corp."
+
+오하이오 부지 8,660만 달러도 같은 10-K 원문이다: "As of June 30, 2022, we had invested approximately $86.6 million to build an industrial building for sale."
+
+이 8,660만 달러는 2021년 5월 발표 당시 예고했던 총투자 계획액이 아니라, 2022-06-30 시점까지 실제로 집행한 금액이다. 계획액과 집행액을 섞지 않으려고 집행액만 썼다.
+
+같은 케이스의 다른 무브(초과·진부 재고 충당금 조정액 38.7 → 224.9백만 달러)는 다른 글로 뺐다. 무브 1개 = 글 1개 원칙.

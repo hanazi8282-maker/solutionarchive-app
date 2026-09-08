@@ -1,0 +1,32 @@
+[
+  {
+    "case_slug": "peloton-owned-manufacturing-exit",
+    "move_id": "4abf4551-329b-4096-924e-2713d3054276",
+    "content_code": "CS-20260908-05",
+    "body_path": "drafts/threads/2026-09-08-peloton-owned-manufacturing-exit-rexon.body.txt",
+    "reply_path": "drafts/threads/2026-09-08-peloton-owned-manufacturing-exit-rexon.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-09-08-peloton-owned-manufacturing-exit-rexon.md",
+    "log_code": "LOG-20260908-05",
+    "title": "8,660만 달러짜리 팔 건물",
+    "twist_line": "자체 생산으로 공급 병목을 풀려던 공장이, 철수 발표와 함께 제품 한 대 없이 매각용 건물이 됐다",
+    "hook_type": "결말선공개형(상식파괴형 변형)",
+    "closing_type": "단정형",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ 통과(U-1·U-2 통과, U-3 예외통과 — 댓글 실물 미확보, NEW-20260907-01 승계) · Ⅱ 프드프 분기(D-1 스크롤 피드) · Ⅲ pdp G-0~G-13 통과, G-4는 15자 기준 초과하나 NEW-20260908-01 후보 기준(60자·첫7자 반전신호)으로 자연 통과(5번째 사례로 후보 규칙 보강) · G-3·G-7은 Ⅰ에서 처리해 건너뜀 · Ⅳ X-2 솔파 채택(발행 후 조작 없음)·X-3 만남(계획액-집행액 미혼동 명시로 과장 차단)·X-1 미해당 · Ⅴ 통과(예측 2개 6필드, save_rate 미사용) · CG-1 비대상(등급 A — 초안 JSON 근거에 gradeMove 재계산해 지시값과 일치 확인, DB 저장값 자체는 확인 불가) · ⚠️파일명·코드 충돌 처리: 원지시 파일명(...exit.*)과 content_code(CS-20260908-01)는 각각 다른 무브(1736be2e)의 완성 산출물과 elf 건이 이미 점유 중이라 덮어쓰지 않고 -rexon 접미사/CS-20260908-05로 재채번(md §0 참조, 오케스트레이터 검토 필요)"
+  },
+  {
+    "case_slug": "peloton-owned-manufacturing-exit",
+    "move_id": "1736be2e-9277-45df-915b-63dc54da84c0",
+    "content_code": "CS-20260908-04",
+    "body_path": "drafts/threads/2026-09-08-peloton-owned-manufacturing-exit.body.txt",
+    "reply_path": "drafts/threads/2026-09-08-peloton-owned-manufacturing-exit.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-09-08-peloton-owned-manufacturing-exit.md",
+    "log_code": "LOG-20260908-04",
+    "title": "5.8배는 재고가 아니었다",
+    "twist_line": "5.8배로 늘어난 건 재고가 아니라, 회사가 스스로 못 팔겠다고 인정한 금액이다",
+    "hook_type": "상식파괴형",
+    "closing_type": "질문형",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ 통과(U-1·U-2 통과, U-3 예외통과 — 남의 글 댓글 실물 미확보, NEW-20260907-01 승계) · Ⅱ 프드프 분기(D-1 스크롤 피드) · Ⅲ pdp G-0~G-13 통과, G-4만 15자 예외통과(4연속 반복이라 NEW-20260908-01로 재기입), G-3·G-7은 Ⅰ에서 처리해 건너뜀 · Ⅳ X-2 솔파 채택(발행 후 조작 없음)·X-3 만남(손상차손 390.5 의도적 배제와 5.8배 파생값 명시로 과장 차단)·X-1 미해당 · Ⅴ 통과(예측 2개 6필드, save_rate 미사용) · CG-1 비대상(등급 A — 초안 JSON 근거에 gradeMove 재계산해 지시값과 일치 확인, DB 저장값 자체는 확인 불가) · content_code 원지시 CS-20260908-01은 elf 건과 중복이라 CS-20260908-04로 변경 · ★중복 경보: 2026-09-07-peloton-owned-manufacturing 초안이 같은 무브를 이미 인용 중, 스테이징 전 오케스트레이터 결정 필요(md §6-2)"
+  }
+]

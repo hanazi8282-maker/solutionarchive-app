@@ -4,17 +4,22 @@
   "dryRun": false,
   "state": {
     "blocked": 0,
-    "failed": 2,
+    "failed": 0,
     "counts": {
       "cases_reachable": 1,
       "claimed": 1,
       "attempted": 1,
-      "new_drafts": 0,
-      "queue_done": 0,
-      "queue_failed": 1,
+      "agent_ok": 1,
+      "new_drafts": 1,
+      "committed": 1,
+      "all_draft": 1,
+      "queue_done": 1,
+      "queue_failed": 0,
       "angles": 2,
-      "drafted": 0,
-      "raw_only": 1
+      "drafted": 2,
+      "manifests": 2,
+      "staged": 2,
+      "commented": 1
     },
     "steps": [
       {
@@ -34,14 +39,14 @@
       {
         "key": "research",
         "label": "조사",
-        "status": "failed",
+        "status": "ok",
         "exit": null,
         "blocker": null
       },
       {
         "key": "commit_cases",
         "label": "케이스 적립",
-        "status": "skipped",
+        "status": "ok",
         "exit": null,
         "blocker": null
       },
@@ -62,15 +67,15 @@
       {
         "key": "draft",
         "label": "초안 작성 + 게이트",
-        "status": "failed",
+        "status": "ok",
         "exit": null,
         "blocker": null
       },
       {
         "key": "stage",
         "label": "발행 대기 스테이징",
-        "status": "skipped",
-        "exit": null,
+        "status": "ok",
+        "exit": 0,
         "blocker": null
       },
       {
@@ -80,7 +85,6 @@
         "exit": null,
         "blocker": null
       }
-    ],
-    "perfNote": "analyst exit 1"
+    ]
   }
 }

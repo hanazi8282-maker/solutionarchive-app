@@ -1,0 +1,85 @@
+{
+  "slug": "moviepass-unlimited-pricing-collapse",
+  "brand_name": "MoviePass",
+  "market": "구독형 영화관람 서비스",
+  "geo": "US",
+  "business_model": "SUBSCRIPTION",
+  "buyer_type": "B2C",
+  "purchase_frequency": "CONTRACT",
+  "price_band": "LOW",
+  "bottleneck": "UNIT_ECONOMICS",
+  "outcome_status": "shutdown",
+  "period_start": "2017-08-15",
+  "period_end": "2020-01-28",
+  "summary": "모회사 Helios and Matheson Analytics(HMNY)가 MoviePass를 인수한 뒤 월 9.95달러(이후 한때 6.95달러)에 하루 1편 무제한 관람이라는 파격 가격으로 전환해 구독자를 단기간에 폭증시켰다. 그러나 극장에는 티켓 정가를 그대로 지불하는 구조라 사용량이 늘수록 손실이 커지는 역선택 문제를 해결하지 못했고, 순손실은 1년 만에 크게 불어났다(자체 공시 기준). 2018년 여름 '피크 프라이싱'과 요금 인상을 시도했다가 소비자 반발로 며칠 만에 철회하고 월 3편 관람 정액제로 패키지를 다시 바꿨지만, 이미 무너진 신뢰를 회복하지 못하고 구독자가 정점 대비 90%대로 급감했다(외부 보도, 회사는 구체적 근거 없이 반박). 2019년 9월 서비스가 종료됐고 2020년 1월 모회사가 챕터 7 파산을 신청했다.",
+  "tags": ["subscription-pricing", "unit-economics", "pivot-failure", "movie-theater", "cash-burn"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "PRICING",
+      "claim": "극장에는 영화 티켓 정가를 그대로 지불하면서, 회원에게는 월 9.95달러(이후 프로모션으로 최저 6.95달러)에 하루 1편 무제한 관람을 제공하는 가격 정책으로 전환했다. 구독자와 실사용이 늘수록 회사의 손실이 함께 커지는 구조를 그대로 방치한 것이 이후 파산으로 이어진 핵심 원인으로 지목된다.",
+      "outcome_direction": "negative",
+      "metric_name": "Helios and Matheson Analytics Inc. 귀속 연간 순손실",
+      "metric_before": 146000000,
+      "metric_after": 266800000,
+      "metric_unit": "USD",
+      "observed_period_start": "2017-01-01",
+      "observed_period_end": "2018-12-31"
+    },
+    {
+      "lever": "PACKAGING",
+      "claim": "현금 위기와 폭주하는 사용량에 대응해 '피크 프라이싱'(수요 높은 시간대 추가 요금)과 월 14.95달러로의 가격 인상을 시도했으나 소비자 반발로 며칠 만에 철회했다. 대신 무제한 관람을 월 3편 관람으로 축소하는 정액제로 패키지를 다시 바꿨지만, 반복된 번복으로 신뢰가 이미 무너진 뒤였다.",
+      "outcome_direction": "negative",
+      "metric_name": "월간 유료 구독자 수",
+      "metric_before": 3000000,
+      "metric_after": 225000,
+      "metric_unit": "명",
+      "observed_period_start": "2018-08-01",
+      "observed_period_end": "2019-04-19"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1040792/000121390019009382/f8k052219_heliosandmatheson.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": false,
+      "observation_key": "hmny-8k-2019-05-22-prelim-fy2018-netloss",
+      "supports_metric": true,
+      "published_at": "2019-05-22",
+      "snippet": "\"Net loss attributable to Helios and Matheson Analytics Inc. of approximately $(266.8) million ... for the year ended December 31, 2018, as compared to ... approximately $(146.0) million for the year ended December 31, 2017.\" 회사 스스로 'preliminary, unaudited and subject to change'라고 명시.",
+      "supports_claim": "가격 전환(2017-08) 이후 회계연도 기준 순손실이 82% 늘었음을 회사가 8-K로 공시했다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.hollywoodreporter.com/news/general-news/moviepass-cuts-pricing-three-movies-a-month-1132347/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": true,
+      "observation_key": "hmny-aug2018-3m-statement",
+      "supports_metric": true,
+      "published_at": "2018-08-06",
+      "snippet": "MoviePass 공식 발표 인용: \"one year and 3 million plus members later, it has become clear that a small number — only 15 percent — of the subscriber base has been stressing the system.\" 이 발표와 함께 월 3편 관람 정액제(9.95달러)로 전환을 공지.",
+      "supports_claim": "패키지 축소 직전 구독자 규모가 '300만 명 이상'이었다는 회사 자체 발표."
+    },
+    {
+      "move": 1,
+      "url": "https://variety.com/2019/digital/news/moviepass-subscribers-loss-crater-225000-1203192468/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": true,
+      "observation_key": "businessinsider-apr2019-225k-leak",
+      "supports_metric": true,
+      "published_at": "2019-04-19",
+      "snippet": "Business Insider가 입수한 내부 데이터를 인용해 구독자가 정점 300만 명 이상에서 22.5만 명으로 90% 이상 급감했다고 보도. MoviePass 대변인은 수치 확인을 거부했고, 회사는 이후 수치가 틀렸다고 반박했으나 근거는 제시하지 않았다.",
+      "supports_claim": "패키지 재편 이후에도 구독자 이탈이 계속돼 정점 대비 92%가량 줄었다(단, 회사가 이 수치 자체를 반박했다는 점에 유의)."
+    }
+  ]
+}

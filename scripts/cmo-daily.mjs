@@ -691,6 +691,52 @@ export function heldMetrics(md) {
 }
 
 /** 이번 실행에 스테이징한 초안들의 예측 지표. 매니페스트 → 판정 문서 순으로 따라간다. */
+/** 이번 실행이 스테이징한 job 목록. `${runKey}-stage.json` 정본. */
+export function stagedJobs(repoRoot, runKey) {
+  const manifest = path.join(repoRoot, 'ops', 'state', `${runKey}-stage.json`)
+  if (!fs.existsSync(manifest)) return []
+  try {
+    const jobs = JSON.parse(fs.readFileSync(manifest, 'utf-8'))
+    return Array.isArray(jobs) ? jobs : []
+  } catch { return [] }
+}
+
+/**
+ * `reports/<날짜>/decision-log-entries.md` 본문.
+ *
+ * ★ 엔트리 수가 DIGEST 최상단 "붙여넣기 대기: N건"(= state.counts.staged)과
+ *   같아야 한다 (AC-13). 둘의 정본이 같은 stage 매니페스트라 자동으로 맞는다 —
+ *   staged 카운트도 이 매니페스트에서 나오기 때문이다. 하드코딩하지 않는다.
+ */
+export function buildDecisionLogEntries({ date, runKey, jobs = [] }) {
+  const L = []
+  L.push(`# 붙여넣기 대기 판정 로그 — ${date}`)
+  L.push('')
+  L.push(`_실행 \`${runKey}\` 이 스테이징한 초안 ${jobs.length}건. DIGEST 최상단 "붙여넣기 대기: N건" 과 수가 같아야 한다._`)
+  L.push('')
+  if (!jobs.length) {
+    L.push('_이번 실행이 스테이징한 초안 없음._')
+    return L.join('\n') + '\n'
+  }
+  const ymd = String(date ?? '').replace(/-/g, '')
+  for (const j of jobs) {
+    // gate_note 에는 전례 인용으로 다른 날짜의 LOG 코드가 섞여 있을 수 있다
+    // (예: "Casper LOG-20260907-05 전례"). 이 실행의 판정 코드는 (1) 오늘 날짜의
+    // 것, 없으면 (2) 맨 뒤의 것(관례상 gate_note 끝에 append 된다)이다.
+    const all = String(j.gate_note ?? '').match(/LOG-\d{8}-\d+/g) ?? []
+    const logCode = all.find((c) => c.startsWith(`LOG-${ymd}-`)) ?? all[all.length - 1] ?? null
+    L.push(`## ${j.content_code ?? '(코드 미상)'} — ${j.case_slug ?? '(케이스 미상)'}`)
+    L.push('')
+    L.push(`- 무브: \`${j.move_id ?? '(미상)'}\``)
+    L.push(`- 판정 로그: ${logCode ? `\`${logCode}\`` : '(gate_note 에서 LOG 코드를 못 읽음)'}`)
+    L.push(`- 판정 전문: \`${j.decision_doc ?? '(경로 미상)'}\``)
+    if (j.gate_note) L.push(`- 게이트: ${j.gate_note}`)
+    L.push('- posts.status: pending_review (붙여넣기 대기) — 발행은 사람이 앱에서 (§10)')
+    L.push('')
+  }
+  return L.join('\n') + '\n'
+}
+
 export function stagedMetrics(repoRoot, runKey) {
   const manifest = path.join(repoRoot, 'ops', 'state', `${runKey}-stage.json`)
   if (!fs.existsSync(manifest)) return []
@@ -849,6 +895,13 @@ export async function writeDigest({ reportDir, date, runKey, dryRun, log = [], s
   fs.mkdirSync(reportDir, { recursive: true })
   fs.writeFileSync(path.join(reportDir, 'DIGEST.md'), md, 'utf-8')
   fs.writeFileSync(path.join(reportDir, 'run.json'), JSON.stringify({ runKey, date, dryRun, state }, null, 2), 'utf-8')
+
+  // AC-13: "붙여넣기 대기: N건" 의 대조 파일. 엔트리 수 == N (같은 stage 매니페스트가 정본).
+  fs.writeFileSync(
+    path.join(reportDir, 'decision-log-entries.md'),
+    buildDecisionLogEntries({ date, runKey, jobs: stagedJobs(repoRoot, runKey) }),
+    'utf-8',
+  )
 }
 
 async function flushSummary(log) {

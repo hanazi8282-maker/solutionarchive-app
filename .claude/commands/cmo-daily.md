@@ -35,18 +35,23 @@ node --env-file=.env.local scripts/cmo-daily.mjs --trigger=local [--dry]
   + `reports/<날짜>/research/<slug>.md`.
 - **S3 `commit_cases` 적립** — `node scripts/case-review.mjs commit --slug <slug>`.
   **전부 `review_status='draft'` 로 들어간다.** 자동 승인은 0건이다.
-- **S4 `angle` 앵글 선정** — 승인된 무브 중 오늘 쓸 것을 고른다.
+- **S4 `queue_resolve` 조사 큐 정리** — commit_cases 직후 이번 실행이 claim 한
+  `research_queue` 행을 닫는다. 초안이 나온 행은 `done`, 조사했으나 근거를 못
+  찾은 행은 `failed` (둘을 섞지 않는다). 안 닫으면 claimed 가 쌓여 다음 `--plan`
+  이 오판한다.
+- **S5 `angle` 앵글 선정** — 승인된 무브 중 오늘 쓸 것을 고른다.
   등급·병목 커버리지·최근 발행 이력을 본다. 승인된 무브가 없으면 이 단계는
   `skipped` 이고, 그건 실패가 아니다 — 승인은 사람이 하기 때문이다.
-- **S5 `draft` 초안 ×N + 게이트** — 무브마다 `sa-cmo-writer` 1회.
+- **S6 `draft` 초안 ×N + 게이트** — 무브마다 `sa-cmo-writer` 1회.
   content-gate Ⅰ~Ⅴ 를 실제로 실행한 기록이 초안 `.md` 에 있어야 한다.
-- **S6 `stage` 스테이징** — `node scripts/case-draft-stage.mjs --input <json>`.
+- **S7 `stage` 스테이징** — `node scripts/case-draft-stage.mjs --input <json>`.
   exit 0 = `pending_review` / 3 = 마이그 미적용 폴백 / **4 = CG-1 이 막음**.
   4 는 실패가 아니라 `blocked` 다. blocker 에 "CG-1 귀속 문구 없음"이 들어간다.
   **새 `posts` 는 전부 `published_at IS NULL`.**
-- **S7 `performance` 성과 분석** — `sa-cmo-analyst`. 읽기 전용.
+- **S8 `performance` 성과 분석** — `sa-cmo-analyst`. 읽기 전용.
   유효 / 무효 / **보류(표본 부족)** 를 분리해 센다.
-- **S8 `digest` 다이제스트·상태·커밋** — `reports/<날짜>/DIGEST.md`,
+- **S9 `digest` 다이제스트·상태·커밋** — `reports/<날짜>/DIGEST.md`,
+  `reports/<날짜>/decision-log-entries.md` (엔트리 수 = DIGEST 의 "붙여넣기 대기: N건"),
   `reports/status/DASHBOARD.md`, 그리고 커밋.
   **커밋 전 스테이징 화이트리스트 검사**: `reports/`, `drafts/cases/`,
   `drafts/threads/`, `ops/state/` 4개 프리픽스 밖 파일이 하나라도 있으면

@@ -9,7 +9,8 @@
 
 **드라이런 1회 (`workflow_dispatch`, dry_run=true)**
 
-- **AC-1** 워크플로가 exit 0 으로 끝나고, `$GITHUB_STEP_SUMMARY` 에 S0~S8 **9개 스텝이 전부** 상태와 함께 나타난다(`pending` 잔여 0).
+- **AC-1** 워크플로가 exit 0 으로 끝나고, `$GITHUB_STEP_SUMMARY` 에 S0~S9 **10개 스텝이 전부** 상태와 함께 나타난다(`pending` 잔여 0).
+  (2026-09-08: PHASE C 에서 `queue_resolve` 스텝을 commit_cases 뒤에 추가해 9 → 10 이 됐다.)
 - **AC-2** 실행 전후로 `SELECT count(*) FROM case_studies`, `case_moves`, `posts`, `content_items` 4개가 **모두 동일**하다. 드라이런이 DB 를 건드리면 드라이런이 아니다.
 - **AC-3** `git log --oneline -1` 이 실행 전과 동일하다(커밋 없음).
 

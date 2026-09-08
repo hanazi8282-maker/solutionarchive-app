@@ -24,6 +24,7 @@ import {
   COMMIT_PREFIXES, checkStaged, buildAgentEnv, AGENT_TOOLS, STEPS, runKeyFor,
   RESEARCH_TARGET, DRAFT_TARGET,
   buildDigest, perfFailure, recordStep, scoreboardRows, parsePerformance,
+  buildDecisionLogEntries, stagedJobs,
 } from './cmo-daily.mjs'
 import { validateStep, createTracker, readEvents, STEP_STATUS } from './agent-status.mjs'
 import {
@@ -573,6 +574,38 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   eq('스텝기록 — blocker 문구가 보존된다', st.steps.find((s) => s.key === 'stage').blocker, 'CG-1 미통과')
   check('스텝기록 — run.json 직렬화에 steps 가 포함된다',
     JSON.stringify({ runKey: 'x', date: 'd', dryRun: false, state: st }).includes('"exit":4'))
+}
+
+// ════════════════════════════════════════════════════════════
+// 16) decision-log-entries.md — 엔트리 수 == "붙여넣기 대기: N건" (AC-13)
+// ════════════════════════════════════════════════════════════
+{
+  const jobs = [
+    { content_code: 'CS-20260908-01', case_slug: 'elf-beauty-awareness-engine', move_id: 'aaaa',
+      decision_doc: 'drafts/threads/2026-09-08-elf.md',
+      // 전례 인용으로 다른 날짜 LOG 코드가 앞에 섞여 있다 — 오늘 날짜 코드를 골라야 한다
+      gate_note: 'G-4 예외(Casper LOG-20260907-05 전례) · CG-1 비대상 · LOG-20260908-01' },
+    { content_code: 'CS-20260908-02', case_slug: 'blue-apron', move_id: 'bbbb',
+      decision_doc: 'drafts/threads/2026-09-08-blue-apron.md', gate_note: 'X-3 만남 · LOG-20260908-02' },
+  ]
+  const md = buildDecisionLogEntries({ date: '2026-09-08', runKey: 'cmo-2026-09-08-cron', jobs })
+  const entryCount = (md.match(/^## /gm) || []).length
+  eq('decision-log — 엔트리 수 == staged job 수', entryCount, jobs.length)
+  check('decision-log — 헤더에 건수가 박힌다', md.includes(`스테이징한 초안 ${jobs.length}건`))
+  check('decision-log — gate_note 에서 LOG 코드를 뽑는다', /`LOG-20260908-01`/.test(md) && /`LOG-20260908-02`/.test(md))
+  check('decision-log — 전례 인용의 옛 날짜 LOG(20260907-05)가 아니라 오늘 코드를 고른다',
+    !/판정 로그: `LOG-20260907-05`/.test(md))
+  check('decision-log — 각 엔트리에 판정 전문 경로', md.includes('drafts/threads/2026-09-08-elf.md'))
+
+  // ★ AC-13 정합: DIGEST 의 "붙여넣기 대기: N" 와 같은 정본(staged 카운트)을 쓴다
+  const st = { blocked: 0, failed: 0, counts: { staged: jobs.length }, steps: [] }
+  const digest = buildDigest({ date: '2026-09-08', runKey: 'x', state: st, log: [] })
+  const nInDigest = Number((digest.match(/붙여넣기 대기: (\d+)건/) || [])[1])
+  eq('decision-log — DIGEST N 과 엔트리 수가 일치', nInDigest, entryCount)
+
+  const empty = buildDecisionLogEntries({ date: '2026-09-08', runKey: 'x', jobs: [] })
+  eq('decision-log — 0건이면 엔트리 0', (empty.match(/^## /gm) || []).length, 0)
+  check('decision-log — 0건이면 그 사실을 적는다', empty.includes('스테이징한 초안 없음'))
 }
 
 // ════════════════════════════════════════════════════════════

@@ -23,6 +23,7 @@ import os from 'node:os'
 import {
   COMMIT_PREFIXES, checkStaged, buildAgentEnv, AGENT_TOOLS, STEPS, runKeyFor,
   RESEARCH_TARGET, DRAFT_TARGET,
+  buildDigest, perfFailure, recordStep, scoreboardRows, parsePerformance,
 } from './cmo-daily.mjs'
 import { validateStep, createTracker, readEvents, STEP_STATUS } from './agent-status.mjs'
 import {
@@ -477,10 +478,15 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
 // 13) 단계 정의·물량
 // ════════════════════════════════════════════════════════════
 {
-  eq('단계 — S0~S8 아홉 개', STEPS.length, 9)
+  eq('단계 — S0~S9 열 개', STEPS.length, 10)
   eq('단계 — 첫 단계는 preflight', STEPS[0][0], 'preflight')
-  eq('단계 — 마지막 단계는 digest', STEPS[8][0], 'digest')
-  eq('단계 — step_key 가 중복되지 않는다', new Set(STEPS.map((s) => s[0])).size, 9)
+  eq('단계 — 마지막 단계는 digest', STEPS[STEPS.length - 1][0], 'digest')
+  eq('단계 — step_key 가 중복되지 않는다', new Set(STEPS.map((s) => s[0])).size, STEPS.length)
+  eq('단계 — commit_cases 다음이 queue_resolve (claim 한 큐를 닫는다)',
+    STEPS[STEPS.findIndex((s) => s[0] === 'commit_cases') + 1][0], 'queue_resolve')
+  check('큐 — --resolve 가 --notes 없이 기존 notes 를 덮지 않는다',
+    /opt\('notes'\) !== null\) patch\.notes/.test(
+      fs.readFileSync(path.join(process.cwd(), 'scripts/research-queue.mjs'), 'utf-8')))
   eq('물량 — 기본 조사 목표', RESEARCH_TARGET, Number(process.env.CMO_RESEARCH_TARGET ?? 2))
   eq('물량 — 기본 초안 목표', DRAFT_TARGET, Number(process.env.CMO_DRAFT_TARGET ?? 2))
   eq('실행 키 — 날짜와 트리거로 결정된다', runKeyFor('2026-09-08', 'cron'), 'cmo-2026-09-08-cron')
@@ -516,6 +522,57 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   check('마이그 — pmf_score 단일 점수 컬럼이 없다', !/^\s*pmf_score\s+/m.test(pmf))
   const rq = fs.readFileSync(path.join(process.cwd(), 'supabase/migrations/20260908000002_research_queue.sql'), 'utf-8')
   check('마이그 — reason 어휘에 failure_quota 가 있다', /'failure_quota'/.test(rq))
+}
+
+// ════════════════════════════════════════════════════════════
+// 15) 다이제스트 5헤딩 · 성과 실패 판정 · 스텝 종료코드 (AC-12, 부수관측 1·2)
+// ════════════════════════════════════════════════════════════
+{
+  const REQUIRED = ['## TL;DR', '## 스코어보드', '## 병목 진단', '## 개선 방안', '## 다음 주 주목 지표']
+  const baseState = { blocked: 0, failed: 0, counts: { new_drafts: 1, committed: 1, drafted: 2, staged: 2 }, steps: [] }
+
+  // ── AC-12: 5헤딩은 무조건 전부 ──────────────────────────────
+  const normal = buildDigest({ date: '2026-09-08', runKey: 'cmo-2026-09-08-cron', state: baseState, log: [] })
+  for (const h of REQUIRED) check(`다이제스트 — 정상 실행에 "${h}" 헤딩`, normal.includes(`\n${h}\n`))
+
+  const dry = buildDigest({ date: '2026-09-08', runKey: 'x', dryRun: true, state: baseState, log: [] })
+  for (const h of REQUIRED) check(`다이제스트 — dry-run 에도 "${h}" 헤딩`, dry.includes(`\n${h}\n`))
+
+  const stopped = buildDigest({ date: '2026-09-08', runKey: 'x', state: { ...baseState, counts: {} }, stopped: 'preflight', log: [] })
+  for (const h of REQUIRED) check(`다이제스트 — preflight 중단에도 "${h}" 헤딩`, stopped.includes(`\n${h}\n`))
+
+  // ── AC-12: 스코어보드 숫자는 state.counts 를 그대로 쓴다 (AC-5/9 SQL 과 정합) ──
+  const rows = scoreboardRows(baseState)
+  eq('스코어보드 — 조사 수 = state.counts.new_drafts', rows.find((r) => r[0].startsWith('조사'))[1], 1)
+  eq('스코어보드 — 초안 수 = state.counts.drafted', rows.find((r) => r[0].startsWith('초안'))[1], 2)
+  check('스코어보드 — 본문에 초안 2건이 그대로 찍힌다', /초안\(drafted\): 2건/.test(normal))
+  check('스코어보드 — 추정하지 않는다 (staged 4 를 넣으면 4 가 나온다)',
+    /스테이징\(staged\): 4건/.test(buildDigest({ date: 'd', runKey: 'x', state: { ...baseState, counts: { ...baseState.counts, staged: 4 } }, log: [] })))
+
+  // ── 개선 방안: analyst 해설을 performance.md 에서 읽어 박는다 (스크립트가 저장) ──
+  const perf = parsePerformance('# 성과 원자료\n\n## coverage\n```\n✅ AWARENESS 케이스 3곳 · 무브 5건\n```\n\n# 해설\n\n광고비 회수 주기를 봐야 한다.\n')
+  const withNote = buildDigest({ date: 'd', runKey: 'x', state: baseState, log: [], perf })
+  check('다이제스트 — 개선 방안에 analyst 해설이 삽입된다', withNote.includes('광고비 회수 주기를 봐야 한다.'))
+  const noNote = buildDigest({ date: 'd', runKey: 'x', state: { ...baseState, perfNote: 'claude 없음' }, log: [] })
+  check('다이제스트 — 해설이 없으면 "왜 없는지"를 적는다 ("갭 없음" 아님)',
+    /해설을 생성하지 못했다 — claude 없음/.test(noNote))
+
+  // ── 부수관측 1: score-predictions 는 0 만 정상, coverage 의 1 은 정상 분기 ──
+  check('성과판정 — score exit 1 (파싱 에러) 은 실패', perfFailure(1, 0, 'd') !== null)
+  check('성과판정 — score exit 2 (채점 불가) 도 실패', perfFailure(2, 0, 'd') !== null)
+  check('성과판정 — score exit 0 + coverage 1 (선례 0개 = 음성) 은 실패 아님', perfFailure(0, 1, 'd') === null)
+  check('성과판정 — coverage exit 2 (확인 불가) 는 실패', perfFailure(0, 2, 'd') !== null)
+  eq('성과판정 — 정상은 null', perfFailure(0, 0, 'd'), null)
+
+  // ── 부수관측 2: run.json.state.steps 에 스텝별 종료코드가 남는다 (AC-11) ──
+  const st = { blocked: 0, failed: 0, counts: {}, steps: [] }
+  recordStep(st, { key: 'stage', label: '스테이징', status: 'blocked', blocker: 'CG-1 미통과', detail: { exit: 4 } })
+  recordStep(st, { key: 'digest', label: '다이제스트', status: 'ok', detail: {} })
+  eq('스텝기록 — stage 의 종료코드 4 가 보존된다', st.steps.find((s) => s.key === 'stage').exit, 4)
+  eq('스텝기록 — 종료코드가 없는 스텝은 null (0 으로 접지 않는다)', st.steps.find((s) => s.key === 'digest').exit, null)
+  eq('스텝기록 — blocker 문구가 보존된다', st.steps.find((s) => s.key === 'stage').blocker, 'CG-1 미통과')
+  check('스텝기록 — run.json 직렬화에 steps 가 포함된다',
+    JSON.stringify({ runKey: 'x', date: 'd', dryRun: false, state: st }).includes('"exit":4'))
 }
 
 // ════════════════════════════════════════════════════════════

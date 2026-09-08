@@ -259,8 +259,11 @@ if (isMain()) {
       process.exit(2)
     }
     if (dry) { console.log(`(dry) ${id} → ${status}`); process.exit(0) }
-    const { error } = await supabase.from('research_queue')
-      .update({ status, notes: opt('notes'), resolved_at: new Date().toISOString() }).eq('id', id)
+    // --notes 를 안 주면 기존 notes 를 덮지 않는다. 큐 행의 원래 사유(조사 배경)를
+    // 지우면 나중에 "왜 이걸 조사했나"를 복원하지 못한다.
+    const patch = { status, resolved_at: new Date().toISOString() }
+    if (opt('notes') !== null) patch.notes = opt('notes')
+    const { error } = await supabase.from('research_queue').update(patch).eq('id', id)
     if (error) { console.error(`⚠️ 확인 불가: ${error.code ?? ''} ${error.message}`); process.exit(2) }
     console.log(`✅ ${id} → ${status}`)
     process.exit(0)

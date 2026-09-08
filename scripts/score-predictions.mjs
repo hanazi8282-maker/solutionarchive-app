@@ -77,7 +77,7 @@ if (!LINK_TABLE_READY) {
    예측을 어느 글의 실측과 대조해야 하는지 알 수 없다.
 
    해야 할 일:
-     1) 사람이 `supabase db query --linked -f supabase/migrations/20260905000001_post_decision_log_link.sql`
+     1) 사람이 'supabase db query --linked -f supabase/migrations/20260905000001_post_decision_log_link.sql'
         (또는 대시보드 SQL Editor) 로 실행한다 (§12-5 — MCP 는 회사 DB 라 금지, 무인 루프는 적용 권한 없음).
      2) lib/predictions/link.ts 의 LINK_TABLE_READY 를 true 로 바꾼다.
 

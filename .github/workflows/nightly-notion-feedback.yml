@@ -1,0 +1,69 @@
+# Nightly Notion Feedback — 그날 아침 Notion에 푸시된 "CMO 발행 대기함" 페이지를
+# 밤에 다시 읽어 원본과 대조하고 분류(무변경/편집됨/채택/보류)한다.
+#
+# 런북 정본: scripts/notion-pull-feedback.mjs
+#
+# ⛔ 이 워크플로도 발행하지 않는다. review_status 를 바꾸지 않는다 — 이번 라운드는
+#    로그 적재까지만(reports/<날짜>/notion-feedback-log.md). 자동 반영 로직 없음.
+
+name: Nightly Notion Feedback
+
+on:
+  # ⏸️ 스케줄 비활성. [2]~[6] 라이브 검증이 끝난 뒤 남헌 승인으로 아래 3줄의
+  #    주석을 푼다(daily-cmo-loop.yml 과 같은 이유 — main 머지 전에 풀면
+  #    검증 전에 크론이 무장된다).
+  # schedule:
+  #   # 12:07 UTC = KST 21:07. 정각(12:00)을 피했다(daily-cmo-loop.yml 의 경고와
+  #   #   같은 이유). 기존 크론과 안 겹친다:
+  #   #     nightly-review-collect  17:37 UTC (KST 02:37)
+  #   #     nightly-insight-loop    18:41 UTC (KST 03:41)
+  #   #     daily-cmo-loop          20:17 UTC (KST 05:17) — 이 push 의 아침 실행분
+  #   #     nightly-notion-feedback 12:07 UTC (KST 21:07) ← 이것, 당일 저녁
+  #   - cron: '7 12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Pull Notion feedback
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+        run: node scripts/notion-pull-feedback.mjs
+
+      # 화이트리스트를 daily-cmo-loop.yml 과 별도로, 더 좁게 잡는다 — 이 워크플로가
+      # 만질 수 있는 건 reports/ 하나뿐이다(notion-feedback-log.md).
+      - name: Commit feedback log
+        run: |
+          git config user.name "notion-feedback-bot"
+          git config user.email "noreply@anthropic.com"
+          git add -- reports/
+          if git diff --cached --name-only | grep -qv '^reports/'; then
+            echo "::error::reports/ 밖의 변경이 스테이징됐다 — 커밋하지 않는다."
+            git reset
+            exit 1
+          fi
+          if git diff --cached --quiet; then
+            echo "커밋할 변경 없음."
+            exit 0
+          fi
+          git commit -m "chore(notion): feedback log $(date -u +%F)
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+          git push

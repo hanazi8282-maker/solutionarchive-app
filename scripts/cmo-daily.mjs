@@ -542,6 +542,14 @@ async function main() {
         if (p.code !== 0) say(`- ⚠️ 대시보드 재렌더 push 실패 — ${tail(p.stderr)}`)
       }
     }
+
+    // Notion 푸시. 이 루프 본체(S0~S8, 10스텝 계약)가 끝난 뒤 부가 동작이라
+    // runStep 으로 묶지 않는다 — 여기서 실패해도 CMO 루프 자체의 성패에는
+    // 영향을 주지 않는다(토큰 미설정이면 스크립트 자신이 exit 0 으로 조용히
+    // 건너뛴다). 별도 크론을 새로 만들지 않고 이 자리에서 그대로 이어 부른다.
+    const notion = await sh('node', ['scripts/notion-push-digest.mjs', '--date', date])
+    if (notion.code !== 0) say(`- ⚠️ Notion 푸시 실패(exit ${notion.code}) — CMO 루프 결과엔 영향 없음. ${tail(notion.stderr || notion.stdout)}`)
+    else if (notion.stdout.trim()) say(`- ℹ️ Notion 푸시: ${tail(notion.stdout, 200)}`)
   }
 
   say('')

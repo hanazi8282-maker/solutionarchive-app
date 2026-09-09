@@ -1,0 +1,14 @@
+{
+  "case_slug": "purple-innovation-capacity-scaleup",
+  "move_id": "348e99d9-e194-4bef-930b-862108a9ec42",
+  "content_code": "CS-20260909-02",
+  "body_path": "drafts/threads/2026-09-09-purple-innovation-capacity-scaleup-02.body.txt",
+  "reply_path": "drafts/threads/2026-09-09-purple-innovation-capacity-scaleup-02.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-09-09-purple-innovation-capacity-scaleup-02.md",
+  "title": "설비보다 빠른 매출 증가",
+  "twist_line": "설비 증가율(+27.8%)이 매출 증가율(+49.9%)보다 느렸다 — 오틀리와 정반대 순서",
+  "hook_type": "상식파괴형(숫자병기)",
+  "closing_type": "질문형",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ~Ⅴ 전항목 통과(예외 없음) · U-3 해당없음(정의상 습관점검) · G-4 15자 예외(오틀리 LOG-20260908-03 전례 승계) · X-2 솔파 채택(발행 후 조작 없음) · X-3 미해당(트리거 조건 불충족 — 억지 적용 안 함) · CG-1 비대상(등급 A — 초안 JSON 근거 2건으로 gradeMove 재계산해 지시값과 일치 확인) · ⚠️ 지시된 파일명/content_code(CS-20260909-01)가 같은 케이스 moves[0] 초안과 충돌해 -02로 구분함(파일명 충돌 안내 참조)"
+}

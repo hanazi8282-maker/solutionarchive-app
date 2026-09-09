@@ -1,0 +1,62 @@
+{
+  "slug": "gopro-ugc-viral-awareness",
+  "brand_name": "GoPro",
+  "market": "액션캠 / 소비자 하드웨어",
+  "geo": "US 본사 · 글로벌 판매",
+  "business_model": "OTHER",
+  "buyer_type": "B2C",
+  "purchase_frequency": "OCCASIONAL",
+  "price_band": "MID",
+  "bottleneck": "AWARENESS",
+  "outcome_status": "active",
+  "period_start": "2011-01-01",
+  "period_end": "2014-05-19",
+  "summary": "IPO 전 GoPro는 카메라를 '내 콘텐츠를 만드는 도구'로 포지셔닝하고, 사용자가 찍은 영상이 유튜브·소셜에 대량 업로드되도록 설계(GoPro 태그, GoPro Awards)했다. 유료 광고를 늘리지 않고도 사용자 제작 콘텐츠가 바이럴 인지도를 만들었고, 그 결과 매출은 4배 넘게 늘면서 매출 대비 판매·마케팅비 비중은 오히려 떨어졌다. 2014-05-19 IPO S-1(재무제표 포함)에 이 수치가 그대로 실려 있다.",
+  "tags": ["UGC", "커뮤니티", "액션캠", "S-1", "바이럴"],
+  "researched_by": "claude-code (Sonnet 5, sa-cmo-researcher role)",
+  "moves": [
+    {
+      "lever": "CONTENT",
+      "claim": "카메라 자체를 '내 콘텐츠를 만드는 도구'로 포지셔닝하고, 사용자가 찍은 영상을 유튜브·소셜에 대량으로 업로드하도록 설계했다(영상 내 'GoPro' 태그, GoPro Awards 보상 프로그램). 이 사용자 제작 콘텐츠가 유료 광고 없이 인지도를 유통시켰고, 그 결과 매출은 4배 넘게 늘면서도 매출 대비 판매·마케팅비 비중은 하락했다.",
+      "outcome_direction": "positive",
+      "metric_name": "매출 대비 판매·마케팅비 비중",
+      "metric_before": 27.5,
+      "metric_after": 16.0,
+      "metric_unit": "%",
+      "observed_period_start": "2011-01-01",
+      "observed_period_end": "2013-12-31"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/0001500435/000119312514204902/d552193ds1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": false,
+      "observation_key": "gopro-s1-2014-selected-financial-data",
+      "supports_metric": true,
+      "published_at": "2014-05-19",
+      "retrieved_at": "2026-09-09",
+      "snippet": "판매·마케팅비: 2011년 $64.4M(매출 $234.2M 대비 27.5%) → 2012년 $116.9M($526.0M 대비 22.2%) → 2013년 $157.8M($985.7M 대비 16.0%). Selected Consolidated Financial Data, 감사 재무제표 기준.",
+      "supports_claim": "S-1 재무제표 본문 수치. 발행사가 스스로 정의한 운영지표(DAU류)가 아니라 GAAP 재무제표 항목이라 is_issuer_defined_metric=false."
+    },
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/0001500435/000119312514204902/d552193ds1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": false,
+      "observation_key": "gopro-s1-2014-selected-financial-data",
+      "supports_metric": false,
+      "published_at": "2014-05-19",
+      "retrieved_at": "2026-09-09",
+      "snippet": "\"The volume and quality of their shared GoPro content, coupled with their enthusiasm for our brand, are virally driving awareness and demand for our products.\" 2013년 한 해 유튜브에 'GoPro' 제목 영상이 약 2.8년 분량 업로드됐다고 서술.",
+      "supports_claim": "무브의 메커니즘(왜 마케팅비 비중이 떨어졌는가)을 뒷받침하는 서사일 뿐, 수치(S&M %)를 직접 받치지 않으므로 supports_metric=false. 원인 귀속(바이럴이 비용을 낮췄다)은 발행사 자신의 해석이다."
+    }
+  ]
+}

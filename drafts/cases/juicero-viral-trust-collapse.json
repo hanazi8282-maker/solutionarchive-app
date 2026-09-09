@@ -1,0 +1,121 @@
+{
+  "slug": "juicero-viral-trust-collapse",
+  "brand_name": "Juicero",
+  "market": "US 커넥티드 주방가전 + D2C 신선 소모품(주스팩) 구독",
+  "geo": "US",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "HIGH",
+  "bottleneck": "AWARENESS",
+  "outcome_status": "shutdown",
+  "period_start": "2016-03-01",
+  "period_end": "2017-09-01",
+  "summary": "Juicero는 VC 자금(총 약 $118.5M~$134M, 소스별 상이)을 태운 PR/포지셔닝으로 '스티브 잡스급' 하이프성 인지도를 먼저 만들고 제품 실체가 뒤따라오길 기대한 케이스다. 2017-04-19 Bloomberg가 $699 머신 없이도 손으로 주스팩을 짜면 거의 동일한 결과가 나온다는 것을 기자가 직접 시연해 보도하자, 그 하이프를 만든 것과 같은 바이럴 채널(SNS 밈·언론)이 그대로 신뢰 붕괴를 증폭시켰다. 이후 가격 인하($399)·리브랜딩 영상 반박·25% 인력감축을 시도했지만 6주 만에 2017-09-01 폐업했다. 교훈: 노이즈로 만든 인지도는 실체가 드러나는 순간 같은 채널로 되돌아와 브랜드를 부순다 — 본 조사에서는 '이 무브를 하면 성장한다'가 아니라 '이 무브들을 해도 못 살렸다'는 실패 기록으로 남긴다.",
+  "tags": ["awareness", "viral-backlash", "hardware", "d2c", "shutdown", "hype", "trust-collapse"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "PRICING",
+      "claim": "2017-01-17, Bloomberg 폭로(4월) 이전에 이미 채택 장벽을 낮추려 예정보다 12~18개월 앞당겨 Press 가격을 $699→$399로 인하. 회사 발표에 따르면 2016년 블랙프라이데이에 $400 미만으로 임시 프라이싱했을 때 하루 만에 사용자가 2배로 늘었다는 내부 테스트 결과를 근거로 들었다.",
+      "outcome_direction": "mixed",
+      "metric_name": "Juicero Press 가격",
+      "metric_before": 699,
+      "metric_after": 399,
+      "metric_unit": "USD",
+      "observed_period_start": "2017-01-17",
+      "observed_period_end": "2017-01-17"
+    },
+    {
+      "lever": "OPERATIONS",
+      "claim": "2017-04-19 Bloomberg의 손으로-짜기 폭로 이후 반박 영상을 올렸으나 오히려 밈·조롱을 증폭시켰고, 2017-07-14 직원의 약 25%를 감축하며 2세대 모델을 ~$200대까지 더 내리겠다고 발표했다. 그러나 이 대응들은 회사를 살리지 못했고 6주 후인 2017-09-01 전면 폐업, 90일 환불 프로그램으로 이어졌다.",
+      "outcome_direction": "negative",
+      "metric_name": "감축 전 대비 인력 규모",
+      "metric_before": 100,
+      "metric_after": 75,
+      "metric_unit": "% of pre-layoff headcount",
+      "observed_period_start": "2017-07-14",
+      "observed_period_end": "2017-09-01"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.prnewswire.com/news-releases/juicero-resets-price-18-months-ahead-of-schedule-making-it-easier-than-ever-to-get-cold-pressed-juice-at-home-300391677.html",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": true,
+      "observation_key": "juicero-pricecut-jan2017",
+      "supports_metric": true,
+      "published_at": "2017-01-17",
+      "snippet": "Effective immediately, the new price for the home Juicero Press is $399, down from $699 — more than a year ahead of a planned lower-cost Press v2.",
+      "supports_claim": "가격 인하 $699→$399, 발표일 2017-01-17"
+    },
+    {
+      "move": 0,
+      "url": "https://techcrunch.com/2017/01/17/juicero/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "juicero-pricecut-jan2017",
+      "supports_metric": true,
+      "published_at": "2017-01-17",
+      "snippet": "Juicero cut the price of its $699 luxury juicer to $399, citing a Black Friday test where a sub-$400 price point doubled daily new-user signups.",
+      "supports_claim": "같은 가격 인하 발표를 다룬 독립 매체 보도 — 회사 발표와 동일 관측"
+    },
+    {
+      "move": 1,
+      "url": "https://fortune.com/2017/07/14/juicero-layoffs-lower-prices/",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": true,
+      "observation_key": "juicero-layoffs-jul2017",
+      "supports_metric": true,
+      "published_at": "2017-07-14",
+      "snippet": "Juicero cut about 25% of its staff and said it would further lower prices, with CEO Jeff Dunn saying current $399 pricing was 'not a realistic way for us to fulfill our mission.'",
+      "supports_claim": "인력 25% 감축 및 추가 가격 인하 계획 발표"
+    },
+    {
+      "move": 1,
+      "url": "https://fortune.com/2017/09/01/juicero-is-shutting-down/",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "juicero-shutdown-sep2017",
+      "supports_metric": false,
+      "published_at": "2017-09-01",
+      "snippet": "Juicero announced Sept. 1, 2017 it was shutting down for good, offering refunds for Press purchases for 90 days, citing an inability to cut costs enough to hit its mission at scale.",
+      "supports_claim": "폐업 확정 및 90일 환불 프로그램 — 감축·가격인하가 회사를 못 살렸다는 결과"
+    },
+    {
+      "url": "https://www.bloomberg.com/news/features/2017-04-19/silicon-valley-s-400-juicer-may-be-feeling-the-squeeze",
+      "source_tier": "primary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "juicero-bloomberg-handsqueeze-apr2017",
+      "supports_metric": false,
+      "published_at": "2017-04-19",
+      "snippet": "Bloomberg reporters cut open Juicero's juice packs and squeezed them by hand, getting 7.5 oz of juice versus 8 oz from the $699 machine — undercutting the product's core value proposition.",
+      "supports_claim": "바이럴 신뢰붕괴 사건의 원 관측 — 기자가 직접 재현한 1차 시연"
+    },
+    {
+      "url": "https://www.axios.com/wi-fi-juice-maker-juicero-is-shutting-down-2480399093.html",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": true,
+      "is_regulatory_filing": false,
+      "observation_key": "juicero-funding-total-estimate",
+      "supports_metric": false,
+      "published_at": "2017-09-01",
+      "snippet": "Juicero is shutting down, draining VCs of roughly $120 million raised from investors including GV and Kleiner Perkins.",
+      "supports_claim": "총 투자유치액 추정 — 비상장사라 정확한 총액은 소스별로 $118.5M~$134M로 갈린다"
+    }
+  ]
+}

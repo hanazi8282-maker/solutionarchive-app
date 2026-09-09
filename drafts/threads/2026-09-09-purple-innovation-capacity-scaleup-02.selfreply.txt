@@ -1,0 +1,12 @@
+근거 원문 (직접 읽은 것만 답니다)
+
+설비 취득원가 15.465→19.761백만 달러, 건설 중 설비 2.895→5.278백만 달러(둘 다 매트리스 제조 설비)는 FY2019 10-K 주석6(유형자산):
+sec.gov/Archives/edgar/data/1643953/000121390020005734/f10k2019_purpleinnovation.htm
+"Equipment $ 19,761 $ 15,465 / Equipment in progress 5,278 2,895" / "Equipment in progress reflects equipment, primarily related to mattress manufacturing, which is being constructed and was not in service at December 31, 2019 or December 31, 2018."
+
+순매출 285.8→428.4백만 달러는 같은 문서 손익계산서: "Revenues, net $ 428,358 ... $ 285,791". 설비 증가율(+27.8%)과 매출 증가율(+49.9%)은 이 두 숫자에서 직접 계산했다 — 어느 보도자료·해설도 거치지 않았다.
+
+오틀리 쪽 비교("매출보다 공장을 먼저 늘려 무너졌다")는 같은 배치의 오틀리 케이스(오틀리 10-K, capacity-overbuild)에서 이미 근거를 댄 서사를 대구로 가져온 것이고, 이 글에서 오틀리의 수치를 새로 인용하지는 않았다.
+
+매트리스 성형 기계를 직접 만들어야 한다는 서술은 FY2018 10-K 위험요인: "Because of the unique features of our Mattress Max machines, new machines are not readily available and must be constructed."
+sec.gov/Archives/edgar/data/1643953/000121390019004081/f10k2018_purpleinnovation.htm

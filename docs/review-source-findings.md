@@ -359,3 +359,13 @@ robotsVerdict(groups, '/v0/item/49628981.json', 'solutionarchive-review-collecto
 이번 방향(과하게 막힘)보다 **반대 방향(막아야 할 걸 안 막음)이 위험하다.**
 다만 `robots.ts` 는 리뷰 수집 트랙 전체의 안전장치라 이번 브랜치에서 손대지
 않았다. 별도 판단이 필요하다.
+
+### 남헌 2026-09-10 결정 — Algolia HN Search API evidence_grade=B로 확정
+
+Algolia HN Search API(`hn.algolia.com/api`) 자체는 이용약관 문서가 없다(§ 위
+Firebase 항목과는 별개 호스트). 확인한 건 "명시적 상업이용 금지 문구가 없다"는
+것뿐이지 "명시적으로 허용됐다"가 아니다. 그래서 이 판단은 `evidence_grade=B`
+(3자·정황 근거, 1차 출처의 명시적 확인 아님)로 취급하고, `review_sources`에
+`enabled=false`로 등록해 사람이 켜야 실제 수집이 시작되게 했다(마이그레이션
+`20260910000001_hackernews_source.sql`). Tier4(G2/Capterra — 이용약관 원문에
+스크래핑 금지가 명시된 경우)와는 확인의 강도가 다르다는 걸 여기 남긴다.

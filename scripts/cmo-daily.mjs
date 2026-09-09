@@ -514,6 +514,36 @@ async function main() {
   const runStatus = state.failed > 0 ? 'failed' : state.blocked > 0 ? 'partial' : 'ok'
   await tracker.finish({ status: runStatus, summary: { ...state.counts, blocked: state.blocked, failed: state.failed } })
 
+  // digest 스텝 안에서 이미 한 번 렌더했지만, 그건 `digest` 자기 자신이 아직
+  // `runStep` 에 의해 DB 에 기록되기 **전**이라 마지막 스텝이 항상 ◐ 로 찍혔다
+  // (agent_run_steps 는 `runStep` 이 콜백을 다 돌리고 나서야 쓴다 — 콜백 안에서는
+  // 아무리 늦게 불러도 자기 자신의 완료를 못 본다). `tracker.finish()` 까지 끝난
+  // 지금 다시 렌더하면 10/10 · 완료시각이 정확하다. 파일이 안 바뀌면(내용 동일)
+  // 커밋을 안 낸다 — 매 실행마다 빈 커밋이 쌓이면 그게 새 소음이 된다.
+  if (!dryRun) {
+    await sh('node', ['scripts/status-render.mjs'])
+    await sh('git', ['add', '--', 'reports/status/DASHBOARD.md'])
+    const redoStaged = (await sh('git', ['diff', '--cached', '--name-only'])).stdout
+      .split('\n').map((s) => s.trim()).filter(Boolean)
+    // 이 add 는 경로 하나만 지정해서 다른 파일이 섞일 길이 없지만, 화이트리스트
+    // 검사를 생략하는 예외를 만들지 않는다 — 나중에 이 블록을 고치다 `reports/`
+    // 전체를 add 하는 실수가 나도 여기서 잡힌다.
+    const redoCheck = checkStaged(redoStaged)
+    if (redoStaged.length && !redoCheck.ok) {
+      await sh('git', ['reset'])
+      say(`- ⚠️ 대시보드 재렌더 커밋 스킵 — 화이트리스트 위반(${redoCheck.reason})`)
+    } else if (redoStaged.length) {
+      const msg = `chore(cmo): daily loop ${date} — 최종 상태로 대시보드 재렌더\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`
+      const c = await sh('git', ['commit', '-m', msg])
+      if (c.code !== 0) {
+        say(`- ⚠️ 대시보드 재렌더 커밋 실패 — ${tail(c.stderr)} (실행 결과 자체엔 영향 없음)`)
+      } else if (process.env.GITHUB_ACTIONS === 'true') {
+        const p = await sh('git', ['push'])
+        if (p.code !== 0) say(`- ⚠️ 대시보드 재렌더 push 실패 — ${tail(p.stderr)}`)
+      }
+    }
+  }
+
   say('')
   say(`- 결과: ${runStatus} · 막힘 ${state.blocked} · 실패 ${state.failed}`)
   if (!tracker.dbOk) say(`- ⚠️ 상태가 DB 에 없다 — ${tracker.fallbackReason}. 대시보드는 로컬 기준이다.`)

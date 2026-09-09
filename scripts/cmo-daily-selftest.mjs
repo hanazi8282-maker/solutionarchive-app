@@ -28,7 +28,7 @@ import {
 } from './cmo-daily.mjs'
 import { validateStep, createTracker, readEvents, STEP_STATUS } from './agent-status.mjs'
 import {
-  buildPlan, enforceFailureQuota, coverageGaps, parseFrontmatter, setFrontmatterStatus,
+  buildPlan, enforceFailureQuota, coverageGaps, parseFrontmatter, setFrontmatterStatus, PAIRABLE_MIN,
 } from './research-queue.mjs'
 import { renderDashboard, renderRunLine, foldEvents, MARKS, STALE_MS } from './status-render.mjs'
 import { normalizeFacets } from './pmf-assess.mjs'
@@ -252,18 +252,18 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   try { buildPlan({ n: 2, gaps: null }) } catch { planThrew = true }
   eq('큐 — 확인 불가 상태로는 계획을 세우지 않는다', planThrew, true)
 
-  // 갭 계산 자체
-  const studies = [
-    { id: 's1', slug: 'a', brand_name: 'A', bottleneck: 'TRUST', review_status: 'approved' },
-    { id: 's2', slug: 'b', brand_name: 'B', bottleneck: 'TRUST', review_status: 'approved' },
-  ]
-  const moves = [
-    { id: 'm1', case_study_id: 's1', lever: 'OFFER', claim: 'x', evidence_grade: 'A', outcome_direction: 'positive', review_status: 'approved' },
-    { id: 'm2', case_study_id: 's2', lever: 'OFFER', claim: 'y', evidence_grade: 'B', outcome_direction: 'positive', review_status: 'approved' },
-  ]
+  // 갭 계산 자체. TRUST 를 PAIRABLE_MIN 개수만큼 정확히 채워서 "목표선에 딱
+  // 걸치면 갭이 아니다"를 검사한다 — 개수를 2 로 하드코딩하면 PAIRABLE_MIN 을
+  // 바꿀 때마다(2026-09-09: 2→3) 이 테스트가 실제 버그 없이도 깨진다.
+  const studies = Array.from({ length: PAIRABLE_MIN }, (_, i) => (
+    { id: `s${i + 1}`, slug: `case-${i}`, brand_name: `브랜드${i}`, bottleneck: 'TRUST', review_status: 'approved' }
+  ))
+  const moves = studies.map((s, i) => (
+    { id: `m${i + 1}`, case_study_id: s.id, lever: 'OFFER', claim: 'x', evidence_grade: 'A', outcome_direction: 'positive', review_status: 'approved' }
+  ))
   const g = coverageGaps(studies, moves)
-  check('큐 — 케이스 2곳인 병목은 갭이 아니다', !g.some((x) => x.bottleneck === 'TRUST'), JSON.stringify(g))
-  eq('큐 — 나머지 6개 병목은 갭이다', g.length, 6)
+  check(`큐 — 케이스 ${PAIRABLE_MIN}곳(목표선)인 병목은 갭이 아니다`, !g.some((x) => x.bottleneck === 'TRUST'), JSON.stringify(g))
+  eq('큐 — 나머지 6개 병목(0곳)은 갭이다', g.length, 6)
 }
 
 // ════════════════════════════════════════════════════════════

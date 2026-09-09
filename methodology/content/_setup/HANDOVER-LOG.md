@@ -1098,7 +1098,7 @@ influencers-time·techcrunch/figma·substack/duolingo·bettermode·foundationinc
 
 | # | 이슈 | 성격 |
 |---|---|---|
-| Q-1 | 수동 dispatch 를 같은 날 2회+ 하면 run_key(`cmo-<date>-<trigger>`)가 겹친다. tracker 가 `upsert(onConflict:run_key)` 라 행은 안 늘지만 DASHBOARD 가 **첫 실행의 시작시각**을 표시한다(15:21 런인데 `09:27~09:57` 로 나옴). 크론은 trigger=cron·매일 다른 날짜라 안 겹친다 — 수동 검증에서만 보이는 표시 오차 |
+| Q-1 | 같은 날 매뉴얼 dispatch 2회 시 run_key(`cmo-<date>-<trigger>`) 겹침으로 **첫 실행의 실패 이력이 tracker upsert 에 덮어써져 완전히 사라진다**(`gh run list` 로만 원본 복구 가능 — DASHBOARD·DIGEST 는 마지막 실행만 남긴다). 표시 오차가 아니라 이력 소거다. 크론은 trigger=cron·매일 다른 날짜라 안 겹친다 — 매뉴얼 재검증에서만 발생 |
 | Q-2 | DASHBOARD 가 **마지막 스텝을 1스텝 지연** 표시(`9/10 …◐`). digest 스텝이 커밋 전에 status-render 를 호출해 자기 자신을 ◐(진행)으로 찍기 때문. 실제로는 10/10 green(`결과: ok · 실패 0`) |
 | Q-3 | 커버리지 포화(7/7 병목·갭 0) 상태면 `--plan N` 이 실패쿼터 슬롯 **1건만** 생성 → **조사가 목표(2)보다 적게 돈다**(15:21 런에서 claim 1). `queue` 스텝은 GREEN — AC-20(과다실행 방지, `research_queue` 오늘 ≤5)상 정상 동작이다. 케이스 반려·`reports/feedback/` 유입으로 갭이 생기면 자동 회복. **결함 아님** |
 | Q-4 | 고아 `failed` 큐 행 `ff16440e`(09:56 한도실패 런의 claim). `--claim` 은 `status='queued'` 만 집으므로 이 행은 계속 `failed` 로 남는다. 재조사하려면 사람이 `research-queue.mjs --add` 로 다시 넣는다. 무해 |

@@ -1,0 +1,32 @@
+[
+  {
+    "case_slug": "chewy-autoship-retention",
+    "move_id": "04576d6b-c9f2-4eff-8146-60c3db722cd0",
+    "content_code": "CS-20260910-04",
+    "log_code": "LOG-20260910-04",
+    "body_path": "drafts/threads/2026-09-10-chewy-autoship-retention-02.body.txt",
+    "reply_path": "drafts/threads/2026-09-10-chewy-autoship-retention-02.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-09-10-chewy-autoship-retention-02.md",
+    "title": "츄이, 할인 아닌 접근권",
+    "twist_line": "구독 해지 시 잃는 걸 할인이 아니라 수의사 무료 상담 접근권으로 만들었고, 같은 시기 활성 고객당 순매출은 434달러에서 555달러로 올랐다",
+    "hook_type": "상식파괴형",
+    "closing_type": "질문형",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅴ 전항목 통과(예외 없음) · U-3 해당없음(정의상 습관점검) · G-4 텍스트 매체 예외(moves[0]/조선미녀 LOG-20260910-02 전례 승계) · X-2 솔파 채택(발행 후 조작 없음) · X-3 만남(공시가 인과를 귀속하지 않는다는 점을 본문+자기답글 이중 명시해 과장 차단) · CG-1 대상(등급 C — lib/cases/draft.ts L-64 주석이 이 무브를 실명 예시로 들어 supports_metric/is_issuer_defined_metric 구분 필요성을 설명, 그 구분 적용 시 C 산출·지시값과 일치. 단 DB 실값 미확인) · 본문에 귀속 문구 포함('Chewy가 자사 10-K에서 밝힌 수치다', '10-K 기준으로' — 이름귀속·SELF_MARKERS 양쪽 매치, 정규식은 손 추적) · ⚠️ 파일명/코드 충돌: 원 지시 파일명과 CS-20260910-01은 같은 케이스 moves[0](CS-20260910-03)·슬랙 건과 중복이라 -02 접미사 파일명 + CS-20260910-04/LOG-20260910-04로 변경(오케스트레이터 재검토 필요) · ⚠️ 등급 확인 불가(DB 접근 없음)는 발행 전 최우선 확인 항목"
+  },
+  {
+    "case_slug": "chewy-autoship-retention",
+    "move_id": "2ebfbc62-0ffe-4b05-87bc-397f6f20928d",
+    "content_code": "CS-20260910-03",
+    "log_code": "LOG-20260910-03",
+    "body_path": "drafts/threads/2026-09-10-chewy-autoship-retention.body.txt",
+    "reply_path": "drafts/threads/2026-09-10-chewy-autoship-retention.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-09-10-chewy-autoship-retention.md",
+    "title": "츄이, 없앤 재구매 선택",
+    "twist_line": "정기배송이라는 포장으로 재구매 시점의 선택 자체를 없앴고, 활성 고객이 줄어드는 3년 동안 Autoship 매출 비중은 계속 올라갔다",
+    "hook_type": "상식파괴형",
+    "closing_type": "질문형",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅴ 전항목 통과(예외 없음) · U-3 해당없음(정의상 습관점검, 초안 단위 판정 대상 아님) · G-4 15자 예외(조선미녀 LOG-20260910-02 전례 승계) · X-2 솔파 채택(발행 후 조작 없음) · X-3 만남(리테일다이브가 독립 재검증이 아니라 요약 보도임을 자기답글에 명시해 과장 차단) · CG-1 대상(등급 C — 단, 초안 JSON 필드만으로 gradeMove 재계산하면 A가 나오고 `is_issuer_defined_metric=true`를 가정해야 C가 나옴. 어느 쪽이 실제 DB 값인지 확인 불가 — 사람 재확인 필요) · 본문에 귀속 문구 포함('Chewy가 자사 10-K에서 밝힌 수치다', '10-K 기준으로 보면' — 이름귀속·SELF_MARKERS 양쪽 다 매치, 단 정규식 실행이 아니라 손 추적으로 확인) · ⚠️ content_code/LOG 코드: 원 지시 CS-20260910-01/LOG-20260910-01은 슬랙 건, -02는 조선미녀 건과 중복이라 CS-20260910-03/LOG-20260910-03으로 변경(오케스트레이터 재검토 필요) · ⚠️ 등급 A/C 갈림 확인 불가는 발행 전 최우선 확인 항목"
+  }
+]

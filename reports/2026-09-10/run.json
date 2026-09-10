@@ -1,5 +1,5 @@
 {
-  "runKey": "cmo-2026-09-10-manual",
+  "runKey": "cmo-2026-09-10-cron",
   "date": "2026-09-10",
   "dryRun": false,
   "state": {
@@ -10,11 +10,11 @@
       "claimed": 2,
       "attempted": 2,
       "agent_ok": 2,
-      "new_drafts": 1,
-      "committed": 1,
-      "all_draft": 1,
-      "queue_done": 1,
-      "queue_failed": 1,
+      "new_drafts": 2,
+      "committed": 2,
+      "all_draft": 2,
+      "queue_done": 2,
+      "queue_failed": 0,
       "angles": 2,
       "drafted": 2,
       "manifests": 2,

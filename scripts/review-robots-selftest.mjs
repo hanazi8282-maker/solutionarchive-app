@@ -156,6 +156,27 @@ t('접두사 불변 — /admin/x', allowed(adminOnly, '/admin/x'), false)
 t('접두사 불변 — /administrator 도 여전히 막힌다(접두사 성질)', allowed(adminOnly, '/administrator'), false)
 t('접두사 불변 — 경로는 대소문자 구분', allowed(adminOnly, '/ADMIN'), true)
 
+// ── ReDoS 방어 (투포인터 글롭 매처) ──────────────────────────────
+// robots.txt 는 제3자 사이트에서 받아와 그대로 parseRobots→robotsVerdict 에
+// 먹인다. 이전 정규식 구현은 `Disallow: /a****…****b`(연속 `*`) 나
+// `/a*a*a*a*…`(리터럴 낀 `*`) 에서 파국적 백트래킹으로 nightly 수집기를
+// 멈췄다(실측: 40*`*` + 60자 경로에 20초+). 아래 두 건이 그 회귀 감시다.
+{
+  const evilConsecutive = `User-agent: *\nDisallow: /a${'*'.repeat(40)}b\n`
+  const evilAlternating = `User-agent: *\nDisallow: /${'a*'.repeat(30)}b\n`
+  const victim = '/a' + 'a'.repeat(60) // 매치 실패를 강제해 최대 백트래킹 유발
+  for (const [name, txt] of [['연속 *', evilConsecutive], ['리터럴 낀 *', evilAlternating]]) {
+    const t0 = performance.now()
+    const v = robotsVerdict(parseRobots(txt), victim, TOKEN)
+    const dt = performance.now() - t0
+    t(`ReDoS 방어 — ${name} 패턴이 100ms 안에 끝난다 (${dt.toFixed(1)}ms)`, dt < 100, true)
+    t(`ReDoS 방어 — ${name}: 안 맞는 경로는 허용`, v.allowed, true)
+  }
+}
+t('글롭 — 연속 `*` 는 하나처럼', allowed('User-agent: *\nDisallow: /a****b\n', '/axyzb'), false)
+t('글롭 — 비앵커 접두사 매치(`/a*c` 는 `/abcd` 의 접두사 /abc 에 걸린다)', allowed('User-agent: *\nDisallow: /a*c\n', '/abcd'), false)
+t('글롭 — 비앵커: 패턴이 경로보다 길면 불일치', allowed('User-agent: *\nDisallow: /a*bcdef\n', '/axb'), true)
+
 // ── 구조 파싱 ─────────────────────────────────────────────────────
 const g = parseRobots('User-agent: a\nUser-agent: b\nDisallow: /x\nUser-agent: *\nDisallow: /y\n')
 t('그룹 2개로 갈린다', g.length, 2)

@@ -77,13 +77,35 @@ function pathMatches(pattern: string, pathname: string): boolean {
     return anchored ? pathname === body : pathname.startsWith(body)
   }
 
-  // ponytail: `.*` 백트래킹이라 `/*a*a*a*...` 같은 악성 패턴엔 느려질 수 있다.
-  // 실제 robots.txt 에서 본 적 없어 그대로 둔다. 문제되면 투포인터 글롭 매처로.
-  const source = body
-    .split('*')
-    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('.*')
-  return new RegExp(`^${source}${anchored ? '$' : ''}`).test(pathname)
+  // 투포인터 글롭 매처. 정규식 백트래킹이 없어 악성 robots.txt 로도 선형 시간이다
+  // (연속 `*` 나 `/a*a*a*…` 를 제3자 사이트가 robots.txt 에 심어 nightly 수집기를
+  //  멈추게 하는 ReDoS 를 실측으로 확인했다 — 그래서 정규식을 버렸다).
+  // `*` = 길이 0 이상 임의 문자열, 그 외 문자는 전부 리터럴(대소문자 구분).
+  let p = 0 // pathname 커서
+  let b = 0 // body 커서
+  let star = -1 // 마지막으로 지나온 `*` 의 body 위치
+  let mark = 0 // 그 `*` 가 소비하기 시작한 pathname 위치
+  while (p < pathname.length) {
+    if (b === body.length) {
+      if (!anchored) return true // body 소진 + 앵커 없음 = 접두사 매치 성공
+      if (star === -1) return false
+      b = star + 1
+      p = ++mark
+    } else if (body[b] === '*') {
+      star = b++
+      mark = p
+    } else if (body[b] === pathname[p]) {
+      b++
+      p++
+    } else if (star !== -1) {
+      b = star + 1
+      p = ++mark
+    } else {
+      return false
+    }
+  }
+  while (b < body.length && body[b] === '*') b++
+  return b === body.length // 앵커 유무 무관: pathname 을 다 썼으니 body 도 다 써야 매치
 }
 
 /**

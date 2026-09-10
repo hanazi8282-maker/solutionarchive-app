@@ -256,3 +256,116 @@ App Store RSS 로 대체한다 — 오히려 한국어 사용자 목소리는 �
   `gh secret set NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET`
 
 Apple App Store RSS 와 Google Play 는 **사람이 할 일이 없다.**
+
+---
+
+## Hacker News (Algolia) 실측 — 2026-09-10
+
+SaaS·디지털 경쟁사의 페인포인트 통로를 찾는 작업. 다나와는 물리 제품만,
+App Store 는 앱 사용자만 담아서 "Show HN 스레드에서 개발자·창업자가 경쟁
+도구를 왜 버렸는지" 말하는 자리가 파이프라인에 없었다.
+
+### robots.txt — `hn.algolia.com`
+
+수집 코드를 쓰기 전에 먼저 확인했다. **HTTP 404 다.**
+
+```
+$ curl -sS -D - https://hn.algolia.com/robots.txt
+HTTP/1.1 404 Not Found
+content-type: text/html; charset=utf-8
+server: Google Frontend
+content-length: 207
+
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
+```
+
+**판정: 허용.** robots.txt 가 존재하지 않으므로 `/api/` 를 막는 규칙도 없다.
+RFC 9309 §2.3.1.3 은 4xx("Unavailable")를 받으면 크롤러가 모든 경로에 접근해도
+된다고 정한다.
+
+⚠️ **이건 "못 읽었다"가 아니다.** CLAUDE.md §7.1 의 "읽지 못한 규칙을 허용으로
+해석하지 마라"는 5xx·네트워크 오류처럼 **규칙이 있는지조차 알 수 없는** 경우를
+말한다. 404 는 서버가 "그런 파일 없다"고 확정적으로 답한 것이라 사건이 다르다.
+러너도 같게 판정한다 — `lib/review/runner.ts` 의 `RobotsCache` 가
+`status === null || >= 500` 만 `unreadable` 로 두고 4xx 는 빈 규칙으로 처리한다.
+셀프테스트가 이 404 경로를 재현해 둔다(여기가 막히면 수집이 통째로 0건이다).
+
+### API 형태
+
+`https://hn.algolia.com/api/v1/search_by_date?query=<키워드>&tags=comment&hitsPerPage=50&page=<n>`
+
+- **키·인증 없음.** 무료다.
+- `comment_text` 에 **본문 전체가 그대로 온다.** 그래서 Firebase 상세조회
+  없이 1단계(검색)만으로 수집이 완결된다.
+- `objectID` = HN item id. 지문이 전부 `seq` 로 잡힌다(폴백 0건).
+- `created_at` 이 ISO 8601 이라 `slice(0,10)` 으로 날짜가 나온다.
+- 본문은 HTML 조각이다 — `<p>` 문단, `<a>` 링크, `&#x27;` 같은 수치 엔티티.
+  평문화가 필요하다.
+
+**`search` 가 아니라 `search_by_date` 를 쓴다.** 러너의 증분 종료(연속 STALE
+5건)가 시간 역순 정렬을 전제한다. 관련도순인 `search` 를 쓰면 오래된 댓글이
+앞에 섞여 나와 첫 페이지에서 조기 종료하거나 반대로 끝없이 훑는다.
+
+### ⚠️ 페이지네이션 상한 1000
+
+`paginationLimitedTo=1000` 이라 `page * hitsPerPage >= 1000` 이면 400 이 온다.
+`hitsPerPage=50` 이면 **20페이지부터 막힌다**(실측 `nbPages=20`).
+
+애플 RSS 11페이지 사건과 **같은 형태**다. 러너 상한(`MAX_PAGES_PER_TARGET=20`)
+보다 낮으므로 어댑터가 스스로 멈추지 않으면 400 을 받고 러너가 그 타깃을
+`failed` 로 찍는다 — 정상적인 경계를 고장으로 기록하는 형태다(§7.2).
+어댑터가 먼저 `null` 을 돌려준다.
+
+### 🔴 Firebase 상세조회(2단계)는 보류 — robots 가 막는다
+
+Algolia 인덱스가 라이브 HN 상태보다 지연될 수 있어서(작성자 삭제·관리자
+`dead` 처리된 댓글이 인덱스에 한동안 남는다), 공식 Firebase API 로
+`dead`/`deleted` 를 걸러내는 2단계를 검토했다. **막혔다.**
+
+```
+$ curl -sS https://hacker-news.firebaseio.com/robots.txt   # HTTP 200
+User-agent: *
+Allow: /*.json$
+Allow: /*.json?*$
+Disallow: /
+```
+
+사이트의 의도는 "`.json` 은 허용, 나머지는 금지"로 읽힌다. 그런데 **이 리포의
+`lib/review/robots.ts` 는 와일드카드(`*`)와 끝 앵커(`$`)를 구현하지 않는다.**
+경로 규칙을 문자열 접두사로만 비교한다. 그래서 실제 판정은 이렇게 나온다:
+
+```
+robotsVerdict(groups, '/v0/item/49628981.json', 'solutionarchive-review-collector')
+  → { allowed: false, reason: 'Disallow: /' }
+```
+
+`/*.json$` 은 `/v0/...` 의 접두사가 아니라 매칭되지 않고, `Disallow: /` 만
+남아서 **금지**가 된다. 우리 자신의 안전장치가 이 호스트를 막고 있다.
+
+그래서 2단계를 구현하지 않았다. 뚫고 지나가지 않는다.
+
+#### 여기서 같이 발견한 것 — 기존 소스에도 영향이 있다
+
+이건 HN 만의 문제가 아니다. `robots.ts` 가 `*` 와 `$` 를 안 읽는다는 것은
+**와일드카드로 쓴 `Disallow` 규칙을 우리가 지금 하나도 안 지키고 있다**는
+뜻이기도 하다. 예를 들어 `Disallow: /*?sort=` 나 `Disallow: /*.pdf$` 같은
+규칙은 어떤 경로와도 매칭되지 않아 조용히 무시된다. RFC 9309 §2.2.2 는 둘 다
+필수로 정한다.
+
+이번 방향(과하게 막힘)보다 **반대 방향(막아야 할 걸 안 막음)이 위험하다.**
+다만 `robots.ts` 는 리뷰 수집 트랙 전체의 안전장치라 이번 브랜치에서 손대지
+않았다. 별도 판단이 필요하다.
+
+### 남헌 2026-09-10 결정 — Algolia HN Search API evidence_grade=B로 확정
+
+Algolia HN Search API(`hn.algolia.com/api`) 자체는 이용약관 문서가 없다(§ 위
+Firebase 항목과는 별개 호스트). 확인한 건 "명시적 상업이용 금지 문구가 없다"는
+것뿐이지 "명시적으로 허용됐다"가 아니다. 그래서 이 판단은 `evidence_grade=B`
+(3자·정황 근거, 1차 출처의 명시적 확인 아님)로 취급하고, `review_sources`에
+`enabled=false`로 등록해 사람이 켜야 실제 수집이 시작되게 했다(마이그레이션
+`20260910000001_hackernews_source.sql`). Tier4(G2/Capterra — 이용약관 원문에
+스크래핑 금지가 명시된 경우)와는 확인의 강도가 다르다는 걸 여기 남긴다.

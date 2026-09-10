@@ -1,7 +1,8 @@
 # 리뷰 수집 — 경쟁사 리뷰를 analysis_inputs 에 적재한다.
 #
 # 설계: docs/review-collection-design.md
-# 소스는 다나와 하나다(docs/review-source-findings.md).
+# 소스: 다나와 / App Store / Hacker News (docs/review-source-findings.md).
+# 스케줄 실행은 `all` 이다 — 소스별로 try/catch 라 하나가 죽어도 나머지는 돈다.
 #
 # ⛔ permissions 를 read 로 좁힌다. **인사이트 루프와 별도 잡인 이유가 이것이다.**
 #    인사이트 루프는 main 에 커밋할 권한이 있고 수집기는 없다. 권한이 다른
@@ -31,10 +32,13 @@ on:
         type: boolean
         default: true
       source:
-        description: '수집할 소스'
+        description: '수집할 소스 (all = 전체)'
         type: choice
-        options: [danawa]
-        default: danawa
+        # ⚠️ 선택지에 없는 소스는 **스케줄로 한 번도 안 돈다.** appstore 가
+        #    어댑터·마이그레이션까지 다 있는 채로 PR#16 머지 이후 계속 그
+        #    상태였다. 어댑터를 추가하면 여기도 같이 늘려야 한다.
+        options: [all, danawa, appstore, hackernews]
+        default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수'
         type: string
@@ -74,7 +78,7 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           node scripts/review-collect.mjs \
-            --source=${{ inputs.source || 'danawa' }} \
+            --source=${{ inputs.source || 'all' }} \
             --targets=${{ inputs.targets || '10' }} \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
 

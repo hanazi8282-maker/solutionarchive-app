@@ -576,6 +576,9 @@ ok('제품 토큰이 브라우저를 사칭하지 않는다', !/mozilla|chrome|s
   t('빈 페이지에서 멈춘다', r.pagesFetched, 3)
   t('실제 픽스처에서 20건을 파싱한다', r.stats.reviewsParsed, 20)
   t('파싱 실패 0', r.stats.parseFailures, 0)
+  // 회귀 감시: 관련도 필터는 hackernews 전용이다. danawa 는 ParseResult.filtered 를
+  // 내지 않으므로 relevanceFiltered 는 항상 0 이어야 한다(러너가 ?? 0 로 받는다).
+  t('danawa: relevanceFiltered 0 (필터는 hackernews 전용)', r.stats.relevanceFiltered, 0)
   t('20건 전부 신규로 적재된다', inputs.length, 20)
   t('폴백 키 없음 — 다나와 seq 를 전부 읽었다', r.stats.fallbackKeys, 0)
   t('health ok', r.health.health, 'ok')
@@ -663,6 +666,8 @@ ok('제품 토큰이 브라우저를 사칭하지 않는다', !/mozilla|chrome|s
   t('빈 페이지에서 멈춘다', r.pagesFetched, 2)
   t('실제 픽스처에서 35건을 파싱한다', r.stats.reviewsParsed, 35)
   t('파싱 실패 0', r.stats.parseFailures, 0)
+  // 회귀 감시: appstore 도 filtered 를 안 내므로 relevanceFiltered 0.
+  t('appstore: relevanceFiltered 0 (필터는 hackernews 전용)', r.stats.relevanceFiltered, 0)
   t('35건 전부 신규로 적재된다', inputs.length, 35)
   t('폴백 키 없음 — 애플 리뷰 id 를 전부 읽었다', r.stats.fallbackKeys, 0)
   t('차단으로 세지 않는다', r.stats.blockedResponses, 0)

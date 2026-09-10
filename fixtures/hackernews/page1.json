@@ -1,0 +1,2184 @@
+{
+ "exhaustive": {
+  "nbHits": false,
+  "typo": false
+ },
+ "exhaustiveNbHits": false,
+ "exhaustiveTypo": false,
+ "hits": [
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "DrScientist"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "I'm trying to distinguish the collection of information from the <i>use</i>. Collection is legal - however there is no point to collecting it if you can't actually use it for anything.<p>For example:<p><a href=\"https://www.pbs.org/newshour/nation/federal-prosecutors-charge-3-activists-with-doxing-of-ice-agent-in-los-angeles\" rel=\"nofollow\">https://www.pbs.org/newshour/<em>nation</em>/federal-prosecutors-char...</a><p>or\n<a href=\"https://www.justice.gov/usao-cdca/pr/santa-monica-man-pleads-guilty-doxing-ice-lawyer\" rel=\"nofollow\">https://www.justice.gov/usao-cdca/pr/santa-monica-man-pleads...</a>"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_DrScientist",
+    "story_49624394"
+   ],
+   "author": "DrScientist",
+   "comment_text": "I&#x27;m trying to distinguish the collection of information from the <i>use</i>. Collection is legal - however there is no point to collecting it if you can&#x27;t actually use it for anything.<p>For example:<p><a href=\"https:&#x2F;&#x2F;www.pbs.org&#x2F;newshour&#x2F;nation&#x2F;federal-prosecutors-charge-3-activists-with-doxing-of-ice-agent-in-los-angeles\" rel=\"nofollow\">https:&#x2F;&#x2F;www.pbs.org&#x2F;newshour&#x2F;nation&#x2F;federal-prosecutors-char...</a><p>or\n<a href=\"https:&#x2F;&#x2F;www.justice.gov&#x2F;usao-cdca&#x2F;pr&#x2F;santa-monica-man-pleads-guilty-doxing-ice-lawyer\" rel=\"nofollow\">https:&#x2F;&#x2F;www.justice.gov&#x2F;usao-cdca&#x2F;pr&#x2F;santa-monica-man-pleads...</a>",
+   "created_at": "2026-09-09T16:18:38Z",
+   "created_at_i": 1788970718,
+   "objectID": "49628981",
+   "parent_id": 49627268,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T16:20:08Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "nostrademons"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "If you want your mind-blown, read up on feto-maternal microchimerism:<p><a href=\"https://pmc.ncbi.nlm.nih.gov/articles/PMC8762399/\" rel=\"nofollow\">https://pmc.ncbi.nlm.nih.gov/articles/PMC8762399/</a><p>tl;dr: <i>All</i> boy moms will have some proportion of XY cells lodged in their bodies until they die.  And this can result in them showing up as genetically male on a DNA test, simply because they once gave birth to a boy.  When you get down to a cellular or molecular level, <em>notion</em>s of &quot;sex&quot; or even &quot;individuality&quot; are far more blurry than our mental models admit.  Sorta like recent findings that by cell count, humans are only about 43% human, and the rest is the bacteria making up our microbiome, and that our microbiome can have significant impact on our behavior.<p><a href=\"https://www.bbc.com/news/health-43674270\" rel=\"nofollow\">https://www.bbc.com/news/health-43674270</a>"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Trey Parker and Matt Stone Are Changing the Name of South Park to South America"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://twitter.com/SouthPark/status/2097364141237539116"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_nostrademons",
+    "story_49616239"
+   ],
+   "author": "nostrademons",
+   "comment_text": "If you want your mind-blown, read up on feto-maternal microchimerism:<p><a href=\"https:&#x2F;&#x2F;pmc.ncbi.nlm.nih.gov&#x2F;articles&#x2F;PMC8762399&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;pmc.ncbi.nlm.nih.gov&#x2F;articles&#x2F;PMC8762399&#x2F;</a><p>tl;dr: <i>All</i> boy moms will have some proportion of XY cells lodged in their bodies until they die.  And this can result in them showing up as genetically male on a DNA test, simply because they once gave birth to a boy.  When you get down to a cellular or molecular level, notions of &quot;sex&quot; or even &quot;individuality&quot; are far more blurry than our mental models admit.  Sorta like recent findings that by cell count, humans are only about 43% human, and the rest is the bacteria making up our microbiome, and that our microbiome can have significant impact on our behavior.<p><a href=\"https:&#x2F;&#x2F;www.bbc.com&#x2F;news&#x2F;health-43674270\" rel=\"nofollow\">https:&#x2F;&#x2F;www.bbc.com&#x2F;news&#x2F;health-43674270</a>",
+   "created_at": "2026-09-09T16:10:58Z",
+   "created_at_i": 1788970258,
+   "objectID": "49628846",
+   "parent_id": 49628346,
+   "story_id": 49616239,
+   "story_title": "Trey Parker and Matt Stone Are Changing the Name of South Park to South America",
+   "story_url": "https://twitter.com/SouthPark/status/2097364141237539116",
+   "updated_at": "2026-09-09T16:14:53Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "sophacles"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "The poem in question conveys not just accurate history, but also it presents an argument in favor of standing for your neighbors . Even more,  it conveys the feeling of loneliness when it comes to be your turn - both another argument for community and just a reminder that actual real humans are involves.<p>Not bad for a few lines of text... very efficient.<p>Of course your whole statement is ridiculous - the <em>notion</em> that a poem is the foundation of a belief rather than a good conveyance of it, is so stupid that all you are saying is that you can't come up with a good argument and are reaching for bad, unfunny snark to deflect."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_sophacles",
+    "story_49624394"
+   ],
+   "author": "sophacles",
+   "comment_text": "The poem in question conveys not just accurate history, but also it presents an argument in favor of standing for your neighbors . Even more,  it conveys the feeling of loneliness when it comes to be your turn - both another argument for community and just a reminder that actual real humans are involves.<p>Not bad for a few lines of text... very efficient.<p>Of course your whole statement is ridiculous - the notion that a poem is the foundation of a belief rather than a good conveyance of it, is so stupid that all you are saying is that you can&#x27;t come up with a good argument and are reaching for bad, unfunny snark to deflect.",
+   "created_at": "2026-09-09T15:57:32Z",
+   "created_at_i": 1788969452,
+   "objectID": "49628645",
+   "parent_id": 49627701,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T16:10:21Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Planktonne"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "The industrial revolution and the British empire are both extremely clear proof that Britain was in no way 'crippled'. Particularly not in the world of knowledge, given the countless inventions involved.<p>If the creation of copyright was so harmful to the <em>nation</em>, why was there no harm?"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Copyright does more harm than good and should be abolished"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://grapheneos.social/@GrapheneOS/117231186011306184"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_Planktonne",
+    "story_49622042"
+   ],
+   "author": "Planktonne",
+   "comment_text": "The industrial revolution and the British empire are both extremely clear proof that Britain was in no way &#x27;crippled&#x27;. Particularly not in the world of knowledge, given the countless inventions involved.<p>If the creation of copyright was so harmful to the nation, why was there no harm?",
+   "created_at": "2026-09-09T15:56:28Z",
+   "created_at_i": 1788969388,
+   "objectID": "49628629",
+   "parent_id": 49628524,
+   "story_id": 49622042,
+   "story_title": "Copyright does more harm than good and should be abolished",
+   "story_url": "https://grapheneos.social/@GrapheneOS/117231186011306184",
+   "updated_at": "2026-09-09T15:59:07Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "mdp2021"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Sorry for the delay.<p>It can be subjective, at this stage of product availability.<p>Personally, I hate to be frustrated by gross intellectual faults, so I did some research in the past about the best benchmarks to assess pure (simulated, apparent) intelligence. (The quality of the found benchmarks may not reflect what the models seem to do in practice, so one's experience should be compared to the raw numbers out of the benchmarks.) Good ideas emerge in the field: it was proposed and discussed on these very pages that the LLM should be able to solve &quot;murder mysteries&quot;, for example (alongside the pattern recognition problems in which IQ tests consist, etc.).<p>Moreover, the LLM shall not delirate. It is an intrinsic issue with the current architectures (they do not mirror the &quot;Foundational theory of Knowledge&quot;, which requires confidence values and relations of foundation between <em>notion</em>s), but it is a problem with more or less presence per model. Artificial Analysis has introduced a metric for that.<p>Moreover again, I want an output style that works well for the purpose - must not be a clashing style like &quot;youngspeak&quot; (&quot;like, awsome&quot;) or &quot;paternalistspeak&quot; (&quot;when a planet likes another very much they are attracted...&quot;) or &quot;sycophantspeak&quot; (&quot;your question is so deep and interesting&quot;) or &quot;wetspeak&quot; (&quot;you can do it, feel this not that&quot;)... So, for example, I very much preferred Kimi k2 to gpt-oss-120b. I doubt there are benchmarks for this - &quot;seriousspeak&quot;, &quot;maturespeak&quot; - but there should be."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Mistral raises €3B"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://mistral.ai/news/mistral-makes-sovereign-open-weight-ai-to-frontier/"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_mdp2021",
+    "story_49605767"
+   ],
+   "author": "mdp2021",
+   "comment_text": "Sorry for the delay.<p>It can be subjective, at this stage of product availability.<p>Personally, I hate to be frustrated by gross intellectual faults, so I did some research in the past about the best benchmarks to assess pure (simulated, apparent) intelligence. (The quality of the found benchmarks may not reflect what the models seem to do in practice, so one&#x27;s experience should be compared to the raw numbers out of the benchmarks.) Good ideas emerge in the field: it was proposed and discussed on these very pages that the LLM should be able to solve &quot;murder mysteries&quot;, for example (alongside the pattern recognition problems in which IQ tests consist, etc.).<p>Moreover, the LLM shall not delirate. It is an intrinsic issue with the current architectures (they do not mirror the &quot;Foundational theory of Knowledge&quot;, which requires confidence values and relations of foundation between notions), but it is a problem with more or less presence per model. Artificial Analysis has introduced a metric for that.<p>Moreover again, I want an output style that works well for the purpose - must not be a clashing style like &quot;youngspeak&quot; (&quot;like, awsome&quot;) or &quot;paternalistspeak&quot; (&quot;when a planet likes another very much they are attracted...&quot;) or &quot;sycophantspeak&quot; (&quot;your question is so deep and interesting&quot;) or &quot;wetspeak&quot; (&quot;you can do it, feel this not that&quot;)... So, for example, I very much preferred Kimi k2 to gpt-oss-120b. I doubt there are benchmarks for this - &quot;seriousspeak&quot;, &quot;maturespeak&quot; - but there should be.",
+   "created_at": "2026-09-09T15:46:08Z",
+   "created_at_i": 1788968768,
+   "objectID": "49628462",
+   "parent_id": 49607557,
+   "story_id": 49605767,
+   "story_title": "Mistral raises €3B",
+   "story_url": "https://mistral.ai/news/mistral-makes-sovereign-open-weight-ai-to-frontier/",
+   "updated_at": "2026-09-09T15:48:37Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "alightsoul"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Anti distillation is just American <em>nation</em>alistic marketing, the amount of data they have &quot;distilled&quot; makes no difference. Deepseek &quot;distilled&quot; like 10000 messages? That's clearly not enough. You gain a lot more doing RL in house."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "DeepSeek launching v4.1 flash cheaper and more capable than v4 pro"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_alightsoul",
+    "story_49624603"
+   ],
+   "author": "alightsoul",
+   "comment_text": "Anti distillation is just American nationalistic marketing, the amount of data they have &quot;distilled&quot; makes no difference. Deepseek &quot;distilled&quot; like 10000 messages? That&#x27;s clearly not enough. You gain a lot more doing RL in house.",
+   "created_at": "2026-09-09T15:39:45Z",
+   "created_at_i": 1788968385,
+   "objectID": "49628361",
+   "parent_id": 49626628,
+   "story_id": 49624603,
+   "story_title": "DeepSeek launching v4.1 flash cheaper and more capable than v4 pro",
+   "updated_at": "2026-09-09T15:43:23Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "senordevnyc"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "They literally have never promised anything like that. They have explicitly said repeatedly that they want regulation, oversight, <em>nation</em>alization, a global slowdown, etc. And then I have to read page after page of cynical comments about how that's all just hype and marketing and them wanting regulation to block their competition and blah blah blah.<p>You people would only be happy if they stopped all AI development, but you literally cannot do that in an arms race and survive. I cannot fathom what is so difficult to understand about this."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "I resigned from Anthropic today"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://twitter.com/hilbertspaess/status/2097476196791709843#m"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_senordevnyc",
+    "story_49619227"
+   ],
+   "author": "senordevnyc",
+   "comment_text": "They literally have never promised anything like that. They have explicitly said repeatedly that they want regulation, oversight, nationalization, a global slowdown, etc. And then I have to read page after page of cynical comments about how that&#x27;s all just hype and marketing and them wanting regulation to block their competition and blah blah blah.<p>You people would only be happy if they stopped all AI development, but you literally cannot do that in an arms race and survive. I cannot fathom what is so difficult to understand about this.",
+   "created_at": "2026-09-09T15:39:17Z",
+   "created_at_i": 1788968357,
+   "objectID": "49628354",
+   "parent_id": 49620230,
+   "story_id": 49619227,
+   "story_title": "I resigned from Anthropic today",
+   "story_url": "https://twitter.com/hilbertspaess/status/2097476196791709843#m",
+   "updated_at": "2026-09-09T15:54:51Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "ben_w"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "There's a lot more than one chip fab.<p>A while back Yudkowsky wrote that a ban would only work if was enforced by airstrikes. By a game of telephone, some people read &quot;bomb&quot;, but there's a very big difference between &quot;someone with a truckload of fertiliser&quot; and &quot;a B52&quot;:<p><pre><code>  Shut down all the large GPU clusters (the large computer farms where the most powerful AIs are refined). Shut down all the large training runs. Put a ceiling on how much computing power anyone is allowed to use in training an AI system, and move it downward over the coming years to compensate for more efficient training algorithms. No exceptions for governments and militaries. Make immediate multinational agreements to prevent the prohibited activities from moving elsewhere. Track all GPUs sold. If intelligence says that a country outside the agreement is building a GPU cluster, be less scared of a shooting conflict between <em>nation</em>s than of the moratorium being violated; be willing to destroy a rogue datacenter by airstrike.\n\n  Frame nothing as a conflict between <em>nation</em>al interests, have it clear that anyone talking of arms races is a fool. That we all live or die as one, in this, is not a policy but a fact of nature. Make it explicit in international diplomacy that preventing AI extinction scenarios is considered a priority above preventing a full nuclear exchange, and that allied nuclear countries are willing to run some risk of nuclear exchange if that’s what it takes to reduce the risk of large AI training runs.\n</code></pre>\n- <a href=\"https://time.com/6266923/ai-eliezer-yudkowsky-open-letter-not-enough/\" rel=\"nofollow\">https://time.com/6266923/ai-eliezer-yudkowsky-open-letter-no...</a>"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Anthropic researcher says more than 10% chance AI \"could kill all humans\""
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.cbsnews.com/news/ai-kill-humans-anthropic-researcher-more-than-ten-percent-chance/"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_ben_w",
+    "story_49627887"
+   ],
+   "author": "ben_w",
+   "comment_text": "There&#x27;s a lot more than one chip fab.<p>A while back Yudkowsky wrote that a ban would only work if was enforced by airstrikes. By a game of telephone, some people read &quot;bomb&quot;, but there&#x27;s a very big difference between &quot;someone with a truckload of fertiliser&quot; and &quot;a B52&quot;:<p><pre><code>  Shut down all the large GPU clusters (the large computer farms where the most powerful AIs are refined). Shut down all the large training runs. Put a ceiling on how much computing power anyone is allowed to use in training an AI system, and move it downward over the coming years to compensate for more efficient training algorithms. No exceptions for governments and militaries. Make immediate multinational agreements to prevent the prohibited activities from moving elsewhere. Track all GPUs sold. If intelligence says that a country outside the agreement is building a GPU cluster, be less scared of a shooting conflict between nations than of the moratorium being violated; be willing to destroy a rogue datacenter by airstrike.\n\n  Frame nothing as a conflict between national interests, have it clear that anyone talking of arms races is a fool. That we all live or die as one, in this, is not a policy but a fact of nature. Make it explicit in international diplomacy that preventing AI extinction scenarios is considered a priority above preventing a full nuclear exchange, and that allied nuclear countries are willing to run some risk of nuclear exchange if that’s what it takes to reduce the risk of large AI training runs.\n</code></pre>\n- <a href=\"https:&#x2F;&#x2F;time.com&#x2F;6266923&#x2F;ai-eliezer-yudkowsky-open-letter-not-enough&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;time.com&#x2F;6266923&#x2F;ai-eliezer-yudkowsky-open-letter-no...</a>",
+   "created_at": "2026-09-09T15:36:07Z",
+   "created_at_i": 1788968167,
+   "objectID": "49628312",
+   "parent_id": 49628072,
+   "story_id": 49627887,
+   "story_title": "Anthropic researcher says more than 10% chance AI \"could kill all humans\"",
+   "story_url": "https://www.cbsnews.com/news/ai-kill-humans-anthropic-researcher-more-than-ten-percent-chance/",
+   "updated_at": "2026-09-09T15:38:51Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "austin-cheney"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; Superintelligence is the still-theoretical <em>notion</em> of an AI agent that is smarter than even the sharpest human minds.<p>When are we supposed to see this materialize?"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Anthropic researcher says more than 10% chance AI \"could kill all humans\""
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.cbsnews.com/news/ai-kill-humans-anthropic-researcher-more-than-ten-percent-chance/"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_austin-cheney",
+    "story_49627887"
+   ],
+   "author": "austin-cheney",
+   "comment_text": "&gt; Superintelligence is the still-theoretical notion of an AI agent that is smarter than even the sharpest human minds.<p>When are we supposed to see this materialize?",
+   "created_at": "2026-09-09T15:33:12Z",
+   "created_at_i": 1788967992,
+   "objectID": "49628259",
+   "parent_id": 49627887,
+   "story_id": 49627887,
+   "story_title": "Anthropic researcher says more than 10% chance AI \"could kill all humans\"",
+   "story_url": "https://www.cbsnews.com/news/ai-kill-humans-anthropic-researcher-more-than-ten-percent-chance/",
+   "updated_at": "2026-09-09T15:38:07Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "anothermathbozo"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "People get income from one of three places: capital income, labor income, or the welfare state. If this technology truly unlocks a holy panacea of productivity with a commensurate drop in employment then capital’s share of the <em>nation</em>al income can and should provide for a wider and deeper welfare state. Nothing new need be invented here. Anthropic’s elaborate scenario-building makes appropriate preparedness sound like a problem requiring heroic prognostication when a simple theory of distribution will suffice."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "What will our economic future look like?"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.anthropic.com/institute/econ-scenarios"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_anothermathbozo",
+    "story_49626373"
+   ],
+   "author": "anothermathbozo",
+   "children": [
+    49629322
+   ],
+   "comment_text": "People get income from one of three places: capital income, labor income, or the welfare state. If this technology truly unlocks a holy panacea of productivity with a commensurate drop in employment then capital’s share of the national income can and should provide for a wider and deeper welfare state. Nothing new need be invented here. Anthropic’s elaborate scenario-building makes appropriate preparedness sound like a problem requiring heroic prognostication when a simple theory of distribution will suffice.",
+   "created_at": "2026-09-09T15:30:59Z",
+   "created_at_i": 1788967859,
+   "objectID": "49628204",
+   "parent_id": 49626373,
+   "story_id": 49626373,
+   "story_title": "What will our economic future look like?",
+   "story_url": "https://www.anthropic.com/institute/econ-scenarios",
+   "updated_at": "2026-09-09T16:40:53Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "simonw"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "How about if YC funded a startup in 2017 that offered solar powered cameras to help prevent package theft, and that startup then later evolved into a <em>nation</em>-wide surveillance network?<p>(I personally am not a flan of Flock, and I've been worrying about the privacy impact of automated license plate readers for years: <a href=\"https://news.ycombinator.com/item?id=43073385#43073939\">https://news.ycombinator.com/item?id=43073385#43073939</a> and <a href=\"https://news.ycombinator.com/item?id=45996860#45997278\">https://news.ycombinator.com/item?id=45996860#45997278</a>)"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "YC created Flock 10 years ago"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_simonw",
+    "story_49627080"
+   ],
+   "author": "simonw",
+   "children": [
+    49628160
+   ],
+   "comment_text": "How about if YC funded a startup in 2017 that offered solar powered cameras to help prevent package theft, and that startup then later evolved into a nation-wide surveillance network?<p>(I personally am not a flan of Flock, and I&#x27;ve been worrying about the privacy impact of automated license plate readers for years: <a href=\"https:&#x2F;&#x2F;news.ycombinator.com&#x2F;item?id=43073385#43073939\">https:&#x2F;&#x2F;news.ycombinator.com&#x2F;item?id=43073385#43073939</a> and <a href=\"https:&#x2F;&#x2F;news.ycombinator.com&#x2F;item?id=45996860#45997278\">https:&#x2F;&#x2F;news.ycombinator.com&#x2F;item?id=45996860#45997278</a>)",
+   "created_at": "2026-09-09T15:25:54Z",
+   "created_at_i": 1788967554,
+   "objectID": "49628133",
+   "parent_id": 49628108,
+   "story_id": 49627080,
+   "story_title": "YC created Flock 10 years ago",
+   "updated_at": "2026-09-09T16:11:39Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "sublinear"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Do a few bad grades really harm economic outcomes, though? Educators took a hard stance against AI rather quickly.<p>Outside of delusional grifty startups, the broader corporate world is only using copilot for taking meeting notes and (sort of) entertaining the <em>notion</em> of non-devs writing (and not maintaining) their own experimental janky apps where impact is low.<p>Outside of all the shit-stirrers on HN and clueless bubble social media, I don't see LLMs making a difference. In fact, the fearmongering is at this point insulting to the intelligence of the people who are supposedly helpless against big bad AI."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "What will our economic future look like?"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.anthropic.com/institute/econ-scenarios"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_sublinear",
+    "story_49626373"
+   ],
+   "author": "sublinear",
+   "children": [
+    49628225
+   ],
+   "comment_text": "Do a few bad grades really harm economic outcomes, though? Educators took a hard stance against AI rather quickly.<p>Outside of delusional grifty startups, the broader corporate world is only using copilot for taking meeting notes and (sort of) entertaining the notion of non-devs writing (and not maintaining) their own experimental janky apps where impact is low.<p>Outside of all the shit-stirrers on HN and clueless bubble social media, I don&#x27;t see LLMs making a difference. In fact, the fearmongering is at this point insulting to the intelligence of the people who are supposedly helpless against big bad AI.",
+   "created_at": "2026-09-09T15:23:41Z",
+   "created_at_i": 1788967421,
+   "objectID": "49628091",
+   "parent_id": 49627426,
+   "story_id": 49626373,
+   "story_title": "What will our economic future look like?",
+   "story_url": "https://www.anthropic.com/institute/econ-scenarios",
+   "updated_at": "2026-09-09T15:39:51Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "esafak"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; The paradigm of everything being a database with documents was ahead of its time, but the real power was in LotusScript. It was basically just Javascript and that allowed me to transition to a web dev role later on. I have mostly fond memories of Notes.<p>The modern iteration is <em>Notion</em>."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Lotus Notes and the dangers of starting from scratch"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://buttondown.com/blog/lotus-notes-email"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_esafak",
+    "story_49623937"
+   ],
+   "author": "esafak",
+   "comment_text": "&gt; The paradigm of everything being a database with documents was ahead of its time, but the real power was in LotusScript. It was basically just Javascript and that allowed me to transition to a web dev role later on. I have mostly fond memories of Notes.<p>The modern iteration is Notion.",
+   "created_at": "2026-09-09T15:18:16Z",
+   "created_at_i": 1788967096,
+   "objectID": "49628002",
+   "parent_id": 49625847,
+   "story_id": 49623937,
+   "story_title": "Lotus Notes and the dangers of starting from scratch",
+   "story_url": "https://buttondown.com/blog/lotus-notes-email",
+   "updated_at": "2026-09-09T15:41:21Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "crossroadsguy"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Something like this:<p>same..<p>&gt; nurse is able to oversee and accomplish more<p>.. and work with more patients in the same shift.<p>&gt; She can spend more time talking with patients<p>.. we mean the talking will be through the &quot;ClaudeMedTalker Nurse&quot; billed per patient, per second (depending upon tokens used and if any translation need, depending upon patient <em>nation</em>ality and accents)"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "What will our economic future look like?"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.anthropic.com/institute/econ-scenarios"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_crossroadsguy",
+    "story_49626373"
+   ],
+   "author": "crossroadsguy",
+   "comment_text": "Something like this:<p>same..<p>&gt; nurse is able to oversee and accomplish more<p>.. and work with more patients in the same shift.<p>&gt; She can spend more time talking with patients<p>.. we mean the talking will be through the &quot;ClaudeMedTalker Nurse&quot; billed per patient, per second (depending upon tokens used and if any translation need, depending upon patient nationality and accents)",
+   "created_at": "2026-09-09T14:52:51Z",
+   "created_at_i": 1788965571,
+   "objectID": "49627610",
+   "parent_id": 49627486,
+   "story_id": 49626373,
+   "story_title": "What will our economic future look like?",
+   "story_url": "https://www.anthropic.com/institute/econ-scenarios",
+   "updated_at": "2026-09-09T15:19:20Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "peter_d_sherman"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt;&quot;The solution is a <i>vortex</i>, a spinning swirl of fluid, that <i>spirals</i> inward and gets increasingly elongated, like spaghetti. This central region shrinks while it <i>speeds up</i> in such a way that its energy still stays finite, as required by the laws of physics. The technical challenge is for the equations to develop the breakdown through the <em>motion</em> of the fluid itself, rather than, for example, us putting in an infinite force by hand. More mathematically, the terms in the <i>Navier–Stokes equations</i> that describe the <em>motion</em>—<i>acceleration</i>, pressure gradients, momentum transfer, viscosity—must both become big yet cancel in a precise way. This detailed balance leaves a smooth external force even as the <i>velocity of the fluid grows without bound</i>.<p>Diagram of a swirling vortex illustrating inward spiral and <i>axial stretching</i>.\nA snapshot of local incompressible <em>motion</em>. Orange marks faster <i>angular rotation</i>; teal marks slower rotation. Circulating <i>speed also depends on radius</i>. The trajectories show inward spiraling and axial stretching.&quot;<p>Hmmm, isn't that interesting!<p>(Side note: Apparently we can't <i>&quot;compress&quot;</i> something, but apparently we can <i>move more units of that thing over a specific space in a specific time</i>... hmmm, I wonder what the difference between those two concepts could be...)<p>Main Observation: The image on OpenAI's web page above, looks sort of like the one for the <i>Hopf Fibration</i>:<p><a href=\"https://en.wikipedia.org/wiki/Hopf_fibration\" rel=\"nofollow\">https://en.wikipedia.org/wiki/Hopf_fibration</a><p><a href=\"https://www.google.com/search?q=hopf+fibration&amp;udm=2\" rel=\"nofollow\">https://www.google.com/search?q=hopf+fibration&amp;udm=2</a>"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "On the Navier–Stokes Millennium Prize Problem"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://openai.com/index/navier-stokes-solution/"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_peter_d_sherman",
+    "story_49613262"
+   ],
+   "author": "peter_d_sherman",
+   "comment_text": "&gt;&quot;The solution is a <i>vortex</i>, a spinning swirl of fluid, that <i>spirals</i> inward and gets increasingly elongated, like spaghetti. This central region shrinks while it <i>speeds up</i> in such a way that its energy still stays finite, as required by the laws of physics. The technical challenge is for the equations to develop the breakdown through the motion of the fluid itself, rather than, for example, us putting in an infinite force by hand. More mathematically, the terms in the <i>Navier–Stokes equations</i> that describe the motion—<i>acceleration</i>, pressure gradients, momentum transfer, viscosity—must both become big yet cancel in a precise way. This detailed balance leaves a smooth external force even as the <i>velocity of the fluid grows without bound</i>.<p>Diagram of a swirling vortex illustrating inward spiral and <i>axial stretching</i>.\nA snapshot of local incompressible motion. Orange marks faster <i>angular rotation</i>; teal marks slower rotation. Circulating <i>speed also depends on radius</i>. The trajectories show inward spiraling and axial stretching.&quot;<p>Hmmm, isn&#x27;t that interesting!<p>(Side note: Apparently we can&#x27;t <i>&quot;compress&quot;</i> something, but apparently we can <i>move more units of that thing over a specific space in a specific time</i>... hmmm, I wonder what the difference between those two concepts could be...)<p>Main Observation: The image on OpenAI&#x27;s web page above, looks sort of like the one for the <i>Hopf Fibration</i>:<p><a href=\"https:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Hopf_fibration\" rel=\"nofollow\">https:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Hopf_fibration</a><p><a href=\"https:&#x2F;&#x2F;www.google.com&#x2F;search?q=hopf+fibration&amp;udm=2\" rel=\"nofollow\">https:&#x2F;&#x2F;www.google.com&#x2F;search?q=hopf+fibration&amp;udm=2</a>",
+   "created_at": "2026-09-09T14:47:25Z",
+   "created_at_i": 1788965245,
+   "objectID": "49627518",
+   "parent_id": 49613262,
+   "story_id": 49613262,
+   "story_title": "On the Navier–Stokes Millennium Prize Problem",
+   "story_url": "https://openai.com/index/navier-stokes-solution/",
+   "updated_at": "2026-09-09T14:50:51Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "francislavoie"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Worth <em>notin</em>g, Tailwind was canadian, and Shopify is also canadian. I like that this was the outcome. The labs business was obviously no longer needed in this era of AI, and I'm glad Tailwind will continue to get proper backing from Shopify to evolve further."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Tailwind Labs is joining Shopify"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://tailwindcss.com/blog/tailwind-is-joining-shopify"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_francislavoie",
+    "story_49626190"
+   ],
+   "author": "francislavoie",
+   "comment_text": "Worth noting, Tailwind was canadian, and Shopify is also canadian. I like that this was the outcome. The labs business was obviously no longer needed in this era of AI, and I&#x27;m glad Tailwind will continue to get proper backing from Shopify to evolve further.",
+   "created_at": "2026-09-09T14:44:23Z",
+   "created_at_i": 1788965063,
+   "objectID": "49627466",
+   "parent_id": 49626190,
+   "story_id": 49626190,
+   "story_title": "Tailwind Labs is joining Shopify",
+   "story_url": "https://tailwindcss.com/blog/tailwind-is-joining-shopify",
+   "updated_at": "2026-09-09T16:04:50Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "00ze"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&quot;The market&quot; for Tailwind only existed due to ignorance and obfuscation fueled by hype for web dev jobs.<p>Completely artificial market built on propaganda and low interest rate money printing. Same as the rest of SaaS. Nothing about the tech industry since the '08 crash has been organic investment. Was 100% collusion between government and private interests to manipulate public opinion.<p>&gt; They've just got to do the next thing, which is find an AI-resistant steward of the project now.<p>Good luck with that:<p><a href=\"https://www.openui.com/blog/oui-1\" rel=\"nofollow\">https://www.openui.com/blog/oui-1</a><p>Aside; all the leaked emails, chats, and going back further in time, telegrams, letters, travel logs on display in court yet the myth the economy is an organic free market this whole time persists<p>Such belief is nought but a quirk of biology that allowed humans to latch onto the idea Benevolent but Punitive Sky Wizard watches out for them; total cope. In Wealth of <em>Nation</em>s Adam Smith called it the &quot;invisible hand&quot; and later came to realize he was wrong. He reconsidered and concluded the avarice of man will not be stopped by philosophy of  <em>nation</em>al unity."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Tailwind Labs is joining Shopify"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://tailwindcss.com/blog/tailwind-is-joining-shopify"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_00ze",
+    "story_49626190"
+   ],
+   "author": "00ze",
+   "comment_text": "&quot;The market&quot; for Tailwind only existed due to ignorance and obfuscation fueled by hype for web dev jobs.<p>Completely artificial market built on propaganda and low interest rate money printing. Same as the rest of SaaS. Nothing about the tech industry since the &#x27;08 crash has been organic investment. Was 100% collusion between government and private interests to manipulate public opinion.<p>&gt; They&#x27;ve just got to do the next thing, which is find an AI-resistant steward of the project now.<p>Good luck with that:<p><a href=\"https:&#x2F;&#x2F;www.openui.com&#x2F;blog&#x2F;oui-1\" rel=\"nofollow\">https:&#x2F;&#x2F;www.openui.com&#x2F;blog&#x2F;oui-1</a><p>Aside; all the leaked emails, chats, and going back further in time, telegrams, letters, travel logs on display in court yet the myth the economy is an organic free market this whole time persists<p>Such belief is nought but a quirk of biology that allowed humans to latch onto the idea Benevolent but Punitive Sky Wizard watches out for them; total cope. In Wealth of Nations Adam Smith called it the &quot;invisible hand&quot; and later came to realize he was wrong. He reconsidered and concluded the avarice of man will not be stopped by philosophy of  national unity.",
+   "created_at": "2026-09-09T14:42:55Z",
+   "created_at_i": 1788964975,
+   "objectID": "49627446",
+   "parent_id": 49627255,
+   "story_id": 49626190,
+   "story_title": "Tailwind Labs is joining Shopify",
+   "story_url": "https://tailwindcss.com/blog/tailwind-is-joining-shopify",
+   "updated_at": "2026-09-09T16:39:10Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "grantpitt"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Feels like we're going to read a blog soon enough that mirrors Wendell Berry's opening to The Unsettling of America:<p>The commission said, according to an article in the Louisville Courier-Journal, that the country’s biggest farm problem was a surplus of farmers: “. . . the technological advances in agriculture have so greatly reduced the need for manpower that too many people are trying to live on a <em>nation</em>al farm income wholly inadequate for them.” The proposed solutions were to find “better opportunities for the farm people,” “a more comprehensive <em>nation</em>al employment policy,” “retraining programs,” “improved general educational facilities,” etc. Both the commission and the writer of the article had obviously taken for granted that the lives and communities of small farmers then still on the farm—and those of the 25 million who had left the farm since 1940—were of less value than “technological advances in agriculture.” There seemed also to be no official doubt that adequate solutions were to be found in government supplied “opportunities,” facilities, and programs. Reading that article, I realized that my values were not only out of fashion, but under powerful attack. I saw that I was a member of a threatened minority. That is what set me off."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "What will our economic future look like?"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.anthropic.com/institute/econ-scenarios"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_grantpitt",
+    "story_49626373"
+   ],
+   "author": "grantpitt",
+   "children": [
+    49627850,
+    49627580
+   ],
+   "comment_text": "Feels like we&#x27;re going to read a blog soon enough that mirrors Wendell Berry&#x27;s opening to The Unsettling of America:<p>The commission said, according to an article in the Louisville Courier-Journal, that the country’s biggest farm problem was a surplus of farmers: “. . . the technological advances in agriculture have so greatly reduced the need for manpower that too many people are trying to live on a national farm income wholly inadequate for them.” The proposed solutions were to find “better opportunities for the farm people,” “a more comprehensive national employment policy,” “retraining programs,” “improved general educational facilities,” etc. Both the commission and the writer of the article had obviously taken for granted that the lives and communities of small farmers then still on the farm—and those of the 25 million who had left the farm since 1940—were of less value than “technological advances in agriculture.” There seemed also to be no official doubt that adequate solutions were to be found in government supplied “opportunities,” facilities, and programs. Reading that article, I realized that my values were not only out of fashion, but under powerful attack. I saw that I was a member of a threatened minority. That is what set me off.",
+   "created_at": "2026-09-09T14:40:20Z",
+   "created_at_i": 1788964820,
+   "objectID": "49627407",
+   "parent_id": 49626373,
+   "story_id": 49626373,
+   "story_title": "What will our economic future look like?",
+   "story_url": "https://www.anthropic.com/institute/econ-scenarios",
+   "updated_at": "2026-09-09T16:40:53Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "DoneWithAllThat"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "No. It is not and to claim otherwise is hyperbole. The key difference is police <i>stopping</i> and/or <i>questioning</i> people en masse without reasonable suspicion is in fact illegal unless under extreme circumstances. Simply <em>notin</em>g everyone’s license plate is wholly legal, and more importantly for this conversation, is drastically less intrusive and qualitatively different from a so-called dragnet. You don’t get to just conflate the two scenarios to better fit your personal preferences of what is or is not legal."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_DoneWithAllThat",
+    "story_49624394"
+   ],
+   "author": "DoneWithAllThat",
+   "children": [
+    49628023
+   ],
+   "comment_text": "No. It is not and to claim otherwise is hyperbole. The key difference is police <i>stopping</i> and&#x2F;or <i>questioning</i> people en masse without reasonable suspicion is in fact illegal unless under extreme circumstances. Simply noting everyone’s license plate is wholly legal, and more importantly for this conversation, is drastically less intrusive and qualitatively different from a so-called dragnet. You don’t get to just conflate the two scenarios to better fit your personal preferences of what is or is not legal.",
+   "created_at": "2026-09-09T14:38:10Z",
+   "created_at_i": 1788964690,
+   "objectID": "49627377",
+   "parent_id": 49626149,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T16:20:51Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "slibhb"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "The modern legally bound <em>nation</em> state has done much better at guaranteeing rights and protecting freedoms than any other configurations despite the fact that it's constained largely by &quot;pinky promises&quot; (i.e. laws, courts, etc)."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_slibhb",
+    "story_49624394"
+   ],
+   "author": "slibhb",
+   "children": [
+    49628042
+   ],
+   "comment_text": "The modern legally bound nation state has done much better at guaranteeing rights and protecting freedoms than any other configurations despite the fact that it&#x27;s constained largely by &quot;pinky promises&quot; (i.e. laws, courts, etc).",
+   "created_at": "2026-09-09T14:36:24Z",
+   "created_at_i": 1788964584,
+   "objectID": "49627349",
+   "parent_id": 49627210,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T15:21:37Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "cogman10"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "I generally actually agree with you.  The real issue with these cameras is the network effect that allows them to stalk anyone anywhere.<p>Were I to draft legislation, the first thing I'd do is ban any sort of surveillance network from giving data to non-governmental 3rd parties. Google and mcdonalds don't need to know exactly who I am and what sort of places I like to visit or products I buy.<p>The next thing I'd do is require a search warrant for each access.  If a crime is committed then the cops need to go to a judge and say &quot;A crime was likely committed here and we need a warrant to figure out who was there and where they went&quot;.  None of this &quot;well, here's the same case number I use for all my searches&quot;.<p>I would probably classify the likes of traffic cameras as something different than a surveillance network as there's not much of a real network.  They are all watching one location for violations and reporting them when they happen.  That to me is fine (though, again, they shouldn't share that data with private 3rd parties).<p>And this goes beyond surveillance networks, but I'd setup a <em>nation</em>al registry of police misconduct and bar cops who abuse their authority from ever getting a job as law enforcement again.  All these cases of cops stalking exes would result in those cops needing a new career where they can't abuse the public's trust."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_cogman10",
+    "story_49624394"
+   ],
+   "author": "cogman10",
+   "comment_text": "I generally actually agree with you.  The real issue with these cameras is the network effect that allows them to stalk anyone anywhere.<p>Were I to draft legislation, the first thing I&#x27;d do is ban any sort of surveillance network from giving data to non-governmental 3rd parties. Google and mcdonalds don&#x27;t need to know exactly who I am and what sort of places I like to visit or products I buy.<p>The next thing I&#x27;d do is require a search warrant for each access.  If a crime is committed then the cops need to go to a judge and say &quot;A crime was likely committed here and we need a warrant to figure out who was there and where they went&quot;.  None of this &quot;well, here&#x27;s the same case number I use for all my searches&quot;.<p>I would probably classify the likes of traffic cameras as something different than a surveillance network as there&#x27;s not much of a real network.  They are all watching one location for violations and reporting them when they happen.  That to me is fine (though, again, they shouldn&#x27;t share that data with private 3rd parties).<p>And this goes beyond surveillance networks, but I&#x27;d setup a national registry of police misconduct and bar cops who abuse their authority from ever getting a job as law enforcement again.  All these cases of cops stalking exes would result in those cops needing a new career where they can&#x27;t abuse the public&#x27;s trust.",
+   "created_at": "2026-09-09T14:19:22Z",
+   "created_at_i": 1788963562,
+   "objectID": "49627048",
+   "parent_id": 49626713,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T14:45:06Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "peter_d_sherman"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt;&quot;Widlar invented the basic building blocks of linear ICs including the Widlar current source, the Widlar bandgap voltage reference[9] and the Widlar output stage.[10] From 1964 to 1970, Widlar, together with David Talbert, created the first mass-produced operational amplifier ICs (μA702, μA709), some of the earliest integrated voltage regulator ICs (LM100 and LM105), the first operational amplifiers employing single capacitor frequency compensation (LM101), an improved LM101 with FET internal current control (LM101A), and super-beta transistors (LM108).[11] Each of Widlar's circuits had &quot;at least one feature which was far ahead of the crowd&quot;[5] and became a &quot;product champion&quot; in its class.[12] They made his employers, Fairchild Semiconductor and <em>Nation</em>al Semiconductor, the leaders in linear integrated circuits.[13][14]<p>He was a &quot;legendary chip designer&quot;[15] at the age of 33. Widlar voluntarily retired into a hideout in Mexico and became &quot;the Valley's most celebrated dropout.&quot;[15] Four years later he returned to <em>Nation</em>al Semiconductor as a contractor,[16] and produced a series of advanced linear ICs, including the first ultra-low-voltage operational amplifier with precision 200mV voltage reference (LM10).[17][18]<p>Widlar's eccentric, and outspoken personality, as well as his bohemian lifestyle, made him the enfant terrible of Silicon Valley. He is remembered in legends, myths, and anecdotes that are largely true.[12][19] According to Bo Lojek, author of History of Semiconductor Engineering, he was &quot;more artist than an engineer ... in the environment where Human Relations Departments define what engineers can and cannot comment about, it is very unlikely that we will see his kind again.&quot;[5]&quot;<p>Widlar was an absolutely brilliant Engineer in Silicon Valley's history.<p>For that reason, his life, in the context of the historical place and time that he lived (along with the technological constraints of that time period -- there were many!), may be worth studying to any student of history, or any student of Integrated Circuit Electrical Engineering..."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Bob Widlar – Distinguished Engineer, Integrated Circuits Pioneer"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://en.wikipedia.org/wiki/Bob_Widlar"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_peter_d_sherman",
+    "story_49626305"
+   ],
+   "author": "peter_d_sherman",
+   "comment_text": "&gt;&quot;Widlar invented the basic building blocks of linear ICs including the Widlar current source, the Widlar bandgap voltage reference[9] and the Widlar output stage.[10] From 1964 to 1970, Widlar, together with David Talbert, created the first mass-produced operational amplifier ICs (μA702, μA709), some of the earliest integrated voltage regulator ICs (LM100 and LM105), the first operational amplifiers employing single capacitor frequency compensation (LM101), an improved LM101 with FET internal current control (LM101A), and super-beta transistors (LM108).[11] Each of Widlar&#x27;s circuits had &quot;at least one feature which was far ahead of the crowd&quot;[5] and became a &quot;product champion&quot; in its class.[12] They made his employers, Fairchild Semiconductor and National Semiconductor, the leaders in linear integrated circuits.[13][14]<p>He was a &quot;legendary chip designer&quot;[15] at the age of 33. Widlar voluntarily retired into a hideout in Mexico and became &quot;the Valley&#x27;s most celebrated dropout.&quot;[15] Four years later he returned to National Semiconductor as a contractor,[16] and produced a series of advanced linear ICs, including the first ultra-low-voltage operational amplifier with precision 200mV voltage reference (LM10).[17][18]<p>Widlar&#x27;s eccentric, and outspoken personality, as well as his bohemian lifestyle, made him the enfant terrible of Silicon Valley. He is remembered in legends, myths, and anecdotes that are largely true.[12][19] According to Bo Lojek, author of History of Semiconductor Engineering, he was &quot;more artist than an engineer ... in the environment where Human Relations Departments define what engineers can and cannot comment about, it is very unlikely that we will see his kind again.&quot;[5]&quot;<p>Widlar was an absolutely brilliant Engineer in Silicon Valley&#x27;s history.<p>For that reason, his life, in the context of the historical place and time that he lived (along with the technological constraints of that time period -- there were many!), may be worth studying to any student of history, or any student of Integrated Circuit Electrical Engineering...",
+   "created_at": "2026-09-09T13:46:10Z",
+   "created_at_i": 1788961570,
+   "objectID": "49626500",
+   "parent_id": 49626305,
+   "story_id": 49626305,
+   "story_title": "Bob Widlar – Distinguished Engineer, Integrated Circuits Pioneer",
+   "story_url": "https://en.wikipedia.org/wiki/Bob_Widlar",
+   "updated_at": "2026-09-09T13:47:51Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "bilbo0s"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt;<i>Assuming everyone in public is a suspect and continually investigating them, is a big change in how society works.</i><p>Well that's not <i>exactly</i> how it would work.<p>Everyone is tracked, but only certain people are watched. That added to the fact that any <em>nation</em> with a sufficiently complex legal system has no law abiding residents. You've always broken some law, somewhere.<p>So it would be more like:<p>&gt;[Pick any person from] <i>everyone in public</i> [and the system has the capacity to list the reasons why that person] <i>is a</i> [criminal]"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_bilbo0s",
+    "story_49624394"
+   ],
+   "author": "bilbo0s",
+   "children": [
+    49626654,
+    49626666
+   ],
+   "comment_text": "&gt;<i>Assuming everyone in public is a suspect and continually investigating them, is a big change in how society works.</i><p>Well that&#x27;s not <i>exactly</i> how it would work.<p>Everyone is tracked, but only certain people are watched. That added to the fact that any nation with a sufficiently complex legal system has no law abiding residents. You&#x27;ve always broken some law, somewhere.<p>So it would be more like:<p>&gt;[Pick any person from] <i>everyone in public</i> [and the system has the capacity to list the reasons why that person] <i>is a</i> [criminal]",
+   "created_at": "2026-09-09T13:42:41Z",
+   "created_at_i": 1788961361,
+   "objectID": "49626449",
+   "parent_id": 49625392,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T15:59:23Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "thataccount"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Well, there is another angle here from the Defense sector. Lotus Notes had a big ole backdoor in it: <a href=\"http://www.cypherspace.org/adam/hacks/lotus-nsa-key.html\" rel=\"nofollow\">http://www.cypherspace.org/adam/hacks/lotus-nsa-key.html</a><p>The same problems keep being solved, and then <em>nation</em>-states get involved, and eventually the technology shifts to something else because the game has played out as far as it can in terms of those <em>nation</em>-states. It is not really so much as a steady march of technology, as much as it is a quiet kind of informational arms race."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Lotus Notes and the dangers of starting from scratch"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://buttondown.com/blog/lotus-notes-email"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_thataccount",
+    "story_49623937"
+   ],
+   "author": "thataccount",
+   "comment_text": "Well, there is another angle here from the Defense sector. Lotus Notes had a big ole backdoor in it: <a href=\"http:&#x2F;&#x2F;www.cypherspace.org&#x2F;adam&#x2F;hacks&#x2F;lotus-nsa-key.html\" rel=\"nofollow\">http:&#x2F;&#x2F;www.cypherspace.org&#x2F;adam&#x2F;hacks&#x2F;lotus-nsa-key.html</a><p>The same problems keep being solved, and then nation-states get involved, and eventually the technology shifts to something else because the game has played out as far as it can in terms of those nation-states. It is not really so much as a steady march of technology, as much as it is a quiet kind of informational arms race.",
+   "created_at": "2026-09-09T13:41:34Z",
+   "created_at_i": 1788961294,
+   "objectID": "49626423",
+   "parent_id": 49623937,
+   "story_id": 49623937,
+   "story_title": "Lotus Notes and the dangers of starting from scratch",
+   "story_url": "https://buttondown.com/blog/lotus-notes-email",
+   "updated_at": "2026-09-09T15:22:35Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "alexshakhov"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Last year I scanned DNS zones of NZ organizations, and figured out there were a few companies with unregistered domains sitting under DMARC rua/ruf tags. The Eden Park <em>nation</em>al stadium was the biggest find, so I went ahead to report it to their team same week.<p>I use multiple channels to get in touch with anyone at Eden Park, but nobody has ever responded to me. A few people from the leadership team connected with me on LinkedIn, but DMs remained ignored too.<p>To confirm the exposure, I set up a catch-all email address and implemented the external destination verification record to be able to receive DMARC reports for edenpark.co.nz at spamcontrol.co.nz.<p>A month later, I mapped their infrastrucure, got a list of tools and IPs they use, as well as the companies they communicate with (through the envelope-to tag, that Microsoft adds to aggregate reports).<p>Then I added a content compliance policy on the server, to block all inbound traffic hitting spamcontrol.co.nz.<p>A year later I posted about it on Linkedin and the post went viral. Eden Park fixed the DMARC within the 24 hours, and a journalist reached out.<p>He helped to identify the original owner of spamcontrol.co.nz - it turned out it was Fujitsu NZ, and they were responsible for Eden Park security a few years ago. One day they decided to sunset the domain, but forgot it was still in the Eden Park's DNS.<p>The Fujitsu team reached out to me earlier this month and today I finally initiated the domain transfer, so the case is now cliosed."
+    },
+    "story_title": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "A New Zealand <em>Nation</em>al Stadium had expired domain in DNS, so I registered it"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.sh.consulting/blog/eden-park-expired-dmarc-reporting-domain"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_alexshakhov",
+    "story_49626178"
+   ],
+   "author": "alexshakhov",
+   "comment_text": "Last year I scanned DNS zones of NZ organizations, and figured out there were a few companies with unregistered domains sitting under DMARC rua&#x2F;ruf tags. The Eden Park national stadium was the biggest find, so I went ahead to report it to their team same week.<p>I use multiple channels to get in touch with anyone at Eden Park, but nobody has ever responded to me. A few people from the leadership team connected with me on LinkedIn, but DMs remained ignored too.<p>To confirm the exposure, I set up a catch-all email address and implemented the external destination verification record to be able to receive DMARC reports for edenpark.co.nz at spamcontrol.co.nz.<p>A month later, I mapped their infrastrucure, got a list of tools and IPs they use, as well as the companies they communicate with (through the envelope-to tag, that Microsoft adds to aggregate reports).<p>Then I added a content compliance policy on the server, to block all inbound traffic hitting spamcontrol.co.nz.<p>A year later I posted about it on Linkedin and the post went viral. Eden Park fixed the DMARC within the 24 hours, and a journalist reached out.<p>He helped to identify the original owner of spamcontrol.co.nz - it turned out it was Fujitsu NZ, and they were responsible for Eden Park security a few years ago. One day they decided to sunset the domain, but forgot it was still in the Eden Park&#x27;s DNS.<p>The Fujitsu team reached out to me earlier this month and today I finally initiated the domain transfer, so the case is now cliosed.",
+   "created_at": "2026-09-09T13:41:04Z",
+   "created_at_i": 1788961264,
+   "objectID": "49626418",
+   "parent_id": 49626178,
+   "story_id": 49626178,
+   "story_title": "A New Zealand National Stadium had expired domain in DNS, so I registered it",
+   "story_url": "https://www.sh.consulting/blog/eden-park-expired-dmarc-reporting-domain",
+   "updated_at": "2026-09-09T13:42:36Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "thaumaturgy"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "I'm not centrist, but I think I can give a reasonably fair account. I was among the first to organize against Flock (YC S17).<p>Flock was accepted into YCombinator's Spring 2017 batch. Prior to YC, Flock CEO Garrett Langley had had a couple of fair-to-middling business successes and was looking for his next opportunity, which included better toilets. The story goes that he got the idea for Flock after a local police interaction where he happened to have helpful video footage. [1]<p>Flock quietly expanded into HOAs and neighborhood associations [2], and by 2020 had begun developing partnerships with police departments across the country and fusion centers [1], which are regional clearinghouses of data from multiple sources assembled together for law enforcement purposes.<p>By 2025, Flock had managed to grow to 80,000 cameras operational across the country. In June of that year, 404 Media, an independent journalistic outfit comprised in part from former Vice journalists, broke a story about Flock being used in the investigation of a woman who had self-administered an abortion in the state of Texas [3]. Flock quickly released a statement trying to &quot;clarify&quot; the situation, but everyone involved was lying through their teeth [4].<p>Up to this point, Flock had spread across the country in a pretty clever way: they built direct partnerships with police departments through sites and resources they commonly used, like <a href=\"https://www.police1.com/\" rel=\"nofollow\">https://www.police1.com/</a>, and by hiring former police officers for sales positions. Police departments were coached to consider Flock an &quot;ALPR&quot; (which it very arguably isn't), which would make it not &quot;new&quot; technology under most local police technology procurement processes, which meant that police departments could purchase it without city council or other local agency review. To make the purchases, Flock helped to connect police departments with public money in the form of grants. For example, funds might be available for programs meant to reduce &quot;organized retail theft&quot;, and Flock would say, &quot;well, we qualify!&quot;, and then police departments would not use the systems to investigate organized retail theft. [5]<p>Throughout the Summer of 2025, people started asking questions about these weird cameras popping up everywhere, and 404 Media managed to produce one widely-shared article after another about Flock [6]. Other media outfits started to pick it up, and stories getting <em>nation</em>al attention included law enforcement officers using Flock to stalk former romantic partners or love interests or anyone else they wanted to (because Flock was built without any controls in place to prevent that kind of abuse; Langley himself repeatedly said it wasn't their job to do); Flock sharing direct access to data with federal agencies; Flock lying about the direct access that federal agencies had; then federal agencies using Flock's data-sharing capabilities to easily get around the really thin limitations that were put on that after reporting about it; Flock being used to surveil protestors; and on and on and on.<p>Essentially, Flock became a textbook case study for every single abuse of state surveillance power you can imagine.<p>Garrett Langley attempted to navigate all of this by absolving Flock of any responsibility, denying any wrongdoing, outright lying in some cases, and referring to people running crowd-sourced maps of Flock installations as &quot;terrorists&quot; -- which, many months later, he would get around to walking back. A little bit.<p>Some groups were able to legally acquire some devices and found that they had really, really poor security generally, and also that they had capabilities that weren't being advertised to the public. The prime example of this is that Flock would coach police departments to tell the public that Flock was &quot;just an ALPR&quot; and &quot;only captured pictures of license plates&quot;, but meanwhile the software on the devices was written to capture images of people and bicycles and cats and dogs. On the one hand, the public would be told that the system could only track vehicles; on the other, Flock's own marketing materials advertised the ability to find pedestrians by a description of their clothing, and police departments were being trained on how to use the system to follow bicyclists. In another case, Flock representatives would say the system didn't have a &quot;heat map&quot; capability (showing a density of hits for a particular license plate in a particular area over time), and then it would turn out that not only did they have that capability, but internal trainings with law enforcement departments were explicitly describing how to use the system to predict where a particular person might be at a particular day and time (called a &quot;pattern of life&quot; search).<p>In 2026, public opposition to Flock has become a <em>nation</em>al conversation, and states like Oregon have started developing more restrictive legislation around the use of it and similar technology.<p>Flock wasn't the first ALPR company. The technology has in fact been around for a while and there are other established players in the space. However, Flock quickly had all of the hallmarks of &quot;surveillance capitalism&quot; -- an effort by investors like YCombinator, Founders Fund, Andreesen Horowitz, and others, to build out a <em>nation</em>al realtime surveillance network of everyone's movements and then monetize it, most obviously by providing access to an increasingly authoritarian federal administration. Americans, surprisingly, have found the will and energy to organize against this in large numbers that cross the typical political divisions.<p>[1]: <a href=\"https://www.vice.com/en/article/talon-flock-safety-cameras-police-license-plate-reader/\" rel=\"nofollow\">https://www.vice.com/en/article/talon-flock-safety-cameras-p...</a><p>[2]: <a href=\"https://www.mercurynews.com/2017/09/03/early-stage-this-surveillance-tartup-wants-put-cameras-your-neighborhood/\" rel=\"nofollow\">https://www.mercurynews.com/2017/09/03/early-stage-this-surv...</a><p>[3]: <a href=\"https://archive.ph/8wl6n\" rel=\"nofollow\">https://archive.ph/8wl6n</a><p>[4]: <a href=\"https://archive.ph/6KsZP\" rel=\"nofollow\">https://archive.ph/6KsZP</a><p>[5]: <a href=\"https://www.youtube.com/watch?v=GNqZ-Yrzh1o\" rel=\"nofollow\">https://www.youtube.com/watch?v=GNqZ-Yrzh1o</a><p>[6]: <a href=\"https://www.404media.co/tag/flock/\" rel=\"nofollow\">https://www.404media.co/tag/flock/</a>"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_thaumaturgy",
+    "story_49624394"
+   ],
+   "author": "thaumaturgy",
+   "comment_text": "I&#x27;m not centrist, but I think I can give a reasonably fair account. I was among the first to organize against Flock (YC S17).<p>Flock was accepted into YCombinator&#x27;s Spring 2017 batch. Prior to YC, Flock CEO Garrett Langley had had a couple of fair-to-middling business successes and was looking for his next opportunity, which included better toilets. The story goes that he got the idea for Flock after a local police interaction where he happened to have helpful video footage. [1]<p>Flock quietly expanded into HOAs and neighborhood associations [2], and by 2020 had begun developing partnerships with police departments across the country and fusion centers [1], which are regional clearinghouses of data from multiple sources assembled together for law enforcement purposes.<p>By 2025, Flock had managed to grow to 80,000 cameras operational across the country. In June of that year, 404 Media, an independent journalistic outfit comprised in part from former Vice journalists, broke a story about Flock being used in the investigation of a woman who had self-administered an abortion in the state of Texas [3]. Flock quickly released a statement trying to &quot;clarify&quot; the situation, but everyone involved was lying through their teeth [4].<p>Up to this point, Flock had spread across the country in a pretty clever way: they built direct partnerships with police departments through sites and resources they commonly used, like <a href=\"https:&#x2F;&#x2F;www.police1.com&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;www.police1.com&#x2F;</a>, and by hiring former police officers for sales positions. Police departments were coached to consider Flock an &quot;ALPR&quot; (which it very arguably isn&#x27;t), which would make it not &quot;new&quot; technology under most local police technology procurement processes, which meant that police departments could purchase it without city council or other local agency review. To make the purchases, Flock helped to connect police departments with public money in the form of grants. For example, funds might be available for programs meant to reduce &quot;organized retail theft&quot;, and Flock would say, &quot;well, we qualify!&quot;, and then police departments would not use the systems to investigate organized retail theft. [5]<p>Throughout the Summer of 2025, people started asking questions about these weird cameras popping up everywhere, and 404 Media managed to produce one widely-shared article after another about Flock [6]. Other media outfits started to pick it up, and stories getting national attention included law enforcement officers using Flock to stalk former romantic partners or love interests or anyone else they wanted to (because Flock was built without any controls in place to prevent that kind of abuse; Langley himself repeatedly said it wasn&#x27;t their job to do); Flock sharing direct access to data with federal agencies; Flock lying about the direct access that federal agencies had; then federal agencies using Flock&#x27;s data-sharing capabilities to easily get around the really thin limitations that were put on that after reporting about it; Flock being used to surveil protestors; and on and on and on.<p>Essentially, Flock became a textbook case study for every single abuse of state surveillance power you can imagine.<p>Garrett Langley attempted to navigate all of this by absolving Flock of any responsibility, denying any wrongdoing, outright lying in some cases, and referring to people running crowd-sourced maps of Flock installations as &quot;terrorists&quot; -- which, many months later, he would get around to walking back. A little bit.<p>Some groups were able to legally acquire some devices and found that they had really, really poor security generally, and also that they had capabilities that weren&#x27;t being advertised to the public. The prime example of this is that Flock would coach police departments to tell the public that Flock was &quot;just an ALPR&quot; and &quot;only captured pictures of license plates&quot;, but meanwhile the software on the devices was written to capture images of people and bicycles and cats and dogs. On the one hand, the public would be told that the system could only track vehicles; on the other, Flock&#x27;s own marketing materials advertised the ability to find pedestrians by a description of their clothing, and police departments were being trained on how to use the system to follow bicyclists. In another case, Flock representatives would say the system didn&#x27;t have a &quot;heat map&quot; capability (showing a density of hits for a particular license plate in a particular area over time), and then it would turn out that not only did they have that capability, but internal trainings with law enforcement departments were explicitly describing how to use the system to predict where a particular person might be at a particular day and time (called a &quot;pattern of life&quot; search).<p>In 2026, public opposition to Flock has become a national conversation, and states like Oregon have started developing more restrictive legislation around the use of it and similar technology.<p>Flock wasn&#x27;t the first ALPR company. The technology has in fact been around for a while and there are other established players in the space. However, Flock quickly had all of the hallmarks of &quot;surveillance capitalism&quot; -- an effort by investors like YCombinator, Founders Fund, Andreesen Horowitz, and others, to build out a national realtime surveillance network of everyone&#x27;s movements and then monetize it, most obviously by providing access to an increasingly authoritarian federal administration. Americans, surprisingly, have found the will and energy to organize against this in large numbers that cross the typical political divisions.<p>[1]: <a href=\"https:&#x2F;&#x2F;www.vice.com&#x2F;en&#x2F;article&#x2F;talon-flock-safety-cameras-police-license-plate-reader&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;www.vice.com&#x2F;en&#x2F;article&#x2F;talon-flock-safety-cameras-p...</a><p>[2]: <a href=\"https:&#x2F;&#x2F;www.mercurynews.com&#x2F;2017&#x2F;09&#x2F;03&#x2F;early-stage-this-surveillance-tartup-wants-put-cameras-your-neighborhood&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;www.mercurynews.com&#x2F;2017&#x2F;09&#x2F;03&#x2F;early-stage-this-surv...</a><p>[3]: <a href=\"https:&#x2F;&#x2F;archive.ph&#x2F;8wl6n\" rel=\"nofollow\">https:&#x2F;&#x2F;archive.ph&#x2F;8wl6n</a><p>[4]: <a href=\"https:&#x2F;&#x2F;archive.ph&#x2F;6KsZP\" rel=\"nofollow\">https:&#x2F;&#x2F;archive.ph&#x2F;6KsZP</a><p>[5]: <a href=\"https:&#x2F;&#x2F;www.youtube.com&#x2F;watch?v=GNqZ-Yrzh1o\" rel=\"nofollow\">https:&#x2F;&#x2F;www.youtube.com&#x2F;watch?v=GNqZ-Yrzh1o</a><p>[6]: <a href=\"https:&#x2F;&#x2F;www.404media.co&#x2F;tag&#x2F;flock&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;www.404media.co&#x2F;tag&#x2F;flock&#x2F;</a>",
+   "created_at": "2026-09-09T13:38:42Z",
+   "created_at_i": 1788961122,
+   "objectID": "49626381",
+   "parent_id": 49625342,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T16:34:05Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "joenot443"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Animal Farm is interesting partially because its satire is actually extremely poignant and directed; the characters are meant to represent the important actors in the Russian Revolution.<p>Old Major is Marx/Lenin, Napoleon is Stalin Snowball is Trotsky, etc. Regardless of ones <em>nation</em>ality or politics, the story of Russia in 1917 remains one of the most fascinating in our worlds history. For a lot of people, myself included, Animal Farm served as a nice way of being introduced to the tale without getting bogged down by the specifics."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Teen reading slumps to worst this century due to surge in screen time"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://finance.yahoo.com/news/teen-reading-slumps-worst-century-111013754.html"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_joenot443",
+    "story_49625461"
+   ],
+   "author": "joenot443",
+   "comment_text": "Animal Farm is interesting partially because its satire is actually extremely poignant and directed; the characters are meant to represent the important actors in the Russian Revolution.<p>Old Major is Marx&#x2F;Lenin, Napoleon is Stalin Snowball is Trotsky, etc. Regardless of ones nationality or politics, the story of Russia in 1917 remains one of the most fascinating in our worlds history. For a lot of people, myself included, Animal Farm served as a nice way of being introduced to the tale without getting bogged down by the specifics.",
+   "created_at": "2026-09-09T13:34:52Z",
+   "created_at_i": 1788960892,
+   "objectID": "49626312",
+   "parent_id": 49626087,
+   "story_id": 49625461,
+   "story_title": "Teen reading slumps to worst this century due to surge in screen time",
+   "story_url": "https://finance.yahoo.com/news/teen-reading-slumps-worst-century-111013754.html",
+   "updated_at": "2026-09-09T16:12:35Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "cub-creature"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Oh man, exactly. I'm very prone to scope creep as I work on tasks. I already would notice some things that could be fixed or refactored and have a hard time not touching them before I used agents. But now I have to be very intentional about not letting it manipulate me into fixing EVERYTHING RIGHT NOW. Half the time the &quot;one more thing worth <em>notin</em>g, unrelated...&quot; isn't even an actual issue, it just brought it up to fish more usage out of me.<p>Also, while this little demo is certainly exaggerating the issue, I do find working with Claude to sometimes get quite verbose and tiresome. I doubt I would struggle this much to get it to change a button color, but the patterns of speech, the endless lists, the over-explanations, and the whole song and dance of trying to get it to make the change you want without side-effects is frustratingly familiar to me."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Claude, change the \"Add to Cart\" button to blue"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://opusfived.dev/"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_cub-creature",
+    "story_49623754"
+   ],
+   "author": "cub-creature",
+   "comment_text": "Oh man, exactly. I&#x27;m very prone to scope creep as I work on tasks. I already would notice some things that could be fixed or refactored and have a hard time not touching them before I used agents. But now I have to be very intentional about not letting it manipulate me into fixing EVERYTHING RIGHT NOW. Half the time the &quot;one more thing worth noting, unrelated...&quot; isn&#x27;t even an actual issue, it just brought it up to fish more usage out of me.<p>Also, while this little demo is certainly exaggerating the issue, I do find working with Claude to sometimes get quite verbose and tiresome. I doubt I would struggle this much to get it to change a button color, but the patterns of speech, the endless lists, the over-explanations, and the whole song and dance of trying to get it to make the change you want without side-effects is frustratingly familiar to me.",
+   "created_at": "2026-09-09T13:34:50Z",
+   "created_at_i": 1788960890,
+   "objectID": "49626310",
+   "parent_id": 49626166,
+   "story_id": 49623754,
+   "story_title": "Claude, change the \"Add to Cart\" button to blue",
+   "story_url": "https://opusfived.dev/",
+   "updated_at": "2026-09-09T14:47:20Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "LogicFailsMe"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "They'd also have to be self-assembling from the ground up or rely on human slaves. They'd need to understand the world much better. And they'd have to be incredibly more power efficient. These all remain hard problems right now. That said, you could swarm people with cheap drones (the predicted slaughterbots) that were assembled by robots that eventually break down I guess, but how is that any worse than a crazy human with a gun or what <em>nation</em> states do to people they deem enemies already? The worst these things seem capable of is an attack on the infrastructure and shutting down the Internet. Perhaps this is a great time to insure that our infrastructure is capable of operating autonomously indefinitely and hardening it against attack? But unfortunately, no VC or politician will touch that until something bad happens.<p>So broadly, a better educated Blake Lemoine IMO. What's disturbing to me is how fast and far some junior minion from the frontier labs was platformed all the way to the Wall Street Journal over a tweet that sounds exactly like every other anti-AI tweet. I share concerns about irresponsible deployments of AI, and we need technological literacy in the leadership, but America hates technocracy and prefers populism so buckle up."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "I resigned from Anthropic today"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://twitter.com/hilbertspaess/status/2097476196791709843#m"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_LogicFailsMe",
+    "story_49619227"
+   ],
+   "author": "LogicFailsMe",
+   "comment_text": "They&#x27;d also have to be self-assembling from the ground up or rely on human slaves. They&#x27;d need to understand the world much better. And they&#x27;d have to be incredibly more power efficient. These all remain hard problems right now. That said, you could swarm people with cheap drones (the predicted slaughterbots) that were assembled by robots that eventually break down I guess, but how is that any worse than a crazy human with a gun or what nation states do to people they deem enemies already? The worst these things seem capable of is an attack on the infrastructure and shutting down the Internet. Perhaps this is a great time to insure that our infrastructure is capable of operating autonomously indefinitely and hardening it against attack? But unfortunately, no VC or politician will touch that until something bad happens.<p>So broadly, a better educated Blake Lemoine IMO. What&#x27;s disturbing to me is how fast and far some junior minion from the frontier labs was platformed all the way to the Wall Street Journal over a tweet that sounds exactly like every other anti-AI tweet. I share concerns about irresponsible deployments of AI, and we need technological literacy in the leadership, but America hates technocracy and prefers populism so buckle up.",
+   "created_at": "2026-09-09T13:09:36Z",
+   "created_at_i": 1788959376,
+   "objectID": "49625968",
+   "parent_id": 49625253,
+   "story_id": 49619227,
+   "story_title": "I resigned from Anthropic today",
+   "story_url": "https://twitter.com/hilbertspaess/status/2097476196791709843#m",
+   "updated_at": "2026-09-09T13:53:50Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "tyrabound"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "You are of course correct, the issue with this reason and legality based arguments ignore the issue and fact that the capability is the real problem, not whether some local deputy can stalk someone. It’s something I’ve argued with several legal advocacy and rights groups, this is not the time to compromise and rely on case law.<p>I wish people could see that the very reason and way in which flock popped up almost immediately simultaneously all across the country is because it ids actually a domestic spying matrix, not a policing tool. It is a hostile, domestic and foreign enemy capability; not just some misguided mistake.<p>As long as the capability exists, it is “vulnerable” to back door access by foreign “intelligence services” that are just pass throughs to the CIA/FBI in this case through the “five eyes”+.<p>It may be illegal and unconstitutional to do domestic surveillance, which is still done under various “fingers-crossed and therefore the Constitution does not apply” enemy fabrications like <em>nation</em>al security laws/letters that are not even public, even if they are of course checked and approved by Judge Trust me Bro; but nothing stops, e.g., the various illegitimate American departments and agencies from asking the Australians, British, Canadians, Israelis, etc. if they happen to have any information about who you have met with over the last 5 years, or your country asking if you, foreign civil rights advocate, have met with anyone in America that might be helping spread civil rights in their country in exchange for some other NS deal with tweet another devil.<p>I wish we had a legitimate government that could actually be trusted with something like a verified, bullet proof Flock camera system that can only be accessed in a verifiable and auditable manner to actually prevent and solve things like abductions and drug/human trafficking and identify lost elderly; but wet love in a society dominated by devils that make deals with murderers, violate the Constitution constantly and consistently, carve out exceptions where none exist or are permitted, and are pedophiles devious criminals of every order and magnitude. I know all these things for a fact in addition to the fact that flock is not the first or the only method/network of mass surveillance that is already fully deployed around the country and world, and gaslighting, narcissistic lies are used to placate people and bribe them with shiny things and “convenience” to be ok with it.<p>People thought the future would look like some draconian and dystopian 1984, but in reality it is actually the Matrix or even the Minority Report, only far more hidden and with far more Soma.<p>The point being is that there cannot be any compromise at all, because as I will adapt what was said about the topic, “he who trades basic freedom for false security is guaranteed to receive neither.”"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_tyrabound",
+    "story_49624394"
+   ],
+   "author": "tyrabound",
+   "comment_text": "You are of course correct, the issue with this reason and legality based arguments ignore the issue and fact that the capability is the real problem, not whether some local deputy can stalk someone. It’s something I’ve argued with several legal advocacy and rights groups, this is not the time to compromise and rely on case law.<p>I wish people could see that the very reason and way in which flock popped up almost immediately simultaneously all across the country is because it ids actually a domestic spying matrix, not a policing tool. It is a hostile, domestic and foreign enemy capability; not just some misguided mistake.<p>As long as the capability exists, it is “vulnerable” to back door access by foreign “intelligence services” that are just pass throughs to the CIA&#x2F;FBI in this case through the “five eyes”+.<p>It may be illegal and unconstitutional to do domestic surveillance, which is still done under various “fingers-crossed and therefore the Constitution does not apply” enemy fabrications like national security laws&#x2F;letters that are not even public, even if they are of course checked and approved by Judge Trust me Bro; but nothing stops, e.g., the various illegitimate American departments and agencies from asking the Australians, British, Canadians, Israelis, etc. if they happen to have any information about who you have met with over the last 5 years, or your country asking if you, foreign civil rights advocate, have met with anyone in America that might be helping spread civil rights in their country in exchange for some other NS deal with tweet another devil.<p>I wish we had a legitimate government that could actually be trusted with something like a verified, bullet proof Flock camera system that can only be accessed in a verifiable and auditable manner to actually prevent and solve things like abductions and drug&#x2F;human trafficking and identify lost elderly; but wet love in a society dominated by devils that make deals with murderers, violate the Constitution constantly and consistently, carve out exceptions where none exist or are permitted, and are pedophiles devious criminals of every order and magnitude. I know all these things for a fact in addition to the fact that flock is not the first or the only method&#x2F;network of mass surveillance that is already fully deployed around the country and world, and gaslighting, narcissistic lies are used to placate people and bribe them with shiny things and “convenience” to be ok with it.<p>People thought the future would look like some draconian and dystopian 1984, but in reality it is actually the Matrix or even the Minority Report, only far more hidden and with far more Soma.<p>The point being is that there cannot be any compromise at all, because as I will adapt what was said about the topic, “he who trades basic freedom for false security is guaranteed to receive neither.”",
+   "created_at": "2026-09-09T13:08:32Z",
+   "created_at_i": 1788959312,
+   "objectID": "49625952",
+   "parent_id": 49625023,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T14:36:52Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "bko"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "That's funny because ANPR systems are much looser in other countries including much longer retention. It helps that you don't have <em>nation</em>al newspapers printing negative articles around the technology every day!"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_bko",
+    "story_49624394"
+   ],
+   "author": "bko",
+   "comment_text": "That&#x27;s funny because ANPR systems are much looser in other countries including much longer retention. It helps that you don&#x27;t have national newspapers printing negative articles around the technology every day!",
+   "created_at": "2026-09-09T12:56:32Z",
+   "created_at_i": 1788958592,
+   "objectID": "49625794",
+   "parent_id": 49625636,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T14:40:36Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "jere"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "I tried to word my comment carefully to avoid pedantry, but alas.<p>I don't think everyone agree with your <em>notion</em> that the language and tools of mathematics aren't human inventions."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Navier-Stokes – Tristan Buckmaster [pdf]"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://cims.nyu.edu/~tristanb/statement.pdf"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_jere",
+    "story_49605915"
+   ],
+   "author": "jere",
+   "comment_text": "I tried to word my comment carefully to avoid pedantry, but alas.<p>I don&#x27;t think everyone agree with your notion that the language and tools of mathematics aren&#x27;t human inventions.",
+   "created_at": "2026-09-09T12:44:40Z",
+   "created_at_i": 1788957880,
+   "objectID": "49625646",
+   "parent_id": 49620989,
+   "story_id": 49605915,
+   "story_title": "Navier-Stokes – Tristan Buckmaster [pdf]",
+   "story_url": "https://cims.nyu.edu/~tristanb/statement.pdf",
+   "updated_at": "2026-09-09T12:50:22Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "dcre"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Worth <em>notin</em>g they claim they did not choose the line of attack. Of course we don’t know whether that is true."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "How An AI math breakthrough ignited a controversy"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.science.org/content/article/how-ai-math-breakthrough-ignited-controversy"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_dcre",
+    "story_49624163"
+   ],
+   "author": "dcre",
+   "children": [
+    49626301
+   ],
+   "comment_text": "Worth noting they claim they did not choose the line of attack. Of course we don’t know whether that is true.",
+   "created_at": "2026-09-09T12:42:53Z",
+   "created_at_i": 1788957773,
+   "objectID": "49625620",
+   "parent_id": 49624832,
+   "story_id": 49624163,
+   "story_title": "How An AI math breakthrough ignited a controversy",
+   "story_url": "https://www.science.org/content/article/how-ai-math-breakthrough-ignited-controversy",
+   "updated_at": "2026-09-09T15:16:37Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "dguest"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; [the Open AI rep] twice asserted that he wanted Levent removed from authorship, and said it would all be simple if only it were not the case that, and it was so annoying that, Levent works at Anthropic.<p>Later on the author claims that the OpenAI rep threatened to ruin his career if he didn't go along with them.<p>Worth <em>notin</em>g that there were two versions of the problem:<p>- the proof in the equations with viscosity (which OpenAI claims to have solved), and<p>- the proof with no viscosity (which Tristian and Levent solved)<p>What is confusing is that if OpenAI can prove their independence from Levent and Tristian, they could take full credit for proving the viscous version of the problem. Offering to give one author credit for something they proved seems like a strange choice: if nothing else it seems obvious that it would drive a very deep wedge between the two authors of the non-viscous version.<p>see <a href=\"https://cims.nyu.edu/~tristanb/statement.pdf#page=3\" rel=\"nofollow\">https://cims.nyu.edu/~tristanb/statement.pdf#page=3</a>"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "How An AI math breakthrough ignited a controversy"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.science.org/content/article/how-ai-math-breakthrough-ignited-controversy"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_dguest",
+    "story_49624163"
+   ],
+   "author": "dguest",
+   "children": [
+    49626240
+   ],
+   "comment_text": "&gt; [the Open AI rep] twice asserted that he wanted Levent removed from authorship, and said it would all be simple if only it were not the case that, and it was so annoying that, Levent works at Anthropic.<p>Later on the author claims that the OpenAI rep threatened to ruin his career if he didn&#x27;t go along with them.<p>Worth noting that there were two versions of the problem:<p>- the proof in the equations with viscosity (which OpenAI claims to have solved), and<p>- the proof with no viscosity (which Tristian and Levent solved)<p>What is confusing is that if OpenAI can prove their independence from Levent and Tristian, they could take full credit for proving the viscous version of the problem. Offering to give one author credit for something they proved seems like a strange choice: if nothing else it seems obvious that it would drive a very deep wedge between the two authors of the non-viscous version.<p>see <a href=\"https:&#x2F;&#x2F;cims.nyu.edu&#x2F;~tristanb&#x2F;statement.pdf#page=3\" rel=\"nofollow\">https:&#x2F;&#x2F;cims.nyu.edu&#x2F;~tristanb&#x2F;statement.pdf#page=3</a>",
+   "created_at": "2026-09-09T12:23:08Z",
+   "created_at_i": 1788956588,
+   "objectID": "49625379",
+   "parent_id": 49625105,
+   "story_id": 49624163,
+   "story_title": "How An AI math breakthrough ignited a controversy",
+   "story_url": "https://www.science.org/content/article/how-ai-math-breakthrough-ignited-controversy",
+   "updated_at": "2026-09-09T15:25:21Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "angoragoats"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "A self-sustaining reaction is exactly what happens with the fissionable material inside the nuclear weapon[0]. It seems like you’re trying to be pedantic on terminology here, but if you’re saying that a self-sustaining reaction is as un-scientific as a perpetual\n<em>motion</em> machine, you’re simply incorrect.<p>[0] <a href=\"https://en.wikipedia.org/wiki/Criticality_(status)\" rel=\"nofollow\">https://en.wikipedia.org/wiki/Criticality_(status)</a>"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "I resigned from Anthropic today"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://twitter.com/hilbertspaess/status/2097476196791709843#m"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_angoragoats",
+    "story_49619227"
+   ],
+   "author": "angoragoats",
+   "comment_text": "A self-sustaining reaction is exactly what happens with the fissionable material inside the nuclear weapon[0]. It seems like you’re trying to be pedantic on terminology here, but if you’re saying that a self-sustaining reaction is as un-scientific as a perpetual\nmotion machine, you’re simply incorrect.<p>[0] <a href=\"https:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Criticality_(status)\" rel=\"nofollow\">https:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Criticality_(status)</a>",
+   "created_at": "2026-09-09T12:22:46Z",
+   "created_at_i": 1788956566,
+   "objectID": "49625372",
+   "parent_id": 49623109,
+   "story_id": 49619227,
+   "story_title": "I resigned from Anthropic today",
+   "story_url": "https://twitter.com/hilbertspaess/status/2097476196791709843#m",
+   "updated_at": "2026-09-09T16:39:39Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "whateverboat"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; Now that we can see their work, the approaches appear to be different. It is also worth <em>notin</em>g that our latest model can solve many, many other math problems.<p>Is that a threat?"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Navier-Stokes – Tristan Buckmaster [pdf]"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://cims.nyu.edu/~tristanb/statement.pdf"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_whateverboat",
+    "story_49605915"
+   ],
+   "author": "whateverboat",
+   "comment_text": "&gt; Now that we can see their work, the approaches appear to be different. It is also worth noting that our latest model can solve many, many other math problems.<p>Is that a threat?",
+   "created_at": "2026-09-09T12:18:18Z",
+   "created_at_i": 1788956298,
+   "objectID": "49625310",
+   "parent_id": 49614592,
+   "story_id": 49605915,
+   "story_title": "Navier-Stokes – Tristan Buckmaster [pdf]",
+   "story_url": "https://cims.nyu.edu/~tristanb/statement.pdf",
+   "updated_at": "2026-09-09T12:19:19Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "mixxit"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "It's interesting that we stunt ourselves while we sit in the dust as other <em>nation</em>s steal ip"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Copyright does more harm than good and should be abolished"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://grapheneos.social/@GrapheneOS/117231186011306184"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_mixxit",
+    "story_49622042"
+   ],
+   "author": "mixxit",
+   "comment_text": "It&#x27;s interesting that we stunt ourselves while we sit in the dust as other nations steal ip",
+   "created_at": "2026-09-09T12:13:09Z",
+   "created_at_i": 1788955989,
+   "objectID": "49625234",
+   "parent_id": 49622042,
+   "story_id": 49622042,
+   "story_title": "Copyright does more harm than good and should be abolished",
+   "story_url": "https://grapheneos.social/@GrapheneOS/117231186011306184",
+   "updated_at": "2026-09-09T12:13:50Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "krige"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; There isn’t, and has never been, a <em>nation</em> in human history where regular people have meaningful recourse against random targeting by the government. This is as true in Sweden as it is in China.<p>Truly spoken like someone who lives in neither."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_krige",
+    "story_49624394"
+   ],
+   "author": "krige",
+   "comment_text": "&gt; There isn’t, and has never been, a nation in human history where regular people have meaningful recourse against random targeting by the government. This is as true in Sweden as it is in China.<p>Truly spoken like someone who lives in neither.",
+   "created_at": "2026-09-09T12:08:07Z",
+   "created_at_i": 1788955687,
+   "objectID": "49625175",
+   "parent_id": 49625088,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T12:35:22Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "presentation"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Putting aside how disproportionately noisy some activist types are, it probably has to do with Americans having practically no trust in one another, corporations in particular, and their government by extension. At the same time, Americans tend to value some positive forms of liberty - like the ability to say and do what you want in one moment - far more than other forms of liberty - like the ability for all people to feel safe enough to be able to do the things they want.<p>I’m an American living in Japan, I’ve always felt a great sense of liberty because of how safe it is here; I can live a lifestyle that would get me robbed pretty much immediately in the USA. While crime rates have always been relatively low here; part of that is because Japan got tough on crime around the turn of the century, and one part of that was pervasive rollout of automated license scanners used for reconstructing vehicle movement, like Flock. I suspect that Japanese people didn’t accept this because they don’t care about privacy - they absolutely do - but instead because they have a healthy enough social context to be able to consider the tradeoffs, and a government responsive enough to design around those tradeoffs; rather than immediately flying into a rage and vandalizing their cities like some angry Americans are doing now.<p>The same thing plays out for other things that would pretty clearly be a good thing, like having a real secure <em>nation</em>al ID instead of relying on social security numbers for identity verification (terrible). Can’t do it, people (as well as criminals) value the liberty of being difficult to trace far more than the liberty of not being defrauded regularly, or having a civil service that is able to do basic functions like authenticating you for benefits efficiently. Sigh…"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_presentation",
+    "story_49624394"
+   ],
+   "author": "presentation",
+   "children": [
+    49625386
+   ],
+   "comment_text": "Putting aside how disproportionately noisy some activist types are, it probably has to do with Americans having practically no trust in one another, corporations in particular, and their government by extension. At the same time, Americans tend to value some positive forms of liberty - like the ability to say and do what you want in one moment - far more than other forms of liberty - like the ability for all people to feel safe enough to be able to do the things they want.<p>I’m an American living in Japan, I’ve always felt a great sense of liberty because of how safe it is here; I can live a lifestyle that would get me robbed pretty much immediately in the USA. While crime rates have always been relatively low here; part of that is because Japan got tough on crime around the turn of the century, and one part of that was pervasive rollout of automated license scanners used for reconstructing vehicle movement, like Flock. I suspect that Japanese people didn’t accept this because they don’t care about privacy - they absolutely do - but instead because they have a healthy enough social context to be able to consider the tradeoffs, and a government responsive enough to design around those tradeoffs; rather than immediately flying into a rage and vandalizing their cities like some angry Americans are doing now.<p>The same thing plays out for other things that would pretty clearly be a good thing, like having a real secure national ID instead of relying on social security numbers for identity verification (terrible). Can’t do it, people (as well as criminals) value the liberty of being difficult to trace far more than the liberty of not being defrauded regularly, or having a civil service that is able to do basic functions like authenticating you for benefits efficiently. Sigh…",
+   "created_at": "2026-09-09T12:05:44Z",
+   "created_at_i": 1788955544,
+   "objectID": "49625161",
+   "parent_id": 49624822,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T13:19:55Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "undefeated"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; A 2012 paper on dishonesty — published in the Proceedings of the <em>Nation</em>al Academy of Sciences and coauthored by Harvard researcher Francesca Gino — was also retracted over concerns data in the study were fabricated.<p>Mfw when the paper on dishonesty in fact dishonest"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Procrastination study by Duke's Dan Ariely retracted"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://retractionwatch.com/2026/09/03/procrastination-study-duke-dan-ariely-psychological-science-data-colada-tampering-retraction/"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_undefeated",
+    "story_49624136"
+   ],
+   "author": "undefeated",
+   "comment_text": "&gt; A 2012 paper on dishonesty — published in the Proceedings of the National Academy of Sciences and coauthored by Harvard researcher Francesca Gino — was also retracted over concerns data in the study were fabricated.<p>Mfw when the paper on dishonesty in fact dishonest",
+   "created_at": "2026-09-09T12:02:19Z",
+   "created_at_i": 1788955339,
+   "objectID": "49625120",
+   "parent_id": 49624136,
+   "story_id": 49624136,
+   "story_title": "Procrastination study by Duke's Dan Ariely retracted",
+   "story_url": "https://retractionwatch.com/2026/09/03/procrastination-study-duke-dan-ariely-psychological-science-data-colada-tampering-retraction/",
+   "updated_at": "2026-09-09T12:08:36Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "p-e-w"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; And very little ability for anyone or any group of people from any walk of life to resist getting screwed by the government if the government chooses to screw them.<p>There isn’t, and has never been, a <em>nation</em> in human history where regular people have meaningful recourse against random targeting by the government. This is as true in Sweden as it is in China.<p>The best you can hope for is that a court eventually rules in your favor, after years or decades of spending all your money and energy on it, having your life utterly destroyed in the process, and at the end you get a half-hearted apology (very often not even that), plus a tiny fraction of your expenses back if you’re really lucky. The shame and desperation will be with you until your last day.<p>This happens all the time and absolutely everywhere in the world. I’m not even convinced it happens more frequently in China than elsewhere, though people in the West certainly like to pretend so."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_p-e-w",
+    "story_49624394"
+   ],
+   "author": "p-e-w",
+   "children": [
+    49625175,
+    49625331
+   ],
+   "comment_text": "&gt; And very little ability for anyone or any group of people from any walk of life to resist getting screwed by the government if the government chooses to screw them.<p>There isn’t, and has never been, a nation in human history where regular people have meaningful recourse against random targeting by the government. This is as true in Sweden as it is in China.<p>The best you can hope for is that a court eventually rules in your favor, after years or decades of spending all your money and energy on it, having your life utterly destroyed in the process, and at the end you get a half-hearted apology (very often not even that), plus a tiny fraction of your expenses back if you’re really lucky. The shame and desperation will be with you until your last day.<p>This happens all the time and absolutely everywhere in the world. I’m not even convinced it happens more frequently in China than elsewhere, though people in the West certainly like to pretend so.",
+   "created_at": "2026-09-09T12:00:20Z",
+   "created_at_i": 1788955220,
+   "objectID": "49625088",
+   "parent_id": 49624892,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T15:40:20Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "mschuster91"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; US and European payers aren't paying for neither R&amp;D nor amortization.<p>Of course we do. A lot of the foundational research happens at universities, funded with taxpayer money in the form of research grants.<p>&gt;  They're paying a negotiated price that depends mostly on how much value the drug provides to the patient and the health system.<p>Only partially. The pharma companies roughly know how much it cost them to get the compound past all the trial stages and how many compounds failed along the path. The usual method is that the rich <em>nation</em>s pay for R&amp;D amortization and poor countries pay at-cost for manufacture."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Copyright does more harm than good and should be abolished"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://grapheneos.social/@GrapheneOS/117231186011306184"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_mschuster91",
+    "story_49622042"
+   ],
+   "author": "mschuster91",
+   "comment_text": "&gt; US and European payers aren&#x27;t paying for neither R&amp;D nor amortization.<p>Of course we do. A lot of the foundational research happens at universities, funded with taxpayer money in the form of research grants.<p>&gt;  They&#x27;re paying a negotiated price that depends mostly on how much value the drug provides to the patient and the health system.<p>Only partially. The pharma companies roughly know how much it cost them to get the compound past all the trial stages and how many compounds failed along the path. The usual method is that the rich nations pay for R&amp;D amortization and poor countries pay at-cost for manufacture.",
+   "created_at": "2026-09-09T11:57:03Z",
+   "created_at_i": 1788955023,
+   "objectID": "49625051",
+   "parent_id": 49624565,
+   "story_id": 49622042,
+   "story_title": "Copyright does more harm than good and should be abolished",
+   "story_url": "https://grapheneos.social/@GrapheneOS/117231186011306184",
+   "updated_at": "2026-09-09T15:31:38Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "bko"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Don't forget Belgium, Netherlands, sweden, Germany, France and many others!<p>Google <em>nation</em>al ANPR [country]"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_bko",
+    "story_49624394"
+   ],
+   "author": "bko",
+   "children": [
+    49625636,
+    49625102
+   ],
+   "comment_text": "Don&#x27;t forget Belgium, Netherlands, sweden, Germany, France and many others!<p>Google national ANPR [country]",
+   "created_at": "2026-09-09T11:56:43Z",
+   "created_at_i": 1788955003,
+   "objectID": "49625046",
+   "parent_id": 49624865,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T14:40:36Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "jqpabc123"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "US-Based Artificial Intelligence Companies Conducting Industrial-Scale Distillation Campaigns Against Content Creators And Copyright Holders World Wide.<p>What is good for the goose is not good for the gander?<p>Even when endorsed by the US administration as &quot;fair use&quot; and &quot;consistent with the <em>nation</em>al interest in promoting innovation and free expression&quot;?<p><a href=\"https://www.yahoo.com/news/politics/articles/trump-admin-court-ai-training-190918495.html\" rel=\"nofollow\">https://www.yahoo.com/news/politics/articles/trump-admin-cou...</a><p>Inquiring minds want to know --- what happens when everything has been stolen and content creators are out of business? What happens to &quot;free expression&quot; once everything is behind an AI pay wall?<p>Is this &quot;consistent with the <em>nation</em>al interest&quot;?"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "China-Based AI Companies Conducting Industrial-Scale Distillation Campaigns"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-251a"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_jqpabc123",
+    "story_49624585"
+   ],
+   "author": "jqpabc123",
+   "comment_text": "US-Based Artificial Intelligence Companies Conducting Industrial-Scale Distillation Campaigns Against Content Creators And Copyright Holders World Wide.<p>What is good for the goose is not good for the gander?<p>Even when endorsed by the US administration as &quot;fair use&quot; and &quot;consistent with the national interest in promoting innovation and free expression&quot;?<p><a href=\"https:&#x2F;&#x2F;www.yahoo.com&#x2F;news&#x2F;politics&#x2F;articles&#x2F;trump-admin-court-ai-training-190918495.html\" rel=\"nofollow\">https:&#x2F;&#x2F;www.yahoo.com&#x2F;news&#x2F;politics&#x2F;articles&#x2F;trump-admin-cou...</a><p>Inquiring minds want to know --- what happens when everything has been stolen and content creators are out of business? What happens to &quot;free expression&quot; once everything is behind an AI pay wall?<p>Is this &quot;consistent with the national interest&quot;?",
+   "created_at": "2026-09-09T11:53:55Z",
+   "created_at_i": 1788954835,
+   "objectID": "49625008",
+   "parent_id": 49624585,
+   "story_id": 49624585,
+   "story_title": "China-Based AI Companies Conducting Industrial-Scale Distillation Campaigns",
+   "story_url": "https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-251a",
+   "updated_at": "2026-09-09T12:28:35Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Havoc"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "Nothing global yet, but europe's regional wero network is making progress. Russia, China, India, Brazil etc all have <em>nation</em>al ones too.<p>It's late and slow but everyone is realizing that it's a good idea to move away from the US"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "DHS 'Predictive Policing' Unit Is Analyzing Americans' Financial Habits"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.404media.co/a-secretive-dhs-predictive-policing-unit-is-analyzing-americans-financial-habits-and-pulling-them-over/"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_Havoc",
+    "story_49610988"
+   ],
+   "author": "Havoc",
+   "comment_text": "Nothing global yet, but europe&#x27;s regional wero network is making progress. Russia, China, India, Brazil etc all have national ones too.<p>It&#x27;s late and slow but everyone is realizing that it&#x27;s a good idea to move away from the US",
+   "created_at": "2026-09-09T11:52:12Z",
+   "created_at_i": 1788954732,
+   "objectID": "49624979",
+   "parent_id": 49613315,
+   "story_id": 49610988,
+   "story_title": "DHS 'Predictive Policing' Unit Is Analyzing Americans' Financial Habits",
+   "story_url": "https://www.404media.co/a-secretive-dhs-predictive-policing-unit-is-analyzing-americans-financial-habits-and-pulling-them-over/",
+   "updated_at": "2026-09-09T11:53:24Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "antonvs"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; Never understood why the outrage of flock in particular is so big online.<p>A big reason is because there's virtually no oversight, and it's managed by a single private corporation <em>nation</em>wide. Neither of those things are true in the UK case.<p>You should really educate yourself on things like this. They matter, and by your apathy and ignorance you're helping sleepwalk your country into a dystopia."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_antonvs",
+    "story_49624394"
+   ],
+   "author": "antonvs",
+   "comment_text": "&gt; Never understood why the outrage of flock in particular is so big online.<p>A big reason is because there&#x27;s virtually no oversight, and it&#x27;s managed by a single private corporation nationwide. Neither of those things are true in the UK case.<p>You should really educate yourself on things like this. They matter, and by your apathy and ignorance you&#x27;re helping sleepwalk your country into a dystopia.",
+   "created_at": "2026-09-09T11:50:57Z",
+   "created_at_i": 1788954657,
+   "objectID": "49624961",
+   "parent_id": 49624822,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T12:52:05Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "BoxOfRain"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; the US still has enough pull that it could probably get most western <em>nation</em>s to march in line<p>The US absolutely could <i>coerce</i> the rest of the West in the short term, but everything that's happened in the last decade calls the long-term future of Atlanticism into serious question and such action would accelerate this process I think. If coordination came as an order from Uncle Sam, it would be seen not as a legitimate act of ensuring collective safety but as mere technological imperialism on America's part."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Gambling with our lives: AI researcher quits Anthropic with warning about safety"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.politico.eu/article/anthropic-openai-researcher-jacob-coxon-warns-ai-could-kill-humans/"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_BoxOfRain",
+    "story_49623306"
+   ],
+   "author": "BoxOfRain",
+   "comment_text": "&gt; the US still has enough pull that it could probably get most western nations to march in line<p>The US absolutely could <i>coerce</i> the rest of the West in the short term, but everything that&#x27;s happened in the last decade calls the long-term future of Atlanticism into serious question and such action would accelerate this process I think. If coordination came as an order from Uncle Sam, it would be seen not as a legitimate act of ensuring collective safety but as mere technological imperialism on America&#x27;s part.",
+   "created_at": "2026-09-09T11:44:40Z",
+   "created_at_i": 1788954280,
+   "objectID": "49624873",
+   "parent_id": 49624111,
+   "story_id": 49623306,
+   "story_title": "Gambling with our lives: AI researcher quits Anthropic with warning about safety",
+   "story_url": "https://www.politico.eu/article/anthropic-openai-researcher-jacob-coxon-warns-ai-could-kill-humans/",
+   "updated_at": "2026-09-09T11:47:35Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "bko"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "I was surprised to learn that many countries have what amounts to a flock equivalent. UK for instance has a <em>Nation</em>al ANPR Service w 12k fixed cameras and 90-100m plates read a day. They also store it much longer.<p>Never understood why the outrage of flock in particular is so big online.<p><a href=\"https://www.gov.uk/government/publications/national-anpr-service-data-protection-impact-assessment/national-anpr-service-data-protection-impact-assessment-accessible\" rel=\"nofollow\">https://www.gov.uk/government/publications/<em>nation</em>al-anpr-ser...</a>"
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Flock Wants a Closely Surveilled World with No Exit"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_bko",
+    "story_49624394"
+   ],
+   "author": "bko",
+   "children": [
+    49624841,
+    49624869,
+    49624875,
+    49624894,
+    49624895,
+    49624865,
+    49625161,
+    49625642,
+    49625166,
+    49627128,
+    49624874,
+    49624942,
+    49624961
+   ],
+   "comment_text": "I was surprised to learn that many countries have what amounts to a flock equivalent. UK for instance has a National ANPR Service w 12k fixed cameras and 90-100m plates read a day. They also store it much longer.<p>Never understood why the outrage of flock in particular is so big online.<p><a href=\"https:&#x2F;&#x2F;www.gov.uk&#x2F;government&#x2F;publications&#x2F;national-anpr-service-data-protection-impact-assessment&#x2F;national-anpr-service-data-protection-impact-assessment-accessible\" rel=\"nofollow\">https:&#x2F;&#x2F;www.gov.uk&#x2F;government&#x2F;publications&#x2F;national-anpr-ser...</a>",
+   "created_at": "2026-09-09T11:39:43Z",
+   "created_at_i": 1788953983,
+   "objectID": "49624822",
+   "parent_id": 49624394,
+   "story_id": 49624394,
+   "story_title": "Flock Wants a Closely Surveilled World with No Exit",
+   "story_url": "https://www.newyorker.com/culture/infinite-scroll/flock-wants-a-closely-surveilled-world-with-no-exit",
+   "updated_at": "2026-09-09T15:31:08Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "irishcoffee"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "&gt; Less maintenance the traditional engine.<p>I can tell you from experience it really isn't much less. Stale gas, dry-rotted hoses, dry/cracked seals, failed starter, fried ECU, fried coolant pump. Also account for the entire other subsystem, the IG. A complex subsystem with an entirely different set of warts: shredded splines, cracked coolant lines, corroded LV/MV connectors, leaky coolant lines, fused contactor.<p>Perhaps the most salient point is how it isn't great for the battery. Your BMS system needs to be amazing to make sure the battery cells charge relatively evenly or you'll start frying cells. Even if it is amazing, you'll probably fry cells.<p>It works extremely well at adding range to an EV ground vehicle, I saw it work and it was really cool. The amount of headache it added relative to a pure EV vehicle was just incredible.<p>Edit: to add, a PHEV is only <em>notion</em>ally comparable to this system. Your engine probably ran every 2nd-erd time you drove it. If people don't start and run their engine once a month, just like a home generator (and nobody does that) the problems multiply.<p>I don't wish to argue with you, this was my day job for a long time, spent as much time with a meter as I did writing software on that program, it was really fun. The reliability was pretty meh."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Carmakers Have a New Idea to Boost EV Range: Add a Gas Engine"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.wsj.com/business/autos/carmakers-have-a-new-idea-to-boost-ev-range-add-a-gas-engine-16bbcc34"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_irishcoffee",
+    "story_49623996"
+   ],
+   "author": "irishcoffee",
+   "children": [
+    49625064
+   ],
+   "comment_text": "&gt; Less maintenance the traditional engine.<p>I can tell you from experience it really isn&#x27;t much less. Stale gas, dry-rotted hoses, dry&#x2F;cracked seals, failed starter, fried ECU, fried coolant pump. Also account for the entire other subsystem, the IG. A complex subsystem with an entirely different set of warts: shredded splines, cracked coolant lines, corroded LV&#x2F;MV connectors, leaky coolant lines, fused contactor.<p>Perhaps the most salient point is how it isn&#x27;t great for the battery. Your BMS system needs to be amazing to make sure the battery cells charge relatively evenly or you&#x27;ll start frying cells. Even if it is amazing, you&#x27;ll probably fry cells.<p>It works extremely well at adding range to an EV ground vehicle, I saw it work and it was really cool. The amount of headache it added relative to a pure EV vehicle was just incredible.<p>Edit: to add, a PHEV is only notionally comparable to this system. Your engine probably ran every 2nd-erd time you drove it. If people don&#x27;t start and run their engine once a month, just like a home generator (and nobody does that) the problems multiply.<p>I don&#x27;t wish to argue with you, this was my day job for a long time, spent as much time with a meter as I did writing software on that program, it was really fun. The reliability was pretty meh.",
+   "created_at": "2026-09-09T11:35:19Z",
+   "created_at_i": 1788953719,
+   "objectID": "49624763",
+   "parent_id": 49624552,
+   "story_id": 49623996,
+   "story_title": "Carmakers Have a New Idea to Boost EV Range: Add a Gas Engine",
+   "story_url": "https://www.wsj.com/business/autos/carmakers-have-a-new-idea-to-boost-ev-range-add-a-gas-engine-16bbcc34",
+   "updated_at": "2026-09-09T15:50:51Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "nirui"
+    },
+    "comment_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "notion"
+     ],
+     "value": "If I may guess, given how delicate chem or bio weapons are, even if AI can lay out a method to create one, the first thing the weapon would destroy is likely it's creator(s).<p>Of course, with the exception that such weapon is created by organized crime groups, such as drug cartels such.<p><i>Probably</i> don't worry <em>nation</em> states tho, these guys already got way worse things in their warehouses than what individual baddies could ever imagine."
+    },
+    "story_title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "I resigned from Anthropic today"
+    },
+    "story_url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://twitter.com/hilbertspaess/status/2097476196791709843#m"
+    }
+   },
+   "_tags": [
+    "comment",
+    "author_nirui",
+    "story_49619227"
+   ],
+   "author": "nirui",
+   "comment_text": "If I may guess, given how delicate chem or bio weapons are, even if AI can lay out a method to create one, the first thing the weapon would destroy is likely it&#x27;s creator(s).<p>Of course, with the exception that such weapon is created by organized crime groups, such as drug cartels such.<p><i>Probably</i> don&#x27;t worry nation states tho, these guys already got way worse things in their warehouses than what individual baddies could ever imagine.",
+   "created_at": "2026-09-09T10:38:19Z",
+   "created_at_i": 1788950299,
+   "objectID": "49624264",
+   "parent_id": 49619710,
+   "story_id": 49619227,
+   "story_title": "I resigned from Anthropic today",
+   "story_url": "https://twitter.com/hilbertspaess/status/2097476196791709843#m",
+   "updated_at": "2026-09-09T10:39:35Z"
+  }
+ ],
+ "hitsPerPage": 50,
+ "nbHits": 433175,
+ "nbPages": 20,
+ "page": 0,
+ "params": "query=notion&tags=comment&hitsPerPage=50&page=0&advancedSyntax=true&analyticsTags=backend",
+ "processingTimeMS": 86,
+ "processingTimingsMS": {
+  "_request": {
+   "roundTrip": 22
+  },
+  "afterFetch": {
+   "format": {
+    "highlighting": 3,
+    "total": 3
+   }
+  },
+  "fetch": {
+   "query": 8,
+   "scanning": 76,
+   "total": 85
+  },
+  "total": 86
+ },
+ "query": "notion",
+ "serverTimeMS": 90
+}

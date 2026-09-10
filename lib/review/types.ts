@@ -64,6 +64,15 @@ export interface ParsedReview {
   authorMasked: string | null
   /** ISO date (YYYY-MM-DD). 원본은 '2025.09.06.' 형식이라 시각이 없다. */
   writtenAt: string | null
+  /**
+   * 이 리뷰가 달린 상위 문서(스레드/게시글)의 소스 내 id(옵셔널).
+   *
+   * hackernews 만 채운다 — HN 은 한 스레드에 여러 댓글이 걸리고, 스레드
+   * 단위 신호(score 등)를 나중에 배치로 덧붙이려면 어느 스레드인지가 필요하다
+   * (scripts/review-hackernews-enrich.mjs). 다나와·appstore 는 상품 1개 =
+   * 타깃 1개라 이 개념이 없다(null).
+   */
+  storyId?: string | null
 }
 
 export interface ParseResult {
@@ -78,6 +87,18 @@ export interface ParseResult {
    *    똑같이 보인다. 후자가 구조 변경 신호이고 건강도 판정의 입력이다.
    */
   parseFailures: number
+  /**
+   * 필드는 정상적으로 읽었지만 **질의와 무관**해서 버린 수(옵셔널).
+   *
+   * ⚠️ parseFailures 와 별개다. 이건 구조 문제가 아니라 소스가 관련 없는
+   *    결과를 섞어 준 것이다. 여기 세면 건강도 판정의 파싱 성공률 분모
+   *    (reviewsParsed + parseFailures)에 안 들어가 — 관련없음이 많다고
+   *    소스가 broken 으로 꺼지지 않는다.
+   *
+   * 현재 hackernews 만 사용한다(Algolia search_by_date 가 키워드 무관 최신
+   * 댓글을 섞어 준다). 안 쓰는 어댑터는 이 필드를 두지 않는다(undefined).
+   */
+  filtered?: number
 }
 
 export interface ReviewSourceAdapter {

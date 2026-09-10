@@ -92,6 +92,91 @@ t('규칙 앞에 User-agent 가 없으면 무시', allowed('Disallow: /a\n', '/a
 t('알 수 없는 필드는 건너뛴다', allowed('User-agent: *\nCrawl-delay: 10\nDisallow: /a\n', '/a'), false)
 t('Sitemap 줄이 그룹을 깨지 않는다', allowed('User-agent: *\nDisallow: /a\nSitemap: https://x/s.xml\n', '/a'), false)
 
+// ── 와일드카드 `*` 와 끝앵커 `$` (RFC 9309 §2.2.2) ────────────────
+// 실측 사례: hacker-news.firebaseio.com/robots.txt 는 `Disallow: /` 로 전부 막고
+// `Allow: /*.json$` 로 API 만 연다. 접두사 비교만 하던 시절엔 이 Allow 가 어떤
+// 경로에도 안 걸려 "전부 금지"로 읽혔다.
+const firebase = [
+  'User-agent: *',
+  'Allow: /*.json$',
+  'Allow: /*.json?*$',
+  'Disallow: /',
+  '',
+].join('\n')
+t('와일드카드 Allow — .json 은 허용', allowed(firebase, '/v0/item/49628981.json'), true)
+t(
+  '와일드카드 Allow — 쿼리 붙은 .json 도 허용(두 번째 규칙)',
+  allowed(firebase, '/v0/item/49628981.json?print=true'),
+  true,
+)
+t('와일드카드 Allow — 그 외 경로는 Disallow: / 유지', allowed(firebase, '/some/other/path'), false)
+t(
+  '와일드카드 Allow — reason 이 실제 적용 규칙을 가리킨다',
+  robotsVerdict(parseRobots(firebase), '/v0/item/1.json', TOKEN).reason,
+  'Allow: /*.json$',
+)
+
+// 더 위험한 방향. 와일드카드 Disallow 가 조용히 무시되면 막아야 할 걸 못 막는다.
+const pdf = 'User-agent: *\nDisallow: /*.pdf$\n'
+t('와일드카드 Disallow — .pdf 로 끝나면 금지', allowed(pdf, '/report.pdf'), false)
+t('와일드카드 Disallow — 깊은 경로의 .pdf 도 금지', allowed(pdf, '/a/b/report.pdf'), false)
+t('끝앵커 — .pdf 로 끝나지 않으면 허용', allowed(pdf, '/report.pdf.html'), true)
+t('끝앵커 — 쿼리가 붙으면 끝이 아니다', allowed(pdf, '/report.pdf?x=1'), true)
+
+t('`*` 는 길이 0 과도 매칭', allowed('User-agent: *\nDisallow: /a*b\n', '/ab'), false)
+t('`*` 중간 매칭', allowed('User-agent: *\nDisallow: /a*b\n', '/a/x/y/b/c'), false)
+t('`*` 가 있어도 안 맞으면 허용', allowed('User-agent: *\nDisallow: /a*b\n', '/a/x/y'), true)
+t('접두사 `*` 로 확장자 전체 금지', allowed('User-agent: *\nDisallow: /*.gif\n', '/img/x.gif?v=2'), false)
+t('앵커만 있고 와일드카드 없음 — 정확히 그 경로만', allowed('User-agent: *\nDisallow: /a$\n', '/a'), false)
+t('앵커만 있고 와일드카드 없음 — 하위 경로는 허용', allowed('User-agent: *\nDisallow: /a$\n', '/a/b'), true)
+t('패턴 중간의 `$` 는 리터럴', allowed('User-agent: *\nDisallow: /a$b\n', '/a$b/c'), false)
+t('패턴 중간의 `$` 는 리터럴 — 앵커로 읽으면 안 된다', allowed('User-agent: *\nDisallow: /a$b\n', '/a'), true)
+
+// 최장 일치 기준은 **패턴 원문 길이**다(와일드카드 제외한 리터럴 수가 아니다).
+const mixed = 'User-agent: *\nDisallow: /x\nAllow: /x/*/ok\n'
+t('와일드카드가 섞여도 더 긴 패턴이 이긴다', allowed(mixed, '/x/1/ok'), true)
+t('와일드카드 Allow 에 안 걸리면 Disallow 유지', allowed(mixed, '/x/1/no'), false)
+
+// ── 정규식 특수문자는 리터럴로 취급 ───────────────────────────────
+// 와일드카드 구현을 정규식으로 하면서 이스케이프를 빠뜨리면 `?` `.` `+` 가
+// 메타문자로 새어 엉뚱한 경로를 막는다. 이 4건이 그 회귀 감시다.
+t('`?` 는 리터럴', allowed('User-agent: *\nDisallow: /api/v1?query=\n', '/api/v1?query=x'), false)
+t('`?` 는 리터럴 — 임의 1글자가 아니다', allowed('User-agent: *\nDisallow: /api/v1?query=\n', '/api/v1Xquery=x'), true)
+t('`.` 는 리터럴', allowed('User-agent: *\nDisallow: /a.b\n', '/aXb'), true)
+t('`+` 는 리터럴', allowed('User-agent: *\nDisallow: /a+b\n', '/a+b'), false)
+t('`(` `[` 같은 문자가 있어도 정규식이 안 깨진다', allowed('User-agent: *\nDisallow: /a([b\n', '/a([b/c'), false)
+
+// ── 기존 접두사 동작 불변 (와일드카드 없는 규칙) ──────────────────
+// 아래 기대값은 이 수정 **이전** 코드를 실제로 돌려서 나온 값을 그대로 못박은
+// 것이다. 특히 `/administrator` 가 막히는 건 접두사 비교의 알려진 성질이고,
+// 이번 수정으로 바뀌면 안 된다(바꾸려면 별도 결정이 필요하다).
+const adminOnly = 'User-agent: *\nDisallow: /admin\n'
+t('접두사 불변 — /admin', allowed(adminOnly, '/admin'), false)
+t('접두사 불변 — /admin/x', allowed(adminOnly, '/admin/x'), false)
+t('접두사 불변 — /administrator 도 여전히 막힌다(접두사 성질)', allowed(adminOnly, '/administrator'), false)
+t('접두사 불변 — 경로는 대소문자 구분', allowed(adminOnly, '/ADMIN'), true)
+
+// ── ReDoS 방어 (투포인터 글롭 매처) ──────────────────────────────
+// robots.txt 는 제3자 사이트에서 받아와 그대로 parseRobots→robotsVerdict 에
+// 먹인다. 이전 정규식 구현은 `Disallow: /a****…****b`(연속 `*`) 나
+// `/a*a*a*a*…`(리터럴 낀 `*`) 에서 파국적 백트래킹으로 nightly 수집기를
+// 멈췄다(실측: 40*`*` + 60자 경로에 20초+). 아래 두 건이 그 회귀 감시다.
+{
+  const evilConsecutive = `User-agent: *\nDisallow: /a${'*'.repeat(40)}b\n`
+  const evilAlternating = `User-agent: *\nDisallow: /${'a*'.repeat(30)}b\n`
+  const victim = '/a' + 'a'.repeat(60) // 매치 실패를 강제해 최대 백트래킹 유발
+  for (const [name, txt] of [['연속 *', evilConsecutive], ['리터럴 낀 *', evilAlternating]]) {
+    const t0 = performance.now()
+    const v = robotsVerdict(parseRobots(txt), victim, TOKEN)
+    const dt = performance.now() - t0
+    t(`ReDoS 방어 — ${name} 패턴이 100ms 안에 끝난다 (${dt.toFixed(1)}ms)`, dt < 100, true)
+    t(`ReDoS 방어 — ${name}: 안 맞는 경로는 허용`, v.allowed, true)
+  }
+}
+t('글롭 — 연속 `*` 는 하나처럼', allowed('User-agent: *\nDisallow: /a****b\n', '/axyzb'), false)
+t('글롭 — 비앵커 접두사 매치(`/a*c` 는 `/abcd` 의 접두사 /abc 에 걸린다)', allowed('User-agent: *\nDisallow: /a*c\n', '/abcd'), false)
+t('글롭 — 비앵커: 패턴이 경로보다 길면 불일치', allowed('User-agent: *\nDisallow: /a*bcdef\n', '/axb'), true)
+
 // ── 구조 파싱 ─────────────────────────────────────────────────────
 const g = parseRobots('User-agent: a\nUser-agent: b\nDisallow: /x\nUser-agent: *\nDisallow: /y\n')
 t('그룹 2개로 갈린다', g.length, 2)

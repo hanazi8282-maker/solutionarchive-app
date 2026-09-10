@@ -58,6 +58,57 @@ export function parseRobots(text: string): RobotsGroup[] {
 }
 
 /**
+ * 규칙 경로가 이 pathname 에 매칭되는가 (RFC 9309 §2.2.2).
+ *
+ * - `*` 는 길이 0 이상의 임의 문자열.
+ * - `$` 는 **패턴 끝에서만** 특수문자로, "경로가 여기서 끝나야 함"을 뜻한다.
+ *   중간의 `$` 는 리터럴이다.
+ * - 그 외 문자는 전부 리터럴. 경로에 흔히 들어가는 `.` `?` `+` 가 정규식
+ *   메타문자로 새면 `Disallow: /api/v1?query=` 같은 규칙이 엉뚱한 경로를 막는다.
+ *
+ * 와일드카드도 앵커도 없는 규칙은 예전과 동일하게 순수 접두사 비교를 탄다
+ * (지금 다나와·앱스토어 규칙이 전부 이 형태다).
+ */
+function pathMatches(pattern: string, pathname: string): boolean {
+  const anchored = pattern.endsWith('$')
+  const body = anchored ? pattern.slice(0, -1) : pattern
+
+  if (!body.includes('*')) {
+    return anchored ? pathname === body : pathname.startsWith(body)
+  }
+
+  // 투포인터 글롭 매처. 정규식 백트래킹이 없어 악성 robots.txt 로도 선형 시간이다
+  // (연속 `*` 나 `/a*a*a*…` 를 제3자 사이트가 robots.txt 에 심어 nightly 수집기를
+  //  멈추게 하는 ReDoS 를 실측으로 확인했다 — 그래서 정규식을 버렸다).
+  // `*` = 길이 0 이상 임의 문자열, 그 외 문자는 전부 리터럴(대소문자 구분).
+  let p = 0 // pathname 커서
+  let b = 0 // body 커서
+  let star = -1 // 마지막으로 지나온 `*` 의 body 위치
+  let mark = 0 // 그 `*` 가 소비하기 시작한 pathname 위치
+  while (p < pathname.length) {
+    if (b === body.length) {
+      if (!anchored) return true // body 소진 + 앵커 없음 = 접두사 매치 성공
+      if (star === -1) return false
+      b = star + 1
+      p = ++mark
+    } else if (body[b] === '*') {
+      star = b++
+      mark = p
+    } else if (body[b] === pathname[p]) {
+      b++
+      p++
+    } else if (star !== -1) {
+      b = star + 1
+      p = ++mark
+    } else {
+      return false
+    }
+  }
+  while (b < body.length && body[b] === '*') b++
+  return b === body.length // 앵커 유무 무관: pathname 을 다 썼으니 body 도 다 써야 매치
+}
+
+/**
  * 이 경로를 가져가도 되는가.
  *
  * @param productToken 우리 크롤러의 제품 토큰. robots.txt 의 User-agent 값과
@@ -104,7 +155,10 @@ export function robotsVerdict(
     // 빈 Disallow 는 "전부 허용"을 뜻한다. 빈 문자열은 모든 경로의 접두사라
     // 거르지 않으면 항상 최단 일치로 걸린다.
     if (rule.path === '') continue
-    if (!pathname.startsWith(rule.path)) continue
+    if (!pathMatches(rule.path, pathname)) continue
+    // 우선순위 기준은 **패턴 원문 길이**다. 와일드카드를 뺀 리터럴 수 같은 다른
+    // 정밀도 산정으로 바꾸지 마라 — 표준이 강제하는 알고리즘이 없고, 이 기준으로
+    // 화해 버그를 잡은 전례가 있다(위 주석).
     if (!best || rule.path.length > best.path.length) best = rule
   }
 

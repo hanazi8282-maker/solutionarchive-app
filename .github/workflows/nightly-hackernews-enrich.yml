@@ -1,0 +1,55 @@
+# Hacker News 스레드 score 배치 덧붙이기 — scripts/review-hackernews-enrich.mjs 정기 실행.
+#
+# 설계: scripts/review-hackernews-enrich.mjs 헤더 참고. 예산(min_interval_ms/
+# daily_request_cap)·robots.txt 체크는 스크립트 자체에 내장돼 있다(여기서 재구현 안 함).
+#
+# ⛔ nightly-review-collect.yml 에는 합치지 않는다. 그 워크플로 헤더에 "권한이
+#    다른 일을 한 잡에 합치면 낮은 쪽이 높은 쪽으로 끌려간다"는 원칙이 있고,
+#    이 워크플로도 collect 와 같은 권한(contents: read)이지만 별도 관심사라
+#    독립 잡으로 둔다.
+#
+# 스케줄: collect(17:37 UTC) 이후, 인사이트 루프(18:41 UTC) 이전인 18:19 UTC.
+# 정각·30분은 피한다 — nightly-review-collect.yml 헤더에 실측 사례(2026-09-01
+# 18:00 UTC 스케줄 미발화)가 적혀 있다.
+
+name: Nightly Hacker News Enrich
+
+on:
+  schedule:
+    - cron: '19 18 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '요청은 보내되 적재하지 않는다(판정만)'
+        type: boolean
+        default: true
+
+concurrency:
+  group: hackernews-enrich
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Enrich Hacker News scores
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/review-hackernews-enrich.mjs \
+            ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--apply' || '' }}

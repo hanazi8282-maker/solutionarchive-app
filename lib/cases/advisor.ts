@@ -1,0 +1,241 @@
+// 크로스섹션 어드바이저 — 백엔드 v1 (M3, 결정 C).
+//
+// 낮은 증거등급에서 막히거나 다음 스텝이 불분명한 사용자에게, 유사 사례·원칙을
+// 근거로 방향을 제시한다. 이 파일은 **순수 함수만** 둔다 — DB 조회는
+// app/api/analyze/advisor 가 하고 여기엔 행 배열을 넘긴다. 그래야 셀프테스트가
+// 네트워크 없이 돈다 (lib/cases/match.ts 와 같은 규약).
+//
+// 코퍼스 (§20 / §13-7):
+//   A 성공사례 — case_studies / case_moves (이미 존재)
+//   B 실패사례 — failed_angles. 브랜치④(feat/falsification-market) 미착수 →
+//                이번 범위 제외. 응답 스키마에 자리만 남기고 억지로 안 채운다.
+//   C 원칙원장 — strategy_principles (이 브랜치에서 신설·시딩)
+//
+// 구현 방법론 (§13-7): v1 은 벡터 검색 없이 **카테고리·키워드 태그 매칭**.
+//   리포에 pgvector·임베딩 인프라가 없고(pmf_assessments 의 matched_by 는 어휘만
+//   열어둔 자리), 새 유료 의존성을 넣지 않는다. 기존 facet 매칭 패턴을 그대로 쓴다.
+//
+// ★ §7.1 3상태를 타입으로 강제한다 (match.ts 와 동일):
+//   matched  = 근거 카드가 1장 이상 (양성)
+//   no_match = 조회는 정상인데 0장이다 → "관련 사례 없음"을 명시 (음성)
+//   not_run  = 조회를 못 했거나 질의어가 없어 판정 자체를 못 했다 (확인 불가)
+//   억지로 끼워맞추지 않는다.
+
+import { GRADE_RANK, type MoveRow, type StudyRow } from './match.ts'
+
+export const ADVISOR_STATUS = ['matched', 'no_match', 'not_run'] as const
+export type AdvisorStatus = (typeof ADVISOR_STATUS)[number]
+
+/** strategy_principles 한 행 (docs/strategy-principles.md §22 표에서 시딩). */
+export interface PrincipleRow {
+  sp_id: string
+  tags: string[]
+  statement: string
+  evidence_grade: string
+  evidence_grade_note?: string | null
+  source_ref: string
+}
+
+export interface PrincipleCard {
+  kind: 'principle'
+  sp_id: string
+  statement: string
+  evidence_grade: string
+  evidence_grade_note: string | null
+  source_ref: string
+  matched_terms: string[]
+  score: number
+}
+
+export interface CaseMoveCard {
+  kind: 'case_move'
+  case_move_id: string
+  slug: string
+  brand_name: string
+  lever: string
+  claim: string
+  evidence_grade: string
+  outcome_direction: string
+  matched_terms: string[]
+  score: number
+}
+
+export interface CorpusResult<Card> {
+  status: AdvisorStatus
+  reason: string
+  cards: Card[]
+}
+
+export interface AdvisorResult {
+  status: AdvisorStatus
+  reason: string
+  terms: string[]
+  corpus_a: CorpusResult<CaseMoveCard>
+  corpus_c: CorpusResult<PrincipleCard>
+  // 브랜치④ 완료 후 통합. 지금 자리만 남긴다 (AC-3).
+  corpus_b: { status: 'pending'; reason: string }
+}
+
+const TOP_N = 5
+
+/** 자유 텍스트 → 매칭용 토큰. 소문자·2자 이상·중복 제거. */
+export function toTerms(...parts: (string | null | undefined)[]): string[] {
+  const seen = new Set<string>()
+  for (const p of parts) {
+    if (!p) continue
+    for (const raw of String(p).toLowerCase().split(/[^a-z0-9가-힣]+/)) {
+      const t = raw.trim()
+      if (t.length >= 2) seen.add(t)
+    }
+  }
+  return [...seen]
+}
+
+/** term 이 haystack 에 부분문자열로 있는가 (양방향 — 짧은 쪽이 긴 쪽에 들어가면 hit). */
+function hitTerms(terms: string[], haystack: string): string[] {
+  const hay = haystack.toLowerCase()
+  return terms.filter((t) => hay.includes(t))
+}
+
+/**
+ * Corpus C: 원칙 원장 태그·진술 매칭.
+ * principles 가 null 이면 not_run (조회 실패를 "원칙 없음"으로 접지 않는다).
+ */
+export function matchPrinciples(
+  terms: string[],
+  principles: PrincipleRow[] | null | undefined,
+): CorpusResult<PrincipleCard> {
+  if (!terms.length) return { status: 'not_run', reason: '질의어가 없다 — 무엇을 찾을지 모르는 상태다', cards: [] }
+  if (principles == null) {
+    return { status: 'not_run', reason: 'strategy_principles 조회 실패 (null) — "원칙 없음"이 아니라 확인 불가다', cards: [] }
+  }
+
+  const cards: PrincipleCard[] = []
+  for (const p of principles) {
+    const tagHits = hitTerms(terms, (p.tags ?? []).join(' '))
+    const stmtHits = hitTerms(terms, p.statement ?? '')
+    const matched = [...new Set([...tagHits, ...stmtHits])]
+    if (matched.length === 0) continue
+    // 태그 일치가 진술 일치보다 무겁다 (태그는 큐레이터가 매칭용으로 단 것).
+    const score = tagHits.length * 2 + stmtHits.length + (GRADE_RANK[p.evidence_grade] ?? 0) * 0.1
+    cards.push({
+      kind: 'principle',
+      sp_id: p.sp_id,
+      statement: p.statement,
+      evidence_grade: p.evidence_grade,
+      evidence_grade_note: p.evidence_grade_note ?? null,
+      source_ref: p.source_ref,
+      matched_terms: matched,
+      score,
+    })
+  }
+  cards.sort((a, b) => b.score - a.score || a.sp_id.localeCompare(b.sp_id))
+
+  if (cards.length === 0) {
+    return { status: 'no_match', reason: `조회는 정상인데 질의어와 겹치는 원칙이 0건이다 — 관련 사례 없음`, cards: [] }
+  }
+  return { status: 'matched', reason: `원칙 ${cards.length}건`, cards: cards.slice(0, TOP_N) }
+}
+
+/**
+ * Corpus A: 승인된 케이스 무브를 키워드로 매칭.
+ * §7.1: studies·moves 중 하나라도 null 이면 not_run.
+ * D 등급은 뺀다 (match.ts 와 동일 — 수치 없는 무브).
+ */
+export function matchCaseMoves(
+  terms: string[],
+  studies: StudyRow[] | null | undefined,
+  moves: MoveRow[] | null | undefined,
+): CorpusResult<CaseMoveCard> {
+  if (!terms.length) return { status: 'not_run', reason: '질의어가 없다', cards: [] }
+  if (studies == null || moves == null) {
+    return { status: 'not_run', reason: 'case_studies / case_moves 조회 실패 (null) — "선례 없음"이 아니라 확인 불가다', cards: [] }
+  }
+
+  const byId = new Map(studies.map((s) => [s.id, s]))
+  const excluded = { not_approved: 0, grade_d: 0, no_context: 0 }
+  const cards: CaseMoveCard[] = []
+
+  for (const m of moves) {
+    const study = byId.get(m.case_study_id)
+    if (!study) { excluded.no_context++; continue }
+    if (study.review_status !== 'approved' || m.review_status !== 'approved') { excluded.not_approved++; continue }
+    if ((GRADE_RANK[m.evidence_grade] ?? 0) <= 0) { excluded.grade_d++; continue }
+
+    const haystack = [
+      study.brand_name,
+      study.bottleneck,
+      study.business_model ?? '',
+      m.lever,
+      m.claim,
+    ].join(' ')
+    const matched = hitTerms(terms, haystack)
+    if (matched.length === 0) continue
+
+    cards.push({
+      kind: 'case_move',
+      case_move_id: m.id,
+      slug: study.slug,
+      brand_name: study.brand_name,
+      lever: m.lever,
+      claim: m.claim,
+      evidence_grade: m.evidence_grade,
+      outcome_direction: m.outcome_direction,
+      matched_terms: matched,
+      score: (GRADE_RANK[m.evidence_grade] ?? 0) * 10 + matched.length,
+    })
+  }
+  cards.sort((a, b) => b.score - a.score || a.slug.localeCompare(b.slug) || a.lever.localeCompare(b.lever))
+
+  if (cards.length === 0) {
+    const why = [
+      excluded.not_approved ? `미승인 ${excluded.not_approved}건` : '',
+      excluded.grade_d ? `등급 D ${excluded.grade_d}건` : '',
+      excluded.no_context ? `맥락 없는 무브 ${excluded.no_context}건` : '',
+    ].filter(Boolean).join(' / ')
+    return {
+      status: 'no_match',
+      reason: `조회는 정상인데 질의어와 겹치는 승인 무브가 0건이다${why ? ` (제외: ${why})` : ''} — 관련 사례 없음`,
+      cards: [],
+    }
+  }
+  return { status: 'matched', reason: `승인 무브 ${cards.length}건`, cards: cards.slice(0, TOP_N) }
+}
+
+const CORPUS_B_PENDING = {
+  status: 'pending' as const,
+  reason: 'Corpus B(failed_angles)는 브랜치④(feat/falsification-market) 완료 후 순차 통합 — §17-3 (AC-3)',
+}
+
+/**
+ * 두 코퍼스를 합쳐 방향을 제시한다.
+ * 전체 status: 하나라도 matched 면 matched. 둘 다 조회 정상인데 0건이면 no_match
+ * (= "관련 사례 없음" 명시). 둘 다 조회조차 못 했거나 질의어가 없으면 not_run.
+ */
+export function advise(
+  input: { category?: string | null; angleDescription?: string | null; freeText?: string | null },
+  corpora: {
+    principles: PrincipleRow[] | null | undefined
+    studies: StudyRow[] | null | undefined
+    moves: MoveRow[] | null | undefined
+  },
+): AdvisorResult {
+  const terms = toTerms(input.category, input.angleDescription, input.freeText)
+  const corpus_c = matchPrinciples(terms, corpora.principles)
+  const corpus_a = matchCaseMoves(terms, corpora.studies, corpora.moves)
+
+  let status: AdvisorStatus
+  let reason: string
+  if (corpus_a.status === 'matched' || corpus_c.status === 'matched') {
+    status = 'matched'
+    reason = `근거 카드 ${corpus_a.cards.length + corpus_c.cards.length}장 (선례 ${corpus_a.cards.length} / 원칙 ${corpus_c.cards.length})`
+  } else if (corpus_a.status === 'no_match' && corpus_c.status === 'no_match') {
+    status = 'no_match'
+    reason = '두 코퍼스 모두 조회는 정상인데 겹치는 근거가 0건이다 — 관련 사례 없음. 억지로 끼워맞추지 않는다.'
+  } else {
+    status = 'not_run'
+    reason = `판정 불가 — 선례: ${corpus_a.reason} · 원칙: ${corpus_c.reason}`
+  }
+
+  return { status, reason, terms, corpus_a, corpus_c, corpus_b: CORPUS_B_PENDING }
+}

@@ -12,8 +12,9 @@
 -- 소스가 아직 비활성인 줄 오해한다. 활성화의 감사 기록은 이 마이그레이션 파일과
 -- 커밋 메시지에 남는다.
 --
--- ⚠️ 이 파일은 적용하지 않는다(CLAUDE.md §10.1 / §26-3). 남헌이 Supabase
---    대시보드 SQL Editor 에서 직접 실행한다. 프로젝트 ref: qmgrfqjfxqhxuufrnkwf
+-- ✅ 적용됨 (2026-09-10, CLAUDE.md §10.2 — 남헌 1회성 예외 승인으로 클로드코드가
+--    직접 실행). 프로젝트 ref: qmgrfqjfxqhxuufrnkwf. 이후 마이그레이션은 다시
+--    §10.1 기본 원칙(사람이 대시보드에서 직접 실행)으로 돌아간다.
 
 UPDATE public.review_sources
    SET enabled         = true,

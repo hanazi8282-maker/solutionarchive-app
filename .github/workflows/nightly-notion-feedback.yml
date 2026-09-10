@@ -45,6 +45,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+          # notion-pull-feedback.mjs 는 지금은 이 값을 읽지 않는다(행마다 저장된
+          # notion_page_id 로 직접 GET 한다). push 워크플로와 배선을 맞춰 두고,
+          # 나중에 pull 이 DB 조회를 하게 되면 그대로 쓰기 위해 둔다.
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
         run: node scripts/notion-pull-feedback.mjs
 
       # 화이트리스트를 daily-cmo-loop.yml 과 별도로, 더 좁게 잡는다 — 이 워크플로가

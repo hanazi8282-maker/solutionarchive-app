@@ -16,6 +16,12 @@
 // ⚠️ pulled_at IS NULL 로 대상을 고른다(날짜 매칭이 아니다). 푸시는 05:17 KST
 //   (=전날 20:17 UTC), 풀은 21:00 KST(=당일 12:00 UTC) 라 UTC 날짜가 하루
 //   어긋난다 — 날짜 문자열로 짝을 맞추면 이 어긋남 때문에 조용히 빠뜨린다.
+//
+// 📌 "<발행본>" 마커 — 남헌이 초안 아래 이 마커를 쓰고 그 아래 실제 발행한
+//   최종 텍스트를 붙여넣는다. 마커 이전(초안)만 diff_status 비교에 쓰고
+//   기존 동작을 100% 보존한다. 마커 이후(발행본)는 published_body 에 별도
+//   저장만 한다 — 이 텍스트로 초안 생성 로직을 자동으로 바꾸지 않는다.
+//   마커가 여러 번 나오면 첫 번째만 경계로 본다(설계 판단, splitPublishedMarker 참조).
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -24,6 +30,21 @@ import { createClient } from '../lib/supabase/server.ts'
 
 const NOTION_VERSION = '2022-06-28'
 const NOTION_API = 'https://api.notion.com/v1'
+const PUBLISHED_MARKER = '<발행본>'
+
+/**
+ * "<발행본>" 마커로 페이지 본문을 2분할한다.
+ * 마커가 없으면(아직 미발행) published 는 null, body 는 원문 그대로 —
+ * 기존 로직과 완전히 동일하게 동작한다.
+ * 마커가 여러 번 있으면 첫 번째 등장만 경계로 삼는다 — 두 번째 이후는
+ * "발행본 안에 우연히 마커 문자열이 포함된 것"으로 보고 전부 published 에 넣는다
+ * (마커 이전=초안만 diff 대상이라는 계약을 지키는 데는 첫 경계 하나로 충분하다).
+ */
+export function splitPublishedMarker(text, marker = PUBLISHED_MARKER) {
+  const idx = text.indexOf(marker)
+  if (idx === -1) return { body: text, published: null }
+  return { body: text.slice(0, idx), published: text.slice(idx + marker.length).trim() }
+}
 
 function today(d = new Date()) { return d.toISOString().slice(0, 10) }
 
@@ -118,10 +139,12 @@ async function run() {
       continue
     }
 
+    const { body, published } = splitPublishedMarker(textRes.text)
+
     let diffStatus
     if (statusRes.status === '채택') diffStatus = 'adopted'
     else if (statusRes.status === '보류') diffStatus = 'held'
-    else if (textRes.text.trim() !== row.pushed_body.trim()) diffStatus = 'edited'
+    else if (body.trim() !== row.pushed_body.trim()) diffStatus = 'edited'
     else diffStatus = 'unchanged'
     counts[diffStatus]++
 
@@ -143,10 +166,13 @@ async function run() {
     fs.appendFileSync(logPath, `\n${entry}`, 'utf-8')
 
     const upd = await supabase.from('notion_sync_log').update({
-      pulled_body: textRes.text, pulled_status: statusRes.status, diff_status: diffStatus,
+      pulled_body: body, published_body: published, pulled_status: statusRes.status, diff_status: diffStatus,
       pulled_at: new Date().toISOString(), decision_log_code: logCode,
     }).eq('id', row.id)
-    if (upd.error) console.error(`⚠️ ${row.notion_page_id} 판정은 로그에 남았지만 DB 갱신 실패 — ${upd.error.code ?? ''} ${upd.error.message}`)
+    if (upd.error) {
+      const hint = upd.error.code === '42703' ? ' — 마이그레이션 20260911000001_notion_sync_log_published_body.sql 미적용일 수 있다.' : ''
+      console.error(`⚠️ ${row.notion_page_id} 판정은 로그에 남았지만 DB 갱신 실패 — ${upd.error.code ?? ''} ${upd.error.message}${hint}`)
+    }
   }
 
   console.log(`\n풀백 완료 — 무변경 ${counts.unchanged} · 편집됨 ${counts.edited} · 채택 ${counts.adopted} · 보류 ${counts.held} · 확인불가 ${counts.error}`)

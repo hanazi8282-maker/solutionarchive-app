@@ -1,0 +1,20 @@
+/* ============================================================
+   Dothegy Works Design System — 라우트 공용 진입점.
+   원본: "Dothegy Works Design System/styles.css" (import-only).
+   이 파일을 import 한 라우트에만 적용된다(app/agents/page.tsx,
+   app/dashboard/page.tsx). `_ds` 는 밑줄로 시작해 App Router 가
+   라우트 세그먼트로 잡지 않는다.
+   ============================================================ */
+
+@import "./tokens/fonts.css";
+@import "./tokens/colors.css";
+@import "./tokens/typography.css";
+@import "./tokens/spacing.css";
+@import "./tokens/base.css";
+
+/* 폼 컨트롤의 focus 상태. 인라인 스타일로는 :focus 를 표현할 수 없어서
+   이 한 규칙만 클래스로 둔다 (app/_ds/components/Field.tsx 가 붙인다). */
+.dgy-field:focus {
+  border-color: var(--ring);
+  box-shadow: var(--shadow-focus);
+}

@@ -4,9 +4,11 @@ import {
   ANGLE_TYPES,
   SUBSTANTIATION_VERDICTS,
   type AngleType,
+  type AnalysisMode,
   type OutputType,
   type SubstantiationVerdict,
 } from '@/lib/analysis/types'
+import { extractAdaptationSuggestion, systemPromptFor } from '@/lib/analysis/angle-adaptation'
 import {
   callLlmJsonWithModel,
   describeFailure,
@@ -44,6 +46,7 @@ type ProjectRow = {
   competitor_url: string
   product_elevator_pitch: string
   purpose: string
+  mode: AnalysisMode
   seller_own_guess: string | null
   status: string
   maturity_stage: number | null
@@ -127,24 +130,9 @@ function planForDifferentiator(a: AspectRow, project: ProjectRow): AnglePlan | {
 }
 
 // ── 프롬프트 ─────────────────────────────────────────────────────
-const ANGLE_TYPE_GUIDE = `앵글 유형 정의:
-- PAS: 문제(Problem)→동요(Agitate)→해결(Solution). 감정적 페인을 정면으로 건드린다.
-- MECHANISM: 왜 되는지의 고유 작동원리를 설명해 믿게 만든다.
-- COMPARISON: 대안/경쟁 방식과 대조해 우위를 드러낸다.
-- SOCIAL_PROOF: 다른 사람들의 선택·후기를 근거로 안심시킨다.
-- FEAR_FOMO: 놓쳤을 때의 손실·뒤처짐을 환기한다.
-- ASPIRATION: 도달하고 싶은 상태·정체성을 그려준다.
-- REATTRIBUTION: "당신 탓이 아니다". 자책 인정 → 원인은 당신이 아니라 구조/제품 → 구조적 해법 제시.
-  반드시 이 3단 구조를 지켜라. 사용자를 탓하거나 훈계하지 마라.
-- SELF_SELECTION: "이런 사람에게는 맞고, 이런 사람에게는 안 맞는다"로 스스로 걸러내게 한다.
-
-산출물 유형(output_type)별 톤:
-- COPY: 실제 노출되는 카피 문구 한 줄. 헤드라인으로 바로 쓸 수 있어야 한다.
-- OFFER: 카피가 아니라 "오퍼(제안) 문구". 보장·교환·체험·구성 등 거래 조건으로 페인을 없앤다.
-  예) 사이즈가 안 맞으면 무료 교환, 30일 안에 효과 없으면 전액 환불 같은 형태.
-- PRODUCT_SPEC: 광고 문구가 아니라 "차기 제품 개선 과제" 메모. 무엇을 고쳐야 하는지 한 줄로.
-- BASELINE_SPEC: 광고 문구가 아니라 "기본으로 반드시 충족해야 하는 사양" 목록 요약 한 줄.
-  이건 차별화 소구점이 아니라, 빠지면 탈락하는 기본기다.`
+// 앵글 유형 정의·writer 시스템 프롬프트(systemPromptFor)는 @/lib/analysis/angle-adaptation 로
+// 옮겼다 — 순수 node 스크립트(셀프테스트)가 이 route 파일을 직접 import 할 수
+// 없어서(next/server 등 런타임 전용 import 보유), 테스트 대상 로직만 별도 lib로 뺐다.
 
 const PURPOSE_TONE: Record<string, string> = {
   hook: '광고 후킹 — 스크롤을 멈추게 하는 말. 짧고 의외성 있게.',
@@ -152,19 +140,6 @@ const PURPOSE_TONE: Record<string, string> = {
   detail_page: '상세페이지 구매전환 — 이미 관심 있는 사람에게 확신을 주는 말. 과장보다 근거.',
   product_fit: '제품/오퍼 매력 — 애초에 팔릴 제품인지 판단하는 관점. 제품·오퍼 구조 중심.',
 }
-
-const SYSTEM_PROMPT = `너는 이커머스 소구점 발굴 파이프라인의 Stage4(앵글 생성)를 수행한다.
-주어진 속성(aspect) 하나와 배정된 앵글 유형에 맞춰 한국어 산출물 1건을 만든다.
-
-${ANGLE_TYPE_GUIDE}
-
-작성 제약:
-원문에 근거가 없는 효능·결과·변화는 단정하지 마라. 1인칭 경험담 형식으로 우회하는 것도 금지다.
-
-반드시 JSON만 출력해라. 형식:
-{ "angle_type": "배정된 유형 또는 허용 후보 중 하나",
-  "headline_draft": "산출물 한 줄",
-  "reason": "이 문구를 만든 근거 한 줄" }`
 
 const COPY_REWRITE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 게이트를 통과시키는 편집자다.
 입력으로 받은 문구는 근거 없이 성능·효능을 주장(UNSUBSTANTIATED)한다고 판정됐다.
@@ -411,6 +386,8 @@ type GeneratedAngle = {
   evidenceQuote: string | null
   /** writer 의 작성 근거 — 감사용. judge 에는 넘기지 않는다. */
   writerReason: string
+  /** reverse 모드에서만 채워진다. forward 모드에서는 항상 null. */
+  adaptationSuggestion: string | null
   rewritten: boolean
   rewriteReason?: string
   /** 재작성 지시가 카피용이었는지 사양용이었는지 — 유형별 분기가 실제로 걸렸는지 확인용 */
@@ -496,7 +473,7 @@ async function generateAngle(
   const models: string[] = []
   const { data: parsed, model: writerModel } = await callLlmJsonWithModel(
     provider,
-    SYSTEM_PROMPT,
+    systemPromptFor(project.mode),
     userPrompt,
     'angle:generate',
   )
@@ -506,6 +483,7 @@ async function generateAngle(
   const angleType = pickEnum<AngleType>(parsed.angle_type, ANGLE_TYPES) ?? plan.angleType
   let headline = typeof parsed.headline_draft === 'string' ? parsed.headline_draft.trim() : ''
   const writerReason = typeof parsed.reason === 'string' ? parsed.reason.trim() : ''
+  const adaptationSuggestion = extractAdaptationSuggestion(project.mode, parsed)
 
   // 판정 권한은 writer 에 없다. 별도 judge 호출이 원문 근거만 보고 판정한다.
   let judged = await judgeHeadline(provider, headline, target, plan.outputType, evidence, 'angle:judge')
@@ -569,6 +547,7 @@ async function generateAngle(
     verdictReason: judged.reason,
     evidenceQuote: judged.evidenceQuote,
     writerReason,
+    adaptationSuggestion,
     rewritten,
     rewriteReason,
     rewriteMode,
@@ -616,7 +595,7 @@ export async function POST(req: Request) {
 
   const { data: project, error: projectError } = await supabase
     .from('analysis_projects')
-    .select('id, competitor_url, product_elevator_pitch, purpose, seller_own_guess, status, maturity_stage, maturity_notes')
+    .select('id, competitor_url, product_elevator_pitch, purpose, mode, seller_own_guess, status, maturity_stage, maturity_notes')
     .eq('id', projectId)
     .single<ProjectRow>()
 
@@ -749,6 +728,8 @@ export async function POST(req: Request) {
       // 재작성이 없었으면 undefined 이므로 null 로 눕힌다.
       headline_original: g.headlineOriginal ?? null,
       gate_rewritten: g.rewritten,
+      // reverse 모드에서만 채워진다. forward 는 항상 null(위 generateAngle 참고).
+      adaptation_suggestion: g.adaptationSuggestion,
     }))
 
     const { data: inserted, error: insertError } = await supabase
@@ -796,6 +777,7 @@ export async function POST(req: Request) {
       verdict_reason: g.verdictReason,
       evidence_quote: g.evidenceQuote,
       reason: g.writerReason,
+      adaptation_suggestion: g.adaptationSuggestion,
       rewritten: g.rewritten,
       ...(g.rewriteReason ? { rewrite_reason: g.rewriteReason } : {}),
       ...(g.rewriteMode ? { rewrite_mode: g.rewriteMode } : {}),
@@ -817,7 +799,7 @@ export async function GET(req: Request) {
 
   const { data: project, error: projectError } = await supabase
     .from('analysis_projects')
-    .select('id, status, purpose, maturity_stage, competitor_url, product_elevator_pitch')
+    .select('id, status, purpose, mode, maturity_stage, competitor_url, product_elevator_pitch')
     .eq('id', projectId)
     .single()
 
@@ -829,7 +811,7 @@ export async function GET(req: Request) {
   // 내려준다. 결과 화면이 재작성 이력을 펼쳐 보여주려면 이 4개 컬럼이 필요하다.
   const { data: angles, error } = await supabase
     .from('analysis_angles')
-    .select('id, aspect_id, angle_type, output_type, headline_draft, substantiation_verdict, substantiation_reason, substantiation_evidence, headline_original, gate_rewritten, created_at')
+    .select('id, aspect_id, angle_type, output_type, headline_draft, substantiation_verdict, substantiation_reason, substantiation_evidence, headline_original, gate_rewritten, adaptation_suggestion, created_at')
     .eq('project_id', projectId)
     .order('created_at', { ascending: true })
 

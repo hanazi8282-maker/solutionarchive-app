@@ -15,6 +15,7 @@ import {
   QUADRANT_SHORT_LABELS,
   SUBSTANTIATION_VERDICT_LABELS,
   isInternalOutput,
+  type AnalysisMode,
   type AnalysisPurpose,
   type AngleType,
   type OutputType,
@@ -35,6 +36,7 @@ type AngleRow = {
   substantiation_evidence: string | null
   headline_original: string | null
   gate_rewritten: boolean | null
+  adaptation_suggestion: string | null
   created_at: string | null
   aspect_name: string | null
   aspect_quadrant: Quadrant | null
@@ -56,6 +58,7 @@ type ProjectRow = {
   id: string
   status: string
   purpose: AnalysisPurpose
+  mode: AnalysisMode
   maturity_stage: number | null
   competitor_url: string
   product_elevator_pitch: string
@@ -182,6 +185,27 @@ function RewritePanel({ a, open }: { a: AngleRow; open: boolean }) {
   )
 }
 
+// ── 각색 제안 (reverse 모드 전용) ──────────────────────────────
+// 경쟁사 앵글을 역산한 것이므로, forward 모드 프로젝트에서는 애초에 백엔드가
+// null 로 두고 보내지도 않는다. project.mode 로도 한 번 더 가드한다.
+function AdaptationSuggestion({ a, isReverse }: { a: AngleRow; isReverse: boolean }) {
+  if (!isReverse || !a.adaptation_suggestion) return null
+  return (
+    <div style={{
+      marginTop: 10,
+      background: 'var(--surface-muted)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-md)',
+      padding: 'var(--space-3) var(--space-4)',
+    }}>
+      <div className="dgy-caps" style={{ marginBottom: 4 }}>각색 제안 · 경쟁사 앵글 → 내 상품</div>
+      <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
+        {a.adaptation_suggestion}
+      </p>
+    </div>
+  )
+}
+
 function EvidenceQuote({ a }: { a: AngleRow }) {
   if (!a.substantiation_evidence) return null
   return (
@@ -198,7 +222,7 @@ function EvidenceQuote({ a }: { a: AngleRow }) {
 }
 
 // ── 소비자 노출 앵글 카드 ─────────────────────────────────────
-function ConsumerAngleCard({ a }: { a: AngleRow }) {
+function ConsumerAngleCard({ a, isReverse }: { a: AngleRow; isReverse: boolean }) {
   const [open, setOpen] = useState(false)
   return (
     <Card>
@@ -213,6 +237,7 @@ function ConsumerAngleCard({ a }: { a: AngleRow }) {
         {a.headline_draft ?? '(문구 없음)'}
       </p>
       <EvidenceQuote a={a} />
+      <AdaptationSuggestion a={a} isReverse={isReverse} />
       <RewritePanel a={a} open={open} />
     </Card>
   )
@@ -220,7 +245,7 @@ function ConsumerAngleCard({ a }: { a: AngleRow }) {
 
 // ── 내부 메모 카드 ────────────────────────────────────────────
 // 소비자 노출 카피와 절대 헷갈리면 안 되므로 surface·테두리·타이포를 전부 다르게 준다.
-function InternalMemoCard({ a }: { a: AngleRow }) {
+function InternalMemoCard({ a, isReverse }: { a: AngleRow; isReverse: boolean }) {
   const [open, setOpen] = useState(false)
   return (
     <div style={{
@@ -260,14 +285,17 @@ function InternalMemoCard({ a }: { a: AngleRow }) {
           {internalReason(a)}
         </p>
         <EvidenceQuote a={a} />
+        <AdaptationSuggestion a={a} isReverse={isReverse} />
         <RewritePanel a={a} open={open} />
       </div>
     </div>
   )
 }
 
-function AngleItem({ a }: { a: AngleRow }) {
-  return isInternalOutput(a.output_type) ? <InternalMemoCard a={a} /> : <ConsumerAngleCard a={a} />
+function AngleItem({ a, isReverse }: { a: AngleRow; isReverse: boolean }) {
+  return isInternalOutput(a.output_type)
+    ? <InternalMemoCard a={a} isReverse={isReverse} />
+    : <ConsumerAngleCard a={a} isReverse={isReverse} />
 }
 
 function SectionHeading({ title, desc, count }: { title: string; desc: string; count?: number }) {
@@ -374,6 +402,7 @@ export default function AnalyzeAnglesPage() {
   const consumerAngles = differentiators.filter(a => !isInternalOutput(a.output_type))
   const internalAngles = differentiators.filter(a => isInternalOutput(a.output_type))
   const rewrittenCount = visible.filter(a => a.gate_rewritten).length
+  const isReverse = project?.mode === 'reverse'
 
   // ── 빈 상태 ─────────────────────────────────────────────────
   if (project && !ANGLE_READY.includes(project.status)) {
@@ -451,7 +480,7 @@ export default function AnalyzeAnglesPage() {
           />
         ) : (
           <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-            {consumerAngles.map(a => <AngleItem key={a.id} a={a} />)}
+            {consumerAngles.map(a => <AngleItem key={a.id} a={a} isReverse={isReverse} />)}
 
             {internalAngles.length > 0 && (
               <>
@@ -461,7 +490,7 @@ export default function AnalyzeAnglesPage() {
                 }}>
                   아래부터는 카피가 아니라 내부 검토용입니다.
                 </p>
-                {internalAngles.map(a => <AngleItem key={a.id} a={a} />)}
+                {internalAngles.map(a => <AngleItem key={a.id} a={a} isReverse={isReverse} />)}
               </>
             )}
           </div>
@@ -490,7 +519,7 @@ export default function AnalyzeAnglesPage() {
 
           {tableStakesAngles.length > 0 && (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-              {tableStakesAngles.map(a => <AngleItem key={a.id} a={a} />)}
+              {tableStakesAngles.map(a => <AngleItem key={a.id} a={a} isReverse={isReverse} />)}
             </div>
           )}
         </section>
@@ -505,7 +534,7 @@ export default function AnalyzeAnglesPage() {
             count={others.length}
           />
           <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-            {others.map(a => <AngleItem key={a.id} a={a} />)}
+            {others.map(a => <AngleItem key={a.id} a={a} isReverse={isReverse} />)}
           </div>
         </section>
       )}

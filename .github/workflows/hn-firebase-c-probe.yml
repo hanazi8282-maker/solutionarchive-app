@@ -1,0 +1,66 @@
+# HN Firebase 옵션 C — dead/deleted 지속측정.
+#
+# 무엇을: 고정 표본(Airtable·Zapier, search_by_date page 0)을 다시 재서
+#   reports/hn-firebase-c-dead-tracking.md 에 날짜 엔트리를 append 한다.
+#   Algolia 인덱스 지연으로 stale(dead/deleted) 가 시간이 지나며 드러나는지 본다.
+#
+# ⛔ DB 를 건드리지 않는다. review_sources / review_collection_runs / analysis_inputs
+#    어느 것도 읽거나 쓰지 않는다. 순수 측정이다.
+# ⛔ 프로덕션 나이틀리 수집(nightly-review-collect.yml)과 무관하다.
+# ⛔ Supabase secret 을 env 에 넣지 않는다 — 필요 없다.
+#
+# ⚠️ 처음엔 workflow_dispatch(수동)만 둔다. 며칠 문제없이 돌면 그때 cron 을 켠다
+#    (nightly-review-collect.yml 처럼 어중간한 분으로, 정각 회피).
+#
+# ⚠️ reports/ 프리픽스에만 커밋한다(CLAUDE.md §10.1). 다른 경로는 스테이징하지 않는다.
+
+name: HN Firebase C Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      append:
+        description: '리포트에 덧붙인다(끄면 stdout·요약에만)'
+        type: boolean
+        default: true
+
+concurrency:
+  group: hn-firebase-c-probe
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Measure
+        run: |
+          node scripts/hn-firebase-c-track.mjs \
+            ${{ inputs.append == false && ' ' || '--append' }} \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit report
+        if: ${{ inputs.append != false }}
+        run: |
+          if git diff --quiet -- reports/hn-firebase-c-dead-tracking.md; then
+            echo "변경 없음 — 커밋 생략"
+            exit 0
+          fi
+          git config user.name  "hn-c-probe-bot"
+          git config user.email "noreply@anthropic.com"
+          git add reports/hn-firebase-c-dead-tracking.md
+          git commit -m "chore(review): HN Firebase C 측정 — $(date -u +%F)"
+          git push

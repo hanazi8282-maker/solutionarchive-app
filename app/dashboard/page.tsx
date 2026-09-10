@@ -51,6 +51,8 @@ export default async function DashboardPage() {
     <main style={{ padding: '2rem', maxWidth: 800 }}>
       <h1>발행 기록 대시보드</h1>
 
+      <p><a href="/agents">AI 에이전트 진행상황 →</a></p>
+
       {loadError && (
         <p style={{ color: 'red' }}>데이터 로드 오류: {loadError}</p>
       )}

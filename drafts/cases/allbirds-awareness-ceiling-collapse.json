@@ -1,0 +1,103 @@
+{
+  "slug": "allbirds-awareness-ceiling-collapse",
+  "brand_name": "Allbirds",
+  "market": "지속가능 소재 신발/어패럴 D2C (상장사)",
+  "geo": "US 본사 · 글로벌 판매",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "OCCASIONAL",
+  "price_band": "MID",
+  "bottleneck": "AWARENESS",
+  "outcome_status": "shutdown",
+  "period_start": "2019-03-01",
+  "period_end": "2026-06-17",
+  "summary": "Allbirds는 IPO(2021) 전 매장을 유료 광고보다 값싼 인지도 확산 채널로 검증했다 — 보스턴 백베이 매장 오픈(2019-03) 후 3개월간 해당 DMA에서 웹 트래픽 +15%, 신규 고객 +83%, 순매출 +77%(대조 시장 대비, S-1 자체 서술). 그러나 상장 후에는 이 핵심 포지셔닝(편안함·지속가능성)을 벗어나 고성능 러닝화(Tree Flyer, $160)·패션 지향 실루엣(Pacer)으로 확장하며 코어 소비자에서 이탈했고, 2023년 3월 실적발표에서 공동CEO Zwillinger가 '우리는 기대한 수준까지 브랜드 인지도를 끌어올리지 못했다'고 직접 인정했다. 매출은 2022년 $297.8M에서 2023년 $254.1M로 14.7% 감소했고, 마케팅비는 19.9%→19.3%로 오히려 줄었다(비용 규율 우선). 하락은 2024~2025년에도 이어졌고(2025년 매출 -20%, $152.5M), 2026년 3월 신발·브랜드 자산을 American Exchange Group/WSG Brands에 매각, 존속 법인은 AI 인프라 회사(최종 사명 Smartbird, Inc.)로 전환했다 — 신발 D2C 사업으로서는 종료(shutdown).",
+  "tags": ["AWARENESS", "브랜드 인지도", "D2C", "리테일 매장", "S-1", "실적발표 자인"],
+  "researched_by": "claude-code (Sonnet 5, sa-cmo-researcher role)",
+  "moves": [
+    {
+      "lever": "CHANNEL",
+      "claim": "IPO 전, 물리적 매장을 유료 디지털/TV 광고보다 효율적인 '인지도+매출' 동반 확산 채널로 검증했다. 보스턴 백베이 매장을 2019년 3월 열고 3개월을 대조 시장과 비교한 결과, 해당 DMA(지역시장)에서 웹 트래픽 +15%, 신규 고객 +83%, 순매출 +77%가 나왔다. S-1은 이를 '매장이 디지털 트래픽·브랜드 인지도를 동반 상승시킨다'는 근거로 제시했다.",
+      "outcome_direction": "positive",
+      "metric_name": "매장 오픈 후 해당 DMA 순매출 증가율 (대조 시장 대비)",
+      "metric_before": 0,
+      "metric_after": 77,
+      "metric_unit": "% (대조 시장 대비 증가, 매장 오픈 후 3개월)",
+      "observed_period_start": "2019-03-01",
+      "observed_period_end": "2019-06-30"
+    },
+    {
+      "lever": "POSITIONING",
+      "claim": "상장 후 하이퍼그로스 압박 속에 '편안함·지속가능성' 코어 포지셔닝을 벗어나 고성능 러닝(Tree Flyer, $160)·젊은 층 겨냥 패션 실루엣(Pacer)으로 카테고리를 확장해 인지도·고객층을 넓히려 했다. 결과는 반대였다 — 2023년 3월 실적발표에서 공동CEO Joey Zwillinger는 '우리는 기대한 수준까지 브랜드 인지도를 끌어올리지 못했다'고 직접 인정했고, 같은 해 매출은 전년 대비 14.7% 감소했다(마케팅비는 오히려 줄인 상태였다). 코어를 벗어난 카테고리 확장이 인지도 확산으로 이어지지 않고 매출 하락으로 귀결된 사례다.",
+      "outcome_direction": "negative",
+      "metric_name": "연간 순매출 (Net revenue)",
+      "metric_before": 297.8,
+      "metric_after": 254.1,
+      "metric_unit": "USD 백만 (연간, FY2022→FY2023)",
+      "observed_period_start": "2022-01-01",
+      "observed_period_end": "2023-12-31"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.sec.gov/Archives/edgar/data/1653909/000162828021017824/allbirdss-1.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": true,
+      "observation_key": "allbirds-s1-2021-back-bay-store-study",
+      "supports_metric": true,
+      "published_at": "2021-08-31",
+      "retrieved_at": "2026-09-10",
+      "snippet": "\"in the three months following the opening of our Boston Back Bay store in March 2019... the Boston DMA experienced a 15% increase in website traffic, an 83% increase in new customers and a 77% increase in overall net sales, as compared to a comparable control market.\"",
+      "supports_claim": "S-1 자체 마케팅 어트리뷰션 스터디(발행사가 정의·집계) — 감사 재무제표 항목이 아니라 자체 방법론의 캠페인 테스트 결과라 is_issuer_defined_metric=true. 법정 공시 경로로 등급 A를 주지 않는다."
+    },
+    {
+      "move": 1,
+      "url": "https://www.sec.gov/Archives/edgar/data/1653909/000165390924000012/allbirdsq42023earningsrele.htm",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": true,
+      "is_issuer_defined_metric": false,
+      "observation_key": "allbirds-8k-q4fy2023-earnings-release",
+      "supports_metric": true,
+      "published_at": "2024-03-12",
+      "retrieved_at": "2026-09-10",
+      "snippet": "\"Full-year 2023 net revenue decreased 14.7% to $254.1 million compared to $297.8 million in 2022... Marketing expense in 2023 totaled $49.0 million compared to $59.1 million in 2022... 19.3% from 19.9%.\"",
+      "supports_claim": "SEC 8-K 첨부 실적발표 원문. GAAP 매출·비용 항목(감사 대상 재무제표 라인)이라 is_issuer_defined_metric=false — 자기보고이나 법정 공시라 등급 A 경로."
+    },
+    {
+      "move": 1,
+      "url": "https://www.amynewman.com/lcc/2023/3/10/allbirds-admits-mistakes",
+      "source_tier": "tertiary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": false,
+      "observation_key": "allbirds-q4-2022-earnings-call",
+      "supports_metric": false,
+      "published_at": "2023-03-10",
+      "retrieved_at": "2026-09-10",
+      "snippet": "Zwillinger(공동CEO), 2022년 4분기 실적발표에서: \"we did not increase our brand awareness to the level that we anticipated\" — 코어 소비자에서 벗어난 신제품(Tree Flyer 등)에 자원을 쏟은 것을 '실책'으로 인정.",
+      "supports_claim": "매출 하락 수치 자체는 뒷받침하지 않고(supports_metric=false), '왜 인지도가 오르지 않았나'라는 원인 서사(경영진 자인)만 뒷받침한다. 3차 블로그가 실적발표 발언을 인용한 것이라 독립 확인이 아니다."
+    },
+    {
+      "move": null,
+      "url": "https://www.cnbc.com/2026/06/17/allbirds-bird-ai-smartbird-ceo.html",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": false,
+      "observation_key": "allbirds-2026-smartbird-divestiture",
+      "supports_metric": false,
+      "published_at": "2026-06-17",
+      "retrieved_at": "2026-09-10",
+      "snippet": "American Exchange Group·WSG Brands가 Allbirds 브랜드·신발 자산을 인수했고, 존속 상장법인은 사명을 Smartbird, Inc.로 바꾸고 AI 컴퓨트 인프라(GPUaaS) 사업으로 전환했다. 2025년 매출은 전년 대비 약 20% 감소한 $152.5M.",
+      "supports_claim": "outcome_status='shutdown' 판단의 근거. 신발 D2C 사업은 매각·종료됐고, 상장법인 자체가 다른 업종으로 전환했다."
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+[
+  {
+    "case_slug": "beauty-of-joseon",
+    "move_id": "922b24b9-4aa7-4bc9-b025-d2feaa0bebd1",
+    "content_code": "CS-20260910-02",
+    "log_code": "LOG-20260910-02",
+    "body_path": "drafts/threads/2026-09-10-beauty-of-joseon.body.txt",
+    "reply_path": "drafts/threads/2026-09-10-beauty-of-joseon.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-09-10-beauty-of-joseon.md",
+    "title": "조선미녀, 역수입된 인지도",
+    "twist_line": "국내 유통망 없이 미국 아마존을 먼저 잡았고, 그 해외 성과가 국내 인지도를 역수입해서 만들었다",
+    "hook_type": "상식파괴형",
+    "closing_type": "질문형",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅴ 전항목 통과(예외 없음) · U-3 해당없음(정의상 습관점검, 초안 단위 판정 대상 아님) · G-4 15자 예외(슬랙 LOG-20260910-01 전례 승계) · X-2 솔파 채택(발행 후 조작 없음) · X-3 만남(연결·별도 기준 차이·데일리안 별개 수치를 본문·자기답글에 명시해 과장 차단) · CG-1 대상(등급 C — 초안 JSON 근거 4건으로 gradeMove 재계산해 지시값과 일치 확인) · 본문에 귀속 문구 포함('전자공시 기준으로 보면', '조선미녀가...밝힌 바 있다' — SELF_MARKERS·이름귀속 양쪽 다 매치, 단 정규식 실행이 아니라 손 추적으로 확인) · ⚠️ content_code/LOG 코드: 원 지시 CS-20260910-01/LOG-20260910-01은 같은 날 슬랙 건과 중복이라 CS-20260910-02/LOG-20260910-02로 변경(오케스트레이터 재검토 필요)"
+  },
+  {
+    "case_slug": "slack-bottom-up-conversion",
+    "move_id": "ebe8d776-f70f-4b13-98fe-291d3066748f",
+    "content_code": "CS-20260910-01",
+    "body_path": "drafts/threads/2026-09-10-slack-bottom-up-conversion.body.txt",
+    "reply_path": "drafts/threads/2026-09-10-slack-bottom-up-conversion.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-09-10-slack-bottom-up-conversion.md",
+    "title": "슬랙, 커지는 매출과 그대로인 손실",
+    "twist_line": "바텀업 전환이 매출을 3.8배로 밀어 올리는 동안 순손실은 거의 그대로였다",
+    "hook_type": "대비구조형",
+    "closing_type": "질문형",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅴ 전항목 통과(예외 없음) · U-3 해당없음(정의상 습관점검, 초안 단위 판정 대상 아님) · G-4 15자 예외(퍼플이노베이션 LOG-20260909-01 전례 승계) · X-2 솔파 채택(발행 후 조작 없음) · X-3 만남(S-1이 순손실 원인 미분해 사실을 자기답글에 명시해 인과 과장 차단) · CG-1 비대상(등급 A — 초안 JSON 근거 1건으로 gradeMove 재계산해 지시값과 일치 확인) · content_code/LOG 코드 2026-09-10 기준 타 초안과 충돌 없음 확인"
+  }
+]

@@ -186,8 +186,11 @@ for (const sourceKey of sourceKeys) {
     //    실수집에서 진짜 0건이 나온 날과도 구별되지 않는다(CLAUDE.md §7.1).
     const newLabel = dryRun ? '신규 —(dry-run 은 판정하지 않음)' : `신규 ${s.newReviews}건`
     const quotaLabel = s.quotaExhaustedResponses > 0 ? ` · 쿼터 소진 ${s.quotaExhaustedResponses}건` : ''
+    // 관련없음 제외는 파싱 실패와 다른 사건이다 — 소스가 아니라 질의의 문제.
+    // 0 이면 줄을 늘리지 않는다(늘 있는 숫자는 안 읽힌다).
+    const filteredLabel = s.relevanceFiltered > 0 ? ` · 관련없음 ${s.relevanceFiltered}건 제외` : ''
     say(
-      `- 파싱 ${s.reviewsParsed}건(실패 ${s.parseFailures}) · ${newLabel} · 폴백키 ${s.fallbackKeys}건 · robots 회피 ${result.robotsSkips}건${quotaLabel}`,
+      `- 파싱 ${s.reviewsParsed}건(실패 ${s.parseFailures}) · ${newLabel} · 폴백키 ${s.fallbackKeys}건 · robots 회피 ${result.robotsSkips}건${quotaLabel}${filteredLabel}`,
     )
 
     for (const w of result.health.warnings) say(`- ⚠️ ${w}`)

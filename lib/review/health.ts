@@ -35,6 +35,14 @@ export interface RunStats {
   reviewsParsed: number
   /** 항목은 보이는데 못 읽은 수. reviewsParsed 와 합쳐 세지 말 것. */
   parseFailures: number
+  /**
+   * 필드는 읽었지만 질의와 무관해서 버린 수(어댑터가 ParseResult.filtered 로 보고).
+   *
+   * ⚠️ judgeHealth 는 이 값을 보지 않는다 — 파싱 성공률 분모에 안 들어간다.
+   *    관련없음이 많은 건 소스가 아니라 질의(product_ref)의 문제이지,
+   *    파서가 깨진 것이 아니다. 사람이 야간 보고에서 보고 질의를 조인다.
+   */
+  relevanceFiltered: number
   /** 지문 대조 후 실제로 새로 들어간 수. */
   newReviews: number
   /** externalId 를 못 찾아 폴백 조합으로 지문을 만든 수. */

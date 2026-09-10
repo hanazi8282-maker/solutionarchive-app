@@ -111,6 +111,48 @@ function str(value: unknown): string | null {
 }
 
 /**
+ * 이 hit 이 질의와 실제로 관련이 있는가.
+ *
+ * ⚠️ 왜 필요한가. `search_by_date` 는 시간 역순 정렬이라 러너의 증분 종료
+ *    (STALE 연속 5건)가 성립하는데, 그 대가로 **관련도 필터가 느슨하다.**
+ *    Algolia 의 타이포 허용·optional word 때문에 질의어가 본문에도 제목에도
+ *    없는 최신 댓글이 30~60% 섞여 온다(실측 2026-09-10). 그대로 두면
+ *    추출·앵글·실증 게이트가 무관한 잡음 위에서 돈다.
+ *
+ * 관련도순 `search` 엔드포인트로 바꾸면 시간 정렬이 깨져 러너의 공용
+ * 증분 종료(다나와·appstore 와 공유)가 오작동한다. 그래서 엔드포인트는
+ * 그대로 두고 **여기서** 거른다 — 러너는 손대지 않는다.
+ *
+ * 규칙: 질의어를 공백으로 쪼갠 각 토큰(길이 2 이상)이 전부 제목+본문에
+ * 대소문자 무시 부분문자열로 있어야 관련이다. 하나라도 없으면 버린다.
+ * "확인 불가"를 "관련"으로 접지 않는다(CLAUDE.md §7.1) — 질의어가
+ * 명백히 없는 것만 버린다.
+ *
+ * ponytail: 부분문자열이라 `app` 이 `apple` 에도 걸린다(관련 쪽으로 느슨).
+ *   `Notion app` 처럼 흔한 둘째 단어가 붙은 질의는 과하게 남길 수 있지만,
+ *   과소필터(잡음 유입)보다 과대유지가 덜 위험하다. 반대로 `Notion app`
+ *   이 `app` 없는 진짜 글을 버리기도 한다 — 그건 질의를 `Notion` 으로
+ *   좁히면 된다(product_ref 는 사람이 정한다).
+ */
+export function isRelevant(keyword: string, hit: Record<string, unknown>): boolean {
+  const kw = (keyword ?? '').trim().toLowerCase()
+  if (!kw) return true // 질의어를 못 구하면 거르지 않는다
+
+  const haystack = [
+    str(hit['story_title']),
+    str(hit['title']),
+    typeof hit['comment_text'] === 'string' ? (hit['comment_text'] as string) : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .toLowerCase()
+
+  const tokens = kw.split(/\s+/).filter((t) => t.length >= 2)
+  if (tokens.length === 0) return haystack.includes(kw)
+  return tokens.every((t) => haystack.includes(t))
+}
+
+/**
  * Algolia hit 하나를 ParsedReview 로. 못 읽으면 null(= 파싱 실패 1건).
  *
  * 필수는 **본문과 objectID** 다. `comment_text` 가 null/빈 문자열인 hit 을
@@ -185,20 +227,34 @@ export const hackernewsAdapter: ReviewSourceAdapter = {
 
     // 결과가 0건인 것은 정상 종료다. 질의에 안 걸렸을 뿐 구조는 멀쩡하다.
     if (hits.length === 0) {
-      return { reviews: [], nextCursor: null, parseFailures: 0 }
+      return { reviews: [], nextCursor: null, parseFailures: 0, filtered: 0 }
     }
+
+    // 질의어. nextRequest 가 이미 검증한 product_ref 라 보통 non-null 이지만,
+    // 못 구하면 관련도 필터를 건너뛴다(전부 통과).
+    const keyword = parseProductRef(ctx.productRef)
 
     const reviews: ParsedReview[] = []
     let parseFailures = 0
+    let filtered = 0
 
     for (const hit of hits) {
       if (!hit || typeof hit !== 'object') {
         parseFailures++
         continue
       }
-      const r = toReview(hit as Record<string, unknown>)
-      if (r) reviews.push(r)
-      else parseFailures++
+      const h = hit as Record<string, unknown>
+      const r = toReview(h)
+      if (!r) {
+        parseFailures++
+        continue
+      }
+      // 필드는 읽혔지만 질의와 무관 — 파싱 실패가 아니라 관련없음으로 센다.
+      if (keyword && !isRelevant(keyword, h)) {
+        filtered++
+        continue
+      }
+      reviews.push(r)
     }
 
     // ⚠️ 커서는 **다음에 읽을 페이지**다. `ctx.cursor` 를 그대로 돌려주면
@@ -217,6 +273,7 @@ export const hackernewsAdapter: ReviewSourceAdapter = {
       reviews,
       nextCursor: beyondLastPage || beyondApiLimit ? null : String(next),
       parseFailures,
+      filtered,
     }
   },
 
@@ -226,4 +283,4 @@ export const hackernewsAdapter: ReviewSourceAdapter = {
 }
 
 /** 셀프테스트 전용. 프로덕션 코드에서 쓰지 않는다. */
-export const __internal = { pageOf, toReview, codePoint }
+export const __internal = { pageOf, toReview, codePoint, isRelevant }

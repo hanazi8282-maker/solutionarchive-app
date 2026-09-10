@@ -106,6 +106,7 @@ export interface RunResult {
 const emptyStats = (): RunStats => ({
   reviewsParsed: 0,
   parseFailures: 0,
+  relevanceFiltered: 0,
   newReviews: 0,
   fallbackKeys: 0,
   blockedResponses: 0,
@@ -307,6 +308,9 @@ export async function runCollection(
       pagesFetched++
       const parsed = adapter.parse(res.body, { productRef: target.productRef, cursor })
       stats.parseFailures += parsed.parseFailures
+      // 순수 누적 카운터. 종료 조건·커서·STALE 판정 어디에도 안 쓴다.
+      // filtered 를 안 내는 어댑터(danawa·appstore)는 여기서 0 이 더해진다.
+      stats.relevanceFiltered += parsed.filtered ?? 0
 
       const pageResult = await ingestPage(
         parsed.reviews,

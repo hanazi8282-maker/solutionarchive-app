@@ -17,6 +17,7 @@ import {
   hackernewsAdapter,
   parseProductRef,
   htmlStrip,
+  isRelevant,
   HITS_PER_PAGE,
   MAX_PAGE,
 } from '../lib/review/adapters/hackernews.ts'
@@ -104,32 +105,81 @@ t('strip: 이중 해제하지 않는다', htmlStrip('&amp;lt;'), '&lt;')
 t('strip: 앰퍼샌드', htmlStrip('A &amp; B'), 'A & B')
 
 // ── parse: 실제 응답 (AC-A3) ──────────────────────────────────────
+//
+// ⚠️ page1.json 은 실제 `query=notion` 응답이다. Algolia 의 느슨한 매칭 때문에
+//    50건 중 "notion" 이 제목·본문 어디에도 없는 잡음이 42건 섞여 있다.
+//    관련도 필터(Task 1)가 그 42건을 걷어낸다 — 이건 파서 버그가 아니라
+//    소스가 무관한 결과를 준 것이고, filtered 로 따로 센다.
 {
-  const r = hackernewsAdapter.parse(page1, { productRef: 'q:notion', cursor: null })
-  t('파싱: 댓글 50건', r.reviews.length, 50)
-  t('파싱: 실패 0건', r.parseFailures, 0)
-
   const hits = JSON.parse(page1).hits
+  const relevant = hits.filter((h) => isRelevant('notion', h))
+  t('픽스처 전제: 50건 중 관련 8건', relevant.length, 8)
+
+  const r = hackernewsAdapter.parse(page1, { productRef: 'q:notion', cursor: null })
+  t('파싱: 관련 댓글만 남는다', r.reviews.length, relevant.length)
+  t('파싱: 실패 0건', r.parseFailures, 0)
+  t('파싱: 관련없음 42건 제외', r.filtered, hits.length - relevant.length)
+
   // 이 항등식이 이 파서의 핵심 계약이다. 조용히 버리는 hit 이 있으면 깨진다.
-  t('파싱: reviews + 실패 = hits', r.reviews.length + r.parseFailures, hits.length)
+  // 이제 세 갈래다: 읽힘 / 못 읽음 / 관련없음. 셋을 더하면 hits 다.
+  t('파싱: reviews + 실패 + 관련없음 = hits', r.reviews.length + r.parseFailures + r.filtered, hits.length)
 
   const first = r.reviews[0]
-  t('리뷰: externalId 는 objectID', first.externalId, hits[0].objectID)
-  t('리뷰: 작성자는 author', first.authorMasked, hits[0].author)
-  t('리뷰: 날짜는 YYYY-MM-DD', first.writtenAt, hits[0].created_at.slice(0, 10))
+  t('리뷰: externalId 는 objectID', first.externalId, relevant[0].objectID)
+  t('리뷰: 작성자는 author', first.authorMasked, relevant[0].author)
+  t('리뷰: 날짜는 YYYY-MM-DD', first.writtenAt, relevant[0].created_at.slice(0, 10))
   t('리뷰: HN 에는 별점이 없다', first.rating, null)
   t('리뷰: HN 에는 판매처가 없다', first.seller, null)
-  t('리뷰: 본문은 [HN: 제목] 으로 시작', first.text.startsWith(`[HN: ${hits[0].story_title}] `), true)
+  t('리뷰: 본문은 [HN: 제목] 으로 시작', first.text.startsWith(`[HN: ${relevant[0].story_title}] `), true)
 
   ok('리뷰: 전부 externalId 있음', r.reviews.every((x) => x.externalId))
   ok('리뷰: 전부 본문 있음', r.reviews.every((x) => x.text.length > 0))
   ok('리뷰: 전부 YYYY-MM-DD', r.reviews.every((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.writtenAt)))
   ok('리뷰: 전부 [HN: 으로 시작', r.reviews.every((x) => x.text.startsWith('[HN: ')))
+  // 관련도 필터가 걸렸으면 남은 건 전부 "notion" 을 담고 있어야 한다.
+  ok(
+    '리뷰: 남은 건 전부 질의어를 담고 있다',
+    r.reviews.every((x) => x.text.toLowerCase().includes('notion')),
+  )
   // 평문이어야 한다 — 태그가 남으면 분석 단계가 마크업을 의견으로 읽는다.
   ok('리뷰: 본문에 HTML 태그가 남지 않는다', r.reviews.every((x) => !/<[a-z/][^>]*>/i.test(x.text)))
   ok('리뷰: 본문에 엔티티가 남지 않는다', r.reviews.every((x) => !/&#x[0-9a-f]+;|&quot;|&lt;br&gt;/i.test(x.text)))
 
+  // ⚠️ 커서는 관련도 필터와 무관하게 전진해야 한다. 한 페이지가 전부
+  //    잡음이어도 다음 페이지를 읽어야 관련 결과에 닿는다.
   t('커서: 첫 페이지 뒤 nextCursor 는 "1"', r.nextCursor, '1')
+}
+
+// ── 관련도 필터 (Task 1) ─────────────────────────────────────────
+//
+// search_by_date 는 시간 역순이라 러너 증분 종료가 성립하지만 관련도 매칭이
+// 느슨하다. search 로 바꾸면 정렬이 깨져 러너(다나와·appstore 공유)가
+// 오작동한다 — 그래서 엔드포인트는 그대로 두고 parse 에서 거른다.
+{
+  const hit = (over = {}) => ({
+    objectID: 'x1',
+    comment_text: 'nothing to see here',
+    story_title: 'Some unrelated thread',
+    created_at: '2026-09-10T00:00:00Z',
+    author: 'a',
+    ...over,
+  })
+  t('필터: 본문에 질의어가 있으면 관련', isRelevant('notion', hit({ comment_text: 'I moved off Notion last year' })), true)
+  t('필터: 제목에만 있어도 관련', isRelevant('notion', hit({ story_title: 'Ask HN: Notion alternatives?' })), true)
+  t('필터: 어디에도 없으면 무관', isRelevant('notion', hit()), false)
+  t('필터: 대소문자 무시', isRelevant('NOTION', hit({ comment_text: 'switched to notion' })), true)
+  t('필터: 여러 단어는 전부 있어야 관련', isRelevant('notion app', hit({ comment_text: 'the notion app is slow' })), true)
+  t('필터: 여러 단어 중 하나만 있으면 무관', isRelevant('notion app', hit({ comment_text: 'I like notion' })), false)
+  t('필터: 2글자 이상 토큰이 없으면 통짜 문자열 매칭', isRelevant('x', hit({ comment_text: 'the x factor' })), true)
+  t('필터: 통짜 문자열도 없으면 무관', isRelevant('x', hit({ comment_text: 'nothing here', story_title: 'none' })), false)
+  t('필터: 질의어를 못 구하면 거르지 않는다(전부 통과)', isRelevant('', hit()), true)
+  // 부분문자열이라 apple 이 app 에도 걸린다 — 관련 쪽으로 느슨한 건 의도한 것.
+  t('필터: 부분문자열 매칭(app ⊂ apple)', isRelevant('app', hit({ comment_text: 'I ate an apple' })), true)
+
+  // parse 레벨: productRef 에서 질의어를 못 뽑으면 필터가 통째로 꺼진다.
+  const noFilter = hackernewsAdapter.parse(page1, { productRef: '', cursor: null })
+  t('필터: q: 접두사 없는 ref 면 필터 꺼짐 — 50건 전부', noFilter.reviews.length, 50)
+  t('필터: 꺼졌을 때 filtered 0', noFilter.filtered, 0)
 }
 
 // ── 커서 전진 — 다나와 사고의 재발 방지 ───────────────────────────
@@ -175,11 +225,16 @@ t('구조 파괴: hits 키가 없으면 실패 1건', hackernewsAdapter.parse('{
 t('구조 파괴: hits 가 배열이 아니면 실패 1건', hackernewsAdapter.parse('{"hits":{}}', { productRef: 'q:x', cursor: null }).parseFailures, 1)
 
 // ── 본문 없는 hit 은 조용히 버리지 않는다 (AC-A5) ─────────────────
+//
+// ⚠️ 이 블록은 **파싱 실패 집계**만 본다. 관련도 필터가 섞이면 "본문이 없어서
+//    버렸는지 / 무관해서 버렸는지" 가 흐려진다 — productRef 를 q: 없이 넘겨
+//    필터를 꺼 둔다(parseProductRef 가 null → 필터 skip).
 {
-  const r = hackernewsAdapter.parse(pageBroken, { productRef: 'q:notion', cursor: null })
+  const r = hackernewsAdapter.parse(pageBroken, { productRef: '', cursor: null })
   const hits = JSON.parse(pageBroken).hits
   t('깨진 페이지: 정상 5건', r.reviews.length, 5)
   t('깨진 페이지: 실패 5건', r.parseFailures, 5)
+  t('깨진 페이지: 관련없음 0건 (필터 꺼짐)', r.filtered, 0)
   t('깨진 페이지: reviews + 실패 = hits', r.reviews.length + r.parseFailures, hits.length)
   ok('깨진 페이지: 남은 리뷰는 전부 본문이 있다', r.reviews.every((x) => x.text.replace(/^\[HN:[^\]]*\]\s*/, '').length > 0))
 }
@@ -188,7 +243,7 @@ t('구조 파괴: hits 가 배열이 아니면 실패 1건', hackernewsAdapter.p
   const doc = JSON.parse(page1)
   doc.hits = doc.hits.slice(0, 3)
   delete doc.hits[1].objectID
-  const r = hackernewsAdapter.parse(JSON.stringify(doc), { productRef: 'q:x', cursor: null })
+  const r = hackernewsAdapter.parse(JSON.stringify(doc), { productRef: '', cursor: null })
   t('objectID 없는 hit 은 파싱 실패', r.parseFailures, 1)
   t('objectID 없는 hit 은 리뷰에 안 들어간다', r.reviews.length, 2)
 }
@@ -197,7 +252,7 @@ t('구조 파괴: hits 가 배열이 아니면 실패 1건', hackernewsAdapter.p
   const doc = JSON.parse(page1)
   doc.hits = doc.hits.slice(0, 2)
   doc.hits[0].comment_text = '<p><i></i>'
-  const r = hackernewsAdapter.parse(JSON.stringify(doc), { productRef: 'q:x', cursor: null })
+  const r = hackernewsAdapter.parse(JSON.stringify(doc), { productRef: '', cursor: null })
   t('태그뿐인 본문은 파싱 실패', r.parseFailures, 1)
 }
 
@@ -264,9 +319,22 @@ function makeHarness(pagesByNumber) {
 {
   // 2페이지를 서로 다른 내용으로 준다. page1 을 두 번 주면 전부 중복이라
   // "전진했는지"와 "중복이라 0건인지"가 구별되지 않는다.
-  const doc2 = JSON.parse(page1)
-  doc2.hits = doc2.hits.map((h, i) => ({ ...h, objectID: `p2-${i}`, comment_text: `두번째 페이지 댓글 ${i}` }))
-  const h = makeHarness({ 0: page1, 1: JSON.stringify(doc2), 2: pageEmpty })
+  //
+  // ⚠️ 두 페이지 다 질의어("notion")를 심어 관련도 필터를 통과시킨다. 이 블록은
+  //    커서 전진·중복 판정을 보는 것이지 필터를 보는 게 아니다. 필터는 아래
+  //    전용 블록에서 본다.
+  const relevantize = (raw, tag) => {
+    const d = JSON.parse(raw)
+    d.hits = d.hits.map((h, i) => ({
+      ...h,
+      objectID: `${tag}-${i}`,
+      comment_text: `${tag} 댓글 ${i} — notion 이야기`,
+    }))
+    return JSON.stringify(d)
+  }
+  const doc1 = relevantize(page1, 'p1')
+  const doc2 = relevantize(page1, 'p2')
+  const h = makeHarness({ 0: doc1, 1: doc2, 2: pageEmpty })
 
   const res = await runCollection(hackernewsAdapter, { dryRun: false, targetLimit: 1 }, h.ports)
 
@@ -278,18 +346,39 @@ function makeHarness(pagesByNumber) {
   t('러너: page 파라미터가 0,1,2 로 전진', pages.map((u) => new URL(u).searchParams.get('page')).join(','), '0,1,2')
   t('러너: robots 로 막힌 요청 0건', res.robotsSkips, 0)
   t('러너: 파싱 실패 0건', res.stats.parseFailures, 0)
+  t('러너: 관련없음 0건 (두 페이지 다 질의어 포함)', res.stats.relevanceFiltered, 0)
   t('러너: 신규 100건(2페이지 × 50)', res.stats.newReviews, 100)
   t('러너: analysis_inputs 100건', h.log.inputs.length, 100)
   ok('러너: 적재 본문이 [HN: 으로 시작', h.log.inputs.every((i) => i.text.startsWith('[HN: ')))
   ok('러너: source_key 가 hackernews', h.log.inputs.every((i) => i.sourceKey === 'hackernews'))
 
   // 같은 픽스처로 다시 돌리면 신규 0건이어야 한다(지문 중복 판정).
-  const h2 = makeHarness({ 0: page1, 1: JSON.stringify(doc2), 2: pageEmpty })
+  const h2 = makeHarness({ 0: doc1, 1: doc2, 2: pageEmpty })
   h2.seen = h.seen
   h2.ports.store.recordFingerprint = h.ports.store.recordFingerprint
   const res2 = await runCollection(hackernewsAdapter, { dryRun: false, targetLimit: 1 }, h2.ports)
   t('러너: 재실행하면 신규 0건', res2.stats.newReviews, 0)
   t('러너: 재실행해도 적재 0건', h2.log.inputs.length, 0)
+}
+
+{
+  // 러너 통합: 관련도 필터가 실제로 걸린다. 한 페이지에 관련 20 / 무관 30 을
+  // 섞어 주면 신규는 20, relevanceFiltered 는 30 이어야 한다. 무관 30건은
+  // parseFailures 로 새면 안 된다(건강도가 broken 을 띄운다).
+  const d = JSON.parse(page1)
+  d.hits = d.hits.slice(0, 50).map((h, i) => ({
+    ...h,
+    objectID: `mix-${i}`,
+    comment_text: i < 20 ? `notion 관련 댓글 ${i}` : `전혀 무관한 댓글 ${i}`,
+    story_title: 'unrelated',
+  }))
+  const h = makeHarness({ 0: JSON.stringify(d), 1: pageEmpty })
+  const res = await runCollection(hackernewsAdapter, { dryRun: false, targetLimit: 1 }, h.ports)
+  t('러너 필터: 신규는 관련 20건만', res.stats.newReviews, 20)
+  t('러너 필터: relevanceFiltered 30건', res.stats.relevanceFiltered, 30)
+  t('러너 필터: parseFailures 0 (무관은 실패가 아니다)', res.stats.parseFailures, 0)
+  t('러너 필터: 적재도 20건', h.log.inputs.length, 20)
+  t('러너 필터: health 는 broken 이 아니다', res.health.health === 'broken', false)
 }
 
 {

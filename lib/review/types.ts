@@ -78,6 +78,18 @@ export interface ParseResult {
    *    똑같이 보인다. 후자가 구조 변경 신호이고 건강도 판정의 입력이다.
    */
   parseFailures: number
+  /**
+   * 필드는 정상적으로 읽었지만 **질의와 무관**해서 버린 수(옵셔널).
+   *
+   * ⚠️ parseFailures 와 별개다. 이건 구조 문제가 아니라 소스가 관련 없는
+   *    결과를 섞어 준 것이다. 여기 세면 건강도 판정의 파싱 성공률 분모
+   *    (reviewsParsed + parseFailures)에 안 들어가 — 관련없음이 많다고
+   *    소스가 broken 으로 꺼지지 않는다.
+   *
+   * 현재 hackernews 만 사용한다(Algolia search_by_date 가 키워드 무관 최신
+   * 댓글을 섞어 준다). 안 쓰는 어댑터는 이 필드를 두지 않는다(undefined).
+   */
+  filtered?: number
 }
 
 export interface ReviewSourceAdapter {

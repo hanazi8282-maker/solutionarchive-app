@@ -1154,6 +1154,72 @@ influencers-time·techcrunch/figma·substack/duolingo·bettermode·foundationinc
 
 ---
 
+**[2026-09-11 추가] 세션 리셋 후 재개 — nightly-notion-feedback 라이브 검증·스케줄 활성화 + `<발행본>` 마커 구현 (append-only)**
+
+> PHASE -1 자기정향: 직전 세션이 로컬에서 리셋된 상태로 시작. 실측 결과
+> **Part B·Part C 둘 다 진행된 흔적 없음** — `feat/notion-pull-published-marker`
+> 브랜치는 존재하지만 `git diff main...그브랜치` 가 완전히 빈 diff(다른 스케줄
+> 에이전트가 만들고 origin/main 으로 reset 한 것, 2026-09-10 세션 메모에 이미
+> 기록됨). `notion_sync_log.published_body` 컬럼 없음, `pulled_at` 채워진 행 0,
+> `reports/`에 `notion-feedback-log.md` 이력 0건, HANDOVER 마지막 커밋은 여전히
+> `0ddee50` — 전부 "미완료, 처음부터"로 확인. 처음부터 새로 진행.
+
+1. **워크플로 버그 발견·수정 — `nightly-notion-feedback.yml`.** `workflow_dispatch`
+   시도가 `HTTP 422 Unexpected value 'Co-Authored-By'`로 즉시 실패했다. 원인:
+   커밋 메시지 heredoc 마지막 줄(`Co-Authored-By: ...`)이 들여쓰기 0으로 시작해
+   `run: |` block scalar 를 이탈, job 레벨 키로 오인됐다. 들여쓰기를 맞춰 수정
+   (커밋 `87b3ceb`) — 이 버그가 있는 한 Part B 라이브 검증 자체가 불가능했다.
+
+2. **Part B 라이브 검증 — PASS.** 수정 후 `workflow_dispatch` 실행
+   (`gh run 34501924469`, ref `chore/notion-pull-live-verify`): `notion_sync_log`
+   기존 2행 모두 `pulled_body`/`pulled_status`/`diff_status`/`pulled_at`/
+   `decision_log_code` 채워짐 확인(둘 다 `diff_status=edited`), 실행이 직접
+   `reports/2026-09-10/notion-feedback-log.md` 커밋(`LOG-20260910-01/02`,
+   run 이 push 한 커밋 `6bcb9ab`). 검증 통과로 스케줄(`7 12 * * *` = KST 21:07,
+   기존 3개 크론과 비충돌) 주석 해제(커밋 `b633fb2`+뒤따른 정리 커밋).
+   **PR #29(`chore/notion-pull-live-verify`), 미머지.**
+
+3. **부수 발견 — `graphify-out/`이 `.gitignore` 에 없었다.** 워크플로 수정 커밋 시
+   훅 부작용으로 graphify 캐시 27개 파일이 실수로 같이 커밋됐다. `.gitignore` 에
+   `graphify-out/` 등록 + 트래킹 해제로 되돌림(같은 PR #29 안).
+
+4. **Part C 구현 — `<발행본>` 마커 파싱.** `scripts/notion-pull-feedback.mjs` 에
+   `splitPublishedMarker(text)` 추가: 마커 이전=기존 `pulled_body`/`diff_status`
+   로직 그대로(기존 동작 100% 보존), 마커 이후=신규 `published_body` 로 별도
+   저장(마커 없으면 NULL). 마커 여러 번 등장 시 **첫 등장만 경계**로 설계
+   판단(재등장분은 발행본 텍스트 안에 그대로 남김 — 과설계 방지).
+   `supabase/migrations/20260911000001_notion_sync_log_published_body.sql`
+   (+rollback) 파일만 작성, **미적용**(남헌이 `supabase db query --linked -f`로
+   직접 실행). 컬럼 COMMENT 에 향후 원칙 기록: match-posts 가 pending_review
+   까지 확장되면 match-posts 가 정본, 이 마커/컬럼은 보조·교차검증 역할.
+   `scripts/notion-published-marker-repro.mjs` 로 3케이스(마커 없음/1회/여러 번)
+   + 기존 동작 보존 4/4 통과. `npx next build` exit 0.
+   **PR #30(`feat/notion-published-marker`), 미머지.**
+
+5. **⚠️ 새로 발견한 인프라 위험 — 이 작업 디렉토리는 여러 세션이 실시간으로
+   공유한다(격리된 worktree 가 아니다).** `git pull --rebase` 실행 도중 다른
+   (스케줄) 세션이 같은 디렉토리에서 `feat/review-hackernews-enable` 로
+   체크아웃을 실행해, 내 rebase 가 **엉뚱한 브랜치 위에서 진행**되는 사고가
+   실제로 났다(원격 push 는 non-fast-forward 로 거부되어 origin 은 무사했지만,
+   로컬 브랜치 포인터가 오염됨 — classifier 가 그 브랜치를 강제로 되돌리려는
+   시도를 차단해 더 건드리지 않고 그대로 뒀다). **교훈: 이 리포에서 다른 브랜치로
+   전환해야 하는 작업(`pull --rebase`, `checkout` 등)은 이 공유 디렉토리에서
+   직접 하지 말고 `git worktree add ../<임시경로> -b tmp/<이름> <커밋>` 으로
+   격리한 뒤 거기서 fetch/merge/push 하고 삭제하는 편이 안전하다.** 이번
+   세션은 이후 이 방식으로 전환해 Part B·C 를 각각 별도 worktree
+   (`SolutionArchive-notionpull-wt`, `SolutionArchive-published-marker-wt`)에서
+   완료했다.
+
+**다음 확인 — 확인 불가(아직 미발생, 다음 세션 몫).**
+- PR #29·#30 머지 여부는 남헌 판단.
+- #30 머지 후 남헌이 `published_body` 마이그 적용 → 다음 라이브 pull 에서
+  실제 `<발행본>` 마커가 있는 Notion 페이지로 `published_body` 채워지는지 실측
+  (지금까지의 검증은 마커 없는 기존 2행 대상이라 마커 분기 자체는 아직
+  프로덕션 데이터로 못 봤다 — 코드 자체는 repro 로만 검증됨, §7.1 구분 유지).
+- 스케줄(12:07 UTC) 첫 자동 발화 확인.
+
+---
+
 
 ## 3. 사고 이력 (append-only) ★ 반드시 읽을 것
 
@@ -1369,6 +1435,7 @@ L-56 백필 후 그 무브는 B 가 됐는데, `pending_review` 로 누워 있�
 | 2026-09-07 | 12차 — 뒷정리 | 강등 승인 무브 6건 분류: `posts` 발행 0건이라 전부 "파이프라인 내부", 소급 취소 위험 없음(warby 만 draft post 1개, 나머지 5개는 참조 content/post 자체 없음) / 롤백 컴패니언 2개 신설(`20260907000001`·`000002` `_rollback.sql`) / 앵커 4개 원문 재대조 — 전부 확인, `sm` 판정 유지 / **Warby 초안 §4 재작성 + 귀속 문구 추가 → CG-1 통과, `pending_review` 복귀**(커밋 `d15702f`) / figma/PF TechCrunch 링크 재확인: 404·스냅샷 없음, "two-thirds not designers" 는 S-1 수치임을 WebSearch 로 확인 → 행 변경 없음 / **강등 6건 전부 `approved` 유지로 재승인**(`approve --by 남헌`, 등급 C 기준 재affirm) | — | 열린 것은 Warby 초안 게시 버튼(사람)뿐 |
 | 2026-09-09 | **CMO 데일리 루프 스케줄 가동** | 지출한도 회복 확인(남헌) → 라이브 재완주(run 34244204608, exit 0·10스텝·analyst 해설 생성·초안 2/2·큐 done) → `daily-cmo-loop.yml` schedule 주석 해제 1커밋(cron `17 20 * * *` = 20:17 UTC) → HANDOVER §2-18 신설(가동일·검증 이력·알려진 이슈 Q-1~Q-4) → AC-25 `/cmo` 대화형 실발화 확인 | — | §2-18 (Q-1 run_key 겹침 · Q-2 대시보드 1스텝 지연 · Q-3 커버리지 포화 시 조사<목표 · Q-4 고아 failed 큐행) — 전부 "기록만" |
 | 2026-09-10 | **Notion env 배선 + Q-2 라이브 검증 + LOG 백필** | 첫 스케줄 실행(run 34412694016, 2026-09-09 22:32~22:52 UTC, exit 0·10스텝) 사후 검증 — Q-2 fix `4136cb0` 3중 실측 확인(agent_runs·DASHBOARD·2차 커밋 73b2ce5), `notion_sync_log` 마이그 적용 실측(REST 200·행 0), Notion push 는 `NOTION_*` env 미배선으로 스킵된 것 확인 → `gh secret list` 로 두 시크릿 존재 확인 → `daily-cmo-loop.yml`·`nightly-notion-feedback.yml` env 에 `NOTION_API_TOKEN`/`NOTION_DATABASE_ID` 배선(커밋 `chore/wire-notion-secrets`, 워크플로 파일만) → §2-18 에 [2026-09-10 추가] 블록 + Q-2 [해소] 마킹 | **Q-2** | 다음 라이브 실행(UTC 20:17)의 Notion 페이지 생성 + `notion_sync_log` 스냅샷 적재 확인 — 머지 전이라 확인 불가, 다음 세션 |
+| 2026-09-11 | **세션 리셋 후 재개 — nightly-notion-feedback 라이브 검증·스케줄 활성화 + `<발행본>` 마커 구현** | PHASE -1 실측으로 Part B·C 둘 다 미완료(브랜치 리셋됨) 확인 → workflow_dispatch 422 YAML 버그 발견·수정(`87b3ceb`) → 라이브 검증 PASS(run 34501924469, notion_sync_log 2행 채워짐, notion-feedback-log.md 생성) → 스케줄 12:07 UTC 활성화, PR #29 → `splitPublishedMarker()` 구현(마커 이전=기존 로직 보존, 이후=`published_body`, 첫 마커만 경계) + 마이그 파일(미적용) + repro 4/4 + next build 통과, PR #30 → HANDOVER §2-18 [2026-09-11 추가] 블록 | — | **인프라**: 이 작업 디렉토리가 여러 세션 동시 공유 확인(다른 세션의 실시간 checkout 과 경합해 로컬 브랜치 1개 오염 — origin 무사, worktree 격리로 전환) |
 
 ---
 

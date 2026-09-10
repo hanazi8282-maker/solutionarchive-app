@@ -7,7 +7,9 @@
 --
 -- 기본값 'forward' 라 기존 행·기존 코드 경로는 그대로다.
 --
--- ⚠️ 미적용 (CLAUDE.md §10.1 / §26-3). 남헌이 대시보드에서 직접 실행.
+-- ✅ 적용됨 (2026-09-10, CLAUDE.md §10.2 — 남헌 1회성 예외 승인으로 클로드코드가
+--    직접 실행). 프로젝트 ref: qmgrfqjfxqhxuufrnkwf. 이후 마이그레이션은 다시
+--    §10.1 기본 원칙(사람이 대시보드에서 직접 실행)으로 돌아간다.
 
 ALTER TABLE public.analysis_projects
   ADD COLUMN IF NOT EXISTS mode text NOT NULL DEFAULT 'forward'

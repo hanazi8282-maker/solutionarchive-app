@@ -35,7 +35,7 @@ export const LOOPS: readonly LoopDef[] = [
   { key: 'cmo', label: 'CMO 데일리 루프', table: 'agent_runs', cronExpr: '17 20 * * *', scheduleActive: true, deptFilter: 'cmo', workflow: 'daily-cmo-loop.yml' },
   { key: 'insight', label: '나이틀리 인사이트 루프', table: 'insight_loop_runs', cronExpr: '41 18 * * *', scheduleActive: true, workflow: 'nightly-insight-loop.yml' },
   { key: 'review', label: '나이틀리 리뷰 수집', table: 'review_collection_runs', cronExpr: '37 17 * * *', scheduleActive: true, workflow: 'nightly-review-collect.yml' },
-  { key: 'notion', label: '나이틀리 노션 피드백', table: 'notion_sync_log', cronExpr: '7 12 * * *', scheduleActive: false, workflow: 'nightly-notion-feedback.yml' },
+  { key: 'notion', label: '나이틀리 노션 피드백', table: 'notion_sync_log', cronExpr: '7 12 * * *', scheduleActive: true, workflow: 'nightly-notion-feedback.yml' },
 ] as const
 
 export type State = 'OK' | 'EMPTY' | 'UNAVAILABLE'

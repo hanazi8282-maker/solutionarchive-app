@@ -1,0 +1,66 @@
+/* ============================================================
+   Dothegy Works — Typography Tokens
+   Pretendard for everything UI (Korean + Latin), JetBrains
+   Mono for tabular figures / IDs. Dashboard density: compact
+   line-heights, clear hierarchy from page title → KPI number
+   → label. shadcn-ish scale.
+   ============================================================ */
+
+:root {
+  /* Families */
+  --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+               "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Weights */
+  --fw-regular:  400; /* @kind font */
+  --fw-medium:   500; /* @kind font */
+  --fw-semibold: 600; /* @kind font */
+  --fw-bold:     700; /* @kind font */
+
+  /* Type scale (px) — dashboard tuned */
+  --fs-display: 32px;  /* big KPI gauge numbers */
+  --fs-h1:      24px;  /* page title */
+  --fs-h2:      20px;  /* section / card title */
+  --fs-h3:      16px;  /* sub-section */
+  --fs-base:    14px;  /* body / table cells / inputs */
+  --fs-sm:      13px;  /* secondary copy */
+  --fs-xs:      12px;  /* labels, captions, badges */
+  --fs-2xs:     11px;  /* sidebar section labels, micro-meta */
+
+  /* Line heights */
+  --lh-tight:   1.2;  /* @kind font */
+  --lh-snug:    1.35; /* @kind font */
+  --lh-normal:  1.5;  /* @kind font */
+  --lh-relaxed: 1.65; /* @kind font */
+
+  /* Letter spacing */
+  --ls-tight:  -0.02em; /* @kind font */
+  --ls-normal: 0;       /* @kind font */
+  --ls-wide:   0.04em;  /* @kind font */
+  --ls-wider:  0.08em;  /* @kind font */
+
+  /* ---- Semantic roles ---- */
+  --text-display-size:   var(--fs-display);
+  --text-display-weight: var(--fw-bold);
+  --text-display-lh:     var(--lh-tight);
+  --text-display-ls:     var(--ls-tight);
+
+  --text-title-size:     var(--fs-h1);
+  --text-title-weight:   var(--fw-bold);
+  --text-title-lh:       var(--lh-tight);
+
+  --text-section-size:   var(--fs-h2);
+  --text-section-weight: var(--fw-semibold);
+
+  --text-body-size:      var(--fs-base);
+  --text-body-weight:    var(--fw-regular);
+  --text-body-lh:        var(--lh-normal);
+
+  --text-label-size:     var(--fs-xs);
+  --text-label-weight:   var(--fw-medium);
+
+  --text-caps-size:      var(--fs-2xs);
+  --text-caps-weight:    var(--fw-semibold);
+  --text-caps-ls:        var(--ls-wider);
+}

@@ -92,6 +92,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CMO_RESEARCH_TARGET: ${{ inputs.research_target || vars.CMO_RESEARCH_TARGET || '2' }}
           CMO_DRAFT_TARGET: ${{ inputs.draft_target || vars.CMO_DRAFT_TARGET || '2' }}
+          # digest 스텝(S8) 끝의 notion-push-digest.mjs 용. 없으면 그 스크립트가
+          # 자격증명 가드에서 조용히 조기 종료한다 — 루프 본체엔 영향 없지만
+          # "CMO 발행 대기함" Notion DB 로 아침 푸시가 영영 안 나간다.
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           # ⛔ THREADS_ACCESS_TOKEN 을 여기 넣지 마라. 넣는 순간 §10 의 구조적
           #    보장이 사라진다. 발행은 사람이 앱에서 한다.
           # ⛔ ANTHROPIC_API_KEY 도 넣지 마라. 헤드리스가 조용히 유료 경로로

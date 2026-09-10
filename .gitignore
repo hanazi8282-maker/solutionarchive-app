@@ -43,3 +43,6 @@ next-env.d.ts
 __pycache__/
 *.pyc
 .tmp-*
+
+# graphify local artifacts (not part of the repo)
+graphify-out/

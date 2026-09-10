@@ -16,9 +16,18 @@
 //    돌릴지/언제 돌릴지는 남헌이 정한다.
 //
 // ⚠️ 기본은 dry-run 이다. `--apply` 를 명시해야 analysis_inputs 를 UPDATE 한다
-//    (review-purge.mjs 와 같은 규약). raw_text 를 바꾸므로 지문 content_hash 와도
-//    어긋난다 — 신규 소스라 기존 지문이 없어 지금은 무해하지만, 켠 뒤에 돌리려면
-//    그 점을 감안해야 한다.
+//    (review-purge.mjs 와 같은 규약).
+//
+// ✅ raw_text 와 지문 content_hash 의 불일치는 표면적이며 무해하다 — 기능적 버그가
+//    아니다 (2026-09-10 실측, scripts/review-hackernews-enrich-fingerprint-repro.mjs).
+//    content_hash 는 매 수집 사이클마다 **API 응답을 다시 파싱한 review.text** 로
+//    재계산된다(lib/review/runner.ts ingestPage → computeFingerprint). 저장된
+//    raw_text 를 다시 읽어 해싱하는 경로는 파이프라인에 없다. 그래서 enrich 가
+//    raw_text 에 `▲score` 를 끼워도, 다음 사이클이 같은 원본 응답을 다시 파싱해
+//    계산한 content_hash 는 enrich 이전과 같고 recordFingerprint 가 duplicate 로
+//    처리한다 — revision_count 는 오르지 않고 중복 재적재도 없다. raw_text(사람·화면용,
+//    ▲ 있음) 와 content_hash(중복판별용, ▲ 없음) 는 서로 다른 시점의 값일 뿐이다.
+//    켠 뒤 --apply 로 돌려도 안전하다.
 //
 // 예산: review_sources(hackernews) 의 min_interval_ms·daily_request_cap 를 읽어
 //    그 안에서만 요청한다. 스토리가 상한을 넘으면 최신부터 처리하고 나머지는

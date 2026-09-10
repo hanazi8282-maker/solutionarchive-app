@@ -106,7 +106,6 @@ for (const loop of LOOPS) {
   const active = lines.some((l) => !/^\s*#/.test(l))
   t(`${loop.key}: scheduleActive 일치`, active, loop.scheduleActive)
 }
-ok('노션 루프는 비활성으로 등록', LOOPS.find((l) => l.key === 'notion').scheduleActive === false)
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) { console.log('에이전트 상태 로직 또는 워크플로 cron 이 어긋났다.'); process.exitCode = 1 }

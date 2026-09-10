@@ -64,6 +64,15 @@ export interface ParsedReview {
   authorMasked: string | null
   /** ISO date (YYYY-MM-DD). 원본은 '2025.09.06.' 형식이라 시각이 없다. */
   writtenAt: string | null
+  /**
+   * 이 리뷰가 달린 상위 문서(스레드/게시글)의 소스 내 id(옵셔널).
+   *
+   * hackernews 만 채운다 — HN 은 한 스레드에 여러 댓글이 걸리고, 스레드
+   * 단위 신호(score 등)를 나중에 배치로 덧붙이려면 어느 스레드인지가 필요하다
+   * (scripts/review-hackernews-enrich.mjs). 다나와·appstore 는 상품 1개 =
+   * 타깃 1개라 이 개념이 없다(null).
+   */
+  storyId?: string | null
 }
 
 export interface ParseResult {

@@ -18,6 +18,8 @@ import {
   parseProductRef,
   htmlStrip,
   isRelevant,
+  hnThreadUrl,
+  extractStoryIdFromText,
   HITS_PER_PAGE,
   MAX_PAGE,
 } from '../lib/review/adapters/hackernews.ts'
@@ -130,7 +132,13 @@ t('strip: 앰퍼샌드', htmlStrip('A &amp; B'), 'A & B')
   t('리뷰: 날짜는 YYYY-MM-DD', first.writtenAt, relevant[0].created_at.slice(0, 10))
   t('리뷰: HN 에는 별점이 없다', first.rating, null)
   t('리뷰: HN 에는 판매처가 없다', first.seller, null)
-  t('리뷰: 본문은 [HN: 제목] 으로 시작', first.text.startsWith(`[HN: ${relevant[0].story_title}] `), true)
+  t('리뷰: storyId 는 story_id(문자열)', first.storyId, String(relevant[0].story_id))
+  t(
+    '리뷰: 본문 머리에 제목 + 스레드 URL',
+    first.text.startsWith(`[HN: ${relevant[0].story_title} · news.ycombinator.com/item?id=${relevant[0].story_id}] `),
+    true,
+  )
+  ok('리뷰: 전부 스레드 URL 을 담는다', r.reviews.every((x) => /news\.ycombinator\.com\/item\?id=\d+/.test(x.text)))
 
   ok('리뷰: 전부 externalId 있음', r.reviews.every((x) => x.externalId))
   ok('리뷰: 전부 본문 있음', r.reviews.every((x) => x.text.length > 0))
@@ -254,6 +262,22 @@ t('구조 파괴: hits 가 배열이 아니면 실패 1건', hackernewsAdapter.p
   doc.hits[0].comment_text = '<p><i></i>'
   const r = hackernewsAdapter.parse(JSON.stringify(doc), { productRef: '', cursor: null })
   t('태그뿐인 본문은 파싱 실패', r.parseFailures, 1)
+}
+
+// ── 스레드 URL 심기 / 도로 뽑기 (Task 2 enrich 의 배치 키) ────────
+t('threadUrl: story_id 로 HN 스레드 URL', hnThreadUrl('49624394'), 'news.ycombinator.com/item?id=49624394')
+t('extract: 본문에서 story_id 를 뽑는다', extractStoryIdFromText('[HN: X · news.ycombinator.com/item?id=42] 본문'), '42')
+t('extract: URL 이 없으면 null(예전 형식)', extractStoryIdFromText('[HN: X] 본문'), null)
+t('extract: 빈 문자열도 null', extractStoryIdFromText(''), null)
+{
+  // story_id 가 없는 hit(구조 변경 등)은 예전 형식으로 떨어진다 — 깨지지 않는다.
+  const doc = JSON.parse(page1)
+  doc.hits = doc.hits.slice(0, 1)
+  delete doc.hits[0].story_id
+  const r = hackernewsAdapter.parse(JSON.stringify(doc), { productRef: '', cursor: null })
+  t('story_id 없음: 리뷰는 나온다', r.reviews.length, 1)
+  t('story_id 없음: storyId null', r.reviews[0].storyId, null)
+  t('story_id 없음: 예전 형식 [HN: 제목]', r.reviews[0].text.startsWith(`[HN: ${doc.hits[0].story_title}] `), true)
 }
 
 t('어댑터 키', hackernewsAdapter.key, 'hackernews')

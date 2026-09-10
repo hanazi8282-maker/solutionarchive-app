@@ -110,6 +110,25 @@ function str(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
+/** 숫자 또는 숫자 문자열 id 를 문자열로. 그 외는 null. (Algolia 는 story_id 를 숫자로 준다) */
+function numId(value: unknown): string | null {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) return String(value)
+  if (typeof value === 'string' && /^\d+$/.test(value)) return value
+  return null
+}
+
+/** HN 스레드(게시글) URL. 본문에 심어 두면 사람은 클릭해 맥락을 보고,
+ *  enrich 스크립트는 여기서 story_id 를 도로 뽑는다. */
+export function hnThreadUrl(storyId: string): string {
+  return `news.ycombinator.com/item?id=${storyId}`
+}
+
+/** 적재된 본문에서 story_id 를 도로 뽑는다. enrich 가 스레드 단위로 묶을 때 쓴다. */
+export function extractStoryIdFromText(text: string): string | null {
+  const m = /news\.ycombinator\.com\/item\?id=(\d+)/.exec(text ?? '')
+  return m ? m[1] : null
+}
+
 /**
  * 이 hit 이 질의와 실제로 관련이 있는가.
  *
@@ -170,19 +189,25 @@ function toReview(hit: Record<string, unknown>): ParsedReview | null {
 
   // 어느 스레드에서 나온 말인지가 맥락의 절반이다. 제목이 없으면 빈 채로 둔다.
   const title = str(hit['story_title']) ?? str(hit['title']) ?? ''
+  const storyId = numId(hit['story_id'])
 
   const created = str(hit['created_at'])
   const writtenAt = created && /^\d{4}-\d{2}-\d{2}/.test(created) ? created.slice(0, 10) : null
 
+  // story_id 를 스레드 URL 로 심는다: 사람에겐 맥락 링크, enrich 에겐 배치 키.
+  // id 가 없으면(구조 변경 등) 예전 형식 그대로 둔다.
+  const head = storyId ? `[HN: ${title} · ${hnThreadUrl(storyId)}]` : `[HN: ${title}]`
+
   return {
     externalId,
-    text: `[HN: ${title}] ${body}`,
+    text: `${head} ${body}`,
     // HN 에는 별점이 없다. 없는 축을 0 이나 3 으로 채우면 만족도 계산이 거짓말을 한다.
     rating: null,
     // 판매처 개념도 없다(다나와만 주는 축이다).
     seller: null,
     authorMasked: str(hit['author']),
     writtenAt,
+    storyId,
   }
 }
 

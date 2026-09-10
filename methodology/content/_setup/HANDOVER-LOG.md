@@ -1099,11 +1099,58 @@ influencers-time·techcrunch/figma·substack/duolingo·bettermode·foundationinc
 | # | 이슈 | 성격 |
 |---|---|---|
 | Q-1 | 같은 날 매뉴얼 dispatch 2회 시 run_key(`cmo-<date>-<trigger>`) 겹침으로 **첫 실행의 실패 이력이 tracker upsert 에 덮어써져 완전히 사라진다**(`gh run list` 로만 원본 복구 가능 — DASHBOARD·DIGEST 는 마지막 실행만 남긴다). 표시 오차가 아니라 이력 소거다. 크론은 trigger=cron·매일 다른 날짜라 안 겹친다 — 매뉴얼 재검증에서만 발생 |
-| Q-2 | DASHBOARD 가 **마지막 스텝을 1스텝 지연** 표시(`9/10 …◐`). digest 스텝이 커밋 전에 status-render 를 호출해 자기 자신을 ◐(진행)으로 찍기 때문. 실제로는 10/10 green(`결과: ok · 실패 0`) |
+| Q-2 | DASHBOARD 가 **마지막 스텝을 1스텝 지연** 표시(`9/10 …◐`). digest 스텝이 커밋 전에 status-render 를 호출해 자기 자신을 ◐(진행)으로 찍기 때문. 실제로는 10/10 green(`결과: ok · 실패 0`). **[해소 2026-09-09 — 커밋 `4136cb0`(digest.finish() 이후 재렌더 + 조건부 2차 커밋). 2026-09-10 세션에서 라이브 실측 검증 — 아래 [2026-09-10 추가] 참조]** |
 | Q-3 | 커버리지 포화(7/7 병목·갭 0) 상태면 `--plan N` 이 실패쿼터 슬롯 **1건만** 생성 → **조사가 목표(2)보다 적게 돈다**(15:21 런에서 claim 1). `queue` 스텝은 GREEN — AC-20(과다실행 방지, `research_queue` 오늘 ≤5)상 정상 동작이다. 케이스 반려·`reports/feedback/` 유입으로 갭이 생기면 자동 회복. **결함 아님** |
 | Q-4 | 고아 `failed` 큐 행 `ff16440e`(09:56 한도실패 런의 claim). `--claim` 은 `status='queued'` 만 집으므로 이 행은 계속 `failed` 로 남는다. 재조사하려면 사람이 `research-queue.mjs --add` 로 다시 넣는다. 무해 |
 
 **Risk 1 유지 확인**: `.env.local` 의 Supabase 정본 ref = `qmgrfqjfxqhxuufrnkwf` (고정). Supabase MCP 는 Dothegy OS 를 보므로 SolutionArchive 큐 조회는 MCP 가 아니라 `scripts/research-queue.mjs --list` + `.env.local` 로 한다.
+
+---
+
+**[2026-09-10 추가] Notion 왕복 배선 + Q-2 라이브 검증 (append-only — 실측만, 아래 표는 지우지 않는다)**
+
+> 이 문서에 Notion 왕복 관련 기록이 **한 줄도 없다는 것**이 2026-09-09·2026-09-10 두 세션에서
+> 독립적으로 확인됐다(그 이전 세션이 §4·§2 갱신을 빠뜨렸다). 아래는 실측된 사실만 새로 적는다.
+
+1. **Notion push/pull 왕복 구현 — 커밋 `a1b06d5`** (`feat(notion): CMO 발행 대기함 아침 push / 밤 pull 왕복 구축`).
+   목적: **AC-17 되살림**. `scripts/notion-push-digest.mjs`(digest 스텝 S8 끝에서 호출, 아침 push) +
+   `scripts/notion-pull-feedback.mjs`(`nightly-notion-feedback.yml`, schedule 는 아직 비활성 — 별도 승인).
+
+2. **`notion_sync_log` 마이그(`20260909000001_notion_sync_log`) 는 DB 에 적용됨.**
+   REST 실측: `GET /rest/v1/notion_sync_log` → **HTTP 200 · 빈 배열**(PGRST205/404 아님 = 테이블 존재).
+   마이그 파일 DDL 기준 **13컬럼**(id, post_id, notion_database_id, notion_page_id, notion_page_url,
+   pushed_body, pushed_status, pushed_at, pulled_body, pulled_status, diff_status, pulled_at, decision_log_code).
+   현재 **행 0**. ⚠️ "적용됨"까지만 기록한다 — "probe N건 양성" 류 검증이 어느 세션에서 실제로 돌았는지는
+   **리포 문서로 확인 불가**(§7.1). 마이그 파일 꼬리에 수동 확인쿼리 ~5개가 주석으로 있을 뿐 커밋된 probe
+   스크립트도, 실행 로그도 없다.
+
+3. **Q-2(DASHBOARD 1스텝 지연) fix `4136cb0` 라이브 검증 완료** — 2026-09-09 22:32~22:52 UTC
+   스케줄 실행(`gh run 34412694016`, headSha `a1b06d5`)에서 **3중 실측**:
+   - DB `agent_runs` `cmo-2026-09-09-cron`: `status=ok`, `finished_at 22:52:08.778`.
+     `agent_run_steps` **seq 1~10 전부 `status:"ok"`**, `running` 잔류 0. (대조군: `cmo-2026-09-07-local`
+     은 `draft` 스텝이 `running` 으로 얼어붙어 있음 — 고착의 실제 모습.)
+   - `reports/status/DASHBOARD.md`(origin/main HEAD): `✅ **cmo** ●●●●●●●●●● 10/10 · 22:32~22:52 · cmo-2026-09-09-cron`.
+   - 실행이 커밋 2개를 냄: `5cd43f5`(19파일, digest 렌더 중 커밋 → `⏳ 9/10 · 22:32~진행중`) →
+     `73b2ce5`(DASHBOARD 1줄, `chore(cmo): daily loop 2026-09-09 — 최종 상태로 대시보드 재렌더` →
+     `✅ 10/10 · 22:32~22:52`). 구버그였다면 `5cd43f5` 의 9/10 줄에서 영구 고착(다음 렌더가 없어 자연치유 불가).
+
+4. **이번 세션(2026-09-10) 발견·수정 — Notion env 배선.**
+   `gh secret list` 로 `NOTION_API_TOKEN`·`NOTION_DATABASE_ID` 두 시크릿 **존재 확인**(이름만, 값 미노출.
+   둘 다 2026-09-09 등록). run 34412694016 로그의
+   `ℹ️ NOTION_API_TOKEN/NOTION_DATABASE_ID 미설정 — Notion 푸시를 건너뛴다` 는 시크릿이 없어서가 아니라
+   **그 값을 job env 로 흘리는 YAML 이 처음부터 없었기 때문**이었다(`notion-push-digest.mjs` 의
+   `if (!token || !databaseId)` 가드가 설계대로 조기 종료 — 버그 아님).
+   조치(커밋 `chore/wire-notion-secrets` — 워크플로 파일 2개만):
+   - `daily-cmo-loop.yml` `Run CMO daily loop` env: `NOTION_API_TOKEN` + `NOTION_DATABASE_ID` 추가(push 가 둘 다 읽음).
+   - `nightly-notion-feedback.yml` `Pull Notion feedback` env: `NOTION_API_TOKEN` 은 이미 있었고
+     `NOTION_DATABASE_ID` 추가. **`notion-pull-feedback.mjs` 는 현재 이 값을 안 읽는다**(행별 `notion_page_id` 로
+     직접 GET) — push 워크플로와 배선 일치용.
+   - `nightly-notion-feedback.yml` 의 `schedule` 3줄 주석은 **그대로**(활성화 별도 승인).
+   - YAML 파싱 검증: js-yaml 로 두 파일 load OK, env 블록에 두 키가 `secrets.*` 참조로 들어간 것 확인.
+
+5. **다음 확인 — 확인 불가(아직 미발생).** 커밋이 main 에 머지된 뒤 다음 스케줄 실행(KST 05:17 = **UTC 20:17**)에서
+   Notion "CMO 발행 대기함" DB 에 새 페이지가 생기는지 + `notion_sync_log` 에 스냅샷 행이 쌓이는지 실측.
+   GitHub schedule 은 기본 브랜치에서만 발화하므로 **머지 전에는 검증 불가**. 다음 세션 몫.
 
 ---
 
@@ -1321,6 +1368,7 @@ L-56 백필 후 그 무브는 B 가 됐는데, `pending_review` 로 누워 있�
 | 2026-09-07 | 11차 — 관측 키 전량 백필 + 재채점 실반영 | 남헌이 `20260907000001` 적용(`--probe` 양성 21·exit 0) / 근거 72행을 ~48개 문서로 묶어 조사 — 국내 매체·Retail Dive·TechCrunch·Duolingo IR·Sensor Tower 재fetch, medium·indigo9digital 은 web.archive.org 스냅샷으로 확인(둘 다 Casper S-1 재작성), SEC 공시 ~30행은 문서 재식별 + 지난 라운드 대조 인용 / 백필 마이그 `20260907000002`(관측 키 67/72, sm 46T·20F·6N, 스키마 변경 없음) / 남헌 지시로 `.env.local` 직접 적용 + `regrade` 실반영 **A13·B5·C13·D1 → A12·B0·C19·D1**, 바뀐 것 6, 멱등 확인, `review_status` 불변 / Warby Threads 초안(post `b0133f9a`)이 CG-1 재게이트로 `pending_review`→`draft` | **L-60, L-64** | 잠정 15→4(전부 등급 확정) |
 | 2026-09-07 | 12차 — 뒷정리 | 강등 승인 무브 6건 분류: `posts` 발행 0건이라 전부 "파이프라인 내부", 소급 취소 위험 없음(warby 만 draft post 1개, 나머지 5개는 참조 content/post 자체 없음) / 롤백 컴패니언 2개 신설(`20260907000001`·`000002` `_rollback.sql`) / 앵커 4개 원문 재대조 — 전부 확인, `sm` 판정 유지 / **Warby 초안 §4 재작성 + 귀속 문구 추가 → CG-1 통과, `pending_review` 복귀**(커밋 `d15702f`) / figma/PF TechCrunch 링크 재확인: 404·스냅샷 없음, "two-thirds not designers" 는 S-1 수치임을 WebSearch 로 확인 → 행 변경 없음 / **강등 6건 전부 `approved` 유지로 재승인**(`approve --by 남헌`, 등급 C 기준 재affirm) | — | 열린 것은 Warby 초안 게시 버튼(사람)뿐 |
 | 2026-09-09 | **CMO 데일리 루프 스케줄 가동** | 지출한도 회복 확인(남헌) → 라이브 재완주(run 34244204608, exit 0·10스텝·analyst 해설 생성·초안 2/2·큐 done) → `daily-cmo-loop.yml` schedule 주석 해제 1커밋(cron `17 20 * * *` = 20:17 UTC) → HANDOVER §2-18 신설(가동일·검증 이력·알려진 이슈 Q-1~Q-4) → AC-25 `/cmo` 대화형 실발화 확인 | — | §2-18 (Q-1 run_key 겹침 · Q-2 대시보드 1스텝 지연 · Q-3 커버리지 포화 시 조사<목표 · Q-4 고아 failed 큐행) — 전부 "기록만" |
+| 2026-09-10 | **Notion env 배선 + Q-2 라이브 검증 + LOG 백필** | 첫 스케줄 실행(run 34412694016, 2026-09-09 22:32~22:52 UTC, exit 0·10스텝) 사후 검증 — Q-2 fix `4136cb0` 3중 실측 확인(agent_runs·DASHBOARD·2차 커밋 73b2ce5), `notion_sync_log` 마이그 적용 실측(REST 200·행 0), Notion push 는 `NOTION_*` env 미배선으로 스킵된 것 확인 → `gh secret list` 로 두 시크릿 존재 확인 → `daily-cmo-loop.yml`·`nightly-notion-feedback.yml` env 에 `NOTION_API_TOKEN`/`NOTION_DATABASE_ID` 배선(커밋 `chore/wire-notion-secrets`, 워크플로 파일만) → §2-18 에 [2026-09-10 추가] 블록 + Q-2 [해소] 마킹 | **Q-2** | 다음 라이브 실행(UTC 20:17)의 Notion 페이지 생성 + `notion_sync_log` 스냅샷 적재 확인 — 머지 전이라 확인 불가, 다음 세션 |
 
 ---
 

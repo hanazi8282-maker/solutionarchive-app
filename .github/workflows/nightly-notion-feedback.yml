@@ -69,5 +69,5 @@ jobs:
           fi
           git commit -m "chore(notion): feedback log $(date -u +%F)
 
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+          Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
           git push

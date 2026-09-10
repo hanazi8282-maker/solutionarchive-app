@@ -206,6 +206,94 @@ function AdaptationSuggestion({ a, isReverse }: { a: AngleRow; isReverse: boolea
   )
 }
 
+// ── 실전 채택 표시 ────────────────────────────────────────────
+// 사람이 명시적으로 "이 앵글 실전에서 써봤고 됐다"고 기록하는 지점. 자동
+// 트리거 없음 — 이 버튼을 눌러야만 validated_angles_corpus 에 쌓인다.
+// 화려한 UI 불필요(남헌 혼자 쓸 내부 도구) — 확인 다이얼로그 대신 인라인
+// 확장 패널 + outcome_note 입력칸 하나로 충분하다.
+function ValidateAction({ a }: { a: AngleRow }) {
+  const [open, setOpen] = useState(false)
+  const [note, setNote] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [done, setDone] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async () => {
+    if (!note.trim()) return
+    setSubmitting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/analyze/angle/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ angle_id: a.id, outcome_note: note.trim() }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(json.error ?? '저장하지 못했습니다.')
+        return
+      }
+      setDone(true)
+    } catch {
+      setError('네트워크 오류가 발생했습니다.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (done) {
+    return (
+      <div style={{ marginTop: 10 }}>
+        <Badge tone="success" size="sm" dot>실전 채택으로 기록됨</Badge>
+      </div>
+    )
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        style={{ border: 'none', background: 'none', padding: '10px 0 0', cursor: 'pointer', font: 'inherit' }}
+      >
+        <Badge tone="violet" size="sm">실전 채택 표시</Badge>
+      </button>
+    )
+  }
+
+  return (
+    <div style={{
+      marginTop: 10,
+      background: 'var(--surface-muted)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-md)',
+      padding: 'var(--space-3) var(--space-4)',
+      display: 'grid',
+      gap: 'var(--space-2)',
+    }}>
+      <div className="dgy-caps">실전에서 어떻게 됐나요?</div>
+      <textarea
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        rows={2}
+        placeholder="예: 이 카피로 바꾼 뒤 클릭률이 올랐다"
+        style={{
+          font: 'inherit', fontSize: 'var(--fs-sm)', padding: 'var(--space-2)',
+          border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+          background: 'var(--surface)', color: 'var(--text-body)', resize: 'vertical',
+        }}
+      />
+      {error && <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--danger)' }}>{error}</p>}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button variant="primary" onClick={submit} disabled={submitting || !note.trim()}>
+          {submitting ? '저장 중...' : '기록'}
+        </Button>
+        <Button variant="neutral" onClick={() => setOpen(false)}>취소</Button>
+      </div>
+    </div>
+  )
+}
+
 function EvidenceQuote({ a }: { a: AngleRow }) {
   if (!a.substantiation_evidence) return null
   return (
@@ -238,6 +326,7 @@ function ConsumerAngleCard({ a, isReverse }: { a: AngleRow; isReverse: boolean }
       </p>
       <EvidenceQuote a={a} />
       <AdaptationSuggestion a={a} isReverse={isReverse} />
+      <ValidateAction a={a} />
       <RewritePanel a={a} open={open} />
     </Card>
   )
@@ -286,6 +375,7 @@ function InternalMemoCard({ a, isReverse }: { a: AngleRow; isReverse: boolean })
         </p>
         <EvidenceQuote a={a} />
         <AdaptationSuggestion a={a} isReverse={isReverse} />
+        <ValidateAction a={a} />
         <RewritePanel a={a} open={open} />
       </div>
     </div>

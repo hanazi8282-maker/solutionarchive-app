@@ -1220,6 +1220,71 @@ influencers-time·techcrunch/figma·substack/duolingo·bettermode·foundationinc
 
 ---
 
+**[2026-09-10 추가 2] PR #29·#30 머지 완료 + 동시세션 오염 사건 사후 정리 (append-only)**
+
+> 바로 위 블록(Part B·C 구현, 사건 최초 기록) 이후 같은 세션에서 이어서 진행.
+> 남헌 지시로 두 PR 머지 실행 + origin/main 실측 재확인.
+
+1. **머지 실행 — 충돌 없음.** 머지 전 `gh pr view`로 재확인: 둘 다
+   `mergeStateStatus=CLEAN`·`mergeable=MERGEABLE`, 체크 3개(`build`/`Vercel`/
+   `Vercel Preview Comments`) 전부 SUCCESS. `#29`(`chore/notion-pull-live-verify`)
+   먼저 머지 → 병합커밋 `5cb48ca`. 이어서 `#30`(`feat/notion-published-marker`)
+   재확인(머지 후에도 여전히 CLEAN/MERGEABLE) → 병합커밋 `e48ecd6`. 순서 무관하게
+   충돌 없었음 — 두 PR이 건드린 파일이 겹치지 않았다(#29: 워크플로+`.gitignore`,
+   #30: 스크립트+마이그레이션+HANDOVER-LOG).
+
+2. **origin/main 실측 재확인 — 전부 양성.**
+   - `.github/workflows/nightly-notion-feedback.yml` 15·22행: `schedule:` /
+     `- cron: '7 12 * * *'` — 활성화 상태로 반영됨.
+   - `scripts/notion-pull-feedback.mjs`: `splitPublishedMarker()` 함수(43행)와
+     `run()` 안 `body`/`published` 분기(142·169행) 반영됨.
+   - 마이그레이션(**미적용**, 파일만):
+     `supabase/migrations/20260911000001_notion_sync_log_published_body.sql`
+     (+`_rollback.sql` 짝) — 남헌이 `supabase db query --linked -f
+     supabase/migrations/20260911000001_notion_sync_log_published_body.sql` 로
+     직접 적용.
+
+3. **동시세션 git 오염 사건 — 최종 결론(사후 확인, 위 블록에 이어 append-only).**
+   바로 위 블록에서 기록한 사건(다른 세션의 실시간 checkout 과 경합해 로컬
+   `feat/review-hackernews-enable` 브랜치가 오염된 커밋 `2a6566a`를 가리키게 됨)의
+   최종 결과를 지금 재실측했다:
+   - **origin 은 처음부터 끝까지 무사했다.** `git push` 가 non-fast-forward 로
+     거부됐고, `git log`로 `chore/notion-pull-live-verify`·
+     `feat/notion-published-marker` 양쪽 히스토리를 대조해도 오염 커밋의 흔적이
+     전혀 없다. PR #26(`feat/review-hackernews-enable`)은 오염된 로컬 커밋과
+     무관하게, origin 의 원래 커밋 `f011b73` 그대로 머지됐다(병합커밋 `8a63f49`).
+   - **로컬 피해는 브랜치 포인터 1개, 그리고 그마저 지금은 사라졌다.**
+     오염된 로컬 브랜치 `feat/review-hackernews-enable` 자체가 지금 조회하면
+     **존재하지 않는다**(PR 머지 후 정리로 삭제된 것으로 보임) — 되돌리려던
+     `git branch -f` 시도가 세이프티 분류기에 막혀 무산됐지만, 결과적으로
+     그 수습 자체가 필요 없었다. 오염 커밋 `2a6566a`는 지금도 객체로는
+     남아 있으나(dangling) 어떤 브랜치도 가리키지 않는다.
+   - **Part B·C 작업물은 애초에 영향을 받지 않았다** — 사건 당시에도
+     `chore/notion-pull-live-verify`·`feat/notion-published-marker` 양쪽 다
+     이미 커밋·푸시·PR 생성이 끝난 뒤였고(§2-18 위 블록에서 실측), 이번
+     머지도 그 확인된 상태 그대로 진행됐다.
+   - **향후 참고 — 이 리포 작업 디렉토리는 여러 세션이 실시간 공유한다.**
+     브랜치를 전환하는 작업(`checkout`·`pull --rebase` 등)은 공유 디렉토리에서
+     직접 하지 말고 `git worktree add ../<임시경로> -b tmp/<이름> <커밋>` 으로
+     격리해서 하고, 끝나면 정리한다. 이번 세션 전체(§2-18 두 블록 다)가 이
+     방식을 실제로 썼다(`SolutionArchive-notionpull-wt`,
+     `SolutionArchive-published-marker-wt`, `SolutionArchive-handover-wt`).
+
+4. **`<발행본>` 마커 설계 원칙 — 명시적 기록(마이그레이션 컬럼 주석에도 있음, 여기 재확인).**
+   지금은 `published_body`가 "저장·로그"만 하는 보조 데이터다. **향후
+   `match-posts`가 `pending_review`까지 확장되면 `match-posts`가 정본이 되고,
+   `<발행본>` 마커/`published_body`는 보조·교차검증 역할로 내려간다** — 이미
+   결정된 설계 원칙이며, 지금 구현에는 영향 없음(마이그 파일
+   `20260911000001_notion_sync_log_published_body.sql`의 `COMMENT ON COLUMN`에도
+   동일 문구가 있다).
+
+**다음 확인 — 확인 불가(아직 미발생, 다음 세션 몫).**
+- 남헌이 `published_body` 마이그 적용 후, 실제 `<발행본>` 마커 있는 Notion
+  페이지로 다음 라이브 pull 에서 `published_body`가 채워지는지 실측.
+- 스케줄(12:07 UTC) 첫 자동 발화 확인.
+
+---
+
 
 ## 3. 사고 이력 (append-only) ★ 반드시 읽을 것
 
@@ -1436,6 +1501,7 @@ L-56 백필 후 그 무브는 B 가 됐는데, `pending_review` 로 누워 있�
 | 2026-09-09 | **CMO 데일리 루프 스케줄 가동** | 지출한도 회복 확인(남헌) → 라이브 재완주(run 34244204608, exit 0·10스텝·analyst 해설 생성·초안 2/2·큐 done) → `daily-cmo-loop.yml` schedule 주석 해제 1커밋(cron `17 20 * * *` = 20:17 UTC) → HANDOVER §2-18 신설(가동일·검증 이력·알려진 이슈 Q-1~Q-4) → AC-25 `/cmo` 대화형 실발화 확인 | — | §2-18 (Q-1 run_key 겹침 · Q-2 대시보드 1스텝 지연 · Q-3 커버리지 포화 시 조사<목표 · Q-4 고아 failed 큐행) — 전부 "기록만" |
 | 2026-09-10 | **Notion env 배선 + Q-2 라이브 검증 + LOG 백필** | 첫 스케줄 실행(run 34412694016, 2026-09-09 22:32~22:52 UTC, exit 0·10스텝) 사후 검증 — Q-2 fix `4136cb0` 3중 실측 확인(agent_runs·DASHBOARD·2차 커밋 73b2ce5), `notion_sync_log` 마이그 적용 실측(REST 200·행 0), Notion push 는 `NOTION_*` env 미배선으로 스킵된 것 확인 → `gh secret list` 로 두 시크릿 존재 확인 → `daily-cmo-loop.yml`·`nightly-notion-feedback.yml` env 에 `NOTION_API_TOKEN`/`NOTION_DATABASE_ID` 배선(커밋 `chore/wire-notion-secrets`, 워크플로 파일만) → §2-18 에 [2026-09-10 추가] 블록 + Q-2 [해소] 마킹 | **Q-2** | 다음 라이브 실행(UTC 20:17)의 Notion 페이지 생성 + `notion_sync_log` 스냅샷 적재 확인 — 머지 전이라 확인 불가, 다음 세션 |
 | 2026-09-11 | **세션 리셋 후 재개 — nightly-notion-feedback 라이브 검증·스케줄 활성화 + `<발행본>` 마커 구현** | PHASE -1 실측으로 Part B·C 둘 다 미완료(브랜치 리셋됨) 확인 → workflow_dispatch 422 YAML 버그 발견·수정(`87b3ceb`) → 라이브 검증 PASS(run 34501924469, notion_sync_log 2행 채워짐, notion-feedback-log.md 생성) → 스케줄 12:07 UTC 활성화, PR #29 → `splitPublishedMarker()` 구현(마커 이전=기존 로직 보존, 이후=`published_body`, 첫 마커만 경계) + 마이그 파일(미적용) + repro 4/4 + next build 통과, PR #30 → HANDOVER §2-18 [2026-09-11 추가] 블록 | — | **인프라**: 이 작업 디렉토리가 여러 세션 동시 공유 확인(다른 세션의 실시간 checkout 과 경합해 로컬 브랜치 1개 오염 — origin 무사, worktree 격리로 전환) |
+| 2026-09-11 | **PR #29·#30 머지 + 사건 사후 정리** | 남헌 지시로 머지 실행 — 사전 재확인(CLEAN/MERGEABLE, 체크 3개 SUCCESS) → #29 머지(`5cb48ca`) → #30 재확인 후 머지(`e48ecd6`), 충돌 없음 → origin/main 실측: 스케줄 크론·`splitPublishedMarker()`·마이그 파일 3곳 전부 반영 확인 → 동시세션 오염 사건 최종 결론(origin 무사, 오염된 로컬 브랜치는 PR 머지 후 자연 삭제로 이미 해소) 기록 → §2-18 [2026-09-10 추가 2] 블록 | **동시세션 오염 사건**(원래도 origin 무영향, 이번에 잔여 로컬 브랜치까지 소멸 확인) | — |
 
 ---
 

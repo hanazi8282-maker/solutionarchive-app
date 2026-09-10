@@ -13,11 +13,12 @@
 --   update public.review_sources set enabled = true where key = 'hackernews';
 
 INSERT INTO public.review_sources (
-  key, display_name, enabled, health, min_interval_ms, daily_request_cap
+  key, display_name, enabled, disabled_reason, health, min_interval_ms, daily_request_cap
 ) VALUES (
   'hackernews',
   'Hacker News 댓글 (Algolia 검색)',
   false,  -- 사람이 켜야 수집 시작. 위 결정 1 참조.
+  'evidence_grade=B(금지 문구 미발견, 명시적 허용 확인 아님) — 사람이 검토 후 활성화',
   'ok',
   2000,
   200

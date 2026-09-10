@@ -1,0 +1,205 @@
+/* ============================================================
+   Dothegy Works — Color Tokens
+   Built on a Tailwind/shadcn foundation: slate neutrals,
+   a blue action accent, and an explicit semantic + domain
+   palette (status, roles, factory task types) drawn straight
+   from the 운영 OS spec.
+   ============================================================ */
+
+:root {
+  /* ---- Neutral ramp (Tailwind "slate") ---- */
+  --slate-50:  #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+
+  /* ---- Action / brand blue (Tailwind "blue") ---- */
+  --blue-50:  #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+
+  /* ---- Status hues (exact spec values) ---- */
+  --red-50:   #fef2f2;
+  --red-100:  #fee2e2;
+  --red-500:  #ef4444;   /* 지연 / 품절 위험 / 0–69% */
+  --red-600:  #dc2626;
+  --red-700:  #b91c1c;
+
+  --amber-50:  #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-500: #f59e0b;  /* 주의 / 70–99% */
+  --amber-600: #d97706;
+
+  --emerald-50:  #ecfdf5;
+  --emerald-100: #d1fae5;
+  --emerald-500: #10b981; /* 정상 / 완료 / 100%+ */
+  --emerald-600: #059669;
+
+  --violet-50:  #f5f3ff;
+  --violet-100: #ede9fe;
+  --violet-500: #8b5cf6;  /* R&D / 슈퍼어드민 */
+  --violet-600: #7c3aed;
+
+  --orange-500: #f97316;  /* 기타 task */
+  --gray-500:   #6b7280;  /* 공정 task — neutral gray, distinct from slate UI */
+
+  /* ============================================================
+     SEMANTIC ALIASES — reference these in components, not raw ramps
+     ============================================================ */
+
+  /* Surfaces & background */
+  --bg-app:        var(--slate-50);    /* page canvas */
+  --surface-card:  #ffffff;            /* cards, panels, modals */
+  --surface-muted: var(--slate-100);   /* inset rows, read-only inputs, code */
+  --surface-sunken: var(--slate-50);
+
+  /* Sidebar (dark, always-on navigation) */
+  --sidebar-bg:        var(--slate-900);
+  --sidebar-fg:        var(--slate-300);
+  --sidebar-fg-muted:  var(--slate-500);
+  --sidebar-active-bg: var(--slate-800);
+  --sidebar-active-fg: #ffffff;
+  --sidebar-hover-bg:  rgba(255,255,255,0.05);
+  --sidebar-border:    var(--slate-800);
+
+  /* Text */
+  --text-strong:  var(--slate-900);  /* page titles, KPI numbers */
+  --text-body:    var(--slate-700);  /* default copy */
+  --text-muted:   var(--slate-500);  /* subtitles, captions, labels */
+  --text-faint:   var(--slate-400);  /* placeholders, disabled */
+  --text-on-dark: #ffffff;
+  --text-link:    var(--blue-600);
+
+  /* Borders & dividers */
+  --border:        var(--slate-200);
+  --border-strong: var(--slate-300);
+  --ring:          var(--blue-500);   /* focus ring */
+
+  /* Primary action (blue CTA — "지금 수집", "프롬프트 생성") */
+  --primary:        var(--blue-600);
+  --primary-hover:  var(--blue-700);
+  --primary-fg:     #ffffff;
+
+  /* Dark/neutral action (shadcn default button) */
+  --neutral-btn:        var(--slate-900);
+  --neutral-btn-hover:  var(--slate-800);
+  --neutral-btn-fg:     #ffffff;
+
+  /* Status — foreground + soft tint background for badges/banners */
+  --danger:       var(--red-500);
+  --danger-fg:    var(--red-700);
+  --danger-bg:    var(--red-50);
+  --danger-border:var(--red-100);
+
+  --warning:      var(--amber-500);
+  --warning-fg:   var(--amber-600);
+  --warning-bg:   var(--amber-50);
+  --warning-border:var(--amber-100);
+
+  --success:      var(--emerald-500);
+  --success-fg:   var(--emerald-600);
+  --success-bg:   var(--emerald-50);
+  --success-border:var(--emerald-100);
+
+  --info:         var(--blue-500);
+  --info-fg:      var(--blue-700);
+  --info-bg:      var(--blue-50);
+  --info-border:  var(--blue-100);
+
+  /* Roles (팀원 관리 badges) */
+  --role-super:   var(--violet-500);  /* 슈퍼어드민 */
+  --role-admin:   var(--blue-500);    /* 어드민 */
+  --role-member:  var(--slate-400);   /* 팀원 */
+
+  /* Factory task types (공장 캘린더) */
+  --task-production: var(--blue-500);   /* 생산 */
+  --task-process:    var(--gray-500);   /* 공정 */
+  --task-rnd:        var(--violet-500); /* R&D */
+  --task-packing:    var(--emerald-500);/* 포장 */
+  --task-rest:       var(--amber-500);  /* 휴지 */
+  --task-etc:        var(--orange-500); /* 기타 */
+}
+
+/* ============================================================
+   DARK THEME — opt in with <html data-theme="dark"> (or any
+   ancestor). Only semantic aliases are re-pointed; the raw
+   ramps and the brand hues stay identical so status/role/task
+   colors read consistently against the dark canvas.
+   Status tints become low-alpha overlays of the hue rather
+   than the light -50 washes, which would glow on dark.
+   ============================================================ */
+[data-theme="dark"] {
+  /* Surfaces — slate-950 canvas, slate-900 cards (one step up) */
+  --bg-app:         #0a0f1d;
+  --surface-card:   var(--slate-900);
+  --surface-muted:  var(--slate-800);
+  --surface-sunken: #0a0f1d;
+
+  /* Sidebar — slightly darker than cards so it still reads as chrome */
+  --sidebar-bg:        #070b16;
+  --sidebar-fg:        var(--slate-400);
+  --sidebar-fg-muted:  var(--slate-600);
+  --sidebar-active-bg: var(--slate-800);
+  --sidebar-active-fg: #ffffff;
+  --sidebar-hover-bg:  rgba(255,255,255,0.06);
+  --sidebar-border:    rgba(255,255,255,0.07);
+
+  /* Text — inverted ramp */
+  --text-strong:  var(--slate-50);
+  --text-body:    var(--slate-300);
+  --text-muted:   var(--slate-400);
+  --text-faint:   var(--slate-600);
+  --text-on-dark: #ffffff;
+  --text-link:    var(--blue-400);
+
+  /* Borders — hairlines become low-alpha white */
+  --border:        rgba(255,255,255,0.09);
+  --border-strong: rgba(255,255,255,0.16);
+  --ring:          var(--blue-500);
+
+  /* Primary — lift one step so it pops on dark */
+  --primary:        var(--blue-500);
+  --primary-hover:  var(--blue-400);
+  --primary-fg:     #ffffff;
+
+  /* Neutral button inverts to light-on-dark */
+  --neutral-btn:        var(--slate-100);
+  --neutral-btn-hover:  #ffffff;
+  --neutral-btn-fg:     var(--slate-900);
+
+  /* Status — brighter fg, translucent tint that sits on dark cards */
+  --danger:       var(--red-500);
+  --danger-fg:    #fca5a5;
+  --danger-bg:    rgba(239,68,68,0.14);
+  --danger-border:rgba(239,68,68,0.30);
+
+  --warning:      var(--amber-500);
+  --warning-fg:   #fcd34d;
+  --warning-bg:   rgba(245,158,11,0.14);
+  --warning-border:rgba(245,158,11,0.30);
+
+  --success:      var(--emerald-500);
+  --success-fg:   #6ee7b7;
+  --success-bg:   rgba(16,185,129,0.14);
+  --success-border:rgba(16,185,129,0.30);
+
+  --info:         var(--blue-500);
+  --info-fg:      #93c5fd;
+  --info-bg:      rgba(59,130,246,0.14);
+  --info-border:  rgba(59,130,246,0.30);
+
+  /* Roles — keep member readable on dark */
+  --role-member:  var(--slate-500);
+}

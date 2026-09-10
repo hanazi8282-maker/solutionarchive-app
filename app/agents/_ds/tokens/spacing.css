@@ -1,0 +1,50 @@
+/* ============================================================
+   Dothegy Works — Spacing, Radius, Shadow, Layout Tokens
+   Dense operational dashboard. 4px base grid, modest radii,
+   restrained shadows (shadcn-style: hairline border does the
+   heavy lifting, shadow only lifts cards/modals).
+   ============================================================ */
+
+:root {
+  /* ---- Spacing scale (4px base) ---- */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- Radius ---- */
+  --radius-sm:   4px;   /* badges, chips, inputs (inner) */
+  --radius-md:   6px;   /* buttons, inputs */
+  --radius-lg:   8px;   /* cards, panels */
+  --radius-xl:   12px;  /* modals, large surfaces */
+  --radius-full: 9999px;/* pills, avatars, progress tracks */
+
+  /* ---- Shadows ---- */
+  --shadow-xs:   0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-sm:   0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+  --shadow-md:   0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg:   0 12px 28px -6px rgba(15, 23, 42, 0.16), 0 6px 12px -6px rgba(15, 23, 42, 0.10);
+  --shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.35);
+
+  /* ---- Layout ---- */
+  --sidebar-w:      236px;
+  --content-max:    1440px;
+  --content-pad:    var(--space-8);
+  --header-h:       64px;
+  --card-pad:       var(--space-5);
+  --row-h:          44px;   /* min touch/row height */
+
+  /* ---- Motion ---- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);   /* @kind other */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1); /* @kind other */
+  --dur-fast:      120ms; /* @kind other */
+  --dur-base:      180ms; /* @kind other */
+  --dur-slow:      260ms; /* @kind other */
+}

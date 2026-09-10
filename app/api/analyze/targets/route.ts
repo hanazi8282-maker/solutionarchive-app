@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { parseProductRef as parseAppstoreRef } from '@/lib/review/adapters/appstore'
+import { parseDanawaProductUrl } from '@/lib/review/danawa-url'
 
 // 수집 타깃 등록 API — danawa / appstore / hackernews 공용.
 //
@@ -24,33 +25,10 @@ const KEYWORD_MAX = 64
 
 type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
 
-/**
- * 다나와 상품 URL → pcode.
- *
- * ⚠️ 추측해서 파싱하지 않는다. 상품 상세 URL 이 아니면 거절한다. 예전에
- *    "숫자처럼 보이는 것"을 주워 담는 방식을 쓰면 카테고리 ID 를 상품 ID 로
- *    잘못 넣고, 그때부터 엉뚱한 상품의 리뷰가 이 프로젝트에 쌓인다.
- */
+/** 다나와 상품 URL → pcode. 규칙은 lib/review/danawa-url 에 한 벌만 둔다. */
 function danawaRef(raw: string): RefResult {
-  let url: URL
-  try {
-    url = new URL(raw)
-  } catch {
-    return { ok: false, error: '다나와 상품 상세 페이지 URL을 그대로 붙여넣어 주세요. (예: https://prod.danawa.com/info/?pcode=252495223)' }
-  }
-
-  const pcode = url.searchParams.get('pcode')?.trim() ?? ''
-  if (!pcode) {
-    return {
-      ok: false,
-      error:
-        '상품 상세 페이지 URL이 아닙니다. 주소에 pcode 가 있어야 합니다. ' +
-        '(예: https://prod.danawa.com/info/?pcode=252495223) ' +
-        '검색 결과 페이지나 카테고리 URL은 어느 상품인지 특정할 수 없어 받지 않습니다.',
-    }
-  }
-
-  return { ok: true, productRef: pcode }
+  const parsed = parseDanawaProductUrl(raw)
+  return parsed.ok ? { ok: true, productRef: parsed.pcode } : { ok: false, error: parsed.error }
 }
 
 /** HN 키워드 검증. 통과하면 `q:<키워드>` 로 만든다. */

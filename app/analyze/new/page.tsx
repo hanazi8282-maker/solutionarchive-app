@@ -4,10 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ANALYSIS_PURPOSES,
+  ANALYSIS_MODES,
   ANALYSIS_SOURCE_TYPES,
   PURPOSE_LABELS,
+  MODE_LABELS,
   SOURCE_TYPE_LABELS,
   type AnalysisPurpose,
+  type AnalysisMode,
   type AnalysisSourceType,
 } from '@/lib/analysis/types'
 
@@ -21,6 +24,7 @@ export default function AnalyzeNewPage() {
   const router = useRouter()
 
   // 1단계: 프로젝트
+  const [mode, setMode] = useState<AnalysisMode>('forward')
   const [competitorUrl, setCompetitorUrl] = useState('')
   const [pitch, setPitch] = useState('')
   const [purpose, setPurpose] = useState<AnalysisPurpose | ''>('')
@@ -63,6 +67,7 @@ export default function AnalyzeNewPage() {
           competitor_url:         competitorUrl.trim(),
           product_elevator_pitch: pitch.trim(),
           purpose,
+          mode,
           seller_own_guess:       guess.trim(),
         }),
       })
@@ -210,8 +215,28 @@ export default function AnalyzeNewPage() {
           <div className="border border-red-300 bg-red-50 text-red-700 rounded p-2 text-sm">{projectError}</div>
         )}
 
+        <fieldset className="space-y-1" disabled={locked}>
+          <legend className="text-sm">분석 방향</legend>
+          {ANALYSIS_MODES.map(m => (
+            <label key={m} className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="mode"
+                value={m}
+                checked={mode === m}
+                onChange={() => setMode(m)}
+                disabled={locked}
+              />
+              {MODE_LABELS[m]}
+              {m === 'reverse' && <span className="text-gray-500">— 남의 성공을 역설계</span>}
+            </label>
+          ))}
+        </fieldset>
+
         <div className="space-y-1">
-          <label htmlFor="competitor_url" className="block text-sm">경쟁사 상품 URL</label>
+          <label htmlFor="competitor_url" className="block text-sm">
+            {mode === 'reverse' ? '역설계할 성공 상품 URL (다나와)' : '경쟁사 상품 URL'}
+          </label>
           <input
             id="competitor_url"
             type="text"
@@ -220,10 +245,20 @@ export default function AnalyzeNewPage() {
             onChange={e => setCompetitorUrl(e.target.value)}
             disabled={locked}
           />
+          {mode === 'reverse' && (
+            <p className="text-xs text-gray-500">
+              지금은 다나와 상품 상세 URL만 역방향 분석이 가능합니다.
+              스마트스토어·쿠팡·G2·Capterra 등은 아직 지원하지 않습니다.
+            </p>
+          )}
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="product_elevator_pitch" className="block text-sm">만들려는/파는 상품 한 줄 소개</label>
+          <label htmlFor="product_elevator_pitch" className="block text-sm">
+            {mode === 'reverse'
+              ? '내 상품 한 줄 소개 (역설계 결과를 어디에 적용할지)'
+              : '만들려는/파는 상품 한 줄 소개'}
+          </label>
           <textarea
             id="product_elevator_pitch"
             className="w-full border rounded p-2 text-sm"

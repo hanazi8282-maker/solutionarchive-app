@@ -11,6 +11,18 @@ export const PURPOSE_LABELS: Record<AnalysisPurpose, string> = {
   product_fit:  '제품/오퍼 매력 (애초에 팔릴 제품인가)',
 }
 
+// ── 분석 방향 (§13-1) ────────────────────────────────────────
+// forward : 자사 상품의 소구점을 발굴한다 (기본).
+// reverse : 경쟁사의 이미 성공한 상품 URL 을 역설계한다.
+// DB CHECK 제약(analysis_projects.mode)과 값이 반드시 일치해야 한다.
+export const ANALYSIS_MODES = ['forward', 'reverse'] as const
+export type AnalysisMode = (typeof ANALYSIS_MODES)[number]
+
+export const MODE_LABELS: Record<AnalysisMode, string> = {
+  forward: '자사 상품 소구점 발굴',
+  reverse: '경쟁사 성공 상품 역설계',
+}
+
 export const ANALYSIS_SOURCE_TYPES = ['review', 'ad', 'detail_page'] as const
 export type AnalysisSourceType = (typeof ANALYSIS_SOURCE_TYPES)[number]
 
@@ -67,6 +79,7 @@ export type AnalysisProject = {
   competitor_url: string
   product_elevator_pitch: string
   purpose: AnalysisPurpose
+  mode: AnalysisMode
   seller_own_guess: string | null
   status: string
   maturity_stage: number | null

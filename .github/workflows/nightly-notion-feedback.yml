@@ -9,17 +9,17 @@
 name: Nightly Notion Feedback
 
 on:
-  # ⏸️ 스케줄 비활성. [2]~[6] 라이브 검증이 끝난 뒤 남헌 승인으로 아래 3줄의
-  #    주석을 푼다(daily-cmo-loop.yml 과 같은 이유 — main 머지 전에 풀면
-  #    검증 전에 크론이 무장된다).
-  # schedule:
-  #   # 12:07 UTC = KST 21:07. 정각(12:00)을 피했다(daily-cmo-loop.yml 의 경고와
-  #   #   같은 이유). 기존 크론과 안 겹친다:
-  #   #     nightly-review-collect  17:37 UTC (KST 02:37)
-  #   #     nightly-insight-loop    18:41 UTC (KST 03:41)
-  #   #     daily-cmo-loop          20:17 UTC (KST 05:17) — 이 push 의 아침 실행분
-  #   #     nightly-notion-feedback 12:07 UTC (KST 21:07) ← 이것, 당일 저녁
-  #   - cron: '7 12 * * *'
+  # ✅ 라이브 검증 완료(2026-09-10, workflow_dispatch 실행 34501924469) —
+  #    notion_sync_log 2행 모두 pulled_body/pulled_status/diff_status/pulled_at/
+  #    decision_log_code 채워짐, reports/2026-09-10/notion-feedback-log.md 생성 확인.
+  schedule:
+    # 12:07 UTC = KST 21:07. 정각(12:00)을 피했다(daily-cmo-loop.yml 의 경고와
+    #   같은 이유). 기존 크론과 안 겹친다:
+    #     nightly-review-collect  17:37 UTC (KST 02:37)
+    #     nightly-insight-loop    18:41 UTC (KST 03:41)
+    #     daily-cmo-loop          20:17 UTC (KST 05:17) — 이 push 의 아침 실행분
+    #     nightly-notion-feedback 12:07 UTC (KST 21:07) ← 이것, 당일 저녁
+    - cron: '7 12 * * *'
   workflow_dispatch:
 
 permissions:

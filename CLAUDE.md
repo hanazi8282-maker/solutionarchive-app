@@ -245,6 +245,25 @@ AI 인사이트는 "그렇구나"로 끝나면 안 된다. 인사이트는 **액
 solutionarchive 프로젝트 qmgrfqjfxqhxuufrnkwf, 적용 전 연결 확인 완료). 이후
 마이그레이션은 별도 승인이 없는 한 다시 원칙대로 사람이 적용한다.
 
+2026-09-11, 남헌 명시적 승인 — 같은 원칙에 대한 1회성 예외 재승인. **이번 3건에
+한정**한다. 마이그레이션 3건을 클로드코드가 이 세션에서 직접 적용함:
+
+- `20260911000002_analysis_angles_adaptation_suggestion.sql`
+  — `analysis_angles.adaptation_suggestion` (text, nullable) 컬럼 추가
+- `20260911000003_failed_angles.sql`
+  — `failed_angles` 테이블 신규 + 시드 6건(RLS 활성, 정책 없음)
+- `20260911000004_validated_angles_corpus.sql`
+  — `validated_angles_corpus` 테이블 신규(RLS 활성, 정책 없음)
+
+파일 출처 커밋: `89539ff` (origin/main, 적용 시점 HEAD `812e076`). 대상:
+solutionarchive 프로젝트 `qmgrfqjfxqhxuufrnkwf` — 같은 조직의 dothegy-os
+(`hrplbrstntyanzwxcsft`)와 혼동하지 않도록 적용 전 프로젝트 목록 조회로 확인함.
+한 건씩 적용 후 즉시 검증(양성·음성 전부)했고, 기존 데이터(`analysis_angles` 13,
+`review_sources` 3, `strategy_principles` 23)는 적용 전후 동일함을 확인함.
+
+**원칙 문구(§10.1) 자체는 변경하지 않는다. 다음 마이그레이션부터는 별도 승인이
+없는 한 다시 원칙대로 사람이 적용한다.**
+
 ---
 
 ## 12. 미확정 / 확인 필요 (작업 전 사용자 확인)

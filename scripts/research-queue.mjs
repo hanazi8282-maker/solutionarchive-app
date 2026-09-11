@@ -284,13 +284,71 @@ if (isMain()) {
   }
 
   // ── --claim ────────────────────────────────────────────────
+  //
+  // 🧟 고아 행 — `claimed` 에서 멈춘 행을 같이 집는다.
+  //
+  //    `--claim` 이 `queued` 만 보면, claim 과 `--resolve` 사이에서 실행이 죽은 행은
+  //    `claimed` 로 영원히 남는다. 아무도 다시 집지 않고, `--plan` 도 그 행을
+  //    "처리 중"으로 세어(status IN ('queued','claimed')) 같은 수요를 새로 넣지
+  //    않는다. 그래서 큐가 조용히 줄어든다 — 실패 신호 없이.
+  //
+  //    되돌리기는 재시도지 데이터 변경이 아니다. 그래서 별도 정리 스크립트를
+  //    만들지 않고 여기서 푼다. 모든 호출부가 이 한 자리를 지난다.
+  //
+  //    ⏱️ **경과 시간으로 판정하지 않는다.** `research_queue` 에는 claimed 된 시각이
+  //    없다(`created_at` 은 --plan 이 넣은 시각이다). 며칠 대기하다 방금 claim 된 행은
+  //    created_at 이 오래돼서, 시간 기준을 쓰면 **아직 돌고 있는 실행의 행을 빼앗는다.**
+  //    두 실행이 같은 슬러그를 동시에 조사하면 중복 케이스가 생기고, 그건 UNIQUE 로도
+  //    못 막는다 — 슬러그를 다르게 지어 버리기 때문이다.
+  //
+  //    대신 **실행이 끝났는지**로 판정한다. `run_id` 가 가리키는 `agent_runs` 행에
+  //    `finished_at` 이 찍혔는데 큐 행이 아직 claimed 라면, 그 실행은 이 행을
+  //    resolve 하지 않고 끝난 것이다. 추측이 아니라 관측이다.
+  //
+  //    ⚠️ `failed`/`done`/`skipped` 는 집지 않는다. 그건 멈춘 게 아니라 끝난 행이다.
+  //    실패한 수요는 `--plan` 이 다음 날 새 행으로 다시 넣는다(그게 설계다).
   if (opt('claim')) {
     const n = Number(opt('claim'))
-    const { data, error } = await supabase.from('research_queue')
-      .select('id,brand_name,market,slug_hint,target_bottleneck,reason,notes')
-      .eq('status', 'queued').order('priority').order('created_at').limit(n)
+
+    const { data: pool, error } = await supabase.from('research_queue')
+      .select('id,brand_name,market,slug_hint,target_bottleneck,reason,notes,status,run_id,priority,created_at')
+      .in('status', ['queued', 'claimed'])
+      .order('priority').order('created_at')
     if (error) { console.error(`⚠️ 확인 불가: ${error.code ?? ''} ${error.message}${missingHint(error.code)}`); process.exit(2) }
+
+    // claimed 행의 주인 실행이 끝났는지 본다. 조회를 못 하면 **집지 않는다** —
+    // 확인 불가를 "고아다"로 접으면 살아 있는 실행의 행을 빼앗는다 (§7.1).
+    const claimedRows = (pool ?? []).filter((r) => r.status === 'claimed')
+    const orphanIds = new Set()
+    if (claimedRows.length) {
+      const runIds = [...new Set(claimedRows.map((r) => r.run_id).filter(Boolean))]
+      const runs = runIds.length
+        ? await supabase.from('agent_runs').select('id,finished_at').in('id', runIds)
+        : { data: [], error: null }
+      if (runs.error) {
+        console.error(`⚠️ 확인 불가: agent_runs 조회 실패 — ${runs.error.message}. 고아 재claim 을 건너뛴다(살아 있는 실행을 빼앗지 않기 위해)`)
+      } else {
+        const finished = new Set((runs.data ?? []).filter((r) => r.finished_at).map((r) => r.id))
+        for (const r of claimedRows) {
+          // run_id 가 비어 있으면 주인을 특정할 수 없다 → 고아로 본다.
+          // claim 은 run_id 를 항상 같이 쓰므로, 비어 있다는 건 그 쓰기가 깨졌다는 뜻이다.
+          if (!r.run_id || finished.has(r.run_id)) orphanIds.add(r.id)
+        }
+      }
+    }
+
+    const data = (pool ?? [])
+      .filter((r) => r.status === 'queued' || orphanIds.has(r.id))
+      .slice(0, n)
+
     if (!data.length) { console.error('✗ 음성: 큐에 대기 항목이 0건이다 (--plan 을 먼저 돌려라)'); process.exit(1) }
+
+    // 되찾은 행은 수를 세어 남긴다. 조용히 집으면 "왜 어제 것이 또 도는지"를
+    // 나중에 설명할 수 없다 (`_principles.md` §2 — 안전장치가 걸린 건 확인 대상이다).
+    const reclaimed = data.filter((r) => orphanIds.has(r.id))
+    if (reclaimed.length) {
+      console.error(`⚠️ 고아 재claim ${reclaimed.length}건 — 주인 실행이 이미 끝났는데 claimed 로 남아 있던 행이다: ${reclaimed.map((r) => r.id).join(', ')}`)
+    }
     if (!dry) {
       const upd = await supabase.from('research_queue')
         .update({ status: 'claimed', run_id: opt('run-id') })

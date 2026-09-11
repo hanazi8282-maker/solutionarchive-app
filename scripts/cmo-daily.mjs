@@ -987,7 +987,10 @@ function researchPrompt(item, date, existingSlugs) {
   ].filter(Boolean).join('\n')
 }
 
-function writerPrompt(m, date) {
+// export 인 이유: 초안 스텝은 `--dry` 에서 통째로 건너뛴다(에이전트를 안 띄운다).
+// 그래서 프롬프트가 맞는지 확인하려면 루프 밖에서 같은 프롬프트를 꺼내 쓸 수밖에 없다.
+// 사본을 만들면 두 벌이 갈라진다 — 여기를 정본으로 두고 가져다 쓴다.
+export function writerPrompt(m, date) {
   return [
     '`.claude/agents/sa-cmo-writer.md` 를 Read 하고, 그 문서가 규정하는 역할로 아래 작업을 수행하라.',
     '(그 파일이 지시하는 `ops/roles/_principles.md` 도 반드시 먼저 Read 한다.)',

@@ -2,19 +2,22 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { advise } from '@/lib/cases/advisor'
 import type { MoveRow, StudyRow } from '@/lib/cases/match'
-import type { PrincipleRow } from '@/lib/cases/advisor'
+import type { FailedAngleRow, PrincipleRow } from '@/lib/cases/advisor'
 
 // 크로스섹션 어드바이저 — 조회 전용 (M3 백엔드, 결정 C).
 //
 //   GET /api/analyze/advisor?angle_id=<uuid>[&q=<자유질문>]
 //   GET /api/analyze/advisor?project_id=<uuid>[&q=<자유질문>]
 //
-// Corpus A(case_studies/case_moves) + Corpus C(strategy_principles) 대상 태그·
-// 키워드 매칭. 근거 없으면 "관련 사례 없음"을 명시적으로 돌려준다(끼워맞추기 금지).
-// Corpus B(failed_angles)는 브랜치④ 미착수 — 응답 corpus_b 에 자리만 있다.
+// Corpus A(case_studies/case_moves) + Corpus B(failed_angles) + Corpus C
+// (strategy_principles) 대상 태그·키워드 매칭. 근거 없으면 "관련 사례 없음"을
+// 명시적으로 돌려준다(끼워맞추기 금지).
 //
-// ⚠️ UI 는 브랜치③(feat/angle-adaptation) 완료 후. 이 라우트는 그 전에도
-//    curl / 다른 서버 코드가 쓸 수 있게 백엔드만 먼저 낸다.
+// Corpus D 격인 validated_angles_corpus 는 아직 비어 있어 wiring 하지 않는다 —
+// 실사용 승인 데이터가 쌓인 뒤에 붙인다.
+//
+// UI: app/analyze/[id]/angles/page.tsx 의 AdvisorPanel 이 "유사 사례 보기"를
+//     눌렀을 때만 이 라우트를 호출한다(앵글마다 자동 fetch 하지 않는다).
 
 const STUDY_COLS =
   'id, slug, brand_name, bottleneck, business_model, buyer_type, price_band, outcome_status, review_status'
@@ -110,10 +113,15 @@ export async function GET(req: Request) {
   )
   const studies = await safeSelect<StudyRow>(supabase, 'case_studies', STUDY_COLS)
   const moves = await safeSelect<MoveRow>(supabase, 'case_moves', MOVE_COLS)
+  const failedAngles = await safeSelect<FailedAngleRow>(
+    supabase,
+    'failed_angles',
+    'case_key, product_category, claimed_angle, outcome, evidence_source, source_tier, is_estimate',
+  )
 
   const result = advise(
     { category, angleDescription, freeText: freeText || null },
-    { principles, studies, moves },
+    { principles, studies, moves, failedAngles },
   )
 
   return NextResponse.json({

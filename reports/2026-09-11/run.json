@@ -1,0 +1,91 @@
+{
+  "runKey": "cmo-2026-09-11-cron",
+  "date": "2026-09-11",
+  "dryRun": false,
+  "state": {
+    "blocked": 0,
+    "failed": 0,
+    "counts": {
+      "cases_reachable": 1,
+      "claimed": 2,
+      "attempted": 2,
+      "agent_ok": 2,
+      "new_drafts": 2,
+      "committed": 1,
+      "all_draft": 1,
+      "queue_done": 1,
+      "queue_failed": 1,
+      "angles": 2,
+      "deferred_same_slug": 2,
+      "drafted": 2,
+      "manifests": 2,
+      "staged": 2,
+      "commented": 1
+    },
+    "steps": [
+      {
+        "key": "preflight",
+        "label": "사전 점검",
+        "status": "ok",
+        "exit": null,
+        "blocker": null
+      },
+      {
+        "key": "queue",
+        "label": "조사 큐 선정",
+        "status": "ok",
+        "exit": null,
+        "blocker": null
+      },
+      {
+        "key": "research",
+        "label": "조사",
+        "status": "ok",
+        "exit": null,
+        "blocker": null
+      },
+      {
+        "key": "commit_cases",
+        "label": "케이스 적립",
+        "status": "ok",
+        "exit": null,
+        "blocker": null
+      },
+      {
+        "key": "queue_resolve",
+        "label": "조사 큐 정리",
+        "status": "ok",
+        "exit": null,
+        "blocker": null
+      },
+      {
+        "key": "angle",
+        "label": "앵글 선정",
+        "status": "ok",
+        "exit": null,
+        "blocker": null
+      },
+      {
+        "key": "draft",
+        "label": "초안 작성 + 게이트",
+        "status": "ok",
+        "exit": null,
+        "blocker": null
+      },
+      {
+        "key": "stage",
+        "label": "발행 대기 스테이징",
+        "status": "ok",
+        "exit": 0,
+        "blocker": null
+      },
+      {
+        "key": "performance",
+        "label": "성과 분석",
+        "status": "ok",
+        "exit": null,
+        "blocker": null
+      }
+    ]
+  }
+}

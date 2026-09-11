@@ -1,0 +1,15 @@
+{
+  "case_slug": "duolingo-streak",
+  "move_id": "75a134b9-700d-44dd-adf5-8acde56f74e1",
+  "content_code": "CS-20260911-01",
+  "log_code": "LOG-20260911-01",
+  "body_path": "drafts/threads/2026-09-11-duolingo-streak.body.txt",
+  "reply_path": "drafts/threads/2026-09-11-duolingo-streak.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-09-11-duolingo-streak.md",
+  "title": "듀오링고, 잃는 게 더 무섭다",
+  "twist_line": "장기 스트릭 사용자에게 등급을 붙여 보상이 아니라 '쌓아 온 걸 잃는 비용'을 만들었고, 그 후 유료 갱신율이 20%p 올랐다고 한다(미검증 사례 보고)",
+  "hook_type": "상식파괴형",
+  "closing_type": "질문형",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ~Ⅴ 전항목 통과(예외 없음) · U-3 해당없음(정의상 습관점검, 초안 단위 판정 대상 아님) · G-4 15자 예외(츄이 LOG-20260910-03 전례 승계) · X-2 솔파 채택(발행 후 조작 없음) · X-3 만남(근거가 3차·단일·미교차확인이라 본문+자기답글 양쪽에 '독립적으로 검증되지 않았다'를 명시해 사실 확정 과장을 이중 차단) · CG-1 대상(등급 C — gradeMove 재계산 결과가 지시값과 그대로 일치, 갈림 없음) · 본문에 귀속 문구 포함('독립적으로 검증되지 않았다' — SELF_MARKERS 매치, 자기 귀속이 아니라 제3자 미확인 경로를 씀. 이유: 이 수치는 듀오링고 자신이 아니라 제3자 사례 분석 사이트 하나뿐이 출처라 '듀오링고가 밝힌'식 자기 귀속 문구는 사실과 다름. 정규식 실행이 아니라 손 추적으로 확인) · ⚠️ Streak Society 기능 존재 자체도 같은 3차 출처 1건에서만 나와 별도 1차 소스 교차 확인 안 됨(자기답글에 명시) · ⚠️ log_code는 이 문서 자체 판단으로 LOG-20260911-01 채번(reports/2026-09-11/notion-feedback-log.md의 같은 이름 LOG-20260911-01~04는 다른 스크립트·다른 네임스페이스라 실제 충돌 아님, 결정 문서 참조)"
+}

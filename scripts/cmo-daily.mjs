@@ -351,14 +351,17 @@ async function main() {
   let angles = []
   await runStep('angle', async () => {
     if (dryRun) return { status: 'skipped', detail: { reason: 'dry-run — 앵글을 고르지 않는다' } }
-    const picked = await pickAngles(supabase, DRAFT_TARGET)
+    const picked = await pickAngles(supabase, DRAFT_TARGET, repoRoot)
     if (picked.error) return { status: 'failed', detail: { error: picked.error } }
     angles = picked.moves
+    // 흐릿한 신호는 거르지 않고 남긴다. 남기지 않으면 다음 날 같은 중복을 또 만든다.
+    const warnings = picked.warnings ?? []
+    for (const w of warnings) say(`- ⚠️ 앵글 경고 — ${w}`)
     if (!angles.length) {
       // 승인은 사람이 한다. 승인된 무브가 없는 건 루프의 실패가 아니다.
-      return { status: 'skipped', detail: { reason: '쓸 수 있는 승인 무브가 0건 (승인은 사람이 한다 — 루프의 실패가 아니다)' } }
+      return { status: 'skipped', detail: { reason: '쓸 수 있는 승인 무브가 0건 (승인은 사람이 한다 — 루프의 실패가 아니다)', warnings } }
     }
-    return { status: 'ok', counts: { angles: angles.length } }
+    return { status: 'ok', counts: { angles: angles.length }, detail: { warnings } }
   })
 
   // ── S6 draft ────────────────────────────────────────────────
@@ -616,8 +619,78 @@ function listFiles(dir, suffix) {
   return fs.readdirSync(dir).filter((f) => f.endsWith(suffix)).sort()
 }
 
+const GRADE_RANK = { A: 3, B: 2, C: 1, D: 0 }
+
+/**
+ * 이미 초안이 나간 슬러그인지 판정하는 **순수** 부분. IO 는 pickAngles 가 한다.
+ *
+ * ── 왜 `content_items` 만으로는 모자란가 (2026-09-07~08 실측) ──────────────
+ *
+ *   옛 필터는 `content_items.source_case` 하나만 봤다. 그런데 그 행은 **스테이징이
+ *   성공해야** 생긴다. 초안 파일이 만들어졌는데 스테이징까지 못 간 케이스는 DB 에
+ *   흔적이 없고, 다음 실행이 같은 무브를 다시 고른다.
+ *
+ *   실제로 그렇게 됐다. `2026-09-07-peloton-owned-manufacturing` 초안이 파일로만
+ *   남고(매니페스트 `.stage.json` 조차 없었다) DB 에는 안 들어갔다. 그래서 09-08
+ *   실행이 peloton 을 다시 골랐고, 그때 작가가 파일을 읽을 수 있어 스스로
+ *   `★중복 경보` 를 남겼다(`reports/2026-09-08/decision-log-entries.md`).
+ *   즉 **파일은 알고 있었고 선택 로직만 몰랐다.**
+ *
+ * ── 왜 "content_items 백필 보장" 이 아니라 이쪽인가 ───────────────────────
+ *
+ *   백필은 더 나빠진다. 스테이징이 실패하는 가장 흔한 이유가 **CG-1 차단(exit 4)**
+ *   인데, 그건 버그가 아니라 설계된 결과다. 그 무브에 "썼음" 표시를 남기면 그
+ *   무브는 **영원히 다시 안 뽑힌다** — 글은 없는데 소재만 소모된다. 중복 작업보다
+ *   조용한 유실이 나쁘다. 선택 단계에서 거르면 데이터를 안 건드리고, 파일을 지우면
+ *   다시 후보가 된다(되돌릴 수 있다).
+ *
+ * ── 정확한 신호와 흐릿한 신호를 가른다 ────────────────────────────────────
+ *
+ *   `exclude` (정확) — `content_items.source_case` + `.stage.json` 의 `case_slug`.
+ *     둘 다 슬러그를 **문자 그대로** 담고 있다. 오탐이 없으니 조용히 걸러도 된다.
+ *
+ *   `warnings` (흐릿) — 파일명에서 유추한 것. 파일명은 슬러그와 다를 수 있다
+ *     (`2026-09-06-warby-home-try-on` 의 케이스 슬러그는 `warby-parker-home-try-on`
+ *     이고, 09-07 peloton 은 슬러그의 앞부분만 담고 있었다). 접두 일치로 넓게 잡으면
+ *     서로 다른 두 슬러그가 겹쳐 **멀쩡한 무브를 조용히 잃을** 수 있다.
+ *     그래서 **거르지 않고 경고만 낸다.** 조용한 유실보다 시끄러운 중복이 낫다.
+ */
+export function selectAngles({ moves = [], usedSlugs = new Set(), stagedSlugs = new Set(), draftFileNames = [], n = 2 }) {
+  const excluded = new Set([...usedSlugs, ...stagedSlugs].filter(Boolean))
+
+  const picked = moves
+    .filter((m) => m.case_studies?.review_status === 'approved')
+    .filter((m) => (GRADE_RANK[m.evidence_grade] ?? 0) > 0)
+    .filter((m) => !excluded.has(m.case_studies?.slug))
+    .map((m) => ({
+      id: m.id, lever: m.lever, claim: m.claim, grade: m.evidence_grade,
+      direction: m.outcome_direction, slug: m.case_studies?.slug,
+      brand: m.case_studies?.brand_name, bottleneck: m.case_studies?.bottleneck,
+    }))
+    .sort((a, b) => (GRADE_RANK[b.grade] ?? 0) - (GRADE_RANK[a.grade] ?? 0) || String(a.slug).localeCompare(String(b.slug)))
+    .slice(0, n)
+
+  // 고른 것에 대해서만 흐릿한 신호를 본다. 후보 전체를 훑을 이유가 없다.
+  const warnings = []
+  for (const m of picked) {
+    const slug = String(m.slug ?? '')
+    // 12자 미만은 접두 일치가 너무 쉽게 붙는다 — 경고 소음이 되면 아무도 안 읽는다.
+    if (slug.length < 12) continue
+    const hit = draftFileNames.find((f) => {
+      // 확장자는 **첫 점부터 통째로** 벗긴다. `.body.txt` · `.stage.json` 처럼
+      // 두 겹인 게 많아서 마지막 것만 떼면 `…-manufacturing.body` 가 남는다.
+      // 슬러그에는 점이 없으니 이 방식이 안전하다.
+      const stem = String(f).replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/\..*$/, '')
+      return stem.startsWith(slug) || slug.startsWith(stem)
+    })
+    if (hit) warnings.push(`${slug}: 초안 파일 ${hit} 이 이미 있는데 DB(content_items·stage.json)에는 없다 — 스테이징이 실패했을 수 있다. 중복 초안을 만들기 전에 확인하라`)
+  }
+
+  return { moves: picked, warnings }
+}
+
 /** 승인된 무브 중 아직 콘텐츠로 안 쓴 것을 고른다. 조회 실패는 error 로 올린다(0건과 구분). */
-async function pickAngles(supabase, n) {
+async function pickAngles(supabase, n, repoRoot = process.cwd()) {
   const mv = await supabase.from('case_moves')
     .select('id,lever,claim,evidence_grade,outcome_direction,review_status,case_study_id,case_studies(slug,brand_name,bottleneck,review_status)')
     .eq('review_status', 'approved')
@@ -627,19 +700,22 @@ async function pickAngles(supabase, n) {
   if (used.error) return { error: `content_items 조회 실패 — ${used.error.code ?? ''} ${used.error.message}`, moves: [] }
   const usedSlugs = new Set((used.data ?? []).map((r) => r.source_case).filter(Boolean))
 
-  const rank = { A: 3, B: 2, C: 1, D: 0 }
-  const moves = (mv.data ?? [])
-    .filter((m) => m.case_studies?.review_status === 'approved')
-    .filter((m) => (rank[m.evidence_grade] ?? 0) > 0)
-    .filter((m) => !usedSlugs.has(m.case_studies?.slug))
-    .map((m) => ({
-      id: m.id, lever: m.lever, claim: m.claim, grade: m.evidence_grade,
-      direction: m.outcome_direction, slug: m.case_studies?.slug,
-      brand: m.case_studies?.brand_name, bottleneck: m.case_studies?.bottleneck,
-    }))
-    .sort((a, b) => (rank[b.grade] ?? 0) - (rank[a.grade] ?? 0) || String(a.slug).localeCompare(String(b.slug)))
-    .slice(0, n)
-  return { moves }
+  // 파일 쪽 신호. 읽기 실패는 **무시하지 않는다** — 신호가 없는 채로 고르면 옛
+  // 동작(=이 버그)으로 조용히 되돌아간다. 못 읽었으면 그대로 error 로 올린다(§7.1).
+  const threadsDir = path.join(repoRoot, 'drafts', 'threads')
+  const stagedSlugs = new Set()
+  let draftFileNames = []
+  try {
+    draftFileNames = fs.existsSync(threadsDir) ? fs.readdirSync(threadsDir) : []
+    for (const f of draftFileNames.filter((f) => f.endsWith('.stage.json'))) {
+      const j = JSON.parse(fs.readFileSync(path.join(threadsDir, f), 'utf-8'))
+      if (j?.case_slug) stagedSlugs.add(j.case_slug)
+    }
+  } catch (e) {
+    return { error: `drafts/threads 매니페스트 확인 불가 — ${e.message}. 이 신호 없이 고르면 이미 초안이 나간 무브를 다시 고른다`, moves: [] }
+  }
+
+  return selectAngles({ moves: mv.data ?? [], usedSlugs, stagedSlugs, draftFileNames, n })
 }
 
 /**

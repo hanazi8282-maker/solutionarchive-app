@@ -24,7 +24,7 @@ import {
   COMMIT_PREFIXES, checkStaged, buildAgentEnv, AGENT_TOOLS, STEPS, runKeyFor,
   RESEARCH_TARGET, DRAFT_TARGET,
   buildDigest, perfFailure, recordStep, scoreboardRows, parsePerformance,
-  buildDecisionLogEntries, stagedJobs,
+  buildDecisionLogEntries, stagedJobs, selectAngles,
 } from './cmo-daily.mjs'
 import { validateStep, createTracker, readEvents, STEP_STATUS } from './agent-status.mjs'
 import {
@@ -629,6 +629,74 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
     check(`헤드리스 — ${i + 1}번째 runClaude 가 --allowedTools 를 준다`, /--allowedTools/.test(body))
   })
 }
+
+// ════════════════════════════════════════════════════════════
+// N) selectAngles — 2026-09-07~08 peloton 중복 재현 회귀
+//
+// 그때 일어난 일: 09-07 초안이 파일로만 남고(매니페스트조차 없이) content_items
+// 에 안 들어갔다. 선택 로직이 content_items 만 보니 09-08 실행이 같은 무브를
+// 다시 골랐고, 같은 케이스로 초안이 두 벌 나왔다.
+// ════════════════════════════════════════════════════════════
+{
+  const approved = (slug, grade = 'A', lever = 'OPERATIONS', id = `${slug}-${lever}`) => ({
+    id, lever, claim: 'c', evidence_grade: grade, outcome_direction: 'negative',
+    review_status: 'approved',
+    case_studies: { slug, brand_name: slug, bottleneck: 'AWARENESS', review_status: 'approved' },
+  })
+  const PELOTON = 'peloton-owned-manufacturing-exit'
+  const moves = [approved(PELOTON), approved('oatly-capacity-overbuild')]
+
+  // (1) 옛 상태의 재현 — 파일 신호를 안 주면 peloton 이 다시 뽑힌다.
+  //     이게 09-08 에 실제로 일어난 일이다. 회귀 감시용 대조군이다.
+  const old = selectAngles({ moves, usedSlugs: new Set(), n: 2 })
+  check('앵글 — (대조군) 파일 신호가 없으면 peloton 을 다시 고른다',
+    old.moves.some((m) => m.slug === PELOTON))
+
+  // (2) 정확한 신호: stage.json 의 case_slug 가 있으면 거른다.
+  const staged = selectAngles({
+    moves, usedSlugs: new Set(),
+    stagedSlugs: new Set([PELOTON]),
+    draftFileNames: [`2026-09-08-${PELOTON}.stage.json`], n: 2,
+  })
+  check('앵글 — stage.json 의 case_slug 로 중복을 거른다',
+    !staged.moves.some((m) => m.slug === PELOTON))
+  eq('앵글 — 거른 뒤에도 다른 케이스는 남는다', staged.moves.length, 1)
+  eq('앵글 — 정확히 걸렀으면 경고는 안 낸다', staged.warnings.length, 0)
+
+  // (3) 09-07 의 실제 모양: 매니페스트가 **없는** 파일만 있다. 파일명은 슬러그의
+  //     앞부분만 담는다(`-exit` 가 빠져 있다). 거르지는 않되 반드시 경고한다 —
+  //     접두 일치로 걸러 버리면 멀쩡한 무브를 조용히 잃는다.
+  const fuzzy = selectAngles({
+    moves, usedSlugs: new Set(), stagedSlugs: new Set(),
+    draftFileNames: ['2026-09-07-peloton-owned-manufacturing.body.txt'], n: 2,
+  })
+  check('앵글 — 매니페스트 없는 초안 파일은 거르지 않는다(조용한 유실 금지)',
+    fuzzy.moves.some((m) => m.slug === PELOTON))
+  eq('앵글 — 대신 경고를 낸다', fuzzy.warnings.length, 1)
+  check('앵글 — 경고에 슬러그가 들어 있다', String(fuzzy.warnings[0]).includes(PELOTON))
+
+  // (4) content_items 경로(기존 동작)는 그대로여야 한다.
+  const dbUsed = selectAngles({ moves, usedSlugs: new Set([PELOTON]), n: 2 })
+  check('앵글 — content_items.source_case 필터는 그대로 동작한다',
+    !dbUsed.moves.some((m) => m.slug === PELOTON))
+
+  // (5) 회귀: 승인·등급 필터가 살아 있어야 한다.
+  const unapprovedCase = approved('zzz-unapproved-case')
+  unapprovedCase.case_studies.review_status = 'draft'
+  eq('앵글 — 케이스가 미승인이면 안 고른다',
+    selectAngles({ moves: [unapprovedCase], n: 2 }).moves.length, 0)
+  eq('앵글 — 등급 D 는 안 고른다',
+    selectAngles({ moves: [approved('zzz-grade-d-case', 'D')], n: 2 }).moves.length, 0)
+  eq('앵글 — 등급 높은 쪽이 먼저 온다',
+    selectAngles({ moves: [approved('bbb-low-grade-case', 'C'), approved('aaa-high-grade-case', 'A')], n: 2 }).moves[0].grade, 'A')
+  eq('앵글 — n 을 넘겨 고르지 않는다',
+    selectAngles({ moves: [approved('ccc-one-case'), approved('ddd-two-case'), approved('eee-three-case')], n: 2 }).moves.length, 2)
+
+  // (6) 짧은 슬러그는 접두 일치 경고를 내지 않는다(소음 방지).
+  eq('앵글 — 12자 미만 슬러그는 흐릿한 경고 대상이 아니다',
+    selectAngles({ moves: [approved('short-slug')], draftFileNames: ['2026-09-07-short-slug.body.txt'], n: 2 }).warnings.length, 0)
+}
+
 
 // ════════════════════════════════════════════════════════════
 // 결과

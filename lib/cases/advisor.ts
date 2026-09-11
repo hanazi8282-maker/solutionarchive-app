@@ -7,8 +7,8 @@
 //
 // 코퍼스 (§20 / §13-7):
 //   A 성공사례 — case_studies / case_moves (이미 존재)
-//   B 실패사례 — failed_angles. 브랜치④(feat/falsification-market) 미착수 →
-//                이번 범위 제외. 응답 스키마에 자리만 남기고 억지로 안 채운다.
+//   B 실패사례 — failed_angles (브랜치④에서 신설·시딩, 2026-09-11 프로덕션 적용).
+//                "이 소구점은 이미 실패한 적 있다"를 돌려주는 자리다.
 //   C 원칙원장 — strategy_principles (이 브랜치에서 신설·시딩)
 //
 // 구현 방법론 (§13-7): v1 은 벡터 검색 없이 **카테고리·키워드 태그 매칭**.
@@ -60,6 +60,29 @@ export interface CaseMoveCard {
   score: number
 }
 
+/** failed_angles 한 행 (docs/failed-angles.md 표에서 시딩). */
+export interface FailedAngleRow {
+  case_key: string
+  product_category: string
+  claimed_angle: string
+  outcome: string
+  evidence_source: string
+  source_tier: string
+  is_estimate: boolean
+}
+
+export interface FailedAngleCard {
+  kind: 'failed_angle'
+  case_key: string
+  product_category: string
+  claimed_angle: string
+  outcome: string
+  source_tier: string
+  is_estimate: boolean
+  matched_terms: string[]
+  score: number
+}
+
 export interface CorpusResult<Card> {
   status: AdvisorStatus
   reason: string
@@ -72,8 +95,7 @@ export interface AdvisorResult {
   terms: string[]
   corpus_a: CorpusResult<CaseMoveCard>
   corpus_c: CorpusResult<PrincipleCard>
-  // 브랜치④ 완료 후 통합. 지금 자리만 남긴다 (AC-3).
-  corpus_b: { status: 'pending'; reason: string }
+  corpus_b: CorpusResult<FailedAngleCard>
 }
 
 const TOP_N = 5
@@ -202,15 +224,55 @@ export function matchCaseMoves(
   return { status: 'matched', reason: `승인 무브 ${cards.length}건`, cards: cards.slice(0, TOP_N) }
 }
 
-const CORPUS_B_PENDING = {
-  status: 'pending' as const,
-  reason: 'Corpus B(failed_angles)는 브랜치④(feat/falsification-market) 완료 후 순차 통합 — §17-3 (AC-3)',
+/**
+ * Corpus B: 실패 앵글 원장 매칭 — "이 소구점은 이미 실패한 적 있다".
+ *
+ * haystack 을 product_category + claimed_angle 로 좁힌다. outcome(실패 이유)까지
+ * 넣으면 무관한 카테고리끼리 "가격"·"규제" 같은 흔한 낱말로 우연히 걸린다.
+ * 실패 서술은 매칭 대상이 아니라 **매칭된 뒤 읽히는 근거**다.
+ *
+ * is_estimate=true(재서술에 추정·해석이 섞인 행)는 점수를 1점 깎는다. 원칙
+ * 원장에서 evidence_grade 로 가중을 주는 것과 같은 정신 — 같은 조건이면 사실
+ * 그대로인 사례가 먼저 읽혀야 한다(과신 방지).
+ */
+export function matchFailedAngles(
+  terms: string[],
+  failedAngles: FailedAngleRow[] | null | undefined,
+): CorpusResult<FailedAngleCard> {
+  if (!terms.length) return { status: 'not_run', reason: '질의어가 없다 — 무엇을 찾을지 모르는 상태다', cards: [] }
+  if (failedAngles == null) {
+    return { status: 'not_run', reason: 'failed_angles 조회 실패 (null) — "실패 사례 없음"이 아니라 확인 불가다', cards: [] }
+  }
+
+  const cards: FailedAngleCard[] = []
+  for (const f of failedAngles) {
+    const haystack = [f.product_category ?? '', f.claimed_angle ?? ''].join(' ')
+    const matched = hitTerms(terms, haystack)
+    if (matched.length === 0) continue
+    cards.push({
+      kind: 'failed_angle',
+      case_key: f.case_key,
+      product_category: f.product_category,
+      claimed_angle: f.claimed_angle,
+      outcome: f.outcome,
+      source_tier: f.source_tier,
+      is_estimate: f.is_estimate,
+      matched_terms: matched,
+      score: matched.length * 10 - (f.is_estimate ? 1 : 0),
+    })
+  }
+  cards.sort((a, b) => b.score - a.score || a.case_key.localeCompare(b.case_key))
+
+  if (cards.length === 0) {
+    return { status: 'no_match', reason: '조회는 정상인데 질의어와 겹치는 실패 사례가 0건이다 — 관련 사례 없음', cards: [] }
+  }
+  return { status: 'matched', reason: `실패 사례 ${cards.length}건`, cards: cards.slice(0, TOP_N) }
 }
 
 /**
- * 두 코퍼스를 합쳐 방향을 제시한다.
- * 전체 status: 하나라도 matched 면 matched. 둘 다 조회 정상인데 0건이면 no_match
- * (= "관련 사례 없음" 명시). 둘 다 조회조차 못 했거나 질의어가 없으면 not_run.
+ * 세 코퍼스를 합쳐 방향을 제시한다.
+ * 전체 status: 하나라도 matched 면 matched (반쪽이라도 근거를 준다). 셋 다 조회
+ * 정상인데 0건이면 no_match (= "관련 사례 없음" 명시). 그 밖은 not_run.
  */
 export function advise(
   input: { category?: string | null; angleDescription?: string | null; freeText?: string | null },
@@ -218,24 +280,28 @@ export function advise(
     principles: PrincipleRow[] | null | undefined
     studies: StudyRow[] | null | undefined
     moves: MoveRow[] | null | undefined
+    failedAngles: FailedAngleRow[] | null | undefined
   },
 ): AdvisorResult {
   const terms = toTerms(input.category, input.angleDescription, input.freeText)
   const corpus_c = matchPrinciples(terms, corpora.principles)
   const corpus_a = matchCaseMoves(terms, corpora.studies, corpora.moves)
+  const corpus_b = matchFailedAngles(terms, corpora.failedAngles)
 
+  const all = [corpus_a, corpus_b, corpus_c]
   let status: AdvisorStatus
   let reason: string
-  if (corpus_a.status === 'matched' || corpus_c.status === 'matched') {
+  if (all.some((c) => c.status === 'matched')) {
     status = 'matched'
-    reason = `근거 카드 ${corpus_a.cards.length + corpus_c.cards.length}장 (선례 ${corpus_a.cards.length} / 원칙 ${corpus_c.cards.length})`
-  } else if (corpus_a.status === 'no_match' && corpus_c.status === 'no_match') {
+    const total = corpus_a.cards.length + corpus_b.cards.length + corpus_c.cards.length
+    reason = `근거 카드 ${total}장 (선례 ${corpus_a.cards.length} / 실패사례 ${corpus_b.cards.length} / 원칙 ${corpus_c.cards.length})`
+  } else if (all.every((c) => c.status === 'no_match')) {
     status = 'no_match'
-    reason = '두 코퍼스 모두 조회는 정상인데 겹치는 근거가 0건이다 — 관련 사례 없음. 억지로 끼워맞추지 않는다.'
+    reason = '세 코퍼스 모두 조회는 정상인데 겹치는 근거가 0건이다 — 관련 사례 없음. 억지로 끼워맞추지 않는다.'
   } else {
     status = 'not_run'
-    reason = `판정 불가 — 선례: ${corpus_a.reason} · 원칙: ${corpus_c.reason}`
+    reason = `판정 불가 — 선례: ${corpus_a.reason} · 실패사례: ${corpus_b.reason} · 원칙: ${corpus_c.reason}`
   }
 
-  return { status, reason, terms, corpus_a, corpus_c, corpus_b: CORPUS_B_PENDING }
+  return { status, reason, terms, corpus_a, corpus_b, corpus_c }
 }

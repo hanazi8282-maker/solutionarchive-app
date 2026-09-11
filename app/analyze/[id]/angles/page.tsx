@@ -294,6 +294,183 @@ function ValidateAction({ a }: { a: AngleRow }) {
   )
 }
 
+// ── 크로스섹션 어드바이저 ─────────────────────────────────────
+// 선례(A)·실패사례(B)·원칙(C) 세 코퍼스에서 이 앵글과 겹치는 근거를 찾아 보여준다.
+// 앵글마다 자동으로 fetch 하면 화면 하나에 앵글 수만큼 요청이 나간다 —
+// RewriteToggle 과 같은 열림·닫힘 패턴으로, 사용자가 눌렀을 때만 한 번 부른다.
+type AdvisorCorpus<Card> = { status: 'matched' | 'no_match' | 'not_run'; reason: string; cards: Card[] }
+type AdvisorCaseMoveCard = {
+  case_move_id: string; slug: string; brand_name: string; lever: string
+  claim: string; evidence_grade: string; outcome_direction: string
+}
+type AdvisorFailedAngleCard = {
+  case_key: string; product_category: string; claimed_angle: string
+  outcome: string; source_tier: string; is_estimate: boolean
+}
+type AdvisorPrincipleCard = {
+  sp_id: string; statement: string; evidence_grade: string
+  evidence_grade_note: string | null; source_ref: string
+}
+type AdvisorPayload = {
+  status: 'matched' | 'no_match' | 'not_run'
+  reason: string
+  corpus_a: AdvisorCorpus<AdvisorCaseMoveCard>
+  corpus_b: AdvisorCorpus<AdvisorFailedAngleCard>
+  corpus_c: AdvisorCorpus<AdvisorPrincipleCard>
+}
+
+const ADVISOR_BOX: React.CSSProperties = {
+  marginTop: 10,
+  background: 'var(--surface-muted)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-md)',
+  padding: 'var(--space-3) var(--space-4)',
+  display: 'grid',
+  gap: 'var(--space-3)',
+}
+
+function AdvisorSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+      <div className="dgy-caps">{title}</div>
+      {children}
+    </div>
+  )
+}
+
+function AdvisorPanel({ a }: { a: AngleRow }) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [data, setData] = useState<AdvisorPayload | null>(null)
+
+  const load = async () => {
+    setOpen(true)
+    if (data || loading) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/analyze/advisor?angle_id=${encodeURIComponent(a.id)}`)
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(json.error ?? '유사 사례를 불러오지 못했습니다.')
+        return
+      }
+      setData(json.advisor as AdvisorPayload)
+    } catch {
+      setError('네트워크 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={load}
+        style={{ border: 'none', background: 'none', padding: '10px 0 0', cursor: 'pointer', font: 'inherit' }}
+      >
+        <Badge tone="info" size="sm">유사 사례 보기</Badge>
+      </button>
+    )
+  }
+
+  return (
+    <div style={ADVISOR_BOX}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div className="dgy-caps">유사 사례 · 선례 · 실패 · 원칙</div>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
+        >
+          <Badge tone="neutral" size="sm">접기</Badge>
+        </button>
+      </div>
+
+      {loading && (
+        <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>찾는 중...</p>
+      )}
+      {error && (
+        <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--danger)' }}>{error}</p>
+      )}
+
+      {!loading && !error && data && data.status === 'not_run' && (
+        <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>
+          판정 불가 — {data.reason}
+        </p>
+      )}
+
+      {/* 근거가 0건이면 0건이라고 말한다. 억지로 비슷한 걸 끌어다 붙이지 않는다(§13-7 AC-2). */}
+      {!loading && !error && data && data.status === 'no_match' && (
+        <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>
+          관련 사례 없음 — 세 코퍼스 모두 조회는 정상인데 겹치는 근거가 0건입니다.
+        </p>
+      )}
+
+      {!loading && !error && data && data.status === 'matched' && (
+        <>
+          {data.corpus_a.cards.length > 0 && (
+            <AdvisorSection title="선례 · 성공 사례">
+              {data.corpus_a.cards.map(c => (
+                <div key={c.case_move_id} style={{ display: 'grid', gap: 4 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                    <Badge tone="neutral" size="sm">{c.brand_name}</Badge>
+                    <Badge tone="neutral" size="sm">{c.lever}</Badge>
+                    <Badge tone="success" size="sm">근거 {c.evidence_grade}</Badge>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>{c.claim}</p>
+                </div>
+              ))}
+            </AdvisorSection>
+          )}
+
+          {/* 실패 사례는 "무엇을 내세웠고(claimed_angle) 왜 안 됐는지(outcome)"를 함께
+              보여줘야 회피 조언이 된다. 둘 중 하나만 보이면 쓸모가 없다. */}
+          {data.corpus_b.cards.length > 0 && (
+            <AdvisorSection title="실패 사례 · 이 소구점은 이미 실패한 적 있다">
+              {data.corpus_b.cards.map(c => (
+                <div key={c.case_key} style={{ display: 'grid', gap: 4 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                    <Badge tone="neutral" size="sm">{c.product_category}</Badge>
+                    <Badge tone="neutral" size="sm">{c.source_tier}</Badge>
+                    {c.is_estimate && <Badge tone="warning" size="sm">추정</Badge>}
+                  </div>
+                  <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
+                    내세웠던 소구점 · {c.claimed_angle}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--danger)' }}>
+                    결과 · {c.outcome}
+                  </p>
+                </div>
+              ))}
+            </AdvisorSection>
+          )}
+
+          {data.corpus_c.cards.length > 0 && (
+            <AdvisorSection title="원칙">
+              {data.corpus_c.cards.map(c => (
+                <div key={c.sp_id} style={{ display: 'grid', gap: 4 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                    <Badge tone="neutral" size="sm">{c.sp_id}</Badge>
+                    <Badge tone="success" size="sm">근거 {c.evidence_grade}</Badge>
+                    <Badge tone="neutral" size="sm">{c.source_ref}</Badge>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>{c.statement}</p>
+                  {c.evidence_grade_note && (
+                    <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>{c.evidence_grade_note}</p>
+                  )}
+                </div>
+              ))}
+            </AdvisorSection>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 function EvidenceQuote({ a }: { a: AngleRow }) {
   if (!a.substantiation_evidence) return null
   return (
@@ -327,6 +504,7 @@ function ConsumerAngleCard({ a, isReverse }: { a: AngleRow; isReverse: boolean }
       <EvidenceQuote a={a} />
       <AdaptationSuggestion a={a} isReverse={isReverse} />
       <ValidateAction a={a} />
+      <AdvisorPanel a={a} />
       <RewritePanel a={a} open={open} />
     </Card>
   )
@@ -376,6 +554,7 @@ function InternalMemoCard({ a, isReverse }: { a: AngleRow; isReverse: boolean })
         <EvidenceQuote a={a} />
         <AdaptationSuggestion a={a} isReverse={isReverse} />
         <ValidateAction a={a} />
+        <AdvisorPanel a={a} />
         <RewritePanel a={a} open={open} />
       </div>
     </div>

@@ -118,6 +118,58 @@ t('실패사례: 조회 실패(null) → not_run', matchFailedAngles(['숏폼'],
   ok('실패사례: is_estimate 그대로 실린다', r.cards[1].is_estimate === true)
 }
 
+// ── 불용어 회귀 (2026-09-11 매칭 오염 버그) ──────────────────────
+// 실제 프로덕션에서 탈모 샴푸 프로젝트가 무관한 실패 사례와 매칭돼 화면에 올라갔다.
+//   · "두피 자극 없이 탈모 증상을 완화하는 샴푸" × amazon-fire-phone ← "직접"
+//   · "3주 만에 탈모가 멈추고 새 머리가 나는 샴푸" × google-glass-explorer ← "안내"
+// 아래 픽스처는 그 두 행의 실제 문구를 그대로 쓴다(카테고리에 '직접', 소구점에 '안내').
+const NOISE_FAILED_ANGLES = [
+  { case_key: 'fire-phone-noise', product_category: '스마트폰(제조사 직접 진출)', claimed_angle: '"다이내믹 퍼스펙티브(머리 움직임에 반응하는 3D 패럴랙스 UI)로 경쟁 스마트폰과 확실히 다른 경험"이라는 차별화 소구', outcome: '출시 후 판매 부진으로 단종', evidence_source: '다수 매체 보도', source_tier: '공개 보도', is_estimate: false },
+  { case_key: 'glass-noise', product_category: '착용형 스마트 디바이스', claimed_angle: '"일상적으로 착용하는 핸즈프리 증강현실 안경으로 사진·검색·길안내를 눈앞에서 해결한다"는 소구', outcome: '소비자 시장에서 철수', evidence_source: '다수 매체 보도', source_tier: '공개 보도', is_estimate: true },
+]
+
+// 실제 프로젝트 pitch / 앵글 문구 그대로.
+const SHAMPOO_A = { category: '두피 자극 없이 탈모 증상을 완화하는 샴푸', angleDescription: '타사 제품과 직접 비교해 보실 수 있도록 본품 개봉 전 두피 반응을 확인하는 체험분 증정' }
+const SHAMPOO_B = { category: '3주 만에 탈모가 멈추고 새 머리가 나는 샴푸', angleDescription: '(mock) 사용법 안내 부족 · 사용량·주기를 몰라 잘못 쓴 뒤 효과가 없다고 적은 후기가 다수' }
+
+{
+  const terms = toTerms(SHAMPOO_A.category, SHAMPOO_A.angleDescription)
+  ok('불용어: "직접" 이 토큰에서 빠진다', !terms.includes('직접'))
+  ok('불용어: "제품과"(조사 붙은 형태)도 빠진다', !terms.includes('제품과'))
+  ok('불용어: "확인하는"(어미 붙은 형태)도 빠진다', !terms.includes('확인하는'))
+  ok('불용어: 도메인 명사 "탈모" 는 살아있다', terms.some((t) => t.includes('탈모')))
+  ok('불용어: 도메인 명사 "두피" 는 살아있다', terms.some((t) => t.includes('두피')))
+  const r = matchFailedAngles(terms, NOISE_FAILED_ANGLES)
+  t('회귀: 샴푸 × 실패한 스마트폰 → no_match', r.status, 'no_match')
+  t('회귀: "직접" 으로 물어오지 않는다', r.cards.length, 0)
+}
+{
+  const terms = toTerms(SHAMPOO_B.category, SHAMPOO_B.angleDescription)
+  ok('불용어: "안내" 가 토큰에서 빠진다', !terms.includes('안내'))
+  const r = matchFailedAngles(terms, NOISE_FAILED_ANGLES)
+  t('회귀: 샴푸 × 실패한 AR 안경 → no_match', r.status, 'no_match')
+  t('회귀: "안내" 로 물어오지 않는다', r.cards.length, 0)
+}
+{
+  // 같은 헬퍼를 쓰는 나머지 두 코퍼스도 같이 보호된다.
+  const terms = toTerms(SHAMPOO_A.category, SHAMPOO_A.angleDescription)
+  t('회귀: 샴푸 × 원칙 원장 → no_match', matchPrinciples(terms, PRINCIPLES).status, 'no_match')
+  t('회귀: 샴푸 × 선례 → no_match', matchCaseMoves(terms, STUDIES, MOVES).status, 'no_match')
+}
+{
+  // 순수 숫자는 어떤 주제도 좁히지 못한다 — "12"(12.4%)·"70"(70%) 가 실제로 물어왔다.
+  const terms = toTerms('43명 8주 인체적용시험 평균 12.4% 증가')
+  ok('불용어: 순수 숫자 "12" 가 빠진다', !terms.includes('12'))
+  ok('불용어: 순수 숫자 "43" 이 빠진다', !terms.includes('43'))
+  ok('불용어: 글자 섞인 "8주" 는 남는다', terms.includes('8주'))
+}
+{
+  // 의도된 강한 매칭이 필터 때문에 죽지 않아야 한다.
+  ok('불용어: "하이브리드" 는 살아있다', toTerms('하이브리드 요금제').includes('하이브리드'))
+  t('불용어: 하이브리드 선례 매칭 유지', matchCaseMoves(toTerms('하이브리드'), STUDIES, MOVES).status, 'matched')
+  t('불용어: pricing 원칙 매칭 유지', matchPrinciples(toTerms('pricing'), PRINCIPLES).status, 'matched')
+  t('불용어: 숏폼 실패사례 매칭 유지', matchFailedAngles(toTerms('모바일 숏폼 스트리밍'), FAILED_ANGLES).status, 'matched')
+}
 // ── advise (통합) ───────────────────────────────────────────────
 {
   const r = advise({ category: 'SaaS 요금제', angleDescription: '하이브리드 pricing 전환' }, { principles: PRINCIPLES, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })

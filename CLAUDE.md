@@ -33,6 +33,34 @@
 - 비밀키(API key, secret)는 절대 클라이언트 코드/레포에 하드코딩하지 않는다. 환경변수 + Supabase Vault.
 - 외부 데이터 수집은 **실시간 금지**. 기본 **매일 새벽 1회 배치**. (실시간이 꼭 필요한 모듈만 예외 명시)
 
+### 2.1 예외 — `ai-office/` 는 다른 스택을 쓰는 하위 프로젝트다
+
+**`ai-office/` 는 위 표의 Next.js / Supabase / Vercel 스택을 쓰지 않는다.**
+AI 직원이 돌아다니는 픽셀 오피스 시각화로, 이 리포 안에 있지만 **배포 대상도
+런타임도 완전히 별개**다.
+
+| 항목 | 본체(SolutionArchive) | `ai-office/` |
+|---|---|---|
+| 프레임워크 | Next.js (App Router) | **vinext** (Vite 기반 Next 호환 레이어) |
+| 런타임·배포 | Vercel (`solutionarch`) | **Cloudflare Workers + Wrangler** |
+| 데이터 | Supabase | **없음** — `company.config.ts` 의 정적 설정으로 도는 시뮬레이션 |
+| 비밀값 | `.env.local` / Vercel env | `.dev.vars` / `wrangler secret put` |
+| 배포 명령 | `vercel --prod` | `cd ai-office && npx vinext deploy` |
+
+지켜야 할 것:
+
+- **별도 레포로 분리하지 않는다.** 이 리포 안에 그대로 둔다. 대신 본체의 스택
+  규칙(§2)·폴더 구조(§6)를 `ai-office/` 에 적용하지 않는다. 그 폴더의 작업
+  지침은 `ai-office/CLAUDE.md` 가 정본이다.
+- **본체 빌드·배포와 섞지 않는다.** `ai-office/` 변경은 Vercel 배포에 아무 영향이
+  없고, 반대도 마찬가지다. 본체 CI·테스트가 이 폴더를 돌리지 않는다.
+- **커밋 범위 주의.** `ai-office/.gitignore` 가 이 폴더의 `node_modules` ·
+  `dist` · `.wrangler` 를 제외한다(루트 `.gitignore` 에는 `ai-office` 언급이
+  없고, 실제로 `git check-ignore` 로 세 경로가 모두 걸리는 것을 확인했다).
+  `npm install` 후의 750MB 를 실수로 커밋하지 않도록 `git status` 를 먼저 본다.
+- **라이브 URL**: https://godseng-ai-company-hq.hanazi8282.workers.dev/ —
+  실시간 데이터 연동은 없다. 실제 루프 상태를 보는 화면은 본체의 `/agents` 다.
+
 ---
 
 ## 3. 아키텍처 원칙 (Architecture Principles)

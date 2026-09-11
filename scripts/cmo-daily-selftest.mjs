@@ -692,6 +692,55 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   eq('앵글 — n 을 넘겨 고르지 않는다',
     selectAngles({ moves: [approved('ccc-one-case'), approved('ddd-two-case'), approved('eee-three-case')], n: 2 }).moves.length, 2)
 
+  // ── 슬러그당 하루 1편 ──────────────────────────────────────────────────
+  // 2026-09-11 duolingo-streak 재현: 같은 케이스의 무브 2개가 하루 슬롯 2개를
+  // 통째로 가져갔다. 규칙 도입 후에는 1건만 나가고 나머지는 미뤄져야 한다.
+  {
+    const DUO = 'duolingo-streak'
+    const two = [
+      approved(DUO, 'C', 'COMMUNITY', 'duo-community'),
+      approved(DUO, 'C', 'PRODUCT_FEATURE', 'duo-product'),
+      approved('figma-non-designer-distribution', 'C', 'PACKAGING', 'figma-packaging'),
+    ]
+    const r = selectAngles({ moves: two, n: 2 })
+    eq('다양성 — 같은 슬러그는 하루 1편만 나간다',
+      r.moves.filter((m) => m.slug === DUO).length, 1)
+    eq('다양성 — 빈 슬롯은 다른 케이스가 채운다', r.moves.length, 2)
+    check('다양성 — 채운 쪽은 다른 슬러그다',
+      new Set(r.moves.map((m) => m.slug)).size === 2)
+    eq('다양성 — 밀린 무브는 버리지 않고 deferred 로 남는다', r.deferred.length, 1)
+    check('다양성 — deferred 는 같은 슬러그의 형제다', r.deferred[0].slug === DUO)
+
+    // 같은 슬러그 안에서는 기존 우선순위(등급)가 그대로 이긴다.
+    const mixed = [
+      approved(DUO, 'C', 'COMMUNITY', 'duo-low'),
+      approved(DUO, 'A', 'PRODUCT_FEATURE', 'duo-high'),
+    ]
+    const g = selectAngles({ moves: mixed, n: 2 })
+    eq('다양성 — 같은 슬러그 중 등급 높은 쪽이 남는다', g.moves[0].id, 'duo-high')
+    eq('다양성 — 등급 낮은 형제가 밀린다', g.deferred[0].id, 'duo-low')
+
+    // 평소 상황(슬러그당 무브 1개)에는 영향이 없어야 한다.
+    const normal = [
+      approved('aaa-normal-case-one', 'A', 'OPERATIONS', 'n1'),
+      approved('bbb-normal-case-two', 'A', 'PRICING', 'n2'),
+    ]
+    const nr = selectAngles({ moves: normal, n: 2 })
+    eq('다양성 — 슬러그가 전부 다르면 종전과 같이 n 건을 채운다', nr.moves.length, 2)
+    eq('다양성 — 그때 deferred 는 비어 있다', nr.deferred.length, 0)
+
+    // 후보 슬러그가 하나뿐이면 슬롯을 다 못 채우는 게 정상이다(억지로 겹쳐 넣지 않는다).
+    const only = selectAngles({ moves: [two[0], two[1]], n: 2 })
+    eq('다양성 — 슬러그가 하나뿐이면 1건만 낸다(슬롯을 억지로 안 채운다)', only.moves.length, 1)
+    eq('다양성 — 나머지는 deferred', only.deferred.length, 1)
+
+    // 앞서 만든 제외 로직과 충돌하지 않는다.
+    const withExclude = selectAngles({ moves: two, usedSlugs: new Set([DUO]), n: 2 })
+    check('다양성 — content_items 제외가 우선한다(그 슬러그는 아예 안 나온다)',
+      !withExclude.moves.some((m) => m.slug === DUO))
+    eq('다양성 — 제외된 슬러그는 deferred 에도 안 들어간다', withExclude.deferred.length, 0)
+  }
+
   // (6) 짧은 슬러그는 접두 일치 경고를 내지 않는다(소음 방지).
   eq('앵글 — 12자 미만 슬러그는 흐릿한 경고 대상이 아니다',
     selectAngles({ moves: [approved('short-slug')], draftFileNames: ['2026-09-07-short-slug.body.txt'], n: 2 }).warnings.length, 0)

@@ -357,11 +357,14 @@ async function main() {
     // 흐릿한 신호는 거르지 않고 남긴다. 남기지 않으면 다음 날 같은 중복을 또 만든다.
     const warnings = picked.warnings ?? []
     for (const w of warnings) say(`- ⚠️ 앵글 경고 — ${w}`)
+    // 슬러그당 1편 규칙에 밀린 무브. 버린 게 아니라 내일 다시 후보가 된다.
+    const deferred = (picked.deferred ?? []).map((m) => `${m.slug}/${m.lever}(${m.grade})`)
+    if (deferred.length) say(`- 같은 케이스라 오늘은 미룬 무브 ${deferred.length}건 (내일 다시 후보): ${deferred.join(', ')}`)
     if (!angles.length) {
       // 승인은 사람이 한다. 승인된 무브가 없는 건 루프의 실패가 아니다.
       return { status: 'skipped', detail: { reason: '쓸 수 있는 승인 무브가 0건 (승인은 사람이 한다 — 루프의 실패가 아니다)', warnings } }
     }
-    return { status: 'ok', counts: { angles: angles.length }, detail: { warnings } }
+    return { status: 'ok', counts: { angles: angles.length, deferred_same_slug: deferred.length }, detail: { warnings, deferred } }
   })
 
   // ── S6 draft ────────────────────────────────────────────────
@@ -658,7 +661,7 @@ const GRADE_RANK = { A: 3, B: 2, C: 1, D: 0 }
 export function selectAngles({ moves = [], usedSlugs = new Set(), stagedSlugs = new Set(), draftFileNames = [], n = 2 }) {
   const excluded = new Set([...usedSlugs, ...stagedSlugs].filter(Boolean))
 
-  const picked = moves
+  const ranked = moves
     .filter((m) => m.case_studies?.review_status === 'approved')
     .filter((m) => (GRADE_RANK[m.evidence_grade] ?? 0) > 0)
     .filter((m) => !excluded.has(m.case_studies?.slug))
@@ -668,7 +671,34 @@ export function selectAngles({ moves = [], usedSlugs = new Set(), stagedSlugs = 
       brand: m.case_studies?.brand_name, bottleneck: m.case_studies?.bottleneck,
     }))
     .sort((a, b) => (GRADE_RANK[b.grade] ?? 0) - (GRADE_RANK[a.grade] ?? 0) || String(a.slug).localeCompare(String(b.slug)))
-    .slice(0, n)
+
+  // ── 슬러그당 하루 1편 ─────────────────────────────────────────────────────
+  //
+  // 하루 슬롯은 DRAFT_TARGET(기본 2)뿐이다. 한 케이스에 승인 무브가 둘이면 그
+  // 케이스가 슬롯을 통째로 가져가 그날 브랜드가 하나만 나간다. 2026-09-08 peloton,
+  // 09-09 purple, 09-10 chewy 가 그렇게 나갔고, 09-11 후보도 duolingo-streak 둘이었다.
+  //
+  // **버그를 고치는 게 아니라 편집 규칙이다.** "무브 1개 → 초안 1개"는 그대로다 —
+  // 무브를 합치지 않는다. 하루에 몇 개를 내보낼지만 정한다.
+  //
+  // 밀린 무브는 **버리지 않는다.** 이 함수는 매 실행 DB 에서 승인 무브를 새로 읽고,
+  // 쓴 것만 content_items 를 통해 제외된다. 그러니 오늘 밀린 무브는 내일 그대로
+  // 후보에 다시 오른다. 별도 큐를 만들 필요가 없다 — 이미 DB 가 큐다.
+  //
+  // 정렬이 이미 등급 내림차순 → 슬러그 오름차순이라, 앞에서부터 슬러그를 처음 만날
+  // 때만 담으면 **같은 슬러그 중 가장 높은 등급**이 남는다. 기존 우선순위를 그대로 쓴다.
+  const seenSlugs = new Set()
+  const picked = []
+  const deferred = []
+  for (const m of ranked) {
+    const slug = String(m.slug ?? '')
+    if (seenSlugs.has(slug)) { deferred.push(m); continue }
+    // 슬롯이 찼어도 **끊지 않는다.** 끊으면 뒤에 있는 같은 슬러그 형제가 deferred
+    // 에 안 잡혀서, 무엇이 밀렸는지 보고에 안 남는다.
+    if (picked.length >= n) continue
+    seenSlugs.add(slug)
+    picked.push(m)
+  }
 
   // 고른 것에 대해서만 흐릿한 신호를 본다. 후보 전체를 훑을 이유가 없다.
   const warnings = []
@@ -686,7 +716,9 @@ export function selectAngles({ moves = [], usedSlugs = new Set(), stagedSlugs = 
     if (hit) warnings.push(`${slug}: 초안 파일 ${hit} 이 이미 있는데 DB(content_items·stage.json)에는 없다 — 스테이징이 실패했을 수 있다. 중복 초안을 만들기 전에 확인하라`)
   }
 
-  return { moves: picked, warnings }
+  // deferred 는 "버렸다"가 아니라 "오늘은 안 쓴다"다. 내일 실행이 DB 를 다시 읽어
+  // 같은 무브를 후보에 올린다. 수를 남기지 않으면 소재가 준 것처럼 보인다.
+  return { moves: picked, warnings, deferred }
 }
 
 /** 승인된 무브 중 아직 콘텐츠로 안 쓴 것을 고른다. 조회 실패는 error 로 올린다(0건과 구분). */

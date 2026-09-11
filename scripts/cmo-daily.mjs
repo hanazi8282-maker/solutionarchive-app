@@ -351,14 +351,20 @@ async function main() {
   let angles = []
   await runStep('angle', async () => {
     if (dryRun) return { status: 'skipped', detail: { reason: 'dry-run — 앵글을 고르지 않는다' } }
-    const picked = await pickAngles(supabase, DRAFT_TARGET)
+    const picked = await pickAngles(supabase, DRAFT_TARGET, repoRoot)
     if (picked.error) return { status: 'failed', detail: { error: picked.error } }
     angles = picked.moves
+    // 흐릿한 신호는 거르지 않고 남긴다. 남기지 않으면 다음 날 같은 중복을 또 만든다.
+    const warnings = picked.warnings ?? []
+    for (const w of warnings) say(`- ⚠️ 앵글 경고 — ${w}`)
+    // 슬러그당 1편 규칙에 밀린 무브. 버린 게 아니라 내일 다시 후보가 된다.
+    const deferred = (picked.deferred ?? []).map((m) => `${m.slug}/${m.lever}(${m.grade})`)
+    if (deferred.length) say(`- 같은 케이스라 오늘은 미룬 무브 ${deferred.length}건 (내일 다시 후보): ${deferred.join(', ')}`)
     if (!angles.length) {
       // 승인은 사람이 한다. 승인된 무브가 없는 건 루프의 실패가 아니다.
-      return { status: 'skipped', detail: { reason: '쓸 수 있는 승인 무브가 0건 (승인은 사람이 한다 — 루프의 실패가 아니다)' } }
+      return { status: 'skipped', detail: { reason: '쓸 수 있는 승인 무브가 0건 (승인은 사람이 한다 — 루프의 실패가 아니다)', warnings } }
     }
-    return { status: 'ok', counts: { angles: angles.length } }
+    return { status: 'ok', counts: { angles: angles.length, deferred_same_slug: deferred.length }, detail: { warnings, deferred } }
   })
 
   // ── S6 draft ────────────────────────────────────────────────
@@ -616,8 +622,107 @@ function listFiles(dir, suffix) {
   return fs.readdirSync(dir).filter((f) => f.endsWith(suffix)).sort()
 }
 
+const GRADE_RANK = { A: 3, B: 2, C: 1, D: 0 }
+
+/**
+ * 이미 초안이 나간 슬러그인지 판정하는 **순수** 부분. IO 는 pickAngles 가 한다.
+ *
+ * ── 왜 `content_items` 만으로는 모자란가 (2026-09-07~08 실측) ──────────────
+ *
+ *   옛 필터는 `content_items.source_case` 하나만 봤다. 그런데 그 행은 **스테이징이
+ *   성공해야** 생긴다. 초안 파일이 만들어졌는데 스테이징까지 못 간 케이스는 DB 에
+ *   흔적이 없고, 다음 실행이 같은 무브를 다시 고른다.
+ *
+ *   실제로 그렇게 됐다. `2026-09-07-peloton-owned-manufacturing` 초안이 파일로만
+ *   남고(매니페스트 `.stage.json` 조차 없었다) DB 에는 안 들어갔다. 그래서 09-08
+ *   실행이 peloton 을 다시 골랐고, 그때 작가가 파일을 읽을 수 있어 스스로
+ *   `★중복 경보` 를 남겼다(`reports/2026-09-08/decision-log-entries.md`).
+ *   즉 **파일은 알고 있었고 선택 로직만 몰랐다.**
+ *
+ * ── 왜 "content_items 백필 보장" 이 아니라 이쪽인가 ───────────────────────
+ *
+ *   백필은 더 나빠진다. 스테이징이 실패하는 가장 흔한 이유가 **CG-1 차단(exit 4)**
+ *   인데, 그건 버그가 아니라 설계된 결과다. 그 무브에 "썼음" 표시를 남기면 그
+ *   무브는 **영원히 다시 안 뽑힌다** — 글은 없는데 소재만 소모된다. 중복 작업보다
+ *   조용한 유실이 나쁘다. 선택 단계에서 거르면 데이터를 안 건드리고, 파일을 지우면
+ *   다시 후보가 된다(되돌릴 수 있다).
+ *
+ * ── 정확한 신호와 흐릿한 신호를 가른다 ────────────────────────────────────
+ *
+ *   `exclude` (정확) — `content_items.source_case` + `.stage.json` 의 `case_slug`.
+ *     둘 다 슬러그를 **문자 그대로** 담고 있다. 오탐이 없으니 조용히 걸러도 된다.
+ *
+ *   `warnings` (흐릿) — 파일명에서 유추한 것. 파일명은 슬러그와 다를 수 있다
+ *     (`2026-09-06-warby-home-try-on` 의 케이스 슬러그는 `warby-parker-home-try-on`
+ *     이고, 09-07 peloton 은 슬러그의 앞부분만 담고 있었다). 접두 일치로 넓게 잡으면
+ *     서로 다른 두 슬러그가 겹쳐 **멀쩡한 무브를 조용히 잃을** 수 있다.
+ *     그래서 **거르지 않고 경고만 낸다.** 조용한 유실보다 시끄러운 중복이 낫다.
+ */
+export function selectAngles({ moves = [], usedSlugs = new Set(), stagedSlugs = new Set(), draftFileNames = [], n = 2 }) {
+  const excluded = new Set([...usedSlugs, ...stagedSlugs].filter(Boolean))
+
+  const ranked = moves
+    .filter((m) => m.case_studies?.review_status === 'approved')
+    .filter((m) => (GRADE_RANK[m.evidence_grade] ?? 0) > 0)
+    .filter((m) => !excluded.has(m.case_studies?.slug))
+    .map((m) => ({
+      id: m.id, lever: m.lever, claim: m.claim, grade: m.evidence_grade,
+      direction: m.outcome_direction, slug: m.case_studies?.slug,
+      brand: m.case_studies?.brand_name, bottleneck: m.case_studies?.bottleneck,
+    }))
+    .sort((a, b) => (GRADE_RANK[b.grade] ?? 0) - (GRADE_RANK[a.grade] ?? 0) || String(a.slug).localeCompare(String(b.slug)))
+
+  // ── 슬러그당 하루 1편 ─────────────────────────────────────────────────────
+  //
+  // 하루 슬롯은 DRAFT_TARGET(기본 2)뿐이다. 한 케이스에 승인 무브가 둘이면 그
+  // 케이스가 슬롯을 통째로 가져가 그날 브랜드가 하나만 나간다. 2026-09-08 peloton,
+  // 09-09 purple, 09-10 chewy 가 그렇게 나갔고, 09-11 후보도 duolingo-streak 둘이었다.
+  //
+  // **버그를 고치는 게 아니라 편집 규칙이다.** "무브 1개 → 초안 1개"는 그대로다 —
+  // 무브를 합치지 않는다. 하루에 몇 개를 내보낼지만 정한다.
+  //
+  // 밀린 무브는 **버리지 않는다.** 이 함수는 매 실행 DB 에서 승인 무브를 새로 읽고,
+  // 쓴 것만 content_items 를 통해 제외된다. 그러니 오늘 밀린 무브는 내일 그대로
+  // 후보에 다시 오른다. 별도 큐를 만들 필요가 없다 — 이미 DB 가 큐다.
+  //
+  // 정렬이 이미 등급 내림차순 → 슬러그 오름차순이라, 앞에서부터 슬러그를 처음 만날
+  // 때만 담으면 **같은 슬러그 중 가장 높은 등급**이 남는다. 기존 우선순위를 그대로 쓴다.
+  const seenSlugs = new Set()
+  const picked = []
+  const deferred = []
+  for (const m of ranked) {
+    const slug = String(m.slug ?? '')
+    if (seenSlugs.has(slug)) { deferred.push(m); continue }
+    // 슬롯이 찼어도 **끊지 않는다.** 끊으면 뒤에 있는 같은 슬러그 형제가 deferred
+    // 에 안 잡혀서, 무엇이 밀렸는지 보고에 안 남는다.
+    if (picked.length >= n) continue
+    seenSlugs.add(slug)
+    picked.push(m)
+  }
+
+  // 고른 것에 대해서만 흐릿한 신호를 본다. 후보 전체를 훑을 이유가 없다.
+  const warnings = []
+  for (const m of picked) {
+    const slug = String(m.slug ?? '')
+    // 12자 미만은 접두 일치가 너무 쉽게 붙는다 — 경고 소음이 되면 아무도 안 읽는다.
+    if (slug.length < 12) continue
+    const hit = draftFileNames.find((f) => {
+      // 확장자는 **첫 점부터 통째로** 벗긴다. `.body.txt` · `.stage.json` 처럼
+      // 두 겹인 게 많아서 마지막 것만 떼면 `…-manufacturing.body` 가 남는다.
+      // 슬러그에는 점이 없으니 이 방식이 안전하다.
+      const stem = String(f).replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/\..*$/, '')
+      return stem.startsWith(slug) || slug.startsWith(stem)
+    })
+    if (hit) warnings.push(`${slug}: 초안 파일 ${hit} 이 이미 있는데 DB(content_items·stage.json)에는 없다 — 스테이징이 실패했을 수 있다. 중복 초안을 만들기 전에 확인하라`)
+  }
+
+  // deferred 는 "버렸다"가 아니라 "오늘은 안 쓴다"다. 내일 실행이 DB 를 다시 읽어
+  // 같은 무브를 후보에 올린다. 수를 남기지 않으면 소재가 준 것처럼 보인다.
+  return { moves: picked, warnings, deferred }
+}
+
 /** 승인된 무브 중 아직 콘텐츠로 안 쓴 것을 고른다. 조회 실패는 error 로 올린다(0건과 구분). */
-async function pickAngles(supabase, n) {
+async function pickAngles(supabase, n, repoRoot = process.cwd()) {
   const mv = await supabase.from('case_moves')
     .select('id,lever,claim,evidence_grade,outcome_direction,review_status,case_study_id,case_studies(slug,brand_name,bottleneck,review_status)')
     .eq('review_status', 'approved')
@@ -627,19 +732,22 @@ async function pickAngles(supabase, n) {
   if (used.error) return { error: `content_items 조회 실패 — ${used.error.code ?? ''} ${used.error.message}`, moves: [] }
   const usedSlugs = new Set((used.data ?? []).map((r) => r.source_case).filter(Boolean))
 
-  const rank = { A: 3, B: 2, C: 1, D: 0 }
-  const moves = (mv.data ?? [])
-    .filter((m) => m.case_studies?.review_status === 'approved')
-    .filter((m) => (rank[m.evidence_grade] ?? 0) > 0)
-    .filter((m) => !usedSlugs.has(m.case_studies?.slug))
-    .map((m) => ({
-      id: m.id, lever: m.lever, claim: m.claim, grade: m.evidence_grade,
-      direction: m.outcome_direction, slug: m.case_studies?.slug,
-      brand: m.case_studies?.brand_name, bottleneck: m.case_studies?.bottleneck,
-    }))
-    .sort((a, b) => (rank[b.grade] ?? 0) - (rank[a.grade] ?? 0) || String(a.slug).localeCompare(String(b.slug)))
-    .slice(0, n)
-  return { moves }
+  // 파일 쪽 신호. 읽기 실패는 **무시하지 않는다** — 신호가 없는 채로 고르면 옛
+  // 동작(=이 버그)으로 조용히 되돌아간다. 못 읽었으면 그대로 error 로 올린다(§7.1).
+  const threadsDir = path.join(repoRoot, 'drafts', 'threads')
+  const stagedSlugs = new Set()
+  let draftFileNames = []
+  try {
+    draftFileNames = fs.existsSync(threadsDir) ? fs.readdirSync(threadsDir) : []
+    for (const f of draftFileNames.filter((f) => f.endsWith('.stage.json'))) {
+      const j = JSON.parse(fs.readFileSync(path.join(threadsDir, f), 'utf-8'))
+      if (j?.case_slug) stagedSlugs.add(j.case_slug)
+    }
+  } catch (e) {
+    return { error: `drafts/threads 매니페스트 확인 불가 — ${e.message}. 이 신호 없이 고르면 이미 초안이 나간 무브를 다시 고른다`, moves: [] }
+  }
+
+  return selectAngles({ moves: mv.data ?? [], usedSlugs, stagedSlugs, draftFileNames, n })
 }
 
 /**
@@ -987,7 +1095,10 @@ function researchPrompt(item, date, existingSlugs) {
   ].filter(Boolean).join('\n')
 }
 
-function writerPrompt(m, date) {
+// export 인 이유: 초안 스텝은 `--dry` 에서 통째로 건너뛴다(에이전트를 안 띄운다).
+// 그래서 프롬프트가 맞는지 확인하려면 루프 밖에서 같은 프롬프트를 꺼내 쓸 수밖에 없다.
+// 사본을 만들면 두 벌이 갈라진다 — 여기를 정본으로 두고 가져다 쓴다.
+export function writerPrompt(m, date) {
   return [
     '`.claude/agents/sa-cmo-writer.md` 를 Read 하고, 그 문서가 규정하는 역할로 아래 작업을 수행하라.',
     '(그 파일이 지시하는 `ops/roles/_principles.md` 도 반드시 먼저 Read 한다.)',

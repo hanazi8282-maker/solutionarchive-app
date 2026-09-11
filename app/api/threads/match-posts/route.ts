@@ -7,11 +7,49 @@
 // 하는 일:
 //   1. 최근 Threads 게시물을 읽는다
 //   2. 이미 posts.external_id 에 있는 건 제외한다(재처리 방지)
-//   3. status='draft' 인 posts 행들과 텍스트 유사도로 1:1 매칭한다 (lib/threads/match.ts)
+//   3. status IN ('draft','pending_review') 인 posts 행들과 텍스트 유사도로
+//      1:1 매칭한다 (lib/threads/match.ts)
 //   4. 매칭된 행만 UPDATE — external_id / published_at / permalink / status='published'
 //      + body 를 발행본으로 덮어쓴다(아래 📌 참조).
 //      새 행은 절대 만들지 않는다. 못 붙인 건 목록으로 응답에 남기고, 사람이
 //      /dashboard 의 "미매칭 초안" 섹션에서 직접 연결한다.
+//
+// 📥 왜 pending_review 도 스캔하는가
+//
+//    pending_review 는 "남헌이 발행 버튼을 누르기 직전" 상태다. 케이스 파이프라인이
+//    올리는 초안은 전부 여기로 들어간다(CLAUDE.md §10.1). draft 는 그 이전 시기의
+//    행들이다. 즉 **지금 실제로 발행되는 글은 거의 전부 pending_review 에서 나간다.**
+//    그 상태를 스캔하지 않으면 매처는 정작 발행된 글을 못 붙인다.
+//
+//    자동으로 published 로 올리는 것이 승인 절차를 건너뛰는 게 아니냐 —
+//    아니다. 여기서 매칭의 상대는 `GET /me/threads` 가 돌려준 **이미 올라가 있는
+//    게시물**이다. 매칭됐다는 것은 사람이 그 글을 실제로 Threads 에 올렸다는
+//    관측이다. 이 라우트는 그 사실을 기록할 뿐 발행을 일으키지 않는다.
+//
+//    ⚠️ 임계값은 draft 와 pending_review 에 **같은 값**을 쓴다. 상태별로 다르게
+//       두면 안 된다: pending_review 에만 더 높은 문턱을 걸면, 같은 게시물을 두고
+//       낮은 문턱의 draft 행이 먼저 가져가 성과가 엉뚱한 행에 붙는다. 막으려던
+//       오연결을 문턱 비대칭이 직접 만들어내는 셈이다.
+//
+//       오탐 방지는 문턱이 아니라 lib/threads/match.ts 의 ambiguous·contested
+//       판정이 맡는다. 그리고 스캔 대상을 넓히는 것 자체가 오탐을 **줄인다** —
+//       진짜 주인 행이 후보에 들어와 1등을 가져가거나 contested 를 발생시키기
+//       때문이다. 반대로 좁은 풀에서는 진짜 주인이 빠진 채 닮은 draft 하나가
+//       단독 1등이 되어 조용히 잘못 붙는다.
+//
+// 📌 "진짜 발행본"은 posts.body 다 — notion_sync_log.published_body 가 아니다.
+//
+//    두 자리가 같은 글을 가리킨다. 우선순위는 마이그레이션
+//    20260911000001_notion_sync_log_published_body.sql 이 이미 정해 뒀다:
+//    **match-posts 가 정본, "<발행본>" 마커와 published_body 는 보조·교차검증.**
+//
+//    이유는 출처다. posts.body 는 Threads API 가 돌려준 게시물 텍스트 그대로고,
+//    published_body 는 사람이 Notion 에 손으로 붙여넣은 사본이다. 붙여넣기가
+//    누락되거나 늦거나 일부만 복사돼도 아무 신호가 없다. 성과 숫자를 만든 것은
+//    독자가 실제로 본 글이므로 API 가 준 쪽이 정본이어야 한다.
+//
+//    그래서 이 라우트는 published_body 를 읽지 않고 쓰지도 않는다. 두 값이
+//    다르면 그건 "붙여넣기가 어긋났다"는 신호지 여기서 해소할 충돌이 아니다.
 //
 // ⏰ 스케줄: 0 * * * * (매시 정각). collect-metrics 는 30 * * * * (매시 30분)다.
 //
@@ -50,6 +88,11 @@ const FETCH_LIMIT = 50
 // (그런 초안은 대시보드에서 수동 연결한다 — 기록 자체는 남길 수 있어야 하니까)
 const LOOKBACK_DAYS = 14
 
+// 스캔 대상 상태. 둘 다 "아직 발행으로 기록되지 않은" 행이고, 매칭되면 둘 다
+// published 로 간다. 다른 상태(published·archived 등)는 건드리지 않는다.
+const SCANNED_STATUSES = ['draft', 'pending_review'] as const
+type ScannedStatus = (typeof SCANNED_STATUSES)[number]
+
 export async function GET(req: Request) { return POST(req) }
 
 export async function POST(req: Request) {
@@ -69,10 +112,12 @@ export async function POST(req: Request) {
   }
 
   // ── 1) 초안 로드 ───────────────────────────────────────────────
+  // status 를 함께 읽는다. 아래 UPDATE 가 "읽을 때의 그 상태일 때만" 쓰도록
+  // 낙관적 동시성 조건으로 되돌려 쓴다 — 상태별 전이를 뭉뚱그리지 않는다.
   const { data: draftRows, error: draftErr } = await supabase
     .from('posts')
-    .select('id, body, notes, created_at')
-    .eq('status', 'draft')
+    .select('id, body, notes, created_at, status')
+    .in('status', SCANNED_STATUSES)
     .order('created_at', { ascending: false })
 
   if (draftErr) {
@@ -82,10 +127,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, message: `초안 조회 실패: ${draftErr.message}` }, { status: 500 })
   }
 
-  const drafts = (draftRows ?? []) as (DraftRow & { notes: string | null })[]
+  const drafts = (draftRows ?? []) as (DraftRow & { notes: string | null; status: ScannedStatus })[]
   if (drafts.length === 0) {
     return NextResponse.json({ ok: true, matched: [], skipped: [], unmatchedThreads: [], message: '초안 없음 — Threads API 호출 생략' })
   }
+
+  // 상태별 내역. "17건 스캔"만 남기면 pending_review 확장이 실제로 대상에
+  // 들어왔는지 사후에 확인할 수 없다.
+  const scannedByStatus = drafts.reduce<Record<string, number>>((acc, d) => {
+    acc[d.status] = (acc[d.status] ?? 0) + 1
+    return acc
+  }, {})
 
   // ── 2) 이미 연결된 Threads id ─────────────────────────────────
   const { data: linkedRows, error: linkedErr } = await supabase
@@ -129,7 +181,7 @@ export async function POST(req: Request) {
   const outcome = matchDrafts(drafts, threads)
 
   // ── 5) 반영 ───────────────────────────────────────────────────
-  const applied: { draftId: string; threadsId: string; score: number }[] = []
+  const applied: { draftId: string; threadsId: string; score: number; from: ScannedStatus }[] = []
   const failed: { draftId: string; threadsId: string; message: string }[] = []
 
   for (const m of outcome.matched) {
@@ -141,6 +193,12 @@ export async function POST(req: Request) {
     }
 
     const draft = drafts.find(d => d.id === m.draftId)
+    if (!draft) {
+      // matchDrafts 는 우리가 넘긴 행에서만 id 를 만든다. 여기 걸리면 매칭 입력과
+      // 결과가 어긋난 것이라 상태 전이 조건을 정할 수 없다 — 추측으로 쓰지 않는다.
+      failed.push({ draftId: m.draftId, threadsId: m.threadsId, message: '매칭 결과의 초안 행을 못 찾음 — 확인 불가' })
+      continue
+    }
     const published = threads.find(t => t.id === m.threadsId)
 
     // 📌 body 는 발행본으로 덮어쓴다.
@@ -159,10 +217,17 @@ export async function POST(req: Request) {
     // 유사도 기록은 유지한다. 발행 직전에 얼마나 손댔는지가 그 자체로 학습
     // 신호다(0.9 대는 다듬기, 0.85 대는 훅 교체 — 이 차이가 나중에 의미를 갖는다).
     // body 를 덮어쓰고 나면 이 숫자 말고는 수정 폭을 알 방법이 남지 않는다.
-    const note = m.exact ? null : `[match] 유사도 ${m.score.toFixed(3)} — 발행본이 초안과 다름`
-    const notes = note
-      ? [draft?.notes, note].filter(Boolean).join('\n')
-      : undefined
+    const simNote = m.exact ? null : `[match] 유사도 ${m.score.toFixed(3)} — 발행본이 초안과 다름`
+
+    // pending_review 는 사람의 발행 승인을 기다리던 행이다. 그 행이 승인 화면을
+    // 거치지 않고 published 가 된 경위(= Threads 에 이미 올라간 것을 관측했다)를
+    // 행 자체에 남긴다. 응답 로그는 휘발하지만 notes 는 행과 함께 남는다.
+    const promoNote = draft.status === 'pending_review'
+      ? `[match] pending_review → published — Threads 게시물 ${m.threadsId} 관측으로 확정(사람이 이미 발행함)`
+      : null
+
+    const merged = [draft.notes, promoNote, simNote].filter(Boolean).join('\n')
+    const notes = (promoNote || simNote) ? merged : undefined
 
     const { error, data } = await supabase
       .from('posts')
@@ -175,9 +240,11 @@ export async function POST(req: Request) {
         ...(notes !== undefined ? { notes } : {}),
       })
       .eq('id', m.draftId)
-      // 여전히 draft 일 때만 갱신한다. 사람이 대시보드에서 방금 수동 연결했다면
-      // 그 결과를 이 크론이 덮어쓰면 안 된다.
-      .eq('status', 'draft')
+      // 읽을 때의 그 상태일 때만 갱신한다. draft 는 draft 일 때만, pending_review 는
+      // pending_review 일 때만 — 한 값으로 뭉뚱그리면 그 사이에 상태가 바뀐 행을
+      // 덮어쓴다. 사람이 대시보드에서 방금 수동 연결했거나 승인 화면에서 상태를
+      // 옮겼다면 이 크론이 그 결과를 되돌리면 안 된다.
+      .eq('status', draft.status)
       .select('id')
 
     if (error) {
@@ -186,16 +253,20 @@ export async function POST(req: Request) {
       continue
     }
     if (!data || data.length === 0) {
-      failed.push({ draftId: m.draftId, threadsId: m.threadsId, message: '이미 draft 가 아님 — 건너뜀' })
+      // 0행 = 낙관적 조건 불일치. 읽은 뒤 갱신 전에 누가 상태를 바꿨다는 뜻이라
+      // 어느 상태를 기대했는지까지 남긴다. "건너뜀"만 남기면 원인을 못 좁힌다.
+      failed.push({ draftId: m.draftId, threadsId: m.threadsId, message: `이미 ${draft.status} 가 아님 — 건너뜀` })
       continue
     }
 
-    applied.push({ draftId: m.draftId, threadsId: m.threadsId, score: Number(m.score.toFixed(3)) })
+    applied.push({ draftId: m.draftId, threadsId: m.threadsId, score: Number(m.score.toFixed(3)), from: draft.status })
   }
 
   const summary = {
     ok: failed.length === 0,
     draftsScanned: drafts.length,
+    // 상태별 스캔 내역. pending_review 가 실제로 대상에 들었는지 여기서 본다.
+    scannedByStatus,
     threadsScanned: threads.length,
     applied,
     failed,
@@ -211,7 +282,9 @@ export async function POST(req: Request) {
     unmatchedThreads: outcome.unmatchedThreads,
   }
 
-  console.info(`[match] 초안 ${drafts.length} / 게시물 ${threads.length} → 연결 ${applied.length}, 보류 ${summary.skipped.length}, 실패 ${failed.length}`)
+  const scanBreakdown = SCANNED_STATUSES.map(s => `${s} ${scannedByStatus[s] ?? 0}`).join(' + ')
+  const appliedFrom = SCANNED_STATUSES.map(s => `${s} ${applied.filter(a => a.from === s).length}`).join(' + ')
+  console.info(`[match] 초안 ${drafts.length}(${scanBreakdown}) / 게시물 ${threads.length} → 연결 ${applied.length}(${appliedFrom}), 보류 ${summary.skipped.length}, 실패 ${failed.length}`)
 
   return NextResponse.json(summary)
 }

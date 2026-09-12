@@ -1,0 +1,121 @@
+{
+  "slug": "meerkat-twitter-api-awareness-collapse",
+  "brand_name": "Meerkat",
+  "market": "US live-streaming social",
+  "geo": "US",
+  "business_model": "CREATOR",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "AWARENESS",
+  "outcome_status": "shutdown",
+  "period_start": "2015-02-21",
+  "period_end": "2016-10-04",
+  "summary": "Meerkat의 초기 바이럴 인지 확산은 트위터 소셜 그래프(방송 시작 시 팔로워 전원 자동 알림)에 전적으로 의존했다. 2015년 3월 SXSW 기간 중 트위터가 페리스코프를 인수하며 그 접근을 차단하자(2시간 전 통보), 신규 유저는 팔로우를 수동으로 해야 했다. 차단 직후 논란 자체가 단기 버즈를 만들었지만(Amobee 소비지수 24.7→100), 자연 인지 확산은 이후 구조적으로 무너졌다 — 트위터 언급량이 5개월 만에 -82%, 앱스토어 소셜 카테고리 순위가 정점 21위에서 368위로 추락했다. 2016년 3월 CEO Ben Rubin은 투자자 서한에서 '트위터/페리스코프와 페이스북 라이브의 배포 우위가 초기 유저를 가져갔다'고 인정했고, 회사는 그룹 영상채팅 앱 Houseparty로 피벗해 2016년 10월 4일 Meerkat 서비스를 종료했다.",
+  "tags": ["platform-dependency", "api-cutoff", "viral-growth", "live-streaming"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "CHANNEL",
+      "claim": "성장 채널을 트위터 소셜 그래프 자동 알림(팔로워 전원에게 방송 시작 통지)에 전적으로 의존하도록 설계했다. 2015-03-13 트위터가 이 API 접근을 차단하자 신규 유저는 수동으로 팔로우해야 했고, 이후 신규 유저 확보와 자연 언급량이 구조적으로 감소했다.",
+      "outcome_direction": "negative",
+      "metric_name": "트위터 30일 언급량",
+      "metric_before": 206000,
+      "metric_after": 37226,
+      "metric_unit": "mentions/30일",
+      "observed_period_start": "2015-03-01",
+      "observed_period_end": "2015-08-17"
+    },
+    {
+      "lever": "CHANNEL",
+      "claim": "같은 채널 의존 붕괴가 앱스토어 발견 가능성(소셜 카테고리 순위)에도 그대로 나타났다 — Meerkat은 정점 21위(iOS)에서 368위로 추락한 반면, 경쟁사 Periscope(트위터 소유)는 상위권(8위)을 유지했다.",
+      "outcome_direction": "negative",
+      "metric_name": "iOS 소셜 카테고리 앱스토어 순위",
+      "metric_before": 21,
+      "metric_after": 368,
+      "metric_unit": "순위(낮을수록 상위)",
+      "observed_period_start": "2015-02-21",
+      "observed_period_end": "2016-03-04"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://venturebeat.com/2015/08/17/meerkat-says-users-are-more-engaged-than-ever-but-data-suggests-lackluster-growth/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "venturebeat-2015-08-mentions",
+      "supports_metric": true,
+      "published_at": "2015-08-17",
+      "snippet": "Meerkat mentions on Twitter over the last 30 days: 37,226, down from more than 206,000 over the same 30-day span in March. Meerkat had roughly 2M registered users vs Periscope's 10M (2M DAU).",
+      "supports_claim": "트위터 언급량 붕괴 — 인지 확산 채널 상실의 직접 지표"
+    },
+    {
+      "move": 0,
+      "url": "https://www.buzzfeednews.com/article/mathonan/twitter-chokes-off-meerkats-access-to-its-social-graph",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "buzzfeed-2015-03-graph-cutoff",
+      "supports_metric": false,
+      "published_at": "2015-03-13",
+      "snippet": "Twitter confirmed it cut Meerkat's access to its social graph the same day it closed the Periscope acquisition: 'We are limiting their access to Twitter's social graph, consistent with our internal policy.'",
+      "supports_claim": "차단 사실 자체(원인) — 수치는 뒷받침하지 않음, 메커니즘만 확인"
+    },
+    {
+      "move": 1,
+      "url": "https://qz.com/632017/its-official-meerkat-has-lost-the-live-streaming-battle-to-periscope",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "sensortower-2016-03-rank",
+      "supports_metric": true,
+      "published_at": "2016-03-05",
+      "snippet": "As of yesterday, Periscope was ranked eighth on iOS...compared with Meerkat's 368th...according to data from app analytics firm Sensor Tower. Meerkat peaked at No.21 on iOS.",
+      "supports_claim": "iOS 소셜 카테고리 순위 21위→368위, Sensor Tower 데이터"
+    },
+    {
+      "move": 1,
+      "url": "https://techcrunch.com/2015/04/16/twitters-periscope-widens-lead-over-rival-meerkat/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "appannie-2015-04-rank",
+      "supports_metric": false,
+      "published_at": "2015-04-16",
+      "snippet": "App Annie data: Meerkat fell out of the US Overall top 1,000 and to No.129 in US-Social Networking, while Periscope held No.22 (peak No.18/#123 overall).",
+      "supports_claim": "다른 시점·다른 벤더(App Annie)에서도 같은 방향(순위 추락) 확인 — 단, 21→368 과 다른 절대값이라 해당 무브의 수치를 직접 뒷받침하진 않음, 추세만 뒷받침"
+    },
+    {
+      "move": null,
+      "url": "https://medium.com/@houseparty/a-new-breed-of-kat-fbc7e3236514",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "rubin-2016-03-investor-letter",
+      "supports_metric": false,
+      "published_at": "2016-03-04",
+      "snippet": "Rubin's letter: 'The distribution advantages of Twitter/Periscope and Facebook Live drew more early users to them away from us and we were not able to grow as quickly as we had planned.'",
+      "supports_claim": "창업자 스스로 배포/인지 열위를 원인으로 지목 (자기보고, 케이스 단위 맥락)"
+    },
+    {
+      "move": null,
+      "url": "https://en.wikipedia.org/wiki/Meerkat_(app)",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": null,
+      "supports_metric": false,
+      "published_at": null,
+      "snippet": "Meerkat launched Feb 2015, raised $12M Series A from Greylock (Mar 2015), app removed from stores and services ceased Oct 4, 2016; pivoted to Houseparty.",
+      "supports_claim": "타임라인·펀딩·종료일 확인 (개요, 3차 출처)"
+    }
+  ]
+}

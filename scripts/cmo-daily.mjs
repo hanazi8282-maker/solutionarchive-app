@@ -200,7 +200,8 @@ async function main() {
     if (status === 'failed') state.failed++
     if (status === 'blocked') state.blocked++
     Object.assign(state.counts, counts)
-    recordStep(state, { key, label: meta.label, status, blocker, detail })
+    // counts 를 같이 넘긴다 — `partial_failed`(ok 인데 일부 죽음)가 여기 있다.
+    recordStep(state, { key, label: meta.label, status, blocker, counts, detail })
 
     const mark = { ok: '✅', skipped: '⏭️', blocked: '▲', failed: '❌' }[status] ?? '·'
     const note = status === 'blocked' ? ` — ${blocker}`
@@ -269,6 +270,29 @@ async function main() {
   // ── S2 research ─────────────────────────────────────────────
   const beforeCases = listJson(path.join(repoRoot, 'drafts', 'cases'))
   let newSlugs = []
+  // 큐 항목 id → 그 항목의 조사 에이전트가 **실제로 만든** 초안 slug 배열.
+  //
+  // ★ 왜 여기서 만드는가 (2026-09-11 사고) ─────────────────────────────────
+  //   옛 S4 queue_resolve 는 큐 행과 slug 를 **순번**으로 짝지었다
+  //   (`i < casesCommitted` / `newSlugs[i]`). 그런데 `newSlugs` 는 파일명
+  //   **알파벳순**(listJson 이 sort 한다)이고 `claimed` 는 우선순위·생성순이다.
+  //   두 순서가 같다는 보장이 어디에도 없다. 09-11 크론에서 정확히 갈렸다:
+  //     claimed = [A: failure_quota(hoka), B: coverage_gap(pets.com)]
+  //     newSlugs = ['hoka-…', 'pets-com-…']   (h < p 라 우연히 이 순서)
+  //     commit 결과 = hoka validate exit 1 실패 / pets.com 만 적립 → ok=1
+  //     → i=0 은 0<1 이라 done, slug 는 newSlugs[0]=hoka
+  //     → 즉 **적립되지도 않은 hoka 가 "적립 완료"로**, 실제로 적립된 pets.com
+  //        쪽 행은 "쓸 만한 근거를 못 찾았다"로 DB 에 박혔다.
+  //   `done` 은 끝난 행이라 고아 재claim 대상이 아니다. 시스템이 스스로 복구할
+  //   길까지 막혔다.
+  //
+  //   브랜드명 매칭으로 고치려 했지만 안 된다 — failure_quota 슬롯의
+  //   brand_name 은 `'미정 (실패/피벗/철수 사례)'` 라는 placeholder 라 어떤
+  //   slug 와도 안 맞는다(research-queue.mjs:153). 그래서 **이름을 맞추는 대신
+  //   생성 시점으로 관측한다.** 조사는 순차 실행이 강제돼 있으니(병렬 금지),
+  //   항목 하나가 끝난 직후의 디렉터리 차분이 곧 그 항목의 산출물이다.
+  //   추측이 아니라 관측이다.
+  const producedByItem = new Map()
   await runStep('research', async () => {
     if (dryRun) return { status: 'skipped', detail: { reason: 'dry-run — 조사 에이전트를 띄우지 않는다' } }
     if (!claimed.length) return { status: 'skipped', detail: { reason: '조사 대상 0건 (큐가 비었다)' } }
@@ -276,8 +300,9 @@ async function main() {
 
     let done = 0
     const failures = []
+    let seenCases = beforeCases
     for (const item of claimed) { // 순차. 병렬 금지 — 중복 slug 를 만든다.
-      const prompt = researchPrompt(item, date, beforeCases)
+      const prompt = researchPrompt(item, date, seenCases)
       const r = await runClaude(claudeBin, [
         '-p', prompt,
         '--output-format', 'json',
@@ -288,6 +313,14 @@ async function main() {
 
       if (r.exitCode === 0) done++
       else failures.push(`${item.brand_name}: exit ${r.exitCode}${r.timedOut ? '(timeout)' : ''} ${tail(r.stderr, 200)}`)
+
+      // 이 항목이 만든 것만 차분으로 집는다. exit != 0 이어도 파일은 남았을 수
+      // 있으니 성공 여부와 무관하게 본다 — 있으면 다음 스텝이 적립을 시도하고,
+      // 없으면 빈 배열이 곧 "이 항목은 아무것도 못 냈다"는 **관측된 음성**이다.
+      // (엔트리가 아예 없는 것과 빈 배열은 다르다. 아래 queueResolutions 참조.)
+      const afterCases = listJson(path.join(repoRoot, 'drafts', 'cases'))
+      producedByItem.set(item.id, afterCases.filter((s) => !seenCases.includes(s)))
+      seenCases = afterCases
     }
     newSlugs = listJson(path.join(repoRoot, 'drafts', 'cases')).filter((s) => !beforeCases.includes(s))
     if (done === 0 && failures.length) return { status: 'failed', counts: { attempted: claimed.length, new_drafts: 0 }, detail: { error: failures.join(' | ') } }
@@ -295,23 +328,53 @@ async function main() {
   })
 
   // ── S3 commit_cases ─────────────────────────────────────────
-  let casesCommitted = 0
+  //
+  // ★ 부분 실패를 초록불에 묻지 않는다 (2026-09-11 사고) ──────────────────
+  //   옛 코드는 `ok === 0` (전멸) 일 때만 failed 였고, 성공 1건이라도 있으면
+  //   `status:'ok'` + `counts:{committed:ok}` 로 끝났다. errs 는 `detail.errors`
+  //   에만 담겼는데 recordStep 이 `exit`·`blocker` 만 뽑고 나머지를 버려서
+  //   run.json 에도, DIGEST 에도, DASHBOARD 에도 한 글자도 안 남았다.
+  //   09-11 크론에서 hoka 가 validate exit 1 로 죽고 pets.com 만 통과했는데
+  //   대시보드는 10/10 완료로 찍혔고, DB 를 직접 열기 전엔 아무도 몰랐다.
+  //
+  //   **pass/fail 판정은 그대로 둔다.** 1건이라도 성공하면 여전히 ok 다 —
+  //   스니펫 하나로 야간 루프를 세우는 건 별개 결정이고 승인되지 않았다.
+  //   대신 실패가 **보이게** 한다: `counts.partial_failed` 로 올려 DIGEST
+  //   스코어보드·DASHBOARD 문제 목록·run.json 까지 살아남게 한다.
+  //
+  //   ⚠️ `attempted` 라는 키를 쓰지 않는다. state.counts 는 스텝별 counts 를
+  //   **평탄하게 병합**하는데, S2 research 가 이미 `attempted` 를 쓴다. 같은
+  //   키를 쓰면 뒤 스텝이 앞 스텝 값을 조용히 덮어써 DIGEST 가 엉뚱한 수를
+  //   보여준다. 그래서 `commit_attempted` 로 네임스페이스를 나눈다.
+  let committedSlugs = []
   await runStep('commit_cases', async () => {
     if (dryRun) return { status: 'skipped', detail: { reason: 'dry-run — DB 에 적립하지 않는다' } }
     if (!newSlugs.length) return { status: 'skipped', detail: { reason: '새 초안 0건' } }
-    let ok = 0
+    const ok = []
     const errs = []
     for (const slug of newSlugs) {
       const v = await sh('node', ['scripts/case-research.mjs', 'validate', '--slug', slug])
       if (v.code !== 0) { errs.push(`${slug}: validate exit ${v.code}`); continue }
       const c = await sh('node', ['scripts/case-review.mjs', 'commit', '--slug', slug])
-      if (c.code === 0) ok++
+      if (c.code === 0) ok.push(slug)
       else errs.push(`${slug}: commit exit ${c.code} ${tail(c.stderr, 200)}`)
     }
-    casesCommitted = ok
+    // ★ 개수가 아니라 **slug 목록**을 남긴다. S4 queue_resolve 가 "몇 건 됐나"가
+    //   아니라 "무엇이 됐나"를 알아야 큐 행에 사실을 적을 수 있다.
+    committedSlugs = ok
     // 적립된 것은 전부 review_status='draft' 다. 이 스크립트는 승인 경로를 갖지 않는다.
-    if (ok === 0) return { status: 'failed', counts: { committed: 0 }, detail: { error: errs.join(' | ') || '적립 0건' } }
-    return { status: 'ok', counts: { committed: ok, all_draft: ok }, detail: { errors: errs } }
+    if (!ok.length) {
+      return {
+        status: 'failed',
+        counts: { commit_attempted: newSlugs.length, committed: 0, partial_failed: errs.length },
+        detail: { error: errs.join(' | ') || '적립 0건', errors: errs },
+      }
+    }
+    return {
+      status: 'ok',
+      counts: { commit_attempted: newSlugs.length, committed: ok.length, all_draft: ok.length, partial_failed: errs.length },
+      detail: { errors: errs, committed_slugs: ok },
+    }
   })
 
   // ── S4 queue_resolve ────────────────────────────────────────
@@ -324,27 +387,36 @@ async function main() {
     if (dryRun) return { status: 'skipped', detail: { reason: 'dry-run — 큐 상태를 갱신하지 않는다' } }
     if (!claimed.length) return { status: 'skipped', detail: { reason: '이번 실행이 claim 한 큐 항목 없음' } }
 
+    const plan = queueResolutions({ claimed, producedByItem, committedSlugs, runKey })
+
     let done = 0
     let failed = 0
+    let unknown = 0
     const errs = []
-    for (let i = 0; i < claimed.length; i++) {
-      const item = claimed[i]
-      // 적립 성공 건수만큼을 앞에서부터 done 으로 본다. claim 1건 → 초안 1건이
-      // 정상이라 이 매핑으로 충분하고, 부정확한 경우는 notes 에 남는다.
-      const produced = i < casesCommitted
-      const status = produced ? 'done' : 'failed'
-      const slug = produced ? (newSlugs[i] ?? newSlugs[done] ?? '(slug 미상)') : null
-      const base = item.notes ? `${item.notes} | ` : ''
-      const note = produced
-        ? `${base}${slug} 적립 (${runKey})`
-        : `${base}${runKey}: 조사했으나 쓸 만한 근거를 못 찾았다`
+    for (const p of plan) {
+      if (p.status === null) {
+        // ⚠️ 확인 불가 — **resolve 하지 않는다.** 큐 행을 `claimed` 로 남긴다.
+        //   그러면 다음 실행의 `--claim` 이 "주인 실행에 finished_at 이 찍혔는데
+        //   아직 claimed" 를 보고 고아로 재claim 한다(research-queue.mjs:286~).
+        //   이미 있는 복구 경로다 — 새 status 어휘를 만들 이유가 없다.
+        //   여기서 추측으로 done/failed 를 박으면 그 행은 "끝난 행"이 돼 영영
+        //   재시도되지 않는다. 조용한 유실보다 시끄러운 재시도가 낫다 (§7.1).
+        unknown++
+        say(`- ⚠️ 큐 ${p.id} 미해소 — ${p.reason}. claimed 로 남긴다(다음 실행이 고아로 재claim 한다).`)
+        continue
+      }
       const r = await sh('node', ['scripts/research-queue.mjs',
-        '--resolve', item.id, '--status', status, '--notes', note])
-      if (r.code === 0) { if (produced) done++; else failed++ }
-      else errs.push(`${item.id}: resolve exit ${r.code} ${tail(r.stderr, 160)}`)
+        '--resolve', p.id, '--status', p.status, '--notes', p.note])
+      if (r.code === 0) { if (p.status === 'done') done++; else failed++ }
+      else errs.push(`${p.id}: resolve exit ${r.code} ${tail(r.stderr, 160)}`)
     }
-    if (done + failed === 0) return { status: 'failed', detail: { error: errs.join(' | ') || '큐 갱신 0건' } }
-    return { status: 'ok', counts: { queue_done: done, queue_failed: failed }, detail: { errors: errs } }
+    if (done + failed + unknown === 0) return { status: 'failed', detail: { error: errs.join(' | ') || '큐 갱신 0건' } }
+    return {
+      status: 'ok',
+      // queue_unresolved 는 "확인 불가로 남긴 행"이다. 0 이 아니면 사람이 봐야 한다.
+      counts: { queue_done: done, queue_failed: failed, queue_unresolved: unknown, partial_failed: errs.length },
+      detail: { errors: errs, plan: plan.map((p) => ({ id: p.id, status: p.status, slugs: p.slugs })) },
+    }
   })
 
   // ── S5 angle ────────────────────────────────────────────────
@@ -375,11 +447,53 @@ async function main() {
     if (!angles.length) return { status: 'skipped', detail: { reason: '앵글 0건' } }
     if (!claudeBin) return { status: 'failed', detail: { error: 'claude 바이너리 없음' } }
 
+    // ── content_code 채번 ────────────────────────────────────────────────
+    //
+    // ★ 과거에 어떻게 틀렸나 — 옛 writerPrompt 는 `CS-<날짜>-01` 을 **문자열로
+    //   박아** 넘겼다. 이 함수는 무브마다 독립 호출되므로 DRAFT_TARGET=2 인
+    //   정상적인 날마다 두 무브가 똑같이 `-01` 을 지시받았다. 지시대로 따르면
+    //   조용히 덮어쓴다: case-draft-stage.mjs:167 의 content_items upsert 는
+    //   `onConflict:'code'` 라 실패가 아니라 **이전 행을 갈아 끼우고**,
+    //   :215~226 의 posts 도 content_code 로 찾아 있으면 UPDATE 한다.
+    //   실제 사고가 안 난 이유는 작가(sa-cmo-writer)가 매번 drafts/threads/ 를
+    //   손으로 훑어 다음 빈 번호로 **재채번**했기 때문이다(09-07~09-11 전 배치).
+    //   판단은 옳았지만 매일 사람 손을 타는 구조라 오케스트레이터로 올린다.
+    //
+    // ── 정본을 DB 로 고른 이유 ────────────────────────────────────────────
+    //   `content_items.code` 가 실제 충돌이 일어나는 유일한 자리다(UNIQUE 대상).
+    //   파일 스캔은 DB 에 있는데 파일이 없는 날(다른 실행·다른 머신·정리된 파일)을
+    //   못 보고 낮은 번호를 집는다 — 그게 곧 덮어쓰기다.
+    //
+    //   ⚠️ **DB 조회가 실패하면 -01 로 되돌아가지 않는다.** 그건 지금 버그보다
+    //   나쁘다(확인 불가를 양성으로 접는 §7.1 위반이고 결과가 데이터 파괴다).
+    //   조회 실패는 이 스텝을 통째로 failed 로 끝낸다. 초안을 한 편도 안 쓴다.
+    //
+    //   파일 쪽은 **하한(floor)** 으로만 더한다. 최댓값을 같이 보는 것뿐이라
+    //   번호는 올라가기만 한다 — 잘못돼도 코드에 구멍이 날 뿐 덮어쓰지 않는다.
+    //   반대로 파일을 안 보면, 스테이징이 content_items 저장 전에 죽은 날
+    //   (case-draft-stage exit 2) 파일에만 남은 번호를 DB 가 몰라 재사용한다.
+    const ymd = date.replace(/-/g, '')
+    const used = await supabase.from('content_items').select('code').like('code', `CS-${ymd}-%`)
+    if (used.error) {
+      return {
+        status: 'failed',
+        detail: { error: `content_items 채번 조회 실패 — ${used.error.code ?? ''} ${used.error.message}. 확인 불가라 초안을 쓰지 않았다 (기본값 -01 로 되돌리면 같은 날 이전 초안을 덮어쓴다)` },
+      }
+    }
+    let seq = nextContentSeq(
+      [...(used.data ?? []).map((r) => r.code), ...stagedContentCodes(repoRoot)],
+      date,
+    )
+
     let done = 0
     const failures = []
     for (const m of angles) {
+      const contentCode = contentCodeFor(date, seq)
+      // 성공·실패와 무관하게 전진시킨다. 실패한 실행도 .stage.json 을 이미 써
+      // 놓았을 수 있어서, 되감으면 다음 무브가 그 파일을 덮어쓴다.
+      seq++
       const r = await runClaude(claudeBin, [
-        '-p', writerPrompt(m, date),
+        '-p', writerPrompt(m, date, contentCode),
         '--output-format', 'json',
         '--allowedTools', AGENT_TOOLS['sa-cmo-writer'],
         '--permission-mode', 'acceptEdits',
@@ -622,6 +736,124 @@ function listFiles(dir, suffix) {
   return fs.readdirSync(dir).filter((f) => f.endsWith(suffix)).sort()
 }
 
+// ────────────────────────────────────────────────────────────
+// content_code 채번
+// ────────────────────────────────────────────────────────────
+//
+// `notion-pull-feedback.mjs:88` 의 `nextLogCode()` 와 같은 방식이다 —
+// 기존 코드를 훑어 `Math.max(번호)+1`. 두 벌로 갈라지지 않게 형태를 맞춰 둔다.
+
+/** `CS-<YYYYMMDD>-<NN>`. 두 자리 제로패딩은 기존 09-07~11 배치와 같은 형태다. */
+export const contentCodeFor = (date, seq) =>
+  `CS-${String(date).replace(/-/g, '')}-${String(seq).padStart(2, '0')}`
+
+/**
+ * 그날 아직 안 쓴 다음 번호. 이미 쓰인 코드 목록을 통째로 받는다.
+ *
+ * 순수 함수로 뺀 이유: 채번은 DB 없이 검증돼야 한다. 이 리포에 테스트 러너가
+ * 없어 셀프테스트가 직접 부르는데, 여기 IO 가 섞이면 그 검사를 못 쓴다.
+ *
+ * ⚠️ 세 자리 이상(`-100`)도 읽는다. 패딩은 출력 형식일 뿐 자릿수 상한이 아니다.
+ *    `\d{2}` 로 좁히면 100번째 이후가 조용히 무시돼 99 를 계속 재사용한다.
+ * ⚠️ 다른 날짜의 코드는 건너뛴다. 전례 인용 등으로 섞여 들어와도 오늘 번호를
+ *    부풀리면 안 된다.
+ */
+export function nextContentSeq(codes, date) {
+  const prefix = `CS-${String(date).replace(/-/g, '')}-`
+  let max = 0
+  for (const c of codes ?? []) {
+    const s = String(c ?? '').trim()
+    if (!s.startsWith(prefix)) continue
+    const n = /^(\d+)$/.exec(s.slice(prefix.length))
+    if (n) max = Math.max(max, Number(n[1]))
+  }
+  return max + 1
+}
+
+/** drafts/threads/*.stage.json 에 이미 박힌 content_code. 채번의 **하한**으로만 쓴다. */
+function stagedContentCodes(repoRoot) {
+  const dir = path.join(repoRoot, 'drafts', 'threads')
+  const out = []
+  for (const f of listFiles(dir, '.stage.json')) {
+    // 못 읽은 파일은 건너뛴다. 정본은 DB 라 여기서 멈출 이유가 없다 —
+    // 이 스캔이 통째로 비어도 DB 조회가 이미 성공한 상태다.
+    try {
+      const j = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8'))
+      if (j?.content_code) out.push(j.content_code)
+    } catch { /* 읽기 실패 = 하한 정보 없음. 번호가 낮아질 뿐 DB 하한은 유지된다 */ }
+  }
+  return out
+}
+
+// ────────────────────────────────────────────────────────────
+// 큐 행 ↔ 산출 slug 대응
+// ────────────────────────────────────────────────────────────
+
+/**
+ * claim 한 큐 행 각각을 어떤 status 로 닫을지 정한다. **순수 함수** — DB 를 안 본다.
+ *
+ * 반환 원소의 `status`:
+ *   'done'   적립이 **실제로** 성공한 slug 가 이 항목에서 나왔다.
+ *   'failed' 이 항목이 케이스가 되지 못했다 (초안 0건이거나, 초안은 났는데 적립 실패).
+ *   null     ⚠️ 확인 불가. **resolve 하지 않는다.** 호출부가 큐 행을 claimed 로
+ *            남기고, 다음 실행의 고아 재claim 이 집는다.
+ *
+ * ── 왜 순번 매칭을 버렸나 (2026-09-11) ────────────────────────────────────
+ *   옛 코드: `const produced = i < casesCommitted` + `newSlugs[i]`.
+ *   `newSlugs` 는 파일명 알파벳순, `claimed` 는 우선순위순이라 두 순서가
+ *   무관하다. 09-11 크론에서 hoka(적립 실패)가 done 으로, pets.com(적립 성공)이
+ *   "근거를 못 찾았다"로 박혔다. `done` 은 고아 재claim 대상이 아니라
+ *   AWARENESS 실패사례 슬롯이 존재하지 않는 케이스에 영구 소진됐다.
+ *
+ * ── 왜 brand_name 매칭이 아닌가 ───────────────────────────────────────────
+ *   failure_quota 슬롯의 brand_name 은 `'미정 (실패/피벗/철수 사례)'` 라는
+ *   placeholder 다(research-queue.mjs:153). 어떤 slug 와도 안 맞는다. 이름을
+ *   맞추는 대신 호출부가 **생성 시점 차분**으로 관측해서 넘긴다.
+ *
+ * ── 엔트리 없음 vs 빈 배열 (§7.1) ─────────────────────────────────────────
+ *   `producedByItem` 에 키가 아예 없다 = 조사 루프가 이 항목까지 못 갔다
+ *   (claude 바이너리 없음 등) → **확인 불가**. 빈 배열 = 돌았는데 아무것도
+ *   못 냈다 → **음성**, failed 가 맞다. 둘을 접으면 안 돌린 항목이 "실패"로
+ *   기록되고 그 수요가 조용히 사라진다.
+ */
+export function queueResolutions({ claimed = [], producedByItem = new Map(), committedSlugs = [], runKey = '' }) {
+  const get = (id) => (producedByItem instanceof Map ? producedByItem.get(id) : producedByItem?.[id])
+  const committed = new Set(committedSlugs ?? [])
+
+  return (claimed ?? []).map((item) => {
+    const base = item.notes ? `${item.notes} | ` : ''
+    const slugs = get(item.id)
+
+    if (!Array.isArray(slugs)) {
+      return {
+        id: item.id, status: null, slugs: [],
+        reason: `조사 산출물을 관측하지 못했다(조사 루프가 이 항목까지 못 갔다) — ${runKey}`,
+        note: null,
+      }
+    }
+
+    const won = slugs.filter((s) => committed.has(s))
+    if (won.length) {
+      return {
+        id: item.id, status: 'done', slugs: won, reason: null,
+        note: `${base}${won.join(', ')} 적립 (${runKey})`,
+      }
+    }
+    if (slugs.length) {
+      // 초안 파일은 났는데 validate/commit 에서 죽었다. "근거를 못 찾았다"와
+      // 다음 행동이 다르다 — 초안이 남아 있으니 사람이 고쳐서 살릴 수 있다.
+      return {
+        id: item.id, status: 'failed', slugs, reason: null,
+        note: `${base}${runKey}: 초안 ${slugs.join(', ')} 은 나왔으나 적립 실패(validate/commit). case_studies 에 없다`,
+      }
+    }
+    return {
+      id: item.id, status: 'failed', slugs: [], reason: null,
+      note: `${base}${runKey}: 조사했으나 쓸 만한 근거를 못 찾았다`,
+    }
+  })
+}
+
 const GRADE_RANK = { A: 3, B: 2, C: 1, D: 0 }
 
 /**
@@ -757,18 +989,54 @@ async function pickAngles(supabase, n, repoRoot = process.cwd()) {
  *   "종료코드 4 가 run.json 에 기록된다" — 즉 **무엇이 몇 번으로** 끝났는지다.
  *   CG-1 차단(exit 4)과 마이그 미적용 폴백(exit 3)은 둘 다 "실패 아님"이라
  *   카운터로는 구분이 안 된다. 여기서 코드를 그대로 보존한다(정보 손실 없음).
+ *
+ * ★ 2026-09-11 추가 — `exit`/`blocker` 만 뽑고 **나머지를 통째로 버리던 것**을
+ *   고쳤다. commit_cases 가 `detail.errors` 에 담아 올린 "hoka: validate exit 1"
+ *   이 이 함수에서 사라져 run.json·DIGEST·DASHBOARD 어디에도 안 남았고,
+ *   대시보드는 그 실행을 10/10 완료로 표시했다.
+ *
+ *   ⚠️ 그렇다고 `detail` 을 통째로 담지 않는다. detail 에는 stdout 꼬리·해설
+ *   원문 같은 큰 텍스트가 들어와서 run.json 이 로그 덤프가 된다. **실패 사유
+ *   두 필드만** 승격한다: `errors`(string[]) 와 `partial_failed`(number).
+ *   이 둘이 "ok 인데 일부 죽었다"를 표현하는 규약이다.
+ *
+ *   ⚠️ 아직 규약을 안 따르는 스텝이 있다. S2 research 와 S6 draft 는 실패 목록을
+ *   `detail.failures` 라는 **다른 키**에 담고 `counts.partial_failed` 도 안 올린다.
+ *   그래서 그 둘은 지금도 부분 실패가 안 보인다(2건 중 1건 에이전트가 죽어도 ok).
+ *   여기서 `failures` 까지 같이 긁으면 run.json 에는 뜨지만 스코어보드·대시보드는
+ *   여전히 안 뜨는 어정쩡한 상태가 된다 — 반쯤 보이는 게 제일 나쁘다. 그 두 스텝은
+ *   판정 방식까지 같이 손봐야 하고, 그건 별도 결정 사항이라 손대지 않았다.
+ *
+ *   기존 호출부 호환: `counts` 는 선택 인자다. 안 넘기면 종전과 같이 동작하고
+ *   두 필드는 null 로 남는다(0 으로 접지 않는다 — 셀프테스트가 이걸 본다).
  */
-export function recordStep(state, { key, label, status, blocker = null, detail = {} }) {
+export function recordStep(state, { key, label, status, blocker = null, counts = {}, detail = {} }) {
   if (!Array.isArray(state.steps)) state.steps = []
+  const errors = Array.isArray(detail?.errors) ? detail.errors.filter(Boolean).map(String) : []
   const entry = {
     key,
     label: label ?? null,
     status,
     exit: Number.isInteger(detail?.exit) ? detail.exit : null,
     blocker: blocker ?? null,
+    partial_failed: Number.isInteger(counts?.partial_failed) ? counts.partial_failed : null,
+    errors: errors.length ? errors : null,
   }
   state.steps.push(entry)
   return entry
+}
+
+/**
+ * "ok 인데 일부가 죽은" 스텝들. run.json 의 steps 를 정본으로 본다.
+ *
+ * ⚠️ `state.counts` 를 쓰지 않는 이유: state.counts 는 스텝별 counts 를 **평탄하게
+ *    병합**해서 같은 키를 뒤 스텝이 덮어쓴다. commit_cases 와 queue_resolve 가
+ *    둘 다 `partial_failed` 를 올리면 앞 것이 사라진다. steps 는 스텝별로 남는다.
+ */
+export function partialFailures(state = {}) {
+  return (state.steps ?? [])
+    .filter((s) => Number(s?.partial_failed) > 0)
+    .map((s) => ({ key: s.key, label: s.label, n: s.partial_failed, errors: s.errors ?? [] }))
 }
 
 /**
@@ -877,17 +1145,30 @@ export function buildDecisionLogEntries({ date, runKey, jobs = [] }) {
     L.push('_이번 실행이 스테이징한 초안 없음._')
     return L.join('\n') + '\n'
   }
-  const ymd = String(date ?? '').replace(/-/g, '')
   for (const j of jobs) {
-    // gate_note 에는 전례 인용으로 다른 날짜의 LOG 코드가 섞여 있을 수 있다
-    // (예: "Casper LOG-20260907-05 전례"). 이 실행의 판정 코드는 (1) 오늘 날짜의
-    // 것, 없으면 (2) 맨 뒤의 것(관례상 gate_note 끝에 append 된다)이다.
-    const all = String(j.gate_note ?? '').match(/LOG-\d{8}-\d+/g) ?? []
-    const logCode = all.find((c) => c.startsWith(`LOG-${ymd}-`)) ?? all[all.length - 1] ?? null
+    // ★ `job.log_code` 를 그대로 쓴다. gate_note 를 파싱하지 않는다.
+    //
+    //   옛 코드는 `log_code` 필드를 **읽지도 않고** gate_note 자유텍스트에서
+    //   `/LOG-\d{8}-\d+/g` 로 역파싱했다("오늘 날짜의 것, 없으면 맨 뒤의 것").
+    //   그런데 작가는 gate_note 에 **다른 건의 코드를 인용**한다 — "듀오링고
+    //   LOG-20260911-01 전례 승계" 같은 식으로. 그러면 그게 자기 코드로 잡힌다.
+    //   실제로 틀렸다:
+    //     reports/2026-09-11/decision-log-entries.md — 피그마가 LOG-20260911-01
+    //       로 찍혔다. 실제 log_code 는 LOG-20260911-02
+    //       (ops/state/cmo-2026-09-11-cron-stage.json:21).
+    //     reports/2026-09-09/decision-log-entries.md — 두 건 다 LOG-20260908-03.
+    //   DB 쪽 연결(post_decision_link)은 case-draft-stage.mjs:276 이 같은
+    //   `job.log_code` 를 직접 쓰므로 **맞다.** 즉 틀린 건 사람이 읽는 보고서
+    //   파일뿐이고, 사람이 그걸 정본 문서에 옮겨 적는 순간 진짜 오염이 된다.
+    //
+    //   ⚠️ 없으면 추측하지 않는다 (§7.1). gate_note 안의 어떤 코드도 이 초안의
+    //   것이라는 근거가 없다. "미기재"는 확인 불가지 빈칸이 아니다.
+    const raw = j.log_code
+    const logCode = typeof raw === 'string' && raw.trim() ? raw.trim() : null
     L.push(`## ${j.content_code ?? '(코드 미상)'} — ${j.case_slug ?? '(케이스 미상)'}`)
     L.push('')
     L.push(`- 무브: \`${j.move_id ?? '(미상)'}\``)
-    L.push(`- 판정 로그: ${logCode ? `\`${logCode}\`` : '(gate_note 에서 LOG 코드를 못 읽음)'}`)
+    L.push(`- 판정 로그: ${logCode ? `\`${logCode}\`` : '(미기재 — stage.json 에 log_code 가 없다. gate_note 에서 추측하지 않는다)'}`)
     L.push(`- 판정 전문: \`${j.decision_doc ?? '(경로 미상)'}\``)
     if (j.gate_note) L.push(`- 게이트: ${j.gate_note}`)
     L.push('- posts.status: pending_review (붙여넣기 대기) — 발행은 사람이 앱에서 (§10)')
@@ -918,14 +1199,28 @@ export function stagedMetrics(repoRoot, runKey) {
 /** 스코어보드 행. **state.counts 를 그대로 쓴다** — 여기서 추정하면 AC-5/AC-9 의 SQL 실측과 어긋난다. */
 export function scoreboardRows(state = {}) {
   const c = state.counts ?? {}
-  return [
+  const attempted = Number(c.commit_attempted ?? 0)
+  const committed = Number(c.committed ?? 0)
+  const rows = [
     ['조사(new_drafts)', Number(c.new_drafts ?? 0), '건'],
-    ['적립(committed)', Number(c.committed ?? 0), '건'],
+    // ★ 시도 대비 적립이 모자란 날은 그 자리에서 표가 나야 한다. 옛 스코어보드는
+    //   `committed` 만 찍어서 "2건 중 1건만 적립"과 "1건 시도 1건 적립"이 같은
+    //   줄로 보였다 (2026-09-11: hoka 죽고 pets.com 만 통과 → `적립: 1건`).
+    ['적립(committed)', committed, attempted > committed ? `건 — ⚠️ 시도 ${attempted}건 중 ${attempted - committed}건 실패` : '건'],
     ['초안(drafted)', Number(c.drafted ?? 0), '건'],
     ['스테이징(staged)', Number(c.staged ?? 0), '건'],
     ['막힘(blocked)', Number(state.blocked ?? 0), '단계'],
     ['실패(failed)', Number(state.failed ?? 0), '단계'],
   ]
+  // 큐 행을 확인 불가로 남긴 건수. 0 이면 줄 자체를 안 낸다(평소에 소음이 되면 아무도 안 본다).
+  const unresolved = Number(c.queue_unresolved ?? 0)
+  if (unresolved > 0) rows.push(['큐 미해소(queue_unresolved)', unresolved, '건 — ⚠️ 확인 불가로 claimed 에 남겼다. 다음 실행이 재claim 한다'])
+
+  // ok 로 끝났지만 일부가 죽은 스텝. 사유까지 붙인다 — 숫자만 있으면 DB 를 열어야 안다.
+  for (const p of partialFailures(state)) {
+    rows.push([`부분 실패(${p.key})`, p.n, `건 — ${p.errors.join(' | ') || '사유 미기록'}`])
+  }
+  return rows
 }
 
 const STOP_NOTE = '사전 점검에서 멈춤 — 산출물 없음'
@@ -947,6 +1242,9 @@ export function buildDigest({
   const waiting = counts.staged ?? 0
   const blocked = state.blocked ?? 0
   const failed = state.failed ?? 0
+  // ok 로 끝났지만 일부가 죽은 스텝. blocked/failed 카운터에 안 잡히는 종류다.
+  const partials = partialFailures(state)
+  const partialN = partials.reduce((a, p) => a + p.n, 0)
   const L = []
 
   L.push(`# CMO 데일리 다이제스트 ${date}`)
@@ -957,7 +1255,12 @@ export function buildDigest({
   // ── 1) TL;DR ────────────────────────────────────────────────
   L.push('## TL;DR')
   L.push('')
-  L.push(`1. ${stopped ? `사전 점검에서 멈췄다(${stopped}). 오늘 산출물은 없다.` : `조사 ${counts.new_drafts ?? 0}건 · 적립 ${counts.committed ?? 0}건 · 초안 ${counts.drafted ?? 0}건.`}`)
+  // ★ 부분 실패를 1번 줄에 붙인다. 사람은 TL;DR 만 읽고 닫는다 — 스코어보드
+  //   아래쪽에만 적으면 2026-09-11 처럼 아무도 못 본다.
+  L.push(`1. ${stopped
+    ? `사전 점검에서 멈췄다(${stopped}). 오늘 산출물은 없다.`
+    : `조사 ${counts.new_drafts ?? 0}건 · 적립 ${counts.committed ?? 0}건 · 초안 ${counts.drafted ?? 0}건.`
+      + (partialN > 0 ? ` ⚠️ 부분 실패 ${partialN}건 (${partials.map((p) => p.key).join(', ')}) — 스텝은 ok 지만 사람이 봐야 한다.` : '')}`)
   L.push(`2. ${blocked > 0 ? `막힌 단계 ${blocked}개 — 아래 "병목 진단"을 먼저 봐라. 안전장치가 작동한 것이지 사고가 아니다.` : '막힌 단계 없음.'}`)
   L.push(`3. ${failed > 0 ? `실패한 단계 ${failed}개 — 사람이 봐야 한다.` : (waiting > 0 ? `발행 대기 ${waiting}건. 앱에서 확인하고 직접 발행한다.` : '오늘 발행 대기 없음.')}`)
   if (dryRun) L.push(`4. ${DRY_NOTE}. DB·git 에 쓰지 않았다.`)
@@ -995,7 +1298,13 @@ export function buildDigest({
     }
     const stuck = log.filter((l) => /^- (▲|❌)/.test(l))
     if (stuck.length) L.push(...stuck)
-    else if (blocked === 0 && failed === 0) L.push('- 막히거나 실패한 단계 없음.')
+    // ★ "막히거나 실패한 단계 없음"을 부분 실패가 있는데도 찍지 않는다. 그 한 줄이
+    //   2026-09-11 에 초록불의 마지막 조각이었다 — 스텝은 전부 ok 였고 이 문장이
+    //   "문제 없음"을 확정해 줬다. 부분 실패는 카운터에 안 잡힐 뿐 문제다.
+    for (const p of partials) {
+      L.push(`- ◍ \`${p.key}\` ${p.label ?? ''} — 스텝은 ok 지만 ${p.n}건 실패: ${p.errors.join(' | ') || '사유 미기록'}`)
+    }
+    if (!stuck.length && blocked === 0 && failed === 0 && !partials.length) L.push('- 막히거나 실패한 단계 없음.')
     if (dryRun) L.push(`- ${DRY_NOTE}.`)
   }
   L.push('')
@@ -1098,7 +1407,7 @@ function researchPrompt(item, date, existingSlugs) {
 // export 인 이유: 초안 스텝은 `--dry` 에서 통째로 건너뛴다(에이전트를 안 띄운다).
 // 그래서 프롬프트가 맞는지 확인하려면 루프 밖에서 같은 프롬프트를 꺼내 쓸 수밖에 없다.
 // 사본을 만들면 두 벌이 갈라진다 — 여기를 정본으로 두고 가져다 쓴다.
-export function writerPrompt(m, date) {
+export function writerPrompt(m, date, contentCode) {
   return [
     '`.claude/agents/sa-cmo-writer.md` 를 Read 하고, 그 문서가 규정하는 역할로 아래 작업을 수행하라.',
     '(그 파일이 지시하는 `ops/roles/_principles.md` 도 반드시 먼저 Read 한다.)',
@@ -1122,7 +1431,11 @@ export function writerPrompt(m, date) {
     JSON.stringify({
       case_slug: m.slug,
       move_id: m.id,
-      content_code: `CS-${date.replace(/-/g, '')}-01`,
+      // ★ 오케스트레이터가 채번한다. 옛날엔 여기에 `-01` 이 박혀 있어서 하루
+      //   두 무브가 똑같은 코드를 지시받았고(각 무브마다 이 함수가 독립 호출된다),
+      //   그대로 따르면 content_items upsert(onConflict:'code')와 posts UPDATE 가
+      //   앞 초안을 조용히 덮어썼다. 작가가 매번 손으로 재채번해 온 게 그 증거다.
+      content_code: contentCode,
       body_path: `drafts/threads/${date}-${m.slug}.body.txt`,
       reply_path: `drafts/threads/${date}-${m.slug}.selfreply.txt`,
       decision_doc: `drafts/threads/${date}-${m.slug}.md`,
@@ -1133,6 +1446,10 @@ export function writerPrompt(m, date) {
       topic_tag: 'case-study',
       gate_note: '<게이트 판정 요약>',
     }, null, 2),
+    '',
+    `★ content_code 는 \`${contentCode}\` 로 **고정**이다. 오케스트레이터가 DB(content_items)`
+    + ' 와 기존 매니페스트의 그날 최대 번호를 세어 확정했다. 파일이 겹쳐 보여도 재채번하지 마라 —'
+    + ' 네가 손으로 다시 매기면 오케스트레이터가 다음 무브에 줄 번호와 어긋난다.',
     '',
     '⛔ 발행하지 마라. Threads API 를 호출하지 마라. 이 프로세스에는 발행 자격증명이 없다.',
   ].filter(Boolean).join('\n')

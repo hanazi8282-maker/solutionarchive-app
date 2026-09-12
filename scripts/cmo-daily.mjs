@@ -56,6 +56,24 @@ export const DRAFT_TARGET = Number(process.env.CMO_DRAFT_TARGET ?? 2)
 export const COMMIT_PREFIXES = ['reports/', 'drafts/cases/', 'drafts/threads/', 'ops/state/']
 
 /**
+ * 봇 신원을 **이 커밋 하나에만** 실어 보내는 인자.
+ *
+ * ★ `git config user.name ...` 로 세우면 안 된다. `--local` 도 `--global` 도
+ *   없는 `git config` 는 리포 config 에 **영구 기록**한다. 이 루프를 로컬에서
+ *   한 번 돌린 뒤로 사람이 낸 커밋까지 전부 `cmo-daily-bot` 으로 찍혔다
+ *   (2026-09-12 관측: main 최근 20커밋 중 11건). 그러면 CLAUDE.md §10.1 의
+ *   권한 경계 — "무인 루프가 스스로 한 것 vs 사람이 시킨 것" — 을 `git log`
+ *   로 복원할 수 없다. CI 는 매번 새로 체크아웃해서 티가 안 났고, 오염은
+ *   개발자 워킹트리에만 쌓였다.
+ *
+ * `git -c` 는 그 한 번의 호출에만 적용되고 아무 파일에도 남지 않는다.
+ */
+export const commitIdentity = () => [
+  '-c', `user.name=${process.env.GIT_AUTHOR_NAME ?? 'cmo-daily-bot'}`,
+  '-c', `user.email=${process.env.GIT_AUTHOR_EMAIL ?? 'noreply@anthropic.com'}`,
+]
+
+/**
  * 스테이징된 경로가 전부 화이트리스트 안인지 본다.
  *
  * ★ "허용 목록에 없으면 거절"이지 "금지 목록에 있으면 거절"이 아니다.
@@ -600,10 +618,8 @@ async function main() {
       }
     }
 
-    await sh('git', ['config', 'user.name', process.env.GIT_AUTHOR_NAME ?? 'cmo-daily-bot'])
-    await sh('git', ['config', 'user.email', process.env.GIT_AUTHOR_EMAIL ?? 'noreply@anthropic.com'])
     const msg = `chore(cmo): daily loop ${date}\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`
-    const c = await sh('git', ['commit', '-m', msg])
+    const c = await sh('git', [...commitIdentity(), 'commit', '-m', msg])
     if (c.code !== 0) return { status: 'failed', detail: { error: `commit 실패 — ${tail(c.stderr)}` } }
 
     if (process.env.GITHUB_ACTIONS === 'true') {
@@ -637,7 +653,7 @@ async function main() {
       say(`- ⚠️ 대시보드 재렌더 커밋 스킵 — 화이트리스트 위반(${redoCheck.reason})`)
     } else if (redoStaged.length) {
       const msg = `chore(cmo): daily loop ${date} — 최종 상태로 대시보드 재렌더\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`
-      const c = await sh('git', ['commit', '-m', msg])
+      const c = await sh('git', [...commitIdentity(), 'commit', '-m', msg])
       if (c.code !== 0) {
         say(`- ⚠️ 대시보드 재렌더 커밋 실패 — ${tail(c.stderr)} (실행 결과 자체엔 영향 없음)`)
       } else if (process.env.GITHUB_ACTIONS === 'true') {

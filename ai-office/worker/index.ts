@@ -2,6 +2,11 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import {
+  pushAgentStatus,
+  readAgentStatus,
+  type AgentStatusEnv,
+} from "./agent-status";
+import {
   REPORT_TOKEN_HEADER,
   integrationStatus,
   publishReport,
@@ -14,7 +19,7 @@ interface AssetFetcher {
   fetch(request: Request): Promise<Response>;
 }
 
-interface Env extends PublishEnv {
+interface Env extends PublishEnv, AgentStatusEnv {
   ASSETS: AssetFetcher;
   IMAGES: {
     input(stream: ReadableStream): {
@@ -74,6 +79,13 @@ const worker = {
       } catch (error) {
         return Response.json({ error: String(error) }, { status: 400 });
       }
+    }
+
+    // 관제실 현황 — 쓰기와 읽기가 서로 다른 시크릿으로 갈린다 (agent-status.ts)
+    if (url.pathname === "/api/agent-status") {
+      if (request.method === "POST") return pushAgentStatus(request, env);
+      if (request.method === "GET") return readAgentStatus(request, env, url);
+      return new Response("GET or POST only", { status: 405 });
     }
 
     if (url.pathname === "/_vinext/image") {

@@ -22,3 +22,14 @@ DISCORD_WEBHOOK_URL=
 # 이 값이 비어 있으면 /api/report 는 아무 요청도 받지 않습니다(자동 발행 포함).
 # 아무 문자열이나 길게 넣으면 됩니다. 배포용은 `npx wrangler secret put REPORT_TOKEN`.
 REPORT_TOKEN=
+
+# ── 관제실(세션 현황) 토큰 2개 ─────────────────────────
+# 이 화면 URL은 공개입니다. 그래서 쓰기와 읽기를 다른 시크릿으로 가릅니다.
+# 절대 같은 값을 넣지 마세요 — 같으면 화면 토큰이 곧 쓰기 권한이 됩니다.
+# 값 생성: openssl rand -hex 20
+# 배포용: npx wrangler secret put AGENT_STATUS_PUSH_TOKEN / …VIEW_TOKEN
+#
+# 로컬 훅이 현황을 올릴 때 쓰는 토큰 (~/.bashrc 의 AI_OFFICE_PUSH_TOKEN 과 같은 값)
+AGENT_STATUS_PUSH_TOKEN=
+# 브라우저에서 ?ops=<이 값> 으로 관제실을 열 때 쓰는 토큰
+AGENT_STATUS_VIEW_TOKEN=

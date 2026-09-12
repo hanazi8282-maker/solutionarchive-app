@@ -289,6 +289,21 @@ solutionarchive 프로젝트 `qmgrfqjfxqhxuufrnkwf` — 같은 조직의 dothegy
 한 건씩 적용 후 즉시 검증(양성·음성 전부)했고, 기존 데이터(`analysis_angles` 13,
 `review_sources` 3, `strategy_principles` 23)는 적용 전후 동일함을 확인함.
 
+2026-09-12, 남헌 명시적 승인 — 같은 원칙에 대한 1회성 예외. **이번 1건에 한정**한다.
+마이그레이션 1건을 클로드코드가 이 세션에서 직접 적용함:
+
+- `20260912000001_onboarding_quiz_responses.sql`
+  — `onboarding_quiz_responses` 테이블 신규(RLS 활성·정책 없음, 인덱스 3개).
+    기존 테이블을 바꾸거나 지우지 않는다.
+
+적용 전 `list_projects` 로 대상이 solutionarchive(`qmgrfqjfxqhxuufrnkwf`)이고
+dothegy-os(`hrplbrstntyanzwxcsft`)가 아님을 확인함 — MCP supabase 서버가 기본으로
+Dothegy 를 가리키므로 매번 확인이 필요하다. 적용 직후 파일 하단에 주석으로 들어
+있는 검증을 전부 실행했다: **양성 2건 통과**(start→answer→complete 3행 삽입,
+완주율 쿼리 started 1·completed 1), **음성 4건 전부 거부**(모두 23514 —
+`oqr_answer_shape`, `oqr_complete_shape` 2회, `..._picked_side_check`).
+테스트 행 삭제 후 잔여 0행 확인. 이 테이블을 쓰는 PR #50 은 적용한 뒤에 머지했다.
+
 **원칙 문구(§10.1) 자체는 변경하지 않는다. 다음 마이그레이션부터는 별도 승인이
 없는 한 다시 원칙대로 사람이 적용한다.**
 

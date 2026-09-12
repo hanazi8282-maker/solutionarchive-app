@@ -20,6 +20,8 @@ export const OUTCOME_STATUS = ['active', 'pivoted', 'shutdown', 'unknown'] as co
 export const OUTCOME_DIRECTION = ['positive', 'negative', 'mixed'] as const
 export const SOURCE_TIER = ['primary', 'secondary', 'tertiary'] as const
 
+// 상한을 넘으면 경계만 줄이고 말줄임으로 표시한다 — 목록 한가운데 항목을
+// 지우는 식의 편집 판단은 금지. 근거·hoka 사례: docs/case-study-pipeline-design.md §2-4 (1)
 export const SNIPPET_MAX = 300
 export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 

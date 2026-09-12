@@ -20,53 +20,41 @@ type Props = { ops: string };
 const STALE_MS = 30 * 60 * 1000;
 const POLL_MS = 2500;
 
+/** role-status.json 의 최상위 키 그대로다 (activity-status.sh 가 쓰는 표기) */
 const ROLES = [
-  { key: "cmo", label: "CMO", emoji: "📣" },
-  { key: "cto", label: "CTO", emoji: "🛠️" },
-  { key: "ceostaff", label: "CEO-STAFF", emoji: "🗂️" },
-  { key: "hub", label: "HUB", emoji: "🛰️" },
+  { key: "CMO", emoji: "📣" },
+  { key: "CTO", emoji: "🛠️" },
+  { key: "CEO-STAFF", emoji: "🗂️" },
+  { key: "HUB", emoji: "🛰️" },
 ];
 
 type Dot = "working" | "waiting" | "silent";
 const DOT_COLOR: Record<Dot, string> = { working: "#34d399", waiting: "#fbbf24", silent: "#64748b" };
 const DOT_LABEL: Record<Dot, string> = { working: "일하는 중", waiting: "대기 중", silent: "소식 없음" };
 
-/** 훅이 어떤 표기로 키를 쓰든(CEO-staff / ceo_staff / ceoStaff) 같은 칸으로 모은다 */
-const normalize = (key: string) => key.toLowerCase().replace(/[^a-z0-9]/g, "");
+/** role-status.json 의 역할 하나. tool·history 도 오지만 이 패널은 쓰지 않는다. */
+type Entry = { status: string; task: string; updatedAt: number | null };
 
-type Entry = { task: string; state: string; updatedAt: number | null };
+const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
-function pick(source: Record<string, unknown>, keys: string[]): string {
-  for (const key of keys) {
-    const value = source[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
-  }
-  return "";
-}
-
-/** 훅이 올린 JSON에서 역할별 한 줄을 뽑는다. 필드 이름은 훅 구현마다 달라서 몇 가지를 받아준다. */
 function readEntry(payload: Record<string, unknown>, roleKey: string): Entry | null {
-  const roles = (payload.roles && typeof payload.roles === "object" ? payload.roles : payload) as Record<string, unknown>;
-  const match = Object.keys(roles).find((key) => normalize(key) === roleKey);
-  const raw = match ? roles[match] : undefined;
-  if (!raw) return null;
-  if (typeof raw === "string") return { task: raw, state: "", updatedAt: null };
-  if (typeof raw !== "object") return null;
+  const raw = payload[roleKey];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
 
   const source = raw as Record<string, unknown>;
-  const stamp = pick(source, ["updated_at", "updatedAt", "timestamp", "time", "ts", "mtime"]);
-  const parsed = stamp ? Date.parse(stamp) : NaN;
+  const stamp = Date.parse(text(source.updated_at));
   return {
-    task: pick(source, ["task", "text", "title", "summary", "activity", "status_text"]),
-    state: pick(source, ["state", "status", "phase"]),
-    updatedAt: Number.isNaN(parsed) ? null : parsed,
+    status: text(source.status),
+    task: text(source.task),
+    updatedAt: Number.isNaN(stamp) ? null : stamp,
   };
 }
 
 function dotOf(entry: Entry | null, now: number): Dot {
-  if (!entry || (!entry.task && !entry.state)) return "silent";
-  if (entry.updatedAt !== null && now - entry.updatedAt > STALE_MS) return "silent";
-  return /idle|wait|대기|쉼/i.test(entry.state) ? "waiting" : "working";
+  if (!entry || (!entry.task && !entry.status)) return "silent";
+  // updated_at 이 없거나 읽을 수 없으면 살아 있다고 보지 않는다 (§7.1 — 확인 불가는 양성이 아니다)
+  if (entry.updatedAt === null || now - entry.updatedAt > STALE_MS) return "silent";
+  return entry.status === "idle" ? "waiting" : "working";
 }
 
 const panel: CSSProperties = {
@@ -159,7 +147,7 @@ export default function ExecOverlay({ ops }: Props) {
                   style={{ width: 6, height: 6, borderRadius: "50%", background: DOT_COLOR[dot], flexShrink: 0 }}
                   aria-hidden
                 />
-                <b style={{ fontSize: 10, letterSpacing: 0.4 }}>{role.label}</b>
+                <b style={{ fontSize: 10, letterSpacing: 0.4 }}>{role.key}</b>
                 <span style={{ marginLeft: "auto", fontSize: 9, opacity: 0.6 }}>{DOT_LABEL[dot]}</span>
               </div>
               <p style={{ margin: "3px 0 0", opacity: dot === "silent" ? 0.45 : 0.95, wordBreak: "break-word" }}>

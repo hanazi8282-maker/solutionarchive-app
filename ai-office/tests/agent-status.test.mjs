@@ -65,18 +65,24 @@ test("올바른 토큰이면 올린 내용이 그대로 돌아오고 fetched_at 
   const worker = await loadWorker();
   const env = { AGENT_STATUS_KV: fakeKV(), AGENT_STATUS_PUSH_TOKEN: PUSH, AGENT_STATUS_VIEW_TOKEN: VIEW };
 
-  const pushed = await call(worker, {
-    method: "POST",
-    token: PUSH,
-    body: JSON.stringify({ cmo: { task: "초안 3편", state: "working" } }),
-    env,
-  });
+  // role-status.json 의 실제 모양 그대로 (activity-status.sh 가 만드는 것)
+  const roleStatus = {
+    CMO: { status: "working", task: "Bash: npm test 실행 중", tool: "Bash", updated_at: "2026-09-12T10:00:00Z", history: [] },
+    CTO: { status: "idle", task: "대기 중", tool: "", updated_at: "2026-09-12T10:00:00Z", history: [] },
+    "CEO-STAFF": { status: "working", task: "보고 정리", tool: "Write", updated_at: "2026-09-12T10:00:00Z", history: [] },
+    HUB: { status: "working", task: "수집", tool: "Grep", updated_at: "2026-09-12T10:00:00Z", history: [] },
+  };
+  const pushed = await call(worker, { method: "POST", token: PUSH, body: JSON.stringify(roleStatus), env });
   assert.equal(pushed.status, 200);
 
   const read = await call(worker, { token: VIEW, env });
   assert.equal(read.status, 200);
   const payload = await read.json();
-  assert.equal(payload.cmo.task, "초안 3편");
+  assert.deepEqual(
+    { CMO: payload.CMO, CTO: payload.CTO, "CEO-STAFF": payload["CEO-STAFF"], HUB: payload.HUB },
+    roleStatus,
+    "올린 내용이 그대로 돌아오지 않았다",
+  );
   assert.ok(payload.fetched_at, "fetched_at 이 없다");
 });
 
@@ -84,7 +90,7 @@ test("20KB 를 넘는 본문은 413 으로 막는다", async () => {
   const worker = await loadWorker();
   const env = { AGENT_STATUS_KV: fakeKV(), AGENT_STATUS_PUSH_TOKEN: PUSH, AGENT_STATUS_VIEW_TOKEN: VIEW };
 
-  const huge = JSON.stringify({ cmo: { task: "가".repeat(20 * 1024) } });
+  const huge = JSON.stringify({ CMO: { task: "가".repeat(20 * 1024) } });
   const response = await call(worker, { method: "POST", token: PUSH, body: huge, env });
   assert.equal(response.status, 413);
   assert.equal(env.AGENT_STATUS_KV.store.value, null, "막힌 요청이 KV 에 쓰였다");

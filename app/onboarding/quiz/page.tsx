@@ -62,6 +62,10 @@ export default function OnboardingQuizPage() {
 
   useEffect(() => {
     const sid = getSessionId()
+    // getSessionId() 는 localStorage 를 읽는다. 서버 렌더 시점에는 localStorage 가
+    // 없으므로 useState 초기값으로 옮길 수 없고, 옮기면 하이드레이션이 어긋난다.
+    // 마운트 후 한 번만 도는 의도된 추가 렌더다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSessionId(sid)
     let alive = true
     fetch(`/api/onboarding/quiz?session_id=${encodeURIComponent(sid)}`)

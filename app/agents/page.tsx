@@ -233,6 +233,10 @@ function LoopSubtitle({ d }: { d: LoopDef }) {
 }
 
 export default async function AgentsPage() {
+  // 이건 클라이언트 컴포넌트가 아니라 async 서버 컴포넌트다. 요청마다 한 번
+  // 서버에서 실행되고 재렌더가 없으므로 "재렌더할 때마다 값이 흔들린다"는
+  // 이 규칙의 전제가 성립하지 않는다.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now()
   const sb = await createClient()
 

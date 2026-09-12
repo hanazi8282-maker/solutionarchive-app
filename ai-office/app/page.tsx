@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ExecOverlay from "./game/ExecOverlay";
 import OfficeWorld from "./game/OfficeWorld";
 import {
   buildReport,
@@ -17,6 +18,8 @@ import { COMPANY, DEPARTMENTS, PENDING_INTEGRATIONS, SCENARIO, STORAGE_LINK } fr
 
 /** 대표 지시창·브리핑에서 이름을 내보내는 사람 = 비서실 리드 */
 const SECRETARY = DEPT_LEAD.secretary;
+/** 관제실 토큰을 주소창에서 치우고 같은 탭에서만 기억한다 (?ops=… → sessionStorage) */
+const OPS_KEY = "ai-office-ops";
 /** 승인 회의에 들어가는 리드 이름 */
 const APPROVAL_CREW = SCENARIO.approval.crew.map((dept) => DEPT_LEAD[dept].name).join("·");
 /** 브리핑 창 제목에 쓰는 비서실 약칭 */
@@ -78,6 +81,24 @@ export default function Home() {
     error: "",
   });
   const publishedRef = useRef(false);
+  // 관제실 토큰. 없으면 null 이고, 그 경우 오버레이는 마운트조차 되지 않는다.
+  const [ops, setOps] = useState<string | null>(null);
+
+  // ?ops=… 로 들어오면 세션에만 담고 주소창에서는 지운다 — 토큰이 링크에 남지 않게.
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      const fromUrl = url.searchParams.get("ops");
+      if (fromUrl) {
+        window.sessionStorage.setItem(OPS_KEY, fromUrl);
+        url.searchParams.delete("ops");
+        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      }
+      setOps(window.sessionStorage.getItem(OPS_KEY));
+    } catch {
+      // sessionStorage 가 막힌 브라우저(시크릿 창 등) — 관제실만 안 뜨고 화면은 그대로 돈다.
+    }
+  }, []);
 
   useEffect(() => {
     let raf = 0;
@@ -207,6 +228,7 @@ export default function Home() {
 
   return (
     <main className="page-shell">
+      {ops ? <ExecOverlay ops={ops} /> : null}
       <div className="wrap">
         <nav className="app-nav" aria-label="AI Company 화면 전환">
           <div className="brand-chip">

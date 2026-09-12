@@ -13,5 +13,10 @@
   },
   "images": {
     "binding": "IMAGES"
-  }
+  },
+  // 관제실 현황 저장소 — 키는 "current" 하나뿐이다 (worker/agent-status.ts).
+  // 읽기·쓰기 시크릿 2개는 여기가 아니라 `wrangler secret put` 으로 넣는다.
+  "kv_namespaces": [
+    { "binding": "AGENT_STATUS_KV", "id": "678a57e29284476fb30a72e0b6799258" }
+  ]
 }

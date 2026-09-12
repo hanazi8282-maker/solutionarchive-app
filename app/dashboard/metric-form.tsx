@@ -2,6 +2,9 @@
 
 import { useActionState } from 'react'
 import { createSnapshot, type ActionState } from './actions'
+import { Field, Input, Select, labelStyle } from '../_ds/components/Field'
+import { Button } from '../_ds/components/Button'
+import { ResultMessage, formGrid, span2 } from './form-ui'
 
 export type PostOption = {
   id: string
@@ -28,45 +31,53 @@ export default function MetricForm({ posts }: { posts: PostOption[] }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createSnapshot, null)
 
   return (
-    <form action={formAction}>
-      <p>
-        <label htmlFor="post_id">대상 글 (post)</label><br />
-        <select id="post_id" name="post_id" defaultValue="" required>
+    <form action={formAction} style={formGrid}>
+      <Field label="대상 글 (post)" htmlFor="post_id" style={span2}>
+        <Select id="post_id" name="post_id" defaultValue="" required>
           <option value="">— 선택하세요 —</option>
           {posts.map(p => (
             <option key={p.id} value={p.id}>
               {preview(p.body, p.published_at)}
             </option>
           ))}
-        </select>
-      </p>
+        </Select>
+      </Field>
 
-      <fieldset>
-        <legend>발행 후 경과 (hours_since_publish)</legend>
-        {[1, 24, 168].map(h => (
-          <label key={h} style={{ marginRight: '1rem' }}>
-            <input type="radio" name="hours_since_publish" value={h} required />
-            {h}시간
-          </label>
-        ))}
+      <fieldset style={{ ...span2, border: 'none', margin: 0, padding: 0, minWidth: 0 }}>
+        <legend style={{ ...labelStyle, padding: 0, marginBottom: 8 }}>
+          발행 후 경과 (hours_since_publish)
+        </legend>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {[1, 24, 168].map(h => (
+            <label
+              key={h}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                height: 36, padding: '0 12px',
+                border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)',
+                background: 'var(--surface-card)', fontSize: 14, cursor: 'pointer',
+              }}
+            >
+              <input type="radio" name="hours_since_publish" value={h} required style={{ accentColor: 'var(--ring)', margin: 0 }} />
+              {h}시간
+            </label>
+          ))}
+        </div>
       </fieldset>
 
       {METRIC_FIELDS.map(f => (
-        <p key={f.name}>
-          <label htmlFor={f.name}>{f.label}</label><br />
-          <input id={f.name} name={f.name} type="number" min={0} step={1} defaultValue={0} />
-        </p>
+        <Field key={f.name} label={f.label} htmlFor={f.name}>
+          <Input id={f.name} name={f.name} type="number" min={0} step={1} defaultValue={0} />
+        </Field>
       ))}
 
-      <p>
-        <button type="submit" disabled={pending}>
+      <div style={span2}>
+        <Button type="submit" variant="primary" disabled={pending}>
           {pending ? '저장 중…' : '성과 기록'}
-        </button>
-      </p>
+        </Button>
+      </div>
 
-      {state && (
-        <p style={{ color: state.ok ? 'green' : 'red' }}>{state.message}</p>
-      )}
+      {state && <ResultMessage state={state} style={span2} />}
     </form>
   )
 }

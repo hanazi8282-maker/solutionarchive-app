@@ -1,10 +1,10 @@
-import './_ds/styles.css'
+import '../_ds/styles.css'
 import type { CSSProperties, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import { Card } from './_ds/components/Card'
-import { Badge, type Tone } from './_ds/components/Badge'
-import { ProgressBar } from './_ds/components/ProgressBar'
-import { EmptyState } from './_ds/components/EmptyState'
+import { Card } from '../_ds/components/Card'
+import { Badge, type Tone } from '../_ds/components/Badge'
+import { ProgressBar } from '../_ds/components/ProgressBar'
+import { EmptyState } from '../_ds/components/EmptyState'
 import {
   LOOPS, classify, renderStepBar, isStale, staleMinutes, truncate, cronToLabel,
   UNAVAILABLE_TEXT, EMPTY_TEXT,

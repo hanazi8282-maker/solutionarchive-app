@@ -96,7 +96,7 @@
       "supports_metric": false,
       "published_at": "2022-05-27",
       "retrieved_at": "2026-09-11",
-      "snippet": "\"We sell select HOKA brand footwear primarily through full-service domestic specialty retailers such as Fleet Feet, JackRabbit, Road Runner Sports, REI...\" / \"Strong marketing has fueled both domestic and international sales growth for the HOKA brand, which has quickly become a leading brand within our run and outdoor specialty wholesale accounts.\"",
+      "snippet": "\"We sell select HOKA brand footwear primarily through full-service domestic specialty retailers such as Fleet Feet, JackRabbit, Road Runner Sports, REI...\" / \"... the HOKA brand, which has quickly become a leading brand within our run and outdoor specialty wholesale accounts.\"",
       "supports_claim": "무브 0 의 메커니즘 근거 — 유통 접점을 '풀서비스 전문점'으로 특정했다는 회사 자신의 기술. 수치는 여기서 오지 않으므로 supports_metric=false 로 둔다. Deckers FY2022 Form 10-K Business 섹션(0000910521-22-000017)."
     },
     {
@@ -139,7 +139,7 @@
       "supports_metric": false,
       "published_at": "2026-05-22",
       "retrieved_at": "2026-09-11",
-      "snippet": "\"Our marketing and advertising efforts are designed to strengthen brand awareness, deepen consumer engagement, and drive purchase intent across our portfolio of brands.\" 집행 구성: digital advertising, social media, influencer and ambassador partnerships, experiential activations, content, public relations, traditional media.",
+      "snippet": "\"Our marketing and advertising efforts are designed to strengthen brand awareness, deepen consumer engagement, and drive purchase intent...\" 집행 구성: digital advertising, social media, influencer and ambassador partnerships, experiential activations, content, public relations, traditional media.",
       "supports_claim": "무브 1 의 서사(규모가 커진 뒤에도 인지도를 목적으로 명시한 마케팅을 유지한다)를 받친다. YouGov 수치 자체는 여기서 오지 않으므로 supports_metric=false. Deckers FY2026 Form 10-K(0001628280-26-037664) Business 섹션을 Deckers IR 미러 URL 로 읽었다 — sec.gov 원본과 같은 파일명(deck-20260331.htm)이다."
     },
     {

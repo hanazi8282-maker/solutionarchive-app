@@ -26,6 +26,7 @@ import {
   buildDigest, perfFailure, recordStep, scoreboardRows, parsePerformance,
   buildDecisionLogEntries, stagedJobs, selectAngles,
   nextContentSeq, contentCodeFor, writerPrompt, queueResolutions, partialFailures,
+  commitOutcome, queueStepOutcome,
 } from './cmo-daily.mjs'
 import { validateStep, createTracker, readEvents, STEP_STATUS } from './agent-status.mjs'
 import {
@@ -866,22 +867,65 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
 // blocker 만 뽑고 버려서 run.json·DIGEST·DASHBOARD 어디에도 안 남았다.
 // 대시보드는 그 실행을 10/10 완료로 표시했다.
 //
-// ★ pass/fail 판정은 바꾸지 않는다. 1건이라도 성공하면 여전히 ok 다.
-//   바꾼 건 **보이느냐**뿐이다.
+// ★ 2026-09-12 판정 변경: 부분 실패는 `ok` 가 아니라 **`blocked`** 다.
+//   (처음 지시는 "ok 유지"였고 철회됐다 — §7.1. 초록불로 나가면 사람이 그 위에
+//   계속 쌓는다.) `partial` 이라는 스텝 상태는 만들 수 없다 — DB CHECK
+//   (20260908000001_agent_ops.sql:94) 가 6개 어휘만 받고, 늘리려면 마이그레이션이
+//   필요한데 무인 루프에 그 권한이 없다(§10.1). `blocked` 는 "안전장치가 정상
+//   작동한 상태"로 이미 정의돼 있고, 루프를 세우지 않으면서 실행 레벨을
+//   `partial`(종료코드 0)로 만든다.
 // ════════════════════════════════════════════════════════════
 {
-  const st = { blocked: 0, failed: 0, counts: {}, steps: [] }
-  // 09-11 재현: 2건 시도 · 1건 적립 · 1건 validate 실패 · 스텝 판정은 ok
-  const res = {
-    status: 'ok',
-    counts: { commit_attempted: 2, committed: 1, all_draft: 1, partial_failed: 1 },
-    detail: { errors: ['hoka-specialty-retail-awareness-engine: validate exit 1'], committed_slugs: ['pets-com-mass-awareness-negative-margin'] },
-  }
-  Object.assign(st.counts, res.counts)
-  recordStep(st, { key: 'commit_cases', label: '케이스 적립', status: res.status, counts: res.counts, detail: res.detail })
+  // ── 판정 (commitOutcome) ─────────────────────────────────────────────
+  const HOKA = 'hoka-specialty-retail-awareness-engine'
+  const PETS = 'pets-com-mass-awareness-negative-margin'
 
-  eq('부분실패 — 스텝 판정은 여전히 ok (야간 루프를 세우지 않는다)', res.status, 'ok')
-  eq('부분실패 — state.failed 는 늘지 않는다', st.failed, 0)
+  // 09-11 재현: 2건 시도 · pets.com 만 적립 · hoka 는 validate exit 1
+  const part = commitOutcome({ attempted: 2, committed: [PETS], errors: [`${HOKA}: validate exit 1`] })
+  eq('부분실패 — 2건 중 1건 실패면 blocked (옛 동작은 ok 였다)', part.status, 'blocked')
+  check('부분실패 — blocker 가 비어 있지 않다 (DB CHECK 가 빈 값을 거부한다)',
+    typeof part.blocker === 'string' && part.blocker.trim().length > 0, JSON.stringify(part.blocker))
+  check('부분실패 — blocker 에 막힌 건수가 있다', /2건 중 1건/.test(part.blocker), part.blocker)
+  check('부분실패 — blocker 에 실패한 slug 와 사유가 있다',
+    part.blocker.includes(HOKA) && part.blocker.includes('validate exit 1'), part.blocker)
+  eq('부분실패 — counts 에 시도 건수가 남는다', part.counts.commit_attempted, 2)
+  eq('부분실패 — counts 에 성공 건수가 남는다', part.counts.committed, 1)
+  eq('부분실패 — 기존 키 all_draft 를 유지한다(대시보드·스코어보드 호환)', part.counts.all_draft, 1)
+  eq('부분실패 — counts 에 막힌 건수가 남는다', part.counts.partial_failed, 1)
+
+  // 경계: 전멸과 전건 성공은 종전 그대로다.
+  const dead = commitOutcome({ attempted: 2, committed: [], errors: [`${HOKA}: validate exit 1`, 'x: commit exit 2'] })
+  eq('부분실패 — 전멸은 여전히 failed', dead.status, 'failed')
+  check('부분실패 — 전멸 사유가 detail.error 에 남는다', dead.detail.error.includes('validate exit 1'))
+  const clean2 = commitOutcome({ attempted: 2, committed: [PETS, HOKA], errors: [] })
+  eq('부분실패 — 전건 성공은 여전히 ok', clean2.status, 'ok')
+  eq('부분실패 — 전건 성공이면 blocker 를 만들지 않는다', clean2.blocker, undefined)
+  eq('부분실패 — 전건 성공이면 partial_failed 0', clean2.counts.partial_failed, 0)
+  // 초안 0건이라 스텝이 아예 안 도는 경우는 호출부가 skipped 로 먼저 끊는다.
+  eq('부분실패 — 시도 0건은 failed (0건 성공이니 전멸과 같다)', commitOutcome({}).status, 'failed')
+
+  // ★ STEP_STATUS 어휘 밖 값을 만들지 않는가 — validateStep 을 실제로 태운다.
+  for (const [name, o] of [['부분 실패', part], ['전멸', dead], ['전건 성공', clean2]]) {
+    check(`부분실패 — ${name} 판정이 STEP_STATUS 어휘 안이다`, STEP_STATUS.includes(o.status), o.status)
+    eq(`부분실패 — ${name} 판정이 validateStep 을 통과한다`,
+      validateStep({ status: o.status, blocker: o.blocker, stepKey: 'commit_cases', label: '케이스 적립', seq: 4 }).join('|'), '')
+  }
+  // 변이 테스트 — blocker 를 지우면 validateStep 이 잡아야 한다(안 잡히면 이 검사가 무의미하다).
+  check('부분실패 — blocker 를 비우면 validateStep 이 거부한다',
+    validateStep({ status: 'blocked', blocker: '', stepKey: 'commit_cases', label: 'x', seq: 4 }).length > 0)
+
+  // blocked 는 루프를 세우지 않고 실행 레벨만 partial 로 만든다 (종료코드 0).
+  const runStatusOf = (s) => (s.failed > 0 ? 'failed' : s.blocked > 0 ? 'partial' : 'ok')
+  eq('부분실패 — blocked 1개면 실행 상태는 partial (failed 아님)', runStatusOf({ blocked: 1, failed: 0 }), 'partial')
+
+  // ── 기록·렌더 ────────────────────────────────────────────────────────
+  const st = { blocked: 0, failed: 0, counts: {}, steps: [] }
+  const res = part
+  Object.assign(st.counts, res.counts)
+  st.blocked++
+  recordStep(st, { key: 'commit_cases', label: '케이스 적립', status: res.status, blocker: res.blocker, counts: res.counts, detail: res.detail })
+
+  eq('부분실패 — state.failed 는 늘지 않는다(야간 루프를 세우지 않는다)', st.failed, 0)
 
   // (1) recordStep 이 실패 상세를 버리지 않는다
   const e = st.steps.find((s) => s.key === 'commit_cases')
@@ -898,30 +942,43 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   eq('부분실패 — 사유가 없으면 errors 는 null (빈 배열로 접지 않는다)', st2.steps[0].errors, null)
   eq('부분실패 — 부분 실패가 없으면 목록도 비어 있다', partialFailures(st2).length, 0)
 
-  // (2) DIGEST 에 살아남는가
-  const digest = buildDigest({ date: '2026-09-11', runKey: 'cmo-2026-09-11-cron', state: st, log: [] })
-  check('부분실패 — DIGEST TL;DR 에 부분 실패가 뜬다', /부분 실패 1건/.test(digest), digest.slice(0, 900))
+  // (2) DIGEST 에 살아남는가. runStep 이 실제로 찍는 로그 라인을 그대로 준다.
+  const runLog = [`- ▲ \`commit_cases\` 케이스 적립 (${JSON.stringify(res.counts)}) — ${res.blocker}`]
+  const digest = buildDigest({ date: '2026-09-11', runKey: 'cmo-2026-09-11-cron', state: st, log: runLog })
+  check('부분실패 — DIGEST TL;DR 이 막힌 단계를 알린다', /막힌 단계 1개/.test(digest), digest.slice(0, 900))
   check('부분실패 — DIGEST 스코어보드가 시도 대비 부족을 표시한다',
     /적립\(committed\): 1건 — ⚠️ 시도 2건 중 1건 실패/.test(digest), digest.slice(0, 1600))
-  check('부분실패 — DIGEST 에 실패 사유 원문이 실린다', digest.includes('validate exit 1'))
+  check('부분실패 — DIGEST 병목 진단에 blocker 원문이 실린다',
+    digest.includes(HOKA) && digest.includes('validate exit 1'), digest)
   check('부분실패 — "막히거나 실패한 단계 없음" 을 찍지 않는다',
     !digest.includes('막히거나 실패한 단계 없음'), digest)
+  // blocked 는 이미 ▲ 로 시끄럽다. 같은 사건을 ◍ 로 한 번 더 찍지 않는다.
+  eq('부분실패 — blocked 스텝은 조용한 부분 실패 목록에서 뺀다(중복 방지)', partialFailures(st).length, 0)
 
   // 아무 문제 없는 날에는 이 줄들이 안 나와야 한다(소음 방지 · 종전 동작 유지).
   const clean = { blocked: 0, failed: 0, counts: { commit_attempted: 2, committed: 2 }, steps: [] }
   recordStep(clean, { key: 'commit_cases', label: '적립', status: 'ok', counts: { commit_attempted: 2, committed: 2, partial_failed: 0 }, detail: { errors: [] } })
   const cleanDigest = buildDigest({ date: '2026-09-11', runKey: 'x', state: clean, log: [] })
-  check('부분실패 — 전건 성공이면 경고를 찍지 않는다', !/부분 실패/.test(cleanDigest), cleanDigest.slice(0, 900))
+  check('부분실패 — 전건 성공이면 경고를 찍지 않는다', !/부분 실패|⚠️ 시도/.test(cleanDigest), cleanDigest.slice(0, 1600))
   check('부분실패 — 전건 성공이면 종전대로 "막히거나 실패한 단계 없음"', cleanDigest.includes('막히거나 실패한 단계 없음'))
 
-  // (3) DASHBOARD 에 살아남는가 — 옛 renderProblems 는 ok 스텝을 아예 안 봤다
+  // (3) DASHBOARD 에 살아남는가
   const problems = renderProblems([{
     dept: 'cmo',
-    steps: [{ step_key: 'commit_cases', status: 'ok', counts: res.counts, detail: res.detail }],
+    steps: [{ step_key: 'commit_cases', status: 'blocked', blocker: res.blocker, counts: res.counts, detail: res.detail }],
   }])
   eq('부분실패 — DASHBOARD 문제 목록에 한 줄 뜬다', problems.length, 1)
   check('부분실패 — DASHBOARD 줄에 건수와 사유가 있다',
-    /부분 실패 1건/.test(problems[0]) && problems[0].includes('validate exit 1'), problems[0])
+    /2건 중 1건/.test(problems[0]) && problems[0].includes('validate exit 1'), problems[0])
+
+  // ★ 그물: 규약(counts.partial_failed)을 따르면서 ok 로 나가는 스텝이 생기면
+  //   그것도 DASHBOARD 에 뜬다. 옛 renderProblems 는 ok 스텝을 아예 안 봤다.
+  const quiet = renderProblems([{
+    dept: 'cmo',
+    steps: [{ step_key: 'somewhere_else', status: 'ok', counts: { partial_failed: 2 }, detail: { errors: ['a: exit 1', 'b: exit 2'] } }],
+  }])
+  eq('부분실패 — ok 인데 partial_failed 가 있으면 그것도 뜬다', quiet.length, 1)
+  check('부분실패 — 그 줄은 스텝 판정이 ok 임을 밝힌다', /스텝 판정은 ok/.test(quiet[0]), quiet[0])
   eq('부분실패 — 전건 성공 스텝은 DASHBOARD 에 안 뜬다',
     renderProblems([{ dept: 'cmo', steps: [{ step_key: 'x', status: 'ok', counts: { partial_failed: 0 } }] }]).length, 0)
   eq('부분실패 — counts 가 아예 없는 옛 이벤트도 안전하다(종전 동작)',
@@ -1005,6 +1062,42 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   const vocab = new Set(['done', 'failed', 'skipped', null])
   check('큐해소 — status 어휘를 새로 만들지 않는다',
     [...plan, ...none, ...unknown, ...two].every((p) => vocab.has(p.status)))
+
+  // ── 스텝 판정 (queueStepOutcome) ─────────────────────────────────────
+  //
+  // 깨끗하게 닫지 못했으면 ok 가 아니라 blocked 다 (2026-09-12, commit_cases 와 같은 원칙).
+  {
+    const cleanQ = queueStepOutcome({ attempted: 2, done: 2, failed: 0, unknown: 0, stalled: 0, errors: [] })
+    eq('큐해소 판정 — 전부 깨끗하게 닫으면 ok', cleanQ.status, 'ok')
+    eq('큐해소 판정 — ok 면 blocker 를 만들지 않는다', cleanQ.blocker, undefined)
+
+    // 초안 0건이라 failed 로 닫은 행은 정상적인 음성이다 (09-10 manual 이 그랬다).
+    const negative = queueStepOutcome({ attempted: 2, done: 1, failed: 1, unknown: 0, stalled: 0, errors: [] })
+    eq('큐해소 판정 — "조사했으나 근거 없음" 은 blocked 가 아니다(매일 ▲ 가 뜨면 아무도 안 본다)', negative.status, 'ok')
+
+    // 초안은 났는데 적립에서 죽어 큐를 닫은 경우 = 소재를 잃었다. 사람이 봐야 한다.
+    const stalledQ = queueStepOutcome({ attempted: 2, done: 1, failed: 1, unknown: 0, stalled: 1, errors: [] })
+    eq('큐해소 판정 — 초안이 났는데 적립에서 막힌 행이 있으면 blocked', stalledQ.status, 'blocked')
+    check('큐해소 판정 — blocker 가 비어 있지 않다', String(stalledQ.blocker ?? '').trim().length > 0, stalledQ.blocker)
+
+    const unknownQ = queueStepOutcome({ attempted: 1, done: 0, failed: 0, unknown: 1, stalled: 0, errors: [] })
+    eq('큐해소 판정 — 확인 불가로 남긴 행이 있으면 blocked', unknownQ.status, 'blocked')
+    check('큐해소 판정 — blocker 에 재claim 안내가 있다', /재claim/.test(unknownQ.blocker), unknownQ.blocker)
+
+    const errQ = queueStepOutcome({ attempted: 1, done: 1, failed: 0, unknown: 0, stalled: 0, errors: ['abc: resolve exit 2'] })
+    eq('큐해소 판정 — resolve 명령이 실패했으면 blocked', errQ.status, 'blocked')
+    check('큐해소 판정 — blocker 에 사유 원문이 있다', errQ.blocker.includes('resolve exit 2'), errQ.blocker)
+
+    for (const [name, o] of [['정상', cleanQ], ['음성', negative], ['적립 막힘', stalledQ], ['확인 불가', unknownQ], ['갱신 실패', errQ]]) {
+      check(`큐해소 판정 — ${name} 이 STEP_STATUS 어휘 안이다`, STEP_STATUS.includes(o.status), o.status)
+      eq(`큐해소 판정 — ${name} 이 validateStep 을 통과한다`,
+        validateStep({ status: o.status, blocker: o.blocker, stepKey: 'queue_resolve', label: '조사 큐 정리', seq: 5 }).join('|'), '')
+    }
+    check('큐해소 판정 — counts 에 시도·성공이 둘 다 있다',
+      stalledQ.counts.queue_attempted === 2 && stalledQ.counts.queue_done === 1, JSON.stringify(stalledQ.counts))
+    eq('큐해소 판정 — 기존 키 queue_done/queue_failed 를 유지한다',
+      `${cleanQ.counts.queue_done}/${cleanQ.counts.queue_failed}`, '2/0')
+  }
 
   // ★ 변이 테스트 — 소스에서 순번 매칭이 정말 사라졌는지.
   //   ⚠️ 주석 줄은 뺀다. 이 리포는 "과거에 어떻게 틀렸는가"를 주석에 원문 그대로

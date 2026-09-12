@@ -337,15 +337,7 @@ async function main() {
   //   09-11 크론에서 hoka 가 validate exit 1 로 죽고 pets.com 만 통과했는데
   //   대시보드는 10/10 완료로 찍혔고, DB 를 직접 열기 전엔 아무도 몰랐다.
   //
-  //   **pass/fail 판정은 그대로 둔다.** 1건이라도 성공하면 여전히 ok 다 —
-  //   스니펫 하나로 야간 루프를 세우는 건 별개 결정이고 승인되지 않았다.
-  //   대신 실패가 **보이게** 한다: `counts.partial_failed` 로 올려 DIGEST
-  //   스코어보드·DASHBOARD 문제 목록·run.json 까지 살아남게 한다.
-  //
-  //   ⚠️ `attempted` 라는 키를 쓰지 않는다. state.counts 는 스텝별 counts 를
-  //   **평탄하게 병합**하는데, S2 research 가 이미 `attempted` 를 쓴다. 같은
-  //   키를 쓰면 뒤 스텝이 앞 스텝 값을 조용히 덮어써 DIGEST 가 엉뚱한 수를
-  //   보여준다. 그래서 `commit_attempted` 로 네임스페이스를 나눈다.
+  //   판정은 `commitOutcome()` 이 한다 (아래 헬퍼). 부분 실패는 `blocked` 다.
   let committedSlugs = []
   await runStep('commit_cases', async () => {
     if (dryRun) return { status: 'skipped', detail: { reason: 'dry-run — DB 에 적립하지 않는다' } }
@@ -363,18 +355,7 @@ async function main() {
     //   아니라 "무엇이 됐나"를 알아야 큐 행에 사실을 적을 수 있다.
     committedSlugs = ok
     // 적립된 것은 전부 review_status='draft' 다. 이 스크립트는 승인 경로를 갖지 않는다.
-    if (!ok.length) {
-      return {
-        status: 'failed',
-        counts: { commit_attempted: newSlugs.length, committed: 0, partial_failed: errs.length },
-        detail: { error: errs.join(' | ') || '적립 0건', errors: errs },
-      }
-    }
-    return {
-      status: 'ok',
-      counts: { commit_attempted: newSlugs.length, committed: ok.length, all_draft: ok.length, partial_failed: errs.length },
-      detail: { errors: errs, committed_slugs: ok },
-    }
+    return commitOutcome({ attempted: newSlugs.length, committed: ok, errors: errs })
   })
 
   // ── S4 queue_resolve ────────────────────────────────────────
@@ -392,6 +373,9 @@ async function main() {
     let done = 0
     let failed = 0
     let unknown = 0
+    // 초안은 났는데 적립에서 죽어 큐 행이 닫히는 건수. "조사했으나 근거 없음"과
+    // 다르다 — 소재는 있는데 파이프라인이 놓친 것이라 사람이 봐야 한다.
+    const stalled = plan.filter((p) => p.status === 'failed' && p.slugs.length).length
     const errs = []
     for (const p of plan) {
       if (p.status === null) {
@@ -411,12 +395,11 @@ async function main() {
       else errs.push(`${p.id}: resolve exit ${r.code} ${tail(r.stderr, 160)}`)
     }
     if (done + failed + unknown === 0) return { status: 'failed', detail: { error: errs.join(' | ') || '큐 갱신 0건' } }
-    return {
-      status: 'ok',
-      // queue_unresolved 는 "확인 불가로 남긴 행"이다. 0 이 아니면 사람이 봐야 한다.
-      counts: { queue_done: done, queue_failed: failed, queue_unresolved: unknown, partial_failed: errs.length },
-      detail: { errors: errs, plan: plan.map((p) => ({ id: p.id, status: p.status, slugs: p.slugs })) },
-    }
+    return queueStepOutcome({
+      attempted: plan.length,
+      done, failed, unknown, stalled, errors: errs,
+      plan: plan.map((p) => ({ id: p.id, status: p.status, slugs: p.slugs })),
+    })
   })
 
   // ── S5 angle ────────────────────────────────────────────────
@@ -786,6 +769,108 @@ function stagedContentCodes(repoRoot) {
 }
 
 // ────────────────────────────────────────────────────────────
+// 부분 실패 판정 — `blocked` 를 쓴다
+// ────────────────────────────────────────────────────────────
+//
+// ★ 2026-09-12 결정 (앞선 지시를 뒤집은 것이라 이유를 남긴다) ────────────────
+//
+//   처음 지시는 "pass/fail 판정은 바꾸지 마라 — 1건이라도 성공하면 ok" 였다.
+//   철회됐다. 근거는 §7.1: 야간 루프를 세우지 않는 것과 **초록불로 보고하는
+//   것**은 다른 문제다. ok 로 나가면 사람이 그 위에 계속 쌓는다.
+//
+//   그렇다고 `partial` 이라는 스텝 상태를 새로 만들 수 없다. DB CHECK 가 막는다
+//   (`20260908000001_agent_ops.sql:94` — pending/running/ok/skipped/failed/blocked).
+//   추가하려면 마이그레이션이 필요하고 무인 루프에는 그 권한이 없다(§10.1).
+//
+//   `blocked` 가 정확히 이 자리다. 같은 마이그레이션의 컬럼 주석:
+//     "blocked 는 실패가 아니라 안전장치가 정상 작동한 상태다.
+//      성공으로도 세지 않는다 (§7.2)."
+//   validate 가 나쁜 초안을 걸러 낸 건 바로 그 경우다. 그리고 배선이 이미 다 돼
+//   있다 — `runStep` 은 blocked 에서 멈추지 않고(카운터만 올린다), 실행 레벨은
+//   `state.blocked > 0` 이면 자동으로 `partial`(종료코드 0)이 되며, DB CHECK
+//   `agent_run_steps_blocked_needs_blocker` 가 사유를 **강제**한다.
+//
+//   그래서 새 어휘를 만들지 않고 blocked 로 낸다. blocker 는 절대 비우지 않는다.
+
+/**
+ * S3 commit_cases 의 판정. 순수 함수 — 자식 프로세스를 안 띄우고 검증할 수 있다.
+ *
+ *   전멸(committed 0)  → failed  (종전과 같다)
+ *   일부 실패          → blocked (종전에는 ok 였다. 이게 바뀐 부분)
+ *   전건 성공          → ok      (종전과 같다)
+ *
+ * ⚠️ `attempted` 라는 **평탄한** 키를 쓰지 않고 `commit_attempted` 를 쓴다.
+ *    `state.counts` 는 스텝별 counts 를 Object.assign 으로 병합하는데 S2
+ *    research 가 이미 `attempted` 를 쓴다. 같은 이름을 쓰면 뒤 스텝이 앞 스텝
+ *    값을 조용히 덮어써 DIGEST 가 조사 시도 건수를 적립 시도 건수로 바꿔 버린다.
+ *    기존 키(`committed` · `all_draft`)는 그대로 두고 더하기만 한다 —
+ *    scoreboardRows 와 status-render 가 그 이름으로 읽는다.
+ */
+export function commitOutcome({ attempted = 0, committed = [], errors = [] } = {}) {
+  const ok = Array.isArray(committed) ? committed : []
+  const errs = (errors ?? []).filter(Boolean).map(String)
+  const counts = {
+    commit_attempted: attempted,
+    committed: ok.length,
+    all_draft: ok.length,
+    partial_failed: errs.length,
+  }
+  if (!ok.length) {
+    return { status: 'failed', counts, detail: { error: errs.join(' | ') || '적립 0건', errors: errs } }
+  }
+  if (errs.length) {
+    return {
+      status: 'blocked',
+      // 빈 문자열이면 DB CHECK 가 저장을 거부한다. 무엇이 몇 건 막혔는지 반드시 적는다.
+      blocker: `케이스 ${attempted}건 중 ${errs.length}건이 적립 전 검사에서 막혔다 — ${errs.join(' | ')}`,
+      counts,
+      detail: { errors: errs, committed_slugs: ok },
+    }
+  }
+  return { status: 'ok', counts, detail: { errors: [], committed_slugs: ok } }
+}
+
+/**
+ * S4 queue_resolve 의 판정. 같은 원칙 — 깨끗하게 닫지 못했으면 `blocked`.
+ *
+ * blocked 로 보는 것 세 가지:
+ *   unknown  매핑을 관측 못 해 resolve 하지 않은 행 (확인 불가 · §7.1)
+ *   stalled  초안은 났는데 적립에서 죽어 failed 로 닫은 행 (소재를 잃었다)
+ *   errors   resolve 명령 자체가 실패한 행 (큐 상태가 사실과 어긋난 채 남는다)
+ *
+ * ⚠️ 초안 0건이라 failed 로 닫은 행은 blocked 가 **아니다.** 그건 "조사했는데
+ *    쓸 만한 근거가 없었다"는 정상적인 음성이고, 09-10 manual 실행이 그렇게
+ *    끝났다. 그것까지 blocked 로 세면 거의 매일 ▲ 가 떠서 곧 아무도 안 본다.
+ *
+ * ⚠️ `research_queue.status` 어휘는 건드리지 않는다. 그건 별개 테이블의 CHECK 이고
+ *    여기서 정하는 것은 **스텝 상태**뿐이다.
+ */
+export function queueStepOutcome({ attempted = 0, done = 0, failed = 0, unknown = 0, stalled = 0, errors = [], plan = [] } = {}) {
+  const errs = (errors ?? []).filter(Boolean).map(String)
+  const counts = {
+    queue_attempted: attempted,
+    queue_done: done,
+    queue_failed: failed,
+    queue_unresolved: unknown,
+    queue_stalled: stalled,
+    partial_failed: unknown + stalled + errs.length,
+  }
+  const why = [
+    unknown ? `${unknown}건은 산출물을 관측 못 해 claimed 로 남겼다(다음 실행이 고아로 재claim 한다)` : null,
+    stalled ? `${stalled}건은 초안이 났는데 적립에서 막혀 큐를 failed 로 닫았다` : null,
+    errs.length ? `${errs.length}건은 큐 갱신 명령 자체가 실패했다 — ${errs.join(' | ')}` : null,
+  ].filter(Boolean)
+
+  if (!why.length) return { status: 'ok', counts, detail: { errors: errs, plan } }
+  return {
+    status: 'blocked',
+    blocker: `큐 ${attempted}건 중 깨끗하게 닫지 못한 것이 있다 — ${why.join(' · ')}`,
+    counts,
+    detail: { errors: errs, plan },
+  }
+}
+
+// ────────────────────────────────────────────────────────────
 // 큐 행 ↔ 산출 slug 대응
 // ────────────────────────────────────────────────────────────
 
@@ -1027,7 +1112,14 @@ export function recordStep(state, { key, label, status, blocker = null, counts =
 }
 
 /**
- * "ok 인데 일부가 죽은" 스텝들. run.json 의 steps 를 정본으로 본다.
+ * **조용히** 일부가 죽은 스텝들. run.json 의 steps 를 정본으로 본다.
+ *
+ * ⚠️ `blocked`·`failed` 로 이미 시끄럽게 뜬 스텝은 뺀다. 그 둘은 DIGEST 병목
+ *    진단에 `▲`/`❌` 로 blocker 와 함께 이미 나오고, 여기서 또 찍으면 같은 사건이
+ *    두 번 보인다. 중복은 곧 "다 아는 소리"가 되고, 그러면 진짜를 놓친다.
+ *    commit_cases·queue_resolve 는 2026-09-12 부터 blocked 로 나가므로 평소엔
+ *    이 목록이 비어 있다 — 규약(`counts.partial_failed`)을 따르면서 ok 로 나가는
+ *    **다른** 스텝이 생겼을 때를 위한 그물이다.
  *
  * ⚠️ `state.counts` 를 쓰지 않는 이유: state.counts 는 스텝별 counts 를 **평탄하게
  *    병합**해서 같은 키를 뒤 스텝이 덮어쓴다. commit_cases 와 queue_resolve 가
@@ -1035,7 +1127,7 @@ export function recordStep(state, { key, label, status, blocker = null, counts =
  */
 export function partialFailures(state = {}) {
   return (state.steps ?? [])
-    .filter((s) => Number(s?.partial_failed) > 0)
+    .filter((s) => Number(s?.partial_failed) > 0 && s?.status !== 'blocked' && s?.status !== 'failed')
     .map((s) => ({ key: s.key, label: s.label, n: s.partial_failed, errors: s.errors ?? [] }))
 }
 

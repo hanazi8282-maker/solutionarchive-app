@@ -61,7 +61,19 @@ export function renderRunLine(run, now = Date.now()) {
   return `- ${icon} **${run.dept}** \`${bar}\` ${okN}/${steps.length} · ${hhmm(run.started_at)}~${run.finished_at ? hhmm(run.finished_at) : '진행중'}${dry}${staleMark} · \`${run.run_key}\``
 }
 
-/** 막힌·실패한 스텝만 뽑아 사유와 함께. 정상 스텝은 한 줄도 찍지 않는다. */
+/**
+ * 막힌·실패한 스텝, 그리고 **ok 인데 일부가 죽은** 스텝을 사유와 함께.
+ * 아무 문제 없는 스텝은 한 줄도 찍지 않는다.
+ *
+ * ★ 세 번째 분기(부분 실패)를 2026-09-11 에 추가했다. 그날 cmo 루프의
+ *   `commit_cases` 는 2건 중 1건(hoka)이 validate exit 1 로 죽었는데 나머지
+ *   1건이 통과해 스텝 status 가 `ok` 였다. 이 함수가 ok 를 아예 안 보니
+ *   DASHBOARD 는 그 실행을 10/10 완료로만 표시했고, 실패 사실은 DB 를 직접
+ *   열기 전까지 어디에도 없었다.
+ *
+ *   판정(ok/failed)은 스텝이 정한다. 여기서 뒤집지 않는다 — **보이게만** 한다.
+ *   규약: `counts.partial_failed`(건수) + `detail.errors`(사유 배열).
+ */
 export function renderProblems(runs) {
   const out = []
   for (const run of runs) {
@@ -71,6 +83,10 @@ export function renderProblems(runs) {
       } else if (s.status === 'failed') {
         const why = s.detail?.error ?? s.detail?.reason ?? '사유 미기록'
         out.push(`- ✕ \`${run.dept}/${s.step_key}\` 실패 — ${why}`)
+      } else if (Number(s.counts?.partial_failed) > 0) {
+        const errs = Array.isArray(s.detail?.errors) ? s.detail.errors.filter(Boolean) : []
+        const why = errs.join(' | ') || s.detail?.error || '사유 미기록'
+        out.push(`- ◍ \`${run.dept}/${s.step_key}\` 부분 실패 ${s.counts.partial_failed}건 (스텝 판정은 ${s.status}) — ${why}`)
       }
     }
   }
@@ -87,7 +103,7 @@ export function renderDashboard(runs, { now = Date.now(), source = 'db', reason 
   const L = []
   L.push('# 에이전트 실행 상태')
   L.push('')
-  L.push(`_갱신 ${new Date(now).toISOString().slice(0, 16).replace('T', ' ')} UTC · 기호 ● 완료 ◐ 진행 ○ 대기·건너뜀 ✕ 실패 ▲ 막힘_`)
+  L.push(`_갱신 ${new Date(now).toISOString().slice(0, 16).replace('T', ' ')} UTC · 기호 ● 완료 ◐ 진행 ○ 대기·건너뜀 ✕ 실패 ▲ 막힘 ◍ 부분 실패(스텝은 ok)_`)
   L.push('')
 
   if (source !== 'db') {
@@ -112,11 +128,12 @@ export function renderDashboard(runs, { now = Date.now(), source = 'db', reason 
 
   const problems = renderProblems(runs)
   if (problems.length) {
-    L.push('## 막힘·실패')
+    L.push('## 막힘·실패·부분 실패')
     L.push('')
     L.push(...problems)
     L.push('')
     L.push('_▲ 막힘은 안전장치가 작동한 것이다. 실패도 성공도 아니다 — 사유를 보고 사람이 판단한다._')
+    L.push('_◍ 부분 실패는 스텝 판정이 ok 인데 일부 대상이 죽은 것이다. 초록불이라고 넘기지 마라 (§7.2)._')
     L.push('')
   }
 

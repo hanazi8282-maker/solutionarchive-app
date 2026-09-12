@@ -25,12 +25,14 @@ import {
   RESEARCH_TARGET, DRAFT_TARGET,
   buildDigest, perfFailure, recordStep, scoreboardRows, parsePerformance,
   buildDecisionLogEntries, stagedJobs, selectAngles,
+  nextContentSeq, contentCodeFor, writerPrompt, queueResolutions, partialFailures,
+  commitOutcome, queueStepOutcome,
 } from './cmo-daily.mjs'
 import { validateStep, createTracker, readEvents, STEP_STATUS } from './agent-status.mjs'
 import {
   buildPlan, enforceFailureQuota, coverageGaps, parseFrontmatter, setFrontmatterStatus, PAIRABLE_MIN,
 } from './research-queue.mjs'
-import { renderDashboard, renderRunLine, foldEvents, MARKS, STALE_MS } from './status-render.mjs'
+import { renderDashboard, renderRunLine, renderProblems, foldEvents, MARKS, STALE_MS } from './status-render.mjs'
 import { normalizeFacets } from './pmf-assess.mjs'
 import { buildChildEnv } from '../lib/insight/claude-cli.ts'
 
@@ -582,20 +584,61 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
 {
   const jobs = [
     { content_code: 'CS-20260908-01', case_slug: 'elf-beauty-awareness-engine', move_id: 'aaaa',
+      log_code: 'LOG-20260908-01',
       decision_doc: 'drafts/threads/2026-09-08-elf.md',
-      // 전례 인용으로 다른 날짜 LOG 코드가 앞에 섞여 있다 — 오늘 날짜 코드를 골라야 한다
+      // 전례 인용으로 다른 날짜 LOG 코드가 섞여 있다 — 이걸 자기 코드로 집으면 안 된다
       gate_note: 'G-4 예외(Casper LOG-20260907-05 전례) · CG-1 비대상 · LOG-20260908-01' },
     { content_code: 'CS-20260908-02', case_slug: 'blue-apron', move_id: 'bbbb',
+      log_code: 'LOG-20260908-02',
       decision_doc: 'drafts/threads/2026-09-08-blue-apron.md', gate_note: 'X-3 만남 · LOG-20260908-02' },
   ]
   const md = buildDecisionLogEntries({ date: '2026-09-08', runKey: 'cmo-2026-09-08-cron', jobs })
   const entryCount = (md.match(/^## /gm) || []).length
   eq('decision-log — 엔트리 수 == staged job 수', entryCount, jobs.length)
   check('decision-log — 헤더에 건수가 박힌다', md.includes(`스테이징한 초안 ${jobs.length}건`))
-  check('decision-log — gate_note 에서 LOG 코드를 뽑는다', /`LOG-20260908-01`/.test(md) && /`LOG-20260908-02`/.test(md))
-  check('decision-log — 전례 인용의 옛 날짜 LOG(20260907-05)가 아니라 오늘 코드를 고른다',
+  check('decision-log — job.log_code 를 그대로 쓴다', /`LOG-20260908-01`/.test(md) && /`LOG-20260908-02`/.test(md))
+  check('decision-log — 전례 인용의 옛 날짜 LOG(20260907-05)를 집지 않는다',
     !/판정 로그: `LOG-20260907-05`/.test(md))
   check('decision-log — 각 엔트리에 판정 전문 경로', md.includes('drafts/threads/2026-09-08-elf.md'))
+
+  // ★ 회귀 — 2026-09-11 / 09-09 오기 재현 ─────────────────────────────────
+  //
+  //   옛 코드는 log_code 필드를 **읽지 않고** gate_note 에서 정규식으로
+  //   `/LOG-\d{8}-\d+/g` 를 긁어 "오늘 날짜의 것, 없으면 맨 뒤의 것"을 골랐다.
+  //   기존 검사(위)는 자기 코드가 gate_note **맨 끝**에 있는 케이스만 봐서
+  //   이 실패 모드를 못 잡았다. 실제로 이렇게 틀렸다:
+  //     reports/2026-09-11/decision-log-entries.md — 피그마가 LOG-20260911-01.
+  //       실제 log_code 는 LOG-20260911-02 (ops/state/cmo-2026-09-11-cron-stage.json:21).
+  //       gate_note 에 "듀오링고 LOG-20260911-01 전례 승계"가 **같은 날짜**로
+  //       들어 있어서 날짜 필터가 무력했다.
+  //     reports/2026-09-09/decision-log-entries.md — 두 건 다 LOG-20260908-03.
+  //   DB 연결(post_decision_link)은 case-draft-stage.mjs:276 이 job.log_code 를
+  //   직접 써서 맞았다. 틀린 건 사람이 읽는 보고서뿐이었고, 그게 더 위험하다 —
+  //   사람이 그걸 정본 문서에 옮겨 적으면 그때 진짜 오염이 된다.
+  {
+    const figma = [{
+      content_code: 'CS-20260911-02', case_slug: 'figma-non-designer-distribution', move_id: 'cb7d',
+      log_code: 'LOG-20260911-02',
+      decision_doc: 'drafts/threads/2026-09-11-figma-non-designer-distribution.md',
+      // 같은 날짜의 **다른 건** 코드를 인용하고 있고, 자기 코드는 gate_note 에 없다.
+      gate_note: 'G-4 15자 예외(듀오링고 LOG-20260911-01 전례 승계) · X-2 솔파 채택',
+    }]
+    const fmd = buildDecisionLogEntries({ date: '2026-09-11', runKey: 'cmo-2026-09-11-cron', jobs: figma })
+    check('decision-log 회귀 — 같은 날짜의 남의 코드를 인용해도 자기 log_code 를 쓴다',
+      /판정 로그: `LOG-20260911-02`/.test(fmd), fmd)
+    check('decision-log 회귀 — 인용된 LOG-20260911-01 을 판정 로그로 집지 않는다',
+      !/판정 로그: `LOG-20260911-01`/.test(fmd), fmd)
+
+    // log_code 가 없으면 **추측하지 않는다** (§7.1 — 확인 불가를 양성으로 접지 않는다).
+    for (const [name, bad] of [['없음', undefined], ['빈 문자열', ''], ['공백만', '   '], ['숫자', 123]]) {
+      const nmd = buildDecisionLogEntries({
+        date: '2026-09-11', runKey: 'x',
+        jobs: [{ content_code: 'CS-20260911-03', case_slug: 's', move_id: 'm', log_code: bad, gate_note: 'LOG-20260911-01 전례' }],
+      })
+      check(`decision-log 회귀 — log_code ${name} 이면 gate_note 에서 추측하지 않는다`,
+        /판정 로그: \(미기재/.test(nmd) && !/판정 로그: `LOG-/.test(nmd), nmd)
+    }
+  }
 
   // ★ AC-13 정합: DIGEST 의 "붙여넣기 대기: N" 와 같은 정본(staged 카운트)을 쓴다
   const st = { blocked: 0, failed: 0, counts: { staged: jobs.length }, steps: [] }
@@ -746,6 +789,329 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
     selectAngles({ moves: [approved('short-slug')], draftFileNames: ['2026-09-07-short-slug.body.txt'], n: 2 }).warnings.length, 0)
 }
 
+
+// ════════════════════════════════════════════════════════════
+// 18) content_code 채번 — 하루 두 편이 같은 번호를 받지 않는가
+//
+// 그때 일어난 일: writerPrompt 가 `CS-<날짜>-01` 을 **문자열로 박아** 넘겼다.
+// 이 함수는 무브마다 독립 호출되므로 DRAFT_TARGET=2 인 정상적인 날마다 두
+// 무브가 똑같이 -01 을 지시받았다. 지시대로 따르면 조용히 덮어쓴다 —
+// case-draft-stage.mjs:167 의 content_items upsert 는 onConflict:'code' 라
+// 실패가 아니라 이전 행을 갈아 끼우고, :215~226 의 posts 도 content_code 로
+// 찾아 있으면 UPDATE 한다. 사고가 안 난 건 작가가 매번 손으로 재채번했기
+// 때문이다(09-07/08/09/10/11 전 배치). 사람 손이 안전장치였다는 뜻이다.
+// ════════════════════════════════════════════════════════════
+{
+  const D = '2026-09-11'
+  eq('채번 — 그날 코드가 하나도 없으면 1', nextContentSeq([], D), 1)
+  eq('채번 — 형식', contentCodeFor(D, 1), 'CS-20260911-01')
+  eq('채번 — 두 자리 제로패딩', contentCodeFor(D, 7), 'CS-20260911-07')
+
+  // 기존 코드가 있는 날은 그 다음 번호를 잡는다 (개수가 아니라 **최댓값**+1).
+  eq('채번 — 기존 최대 번호 다음을 잡는다', nextContentSeq(['CS-20260911-01', 'CS-20260911-02'], D), 3)
+  eq('채번 — 중간이 비어 있어도 최댓값 기준(개수 세기가 아니다)',
+    nextContentSeq(['CS-20260911-05'], D), 6)
+  eq('채번 — 순서가 뒤섞여 들어와도 최댓값을 잡는다',
+    nextContentSeq(['CS-20260911-03', 'CS-20260911-01', 'CS-20260911-02'], D), 4)
+
+  // 다른 날짜·다른 네임스페이스는 오늘 번호를 부풀리지 않는다.
+  eq('채번 — 다른 날짜 코드는 세지 않는다', nextContentSeq(['CS-20260910-09'], D), 1)
+  eq('채번 — LOG 코드가 섞여 있어도 무시한다', nextContentSeq(['LOG-20260911-04'], D), 1)
+  eq('채번 — 접두 위장(CS-202609110-01)을 세지 않는다', nextContentSeq(['CS-202609110-01'], D), 1)
+  eq('채번 — 꼬리가 숫자가 아니면 무시한다', nextContentSeq(['CS-20260911-0a', 'CS-20260911-1x'], D), 1)
+  eq('채번 — null/공백이 섞여도 죽지 않는다', nextContentSeq([null, '', '  ', undefined], D), 1)
+
+  // ⚠️ 세 자리 이상도 읽어야 한다. `\d{2}` 로 좁히면 100번 이후가 조용히
+  //    무시돼 99 를 계속 재사용한다 (= 덮어쓰기).
+  eq('채번 — 세 자리 번호도 읽는다', nextContentSeq(['CS-20260911-100'], D), 101)
+
+  // ★ 핵심 회귀: 하루에 무브가 둘이면 서로 **다른** 번호가 나가야 한다.
+  //   오케스트레이터는 seq 를 받아 무브마다 +1 한다 — 같은 실행 안의 앞선
+  //   무브를 세지 않으면 여기서 둘 다 -01 이 된다(옛 동작).
+  {
+    const existing = ['CS-20260911-01'] // 그날 이미 하나 쓰였다
+    let seq = nextContentSeq(existing, D)
+    const issued = []
+    for (const m of [{ slug: 'a', id: '1' }, { slug: 'b', id: '2' }]) {
+      issued.push(contentCodeFor(D, seq))
+      seq++
+      void m
+    }
+    eq('채번 회귀 — 같은 날 두 무브가 서로 다른 번호를 받는다', new Set(issued).size, 2)
+    eq('채번 회귀 — 기존 -01 다음부터 채번한다', issued.join(','), 'CS-20260911-02,CS-20260911-03')
+    check('채번 회귀 — 아무도 -01 을 다시 받지 않는다', !issued.includes('CS-20260911-01'), issued.join(','))
+  }
+
+  // 프롬프트가 계산된 코드를 그대로 싣고, 재채번을 금지하는가.
+  const m = { id: 'mv-1', slug: 'figma-non-designer-distribution', brand: 'Figma', bottleneck: 'CONVERSION', lever: 'PACKAGING', grade: 'C', direction: 'up', claim: 'x' }
+  const p = writerPrompt(m, D, 'CS-20260911-02')
+  check('채번 — writerPrompt 가 넘겨받은 코드를 그대로 싣는다', p.includes('"content_code": "CS-20260911-02"'), p.slice(-800))
+  check('채번 — writerPrompt 가 -01 을 박아 넣지 않는다', !p.includes('CS-20260911-01'))
+  check('채번 — 작가에게 재채번 금지를 명시한다', /재채번하지 마라/.test(p))
+
+  // ★ 변이 테스트 — 소스에 하드코딩된 `-01` 이 남아 있으면 잡는다.
+  const daily = fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')
+  check('채번 — 소스에 `CS-${...}-01` 하드코딩이 없다',
+    !/content_code:\s*`CS-\$\{[^}]*\}-01`/.test(daily))
+  // DB 조회 실패를 조용히 -01 로 접지 않는다 — 그게 지금 버그보다 나쁘다 (§7.1).
+  check('채번 — content_items 조회 실패는 스텝을 failed 로 끝낸다(기본값 폴백 없음)',
+    /content_items 채번 조회 실패[\s\S]{0,400}status: 'failed'|status: 'failed'[\s\S]{0,400}content_items 채번 조회 실패/.test(daily), '조회 실패 분기를 못 찾았다')
+}
+
+// ════════════════════════════════════════════════════════════
+// 19) 부분 실패가 초록불에 묻히지 않는가
+//
+// 그때 일어난 일 (2026-09-11 크론): commit_cases 가 2건 중 hoka 를 validate
+// exit 1 로 잃고 pets.com 만 통과했다. `ok === 0` 일 때만 failed 라 스텝은
+// `ok` 로 찍혔고, errs 는 detail.errors 에만 담겼는데 recordStep 이 exit·
+// blocker 만 뽑고 버려서 run.json·DIGEST·DASHBOARD 어디에도 안 남았다.
+// 대시보드는 그 실행을 10/10 완료로 표시했다.
+//
+// ★ 2026-09-12 판정 변경: 부분 실패는 `ok` 가 아니라 **`blocked`** 다.
+//   (처음 지시는 "ok 유지"였고 철회됐다 — §7.1. 초록불로 나가면 사람이 그 위에
+//   계속 쌓는다.) `partial` 이라는 스텝 상태는 만들 수 없다 — DB CHECK
+//   (20260908000001_agent_ops.sql:94) 가 6개 어휘만 받고, 늘리려면 마이그레이션이
+//   필요한데 무인 루프에 그 권한이 없다(§10.1). `blocked` 는 "안전장치가 정상
+//   작동한 상태"로 이미 정의돼 있고, 루프를 세우지 않으면서 실행 레벨을
+//   `partial`(종료코드 0)로 만든다.
+// ════════════════════════════════════════════════════════════
+{
+  // ── 판정 (commitOutcome) ─────────────────────────────────────────────
+  const HOKA = 'hoka-specialty-retail-awareness-engine'
+  const PETS = 'pets-com-mass-awareness-negative-margin'
+
+  // 09-11 재현: 2건 시도 · pets.com 만 적립 · hoka 는 validate exit 1
+  const part = commitOutcome({ attempted: 2, committed: [PETS], errors: [`${HOKA}: validate exit 1`] })
+  eq('부분실패 — 2건 중 1건 실패면 blocked (옛 동작은 ok 였다)', part.status, 'blocked')
+  check('부분실패 — blocker 가 비어 있지 않다 (DB CHECK 가 빈 값을 거부한다)',
+    typeof part.blocker === 'string' && part.blocker.trim().length > 0, JSON.stringify(part.blocker))
+  check('부분실패 — blocker 에 막힌 건수가 있다', /2건 중 1건/.test(part.blocker), part.blocker)
+  check('부분실패 — blocker 에 실패한 slug 와 사유가 있다',
+    part.blocker.includes(HOKA) && part.blocker.includes('validate exit 1'), part.blocker)
+  eq('부분실패 — counts 에 시도 건수가 남는다', part.counts.commit_attempted, 2)
+  eq('부분실패 — counts 에 성공 건수가 남는다', part.counts.committed, 1)
+  eq('부분실패 — 기존 키 all_draft 를 유지한다(대시보드·스코어보드 호환)', part.counts.all_draft, 1)
+  eq('부분실패 — counts 에 막힌 건수가 남는다', part.counts.partial_failed, 1)
+
+  // 경계: 전멸과 전건 성공은 종전 그대로다.
+  const dead = commitOutcome({ attempted: 2, committed: [], errors: [`${HOKA}: validate exit 1`, 'x: commit exit 2'] })
+  eq('부분실패 — 전멸은 여전히 failed', dead.status, 'failed')
+  check('부분실패 — 전멸 사유가 detail.error 에 남는다', dead.detail.error.includes('validate exit 1'))
+  const clean2 = commitOutcome({ attempted: 2, committed: [PETS, HOKA], errors: [] })
+  eq('부분실패 — 전건 성공은 여전히 ok', clean2.status, 'ok')
+  eq('부분실패 — 전건 성공이면 blocker 를 만들지 않는다', clean2.blocker, undefined)
+  eq('부분실패 — 전건 성공이면 partial_failed 0', clean2.counts.partial_failed, 0)
+  // 초안 0건이라 스텝이 아예 안 도는 경우는 호출부가 skipped 로 먼저 끊는다.
+  eq('부분실패 — 시도 0건은 failed (0건 성공이니 전멸과 같다)', commitOutcome({}).status, 'failed')
+
+  // ★ STEP_STATUS 어휘 밖 값을 만들지 않는가 — validateStep 을 실제로 태운다.
+  for (const [name, o] of [['부분 실패', part], ['전멸', dead], ['전건 성공', clean2]]) {
+    check(`부분실패 — ${name} 판정이 STEP_STATUS 어휘 안이다`, STEP_STATUS.includes(o.status), o.status)
+    eq(`부분실패 — ${name} 판정이 validateStep 을 통과한다`,
+      validateStep({ status: o.status, blocker: o.blocker, stepKey: 'commit_cases', label: '케이스 적립', seq: 4 }).join('|'), '')
+  }
+  // 변이 테스트 — blocker 를 지우면 validateStep 이 잡아야 한다(안 잡히면 이 검사가 무의미하다).
+  check('부분실패 — blocker 를 비우면 validateStep 이 거부한다',
+    validateStep({ status: 'blocked', blocker: '', stepKey: 'commit_cases', label: 'x', seq: 4 }).length > 0)
+
+  // blocked 는 루프를 세우지 않고 실행 레벨만 partial 로 만든다 (종료코드 0).
+  const runStatusOf = (s) => (s.failed > 0 ? 'failed' : s.blocked > 0 ? 'partial' : 'ok')
+  eq('부분실패 — blocked 1개면 실행 상태는 partial (failed 아님)', runStatusOf({ blocked: 1, failed: 0 }), 'partial')
+
+  // ── 기록·렌더 ────────────────────────────────────────────────────────
+  const st = { blocked: 0, failed: 0, counts: {}, steps: [] }
+  const res = part
+  Object.assign(st.counts, res.counts)
+  st.blocked++
+  recordStep(st, { key: 'commit_cases', label: '케이스 적립', status: res.status, blocker: res.blocker, counts: res.counts, detail: res.detail })
+
+  eq('부분실패 — state.failed 는 늘지 않는다(야간 루프를 세우지 않는다)', st.failed, 0)
+
+  // (1) recordStep 이 실패 상세를 버리지 않는다
+  const e = st.steps.find((s) => s.key === 'commit_cases')
+  eq('부분실패 — recordStep 이 partial_failed 를 보존한다', e.partial_failed, 1)
+  check('부분실패 — recordStep 이 실패 사유 원문을 보존한다',
+    e.errors?.[0]?.includes('validate exit 1'), JSON.stringify(e))
+  check('부분실패 — run.json 직렬화에 사유가 실린다',
+    JSON.stringify({ state: st }).includes('validate exit 1'))
+
+  // 기존 호출부 호환: counts 를 안 넘기면 종전대로 동작하고 0 으로 접지 않는다.
+  const st2 = { blocked: 0, failed: 0, counts: {}, steps: [] }
+  recordStep(st2, { key: 'digest', label: '다이제스트', status: 'ok', detail: {} })
+  eq('부분실패 — counts 미전달 호출부는 그대로 동작한다(partial_failed=null)', st2.steps[0].partial_failed, null)
+  eq('부분실패 — 사유가 없으면 errors 는 null (빈 배열로 접지 않는다)', st2.steps[0].errors, null)
+  eq('부분실패 — 부분 실패가 없으면 목록도 비어 있다', partialFailures(st2).length, 0)
+
+  // (2) DIGEST 에 살아남는가. runStep 이 실제로 찍는 로그 라인을 그대로 준다.
+  const runLog = [`- ▲ \`commit_cases\` 케이스 적립 (${JSON.stringify(res.counts)}) — ${res.blocker}`]
+  const digest = buildDigest({ date: '2026-09-11', runKey: 'cmo-2026-09-11-cron', state: st, log: runLog })
+  check('부분실패 — DIGEST TL;DR 이 막힌 단계를 알린다', /막힌 단계 1개/.test(digest), digest.slice(0, 900))
+  check('부분실패 — DIGEST 스코어보드가 시도 대비 부족을 표시한다',
+    /적립\(committed\): 1건 — ⚠️ 시도 2건 중 1건 실패/.test(digest), digest.slice(0, 1600))
+  check('부분실패 — DIGEST 병목 진단에 blocker 원문이 실린다',
+    digest.includes(HOKA) && digest.includes('validate exit 1'), digest)
+  check('부분실패 — "막히거나 실패한 단계 없음" 을 찍지 않는다',
+    !digest.includes('막히거나 실패한 단계 없음'), digest)
+  // blocked 는 이미 ▲ 로 시끄럽다. 같은 사건을 ◍ 로 한 번 더 찍지 않는다.
+  eq('부분실패 — blocked 스텝은 조용한 부분 실패 목록에서 뺀다(중복 방지)', partialFailures(st).length, 0)
+
+  // 아무 문제 없는 날에는 이 줄들이 안 나와야 한다(소음 방지 · 종전 동작 유지).
+  const clean = { blocked: 0, failed: 0, counts: { commit_attempted: 2, committed: 2 }, steps: [] }
+  recordStep(clean, { key: 'commit_cases', label: '적립', status: 'ok', counts: { commit_attempted: 2, committed: 2, partial_failed: 0 }, detail: { errors: [] } })
+  const cleanDigest = buildDigest({ date: '2026-09-11', runKey: 'x', state: clean, log: [] })
+  check('부분실패 — 전건 성공이면 경고를 찍지 않는다', !/부분 실패|⚠️ 시도/.test(cleanDigest), cleanDigest.slice(0, 1600))
+  check('부분실패 — 전건 성공이면 종전대로 "막히거나 실패한 단계 없음"', cleanDigest.includes('막히거나 실패한 단계 없음'))
+
+  // (3) DASHBOARD 에 살아남는가
+  const problems = renderProblems([{
+    dept: 'cmo',
+    steps: [{ step_key: 'commit_cases', status: 'blocked', blocker: res.blocker, counts: res.counts, detail: res.detail }],
+  }])
+  eq('부분실패 — DASHBOARD 문제 목록에 한 줄 뜬다', problems.length, 1)
+  check('부분실패 — DASHBOARD 줄에 건수와 사유가 있다',
+    /2건 중 1건/.test(problems[0]) && problems[0].includes('validate exit 1'), problems[0])
+
+  // ★ 그물: 규약(counts.partial_failed)을 따르면서 ok 로 나가는 스텝이 생기면
+  //   그것도 DASHBOARD 에 뜬다. 옛 renderProblems 는 ok 스텝을 아예 안 봤다.
+  const quiet = renderProblems([{
+    dept: 'cmo',
+    steps: [{ step_key: 'somewhere_else', status: 'ok', counts: { partial_failed: 2 }, detail: { errors: ['a: exit 1', 'b: exit 2'] } }],
+  }])
+  eq('부분실패 — ok 인데 partial_failed 가 있으면 그것도 뜬다', quiet.length, 1)
+  check('부분실패 — 그 줄은 스텝 판정이 ok 임을 밝힌다', /스텝 판정은 ok/.test(quiet[0]), quiet[0])
+  eq('부분실패 — 전건 성공 스텝은 DASHBOARD 에 안 뜬다',
+    renderProblems([{ dept: 'cmo', steps: [{ step_key: 'x', status: 'ok', counts: { partial_failed: 0 } }] }]).length, 0)
+  eq('부분실패 — counts 가 아예 없는 옛 이벤트도 안전하다(종전 동작)',
+    renderProblems([{ dept: 'cmo', steps: [{ step_key: 'x', status: 'ok' }] }]).length, 0)
+}
+
+// ════════════════════════════════════════════════════════════
+// 20) queue_resolve — 일어나지 않은 적립을 "완료"로 기록하지 않는가
+//
+// 그때 일어난 일 (2026-09-11 크론 cmo-2026-09-11-cron):
+//   claimed  = [A: failure_quota(hoka), B: coverage_gap(pets.com)]
+//   newSlugs = ['hoka-…', 'pets-com-…']   ← listJson 이 **알파벳순**으로 준다
+//   commit   = hoka validate exit 1 실패 / pets.com 만 적립 → ok = 1
+//   옛 코드  = `produced = i < casesCommitted` · `slug = newSlugs[i]`
+//   결과     = 행 A(hoka) → status 'done', notes "hoka … 적립"
+//              행 B(pets.com) → status 'failed', "쓸 만한 근거를 못 찾았다"
+//   둘 다 사실과 반대다. 그리고 'done' 은 고아 재claim 대상이 아니라
+//   (research-queue.mjs:310 "failed/done/skipped 는 집지 않는다") AWARENESS
+//   실패사례 슬롯이 존재하지도 않는 케이스에 영구 소진됐다.
+//
+//   순번 매칭이 성립하려면 `claimed` 순서 == `newSlugs` 순서여야 하는데
+//   전자는 priority·created_at 순, 후자는 파일명순이라 아무 관계가 없다.
+//   그래서 순번을 버리고 **생성 시점 차분**으로 관측한 매핑을 넘겨받는다.
+// ════════════════════════════════════════════════════════════
+{
+  const RK = 'cmo-2026-09-11-cron'
+  const A = { id: '3422879f', brand_name: '미정 (실패/피벗/철수 사례)', reason: 'failure_quota', notes: 'AWARENESS 실패 할당' }
+  const B = { id: '5b3142c7', brand_name: 'Pets.com', reason: 'coverage_gap', notes: null }
+  const HOKA = 'hoka-specialty-retail-awareness-engine'
+  const PETS = 'pets-com-mass-awareness-negative-margin'
+
+  const plan = queueResolutions({
+    claimed: [A, B],
+    producedByItem: new Map([[A.id, [HOKA]], [B.id, [PETS]]]),
+    committedSlugs: [PETS], // hoka 는 validate exit 1 로 죽어 case_studies 에 없다
+    runKey: RK,
+  })
+  const byId = Object.fromEntries(plan.map((p) => [p.id, p]))
+
+  eq('큐해소 회귀 — 적립 실패한 hoka 행은 done 이 아니다', byId[A.id].status, 'failed')
+  eq('큐해소 회귀 — 적립 성공한 pets.com 행은 done 이다', byId[B.id].status, 'done')
+  check('큐해소 회귀 — done 노트에 실제 적립된 slug 가 박힌다', byId[B.id].note.includes(PETS), byId[B.id].note)
+  check('큐해소 회귀 — 적립 안 된 slug 를 "적립"이라고 적지 않는다',
+    !/적립/.test(byId[A.id].note.replace('적립 실패', '')), byId[A.id].note)
+  check('큐해소 회귀 — hoka 노트는 "근거를 못 찾았다"가 아니라 "적립 실패"다',
+    byId[A.id].note.includes('적립 실패') && !byId[A.id].note.includes('쓸 만한 근거를 못 찾았다'), byId[A.id].note)
+  check('큐해소 — 기존 notes 를 지우지 않고 앞에 붙인다', byId[A.id].note.startsWith('AWARENESS 실패 할당 | '), byId[A.id].note)
+
+  // ★ 순번 우연 일치에 기대지 않는지 — 순서를 뒤집어도 결과가 같아야 한다.
+  const flipped = queueResolutions({
+    claimed: [B, A],
+    producedByItem: new Map([[A.id, [HOKA]], [B.id, [PETS]]]),
+    committedSlugs: [PETS], runKey: RK,
+  })
+  eq('큐해소 회귀 — claim 순서를 뒤집어도 hoka 는 failed', flipped.find((p) => p.id === A.id).status, 'failed')
+  eq('큐해소 회귀 — claim 순서를 뒤집어도 pets.com 은 done', flipped.find((p) => p.id === B.id).status, 'done')
+
+  // 조사 자체가 아무것도 못 낸 항목 = **관측된 음성**. failed 가 맞다.
+  const none = queueResolutions({ claimed: [A], producedByItem: new Map([[A.id, []]]), committedSlugs: [], runKey: RK })
+  eq('큐해소 — 초안 0건이면 failed', none[0].status, 'failed')
+  check('큐해소 — 초안 0건의 사유는 "근거를 못 찾았다"', none[0].note.includes('쓸 만한 근거를 못 찾았다'), none[0].note)
+
+  // ⚠️ 매핑 엔트리가 **아예 없는** 것은 음성이 아니라 확인 불가 (§7.1).
+  //    조사 루프가 이 항목까지 못 갔다는 뜻이라 resolve 하면 안 된다 —
+  //    claimed 로 남겨야 다음 실행이 고아로 재claim 한다.
+  const unknown = queueResolutions({ claimed: [A], producedByItem: new Map(), committedSlugs: [], runKey: RK })
+  eq('큐해소 — 매핑이 없으면 status 를 정하지 않는다(확인 불가)', unknown[0].status, null)
+  eq('큐해소 — 확인 불가는 노트도 쓰지 않는다(추측 금지)', unknown[0].note, null)
+  check('큐해소 — 확인 불가 사유가 기록된다', /관측하지 못했다/.test(unknown[0].reason), unknown[0].reason)
+  check('큐해소 — 빈 배열(음성)과 엔트리 없음(확인 불가)을 가른다', none[0].status !== unknown[0].status)
+
+  // 한 항목이 초안 2건을 냈고 그중 1건만 적립된 경우 — done 이되 적립된 것만 적는다.
+  const two = queueResolutions({
+    claimed: [A], producedByItem: new Map([[A.id, ['x-slug', 'y-slug']]]), committedSlugs: ['y-slug'], runKey: RK,
+  })
+  eq('큐해소 — 2건 중 1건 적립이면 done', two[0].status, 'done')
+  check('큐해소 — done 노트에 적립 안 된 slug 를 적지 않는다',
+    two[0].note.includes('y-slug') && !two[0].note.includes('x-slug'), two[0].note)
+
+  // 새 status 어휘를 만들지 않았는지 (research-queue.mjs 가 받는 것은 3개뿐).
+  const vocab = new Set(['done', 'failed', 'skipped', null])
+  check('큐해소 — status 어휘를 새로 만들지 않는다',
+    [...plan, ...none, ...unknown, ...two].every((p) => vocab.has(p.status)))
+
+  // ── 스텝 판정 (queueStepOutcome) ─────────────────────────────────────
+  //
+  // 깨끗하게 닫지 못했으면 ok 가 아니라 blocked 다 (2026-09-12, commit_cases 와 같은 원칙).
+  {
+    const cleanQ = queueStepOutcome({ attempted: 2, done: 2, failed: 0, unknown: 0, stalled: 0, errors: [] })
+    eq('큐해소 판정 — 전부 깨끗하게 닫으면 ok', cleanQ.status, 'ok')
+    eq('큐해소 판정 — ok 면 blocker 를 만들지 않는다', cleanQ.blocker, undefined)
+
+    // 초안 0건이라 failed 로 닫은 행은 정상적인 음성이다 (09-10 manual 이 그랬다).
+    const negative = queueStepOutcome({ attempted: 2, done: 1, failed: 1, unknown: 0, stalled: 0, errors: [] })
+    eq('큐해소 판정 — "조사했으나 근거 없음" 은 blocked 가 아니다(매일 ▲ 가 뜨면 아무도 안 본다)', negative.status, 'ok')
+
+    // 초안은 났는데 적립에서 죽어 큐를 닫은 경우 = 소재를 잃었다. 사람이 봐야 한다.
+    const stalledQ = queueStepOutcome({ attempted: 2, done: 1, failed: 1, unknown: 0, stalled: 1, errors: [] })
+    eq('큐해소 판정 — 초안이 났는데 적립에서 막힌 행이 있으면 blocked', stalledQ.status, 'blocked')
+    check('큐해소 판정 — blocker 가 비어 있지 않다', String(stalledQ.blocker ?? '').trim().length > 0, stalledQ.blocker)
+
+    const unknownQ = queueStepOutcome({ attempted: 1, done: 0, failed: 0, unknown: 1, stalled: 0, errors: [] })
+    eq('큐해소 판정 — 확인 불가로 남긴 행이 있으면 blocked', unknownQ.status, 'blocked')
+    check('큐해소 판정 — blocker 에 재claim 안내가 있다', /재claim/.test(unknownQ.blocker), unknownQ.blocker)
+
+    const errQ = queueStepOutcome({ attempted: 1, done: 1, failed: 0, unknown: 0, stalled: 0, errors: ['abc: resolve exit 2'] })
+    eq('큐해소 판정 — resolve 명령이 실패했으면 blocked', errQ.status, 'blocked')
+    check('큐해소 판정 — blocker 에 사유 원문이 있다', errQ.blocker.includes('resolve exit 2'), errQ.blocker)
+
+    for (const [name, o] of [['정상', cleanQ], ['음성', negative], ['적립 막힘', stalledQ], ['확인 불가', unknownQ], ['갱신 실패', errQ]]) {
+      check(`큐해소 판정 — ${name} 이 STEP_STATUS 어휘 안이다`, STEP_STATUS.includes(o.status), o.status)
+      eq(`큐해소 판정 — ${name} 이 validateStep 을 통과한다`,
+        validateStep({ status: o.status, blocker: o.blocker, stepKey: 'queue_resolve', label: '조사 큐 정리', seq: 5 }).join('|'), '')
+    }
+    check('큐해소 판정 — counts 에 시도·성공이 둘 다 있다',
+      stalledQ.counts.queue_attempted === 2 && stalledQ.counts.queue_done === 1, JSON.stringify(stalledQ.counts))
+    eq('큐해소 판정 — 기존 키 queue_done/queue_failed 를 유지한다',
+      `${cleanQ.counts.queue_done}/${cleanQ.counts.queue_failed}`, '2/0')
+  }
+
+  // ★ 변이 테스트 — 소스에서 순번 매칭이 정말 사라졌는지.
+  //   ⚠️ 주석 줄은 뺀다. 이 리포는 "과거에 어떻게 틀렸는가"를 주석에 원문 그대로
+  //   적는 문화라, 옛 코드 조각(`i < casesCommitted`)이 설명으로 남아 있다.
+  //   그걸 세면 검사가 영원히 빨간불이 되고, 그러면 주석을 지우게 된다 —
+  //   검사 때문에 기록을 잃는 건 본말전도다.
+  const daily = fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')
+  const dailyCode = daily.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
+  check('큐해소 — 소스에 순번 매칭(i < casesCommitted)이 남아 있지 않다',
+    !/i\s*<\s*casesCommitted/.test(dailyCode))
+  check('큐해소 — 소스에 newSlugs[i] 로 slug 를 집는 코드가 없다', !/newSlugs\[i\]/.test(dailyCode))
+  check('큐해소 — 확인 불가 행은 resolve 를 호출하지 않는다',
+    /p\.status === null[\s\S]{0,600}continue/.test(daily))
+}
 
 // ════════════════════════════════════════════════════════════
 // 결과

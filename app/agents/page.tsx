@@ -323,7 +323,10 @@ export default async function AgentsPage() {
                 label: '승인 대기 초안', sub: 'posts · pending_review', x: queue.posts,
                 extra: <a href="/dashboard#drafts" style={{ fontSize: 13 }}>발행 기록에서 처리 →</a> as ReactNode,
               },
-              { label: '승인 대기 케이스', sub: 'case_studies · draft', x: queue.cases, extra: null as ReactNode },
+              {
+                label: '승인 대기 케이스', sub: 'case_studies · draft', x: queue.cases,
+                extra: <a href="/cases" style={{ fontSize: 13 }}>케이스 검수에서 처리 →</a> as ReactNode,
+              },
               {
                 label: '미해소 조사 큐', sub: 'research_queue · done·failed 제외', x: queue.research,
                 extra: queue.stuck === null

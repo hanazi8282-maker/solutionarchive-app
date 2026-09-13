@@ -6,7 +6,7 @@ import { EmptyState } from '../_ds/components/EmptyState'
 import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
 import {
   LOOPS, classify, renderStepBar, isStale, staleMinutes, truncate, cronToLabel,
-  UNAVAILABLE_TEXT, EMPTY_TEXT, PULL_GRACE_MS, nextDailyFire, pullState,
+  UNAVAILABLE_TEXT, EMPTY_TEXT, PULL_GRACE_MS, nextDailyFire, pullState, DAY_MS, statusAt, deltaText,
   type Classified, type LoopDef, type Step,
 } from '@/lib/agents/status'
 
@@ -293,29 +293,68 @@ export default async function AgentsPage() {
   const sb = await createClient()
 
   let cards: LoopCard[]
+  // prev = 어제 이 시각 건수. undefined = 되짚을 기록이 없는 지표, null = 되짚기 조회 실패. 둘 다 칸을 숨긴다.
+  type QueueCell = { cls: Classified; count: number; prev?: number | null }
   let queue: {
-    posts: { cls: Classified; count: number }
-    cases: { cls: Classified; count: number }
-    research: { cls: Classified; count: number }
+    posts: QueueCell
+    cases: QueueCell
+    research: QueueCell
     // null = 조회 실패. 전에는 0 으로 접혀 "초과 없음"과 구분되지 않았다(§7.1).
     stuck: number | null
   } | null = null
+  // 루프별 어제 이 시각 상태. undefined = 조회 실패(확인 불가).
+  let loopAt: Partial<Record<string, { status: string | null }>> = {}
 
   if (!sb) {
     const cls: Classified = { state: 'UNAVAILABLE', reason: 'env_missing', detail: null }
     cards = LOOPS.map((d) => blank(d, cls))
   } else {
-    const dayAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString()
-    const [cmo, insight, review, notion, posts, cases, research, stuckRes] = await Promise.all([
+    const dayAgo = new Date(now - DAY_MS).toISOString()
+    // 어제 이 시각 = dayAgo 이전에 시작한 마지막 실행. 상태는 statusAt 이 종료 시각으로 되짚는다.
+    const lastRunBefore = (key: string, cols: string) => {
+      const d = def(key)
+      let q = sb.from(d.table).select(cols).lte('started_at', dayAgo)
+      if (d.deptFilter) q = q.eq('dept', d.deptFilter)
+      return q.order('started_at', { ascending: false }).limit(1)
+    }
+    const [cmo, insight, review, notion, posts, cases, research, stuckRes, cmoAt, insightAt, reviewAt, casesAt, researchAt] = await Promise.all([
       loadCmo(sb, now), loadInsight(sb, now), loadReview(sb, now), loadNotion(sb, now),
       countOf(sb, 'posts', (q) => q.select('id', { count: 'exact' }).eq('status', 'pending_review').limit(1)),
       countOf(sb, 'case_studies', (q) => q.select('id', { count: 'exact' }).eq('review_status', 'draft').limit(1)),
       // 미해소 = 아직 사람/루프가 닫지 않은 것. done·failed 는 닫힌 것으로 본다.
       countOf(sb, 'research_queue', (q) => q.select('id', { count: 'exact' }).not('status', 'in', '(done,failed)').limit(1)),
       sb.from('research_queue').select('id', { count: 'exact' }).eq('status', 'claimed').lt('created_at', dayAgo).limit(1),
+      lastRunBefore('cmo', 'status,started_at,finished_at'),
+      lastRunBefore('insight', 'ok,started_at,finished_at'),
+      lastRunBefore('review', 'status,started_at,finished_at'),
+      // 어제 이 시각 draft 케이스 = 그때 이미 있었고, 지금도 draft 이거나 그 뒤에 결정됐다(reviewed_at).
+      // 한계: reviewed_at 없이 SQL 로 결정된 행은 "그 전에 결정"으로 센다. CLI·/cases 는 둘 다 찍는다.
+      sb.from('case_studies').select('id', { count: 'exact' }).lte('created_at', dayAgo)
+        .or(`review_status.eq.draft,reviewed_at.gt."${dayAgo}"`).limit(1),
+      // 어제 이 시각 미해소 = 그때 이미 있었고, done·failed 로 닫힌 시각(resolved_at)이 그 뒤이거나 아직 안 닫혔다.
+      // research-queue.mjs --resolve 가 status 와 resolved_at 을 같이 찍는다.
+      sb.from('research_queue').select('id', { count: 'exact' }).lte('created_at', dayAgo)
+        .or(`status.not.in.(done,failed),resolved_at.gt."${dayAgo}"`).limit(1),
     ])
     cards = [cmo, insight, review, notion]
-    queue = { posts, cases, research, stuck: stuckRes.error || stuckRes.count == null ? null : stuckRes.count }
+    const countAt = (r: { error: unknown; count: number | null }) => (r.error || r.count == null ? null : r.count)
+    queue = {
+      posts, // prev 없음 — posts 는 상태가 바뀐 시각을 남기지 않는다.
+      cases: { ...cases, prev: countAt(casesAt) },
+      research: { ...research, prev: countAt(researchAt) },
+      stuck: stuckRes.error || stuckRes.count == null ? null : stuckRes.count,
+    }
+    const t = now - DAY_MS
+    type RunAt = { status?: string | null; ok?: boolean | null; started_at?: string | null; finished_at?: string | null }
+    const at = (r: { error: unknown; data: unknown }, fromOk = false) => {
+      if (r.error || !Array.isArray(r.data)) return undefined
+      const run = r.data[0] as RunAt | undefined
+      if (!run) return { status: null }
+      // 인사이트 루프는 status 컬럼이 없다 — 카드와 같은 규칙(ok → ok, 아니면 failed)으로 옮긴다.
+      return { status: statusAt(fromOk ? { ...run, status: run.ok ? 'ok' : 'failed' } : run, t) }
+    }
+    // 노션 카드는 실행 상태가 없어 실패·실행중에 들어가지 않는다 — 어제도 마찬가지다.
+    loopAt = { cmo: at(cmoAt), insight: at(insightAt, true), review: at(reviewAt), notion: { status: null } }
   }
 
   const total = cards.length
@@ -327,6 +366,17 @@ export default async function AgentsPage() {
   const readN = total - naN
   const scope = naN === 0 ? `루프 ${total}개 중` : `조회된 ${readN}개 중 (확인 불가 ${naN}개 제외)`
   const counted = (n: number) => (readN === 0 ? '—' : n)
+
+  // 전일 대비는 지금 센 루프와 같은 집합으로만 비교한다. 그중 하나라도 어제 상태를 못 읽었으면 표시하지 않는다.
+  const readAt = cards.filter((c) => c.cls.state !== 'UNAVAILABLE')
+    .map((c) => (c.cls.state === 'EMPTY' ? { status: null } : loopAt[c.def.key]))
+  const atOk = readN > 0 && readAt.every(Boolean)
+  const prevBad = atOk ? readAt.filter((a) => a!.status === 'failed' || a!.status === 'blocked').length : null
+  const prevRunning = atOk ? readAt.filter((a) => a!.status === 'running').length : null
+  const withDelta = (base: string, cur: number, prev: number | null) => {
+    const d = deltaText(cur, prev)
+    return d ? <>{base}<br />{d}</> : base
+  }
 
   return (
     <PageShell maxWidth={1040}>
@@ -344,17 +394,21 @@ export default async function AgentsPage() {
 
       {/* 막힌 루프가 먼저 보이게 — 실패·막힘과 응답 없음이 앞, 확인 불가는 별도 칸. */}
       <StatGrid min={160}>
-        <StatTile label="실패·막힘" value={counted(badN)} tone={badN > 0 ? 'danger' : undefined} caption={scope} href="#loops" />
+        <StatTile label="실패·막힘" value={counted(badN)} tone={badN > 0 ? 'danger' : undefined} caption={withDelta(scope, badN, prevBad)} href="#loops" />
         <StatTile label="응답 없음 (5분+)" value={counted(staleN)} tone={staleN > 0 ? 'warning' : undefined} caption={scope} href="#loops" />
-        <StatTile label="실행 중" value={counted(runningN)} tone={runningN > 0 ? 'info' : undefined} caption={scope} href="#loops" />
+        <StatTile label="실행 중" value={counted(runningN)} tone={runningN > 0 ? 'info' : undefined} caption={withDelta(scope, runningN, prevRunning)} href="#loops" />
         <StatTile label="확인 불가" value={naN} tone={naN > 0 ? 'danger' : undefined} caption={`루프 ${total}개 중`} href="#loops" />
       </StatGrid>
+      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)' }}>
+        전일 대비 — 실패·막힘과 실행 중은 실행 시작·종료 시각으로 어제 이 시각 상태를 되짚는다(어제 상태를 못 읽은 루프가 있으면 생략).
+        응답 없음은 그 시점의 스텝 갱신 기록이 남지 않고, 확인 불가는 지금 조회의 성질이라 표시하지 않는다.
+      </p>
 
       {/* 사람 대기함 — 에이전트가 만들고 사람 결정을 기다리는 것. */}
       <Card
         id="queue"
         title="사람 대기함"
-        subtitle="에이전트가 만들어 두고 사람 결정을 기다리는 항목"
+        subtitle="에이전트가 만들어 두고 사람 결정을 기다리는 항목 · 전일 대비는 케이스(결정 시각)·조사 큐(해소 시각)만 — 초안 검토 대기는 상태가 바뀐 시각이 남지 않아 생략"
         bodyStyle={{ padding: 0 }}
       >
         {!queue ? (
@@ -465,14 +519,20 @@ export default async function AgentsPage() {
   )
 }
 
-function cell(x: { cls: Classified; count: number }) {
+function cell(x: { cls: Classified; count: number; prev?: number | null }) {
   if (x.cls.state === 'UNAVAILABLE') {
     return <span style={{ fontSize: 13, color: 'var(--danger-fg)' }}>{UNAVAILABLE_TEXT[x.cls.reason ?? 'query_failed']}</span>
   }
-  if (x.cls.state === 'EMPTY') return <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>0건 (조회 정상)</span>
+  // prev 가 undefined(되짚을 기록 없음)·null(되짚기 실패)이면 변화 줄을 그리지 않는다.
+  const d = x.prev == null ? null : deltaText(x.count, x.prev)
+  const delta = d && <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>{d}</span>
+  if (x.cls.state === 'EMPTY') return <><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>0건 (조회 정상)</span>{delta}</>
   return (
-    <b style={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-strong)' }}>
-      {x.count}건
-    </b>
+    <>
+      <b style={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-strong)' }}>
+        {x.count}건
+      </b>
+      {delta}
+    </>
   )
 }

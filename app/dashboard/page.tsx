@@ -158,6 +158,11 @@ export default async function DashboardPage() {
           caption={postsOk ? (posts.length >= 50 ? '최근 발행 50건까지만 불러옴' : '발행 완료로 기록된 글 전체') : '발행 글 목록을 읽지 못함'}
         />
       </StatGrid>
+      {/* 전일 대비를 붙이지 않은 이유. 되짚을 수 없는 값을 0·"변화 없음"으로 채우지 않는다(§7.1). */}
+      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)' }}>
+        전일 대비 없음 — 세 숫자 모두 어제 이 시각 값을 되짚을 기록이 없다. 안 붙은 발행 글은 Threads 실시간 조회라 과거 값이 없고,
+        초안·발행 글 수는 글 상태가 바뀐 시각이 남지 않는다(발행일시는 Threads 게시 시각이지 초안에 연결된 시각이 아니다).
+      </p>
 
       <Card
         id="unlinked"

@@ -43,6 +43,8 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { resolveClaudeBinary, runClaude } from '../lib/insight/claude-cli.ts'
 import { createTracker } from './agent-status.mjs'
+// 토큰 없이 DB 기록만 읽는다. lib/threads/recent·token 을 여기서 import 하지 마라(§10.1).
+import { unlinkedDigestLine, UNLINKED_STEP_KEY } from '../lib/threads/unlinked-status.ts'
 
 // ────────────────────────────────────────────────────────────
 // 물량 — 첫 주는 2/2. 나중에 5/5 로 올릴 때는 이 값만 바꾼다.
@@ -1383,6 +1385,7 @@ export function buildDigest({
   date, runKey, dryRun = false, log = [], state = {}, stopped = null,
   perf = { coverage: null, coverageReason: '성과 원자료를 읽지 않았다', commentary: null },
   held = [], staged = [],
+  unlinked = { row: null, error: '조회하지 않았다' }, now = Date.now(),
 }) {
   const counts = state.counts ?? {}
   const waiting = counts.staged ?? 0
@@ -1409,7 +1412,9 @@ export function buildDigest({
       + (partialN > 0 ? ` ⚠️ 부분 실패 ${partialN}건 (${partials.map((p) => p.key).join(', ')}) — 스텝은 ok 지만 사람이 봐야 한다.` : '')}`)
   L.push(`2. ${blocked > 0 ? `막힌 단계 ${blocked}개 — 아래 "병목 진단"을 먼저 봐라. 안전장치가 작동한 것이지 사고가 아니다.` : '막힌 단계 없음.'}`)
   L.push(`3. ${failed > 0 ? `실패한 단계 ${failed}개 — 사람이 봐야 한다.` : (waiting > 0 ? `발행 대기 ${waiting}건. 앱에서 확인하고 직접 발행한다.` : '오늘 발행 대기 없음.')}`)
-  if (dryRun) L.push(`4. ${DRY_NOTE}. DB·git 에 쓰지 않았다.`)
+  // 매처가 못 붙인 발행 게시물. 늦으면 views_1h·24h 창을 영구히 놓친다(CS-20260910-01).
+  L.push(`4. ${unlinkedDigestLine(unlinked, now)}`)
+  if (dryRun) L.push(`5. ${DRY_NOTE}. DB·git 에 쓰지 않았다.`)
   L.push('')
 
   // ── 2) 스코어보드 ───────────────────────────────────────────
@@ -1504,6 +1509,7 @@ export async function writeDigest({ reportDir, date, runKey, dryRun, log = [], s
     perf: parsePerformance(perfRaw),
     held: heldMetrics(perfRaw),
     staged: stagedMetrics(repoRoot, runKey),
+    unlinked: await readUnlinkedCheck(),
   })
 
   fs.mkdirSync(reportDir, { recursive: true })
@@ -1516,6 +1522,25 @@ export async function writeDigest({ reportDir, date, runKey, dryRun, log = [], s
     buildDecisionLogEntries({ date, runKey, jobs: stagedJobs(repoRoot, runKey) }),
     'utf-8',
   )
+}
+
+/** 매처 크론이 남긴 최신 "안 붙은 게시물" 기록. 못 읽으면 error 를 채운다 — row:null 과 섞지 않는다. */
+async function readUnlinkedCheck() {
+  try {
+    const { createClient } = await import('../lib/supabase/server.ts')
+    const supabase = await createClient()
+    if (!supabase) return { row: null, error: 'Supabase 자격증명 미설정' }
+    const { data, error } = await supabase.from('agent_run_steps')
+      .select('status,counts,detail,updated_at')
+      .eq('step_key', UNLINKED_STEP_KEY)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+    if (error) return { row: null, error: `${error.code ?? ''} ${error.message}`.trim() }
+    if (!Array.isArray(data)) return { row: null, error: '응답에 행 배열이 없다' }
+    return { row: data[0] ?? null, error: null }
+  } catch (e) {
+    return { row: null, error: e.message }
+  }
 }
 
 async function flushSummary(log) {

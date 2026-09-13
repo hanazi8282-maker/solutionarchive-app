@@ -30,7 +30,8 @@
 //      3. insight_loop_runs 로그 — 매 실행이 무엇을 바꿨는지 행으로 남는다
 
 import type { createClient } from '../supabase/server'
-import { extractInsight, activeProvider } from './llm.ts'
+import { extractInsight, activeProvider, normalizePatternKey } from './llm.ts'
+import { buildEditPairs, repoDraftFinder, EDIT_KEY_PREFIX, EDIT_PATTERN_PREFIX } from './edit-pairs.ts'
 import { notionConfig, fetchPending, markSynced } from './notion.ts'
 import {
   decide,
@@ -154,6 +155,48 @@ export async function runInsightLoop(
     return { found: rows.length, inserted, missingProps, availableProps, dryRun }
   })
 
+  // ── 1-b) 수정 쌍 — 발행된 글마다 (초안 → 발행본) 을 분석 대기열에 올린다 ──
+  //
+  // 발행본이 정답이다(남헌 결정 2026-09-13). raw_text = 발행본, user_note = 초안.
+  // analyze 가 `edit:` 키를 보고 수정 학습 프롬프트로 돌린다. 새 테이블 없음.
+  // 초안을 못 찾은 글은 추측하지 않고 missing 으로 남긴다(§7.1).
+  await step('ingest_edits', async () => {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('content_code, body, published_at, permalink')
+      .eq('status', 'published')
+    if (error) throw new Error(`발행 글 조회 실패: ${error.message}`)
+
+    const { pairs, missing, unchanged } = buildEditPairs(data ?? [], repoDraftFinder(process.cwd()))
+    const failures: string[] = []
+    for (const p of pairs) {
+      if (dryRun) continue
+      const stamp = new Date().toISOString()
+      const { error: uErr } = await supabase.from('saved_examples').upsert(
+        {
+          notion_page_id: p.key,
+          source_url: p.permalink,
+          raw_text: p.published,
+          user_note: p.draft,
+          saved_at: p.publishedAt ?? stamp,
+          synced_at: stamp,
+        },
+        // 이미 있는 쌍은 건드리지 않는다. 덮어쓰면 analyzed 행의 근거가 바뀐 채 남는다.
+        { onConflict: 'notion_page_id', ignoreDuplicates: true },
+      )
+      if (uErr) failures.push(`${p.contentCode}: ${uErr.message}`)
+    }
+    if (failures.length) throw new Error(`수정 쌍 저장 실패 ${failures.length}/${pairs.length} — ${failures.join(' | ')}`)
+
+    return {
+      published: (data ?? []).length,
+      pairs: pairs.map((p) => `${p.contentCode} ← ${p.draftSource}`),
+      missing,
+      unchanged,
+      dryRun,
+    }
+  })
+
   // ── 2) 분석 — pending 저장 글을 LLM 으로 구조 분석 ─────────────
   const analyzed: Array<{
     id: string
@@ -197,12 +240,22 @@ export async function runInsightLoop(
 
     for (const row of rows) {
       try {
+        // 수정 쌍은 수정 패턴끼리만 뭉친다. 저장 글 패턴과 key 를 섞으면
+        // "남의 좋은 글"과 "발행자의 수정"이 한 근거로 합산된다.
+        const isEdit = String(row.notion_page_id ?? '').startsWith(EDIT_KEY_PREFIX)
+        if (isEdit && !row.user_note?.trim()) throw new Error('수정 쌍인데 초안(user_note)이 비었다')
         const result = await extractInsight({
           rawText: row.raw_text ?? '',
           sourceUrl: row.source_url,
-          userNote: row.user_note,
-          knownKeys: [...knownKeys],
+          userNote: isEdit ? null : row.user_note,
+          draftText: isEdit ? row.user_note : null,
+          knownKeys: [...knownKeys].filter((k) => k.startsWith(EDIT_PATTERN_PREFIX) === isEdit),
         })
+        if (isEdit !== result.pattern_key.startsWith(EDIT_PATTERN_PREFIX)) {
+          result.pattern_key = isEdit
+            ? normalizePatternKey(EDIT_PATTERN_PREFIX + result.pattern_key)
+            : normalizePatternKey(`saved-${result.pattern_key}`)
+        }
 
         if (!dryRun) {
           await supabase

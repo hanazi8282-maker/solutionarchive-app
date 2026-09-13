@@ -132,6 +132,13 @@ function summarizeDetail(name, d) {
   switch (name) {
     case 'ingest':
       return `발견 ${d.found} / 반영 ${d.inserted}`
+    case 'ingest_edits': {
+      // 초안을 못 찾은 발행 글은 한 줄씩 드러낸다 — 개수만 두면 학습이 조용히 굶는다.
+      const lines = [`발행 ${d.published} / 쌍 ${(d.pairs ?? []).length} / 초안 없음 ${(d.missing ?? []).length} / 수정 없음 ${(d.unchanged ?? []).length}`]
+      for (const p of d.pairs ?? []) lines.push(`  - ${p}`)
+      for (const m of d.missing ?? []) lines.push(`  - ⚠️ ${m}: 초안 파일 확인 불가 — drafts/threads/edit-pairs/${m}.draft.txt 로 복원하면 다음 밤 들어간다`)
+      return lines.join('\n')
+    }
     case 'analyze': {
       const base = `선택 ${d.picked} / 성공 ${d.succeeded} / 실패 ${d.failed} / 일반화가능 ${d.generalizable}`
       // 실패 사유를 여기서 버리면 요약에 "실패 1"만 남는다. 무엇을 고쳐야 할지

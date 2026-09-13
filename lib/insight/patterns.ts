@@ -226,7 +226,11 @@ export function renderLearnedPatterns(rows: PatternRow[]): string {
       `## ${r.title}`,
       '',
       `- **강조 수준**: ${label}`,
-      `- **근거 수**: 저장 글 ${r.evidence_count}건`,
+      // edit- 는 발행자가 초안을 고친 쌍에서 나온 규칙이다(lib/insight/edit-pairs.ts).
+      // 작가가 "남의 글 구조"와 "초안을 발행본으로 고치는 규칙"을 구분해 읽게 한다.
+      r.pattern_key.startsWith('edit-')
+        ? `- **근거 수**: 발행자 수정 ${r.evidence_count}건 (초안 → 발행본, 발행본이 정답)`
+        : `- **근거 수**: 저장 글 ${r.evidence_count}건`,
       r.insight_type ? `- **인사이트 유형**: ${r.insight_type}` : null,
       r.hypothesis_code ? `- **연결된 가설**: ${r.hypothesis_code}` : null,
       `- **패턴 키**: \`${r.pattern_key}\``,

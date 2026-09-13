@@ -42,6 +42,12 @@ export interface ExtractionInput {
    *    실측 근거: docs/review-collection-design.md §13.9 / §13.11.
    */
   knownKeys?: string[]
+  /**
+   * 있으면 **수정 학습 모드**다. rawText = 발행본(정답), draftText = 고치기 전 AI 초안.
+   * 뽑는 것은 "왜 좋은 글인가"가 아니라 "초안을 발행본으로 어떻게 고쳤는가"다.
+   * lib/insight/edit-pairs.ts 참조.
+   */
+  draftText?: string | null
 }
 
 export interface ExtractionResult {
@@ -77,7 +83,10 @@ export function normalizePatternKey(raw: string): string {
   return slug || 'unnamed-pattern'
 }
 
-function buildPrompt(input: ExtractionInput): string {
+export function buildPrompt(input: ExtractionInput): string {
+  const draft = input.draftText?.trim()
+  if (draft) return buildEditPrompt(input.rawText, draft, input.knownKeys ?? [])
+
   const note = input.userNote?.trim()
   const known = (input.knownKeys ?? []).filter(Boolean)
 
@@ -140,6 +149,50 @@ function buildPrompt(input: ExtractionInput): string {
   ]
     .filter(Boolean)
     .join('\n')
+}
+
+/**
+ * 수정 학습 프롬프트. **발행본이 정답**이라는 방향을 첫 줄에 못박는다.
+ * 출력 JSON 스키마는 저장 글 모드와 같다 — validateExtraction·patternize 를 그대로 쓴다.
+ */
+function buildEditPrompt(published: string, draft: string, knownKeys: string[]): string {
+  const known = knownKeys.filter(Boolean)
+  return [
+    '아래는 AI 작가가 쓴 Threads 초안과, 발행자가 그 초안을 직접 고쳐 실제로 발행한 최종본이다.',
+    '**최종본이 정답이다.** 초안이 틀렸고 최종본이 맞다. 초안을 옹호하거나 둘을 절충하지 마라.',
+    '작가가 다음부터 처음부터 최종본처럼 쓰려면 무엇을 바꿔야 하는지, 발행자의 수정 방식을',
+    '재사용 가능한 문체 규칙 하나로 뽑아라. 사실·수치의 옳고 그름은 판정하지 않는다.',
+    ...(known.length
+      ? [
+          '',
+          '이미 쓰이고 있는 수정 패턴 key 목록이다. 같은 수정 방식이면 그 key 를 문자 그대로 다시 써라.',
+          '다른 수정 방식이면 새 key 를 만든다. 억지로 끼워 맞추지 마라:',
+          ...known.map((k) => `- ${k}`),
+        ]
+      : []),
+    '',
+    '다음 JSON 만 출력하라. 코드펜스·설명·서론 없이 JSON 객체 하나만.',
+    '{',
+    '  "insight_type": "actionable|reframe|transferable_frame",',
+    '  "extracted_insight": "발행자가 초안에서 가장 크게 바꾼 것 한 문장",',
+    '  "pattern_title": "수정 규칙의 이름 (10자 내외)",',
+    '  "pattern_key": "영문 소문자 하이픈 slug, edit- 로 시작 (예: edit-declarative-to-conversational)",',
+    '  "extracted_pattern": "초안의 어떤 표현이 최종본에서 어떻게 바뀌었는지 — 어미·문장 길이·기호·훅·마무리 각각 초안 예시 → 최종본 예시로",',
+    '  "why_it_works": "발행자가 왜 그렇게 고쳤다고 볼 수 있는지 1~2문장",',
+    '  "is_generalizable": true 또는 false',
+    '}',
+    '',
+    'is_generalizable 은 이 수정이 다른 소재의 초안에도 똑같이 적용될 문체 규칙일 때만 true 다.',
+    '이 글의 소재에만 해당하는 수정이면 false 로 한다.',
+    '',
+    '--- 초안(고치기 전) 시작 ---',
+    draft,
+    '--- 초안 끝 ---',
+    '',
+    '--- 최종본(정답) 시작 ---',
+    published,
+    '--- 최종본 끝 ---',
+  ].join('\n')
 }
 
 /** 코드펜스·서론이 섞여 나와도 JSON 객체 하나를 건져낸다. */

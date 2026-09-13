@@ -195,6 +195,43 @@ function mk(key, title, status, strength, evidence) {
   }
 }
 
+// ── 수정 쌍 (초안 → 발행본) — 방향이 뒤집히지 않는가 ─────────────
+{
+  const { buildEditPairs, repoDraftFinder } = await import('../lib/insight/edit-pairs.ts')
+  const { buildPrompt } = await import('../lib/insight/llm.ts')
+
+  const drafts = { A: '초안이다. 전신형 단문.', U: '그대로 발행한 글' }
+  const find = (c) => (drafts[c] ? { text: drafts[c], source: `fake/${c}` } : null)
+  const r = buildEditPairs([
+    { content_code: 'A', body: '발행본이에요. 구어체죠?' },
+    { content_code: 'U', body: '그대로  발행한 글' },
+    { content_code: 'M', body: '초안 없는 글' },
+    { content_code: null, body: '코드 없음' },
+  ], find)
+  check('수정쌍 — 고친 글만 쌍이 된다', r.pairs.length === 1 && r.pairs[0].key === 'edit:A', JSON.stringify(r.pairs))
+  check('수정쌍 — published 는 posts.body(정답), draft 는 초안',
+    r.pairs[0].published === '발행본이에요. 구어체죠?' && r.pairs[0].draft === '초안이다. 전신형 단문.')
+  check('수정쌍 — 공백만 다른 글은 수정 없음', r.unchanged.join() === 'U', r.unchanged.join())
+  check('수정쌍 — 초안을 못 찾으면 추측하지 않고 missing', r.missing.join() === 'M', r.missing.join())
+
+  const p = buildPrompt({ rawText: '발행본이에요', draftText: '초안이다' })
+  check('수정쌍 프롬프트 — 최종본이 정답이라고 못박는다', p.includes('최종본이 정답이다'))
+  check('수정쌍 프롬프트 — 초안 블록이 먼저, 최종본 블록에 발행본',
+    p.indexOf('초안(고치기 전) 시작') < p.indexOf('최종본(정답) 시작') && /최종본\(정답\) 시작 ---\n발행본이에요/.test(p))
+  check('저장 글 프롬프트는 그대로', buildPrompt({ rawText: '남의 글' }).includes('사용자가 "인사이트가 있다"고 판단해 저장한'))
+
+  // 실제 리포 파일로 초안을 찾는다 — 두 전례 쌍이 각자 다른 경로로 잡혀야 한다.
+  const real = repoDraftFinder(process.cwd())
+  check('수정쌍 — CS-20260910-01 은 stage.json body_path 로 찾는다',
+    real('CS-20260910-01')?.source === 'drafts/threads/2026-09-10-slack-bottom-up-conversion.body.txt', real('CS-20260910-01')?.source)
+  check('수정쌍 — T3-1 은 복원한 원 초안(edit-pairs/)으로 찾는다',
+    real('T3-1')?.source === 'drafts/threads/edit-pairs/T3-1.draft.txt', real('T3-1')?.source)
+
+  const out = renderLearnedPatterns([mk('edit-x', '구어체로', 'reflected', 1, 2), mk('saved-y', '남의 훅', 'reflected', 1, 2)])
+  check('렌더 — edit- 패턴은 발행자 수정 근거로 표시', out.includes('발행자 수정 2건'))
+  check('렌더 — 저장 글 패턴 표기는 그대로', out.includes('저장 글 2건'))
+}
+
 console.log(`\n통과 ${passed}건`)
 if (failures.length) {
   console.error(`실패 ${failures.length}건:`)

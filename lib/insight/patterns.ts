@@ -100,6 +100,86 @@ export function isRendered(
 }
 
 /**
+ * 콘텐츠 판단 위계(정본: ops/roles/cmo.md "콘텐츠 판단 위계"). 번호가 작을수록 우선이다.
+ *   1 반응률 검증 — decide() 가 승격한 패턴(confirmed). edit- 도 승격되면 여기로 온다.
+ *   2 발행자 수정 — edit-. 반응률 근거가 없을 때 작가 기본값을 이긴다.
+ *   3 참고       — 저장 글 패턴, 반응률 판정 대기.
+ * 등급(strength)을 바꾸지 않는다. 이미 있는 status·key 로 읽기만 한다.
+ */
+export function verdictTier(r: Pick<PatternRow, 'pattern_key' | 'status'>): 1 | 2 | 3 {
+  if (r.status === 'confirmed') return 1
+  return r.pattern_key.startsWith('edit-') ? 2 : 3
+}
+
+const TIER_LABEL = { 1: '1 반응률 검증', 2: '2 발행자 수정 (반응률 판정 대기)', 3: '3 참고 (반응률 판정 대기)' }
+
+// ── 반응률 → 패턴 연결 ───────────────────────────────────────
+//
+// posts.hypothesis_code 는 글당 1개라 "이 초안에 적용한 패턴 여러 개"를 못 담고,
+// case-draft-stage.mjs 경로는 아예 비워 둔다. 그래서 가설 코드만으로는 edit- 패턴이
+// 반응률 판정을 받을 길이 없다. 작가가 stage.json 에 남긴 applied_patterns 로
+// content_code 를 찾아 post_performance 에 붙인다. 새 컬럼 없음.
+
+export interface StageManifest {
+  content_code?: unknown
+  applied_patterns?: unknown
+}
+
+/** pattern_key → 그 패턴을 적용한 content_code 들. applied_patterns 가 없는 매니페스트는 unrecorded(확인 불가). */
+export function appliedPatternIndex(manifests: StageManifest[]): {
+  byKey: Map<string, Set<string>>
+  unrecorded: string[]
+} {
+  const byKey = new Map<string, Set<string>>()
+  const unrecorded: string[] = []
+  for (const m of manifests) {
+    const code = typeof m.content_code === 'string' ? m.content_code : null
+    if (!code) continue
+    // 필드가 없으면 "적용 안 함"이 아니라 "기록 없음"이다. 음성으로 접지 않는다(§7.1).
+    if (!Array.isArray(m.applied_patterns)) { unrecorded.push(code); continue }
+    for (const k of m.applied_patterns) {
+      if (typeof k !== 'string' || !k.trim()) continue
+      if (!byKey.has(k.trim())) byKey.set(k.trim(), new Set())
+      byKey.get(k.trim())!.add(code)
+    }
+  }
+  return { byKey, unrecorded }
+}
+
+export interface PerfRow {
+  content_code: string | null
+  hypothesis_code: string | null
+  reply_rate: number | null
+  spread_multiple: number | null
+}
+
+/** 한 패턴의 표본 = 연결된 가설의 글 ∪ 그 패턴을 적용했다고 기록된 글. 한 글은 한 번만 센다. */
+export function perfRowsForPattern<T extends PerfRow>(
+  rows: T[],
+  hypothesisCode: string | null,
+  appliedCodes: Set<string> | undefined,
+): T[] {
+  return rows.filter(
+    (r) =>
+      (hypothesisCode !== null && r.hypothesis_code === hypothesisCode) ||
+      (r.content_code !== null && !!appliedCodes?.has(r.content_code)),
+  )
+}
+
+/** post_performance 행(views_24h 있는 것만 넘긴다) → PerfSummary. */
+export function summarizePerf(rows: PerfRow[]): PerfSummary {
+  const avg = (vals: Array<number | null>): number | null => {
+    const nums = vals.filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
+    return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null
+  }
+  return {
+    sampleSize: rows.length,
+    avgReplyRate: avg(rows.map((r) => r.reply_rate)),
+    avgSpreadMultiple: avg(rows.map((r) => r.spread_multiple)),
+  }
+}
+
+/**
  * 반영된 패턴의 성과를 보고 승격/기각/보류를 정한다.
  *
  * baseline 은 같은 채널의 전체 평균이다. 절대값으로 판정하면 계정이 성장하는
@@ -192,10 +272,12 @@ export const LEARNED_PATTERNS_PATH = 'content/guides/learned-patterns.md'
 export const REJECTED_PATTERNS_PATH = 'content/corpus/rejected-patterns.md'
 
 function sortForRender(rows: PatternRow[]): PatternRow[] {
-  // strength 내림차순 → evidence 내림차순 → key 사전순.
+  // 위계 오름차순 → strength 내림차순 → evidence 내림차순 → key 사전순.
+  // 위계가 먼저인 이유: 근거 많은 edit- 가 반응률 검증 패턴 위로 올라가면 작가가 순서를 우선순위로 읽는다.
   // 마지막 key 정렬이 동점일 때의 순서를 고정한다.
   return [...rows].sort(
     (a, b) =>
+      verdictTier(a) - verdictTier(b) ||
       b.strength - a.strength ||
       b.evidence_count - a.evidence_count ||
       a.pattern_key.localeCompare(b.pattern_key),
@@ -223,8 +305,13 @@ export function renderLearnedPatterns(rows: PatternRow[]): string {
     '- **권장** — 개선이 확인됨. 소재에 맞으면 우선 고려한다.',
     '- **참고** — 성과 검증 대기 중. 참고만 한다.',
     '',
-    '단, 근거 수가 "발행자 수정 N건"인 패턴(키 edit-)은 발행자가 직접 고친 방향이라',
-    '강조 수준과 근거 수에 관계없이 초안 문체에 먼저 적용한다. 발행본이 정답이다.',
+    '패턴끼리 부딪히면 **위계** 번호가 작은 쪽을 따른다 (정본: ops/roles/cmo.md "콘텐츠 판단 위계"). 위에서부터 이 순서로 실린다.',
+    '',
+    '- **1 반응률 검증** — 발행 성과로 승격된 패턴. 발행자 수정보다 앞선다.',
+    '- **2 발행자 수정** — 키 edit-. 반응률 근거가 없을 때 작가 기본값보다 앞선다. 이것도 반응률로 기각된다.',
+    '- **3 참고** — 저장 글 패턴, 반응률 판정 대기.',
+    '',
+    '초안에 적용한 패턴 키는 stage.json 의 applied_patterns 에 남긴다. 반응률 판정이 그 목록으로 발행글을 찾는다.',
     '',
   ]
 
@@ -247,6 +334,7 @@ export function renderLearnedPatterns(rows: PatternRow[]): string {
       `## ${r.title}`,
       '',
       `- **강조 수준**: ${label}`,
+      `- **위계**: ${TIER_LABEL[verdictTier(r)]}`,
       // edit- 는 발행자가 초안을 고친 쌍에서 나온 규칙이다(lib/insight/edit-pairs.ts).
       // 작가가 "남의 글 구조"와 "초안을 발행본으로 고치는 규칙"을 구분해 읽게 한다.
       r.pattern_key.startsWith('edit-')

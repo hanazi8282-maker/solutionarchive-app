@@ -613,6 +613,10 @@ export default function AnalyzeAnglesPage() {
   }, [projectId])
 
   useEffect(() => {
+    // load() 첫 줄의 setLoading(true) 가 동기라 규칙에 걸린다. projectId 가 바뀔
+    // 때마다 다시 불러오면서 로딩 표시를 켜야 하므로 useState 초기값으로는
+    // 대체되지 않는다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (projectId) load()
   }, [projectId, load])
 

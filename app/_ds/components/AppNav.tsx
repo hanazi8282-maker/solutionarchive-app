@@ -11,7 +11,8 @@ import { usePathname } from 'next/navigation'
 const LINKS = [
   { href: '/dashboard', match: '/dashboard', label: '발행 기록' },
   { href: '/agents', match: '/agents', label: '에이전트' },
-  { href: '/analyze/new', match: '/analyze', label: '소구점 분석' },
+  // 목록(/analyze)이 입구다. 새 분석은 목록 상단 버튼에서 간다.
+  { href: '/analyze', match: '/analyze', label: '소구점 분석' },
 ] as const
 
 export function AppNav() {

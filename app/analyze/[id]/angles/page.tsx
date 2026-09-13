@@ -11,6 +11,7 @@ import { EmptyState } from '../../../_ds/components/EmptyState'
 import { Field, Textarea } from '../../../_ds/components/Field'
 import { PageHeader, PageShell } from '../../../_ds/components/Shell'
 import {
+  ANGLE_READY_STATUSES,
   ANGLE_TYPE_LABELS,
   OUTPUT_TYPE_LABELS,
   PERSONA_ROLE_LABELS,
@@ -68,7 +69,7 @@ type ProjectRow = {
 }
 
 // 앵글이 만들어지려면 검수가 끝나 있어야 한다(status 전이: reviewed → angled → done).
-const ANGLE_READY = ['reviewed', 'angled', 'done']
+const ANGLE_READY = ANGLE_READY_STATUSES
 
 // 사분면 중 이 화면에 노출하지 않는 것. 카피 소재가 아니다.
 const HIDDEN_QUADRANTS: Quadrant[] = ['OVER_INVESTED', 'IGNORE']

@@ -304,6 +304,19 @@ Dothegy 를 가리키므로 매번 확인이 필요하다. 적용 직후 파일 
 `oqr_answer_shape`, `oqr_complete_shape` 2회, `..._picked_side_check`).
 테스트 행 삭제 후 잔여 0행 확인. 이 테이블을 쓰는 PR #50 은 적용한 뒤에 머지했다.
 
+2026-09-14, 남헌 명시적 승인 — 같은 원칙에 대한 1회성 예외. **이번 1건에 한정**한다.
+마이그레이션 1건을 클로드코드(CEO-STAFF 세션)가 직접 적용함:
+
+- `20260914000001_case_review_note.sql` (PR #80)
+  — `case_moves` 에 `review_note`·`reviewed_by`(text)·`reviewed_at`(timestamptz), `case_studies` 에 `review_note`(text) 추가.
+    ADD COLUMN IF NOT EXISTS 만, 기존 행 변경 없음. 롤백 파일 `..._rollback.sql` 동봉.
+
+적용 전 `list_projects` 로 대상이 solutionarchive(`qmgrfqjfxqhxuufrnkwf`)이고 dothegy-os 가 아님을 확인.
+적용 전 음성 확인: 새 컬럼 0개. 적용 후 검증: **양성** 컬럼 4개·타입 일치, PostgREST GET 으로 새 컬럼 조회 200
+(대조군 없는 컬럼 400 42703) / **음성** `reviewed_at = not-a-time` → 22007 거부 / **기존 데이터 무변경**
+case_moves approved 30·draft 30, case_studies approved 15·draft 13 (전후 동일), 새 컬럼 비NULL 0행.
+참고: 이 시점 운영 앱은 로그인 없이 공개 상태라 /cases 결정 버튼이 인증 없이 열린다 — Google 로그인 PR 진행 중.
+
 **원칙 문구(§10.1) 자체는 변경하지 않는다. 다음 마이그레이션부터는 별도 승인이
 없는 한 다시 원칙대로 사람이 적용한다.**
 

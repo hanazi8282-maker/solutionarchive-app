@@ -230,6 +230,23 @@ function mk(key, title, status, strength, evidence) {
   const out = renderLearnedPatterns([mk('edit-x', '구어체로', 'reflected', 1, 2), mk('saved-y', '남의 훅', 'reflected', 1, 2)])
   check('렌더 — edit- 패턴은 발행자 수정 근거로 표시', out.includes('발행자 수정 2건'))
   check('렌더 — 저장 글 패턴 표기는 그대로', out.includes('저장 글 2건'))
+
+  // 발행자 수정은 1건이면 싣는다(남헌 결정 2026-09-13). 저장 글은 여전히 2건.
+  // patternize 가 새로 넣는 행 그대로다: candidate / strength 0 / 가설 없음.
+  const one = (key, title) => ({ ...mk(key, title, 'candidate', 0, 1), hypothesis_code: null })
+  const r1 = renderLearnedPatterns([one('edit-report-tone-to-spoken', '보고서체를 말로'), one('numbered-list-recall-question', '번호 목록 회상')])
+  check('렌더 — edit- 1건은 가이드에 실린다', r1.includes('보고서체를 말로'), r1)
+  check('렌더 — edit- 1건은 근거 수가 1건으로 드러난다', r1.includes('발행자 수정 1건'))
+  check('렌더 — edit- 1건은 참고로 시작한다', /보고서체를 말로\n\n- \*\*강조 수준\*\*: 참고/.test(r1))
+  check('렌더 — 저장 글 1건은 가이드에 안 실린다', !r1.includes('번호 목록 회상') && !r1.includes('numbered-list-recall-question'))
+  check('렌더 — 기각된 edit- 는 1건 규칙으로 되살아나지 않는다',
+    !renderLearnedPatterns([mk('edit-gone', '기각된 수정', 'rejected', 0, 1)]).includes('기각된 수정'))
+  check('렌더 — edit- 0건 후보는 안 실린다', !renderLearnedPatterns([mk('edit-zero', '빈 수정', 'candidate', 0, 0)]).includes('빈 수정'))
+  check('반영 문턱 — edit- 도 가설 발급은 여전히 2건부터', shouldReflect({ status: 'candidate', evidence_count: 1 }) === false)
+
+  const ep = buildPrompt({ rawText: '발행본', draftText: '초안', knownKeys: ['edit-report-tone-to-spoken'] })
+  check('수정쌍 프롬프트 — 기존 edit- key 를 넘긴다', ep.includes('- edit-report-tone-to-spoken'))
+  check('수정쌍 프롬프트 — key 는 방향만, 장치 이름은 넣지 말라고 지시', ep.includes('주된 방향 하나') && ep.includes('key 에 넣지 말고'))
 }
 
 console.log(`\n통과 ${passed}건`)

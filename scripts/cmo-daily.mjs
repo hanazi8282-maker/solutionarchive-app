@@ -361,13 +361,14 @@ async function main() {
     let seenCases = beforeCases
     for (const item of claimed) { // 순차. 병렬 금지 — 중복 slug 를 만든다.
       const prompt = researchPrompt(item, date, seenCases)
+      // 프롬프트는 stdin 으로 준다(lib/insight/claude-cli.ts RunClaudeOpts.input 참조).
       const r = await runClaude(claudeBin, [
-        '-p', prompt,
+        '-p',
         '--output-format', 'json',
         '--allowedTools', AGENT_TOOLS['sa-cmo-researcher'],
         '--permission-mode', 'acceptEdits',
         '--max-turns', '60',
-      ], { cwd: repoRoot, env: agentEnv, timeoutMs: 15 * 60_000 })
+      ], { cwd: repoRoot, env: agentEnv, timeoutMs: 15 * 60_000, input: prompt })
 
       if (r.exitCode === 0) done++
       else failures.push(`${item.brand_name}: exit ${r.exitCode}${r.timedOut ? '(timeout)' : ''} ${tail(r.stderr, 200)}`)
@@ -534,12 +535,12 @@ async function main() {
       // 놓았을 수 있어서, 되감으면 다음 무브가 그 파일을 덮어쓴다.
       seq++
       const r = await runClaude(claudeBin, [
-        '-p', writerPrompt(m, date, contentCode),
+        '-p',
         '--output-format', 'json',
         '--allowedTools', AGENT_TOOLS['sa-cmo-writer'],
         '--permission-mode', 'acceptEdits',
         '--max-turns', '40',
-      ], { cwd: repoRoot, env: agentEnv, timeoutMs: 12 * 60_000 })
+      ], { cwd: repoRoot, env: agentEnv, timeoutMs: 12 * 60_000, input: writerPrompt(m, date, contentCode) })
       if (r.exitCode === 0) done++
       else failures.push(`${m.slug}/${m.lever}: exit ${r.exitCode}${r.timedOut ? '(timeout)' : ''}`)
     }
@@ -610,7 +611,7 @@ async function main() {
     }
 
     const r = await runClaude(claudeBin, [
-      '-p', analystPrompt(raw, date),
+      '-p',
       '--output-format', 'json',
       '--allowedTools', AGENT_TOOLS['sa-cmo-analyst'],
       // research/draft 스텝과 같은 권한 모드. 없으면 헤드리스 CI 에서 첫 Read 가
@@ -619,7 +620,7 @@ async function main() {
       // 무해하고 세 호출의 플래그를 일치시킨다.
       '--permission-mode', 'acceptEdits',
       '--max-turns', '12',
-    ], { cwd: repoRoot, env: agentEnv, timeoutMs: 8 * 60_000 })
+    ], { cwd: repoRoot, env: agentEnv, timeoutMs: 8 * 60_000, input: analystPrompt(raw, date) })
 
     if (r.exitCode !== 0) {
       state.perfNote = `analyst exit ${r.exitCode}`

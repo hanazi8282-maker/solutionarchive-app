@@ -261,6 +261,14 @@ export interface RunClaudeOpts {
   env?: Record<string, string | undefined>
   /** stream-json 라이브 파싱용. 완성된 stdout 줄마다 호출된다(누적 stdout 도 그대로 유지). */
   onStdoutLine?: (line: string) => void
+  /**
+   * 주면 stdin 으로 흘려보내고 닫는다. `claude -p` 는 프롬프트 인자가 없으면 stdin 을 읽는다.
+   *
+   * 프롬프트를 인자로 넘기지 않는 이유: Windows 에서 긴 한글 프롬프트를 인자로 주면
+   * exit 1 로 죽었다(2026-09-13, PR #62 로컬 실행). Ubuntu 는 한 인자 128KB 까지 되지만
+   * 로컬과 CI 가 다른 경로를 타면 로컬 검증이 CI 를 대변하지 못한다. 그래서 둘 다 stdin 이다.
+   */
+  input?: string
 }
 
 // claude 런타임이 반드시 필요로 하는 고정 변수. env 화이트리스트를 써도 이건 들어간다.
@@ -319,8 +327,18 @@ export async function runClaude(
       // ProcessEnv 가 순수 Record 가 아니다. 값 형태는 동일하므로 캐스팅한다.
       env: childEnv as NodeJS.ProcessEnv,
       cwd: opts.cwd ?? '/tmp',
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],
     })
+
+    // input 이 없으면 빈 채로 바로 닫는다 — 자식은 즉시 EOF 를 본다('ignore' 와 같은 효과).
+    // 자식이 먼저 죽으면 EPIPE 가 난다. 그 실패는 exit code 로 드러나니 여기서 삼킨다.
+    child.stdin.on('error', () => {})
+    child.stdin.end(opts.input ?? '', 'utf8')
+
+    // 청크마다 toString() 하면 한글(3바이트)이 청크 경계에서 잘려 U+FFFD 로 깨진다.
+    // insight-cli-selftest 가 76KB 한글 왕복에서 2글자 늘어난 것으로 잡았다. 디코더를 붙인다.
+    child.stdout.setEncoding('utf8')
+    child.stderr.setEncoding('utf8')
 
     let stdout = ''
     let stderr = ''

@@ -36,6 +36,7 @@ import { notionConfig, fetchPending, markSynced } from './notion.ts'
 import {
   decide,
   shouldReflect,
+  isRendered,
   renderLearnedPatterns,
   renderRejectedPatterns,
   LEARNED_PATTERNS_PATH,
@@ -160,6 +161,10 @@ export async function runInsightLoop(
   // 발행본이 정답이다(남헌 결정 2026-09-13). raw_text = 발행본, user_note = 초안.
   // analyze 가 `edit:` 키를 보고 수정 학습 프롬프트로 돌린다. 새 테이블 없음.
   // 초안을 못 찾은 글은 추측하지 않고 missing 으로 남긴다(§7.1).
+  //
+  // dry-run 은 저장하지 않으니 analyze 가 쌍을 못 본다. 그러면 dry-run 이 "오늘 밤 무엇이
+  // 커밋될지"를 보여주지 못한다. 그래서 dry 일 때만 쌍을 메모리로 analyze 에 넘긴다.
+  let dryEditRows: Array<{ id: string; notion_page_id: string; source_url: string | null; raw_text: string; user_note: string }> = []
   await step('ingest_edits', async () => {
     const { data, error } = await supabase
       .from('posts')
@@ -187,6 +192,15 @@ export async function runInsightLoop(
       if (uErr) failures.push(`${p.contentCode}: ${uErr.message}`)
     }
     if (failures.length) throw new Error(`수정 쌍 저장 실패 ${failures.length}/${pairs.length} — ${failures.join(' | ')}`)
+    if (dryRun) {
+      dryEditRows = pairs.map((p) => ({
+        id: `dry:${p.key}`,
+        notion_page_id: p.key,
+        source_url: p.permalink,
+        raw_text: p.published,
+        user_note: p.draft,
+      }))
+    }
 
     return {
       published: (data ?? []).length,
@@ -224,17 +238,38 @@ export async function runInsightLoop(
       .select('pattern_key')
       .order('evidence_count', { ascending: false })
       .limit(KNOWN_KEY_LIMIT)
+    // edit- key 는 따로 읽는다. 위 상위 N개는 근거 순이라, 저장 글 패턴이 N개를 넘으면
+    // 근거 1건짜리 edit- key 가 전부 잘려 수정 쌍이 기존 key 를 영영 못 본다.
+    const { data: editKeyRows, error: editKeyErr } = await supabase
+      .from('insight_patterns')
+      .select('pattern_key')
+      .like('pattern_key', `${EDIT_PATTERN_PREFIX}%`)
+      .order('evidence_count', { ascending: false })
+      .limit(KNOWN_KEY_LIMIT)
 
     // 키 목록을 못 읽었으면 조용히 빈 목록으로 넘어가지 않는다. 그대로 두면
     // "수렴이 안 되는" 실행이 정상처럼 보인다 (CLAUDE.md §7.1).
-    if (keyErr) throw new Error(`기존 pattern_key 조회 실패: ${keyErr.message}`)
+    if (keyErr || editKeyErr) throw new Error(`기존 pattern_key 조회 실패: ${(keyErr ?? editKeyErr)!.message}`)
 
     // 같은 배치 안에서 방금 만들어진 key 도 뒤 글이 볼 수 있어야 한다.
     // DB 것만 넘기면 첫 배치(=DB 가 빈 상태)에서는 서로를 못 보고 갈린다.
-    const knownKeys = new Set<string>((keyRows ?? []).map((r) => r.pattern_key).filter(Boolean))
+    const knownKeys = new Set<string>(
+      [...(keyRows ?? []), ...(editKeyRows ?? [])].map((r) => r.pattern_key).filter(Boolean),
+    )
     const keyAssignments: Array<{ ref: string; key: string }> = []
 
-    const rows = data ?? []
+    const rows = [...(data ?? [])]
+    if (dryRun && dryEditRows.length) {
+      // 이미 저장된 쌍은 넣지 않는다. 실제 실행에서도 ignoreDuplicates 라 다시 분석되지 않는다.
+      // ponytail: ANALYZE_LIMIT 를 안 건다 — 쌍은 발행 글 수만큼이라 작다. 커지면 slice 한다.
+      const { data: have, error: haveErr } = await supabase
+        .from('saved_examples')
+        .select('notion_page_id')
+        .in('notion_page_id', dryEditRows.map((r) => r.notion_page_id))
+      if (haveErr) throw new Error(`수정 쌍 저장 여부 조회 실패: ${haveErr.message}`)
+      const stored = new Set((have ?? []).map((r) => r.notion_page_id))
+      rows.push(...dryEditRows.filter((r) => !stored.has(r.notion_page_id)))
+    }
     let failed = 0
     const failures: string[] = []
 
@@ -499,12 +534,37 @@ export async function runInsightLoop(
     const rejected = renderRejectedPatterns(rows)
 
     if (dryRun) {
+      // patternize 가 dry 라 DB 에 안 쓴 결과를 얹어, 오늘 밤 실제로 커밋될 파일을 본다.
+      // 규칙은 patternize 와 같다: 새 key = candidate/1건/strength 0, 기존 key = +1 후 shouldReflect.
+      // 가설 코드는 발급하지 않는다(dry). 발급 실패 시 반영 안 되는 분기는 흉내 내지 않는다.
+      const sim = rows.map((r) => ({ ...r }))
+      for (const a of analyzed) {
+        const hit = sim.find((r) => r.pattern_key === a.key)
+        if (!hit) {
+          sim.push({
+            pattern_key: a.key,
+            title: a.title,
+            description: a.description,
+            insight_type: a.insightType,
+            evidence_count: 1,
+            status: 'candidate',
+            strength: 0,
+            hypothesis_code: null,
+            rollback_reason: null,
+          })
+          continue
+        }
+        hit.evidence_count++
+        if (shouldReflect(hit) && !hit.hypothesis_code) Object.assign(hit, { status: 'reflected', strength: 1 })
+      }
+      const preview = renderLearnedPatterns(sim)
       return {
         dryRun: true,
-        learnedBytes: learned.length,
+        learnedBytes: preview.length,
         rejectedBytes: rejected.length,
-        activeCount: rows.filter((r) => r.strength >= 1 && r.status !== 'rejected').length,
-        preview: learned.slice(0, 600),
+        activeCount: sim.filter(isRendered).length,
+        changedVsDb: preview !== learned,
+        preview,
       }
     }
 

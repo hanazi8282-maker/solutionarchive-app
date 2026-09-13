@@ -89,6 +89,14 @@ if (result.decisions.length > 0) {
 }
 
 if (dryRun) {
+  // 오늘 밤 커밋될 learned-patterns.md 전문. dry 라 파일도 DB 도 안 건드린다.
+  const preview = result.steps.find((s) => s.name === 'reflect')?.detail?.preview
+  if (preview) {
+    say('')
+    say('### learned-patterns.md 렌더 미리보기')
+    say('')
+    say(preview)
+  }
   say('')
   say('**판정만 했다. 실제 반영은 dry-run 을 끄고 실행한다.**')
 }

@@ -86,8 +86,9 @@ if (!bin) {
   // "돌았다"고 착각하기 쉬워서, 정답이 하나뿐인 걸 묻는다.
   const r = await runClaude(
     bin,
-    ['-p', 'Reply with exactly one word, nothing else: the result of 6 times 7.'],
-    { timeoutMs: 180_000 },
+    // 실제 루프와 같은 stdin 경로로 묻는다. 경로가 다르면 이 프로브가 루프를 대변하지 못한다.
+    ['-p'],
+    { timeoutMs: 180_000, input: 'Reply with exactly one word, nothing else: the result of 6 times 7.' },
   )
   const text = r.stdout.trim()
   const correct = /\b42\b/.test(text)

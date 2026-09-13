@@ -1,9 +1,10 @@
 /* ============================================================
-   Dothegy Works Design System — 라우트 공용 진입점.
+   Dothegy Works Design System — 앱 전역 진입점.
    원본: "Dothegy Works Design System/styles.css" (import-only).
-   이 파일을 import 한 라우트에만 적용된다(app/agents/page.tsx,
-   app/dashboard/page.tsx). `_ds` 는 밑줄로 시작해 App Router 가
-   라우트 세그먼트로 잡지 않는다.
+   app/layout.tsx 가 한 번 import 해서 모든 라우트에 적용된다
+   (전에는 /dashboard·/agents 만 import 해서 /analyze·/onboarding 은
+   토큰 없이 브라우저 기본 스타일로 떴다). `_ds` 는 밑줄로 시작해
+   App Router 가 라우트 세그먼트로 잡지 않는다.
    ============================================================ */
 
 @import "./tokens/fonts.css";
@@ -12,9 +13,53 @@
 @import "./tokens/spacing.css";
 @import "./tokens/base.css";
 
-/* 폼 컨트롤의 focus 상태. 인라인 스타일로는 :focus 를 표현할 수 없어서
-   이 한 규칙만 클래스로 둔다 (app/_ds/components/Field.tsx 가 붙인다). */
+/* 인라인 스타일로는 :hover / :focus / :has 를 표현할 수 없어서 이 몇 규칙만 클래스로 둔다. */
+
+/* 폼 컨트롤 focus (app/_ds/components/Field.tsx) */
 .dgy-field:focus {
   border-color: var(--ring);
   box-shadow: var(--shadow-focus);
 }
+
+/* 라디오·체크박스 타일 (Field.tsx Choice) */
+.dgy-choice:has(input:checked) {
+  border-color: var(--ring) !important;
+  background: var(--info-bg) !important;
+}
+.dgy-choice:has(input:focus-visible) {
+  box-shadow: var(--shadow-focus);
+}
+
+/* 버튼 모양 링크·링크 타일은 밑줄 대신 살짝 어둡게 (Button.tsx ButtonLink, Shell.tsx StatTile) */
+.dgy-btnlink:hover,
+.dgy-tile:hover {
+  text-decoration: none;
+  filter: brightness(0.97);
+}
+.dgy-tile:hover { border-color: var(--border-strong); }
+
+/* 상단 네비 (AppNav.tsx) */
+.dgy-nav a:hover { text-decoration: none; background: var(--sidebar-hover-bg); }
+.dgy-nav a[aria-current="page"]:hover { background: var(--sidebar-active-bg); }
+@media (max-width: 480px) {
+  .dgy-nav-brand { display: none; }
+}
+
+/* 접이식 섹션 요약줄 — 기본 삼각형 대신 44px 행 */
+.dgy-details > summary {
+  cursor: pointer;
+  min-height: var(--row-h);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-link);
+  list-style: none;
+}
+.dgy-details > summary::-webkit-details-marker { display: none; }
+.dgy-details > summary::before { content: "▸"; color: var(--text-muted); }
+.dgy-details[open] > summary::before { content: "▾"; }
+
+/* 앵커로 섹션에 뛰어갈 때 sticky 네비(52px)에 제목이 가리지 않게 */
+[id] { scroll-margin-top: 68px; }

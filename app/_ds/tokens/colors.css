@@ -41,11 +41,13 @@
   --amber-100: #fef3c7;
   --amber-500: #f59e0b;  /* 주의 / 70–99% */
   --amber-600: #d97706;
+  --amber-700: #b45309;  /* 앱 추가: warning 글자색 — 600 은 amber-50 위 대비 3:1 로 WCAG AA 미달 */
 
   --emerald-50:  #ecfdf5;
   --emerald-100: #d1fae5;
   --emerald-500: #10b981; /* 정상 / 완료 / 100%+ */
   --emerald-600: #059669;
+  --emerald-700: #047857; /* 앱 추가: success 글자색 — 600 은 emerald-50 위 대비 3.6:1 로 AA 미달 */
 
   --violet-50:  #f5f3ff;
   --violet-100: #ede9fe;
@@ -104,12 +106,12 @@
   --danger-border:var(--red-100);
 
   --warning:      var(--amber-500);
-  --warning-fg:   var(--amber-600);
+  --warning-fg:   var(--amber-700);
   --warning-bg:   var(--amber-50);
   --warning-border:var(--amber-100);
 
   --success:      var(--emerald-500);
-  --success-fg:   var(--emerald-600);
+  --success-fg:   var(--emerald-700);
   --success-bg:   var(--emerald-50);
   --success-border:var(--emerald-100);
 

@@ -27,6 +27,7 @@ import { matchMoves, demandAxis, precedentAxis, quadrantOf } from '../lib/cases/
 import {
   BUSINESS_MODEL, BUYER_TYPE, PURCHASE_FREQUENCY, PRICE_BAND, BOTTLENECK,
 } from '../lib/cases/draft.ts'
+import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 
 const VOCAB = {
   business_model: BUSINESS_MODEL,
@@ -70,6 +71,44 @@ export function normalizeFacets(input) {
   return { facets, notes }
 }
 
+/**
+ * 진단 1건 → Notion "일일 상태 로그" CTO 행 입력 (CLAUDE.md §11).
+ * 두 축 값과 각 축의 근거 문장을 같이 싣는다(CTO 헌장 산출물 규격). 단일 점수를 만들지 않는다.
+ * 사람판단필요는 항상 true — 진단은 사람의 진입 판단 입력이다.
+ * 날짜는 KST 오늘 — 수동 CLI 라 예정 크론이 없다(§11 제목 규칙).
+ */
+export function buildPmfEntry({ input = {}, match = null, demand = null, precedent = null, quad = null, savedId = null, errors = [], inputPath = null, now = new Date() }) {
+  const axis = (name, a) => (a
+    ? `${name} ${a.value === null || a.value === undefined ? '확인 불가' : Number(a.value).toFixed(3)} — ${a.reason}`
+    : null)
+  const done = [
+    `PMF 진단 — ${input?.item ?? '(아이템 미기재)'}${input?.market ? ` · ${input.market}` : ''}`,
+    match ? `매칭 ${match.status} — ${match.reason}` : '진단을 끝내지 못했다 (매칭 전 중단)',
+    axis('수요축', demand),
+    axis('선례축', precedent),
+    quad ? `사분면 ${quad.quadrant ?? '내지 않음'} — ${quad.reason}` : null,
+  ].filter(Boolean)
+  const blocked = [
+    ...errors,
+    demand && demand.value === null ? `수요축 확인 불가 — ${demand.reason}` : null,
+    precedent && precedent.value === null ? `선례축 확인 불가 — ${precedent.reason}` : null,
+  ].filter(Boolean).slice(0, 5)
+  const next = errors.length ? '오류 해소 후 같은 입력으로 재진단'
+    : !match || match.status === 'not_run' ? '선례 매칭 확인 불가 원인 해소 후 재진단'
+      : quad?.quadrant ? `사분면 ${quad.quadrant} 기준으로 진입 여부 판단 (두 축 근거 확인)`
+        : match.status === 'no_match' ? '선례 없음 — 직접 검증(소규모 테스트)을 설계할지 판단'
+          : '한 축이 확인 불가라 사분면 없음 — 빠진 축을 채운 뒤 판단'
+  return {
+    date: kstDate(now),
+    track: 'CTO',
+    done: done.join('\n'),
+    blocked: blocked.length ? blocked.join('\n') : '없음',
+    next,
+    needsHuman: true,
+    note: `pmf-assess.mjs · assessment ${savedId ?? '저장 안 됨'}${inputPath ? ` · 입력 ${inputPath}` : ''}`,
+  }
+}
+
 function isMain() {
   if (!process.argv[1]) return false
   try { return path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url)) }
@@ -106,12 +145,33 @@ if (isMain()) {
   const { facets, notes } = normalizeFacets(input)
   for (const n of notes) console.log(`⚠️ ${n}`)
 
+  // ── Notion 일일 상태 로그 (CTO 트랙, CLAUDE.md §11) ─────────────
+  // 진단을 시작한 뒤의 모든 종료는 finish() 를 지난다. 로컬에는 NOTION_API_TOKEN 이 없어
+  // ops/state/status-log-pending/<제목>.md 폴백으로 떨어진다 — 그 사실을 출력한다.
+  // 종료 코드 규약(0 matched / 1 no_match / 2 not_run)은 기록 성패와 무관하게 그대로다.
+  // dry 는 쓰지 않는다(반영 없는 실행).
+  let match = null
+  let demand = null
+  let precedent = null
+  let quad = null
+  let savedId = null
+  async function finish(code, errors = []) {
+    const r = await recordStatusLog(
+      buildPmfEntry({ input, match, demand, precedent, quad, savedId, errors, inputPath }),
+      { pendingDir: path.join(process.cwd(), 'ops', 'state', 'status-log-pending') },
+    )
+    if (r.ok) console.log(`✅ 일일 상태 로그(CTO) ${r.title} 기록·재확인`)
+    else if (r.pendingPath) console.log(`⚠️ 일일 상태 로그를 Notion 에 못 썼다(${r.stage}: ${r.error}) → ${path.relative(process.cwd(), r.pendingPath)} 에 남겼다. 다음 세션이 올린다 (CLAUDE.md §11)`)
+    else console.error(`⚠️ 일일 상태 로그 기록 실패 — ${r.stage}: ${r.error}${r.pendingError ? ` · 폴백 파일도 실패: ${r.pendingError}` : ''}${r.pageId ? ` (페이지는 생성됨 ${r.pageId})` : ''}`)
+    process.exit(code)
+  }
+
   let supabase
   try { supabase = await createClient() }
-  catch (e) { console.error(`⚠️ 확인 불가: Supabase 클라이언트 생성 실패 — ${e.message}`); process.exit(2) }
+  catch (e) { console.error(`⚠️ 확인 불가: Supabase 클라이언트 생성 실패 — ${e.message}`); await finish(2, [`Supabase 클라이언트 생성 실패 — ${e.message}`]) }
   if (!supabase) {
     console.error('⚠️ 확인 불가: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 미설정')
-    process.exit(2)
+    await finish(2, ['Supabase 자격증명 미설정 — 진단 불가'])
   }
 
   // 조회 실패는 null. 빈 배열과 섞지 않는다 — 섞는 순간 matchMoves 가
@@ -135,18 +195,18 @@ if (isMain()) {
   const moves = await q('case_moves',
     'id,case_study_id,lever,claim,evidence_grade,outcome_direction,review_status,metric_name,metric_before,metric_after,metric_unit')
 
-  const match = matchMoves(facets.bottleneck, studies, moves, null, facets)
+  match = matchMoves(facets.bottleneck, studies, moves, null, facets)
 
   // ── 수요축 ────────────────────────────────────────────────
   const projectId = input.target_project_id ?? null
-  let demand = { value: null, reason: '분석 프로젝트를 지정하지 않았다 — 수요축 확인 불가(0 이 아니다)' }
+  demand = { value: null, reason: '분석 프로젝트를 지정하지 않았다 — 수요축 확인 불가(0 이 아니다)' }
   if (projectId) {
     const aspects = await q('analysis_aspects', 'opportunity_score', (qq) => qq.eq('project_id', projectId))
     demand = demandAxis(aspects === null ? null : aspects.map((a) => a.opportunity_score))
   }
 
-  const precedent = precedentAxis(match)
-  const quad = quadrantOf(demand.value, precedent.value)
+  precedent = precedentAxis(match)
+  quad = quadrantOf(demand.value, precedent.value)
 
   // ── 보고 (넓은 표 금지, 항목당 한 줄) ─────────────────────
   console.log(`\n# PMF 진단 — ${input.item ?? '(아이템 미기재)'}${input.market ? ` · ${input.market}` : ''}`)
@@ -182,7 +242,7 @@ if (isMain()) {
   }
 
   if (dry) {
-    console.log('\n(dry) DB 에 쓰지 않았다.')
+    console.log('\n(dry) DB 에 쓰지 않았다. 일일 상태 로그도 남기지 않는다.')
     process.exit(match.status === 'matched' ? 0 : match.status === 'no_match' ? 1 : 2)
   }
 
@@ -192,8 +252,9 @@ if (isMain()) {
     if (['42P01', 'PGRST205'].includes(ins.error.code)) {
       console.error('   마이그레이션 20260908000003_pmf_assessments.sql 미적용이다. 사람이 적용한다 (§12-5).')
     }
-    process.exit(2)
+    await finish(2, [`pmf_assessments 저장 실패 — ${ins.error.code ?? ''} ${ins.error.message}`])
   }
+  savedId = ins.data.id
   console.log(`\n✅ pmf_assessments ${ins.data.id} 저장 (match_status=${match.status})`)
 
   if (match.moves.length) {
@@ -209,10 +270,10 @@ if (isMain()) {
       // 진단 본체는 저장됐다. 근거 연결만 실패했다 — 그 사실을 감추지 않는다.
       console.error(`⚠️ 인용 무브 연결 실패 — ${mr.error.code ?? ''} ${mr.error.message}`)
       console.error('   진단 행은 남았지만 근거 추적이 끊긴 상태다. 무브가 강등돼도 감지되지 않는다.')
-      process.exit(2)
+      await finish(2, [`인용 무브 연결 실패 — ${mr.error.code ?? ''} ${mr.error.message} (진단 행은 저장됨)`])
     }
     console.log(`✅ pmf_assessment_moves ${moveRows.length}행 연결`)
   }
 
-  process.exit(match.status === 'matched' ? 0 : match.status === 'no_match' ? 1 : 2)
+  await finish(match.status === 'matched' ? 0 : match.status === 'no_match' ? 1 : 2)
 }

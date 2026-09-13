@@ -43,6 +43,7 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { resolveClaudeBinary, runClaude } from '../lib/insight/claude-cli.ts'
 import { createTracker } from './agent-status.mjs'
+import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 // 토큰 없이 DB 기록만 읽는다. lib/threads/recent·token 을 여기서 import 하지 마라(§10.1).
 import { unlinkedDigestLine, UNLINKED_STEP_KEY } from '../lib/threads/unlinked-status.ts'
 
@@ -269,6 +270,37 @@ async function main() {
     return res
   }
 
+  // ── Notion 일일 상태 로그 (CLAUDE.md §11) ─────────────────────
+  // 아침 브리핑(07:00 KST)은 이 행을 읽는다. 행이 없는 날은 브리핑이 전날 행을 최신으로
+  // 오인하므로 preflight 에서 멈춘 날도 쓴다. 10스텝 계약 밖의 부가 동작이라 runStep 으로
+  // 묶지 않고 루프 성패(state.failed·종료코드)에도 넣지 않는다. 대신 조용히 넘기지 않는다:
+  // 실패는 `- ❌` 줄(→ DIGEST 병목 진단)과 agent_run_steps(status_log=failed)에 남는다.
+  // dry-run 은 쓰지 않는다 — 반영 없는 실행이 브리핑에 "한 일"로 올라가면 안 된다.
+  let notionPushError = null
+  async function recordDailyStatus({ stopped = null, runStatus }) {
+    const label = 'Notion 일일 상태 로그'
+    if (dryRun) { say(`- ⏭️ \`status_log\` ${label} — dry-run 이라 쓰지 않는다`); return }
+    let r
+    try {
+      const unlinkedLine = stopped ? null : unlinkedDigestLine(await readUnlinkedCheck())
+      r = await recordStatusLog(buildCmoStatusEntry({ date, runKey, runUrl, state, log, stopped, runStatus, unlinkedLine, notionPushError }))
+    } catch (e) {
+      r = { ok: false, stage: 'build', error: e.message }
+    }
+    say(r.ok
+      ? `- ✅ \`status_log\` ${label} — ${r.title} 기록·재확인`
+      : `- ❌ \`status_log\` ${label} — ${r.stage}: ${r.error}${r.pageId ? ` (페이지는 생성됨 ${r.pageId})` : ''} · CMO 루프 결과엔 영향 없음`)
+    try {
+      await tracker.step({
+        stepKey: 'status_log', label, seq: STEPS.length + 1,
+        status: r.ok ? 'ok' : 'failed',
+        detail: r.ok ? { title: r.title, page_id: r.pageId, url: r.url } : { stage: r.stage, error: r.error, page_id: r.pageId ?? null },
+      })
+    } catch (e) {
+      say(`- ⚠️ status_log 스텝 기록 실패 — ${e.message}`)
+    }
+  }
+
   // ── S0 preflight ────────────────────────────────────────────
   let supabase = null
   const pre = await runStep('preflight', async () => {
@@ -298,6 +330,7 @@ async function main() {
     say('')
     say('⚠️ 사전 점검 확인 불가 — 뒤 단계를 돌지 않았다. "0건 처리"가 아니라 "확인 불가"다.')
     await tracker.finish({ status: 'failed', summary: { stopped_at: 'preflight' } })
+    await recordDailyStatus({ stopped: 'preflight', runStatus: 'failed' })
     await writeDigest({ reportDir, date, runKey, dryRun, log, state, stopped: 'preflight', repoRoot })
     await flushSummary(log)
     process.exit(2)
@@ -680,9 +713,29 @@ async function main() {
   // 아무리 늦게 불러도 자기 자신의 완료를 못 본다). `tracker.finish()` 까지 끝난
   // 지금 다시 렌더하면 10/10 · 완료시각이 정확하다. 파일이 안 바뀌면(내용 동일)
   // 커밋을 안 낸다 — 매 실행마다 빈 커밋이 쌓이면 그게 새 소음이 된다.
+  //
+  // 순서: Notion 푸시 → 일일 상태 로그 → 재렌더·커밋.
+  //   푸시를 상태 로그 앞에 둔 이유 — 푸시 실패가 그날 행의 "막힌것"에 들어가야 한다.
+  //   상태 로그를 재렌더 앞에 둔 이유 — status_log 스텝이 DASHBOARD 에, 그 결과 줄이
+  //   커밋되는 DIGEST 에 같이 실린다.
   if (!dryRun) {
+    // Notion 푸시. 이 루프 본체(S0~S8, 10스텝 계약)가 끝난 뒤 부가 동작이라
+    // runStep 으로 묶지 않는다 — 여기서 실패해도 CMO 루프 자체의 성패에는
+    // 영향을 주지 않는다(토큰 미설정이면 스크립트 자신이 exit 0 으로 조용히
+    // 건너뛴다). 별도 크론을 새로 만들지 않고 이 자리에서 그대로 이어 부른다.
+    const notion = await sh('node', ['scripts/notion-push-digest.mjs', '--date', date])
+    if (notion.code !== 0) {
+      notionPushError = `exit ${notion.code} — ${tail(notion.stderr || notion.stdout, 200)}`
+      say(`- ⚠️ Notion 푸시 실패(exit ${notion.code}) — CMO 루프 결과엔 영향 없음. ${tail(notion.stderr || notion.stdout)}`)
+    } else if (notion.stdout.trim()) say(`- ℹ️ Notion 푸시: ${tail(notion.stdout, 200)}`)
+  }
+
+  await recordDailyStatus({ runStatus })
+
+  if (!dryRun) {
+    await writeDigest({ reportDir, date, runKey, dryRun, log, state, stopped: null, repoRoot })
     await sh('node', ['scripts/status-render.mjs'])
-    await sh('git', ['add', '--', 'reports/status/DASHBOARD.md'])
+    await sh('git', ['add', '--', 'reports/status/DASHBOARD.md', `reports/${date}/DIGEST.md`])
     const redoStaged = (await sh('git', ['diff', '--cached', '--name-only'])).stdout
       .split('\n').map((s) => s.trim()).filter(Boolean)
     // 이 add 는 경로 하나만 지정해서 다른 파일이 섞일 길이 없지만, 화이트리스트
@@ -693,7 +746,7 @@ async function main() {
       await sh('git', ['reset'])
       say(`- ⚠️ 대시보드 재렌더 커밋 스킵 — 화이트리스트 위반(${redoCheck.reason})`)
     } else if (redoStaged.length) {
-      const msg = `chore(cmo): daily loop ${date} — 최종 상태로 대시보드 재렌더\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`
+      const msg = `chore(cmo): daily loop ${date} — 최종 상태로 대시보드·다이제스트 재렌더\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`
       const c = await sh('git', [...commitIdentity(), 'commit', '-m', msg])
       if (c.code !== 0) {
         say(`- ⚠️ 대시보드 재렌더 커밋 실패 — ${tail(c.stderr)} (실행 결과 자체엔 영향 없음)`)
@@ -702,14 +755,6 @@ async function main() {
         if (p.code !== 0) say(`- ⚠️ 대시보드 재렌더 push 실패 — ${tail(p.stderr)}`)
       }
     }
-
-    // Notion 푸시. 이 루프 본체(S0~S8, 10스텝 계약)가 끝난 뒤 부가 동작이라
-    // runStep 으로 묶지 않는다 — 여기서 실패해도 CMO 루프 자체의 성패에는
-    // 영향을 주지 않는다(토큰 미설정이면 스크립트 자신이 exit 0 으로 조용히
-    // 건너뛴다). 별도 크론을 새로 만들지 않고 이 자리에서 그대로 이어 부른다.
-    const notion = await sh('node', ['scripts/notion-push-digest.mjs', '--date', date])
-    if (notion.code !== 0) say(`- ⚠️ Notion 푸시 실패(exit ${notion.code}) — CMO 루프 결과엔 영향 없음. ${tail(notion.stderr || notion.stdout)}`)
-    else if (notion.stdout.trim()) say(`- ℹ️ Notion 푸시: ${tail(notion.stdout, 200)}`)
   }
 
   say('')
@@ -1523,6 +1568,74 @@ export async function writeDigest({ reportDir, date, runKey, dryRun, log = [], s
     buildDecisionLogEntries({ date, runKey, jobs: stagedJobs(repoRoot, runKey) }),
     'utf-8',
   )
+}
+
+/**
+ * Notion "일일 상태 로그" CMO 행 입력. **결정적으로** 만든다 — LLM 을 부르지 않는다(비용·실패점).
+ * 재료는 DIGEST 와 같다(state·log). 병목은 DIGEST 와 같은 `- ▲ / - ❌` 로그 줄과
+ * partialFailures() 를 그대로 쓴다 — 판정을 두 벌 만들지 않는다.
+ *
+ * 사람판단필요 = 막힌것(실패·막힘·부분 실패·큐 미해소·Notion 푸시 실패·preflight 중단)이 있거나
+ *   사람 대기(검토대기 초안 신규·승인 대기 케이스 신규·승인 무브 0건·미연결 발행글 N건 또는 확인 불가)가
+ *   하나라도 있으면 true.
+ * 행의 날짜·제목은 **행을 쓰는 시점의 KST 날짜**다(kstDate — §11, 전 트랙 통일). 크론은 20:17 UTC
+ * 예정이지만 실제로 KST 07시대에 돌아서, run date(UTC)로 쓰면 "KST 09-14 아침에 한 일"이 09-13 행이 된다.
+ * run date(`date` 인자 — content_code·run_key·reports/<날짜> 기준)는 비고에 남긴다.
+ */
+export function buildCmoStatusEntry({ date, runKey, runUrl = null, state = {}, log = [], stopped = null, runStatus = null, unlinkedLine = null, notionPushError = null, now = new Date() }) {
+  const day = kstDate(now)
+  const c = state.counts ?? {}
+  const steps = state.steps ?? []
+  const digestRef = `reports/${date}/DIGEST.md`
+  const cap = (xs) => {
+    const ys = xs.filter(Boolean)
+    return ys.length <= 5 ? ys : [...ys.slice(0, 4), `외 ${ys.length - 4}건 — ${digestRef}`]
+  }
+  const stuck = log.filter((l) => /^- (▲|❌)/.test(l)).map((l) => l.replace(/^-\s*/, '').replace(/`/g, ''))
+  const note = `run_key ${runKey} · run date ${date}(콘텐츠 코드 기준) · ${runUrl ?? '로컬 실행(run URL 없음)'}`
+
+  if (stopped) {
+    return {
+      date: day, track: 'CMO',
+      done: `사전 점검(${stopped})에서 멈췄다 — 조사·적립·초안 단계를 돌지 않았다. 오늘 CMO 산출물 0건`,
+      blocked: cap(stuck.length ? stuck : [`${stopped} 실패 — 사유가 로그에 없다(${digestRef})`]).join('\n'),
+      next: 'Supabase 자격증명·DB 도달 확인 후 워크플로 수동 재실행 (dry_run 끄기)',
+      needsHuman: true, note,
+    }
+  }
+
+  const attempted = Number(c.commit_attempted ?? 0)
+  const committed = Number(c.committed ?? 0)
+  const staged = Number(c.staged ?? 0)
+  const n = (s) => steps.filter((x) => x.status === s).length
+  const done = [
+    `조사 ${c.new_drafts ?? 0}건 · 케이스 적립 ${committed}건${attempted > committed ? `(시도 ${attempted}건)` : ''} · 초안 ${c.drafted ?? 0}건 · 발행 대기 스테이징 ${staged}건`,
+    `단계 ${n('ok')}/${steps.length} 정상${n('skipped') ? ` · 건너뜀 ${n('skipped')}` : ''}${n('blocked') ? ` · 막힘 ${n('blocked')}` : ''}${n('failed') ? ` · 실패 ${n('failed')}` : ''} — 실행 결과 ${runStatus ?? '미상'}`,
+    `상세: ${digestRef}`,
+  ]
+  const blocked = cap([
+    ...stuck,
+    ...partialFailures(state).map((p) => `부분 실패 ${p.key}: ${p.n}건 — ${p.errors.join(' | ') || '사유 미기록'}`),
+    Number(c.queue_unresolved ?? 0) > 0 ? `조사 큐 ${c.queue_unresolved}건 확인 불가로 미해소 — 다음 실행이 재claim` : null,
+    notionPushError ? `Notion 발행 대기함 푸시 실패 — ${notionPushError}` : null,
+  ])
+  const noApproved = log.some((l) => l.includes('`angle`') && l.includes('승인 무브가 0건'))
+  const unlinkedFlag = typeof unlinkedLine === 'string' && (unlinkedLine.startsWith('⚠️') || unlinkedLine.includes('확인 불가'))
+  const human = [
+    staged > 0 ? `발행 대기 초안 ${staged}건 검토 후 직접 발행 (Notion "CMO 발행 대기함")` : null,
+    committed > 0 ? `새로 적립된 케이스 ${committed}건 검토·승인 (draft 상태)` : null,
+    noApproved ? '승인된 무브 0건 — 케이스 무브를 승인해야 다음 초안이 나온다' : null,
+    unlinkedFlag ? unlinkedLine.replace(/^⚠️\s*/, '') : null,
+  ].filter(Boolean)
+  const next = cap([...human, blocked.length ? `막힌 항목 원인 확인 — ${digestRef} "병목 진단"` : null])
+  return {
+    date: day, track: 'CMO',
+    done: done.join('\n'),
+    blocked: blocked.length ? blocked.join('\n') : '없음',
+    next: next.length ? next.join('\n') : '사람 할 일 없음 — 다음 크론이 이어서 돈다',
+    needsHuman: blocked.length > 0 || human.length > 0,
+    note,
+  }
 }
 
 /** 매처 크론이 남긴 최신 "안 붙은 게시물" 기록. 못 읽으면 error 를 채운다 — row:null 과 섞지 않는다. */

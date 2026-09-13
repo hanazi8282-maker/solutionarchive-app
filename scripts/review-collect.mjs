@@ -25,6 +25,8 @@ import { alertLine } from '../lib/review/health.ts'
 import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
 import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { hackernewsAdapter } from '../lib/review/adapters/hackernews.ts'
+import { recordStatusLog, kstDate } from './notion-status-log.mjs'
+import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
 const ADAPTERS = { danawa: danawaAdapter, appstore: appstoreAdapter, hackernews: hackernewsAdapter }
 
@@ -89,6 +91,8 @@ say(`대상 소스: ${sourceKeys.join(', ')}`)
 // ⚠️ review_collection_runs 는 **소스별로 1행**이다. 합치면 어느 소스가
 //    언제부터 망가졌는지 추적이 안 된다. 건강도 판정도 소스 단위다.
 const failures = []
+// Notion 일일 상태 로그(CTO 행) 재료. 보고 줄(say)을 다시 파싱하지 않으려고 값으로 모은다.
+const sourceResults = []
 
 for (const sourceKey of sourceKeys) {
   const adapter = ADAPTERS[sourceKey]
@@ -124,6 +128,7 @@ for (const sourceKey of sourceKeys) {
       say('')
       say(`### \`${sourceKey}\``)
       say(`- ❌ 실행 로그를 만들지 못해 건너뛴다: ${error.message}`)
+      sourceResults.push({ key: sourceKey, fatal: `실행 로그 생성 실패 — ${error.message}` })
       continue
     }
     runId = data.id
@@ -225,10 +230,20 @@ for (const sourceKey of sourceKeys) {
 
   // 차단(403/429)은 실패로 센다. 잡이 초록불이면 아무도 안 본다.
   if (fatal || (result?.stats.blockedResponses ?? 0) > 0) failures.push(sourceKey)
+  sourceResults.push({
+    key: sourceKey,
+    fatal,
+    skipped: result?.skipped ?? false,
+    skipReason: result?.skipReason ?? null,
+    stats: result?.stats ?? null,
+    alert: result && !result.skipped && result.health ? alertLine(result.sourceKey, result.health) : null,
+    warnings: result?.health?.warnings ?? [],
+  })
 }
 
 // ── 프로젝트별 누적 ───────────────────────────────────────────────
 // "이제 extract 를 돌릴 때인가"를 사람이 판단할 근거다. 소스 전체 합산이다.
+let topProject = null
 if (!dryRun) {
   const { data, error } = await supabase
     .from('analysis_inputs')
@@ -242,7 +257,9 @@ if (!dryRun) {
     if (counts.size > 0) {
       say('')
       say('### 프로젝트별 누적 리뷰')
-      for (const [pid, n] of [...counts.entries()].sort((a, b) => b[1] - a[1])) {
+      const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1])
+      topProject = { id: sorted[0][0], n: sorted[0][1] }
+      for (const [pid, n] of sorted) {
         say(`- \`${pid}\` — ${n}건`)
       }
       say('')
@@ -259,6 +276,31 @@ if (dryRun) {
 if (failures.length > 0) {
   say('')
   say(`- ❌ 실패한 소스: ${failures.join(', ')} (나머지 소스는 계속 진행했다)`)
+}
+
+// ── Notion 일일 상태 로그 (CTO 트랙, CLAUDE.md §11) ──────────────────
+// 아침 브리핑이 이 행을 읽는다. 기록 실패가 수집 종료코드를 바꾸지 않지만 조용히 넘기지도
+// 않는다: 실행 요약에 ❌ 줄 + Actions 경고 주석. dry-run 은 쓰지 않는다(반영 없는 실행).
+// 이 워크플로는 contents: read 라 폴백 파일을 커밋할 수 없다 — 파일 폴백을 두지 않는다.
+if (!dryRun) {
+  const runUrl = process.env.GITHUB_RUN_ID
+    ? `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+    : null
+  let r
+  try {
+    r = await recordStatusLog(buildReviewCollectEntry({
+      date: kstDate(), sources: sourceResults, failures, topProject, runUrl,
+    }))
+  } catch (e) {
+    r = { ok: false, stage: 'build', error: e instanceof Error ? e.message : String(e) }
+  }
+  say('')
+  if (r.ok) {
+    say(`- ✅ Notion 일일 상태 로그(CTO) — ${r.title} 기록·재확인`)
+  } else {
+    say(`- ❌ Notion 일일 상태 로그(CTO) 기록 실패 — ${r.stage}: ${r.error}${r.pageId ? ` (페이지는 생성됨 ${r.pageId})` : ''} · 수집 결과엔 영향 없음`)
+    console.log(`::warning title=status-log::Notion 일일 상태 로그(CTO) 기록 실패 — ${r.stage}: ${r.error}`)
+  }
 }
 
 if (process.env.GITHUB_STEP_SUMMARY) {

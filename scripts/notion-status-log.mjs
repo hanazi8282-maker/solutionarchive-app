@@ -17,6 +17,7 @@
 // 쓰기 함수 writeStatusLog() 는 절대 throw 하지 않고 결과 객체를 돌려준다 —
 // 호출하는 루프가 이 기록 실패로 막히면 안 된다.
 
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
@@ -34,6 +35,16 @@ export const SCHEMA = {
   막힌것: 'rich_text', 다음할일: 'rich_text', 사람판단필요: 'checkbox', 비고: 'rich_text',
 }
 const MAX_TEXT = 2000 // Notion text object 당 content 상한
+
+/**
+ * 행의 날짜 = **행을 쓰는 시점의 KST 날짜** (CLAUDE.md §11, 2026-09-14 CEO-STAFF 결정 — 전 트랙 통일).
+ * 브리핑이 트랙 간 같은 날짜로 묶어 읽는다. Node Intl 로 계산한다 — Git-Bash date 는 TZ 를 무시한다.
+ */
+export function kstDate(now = new Date()) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .formatToParts(now).map((x) => [x.type, x.value]))
+  return `${p.year}-${p.month}-${p.day}`
+}
 
 /** 2000자(UTF-16 단위, 그러면 코드포인트로도 ≤2000)로 자른다. 서로게이트 쌍은 쪼개지 않는다. */
 export function clip(text, max = MAX_TEXT) {
@@ -107,6 +118,86 @@ export async function writeStatusLog(entry, { token = process.env.NOTION_API_TOK
   return { ok: true, pageId, url: page.url ?? created.data.url }
 }
 
+/**
+ * §11 제목 번호: 같은 날·같은 트랙 두 번째부터 `-2`, `-3`.
+ * 이미 있는 제목 목록에서 다음 제목을 고른다(최댓값 + 1 — 빈 번호를 메우지 않는다).
+ */
+export function nextTitle(base, titles) {
+  const re = new RegExp(`^${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:-(\\d+))?$`)
+  let max = 0
+  for (const t of titles ?? []) {
+    const m = re.exec(String(t))
+    if (m) max = Math.max(max, m[1] ? Number(m[1]) : 1)
+  }
+  return max === 0 ? base : `${base}-${max + 1}`
+}
+
+/** DB 에서 base 로 시작하는 제목들. 실패는 { ok:false } — 빈 목록으로 접지 않는다 (§7.1). */
+export async function existingTitles(token, dbId, base) {
+  const titles = []
+  let cursor = null
+  do {
+    const r = await notionRequest(token, 'POST', `/databases/${dbId}/query`, {
+      filter: { property: '제목', title: { starts_with: base } },
+      page_size: 100,
+      ...(cursor ? { start_cursor: cursor } : {}),
+    })
+    if (!r.ok) return { ok: false, error: r.error }
+    if (!Array.isArray(r.data?.results)) return { ok: false, error: 'query 응답에 results 배열이 없다' }
+    for (const p of r.data.results) titles.push(titleOf(p))
+    cursor = r.data.has_more ? r.data.next_cursor : null
+  } while (cursor)
+  return { ok: true, titles }
+}
+
+/** 폴백 파일 본문 (CLAUDE.md §11-3). 다음 세션이 이걸 Notion 에 올린다. */
+export function renderPending(entry, title, why) {
+  const sec = (h, v) => [`## ${h}`, '', String(v ?? '').trim() || '(비어 있음)', '']
+  return [
+    `# ${title}`, '',
+    `- 날짜: ${entry.date}`, `- 트랙: ${entry.track}`, `- 사람판단필요: ${entry.needsHuman === true}`, '',
+    ...sec('한일', entry.done), ...sec('막힌것', entry.blocked), ...sec('다음할일', entry.next), ...sec('비고', entry.note),
+    `_Notion 기록 실패 — ${why}. CLAUDE.md §11: 다음 세션이 이 내용을 "일일 상태 로그" DB 에 올리고 이 파일을 지운다. 알림완료는 비워 둔다._`, '',
+  ].join('\n')
+}
+
+/**
+ * 루프·CLI 가 부르는 한 번에 끝나는 기록: 제목 번호 → 생성·재확인 → (옵션) 폴백 파일.
+ * throw 하지 않는다. 반환: writeStatusLog 결과 + { title, pendingPath?, pendingError? }
+ *
+ * - 번호 조회가 실패하면 무번호로 쓰고 비고에 "번호 확인 불가" 를 남긴다.
+ * - pendingDir 를 주면, 페이지가 **안 만들어졌을 때만** 폴백 파일을 쓴다
+ *   (만들어졌는데 재확인만 실패한 경우 파일까지 쓰면 다음 세션이 중복 행을 만든다).
+ */
+export async function recordStatusLog(entry, { token = process.env.NOTION_API_TOKEN, dbId = process.env.NOTION_STATUS_LOG_DB_ID || DEFAULT_STATUS_LOG_DB_ID, pendingDir = null } = {}) {
+  const e = { ...entry }
+  const base = `${e.date}-${e.track}`
+  try {
+    if (!e.title && token) {
+      const q = await existingTitles(token, dbId, base)
+      if (q.ok) e.title = nextTitle(base, q.titles)
+      else e.note = [e.note, `번호 확인 불가(${q.error})`].filter(Boolean).join(' · ')
+    }
+    const w = await writeStatusLog(e, { token, dbId })
+    const title = e.title ?? base
+    if (w.ok || !pendingDir || w.pageId || w.stage === 'build') return { ...w, title }
+
+    try {
+      fs.mkdirSync(pendingDir, { recursive: true })
+      const stems = fs.readdirSync(pendingDir).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3))
+      const pendingTitle = e.title ?? nextTitle(base, stems)
+      const pendingPath = path.join(pendingDir, `${pendingTitle}.md`)
+      const why = `${w.stage}: ${w.error}${e.title ? '' : ' · 제목 번호는 로컬 파일 기준 — 올릴 때 DB 에서 다시 확인'}`
+      fs.writeFileSync(pendingPath, renderPending(e, pendingTitle, why), { encoding: 'utf-8', flag: 'wx' })
+      return { ...w, title: pendingTitle, pendingPath }
+    } catch (err) {
+      return { ...w, title, pendingError: err.message }
+    }
+  } catch (err) {
+    return { ok: false, stage: 'record', code: 1, error: err.message, title: e.title ?? base }
+  }
+}
+
 /** 생성 → 재확인 → archived 정리 → archived 재확인. 각 단계 한 줄 출력, 종료 코드 반환. */
 export async function runProbe({ token = process.env.NOTION_API_TOKEN, dbId = process.env.NOTION_STATUS_LOG_DB_ID || DEFAULT_STATUS_LOG_DB_ID, log = console.log, now = new Date() } = {}) {
   const iso = now.toISOString()
@@ -155,10 +246,9 @@ export function parseCliArgs(argv, now = new Date()) {
     },
   })
   if (v.probe) return { probe: true }
-  const kstToday = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now)
   return {
     entry: {
-      date: v.date ?? kstToday, track: v.track, done: v.done, blocked: v.blocked, next: v.next,
+      date: v.date ?? kstDate(now), track: v.track, done: v.done, blocked: v.blocked, next: v.next,
       needsHuman: v['needs-human'] === true, note: v.note, title: v.title,
     },
   }
@@ -174,7 +264,7 @@ if (isMain()) {
   try { args = parseCliArgs(process.argv.slice(2)) }
   catch (e) { console.error(`❌ 인자 오류 — ${e.message}`); process.exit(1) }
   if (args.probe) process.exit(await runProbe())
-  const w = await writeStatusLog(args.entry)
+  const w = await recordStatusLog(args.entry)
   if (w.ok) console.log(`✅ 기록·재확인: ${w.url ?? w.pageId}`)
   else console.error(`❌ ${w.stage}: ${w.error}${w.pageId ? ` (페이지는 생성됨: ${w.pageId})` : ''}`)
   process.exit(w.ok ? 0 : w.code)

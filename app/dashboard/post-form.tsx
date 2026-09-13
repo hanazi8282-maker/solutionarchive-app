@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { createPost, type ActionState } from './actions'
 import { Field, Input, Select, Textarea } from '../_ds/components/Field'
 import { Button } from '../_ds/components/Button'
+import { Notice } from '../_ds/components/Shell'
 import { REQUIRED, ResultMessage, formGrid, span2 } from './form-ui'
 
 export type ContentItem = { code: string; title: string | null }
@@ -12,14 +13,25 @@ export type Hypothesis = { code: string; statement: string | null }
 export default function PostForm({
   contentItems,
   hypotheses,
+  refsError,
 }: {
   contentItems: ContentItem[]
   hypotheses: Hypothesis[]
+  /** 소재·가설 조회 실패 사유. 있으면 선택지가 비어 보여도 "없음"이 아니다 — 제출을 막는다(§7.1). */
+  refsError: string | null
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createPost, null)
 
   return (
     <form action={formAction} style={formGrid}>
+      {refsError && (
+        <Notice tone="danger" title="등록을 막았습니다 — 소재·가설 목록 확인 불가" style={span2}>
+          {refsError} 선택지가 비어 보여도 소재·가설이 없다는 뜻이 아닙니다. 새로고침 후 다시 시도하세요.
+        </Notice>
+      )}
+      {/* 서버 액션이 이 값을 본다. 화면이 막아도 오래 열린 탭·직접 POST 는 서버가 거른다. */}
+      <input type="hidden" name="refs_loaded" value={refsError ? '0' : '1'} />
+
       <Field label="소재 (content_code)" htmlFor="content_code" style={span2}>
         <Select id="content_code" name="content_code" defaultValue="">
           <option value="">— 선택 안 함 —</option>
@@ -68,7 +80,7 @@ export default function PostForm({
       </Field>
 
       <div style={span2}>
-        <Button type="submit" variant="primary" disabled={pending}>
+        <Button type="submit" variant="primary" disabled={pending || Boolean(refsError)}>
           {pending ? '저장 중…' : '글 등록'}
         </Button>
       </div>

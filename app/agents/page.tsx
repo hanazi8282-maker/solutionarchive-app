@@ -6,7 +6,7 @@ import { EmptyState } from '../_ds/components/EmptyState'
 import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
 import {
   LOOPS, classify, renderStepBar, isStale, staleMinutes, truncate, cronToLabel,
-  UNAVAILABLE_TEXT, EMPTY_TEXT,
+  UNAVAILABLE_TEXT, EMPTY_TEXT, PULL_GRACE_MS, nextDailyFire, pullState,
   type Classified, type LoopDef, type Step,
 } from '@/lib/agents/status'
 
@@ -28,6 +28,12 @@ type LoopCard = {
   stale: boolean
   staleMin: number
   note: string | null
+  /** 실행 로그가 아닌 루프(노션: 페이지당 1행)는 시각 라벨이 다르다. 없으면 시작/종료. */
+  timeLabels?: [string, string]
+  /** finishedAt 이 없을 때의 문구. 없으면 '진행중'. */
+  pendingEnd?: string
+  /** stale(running 미갱신)과 다른 경고. 있으면 경고 배지 + 본문 안내. */
+  warn?: string | null
 }
 
 type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
@@ -142,28 +148,65 @@ async function loadReview(sb: Supa, now: number): Promise<LoopCard> {
   }
 }
 
-async function loadNotion(sb: Supa): Promise<LoopCard> {
+const DIFF_LABEL: Record<string, string> = { unchanged: '무변경', edited: '편집됨', adopted: '채택', held: '보류' }
+
+// notion_sync_log 는 실행 로그가 아니라 페이지당 1행이다. pulled_at NULL 은 "진행중인 실행"이 아니라
+// "밤 풀백이 아직 안 읽은 페이지"다 — 풀백은 사람을 기다리지 않으므로 예정 시각+유예가 지나면 경고다.
+async function loadNotion(sb: Supa, now: number): Promise<LoopCard> {
   const d = def('notion')
-  const res = await sb.from(d.table)
-    .select('pushed_at,pulled_at,diff_status,pushed_status')
-    .order('pushed_at', { ascending: false })
-    .limit(5)
+  const [res, pend] = await Promise.all([
+    sb.from(d.table)
+      .select('pushed_at,pulled_at,diff_status')
+      .order('pushed_at', { ascending: false })
+      .limit(5),
+    // 미회수는 최근 5건이 아니라 전체에서 센다 — 풀백 스크립트도 pulled_at IS NULL 전체를 집는다.
+    sb.from(d.table).select('pushed_at').is('pulled_at', null).order('pushed_at', { ascending: true }),
+  ])
   const cls = classify({ error: res.error, rows: res.data })
   if (cls.state !== 'OK') return blank(d, cls)
 
   const rows = res.data!
   const r = rows[0]
-  const pendingPull = rows.filter((x: { pulled_at?: string | null }) => !x.pulled_at).length
+  const kst = (ms: number | null) => (ms ? `${KST_FMT.format(ms)} KST` : '시각 모름')
+
+  let pendingLine: string
+  let warn: string | null = null
+  if (pend.error || !pend.data) {
+    pendingLine = `미회수 건수 확인 불가${pend.error ? ` — ${truncate(pend.error.message)}` : ''}`
+  } else {
+    const states = pend.data.map((x: { pushed_at: string }) => pullState(parse(x.pushed_at), now, d.cronExpr))
+    const overdue = states.filter((s) => s === 'overdue').length
+    const unknown = states.filter((s) => s === 'unknown').length
+    pendingLine = [
+      `밤 풀백 대기 ${states.length - overdue - unknown}건`,
+      overdue ? `풀백 지났는데 미회수 ${overdue}건` : null,
+      unknown ? `회수 예정 판정 불가 ${unknown}건` : null,
+    ].filter(Boolean).join(' · ')
+    if (overdue) {
+      warn = `예정 풀백(${cronToLabel(d.cronExpr)}) 뒤 ${PULL_GRACE_MS / 3_600_000}시간 유예까지 지났는데 회수되지 않은 페이지 ${overdue}건 `
+        + `(가장 오래된 푸시 ${kst(parse(pend.data[0].pushed_at))}). 풀백은 사람 피드백을 기다리지 않는다 — `
+        + `Notion 읽기 실패 · DB 갱신 실패 · 워크플로 미실행 중 하나다. ${d.workflow} 실행 로그를 확인한다.`
+    }
+  }
+
+  const latestState = r.pulled_at ? null : pullState(parse(r.pushed_at), now, d.cronExpr)
 
   return {
     def: d, cls,
-    headline: `최근 동기화 ${r.diff_status ?? '—'} · 회수 대기 ${pendingPull}건`,
+    headline: `최근 페이지 ${r.pulled_at ? `회수됨 · ${DIFF_LABEL[r.diff_status] ?? r.diff_status ?? '분류 없음'}` : '회수 전'} · ${pendingLine}`,
     status: null, dryRun: false,
     bar: renderStepBar(rows.map((x: { pulled_at?: string | null }, i: number) => ({ seq: i, status: x.pulled_at ? 'ok' : 'pending' }))),
-    barLabel: '최근 동기화 5건(좌=최신)',
+    barLabel: '최근 푸시한 페이지 5건 회수 여부(좌=최신 · ● 회수 · ○ 미회수)',
     startedAt: r.pushed_at, finishedAt: r.pulled_at,
+    timeLabels: ['최근 푸시', '회수'],
+    pendingEnd: latestState === 'overdue'
+      ? '안 됨 — 예정 풀백이 지났다'
+      : latestState === 'waiting'
+        ? `대기 — ${kst(nextDailyFire(d.cronExpr, parse(r.pushed_at)))} 밤 풀백 예정`
+        : '대기 — 풀백 예정 시각 판정 불가',
     stale: false, staleMin: 0,
     note: null,
+    warn,
   }
 }
 
@@ -222,6 +265,7 @@ function StatusBadges({ c }: { c: LoopCard }) {
     badges.push(<Badge key="s" tone="neutral" dot>조회 정상</Badge>)
   }
   if (c.stale) badges.push(<Badge key="stale" tone="warning" size="sm">응답 없음</Badge>)
+  if (c.warn) badges.push(<Badge key="warn" tone="warning" size="sm">풀백 지남·미회수</Badge>)
   if (c.dryRun) badges.push(<Badge key="dry" tone="neutral" size="sm">dry-run</Badge>)
   if (!c.def.scheduleActive) badges.push(<Badge key="sch" tone="neutral" size="sm">스케줄 비활성</Badge>)
   return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>{badges}</div>
@@ -263,7 +307,7 @@ export default async function AgentsPage() {
   } else {
     const dayAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString()
     const [cmo, insight, review, notion, posts, cases, research, stuckRes] = await Promise.all([
-      loadCmo(sb, now), loadInsight(sb, now), loadReview(sb, now), loadNotion(sb),
+      loadCmo(sb, now), loadInsight(sb, now), loadReview(sb, now), loadNotion(sb, now),
       countOf(sb, 'posts', (q) => q.select('id', { count: 'exact' }).eq('status', 'pending_review').limit(1)),
       countOf(sb, 'case_studies', (q) => q.select('id', { count: 'exact' }).eq('review_status', 'draft').limit(1)),
       // 미해소 = 아직 사람/루프가 닫지 않은 것. done·failed 는 닫힌 것으로 본다.
@@ -399,7 +443,8 @@ export default async function AgentsPage() {
                 </div>
 
                 <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', ...wrap }}>
-                  시작 <When iso={c.startedAt} now={now} /> · 종료 {c.finishedAt ? <When iso={c.finishedAt} now={now} /> : '진행중'}
+                  {c.timeLabels?.[0] ?? '시작'} <When iso={c.startedAt} now={now} /> · {c.timeLabels?.[1] ?? '종료'}{' '}
+                  {c.finishedAt ? <When iso={c.finishedAt} now={now} /> : (c.pendingEnd ?? '진행중')}
                 </p>
 
                 {c.stale && (
@@ -407,6 +452,8 @@ export default async function AgentsPage() {
                     응답 없음 — running 인 채 {c.staleMin}분 미갱신. 돌고 있는 게 아니라 죽었을 수 있다.
                   </Notice>
                 )}
+
+                {c.warn && <Notice tone="warning" style={{ marginTop: 12 }}>{c.warn}</Notice>}
 
                 {c.note && <p style={inset}>{c.note}</p>}
               </>

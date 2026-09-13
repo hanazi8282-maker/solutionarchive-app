@@ -103,7 +103,10 @@ export default function AnalyzeNewPage() {
   const locked = Boolean(projectId)
 
   async function createProject() {
-    if (!competitorUrl.trim()) { setProjectError('경쟁사 상품 URL을 입력해주세요.'); return }
+    if (!competitorUrl.trim()) {
+      setProjectError(mode === 'reverse' ? '역설계할 성공 상품 URL(다나와)을 입력해주세요.' : '비교할 경쟁사 상품 URL을 입력해주세요.')
+      return
+    }
     if (!pitch.trim()) { setProjectError('상품 한 줄 소개를 입력해주세요.'); return }
     if (!purpose) { setProjectError('분석 목적을 선택해주세요.'); return }
 
@@ -290,11 +293,13 @@ export default function AnalyzeNewPage() {
           </fieldset>
 
           <Field
-            label={<>{mode === 'reverse' ? '역설계할 성공 상품 URL (다나와)' : '경쟁사 상품 URL'}{REQ}</>}
+            label={<>{mode === 'reverse' ? '역설계할 성공 상품 URL (다나와)' : '비교할 경쟁사 상품 URL'}{REQ}</>}
             htmlFor="competitor_url"
+            // 서버(/api/analyze/projects)는 두 방향 모두 이 URL 을 필수로 받고, 추출·앵글 단계
+            // 프롬프트에도 "경쟁사 상품 URL" 로 들어간다. 자사 모드라고 자사 URL 을 넣으면 안 된다.
             hint={mode === 'reverse'
               ? '지금은 다나와 상품 상세 URL만 역방향 분석이 가능합니다. 스마트스토어·쿠팡·G2·Capterra 등은 아직 지원하지 않습니다.'
-              : undefined}
+              : '자사 상품 소구점을 찾을 때도 비교 대상인 경쟁사 상품 URL이 필요합니다. 자사 상품은 아래 한 줄 소개에 적습니다.'}
           >
             <Input
               id="competitor_url"

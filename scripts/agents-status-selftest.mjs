@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url'
 import {
   LOOPS, STALE_MS, MARKS, classify, renderStepBar, isStale, truncate, cronToLabel,
   isMissingTableError, UNAVAILABLE_TEXT, EMPTY_TEXT,
-  PULL_GRACE_MS, nextDailyFire, pullState,
+  PULL_GRACE_MS, nextDailyFire, pullState, statusAt, deltaText,
 } from '../lib/agents/status.ts'
 
 let pass = 0
@@ -108,6 +108,22 @@ t('cron 형식 아니면 원문', cronToLabel('@daily'), '@daily')
   t('푸시 시각 모름 → unknown(대기로 접지 않음)', pullState(0, pushed, CRON), 'unknown')
   t('cron 못 읽음 → unknown', pullState(pushed, pushed + 99 * h, '@daily'), 'unknown')
   ok('유예 ≥ 실측 지연 4시간', PULL_GRACE_MS >= 4 * h)
+}
+
+// ── 어제 이 시각 상태 · 전일 대비 문구 ───────────────────────────
+{
+  const T = Date.parse('2026-09-13T00:00:00Z')
+  t('T 뒤에 시작한 실행 → null(그때는 없었다)', statusAt({ started_at: '2026-09-13T01:00:00Z', finished_at: null, status: 'running' }, T), null)
+  t('T 전 시작·T 전 종료 → 최종 상태', statusAt({ started_at: '2026-09-12T20:17:00Z', finished_at: '2026-09-12T21:00:00Z', status: 'failed' }, T), 'failed')
+  t('T 전 시작·T 뒤 종료 → running', statusAt({ started_at: '2026-09-12T23:50:00Z', finished_at: '2026-09-13T00:30:00Z', status: 'ok' }, T), 'running')
+  t('종료 없음 → running', statusAt({ started_at: '2026-09-12T20:17:00Z', finished_at: null, status: 'running' }, T), 'running')
+  t('정확히 T 에 종료 → 최종 상태', statusAt({ started_at: '2026-09-12T20:17:00Z', finished_at: '2026-09-13T00:00:00Z', status: 'blocked' }, T), 'blocked')
+  t('시작 시각 없음 → null', statusAt({ started_at: null, finished_at: null, status: 'ok' }, T), null)
+  t('같음 문구', deltaText(3, 3), '어제 이 시각과 같음')
+  t('증가 문구', deltaText(5, 3), '어제 이 시각보다 +2')
+  t('감소 문구', deltaText(1, 3), '어제 이 시각보다 -2')
+  // ⚠️ 어제 값을 모르는데 0 으로 비교하면 "+3" 같은 지어낸 변화가 뜬다.
+  t('어제 값 모름 → null(칸 숨김)', deltaText(3, null), null)
 }
 
 // ── 레지스트리 ↔ 워크플로 대조 (drift 감지) ──────────────────────

@@ -170,3 +170,29 @@ export function pullState(pushedMs: number, now: number, cron: string): 'waiting
   if (fire === null) return 'unknown'
   return now > fire + PULL_GRACE_MS ? 'overdue' : 'waiting'
 }
+
+// ── 전일 대비 ────────────────────────────────────────────────────
+// 이력 스냅샷 테이블이 없다. 기존 타임스탬프로 "어제 이 시각" 값을 되짚을 수 있는 지표만 쓴다.
+// 되짚을 수 없는 지표는 변화를 **표시하지 않는다** — 0 이나 "변화 없음"으로 채우지 않는다(§7.1).
+
+export const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * 실행 1건의 t 시점 상태. t 이후에 시작했으면 null(그때는 없던 실행).
+ * t 이전에 끝났으면 최종 status, 아니면 running.
+ * 전제: 러너는 finished_at 을 찍을 때 status 를 확정하고 그 뒤에 바꾸지 않는다
+ * (review-collect 의 interrupted 정리도 finished_at 을 같이 찍는다).
+ */
+export function statusAt(run: { started_at?: string | null; finished_at?: string | null; status?: string | null }, t: number): string | null {
+  const started = Date.parse(run.started_at ?? '')
+  if (!started || started > t) return null
+  const finished = Date.parse(run.finished_at ?? '')
+  return finished && finished <= t ? (run.status ?? null) : 'running'
+}
+
+/** 전일 대비 문구. 어제 값을 모르면(null) null — 호출부는 칸을 숨긴다. */
+export function deltaText(current: number, dayAgo: number | null): string | null {
+  if (dayAgo === null) return null
+  const d = current - dayAgo
+  return d === 0 ? '어제 이 시각과 같음' : `어제 이 시각보다 ${d > 0 ? '+' : ''}${d}`
+}

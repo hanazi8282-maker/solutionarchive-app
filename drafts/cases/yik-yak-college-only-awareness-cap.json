@@ -1,0 +1,88 @@
+{
+  "slug": "yik-yak-college-only-awareness-cap",
+  "brand_name": "Yik Yak",
+  "market": "미국 대학 캠퍼스 익명 소셜 모바일 앱",
+  "geo": "US (사우스캐롤라이나 Furman University 출신 창업, 미국 대학가 전역 확산)",
+  "business_model": "OTHER",
+  "buyer_type": "B2C",
+  "purchase_frequency": null,
+  "price_band": null,
+  "bottleneck": "AWARENESS",
+  "outcome_status": "shutdown",
+  "period_start": "2013-11-01",
+  "period_end": "2017-04-28",
+  "summary": "Yik Yak은 반경 5마일 내 익명 게시판 앱으로 2013년 말 대학가에서 폭발적으로 확산해 2014년 11월 Sequoia 주도 시리즈B(약 6,100만~6,200만 달러, 밸류에이션 약 3~4억 달러)까지 받았다. 그러나 중·고등학생으로 확산되며 살해·총격 위협, 괴롭힘 사건이 잇따르자 2014년 3월부터 Maponics 데이터로 미국 중·고교 부지의 약 85%에 지오펜스를 걸어 그 연령대의 접근을 스스로 차단했다. 공동창업자 Brooks Buffington은 2016년 4월 한 컨퍼런스에서 \"우리는 대학 시장에 있다, 이건 상한이 있는 시장이다(it's a capped market)\"라고 이 선택을 직접 정당화했다 — 최대 잠재 인지도 확산 통로였던 10대 인구를 의도적으로 배제한 것이다. 이후 2016년 8월 익명성을 약화시키는 실명/전화번호 인증 도입, 보안 연구자의 개인정보 노출 취약점 발견, Snapchat 등으로의 이용자 이동 등 여러 요인이 겹치며 다운로드는 App Annie 추정 기준 2014년 9월 180만 건에서 2016년 9월 12만5천 건으로 급감했다(93% 감소, 여러 요인이 동시에 작용해 지오펜싱 단독 효과로 보기는 어렵다). 2016년 말 인력 60% 감원, 2017년 4월 Square에 지식재산권 비독점 라이선스와 일부 직원 고용을 단돈 100만 달러에 넘기며 서비스를 종료했다(2021년 다른 회사가 브랜드를 인수해 재출시했으나 이는 별개 법인·별개 국면이다).",
+  "tags": ["AWARENESS", "자기부과 TAM 상한", "지오펜싱", "익명 소셜", "캠퍼스 앱", "창업자 자인"],
+  "researched_by": "claude-code (Sonnet 5, sa-cmo-researcher role)",
+  "moves": [
+    {
+      "lever": "CHANNEL",
+      "claim": "10대(중·고등학생) 사용 확산으로 인한 괴롭힘·위협 사건이 잇따르자 2014년 3월부터 Maponics 위치 데이터로 미국 중·고교 부지 약 85%에 지오펜스를 걸어 그 연령대의 접근 자체를 차단했다. 이는 안전 문제 대응이자 동시에 '대학생 전용' 포지션을 스스로 굳히는 채널 제한이었다 — 공동창업자 Buffington은 2016년 4월 \"우리는 대학 시장에 있다, 상한이 있는 시장이다\"라고 이를 직접 정당화하며 순위·확장에 신경 쓰지 않는다고 밝혔다. 이후 다운로드는 App Annie 추정 기준 2014년 9월 180만 건에서 2016년 9월 12만5천 건으로 급감했다. 단, 같은 기간 실명/전화번호 인증 도입(2016-08)·보안 취약점 노출·Snapchat 경쟁 등도 동시에 작용했으므로 이 하락을 지오펜싱 단독 효과로 단정할 수는 없다 — 근거가 뒷받침하는 것은 '가장 큰 잠재 인지도 확산 인구(10대)를 스스로 배제하는 선택을 했고, 그 이후 전체 지표가 무너졌다'는 사실까지다.",
+      "outcome_direction": "negative",
+      "metric_name": "월간 앱 다운로드 추정치 (App Annie)",
+      "metric_before": 1800000,
+      "metric_after": 125000,
+      "metric_unit": "건/월 (App Annie 추정, 2014-09 vs 2016-09)",
+      "observed_period_start": "2014-09-01",
+      "observed_period_end": "2016-09-30"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.postandcourier.com/business/the-rise-and-fall-of-a-south-carolina-born-yik-yak-messaging-app/article_4314d8be-4d3f-11e7-9d23-9f8e1c606074.html",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": true,
+      "is_regulatory_filing": false,
+      "observation_key": "yikyak-appannie-downloads-sep2014-sep2016",
+      "supports_metric": true,
+      "published_at": "2017-06-11",
+      "retrieved_at": "2026-09-13",
+      "snippet": "App Annie data: Yik Yak had 1.8 million downloads in September 2014; by September 2016, it was 125,000. (동일 App Annie 수치를 NYT·Higher Ed Dive 등도 인용 — 같은 원 관측이라 도메인 수가 아니라 관측 1건으로 접었다.)",
+      "supports_claim": "App Annie는 다운로드를 실측이 아니라 패널 기반으로 추정하는 업체라 is_estimate=true. Yik Yak 자체 공시가 아니므로 is_self_reported=false. 등급 산식상 추정치는 A 지지에 못 쓴다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.gettingsmart.com/2014/03/24/yik-yak-geofencing-future-byod/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": true,
+      "is_regulatory_filing": false,
+      "observation_key": "yikyak-maponics-geofence-coverage-2014",
+      "supports_metric": false,
+      "published_at": "2014-03-24",
+      "retrieved_at": "2026-09-13",
+      "snippet": "Yik Yak partnered with Maponics (GPS data for ~85% of US schools) to geofence middle/high school grounds: \"It looks like you're trying to use Yik Yak on a middle school or high school grounds... The app is disabled in this area.\"",
+      "supports_claim": "지오펜싱 정책의 존재·시점(2014-03)·메커니즘·커버리지(85%, Maponics 추정)를 뒷받침. 다운로드 수치 자체는 뒷받침하지 않는다(supports_metric=false) — 서사 근거다."
+    },
+    {
+      "move": 0,
+      "url": "https://www.postandcourier.com/business/the-rise-and-fall-of-a-south-carolina-born-yik-yak-messaging-app/article_4314d8be-4d3f-11e7-9d23-9f8e1c606074.html",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "yikyak-buffington-capped-market-quote-2016apr",
+      "supports_metric": false,
+      "published_at": "2017-06-11",
+      "retrieved_at": "2026-09-13",
+      "snippet": "Buffington, 2016년 4월 찰스턴 테크 컨퍼런스에서(Sequoia 티셔츠를 입고): \"To us, it's not important to be at the top of the charts all the time because we're in the college market. It's a capped market.\"",
+      "supports_claim": "창업자가 '대학 시장=상한 있는 시장'이라는 선택을 스스로 인정한 1차·자기보고 발언. 다운로드 수치의 뒷받침이 아니라 '왜 그렇게 했나'라는 의사결정 서사를 뒷받침한다. 발언 시점(2016-04)과 기사 게재일(2017-06-11)이 다르므로 published_at은 기사 게재일로, 발언 시점은 스니펫에 별도 명시."
+    },
+    {
+      "move": 0,
+      "url": "https://techcrunch.com/2017/04/28/yik-yak-shuts-down-after-square-paid-1-million-for-its-engineers",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "yikyak-square-acquisition-apr2017",
+      "supports_metric": false,
+      "published_at": "2017-04-28",
+      "retrieved_at": "2026-09-13",
+      "snippet": "Square agreed to hire several Yik Yak employees and acquire a non-exclusive IP license for $1 million, per an SEC filing dated 2017-04-16; TechCrunch calls it \"a deeply disappointing result\" versus the ~$400M peak valuation.",
+      "supports_claim": "outcome_status='shutdown' 판정 근거. 원문 SEC 공시 자체는 직접 조회하지 못했다(확인 불가) — TechCrunch의 2차 보도로만 확인했으므로 is_regulatory_filing=false로 보수적으로 표시."
+    }
+  ]
+}

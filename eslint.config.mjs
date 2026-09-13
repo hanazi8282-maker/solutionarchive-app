@@ -22,6 +22,8 @@ const config = [
       'methodology/**',
       // 작업 잔재 보관소. 현재 코드가 아니다.
       '_archive/**',
+      // 에이전트 격리 워크트리(리포 사본). 본체에서 lint 하면 사본의 ai-office 까지 검사해 로컬에서만 실패한다.
+      '.claude/worktrees/**',
     ],
   },
   ...next,

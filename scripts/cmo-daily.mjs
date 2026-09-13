@@ -142,7 +142,42 @@ export const STEPS = [
   ['digest', '다이제스트·상태·커밋'],
 ]
 
-export const today = (d = new Date()) => d.toISOString().slice(0, 10)
+/**
+ * 이 실행의 "그날". **정본 = 예정(스케줄) 시각의 UTC 날짜.**
+ *
+ * ★ 왜 실행 순간이 아닌가 ─────────────────────────────────────────────────
+ *   옛 `today()` 는 `new Date()` 의 UTC 날짜였다. 크론은 20:17 UTC 예정인데
+ *   Actions 가 매일 ~2시간씩 늦게 띄운다(ops/state/cmo-*-cron.jsonl 첫 ts:
+ *   09-08 22:39Z · 09-09 22:32Z · 09-10 22:34Z · 09-11 22:33Z · 09-12 22:16Z).
+ *   지연이 3시간 43분을 넘어 UTC 자정을 넘는 날, 날짜가 하루 밀려 run_key ·
+ *   reports/<날짜>/ · content_code · drafts 파일명 · 작가에게 주는 "오늘 날짜"
+ *   (→ log_code) · Notion 푸시 --date 가 전부 한꺼번에 어긋난다. 전부 main() 의
+ *   `date` 한 값에서 나오므로 여기 한 곳에서 고정한다.
+ *
+ * ★ 왜 KST 가 아니라 UTC 인가 ─────────────────────────────────────────────
+ *   기존 데이터가 전부 "예정 시각의 UTC 날짜"다. 09-12 20:17Z(=KST 09-13 05:17)
+ *   크론이 CS-20260912-* · reports/2026-09-12 를 냈다. 수동 실행도 같다 —
+ *   cmo-2026-09-08-manual 은 15:44Z(=KST 09-09 00:44)까지 돌았는데 09-08 이다.
+ *   KST 로 바꾸면 다음 크론부터 하루가 건너뛰어(09-12 다음이 09-14) 채번·파일명
+ *   계열이 끊긴다.
+ *
+ * `schedule` 은 워크플로가 넘기는 `github.event.schedule`(크론 문자열)이다.
+ * Actions 는 예정 시각 자체를 주지 않으므로 "지금 이전의 가장 최근 발화"를
+ * 역산한다. 지연이 24시간 미만이면 정확하다(크론은 일찍 뜨지 않는다).
+ *
+ * 폴백(예정 없음 = 수동·로컬)은 실행 순간 UTC 날짜다. **조용히 쓰지 않는다** —
+ * `basis` 를 호출부가 로그에 남긴다. 해석 못 하는 크론은 추측하지 않고 던진다(§7.1).
+ */
+export function resolveRunDate({ schedule = '', now = new Date() } = {}) {
+  const s = String(schedule ?? '').trim()
+  if (!s) return { date: now.toISOString().slice(0, 10), basis: 'now' }
+  // ponytail: 매일 한 번 형태('M H * * *')만 푼다. 요일·간격 크론이 필요해지면 그때 넓힌다.
+  const m = /^(\d{1,2}) (\d{1,2}) \* \* \*$/.exec(s)
+  if (!m) throw new Error(`예정 날짜 확인 불가 — 해석 못 하는 크론 '${s}'. 실행 시각으로 추측하지 않는다`)
+  const fire = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), Number(m[2]), Number(m[1]))
+  const last = fire > now.getTime() ? fire - 86_400_000 : fire
+  return { date: new Date(last).toISOString().slice(0, 10), basis: 'schedule' }
+}
 
 /**
  * 실행 키. `cmo-<날짜>-<트리거>`.
@@ -172,7 +207,7 @@ async function main() {
   const dryRun = argv.includes('--dry')
   const trigArg = argv.find((a) => a.startsWith('--trigger='))
   const trigger = trigArg ? trigArg.slice('--trigger='.length) : 'local'
-  const date = today()
+  const { date, basis } = resolveRunDate({ schedule: process.env.CMO_SCHEDULE })
   const repoRoot = process.cwd()
   const runKey = runKeyFor(date, trigger)
 
@@ -185,6 +220,9 @@ async function main() {
 
   say(`## CMO 데일리 루프 ${dryRun ? '(dry-run — DB·git 을 건드리지 않는다)' : ''}`)
   say(`- 실행 키: \`${runKey}\` · 트리거 ${trigger} · 목표 조사 ${RESEARCH_TARGET} / 초안 ${DRAFT_TARGET}`)
+  say(basis === 'schedule'
+    ? `- 기준 날짜 ${date} — 예정 크론 \`${process.env.CMO_SCHEDULE}\` 의 UTC 날짜 (실행 시각 ${new Date().toISOString()})`
+    : `- ${trigger === 'cron' ? '⚠️ ' : ''}기준 날짜 ${date} — 폴백: 예정 시각 없음(CMO_SCHEDULE 미설정), 실행 시각 UTC 날짜${trigger === 'cron' ? '. 트리거가 cron 인데 예정 시각이 안 넘어왔다 — 지연 시 날짜가 밀릴 수 있다' : ''}`)
   say('')
 
   const gitSha = (await sh('git', ['rev-parse', 'HEAD'])).stdout.trim() || null

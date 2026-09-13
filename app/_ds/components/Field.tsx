@@ -51,6 +51,36 @@ export function Field({ label, htmlFor, hint, children, style }: FieldProps) {
   )
 }
 
+/**
+ * 라디오·체크박스를 36px 이상 타일로 감싼다 — 라벨 전체가 클릭 영역이고,
+ * 선택·포커스 표시는 `.dgy-choice` CSS(:has) 가 그린다. type 은 호출부가 넘긴다.
+ */
+export function Choice({ label, hint, style, ...input }: {
+  label: React.ReactNode
+  hint?: React.ReactNode
+  style?: React.CSSProperties
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'style'>) {
+  return (
+    <label
+      className="dgy-choice"
+      style={{
+        display: 'inline-flex', alignItems: hint ? 'flex-start' : 'center', gap: 8,
+        minHeight: 36, padding: '8px 12px', boxSizing: 'border-box',
+        border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)',
+        background: 'var(--surface-card)', fontSize: 14, lineHeight: 1.45, color: 'var(--text-body)',
+        cursor: input.disabled ? 'not-allowed' : 'pointer', opacity: input.disabled ? 0.6 : 1,
+        ...style,
+      }}
+    >
+      <input style={{ accentColor: 'var(--ring)', margin: hint ? '3px 0 0' : 0, flex: 'none' }} {...input} />
+      <span style={{ minWidth: 0 }}>
+        {label}
+        {hint ? <span style={{ display: 'block', marginTop: 2, fontSize: 12, color: 'var(--text-muted)' }}>{hint}</span> : null}
+      </span>
+    </label>
+  )
+}
+
 export function Input({ style, ...rest }: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input className="dgy-field" style={{ ...CONTROL, ...style }} {...rest} />
 }

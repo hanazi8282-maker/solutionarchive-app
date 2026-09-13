@@ -50,12 +50,14 @@ export function Card({
           padding: '16px 20px',
           borderBottom: children ? '1px solid var(--border)' : 'none',
         }}>
-          <div>
+          {/* minWidth:0 — 긴 부제가 오른쪽 action 을 화면 밖으로 밀지 않게.
+              title 은 h2 — 스크린리더 제목 탐색에서 카드가 섹션으로 잡히게(앱에서 변경). */}
+          <div style={{ minWidth: 0 }}>
             {title ? (
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-strong)' }}>{title}</div>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, lineHeight: 1.4, color: 'var(--text-strong)' }}>{title}</h2>
             ) : null}
             {subtitle ? (
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: title ? 2 : 0 }}>{subtitle}</div>
+              <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-muted)', marginTop: title ? 2 : 0, overflowWrap: 'anywhere' }}>{subtitle}</div>
             ) : null}
           </div>
           {action ? <div style={{ flex: 'none' }}>{action}</div> : null}

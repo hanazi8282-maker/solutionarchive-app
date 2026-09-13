@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { ActionState } from './actions'
+import { Notice } from '../_ds/components/Shell'
 
 /** 폼 3개가 공유하는 프레젠테이션 조각. 로직 없음. */
 
@@ -15,26 +16,14 @@ export const formGrid: CSSProperties = {
 /** 그리드에서 한 줄 전체를 차지한다. */
 export const span2: CSSProperties = { gridColumn: '1 / -1' }
 
-/** 서버 액션 결과 배너 — 성공/실패를 색으로 가른다. */
+/** 필수 입력 표시. 색만으로 전달하지 않도록 글자로 쓴다. */
+export const REQUIRED = <span style={{ color: 'var(--danger-fg)' }}> · 필수</span>
+
+/** 서버 액션 결과 배너 — 공용 Notice 로 성공/실패를 가른다. */
 export function ResultMessage({ state, style }: { state: NonNullable<ActionState>; style?: CSSProperties }) {
-  const ok = state.ok
   return (
-    <p
-      role="status"
-      style={{
-        margin: 0,
-        padding: '10px 12px',
-        borderRadius: 'var(--radius-md)',
-        fontSize: 13,
-        lineHeight: 1.55,
-        overflowWrap: 'anywhere',
-        background: ok ? 'var(--success-bg)' : 'var(--danger-bg)',
-        border: `1px solid ${ok ? 'var(--success-border)' : 'var(--danger-border)'}`,
-        color: ok ? 'var(--success-fg)' : 'var(--danger-fg)',
-        ...style,
-      }}
-    >
+    <Notice tone={state.ok ? 'success' : 'danger'} style={style}>
       {state.message}
-    </p>
+    </Notice>
   )
 }

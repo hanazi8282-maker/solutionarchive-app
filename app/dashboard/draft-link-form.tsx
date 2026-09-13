@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import { linkDraft, type ActionState } from './actions'
 import { Field, Input, Select } from '../_ds/components/Field'
 import { Button } from '../_ds/components/Button'
-import { ResultMessage } from './form-ui'
+import { REQUIRED, ResultMessage } from './form-ui'
 
 export type DraftOption = {
   id: string
@@ -42,19 +42,14 @@ function DraftRow({ draft }: { draft: DraftOption }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(linkDraft, null)
 
   return (
-    <li style={{
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-lg)',
-      background: 'var(--surface-card)',
-      padding: 16,
-    }}>
+    <li style={rowStyle}>
       <p style={{
         margin: '0 0 4px', fontSize: 14, fontWeight: 600,
         color: 'var(--text-strong)', lineHeight: 1.55, overflowWrap: 'anywhere',
       }}>
         {preview(draft.body)}
       </p>
-      <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-faint)', overflowWrap: 'anywhere' }}>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
         생성 {draft.created_at ? draft.created_at.slice(0, 16).replace('T', ' ') : '날짜없음'}
         {draft.notes ? ` · ${draft.notes.replace(/\s+/g, ' ').slice(0, 60)}` : ''}
       </p>
@@ -67,11 +62,11 @@ function DraftRow({ draft }: { draft: DraftOption }) {
       }}>
         <input type="hidden" name="draft_id" value={draft.id} />
 
-        <Field label="Threads 게시물 ID" htmlFor={`external_id-${draft.id}`}>
+        <Field label={<>Threads 게시물 ID{REQUIRED}</>} htmlFor={`external_id-${draft.id}`}>
           <Input id={`external_id-${draft.id}`} name="external_id" type="text" required placeholder="1784…" />
         </Field>
 
-        <Field label="발행일시 (한국 시간)" htmlFor={`published_at-${draft.id}`}>
+        <Field label={<>발행일시 (한국 시간){REQUIRED}</>} htmlFor={`published_at-${draft.id}`}>
           {/* status='published' 로 올리려면 반드시 필요하다
               (posts_published_at_required_check). 서버에서도 다시 막는다. */}
           <Input id={`published_at-${draft.id}`} name="published_at" type="datetime-local" required />
@@ -102,9 +97,9 @@ function UnlinkedThreadRow({ t }: { t: UnlinkedThread }) {
       }}>
         {t.text ? preview(t.text) : '(텍스트 없음)'}
       </p>
-      <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-faint)', overflowWrap: 'anywhere' }}>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
         발행 {t.whenKst} · 게시물 ID {t.id}
-        {t.permalink ? <> · <a href={t.permalink} target="_blank" rel="noreferrer">게시물 열기</a></> : null}
+        {t.permalink ? <> · <a href={t.permalink} target="_blank" rel="noreferrer">게시물 열기 ↗</a></> : null}
       </p>
 
       <form action={formAction} style={{
@@ -137,7 +132,7 @@ function UnlinkedThreadRow({ t }: { t: UnlinkedThread }) {
 
       {!t.timestamp && (
         <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--danger-fg)' }}>
-          API 가 발행 시각을 주지 않아 여기서 연결할 수 없습니다. 아래 &quot;게시물 ID 직접 입력&quot;을 쓰세요.
+          API 가 발행 시각을 주지 않아 여기서 연결할 수 없습니다. 아래 &quot;게시물 ID로 직접 연결&quot;을 쓰세요.
         </p>
       )}
       {state && <ResultMessage state={state} style={{ marginTop: 12 }} />}

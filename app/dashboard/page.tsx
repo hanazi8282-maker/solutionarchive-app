@@ -1,8 +1,8 @@
-import '../_ds/styles.css'
 import { createClient } from '@/lib/supabase/server'
 import { Card } from '../_ds/components/Card'
 import { Badge } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
+import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
 import PostForm, { type ContentItem, type Hypothesis } from './post-form'
 import MetricForm, { type PostOption } from './metric-form'
 import DraftLinkForm, { UnlinkedThreadList, type DraftOption, type UnlinkedThread } from './draft-link-form'
@@ -11,6 +11,7 @@ import { fetchRecentThreads, LOOKBACK_DAYS } from '@/lib/threads/recent'
 import { matchDrafts, rankDraftsFor } from '@/lib/threads/match'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { title: '발행 기록' }
 
 const oneLine = (s: string | null, n: number) => (s ?? '').replace(/\s+/g, ' ').slice(0, n)
 
@@ -22,6 +23,9 @@ export default async function DashboardPage() {
   let posts: PostOption[] = []
   let drafts: DraftOption[] = []
   let loadError = ''
+  // 표시용 플래그. 조회 실패 시 목록이 [] 로 떨어져 "없습니다"로 보이던 것을 가른다(§7.1).
+  let draftsOk = false
+  let postsOk = false
 
   // "발행됐는데 어떤 초안에도 안 붙은 게시물". 3상태(§7.1):
   //   null = 확인 불가(사유 unlinkedError) / [] = 확인했고 없음 / [..] = 있음
@@ -61,6 +65,8 @@ export default async function DashboardPage() {
     hypotheses = hy.data ?? []
     posts = po.data ?? []
     drafts = dr.data ?? []
+    postsOk = !po.error
+    draftsOk = !dr.error
 
     const errs = [ci.error, hy.error, po.error, dr.error, ln.error].filter(Boolean)
     if (errs.length) loadError = errs.map(e => e!.message).join(' / ')
@@ -107,115 +113,139 @@ export default async function DashboardPage() {
     }
   }
 
+  const pendingN = drafts.filter(d => d.status === 'pending_review').length
+  const DRAFT_LIMIT = 50
+
   return (
-    <main style={{
-      fontFamily: 'var(--font-sans)',
-      background: 'var(--bg-app)',
-      color: 'var(--text-body)',
-      minHeight: '100vh',
-      padding: '28px clamp(16px, 4vw, 32px) 56px',
-    }}>
-      <div style={{ maxWidth: 880, margin: '0 auto' }}>
-        {/* 2줄 헤더 */}
-        <header style={{
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: 12, marginBottom: 20,
-        }}>
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-strong)', margin: 0 }}>
-              발행 기록 대시보드
-            </h1>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>
-              발행한 글을 등록하고, 자동 매칭이 놓친 초안을 잇고, 성과를 손으로 메운다.
-            </p>
-          </div>
-          <a
-            href="/agents"
-            style={{
-              flex: 'none', fontSize: 13, fontWeight: 500, color: 'var(--text-link)',
-              textDecoration: 'none', padding: '7px 12px',
-              border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-              background: 'var(--surface-card)',
-            }}
-          >
-            AI 에이전트 진행상황 →
-          </a>
-        </header>
+    <PageShell maxWidth={960}>
+      <PageHeader
+        title="발행 기록"
+        subtitle="자동 매칭이 놓친 발행 글을 초안에 잇고, 크론이 놓친 성과를 메운다. 사람이 처리할 일이 위에 있다."
+      />
 
-        {loadError && (
-          <div style={{
-            background: 'var(--danger-bg)', border: '1px solid var(--danger-border)',
-            color: 'var(--danger-fg)', padding: '14px 16px', borderRadius: 'var(--radius-lg)',
-            fontSize: 14, lineHeight: 1.6, marginBottom: 20, overflowWrap: 'anywhere',
-          }}>
-            데이터 로드 오류: {loadError}
-          </div>
+      {loadError && (
+        <Notice tone="danger" title="데이터 일부를 읽지 못했습니다 — ‘확인 불가’로 표시된 항목은 0건이 아닙니다.">
+          {loadError}
+        </Notice>
+      )}
+
+      {/* 지금 할 일 — 숫자마다 기준(몇 건 중·어디서 셌나)을 붙인다. 누르면 해당 섹션으로 간다. */}
+      <StatGrid min={160}>
+        <StatTile
+          href="#unlinked"
+          label="초안에 안 붙은 발행 글"
+          tone={unlinked === null ? 'danger' : unlinked.length > 0 ? 'warning' : 'success'}
+          value={unlinked === null ? '확인 불가' : `${unlinked.length}건`}
+          caption={unlinked === null ? '아래 사유 참고' : `최근 ${LOOKBACK_DAYS}일 Threads 게시물 ${threadsChecked}건 중`}
+        />
+        <StatTile
+          href="#drafts"
+          label="발행 연결 대기 초안"
+          tone={draftsOk ? undefined : 'danger'}
+          value={draftsOk ? `${drafts.length}건` : '확인 불가'}
+          caption={draftsOk ? `검토 대기 ${pendingN}건 · 초안 ${drafts.length - pendingN}건 (posts)` : 'posts 조회 실패'}
+        />
+        <StatTile
+          href="#metrics"
+          label="성과 입력 가능한 발행 글"
+          tone={postsOk ? undefined : 'danger'}
+          value={postsOk ? `${posts.length}건` : '확인 불가'}
+          caption={postsOk ? (posts.length >= 50 ? '최근 발행 50건까지만 불러옴' : 'posts · status=published') : 'posts 조회 실패'}
+        />
+      </StatGrid>
+
+      <Card
+        id="unlinked"
+        title="초안에 안 붙은 발행 글"
+        subtitle={`최근 ${LOOKBACK_DAYS}일 Threads 게시물 중 매처가 어떤 초안에도 자동 연결하지 않은 글. 발행 전에 본문을 크게 고쳐 쓰면 여기로 온다.`}
+        action={
+          unlinked === null ? <Badge tone="danger">확인 불가</Badge>
+            : unlinked.length > 0 ? <Badge tone="warning" dot>처리 필요 {unlinked.length}건</Badge>
+              : <Badge tone="success">0건</Badge>
+        }
+        bodyStyle={unlinked?.length === 0 ? { padding: 0 } : undefined}
+      >
+        {unlinked === null ? (
+          <Notice tone="danger" title="확인하지 못했습니다 — 0건이라는 뜻이 아닙니다.">{unlinkedError}</Notice>
+        ) : unlinked.length === 0 ? (
+          <EmptyState
+            compact
+            title="초안에 안 붙은 발행 글 없음 ✓"
+            description={`최근 ${LOOKBACK_DAYS}일 게시물 ${threadsChecked}건을 확인했습니다.`}
+          />
+        ) : (
+          <UnlinkedThreadList items={unlinked} />
         )}
+      </Card>
 
-        <div style={{ display: 'grid', gap: 20 }}>
-          <Card
-            title="1. 글 등록"
-            subtitle="발행한 글을 기록한다. 소재·가설을 붙여 두면 나중에 성과와 엮인다."
-          >
+      <Card
+        id="drafts"
+        title="게시물 ID로 직접 연결"
+        subtitle={`위 목록에 안 뜨는 글(${LOOKBACK_DAYS}일이 지난 글 등)을 초안에 손으로 잇는다.`}
+        action={draftsOk ? <Badge tone="neutral">{drafts.length}건</Badge> : <Badge tone="danger">확인 불가</Badge>}
+        bodyStyle={draftsOk && drafts.length === 0 ? { padding: 0 } : undefined}
+      >
+        {!draftsOk ? (
+          <Notice tone="danger">초안 목록을 읽지 못했습니다. 연결 대기 초안이 없다는 뜻이 아닙니다.</Notice>
+        ) : drafts.length === 0 ? (
+          <EmptyState compact title="연결 대기 중인 초안이 없습니다." />
+        ) : (
+          // 초안마다 입력 폼이 하나씩 붙어 길다. 위 "안 붙은 글" 경로가 우선이라 기본은 접어 둔다.
+          <details className="dgy-details">
+            <summary>
+              초안 {Math.min(drafts.length, DRAFT_LIMIT)}건 펼치기
+              {drafts.length > DRAFT_LIMIT ? ` (전체 ${drafts.length}건 중 최근 ${DRAFT_LIMIT}건)` : ''}
+            </summary>
+            <div style={{ marginTop: 12 }}>
+              {/* ponytail: 최근 50건만 보여준다. 더 오래된 초안이 필요해지면 검색을 붙인다. */}
+              <DraftLinkForm drafts={drafts.slice(0, DRAFT_LIMIT)} />
+            </div>
+          </details>
+        )}
+      </Card>
+
+      <Card
+        id="post"
+        title="발행 글 직접 등록"
+        subtitle="발행한 글을 기록한다. 소재·가설을 붙여 두면 나중에 성과와 엮인다."
+      >
+        <details className="dgy-details">
+          <summary>등록 폼 열기</summary>
+          <div style={{ marginTop: 12 }}>
             <PostForm contentItems={contentItems} hypotheses={hypotheses} />
-          </Card>
+          </div>
+        </details>
+      </Card>
 
-          <Card
-            title="2. 발행됐는데 초안에 안 붙은 게시물"
-            subtitle={`최근 ${LOOKBACK_DAYS}일 Threads 게시물 중 매처가 어떤 초안에도 자동 연결하지 않은 글. 발행 전에 본문을 크게 고쳐 쓰면 여기로 온다.`}
-            action={
-              unlinked === null ? <Badge tone="danger">확인 불가</Badge>
-                : unlinked.length > 0 ? <Badge tone="warning">{unlinked.length}건</Badge>
-                  : null
-            }
-            bodyStyle={unlinked?.length === 0 ? { padding: 0 } : undefined}
-          >
-            {unlinked === null ? (
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--danger-fg)', overflowWrap: 'anywhere' }}>
-                {unlinkedError}
-              </p>
-            ) : unlinked.length === 0 ? (
-              <EmptyState compact title={`초안에 안 붙은 게시물이 없습니다 (최근 ${LOOKBACK_DAYS}일 게시물 ${threadsChecked}건 확인).`} />
-            ) : (
-              <UnlinkedThreadList items={unlinked} />
-            )}
-          </Card>
-
-          <Card
-            title="3. 게시물 ID 직접 입력"
-            subtitle={`위 목록에 안 뜨는 글(${LOOKBACK_DAYS}일이 지난 글 등)을 초안에 손으로 잇는다.`}
-            bodyStyle={drafts.length === 0 ? { padding: 0 } : undefined}
-          >
-            {drafts.length === 0 ? (
-              <EmptyState compact title="연결 대기 중인 초안이 없습니다." />
-            ) : (
-              // ponytail: 최근 50건만 보여준다. 더 오래된 초안이 필요해지면 검색을 붙인다.
-              <DraftLinkForm drafts={drafts.slice(0, 50)} />
-            )}
-          </Card>
-
-          <Card
-            title="4. 성과 입력 (수기)"
-            subtitle={
-              <>
-                평상시에는 크론(/api/threads/collect-metrics)이 자동 수집합니다. 이 폼은 크론이
-                놓친 시점을 사람이 메우는 백업입니다. 같은 시점을 다시 넣으면 덮어씁니다.
-              </>
-            }
-            bodyStyle={posts.length === 0 ? { padding: 0 } : undefined}
-          >
-            {posts.length === 0 ? (
-              <EmptyState
-                compact
-                title="발행된 글이 없습니다."
-                description="위에서 글을 먼저 등록하거나 초안을 연결하세요."
-              />
-            ) : (
+      <Card
+        id="metrics"
+        title="성과 수기 입력 (백업)"
+        subtitle={
+          <>
+            평상시에는 크론(<code>/api/threads/collect-metrics</code>)이 자동 수집한다. 크론이 놓친 시점을
+            사람이 메우는 백업이며, 같은 시점을 다시 넣으면 덮어쓴다.
+          </>
+        }
+        action={postsOk ? null : <Badge tone="danger">확인 불가</Badge>}
+        bodyStyle={postsOk && posts.length === 0 ? { padding: 0 } : undefined}
+      >
+        {!postsOk ? (
+          <Notice tone="danger">발행 글 목록을 읽지 못했습니다. 발행 글이 없다는 뜻이 아닙니다.</Notice>
+        ) : posts.length === 0 ? (
+          <EmptyState
+            compact
+            title="발행된 글이 없습니다."
+            description="위에서 초안을 연결하거나 글을 등록하면 여기서 고를 수 있습니다."
+          />
+        ) : (
+          <details className="dgy-details">
+            <summary>입력 폼 열기</summary>
+            <div style={{ marginTop: 12 }}>
               <MetricForm posts={posts} />
-            )}
-          </Card>
-        </div>
-      </div>
-    </main>
+            </div>
+          </details>
+        )}
+      </Card>
+    </PageShell>
   )
 }

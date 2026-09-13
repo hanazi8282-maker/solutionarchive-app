@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import { createPost, type ActionState } from './actions'
 import { Field, Input, Select, Textarea } from '../_ds/components/Field'
 import { Button } from '../_ds/components/Button'
-import { ResultMessage, formGrid, span2 } from './form-ui'
+import { REQUIRED, ResultMessage, formGrid, span2 } from './form-ui'
 
 export type ContentItem = { code: string; title: string | null }
 export type Hypothesis = { code: string; statement: string | null }
@@ -31,11 +31,11 @@ export default function PostForm({
         </Select>
       </Field>
 
-      <Field label="본문 (body)" htmlFor="body" style={span2}>
-        <Textarea id="body" name="body" rows={10} required />
+      <Field label={<>본문 (body){REQUIRED}</>} htmlFor="body" style={span2}>
+        <Textarea id="body" name="body" rows={8} required />
       </Field>
 
-      <Field label="발행일시 (published_at)" htmlFor="published_at">
+      <Field label={<>발행일시 (published_at, 한국 시간){REQUIRED}</>} htmlFor="published_at">
         <Input id="published_at" name="published_at" type="datetime-local" required />
       </Field>
 

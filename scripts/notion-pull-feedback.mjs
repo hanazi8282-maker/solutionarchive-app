@@ -27,9 +27,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '../lib/supabase/server.ts'
+import { notionRequest } from './notion-api.mjs'
 
-const NOTION_VERSION = '2022-06-28'
-const NOTION_API = 'https://api.notion.com/v1'
+// 호출부 호환 — 예전엔 이 파일에 정의돼 있었다. 정본은 notion-api.mjs.
+export { notionRequest }
+
 const PUBLISHED_MARKER = '<발행본>'
 
 /**
@@ -47,19 +49,6 @@ export function splitPublishedMarker(text, marker = PUBLISHED_MARKER) {
 }
 
 function today(d = new Date()) { return d.toISOString().slice(0, 10) }
-
-function notionHeaders(token) {
-  return { Authorization: `Bearer ${token}`, 'Notion-Version': NOTION_VERSION, 'Content-Type': 'application/json' }
-}
-
-export async function notionRequest(token, method, endpoint) {
-  let res
-  try { res = await fetch(`${NOTION_API}${endpoint}`, { method, headers: notionHeaders(token) }) }
-  catch (e) { return { ok: false, error: `네트워크 실패 — ${e.message}` } }
-  const json = await res.json().catch(() => null)
-  if (!res.ok) return { ok: false, error: `${res.status} ${json?.code ?? ''} ${json?.message ?? ''}`.trim() }
-  return { ok: true, data: json }
-}
 
 /** 페이지의 상위 블록을 읽어 문단 텍스트를 이어붙인다. 자식 블록(중첩)은 안 본다 — 이 DB 는 평면 구조로만 쓴다. */
 export async function readPageText(token, pageId) {

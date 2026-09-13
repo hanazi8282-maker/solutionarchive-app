@@ -1,0 +1,34 @@
+# Notion "일일 상태 로그" DB 연동 프로브 — 수동 전용.
+#
+# 기존 NOTION_API_TOKEN(발행 대기함과 같은 연동)으로 테스트 페이지를 만들고,
+# GET 재확인 → archived 정리 → GET 재확인까지 한다. 로그 끝줄 PROBE_EXIT=<코드>.
+#   0 성공 / 2 권한 없음(DB 에 Connections 추가 필요) / 3 스키마 불일치 / 1 기타·확인 불가
+#
+# 최소 권한: NOTION_API_TOKEN 외 secret 을 넣지 않는다. 의존성 0 이라 npm ci 도 없다.
+
+name: Notion Status Log Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Selftest (network-free)
+        run: node scripts/notion-status-log-selftest.mjs
+
+      - name: Probe
+        env:
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+        run: node scripts/notion-status-log.mjs --probe

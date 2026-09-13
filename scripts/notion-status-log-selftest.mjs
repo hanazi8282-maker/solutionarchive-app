@@ -6,7 +6,13 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { buildStatusLogProperties, clip, nextTitle, parseCliArgs, recordStatusLog, runProbe, SCHEMA } from './notion-status-log.mjs'
+import { buildStatusLogProperties, clip, kstDate, nextTitle, parseCliArgs, recordStatusLog, runProbe, SCHEMA } from './notion-status-log.mjs'
+
+// 0) KST 날짜 — 전 트랙 행 날짜의 정본 (Git-Bash date 가 아니라 Intl)
+assert.equal(kstDate(new Date('2026-09-13T22:30:00Z')), '2026-09-14')
+assert.equal(kstDate(new Date('2026-09-13T14:59:59Z')), '2026-09-13')
+assert.equal(kstDate(new Date('2026-09-13T15:00:00Z')), '2026-09-14')
+assert.equal(kstDate(new Date('2026-12-31T15:00:00Z')), '2027-01-01')
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
 // 1) 8개 속성 · 이름 · 타입

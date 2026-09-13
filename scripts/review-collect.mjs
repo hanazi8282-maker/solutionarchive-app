@@ -25,7 +25,7 @@ import { alertLine } from '../lib/review/health.ts'
 import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
 import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { hackernewsAdapter } from '../lib/review/adapters/hackernews.ts'
-import { recordStatusLog } from './notion-status-log.mjs'
+import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
 const ADAPTERS = { danawa: danawaAdapter, appstore: appstoreAdapter, hackernews: hackernewsAdapter }
@@ -289,7 +289,7 @@ if (!dryRun) {
   let r
   try {
     r = await recordStatusLog(buildReviewCollectEntry({
-      date: new Date().toISOString().slice(0, 10), sources: sourceResults, failures, topProject, runUrl,
+      date: kstDate(), sources: sourceResults, failures, topProject, runUrl,
     }))
   } catch (e) {
     r = { ok: false, stage: 'build', error: e instanceof Error ? e.message : String(e) }

@@ -36,6 +36,16 @@ export const SCHEMA = {
 }
 const MAX_TEXT = 2000 // Notion text object 당 content 상한
 
+/**
+ * 행의 날짜 = **행을 쓰는 시점의 KST 날짜** (CLAUDE.md §11, 2026-09-14 CEO-STAFF 결정 — 전 트랙 통일).
+ * 브리핑이 트랙 간 같은 날짜로 묶어 읽는다. Node Intl 로 계산한다 — Git-Bash date 는 TZ 를 무시한다.
+ */
+export function kstDate(now = new Date()) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .formatToParts(now).map((x) => [x.type, x.value]))
+  return `${p.year}-${p.month}-${p.day}`
+}
+
 /** 2000자(UTF-16 단위, 그러면 코드포인트로도 ≤2000)로 자른다. 서로게이트 쌍은 쪼개지 않는다. */
 export function clip(text, max = MAX_TEXT) {
   const s = String(text ?? '')
@@ -236,10 +246,9 @@ export function parseCliArgs(argv, now = new Date()) {
     },
   })
   if (v.probe) return { probe: true }
-  const kstToday = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now)
   return {
     entry: {
-      date: v.date ?? kstToday, track: v.track, done: v.done, blocked: v.blocked, next: v.next,
+      date: v.date ?? kstDate(now), track: v.track, done: v.done, blocked: v.blocked, next: v.next,
       needsHuman: v['needs-human'] === true, note: v.note, title: v.title,
     },
   }

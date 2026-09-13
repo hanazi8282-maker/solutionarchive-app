@@ -43,7 +43,7 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { resolveClaudeBinary, runClaude } from '../lib/insight/claude-cli.ts'
 import { createTracker } from './agent-status.mjs'
-import { recordStatusLog } from './notion-status-log.mjs'
+import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 // 토큰 없이 DB 기록만 읽는다. lib/threads/recent·token 을 여기서 import 하지 마라(§10.1).
 import { unlinkedDigestLine, UNLINKED_STEP_KEY } from '../lib/threads/unlinked-status.ts'
 
@@ -1578,9 +1578,12 @@ export async function writeDigest({ reportDir, date, runKey, dryRun, log = [], s
  * 사람판단필요 = 막힌것(실패·막힘·부분 실패·큐 미해소·Notion 푸시 실패·preflight 중단)이 있거나
  *   사람 대기(검토대기 초안 신규·승인 대기 케이스 신규·승인 무브 0건·미연결 발행글 N건 또는 확인 불가)가
  *   하나라도 있으면 true.
- * 날짜는 run date(resolveRunDate — 예정 크론의 UTC 날짜)다. run_key·reports/<날짜> 와 같은 값.
+ * 행의 날짜·제목은 **행을 쓰는 시점의 KST 날짜**다(kstDate — §11, 전 트랙 통일). 크론은 20:17 UTC
+ * 예정이지만 실제로 KST 07시대에 돌아서, run date(UTC)로 쓰면 "KST 09-14 아침에 한 일"이 09-13 행이 된다.
+ * run date(`date` 인자 — content_code·run_key·reports/<날짜> 기준)는 비고에 남긴다.
  */
-export function buildCmoStatusEntry({ date, runKey, runUrl = null, state = {}, log = [], stopped = null, runStatus = null, unlinkedLine = null, notionPushError = null }) {
+export function buildCmoStatusEntry({ date, runKey, runUrl = null, state = {}, log = [], stopped = null, runStatus = null, unlinkedLine = null, notionPushError = null, now = new Date() }) {
+  const day = kstDate(now)
   const c = state.counts ?? {}
   const steps = state.steps ?? []
   const digestRef = `reports/${date}/DIGEST.md`
@@ -1589,11 +1592,11 @@ export function buildCmoStatusEntry({ date, runKey, runUrl = null, state = {}, l
     return ys.length <= 5 ? ys : [...ys.slice(0, 4), `외 ${ys.length - 4}건 — ${digestRef}`]
   }
   const stuck = log.filter((l) => /^- (▲|❌)/.test(l)).map((l) => l.replace(/^-\s*/, '').replace(/`/g, ''))
-  const note = `run_key ${runKey} · ${runUrl ?? '로컬 실행(run URL 없음)'} · 날짜는 예정 크론 기준(UTC)`
+  const note = `run_key ${runKey} · run date ${date}(콘텐츠 코드 기준) · ${runUrl ?? '로컬 실행(run URL 없음)'}`
 
   if (stopped) {
     return {
-      date, track: 'CMO',
+      date: day, track: 'CMO',
       done: `사전 점검(${stopped})에서 멈췄다 — 조사·적립·초안 단계를 돌지 않았다. 오늘 CMO 산출물 0건`,
       blocked: cap(stuck.length ? stuck : [`${stopped} 실패 — 사유가 로그에 없다(${digestRef})`]).join('\n'),
       next: 'Supabase 자격증명·DB 도달 확인 후 워크플로 수동 재실행 (dry_run 끄기)',
@@ -1626,7 +1629,7 @@ export function buildCmoStatusEntry({ date, runKey, runUrl = null, state = {}, l
   ].filter(Boolean)
   const next = cap([...human, blocked.length ? `막힌 항목 원인 확인 — ${digestRef} "병목 진단"` : null])
   return {
-    date, track: 'CMO',
+    date: day, track: 'CMO',
     done: done.join('\n'),
     blocked: blocked.length ? blocked.join('\n') : '없음',
     next: next.length ? next.join('\n') : '사람 할 일 없음 — 다음 크론이 이어서 돈다',

@@ -27,7 +27,7 @@ import { matchMoves, demandAxis, precedentAxis, quadrantOf } from '../lib/cases/
 import {
   BUSINESS_MODEL, BUYER_TYPE, PURCHASE_FREQUENCY, PRICE_BAND, BOTTLENECK,
 } from '../lib/cases/draft.ts'
-import { recordStatusLog } from './notion-status-log.mjs'
+import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 
 const VOCAB = {
   business_model: BUSINESS_MODEL,
@@ -99,7 +99,7 @@ export function buildPmfEntry({ input = {}, match = null, demand = null, precede
         : match.status === 'no_match' ? '선례 없음 — 직접 검증(소규모 테스트)을 설계할지 판단'
           : '한 축이 확인 불가라 사분면 없음 — 빠진 축을 채운 뒤 판단'
   return {
-    date: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now),
+    date: kstDate(now),
     track: 'CTO',
     done: done.join('\n'),
     blocked: blocked.length ? blocked.join('\n') : '없음',

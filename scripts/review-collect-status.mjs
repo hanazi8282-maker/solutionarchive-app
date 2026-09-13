@@ -48,6 +48,6 @@ export function buildReviewCollectEntry({ date, sources = [], failures = [], top
     blocked: blockedLines.length ? blockedLines.join('\n') : '없음',
     next: (next.length ? next : ['사람 할 일 없음 — 다음 크론이 이어서 돈다']).join('\n'),
     needsHuman: blockedLines.length > 0 || failures.length > 0,
-    note: `nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'} · 날짜는 실행 시각 UTC 기준 · 원문 폐기(purge) 결과는 이 행에 없다`,
+    note: `nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'} · 날짜는 KST(행을 쓰는 시점) · 원문 폐기(purge) 결과는 이 행에 없다`,
   }
 }

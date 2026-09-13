@@ -1205,12 +1205,16 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
 
   // (1) 할 일이 쌓인 날
   const busy = buildCmoStatusEntry({
-    ...base, runStatus: 'partial', unlinkedLine: ZERO,
+    ...base, runStatus: 'partial', unlinkedLine: ZERO, now: new Date('2026-09-13T22:30:00Z'),
     state: { blocked: 1, failed: 0, counts: { new_drafts: 2, commit_attempted: 2, committed: 1, drafted: 2, staged: 2 }, steps: [S('preflight', 'ok'), S('stage', 'blocked')] },
     log: ['- ✅ `preflight` 사전 점검', '- ▲ `stage` 발행 대기 스테이징 — CG-1 미통과'],
   })
   eq('상태로그 — 트랙 CMO', busy.track, 'CMO')
-  eq('상태로그 — 날짜는 run date', busy.date, '2026-09-13')
+  // ★ 경계: run date 09-13(UTC) 크론이 22:30Z(=KST 09-14 07:30)에 돈다 → 행은 KST 09-14
+  eq('상태로그 — 날짜는 행을 쓰는 시점의 KST (22:30Z → 09-14)', busy.date, '2026-09-14')
+  eq('상태로그 — 제목도 KST 날짜', buildStatusLogProperties(busy).제목.title[0].text.content, '2026-09-14-CMO')
+  check('상태로그 — run date 는 비고에 (콘텐츠 코드 기준)', busy.note.includes('run date 2026-09-13(콘텐츠 코드 기준)'), busy.note)
+  eq('상태로그 — preflight 행도 KST', buildCmoStatusEntry({ ...base, stopped: 'preflight', runStatus: 'failed', state: {}, log: [], now: new Date('2026-09-13T22:30:00Z') }).date, '2026-09-14')
   check('상태로그 — 한일에 시도 대비 적립·스테이징 수', busy.done.includes('적립 1건(시도 2건)') && busy.done.includes('스테이징 2건'), busy.done)
   check('상태로그 — 막힌것에 blocker 원문(백틱 제거)', busy.blocked.includes('CG-1 미통과') && !busy.blocked.includes('`'), busy.blocked)
   check('상태로그 — 다음할일에 검토대기 초안·승인 대기 케이스', busy.next.includes('발행 대기 초안 2건') && busy.next.includes('케이스 1건'), busy.next)

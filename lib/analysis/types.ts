@@ -23,6 +23,9 @@ export const MODE_LABELS: Record<AnalysisMode, string> = {
   reverse: '경쟁사 성공 상품 역설계',
 }
 
+// 앵글 화면을 열 수 있는 프로젝트 상태(검수 완료 이후). 앵글 화면과 목록이 같이 쓴다.
+export const ANGLE_READY_STATUSES: readonly string[] = ['reviewed', 'angled', 'done']
+
 export const ANALYSIS_SOURCE_TYPES = ['review', 'ad', 'detail_page'] as const
 export type AnalysisSourceType = (typeof ANALYSIS_SOURCE_TYPES)[number]
 

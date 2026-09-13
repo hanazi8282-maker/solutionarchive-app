@@ -13,11 +13,60 @@ import {
   type AnalysisMode,
   type AnalysisSourceType,
 } from '@/lib/analysis/types'
+import { Card } from '../../_ds/components/Card'
+import { Badge } from '../../_ds/components/Badge'
+import { Button } from '../../_ds/components/Button'
+import { Choice, Field, Input, Select, Textarea, labelStyle } from '../../_ds/components/Field'
+import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
 
 type InputRow = {
   id: string
   source_type: AnalysisSourceType
   raw_text: string
+}
+
+// 전에는 Tailwind 클래스로 짜여 있었지만 이 리포에는 Tailwind 가 없어 브라우저 기본
+// 스타일로 떴다. 표시만 디자인 시스템 컴포넌트로 바꿨다 — 상태·fetch·폴링 로직은 그대로.
+
+const REQ = <span style={{ color: 'var(--danger-fg)' }}> · 필수</span>
+const fieldsetReset = { border: 'none', margin: 0, padding: 0, minWidth: 0 } as const
+const muted = { margin: 0, fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)', color: 'var(--text-muted)' } as const
+
+const STEPS = ['분석 대상', '수집 원문', '분석 시작'] as const
+
+function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
+  return (
+    <ol aria-label="진행 단계" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, listStyle: 'none', margin: 0, padding: 0 }}>
+      {STEPS.map((label, i) => {
+        const n = i + 1
+        const done = n < current
+        const active = n === current
+        return (
+          <li
+            key={label}
+            aria-current={active ? 'step' : undefined}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8, height: 32, padding: '0 12px 0 6px',
+              borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 500,
+              background: active ? 'var(--info-bg)' : 'var(--surface-card)',
+              border: `1px solid ${active ? 'var(--info-border)' : 'var(--border)'}`,
+              color: active ? 'var(--info-fg)' : done ? 'var(--text-body)' : 'var(--text-muted)',
+            }}
+          >
+            <span aria-hidden style={{
+              width: 22, height: 22, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 700,
+              background: done ? 'var(--success)' : active ? 'var(--primary)' : 'var(--slate-200)',
+              color: done || active ? '#fff' : 'var(--text-muted)',
+            }}>
+              {done ? '✓' : n}
+            </span>
+            {label}
+          </li>
+        )
+      })}
+    </ol>
+  )
 }
 
 export default function AnalyzeNewPage() {
@@ -203,218 +252,183 @@ export default function AnalyzeNewPage() {
     setTimedOut(false); setExtracting(true); beginPolling(projectId)
   }
 
+  const step: 1 | 2 | 3 = !locked ? 1 : inputs.length === 0 ? 2 : 3
+
   return (
-    <main className="mx-auto max-w-2xl p-8 space-y-6">
-      <h1 className="text-xl font-semibold">새 소구점 분석 프로젝트 시작</h1>
+    <PageShell maxWidth={760}>
+      <PageHeader
+        title="새 소구점 분석"
+        subtitle="분석 대상을 정하고, 리뷰 같은 수집 원문을 붙인 뒤 분석을 돌리면 검수 화면으로 넘어간다."
+      />
+
+      <StepIndicator current={step} />
 
       {/* ── 1단계 ───────────────────────────────────────── */}
-      <section className="space-y-4">
-        <h2 className="text-base font-medium">1단계. 분석 대상 입력</h2>
+      <Card
+        title="1단계 · 분석 대상"
+        subtitle={locked ? '프로젝트가 생성되어 더 이상 수정할 수 없습니다.' : undefined}
+        action={locked ? <Badge tone="success" dot>생성됨</Badge> : null}
+      >
+        <div style={{ display: 'grid', gap: 18 }}>
+          <fieldset style={fieldsetReset} disabled={locked}>
+            <legend style={{ ...labelStyle, padding: 0, marginBottom: 8 }}>분석 방향</legend>
+            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))' }}>
+              {ANALYSIS_MODES.map(m => (
+                <Choice
+                  key={m}
+                  type="radio"
+                  name="mode"
+                  value={m}
+                  checked={mode === m}
+                  onChange={() => setMode(m)}
+                  disabled={locked}
+                  label={MODE_LABELS[m]}
+                  hint={m === 'reverse' ? '남의 성공을 역설계' : undefined}
+                />
+              ))}
+            </div>
+          </fieldset>
 
-        {projectError && (
-          <div className="border border-red-300 bg-red-50 text-red-700 rounded p-2 text-sm">{projectError}</div>
-        )}
+          <Field
+            label={<>{mode === 'reverse' ? '역설계할 성공 상품 URL (다나와)' : '경쟁사 상품 URL'}{REQ}</>}
+            htmlFor="competitor_url"
+            hint={mode === 'reverse'
+              ? '지금은 다나와 상품 상세 URL만 역방향 분석이 가능합니다. 스마트스토어·쿠팡·G2·Capterra 등은 아직 지원하지 않습니다.'
+              : undefined}
+          >
+            <Input
+              id="competitor_url"
+              type="text"
+              inputMode="url"
+              placeholder="https://"
+              value={competitorUrl}
+              onChange={e => setCompetitorUrl(e.target.value)}
+              disabled={locked}
+            />
+          </Field>
 
-        <fieldset className="space-y-1" disabled={locked}>
-          <legend className="text-sm">분석 방향</legend>
-          {ANALYSIS_MODES.map(m => (
-            <label key={m} className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="mode"
-                value={m}
-                checked={mode === m}
-                onChange={() => setMode(m)}
-                disabled={locked}
-              />
-              {MODE_LABELS[m]}
-              {m === 'reverse' && <span className="text-gray-500">— 남의 성공을 역설계</span>}
-            </label>
-          ))}
-        </fieldset>
+          <Field
+            label={<>{mode === 'reverse' ? '내 상품 한 줄 소개 (역설계 결과를 어디에 적용할지)' : '만들려는/파는 상품 한 줄 소개'}{REQ}</>}
+            htmlFor="product_elevator_pitch"
+          >
+            <Textarea id="product_elevator_pitch" rows={2} value={pitch} onChange={e => setPitch(e.target.value)} disabled={locked} />
+          </Field>
 
-        <div className="space-y-1">
-          <label htmlFor="competitor_url" className="block text-sm">
-            {mode === 'reverse' ? '역설계할 성공 상품 URL (다나와)' : '경쟁사 상품 URL'}
-          </label>
-          <input
-            id="competitor_url"
-            type="text"
-            className="w-full border rounded p-2 text-sm"
-            value={competitorUrl}
-            onChange={e => setCompetitorUrl(e.target.value)}
-            disabled={locked}
-          />
-          {mode === 'reverse' && (
-            <p className="text-xs text-gray-500">
-              지금은 다나와 상품 상세 URL만 역방향 분석이 가능합니다.
-              스마트스토어·쿠팡·G2·Capterra 등은 아직 지원하지 않습니다.
-            </p>
+          <fieldset style={fieldsetReset} disabled={locked}>
+            <legend style={{ ...labelStyle, padding: 0, marginBottom: 8 }}>분석 목적{REQ}</legend>
+            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))' }}>
+              {ANALYSIS_PURPOSES.map(p => (
+                <Choice
+                  key={p}
+                  type="radio"
+                  name="purpose"
+                  value={p}
+                  checked={purpose === p}
+                  onChange={() => setPurpose(p)}
+                  disabled={locked}
+                  label={PURPOSE_LABELS[p]}
+                />
+              ))}
+            </div>
+          </fieldset>
+
+          <Field label="본인이 생각하는 소구점 (없어도 됨)" htmlFor="seller_own_guess">
+            <Textarea id="seller_own_guess" rows={2} value={guess} onChange={e => setGuess(e.target.value)} disabled={locked} />
+          </Field>
+
+          {projectError && <Notice tone="danger">{projectError}</Notice>}
+
+          {!locked && (
+            <div>
+              <Button variant="primary" onClick={createProject} disabled={creating}>
+                {creating ? '생성 중…' : '프로젝트 생성'}
+              </Button>
+            </div>
           )}
         </div>
-
-        <div className="space-y-1">
-          <label htmlFor="product_elevator_pitch" className="block text-sm">
-            {mode === 'reverse'
-              ? '내 상품 한 줄 소개 (역설계 결과를 어디에 적용할지)'
-              : '만들려는/파는 상품 한 줄 소개'}
-          </label>
-          <textarea
-            id="product_elevator_pitch"
-            className="w-full border rounded p-2 text-sm"
-            rows={2}
-            value={pitch}
-            onChange={e => setPitch(e.target.value)}
-            disabled={locked}
-          />
-        </div>
-
-        <fieldset className="space-y-1" disabled={locked}>
-          <legend className="text-sm">분석 목적</legend>
-          {ANALYSIS_PURPOSES.map(p => (
-            <label key={p} className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="purpose"
-                value={p}
-                checked={purpose === p}
-                onChange={() => setPurpose(p)}
-                disabled={locked}
-              />
-              {PURPOSE_LABELS[p]}
-            </label>
-          ))}
-        </fieldset>
-
-        <div className="space-y-1">
-          <label htmlFor="seller_own_guess" className="block text-sm">본인이 생각하는 소구점 (없어도 됨)</label>
-          <textarea
-            id="seller_own_guess"
-            className="w-full border rounded p-2 text-sm"
-            rows={2}
-            value={guess}
-            onChange={e => setGuess(e.target.value)}
-            disabled={locked}
-          />
-        </div>
-
-        <button
-          type="button"
-          className="border rounded px-4 py-2 text-sm disabled:opacity-50"
-          onClick={createProject}
-          disabled={creating || locked}
-        >
-          {creating ? '생성 중...' : '프로젝트 생성'}
-        </button>
-
-        {locked && <p className="text-sm text-green-700">프로젝트가 생성되었습니다.</p>}
-      </section>
+      </Card>
 
       {/* ── 2단계 ───────────────────────────────────────── */}
       {locked && (
-        <section className="space-y-4 border-t pt-6">
-          <h2 className="text-base font-medium">2단계. 수집 원문 추가</h2>
+        <Card
+          title="2단계 · 수집 원문"
+          subtitle="리뷰·문의 등 원문을 한 덩어리씩 추가한다. 여러 번 추가할 수 있다."
+          action={<Badge tone={inputs.length ? 'info' : 'neutral'}>{inputs.length}개</Badge>}
+        >
+          <div style={{ display: 'grid', gap: 16 }}>
+            <Field label="수집 유형" htmlFor="source_type">
+              <Select id="source_type" value={sourceType} onChange={e => setSourceType(e.target.value as AnalysisSourceType)}>
+                {ANALYSIS_SOURCE_TYPES.map(s => (
+                  <option key={s} value={s}>{SOURCE_TYPE_LABELS[s]}</option>
+                ))}
+              </Select>
+            </Field>
 
-          {inputError && (
-            <div className="border border-red-300 bg-red-50 text-red-700 rounded p-2 text-sm">{inputError}</div>
-          )}
+            <Field label={<>수집 원문{REQ}</>} htmlFor="raw_text">
+              <Textarea id="raw_text" rows={6} value={rawText} onChange={e => setRawText(e.target.value)} />
+            </Field>
 
-          <div className="space-y-1">
-            <label htmlFor="source_type" className="block text-sm">수집 유형</label>
-            <select
-              id="source_type"
-              className="w-full border rounded p-2 text-sm"
-              value={sourceType}
-              onChange={e => setSourceType(e.target.value as AnalysisSourceType)}
-            >
-              {ANALYSIS_SOURCE_TYPES.map(s => (
-                <option key={s} value={s}>{SOURCE_TYPE_LABELS[s]}</option>
-              ))}
-            </select>
-          </div>
+            {inputError && <Notice tone="danger">{inputError}</Notice>}
 
-          <div className="space-y-1">
-            <label htmlFor="raw_text" className="block text-sm">수집 원문</label>
-            <textarea
-              id="raw_text"
-              className="w-full border rounded p-2 text-sm"
-              rows={6}
-              value={rawText}
-              onChange={e => setRawText(e.target.value)}
-            />
-          </div>
+            <div>
+              <Button variant="neutral" onClick={addInput} disabled={adding}>
+                {adding ? '추가 중…' : '원문 추가'}
+              </Button>
+            </div>
 
-          <button
-            type="button"
-            className="border rounded px-4 py-2 text-sm disabled:opacity-50"
-            onClick={addInput}
-            disabled={adding}
-          >
-            {adding ? '추가 중...' : '추가'}
-          </button>
-
-          <div className="space-y-2">
-            <p className="text-sm">총 {inputs.length}개</p>
             {inputs.length === 0 ? (
-              <p className="text-sm text-gray-500">아직 추가된 입력이 없습니다.</p>
+              <p style={muted}>아직 추가된 원문이 없습니다.</p>
             ) : (
-              <ul className="space-y-2">
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
                 {inputs.map(row => (
-                  <li key={row.id} className="border rounded p-2 text-sm">
-                    <span className="font-medium">[{SOURCE_TYPE_LABELS[row.source_type]}]</span>{' '}
-                    <span>{row.raw_text.slice(0, 100)}{row.raw_text.length > 100 ? '...' : ''}</span>
+                  <li key={row.id} style={{
+                    display: 'flex', gap: 8, alignItems: 'flex-start',
+                    padding: '10px 12px', borderRadius: 'var(--radius-md)',
+                    background: 'var(--surface-muted)', fontSize: 'var(--fs-sm)', lineHeight: 1.55,
+                  }}>
+                    <Badge tone="neutral" size="sm" style={{ flex: 'none', marginTop: 1 }}>{SOURCE_TYPE_LABELS[row.source_type]}</Badge>
+                    <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                      {row.raw_text.slice(0, 100)}{row.raw_text.length > 100 ? '…' : ''}
+                    </span>
                   </li>
                 ))}
               </ul>
             )}
           </div>
-        </section>
+        </Card>
       )}
 
-      {/* ── 하단 CTA ────────────────────────────────────── */}
-      <section className="space-y-1 border-t pt-6">
-        {extractError && (
-          <div className="border border-red-300 bg-red-50 text-red-700 rounded p-2 text-sm space-y-2">
-            <p>{extractError}</p>
-            <button
-              type="button"
-              className="border border-red-400 rounded px-3 py-1 text-sm"
-              onClick={startAnalysis}
-            >
-              다시 시도
-            </button>
-          </div>
-        )}
+      {/* ── 3단계 ───────────────────────────────────────── */}
+      <Card title="3단계 · 분석 시작">
+        <div style={{ display: 'grid', gap: 12 }}>
+          {extractError && (
+            <Notice tone="danger" action={<Button variant="outline" size="sm" onClick={startAnalysis}>다시 시도</Button>}>
+              {extractError}
+            </Notice>
+          )}
 
-        {timedOut && (
-          <div className="border border-amber-300 bg-amber-50 text-amber-800 rounded p-2 text-sm space-y-2">
-            <p>5분이 지났는데 아직 끝나지 않았습니다. 분석은 계속 진행 중일 수 있습니다.</p>
-            <button
-              type="button"
-              className="border border-amber-400 rounded px-3 py-1 text-sm"
-              onClick={keepWaiting}
-            >
-              계속 확인
-            </button>
-          </div>
-        )}
+          {timedOut && (
+            <Notice tone="warning" action={<Button variant="outline" size="sm" onClick={keepWaiting}>계속 확인</Button>}>
+              5분이 지났는데 아직 끝나지 않았습니다. 분석은 계속 진행 중일 수 있습니다.
+            </Notice>
+          )}
 
-        <button
-          type="button"
-          className="border rounded px-4 py-2 text-sm disabled:opacity-50"
-          disabled={inputs.length === 0 || extracting}
-          onClick={startAnalysis}
-        >
-          {extracting ? `분석 중... ${elapsedSec}초` : '다음: 분석 시작'}
-        </button>
-        <p className="text-sm text-gray-500">
-          {inputs.length === 0
-            ? '수집 원문을 1개 이상 추가해야 합니다.'
-            : extracting
-              ? '속성 추출과 시장 성숙도 진단을 진행 중입니다. 창을 닫아도 분석은 계속되며, 나중에 검수 화면에서 결과를 볼 수 있습니다.'
-              : '수집한 원문에서 소구점 후보를 추출합니다.'}
-        </p>
-      </section>
-    </main>
+          <div>
+            <Button variant="primary" size="lg" disabled={inputs.length === 0 || extracting} onClick={startAnalysis}>
+              {extracting ? `분석 중… ${elapsedSec}초` : '분석 시작'}
+            </Button>
+          </div>
+          <p style={muted} aria-live="polite">
+            {!locked
+              ? '1단계에서 프로젝트를 먼저 만들어야 합니다.'
+              : inputs.length === 0
+                ? '수집 원문을 1개 이상 추가해야 합니다.'
+                : extracting
+                  ? '속성 추출과 시장 성숙도 진단을 진행 중입니다. 창을 닫아도 분석은 계속되며, 나중에 검수 화면에서 결과를 볼 수 있습니다.'
+                  : '수집한 원문에서 소구점 후보를 추출합니다.'}
+          </p>
+        </div>
+      </Card>
+    </PageShell>
   )
 }

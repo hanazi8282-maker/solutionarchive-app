@@ -94,3 +94,9 @@
 
 **`methodology/` 는 어떤 역할도 수정하지 않는다.** MANIFEST md5 대조가 걸린
 append-only 아카이브다.
+
+## 7. 세션은 일일 상태 로그를 남겨야 끝난다
+
+모든 역할(CMO·CTO·CEO-STAFF·HUB)과 역할 없는 대화형 세션은 끝내기 전에
+**`CLAUDE.md §11` 체크리스트**(Notion "일일 상태 로그" 행 1개 작성 → fetch 로 재확인 →
+실패 시 보고)를 통과한다. 규칙 본문은 CLAUDE.md §11 한 곳에만 있다.

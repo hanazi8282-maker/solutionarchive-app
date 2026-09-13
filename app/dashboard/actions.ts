@@ -2,8 +2,17 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { normalizeBody, diceSimilarity } from '@/lib/threads/match'
 
 export type ActionState = { ok: boolean; message: string } | null
+
+// datetime-local 입력은 시간대 없는 문자열("2026-09-12T19:54")을 보낸다. ES 규칙상
+// 그건 **서버의 로컬 시간**으로 해석되는데 Vercel 함수는 UTC 라, 한국 시각으로 적은
+// 값이 9시간 늦게 저장된다(로컬 개발 PC 는 KST 라 재현이 안 된다). 오프셋이 없으면
+// KST 로 읽는다. Threads API 가 준 타임스탬프("...+0000")는 오프셋이 있어 그대로 둔다.
+function parseKstDateTime(s: string): Date {
+  return new Date(/(Z|[+-]\d{2}:?\d{2})$/i.test(s) ? s : `${s}+09:00`)
+}
 
 // ── 글 등록 → posts INSERT ────────────────────────────────────────
 export async function createPost(
@@ -39,7 +48,7 @@ export async function createPost(
     channel_id: channel?.id ?? null,
     content_code: content_code || null,
     body,
-    published_at: new Date(published_at).toISOString(),
+    published_at: parseKstDateTime(published_at).toISOString(),
     pattern: patternRaw ? Number(patternRaw) : null,
     hook_type: hook_type || null,
     closing_type: closing_type || null,
@@ -108,11 +117,18 @@ export async function createSnapshot(
 
 // ── 미매칭 초안 수동 연결 → posts UPDATE ─────────────────────────
 // 매처(/api/threads/match-posts)가 자동으로 붙이지 못한 초안을 사람이 직접
-// Threads 게시물에 연결한다. 매처가 보류하는 경우는 대개 A/B 변형처럼
-// 텍스트만으로 구분이 안 되는 상황이라, 어느 쪽인지 아는 건 사람뿐이다.
+// Threads 게시물에 연결한다. 매처가 보류하는 경우는 A/B 변형처럼 텍스트만으로
+// 구분이 안 되거나, 발행 전에 본문을 통째로 다시 써서 점수가 임계값에 한참
+// 못 미치는 경우다. 어느 초안의 발행본인지 아는 건 사람뿐이다.
 //
 // ⛔ 여기서도 발행은 하지 않는다(CLAUDE.md §10). 이미 사람이 올린 글의
 //    id 를 받아 적는 것뿐이다.
+//
+// 연결 대상 상태는 매처의 SCANNED_STATUSES 와 같아야 한다. 매처가 pending_review 로
+// 확장된 뒤(#44) 여기만 draft 로 남아 있어서, 지금 발행되는 글(거의 전부
+// pending_review)은 수동 연결이 0행 갱신 → "이미 연결된 글" 오류로 막혀 있었다.
+const LINKABLE_STATUSES = ['draft', 'pending_review']
+
 export async function linkDraft(
   _prev: ActionState,
   formData: FormData,
@@ -126,8 +142,11 @@ export async function linkDraft(
   const external_id = String(formData.get('external_id') ?? '').trim()
   const published_at = String(formData.get('published_at') ?? '').trim()
   const permalink = String(formData.get('permalink') ?? '').trim()
+  // 대시보드 "초안에 안 붙은 게시물" 목록에서 온 요청에만 있다(API 가 준 발행본 텍스트).
+  // 게시물 ID 를 손으로 입력하는 폼에는 없어서, 그 경로는 body 를 초안 그대로 둔다.
+  const published_body = String(formData.get('published_body') ?? '').trim()
 
-  if (!draft_id) return { ok: false, message: '연결할 초안이 지정되지 않았습니다.' }
+  if (!draft_id) return { ok: false, message: '연결할 초안을 고르세요.' }
   if (!external_id) return { ok: false, message: 'Threads 게시물 ID를 입력하세요.' }
 
   // published_at 이 없으면 posts_published_at_required_check 에 걸려 저장이 실패한다.
@@ -136,10 +155,35 @@ export async function linkDraft(
     return { ok: false, message: '발행일시를 입력하세요. status=published 인 행은 published_at 이 반드시 있어야 합니다.' }
   }
 
-  const when = new Date(published_at)
+  const when = parseKstDateTime(published_at)
   if (Number.isNaN(when.getTime())) {
     return { ok: false, message: '발행일시 형식이 올바르지 않습니다.' }
   }
+
+  // 매처(route.ts)와 같은 규약: 먼저 읽고, 읽은 상태를 UPDATE 조건으로 되돌려 쓴다.
+  const { data: row, error: readErr } = await supabase
+    .from('posts')
+    .select('status, body, notes')
+    .eq('id', draft_id)
+    .maybeSingle()
+
+  if (readErr) return { ok: false, message: `초안 조회 실패: ${readErr.message}` }
+  if (!row) return { ok: false, message: '초안을 찾지 못했습니다. 새로고침 후 확인하세요.' }
+  if (!LINKABLE_STATUSES.includes(row.status)) {
+    return { ok: false, message: `이미 ${row.status} 상태라 연결하지 않습니다. 새로고침 후 확인하세요.` }
+  }
+
+  // 📌 매처와 같다: body 는 독자가 실제로 본 발행본으로 덮어쓰고(성과 숫자와 본문이
+  //    같은 글을 가리켜야 한다), 경위와 수정 폭은 notes 에 남긴다. body 를 덮어쓰고
+  //    나면 이 유사도 말고는 얼마나 고쳐 썼는지 알 방법이 없다.
+  const score = published_body
+    ? diceSimilarity(normalizeBody(row.body), normalizeBody(published_body))
+    : null
+  const notes = [
+    row.notes,
+    `[manual-link] ${row.status} → published — 대시보드 수동 연결, Threads 게시물 ${external_id}`,
+    score !== null && score < 1 ? `[manual-link] 유사도 ${score.toFixed(3)} — 발행본이 초안과 다름` : null,
+  ].filter(Boolean).join('\n')
 
   const { data, error } = await supabase
     .from('posts')
@@ -148,10 +192,12 @@ export async function linkDraft(
       published_at: when.toISOString(),
       permalink: permalink || null,
       status: 'published',
+      ...(published_body ? { body: published_body } : {}),
+      notes,
     })
     .eq('id', draft_id)
-    // 이미 published 로 바뀐 행(크론 매처가 방금 붙였을 수 있다)은 건드리지 않는다.
-    .eq('status', 'draft')
+    // 읽은 뒤 크론 매처가 먼저 붙였거나 상태가 바뀐 행은 건드리지 않는다.
+    .eq('status', row.status)
     .select('id')
 
   if (error) {

@@ -77,16 +77,8 @@ import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
 import { ensureValidToken } from '@/lib/threads/token'
 import { matchDrafts, type DraftRow, type ThreadsPost } from '@/lib/threads/match'
-
-const BASE = 'https://graph.threads.net'
-
-// 읽어올 게시물 수. 하루 4~5편 × 며칠치 + 자답글까지 감안한 여유값이다.
-const FETCH_LIMIT = 50
-
-// 이 기간보다 오래된 게시물은 보지 않는다. collect-metrics 가 14일 이내만
-// 수집하므로 그보다 오래된 글을 지금 연결해도 성과 데이터가 붙지 않는다.
-// (그런 초안은 대시보드에서 수동 연결한다 — 기록 자체는 남길 수 있어야 하니까)
-const LOOKBACK_DAYS = 14
+// 조회 창(기간·개수)은 대시보드 "초안에 안 붙은 게시물" 목록과 공유한다.
+import { fetchRecentThreads } from '@/lib/threads/recent'
 
 // 스캔 대상 상태. 둘 다 "아직 발행으로 기록되지 않은" 행이고, 매칭되면 둘 다
 // published 로 간다. 다른 상태(published·archived 등)는 건드리지 않는다.
@@ -155,27 +147,19 @@ export async function POST(req: Request) {
   const linked = new Set((linkedRows ?? []).map(r => r.external_id as string))
 
   // ── 3) Threads 게시물 조회 ────────────────────────────────────
-  const since = Math.floor((Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000) / 1000)
-  const url = new URL(`${BASE}/me/threads`)
-  url.searchParams.set('fields', 'id,text,permalink,timestamp')
-  url.searchParams.set('limit', String(FETCH_LIMIT))
-  url.searchParams.set('since', String(since))
-  url.searchParams.set('access_token', creds.accessToken)
+  const recent = await fetchRecentThreads(creds.accessToken)
 
-  const res = await fetch(url, { method: 'GET' })
-  const json = await res.json().catch(() => ({}))
-
-  if (!res.ok || !Array.isArray(json.data)) {
-    console.error(`[match] /me/threads 실패 (HTTP ${res.status}): ${JSON.stringify(json)}`)
+  if (!recent.ok) {
+    console.error(`[match] /me/threads 실패 (HTTP ${recent.status}): ${JSON.stringify(recent.detail)}`)
     return NextResponse.json(
-      { ok: false, message: `Threads 조회 실패 (HTTP ${res.status})`, detail: json },
+      { ok: false, message: `Threads 조회 실패 (HTTP ${recent.status})`, detail: recent.detail },
       { status: 502 },
     )
   }
 
-  logRateLimit(res)
+  logRateLimit(recent.res)
 
-  const threads: ThreadsPost[] = (json.data as ThreadsPost[]).filter(t => t.id && !linked.has(t.id))
+  const threads: ThreadsPost[] = recent.data.filter(t => t.id && !linked.has(t.id))
 
   // ── 4) 매칭 ───────────────────────────────────────────────────
   const outcome = matchDrafts(drafts, threads)

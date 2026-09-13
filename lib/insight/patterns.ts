@@ -78,6 +78,28 @@ export function shouldReflect(p: Pick<PatternRow, 'status' | 'evidence_count'>):
 }
 
 /**
+ * 발행자 수정 패턴(edit-)은 1건이면 가이드에 싣는다(남헌 결정 2026-09-13).
+ *
+ * 저장 글과 기준이 다른 이유: 저장 글은 남의 글이라 1건이 우연일 수 있지만,
+ * 수정 쌍은 발행자가 직접 고친 최종본이 정답이다. 1건이라도 초안 문체에 들어가야
+ * 다음 초안이 같은 수정을 또 받지 않는다. 등급은 '참고'(strength 0/1)에서 시작하고
+ * 올리는 건 기존 decide() 경로뿐이다. 가설 발급 문턱(shouldReflect)은 그대로 2건이다.
+ */
+export const MIN_EDIT_EVIDENCE_TO_RENDER = 1
+
+/** learned-patterns.md 에 실리는가. 렌더와 dry-run 집계가 같은 판정을 쓴다. */
+export function isRendered(
+  r: Pick<PatternRow, 'pattern_key' | 'status' | 'strength' | 'evidence_count'>,
+): boolean {
+  if ((r.status === 'reflected' || r.status === 'confirmed') && r.strength >= 1) return true
+  return (
+    r.status === 'candidate' &&
+    r.pattern_key.startsWith('edit-') &&
+    r.evidence_count >= MIN_EDIT_EVIDENCE_TO_RENDER
+  )
+}
+
+/**
  * 반영된 패턴의 성과를 보고 승격/기각/보류를 정한다.
  *
  * baseline 은 같은 채널의 전체 평균이다. 절대값으로 판정하면 계정이 성장하는
@@ -180,13 +202,9 @@ function sortForRender(rows: PatternRow[]): PatternRow[] {
   )
 }
 
-/** 가이드 본문 생성. 반영 대상(reflected/confirmed, strength>=1)만 들어간다. */
+/** 가이드 본문 생성. isRendered() 가 참인 행만 들어간다. */
 export function renderLearnedPatterns(rows: PatternRow[]): string {
-  const active = sortForRender(
-    rows.filter(
-      (r) => (r.status === 'reflected' || r.status === 'confirmed') && r.strength >= 1,
-    ),
-  )
+  const active = sortForRender(rows.filter(isRendered))
 
   const head = [
     '# 검증된 패턴 (자동 생성)',
@@ -195,15 +213,18 @@ export function renderLearnedPatterns(rows: PatternRow[]): string {
     '>    사람이 직접 고치면 다음 실행에서 사라진다.',
     '>    사람이 쓰는 가이드는 voice-guide / seo-guide / viral-patterns 쪽이다.',
     '>',
-    '>    출처: 사용자가 저장한 Threads 글에서 추출된 패턴 중,',
-    '>    실제 발행 성과로 검증됐거나 검증 대기 중인 것.',
+    `>    출처 1: 사용자가 저장한 Threads 글에서 추출된 패턴 중 근거 ${MIN_EVIDENCE_TO_REFLECT}건 이상인 것.`,
+    `>    출처 2: 발행자가 AI 초안을 직접 고쳐 발행한 쌍에서 뽑은 수정 패턴(키 edit-). ${MIN_EDIT_EVIDENCE_TO_RENDER}건부터 싣는다.`,
     '>    생성 로직: lib/insight/patterns.ts, 실행: .github/workflows/nightly-insight-loop.yml',
     '',
     '강조 수준은 실측 성과로 정해진다:',
     '',
     '- **기본값** — 답글률 개선이 반복 확인됨. 특별한 이유가 없으면 이대로 쓴다.',
     '- **권장** — 개선이 확인됨. 소재에 맞으면 우선 고려한다.',
-    '- **참고** — 근거는 모였으나 성과 검증 대기 중. 참고만 한다.',
+    '- **참고** — 성과 검증 대기 중. 참고만 한다.',
+    '',
+    '단, 근거 수가 "발행자 수정 N건"인 패턴(키 edit-)은 발행자가 직접 고친 방향이라',
+    '강조 수준과 근거 수에 관계없이 초안 문체에 먼저 적용한다. 발행본이 정답이다.',
     '',
   ]
 
@@ -214,7 +235,7 @@ export function renderLearnedPatterns(rows: PatternRow[]): string {
       '',
       '아직 반영된 패턴이 없다.',
       '',
-      `근거 ${MIN_EVIDENCE_TO_REFLECT}건 이상 모인 패턴이 생기면 여기에 나타난다.`,
+      `저장 글 근거 ${MIN_EVIDENCE_TO_REFLECT}건 이상 모인 패턴이나 발행자 수정 패턴이 생기면 여기에 나타난다.`,
       '그때까지는 기존 가이드 3종만 보고 쓰면 된다.',
       '',
     ].join('\n')

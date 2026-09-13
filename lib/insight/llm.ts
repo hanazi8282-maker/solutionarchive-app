@@ -162,12 +162,22 @@ function buildEditPrompt(published: string, draft: string, knownKeys: string[]):
     '**최종본이 정답이다.** 초안이 틀렸고 최종본이 맞다. 초안을 옹호하거나 둘을 절충하지 마라.',
     '작가가 다음부터 처음부터 최종본처럼 쓰려면 무엇을 바꿔야 하는지, 발행자의 수정 방식을',
     '재사용 가능한 문체 규칙 하나로 뽑아라. 사실·수치의 옳고 그름은 판정하지 않는다.',
+    // key 가 쌍마다 갈리면 근거가 1건에서 안 올라간다. 첫 두 쌍(T3-1, CS-20260910-01)이
+    // edit-method-report-to-broken-expectation-confession / edit-declarative-report-to-
+    // conversational-question-beats 로 갈렸다 — 둘 다 "보고서체 → 말로 푼 글"인데 소재별
+    // 장치 이름이 key 에 들어가서다. key 는 방향만, 장치는 extracted_pattern 으로 보낸다.
+    '',
+    'pattern_key 는 **수정의 주된 방향 하나**만 담는다. edit- 뒤 2~4단어로 짧게.',
+    '이 글의 소재나 세부 장치(고백, 질문 박자 같은 것)의 이름은 key 에 넣지 말고 extracted_pattern 에 적어라.',
     ...(known.length
       ? [
           '',
-          '이미 쓰이고 있는 수정 패턴 key 목록이다. 같은 수정 방식이면 그 key 를 문자 그대로 다시 써라.',
-          '다른 수정 방식이면 새 key 를 만든다. 억지로 끼워 맞추지 마라:',
+          '이미 쓰이고 있는 수정 패턴 key 목록이다:',
           ...known.map((k) => `- ${k}`),
+          '',
+          '초안에서 최종본으로 간 주된 방향(어조·문장 호흡·정보 배치 중 가장 크게 바뀐 것)이 같으면,',
+          '훅이나 마무리 같은 부수 차이가 있어도 그 key 를 문자 그대로 다시 써라.',
+          '주된 방향 자체가 다를 때만 새 key 를 만든다.',
         ]
       : []),
     '',
@@ -176,7 +186,7 @@ function buildEditPrompt(published: string, draft: string, knownKeys: string[]):
     '  "insight_type": "actionable|reframe|transferable_frame",',
     '  "extracted_insight": "발행자가 초안에서 가장 크게 바꾼 것 한 문장",',
     '  "pattern_title": "수정 규칙의 이름 (10자 내외)",',
-    '  "pattern_key": "영문 소문자 하이픈 slug, edit- 로 시작 (예: edit-declarative-to-conversational)",',
+    '  "pattern_key": "영문 소문자 하이픈 slug, edit- 뒤 2~4단어로 방향만 (예: edit-report-tone-to-spoken)",',
     '  "extracted_pattern": "초안의 어떤 표현이 최종본에서 어떻게 바뀌었는지 — 어미·문장 길이·기호·훅·마무리 각각 초안 예시 → 최종본 예시로",',
     '  "why_it_works": "발행자가 왜 그렇게 고쳤다고 볼 수 있는지 1~2문장",',
     '  "is_generalizable": true 또는 false',
@@ -270,8 +280,9 @@ function mockExtraction(input: ExtractionInput): ExtractionResult {
     extracted_pattern: 'mock 패턴 — 고백형 훅 뒤에 수치를 붙이고 열린 질문으로 닫는다',
     why_it_works: 'mock 근거',
     is_generalizable: generalizable,
-    pattern_title: 'mock 패턴',
-    pattern_key: normalizePatternKey('mock-pattern'),
+    pattern_title: input.draftText ? 'mock 수정 패턴' : 'mock 패턴',
+    // 수정 쌍은 쌍마다 key 가 갈리게 한다 — dry-run 이 "edit- 1건짜리 패턴"의 렌더를 실제로 밟게.
+    pattern_key: normalizePatternKey(input.draftText ? `edit-mock-${text.length}` : 'mock-pattern'),
   }
 }
 
@@ -281,14 +292,14 @@ async function claudeCliExtraction(input: ExtractionInput): Promise<ExtractionRe
     bin.path,
     [
       '-p',
-      buildPrompt(input),
       '--output-format',
       'json',
       // 도구를 쓸 일이 없다. 상한을 1 로 둬야 사용량이 예측 가능하다.
       '--max-turns',
       '1',
     ],
-    { timeoutMs: 120_000 },
+    // 프롬프트는 stdin 으로 준다 — claude-cli.ts RunClaudeOpts.input 참조.
+    { timeoutMs: 120_000, input: buildPrompt(input) },
   )
 
   if (res.exitCode !== 0) {

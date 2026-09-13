@@ -18,7 +18,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-import { extractSingleFile, buildChildEnv } from '../lib/insight/claude-cli.ts'
+import { extractSingleFile, buildChildEnv, runClaude } from '../lib/insight/claude-cli.ts'
 
 let passed = 0
 const failures = []
@@ -170,11 +170,36 @@ function testChildEnvIsolation() {
   check('격리: 화이트리스트가 고정 변수보다 우선', override.HOME === '/custom/home')
 }
 
+// ── 6) runClaude input — 프롬프트가 stdin 으로 온전히 가는가 ─────────
+// 긴 한글 프롬프트를 인자로 넘기면 Windows 에서 exit 1 이었다. 루프 전부가 stdin 으로
+// 옮겼으니, 한글·개행이 깨지거나 잘리면 모델이 엉뚱한 프롬프트를 받고도 exit 0 이 난다.
+async function testRunClaudeStdin() {
+  const prompt = '발행본이 정답이다.\n'.repeat(4000) // 한글 약 76KB
+  const r = await runClaude(process.execPath, ['-e', 'process.stdin.pipe(process.stdout)'], {
+    cwd: os.tmpdir(),
+    input: prompt,
+    timeoutMs: 30_000,
+  })
+  check('stdin: exit 0', r.exitCode === 0, `exit ${r.exitCode} ${r.stderr.slice(0, 200)}`)
+  check('stdin: 한글·개행이 바이트 그대로 도착', r.stdout === prompt, `받은 길이 ${r.stdout.length} / 보낸 길이 ${prompt.length}`)
+
+  // input 이 없으면 stdin 이 즉시 EOF 여야 한다. 파이프를 열고 안 닫으면 claude 가 프롬프트를
+  // 기다리며 timeout 까지 멈춘다 — --version 같은 호출이 그렇게 죽는다.
+  const none = await runClaude(
+    process.execPath,
+    ['-e', 'process.stdin.resume(); process.stdin.on("end", () => process.stdout.write("eof"))'],
+    { cwd: os.tmpdir(), timeoutMs: 10_000 },
+  )
+  check('stdin: input 을 안 주면 stdin 이 바로 EOF (대기로 멈추지 않는다)',
+    none.stdout === 'eof' && !none.timedOut, `stdout=${none.stdout} timedOut=${none.timedOut}`)
+}
+
 async function main() {
   await fs.rm(TMP, { recursive: true, force: true })
   await fs.mkdir(TMP, { recursive: true })
 
   testChildEnvIsolation()
+  await testRunClaudeStdin()
   await testExtractsRealFile()
   await testExtractsLaterEntry()
   await testMissingFileThrows()

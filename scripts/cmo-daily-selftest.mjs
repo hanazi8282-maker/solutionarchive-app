@@ -26,7 +26,7 @@ import {
   buildDigest, perfFailure, recordStep, scoreboardRows, parsePerformance,
   buildDecisionLogEntries, stagedJobs, selectAngles,
   nextContentSeq, contentCodeFor, writerPrompt, queueResolutions, partialFailures,
-  commitOutcome, queueStepOutcome,
+  commitOutcome, queueStepOutcome, resolveRunDate,
 } from './cmo-daily.mjs'
 import { validateStep, createTracker, readEvents, STEP_STATUS } from './agent-status.mjs'
 import {
@@ -1111,6 +1111,41 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   check('큐해소 — 소스에 newSlugs[i] 로 slug 를 집는 코드가 없다', !/newSlugs\[i\]/.test(dailyCode))
   check('큐해소 — 확인 불가 행은 resolve 를 호출하지 않는다',
     /p\.status === null[\s\S]{0,600}continue/.test(daily))
+}
+
+// ════════════════════════════════════════════════════════════
+// 21) 기준 날짜 — 크론이 지연돼 자정을 넘어도 예정 날짜를 쓰는가
+//
+// 옛 today() 는 실행 순간 UTC 날짜라, 20:17Z 예정이 00:xx 로 밀리면 하루 뒤
+// 날짜로 run_key·content_code·파일명이 전부 어긋났다.
+// ════════════════════════════════════════════════════════════
+{
+  const S = '17 20 * * *'
+  // ★ 경계 케이스: 예정 D(09-12 20:17Z), 실제 실행 D+1 00:30Z (= KST 09-13 09:30)
+  eq('기준날짜 — 예정 D, 실행이 D+1 00:30Z 로 밀려도 D',
+    resolveRunDate({ schedule: S, now: new Date('2026-09-13T00:30:00Z') }).date, '2026-09-12')
+  eq('기준날짜 — 평소 지연(D 22:37Z)도 D',
+    resolveRunDate({ schedule: S, now: new Date('2026-09-12T22:37:00Z') }).date, '2026-09-12')
+  eq('기준날짜 — 예정 시각 정각이면 그날',
+    resolveRunDate({ schedule: S, now: new Date('2026-09-12T20:17:00Z') }).date, '2026-09-12')
+  eq('기준날짜 — 예정 없음(수동·로컬)은 실행 시각 UTC 날짜로 폴백',
+    resolveRunDate({ schedule: '', now: new Date('2026-09-13T00:30:00Z') }).date, '2026-09-13')
+  eq('기준날짜 — 폴백은 basis 로 드러난다(조용한 폴백 금지)',
+    resolveRunDate({ schedule: undefined }).basis, 'now')
+  let threw = false
+  try { resolveRunDate({ schedule: '*/5 * * * 1' }) } catch { threw = true }
+  check('기준날짜 — 해석 못 하는 크론은 추측하지 않고 던진다', threw)
+
+  // 워크플로의 실제 크론이 이 파서로 풀리고, 스크립트에 넘겨지는가.
+  const wf = fs.readFileSync(path.join(process.cwd(), '.github/workflows/daily-cmo-loop.yml'), 'utf-8')
+  const cron = /^\s*- cron: '([^']+)'/m.exec(wf)?.[1]
+  eq('기준날짜 — 워크플로 크론이 파서로 풀린다',
+    cron ? resolveRunDate({ schedule: cron }).basis : null, 'schedule')
+  check('기준날짜 — 워크플로가 CMO_SCHEDULE 에 github.event.schedule 을 넘긴다',
+    /CMO_SCHEDULE:\s*\$\{\{\s*github\.event\.schedule\s*\}\}/.test(wf))
+  const src = fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')
+  check('기준날짜 — main 의 date 가 resolveRunDate 에서 나온다',
+    /const \{ date, basis \} = resolveRunDate\(/.test(src))
 }
 
 // ════════════════════════════════════════════════════════════

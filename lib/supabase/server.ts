@@ -3,6 +3,8 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 // 504 재시도 대기. 2026-09-12~13 크론 로그의 Gateway Timeout 은 매시 :00:3x / :30:0x
 // 몇 초 창에만 몰렸고, 같은 실행 안에서도 앞 쿼리는 통과하고 뒤 쿼리만 걸렸다.
 // 창을 벗어날 만큼만 기다린다.
+// 이건 증상 완화다. 원인(iad1→서울 경로) 대응은 Threads 라우트 icn1 이동 —
+// 근거 수치는 app/api/threads/collect-metrics/route.ts 의 🌏 리전 주석.
 const GATEWAY_RETRY_DELAY_MS = 1500
 
 /**

@@ -79,6 +79,8 @@ import { ensureValidToken } from '@/lib/threads/token'
 import { matchDrafts, type DraftRow, type ThreadsPost } from '@/lib/threads/match'
 // 조회 창(기간·개수)은 대시보드 "초안에 안 붙은 게시물" 목록과 공유한다.
 import { fetchRecentThreads } from '@/lib/threads/recent'
+// 데일리 다이제스트용 "안 붙은 게시물" 기록. 다이제스트는 토큰 없이 DB 만 읽는다(§10.1).
+import { recordUnlinkedCheck } from '@/lib/threads/unlinked-status'
 
 // 스캔 대상 상태. 둘 다 "아직 발행으로 기록되지 않은" 행이고, 매칭되면 둘 다
 // published 로 간다. 다른 상태(published·archived 등)는 건드리지 않는다.
@@ -121,6 +123,7 @@ export async function POST(req: Request) {
 
   const drafts = (draftRows ?? []) as (DraftRow & { notes: string | null; status: ScannedStatus })[]
   if (drafts.length === 0) {
+    await recordUnlinkedCheck(supabase, { status: 'skipped', reason: '초안 없음 — Threads 조회 생략' })
     return NextResponse.json({ ok: true, matched: [], skipped: [], unmatchedThreads: [], message: '초안 없음 — Threads API 호출 생략' })
   }
 
@@ -151,6 +154,7 @@ export async function POST(req: Request) {
 
   if (!recent.ok) {
     console.error(`[match] /me/threads 실패 (HTTP ${recent.status}): ${JSON.stringify(recent.detail)}`)
+    await recordUnlinkedCheck(supabase, { status: 'failed', reason: `Threads 조회 실패 (HTTP ${recent.status})` })
     return NextResponse.json(
       { ok: false, message: `Threads 조회 실패 (HTTP ${recent.status})`, detail: recent.detail },
       { status: 502 },
@@ -269,6 +273,22 @@ export async function POST(req: Request) {
   const scanBreakdown = SCANNED_STATUSES.map(s => `${s} ${scannedByStatus[s] ?? 0}`).join(' + ')
   const appliedFrom = SCANNED_STATUSES.map(s => `${s} ${applied.filter(a => a.from === s).length}`).join(' + ')
   console.info(`[match] 초안 ${drafts.length}(${scanBreakdown}) / 게시물 ${threads.length} → 연결 ${applied.length}(${appliedFrom}), 보류 ${summary.skipped.length}, 실패 ${failed.length}`)
+
+  // 대시보드 "초안에 안 붙은 게시물" 과 같은 정의(unmatchedThreads)로 센다 —
+  // 다이제스트가 "N건, /dashboard 에서 연결" 이라고 할 때 화면에 같은 N건이 떠야 한다.
+  // 토큰·DB 실패로 여기까지 못 오면 기록이 안 남고, 다이제스트는 3시간 뒤 '확인 불가'가 된다.
+  const unlinkedTs = threads
+    .filter(t => outcome.unmatchedThreads.includes(t.id))
+    .map(t => t.timestamp)
+    .filter((ts): ts is string => !!ts)
+    .sort((a, b) => Date.parse(a) - Date.parse(b))
+  await recordUnlinkedCheck(supabase, {
+    status: 'ok',
+    unlinked: outcome.unmatchedThreads.length,
+    oldestTimestamp: unlinkedTs[0] ?? null,
+    threadsChecked: recent.data.length,
+    applyFailed: failed.length,
+  })
 
   return NextResponse.json(summary)
 }

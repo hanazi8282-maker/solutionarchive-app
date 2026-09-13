@@ -35,6 +35,7 @@ import {
 import { renderDashboard, renderRunLine, renderProblems, foldEvents, MARKS, STALE_MS } from './status-render.mjs'
 import { normalizeFacets } from './pmf-assess.mjs'
 import { buildChildEnv } from '../lib/insight/claude-cli.ts'
+import { unlinkedDigestLine, UNLINKED_STALE_MS } from '../lib/threads/unlinked-status.ts'
 
 let passed = 0
 const failures = []
@@ -1146,6 +1147,44 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   const src = fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')
   check('기준날짜 — main 의 date 가 resolveRunDate 에서 나온다',
     /const \{ date, basis \} = resolveRunDate\(/.test(src))
+}
+
+// ════════════════════════════════════════════════════════════
+// 22) 안 붙은 발행 게시물 — 다이제스트 한 줄 (N건 / 0건 / 확인 불가)
+// ════════════════════════════════════════════════════════════
+{
+  const now = Date.parse('2026-09-13T21:00:00Z')
+  const fresh = '2026-09-13T20:00:05Z'
+  const row = (status, counts, detail = {}, updated_at = fresh) => ({ row: { status, counts, detail, updated_at }, error: null })
+
+  const n = unlinkedDigestLine(row('ok', { unlinked: 2 }, { oldest_timestamp: '2026-09-12T19:00:00+0000' }), now)
+  check('미연결 — N건이면 건수·경과시간·연결 안내', /연결 안 된 Threads 게시물 2건\(가장 오래된 것 26시간 경과\) — \/dashboard 에서 연결/.test(n), n)
+  const zero = unlinkedDigestLine(row('ok', { unlinked: 0 }), now)
+  check('미연결 — 0건은 0건', /게시물 0건$/.test(zero) && !/확인 불가/.test(zero), zero)
+
+  const cases = [
+    ['조회 에러', { row: null, error: 'PGRST205 no table' }, /매처 기록 조회 실패/],
+    ['기록 없음', { row: null, error: null }, /매처 기록 없음\)/],
+    ['기록 3시간 초과', row('ok', { unlinked: 0 }, {}, '2026-09-13T17:59:00Z'), /마지막 기록 3시간 전/],
+    ['매처 조회 실패', row('failed', {}, { reason: 'Threads 조회 실패 (HTTP 500)' }), /HTTP 500/],
+    ['매처 조회 생략', row('skipped', {}, { reason: '초안 없음' }), /초안 없음/],
+    ['건수 형식 이상', row('ok', { unlinked: '2' }), /형식 이상/],
+  ]
+  for (const [name, input, why] of cases) {
+    const s = unlinkedDigestLine(input, now)
+    check(`미연결 — ${name}는 확인 불가(0건으로 접지 않는다)`, /확인 불가/.test(s) && why.test(s) && !/\d+건/.test(s), s)
+  }
+  eq('미연결 — stale 기준은 3시간', UNLINKED_STALE_MS, 3 * 60 * 60 * 1000)
+
+  const d = buildDigest({ date: '2026-09-13', runKey: 'x', state: { blocked: 0, failed: 0, counts: {}, steps: [] }, log: [] })
+  const tldr = d.slice(d.indexOf('## TL;DR'), d.indexOf('## 스코어보드'))
+  check('미연결 — TL;DR 에 줄이 있고, 기록을 안 넘기면 확인 불가', /4\. 발행됐는데 연결 안 된 Threads 게시물: 확인 불가/.test(tldr), tldr)
+
+  // §10.1 — 다이제스트는 토큰 경로를 import 하지 않는다. DB 기록만 읽는다.
+  const src = fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')
+  // 주석의 경고 문구는 세지 않는다 — 실제 import(정적·동적)만 금지한다.
+  check('미연결 — cmo-daily 가 lib/threads/token·recent 를 import 하지 않는다',
+    !/(from\s+|import\(\s*)['"][^'"]*lib\/threads\/(token|recent)/.test(src))
 }
 
 // ════════════════════════════════════════════════════════════

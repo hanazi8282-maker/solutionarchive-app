@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import '../../../../Dothegy Works Design System/styles.css'
-import { Badge } from '../../../../Dothegy Works Design System/components/core/Badge.jsx'
-import { Card } from '../../../../Dothegy Works Design System/components/core/Card.jsx'
-import { Button } from '../../../../Dothegy Works Design System/components/core/Button.jsx'
-import { EmptyState } from '../../../../Dothegy Works Design System/components/feedback/EmptyState.jsx'
+// 디자인 시스템 원본 폴더(JSX)를 직접 import 하던 것을 앱 사본(app/_ds, TSX)으로 통일한다 —
+// 같은 모양이지만 다른 화면들과 한 벌을 쓰고 타입 검사를 받는다.
+import { Badge } from '../../../_ds/components/Badge'
+import { Card } from '../../../_ds/components/Card'
+import { Button, ButtonLink } from '../../../_ds/components/Button'
+import { EmptyState } from '../../../_ds/components/EmptyState'
+import { Field, Textarea } from '../../../_ds/components/Field'
+import { PageHeader, PageShell } from '../../../_ds/components/Shell'
 import {
   ANGLE_TYPE_LABELS,
   OUTPUT_TYPE_LABELS,
@@ -249,15 +252,12 @@ function ValidateAction({ a }: { a: AngleRow }) {
     )
   }
 
+  // 행동은 배지가 아니라 버튼으로 — 배지는 상태 표시용이다(디자인 시스템 규칙).
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        style={{ border: 'none', background: 'none', padding: '10px 0 0', cursor: 'pointer', font: 'inherit' }}
-      >
-        <Badge tone="violet" size="sm">실전 채택 표시</Badge>
-      </button>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)} style={{ marginTop: 10, marginRight: 8 }}>
+        실전 채택 표시
+      </Button>
     )
   }
 
@@ -271,19 +271,17 @@ function ValidateAction({ a }: { a: AngleRow }) {
       display: 'grid',
       gap: 'var(--space-2)',
     }}>
-      <div className="dgy-caps">실전에서 어떻게 됐나요?</div>
-      <textarea
-        value={note}
-        onChange={e => setNote(e.target.value)}
-        rows={2}
-        placeholder="예: 이 카피로 바꾼 뒤 클릭률이 올랐다"
-        style={{
-          font: 'inherit', fontSize: 'var(--fs-sm)', padding: 'var(--space-2)',
-          border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-          background: 'var(--surface)', color: 'var(--text-body)', resize: 'vertical',
-        }}
-      />
-      {error && <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--danger)' }}>{error}</p>}
+      {/* 전에는 라벨 없는 textarea 에 존재하지 않는 토큰(--surface)을 배경으로 썼다. */}
+      <Field label="실전에서 어떻게 됐나요? (필수)" htmlFor={`validate-${a.id}`}>
+        <Textarea
+          id={`validate-${a.id}`}
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          rows={2}
+          placeholder="예: 이 카피로 바꾼 뒤 클릭률이 올랐다"
+        />
+      </Field>
+      {error && <p role="alert" style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--danger-fg)' }}>{error}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
         <Button variant="primary" onClick={submit} disabled={submitting || !note.trim()}>
           {submitting ? '저장 중...' : '기록'}
@@ -366,13 +364,9 @@ function AdvisorPanel({ a }: { a: AngleRow }) {
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={load}
-        style={{ border: 'none', background: 'none', padding: '10px 0 0', cursor: 'pointer', font: 'inherit' }}
-      >
-        <Badge tone="info" size="sm">유사 사례 보기</Badge>
-      </button>
+      <Button variant="outline" size="sm" onClick={load} aria-expanded={false} style={{ marginTop: 10 }}>
+        유사 사례 보기
+      </Button>
     )
   }
 
@@ -380,20 +374,16 @@ function AdvisorPanel({ a }: { a: AngleRow }) {
     <div style={ADVISOR_BOX}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div className="dgy-caps">유사 사례 · 선례 · 실패 · 원칙</div>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
-        >
-          <Badge tone="neutral" size="sm">접기</Badge>
-        </button>
+        <Button variant="ghost" size="sm" onClick={() => setOpen(false)} aria-expanded>
+          접기
+        </Button>
       </div>
 
       {loading && (
-        <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>찾는 중...</p>
+        <p role="status" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>찾는 중…</p>
       )}
       {error && (
-        <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--danger)' }}>{error}</p>
+        <p role="alert" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--danger-fg)' }}>{error}</p>
       )}
 
       {!loading && !error && data && data.status === 'not_run' && (
@@ -440,7 +430,7 @@ function AdvisorPanel({ a }: { a: AngleRow }) {
                   <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
                     내세웠던 소구점 · {c.claimed_angle}
                   </p>
-                  <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--danger)' }}>
+                  <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--danger-fg)' }}>
                     결과 · {c.outcome}
                   </p>
                 </div>
@@ -620,34 +610,32 @@ export default function AnalyzeAnglesPage() {
     if (projectId) load()
   }, [projectId, load])
 
-  const page = (children: React.ReactNode) => (
-    // app/layout.tsx 가 body 에 인라인 fontFamily 를 박아둬서 base.css 의
-    // body 규칙이 이긴다. 인라인끼리 붙어야 하므로 여기서 다시 지정한다.
-    <main style={{
-      fontFamily: 'var(--font-sans)',
-      color: 'var(--text-body)',
-      background: 'var(--bg-app)',
-      minHeight: '100vh',
-      padding: 'var(--space-8)',
-    }}>
-      <div style={{ maxWidth: 960, margin: '0 auto', display: 'grid', gap: 'var(--space-6)' }}>
-        {children}
-      </div>
-    </main>
-  )
+  const reviewHref = `/analyze/${projectId}/review`
+  // 공용 PageShell — 전에는 모바일에서도 좌우 32px 고정 여백이었다.
+  const page = (children: React.ReactNode) => <PageShell maxWidth={960}>{children}</PageShell>
 
   if (loading) {
-    return page(<p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>불러오는 중...</p>)
+    return page(
+      <>
+        <PageHeader title="소구 앵글" />
+        <p role="status" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>불러오는 중…</p>
+      </>,
+    )
   }
 
   if (error) {
     return page(
-      <EmptyState
-        tone="danger"
-        title="앵글을 불러오지 못했습니다"
-        description={error}
-        action={<Button variant="neutral" onClick={load}>다시 시도</Button>}
-      />,
+      <>
+        <PageHeader title="소구 앵글" />
+        <Card padded={false}>
+          <EmptyState
+            tone="danger"
+            title="앵글을 불러오지 못했습니다"
+            description={`${error} — 앵글이 없다는 뜻이 아닙니다.`}
+            action={<Button variant="neutral" onClick={load}>다시 시도</Button>}
+          />
+        </Card>
+      </>,
     )
   }
 
@@ -684,7 +672,7 @@ export default function AnalyzeAnglesPage() {
         tone="info"
         title="아직 검수가 끝나지 않았습니다"
         description={`앵글은 검수 완료(reviewed) 후에 생성됩니다. 현재 상태는 '${project.status}' 입니다.`}
-        action={<Button variant="primary" onClick={() => { window.location.href = `/analyze/${projectId}/review` }}>검수 화면으로</Button>}
+        action={<ButtonLink href={reviewHref} variant="primary">검수 화면으로</ButtonLink>}
       />,
     )
   }
@@ -694,7 +682,7 @@ export default function AnalyzeAnglesPage() {
       <EmptyState
         title="생성된 앵글이 없습니다"
         description="검수 화면에서 '앵글 생성'을 실행하면 차별화 속성별 카피 초안이 만들어집니다."
-        action={<Button variant="primary" onClick={() => { window.location.href = `/analyze/${projectId}/review` }}>검수 화면으로</Button>}
+        action={<ButtonLink href={reviewHref} variant="primary">검수 화면으로</ButtonLink>}
       />,
     )
   }
@@ -702,24 +690,19 @@ export default function AnalyzeAnglesPage() {
   return page(
     <>
       {/* ── 헤더 ───────────────────────────────────────────── */}
-      <header>
-        <h1 style={{
-          margin: 0, fontSize: 'var(--fs-h1)',
-          fontWeight: 'var(--fw-bold)', letterSpacing: 'var(--ls-tight)',
-          color: 'var(--text-strong)',
-        }}>
-          소구 앵글
-        </h1>
-        <p style={{ margin: '4px 0 0', fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>
-          차별화 기회에서 뽑은 카피 초안 · 실증 게이트 통과분
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'var(--space-3)' }}>
+      <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+        <PageHeader
+          title="소구 앵글"
+          subtitle="차별화 기회에서 뽑은 카피 초안 · 실증 게이트 통과분"
+          action={<ButtonLink href={reviewHref} variant="outline" size="sm">← 검수 화면</ButtonLink>}
+        />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           <Badge tone="neutral" size="sm">앵글 {visible.length}건</Badge>
           <Badge tone="info" size="sm">차별화 {differentiators.length}</Badge>
           <Badge tone="neutral" size="sm">기본기 {tableStakes.length}</Badge>
           {rewrittenCount > 0 && <Badge tone="warning" size="sm">재작성 {rewrittenCount}</Badge>}
         </div>
-      </header>
+      </div>
 
       {/* ── 프로젝트 요약 ──────────────────────────────────── */}
       {project && (
@@ -813,9 +796,9 @@ export default function AnalyzeAnglesPage() {
       )}
 
       <footer style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--space-5)' }}>
-        <Button variant="outline" onClick={() => { window.location.href = `/analyze/${projectId}/review` }}>
+        <ButtonLink href={reviewHref} variant="outline">
           검수 화면으로 돌아가기
-        </Button>
+        </ButtonLink>
       </footer>
     </>,
   )

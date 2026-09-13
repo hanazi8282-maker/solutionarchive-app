@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import './_ds/styles.css'
 import { AppNav } from './_ds/components/AppNav'
+import { getAuthVerdict } from '@/lib/auth/session'
 
 export const metadata = {
   title: { default: 'SolutionArchive', template: '%s · SolutionArchive' },
@@ -9,11 +10,15 @@ export const metadata = {
 
 // 전에는 body 에 인라인 fontFamily(system-ui)를 박아 두어 디자인 시스템의 Pretendard 를
 // 덮었다. 이제 base.css 의 body 규칙(폰트·배경·글자색)이 전 라우트에 그대로 적용된다.
-export default function RootLayout({ children }: { children: ReactNode }) {
+//
+// 네비의 이메일은 표시용이다. 접근 차단은 proxy.ts 와 서버 액션 가드가 한다 — 여기서 판정이
+// 실패하면 이메일이 안 보일 뿐, 통과시키는 게 아니다.
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const verdict = await getAuthVerdict()
   return (
     <html lang="ko">
       <body>
-        <AppNav />
+        <AppNav email={verdict.kind === 'allowed' ? verdict.email : null} />
         {children}
       </body>
     </html>

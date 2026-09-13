@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { requireAllowedUser } from '@/lib/auth/session'
 import { checkDecisionInput, moveApprovalWarning, caseApprovalWarning, type ReviewDecision } from '@/lib/cases/review'
 
 // ⛔ 사람 전용 쓰기 경로 (CLAUDE.md §10.1 — 승인·반려는 사람만 한다).
@@ -9,9 +10,9 @@ import { checkDecisionInput, moveApprovalWarning, caseApprovalWarning, type Revi
 //    앱을 HTTP 로 부르지 않고, 그들이 쓸 수 있는 승인 경로를 새로 만들지 않기 위해서다.
 //    evidence_grade 는 건드리지 않는다(검수와 별개 축, regrade 는 CLI 에서 사람이).
 //
-// ⚠️ 한계: 앱에 아직 로그인이 없다(lib/supabase/server.ts TODO — service_role).
-//    서버 액션도 결국 POST 엔드포인트라 앱 URL 과 액션 ID 를 아는 누구나 부를 수 있다.
-//    Google SSO 가 붙을 때 여기서 세션을 검사하고 by 를 세션 이름으로 바꾼다.
+// 누가: 두 액션 모두 맨 앞에서 로그인 세션 + 허용 목록을 확인하고(requireAllowedUser),
+//    reviewed_by 에는 폼 값이 아니라 **로그인한 이메일**을 쓴다. 폼 입력은 아무 이름이나 적을 수 있어 기록이 못 된다.
+//    CLI(scripts/case-review.mjs --by)로 결정한 행에는 이름이 남아 있어 두 형식이 섞인다.
 //
 // 규칙은 scripts/case-review.mjs 와 같다(lib/cases/review.ts 공유): 검수자 필수, 승인 단위는
 // 무브, 케이스 승인 ≠ 무브 승인(경고만), 부정 사례 비A 승인은 경고. 화면만의 추가 규칙은
@@ -21,11 +22,11 @@ export type ReviewActionState = { ok: boolean; message: string } | null
 
 const LABEL: Record<ReviewDecision, string> = { approved: '승인', rejected: '반려' }
 
-function readInput(fd: FormData) {
+function readInput(fd: FormData, by: string) {
   return {
     id: String(fd.get('id') ?? '').trim(),
     decision: String(fd.get('decision') ?? ''),
-    by: String(fd.get('by') ?? '').trim(),
+    by,
     note: String(fd.get('note') ?? '').trim(),
   }
 }
@@ -39,7 +40,9 @@ function writeFailure(error: { code?: string; message: string }): string {
 }
 
 export async function decideMove(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {
-  const input = readInput(fd)
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
+  const input = readInput(fd, auth.email)
   const bad = checkDecisionInput(input)
   if (bad) return { ok: false, message: bad }
   if (!input.id) return { ok: false, message: '대상 무브가 없습니다. 새로고침 후 다시 시도하세요.' }
@@ -70,11 +73,13 @@ export async function decideMove(_prev: ReviewActionState, fd: FormData): Promis
 
   revalidatePath('/cases')
   const warn = decision === 'approved' ? moveApprovalWarning(move) : null
-  return { ok: true, message: `무브 ${LABEL[decision]} — [${move.evidence_grade}] ${move.lever}${warn ? ` · ⚠️ ${warn}` : ''}` }
+  return { ok: true, message: `무브 ${LABEL[decision]} — [${move.evidence_grade}] ${move.lever} · 검수자 ${input.by}${warn ? ` · ⚠️ ${warn}` : ''}` }
 }
 
 export async function decideCase(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {
-  const input = readInput(fd)
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
+  const input = readInput(fd, auth.email)
   const bad = checkDecisionInput(input)
   if (bad) return { ok: false, message: bad }
   if (!input.id) return { ok: false, message: '대상 케이스가 없습니다. 새로고침 후 다시 시도하세요.' }
@@ -105,5 +110,5 @@ export async function decideCase(_prev: ReviewActionState, fd: FormData): Promis
 
   revalidatePath('/cases')
   const warn = decision === 'approved' ? caseApprovalWarning(study.case_moves ?? []) : null
-  return { ok: true, message: `케이스 ${LABEL[decision]} — ${study.brand_name}${warn ? ` · ⚠️ ${warn}` : ''}` }
+  return { ok: true, message: `케이스 ${LABEL[decision]} — ${study.brand_name} · 검수자 ${input.by}${warn ? ` · ⚠️ ${warn}` : ''}` }
 }

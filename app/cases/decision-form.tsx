@@ -1,30 +1,12 @@
 'use client'
 
-import { createContext, useActionState, useContext, useState, type ReactNode } from 'react'
+import { useActionState, useState } from 'react'
 import { decideCase, decideMove, type ReviewActionState } from './actions'
 import { Button } from '../_ds/components/Button'
-import { Field, Input, Textarea } from '../_ds/components/Field'
+import { Textarea } from '../_ds/components/Field'
 import { Notice } from '../_ds/components/Shell'
 
-// 검수자 이름은 화면 맨 위에서 한 번 적고 모든 결정 폼이 같이 쓴다.
-// 로그인이 붙기 전까지의 자리다 — 붙으면 서버 액션이 세션에서 읽는다.
-const Reviewer = createContext('')
-
-export function ReviewerScope({ children }: { children: ReactNode }) {
-  const [name, setName] = useState('')
-  return (
-    <Reviewer.Provider value={name}>
-      <Field
-        label={<>검수자 이름<span style={{ color: 'var(--danger-fg)' }}> · 필수</span></>}
-        htmlFor="reviewer"
-        hint="승인·반려 기록에 남는다. 비어 있으면 결정 버튼이 잠긴다."
-      >
-        <Input id="reviewer" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" style={{ maxWidth: 240 }} />
-      </Field>
-      {children}
-    </Reviewer.Provider>
-  )
-}
+// 검수자는 폼에서 받지 않는다. 서버 액션이 로그인 세션의 이메일을 reviewed_by 에 쓴다(./actions.ts).
 
 export function DecisionForm({ kind, id, locked, approveWarning }: {
   kind: 'move' | 'case'
@@ -34,17 +16,14 @@ export function DecisionForm({ kind, id, locked, approveWarning }: {
   /** 승인하면 따라오는 주의. 누르기 전에 보여준다. */
   approveWarning?: string | null
 }) {
-  const by = useContext(Reviewer)
   const [note, setNote] = useState('')
   const [state, action, pending] = useActionState<ReviewActionState, FormData>(kind === 'move' ? decideMove : decideCase, null)
-  const noName = !by.trim()
-  const off = pending || locked || noName
+  const off = pending || locked
   const what = kind === 'move' ? '무브' : '케이스'
 
   return (
     <form action={action} style={{ display: 'grid', gap: 8 }}>
       <input type="hidden" name="id" value={id} />
-      <input type="hidden" name="by" value={by} />
       <Textarea
         name="note"
         rows={2}
@@ -66,8 +45,7 @@ export function DecisionForm({ kind, id, locked, approveWarning }: {
           {what} 반려
         </Button>
         {pending && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>저장 중…</span>}
-        {!locked && noName && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>맨 위에 검수자 이름을 먼저 적는다</span>}
-        {!locked && !noName && !note.trim() && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>반려하려면 사유를 적는다</span>}
+        {!locked && !note.trim() && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>반려하려면 사유를 적는다</span>}
       </div>
       {state && <Notice tone={state.ok ? 'success' : 'danger'}>{state.message}</Notice>}
     </form>

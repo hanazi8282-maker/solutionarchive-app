@@ -6,7 +6,7 @@ import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
 import { Notice, PageHeader, PageShell } from '../_ds/components/Shell'
-import { DecisionForm, ReviewerScope } from './decision-form'
+import { DecisionForm } from './decision-form'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '케이스 검수' }
@@ -214,7 +214,8 @@ export default async function CasesPage() {
           <EmptyState compact title="검수 대기 0건 (조회는 정상)" description={`전체 케이스 ${all.length}건이 모두 결정됐다.`} />
         </Card>
       ) : (
-        <ReviewerScope>
+        <>
+          <p style={muted}>승인·반려 기록의 검수자에는 로그인한 계정 이메일이 남는다.</p>
           <div style={{ display: 'grid', gap: 16 }}>
             {pending.map((c) => (
               <Card
@@ -258,7 +259,7 @@ export default async function CasesPage() {
               </Card>
             ))}
           </div>
-        </ReviewerScope>
+        </>
       )}
     </PageShell>
   )

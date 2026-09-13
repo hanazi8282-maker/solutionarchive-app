@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { requireAllowedUser } from '@/lib/auth/session'
 import { normalizeBody, diceSimilarity } from '@/lib/threads/match'
 
 export type ActionState = { ok: boolean; message: string } | null
@@ -19,6 +20,8 @@ export async function createPost(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
   const supabase = await createClient()
   if (!supabase) {
     return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다 (.env.local 확인).' }
@@ -98,6 +101,8 @@ export async function createSnapshot(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
   const supabase = await createClient()
   if (!supabase) {
     return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다 (.env.local 확인).' }
@@ -154,6 +159,8 @@ export async function linkDraft(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
   const supabase = await createClient()
   if (!supabase) {
     return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다 (.env.local 확인).' }

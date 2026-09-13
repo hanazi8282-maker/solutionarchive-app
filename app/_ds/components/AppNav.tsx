@@ -15,10 +15,12 @@ const LINKS = [
   { href: '/analyze', match: '/analyze', label: '소구점 분석' },
 ] as const
 
-export function AppNav() {
+/** email 은 레이아웃이 판정해 넘긴다. 허용된 로그인일 때만 값이 있다. */
+export function AppNav({ email }: { email: string | null }) {
   const path = usePathname() ?? ''
   // 온보딩 퀴즈는 로그인 이전(익명) 화면이다. 내부 도구 네비를 보여주지 않는다.
-  if (path.startsWith('/onboarding')) return null
+  // 로그인 화면도 마찬가지 — 들어갈 수 없는 화면 링크를 보여주지 않는다.
+  if (path.startsWith('/onboarding') || path === '/login') return null
 
   return (
     <nav
@@ -66,6 +68,27 @@ export function AppNav() {
             )
           })}
         </ul>
+        {email && (
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span
+              title={email}
+              style={{ color: 'var(--sidebar-fg)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}
+            >
+              {email}
+            </span>
+            <form action="/auth/logout" method="post">
+              <button
+                type="submit"
+                style={{
+                  height: 30, padding: '0 10px', borderRadius: 'var(--radius-md)', fontSize: 13, whiteSpace: 'nowrap',
+                  border: '1px solid var(--sidebar-border)', background: 'transparent', color: 'var(--sidebar-fg)', cursor: 'pointer',
+                }}
+              >
+                로그아웃
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     </nav>
   )

@@ -7,12 +7,19 @@ import {
   type ScoreSummary,
   type Side,
 } from '@/lib/onboarding/quiz'
+import { Card } from '../../_ds/components/Card'
+import { Button, ButtonLink } from '../../_ds/components/Button'
+import { ProgressBar } from '../../_ds/components/ProgressBar'
+import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
 
 // Stage 6 — 온보딩 "감 점수" 퀴즈 화면.
 //
 // 익명으로 돈다. session_id 는 여기서 만들어 localStorage 에 보관한다 — 이
 // 리포에 아직 인증이 없고(lib/supabase/server.ts 의 "TODO: Google SSO"), 온보딩은
 // 정의상 로그인 이전 경험이다. 로그인이 들어오면 서버가 user_id 를 채운다.
+//
+// 표시만 디자인 시스템 토큰·컴포넌트로 바꿨다(전에는 zinc 하드코딩 색·기본 폰트).
+// 상단 앱 네비는 AppNav 가 /onboarding 에서 스스로 숨는다.
 
 const SESSION_KEY = 'sa_onboarding_session_id'
 
@@ -37,17 +44,30 @@ interface Pick {
   correct_side: Side
 }
 
-const CARD: React.CSSProperties = {
-  flex: 1,
-  minWidth: 260,
-  padding: '20px 22px',
-  border: '1px solid #d4d4d8',
-  borderRadius: 12,
-  background: '#fff',
+const muted = { margin: 0, fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)', color: 'var(--text-muted)' } as const
+
+const OPTION: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  gap: 10,
+  minHeight: 120,
+  padding: '18px 20px',
+  border: '1px solid var(--border-strong)',
+  borderRadius: 'var(--radius-xl)',
+  background: 'var(--surface-card)',
+  boxShadow: 'var(--shadow-sm)',
+  color: 'var(--text-strong)',
   textAlign: 'left',
+  fontFamily: 'var(--font-sans)',
   fontSize: 16,
-  lineHeight: 1.6,
+  lineHeight: 1.65,
   cursor: 'pointer',
+  overflowWrap: 'anywhere',
+}
+
+function Brand() {
+  return <div className="dgy-caps">SOLUTION ARCHIVE · 온보딩</div>
 }
 
 export default function OnboardingQuizPage() {
@@ -124,85 +144,105 @@ export default function OnboardingQuizPage() {
     else setCursor((c) => c + 1)
   }
 
-  const wrap: React.CSSProperties = { maxWidth: 860, margin: '0 auto', padding: '40px 20px' }
-
   if (error) {
     return (
-      <main style={wrap}>
-        <h1 style={{ fontSize: 22 }}>소구점 판정 감 점수</h1>
-        <p style={{ color: '#b91c1c' }}>{error}</p>
-      </main>
+      <PageShell maxWidth={760}>
+        <Brand />
+        <PageHeader title="소구점 판정 감 점수" />
+        <Notice
+          tone="danger"
+          title={questions ? '채점하지 못했습니다' : '퀴즈를 불러오지 못했습니다'}
+          // 다시 불러오기는 문제를 못 받았을 때만 준다. 채점 실패 뒤 새로고침하면 고른 답이 사라진다.
+          action={questions ? null : <Button variant="neutral" size="sm" onClick={() => window.location.reload()}>다시 불러오기</Button>}
+        >
+          {error}
+        </Notice>
+      </PageShell>
     )
   }
 
   if (summary) {
     const shareUrl = `/api/onboarding/quiz/share?score=${summary.score}&total=${summary.question_count}`
     return (
-      <main style={wrap}>
-        <h1 style={{ fontSize: 22 }}>내 감 점수</h1>
-        <p style={{ fontSize: 28, margin: '12px 0' }}>{scoreHeadline(summary)}</p>
-        {summary.percentile === null && summary.respondents !== null && (
-          <p style={{ color: '#52525b', fontSize: 14 }}>
-            응답자가 30명을 넘으면 상위 몇 %인지도 같이 보여드립니다. 지금은 표본이 작아
-            퍼센타일을 계산하지 않습니다.
+      <PageShell maxWidth={760}>
+        <Brand />
+        <PageHeader title="내 감 점수" subtitle={`${summary.question_count}문제 기준`} />
+
+        <Card>
+          <p aria-live="polite" style={{
+            margin: 0, fontSize: 'var(--fs-display)', fontWeight: 700, lineHeight: 'var(--lh-tight)',
+            letterSpacing: 'var(--ls-tight)', color: 'var(--text-strong)', fontVariantNumeric: 'tabular-nums',
+          }}>
+            {scoreHeadline(summary)}
           </p>
+        </Card>
+
+        {summary.percentile === null && summary.respondents !== null && (
+          <Notice tone="info">
+            응답자가 30명을 넘으면 상위 몇 %인지도 같이 보여드립니다. 지금은 표본이 작아 퍼센타일을 계산하지 않습니다.
+          </Notice>
         )}
         {summary.respondents === null && (
-          <p style={{ color: '#b45309', fontSize: 14 }}>
-            응답자 집계를 읽지 못했습니다 — 점수만 표시합니다.
-          </p>
+          <Notice tone="warning">응답자 집계를 읽지 못했습니다 — 점수만 표시합니다.</Notice>
         )}
         {logged === false && (
-          <p style={{ color: '#b45309', fontSize: 14 }}>
-            응답 기록에는 실패했습니다(집계에 반영되지 않습니다).
-          </p>
+          <Notice tone="warning">응답 기록에는 실패했습니다(집계에 반영되지 않습니다).</Notice>
         )}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={shareUrl}
-          alt={`감 점수 공유 이미지 — ${scoreHeadline(summary)}`}
-          style={{ width: '100%', maxWidth: 600, borderRadius: 12, marginTop: 20 }}
-        />
-        <p style={{ marginTop: 16 }}>
-          <a href={shareUrl} download={`solutionarchive-quiz-${summary.score}of${summary.question_count}.png`}>
-            공유 이미지 내려받기
-          </a>
-        </p>
-      </main>
+
+        <Card title="공유 이미지">
+          <div style={{ display: 'grid', gap: 16, justifyItems: 'start' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={shareUrl}
+              alt={`감 점수 공유 이미지 — ${scoreHeadline(summary)}`}
+              style={{ width: '100%', maxWidth: 600, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}
+            />
+            <ButtonLink
+              href={shareUrl}
+              variant="primary"
+              download={`solutionarchive-quiz-${summary.score}of${summary.question_count}.png`}
+            >
+              공유 이미지 내려받기
+            </ButtonLink>
+          </div>
+        </Card>
+      </PageShell>
     )
   }
 
-  if (!questions) {
+  if (!questions || submitting) {
     return (
-      <main style={wrap}>
-        <p>문제를 불러오는 중…</p>
-      </main>
-    )
-  }
-
-  if (submitting) {
-    return (
-      <main style={wrap}>
-        <p>채점 중…</p>
-      </main>
+      <PageShell maxWidth={760}>
+        <Brand />
+        <PageHeader title="소구점 판정 감 점수" />
+        <p role="status" style={muted}>{submitting ? '채점 중…' : '문제를 불러오는 중…'}</p>
+      </PageShell>
     )
   }
 
   const q = questions[cursor]
   return (
-    <main style={wrap}>
-      <p style={{ color: '#71717a', fontSize: 14, margin: 0 }}>
-        {cursor + 1} / {questions.length}
-        {q.category ? ` · ${q.category}` : ''}
-      </p>
-      <h1 style={{ fontSize: 22, marginTop: 8 }}>이 두 소구점 중 뭐가 더 반응 좋았을까요?</h1>
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 24 }}>
-        {q.options.map((opt) => (
-          <button key={opt.side} type="button" style={CARD} onClick={() => choose(q, opt.side)}>
-            {opt.text}
+    <PageShell maxWidth={760}>
+      <Brand />
+      <div style={{ display: 'grid', gap: 8 }}>
+        <p style={{ ...muted, fontVariantNumeric: 'tabular-nums' }}>
+          {cursor + 1} / {questions.length}
+          {q.category ? ` · ${q.category}` : ''}
+        </p>
+        <ProgressBar value={cursor} max={questions.length} tone="info" height={6} aria-hidden />
+      </div>
+      <PageHeader
+        title="이 두 소구점 중 뭐가 더 반응 좋았을까요?"
+        subtitle="하나를 고르면 바로 다음 문제로 넘어갑니다."
+      />
+      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' }}>
+        {q.options.map((opt, i) => (
+          <button key={opt.side} type="button" className="dgy-tile" style={OPTION} onClick={() => choose(q, opt.side)}>
+            <span className="dgy-caps">선택지 {i === 0 ? 'A' : 'B'}</span>
+            <span>{opt.text}</span>
           </button>
         ))}
       </div>
-    </main>
+    </PageShell>
   )
 }

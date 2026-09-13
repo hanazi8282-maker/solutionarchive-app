@@ -76,6 +76,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
+          # 끝에 Notion "일일 상태 로그" CTO 행 1개를 쓴다(scripts/review-collect-status.mjs).
+          # 이 스텝에만 준다 — purge 스텝은 Notion 을 안 쓴다. 기록 실패는 수집 결과를 막지 않는다.
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
         run: |
           node scripts/review-collect.mjs \
             --source=${{ inputs.source || 'all' }} \

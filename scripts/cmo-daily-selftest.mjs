@@ -26,14 +26,15 @@ import {
   buildDigest, perfFailure, recordStep, scoreboardRows, parsePerformance,
   buildDecisionLogEntries, stagedJobs, selectAngles,
   nextContentSeq, contentCodeFor, writerPrompt, queueResolutions, partialFailures,
-  commitOutcome, queueStepOutcome, resolveRunDate,
+  commitOutcome, queueStepOutcome, resolveRunDate, buildCmoStatusEntry,
 } from './cmo-daily.mjs'
+import { buildStatusLogProperties } from './notion-status-log.mjs'
 import { validateStep, createTracker, readEvents, STEP_STATUS } from './agent-status.mjs'
 import {
   buildPlan, enforceFailureQuota, coverageGaps, parseFrontmatter, setFrontmatterStatus, PAIRABLE_MIN,
 } from './research-queue.mjs'
 import { renderDashboard, renderRunLine, renderProblems, foldEvents, MARKS, STALE_MS } from './status-render.mjs'
-import { normalizeFacets } from './pmf-assess.mjs'
+import { normalizeFacets, buildPmfEntry } from './pmf-assess.mjs'
 import { buildChildEnv } from '../lib/insight/claude-cli.ts'
 import { unlinkedDigestLine, UNLINKED_STALE_MS } from '../lib/threads/unlinked-status.ts'
 
@@ -1185,6 +1186,117 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   // 주석의 경고 문구는 세지 않는다 — 실제 import(정적·동적)만 금지한다.
   check('미연결 — cmo-daily 가 lib/threads/token·recent 를 import 하지 않는다',
     !/(from\s+|import\(\s*)['"][^'"]*lib\/threads\/(token|recent)/.test(src))
+}
+
+// ════════════════════════════════════════════════════════════
+// 23) Notion 일일 상태 로그 — CMO 요약·사람판단필요·preflight·기록 실패 배선 / PMF(CTO) 요약
+// ════════════════════════════════════════════════════════════
+{
+  const S = (key, status, extra = {}) => ({ key, label: key, status, exit: null, blocker: null, partial_failed: null, errors: null, ...extra })
+  const lines = (s) => String(s).split('\n').length
+  const within5 = (name, e) => {
+    for (const k of ['done', 'blocked', 'next']) check(`상태로그 — ${name} ${k} 5줄 이하`, lines(e[k]) <= 5, e[k])
+    let ok = true
+    try { buildStatusLogProperties(e) } catch { ok = false }
+    check(`상태로그 — ${name} 이 Notion 페이로드 빌더를 통과한다(경계면)`, ok)
+  }
+  const base = { date: '2026-09-13', runKey: 'cmo-2026-09-13-cron', runUrl: 'https://github.com/o/r/actions/runs/1' }
+  const ZERO = '발행됐는데 연결 안 된 Threads 게시물 0건'
+
+  // (1) 할 일이 쌓인 날
+  const busy = buildCmoStatusEntry({
+    ...base, runStatus: 'partial', unlinkedLine: ZERO,
+    state: { blocked: 1, failed: 0, counts: { new_drafts: 2, commit_attempted: 2, committed: 1, drafted: 2, staged: 2 }, steps: [S('preflight', 'ok'), S('stage', 'blocked')] },
+    log: ['- ✅ `preflight` 사전 점검', '- ▲ `stage` 발행 대기 스테이징 — CG-1 미통과'],
+  })
+  eq('상태로그 — 트랙 CMO', busy.track, 'CMO')
+  eq('상태로그 — 날짜는 run date', busy.date, '2026-09-13')
+  check('상태로그 — 한일에 시도 대비 적립·스테이징 수', busy.done.includes('적립 1건(시도 2건)') && busy.done.includes('스테이징 2건'), busy.done)
+  check('상태로그 — 막힌것에 blocker 원문(백틱 제거)', busy.blocked.includes('CG-1 미통과') && !busy.blocked.includes('`'), busy.blocked)
+  check('상태로그 — 다음할일에 검토대기 초안·승인 대기 케이스', busy.next.includes('발행 대기 초안 2건') && busy.next.includes('케이스 1건'), busy.next)
+  eq('상태로그 — 할 일이 있으면 사람판단필요 true', busy.needsHuman, true)
+  check('상태로그 — 비고에 run_key·run URL', busy.note.includes('cmo-2026-09-13-cron') && busy.note.includes('actions/runs/1'))
+  within5('할 일 있는 날', busy)
+
+  // (2) 조용한 날 — false 로 떨어져야 매일 true 소음이 안 된다
+  const calm = buildCmoStatusEntry({ ...base, runStatus: 'ok', unlinkedLine: ZERO, state: { blocked: 0, failed: 0, counts: {}, steps: [S('preflight', 'ok')] }, log: [] })
+  eq('상태로그 — 조용한 날 사람판단필요 false', calm.needsHuman, false)
+  eq('상태로그 — 조용한 날 막힌것 없음', calm.blocked, '없음')
+  check('상태로그 — 조용한 날 다음할일은 "사람 할 일 없음"', calm.next.startsWith('사람 할 일 없음'), calm.next)
+
+  // (3) 개별 트리거 — 하나씩만 켜도 true
+  const one = (over) => buildCmoStatusEntry({ ...base, runStatus: 'ok', unlinkedLine: ZERO, state: { blocked: 0, failed: 0, counts: {}, steps: [] }, log: [], ...over })
+  eq('상태로그 — 미연결 발행글 확인 불가 → true', one({ unlinkedLine: '발행됐는데 연결 안 된 Threads 게시물: 확인 불가(매처 기록 없음) — /dashboard 에서 직접 확인' }).needsHuman, true)
+  eq('상태로그 — 미연결 발행글 N건 → true', one({ unlinkedLine: '⚠️ 발행됐는데 연결 안 된 Threads 게시물 2건(가장 오래된 것 5시간 경과) — /dashboard 에서 연결' }).needsHuman, true)
+  const noAppr = one({ log: ['- ⏭️ `angle` 앵글 선정 — 쓸 수 있는 승인 무브가 0건 (승인은 사람이 한다 — 루프의 실패가 아니다)'] })
+  check('상태로그 — 승인 무브 0건 → true + 다음할일', noAppr.needsHuman === true && noAppr.next.includes('승인된 무브 0건'), noAppr.next)
+  const push = one({ notionPushError: 'exit 2 — posts 조회 실패' })
+  check('상태로그 — Notion 푸시 실패 → 막힌것 + true', push.needsHuman === true && push.blocked.includes('posts 조회 실패'), push.blocked)
+  eq('상태로그 — 큐 미해소 → true', one({ state: { blocked: 0, failed: 0, counts: { queue_unresolved: 1 }, steps: [] } }).needsHuman, true)
+  const partial = one({ state: { blocked: 0, failed: 0, counts: {}, steps: [S('draft', 'ok', { partial_failed: 1, errors: ['x: exit 1'] })] } })
+  check('상태로그 — 부분 실패 → 막힌것 + true', partial.needsHuman === true && partial.blocked.includes('부분 실패 draft'), partial.blocked)
+
+  // (4) 막힌것 5줄 상한 — 넘치면 "외 N건"
+  const many = one({ log: Array.from({ length: 8 }, (_, i) => `- ❌ \`s${i}\` 단계 — e${i}`) })
+  eq('상태로그 — 막힌것 8건이면 5줄', lines(many.blocked), 5)
+  check('상태로그 — 넘친 건수를 숨기지 않는다', /^외 4건/.test(many.blocked.split('\n')[4]), many.blocked)
+
+  // (5) preflight 에서 멈춘 날 — 행은 반드시 남고, true
+  const pf = buildCmoStatusEntry({ ...base, stopped: 'preflight', runStatus: 'failed', state: { blocked: 0, failed: 1, counts: {}, steps: [S('preflight', 'failed')] }, log: ['- ❌ `preflight` 사전 점검 — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 미설정 — 확인 불가'] })
+  eq('상태로그 — preflight 중단 → true', pf.needsHuman, true)
+  check('상태로그 — preflight 사유가 막힌것에', pf.blocked.includes('SUPABASE_SERVICE_ROLE_KEY 미설정'), pf.blocked)
+  check('상태로그 — preflight 한일은 "멈췄다"(0건 처리로 접지 않는다)', pf.done.includes('멈췄다'), pf.done)
+  check('상태로그 — 사유 로그가 없어도 막힌것을 비우지 않는다',
+    buildCmoStatusEntry({ ...base, stopped: 'preflight', runStatus: 'failed', state: {}, log: [] }).blocked.includes('사유가 로그에 없다'))
+  within5('preflight 날', pf)
+
+  // (6) 배선 — main 은 테스트로 못 돌리니 소스로 확인한다(변이 감시)
+  const src = fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')
+  const code = src.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
+  check('상태로그 — preflight 조기 종료 경로가 exit 전에 기록한다',
+    /pre\.status === 'failed'[\s\S]{0,600}recordDailyStatus\(\{ stopped: 'preflight'[\s\S]{0,300}process\.exit\(2\)/.test(src))
+  check('상태로그 — 정상 종료 경로가 기록한다', /await recordDailyStatus\(\{ runStatus \}\)[\s\S]*process\.exit\(state\.failed > 0 \? 1 : 0\)/.test(src))
+  check('상태로그 — 기록 실패를 status_log=failed 스텝으로 남긴다',
+    /stepKey: 'status_log'/.test(src) && /status: r\.ok \? 'ok' : 'failed'/.test(src))
+  check('상태로그 — 기록 실패는 ❌ 줄로 로그에 남는다(DIGEST 병목 진단에 실린다)', /`- ❌ \\`status_log\\` /.test(src))
+  check('상태로그 — 요약 빌드 예외도 루프를 막지 않는다(try/catch)', /try \{\s*const unlinkedLine[\s\S]{0,300}\} catch \(e\) \{\s*r = \{ ok: false/.test(src))
+  check('상태로그 — dry-run 은 쓰지 않는다', /if \(dryRun\) \{ say\(`- ⏭️ \\`status_log\\`/.test(src))
+  const recBody = code.slice(code.indexOf('async function recordDailyStatus'), code.indexOf('const pre = await runStep'))
+  check('상태로그 — (검사 자체) recordDailyStatus 본문을 잘라냈다', recBody.length > 200 && recBody.includes('recordStatusLog('), `len ${recBody.length}`)
+  check('상태로그 — 기록이 루프 실패 카운터를 올리지 않는다', !/state\.(failed|blocked)\+\+/.test(recBody))
+  check('상태로그 — 알림완료를 코드가 건드리지 않는다', !code.includes('알림완료'))
+  check('상태로그 — Notion 푸시가 상태 로그보다 먼저 돈다(푸시 실패가 행에 실린다)',
+    src.indexOf("'scripts/notion-push-digest.mjs'") < src.indexOf('await recordDailyStatus({ runStatus })'))
+
+  const rcw = fs.readFileSync(path.join(process.cwd(), '.github/workflows/nightly-review-collect.yml'), 'utf-8')
+  eq('상태로그 — 리뷰 수집 워크플로는 NOTION_API_TOKEN 을 한 스텝에만 준다', (rcw.match(/NOTION_API_TOKEN:/g) ?? []).length, 1)
+  check('상태로그 — 리뷰 수집 워크플로에 다른 Notion secret 이 없다', !/NOTION_DATABASE_ID|NOTION_API_KEY/.test(rcw))
+  check('상태로그 — 리뷰 수집 워크플로 권한은 read 그대로', /permissions:\s*\n\s*contents: read/.test(rcw))
+
+  // (7) PMF(CTO) — 두 축 값과 근거를 싣고, 단일 점수를 만들지 않는다
+  const pm = buildPmfEntry({
+    input: { item: '두피 샴푸', market: '두피 케어' },
+    match: { status: 'matched', reason: '병목 일치 3건' },
+    demand: { value: 0.7, reason: 'aspect 12개 평균' }, precedent: { value: 0.4, reason: '승인 무브 3건' },
+    quad: { quadrant: 'VALIDATE', reason: '수요 높음·선례 낮음' }, savedId: 'a1',
+    inputPath: 'ops/pmf/x.json', now: new Date('2026-09-14T15:30:00Z'),
+  })
+  eq('PMF 상태로그 — 날짜는 KST', pm.date, '2026-09-15')
+  eq('PMF 상태로그 — 트랙 CTO', pm.track, 'CTO')
+  eq('PMF 상태로그 — 사람판단필요 항상 true', pm.needsHuman, true)
+  check('PMF 상태로그 — 두 축 값과 근거', pm.done.includes('수요축 0.700 — aspect 12개 평균') && pm.done.includes('선례축 0.400 — 승인 무브 3건'), pm.done)
+  check('PMF 상태로그 — 단일 점수를 만들지 않는다', !/점수/.test(pm.done + pm.next))
+  check('PMF 상태로그 — 다음할일이 사분면 판단', pm.next.includes('VALIDATE'), pm.next)
+  within5('PMF matched', pm)
+  const nr = buildPmfEntry({ input: {}, match: { status: 'not_run', reason: '조회 실패' }, demand: { value: null, reason: '프로젝트 미지정' }, precedent: { value: null, reason: 'not_run' }, quad: { quadrant: null, reason: '축 없음' } })
+  check('PMF 상태로그 — not_run 은 확인 불가를 막힌것에, 재진단을 다음할일에', nr.blocked.includes('수요축 확인 불가') && nr.next.includes('재진단'), `${nr.blocked} / ${nr.next}`)
+  const pe = buildPmfEntry({ input: {}, errors: ['pmf_assessments 저장 실패 — 42P01'] })
+  check('PMF 상태로그 — 중단된 진단도 행을 만든다', pe.done.includes('끝내지 못했다') && pe.blocked.includes('42P01'), pe.done)
+  within5('PMF 오류', pe)
+  const pmfSrc = fs.readFileSync(path.join(process.cwd(), 'scripts/pmf-assess.mjs'), 'utf-8')
+  check('PMF 상태로그 — 최종 종료가 finish() 를 지나고 종료코드 규약은 그대로',
+    /await finish\(match\.status === 'matched' \? 0 : match\.status === 'no_match' \? 1 : 2\)/.test(pmfSrc))
+  check('PMF 상태로그 — 토큰 없으면 §11 폴백 디렉터리로', /'ops', 'state', 'status-log-pending'/.test(pmfSrc))
 }
 
 // ════════════════════════════════════════════════════════════

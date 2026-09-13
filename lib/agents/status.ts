@@ -134,3 +134,39 @@ export function cronToLabel(cron: string): string {
   const p = (n: number) => String(n).padStart(2, '0')
   return `UTC ${p(hh)}:${p(mm)} · KST ${p(kst)}:${p(mm)}`
 }
+
+// ── 노션 페이지 회수 ─────────────────────────────────────────────
+// notion_sync_log 는 실행 로그가 아니라 페이지당 1행이다(아침 push INSERT → 밤 pull UPDATE).
+// pulled_at NULL 을 "종료 안 된 실행"으로 그리면 멈춘 루프처럼 읽힌다.
+//
+// ⚠️ 밤 풀백(notion-pull-feedback.mjs)은 사람 피드백을 기다리지 않는다. 그 시각의
+//    Notion 상태를 읽어 unchanged/edited/adopted/held 로 분류하고 pulled_at 을 채운다.
+//    그래서 예정 풀백이 지났는데도 NULL 이면 "사람이 아직 안 봤다"가 아니라
+//    풀백이 그 행을 못 끝낸 것이다(Notion 읽기 확인 불가 · DB 갱신 실패 · 워크플로 미실행).
+
+/** GitHub Actions schedule 은 늦게 뜬다 — 2026-09-13 은 12:07 UTC 예정분이 16:07 에 커밋됐다(4시간). */
+export const PULL_GRACE_MS = 6 * 60 * 60 * 1000
+
+/** afterMs 이후 첫 일일 cron 발화 시각(UTC ms). 'm h * * *' 꼴이 아니면 null — 판정하지 않는다. */
+export function nextDailyFire(cron: string, afterMs: number): number | null {
+  const [m, h, dom, mon, dow] = cron.trim().split(/\s+/)
+  const hh = Number(h)
+  const mm = Number(m)
+  if (!Number.isInteger(hh) || !Number.isInteger(mm) || dom !== '*' || mon !== '*' || dow !== '*') return null
+  const d = new Date(afterMs)
+  const fire = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hh, mm)
+  return fire > afterMs ? fire : fire + 24 * 60 * 60 * 1000
+}
+
+/**
+ * pulled_at NULL 인 페이지 1건의 상태.
+ *   waiting — 푸시 뒤 첫 풀백(+유예)이 아직 안 지났다. 정상.
+ *   overdue — 지났는데도 NULL. 확인 대상이다.
+ *   unknown — 푸시 시각이나 cron 을 못 읽었다. waiting 으로 접지 않는다(§7.1).
+ */
+export function pullState(pushedMs: number, now: number, cron: string): 'waiting' | 'overdue' | 'unknown' {
+  if (!pushedMs) return 'unknown'
+  const fire = nextDailyFire(cron, pushedMs)
+  if (fire === null) return 'unknown'
+  return now > fire + PULL_GRACE_MS ? 'overdue' : 'waiting'
+}

@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url'
 import {
   LOOPS, STALE_MS, MARKS, classify, renderStepBar, isStale, truncate, cronToLabel,
   isMissingTableError, UNAVAILABLE_TEXT, EMPTY_TEXT,
+  PULL_GRACE_MS, nextDailyFire, pullState,
 } from '../lib/agents/status.ts'
 
 let pass = 0
@@ -87,6 +88,27 @@ t('스텝바: null → 빈 문자열', renderStepBar(null), '')
 t('cron → UTC/KST 라벨', cronToLabel('17 20 * * *'), 'UTC 20:17 · KST 05:17')
 t('cron 자정 넘김', cronToLabel('41 18 * * *'), 'UTC 18:41 · KST 03:41')
 t('cron 형식 아니면 원문', cronToLabel('@daily'), '@daily')
+
+// ── 노션 회수 대기 vs 풀백 지남 ──────────────────────────────────
+// 2026-09-13 실화면: 07:45 KST 푸시 행이 "종료 진행중"으로 떠 멈춘 실행처럼 보였다.
+{
+  const CRON = '7 12 * * *'
+  const pushed = Date.parse('2026-09-12T22:45:00Z') // = 09-13 07:45 KST
+  const h = 3600_000
+  t('푸시 뒤 첫 풀백 = 당일 12:07 UTC', nextDailyFire(CRON, pushed), Date.parse('2026-09-13T12:07:00Z'))
+  t('풀백 1분 뒤 푸시 → 다음 날', nextDailyFire(CRON, Date.parse('2026-09-13T12:08:00Z')), Date.parse('2026-09-14T12:07:00Z'))
+  t('정확히 발화 시각 푸시 → 다음 날(같은 실행이 못 집는다고 본다)', nextDailyFire(CRON, Date.parse('2026-09-13T12:07:00Z')), Date.parse('2026-09-14T12:07:00Z'))
+  t('일일 cron 아니면 null', nextDailyFire('7 12 * * 1', pushed), null)
+  t('풀백 전 → waiting', pullState(pushed, Date.parse('2026-09-13T11:00:00Z'), CRON), 'waiting')
+  t('풀백 지났지만 유예 안 → waiting', pullState(pushed, Date.parse('2026-09-13T12:07:00Z') + PULL_GRACE_MS, CRON), 'waiting')
+  t('유예까지 지남 → overdue', pullState(pushed, Date.parse('2026-09-13T12:07:00Z') + PULL_GRACE_MS + 60_000, CRON), 'overdue')
+  // CEO-STAFF 가 본 시각(푸시+17h = 15:45 UTC)은 예정 12:07 은 지났지만 실제 풀백(16:07 커밋) 전이었다.
+  // 유예가 없으면 GitHub schedule 지연을 사고로 띄운다.
+  t('17시간 뒤(CEO-STAFF 확인 시점) → 아직 waiting', pullState(pushed, pushed + 17 * h, CRON), 'waiting')
+  t('푸시 시각 모름 → unknown(대기로 접지 않음)', pullState(0, pushed, CRON), 'unknown')
+  t('cron 못 읽음 → unknown', pullState(pushed, pushed + 99 * h, '@daily'), 'unknown')
+  ok('유예 ≥ 실측 지연 4시간', PULL_GRACE_MS >= 4 * h)
+}
 
 // ── 레지스트리 ↔ 워크플로 대조 (drift 감지) ──────────────────────
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')

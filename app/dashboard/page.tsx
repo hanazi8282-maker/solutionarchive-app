@@ -23,6 +23,8 @@ export default async function DashboardPage() {
   let posts: PostOption[] = []
   let drafts: DraftOption[] = []
   let loadError = ''
+  // 소재·가설 조회 실패 사유. 있으면 글 등록 폼이 제출을 막는다(선택지가 비어도 "없음"이 아니다).
+  let refsError = ''
   // 표시용 플래그. 조회 실패 시 목록이 [] 로 떨어져 "없습니다"로 보이던 것을 가른다(§7.1).
   let draftsOk = false
   let postsOk = false
@@ -38,6 +40,7 @@ export default async function DashboardPage() {
     loadError =
       'Supabase 환경변수가 없습니다. .env.local에 NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY를 채우세요.'
     unlinkedError = 'Supabase 연결이 없어 확인하지 못했습니다.'
+    refsError = 'Supabase 연결이 없어 소재·가설 목록을 읽지 못했습니다.'
   } else {
     const [ci, hy, po, dr, ln] = await Promise.all([
       supabase.from('content_items').select('code, title').order('code'),
@@ -70,6 +73,8 @@ export default async function DashboardPage() {
 
     const errs = [ci.error, hy.error, po.error, dr.error, ln.error].filter(Boolean)
     if (errs.length) loadError = errs.map(e => e!.message).join(' / ')
+    const refErrs = [ci.error, hy.error].filter(Boolean)
+    if (refErrs.length) refsError = `소재·가설 목록을 읽지 못했습니다 (${refErrs.map(e => e!.message).join(' / ')}).`
 
     if (dr.error || ln.error) {
       unlinkedError = '초안 또는 기연결 게시물 조회에 실패해 확인하지 못했습니다.'
@@ -143,14 +148,14 @@ export default async function DashboardPage() {
           label="발행 연결 대기 초안"
           tone={draftsOk ? undefined : 'danger'}
           value={draftsOk ? `${drafts.length}건` : '확인 불가'}
-          caption={draftsOk ? `검토 대기 ${pendingN}건 · 초안 ${drafts.length - pendingN}건 (posts)` : 'posts 조회 실패'}
+          caption={draftsOk ? `검토 대기 ${pendingN}건 · 작성 중 ${drafts.length - pendingN}건` : '초안 목록을 읽지 못함'}
         />
         <StatTile
           href="#metrics"
           label="성과 입력 가능한 발행 글"
           tone={postsOk ? undefined : 'danger'}
           value={postsOk ? `${posts.length}건` : '확인 불가'}
-          caption={postsOk ? (posts.length >= 50 ? '최근 발행 50건까지만 불러옴' : 'posts · status=published') : 'posts 조회 실패'}
+          caption={postsOk ? (posts.length >= 50 ? '최근 발행 50건까지만 불러옴' : '발행 완료로 기록된 글 전체') : '발행 글 목록을 읽지 못함'}
         />
       </StatGrid>
 
@@ -212,7 +217,7 @@ export default async function DashboardPage() {
         <details className="dgy-details">
           <summary>등록 폼 열기</summary>
           <div style={{ marginTop: 12 }}>
-            <PostForm contentItems={contentItems} hypotheses={hypotheses} />
+            <PostForm contentItems={contentItems} hypotheses={hypotheses} refsError={refsError || null} />
           </div>
         </details>
       </Card>

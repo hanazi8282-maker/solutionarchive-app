@@ -32,23 +32,44 @@ export async function createPost(
   const closing_type = String(formData.get('closing_type') ?? '').trim()
   const hypothesis_code = String(formData.get('hypothesis_code') ?? '').trim()
 
+  // 화면이 소재·가설 목록을 못 읽은 채 제출된 요청이다. 선택지가 비어 "선택 안 함"만 보낼 수
+  // 있었으므로, 참조 없이 저장하면 "확인 불가"가 "참조 없음"으로 접힌다(§7.1). 화면도 버튼을
+  // 막지만 서버가 최종 방어다 — 오래 열린 탭이나 폼을 거치지 않은 POST 도 여기서 걸린다.
+  if (formData.get('refs_loaded') !== '1') {
+    return { ok: false, message: '소재·가설 목록을 확인하지 못한 화면에서 제출됐습니다. 새로고침 후 다시 등록하세요.' }
+  }
+
   if (!body) return { ok: false, message: '본문(body)은 필수입니다.' }
   if (!published_at) return { ok: false, message: '발행일시(published_at)는 필수입니다.' }
+  const when = parseKstDateTime(published_at)
+  if (Number.isNaN(when.getTime())) return { ok: false, message: '발행일시 형식이 올바르지 않습니다.' }
 
   // 자사(self) 채널을 기본 귀속. 벤치마크/학습이 channel 단위로 집계되므로 비워두면 안 된다.
-  const { data: channel } = await supabase
-    .from('channels')
-    .select('id')
-    .eq('owner_type', 'self')
-    .eq('platform', 'threads')
-    .limit(1)
-    .maybeSingle()
+  // 참조값은 조회 실패(확인 불가)와 없음(음성)을 가른다. 전에는 채널 조회 에러도
+  // "채널 못 찾음"으로 접혀 channel_id 없이 저장됐다.
+  const [channelRes, contentRes, hypoRes] = await Promise.all([
+    supabase.from('channels').select('id').eq('owner_type', 'self').eq('platform', 'threads').limit(1).maybeSingle(),
+    content_code ? supabase.from('content_items').select('code').eq('code', content_code).maybeSingle() : null,
+    hypothesis_code ? supabase.from('hypotheses').select('code').eq('code', hypothesis_code).maybeSingle() : null,
+  ])
+  if (channelRes.error) {
+    return { ok: false, message: `자사 채널 조회 실패 — 확인하지 못해 저장하지 않았습니다: ${channelRes.error.message}` }
+  }
+  if (contentRes?.error) {
+    return { ok: false, message: `소재 조회 실패 — 확인하지 못해 저장하지 않았습니다: ${contentRes.error.message}` }
+  }
+  if (contentRes && !contentRes.data) return { ok: false, message: `없는 소재 코드입니다: ${content_code}` }
+  if (hypoRes?.error) {
+    return { ok: false, message: `가설 조회 실패 — 확인하지 못해 저장하지 않았습니다: ${hypoRes.error.message}` }
+  }
+  if (hypoRes && !hypoRes.data) return { ok: false, message: `없는 가설 코드입니다: ${hypothesis_code}` }
+  const channel = channelRes.data
 
   const { error } = await supabase.from('posts').insert({
     channel_id: channel?.id ?? null,
     content_code: content_code || null,
     body,
-    published_at: parseKstDateTime(published_at).toISOString(),
+    published_at: when.toISOString(),
     pattern: patternRaw ? Number(patternRaw) : null,
     hook_type: hook_type || null,
     closing_type: closing_type || null,

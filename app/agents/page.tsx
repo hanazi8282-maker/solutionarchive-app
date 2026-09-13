@@ -1,10 +1,9 @@
-import '../_ds/styles.css'
 import type { CSSProperties, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
-import { ProgressBar } from '../_ds/components/ProgressBar'
 import { EmptyState } from '../_ds/components/EmptyState'
+import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
 import {
   LOOPS, classify, renderStepBar, isStale, staleMinutes, truncate, cronToLabel,
   UNAVAILABLE_TEXT, EMPTY_TEXT,
@@ -12,6 +11,7 @@ import {
 } from '@/lib/agents/status'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { title: '에이전트' }
 
 // 읽기 전용 화면이다. 이 파일에 DB 쓰기 호출을 넣지 마라 — select 만 쓴다.
 
@@ -32,7 +32,6 @@ type LoopCard = {
 
 type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
 
-const ts = (iso?: string | null) => (iso ? String(iso).slice(0, 16).replace('T', ' ') + ' UTC' : '—')
 const parse = (iso?: string | null) => Date.parse(iso ?? '') || 0
 
 const blank = (def: LoopDef, cls: Classified): LoopCard => ({
@@ -185,24 +184,32 @@ const STATUS_LABEL: Record<string, string> = {
 
 const mono: CSSProperties = { fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }
 const wrap: CSSProperties = { overflowWrap: 'anywhere' }
+const inset: CSSProperties = {
+  margin: '12px 0 0', fontSize: 13, lineHeight: 1.55,
+  background: 'var(--surface-muted)', color: 'var(--text-body)',
+  padding: '8px 10px', borderRadius: 'var(--radius-md)', ...wrap,
+}
 
-function StatTile({ label, value, tone }: { label: string; value: number; tone?: 'danger' }) {
+// 운영자는 한국에 있다. 표시는 KST + 상대 시각, 정밀한 UTC 원문은 title 에 둔다.
+const KST_FMT = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+})
+function When({ iso, now }: { iso: string | null | undefined; now: number }) {
+  const t = parse(iso)
+  if (!t) return <>—</>
+  const mins = Math.floor((now - t) / 60000)
+  const rel = mins < 1 ? '방금' : mins < 60 ? `${mins}분 전` : mins < 48 * 60 ? `${Math.floor(mins / 60)}시간 전` : `${Math.floor(mins / 1440)}일 전`
   return (
-    <Card bodyStyle={{ padding: '14px 16px' }}>
-      <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}>{label}</div>
-      <div style={{
-        fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', marginTop: 4,
-        fontVariantNumeric: 'tabular-nums',
-        color: tone === 'danger' && value > 0 ? 'var(--danger-fg)' : 'var(--text-strong)',
-      }}>{value}</div>
-    </Card>
+    <time dateTime={new Date(t).toISOString()} title={`${new Date(t).toISOString().slice(0, 16).replace('T', ' ')} UTC`}>
+      {KST_FMT.format(t)} KST ({rel})
+    </time>
   )
 }
 
 function StatusBadges({ c }: { c: LoopCard }) {
   const badges: ReactNode[] = []
   if (c.cls.state === 'UNAVAILABLE') {
-    badges.push(<Badge key="s" tone="neutral">확인 불가</Badge>)
+    badges.push(<Badge key="s" tone="danger">확인 불가</Badge>)
   } else if (c.cls.state === 'EMPTY') {
     badges.push(<Badge key="s" tone="neutral" dot>기록 0건</Badge>)
   } else if (c.status) {
@@ -214,7 +221,7 @@ function StatusBadges({ c }: { c: LoopCard }) {
   } else {
     badges.push(<Badge key="s" tone="neutral" dot>조회 정상</Badge>)
   }
-  if (c.stale) badges.push(<Badge key="stale" tone="warning" size="sm">stale</Badge>)
+  if (c.stale) badges.push(<Badge key="stale" tone="warning" size="sm">응답 없음</Badge>)
   if (c.dryRun) badges.push(<Badge key="dry" tone="neutral" size="sm">dry-run</Badge>)
   if (!c.def.scheduleActive) badges.push(<Badge key="sch" tone="neutral" size="sm">스케줄 비활성</Badge>)
   return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>{badges}</div>
@@ -223,11 +230,12 @@ function StatusBadges({ c }: { c: LoopCard }) {
 function LoopSubtitle({ d }: { d: LoopDef }) {
   return (
     <span style={wrap}>
-      <code style={{ ...mono, fontSize: 12, color: 'var(--text-body)' }}>{d.table}</code>
-      {' · '}{d.workflow}{' · '}{cronToLabel(d.cronExpr)}{' '}
+      {cronToLabel(d.cronExpr)}
       {d.scheduleActive
-        ? '· 스케줄 활성'
-        : <b style={{ color: 'var(--warning-fg)' }}>· 자동 스케줄 비활성 (수동 실행만)</b>}
+        ? ' · 스케줄 활성'
+        : <b style={{ color: 'var(--warning-fg)' }}> · 자동 스케줄 비활성 (수동 실행만)</b>}
+      <br />
+      <code style={{ ...mono, fontSize: 12 }}>{d.table}</code> · {d.workflow}
     </span>
   )
 }
@@ -245,7 +253,8 @@ export default async function AgentsPage() {
     posts: { cls: Classified; count: number }
     cases: { cls: Classified; count: number }
     research: { cls: Classified; count: number }
-    stuck: number
+    // null = 조회 실패. 전에는 0 으로 접혀 "초과 없음"과 구분되지 않았다(§7.1).
+    stuck: number | null
   } | null = null
 
   if (!sb) {
@@ -262,173 +271,150 @@ export default async function AgentsPage() {
       sb.from('research_queue').select('id', { count: 'exact' }).eq('status', 'claimed').lt('created_at', dayAgo).limit(1),
     ])
     cards = [cmo, insight, review, notion]
-    queue = { posts, cases, research, stuck: stuckRes.error ? 0 : (stuckRes.count ?? 0) }
+    queue = { posts, cases, research, stuck: stuckRes.error || stuckRes.count == null ? null : stuckRes.count }
   }
 
-  const okN = cards.filter((c) => c.cls.state === 'OK').length
+  const total = cards.length
   const naN = cards.filter((c) => c.cls.state === 'UNAVAILABLE').length
   const runningN = cards.filter((c) => c.headline?.startsWith('running')).length
+  const badN = cards.filter((c) => c.status === 'failed' || c.status === 'blocked').length
+  const staleN = cards.filter((c) => c.stale).length
+  // 확인 불가 루프는 실패·실행중 집계에서 빠진다. 그걸 숫자 옆에 적지 않으면 0 이 "문제 없음"으로 읽힌다.
+  const readN = total - naN
+  const scope = naN === 0 ? `루프 ${total}개 중` : `조회된 ${readN}개 중 (확인 불가 ${naN}개 제외)`
+  const counted = (n: number) => (readN === 0 ? '—' : n)
 
   return (
-    <main style={{
-      fontFamily: 'var(--font-sans)',
-      background: 'var(--bg-app)',
-      color: 'var(--text-body)',
-      minHeight: '100vh',
-      padding: '28px clamp(16px, 4vw, 32px) 56px',
-    }}>
-      <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-        {/* 2줄 헤더 */}
-        <header style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-strong)', margin: 0 }}>
-            AI 에이전트 진행상황
-          </h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0', ...wrap }}>
-            읽기 전용 · 요청 시점 조회({ts(new Date(now).toISOString())}) ·{' '}
-            기호 <span style={mono}>●</span> 완료 <span style={mono}>◐</span> 진행{' '}
-            <span style={mono}>○</span> 대기·건너뜀 <span style={mono}>✕</span> 실패{' '}
-            <span style={mono}>▲</span> 막힘
-          </p>
-        </header>
+    <PageShell maxWidth={1040}>
+      <PageHeader
+        title="AI 에이전트 진행상황"
+        subtitle={<>읽기 전용 · <When iso={new Date(now).toISOString()} now={now} /> 조회 · 새로고침하면 다시 읽는다</>}
+      />
 
-        {!sb && (
-          <div style={{
-            background: 'var(--danger-bg)', border: '1px solid var(--danger-border)',
-            color: 'var(--danger-fg)', padding: '14px 16px', borderRadius: 'var(--radius-lg)',
-            fontSize: 14, lineHeight: 1.6, marginBottom: 20, ...wrap,
-          }}>
-            ⚠️ {UNAVAILABLE_TEXT.env_missing} — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없어
-            아래 카드는 <b>하나도 조회되지 않았다</b>. 이것은 &ldquo;실행이 없었다&rdquo;는 뜻이 아니다.
-          </div>
+      {!sb && (
+        <Notice tone="danger" title={UNAVAILABLE_TEXT.env_missing}>
+          NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없어 아래 카드는 <b>하나도 조회되지 않았다</b>.
+          이것은 &ldquo;실행이 없었다&rdquo;는 뜻이 아니다.
+        </Notice>
+      )}
+
+      {/* 막힌 루프가 먼저 보이게 — 실패·막힘과 응답 없음이 앞, 확인 불가는 별도 칸. */}
+      <StatGrid min={160}>
+        <StatTile label="실패·막힘" value={counted(badN)} tone={badN > 0 ? 'danger' : undefined} caption={scope} href="#loops" />
+        <StatTile label="응답 없음 (5분+)" value={counted(staleN)} tone={staleN > 0 ? 'warning' : undefined} caption={scope} href="#loops" />
+        <StatTile label="실행 중" value={counted(runningN)} tone={runningN > 0 ? 'info' : undefined} caption={scope} href="#loops" />
+        <StatTile label="확인 불가" value={naN} tone={naN > 0 ? 'danger' : undefined} caption={`루프 ${total}개 중`} href="#loops" />
+      </StatGrid>
+
+      {/* 사람 대기함 — 에이전트가 만들고 사람 결정을 기다리는 것. */}
+      <Card
+        id="queue"
+        title="사람 대기함"
+        subtitle="에이전트가 만들어 두고 사람 결정을 기다리는 항목"
+        bodyStyle={{ padding: 0 }}
+      >
+        {!queue ? (
+          <EmptyState compact title={UNAVAILABLE_TEXT.env_missing}
+            description="대기함 건수를 조회하지 못했다. 0건이라는 뜻이 아니다." />
+        ) : (
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {[
+              {
+                label: '승인 대기 초안', sub: 'posts · pending_review', x: queue.posts,
+                extra: <a href="/dashboard#drafts" style={{ fontSize: 13 }}>발행 기록에서 처리 →</a> as ReactNode,
+              },
+              { label: '승인 대기 케이스', sub: 'case_studies · draft', x: queue.cases, extra: null as ReactNode },
+              {
+                label: '미해소 조사 큐', sub: 'research_queue · done·failed 제외', x: queue.research,
+                extra: queue.stuck === null
+                  ? <Badge tone="danger" size="sm">claimed 24시간 초과 건수 확인 불가</Badge>
+                  : queue.stuck > 0
+                    ? <Badge tone="danger" size="sm">claimed 인 채 24시간 초과 {queue.stuck}건</Badge>
+                    : null,
+              },
+            ].map((row, i) => (
+              <li key={row.sub} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                flexWrap: 'wrap', gap: 8, minHeight: 'var(--row-h)',
+                padding: '12px 20px', borderTop: i ? '1px solid var(--border)' : 'none',
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-strong)', ...wrap }}>{row.label}</div>
+                  <div style={{ ...mono, fontSize: 11, color: 'var(--text-muted)', ...wrap }}>{row.sub}</div>
+                  {row.extra && <div style={{ marginTop: 6 }}>{row.extra}</div>}
+                </div>
+                <div style={{ textAlign: 'right', ...wrap }}>{cell(row.x)}</div>
+              </li>
+            ))}
+          </ul>
         )}
+      </Card>
 
-        {/* 상단 요약 */}
-        <section style={{
-          display: 'grid', gap: 12, marginBottom: 24,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(132px, 1fr))',
-        }}>
-          <StatTile label="루프 수" value={cards.length} />
-          <StatTile label="정상" value={okN} />
-          <StatTile label="실행중" value={runningN} />
-          <StatTile label="확인 불가" value={naN} tone="danger" />
-        </section>
-
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
-            조회 성공 <span style={{ ...mono, fontWeight: 600, color: 'var(--text-body)' }}>{okN}/{cards.length}</span>
-          </div>
-          <ProgressBar value={okN} max={cards.length} showLabel />
+      {/* 루프 카드 */}
+      <section id="loops" aria-labelledby="loops-title" style={{ display: 'grid', gap: 12 }}>
+        <div>
+          <h2 id="loops-title" style={{ margin: 0, fontSize: 'var(--fs-h3)', fontWeight: 600, color: 'var(--text-strong)' }}>
+            무인 루프 {total}개
+          </h2>
+          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-muted)', ...wrap }}>
+            스텝 기호 <span style={mono}>●</span> 완료 · <span style={mono}>◐</span> 진행 ·{' '}
+            <span style={mono}>○</span> 대기·건너뜀 · <span style={mono}>✕</span> 실패 · <span style={mono}>▲</span> 막힘
+          </p>
         </div>
 
-        {/* 루프 카드 */}
-        <section style={{ display: 'grid', gap: 16 }}>
-          {cards.map((c) => (
-            <Card
-              key={c.def.key}
-              title={c.def.label}
-              subtitle={<LoopSubtitle d={c.def} />}
-              action={<StatusBadges c={c} />}
-              style={c.cls.state === 'UNAVAILABLE' ? { background: 'var(--surface-muted)' } : undefined}
-              bodyStyle={{ padding: '16px 20px' }}
-            >
-              {c.cls.state === 'UNAVAILABLE' && (
-                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-faint)', ...wrap }}>
-                  {UNAVAILABLE_TEXT[c.cls.reason ?? 'query_failed']}
-                  {c.cls.detail && <span> — {c.cls.detail}</span>}
-                </p>
-              )}
-
-              {c.cls.state === 'EMPTY' && (
-                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', ...wrap }}>{EMPTY_TEXT}</p>
-              )}
-
-              {c.cls.state === 'OK' && (
-                <>
-                  <p style={{ margin: 0, fontSize: 14, color: 'var(--text-strong)', fontWeight: 500, ...wrap }}>
-                    {c.headline}
-                  </p>
-
-                  <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, margin: '10px 0 0' }}>
-                    <span style={{ ...mono, fontSize: 18, letterSpacing: '0.12em', color: 'var(--text-strong)', ...wrap }}>
-                      {c.bar || '(스텝 없음)'}
-                    </span>
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)', ...wrap }}>{c.barLabel}</span>
-                  </div>
-
-                  <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-muted)', ...mono, ...wrap }}>
-                    시작 {ts(c.startedAt)} · 종료 {c.finishedAt ? ts(c.finishedAt) : '진행중'}
-                  </p>
-
-                  {c.stale && (
-                    <p style={{
-                      margin: '12px 0 0', fontSize: 13, lineHeight: 1.5,
-                      background: 'var(--warning-bg)', border: '1px solid var(--warning-border)',
-                      color: 'var(--warning-fg)', padding: '8px 10px', borderRadius: 'var(--radius-md)', ...wrap,
-                    }}>
-                      ⚠️ stale — running 인 채 {c.staleMin}분 미갱신. 돌고 있는 게 아니라 죽었을 수 있다.
-                    </p>
-                  )}
-
-                  {c.note && (
-                    <p style={{
-                      margin: '12px 0 0', fontSize: 13, lineHeight: 1.5,
-                      background: 'var(--surface-muted)', color: 'var(--text-body)',
-                      padding: '8px 10px', borderRadius: 'var(--radius-md)', ...wrap,
-                    }}>
-                      {c.note}
-                    </p>
-                  )}
-                </>
-              )}
-            </Card>
-          ))}
-        </section>
-
-        {/* 사람 대기함 */}
-        <section style={{ marginTop: 32 }}>
+        {cards.map((c) => (
           <Card
-            title="사람 대기함"
-            subtitle="에이전트가 만들어 두고 사람 결정을 기다리는 항목"
-            bodyStyle={{ padding: 0 }}
+            key={c.def.key}
+            title={c.def.label}
+            subtitle={<LoopSubtitle d={c.def} />}
+            action={<StatusBadges c={c} />}
+            style={c.cls.state === 'UNAVAILABLE' ? { background: 'var(--surface-muted)' } : undefined}
+            bodyStyle={{ padding: '16px 20px' }}
           >
-            {!queue ? (
-              <EmptyState compact title={UNAVAILABLE_TEXT.env_missing}
-                description="대기함 건수를 조회하지 못했다. 0건이라는 뜻이 아니다." />
-            ) : (
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                {[
-                  { label: '승인 대기 초안', sub: 'posts · pending_review', x: queue.posts, extra: null as ReactNode },
-                  { label: '승인 대기 케이스', sub: 'case_studies · draft', x: queue.cases, extra: null as ReactNode },
-                  {
-                    label: '미해소 조사 큐', sub: 'research_queue · done·failed 제외', x: queue.research,
-                    extra: queue.stuck > 0 ? (
-                      <Badge tone="danger" size="sm">⚠️ claimed 인 채 24시간 초과 {queue.stuck}건</Badge>
-                    ) : null,
-                  },
-                ].map((row) => (
-                  <li key={row.sub} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    flexWrap: 'wrap', gap: 8, minHeight: 44,
-                    padding: '12px 20px', borderTop: '1px solid var(--border)',
-                  }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 14, color: 'var(--text-body)', ...wrap }}>{row.label}</div>
-                      <div style={{ ...mono, fontSize: 11, color: 'var(--text-faint)', ...wrap }}>{row.sub}</div>
-                      {row.extra && <div style={{ marginTop: 6 }}>{row.extra}</div>}
-                    </div>
-                    <div style={{ textAlign: 'right', ...wrap }}>{cell(row.x)}</div>
-                  </li>
-                ))}
-              </ul>
+            {c.cls.state === 'UNAVAILABLE' && (
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', ...wrap }}>
+                {UNAVAILABLE_TEXT[c.cls.reason ?? 'query_failed']}
+                {c.cls.detail && <span> — {c.cls.detail}</span>}
+              </p>
+            )}
+
+            {c.cls.state === 'EMPTY' && (
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', ...wrap }}>{EMPTY_TEXT}</p>
+            )}
+
+            {c.cls.state === 'OK' && (
+              <>
+                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-strong)', fontWeight: 500, ...wrap }}>
+                  {c.headline}
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, margin: '10px 0 0' }}>
+                  <span
+                    aria-label={`스텝 진행 ${c.bar || '없음'}`}
+                    style={{ ...mono, fontSize: 18, letterSpacing: '0.12em', color: 'var(--text-strong)', ...wrap }}
+                  >
+                    {c.bar || '(스텝 없음)'}
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', ...wrap }}>{c.barLabel}</span>
+                </div>
+
+                <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', ...wrap }}>
+                  시작 <When iso={c.startedAt} now={now} /> · 종료 {c.finishedAt ? <When iso={c.finishedAt} now={now} /> : '진행중'}
+                </p>
+
+                {c.stale && (
+                  <Notice tone="warning" style={{ marginTop: 12 }}>
+                    응답 없음 — running 인 채 {c.staleMin}분 미갱신. 돌고 있는 게 아니라 죽었을 수 있다.
+                  </Notice>
+                )}
+
+                {c.note && <p style={inset}>{c.note}</p>}
+              </>
             )}
           </Card>
-        </section>
-
-        <p style={{ marginTop: 28, fontSize: 13 }}>
-          <a href="/dashboard" style={{ color: 'var(--text-link)', textDecoration: 'none' }}>← 발행 기록 대시보드</a>
-        </p>
-      </div>
-    </main>
+        ))}
+      </section>
+    </PageShell>
   )
 }
 

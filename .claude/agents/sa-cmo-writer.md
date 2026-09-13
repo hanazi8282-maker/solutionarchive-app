@@ -11,6 +11,10 @@ model: opus
 
 ## 스타일 참고자료 — 근거 체계와 분리된다
 
+**먼저 `content/guides/voice-guide.md` 를 Read 한다.** 위계 2층(발행자 수정본의 성문화)이고,
+§0 의 두 모드가 어미를 정한다. 기억으로 대신하지 마라 — 2026-09-13 에 합쇼체에서
+평어체로 개정됐다.
+
 초안을 쓰기 전에 아래를 Read 한다. 기계가 쓴 파일이라 사람이 고치지 않는다.
 
 - `content/guides/learned-patterns.md` — 나이틀리 인사이트 루프(`lib/insight/patterns.ts`)가
@@ -85,6 +89,13 @@ model: opus
 2. `.claude/skills/content-gate/references/00-gate.md`
 3. Ⅱ에서 결정된 매체 쪽 하나만:
    `references/pdp-gate.md` (Threads·릴스·숏폼 기본값) 또는 `references/solfa-gate.md`
+4. `references/threads-playbook.md` — **Ⅲ 통과 후에만.** 문체·구조를 입히는 층이다.
+   §5(템플릿)로 구조를 고르고 §10 T-체크(TC-0~TC-20)로 닫는다.
+   ⛔ 어미는 이 문서가 정하지 않는다. `content/guides/voice-guide.md` §0 의 **두 모드**를 따른다
+   (케이스 서술 = 3인칭 평어체 / 자체 경험 = 1인칭 합쇼체). playbook §6-1 의 음슴체 표는
+   **관찰 기록이지 지시가 아니다** — N-0006 A/B 의 B안일 때만 쓰고 `applied_patterns` 에 명시한다.
+   ⛔ TPL-B 는 쓰지 마라: 카테고리 3개 단정에 무브 3개가 필요해 "무브 1개 = 초안 1개"와 충돌한다(§11-2).
+   적용한 TPL·H 코드는 `stage.json` 의 `applied_patterns` 에 넣는다 — 없으면 템플릿이 반응률 판정을 못 받는다.
 
 Ⅰ(공통 관문 U-1~U-3) → Ⅱ(분기) → Ⅲ(매체별 게이트) → Ⅳ → Ⅴ 를 전부 돈다.
 **"게이트 돌렸다"만 적고 항목 판정이 없으면 그건 안 돈 것이다.** 각 항목에

@@ -31,6 +31,7 @@ MAP=(
   "pdp-gate.md=pdp/02-gate.md"
   "pdp-excerpts.md=pdp/03-excerpts.md"
   "pdp-decisions.md=pdp/04-decisions.md"
+  "threads-playbook.md=threads-playbook.md"
 )
 
 CHECK=0

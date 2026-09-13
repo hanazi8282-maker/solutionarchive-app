@@ -11,6 +11,7 @@ import {
   normalizeBody,
   diceSimilarity,
   matchDrafts,
+  rankDraftsFor,
   AUTO_MATCH_MIN,
   AMBIGUITY_MARGIN,
 } from '../lib/threads/match.ts'
@@ -241,6 +242,27 @@ eq('유사도: 빈 문자열끼리는 0 (아무 글에나 붙는 사고 방지)'
   )
   eq('텍스트 없는 게시물 혼재: 정상 연결', out.matched[0]?.threadsId, 't1')
   eq('텍스트 없는 게시물은 미연결로 남음', out.unmatchedThreads.includes('t0'), true)
+}
+
+{
+  // 발행 직전에 구어체로 통째로 다시 쓴 글(실사례 CS-20260910-01, 실측 0.267).
+  // 자동 연결되면 안 되고, 미연결 게시물로 남아 대시보드에 올라와야 하며,
+  // 수동 연결 후보 1등은 원래 초안이어야 한다.
+  const rewritten = `솔직히 말하면 재고로 300만원 날렸어요.
+그 SKU 진짜 잘 나갔거든요. 숫자도 다 확인했고요. 근데 한 달 지나니까 창고에 그대로더라고요.
+제가 본 건 판매량이었어요. 봤어야 하는 건 재구매율이었고요.
+한 번 사고 끝나는 물건은 아무리 많이 팔려도 결국 멈춰요.
+그 신호가 고객 쪽 데이터에 있었는데 저는 판매 쪽만 들여다봤던 거죠.`
+  const out = matchDrafts(
+    [{ id: 'd1', body: DRAFT_A }, { id: 'd2', body: DRAFT_OTHER }],
+    [{ id: 't1', text: rewritten, permalink: null, timestamp: '2026-09-12T10:54:54+0000' }],
+  )
+  const ranked = rankDraftsFor({ id: 't1', text: rewritten }, [{ id: 'd2', body: DRAFT_OTHER }, { id: 'd1', body: DRAFT_A }])
+  eq('다시 쓴 발행본: 자동 연결 0', out.matched.length, 0)
+  eq('다시 쓴 발행본: 미연결 게시물로 남음', out.unmatchedThreads.includes('t1'), true)
+  eq('다시 쓴 발행본: 후보 1등은 원래 초안', ranked[0]?.draftId, 'd1')
+  check('다시 쓴 발행본: 1등 점수도 임계값 미만', ranked[0]?.score < AUTO_MATCH_MIN, `점수 ${ranked[0]?.score}`)
+  check('다시 쓴 발행본: 후보는 초안 수만큼 전부', ranked.length === 2)
 }
 
 {

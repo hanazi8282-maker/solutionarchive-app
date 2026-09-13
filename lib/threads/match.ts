@@ -306,3 +306,17 @@ export function matchDrafts(drafts: DraftRow[], threads: ThreadsPost[]): MatchOu
       .map(t => t.row.id),
   }
 }
+
+// ── 게시물 기준 후보 순위 (수동 연결용) ────────────────────────
+//
+// 매처가 어떤 초안에도 붙이지 않은 게시물을 사람이 대시보드에서 연결할 때 보여줄
+// 후보 목록이다. 임계값·모호성 판정을 하지 않고 점수순으로 늘어놓기만 한다 —
+// 고르는 건 사람이다. **자동 연결에 쓰지 마라.** 발행 전에 통째로 다시 쓴 글은
+// 0.2~0.3 대가 나오는데(실사례 CS-20260910-01: 0.267), 그 구간에서는 같은 소재의
+// 다른 초안과 점수가 쉽게 뒤집힌다.
+export function rankDraftsFor(thread: ThreadsPost, drafts: DraftRow[]): { draftId: string; score: number }[] {
+  const t = normalizeBody(thread.text)
+  return drafts
+    .map(d => ({ draftId: d.id, score: diceSimilarity(normalizeBody(d.body), t) }))
+    .sort((a, b) => b.score - a.score)
+}

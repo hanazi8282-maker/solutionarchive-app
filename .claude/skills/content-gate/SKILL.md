@@ -43,6 +43,18 @@ description: >
 - 구조가 막히면 `references/pdp-excerpts.md` 또는 `references/solfa-excerpts.md`의
   반례·원리·before/after에서 제안한다
 
+**Ⅲ-b. 문체·구조 층 — Threads 한정.** Ⅲ을 통과한 초안에만 연다.
+`references/threads-playbook.md` — 레퍼런스 16건 역산(T-01~T-16), 훅 7유형,
+구조 템플릿 5종, T-체크(TC-0~TC-20).
+
+- **게이트가 아니다.** 떨어뜨리지 않고 입힌다. Ⅲ에서 탈락한 초안에 훅을 달지 마라.
+- 위계 **3층(작가 기본값)**이다 — `ops/roles/cmo.md`. 반응률(1층)·발행자 수정본(2층)에 지면 진다.
+  §3-0 은 **남의 계정** 실측이라 1층이 아니다.
+- 어미 기준은 `content/guides/voice-guide.md`(합쇼체)가 아니라 **최신 `drafts/threads/` 초안(평어체)**이다.
+  두 문서가 어긋나 있다 — playbook §8-4b, 미해결 **E-1**.
+- 마지막에 §10 T-체크를 돌린다. **TC-0 이 Ⅰ~Ⅲ 을 실제로 돌았는지 확인하는 항목**이다.
+- §11-2: **TPL-B 는 현재 파이프라인에서 사용 불가**("무브 1개 = 초안 1개"와 양립 불가).
+
 **Ⅳ. 충돌 3건** — X-1(감·재능) / X-2(알고리즘) / X-3(진위)를 만나면
 판정하고 **반드시 기록**한다. 이게 이 아카이브의 유일한 학습 입력이다.
 세 충돌의 정의와 양쪽 입장은 `references/cross-decisions.md`의 미해결 충돌 절에 있다.
@@ -71,6 +83,10 @@ metric / direction / baseline / threshold / horizon / because 다.
    - 둘 다 통과 → 신뢰도 +1
    - 둘 다 탈락 → ★ 양쪽 공통 구멍. 최고 가치. 신규 규칙 후보
    - **한쪽만 탈락 → ★★ 조건부 규칙의 증거. cross-decisions.md 갱신 대상**
+
+역산 결과는 `references/threads-playbook.md` §1 코드표에 **T-17부터** 이어붙인다.
+기존 T-코드 행은 고치지 않는다(append-only). §3-0 의 실측 표에는 조회·좋아요·답글·
+리포스트를 **화면에서 읽은 값 그대로** 넣는다 — 추정치는 `[추정]` 으로 구분한다.
 
 G-R 질문표는 양쪽에 다 있다 — `references/solfa-gate.md` G-R,
 `references/pdp-gate.md` G-R. 질문표 행 번호는 각 게이트 항목(G-x)에 1:1로 대응한다.

@@ -75,7 +75,7 @@
 import { NextResponse } from 'next/server'
 import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
-import { ensureValidToken } from '@/lib/threads/token'
+import { loadThreadsToken, tokenFailure } from '@/lib/threads/token'
 import { matchDrafts, type DraftRow, type ThreadsPost } from '@/lib/threads/match'
 // 조회 창(기간·개수)은 대시보드 "초안에 안 붙은 게시물" 목록과 공유한다.
 import { fetchRecentThreads } from '@/lib/threads/recent'
@@ -96,12 +96,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, message: 'Supabase 환경변수 없음' }, { status: 500 })
   }
 
-  const creds = await ensureValidToken()
-  if (!creds) {
-    // 토큰 문제는 크론이 고칠 수 없다. refresh-token 라우트와 같은 규약으로
-    // 200 + needsReauth 를 돌려 알람 소음을 만들지 않는다.
-    return NextResponse.json({ ok: false, needsReauth: true, message: 'Threads 재인증 필요' })
+  // 재인증 필요 → 200 + needsReauth, 조회 불가(DB 장애) → 503. 규약은 lib/threads/token.ts tokenFailure.
+  const token = await loadThreadsToken()
+  if (token.status !== 'ok') {
+    const f = tokenFailure(token)
+    return NextResponse.json(f.body, { status: f.status })
   }
+  const creds = token.creds
 
   // ── 1) 초안 로드 ───────────────────────────────────────────────
   // status 를 함께 읽는다. 아래 UPDATE 가 "읽을 때의 그 상태일 때만" 쓰도록

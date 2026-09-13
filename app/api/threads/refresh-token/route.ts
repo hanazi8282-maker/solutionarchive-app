@@ -6,7 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import { requireCronAuth } from '@/lib/cron-auth'
-import { ensureValidToken } from '@/lib/threads/token'
+import { loadThreadsToken, tokenFailure } from '@/lib/threads/token'
 
 export async function GET(req: Request) { return POST(req) }
 
@@ -14,13 +14,14 @@ export async function POST(req: Request) {
   const denied = requireCronAuth(req)
   if (denied) return denied
 
-  const creds = await ensureValidToken()
+  const token = await loadThreadsToken()
 
-  // 토큰이 없거나 만료돼 갱신 불가한 상태다. 사람이 재인증해야 하므로
-  // 200 + needsReauth 로 알린다(크론 실패 알람 대신 응답 본문으로 드러낸다).
-  if (!creds) {
-    return NextResponse.json({ ok: false, needsReauth: true, message: 'Threads 재인증 필요' })
+  // 토큰이 없거나 만료돼 갱신 불가 → 200 + needsReauth(크론 실패 알람 대신 응답 본문으로 드러낸다).
+  // api_tokens 조회 자체를 못 했으면 재인증 판단이 아니다 → 503 (tokenFailure).
+  if (token.status !== 'ok') {
+    const f = tokenFailure(token)
+    return NextResponse.json(f.body, { status: f.status })
   }
 
-  return NextResponse.json({ ok: true, userId: creds.userId })
+  return NextResponse.json({ ok: true, userId: token.creds.userId })
 }

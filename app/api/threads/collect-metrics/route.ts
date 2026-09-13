@@ -30,7 +30,7 @@ import { NextResponse } from 'next/server'
 import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
 import { fetchInsights, type ThreadsUsage } from '@/lib/threads/insights'
-import { ensureValidToken } from '@/lib/threads/token'
+import { loadThreadsToken, tokenFailure } from '@/lib/threads/token'
 import {
   planCollection,
   COLLECT_WINDOW_DAYS,
@@ -65,10 +65,13 @@ export async function POST(req: Request) {
   // 토큰은 api_tokens 가 정본이다. 만료가 가까우면 이 호출 안에서 갱신까지 끝난다.
   // 토큰이 없으면 200 으로 조용히 빠진다 — 크론이 고칠 수 없는 문제라
   // 500 으로 올리면 매시간 알람이 울리는데 정작 필요한 조치는 사람의 재인증뿐이다.
-  const creds = await ensureValidToken()
-  if (!creds) {
-    return NextResponse.json({ ok: false, needsReauth: true, message: 'Threads 재인증 필요' })
+  // 단 api_tokens 를 못 읽은 것(DB 장애)은 "토큰 없음"이 아니라 503 이다(tokenFailure).
+  const token = await loadThreadsToken()
+  if (token.status !== 'ok') {
+    const f = tokenFailure(token)
+    return NextResponse.json(f.body, { status: f.status })
   }
+  const creds = token.creds
 
   const now = Date.now()
 

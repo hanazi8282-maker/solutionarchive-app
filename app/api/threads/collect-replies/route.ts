@@ -16,7 +16,7 @@
 import { NextResponse } from 'next/server'
 import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
-import { ensureValidToken } from '@/lib/threads/token'
+import { loadThreadsToken, tokenFailure } from '@/lib/threads/token'
 import type { ThreadsUsage } from '@/lib/threads/insights'
 import {
   fetchConversation,
@@ -42,11 +42,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, message: 'Supabase 환경변수 없음' }, { status: 500 })
   }
 
-  const creds = await ensureValidToken()
-  if (!creds) {
-    // 토큰 문제는 크론이 못 고친다. collect-metrics 와 같은 규약 — 200 + needsReauth.
-    return NextResponse.json({ ok: false, needsReauth: true, message: 'Threads 재인증 필요' })
+  // collect-metrics 와 같은 규약 — 재인증 필요 200 + needsReauth, 조회 불가 503 (tokenFailure).
+  const token = await loadThreadsToken()
+  if (token.status !== 'ok') {
+    const f = tokenFailure(token)
+    return NextResponse.json(f.body, { status: f.status })
   }
+  const creds = token.creds
 
   const since = new Date(Date.now() - COLLECT_DAYS * 24 * 60 * 60 * 1000).toISOString()
 

@@ -68,13 +68,25 @@ export function buildEditPairs(
   return { pairs, missing, unchanged }
 }
 
+/**
+ * drafts/threads/*.stage.json 전부. 폴더가 없으면 던진다 — 체크아웃이 빠진 실행에서
+ * "적용 기록 0건"으로 접히면 반응률 판정이 조용히 전부 보류가 된다(§7.1).
+ */
+export function readStageManifests(repoRoot: string): Array<Record<string, unknown>> {
+  const dir = path.join(repoRoot, 'drafts', 'threads')
+  if (!fs.existsSync(dir)) throw new Error(`stage.json 폴더 없음(확인 불가): ${dir}`)
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.stage.json'))
+    .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8')))
+}
+
 /** 리포 파일에서 초안을 찾는 findDraft. 읽기 실패는 던진다 — 조용히 missing 으로 접지 않는다. */
 export function repoDraftFinder(repoRoot: string) {
   const dir = path.join(repoRoot, 'drafts', 'threads')
   const byCode = new Map<string, string>()
   if (fs.existsSync(dir)) {
-    for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.stage.json'))) {
-      const j = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8'))
+    for (const j of readStageManifests(repoRoot)) {
       if (j?.content_code && j?.body_path) byCode.set(String(j.content_code), String(j.body_path))
     }
   }

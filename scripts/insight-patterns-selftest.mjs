@@ -244,6 +244,44 @@ function mk(key, title, status, strength, evidence) {
   check('렌더 — edit- 0건 후보는 안 실린다', !renderLearnedPatterns([mk('edit-zero', '빈 수정', 'candidate', 0, 0)]).includes('빈 수정'))
   check('반영 문턱 — edit- 도 가설 발급은 여전히 2건부터', shouldReflect({ status: 'candidate', evidence_count: 1 }) === false)
 
+  // ── 판단 위계(ops/roles/cmo.md): 반응률 > 발행자 수정 > 작가 기본값 ──
+  // (a) 충돌 시 렌더 순서·라벨. 근거가 더 많은 edit- 도 반응률 검증 패턴 아래로 간다.
+  const conf = mk('saved-hook', '반응률 검증 훅', 'confirmed', 1, 2)
+  const edit9 = mk('edit-spoken', '말로 풀기', 'reflected', 1, 9)
+  const ra = renderLearnedPatterns([edit9, conf, one('saved-z', '저장글 1건'), mk('saved-ref', '참고 훅', 'reflected', 1, 9)])
+  check('(a) 위계 — 반응률 검증이 edit- 보다 먼저', ra.indexOf('반응률 검증 훅') < ra.indexOf('말로 풀기'), ra)
+  check('(a) 위계 — edit- 가 참고 저장 글보다 먼저', ra.indexOf('말로 풀기') < ra.indexOf('참고 훅'))
+  check('(a) 위계 라벨 노출', ra.includes('- **위계**: 1 반응률 검증') && ra.includes('- **위계**: 2 발행자 수정') && ra.includes('- **위계**: 3 참고'))
+  check('(a) 헤더가 정본을 가리킨다', ra.includes('ops/roles/cmo.md') && ra.includes('applied_patterns'))
+  check('(a) 등급은 손대지 않는다 — edit- 강조 수준 그대로 참고', /말로 풀기\n\n- \*\*강조 수준\*\*: 참고/.test(ra))
+
+  // (b)(c) 적용 기록(stage.json applied_patterns) → post_performance → decide().
+  const { appliedPatternIndex, perfRowsForPattern, summarizePerf } = await import('../lib/insight/patterns.ts')
+  const manifests = [
+    ...['E1', 'E2', 'E3', 'E4', 'E5'].map((c) => ({ content_code: c, applied_patterns: ['edit-spoken'] })),
+    { content_code: 'N1', applied_patterns: [] },
+    { content_code: 'OLD' }, // 필드 없음 = 기록 없음
+  ]
+  const idx = appliedPatternIndex(manifests)
+  check('(c) 적용 기록 → key 별 content_code', [...(idx.byKey.get('edit-spoken') ?? [])].join() === 'E1,E2,E3,E4,E5')
+  check('(c) applied_patterns 없는 매니페스트는 음성이 아니라 unrecorded', idx.unrecorded.join() === 'OLD' && !idx.byKey.has('OLD'))
+  const pr = (content_code, reply_rate, hypothesis_code = null) => ({ content_code, hypothesis_code, reply_rate, spread_multiple: null })
+  const perfRows = [...['E1', 'E2', 'E3', 'E4', 'E5'].map((c) => pr(c, 0.005)), ...['N1', 'OLD', 'X1', 'X2', 'X3'].map((c) => pr(c, 0.03)), pr('H', 0.001, 'H10')]
+  const mine = perfRowsForPattern(perfRows, null, idx.byKey.get('edit-spoken'))
+  check('(c) 가설 코드 없는 글도 content_code 로 표본에 들어간다', mine.length === 5, String(mine.length))
+  check('(c) 가설 코드 ∪ 적용 기록, 중복 없이', perfRowsForPattern(perfRows, 'H10', idx.byKey.get('edit-spoken')).length === 6)
+  const d2 = decide({ status: 'reflected', strength: 1 }, summarizePerf(mine), summarizePerf(perfRows))
+  check('(b) edit- 2건(reflected) + 낮은 반응률 → reject', d2.decision === 'reject' && d2.nextStrength === 0, d2.reason)
+  const d1 = decide({ status: 'candidate', strength: 0 }, summarizePerf(mine), summarizePerf(perfRows))
+  check('(b) 1건짜리 edit- 후보도 반응률로 reject 가능', d1.decision === 'reject', d1.reason)
+  check('(c) 적용 기록 없으면 표본 0 → hold', decide({ status: 'reflected', strength: 1 }, summarizePerf(perfRowsForPattern(perfRows, null, undefined)), summarizePerf(perfRows)).decision === 'hold')
+
+  const { readStageManifests } = await import('../lib/insight/edit-pairs.ts')
+  let threw = false
+  try { readStageManifests(process.cwd() + '/__no_such_repo__') } catch { threw = true }
+  check('(c) stage.json 폴더를 못 읽으면 0건으로 접지 않고 던진다', threw)
+  check('(c) 실제 리포 매니페스트를 읽는다', readStageManifests(process.cwd()).some((m) => m.content_code === 'CS-20260910-01'))
+
   const ep = buildPrompt({ rawText: '발행본', draftText: '초안', knownKeys: ['edit-report-tone-to-spoken'] })
   check('수정쌍 프롬프트 — 기존 edit- key 를 넘긴다', ep.includes('- edit-report-tone-to-spoken'))
   check('수정쌍 프롬프트 — key 는 방향만, 장치 이름은 넣지 말라고 지시', ep.includes('주된 방향 하나') && ep.includes('key 에 넣지 말고'))

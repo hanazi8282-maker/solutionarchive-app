@@ -1617,6 +1617,8 @@ export function writerPrompt(m, date, contentCode) {
       closing_type: '<마무리 유형>',
       topic_tag: 'case-study',
       gate_note: '<게이트 판정 요약>',
+      // 반응률 판정(lib/insight/loop.ts measure)이 이 배열로 발행글을 패턴에 붙인다.
+      applied_patterns: ['<learned-patterns.md 에서 실제로 적용한 패턴 키. 없으면 빈 배열>'],
     }, null, 2),
     '',
     `★ content_code 는 \`${contentCode}\` 로 **고정**이다. 오케스트레이터가 DB(content_items)`

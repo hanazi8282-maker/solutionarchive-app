@@ -20,16 +20,17 @@ model: opus
     직접 고쳐 발행한 쌍에서 뽑은 수정 방향.
   - `근거 수: 저장 글 N건` — 사용자가 저장한 남의 Threads 글에서 뽑은 훅·전개·마무리 구조.
 
-### edit- 패턴은 초안 문체에 먼저 적용한다
+### 패턴끼리 부딪히면 위계를 따른다
 
-발행자가 고친 최종본이 정답이다(남헌 결정 2026-09-13). 그래서 `edit-` 패턴은
-강조 수준이 '참고'여도, 근거가 1건이어도 **초안 문체에 우선 적용한다.**
-발행자가 같은 수정을 두 번 하게 만들지 마라.
+`ops/roles/cmo.md` 의 "콘텐츠 판단 위계"를 Read 하고 따른다(반응률 > 발행자 수정 > 작가 기본값).
+`learned-patterns.md` 의 각 패턴에 **위계** 줄이 붙어 있고, 번호 순으로 실려 있다.
 
-- 적용 범위는 문체다. 어미, 문장 호흡, 기호, 훅과 마무리의 말투.
+- `edit-` 패턴(위계 2)은 강조 수준이 '참고'여도, 근거가 1건이어도 네 기본 문체보다 먼저 적용한다.
+  적용 범위는 문체다. 어미, 문장 호흡, 기호, 훅과 마무리의 말투.
 - 본문을 다 쓴 뒤 `edit-` 패턴마다 적힌 "초안 예시 → 최종본 예시"에 비춰, 초안 쪽
   표현이 남아 있는지 한 번 더 읽고 고친다.
-- 저장 글 패턴과 부딪히면 `edit-` 패턴이 이긴다.
+- 위계 1(반응률 검증)과 부딪히면 위계 1이 이긴다.
+- 적용한 패턴 키는 전부 `stage.json` 의 `applied_patterns` 에 적는다(아래 산출물).
 
 ### 저장 글 패턴은 강조 수준대로 읽는다
 
@@ -101,7 +102,9 @@ model: opus
     (+ `rationale` 한 줄). 최소 1개, 보통 2개.
 - `drafts/threads/<YYYY-MM-DD>-<slug>.stage.json` — 스테이징 매니페스트.
   `scripts/case-draft-stage.mjs --input` 이 읽는 입력이다. 필수 키:
-  `case_slug` · `move_id` · `content_code` · `body_path` · `reply_path` · `title`.
+  `case_slug` · `move_id` · `content_code` · `body_path` · `reply_path` · `title` ·
+  `applied_patterns`(이 초안에 실제로 적용한 learned-pattern 키 배열, 없으면 `[]`. 키가 없으면
+  반응률 판정이 이 글을 "기록 없음"으로 빼서 패턴이 판정을 못 받는다).
   선택 키: `twist_line` · `hook_type` · `closing_type` · `topic_tag` · `decision_doc` ·
   `gate_note` · `log_code`.
   **이 파일이 없으면 초안은 DB 로 못 간다** — 만든 사람만 아는 파일 뭉치로 남는다.
@@ -140,4 +143,5 @@ model: opus
 참고한 learned-pattern 의 **패턴 키와 강조 수준**(참고한 게 없으면 `없음`).
 
 패턴 키를 적는 이유는 나중에 성과와 대조하기 위해서다. "패턴을 참고했다"만
-적으면 무엇을 참고했는지 알 수 없어 대조가 불가능하다.
+적으면 무엇을 참고했는지 알 수 없어 대조가 불가능하다. 보고의 패턴 키와
+`stage.json` 의 `applied_patterns` 는 같은 목록이어야 한다. 기계가 읽는 쪽은 `stage.json` 이다.

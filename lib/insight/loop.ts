@@ -31,19 +31,22 @@
 
 import type { createClient } from '../supabase/server'
 import { extractInsight, activeProvider, normalizePatternKey } from './llm.ts'
-import { buildEditPairs, repoDraftFinder, EDIT_KEY_PREFIX, EDIT_PATTERN_PREFIX } from './edit-pairs.ts'
+import { buildEditPairs, repoDraftFinder, readStageManifests, EDIT_KEY_PREFIX, EDIT_PATTERN_PREFIX } from './edit-pairs.ts'
 import { notionConfig, fetchPending, markSynced } from './notion.ts'
 import {
   decide,
   shouldReflect,
   isRendered,
+  appliedPatternIndex,
+  perfRowsForPattern,
+  summarizePerf,
   renderLearnedPatterns,
   renderRejectedPatterns,
   LEARNED_PATTERNS_PATH,
   REJECTED_PATTERNS_PATH,
   MIN_EVIDENCE_TO_REFLECT,
   type PatternRow,
-  type PerfSummary,
+  type PerfRow,
 } from './patterns.ts'
 import { resolveRepoRef, putFile, autoCommitMessage } from './github.ts'
 
@@ -442,24 +445,36 @@ export async function runInsightLoop(
   const decisions: Array<Record<string, unknown>> = []
 
   await step('measure', async () => {
+    // 가이드에 실린 패턴은 전부 반응률 판정 대상이다(제1헌법, ops/roles/cmo.md).
+    // 1건짜리 edit- 후보도 실려서 초안에 쓰이므로 여기서 빠지면 영영 판정을 안 받는다.
     const { data: active, error } = await supabase
       .from('insight_patterns')
-      .select('id, pattern_key, title, description, insight_type, evidence_count, status, strength, hypothesis_code')
-      .in('status', ['reflected', 'confirmed'])
+      .select('id, pattern_key, title, description, insight_type, evidence_count, status, strength, hypothesis_code, reflected_at')
+      .in('status', ['reflected', 'confirmed', 'candidate'])
 
     if (error) throw new Error(`패턴 조회 실패: ${error.message}`)
-    const rows = active ?? []
+    const rows = (active ?? []).filter((r) => r.status !== 'candidate' || isRendered(r))
     if (rows.length === 0) return { skipped: true, reason: '반영된 패턴 없음' }
 
-    const baseline = await summarize(supabase, null)
+    // 작가가 stage.json 에 남긴 applied_patterns → content_code. 못 읽으면 던진다(확인 불가).
+    const { byKey, unrecorded } = appliedPatternIndex(readStageManifests(process.cwd()))
+
+    const { data: perfData, error: perfErr } = await supabase
+      .from('post_performance')
+      .select('content_code, hypothesis_code, reply_rate, spread_multiple')
+      .not('views_24h', 'is', null)
+    if (perfErr) throw new Error(`성과 조회 실패: ${perfErr.message}`)
+    const perfRows = (perfData ?? []) as PerfRow[]
+    const baseline = summarizePerf(perfRows)
 
     for (const p of rows) {
-      if (!p.hypothesis_code) {
-        decisions.push({ pattern: p.pattern_key, decision: 'hold', reason: '연결된 가설 없음' })
+      const applied = byKey.get(p.pattern_key)
+      if (!p.hypothesis_code && !applied) {
+        decisions.push({ pattern: p.pattern_key, decision: 'hold', reason: '연결된 가설·적용 기록(applied_patterns) 없음' })
         continue
       }
 
-      const perf = await summarize(supabase, p.hypothesis_code)
+      const perf = summarizePerf(perfRowsForPattern(perfRows, p.hypothesis_code, applied))
       const d = decide({ status: p.status, strength: p.strength }, perf, baseline)
 
       decisions.push({
@@ -467,6 +482,7 @@ export async function runInsightLoop(
         decision: d.decision,
         reason: d.reason,
         sampleSize: perf.sampleSize,
+        appliedPosts: applied ? [...applied] : [],
         replyRate: perf.avgReplyRate,
         baselineReplyRate: baseline.avgReplyRate,
         improvement: d.improvement,
@@ -477,19 +493,24 @@ export async function runInsightLoop(
       const measured = {
         last_measured_at: new Date().toISOString(),
         last_sample_size: perf.sampleSize,
-        last_metrics: { perf, baseline, improvement: d.improvement },
+        last_metrics: { perf, baseline, improvement: d.improvement, appliedPosts: applied ? [...applied] : [] },
       }
 
       if (d.decision === 'promote') {
         counts.promoted++
         await supabase
           .from('insight_patterns')
-          .update({ status: 'confirmed', strength: d.nextStrength, ...measured })
+          // candidate edit- 가 바로 승격되면 reflected_at 이 비어 reflected_needs_trace CHECK 에 걸린다.
+          .update({ status: 'confirmed', strength: d.nextStrength, reflected_at: p.reflected_at ?? new Date().toISOString(), ...measured })
           .eq('id', p.id)
 
         // hypotheses 는 'supported'. guard_hypothesis_promotion 트리거가
         // 표본 5개를 다시 검사한다 — 여기서 통과해도 DB 가 한 번 더 본다.
-        await supabase.from('hypotheses').update({ status: 'supported' }).eq('code', p.hypothesis_code)
+        // 트리거는 hypothesis_code 로만 세므로 applied_patterns 표본으로 승격하면 거부될 수 있다. 조용히 넘기지 않는다.
+        if (p.hypothesis_code) {
+          const { error: hErr } = await supabase.from('hypotheses').update({ status: 'supported' }).eq('code', p.hypothesis_code)
+          if (hErr) decisions[decisions.length - 1].hypothesisSync = `실패: ${hErr.message}`
+        }
 
         // learnings 에도 남긴다. threads-draft.md 가 "확정된 학습을 가이드보다
         // 우선"하도록 이미 짜여 있어서, 이 한 줄이 생성 단계에 가장 직접적으로
@@ -514,11 +535,14 @@ export async function runInsightLoop(
           })
           .eq('id', p.id)
 
-        await supabase.from('hypotheses').update({ status: 'rejected' }).eq('code', p.hypothesis_code)
+        if (p.hypothesis_code) {
+          await supabase.from('hypotheses').update({ status: 'rejected' }).eq('code', p.hypothesis_code)
+        }
       }
     }
 
-    return { evaluated: rows.length, baseline, decisions, dryRun }
+    // unrecorded = applied_patterns 필드가 없는 초안(옛 매니페스트). 그 글들이 어떤 패턴을 썼는지는 확인 불가다.
+    return { evaluated: rows.length, baseline, decisions, unrecordedManifests: unrecorded, dryRun }
   })
 
   // ── 5·6) 가이드 렌더링 + 커밋 ──────────────────────────────────
@@ -635,37 +659,6 @@ export async function runInsightLoop(
     decisions,
     steps,
     ...(fatal ? { warning: fatal } : {}),
-  }
-}
-/**
- * post_performance 집계.
- *
- * hypothesisCode 가 null 이면 전체 평균(기준선)이다.
- * views_24h 가 없는 글은 제외한다 — 아직 측정이 안 끝난 글을 표본에 넣으면
- * 분모만 늘고 평균이 조용히 낮아진다(threads-report.mjs 와 같은 규칙).
- */
-async function summarize(supabase: Supa, hypothesisCode: string | null): Promise<PerfSummary> {
-  let q = supabase
-    .from('post_performance')
-    .select('reply_rate, spread_multiple, views_24h')
-    .not('views_24h', 'is', null)
-
-  if (hypothesisCode) q = q.eq('hypothesis_code', hypothesisCode)
-
-  const { data, error } = await q
-  if (error) throw new Error(`성과 조회 실패: ${error.message}`)
-
-  const rows = data ?? []
-  const avg = (vals: Array<number | null>): number | null => {
-    const nums = vals.filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
-    if (nums.length === 0) return null
-    return nums.reduce((a, b) => a + b, 0) / nums.length
-  }
-
-  return {
-    sampleSize: rows.length,
-    avgReplyRate: avg(rows.map((r) => r.reply_rate as number | null)),
-    avgSpreadMultiple: avg(rows.map((r) => r.spread_multiple as number | null)),
   }
 }
 

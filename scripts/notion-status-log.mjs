@@ -3,6 +3,9 @@
 // 아침 브리핑이 사람이 붙여넣은 CC 보고 대신 이 DB 를 읽게 하려는 것.
 //
 //   node scripts/notion-status-log.mjs --probe
+//   node scripts/notion-status-log.mjs --track 기타 [--date YYYY-MM-DD(기본 KST 오늘)] \
+//     [--done ..] [--blocked ..] [--next ..] [--needs-human] [--note ..] [--title ..]
+//   (기록 모드도 종료 코드 규약은 아래와 같다)
 //
 // 종료 코드 (--probe):
 //   0 = 성공 (생성 → GET 재확인 → archived 정리 → GET 으로 archived 확인까지 전부)
@@ -16,6 +19,7 @@
 
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 import { notionRequest } from './notion-api.mjs'
 
 // 출처: 남헌이 2026-09-14 생성한 "일일 상태 로그" DB
@@ -23,6 +27,8 @@ import { notionRequest } from './notion-api.mjs'
 export const DEFAULT_STATUS_LOG_DB_ID = 'f57ae10b-4cc0-433b-9db6-20785216aebe'
 export const TRACKS = ['CMO', 'CTO', '기타']
 // Notion DB 속성명 → 타입. 한국어 이름 그대로가 정본이다.
+// ⛔ DB 에는 "알림완료"(checkbox) 도 있지만 Cowork 즉시 알림 시스템 전용이다.
+//    이 코드는 그 속성을 쓰지도(빌더에 없음 → 기본 false) 읽지도(재확인 대상 아님) 않는다.
 export const SCHEMA = {
   제목: 'title', 날짜: 'date', 트랙: 'select', 한일: 'rich_text',
   막힌것: 'rich_text', 다음할일: 'rich_text', 사람판단필요: 'checkbox', 비고: 'rich_text',
@@ -76,10 +82,10 @@ export function exitCodeFor(status) {
  *   code 는 exitCodeFor 규약. pageId 가 있으면 페이지는 만들어졌다는 뜻이다.
  */
 export async function writeStatusLog(entry, { token = process.env.NOTION_API_TOKEN, dbId = process.env.NOTION_STATUS_LOG_DB_ID || DEFAULT_STATUS_LOG_DB_ID } = {}) {
-  if (!token) return { ok: false, stage: 'env', code: 1, error: '확인 불가(토큰 없음) — NOTION_API_TOKEN 미설정' }
   let properties
   try { properties = buildStatusLogProperties(entry) }
   catch (e) { return { ok: false, stage: 'build', code: 1, error: e.message } }
+  if (!token) return { ok: false, stage: 'env', code: 1, error: '확인 불가(토큰 없음) — NOTION_API_TOKEN 미설정' }
 
   const created = await notionRequest(token, 'POST', '/pages', { parent: { database_id: dbId }, properties })
   if (!created.ok) return { ok: false, stage: 'create', status: created.status, code: exitCodeFor(created.status), error: created.error }
@@ -138,13 +144,38 @@ export async function runProbe({ token = process.env.NOTION_API_TOKEN, dbId = pr
   return code
 }
 
+/** CLI 인자 → { probe } | { entry }. 트랙·날짜 검증은 buildStatusLogProperties 한 곳에서 한다. */
+export function parseCliArgs(argv, now = new Date()) {
+  const { values: v } = parseArgs({
+    args: argv,
+    options: {
+      probe: { type: 'boolean' }, track: { type: 'string' }, date: { type: 'string' },
+      done: { type: 'string' }, blocked: { type: 'string' }, next: { type: 'string' },
+      'needs-human': { type: 'boolean' }, note: { type: 'string' }, title: { type: 'string' },
+    },
+  })
+  if (v.probe) return { probe: true }
+  const kstToday = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now)
+  return {
+    entry: {
+      date: v.date ?? kstToday, track: v.track, done: v.done, blocked: v.blocked, next: v.next,
+      needsHuman: v['needs-human'] === true, note: v.note, title: v.title,
+    },
+  }
+}
+
 function isMain() {
   if (!process.argv[1]) return false
   try { return path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url)) }
   catch { return false }
 }
 if (isMain()) {
-  if (process.argv.includes('--probe')) process.exit(await runProbe())
-  console.error('사용법: node scripts/notion-status-log.mjs --probe   (기록은 writeStatusLog() import 로)')
-  process.exit(1)
+  let args
+  try { args = parseCliArgs(process.argv.slice(2)) }
+  catch (e) { console.error(`❌ 인자 오류 — ${e.message}`); process.exit(1) }
+  if (args.probe) process.exit(await runProbe())
+  const w = await writeStatusLog(args.entry)
+  if (w.ok) console.log(`✅ 기록·재확인: ${w.url ?? w.pageId}`)
+  else console.error(`❌ ${w.stage}: ${w.error}${w.pageId ? ` (페이지는 생성됨: ${w.pageId})` : ''}`)
+  process.exit(w.ok ? 0 : w.code)
 }

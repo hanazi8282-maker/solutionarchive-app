@@ -3,7 +3,7 @@
 //   node scripts/notion-status-log-selftest.mjs
 
 import assert from 'node:assert/strict'
-import { buildStatusLogProperties, clip, runProbe, SCHEMA } from './notion-status-log.mjs'
+import { buildStatusLogProperties, clip, parseCliArgs, runProbe, SCHEMA } from './notion-status-log.mjs'
 
 // 1) 8개 속성 · 이름 · 타입
 const long = '가'.repeat(5000)
@@ -17,6 +17,9 @@ assert.equal(p.사람판단필요.checkbox, true)
 assert.equal(buildStatusLogProperties({ date: '2026-09-14', track: 'CTO', needsHuman: 'yes' }).사람판단필요.checkbox, false)
 assert.deepEqual(p.막힌것.rich_text, [])
 assert.deepEqual(p.비고.rich_text, [])
+// 알림완료는 Cowork 알림 전용 — CC 코드는 쓰지 않는다
+assert.ok(!('알림완료' in p))
+assert.ok(!('알림완료' in SCHEMA))
 
 // 2) 2000자 자르기 (서로게이트 쌍을 쪼개지 않음)
 assert.equal(p.한일.rich_text[0].text.content.length, 2000)
@@ -28,6 +31,14 @@ assert.ok(emoji.length <= 2000 && !/[\ud800-\udbff]…$/.test(emoji))
 // 3) 잘못된 입력은 throw
 assert.throws(() => buildStatusLogProperties({ date: '2026-09-14', track: 'cmo' }))
 assert.throws(() => buildStatusLogProperties({ date: '9/14', track: 'CMO' }))
+
+// 3b) CLI 인자 — 기록 모드 · 기본 날짜 KST (UTC 15:30 = KST 다음날 00:30)
+const cli = parseCliArgs(['--track', '기타', '--done', '세션 정리', '--needs-human'], new Date('2026-09-14T15:30:00Z'))
+assert.deepEqual(cli.entry, { date: '2026-09-15', track: '기타', done: '세션 정리', blocked: undefined, next: undefined, needsHuman: true, note: undefined, title: undefined })
+assert.equal(buildStatusLogProperties(cli.entry).트랙.select.name, '기타')
+assert.throws(() => buildStatusLogProperties(parseCliArgs(['--track', 'CEO']).entry))
+assert.deepEqual(parseCliArgs(['--probe']), { probe: true })
+assert.throws(() => parseCliArgs(['--unknown']))
 
 // 4) 프로브 종료 코드 — 가짜 fetch
 const ID = 'f57ae10b-4cc0-433b-9db6-20785216aebe'
@@ -45,6 +56,7 @@ function fakeNotion({ createStatus = 200, propTypes = SCHEMA } = {}) {
     if (init.method === 'PATCH') { archived = body.archived; return json(200, {}) }
     const properties = Object.fromEntries(Object.entries(propTypes).map(([k, type]) => [k, { type }]))
     properties.제목.title = [{ plain_text: title }]
+    properties.알림완료 = { type: 'checkbox', checkbox: true } // 재확인이 이 값에 흔들리면 안 된다
     return json(200, { id: 'page-1', archived, parent: { database_id: ID.replace(/-/g, '') }, properties })
   }
 }

@@ -23,6 +23,25 @@
 //
 //    vercel.json 은 순수 JSON 이라 주석을 못 넣는다. 그래서 이 설명이 여기 있다.
 //
+// 🌏 리전: app/api/threads/**/route.ts 전부 icn1(서울) — vercel.json "functions".
+//
+//    2026-09-14 CEO-STAFF 가 Supabase edge_logs 로 확인한 것:
+//      - Supabase 504 32건이 전부 colo=IAD(Vercel iad1 발신), 전부 매시 :00/:30 창.
+//      - 같은 :00/:30 창의 colo=ICN 요청은 504 0건, p50 57ms (표본 2건뿐).
+//      - IAD 도 :00/:30 이 아닌 창(127건)은 504 0건. DB 오류 0.
+//      - 같은 인스턴스가 첫 쿼리 200 후 1~3초 뒤 쿼리가 504 → 워밍업으로 안 풀린다.
+//    해석: DB 가 아니라 US-East → 서울(ap-northeast-2) 경로가 피크 시각에 막힌다.
+//    그래서 함수를 DB 옆으로 옮겼다(남헌 결정 A안). 크론 시각은 그대로다.
+//
+//    lib/supabase/server.ts 의 504 1회 재시도(#65)는 증상 완화, 이 리전 이동이
+//    원인 대응이다. 둘 다 둔다 — 재시도 로그 `[supabase] 504 on` 건수가 리전 이동의
+//    효과 측정값이다. icn1 에서도 계속 찍히면 이 해석이 틀린 것이니 다시 본다.
+//
+//    Next.js `export const preferredRegion = 'icn1'` 은 쓰지 않는다: Next 16 에서
+//    deprecated 이고 Vercel 에서는 'auto'|'global'|'home' 만 받는다.
+//    프로젝트는 Pro 팀이라 함수별 리전(최대 5개)이 된다. Hobby 로 내려가면
+//    "단일 리전"만 되므로 이 설정이 배포를 깨뜨린다 — 그때는 프로젝트 regions 로 옮길 것.
+//
 // 창 판정·manual 보호·insert/update 분기는 전부 lib/threads/buckets.ts 의 순수
 // 함수에 있고 scripts/threads-collect-selftest.mjs 가 검증한다. 여기는 실행만 한다.
 

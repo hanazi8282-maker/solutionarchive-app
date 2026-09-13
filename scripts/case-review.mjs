@@ -27,6 +27,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
 import { validateDraft, toRows, gradeMove } from '../lib/cases/draft.ts'
+import { moveApprovalWarning, caseApprovalWarning } from '../lib/cases/review.ts'
 
 const DRAFT_DIR = path.join(process.cwd(), 'drafts', 'cases')
 
@@ -297,9 +298,9 @@ async function decide(status) {
       // 무브를 "아직 draft 다"라고 보고한다 — 거짓 경보도 오보다(§7.1).
       m.review_status = status
       console.log(`✅ ${status} — [${m.evidence_grade}] ${m.lever}: ${m.claim.slice(0, 50)}`)
-      if (status === 'approved' && m.outcome_direction === 'negative' && m.evidence_grade !== 'A') {
-        console.log(`   ⚠️ 부정 사례인데 등급 ${m.evidence_grade} 다. 승인은 됐지만 발행 대상은 아니다.`)
-      }
+      // 경고 규칙은 /cases 화면과 한 벌이다(lib/cases/review.ts).
+      const warn = status === 'approved' ? moveApprovalWarning(m) : null
+      if (warn) console.log(`   ⚠️ ${warn}`)
     }
   }
 
@@ -311,11 +312,8 @@ async function decide(status) {
       'case_studies UPDATE',
     )
     console.log(`✅ 케이스 ${status} — ${study.brand_name} (검수자 ${by})`)
-    const pending = moves.filter(m => m.review_status === 'draft').length
-    if (status === 'approved' && pending > 0) {
-      console.log(`   ⚠️ 아직 draft 인 무브가 ${pending}건 있다. 케이스가 승인돼도 이 무브들은 안 쓰인다.`)
-      console.log('      "케이스 승인 = 무브 전부 승인"이 아니다.')
-    }
+    const warn = status === 'approved' ? caseApprovalWarning(moves) : null
+    if (warn) console.log(`   ⚠️ ${warn}`)
   }
 }
 

@@ -52,6 +52,43 @@ export function heading(text) {
 
 function divider() { return { object: 'block', type: 'divider', divider: {} } }
 
+// ── 대기함 설명서 ────────────────────────────────────────────
+//
+// 정본은 content/guides/queue-guide.md 한 파일이다. 매 푸시마다 Notion DB 의
+// 설명란(표 바로 위에 뜨는 자리)을 그 파일로 덮어쓴다 — 발행 루프를 고치면서
+// 그 파일을 같이 고치면 Notion 이 따라온다. 사람이 Notion 에서 직접 고쳐도 다음
+// 실행이 되돌린다. 그게 의도다 — 정본이 둘이면 둘 다 안 믿게 된다.
+//
+// 실패해도 푸시 본체를 세우지 않는다. 설명서가 하루 낡은 것과 그날 초안이
+// 통째로 안 올라가는 것은 무게가 다르다.
+export function guideText(repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')) {
+  const f = path.join(repoRoot, 'content', 'guides', 'queue-guide.md')
+  if (!fs.existsSync(f)) return null
+  // 앞머리 HTML 주석은 편집자에게 남기는 말이라 Notion 으로 보내지 않는다.
+  return fs.readFileSync(f, 'utf-8').replace(/^s*<!--[sS]*?-->s*/, '').trim() || null
+}
+
+/** Notion 설명란은 rich_text 조각당 2000자다. 넘으면 잘라 여러 조각으로 나눈다. */
+export function descriptionRichText(text) {
+  const out = []
+  let s = String(text ?? '')
+  while (s.length > 2000) { out.push(s.slice(0, 2000)); s = s.slice(2000) }
+  if (s) out.push(s)
+  return out.map((c) => ({ type: 'text', text: { content: c } }))
+}
+
+async function syncGuide(token, databaseId, dry) {
+  const text = guideText()
+  if (!text) { console.log('⏭️ 설명서 없음 — content/guides/queue-guide.md 를 못 찾았다'); return }
+  if (dry) { console.log(`(dry) 설명서 동기화 ${text.length}자`); return }
+  const r = await notionRequest(token, 'PATCH', `/databases/${databaseId}`, {
+    description: descriptionRichText(text),
+  })
+  if (!r.ok) console.error(`⚠️ 설명서 동기화 실패(푸시는 계속한다) — ${r.error}`)
+  else console.log(`✅ 대기함 설명서 동기화 ${text.length}자`)
+}
+
+
 /** drafts/threads/<date>-<slug>.md 에서 "무브 `<id>`" / "등급 X" / "출처 케이스 `<slug>`" 를 관대하게 뽑는다. */
 export function parseDecisionDoc(mdText) {
   const moveId = mdText.match(/무브[^`]*`([0-9a-f-]{8,})`/i)?.[1] ?? null
@@ -76,6 +113,9 @@ async function run() {
     console.log('ℹ️ NOTION_API_TOKEN/NOTION_DATABASE_ID 미설정 — Notion 푸시를 건너뛴다 (CMO 루프 본체엔 영향 없음).')
     process.exit(0)
   }
+
+  // 설명서를 먼저 맞춘다. 오늘 올릴 초안이 0건이어도 설명서는 최신이어야 한다.
+  await syncGuide(token, databaseId, dry)
 
   let supabase
   try { supabase = await createClient() }

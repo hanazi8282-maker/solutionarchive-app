@@ -1,0 +1,19 @@
+{
+  "_about": "case_studies.reader_problem 의 어휘 정본. 코드 상수가 아니라 이 파일이 정본이다 — 레퍼런스 자료가 오면 여기만 고친다. DB CHECK 는 형식(^[A-Z][A-Z_]*$)만 본다.",
+  "_status": "잠정 — 남헌 레퍼런스 자료 대기 중. 아래 7개는 임시 어휘이고, 자료가 오면 통째로 갈아끼운다. 코드는 이 파일을 읽기만 하므로 코드 수정 없이 바뀐다.",
+  "_drift_check": "scripts/case-pipeline-verify.mjs 가 DB distinct reader_problem ⊄ 이 목록이면 exit 2 로 막는다.",
+  "_no_backfill": "bottleneck → reader_problem 자동 매핑을 하지 않는다. 짐작값이 다음 조사 수요를 결정하는 오염 경로다. 매핑 제안표는 docs/case-study-pipeline-design.md 에 문서로만 둔다.",
+  "problems": [
+    {
+      "code": "MAKE_BUT_NO_MONEY",
+      "label": "만들 줄은 아는데 그걸 돈으로 바꾸는 법을 모른다",
+      "note": "남헌 지정 1급 시민. 이 아카이브의 기본 독자다. 다른 어휘가 애매하면 여기로 둔다."
+    },
+    { "code": "NO_FIRST_CUSTOMER", "label": "첫 고객을 못 만든다", "note": "만들어는 놨는데 아무도 안 산 상태." },
+    { "code": "PRICE_TOO_LOW", "label": "값을 너무 싸게 받는다", "note": "팔리긴 하는데 남는 게 없다." },
+    { "code": "ONE_OFF_ONLY", "label": "한 번 사고 끝난다", "note": "재구매·구독으로 못 넘어간다." },
+    { "code": "NO_CHANNEL", "label": "팔 통로가 없다", "note": "물건은 있는데 어디에 내놓을지 모른다." },
+    { "code": "SOLO_CEILING", "label": "혼자 감당할 수 있는 한계에 걸렸다", "note": "주문이 늘어도 내 손이 안 늘어난다." },
+    { "code": "NOBODY_TRUSTS_ME", "label": "아무도 나를 안 믿는다", "note": "무명이라 첫 거래가 안 붙는다." }
+  ]
+}

@@ -7,6 +7,29 @@
 //   때는 마이그레이션을 먼저 바꿔라. 코드에서 문자열만 늘리면 로컬 검증은
 //   통과하고 DB 에서 터진다 — 가장 늦게 발견되는 형태다.
 
+import readerProblemVocab from '../../config/reader-problems.json' with { type: 'json' }
+
+/**
+ * 독자 문제 — 케이스 **선정의 1순위 축**이다.
+ *
+ * 독자는 "만들 줄은 아는데 그걸 돈으로 바꾸는 법을 모르는 사람"이다. 그 사람이
+ * 자기 상황에 옮겨 쓸 수 있는가가 브랜드 이름보다, 등급보다 앞선다.
+ *
+ * ★ 어휘 정본은 **코드가 아니라 `config/reader-problems.json`** 이다.
+ *   레퍼런스 자료가 오면 그 파일 한 줄만 고치면 되고 이 파일은 안 건드린다.
+ *   DB CHECK 도 형식(^[A-Z][A-Z_]*$)만 본다 — 어휘를 CHECK 에 박으면 어휘를
+ *   늘릴 때마다 마이그레이션이 필요하고, 그동안 조사원이 억지로 끼워 맞춘다.
+ *   파일과 DB 가 어긋나는 것은 `scripts/case-pipeline-verify.mjs` 가 잡는다.
+ */
+export const READER_PROBLEM_FORMAT = /^[A-Z][A-Z_]*$/
+export const READER_PROBLEMS: readonly string[] = readerProblemVocab.problems.map((p) => p.code)
+export const READER_PROBLEM_LABEL: Readonly<Record<string, string>> =
+  Object.fromEntries(readerProblemVocab.problems.map((p) => [p.code, p.label]))
+
+/** 이식성 판정 어휘. 값을 **쓰는** 것은 사람뿐이다 — lib/cases/review.ts 참고. */
+export const TRANSFERABILITY = ['HIGH', 'MEDIUM', 'LOW'] as const
+export type Transferability = (typeof TRANSFERABILITY)[number]
+
 export const BUSINESS_MODEL = ['D2C', 'MARKETPLACE_SELLER', 'SUBSCRIPTION', 'SAAS',
   'CREATOR', 'SERVICE', 'WHOLESALE', 'OTHER'] as const
 export const BUYER_TYPE = ['B2C', 'B2B', 'B2B2C'] as const
@@ -68,6 +91,16 @@ export type Evidence = {
 export type Move = {
   lever: (typeof LEVER)[number]
   claim: string
+  /**
+   * 독자가 **내일** 할 수 있는 최소 행동 1개. 조사원이 채우는 관측값이다.
+   * "브랜드가 무엇을 했나"가 아니라 "읽는 사람이 무엇을 해 볼 수 있나"를 적는다.
+   */
+  transfer_note?: string | null
+  /**
+   * 옮기려면 독자에게 뭐가 있어야 하나 (자본·인력·채널·재고…).
+   * `null` 은 **미기재**이지 "전제 없음"이 아니다 (§7.1).
+   */
+  preconditions?: string | null
   outcome_direction?: (typeof OUTCOME_DIRECTION)[number]
   metric_name?: string | null
   metric_before?: number | null
@@ -87,6 +120,8 @@ export type Draft = {
   purchase_frequency?: (typeof PURCHASE_FREQUENCY)[number] | null
   price_band?: (typeof PRICE_BAND)[number] | null
   bottleneck?: (typeof BOTTLENECK)[number] | null
+  /** 선정 1순위 축. 어휘 정본은 config/reader-problems.json. */
+  reader_problem?: string | null
   outcome_status?: (typeof OUTCOME_STATUS)[number]
   period_start?: string | null
   period_end?: string | null
@@ -300,6 +335,19 @@ export function validateDraft(draft: Draft, today = new Date()): Issue[] {
   oneOf('purchase_frequency', draft.purchase_frequency, PURCHASE_FREQUENCY)
   oneOf('price_band', draft.price_band, PRICE_BAND)
   oneOf('bottleneck', draft.bottleneck, BOTTLENECK)
+
+  // ── 독자 문제 ──
+  //
+  // 비면 warn 이다 — 저장은 된다. 막으면 조사원이 아무 값이나 골라 채운다.
+  // 어휘 밖이면 error 다. 어휘 정본은 파일이므로, 새 어휘를 통과시키려면
+  // `config/reader-problems.json` 한 줄만 고치면 된다(코드 수정 없음).
+  if (draft.reader_problem === null || draft.reader_problem === undefined || draft.reader_problem === '') {
+    warn('reader_problem', '비었다 — 선정 1순위 축이다. "이 이야기를 옮겨 쓸 독자가 지금 무엇에 막혀 있나"를 적어라 (config/reader-problems.json)')
+  } else if (!READER_PROBLEMS.includes(draft.reader_problem)) {
+    err('reader_problem', `어휘 밖: ${JSON.stringify(draft.reader_problem)} `
+      + `(가능: ${READER_PROBLEMS.join(', ')}). 어휘 정본은 config/reader-problems.json 이다 — 새 어휘가 필요하면 그 파일에 추가해라`)
+  }
+
   if (draft.outcome_status !== undefined) oneOf('outcome_status', draft.outcome_status, OUTCOME_STATUS)
 
   for (const f of ['period_start', 'period_end'] as const) {
@@ -369,6 +417,11 @@ export function validateDraft(draft: Draft, today = new Date()): Issue[] {
     if (!hasNumber) {
       warn(w, '수치가 없다 (등급 D) — PMF 스코어링 입력에서 빠진다')
     }
+    // 이식성 관측. 막지 않는다 — 조사 단계에서 비어 있는 건 흔하고, 막으면
+    // 아무 말이나 채워 넣는다. 대신 검수자 눈에 띄게 남긴다.
+    if (!m.transfer_note) {
+      warn(w, 'transfer_note 가 없다 — 독자가 **내일** 할 수 있는 최소 행동 1개가 이 파이프라인의 산출물이다')
+    }
     for (const f of ['observed_period_start', 'observed_period_end'] as const) {
       const v = m[f]
       if (v != null && !isoDate(v)) err(`${w}.${f}`, `YYYY-MM-DD 형식: ${v}`)
@@ -405,6 +458,7 @@ export function toRows(draft: Draft) {
     purchase_frequency: draft.purchase_frequency ?? null,
     price_band: draft.price_band ?? null,
     bottleneck: draft.bottleneck ?? null,
+    reader_problem: draft.reader_problem ?? null,
     outcome_status: draft.outcome_status ?? 'unknown',
     period_start: draft.period_start ?? null,
     period_end: draft.period_end ?? null,
@@ -421,6 +475,10 @@ export function toRows(draft: Draft) {
       row: {
         lever: m.lever,
         claim: m.claim,
+        // 관측 2필드는 조사원이 채운다. 판정(transferability)은 **여기서 안 쓴다** —
+        // 사람이 승인할 때 고른다 (CLAUDE.md §10.1). 기계가 쓰는 경로를 만들지 않는다.
+        transfer_note: m.transfer_note ?? null,
+        preconditions: m.preconditions ?? null,
         outcome_direction: m.outcome_direction ?? 'positive',
         metric_name: m.metric_name ?? null,
         metric_before: m.metric_before ?? null,

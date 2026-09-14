@@ -52,6 +52,21 @@ export const FEEDBACK_DIR = path.join(process.cwd(), 'reports', 'feedback')
  */
 export const PAIRABLE_MIN = 3
 
+/**
+ * 검수 대기분을 얼마나 쳐 줄지의 완충. 갭 판정은
+ *   `approved < PAIRABLE_MIN && (approved + pending) < PAIRABLE_MIN + PENDING_SLACK`
+ * 이다. "승인만 되면 목표선 + 완충을 넘는다"면 그 축에 새 조사를 밀어 넣지 않는다.
+ *
+ * ★ 왜 필요했나 (2026-09-14 실측). `research_queue` 17건 중 12건이 AWARENESS 였다.
+ *   AWARENESS 는 승인 2 · **검수 대기 11** 이었다. 조사가 모자란 축이 아니라
+ *   사람 승인이 밀린 축인데, 갭 산식이 승인분만 세서 매일 같은 축을 또 파라고
+ *   시켰다. 조사를 더 해도 승인이 안 되면 승인 대기만 12건, 13건으로 늘어난다.
+ *
+ * ⚠️ `pending` 이 null(확인 불가)이면 이 완충을 **쓰지 않는다.** 확인 불가를
+ *    "대기 많음"으로 접으면 진짜 갭을 조용히 덮는다 (§7.1).
+ */
+export const PENDING_SLACK = 1
+
 // ────────────────────────────────────────────────────────────
 // 피드백 파일 — reports/feedback/*.md 프론트매터
 // ────────────────────────────────────────────────────────────
@@ -106,16 +121,80 @@ export function readOpenFeedback(dir = FEEDBACK_DIR) {
 // ────────────────────────────────────────────────────────────
 
 /**
- * 병목별 커버리지에서 갭을 뽑는다. 케이스 2곳 미만이면 갭이다.
- * `studies`/`moves` 가 null 이면 갭을 계산하지 않고 null 을 돌려준다 —
- * "갭 0개"와 "확인 불가"를 절대 섞지 않는다.
+ * 병목별 검수 대기(draft 케이스) 수. `coverageGaps` 의 `pending` 인자로 넣는다.
+ * `studies` 가 null 이면 **null 을 돌려준다** — "대기 0건"과 "못 읽었다"는 다르다(§7.1).
  */
-export function coverageGaps(studies, moves) {
+export function pendingByBottleneck(studies) {
+  if (!studies) return null
+  const out = Object.fromEntries(BOTTLENECKS.map((b) => [b, 0]))
+  for (const s of studies) {
+    if (s.review_status !== 'draft') continue
+    if (out[s.bottleneck] === undefined) continue
+    out[s.bottleneck]++
+  }
+  return out
+}
+
+/**
+ * 병목별 수요를 낸다. 갭(조사가 모자람)과 보류(승인이 밀림)를 **가른다.**
+ *
+ * `studies`/`moves` 가 null 이면 계산하지 않고 null 을 돌려준다 —
+ * "갭 0개"와 "확인 불가"를 절대 섞지 않는다.
+ *
+ * @param pending       `{ [bottleneck]: 검수대기수 }` 또는 null(확인 불가 → 완충 미적용)
+ * @param lastPlannedAt `{ [bottleneck]: ISO }` 마지막으로 그 축을 계획한 시각(research_queue.created_at).
+ *                      없는 축은 "한 번도 계획한 적 없다"라서 가장 앞에 온다.
+ */
+export function coverageDemand(studies, moves, pending = null, lastPlannedAt = null) {
   if (!studies || !moves) return null
-  return BOTTLENECKS
-    .map((b) => ({ bottleneck: b, cases: new Set(matchMoves(b, studies, moves).moves.map((m) => m.study.id)).size }))
+  const planned = lastPlannedAt ?? {}
+  const short = BOTTLENECKS
+    .map((b) => ({
+      bottleneck: b,
+      cases: new Set(matchMoves(b, studies, moves).moves.map((m) => m.study.id)).size,
+      pending: pending ? (pending[b] ?? 0) : null,
+      last_planned_at: planned[b] ?? null,
+    }))
     .filter((g) => g.cases < PAIRABLE_MIN)
-    .sort((a, b) => a.cases - b.cases || a.bottleneck.localeCompare(b.bottleneck))
+
+  // 승인만 되면 목표선+완충을 넘는 축. 조사가 아니라 승인이 병목이다.
+  const held = (g) => g.pending !== null && (g.cases + g.pending) >= PAIRABLE_MIN + PENDING_SLACK
+
+  // ★ 동점 tiebreak 가 알파벳 순이었다. 그게 AWARENESS 12건을 만든 직접 원인이다 —
+  //   A 로 시작하는 축이 매일 1순위였고, 그 축의 승인 대기가 쌓여도 순서가 안 바뀌었다.
+  //   이제 **마지막으로 계획한 지 오래된 축**이 앞에 온다. 한 번도 계획 안 한 축은
+  //   빈 문자열이라 가장 앞이다(= 아직 손도 안 댄 축이 먼저다).
+  const order = (a, b) => a.cases - b.cases
+    || String(a.last_planned_at ?? '').localeCompare(String(b.last_planned_at ?? ''))
+    || a.bottleneck.localeCompare(b.bottleneck)
+
+  return { gaps: short.filter((g) => !held(g)).sort(order), held: short.filter(held).sort(order) }
+}
+
+/**
+ * 갭만 뽑는다. `buildPlan` 이 먹는 형태다.
+ *
+ * ⚠️ `pending` 을 안 주거나 null 로 주면 **종전과 완전히 같은 결과**가 나온다.
+ *    확인 불가를 "대기가 많다"로 접지 않기 위해서다 (§7.1).
+ */
+export function coverageGaps(studies, moves, pending = null, lastPlannedAt = null) {
+  const d = coverageDemand(studies, moves, pending, lastPlannedAt)
+  return d === null ? null : d.gaps
+}
+
+/**
+ * DIGEST 한 줄. `수요:`(조사가 필요) 와 `보류:`(승인이 필요)를 가른다.
+ * 대기 수가 null 이면 `?` 로 찍는다 — 0 으로 찍으면 "확인했더니 없다"가 된다(§7.1).
+ */
+export function demandLine(gaps, held = []) {
+  const p = (g) => (g.pending === null || g.pending === undefined ? '?' : g.pending)
+  const demand = gaps.length
+    ? gaps.map((g, i) => (i === 0 ? `${g.bottleneck}(승인${g.cases}/대기${p(g)})` : `${g.bottleneck}(${g.cases}/${p(g)})`)).join(' · ')
+    : '없음'
+  const hold = held.length
+    ? held.map((h, i) => `${h.bottleneck}(${h.cases}/${i === 0 ? '대기' : ''}${p(h)} — 승인 병목)`).join(' · ')
+    : null
+  return `수요: ${demand}${hold ? ` ‖ 보류: ${hold}` : ''}`
 }
 
 const gapSlot = (bottleneck, outcome) => ({
@@ -379,10 +458,41 @@ if (isMain()) {
   const studies = await q('case_studies', 'id,slug,brand_name,bottleneck,business_model,buyer_type,price_band,outcome_status,review_status')
   const moves = await q('case_moves', 'id,case_study_id,lever,claim,evidence_grade,outcome_direction,review_status')
 
-  const gaps = coverageGaps(studies, moves)
-  if (gaps === null) {
+  // ── 수요 계산의 두 번째 재료: 검수 대기 + 마지막 계획 시각 ──────────────
+  //
+  // 승인분만 세면 "AWARENESS 승인 2 · 검수대기 11" 같은 축을 매일 또 조사하라고
+  // 시킨다. 조사가 아니라 승인이 병목인 축이다. 둘을 갈라서 낸다.
+  const reviewPending = pendingByBottleneck(studies)
+
+  // 마지막으로 그 축을 계획한 시각. 못 읽으면 null 이고, 그때 tiebreak 는
+  // 종전(알파벳 순)으로 돌아간다 — 조용히가 아니라 아래에서 그 사실을 찍는다.
+  const plannedRows = await supabase.from('research_queue').select('target_bottleneck, created_at')
+  let lastPlanned = null
+  if (plannedRows.error) {
+    console.error(`⚠️ 확인 불가: research_queue 계획 이력을 못 읽었다 — ${plannedRows.error.code ?? ''} ${plannedRows.error.message}. `
+      + 'tiebreak 를 종전(알파벳 순)으로 되돌린다. 그건 AWARENESS 12건을 만든 그 순서다.')
+  } else {
+    lastPlanned = {}
+    for (const r of plannedRows.data ?? []) {
+      if (!r.target_bottleneck || !r.created_at) continue
+      if (!lastPlanned[r.target_bottleneck] || r.created_at > lastPlanned[r.target_bottleneck]) {
+        lastPlanned[r.target_bottleneck] = r.created_at
+      }
+    }
+  }
+
+  const demand = coverageDemand(studies, moves, reviewPending, lastPlanned)
+  if (demand === null) {
     console.error('⚠️ 확인 불가: 커버리지를 못 읽어 계획을 세우지 않는다. "갭 0개"가 아니다.')
     process.exit(2)
+  }
+  const { gaps, held } = demand
+
+  // ★ 보류된 축을 조용히 넘기지 않는다 (§7.2). 갭에서 빠진 것은 "괜찮아졌다"가
+  //   아니라 "다른 이유로 막혀 있다"이고, 그 이유는 사람이 풀어야 한다.
+  for (const h of held) {
+    console.error(`⚠️ ${h.bottleneck} 검수대기 ${h.pending}건 — 조사가 아니라 승인이 병목이다 `
+      + `(승인 ${h.cases}곳 / 목표 ${PAIRABLE_MIN}곳). 새 조사를 넣지 않았다. /cases 에서 승인하면 풀린다.`)
   }
 
   // 이미 큐에 있는 것과 이미 적립된 브랜드는 뺀다. 최종 중복 방어선은
@@ -441,7 +551,10 @@ if (isMain()) {
     console.log(`- ${r.brand_name} · ${r.target_bottleneck ?? '병목미정'} · ${r.reason} · p${r.priority}`)
     if (r.notes) console.log(`    ${r.notes}`)
   }
-  console.log(`\n갭: ${gaps.map((g) => `${g.bottleneck}(${g.cases})`).join(' ') || '없음'}`)
+  // ★ 옛 줄은 `갭: AWARENESS(2)` 였다. 승인분 하나만 보여 줘서, 같은 축이 매일
+  //   갭으로 뜨는 이유(= 검수 대기가 쌓여 있다)를 화면에서 알 수가 없었다.
+  //   이제 수요(조사가 필요)와 보류(승인이 필요)를 한 줄에서 가른다.
+  console.log(`\n${demandLine(gaps, held)}`)
 
   if (dry) {
     console.log('\n(dry) DB 에 쓰지 않았다.')

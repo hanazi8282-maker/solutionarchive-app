@@ -718,3 +718,78 @@ CHECK `^[a-z0-9]+(-[a-z0-9]+)*$` 로 모양을 강제한다 — 빈 문자열도
 - 그래서 백필은 스크립트가 아니라 **사람이 본문을 읽고** 한다. `20260907000001` 파일의 (4) 지침에
   9차까지 원문으로 확인한 행만 적어 뒀다. **모르는 행은 NULL 로 둔다.**
 - `CG-1` 의 한계(§7-3 앞 문단)는 그대로 남는다. 귀속 문구가 그 수치 옆에 붙었는지는 여전히 못 본다.
+
+---
+
+## 9. 독자 이식성 축 (2026-09-14, 마이그 20260915000001)
+
+선정 1순위를 "브랜드 사례"에서 **독자가 옮겨 쓸 수 있는가**로 옮겼다.
+독자는 "만들 줄은 아는데 그걸 돈으로 바꾸는 법을 모르는 사람"이다.
+
+### 9-1. 관측과 판정을 가른다
+
+| 컬럼 | 누가 쓰나 | 뜻 |
+|---|---|---|
+| `case_studies.reader_problem` | 조사원 | 이 이야기를 옮겨 쓸 독자가 지금 막혀 있는 지점 |
+| `case_moves.transfer_note` | 조사원 | 독자가 **내일** 할 수 있는 최소 행동 1개 |
+| `case_moves.preconditions` | 조사원 | 옮기려면 뭐가 있어야 하나 (NULL = 미기재 ≠ 전제 없음) |
+| `case_moves.transferability` | **사람만** | HIGH / MEDIUM / LOW. 승인할 때 고른다 |
+
+`transferability` 를 기계가 쓰는 경로는 없다. 값이 들어오는 자리는 둘뿐이다 —
+`/cases` 승인 서버 액션, `scripts/case-review.mjs transferability --by <사람>`.
+
+### 9-2. 등급은 내려가지 않았다. 순서만 내려갔다
+
+앵글 정렬 키: `transferability_rank(HIGH>MEDIUM>NULL>LOW) → grade_rank → slug`.
+
+- `gradeMove()` 는 한 줄도 안 바뀌었다. 산식·값 그대로다.
+- NULL 을 LOW 로 접지 않는다. 미판정 무브가 바닥으로 가라앉으면 판정을 붙일
+  기회 자체가 사라진다.
+- 등급 D 개방은 `transferability='HIGH'` **한정**이다. NULL·LOW 인 D 는 종전대로 제외.
+  그 문에는 발행 게이트 `CG-2`(등급 D 초안의 숫자 차단)가 자물쇠로 붙는다.
+
+### 9-3. `bottleneck → reader_problem` 매핑 — **문서로만 둔다**
+
+아래는 사람이 채울 때 참고하라고 적어 둔 **제안표**다.
+**백필 스크립트로 만들지 않는다.** 짐작으로 채운 값이 다음 조사 수요를 결정하는
+오염 경로가 된다 — 병목은 브랜드가 겪은 문제이고 독자 문제는 읽는 사람이 겪는
+문제라, 둘은 자주 어긋난다(AWARENESS 를 푼 사례가 독자에게는 `NO_CHANNEL` 의 답인
+경우가 흔하다). 어긋난 채 들어간 값은 "확인된 분류"처럼 보인다.
+
+| bottleneck | 자주 대응되는 reader_problem (제안일 뿐) |
+|---|---|
+| AWARENESS | `NO_CHANNEL` · `NO_FIRST_CUSTOMER` |
+| TRUST | `NOBODY_TRUSTS_ME` · `NO_FIRST_CUSTOMER` |
+| CONVERSION | `NO_FIRST_CUSTOMER` · `MAKE_BUT_NO_MONEY` |
+| RETENTION | `ONE_OFF_ONLY` |
+| UNIT_ECONOMICS | `PRICE_TOO_LOW` · `MAKE_BUT_NO_MONEY` |
+| DISTRIBUTION | `NO_CHANNEL` |
+| SUPPLY | `SOLO_CEILING` |
+
+어휘 정본은 `config/reader-problems.json` 이다(현재 **잠정** — 남헌 레퍼런스 대기).
+DB CHECK 은 형식(`^[A-Z][A-Z_]*$`)만 보고, 파일과 DB 의 드리프트는
+`scripts/case-pipeline-verify.mjs` 가 exit 2 로 막는다.
+
+### 9-4. 같이 고친 것 — 형제 무브 유실 (D1)
+
+`content_items` 에는 `code` 와 `source_case` 뿐이었다. 그래서 한 케이스의 무브
+하나로 글을 쓰면 그 케이스의 형제 무브가 통째로 후보에서 빠졌다. 실측(2026-09-14)으로
+승인 무브 30건이 케이스 15개에 정확히 2개씩 붙어 있었으니 **약 15건이 유실 중**이었다.
+`content_items.source_move` 를 추가하고 제외 단위를 무브로 바꿨다.
+
+⚠️ `source_move` 가 NULL 인 레거시 행은 **종전대로 슬러그 단위로 제외한다.**
+"어느 무브였는지 모른다"를 "다른 무브였다"로 접으면 이미 나간 글과 같은 무브를
+다시 쓴다. 백필하지 않는다 — 틀린 짐작이 "이미 썼다"로 굳으면 되돌릴 길이 없다.
+
+### 9-5. 같이 고친 것 — 수요 계산 (B2)
+
+`coverageGaps()` 가 승인분만 세서 `AWARENESS` 를 매일 갭으로 냈다. 실측으로
+AWARENESS 는 승인 2 · **검수 대기 11** 이었다 — 조사가 아니라 승인이 병목인 축인데
+`research_queue` 17건 중 12건이 그 축이었다.
+
+- 갭 판정: `approved < PAIRABLE_MIN && (approved + pending) < PAIRABLE_MIN + PENDING_SLACK`
+- `pending` 이 null(확인 불가)이면 **종전과 동일한 결과**를 낸다. 확인 불가를
+  "대기 많음"으로 접지 않는다.
+- 동점 tiebreak 가 알파벳 순이었다. 그게 `A`WARENESS 12건의 직접 원인이다.
+  이제 **마지막으로 계획한 지 오래된 축**이 앞에 온다.
+- 대기 때문에 갭에서 빠진 축은 조용히 넘기지 않고 매 실행 찍는다(§7.2).

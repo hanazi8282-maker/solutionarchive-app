@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import { gradeMove, type Evidence, type Move } from '@/lib/cases/draft'
-import { caseApprovalWarning, moveApprovalWarning } from '@/lib/cases/review'
+import { gradeMove, READER_PROBLEM_LABEL, type Evidence, type Move } from '@/lib/cases/draft'
+import { caseApprovalWarning, moveApprovalWarning, TRANSFERABILITY_LABEL, type Transferability } from '@/lib/cases/review'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
@@ -22,6 +22,9 @@ type MoveRow = Move & {
   review_status: string
   review_note?: string | null
   reviewed_by?: string | null
+  /** 마이그 20260915000001 미적용이면 undefined 로 온다 — null(미판정)과 다른 상태다. */
+  transferability?: Transferability | null
+  transferability_by?: string | null
   created_at: string
 }
 type CaseRow = {
@@ -35,6 +38,7 @@ type CaseRow = {
   purchase_frequency: string | null
   price_band: string | null
   bottleneck: string | null
+  reader_problem?: string | null
   outcome_status: string
   period_start: string | null
   period_end: string | null
@@ -95,7 +99,9 @@ function EvidenceList({ rows }: { rows: EvidenceRow[] }) {
   )
 }
 
-function MoveBlock({ m, i, evidence, locked }: { m: MoveRow; i: number; evidence: EvidenceRow[]; locked: boolean }) {
+function MoveBlock({ m, i, evidence, locked, transferabilityLocked }: {
+  m: MoveRow; i: number; evidence: EvidenceRow[]; locked: boolean; transferabilityLocked: boolean
+}) {
   const g = gradeMove(m, evidence)
   const metric = m.metric_after == null
     ? '수치 없음'
@@ -103,15 +109,34 @@ function MoveBlock({ m, i, evidence, locked }: { m: MoveRow; i: number; evidence
   const warn = moveApprovalWarning(m)
   return (
     <section style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'grid', gap: 8 }}>
+      {/* ★ 등급 배지는 **오른쪽 끝**이다. 정보는 그대로 두되 시선 1순위만 이식성에 양보한다.
+          읽는 사람이 먼저 물어야 할 것은 "이걸 내가 옮길 수 있나"이고, 등급은 그 무브에
+          붙는 성질이지 판단의 출발점이 아니다. */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
         {/* 번호는 CLI `case-review.mjs --move <n>` 인덱스와 같다(created_at, id 순). */}
         <b style={{ fontSize: 13, fontFamily: 'var(--font-mono)' }}>#{i}</b>
         <Badge tone="neutral" size="sm">{m.lever}</Badge>
-        <Badge tone={GRADE_TONE[m.evidence_grade] ?? 'neutral'} size="sm">등급 {m.evidence_grade}</Badge>
         <Badge tone={m.outcome_direction === 'negative' ? 'danger' : 'neutral'} size="sm">{m.outcome_direction ?? 'positive'}</Badge>
         <ReviewBadge status={m.review_status} />
+        {!transferabilityLocked && (
+          m.transferability
+            ? <Badge tone={m.transferability === 'HIGH' ? 'success' : m.transferability === 'MEDIUM' ? 'info' : 'neutral'} size="sm">이식성 {m.transferability}</Badge>
+            : <Badge tone="warning" size="sm">이식성 미판정</Badge>
+        )}
+        <span style={{ marginLeft: 'auto' }}>
+          <Badge tone={GRADE_TONE[m.evidence_grade] ?? 'neutral'} size="sm">등급 {m.evidence_grade}</Badge>
+        </span>
       </div>
       <p style={{ margin: 0, fontSize: 14, color: 'var(--text-strong)', overflowWrap: 'anywhere' }}>{m.claim}</p>
+      {/* 본문급. 독자가 내일 할 수 있는 행동 1개가 이 파이프라인의 산출물이다. */}
+      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--text-strong)', overflowWrap: 'anywhere' }}>
+        {m.transfer_note
+          ? <>→ {m.transfer_note}</>
+          : <span style={{ color: 'var(--warning-fg)' }}>→ 옮길 행동 미기재 — 이게 없으면 독자가 가져갈 게 없다</span>}
+      </p>
+      <p style={muted}>
+        {m.preconditions ? `전제: ${m.preconditions}` : '전제: 미기재 (— "전제 없음"이 아니다)'}
+      </p>
       <p style={muted}>{metric} · 관측 {m.observed_period_start ?? '?'} ~ {m.observed_period_end ?? '?'}</p>
       <p style={muted}>
         현재 산식 {g.grade} — {g.reason}
@@ -125,12 +150,13 @@ function MoveBlock({ m, i, evidence, locked }: { m: MoveRow; i: number; evidence
       )}
       <EvidenceList rows={evidence} />
       {m.review_status === 'draft' ? (
-        <DecisionForm kind="move" id={m.id} locked={locked} approveWarning={warn} />
+        <DecisionForm kind="move" id={m.id} locked={locked} approveWarning={warn} transferabilityLocked={transferabilityLocked} />
       ) : (
         <p style={muted}>
           {REVIEW[m.review_status]?.label ?? m.review_status}
           {m.reviewed_by ? ` · ${m.reviewed_by}` : ' · 검수자 기록 없음(CLI 결정)'}
           {m.review_note ? ` · ${m.review_note}` : ''}
+          {m.transferability ? ` · 이식성 ${TRANSFERABILITY_LABEL[m.transferability]}${m.transferability_by ? ` (${m.transferability_by})` : ''}` : ''}
           {m.review_status === 'approved' && warn ? ` · ⚠️ ${warn}` : ''}
         </p>
       )}
@@ -160,11 +186,13 @@ export default async function CasesPage() {
     )
   }
 
-  const [res, moveCols, caseCols] = await Promise.all([
+  const [res, moveCols, caseCols, axisCols] = await Promise.all([
     sb.from('case_studies').select('*, case_moves(*), case_evidence(*)').order('created_at', { ascending: false }),
     // 결정 기록 컬럼 존재 확인. select 에 없는 컬럼을 넣으면 에러가 온다(head:true 트랩과 달리 정직하다).
     sb.from('case_moves').select('review_note,reviewed_by,reviewed_at').limit(1),
     sb.from('case_studies').select('review_note').limit(1),
+    // 이식성 축(마이그 20260915000001). 없으면 화면을 죽이지 않고 배너 + 기존 정보만 보인다.
+    sb.from('case_moves').select('transferability,transfer_note,preconditions').limit(1),
   ])
 
   if (res.error || !res.data) {
@@ -181,6 +209,9 @@ export default async function CasesPage() {
   const colErr = moveCols.error ?? caseCols.error
   const colMissing = colErr && (colErr.code === '42703' || colErr.code === 'PGRST204' || /review_note|reviewed_by|reviewed_at/.test(colErr.message))
   const locked = Boolean(colErr)
+  // 이식성 컬럼이 없으면 그 칸만 잠근다. 검수 자체는 계속 돌아가야 한다 —
+  // 새 축 하나 때문에 승인이 멈추면 이번 설계가 풀려던 바로 그 병목이 더 커진다.
+  const transferabilityLocked = Boolean(axisCols.error)
 
   const all = res.data as CaseRow[]
   const pending = all
@@ -191,15 +222,29 @@ export default async function CasesPage() {
     }))
     .filter((c) => c.review_status === 'draft' || c.moves.some((m) => m.review_status === 'draft'))
   const draftMoves = pending.reduce((n, c) => n + c.moves.filter((m) => m.review_status === 'draft').length, 0)
+  // 이식성 미판정 = 승인된 무브 중 판정이 없는 것. 컬럼이 없으면 세지 않는다 —
+  // "전부 미판정"과 "축이 없다"를 같은 숫자로 만들면 §7.1 위반이다.
+  const unrated = transferabilityLocked
+    ? null
+    : all.reduce((n, c) => n + (c.case_moves ?? []).filter((m) => m.review_status === 'approved' && !m.transferability).length, 0)
 
   return (
     <PageShell maxWidth={960}>
       {header}
 
       <p style={{ margin: 0, fontSize: 14, color: 'var(--text-body)' }}>
-        검수 대기 케이스 <b>{pending.length}건</b> · draft 무브 <b>{draftMoves}건</b>
-        <span style={{ color: 'var(--text-muted)' }}> (전체 케이스 {all.length}건 중 · 케이스 draft 이거나 draft 무브가 남은 것)</span>
+        승인 대기 무브 <b>{draftMoves}건</b> · 이식성 미판정 <b>{unrated === null ? '확인 불가' : `${unrated}건`}</b>
+        <span style={{ color: 'var(--text-muted)' }}> (검수 대기 케이스 {pending.length}건 / 전체 {all.length}건)</span>
       </p>
+
+      {transferabilityLocked && (
+        <Notice tone="warning" title="이식성 축 미적용 — 마이그레이션 20260915000001">
+          <code>case_moves.transferability</code> · <code>transfer_note</code> · <code>preconditions</code> 컬럼이 아직 없다({axisCols.error?.code ?? '사유 미기록'}).
+          승인·반려는 그대로 되지만 이식성 판정은 저장되지 않는다. 사람이{' '}
+          <code>supabase db query --linked -f supabase/migrations/20260915000001_case_reader_axis.sql</code> 로 적용한다.
+          이 배너가 보이는 동안 앵글 우선순위는 종전(등급순)이다 — &quot;이식성 HIGH 가 없다&quot;가 아니라 &quot;축이 아직 없다&quot;다.
+        </Notice>
+      )}
 
       {locked && (
         <Notice tone="danger" title={colMissing ? '결정 버튼 잠김 — 검수 기록 컬럼 미적용' : '결정 버튼 잠김 — 검수 기록 컬럼 확인 불가'}>
@@ -227,6 +272,8 @@ export default async function CasesPage() {
                 <div style={{ display: 'grid', gap: 12 }}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     <Chip k="병목" v={c.bottleneck} />
+                    {/* 선정 1순위 축. 빈칸으로 두지 않는다 — 빈칸은 "해당 없음"처럼 보인다. */}
+                    <Chip k="독자 문제" v={c.reader_problem ? (READER_PROBLEM_LABEL[c.reader_problem] ?? c.reader_problem) : '미지정'} />
                     <Chip k="모델" v={c.business_model} />
                     <Chip k="구매자" v={c.buyer_type} />
                     <Chip k="가격대" v={c.price_band} />
@@ -244,7 +291,7 @@ export default async function CasesPage() {
 
                   <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600 }}>무브 {c.moves.length}건</p>
                   {c.moves.map((m, i) => (
-                    <MoveBlock key={m.id} m={m} i={i} evidence={c.evidence.filter((e) => e.case_move_id === m.id)} locked={locked} />
+                    <MoveBlock key={m.id} m={m} i={i} evidence={c.evidence.filter((e) => e.case_move_id === m.id)} locked={locked} transferabilityLocked={transferabilityLocked} />
                   ))}
 
                   <section style={{ borderTop: '2px solid var(--border-strong)', paddingTop: 14, display: 'grid', gap: 8 }}>

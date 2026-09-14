@@ -24,14 +24,15 @@ import {
   COMMIT_PREFIXES, checkStaged, buildAgentEnv, AGENT_TOOLS, STEPS, runKeyFor,
   RESEARCH_TARGET, DRAFT_TARGET,
   buildDigest, perfFailure, recordStep, scoreboardRows, parsePerformance,
-  buildDecisionLogEntries, stagedJobs, selectAngles,
+  buildDecisionLogEntries, stagedJobs, selectAngles, pickAngles,
   nextContentSeq, contentCodeFor, writerPrompt, queueResolutions, partialFailures,
   commitOutcome, queueStepOutcome, resolveRunDate, buildCmoStatusEntry,
 } from './cmo-daily.mjs'
 import { buildStatusLogProperties } from './notion-status-log.mjs'
 import { validateStep, createTracker, readEvents, STEP_STATUS } from './agent-status.mjs'
 import {
-  buildPlan, enforceFailureQuota, coverageGaps, parseFrontmatter, setFrontmatterStatus, PAIRABLE_MIN,
+  buildPlan, enforceFailureQuota, coverageGaps, coverageDemand, pendingByBottleneck, demandLine,
+  parseFrontmatter, setFrontmatterStatus, PAIRABLE_MIN,
 } from './research-queue.mjs'
 import { renderDashboard, renderRunLine, renderProblems, foldEvents, MARKS, STALE_MS } from './status-render.mjs'
 import { normalizeFacets, buildPmfEntry } from './pmf-assess.mjs'
@@ -780,6 +781,10 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
     eq('다양성 — 나머지는 deferred', only.deferred.length, 1)
 
     // 앞서 만든 제외 로직과 충돌하지 않는다.
+    // ⚠️ 여기는 **레거시(source_move NULL) 경로**다. `usedSlugs` 는 "어느 무브였는지
+    //    모르는 content_items 행"에서 온 슬러그이고, 그때는 종전대로 그 케이스를
+    //    통째로 제외하는 게 맞다. 기대값을 바꾸지 마라 — 무브 단위 제외는
+    //    `usedMoveIds` 쪽이고 §30 에서 따로 검사한다(AC-8).
     const withExclude = selectAngles({ moves: two, usedSlugs: new Set([DUO]), n: 2 })
     check('다양성 — content_items 제외가 우선한다(그 슬러그는 아예 안 나온다)',
       !withExclude.moves.some((m) => m.slug === DUO))
@@ -1332,6 +1337,223 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   check('PMF 상태로그 — 최종 종료가 finish() 를 지나고 종료코드 규약은 그대로',
     /await finish\(match\.status === 'matched' \? 0 : match\.status === 'no_match' \? 1 : 2\)/.test(pmfSrc))
   check('PMF 상태로그 — 토큰 없으면 §11 폴백 디렉터리로', /'ops', 'state', 'status-log-pending'/.test(pmfSrc))
+}
+
+// ════════════════════════════════════════════════════════════
+// 30) 독자 이식성 축 (마이그 20260915000001) — AC-1~8 · 13~15
+//
+// 무엇이 틀렸었나 (2026-09-14 실측)
+//   · `content_items` 에 `source_move` 가 없어 제외가 슬러그 단위였다. 승인 무브
+//     30건이 케이스 15개에 정확히 2개씩 붙어 있었으니 형제 약 15건이 유실 중이었다.
+//   · `coverageGaps()` 가 승인분만 세서 AWARENESS(승인 2 · 검수대기 11)를 매일
+//     갭으로 냈고, 동점 tiebreak 가 알파벳 순이라 순서도 안 바뀌었다.
+//     그 결과가 `research_queue` 17건 중 AWARENESS 12건이다.
+// ════════════════════════════════════════════════════════════
+{
+  // ── 실측 분포를 그대로 만든다. 숫자를 손으로 바꾸지 마라 — 이게 회귀 기준이다.
+  const MEASURED = {
+    AWARENESS: { draft: 11, approved: 2 },
+    UNIT_ECONOMICS: { draft: 2, approved: 2 },
+    DISTRIBUTION: { draft: 1, approved: 2 },
+    RETENTION: { draft: 1, approved: 2 },
+    CONVERSION: { draft: 0, approved: 2 },
+    SUPPLY: { draft: 0, approved: 3 },
+    TRUST: { draft: 0, approved: 2 },
+  }
+  const mStudies = []
+  const mMoves = []
+  for (const [b, n] of Object.entries(MEASURED)) {
+    for (const st of ['draft', 'approved']) {
+      for (let i = 0; i < n[st]; i++) {
+        const id = `${b}-${st}-${i}`
+        mStudies.push({ id, slug: id.toLowerCase(), brand_name: id, bottleneck: b, review_status: st })
+        // 승인 케이스에는 승인 무브 2건씩 — 실측(승인 무브 30 = 케이스 15 × 2)과 같은 모양.
+        for (const k of [0, 1]) {
+          mMoves.push({
+            id: `${id}-m${k}`, case_study_id: id, lever: k ? 'PRICING' : 'OFFER', claim: 'x',
+            evidence_grade: 'A', outcome_direction: 'positive', review_status: st,
+          })
+        }
+      }
+    }
+  }
+  eq('이식성 — 실측 재현: 승인 케이스 15곳', mStudies.filter((s) => s.review_status === 'approved').length, 15)
+  eq('이식성 — 실측 재현: 승인 무브 30건', mMoves.filter((m) => m.review_status === 'approved').length, 30)
+
+  const reviewPending = pendingByBottleneck(mStudies)
+  eq('AC-1 — AWARENESS 검수대기 11건을 센다', reviewPending.AWARENESS, 11)
+  eq('AC-1 — CONVERSION 검수대기는 0건', reviewPending.CONVERSION, 0)
+
+  // ── AC-1. 대기를 세면 AWARENESS 는 갭이 아니고 CONVERSION·TRUST 는 갭이다.
+  const dem = coverageDemand(mStudies, mMoves, reviewPending)
+  const gapNames = dem.gaps.map((g) => g.bottleneck)
+  check('AC-1 — AWARENESS 가 갭에서 빠진다 (조사가 아니라 승인이 병목)',
+    !gapNames.includes('AWARENESS'), JSON.stringify(gapNames))
+  check('AC-1 — CONVERSION 이 갭이다', gapNames.includes('CONVERSION'), JSON.stringify(gapNames))
+  check('AC-1 — TRUST 가 갭이다', gapNames.includes('TRUST'), JSON.stringify(gapNames))
+  check('AC-1 — AWARENESS 는 "보류"로 따로 잡힌다 (조용히 사라지지 않는다)',
+    dem.held.some((h) => h.bottleneck === 'AWARENESS' && h.pending === 11), JSON.stringify(dem.held))
+  check('AC-1 — SUPPLY(승인 3곳=목표선)는 애초에 갭도 보류도 아니다',
+    !gapNames.includes('SUPPLY') && !dem.held.some((h) => h.bottleneck === 'SUPPLY'))
+
+  // ── AC-2. 같은 입력의 failure_quota 슬롯이 AWARENESS 가 아니다.
+  const plan2 = buildPlan({ n: 2, gaps: dem.gaps })
+  const fq = plan2.find((r) => r.reason === 'failure_quota')
+  check('AC-2 — 실패 할당 슬롯이 존재한다', Boolean(fq), JSON.stringify(plan2))
+  check('AC-2 — 그 슬롯의 대상이 AWARENESS 가 아니다',
+    fq.target_bottleneck !== 'AWARENESS', String(fq.target_bottleneck))
+
+  // ── AC-3. 전부 동점·대기 0이면, 어제 계획된 축이 오늘 1위가 아니다.
+  {
+    const flat = [{ id: 'x', slug: 'x', brand_name: 'x', bottleneck: 'TRUST', review_status: 'approved' }]
+    const flatMoves = [{ id: 'xm', case_study_id: 'x', lever: 'OFFER', claim: 'x', evidence_grade: 'A', outcome_direction: 'positive', review_status: 'draft' }]
+    const zero = Object.fromEntries(Object.keys(MEASURED).map((b) => [b, 0]))
+    const tiedBefore = coverageGaps(flat, flatMoves, zero)
+    eq('AC-3 — 동점 상태 기준선은 알파벳 1위(AWARENESS)였다', tiedBefore[0].bottleneck, 'AWARENESS')
+    const tiedAfter = coverageGaps(flat, flatMoves, zero, { AWARENESS: '2026-09-13T00:00:00Z' })
+    check('AC-3 — 어제 AWARENESS 를 계획했으면 오늘 1위가 아니다',
+      tiedAfter[0].bottleneck !== 'AWARENESS', tiedAfter.map((g) => g.bottleneck).join(','))
+    eq('AC-3 — 한 번도 계획 안 한 축이 먼저 온다', tiedAfter[0].bottleneck, 'CONVERSION')
+    check('AC-3 — 밀린 AWARENESS 는 사라지지 않고 뒤로 간다',
+      tiedAfter[tiedAfter.length - 1].bottleneck === 'AWARENESS', tiedAfter.map((g) => g.bottleneck).join(','))
+  }
+
+  // ── AC-4. pending 이 null 이면 종전과 동일. 확인 불가를 "대기 많음"으로 접지 않는다.
+  eq('AC-4 — pending=null 은 종전과 같은 갭 목록',
+    JSON.stringify(coverageGaps(mStudies, mMoves, null).map((g) => g.bottleneck)),
+    JSON.stringify(coverageGaps(mStudies, mMoves).map((g) => g.bottleneck)))
+  check('AC-4 — 그때 AWARENESS 는 다시 갭이다 (대기를 모르면 감안하지 않는다)',
+    coverageGaps(mStudies, mMoves, null).some((g) => g.bottleneck === 'AWARENESS'))
+  eq('AC-4 — 확인 불가는 여전히 null 이다 (0개가 아니다)', coverageGaps(null, mMoves, null), null)
+
+  // ── DIGEST 한 줄 ──
+  {
+    const line = demandLine(dem.gaps, dem.held)
+    check('이식성 — DIGEST 줄이 수요와 보류를 가른다', line.startsWith('수요: ') && line.includes(' ‖ 보류: '), line)
+    check('이식성 — 보류 줄에 검수대기 수와 사유가 있다', /AWARENESS\(2\/대기11 — 승인 병목\)/.test(line), line)
+    check('이식성 — 대기 확인 불가는 ? 로 찍는다 (0 으로 접지 않는다)',
+      demandLine(coverageGaps(mStudies, mMoves, null)).includes('대기?'), demandLine(coverageGaps(mStudies, mMoves, null)))
+  }
+}
+
+// ── 앵글 정렬: 이식성이 등급보다 앞선다 (AC-5~7) ─────────────────────────
+{
+  const mv = (id, grade, transferability) => ({
+    id, lever: 'OFFER', claim: 'x', evidence_grade: grade, outcome_direction: 'positive',
+    review_status: 'approved', transferability,
+    case_studies: { slug: `slug-${id}`, brand_name: id, bottleneck: 'TRUST', review_status: 'approved' },
+  })
+
+  const ac5 = selectAngles({ moves: [mv('nullA', 'A', null), mv('highC', 'C', 'HIGH')], n: 2 })
+  eq('AC-5 — {HIGH,C} 가 {null,A} 보다 앞선다', ac5.moves[0].id, 'highC')
+
+  const ac6 = selectAngles({ moves: [mv('lowA', 'A', 'LOW'), mv('nullC', 'C', null)], n: 2 })
+  eq('AC-6 — {null,C} 가 {LOW,A} 보다 앞선다 (NULL 은 LOW 가 아니다)', ac6.moves[0].id, 'nullC')
+
+  const ac7 = selectAngles({ moves: [mv('highD', 'D', 'HIGH'), mv('nullD', 'D', null), mv('lowD', 'D', 'LOW')], n: 3 })
+  eq('AC-7 — 등급 D 는 이식성 HIGH 한 건만 열린다', ac7.moves.length, 1)
+  eq('AC-7 — 열린 것은 HIGH 쪽이다', ac7.moves[0].id, 'highD')
+
+  eq('이식성 — 미판정 건수를 센다', selectAngles({ moves: [mv('n1', 'A', null), mv('h1', 'A', 'HIGH')], n: 2 }).unrated, 1)
+
+  // 회귀: 컬럼이 없어 전부 미판정이면 정렬 결과가 종전(등급순)과 같아야 한다.
+  const legacyOrder = selectAngles({ moves: [mv('c', 'C'), mv('a', 'A'), mv('b', 'B')], n: 3 }).moves.map((m) => m.grade)
+  eq('이식성 — 축이 없으면 기존 등급순 그대로', JSON.stringify(legacyOrder), JSON.stringify(['A', 'B', 'C']))
+}
+
+// ── D1: 형제 무브 유실 (AC-8) · 마이그 미적용 폴백 (AC-15) ────────────────
+//
+// 부품(selectAngles)만 보지 않고 **실제 IO 경로(pickAngles)** 로 확인한다.
+// content_items 를 어떻게 읽어 usedSlugs / usedMoveIds 로 가르는지가 이 버그의 자리다.
+{
+  // PostgREST 응답 흉내. `.select()` 결과는 그대로 await 되기도 하고 `.eq()` 를 더 타기도 한다.
+  const res = (r) => ({ ...r, eq: () => res(r), then: (ok, no) => Promise.resolve(r).then(ok, no) })
+  const NO_COL = { data: null, error: { code: '42703', message: 'column case_moves.transferability does not exist' } }
+  const emptyRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'angle-'))
+
+  const DUO = 'duolingo-streak'
+  const duoStudy = { slug: DUO, brand_name: 'Duolingo', bottleneck: 'RETENTION', review_status: 'approved' }
+  const duoMoves = [
+    { id: 'duo-product', lever: 'PRODUCT_FEATURE', claim: 'x', evidence_grade: 'A', outcome_direction: 'positive', review_status: 'approved', transferability: null, case_studies: duoStudy },
+    { id: 'duo-community', lever: 'COMMUNITY', claim: 'x', evidence_grade: 'A', outcome_direction: 'positive', review_status: 'approved', transferability: null, case_studies: duoStudy },
+  ]
+  const sb = (items, { axis = true } = {}) => ({
+    from: (t) => ({
+      select: (cols) => {
+        if (t === 'case_moves') return res(axis || !/transferability/.test(cols) ? { data: duoMoves, error: null } : NO_COL)
+        if (t === 'content_items') return res(axis || !/source_move/.test(cols) ? { data: items, error: null } : NO_COL)
+        return res({ data: [], error: null })
+      },
+    }),
+  })
+
+  // AC-8 (1) source_move 가 기록돼 있으면 형제는 오늘 후보에 남는다.
+  const withMove = await pickAngles(sb([{ source_case: DUO, source_move: 'duo-product' }]), 2, emptyRepo)
+  eq('AC-8 — 무브 단위 제외: 쓴 무브만 빠진다', withMove.moves.length, 1)
+  eq('AC-8 — 남는 것은 형제 무브다', withMove.moves[0].id, 'duo-community')
+
+  // AC-8 (2) source_move 가 NULL 인 레거시 행은 종전대로 슬러그를 통째로 뺀다.
+  const legacy = await pickAngles(sb([{ source_case: DUO, source_move: null }]), 2, emptyRepo)
+  eq('AC-8 — 레거시(source_move NULL) 행은 슬러그 단위로 전부 제외', legacy.moves.length, 0)
+  check('AC-8 — 그건 버그가 아니라 §7.1 이다 (모르는 것을 "다른 무브"로 접지 않는다)',
+    legacy.deferred.length === 0)
+
+  // AC-15. 마이그 미적용이어도 죽지 않고, 보고에 미적용을 반드시 남긴다.
+  const pendingMig = await pickAngles(sb([{ source_case: 'other-case' }], { axis: false }), 2, emptyRepo)
+  check('AC-15 — 마이그 미적용에서도 죽지 않는다', !pendingMig.error, String(pendingMig.error))
+  eq('AC-15 — 그래도 후보는 정상으로 뽑힌다', pendingMig.moves.length, 1)
+  eq('AC-15 — 미적용 통지가 2건(무브 축 · source_move) 나온다', (pendingMig.notices ?? []).length, 2)
+  check('AC-15 — 보고에 "이식성 축 미적용" 이 반드시 나온다',
+    pendingMig.notices.every((x) => x.includes('이식성 축 미적용')), JSON.stringify(pendingMig.notices))
+  check('AC-15 — 마이그 번호를 같이 찍는다 (어느 파일을 적용해야 하는지)',
+    pendingMig.notices.every((x) => x.includes('20260915000001')), JSON.stringify(pendingMig.notices))
+  check('AC-15 — cmo-daily 는 dry-run 에서도 그 문구를 로그에 올린다',
+    /const picked = await pickAngles\(supabase, DRAFT_TARGET, repoRoot\)[\s\S]{0,200}for \(const note of notices\) say/
+      .test(fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')))
+  fs.rmSync(emptyRepo, { recursive: true, force: true })
+}
+
+// ── 권한 경계 grep (AC-13 · AC-14) ──────────────────────────────────────
+//
+// 문서로 적어 둔 권한 경계는 지켜지지 않는다. 그래서 여기서 센다.
+{
+  const read = (f) => fs.readFileSync(path.join(process.cwd(), f), 'utf-8')
+  // 이번 작업이 만진 경로. 승인·판정을 쓰는 **사람 전용** 두 파일은 뺀다.
+  const TOUCHED = [
+    'scripts/cmo-daily.mjs', 'scripts/research-queue.mjs', 'scripts/case-draft-stage.mjs',
+    'scripts/case-research.mjs', 'scripts/case-pipeline-verify.mjs',
+    'lib/cases/draft.ts', 'lib/cases/review.ts', 'lib/cases/publish-gate.ts',
+    'app/cases/page.tsx', 'app/cases/decision-form.tsx',
+  ]
+  const HUMAN_ONLY = ['app/cases/actions.ts', 'scripts/case-review.mjs']
+
+  // AC-13. review_status 를 approved/rejected 로 **쓰는** 구문이 0건.
+  for (const f of TOUCHED) {
+    const src = read(f)
+    check(`AC-13 — ${f} 은 review_status 를 승인/반려로 쓰지 않는다`,
+      !/review_status\s*:\s*['"`](approved|rejected)['"`]/.test(src)
+      && !/\.update\(\s*\{[^}]*review_status/.test(src), f)
+  }
+  check('AC-13 — 쓰는 경로는 사람 전용 2개 파일에만 있다',
+    HUMAN_ONLY.every((f) => /review_status/.test(read(f))))
+
+  // AC-14. transferability 를 기계가 쓰는 경로 0건.
+  const writesTransferability = (src) => {
+    for (const m of src.matchAll(/\.(update|insert|upsert)\(/g)) {
+      if (/transferability/.test(src.slice(m.index, m.index + 400))) return true
+    }
+    return false
+  }
+  for (const f of TOUCHED) {
+    check(`AC-14 — ${f} 은 transferability 를 쓰지 않는다 (읽기만)`, !writesTransferability(read(f)), f)
+  }
+  check('AC-14 — 값이 들어오는 곳은 /cases 서버 액션', /transferability_by: input\.by/.test(read('app/cases/actions.ts')))
+  check('AC-14 — 그리고 CLI 하나뿐이다', /transferability: next/.test(read('scripts/case-review.mjs')))
+  check('AC-14 — 그 CLI 는 --by 가 필수다',
+    /사용: transferability[\s\S]{0,300}--by 는 필수다/.test(read('scripts/case-review.mjs')))
+  check('AC-14 — 초안 → DB 변환(toRows)은 관측 2필드만 넣는다',
+    /transfer_note: m\.transfer_note/.test(read('lib/cases/draft.ts'))
+    && !/transferability:/.test(read('lib/cases/draft.ts')))
 }
 
 // ════════════════════════════════════════════════════════════

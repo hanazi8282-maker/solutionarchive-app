@@ -1,0 +1,9 @@
+근거 원문 (직접 읽은 것만 답니다)
+
+매출 수치 출처: Allbirds 2023 Q4 실적발표(8-K 첨부), SEC EDGAR 접수 2024-03-12 — https://www.sec.gov/Archives/edgar/data/1653909/000165390924000012/allbirdsq42023earningsrele.htm
+원문 발췌: "Full-year 2023 net revenue decreased 14.7% to $254.1 million compared to $297.8 million in 2022... Marketing expense in 2023 totaled $49.0 million compared to $59.1 million in 2022... 19.3% from 19.9%."
+
+CEO 발언 출처: 2022년 4분기 실적발표(2023-03-10 컨퍼런스콜)를 인용한 3차 블로그 — https://www.amynewman.com/lcc/2023/3/10/allbirds-admits-mistakes
+원문 발췌: "we did not increase our brand awareness to the level that we anticipated"
+
+CEO 발언은 실적발표 원문 전사가 아니라 이를 인용한 3차 기사에서 가져온 것이라, 매출 수치 자체의 근거는 아니고 왜 인지도가 오르지 않았는지에 대한 경영진의 인정 서사만 뒷받침한다. 매출 14.7% 감소와 마케팅비 비중 19.9%→19.3% 하락은 SEC 접수 8-K 원문(감사 대상 재무제표 항목)에서 직접 확인했다.

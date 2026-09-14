@@ -15,6 +15,18 @@ const LINKS = [
   { href: '/analyze', match: '/analyze', label: '소구점 분석' },
 ] as const
 
+/**
+ * 사용설명서. 화면 이름과 실제로 하는 일이 다른 곳이 여럿이라(예: "발행 기록"은
+ * 기록 열람이 아니라 어긋난 연결을 고치는 수리소다) 처음 보는 사람이 헤맨다.
+ *
+ * 위 LINKS 와 **다른 자리에 둔다** — 이건 앱 화면이 아니라 앱 밖으로 나가는 링크다.
+ * 화면 이동 메뉴에 섞으면 뒤로가기로 돌아올 수 있는 곳처럼 보인다.
+ *
+ * ⚠️ claude.ai 아티팩트라 **작성자 계정으로 로그인해야 열린다.** 팀이 늘어 공유가
+ *    필요해지면 아티팩트 공유를 켜거나 문서를 앱 안으로 옮긴다.
+ */
+const MANUAL_URL = 'https://claude.ai/code/artifact/775a2ae2-108f-4664-b093-4f9f3e8bb437'
+
 /** email 은 레이아웃이 판정해 넘긴다. 허용된 로그인일 때만 값이 있다. */
 export function AppNav({ email }: { email: string | null }) {
   const path = usePathname() ?? ''
@@ -68,8 +80,24 @@ export function AppNav({ email }: { email: string | null }) {
             )
           })}
         </ul>
-        {email && (
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          {/* 설명서 — 화면 이동이 아니라 새 탭이다. 아이콘으로 그 사실을 먼저 알린다. */}
+          <a
+            href={MANUAL_URL}
+            target="_blank"
+            rel="noreferrer"
+            title="처음 보는 사람용 사용설명서 — 화면별로 무엇을 하는 곳인지, 내가 뭘 눌러야 하는지 (새 탭)"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px',
+              borderRadius: 'var(--radius-md)', fontSize: 13, whiteSpace: 'nowrap', textDecoration: 'none',
+              border: '1px solid var(--sidebar-border)', background: 'transparent', color: 'var(--sidebar-fg)',
+            }}
+          >
+            <span aria-hidden="true" style={{ fontSize: 12, lineHeight: 1 }}>↗</span>
+            설명서
+          </a>
+          {email && (
+          <>
             <span
               title={email}
               style={{ color: 'var(--sidebar-fg)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}
@@ -87,8 +115,9 @@ export function AppNav({ email }: { email: string | null }) {
                 로그아웃
               </button>
             </form>
-          </div>
-        )}
+          </>
+          )}
+        </div>
       </div>
     </nav>
   )

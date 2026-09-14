@@ -1268,7 +1268,7 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   check('상태로그 — 기록 실패를 status_log=failed 스텝으로 남긴다',
     /stepKey: 'status_log'/.test(src) && /status: r\.ok \? 'ok' : 'failed'/.test(src))
   check('상태로그 — 기록 실패는 ❌ 줄로 로그에 남는다(DIGEST 병목 진단에 실린다)', /`- ❌ \\`status_log\\` /.test(src))
-  check('상태로그 — 요약 빌드 예외도 루프를 막지 않는다(try/catch)', /try \{\s*const unlinkedLine[\s\S]{0,300}\} catch \(e\) \{\s*r = \{ ok: false/.test(src))
+  check('상태로그 — 요약 빌드 예외도 루프를 막지 않는다(try/catch)', /try \{\s*const unlinkedLine[\s\S]{0,700}\} catch \(e\) \{\s*r = \{ ok: false/.test(src))
   check('상태로그 — dry-run 은 쓰지 않는다', /if \(dryRun\) \{ say\(`- ⏭️ \\`status_log\\`/.test(src))
   const recBody = code.slice(code.indexOf('async function recordDailyStatus'), code.indexOf('const pre = await runStep'))
   check('상태로그 — (검사 자체) recordDailyStatus 본문을 잘라냈다', recBody.length > 200 && recBody.includes('recordStatusLog('), `len ${recBody.length}`)
@@ -1337,6 +1337,12 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   check('PMF 상태로그 — 최종 종료가 finish() 를 지나고 종료코드 규약은 그대로',
     /await finish\(match\.status === 'matched' \? 0 : match\.status === 'no_match' \? 1 : 2\)/.test(pmfSrc))
   check('PMF 상태로그 — 토큰 없으면 §11 폴백 디렉터리로', /'ops', 'state', 'status-log-pending'/.test(pmfSrc))
+  // 2026-09-15: CMO 루프는 pendingDir 없이 recordStatusLog 를 불러, Notion 이 죽은 밤의 기록이
+  // ❌ 로그 한 줄로만 남고 다음 세션이 올릴 폴백 파일이 없었다. 같은 디렉터리로 배선됐는지 본다.
+  const cmoSrc = fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')
+  check('CMO 상태로그 — recordStatusLog 에 §11 폴백 디렉터리를 넘긴다',
+    /recordStatusLog\(\s*buildCmoStatusEntry\([\s\S]{0,400}?pendingDir: path\.join\(process\.cwd\(\), 'ops', 'state', 'status-log-pending'\)/.test(cmoSrc))
+  check('CMO 상태로그 — 폴백 파일이 생기면 로그에 경로를 남긴다', /r\.pendingPath/.test(cmoSrc))
 }
 
 // ════════════════════════════════════════════════════════════

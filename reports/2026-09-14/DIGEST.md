@@ -79,6 +79,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":2})
 - ✅ `stage` 발행 대기 스테이징 ({"staged":2})
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":19})
+- ℹ️ Notion 푸시: c209fde36f3 ✅ CASE-convertkit-concierge-migration-conversion → https://app.notion.com/p/CASE-convertkit-concierge-migration-conversion-3db100b7ffb4811ca7d4d112742f11f7 푸시 완료 — 초안 2건 · 신규케이스 2건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-09-15-CMO 기록·재확인
 
 _실행 키 `cmo-2026-09-14-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

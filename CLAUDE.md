@@ -317,6 +317,29 @@ Dothegy 를 가리키므로 매번 확인이 필요하다. 적용 직후 파일 
 case_moves approved 30·draft 30, case_studies approved 15·draft 13 (전후 동일), 새 컬럼 비NULL 0행.
 참고: 이 시점 운영 앱은 로그인 없이 공개 상태라 /cases 결정 버튼이 인증 없이 열린다 — Google 로그인 PR 진행 중.
 
+2026-09-14 (2), 남헌 명시적 승인 — 같은 원칙에 대한 1회성 예외. **이번 1건에 한정**한다.
+마이그레이션 1건을 클로드코드(CEO-STAFF 세션)가 직접 적용함:
+
+- `20260915000001_case_reader_axis.sql` (PR #87)
+  — `case_studies` 에 `reader_problem`, `case_moves` 에 `transfer_note`·`preconditions`·
+    `transferability`·`transferability_by`·`transferability_at`, `content_items` 에 `source_move`.
+    `ADD COLUMN IF NOT EXISTS` 7개 + 부분 인덱스 1개, 전부 nullable. 롤백 파일 동봉.
+
+적용 전 `supabase/.temp/linked-project.json` 으로 대상이 solutionarchive(`qmgrfqjfxqhxuufrnkwf`)임을
+확인함 — 이 세션의 supabase MCP 는 dothegy-os 를 가리키고 있어서 MCP 를 쓰지 않고 CLI(`supabase db
+query --linked -f`)로 적용했다. 파일 하단 검증을 전부 실행: **양성** 컬럼 7개·인덱스 1개 존재 /
+**백필 0건** `reader_problem`·`transferability`·`source_move` 비NULL 전부 0 / **무변경** case_moves
+approved 34·draft 28, case_studies approved 15·draft 15 (적용 전후 동일) / **음성** `transferability=
+'MAYBE'` → 23514, `reader_problem='make but no money'` → 23514 (둘 다 ROLLBACK, 데이터 영향 없음).
+
+**같은 세션에서 백필 1건도 남헌 승인으로 실행함** — `content_items.source_move` 17행.
+값의 출처는 짐작이 아니라 `drafts/threads/*.stage.json` 에 기록된 실제 `move_id` 다(17건 전부 36자
+완전 UUID, `case_moves` 존재 확인 17/17, 슬러그 교차확인 불일치 0건). 적용 후 `source_move` 채워진 행
+17 / `source_case` 있는데 NULL 인 레거시 행 13. 되돌리려면 `UPDATE content_items SET source_move=NULL`.
+
+적용·백필 후 실 DB 상대 `pickAngles` 후보가 0 → 11건이 됐고, 조사 수요 계산에서 AWARENESS 가
+`보류(승인 병목)` 로 빠지고 CONVERSION·DISTRIBUTION·RETENTION·TRUST 가 수요로 올라오는 것을 확인했다.
+
 **원칙 문구(§10.1) 자체는 변경하지 않는다. 다음 마이그레이션부터는 별도 승인이
 없는 한 다시 원칙대로 사람이 적용한다.**
 

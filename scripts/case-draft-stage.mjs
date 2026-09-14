@@ -24,13 +24,14 @@
 //    재현돼야 "그때는 되던 게 지금 되는가"를 확인할 수 있다.
 //
 // 종료 코드: 0 = 전부 pending_review / 2 = 확인 불가 / 3 = draft 폴백(마이그 미적용)
-//            4 = CG-1 게이트 미통과 (등급 C 인용인데 귀속 문구 없음 → draft 로 눕힘)
+//            4 = 발행 게이트 미통과 → draft 로 눕힘
+//                CG-1 등급 C 인용인데 귀속 문구 없음 / CG-2 등급 D 인용인데 본문에 수치 있음
 //   배치일 때는 **가장 나쁜 결과**가 종료 코드가 된다 (2 > 4 > 3 > 0).
 //   한 건이 막혔는데 exit 0 이 나오면 그 건은 영원히 아무도 안 본다.
 import fs from 'node:fs'
 import { createClient } from '../lib/supabase/server.ts'
 import { linkDecisionLog } from '../lib/predictions/link.ts'
-import { attributionGate, attributionHint } from '../lib/cases/publish-gate.ts'
+import { attributionGate, attributionHint, numericGate, numericHint } from '../lib/cases/publish-gate.ts'
 
 const CHANNEL_ID = '64558fd1-06a5-4440-8fb1-bb78375479e0' // threads / @solution_arch_
 
@@ -125,7 +126,7 @@ console.log('## 스테이징 결과')
 for (const s of summary) {
   const mark = s.exit === 0 ? '✅' : s.exit === 4 ? '⛔' : s.exit === 3 ? '⚠️' : '❌'
   const what = s.exit === 0 ? 'pending_review'
-    : s.exit === 4 ? 'CG-1 차단 → draft'
+    : s.exit === 4 ? '발행 게이트(CG-1/CG-2) 차단 → draft'
       : s.exit === 3 ? '마이그 미적용 폴백 → draft' : '확인 불가'
   console.log(`- ${mark} ${s.content_code} — ${what} (exit ${s.exit})`)
 }
@@ -161,15 +162,27 @@ async function stageOne(job) {
     title: job.title,
     twist_line: job.twist_line ?? null,
     source_case: job.case_slug,
+    // ★ 어느 **무브**로 썼는지 남긴다 (D1). 이게 없으면 앵글 선택이 슬러그 단위로
+    //   제외돼 같은 케이스의 형제 무브가 통째로 유실된다 — 실측 약 15건.
+    //   컬럼이 없으면(마이그 20260915000001 미적용) 아래에서 이 키만 빼고 다시 쓴다.
+    source_move: job.move_id,
     status: 'proposed', // 자동 제안. 사람이 고르기 전까지 초안에 안 잡힌다
   }
   {
-    const { error } = await supabase.from('content_items').upsert(item, { onConflict: 'code' })
+    let { error } = await supabase.from('content_items').upsert(item, { onConflict: 'code' })
+    if (error && (error.code === '42703' || error.code === 'PGRST204')) {
+      // 조용히 떨어뜨리지 않는다(§7.2). 이 상태로 저장하면 내일 형제 무브가 유실된다.
+      const { source_move: _dropped, ...withoutMove } = item
+      console.log('⚠️ content_items.source_move 컬럼이 없다 — 마이그 20260915000001 미적용.')
+      console.log(`   그 축을 빼고 저장한다. 이 행(${job.content_code})은 앵글 선택에서 슬러그 단위로 제외돼`)
+      console.log(`   ${job.case_slug} 의 형제 무브가 후보에서 통째로 빠진다. 마이그를 적용하고 source_move=${job.move_id} 를 채워야 풀린다.`)
+      ;({ error } = await supabase.from('content_items').upsert(withoutMove, { onConflict: 'code' }))
+    }
     if (error) {
       console.error(`⚠️ 확인 불가: content_items 저장 실패 — ${error.code} ${error.message}`)
       return 2
     }
-    console.log(`✅ content_items ${job.content_code} (status=proposed)`)
+    console.log(`✅ content_items ${job.content_code} (status=proposed, source_move=${job.move_id})`)
   }
 
   // ── 2) 초안 행 ────────────────────────────────────────────
@@ -226,7 +239,7 @@ async function stageOne(job) {
     return await supabase.from('posts').insert(row).select('id,status').single()
   }
 
-  // ── 2-1) CG-1 발행 게이트 ─────────────────────────────────
+  // ── 2-1) 발행 게이트 CG-1 · CG-2 ─────────────────────────
   //
   // 등급 C 무브를 인용하는 초안은 본문에 출처 귀속 문구가 있어야 pending_review 로 간다
   // (L-62 결정). 순수 로컬 텍스트 검사다 — 어떤 외부 API 도 부르지 않는다.
@@ -235,23 +248,28 @@ async function stageOne(job) {
   //   날리면 사람이 고칠 대상 자체가 사라진다. 대신 exit 4 로 "게이트에서 막혔다"를 구분한다.
   //   이미 pending_review 였던 글이 나중에 강등돼 막히는 경우도 여기로 온다 — 그때는
   //   **끌어내리는 게 맞다.** 등급이 내려간 글을 발행 대기에 그대로 두면 L-63 의 재발이다.
-  const gate = attributionGate(
-    [{ ...move, slug: job.case_slug, brand_name: move.case_studies?.brand_name ?? null }],
-    body,
-  )
-  console.log(`${gate.ok ? '✅' : '❌'} ${gate.code} — ${gate.reason}`)
-  if (gate.matched) console.log(`   걸린 문구: ${gate.matched}`)
-  if (gate.caveat) console.log(`   ⚠️ ${gate.caveat}`)
+  const gateMoves = [{ ...move, slug: job.case_slug, brand_name: move.case_studies?.brand_name ?? null }]
+  // CG-2 는 CG-1 과 대상 등급이 겹치지 않는다(C 와 D). 둘 다 돌리고 **먼저 걸린 쪽**을 낸다.
+  const gates = [
+    { result: attributionGate(gateMoves, body), hint: attributionHint },
+    { result: numericGate(gateMoves, body), hint: numericHint },
+  ]
+  for (const { result } of gates) {
+    console.log(`${result.ok ? '✅' : '❌'} ${result.code} — ${result.reason}`)
+    if (result.matched) console.log(`   걸린 문구: ${result.matched}`)
+    if (result.caveat) console.log(`   ⚠️ ${result.caveat}`)
+  }
 
-  if (!gate.ok) {
+  const blocked = gates.find((g) => !g.result.ok)
+  if (blocked) {
     const res = await write('draft')
     if (res.error) {
       console.error(`⚠️ 확인 불가: posts 저장 실패 — ${res.error.code} ${res.error.message}`)
       return 2
     }
-    console.log(`❌ ${gate.code} 미통과 — status='draft' 로 눕혔다 (posts ${res.data.id}).`)
+    console.log(`❌ ${blocked.result.code} 미통과 — status='draft' 로 눕혔다 (posts ${res.data.id}).`)
     console.log('   pending_review 로 올리려면 본문을 고치고 다시 돌려라.')
-    for (const line of attributionHint()) console.error(`   ${line}`)
+    for (const line of blocked.hint()) console.error(`   ${line}`)
     return 4
   }
 

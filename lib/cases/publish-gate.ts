@@ -10,6 +10,9 @@
 /** 등급 C 무브를 인용하는 초안은 본문에 출처 귀속 문구가 있어야 발행 대기로 간다. */
 export const CG_1 = 'CG-1'
 
+/** 등급 D 무브를 인용하는 초안 본문에는 수치가 들어갈 수 없다. */
+export const CG_2 = 'CG-2'
+
 export type GateMove = {
   evidence_grade: string
   lever?: string | null
@@ -117,6 +120,67 @@ export function attributionGate(moves: GateMove[], body: string): GateResult {
     matched: null,
     caveat: null,
   }
+}
+
+// ────────────────────────────────────────────────────────────
+// CG-2 — 등급 D 초안의 숫자 차단
+// ────────────────────────────────────────────────────────────
+//
+// 왜 지금 생겼나. 이식성 축(20260915000001)이 **등급 D 무브를 여는 문을 하나 냈다** —
+// `transferability === 'HIGH'` 인 D 는 앵글 후보가 된다. D 는 정의상 "수치가 없는
+// 무브"다. 그러니 그 무브를 딛고 쓴 글에 숫자가 나오면 그 숫자는 우리 근거에서
+// 나온 게 아니다. 작가의 기억이거나 모델의 환각이다.
+//
+// "등급을 내려도 §7.1 은 안 내려간다"의 구체적 장치다. 근거 없는 숫자가 본문에
+// 들어오는 **유일한 신규 경로**를 그 자리에서 닫는다.
+//
+// ★ 이 검사가 확인하는 것: 등급 D 를 인용한 본문에 수치 표기가 있는가.
+//   확인하지 못하는 것: 그 숫자가 **그 D 무브에 대한 것인가.** 다른 A 무브의
+//   숫자를 같은 글에 적었어도 걸린다. 그건 과차단이 아니라 설계다 — 한 글은
+//   무브 1개를 딛고 쓰고(작가 규칙), 그래서 본문의 숫자는 그 무브의 것이어야 한다.
+const NUMERIC_CLAIM = /\d+\s*(%|배|억|만원|명|[xX])/
+
+/** 등급 D 무브를 인용하는 초안 본문에 수치 표기가 있으면 막는다. */
+export function numericGate(moves: GateMove[], body: string): GateResult {
+  const dMoves = moves.filter(m => m.evidence_grade === 'D')
+  if (dMoves.length === 0) {
+    return {
+      ok: true,
+      code: CG_2,
+      reason: `등급 D 무브가 없다 — ${CG_2} 대상이 아니다 (등급 ${moves.map(m => m.evidence_grade).join(',') || '없음'})`,
+      matched: null,
+      caveat: null,
+    }
+  }
+
+  const where = dMoves.map(m => `${m.slug ?? '?'}/${m.lever ?? '?'}`).join(', ')
+  const hit = NUMERIC_CLAIM.exec(body)
+  if (!hit) {
+    return {
+      ok: true,
+      code: CG_2,
+      reason: `등급 D 무브 ${dMoves.length}건(${where})을 인용하는데 본문에 수치 표기가 없다`,
+      matched: null,
+      caveat: '수치 표기가 없다는 것만 확인했다. 숫자 없이 쓴 문장이 과장인지는 사람이 읽어야 안다.',
+    }
+  }
+  return {
+    ok: false,
+    code: CG_2,
+    reason: `등급 D 무브 ${dMoves.length}건(${where})을 인용하는데 본문에 수치 "${hit[0]}" 가 있다 — D 는 수치가 없는 무브다. 이 숫자는 우리 근거에서 나오지 않았다`,
+    matched: null,
+    caveat: null,
+  }
+}
+
+export function numericHint(): string[] {
+  return [
+    '등급 D 는 "근거가 약하다"가 아니라 **"수치 자체가 없다"**이다. 그 무브에서 나올 수 있는 숫자는 없다.',
+    '고르는 길은 둘뿐이다:',
+    '  · 본문에서 숫자를 빼라. 수치 없이 메커니즘만으로 쓴다 — D 무브가 원래 그런 소재다.',
+    '  · 숫자가 꼭 필요하면 그 숫자의 출처를 case_evidence 에 넣고 재채점해라(등급이 올라간다).',
+    '기억이나 짐작으로 숫자를 적지 마라. 그게 이 파이프라인을 통째로 무효로 만드는 한 가지다.',
+  ]
 }
 
 /** 사람에게 뭘 쓰라고 알려 주는 문구. 에러 메시지에서 그대로 쓴다. */

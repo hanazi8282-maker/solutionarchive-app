@@ -497,10 +497,19 @@ async function main() {
   // ── S5 angle ────────────────────────────────────────────────
   let angles = []
   await runStep('angle', async () => {
-    if (dryRun) return { status: 'skipped', detail: { reason: 'dry-run — 앵글을 고르지 않는다' } }
+    // ★ dry-run 이어도 **조회는 한다.** 마이그 미적용을 보고에 남기려면 그 사실을
+    //   읽어야 하고, 조용한 폴백은 §7.2 위반이다. 쓰기는 여기에 원래 없다.
     const picked = await pickAngles(supabase, DRAFT_TARGET, repoRoot)
-    if (picked.error) return { status: 'failed', detail: { error: picked.error } }
+    const notices = picked.notices ?? []
+    for (const note of notices) say(`- ⚠️ ${note}`)
+    if (dryRun) {
+      return { status: 'skipped', detail: { reason: 'dry-run — 앵글을 고르지 않는다 (조회만 했다)', notices } }
+    }
+    if (picked.error) return { status: 'failed', detail: { error: picked.error, notices } }
     angles = picked.moves
+    // 이식성 미판정은 "낮다"가 아니라 "사람이 아직 안 봤다"다. 수를 안 찍으면
+    // 판정이 필요 없는 상태처럼 보인다 — /cases 상단 숫자와 같은 뜻이다.
+    if (picked.unrated) say(`- 이식성 미판정 무브 ${picked.unrated}건 / 후보 ${picked.candidates}건 — 판정은 사람이 /cases 승인 때 고른다`)
     // 흐릿한 신호는 거르지 않고 남긴다. 남기지 않으면 다음 날 같은 중복을 또 만든다.
     const warnings = picked.warnings ?? []
     for (const w of warnings) say(`- ⚠️ 앵글 경고 — ${w}`)
@@ -511,7 +520,11 @@ async function main() {
       // 승인은 사람이 한다. 승인된 무브가 없는 건 루프의 실패가 아니다.
       return { status: 'skipped', detail: { reason: '쓸 수 있는 승인 무브가 0건 (승인은 사람이 한다 — 루프의 실패가 아니다)', warnings } }
     }
-    return { status: 'ok', counts: { angles: angles.length, deferred_same_slug: deferred.length }, detail: { warnings, deferred } }
+    return {
+      status: 'ok',
+      counts: { angles: angles.length, deferred_same_slug: deferred.length, transferability_unrated: picked.unrated ?? 0 },
+      detail: { warnings, deferred, notices },
+    }
   })
 
   // ── S6 draft ────────────────────────────────────────────────
@@ -1044,6 +1057,21 @@ export function queueResolutions({ claimed = [], producedByItem = new Map(), com
 const GRADE_RANK = { A: 3, B: 2, C: 1, D: 0 }
 
 /**
+ * 이식성 판정 순위. **NULL(미판정)은 LOW 위다.**
+ *
+ * "아직 사람이 안 봤다"를 "낮다"로 접으면 §7.1 위반이고, 실무적으로도 미판정
+ * 무브가 전부 바닥으로 가라앉아 영영 안 나간다 — 판정을 붙일 기회 자체가 사라진다.
+ * 값이 어휘 밖이면(있어선 안 되지만) 미판정과 같이 본다.
+ */
+const TRANSFER_RANK = { HIGH: 3, MEDIUM: 2, LOW: 0 }
+const transferRank = (v) => (v == null ? 1 : TRANSFER_RANK[v] ?? 1)
+
+/** 마이그 20260915000001 미적용 상태에서 찍는 문구. 조용한 폴백 금지(§7.2). */
+export const TRANSFERABILITY_PENDING_NOTE = '이식성 축 미적용(마이그 20260915000001) — 정렬을 기존 등급순으로 되돌렸다. "이식성 HIGH 가 없다"가 아니라 "컬럼이 아직 없다"다'
+/** content_items.source_move 미적용 상태에서 찍는 문구. */
+export const SOURCE_MOVE_PENDING_NOTE = '이식성 축 미적용(마이그 20260915000001) — content_items.source_move 가 없어 제외가 슬러그 단위로 돈다. 형제 무브가 유실된다'
+
+/**
  * 이미 초안이 나간 슬러그인지 판정하는 **순수** 부분. IO 는 pickAngles 가 한다.
  *
  * ── 왜 `content_items` 만으로는 모자란가 (2026-09-07~08 실측) ──────────────
@@ -1076,20 +1104,45 @@ const GRADE_RANK = { A: 3, B: 2, C: 1, D: 0 }
  *     이고, 09-07 peloton 은 슬러그의 앞부분만 담고 있었다). 접두 일치로 넓게 잡으면
  *     서로 다른 두 슬러그가 겹쳐 **멀쩡한 무브를 조용히 잃을** 수 있다.
  *     그래서 **거르지 않고 경고만 낸다.** 조용한 유실보다 시끄러운 중복이 낫다.
+ *
+ * ── 제외 단위: 무브. 단, 기록이 없는 행은 슬러그 단위 (D1, 2026-09-14) ──────
+ *
+ *   `content_items` 에는 `code` 와 `source_case` 뿐이었다(실측). 그래서 한 케이스의
+ *   무브 하나로 글을 쓰면 **그 케이스의 형제 무브가 통째로** 후보에서 빠졌다.
+ *   승인 무브 30건이 케이스 15개에 정확히 2개씩 붙어 있었으니 약 15건이 그렇게
+ *   유실됐다. `usedMoveIds` 가 그 15건을 되살린다.
+ *
+ *   ⚠️ `source_move` 가 NULL 인 레거시 행은 **종전대로 슬러그 단위로 제외한다.**
+ *      "어느 무브였는지 모른다"를 "다른 무브였다"로 접으면 이미 나간 글과 같은
+ *      무브를 또 쓴다. 확인 불가를 양성으로 접지 않는다(§7.1).
+ *
+ * ── 이식성이 등급보다 앞선다 (C3) ─────────────────────────────────────────
+ *
+ *   정렬 키는 `transferability_rank(HIGH>MEDIUM>NULL>LOW) → grade_rank → slug`.
+ *   등급 산식(`gradeMove`)은 한 줄도 바뀌지 않았다 — 우선순위만 2순위로 내렸다.
+ *   등급 D 는 종전대로 제외하되 `transferability === 'HIGH'` 인 것만 연다.
+ *   컬럼이 아직 없으면 전부 미판정(rank 1)이 되어 **기존 정렬과 결과가 같다.**
  */
-export function selectAngles({ moves = [], usedSlugs = new Set(), stagedSlugs = new Set(), draftFileNames = [], n = 2 }) {
+export function selectAngles({ moves = [], usedSlugs = new Set(), usedMoveIds = new Set(), stagedSlugs = new Set(), draftFileNames = [], n = 2 }) {
   const excluded = new Set([...usedSlugs, ...stagedSlugs].filter(Boolean))
 
   const ranked = moves
     .filter((m) => m.case_studies?.review_status === 'approved')
-    .filter((m) => (GRADE_RANK[m.evidence_grade] ?? 0) > 0)
+    // 등급 D 개방은 이식성 HIGH 한정이다. NULL·LOW 인 D 는 종전대로 제외한다 —
+    // 수치 없는 무브를 여는 근거는 "사람이 옮길 수 있다고 판정했다" 하나뿐이다.
+    .filter((m) => (GRADE_RANK[m.evidence_grade] ?? 0) > 0 || m.transferability === 'HIGH')
     .filter((m) => !excluded.has(m.case_studies?.slug))
+    .filter((m) => !usedMoveIds.has(m.id))
     .map((m) => ({
       id: m.id, lever: m.lever, claim: m.claim, grade: m.evidence_grade,
       direction: m.outcome_direction, slug: m.case_studies?.slug,
       brand: m.case_studies?.brand_name, bottleneck: m.case_studies?.bottleneck,
+      transferability: m.transferability ?? null,
+      reader_problem: m.case_studies?.reader_problem ?? null,
     }))
-    .sort((a, b) => (GRADE_RANK[b.grade] ?? 0) - (GRADE_RANK[a.grade] ?? 0) || String(a.slug).localeCompare(String(b.slug)))
+    .sort((a, b) => transferRank(b.transferability) - transferRank(a.transferability)
+      || (GRADE_RANK[b.grade] ?? 0) - (GRADE_RANK[a.grade] ?? 0)
+      || String(a.slug).localeCompare(String(b.slug)))
 
   // ── 슬러그당 하루 1편 ─────────────────────────────────────────────────────
   //
@@ -1100,9 +1153,17 @@ export function selectAngles({ moves = [], usedSlugs = new Set(), stagedSlugs = 
   // **버그를 고치는 게 아니라 편집 규칙이다.** "무브 1개 → 초안 1개"는 그대로다 —
   // 무브를 합치지 않는다. 하루에 몇 개를 내보낼지만 정한다.
   //
-  // 밀린 무브는 **버리지 않는다.** 이 함수는 매 실행 DB 에서 승인 무브를 새로 읽고,
-  // 쓴 것만 content_items 를 통해 제외된다. 그러니 오늘 밀린 무브는 내일 그대로
-  // 후보에 다시 오른다. 별도 큐를 만들 필요가 없다 — 이미 DB 가 큐다.
+  // ⚠️ 여기에 "밀린 무브는 내일 그대로 후보에 다시 오른다"고 적혀 있었다. **거짓이었다.**
+  //    `content_items` 에 `source_move` 가 없던 동안 제외 단위가 슬러그였기 때문에,
+  //    오늘 형이 나가면 내일 동생은 그 케이스가 통째로 걸려 영영 안 올라왔다.
+  //    실측(2026-09-14): 승인 무브 30건 = 케이스 15개 × 2건 → 약 15건이 그 상태였다.
+  //
+  //    지금은 `source_move` 가 기록된 행에 한해 제외가 무브 단위라, 그 경우에만
+  //    "내일 다시 후보"가 사실이다. `source_move` 가 NULL 인 레거시 행이 걸린
+  //    슬러그는 **여전히 통째로 빠진다** — 어느 무브였는지 모르기 때문이고, 그건
+  //    버그가 아니라 §7.1 을 지킨 결과다. 그 유실을 풀려면 사람이 그 행의
+  //    source_move 를 채워야 한다(백필은 자동으로 하지 않는다 — 틀린 짐작이
+  //    "이미 썼다"로 굳으면 되돌릴 방법이 없다).
   //
   // 정렬이 이미 등급 내림차순 → 슬러그 오름차순이라, 앞에서부터 슬러그를 처음 만날
   // 때만 담으면 **같은 슬러그 중 가장 높은 등급**이 남는다. 기존 우선순위를 그대로 쓴다.
@@ -1137,19 +1198,50 @@ export function selectAngles({ moves = [], usedSlugs = new Set(), stagedSlugs = 
 
   // deferred 는 "버렸다"가 아니라 "오늘은 안 쓴다"다. 내일 실행이 DB 를 다시 읽어
   // 같은 무브를 후보에 올린다. 수를 남기지 않으면 소재가 준 것처럼 보인다.
-  return { moves: picked, warnings, deferred }
+  //
+  // unrated = 후보 중 이식성 미판정 건수. 0 이 아니면 사람이 볼 거리가 쌓여 있다는
+  // 뜻이라 매 실행 보고에 찍는다. 조용히 두면 "판정이 필요 없다"처럼 보인다.
+  const unrated = ranked.filter((m) => m.transferability == null).length
+  return { moves: picked, warnings, deferred, unrated, candidates: ranked.length }
 }
 
-/** 승인된 무브 중 아직 콘텐츠로 안 쓴 것을 고른다. 조회 실패는 error 로 올린다(0건과 구분). */
-async function pickAngles(supabase, n, repoRoot = process.cwd()) {
-  const mv = await supabase.from('case_moves')
-    .select('id,lever,claim,evidence_grade,outcome_direction,review_status,case_study_id,case_studies(slug,brand_name,bottleneck,review_status)')
-    .eq('review_status', 'approved')
-  if (mv.error) return { error: `case_moves 조회 실패 — ${mv.error.code ?? ''} ${mv.error.message}`, moves: [] }
+/**
+ * 승인된 무브 중 아직 콘텐츠로 안 쓴 것을 고른다. 조회 실패는 error 로 올린다(0건과 구분).
+ *
+ * 마이그 20260915000001 미적용이면 42703 이 온다. 그때 **조용히 되돌아가지 않는다** —
+ * 신규 컬럼을 뺀 채로 다시 조회하되 `notices` 에 미적용을 남기고, 호출부가 보고에 찍는다(§7.2).
+ */
+export async function pickAngles(supabase, n, repoRoot = process.cwd()) {
+  const MOVE_COLS = 'id,lever,claim,evidence_grade,outcome_direction,review_status,case_study_id'
+  const notices = []
+  const missingColumn = (e) => e?.code === '42703' || e?.code === 'PGRST204'
 
-  const used = await supabase.from('content_items').select('source_case')
-  if (used.error) return { error: `content_items 조회 실패 — ${used.error.code ?? ''} ${used.error.message}`, moves: [] }
-  const usedSlugs = new Set((used.data ?? []).map((r) => r.source_case).filter(Boolean))
+  let mv = await supabase.from('case_moves')
+    .select(`${MOVE_COLS},transferability,case_studies(slug,brand_name,bottleneck,review_status,reader_problem)`)
+    .eq('review_status', 'approved')
+  if (mv.error && missingColumn(mv.error)) {
+    notices.push(TRANSFERABILITY_PENDING_NOTE)
+    mv = await supabase.from('case_moves')
+      .select(`${MOVE_COLS},case_studies(slug,brand_name,bottleneck,review_status)`)
+      .eq('review_status', 'approved')
+  }
+  if (mv.error) return { error: `case_moves 조회 실패 — ${mv.error.code ?? ''} ${mv.error.message}`, moves: [], notices }
+
+  let used = await supabase.from('content_items').select('source_case,source_move')
+  if (used.error && missingColumn(used.error)) {
+    notices.push(SOURCE_MOVE_PENDING_NOTE)
+    used = await supabase.from('content_items').select('source_case')
+  }
+  if (used.error) return { error: `content_items 조회 실패 — ${used.error.code ?? ''} ${used.error.message}`, moves: [], notices }
+
+  // ★ 무브가 적힌 행은 그 무브만 뺀다. 안 적힌 행은 종전대로 슬러그를 통째로 뺀다.
+  //   한 행이 둘 중 어디에 속하는지가 §7.1 그 자체다 — 모르는 것을 아는 척하지 않는다.
+  const usedSlugs = new Set()
+  const usedMoveIds = new Set()
+  for (const r of used.data ?? []) {
+    if (r.source_move) usedMoveIds.add(r.source_move)
+    else if (r.source_case) usedSlugs.add(r.source_case)
+  }
 
   // 파일 쪽 신호. 읽기 실패는 **무시하지 않는다** — 신호가 없는 채로 고르면 옛
   // 동작(=이 버그)으로 조용히 되돌아간다. 못 읽었으면 그대로 error 로 올린다(§7.1).
@@ -1163,10 +1255,10 @@ async function pickAngles(supabase, n, repoRoot = process.cwd()) {
       if (j?.case_slug) stagedSlugs.add(j.case_slug)
     }
   } catch (e) {
-    return { error: `drafts/threads 매니페스트 확인 불가 — ${e.message}. 이 신호 없이 고르면 이미 초안이 나간 무브를 다시 고른다`, moves: [] }
+    return { error: `drafts/threads 매니페스트 확인 불가 — ${e.message}. 이 신호 없이 고르면 이미 초안이 나간 무브를 다시 고른다`, moves: [], notices }
   }
 
-  return selectAngles({ moves: mv.data ?? [], usedSlugs, stagedSlugs, draftFileNames, n })
+  return { ...selectAngles({ moves: mv.data ?? [], usedSlugs, usedMoveIds, stagedSlugs, draftFileNames, n }), notices }
 }
 
 /**

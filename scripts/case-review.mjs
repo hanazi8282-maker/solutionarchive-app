@@ -19,6 +19,7 @@
 //   node --env-file=.env.local scripts/case-review.mjs approve --slug notion --move 0 --by 남헌
 //   node --env-file=.env.local scripts/case-review.mjs approve --slug notion --case   --by 남헌
 //   node --env-file=.env.local scripts/case-review.mjs reject  --slug notion --move 1 --by 남헌
+//   node --env-file=.env.local scripts/case-review.mjs transferability --slug notion --move 0 --value HIGH --by 남헌
 //   node --env-file=.env.local scripts/case-review.mjs regrade [--slug notion] [--dry]
 //
 // 종료 코드: 0 정상 / 1 음성(거절·불일치) / 2 확인 불가(테이블 없음·설정 없음 등)
@@ -101,28 +102,43 @@ async function commit() {
 
   const { study, moves, evidence } = toRows(draft)
 
+  // ★ 마이그 20260915000001(reader_problem / transfer_note / preconditions) 도
+  //   앞선 두 축과 같은 방식으로 다룬다. 미적용이면 그 축을 빼고 저장하되,
+  //   **조용히 떨어뜨리지 않는다** — 이식성은 이 파이프라인의 1순위 축이라
+  //   말없이 사라지면 다음 조사가 그 자리를 영영 안 채운다.
+  let readerAxis = true
+  const missingReaderAxis = (e) => /reader_problem|transfer_note|preconditions/.test(e?.message ?? '')
+
   // 같은 slug 를 두 번 조사했으면 케이스를 새로 만들지 않고 무브를 덧붙인다.
   let existing = await fetchStudy(slug)
   if (existing) {
     console.log(`ℹ️  기존 케이스에 덧붙인다 (slug=${slug}, review_status=${existing.review_status})`)
   } else {
-    const inserted = must(
-      await supabase.from('case_studies').insert(study).select('*'),
-      'case_studies INSERT',
-    )
-    existing = inserted[0]
-    console.log(`✅ case_studies 1행 (id=${existing.id}, review_status=${existing.review_status})`)
+    let res = await supabase.from('case_studies').insert(study).select('*')
+    if (res.error && missingReaderAxis(res.error)) {
+      readerAxis = false
+      const { reader_problem: _rp, ...withoutReader } = study
+      res = await supabase.from('case_studies').insert(withoutReader).select('*')
+    }
+    existing = must(res, 'case_studies INSERT')[0]
+    console.log(`✅ case_studies 1행 (id=${existing.id}, review_status=${existing.review_status}, 독자문제 ${study.reader_problem ?? '미지정'})`)
   }
 
   const moveIds = []
   for (const m of moves) {
-    const rows = must(
-      await supabase.from('case_moves')
-        .insert({ ...m.row, case_study_id: existing.id }).select('id'),
-      `case_moves INSERT (moves[${m.index}])`,
-    )
+    const row = { ...m.row, case_study_id: existing.id }
+    if (!readerAxis) { delete row.transfer_note; delete row.preconditions }
+    let res = await supabase.from('case_moves').insert(row).select('id')
+    if (res.error && missingReaderAxis(res.error)) {
+      readerAxis = false
+      delete row.transfer_note
+      delete row.preconditions
+      res = await supabase.from('case_moves').insert(row).select('id')
+    }
+    const rows = must(res, `case_moves INSERT (moves[${m.index}])`)
     moveIds[m.index] = rows[0].id
     console.log(`✅ case_moves [${m.row.evidence_grade}] ${m.row.lever} — ${m.grade_reason}`)
+    if (readerAxis) console.log(`     → 옮길 행동: ${m.row.transfer_note ?? '미기재'}`)
   }
 
   // ★ 마이그 20260906000003(is_issuer_defined_metric) 이 적용됐는지 첫 행에서 확인한다.
@@ -182,6 +198,11 @@ async function commit() {
     console.log(`   그 축을 뺀 채로 저장했다. 초안에서 true 였던 근거 ${droppedIssuerAxis}건이 DB 에는 안 들어갔다.`)
     console.log('   → 마이그 적용 후 그 행들을 다시 채워야 등급 재계산이 재현된다.')
   }
+  if (!readerAxis) {
+    console.log('⚠️ reader_problem / transfer_note / preconditions 컬럼이 DB 에 없다 — 마이그 20260915000001 미적용.')
+    console.log('   이식성 축을 뺀 채로 저장했다. 초안에 적혀 있던 "독자가 내일 할 수 있는 행동"이 DB 에는 안 들어갔다.')
+    console.log('   → 마이그 적용 후 다시 commit 하거나 그 값을 손으로 채워야 앵글 선정이 이식성을 본다.')
+  }
   if (!obsAxis) {
     console.log('⚠️ observation_key / supports_metric 컬럼이 DB 에 없다 — 마이그 20260907000001 미적용.')
     console.log(`   그 축을 뺀 채로 저장했다. 초안에 적혀 있던 근거 ${droppedObsAxis}건의 관측 키·수치 뒷받침이 DB 에는 안 들어갔다.`)
@@ -239,8 +260,10 @@ async function show() {
   moves.forEach((m, i) => {
     const metric = m.metric_after === null ? '수치 없음'
       : `${m.metric_name}: ${m.metric_before ?? '?'} → ${m.metric_after}${m.metric_unit ?? ''}`
-    console.log(`  ${i}. [${m.review_status}|${m.evidence_grade}] ${m.lever} (${m.outcome_direction})`)
+    console.log(`  ${i}. [${m.review_status}|${m.evidence_grade}|이식성 ${m.transferability ?? '미판정'}] ${m.lever} (${m.outcome_direction})`)
     console.log(`     ${m.claim}`)
+    console.log(`     → 옮길 행동: ${m.transfer_note ?? '미기재'}`)
+    console.log(`     전제: ${m.preconditions ?? '미기재'}`)
     console.log(`     ${metric} · 관측 ${m.observed_period_start ?? '?'}~${m.observed_period_end ?? '?'}`)
   })
 
@@ -315,6 +338,58 @@ async function decide(status) {
     const warn = status === 'approved' ? caseApprovalWarning(moves) : null
     if (warn) console.log(`   ⚠️ ${warn}`)
   }
+}
+
+// ────────────────────────────────────────────────────────────
+// transferability — 이식성 판정. **사람만 쓴다.**
+// ────────────────────────────────────────────────────────────
+//
+// 값이 들어오는 자리는 이것과 /cases 승인 서버 액션 둘뿐이다. 기계가 이 값을
+// 쓰는 경로는 만들지 않는다 (CLAUDE.md §10.1). `--by` 는 필수다 — 누가 골랐는지
+// 없는 판정은 판정이 아니고, 그게 비어 있으면 나중에 기계가 썼는지 구분이 안 된다.
+//
+// 승인 상태를 바꾸지 않는다. 이미 승인된 무브에 판정만 붙이는 경로이고,
+// 아직 draft 인 무브는 /cases 에서 승인과 함께 고르는 게 정상 경로다.
+async function setTransferability() {
+  const slug = opt('slug')
+  const by = opt('by')
+  const value = opt('value')
+  const moveArg = opt('move')
+  if (!slug || !by || moveArg === null) {
+    console.error('사용: transferability --slug <slug> --move <n> --value HIGH|MEDIUM|LOW|none --by <이름>')
+    console.error('  --by 는 필수다. 이식성은 사람의 판정이고, 누가 골랐는지 없는 판정은 기록이 못 된다.')
+    process.exit(2)
+  }
+  if (!['HIGH', 'MEDIUM', 'LOW', 'none'].includes(value ?? '')) {
+    console.error(`✗ --value 어휘 밖: ${value} (HIGH/MEDIUM/LOW, 판정 취소는 none)`)
+    process.exit(2)
+  }
+  const study = await fetchStudy(slug)
+  if (!study) { console.error(`✗ 음성: slug=${slug} 없음`); process.exit(1) }
+  const moves = await fetchMoves(study.id)
+  const i = Number(moveArg)
+  if (!Number.isInteger(i) || i < 0 || i >= moves.length) {
+    console.error(`✗ move 인덱스 범위 밖: ${moveArg} (무브 ${moves.length}개)`)
+    process.exit(1)
+  }
+  const m = moves[i]
+  const next = value === 'none' ? null : value
+  const res = await supabase.from('case_moves')
+    .update({
+      transferability: next,
+      transferability_by: next === null ? null : by,
+      transferability_at: next === null ? null : new Date().toISOString(),
+    })
+    .eq('id', m.id).select('id')
+  if (res.error && /transferability/.test(res.error.message ?? '')) {
+    console.error('✗ 확인 불가: transferability 컬럼이 없다 — 마이그 20260915000001 미적용.')
+    console.error('  §12-5: 사람이 `supabase db query --linked -f supabase/migrations/20260915000001_case_reader_axis.sql` 로 적용한다.')
+    process.exitCode = 2
+    return
+  }
+  must(res, 'case_moves UPDATE (transferability)')
+  console.log(`✅ 이식성 ${next ?? '미판정(취소)'} — [${m.evidence_grade}] ${m.lever}: ${m.claim.slice(0, 50)} (판정 ${by})`)
+  if (next === null) console.log('   미판정은 "낮음"이 아니다. 앵글 정렬에서 HIGH 아래, LOW 위다.')
 }
 
 // ────────────────────────────────────────────────────────────
@@ -448,8 +523,9 @@ switch (cmd) {
   case 'show': await show(); break
   case 'approve': await decide('approved'); break
   case 'reject': await decide('rejected'); break
+  case 'transferability': await setTransferability(); break
   case 'regrade': await regrade(); break
   default:
-    console.error('명령: commit | list | show | approve | reject | regrade')
+    console.error('명령: commit | list | show | approve | reject | transferability | regrade')
     process.exit(2)
 }

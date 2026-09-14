@@ -2,21 +2,25 @@
 
 import { useActionState, useState } from 'react'
 import { decideCase, decideMove, type ReviewActionState } from './actions'
+import { TRANSFERABILITY, TRANSFERABILITY_LABEL, TRANSFERABILITY_UNRATED_HINT } from '@/lib/cases/review'
 import { Button } from '../_ds/components/Button'
 import { Textarea } from '../_ds/components/Field'
 import { Notice } from '../_ds/components/Shell'
 
 // 검수자는 폼에서 받지 않는다. 서버 액션이 로그인 세션의 이메일을 reviewed_by 에 쓴다(./actions.ts).
 
-export function DecisionForm({ kind, id, locked, approveWarning }: {
+export function DecisionForm({ kind, id, locked, approveWarning, transferabilityLocked }: {
   kind: 'move' | 'case'
   id: string
   /** 결정 자체를 막는 사유(마이그 미적용·확인 불가). 있으면 버튼이 전부 잠긴다. */
   locked: boolean
   /** 승인하면 따라오는 주의. 누르기 전에 보여준다. */
   approveWarning?: string | null
+  /** 이식성 컬럼이 아직 DB 에 없다. 승인은 되지만 판정은 저장되지 않는다. */
+  transferabilityLocked?: boolean
 }) {
   const [note, setNote] = useState('')
+  const [transfer, setTransfer] = useState('')
   const [state, action, pending] = useActionState<ReviewActionState, FormData>(kind === 'move' ? decideMove : decideCase, null)
   const off = pending || locked
   const what = kind === 'move' ? '무브' : '케이스'
@@ -35,6 +39,33 @@ export function DecisionForm({ kind, id, locked, approveWarning }: {
       />
       {approveWarning && (
         <p style={{ margin: 0, fontSize: 12, color: 'var(--warning-fg)', overflowWrap: 'anywhere' }}>승인 시 주의 — {approveWarning}</p>
+      )}
+      {/* 이식성 — 승인 단위가 무브라 무브 폼에만 있다. **미선택도 승인된다.**
+          판정을 필수로 걸면 검수가 더 밀린다. 미선택은 "낮음"이 아니라 "미판정"이다. */}
+      {kind === 'move' && (
+        <fieldset style={{ margin: 0, padding: 0, border: 0, display: 'grid', gap: 4 }}>
+          <legend style={{ padding: 0, fontSize: 12, fontWeight: 600 }}>이식성 — 이 무브를 독자가 자기 상황에 옮길 수 있나</legend>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {TRANSFERABILITY.map((v) => (
+              <label key={v} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                <input
+                  type="radio"
+                  name="transferability"
+                  value={v}
+                  checked={transfer === v}
+                  disabled={locked || transferabilityLocked}
+                  onChange={() => setTransfer(v)}
+                />
+                {TRANSFERABILITY_LABEL[v]}
+              </label>
+            ))}
+          </div>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+            {transferabilityLocked
+              ? '이식성 축 미적용(마이그 20260915000001) — 지금은 고를 수 없다. 승인은 그대로 된다.'
+              : transfer ? '승인할 때 함께 저장됩니다.' : TRANSFERABILITY_UNRATED_HINT}
+          </p>
+        </fieldset>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
         {/* 누른 버튼의 name/value 가 FormData 의 decision 이 된다. 서버가 값을 다시 검증한다. */}

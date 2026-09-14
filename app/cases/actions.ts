@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireAllowedUser } from '@/lib/auth/session'
-import { checkDecisionInput, moveApprovalWarning, caseApprovalWarning, type ReviewDecision } from '@/lib/cases/review'
+import { checkDecisionInput, moveApprovalWarning, caseApprovalWarning, readTransferability, type ReviewDecision } from '@/lib/cases/review'
 
 // ⛔ 사람 전용 쓰기 경로 (CLAUDE.md §10.1 — 승인·반려는 사람만 한다).
 //    /cases 화면의 버튼으로만 부른다. API 라우트로 만들지 않는다 — 무인 루프·에이전트는
@@ -62,18 +62,44 @@ export async function decideMove(_prev: ReviewActionState, fd: FormData): Promis
     return { ok: false, message: `이미 ${move.review_status} 상태입니다. 새로고침 후 확인하세요.` }
   }
 
-  const { data, error } = await sb
+  // ── 이식성 판정 — 같은 승인 트랜잭션에 얹는다 ─────────────────────────
+  //
+  // 별도 버튼·별도 API 를 만들지 않는다. 경로가 늘면 §10.1 의 "사람만 쓴다"를
+  // 지키는 자리도 늘어난다. 미선택이면 NULL(미판정)로 남고 승인은 그대로 된다.
+  const transfer = readTransferability(fd.get('transferability'))
+  if (transfer.error) return { ok: false, message: transfer.error }
+
+  const now = new Date().toISOString()
+  const base = { review_status: decision, review_note: input.note || null, reviewed_by: input.by, reviewed_at: now }
+  // 판정 값이 있을 때만 `_by`/`_at` 을 남긴다. 값 없이 사람 이름만 찍히면
+  // "누가 미판정을 골랐다"는 기록이 되는데, 그건 판정이 아니다.
+  const patch = decision === 'approved' && transfer.value !== null
+    ? { ...base, transferability: transfer.value, transferability_by: input.by, transferability_at: now }
+    : base
+
+  const write = (row: Record<string, unknown>) => sb
     .from('case_moves')
-    .update({ review_status: decision, review_note: input.note || null, reviewed_by: input.by, reviewed_at: new Date().toISOString() })
+    .update(row)
     .eq('id', input.id)
     .eq('review_status', 'draft') // 읽은 뒤 다른 탭에서 먼저 결정했으면 덮어쓰지 않는다
     .select('id')
+
+  let { data, error } = await write(patch)
+  let axisMissing = false
+  if (error && patch !== base && /transferability/.test(error.message)) {
+    // 마이그 20260915000001 미적용. 승인 자체를 막지는 않되 **조용히 넘어가지 않는다**(§7.2).
+    axisMissing = true
+    ;({ data, error } = await write(base))
+  }
   if (error) return { ok: false, message: writeFailure(error) }
   if (!data || data.length === 0) return { ok: false, message: '방금 다른 곳에서 결정됐습니다. 새로고침 후 확인하세요.' }
 
   revalidatePath('/cases')
   const warn = decision === 'approved' ? moveApprovalWarning(move) : null
-  return { ok: true, message: `무브 ${LABEL[decision]} — [${move.evidence_grade}] ${move.lever} · 검수자 ${input.by}${warn ? ` · ⚠️ ${warn}` : ''}` }
+  const axisNote = axisMissing
+    ? ' · ⚠️ 이식성 축 미적용(마이그 20260915000001) — 고른 이식성은 저장되지 않았습니다. 승인만 반영됐습니다.'
+    : transfer.value ? ` · 이식성 ${transfer.value}` : ''
+  return { ok: true, message: `무브 ${LABEL[decision]} — [${move.evidence_grade}] ${move.lever} · 검수자 ${input.by}${warn ? ` · ⚠️ ${warn}` : ''}${axisNote}` }
 }
 
 export async function decideCase(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {

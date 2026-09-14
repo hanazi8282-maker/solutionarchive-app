@@ -15,6 +15,7 @@
 //    확인 불가가 하나라도 있으면 exit 2. 그걸 "적용됨"으로 접지 않는다.
 
 import { createClient } from '../lib/supabase/server.ts'
+import { READER_PROBLEMS } from '../lib/cases/draft.ts'
 
 const PROBE = process.argv.includes('--probe')
 const PROBE_SLUG = '__probe-case-pipeline__'
@@ -330,6 +331,39 @@ if (!PROBE) {
     }
   }
 }
+
+// ── 20260915000001 — 독자 이식성 축 ─────────────────────────
+console.log('\n## 20260915000001_case_reader_axis — 독자 이식성 축')
+await check('case_studies.reader_problem', columns('case_studies', 'id, reader_problem'))
+await check('case_moves 이식성 5축', columns('case_moves', 'id, transfer_note, preconditions, transferability, transferability_by, transferability_at'))
+await check('content_items.source_move', columns('content_items', 'code, source_move'))
+
+// ★ 어휘 드리프트. DB 에 있는 reader_problem 이 config/reader-problems.json 밖이면 막는다.
+//   CHECK 은 형식만 보므로(어휘를 CHECK 에 박지 않는 게 설계다) 이 검사가 없으면
+//   파일과 DB 가 조용히 갈라진다. "어휘 정본이 파일"이라는 말이 그때부터 거짓이 된다.
+await check('reader_problem 어휘가 config/reader-problems.json 안에 있는가', async () => {
+  const { data, error } = await supabase.from('case_studies').select('slug, reader_problem')
+  if (error) throw classify(error)
+  const rows = (data ?? []).filter((r) => r.reader_problem)
+  const drift = rows.filter((r) => !READER_PROBLEMS.includes(r.reader_problem))
+  if (drift.length) {
+    throw absent(`파일 어휘 밖 ${drift.length}건 — ${drift.map((r) => `${r.slug}:${r.reader_problem}`).join(', ')}. `
+      + 'config/reader-problems.json 에 넣든지 DB 값을 고쳐라. 둘 중 하나는 틀렸다')
+  }
+  return rows.length
+    ? `DB distinct ${new Set(rows.map((r) => r.reader_problem)).size}종 ⊆ 파일 ${READER_PROBLEMS.length}종 (기재 ${rows.length}행)`
+    : `기재된 행이 0건 (조회는 정상 — 파일 ${READER_PROBLEMS.length}종 대기 중)`
+})
+
+// ⛔ 기계가 이식성을 쓰지 않았는지. 값이 있는데 판정자가 비어 있으면 사람이 쓴 게 아니다.
+await check('이식성 판정에 사람 이름이 붙어 있는가', async () => {
+  const { data, error } = await supabase.from('case_moves').select('id, transferability, transferability_by')
+  if (error) throw classify(error)
+  const rated = (data ?? []).filter((r) => r.transferability)
+  const orphan = rated.filter((r) => !r.transferability_by)
+  if (orphan.length) throw absent(`판정자 없는 이식성 ${orphan.length}건 — 사람이 아닌 무언가가 썼다는 뜻이다 (CLAUDE.md §10.1)`)
+  return `판정 ${rated.length}건 전부 판정자 기록 있음`
+})
 
 console.log(`\n---\n양성 ${positive} / 음성 ${negative} / 확인 불가 ${unknown}`)
 

@@ -12,11 +12,14 @@
 //   4) 어휘 밖 값이 로컬에서 통과해 DB CHECK(23514)까지 가지 않는가
 //   5) 비었을 때와 못 읽었을 때를 가르는가 (§7.1)
 
+import fs from 'node:fs'
 import {
   BUSINESS_MODEL, BOTTLENECK, LEVER, SNIPPET_MAX, SLUG_RE,
+  READER_PROBLEMS, READER_PROBLEM_FORMAT,
   domainOf, foldObservations, gradeMove, validateDraft, toRows,
 } from '../lib/cases/draft.ts'
-import { attributionGate } from '../lib/cases/publish-gate.ts'
+import { attributionGate, numericGate, numericHint } from '../lib/cases/publish-gate.ts'
+import { briefText } from './case-research.mjs'
 
 let passed = 0
 const failures = []
@@ -423,6 +426,191 @@ eq('한글 slug 거부', SLUG_RE.test('에이스메'), false)
   eq('CG-1 — 무브 0건이면 대상 아님', attributionGate([], noAttr).ok, true)
 }
 
+
+// ── 독자 이식성 축 (마이그 20260915000001) — AC-9~12 ─────────────────────
+//
+// 선정 1순위가 브랜드 사례에서 **독자가 옮겨 쓸 수 있는가**로 바뀌었다.
+// 여기서 지켜야 할 것은 두 가지다:
+//   (1) 어휘 정본이 코드가 아니라 파일이어야 한다 (레퍼런스가 오면 갈아끼운다)
+//   (2) **등급 산식은 한 줄도 안 바뀌었다** — 순서만 내려갔다. 회귀 스냅샷으로 증명한다.
+{
+  // ── AC-9. brief 는 독자부터 묻는다 ────────────────────────────────────
+  const bt = briefText('Notion', '협업 SaaS')
+  check('AC-9 — brief 에서 독자가 출처 규칙보다 먼저 나온다',
+    bt.indexOf('독자') >= 0 && bt.indexOf('source_tier') >= 0 && bt.indexOf('독자') < bt.indexOf('source_tier'),
+    `독자 ${bt.indexOf('독자')} / source_tier ${bt.indexOf('source_tier')}`)
+  const must1 = bt.slice(bt.indexOf('■ 반드시 답할 것'), bt.indexOf('  2. '))
+  check('AC-9 — "반드시 답할 것" 1번이 reader_problem 이다', must1.includes('reader_problem'), must1.slice(0, 200))
+  check('AC-9 — 1번 질문이 "독자는 누구이고 무엇에 막혀 있나" 다', /독자는 누구이고 지금 무엇에 막혀 있나/.test(must1))
+  check('AC-9 — 2번은 내일 할 수 있는 최소 행동(transfer_note)',
+    /2\. 그 독자가 \*\*내일\*\*[\s\S]{0,80}transfer_note/.test(bt))
+  check('AC-9 — 3번은 전제(preconditions)', /3\. 옮기려면 뭐가 있어야 하나 \(preconditions\)/.test(bt))
+  check('AC-9 — "목표를 A 로 잡아라" 가 사라졌다', !bt.includes('목표를 A 로 잡아라'), 'brief')
+  check('AC-9 — 대신 "목표는 등급 A 가 아니라 옮길 수 있는 무브 1개" 다',
+    /목표는 등급 A 가 아니라 \*\*옮길 수 있는 무브 1개\*\*다/.test(bt))
+  check('AC-9 — 근거 규칙 전문은 docs/evidence-rules.md 로 링크한다',
+    bt.includes('docs/evidence-rules.md'))
+  check('AC-9 — 근거 요약은 6줄이다', /■ 근거 규칙 요약 6줄[\s\S]*?\n  6\. /.test(bt))
+  check('AC-9 — 생존 편향(실패 할당) 블록은 그대로 남아 있다',
+    bt.includes("outcome_direction='negative' 도 환영한다") && bt.includes('생존 편향'))
+  check('AC-9 — 어휘를 코드가 아니라 파일에서 읽어 찍는다',
+    bt.includes('MAKE_BUT_NO_MONEY') && bt.includes('config/reader-problems.json'))
+  check('AC-9 — 정본 문서가 실제로 있다',
+    fs.existsSync(new URL('../docs/evidence-rules.md', import.meta.url)))
+
+  // ── AC-10. reader_problem 어휘는 파일이 정본이다 ──────────────────────
+  const withReader = (v) => ({ ...base(), reader_problem: v })
+  eq('AC-10 — 어휘 안이면 이슈 없음',
+    errorsOf(withReader('MAKE_BUT_NO_MONEY')).filter((e) => /reader_problem/.test(e.where)).length, 0)
+  check('AC-10 — 어휘 밖이면 error', hasError(withReader('NOT_IN_FILE'), /reader_problem/))
+  check('AC-10 — 비면 warn 이고 저장은 막지 않는다',
+    !hasError(withReader(null), /reader_problem/)
+    && warnsOf(withReader(null)).some((w) => /reader_problem/.test(w.where)))
+  check('AC-10 — 빈 문자열도 warn 이다 (error 가 아니다)',
+    !hasError(withReader(''), /reader_problem/)
+    && warnsOf(withReader('')).some((w) => /reader_problem/.test(w.where)))
+  // ★ "파일 한 줄만 고치면 코드 수정 없이 통과한다"를 실제로 확인한다. 어휘 배열이
+  //   파일에서 왔는지를 파일 내용과 대조한다 — 코드 상수였다면 여기서 어긋난다.
+  {
+    const vocabFile = JSON.parse(fs.readFileSync(new URL('../config/reader-problems.json', import.meta.url), 'utf-8'))
+    eq('AC-10 — 어휘 정본은 config/reader-problems.json 이다',
+      JSON.stringify(READER_PROBLEMS), JSON.stringify(vocabFile.problems.map((p) => p.code)))
+    check('AC-10 — 남헌 지정 1급 시민이 그 파일에 있다', READER_PROBLEMS.includes('MAKE_BUT_NO_MONEY'))
+    check('AC-10 — 파일이 "잠정"임을 스스로 밝힌다 (레퍼런스 대기)', /잠정/.test(vocabFile._status))
+    // DB CHECK 은 형식만 본다. 어휘가 아니라 모양이 맞는지 여기서도 같은 규칙을 쓴다.
+    check('AC-10 — 모든 어휘가 CHECK 형식(^[A-Z][A-Z_]*$)을 만족한다',
+      READER_PROBLEMS.every((c) => READER_PROBLEM_FORMAT.test(c)), JSON.stringify(READER_PROBLEMS))
+  }
+
+  // ── AC-11. gradeMove 회귀 스냅샷 ─────────────────────────────────────
+  //
+  // 이식성 축은 등급을 **2순위로 내렸을 뿐 산식을 건드리지 않았다.** 이 스냅샷이
+  // 그걸 증명한다. 한 줄이라도 바뀌면 아래 30건 중 어딘가가 깨진다.
+  // 기대값은 손으로 지어낸 게 아니라 변경 **전** 함수의 출력이다
+  // (`git diff lib/cases/draft.ts` 의 어떤 hunk 도 gradeMove 안에 들어가지 않는다).
+  {
+    const M = (over = {}) => ({ lever: 'OFFER', claim: 'c', metric_name: 'x', metric_before: 1, metric_after: 2, metric_unit: '%', ...over })
+    const E = (over = {}) => ({ url: 'https://a.example.com/1', source_tier: 'secondary', is_self_reported: false, is_estimate: false, is_regulatory_filing: false, ...over })
+    const filing = E({ url: 'https://sec.gov/1', source_tier: 'primary', is_regulatory_filing: true, observation_key: 'k-filing', supports_metric: true })
+    const issuerFiling = { ...filing, is_issuer_defined_metric: true }
+    const nonSelfPrimary = E({ url: 'https://b.example.com/1', source_tier: 'primary', observation_key: 'k-np', supports_metric: true })
+    const selfPrimary = E({ url: 'https://brand.example.com/blog', source_tier: 'primary', is_self_reported: true, observation_key: 'k-self', supports_metric: true })
+    const selfPrimaryNoKey = E({ url: 'https://brand.example.com/blog', source_tier: 'primary', is_self_reported: true })
+    const corrA = E({ url: 'https://c.example.com/1', observation_key: 'k-a', supports_metric: true })
+    const corrB = E({ url: 'https://d.example.com/1', observation_key: 'k-b', supports_metric: true })
+    const corrNoKey = E({ url: 'https://e.example.com/1', supports_metric: true })
+    const corrNoMetric = E({ url: 'https://f.example.com/1', observation_key: 'k-c', supports_metric: false })
+    const corrUnmarked = E({ url: 'https://g.example.com/1', observation_key: 'k-d' })
+    const estimate = E({ url: 'https://sacra.example.com/1', is_estimate: true, observation_key: 'k-est', supports_metric: true })
+    const tertiary = E({ url: 'https://blog.example.com/1', source_tier: 'tertiary', observation_key: 'k-ter', supports_metric: true })
+
+    // [이름, 무브, 근거, 기대 등급, 기대 provisional, 기대 unkeyed, 기대 reason]
+    const SNAPSHOT = [
+      ['수치 없음', M({ metric_after: null }), [corrA], 'D', false, 0, '수치 없음 — 서술만 있다'],
+      ['수치 undefined', M({ metric_after: undefined }), [corrA], 'D', false, 0, '수치 없음 — 서술만 있다'],
+      ['수치 있는데 근거 0건', M(), [], 'D', false, 0, '근거 0건 — 수치 주장인데 출처가 없다 (저장 불가)'],
+      ['법정 공시 1건', M(), [filing], 'A', false, 0, '법정 공시 1건 (자기보고이나 법적 책임이 따르는 문서)'],
+      ['법정 공시 + 3차 잡음', M(), [filing, tertiary], 'A', false, 0, '법정 공시 1건 (자기보고이나 법적 책임이 따르는 문서)'],
+      ['발행사 정의 지표 공시 — 공시 경로는 막히고 비자기보고 1차로 간다', M(), [issuerFiling], 'A', false, 0, '비자기보고 1차 출처 1건'],
+      ['발행사 정의 지표 + 독립 관측 1건', M(), [issuerFiling, corrA], 'A', false, 0, '비자기보고 1차 출처 1건'],
+      ['발행사 정의 지표 + 독립 관측 2건', M(), [issuerFiling, corrA, corrB], 'A', false, 0, '비자기보고 1차 출처 1건'],
+      ['비자기보고 1차 1건', M(), [nonSelfPrimary], 'A', false, 0, '비자기보고 1차 출처 1건'],
+      ['비자기보고 1차 + 추정치', M(), [nonSelfPrimary, estimate], 'A', false, 0, '비자기보고 1차 출처 1건'],
+      ['서로 다른 원 관측 2개', M(), [corrA, corrB], 'A', false, 0, '서로 다른 원 관측 2개가 뒷받침'],
+      ['같은 원 관측 2건 — 도메인이 둘이어도 관측은 하나', M(), [corrA, { ...corrB, observation_key: 'k-a' }], 'C', false, 0, '교차 확인 없음 — 근거 2건 / 독립 원 관측 1개'],
+      ['자기보고 1차 + 다른 원 관측', M(), [selfPrimary, corrA], 'B', false, 0, '자기보고 1차 + 다른 원 관측 1개(k-a)'],
+      ['자기보고 1차 + 같은 원 관측', M(), [selfPrimary, { ...corrA, observation_key: 'k-self' }], 'C', false, 0, '자기보고 1차뿐 — 다른 원 관측 없음'],
+      ['자기보고 1차뿐', M(), [selfPrimary], 'C', false, 0, '자기보고 1차뿐 — 다른 원 관측 없음'],
+      ['자기보고 1차 관측키 미기재', M(), [selfPrimaryNoKey], 'C', true, 1, '자기보고 1차 1건의 관측 키가 미기재라 교차 확인 여부를 판정할 수 없다'],
+      ['자기보고 1차 관측키 미기재 + 교차 1건', M(), [selfPrimaryNoKey, corrA], 'C', true, 1, '자기보고 1차 1건의 관측 키가 미기재라 교차 확인 여부를 판정할 수 없다'],
+      ['자기보고 1차 + 교차 후보 키 미기재', M(), [selfPrimary, corrNoKey], 'C', true, 1, '자기보고 1차뿐 — 다른 원 관측 없음 (교차 확인 후보 1건 중 1건은 관측 키·수치 뒷받침 미기재라 세지 않았다)'],
+      ['교차 후보가 수치를 안 받친다고 적힘', M(), [corrNoMetric, corrA], 'C', true, 1, '교차 확인 없음 — 근거 2건 / 독립 원 관측 1개 (교차 확인 후보 2건 중 1건은 관측 키·수치 뒷받침 미기재라 세지 않았다)'],
+      ['교차 후보 supports_metric 미기재', M(), [corrUnmarked, corrA], 'C', true, 1, '교차 확인 없음 — 근거 2건 / 독립 원 관측 1개 (교차 확인 후보 2건 중 1건은 관측 키·수치 뒷받침 미기재라 세지 않았다)'],
+      ['추정치뿐', M(), [estimate], 'C', false, 0, '추정치뿐 (1건) — 실측 출처 없음'],
+      ['추정치 2건', M(), [estimate, { ...estimate, url: 'https://h.example.com/1', observation_key: 'k-est2' }], 'C', false, 0, '추정치뿐 (2건) — 실측 출처 없음'],
+      ['3차 출처뿐', M(), [tertiary], 'C', false, 0, '교차 확인 없음 — 근거 1건 / 독립 원 관측 0개'],
+      ['3차 + 2차 1건', M(), [tertiary, corrA], 'C', false, 0, '교차 확인 없음 — 근거 2건 / 독립 원 관측 1개'],
+      ['2차 1건뿐', M(), [corrA], 'C', false, 0, '교차 확인 없음 — 근거 1건 / 독립 원 관측 1개'],
+      ['2차 1건 + 관측키 없음', M(), [corrNoKey], 'C', true, 1, '교차 확인 없음 — 근거 1건 / 독립 원 관측 0개 (교차 확인 후보 1건 중 1건은 관측 키·수치 뒷받침 미기재라 세지 않았다)'],
+      ['공시인데 추정치 표시', M(), [{ ...filing, is_estimate: true }], 'C', false, 0, '추정치뿐 (1건) — 실측 출처 없음'],
+      ['공시가 수치를 안 받친다고 적힘', M(), [{ ...filing, supports_metric: false }], 'C', true, 1, '교차 확인 없음 — 근거 1건 / 독립 원 관측 0개 (교차 확인 후보 1건 중 1건은 관측 키·수치 뒷받침 미기재라 세지 않았다)'],
+      ['비자기보고 1차가 수치를 안 받침', M(), [{ ...nonSelfPrimary, supports_metric: false }], 'C', true, 1, '교차 확인 없음 — 근거 1건 / 독립 원 관측 0개 (교차 확인 후보 1건 중 1건은 관측 키·수치 뒷받침 미기재라 세지 않았다)'],
+      ['before 만 있고 after 없음', M({ metric_after: null, metric_before: 5 }), [filing], 'D', false, 0, '수치 없음 — 서술만 있다'],
+    ]
+    eq('AC-11 — 스냅샷 30건', SNAPSHOT.length, 30)
+    for (const [name, m, ev, grade, prov, unkeyed, reason] of SNAPSHOT) {
+      const r = gradeMove(m, ev)
+      eq(`AC-11 등급 — ${name}`, r.grade, grade)
+      eq(`AC-11 잠정 — ${name}`, r.provisional ?? false, prov)
+      eq(`AC-11 미기재수 — ${name}`, r.unkeyed ?? 0, unkeyed)
+      eq(`AC-11 사유 — ${name}`, r.reason, reason)
+    }
+    const dist = SNAPSHOT.reduce((a, s) => ({ ...a, [s[3]]: (a[s[3]] ?? 0) + 1 }), {})
+    eq('AC-11 — 등급 분포도 고정 (A8 B1 C17 D4)', JSON.stringify(dist), JSON.stringify({ D: 4, A: 8, C: 17, B: 1 }))
+    // 이식성 필드가 붙어도 산식은 그 값을 보지 않는다. 보면 등급이 사람 판정에 오염된다.
+    eq('AC-11 — transferability 가 붙어도 등급은 그대로',
+      gradeMove({ ...M(), transferability: 'HIGH', transfer_note: '내일 이걸 해라' }, [corrA]).grade,
+      gradeMove(M(), [corrA]).grade)
+  }
+
+  // ── AC-12. CG-2 — 등급 D 초안의 숫자 차단 ────────────────────────────
+  {
+    const dMove = { evidence_grade: 'D', lever: 'COMMUNITY', slug: 'acme-tea', brand_name: '에이스메 티' }
+    const withNumber = '커뮤니티를 열었더니 재구매율이 40% 올랐다. 사람들이 서로 답을 달기 시작했다.'
+    const noNumber = '커뮤니티를 열었더니 사람들이 서로 답을 달기 시작했다. 숫자는 아직 없다.'
+
+    const blocked = numericGate([dMove], withNumber)
+    eq('AC-12 — 등급 D + "재구매율이 40% 올랐다" 는 막는다', blocked.ok, false)
+    check('AC-12 — 걸린 수치를 사유에 적는다', /40%/.test(blocked.reason), blocked.reason)
+    eq('AC-12 — 같은 무브 + 숫자 없는 본문은 통과', numericGate([dMove], noNumber).ok, true)
+    check('AC-12 — 통과해도 확인 못 한 것을 말한다',
+      typeof numericGate([dMove], noNumber).caveat === 'string')
+
+    // 수치 표기 어휘 전부. 하나라도 새면 그 표기로 환각이 들어온다.
+    for (const [unit, body] of [['%', '30% 늘었다'], ['배', '3배 뛰었다'], ['억', '12억 벌었다'],
+      ['만원', '50만원 아꼈다'], ['명', '2000명 모였다'], ['x', '5x 성장'], ['X', '5X 성장']]) {
+      eq(`AC-12 — 수치 표기 "${unit}" 도 막는다`, numericGate([dMove], `커뮤니티를 열었더니 ${body}.`).ok, false)
+    }
+    eq('AC-12 — 띄어쓴 수치도 막는다', numericGate([dMove], '재구매율이 40 % 올랐다.').ok, false)
+    check('AC-12 — 연도 같은 맨숫자는 막지 않는다 (과차단 방지)',
+      numericGate([dMove], '2024년에 커뮤니티를 열었다.').ok)
+
+    // 대상이 아닌 등급을 붙잡으면 게이트가 무시당한다.
+    for (const g of ['A', 'B', 'C']) {
+      eq(`AC-12 — 등급 ${g} 는 CG-2 대상이 아니다`,
+        numericGate([{ ...dMove, evidence_grade: g }], withNumber).ok, true)
+    }
+    eq('AC-12 — 무브 0건이면 대상 아님', numericGate([], withNumber).ok, true)
+    check('AC-12 — 대상 아닐 때 그 사실을 말한다', /대상이 아니다/.test(numericGate([], withNumber).reason))
+    eq('AC-12 — 여러 무브 중 하나만 D 여도 대상',
+      numericGate([{ ...dMove, evidence_grade: 'A' }, dMove], withNumber).ok, false)
+    eq('AC-12 — 게이트 코드는 CG-2', numericGate([dMove], withNumber).code, 'CG-2')
+    check('AC-12 — 사람에게 고치는 법을 알려 준다', numericHint().length >= 3 && numericHint().some((l) => /숫자를 빼라/.test(l)))
+
+    // ★ 스테이징이 실제로 exit 4 로 막는가. 게이트 함수만 통과시키고 배선이 빠지면
+    //   "검사는 있는데 아무것도 안 막는" 상태가 된다 — 이 리포에서 반복된 형태다.
+    const stageSrc = fs.readFileSync(new URL('./case-draft-stage.mjs', import.meta.url), 'utf-8')
+    check('AC-12 — case-draft-stage 가 numericGate 를 실제로 부른다', /numericGate\(gateMoves, body\)/.test(stageSrc))
+    check('AC-12 — 막히면 return 4 (exit 4)', /const blocked = gates\.find\(\(g\) => !g\.result\.ok\)[\s\S]{0,700}return 4/.test(stageSrc))
+    check('AC-12 — 막혀도 본문을 날리지 않고 draft 로 눕힌다', /const blocked[\s\S]{0,200}await write\('draft'\)/.test(stageSrc))
+  }
+
+  // ── 관측 2필드는 조사원이, 판정은 사람이 ──────────────────────────────
+  {
+    const d = base()
+    d.moves[0].transfer_note = '내일 고객 5명에게 같은 질문을 보내라'
+    d.moves[0].preconditions = '기존 고객 목록이 있어야 한다'
+    const { study, moves } = toRows(d)
+    eq('이식성 — toRows 가 transfer_note 를 옮긴다', moves[0].row.transfer_note, '내일 고객 5명에게 같은 질문을 보내라')
+    eq('이식성 — preconditions 도 옮긴다', moves[0].row.preconditions, '기존 고객 목록이 있어야 한다')
+    check('이식성 — 판정(transferability)은 행에 넣지 않는다 (기계가 쓰는 경로 없음)',
+      !('transferability' in moves[0].row), JSON.stringify(Object.keys(moves[0].row)))
+    eq('이식성 — reader_problem 은 케이스 행으로', toRows(withReader('NO_CHANNEL')).study.reader_problem, 'NO_CHANNEL')
+    eq('이식성 — 미기재는 null 로 (false 로 접지 않는다)', study.reader_problem, null)
+    check('이식성 — transfer_note 가 없으면 warn 으로 남긴다',
+      warnsOf(base()).some((w) => /transfer_note/.test(w.message)))
+  }
+}
 
 // ── 결과 ──────────────────────────────────────────────────────
 console.log(`\n통과 ${passed} / 실패 ${failures.length}`)

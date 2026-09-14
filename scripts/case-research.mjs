@@ -23,10 +23,11 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   BUSINESS_MODEL, BUYER_TYPE, PURCHASE_FREQUENCY, PRICE_BAND, BOTTLENECK,
   LEVER, OUTCOME_STATUS, OUTCOME_DIRECTION, SOURCE_TIER, SNIPPET_MAX,
-  SLUG_RE, validateDraft, gradeMove, toRows,
+  SLUG_RE, READER_PROBLEMS, validateDraft, gradeMove, toRows,
 } from '../lib/cases/draft.ts'
 
 export const DRAFT_DIR = path.join(process.cwd(), 'drafts', 'cases')
@@ -61,78 +62,101 @@ const readDraft = (slug) => {
 // ────────────────────────────────────────────────────────────
 // brief — 에이전트/사람이 읽을 리서치 지시문
 // ────────────────────────────────────────────────────────────
-function brief() {
-  const brand = opt('brand') ?? '<브랜드>'
-  const market = opt('market')
-  console.log(`
+export function briefText(brand = '<브랜드>', market = null) {
+  return `
 ════════════════════════════════════════════════════════════
 케이스스터디 리서치 지시문 — ${brand}${market ? ` (${market})` : ''}
 ════════════════════════════════════════════════════════════
 
-목적은 "이 브랜드 소개"가 아니다. **다른 사업에 옮길 수 있는 실행 1개**를
-근거와 함께 꺼내는 것이다. 옮길 수 없는 사실은 적지 마라.
+이 조사의 독자는 **"만들 줄은 아는데 그걸 돈으로 바꾸는 법을 모르는 사람"**이다.
+창업·제작에서 실제로 막혀 있는 사람이고, 브랜드 소개를 읽으러 오지 않았다.
 
-■ 반드시 답할 것
-  1. 어떤 병목이었나  (${BOTTLENECK.join(' / ')})
-     — 이게 매칭의 1순위 축이다. 업종이 아니라 병목으로 사례를 찾는다.
-  2. 그래서 무엇을 바꿨나 (무브). 레버는:
+그래서 목적은 "${brand} 는 이런 회사다"가 아니라, **그 사람이 자기 상황에
+옮겨 쓸 수 있는 실행 1개**를 근거와 함께 꺼내는 것이다. 옮길 수 없는 사실은
+아무리 흥미로워도 적지 마라.
+
+★ 목표는 등급 A 가 아니라 **옮길 수 있는 무브 1개**다. 등급은 그 무브에 붙는
+  성질이지 조사의 목표가 아니다. 등급 D 짜리 무브라도 옮길 수 있으면 값이
+  있고, 등급 A 짜리라도 그 회사라서 됐던 일이면 이 아카이브에 쓸 데가 없다.
+
+■ 반드시 답할 것 — **이 순서대로 답해라**
+
+  1. 이 이야기를 옮겨 쓸 **독자는 누구이고 지금 무엇에 막혀 있나** (reader_problem)
+     — 선정 1순위 축이다. 어휘 정본은 \`config/reader-problems.json\` 이다.
+       그 파일을 열어서 코드를 고르고, 맞는 게 없으면 억지로 끼워 맞추지 말고
+       조사 노트에 "이 어휘에 없다"고 적어라. 어휘는 갈아끼우는 물건이다.
+     ${READER_PROBLEMS.join(' / ')}
+
+  2. 그 독자가 **내일** 할 수 있는 최소 행동 1개는 무엇인가 (transfer_note)
+     — "포지셔닝을 바꿨다"는 행동이 아니다. 내일 아침에 시작해서 하루 안에
+       끝낼 수 있는 크기여야 한다. 못 줄이면 그 무브는 아직 안 풀린 것이다.
+
+  3. 옮기려면 뭐가 있어야 하나 (preconditions)
+     — 자본·인력·기존 고객·채널·재고·규제 허가. 없으면 비워 두되, 비운 것은
+       "전제 없음"이 아니라 **"안 적었다"**로 읽힌다. 확인했으면 확인했다고 적어라.
+
+  4. 그래서 무엇을 바꿨나 (무브: lever + claim). 레버는:
      ${LEVER.join(', ')}
-  3. 바꾸기 전/후 수치는? metric_name·before·after·unit 을 전부.
-  4. 언제 관측된 사실인가? (observed_period_start/end)
-  5. 그 수치의 출처 URL 은? 자기보고인가 아닌가?
+     — 병목은 (${BOTTLENECK.join(' / ')}) 중 하나로 적는다. 매칭은 업종이 아니라
+       병목으로 건다.
+
+  5. 수치·출처. metric_name·before·after·unit 을 전부, 그리고 그 수치의 URL.
+     자기보고인지 아닌지까지. 규칙 전문은 \`docs/evidence-rules.md\` 다.
+
   6. 지금도 살아 있나? 확인 못 했으면 outcome_status='unknown' 으로 둔다.
      ★ 확인 실패를 'active' 로 적지 마라 (§7.1).
+
+■ 근거 규칙 요약 6줄 — **전문은 \`docs/evidence-rules.md\`**
+  1. 출처는 4축이 서로 **독립**이다: source_tier / is_self_reported /
+     is_estimate / is_regulatory_filing. 창업자 인터뷰 = primary + 자기보고.
+  2. 상장사·공시 대상이면 **공시부터** 찾아라 (SEC EDGAR, DART). 3차 블로그로
+     조사하면 틀린 숫자를 쌓는다 — 듀오링고에서 실제로 그럴 뻔했다.
+  3. 추정치("Sacra 추정", "업계 추산", "~로 알려졌다")는 실측이 아니다.
+     반드시 is_estimate=true 로 표시한다.
+  4. **\`observation_key\` 를 채운다.** 독립은 도메인 수가 아니라 원 관측 수로
+     센다. 같은 보도자료를 받아쓴 기사 5개는 출처 1개다.
+  5. published_at 은 원문 게시일이다. 모르면 비우되 **비우기 전에 한 번은 찾아봐라.**
+  6. snippet 은 ${SNIPPET_MAX}자 이하. 원문 전문 복사 금지.
 
 ■ 검색어 예시
   "${brand}" growth / "${brand}" 매출 성장 / "${brand}" case study
   "${brand}" 리브랜딩 OR 가격정책 OR 전환율
   "${brand}" 창업자 인터뷰   ← primary 이지만 is_self_reported=true 다
 
-■ 출처를 찾는 순서 ★ 시범 5건에서 여기가 가장 크게 어긋났다
-  1. 상장사·공시 대상이면 **공시부터** 찾아라 — SEC(EDGAR: S-1/10-K/8-K 주주서한),
-     DART(감사보고서). is_regulatory_filing=true 로 적으면 등급 A 다.
-     ⚠️ 듀오링고를 3차 블로그로 조사했더니 DAU 가 1600만→3000만이었는데,
-       공시(8-K)에는 1000만→2700만이었다. **틀린 숫자를 쌓을 뻔했다.**
-  2. 비상장이면 조사기관 추정치 + 무역·업계 매체. 추정치는 is_estimate=true.
-  3. 브랜드 자사 블로그/인터뷰는 마지막이다. 맥락에는 좋고 수치에는 약하다.
-  ★ 등급 A 를 받으려면 (공시 1건) 또는 (비자기보고 1차 1건) 또는
-    (자기보고·추정이 아닌 서로 다른 도메인 2곳)이 필요하다. 목표를 A 로 잡아라.
-
-■ 근거 규칙 (여기서 대부분 어긋난다)
-  - source_tier / is_self_reported / is_estimate 는 **서로 별개 축**이다.
-    창업자 인터뷰 = primary + self_reported. 가장 흔하고 가장 위험한 조합.
-  - is_estimate=true 는 조사기관이 **추정한** 값이다. 비상장사 매출은 대부분
-    여기 해당한다. 추정치는 A 등급을 만들지 못한다 — 반드시 표시해라.
-    "Sacra 추정", "업계 추산", "~로 알려졌다"는 전부 추정치다.
-  - published_at 은 원문 게시일이다. 우리가 읽은 날이 아니다.
-    모르면 비워라. 오늘 날짜로 채우지 마라. 다만 **비우기 전에 한 번은 찾아봐라** —
-    시범 5건에서 근거 17건 중 11건이 게시일 미상이었다. 대부분 확인 가능했다.
-  - snippet 은 ${SNIPPET_MAX}자 이하. 원문 전문 복사 금지.
-  - 같은 보도자료를 받아쓴 기사 5개는 출처 1개다. 도메인이 달라야 센다.
-
 ■ 수치가 없으면
   수치 없는 무브도 적어라. 등급 D 로 저장되고 PMF 스코어링에서만 빠진다.
   ★ 없는 수치를 지어내면 그게 이 파이프라인을 통째로 무효로 만든다.
     근거 0건 + 수치 있음 = validate 에서 error 로 막힌다.
+  ⛔ 그리고 등급 D 무브로 쓴 초안 본문에 숫자가 들어가면 발행 게이트 CG-2 가
+    스테이징을 막는다(exit 4). D 는 "수치가 없는 무브"라서, 그 글의 숫자는
+    우리 근거에서 나온 게 아니기 때문이다.
 
 ■ 실패·부정 사례
   outcome_direction='negative' 도 환영한다. 다만 발행은 등급 A 일 때만이다
   (실명 브랜드에 대한 부정 서술이라 근거가 약하면 사내 참고용으로만 둔다).
+  ★ 생존 편향 방어는 독자 축에서도 그대로다. 웹서치는 성공 쪽으로 쏠리고,
+    막힌 독자에게 정작 필요한 건 "그때 뭘 하면 안 됐나"인 경우가 많다.
+    실패 사례를 맡았으면 억지로 교훈을 만들어 positive 로 돌리지 마라.
 
 ■ 산출
   node scripts/case-research.mjs scaffold --slug <slug> --brand "${brand}"
   로 만든 JSON 을 채운다. 어휘는 스키마 CHECK 와 같아야 한다:
+    reader_problem     config/reader-problems.json (파일이 정본)
     business_model     ${BUSINESS_MODEL.join(' / ')}
     buyer_type         ${BUYER_TYPE.join(' / ')}
     purchase_frequency ${PURCHASE_FREQUENCY.join(' / ')}
     price_band         ${PRICE_BAND.join(' / ')}
     outcome_status     ${OUTCOME_STATUS.join(' / ')}
     outcome_direction  ${OUTCOME_DIRECTION.join(' / ')}
-    source_tier        ${SOURCE_TIER.join(' / ')}
+    source_tier        ${SOURCE_TIER.join(' / ')}   ← 규칙 전문 docs/evidence-rules.md
   채운 뒤:
   node scripts/case-research.mjs validate --slug <slug>
 ════════════════════════════════════════════════════════════
-`)
+`
+}
+
+function brief() {
+  console.log(briefText(opt('brand') ?? '<브랜드>', opt('market')))
 }
 
 // ────────────────────────────────────────────────────────────
@@ -167,6 +191,8 @@ function scaffold() {
     purchase_frequency: null,
     price_band: null,
     bottleneck: null,
+    // ★ 선정 1순위 축. 어휘는 config/reader-problems.json 이 정본이다.
+    reader_problem: null,
     outcome_status: 'unknown',
     period_start: null,
     period_end: null,
@@ -177,6 +203,10 @@ function scaffold() {
       {
         lever: null,
         claim: '',
+        // 독자가 **내일** 할 수 있는 최소 행동 1개. 이게 이 파이프라인의 산출물이다.
+        transfer_note: null,
+        // 옮기려면 뭐가 있어야 하나. null 은 미기재이지 "전제 없음"이 아니다(§7.1).
+        preconditions: null,
         outcome_direction: 'positive',
         metric_name: null,
         metric_before: null,
@@ -261,12 +291,22 @@ function validate() {
   console.log('✅ 전부 통과 — 다음: node --env-file=.env.local scripts/case-review.mjs list')
 }
 
-switch (cmd) {
-  case 'brief': brief(); break
-  case 'scaffold': scaffold(); break
-  case 'validate': validate(); break
-  default:
-    console.error('명령: brief | scaffold | validate')
-    console.error('예:  node scripts/case-research.mjs validate --all')
-    process.exit(2)
+// 셀프테스트가 briefText 를 import 할 수 있어야 한다. import 만으로 CLI 가
+// 돌면 그 순간 process.exit(2) 로 죽는다.
+function isMain() {
+  if (!process.argv[1]) return false
+  try { return path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url)) }
+  catch { return false }
+}
+
+if (isMain()) {
+  switch (cmd) {
+    case 'brief': brief(); break
+    case 'scaffold': scaffold(); break
+    case 'validate': validate(); break
+    default:
+      console.error('명령: brief | scaffold | validate')
+      console.error('예:  node scripts/case-research.mjs validate --all')
+      process.exit(2)
+  }
 }

@@ -21,7 +21,7 @@ node --env-file=.env.local scripts/cmo-daily.mjs --trigger=local [--dry]
 아래 절차는 스크립트가 무엇을 하는지의 정본이자, 스크립트가 막혔을 때 사람이
 같은 자리를 이어받기 위한 런북이다. 스크립트를 고치면 이 문서도 같이 고친다.
 
-## 단계 (S0~S8) — 순차. 병렬 금지
+## 단계 (S0~S9) — 순차. 병렬 금지
 
 - **S0 `preflight` 사전 점검** — Supabase 도달, `case_studies`/`case_moves` 존재,
   `agent_runs` 존재(없으면 JSONL 폴백), git 작업트리 청결, 브랜치 확인.

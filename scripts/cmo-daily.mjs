@@ -283,7 +283,13 @@ async function main() {
     let r
     try {
       const unlinkedLine = stopped ? null : unlinkedDigestLine(await readUnlinkedCheck())
-      r = await recordStatusLog(buildCmoStatusEntry({ date, runKey, runUrl, state, log, stopped, runStatus, unlinkedLine, notionPushError }))
+      // pendingDir: 페이지가 아예 안 만들어졌을 때만 §11-3 폴백 파일을 남긴다. 전에는 이 인자가 없어
+      // Notion 이 죽은 밤의 기록이 ❌ 로그 한 줄로만 남고 다음 세션이 올릴 파일이 없었다.
+      r = await recordStatusLog(
+        buildCmoStatusEntry({ date, runKey, runUrl, state, log, stopped, runStatus, unlinkedLine, notionPushError }),
+        { pendingDir: path.join(process.cwd(), 'ops', 'state', 'status-log-pending') },
+      )
+      if (r.pendingPath) say(`- ⚠️ \`status_log\` 폴백 파일 생성 — ${r.pendingPath} (다음 세션이 Notion 에 올린다)`)
     } catch (e) {
       r = { ok: false, stage: 'build', error: e.message }
     }

@@ -86,7 +86,8 @@
 
 ## 에스컬레이션
 
-아래는 CMO 가 판단하지 않고 CEO(또는 `ceo-staff`)에게 올린다.
+아래는 CMO 가 판단하지 않고 **CEO-STAFF 세션에 SendMessage 로** 올린다. 남헌에게 직접 묻지 않는다
+(`_principles.md` §8). CEO-STAFF 가 돌려주는 지침이 곧 남헌의 지시다.
 
 - 채널 추가·변경
 - 조사·초안 목표량 변경

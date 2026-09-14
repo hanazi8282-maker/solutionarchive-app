@@ -24,7 +24,15 @@ type Row = {
   mode: AnalysisMode | null
   competitor_url: string
   product_elevator_pitch: string
+  /** PostgREST 임베디드 count — FK(analysis_inputs.project_id) 로 묶인 원문 수. */
+  analysis_inputs: { count: number }[] | null
 }
+
+// 수집 중인데 원문이 이미 있는 프로젝트. 야간 수집 루프가 리뷰를 수백 건 쌓아 둔 프로젝트가
+// 기본 보기(수집 중 제외)에서는 안 보여, 분석할 재료가 있다는 사실 자체를 화면에서 알 수 없었다.
+const READY_FILTER = 'ready'
+const inputCount = (r: Row) => r.analysis_inputs?.[0]?.count ?? 0
+const isReady = (r: Row) => r.status === 'collecting' && inputCount(r) > 0
 
 // DB CHECK(analysis_projects_status_check) 어휘. 모르는 값은 원문 그대로 보여준다.
 const STATUS: Record<string, { label: string; tone: Tone }> = {
@@ -92,7 +100,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   // ponytail: 전체를 한 번에 읽어 상태별 건수와 필터를 같이 만든다. 500건을 넘기면 서버 필터·페이지네이션으로.
   const res = await sb
     .from('analysis_projects')
-    .select('id,status,created_at,purpose,mode,competitor_url,product_elevator_pitch')
+    .select('id,status,created_at,purpose,mode,competitor_url,product_elevator_pitch,analysis_inputs(count)')
     .order('created_at', { ascending: false })
     .limit(LIMIT)
 
@@ -111,10 +119,12 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   const counts = new Map<string, number>()
   for (const r of all) counts.set(r.status, (counts.get(r.status) ?? 0) + 1)
   const collectingN = counts.get('collecting') ?? 0
+  const readyN = all.filter(isReady).length
 
   const rows = filter === 'all' ? all
     : filter === DEFAULT_FILTER ? all.filter((r) => r.status !== 'collecting')
-      : all.filter((r) => r.status === filter)
+      : filter === READY_FILTER ? all.filter(isReady)
+        : all.filter((r) => r.status === filter)
 
   return (
     <PageShell maxWidth={960}>
@@ -128,6 +138,11 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
         <FilterLink href="/analyze" active={filter === DEFAULT_FILTER}>
           수집 중 제외 {all.length - collectingN}
         </FilterLink>
+        {readyN > 0 && (
+          <FilterLink href={`/analyze?status=${READY_FILTER}`} active={filter === READY_FILTER}>
+            원문 있음·분석 전 {readyN}
+          </FilterLink>
+        )}
         {[...counts.entries()].map(([s, n]) => (
           <FilterLink key={s} href={`/analyze?status=${encodeURIComponent(s)}`} active={filter === s}>
             {STATUS[s]?.label ?? s} {n}
@@ -147,7 +162,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
           <EmptyState
             compact
             title="이 상태의 프로젝트 0건"
-            description={`전체 ${all.length}건 중${filter === DEFAULT_FILTER ? ` 수집 중 ${collectingN}건만 있다` : ''}.`}
+            description={`전체 ${all.length}건 중${filter === DEFAULT_FILTER ? ` 수집 중 ${collectingN}건만 있다${readyN ? ` (그중 ${readyN}건은 원문이 있어 분석을 시작할 수 있다)` : ''}` : ''}.`}
           />
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
@@ -164,7 +179,9 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
                       <Badge tone="neutral" size="sm">{MODE_LABELS[r.mode ?? 'forward'] ?? r.mode}</Badge>
                       <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                         {PURPOSE_LABELS[r.purpose] ?? r.purpose} · {r.created_at ? `${KST.format(Date.parse(r.created_at))} KST` : '생성일 없음'}
+                        {' · '}원문 {inputCount(r)}건
                       </span>
+                      {isReady(r) && <Badge tone="warning" size="sm">분석 전</Badge>}
                     </div>
                     <div style={{ marginTop: 6, fontSize: 14, fontWeight: 500, color: 'var(--text-strong)', ...wrap }}>
                       {r.product_elevator_pitch}

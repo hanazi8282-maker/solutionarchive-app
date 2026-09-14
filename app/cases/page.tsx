@@ -68,10 +68,23 @@ function ReviewBadge({ status }: { status: string }) {
   return <Badge tone={r?.tone ?? 'neutral'} dot size="sm">{r?.label ?? status}</Badge>
 }
 
-function EvidenceList({ rows }: { rows: EvidenceRow[] }) {
-  if (rows.length === 0) return <p style={muted}>근거 0건</p>
+/**
+ * 근거는 접어 둔다. 검수 대기 12건 × 무브 2~3개 × 근거 2~5건이 전부 펼쳐져 있으면 한 케이스가
+ * 세 화면이고 결정 버튼은 그 맨 아래에 있었다(2026-09-15 실화면). 요약 줄에 등급 산식이 세는 것
+ * (1차·자기보고·수치 뒷받침)을 그대로 적어, 펼치지 않아도 "왜 이 등급인가"는 보이게 한다.
+ */
+function EvidenceList({ rows, label = '근거' }: { rows: EvidenceRow[]; label?: string }) {
+  if (rows.length === 0) return <p style={muted}>{label} 0건</p>
+  const primary = rows.filter((e) => e.source_tier === 'primary').length
+  const selfReported = rows.filter((e) => e.is_self_reported).length
+  const metric = rows.filter((e) => e.supports_metric === true).length
   return (
-    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
+    <details>
+      <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--text-body)', userSelect: 'none' }}>
+        {label} <b>{rows.length}건</b>
+        <span style={{ color: 'var(--text-muted)' }}> · 1차 {primary} · 자기보고 {selfReported} · 수치 뒷받침 {metric} — 펼쳐서 원문 확인</span>
+      </summary>
+    <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 6 }}>
       {rows.map((e) => (
         <li key={e.id} style={{ padding: '8px 10px', borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)', fontSize: 13, overflowWrap: 'anywhere' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
@@ -96,8 +109,12 @@ function EvidenceList({ rows }: { rows: EvidenceRow[] }) {
         </li>
       ))}
     </ul>
+    </details>
   )
 }
+
+/** 카드 앵커. 점프 목록·다음 케이스 링크가 같은 규칙으로 만든다. */
+const caseAnchor = (slug: string) => `case-${slug}`
 
 function MoveBlock({ m, i, evidence, locked, transferabilityLocked }: {
   m: MoveRow; i: number; evidence: EvidenceRow[]; locked: boolean; transferabilityLocked: boolean
@@ -261,10 +278,35 @@ export default async function CasesPage() {
       ) : (
         <>
           <p style={muted}>승인·반려 기록의 검수자에는 로그인한 계정 이메일이 남는다.</p>
+
+          {/* 점프 목록. 12건이 한 페이지에 세로로 이어져 있어 아래쪽 케이스는 스크롤로만 갈 수 있었다.
+              칩 하나 = 케이스 하나, 숫자는 그 케이스에서 아직 결정 안 한 무브 수. */}
+          <nav aria-label="검수 대기 케이스" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {pending.map((c) => {
+              const n = c.moves.filter((m) => m.review_status === 'draft').length
+              return (
+                <a
+                  key={c.id}
+                  href={`#${caseAnchor(c.slug)}`}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px',
+                    borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', textDecoration: 'none',
+                    border: '1px solid var(--border)', background: 'var(--surface-card)', color: 'var(--text-body)',
+                  }}
+                >
+                  {c.brand_name}
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: n ? 'var(--warning-fg)' : 'var(--text-muted)' }}>{n}</span>
+                </a>
+              )
+            })}
+          </nav>
+
           <div style={{ display: 'grid', gap: 16 }}>
-            {pending.map((c) => (
+            {pending.map((c, idx) => (
               <Card
                 key={c.id}
+                id={caseAnchor(c.slug)}
+                style={{ scrollMarginTop: 64 }}
                 title={c.brand_name}
                 subtitle={<>{c.slug} · {[c.market, c.geo].filter(Boolean).join(' / ') || '시장 미기재'} · 조사 {c.researched_by ?? '미기재'} · 적립 {KST.format(Date.parse(c.created_at))}</>}
                 action={<ReviewBadge status={c.review_status} />}
@@ -284,10 +326,7 @@ export default async function CasesPage() {
                   {c.summary && <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, overflowWrap: 'anywhere' }}>{c.summary}</p>}
                   {c.tags && c.tags.length > 0 && <p style={muted}>태그 {c.tags.join(' · ')}</p>}
 
-                  <div>
-                    <p style={{ ...muted, marginBottom: 6 }}>케이스 전체 근거</p>
-                    <EvidenceList rows={c.evidence.filter((e) => !e.case_move_id)} />
-                  </div>
+                  <EvidenceList label="케이스 전체 근거" rows={c.evidence.filter((e) => !e.case_move_id)} />
 
                   <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600 }}>무브 {c.moves.length}건</p>
                   {c.moves.map((m, i) => (
@@ -300,6 +339,14 @@ export default async function CasesPage() {
                       <DecisionForm kind="case" id={c.id} locked={locked} approveWarning={caseApprovalWarning(c.moves)} />
                     ) : (
                       <p style={muted}>케이스는 이미 {REVIEW[c.review_status]?.label ?? c.review_status}{c.review_note ? ` · ${c.review_note}` : ''} — draft 무브만 남아 있다.</p>
+                    )}
+                    {/* 결정을 내린 자리에서 바로 다음 케이스로. 위로 올라가 점프 목록을 다시 찾지 않게. */}
+                    {pending[idx + 1] ? (
+                      <a href={`#${caseAnchor(pending[idx + 1].slug)}`} style={{ fontSize: 13, justifySelf: 'start' }}>
+                        다음 케이스 ↓ {pending[idx + 1].brand_name}
+                      </a>
+                    ) : (
+                      <p style={muted}>마지막 케이스다.</p>
                     )}
                   </section>
                 </div>

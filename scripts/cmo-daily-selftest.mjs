@@ -1272,6 +1272,37 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   check('상태로그 — Notion 푸시가 상태 로그보다 먼저 돈다(푸시 실패가 행에 실린다)',
     src.indexOf("'scripts/notion-push-digest.mjs'") < src.indexOf('await recordDailyStatus({ runStatus })'))
 
+
+  // ── 대기함 설명서 ─────────────────────────────────────────
+  // 설명서는 사람이 읽는 산문이라 코드에서 생성할 수 없다. 대신 **어휘가 갈라지면**
+  // 여기서 터뜨린다 — 병목을 하나 추가해 놓고 설명서를 안 고치면 대기함을 보는
+  // 사람만 모르는 어휘가 생긴다. 산문은 사람이, 대조는 기계가 한다.
+  {
+    const push = fs.readFileSync(path.join(process.cwd(), 'scripts/notion-push-digest.mjs'), 'utf-8')
+    const guidePath = path.join(process.cwd(), 'content/guides/queue-guide.md')
+    check('대기함 설명서 — 정본 파일이 있다', fs.existsSync(guidePath))
+    const guide = fs.existsSync(guidePath) ? fs.readFileSync(guidePath, 'utf-8') : ''
+    // 어휘는 푸시 스크립트의 BOTTLENECKS 상수에서 읽는다 — 여기에 다시 적으면
+    // 그 사본이 또 낡는다(이 검사가 막으려는 바로 그 일이다).
+    const vstart = push.indexOf('const BOTTLENECKS = [')
+    const vocab = vstart < 0 ? [] : push.slice(vstart + 21, push.indexOf(']', vstart))
+      .split(',').map((x) => x.trim().replace(/^'/, '').replace(/'$/, '')).filter(Boolean)
+    check('대기함 설명서 — (검사 자체) 병목 어휘를 코드에서 읽어냈다', vocab.length === 7, `읽은 값 ${vocab.length}개`)
+    for (const b of vocab) {
+      check(`대기함 설명서 — 병목 ${b} 가 설명서에 있다`, guide.includes(b))
+    }
+    for (const g of ['A', 'B', 'C', 'D']) {
+      check(`대기함 설명서 — 등급 ${g} 설명이 있다`, new RegExp(`^${g}:`, 'm').test(guide))
+    }
+    check('대기함 설명서 — 손으로 발행 상태를 바꾸지 말라고 적혀 있다', guide.includes("손으로 '발행'으로 바꾸지 마라"))
+    check('대기함 설명서 — 매 푸시마다 Notion 설명란을 덮어쓴다', push.includes('await syncGuide(token, databaseId, dry)'))
+    check('대기함 설명서 — 초안 0건이어도 동기화한다(Supabase 접속보다 먼저)',
+      push.indexOf('await syncGuide(') < push.indexOf('supabase = await createClient()'))
+    check('대기함 설명서 — 동기화 실패가 푸시를 세우지 않는다',
+      push.includes('설명서 동기화 실패(푸시는 계속한다)')
+      && !push.slice(push.indexOf('async function syncGuide')).slice(0, 600).includes('process.exit'))
+  }
+
   const rcw = fs.readFileSync(path.join(process.cwd(), '.github/workflows/nightly-review-collect.yml'), 'utf-8')
   eq('상태로그 — 리뷰 수집 워크플로는 NOTION_API_TOKEN 을 한 스텝에만 준다', (rcw.match(/NOTION_API_TOKEN:/g) ?? []).length, 1)
   check('상태로그 — 리뷰 수집 워크플로에 다른 Notion secret 이 없다', !/NOTION_DATABASE_ID|NOTION_API_KEY/.test(rcw))

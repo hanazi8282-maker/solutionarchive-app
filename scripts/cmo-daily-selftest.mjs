@@ -1499,6 +1499,31 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
     legacy.deferred.length === 0)
 
   // AC-15. 마이그 미적용이어도 죽지 않고, 보고에 미적용을 반드시 남긴다.
+
+  // ── AC-8 (3) 매니페스트 신호도 무브 단위다 ─────────────────────────────
+  //
+  // ⚠️ 위 (1)(2)는 `emptyRepo` 를 써서 **파일 신호를 한 번도 안 탔다.** 그래서
+  //    `content_items` 만 고치고 `stage.json` 쪽을 슬러그 단위로 남겨 둔 결함이
+  //    통과했다. 2026-09-14 실측: 백필 17건을 끝냈는데도 실제 후보가 0건이었고,
+  //    범인이 `stagedSlugs` 였다. 제외 신호가 둘인데 한쪽만 고치면 효과가 0이다.
+  const manifestRepo = fs.mkdtempSync(path.join(os.tmpdir(), "angle-manifest-"))
+  fs.mkdirSync(path.join(manifestRepo, "drafts", "threads"), { recursive: true })
+  fs.writeFileSync(path.join(manifestRepo, "drafts", "threads", "2026-09-11-duolingo-streak.stage.json"),
+    JSON.stringify({ content_code: "CS-20260911-01", case_slug: DUO, move_id: "duo-product" }))
+  const withManifest = await pickAngles(sb([]), 2, manifestRepo)
+  eq("AC-8 — stage.json 에 move_id 가 있으면 그 무브만 빠진다", withManifest.moves.length, 1)
+  eq("AC-8 — 매니페스트 경로에서도 남는 것은 형제 무브다", withManifest.moves[0]?.id, "duo-community")
+
+  // move_id 가 없는 옛 매니페스트는 종전대로 슬러그를 통째로 뺀다(§7.1).
+  const oldManifestRepo = fs.mkdtempSync(path.join(os.tmpdir(), "angle-oldman-"))
+  fs.mkdirSync(path.join(oldManifestRepo, "drafts", "threads"), { recursive: true })
+  fs.writeFileSync(path.join(oldManifestRepo, "drafts", "threads", "2026-09-11-duolingo-streak.stage.json"),
+    JSON.stringify({ content_code: "CS-20260911-01", case_slug: DUO }))
+  const oldManifest = await pickAngles(sb([]), 2, oldManifestRepo)
+  eq("AC-8 — move_id 없는 옛 매니페스트는 슬러그 단위로 전부 제외", oldManifest.moves.length, 0)
+  fs.rmSync(manifestRepo, { recursive: true, force: true })
+  fs.rmSync(oldManifestRepo, { recursive: true, force: true })
+
   const pendingMig = await pickAngles(sb([{ source_case: 'other-case' }], { axis: false }), 2, emptyRepo)
   check('AC-15 — 마이그 미적용에서도 죽지 않는다', !pendingMig.error, String(pendingMig.error))
   eq('AC-15 — 그래도 후보는 정상으로 뽑힌다', pendingMig.moves.length, 1)

@@ -1252,7 +1252,12 @@ export async function pickAngles(supabase, n, repoRoot = process.cwd()) {
     draftFileNames = fs.existsSync(threadsDir) ? fs.readdirSync(threadsDir) : []
     for (const f of draftFileNames.filter((f) => f.endsWith('.stage.json'))) {
       const j = JSON.parse(fs.readFileSync(path.join(threadsDir, f), 'utf-8'))
-      if (j?.case_slug) stagedSlugs.add(j.case_slug)
+      // ★ content_items 와 **같은 규칙**이다. 매니페스트에 무브가 적혀 있으면 그
+      //   무브만 뺀다. 여기만 슬러그 단위로 두면 content_items 를 고쳐도 형제
+      //   무브가 이 신호에 걸려 그대로 유실된다(2026-09-14 실측: 백필 17건을
+      //   끝냈는데도 후보가 0건이었다 — 범인이 이 줄이었다).
+      if (j?.move_id) usedMoveIds.add(j.move_id)
+      else if (j?.case_slug) stagedSlugs.add(j.case_slug)
     }
   } catch (e) {
     return { error: `drafts/threads 매니페스트 확인 불가 — ${e.message}. 이 신호 없이 고르면 이미 초안이 나간 무브를 다시 고른다`, moves: [], notices }

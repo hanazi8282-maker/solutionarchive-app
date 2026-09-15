@@ -9,14 +9,20 @@
 # ⛔ 프로덕션 나이틀리 수집(nightly-review-collect.yml)과 무관하다.
 # ⛔ Supabase secret 을 env 에 넣지 않는다 — 필요 없다.
 #
-# ⚠️ 처음엔 workflow_dispatch(수동)만 둔다. 며칠 문제없이 돌면 그때 cron 을 켠다
-#    (nightly-review-collect.yml 처럼 어중간한 분으로, 정각 회피).
+# ⚠️ 2026-09-15 부터 매일 자동 실행(schedule). workflow_dispatch 는 그대로 둔다.
+#    시간은 다른 크론과 안 겹치게 잡았다 (UTC 기준):
+#      nightly-notion-feedback 12:07 · nightly-review-collect 17:37 ·
+#      nightly-hackernews-enrich 18:19 · nightly-insight-loop 18:41 · daily-cmo-loop 20:17
+#    → 이 워크플로우 15:23 UTC (KST 00:23). 정각 회피(어중간한 분).
+#    3~5일치 쌓이면 옵션 C(댓글 전건 수집) 도입 여부를 재판단한다.
 #
 # ⚠️ reports/ 프리픽스에만 커밋한다(CLAUDE.md §10.1). 다른 경로는 스테이징하지 않는다.
 
 name: HN Firebase C Probe
 
 on:
+  schedule:
+    - cron: '23 15 * * *'
   workflow_dispatch:
     inputs:
       append:
@@ -48,12 +54,15 @@ jobs:
 
       - name: Measure
         run: |
+          # `| tee` 가 node 의 종료코드를 삼킨다 — pipefail 없이는 측정이 죽어도 초록불.
+          set -o pipefail
           node scripts/hn-firebase-c-track.mjs \
-            ${{ inputs.append == false && ' ' || '--append' }} \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.append == false) && ' ' || '--append' }} \
             | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Commit report
-        if: ${{ inputs.append != false }}
+        # schedule 에선 inputs 가 null 이라 `null == false` 가 참이 된다 — event_name 으로 가드.
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.append == false) }}
         run: |
           if git diff --quiet -- reports/hn-firebase-c-dead-tracking.md; then
             echo "변경 없음 — 커밋 생략"

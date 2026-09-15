@@ -84,6 +84,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":2})
 - ▲ `stage` 발행 대기 스테이징 ({"staged":2}) — CG-1 미통과 — 등급 C 무브를 인용했는데 본문에 출처 귀속 문구가 없다. posts 는 draft 로 눕혔다(본문은 남아 있다).
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":17})
+- ℹ️ Notion 푸시: dc8e53a362b5d ✅ CASE-zapier-integration-page-seo-distribution → https://app.notion.com/p/CASE-zapier-integration-page-seo-distribution-3dc100b7ffb481b8a8e1edf4957451a9 푸시 완료 — 초안 1건 · 신규케이스 1건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-09-16-CMO 기록·재확인
 
 _실행 키 `cmo-2026-09-15-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

@@ -12,6 +12,12 @@ const REFRESH_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000
 // 그 전에 호출하면 에러가 나므로 아예 시도하지 않는다.
 const MIN_TOKEN_AGE_MS = 24 * 60 * 60 * 1000
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
+// 만료 경보선. 매시 크론(match-posts 등)이 loadThreadsToken 으로 7일 선 아래에서 갱신을 시도하므로,
+// 정상이면 만료가 7일 선 아래로 하루 넘게 머물지 않는다. 6일 이하 = 자동 갱신이 하루 넘게 실패 중.
+export const EXPIRY_ALERT_MS = REFRESH_THRESHOLD_MS - DAY_MS
+
 export interface ThreadsCredentials {
   accessToken: string
   userId: string
@@ -36,7 +42,7 @@ interface TokenRow {
  * 다음 행동이 정반대다: 전자는 사람이 인가 창을 거치고, 후자는 기다리거나 인프라를 본다.
  */
 export type TokenResult =
-  | { status: 'ok'; creds: ThreadsCredentials }
+  | { status: 'ok'; creds: ThreadsCredentials; expiresAt: string }
   | { status: 'needs_reauth'; reason: string }
   | { status: 'unavailable'; reason: string }
 
@@ -84,17 +90,17 @@ export async function loadThreadsToken(): Promise<TokenResult> {
 
   const current: ThreadsCredentials = { accessToken: data.access_token, userId: data.user_id }
 
-  if (expiresAt - now > REFRESH_THRESHOLD_MS) return { status: 'ok', creds: current }
+  if (expiresAt - now > REFRESH_THRESHOLD_MS) return { status: 'ok', creds: current, expiresAt: data.expires_at }
 
   const tokenAge = now - new Date(data.updated_at).getTime()
   if (tokenAge < MIN_TOKEN_AGE_MS) {
     // 만료가 임박했는데 토큰이 24시간도 안 됐다면 expires_at 이 잘못 저장된 것이다.
     // 갱신은 어차피 거부당하므로 현재 토큰을 그대로 쓰고 경고만 남긴다.
     console.warn('[threads] 만료 임박하나 토큰이 24시간 미만 — 갱신 불가, expires_at 확인 필요')
-    return { status: 'ok', creds: current }
+    return { status: 'ok', creds: current, expiresAt: data.expires_at }
   }
 
-  return { status: 'ok', creds: await refreshToken(supabase, current) }
+  return { status: 'ok', ...(await refreshToken(supabase, current, data.expires_at)) }
 }
 
 /**
@@ -128,13 +134,58 @@ export function tokenFailure(r: Exclude<TokenResult, { status: 'ok' }>): { body:
 }
 
 /**
+ * refresh-token 크론(주 1회) 응답. 매시 크론의 tokenFailure 와 규약이 다르다 — 이 라우트는 토큰을
+ * 살려 두는 게 유일한 일이라 못 했으면 non-2xx 로 드러낸다(주 1회라 알람 소음도 없다).
+ * 2026-09-15 진단 3-1: 전에는 만료돼도 200 + needsReauth 였고 그 본문을 읽는 코드가 없었다.
+ *
+ * - needs_reauth → 500. 사람이 재인증해야 한다.
+ * - unavailable  → 503 (tokenFailure 와 같다).
+ * - ok 인데 갱신 시도 뒤에도 만료가 7일 안쪽 → 502 refreshFailed. 갱신 API 실패(refreshToken 이
+ *   현재 토큰으로 조용히 폴백)·갱신 토큰 저장 실패·expires_at 오기록이다. 두면 며칠 뒤 needs_reauth 가 된다.
+ * - 그 밖 → 200 + expiresAt·daysLeft.
+ */
+export function refreshCronResponse(r: TokenResult, now = Date.now()): { body: Record<string, unknown>; status: number } {
+  if (r.status === 'unavailable') return tokenFailure(r)
+  if (r.status === 'needs_reauth') {
+    return { status: 500, body: { ok: false, needsReauth: true, message: `Threads 재인증 필요 — ${REAUTH_HINT}`, reason: r.reason } }
+  }
+  const left = Date.parse(r.expiresAt) - now
+  const daysLeft = Math.round((left / DAY_MS) * 10) / 10
+  if (!(left > REFRESH_THRESHOLD_MS)) {
+    return { status: 502, body: { ok: false, refreshFailed: true, message: '갱신 시도 뒤에도 만료 7일 이내 — 자동 갱신 실패', expiresAt: r.expiresAt, daysLeft } }
+  }
+  return { status: 200, body: { ok: true, userId: r.creds.userId, expiresAt: r.expiresAt, daysLeft } }
+}
+
+const REAUTH_HINT = 'threads.net/oauth/authorize 로 인가 → /api/threads/callback (절차: app/api/threads/callback/route.ts 주석)'
+
+/**
+ * api_tokens 행(만료 시각만) → 경보 한 줄, 정상이면 null. access_token 없이 판정한다 —
+ * scripts/cron-watchdog.mjs(GitHub Actions, 발행 자격증명 없음)가 Notion 막힌것 칸에 그대로 올린다.
+ */
+export function tokenExpiryAlert(row: { expires_at: string | null; user_id: string | null } | null, now = Date.now()): string | null {
+  const reauth = `재인증 필요 — ${REAUTH_HINT}`
+  if (!row) return `Threads 토큰: api_tokens 에 threads 행 없음 — ${reauth}`
+  if (!row.user_id) return `Threads 토큰: user_id 없음 — ${reauth}`
+  const exp = Date.parse(row.expires_at ?? '')
+  if (Number.isNaN(exp)) return `Threads 토큰: expires_at 형식 이상(${row.expires_at}) — 만료 확인 불가`
+  if (exp <= now) return `Threads 토큰 만료됨(${row.expires_at}) — 갱신 불가, 발행·성과 수집 전부 멈춘 상태. ${reauth}`
+  if (exp - now <= EXPIRY_ALERT_MS) {
+    const days = ((exp - now) / DAY_MS).toFixed(1)
+    return `Threads 토큰 만료 임박 — ${days}일 남음(${row.expires_at}). 자동 갱신이 하루 넘게 실패 중 · Vercel refresh-token/match-posts 로그 확인, 만료 전에 못 고치면 ${reauth}`
+  }
+  return null
+}
+
+/**
  * th_refresh_token 그랜트로 장기 토큰을 갱신하고 api_tokens 에 반영한다.
  * 갱신에 실패해도 현재 토큰이 아직 유효하므로 그대로 반환한다(이번 실행은 살린다).
  */
 async function refreshToken(
   supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
   current: ThreadsCredentials,
-): Promise<ThreadsCredentials> {
+  currentExpiresAt: string,
+): Promise<{ creds: ThreadsCredentials; expiresAt: string }> {
   // 이 엔드포인트는 갱신 대상 토큰 자체가 파라미터라 쿼리스트링으로 넘긴다(공식 문서 스펙).
   // client_secret 은 필요 없다.
   const url = new URL(`${BASE}/refresh_access_token`)
@@ -146,7 +197,7 @@ async function refreshToken(
 
   if (!res.ok || !json.access_token) {
     console.error(`[threads] 토큰 갱신 실패 (HTTP ${res.status}): ${JSON.stringify(json)}`)
-    return current
+    return { creds: current, expiresAt: currentExpiresAt }
   }
 
   const expiresIn: number = typeof json.expires_in === 'number' ? json.expires_in : 60 * 24 * 60 * 60
@@ -167,9 +218,10 @@ async function refreshToken(
     // 저장에 실패하면 새 토큰은 이번 실행에서만 살아 있고 다음 실행은 옛 토큰을 읽는다.
     // 옛 토큰도 아직 유효하므로 즉시 장애는 아니지만, 반복되면 만료로 이어진다.
     console.error(`[threads] 갱신된 토큰 저장 실패: ${error.message}`)
-    return { accessToken: json.access_token as string, userId: current.userId }
+    // DB 에는 옛 만료가 남는다 — 크론 응답이 그 값을 보도록 옛 만료를 돌려준다(저장 실패를 200 으로 가리지 않는다).
+    return { creds: { accessToken: json.access_token as string, userId: current.userId }, expiresAt: currentExpiresAt }
   }
 
   console.info(`[threads] 토큰 갱신 완료 — 새 만료 ${expiresAt.toISOString()}`)
-  return { accessToken: json.access_token as string, userId: current.userId }
+  return { creds: { accessToken: json.access_token as string, userId: current.userId }, expiresAt: expiresAt.toISOString() }
 }

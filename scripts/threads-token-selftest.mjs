@@ -11,7 +11,7 @@
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://selftest.invalid.supabase.co'
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'selftest-dummy-key'
 
-const { loadThreadsToken, ensureValidToken, tokenFailure } = await import('../lib/threads/token.ts')
+const { loadThreadsToken, ensureValidToken, tokenFailure, refreshCronResponse } = await import('../lib/threads/token.ts')
 const { fetchWithGatewayRetry } = await import('../lib/supabase/server.ts')
 
 let passed = 0
@@ -106,6 +106,45 @@ try {
   eq('규약 unavailable — 503', down.status, 503)
   eq('규약 unavailable — needsReauth false', down.body.needsReauth, false)
   eq('규약 unavailable — unavailable true', down.body.unavailable, true)
+
+  // ── 3.5) refresh-token 크론 응답: 정상 / 만료 / 만료 임박(갱신 실패·성공) ──────
+  // 진단 3-1 회귀: 만료·갱신 실패가 200 으로 은폐되면 안 된다. 실제 supabase-js 와 갱신 fetch 를 거친다.
+  calls = stubFetch([json(row())])
+  r = await loadThreadsToken()
+  let cron = refreshCronResponse(r)
+  eq('크론 정상 — 200', cron.status, 200)
+  eq('크론 정상 — 만료 30일이면 갱신 API 안 부름', calls.length, 1)
+  eq('크론 정상 — daysLeft 약 30', Math.round(cron.body.daysLeft), 30)
+
+  stubFetch([json(row({ expires_at: new Date(Date.now() - DAY).toISOString() }))])
+  cron = refreshCronResponse(await loadThreadsToken())
+  eq('크론 만료 — 200 아님(500)', cron.status, 500)
+  eq('크론 만료 — needsReauth', cron.body.needsReauth, true)
+
+  const soon = new Date(Date.now() + 3 * DAY).toISOString()
+  calls = stubFetch([json(row({ expires_at: soon })), json({ error: { message: 'Session has expired', code: 190 } }, 400)])
+  r = await loadThreadsToken()
+  cron = refreshCronResponse(r)
+  eq('크론 임박·갱신 실패 — 갱신 API 를 실제로 불렀다', calls[1]?.url.includes('refresh_access_token'), true)
+  eq('크론 임박·갱신 실패 — 이번 실행은 살린다(ok)', r.status, 'ok')
+  eq('크론 임박·갱신 실패 — 200 아님(502)', cron.status, 502)
+  eq('크론 임박·갱신 실패 — refreshFailed', cron.body.refreshFailed, true)
+  eq('크론 임박·갱신 실패 — 남은 일수 3', Math.round(cron.body.daysLeft), 3)
+
+  calls = stubFetch([json(row({ expires_at: soon })), json({ access_token: 'new-tok', expires_in: 60 * 86400 }), json({}, 201)])
+  r = await loadThreadsToken()
+  cron = refreshCronResponse(r)
+  eq('크론 임박·갱신 성공 — 새 토큰', r.creds?.accessToken, 'new-tok')
+  eq('크론 임박·갱신 성공 — 저장(POST upsert)', calls[2]?.method, 'POST')
+  eq('크론 임박·갱신 성공 — 200', cron.status, 200)
+  eq('크론 임박·갱신 성공 — 새 만료 약 60일', Math.round(cron.body.daysLeft), 60)
+
+  stubFetch([json(row({ expires_at: soon })), json({ access_token: 'new-tok', expires_in: 60 * 86400 }), json({ message: 'boom' }, 500)])
+  cron = refreshCronResponse(await loadThreadsToken())
+  eq('크론 임박·갱신 저장 실패 — DB 는 옛 만료라 502', cron.status, 502)
+
+  stubFetch([gw504, gw504])
+  eq('크론 확인 불가 — 503', refreshCronResponse(await loadThreadsToken()).status, 503)
 
   // ── 4) 환경변수 없음 = 확인 불가(재인증 아님) ──────────────────
   delete process.env.SUPABASE_SERVICE_ROLE_KEY

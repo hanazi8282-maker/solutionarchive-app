@@ -21,6 +21,9 @@ jobs:
       - run: npm run lint
       # 로그인 보호 경로·서버 액션 가드. 크론 라우트가 로그인에 막히면 여기서 실패한다.
       - run: node scripts/auth-selftest.mjs
+      # Threads 토큰 3상태·refresh-token 크론 응답(만료·임박을 200 으로 숨기지 않는다), 크론 감시 판정.
+      - run: node scripts/threads-token-selftest.mjs
+      - run: node scripts/cron-watchdog-selftest.mjs
       - run: npx next build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

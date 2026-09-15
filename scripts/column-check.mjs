@@ -8,6 +8,8 @@
 //
 // exit 0 = 오류 없음(경고는 있을 수 있음), exit 1 = 오류.
 import { readFileSync, existsSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // 상한 8,000: 케이스-작성-가이드.md §5 (2026-09-15 남헌이 6,000 → 8,000). 가이드와 따로 놀면 기준에 맞는 칼럼이 오류로 뜬다.
 const COLUMN_MIN = 3000, COLUMN_MAX = 8000, THREAD_MAX = 500
@@ -61,7 +63,7 @@ export function checkThreads(src) {
     if (hook && GENERAL.test(hook + ' ')) warns.push(`훅이 "${hook.slice(0, 20)}…" — 사례에 붙은 문장인지 본다 (가이드 §11)`)
     if (!/마무리 유형/.test(p)) warns.push('마무리 유형(질문·정리) 표기가 없다')
     if (/부정 사례|실패/.test(text.slice(0, 600)) && !/발행:\s*불가/.test(p)) warns.push('부정 사례인데 `발행: 불가` 표시가 없다')
-    out.push({ n: parts[k], chars: n, errors, warns })
+    out.push({ n: parts[k], chars: n, errors, warns, body })
   }
   return out
 }
@@ -113,7 +115,17 @@ function selfTest() {
   console.log('self-test ok')
 }
 
-const args = process.argv.slice(2)
-if (args[0] === '--self-test') selfTest()
-else if (!args.length) { console.log('usage: node scripts/column-check.mjs <drafts/columns/*.md> | --self-test'); process.exit(1) }
-else process.exit(run(args) ? 1 : 0)
+// scripts/column-stage.mjs 가 checkColumn/checkThreads 를 재사용하려고 이 파일을 import 한다 —
+// 이 아래 CLI 블록이 가드 없이 process.argv 를 봤다면, import 만으로도 이 파일 자신의
+// --self-test 나 run() 이 다시 돌면서 process.exit() 로 호출자를 끊었을 것이다.
+function isMain() {
+  if (!process.argv[1]) return false
+  try { return path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url)) }
+  catch { return false }
+}
+if (isMain()) {
+  const args = process.argv.slice(2)
+  if (args[0] === '--self-test') selfTest()
+  else if (!args.length) { console.log('usage: node scripts/column-check.mjs <drafts/columns/*.md> | --self-test'); process.exit(1) }
+  else process.exit(run(args) ? 1 : 0)
+}

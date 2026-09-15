@@ -9,11 +9,14 @@ import DraftLinkForm, { UnlinkedThreadList, type DraftOption, type UnlinkedThrea
 import { ensureValidToken } from '@/lib/threads/token'
 import { fetchRecentThreads, LOOKBACK_DAYS } from '@/lib/threads/recent'
 import { matchDrafts, rankDraftsFor } from '@/lib/threads/match'
+import { checkThreadPost } from '@/lib/threads/voice-check'
+import { PostReviewCard, type PendingPost } from './post-review-form'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '발행 기록' }
 
 const oneLine = (s: string | null, n: number) => (s ?? '').replace(/\s+/g, ' ').slice(0, n)
+const muted = { margin: 0, fontSize: 12, color: 'var(--text-muted)' } as const
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -57,7 +60,7 @@ export default async function DashboardPage() {
       // 읽는다 — 범위가 다르면 크론이 붙일 글을 화면이 "안 붙은 글"로 잘못 띄운다.
       supabase
         .from('posts')
-        .select('id, body, created_at, notes, status, content_code')
+        .select('id, body, created_at, notes, status, content_code, hook_type, closing_type, reviewed_at, reviewed_by, review_note')
         .in('status', ['draft', 'pending_review'])
         .order('created_at', { ascending: false }),
       // 이미 연결된 Threads id (매처 route.ts 2단계와 같다).
@@ -120,6 +123,23 @@ export default async function DashboardPage() {
 
   const pendingN = drafts.filter(d => d.status === 'pending_review').length
   const DRAFT_LIMIT = 50
+
+  // 발행 전 검수 — pending_review 중 아직 결정(reviewed_at) 안 난 것만. 결정된 건
+  // 아래 "결정됨" 접이단으로 뺀다(status 는 그대로 pending_review 다 — 승인은 상태를
+  // 안 바꾼다, actions.ts 주석 참고). 문체 점검은 읽기 전용 표시일 뿐 필터링하지 않는다 —
+  // 통과·확인·오류 세 그룹으로만 나눠 사람이 어디부터 볼지 고르게 한다.
+  const pendingReview = drafts.filter((d): d is typeof d & { status: 'pending_review' } => d.status === 'pending_review')
+  const toReviewPosts: PendingPost[] = pendingReview
+    .filter((d) => !d.reviewed_at)
+    .map((d) => ({
+      id: d.id, body: d.body ?? '', content_code: d.content_code, hook_type: d.hook_type ?? null,
+      closing_type: d.closing_type ?? null, notes: d.notes, created_at: d.created_at,
+      check: checkThreadPost(d.body ?? '', d.created_at ?? new Date().toISOString()),
+    }))
+  const cleanPosts = toReviewPosts.filter((p) => p.check.errors.length === 0 && p.check.warns.length === 0)
+  const warnPosts = toReviewPosts.filter((p) => p.check.errors.length === 0 && p.check.warns.length > 0)
+  const errorPosts = toReviewPosts.filter((p) => p.check.errors.length > 0)
+  const decidedPosts = pendingReview.filter((d) => d.reviewed_at)
 
   return (
     <PageShell maxWidth={960}>
@@ -185,6 +205,63 @@ export default async function DashboardPage() {
           />
         ) : (
           <UnlinkedThreadList items={unlinked} />
+        )}
+      </Card>
+
+      <Card
+        id="review"
+        title="발행 전 검수"
+        subtitle="본문 전체를 읽고 승인(그대로/수정)·반려한다. 승인해도 발행은 안 된다 — 승인 후 이 내용을 Threads 앱에 직접 붙여 넣는다(CLAUDE.md §10)."
+        action={!draftsOk ? <Badge tone="danger">확인 불가</Badge> : <Badge tone={toReviewPosts.length > 0 ? 'warning' : 'success'} dot={toReviewPosts.length > 0}>{toReviewPosts.length}건</Badge>}
+        bodyStyle={draftsOk && toReviewPosts.length === 0 && decidedPosts.length === 0 ? { padding: 0 } : undefined}
+      >
+        {!draftsOk ? (
+          <Notice tone="danger">초안 목록을 읽지 못했습니다. 검수할 초안이 없다는 뜻이 아닙니다.</Notice>
+        ) : toReviewPosts.length === 0 && decidedPosts.length === 0 ? (
+          <EmptyState compact title="검수 대기 중인 초안이 없습니다." />
+        ) : (
+          <div style={{ display: 'grid', gap: 16 }}>
+            {cleanPosts.length > 0 && (
+              <div>
+                <p style={muted}>문체 점검 통과 {cleanPosts.length}건 — 여기부터 보면 됩니다.</p>
+                <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 12 }}>
+                  {cleanPosts.map((p) => <PostReviewCard key={p.id} post={p} />)}
+                </ul>
+              </div>
+            )}
+            {warnPosts.length > 0 && (
+              <details open={cleanPosts.length === 0}>
+                <summary style={{ cursor: 'pointer', fontSize: 13 }}>확인할 점이 있는 초안 {warnPosts.length}건</summary>
+                <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 12 }}>
+                  {warnPosts.map((p) => <PostReviewCard key={p.id} post={p} />)}
+                </ul>
+              </details>
+            )}
+            {errorPosts.length > 0 && (
+              <details>
+                <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--danger-fg)' }}>문체 오류가 있는 초안 {errorPosts.length}건 — 고치거나 반려</summary>
+                <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 12 }}>
+                  {errorPosts.map((p) => <PostReviewCard key={p.id} post={p} />)}
+                </ul>
+              </details>
+            )}
+            {decidedPosts.length > 0 && (
+              <details>
+                {/* 반려는 status 가 discarded 로 바뀌어 이 목록(pending_review만 조회)에서 아예 빠진다.
+                    여기 남는 건 승인뿐이다 — pending_review 인 채 reviewed_at 만 찍힌 행. */}
+                <summary style={{ cursor: 'pointer', fontSize: 13 }}>승인된 초안 {decidedPosts.length}건 — 게시 대기</summary>
+                <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 6 }}>
+                  {decidedPosts.map((d) => (
+                    <li key={d.id} style={{ fontSize: 13, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+                      <Badge tone="success" size="sm">승인</Badge>
+                      {' '}{d.content_code ?? '코드 없음'} · {d.reviewed_by ?? '검수자 기록 없음'} · {(d.reviewed_at ?? '').slice(0, 16).replace('T', ' ')}
+                      {d.review_note ? ` · ${d.review_note}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
         )}
       </Card>
 

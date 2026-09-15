@@ -18,7 +18,10 @@ export const metadata = { title: '케이스 검수' }
 type EvidenceRow = Evidence & { id: string; case_move_id: string | null; domain: string | null }
 type MoveRow = Move & {
   id: string
+  /** 독자 인사이트 등급(2026-09-16 재설계) — transfer_note·preconditions 기반. */
   evidence_grade: string
+  /** 사실확인 등급(옛 evidence_grade 산식) — CG-1/CG-2 발행 게이트 전용. */
+  fact_check_grade: string
   review_status: string
   review_note?: string | null
   reviewed_by?: string | null
@@ -140,8 +143,10 @@ function MoveBlock({ m, i, evidence, locked, transferabilityLocked }: {
             ? <Badge tone={m.transferability === 'HIGH' ? 'success' : m.transferability === 'MEDIUM' ? 'info' : 'neutral'} size="sm">이식성 {m.transferability}</Badge>
             : <Badge tone="warning" size="sm">이식성 미판정</Badge>
         )}
-        <span style={{ marginLeft: 'auto' }}>
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           <Badge tone={GRADE_TONE[m.evidence_grade] ?? 'neutral'} size="sm">등급 {m.evidence_grade}</Badge>
+          {/* 사실확인은 별도 축(2026-09-16 분리) — "얼마나 검증됐나"는 등급과 다른 질문이다. */}
+          <Badge tone="neutral" size="sm">사실확인 {m.fact_check_grade}</Badge>
         </span>
       </div>
       <p style={{ margin: 0, fontSize: 14, color: 'var(--text-strong)', overflowWrap: 'anywhere' }}>{m.claim}</p>
@@ -156,7 +161,7 @@ function MoveBlock({ m, i, evidence, locked, transferabilityLocked }: {
       </p>
       <p style={muted}>{metric} · 관측 {m.observed_period_start ?? '?'} ~ {m.observed_period_end ?? '?'}</p>
       <p style={muted}>
-        현재 산식 {g.grade} — {g.reason}
+        현재 산식(인사이트) {g.grade} — {g.reason}
         {g.provisional && <> · <b style={{ color: 'var(--warning-fg)' }}>잠정(미기재 {g.unkeyed ?? 0}건 — 약하다가 아니라 아직 안 적었다)</b></>}
       </p>
       {g.grade !== m.evidence_grade && (

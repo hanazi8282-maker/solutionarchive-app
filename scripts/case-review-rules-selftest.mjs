@@ -17,9 +17,10 @@ t('승인은 메모 없이 통과', checkDecisionInput({ decision: 'approved', b
 t('draft 로 되돌리기 거절', checkDecisionInput({ decision: 'draft', by: '남헌', note: 'x' }) !== null)
 t('결정값 없음 거절', checkDecisionInput({ decision: null, by: '남헌', note: 'x' }) !== null)
 
-t('부정 + B 승인 → 경고', moveApprovalWarning({ outcome_direction: 'negative', evidence_grade: 'B' }) !== null)
-t('부정 + A → 경고 없음', moveApprovalWarning({ outcome_direction: 'negative', evidence_grade: 'A' }) === null)
-t('긍정 + C → 경고 없음', moveApprovalWarning({ outcome_direction: 'positive', evidence_grade: 'C' }) === null)
+// 2026-09-16: evidence_grade(독자 인사이트) 가 아니라 fact_check_grade(사실확인) 를 본다.
+t('부정 + 사실확인 B 승인 → 경고', moveApprovalWarning({ outcome_direction: 'negative', fact_check_grade: 'B' }) !== null)
+t('부정 + 사실확인 A → 경고 없음', moveApprovalWarning({ outcome_direction: 'negative', fact_check_grade: 'A' }) === null)
+t('긍정 + 사실확인 C → 경고 없음', moveApprovalWarning({ outcome_direction: 'positive', fact_check_grade: 'C' }) === null)
 
 t('draft 무브 1건 남은 케이스 승인 → 경고', caseApprovalWarning([{ review_status: 'draft' }, { review_status: 'approved' }])?.includes('1건'))
 t('무브 전부 결정됨 → 경고 없음', caseApprovalWarning([{ review_status: 'approved' }, { review_status: 'rejected' }]) === null)

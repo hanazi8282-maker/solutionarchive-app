@@ -172,7 +172,13 @@ export function foldObservations(evidence: Evidence[]): { keys: Set<string>; unk
 }
 
 /**
- * 무브 하나의 근거 등급.
+ * 무브 하나의 **사실확인** 등급 — "이 수치가 얼마나 검증 가능한가"만 본다.
+ *
+ * ★ 2026-09-16 재설계(남헌 지시): 예전엔 이 함수가 `evidence_grade`(DB, 검수 화면의
+ *   "등급" 배지)였다. 지금은 `gradeMove()`(아래, 독자 인사이트 축)가 그 자리를 대신하고,
+ *   이 함수는 `fact_check_grade`(발행 게이트 CG-1/CG-2 전용, `lib/cases/publish-gate.ts`)의
+ *   산식으로 이름만 바뀐 채 남는다. **로직은 그대로다** — 등급의 의미가 사실확인이라는 건
+ *   여전히 유효하고 필요하다, 다만 그게 케이스를 대표하는 1등급이 아니게 됐을 뿐이다.
  *
  *   A = 법정 공시 1개(발행사 자체 정의 지표 제외)  또는  비자기보고 1차 출처 1개
  *       또는  **서로 다른 원 관측 2개 이상**
@@ -202,7 +208,7 @@ export function foldObservations(evidence: Evidence[]): { keys: Set<string>; unk
  * ★ 근거가 0개인데 수치가 있는 건 등급이 아니라 **오류**다. validateDraft 가
  *   막는다 — LLM 환각이 수치로 들어오는 경로가 거기 하나뿐이다.
  */
-export function gradeMove(move: Move, evidence: Evidence[]): GradeResult {
+export function factCheckGrade(move: Move, evidence: Evidence[]): GradeResult {
   if (move.metric_after === null || move.metric_after === undefined) {
     return { grade: 'D', reason: '수치 없음 — 서술만 있다' }
   }
@@ -297,6 +303,50 @@ export function gradeMove(move: Move, evidence: Evidence[]): GradeResult {
     reason: `교차 확인 없음 — 근거 ${evidence.length}건 / 독립 원 관측 ${folded.keys.size}개${shortfall}`,
     ...(unkeyed > 0 ? { provisional: true, unkeyed } : {}),
   }
+}
+
+// 문장이 이 케이스만의 것인지, 아무 사례에나 붙는 일반론인지 — column-check.mjs 의
+// GENERAL 패턴과 같은 발상이다. transfer_note 가 이걸로 시작하면 "무엇을 할지"가 아니라
+// "누구나 하는 말"이다.
+const GENERIC_ACTION = /^(다른 브랜드도|이런 전략은|이 방식은|일반적으로|보통은?|누구나|비슷한 사례에서는)\s/
+
+/**
+ * 무브 하나의 **독자 인사이트** 등급 — DB `evidence_grade`, `/cases` 화면의 "등급" 배지.
+ *
+ * ★ 2026-09-16 재설계(남헌 지시): "이 수치가 얼마나 검증됐나"가 아니라 "독자가 읽었을 때
+ *   도움이 되고 옮길 게 있나"를 1순위로 본다. 사실확인은 없어지지 않았다 — `factCheckGrade()`
+ *   로 이름을 옮겨 CG-1/CG-2 발행 게이트 전용 바닥(`fact_check_grade`)이 됐다. 그래서 이
+ *   함수는 사실확인을 완전히 무시하지 않는다: 근거가 0개인 "그럴듯한 행동"까지 A로 올리면
+ *   지어낸 조언과 실측 조언이 같은 등급이 된다 — 그건 이 재설계의 목적이 아니다.
+ *
+ *   D = `transfer_note` 미기재 — 아무리 사실이 맞아도 독자가 할 행동이 없다
+ *   C = `transfer_note` 는 있으나 짧거나("15자 미만") 다른 사례에도 붙는 일반론
+ *       (GENERIC_ACTION)  또는  구체적 행동인데 뒷받침 근거가 전혀 없다(사실확인 D)
+ *   B = 구체적 행동은 있으나 `preconditions`(옮기려면 뭐가 있어야 하나) 미기재
+ *   A = 구체적 행동 + 전제 + 뒷받침 근거(사실확인 D 아님) 전부 있음
+ *
+ * ★ `preconditions`·`transfer_note` 는 `null`(미기재)과 빈 문자열을 구분하지 않는다 —
+ *   둘 다 "독자에게 아직 아무것도 안 알려줬다"로 취급한다(§7.1, 이 축엔 "전제 없음"이라는
+ *   양성 값이 없다. 조사원이 "전제 없음"이라고 명시했으면 그 문장 자체가 preconditions 값이다).
+ */
+export function gradeMove(move: Move, evidence: Evidence[]): GradeResult {
+  const note = (move.transfer_note ?? '').trim()
+  const pre = (move.preconditions ?? '').trim()
+
+  if (!note) {
+    return { grade: 'D', reason: 'transfer_note 미기재 — 독자가 할 행동이 없다' }
+  }
+  if (note.length < 15 || GENERIC_ACTION.test(note)) {
+    return { grade: 'C', reason: `transfer_note 가 짧거나("${note.length}자") 일반론("${note.slice(0, 30)}${note.length > 30 ? '…' : ''}") — 이 케이스만의 구체적 행동인지 불분명` }
+  }
+  const fc = factCheckGrade(move, evidence)
+  if (!pre) {
+    return { grade: 'B', reason: `구체적 행동은 있으나 전제(preconditions) 미기재 — 사실확인 참고: ${fc.grade}(${fc.reason})` }
+  }
+  if (fc.grade === 'D') {
+    return { grade: 'C', reason: `행동·전제는 구체적이나 뒷받침 근거가 없다 — 사실확인 ${fc.grade}: ${fc.reason}` }
+  }
+  return { grade: 'A', reason: `구체적 행동 + 전제 + 뒷받침 근거 있음 — 사실확인 참고: ${fc.grade}(${fc.reason})` }
 }
 
 export type Issue = { level: 'error' | 'warn'; where: string; message: string }
@@ -434,10 +484,13 @@ export function validateDraft(draft: Draft, today = new Date()): Issue[] {
       warn(w, '수치는 있는데 관측 시점이 없다 — 몇 년도 얘긴지 모르면 나중에 못 쓴다')
     }
     if (m.outcome_direction === 'negative') {
-      const g = gradeMove(m, mine)
+      // 여기는 사실확인 축을 본다(2026-09-16 분리) — "그 브랜드가 실패했다"는 주장은
+      // 독자 인사이트가 아니라 **얼마나 검증됐는가**가 위험을 가른다. 안 그러면 근거 0건에
+      // transfer_note 만 그럴듯해도(새 evidence_grade A) 명예훼손성 주장이 발행 대기로 간다.
+      const g = factCheckGrade(m, mine)
       if (g.grade !== 'A') {
         // 막지 않는다. 저장은 되고 발행만 잠긴다 (설계 §2-4).
-        warn(w, `부정 사례인데 등급 ${g.grade} — 등급 A 아니면 발행 불가, 사내 참고용으로만 남는다`)
+        warn(w, `부정 사례인데 사실확인 등급 ${g.grade} — 사실확인 A 아니면 발행 불가, 사내 참고용으로만 남는다`)
       }
     }
   })
@@ -445,7 +498,10 @@ export function validateDraft(draft: Draft, today = new Date()): Issue[] {
   return out
 }
 
-/** 초안을 DB 행 3벌로 편다. 등급은 여기서 계산해 무브에 박는다. */
+/**
+ * 초안을 DB 행 3벌로 편다. 등급은 여기서 계산해 무브에 박는다 — 둘 다:
+ * `evidence_grade`(독자 인사이트, gradeMove) · `fact_check_grade`(사실확인, factCheckGrade).
+ */
 export function toRows(draft: Draft) {
   const evidence = Array.isArray(draft.evidence) ? draft.evidence : []
   const study = {
@@ -469,9 +525,11 @@ export function toRows(draft: Draft) {
   const moves = draft.moves.map((m, i) => {
     const mine = evidence.filter(e => e.move === i)
     const { grade, reason } = gradeMove(m, mine)
+    const fc = factCheckGrade(m, mine)
     return {
       index: i,
       grade_reason: reason,
+      fact_check_reason: fc.reason,
       row: {
         lever: m.lever,
         claim: m.claim,
@@ -487,6 +545,7 @@ export function toRows(draft: Draft) {
         observed_period_start: m.observed_period_start ?? null,
         observed_period_end: m.observed_period_end ?? null,
         evidence_grade: grade,
+        fact_check_grade: fc.grade,
       },
     }
   })

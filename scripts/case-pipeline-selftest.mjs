@@ -16,7 +16,7 @@ import fs from 'node:fs'
 import {
   BUSINESS_MODEL, BOTTLENECK, LEVER, SNIPPET_MAX, SLUG_RE,
   READER_PROBLEMS, READER_PROBLEM_FORMAT,
-  domainOf, foldObservations, gradeMove, validateDraft, toRows,
+  domainOf, foldObservations, gradeMove, factCheckGrade, validateDraft, toRows,
 } from '../lib/cases/draft.ts'
 import { attributionGate, numericGate, numericHint } from '../lib/cases/publish-gate.ts'
 import { briefText } from './case-research.mjs'
@@ -77,42 +77,42 @@ eq('www 를 떼고 호스트를 준다', domainOf('https://www.Example.com/a/b')
 eq('URL 이 아니면 null', domainOf('그냥 문자열'), null)
 eq('빈 문자열은 null', domainOf(''), null)
 
-// ── 2) 근거 등급 ──────────────────────────────────────────────
+// ── 2) 사실확인 등급(factCheckGrade, 옛 gradeMove) ──────────────────────────────────────────────
 const M = { lever: 'PRICING', claim: 'x', metric_name: 'a', metric_after: 10, metric_unit: '%' }
 const NOMETRIC = { lever: 'PRICING', claim: 'x' }
 
-eq('수치가 없으면 D', gradeMove(NOMETRIC, [{ url: 'https://a.com', source_tier: 'primary' }]).grade, 'D')
-eq('근거 0건은 D', gradeMove(M, []).grade, 'D')
-check('근거 0건 D 는 이유에 "저장 불가"가 있다', /저장 불가/.test(gradeMove(M, []).reason))
+eq('수치가 없으면 D', factCheckGrade(NOMETRIC, [{ url: 'https://a.com', source_tier: 'primary' }]).grade, 'D')
+eq('근거 0건은 D', factCheckGrade(M, []).grade, 'D')
+check('근거 0건 D 는 이유에 "저장 불가"가 있다', /저장 불가/.test(factCheckGrade(M, []).reason))
 
 eq('비자기보고 1차 1건이면 A',
-  gradeMove(M, [{ url: 'https://sec.gov/x', source_tier: 'primary', is_self_reported: false }]).grade, 'A')
+  factCheckGrade(M, [{ url: 'https://sec.gov/x', source_tier: 'primary', is_self_reported: false }]).grade, 'A')
 
 // ★ 가장 중요한 구분. 창업자 인터뷰는 primary 지만 자기보고다.
 //   tier 만 보면 A 로 올라간다 — 이게 이 파일에서 가장 잡고 싶은 오류다.
 eq('자기보고 1차 단독은 A 가 아니다',
-  gradeMove(M, [{ url: 'https://blog.acme.com/x', source_tier: 'primary', is_self_reported: true }]).grade, 'C')
+  factCheckGrade(M, [{ url: 'https://blog.acme.com/x', source_tier: 'primary', is_self_reported: true }]).grade, 'C')
 eq('자기보고 1차 + 다른 원 관측이면 B',
-  gradeMove(M, [
+  factCheckGrade(M, [
     { url: 'https://blog.acme.com/x', source_tier: 'primary', is_self_reported: true, observation_key: 'acme-blog-2024' },
     { url: 'https://news.example.com/y', source_tier: 'secondary', observation_key: 'news-reporting-2024', supports_metric: true },
   ]).grade, 'B')
 // 당사자 발표를 옮겨 적은 3차 요약글은 교차 확인이 아니다. B 로 올려 주면 안 된다.
 eq('자기보고 1차 + 3차 요약글은 B 가 아니라 C',
-  gradeMove(M, [
+  factCheckGrade(M, [
     { url: 'https://blog.acme.com/x', source_tier: 'primary', is_self_reported: true },
     { url: 'https://seoblog.example.net/y', source_tier: 'tertiary' },
   ]).grade, 'C')
 
 // ★ 같은 보도자료를 받아쓴 기사 5개는 출처 1개다.
 eq('같은 도메인 3건은 독립 2곳이 아니다',
-  gradeMove(M, [
+  factCheckGrade(M, [
     { url: 'https://news.example.com/1', source_tier: 'secondary' },
     { url: 'https://news.example.com/2', source_tier: 'secondary' },
     { url: 'https://news.example.com/3', source_tier: 'secondary' },
   ]).grade, 'C')
 eq('서로 다른 원 관측 2건이면 A',
-  gradeMove(M, [
+  factCheckGrade(M, [
     { url: 'https://news.example.com/1', source_tier: 'secondary', observation_key: 'reporter-a-2024', supports_metric: true },
     { url: 'https://other.example.org/2', source_tier: 'secondary', observation_key: 'reporter-b-2024', supports_metric: true },
   ]).grade, 'A')
@@ -120,29 +120,29 @@ eq('서로 다른 원 관측 2건이면 A',
 // ★ 법정 공시는 자기보고여도 A 다. 이 축이 없으면 등급이 뒤집힌다 —
 //   시범 5건에서 캐스퍼 S-1 과 듀오링고 8-K 가 블로그 2개보다 낮게 나왔다.
 eq('법정 공시 1건이면 자기보고여도 A',
-  gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true }]).grade, 'A')
+  factCheckGrade(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true }]).grade, 'A')
 // ★ L-56: 공시 안에 있어도 발행사가 스스로 정의·집계한 지표는 A 를 만들지 않는다.
 //   Nubank 20-F 가 본문에서 "not independently verified" 라고 밝힌 ARPAC 이,
 //   "법정 공시 1건"이라는 이유만으로 A 로 올라가 있었다.
 eq('발행사 자체 정의 지표는 공시여도 A 가 아니다',
-  gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true }]).grade, 'C')
+  factCheckGrade(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true }]).grade, 'C')
 {
   // 관측 키가 있으면 "자기보고 1차뿐", 없으면 "판정할 수 없다" — 이유가 갈려야 한다.
-  const keyed = gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true, observation_key: 'nu-20f-2023' }])
+  const keyed = factCheckGrade(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true, observation_key: 'nu-20f-2023' }])
   check('키가 있으면 이유가 "자기보고 1차뿐"으로 읽힌다', /자기보고 1차뿐/.test(keyed.reason))
   check('그때는 잠정 등급이 아니다', keyed.provisional !== true)
 }
 // 같은 지표라도 **다른 원 관측**이 하나 더 붙으면 B 로 올라간다 — 이게 L-58 이 노리는 경로다.
 eq('자체 정의 지표 + 다른 원 관측 1건이면 B',
-  gradeMove(M, [
+  factCheckGrade(M, [
     { url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true, observation_key: 'nu-20f-2023' },
     { url: 'https://www.reuters.com/y', source_tier: 'secondary', is_self_reported: false, observation_key: 'reuters-reporting-2023', supports_metric: true },
   ]).grade, 'B')
 // 재무제표 본문 수치는 플래그를 달지 않는다 — 기존 A 경로가 그대로 살아 있어야 한다.
 eq('플래그 없는 공시는 여전히 A',
-  gradeMove(M, [{ url: 'https://www.sec.gov/z', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: false }]).grade, 'A')
+  factCheckGrade(M, [{ url: 'https://www.sec.gov/z', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: false }]).grade, 'A')
 eq('추정 딱지가 붙은 공시는 A 가 아니다',
-  gradeMove(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_estimate: true }]).grade, 'C')
+  factCheckGrade(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_estimate: true }]).grade, 'C')
 {
   const d = base()
   d.evidence[0].is_regulatory_filing = true // source_tier 는 secondary 인 채로
@@ -152,26 +152,63 @@ eq('추정 딱지가 붙은 공시는 A 가 아니다',
 // ★ 추정치는 뒷받침에 세지 않는다. 시범 5건에서 이 구멍이 드러났다 —
 //   비상장사 매출은 조사기관 추정치뿐인데 tier·self_reported 만 보면 A 가 됐다.
 eq('추정치 2곳은 A 가 아니다',
-  gradeMove(M, [
+  factCheckGrade(M, [
     { url: 'https://sacra.com/1', source_tier: 'secondary', is_estimate: true },
     { url: 'https://other.example.org/2', source_tier: 'secondary', is_estimate: true },
   ]).grade, 'C')
 check('추정치뿐이면 이유에 그렇게 적힌다',
-  /추정치뿐/.test(gradeMove(M, [{ url: 'https://sacra.com/1', source_tier: 'secondary', is_estimate: true }]).reason))
+  /추정치뿐/.test(factCheckGrade(M, [{ url: 'https://sacra.com/1', source_tier: 'secondary', is_estimate: true }]).reason))
 eq('추정치 1곳 + 실측 1곳도 A 는 아니다 (독립 실측 1곳뿐)',
-  gradeMove(M, [
+  factCheckGrade(M, [
     { url: 'https://sacra.com/1', source_tier: 'secondary', is_estimate: true },
     { url: 'https://news.example.com/2', source_tier: 'secondary' },
   ]).grade, 'C')
 eq('추정 딱지가 붙은 1차는 A 가 아니다',
-  gradeMove(M, [{ url: 'https://sec.gov/x', source_tier: 'primary', is_estimate: true }]).grade, 'C')
+  factCheckGrade(M, [{ url: 'https://sec.gov/x', source_tier: 'primary', is_estimate: true }]).grade, 'C')
 
 // 3차 출처는 수치를 확인해 주지 않는다. 원 수치를 옮겨 적은 것뿐이다.
 eq('3차 출처 2곳은 A 가 아니다',
-  gradeMove(M, [
+  factCheckGrade(M, [
     { url: 'https://blog1.example.com/1', source_tier: 'tertiary' },
     { url: 'https://blog2.example.org/2', source_tier: 'tertiary' },
   ]).grade, 'C')
+
+// ── 2-A) 독자 인사이트 등급(gradeMove, 2026-09-16 재설계) ──────────────
+//
+// factCheckGrade 와 완전히 다른 입력을 본다 — transfer_note·preconditions(둘 다
+// 조사원이 채우는 텍스트 필드지 근거 배열이 아니다). "사실은 맞는데 독자가 할 게
+// 없는 무브"와 "행동은 그럴듯한데 근거가 0건인 무브"를 가르는 게 이 축의 목적이다.
+{
+  const withEvidence = [{ url: 'https://news.example.com/1', source_tier: 'secondary', observation_key: 'k1', supports_metric: true }]
+  const noEvidence = []
+
+  eq('transfer_note 없으면 D — 근거가 아무리 좋아도', gradeMove({ ...M, transfer_note: null }, withEvidence).grade, 'D')
+  check('D 사유에 transfer_note 라고 적힌다', /transfer_note 미기재/.test(gradeMove({ ...M, transfer_note: null }, withEvidence).reason))
+  eq('transfer_note 빈 문자열도 D', gradeMove({ ...M, transfer_note: '   ' }, withEvidence).grade, 'D')
+
+  eq('transfer_note 짧으면(15자 미만) C', gradeMove({ ...M, transfer_note: '가격을 내려라' }, withEvidence).grade, 'C')
+  eq('transfer_note 가 일반론 훅으로 시작하면 C',
+    gradeMove({ ...M, transfer_note: '보통은 이 방식이 잘 먹힌다는 게 정설이다' }, withEvidence).grade, 'C')
+
+  const specific = '첫 100명에게 직접 DM 을 보내 가입 이유를 묻고, 그 문장을 랜딩페이지 헤드라인에 그대로 써라'
+  eq('구체적 행동 + 전제 없음 + 근거 있음은 B', gradeMove({ ...M, transfer_note: specific, preconditions: null }, withEvidence).grade, 'B')
+  check('B 사유에 preconditions 라고 적힌다', /전제\(preconditions\) 미기재/.test(gradeMove({ ...M, transfer_note: specific, preconditions: null }, withEvidence).reason))
+
+  eq('구체적 행동 + 전제 있음 + 근거 0건은 C — 그럴듯한 조언을 A 로 올리지 않는다',
+    gradeMove({ ...M, transfer_note: specific, preconditions: '이메일 리스트 100명 이상' }, noEvidence).grade, 'C')
+  check('그 C 사유에 사실확인 D 근거가 적힌다',
+    /사실확인 D/.test(gradeMove({ ...M, transfer_note: specific, preconditions: '이메일 리스트 100명 이상' }, noEvidence).reason))
+
+  eq('구체적 행동 + 전제 + 뒷받침 근거(사실확인 D 아님) 전부 있으면 A',
+    gradeMove({ ...M, transfer_note: specific, preconditions: '이메일 리스트 100명 이상' }, withEvidence).grade, 'A')
+
+  // 근거가 아주 약해도(사실확인 C) 행동·전제가 구체적이면 A — 이 축은 "쓸모"를 본다,
+  // "얼마나 검증됐는가"는 fact_check_grade 가 따로 담당한다(CG-1 이 그 경우를 따로 막는다).
+  const weakEvidence = [{ url: 'https://blog.acme.com/x', source_tier: 'primary', is_self_reported: true }] // factCheckGrade 로는 C
+  eq('사실확인이 약해도(C) 행동·전제가 있으면 A',
+    gradeMove({ ...M, transfer_note: specific, preconditions: '이메일 리스트 100명 이상' }, weakEvidence).grade, 'A')
+  eq('(대조) 같은 근거의 사실확인 등급은 C', factCheckGrade({ ...M, transfer_note: specific, preconditions: '이메일 리스트 100명 이상' }, weakEvidence).grade, 'C')
+}
 
 // ── 3) 검증 — 통과해야 하는 것 ───────────────────────────────
 eq('정상 초안은 error 0', errorsOf(base()).length, 0)
@@ -271,7 +308,7 @@ eq('정상 초안은 error 0', errorsOf(base()).length, 0)
   eq('study.tags 기본형 유지', Array.isArray(study.tags), true)
   eq('outcome_status 가 그대로 간다', study.outcome_status, 'active')
   eq('무브 1건', moves.length, 1)
-  eq('secondary 단독은 C 로 박힌다', moves[0].row.evidence_grade, 'C')
+  eq('secondary 단독은 사실확인 C 로 박힌다', moves[0].row.fact_check_grade, 'C')
   eq('근거는 손대지 않고 넘긴다', evidence.length, 1)
 }
 {
@@ -287,8 +324,8 @@ eq('정상 초안은 error 0', errorsOf(base()).length, 0)
   check('근거 없는 두 번째 무브는 error 로 잡힌다', hasError(d, /moves\[1\].*근거가 0건/))
   const { moves } = toRows(d)
   // ★ L-60 회귀. 도메인이 둘이지만 관측 키가 없다 → 독립인지 **모른다**. A 가 아니다.
-  eq('0번은 도메인 2곳이어도 관측 키가 없으면 A 가 아니다', moves[0].row.evidence_grade, 'C')
-  eq('1번은 자기 근거 0건이라 D', moves[1].row.evidence_grade, 'D')
+  eq('0번은 도메인 2곳이어도 관측 키가 없으면 사실확인 A 가 아니다', moves[0].row.fact_check_grade, 'C')
+  eq('1번은 자기 근거 0건이라 사실확인 D', moves[1].row.fact_check_grade, 'D')
 }
 {
   // 같은 데이터에 관측 키·수치 뒷받침을 채우면 그때 A 가 된다 — 축이 실제로 작동하는지.
@@ -299,7 +336,7 @@ eq('정상 초안은 error 0', errorsOf(base()).length, 0)
     move: 0, url: 'https://another.example.org/z', source_tier: 'secondary',
     observation_key: 'reporter-b-2023', supports_metric: true,
   })
-  eq('키를 채우면 같은 데이터가 A 로 올라간다', toRows(d).moves[0].row.evidence_grade, 'A')
+  eq('키를 채우면 같은 데이터가 사실확인 A 로 올라간다', toRows(d).moves[0].row.fact_check_grade, 'A')
 }
 
 // ── 6-1) L-60 / L-64 — 원 관측 키와 수치 뒷받침 ──────────────
@@ -311,22 +348,22 @@ eq('정상 초안은 error 0', errorsOf(base()).length, 0)
     { url: 'https://www.retaildive.com/y', source_tier: 'secondary', is_self_reported: false, observation_key: 'chwy-10k-fy2023', supports_metric: true },
   ]
   eq('같은 공시를 받아쓴 매체는 도메인이 달라도 B 를 만들지 못한다',
-    gradeMove(M, sameObservation).grade, 'C')
+    factCheckGrade(M, sameObservation).grade, 'C')
   check('그 이유에 "다른 원 관측 없음"이 있다',
-    /다른 원 관측 없음/.test(gradeMove(M, sameObservation).reason))
+    /다른 원 관측 없음/.test(factCheckGrade(M, sameObservation).reason))
 
   // ★ L-64. 서사만 받치는 독립 매체는 수치의 등급을 올리지 못한다.
   const narrativeOnly = [
     { url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true, observation_key: 'chwy-10k-fy2023' },
     { url: 'https://www.dvm360.com/y', source_tier: 'secondary', is_self_reported: false, observation_key: 'dvm360-reporting-2020', supports_metric: false },
   ]
-  eq('수치를 안 받치는 독립 매체는 B 를 만들지 못한다', gradeMove(M, narrativeOnly).grade, 'C')
+  eq('수치를 안 받치는 독립 매체는 B 를 만들지 못한다', factCheckGrade(M, narrativeOnly).grade, 'C')
   // 같은 행이 수치까지 받치면 그때는 B 다 — 차이를 만드는 게 supports_metric 하나뿐인지.
   const sameButOnMetric = [narrativeOnly[0], { ...narrativeOnly[1], supports_metric: true }]
-  eq('그 행이 수치까지 받치면 B 가 된다', gradeMove(M, sameButOnMetric).grade, 'B')
+  eq('그 행이 수치까지 받치면 B 가 된다', factCheckGrade(M, sameButOnMetric).grade, 'B')
 
   // ★ 미기재는 "아니다"가 아니라 "모른다". 등급은 보수적으로, 대신 provisional 로 표시.
-  const unkeyed = gradeMove(M, [
+  const unkeyed = factCheckGrade(M, [
     { url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: true },
     { url: 'https://www.reuters.com/y', source_tier: 'secondary', is_self_reported: false },
   ])
@@ -338,10 +375,10 @@ eq('정상 초안은 error 0', errorsOf(base()).length, 0)
   // 문서 성격 경로(공시 1건 = A)는 키가 없어도 살아 있어야 한다.
   // 여기까지 보수적으로 막으면 백필 전에 A 가 통째로 무너진다 — 근거가 아니라 표기의 문제다.
   eq('키가 없어도 재무제표 공시는 여전히 A',
-    gradeMove(M, [{ url: 'https://www.sec.gov/z', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true }]).grade, 'A')
+    factCheckGrade(M, [{ url: 'https://www.sec.gov/z', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true }]).grade, 'A')
   // 단, 그 공시가 "수치를 안 다룬다"고 **적혀** 있으면 A 를 만들지 못한다.
   eq('수치를 안 받친다고 적힌 공시는 A 가 아니다',
-    gradeMove(M, [{ url: 'https://www.sec.gov/z', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, supports_metric: false }]).grade, 'C')
+    factCheckGrade(M, [{ url: 'https://www.sec.gov/z', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, supports_metric: false }]).grade, 'C')
 
   // foldObservations 자체
   const folded = foldObservations([
@@ -390,8 +427,8 @@ eq('한글 slug 거부', SLUG_RE.test('에이스메'), false)
 // 조건부 발행으로 정했다 — 본문이 그 숫자의 출처를 밝히면 나간다. 여기서 지켜야 할 건
 // 두 방향이다: 문구가 없는데 통과시키지 않는가, 그리고 대상이 아닌 초안을 붙잡지 않는가.
 {
-  const cMove = { evidence_grade: 'C', lever: 'PRODUCT_FEATURE', slug: 'chewy-autoship-retention', brand_name: 'Chewy' }
-  const bMove = { evidence_grade: 'B', lever: 'PACKAGING', slug: 'chewy-autoship-retention', brand_name: 'Chewy' }
+  const cMove = { fact_check_grade: 'C', lever: 'PRODUCT_FEATURE', slug: 'chewy-autoship-retention', brand_name: 'Chewy' }
+  const bMove = { fact_check_grade: 'B', lever: 'PACKAGING', slug: 'chewy-autoship-retention', brand_name: 'Chewy' }
 
   // (a) C 등급인데 귀속 문구가 없다 → 막아야 한다
   const noAttr = '활성 고객당 순매출이 434달러에서 555달러로 올랐다. 구독을 끊을 때 잃는 것이 할인이 아니라 서비스 접근권이 되게 했다.'
@@ -416,7 +453,7 @@ eq('한글 slug 거부', SLUG_RE.test('에이스메'), false)
 
   // B·A 는 이 게이트 대상이 아니다. 대상이 아닌 걸 붙잡으면 게이트가 무시당한다.
   eq('CG-1 — B 등급만이면 대상 아님', attributionGate([bMove], noAttr).ok, true)
-  eq('CG-1 — A 등급만이면 대상 아님', attributionGate([{ ...bMove, evidence_grade: 'A' }], noAttr).ok, true)
+  eq('CG-1 — A 등급만이면 대상 아님', attributionGate([{ ...bMove, fact_check_grade: 'A' }], noAttr).ok, true)
   check('CG-1 — 대상 아닐 때 그 사실을 말한다', /대상이 아니다/.test(attributionGate([bMove], noAttr).reason))
 
   // 여러 무브 중 하나라도 C 면 대상이다
@@ -482,12 +519,11 @@ eq('한글 slug 거부', SLUG_RE.test('에이스메'), false)
       READER_PROBLEMS.every((c) => READER_PROBLEM_FORMAT.test(c)), JSON.stringify(READER_PROBLEMS))
   }
 
-  // ── AC-11. gradeMove 회귀 스냅샷 ─────────────────────────────────────
+  // ── AC-11. factCheckGrade 회귀 스냅샷 (2026-09-16 이전엔 gradeMove 였다) ──────
   //
-  // 이식성 축은 등급을 **2순위로 내렸을 뿐 산식을 건드리지 않았다.** 이 스냅샷이
-  // 그걸 증명한다. 한 줄이라도 바뀌면 아래 30건 중 어딘가가 깨진다.
-  // 기대값은 손으로 지어낸 게 아니라 변경 **전** 함수의 출력이다
-  // (`git diff lib/cases/draft.ts` 의 어떤 hunk 도 gradeMove 안에 들어가지 않는다).
+  // 옛 산식은 이름만 factCheckGrade 로 옮겨졌다. 로직은 한 줄도 안 바뀌어야 한다 —
+  // 이 스냅샷이 그걸 증명한다. 한 줄이라도 바뀌면 아래 30건 중 어딘가가 깨진다.
+  // 기대값은 손으로 지어낸 게 아니라 이름을 옮기기 **전** 함수의 출력이다.
   {
     const M = (over = {}) => ({ lever: 'OFFER', claim: 'c', metric_name: 'x', metric_before: 1, metric_after: 2, metric_unit: '%', ...over })
     const E = (over = {}) => ({ url: 'https://a.example.com/1', source_tier: 'secondary', is_self_reported: false, is_estimate: false, is_regulatory_filing: false, ...over })
@@ -539,7 +575,7 @@ eq('한글 slug 거부', SLUG_RE.test('에이스메'), false)
     ]
     eq('AC-11 — 스냅샷 30건', SNAPSHOT.length, 30)
     for (const [name, m, ev, grade, prov, unkeyed, reason] of SNAPSHOT) {
-      const r = gradeMove(m, ev)
+      const r = factCheckGrade(m, ev)
       eq(`AC-11 등급 — ${name}`, r.grade, grade)
       eq(`AC-11 잠정 — ${name}`, r.provisional ?? false, prov)
       eq(`AC-11 미기재수 — ${name}`, r.unkeyed ?? 0, unkeyed)
@@ -547,15 +583,16 @@ eq('한글 slug 거부', SLUG_RE.test('에이스메'), false)
     }
     const dist = SNAPSHOT.reduce((a, s) => ({ ...a, [s[3]]: (a[s[3]] ?? 0) + 1 }), {})
     eq('AC-11 — 등급 분포도 고정 (A8 B1 C17 D4)', JSON.stringify(dist), JSON.stringify({ D: 4, A: 8, C: 17, B: 1 }))
-    // 이식성 필드가 붙어도 산식은 그 값을 보지 않는다. 보면 등급이 사람 판정에 오염된다.
-    eq('AC-11 — transferability 가 붙어도 등급은 그대로',
-      gradeMove({ ...M(), transferability: 'HIGH', transfer_note: '내일 이걸 해라' }, [corrA]).grade,
-      gradeMove(M(), [corrA]).grade)
+    // 이식성 필드·transfer_note 가 붙어도 사실확인 산식은 그 값을 보지 않는다.
+    // 보면 사실확인이 사람 판정(이식성)·독자 인사이트 축에 오염된다.
+    eq('AC-11 — transferability·transfer_note 가 붙어도 사실확인 등급은 그대로',
+      factCheckGrade({ ...M(), transferability: 'HIGH', transfer_note: '내일 이걸 해라' }, [corrA]).grade,
+      factCheckGrade(M(), [corrA]).grade)
   }
 
   // ── AC-12. CG-2 — 등급 D 초안의 숫자 차단 ────────────────────────────
   {
-    const dMove = { evidence_grade: 'D', lever: 'COMMUNITY', slug: 'acme-tea', brand_name: '에이스메 티' }
+    const dMove = { fact_check_grade: 'D', lever: 'COMMUNITY', slug: 'acme-tea', brand_name: '에이스메 티' }
     const withNumber = '커뮤니티를 열었더니 재구매율이 40% 올랐다. 사람들이 서로 답을 달기 시작했다.'
     const noNumber = '커뮤니티를 열었더니 사람들이 서로 답을 달기 시작했다. 숫자는 아직 없다.'
 
@@ -578,12 +615,12 @@ eq('한글 slug 거부', SLUG_RE.test('에이스메'), false)
     // 대상이 아닌 등급을 붙잡으면 게이트가 무시당한다.
     for (const g of ['A', 'B', 'C']) {
       eq(`AC-12 — 등급 ${g} 는 CG-2 대상이 아니다`,
-        numericGate([{ ...dMove, evidence_grade: g }], withNumber).ok, true)
+        numericGate([{ ...dMove, fact_check_grade: g }], withNumber).ok, true)
     }
     eq('AC-12 — 무브 0건이면 대상 아님', numericGate([], withNumber).ok, true)
     check('AC-12 — 대상 아닐 때 그 사실을 말한다', /대상이 아니다/.test(numericGate([], withNumber).reason))
     eq('AC-12 — 여러 무브 중 하나만 D 여도 대상',
-      numericGate([{ ...dMove, evidence_grade: 'A' }, dMove], withNumber).ok, false)
+      numericGate([{ ...dMove, fact_check_grade: 'A' }, dMove], withNumber).ok, false)
     eq('AC-12 — 게이트 코드는 CG-2', numericGate([dMove], withNumber).code, 'CG-2')
     check('AC-12 — 사람에게 고치는 법을 알려 준다', numericHint().length >= 3 && numericHint().some((l) => /숫자를 빼라/.test(l)))
 

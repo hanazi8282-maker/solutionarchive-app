@@ -16,6 +16,7 @@ const LINKS = [
   // 전에는 /agents 의 사람 대기함 링크로만 들어갈 수 있었다. 매일 승인 버튼을 누르는 화면이
   // 네비에 없어서, 대기함이 0건인 날에는 가는 길 자체가 사라졌다.
   { href: '/cases', match: '/cases', label: '케이스 검수' },
+  { href: '/columns', match: '/columns', label: '칼럼·스레드 검수' },
 ] as const
 
 /**

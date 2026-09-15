@@ -95,6 +95,13 @@ export function briefText(brand = '<브랜드>', market = null) {
      — 자본·인력·기존 고객·채널·재고·규제 허가. 없으면 비워 두되, 비운 것은
        "전제 없음"이 아니라 **"안 적었다"**로 읽힌다. 확인했으면 확인했다고 적어라.
 
+  3.5. **사고의 흐름 1건 이상** — 어떤 관찰에서 어떤 추론으로 그 결정에 갔나.
+     ★ 당사자 1인칭 서술(창업자 인터뷰·블로그·팟캐스트·실적발표 콜)을 **최소 1건**
+       직접 열어 거기서 꺼낸다. 공시·언론만으로는 결정의 이유가 안 나온다 —
+       2026-09-15 재검수에서 적립 33건 중 사고의 흐름이 온전한 건 2건뿐이었다.
+       못 찾았으면 조사 노트에 "1인칭 출처 확인 불가"라고 적는다. 2번(transfer_note)과
+       이 항목이 각 1건 이상 없으면 조사는 끝난 게 아니다(content/guides/인사이트-추출-기준.md §2).
+
   4. 그래서 무엇을 바꿨나 (무브: lever + claim). 레버는:
      ${LEVER.join(', ')}
      — 병목은 (${BOTTLENECK.join(' / ')}) 중 하나로 적는다. 매칭은 업종이 아니라
@@ -122,6 +129,8 @@ export function briefText(brand = '<브랜드>', market = null) {
   "${brand}" growth / "${brand}" 매출 성장 / "${brand}" case study
   "${brand}" 리브랜딩 OR 가격정책 OR 전환율
   "${brand}" 창업자 인터뷰   ← primary 이지만 is_self_reported=true 다
+  "${brand}" founder podcast / "${brand}" earnings call transcript / 창업자 이름 + blog
+                             ← 3.5번(사고의 흐름)을 채우는 1인칭 출처. 최소 1건은 열어라
 
 ■ 수치가 없으면
   수치 없는 무브도 적어라. 등급 D 로 저장되고 PMF 스코어링에서만 빠진다.

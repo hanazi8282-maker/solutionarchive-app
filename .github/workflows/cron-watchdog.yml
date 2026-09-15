@@ -1,0 +1,50 @@
+# 크론 감시 — 어젯밤 크론이 안 돌았거나 실패했는지, Threads 토큰이 만료·임박인지 본다.
+#
+# 스크립트: scripts/cron-watchdog.mjs (판정 규칙이 전부 거기 있다)
+# 이상이 있으면 Notion "일일 상태 로그" CTO 행(막힌것·사람판단필요) + 이 실행 실패(Actions 메일).
+# 이상이 없으면 아무것도 쓰지 않는다.
+
+name: Cron Watchdog
+
+on:
+  schedule:
+    # 21:53 UTC = KST 06:53. 아침 브리핑(07:00 KST) 직전이고, 가장 늦은 크론
+    # daily-cmo-loop(20:17 UTC)보다 96분 뒤라 GRACE(90분)를 넘긴다.
+    # ⚠️ 정각을 피한다(2026-09-01 미발화 실측, nightly-review-collect.yml 주석).
+    - cron: '53 21 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: cron-watchdog
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read   # 다른 워크플로의 실행 이력 조회
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Selftest
+        run: node scripts/cron-watchdog-selftest.mjs
+
+      - name: Watch crons and Threads token
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+          # ⛔ THREADS_ACCESS_TOKEN 을 넣지 않는다. 만료 시각만 DB 에서 읽는다.
+        run: node scripts/cron-watchdog.mjs

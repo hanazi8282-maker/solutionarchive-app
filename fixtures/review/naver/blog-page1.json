@@ -1,0 +1,32 @@
+{
+  "lastBuildDate": "Wed, 16 Sep 2026 09:00:00 +0900",
+  "total": 254113,
+  "start": 1,
+  "display": 3,
+  "items": [
+    {
+      "title": "<b>무선이어폰</b> 두 달 쓴 후기",
+      "link": "https://blog.naver.com/example001/223000000001",
+      "description": "한 달 넘게 쓰다 보니 오른쪽만 <b>연결</b>이 자꾸 끊깁니다. 케이스에 넣었다 빼면 잠깐 괜찮아지는데 &quot;근본 해결&quot;은 아니고...",
+      "bloggername": "합성_블로그명",
+      "bloggerlink": "https://blog.naver.com/example001",
+      "postdate": "20260915"
+    },
+    {
+      "title": "노이즈캔슬링 비교 &amp; 정리",
+      "link": "https://blog.naver.com/example002/223000000002",
+      "description": "지하철에서 <b>노이즈캔슬링</b>을 켜면 저음은 확실히 줄지만 사람 목소리는 그대로 들어옵니다. 통화 품질은 기대보다 아쉬웠습니다.",
+      "bloggername": "합성_블로그명2",
+      "bloggerlink": "https://blog.naver.com/example002",
+      "postdate": "20260914"
+    },
+    {
+      "title": "배터리 체감 기록",
+      "link": "https://blog.naver.com/example003/223000000003",
+      "description": "구매 6개월 차에 <b>배터리</b>가 눈에 띄게 줄었습니다. 출퇴근 왕복이 간신히 버티는 수준이라 중간에 케이스 충전이 필요합니다.",
+      "bloggername": "합성_블로그명3",
+      "bloggerlink": "https://blog.naver.com/example003",
+      "postdate": "20260912"
+    }
+  ]
+}

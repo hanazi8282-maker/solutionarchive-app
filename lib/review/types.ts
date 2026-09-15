@@ -112,8 +112,17 @@ export interface ReviewSourceAdapter {
    *    robots 판정·요청 간격·일일 상한·커서 전진은 전부 공용 러너가 맡는다.
    *    어댑터가 직접 fetch 하면 소스를 추가할 때마다 그 규칙들이 복사되고,
    *    한 곳에서 빠뜨리는 순간 상대 서버를 규칙 없이 때리게 된다.
+   *
+   * `headers` 는 **이 요청에만** 실린다. 네이버는 키를 쿼리가 아니라
+   * `X-Naver-Client-Id`/`X-Naver-Client-Secret` 헤더로 받고, Reddit 은
+   * `Authorization: Bearer` 를 요구한다.
+   *
+   * ⛔ 러너는 이 헤더를 **robots.txt 요청에 싣지 않는다.** robots.txt 는
+   *    수집 대상이 아니라 규칙 조회이고, 거기에 자격증명을 붙이면 우리가
+   *    인증해야 할 이유가 없는 경로에 키가 새어 나간다. 셀프테스트가
+   *    이 경계를 고정한다(scripts/review-runner-selftest.mjs).
    */
-  nextRequest(target: TargetState): { url: string } | null
+  nextRequest(target: TargetState): { url: string; headers?: Record<string, string> } | null
 
   /** 순수 함수. 네트워크 없음. 입력은 문자열과 맥락뿐이다. */
   parse(body: string, ctx: ParseContext): ParseResult
@@ -132,6 +141,35 @@ export interface ReviewSourceAdapter {
    * 소진이 403 으로 오기 때문이다.
    */
   quotaMarkers?: string[]
+
+  /**
+   * robots.txt 를 조회할 것인가.
+   *
+   *   'crawler'      (기본) — 조회하고 따른다. 다나와·hackernews 가 이쪽이다.
+   *   'official-api' — 조회하지 않는다. 사업자가 발급한 키로 **공개된 API 계약**을
+   *                    통해 받는 데이터라, 크롤러용 규칙과는 적용 대상이 다르다.
+   *
+   * ⚠️ 편의를 위한 예외가 아니다. `openapi.naver.com/robots.txt` 는
+   *    `Disallow: /` 다 — 그대로 두면 **키를 정식 발급받아 약관에 동의하고
+   *    쓰는 API 가 전건 robots-skip 으로 죽는다.** 크롤러를 막으려는 규칙이
+   *    API 계약을 덮는 것이라 판정을 그대로 믿으면 안 된다.
+   *
+   * ⛔ 대신 이 예외는 **숨기지 않는다.** 러너가 `RunResult.robotsExempt` 로
+   *    세고 수집 보고에 `robots 미적용(공식 API N건)` 으로 찍는다. App Store
+   *    사건(SP-019/021)이 정확히 이 지점을 조용히 넘겨서 한 달 넘게 위반
+   *    상태로 돌았다.
+   */
+  robotsPolicy?: 'crawler' | 'official-api'
+
+  /**
+   * 이 소스가 돌기 위해 반드시 있어야 하는 환경변수 이름들.
+   *
+   * 실행기(scripts/review-collect.mjs)가 **러너를 부르기 전에** 검사하고,
+   * 없으면 그 소스만 실패로 표시하고 건너뛴다. 키 없이 돌려서 401 을 받으면
+   * 그건 "차단"으로 기록되고 소스가 꺼진다 — 원인이 우리 쪽 설정인데
+   * 상대가 막은 것으로 남는다(§7.1 의 실패 쪽 재발 형태).
+   */
+  requiredEnv?: string[]
 }
 
 /**

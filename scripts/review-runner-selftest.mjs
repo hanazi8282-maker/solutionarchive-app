@@ -682,6 +682,130 @@ ok('제품 토큰이 브라우저를 사칭하지 않는다', !/mozilla|chrome|s
   ok('애플 페이지 상한을 넘지 않는다(400 요청 0건)', !seenUrls.some((u) => Number((u.match(/page=(\d+)/) || [0, 0])[1]) > 10))
 }
 
+// ── 어댑터 헤더 · robots 예외 (2026-09-16 추가) ────────────────────
+//
+// 네이버·Reddit 은 자격증명을 **헤더**로 보낸다. 그 헤더가
+//   (a) 실제 수집 요청에 실리는가
+//   (b) robots.txt 요청에는 **안 실리는가**  ← 자격증명 유출 방지
+// 를 코드로 고정한다. (b)를 사람이 눈으로 지키는 규칙으로 두면 언젠가 샌다.
+//
+// 그리고 `robotsPolicy: 'official-api'` 가
+//   (c) robots.txt 를 아예 안 받고 robotsExempt 로 세는가
+//   (d) 미지정 어댑터(다나와·HN)의 동작을 **바꾸지 않는가**
+// 를 같이 본다. (d)가 없으면 이 변경이 기존 두 소스를 조용히 바꿔도 모른다.
+{
+  /** 요청별로 (url, headers) 를 통째로 기록하는 하니스. 위 makeHarness 와 별개다. */
+  const makeHeaderHarness = () => {
+    const calls = []
+    let clock = 1_000_000
+    return {
+      calls,
+      ports: {
+        now: () => new Date(clock),
+        async sleep(ms) {
+          clock += ms
+        },
+        async fetchText(url, headers) {
+          calls.push({ url, headers })
+          clock += 10
+          if (url.endsWith('/robots.txt')) return { status: 200, body: 'User-agent: *\nAllow: /\n' }
+          return { status: 200, body: JSON.stringify({ reviews: [], nextCursor: null, parseFailures: 0 }) }
+        },
+        store: {
+          async loadSource() {
+            return { key: 'hdr', enabled: true, minIntervalMs: 0, dailyRequestCap: 50, requestsToday: 0 }
+          },
+          async listDueTargets() {
+            return [
+              {
+                id: 'tgt1',
+                projectId: 'proj1',
+                sourceKey: 'hdr',
+                productRef: 'p1',
+                cursor: null,
+                lastReviewAt: null,
+                consecutiveEmpty: 0,
+              },
+            ]
+          },
+          async saveTargetProgress() {},
+          async recordFingerprint() {
+            return 'new'
+          },
+          async appendInput() {
+            return 'in1'
+          },
+          async linkFingerprint() {},
+          async updateSourceHealth() {},
+        },
+      },
+    }
+  }
+
+  const headerAdapter = (over = {}) => ({
+    key: 'hdr',
+    displayName: 'hdr',
+    nextRequest() {
+      return {
+        url: 'https://api.example.test/search?q=x',
+        headers: { 'X-Secret-Key': 'SUPER_SECRET', Authorization: 'Bearer SUPER_SECRET' },
+      }
+    },
+    parse(body) {
+      const p = JSON.parse(body)
+      return { reviews: p.reviews ?? [], nextCursor: p.nextCursor ?? null, parseFailures: 0 }
+    },
+    ...over,
+  })
+
+  // (a) + (b) — robotsPolicy 미지정이라 robots.txt 를 받는다
+  {
+    const h = makeHeaderHarness()
+    const r = await runCollection(headerAdapter(), { dryRun: false, targetLimit: 1 }, h.ports)
+    const robotsCalls = h.calls.filter((c) => c.url.endsWith('/robots.txt'))
+    const dataCalls = h.calls.filter((c) => !c.url.endsWith('/robots.txt'))
+
+    t('(a) 어댑터가 준 헤더가 수집 요청에 실린다', dataCalls[0]?.headers?.['X-Secret-Key'], 'SUPER_SECRET')
+    t('(a) Authorization 도 그대로 간다', dataCalls[0]?.headers?.Authorization, 'Bearer SUPER_SECRET')
+
+    // ⛔ 여기가 핵심이다. robots.txt 는 규칙 조회지 수집이 아니다.
+    t('(b) robots.txt 요청에는 헤더가 안 실린다', robotsCalls[0]?.headers, undefined)
+    ok(
+      '(b) 자격증명 문자열이 robots.txt 요청 어디에도 없다',
+      !JSON.stringify(robotsCalls).includes('SUPER_SECRET'),
+    )
+    t('(b) robotsPolicy 미지정이면 robots.txt 를 받는다', robotsCalls.length, 1)
+    t('(b) 미지정 어댑터의 robotsExempt 는 0', r.robotsExempt, 0)
+  }
+
+  // (c) — official-api 는 robots.txt 를 아예 안 받는다
+  {
+    const h = makeHeaderHarness()
+    const r = await runCollection(
+      headerAdapter({ robotsPolicy: 'official-api' }),
+      { dryRun: false, targetLimit: 1 },
+      h.ports,
+    )
+    t('(c) official-api 면 robots.txt 요청이 0건', h.calls.filter((c) => c.url.endsWith('/robots.txt')).length, 0)
+    t('(c) 예외를 쓴 만큼 robotsExempt 가 오른다', r.robotsExempt, 1)
+    t('(c) robotsSkips 는 0 — 건너뛴 게 아니라 조회를 안 한 것이다', r.robotsSkips, 0)
+    t('(c) 수집 요청은 정상적으로 나간다', r.requests, 1)
+    ok('(c) 헤더는 여전히 수집 요청에 실린다', h.calls[0].headers['X-Secret-Key'] === 'SUPER_SECRET')
+  }
+
+  // (d) — 기존 어댑터(다나와·HN)는 전과 완전히 동일하게 robots 를 조회한다
+  {
+    ok('(d) 다나와는 robotsPolicy 를 선언하지 않는다', danawaAdapter.robotsPolicy === undefined)
+    ok('(d) appstore 도 선언하지 않는다', appstoreAdapter.robotsPolicy === undefined)
+
+    const h = makeHarness({ robots: 'User-agent: *\nDisallow: /\n' })
+    const r = await run(h)
+    t('(d) 미지정 어댑터는 robots 금지를 그대로 지킨다', r.robotsSkips, 1)
+    t('(d) 미지정 어댑터는 robots 금지면 요청 0', r.requests, 0)
+    t('(d) 미지정 어댑터의 robotsExempt 는 0', r.robotsExempt, 0)
+  }
+}
+
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {
   console.log('러너가 틀렸다. 남의 서버에 대한 규칙이 걸려 있는 코드다.')

@@ -1,0 +1,24 @@
+{
+  "kind": "Listing",
+  "data": {
+    "after": null,
+    "dist": 1,
+    "children": [
+      {
+        "kind": "t3",
+        "data": {
+          "name": "t3_synth05",
+          "id": "synth05",
+          "subreddit": "headphones",
+          "title": "Synthetic: last page marker",
+          "selftext": "After is null here, so the runner must stop.",
+          "permalink": "/r/headphones/comments/synth05/synthetic_last/",
+          "created_utc": 1788600000,
+          "score": 1,
+          "num_comments": 0
+        }
+      }
+    ],
+    "before": null
+  }
+}

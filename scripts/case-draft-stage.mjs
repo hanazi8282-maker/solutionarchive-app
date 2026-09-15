@@ -190,8 +190,10 @@ async function stageOne(job) {
   // ★ 등급을 하드코딩하지 않는다. 재채점(case-review.mjs regrade)으로 바뀌는 값이라
   //   박아 두면 초안 안의 출처 표기가 조용히 옛말이 된다. 실제로 '등급 A' 로 적혀 있었는데
   //   L-56 백필 후 이 무브는 B 가 됐다 — 발행 대기 중인 글이 틀린 근거 표기를 달고 있었다.
+  // fact_check_grade 도 같이 읽는다 — 아래 gateMoves(CG-1/CG-2)는 2026-09-16부터
+  // evidence_grade(독자 인사이트, 이 함수의 "등급 A" 안내문 전용)가 아니라 이걸 본다.
   const moveRes = await supabase.from('case_moves')
-    .select('lever, evidence_grade, outcome_direction, case_studies(bottleneck, brand_name)')
+    .select('lever, evidence_grade, fact_check_grade, outcome_direction, case_studies(bottleneck, brand_name)')
     .eq('id', job.move_id).maybeSingle()
   if (moveRes.error || !moveRes.data) {
     console.error(`⚠️ 확인 불가: case_moves ${job.move_id} 조회 실패 — ${moveRes.error?.code ?? '행 없음'} ${moveRes.error?.message ?? ''}`)

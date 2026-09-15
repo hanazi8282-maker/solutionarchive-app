@@ -27,7 +27,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
-import { validateDraft, toRows, gradeMove } from '../lib/cases/draft.ts'
+import { validateDraft, toRows, gradeMove, factCheckGrade } from '../lib/cases/draft.ts'
 import { moveApprovalWarning, caseApprovalWarning } from '../lib/cases/review.ts'
 
 const DRAFT_DIR = path.join(process.cwd(), 'drafts', 'cases')
@@ -469,9 +469,14 @@ async function regrade() {
   ).filter(s => !slug || s.slug === slug)
   if (slug && studies.length === 0) { console.error(`✗ 음성: slug=${slug} 없음`); process.exit(1) }
 
+  // 2026-09-16: 두 등급을 같이 재계산한다 — evidence_grade(독자 인사이트, gradeMove) 와
+  // fact_check_grade(사실확인, factCheckGrade). 후자는 위 축 가드가 보호하는 그 산식 그대로다.
   const before = {}
   const after = {}
+  const fcBefore = {}
+  const fcAfter = {}
   let changed = 0
+  let fcChanged = 0
   let total = 0
   let provisionalCount = 0
 
@@ -487,29 +492,44 @@ async function regrade() {
     for (const m of moves) {
       total++
       const mine = evidence.filter(e => e.case_move_id === m.id)
-      const { grade, reason, provisional } = gradeMove(m, mine)
-      if (provisional) provisionalCount++
+      const { grade, reason } = gradeMove(m, mine)
+      const fc = factCheckGrade(m, mine)
+      // provisional 은 factCheckGrade 쪽 개념이다(관측 키 미기재로 교차 확인 여부를 못 정함) —
+      // 새 gradeMove(독자 인사이트)에는 "계산은 됐는데 신뢰도가 불확실하다"는 상태가 없다.
+      if (fc.provisional) provisionalCount++
       before[m.evidence_grade] = (before[m.evidence_grade] ?? 0) + 1
       after[grade] = (after[grade] ?? 0) + 1
-      if (grade === m.evidence_grade) continue
-      changed++
-      console.log(`${dry ? '·' : '✅'} ${s.slug} / ${m.lever}: ${m.evidence_grade} → ${grade} — ${reason}`)
+      fcBefore[m.fact_check_grade] = (fcBefore[m.fact_check_grade] ?? 0) + 1
+      fcAfter[fc.grade] = (fcAfter[fc.grade] ?? 0) + 1
+      const gradeSame = grade === m.evidence_grade
+      const fcSame = fc.grade === m.fact_check_grade
+      if (gradeSame && fcSame) continue
+      if (!gradeSame) changed++
+      if (!fcSame) fcChanged++
+      const line = [!gradeSame ? `인사이트 ${m.evidence_grade} → ${grade} — ${reason}` : null,
+        !fcSame ? `사실확인 ${m.fact_check_grade} → ${fc.grade} — ${fc.reason}` : null].filter(Boolean).join(' · ')
+      console.log(`${dry ? '·' : '✅'} ${s.slug} / ${m.lever}: ${line}`)
       if (!dry) {
+        const patch = {}
+        if (!gradeSame) patch.evidence_grade = grade
+        if (!fcSame) patch.fact_check_grade = fc.grade
         must(
-          await supabase.from('case_moves').update({ evidence_grade: grade }).eq('id', m.id).select('id'),
+          await supabase.from('case_moves').update(patch).eq('id', m.id).select('id'),
           'case_moves UPDATE',
         )
       }
-      if (m.review_status === 'approved' && grade > m.evidence_grade) {
-        console.log(`   ⚠️ 이미 승인된 무브의 등급이 내려갔다. 승인은 그대로 둔다 — 사람이 다시 판단할 자리다.`)
+      if (m.review_status === 'approved' && !gradeSame && grade > m.evidence_grade) {
+        console.log(`   ⚠️ 이미 승인된 무브의 인사이트 등급이 내려갔다. 승인은 그대로 둔다 — 사람이 다시 판단할 자리다.`)
       }
     }
   }
 
   const fmt = (h) => ['A', 'B', 'C', 'D'].map(g => `${g}${h[g] ?? 0}`).join(' · ')
-  console.log(`\n무브 ${total}개 / 바뀐 것 ${changed}개`)
-  console.log(`  이전 ${fmt(before)}`)
-  console.log(`  이후 ${fmt(after)}`)
+  console.log(`\n무브 ${total}개 / 인사이트 등급 바뀐 것 ${changed}개 / 사실확인 등급 바뀐 것 ${fcChanged}개`)
+  console.log(`  인사이트 이전 ${fmt(before)}`)
+  console.log(`  인사이트 이후 ${fmt(after)}`)
+  console.log(`  사실확인 이전 ${fmt(fcBefore)}`)
+  console.log(`  사실확인 이후 ${fmt(fcAfter)}`)
   if (provisionalCount > 0) {
     console.log(`  ⚠️ 그중 ${provisionalCount}개는 **잠정**이다 — 관측 키 미기재라 교차 확인 여부를 판정하지 못했다.`)
     console.log('     이 등급은 "근거가 약하다"가 아니라 "아직 확인하지 않았다"의 표기다(§7.1).')

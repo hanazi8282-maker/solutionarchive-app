@@ -1125,7 +1125,10 @@ export const SOURCE_MOVE_PENDING_NOTE = '이식성 축 미적용(마이그 20260
  * ── 이식성이 등급보다 앞선다 (C3) ─────────────────────────────────────────
  *
  *   정렬 키는 `transferability_rank(HIGH>MEDIUM>NULL>LOW) → grade_rank → slug`.
- *   등급 산식(`gradeMove`)은 한 줄도 바뀌지 않았다 — 우선순위만 2순위로 내렸다.
+ *   여기서 보는 등급은 `evidence_grade` — 2026-09-16부터 **독자 인사이트** 축이다
+ *   (`lib/cases/draft.ts::gradeMove` 재설계). "오늘 뭘 콘텐츠로 낼까"를 고르는
+ *   자리라 사실확인(`fact_check_grade`)보다 이 축이 맞다 — 사실확인 안전장치는
+ *   발행 직전 CG-1/CG-2(`scripts/case-draft-stage.mjs`)가 별도로 막는다.
  *   등급 D 는 종전대로 제외하되 `transferability === 'HIGH'` 인 것만 연다.
  *   컬럼이 아직 없으면 전부 미판정(rank 1)이 되어 **기존 정렬과 결과가 같다.**
  */

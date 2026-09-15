@@ -62,10 +62,16 @@ export const TRANSFERABILITY_LABEL: Readonly<Record<Transferability, string>> = 
   LOW: '낮음 — 이 브랜드라서 됐다',
 }
 
-/** 무브 승인 시 주의. 부정 사례는 A 등급이어야 발행 대상이다. */
-export function moveApprovalWarning(m: { outcome_direction?: string | null; evidence_grade?: string | null }): string | null {
-  return m.outcome_direction === 'negative' && m.evidence_grade !== 'A'
-    ? `부정 사례인데 등급 ${m.evidence_grade} 다. 승인은 되지만 발행 대상은 아니다.`
+/**
+ * 무브 승인 시 주의. 부정 사례는 **사실확인** A 등급이어야 발행 대상이다.
+ *
+ * ★ 2026-09-16: evidence_grade(독자 인사이트)가 아니라 fact_check_grade 를 본다 —
+ *   "이 브랜드가 실패했다"는 주장은 검증 수준이 낮으면 위험하다. transfer_note 가
+ *   그럴듯해 evidence_grade 가 A 여도, 근거가 부실하면(fact_check_grade 낮음) 그대로 막는다.
+ */
+export function moveApprovalWarning(m: { outcome_direction?: string | null; fact_check_grade?: string | null }): string | null {
+  return m.outcome_direction === 'negative' && m.fact_check_grade !== 'A'
+    ? `부정 사례인데 사실확인 등급 ${m.fact_check_grade} 다. 승인은 되지만 발행 대상은 아니다.`
     : null
 }
 

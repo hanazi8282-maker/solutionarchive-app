@@ -37,7 +37,16 @@ on:
         # ⚠️ 선택지에 없는 소스는 **스케줄로 한 번도 안 돈다.** appstore 가
         #    어댑터·마이그레이션까지 다 있는 채로 PR#16 머지 이후 계속 그
         #    상태였다. 어댑터를 추가하면 여기도 같이 늘려야 한다.
-        options: [all, danawa, appstore, hackernews]
+        options:
+          - all
+          - danawa
+          - appstore
+          - hackernews
+          - naver_blog
+          - naver_cafe
+          - naver_kin
+          - youtube
+          - reddit
         default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수'
@@ -79,6 +88,17 @@ jobs:
           # 끝에 Notion "일일 상태 로그" CTO 행 1개를 쓴다(scripts/review-collect-status.mjs).
           # 이 스텝에만 준다 — purge 스텝은 Notion 을 안 쓴다. 기록 실패는 수집 결과를 막지 않는다.
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+          # 3차 소스 자격증명. 미등록이면 그 소스는 건너뛴다(스크립트가 requiredEnv 를
+          # 먼저 보고 ⏭️/❌ 로 찍는다). 키 없이 요청을 보내면 401/403 이 오고, 러너가
+          # 그것을 "차단"으로 기록해 소스를 꺼 버린다 — 원인이 우리 설정인데 상대 탓이 된다.
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          # ⛔ THREADS_ACCESS_TOKEN 을 여기 넣지 않는다. 무인 루프에 발행 가능한
+          #    토큰이 없는 것은 정책이 아니라 **구조**다(CLAUDE.md §10.1).
+          #    Threads keyword_search 조회가 필요해져도 이 잡에 붙이지 않는다.
         run: |
           node scripts/review-collect.mjs \
             --source=${{ inputs.source || 'all' }} \

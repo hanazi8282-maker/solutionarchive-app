@@ -1,0 +1,65 @@
+{
+  "kind": "Listing",
+  "data": {
+    "after": "t3_synth02",
+    "dist": 4,
+    "children": [
+      {
+        "kind": "t3",
+        "data": {
+          "name": "t3_synth01",
+          "id": "synth01",
+          "subreddit": "headphones",
+          "title": "Synthetic: left bud keeps disconnecting after firmware update",
+          "selftext": "Rolled back twice and it still drops every few minutes. Support told me to re-pair, which does nothing.",
+          "permalink": "/r/headphones/comments/synth01/synthetic_left_bud/",
+          "created_utc": 1789000000,
+          "score": 41,
+          "num_comments": 17
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "name": "t3_synth02",
+          "id": "synth02",
+          "subreddit": "headphones",
+          "title": "Synthetic: link post with empty selftext is normal",
+          "selftext": "",
+          "permalink": "/r/headphones/comments/synth02/synthetic_link_post/",
+          "created_utc": 1788900000,
+          "score": 7,
+          "num_comments": 3
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "name": "t3_synth03",
+          "id": "synth03",
+          "subreddit": "headphones",
+          "title": "Synthetic: selftext field missing entirely = structure change",
+          "permalink": "/r/headphones/comments/synth03/synthetic_missing_field/",
+          "created_utc": 1788800000,
+          "score": 2,
+          "num_comments": 0
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "name": "t3_synth04",
+          "id": "synth04",
+          "subreddit": "BuyItForLife",
+          "title": "Synthetic: battery degraded in six months",
+          "selftext": "Case charge lasts about half of what it did. Not a warranty case according to their policy.",
+          "permalink": "/r/BuyItForLife/comments/synth04/synthetic_battery/",
+          "created_utc": 1788700000,
+          "score": 15,
+          "num_comments": 9
+        }
+      }
+    ],
+    "before": null
+  }
+}

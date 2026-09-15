@@ -1,0 +1,28 @@
+{
+  "lastBuildDate": "Wed, 16 Sep 2026 09:00:00 +0900",
+  "total": 8842,
+  "start": 1,
+  "display": 3,
+  "items": [
+    {
+      "title": "<b>유산균</b> 바꾸신 분 계신가요",
+      "link": "https://cafe.naver.com/examplecafe/1000001",
+      "description": "두 통째 먹는 중인데 처음 2주만 효과가 있었고 그 뒤로는 차이를 모르겠습니다. 가격이 올라서 더 고민됩니다.",
+      "cafename": "합성_카페명",
+      "cafeurl": "https://cafe.naver.com/examplecafe"
+    },
+    {
+      "title": "환불 문의 후기",
+      "link": "https://cafe.naver.com/examplecafe/1000002",
+      "description": "고객센터 연결이 3일 걸렸습니다. 답변은 친절했지만 &quot;개봉하면 환불 불가&quot;라는 안내를 주문 페이지에서 못 봤던 게 아쉽습니다.",
+      "cafename": "합성_카페명",
+      "cafeurl": "https://cafe.naver.com/examplecafe"
+    },
+    {
+      "title": "구조 변경 감지용 — link 없는 항목",
+      "description": "이 항목에는 link 가 없다. 파싱 실패 1건으로 세어져야 한다.",
+      "cafename": "합성_카페명",
+      "cafeurl": "https://cafe.naver.com/examplecafe"
+    }
+  ]
+}

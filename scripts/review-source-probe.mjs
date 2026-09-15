@@ -129,6 +129,154 @@ function blockSignal(body, status) {
   return hits
 }
 
+/**
+ * 3차 소스(네이버·YouTube·Reddit) 실측 모드 — `--mode=apis3`.
+ *
+ * ⚠️ 왜 따로 있나. 이 셋은 **자격증명이 있어야 응답 본문을 볼 수 있다.**
+ *    키 없이 때리면 401/403 핸드셰이크 오류만 나오고, 그건 "엔드포인트가
+ *    살아 있다"까지만 말한다 — 필드명·스니펫 길이·정렬 같은 건 하나도
+ *    확인되지 않는다. 상태 코드로 성공을 판정하지 않는다는 §7.1 그대로다.
+ *
+ *    키가 생기면 이 한 줄로 실측을 끝낸다:
+ *      node --env-file=.env.local scripts/review-source-probe.mjs --mode=apis3
+ *
+ * 출력은 **판정 재료**다: HTTP 상태 + 필드 목록 + 본문 앞부분 + 글자 수.
+ * 네이버 `description` 이 전문이 아니라 스니펫이라는 증거가 글자 수다.
+ */
+async function probeThirdPartyApis() {
+  const line = (s) => console.log(s)
+  const excerpt = (s, n = 220) => (s ?? '').replace(/\s+/g, ' ').slice(0, n)
+
+  line('# 3차 소스 실측 (네이버 / YouTube / Reddit)')
+  line('')
+  line(`- 실행 시각: ${new Date().toISOString()}`)
+  line('')
+
+  // ── 네이버 검색 오픈API ─────────────────────────────────────────
+  const nid = process.env.NAVER_CLIENT_ID
+  const nsecret = process.env.NAVER_CLIENT_SECRET
+  for (const [path, label] of [
+    ['blog', '블로그'],
+    ['cafearticle', '카페글'],
+    ['kin', '지식iN'],
+  ]) {
+    const url = `https://openapi.naver.com/v1/search/${path}.json?query=${encodeURIComponent('무선이어폰')}&display=3&sort=date`
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': UA,
+        ...(nid && nsecret
+          ? { 'X-Naver-Client-Id': nid, 'X-Naver-Client-Secret': nsecret }
+          : {}),
+      },
+    }).catch((e) => ({ status: null, text: async () => String(e.message) }))
+    const body = await res.text()
+    line(`## 네이버 ${label} (${path})  — HTTP ${res.status}`)
+    if (!nid || !nsecret) {
+      line('- ⚠️ NAVER_CLIENT_ID/SECRET 없음 → 아래는 **핸드셰이크 오류**지 응답 구조가 아니다')
+    }
+    try {
+      const doc = JSON.parse(body)
+      const item = doc?.items?.[0]
+      if (item) {
+        line(`- 응답 필드: ${Object.keys(item).join(', ')}`)
+        // ⚠️ 이 숫자가 "스니펫이지 전문이 아니다"의 증거다.
+        line(`- description 글자 수(태그 제거 전): ${String(item.description ?? '').length}`)
+        line(`- 작성일 필드: ${'postdate' in item ? `있음(${item.postdate})` : '**없음**'}`)
+        line(`- 발췌: ${excerpt(item.description)}`)
+      } else {
+        line(`- items 없음 — 본문: ${excerpt(body)}`)
+      }
+    } catch {
+      line(`- JSON 아님 — 본문: ${excerpt(body)}`)
+    }
+    line('')
+    await sleep(GAP_MS)
+  }
+
+  // ── YouTube Data API v3 ────────────────────────────────────────
+  {
+    const key = process.env.YOUTUBE_API_KEY
+    const videoId = process.env.PROBE_YOUTUBE_VIDEO_ID ?? 'dQw4w9WgXcQ'
+    const url =
+      'https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&order=time&maxResults=3' +
+      `&videoId=${videoId}${key ? `&key=${encodeURIComponent(key)}` : ''}`
+    const r = await get(url)
+    line(`## YouTube commentThreads — HTTP ${r.status}`)
+    if (!key) line('- ⚠️ YOUTUBE_API_KEY 없음 → 아래는 **핸드셰이크 오류**지 응답 구조가 아니다')
+    try {
+      const doc = JSON.parse(r.body)
+      const cs = doc?.items?.[0]?.snippet?.topLevelComment?.snippet
+      if (cs) {
+        line(`- 댓글 필드: ${Object.keys(cs).join(', ')}`)
+        line(`- nextPageToken: ${doc.nextPageToken ? '있음' : '없음(마지막 페이지)'}`)
+        line(`- 발췌: ${excerpt(cs.textOriginal ?? cs.textDisplay)}`)
+      } else {
+        line(`- 본문: ${excerpt(r.body, 400)}`)
+      }
+    } catch {
+      line(`- JSON 아님 — 본문: ${excerpt(r.body)}`)
+    }
+    line('')
+    await sleep(GAP_MS)
+  }
+
+  // ── Reddit Data API ────────────────────────────────────────────
+  {
+    const id = process.env.REDDIT_CLIENT_ID
+    const secret = process.env.REDDIT_CLIENT_SECRET
+    let token = null
+    if (id && secret) {
+      const res = await fetch('https://www.reddit.com/api/v1/access_token', {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString('base64')}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': UA,
+        },
+        body: 'grant_type=client_credentials',
+      }).catch(() => null)
+      const doc = res ? await res.json().catch(() => null) : null
+      line(`## Reddit 토큰 교환 — HTTP ${res?.status ?? '요청 실패'}`)
+      token = typeof doc?.access_token === 'string' ? doc.access_token : null
+      line(`- access_token: ${token ? '받음' : '**못 받음**'}`)
+    } else {
+      line('## Reddit 토큰 교환 — 건너뜀')
+      line('- ⚠️ REDDIT_CLIENT_ID/SECRET 없음')
+    }
+    line('')
+
+    const url =
+      'https://oauth.reddit.com/search?q=earbuds&sort=new&t=all&limit=3&raw_json=1'
+    const res = await fetch(url, {
+      headers: { 'User-Agent': UA, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    }).catch((e) => ({ status: null, text: async () => String(e.message) }))
+    const body = await res.text()
+    line(`## Reddit /search — HTTP ${res.status}`)
+    try {
+      const doc = JSON.parse(body)
+      const d = doc?.data?.children?.[0]?.data
+      if (d) {
+        line(`- 항목 kind: ${doc.data.children[0].kind} (t3 = 포스트)`)
+        line(`- 포스트 필드: ${Object.keys(d).slice(0, 25).join(', ')} …`)
+        // ⚠️ 원 요청("불만 댓글 밀도")과 실제 응답의 차이를 여기서 확인한다.
+        line(`- **댓글 배열이 있는가**: ${Object.keys(d).some((k) => k === 'comments') ? '있음' : '**없음**(포스트 title+selftext 만 온다)'}`)
+        line(`- selftext 글자 수: ${String(d.selftext ?? '').length}`)
+        line(`- after 커서: ${doc.data.after ?? 'null'}`)
+        line(`- 발췌: ${excerpt(`${d.title} / ${d.selftext}`)}`)
+      } else {
+        line(`- 본문: ${excerpt(body, 400)}`)
+      }
+    } catch {
+      line(`- JSON 아님 — 본문: ${excerpt(body)}`)
+    }
+  }
+}
+
+if (process.argv.includes('--mode=apis3')) {
+  await probeThirdPartyApis()
+  process.exit(0)
+}
+
 // ── 실행 ──────────────────────────────────────────────────────────
 const out = []
 const say = (s) => {

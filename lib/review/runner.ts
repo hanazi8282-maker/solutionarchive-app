@@ -80,7 +80,13 @@ export interface RunnerStore {
 export interface RunnerPorts {
   now(): Date
   sleep(ms: number): Promise<void>
-  fetchText(url: string): Promise<FetchOutcome>
+  /**
+   * `headers` 는 어댑터가 그 요청에만 붙인 것이다(네이버 클라이언트 키,
+   * Reddit Bearer 토큰). 구현체는 공용 User-Agent 위에 덧씌운다.
+   *
+   * ⛔ robots.txt 조회에는 절대 넘기지 않는다 — 아래 RobotsCache 참조.
+   */
+  fetchText(url: string, headers?: Record<string, string>): Promise<FetchOutcome>
   store: RunnerStore
 }
 
@@ -100,6 +106,13 @@ export interface RunResult {
   requests: number
   pagesFetched: number
   robotsSkips: number
+  /**
+   * robots.txt 를 **조회하지 않고** 보낸 요청 수(`robotsPolicy: 'official-api'`).
+   *
+   * ⚠️ 0 이어도 보고에서 숨기지 않는다. 이 숫자가 보이지 않으면 예외가
+   *    기본값처럼 굳는다 — App Store 가 그렇게 한 달을 위반 상태로 돌았다.
+   */
+  robotsExempt: number
   perTarget: Array<{ targetId: string; productRef: string; outcome: string }>
 }
 
@@ -131,6 +144,10 @@ class RobotsCache {
     const origin = u.origin
 
     if (!this.groups.has(origin)) {
+      // ⛔ 헤더를 싣지 않는다. 어댑터가 준 자격증명(네이버 클라이언트 키,
+      //    Reddit Bearer 토큰)은 **수집 요청에만** 붙는다. robots.txt 는 규칙
+      //    조회지 수집이 아니고 인증이 필요한 경로도 아니다. 여기 붙이면
+      //    인증할 이유가 없는 곳에 키가 새어 나간다.
       const res = await this.ports.fetchText(`${origin}/robots.txt`)
       if (res.status === null || res.status >= 500) {
         // ⚠️ 읽지 못한 것을 "허용"으로 다루지 않는다. RFC 9309 는 5xx 를
@@ -185,6 +202,7 @@ export async function runCollection(
   let requests = 0
   let pagesFetched = 0
   let robotsSkips = 0
+  let robotsExempt = 0
   let targetsVisited = 0
 
   const source = await ports.store.loadSource(adapter.key)
@@ -199,6 +217,7 @@ export async function runCollection(
       requests: 0,
       pagesFetched: 0,
       robotsSkips: 0,
+      robotsExempt: 0,
       perTarget,
     }
   }
@@ -215,6 +234,7 @@ export async function runCollection(
       requests: 0,
       pagesFetched: 0,
       robotsSkips: 0,
+      robotsExempt: 0,
       perTarget,
     }
   }
@@ -265,17 +285,25 @@ export async function runCollection(
         break
       }
 
-      const verdict = await robots.allows(req.url)
-      if (!verdict.allowed) {
-        // ⛔ 요청 자체를 보내지 않는다. "차단됐다"가 아니라 "규칙상 안 간다"다.
-        robotsSkips++
-        outcome = `robots 금지 — ${verdict.reason}`
-        status = 'exhausted'
-        break
+      // 공식 API 소스는 robots.txt 를 조회하지 않는다(types.ts robotsPolicy).
+      // ⛔ 예외를 쓴 횟수를 반드시 센다. 숨기면 예외가 기본값으로 굳는다 —
+      //    App Store 가 그렇게 한 달 넘게 위반 상태로 돌았다(SP-019/021).
+      if (adapter.robotsPolicy === 'official-api') {
+        robotsExempt++
+      } else {
+        const verdict = await robots.allows(req.url)
+        if (!verdict.allowed) {
+          // ⛔ 요청 자체를 보내지 않는다. "차단됐다"가 아니라 "규칙상 안 간다"다.
+          robotsSkips++
+          outcome = `robots 금지 — ${verdict.reason}`
+          status = 'exhausted'
+          break
+        }
       }
 
       await pacer.wait()
-      const res = await ports.fetchText(req.url)
+      // 어댑터가 준 헤더는 이 요청에만 붙는다(robots.txt 에는 안 붙는다).
+      const res = await ports.fetchText(req.url, req.headers)
       requests++
 
       // 403/429 는 두 사건이 겹쳐 있다 — 차단과 쿼터 소진.
@@ -403,6 +431,7 @@ export async function runCollection(
     requests,
     pagesFetched,
     robotsSkips,
+    robotsExempt,
     perTarget,
   }
 }

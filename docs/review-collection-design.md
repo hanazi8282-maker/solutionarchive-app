@@ -2409,8 +2409,17 @@ nightly-insight-loop:   cron=["41 18 * * *"] permissions={"contents":"write"}
 두 번째 소스다. **다나와는 물리 제품만 담고 SaaS·앱은 한 건도 없다**(§1.1).
 Slack·Notion·Figma·토스는 전부 여기 있다.
 
-애플이 공식 제공하는 RSS 라 키·인증·우회가 필요 없고, `itunes.apple.com`
-robots 도 이 경로를 막지 않는다(실측: 일치하는 규칙 없음).
+애플이 공식 제공하는 RSS 라 키·인증·우회가 필요 없다.
+
+> 🔴 **2026-09-16 정정.** 원래 이 자리에 "`itunes.apple.com` robots 도 이 경로를
+> 막지 않는다(실측: 일치하는 규칙 없음)"라고 적혀 있었다. **그 문장은 거짓이다.**
+> 당시 판정은 `lib/review/robots.ts` 가 RFC 9309 와일드카드(`*`·`$`)를 구현하지
+> 않아 애플의 실제 `Disallow` 규칙을 "일치하는 규칙 없음 = 허용"으로 오판한
+> 결과였다(SP-018 → SP-019). 와일드카드 버그를 고친 뒤 다시 보니 robots 는 이
+> 경로를 **막고 있었고**, appstore 소스는 그래서 `enabled=false` 로 중단됐다
+> (SP-019 / SP-021, 마이그레이션 `20260910000002_appstore_disable_robots.sql`).
+> 아래 본문은 중단 **전**에 쓰인 기록으로 남겨 둔다 — 지우면 왜 이런 판단을
+> 했는지가 사라진다. 지금 유효한 상태는 "중단됨"이다.
 
 ```
 https://itunes.apple.com/{국가}/rss/customerreviews/id={앱ID}/sortBy=mostRecent/page={n}/json

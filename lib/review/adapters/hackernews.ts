@@ -21,6 +21,7 @@
 //    종료하거나, 반대로 끝없이 훑는다.
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
+import { htmlStrip, codePoint } from '../html.ts'
 
 /** 한 페이지에 받을 댓글 수. Algolia 기본 상한은 1000 이지만 크게 받을 이유가 없다. */
 export const HITS_PER_PAGE = 50
@@ -65,46 +66,10 @@ function pageOf(cursor: string | null): number {
   return Number.isInteger(n) && n >= 0 ? n : 0
 }
 
-/** 코드포인트가 범위를 벗어나면 String.fromCodePoint 가 던진다. 버린다. */
-function codePoint(n: number): string {
-  return Number.isInteger(n) && n >= 0 && n <= 0x10ffff ? String.fromCodePoint(n) : ''
-}
-
-/**
- * HN 댓글 본문의 HTML 을 평문으로.
- *
- * HN 은 본문을 HTML 조각으로 준다: `<p>` 로 문단을 나누고, 링크는 `<a>` 로
- * 감싸고, 따옴표·슬래시는 `&#x27;` `&#x2F;` 같은 수치 엔티티로 보낸다.
- * 그대로 두면 분석 단계가 태그를 본문으로 읽는다.
- *
- * ⚠️ **태그를 먼저 지우고 엔티티를 나중에 푼다.** 순서를 바꾸면 사람이
- *    실제로 쓴 `&lt;div&gt;` 가 `<div>` 로 풀린 뒤 태그로 오인돼 삭제된다.
- *    코드 이야기가 오가는 게시판이라 실제로 흔한 입력이다.
- *
- * ⚠️ `&amp;` 는 **맨 마지막**에 푼다. 먼저 풀면 `&amp;lt;` 가 `&lt;` 를 거쳐
- *    `<` 까지 이중 해제된다.
- *
- * 새 의존성을 넣지 않는다 — 이 정도는 정규식으로 충분하고, 파서는 순수
- * 함수여야 픽스처로 테스트할 수 있다.
- */
-export function htmlStrip(html: string): string {
-  return html
-    // 문단 구분을 먼저 살린다. 안 하면 `끝<p>시작` 이 `끝시작` 으로 붙는다.
-    .replace(/<\s*p\s*\/?\s*>/gi, '\n\n')
-    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&#x([0-9a-f]+);/gi, (_, h) => codePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_, d) => codePoint(parseInt(d, 10)))
-    .replace(/&quot;/gi, '"')
-    .replace(/&apos;/gi, "'")
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&amp;/gi, '&')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
+// HN 댓글 본문의 HTML 평문화는 `../html.ts` 로 옮겼다 — 네이버 검색 API 의
+// `<b>` 하이라이트와 Reddit 본문도 같은 처리가 필요해서다. 여기서 re-export
+// 하는 이유는 기존 픽스처 테스트가 이 경로로 부르기 때문이다.
+export { htmlStrip, codePoint } from '../html.ts'
 
 function str(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null

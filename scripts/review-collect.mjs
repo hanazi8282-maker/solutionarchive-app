@@ -2,7 +2,8 @@
 // 리뷰 수집 실행기 (GitHub Actions 진입점).
 //
 // 설계: docs/review-collection-design.md
-// 소스: 다나와 / App Store / Hacker News (docs/review-source-findings.md)
+// 소스: 다나와 / App Store / Hacker News / 네이버(블로그·카페·지식iN) / YouTube / Reddit
+//      (docs/review-source-findings.md)
 //
 // ⛔ 이 스크립트는 리포에 쓰지 않는다. 워크플로 permissions 가
 //    contents: read 다. 인사이트 루프와 별도 잡인 이유가 그것이다 —
@@ -25,10 +26,61 @@ import { alertLine } from '../lib/review/health.ts'
 import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
 import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { hackernewsAdapter } from '../lib/review/adapters/hackernews.ts'
+import { naverBlogAdapter, naverCafeAdapter, naverKinAdapter } from '../lib/review/adapters/naver.ts'
+import { youtubeAdapter } from '../lib/review/adapters/youtube.ts'
+import { createRedditAdapter } from '../lib/review/adapters/reddit.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
-const ADAPTERS = { danawa: danawaAdapter, appstore: appstoreAdapter, hackernews: hackernewsAdapter }
+// ⚠️ 어댑터를 추가하면 **워크플로의 `source` 선택지도 같이 늘려야 한다.**
+//    선택지에 없는 소스는 스케줄로 한 번도 안 돈다 — appstore 가 어댑터·
+//    마이그레이션까지 다 있는 채로 그 상태로 오래 있었다.
+//
+// reddit 은 토큰이 있어야 요청을 만든다. 여기 넣는 것은 **토큰 없는 어댑터**이고
+// (요청을 한 건도 안 만든다), 토큰 교환에 성공하면 아래에서 교체한다.
+const ADAPTERS = {
+  danawa: danawaAdapter,
+  appstore: appstoreAdapter,
+  hackernews: hackernewsAdapter,
+  naver_blog: naverBlogAdapter,
+  naver_cafe: naverCafeAdapter,
+  naver_kin: naverKinAdapter,
+  youtube: youtubeAdapter,
+  reddit: createRedditAdapter(null),
+}
+
+/**
+ * Reddit OAuth 토큰 교환 (client_credentials, TTL 약 24시간).
+ *
+ * ⛔ 어댑터가 아니라 **여기서** 한다. 어댑터가 네트워크를 만지기 시작하면
+ *    robots·간격·상한·커서 규칙이 어댑터마다 복사된다(types.ts 주석).
+ *    실패하면 그 소스만 건너뛰고 나머지 소스는 계속 돈다.
+ */
+async function exchangeRedditToken() {
+  const id = process.env.REDDIT_CLIENT_ID
+  const secret = process.env.REDDIT_CLIENT_SECRET
+  const basic = Buffer.from(`${id}:${secret}`).toString('base64')
+  try {
+    const res = await fetch('https://www.reddit.com/api/v1/access_token', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${basic}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        // Reddit 은 범용 UA 를 429 로 막는다. 러너와 같은 제품 토큰을 쓴다.
+        'User-Agent': USER_AGENT,
+      },
+      body: 'grant_type=client_credentials',
+      signal: AbortSignal.timeout(20_000),
+    })
+    if (!res.ok) return { ok: false, status: res.status }
+    const doc = await res.json()
+    const token = typeof doc?.access_token === 'string' ? doc.access_token : null
+    // ⚠️ HTTP 200 이 곧 토큰은 아니다. 본문에서 실제로 꺼내 확인한다(§7.1).
+    return token ? { ok: true, token } : { ok: false, status: `200(access_token 없음)` }
+  } catch (e) {
+    return { ok: false, status: `요청 실패 — ${e instanceof Error ? e.message : String(e)}` }
+  }
+}
 
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry')
@@ -94,8 +146,66 @@ const failures = []
 // Notion 일일 상태 로그(CTO 행) 재료. 보고 줄(say)을 다시 파싱하지 않으려고 값으로 모은다.
 const sourceResults = []
 
+// 사람이 소스를 콕 집어 요청했는가(`--source=reddit`), 아니면 전체 스윕인가(`all`).
+// 자격증명이 없을 때의 취급이 갈린다 — 아래 requiredEnv 검사 참조.
+const explicitSources = rawSource.trim() !== 'all'
+const store = createReviewStore(supabase)
+
 for (const sourceKey of sourceKeys) {
-  const adapter = ADAPTERS[sourceKey]
+  let adapter = ADAPTERS[sourceKey]
+
+  // ── 자격증명 선검사 ────────────────────────────────────────────
+  //
+  // ⚠️ 러너를 부르기 **전에** 본다. 키 없이 보낸 요청은 401/403 을 받고
+  //    러너가 그걸 "차단"으로 기록한 뒤 소스를 끈다 — 원인이 우리 쪽 설정인데
+  //    상대가 막은 것으로 남는다(§7.1 의 실패 쪽 재발 형태).
+  //
+  // 실패로 셀지 말지는 **그 소스가 원래 돌았을 것인가**로 가른다:
+  //   · 사람이 콕 집어 요청했거나(`--source=reddit`), DB 에서 enabled 인 소스
+  //     → ❌ 실패. 오늘 받았어야 할 데이터를 못 받은 것이다
+  //   · 아직 등록도 안 됐거나 꺼져 있는 소스(`all` 스윕)
+  //     → ⏭️ 건너뜀. 키가 있어도 어차피 안 돈다
+  const missingEnv = (adapter.requiredEnv ?? []).filter((k) => !process.env[k])
+  if (missingEnv.length > 0) {
+    let registeredAndEnabled = false
+    try {
+      const cfg = await store.loadSource(sourceKey)
+      registeredAndEnabled = Boolean(cfg?.enabled)
+    } catch {
+      // 조회 실패는 "꺼져 있다"로 접지 않는다. 확인 불가면 엄한 쪽으로 간다.
+      registeredAndEnabled = true
+    }
+    const fatal = explicitSources || registeredAndEnabled
+    say('')
+    say(`### \`${sourceKey}\``)
+    const line = `${missingEnv.join(' / ')} 미설정 — 이 소스를 건너뛴다`
+    if (fatal) {
+      say(`- ❌ [${sourceKey}] ${line}`)
+      console.error(`❌ [${sourceKey}] ${line}`)
+      failures.push(sourceKey)
+      sourceResults.push({ key: sourceKey, fatal: line })
+    } else {
+      say(`- ⏭️ [${sourceKey}] ${line} (소스가 아직 켜져 있지 않아 실패로 세지 않는다)`)
+      sourceResults.push({ key: sourceKey, skipped: true, skipReason: line })
+    }
+    continue
+  }
+
+  // ── Reddit 전용: 토큰 프리플라이트 ─────────────────────────────
+  if (sourceKey === 'reddit') {
+    const tok = await exchangeRedditToken()
+    if (!tok.ok) {
+      const line = `토큰 교환 실패 HTTP ${tok.status} — 이 소스를 건너뛴다`
+      say('')
+      say(`### \`${sourceKey}\``)
+      say(`- ❌ [reddit] ${line}`)
+      console.error(`❌ [reddit] ${line}`)
+      failures.push(sourceKey)
+      sourceResults.push({ key: sourceKey, fatal: line })
+      continue
+    }
+    adapter = createRedditAdapter(tok.token)
+  }
 
   // 이전 실행 정리 — running 으로 남은 행은 잡이 죽은 것이다.
   // finished_at 이 비어 있다고 성공으로 읽으면 안 된다.
@@ -145,10 +255,12 @@ for (const sourceKey of sourceKeys) {
       {
         now: () => new Date(),
         sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-        async fetchText(url) {
+        async fetchText(url, headers) {
           try {
             const res = await fetch(url, {
-              headers: { 'User-Agent': USER_AGENT, Accept: '*/*' },
+              // ⛔ 러너가 robots.txt 요청에는 headers 를 넘기지 않는다.
+              //    여기서 합치는 건 어댑터가 그 요청에 실으라고 준 것뿐이다.
+              headers: { 'User-Agent': USER_AGENT, Accept: '*/*', ...(headers ?? {}) },
               redirect: 'follow',
               signal: AbortSignal.timeout(20_000),
             })
@@ -157,7 +269,7 @@ for (const sourceKey of sourceKeys) {
             return { status: null, body: '', error: e instanceof Error ? e.message : String(e) }
           }
         },
-        store: createReviewStore(supabase),
+        store,
       },
     )
   } catch (e) {
@@ -197,6 +309,20 @@ for (const sourceKey of sourceKeys) {
     say(
       `- 파싱 ${s.reviewsParsed}건(실패 ${s.parseFailures}) · ${newLabel} · 폴백키 ${s.fallbackKeys}건 · robots 회피 ${result.robotsSkips}건${quotaLabel}${filteredLabel}`,
     )
+
+    // ⛔ 공식 API 예외를 **항상** 찍는다. 0 이어도 줄을 지우지 않는다.
+    //    숨기면 예외가 기본값으로 굳는다 — App Store 가 robots 위반을 숨긴 채
+    //    한 달 넘게 돌았던 것이 정확히 이 지점이다(SP-019/021).
+    say(`- robots 미적용(공식 API ${result.robotsExempt}건)`)
+
+    // 질의가 좁아 전부 걸러진 경우. "구조가 깨져 0건"과 **다른 사건**이라
+    // 다나와식 문구로 섞어 찍지 않는다. 고칠 곳도 파서가 아니라 질의다.
+    if (s.reviewsParsed === 0 && s.relevanceFiltered > 0) {
+      say(
+        `- ⚠️ 질의가 좁아 걸러짐 — 받은 항목 ${s.relevanceFiltered}건이 전부 질의와 무관 판정. ` +
+          '파서 문제가 아니라 `product_ref` 문제다(토큰 전부가 제목+본문에 있어야 통과한다. 1~2토큰으로 줄여라)',
+      )
+    }
 
     for (const w of result.health.warnings) say(`- ⚠️ ${w}`)
 

@@ -1,4 +1,4 @@
-# 원칙 원장 (Corpus C) — SP-001 ~ SP-023
+# 원칙 원장 (Corpus C) — SP-001 ~ SP-029
 
 크로스섹션 어드바이저(§20 / §13-7)의 Corpus C. 수익화 리서치 문서 §22 를 구조화한
 조각이다. **이 표가 정본이다.** `strategy_principles` 테이블은 이 표에서 시딩하고,
@@ -36,3 +36,9 @@
 | SP-021 | channel, legal, conflict | App Store RSS 피드에 대해 우호적인 개발자포럼 답변이 있으나, 실측된 robots.txt가 해당 경로를 명시적으로 Disallow — 라이브 robots.txt가 과거 포럼 답변보다 우선한다고 판단해 SP-019의 중단 결정 유지 | A (robots.txt는 실측, 포럼 답변은 3자 정황) | §29 |
 | SP-022 | channel, rejected | 유료 데이터벤더(Appfigures Public Data API add-on, Sensor Tower/data.ai, Datarade)는 전부 "구매형 데이터 조달" 범주로 배제 | B (공식 문서 기반) | §29 |
 | SP-023 | competitor, market | G2가 Gartner로부터 Capterra·GetApp·Software Advice 인수를 2026-01-29 공식 발표(Q1 2026 종결 예정) — 향후 이 3사 약관이 G2 체계로 통합될 가능성, Tier 4 배제 목록 갱신 필요 시점 모니터링 | B (보도자료 기반) | §29 |
+| SP-024 | reddit, api-risk, decision | Reddit Data API 상업이용 라이선스 리스크(SP-005 GummySearch 셧다운 선례)를 인지한 상태에서 남헌이 2026-09-16 진행을 명시적으로 결정 | C (자체 판단·리스크 수용) | §30 |
+| SP-025 | channel, legal, naver | 네이버 오픈API 이용약관이 "API로 취득한 정보를 허용 범위를 넘어 무단으로 복제·저장(캐시 포함)·가공·배포"하는 것을 금지행위로 명시 — 우리 파이프라인은 검색 스니펫을 저장하고 LLM으로 가공하므로 "허용 범위"의 해석이 활성화 전 선결 과제 | A (약관 원문 직접 확인) | §30 |
+| SP-026 | channel, legal, youtube | YouTube Developer Policies III.E.4.d가 비인증 API 데이터의 30일 초과 저장을 금지하고, 같은 문서가 "API Data로 새로운/파생 데이터·지표 생성"을 금지 — 소구점 추출이 정면으로 걸린다. 보존 30일은 RETENTION_DAYS와 일치하나 폐기 배치가 실제 --apply로 돌 때만 충족 | A (정책 원문 직접 확인) | §30 |
+| SP-027 | channel, legal, reddit | Reddit Data API Terms 원문이 (1) 승인된 use case를 넘는 보관 금지 + 불필요 데이터 즉시 삭제 (2) 명시적 서면 승인 없는 상업적 수익화 금지 (3) 종료 시 캐시·파생물 삭제를 규정 — SP-005의 셧다운이 이 조항의 실제 적용 사례다 | A (약관 원문 직접 확인) | §30 |
+| SP-028 | channel, korea-community | 커뮤니티 8곳 실측 결과 robots 허용과 수집 가능은 별개로 확인됨: 뽐뿌·ConsumerAffairs는 정직한 UA에 403(후자는 PerimeterX 캡차), 퀘이사존은 댓글 경로만 robots 금지, 다모앙·82cook만 본문+댓글이 정적 HTML로 확인 | A (실측 확인) | §30 |
+| SP-029 | infra, bug, robots-txt | SP-018(robots.ts 와일드카드 미구현)의 구체적 피해 지점 확인 — 퀘이사존·루리웹의 금지 규칙이 전부 와일드카드(`/*/comments*`, `/*view=`)라 현재 파서는 하나도 읽지 못한다. 두 소스는 와일드카드 구현 전에 어댑터를 만들면 금지 경로를 긁게 된다 | A (robots.txt 실측 + 코드 대조) | §30 |

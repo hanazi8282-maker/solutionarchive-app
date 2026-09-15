@@ -369,3 +369,242 @@ Firebase 항목과는 별개 호스트). 확인한 건 "명시적 상업이용 �
 `enabled=false`로 등록해 사람이 켜야 실제 수집이 시작되게 했다(마이그레이션
 `20260910000001_hackernews_source.sql`). Tier4(G2/Capterra — 이용약관 원문에
 스크래핑 금지가 명시된 경우)와는 확인의 강도가 다르다는 걸 여기 남긴다.
+
+---
+
+## 3차 소스 실측 — VOC 수집 확장 (2026-09-16)
+
+측정: 로컬(한국 가정용 IP). UA 는 `solutionarchive-review-probe/0.1` 로 정직하게
+밝혔고, 우회·재시도·IP 로테이션 없음. 재현 명령은 각 절에 적었다.
+
+### 🔴 먼저 — 이 절에서 **확인하지 못한 것**
+
+**네이버·YouTube·Reddit 세 API 의 응답 본문(필드·스니펫·정렬)을 실측하지 못했다.**
+세 소스 전부 자격증명이 있어야 본문이 오는데, 이 리포에도 `.env.local` 에도 키가
+없다(2026-09-16 확인: `NAVER_CLIENT_ID` · `YOUTUBE_API_KEY` · `REDDIT_CLIENT_ID`
+전부 미등록). 키 발급은 사람이 계정으로 해야 한다.
+
+확인한 것은 **핸드셰이크까지**다 — 엔드포인트가 살아 있고, 인증을 요구하며, 그
+거절이 어떤 형태로 오는가. 그 이상을 적으면 §7.1 위반이다.
+
+```
+$ curl -sS "https://openapi.naver.com/v1/search/blog.json?query=무선이어폰&display=3&sort=date"
+HTTP 401
+{"errorMessage":"Not Exist Client ID : Authentication failed. (인증에 실패했습니다.)","errorCode":"024"}
+
+$ curl -sS "https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=dQw4w9WgXcQ&order=time&maxResults=3"
+HTTP 403
+{"error":{"code":403,"message":"Method doesn't allow unregistered callers (callers
+ without established identity). Please use API Key or other form of API consumer
+ identity to call this API.","errors":[{"reason":"forbidden"}],"status":"PERMISSION_DENIED"}}
+
+$ curl -sS -X POST -d grant_type=client_credentials "https://www.reddit.com/api/v1/access_token"
+HTTP 401
+{"message": "Unauthorized", "error": 401}
+```
+
+세 응답 다 **"엔드포인트는 살아 있고 인증만 없다"**는 뜻이다. 차단이 아니다
+(차단이면 본문이 차단 페이지거나 캡차다 — 아래 커뮤니티 절의 ConsumerAffairs 와
+비교하라).
+
+**키가 생기면 실측은 한 줄이다.** 그 줄을 위해 프로브에 모드를 하나 붙여 뒀다:
+
+```
+node --env-file=.env.local scripts/review-source-probe.mjs --mode=apis3
+```
+
+출력이 필드 목록 · `description` 글자 수 · 작성일 필드 유무 · `after` 커서 ·
+"댓글 배열이 있는가"를 그대로 찍는다. 그 출력을 이 절 아래에 붙이면 실측이 끝난다.
+
+그래서 **세 소스 전부 `review_sources.enabled=false` 로 등록한다.** 어댑터·픽스처·
+셀프테스트는 다 있지만 응답 구조는 공식 문서 기준이고 실물로 대조하지 않았다.
+켜는 것은 대조 다음이다.
+
+### ⚠️ 네이버 `description` 은 스니펫이다 — 글자 수는 **미측정**
+
+네이버 검색 API 의 `description` 은 질의어 주변을 잘라 준 요약이고 본문 전체가
+아니다. 그런데 **그 길이를 이번에 숫자로 재지 못했다**(위 사유). 짐작한 숫자를
+적으면 그게 나중에 "실측값"으로 인용된다.
+
+대신 코드가 이 사실을 데이터에 박는다 — 적재 본문 접두가
+`[네이버 블로그 검색 스니펫 · <link>]` 다. "짧은 글"과 "잘린 글"은 다른 사건이고,
+분석 단계가 그걸 모르면 "고객이 짧게만 말한다"는 엉뚱한 결론이 나온다.
+
+측정되면 여기에 `description 글자 수: N (원문 대비 M%)` 로 적는다.
+
+### ⚠️ `naver_cafe` 작성일 필드 — 공식 문서상 **없음**, 실측 확인 불가
+
+네이버 검색 API 문서 기준 `cafearticle` 응답 필드는 `title` / `link` /
+`description` / `cafename` / `cafeurl` 이다. **작성일이 없다.** (블로그는
+`postdate` 가 있다. 지식iN 은 `title`/`link`/`description` 뿐이다.)
+단 이것도 문서 기준이지 실측이 아니다 — 위 사유.
+
+작성일이 없으면 무슨 일이 일어나는가(§7.2 — 안전장치가 걸린 걸 정상으로 읽지 마라):
+
+- 러너의 증분 종료(연속 STALE 5건)는 `writtenAt` 비교로 돈다. 전부 `null` 이면
+  STALE 판정이 한 번도 참이 되지 않는다.
+- 그래서 **매 실행이 1페이지부터 다시 훑는다.** 증분이 성립하지 않는다.
+- 다만 지문(`externalId = link`)이 중복을 잡으므로 **재적재는 없다.**
+- 그리고 `MAX_PAGES_PER_TARGET`(20) 에서 멈춘다. 폭주하지 않는다.
+- 즉 낭비는 **실행당 요청 20건**이고 데이터는 오염되지 않는다.
+
+이 사실을 모른 채 "매일 도는데 신규 0건"만 보면 조용한 실패로 오진한다.
+`naver_cafe` 의 `disabled_reason` 에 같은 내용을 적어 뒀다.
+
+### ⚠️ Reddit `/search` 응답에 **댓글이 없다** — 원 요청과 범위가 다르다
+
+원 요청은 "불만 **댓글** 밀도"였다. 그런데 `/search` 가 주는 것은 `Listing` 안의
+`t3`(링크/셀프포스트) 객체들이고, 각 항목은 `title` + `selftext` 다. 댓글은
+포스트마다 `/comments/<id>` 를 따로 불러야 하고, 그러면 **포스트 1건당 요청 1건**
+이라 일일 상한이 순식간에 마른다(HN 에서 Firebase 상세조회를 안 붙인 것과 같은 이유).
+
+→ **이번 범위는 포스트 본문까지다.** 댓글은 다음 라운드의 별도 설계다.
+어댑터 상단 주석에도 같은 문장을 박아 뒀다.
+
+실물 대조는 위 `--mode=apis3` 출력의 "댓글 배열이 있는가" 줄이 한다(자격증명
+확보 후). 그 전까지는 **공식 문서 기준 판정**이다.
+
+### 🟡 티스토리 robots.txt 재실측 — 판정: **혼합(호스트를 갈라야 한다)**
+
+앞선 세션의 "404" 기록이 무엇이었는지 다시 쟀다. 상태 코드와 본문을 같이 봤다.
+
+```
+$ curl -sS -o /dev/null -w "%{http_code} %{content_type} %{size_download}\n" https://www.tistory.com/robots.txt
+404 text/html; charset=utf-8 23430
+
+$ curl -sS https://www.tistory.com/robots.txt | grep -o 'not-found'
+not-found      ← Next.js not-found 청크. 즉 SPA 라우팅 폴백 본문이다
+```
+
+판정: **진짜 404 다**(상태 코드가 404 이고, 200 에 오류 페이지를 실어 보내는
+형태가 아니다). 다만 본문은 robots.txt 가 아니라 Next.js not-found 페이지다.
+`https://tistory.com/robots.txt` 는 301 로 www 로 보낸다.
+
+**그런데 이게 중요한 판정이 아니다.** 티스토리 글은 `www.tistory.com` 이 아니라
+**블로그별 서브도메인**에 있고, 거기엔 robots.txt 가 실제로 있다:
+
+```
+$ curl -sS https://sunday-life.tistory.com/robots.txt      # HTTP 200, 185 bytes
+User-agent: *
+Disallow: /guestbook
+Disallow: /m/guestbook
+Disallow: /manage
+Disallow: /owner
+Disallow: /admin
+Disallow: /search        ← ⚠️ 검색 경로 금지
+Disallow: /m/search
+
+User-agent: bingbot
+Crawl-delay: 20
+```
+
+→ **글 본문 경로는 허용, 검색 경로(`/search`)는 금지.** 수집기는 "키워드로 찾아
+들어가는" 구조라 진입 경로가 막힌 셈이다. 게다가 대상 호스트가 블로그마다 달라서
+robots 를 블로그 수만큼 조회해야 한다(러너의 호스트별 캐시가 무의미해진다).
+
+결론: **이번 범위에서 티스토리는 채택하지 않는다.** "확인 불가"가 아니라
+"확인했고, 진입 경로가 막혔다"이다.
+
+### 🟡 Threads `keyword_search` 스코프 — 판정: **확인 불가** (그리고 붙이지 않는다)
+
+기존 발행용 토큰으로 **읽기 1회**만 했다.
+
+```
+$ curl -sS -D - "https://graph.threads.net/v1.0/keyword_search?q=earbuds&search_type=TOP&access_token=<발행용 토큰>"
+HTTP/1.1 500 Internal Server Error
+threads-api-version: v1.0
+debug-link: https://www.meta.com/debug/?mid=58ad1c5e253bf9c53846867a52f402df
+Content-Length: 0
+```
+
+OAuth 스코프 오류(`OAuthException`)가 **아니다.** 본문이 아예 비어 있는 500 이라
+"스코프가 없다"도 "있다"도 말할 수 없다. **확인 불가**로 적는다.
+
+그리고 이 결과와 **무관하게 워크플로에 붙이지 않았다.** 무인 루프 환경에 발행
+가능한 토큰이 없는 것은 정책이 아니라 **구조**다(CLAUDE.md §10.1).
+`keyword_search` 를 쓰려면 그 구조를 바꿔야 하고, 그건 이 PR 범위 밖이다.
+워크플로 env 에 `THREADS_ACCESS_TOKEN` 이 없다는 것을 YAML 파서로 확인해 뒀다.
+
+### 커뮤니티/포럼 8곳 실측 — robots 만으로 채택하지 않았다
+
+robots 가 허용이어도 **리뷰/댓글 본문이 정적 HTML 에 있는지**까지 봐야 채택이다.
+다나와가 채택된 이유가 그것이고, 글로우픽이 탈락한 이유도 그것이다.
+
+| 소스 | robots | 실제 응답 | 본문 정적 | 판정 |
+|---|---|---|---|---|
+| 퀘이사존 `quasarzone.com` | `Allow: /` 지만 **`/comments/*`·`/*/comments*`·`/getComment/*` 금지** | 200 | 글 본문 `class="view-content"` 정적 확인 | 🟡 **본문만 가능.** VOC 의 알맹이인 댓글이 robots 로 막혔다 |
+| 뽐뿌 `ppomppu.co.kr` | `Allow: /zboard/` | **403 (nginx)** | — | ❌ 탈락. 정직한 UA 를 서버가 거부한다. 위장하지 않는다 |
+| 루리웹 `bbs.ruliweb.com` | `/search`·`/member` 외에 **`/*view=`·`/*cate=`·`/*orderby=` 등 와일드카드 다수 금지** | 200 | 본문·댓글(`comment_element` 11건) 정적 확인 | 🟡 read 경로는 열려 있으나 목록/정렬 진입이 쿼리형이라 막힌다. 아래 ⚠️ 참조 |
+| ConsumerAffairs | 계정·광고 경로만 금지 | **403 + PerimeterX 캡차**("Press & Hold to confirm you are a human") | — | ❌ 탈락. 우회하지 않는다 |
+| PissedConsumer | 관리 경로만 금지 | 404 ×3 (진입 URL 을 못 찾음) | — | 🟡 **확인 불가.** 브랜드 페이지 URL 규칙을 사람이 확인해야 다시 잰다 |
+| 다모앙 `damoang.net` | `Allow: /` (admin/api 만 금지) | 200 | **댓글 12건**(`comment-body`) 정적 확인 | ✅ 유망 — 다음 라운드 구현 후보 1순위 |
+| 파우더룸 `powderroom.co.kr` | `Allow: /` (작성 폼만 금지) | 200 (Next.js SSR, 가시 텍스트 3,305자) | 리뷰 **목록** 텍스트는 SSR 로 옴. 개별 리뷰 상세 링크 패턴을 못 찾음 | 🟡 추가 실측 필요 |
+| 82cook `82cook.com` | 임시 경로만 금지 | 200 | 본문 `id="articleBody"` + 댓글(`class="rp"` 88건) 정적 확인 | ✅ 유망 — 다음 라운드 구현 후보 |
+
+**이번 라운드에서 이 8곳의 어댑터는 만들지 않았다.** 실측까지만 하고 멈춘 것이
+의도다 — 부실하게 8개를 만드는 것보다 낫다.
+
+#### ⚠️ 여기서 같이 드러난 위험 — robots.ts 의 와일드카드 미구현(SP-018)
+
+퀘이사존과 루리웹의 금지 규칙은 **전부 와일드카드**다(`/*/comments*`, `/*view=`).
+그런데 이 리포의 `lib/review/robots.ts` 는 `*` 와 `$` 를 구현하지 않고 경로를
+접두사로만 비교한다. 즉 **저 금지 규칙들을 우리 러너는 하나도 못 읽는다.** 지금
+어댑터를 붙이면 "robots 허용"으로 판정하고 금지 경로를 긁는다.
+
+이 두 소스는 그래서 **와일드카드 구현이 선행되지 않으면 만들면 안 된다.**
+SP-018 이 "오탐 가능"이라고만 적어 둔 것의 구체적인 피해 지점이 여기다.
+
+### 약관 원문 — 저장·재가공 조항 (직접 확인, 2026-09-16)
+
+**네이버 오픈API 이용약관** (`developers.naver.com/products/terms/`, 금지행위 조항):
+
+> ③ API서비스를 이용하여 취득한 정보(네이버 회원의 계정 관련 정보, 네이버 서비스의
+> 컨텐츠 내용 등 일체의 데이터를 포함한다)를 다음의 예시와 같이 **본 약관에서 허용한
+> 범위를 넘어서서 무단으로 복제, 저장(캐시 행위 포함), 가공, 배포 등 이용**하거나
+> 제3자에게 제공하는 행위
+>
+> 기타 각 API의 제공 취지나 목적에 맞지 않게 API 제공 정보를 저장하거나 이용하는 행위
+
+→ 우리 파이프라인은 `description` 을 `analysis_inputs` 에 저장하고 LLM 으로
+가공한다. "허용한 범위"가 어디까지인지는 약관 본문만으로 단정할 수 없다.
+**사람 판단 필요.**
+
+**YouTube API Services Developer Policies**
+(`developers.google.com/youtube/terms/developer-policies`, §III.E.4.d):
+
+> API Clients may temporarily store limited amounts of Non-Authorized Data for as long
+> as is necessary for the purposes of the API Client but **not longer than 30 calendar
+> days**. … after 30 calendar days, the API Client must either delete or refresh the
+> stored data.
+
+같은 문서의 파생 데이터 조항:
+
+> Your API Clients must not (i) replace API Data with similar, independently calculated
+> data, or (ii) **access or use API Data to create new or derived data or metrics.**
+
+→ 30일 제한은 우리 보존 기간(`lib/review/purge.ts` `RETENTION_DAYS = 30`)과 같다.
+**단 폐기 배치가 실제로 `--apply` 로 돌고 있어야 충족된다**(기본값은 dry-run,
+`REVIEW_PURGE_APPLY` 로 켠다). 파생 데이터 조항은 우리 추출 단계와 정면으로
+겹친다. **사람 판단 필요.**
+
+**Reddit Data API Terms** (`redditinc.com/policies/data-api-terms`):
+
+> you will not … **use or retain any User Content, Materials, or data accessed through
+> the Data APIs beyond your approved use case, and you must immediately delete any data
+> not required for it**
+
+> sell, lease, or sublicense the Data APIs … or **derive revenues from the use or
+> provision of the Data APIs**, whether for direct commercial or monetary gain unless
+> there is express written approval from Reddit
+
+> Except as expressly permitted by this section, no other rights or licenses are granted
+> or implied, including any right to use User Content for other purposes, such as for
+> **training a machine learning or AI model**, without the express permission of
+> rightsholders in the applicable User Content.
+
+> Upon any termination … you will **immediately stop using the Data APIs, delete any
+> cached or stored User Content** … This includes any data or models that were derived
+> from User Content and Materials that were accessed from the Data APIs.
+
+→ 상업적 이용은 별도 계약이 필요하다고 원문에 있다. SP-005(GummySearch 셧다운)가
+바로 이 조항의 결과다. 남헌이 리스크를 인지한 상태에서 진행을 결정했다(SP-024).

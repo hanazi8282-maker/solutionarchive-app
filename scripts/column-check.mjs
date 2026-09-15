@@ -9,7 +9,8 @@
 // exit 0 = 오류 없음(경고는 있을 수 있음), exit 1 = 오류.
 import { readFileSync, existsSync } from 'node:fs'
 
-const COLUMN_MIN = 3000, COLUMN_MAX = 6000, THREAD_MAX = 500
+// 상한 8,000: 케이스-작성-가이드.md §5 (2026-09-15 남헌이 6,000 → 8,000). 가이드와 따로 놀면 기준에 맞는 칼럼이 오류로 뜬다.
+const COLUMN_MIN = 3000, COLUMN_MAX = 8000, THREAD_MAX = 500
 const len = (s) => [...s].length
 
 // 검증에서 실제로 걸린 패턴만. 걸리면 "고쳐라"가 아니라 "원문에 있는지 봐라"다.
@@ -17,7 +18,8 @@ const CAUSAL = /(불렀다|때문에|그래서|덕분에|이끌었다|만들었�
 const TIME = /(지금도|여전히|현재|아직도|요즘)/g
 const GENERAL = /^(사람들은|소비자는|고객은|창업자는|보통은?|누구나|대부분은)\s/m
 
-export function checkColumn(src) {
+// research: 짝 .research.md 본문. ops/roles/cmo.md(#98) 칼럼 파이프라인은 §10 점검을 .research.md 에 둔다.
+export function checkColumn(src, research = '') {
   const errors = [], warns = []
   const text = src.replace(/\r/g, '')
   const [head] = text.split(/\n---\n/)
@@ -28,7 +30,7 @@ export function checkColumn(src) {
   if (/[→⇒←]/.test(head)) errors.push('본문에 화살표 기호 (§7)')
   if (/—/.test(head)) errors.push('본문에 em-dash (§7)')
   if (!/## 근거 메모/.test(text)) errors.push('`## 근거 메모` 절이 없다 (§10-8)')
-  if (!/## 자체 점검/.test(text)) errors.push('`## 자체 점검` 절이 없다 (§10)')
+  if (!/^##.*자체 점검/m.test(`${text}\n${research}`)) errors.push('`## 자체 점검` 절이 칼럼에도 짝 .research.md 에도 없다 (§10)')
   const causal = head.match(CAUSAL) || []
   if (causal.length) warns.push(`인과 표현 ${causal.length}회 — 각각 원문에 그 인과가 있는지 본다 (§10-9)`)
   const time = head.match(TIME) || []
@@ -77,8 +79,9 @@ function run(paths) {
         console.log(`${mark} ${f} ${t.n}편 ${t.chars}자${t.errors.map((e) => `\n    오류: ${e}`).join('')}${t.warns.map((w) => `\n    확인: ${w}`).join('')}`)
         if (t.errors.length) bad++
       }
-    } else if (/\.md$/.test(f) && !/\.(research|analysis)\.md$/.test(f)) {
-      const r = checkColumn(src)
+    } else if (/\.md$/.test(f) && !/\.(research|analysis|verify)\.md$/.test(f)) {
+      const researchPath = f.replace(/\.md$/, '.research.md')
+      const r = checkColumn(src, existsSync(researchPath) ? readFileSync(researchPath, 'utf8') : '')
       const mark = r.errors.length ? '✗' : '✓'
       console.log(`${mark} ${f} ${r.chars}자${r.errors.map((e) => `\n    오류: ${e}`).join('')}${r.warns.map((w) => `\n    확인: ${w}`).join('')}`)
       if (r.errors.length) bad++
@@ -91,6 +94,10 @@ function selfTest() {
   const assert = (c, m) => { if (!c) { console.error('FAIL', m); process.exit(1) } }
   const good = `독자: 창업자\n\n# 제목\n\n${'가'.repeat(3100)}\n\n---\n\n## 근거 메모\n- x\n\n## 자체 점검\n0. 예`
   assert(checkColumn(good).errors.length === 0, 'good column should pass')
+  const noSelf = good.replace(/\n\n## 자체 점검[\s\S]*$/, '')
+  assert(checkColumn(noSelf).errors.some((e) => e.includes('자체 점검')), 'self-check missing everywhere')
+  assert(checkColumn(noSelf, '# r\n\n## 가이드 §10 자체 점검\n0. 예').errors.length === 0, 'self-check in .research.md accepted')
+  assert(checkColumn(`독자: 창업자\n\n# 제목\n\n${'가'.repeat(7900)}\n\n---\n\n## 근거 메모\n- x\n\n## 자체 점검\n0. 예`).errors.length === 0, '7,900 within 8,000 cap')
   const bad = `# 제목\n\n짧다 → 화살표 — 대시\n`
   const r = checkColumn(bad)
   assert(r.errors.some((e) => e.includes('독자')), 'missing 독자')

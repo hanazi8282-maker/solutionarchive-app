@@ -79,3 +79,23 @@ approved 34·draft 28, case_studies approved 15·draft 15 (적용 전후 동일)
 
 **원칙 문구(§10.1) 자체는 변경하지 않는다. 다음 마이그레이션부터는 별도 승인이
 없는 한 다시 원칙대로 사람이 적용한다.**
+
+
+---
+
+2026-09-15, 남헌 명시적 승인("RLS 감지 파일 만들고 적용까지 해줘") — 같은 원칙에 대한 1회성 예외. **이번 1건에 한정**한다.
+마이그레이션 1건을 클로드코드(CEO-STAFF 세션)가 직접 적용함:
+
+- `20260915000002_enable_rls_service_only.sql`
+  — RLS 가 꺼져 있던 7개 테이블(`post_replies`, `agent_runs`, `agent_run_steps`, `research_queue`,
+    `pmf_assessments`, `pmf_assessment_moves`, `notion_sync_log`)에 `ENABLE ROW LEVEL SECURITY`.
+    정책은 만들지 않는다(리포 다른 테이블과 같은 "RLS ON + 정책 0 = service_role 전용"). 롤백 파일 동봉.
+  — 근거: `reports/2026-09-15-code-audit.md` 4-2. 브라우저 anon 키로 이 7테이블 전 행 읽기·쓰기가 가능했다.
+
+이번엔 supabase MCP 가 solutionarchive 프로젝트를 가리키는 것을 `list_tables` 로 확인한 뒤 MCP
+`apply_migration` 으로 적용했다(이력 테이블 `schema_migrations` 에 기록됨 — 09-14 까지의 30건은 미기록,
+리포트 4-1). 적용 후 어드바이저: `rls_disabled` 경고 0건(적용 전 7건), 남은 건 `rls_enabled_no_policy`
+INFO 34건(의도된 상태). 서버 스크립트는 전부 service_role 이라 영향 없음.
+
+**원칙 문구(§10.1) 자체는 변경하지 않는다. 다음 마이그레이션부터는 별도 승인이
+없는 한 다시 원칙대로 사람이 적용한다.**

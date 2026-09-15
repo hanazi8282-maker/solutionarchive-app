@@ -54,6 +54,8 @@ jobs:
 
       - name: Measure
         run: |
+          # `| tee` 가 node 의 종료코드를 삼킨다 — pipefail 없이는 측정이 죽어도 초록불.
+          set -o pipefail
           node scripts/hn-firebase-c-track.mjs \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.append == false) && ' ' || '--append' }} \
             | tee -a "$GITHUB_STEP_SUMMARY"

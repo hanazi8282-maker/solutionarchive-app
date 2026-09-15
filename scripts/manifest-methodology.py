@@ -29,6 +29,12 @@ import re
 import sys
 from pathlib import Path
 
+# Windows 콘솔(cp949)에서 ✓·→·★ 를 찍다가 UnicodeEncodeError 로 죽는다.
+# PYTHONIOENCODING=utf-8 을 매번 붙이는 대신 스크립트가 스스로 UTF-8 로 쓴다.
+for _s in (sys.stdout, sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "methodology" / "content"
 MANIFEST = BASE / "MANIFEST.txt"

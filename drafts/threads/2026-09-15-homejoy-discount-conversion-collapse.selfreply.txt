@@ -1,0 +1,6 @@
+수치 출처: Forbes(Ellen Huet, 2015-07-23) — Homejoy 전 직원들을 인용한 추정치. "About 75% of its bookings came from discounts", "Only about 15% to 20% of customers booked again within a month... Handy... more than 35%... up to 45% in larger markets."
+https://www.forbes.com/sites/ellenhuet/2015/07/23/what-really-killed-homejoy-it-couldnt-hold-onto-its-customers/
+
+별도 확인: Second Measure의 신용카드 거래 데이터 분석(Wired, 2015-10 보도를 인용한 재정리 글, HBS Platform Digit)도 "1개월 후 재사용 25%, 6개월 후 10% 미만"이라는 비슷한 하락 추세를 독립적으로 확인했다. 다만 재예약(booking)과 재사용(used the service)은 정의가 달라 15~20% vs 25%를 같은 수치로 직접 비교할 수는 없다 — 방향만 같다.
+
+Homejoy는 2015년 7월 31일 서비스를 종료했다. 회사 자신은 근로자 지위 소송을 "결정적 요인"으로 공개 지목했다(자기보고). 이 글이 다루는 재구매 전환 실패는 Forbes 등 후속 보도가 짚은 별개의 원인이다.

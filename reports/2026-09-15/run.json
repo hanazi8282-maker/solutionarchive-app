@@ -1,0 +1,115 @@
+{
+  "runKey": "cmo-2026-09-15-cron",
+  "date": "2026-09-15",
+  "dryRun": false,
+  "state": {
+    "blocked": 1,
+    "failed": 0,
+    "counts": {
+      "cases_reachable": 1,
+      "claimed": 2,
+      "attempted": 2,
+      "agent_ok": 2,
+      "new_drafts": 1,
+      "commit_attempted": 1,
+      "committed": 1,
+      "all_draft": 1,
+      "partial_failed": 0,
+      "queue_attempted": 2,
+      "queue_done": 1,
+      "queue_failed": 1,
+      "queue_unresolved": 0,
+      "queue_stalled": 0,
+      "angles": 2,
+      "deferred_same_slug": 0,
+      "transferability_unrated": 0,
+      "drafted": 2,
+      "manifests": 2,
+      "staged": 2,
+      "commented": 1
+    },
+    "steps": [
+      {
+        "key": "preflight",
+        "label": "사전 점검",
+        "status": "ok",
+        "exit": null,
+        "blocker": null,
+        "partial_failed": null,
+        "errors": null
+      },
+      {
+        "key": "queue",
+        "label": "조사 큐 선정",
+        "status": "ok",
+        "exit": null,
+        "blocker": null,
+        "partial_failed": null,
+        "errors": null
+      },
+      {
+        "key": "research",
+        "label": "조사",
+        "status": "ok",
+        "exit": null,
+        "blocker": null,
+        "partial_failed": null,
+        "errors": null
+      },
+      {
+        "key": "commit_cases",
+        "label": "케이스 적립",
+        "status": "ok",
+        "exit": null,
+        "blocker": null,
+        "partial_failed": 0,
+        "errors": null
+      },
+      {
+        "key": "queue_resolve",
+        "label": "조사 큐 정리",
+        "status": "ok",
+        "exit": null,
+        "blocker": null,
+        "partial_failed": 0,
+        "errors": null
+      },
+      {
+        "key": "angle",
+        "label": "앵글 선정",
+        "status": "ok",
+        "exit": null,
+        "blocker": null,
+        "partial_failed": null,
+        "errors": null
+      },
+      {
+        "key": "draft",
+        "label": "초안 작성 + 게이트",
+        "status": "ok",
+        "exit": null,
+        "blocker": null,
+        "partial_failed": null,
+        "errors": null
+      },
+      {
+        "key": "stage",
+        "label": "발행 대기 스테이징",
+        "status": "blocked",
+        "exit": 4,
+        "blocker": "CG-1 미통과 — 등급 C 무브를 인용했는데 본문에 출처 귀속 문구가 없다. posts 는 draft 로 눕혔다(본문은 남아 있다).",
+        "partial_failed": null,
+        "errors": null
+      },
+      {
+        "key": "performance",
+        "label": "성과 분석",
+        "status": "ok",
+        "exit": null,
+        "blocker": null,
+        "partial_failed": null,
+        "errors": null
+      }
+    ]
+  }
+}

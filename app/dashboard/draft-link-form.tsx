@@ -13,6 +13,12 @@ export type DraftOption = {
   notes: string | null
   status: string
   content_code: string | null
+  hook_type?: string | null
+  closing_type?: string | null
+  /** 발행 전 검수(app/dashboard/post-review-form.tsx) 결정 기록. */
+  reviewed_at?: string | null
+  reviewed_by?: string | null
+  review_note?: string | null
 }
 
 export type UnlinkedThread = {

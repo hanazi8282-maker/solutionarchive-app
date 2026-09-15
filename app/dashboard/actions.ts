@@ -244,3 +244,50 @@ export async function linkDraft(
   revalidatePath('/dashboard')
   return { ok: true, message: `연결 완료 — external_id ${external_id}` }
 }
+
+// ── 발행 전 검수(승인/반려) — pending_review 초안 ────────────────────
+//
+// ⛔ 사람 전용 쓰기 경로 (CLAUDE.md §10.1 — 사람만 한다). /dashboard 화면의 버튼으로만
+// 부른다. API 라우트로 만들지 않는다 — /cases·/columns 의 actions.ts 와 같은 규약.
+//
+// 승인은 status 를 바꾸지 않는다 — pending_review 자체가 이미 "발행 대기"(마이그
+// 20260906000002 주석). 승인은 (필요하면 수정한) 본문을 확정하고 reviewed_at/by 를
+// 남긴다. 반려는 status='discarded' — 이 초안은 발행하지 않는다.
+export type ReviewActionState = { ok: boolean; message: string } | null
+
+export async function reviewPost(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
+
+  const id = String(fd.get('id') ?? '').trim()
+  const decision = String(fd.get('decision') ?? '')
+  const body = String(fd.get('body') ?? '').trim()
+  const note = String(fd.get('note') ?? '').trim()
+  if (!id) return { ok: false, message: '대상 초안이 없습니다. 새로고침 후 다시 시도하세요.' }
+  if (decision !== 'approved' && decision !== 'rejected') return { ok: false, message: '승인 또는 반려 중 하나를 골라야 합니다.' }
+  if (decision === 'approved' && !body) return { ok: false, message: '승인하려면 본문이 비어 있으면 안 됩니다.' }
+
+  const sb = await createClient()
+  if (!sb) return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다.' }
+
+  const { data: post, error: readErr } = await sb
+    .from('posts').select('id, status').eq('id', id).maybeSingle()
+  if (readErr) return { ok: false, message: `조회 실패 — 확인하지 못해 바꾸지 않았습니다: ${readErr.message}` }
+  if (!post) return { ok: false, message: '초안을 찾지 못했습니다. 새로고침 후 확인하세요.' }
+  if (post.status !== 'pending_review') {
+    return { ok: false, message: `이미 ${post.status} 상태입니다. 새로고침 후 확인하세요.` }
+  }
+
+  const patch = decision === 'approved'
+    ? { body, reviewed_by: auth.email, reviewed_at: new Date().toISOString(), review_note: note || null }
+    : { status: 'discarded', reviewed_by: auth.email, reviewed_at: new Date().toISOString(), review_note: note || null }
+
+  const { data, error } = await sb
+    .from('posts').update(patch).eq('id', id).eq('status', 'pending_review').select('id')
+
+  if (error) return { ok: false, message: `저장 실패: ${error.message}` }
+  if (!data || data.length === 0) return { ok: false, message: '방금 다른 곳에서 결정됐습니다. 새로고침 후 확인하세요.' }
+
+  revalidatePath('/dashboard')
+  return { ok: true, message: decision === 'approved' ? '승인 완료 — 이 내용 그대로 Threads 에 게시하세요.' : '반려 완료 — 발행 대기에서 빠졌습니다.' }
+}

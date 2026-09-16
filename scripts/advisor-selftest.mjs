@@ -6,7 +6,7 @@
 // Corpus B 가 실패 서술(outcome)로 우연히 걸리지 않는가 · 추정(is_estimate)이
 // 사실 그대로인 사례보다 뒤로 밀리는가.
 
-import { advise, matchPrinciples, matchCaseMoves, matchFailedAngles, toTerms } from '../lib/cases/advisor.ts'
+import { advise, isLowConfidence, matchPrinciples, matchCaseMoves, matchFailedAngles, toTerms } from '../lib/cases/advisor.ts'
 
 let pass = 0
 let fail = 0
@@ -170,6 +170,77 @@ const SHAMPOO_B = { category: '3주 만에 탈모가 멈추고 새 머리가 나
   t('불용어: pricing 원칙 매칭 유지', matchPrinciples(toTerms('pricing'), PRINCIPLES).status, 'matched')
   t('불용어: 숏폼 실패사례 매칭 유지', matchFailedAngles(toTerms('모바일 숏폼 스트리밍'), FAILED_ANGLES).status, 'matched')
 }
+// ── SP-024: 단일 낱말 매칭은 점수로 걸러지지 않는다 ──────────────
+// 불용어 필터(PR #43)를 통과한 뒤에도 남는 결함이다. STOPWORDS 는 "광고" 처럼
+// 이 도메인의 진짜 주제어를 일부러 남겨 두는데, 그 낱말 하나로만 겹치면
+// 여전히 카드가 뜬다. 그런데 점수로는 그걸 못 가른다 —
+//   score = GRADE_RANK(A=3/B=2/C=1) × 10 + 겹친 낱말 수
+// 라 등급 가중이 겹침 강도를 압도하기 때문이다. 아래가 그 역전의 실측이다.
+const SP024_STUDIES = [
+  { id: 's4', slug: 'dtc-ads-a', brand_name: 'AdsCo', bottleneck: 'ACQUISITION', business_model: 'D2C', review_status: 'approved' },
+  { id: 's5', slug: 'dtc-ads-c', brand_name: 'RetargetCo', bottleneck: 'ACQUISITION', business_model: 'D2C', review_status: 'approved' },
+]
+const SP024_MOVES = [
+  // A등급인데 겹치는 낱말은 "광고" 하나뿐 — 광범위 도메인어 한 개짜리 매칭.
+  { id: 'm6', case_study_id: 's4', lever: 'CHANNEL', claim: '광고 예산을 오프라인으로 옮겼다', evidence_grade: 'A', outcome_direction: 'positive', review_status: 'approved' },
+  // C등급이지만 낱말 5개가 정확히 겹친다.
+  { id: 'm7', case_study_id: 's5', lever: 'CHANNEL', claim: '광고 리타겟팅 크리에이티브를 바꿔 전환율과 객단가를 같이 올렸다', evidence_grade: 'C', outcome_direction: 'positive', review_status: 'approved' },
+]
+{
+  const terms = ['광고', '리타겟팅', '크리에이티브', '전환율', '객단가']
+  const r = matchCaseMoves(terms, SP024_STUDIES, SP024_MOVES)
+  const m6 = r.cards.find((c) => c.case_move_id === 'm6')
+  const m7 = r.cards.find((c) => c.case_move_id === 'm7')
+
+  t('SP-024: 낱말 1개짜리 A등급 무브가 그대로 노출된다', m6 !== undefined, true)
+  t('SP-024: 그 무브의 겹친 낱말은 "광고" 하나뿐', JSON.stringify(m6.matched_terms), JSON.stringify(['광고']))
+  t('SP-024: 낱말 1개 × A등급 = 31점', m6.score, 31)
+  t('SP-024: 낱말 5개 × C등급 = 15점', m7.score, 15)
+  // 이게 핵심이다 — "점수가 낮으면 저신뢰"라는 임계가 성립하지 않는다.
+  ok('SP-024: 얇은 근거가 두꺼운 근거보다 위에 뜬다(31 > 15)', m6.score > m7.score)
+  t('SP-024: 그래서 정렬 1위가 낱말 1개짜리다', r.cards[0].case_move_id, 'm6')
+
+  t('SP-024: 낱말 1개 → low_confidence true', m6.low_confidence, true)
+  t('SP-024: 낱말 5개 → low_confidence false', m7.low_confidence, false)
+  // 숨기지 않는다. no_match("관련 사례 없음")와 구분돼야 하기 때문이다(§7.1).
+  t('SP-024: 저신뢰라도 상태는 matched', r.status, 'matched')
+}
+{
+  // 등급별 고정값. 겹친 낱말이 1개면 점수는 11/21/31 셋 중 하나로 결정된다.
+  const one = ['광고']
+  const grades = [['A', 31], ['B', 21], ['C', 11]]
+  for (const [g, want] of grades) {
+    const moves = [{ id: 'mg', case_study_id: 's4', lever: 'CHANNEL', claim: '광고 예산 재배분', evidence_grade: g, outcome_direction: 'positive', review_status: 'approved' }]
+    const r = matchCaseMoves(one, SP024_STUDIES, moves)
+    t(`SP-024: 낱말 1개 × ${g}등급 = ${want}점`, r.cards[0].score, want)
+    t(`SP-024: ${g}등급도 저신뢰 표시`, r.cards[0].low_confidence, true)
+  }
+}
+{
+  // 판정은 한 곳(isLowConfidence)이다 — 화면·감사 스크립트가 각자 계산하지 않는다.
+  t('SP-024: 낱말 0개 → false (카드가 만들어지지 않는 경우)', isLowConfidence([]), false)
+  t('SP-024: 낱말 1개 → true', isLowConfidence(['광고']), true)
+  t('SP-024: 낱말 2개 → false', isLowConfidence(['광고', '리타겟팅']), false)
+}
+{
+  // 나머지 두 코퍼스도 같은 플래그를 싣는다.
+  const p1 = matchPrinciples(['pricing'], PRINCIPLES)
+  ok('SP-024: 원칙 카드도 low_confidence 를 싣는다', p1.cards.every((c) => typeof c.low_confidence === 'boolean'))
+  t('SP-024: 원칙 — 태그 1개만 겹치면 저신뢰', p1.cards[0].low_confidence, true)
+  const p2 = matchPrinciples(toTerms('pricing hybrid'), PRINCIPLES)
+  t('SP-024: 원칙 — 2개 겹치면 저신뢰 아님', p2.cards[0].low_confidence, false)
+
+  const f1 = matchFailedAngles(['숏폼'], FAILED_ANGLES)
+  t('SP-024: 실패사례 — 낱말 1개면 저신뢰', f1.cards[0].low_confidence, true)
+  const f2 = matchFailedAngles(toTerms('모바일 숏폼 스트리밍'), FAILED_ANGLES)
+  t('SP-024: 실패사례 — 낱말 3개면 저신뢰 아님', f2.cards[0].low_confidence, false)
+}
+{
+  // advise() 를 거쳐도 플래그가 살아 있어야 화면이 쓸 수 있다.
+  const r = advise({ category: '모바일 숏폼 스트리밍' }, { principles: PRINCIPLES, studies: SP024_STUDIES, moves: SP024_MOVES, failedAngles: FAILED_ANGLES })
+  ok('SP-024: advise 결과에도 low_confidence 가 실린다', r.corpus_b.cards.every((c) => typeof c.low_confidence === 'boolean'))
+}
+
 // ── advise (통합) ───────────────────────────────────────────────
 {
   const r = advise({ category: 'SaaS 요금제', angleDescription: '하이브리드 pricing 전환' }, { principles: PRINCIPLES, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })

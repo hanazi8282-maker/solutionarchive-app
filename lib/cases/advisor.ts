@@ -45,6 +45,8 @@ export interface PrincipleCard {
   source_ref: string
   matched_terms: string[]
   score: number
+  /** SP-024. 겹친 낱말이 하나뿐이라 근거가 얇다 — 숨기지 않고 화면에 표시한다. */
+  low_confidence: boolean
 }
 
 export interface CaseMoveCard {
@@ -58,6 +60,7 @@ export interface CaseMoveCard {
   outcome_direction: string
   matched_terms: string[]
   score: number
+  low_confidence: boolean
 }
 
 /** failed_angles 한 행 (docs/failed-angles.md 표에서 시딩). */
@@ -81,6 +84,7 @@ export interface FailedAngleCard {
   is_estimate: boolean
   matched_terms: string[]
   score: number
+  low_confidence: boolean
 }
 
 export interface CorpusResult<Card> {
@@ -113,8 +117,13 @@ const TOP_N = 5
  * 의미 있는 2자 도메인 명사가 같이 죽는다. 기능어만 이름으로 집어서 뺀다.
  *
  * 여기 넣는 기준: 그 낱말 하나만으로는 어떤 제품·시장 얘기인지 전혀 좁혀지지
- * 않는 것(기능어·범용 수식어·범용 동작명사). "광고"·"수집" 처럼 이 도메인에서
- * 실제 주제어로 쓰이는 낱말은 일부러 남겨 뒀다.
+ * 않는 것(기능어·범용 수식어·범용 동작명사). "광고" 처럼 이 도메인에서 실제
+ * 주제어로 쓰이는 낱말은 일부러 남겨 뒀다.
+ *
+ * ★ 이 목록은 단일 낱말 오탐을 **줄이지만 없애지 못한다**(SP-024). 남겨 둔
+ *   도메인어("광고" 등) 하나로만 겹치는 매칭은 여전히 통과하고, 점수로도 안
+ *   걸러진다 — isLowConfidence 주석 참고. 그래서 목록에 낱말을 더 넣어
+ *   해결하려 들지 말고, 저신뢰 표시로 사람에게 넘긴다.
  *
  * 목록은 scripts/advisor-corpus-audit.mjs 로 실데이터 전수 매칭을 찍어서 고른다.
  * 새 노이즈 쌍이 보이면 여기에 추가하고 감사 스크립트를 다시 돌린다.
@@ -180,6 +189,24 @@ export function toTerms(...parts: (string | null | undefined)[]): string[] {
   return [...seen]
 }
 
+/**
+ * 신뢰도 낮음 판정 (SP-024). 겹친 낱말이 **단 하나**면 저신뢰다.
+ *
+ * 왜 점수 임계를 안 쓰는가: score 는 evidence_grade 가중(×10)이 겹친 낱말
+ * 수(×1)를 압도한다. 낱말 1개로 걸린 A등급 무브가 31점, 낱말 5개로 걸린
+ * C등급 무브가 15점이라 "점수가 낮으면 얇은 근거"가 성립하지 않는다.
+ * 임계를 어디에 두든 둘 중 하나는 반드시 오분류된다.
+ *
+ * 왜 아예 숨기지 않는가: 낱말 하나로 걸린 매칭도 맞을 때가 있다(카테고리명이
+ * 그대로 겹치는 경우). 숨기면 "관련 사례 없음"과 구분이 안 되는데 그 둘은
+ * 다음 행동이 정반대다(§7.1). 그래서 노출하고, 왜 나왔는지를 같이 보여준다.
+ *
+ * 판정은 여기 한 곳이다 — 화면·감사 스크립트가 각자 계산하지 않는다.
+ */
+export function isLowConfidence(matchedTerms: string[]): boolean {
+  return matchedTerms.length === 1
+}
+
 /** term 이 haystack 에 부분문자열로 있는가 (양방향 — 짧은 쪽이 긴 쪽에 들어가면 hit). */
 function hitTerms(terms: string[], haystack: string): string[] {
   const hay = haystack.toLowerCase()
@@ -216,6 +243,7 @@ export function matchPrinciples(
       source_ref: p.source_ref,
       matched_terms: matched,
       score,
+      low_confidence: isLowConfidence(matched),
     })
   }
   cards.sort((a, b) => b.score - a.score || a.sp_id.localeCompare(b.sp_id))
@@ -272,6 +300,7 @@ export function matchCaseMoves(
       outcome_direction: m.outcome_direction,
       matched_terms: matched,
       score: (GRADE_RANK[m.evidence_grade] ?? 0) * 10 + matched.length,
+      low_confidence: isLowConfidence(matched),
     })
   }
   cards.sort((a, b) => b.score - a.score || a.slug.localeCompare(b.slug) || a.lever.localeCompare(b.lever))
@@ -326,6 +355,7 @@ export function matchFailedAngles(
       is_estimate: f.is_estimate,
       matched_terms: matched,
       score: matched.length * 10 - (f.is_estimate ? 1 : 0),
+      low_confidence: isLowConfidence(matched),
     })
   }
   cards.sort((a, b) => b.score - a.score || a.case_key.localeCompare(b.case_key))

@@ -36,7 +36,10 @@ function contextOf(a) {
   return { category: a.pitch ?? null, angleDescription: desc }
 }
 
+// SP-024: 겹친 낱말이 1개뿐인 저신뢰 매칭이 몇 건 노출되고 있는지 따로 센다.
+const lowMark = (card) => (card.low_confidence ? ' ⚠저신뢰' : '')
 let pairs = 0
+let lowPairs = 0
 console.log(`앵글 ${db.angles.length} · 실패사례 ${db.failed_angles.length} · 원칙 ${db.principles.length} · 케이스 ${db.studies.length}/${db.moves.length}\n`)
 
 for (const a of db.angles) {
@@ -50,18 +53,18 @@ for (const a of db.angles) {
   console.log(`■ ${a.angle_id.slice(0, 8)} · "${trim(ctx.category, 40)}"`)
   console.log(`  앵글: ${trim(ctx.angleDescription, 80)}`)
   for (const card of b.cards) {
-    console.log(`  [B 실패] ${card.case_key} (${trim(card.product_category, 24)}) score ${card.score} ← ${JSON.stringify(card.matched_terms)}`)
-    pairs++
+    console.log(`  [B 실패] ${card.case_key} (${trim(card.product_category, 24)}) score ${card.score}${lowMark(card)} ← ${JSON.stringify(card.matched_terms)}`)
+    pairs++; if (card.low_confidence) lowPairs++
   }
   for (const card of c.cards) {
-    console.log(`  [C 원칙] ${card.sp_id} score ${card.score.toFixed(1)} ← ${JSON.stringify(card.matched_terms)}`)
-    pairs++
+    console.log(`  [C 원칙] ${card.sp_id} score ${card.score.toFixed(1)}${lowMark(card)} ← ${JSON.stringify(card.matched_terms)}`)
+    pairs++; if (card.low_confidence) lowPairs++
   }
   for (const card of A.cards) {
-    console.log(`  [A 선례] ${card.slug} / ${card.lever} score ${card.score} ← ${JSON.stringify(card.matched_terms)}`)
-    pairs++
+    console.log(`  [A 선례] ${card.slug} / ${card.lever} score ${card.score}${lowMark(card)} ← ${JSON.stringify(card.matched_terms)}`)
+    pairs++; if (card.low_confidence) lowPairs++
   }
   console.log('')
 }
 
-console.log(`총 매칭 쌍 ${pairs}건`)
+console.log(`총 매칭 쌍 ${pairs}건 (그중 저신뢰 ${lowPairs}건 — 겹친 낱말 1개, SP-024)`)

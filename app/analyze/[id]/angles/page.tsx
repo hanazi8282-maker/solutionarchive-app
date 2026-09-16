@@ -298,15 +298,17 @@ function ValidateAction({ a }: { a: AngleRow }) {
 // 앵글마다 자동으로 fetch 하면 화면 하나에 앵글 수만큼 요청이 나간다 —
 // RewriteToggle 과 같은 열림·닫힘 패턴으로, 사용자가 눌렀을 때만 한 번 부른다.
 type AdvisorCorpus<Card> = { status: 'matched' | 'no_match' | 'not_run'; reason: string; cards: Card[] }
-type AdvisorCaseMoveCard = {
+/** 매칭 근거 — 왜 이 사례가 나왔는지. 세 코퍼스 카드가 전부 갖는다 (SP-024). */
+type AdvisorMatchInfo = { matched_terms: string[]; score: number; low_confidence: boolean }
+type AdvisorCaseMoveCard = AdvisorMatchInfo & {
   case_move_id: string; slug: string; brand_name: string; lever: string
   claim: string; evidence_grade: string; outcome_direction: string
 }
-type AdvisorFailedAngleCard = {
+type AdvisorFailedAngleCard = AdvisorMatchInfo & {
   case_key: string; product_category: string; claimed_angle: string
   outcome: string; source_tier: string; is_estimate: boolean
 }
-type AdvisorPrincipleCard = {
+type AdvisorPrincipleCard = AdvisorMatchInfo & {
   sp_id: string; statement: string; evidence_grade: string
   evidence_grade_note: string | null; source_ref: string
 }
@@ -335,6 +337,24 @@ function AdvisorSection({ title, children }: { title: string; children: React.Re
       {children}
     </div>
   )
+}
+
+/**
+ * "왜 이 사례가 나왔나" — 겹친 낱말과 점수를 그대로 보여준다 (SP-024).
+ * 낱말 하나로만 걸린 매칭은 점수로 걸러지지 않으므로 숨기지 않고 표시만 한다.
+ */
+function MatchWhy({ m }: { m: AdvisorMatchInfo }) {
+  return (
+    <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
+      매칭 근거 · {m.matched_terms.map(t => `“${t}”`).join(', ')} · 점수 {fmtScore(m.score)}
+      {m.low_confidence && ' — 겹친 낱말이 하나뿐입니다. 이 낱말이 우연히 겹친 것은 아닌지 직접 확인하세요.'}
+    </p>
+  )
+}
+
+function LowConfidenceBadge({ m }: { m: AdvisorMatchInfo }) {
+  if (!m.low_confidence) return null
+  return <Badge tone="warning" size="sm">신뢰도 낮음</Badge>
 }
 
 function AdvisorPanel({ a }: { a: AngleRow }) {
@@ -410,8 +430,10 @@ function AdvisorPanel({ a }: { a: AngleRow }) {
                     <Badge tone="neutral" size="sm">{c.brand_name}</Badge>
                     <Badge tone="neutral" size="sm">{c.lever}</Badge>
                     <Badge tone="success" size="sm">근거 {c.evidence_grade}</Badge>
+                    <LowConfidenceBadge m={c} />
                   </div>
                   <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>{c.claim}</p>
+                  <MatchWhy m={c} />
                 </div>
               ))}
             </AdvisorSection>
@@ -427,6 +449,7 @@ function AdvisorPanel({ a }: { a: AngleRow }) {
                     <Badge tone="neutral" size="sm">{c.product_category}</Badge>
                     <Badge tone="neutral" size="sm">{c.source_tier}</Badge>
                     {c.is_estimate && <Badge tone="warning" size="sm">추정</Badge>}
+                    <LowConfidenceBadge m={c} />
                   </div>
                   <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
                     내세웠던 소구점 · {c.claimed_angle}
@@ -434,6 +457,7 @@ function AdvisorPanel({ a }: { a: AngleRow }) {
                   <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--danger-fg)' }}>
                     결과 · {c.outcome}
                   </p>
+                  <MatchWhy m={c} />
                 </div>
               ))}
             </AdvisorSection>
@@ -447,11 +471,13 @@ function AdvisorPanel({ a }: { a: AngleRow }) {
                     <Badge tone="neutral" size="sm">{c.sp_id}</Badge>
                     <Badge tone="success" size="sm">근거 {c.evidence_grade}</Badge>
                     <Badge tone="neutral" size="sm">{c.source_ref}</Badge>
+                    <LowConfidenceBadge m={c} />
                   </div>
                   <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>{c.statement}</p>
                   {c.evidence_grade_note && (
                     <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>{c.evidence_grade_note}</p>
                   )}
+                  <MatchWhy m={c} />
                 </div>
               ))}
             </AdvisorSection>

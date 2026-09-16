@@ -1,36 +1,47 @@
--- VOC 소스 라운드3 — bobaedream 1종 등록
--- 어댑터: lib/review/adapters/bobaedream.ts
+-- VOC 소스 라운드3 — bobaedream · tumblbug · naver_blog_post 3종 등록
+-- 어댑터: lib/review/adapters/{bobaedream,tumblbug,naver-blog}.ts
 -- 실측: docs/review-source-findings.md
 --       "VOC 소스 3종 실측 — tumblbug · naver_blog · bobaedream (2026-09-17)"
 --
--- 🟢 비파괴. DDL 없음, 백필 없음. 새 행 1개 + 컬럼 주석 갱신뿐이고
+-- 🟢 비파괴. DDL 없음, 백필 없음. 새 행 3개 + 컬럼 주석 갱신뿐이고
 --    기존 10행(danawa/appstore/hackernews/damoang/82cook 등)은 건드리지 않는다.
 --
 -- ⛔ Claude 가 실행하지 않는다. 사람이 적용한다(CLAUDE.md §10.1).
 --    supabase db query --linked -f 또는 대시보드.
 --
+-- ⛔ **3행 모두 enabled=false 다.** 셋 다 사람이 켜야 시작한다.
+--    특히 naver_blog_post 는 약관 리스크를 인지하고 받은 소스다(SP-030).
+--
 -- ─────────────────────────────────────────────────────────────────
--- 왜 1종인가 — 3종을 설계했고 2종이 실측에서 떨어졌다
+-- 남헌 2026-09-17 결정 — 리스크를 알고 진행한다 (SP-030 · SP-031)
 --
--- tumblbug: 후원자 코멘트가 정적 HTML 에 **0건**이다. hydration JSON
---   (window.MOBX_STATE)에 comment 스토어 자체가 없고 XHR 로만 온다.
---   그 XHR 은 robots 가 금지한 `/api/` 다. 대체로 쓰려던 프로젝트 설명도
---   `projectStore.project.story === null` 이라 정적으로 오지 않는다.
---   설계상 탈락 조건("코멘트가 /api/ 로만 오면 설명만, 그것도 없으면 제외")에
---   그대로 걸렸다. 어댑터·픽스처·행 전부 만들지 않았다.
+-- AC-0 실측에서 tumblbug 과 naver_blog_post 는 한 번 "제외" 로 보고됐다.
+-- 그 보고를 받고 사람이 **둘 다 진행**으로 결정했다. 무엇을 알고 결정했는지
+-- 남겨 둔다 — 나중에 이 행을 켜는 사람이 같은 것을 알아야 한다.
 --
--- naver_blog_post: 파싱은 가능했다(본문 컨테이너·발행일 마커 실측 확인).
---   막은 것은 기술이 아니라 **약관**이다. 네이버 서비스 이용약관
---   (2025-07-10 시행)이 "네이버의 사전 허락 없이 자동화된 수단(예: 매크로
---   프로그램, 로봇(봇), 스파이더, 스크래퍼 등)을 이용하여 … 네이버 서비스에
---   게재된 회원의 아이디(ID), 게시물 등을 수집하거나 … 해서는 안 됩니다"
---   라고 우리 행위를 직접 지목해 금지한다. robots.txt 본문에도
---   "BOT ACCESS FOR THE PURPOSES OF AI TRAINING AND RETRIEVAL-AUGMENTED
---   GENERATION (RAG) IS STRICTLY PROHIBITED" 가 적혀 있고 ClaudeBot ·
---   Claude-SearchBot 이 이름으로 전면 금지돼 있다.
---   SP-025(다모앙)는 "기계 판정은 allowed 이고 의사는 불명확" 이었지만
---   여기는 약관 본문이 명시적이다. 구현자가 넘을 선이 아니라고 보고
---   **어댑터를 만들지 않았다.** 진행하려면 사람이 결정해야 한다.
+-- naver_blog_post (SP-030) — **이 리포에서 법적 리스크가 가장 높은 소스다.**
+--   네이버 서비스 이용약관(2025-07-10 시행)이 "네이버의 사전 허락 없이
+--   자동화된 수단(예: 매크로 프로그램, 로봇(봇), 스파이더, 스크래퍼 등)을
+--   이용하여 … 네이버 서비스에 게재된 회원의 아이디(ID), 게시물 등을
+--   수집하거나 … 해서는 안 됩니다" 라고 우리 행위를 문장으로 직접 지목한다.
+--   robots.txt 본문에도 "BOT ACCESS FOR THE PURPOSES OF AI TRAINING AND
+--   RETRIEVAL-AUGMENTED GENERATION (RAG) IS STRICTLY PROHIBITED" 가 적혀
+--   있고 ClaudeBot · Claude-SearchBot 이 이름으로 전면 금지돼 있다.
+--   우리 UA 토큰은 목록에 없고 /PostView.naver 도 Disallow 에 없어 **기계
+--   판정은 allowed** 지만 그걸 근거로 쓰지 않는다. SP-025(다모앙)는 robots 의
+--   의사 표시였고 여기는 약관 본문이다 — **상위 리스크**다.
+--   댓글은 받지 않는다(apis.naver.com cbox XHR). 본문 1건만 수집한다.
+--
+-- tumblbug (SP-031) — 이용약관의 "자동화된 수단으로 서비스 조작·이용" 금지
+--   조항을 인지한 채로 진행 결정. 수집 대상은 설계가 바뀌었다: 후원자 코멘트와
+--   프로젝트 설명이 정적 HTML 에 없어서(둘 다 robots 가 막은 /api/ XHR),
+--   MOBX_STATE 의 **창작자 후기 프리뷰**를 받는다. 창작자당 최대 4건이고
+--   "이 창작자의 지난 프로젝트 후기"라 storyId 가 수집 경로와 다를 수 있다.
+--
+-- 켜는 명령(사람이 실행):
+--   update public.review_sources set enabled = true where key = 'bobaedream';
+--   update public.review_sources set enabled = true where key = 'tumblbug';
+--   update public.review_sources set enabled = true where key = 'naver_blog_post';
 --
 -- ─────────────────────────────────────────────────────────────────
 -- 보배드림 — 통과 근거 (실측 2026-09-17)
@@ -66,24 +77,49 @@ INSERT INTO public.review_sources (
     'ok',
     3000,
     100
+  ),
+  (
+    'tumblbug',
+    '텀블벅 창작자 후기',
+    false,
+    '셀렉터 실측 완료(2026-09-17). 후원자 코멘트·프로젝트 설명은 정적 HTML 에 없어 창작자 후기 프리뷰(창작자당 최대 4건)로 축을 바꿈. 이용약관 "자동화된 수단" 조항을 남헌이 인지 후 진행 승인 — SP-031 참조. 사람이 켤 때까지 꺼둠',
+    'ok',
+    3000,
+    100
+  ),
+  (
+    'naver_blog_post',
+    '네이버 블로그 본문',
+    false,
+    '⚠️ 법적 리스크 최상. 네이버 이용약관이 자동화 수단의 게시물 수집을 명시 금지하고 robots 가 RAG 목적 봇 접근을 금지(ClaudeBot 전면 차단). 기계 판정은 allowed 지만 약관이 명시적이라 다모앙(SP-025)보다 상위 리스크 — 남헌이 2026-09-17 인지 후 진행 승인, SP-030 참조. 댓글 미수집(cbox 별도 호스트), 본문 1건만. 사람이 켤 때까지 꺼둠',
+    'ok',
+    3000,
+    100
   )
 ON CONFLICT (key) DO NOTHING;
 
 COMMENT ON COLUMN public.review_targets.product_ref IS
   '소스 안에서 수집 대상을 가리키는 값. danawa=pcode / appstore=<국가>:<앱ID> / hackernews=q:<키워드> / '
-  'damoang·82cook·bobaedream=url:<글 경로>. '
+  'damoang·82cook·bobaedream·tumblbug·naver_blog_post=url:<글 경로>. '
   '어느 값을 붙일지는 사람이 정한다 — 시스템이 키워드로 상품을 검색해 후보 중 하나를 자동 선택하지 않는다. '
   'hackernews 의 q: 는 상품 식별자가 아니라 질의 자체이며, 한 질의에 여러 스레드가 걸리는 것이 정상 동작이다. '
   'url: 은 **경로만** 담는다(호스트는 어댑터 상수). 호스트를 넣게 하면 SSRF 가 되므로 '
   'lib/review/adapters/url-ref.ts 가 ''..'' ''//'' ''@'' 와 공백을 거부한다. '
   'bobaedream 은 거기 더해 어댑터가 경로를 ''/view?code=<게시판>&No=<번호>'' 하나로 한정한다 — '
   '글이 아닌 페이지는 HTTP 200 인데 본문이 없어서(없는 게시판은 200/121바이트) 조용히 실패만 쌓인다. '
-  '이 세 소스는 1글=1요청이라 수집 후 타깃이 status=exhausted 로 닫힌다 — 나중에 달린 댓글을 받으려면 '
+  'naver_blog_post 는 ''/PostView.naver?blogId=<id>&logNo=<번호>'' 로 한정한다 — '
+  '예쁜 URL(blog.naver.com/<id>/<번호>)은 HTTP 200 에 2,817바이트짜리 빈 iframe 껍데기라서 '
+  '허용하면 ''200인데 내용 0''을 수집하고, robots 가 막은 PostList/PostPrint/comment 경로도 함께 막힌다. '
+  'tumblbug 는 프로젝트 경로 한 세그먼트(''/<slug>'')다. 다만 수집 축은 프로젝트가 아니라 **창작자**이고 '
+  '(정적으로 오는 것이 ''이 창작자의 지난 프로젝트 후기'' 프리뷰뿐이다) 그래서 external_id 에 경로를 넣지 않는다 — '
+  '같은 창작자의 다른 프로젝트 페이지에서도 같은 후기가 나오므로 넣으면 같은 글이 매번 새 리뷰로 쌓인다. '
+  '이 소스들은 1문서=1요청이라 수집 후 타깃이 status=exhausted 로 닫힌다 — 나중에 달린 댓글을 받으려면 '
   '사람이 status=''active'' 로 되돌려야 한다(자동 재활성화 없음).';
 
 -- 확인용 (실행 후 눈으로 볼 것):
 --   select key, enabled, health, min_interval_ms, daily_request_cap
 --   from public.review_sources order by key;
 --
--- 기대: 82cook / appstore / bobaedream / damoang / danawa / hackernews ... 순,
---       bobaedream 이 enabled=false · 3000 · 100.
+-- 기대: 82cook / appstore / bobaedream / damoang / danawa / hackernews /
+--       naver_blog_post / tumblbug ... 순,
+--       새 3행이 전부 enabled=false · 3000 · 100.

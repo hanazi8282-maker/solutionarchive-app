@@ -814,22 +814,45 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
 // 위 damoang·82cook 루프와 같은 목적이고 같은 검사를 한다. 합치지 않고
 // 따로 둔 이유는 병합 충돌뿐이다 — 위 블록은 손대지 않는다.
 //
-// 라운드3 은 3소스를 설계했고 실측에서 **bobaedream 1종만 남았다**
-// (tumblbug 은 코멘트가 robots 금지 XHR 로만 오고, naver_blog_post 는
-//  약관이 자동 수집을 명시 금지한다 — docs/review-source-findings.md).
-// 그래서 여기 항목이 1개다. 빠진 둘을 나중에 넣는다면 이 배열에 붙여라.
+// 라운드3 은 3소스 전부 들어왔다. tumblbug 과 naver_blog_post 는 AC-0 에서
+// 한 번 "제외" 로 보고됐다가 **남헌이 리스크를 인지하고 진행을 결정**해
+// 들어온 것이다(SP-030 · SP-031). 셋 다 `enabled=false` 로 등록한다.
+//
+// 세 소스 다 1문서=1요청이라 확인할 것은 같다:
+//   (1) 어댑터가 만든 URL 을 러너가 그대로 쓰는가(호스트가 안 바뀌는가)
+//   (2) 기대한 건수가 적재되는가
+//   (3) 커서가 null 이라 타깃이 exhausted 로 닫히는가
 
-for (const [name, mod, ref, robots, fixture, expectCount] of [
+for (const [name, mod, exportName, ref, robots, fixture, expectCount] of [
   [
     'bobaedream',
     await import('../lib/review/adapters/bobaedream.ts'),
+    'bobaedreamAdapter',
     'url:/view?code=freeb&No=2000000',
     'User-agent: *\nAllow: /\n\nUser-agent: Amazonbot\nDisallow: /\n',
     'bobaedream/post-with-comments.html',
     5,
   ],
+  [
+    'tumblbug',
+    await import('../lib/review/adapters/tumblbug.ts'),
+    'tumblbugAdapter',
+    'url:/eastereggs',
+    'User-agent: *\nDisallow: /api/\nDisallow: /auth/\nDisallow: /sessions/\nDisallow: /oauth/\nAllow: /discover?category=\nDisallow: /discover?\nDisallow: /search?\n',
+    'tumblbug/project-with-reviews.html',
+    4,
+  ],
+  [
+    'naver_blog_post',
+    await import('../lib/review/adapters/naver-blog.ts'),
+    'naverBlogAdapter',
+    'url:/PostView.naver?blogId=naverofficial&logNo=224367462657',
+    'User-agent: ClaudeBot\nDisallow: /\n\nUser-agent: *\nDisallow: /PostList.naver\nDisallow: /PostPrint.naver\nDisallow: /prologue/\n',
+    'naver-blog/postview.html',
+    1,
+  ],
 ]) {
-  const adapter = mod.bobaedreamAdapter
+  const adapter = mod[exportName]
   const html = await fs.readFile(path.join(here, '..', 'fixtures', 'review', ...fixture.split('/')), 'utf8')
 
   const seenUrls = []
@@ -891,7 +914,7 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
   t(`${name}: 글 1건당 요청 1건`, pageUrls.length, 1)
   t(`${name}: 어댑터가 만든 URL 을 러너가 그대로 쓴다`, pageUrls[0], `${mod.HOST}${ref.slice(4)}`)
   t(`${name}: 호스트가 어댑터 상수와 일치`, new URL(pageUrls[0]).host, new URL(mod.HOST).host)
-  t(`${name}: 본문+댓글이 N+1 건 적재된다`, inputs.length, expectCount)
+  t(`${name}: 기대한 건수가 적재된다`, inputs.length, expectCount)
   t(`${name}: 파싱 실패 0`, r.stats.parseFailures, 0)
   t(`${name}: robots 로 건너뛴 요청 0`, r.robotsSkips, 0)
   t(`${name}: 차단 응답 0`, r.stats.blockedResponses, 0)
@@ -899,14 +922,16 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
   // externalId 를 전건 확보했다 = 폴백 지문(composite)으로 샌 게 없다.
   t(`${name}: 폴백 지문 0 — externalId 를 전부 읽었다`, r.stats.fallbackKeys, 0)
   ok(`${name}: 본문이 실제로 들어간다`, inputs.every((i) => i.text.length > 0))
-  // 1글=1요청이므로 커서가 없어야 하고, 그래서 타깃이 닫혀야 한다.
+  // 1문서=1요청이므로 커서가 없어야 하고, 그래서 타깃이 닫혀야 한다.
   ok(`${name}: 마지막 저장의 커서가 null`, saves[saves.length - 1].cursor === null)
   t(`${name}: 타깃이 exhausted 로 닫힌다`, saves[saves.length - 1].status, 'exhausted')
-  // 러너는 robots 판정에 쿼리를 안 넘긴다(SP-026). 보배드림 robots 는 지금
-  // 전면 허용이지만, 규칙이 생기면 바로 구멍이 된다 — 애초에 안 만든다.
+  // 러너는 robots 판정에 쿼리를 안 넘긴다(SP-026). 지금 세 소스 다 page 쿼리를
+  // 안 만들지만, 만드는 순간 안전장치가 위반을 못 막는다 — 애초에 안 만든다.
   ok(`${name}: page 쿼리를 만들지 않는다`, !pageUrls.some((u) => /[?&]page=/.test(u)))
-  // 글 경로의 쿼리(code·No)는 그대로 살아 있어야 한다. page 금지와 헷갈리지 마라.
-  ok(`${name}: 글을 가리키는 쿼리는 살아 있다`, /[?&]code=freeb/.test(pageUrls[0]) && /[?&]No=2000000/.test(pageUrls[0]))
+  // 문서를 가리키는 쿼리는 그대로 살아 있어야 한다. page 금지와 헷갈리지 마라.
+  t(`${name}: 요청 URL 이 ref 경로와 정확히 같다`, new URL(pageUrls[0]).pathname + new URL(pageUrls[0]).search, ref.slice(4))
+  // 네이버는 다른 호스트(cbox)를 절대 때리지 않아야 한다 — 댓글 미수집이 설계다.
+  ok(`${name}: apis.naver.com 을 때리지 않는다`, !seenUrls.some((u) => u.includes('apis.naver.com')))
 
   // enabled=false 로 등록하는 게 이번 마이그레이션의 핵심이다. 그 상태에서
   // 정말 요청이 0건인지 본다 — "꺼 뒀다"는 말만 믿지 않는다.
@@ -970,20 +995,26 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
   const mapKeys = new Set([...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]))
   const sqlKeys = new Set([...sql.matchAll(/^\s*'([\w-]+)',$/gm)].map((m) => m[1]))
 
-  for (const key of ['bobaedream']) {
+  for (const key of ['bobaedream', 'tumblbug', 'naver_blog_post']) {
     ok(`등록(r3): 마이그레이션 review_sources.key 에 '${key}' 가 있다`, sqlKeys.has(key))
     ok(`등록(r3): ADAPTERS 맵 키가 '${key}' 와 철자까지 같다`, mapKeys.has(key))
   }
-  t('등록(r3): enabled=false 로만 들어간다', (sql.match(/^\s*false,$/gm) || []).length, 1)
+  t('등록(r3): 3행 전부 enabled=false 로만 들어간다', (sql.match(/^\s*false,$/gm) || []).length, 3)
   ok('등록(r3): DDL 이 없다 (INSERT + COMMENT 만)', !/\b(create|alter|drop)\s+table\b/i.test(sql))
   ok('등록(r3): ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+  // 어댑터 키 오타 방지 — `naver_blog`(뒤 `_post` 누락)는 흔한 실수다.
+  ok("등록(r3): 'naver_blog' 오타 키가 없다", !sqlKeys.has('naver_blog') && !mapKeys.has('naver_blog'))
 
-  // 실측에서 떨어진 두 소스가 **실수로 다시 들어오지 않게** 못을 박는다.
-  // 되살리려면 이 테스트를 먼저 고쳐야 하고, 그러면 근거를 다시 보게 된다.
-  for (const dropped of ['tumblbug', 'naver_blog_post', 'naver_blog']) {
-    ok(`탈락(r3): '${dropped}' 는 마이그레이션에 없다`, !sqlKeys.has(dropped))
-    ok(`탈락(r3): '${dropped}' 는 ADAPTERS 에도 없다`, !mapKeys.has(dropped))
-  }
+  // ⚠️ tumblbug·naver_blog_post 는 **리스크를 인지하고 켠 소스**다(SP-030·SP-031).
+  //    그 사실이 마이그레이션 본문에서 사라지면, 나중에 이 행을 켜는 사람이
+  //    근거를 모른 채 켜게 된다. 그래서 문구 자체를 고정한다.
+  ok('승인근거(r3): SP-030(네이버 약관) 참조가 남아 있다', /SP-030/.test(sql))
+  ok('승인근거(r3): SP-031(텀블벅 약관) 참조가 남아 있다', /SP-031/.test(sql))
+  ok('승인근거(r3): 네이버 약관 금지 사실이 적혀 있다', /자동화|약관/.test(sql))
+  ok(
+    '승인근거(r3): naver_blog_post 의 disabled_reason 에 리스크가 적혀 있다',
+    /naver_blog_post[\s\S]{0,600}?법적 리스크/.test(sql),
+  )
 
   // 롤백이 가역인지 — 행을 지우는 DELETE 가 **주석 밖에** 있으면 안 된다.
   // 자식 행이 남은 상태에서 지우면 FK 로 실패하거나 데이터를 잃는다.

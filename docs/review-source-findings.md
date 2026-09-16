@@ -598,23 +598,28 @@ damoang 이 11건인 것은 댓글 13건 중 3건이 이모티콘만 달린 것�
 
 ## VOC 소스 3종 실측 — tumblbug · naver_blog · bobaedream (2026-09-17)
 
-**3종을 설계했고 1종만 남았다.** 코드를 쓰기 전에 AC-0 게이트로 셋 다 실제
-응답을 받아 봤고, tumblbug 과 naver_blog_post 는 거기서 떨어졌다. 떨어진
-근거를 여기 남기는 이유는, 안 적어 두면 6개월 뒤에 누가 같은 설계를 다시
-하기 때문이다.
+코드를 쓰기 전에 AC-0 게이트로 셋 다 실제 응답을 받아 봤다. 그 결과
+**bobaedream 만 무조건 통과**였고 나머지 둘은 "제외" 로 보고했다.
+**그 보고를 받고 남헌이 2026-09-17 둘 다 진행으로 결정했다**(SP-030 · SP-031).
+
+그래서 이 절은 두 층으로 읽어야 한다:
+**(1) 실측이 말한 것** — 아래 본문. 사실이고 바뀌지 않는다.
+**(2) 사람이 그걸 알고 내린 결정** — 각 소스의 "결정" 단락. 리스크 수용이다.
 
 측정 조건은 이 문서 맨 위와 같다 — 정직한 UA, 재시도 없음, 요청 간 2.5~4초,
 robots 선확인. 로컬(한국 가정용 IP)에서 쟀다.
 
 ### 요약
 
-| 소스 | 판정 | 가른 근거 |
-|---|---|---|
-| bobaedream | ✅ 채택 | robots 전면 허용 · 정직 UA 18/18 HTTP 200 · 댓글이 정적 HTML · 고유 id · 개수 마커 |
-| tumblbug | ❌ 제외 | 코멘트도 프로젝트 설명도 **정적 HTML 에 없다.** robots 가 막은 `/api/` XHR 로만 온다 |
-| naver_blog_post | ❌ 제외 | 파싱은 됐다. **이용약관이 우리 행위를 명시적으로 금지**한다 — 사람이 결정할 일 |
+| 소스 | 실측 판정 | 최종 | 가른 근거 |
+|---|---|---|---|
+| bobaedream | ✅ 채택 | 등록(off) | robots 전면 허용 · 정직 UA 18/18 HTTP 200 · 댓글이 정적 HTML · 고유 id · 개수 마커 |
+| tumblbug | ⚠️ 설계 폐기 | 등록(off) | 코멘트·프로젝트 설명이 **정적 HTML 에 없다**(robots 가 막은 `/api/` XHR). 창작자 후기 프리뷰로 **축을 바꿔** 수용 — SP-031 |
+| naver_blog_post | ⚠️ 약관 금지 | 등록(off) | 파싱은 됐다. **이용약관이 우리 행위를 명시 금지.** 리스크 인지 후 수용 — SP-030. 댓글은 여전히 미수집 |
 
-### 1. 텀블벅 — 제외 (설계가 가정한 데이터가 정적으로 오지 않는다)
+**3행 모두 `enabled=false` 다.** 사람이 켜야 시작한다.
+
+### 1. 텀블벅 — 원래 설계 폐기, 창작자 축으로 재설계해 수용
 
 설계는 "프로젝트 설명 1건 + 후원자 커뮤니티 코멘트 N건"이었다. 둘 다 없었다.
 
@@ -633,10 +638,9 @@ robots 선확인. 로컬(한국 가정용 IP)에서 쟀다.
   `/search?` 를 막는다. 코멘트가 오는 XHR 이 그 `/api/` 다.
 
 설계서의 탈락 조건("코멘트가 `/api/` XHR 로만 오면 프로젝트 설명만, 그것도
-없으면 소스 제외")에 정확히 걸렸다. **어댑터·픽스처·마이그레이션 행·ADAPTERS
-엔트리를 하나도 만들지 않았다.**
+없으면 소스 제외")에 정확히 걸렸다. **원래 설계는 폐기했다.**
 
-**다만 정적으로 오는 VOC 가 하나 있긴 하다 — 채택하지 않았다.**
+**대신 정적으로 오는 VOC 가 하나 있다 — 이걸 받기로 했다.**
 `MOBX_STATE.projectStore.creators[i][1].review.contents[]` 에 후기가 최대 4건
 실려 온다. 필드는 `projectWarrantyReviewId`(고유 id) · `body`(전문) ·
 `createdAt`(절대 ISO) · `projectPermalink` 이고 개수 마커
@@ -652,12 +656,47 @@ totalReviewCount=66  contents=4
 
 품질은 좋다. 그런데 **이건 이 프로젝트의 후기가 아니라 창작자의 지난 프로젝트
 후기**다(화면 라벨이 그대로 "이 창작자의 지난 프로젝트 후기"이고, 위 예의
-`projectPermalink` 도 보고 있는 프로젝트와 다르다). 수집 축이 상품이 아니라
-창작자가 되고, 같은 창작자의 프로젝트 페이지마다 같은 4건이 반복된다.
-설계서에 없는 다른 데이터라 구현자가 임의로 바꿔 넣을 것이 아니라고 보고
-**보고만 하고 멈췄다.** 쓰기로 하면 축을 창작자로 다시 잡고 설계부터 해야 한다.
+`projectPermalink` 도 보고 있는 프로젝트와 다르다).
 
-### 2. 네이버 블로그 — 제외 (기술이 아니라 약관이 막았다)
+**결정(2026-09-17): 수집 축을 상품 → 창작자로 바꿔서 받는다.** 그에 맞춰
+어댑터를 이렇게 짰다.
+
+| 항목 | 값 | 이유 |
+|---|---|---|
+| productRef | `url:/<projectSlug>` | **창작자 단위 URL 이 없다**(아래) |
+| externalId | `tbr:<projectWarrantyReviewId>` | 경로를 안 섞는다 — 섞으면 같은 후기가 페이지마다 새 리뷰로 쌓인다 |
+| storyId | `/<review.projectPermalink>` | 그 후기가 **실제로 달린** 프로젝트. 수집 경로와 다를 수 있다 |
+| writtenAt | `createdAt` 앞 10자 | 절대 ISO 라 추정할 게 없다 |
+| 개수 판정 | 마커>0 인데 0건일 때만 실패 | 프리뷰가 4건 상한이라 66 vs 4 는 **정상**이다 |
+
+**창작자 단위 URL 은 없다 — 확인했다.** `/neogury` · `/user/neogury` ·
+`/creator/neogury` 를 전부 받아 봤고 셋 다 **HTTP 200 인데 후기 payload 가 없는
+36KB SPA 껍데기**였다. 그래서 productRef 는 프로젝트 경로로 두고 식별만 창작자
+축으로 했다.
+
+그 설계가 실제로 먹는다는 증거 — 같은 창작자의 **다른 두 프로젝트** 페이지를
+실제 응답으로 파싱한 결과다:
+
+```
+/eastereggs  reviews=4  ids=tbr:245885,tbr:245602,tbr:244722,tbr:241940  storyId=/eastereggs,/clear
+/cairn       reviews=4  ids=tbr:245885,tbr:245602,tbr:244722,tbr:241940  storyId=/eastereggs,/clear
+```
+
+externalId 가 완전히 같아서 지문 단계에서 중복으로 걸린다. 그리고 storyId 에
+`/clear` 가 섞여 있다 — 수집 경로(`/eastereggs`)와 다른 프로젝트의 후기라는
+뜻이다. 분석할 때 "이 프로젝트의 후기"로 읽으면 틀린다.
+
+⚠️ **알아 둘 한계 두 가지.**
+- **창작자당 최대 4건.** 마커는 66 인데 `contents` 는 4건만 온다. 전량을 받으려면
+  후기 목록 XHR 이 필요한데 그건 robots 가 막은 `/api/` 다. 막힌 길이다.
+- **신규성이 낮다.** 같은 창작자의 프로젝트를 여러 개 타깃으로 잡으면 **같은 4건이
+  반복 수집된다.** 지문이 중복을 걸러 주지만 요청은 그대로 나간다. 타깃을 고를 때
+  창작자가 겹치지 않게 사람이 신경 써야 한다.
+
+이용약관의 "자동화된 수단으로 서비스 조작·이용" 금지 조항은 남헌이 인지한 채로
+진행을 결정했다(SP-031). `enabled=false` 로 등록한다.
+
+### 2. 네이버 블로그 — 약관 리스크를 인지하고 수용 (본문 전용)
 
 파싱에 필요한 것은 전부 확인됐다. 막은 것은 그다음이다.
 
@@ -687,7 +726,7 @@ var naverCommentApiProxyURL = 'https://apis.naver.com/commentBox/blogid';
 그 호스트 robots 를 따로 재야 한다. 설계대로 **본문 전용**으로 축소하는 것이
 맞았다.
 
-**(c) 그런데 약관이 막는다 — 여기서 멈췄다**
+**(c) 그런데 약관이 금지한다 — 이 소스의 진짜 쟁점**
 
 네이버 서비스 이용약관(2025-07-10 시행, `policy.naver.com/rules/service.html`)
 원문:
@@ -720,11 +759,27 @@ Disallow: comment.naver
 금지 목록에 없다 — **기계 판정만 보면 allowed** 다. SP-025(다모앙)와 같은
 모양이다. 다른 점은 이것이다: 다모앙은 robots 의 **의사 표시**였고 우리 용도가
 거기 걸리는지는 해석의 여지가 있었다. 네이버는 **약관 본문이 우리 행위를
-명시적으로 금지**한다. 구현자가 넘을 선이 아니라고 판단해 어댑터를 만들지
-않았다. 진행하려면 사람이 결정해야 한다.
+명시적으로 금지**한다. **다모앙보다 상위 리스크다.**
 
 부수적으로 `rss.blog.naver.com` 도 확인했다 — `User-agent: * / Disallow: /`
 전면 금지다. 우회로로 쓸 수 없다.
+
+**(d) 결정(2026-09-17) — 리스크를 인지한 채로 진행**
+
+위 (c)를 사람에게 올렸고 **진행**으로 결정됐다(SP-030). 다모앙(SP-025) ·
+Reddit(SP-005)과 같은 리스크 수용 방식이다. 수용한 조건은 이렇다.
+
+- **`enabled=false` 로 등록한다.** 사람이 켜야 시작한다. 킬스위치를 미리 걸어
+  둔 상태로 시작하는 것이지, 문제가 생기면 그때 끄는 게 아니다.
+  되돌리는 한 줄은 `20260918000001_..._rollback.sql` 에 있다.
+- **본문 1건만 받는다.** 댓글 수집 경로를 아예 만들지 않았다((b) 참조).
+  러너 셀프테스트가 `apis.naver.com` 을 한 번도 안 때린다는 것을 단정한다.
+- **`/PostView.naver` 한정 가드**가 robots 금지 경로를 구조적으로 막는다.
+- **"댓글 영역 소실" 판정을 넣지 않았다.** 없는 기능의 실패를 세면 신호가
+  흐려진다. 건강도는 본문 컨테이너 소실 하나에만 건다.
+
+어댑터 헤더(`lib/review/adapters/naver-blog.ts`)에 같은 경고를 적어 뒀다.
+이 소스를 확장하려는 사람이 SP-030 을 먼저 보게 하려는 것이다.
 
 ### 3. 보배드림 — 채택
 
@@ -840,18 +895,62 @@ https://www.bobaedream.co.kr/view?code=hotcar&No=3000000   ← 없는 글
 한글이 깨지지 않고 실제 글 내용과 일치한다. `externalId` 를 전건 확보했고
 (composite 폴백 0건) 중복도 없다. `nextCursor=null` 이라 타깃이 곧바로 닫힌다.
 
+나머지 두 소스도 같은 방식으로 **실제 응답을 실제 어댑터에 통과**시켰다.
+
+```
+tumblbug  https://tumblbug.com/eastereggs
+  reviews=4  parseFailures=0  nextCursor=null
+  [tbr:245885] 2026-02-26 storyId=/eastereggs
+    "캐릭터 그림이 너무 귀여워요 일러스트가 너무 이뻐서 끝내기 아쉬웠습니다
+     그런데 탐정 캐릭터에 대해서는 정보가 좀 부족해서 아쉬웠어여ㅜㅜ 그래도 재후원할게요!!"
+  [tbr:245602] 2026-02-26 storyId=/eastereggs
+    "적극 추천받아 시즌1도 함께 후원했습니다. … 아쉬운 점이 몇 가지 있는데
+     배송 포장이 너무 부실합니다. … 시즌1과 시즌2의 패키징 방식이 다르네요."
+
+tumblbug  https://tumblbug.com/cairn        ← 같은 창작자의 다른 프로젝트
+  reviews=4  parseFailures=0  → externalId 4개가 위와 **완전히 동일** (지문이 중복 처리)
+
+tumblbug  https://tumblbug.com/0clock       ← 신규 창작자(후기 0건)
+  reviews=0  parseFailures=0                ← 0건은 실패가 아니다
+
+tumblbug  https://tumblbug.com/neogury      ← 창작자 페이지(SPA 껍데기)
+  reviews=0  parseFailures=1                ← 200 을 성공으로 접지 않는다
+
+naver_blog_post  PostView.naver?blogId=naverofficial&logNo=224367462657
+  HTTP 200 · 276,193 bytes
+  reviews=1  parseFailures=0  nextCursor=null
+  externalId=naverofficial:224367462657  writtenAt=2026-08-04  본문 7,105자
+  "[네이버 메이트 인터뷰] 레시피 블로그 'MJ의후다닥레시피'를 만나다
+   … 'MJ의후다닥레시피'라는 이름은 사실 신혼 시절 남편이 지어준 이름에서
+   출발했습니다. 제가 요리하는 손이 유독 빠르다며 붙여진 애칭이었죠. …"
+```
+
+네이버 본문이 **7,105자 전부** 읽혔다는 것이 중요하다. 스마트에디터 본문은
+`se-component` > `se-section` 으로 깊게 중첩돼 있어서 비탐욕 정규식으로 자르면
+첫 문단에서 끊긴다 — 그러면 "글자는 있으니" 실패로도 안 잡히고 조용히 상한다.
+그래서 두 어댑터 다 div 짝을 세어 자른다.
+
 ### 구현물
 
-- 어댑터 `lib/review/adapters/bobaedream.ts` (공용 ref 검증 `url-ref.ts` 재사용)
-- 픽스처 4종 `fixtures/review/bobaedream/`
-  (정상 / 댓글0건 / 댓글영역소실 / 본문소실) — 실측 응답에서 깎았다
-- 셀프테스트 `scripts/review-bobaedream-selftest.mjs` (89건)
-- robots 단위테스트 — `scripts/review-robots-selftest.mjs` 에 원문 그대로 추가
-- 러너 경계면 — `scripts/review-runner-selftest.mjs` 에 **새 블록으로** 추가
-  (기존 damoang·82cook 블록은 손대지 않았다)
+- 어댑터 3종
+  - `lib/review/adapters/bobaedream.ts`
+  - `lib/review/adapters/tumblbug.ts` (창작자 축)
+  - `lib/review/adapters/naver-blog.ts` (`key=naver_blog_post`, 본문 전용)
+  - 셋 다 공용 ref 검증 `url-ref.ts` 를 재사용한다(SSRF 경계가 한 곳이어야 한다)
+- 픽스처 — 전부 실측 응답에서 깎았다
+  - `fixtures/review/bobaedream/` 4종 (정상 / 댓글0건 / 댓글영역소실 / 본문소실)
+  - `fixtures/review/tumblbug/` 4종 (정상 / 후기0건 / review소실 / MOBX소실)
+  - `fixtures/review/naver-blog/` 3종 (정상 / 본문소실 / **예쁜URL 껍데기 원본 그대로**)
+- 셀프테스트 — `review-bobaedream-selftest.mjs`(89) ·
+  `review-tumblbug-selftest.mjs`(80) · `review-naver-blog-selftest.mjs`(83)
+- robots 단위테스트 — `scripts/review-robots-selftest.mjs` 에 3개 호스트 원문 추가(119건)
+- 러너 경계면 — `scripts/review-runner-selftest.mjs` 에 **새 블록으로** 추가(209건).
+  기존 damoang·82cook 블록은 손대지 않았다
 - 마이그레이션 `20260918000001_review_sources_voc_round3.sql` + `_rollback.sql`
-  — **파일만. 미적용** (enabled=false 1행, DDL 없음)
+  — **파일만. 미적용** (enabled=false **3행**, DDL 없음)
 
 `lib/review/{types,url-ref,runner,robots,store}.ts` 는 한 줄도 건드리지 않았다.
-특히 `runner.ts:153`(SP-026)은 이번 범위 밖이고, 보배드림도 1글=1요청이라
-그 구멍을 밟지 않는다.
+특히 `runner.ts:153`(SP-026)은 이번 범위 밖이다 — 세 소스 다 1문서=1요청이라
+그 구멍을 밟지 않는다. 다만 **텀블벅 robots 의 `/discover?` `/search?` 는 쿼리
+대상 규칙이라 러너가 못 막는다.** 그래서 어댑터의 `parseProductRef` 가 직접
+거부한다(82cook 의 `ROBOTS_DENY` 와 같은 처방).

@@ -28,6 +28,8 @@ import { hackernewsAdapter } from '../lib/review/adapters/hackernews.ts'
 import { damoangAdapter } from '../lib/review/adapters/damoang.ts'
 import { cook82Adapter } from '../lib/review/adapters/82cook.ts'
 import { bobaedreamAdapter } from '../lib/review/adapters/bobaedream.ts'
+import { tumblbugAdapter } from '../lib/review/adapters/tumblbug.ts'
+import { naverBlogAdapter } from '../lib/review/adapters/naver-blog.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
@@ -41,6 +43,8 @@ const ADAPTERS = {
   damoang: damoangAdapter,
   '82cook': cook82Adapter,
   bobaedream: bobaedreamAdapter,
+  tumblbug: tumblbugAdapter,
+  naver_blog_post: naverBlogAdapter,
 }
 
 const args = process.argv.slice(2)

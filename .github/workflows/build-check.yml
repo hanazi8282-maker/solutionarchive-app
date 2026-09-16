@@ -32,6 +32,8 @@ jobs:
       - run: node scripts/insight-loop-db-guard-selftest.mjs
       # 앵글 생성 낙관적 락 — 풀리면 더블클릭 한 번에 LLM 배치가 두 벌 나간다.
       - run: node scripts/analyze-angle-lock-selftest.mjs
+      # judge 프롬프트 순서 = 비용 구조. 되돌아가면 20KB 코퍼스가 앵글마다 정가로 재전송된다.
+      - run: node scripts/analyze-judge-prompt-selftest.mjs
       - run: npx next build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

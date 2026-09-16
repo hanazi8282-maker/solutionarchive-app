@@ -41,7 +41,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          # GITHUB_TOKEN(GH_PAT) 은 뺐다 — next build 에서 이 값을 읽는 코드가 없다(진단 5-3).
+          # 읽는 곳은 요청 시점 라우트(deploy-status, force-dynamic, Vercel env)와
+          # Actions 런타임(lib/insight/github.ts, 잡 기본 토큰)뿐이다.
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}

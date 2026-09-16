@@ -12,6 +12,7 @@ import {
   type Attribution,
   type PainTiming,
 } from '@/lib/analysis/types'
+import { canStart } from '@/lib/analysis/extract-gate'
 import { Card } from '../../../_ds/components/Card'
 import { Badge, type Tone } from '../../../_ds/components/Badge'
 import { Button, ButtonLink } from '../../../_ds/components/Button'
@@ -54,6 +55,11 @@ type ProjectRow = {
 
 // 검수(저장)가 가능한 상태. 추출 진행중/실패는 제외한다.
 const REVIEWABLE = ['extracted', 'reviewed', 'scored', 'angled', 'done']
+
+// 추출 완료를 기다리는 폴링. extract 라우트의 maxDuration=300 보다 짧게 잡는다 —
+// 여기서 포기해도 잡은 계속 도므로, 끝난 게 아니라 "확인 못 했다"로 안내한다(§7.1).
+const POLL_INTERVAL_MS = 2000
+const MAX_POLLS = 150 // 2초 × 150 = 5분
 
 const STATUS_LABELS: Record<string, string> = {
   collecting: '수집 중 — 아직 분석하지 않음',
@@ -118,6 +124,8 @@ export default function AnalyzeReviewPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [starting, setStarting] = useState(false)
+  const [elapsedSec, setElapsedSec] = useState(0)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -191,6 +199,53 @@ export default function AnalyzeReviewPage() {
     }
   }
 
+  // 추출(Stage1~2) 시작. 전에는 이 버튼이 새 분석 마법사(app/analyze/new)에만 있어서,
+  // 배치로 만들어 둔 collecting 프로젝트는 원문이 아무리 쌓여도 돌릴 방법이 없었다.
+  async function startExtract() {
+    setStarting(true); setError(''); setNotice(''); setElapsedSec(0)
+    try {
+      const res = await fetch('/api/analyze/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId }),
+      })
+      const json = await res.json()
+      // 409(이미 진행 중)는 잡이 이미 돌고 있다는 뜻이라 그대로 기다린다.
+      if (!res.ok && res.status !== 409) {
+        setError(json.error ?? '분석을 시작하지 못했습니다.')
+        return
+      }
+
+      for (let i = 1; i <= MAX_POLLS; i++) {
+        await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+        setElapsedSec(Math.round((i * POLL_INTERVAL_MS) / 1000))
+
+        const poll = await fetch(
+          `/api/analyze/extract?project_id=${encodeURIComponent(projectId)}`,
+          { cache: 'no-store' },
+        )
+        const pj = await poll.json()
+        if (!poll.ok) { setError(pj.error ?? '상태 확인에 실패했습니다.'); return }
+        if (pj.status === 'processing') continue
+
+        await load() // 서버가 남긴 상태·실패 원인·속성을 그대로 다시 읽는다
+        if (pj.status === 'failed') setError(pj.error ?? '분석에 실패했습니다.')
+        else setNotice(`분석 완료 — 속성 ${pj.aspects_count}개를 추출했습니다.`)
+        return
+      }
+
+      // 폴링 상한에 걸린 것은 성공도 실패도 아니다(§7.2). 몇 초 기다렸는지 함께 남긴다.
+      setError(
+        `${(MAX_POLLS * POLL_INTERVAL_MS) / 1000}초 동안 결과를 확인하지 못했습니다 — 실패한 게 아니라 확인 불가입니다. ` +
+        '분석은 계속 돌고 있을 수 있으니 잠시 후 새로고침해 상태를 확인하세요.',
+      )
+    } catch {
+      setError('네트워크 오류가 발생했습니다.')
+    } finally {
+      setStarting(false)
+    }
+  }
+
   // 앵글 생성은 검수가 끝난(reviewed) 프로젝트에서만 시작할 수 있다.
   // 성공하면 서버가 status 를 'angled' 로 올리므로 결과 화면으로 넘긴다.
   async function generateAngles() {
@@ -216,6 +271,9 @@ export default function AnalyzeReviewPage() {
 
   const confirmedCount = aspects.filter(a => a.human_confirmed).length
   const reviewable = project ? REVIEWABLE.includes(project.status) : false
+  // 버튼 노출 판정은 서버 게이트와 같은 함수다(lib/analysis/extract-gate.ts).
+  // force 는 쓰지 않는다 — 검수해 둔 aspects 를 화면에서 실수로 날리지 않게, 재분석은 여기서 안 연다.
+  const canExtract = project ? canStart(project.status, project.extract_started_at).ok : false
   const canGenerateAngles = project?.status === 'reviewed'
   const hasAngles = project ? ['angled', 'done'].includes(project.status) : false
   const anglesHref = `/analyze/${projectId}/angles`
@@ -280,6 +338,21 @@ export default function AnalyzeReviewPage() {
           </Row>
           {project.maturity_notes && <Row k="근거">{project.maturity_notes}</Row>}
         </dl>
+
+        {canExtract && (
+          <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+            <Button variant="primary" onClick={startExtract} disabled={starting}>
+              {starting
+                ? `분석 중… ${elapsedSec}초`
+                : project.status === 'collecting' ? '분석 시작' : '다시 분석'}
+            </Button>
+            <p style={{ ...muted, fontSize: 'var(--fs-xs)', flex: '1 1 240px' }} aria-live="polite">
+              {starting
+                ? '수집 원문을 모델에 넘겨 속성을 뽑는 중입니다. 이 화면을 열어 두세요.'
+                : '수집된 원문으로 속성(Stage1)·시장 성숙도(Stage2)를 추출합니다. 몇 분 걸립니다.'}
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* ── 속성 검수 ──────────────────────────────────────────── */}
@@ -326,8 +399,8 @@ export default function AnalyzeReviewPage() {
               description={project.status === 'processing'
                 ? '분석이 진행 중입니다. 완료되면 이 화면을 새로고침하세요.'
                 : project.status === 'failed'
-                  ? '분석이 실패해 추출된 속성이 없습니다. 시작 화면에서 재시도하세요.'
-                  : '추출된 속성이 없습니다. 먼저 분석을 실행하세요.'}
+                  ? '분석이 실패해 추출된 속성이 없습니다. 위 "다시 분석" 으로 재시도하세요.'
+                  : '추출된 속성이 없습니다. 위 "분석 시작" 으로 추출을 실행하세요.'}
             />
           </Card>
         ) : (

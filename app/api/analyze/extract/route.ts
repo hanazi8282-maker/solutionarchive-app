@@ -20,6 +20,7 @@ import {
   type PersonaRole,
   type ValueRealizationFrequency,
 } from '@/lib/analysis/types'
+import { REANALYZABLE, canStart } from '@/lib/analysis/extract-gate'
 
 // 응답은 202 로 즉시 나가지만, after() 안의 추출 작업은 같은 인스턴스에서
 // 계속 돌기 때문에 함수 실행시간 상한이 그대로 적용된다. 긴 입력을 감당하려면
@@ -102,39 +103,8 @@ function pickText(value: unknown): string | null {
   return t ? t : null
 }
 
-// ── 잡 상태 전이 규칙 ────────────────────────────────────────────
-// processing 이 이 시간보다 오래 방치되면 죽은 잡으로 보고 재시도를 허용한다.
-// (Vercel 함수가 중간에 죽으면 status 가 processing 에 영구히 갇히기 때문)
-const STALE_AFTER_MS = 10 * 60 * 1000
-
-/** force 로 재분석을 허용하는 상태. 사람 검수가 끝난 이후 단계는 제외한다. */
-const REANALYZABLE = ['extracted']
-
-/**
- * 지금 추출을 새로 시작할 수 있는 상태인지 판정한다.
- * force=true 면 extracted 상태에서도 재분석을 허용한다(기존 aspects 는 교체된다).
- * 단 실행 중(fresh processing)은 force 여도 막는다 — 같은 프로젝트에 잡이 둘 붙으면
- * 서로의 결과를 덮어쓰기 때문이다.
- */
-function canStart(
-  status: string,
-  startedAt: string | null,
-  force = false,
-): { ok: true } | { ok: false; reason: string } {
-  if (status === 'collecting' || status === 'failed') return { ok: true }
-  if (status === 'processing') {
-    const t = startedAt ? Date.parse(startedAt) : NaN
-    if (Number.isFinite(t) && Date.now() - t > STALE_AFTER_MS) return { ok: true } // stale 복구
-    return { ok: false, reason: '이미 분석이 진행 중입니다.' }
-  }
-  if (force && REANALYZABLE.includes(status)) return { ok: true }
-  return {
-    ok: false,
-    reason: REANALYZABLE.includes(status)
-      ? '이미 분석이 끝난 프로젝트입니다. 다시 분석하려면 force 옵션이 필요합니다.'
-      : '검수 이후 단계라 재분석할 수 없습니다.',
-  }
-}
+// 잡 상태 전이 규칙(canStart / REANALYZABLE)은 lib/analysis/extract-gate.ts 한 벌이다.
+// 검수 화면의 "분석 시작" 버튼이 같은 판정을 써야 버튼과 서버가 갈라지지 않는다.
 
 // ── 백그라운드 추출 본체 ─────────────────────────────────────────
 // after() 안에서 응답 전송 후에 실행된다. 여기서 던지는 예외는 사용자에게

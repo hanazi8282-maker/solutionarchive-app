@@ -1,9 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { parseProductRef as parseAppstoreRef } from '@/lib/review/adapters/appstore'
-import { parseDanawaProductUrl } from '@/lib/review/danawa-url'
+import { REF_BUILDERS } from '@/lib/review/target-ref'
 
-// 수집 타깃 등록 API — danawa / appstore / hackernews 공용.
+// 수집 타깃 등록 API — review_sources 에 등록된 소스 전부 공용.
 //
 // ⛔ **URL 이나 확정된 ref 만 받는다. 자유 텍스트로 검색해서 후보 중 하나를
 //    시스템이 자동으로 고르는 기능은 만들지 않는다.** 어느 상품을 어느
@@ -14,62 +13,13 @@ import { parseDanawaProductUrl } from '@/lib/review/danawa-url'
 // ⚠️ hackernews 의 `q:` 는 성격이 다르다. 상품 식별자가 아니라 **질의 자체**가
 //    대상이고, 한 질의에 여러 스레드가 걸리는 것이 정상 동작이다. 그래서
 //    "검색해서 고르는" 단계가 아예 없다 — 사람이 쓴 키워드를 그대로 쓴다.
+//
+// ref 를 만드는 규칙은 전부 lib/review/target-ref.ts 에 있다. 이 라우트는
+// 프로젝트·소스 존재 확인과 적재만 한다.
 
 /** 타깃 조회·응답에 공통으로 쓰는 컬럼. */
 const TARGET_SELECT =
   'id, project_id, source_key, product_ref, label, cursor, status, last_review_at, last_run_at, total_collected, consecutive_empty, created_at'
-
-/** HN 키워드 제약. 너무 짧으면 온 세상이 걸리고, 너무 길면 아무것도 안 걸린다. */
-const KEYWORD_MIN = 2
-const KEYWORD_MAX = 64
-
-type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
-
-/** 다나와 상품 URL → pcode. 규칙은 lib/review/danawa-url 에 한 벌만 둔다. */
-function danawaRef(raw: string): RefResult {
-  const parsed = parseDanawaProductUrl(raw)
-  return parsed.ok ? { ok: true, productRef: parsed.pcode } : { ok: false, error: parsed.error }
-}
-
-/** HN 키워드 검증. 통과하면 `q:<키워드>` 로 만든다. */
-function hackernewsRef(raw: string): RefResult {
-  const keyword = raw.trim()
-
-  if (!keyword) {
-    return { ok: false, error: '검색할 키워드를 입력해주세요. (예: notion)' }
-  }
-  // 줄바꿈이 섞이면 질의가 두 개인지 하나인지 알 수 없다. 붙여넣기 사고를 막는다.
-  if (/[\r\n]/.test(keyword)) {
-    return { ok: false, error: '키워드는 한 줄로 입력해주세요. 여러 키워드는 타깃을 따로 등록합니다.' }
-  }
-  if (keyword.length < KEYWORD_MIN) {
-    return { ok: false, error: `키워드는 ${KEYWORD_MIN}자 이상이어야 합니다. 한 글자로는 관련 없는 댓글이 대부분 걸립니다.` }
-  }
-  if (keyword.length > KEYWORD_MAX) {
-    return { ok: false, error: `키워드는 ${KEYWORD_MAX}자 이하여야 합니다.` }
-  }
-
-  return { ok: true, productRef: `q:${keyword}` }
-}
-
-/** App Store 는 어댑터의 검증기를 그대로 쓴다 — 규칙을 두 벌 두지 않는다. */
-function appstoreRef(raw: string): RefResult {
-  const parsed = parseAppstoreRef(raw)
-  if (!parsed) {
-    return {
-      ok: false,
-      error: '앱 ID 형식이 아닙니다. `<국가코드>:<앱ID>` 또는 `<앱ID>` 로 입력해주세요. (예: kr:1459969523)',
-    }
-  }
-  // 어댑터가 읽는 것과 똑같은 형태로 정규화해서 저장한다.
-  return { ok: true, productRef: `${parsed.country}:${parsed.appId}` }
-}
-
-const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
-  danawa: danawaRef,
-  appstore: appstoreRef,
-  hackernews: hackernewsRef,
-}
 
 // ── 타깃 등록 ────────────────────────────────────────────────────
 export async function POST(req: Request) {

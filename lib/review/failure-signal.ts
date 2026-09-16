@@ -29,11 +29,22 @@ export const FAILURE_SIGNAL_ENABLED = true
  *
  * 표기 흔들림은 normalize 가 흡수한다: 대소문자, 굽은 따옴표(’), 하이픈
  * ("product-market" → "product market"), 연속 공백.
+ *
+ * ★ 다단어라고 다 안전한 게 아니다. 2026-09-16 실측(최근 7일, 12구문 전수):
+ *   후보 42건 중 "창업자가 자기 제품을 접었다"는 진술은 **0건**이었고, 그중
+ *   39건이 아래 세 구문에서 나왔다.
+ *     · "shut it down"   14건 — 닫는 주체·대상이 아무것이나 된다(발전소·광고·AI)
+ *     · "gave up on"     19건 — "쓰던 제품을 그만 썼다"(사용자 이탈)이지 폐업이 아니다
+ *     · "didn't work out" 6건 — 어떤 결과에나 쓰는 관용구
+ *   셋을 빼면 주당 후보가 3건대로 떨어진다. 대기열은 사람이 읽어야 의미가
+ *   있으므로, 재현율보다 읽히는 양을 택했다. 빼기 전 목록은 git 이력에 있다.
+ *
+ * ⚠️ 구문을 새로 넣기 전에 `--sweep --dry --since-days 7` 로 **몇 건이 걸리고
+ *    그중 몇 건이 진짜인지** 먼저 세라. 넣고 나서 대기열이 불어난 뒤에 세면
+ *    이미 아무도 그 파일을 안 읽는다.
  */
 export const FAILURE_PHRASES = [
   'we shut down',
-  'shut it down',
-  'gave up on',
   'we failed',
   'pivoted away from',
   'never found product market fit',
@@ -41,7 +52,6 @@ export const FAILURE_PHRASES = [
   'no product-market fit',
   'discontinued the product',
   'sunset the product',
-  "didn't work out",
   'turned out to be a failure',
 ] as const
 
@@ -66,6 +76,39 @@ export function detectFailureSignals(text: string | null | undefined): string[] 
   const hay = normalize(text ?? '')
   if (!hay) return []
   return FAILURE_PHRASES.filter((p) => hay.includes(normalize(p)))
+}
+
+/** 한 구문당 받아 볼 댓글 수. hackernews.ts HITS_PER_PAGE 와 같은 값이다. */
+export const SWEEP_HITS_PER_PAGE = 50
+
+/**
+ * 구문 하나를 찾는 Algolia 질의 URL (0페이지, 시간 역순).
+ *
+ * ⚠️ 이 질의는 **재현율용이지 판정용이 아니다.** Algolia 가 따옴표를 구문으로
+ *    처리하든 낱말로 흩든, 걸러 내는 것은 detectFailureSignals 다. 질의가
+ *    느슨하면 훑는 댓글이 늘 뿐 오탐이 새로 들어오지는 않는다. 반대 방향
+ *    (질의를 판정으로 믿는 것)이 위험하다.
+ *
+ * ⚠️ `search` 가 아니라 `search_by_date` 다. 매일 도는 스윕이 원하는 것은
+ *    관련도 상위가 아니라 **지난 실행 이후 새로 달린 댓글**이다.
+ */
+export function phraseSearchUrl(
+  phrase: string,
+  opts: { hitsPerPage?: number; sinceEpoch?: number } = {},
+): string {
+  const { hitsPerPage = SWEEP_HITS_PER_PAGE, sinceEpoch } = opts
+  return (
+    'https://hn.algolia.com/api/v1/search_by_date' +
+    `?query=${encodeURIComponent(`"${phrase}"`)}` +
+    '&tags=comment' +
+    '&advancedSyntax=true' +
+    `&hitsPerPage=${hitsPerPage}` +
+    // 시간 하한이 없으면 "turned out to be a failure" 같은 희귀 구문이 2007년
+    // 댓글까지 긁어 온다. 실측: 하한 없이 12구문을 훑으면 신규 후보가 420건이고,
+    // 그건 사람이 읽는 대기열이 아니라 덤프다. 과거분이 필요하면 --since-days
+    // 를 크게 줘서 사람이 한 번 백필한다.
+    (sinceEpoch == null ? '' : `&numericFilters=${encodeURIComponent(`created_at_i>${sinceEpoch}`)}`)
+  )
 }
 
 export interface HnCandidate {
@@ -122,6 +165,9 @@ export function formatCandidateBlock(c: HnCandidate): string {
   const lines = [
     `## HN ${c.objectId}`,
     '',
+    // 사람이 결론을 적을 자리를 비워 둔다. 이 줄이 없으면 "아직 안 읽은 것"과
+    // "읽고 기각한 것"이 파일에서 구분되지 않는다(§7.1 — 음성과 확인 불가).
+    '- 판정: (미검토)',
     `- 매칭: ${c.phrases.map((p) => `\`${p}\``).join(', ')}`,
     `- 원본: ${c.url}`,
     `- 검색 맥락: ${c.context}`,

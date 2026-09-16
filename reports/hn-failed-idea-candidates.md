@@ -7,8 +7,18 @@
 사람이 읽고 진짜 실패 사례라고 판단한 것만 `docs/failed-angles.md` 표로 직접
 옮긴다. 옮긴 뒤 `scripts/failed-angles-sync.mjs` 가 `failed_angles` 로 upsert 한다.
 
+각 블록의 `- 판정:` 줄이 사람의 결론이다. `(미검토)` 면 아직 안 읽은 것이고,
+`채택` 은 `docs/failed-angles.md` 로 옮긴 것, `기각(오탐)` 은 읽고 버린 것이다.
+**기각한 블록도 지우지 않는다** — `## HN <id>` 머리글이 중복 방지 키라(
+`lib/review/failure-signal.ts` `existingObjectIds`), 지우면 다음 실행이 같은
+댓글을 다시 올린다.
+
 ## HN 49137620
 
+- 판정: **기각(오탐)** — 2026-09-16 재검토. `we shut down` 이 걸렸지만 닫은
+  대상이 제품·서비스가 아니라 **서브레딧**이고, 문맥(`during the blackout`)상
+  Reddit 블랙아웃 기간의 일시적 비공개 전환이다. 창업자가 사업을 접었다는
+  진술이 아니므로 `docs/failed-angles.md` 로 옮기지 않는다.
 - 매칭: `we shut down`
 - 원본: https://news.ycombinator.com/item?id=49137620
 - 검색 맥락: q:"we shut down" (Algolia search_by_date, 2026-09-11)

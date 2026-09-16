@@ -1,0 +1,16 @@
+{
+  "case_slug": "zapier-integration-page-seo-distribution",
+  "move_id": "8bc1bc9d-64a2-440d-83d8-d9a37ec1d5e3",
+  "content_code": "CS-20260916-01",
+  "log_code": "LOG-20260916-01",
+  "body_path": "drafts/threads/2026-09-16-zapier-integration-page-seo-distribution.body.txt",
+  "reply_path": "drafts/threads/2026-09-16-zapier-integration-page-seo-distribution.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-09-16-zapier-integration-page-seo-distribution.md",
+  "title": "고객 오기 전에 만든 페이지",
+  "twist_line": "최초 고객이 붙기도 전에 지원 앱마다 랜딩페이지부터 지어놓았다",
+  "hook_type": "병목-반전형(voice-guide 모드A 4단 골격)",
+  "closing_type": "평어체 질문형",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ U-1/U-2 통과, U-3 확인불가(상시점검 항목). Ⅱ D-1 프드프(Threads). Ⅲ pdp G-0~G-12 통과 또는 예외통과(G-0 TPL 미적용/voice-guide 골격 사용, G-10 CTA 없음/질문이 대체), G-9 면제(30분 미만), G-11 해당없음(텍스트). Ⅳ 충돌 없음. 지시받은 등급 A는 evidence_grade(gradeMove — transfer_note·preconditions·fact_check_grade≠D 충족)이고, lib/cases/draft.ts factCheckGrade 산식을 손으로 재현한 결과 이 무브는 fact_check_grade=C(자기보고 1차 1건뿐, 다른 원 관측 없음)라 두 값이 모순 없이 공존함(2026-09-16 재설계) · CG-1 대상 확정, 본문 '스스로 밝힌 수치로는' 자기귀속 문구로 통과(SELF_MARKERS 정규식 수동 대조. 본문 브랜드 표기가 한글 '재피어'라 findNamedMarker의 영문 'Zapier' 매칭에는 안 걸리는 것을 확인하고 SELF_MARKERS 경로로 우회) · CG-2 해당없음(등급 D 아님) · X-1~X-3 해당없음",
+  "applied_patterns": []
+}

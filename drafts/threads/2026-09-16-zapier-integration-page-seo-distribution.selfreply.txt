@@ -1,0 +1,8 @@
+출처 (직접 읽은 것만 답니다)
+
+웨이드 포스터(재피어 공동창업자·CEO), 퍼스트 라운드 리뷰 팟캐스트 인터뷰(2023-10-05 공개) — https://review.firstround.com/podcast/building-zapier-from-first-principles-contrarian-takes-on-growth-hiring-fundraising-wade-foster-co-founder-ceo/
+원문 발췌: "when you would go search for integrations, the results...were a bunch of like, just kind of like junk pages."
+
+지원 앱 수(2011년 2개, 2023년 6000개 이상)와 검색결과 품질 관찰, 빙고카드 생성기 유추는 전부 이 인터뷰에서 나온 창업자 본인의 회고다. 다른 원 자료로 교차 확인되지는 않아 사실확인 등급은 C다(자기보고 1차 1건뿐).
+
+포럼 링크 성과(건당 방문자 10명에서 20명, 전환율 약 50%)는 컨트래리 리서치(research.contrary.com)가 인용한 2015년 그루브HQ 인터뷰에서 나온 수치다. 그루브HQ 원문(groovehq.com/blog/zapier-interview-with-wade-foster)은 지금 열리지 않아 이 재인용으로만 확인했고, 이 무브(앱 디렉토리)의 수치를 직접 뒷받침하지는 않는다.

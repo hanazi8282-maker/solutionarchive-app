@@ -269,6 +269,10 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 - **초안 staging** — `content_items`(`status='proposed'`) / `posts`
   (`status IN ('draft','pending_review')`, **`published_at` 은 항상 NULL**).
 - **조사 큐·실행 상태** — `research_queue` / `agent_runs` / `agent_run_steps`.
+- **발굴 적재** — `discovery_candidates` 전체 / `analysis_projects`(`status='collecting'` 신규 INSERT 한정, UPDATE·DELETE 금지) / `review_targets`(`review_sources.enabled=true` 인 소스 한정). `review_sources` 에는 INSERT/UPDATE 하지 않는다 — 새 소스는 robots·ToS 판단이 들어가므로 사람이 마이그레이션으로만 추가한다.
+  (남헌 2026-09-17 승인 — 자율 VOC 발굴 엔진. 사람이 `review_targets` 를 하나씩
+  등록하던 병목을 없애려고 이 한 줄을 열었다. 근거는 `docs/discovery-design.md`.
+  **채택은 LLM 의 주장이 아니라 실측 hits 가 정한다** — 그게 이 권한을 준 조건이다.)
 - **reports/ 파일** — `reports/` · `drafts/cases/` · `drafts/threads/` · `ops/state/`
   4개 프리픽스에만 커밋한다. 그 밖의 경로가 스테이징에 있으면 커밋하지 않고 실패한다.
 

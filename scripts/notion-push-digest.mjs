@@ -89,6 +89,44 @@ async function syncGuide(token, databaseId, dry) {
 }
 
 
+// ── 발굴 섹션 ────────────────────────────────────────────────
+//
+// 어제 밤 발굴 루프(scripts/discovery-run.mjs)가 낸 후보를 한 페이지로 올린다.
+//
+// ⚠️ 기각만 있는 날은 **페이지를 아예 안 만든다.** 매일 "0건 채택" 페이지가
+//    쌓이면 사람이 대기함 보는 걸 그만둔다.
+// ⚠️ 단, `unverified` 가 있으면 채택이 0건이어도 올린다. 그건 "뽑을 게
+//    없었다"가 아니라 **프로브가 못 알아봤다**는 신호이고, 조용히 묻히면
+//    발굴이 몇 주째 0건인 걸 아무도 모른다(CLAUDE.md §7.1).
+export function discoveryBlocks(rows) {
+  const by = (v) => rows.filter((r) => r.verdict === v)
+  const accepted = by('accepted')
+  const unverified = by('unverified')
+  const rejected = by('rejected')
+
+  if (accepted.length === 0 && unverified.length === 0) return null
+
+  const line = (r) =>
+    `- ${r.name} [${r.kind}/${r.category_hint ?? '-'}] — hits ${r.probe_hits ?? '확인불가'}` +
+    `${r.probe_ref ? ` · ref ${r.probe_ref}` : ''}\n  ${r.verdict_reason}` +
+    `${r.why ? `\n  왜: ${r.why}` : ''}`
+
+  const blocks = []
+  if (accepted.length) {
+    blocks.push(heading(`발굴 채택 ${accepted.length}건 — 수집 시작됨`))
+    blocks.push(...paragraphBlocks(accepted.map(line).join('\n\n')))
+  }
+  if (unverified.length) {
+    blocks.push(heading(`⚠️ 확인 불가 ${unverified.length}건 — 프로브가 못 읽었다`))
+    blocks.push(...paragraphBlocks(unverified.map(line).join('\n\n')))
+  }
+  if (rejected.length) {
+    // 기각은 건수만. 이름까지 매일 올리면 읽을 게 너무 많아진다.
+    blocks.push(...paragraphBlocks(`기각 ${rejected.length}건: ${rejected.map((r) => r.name).join(', ')}`))
+  }
+  return blocks
+}
+
 /** drafts/threads/<date>-<slug>.md 에서 "무브 `<id>`" / "등급 X" / "출처 케이스 `<slug>`" 를 관대하게 뽑는다. */
 export function parseDecisionDoc(mdText) {
   const moveId = mdText.match(/무브[^`]*`([0-9a-f-]{8,})`/i)?.[1] ?? null
@@ -225,7 +263,47 @@ async function run() {
     console.log(`✅ CASE-${c.slug} → ${created.data.url}`)
   }
 
-  console.log(`\n푸시 완료 — 초안 ${pushedPosts}건 · 신규케이스 ${pushedCases}건 · 스킵 ${skipped.length}건`)
+  // ── 3) 오늘 발굴한 후보 ──────────────────────────────────────
+  let pushedDiscovery = 0
+  {
+    const { data: cands, error: cErr } = await supabase.from('discovery_candidates')
+      .select('kind,name,category_hint,why,probe_hits,probe_ref,verdict,verdict_reason,created_at')
+      .gte('created_at', `${date}T00:00:00Z`).lt('created_at', `${date}T23:59:59.999Z`)
+      .order('created_at', { ascending: true })
+
+    if (cErr) {
+      // 마이그레이션 미적용이면 조용히 넘어간다 — 다른 섹션을 세울 이유가 없다.
+      const missing = ['42P01', 'PGRST205'].includes(cErr.code)
+      console.error(
+        missing
+          ? 'ℹ️ discovery_candidates 없음 — 마이그레이션 20260921000001 미적용. 발굴 섹션을 건너뛴다.'
+          : `⚠️ discovery_candidates 조회 실패 — ${cErr.code ?? ''} ${cErr.message}`,
+      )
+    } else {
+      const children = discoveryBlocks(cands ?? [])
+      if (!children) {
+        console.log(`⏭️ 발굴 — 채택·확인불가 0건 (후보 ${cands?.length ?? 0}건). 페이지를 만들지 않는다.`)
+      } else if (dry) {
+        console.log(`(dry) push DISCOVERY-${date} (후보 ${cands.length}건, 블록 ${children.length}개)`)
+        pushedDiscovery++
+      } else {
+        const created = await notionRequest(token, 'POST', '/pages', {
+          parent: { database_id: databaseId },
+          properties: {
+            content_code: { title: [{ text: { content: `DISCOVERY-${date}` } }] },
+            케이스명: { rich_text: [{ text: { content: '자율 VOC 발굴' } }] },
+            상태: { select: { name: '검토중' } },
+            생성일: { date: { start: date } },
+          },
+          children,
+        })
+        if (!created.ok) skipped.push(`DISCOVERY-${date} — Notion 생성 실패: ${created.error}`)
+        else { pushedDiscovery++; console.log(`✅ DISCOVERY-${date} → ${created.data.url}`) }
+      }
+    }
+  }
+
+  console.log(`\n푸시 완료 — 초안 ${pushedPosts}건 · 신규케이스 ${pushedCases}건 · 발굴 ${pushedDiscovery}건 · 스킵 ${skipped.length}건`)
   for (const s of skipped) console.log(`  ⏭️ ${s}`)
   process.exit(0)
 }

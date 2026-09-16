@@ -27,6 +27,9 @@ import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { hackernewsAdapter } from '../lib/review/adapters/hackernews.ts'
 import { damoangAdapter } from '../lib/review/adapters/damoang.ts'
 import { cook82Adapter } from '../lib/review/adapters/82cook.ts'
+import { bobaedreamAdapter } from '../lib/review/adapters/bobaedream.ts'
+import { tumblbugAdapter } from '../lib/review/adapters/tumblbug.ts'
+import { naverBlogAdapter } from '../lib/review/adapters/naver-blog.ts'
 import { theqooAdapter } from '../lib/review/adapters/theqoo.ts'
 import { todayhumorAdapter } from '../lib/review/adapters/todayhumor.ts'
 import { brunchAdapter } from '../lib/review/adapters/brunch.ts'
@@ -44,6 +47,9 @@ const ADAPTERS = {
   hackernews: hackernewsAdapter,
   damoang: damoangAdapter,
   '82cook': cook82Adapter,
+  bobaedream: bobaedreamAdapter,
+  tumblbug: tumblbugAdapter,
+  naver_blog_post: naverBlogAdapter,
   theqoo: theqooAdapter,
   todayhumor: todayhumorAdapter,
   brunch: brunchAdapter,

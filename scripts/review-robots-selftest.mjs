@@ -305,6 +305,152 @@ t(
   'Disallow: /ajax/',
 )
 
+// ── 보배드림 — 실제 robots.txt 원문 (실측 2026-09-17) ─────────────
+//
+// 전면 허용이다. 금지 경로가 하나도 없고 Amazonbot 만 막는다.
+// damoang·82cook 과 달리 쿼리 대상 Disallow 가 없어 SP-026 구멍을 안 밟는다.
+//
+// ⚠️ **"규칙이 없으니 마음대로"가 아니다.** 같은 라운드에서 네이버 블로그는
+//    robots 본문에 RAG 목적 수집 금지를 적어 뒀고 ClaudeBot 을 이름으로
+//    막았다(docs/review-source-findings.md). 기계 판정과 사이트의 의사는
+//    별개다 — 새 소스를 넣을 때 원문을 눈으로 읽어라.
+
+const bobaedreamRobots = `User-agent: *
+Allow: /
+
+User-agent: grapeshot
+Disallow:
+
+User-agent: Amazonbot
+Disallow: /
+`
+
+// (a) 수집 대상 글 경로 — 허용
+t('보배드림: 글 경로는 허용', allowed(bobaedreamRobots, '/view?code=freeb&No=2000000'), true)
+t('보배드림: 게시판 목록도 허용', allowed(bobaedreamRobots, '/list?code=freeb'), true)
+t('보배드림: 루트도 허용', allowed(bobaedreamRobots, '/'), true)
+// (b) 금지 경로가 없다는 것을 그냥 단정하지 않고, 다른 소스에서 막히는
+//     경로들이 여기서는 안 막히는지로 확인한다.
+t('보배드림: /admin/ 도 막히지 않는다 (규칙 자체가 없다)', allowed(bobaedreamRobots, '/admin/config'), true)
+t('보배드림: ?page= 도 막히지 않는다', allowed(bobaedreamRobots, '/list?code=freeb&page=3'), true)
+// (c) 이름으로 막힌 봇은 실제로 막혀야 한다 — Allow: / 가 그걸 덮으면 안 된다.
+t('보배드림: Amazonbot 으로 오면 전면 금지다', robotsVerdict(parseRobots(bobaedreamRobots), '/view', 'Amazonbot').allowed, false)
+t('보배드림: 우리 UA 는 * 그룹을 적용받는다', allowed(bobaedreamRobots, '/view?code=freeb&No=1'), true)
+
+// ── 텀블벅 — 실제 robots.txt 원문 (실측 2026-09-17) ───────────────
+
+const tumblbugRobots = `User-agent: *
+Disallow: /api/
+Disallow: /auth/
+Disallow: /sessions/
+Disallow: /oauth/
+Allow: /discover?category=
+Disallow: /discover?
+Disallow: /search?
+
+Sitemap: https://www.tumblbug.com/sitemap/sitemap.xml
+`
+
+// (a) 수집 대상 — 프로젝트 경로는 한 세그먼트다(`/project/<slug>` 아님)
+t('텀블벅: 프로젝트 경로는 허용', allowed(tumblbugRobots, '/eastereggs'), true)
+t('텀블벅: 스토리 탭도 허용', allowed(tumblbugRobots, '/eastereggs/story'), true)
+// (b) 실제 금지 경로 — 후원자 코멘트가 오는 XHR 이 여기 걸린다
+t('텀블벅: /api/ 금지 (코멘트 XHR 이 여기다)', allowed(tumblbugRobots, '/api/projects/1/comments'), false)
+t('텀블벅: /auth/ 금지', allowed(tumblbugRobots, '/auth/login'), false)
+t('텀블벅: /sessions/ 금지', allowed(tumblbugRobots, '/sessions/new'), false)
+t('텀블벅: /oauth/ 금지', allowed(tumblbugRobots, '/oauth/token'), false)
+t(
+  '텀블벅: reason 이 실제 규칙을 가리킨다',
+  robotsVerdict(parseRobots(tumblbugRobots), '/api/x', TOKEN).reason,
+  'Disallow: /api/',
+)
+// ⚠️ `/discover?` `/search?` 는 **쿼리 대상 규칙**이라 러너가 못 막는다(SP-026).
+//    아래 두 줄이 그 구멍의 증거다 — 그래서 어댑터가 직접 거부한다.
+t('텀블벅: 쿼리를 주면 /discover? 가 막힌다', allowed(tumblbugRobots, '/discover?query=x'), false)
+t('텀블벅: 쿼리를 떼면 허용으로 보인다(러너의 구멍)', allowed(tumblbugRobots, '/discover'), true)
+
+// ── 네이버 블로그 — 실제 robots.txt 원문 (실측 2026-09-17) ────────
+//
+// ⚠️⚠️ **이 원문을 눈으로 읽어라.** 기계 판정과 사이트의 의사가 갈리는
+//    대표 사례다. 아래 주석 배너는 실제 robots.txt 에 있는 문장 그대로다.
+//    우리 UA 는 이름 목록에 없어 `*` 그룹을 적용받고 `/PostView.naver` 는
+//    Disallow 에 없어서 **기계 판정은 allowed** 가 나온다. 그 판정을 근거로
+//    쓰면 안 된다 — 약관은 별개로 금지한다(SP-030).
+
+const naverBlogRobots = `User-agent: Yeti
+Disallow: /
+
+# BOT ACCESS FOR THE PURPOSES OF AI TRAINING AND RETRIEVAL-AUGMENTED GENERATION (RAG) IS STRICTLY PROHIBITED.
+User-agent: GPTBot
+Disallow: /
+User-agent: OAI-SearchBot
+Disallow: /
+User-agent: PerplexityBot
+Disallow: /
+User-agent: Google-Extended
+Disallow: /
+User-agent: ClaudeBot
+Disallow: /
+User-agent: Claude-SearchBot
+Disallow: /
+User-agent: meta-externalagent
+Disallow: /
+User-agent: Applebot-Extended
+Disallow: /
+User-agent: CCBot
+Disallow: /
+
+User-agent: *
+Disallow: /PostList.naver
+Disallow: /PostPrint.naver
+Disallow: /NBlogPostPreview.naver
+Disallow: /NBlogHidden.naver
+Disallow: /BlogInfo.naver
+Disallow: /PostExportDoc.naver
+Disallow: /PostPreview.naver
+Disallow: /buddy/
+Disallow: /export/
+Disallow: /common/
+Disallow: /post/
+Disallow: /npost/
+Disallow: /main/
+Disallow: /guestbook/
+Disallow: comment.naver
+Disallow: /socialapp/
+Disallow: /upload/
+Disallow: /connect/
+`
+
+// (a) 수집 대상 경로 — 기계 판정은 허용이다
+t('네이버: /PostView.naver 는 기계 판정상 허용', allowed(naverBlogRobots, '/PostView.naver'), true)
+// (b) 실제 금지 경로 — 어댑터의 /PostView.naver 한정 가드가 이것들을 다시 막는다
+t('네이버: /PostList.naver 금지', allowed(naverBlogRobots, '/PostList.naver'), false)
+t('네이버: /PostPrint.naver 금지', allowed(naverBlogRobots, '/PostPrint.naver'), false)
+t('네이버: /PostPreview.naver 금지', allowed(naverBlogRobots, '/PostPreview.naver'), false)
+t('네이버: /NBlogPostPreview.naver 금지', allowed(naverBlogRobots, '/NBlogPostPreview.naver'), false)
+t('네이버: /BlogInfo.naver 금지', allowed(naverBlogRobots, '/BlogInfo.naver'), false)
+t('네이버: /guestbook/ 금지', allowed(naverBlogRobots, '/guestbook/list'), false)
+t('네이버: /post/ 금지', allowed(naverBlogRobots, '/post/x'), false)
+t(
+  '네이버: reason 이 실제 규칙을 가리킨다',
+  robotsVerdict(parseRobots(naverBlogRobots), '/PostList.naver', TOKEN).reason,
+  'Disallow: /PostList.naver',
+)
+
+// (c) ⚠️ 여기가 SP-030 의 핵심이다. **이름으로 오면 전면 금지**인데
+//     우리 UA 는 그 목록에 없어 통과한다. 이 두 줄이 같이 참이라는 것이
+//     "기계 판정 allowed" 를 근거로 쓰면 안 되는 이유다.
+t('네이버: ClaudeBot 으로 오면 전면 금지다', robotsVerdict(parseRobots(naverBlogRobots), '/PostView.naver', 'ClaudeBot').allowed, false)
+t('네이버: Claude-SearchBot 도 전면 금지다', robotsVerdict(parseRobots(naverBlogRobots), '/PostView.naver', 'Claude-SearchBot').allowed, false)
+t('네이버: GPTBot 도 전면 금지다', robotsVerdict(parseRobots(naverBlogRobots), '/PostView.naver', 'GPTBot').allowed, false)
+t('네이버: 그런데 우리 UA 는 * 그룹이라 allowed 다', allowed(naverBlogRobots, '/PostView.naver'), true)
+// robots 원문에 적힌 의사 표시. 파서는 주석을 안 읽지만 사람은 읽어야 한다.
+t(
+  '네이버: robots 원문에 RAG 목적 수집 금지가 적혀 있다(SP-030)',
+  /RETRIEVAL-AUGMENTED GENERATION \(RAG\) IS STRICTLY PROHIBITED/.test(naverBlogRobots),
+  true,
+)
+
 // ── robots.txt 가 아예 없는 소스 — theqoo · todayhumor (2026-09-16 실측) ──
 //
 // 두 사이트 모두 `/robots.txt` 가 **HTTP 404** 다. 러너는 4xx 를 "규칙 없음 =

@@ -1,4 +1,4 @@
-# 원칙 원장 (Corpus C) — SP-001 ~ SP-028
+# 원칙 원장 (Corpus C) — SP-001 ~ SP-031
 
 크로스섹션 어드바이저(§20 / §13-7)의 Corpus C. 수익화 리서치 문서 §22 를 구조화한
 조각이다. **이 표가 정본이다.** `strategy_principles` 테이블은 이 표에서 시딩하고,
@@ -62,6 +62,38 @@
 - **이번 PR 범위 아님.** `runner.ts`·`robots.ts` 는 한 줄도 건드리지 않았다.
   SP-026(쿼리 미판정)도 그대로 남아 있고, 이번 세 어댑터는 전부 1글=1요청이라
   쿼리를 만들지 않아 그 구멍을 밟지 않는다.
+
+| SP-030 | channel, legal, naver, risk-accepted | 네이버 서비스 이용약관(2025-07-10 시행)이 "네이버의 사전 허락 없이 자동화된 수단(예: 매크로 프로그램, 로봇(봇), 스파이더, 스크래퍼 등)을 이용하여 … 네이버 서비스에 게재된 회원의 아이디(ID), **게시물 등을 수집**하거나 … 해서는 안 됩니다" 라고 우리 행위를 문장으로 직접 지목해 금지한다. `blog.naver.com/robots.txt` 본문에도 "BOT ACCESS FOR THE PURPOSES OF AI TRAINING AND RETRIEVAL-AUGMENTED GENERATION (RAG) IS STRICTLY PROHIBITED" 가 적혀 있고 `ClaudeBot`·`Claude-SearchBot`·`GPTBot`·`PerplexityBot` 이 이름으로 전면 금지돼 있다. 우리 UA 토큰은 그 목록에 없어 `*` 그룹이 적용되고 수집 경로(`/PostView.naver`)는 Disallow 에 없어 **기계 판정은 allowed** 다 — 그 판정을 근거로 쓰면 안 된다. SP-025(다모앙)는 robots 의 **의사 표시**라 해석 여지가 있었지만 여기는 **약관 본문이 명시적**이라 한 층 위다. 남헌이 **2026-09-17 이 사실을 인지한 채로 수집 진행을 결정**했다(SP-025·SP-005 와 같은 리스크 수용). 수용 조건: `enabled=false` 등록(사람이 켠다) · 댓글 미수집(cbox 는 별도 호스트 `apis.naver.com`) · 본문 1건만 | A (약관·robots 원문 직접 확인 2026-09-17 + 사람 결정) | 2026-09-17 실측 |
+| SP-031 | channel, legal, tumblbug, risk-accepted | 텀블벅 이용약관의 "자동화된 수단으로 서비스를 조작·이용" 금지 조항을 인지한 채로 남헌이 2026-09-17 수집 진행을 결정했다(약관 페이지가 클라이언트 렌더라 원문 재확인은 실패 — 조항 존재는 설계 단계 확인에 의존한다). 더 중요한 것은 **수집 대상이 실측 때문에 바뀌었다**는 점이다: 원래 설계한 후원자 코멘트·프로젝트 설명은 정적 HTML 에 **0건**이고(hydration JSON 에 코멘트 스토어 자체가 없고 `project.story` 는 null) 둘 다 robots 가 막은 `/api/` XHR 로만 온다. 정적으로 오는 유일한 VOC 는 `MOBX_STATE.projectStore.creators[i][1].review.contents[]` 의 **"이 창작자의 지난 프로젝트 후기" 프리뷰(창작자당 최대 4건)** 라서 수집 축이 상품→창작자로 바뀌었다. 한 페이지의 프리뷰에는 그 창작자의 **다른 프로젝트 후기가 섞여 온다.** 처음 판은 "`external_id` 에 경로를 안 넣으면 지문이 중복을 걸러 준다"고 적었는데 **틀렸고 재현으로 확인했다**: 공용 `computeFingerprint` 의 identity_key 가 `sha256(source_key + product_ref + external_id)` 라 product_ref 가 키에 들어간다 — 같은 후기를 `/eastereggs` 타깃과 `/clear` 타깃이 각각 내면 키가 달라져 **4건이 8행으로 적재된다**(identity_key 교집합 0/4). 지문은 8개 소스가 공유하므로 고치지 않고 **어댑터가 공용 계약을 지키는 쪽으로** 바꿨다: (1) `projectPermalink` 이 product_ref 의 slug 와 같은 후기만 받고 나머지는 `filtered`(파싱 실패 아님)로 센다 — 후기 하나가 자기 프로젝트 타깃 한 곳에서만 나오므로 타깃이 겹쳐도 중복이 없고, 남의 프로젝트 후기가 이 타깃 project_id 로 적재되던 오류도 사라진다 (2) 그래서 타깃 1개의 수확은 4건보다 적다(실측 `/eastereggs` 2건, `/cairn` 0건) — 창작자의 4건을 다 받으려면 후기가 달린 프로젝트를 각각 타깃으로 등록한다 (3) 마커(66)와 항목(4)의 차이를 실패로 세면 안 된다 — 프리뷰 상한이다 | A (페이지 구조·창작자 URL 부재 실측 2026-09-17 + 중복 재현 + 사람 결정) | 2026-09-17 실측 |
+
+### SP-030 / SP-031 실측 근거
+
+⚠️ **번호 주의.** 이 두 항목은 원래 SP-027 · SP-028 로 쓰라는 지시를 받았지만,
+`origin/feat/review-sources-expand` 브랜치가 **SP-027(Reddit 약관) · SP-028(커뮤니티
+8곳 실측) · SP-029(robots 와일드카드 피해 지점)** 을 이미 쓰고 있어 030·031 로
+옮겼다. `strategy-principles-sync.mjs` 는 ID 로 upsert 하므로, 번호가 겹친 채로
+양쪽이 머지되면 **한쪽 원칙이 조용히 덮인다.** 새 SP 를 달기 전에
+`git branch -r` 의 다른 브랜치까지 확인해라.
+
+- 약관 원문: `https://policy.naver.com/rules/service.html` (시행일 2025-07-10).
+  robots 원문·댓글 cbox 판정·예쁜 URL 껍데기(200/2,817 bytes)·창작자 URL 부재
+  실측은 `docs/review-source-findings.md` "VOC 소스 3종 실측 — tumblbug ·
+  naver_blog · bobaedream (2026-09-17)" §1~§2 에 있다.
+- SP-030 재현: `node scripts/review-robots-selftest.mjs` — 실제 원문으로
+  `ClaudeBot` → `allowed=false`, 같은 경로에 우리 토큰 → `allowed=true` 를
+  나란히 고정한다. **두 줄이 같이 참인 것**이 "기계 판정을 근거로 쓰면 안 된다"의
+  증거다.
+- SP-031 재현: `node scripts/review-tumblbug-selftest.mjs` — "타깃간중복" 블록이
+  **진짜** `computeFingerprint` 와 `store.ts` 의 판정 분기를 옮긴 인메모리 store 로
+  같은 창작자를 두 프로젝트로 타깃팅해, 4건이 4행으로 들어가는지를 단정한다
+  (고치기 전엔 8행이었다). "프로젝트스코프" 블록이 두 타깃의 후기 교집합 0건을,
+  "프리뷰상한" 블록이 마커 66 vs 항목 4 에서 `parseFailures=0` 을 고정한다.
+  같은 재현이 `node scripts/review-runner-selftest.mjs` 에도 있다 — 어댑터만
+  통과하고 러너와 붙이면 틀리는 경우를 막는다(§7.1 사례 5).
+- 킬스위치: 두 소스 다 `enabled=false` 로 등록된다. 되돌리는 문장은
+  `supabase/migrations/20260918000001_review_sources_voc_round3_rollback.sql`.
+- 이 결정들은 **리스크를 없앤 것이 아니라 받아들인 것**이다. 상황이 바뀌면
+  (경고 메일·차단·약관 개정) 위 롤백부터 돌리고 여기를 다시 쓴다.
 
 ### SP-025 / SP-026 실측 근거
 

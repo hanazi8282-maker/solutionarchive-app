@@ -95,8 +95,12 @@ export interface ParseResult {
    *    (reviewsParsed + parseFailures)에 안 들어가 — 관련없음이 많다고
    *    소스가 broken 으로 꺼지지 않는다.
    *
-   * 현재 hackernews 만 사용한다(Algolia search_by_date 가 키워드 무관 최신
-   * 댓글을 섞어 준다). 안 쓰는 어댑터는 이 필드를 두지 않는다(undefined).
+   * 현재 두 어댑터가 쓴다. 안 쓰는 어댑터는 이 필드를 두지 않는다(undefined).
+   *   hackernews — Algolia search_by_date 가 키워드 무관 최신 댓글을 섞어 준다.
+   *   tumblbug   — 창작자 후기 프리뷰에 **다른 프로젝트** 후기가 섞여 온다.
+   *                이 타깃 프로젝트 것만 받고 나머지를 여기 센다. 안 거르면
+   *                같은 후기가 타깃마다 새 행으로 적재된다(identity_key 에
+   *                productRef 가 들어가기 때문이다 — fingerprint.ts).
    */
   filtered?: number
 }

@@ -1,5 +1,15 @@
 # 코드 진단 리포트 — 2026-09-15
 
+> **[2026-09-16 추적] 치명 12건은 전부 닫혔다.** 각 항목 제목 옆에 `해결됨(PR #번호)` /
+> `미착수(사유)` 를 달았다. 09-15 시점에 이미 닫혀 있던 3건(4-2·3-1·3-2)은 이번에 main 코드를
+> 직접 대조해 재확인했고, 나머지 9건은 항목당 브랜치 1개로 고쳐 머지했다(#107·#109·#111·
+> #112·#114·#116·#117·#118·#119). 각 PR 에 회귀 셀프테스트가 붙어 있고 `build-check.yml`
+> 또는 해당 워크플로가 매번 돌린다. **중요 27건·사소 19건은 손대지 않았다 — 아래 목록 그대로 남아 있다**
+> (같은 파일을 고치는 김에 함께 닫은 2-4·3-4·3-5·3-9 는 예외로 표시했다).
+>
+> 아직 열려 있는 것 중 사람 판단이 필요한 것: RBAC 실구현(5-1 의 계획 절), 미등록 Actions
+> 시크릿 7개 처리(5-3 에서 발견), 마이그레이션 이력 복구(4-1, DB 쓰기라 승인 필요).
+
 > 코드는 한 줄도 고치지 않았다. 5개 주제(Gemini 비용·에러 처리·크론 실패·마이그레이션 대조·문서 불일치)를 읽기 전용 에이전트 4개 + 오케스트레이터 직접 DB 대조로 조사했다. 모든 주장은 `file:line` 근거가 있고, 확인 못 한 것은 "확인 불가"로 적었다. 덤으로 ③-1 수정 중 발견한 검증기 상태를 6절에 붙였다.
 
 ## 심각도 요약 3줄
@@ -8,19 +18,19 @@
 3. **조용히 사라지는 데이터** — HN enrich·Notion 피드백 크론은 전량 실패해도 초록불(2-1·2-2), 인사이트 루프는 DB 오류를 "패턴 없음"으로 접어 그날 근거를 영구 유실(2-3). 문서 불일치 20건 중 치명 3건은 RBAC 허위(5-1)·크론 시각(5-2)·PAT 존재(5-3). 마이그레이션은 **스키마 내용은 일치**하지만 이력 표가 38건 중 8건만 기록(4-1).
 
 ## 전 영역 심각도 순 색인 (번호는 아래 절의 항목)
-**치명적 12건**
-- 4-2 RLS 정책 0 + RLS OFF 테이블 7개 → anon 키 노출 · 30분 + 적용 승인
-- 3-1 refresh-token 실패 200 은폐, 60일 뒤 Threads 전체 정지 · 1~2h
-- 3-2 크론 미발화·조기사망 감지 장치 부재 · 2~3h
-- 1-1 앵글 POST 낙관적 락 없음, 배치 전량 중복 · 1h
-- 1-2 judge 프롬프트 순서 역전, 캐시 적중 0 · 1h
-- 1-3 429 재시도 20회·700초 > maxDuration 300초 · 2h
-- 2-1 (=3-3) HN enrich 전량 실패 초록불 · 0.5h
-- 2-2 (=3-4·3-9) Notion 피드백 전량 실패 exit 0 + 로그 중복 누적 · 1h
-- 2-3 인사이트 루프 DB 쓰기 9곳 error 무시, 근거 영구 유실 · 2h
-- 5-1 CLAUDE.md "RLS 로 RBAC 강제" — 실제 RBAC 없음 · 0.5h(문서)
-- 5-2 셋업 문서 크론 시각 `0 19` — 실제 `41 18` · 0.2h
-- 5-3 "PAT 없음" 문서 vs `GH_PAT` 주입 · 0.8h
+**치명적 12건 — 2026-09-16 기준 12/12 해결됨** (아래 각 항목 옆 표시가 정본)
+- 4-2 RLS 정책 0 + RLS OFF 테이블 7개 → anon 키 노출 — **해결됨(PR #97, 마이그레이션 적용까지 완료)**
+- 3-1 refresh-token 실패 200 은폐, 60일 뒤 Threads 전체 정지 — **해결됨(PR #101)**
+- 3-2 크론 미발화·조기사망 감지 장치 부재 — **해결됨(PR #101, cron-watchdog)**
+- 1-1 앵글 POST 낙관적 락 없음, 배치 전량 중복 — **해결됨(PR #112)**
+- 1-2 judge 프롬프트 순서 역전, 캐시 적중 0 — **해결됨(PR #114)**
+- 1-3 429 재시도 20회·700초 > maxDuration 300초 — **해결됨(PR #116, 비용 가드레일 포함)**
+- 2-1 (=3-3) HN enrich 전량 실패 초록불 — **해결됨(PR #107)**
+- 2-2 (=3-4·3-9) Notion 피드백 전량 실패 exit 0 + 로그 중복 누적 — **해결됨(PR #109, 3-5 도 함께)**
+- 2-3 인사이트 루프 DB 쓰기 9곳 error 무시, 근거 영구 유실 — **해결됨(PR #111, 실제로는 12곳. 2-4 도 함께)**
+- 5-1 CLAUDE.md "RLS 로 RBAC 강제" — 실제 RBAC 없음 — **해결됨(PR #119, 문서. RBAC 실구현은 미착수)**
+- 5-2 셋업 문서 크론 시각 `0 19` — 실제 `41 18` — **해결됨(PR #117)**
+- 5-3 "PAT 없음" 문서 vs `GH_PAT` 주입 — **해결됨(PR #118, 빌드 배선 제거 + 실측 인벤토리)**
 
 **중요 27건**
 - 1-4 사고 토큰 지불 후 폐기 · 2h — 1-5 파싱 실패 시 20KB 재전송 · 2h — 1-6 검수 저장만으로 앵글 전체 재생성 · 4h — 1-7 judge 건별 호출(배치 가능) · 4h
@@ -39,21 +49,21 @@
 
 조사 범위: `app/api/**`, `lib/**`, `scripts/**`, `.github/workflows/**`. Gemini(유료 API)는 `app/api/analyze/extract`·`app/api/analyze/angle` 두 경로에서만 쓰인다. 크론 루프(cmo-daily·insight-loop)는 전부 Claude CLI 구독 경로라 API 과금과 무관하다. 낭비는 앵글 파이프라인에 집중돼 있다.
 
-### [치명적] 1-1. 앵글 생성 POST 에 낙관적 락이 없어 같은 배치가 두 벌 나간다
+### [치명적·해결됨 PR #112] 1-1. 앵글 생성 POST 에 낙관적 락이 없어 같은 배치가 두 벌 나간다
 - 위치: `app/api/analyze/angle/route.ts:606`(상태 읽기) → `:690`(LLM 호출) → `:745-748`(상태 갱신)
 - 문제: status 가 `reviewed` 인지 읽기만 하고 수 분짜리 배치를 돌린 뒤 맨 끝에서야 `angled` 로 바꾼다. 그 사이 들어온 두 번째 요청도 통과한다.
 - 왜 문제: 더블클릭·탭 두 개·새로고침 재시도만으로 프로젝트당 10~32회 호출이 통째로 중복된다. 바로 옆 `extract/route.ts:391-410` 은 조건부 UPDATE 로 락을 걸어 뒀는데 angle 에만 빠졌다.
 - 고치면: 중복 실행이 409 로 끊긴다. 무료 티어 일일 한도(`lib/analysis/llm.ts:31` 주석상 20건/일)에서는 중복 1회가 그날 하루를 날리는 것과 같다.
 - 예상 작업량: 1시간 (extract 의 락 패턴 복사 + `angling` 중간 상태 1개)
 
-### [치명적] 1-2. judge 프롬프트 순서가 거꾸로라 컨텍스트 캐시 적중이 구조적으로 0
+### [치명적·해결됨 PR #114] 1-2. judge 프롬프트 순서가 거꾸로라 컨텍스트 캐시 적중이 구조적으로 0
 - 위치: `app/api/analyze/angle/route.ts:299-330` (`buildJudgePrompt`), 특히 `:305`(변하는 문구 맨 앞) 와 `:324-327`(20KB 공통 코퍼스 맨 뒤)
 - 문제: 코퍼스는 요청당 1회만 DB 에서 읽지만(`:642`) LLM 에는 앵글마다 매번 전송된다. Gemini 암묵적 캐시는 앞쪽 공통 접두사가 일치해야 걸리는데 변하는 부분이 맨 앞이다.
 - 왜 문제: 앵글 6~8건 × (judge+재작성+재심사) 최대 3회 = 20KB 를 20회 이상 정가로 반복 전송. 프로젝트당 40만 자 규모의 중복 입력.
 - 고치면: 코퍼스를 앞으로, 변하는 문구를 뒤로 옮기는 것만으로 2번째 호출부터 입력 대부분이 캐시 단가(약 1/4)로 떨어진다. 판정 품질은 그대로.
 - 예상 작업량: 1시간 (lines 배열 순서 + 셀프테스트 기대값)
 
-### [치명적] 1-3. 429 재시도 예산(최대 20회·약 700초)이 함수 상한(300초)을 넘는다
+### [치명적·해결됨 PR #116] 1-3. 429 재시도 예산(최대 20회·약 700초)이 함수 상한(300초)을 넘는다
 - 위치: `lib/analysis/llm.ts:181`(MAX_ATTEMPTS=4), `:185`(백오프 20초), `:268-281`(모델 체인 5개 루프) × `app/api/analyze/extract/route.ts:27`(maxDuration=300)
 - 문제: 모델당 4회(20+40+80초) 뒤 다음 모델로 넘어가 반복. 최악 20회 요청·700초 대기인데 함수는 300초에 죽는다.
 - 왜 문제: 일일 한도 소진 상태에서 "반드시 실패할 20회"를 다 날리고 저장 전에 강제 종료된다. 쿼터는 다 쓰고 산출물은 0. extract 는 `processing` 에 갇혔다가 10분 뒤 stale 판정(`extract/route.ts:108,127`)으로 같은 낭비를 반복한다. CLAUDE.md §7.2 의 정확한 사례.
@@ -108,24 +118,24 @@
 
 조사 범위: 워크플로 8개, `scripts/*.mjs` 무인 진입점 전부, `lib/insight/`·`lib/review/`·`lib/threads/`, `app/api/threads/**`. 먼저 확인하고 **못 찾은 것**: `Promise.allSettled` 0건. `Promise.all` 7곳은 전부 거부가 상위로 전파되거나 `{ok}` 객체를 돌려줘 삼켜지는 자리가 없다. 반대로 `app/api/threads/collect-metrics·match-posts·collect-replies`, `scripts/case-match.mjs`, `review-purge.mjs`, `review-collect.mjs` 의 종료코드 규약은 이미 기준을 지킨다. 아래는 그 표준을 아직 안 따르는 자리들이다.
 
-### [치명적] 2-1. 나이틀리 HN enrich 는 전부 실패해도 초록불 (3-3 과 같은 건, 상세)
+### [치명적·해결됨 PR #107] 2-1. 나이틀리 HN enrich 는 전부 실패해도 초록불 (3-3 과 같은 건, 상세)
 - 위치: `scripts/review-hackernews-enrich.mjs:190`(`if (res.ok)` 비-2xx 는 그냥 통과), `:194-196`(네트워크 예외 console.log), `:208-212`(UPDATE 실패 continue), `:225-229`
 - 왜 문제: 워크플로가 이 스텝 하나라 잡 전체가 매일 초록. `review-collect.mjs:310-312` 가 "한 소스라도 실패하면 1"을 지키는 것과 정반대. 원인이 안 고쳐지면 score 는 영영 안 붙는다.
 - 고치면: 카운터 세서 끝에 `process.exitCode = 1`(`review-purge.mjs:130-136` 관례). 아울러 `:190-201` 에서 HTTP 실패와 "score 필드 없음(삭제·dead 글)"이 같은 카운터로 합쳐지는 것도 `httpFailed`/`noScoreField` 로 가른다(§7.1). 0.5시간.
 
-### [치명적] 2-2. Notion 피드백 풀백: 전부 실패해도 exit 0 + 로그가 매일 밤 중복 누적 (3-4·3-9 와 같은 건, 상세)
+### [치명적·해결됨 PR #109] 2-2. Notion 피드백 풀백: 전부 실패해도 exit 0 + 로그가 매일 밤 중복 누적 (3-4·3-9 와 같은 건, 상세)
 - 위치: `scripts/notion-pull-feedback.mjs:168`(`exit 0`), `:125-129`, `:155`(로그 append 먼저) → `:157-164`(`pulled_at` UPDATE 실패는 경고만)
 - 왜 문제: `pulled_at` 이 null 로 남아 `:103` 이 다음 밤에도 같은 행을 집고 `:140 nextLogCode()` 가 새 코드를 발급 → 같은 판정이 LOG-…-01/-02/-03 으로 매일 늘어난다. `:162` 의 42703 힌트는 실제로 겪은 상황. 워크플로(`nightly-notion-feedback.yml:56-73`)가 그 파일을 자동 커밋까지 한다.
 - 고치면: `counts.error > 0 || updFailed > 0` 이면 exit 1, append 를 UPDATE 뒤로. 1시간.
 
-### [치명적] 2-3. 인사이트 루프의 DB 쓰기 9곳이 error 를 안 보고, 그중 하나는 "확인 불가"를 "패턴 없음"으로 접는다
+### [치명적·해결됨 PR #111] 2-3. 인사이트 루프의 DB 쓰기 9곳이 error 를 안 보고, 그중 하나는 "확인 불가"를 "패턴 없음"으로 접는다
 - 위치: `lib/insight/loop.ts:370`(핵심), 같은 패턴 `:299-312, :336-339, :381-384, :404, :423, :501-505, :518-524, :527-536, :539, :617-623, :672`
 - 문제: `:370` 의 `insight_patterns` 존재 확인이 `error` 를 구조분해하지 않는다. 조회 실패 → `existing=undefined` → `:420` "신규 패턴" 분기 → `:423` INSERT 가 UNIQUE(`20260829000002_insight_patterns.sql:38-39`) 위반으로 실패하는데 `:423` 도 error 를 안 본다 → **그날 밤 근거 1건이 영구히 사라진다.** 해당 `saved_examples` 는 `:299-312` 에서 이미 `analyzed` 로 바뀌어 다음 밤에 안 온다. 보고에는 `new: [키]` 로 "신규 패턴 1건"이 뜬다(`:435-441`).
 - 같은 계열: `:672` `hypotheses.select('code')` error 무시 → `max=0` → `H1` 재발급 → `:392` INSERT UNIQUE 위반 → `:404 if (!hErr)` 의 else 가 없어 어디에도 안 남는다. `:501-524` 승격 경로는 `counts.promoted++` 를 먼저 올리고 결과를 안 봐서 DB 는 그대로인데 보고와 `insight_loop_runs.promoted_count` 에 "승격 1".
 - 왜 문제: 이 루프가 `main` 에 사람 승인 없이 커밋하는 유일한 파이프라인이고 그 근거가 `evidence_count` 누적이다. 누적이 조용히 끊기면 `shouldReflect` 가 영영 안 걸려 "도는데 아무것도 안 배우는" 상태로 몇 달 간다. `:255` 는 "키 목록을 못 읽었으면 빈 목록으로 넘어가지 않는다"고 막아 뒀는데 바로 아래는 안 막혀 있다.
 - 고치면: `:370` 에 `error` 받아 throw, 나머지 8곳 `const { error } = …; if (error) throw` 한 줄씩. 못 읽은 밤은 `ok:false` → `insight-loop.mjs:181` 이 1. 2시간(셀프테스트 포함).
 
-### [중요] 2-4. 인사이트 루프: 실행 로그를 못 남겨도 종료코드 0
+### [중요·해결됨 PR #111] 2-4. 인사이트 루프: 실행 로그를 못 남겨도 종료코드 0
 - 위치: `lib/insight/loop.ts:630`(`ok` 계산) → `:633-649`(`insight_loop_runs` insert 실패는 `fatal` 에만) → `:652` → `scripts/insight-loop.mjs:181`
 - 왜 문제: 헤더 `:30` 이 "안전장치 3겹" 중 셋째로 꼽은 로그가 작동 안 한 밤이 정상으로 기록된다(§2). 그날 `main` 커밋이 어느 실행에서 나왔는지 추적할 행이 없다.
 - 고치면: `:652` 를 `ok: ok && !fatal`. 0.25시간.
@@ -183,29 +193,29 @@
 - **collect-replies** (매시 45분): collect-metrics 와 동일 구조(`:67, 136-139, 154-162`). "유실추정" 카운트는 응답 본문에만 있고 저장 안 됨(`:151`).
 - **누락된 하루가 드러나는가**: DASHBOARD 는 존재하는 run 만 그린다(`scripts/status-render.mjs:45-61`). `running` 5분 stale 은 표시(`:54-55`). `ops/state/cmo-YYYY-MM-DD-cron.jsonl` 은 ls 하면 빠진 날이 보이지만 자동 감지 코드 없음. **"어젯밤 안 돌았다"는 Notion 행 부재라는 부재 신호뿐이고, 아침 브리핑은 전날 행을 최신으로 오인한다**(`cmo-daily.mjs:275` 주석도 같은 말).
 
-### [치명적] 3-1. refresh-token 실패가 구조적으로 은폐된다 — 60일 뒤 Threads 파이프라인 전체가 죽는다
+### [치명적·해결됨 PR #101] 3-1. refresh-token 실패가 구조적으로 은폐된다 — 60일 뒤 Threads 파이프라인 전체가 죽는다
 - 위치: `app/api/threads/refresh-token/route.ts:19-24`, `lib/threads/token.ts:121-123`, `vercel.json:7`
 - 문제: 갱신 불가여도 200. 주 1회라 재시도 간격 7일. `needsReauth` 를 읽는 코드가 없다. match-posts·collect-metrics·collect-replies 도 토큰 없으면 200 으로 빠진다.
 - 왜 문제: 장기 토큰은 60일 뒤 갱신 불가(`:5`) → 수동 재인증만 답. 성과 데이터가 몇 주 끊긴 뒤에야 발견되고 `views_1h` 는 영구 손실.
 - 고치면: 만료까지 남은 일수를 상태 로그에 한 줄, 또는 `needsReauth` 시 `agent_run_steps` 1행(match-posts 의 `recordUnlinkedCheck` 방식) → 아침 브리핑에 뜬다.
 - 예상 작업량: 1~2시간
 
-### [치명적] 3-2. 크론이 "안 돌았다"를 감지하는 장치가 어디에도 없다
+### [치명적·해결됨 PR #101] 3-2. 크론이 "안 돌았다"를 감지하는 장치가 어디에도 없다
 - 위치: `scripts/status-render.mjs:45-61`, `scripts/cmo-daily.mjs:275`, 워크플로 6개 전체(`if: failure()` 0건)
 - 문제: `npm ci` 실패·Actions 스케줄 미발화(2026-09-01 실측, `nightly-review-collect.yml:21-26`)·90분 타임아웃이 전부 완전한 침묵으로 나타난다.
 - 고치면: 각 워크플로에 `if: failure()` 스텝 하나로 `notion-status-log.mjs --track … --needs-human` 호출(스크립트 CLI 이미 있음 `scripts/notion-status-log.mjs:5-7`). 하루 걸러 도는 상태를 다음 아침에 안다.
 - 예상 작업량: 2~3시간
 
-### [중요] 3-3. nightly-hackernews-enrich 은 전량 실패해도 초록불
+### [중요·해결됨 PR #107] 3-3. nightly-hackernews-enrich 은 전량 실패해도 초록불
 - 위치: `scripts/review-hackernews-enrich.mjs:189-196, 214-217`
 - 고치면: `if (storiesNoScore > storiesOk) process.exitCode = 1` + 요약 한 줄. 3-2 와 맞물려 자동으로 사람에게 간다. 30분.
 
-### [중요] 3-4. nightly-notion-feedback 은 토큰이 없어도, 전건 실패해도 exit 0
+### [중요·해결됨 PR #109] 3-4. nightly-notion-feedback 은 토큰이 없어도, 전건 실패해도 exit 0
 - 위치: `scripts/notion-pull-feedback.mjs:85-88, 167-168` (같은 파일이 Supabase 쪽은 `exit 2` 를 제대로 씀 `:98-99`)
 - 왜 문제: 시크릿 만료가 "매일 밤 성공하는 아무것도 안 하는 잡"으로 보인다. CLAUDE.md §7.1 위반 그 자체.
 - 고치면: 토큰 없음 → exit 2, error>0 → exit 1. 30분.
 
-### [중요] 3-5. nightly-notion-feedback 에 concurrency 가드가 없다
+### [중요·해결됨 PR #109] 3-5. nightly-notion-feedback 에 concurrency 가드가 없다
 - 위치: `.github/workflows/nightly-notion-feedback.yml:25-31`
 - 왜 문제: 수동 실행과 스케줄이 겹치면 같은 `pulled_at IS NULL` 행을 둘이 집어 로그 중복 append(`notion-pull-feedback.mjs:158`)·같은 코드 발급(`:76-80`)·push 충돌. 다른 워크플로는 전부 가드가 있다.
 - 고치면: 3줄. 5분.
@@ -241,7 +251,7 @@
 - **적용 이력은 불일치한다.** 로컬 정방향 38건(첫 파일 `20260816000001`) 중 DB 이력 테이블에는 **8건**만 있고 전부 `20260910` 이후다. 앞선 30건은 대시보드 SQL 에디터·MCP `execute_sql` 로 적용돼 기록이 없다.
 - **9/15 `case_reader_axis` 는 적용됐지만 미기록.** `reader_problem`·`transfer_note`·`preconditions`·`transferability*` 컬럼과 CHECK 2개(`case_studies_reader_problem_format`, `case_moves_transferability_vocab`)가 DB 에 있다. 이력 마지막 행은 `case_review_note`(20260913170852).
 
-### [치명적] 4-2. RLS 정책 0개 + RLS 꺼진 테이블 7개가 브라우저 anon 키에 노출 (대조 중 발견, Supabase 어드바이저 경고)
+### [치명적·해결됨 PR #97 — 마이그레이션 적용까지 완료] 4-2. RLS 정책 0개 + RLS 꺼진 테이블 7개가 브라우저 anon 키에 노출 (대조 중 발견, Supabase 어드바이저 경고)
 - 문제: `pg_policies` 가 비어 있다(모든 테이블 정책 0). RLS 켜진 테이블은 anon 이 접근 못 해서 괜찮지만, RLS 가 **꺼진** 7개 — `post_replies`, `agent_runs`, `agent_run_steps`, `research_queue`, `pmf_assessments`, `pmf_assessment_moves`, `notion_sync_log` — 는 anon 키로 전 행 읽기·쓰기가 된다. 그 anon 키는 `lib/supabase/client.ts:5-7` 에서 브라우저 번들에 들어간다(`NEXT_PUBLIC_SUPABASE_ANON_KEY`). Google 로그인 허용목록은 앱 라우트만 막고 PostgREST 직접 호출은 못 막는다.
 - 왜 문제: `research_queue`(조사 대기열 정본)·`agent_runs`(실행 로그 정본)·`notion_sync_log`(발행 대기함 동기화)를 외부인이 조작할 수 있다. 각 테이블은 `20260907000003`·`20260908000001`·`20260908000002`·`20260908000003`·`20260909000001` 마이그가 "service_role 전용" 주석과 함께 만들었는데 RLS 를 켜지 않아 주석과 실제가 다르다.
 - 고치면: 7개에 `ENABLE ROW LEVEL SECURITY` (정책 없이 켜면 anon 차단, service_role 은 그대로). 서버 스크립트는 전부 service key 라 영향 없음.
@@ -256,7 +266,7 @@
   ALTER TABLE public.notion_sync_log ENABLE ROW LEVEL SECURITY;
   ```
 
-### [중요] 4-1. 이력 테이블이 실제 적용을 대표하지 못한다
+### [중요·미착수] 4-1. 이력 테이블이 실제 적용을 대표하지 못한다
 - 문제: 38건 중 8건 기록. 기록된 8건도 이름 규칙이 둘이다 — 5건은 `hackernews_enable` 처럼 접두 숫자를 뺐고 3건은 `20260911000002_analysis_angles_adaptation_suggestion` 처럼 파일명 전체다. 버전 번호도 파일의 `20260911000002` 가 아니라 적용 시각(`20260911101459`)이다.
 - 왜 문제: `supabase db push`·`migration repair`·브랜치 기능이 이 표를 기준으로 "무엇을 아직 안 했나"를 판단한다. 지금 표로는 30건을 다시 적용하려 들거나(대부분 `IF NOT EXISTS` 라 무해하지만 seed INSERT 8건은 중복 위험), 반대로 9/15 건을 미적용으로 오판한다. 사람이 "적용됐나?"를 물을 때 답할 정본이 없다 — 이번 대조도 스키마를 전부 덤프해야 답이 나왔다.
 - 고치면: 이력 표 하나로 적용 여부를 답할 수 있고, 새 마이그를 `apply_migration` 으로만 넣는 규칙이 성립한다.
@@ -271,18 +281,18 @@
 
 검사 범위: CLAUDE.md, `ops/roles/*.md`(4), `.claude/agents/*.md`(11), `docs/*.md`(12), `content/guides/queue-guide.md`, 워크플로 10개 헤더 주석, `supabase/migrations/*.sql` 전수, `vercel.json`, `package.json`, `.env.local` 키명. **일치 확인된 것**: 크론 5개 주석 vs 실제 시각 전부 일치, CTO 헌장의 `pmf_score` 부재·`not_run` CHECK·`cut=0.5`, §7.1 3상태 인용처, CG-1/CG-2, 병목 7종, posts.status 4값, COMMIT_PREFIXES 4개, 서브에이전트 env 화이트리스트. 아래는 어긋난 것만이다.
 
-### [치명적] 5-1. "권한은 Supabase RLS 로 DB 레벨에서 강제"라는 헌법 주장 — 실제 RBAC 는 없다
+### [치명적·해결됨 PR #119 — 문서만. RBAC 실구현은 미착수] 5-1. "권한은 Supabase RLS 로 DB 레벨에서 강제"라는 헌법 주장 — 실제 RBAC 는 없다
 - 문서: `CLAUDE.md:107-112` (super_admin/admin/member 3역할·`brand_access[]`), `:111` "화면 숨김 수준이 아니라 데이터 접근 자체를 차단"
 - 실제: `lib/auth/policy.ts:4-7` "허용 목록 = 전원 같은 권한. §5 의 역할×브랜드 RBAC 는 아직 없다 … service_role 이라 RLS 를 우회한다". 마이그레이션 전체에 `CREATE POLICY` 0건. `super_admin`/`brand_access` 는 어디에도 없다.
 - 왜 문제: 이 문서를 근거로 민감 재무(§113 "원가·순이익 원장은 member 비노출")를 DB 에 넣으면 그 순간 전원 열람. 4-2 의 RLS 미설정과 합치면 "정책 0 + 7테이블 RLS OFF + anon 키 브라우저 노출"이 실제 상태다.
 - 고치면: §5 를 "현 상태: 허용목록 단일 권한 / 계획: RBAC" 로 분리. 0.5시간(문서). RBAC 실구현은 별건 8~16시간.
 
-### [치명적] 5-2. 셋업 문서의 크론 시각이 폐기된 값
+### [치명적·해결됨 PR #117] 5-2. 셋업 문서의 크론 시각이 폐기된 값
 - 문서: `docs/insight-loop-setup.md:216` "`0 19 * * *` = KST 04:00", `:221` "04:00 을 고른 덕에 3시간 여유"
 - 실제: `nightly-insight-loop.yml:23` `41 18 * * *`. 같은 파일 `:20-22` 가 "정각에서 옮겼다. 정각은 Actions 가 미루거나 건너뛴다"고 명시.
 - 왜 문제: 정각 크론 미발화 사고(2026-09-01, `nightly-review-collect.yml:23-26`)의 교훈이 셋업 문서에만 없다. 이 문서 보고 새 워크플로를 만들면 사고 재현. 0.2시간.
 
-### [치명적] 5-3. "PAT 을 만들지 않는다"는 문서 vs 실제 주입되는 `GH_PAT`
+### [치명적·해결됨 PR #118] 5-3. "PAT 을 만들지 않는다"는 문서 vs 실제 주입되는 `GH_PAT`
 - 문서: `docs/insight-loop-setup.md:125-129` "GITHUB_TOKEN 은 넣지 않는다 … PAT 을 만들면 권한이 리포 밖으로 넓어지기만 한다"
 - 실제: `build-check.yml:29` `GITHUB_TOKEN: ${{ secrets.GH_PAT }}` — main push·모든 PR 빌드의 `next build` env 로 들어간다.
 - 왜 문제: 자격증명 인벤토리가 문서와 갈라지면 회수·회전 대상에서 빠진다. 문서가 "우리 리포엔 PAT 없음"이라고 믿게 만든다. 고치면: 시크릿 8종 실제 목록을 한 곳에 + GH_PAT 이 빌드에 왜 필요한지 판정. 0.3+0.5시간.

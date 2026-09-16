@@ -595,3 +595,263 @@ damoang 이 11건인 것은 댓글 13건 중 3건이 이모티콘만 달린 것�
   수가 어긋나 멀쩡한 글이 파싱 실패로 잡힌다.
 - **두 사이트 이용약관 원문 확인 — 여전히 미실시(확인 불가).** robots 만 쟀다.
   `enabled=true` 전환 전에 사람이 봐야 한다.
+
+## VOC 소스 3종 실측 — tumblbug · naver_blog · bobaedream (2026-09-17)
+
+**3종을 설계했고 1종만 남았다.** 코드를 쓰기 전에 AC-0 게이트로 셋 다 실제
+응답을 받아 봤고, tumblbug 과 naver_blog_post 는 거기서 떨어졌다. 떨어진
+근거를 여기 남기는 이유는, 안 적어 두면 6개월 뒤에 누가 같은 설계를 다시
+하기 때문이다.
+
+측정 조건은 이 문서 맨 위와 같다 — 정직한 UA, 재시도 없음, 요청 간 2.5~4초,
+robots 선확인. 로컬(한국 가정용 IP)에서 쟀다.
+
+### 요약
+
+| 소스 | 판정 | 가른 근거 |
+|---|---|---|
+| bobaedream | ✅ 채택 | robots 전면 허용 · 정직 UA 18/18 HTTP 200 · 댓글이 정적 HTML · 고유 id · 개수 마커 |
+| tumblbug | ❌ 제외 | 코멘트도 프로젝트 설명도 **정적 HTML 에 없다.** robots 가 막은 `/api/` XHR 로만 온다 |
+| naver_blog_post | ❌ 제외 | 파싱은 됐다. **이용약관이 우리 행위를 명시적으로 금지**한다 — 사람이 결정할 일 |
+
+### 1. 텀블벅 — 제외 (설계가 가정한 데이터가 정적으로 오지 않는다)
+
+설계는 "프로젝트 설명 1건 + 후원자 커뮤니티 코멘트 N건"이었다. 둘 다 없었다.
+
+먼저 URL 패턴부터 설계와 달랐다. `/project/<slug>` 가 아니라 **`/<slug>`** 다
+(sitemap.xml 실측). 탭은 `/<slug>/story`, `/<slug>/community/backer`,
+`/<slug>/community/creator`, `/<slug>/community/review`.
+
+- **코멘트: 정적 HTML 에 0건.** hydration JSON(`window.MOBX_STATE`)의 최상위
+  키는 `currentUser` · `projectStore` · `projectWarrantyStore` ·
+  `pledgeOrderStore` · `projectEditorStore` · `editorRewardStore` 뿐이고
+  **코멘트 스토어가 아예 없다.** 페이지 소스에 댓글 텍스트도, 개수 마커도 없다.
+- **프로젝트 설명도 안 온다.** `projectStore.project.story === null` 이다.
+  `/story` 탭에서도 null 이고 `introduction` · `purpose` · `rewardsDescription`
+  전부 null 이다. 정적으로 오는 긴 문자열은 `refundExchangePolicy`(환불 규정)뿐이다.
+- robots.txt 는 `/api/` · `/auth/` · `/sessions/` · `/oauth/` · `/discover?` ·
+  `/search?` 를 막는다. 코멘트가 오는 XHR 이 그 `/api/` 다.
+
+설계서의 탈락 조건("코멘트가 `/api/` XHR 로만 오면 프로젝트 설명만, 그것도
+없으면 소스 제외")에 정확히 걸렸다. **어댑터·픽스처·마이그레이션 행·ADAPTERS
+엔트리를 하나도 만들지 않았다.**
+
+**다만 정적으로 오는 VOC 가 하나 있긴 하다 — 채택하지 않았다.**
+`MOBX_STATE.projectStore.creators[i][1].review.contents[]` 에 후기가 최대 4건
+실려 온다. 필드는 `projectWarrantyReviewId`(고유 id) · `body`(전문) ·
+`createdAt`(절대 ISO) · `projectPermalink` 이고 개수 마커
+`review.totalReviewCount` 도 있다. 실측 예(`/eastereggs`):
+
+```
+totalReviewCount=66  contents=4
+[245885] 2026-02-26 "캐릭터 그림이 너무 귀여워요 일러스트가 너무 이뻐서 끝내기
+         아쉬웠습니다 그런데 탐정 캐릭터에 대해서는 정보가 좀 부족해서 …"
+[245602] 2026-02-26 "적극 추천받아 시즌1도 함께 후원했습니다. … 아쉬운 점이
+         몇 가지 있는데 배송 포장이 너무 부실합니다. …"
+```
+
+품질은 좋다. 그런데 **이건 이 프로젝트의 후기가 아니라 창작자의 지난 프로젝트
+후기**다(화면 라벨이 그대로 "이 창작자의 지난 프로젝트 후기"이고, 위 예의
+`projectPermalink` 도 보고 있는 프로젝트와 다르다). 수집 축이 상품이 아니라
+창작자가 되고, 같은 창작자의 프로젝트 페이지마다 같은 4건이 반복된다.
+설계서에 없는 다른 데이터라 구현자가 임의로 바꿔 넣을 것이 아니라고 보고
+**보고만 하고 멈췄다.** 쓰기로 하면 축을 창작자로 다시 잡고 설계부터 해야 한다.
+
+### 2. 네이버 블로그 — 제외 (기술이 아니라 약관이 막았다)
+
+파싱에 필요한 것은 전부 확인됐다. 막은 것은 그다음이다.
+
+**(a) 기술 실측 — 전부 통과**
+
+- `PostView.naver?blogId=&logNo=` → HTTP 200, 244~276KB. 마커 4개 글에서 안정:
+  - 본문 `<div class="se-main-container">` (1개)
+  - 발행일 `<span class="se_publishDate pcol2">2026. 8. 4. 11:00</span>`
+  - 제목 `og:title`
+- **예쁜 URL 이 진짜 빈 껍데기다.** `blog.naver.com/naverofficial/224367462657`
+  → **HTTP 200 / 2,817 bytes** 의 iframe 프레임셋. 같은 글의 PostView 는
+  276,193 bytes. 상태 코드로 판정했으면 "200이니까 됐다"고 적었을 사례다(§7.1).
+  설계의 `/PostView.naver` 한정 가드는 옳았다.
+- 없는 글(`logNo=999999999999`) → HTTP 404 / 110KB 껍데기, `se-main-container` 0개.
+
+**(b) 댓글 — 정적이 아니다. 탈락 확정**
+
+페이지에 `cbox` 문자열이 99번 나오지만 **전부 CSS·설정이고 댓글 텍스트는
+0건**이다(`u_cbox_contents` 0개, 4개 글 전부). 설정값이 출처를 그대로 말한다:
+
+```
+var naverCommentApiURL      = 'https://apis.naver.com/commentBox/cbox9';
+var naverCommentApiProxyURL = 'https://apis.naver.com/commentBox/blogid';
+```
+
+별도 호스트(`apis.naver.com`)의 XHR 이다. 어댑터 상수 HOST 원칙에 어긋나고
+그 호스트 robots 를 따로 재야 한다. 설계대로 **본문 전용**으로 축소하는 것이
+맞았다.
+
+**(c) 그런데 약관이 막는다 — 여기서 멈췄다**
+
+네이버 서비스 이용약관(2025-07-10 시행, `policy.naver.com/rules/service.html`)
+원문:
+
+> 네이버의 사전 허락 없이 자동화된 수단(예: 매크로 프로그램, 로봇(봇),
+> 스파이더, 스크래퍼 등)을 이용하여 … **네이버 서비스에 게재된 회원의
+> 아이디(ID), 게시물 등을 수집하거나** … 이용자(사람)의 실제 이용을 전제로
+> 하는 네이버 서비스의 제공 취지에 부합하지 않는 방식으로 네이버 서비스를
+> 이용하거나 … 해서는 안 됩니다.
+
+우리가 하려던 일(스크래퍼로 게시물 수집)을 문장이 그대로 지목한다.
+robots.txt 본문에도 같은 의사가 적혀 있다:
+
+```
+# BOT ACCESS FOR THE PURPOSES OF AI TRAINING AND RETRIEVAL-AUGMENTED
+# GENERATION (RAG) IS STRICTLY PROHIBITED.
+User-agent: GPTBot           Disallow: /
+User-agent: ClaudeBot        Disallow: /
+User-agent: Claude-SearchBot Disallow: /
+User-agent: PerplexityBot    Disallow: /
+...
+User-agent: *
+Disallow: /PostList.naver
+Disallow: /PostPrint.naver
+...
+Disallow: comment.naver
+```
+
+우리 UA 토큰은 그 목록에 없어 `*` 그룹이 적용되고 `/PostView.naver` 는
+금지 목록에 없다 — **기계 판정만 보면 allowed** 다. SP-025(다모앙)와 같은
+모양이다. 다른 점은 이것이다: 다모앙은 robots 의 **의사 표시**였고 우리 용도가
+거기 걸리는지는 해석의 여지가 있었다. 네이버는 **약관 본문이 우리 행위를
+명시적으로 금지**한다. 구현자가 넘을 선이 아니라고 판단해 어댑터를 만들지
+않았다. 진행하려면 사람이 결정해야 한다.
+
+부수적으로 `rss.blog.naver.com` 도 확인했다 — `User-agent: * / Disallow: /`
+전면 금지다. 우회로로 쓸 수 없다.
+
+### 3. 보배드림 — 채택
+
+설계 단계에서 "게시판 목록이 403/301 로 오락가락한다"는 이유로 조건부였다.
+**재현되지 않았다.**
+
+**(a) 접근 안정성 — 정직한 UA 로 18/18 HTTP 200**
+
+`www` / apex, `/view` / `/view.php` / `/list`, 3라운드 반복:
+
+```
+r1~r3  200  /view?code=freeb&No=2000000        166,9xx bytes
+r1~r3  200  /view.php?code=freeb&No=2000000    166,9xx bytes
+r1~r3  200  /list?code=freeb                   111,575 bytes
+r1~r3  200  /view?code=national&No=2000000     130,0xx bytes
+r1~r3  200  /view?code=strange&No=100000           121 bytes  ← 없는 게시판
+r1~r3  200  https://bobaedream.co.kr/view?...  166,9xx bytes
+```
+
+403 도 301 도 한 번도 안 나왔다. **UA 위장은 하지 않았다** — 위장해야만 되는
+상황이면 제외할 생각이었는데, 그럴 필요가 없었다.
+
+⚠️ `code=strange`(없는 게시판)가 **HTTP 200 에 121 bytes** 를 돌려준다.
+상태 코드로 성공을 판정하면 이걸 정상 수집으로 적게 된다(§7.1). 어댑터가
+`bodyCont` 부재로 실패 처리하고, 셀프테스트가 그 경우를 고정한다.
+
+**(b) robots.txt — 전면 허용**
+
+```
+User-agent: *
+Allow: /
+
+User-agent: grapeshot
+Disallow:
+
+User-agent: Amazonbot
+Disallow: /
+```
+
+금지 경로가 0개다. damoang·82cook 과 달리 쿼리 대상 Disallow 가 없어
+SP-026(러너가 쿼리를 떼고 판정하는 구멍)을 밟지 않는다.
+
+**(c) 셀렉터 — 전부 정적 HTML**
+
+| 대상 | 마커 |
+|---|---|
+| 글 제목 | `<strong itemprop="name" ...>제목<em class="detailTxtDeco01">[23]</em>` |
+| 글 본문 | `<div class="bodyCont" itemprop="articleBody">` … `<!-- 본문 끝 -->` |
+| 글 작성일 | `<span class="countGroup">조회 … 2020.04.22&nbsp;(수) 10:53</span>` |
+| 댓글 개수 | `<span class="comm2">(23)</span>` |
+| 댓글 앵커 | `<dd class="" id="small_cmt_1018669" …>본문</dd>` |
+| 댓글 작성일 | `<span class="date">20.04.22 12:14</span>` |
+
+댓글 작성일이 2자리 연도라 82cook 과 같은 피벗(90)을 쓴다. **표기가 YY.MM.DD
+인 것은 추정이 아니라 실측이다** — 같은 글의 첨부 이미지 경로가
+`/bbs/freeb/2020/04/22/` 다.
+
+**(d) ⚠️ 알아 둘 한계 — 댓글 100건이 넘으면 일부만 온다**
+
+라이브 프로브에서 잡혔다. 안전장치가 걸린 게 아니라 **수집량이 조용히 줄어드는**
+쪽이라 더 위험한 종류다(§7.2).
+
+```
+No=1366719  마커 155 → 앵커 55   ← 나머지 100건은 comment_list.php 로 따로 온다
+No=1366724  마커  21 → 앵커 21
+No=1366740  마커  12 → 앵커 12
+No=1366714  마커  12 → 앵커 12
+No=1366717  마커   5 → 앵커  5
+No=1366746  마커   1 → 앵커  1
+No=2000000  마커  23 → 앵커 23
+```
+
+그래서 **개수 마커 판정을 damoang·82cook 과 다르게 뒀다.** 저쪽은
+`declared - anchors` 를 실패로 세는데, 여기서 그러면 댓글 많은 글 하나가
+실패 100건을 찍어 소스가 `broken` 으로 꺼진다. 구조가 깨진 게 아니라 사이트가
+나눠 주는 것이다. 그래서 **마커가 >0 인데 앵커가 0건일 때만** 실패로 센다.
+
+100 을 넘는 글에서 몇 건을 주는지는 데이터가 한 건뿐이라 공식으로 만들지
+않았다(155→55). 전량이 필요하면 `/board_renew/bulletin/comment_list.php` 를
+붙여야 하는데, 그건 1글=1요청을 깨는 일이고 SP-026 수정이 선행되어야 한다.
+
+**(e) 이용약관 — 확인 불가**
+
+사이트에서 약관 페이지를 찾지 못했다. 푸터에 약관 링크가 없고
+`/member/agreement` · `/policy` · `/etc/agreement` 가 전부 404 다.
+**robots 가 허용한다는 것과 약관이 허용한다는 것은 다른 사실이고, 확인 못 한
+것을 허용으로 접지 않는다**(§7.1). 그래서 `enabled=false` 로 등록한다.
+
+### 라이브 프로브 (2026-09-17, DB 쓰기 없음)
+
+실제 응답을 실제 어댑터의 `parse()` 에 통과시킨 결과다. 픽스처가 아니다.
+
+```
+https://www.bobaedream.co.kr/view?code=freeb&No=2000000
+  HTTP 200 · 166,990 bytes
+  reviews=24  parseFailures=0  nextCursor=null
+  본문: "후방)이거 3D그래픽 이라는데 검증 좀..\n\n아니죠.?"  writtenAt=2020-04-22
+  댓글[0]: …#small_cmt_1018376  "와우!!!\n\n나도 저렇게 다시 태어나고 싶드앙"  writtenAt=2020-04-22
+
+https://www.bobaedream.co.kr/view?code=battle&No=1366719
+  HTTP 200 · 231,082 bytes
+  reviews=56  parseFailures=0  nextCursor=null
+  본문: "'소카'의 횡포\n\n안녕하세요. 카셰어링 쏘카(Socar)를 이용하다가 대기업 CS의
+         기만적인 대응과 황당한 일처리를 겪어 공익 목적으로 글을 올립니다. …"  writtenAt=2026-09-12
+  댓글[0]: …#small_cmt_160044  "그래서 서비스 가능 지역하고 불가 지역으로 나눠서
+         되어 있는데 저희집은 가능지역이여서 이용 해온건데 이리되었…"  writtenAt=2026-09-13
+
+https://www.bobaedream.co.kr/view?code=hotcar&No=3000000   ← 없는 글
+  HTTP 200 · 121 bytes
+  reviews=0  parseFailures=2  nextCursor=null   ← 200 을 성공으로 접지 않는다
+```
+
+한글이 깨지지 않고 실제 글 내용과 일치한다. `externalId` 를 전건 확보했고
+(composite 폴백 0건) 중복도 없다. `nextCursor=null` 이라 타깃이 곧바로 닫힌다.
+
+### 구현물
+
+- 어댑터 `lib/review/adapters/bobaedream.ts` (공용 ref 검증 `url-ref.ts` 재사용)
+- 픽스처 4종 `fixtures/review/bobaedream/`
+  (정상 / 댓글0건 / 댓글영역소실 / 본문소실) — 실측 응답에서 깎았다
+- 셀프테스트 `scripts/review-bobaedream-selftest.mjs` (89건)
+- robots 단위테스트 — `scripts/review-robots-selftest.mjs` 에 원문 그대로 추가
+- 러너 경계면 — `scripts/review-runner-selftest.mjs` 에 **새 블록으로** 추가
+  (기존 damoang·82cook 블록은 손대지 않았다)
+- 마이그레이션 `20260918000001_review_sources_voc_round3.sql` + `_rollback.sql`
+  — **파일만. 미적용** (enabled=false 1행, DDL 없음)
+
+`lib/review/{types,url-ref,runner,robots,store}.ts` 는 한 줄도 건드리지 않았다.
+특히 `runner.ts:153`(SP-026)은 이번 범위 밖이고, 보배드림도 1글=1요청이라
+그 구멍을 밟지 않는다.

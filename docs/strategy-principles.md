@@ -1,4 +1,4 @@
-# 원칙 원장 (Corpus C) — SP-001 ~ SP-026
+# 원칙 원장 (Corpus C) — SP-001 ~ SP-027
 
 크로스섹션 어드바이저(§20 / §13-7)의 Corpus C. 수익화 리서치 문서 §22 를 구조화한
 조각이다. **이 표가 정본이다.** `strategy_principles` 테이블은 이 표에서 시딩하고,
@@ -40,6 +40,23 @@
 
 | SP-025 | channel, legal, community, risk-accepted | 다모앙(damoang.net) robots.txt 는 `anthropic-ai`·`Claude-Web`·`GPTBot`·`CCBot`·`Google-Extended` 등을 "AI 크롤러 차단 (콘텐츠 학습 방지)" 로 전면 금지하고, `trend-archive/0.1`·`CollectorHub/0.1` 같은 **자칭 수집기**도 이름을 확인하는 대로 차단 목록에 추가하며 "robots 는 의사 표시이고 분쟁 시 근거가 된다"고 문서에 적어 두었다 — 우리 UA(`solutionarchive-review-collector/0.1`)는 아직 목록에 없어 `User-agent: *` / `Allow: /` 가 적용돼 **기계 판정은 allowed** 지만, 사이트의 거부 의사가 우리 용도(AI 분석·콘텐츠 생성)를 덮는다. 남헌이 **2026-09-16 이 사실을 인지한 채로 수집 진행을 결정**했다(Reddit/SP-005 와 같은 리스크 수용 방식). 단 `enabled=false` 로 등록해 사람이 켜야 시작한다 | A (robots.txt 원문 실측 2026-09-16 + 사람 결정) | 2026-09-16 실측 |
 | SP-026 | infra, bug, robots-txt | `lib/review/runner.ts:153` 이 `robotsVerdict(cached, u.pathname, PRODUCT_TOKEN)` 로 **쿼리스트링을 빼고** 판정을 부른다 — `robots.ts` 자체는 `*`·`$` 와 쿼리를 정확히 판정하는데(SP-018 로 수정됨), 호출부에서 `u.search` 가 잘려 `Disallow: /*?page=` (다모앙) 나 `Disallow: /entiz/read.php?bn=15&num=1166440&page=6` (82cook) 같은 **쿼리 대상 규칙이 어떤 경로와도 매칭되지 않는다.** 와일드카드 구현 여부와 무관한 별개 결함이고 전 소스에 동시 영향을 준다. 이번 커뮤니티 어댑터는 1글=1요청이라 이 구멍을 밟지 않지만(수집 URL 에 `?page=` 가 없다), **댓글 페이지네이션을 붙이려면 이 수정이 선행되어야 한다** — 안 고치고 붙이면 안전장치가 robots 위반을 못 막는다(§7.2) | A (실측 — 실제 robots 를 통과시켜 재현) | 2026-09-16 실측 |
+
+| SP-027 | channel, legal, naver, blocked | 네이버 서비스 이용약관(2025-07-10 시행)이 "네이버의 사전 허락 없이 자동화된 수단(예: 매크로 프로그램, 로봇(봇), 스파이더, 스크래퍼 등)을 이용하여 … 네이버 서비스에 게재된 회원의 아이디(ID), **게시물 등을 수집**하거나 … 해서는 안 됩니다" 라고 우리가 하려던 행위를 문장으로 직접 지목해 금지한다. `blog.naver.com/robots.txt` 도 본문에 "BOT ACCESS FOR THE PURPOSES OF AI TRAINING AND RETRIEVAL-AUGMENTED GENERATION (RAG) IS STRICTLY PROHIBITED" 를 적고 `ClaudeBot`·`Claude-SearchBot`·`GPTBot` 을 이름으로 전면 금지한다. 우리 UA 토큰은 그 목록에 없어 `*` 그룹이 적용되고 수집 대상 경로(`/PostView.naver`)는 Disallow 에 없어 **기계 판정은 allowed** 다 — SP-025(다모앙)와 같은 모양이지만 **층위가 다르다**: 다모앙은 robots 의 의사 표시라 해석의 여지가 있었고, 네이버는 약관 본문이 명시적이다. 그래서 네이버 블로그는 기술 실측을 전부 통과했음에도(본문 컨테이너·발행일 마커 확인) **어댑터를 만들지 않고 제외**했다. 재개하려면 사람의 결정이 선행되어야 한다 | A (약관·robots 원문 직접 확인 2026-09-17) | 2026-09-17 실측 |
+
+### SP-027 실측 근거
+
+- 약관 원문 위치: `https://policy.naver.com/rules/service.html` (시행일 2025-07-10).
+  robots 원문·댓글 cbox 판정·예쁜 URL 껍데기(200/2,817 bytes) 실측은
+  `docs/review-source-findings.md` "VOC 소스 3종 실측 — tumblbug · naver_blog ·
+  bobaedream (2026-09-17)" §2 에 있다.
+- **기계 판정을 근거로 쓰지 않는다.** robots 만 보면 `/PostView.naver` 는 허용이다.
+  이 원칙의 요점은 "robots allowed"가 "약관 allowed"를 뜻하지 않는다는 것이다.
+- 같은 라운드에서 tumblbug 도 제외됐지만 그건 약관이 아니라 **데이터가 정적으로
+  오지 않아서**다(코멘트·프로젝트 설명 모두 robots 가 막은 `/api/` XHR). 원칙이
+  아니라 실측 사실이라 SP 를 만들지 않고 findings 문서에만 적었다.
+- 회귀 방지: `scripts/review-runner-selftest.mjs` 의 "탈락(r3)" 단정문이
+  `tumblbug` · `naver_blog_post` 키가 마이그레이션과 `ADAPTERS` 양쪽에 **없다**는
+  것을 고정한다. 되살리려면 그 테스트를 먼저 고쳐야 하고, 그러면 여기를 다시 본다.
 
 ### SP-025 / SP-026 실측 근거
 

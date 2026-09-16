@@ -706,10 +706,18 @@ ok('제품 토큰이 브라우저를 사칭하지 않는다', !/mozilla|chrome|s
 //    파서 셀프테스트가 통과해도 러너와 붙이면 커서·URL·robots 에서 깨질 수
 //    있다. 다나와 커서 버그가 정확히 그렇게 숨어 있었다.
 //
-// 이 두 소스는 **1글=1요청**이다. 확인할 것은 세 가지다:
+// 확인할 것은 네 가지다:
 //   (1) 어댑터가 만든 URL 을 러너가 그대로 쓰는가(호스트가 안 바뀌는가)
 //   (2) 글 1건에서 본문+댓글이 N+1 건으로 적재되는가
 //   (3) 커서가 null 이라 타깃이 exhausted 로 닫히는가 — 같은 글을 또 안 긁는가
+//   (4) 요청 수가 그 소스의 계약과 같은가 (todayhumor 만 2요청이다)
+//
+// ⚠️ todayhumor 는 **1글=2요청**이다(본문 HTML → 댓글 JSON). 2차 요청에 본문
+//    픽스처를 그대로 주면 JSON 파싱이 실패한다 — 실제로 이 루프가 그렇게 깨져서
+//    댓글 수집 변경을 잡아냈다. 응답을 URL 로 갈라 주는 게 FOLLOWUP 이다.
+const FOLLOWUP = {
+  todayhumor: { match: 'ajax_memo_list.php', fixture: 'todayhumor/memo-list.json', requests: 2 },
+}
 
 // round-2 의 theqoo·todayhumor 는 **robots.txt 가 404 다**(실측). 200 으로
 // 흉내내면 진짜 실행 경로(runner.ts 의 4xx → 규칙 없음 분기)를 한 번도 안 밟는다.
@@ -754,7 +762,8 @@ for (const [name, mod, pick, ref, robots, robotsStatus, fixture, expectCount] of
     '<html><head><title>404 Not Found</title></head></html>', // 실측: 404 + HTML
     404,
     'todayhumor/post-with-body.html',
-    1,
+    // 본문 1 + 댓글 5. 이 소스만 2요청이다(FOLLOWUP 참조).
+    6,
   ],
   [
     // round-3. 댓글이 robots 금지(/api/)라 본문 1건만 나온다 — 설계된 축소.
@@ -794,7 +803,10 @@ for (const [name, mod, pick, ref, robots, robotsStatus, fixture, expectCount] of
   ],
 ]) {
   const adapter = pick(mod)
-  const html = await fs.readFile(path.join(here, '..', 'fixtures', 'review', ...fixture.split('/')), 'utf8')
+  const fxRead = (rel) => fs.readFile(path.join(here, '..', 'fixtures', 'review', ...rel.split('/')), 'utf8')
+  const html = await fxRead(fixture)
+  const follow = FOLLOWUP[name] ?? null
+  const followBody = follow ? await fxRead(follow.fixture) : null
 
   const seenUrls = []
   const inputs = []
@@ -811,6 +823,7 @@ for (const [name, mod, pick, ref, robots, robotsStatus, fixture, expectCount] of
       seenUrls.push(url)
       clock += 10
       if (url.endsWith('/robots.txt')) return { status: robotsStatus, body: robots }
+      if (follow && url.includes(follow.match)) return { status: 200, body: followBody }
       return { status: 200, body: html }
     },
     store: {
@@ -852,7 +865,13 @@ for (const [name, mod, pick, ref, robots, robotsStatus, fixture, expectCount] of
   const r = await runCollection(adapter, { dryRun: false, targetLimit: 1 }, ports)
 
   const pageUrls = seenUrls.filter((u) => !u.endsWith('/robots.txt'))
-  t(`${name}: 글 1건당 요청 1건`, pageUrls.length, 1)
+  const expectRequests = follow ? follow.requests : 1
+  t(`${name}: 글 1건당 요청 ${expectRequests}건`, pageUrls.length, expectRequests)
+  if (follow) {
+    // 2차가 1차와 같은 URL 이면 같은 걸 두 번 긁는 것이다 — 요청 수만 세면 안 보인다.
+    ok(`${name}: 2차 요청이 1차와 다른 경로다`, new URL(pageUrls[1]).pathname !== new URL(pageUrls[0]).pathname)
+    ok(`${name}: 2차도 어댑터 상수 호스트다`, new URL(pageUrls[1]).host === new URL(mod.HOST).host)
+  }
   t(`${name}: 어댑터가 만든 URL 을 러너가 그대로 쓴다`, pageUrls[0], `${mod.HOST}${ref.slice(4)}`)
   t(`${name}: 호스트가 어댑터 상수와 일치`, new URL(pageUrls[0]).host, new URL(mod.HOST).host)
   t(`${name}: 적재 건수 ${expectCount}건 (본문+댓글)`, inputs.length, expectCount)

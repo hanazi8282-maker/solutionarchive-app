@@ -26,12 +26,26 @@ jobs:
       - run: node scripts/cron-watchdog-selftest.mjs
       # 추출 시작 게이트가 서버·화면 한 벌인지. 갈라지면 시작할 수 있는데 버튼이 없는 화면이 된다.
       - run: node scripts/analyze-extract-gate-selftest.mjs
+      # 어드바이저 매칭 3상태·불용어 회귀·SP-024 저신뢰 판정. 픽스처만 쓴다(네트워크·DB 없음).
+      - run: node scripts/advisor-selftest.mjs
+      # HN 실패신호 탐지(다단어 구문만·중복 append 방지·스윕 질의 URL). 네트워크 없음.
+      - run: node scripts/hn-failure-signal-selftest.mjs
+      # 인사이트 루프의 DB 오류 가드. 한 줄만 되돌아가도 조회 실패가 "패턴 없음"으로 접힌다.
+      - run: node scripts/insight-loop-db-guard-selftest.mjs
+      # 앵글 생성 낙관적 락 — 풀리면 더블클릭 한 번에 LLM 배치가 두 벌 나간다.
+      - run: node scripts/analyze-angle-lock-selftest.mjs
+      # judge 프롬프트 순서 = 비용 구조. 되돌아가면 20KB 코퍼스가 앵글마다 정가로 재전송된다.
+      - run: node scripts/analyze-judge-prompt-selftest.mjs
+      # LLM 재시도 예산(함수 상한 300초 안) + 요청당·하루 비용 상한이 실제로 막는지.
+      - run: node scripts/analyze-llm-budget-selftest.mjs
       - run: npx next build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          # GITHUB_TOKEN(GH_PAT) 은 뺐다 — next build 에서 이 값을 읽는 코드가 없다(진단 5-3).
+          # 읽는 곳은 요청 시점 라우트(deploy-status, force-dynamic, Vercel env)와
+          # Actions 런타임(lib/insight/github.ts, 잡 기본 토큰)뿐이다.
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}

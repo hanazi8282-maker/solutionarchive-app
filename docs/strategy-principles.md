@@ -1,4 +1,4 @@
-# 원칙 원장 (Corpus C) — SP-001 ~ SP-023
+# 원칙 원장 (Corpus C) — SP-001 ~ SP-024
 
 크로스섹션 어드바이저(§20 / §13-7)의 Corpus C. 수익화 리서치 문서 §22 를 구조화한
 조각이다. **이 표가 정본이다.** `strategy_principles` 테이블은 이 표에서 시딩하고,
@@ -36,3 +36,11 @@
 | SP-021 | channel, legal, conflict | App Store RSS 피드에 대해 우호적인 개발자포럼 답변이 있으나, 실측된 robots.txt가 해당 경로를 명시적으로 Disallow — 라이브 robots.txt가 과거 포럼 답변보다 우선한다고 판단해 SP-019의 중단 결정 유지 | A (robots.txt는 실측, 포럼 답변은 3자 정황) | §29 |
 | SP-022 | channel, rejected | 유료 데이터벤더(Appfigures Public Data API add-on, Sensor Tower/data.ai, Datarade)는 전부 "구매형 데이터 조달" 범주로 배제 | B (공식 문서 기반) | §29 |
 | SP-023 | competitor, market | G2가 Gartner로부터 Capterra·GetApp·Software Advice 인수를 2026-01-29 공식 발표(Q1 2026 종결 예정) — 향후 이 3사 약관이 G2 체계로 통합될 가능성, Tier 4 배제 목록 갱신 필요 시점 모니터링 | B (보도자료 기반) | §29 |
+| SP-024 | advisor, matching, false-positive | 크로스섹션 어드바이저 Corpus A 점수는 `evidence_grade랭크 × 10 + 겹친 낱말 수` 라 등급 가중이 겹침 강도를 압도한다 — 광범위 도메인어 낱말 1개로 걸린 A등급 무브가 31점, 정확한 낱말 5개로 걸린 C등급 무브가 15점이라 "점수가 낮으면 저신뢰"가 성립하지 않는다. 불용어 필터(PR #43)는 낱말 목록만 고칠 뿐 이 역전을 못 막는다. 그래서 단일 낱말 매칭은 점수 임계로 숨기지 않고, 겹친 낱말·점수·"신뢰도 낮음"을 화면에 그대로 노출해 사람이 판단하게 한다 | A (산식 실측 — scripts/advisor-selftest.mjs 재현) | PR #43 후속 |
+
+### SP-024 실측 근거
+
+- 산식 위치: `lib/cases/advisor.ts` `matchCaseMoves()` — `score = (GRADE_RANK[m.evidence_grade] ?? 0) * 10 + matched.length`, `GRADE_RANK = { A: 3, B: 2, C: 1, D: 0 }` (`lib/cases/match.ts`).
+- 그래서 겹친 낱말이 **1개뿐인** 무브의 점수는 등급에 따라 11(C) · 21(B) · 31(A) 로 고정된다. 낱말 5개로 걸린 C등급 무브(15점)가 낱말 1개짜리 A등급 무브(31점)보다 아래로 간다.
+- 재현: `node scripts/advisor-selftest.mjs` — "SP-024" 로 시작하는 단정문들이 이 역전과 `low_confidence` 판정을 고정한다. 픽스처만 쓰므로 네트워크·DB 없이 돈다.
+- **이 세션에서 확인하지 못한 것:** 09-11 델리게이션이 인용했다는 프로덕션 실측(탈모 샴푸 앵글 × DTC 케이스무브 2건)은 이 세션에 DB 접근 권한이 없어 재현하지 못했다. 위 진술의 근거는 프로덕션 관측이 아니라 산식·픽스처 재현이다. 프로덕션 전수 매칭을 다시 보려면 `scripts/advisor-corpus-audit.mjs` 에 덤프를 넣는다.

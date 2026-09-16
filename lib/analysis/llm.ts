@@ -5,6 +5,14 @@
 // 프롬프트·기대 JSON 스키마·파싱은 호출부가 그대로 공유한다.
 import Anthropic from '@anthropic-ai/sdk'
 import { MOCK_MODEL, mockResponse } from './mock'
+import {
+  LlmBudgetExceededError,
+  MAX_ATTEMPTS,
+  attemptsFor,
+  backoffFor,
+  chargeOutput,
+  reserveOrThrow,
+} from './budget'
 
 export type LlmProvider = 'gemini' | 'anthropic' | 'mock'
 
@@ -79,6 +87,8 @@ export class AllGeminiModelsExhaustedError extends Error {
 
 /** 프로바이더가 돌려준 HTTP 상태로 사용자 문구를 고른다. */
 export function describeFailure(e: unknown): string {
+  // 예산 가드레일은 사유가 곧 사용자 안내다(얼마를 쓰고 멈췄는지).
+  if (e instanceof LlmBudgetExceededError) return e.message
   if (e instanceof ModelRefusalError) return '분석이 거부되었습니다. 입력 내용을 확인해주세요.'
   // 모델을 전부 돌려본 뒤의 실패라 "다시 시도" 안내가 무의미하다. 메시지를 그대로 노출한다.
   if (e instanceof AllGeminiModelsExhaustedError) return e.message
@@ -178,19 +188,9 @@ async function callGemini(model: string, systemPrompt: string, userPrompt: strin
 // 일시적 장애로 보는 상태코드. 429(rate limit) 와 5xx 는 재시도할 가치가 있다.
 // 402(크레딧 소진)·400(잘못된 요청)은 재시도해도 같은 결과라 제외한다.
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504])
-const MAX_ATTEMPTS = 4
-// 5xx(일시 과부하)는 금방 풀리지만, 429 는 분당 요청 한도라 1분 창이 지나야 한다.
-// 같은 짧은 백오프로 재시도하면 3번 다 429 로 날리고 끝난다.
-const BASE_BACKOFF_MS = 1500
-const RATE_LIMIT_BACKOFF_MS = 20_000
 
 function isRetryable(e: unknown): boolean {
   return e instanceof ProviderHttpError && RETRYABLE_STATUS.has(e.status)
-}
-
-function backoffFor(status: number, attempt: number): number {
-  const base = status === 429 ? RATE_LIMIT_BACKOFF_MS : BASE_BACKOFF_MS
-  return base * 2 ** (attempt - 1) + Math.floor(Math.random() * 500)
 }
 
 /**
@@ -202,21 +202,29 @@ async function callWithRetry(
   label: string,
   model: string,
   run: () => Promise<string>,
+  budgetChars = 0,
 ): Promise<string> {
   let lastError: unknown
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
+      // 예산은 시도마다 적립한다 — 실패한 호출의 입력 토큰도 과금되기 때문.
+      // 넘으면 여기서 던지고, 예산 초과는 재시도 대상이 아니다(아래 isRetryable=false).
+      reserveOrThrow(`${label}/${model}`, budgetChars)
       const text = await run()
       if (!text) throw new Error('empty model output')
+      chargeOutput(text.length)
       return text
     } catch (e) {
       lastError = e
-      if (attempt === MAX_ATTEMPTS || !isRetryable(e)) break
-      // 지터를 섞어 동시 호출이 같은 시점에 몰려 재시도하는 것을 막는다.
+      if (!isRetryable(e)) break
+      // 상태코드별로 허용 시도 횟수가 다르다 — 429 는 2회(진단 1-3).
       const status = (e as ProviderHttpError).status
-      const wait = backoffFor(status, attempt)
+      const max = attemptsFor(status)
+      if (attempt >= max) break
+      // 지터를 섞어 동시 호출이 같은 시점에 몰려 재시도하는 것을 막는다.
+      const wait = backoffFor(status, attempt) + Math.floor(Math.random() * 500)
       console.warn(
-        `[analysis/llm] ${label} model=${model} ${status} — ${wait}ms 후 재시도 (${attempt}/${MAX_ATTEMPTS})`,
+        `[analysis/llm] ${label} model=${model} ${status} — ${wait}ms 후 재시도 (${attempt}/${max})`,
       )
       await new Promise(r => setTimeout(r, wait))
     }
@@ -255,9 +263,14 @@ export async function callLlmWithModel(
     return { text: mockResponse(label, userPrompt), model: MOCK_MODEL }
   }
 
+  const budgetChars = systemPrompt.length + userPrompt.length
+
   if (provider === 'anthropic') {
-    const text = await callWithRetry(label, ANTHROPIC_MODEL, () =>
-      callAnthropic(systemPrompt, userPrompt),
+    const text = await callWithRetry(
+      label,
+      ANTHROPIC_MODEL,
+      () => callAnthropic(systemPrompt, userPrompt),
+      budgetChars,
     )
     console.log(`[analysis/llm] ${label} provider=anthropic model=${ANTHROPIC_MODEL}`)
     return { text, model: ANTHROPIC_MODEL }
@@ -268,10 +281,17 @@ export async function callLlmWithModel(
   for (const model of chain) {
     tried.push(model)
     try {
-      const text = await callWithRetry(label, model, () => callGemini(model, systemPrompt, userPrompt))
+      const text = await callWithRetry(
+        label,
+        model,
+        () => callGemini(model, systemPrompt, userPrompt),
+        budgetChars,
+      )
       console.log(`[analysis/llm] ${label} provider=gemini model=${model}`)
       return { text, model }
     } catch (e) {
+      // 예산 초과는 모델을 바꿔도 같다. 체인을 끝까지 돌지 않고 즉시 중단한다.
+      if (e instanceof LlmBudgetExceededError) throw e
       if (!shouldFallOverToNextModel(e)) throw e
       const status = (e as ProviderHttpError).status
       console.warn(

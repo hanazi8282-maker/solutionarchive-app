@@ -46,6 +46,10 @@ jobs:
 
       - run: npm ci
 
+      # 종료 코드 판정(enrichVerdict)이 깨지면 이 잡이 다시 "전량 실패해도 초록"이 된다.
+      - name: Selftest
+        run: node scripts/review-hackernews-enrich-selftest.mjs
+
       - name: Enrich Hacker News scores
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

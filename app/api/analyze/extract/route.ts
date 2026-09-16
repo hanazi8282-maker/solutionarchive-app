@@ -8,6 +8,7 @@ import {
   resolveProvider,
   type LlmProvider,
 } from '@/lib/analysis/llm'
+import { withLlmBudget } from '@/lib/analysis/budget'
 import {
   ASPECT_LAYERS,
   ATTRIBUTIONS,
@@ -380,7 +381,8 @@ export async function POST(req: Request) {
   }
 
   // 5. 응답을 먼저 보내고, 실제 추출은 그 뒤에 이어서 실행한다.
-  after(() => runExtraction(projectId, provider))
+  // withLlmBudget — 이 추출 1건이 쓸 수 있는 LLM 비용 상한을 건다(진단 1-3, lib/analysis/budget.ts).
+  after(() => withLlmBudget(() => runExtraction(projectId, provider)))
 
   return NextResponse.json(
     {

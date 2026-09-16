@@ -9,6 +9,15 @@ import {
   type SubstantiationVerdict,
 } from '@/lib/analysis/types'
 import { extractAdaptationSuggestion, systemPromptFor } from '@/lib/analysis/angle-adaptation'
+import { CLAIMED_STATUS, RELEASE_STATUS, lockVerdict } from '@/lib/analysis/angle-lock'
+import {
+  JUDGE_SYSTEM_PROMPT,
+  buildEvidenceCorpus,
+  buildJudgePrompt,
+  normalizeWhitespace,
+  type EvidenceCorpus,
+  type EvidenceInputRow,
+} from '@/lib/analysis/judge-prompt'
 import {
   callLlmJsonWithModel,
   describeFailure,
@@ -16,6 +25,7 @@ import {
   resolveProvider,
   type LlmProvider,
 } from '@/lib/analysis/llm'
+import { withLlmBudget } from '@/lib/analysis/budget'
 
 // 앵글 1건당 LLM 호출이 붙으므로 여유를 크게 잡는다.
 export const maxDuration = 300
@@ -195,138 +205,6 @@ function rewriteInstructionFor(outputType: OutputType): { prompt: string; mode: 
   return outputType === 'BASELINE_SPEC' || outputType === 'PRODUCT_SPEC'
     ? { prompt: SPEC_REWRITE_SYSTEM_PROMPT, mode: 'spec' }
     : { prompt: COPY_REWRITE_SYSTEM_PROMPT, mode: 'copy' }
-}
-
-// 실증 판정은 writer 가 아니라 이 프롬프트를 쓰는 별도 호출이 담당한다.
-// (writer 가 자기 문구를 스스로 판정하면 "1인칭 경험담이라 검증 대상 아님"으로 면죄부를 준다)
-const JUDGE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 심사자다. 카피를 고치지 마라. 판정만 해라.
-
-판정 분류:
-- SUBSTANTIATED: 임상·인체적용시험·시험성적서·인증 등 원문에 제시된 근거로 뒷받침되는 주장
-- EXPERIENTIAL: 사용감·경험 서술이라 검증 대상이 아닌 표현
-- UNSUBSTANTIATED: 근거 없이 성능·효능·결과를 단정하는 주장
-
-경험담·1인칭 서술 형식으로 포장됐더라도, 효능·결과·변화를 암시하거나 단정하는 내용이면(예: '~가 멈췄다', '~이 좋아졌다') 반드시 UNSUBSTANTIATED로 판정해라. '형식이 경험담이라 검증 대상이 아니다'는 사유는 허용하지 않는다 — 실제 근거(임상·시험 성적서·인증) 유무만으로 판정해라.
-
-반대로 결과·변화·효능을 전혀 암시하지 않는 순수 감각/사용감/취향/형태 서술은 EXPERIENTIAL 이다.
-이런 표현까지 UNSUBSTANTIATED 로 떨어뜨리지 마라 — 과잉 판정도 오판이다.
-
-대조 예시:
-- "머리 감고 나면 개운하다" → EXPERIENTIAL (결과를 주장하지 않는 순수 사용감)
-- "머리 감는 법을 바꿨더니 탈모가 멈추기 시작했습니다" → UNSUBSTANTIATED (1인칭이지만 결과를 단정)
-- "펌프가 한 손으로 눌려서 편하다" → EXPERIENTIAL (형태·사용감 서술)
-- "펌프를 바꿨더니 두피 트러블이 사라졌습니다" → UNSUBSTANTIATED (1인칭이지만 변화를 단정)
-
-SUBSTANTIATED 로 판정하려면 아래 '수집 원문'에서 근거가 되는 문장을 글자 그대로 인용해
-evidence_quote 에 넣어야 한다. 인용할 문장이 없으면 SUBSTANTIATED 는 금지다.
-요약·의역·짜깁기는 인용이 아니다.
-
-반드시 JSON만 출력해라. 형식:
-{ "verdict": "SUBSTANTIATED|EXPERIENTIAL|UNSUBSTANTIATED",
-  "reason": "판정 사유 한 줄",
-  "evidence_quote": "원문에서 그대로 인용한 문장 또는 null" }`
-
-// judge 프롬프트에는 원문(corpus)이 앵글마다 반복 실려나가므로
-// extract 의 상한(8k/120k)을 그대로 쓰면 토큰이 폭증한다. 여기서는 따로 좁게 잡는다.
-const MAX_EVIDENCE_CHARS_PER_INPUT = 3000
-const MAX_EVIDENCE_CHARS_TOTAL = 20000
-
-// 실증 근거(임상·시험성적서·인증)는 리뷰가 아니라 광고/상세페이지에 들어있다.
-// created_at 순으로 넣고 뒤를 자르면 근거가 든 광고가 먼저 잘려 SUBSTANTIATED 가 구조적으로 불가능해진다.
-const EVIDENCE_SOURCE_PRIORITY: Record<string, number> = { ad: 0, detail_page: 1, review: 2 }
-
-type EvidenceInputRow = { source_type: string | null; raw_text: string | null }
-
-/** judge 에 넘길 근거 원문. normalized 는 인용 검증(공백 무시 비교)용 사본. */
-type EvidenceCorpus = { text: string; normalized: string }
-
-/** 연속 공백을 1칸으로 축약 — 모델이 줄바꿈/공백만 다르게 인용해도 통과시키기 위함. */
-function normalizeWhitespace(s: string): string {
-  return s.replace(/\s+/g, ' ').trim()
-}
-
-function buildEvidenceCorpus(inputs: EvidenceInputRow[]): EvidenceCorpus {
-  const sorted = [...inputs].sort(
-    (a, b) =>
-      (EVIDENCE_SOURCE_PRIORITY[a.source_type ?? ''] ?? 99) -
-      (EVIDENCE_SOURCE_PRIORITY[b.source_type ?? ''] ?? 99),
-  )
-
-  const parts: string[] = []
-  let used = 0
-  let truncated = false
-
-  for (let i = 0; i < sorted.length; i++) {
-    const full = String(sorted[i].raw_text ?? '')
-    let text = full.slice(0, MAX_EVIDENCE_CHARS_PER_INPUT)
-    if (text.length < full.length) truncated = true
-
-    const remain = MAX_EVIDENCE_CHARS_TOTAL - used
-    if (remain <= 0) {
-      truncated = true
-      break
-    }
-    if (text.length > remain) {
-      text = text.slice(0, remain)
-      truncated = true
-    }
-
-    used += text.length
-    parts.push(`### 원문 ${i + 1} (source_type: ${sorted[i].source_type ?? '-'})\n${text}`)
-  }
-
-  // 잘렸다는 사실을 알려야 judge 가 "근거 없음"과 "잘림"을 혼동하지 않는다.
-  if (truncated) parts.push('(원문 일부 생략됨)')
-
-  const text = parts.length > 0 ? parts.join('\n\n') : '(수집된 원문 없음)'
-  return { text, normalized: normalizeWhitespace(text) }
-}
-
-// 산출물 유형별로 "소비자 노출물인가"가 다르다. PRODUCT_SPEC 을 광고 주장으로 오인하면 오탐이 난다.
-const OUTPUT_TYPE_JUDGE_NOTE: Record<string, string> = {
-  COPY: '소비자에게 실제로 노출되는 카피 문구다.',
-  OFFER: '소비자에게 제시되는 오퍼(보장·교환·환불 등 거래 조건) 문구다.',
-  BASELINE_SPEC: '광고 문구가 아니라 반드시 충족해야 할 기본 사양 요약이다.',
-  PRODUCT_SPEC:
-    '소비자 노출물이 아니라 내부용 차기 제품 개선 과제 메모다. 광고 주장이 아니므로 과잉 판정하지 마라.',
-}
-
-/**
- * judge 에게 줄 프롬프트.
- * writer 의 reason 은 절대 넣지 않는다 — judge 가 writer 의 자기 정당화에 앵커링된다.
- * 점수(I/S)·사분면도 판정과 무관하므로 뺀다.
- */
-function buildJudgePrompt(
-  headline: string,
-  aspects: AspectRow[],
-  outputType: OutputType,
-  evidence: EvidenceCorpus,
-): string {
-  const lines = ['## 심사 대상 문구', headline || '(문구 없음)', '', '## 이 문구가 근거로 삼은 속성']
-
-  if (aspects.length === 0) {
-    lines.push('- (연결된 속성 없음)')
-  } else {
-    for (const a of aspects) {
-      lines.push(
-        `- 속성명: ${a.name}`,
-        `  레이어: ${a.aspect_layer ?? '-'}`,
-        `  판단근거: ${a.notes ?? '-'}`,
-      )
-    }
-  }
-
-  lines.push(
-    '',
-    '## 산출물 유형',
-    `- ${outputType}: ${OUTPUT_TYPE_JUDGE_NOTE[outputType] ?? ''}`,
-    '',
-    '## 수집 원문 (근거 후보 전문)',
-    evidence.text,
-    '',
-    '위 원문에 없는 근거를 지어내지 마라. 원문에 임상·시험·인증 언급이 없으면 SUBSTANTIATED 는 불가능하다.',
-  )
-  return lines.join('\n')
 }
 
 function aspectBlock(a: AspectRow): string {
@@ -683,16 +561,50 @@ export async function POST(req: Request) {
     )
   }
 
+  // 2-b. 낙관적 락 — LLM 을 한 번이라도 부르기 전에 잡는다(진단 1-1).
+  //      dry_run 은 상태를 건드리지 않는 개발용 경로라 잠그지 않는다.
+  //      ponytail: 그래서 dry_run 끼리는 여전히 중복될 수 있다. 사람이 손으로만 부르는 경로다.
+  const releaseLock = async () => {
+    const { error } = await supabase
+      .from('analysis_projects')
+      .update({ status: RELEASE_STATUS })
+      .eq('id', projectId)
+      .eq('status', CLAIMED_STATUS)
+    if (error) {
+      // 못 풀면 프로젝트가 'angled' 로 남는다. 검수 화면에서 되돌릴 수 있는 상태라 막히진 않지만,
+      // 왜 그렇게 됐는지는 로그에 남겨야 사람이 추적한다.
+      console.error(`[analyze/angle] project=${projectId} lock release failed: ${error.message}`)
+    }
+  }
+
+  if (!dryRun) {
+    const { data: locked, error: lockError } = await supabase
+      .from('analysis_projects')
+      .update({ status: CLAIMED_STATUS })
+      .eq('id', projectId)
+      .eq('status', 'reviewed')
+      .select('id')
+    const verdict = lockVerdict(locked, lockError)
+    if (!verdict.ok) {
+      if (verdict.status === 500) console.error(`[analyze/angle] project=${projectId} lock failed: ${lockError?.message}`)
+      return NextResponse.json({ error: verdict.error }, { status: verdict.status })
+    }
+  }
+
   // 3. LLM 호출
   const startedAt = Date.now()
   let generated: GeneratedAngle[]
   try {
-    generated = await mapWithLimit(plans, CONCURRENCY, p =>
-      generateAngle(provider, p, project, aspectsById, evidence),
+    // withLlmBudget — 이 배치 1회가 쓸 수 있는 LLM 비용 상한을 건다(진단 1-3, lib/analysis/budget.ts).
+    generated = await withLlmBudget(() =>
+      mapWithLimit(plans, CONCURRENCY, p =>
+        generateAngle(provider, p, project, aspectsById, evidence),
+      ),
     )
   } catch (e) {
     const detail = describeFailure(e)
     console.error(`[analyze/angle] project=${projectId} generation failed: ${detail}`)
+    if (!dryRun) await releaseLock()
     return NextResponse.json({ error: `앵글 생성에 실패했습니다: ${detail}` }, { status: 502 })
   }
   const llmCallsTotal = generated.reduce((sum, g) => sum + g.llmCalls, 0)
@@ -710,6 +622,7 @@ export async function POST(req: Request) {
       .delete()
       .eq('project_id', projectId)
     if (deleteError) {
+      await releaseLock()
       return NextResponse.json({ error: `기존 앵글 삭제 실패: ${deleteError.message}` }, { status: 500 })
     }
 
@@ -738,18 +651,13 @@ export async function POST(req: Request) {
       .select('id')
 
     if (insertError) {
+      // 기존 앵글은 이미 지웠다. 사람이 다시 누를 수 있게 reviewed 로 되돌린다.
+      await releaseLock()
       return NextResponse.json({ error: `앵글 저장 실패: ${insertError.message}` }, { status: 500 })
     }
     anglesCreated = inserted?.length ?? 0
 
-    const { error: statusError } = await supabase
-      .from('analysis_projects')
-      .update({ status: 'angled' })
-      .eq('id', projectId)
-
-    if (statusError) {
-      return NextResponse.json({ error: `상태 변경 실패: ${statusError.message}` }, { status: 500 })
-    }
+    // status 는 2-b 의 락 획득 시점에 이미 'angled' 다. 여기서 또 바꾸지 않는다.
   }
 
   // DB 에는 verdict 만 남으므로, 판정 사유·인용·재작성 이력은 이 응답이 유일한 감사 경로다.

@@ -16,6 +16,7 @@ import {
   formatCandidateBlock,
   hnItemUrl,
   normalize,
+  phraseSearchUrl,
   selectNewCandidates,
 } from '../lib/review/failure-signal.ts'
 
@@ -36,9 +37,9 @@ ok('구문: 전부 다단어다 (단일 단어 금지)', FAILURE_PHRASES.every((
   ok('양성: "we shut down" 탐지', r.includes('we shut down'))
 }
 {
-  const r = detectFailureSignals('We never found product market fit, so we gave up on it.')
+  const r = detectFailureSignals('We never found product market fit, so we shut down and discontinued the product.')
   ok('양성: 한 글에서 두 구문 동시 탐지', r.length >= 2)
-  ok('양성: "gave up on" 포함', r.includes('gave up on'))
+  ok('양성: "discontinued the product" 포함', r.includes('discontinued the product'))
 }
 {
   // 하이픈 표기 흔들림 — 본문은 하이픈 없이, 구문은 하이픈 있게 정의돼 있다.
@@ -47,8 +48,8 @@ ok('구문: 전부 다단어다 (단일 단어 금지)', FAILURE_PHRASES.every((
 }
 {
   // 굽은 따옴표(’) — 실제 HN 본문에 흔하다.
-  const r = detectFailureSignals('It just didn’t work out for us.')
-  ok('양성: 굽은 따옴표 표기 탐지', r.includes("didn't work out"))
+  const r = detectFailureSignals('After two years we couldn’t find PMF and stopped.')
+  ok('양성: 굽은 따옴표 표기 탐지', r.includes("couldn't find pmf"))
 }
 {
   const r = detectFailureSignals('WE SHUT DOWN the beta last March.')
@@ -65,6 +66,10 @@ t('음성: 중립 텍스트 → 0건', detectFailureSignals('This library is gre
 t('음성: "failed" 단일 단어로는 안 걸린다', detectFailureSignals('the build failed again on CI').length, 0)
 t('음성: "shut" 단일 단어로는 안 걸린다', detectFailureSignals('shut the laptop and went home').length, 0)
 t('음성: "gave up" 만으로는 안 걸린다', detectFailureSignals('I gave up halfway through the tutorial').length, 0)
+// 2026-09-16 실측으로 뺀 세 구문. 다단어여도 어떤 주제에나 쓰여서 대기열을 덮었다.
+t('음성: "shut it down" 은 목록에서 빠졌다', detectFailureSignals('the power went out so I had to shut it down safely').length, 0)
+t('음성: "gave up on" 은 목록에서 빠졌다', detectFailureSignals('I gave up on Reddit when they killed third party apps').length, 0)
+t('음성: "didn\'t work out" 은 목록에서 빠졌다', detectFailureSignals('that cashback card didn’t work out for me').length, 0)
 t('음성: 빈 문자열 → 0건', detectFailureSignals('').length, 0)
 t('음성: null → 0건', detectFailureSignals(null).length, 0)
 
@@ -145,6 +150,25 @@ t('hit: objectID 없으면 null', candidateFromHit({ comment_text: 'we shut down
   ok('블록: 원본 URL 포함', block.includes('https://news.ycombinator.com/item?id=40123456'))
   ok('블록: 검색 맥락 포함', block.includes('q:notion'))
   ok('블록: 발췌 인용', block.includes('> We built it'))
+  // 사람이 결론을 적을 자리. 없으면 "안 읽음"과 "읽고 기각"이 구분되지 않는다.
+  ok('블록: 판정 줄이 미검토로 시작한다', block.includes('- 판정: (미검토)'))
+}
+
+// ── phraseSearchUrl (--sweep 질의) ───────────────────────────────
+{
+  const url = phraseSearchUrl('we shut down')
+  ok('질의: search_by_date 엔드포인트', url.startsWith('https://hn.algolia.com/api/v1/search_by_date?'))
+  ok('질의: 댓글만', url.includes('tags=comment'))
+  ok('질의: 구문 검색 문법 켬', url.includes('advancedSyntax=true'))
+  ok('질의: 따옴표째 인코딩된다', url.includes(`query=${encodeURIComponent('"we shut down"')}`))
+  ok('질의: 공백이 날것으로 남지 않는다', !url.includes(' '))
+  t('질의: hitsPerPage 인자 반영', phraseSearchUrl('we failed', { hitsPerPage: 10 }).includes('hitsPerPage=10'), true)
+  ok('질의: 구문 목록 전부 URL 생성', FAILURE_PHRASES.every((p) => phraseSearchUrl(p).includes('query=')))
+  // 시간 하한. 없으면 희귀 구문이 2007년 댓글까지 긁어 와 대기열이 덤프가 된다.
+  ok('질의: sinceEpoch 없으면 numericFilters 도 없다', !url.includes('numericFilters'))
+  ok('질의: sinceEpoch 주면 created_at_i 하한이 붙는다',
+    phraseSearchUrl('we failed', { sinceEpoch: 1700000000 })
+      .includes(`numericFilters=${encodeURIComponent('created_at_i>1700000000')}`))
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

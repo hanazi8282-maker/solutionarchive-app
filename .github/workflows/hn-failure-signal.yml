@@ -1,0 +1,90 @@
+# HN "망한 아이디어" 실패신호 스윕.
+#
+# 무엇을: lib/review/failure-signal.ts 의 다단어 실패 구문(9개)을 HN Algolia 에
+#   질의해, 창업자가 "이거 접었다"고 직접 말하는 댓글 후보를
+#   reports/hn-failed-idea-candidates.md 에 append 한다. 기본 창은 최근 7일이고
+#   한 실행 상한은 25건이다 — 넘친 건 버려지는 게 아니라 다음 실행에서 잡힌다.
+#
+# 실측(2026-09-16, 최근 7일): 후보 3건. 구문을 손보기 전에는 42건이었고 그중
+#   진짜 실패 사례는 0건이었다. 대기열은 사람이 읽어야 의미가 있다.
+#
+# 왜 워크플로로: 그전까지는 사람이 필요할 때 Algolia 응답을 손으로 떠다
+#   스크립트에 넣어야 했다. 그래서 2026-09-11 이후 한 번도 안 돌았고 큐에
+#   후보가 1건(그마저 오탐)뿐이었다. chore/hn-firebase-c-probe-schedule(#93)이
+#   같은 형태로 수동→자동 전환한 선례라 그 구조를 그대로 따랐다.
+#
+# ⛔ DB 를 건드리지 않는다. failed_angles 에도 쓰지 않는다 — 여기 쌓이는 것은
+#    사람이 읽고 골라 docs/failed-angles.md 로 옮길 **후보**다.
+# ⛔ Supabase secret 을 env 에 넣지 않는다 — 필요 없다.
+# ⛔ 프로덕션 나이틀리 수집(nightly-review-collect.yml)과 무관하다.
+#
+# ⚠️ 시간은 다른 크론과 안 겹치게 잡았다 (UTC 기준):
+#      nightly-notion-feedback 12:07 · hn-firebase-c-probe 15:23 ·
+#      nightly-review-collect 17:37 · nightly-hackernews-enrich 18:19 ·
+#      nightly-insight-loop 18:41 · daily-cmo-loop 20:17 · cron-watchdog 21:53
+#    → 이 워크플로우 16:11 UTC (KST 01:11). 정각 회피(어중간한 분).
+#
+# ⚠️ reports/ 프리픽스에만 커밋한다(CLAUDE.md §10.1). 다른 경로는 스테이징하지 않는다.
+#
+# ⚠️ 구문 하나라도 조회에 실패하면 스크립트가 종료코드 2 로 죽고 아무것도 쓰지
+#    않는다. 일부만 훑은 결과를 "오늘 훑었다"로 남기지 않기 위해서다(§7.1).
+#    이때 이 잡은 빨간불이 되고 커밋 스텝은 돌지 않는다 — 의도된 동작이다.
+
+name: HN Failure Signal Sweep
+
+on:
+  schedule:
+    - cron: '11 16 * * *'
+  workflow_dispatch:
+    inputs:
+      append:
+        description: '대기열에 덧붙인다(끄면 stdout·요약에만)'
+        type: boolean
+        default: true
+
+concurrency:
+  group: hn-failure-signal
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # 네트워크 없이 도는 탐지 로직 회귀. 스윕이 쓰레기를 긁어오기 전에 여기서 막는다.
+      - run: node scripts/hn-failure-signal-selftest.mjs
+
+      - name: Sweep
+        run: |
+          # `| tee` 가 node 의 종료코드를 삼킨다 — pipefail 없이는 스윕이 죽어도 초록불.
+          set -o pipefail
+          node scripts/hn-failure-signal-log.mjs --sweep \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.append == false) && '--dry' || ' ' }} \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit queue
+        # schedule 에선 inputs 가 null 이라 `null == false` 가 참이 된다 — event_name 으로 가드.
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.append == false) }}
+        run: |
+          if git diff --quiet -- reports/hn-failed-idea-candidates.md; then
+            echo "신규 후보 없음 — 커밋 생략"
+            exit 0
+          fi
+          git config user.name  "hn-failure-signal-bot"
+          git config user.email "noreply@anthropic.com"
+          git add reports/hn-failed-idea-candidates.md
+          git commit -m "chore(review): HN 실패신호 후보 스윕 — $(date -u +%F)"
+          git push

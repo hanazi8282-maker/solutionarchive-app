@@ -4,20 +4,21 @@
 // 이 파일은 순수 로직만 담고, 트리거·인증·로그 출력은 scripts/insight-loop.mjs
 // 와 워크플로가 맡는다.
 //
-// ⏰ 스케줄: 0 19 * * * (UTC) = 매일 KST 04:00.
+// ⏰ 스케줄: 41 18 * * * (UTC) = 매일 KST 03:41. 정본은 워크플로의 cron 한 줄이다.
+//    (정각 `0 19` 이었다가 2026-09-01 정각 미발화 실측 후 옮겼다. 정각·30분은 쓰지 않는다.)
 //
-//    왜 04:00 인가. 요구는 "세션 사용량 0%일 때"였지만 그건 실시간으로 감지할
+//    왜 이 시간대인가. 요구는 "세션 사용량 0%일 때"였지만 그건 실시간으로 감지할
 //    수 없다. 대신 그 요구가 진짜 막으려는 것을 막는다 — **밤 배치가 낮의
 //    인터랙티브 사용 한도를 잡아먹는 것.** 사용자가 자는 시간대의 한가운데를
 //    고르면 그 위험이 최소가 된다. 02~07시 창의 중앙이 04~05시다.
 //
-//    03시가 아니라 04시인 이유: 다른 크론(매시 정각 매처, 매시 30분 수집기)과
-//    같은 분에 겹치지 않게 두되, 수집기가 방금 돈 직후(03:30 이후)라
-//    post_performance 가 가장 최신인 시점을 고른다. 판정이 하루 묵은 지표로
-//    내려지면 승격/기각이 하루씩 밀린다.
+//    03:41 인 이유: 다른 크론(매시 정각 매처, 매시 30분 수집기)과 같은 분에
+//    겹치지 않게 두되, 수집기가 방금 돈 직후(03:30 이후)라 post_performance 가
+//    가장 최신인 시점을 고른다. 판정이 하루 묵은 지표로 내려지면 승격/기각이
+//    하루씩 밀린다.
 //
 //    ⚠️ Actions 의 schedule 은 정시를 보장하지 않는다(수십 분 지연, 고부하 시
-//       건너뜀). 04:00 을 고른 덕에 07:00 까지 3시간의 지연 여유가 있고,
+//       건너뜀). 새벽을 고른 덕에 07:00 아침 브리핑까지 3시간 넘는 여유가 있고,
 //       하루 건너뛰어도 다음 밤이 같은 일을 한다 — 전 단계가 멱등이다.
 //
 // ⛔ 이 루프는 아무것도 발행하지 않는다(CLAUDE.md §10). Threads API 를
@@ -49,6 +50,25 @@ import {
   type PerfRow,
 } from './patterns.ts'
 import { resolveRepoRef, putFile, autoCommitMessage } from './github.ts'
+
+/**
+ * DB 쓰기·조회 결과를 확인하고, error 면 던진다 (진단 2-3).
+ *
+ * 왜 필요한가. `const { data } = await supabase…` 로 error 를 버리면 조회 실패가
+ * `undefined` 가 되어 "그런 행이 없다"와 구분되지 않는다. 실제로 이 파일에서
+ * `insight_patterns` 존재 확인이 실패하면 → "신규 패턴" 분기 → UNIQUE 위반 INSERT →
+ * 그 INSERT 의 error 도 안 봄 → **그날 밤 근거 1건이 영구히 사라지는데 보고에는
+ * "신규 패턴 1건"이 뜬다.** 해당 saved_examples 는 이미 analyzed 로 바뀌어 다음 밤에 안 온다.
+ *
+ * 던지면 step() 이 잡아 그 단계를 ok:false 로 적고, insight-loop.mjs 가 exit 1 을 낸다
+ * (CLAUDE.md §7.1 — 확인 불가를 음성으로 접지 않는다).
+ */
+type DbResult = { error: { message: string } | null }
+export async function must<T extends DbResult>(what: string, q: PromiseLike<T>): Promise<T> {
+  const r = await q
+  if (r.error) throw new Error(`${what} 실패: ${r.error.message}`)
+  return r
+}
 
 /**
  * 1회 실행당 분석 건수 상한.
@@ -296,7 +316,8 @@ export async function runInsightLoop(
         }
 
         if (!dryRun) {
-          await supabase
+          // 여기서 실패한 걸 넘기면 LLM 값은 사라지고 행은 pending 으로 남아 내일 밤 같은 돈을 또 쓴다.
+          await must(`분석 결과 저장(${row.id})`, supabase
             .from('saved_examples')
             .update({
               analysis_status: 'analyzed',
@@ -308,7 +329,7 @@ export async function runInsightLoop(
               why_it_works: result.why_it_works,
               is_generalizable: result.is_generalizable,
             })
-            .eq('id', row.id)
+            .eq('id', row.id))
         }
 
         // 일반화 불가는 패턴으로 만들지 않는다(설계안 §3).
@@ -333,10 +354,11 @@ export async function runInsightLoop(
         // 실패한 행은 failed 로 못 박는다. pending 으로 두면 매일 밤 같은 행을
         // 무한 재시도하며 사용량만 태운다.
         if (!dryRun) {
-          await supabase
+          // 실패 마킹까지 실패하면 그 행은 내일 밤 또 온다. DB 가 안 되는 상태라 단계를 세운다.
+          await must(`실패 마킹(${row.id})`, supabase
             .from('saved_examples')
             .update({ analysis_status: 'failed', analysis_error: message.slice(0, 500) })
-            .eq('id', row.id)
+            .eq('id', row.id))
         }
       }
     }
@@ -367,21 +389,24 @@ export async function runInsightLoop(
     const newHypotheses: string[] = []
 
     for (const a of analyzed) {
-      const { data: existing } = await supabase
-        .from('insight_patterns')
-        .select('id, pattern_key, evidence_count, status, strength, hypothesis_code')
-        .eq('pattern_key', a.key)
-        .maybeSingle()
+      const { data: existing } = await must(
+        `패턴 존재 확인(${a.key})`,
+        supabase
+          .from('insight_patterns')
+          .select('id, pattern_key, evidence_count, status, strength, hypothesis_code')
+          .eq('pattern_key', a.key)
+          .maybeSingle(),
+      )
 
       if (existing) {
         reinforced.push(a.key)
         if (dryRun) continue
 
         const nextCount = (existing.evidence_count ?? 1) + 1
-        await supabase
-          .from('insight_patterns')
-          .update({ evidence_count: nextCount })
-          .eq('id', existing.id)
+        await must(
+          `근거 누적(${a.key})`,
+          supabase.from('insight_patterns').update({ evidence_count: nextCount }).eq('id', existing.id),
+        )
 
         // 근거가 기준을 넘고 아직 후보면 가설을 발급해 실험에 태운다.
         if (
@@ -389,7 +414,7 @@ export async function runInsightLoop(
           !existing.hypothesis_code
         ) {
           const code = await issueHypothesisCode(supabase)
-          const { error: hErr } = await supabase.from('hypotheses').insert({
+          await must(`가설 발급(${code})`, supabase.from('hypotheses').insert({
             code,
             statement: `${a.title}: ${a.description.split('\n')[0]}`,
             // threads-report.mjs 의 차원 key 규칙과 맞춘다.
@@ -400,10 +425,12 @@ export async function runInsightLoop(
             status: 'testing',
             source: 'auto_extracted_from_saved_examples',
             source_example_id: a.id,
-          })
-          if (!hErr) {
-            newHypotheses.push(code)
-            await supabase
+          }))
+
+          newHypotheses.push(code)
+          await must(
+            `패턴에 가설 연결(${a.key}→${code})`,
+            supabase
               .from('insight_patterns')
               .update({
                 hypothesis_code: code,
@@ -411,8 +438,8 @@ export async function runInsightLoop(
                 strength: 1,
                 reflected_at: new Date().toISOString(),
               })
-              .eq('id', existing.id)
-          }
+              .eq('id', existing.id),
+          )
         }
         continue
       }
@@ -420,15 +447,18 @@ export async function runInsightLoop(
       newPatterns.push(a.key)
       if (dryRun) continue
 
-      await supabase.from('insight_patterns').insert({
-        pattern_key: a.key,
-        title: a.title,
-        description: a.description,
-        insight_type: a.insightType,
-        evidence_count: 1,
-        status: 'candidate',
-        strength: 0,
-      })
+      await must(
+        `신규 패턴 적재(${a.key})`,
+        supabase.from('insight_patterns').insert({
+          pattern_key: a.key,
+          title: a.title,
+          description: a.description,
+          insight_type: a.insightType,
+          evidence_count: 1,
+          status: 'candidate',
+          strength: 0,
+        }),
+      )
     }
 
     counts.patterns = newPatterns.length + reinforced.length
@@ -497,12 +527,17 @@ export async function runInsightLoop(
       }
 
       if (d.decision === 'promote') {
+        // counts.promoted 를 먼저 올리면 UPDATE 가 실패해도 보고와 insight_loop_runs 에
+        // "승격 1" 이 남는다. DB 가 바뀐 뒤에 센다(진단 2-3).
+        await must(
+          `승격 반영(${p.pattern_key})`,
+          supabase
+            .from('insight_patterns')
+            // candidate edit- 가 바로 승격되면 reflected_at 이 비어 reflected_needs_trace CHECK 에 걸린다.
+            .update({ status: 'confirmed', strength: d.nextStrength, reflected_at: p.reflected_at ?? new Date().toISOString(), ...measured })
+            .eq('id', p.id),
+        )
         counts.promoted++
-        await supabase
-          .from('insight_patterns')
-          // candidate edit- 가 바로 승격되면 reflected_at 이 비어 reflected_needs_trace CHECK 에 걸린다.
-          .update({ status: 'confirmed', strength: d.nextStrength, reflected_at: p.reflected_at ?? new Date().toISOString(), ...measured })
-          .eq('id', p.id)
 
         // hypotheses 는 'supported'. guard_hypothesis_promotion 트리거가
         // 표본 5개를 다시 검사한다 — 여기서 통과해도 DB 가 한 번 더 본다.
@@ -515,28 +550,37 @@ export async function runInsightLoop(
         // learnings 에도 남긴다. threads-draft.md 가 "확정된 학습을 가이드보다
         // 우선"하도록 이미 짜여 있어서, 이 한 줄이 생성 단계에 가장 직접적으로
         // 피드백되는 경로다.
-        await supabase.from('learnings').insert({
-          statement: `${p.title} — ${d.reason}`,
-          hypothesis_code: p.hypothesis_code,
-          status: 'confirmed',
-          sample_size: perf.sampleSize,
-          promoted_at: new Date().toISOString(),
-        })
+        await must(
+          `학습 적립(${p.pattern_key})`,
+          supabase.from('learnings').insert({
+            statement: `${p.title} — ${d.reason}`,
+            hypothesis_code: p.hypothesis_code,
+            status: 'confirmed',
+            sample_size: perf.sampleSize,
+            promoted_at: new Date().toISOString(),
+          }),
+        )
       } else {
+        await must(
+          `기각 반영(${p.pattern_key})`,
+          supabase
+            .from('insight_patterns')
+            .update({
+              status: 'rejected',
+              strength: 0,
+              rejected_at: new Date().toISOString(),
+              rollback_reason: d.reason,
+              ...measured,
+            })
+            .eq('id', p.id),
+        )
         counts.rejected++
-        await supabase
-          .from('insight_patterns')
-          .update({
-            status: 'rejected',
-            strength: 0,
-            rejected_at: new Date().toISOString(),
-            rollback_reason: d.reason,
-            ...measured,
-          })
-          .eq('id', p.id)
 
         if (p.hypothesis_code) {
-          await supabase.from('hypotheses').update({ status: 'rejected' }).eq('code', p.hypothesis_code)
+          await must(
+            `가설 기각(${p.hypothesis_code})`,
+            supabase.from('hypotheses').update({ status: 'rejected' }).eq('code', p.hypothesis_code),
+          )
         }
       }
     }
@@ -615,11 +659,14 @@ export async function runInsightLoop(
     // 어느 커밋으로 들어갔는지를 패턴 행에 되기록한다. 이게 없으면
     // 자동 커밋을 나중에 사람이 되짚을 실마리가 사라진다.
     if (a.changed && a.commitSha) {
-      await supabase
-        .from('insight_patterns')
-        .update({ reflected_commit_sha: a.commitSha })
-        .in('status', ['reflected', 'confirmed'])
-        .is('reflected_commit_sha', null)
+      await must(
+        `반영 커밋 되기록(${a.commitSha.slice(0, 7)})`,
+        supabase
+          .from('insight_patterns')
+          .update({ reflected_commit_sha: a.commitSha })
+          .in('status', ['reflected', 'confirmed'])
+          .is('reflected_commit_sha', null),
+      )
     }
 
     return { learned: a, rejected: b }
@@ -649,7 +696,8 @@ export async function runInsightLoop(
   }
 
   return {
-    ok,
+    // 안전장치 3겹 중 셋째(실행 로그)가 작동 안 한 밤을 정상으로 기록하지 않는다(진단 2-4).
+    ok: ok && !fatal,
     dryRun,
     trigger,
     provider: activeProvider(),
@@ -669,7 +717,8 @@ export async function runInsightLoop(
  * 있을 때 이미 쓰인 코드를 다시 발급해 UNIQUE 제약에 걸린다.
  */
 async function issueHypothesisCode(supabase: Supa): Promise<string> {
-  const { data } = await supabase.from('hypotheses').select('code')
+  // error 를 버리면 조회 실패가 max=0 이 되어 H1 을 재발급하고, 그 INSERT 는 UNIQUE 로 죽는다(진단 2-3).
+  const { data } = await must('가설 코드 조회', supabase.from('hypotheses').select('code'))
   const max = (data ?? []).reduce((m: number, r: { code: string }) => {
     const n = Number(/^H(\d+)$/.exec(r.code ?? '')?.[1] ?? 0)
     return Number.isFinite(n) && n > m ? n : m

@@ -60,3 +60,62 @@ export async function decideColumn(_prev: ReviewActionState, fd: FormData): Prom
   revalidatePath('/columns')
   return { ok: true, message: `${LABEL[decision]} 완료.` }
 }
+
+// ── 검수 피드백 제안 (column_review_patterns) ────────────────────────────────
+//
+// scripts/column-feedback.mjs 가 review_note 배치에서 뽑아 적립한 "가이드 반영 제안"을
+// 사람이 결정한다. 위 decideColumn 과 같은 방어를 그대로 쓴다 — 로그인 확인 → 현재 상태
+// 읽기 → 낙관적 락 → select() 로 실제 갱신행 확인.
+//
+// ⛔ "가이드에 반영함"은 **기록일 뿐이다.** 이 액션은 가이드 문서를 고치지 않는다.
+//    문서는 사람이 직접 연다 — 코드가 content/guides 를 쓰는 경로는 이 리포에 없다.
+
+const PATTERN_LABEL: Record<'applied' | 'dismissed', string> = { applied: '가이드 반영', dismissed: '기각' }
+
+export async function decideColumnPattern(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
+
+  const id = String(fd.get('id') ?? '').trim()
+  const decisionRaw = String(fd.get('decision') ?? '')
+  const note = String(fd.get('note') ?? '').trim()
+  if (!id) return { ok: false, message: '대상 제안이 없습니다. 새로고침 후 다시 시도하세요.' }
+  if (decisionRaw !== 'applied' && decisionRaw !== 'dismissed') {
+    return { ok: false, message: '반영 또는 기각 중 하나를 골라야 합니다.' }
+  }
+  // 기각 사유는 필수다 — 사유가 없으면 다음 배치 프롬프트가 "왜 안 되는지"를 못 되먹인다.
+  if (decisionRaw === 'dismissed' && !note) return { ok: false, message: '기각 사유를 적어야 합니다.' }
+  const decision = decisionRaw
+
+  const sb = await createClient()
+  if (!sb) return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다.' }
+
+  const { data: row, error: readErr } = await sb
+    .from('column_review_patterns')
+    .select('id, status')
+    .eq('id', id)
+    .maybeSingle()
+  if (readErr) return { ok: false, message: `조회 실패 — 확인하지 못해 바꾸지 않았습니다: ${readErr.message}` }
+  if (!row) return { ok: false, message: '제안을 찾지 못했습니다. 새로고침 후 확인하세요.' }
+  if (row.status !== 'proposed') {
+    return { ok: false, message: `이미 ${row.status} 상태입니다. 새로고침 후 확인하세요.` }
+  }
+
+  const { data, error: writeErr } = await sb
+    .from('column_review_patterns')
+    .update({
+      status: decision,
+      decision_note: note || null,
+      decided_by: auth.email,
+      decided_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('status', 'proposed') // 낙관적 락 — 읽은 뒤 사이에 바뀌었으면 0행 갱신.
+    .select('id')
+
+  if (writeErr) return { ok: false, message: `저장 실패: ${writeErr.message}` }
+  if (!data || data.length === 0) return { ok: false, message: '방금 다른 곳에서 결정됐습니다. 새로고침 후 확인하세요.' }
+
+  revalidatePath('/columns')
+  return { ok: true, message: `${PATTERN_LABEL[decision]} 완료. 가이드 문서는 직접 고쳐야 합니다.` }
+}

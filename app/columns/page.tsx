@@ -5,6 +5,7 @@ import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
 import { Notice, PageHeader, PageShell } from '../_ds/components/Shell'
 import { DecisionForm } from './decision-form'
+import { PatternForm } from './pattern-form'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '칼럼·스레드 검수' }
@@ -87,6 +88,120 @@ function ThreadList({ threads }: { threads: ThreadEntry[] }) {
   )
 }
 
+// ── 검수 피드백 제안 ─────────────────────────────────────────────────────────
+//
+// scripts/column-feedback.mjs 가 review_note 배치에서 뽑아 적립한 "가이드 반영 제안".
+// 반응률이 없는 트랙이라 근거 강도는 evidence_count(배치 내 빈도)와 출처 slug 뿐이다 —
+// 그래서 둘 다 카드에 그대로 보여주고 강약 판단은 사람이 한다.
+//
+// ⛔ "가이드에 반영함"을 눌러도 가이드 문서는 안 바뀐다. 문서는 사람이 직접 고친다.
+
+type PatternRow = {
+  id: string
+  pattern_key: string
+  title: string
+  description: string
+  advice: string
+  evidence_count: number
+  source_slugs: string[]
+  status: string
+  first_seen_at: string
+  decided_at: string | null
+  decided_by: string | null
+  decision_note: string | null
+}
+
+const PATTERN_STATUS: Record<string, { label: string; tone: Tone }> = {
+  proposed: { label: '결정 대기', tone: 'warning' },
+  applied: { label: '가이드에 반영함', tone: 'success' },
+  dismissed: { label: '기각됨', tone: 'neutral' },
+}
+
+function PatternCard({ p }: { p: PatternRow }) {
+  const s = PATTERN_STATUS[p.status]
+  return (
+    <Card>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+          <Badge tone={s?.tone ?? 'neutral'} dot size="sm">{s?.label ?? p.status}</Badge>
+          <Badge tone={p.evidence_count > 1 ? 'info' : 'neutral'} size="sm">근거 {p.evidence_count}편</Badge>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{p.pattern_key}</span>
+        </div>
+        <h3 style={{ margin: 0, fontSize: 15 }}>{p.title}</h3>
+        <p style={muted}>근거 칼럼: {p.source_slugs.join(', ') || '없음'}</p>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{p.description}</p>
+        <div style={{ padding: 10, borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)' }}>
+          <p style={{ ...muted, marginBottom: 4 }}>가이드에 넣을 문장 초안 (사람이 직접 옮겨 적는다)</p>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{p.advice}</p>
+        </div>
+        {p.status === 'proposed' ? (
+          <PatternForm id={p.id} />
+        ) : (
+          <p style={muted}>
+            {s?.label ?? p.status}
+            {p.decided_by ? ` · ${p.decided_by}` : ' · 결정자 기록 없음'}
+            {p.decided_at ? ` · ${KST.format(new Date(p.decided_at))} KST` : ''}
+            {p.decision_note ? ` · ${p.decision_note}` : ''}
+          </p>
+        )}
+      </div>
+    </Card>
+  )
+}
+
+/**
+ * 조회 실패는 절대 조용하지 않다(§7.1). 성공했는데 0건일 때만 아무것도 안 그린다 —
+ * 그래서 이 자리가 비어 있으면 "조회는 됐고 결정할 게 없다"는 뜻으로 읽어도 된다.
+ * 접어 두는 이유는 ColumnBody 와 같다: 칼럼 카드가 스크롤 두 장 밑으로 밀리면 안 된다.
+ */
+function FeedbackSection({ rows, error }: { rows: PatternRow[] | null; error: { code?: string; message: string } | null }) {
+  if (error) {
+    const missing = error.code === '42P01' || error.code === 'PGRST205'
+    return missing ? (
+      <Notice tone="warning" title="마이그레이션 미적용 — column_review_patterns 테이블 없음">
+        <code>supabase db query --linked -f supabase/migrations/20260917000001_column_review_patterns.sql</code> 을 사람이 적용해야
+        검수 피드백 제안이 이 화면에 올라온다. 적용 후 <code>node --env-file=.env.local scripts/column-feedback.mjs</code> 로
+        검수 메모에서 패턴을 뽑는다.
+      </Notice>
+    ) : (
+      <Notice tone="danger" title="확인 불가 — 검수 피드백 제안 조회 실패">
+        {error.message} · 제안이 없다는 뜻이 아니다.
+      </Notice>
+    )
+  }
+  if (!rows || rows.length === 0) return null
+
+  const open = rows.filter((p) => p.status === 'proposed')
+  const closed = rows.filter((p) => p.status !== 'proposed')
+  const evidence = new Set(open.flatMap((p) => p.source_slugs)).size
+
+  return (
+    <details>
+      <summary style={{ cursor: 'pointer', fontSize: 14, margin: '4px 0' }}>
+        검수 피드백 제안 {open.length}건 (근거 {evidence}편){closed.length > 0 ? ` · 결정된 제안 ${closed.length}건` : ''}
+      </summary>
+      <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
+        <p style={muted}>
+          검수 메모에서 뽑은 가이드 반영 후보다. 반영을 눌러도 가이드 문서는 바뀌지 않는다 — 문서는 사람이 직접 고치고, 여기엔 결정만 남는다.
+        </p>
+        {open.length === 0 ? (
+          <p style={muted}>결정 대기 0건 (조회는 정상)</p>
+        ) : (
+          open.map((p) => <PatternCard key={p.id} p={p} />)
+        )}
+        {closed.length > 0 && (
+          <details>
+            <summary style={{ cursor: 'pointer', fontSize: 13, margin: '4px 0' }}>결정된 제안 {closed.length}건 보기</summary>
+            <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
+              {closed.map((p) => <PatternCard key={p.id} p={p} />)}
+            </div>
+          </details>
+        )}
+      </div>
+    </details>
+  )
+}
+
 function ColumnCard({ c }: { c: ColumnRow }) {
   return (
     <Card>
@@ -137,7 +252,12 @@ export default async function ColumnsPage() {
     )
   }
 
-  const res = await sb.from('content_columns').select('*').order('staged_at', { ascending: false })
+  // 제안 조회는 칼럼 조회와 따로 본다 — 한쪽이 실패해도 다른 쪽 화면을 못 쓰게 만들지 않는다
+  // (제안 테이블은 나중에 생긴 마이그레이션이라 미적용인 채로 칼럼 검수만 돌 수 있어야 한다).
+  const [res, patternRes] = await Promise.all([
+    sb.from('content_columns').select('*').order('staged_at', { ascending: false }),
+    sb.from('column_review_patterns').select('*').order('evidence_count', { ascending: false }),
+  ])
 
   // 테이블 자체가 없으면(마이그 미적용) 42P01/PGRST205 — 존재 확인은 GET 결과로,
   // head:true 로는 안 한다(빈 테이블도 존재하는 테이블도 204 를 주는 함정).
@@ -172,6 +292,11 @@ export default async function ColumnsPage() {
   return (
     <PageShell maxWidth={960}>
       {header}
+
+      <FeedbackSection
+        rows={(patternRes.data as PatternRow[] | null) ?? null}
+        error={patternRes.error ? { code: patternRes.error.code, message: patternRes.error.message } : null}
+      />
 
       <p style={{ margin: 0, fontSize: 14, color: 'var(--text-body)' }}>
         승인 대기 <b>{draft.length}건</b>

@@ -682,6 +682,160 @@ ok('제품 토큰이 브라우저를 사칭하지 않는다', !/mozilla|chrome|s
   ok('애플 페이지 상한을 넘지 않는다(400 요청 0건)', !seenUrls.some((u) => Number((u.match(/page=(\d+)/) || [0, 0])[1]) > 10))
 }
 
+// ── 커뮤니티 어댑터 × 러너 경계면 (실제 어댑터 + 실제 픽스처) ─────
+//
+// ⚠️ 부품 테스트를 통합의 근거로 쓰지 않는다(CLAUDE.md §7.1 사례 5).
+//    파서 셀프테스트가 통과해도 러너와 붙이면 커서·URL·robots 에서 깨질 수
+//    있다. 다나와 커서 버그가 정확히 그렇게 숨어 있었다.
+//
+// 이 두 소스는 **1글=1요청**이다. 확인할 것은 세 가지다:
+//   (1) 어댑터가 만든 URL 을 러너가 그대로 쓰는가(호스트가 안 바뀌는가)
+//   (2) 글 1건에서 본문+댓글이 N+1 건으로 적재되는가
+//   (3) 커서가 null 이라 타깃이 exhausted 로 닫히는가 — 같은 글을 또 안 긁는가
+
+for (const [name, mod, ref, robots, fixture, expectCount] of [
+  [
+    'damoang',
+    await import('../lib/review/adapters/damoang.ts'),
+    'url:/free/7341567',
+    'User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /*?page=\n',
+    'damoang/post-with-comments.html',
+    5,
+  ],
+  [
+    '82cook',
+    await import('../lib/review/adapters/82cook.ts'),
+    'url:/entiz/read.php?num=4239440',
+    'User-agent: *\nDisallow: /ajax/\nDisallow: /entiz/read.php?bn=15&num=1166440&page=6\n',
+    '82cook/post-with-comments.html',
+    5,
+  ],
+]) {
+  const adapter = name === 'damoang' ? mod.damoangAdapter : mod.cook82Adapter
+  const html = await fs.readFile(path.join(here, '..', 'fixtures', 'review', ...fixture.split('/')), 'utf8')
+
+  const seenUrls = []
+  const inputs = []
+  const saves = []
+  const seenFp = new Map()
+  let clock = 5_000_000
+
+  const ports = {
+    now: () => new Date(clock),
+    async sleep(ms) {
+      clock += ms
+    },
+    async fetchText(url) {
+      seenUrls.push(url)
+      clock += 10
+      if (url.endsWith('/robots.txt')) return { status: 200, body: robots }
+      return { status: 200, body: html }
+    },
+    store: {
+      async loadSource() {
+        return { key: name, enabled: true, minIntervalMs: 3000, dailyRequestCap: 100, requestsToday: 0 }
+      },
+      async listDueTargets() {
+        return [
+          {
+            id: `tgt-${name}`,
+            projectId: 'proj-c',
+            sourceKey: name,
+            productRef: ref,
+            cursor: null,
+            lastReviewAt: null,
+            consecutiveEmpty: 0,
+          },
+        ]
+      },
+      async saveTargetProgress(p) {
+        saves.push(p)
+      },
+      async recordFingerprint(fp) {
+        if (seenFp.has(fp.identityKey)) {
+          return seenFp.get(fp.identityKey) === fp.contentHash ? 'duplicate' : 'revised'
+        }
+        seenFp.set(fp.identityKey, fp.contentHash)
+        return 'new'
+      },
+      async appendInput(i) {
+        inputs.push(i)
+        return `in${inputs.length}`
+      },
+      async linkFingerprint() {},
+      async updateSourceHealth() {},
+    },
+  }
+
+  const r = await runCollection(adapter, { dryRun: false, targetLimit: 1 }, ports)
+
+  const pageUrls = seenUrls.filter((u) => !u.endsWith('/robots.txt'))
+  t(`${name}: 글 1건당 요청 1건`, pageUrls.length, 1)
+  t(`${name}: 어댑터가 만든 URL 을 러너가 그대로 쓴다`, pageUrls[0], `${mod.HOST}${ref.slice(4)}`)
+  t(`${name}: 호스트가 어댑터 상수와 일치`, new URL(pageUrls[0]).host, new URL(mod.HOST).host)
+  t(`${name}: 본문+댓글이 N+1 건 적재된다`, inputs.length, expectCount)
+  t(`${name}: 파싱 실패 0`, r.stats.parseFailures, 0)
+  t(`${name}: robots 로 건너뛴 요청 0`, r.robotsSkips, 0)
+  t(`${name}: 차단 응답 0`, r.stats.blockedResponses, 0)
+  t(`${name}: health ok`, r.health.health, 'ok')
+  // externalId 를 전건 확보했다 = 폴백 지문(composite)으로 샌 게 없다.
+  t(`${name}: 폴백 지문 0 — externalId 를 전부 읽었다`, r.stats.fallbackKeys, 0)
+  ok(`${name}: 본문이 실제로 들어간다`, inputs.every((i) => i.text.length > 0))
+  // 1글=1요청이므로 커서가 없어야 하고, 그래서 타깃이 닫혀야 한다.
+  ok(`${name}: 마지막 저장의 커서가 null`, saves[saves.length - 1].cursor === null)
+  t(`${name}: 타깃이 exhausted 로 닫힌다`, saves[saves.length - 1].status, 'exhausted')
+  // ⚠️ robots 가 /*?page= 를 막는데 러너는 쿼리를 떼고 판정한다(SP-026).
+  //    그러니 애초에 page 쿼리를 만들지 않아야 한다.
+  ok(`${name}: page 쿼리를 만들지 않는다`, !pageUrls.some((u) => /[?&]page=/.test(u)))
+
+  // enabled=false 로 등록하는 게 이번 마이그레이션의 핵심이다. 그 상태에서
+  // 정말 요청이 0건인지 본다 — "꺼 뒀다"는 말만 믿지 않는다.
+  {
+    const urls = []
+    const off = {
+      ...ports,
+      async fetchText(u) {
+        urls.push(u)
+        return { status: 200, body: '' }
+      },
+      store: { ...ports.store, async loadSource() {
+        return { key: name, enabled: false, minIntervalMs: 3000, dailyRequestCap: 100, requestsToday: 0 }
+      } },
+    }
+    const r2 = await runCollection(adapter, { dryRun: false, targetLimit: 1 }, off)
+    t(`${name}: enabled=false 면 요청 0건`, r2.requests, 0)
+    t(`${name}: enabled=false 면 robots.txt 도 안 받는다`, urls.length, 0)
+    ok(`${name}: 비활성 사유가 보고에 남는다`, JSON.stringify(r2).includes('비활성'))
+  }
+}
+
+// ── ADAPTERS 맵 키가 마이그레이션의 review_sources.key 와 같은가 ──
+//
+// 철자가 하나만 달라도 loadSource 가 행을 못 찾아 그 소스가 **조용히 안 돈다.**
+// 로그에는 아무 일도 안 일어난 것처럼 보인다 — 그래서 여기서 대조한다.
+{
+  const sql = await fs.readFile(
+    path.join(here, '..', 'supabase', 'migrations', '20260917000001_review_sources_community.sql'),
+    'utf8',
+  )
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  const mapBlock = collect.slice(collect.indexOf('const ADAPTERS ='), collect.indexOf('}', collect.indexOf('const ADAPTERS =')))
+
+  // ⚠️ mapBlock.includes(key) 로 쓰면 안 된다. 부분일치라 '82cooks' 같은 오타를
+  //    통과시킨다(실제로 변이 테스트에서 그렇게 새는 걸 확인했다). 키를 뽑아
+  //    **정확히** 대조한다 — 검사 방법이 주장과 같아야 한다(CLAUDE.md §7.1).
+  const mapKeys = new Set([...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]))
+  const sqlKeys = new Set([...sql.matchAll(/^\s*'([\w-]+)',$/gm)].map((m) => m[1]))
+
+  for (const key of ['damoang', '82cook']) {
+    ok(`등록: 마이그레이션 review_sources.key 에 '${key}' 가 있다`, sqlKeys.has(key))
+    ok(`등록: ADAPTERS 맵 키가 '${key}' 와 철자까지 같다`, mapKeys.has(key))
+  }
+  t('등록: enabled=false 로만 들어간다', (sql.match(/^\s*false,$/gm) || []).length, 2)
+  ok('등록: DDL 이 없다 (INSERT + COMMENT 만)', !/\b(create|alter|drop)\s+table\b/i.test(sql))
+  ok('등록: ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+}
+
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {
   console.log('러너가 틀렸다. 남의 서버에 대한 규칙이 걸려 있는 코드다.')

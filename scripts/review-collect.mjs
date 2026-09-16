@@ -25,10 +25,21 @@ import { alertLine } from '../lib/review/health.ts'
 import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
 import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { hackernewsAdapter } from '../lib/review/adapters/hackernews.ts'
+import { damoangAdapter } from '../lib/review/adapters/damoang.ts'
+import { cook82Adapter } from '../lib/review/adapters/82cook.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
-const ADAPTERS = { danawa: danawaAdapter, appstore: appstoreAdapter, hackernews: hackernewsAdapter }
+// ⚠️ 키는 review_sources.key 와 **철자까지 같아야 한다.** 다르면 loadSource 가
+//    행을 못 찾아 그 소스가 조용히 안 돈다(20260917000001 마이그레이션 참조).
+//    82cook 은 식별자가 숫자로 시작할 수 없어 export 이름만 cook82Adapter 다.
+const ADAPTERS = {
+  danawa: danawaAdapter,
+  appstore: appstoreAdapter,
+  hackernews: hackernewsAdapter,
+  damoang: damoangAdapter,
+  '82cook': cook82Adapter,
+}
 
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry')

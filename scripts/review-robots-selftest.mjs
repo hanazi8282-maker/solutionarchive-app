@@ -187,6 +187,124 @@ t('둘째 그룹 규칙이 첫 그룹에 안 샌다', g[0].rules.length, 1)
 const reason = robotsVerdict(parseRobots(longest), '/search/private', TOKEN).reason
 t('reason 에 근거 규칙이 담긴다', reason, 'Disallow: /search')
 
+// ── 커뮤니티 소스 2종 — 실제 robots.txt 원문 (실측 2026-09-16) ────
+//
+// 짐작으로 쓴 게 아니라 그날 받은 원문을 잘라 붙였다. 사이트가 규칙을 바꾸면
+// 이 테스트가 옛 규칙을 통과시키므로, 어댑터를 손댈 때 원문을 다시 받아 대조해라.
+//
+// ⚠️ 양쪽 다 **쿼리스트링을 대상으로 한 Disallow** 가 있다. robots.ts 는 쿼리를
+//    포함한 경로를 주면 정확히 판정하지만, 러너는 u.pathname 만 넘겨서
+//    (runner.ts:153) 실제 수집 경로에서는 이 규칙들이 매칭되지 않는다(SP-026).
+//    아래 판정은 **robots.ts 가 옳다**는 것만 보증한다 — 러너가 그걸 쓰고
+//    있다는 보증이 아니다. 둘을 헷갈리면 안 된다.
+
+const damoangRobots = `# Angple Community Platform
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /api/
+Disallow: /install/
+Disallow: /login
+Disallow: /member/
+Disallow: /my/
+Disallow: /claim
+Disallow: /truthroom
+Disallow: /go/
+Disallow: /bbs/link.php
+Disallow: /plugin/
+Disallow: /*?page=
+Disallow: /*&page=
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: trend-archive
+Disallow: /
+
+User-agent: CollectorHub
+Disallow: /
+
+Sitemap: https://damoang.net/sitemap.xml
+`
+
+// (a) 수집 대상 글 경로 — 허용이어야 한다
+t('다모앙: 글 경로는 허용', allowed(damoangRobots, '/free/7341567'), true)
+t('다모앙: 게시판 목록도 허용', allowed(damoangRobots, '/free'), true)
+// (b) 실제 금지 경로 — 막혀야 한다
+t('다모앙: /admin/ 금지', allowed(damoangRobots, '/admin/config'), false)
+t('다모앙: /api/ 금지', allowed(damoangRobots, '/api/comment'), false)
+t('다모앙: /member/ 금지', allowed(damoangRobots, '/member/google_x'), false)
+t('다모앙: /truthroom 금지', allowed(damoangRobots, '/truthroom'), false)
+t('다모앙: 레거시 /bbs/link.php 금지', allowed(damoangRobots, '/bbs/link.php'), false)
+// 와일드카드 + 쿼리 — 댓글 페이지네이션을 붙이면 여기 걸린다
+t('다모앙: ?page= 는 금지 (깊은 페이지네이션)', allowed(damoangRobots, '/free/7341567?page=2'), false)
+t('다모앙: &page= 도 금지', allowed(damoangRobots, '/free?sort=new&page=3'), false)
+
+// reason 이 "규칙 없음"이 아니라 실제 매칭 규칙을 가리켜야 한다
+t(
+  '다모앙: reason 이 실제 규칙을 가리킨다',
+  robotsVerdict(parseRobots(damoangRobots), '/admin/config', TOKEN).reason,
+  'Disallow: /admin/',
+)
+t(
+  '다모앙: ?page= 의 reason 도 실제 규칙',
+  robotsVerdict(parseRobots(damoangRobots), '/free/1?page=2', TOKEN).reason,
+  'Disallow: /*?page=',
+)
+
+// ⚠️ 우리 UA 는 AI 크롤러 차단 목록에 없어 `*` 그룹을 적용받는다.
+//    "그래서 허용"이라는 기계 판정과, 사이트가 자칭 수집기를 거부한다는
+//    사실은 별개다 — 후자는 사람이 판단했다(SP-025).
+t('다모앙: 우리 UA 는 AI크롤러 그룹에 안 걸린다(= * 그룹 적용)', allowed(damoangRobots, '/free/1'), true)
+t('다모앙: anthropic-ai 로 오면 전면 금지다', robotsVerdict(parseRobots(damoangRobots), '/free/1', 'anthropic-ai').allowed, false)
+t('다모앙: CollectorHub 로 오면 전면 금지다', robotsVerdict(parseRobots(damoangRobots), '/free/1', 'CollectorHub').allowed, false)
+
+const cook82Robots = `User-agent: Googlebot
+Disallow:
+
+User-agent: *
+Disallow: /tempfile/
+Disallow: /tempimg/
+Disallow: /ajax/
+Disallow: /temp/
+Disallow: /zb41/
+Disallow: /entiz/read.php?bn=15&num=1166440&page=6
+
+User-agent: Mediapartners-Google
+Disallow:
+
+User-agent: KaBot
+Disallow:
+
+sitemap: http://www.82cook.com/sitemap.xml
+`
+
+// (a) 수집 대상 글 경로 — 허용
+t('82cook: 글 경로는 허용', allowed(cook82Robots, '/entiz/read.php?num=4239440'), true)
+t('82cook: 게시판 목록도 허용', allowed(cook82Robots, '/entiz/enti.php?bn=15'), true)
+// (b) 실제 금지 경로 — 막혀야 한다
+t('82cook: /ajax/ 금지', allowed(cook82Robots, '/ajax/reple.php'), false)
+t('82cook: /temp/ 금지', allowed(cook82Robots, '/temp/x'), false)
+t('82cook: /tempfile/ 금지', allowed(cook82Robots, '/tempfile/a.jpg'), false)
+t('82cook: /zb41/ 금지', allowed(cook82Robots, '/zb41/old.php'), false)
+// 콕 집어 금지된 글 1건. 쿼리까지 줘야 걸린다.
+t('82cook: 금지된 그 글은 막힌다', allowed(cook82Robots, '/entiz/read.php?bn=15&num=1166440&page=6'), false)
+t('82cook: 옆 글은 막히지 않는다', allowed(cook82Robots, '/entiz/read.php?bn=15&num=1166441&page=6'), true)
+// ⚠️ 이 줄이 SP-026 의 증거다 — 쿼리를 떼면 금지된 그 글도 "허용"이 된다.
+t('82cook: 쿼리를 떼면 금지 글도 허용으로 보인다(러너의 구멍)', allowed(cook82Robots, '/entiz/read.php'), true)
+t(
+  '82cook: reason 이 실제 규칙을 가리킨다',
+  robotsVerdict(parseRobots(cook82Robots), '/ajax/x', TOKEN).reason,
+  'Disallow: /ajax/',
+)
+
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {
   console.log('robots 판정이 틀렸다. 이 상태로 수집을 돌리면 안 된다.')

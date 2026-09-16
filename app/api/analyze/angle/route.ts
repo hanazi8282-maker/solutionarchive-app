@@ -9,6 +9,7 @@ import {
   type SubstantiationVerdict,
 } from '@/lib/analysis/types'
 import { extractAdaptationSuggestion, systemPromptFor } from '@/lib/analysis/angle-adaptation'
+import { CLAIMED_STATUS, RELEASE_STATUS, lockVerdict } from '@/lib/analysis/angle-lock'
 import {
   callLlmJsonWithModel,
   describeFailure,
@@ -683,6 +684,36 @@ export async function POST(req: Request) {
     )
   }
 
+  // 2-b. 낙관적 락 — LLM 을 한 번이라도 부르기 전에 잡는다(진단 1-1).
+  //      dry_run 은 상태를 건드리지 않는 개발용 경로라 잠그지 않는다.
+  //      ponytail: 그래서 dry_run 끼리는 여전히 중복될 수 있다. 사람이 손으로만 부르는 경로다.
+  const releaseLock = async () => {
+    const { error } = await supabase
+      .from('analysis_projects')
+      .update({ status: RELEASE_STATUS })
+      .eq('id', projectId)
+      .eq('status', CLAIMED_STATUS)
+    if (error) {
+      // 못 풀면 프로젝트가 'angled' 로 남는다. 검수 화면에서 되돌릴 수 있는 상태라 막히진 않지만,
+      // 왜 그렇게 됐는지는 로그에 남겨야 사람이 추적한다.
+      console.error(`[analyze/angle] project=${projectId} lock release failed: ${error.message}`)
+    }
+  }
+
+  if (!dryRun) {
+    const { data: locked, error: lockError } = await supabase
+      .from('analysis_projects')
+      .update({ status: CLAIMED_STATUS })
+      .eq('id', projectId)
+      .eq('status', 'reviewed')
+      .select('id')
+    const verdict = lockVerdict(locked, lockError)
+    if (!verdict.ok) {
+      if (verdict.status === 500) console.error(`[analyze/angle] project=${projectId} lock failed: ${lockError?.message}`)
+      return NextResponse.json({ error: verdict.error }, { status: verdict.status })
+    }
+  }
+
   // 3. LLM 호출
   const startedAt = Date.now()
   let generated: GeneratedAngle[]
@@ -693,6 +724,7 @@ export async function POST(req: Request) {
   } catch (e) {
     const detail = describeFailure(e)
     console.error(`[analyze/angle] project=${projectId} generation failed: ${detail}`)
+    if (!dryRun) await releaseLock()
     return NextResponse.json({ error: `앵글 생성에 실패했습니다: ${detail}` }, { status: 502 })
   }
   const llmCallsTotal = generated.reduce((sum, g) => sum + g.llmCalls, 0)
@@ -710,6 +742,7 @@ export async function POST(req: Request) {
       .delete()
       .eq('project_id', projectId)
     if (deleteError) {
+      await releaseLock()
       return NextResponse.json({ error: `기존 앵글 삭제 실패: ${deleteError.message}` }, { status: 500 })
     }
 
@@ -738,18 +771,13 @@ export async function POST(req: Request) {
       .select('id')
 
     if (insertError) {
+      // 기존 앵글은 이미 지웠다. 사람이 다시 누를 수 있게 reviewed 로 되돌린다.
+      await releaseLock()
       return NextResponse.json({ error: `앵글 저장 실패: ${insertError.message}` }, { status: 500 })
     }
     anglesCreated = inserted?.length ?? 0
 
-    const { error: statusError } = await supabase
-      .from('analysis_projects')
-      .update({ status: 'angled' })
-      .eq('id', projectId)
-
-    if (statusError) {
-      return NextResponse.json({ error: `상태 변경 실패: ${statusError.message}` }, { status: 500 })
-    }
+    // status 는 2-b 의 락 획득 시점에 이미 'angled' 다. 여기서 또 바꾸지 않는다.
   }
 
   // DB 에는 verdict 만 남으므로, 판정 사유·인용·재작성 이력은 이 응답이 유일한 감사 경로다.

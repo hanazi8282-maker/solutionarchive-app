@@ -30,6 +30,8 @@ jobs:
       - run: node scripts/hn-failure-signal-selftest.mjs
       # 인사이트 루프의 DB 오류 가드. 한 줄만 되돌아가도 조회 실패가 "패턴 없음"으로 접힌다.
       - run: node scripts/insight-loop-db-guard-selftest.mjs
+      # 앵글 생성 낙관적 락 — 풀리면 더블클릭 한 번에 LLM 배치가 두 벌 나간다.
+      - run: node scripts/analyze-angle-lock-selftest.mjs
       - run: npx next build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

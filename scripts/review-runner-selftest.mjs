@@ -809,6 +809,126 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
   }
 }
 
+// ── VOC 라운드3 어댑터 × 러너 경계면 (실제 어댑터 + 실제 픽스처) ──
+//
+// 위 damoang·82cook 루프와 같은 목적이고 같은 검사를 한다. 합치지 않고
+// 따로 둔 이유는 병합 충돌뿐이다 — 위 블록은 손대지 않는다.
+//
+// 라운드3 은 3소스를 설계했고 실측에서 **bobaedream 1종만 남았다**
+// (tumblbug 은 코멘트가 robots 금지 XHR 로만 오고, naver_blog_post 는
+//  약관이 자동 수집을 명시 금지한다 — docs/review-source-findings.md).
+// 그래서 여기 항목이 1개다. 빠진 둘을 나중에 넣는다면 이 배열에 붙여라.
+
+for (const [name, mod, ref, robots, fixture, expectCount] of [
+  [
+    'bobaedream',
+    await import('../lib/review/adapters/bobaedream.ts'),
+    'url:/view?code=freeb&No=2000000',
+    'User-agent: *\nAllow: /\n\nUser-agent: Amazonbot\nDisallow: /\n',
+    'bobaedream/post-with-comments.html',
+    5,
+  ],
+]) {
+  const adapter = mod.bobaedreamAdapter
+  const html = await fs.readFile(path.join(here, '..', 'fixtures', 'review', ...fixture.split('/')), 'utf8')
+
+  const seenUrls = []
+  const inputs = []
+  const saves = []
+  const seenFp = new Map()
+  let clock = 5_000_000
+
+  const ports = {
+    now: () => new Date(clock),
+    async sleep(ms) {
+      clock += ms
+    },
+    async fetchText(url) {
+      seenUrls.push(url)
+      clock += 10
+      if (url.endsWith('/robots.txt')) return { status: 200, body: robots }
+      return { status: 200, body: html }
+    },
+    store: {
+      async loadSource() {
+        return { key: name, enabled: true, minIntervalMs: 3000, dailyRequestCap: 100, requestsToday: 0 }
+      },
+      async listDueTargets() {
+        return [
+          {
+            id: `tgt-${name}`,
+            projectId: 'proj-r3',
+            sourceKey: name,
+            productRef: ref,
+            cursor: null,
+            lastReviewAt: null,
+            consecutiveEmpty: 0,
+          },
+        ]
+      },
+      async saveTargetProgress(p) {
+        saves.push(p)
+      },
+      async recordFingerprint(fp) {
+        if (seenFp.has(fp.identityKey)) {
+          return seenFp.get(fp.identityKey) === fp.contentHash ? 'duplicate' : 'revised'
+        }
+        seenFp.set(fp.identityKey, fp.contentHash)
+        return 'new'
+      },
+      async appendInput(i) {
+        inputs.push(i)
+        return `in${inputs.length}`
+      },
+      async linkFingerprint() {},
+      async updateSourceHealth() {},
+    },
+  }
+
+  const r = await runCollection(adapter, { dryRun: false, targetLimit: 1 }, ports)
+
+  const pageUrls = seenUrls.filter((u) => !u.endsWith('/robots.txt'))
+  t(`${name}: 글 1건당 요청 1건`, pageUrls.length, 1)
+  t(`${name}: 어댑터가 만든 URL 을 러너가 그대로 쓴다`, pageUrls[0], `${mod.HOST}${ref.slice(4)}`)
+  t(`${name}: 호스트가 어댑터 상수와 일치`, new URL(pageUrls[0]).host, new URL(mod.HOST).host)
+  t(`${name}: 본문+댓글이 N+1 건 적재된다`, inputs.length, expectCount)
+  t(`${name}: 파싱 실패 0`, r.stats.parseFailures, 0)
+  t(`${name}: robots 로 건너뛴 요청 0`, r.robotsSkips, 0)
+  t(`${name}: 차단 응답 0`, r.stats.blockedResponses, 0)
+  t(`${name}: health ok`, r.health.health, 'ok')
+  // externalId 를 전건 확보했다 = 폴백 지문(composite)으로 샌 게 없다.
+  t(`${name}: 폴백 지문 0 — externalId 를 전부 읽었다`, r.stats.fallbackKeys, 0)
+  ok(`${name}: 본문이 실제로 들어간다`, inputs.every((i) => i.text.length > 0))
+  // 1글=1요청이므로 커서가 없어야 하고, 그래서 타깃이 닫혀야 한다.
+  ok(`${name}: 마지막 저장의 커서가 null`, saves[saves.length - 1].cursor === null)
+  t(`${name}: 타깃이 exhausted 로 닫힌다`, saves[saves.length - 1].status, 'exhausted')
+  // 러너는 robots 판정에 쿼리를 안 넘긴다(SP-026). 보배드림 robots 는 지금
+  // 전면 허용이지만, 규칙이 생기면 바로 구멍이 된다 — 애초에 안 만든다.
+  ok(`${name}: page 쿼리를 만들지 않는다`, !pageUrls.some((u) => /[?&]page=/.test(u)))
+  // 글 경로의 쿼리(code·No)는 그대로 살아 있어야 한다. page 금지와 헷갈리지 마라.
+  ok(`${name}: 글을 가리키는 쿼리는 살아 있다`, /[?&]code=freeb/.test(pageUrls[0]) && /[?&]No=2000000/.test(pageUrls[0]))
+
+  // enabled=false 로 등록하는 게 이번 마이그레이션의 핵심이다. 그 상태에서
+  // 정말 요청이 0건인지 본다 — "꺼 뒀다"는 말만 믿지 않는다.
+  {
+    const urls = []
+    const off = {
+      ...ports,
+      async fetchText(u) {
+        urls.push(u)
+        return { status: 200, body: '' }
+      },
+      store: { ...ports.store, async loadSource() {
+        return { key: name, enabled: false, minIntervalMs: 3000, dailyRequestCap: 100, requestsToday: 0 }
+      } },
+    }
+    const r2 = await runCollection(adapter, { dryRun: false, targetLimit: 1 }, off)
+    t(`${name}: enabled=false 면 요청 0건`, r2.requests, 0)
+    t(`${name}: enabled=false 면 robots.txt 도 안 받는다`, urls.length, 0)
+    ok(`${name}: 비활성 사유가 보고에 남는다`, JSON.stringify(r2).includes('비활성'))
+  }
+}
+
 // ── ADAPTERS 맵 키가 마이그레이션의 review_sources.key 와 같은가 ──
 //
 // 철자가 하나만 달라도 loadSource 가 행을 못 찾아 그 소스가 **조용히 안 돈다.**
@@ -834,6 +954,47 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
   t('등록: enabled=false 로만 들어간다', (sql.match(/^\s*false,$/gm) || []).length, 2)
   ok('등록: DDL 이 없다 (INSERT + COMMENT 만)', !/\b(create|alter|drop)\s+table\b/i.test(sql))
   ok('등록: ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+}
+
+// ── 같은 대조, VOC 라운드3 마이그레이션 ───────────────────────────
+//
+// 위 블록과 검사 내용은 같다. 파일이 다르므로 블록을 나란히 둔다
+// (위 블록은 손대지 않는다 — 다른 세션이 같은 파일을 만질 수 있다).
+{
+  const sql = await fs.readFile(
+    path.join(here, '..', 'supabase', 'migrations', '20260918000001_review_sources_voc_round3.sql'),
+    'utf8',
+  )
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  const mapBlock = collect.slice(collect.indexOf('const ADAPTERS ='), collect.indexOf('}', collect.indexOf('const ADAPTERS =')))
+  const mapKeys = new Set([...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]))
+  const sqlKeys = new Set([...sql.matchAll(/^\s*'([\w-]+)',$/gm)].map((m) => m[1]))
+
+  for (const key of ['bobaedream']) {
+    ok(`등록(r3): 마이그레이션 review_sources.key 에 '${key}' 가 있다`, sqlKeys.has(key))
+    ok(`등록(r3): ADAPTERS 맵 키가 '${key}' 와 철자까지 같다`, mapKeys.has(key))
+  }
+  t('등록(r3): enabled=false 로만 들어간다', (sql.match(/^\s*false,$/gm) || []).length, 1)
+  ok('등록(r3): DDL 이 없다 (INSERT + COMMENT 만)', !/\b(create|alter|drop)\s+table\b/i.test(sql))
+  ok('등록(r3): ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+
+  // 실측에서 떨어진 두 소스가 **실수로 다시 들어오지 않게** 못을 박는다.
+  // 되살리려면 이 테스트를 먼저 고쳐야 하고, 그러면 근거를 다시 보게 된다.
+  for (const dropped of ['tumblbug', 'naver_blog_post', 'naver_blog']) {
+    ok(`탈락(r3): '${dropped}' 는 마이그레이션에 없다`, !sqlKeys.has(dropped))
+    ok(`탈락(r3): '${dropped}' 는 ADAPTERS 에도 없다`, !mapKeys.has(dropped))
+  }
+
+  // 롤백이 가역인지 — 행을 지우는 DELETE 가 **주석 밖에** 있으면 안 된다.
+  // 자식 행이 남은 상태에서 지우면 FK 로 실패하거나 데이터를 잃는다.
+  const rb = await fs.readFile(
+    path.join(here, '..', 'supabase', 'migrations', '20260918000001_review_sources_voc_round3_rollback.sql'),
+    'utf8',
+  )
+  const live = rb.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n')
+  ok('롤백(r3): 되돌리는 문장이 있다', /update\s+public\.review_sources/i.test(live))
+  ok('롤백(r3): DELETE 를 바로 실행하지 않는다', !/^\s*delete\s+from/im.test(live))
+  ok('롤백(r3): 자식 행 건수 확인 SQL 이 주석으로 있다', /review_fingerprints/.test(rb) && /analysis_inputs/.test(rb))
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

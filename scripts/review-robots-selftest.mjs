@@ -305,6 +305,38 @@ t(
   'Disallow: /ajax/',
 )
 
+// ── 보배드림 — 실제 robots.txt 원문 (실측 2026-09-17) ─────────────
+//
+// 전면 허용이다. 금지 경로가 하나도 없고 Amazonbot 만 막는다.
+// damoang·82cook 과 달리 쿼리 대상 Disallow 가 없어 SP-026 구멍을 안 밟는다.
+//
+// ⚠️ **"규칙이 없으니 마음대로"가 아니다.** 같은 라운드에서 네이버 블로그는
+//    robots 본문에 RAG 목적 수집 금지를 적어 뒀고 ClaudeBot 을 이름으로
+//    막았다(docs/review-source-findings.md). 기계 판정과 사이트의 의사는
+//    별개다 — 새 소스를 넣을 때 원문을 눈으로 읽어라.
+
+const bobaedreamRobots = `User-agent: *
+Allow: /
+
+User-agent: grapeshot
+Disallow:
+
+User-agent: Amazonbot
+Disallow: /
+`
+
+// (a) 수집 대상 글 경로 — 허용
+t('보배드림: 글 경로는 허용', allowed(bobaedreamRobots, '/view?code=freeb&No=2000000'), true)
+t('보배드림: 게시판 목록도 허용', allowed(bobaedreamRobots, '/list?code=freeb'), true)
+t('보배드림: 루트도 허용', allowed(bobaedreamRobots, '/'), true)
+// (b) 금지 경로가 없다는 것을 그냥 단정하지 않고, 다른 소스에서 막히는
+//     경로들이 여기서는 안 막히는지로 확인한다.
+t('보배드림: /admin/ 도 막히지 않는다 (규칙 자체가 없다)', allowed(bobaedreamRobots, '/admin/config'), true)
+t('보배드림: ?page= 도 막히지 않는다', allowed(bobaedreamRobots, '/list?code=freeb&page=3'), true)
+// (c) 이름으로 막힌 봇은 실제로 막혀야 한다 — Allow: / 가 그걸 덮으면 안 된다.
+t('보배드림: Amazonbot 으로 오면 전면 금지다', robotsVerdict(parseRobots(bobaedreamRobots), '/view', 'Amazonbot').allowed, false)
+t('보배드림: 우리 UA 는 * 그룹을 적용받는다', allowed(bobaedreamRobots, '/view?code=freeb&No=1'), true)
+
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {
   console.log('robots 판정이 틀렸다. 이 상태로 수집을 돌리면 안 된다.')

@@ -360,6 +360,26 @@ robotsVerdict(groups, '/v0/item/49628981.json', 'solutionarchive-review-collecto
 다만 `robots.ts` 는 리뷰 수집 트랙 전체의 안전장치라 이번 브랜치에서 손대지
 않았다. 별도 판단이 필요하다.
 
+> #### ⚠️ 2026-09-16 정정 — 위 337~361행은 더 이상 사실이 아니다
+>
+> ~~`lib/review/robots.ts` 는 와일드카드(`*`)와 끝 앵커(`$`)를 구현하지 않는다.~~
+> **구현했다.** SP-018 이 `fix/robots-wildcard` 로 수정했고, 그 결과 appstore 가
+> Apple robots.txt 위반 상태였음이 드러나 `enabled=false` 가 됐다(SP-019/021).
+> 위 문단은 수정 **이전** 시점의 기록이다. 근거를 찾아 이 파일을 읽는 사람이
+> "우리는 와일드카드를 안 지킨다"로 오독하지 않도록 남긴다.
+>
+> 2026-09-16 실측(다모앙 실제 robots.txt 를 `parseRobots`→`robotsVerdict` 에 통과):
+> ```
+> /free/7341567         => allowed=true   reason='Allow: /'
+> /free/7341567?page=2  => allowed=false  reason='Disallow: /*?page='
+> /admin/x              => allowed=false  reason='Disallow: /admin/'
+> ```
+> `*` 매칭이 정상 동작한다.
+>
+> **다만 진짜 구멍은 따로 있다(아래 §커뮤니티 소스 실측 참조):** 호출부가
+> 쿼리스트링을 넘기지 않아, 위 2행 같은 쿼리 대상 규칙은 실제 수집 경로에서
+> 영영 매칭되지 않는다. 와일드카드 구현 여부와 무관한 별개 결함이다.
+
 ### 남헌 2026-09-10 결정 — Algolia HN Search API evidence_grade=B로 확정
 
 Algolia HN Search API(`hn.algolia.com/api`) 자체는 이용약관 문서가 없다(§ 위
@@ -369,3 +389,209 @@ Firebase 항목과는 별개 호스트). 확인한 건 "명시적 상업이용 �
 `enabled=false`로 등록해 사람이 켜야 실제 수집이 시작되게 했다(마이그레이션
 `20260910000001_hackernews_source.sql`). Tier4(G2/Capterra — 이용약관 원문에
 스크래핑 금지가 명시된 경우)와는 확인의 강도가 다르다는 걸 여기 남긴다.
+
+## 커뮤니티 소스 실측 — damoang · 82cook (2026-09-16)
+
+`feat/review-community-sources` 의 AC-0(선행 실측 게이트) 결과다. **어댑터 코드는
+쓰지 않았다** — 아래 2·3번 발견 때문에 게이트에서 멈추고 사람 판단으로 넘겼다.
+
+모든 요청은 정직한 UA `solutionarchive-review-collector/0.1 (+contact)` 로,
+호스트당 3~4회만 보냈다.
+
+### 측정한 URL과 결과
+
+| 호스트 | URL | 일시(UTC) | HTTP | charset | 확인한 표지 |
+|---|---|---|---|---|---|
+| damoang.net | `/robots.txt` | 2026-09-16 07:00 | 200 | utf-8 | 3,752 bytes |
+| damoang.net | `/free` (목록) | 2026-09-16 07:01 | 200 | utf-8 | `href="/free/<id>"` 다수 |
+| damoang.net | `/free/7341567` | 2026-09-16 07:02 | 200 | utf-8 | `comment-body` ×13 = 댓글수(13) 일치 |
+| www.82cook.com | `/robots.txt` | 2026-09-16 07:00 | 200 | (charset 없음, ASCII) | 325 bytes |
+| www.82cook.com | `/entiz/enti.php?bn=15` (목록) | 2026-09-16 07:01 | 200 | **utf-8** | `read.php?bn=15&num=...` 다수 |
+| www.82cook.com | `/entiz/read.php?bn=15&num=4060855&page=1` | 2026-09-16 07:02 | 200 | utf-8 | `id="articleBody"`, 댓글 0건 |
+| www.82cook.com | `/entiz/read.php?num=4239440` | 2026-09-16 07:05 | 200 | utf-8 | `total_reple`=72, `li.rp` ×72 |
+
+### 1. 셀렉터 — 기록과 실물의 차이 (AC-0d)
+
+**damoang**: 기록된 `comment-body` 는 **오늘도 유효함을 확인**했다. 기록에 없던
+더 나은 것도 찾았다.
+- 댓글: `<li id="c_7341577" class="comment-item ...">` → 앵커 id 확보 가능(externalId 1순위 충족)
+- 댓글 본문: `<div class="comment-body ...">` ✓
+- 댓글 수: `<h2>댓글 <span>(13)</span></h2>` → "0건"과 "컨테이너 소실" 구분 가능
+- 본문: `articleBody` 는 **damoang 셀렉터가 아니다(0건)**. 대신 `application/ld+json`
+  의 `DiscussionForumPosting` 이 `headline`·`text`·`datePublished`(ISO)·`comment[]`
+  를 통째로 제공한다. Svelte 해시 클래스(`svelte-1gn3ynt`)보다 훨씬 안정적이다.
+  단 `text` 는 약 200자에서 잘린다 — 전문이 필요하면 HTML 을 봐야 한다.
+- 작성일: 본문은 JSON-LD 에 ISO 로 있음. 댓글 HTML 표기는 `09.15` 로 **연도가 없다**
+  (JSON-LD `comment[].datePublished` 에는 연도 포함 ISO 가 있으므로 그쪽을 쓴다).
+
+**82cook**: 기록된 `articleBody`·`rp` 둘 다 **유효**. 역시 기록에 없던 것 추가.
+- 본문: `<div id="articleBody">` ✓
+- 글 번호: `<div id="contNum">4060855</div>`
+- 댓글: `<ul class="reples"><li data-rn="41169700" class="rp">` → `data-rn` 이 댓글
+  고유 id(externalId 1순위 충족)
+- 댓글 수: `<strong class="total_reple">72</strong>` → 0건/소실 구분 가능
+- 작성자: `<h5>...<strong>닉네임</strong></h5>`, 작성일: `<em>'26.9.15 8:00 PM</em>`
+  (2자리 연도 — 파싱 필요, 상대시간 아님)
+- 댓글은 **정적 HTML**이다. `/ajax/`(robots 금지) 호출에 의존하지 않는다.
+
+### 2. 🔴 인코딩은 문제가 아니었다 — damoang 의 수집 거부 의사가 문제다 (AC-0c/0a)
+
+설계가 걱정한 82cook EUC-KR 은 **기우였다. 실측 UTF-8 이다**(`file` 판정 및 한글
+정상 출력 확인). `fetchText` 수정 불필요.
+
+대신 예상 못한 것이 damoang robots.txt 에 있었다. 원문 그대로:
+
+```
+# AI 크롤러 차단 (콘텐츠 학습 방지)
+User-agent: GPTBot
+Disallow: /
+User-agent: ChatGPT-User
+Disallow: /
+User-agent: Google-Extended
+Disallow: /
+User-agent: CCBot
+Disallow: /
+User-agent: anthropic-ai
+Disallow: /
+User-agent: Claude-Web
+Disallow: /
+User-agent: Bytespider
+Disallow: /
+User-agent: cohere-ai
+Disallow: /
+
+# ⛔ 무단 수집기 차단 — 2026-09-15 실측으로 확인
+#    /rss 요청 7일 810건 중 631건(78%)이 자칭 수집기였다.
+#      trend-archive/0.1  337건  robots.txt 를 읽지 않는다(형식상 명시만 한다)
+#      CollectorHub/0.1   294건  robots.txt 를 30번 읽었다 → 막으면 지킬 가능성이 높다
+#    ⭐ 근본 대응은 피드에서 본문·이미지를 뺀 것이다(별건). robots 는 **의사 표시**다 —
+#       나중에 분쟁이 생기면 "금지 의사를 밝혔다"는 근거가 된다.
+User-agent: trend-archive
+Disallow: /
+User-agent: CollectorHub
+Disallow: /
+```
+
+우리 UA(`solutionarchive-review-collector/0.1`)는 이 목록에 **없다**. 그래서
+`User-agent: *` / `Allow: /` 가 적용되고 **기계적 판정은 allowed=true** 다.
+
+그런데 차단 목록의 두 UA 는 우리와 **형태가 같다** — `<이름>/0.1` 꼴의 자칭
+수집기다. 사이트는 (a) AI 학습 목적 수집을 명시적으로 거부하고, (b) 자칭 수집기를
+이름이 확인되는 대로 추가하고 있으며, (c) 그 robots 항목이 **분쟁 시 근거**임을
+문서에 적어 뒀다. 우리 파이프라인은 수집한 텍스트를 AI 분석·콘텐츠 생성에 쓴다.
+
+**"목록에 우리 이름이 아직 없다"를 "허용"으로 읽는 것은 §7.1 이 금지하는
+'확인 불가를 양성으로 접는' 판정이다.** 기술 판단이 아니라 사업·법무 판단이므로
+구현자가 결정하지 않는다. → 사람 판단 대기.
+
+82cook robots.txt 에는 이런 조항이 **없다**(원문 전체가 아래 3번에 있다).
+
+### 3. 🔴 두 호스트 모두 쿼리 대상 금지 규칙이 있는데 러너가 못 읽는다
+
+82cook robots.txt 원문 전체:
+
+```
+User-agent: Googlebot
+Disallow:
+
+User-agent: *
+Disallow: /tempfile/
+Disallow: /tempimg/
+Disallow: /ajax/
+Disallow: /temp/
+Disallow: /zb41/
+Disallow: /entiz/read.php?bn=15&num=1166440&page=6
+
+User-agent: Mediapartners-Google
+Disallow:
+
+User-agent: KaBot
+Disallow:
+
+sitemap: http://www.82cook.com/sitemap.xml
+```
+
+`?`·`=` 를 포함한 규칙이 양쪽에 있다:
+- damoang: `Disallow: /*?page=` · `Disallow: /*&page=` (깊은 페이지네이션 — robots
+  주석에 2026-07-30 OOM 장애 원인으로 기록돼 있다)
+- 82cook: `Disallow: /entiz/read.php?bn=15&num=1166440&page=6` (특정 글 1건)
+
+**수집 대상 글 경로 자체는 어느 규칙에도 안 걸린다**(damoang `/free/<id>` 는 쿼리가
+없고, 82cook 글은 그 특정 1건이 아니다). 진입 자체는 허용이다.
+
+문제는 판정 경로다. `lib/review/runner.ts:153`:
+
+```ts
+return robotsVerdict(cached, u.pathname, PRODUCT_TOKEN)
+//                          ^^^^^^^^^^ u.search 가 없다
+```
+
+`robots.ts` 는 쿼리를 포함한 경로를 주면 정확히 판정한다(위 §정정 블록의 실측).
+하지만 러너가 `pathname` 만 넘겨서 **쿼리스트링이 잘린다.** 결과:
+
+- damoang 댓글 페이지네이션을 `?page=N` 으로 구현하면 → 실제로는 robots 위반인데
+  러너는 `/free/<id>` 로 잘라 판정해 **allowed=true 를 돌려준다.** 안전장치가
+  위반을 못 막는다(§7.2).
+- 82cook 의 금지된 그 글 1건도 같은 이유로 막히지 않는다.
+
+이건 커뮤니티 소스만의 문제가 아니라 **전 소스 공통 결함**이다. appstore 때
+(SP-019) 와 같은 종류의 사고가 재발할 자리다. 수정은 러너 한 줄이지만 모든 소스의
+robots 판정에 동시에 영향을 주므로 별건 PR 로 다룬다.
+
+### 남헌 2026-09-16 결정 — 리스크를 인지하고 진행 (SP-025)
+
+위 2번을 사람에게 올렸고, **두 소스 모두 진행**으로 결정됐다. 다모앙이 AI 학습
+크롤러와 자칭 수집기를 거부하고 있다는 사실을 인지한 채로 내린 결정이다
+(Reddit/SP-005 와 같은 리스크 수용 방식). 결정의 전문은 `docs/strategy-principles.md`
+SP-025 에 있다.
+
+따라서 AC-0 게이트를 통과해 구현했다:
+
+- 어댑터 `lib/review/adapters/damoang.ts` · `82cook.ts`, 공용 ref 검증
+  `url-ref.ts`(SSRF 경계)
+- 픽스처 각 4종(정상 / 댓글0건 / 댓글영역소실 / 본문소실) — 실측 응답에서 깎았다
+- 셀프테스트 `scripts/review-damoang-selftest.mjs`(62건) ·
+  `review-82cook-selftest.mjs`(63건)
+- 마이그레이션 `20260917000001_review_sources_community.sql` — **파일만. 미적용**
+  (enabled=false 2행, DDL 없음)
+
+**두 소스 다 `enabled=false` 다.** 이용약관 원문 확인이 끝난 뒤 사람이 켠다.
+
+### 라이브 프로브 결과 (2026-09-16, DB 쓰기 없음)
+
+실제 응답을 실제 어댑터의 `parse()` 에 통과시킨 결과다. 픽스처가 아니다.
+
+```
+damoang  https://damoang.net/free/7341567
+  HTTP 200 · 409,235 bytes · utf-8
+  reviews=11  parseFailures=0  nextCursor=null
+  본문: "뉴스·펌글 작성 기준 안내\n\n안녕하세요, 다모앙입니다.뉴스 펌글 규칙의 적용 기준에 …"
+  댓글[0]: /free/7341567#c_7341623  "확인했습니다."  writtenAt=null
+
+82cook   https://www.82cook.com/entiz/read.php?num=4239440
+  HTTP 200 · 61,041 bytes · utf-8
+  reviews=79  parseFailures=0  nextCursor=null
+  본문: "창고형 약국이 동네에 생겨서 가봤더니\n평소 처방없이 사먹던 약들이\n최소 반값이고 …"
+  댓글[0]: …#41169700  "저도 가봤어요. 거의 반값인게 많더라구요."  writtenAt=2026-09-15
+```
+
+한글이 깨지지 않고 실제 글 내용과 일치한다. 양쪽 다 `parseFailures=0`,
+`robotsSkips=0` 이고 `nextCursor=null` 이라 타깃이 곧바로 닫힌다(1글=1요청).
+
+damoang 이 11건인 것은 댓글 13건 중 3건이 이모티콘만 달린 것이라 본문이 없어서다
+(실패가 아니다 — 마커가 센 13건과 앵커 13건이 일치하므로 구조는 멀쩡하다).
+
+### 알아 둘 것 — 이번 구현이 안고 가는 한계
+
+- **다모앙 글 본문이 잘린다.** JSON-LD 의 `text` 가 약 200자에서 끊긴다(실측 160자).
+  제목·작성일이 안정적으로 있는 곳이 여기뿐이라 이걸 썼다. 전문이 필요하면 HTML 의
+  `#…-post-content` / `.prose` 를 읽어야 하는데, 그 id 가 게시판마다 달라 보여서
+  이번엔 손대지 않았다.
+- **다모앙 댓글 작성일이 전부 null 이다.** 화면 표기가 `09.15` 로 연도가 없고,
+  JSON-LD 의 `comment[]` 는 일부만 실어 준다(실측 13건 중 3건). 순서로 맞추면
+  어긋난 날짜를 조용히 붙이게 되므로 채우지 않았다.
+- **82cook 은 삭제 표시 댓글(`class="rp delReple"`)도 수집한다.** 본문이 그대로
+  실려 오고 개수 마커(`total_reple`)가 그것까지 세기 때문이다. 빼면 마커와 실제
+  수가 어긋나 멀쩡한 글이 파싱 실패로 잡힌다.
+- **두 사이트 이용약관 원문 확인 — 여전히 미실시(확인 불가).** robots 만 쟀다.
+  `enabled=true` 전환 전에 사람이 봐야 한다.

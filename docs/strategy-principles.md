@@ -1,4 +1,4 @@
-# 원칙 원장 (Corpus C) — SP-001 ~ SP-024
+# 원칙 원장 (Corpus C) — SP-001 ~ SP-026
 
 크로스섹션 어드바이저(§20 / §13-7)의 Corpus C. 수익화 리서치 문서 §22 를 구조화한
 조각이다. **이 표가 정본이다.** `strategy_principles` 테이블은 이 표에서 시딩하고,
@@ -37,6 +37,21 @@
 | SP-022 | channel, rejected | 유료 데이터벤더(Appfigures Public Data API add-on, Sensor Tower/data.ai, Datarade)는 전부 "구매형 데이터 조달" 범주로 배제 | B (공식 문서 기반) | §29 |
 | SP-023 | competitor, market | G2가 Gartner로부터 Capterra·GetApp·Software Advice 인수를 2026-01-29 공식 발표(Q1 2026 종결 예정) — 향후 이 3사 약관이 G2 체계로 통합될 가능성, Tier 4 배제 목록 갱신 필요 시점 모니터링 | B (보도자료 기반) | §29 |
 | SP-024 | advisor, matching, false-positive | 크로스섹션 어드바이저 Corpus A 점수는 `evidence_grade랭크 × 10 + 겹친 낱말 수` 라 등급 가중이 겹침 강도를 압도한다 — 광범위 도메인어 낱말 1개로 걸린 A등급 무브가 31점, 정확한 낱말 5개로 걸린 C등급 무브가 15점이라 "점수가 낮으면 저신뢰"가 성립하지 않는다. 불용어 필터(PR #43)는 낱말 목록만 고칠 뿐 이 역전을 못 막는다. 그래서 단일 낱말 매칭은 점수 임계로 숨기지 않고, 겹친 낱말·점수·"신뢰도 낮음"을 화면에 그대로 노출해 사람이 판단하게 한다 | A (산식 실측 — scripts/advisor-selftest.mjs 재현) | PR #43 후속 |
+
+| SP-025 | channel, legal, community, risk-accepted | 다모앙(damoang.net) robots.txt 는 `anthropic-ai`·`Claude-Web`·`GPTBot`·`CCBot`·`Google-Extended` 등을 "AI 크롤러 차단 (콘텐츠 학습 방지)" 로 전면 금지하고, `trend-archive/0.1`·`CollectorHub/0.1` 같은 **자칭 수집기**도 이름을 확인하는 대로 차단 목록에 추가하며 "robots 는 의사 표시이고 분쟁 시 근거가 된다"고 문서에 적어 두었다 — 우리 UA(`solutionarchive-review-collector/0.1`)는 아직 목록에 없어 `User-agent: *` / `Allow: /` 가 적용돼 **기계 판정은 allowed** 지만, 사이트의 거부 의사가 우리 용도(AI 분석·콘텐츠 생성)를 덮는다. 남헌이 **2026-09-16 이 사실을 인지한 채로 수집 진행을 결정**했다(Reddit/SP-005 와 같은 리스크 수용 방식). 단 `enabled=false` 로 등록해 사람이 켜야 시작한다 | A (robots.txt 원문 실측 2026-09-16 + 사람 결정) | 2026-09-16 실측 |
+| SP-026 | infra, bug, robots-txt | `lib/review/runner.ts:153` 이 `robotsVerdict(cached, u.pathname, PRODUCT_TOKEN)` 로 **쿼리스트링을 빼고** 판정을 부른다 — `robots.ts` 자체는 `*`·`$` 와 쿼리를 정확히 판정하는데(SP-018 로 수정됨), 호출부에서 `u.search` 가 잘려 `Disallow: /*?page=` (다모앙) 나 `Disallow: /entiz/read.php?bn=15&num=1166440&page=6` (82cook) 같은 **쿼리 대상 규칙이 어떤 경로와도 매칭되지 않는다.** 와일드카드 구현 여부와 무관한 별개 결함이고 전 소스에 동시 영향을 준다. 이번 커뮤니티 어댑터는 1글=1요청이라 이 구멍을 밟지 않지만(수집 URL 에 `?page=` 가 없다), **댓글 페이지네이션을 붙이려면 이 수정이 선행되어야 한다** — 안 고치고 붙이면 안전장치가 robots 위반을 못 막는다(§7.2) | A (실측 — 실제 robots 를 통과시켜 재현) | 2026-09-16 실측 |
+
+### SP-025 / SP-026 실측 근거
+
+- 두 호스트 robots.txt 원문·측정 일시·셀렉터 대조는 `docs/review-source-findings.md`
+  "커뮤니티 소스 실측 — damoang · 82cook (2026-09-16)" 에 있다.
+- SP-026 재현: `node scripts/review-robots-selftest.mjs` — 실제 원문으로
+  `/free/7341567?page=2` → `allowed=false 'Disallow: /*?page='`,
+  `/entiz/read.php` (쿼리 제거) → `allowed=true` 를 고정한다. 뒤 줄이 구멍의 증거다.
+- **이번 PR 범위 아님.** `runner.ts` 는 한 줄도 건드리지 않았다. 전 소스의 robots
+  판정에 동시에 영향을 주므로 별건 PR 로 다룬다. 그때까지의 방어는 어댑터 쪽에 있다:
+  다모앙 어댑터는 `?page=` 를 아예 만들지 않고, 82cook 어댑터는 robots 가 금지한
+  그 URL 1건을 `parseProductRef` 에서 직접 거부한다(`lib/review/adapters/82cook.ts`).
 
 ### SP-024 실측 근거
 

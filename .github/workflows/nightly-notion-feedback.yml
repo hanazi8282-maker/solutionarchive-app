@@ -22,6 +22,12 @@ on:
     - cron: '7 12 * * *'
   workflow_dispatch:
 
+# 수동 실행과 스케줄이 겹치면 같은 `pulled_at IS NULL` 행을 둘이 집어 로그 코드가
+# 중복 발급되고 push 가 충돌한다(진단 3-5). 다른 워크플로와 같은 가드.
+concurrency:
+  group: notion-feedback
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -40,6 +46,10 @@ jobs:
 
       - run: npm ci
 
+      # 종료 코드 판정(pullVerdict)·발행본 마커 분리가 깨지면 이 잡이 다시 "전건 실패해도 초록"이 된다.
+      - name: Selftest
+        run: node scripts/notion-pull-feedback-selftest.mjs
+
       - name: Pull Notion feedback
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -53,7 +63,10 @@ jobs:
 
       # 화이트리스트를 daily-cmo-loop.yml 과 별도로, 더 좁게 잡는다 — 이 워크플로가
       # 만질 수 있는 건 reports/ 하나뿐이다(notion-feedback-log.md).
+      # always() — 앞 스텝이 일부 행에서 실패해도 성공한 행의 판정 로그는 커밋해야 한다.
+      # (DB 는 이미 pulled_at 이 찍혀 다음 밤에 다시 안 집는다. 여기서 안 올리면 그 판정은 영영 사라진다.)
       - name: Commit feedback log
+        if: always()
         run: |
           git config user.name "notion-feedback-bot"
           git config user.email "noreply@anthropic.com"

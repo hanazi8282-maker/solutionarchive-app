@@ -595,3 +595,180 @@ damoang 이 11건인 것은 댓글 13건 중 3건이 이모티콘만 달린 것�
   수가 어긋나 멀쩡한 글이 파싱 실패로 잡힌다.
 - **두 사이트 이용약관 원문 확인 — 여전히 미실시(확인 불가).** robots 만 쟀다.
   `enabled=true` 전환 전에 사람이 봐야 한다.
+
+---
+
+## 커뮤니티 소스 실측 round-2 — theqoo · todayhumor (2026-09-16)
+
+측정: Node v24.16.0, UA `solutionarchive-review-collector/0.1 (+…)`,
+`redirect: 'follow'`, 타임아웃 20초 — `scripts/review-collect.mjs` 의 fetchText 와
+같은 조건. DB 쓰기 없음.
+
+### 결론 먼저
+
+둘 다 들어온다. 단 **둘 다 댓글을 못 가져온다 — 정적 HTML 에 없다.**
+그래서 설계 단계의 "게시글·댓글"이 **"게시글 전용"으로 축소**됐다.
+1글 = 리뷰 1건이다(damoang·82cook 의 N+1 과 다르다).
+
+| | theqoo | todayhumor |
+|---|---|---|
+| HOST | `https://theqoo.net` | `https://www.todayhumor.co.kr` |
+| robots.txt | **404** (Rhymix HTML 본문) | **404** (Apache 기본 페이지) |
+| 리다이렉트 | www → 루트 301 | **무www → `http://www` (https 강등)** |
+| 인코딩 | UTF-8 | UTF-8 (EUC-KR 우려 기각) |
+| 글 페이지 | 200 · 31.5KB · 40ms | 200 · 125.9KB · 446ms |
+| 댓글 | AJAX (`loadReply`) | AJAX (`memoContainerDiv` 빈 div) |
+| 이용약관 | 읽음 (6,315자, 관련 조항 0건) | **찾지 못함 (확인 불가)** |
+
+### robots.txt — 설계가 걱정한 순환 리다이렉트는 없었다
+
+설계 단계의 가장 큰 위험은 todayhumor 의 www ↔ 무www **순환 리다이렉트**였다.
+순환이면 Node fetch 가 20홉 뒤 throw → `status: null` → 러너가 그 오리진을
+`'unreadable'` 로 캐시 → **전 요청 스킵**이고, 로그에는 robotsSkips 만 남아
+"정상 종료"처럼 보인다(CLAUDE.md §7.2). 실측 결과 순환은 없다:
+
+```
+https://theqoo.net/robots.txt          → 404  (final: 자기 자신)
+https://www.theqoo.net/robots.txt      → 404  (final: https://theqoo.net/robots.txt)
+https://todayhumor.co.kr/robots.txt    → 404  (final: http://www.todayhumor.co.kr/… ← https 강등)
+https://www.todayhumor.co.kr/robots.txt→ 404  (final: 자기 자신)
+http://www.todayhumor.co.kr/robots.txt → 404  (final: 자기 자신)
+```
+
+**대신 다른 게 나왔다.** todayhumor 의 무www 오리진은 https 를 **http 로
+내려보낸다.** 러너는 `redirect: 'follow'` 라 그 강등을 조용히 따라가고, 그때부터
+우리 요청은 평문이다. 그래서 HOST 를 `https://www.todayhumor.co.kr` 로 고정했다 —
+그 오리진은 https 에서 리다이렉트 0회로 종단한다.
+
+### 소프트 404 — 설계가 걱정한 "200 + HTML" 은 기각됐다
+
+theqoo 의 `/robots.txt` 는 HTML 을 주지만 **상태 코드가 404 다.** 러너는 4xx 를
+"규칙 없음 = 허용"으로 처리하며 본문을 파싱하지 않으므로(`runner.ts:143`),
+`parseRobots` 가 HTML 을 먹는 일은 지금은 없다.
+
+그래도 위험은 남는다. **상태가 200 으로 바뀌면 같은 HTML 이 `parseRobots` 로
+들어가고, 그때도 답은 똑같이 `allowed: true / '규칙 없음'` 이다.** "규칙이 없다"와
+"HTML 을 robots 로 읽었다"가 한 값이 된다(§7.1). 그 성질을 실측 본문 그대로
+`scripts/review-robots-selftest.mjs` 에 못박아 뒀다 — 진짜 robots 가 올라오면
+그 줄이 깨진다.
+
+### 댓글이 AJAX 다 — 이번 건에서 제일 중요한 발견
+
+**theqoo** — 글 페이지의 댓글 영역이 이것뿐이다:
+
+```html
+<div id="4347529638_comment" class="fdb_lst clear fdb_nav_btm cmt_wrt_btm">
+  <script>jQuery(document).ready(function() { loadReply(4347529638, 0, false, false); });</script>
+  <div id="cmtPosition" aria-live="polite">
+    <div class="comment_header_bar">
+      <i class="far fa-comment-dots"></i> 댓글 <b>7</b>개
+    </div>
+```
+
+개수 마커(`댓글 <b>7</b>개`)만 정적이고 항목은 0개다. 앵커 id 도 없다.
+`?listStyle=viewer`(인쇄용) 변형도 똑같았다.
+
+**todayhumor** — 같은 모양이다:
+
+```html
+<div>댓글 : 5개</div>
+...
+<!--댓글 자리-->
+<div id='memoContainerDiv'></div>
+```
+
+댓글 5개짜리 글인데 컨테이너가 빈 div 다. `loadMoreReply()` 가 채운다.
+
+그래서 **댓글 미수집은 파싱 실패로 세지 않는다.** 못 읽은 게 아니라 응답에 없다.
+실패로 세면 매일 밤 가짜 경보가 뜬다. 대신 §7.1 의 "0건 vs 못 읽음" 구분은
+본문에 걸었다 — 본문 컨테이너가 사라지면 그건 실패다.
+
+되살리려면 XHR 엔드포인트를 따로 실측해야 하고, 그건 1글=1요청 계약을 깨는
+일이라 사람이 판단한다. 두 셀프테스트에 트립와이어를 박아 뒀다: 사이트가 댓글을
+정적으로 내려주기 시작하면 그 줄이 깨진다.
+
+### 확정한 셀렉터 (실측 4개 글 / 3개 글)
+
+**theqoo** (`/square/4347529638`, `/square/4347536910`, 공지 2건)
+
+| 무엇 | 마크업 | 비고 |
+|---|---|---|
+| 본문 | `<article itemprop="articleBody">` … `</article>` | 페이지당 정확히 1개 |
+| 제목 | `<title>더쿠 - …</title>` | og:* 가 **없다**. `<span class="title">` 은 공지글에서 안쪽에 또 span 을 품는다 |
+| 작성일 | `<div class="side fr"><span>2026.09.16 23:23</span></div>` | 4자리 연도, 페이지당 1개 |
+
+- **공지글도 `/square/<id>` 에 산다.** `/notice/` 같은 별도 경로가 없어서
+  설계서의 "공지 배제" 규칙은 경로로는 성립하지 않는다. 죽은 코드를 넣지 않았다.
+- 글 아래에 게시판 목록이 통째로 붙어 온다. 본문 슬라이스가 거기까지 삼키면
+  옆 글 제목이 리뷰로 섞인다 — 픽스처에 목록 일부를 남겨 그걸 감시한다.
+- `/index.php?act=dispMemberAgreement` 는 우리 UA 에 **403** 이다(로그인 필요 act).
+  글 페이지는 200. quotaMarkers 를 안 걸었으므로 403 은 전부 차단으로 읽힌다.
+
+**todayhumor** (`bestofbest_483830`, `bestofbest_483825`, `humordata_2060038`)
+
+| 무엇 | 마크업 | 비고 |
+|---|---|---|
+| 본문 | `<div class="viewContent">` … `</div><!--viewContent-->` | 닫는 자리를 주석으로 표시해 준다 — div 를 셀 필요가 없다 |
+| 제목 | `<meta property="og:title" content="…">` | `<title>` 은 `오늘의유머 - ` 접두가 붙는다 |
+| 작성일 | `원글작성시간 : 2026/09/10 22:20:53` | 4자리 연도 — 82cook 의 2자리 피벗 불필요 |
+| 작성일(대체) | `등록시간 : 2026/09/16 23:15:47` | 일반 보드에는 원글작성시간 칸이 빈 `<div></div>` |
+
+⚠️ **베스트 보드는 시각이 둘이다.** `등록시간` 은 베오베로 올라온 날이고
+`원글작성시간` 이 글이 쓰인 날이다. 등록시간을 쓰면 적재된 글이 전부
+"오늘 쓴 글"이 된다. 원글작성시간을 우선하고, 없을 때만 등록시간으로 내려간다.
+
+⚠️ `writerInfoContents`(닉네임·IP·조회수)가 본문 **바로 위**에 있다. 슬라이스
+시작점이 밀리면 작성자 정보가 리뷰 텍스트로 들어간다. 셀프테스트가 그걸 본다.
+
+### 이용약관 — 두 소스의 "확인 불가"는 사유가 다르다
+
+**theqoo**: `https://theqoo.net/service` 200, 평문 6,315자. `크롤`·`로봇`·
+`자동화`·`마이닝`·`스크래`·`인공지능`·`AI`·`재가공` 0건. `복제` 3건은 전부
+"회사가 회원 게시물을 서비스 내에서 이용한다"는 저작권 조항이고 제3자 수집
+얘기가 아니다.
+
+**todayhumor**: **이용약관 페이지를 찾지 못했다.** 푸터에 링크 자체가 없고
+(`개인정보취급방침`·`청소년보호정책`만 있다), `/member/agreement.php` ·
+`/member/join_agreement.php` 는 404. `/member/privacy.php`(200, 평문 3,123자)에도
+관련 조항 0건. **이건 허용이 아니라 확인 불가다**(§7.1). 켜는 판단은 사람이 한다.
+
+### 라이브 프로브 (AC-4, DB 쓰기 없음)
+
+실제 어댑터 + 실제 robots 판정 + 갓 받은 응답:
+
+```
+theqoo → https://theqoo.net/square/4347529638
+  robots: status=404 → allowed=true (robots.txt 에 규칙 없음)
+  page:   200 · 40ms · 31,502 bytes
+  parse:  reviews=1 failures=0 cursor=null
+  본문: "늙크크들은 이거 보면 이게 찐 마리오지 할듯 ㅋㅋㅋㅋㅋㅋ\n\nhttps://x.com/…\n\n트위터에서 말하는건 이 줄기 타는걸 까먹었다고 ㅋㅋㅋㅋㅋ"
+  writtenAt=2026-09-16
+
+todayhumor → https://www.todayhumor.co.kr/board/view.php?table=bestofbest&no=483825
+  robots: status=404 → allowed=true (robots.txt 에 규칙 없음)
+  page:   200 · 446ms · 125,898 bytes
+  parse:  reviews=1 failures=0 cursor=null
+  본문: "조국 원장 페북글입니다\n\n역시 원장님 뿐입니다. 계속 혁신당이 쇄빙선 역할로\n 뉴일베의 검찰개악을 계속 저지해야합니다."
+  writtenAt=2026-09-10   ← 등록시간(09-16)이 아니라 원글작성시간
+```
+
+한글이 깨지지 않고 실제 글 내용과 일치한다. 양쪽 다 `parseFailures=0`,
+`nextCursor=null` 이라 타깃이 곧바로 닫힌다(1글=1요청).
+
+### 알아 둘 것 — 이번 구현이 안고 가는 한계
+
+- **댓글이 하나도 안 들어온다.** 위 사유. 커뮤니티 VOC 로서 값이 절반이다.
+  댓글이 필요하면 XHR 엔드포인트 실측이 선행돼야 하고, 그건 별건이다.
+- **todayhumor 본문 슬라이스가 닫는 주석 하나에 의존한다.**
+  `</div><!--viewContent-->` 가 사라지면 슬라이스가 문서 끝까지 가고, 그러면
+  본문 뒤 영역이 텍스트로 섞이는데 **어댑터가 그 상태를 감지하지 못한다**
+  (텍스트가 나오니 실패로도 안 잡힌다). 깨지면 damoang 의 `sliceDiv`(div 세기)로
+  올려라.
+- **todayhumor 는 사진만 올린 글이 흔하다.** 그런 글은 제목만 남는다. 실패로
+  세지 않는다 — 컨테이너가 멀쩡하니 파서가 깨진 게 아니다.
+- **theqoo 본문은 `</article>` 로 자른다.** 실측 페이지에는 article 이 1개뿐이라
+  지금은 안전하지만, 중첩되면 앞에서 끊긴다(셀프테스트에 그 상황을 넣어 뒀다).
+- **todayhumor 의 글 주소는 쿼리형이다.** 지금은 robots 가 없어 무해하지만,
+  생기면서 쿼리 규칙이 들어가면 러너가 그 규칙을 **못 본다**(SP-026 — `runner.ts`
+  가 `u.pathname` 만 넘긴다). 그 전에 러너를 고쳐야 한다.
+- **두 소스 다 `enabled=false` 로 등록한다.** 켜는 것은 사람이 한다.

@@ -37,7 +37,17 @@ on:
         # ⚠️ 선택지에 없는 소스는 **스케줄로 한 번도 안 돈다.** appstore 가
         #    어댑터·마이그레이션까지 다 있는 채로 PR#16 머지 이후 계속 그
         #    상태였다. 어댑터를 추가하면 여기도 같이 늘려야 한다.
-        options: [all, danawa, appstore, hackernews]
+        #    round-1 에서 damoang·82cook 도 똑같이 빠뜨린 채 머지됐다(round-2 에서 복구).
+        #    scripts/review-runner-selftest.mjs 가 ADAPTERS 맵과 이 목록을 대조한다.
+        options:
+          - all
+          - danawa
+          - appstore
+          - hackernews
+          - damoang
+          - 82cook
+          - theqoo
+          - todayhumor
         default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수'

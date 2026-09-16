@@ -27,6 +27,8 @@ import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { hackernewsAdapter } from '../lib/review/adapters/hackernews.ts'
 import { damoangAdapter } from '../lib/review/adapters/damoang.ts'
 import { cook82Adapter } from '../lib/review/adapters/82cook.ts'
+import { theqooAdapter } from '../lib/review/adapters/theqoo.ts'
+import { todayhumorAdapter } from '../lib/review/adapters/todayhumor.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
@@ -39,6 +41,8 @@ const ADAPTERS = {
   hackernews: hackernewsAdapter,
   damoang: damoangAdapter,
   '82cook': cook82Adapter,
+  theqoo: theqooAdapter,
+  todayhumor: todayhumorAdapter,
 }
 
 const args = process.argv.slice(2)

@@ -212,6 +212,24 @@ const run = (h, over = {}) =>
   ok('읽지 못한 것을 허용으로 다루지 않는다', r.perTarget[0].outcome.includes('robots'))
 }
 {
+  // ⚠️ 네트워크 예외(status null)도 "못 읽음"이다. round-2 설계에서 걱정한
+  //    www↔무www 순환 리다이렉트가 정확히 이 모양으로 들어온다 — Node fetch 가
+  //    20홉 뒤 throw → status null. 실측에서 순환은 없었지만, 생기면 이 분기가
+  //    소스 전체를 조용히 재운다는 사실을 여기 못박아 둔다(§7.2).
+  const h = makeHarness({ robotsStatus: null })
+  const r = await run(h)
+  t('robots.txt 가 네트워크 예외면 요청하지 않는다', r.requests, 0)
+  ok('예외를 허용으로 다루지 않는다', r.perTarget[0].outcome.includes('robots'))
+}
+{
+  // 반대편. theqoo·todayhumor 의 실제 응답이 404 다 — "규칙 없음 = 허용"(RFC 9309).
+  // 위 두 블록과 **값이 달라야** 한다. 같아지면 새 소스가 통째로 안 돈다.
+  const h = makeHarness({ robotsStatus: 404 })
+  const r = await run(h)
+  ok('robots.txt 404 는 규칙 없음 = 허용이다', r.requests > 0)
+  t('robots.txt 404 면 robotsSkips 0', r.robotsSkips, 0)
+}
+{
   // robots 는 호스트당 한 번만 묻는다
   const h = makeHarness({
     pages: { 1: page([rv({ externalId: 'a' })], '1'), 2: page([], null) },
@@ -693,25 +711,53 @@ ok('제품 토큰이 브라우저를 사칭하지 않는다', !/mozilla|chrome|s
 //   (2) 글 1건에서 본문+댓글이 N+1 건으로 적재되는가
 //   (3) 커서가 null 이라 타깃이 exhausted 로 닫히는가 — 같은 글을 또 안 긁는가
 
-for (const [name, mod, ref, robots, fixture, expectCount] of [
+// round-2 의 theqoo·todayhumor 는 **robots.txt 가 404 다**(실측). 200 으로
+// 흉내내면 진짜 실행 경로(runner.ts 의 4xx → 규칙 없음 분기)를 한 번도 안 밟는다.
+// 그래서 robotsStatus 를 항목마다 준다.
+for (const [name, mod, pick, ref, robots, robotsStatus, fixture, expectCount] of [
   [
     'damoang',
     await import('../lib/review/adapters/damoang.ts'),
+    (m) => m.damoangAdapter,
     'url:/free/7341567',
     'User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /*?page=\n',
+    200,
     'damoang/post-with-comments.html',
     5,
   ],
   [
     '82cook',
     await import('../lib/review/adapters/82cook.ts'),
+    (m) => m.cook82Adapter,
     'url:/entiz/read.php?num=4239440',
     'User-agent: *\nDisallow: /ajax/\nDisallow: /entiz/read.php?bn=15&num=1166440&page=6\n',
+    200,
     '82cook/post-with-comments.html',
     5,
   ],
+  [
+    // 댓글이 AJAX 라 본문 1건만 나온다. 이게 정상이다(설계된 축소).
+    'theqoo',
+    await import('../lib/review/adapters/theqoo.ts'),
+    (m) => m.theqooAdapter,
+    'url:/square/4347529638',
+    '<!DOCTYPE html><html><head><title></title></head></html>', // 실측: 404 + HTML
+    404,
+    'theqoo/post-with-body.html',
+    1,
+  ],
+  [
+    'todayhumor',
+    await import('../lib/review/adapters/todayhumor.ts'),
+    (m) => m.todayhumorAdapter,
+    'url:/board/view.php?table=bestofbest&no=483825',
+    '<html><head><title>404 Not Found</title></head></html>', // 실측: 404 + HTML
+    404,
+    'todayhumor/post-with-body.html',
+    1,
+  ],
 ]) {
-  const adapter = name === 'damoang' ? mod.damoangAdapter : mod.cook82Adapter
+  const adapter = pick(mod)
   const html = await fs.readFile(path.join(here, '..', 'fixtures', 'review', ...fixture.split('/')), 'utf8')
 
   const seenUrls = []
@@ -728,7 +774,7 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
     async fetchText(url) {
       seenUrls.push(url)
       clock += 10
-      if (url.endsWith('/robots.txt')) return { status: 200, body: robots }
+      if (url.endsWith('/robots.txt')) return { status: robotsStatus, body: robots }
       return { status: 200, body: html }
     },
     store: {
@@ -773,7 +819,10 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
   t(`${name}: 글 1건당 요청 1건`, pageUrls.length, 1)
   t(`${name}: 어댑터가 만든 URL 을 러너가 그대로 쓴다`, pageUrls[0], `${mod.HOST}${ref.slice(4)}`)
   t(`${name}: 호스트가 어댑터 상수와 일치`, new URL(pageUrls[0]).host, new URL(mod.HOST).host)
-  t(`${name}: 본문+댓글이 N+1 건 적재된다`, inputs.length, expectCount)
+  t(`${name}: 적재 건수 ${expectCount}건 (본문+댓글)`, inputs.length, expectCount)
+  // round-2 두 소스는 robots.txt 가 404 다. "못 읽음(=금지)"과 "없음(=허용)"이
+  // 갈리는 분기라, 실제로 요청이 나갔다는 것 자체가 그 분기의 증거다.
+  t(`${name}: robots.txt 를 한 번 받는다`, seenUrls.filter((u) => u.endsWith('/robots.txt')).length, 1)
   t(`${name}: 파싱 실패 0`, r.stats.parseFailures, 0)
   t(`${name}: robots 로 건너뛴 요청 0`, r.robotsSkips, 0)
   t(`${name}: 차단 응답 0`, r.stats.blockedResponses, 0)
@@ -813,11 +862,11 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
 //
 // 철자가 하나만 달라도 loadSource 가 행을 못 찾아 그 소스가 **조용히 안 돈다.**
 // 로그에는 아무 일도 안 일어난 것처럼 보인다 — 그래서 여기서 대조한다.
-{
-  const sql = await fs.readFile(
-    path.join(here, '..', 'supabase', 'migrations', '20260917000001_review_sources_community.sql'),
-    'utf8',
-  )
+for (const [file, keys] of [
+  ['20260917000001_review_sources_community.sql', ['damoang', '82cook']],
+  ['20260918000001_review_sources_community_round2.sql', ['theqoo', 'todayhumor']],
+]) {
+  const sql = await fs.readFile(path.join(here, '..', 'supabase', 'migrations', file), 'utf8')
   const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
   const mapBlock = collect.slice(collect.indexOf('const ADAPTERS ='), collect.indexOf('}', collect.indexOf('const ADAPTERS =')))
 
@@ -827,13 +876,33 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
   const mapKeys = new Set([...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]))
   const sqlKeys = new Set([...sql.matchAll(/^\s*'([\w-]+)',$/gm)].map((m) => m[1]))
 
-  for (const key of ['damoang', '82cook']) {
+  for (const key of keys) {
     ok(`등록: 마이그레이션 review_sources.key 에 '${key}' 가 있다`, sqlKeys.has(key))
     ok(`등록: ADAPTERS 맵 키가 '${key}' 와 철자까지 같다`, mapKeys.has(key))
   }
-  t('등록: enabled=false 로만 들어간다', (sql.match(/^\s*false,$/gm) || []).length, 2)
-  ok('등록: DDL 이 없다 (INSERT + COMMENT 만)', !/\b(create|alter|drop)\s+table\b/i.test(sql))
-  ok('등록: ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+  t(`등록(${file}): enabled=false 로만 들어간다`, (sql.match(/^\s*false,$/gm) || []).length, keys.length)
+  ok(`등록(${file}): DDL 이 없다 (INSERT + COMMENT 만)`, !/\b(create|alter|drop)\s+table\b/i.test(sql))
+  ok(`등록(${file}): ON CONFLICT DO NOTHING 이 있다`, /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+}
+
+// ── 워크플로 선택지에 소스가 다 올라가 있는가 ─────────────────────
+//
+// ⚠️ 어댑터를 만들고 ADAPTERS 에 꽂아도 **워크플로 options 에 없으면 스케줄로는
+//    한 번도 안 돈다.** round-1 에서 appstore 가 그랬고(review-collect.mjs 주석
+//    참조), damoang·82cook 도 options 에서 빠진 채 머지됐다. 코드만 있고 수집은
+//    0건인 상태는 로그에도 안 남는다 — 그래서 여기서 대조한다.
+{
+  const wf = await fs.readFile(path.join(here, '..', '.github', 'workflows', 'nightly-review-collect.yml'), 'utf8')
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  const mapBlock = collect.slice(collect.indexOf('const ADAPTERS ='), collect.indexOf('}', collect.indexOf('const ADAPTERS =')))
+  const mapKeys = [...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1])
+  const optBlock = wf.slice(wf.indexOf('options:'), wf.indexOf('jobs:'))
+  const options = new Set([...optBlock.matchAll(/^\s*-\s*([\w-]+)\s*$/gm)].map((m) => m[1]))
+
+  for (const key of mapKeys) {
+    ok(`워크플로: 수동 실행 선택지에 '${key}' 가 있다`, options.has(key))
+  }
+  ok("워크플로: 'all' 선택지가 있다", options.has('all'))
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

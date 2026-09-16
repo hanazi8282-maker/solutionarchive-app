@@ -24,6 +24,8 @@ jobs:
       # Threads 토큰 3상태·refresh-token 크론 응답(만료·임박을 200 으로 숨기지 않는다), 크론 감시 판정.
       - run: node scripts/threads-token-selftest.mjs
       - run: node scripts/cron-watchdog-selftest.mjs
+      # 어드바이저 매칭 3상태·불용어 회귀·SP-024 저신뢰 판정. 픽스처만 쓴다(네트워크·DB 없음).
+      - run: node scripts/advisor-selftest.mjs
       - run: npx next build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

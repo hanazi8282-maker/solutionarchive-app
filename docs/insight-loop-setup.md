@@ -193,7 +193,7 @@ Vercel 쪽에 `CLAUDE_CODE_OAUTH_TOKEN` 을 넣을 필요는 없어졌다. 이�
 
 ---
 
-## 4. ⚠️ `CRON_SECRET` — 보안 확인 필요
+## 4. `CRON_SECRET` — 해소됨 (2026-09-16 실측)
 
 스파이크 도중 발견한 별건이다. **Preview 환경에 `CRON_SECRET` 이 설정되어
 있지 않았다.** 근거:
@@ -219,13 +219,15 @@ if (auth !== `Bearer ${process.env.CRON_SECRET}`) return 401
 **코드 쪽은 수정됐다.** `lib/cron-auth.ts` 로 가드를 통일했고, 변수가 없으면
 비교하지 않고 무조건 500 으로 거부한다. preview 에서 차단을 실측 확인했다.
 
-**남은 일**: Vercel 대시보드에서 Production/Preview 양쪽에 `CRON_SECRET` 을
-실제로 설정한다. 설정 전까지 크론 라우트는 전부 500 이다(의도된 동작이다 —
-열려 있는 것보다 낫다).
+**환경변수 쪽도 해소됐다.** `vercel env ls production --project solutionarch` 로
+`CRON_SECRET` 이 **Production·Preview 양쪽**에 있는 것을 확인했다(등록 21일 전).
 
-프로덕션에 값이 있는지는 사람이 대시보드에서 본다. 확인 자체가 부작용이라
-(통과하면 그 순간 라우트가 실행된다) Claude 가 확인하지 않았다. 다만
-프로덕션은 Vercel SSO 뒤에 있어 외부 요청이 302 로 튕기는 것은 확인했다.
+값을 라우트로 찔러 확인하지는 않는다 — 통과하면 그 순간 발행·토큰회전이
+실제로 일어난다. 확인 수단은 **이름 목록**이지 응답 코드가 아니다(§7.1).
+
+같은 목록으로 확인된 것 하나 더: Vercel 에도 `ANTHROPIC_API_KEY` 는 없다.
+프로덕션 분석은 `LLM_PROVIDER` + `GEMINI_API_KEY` 로 돈다. 즉
+`lib/analysis/llm.ts` 의 anthropic 분기는 **어느 환경에서도 도달하지 않는다.**
 
 ---
 

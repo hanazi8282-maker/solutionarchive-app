@@ -8,6 +8,7 @@ import {
   isEnriched,
   spliceStoryScore,
   groupByStory,
+  enrichVerdict,
 } from './review-hackernews-enrich.mjs'
 
 let pass = 0
@@ -68,6 +69,20 @@ t('splice: null 안전', spliceStoryScore(null, 5), null)
   t('group: 이미 붙음 + URL 없음 = 건너뜀 2', skipped, 2)
   ok('group: 요청 수 = 스토리 수 (댓글 수 아님)', byStory.size < rows.length)
 }
+
+// ── enrichVerdict (종료 코드) ─────────────────────────────────────
+// 진단 2-1: 전량 실패해도 exit 0 이라 워크플로가 매일 초록이었다.
+t('verdict: 전부 성공 → 0', enrichVerdict({ storiesOk: 10 }).code, 0)
+t('verdict: 할 일 없음 → 0', enrichVerdict({}).code, 0)
+t('verdict: 삭제·dead(score 필드 없음) 만이면 0', enrichVerdict({ storiesOk: 1, noScoreField: 9 }).code, 0)
+t('verdict: HTTP 실패 1건이면 1', enrichVerdict({ storiesOk: 99, httpFailed: 1 }).code, 1)
+t('verdict: 전량 HTTP 실패 → 1', enrichVerdict({ httpFailed: 30 }).code, 1)
+t('verdict: UPDATE 실패도 1', enrichVerdict({ storiesOk: 5, updateFailed: 2 }).code, 1)
+ok('verdict: 실패 사유가 문장에 남는다', enrichVerdict({ httpFailed: 3 }).line.includes('3건'))
+ok(
+  'verdict: 조회 실패와 score 필드 없음을 따로 센다',
+  enrichVerdict({ httpFailed: 1, noScoreField: 7 }).line.includes('7'),
+)
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {

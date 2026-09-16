@@ -11,9 +11,12 @@
 //   3. 스토리마다 Firebase 로 score 를 1건씩 받아온다(배치 = 스토리 수만큼).
 //   4. raw_text 머리의 `[HN: 제목 · <url>]` 에 `· ▲<score>` 를 끼운다.
 //
-// ⚠️ 이건 파이프라인 필수 단계가 아니다. hackernews 는 enabled=false 이고,
-//    이 스크립트는 **코드 완성**까지다 — 나이틀리 워크플로에 안 꽂았다.
-//    돌릴지/언제 돌릴지는 남헌이 정한다.
+// ⚠️ 이건 파이프라인 필수 단계가 아니다. 지금은 .github/workflows/nightly-hackernews-enrich.yml
+//    이 매일 18:19 UTC 에 --apply 로 부른다.
+//
+// 종료 코드: 0 = 정상(score 를 받았거나, 삭제·dead 라 score 필드가 없음)
+//            1 = 실패(HTTP·네트워크로 못 물어봤거나 UPDATE 가 깨짐) — enrichVerdict 참고.
+//    전량 실패를 0 으로 돌려주면 워크플로가 초록이고, 그러면 cron-watchdog 도 못 잡는다(진단 2-1).
 //
 // ⚠️ 기본은 dry-run 이다. `--apply` 를 명시해야 analysis_inputs 를 UPDATE 한다
 //    (review-purge.mjs 와 같은 규약).
@@ -66,6 +69,23 @@ export function spliceStoryScore(rawText, score) {
     /(· )?(news\.ycombinator\.com\/item\?id=\d+\])/,
     (_m, sep, url) => `${sep ?? ''}▲${score} · ${url}`,
   )
+}
+
+/**
+ * 실행 결과 카운터 → { code, line }.
+ *
+ * "score 필드 없음"(삭제·dead 스토리)과 "못 물어봤음"(HTTP/네트워크 실패)은 다른 사건이다(§7.1).
+ * 전자는 정상 음성이라 0, 후자는 한 건이라도 있으면 1 — 그래야 cron-watchdog 가 잡아
+ * 다음 아침 Notion 막힌것 칸에 올린다. UPDATE 실패도 같다(쓴 줄 알았는데 안 써졌다).
+ */
+export function enrichVerdict({ storiesOk = 0, noScoreField = 0, httpFailed = 0, updateFailed = 0 }) {
+  const bad = []
+  if (httpFailed > 0) bad.push(`score 조회 실패 ${httpFailed}건`)
+  if (updateFailed > 0) bad.push(`UPDATE 실패 ${updateFailed}건`)
+  if (bad.length === 0) {
+    return { code: 0, line: `정상 — score 받음 ${storiesOk}건 · score 필드 없음(삭제·dead) ${noScoreField}건` }
+  }
+  return { code: 1, line: `❌ ${bad.join(' · ')} (score 받음 ${storiesOk}건 · score 필드 없음 ${noScoreField}건)` }
 }
 
 /** rows(각 {id, raw_text}) → { byStory: Map<storyId, rows[]>, skipped: number } */
@@ -173,7 +193,10 @@ async function main() {
   let requests = 0
   let rowsUpdated = 0
   let storiesOk = 0
-  let storiesNoScore = 0
+  // "물어봤는데 score 필드가 없다"(삭제·dead)와 "못 물어봤다"(HTTP/네트워크)를 가른다.
+  let noScoreField = 0
+  let httpFailed = 0
+  let updateFailed = 0
   const started = Date.now()
 
   for (let i = 0; i < toFetch.length; i++) {
@@ -181,6 +204,7 @@ async function main() {
     if (i > 0) await new Promise((r) => setTimeout(r, minIntervalMs))
 
     let score = null
+    let asked = false
     try {
       const res = await fetch(`${FIREBASE_ORIGIN}/v0/item/${sid}.json`, {
         headers: { 'user-agent': PRODUCT_TOKEN },
@@ -188,15 +212,19 @@ async function main() {
       })
       requests++
       if (res.ok) {
+        asked = true
         const item = await res.json()
         if (item && Number.isFinite(item.score)) score = item.score
+      } else {
+        console.log(`  - story ${sid}: HTTP ${res.status}`)
       }
     } catch (e) {
       console.log(`  - story ${sid}: 요청 실패 (${e.message})`)
     }
 
     if (score == null) {
-      storiesNoScore++
+      if (asked) noScoreField++
+      else httpFailed++
       continue
     }
     storiesOk++
@@ -208,6 +236,7 @@ async function main() {
         const { error } = await supabase.from('analysis_inputs').update({ raw_text: next }).eq('id', row.id)
         if (error) {
           console.log(`  - row ${row.id}: UPDATE 실패 (${error.message})`)
+          updateFailed++
           continue
         }
       }
@@ -216,10 +245,14 @@ async function main() {
   }
 
   console.log(
-    `- ${((Date.now() - started) / 1000).toFixed(1)}초 · 요청 ${requests}건 · score 받은 스토리 ${storiesOk} · score 없음 ${storiesNoScore}`,
+    `- ${((Date.now() - started) / 1000).toFixed(1)}초 · 요청 ${requests}건 · score 받음 ${storiesOk} · score 필드 없음 ${noScoreField} · 조회 실패 ${httpFailed} · UPDATE 실패 ${updateFailed}`,
   )
   console.log(`- ${apply ? 'UPDATE 한' : 'UPDATE 대상'} 행: ${rowsUpdated}`)
   if (!apply) console.log('\n**dry-run 이었다. --apply 로 실제 반영한다.**')
+
+  const verdict = enrichVerdict({ storiesOk, noScoreField, httpFailed, updateFailed })
+  console.log(`- ${verdict.line}`)
+  process.exitCode = verdict.code
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

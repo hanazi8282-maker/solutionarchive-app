@@ -2595,8 +2595,12 @@ JSON-LD 를 실어 준다. 픽스처는 전부 2026-09-16 실측 응답에서 �
 |---|---|---|
 | `review-damoang-selftest.mjs` | 62 | `fixtures/review/damoang/` 4종 |
 | `review-82cook-selftest.mjs` | 63 | `fixtures/review/82cook/` 4종 |
-| `review-robots-selftest.mjs` | 89 (25건 추가) | 두 호스트 실제 robots.txt 원문 |
-| `review-runner-selftest.mjs` | 125 (24건 추가) | 어댑터×러너 경계면 |
+| `review-robots-selftest.mjs` | 89 (65 → +24) | 두 호스트 실제 robots.txt 원문 |
+| `review-runner-selftest.mjs` | 138 (99 → +39) | 어댑터×러너 경계면 + 소스 등록 대조 |
+
+회귀 확인(전체 재실행): robots 89 · danawa 48 · appstore 42 · hackernews 109 ·
+health 60 · runner 138 · damoang 62 · 82cook 63 — **실패 0**, `tsc --noEmit` 통과.
+기준선은 변경 전 파일을 그대로 돌려 쟀다(robots 65 / runner 99).
 
 픽스처 4종은 소스마다 같다: 정상 글 / 댓글 0건 / 댓글영역 소실 / 본문 소실.
 마크업은 실물 그대로 두고 항목 수만 줄였으며, **개수 마커를 실제 항목 수에

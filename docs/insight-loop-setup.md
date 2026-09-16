@@ -119,15 +119,39 @@ Vercel 이 아니라 **GitHub** 다. 야간 루프가 Actions 에서 돌기 때�
 | `NEXT_PUBLIC_SUPABASE_URL` | `.env.local` 과 같은 값 |
 | `SUPABASE_SERVICE_ROLE_KEY` | `.env.local` 과 같은 값 |
 
-선택: `ANTHROPIC_API_KEY`(헤드리스가 막혔을 때의 대체 경로),
-`NOTION_API_KEY` / `NOTION_INSIGHT_DB_ID`(Notion 경로를 쓸 때만).
-
 `GITHUB_TOKEN` 은 **넣지 않는다.** Actions 가 잡마다 발급하는 기본 토큰을
 쓰고 워크플로가 `permissions: contents: write` 로 범위를 좁힌다. PAT 을
 만들면 권한이 이 리포 밖으로 넓어지기만 한다.
 
 ⚠️ 시크릿 이름을 `GITHUB_` 로 시작하게 만들 수 없다(GitHub 예약 접두사).
    그래서 위 표에도 없다.
+
+#### 실제 등록 현황 (2026-09-16 실측, `gh secret list`)
+
+이 문서가 "필요한 것"만 적어 두면 실제와 갈라진다(진단 5-3 이 그 사례다).
+**정본은 `gh secret list` 출력이다.** 아래는 그때의 실측 결과다.
+
+- 실제 등록된 리포 Actions 시크릿은 **5개뿐**: `CLAUDE_CODE_OAUTH_TOKEN` ·
+  `NEXT_PUBLIC_SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` ·
+  `NOTION_API_TOKEN` · `NOTION_DATABASE_ID`
+- 워크플로가 **참조하지만 등록되지 않은** 이름 7개:
+  `ANTHROPIC_API_KEY` · `NOTION_API_KEY` · `NOTION_INSIGHT_DB_ID` ·
+  `GH_PAT` · `CRON_SECRET` · `THREADS_USER_ID` · `THREADS_ACCESS_TOKEN`
+- ⚠️ 등록되지 않은 시크릿은 **에러가 아니라 빈 문자열**로 주입된다. 그래서
+  "대체 경로가 있다"고 적힌 것이 실제로는 없는 상태다 — 헤드리스가 막혔을 때의
+  `ANTHROPIC_API_KEY` 폴백(§5)은 지금 존재하지 않는다. 쓰려면 먼저 등록해야 한다.
+- Notion 쪽 이름이 두 벌인 것(`NOTION_API_TOKEN`/`NOTION_DATABASE_ID` vs
+  `NOTION_API_KEY`/`NOTION_INSIGHT_DB_ID`)도 여기서 드러난다. 실제로 등록된 쪽은
+  전자이고, 인사이트 루프만 후자를 참조한다(진단 5-18).
+
+**PAT 관련 정정.** 위 "PAT 을 만들지 않는다"는 원칙은 유효하지만, 문서를 믿고
+"이 리포엔 PAT 배선이 없다"고 읽으면 안 된다 — `build-check.yml` 이
+`GITHUB_TOKEN: ${{ secrets.GH_PAT }}` 로 `next build` 에 PAT 을 주입하는
+배선을 갖고 있었다. 실제로는 그 시크릿이 등록되지 않아 빈 값이 들어갔고,
+빌드는 그것 없이 통과한다. 빌드 시점에 `GITHUB_TOKEN` 을 읽는 코드가 없기
+때문이다 — 읽는 곳은 요청 시점 라우트(`app/api/deploy-status/route.ts`,
+`force-dynamic`, **Vercel** env 사용)와 Actions 런타임(`lib/insight/github.ts`,
+잡 기본 토큰 사용) 둘뿐이다. 그래서 그 배선을 지웠다(진단 5-3).
 
 Vercel 쪽에 `CLAUDE_CODE_OAUTH_TOKEN` 을 넣을 필요는 없어졌다. 이미 넣었다면
 지우는 게 낫다 — 안 쓰이는 자격증명이 한 군데 더 있는 셈이다.

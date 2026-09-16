@@ -22,6 +22,10 @@
 //   기존 동작을 100% 보존한다. 마커 이후(발행본)는 published_body 에 별도
 //   저장만 한다 — 이 텍스트로 초안 생성 로직을 자동으로 바꾸지 않는다.
 //   마커가 여러 번 나오면 첫 번째만 경계로 본다(설계 판단, splitPublishedMarker 참조).
+//
+// 종료 코드 (진단 2-2·3-4): 0 = 정상 / 1 = 실패(페이지 읽기·DB 갱신) / 2 = 확인 불가
+//   (토큰·Supabase 자격증명 없음, 조회 자체 실패). 전건 실패를 0 으로 돌려주면
+//   "매일 밤 성공하는 아무것도 안 하는 잡"이 되고 cron-watchdog 도 못 잡는다.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -74,6 +78,22 @@ export async function readPageStatus(token, pageId) {
   return { ok: true, status: r.data.properties?.상태?.select?.name ?? null }
 }
 
+/**
+ * 실행 카운터 → 종료 코드 (0 정상 / 1 실패 / 2 확인 불가).
+ *
+ * 페이지를 못 읽은 것(error)과 판정을 DB 에 못 남긴 것(updFailed)은 둘 다 실패다.
+ * 특히 updFailed 는 pulled_at 이 null 로 남아 **다음 밤에 같은 행을 또 집는** 상태라,
+ * 조용히 넘기면 같은 판정이 LOG-…-01/-02/-03 으로 매일 늘어난다(진단 2-2).
+ */
+export function pullVerdict({ error = 0, updFailed = 0 } = {}) {
+  const bad = []
+  if (error > 0) bad.push(`페이지 확인 불가 ${error}건`)
+  if (updFailed > 0) bad.push(`DB 갱신 실패 ${updFailed}건`)
+  return bad.length === 0
+    ? { code: 0, line: '정상' }
+    : { code: 1, line: `❌ ${bad.join(' · ')} — 다음 밤에 같은 행을 다시 집는다` }
+}
+
 export function nextLogCode(logPath, date) {
   const prefix = `LOG-${date.replace(/-/g, '')}-`
   let n = 1
@@ -89,8 +109,9 @@ async function run() {
   const dry = process.argv.includes('--dry')
   const token = process.env.NOTION_API_TOKEN
   if (!token) {
-    console.log('ℹ️ NOTION_API_TOKEN 미설정 — 풀백을 건너뛴다.')
-    process.exit(0)
+    // 시크릿 만료·미설정을 0 으로 돌려주면 "매일 밤 성공하는 아무것도 안 하는 잡"이 된다(§7.1).
+    console.error('⚠️ 확인 불가: NOTION_API_TOKEN 미설정 — 풀백을 못 돌렸다.')
+    process.exit(2)
   }
 
   let supabase
@@ -117,6 +138,7 @@ async function run() {
   }
 
   const counts = { unchanged: 0, edited: 0, adopted: 0, held: 0, error: 0 }
+  let updFailed = 0
   for (const row of rows) {
     const [textRes, statusRes] = await Promise.all([
       readPageText(token, row.notion_page_id),
@@ -152,20 +174,26 @@ async function run() {
       continue
     }
 
-    fs.appendFileSync(logPath, `\n${entry}`, 'utf-8')
-
+    // DB 를 먼저 갱신하고 로그는 그 뒤에 붙인다(진단 3-9). 순서가 반대면 갱신이 실패했을 때
+    // pulled_at 이 null 로 남아 다음 밤에 같은 행을 다시 집고, 로그에는 새 코드로 한 줄이 더 쌓인다.
     const upd = await supabase.from('notion_sync_log').update({
       pulled_body: body, published_body: published, pulled_status: statusRes.status, diff_status: diffStatus,
       pulled_at: new Date().toISOString(), decision_log_code: logCode,
     }).eq('id', row.id)
     if (upd.error) {
       const hint = upd.error.code === '42703' ? ' — 마이그레이션 20260911000001_notion_sync_log_published_body.sql 미적용일 수 있다.' : ''
-      console.error(`⚠️ ${row.notion_page_id} 판정은 로그에 남았지만 DB 갱신 실패 — ${upd.error.code ?? ''} ${upd.error.message}${hint}`)
+      console.error(`⚠️ ${row.notion_page_id} DB 갱신 실패 — ${upd.error.code ?? ''} ${upd.error.message}${hint}`)
+      updFailed++
+      continue // 로그도 남기지 않는다. 다음 밤이 같은 코드로 다시 시도한다.
     }
+
+    fs.appendFileSync(logPath, `\n${entry}`, 'utf-8')
   }
 
-  console.log(`\n풀백 완료 — 무변경 ${counts.unchanged} · 편집됨 ${counts.edited} · 채택 ${counts.adopted} · 보류 ${counts.held} · 확인불가 ${counts.error}`)
-  process.exit(0)
+  console.log(`\n풀백 완료 — 무변경 ${counts.unchanged} · 편집됨 ${counts.edited} · 채택 ${counts.adopted} · 보류 ${counts.held} · 확인불가 ${counts.error} · DB갱신실패 ${updFailed}`)
+  const verdict = pullVerdict({ error: counts.error, updFailed })
+  console.log(`- ${verdict.line}`)
+  process.exit(verdict.code)
 }
 
 function isMain() {

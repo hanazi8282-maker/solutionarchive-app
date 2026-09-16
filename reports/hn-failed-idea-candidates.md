@@ -27,3 +27,39 @@
 - 작성일: 2026-08-01
 
 > I started/run a old and moderately popular sub (top 100 in sports) and haven’t noticed any issues that we haven’t dealt with before. We shut down during the blackout so it’s not like it’s all been easy. I got stock a couple years ago, that’s about it and I thought that was nice having been on Reddit since 2006 or whatever. That said we’re not a trash sub and take moderation extremely seriously.
+
+## HN 49682506
+
+- 판정: (미검토)
+- 매칭: `we shut down`
+- 원본: https://news.ycombinator.com/item?id=49682506
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-09-16 UTC)
+- 스레드: Dramatic insider warnings over AI fall flat with some in Silicon Valley
+- 작성자: hypendev
+- 작성일: 2026-09-13
+
+> Why are you looking to control a superintelligence? Why do you assume bad things will happen otherwise? Why does every doomer scenario assume that this, highly intelligent being, will be - unlike all other highly intelligent beings - especially hell bent on destroying humanity/treating it as a resource/destroy earth looking for energy? We have no clue about superintelligence, yet we can look at existing patterns in the real world around us. Higher intelligence inversely correlates with violence.…
+
+## HN 49675442
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=49675442
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-09-16 UTC)
+- 스레드: Teen reading slumps to worst this century due to surge in screen time
+- 작성자: techblueberry
+- 작성일: 2026-09-12
+
+> Because they weren’t held back in school? Not… you know…. Gestures everywhere But really, if we failed the first time, what makes you think we’ll be more successful the second?
+
+## HN 49649960
+
+- 판정: (미검토)
+- 매칭: `pivoted away from`
+- 원본: https://news.ycombinator.com/item?id=49649960
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-09-16 UTC)
+- 스레드: Silicon Valley is transforming the military-industrial complex? (2024)
+- 작성자: JumpCrisscross
+- 작성일: 2026-09-10
+
+> > it’s still the same organization maintaining the same mission operating under the same budget WWII demonstrated wars of conquest don't work in the industrial age. When America and its Department of War and Navy were founded, invasion and conquest could still be done profitably. WWII showed that was no longer true–industrial machinery and skilled workers are destroyed by invasion and even base resources quickly become useless when surrounded by people who hate you. (Nuclear weapons sealed the e…

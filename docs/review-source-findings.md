@@ -932,3 +932,90 @@ Disallow: /*?*
 - **클리앙 규칙을 우리가 못 읽는다.** 방어가 `clien.ts` 의 `parseProductRef`
   한 곳에 몰려 있다. 그 함수를 넓히는 변경은 robots 재실측을 동반해야 한다.
 - **세 소스 다 `enabled=false` 로 등록한다.** 켜는 것은 사람이 한다.
+
+---
+
+## 댓글 AJAX 재실측 round-4 — theqoo · todayhumor (2026-09-17)
+
+round-2 는 두 소스를 "댓글이 AJAX 라 본문 전용"으로 닫았다. 그 AJAX 를 직접
+실측했다. **결론이 둘로 갈렸다: todayhumor 는 붙였고, theqoo 는 못 붙인다.**
+못 붙이는 이유가 사이트 쪽 제약이 아니라 **우리 요청 계약의 한계**라 따로 적는다.
+
+| | 댓글 API | 인증 | 우리 계약으로 가능한가 | 결과 |
+|---|---|---|---|---|
+| todayhumor | `GET /board/ajax_memo_list.php?…` | 불필요(콜드 200) | ✅ | 1글=2요청으로 구현 |
+| theqoo | `POST /index.php` (JSON body) | 세션 쿠키 + Referer | ❌ | 보류 — 본문 전용 유지 |
+
+### theqoo — 되는 건 확인했는데, 어댑터가 그 요청을 만들 수 없다
+
+실측(2026-09-17):
+
+```
+POST https://theqoo.net/index.php
+Content-Type: application/json
+Cookie: PHPSESSID=… ; rx_login_status=none      ← 글 페이지 GET 으로 먼저 받는다
+Referer: https://theqoo.net/square/<id>
+{"act":"dispTheqooContentCommentListTheqoo","document_srl":"<id>","cpage":"1"}
+→ 200 {"comment_list":[{"srl":…,"ct":"<html>","rd":"20260916232553",…}], "now_comment_page":1}
+```
+
+- 로그인은 필요 없다. 비회원 세션으로 실데이터가 온다.
+- 쿠키·Referer 없이 POST 하면 `{"errorDetail":"ERR_CSRF_CHECK_FAILED","error":-1}`.
+- 쿠키를 피하는 우회로는 없었다. 같은 act 를 GET 으로 부르면 301 → 글 페이지
+  HTML 이고, form-encoded POST 도 글 페이지 HTML 이다(둘 다 실측).
+- 사이트 정책: 작성 1시간 이내 댓글은 비회원에게 플레이스홀더로 온다. 이건
+  파싱 실패가 아니라 정책이다 — 구현하게 되면 스킵하되 실패로 세지 마라.
+
+**막힌 지점은 세 군데이고 전부 공용 코드다:**
+
+1. `ReviewSourceAdapter.nextRequest()` 반환형이 `{ url }` 뿐이다 — method·body·
+   headers 를 실을 자리가 없다.
+2. `RunnerPorts.fetchText(url)` 은 GET 전용이고 헤더가 고정이다
+   (`scripts/review-collect.mjs`).
+3. `FetchOutcome` 에 **응답 헤더가 없다.** `Set-Cookie` 가 `parse()` 에 닿지
+   않으므로 "1차 응답의 쿠키를 커서에 실어 2차로 넘긴다"는 우회도 성립하지 않는다.
+
+즉 커서 메커니즘만으로는 풀 수 없다. 요청 계약을 넓히는(POST·헤더·응답 헤더)
+변경이 선행돼야 하고, 그건 소스 하나를 위해 러너 전체의 표면을 넓히는 일이라
+사람이 판단한다. 그때까지 theqoo 는 **본문 전용**이고 댓글 0건은 고장이 아니다.
+
+### todayhumor — 붙였다. 함정은 인증이 아니라 **가짜 별칭**이었다
+
+```
+GET https://www.todayhumor.co.kr/board/ajax_memo_list.php
+    ?parent_table=sisa&parent_id=1271155&last_memo_no=0&get_all_memo=Y
+→ 200 {"is_more_memo":"false","memos":[{"no":"…","is_system":false,"is_del":false,
+       "date":"2026-09-11 10:58:43","name":"…","memo":"<html>","ip":"…"}]}
+```
+
+- 쿠키·헤더가 전혀 필요 없다. 콜드 상태로 200 이다.
+- 🔴 **베스트/베오베 글의 URL 값은 가짜다.** `table=bestofbest&no=483825` 인 글의
+  실제 댓글은 `parent_table="sisa"` · `parent_id="1271155"` 에 달려 있다.
+  별칭을 그대로 넣으면 **에러 없이** `{"is_more_memo":"true","memos":[]}` 가 온다
+  (실측). 200 이고 JSON 이고 에러 필드도 없다 — 로그로는 "댓글 없는 글"과
+  구분되지 않는다(§7.1 그 자체).
+- 원본 값은 글 페이지의 인라인 스크립트에 있다: `var parent_table = "sisa";`.
+  그래서 본문 파싱이 이 값을 함께 읽어 커서(`memo:<table>:<id>:<댓글수>`)에 싣고,
+  2차 요청이 그 커서로만 만들어진다. 커서 형식은 정규식으로 검증한다 — 값이
+  URL 쿼리가 되므로 DB 를 거쳐 온 커서도 신뢰 경계 밖이다.
+- **탐지기**: 본문의 개수 마커(`<div>댓글 : 5개</div>`)와 실제 수집 건수를 대조해
+  차액을 `parseFailures` 로 센다. 별칭을 잘못 넣으면 선언된 전부가 실패로 잡힌다.
+  마커가 아예 없으면 그것도 실패다(0건으로 접지 않는다).
+- `is_system:true` 는 게시판 이동 기록(`"memo":"MOVE_BESTOFBEST/483825"`)이지
+  사용자 댓글이 아니다. 개수 마커에도 안 들어간다(실측: 총 7 = 사용자 5 + 시스템 2).
+  `is_del:true` 와 함께 버린다.
+- `ip` 는 사이트가 마스킹해서 주지만(`119.65.***.168`) `authorMasked` 에 쓰지
+  않는다. 기존 원칙대로 작성자 정보는 담지 않는다.
+
+### 알아 둘 것
+
+- **todayhumor 는 이제 1글=2요청이다.** 같은 `daily_request_cap` 이 사 주는 글
+  수가 절반이다. 켤 때 상한을 다시 보라(지금은 `enabled=false`).
+- 중간 상태(`review_targets.cursor = memo:…`)는 2차 요청 대기를 뜻한다. 잡이
+  죽어도 다음 실행이 거기서 이어받는다 — 고장이 아니다.
+- 댓글 페이지네이션(`last_memo_no`)은 스트레스 테스트하지 않았다. `get_all_memo=Y`
+  가 한 번에 전부 준 표본(7건)까지만 확인했다. 아주 긴 글에서 잘리면 개수 마커
+  대조가 그 차액을 실패로 찍는다 — 조용히 누락되지는 않는다.
+- 삭제 댓글이 개수 마커에 포함되는지는 **확인하지 못했다**(표본에 삭제 건이
+  없었다). 포함된다면 삭제 댓글이 있는 글마다 오경보가 난다. 그때는
+  `todayhumor.ts` 의 `seen` 집계에 `is_del` 을 다시 넣어라.

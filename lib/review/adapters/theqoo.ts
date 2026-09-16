@@ -3,14 +3,31 @@
 // 실측 근거: docs/review-source-findings.md
 //   "커뮤니티 소스 실측 round-2 — theqoo · todayhumor (2026-09-16)"
 //
-// ⚠️ **댓글은 수집하지 않는다. 못 하는 게 아니라 정적 HTML 에 없다.**
-//    글 페이지의 댓글 영역은 `<div id="cmtPosition">` 이 비어 있고
-//    `loadReply(<글id>, 0, false, false)` 가 나중에 AJAX 로 채운다.
-//    `?listStyle=viewer` 변형도 같았다(실측 2026-09-16, 4개 글).
-//    남는 건 개수 마커(`댓글 <b>7</b>개`)뿐이라 **본문 전용**으로 간다.
-//    따라서 댓글 0건은 파싱 실패가 아니다 — 설계된 결정이다.
-//    되살리려면 XHR 엔드포인트를 따로 실측해야 하고, 그건 1글=1요청 계약을
-//    깨는 일이라 사람이 판단한다.
+// ⚠️ **댓글은 수집하지 않는다. 정적 HTML 에 없고, 그 AJAX 는 우리 요청
+//    계약으로 표현할 수 없다.** 글 페이지의 댓글 영역은 `<div id="cmtPosition">`
+//    이 비어 있고 `loadReply(<글id>, 0, false, false)` 가 AJAX 로 채운다.
+//    남는 건 개수 마커(`댓글 <b>7</b>개`)뿐이라 **본문 전용**이고, 댓글 0건은
+//    파싱 실패가 아니다 — 설계된 결정이다.
+//
+//    2026-09-17 에 그 XHR 을 실측했다. **되긴 된다**(로그인 불필요):
+//      POST https://theqoo.net/index.php · Content-Type: application/json
+//      {"act":"dispTheqooContentCommentListTheqoo","document_srl":"<id>","cpage":"1"}
+//      + 글 페이지 GET 으로 받은 세션 쿠키(PHPSESSID, rx_login_status=none)
+//      + Referer: <글 URL>
+//      → 200 {"comment_list":[{"srl":…,"ct":"<html>","rd":"YYYYMMDDHHMMSS"}], …}
+//    쿠키나 Referer 가 없으면 {"errorDetail":"ERR_CSRF_CHECK_FAILED"} 다.
+//    쿠키 없는 우회로는 없었다 — GET 으로 같은 act 를 부르면 301 을 거쳐 글
+//    페이지 HTML 이 오고, form-encoded POST 도 마찬가지다(둘 다 실측).
+//
+//    ⛔ 그런데 **이 어댑터는 그 요청을 만들 수 없다.** 세 군데가 동시에 막는다:
+//       1. nextRequest 의 반환형이 `{ url }` 뿐이다 — method·body·headers 가 없다.
+//       2. RunnerPorts.fetchText(url) 은 GET 전용이고 헤더가 고정이다.
+//       3. FetchOutcome 에 **응답 헤더가 없다** — Set-Cookie 가 parse() 에
+//          닿지 않으므로 세션 쿠키를 커서에 실어 나르는 우회도 불가능하다.
+//    셋 다 공용 코드(types.ts·runner.ts·scripts/review-collect.mjs)를 고쳐야
+//    풀리고, 그건 이 소스 하나를 위해 요청 계약을 넓히는 일이라 사람이
+//    판단한다. **여기서 임시로 fetch 를 부르지 마라** — robots·간격·상한이
+//    전부 러너에 있다(types.ts 의 ⛔ 참조).
 //
 // ⚠️ robots.txt 가 **없다**(2026-09-16 실측: `https://theqoo.net/robots.txt`
 //    → HTTP 404, 본문은 Rhymix 에러 HTML). 러너는 4xx 를 "규칙 없음 = 허용"

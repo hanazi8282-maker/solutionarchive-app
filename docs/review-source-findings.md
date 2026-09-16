@@ -538,8 +538,60 @@ return robotsVerdict(cached, u.pathname, PRODUCT_TOKEN)
 (SP-019) 와 같은 종류의 사고가 재발할 자리다. 수정은 러너 한 줄이지만 모든 소스의
 robots 판정에 동시에 영향을 주므로 별건 PR 로 다룬다.
 
-### 이번에 하지 않은 것
+### 남헌 2026-09-16 결정 — 리스크를 인지하고 진행 (SP-025)
 
-- 어댑터·픽스처·셀프테스트·마이그레이션 **전부 미작성**. 위 2번이 사람 판단
-  사항이라 AC-0 게이트에서 멈췄다.
-- 두 사이트 이용약관 원문 확인 — **미실시(확인 불가)**. robots 만 쟀다.
+위 2번을 사람에게 올렸고, **두 소스 모두 진행**으로 결정됐다. 다모앙이 AI 학습
+크롤러와 자칭 수집기를 거부하고 있다는 사실을 인지한 채로 내린 결정이다
+(Reddit/SP-005 와 같은 리스크 수용 방식). 결정의 전문은 `docs/strategy-principles.md`
+SP-025 에 있다.
+
+따라서 AC-0 게이트를 통과해 구현했다:
+
+- 어댑터 `lib/review/adapters/damoang.ts` · `82cook.ts`, 공용 ref 검증
+  `url-ref.ts`(SSRF 경계)
+- 픽스처 각 4종(정상 / 댓글0건 / 댓글영역소실 / 본문소실) — 실측 응답에서 깎았다
+- 셀프테스트 `scripts/review-damoang-selftest.mjs`(62건) ·
+  `review-82cook-selftest.mjs`(63건)
+- 마이그레이션 `20260917000001_review_sources_community.sql` — **파일만. 미적용**
+  (enabled=false 2행, DDL 없음)
+
+**두 소스 다 `enabled=false` 다.** 이용약관 원문 확인이 끝난 뒤 사람이 켠다.
+
+### 라이브 프로브 결과 (2026-09-16, DB 쓰기 없음)
+
+실제 응답을 실제 어댑터의 `parse()` 에 통과시킨 결과다. 픽스처가 아니다.
+
+```
+damoang  https://damoang.net/free/7341567
+  HTTP 200 · 409,235 bytes · utf-8
+  reviews=11  parseFailures=0  nextCursor=null
+  본문: "뉴스·펌글 작성 기준 안내\n\n안녕하세요, 다모앙입니다.뉴스 펌글 규칙의 적용 기준에 …"
+  댓글[0]: /free/7341567#c_7341623  "확인했습니다."  writtenAt=null
+
+82cook   https://www.82cook.com/entiz/read.php?num=4239440
+  HTTP 200 · 61,041 bytes · utf-8
+  reviews=79  parseFailures=0  nextCursor=null
+  본문: "창고형 약국이 동네에 생겨서 가봤더니\n평소 처방없이 사먹던 약들이\n최소 반값이고 …"
+  댓글[0]: …#41169700  "저도 가봤어요. 거의 반값인게 많더라구요."  writtenAt=2026-09-15
+```
+
+한글이 깨지지 않고 실제 글 내용과 일치한다. 양쪽 다 `parseFailures=0`,
+`robotsSkips=0` 이고 `nextCursor=null` 이라 타깃이 곧바로 닫힌다(1글=1요청).
+
+damoang 이 11건인 것은 댓글 13건 중 3건이 이모티콘만 달린 것이라 본문이 없어서다
+(실패가 아니다 — 마커가 센 13건과 앵커 13건이 일치하므로 구조는 멀쩡하다).
+
+### 알아 둘 것 — 이번 구현이 안고 가는 한계
+
+- **다모앙 글 본문이 잘린다.** JSON-LD 의 `text` 가 약 200자에서 끊긴다(실측 160자).
+  제목·작성일이 안정적으로 있는 곳이 여기뿐이라 이걸 썼다. 전문이 필요하면 HTML 의
+  `#…-post-content` / `.prose` 를 읽어야 하는데, 그 id 가 게시판마다 달라 보여서
+  이번엔 손대지 않았다.
+- **다모앙 댓글 작성일이 전부 null 이다.** 화면 표기가 `09.15` 로 연도가 없고,
+  JSON-LD 의 `comment[]` 는 일부만 실어 준다(실측 13건 중 3건). 순서로 맞추면
+  어긋난 날짜를 조용히 붙이게 되므로 채우지 않았다.
+- **82cook 은 삭제 표시 댓글(`class="rp delReple"`)도 수집한다.** 본문이 그대로
+  실려 오고 개수 마커(`total_reple`)가 그것까지 세기 때문이다. 빼면 마커와 실제
+  수가 어긋나 멀쩡한 글이 파싱 실패로 잡힌다.
+- **두 사이트 이용약관 원문 확인 — 여전히 미실시(확인 불가).** robots 만 쟀다.
+  `enabled=true` 전환 전에 사람이 봐야 한다.

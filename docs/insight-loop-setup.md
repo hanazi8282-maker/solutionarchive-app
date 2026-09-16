@@ -134,15 +134,46 @@ Vercel 이 아니라 **GitHub** 다. 야간 루프가 Actions 에서 돌기 때�
 - 실제 등록된 리포 Actions 시크릿은 **5개뿐**: `CLAUDE_CODE_OAUTH_TOKEN` ·
   `NEXT_PUBLIC_SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` ·
   `NOTION_API_TOKEN` · `NOTION_DATABASE_ID`
-- 워크플로가 **참조하지만 등록되지 않은** 이름 7개:
-  `ANTHROPIC_API_KEY` · `NOTION_API_KEY` · `NOTION_INSIGHT_DB_ID` ·
-  `GH_PAT` · `CRON_SECRET` · `THREADS_USER_ID` · `THREADS_ACCESS_TOKEN`
-- ⚠️ 등록되지 않은 시크릿은 **에러가 아니라 빈 문자열**로 주입된다. 그래서
-  "대체 경로가 있다"고 적힌 것이 실제로는 없는 상태다 — 헤드리스가 막혔을 때의
-  `ANTHROPIC_API_KEY` 폴백(§5)은 지금 존재하지 않는다. 쓰려면 먼저 등록해야 한다.
+- ⚠️ 등록되지 않은 시크릿은 **에러가 아니라 빈 문자열**로 주입된다. 그러니
+  "워크플로에 배선돼 있다"를 "등록돼 있다"로 읽지 마라. 둘은 다른 사실이고,
+  `gh secret list` 만 후자를 답한다.
+
+**`secrets.GITHUB_TOKEN` 은 미등록이 아니다.** `gh secret list` 에 영영 안 나온다 —
+`GITHUB_` 는 예약 접두사라 등록 자체가 불가능하고, Actions 가 잡마다 자동으로
+채운다. 목록에 없다고 빈 값으로 세지 마라. 실측 근거: 커밋 `dd09b94`
+(`github-actions[bot]`, `[auto-insight] 검증된 패턴 갱신`) 는 `lib/insight/github.ts`
+가 `GITHUB_TOKEN` 없으면 **던지는** 경로를 지나 만들어졌다. `${{ github.token }}`
+(cron-watchdog.yml) 과 같은 값이다.
+
+**진짜로 비어 있는 채 참조되던 이름 (2026-09-16 정리)**
+
+| 이름 | 판정 | 조치 |
+|---|---|---|
+| `CRON_SECRET` | 빌드 시점 리더 0건. 정본은 **Vercel** env (§4) | `build-check.yml` 에서 제거 |
+| `THREADS_USER_ID` | 리포 전체 리더 **0건** | `build-check.yml` 에서 제거 |
+| `THREADS_ACCESS_TOKEN` | 런타임 토큰은 `api_tokens` 행에서 온다(`lib/threads/token.ts`). env 리더는 로컬 시드 스크립트 1개뿐 | `build-check.yml` 에서 제거. **CI 에 다시 배선하지 않는다** — CLAUDE.md §10.1 |
+| `ANTHROPIC_API_KEY` (build-check) | 빌드 시점 리더 0건(두 리더 모두 호출 시점 생성) | `build-check.yml` 에서 제거 |
+| `ANTHROPIC_API_KEY` (insight 루프·프로브) | 배선은 남아 있고 **값이 없다** | 보류 — 아래 폴백 항목 |
+| `NOTION_API_KEY` · `NOTION_INSIGHT_DB_ID` | 보조 인박스 어댑터. 없으면 조용히 skip | 보류 — 인박스 DB 자체가 미확정 |
+| `GH_PAT` | 이미 참조가 없다(#118) | 없음 |
+
+`build-check.yml` 의 배선이 다시 늘어나면 `scripts/cmo-daily-selftest.mjs` §10 이
+CI 에서 막는다(빌드 env 는 Supabase 2개만, 발행 토큰은 어느 워크플로에도 없음).
+
+**`ANTHROPIC_API_KEY` 폴백은 "문서만 틀린 것"이 아니다.** 폴백 코드는 실재한다
+(`lib/insight/llm.ts` `anthropicExtraction()`). 다만 **두 겹**이 비어 있다:
+① 리포 변수 `INSIGHT_LLM_PROVIDER` 가 미설정이라(`gh variable list` 가 0행)
+워크플로 기본값 `claude-cli` 로 굳어 있고, ② 시크릿도 없다. 그래서 쓰려면
+변수 + 시크릿 **둘 다** 세팅해야 한다. 시크릿은 새 Anthropic 콘솔 키가 필요하고
+`.env.local` 에도 없다 — 사람이 발급해야 한다.
+
 - Notion 쪽 이름이 두 벌인 것(`NOTION_API_TOKEN`/`NOTION_DATABASE_ID` vs
   `NOTION_API_KEY`/`NOTION_INSIGHT_DB_ID`)도 여기서 드러난다. 실제로 등록된 쪽은
-  전자이고, 인사이트 루프만 후자를 참조한다(진단 5-18).
+  전자이고, 인사이트 루프만 후자를 참조한다(진단 5-18). 이름만 맞추면 되는
+  **별칭이 아니다** — `NOTION_INSIGHT_DB_ID` 는 `NOTION_DATABASE_ID`(일일 상태
+  로그 DB)와 **다른 DB** 를 가리켜야 한다. 그 인박스 DB 는 아직 없다
+  (`lib/insight/notion.ts` 헤더: 워크스페이스 검색에 안 잡혔다). 토큰만 돌려쓰는
+  것은 가능해도 DB ID 는 만들어야 나온다.
 
 **PAT 관련 정정.** 위 "PAT 을 만들지 않는다"는 원칙은 유효하지만, 문서를 믿고
 "이 리포엔 PAT 배선이 없다"고 읽으면 안 된다 — `build-check.yml` 이

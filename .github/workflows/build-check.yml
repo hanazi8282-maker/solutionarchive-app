@@ -36,14 +36,20 @@ jobs:
       - run: node scripts/analyze-judge-prompt-selftest.mjs
       # LLM 재시도 예산(함수 상한 300초 안) + 요청당·하루 비용 상한이 실제로 막는지.
       - run: node scripts/analyze-llm-budget-selftest.mjs
+      # 빌드가 **실제로 읽는** 값만 준다. 나머지는 요청 시점(Vercel env)에서
+      # 읽히지 서버 빌드에서 읽히지 않는다. 안 쓰는 이름을 여기 적어 두면
+      # "CI 에 배선돼 있으니 등록돼 있겠지"로 읽혀 진단을 헛돌게 만든다.
+      #
+      # 뺀 것과 이유(진단 5-3 후속, 전부 빌드 시점 리더 0건):
+      #   ANTHROPIC_API_KEY    — lib/analysis/llm.ts 는 호출 시점에 SDK 를 만들고
+      #                          lib/insight/llm.ts 는 Actions 런타임에서만 읽는다
+      #   CRON_SECRET          — lib/cron-auth.ts, 요청 시점. Vercel env 가 정본이다
+      #   THREADS_USER_ID      — 리포 전체에 읽는 코드가 0건이다
+      #   THREADS_ACCESS_TOKEN — 런타임 토큰은 api_tokens 행에서 온다(lib/threads/token.ts).
+      #                          ⛔ 발행 자격증명을 CI env 에 두지 않는다 — CLAUDE.md §10.1
+      #                          의 "정책이 아니라 구조" 를 지탱하는 자리다
+      #   GITHUB_TOKEN(GH_PAT) — deploy-status 는 force-dynamic, 커밋은 Actions 기본 토큰
       - run: npx next build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # GITHUB_TOKEN(GH_PAT) 은 뺐다 — next build 에서 이 값을 읽는 코드가 없다(진단 5-3).
-          # 읽는 곳은 요청 시점 라우트(deploy-status, force-dynamic, Vercel env)와
-          # Actions 런타임(lib/insight/github.ts, 잡 기본 토큰)뿐이다.
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
-          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}

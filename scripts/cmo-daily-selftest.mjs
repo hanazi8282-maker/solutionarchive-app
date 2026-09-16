@@ -408,6 +408,32 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   check('워크플로 — CLAUDE_CODE_OAUTH_TOKEN 은 있다', /CLAUDE_CODE_OAUTH_TOKEN\s*:/.test(wf))
   check('워크플로 — concurrency 그룹이 걸려 있다', /group:\s*cmo-daily/.test(wf))
   check('워크플로 — 실패해도 재시도하지 않는다(retry 설정 없음)', !/retry/i.test(wf))
+
+  // 발행 토큰은 **어느 워크플로에도** 없어야 한다. §10.1 의 "무인 루프 env 에
+  // THREADS_ACCESS_TOKEN 자체가 없다 — 정책이 아니라 구조다" 를 지탱하는 검사다.
+  // daily-cmo-loop 하나만 보면, 다른 워크플로에 배선이 생겨도 초록불이 뜬다.
+  // (2026-09-16: build-check.yml 이 실제로 이 이름을 `next build` env 에 갖고 있었다.
+  //  시크릿이 미등록이라 빈 값이었을 뿐, 누가 등록하는 순간 CI 로 내려온다.)
+  {
+    const dir = path.join(process.cwd(), '.github/workflows')
+    const leaked = fs.readdirSync(dir)
+      .filter(f => f.endsWith('.yml') || f.endsWith('.yaml'))
+      .filter(f => new RegExp(`${PUBLISH_TOKEN}\\s*:`).test(fs.readFileSync(path.join(dir, f), 'utf-8')))
+    check(`§10 — 발행 토큰이 배선된 워크플로가 없다${leaked.length ? ` (발견: ${leaked.join(', ')})` : ''}`,
+      leaked.length === 0)
+  }
+
+  // 빌드 env 는 빌드가 읽는 것만. 안 읽는 이름이 늘어나면 "배선 = 등록됨"으로
+  // 오독돼 시크릿 인벤토리 진단이 매번 헛돈다(docs/insight-loop-setup.md §3-3).
+  {
+    const bc = fs.readFileSync(path.join(process.cwd(), '.github/workflows/build-check.yml'), 'utf-8')
+    const buildEnv = bc.slice(bc.indexOf('npx next build'))
+    const names = [...buildEnv.matchAll(/^\s+([A-Z_0-9]+):\s*\$\{\{/gm)].map(m => m[1])
+    check(`빌드 env — 빌드가 읽는 2개만 있다 (실제: ${names.join(', ') || '없음'})`,
+      names.length === 2
+      && names.includes('NEXT_PUBLIC_SUPABASE_URL')
+      && names.includes('SUPABASE_SERVICE_ROLE_KEY'))
+  }
 }
 
 // ════════════════════════════════════════════════════════════

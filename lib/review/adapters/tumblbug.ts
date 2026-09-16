@@ -21,20 +21,44 @@
 //
 // ⚠️ **창작자 단위 URL 은 없다.** `/neogury` · `/user/neogury` ·
 //    `/creator/neogury` 를 전부 받아 봤는데 셋 다 HTTP 200 이지만 후기 payload
-//    가 없는 SPA 껍데기(36KB)였다. 그래서 productRef 는 **프로젝트 경로**로
-//    두되, 식별은 창작자 축으로 한다:
-//      externalId = `tbr:<projectWarrantyReviewId>`  ← 프로젝트와 무관한 전역 고유값
-//      storyId    = `/<review.projectPermalink>`     ← 그 후기가 실제로 달린 프로젝트
-//    같은 창작자의 어느 프로젝트 페이지로 들어와도 같은 후기는 같은 externalId
-//    가 되어 지문 단계에서 중복으로 걸러진다.
+//    가 없는 SPA 껍데기(36KB)였다. 그래서 productRef 는 **프로젝트 경로**다.
+//
+// ── ⛔ 여기서 한 번 틀렸다. 고친 내용을 먼저 읽어라 (2026-09-17 QA) ──
+//
+// 처음 판은 "externalId = `tbr:<id>` 는 프로젝트와 무관한 전역 고유값이라, 같은
+// 창작자의 어느 페이지로 들어와도 지문이 중복을 걸러 준다"고 적어 뒀다.
+// **틀렸다. 재현해서 확인했다.**
+//
+//   computeFingerprint 의 identity_key = sha256(`sourceKey|productRef|externalId`)
+//   (lib/review/fingerprint.ts:69) — **productRef 가 키에 들어간다.**
+//   `/eastereggs` 타깃과 `/clear` 타깃이 같은 후기를 내면 externalId 는 같지만
+//   productRef 가 달라 identity_key 가 달라진다. store 는 identity_key UNIQUE
+//   로만 중복을 판정하므로(store.ts:118) **같은 후기가 두 행으로 적재된다.**
+//   실측: 4건 중 identity_key 교집합 0건 = 4건이 8행이 된다.
+//
+// 즉 공용 지문은 "타깃(=상품) 안에서의 고유값"을 기대하는데 창작자 축 id 는 그
+// 계약을 깬다. 지문은 다른 7개 소스가 같이 쓰는 파일이라 고치지 않는다 — 대신
+// **어댑터가 계약을 지키는 쪽으로** 바꿨다:
+//
+//   ⇒ **이 타깃 프로젝트의 후기만 받는다.** `projectPermalink` 이 productRef 의
+//      slug 와 다른 후기는 `filtered` 로 세고 버린다(파싱 실패가 아니다 —
+//      필드는 멀쩡히 읽혔고 이 타깃과 무관할 뿐이다. hackernews 와 같은 용법).
+//
+//   그러면 후기 하나는 자기 프로젝트 타깃 **한 곳에서만** 나오므로 타깃을
+//   여러 개 잡아도 중복 적재가 없다. 겸사겸사 적재 오류도 하나 사라진다 —
+//   전에는 `/clear` 후기가 `/eastereggs` 타깃의 project_id 로 들어갔다.
+//   (재현·고정: scripts/review-tumblbug-selftest.mjs "타깃간중복" 블록)
+//
+// ⚠️ **그래서 한 페이지에서 받는 건수가 준다.** 실측 `/eastereggs` 는 4건 중
+//    2건(나머지 2건은 `/clear` 것), `/cairn` 은 **0건**이다(4건 다 남의 것).
+//    창작자 프리뷰는 어느 페이지에서나 같은 4건이므로, 그 4건을 다 받고 싶으면
+//    **후기가 달린 프로젝트(storyId 에 보이던 slug)를 각각 타깃으로 등록**해라.
+//    그렇게 해도 서로 겹치지 않는다. 진행 중인 프로젝트는 자기 후기가 아직
+//    없어 0건이 정상이다.
 //
 // ⚠️ **한 번에 최대 4건이다.** 마커(`totalReviewCount`)는 66 인데 `contents` 는
 //    4건만 온다 — 프리뷰 상한이다. 그래서 마커와 항목 수의 차이를 실패로 세면
 //    안 된다(그랬다면 매번 실패 62건이 찍힌다). 마커가 >0 인데 0건일 때만 실패다.
-//
-// ⚠️ **신규성이 낮다.** 같은 창작자의 프로젝트 페이지를 여러 개 타깃으로 잡으면
-//    같은 4건이 반복 수집된다. 지문이 중복을 걸러 주지만 요청은 그대로 나간다.
-//    타깃을 고를 때 창작자가 겹치지 않게 사람이 신경 써라.
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
 import { parseUrlRef } from './url-ref.ts'
@@ -165,18 +189,29 @@ export const tumblbugAdapter: ReviewSourceAdapter = {
   parse(body: string, ctx: ParseContext): ParseResult {
     const reviews: ParsedReview[] = []
     let parseFailures = 0
+    let filtered = 0
+
+    // 이 타깃이 가리키는 프로젝트. 정체성이 여기에 묶인다(헤더 참조).
+    const scope = parseProductRef(ctx.productRef)
+    if (!scope) {
+      // nextRequest 가 같은 검사를 하므로 실행 경로에서는 안 온다. 그래도
+      // 스코프를 모르는 채로 받지는 않는다 — 그러면 다시 타깃 간 중복이 된다.
+      // 조용히 0건으로 지나가면 "후기 없음"과 구분이 안 되므로 실패로 센다(§7.1).
+      return { reviews, nextCursor: null, parseFailures: 1, filtered }
+    }
+    const scopeSlug = scope.slice(1)
 
     const state = readState(body)
     if (!state) {
       // hydration JSON 이 통째로 없다. SPA 껍데기를 받은 것이다 —
       // HTTP 200 이어도 내용이 0 인 경우다(CLAUDE.md §7.1).
-      return { reviews, nextCursor: null, parseFailures: 1 }
+      return { reviews, nextCursor: null, parseFailures: 1, filtered }
     }
 
     const creators = readCreatorReviews(state)
     if (creators === null || creators.length === 0) {
       // creators 자체가 없다 = 구조 변경.
-      return { reviews, nextCursor: null, parseFailures: 1 }
+      return { reviews, nextCursor: null, parseFailures: 1, filtered }
     }
 
     const seen = new Set<string>()
@@ -196,20 +231,32 @@ export const tumblbugAdapter: ReviewSourceAdapter = {
           parseFailures++
           continue
         }
+        const permalink = typeof item.projectPermalink === 'string' ? item.projectPermalink : null
+        if (!permalink) {
+          // 소속 프로젝트를 모르면 이 후기를 어느 타깃에 묶을지 정할 수 없다.
+          // 그 상태로 받으면 정체성이 productRef 에 따라 갈려 중복이 된다.
+          // 고유 id 소실과 같은 급의 구조 변경이라 실패로 센다.
+          parseFailures++
+          continue
+        }
+        if (permalink !== scopeSlug) {
+          // 이 창작자의 **다른 프로젝트** 후기다. 그 프로젝트를 타깃으로 잡으면
+          // 거기서 받는다 — 여기서 받으면 타깃 간 중복 적재가 된다(헤더 참조).
+          filtered++
+          continue
+        }
+
         if (!text) {
           // 컨테이너는 멀쩡한데 알맹이가 없다(사진만 올린 후기).
           // 파서가 깨진 게 아니므로 실패로 세지 않는다.
           continue
         }
 
-        // ⚠️ externalId 에 프로젝트 경로를 넣지 않는다. 같은 후기가 같은
-        //    창작자의 다른 프로젝트 페이지에서도 나오기 때문이다 — 넣으면
-        //    같은 글이 매번 새 리뷰로 적재된다.
+        // 프로젝트 경로를 안 섞는다. 스코프가 이미 프로젝트 단위라 경로를
+        // 또 넣으면 지문에 같은 정보가 두 번 들어갈 뿐이다.
         const externalId = `tbr:${id}`
         if (seen.has(externalId)) continue
         seen.add(externalId)
-
-        const permalink = typeof item.projectPermalink === 'string' ? item.projectPermalink : null
 
         reviews.push({
           externalId,
@@ -218,9 +265,8 @@ export const tumblbugAdapter: ReviewSourceAdapter = {
           seller: null,
           authorMasked: null,
           writtenAt: isoDate(item.createdAt),
-          // 지금 받은 페이지가 아니라 **그 후기가 달린 원래 프로젝트**다.
-          // 둘은 다를 수 있다(실측: /eastereggs 페이지에 clear 프로젝트 후기).
-          storyId: permalink ? `/${permalink}` : null,
+          // storyId 를 두지 않는다. 스코프 필터 때문에 항상 productRef 와
+          // 같은 값이라 아무것도 알려 주지 않는다.
         })
       }
 
@@ -234,7 +280,11 @@ export const tumblbugAdapter: ReviewSourceAdapter = {
     // ponytail: 창작자당 최대 4건만 받는다(프리뷰 상한). 전량이 필요하면
     //   후기 목록 XHR 을 붙여야 하는데 그건 robots 가 막은 `/api/` 다.
     //   막힌 길이라 상한을 아는 채로 둔다.
-    return { reviews, nextCursor: null, parseFailures }
+    //
+    // filtered 는 "남의 프로젝트 후기라 버렸다" 는 뜻이다. parseFailures 와
+    // 분리해야 건강도 분모에 안 들어간다 — 안 그러면 정상 동작하는 타깃이
+    // broken 으로 꺼진다(types.ts ParseResult.filtered).
+    return { reviews, nextCursor: null, parseFailures, filtered }
   },
 
   // quotaMarkers 를 선언하지 않는다 = 모든 403/429 를 차단으로 본다.

@@ -12,14 +12,18 @@
 //    어긋난다.** 프리뷰가 4건 상한이기 때문이다. damoang 식으로 차이를 실패로
 //    세면 매번 실패 62건이 찍힌다. 아래 "프리뷰상한" 블록이 그걸 고정한다.
 //
-// ⚠️ 두 번째로 다른 점: **externalId 에 프로젝트 경로가 안 들어간다.** 같은
-//    후기가 같은 창작자의 다른 프로젝트 페이지에도 실려 오므로, 경로를 섞으면
-//    같은 글이 매번 새 리뷰로 쌓인다. "창작자축" 블록이 그걸 고정한다.
+// ⚠️ 두 번째로 다른 점: **한 페이지에 남의 프로젝트 후기가 섞여 온다.**
+//    창작자 프리뷰라서 그렇다. 그걸 그대로 받으면 같은 후기가 타깃마다 새 리뷰로
+//    적재된다 — 지문 키에 productRef 가 들어가기 때문이다(fingerprint.ts:69).
+//    그래서 어댑터가 **이 타깃 프로젝트의 후기만** 받는다.
+//    "프로젝트스코프" 블록이 규칙을, "타깃간중복" 블록이 실제 중복 적재 여부를
+//    (진짜 computeFingerprint + store.ts 를 옮긴 인메모리 store 로) 고정한다.
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { tumblbugAdapter, parseProductRef, HOST } from '../lib/review/adapters/tumblbug.ts'
+import { computeFingerprint } from '../lib/review/fingerprint.ts'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const fx = (n) => fs.readFileSync(path.join(here, '..', 'fixtures', 'review', 'tumblbug', n), 'utf8')
@@ -95,10 +99,11 @@ ok('URL: 쿼리스트링 자체가 없다', !tumblbugAdapter.nextRequest(target(
 {
   const r = tumblbugAdapter.parse(fx('project-with-reviews.html'), ctx())
 
-  t('정상: 후기 4건', r.reviews.length, 4)
-  t('정상: 파싱 실패 0', r.parseFailures, 0)
+  // 실측 페이지의 4건 중 2건이 이 프로젝트(eastereggs) 것이고 2건은 /clear 것이다.
+  t('정상: 이 프로젝트 후기 2건', r.reviews.length, 2)
+  t('정상: 남의 프로젝트 후기 2건은 filtered', r.filtered, 2)
+  t('정상: 파싱 실패 0 — 남의 것은 실패가 아니다', r.parseFailures, 0)
   t('정상: 커서 없음 — 1문서=1요청', r.nextCursor, null)
-  t('정상: filtered 를 쓰지 않는다', r.filtered, undefined)
 
   ok('정상: 실제 본문이 읽힌다', r.reviews.some((x) => x.text.includes('캐릭터 그림이 너무 귀여워요')))
   ok('정상: 두 번째 후기도 읽힌다', r.reviews.some((x) => x.text.includes('배송 포장이 너무 부실합니다')))
@@ -113,34 +118,95 @@ ok('URL: 쿼리스트링 자체가 없다', !tumblbugAdapter.nextRequest(target(
   t('날짜: 실측값과 일치', r.reviews[0].writtenAt, '2026-02-26')
 }
 
-// ── 창작자축 — externalId 에 프로젝트 경로가 들어가면 안 된다 ─────
+// ── 프로젝트스코프 — 이 타깃의 후기만 받는다 ──────────────────────
 {
   const html = fx('project-with-reviews.html')
   const a = tumblbugAdapter.parse(html, ctx())
-  // 같은 창작자의 **다른** 프로젝트 페이지로 들어온 상황.
+  // 같은 창작자의 **다른** 프로젝트 페이지로 들어온 상황. 창작자 프리뷰는
+  // 어느 페이지에서나 같은 4건이라 본문이 같다(실측: /eastereggs 와 /cairn 이
+  // 동일한 tbr:245885,245602,244722,241940 을 냈다).
   const b = tumblbugAdapter.parse(html, ctx({ productRef: 'url:/clear' }))
 
-  ok('창작자축: externalId 가 tbr: 로 시작', a.reviews.every((x) => x.externalId.startsWith('tbr:')))
-  t('창작자축: externalId 에 실제 후기 id 가 들어간다', a.reviews[0].externalId, 'tbr:245885')
-  ok('창작자축: externalId 에 프로젝트 경로가 안 섞인다', a.reviews.every((x) => !x.externalId.includes('/')))
-  // 이게 이 블록의 존재 이유다. 경로를 섞었다면 여기가 깨진다.
-  t(
-    '창작자축: 다른 프로젝트 페이지로 들어와도 externalId 가 같다',
-    JSON.stringify(a.reviews.map((x) => x.externalId)),
-    JSON.stringify(b.reviews.map((x) => x.externalId)),
-  )
-  t('창작자축: externalId 중복 없음', new Set(a.reviews.map((x) => x.externalId)).size, 4)
-  ok('창작자축: externalId 를 전건 확보 (composite 폴백 없음)', a.reviews.every((x) => x.externalId))
+  ok('스코프: externalId 가 tbr: 로 시작', a.reviews.every((x) => x.externalId.startsWith('tbr:')))
+  t('스코프: externalId 에 실제 후기 id 가 들어간다', a.reviews[0].externalId, 'tbr:245885')
+  ok('스코프: externalId 에 프로젝트 경로가 안 섞인다', a.reviews.every((x) => !x.externalId.includes('/')))
+  ok('스코프: externalId 를 전건 확보 (composite 폴백 없음)', a.reviews.every((x) => x.externalId))
+
+  // 이게 이 블록의 존재 이유다. 두 타깃이 낸 후기가 **한 건도 겹치면 안 된다.**
+  const idsA = a.reviews.map((x) => x.externalId)
+  const idsB = b.reviews.map((x) => x.externalId)
+  t('스코프: /eastereggs 는 자기 후기 2건', JSON.stringify(idsA), JSON.stringify(['tbr:245885', 'tbr:245602']))
+  t('스코프: /clear 는 자기 후기 2건', JSON.stringify(idsB), JSON.stringify(['tbr:244722', 'tbr:241940']))
+  t('스코프: 두 타깃의 교집합 0건', idsA.filter((x) => idsB.includes(x)).length, 0)
+  t('스코프: 남의 것은 filtered 로 센다 (/clear 쪽도)', b.filtered, 2)
+
+  // 자기 후기가 하나도 없는 프로젝트를 잡으면 0건이다 — 실측 /cairn 의 상황이다.
+  // 0건이지만 **실패가 아니다.** 여기서 parseFailures 를 올리면 소스가 꺼진다.
+  const none = tumblbugAdapter.parse(html, ctx({ productRef: 'url:/cairn' }))
+  t('스코프: 자기 후기 없는 프로젝트는 0건', none.reviews.length, 0)
+  t('스코프: 그때 4건 전부 filtered', none.filtered, 4)
+  t('스코프: 그때 파싱 실패 0 — 고장이 아니다', none.parseFailures, 0)
+
+  // 소속 프로젝트를 모르면 어느 타깃에 묶을지 못 정한다 = 구조 변경.
+  const noPermalink = html.replace(/"projectPermalink":"[a-z]+",/g, '')
+  const np = tumblbugAdapter.parse(noPermalink, ctx())
+  t('스코프: projectPermalink 소실은 실패로 센다', np.parseFailures, 4)
+  t('스코프: 그때 적재 0건', np.reviews.length, 0)
 }
 
-// ── storyId 는 그 후기가 달린 **원래** 프로젝트다 ─────────────────
+// ── 타깃간중복 — 같은 창작자를 두 프로젝트로 잡아도 중복 저장이 없다 ──
+//
+// ⚠️ 여기가 QA 가 잡은 버그의 재현 자리다. 가짜 지문을 쓰지 않는다(§7.1 사례 5):
+//    실제 computeFingerprint 와 store.ts 의 recordFingerprint 분기를 그대로
+//    옮긴 인메모리 store 로 돌린다(store.ts L115-168: insert 먼저 → UNIQUE
+//    충돌 시 content_hash 비교 → 같으면 duplicate / 다르면 revised).
+//
+//    고치기 전에는 여기서 4건이 8행으로 들어갔다. identity_key 가
+//    sha256(`sourceKey|productRef|externalId`) 라 productRef 가 다르면
+//    같은 후기도 다른 키가 되기 때문이다.
 {
-  const r = tumblbugAdapter.parse(fx('project-with-reviews.html'), ctx())
-  ok('storyId: 전부 / 로 시작', r.reviews.every((x) => x.storyId.startsWith('/')))
-  // 실측: /eastereggs 페이지인데 후기 4건 중 2건은 clear 프로젝트 것이다.
-  const others = r.reviews.filter((x) => x.storyId !== PATH)
-  ok('storyId: 지금 보고 있는 프로젝트와 다른 것이 섞여 있다', others.length > 0)
-  t('storyId: 그 값이 원래 프로젝트 경로다', others[0].storyId, '/clear')
+  const html = fx('project-with-reviews.html')
+
+  const store = new Map() // `${source} ${identityKey}` -> content_hash
+  const inputs = [] // 적재된 원문(= analysis_inputs 행)
+  const verdicts = []
+
+  // 러너 ingestPage(runner.ts:423-469)와 같은 순서로 돈다.
+  const collect = (productRef) => {
+    const { reviews } = tumblbugAdapter.parse(html, ctx({ productRef }))
+    for (const review of reviews) {
+      const fp = computeFingerprint('tumblbug', productRef, review)
+      const key = `${fp.sourceKey} ${fp.identityKey}`
+      if (!store.has(key)) {
+        store.set(key, fp.contentHash)
+        verdicts.push('new')
+        inputs.push({ productRef, externalId: review.externalId, text: review.text })
+      } else {
+        verdicts.push(store.get(key) === fp.contentHash ? 'duplicate' : 'revised')
+      }
+    }
+  }
+
+  // 사람이 같은 창작자(neogury)를 서로 다른 프로젝트 둘로 타깃팅했다.
+  collect('url:/eastereggs')
+  collect('url:/clear')
+
+  t('타깃간중복: 적재 4건 (8건이면 중복이다)', inputs.length, 4)
+  t('타깃간중복: 지문 4개', store.size, 4)
+  t('타깃간중복: 같은 후기가 두 번 적재된 것 없음', new Set(inputs.map((x) => x.externalId)).size, 4)
+  t('타깃간중복: revised 0건', verdicts.filter((v) => v === 'revised').length, 0)
+
+  // 각 후기가 **자기 프로젝트 타깃**으로 적재됐는가 — project_id 귀속이 맞는지.
+  const owner = Object.fromEntries(inputs.map((x) => [x.externalId, x.productRef]))
+  t('타깃간중복: tbr:245885 는 /eastereggs 로 적재', owner['tbr:245885'], 'url:/eastereggs')
+  t('타깃간중복: tbr:244722 는 /clear 로 적재', owner['tbr:244722'], 'url:/clear')
+
+  // 두 번째 실행(같은 타깃 재방문)은 전부 duplicate 여야 한다.
+  const before = inputs.length
+  collect('url:/eastereggs')
+  collect('url:/clear')
+  t('타깃간중복: 재실행에서 새로 적재된 것 0건', inputs.length - before, 0)
+  t('타깃간중복: 재실행 판정은 전부 duplicate', verdicts.slice(4).join(','), 'duplicate,duplicate,duplicate,duplicate')
 }
 
 // ── 후기 0건 — 정상이다 ───────────────────────────────────────────
@@ -197,7 +263,7 @@ ok('URL: 쿼리스트링 자체가 없다', !tumblbugAdapter.nextRequest(target(
 {
   const state = {
     projectStore: {
-      creators: [['x', { review: { totalReviewCount: 1, contents: [{ projectWarrantyReviewId: 1, body: '   ', createdAt: '2026-01-02T03:04:05', projectPermalink: 'x' }] } }]],
+      creators: [['x', { review: { totalReviewCount: 1, contents: [{ projectWarrantyReviewId: 1, body: '   ', createdAt: '2026-01-02T03:04:05', projectPermalink: 'eastereggs' }] } }]],
     },
   }
   const html = `<script>window.MOBX_STATE = ${JSON.stringify(state)};</script>`
@@ -212,7 +278,7 @@ ok('URL: 쿼리스트링 자체가 없다', !tumblbugAdapter.nextRequest(target(
   const state = {
     a: { b: { c: { d: 1 } } },
     projectStore: {
-      creators: [['x', { review: { totalReviewCount: 1, contents: [{ projectWarrantyReviewId: 9, body: '중첩 뒤에 있는 후기', createdAt: '2026-03-04T00:00:00', projectPermalink: 'p' }] } }]],
+      creators: [['x', { review: { totalReviewCount: 1, contents: [{ projectWarrantyReviewId: 9, body: '중첩 뒤에 있는 후기', createdAt: '2026-03-04T00:00:00', projectPermalink: 'eastereggs' }] } }]],
     },
   }
   const html = `<script>window.MOBX_STATE = ${JSON.stringify(state)};\n</script><div>뒤</div>`
@@ -226,7 +292,7 @@ ok('URL: 쿼리스트링 자체가 없다', !tumblbugAdapter.nextRequest(target(
   const state = {
     note: 'body with } brace and \\" quote',
     projectStore: {
-      creators: [['x', { review: { totalReviewCount: 1, contents: [{ projectWarrantyReviewId: 7, body: '중괄호 } 뒤', createdAt: '2026-04-05T00:00:00', projectPermalink: 'p' }] } }]],
+      creators: [['x', { review: { totalReviewCount: 1, contents: [{ projectWarrantyReviewId: 7, body: '중괄호 } 뒤', createdAt: '2026-04-05T00:00:00', projectPermalink: 'eastereggs' }] } }]],
     },
   }
   const html = `<script>window.MOBX_STATE = ${JSON.stringify(state)};</script>`
@@ -259,4 +325,4 @@ if (fail) {
   console.log('텀블벅 파서가 틀렸다.')
   process.exit(1)
 }
-console.log('텀블벅 파서 정상 — 후기 0건과 구조 소실을 가르고, 창작자축 id 를 지킨다.')
+console.log('텀블벅 파서 정상 — 후기 0건과 구조 소실을 가르고, 타깃 간 중복 적재를 막는다.')

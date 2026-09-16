@@ -840,7 +840,10 @@ for (const [name, mod, exportName, ref, robots, fixture, expectCount] of [
     'url:/eastereggs',
     'User-agent: *\nDisallow: /api/\nDisallow: /auth/\nDisallow: /sessions/\nDisallow: /oauth/\nAllow: /discover?category=\nDisallow: /discover?\nDisallow: /search?\n',
     'tumblbug/project-with-reviews.html',
-    4,
+    // 4건 중 이 타깃(/eastereggs) 프로젝트의 후기는 2건이다. 나머지 2건은
+    // 같은 창작자의 /clear 것이라 filtered 로 빠진다 — 그래야 /clear 타깃과
+    // 중복 적재가 안 된다(아래 "타깃간중복" 블록이 그걸 러너로 확인한다).
+    2,
   ],
   [
     'naver_blog_post',
@@ -952,6 +955,88 @@ for (const [name, mod, exportName, ref, robots, fixture, expectCount] of [
     t(`${name}: enabled=false 면 robots.txt 도 안 받는다`, urls.length, 0)
     ok(`${name}: 비활성 사유가 보고에 남는다`, JSON.stringify(r2).includes('비활성'))
   }
+}
+
+// ── 타깃간중복 — 같은 창작자를 두 프로젝트로 타깃팅해도 중복 적재가 없다 ──
+//
+// ⚠️ 어댑터 셀프테스트에도 같은 재현이 있지만 여기에 또 둔다. 부품 테스트를
+//    통합의 근거로 쓰지 말라는 규약 때문이다(CLAUDE.md §7.1 사례 5) — 실제로
+//    QA 가 잡은 버그가 "어댑터는 맞는데 러너·지문과 붙이면 틀린" 형태였다.
+//
+//    고치기 전에는 여기서 4건이 8행으로 들어갔다. identity_key 가
+//    sha256(`sourceKey|productRef|externalId`) 라(fingerprint.ts:69) 같은 후기도
+//    타깃이 다르면 다른 키가 됐기 때문이다.
+{
+  const { tumblbugAdapter } = await import('../lib/review/adapters/tumblbug.ts')
+  const html = await fs.readFile(
+    path.join(here, '..', 'fixtures', 'review', 'tumblbug', 'project-with-reviews.html'),
+    'utf8',
+  )
+  const robots = 'User-agent: *\nDisallow: /api/\n'
+
+  const inputs = []
+  const seenFp = new Map()
+  let clock = 6_000_000
+
+  // 창작자 프리뷰는 어느 프로젝트 페이지에서나 같은 4건이라 본문이 같다
+  // (실측: /eastereggs 와 /cairn 이 같은 4건을 냈다 — findings §1).
+  const ports = {
+    now: () => new Date(clock),
+    async sleep(ms) {
+      clock += ms
+    },
+    async fetchText(url) {
+      clock += 10
+      return { status: 200, body: url.endsWith('/robots.txt') ? robots : html }
+    },
+    store: {
+      async loadSource() {
+        return { key: 'tumblbug', enabled: true, minIntervalMs: 3000, dailyRequestCap: 100, requestsToday: 0 }
+      },
+      async listDueTargets() {
+        return ['url:/eastereggs', 'url:/clear'].map((productRef, i) => ({
+          id: `tgt-${i}`,
+          projectId: `proj-${i}`,
+          sourceKey: 'tumblbug',
+          productRef,
+          cursor: null,
+          lastReviewAt: null,
+          consecutiveEmpty: 0,
+        }))
+      },
+      async saveTargetProgress() {},
+      async recordFingerprint(fp) {
+        // store.ts L115-168 과 같은 판정: identity_key UNIQUE 로만 가른다.
+        if (seenFp.has(fp.identityKey)) {
+          return seenFp.get(fp.identityKey) === fp.contentHash ? 'duplicate' : 'revised'
+        }
+        seenFp.set(fp.identityKey, fp.contentHash)
+        return 'new'
+      },
+      async appendInput(i) {
+        inputs.push(i)
+        return `in${inputs.length}`
+      },
+      async linkFingerprint() {},
+      async updateSourceHealth() {},
+    },
+  }
+
+  const r = await runCollection(tumblbugAdapter, { dryRun: false, targetLimit: 2 }, ports)
+
+  t('타깃간중복: 두 타깃 합계 4건 적재 (8건이면 중복이다)', inputs.length, 4)
+  t('타깃간중복: 지문도 4개', seenFp.size, 4)
+  t('타깃간중복: 본문 중복 0건', new Set(inputs.map((i) => i.text)).size, 4)
+  t('타깃간중복: 각 타깃이 2건씩 (project_id 귀속)', new Set(inputs.map((i) => i.projectId)).size, 2)
+  t('타깃간중복: 파싱 실패 0', r.stats.parseFailures, 0)
+  // 남의 프로젝트 후기를 버린 수는 실패가 아니라 relevanceFiltered 로 센다.
+  t('타깃간중복: filtered 4건 (타깃당 2건)', r.stats.relevanceFiltered, 4)
+  t('타깃간중복: health ok — filtered 는 건강도를 떨어뜨리지 않는다', r.health.health, 'ok')
+
+  // 다음 날 같은 두 타깃을 다시 돌리면 전부 duplicate 여야 한다.
+  const before = inputs.length
+  await runCollection(tumblbugAdapter, { dryRun: false, targetLimit: 2 }, ports)
+  t('타깃간중복: 재실행에서 새로 적재된 것 0건', inputs.length - before, 0)
 }
 
 // ── ADAPTERS 맵 키가 마이그레이션의 review_sources.key 와 같은가 ──

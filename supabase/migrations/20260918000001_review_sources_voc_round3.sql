@@ -35,8 +35,13 @@
 -- tumblbug (SP-031) — 이용약관의 "자동화된 수단으로 서비스 조작·이용" 금지
 --   조항을 인지한 채로 진행 결정. 수집 대상은 설계가 바뀌었다: 후원자 코멘트와
 --   프로젝트 설명이 정적 HTML 에 없어서(둘 다 robots 가 막은 /api/ XHR),
---   MOBX_STATE 의 **창작자 후기 프리뷰**를 받는다. 창작자당 최대 4건이고
---   "이 창작자의 지난 프로젝트 후기"라 storyId 가 수집 경로와 다를 수 있다.
+--   MOBX_STATE 의 **창작자 후기 프리뷰**를 받는다. 창작자당 최대 4건이다.
+--   ⚠️ 그 프리뷰에는 같은 창작자의 **다른 프로젝트** 후기가 섞여 온다. 어댑터는
+--   그중 **이 타깃 프로젝트의 후기만** 받는다(나머지는 filtered). 안 그러면
+--   같은 후기가 타깃마다 새 행으로 적재된다 — identity_key 에 product_ref 가
+--   들어가기 때문이다(lib/review/fingerprint.ts). 그래서 타깃 하나가 받는 건수는
+--   4건보다 적을 수 있고(실측 /eastereggs 2건, /cairn 0건), 창작자의 4건을 다
+--   받으려면 후기가 달린 프로젝트를 각각 타깃으로 등록해야 한다 — 겹쳐도 안전하다.
 --
 -- 켜는 명령(사람이 실행):
 --   update public.review_sources set enabled = true where key = 'bobaedream';
@@ -110,9 +115,13 @@ COMMENT ON COLUMN public.review_targets.product_ref IS
   'naver_blog_post 는 ''/PostView.naver?blogId=<id>&logNo=<번호>'' 로 한정한다 — '
   '예쁜 URL(blog.naver.com/<id>/<번호>)은 HTTP 200 에 2,817바이트짜리 빈 iframe 껍데기라서 '
   '허용하면 ''200인데 내용 0''을 수집하고, robots 가 막은 PostList/PostPrint/comment 경로도 함께 막힌다. '
-  'tumblbug 는 프로젝트 경로 한 세그먼트(''/<slug>'')다. 다만 수집 축은 프로젝트가 아니라 **창작자**이고 '
-  '(정적으로 오는 것이 ''이 창작자의 지난 프로젝트 후기'' 프리뷰뿐이다) 그래서 external_id 에 경로를 넣지 않는다 — '
-  '같은 창작자의 다른 프로젝트 페이지에서도 같은 후기가 나오므로 넣으면 같은 글이 매번 새 리뷰로 쌓인다. '
+  'tumblbug 는 프로젝트 경로 한 세그먼트(''/<slug>'')다. 정적으로 오는 것이 ''이 창작자의 지난 프로젝트 후기'' '
+  '프리뷰(창작자당 최대 4건)뿐이라 한 페이지에 **다른 프로젝트 후기가 섞여 온다** — 어댑터가 '
+  'product_ref 의 slug 와 projectPermalink 이 같은 것만 받는다. 섞인 채로 받으면 같은 후기가 '
+  '타깃마다 새 행으로 적재된다(identity_key = sha256(source|product_ref|external_id) 라 '
+  'product_ref 가 다르면 키가 다르다). 그래서 타깃 1개가 받는 건수는 4건보다 적을 수 있고 '
+  '(실측 /eastereggs 2건, /cairn 0건 — 0건은 고장이 아니다), 창작자의 4건을 다 받으려면 '
+  '후기가 달린 프로젝트를 각각 타깃으로 등록한다. 창작자가 겹쳐도 중복 적재되지 않는다. '
   '이 소스들은 1문서=1요청이라 수집 후 타깃이 status=exhausted 로 닫힌다 — 나중에 달린 댓글을 받으려면 '
   '사람이 status=''active'' 로 되돌려야 한다(자동 재활성화 없음).';
 

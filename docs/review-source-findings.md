@@ -614,12 +614,12 @@ robots 선확인. 로컬(한국 가정용 IP)에서 쟀다.
 | 소스 | 실측 판정 | 최종 | 가른 근거 |
 |---|---|---|---|
 | bobaedream | ✅ 채택 | 등록(off) | robots 전면 허용 · 정직 UA 18/18 HTTP 200 · 댓글이 정적 HTML · 고유 id · 개수 마커 |
-| tumblbug | ⚠️ 설계 폐기 | 등록(off) | 코멘트·프로젝트 설명이 **정적 HTML 에 없다**(robots 가 막은 `/api/` XHR). 창작자 후기 프리뷰로 **축을 바꿔** 수용 — SP-031 |
+| tumblbug | ⚠️ 설계 폐기 | 등록(off) | 코멘트·프로젝트 설명이 **정적 HTML 에 없다**(robots 가 막은 `/api/` XHR). 창작자 후기 프리뷰에서 **타깃 프로젝트 것만** 받아 수용 — SP-031 |
 | naver_blog_post | ⚠️ 약관 금지 | 등록(off) | 파싱은 됐다. **이용약관이 우리 행위를 명시 금지.** 리스크 인지 후 수용 — SP-030. 댓글은 여전히 미수집 |
 
 **3행 모두 `enabled=false` 다.** 사람이 켜야 시작한다.
 
-### 1. 텀블벅 — 원래 설계 폐기, 창작자 축으로 재설계해 수용
+### 1. 텀블벅 — 원래 설계 폐기, 창작자 프리뷰에서 타깃 프로젝트 것만 받아 수용
 
 설계는 "프로젝트 설명 1건 + 후원자 커뮤니티 코멘트 N건"이었다. 둘 다 없었다.
 
@@ -658,40 +658,57 @@ totalReviewCount=66  contents=4
 후기**다(화면 라벨이 그대로 "이 창작자의 지난 프로젝트 후기"이고, 위 예의
 `projectPermalink` 도 보고 있는 프로젝트와 다르다).
 
-**결정(2026-09-17): 수집 축을 상품 → 창작자로 바꿔서 받는다.** 그에 맞춰
-어댑터를 이렇게 짰다.
+**결정(2026-09-17): 창작자 프리뷰에서 받되, 적재는 타깃 프로젝트 단위로 한다.**
+그에 맞춰 어댑터를 이렇게 짰다.
 
 | 항목 | 값 | 이유 |
 |---|---|---|
 | productRef | `url:/<projectSlug>` | **창작자 단위 URL 이 없다**(아래) |
-| externalId | `tbr:<projectWarrantyReviewId>` | 경로를 안 섞는다 — 섞으면 같은 후기가 페이지마다 새 리뷰로 쌓인다 |
-| storyId | `/<review.projectPermalink>` | 그 후기가 **실제로 달린** 프로젝트. 수집 경로와 다를 수 있다 |
+| 수집 범위 | `projectPermalink === productRef slug` 인 후기만 | 남의 프로젝트 후기를 받으면 타깃 간 중복 적재가 된다(아래 ⛔) |
+| externalId | `tbr:<projectWarrantyReviewId>` | 스코프가 이미 프로젝트 단위라 경로를 또 넣을 필요가 없다 |
+| 버린 건수 | `filtered` (파싱 실패 아님) | 필드는 멀쩡히 읽혔고 이 타깃과 무관할 뿐이다. 건강도 분모에 안 들어간다 |
 | writtenAt | `createdAt` 앞 10자 | 절대 ISO 라 추정할 게 없다 |
 | 개수 판정 | 마커>0 인데 0건일 때만 실패 | 프리뷰가 4건 상한이라 66 vs 4 는 **정상**이다 |
 
 **창작자 단위 URL 은 없다 — 확인했다.** `/neogury` · `/user/neogury` ·
 `/creator/neogury` 를 전부 받아 봤고 셋 다 **HTTP 200 인데 후기 payload 가 없는
-36KB SPA 껍데기**였다. 그래서 productRef 는 프로젝트 경로로 두고 식별만 창작자
-축으로 했다.
+36KB SPA 껍데기**였다. 그래서 productRef 는 프로젝트 경로다.
 
-그 설계가 실제로 먹는다는 증거 — 같은 창작자의 **다른 두 프로젝트** 페이지를
-실제 응답으로 파싱한 결과다:
+⛔ **여기서 한 번 틀렸다(2026-09-17 QA 가 잡음).** 첫 판은 "externalId 가
+프로젝트와 무관한 전역 고유값이라 지문이 중복을 걸러 준다"고 적었다. **안 걸러진다.**
+`computeFingerprint` 의 identity_key 는 `sha256(sourceKey|productRef|externalId)`
+라(`lib/review/fingerprint.ts`) **productRef 가 키에 들어간다.** 재현:
 
 ```
-/eastereggs  reviews=4  ids=tbr:245885,tbr:245602,tbr:244722,tbr:241940  storyId=/eastereggs,/clear
-/cairn       reviews=4  ids=tbr:245885,tbr:245602,tbr:244722,tbr:241940  storyId=/eastereggs,/clear
+computeFingerprint('tumblbug', 'url:/eastereggs', 후기) 
+computeFingerprint('tumblbug', 'url:/clear',      같은 후기)
+→ externalId 는 같지만 identity_key 교집합 0/4 = 같은 4건이 8행으로 적재된다
 ```
 
-externalId 가 완전히 같아서 지문 단계에서 중복으로 걸린다. 그리고 storyId 에
-`/clear` 가 섞여 있다 — 수집 경로(`/eastereggs`)와 다른 프로젝트의 후기라는
-뜻이다. 분석할 때 "이 프로젝트의 후기"로 읽으면 틀린다.
+지문은 8개 소스가 같이 쓰는 파일이라 고치지 않았다. 대신 **어댑터가 그 계약을
+지키도록** 바꿨다 — 이 타깃 프로젝트의 후기만 받는다. 그러면 후기 하나는 자기
+프로젝트 타깃 한 곳에서만 나오므로 타깃을 여러 개 잡아도 중복이 없다. 덤으로
+적재 오류도 사라졌다: 전에는 `/clear` 후기가 `/eastereggs` 타깃의 project_id 로
+들어갔다.
 
-⚠️ **알아 둘 한계 두 가지.**
+실제 응답으로 파싱한 결과(같은 창작자의 다른 두 프로젝트 페이지):
+
+```
+/eastereggs  프리뷰 4건 = ids tbr:245885,245602,244722,241940 (permalink eastereggs×2, clear×2)
+/cairn       프리뷰 4건 = 같은 4건 (cairn 자기 후기는 0건)
+→ 스코프 적용 후: /eastereggs 적재 2건·filtered 2 · /clear 적재 2건·filtered 2
+                  /cairn 적재 0건·filtered 4 (0건이지만 고장이 아니다)
+```
+
+⚠️ **알아 둘 한계 세 가지.**
 - **창작자당 최대 4건.** 마커는 66 인데 `contents` 는 4건만 온다. 전량을 받으려면
   후기 목록 XHR 이 필요한데 그건 robots 가 막은 `/api/` 다. 막힌 길이다.
-- **신규성이 낮다.** 같은 창작자의 프로젝트를 여러 개 타깃으로 잡으면 **같은 4건이
-  반복 수집된다.** 지문이 중복을 걸러 주지만 요청은 그대로 나간다. 타깃을 고를 때
-  창작자가 겹치지 않게 사람이 신경 써야 한다.
+- **타깃 1개가 받는 건수는 4건보다 적다.** 프리뷰의 4건은 창작자 전체에서 최신
+  4건이라 그중 이 프로젝트 것만 남는다. 4건을 다 받고 싶으면 **후기가 달린
+  프로젝트들을 각각 타깃으로 등록**해라(어느 페이지에서나 같은 4건이 보이므로
+  어느 타깃으로 들어가든 자기 몫을 받는다). 창작자가 겹쳐도 중복 적재는 없다.
+- **진행 중인 프로젝트는 0건이 정상이다.** 아직 자기 후기가 없다(실측 `/cairn`).
+  `filtered` 수가 요청이 헛돈 정도를 말해 준다 — 0건이 계속되면 타깃을 바꿔라.
 
 이용약관의 "자동화된 수단으로 서비스 조작·이용" 금지 조항은 남헌이 인지한 채로
 진행을 결정했다(SP-031). `enabled=false` 로 등록한다.
@@ -898,17 +915,20 @@ https://www.bobaedream.co.kr/view?code=hotcar&No=3000000   ← 없는 글
 나머지 두 소스도 같은 방식으로 **실제 응답을 실제 어댑터에 통과**시켰다.
 
 ```
-tumblbug  https://tumblbug.com/eastereggs
-  reviews=4  parseFailures=0  nextCursor=null
-  [tbr:245885] 2026-02-26 storyId=/eastereggs
+tumblbug  https://tumblbug.com/eastereggs      ← ⚠️ 스코프 필터 **이전** 판의 출력이다
+  reviews=4  parseFailures=0  nextCursor=null   (지금은 reviews=2 filtered=2 — 위 ⛔ 참조)
+  [tbr:245885] 2026-02-26 permalink=eastereggs
     "캐릭터 그림이 너무 귀여워요 일러스트가 너무 이뻐서 끝내기 아쉬웠습니다
      그런데 탐정 캐릭터에 대해서는 정보가 좀 부족해서 아쉬웠어여ㅜㅜ 그래도 재후원할게요!!"
-  [tbr:245602] 2026-02-26 storyId=/eastereggs
+  [tbr:245602] 2026-02-26 permalink=eastereggs
     "적극 추천받아 시즌1도 함께 후원했습니다. … 아쉬운 점이 몇 가지 있는데
      배송 포장이 너무 부실합니다. … 시즌1과 시즌2의 패키징 방식이 다르네요."
 
 tumblbug  https://tumblbug.com/cairn        ← 같은 창작자의 다른 프로젝트
-  reviews=4  parseFailures=0  → externalId 4개가 위와 **완전히 동일** (지문이 중복 처리)
+  reviews=4  parseFailures=0  → externalId 4개가 위와 **완전히 동일**
+  ⛔ 이때 "그래서 지문이 중복 처리한다"고 적었는데 **틀렸다**(identity_key 에
+     product_ref 가 들어간다). 그래서 스코프 필터를 넣었고, 지금 이 페이지는
+     reviews=0 filtered=4 다 — cairn 자기 후기가 4건 안에 하나도 없다.
 
 tumblbug  https://tumblbug.com/0clock       ← 신규 창작자(후기 0건)
   reviews=0  parseFailures=0                ← 0건은 실패가 아니다
@@ -934,7 +954,7 @@ naver_blog_post  PostView.naver?blogId=naverofficial&logNo=224367462657
 
 - 어댑터 3종
   - `lib/review/adapters/bobaedream.ts`
-  - `lib/review/adapters/tumblbug.ts` (창작자 축)
+  - `lib/review/adapters/tumblbug.ts` (창작자 프리뷰에서 **타깃 프로젝트 것만**)
   - `lib/review/adapters/naver-blog.ts` (`key=naver_blog_post`, 본문 전용)
   - 셋 다 공용 ref 검증 `url-ref.ts` 를 재사용한다(SSRF 경계가 한 곳이어야 한다)
 - 픽스처 — 전부 실측 응답에서 깎았다
@@ -942,14 +962,20 @@ naver_blog_post  PostView.naver?blogId=naverofficial&logNo=224367462657
   - `fixtures/review/tumblbug/` 4종 (정상 / 후기0건 / review소실 / MOBX소실)
   - `fixtures/review/naver-blog/` 3종 (정상 / 본문소실 / **예쁜URL 껍데기 원본 그대로**)
 - 셀프테스트 — `review-bobaedream-selftest.mjs`(89) ·
-  `review-tumblbug-selftest.mjs`(80) · `review-naver-blog-selftest.mjs`(83)
+  `review-tumblbug-selftest.mjs`(92) · `review-naver-blog-selftest.mjs`(83)
+  - 텀블벅의 "타깃간중복" 블록은 **진짜** `computeFingerprint` 와 `store.ts` 의
+    판정 분기를 옮긴 인메모리 store 로 돈다. 같은 창작자를 두 프로젝트로
+    타깃팅해도 4건이 4행으로 들어가는지를 고정한다(고치기 전엔 8행이었다)
 - robots 단위테스트 — `scripts/review-robots-selftest.mjs` 에 3개 호스트 원문 추가(119건)
-- 러너 경계면 — `scripts/review-runner-selftest.mjs` 에 **새 블록으로** 추가(209건).
-  기존 damoang·82cook 블록은 손대지 않았다
+- 러너 경계면 — `scripts/review-runner-selftest.mjs` 에 **새 블록으로** 추가(217건).
+  기존 damoang·82cook 블록은 손대지 않았다. 타깃 2개(같은 창작자)를 실제 러너로
+  돌리는 중복 재현도 여기에 있다 — 부품 테스트를 통합의 근거로 쓰지 않는다(§7.1)
 - 마이그레이션 `20260918000001_review_sources_voc_round3.sql` + `_rollback.sql`
   — **파일만. 미적용** (enabled=false **3행**, DDL 없음)
 
-`lib/review/{types,url-ref,runner,robots,store}.ts` 는 한 줄도 건드리지 않았다.
+`lib/review/{types,url-ref,runner,robots,store,fingerprint}.ts` 는 한 줄도
+건드리지 않았다. 텀블벅 중복 버그도 **어댑터 쪽에서** 고쳤다 — 지문은 8개 소스가
+같이 쓰는 파일이라 거기서 productRef 를 빼면 나머지 7개의 중복 판정이 흔들린다.
 특히 `runner.ts:153`(SP-026)은 이번 범위 밖이다 — 세 소스 다 1문서=1요청이라
 그 구멍을 밟지 않는다. 다만 **텀블벅 robots 의 `/discover?` `/search?` 는 쿼리
 대상 규칙이라 러너가 못 막는다.** 그래서 어댑터의 `parseProductRef` 가 직접

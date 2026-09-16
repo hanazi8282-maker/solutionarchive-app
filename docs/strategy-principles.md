@@ -42,7 +42,7 @@
 | SP-026 | infra, bug, robots-txt | `lib/review/runner.ts:153` 이 `robotsVerdict(cached, u.pathname, PRODUCT_TOKEN)` 로 **쿼리스트링을 빼고** 판정을 부른다 — `robots.ts` 자체는 `*`·`$` 와 쿼리를 정확히 판정하는데(SP-018 로 수정됨), 호출부에서 `u.search` 가 잘려 `Disallow: /*?page=` (다모앙) 나 `Disallow: /entiz/read.php?bn=15&num=1166440&page=6` (82cook) 같은 **쿼리 대상 규칙이 어떤 경로와도 매칭되지 않는다.** 와일드카드 구현 여부와 무관한 별개 결함이고 전 소스에 동시 영향을 준다. 이번 커뮤니티 어댑터는 1글=1요청이라 이 구멍을 밟지 않지만(수집 URL 에 `?page=` 가 없다), **댓글 페이지네이션을 붙이려면 이 수정이 선행되어야 한다** — 안 고치고 붙이면 안전장치가 robots 위반을 못 막는다(§7.2) | A (실측 — 실제 robots 를 통과시켜 재현) | 2026-09-16 실측 |
 
 | SP-030 | channel, legal, naver, risk-accepted | 네이버 서비스 이용약관(2025-07-10 시행)이 "네이버의 사전 허락 없이 자동화된 수단(예: 매크로 프로그램, 로봇(봇), 스파이더, 스크래퍼 등)을 이용하여 … 네이버 서비스에 게재된 회원의 아이디(ID), **게시물 등을 수집**하거나 … 해서는 안 됩니다" 라고 우리 행위를 문장으로 직접 지목해 금지한다. `blog.naver.com/robots.txt` 본문에도 "BOT ACCESS FOR THE PURPOSES OF AI TRAINING AND RETRIEVAL-AUGMENTED GENERATION (RAG) IS STRICTLY PROHIBITED" 가 적혀 있고 `ClaudeBot`·`Claude-SearchBot`·`GPTBot`·`PerplexityBot` 이 이름으로 전면 금지돼 있다. 우리 UA 토큰은 그 목록에 없어 `*` 그룹이 적용되고 수집 경로(`/PostView.naver`)는 Disallow 에 없어 **기계 판정은 allowed** 다 — 그 판정을 근거로 쓰면 안 된다. SP-025(다모앙)는 robots 의 **의사 표시**라 해석 여지가 있었지만 여기는 **약관 본문이 명시적**이라 한 층 위다. 남헌이 **2026-09-17 이 사실을 인지한 채로 수집 진행을 결정**했다(SP-025·SP-005 와 같은 리스크 수용). 수용 조건: `enabled=false` 등록(사람이 켠다) · 댓글 미수집(cbox 는 별도 호스트 `apis.naver.com`) · 본문 1건만 | A (약관·robots 원문 직접 확인 2026-09-17 + 사람 결정) | 2026-09-17 실측 |
-| SP-031 | channel, legal, tumblbug, risk-accepted | 텀블벅 이용약관의 "자동화된 수단으로 서비스를 조작·이용" 금지 조항을 인지한 채로 남헌이 2026-09-17 수집 진행을 결정했다(약관 페이지가 클라이언트 렌더라 원문 재확인은 실패 — 조항 존재는 설계 단계 확인에 의존한다). 더 중요한 것은 **수집 대상이 실측 때문에 바뀌었다**는 점이다: 원래 설계한 후원자 코멘트·프로젝트 설명은 정적 HTML 에 **0건**이고(hydration JSON 에 코멘트 스토어 자체가 없고 `project.story` 는 null) 둘 다 robots 가 막은 `/api/` XHR 로만 온다. 정적으로 오는 유일한 VOC 는 `MOBX_STATE.projectStore.creators[i][1].review.contents[]` 의 **"이 창작자의 지난 프로젝트 후기" 프리뷰(창작자당 최대 4건)** 라서 수집 축이 상품→창작자로 바뀌었다. 따라서 (1) `external_id` 에 프로젝트 경로를 넣지 않는다 — 같은 후기가 그 창작자의 다른 프로젝트 페이지에도 실려 오므로 넣으면 같은 글이 매번 새 리뷰로 쌓인다 (2) `story_id` 는 후기가 실제로 달린 프로젝트라 수집 경로와 다를 수 있다 (3) 마커(66)와 항목(4)의 차이를 실패로 세면 안 된다 — 프리뷰 상한이다 | A (페이지 구조·창작자 URL 부재 실측 2026-09-17 + 사람 결정) | 2026-09-17 실측 |
+| SP-031 | channel, legal, tumblbug, risk-accepted | 텀블벅 이용약관의 "자동화된 수단으로 서비스를 조작·이용" 금지 조항을 인지한 채로 남헌이 2026-09-17 수집 진행을 결정했다(약관 페이지가 클라이언트 렌더라 원문 재확인은 실패 — 조항 존재는 설계 단계 확인에 의존한다). 더 중요한 것은 **수집 대상이 실측 때문에 바뀌었다**는 점이다: 원래 설계한 후원자 코멘트·프로젝트 설명은 정적 HTML 에 **0건**이고(hydration JSON 에 코멘트 스토어 자체가 없고 `project.story` 는 null) 둘 다 robots 가 막은 `/api/` XHR 로만 온다. 정적으로 오는 유일한 VOC 는 `MOBX_STATE.projectStore.creators[i][1].review.contents[]` 의 **"이 창작자의 지난 프로젝트 후기" 프리뷰(창작자당 최대 4건)** 라서 수집 축이 상품→창작자로 바뀌었다. 한 페이지의 프리뷰에는 그 창작자의 **다른 프로젝트 후기가 섞여 온다.** 처음 판은 "`external_id` 에 경로를 안 넣으면 지문이 중복을 걸러 준다"고 적었는데 **틀렸고 재현으로 확인했다**: 공용 `computeFingerprint` 의 identity_key 가 `sha256(source_key\|product_ref\|external_id)` 라 product_ref 가 키에 들어간다 — 같은 후기를 `/eastereggs` 타깃과 `/clear` 타깃이 각각 내면 키가 달라져 **4건이 8행으로 적재된다**(identity_key 교집합 0/4). 지문은 8개 소스가 공유하므로 고치지 않고 **어댑터가 공용 계약을 지키는 쪽으로** 바꿨다: (1) `projectPermalink` 이 product_ref 의 slug 와 같은 후기만 받고 나머지는 `filtered`(파싱 실패 아님)로 센다 — 후기 하나가 자기 프로젝트 타깃 한 곳에서만 나오므로 타깃이 겹쳐도 중복이 없고, 남의 프로젝트 후기가 이 타깃 project_id 로 적재되던 오류도 사라진다 (2) 그래서 타깃 1개의 수확은 4건보다 적다(실측 `/eastereggs` 2건, `/cairn` 0건) — 창작자의 4건을 다 받으려면 후기가 달린 프로젝트를 각각 타깃으로 등록한다 (3) 마커(66)와 항목(4)의 차이를 실패로 세면 안 된다 — 프리뷰 상한이다 | A (페이지 구조·창작자 URL 부재 실측 2026-09-17 + 중복 재현 + 사람 결정) | 2026-09-17 실측 |
 
 ### SP-030 / SP-031 실측 근거
 
@@ -61,9 +61,13 @@
   `ClaudeBot` → `allowed=false`, 같은 경로에 우리 토큰 → `allowed=true` 를
   나란히 고정한다. **두 줄이 같이 참인 것**이 "기계 판정을 근거로 쓰면 안 된다"의
   증거다.
-- SP-031 재현: `node scripts/review-tumblbug-selftest.mjs` — "창작자축" 블록이
-  서로 다른 프로젝트 경로로 파싱해도 `externalId` 목록이 같다는 것을 단정하고,
+- SP-031 재현: `node scripts/review-tumblbug-selftest.mjs` — "타깃간중복" 블록이
+  **진짜** `computeFingerprint` 와 `store.ts` 의 판정 분기를 옮긴 인메모리 store 로
+  같은 창작자를 두 프로젝트로 타깃팅해, 4건이 4행으로 들어가는지를 단정한다
+  (고치기 전엔 8행이었다). "프로젝트스코프" 블록이 두 타깃의 후기 교집합 0건을,
   "프리뷰상한" 블록이 마커 66 vs 항목 4 에서 `parseFailures=0` 을 고정한다.
+  같은 재현이 `node scripts/review-runner-selftest.mjs` 에도 있다 — 어댑터만
+  통과하고 러너와 붙이면 틀리는 경우를 막는다(§7.1 사례 5).
 - 킬스위치: 두 소스 다 `enabled=false` 로 등록된다. 되돌리는 문장은
   `supabase/migrations/20260918000001_review_sources_voc_round3_rollback.sql`.
 - 이 결정들은 **리스크를 없앤 것이 아니라 받아들인 것**이다. 상황이 바뀌면

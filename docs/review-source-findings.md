@@ -772,3 +772,163 @@ todayhumor → https://www.todayhumor.co.kr/board/view.php?table=bestofbest&no=4
   생기면서 쿼리 규칙이 들어가면 러너가 그 규칙을 **못 본다**(SP-026 — `runner.ts`
   가 `u.pathname` 만 넘긴다). 그 전에 러너를 고쳐야 한다.
 - **두 소스 다 `enabled=false` 로 등록한다.** 켜는 것은 사람이 한다.
+
+---
+
+## 커뮤니티 소스 실측 round-3 — brunch · clien · fmkorea (2026-09-17)
+
+측정 방법: 정직한 UA(`solutionarchive-review-probe/0.1`, 위장 없음), 호스트당
+3~5초 간격, 재시도·프록시 없음. 상태 코드만 보지 않고 기대 마커를 함께 확인했다
+(CLAUDE.md §7.1). 받은 HTML 은 리포에 넣지 않고, 파싱 대상 영역만 깎아
+`fixtures/review/{brunch,clien,fmkorea}/` 에 픽스처로 남겼다.
+
+**이 절은 설계 초안을 세 군데 정정한다.** 초안의 전제가 실측과 달랐고, 그대로
+구현했으면 (a) 클리앙 방어 근거가 틀린 자리에 걸리고 (b) 에펨이 매일 밤 가짜
+실패를 찍고 (c) 브런치 본문 절단을 "없다"고 문서에 적을 뻔했다.
+
+### 요약
+
+| | key | HOST | 수집 단위 | robots | min_interval / cap |
+|---|---|---|---|---|---|
+| 브런치 | `brunch` | `https://brunch.co.kr` | 본문 1건 | 200 · `Crawl-delay: 5` | 5000 / 50 |
+| 클리앙 | `clien` | `https://www.clien.net` | 본문 1 + 댓글 N | **우리 UA 에겐 404** | 3000 / 100 |
+| 에펨코리아 | `fmkorea` | `https://www.fmkorea.com` | 본문 1 + 댓글 N(마지막 페이지) | 200 | 3000 / 100 |
+
+### 🔴 정정 1 — 클리앙 robots 는 호스트 분열이 아니라 UA 게이팅이다
+
+초안: "`www` 는 404, apex(`clien.net`)는 200 에 규칙이 있다."
+
+실측(4조합 전부 확인):
+
+| URL | 봇 UA | 브라우저 UA |
+|---|---|---|
+| `https://www.clien.net/robots.txt` | **404** (315B) | **200** (1,691B, 규칙 있음) |
+| `https://clien.net/robots.txt` | **404** | **404** |
+
+apex 에는 규칙이 아예 없다. 규칙은 `www` 에 있고 클리앙이 봇 UA 에게만 숨긴다.
+→ **apex 를 HOST 로 바꿔도 해결되지 않는다.** 우리 크롤러는 어떤 호스트로도
+클리앙 규칙을 읽을 수 없다. UA 위장은 프로브 규칙 위반이라 하지 않는다.
+
+결론은 초안과 같지만 근거가 바뀐다: 규칙을 **어댑터가 코드로 내재화**하는 것이
+유일한 방어다(SP-027). 초안의 3중 가드에 `sold`·`hongbo` 제외를 추가했다 —
+그 둘은 `Allow:/service/board/` **안쪽**에서 다시 막히는 경로라 접두 검사만으로는
+샌다.
+
+브라우저 UA 로 받은 `User-agent: *` 그룹 원문:
+
+```
+Allow:/service/board/
+Disallow:/service/group/
+Disallow:/service/board/sold/
+Disallow:/service/board/hongbo/
+Disallow:/service/mypage/   /service/message/   /service/popup/
+Disallow:/service/search/   /service/search*    /service/cs/
+Disallow:/service/recommend
+Disallow: /*?*
+```
+
+⚠️ 곁다리 발견: `Disallow: /*?*` 는 **게시판 글에는 안 걸린다.** 최장 일치상
+`Allow:/service/board/`(20자)가 `Disallow: /*?*`(4자)를 이긴다. 표준대로 판정하면
+`?po=2` 가 붙은 글도 허용이다. 어댑터는 사이트 의도를 따라 기계 판정보다 **더
+엄격하게** 쿼리형 ref 를 거부한다. 이 차이는 감추지 않고
+`scripts/review-robots-selftest.mjs` 에 단정문으로 적어 뒀다.
+
+### 🔴 정정 2 — 에펨 마커−앵커 차액은 파싱 실패가 아니라 댓글 페이지네이션이다
+
+초안: "댓글이 일부만 정적이면(마커>앵커) 차액을 parseFailures 로 세라."
+
+실측 3건:
+
+| 글 | 마커 | 고유 앵커 | `window.document_cpage` |
+|---|---|---|---|
+| `/best/10342734564` | 177 | 79 | **2** (2/2) |
+| `/best/10341287419` | 77 | **77** | **없음** (단일 페이지) |
+| `/best/10342191474` | 53 | 5 | **2** (2/2) |
+
+댓글 목록 뒤에 `<div class="bd_pg clear">` 페이저가 있고, 글 페이지는 **마지막
+댓글 페이지를 기본으로 렌더**한다. 차액 98건·48건은 "못 읽은 것"이 아니라 "다른
+페이지에 있는 것"이다. 초안대로 세면 멀쩡한 파서가 글 하나당 98건씩 실패를 찍어
+건강도 지표가 무의미해진다 — §7.1 을 반대 방향으로 어기는 셈이다.
+
+가르는 신호가 HTML 에 이미 있다:
+
+- `document_cpage` **없음** = 단일 페이지 → 마커 ≠ 고유앵커면 그 차액이 parseFailures
+- `document_cpage` **있음** = 페이지 N/M → 차액은 세지 않고, 아래 "한계"로 기록
+- 마커도 앵커도 0 = 댓글 영역 소실 → parseFailures++ (양쪽 공통)
+
+변이 테스트로 두 분기가 각각 다른 검사를 깨뜨리는 것을 확인했다(`paginated` 를
+상수 `false`/`true` 로 바꾸면 서로 다른 단정문이 실패한다).
+
+### 🔴 정정 3 — 브런치 `articleBody` 는 5,000자에서 잘린다
+
+초안: "실측상 4,529자 전문이 안 잘려 온다."
+
+실측 2건:
+
+- `/@brunch/431` — `articleBody` 2,886자, 온전히 끝남
+- `/@brunch/430` — `articleBody` **정확히 5,001자**, 말미가 `…다른 공모전…`.
+  같은 문구가 같은 문서의 하이드레이션 블롭에 12회 더 나오고 그 뒤로 본문이 계속됨
+
+→ **5,000자 + `…` 절단이 확정**이다. "4,000자까지 절단 없음"은 참이지만 "절단
+없음"은 거짓이다. damoang 이 JSON-LD 200자 상한을 감수한 선례대로 이 천장도
+감수하고 `ponytail:` 주석으로 명시했다. 전문은 하이드레이션 블롭을 파싱해야
+하는데 훨씬 잘 깨진다. 셀프테스트가 `articleBody.length === 5001` 과 말미 `…` 를
+단정하므로, 브런치가 상한을 바꾸면 검사가 깨져 사람이 안다.
+
+### 확정 셀렉터
+
+**브런치** — JSON-LD 2블록(`Organization` + `BlogPosting`). 순서가 바뀔 수 있어
+전부 훑는다.
+
+- 본문 `BlogPosting.articleBody` · 제목 `.headline`
+- 작성일 `.datePublished` = `"2026-09-07T01:00:24+09:00"` — **KST 오프셋 ISO**다.
+  epoch ms 가 아니라 앞 10자가 곧 KST 날짜다(`Intl` 불필요). 초안의 UTC 밀림
+  우려는 해당 없음.
+- 글 경로가 `/@핸들/번호` 라 공용 `parseUrlRef()` 의 `@` 차단에 항상 걸린다.
+  공용 함수를 완화하면 damoang·82cook·theqoo 의 userinfo 차단까지 풀리므로,
+  브런치만 `^/@[A-Za-z0-9_-]+/\d{1,10}$` 화이트리스트로 자체 검증한다.
+- robots `*` 그룹에 **`Crawl-delay: 5`** 가 있다. `robots.ts` 는 Crawl-delay 를
+  파싱하지 않으므로 이 지연을 지키는 유일한 장치가 DB 의 `min_interval_ms=5000` 이다.
+
+**클리앙**
+
+- 제목 `class="post_subject" … <span>제목</span>`
+- 본문 `<div class="post_article" >` — 안에 `<html><body>` 를 통째로 품는다.
+  비탐욕 정규식으로 자르면 앞에서 끊기므로 `sliceDiv`(div 짝 세기)를 쓴다.
+- 글 작성일 `<span class="view_count date">… 2026-09-16 23:34:27</span>` (절대시각)
+- 댓글 수 마커 `댓글 • [<strong>17</strong>]` — 0건인 글에도 `[0]` 으로 남는다
+- 댓글 앵커 `<div class="comment_row …" data-role="comment-row" data-comment-sn="152397724">`
+  → **고유 id 있음**. composite 폴백 불필요.
+- 댓글 본문 `<div class="comment_view" data-comment-view="…">`
+- 댓글 작성일 `<span class="timestamp">2026-09-16 23:37:50` — **4자리 연도 있음**.
+  다모앙과 달리 댓글 writtenAt 을 채운다(화면 표기 `26-09-16` 말고 이쪽을 읽는다).
+- 페이저 없음. 실측 3건 전부 마커 == 고유앵커(0/0, 7/7, 17/17).
+
+**에펨코리아** (JSON-LD 0개)
+
+- 제목 `<h1 class="np_18px"><span class="np_18px_span">…</span>`
+- 글 작성일 `<span class="date m_no">2026.09.16 23:17</span>` (절대시각)
+- 본문 `<div class="document_<문서srl>_<멤버srl> xe_content">`
+- 댓글 수 마커 `title="댓글 보기/숨기기">댓글 <b>177</b> 개`
+- 댓글 앵커 `<li id="comment_10342883096" class="fdb_itm …">`.
+  ⚠️ **BEST 댓글이 중복 등장**하고 그때만 id 끝에 `_` 가 붙는다
+  (`comment_10342859374_`). 실측: 마커 77 · 앵커 81 · 고유 77. id 숫자로 접지
+  않으면 같은 댓글이 두 번 적재된다.
+- 댓글 본문 `<div class="comment_<댓글srl>_<멤버srl> xe_content">`
+- 댓글 작성일 `<span class="date">9 분 전</span>` — **전부 상대시각**(79/79).
+  역산하면 재수집마다 값이 달라지므로 writtenAt 은 null.
+- robots `*` 그룹: `Disallow: /` → `Allow: /$ /best /best2 /humor`.
+  최장일치로 `/best/…` 는 허용(`Allow: /best` 5자 > `Disallow: /` 1자).
+  `/8123456` 같은 XE 기본 주소는 금지 대상이라 ref 단계에서 거부한다.
+
+### 알려진 한계 (감추지 않는다)
+
+- **브런치 본문은 5,000자가 천장이다.** 그 이상은 잘린 채 저장된다.
+- **브런치 댓글은 하나도 안 들어온다.** `/api/` 가 robots 금지다. 커뮤니티 VOC
+  로서 값이 절반이고, 이건 고칠 수 있는 버그가 아니라 규칙이다.
+- **에펨 댓글은 마지막 페이지만 온다.** 177건짜리 글에서 79건만 수집된다.
+  페이지네이션으로 메우려면 `?cpage=N` 을 만들어야 하는데, 러너가 쿼리를 robots
+  판정에 안 넘긴다(SP-026). 러너 수정이 선행돼야 한다.
+- **클리앙 규칙을 우리가 못 읽는다.** 방어가 `clien.ts` 의 `parseProductRef`
+  한 곳에 몰려 있다. 그 함수를 넓히는 변경은 robots 재실측을 동반해야 한다.
+- **세 소스 다 `enabled=false` 로 등록한다.** 켜는 것은 사람이 한다.

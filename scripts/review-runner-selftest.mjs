@@ -756,6 +756,42 @@ for (const [name, mod, pick, ref, robots, robotsStatus, fixture, expectCount] of
     'todayhumor/post-with-body.html',
     1,
   ],
+  [
+    // round-3. 댓글이 robots 금지(/api/)라 본문 1건만 나온다 — 설계된 축소.
+    // robots 200 이고 `*` 그룹에 Crawl-delay: 5 가 있다(파싱은 안 되지만 원문 유지).
+    'brunch',
+    await import('../lib/review/adapters/brunch.ts'),
+    (m) => m.brunchAdapter,
+    'url:/@brunch/431',
+    'User-agent: *\nDisallow: /write\nDisallow: /search\nDisallow: /api/\nDisallow: /*?timestamp=*\nCrawl-delay: 5\n',
+    200,
+    'brunch/post.html',
+    1,
+  ],
+  [
+    // ⚠️ 클리앙 robots 는 우리 UA 에게 **404** 다(SP-027). 규칙은 존재하지만
+    //    브라우저 UA 로만 200 이다. 러너가 4xx 를 "규칙 없음 = 허용"으로 읽는
+    //    그 경로를 실제로 밟게 하려고 404 를 그대로 준다. 200 으로 흉내내면
+    //    이 소스의 진짜 위험(규칙을 못 본 채 통과)을 한 번도 안 지나간다.
+    'clien',
+    await import('../lib/review/adapters/clien.ts'),
+    (m) => m.clienAdapter,
+    'url:/service/board/park/19264755',
+    '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>404 Not Found</title>\n</head></html>',
+    404,
+    'clien/post-with-comments.html',
+    4,
+  ],
+  [
+    'fmkorea',
+    await import('../lib/review/adapters/fmkorea.ts'),
+    (m) => m.fmkoreaAdapter,
+    'url:/best/10342734564',
+    'User-agent: *\nDisallow: /\nAllow: /$\nAllow: /best\nAllow: /best2\nAllow: /humor\nDisallow: /*listStyle=\nDisallow: /_loader\n',
+    200,
+    'fmkorea/post-with-comments.html',
+    4,
+  ],
 ]) {
   const adapter = pick(mod)
   const html = await fs.readFile(path.join(here, '..', 'fixtures', 'review', ...fixture.split('/')), 'utf8')
@@ -865,6 +901,7 @@ for (const [name, mod, pick, ref, robots, robotsStatus, fixture, expectCount] of
 for (const [file, keys] of [
   ['20260917000001_review_sources_community.sql', ['damoang', '82cook']],
   ['20260918000001_review_sources_community_round2.sql', ['theqoo', 'todayhumor']],
+  ['20260919000001_review_sources_brunch_clien_fmkorea.sql', ['brunch', 'clien', 'fmkorea']],
 ]) {
   const sql = await fs.readFile(path.join(here, '..', 'supabase', 'migrations', file), 'utf8')
   const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')

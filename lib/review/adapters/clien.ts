@@ -55,9 +55,15 @@ const DENY_PREFIXES = ['/service/board/sold/', '/service/board/hongbo/']
  *
  * 세 겹을 전부 통과해야 한다:
  *   (a) 공용 규칙(`..` `//` `@` `\` 공백 차단 — SSRF 경계)
- *   (b) 쿼리스트링 없음        ← robots `Disallow: /*?*`
+ *   (b) 쿼리스트링 없음        ← robots `Disallow: /*?*` 의 **의도**
  *   (c) `/service/board/` 로 시작하고 sold·hongbo 가 아님
  *                              ← robots `Allow:` / `Disallow:`
+ *
+ * ⚠️ (b)는 robots 기계 판정보다 **일부러 더 엄격하다.** 최장 일치 규칙상
+ *    `Allow:/service/board/`(20자)가 `Disallow: /*?*`(4자)를 이겨서, 표준대로
+ *    판정하면 `?po=2` 가 붙은 글도 허용이 된다. 그래도 사이트가 저 줄을 쓴
+ *    의도는 명백하고, 어차피 1글=1요청이라 쿼리를 만들 이유가 없다. 이 차이는
+ *    scripts/review-robots-selftest.mjs 에 그대로 적어 뒀다 — 감추지 않는다.
  */
 export function parseProductRef(productRef: string): string | null {
   const p = parseUrlRef(productRef)

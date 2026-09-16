@@ -1,4 +1,4 @@
-# 원칙 원장 (Corpus C) — SP-001 ~ SP-026
+# 원칙 원장 (Corpus C) — SP-001 ~ SP-028
 
 크로스섹션 어드바이저(§20 / §13-7)의 Corpus C. 수익화 리서치 문서 §22 를 구조화한
 조각이다. **이 표가 정본이다.** `strategy_principles` 테이블은 이 표에서 시딩하고,
@@ -40,6 +40,28 @@
 
 | SP-025 | channel, legal, community, risk-accepted | 다모앙(damoang.net) robots.txt 는 `anthropic-ai`·`Claude-Web`·`GPTBot`·`CCBot`·`Google-Extended` 등을 "AI 크롤러 차단 (콘텐츠 학습 방지)" 로 전면 금지하고, `trend-archive/0.1`·`CollectorHub/0.1` 같은 **자칭 수집기**도 이름을 확인하는 대로 차단 목록에 추가하며 "robots 는 의사 표시이고 분쟁 시 근거가 된다"고 문서에 적어 두었다 — 우리 UA(`solutionarchive-review-collector/0.1`)는 아직 목록에 없어 `User-agent: *` / `Allow: /` 가 적용돼 **기계 판정은 allowed** 지만, 사이트의 거부 의사가 우리 용도(AI 분석·콘텐츠 생성)를 덮는다. 남헌이 **2026-09-16 이 사실을 인지한 채로 수집 진행을 결정**했다(Reddit/SP-005 와 같은 리스크 수용 방식). 단 `enabled=false` 로 등록해 사람이 켜야 시작한다 | A (robots.txt 원문 실측 2026-09-16 + 사람 결정) | 2026-09-16 실측 |
 | SP-026 | infra, bug, robots-txt | `lib/review/runner.ts:153` 이 `robotsVerdict(cached, u.pathname, PRODUCT_TOKEN)` 로 **쿼리스트링을 빼고** 판정을 부른다 — `robots.ts` 자체는 `*`·`$` 와 쿼리를 정확히 판정하는데(SP-018 로 수정됨), 호출부에서 `u.search` 가 잘려 `Disallow: /*?page=` (다모앙) 나 `Disallow: /entiz/read.php?bn=15&num=1166440&page=6` (82cook) 같은 **쿼리 대상 규칙이 어떤 경로와도 매칭되지 않는다.** 와일드카드 구현 여부와 무관한 별개 결함이고 전 소스에 동시 영향을 준다. 이번 커뮤니티 어댑터는 1글=1요청이라 이 구멍을 밟지 않지만(수집 URL 에 `?page=` 가 없다), **댓글 페이지네이션을 붙이려면 이 수정이 선행되어야 한다** — 안 고치고 붙이면 안전장치가 robots 위반을 못 막는다(§7.2) | A (실측 — 실제 robots 를 통과시켜 재현) | 2026-09-16 실측 |
+| SP-027 | channel, legal, community, robots-txt, risk-accepted | 클리앙(clien.net)은 robots.txt 를 **User-Agent 로 게이팅**한다 — 2026-09-17 실측에서 우리 봇 UA 로는 `www.clien.net/robots.txt` 와 `clien.net/robots.txt` 가 **둘 다 HTTP 404**(315B 아파치 기본 문서)인데, 브라우저 UA 로 요청하면 `www` 쪽이 **200 에 1,691B 의 실제 규칙**(`Allow:/service/board/`, `Disallow:/service/board/sold/`·`hongbo/`·`/service/group/`·`/*?*` 등)을 내려준다. apex 는 양쪽 UA 모두 404 라 "www/apex 호스트 분열"이 아니라 UA 게이팅이다. 러너는 4xx 를 "규칙 없음 = 허용"으로 캐시하므로(`runner.ts`), **사이트가 실제로 건 규칙이 판정에 단 한 번도 반영되지 않는다** — 안전장치가 초록불을 띄우는 형태다(CLAUDE.md §7.2). UA 위장으로 읽어 오는 것은 프로브 규칙(UA 위장 금지)에 걸려 하지 않는다. 대신 82cook 의 `ROBOTS_DENY` 선례대로 **규칙을 어댑터가 코드로 내재화**했다(`lib/review/adapters/clien.ts` 의 `parseProductRef` — 쿼리 금지 + `/service/board/` 접두 + sold·hongbo 제외). 그 함수가 **유일한 방어선**이다. 이 사실을 인지한 채 수집 진행을 결정했고, `enabled=false` 로 등록해 사람이 켜야 시작한다 | A (양 호스트 × 양 UA 4조합 실측 2026-09-17 + 사람 결정) | 2026-09-17 실측 |
+| SP-028 | channel, legal, community, risk-accepted | 에펨코리아(fmkorea.com) robots.txt 의 첫 그룹이 `anthropic-ai`·`ClaudeBot`·`GPTBot`·`PerplexityBot`·`CCBot`·`Google-Extended` 등 38개 토큰을 `Disallow: /` + `Allow: /$` 로 **메인페이지만 남기고 전면 금지**한다. 우리 토큰은 그 목록에 없어 `User-agent: *` 그룹(`Disallow: /` 뒤에 `Allow: /$ /best /best2 /humor`)을 받아 **기계 판정은 allowed** 지만, 사이트의 거부 의사가 우리 용도를 덮는다 — SP-025(다모앙)와 같은 형태다. 이 사실을 인지한 채 수집 진행을 결정했고, 어댑터가 수집 범위를 `/best`·`/best2`·`/humor` 로 못박아(`/8123456` 같은 XE 기본 주소는 ref 단계에서 거부) `enabled=false` 로 등록한다 | A (robots.txt 원문 실측 2026-09-17 + 사람 결정) | 2026-09-17 실측 |
+
+### SP-027 / SP-028 실측 근거
+
+- 세 호스트(brunch·clien·fmkorea) robots.txt 원문·측정 일시·셀렉터 대조는
+  `docs/review-source-findings.md` "커뮤니티 소스 실측 round-3 (2026-09-17)" 에 있다.
+- SP-027 재현: `node scripts/review-robots-selftest.mjs` — 404 본문을 `parseRobots`
+  에 넣으면 규칙 0개 · `allowed=true '규칙 없음'` 이 되어 **실재하는 규칙과 값이
+  구분되지 않는 것**을 고정한다. 바로 아래에 브라우저 UA 로 받은 진짜 규칙을 두고
+  `/service/board/sold/1` → `allowed=false` 를 단정한다 — 두 줄의 차이가 구멍이다.
+- ⚠️ SP-027 에는 **곁다리 발견**이 하나 더 있다. 클리앙의 `Disallow: /*?*` 는
+  최장 일치 규칙상 게시판 글에 **안 걸린다**(`Allow:/service/board/` 20자 >
+  `Disallow: /*?*` 4자). 즉 표준대로 판정하면 `?po=2` 가 붙은 글도 허용이다.
+  어댑터는 사이트 의도를 따라 **기계 판정보다 더 엄격하게** 쿼리형 ref 를 거부한다.
+  이 차이는 숨기지 않고 셀프테스트에 단정문으로 적어 뒀다(§7.1).
+- SP-028 재현: 같은 스크립트에서 `/best/1` → `allowed=true 'Allow: /best'`,
+  `/8123456` → `allowed=false`, 그리고 토큰을 `claudebot` 으로 바꾸면 `/best/1` 이
+  `allowed=false` 가 되는 것(= 우리가 그 그룹에 없어서 통과한다는 증거)을 고정한다.
+- **이번 PR 범위 아님.** `runner.ts`·`robots.ts` 는 한 줄도 건드리지 않았다.
+  SP-026(쿼리 미판정)도 그대로 남아 있고, 이번 세 어댑터는 전부 1글=1요청이라
+  쿼리를 만들지 않아 그 구멍을 밟지 않는다.
 
 ### SP-025 / SP-026 실측 근거
 

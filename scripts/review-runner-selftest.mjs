@@ -212,6 +212,24 @@ const run = (h, over = {}) =>
   ok('읽지 못한 것을 허용으로 다루지 않는다', r.perTarget[0].outcome.includes('robots'))
 }
 {
+  // ⚠️ 네트워크 예외(status null)도 "못 읽음"이다. round-2 설계에서 걱정한
+  //    www↔무www 순환 리다이렉트가 정확히 이 모양으로 들어온다 — Node fetch 가
+  //    20홉 뒤 throw → status null. 실측에서 순환은 없었지만, 생기면 이 분기가
+  //    소스 전체를 조용히 재운다는 사실을 여기 못박아 둔다(§7.2).
+  const h = makeHarness({ robotsStatus: null })
+  const r = await run(h)
+  t('robots.txt 가 네트워크 예외면 요청하지 않는다', r.requests, 0)
+  ok('예외를 허용으로 다루지 않는다', r.perTarget[0].outcome.includes('robots'))
+}
+{
+  // 반대편. theqoo·todayhumor 의 실제 응답이 404 다 — "규칙 없음 = 허용"(RFC 9309).
+  // 위 두 블록과 **값이 달라야** 한다. 같아지면 새 소스가 통째로 안 돈다.
+  const h = makeHarness({ robotsStatus: 404 })
+  const r = await run(h)
+  ok('robots.txt 404 는 규칙 없음 = 허용이다', r.requests > 0)
+  t('robots.txt 404 면 robotsSkips 0', r.robotsSkips, 0)
+}
+{
   // robots 는 호스트당 한 번만 묻는다
   const h = makeHarness({
     pages: { 1: page([rv({ externalId: 'a' })], '1'), 2: page([], null) },
@@ -688,31 +706,107 @@ ok('제품 토큰이 브라우저를 사칭하지 않는다', !/mozilla|chrome|s
 //    파서 셀프테스트가 통과해도 러너와 붙이면 커서·URL·robots 에서 깨질 수
 //    있다. 다나와 커서 버그가 정확히 그렇게 숨어 있었다.
 //
-// 이 두 소스는 **1글=1요청**이다. 확인할 것은 세 가지다:
+// 확인할 것은 네 가지다:
 //   (1) 어댑터가 만든 URL 을 러너가 그대로 쓰는가(호스트가 안 바뀌는가)
 //   (2) 글 1건에서 본문+댓글이 N+1 건으로 적재되는가
 //   (3) 커서가 null 이라 타깃이 exhausted 로 닫히는가 — 같은 글을 또 안 긁는가
+//   (4) 요청 수가 그 소스의 계약과 같은가 (todayhumor 만 2요청이다)
+//
+// ⚠️ todayhumor 는 **1글=2요청**이다(본문 HTML → 댓글 JSON). 2차 요청에 본문
+//    픽스처를 그대로 주면 JSON 파싱이 실패한다 — 실제로 이 루프가 그렇게 깨져서
+//    댓글 수집 변경을 잡아냈다. 응답을 URL 로 갈라 주는 게 FOLLOWUP 이다.
+const FOLLOWUP = {
+  todayhumor: { match: 'ajax_memo_list.php', fixture: 'todayhumor/memo-list.json', requests: 2 },
+}
 
-for (const [name, mod, ref, robots, fixture, expectCount] of [
+// round-2 의 theqoo·todayhumor 는 **robots.txt 가 404 다**(실측). 200 으로
+// 흉내내면 진짜 실행 경로(runner.ts 의 4xx → 규칙 없음 분기)를 한 번도 안 밟는다.
+// 그래서 robotsStatus 를 항목마다 준다.
+for (const [name, mod, pick, ref, robots, robotsStatus, fixture, expectCount] of [
   [
     'damoang',
     await import('../lib/review/adapters/damoang.ts'),
+    (m) => m.damoangAdapter,
     'url:/free/7341567',
     'User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /*?page=\n',
+    200,
     'damoang/post-with-comments.html',
     5,
   ],
   [
     '82cook',
     await import('../lib/review/adapters/82cook.ts'),
+    (m) => m.cook82Adapter,
     'url:/entiz/read.php?num=4239440',
     'User-agent: *\nDisallow: /ajax/\nDisallow: /entiz/read.php?bn=15&num=1166440&page=6\n',
+    200,
     '82cook/post-with-comments.html',
     5,
   ],
+  [
+    // 댓글이 AJAX 라 본문 1건만 나온다. 이게 정상이다(설계된 축소).
+    'theqoo',
+    await import('../lib/review/adapters/theqoo.ts'),
+    (m) => m.theqooAdapter,
+    'url:/square/4347529638',
+    '<!DOCTYPE html><html><head><title></title></head></html>', // 실측: 404 + HTML
+    404,
+    'theqoo/post-with-body.html',
+    1,
+  ],
+  [
+    'todayhumor',
+    await import('../lib/review/adapters/todayhumor.ts'),
+    (m) => m.todayhumorAdapter,
+    'url:/board/view.php?table=bestofbest&no=483825',
+    '<html><head><title>404 Not Found</title></head></html>', // 실측: 404 + HTML
+    404,
+    'todayhumor/post-with-body.html',
+    // 본문 1 + 댓글 5. 이 소스만 2요청이다(FOLLOWUP 참조).
+    6,
+  ],
+  [
+    // round-3. 댓글이 robots 금지(/api/)라 본문 1건만 나온다 — 설계된 축소.
+    // robots 200 이고 `*` 그룹에 Crawl-delay: 5 가 있다(파싱은 안 되지만 원문 유지).
+    'brunch',
+    await import('../lib/review/adapters/brunch.ts'),
+    (m) => m.brunchAdapter,
+    'url:/@brunch/431',
+    'User-agent: *\nDisallow: /write\nDisallow: /search\nDisallow: /api/\nDisallow: /*?timestamp=*\nCrawl-delay: 5\n',
+    200,
+    'brunch/post.html',
+    1,
+  ],
+  [
+    // ⚠️ 클리앙 robots 는 우리 UA 에게 **404** 다(SP-027). 규칙은 존재하지만
+    //    브라우저 UA 로만 200 이다. 러너가 4xx 를 "규칙 없음 = 허용"으로 읽는
+    //    그 경로를 실제로 밟게 하려고 404 를 그대로 준다. 200 으로 흉내내면
+    //    이 소스의 진짜 위험(규칙을 못 본 채 통과)을 한 번도 안 지나간다.
+    'clien',
+    await import('../lib/review/adapters/clien.ts'),
+    (m) => m.clienAdapter,
+    'url:/service/board/park/19264755',
+    '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>404 Not Found</title>\n</head></html>',
+    404,
+    'clien/post-with-comments.html',
+    4,
+  ],
+  [
+    'fmkorea',
+    await import('../lib/review/adapters/fmkorea.ts'),
+    (m) => m.fmkoreaAdapter,
+    'url:/best/10342734564',
+    'User-agent: *\nDisallow: /\nAllow: /$\nAllow: /best\nAllow: /best2\nAllow: /humor\nDisallow: /*listStyle=\nDisallow: /_loader\n',
+    200,
+    'fmkorea/post-with-comments.html',
+    4,
+  ],
 ]) {
-  const adapter = name === 'damoang' ? mod.damoangAdapter : mod.cook82Adapter
-  const html = await fs.readFile(path.join(here, '..', 'fixtures', 'review', ...fixture.split('/')), 'utf8')
+  const adapter = pick(mod)
+  const fxRead = (rel) => fs.readFile(path.join(here, '..', 'fixtures', 'review', ...rel.split('/')), 'utf8')
+  const html = await fxRead(fixture)
+  const follow = FOLLOWUP[name] ?? null
+  const followBody = follow ? await fxRead(follow.fixture) : null
 
   const seenUrls = []
   const inputs = []
@@ -728,7 +822,8 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
     async fetchText(url) {
       seenUrls.push(url)
       clock += 10
-      if (url.endsWith('/robots.txt')) return { status: 200, body: robots }
+      if (url.endsWith('/robots.txt')) return { status: robotsStatus, body: robots }
+      if (follow && url.includes(follow.match)) return { status: 200, body: followBody }
       return { status: 200, body: html }
     },
     store: {
@@ -770,10 +865,19 @@ for (const [name, mod, ref, robots, fixture, expectCount] of [
   const r = await runCollection(adapter, { dryRun: false, targetLimit: 1 }, ports)
 
   const pageUrls = seenUrls.filter((u) => !u.endsWith('/robots.txt'))
-  t(`${name}: 글 1건당 요청 1건`, pageUrls.length, 1)
+  const expectRequests = follow ? follow.requests : 1
+  t(`${name}: 글 1건당 요청 ${expectRequests}건`, pageUrls.length, expectRequests)
+  if (follow) {
+    // 2차가 1차와 같은 URL 이면 같은 걸 두 번 긁는 것이다 — 요청 수만 세면 안 보인다.
+    ok(`${name}: 2차 요청이 1차와 다른 경로다`, new URL(pageUrls[1]).pathname !== new URL(pageUrls[0]).pathname)
+    ok(`${name}: 2차도 어댑터 상수 호스트다`, new URL(pageUrls[1]).host === new URL(mod.HOST).host)
+  }
   t(`${name}: 어댑터가 만든 URL 을 러너가 그대로 쓴다`, pageUrls[0], `${mod.HOST}${ref.slice(4)}`)
   t(`${name}: 호스트가 어댑터 상수와 일치`, new URL(pageUrls[0]).host, new URL(mod.HOST).host)
-  t(`${name}: 본문+댓글이 N+1 건 적재된다`, inputs.length, expectCount)
+  t(`${name}: 적재 건수 ${expectCount}건 (본문+댓글)`, inputs.length, expectCount)
+  // round-2 두 소스는 robots.txt 가 404 다. "못 읽음(=금지)"과 "없음(=허용)"이
+  // 갈리는 분기라, 실제로 요청이 나갔다는 것 자체가 그 분기의 증거다.
+  t(`${name}: robots.txt 를 한 번 받는다`, seenUrls.filter((u) => u.endsWith('/robots.txt')).length, 1)
   t(`${name}: 파싱 실패 0`, r.stats.parseFailures, 0)
   t(`${name}: robots 로 건너뛴 요청 0`, r.robotsSkips, 0)
   t(`${name}: 차단 응답 0`, r.stats.blockedResponses, 0)
@@ -1043,11 +1147,12 @@ for (const [name, mod, exportName, ref, robots, fixture, expectCount] of [
 //
 // 철자가 하나만 달라도 loadSource 가 행을 못 찾아 그 소스가 **조용히 안 돈다.**
 // 로그에는 아무 일도 안 일어난 것처럼 보인다 — 그래서 여기서 대조한다.
-{
-  const sql = await fs.readFile(
-    path.join(here, '..', 'supabase', 'migrations', '20260917000001_review_sources_community.sql'),
-    'utf8',
-  )
+for (const [file, keys] of [
+  ['20260917000001_review_sources_community.sql', ['damoang', '82cook']],
+  ['20260918000001_review_sources_community_round2.sql', ['theqoo', 'todayhumor']],
+  ['20260919000001_review_sources_brunch_clien_fmkorea.sql', ['brunch', 'clien', 'fmkorea']],
+]) {
+  const sql = await fs.readFile(path.join(here, '..', 'supabase', 'migrations', file), 'utf8')
   const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
   const mapBlock = collect.slice(collect.indexOf('const ADAPTERS ='), collect.indexOf('}', collect.indexOf('const ADAPTERS =')))
 
@@ -1057,13 +1162,33 @@ for (const [name, mod, exportName, ref, robots, fixture, expectCount] of [
   const mapKeys = new Set([...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]))
   const sqlKeys = new Set([...sql.matchAll(/^\s*'([\w-]+)',$/gm)].map((m) => m[1]))
 
-  for (const key of ['damoang', '82cook']) {
+  for (const key of keys) {
     ok(`등록: 마이그레이션 review_sources.key 에 '${key}' 가 있다`, sqlKeys.has(key))
     ok(`등록: ADAPTERS 맵 키가 '${key}' 와 철자까지 같다`, mapKeys.has(key))
   }
-  t('등록: enabled=false 로만 들어간다', (sql.match(/^\s*false,$/gm) || []).length, 2)
-  ok('등록: DDL 이 없다 (INSERT + COMMENT 만)', !/\b(create|alter|drop)\s+table\b/i.test(sql))
-  ok('등록: ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+  t(`등록(${file}): enabled=false 로만 들어간다`, (sql.match(/^\s*false,$/gm) || []).length, keys.length)
+  ok(`등록(${file}): DDL 이 없다 (INSERT + COMMENT 만)`, !/\b(create|alter|drop)\s+table\b/i.test(sql))
+  ok(`등록(${file}): ON CONFLICT DO NOTHING 이 있다`, /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+}
+
+// ── 워크플로 선택지에 소스가 다 올라가 있는가 ─────────────────────
+//
+// ⚠️ 어댑터를 만들고 ADAPTERS 에 꽂아도 **워크플로 options 에 없으면 스케줄로는
+//    한 번도 안 돈다.** round-1 에서 appstore 가 그랬고(review-collect.mjs 주석
+//    참조), damoang·82cook 도 options 에서 빠진 채 머지됐다. 코드만 있고 수집은
+//    0건인 상태는 로그에도 안 남는다 — 그래서 여기서 대조한다.
+{
+  const wf = await fs.readFile(path.join(here, '..', '.github', 'workflows', 'nightly-review-collect.yml'), 'utf8')
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  const mapBlock = collect.slice(collect.indexOf('const ADAPTERS ='), collect.indexOf('}', collect.indexOf('const ADAPTERS =')))
+  const mapKeys = [...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1])
+  const optBlock = wf.slice(wf.indexOf('options:'), wf.indexOf('jobs:'))
+  const options = new Set([...optBlock.matchAll(/^\s*-\s*([\w-]+)\s*$/gm)].map((m) => m[1]))
+
+  for (const key of mapKeys) {
+    ok(`워크플로: 수동 실행 선택지에 '${key}' 가 있다`, options.has(key))
+  }
+  ok("워크플로: 'all' 선택지가 있다", options.has('all'))
 }
 
 // ── 같은 대조, VOC 라운드3 마이그레이션 ───────────────────────────

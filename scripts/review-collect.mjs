@@ -30,6 +30,11 @@ import { cook82Adapter } from '../lib/review/adapters/82cook.ts'
 import { bobaedreamAdapter } from '../lib/review/adapters/bobaedream.ts'
 import { tumblbugAdapter } from '../lib/review/adapters/tumblbug.ts'
 import { naverBlogAdapter } from '../lib/review/adapters/naver-blog.ts'
+import { theqooAdapter } from '../lib/review/adapters/theqoo.ts'
+import { todayhumorAdapter } from '../lib/review/adapters/todayhumor.ts'
+import { brunchAdapter } from '../lib/review/adapters/brunch.ts'
+import { clienAdapter } from '../lib/review/adapters/clien.ts'
+import { fmkoreaAdapter } from '../lib/review/adapters/fmkorea.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
@@ -45,6 +50,11 @@ const ADAPTERS = {
   bobaedream: bobaedreamAdapter,
   tumblbug: tumblbugAdapter,
   naver_blog_post: naverBlogAdapter,
+  theqoo: theqooAdapter,
+  todayhumor: todayhumorAdapter,
+  brunch: brunchAdapter,
+  clien: clienAdapter,
+  fmkorea: fmkoreaAdapter,
 }
 
 const args = process.argv.slice(2)

@@ -2,10 +2,28 @@
 //
 // 실측 근거: docs/review-source-findings.md "3차 소스 실측 (2026-09-16)"
 //
-// ⚠️ **`search.list` 를 쓰지 않는다.** 검색은 1회 100유닛이고 일일 쿼터가
-//    10,000유닛이라 하루 100번이면 마른다. `commentThreads.list` 는 1유닛이다.
+// ⚠️ **`search.list` 를 쓰지 않는다.** 유닛 비용 때문이 아니다 — 지금 공식
+//    문서는 검색도 읽기도 똑같이 1유닛이라고 적는다. 진짜 이유는 버킷이
+//    다르다는 것이다: `search.list` 는 **10,000유닛 풀과 별개인 하루 100회
+//    전용 버킷**을 쓴다. 풀에 9,000유닛이 남아 있어도 101번째 검색은 막히고,
+//    늘리려면 별도 증량 신청이 필요하다.
+//      출처(2026-09-16 확인, developers.google.com/youtube/v3/getting-started
+//      · /determine_quota_cost): "Projects that enable the YouTube Data API
+//      have a default quota allocation of 100 search.list calls, 100
+//      videos.insert calls, and 10,000 units per day combined for all other
+//      endpoints."
+//    ⛔ "검색 1회 = 100유닛"은 폐기된 옛 값이다. 그 숫자를 근거로 "몇 번만
+//       쓰면 싸다"고 되돌리지 마라 — 싼 것과 버킷이 있는 것은 다른 문제다.
 //    그래서 "어느 영상을 볼지"는 시스템이 검색하지 않고 **사람이 고른다** —
 //    다나와 pcode 를 사람이 고르는 것과 같은 모양이다(product_ref = `v:<영상ID>`).
+//    `commentThreads.list` 는 10,000유닛 풀을 쓰므로 여유가 있다.
+//
+// ⚠️ 하루 요청 상한은 이 파일이 아니라 `review_sources.daily_request_cap`(=200)
+//    이 건다. 러너가 `budget = dailyRequestCap - requestsToday` 로 계산해
+//    타깃마다·페이지마다 검사한다(lib/review/runner.ts, 셀프테스트
+//    review-runner-selftest.mjs "일일 상한"). 200요청 × 1유닛 = 하루 최대
+//    200유닛으로 10,000유닛 풀의 2% 다. 상한을 조이는 데 코드 배포가 필요
+//    없도록 DB 에 둔 값이니, 여기에 두 번째 카운터를 만들지 마라.
 //
 // ⚠️ `order=time` 이 필수다. 기본값은 관련도순(`relevance`)이고, 그러면
 //    러너의 증분 종료(연속 STALE 5건)가 전제하는 시간 역순이 깨진다.

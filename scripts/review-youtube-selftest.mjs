@@ -58,7 +58,8 @@ const ctx = (cursor = null) => ({ productRef: 'v:dQw4w9WgXcQ', cursor })
   ok(`maxResults=${MAX_RESULTS}`, req.url.includes(`maxResults=${MAX_RESULTS}`))
   ok('영상 ID 가 들어간다', req.url.includes('videoId=dQw4w9WgXcQ'))
   ok('첫 요청엔 pageToken 이 없다', !req.url.includes('pageToken='))
-  // ⛔ search.list 는 1회 100유닛이라 쓰지 않는다. 타깃은 사람이 고른다.
+  // ⛔ search.list 는 10,000유닛 풀과 별개인 **하루 100회 전용 버킷**을 쓴다
+  //    (유닛 비용은 1이라 싸 보이지만 버킷이 따로다). 타깃은 사람이 고른다.
   ok('⛔ search.list 를 부르지 않는다', !req.url.includes('/search?'))
   t('robotsPolicy 는 official-api', youtubeAdapter.robotsPolicy, 'official-api')
   t('requiredEnv', youtubeAdapter.requiredEnv.join(','), 'YOUTUBE_API_KEY')

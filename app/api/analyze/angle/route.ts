@@ -25,6 +25,7 @@ import {
   resolveProvider,
   type LlmProvider,
 } from '@/lib/analysis/llm'
+import { withLlmBudget } from '@/lib/analysis/budget'
 
 // 앵글 1건당 LLM 호출이 붙으므로 여유를 크게 잡는다.
 export const maxDuration = 300
@@ -594,8 +595,11 @@ export async function POST(req: Request) {
   const startedAt = Date.now()
   let generated: GeneratedAngle[]
   try {
-    generated = await mapWithLimit(plans, CONCURRENCY, p =>
-      generateAngle(provider, p, project, aspectsById, evidence),
+    // withLlmBudget — 이 배치 1회가 쓸 수 있는 LLM 비용 상한을 건다(진단 1-3, lib/analysis/budget.ts).
+    generated = await withLlmBudget(() =>
+      mapWithLimit(plans, CONCURRENCY, p =>
+        generateAngle(provider, p, project, aspectsById, evidence),
+      ),
     )
   } catch (e) {
     const detail = describeFailure(e)

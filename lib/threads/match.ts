@@ -320,3 +320,52 @@ export function rankDraftsFor(thread: ThreadsPost, drafts: DraftRow[]): { draftI
     .map(d => ({ draftId: d.id, score: diceSimilarity(normalizeBody(d.body), t) }))
     .sort((a, b) => b.score - a.score)
 }
+
+// ── 수동 연결 화면의 후보 좁히기 ──────────────────────────────
+//
+// rankDraftsFor 는 초안을 전부 점수순으로 돌려준다. 화면(app/dashboard/draft-link-form.tsx)이
+// 그걸 그대로 드롭다운에 펼치고 있었다. 케이스·초안이 늘면 선택 자체가 불가능해진다.
+// 그래서 화면은 둘로 나눈다: (1) 임계값을 넘은 상위 몇 건을 근거와 함께 먼저 펼치고,
+// (2) 나머지 전체에는 검색으로 닿는다. 순위가 틀렸을 때 사람이 우회할 길을 남기는 게 (2) 다.
+//
+// MANUAL_SUGGEST_MIN = 0.15
+//   "추천으로 내밀 가치가 있는 최저선"이다. AUTO_MATCH_MIN(0.82)과 같은 값일 수 없다 —
+//   이 화면에 오는 글은 애초에 그 선을 못 넘어서 온 것들이다. 실사례 CS-20260910-01 은
+//   발행 전에 본문을 통째로 다시 써서 0.267 이었고 그게 **맞는** 연결이었다. 그래서 바닥은
+//   그보다 확실히 낮아야 한다. 0.15 아래는 같은 소재인지조차 구분되지 않는 잡음 구간이라
+//   추천하지 않고 검색으로만 닿게 한다. 추천이 0건이면 화면은 빈 목록을 두지 않고
+//   "자동으로 후보를 찾지 못했습니다"라고 문장으로 말한다.
+export const MANUAL_SUGGEST_MIN = 0.15
+
+/** 화면에 먼저 펼쳐 놓을 추천 후보 수. 그 아래는 검색으로 닿는다. */
+export const MANUAL_SUGGEST_LIMIT = 5
+
+/**
+ * 추천으로 내밀 후보만 남긴다. **점수 내림차순 목록**(rankDraftsFor 출력)을 받는다 —
+ * 정렬을 다시 하지 않으므로 정렬되지 않은 배열을 넘기면 "상위"가 상위가 아니다.
+ *
+ * 0건은 오류가 아니라 정상 결과다. 호출부는 그걸 빈 목록이 아니라 문장으로 표시한다.
+ */
+export function suggestedCandidates<T extends { score: number }>(
+  ranked: readonly T[],
+  limit: number = MANUAL_SUGGEST_LIMIT,
+  min: number = MANUAL_SUGGEST_MIN,
+): T[] {
+  return ranked.filter(c => c.score >= min).slice(0, limit)
+}
+
+/**
+ * 검색 필터 한 건 판정. 후보를 알아볼 문자열(소재 코드·생성일·본문 앞부분)과
+ * 사람이 친 질의를 받아 포함 여부만 본다.
+ *
+ * 양쪽에 normalizeBody 를 쓴다 — 공백·이모지·전각을 지우고 소문자로 맞추므로
+ * "재고 300" 으로도 "재고300만원" 이 잡힌다. 한국어는 띄어쓰기가 흔들리는데
+ * 검색이 그것 때문에 실패하면 사람이 우회할 길이 막힌다.
+ *
+ * 질의가 비었으면(또는 공백·이모지뿐이면) true — 필터를 걸지 않은 상태다.
+ */
+export function candidateMatchesQuery(haystack: string, query: string): boolean {
+  const q = normalizeBody(query)
+  if (!q) return true
+  return normalizeBody(haystack).includes(q)
+}

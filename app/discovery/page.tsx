@@ -133,7 +133,11 @@ function CandidateCard({ c }: { c: CandidateRow }) {
 
         {c.project_id && (
           <p style={{ margin: 0, fontSize: 13 }}>
-            <Link href={`/analyze/${c.project_id}`}>이 후보가 만든 분석 프로젝트 보기 →</Link>
+            {/* 맨 `/analyze/<id>` 로 보내지 않는다 — app/analyze/[id]/ 에는 page.tsx 가 없고
+                angles/ 와 review/ 뿐이라 그 URL 은 라우트가 없어 404 다. 상세 화면은 /review 이고,
+                /analyze 목록의 "상세·검수" 버튼도 같은 곳으로 보낸다(app/analyze/page.tsx).
+                리포 전체에서 맨 `/analyze/<id>` 로 링크한 곳은 여기 한 군데뿐이었다. */}
+            <Link href={`/analyze/${c.project_id}/review`}>이 후보가 만든 분석 프로젝트 상세·검수 →</Link>
           </p>
         )}
 

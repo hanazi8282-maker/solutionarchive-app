@@ -18,6 +18,14 @@ export const metadata = { title: '발행 기록' }
 const oneLine = (s: string | null, n: number) => (s ?? '').replace(/\s+/g, ' ').slice(0, n)
 const muted = { margin: 0, fontSize: 12, color: 'var(--text-muted)' } as const
 
+/** 초안 생성 시각을 KST 분 단위로. 없음과 형식 이상을 가른다(§7.1). */
+function kstMinute(iso: string | null | undefined): string {
+  if (!iso) return '생성일 없음'
+  const t = Date.parse(iso)
+  if (Number.isNaN(t)) return '생성일 형식 이상'
+  return new Date(t).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'short', timeStyle: 'short' })
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
 
@@ -107,12 +115,20 @@ export default async function DashboardPage() {
               whenKst: t.timestamp
                 ? new Date(t.timestamp).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
                 : '시각 없음',
-              // 점수가 낮아도 전부 고를 수 있어야 한다. 자동 선택은 하지 않는다.
+              // 점수가 낮아도 전부 고를 수 있어야 한다. 자동 선택도, 여기서 잘라내는 것도
+              // 하지 않는다 — 화면이 상위 몇 건만 펼치고 나머지 전체에는 검색으로 닿게 한다
+              // (draft-link-form.tsx). 여기서 자르면 순위가 틀렸을 때 우회할 길이 사라진다.
               candidates: rankDraftsFor(t, drafts).map(({ draftId, score }) => {
                 const d = byId.get(draftId)!
                 return {
                   id: draftId,
-                  label: `${score.toFixed(3)} · ${d.content_code ?? d.status} · ${oneLine(d.body, 40)}`,
+                  score,
+                  code: d.content_code ?? d.status,
+                  createdKst: kstMinute(d.created_at),
+                  // 판정 근거로 보여 주고, 동시에 검색 대상이 된다.
+                  // ponytail: 본문 앞 90자만 내려보낸다(초안 × 게시물 만큼 복제되는 값이다).
+                  //   본문 중간 문구로 찾아야 할 일이 생기면 서버 쪽 검색으로 바꾼다.
+                  preview: oneLine(d.body, 90),
                 }
               }),
             }))

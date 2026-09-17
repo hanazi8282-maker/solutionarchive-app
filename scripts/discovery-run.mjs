@@ -165,6 +165,9 @@ export function proposalPrompt(kind, count, known) {
     cats.length ? `- 이미 채택된 카테고리(더 뽑지 마라): ${cats.join(', ')}` : null,
     '',
     '⚠️ 리뷰 수를 추측해서 쓰지 마라. 실제 건수는 이 도구가 직접 검색해서 센다.',
+    // 검색하지 말라고 못박는다. 안 그러면 모델이 첫 턴을 도구에 쓰고 답할 턴을
+    // 날린다(2026-09-17 실측 — stop_reason=tool_use 로 두 번 죽었다).
+    '⚠️ 검색하지 마라. 도구를 쓰지 말고 네가 아는 것만으로 바로 답하라. 확인은 이 도구가 한다.',
     kind === 'saas'
       ? '⚠️ name 은 Hacker News 에서 그대로 검색할 이름이다. 영문 제품명으로 써라.'
       : '⚠️ name 은 다나와에서 그대로 검색할 말이다. 한국어 상품/카테고리명으로 써라.',
@@ -229,18 +232,20 @@ async function propose(kind, count, known) {
   //    실어 주므로 실패 이유가 드러난다. 매일 성공하는 두 호출자
   //    (`lib/insight/llm.ts`, `scripts/cmo-daily.mjs`)도 전부 json 이다.
   //
-  // ⚠️ `--allowedTools ''` 로 도구를 전부 막는다. 이게 이 호출이 죽던 진짜 이유다:
-  //    2026-09-17 실측(run 35182471112)에서 봉투가 `is_error:true`,
+  // ⚠️ `--max-turns` 가 1 이면 안 된다. 2026-09-17 실측으로 두 번 확인했다
+  //    (run 35182471112 · 35182684521): 봉투가 매번 `is_error:true`,
   //    `stop_reason:"tool_use"`, `num_turns:2` 를 돌려줬다. 모델이 "후기가 많을 법한
-  //    제품"을 고르려고 도구를 집었고 `--max-turns 1` 에 걸려 죽은 것이다.
-  //    설계상 **LLM 은 이름만 낸다 — 건수는 프로브가 센다**(docs/discovery-design.md).
-  //    그러니 도구를 줄 이유가 애초에 없다. 자기 지식으로 한 턴에 답해야 한다.
+  //    제품"을 고르려고 **첫 턴에 도구를 집는다.** 그러면 답을 쓸 턴이 남지 않는다.
+  //    `--allowedTools ''` 로 막아 보려 했지만 빈 값은 무시됐다(두 번째 실측).
+  //    그래서 막는 대신 **끝까지 갈 턴을 준다.** 프롬프트로도 도구를 말린다(아래).
+  //    채택 판정은 어차피 프로브가 하므로(docs/discovery-design.md) 모델이 도구를
+  //    쓰든 안 쓰든 결과의 신뢰도는 달라지지 않는다 — 비용과 시간만 문제다.
   //
   // ⚠️ cwd 를 리포가 아니라 /tmp 로 둔다. repoRoot 를 주면 claude 가 CLAUDE.md 와
-  //    리포 컨텍스트를 통째로 읽는다 — 위 실패 한 번에 캐시 생성 22,434 토큰,
-  //    $0.098 이 들었다. 이름 2개 받는 데 리포를 읽힐 이유가 없다.
-  //    (성공하는 lib/insight/llm.ts 도 cwd 를 주지 않아 기본값 /tmp 를 쓴다.)
-  const args = ['-p', '--output-format', 'json', '--allowedTools', '', '--max-turns', '1']
+  //    리포 컨텍스트를 통째로 읽는다 — 캐시 생성 22,434 토큰, 실패 한 번에 $0.098.
+  //    /tmp 로 옮기고 같은 실패가 $0.042 로 떨어졌다(실측). 이름 2개 받는 데 리포를
+  //    읽힐 이유가 없다. 성공하는 lib/insight/llm.ts 도 cwd 를 주지 않는다.
+  const args = ['-p', '--output-format', 'json', '--max-turns', '4']
   log(`후보 ${count}건 제안 요청 (kind=${kind}) — 프롬프트 ${Buffer.byteLength(prompt, 'utf8')}B / args: ${JSON.stringify(args)} / cwd=/tmp`)
 
   const r = await runClaude(bin, args, {

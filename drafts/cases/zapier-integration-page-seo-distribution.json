@@ -35,12 +35,12 @@
       "transfer_note": "내일, 방금 만든 연동/협업 페이지 링크를 상대 파트너 담당자에게 보내 '저희 쪽에서 이렇게 소개했다, 그쪽에서도 한 줄 언급해줄 수 있나' 요청 메일 1통을 보내라.",
       "preconditions": "협업 상대방에게 연락할 수 있는 담당자 접점이 있어야 한다. 이 무브는 무브 1(랜딩페이지 자체)이 먼저 있어야 성립한다 — 소개할 페이지가 없으면 요청할 것도 없다.",
       "outcome_direction": "positive",
-      "metric_name": null,
+      "metric_name": "개발자 플랫폼에서 직접 연동을 만드는 제3자 서비스(파트너) 수 — 플랫폼 공개 시점",
       "metric_before": null,
-      "metric_after": null,
-      "metric_unit": null,
-      "observed_period_start": null,
-      "observed_period_end": null
+      "metric_after": 12,
+      "metric_unit": "개",
+      "observed_period_start": "2012-08-01",
+      "observed_period_end": "2012-08-01"
     }
   ],
   "evidence": [
@@ -87,7 +87,22 @@
       "published_at": "2023-10-05",
       "retrieved_at": "2026-09-15",
       "snippet": "whenever Zapier built a new integration, they'd reach out to the newly-integrated companies to let them know — 'the gift that keeps giving'.",
-      "supports_claim": "같은 팟캐스트(2023-10-05 발행)에서 파트너 상호 홍보 메커니즘과 2012년 개발자 플랫폼 출시를 서술. 수치가 없는 무브라 서술로만 남긴다(등급 D 예상)."
+      "supports_claim": "같은 팟캐스트(2023-10-05 발행)에서 파트너 상호 홍보 메커니즘과 2012년 개발자 플랫폼 출시를 서술. 이 행은 메커니즘(서사)만 받치고 수치는 받치지 않는다(supports_metric=false) — 이 무브의 수치는 아래 TNW 행이 받친다."
+    },
+    {
+      "move": 1,
+      "url": "https://thenextweb.com/insider/2012/08/01/zapier-a-yahoo-pipes-for-enterprise-web-apps-launches-its-developer-platform-with-12-services",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": false,
+      "observation_key": "tnw-2012-08-01-zapier-developer-platform",
+      "supports_metric": true,
+      "published_at": "2012-08-01",
+      "retrieved_at": "2026-09-18",
+      "snippet": "12 service providers are already building on the platform including HubSpot, Podio, Sign-Up.to and AgileZen. / The Zapier developer platform lets users and vendors add their own apps to the service instead of waiting on the company to build them out.",
+      "supports_claim": "이 무브의 수치(개발자 플랫폼 공개 시점에 직접 연동을 만들고 있던 제3자 서비스 12개)와 '2012년 중반 개발자 플랫폼 개방' 시점(2012-08-01)의 출처 — The Next Web 기자 보도. metric_before 는 비워 뒀다: 같은 문장이 12곳이 공개 시점에 \"already building\" 이라고 적고 있어 공개 전 0 이라고 단정할 수 없다(§7.1 — 확인 불가는 0 이 아니다). 같은 날 기사의 '지원 앱 60여 개'는 무브 0 의 축(지원 앱 수)이라 여기 쓰지 않았다."
     },
     {
       "move": null,

@@ -35,12 +35,12 @@
       "transfer_note": "내일, 경쟁 제품을 쓰는 잠재고객 10명을 찾아 '지금 쓰는 도구에서 뭐가 제일 불편한가'만 묻는 개인화 이메일을 보내고, 답장이 오면 30분 데모를 그 자리에서 제안하라.",
       "preconditions": "경쟁 제품 사용자를 식별할 방법(공개 커뮤니티·SNS·리뷰 사이트)이 있어야 하고, 창업자가 직접 데모콜을 소화할 시간이 있어야 한다. 아직 채널이 없는 초기 단계에 맞는 방식이다.",
       "outcome_direction": "positive",
-      "metric_name": null,
+      "metric_name": "동일 템플릿 개인화 콜드 이메일 누적 발송 건수 (창업자 직접 발송)",
       "metric_before": null,
-      "metric_after": null,
-      "metric_unit": null,
+      "metric_after": 1000,
+      "metric_unit": "건",
       "observed_period_start": null,
-      "observed_period_end": null
+      "observed_period_end": "2017-07-06"
     }
   ],
   "evidence": [
@@ -85,7 +85,22 @@
       "published_at": "2017-07-06",
       "retrieved_at": "2026-09-14",
       "snippet": "The email is simple: I introduce myself, ask if anything frustrates them with [platform], and say I'd love to show them ConvertKit.",
-      "supports_claim": "콜드 이메일 문구와 30분 데모 세일즈 동선의 서술. 이 글 자체가 직접세일즈를 워드오브마우스 등 다른 채널의 '동력'으로 프레이밍하고 있어(글 본문 확인), 이 무브 하나만 떼어낸 순효과 수치는 없다 — 수치 없이 서술로만 남긴다(등급 D)."
+      "supports_claim": "콜드 이메일 문구와 30분 데모 세일즈 동선의 서술. 이 글 자체가 직접세일즈를 워드오브마우스 등 다른 채널의 '동력'으로 프레이밍하고 있어(글 본문 확인), 이 무브 하나만 떼어낸 **순효과**(MRR·전환율) 수치는 없다. 대신 같은 글에 있는 **활동량** 수치(누적 발송 건수)를 아래 행으로 따로 세웠다."
+    },
+    {
+      "move": 1,
+      "url": "https://nathanbarry.com/sales/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": false,
+      "observation_key": "convertkit-nathanbarry-sales-post-2017",
+      "supports_metric": true,
+      "published_at": "2017-07-06",
+      "retrieved_at": "2026-09-18",
+      "snippet": "Here's an email I've sent over a thousand times: Sarah, Is anything frustrating you with MailChimp?",
+      "supports_claim": "이 무브의 수치(누적 발송 1,000건 이상)의 출처. 같은 블로그 글(2017-07-06)의 다른 문장이라 observation_key 는 move 0 과 동일하게 묶었다 — 원 관측이 같다(L-60). 성격 주의: 성과가 아니라 **활동량**이고, 'over a thousand' 이므로 1,000 은 하한이다(정확값 아님). 창업자 자기보고여서 교차 확인된 수치가 아니다(사실확인 C 예상)."
     },
     {
       "move": null,

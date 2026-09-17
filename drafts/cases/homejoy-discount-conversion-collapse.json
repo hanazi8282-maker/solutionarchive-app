@@ -48,12 +48,12 @@
       "transfer_note": "다음 신규 시장에 들어가기 전에, 지금 시장에서 '할인 유입 고객의 정가 재구매 전환율'이 목표치를 넘었는지부터 확인하라. 못 넘었다면 확장 예산을 그 전환 문제를 푸는 데 먼저 써라.",
       "preconditions": "여러 시장의 성과를 비교할 수 있는 시장별 코호트 데이터, 그리고 확장 시점을 늦출 수 있는 의사결정 권한. 확인: 국가별 진출 시점·순서를 전부 날짜로 확인하지는 못했다 — 영국(2014-04)만 날짜가 확인됐다.",
       "outcome_direction": "negative",
-      "metric_name": null,
-      "metric_before": null,
-      "metric_after": null,
-      "metric_unit": null,
-      "observed_period_start": null,
-      "observed_period_end": null
+      "metric_name": "서비스 운영 도시 수",
+      "metric_before": 31,
+      "metric_after": 35,
+      "metric_unit": "개",
+      "observed_period_start": "2013-10-04",
+      "observed_period_end": "2015-07-17"
     }
   ],
   "evidence": [
@@ -111,7 +111,37 @@
       "supports_metric": null,
       "published_at": "2015-07-31",
       "snippet": "\"Homejoy expanded to Canada and Europe too early.\" 같은 기사에서 '플랫폼 이탈'(고객이 신뢰하는 클리너를 찾은 뒤 플랫폼 밖에서 직접 거래)도 구조적 문제로 지목.",
-      "supports_claim": "핵심 전환 문제를 풀지 않은 채 해외로 조기 확장했다는 사후 분석."
+      "supports_claim": "핵심 전환 문제를 풀지 않은 채 해외로 조기 확장했다는 사후 분석. (2026-09-18 원문 재확인: 본문 표현은 \"Some also say that the company grew too fast, expanding to Canada and Europe too early.\" 다.) 확장 '평가'를 받치는 근거이고, 도시 수 수치 자체는 아래 두 행이 받친다."
+    },
+    {
+      "move": 2,
+      "url": "https://www.cnet.com/tech/services-and-software/online-home-cleaning-service-homejoy-expands-rapidly-hits-31-cities/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": false,
+      "observation_key": "cnet-tam-2013-10-04-31-cities",
+      "supports_metric": true,
+      "published_at": "2013-10-04",
+      "retrieved_at": "2026-09-18",
+      "snippet": "\"Online home-cleaning service Homejoy expands rapidly, hits 31 cities\" / \"The service has grown quickly, launching in 30 more cities within the last eight months.\" / \"...they need cleaners to serve 31 markets now...\"",
+      "supports_claim": "metric_before(31개 도시)의 출처 — CNET Donna Tam 기자 보도(2013-10-04). 국제 확장(2014-04 영국, 북미 밖 첫 시장) 이전 시점의 도시 수다. 회사가 알린 숫자를 기자가 보도한 형태라 is_self_reported=false 로 적되 원 출처가 회사 커뮤니케이션임은 여기 명시한다."
+    },
+    {
+      "move": 2,
+      "url": "https://www.geekwire.com/2015/cleaning-site-homejoy-to-shutter-july-31-due-to-battling-worker-classification-lawsuits/",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "is_issuer_defined_metric": false,
+      "observation_key": "homejoy-blog-2015-07-17-shutdown",
+      "supports_metric": true,
+      "published_at": "2015-07-17",
+      "retrieved_at": "2026-09-18",
+      "snippet": "Cheung posted the news on Homejoy's blog, writing that despite the fact that they \"grew a global network of exceptional home service experts, and served hundreds of thousands of homes in 35 cities in the US, Canada, UK, Germany and France\"...",
+      "supports_claim": "metric_after(35개 도시·5개국)의 출처. 종료 공지 당일 GeekWire 보도가 Adora Cheung 의 자사 블로그 문장을 직접 인용한 것이라 **자기보고**로 적었고(is_self_reported=true), 같은 블로그 공지를 전하는 기존 TechCrunch 행과 observation_key 를 동일하게 묶었다(원 관측이 같다, L-60). 33~35 중 확인된 숫자는 35 뿐이다."
     },
     {
       "move": null,

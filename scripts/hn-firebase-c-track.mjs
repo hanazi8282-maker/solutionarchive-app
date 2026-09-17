@@ -10,6 +10,13 @@
 // ⚠️ DB 를 건드리지 않는다. review_sources / review_collection_runs / analysis_inputs
 //    어느 것도 읽거나 쓰지 않는다. 순수 측정이다.
 // ⚠️ 프로덕션 나이틀리 수집 워크플로와 무관하다. 전용 workflow_dispatch 로만 돈다.
+//
+// ⛔ 2026-09-17 은퇴 — 이 스크립트는 **가설을 검증할 수 없는 설계다.** 매 실행이
+//    search_by_date page 0 으로 "그 시점 최신 댓글 50건" 을 새로 가져오고 objectID 를
+//    저장하지 않는다. 갓 올라온 댓글이 dead 일 리 없어 stale=0 이 구조적으로 강제된다.
+//    고치려면 1회차 objectID 를 JSON 으로 고정 저장하고 이후 실행이 그 ID 를 재조회해야
+//    한다(코호트 고정). 경위와 결론은 reports/hn-firebase-c-dead-tracking.md §결론.
+//    (09-15~09-17 에는 cron 으로도 돌았다. 지금은 다시 workflow_dispatch 전용이다.)
 // ⚠️ robots 는 실제 lib/review/robots.ts 로 판정한다.
 //
 // 사용:
@@ -160,7 +167,7 @@ if (append) {
       '# HN Firebase 옵션 C — dead/deleted 지속측정\n\n' +
       '같은 표본(Airtable·Zapier, search_by_date page 0)을 날짜마다 다시 재서 append 한다.\n' +
       'Algolia 인덱스가 라이브 HN 보다 지연된다면 시간이 지나며 stale 합이 커져야 한다.\n' +
-      '측정 스크립트: `scripts/hn-firebase-c-track.mjs` · 트리거: workflow_dispatch 전용.\n'
+      '측정 스크립트: `scripts/hn-firebase-c-track.mjs` · 트리거: workflow_dispatch 전용(2026-09-17 은퇴, §결론 참조).\n'
   }
   // 같은 날짜 엔트리가 이미 있으면 덮어쓰지 않고 그냥 하나 더 붙인다 — 이력이니까.
   fs.writeFileSync(REPORT, existing.replace(/\s*$/, '') + '\n\n' + entry + '\n')

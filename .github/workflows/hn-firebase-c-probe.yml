@@ -9,20 +9,33 @@
 # ⛔ 프로덕션 나이틀리 수집(nightly-review-collect.yml)과 무관하다.
 # ⛔ Supabase secret 을 env 에 넣지 않는다 — 필요 없다.
 #
-# ⚠️ 2026-09-15 부터 매일 자동 실행(schedule). workflow_dispatch 는 그대로 둔다.
-#    시간은 다른 크론과 안 겹치게 잡았다 (UTC 기준):
-#      nightly-notion-feedback 12:07 · nightly-review-collect 17:37 ·
-#      nightly-hackernews-enrich 18:19 · nightly-insight-loop 18:41 · daily-cmo-loop 20:17
-#    → 이 워크플로우 15:23 UTC (KST 00:23). 정각 회피(어중간한 분).
-#    3~5일치 쌓이면 옵션 C(댓글 전건 수집) 도입 여부를 재판단한다.
+# ⛔ 2026-09-17 은퇴 — schedule 을 껐다(남헌 결정). 이유는 두 겹이다.
+#
+#    ① **측정이 가설을 검증할 수 없는 설계였다.** 매 실행이 search_by_date page 0 으로
+#       "그 시점 최신 댓글 50건" 을 **새로** 가져오고 objectID 를 저장하지 않는다.
+#       가설은 "수집한 그 댓글들이 며칠 뒤 dead 로 바뀌나" 인데, 측정은 "방금 올라온
+#       댓글이 지금 dead 인가" 를 묻는다. 갓 등록된 댓글은 당연히 stale 0 이라
+#       **0 이외의 값이 구조적으로 나올 수 없다.**
+#       증거: Airtable score max 가 1242 → 1482 → **867** 로 하락. HN score 는
+#       내려가지 않으므로 최대값 하락은 표본 집합이 바뀌었다는 뜻이다.
+#
+#    ② **애초의 질문이 사라졌다.** "수집 단계에서 C 를 쓸까" 를 묻던 실험인데,
+#       2026-09-17 남헌 결정으로 설계가 "수집은 A 로 넓게, C 는 인용 직전 검증에"
+#       로 바뀌었다. 수집 필터로서의 C 는 더 이상 후보가 아니다.
+#
+#    ⚠️ **"0 이 나와서 기각" 이 아니다. 검증하지 못한 것이다.** 이 구분을 지우면
+#       나중에 누군가 "봐, 계속 0 이었잖아" 로 잘못된 결론을 낸다(CLAUDE.md §7.1).
+#
+#    되살리려면 **코호트 고정이 먼저다** — 1회차 댓글 objectID 50×2 를 JSON 으로
+#    저장하고, 이후 실행은 저장된 ID 를 Firebase 로 재조회해야 한다. 그 전까지
+#    쌓이는 날짜는 판단 근거가 되지 않는다.
+#    workflow_dispatch 는 남겨 둔다 — 고친 뒤 수동으로 확인할 수 있어야 한다.
 #
 # ⚠️ reports/ 프리픽스에만 커밋한다(CLAUDE.md §10.1). 다른 경로는 스테이징하지 않는다.
 
 name: HN Firebase C Probe
 
 on:
-  schedule:
-    - cron: '23 15 * * *'
   workflow_dispatch:
     inputs:
       append:

@@ -22,7 +22,7 @@ model: opus
   `supabase/migrations/YYYYMMDDNNNNNN_<name>.sql` + 같은 이름의 `_rollback.sql` 쌍.
   `BEGIN; ... COMMIT;` + `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`. 롤백은 역순 `DROP ... IF EXISTS`.
   🔴 파괴적 변경(컬럼 삭제·타입 변경·데이터 백필)은 파일도 만들지 말고 설계로 되돌려 보고.
-- **적용은 사람이 대화형 세션에서** `supabase db query --linked -f <file>` (검증된 경로) 또는 대시보드 SQL Editor 로 한다.
+- **적용은 네가 하지 않는다.** 남헌, 또는 남헌 승인을 받은 대화형 세션이 `supabase db query --linked -f <file>` (검증된 경로)·대시보드 SQL Editor·`project_id` 를 명시한 Supabase MCP 로 한다 (`CLAUDE.md §10.2`). 서브에이전트인 너는 사람에게 물을 자리가 없으므로 어떤 경우에도 적용하지 않는다.
   ⚠️ `supabase db push` 는 이 리포에서 쓰지 마라 — `_rollback.sql` 파일까지 마이그레이션으로 인식해 CREATE 직후 DROP 한다.
 - TypeScript 타입 동기화가 필요하면 `supabase gen types typescript --linked` (CLI, 정본 프로젝트) 를 Bash 로 실행한다. MCP 아님.
 - 자동화된 무인 루프(GitHub Actions로 도는 부서 루프 등)에는 마이그레이션 적용 능력이 **설정 레벨에서 없어야 한다** — 이 규칙과 같은 이유.
@@ -40,8 +40,8 @@ model: opus
    - 확인 대상 예시: `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, 외부 API 키 등.
 2. architect의 영향 파일·AC를 기준으로 구현.
 3. 타입·린트가 깨지지 않게 작성 (PostToolUse hook이 typecheck를 강제하므로 통과해야 함). `npx tsc --noEmit` 로 자가 확인.
-4. **마이그레이션 상태 명시 (필수)**: 마이그레이션 파일을 생성한 경우, 출력에 "⚠️ 파일만 생성 · DB 미적용 — 사람이 `supabase db query --linked -f`
-   또는 대시보드로 적용해야 함. qa-verifier 가 AC에서 SELECT 로 확인" 을 반드시 포함한다. **너는 적용하지 않았다.**
+4. **마이그레이션 상태 명시 (필수)**: 마이그레이션 파일을 생성한 경우, 출력에 "⚠️ 파일만 생성 · DB 미적용 — 남헌 승인 후
+   적용 필요(`CLAUDE.md §10.2`). qa-verifier 가 AC에서 SELECT 로 확인" 을 반드시 포함한다. **너는 적용하지 않았다.**
 5. 구현 완료 후 변경 파일 목록 요약.
 6. `git add -A && git commit -m "<conventional commit>" && git push -u origin <branch>` 로 preview 배포 트리거.
 

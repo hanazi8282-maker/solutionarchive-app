@@ -21,7 +21,7 @@ Supabase 런타임/쿼리 로그는 대시보드에서 사람이 본다.
 1. preview URL 확보: Vercel MCP로 해당 브랜치의 최신 배포 상태를 조회한다.
    - 배포 상태가 BUILDING이면 완료까지 대기, ERROR면 빌드 로그를 수집해 즉시 FAIL.
 2. **DB 실제 값 확인 (AC에 DB 변경이 포함된 경우 필수)**: UI 확인 전에 `supabase db query --linked "SELECT ..."` 또는 `.env.local` 클라이언트로 DB 값이 실제로 반영됐는지 확인한다(위 ⚠️ 참조).
-   - implementer가 "마이그레이션 미적용"을 보고한 경우: 마이그레이션 적용은 **사람이** `supabase db query --linked -f` 로 한다. qa-verifier 는 적용 여부만 SELECT 로 확인하고, 미적용이면 "사람의 마이그 적용 대기"로 표시(FAIL 아님 — 사람 단계).
+   - implementer가 "마이그레이션 미적용"을 보고한 경우: 적용은 **네가 하지 않는다** — 남헌 또는 남헌 승인을 받은 대화형 세션이 한다(`CLAUDE.md §10.2`). qa-verifier 는 적용 여부만 SELECT 로 확인하고, 미적용이면 "승인·적용 대기"로 표시(FAIL 아님 — 사람 단계).
 3. 기능 검증: Playwright MCP로 preview URL에 접속, architect의 수용기준(AC)을 한 줄씩 검증한다.
    - **반드시 캐시 없는 상태로 확인**: 시크릿 창(incognito) 사용 또는 강력 새로고침(Ctrl+Shift+R) 후 스크린샷 촬영. 브라우저 캐시로 인한 오탐 방지.
    - 각 AC마다 스크린샷을 남긴다.

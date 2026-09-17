@@ -17,7 +17,7 @@ CEO-STAFF 발주(남헌 2026-09-18 지시)의 **조사 단계 B군**이다. **�
 | egress | `119.202.84.158` (한국 가정용) — ⚠️ **Actions 러너(Azure)에서 재측정하지 않았다** |
 | User-Agent | `solutionarchive-review-probe/0.1` — 위장 없음 |
 | 규칙 | robots 선판정 · 같은 호스트 4초 간격 · 재시도 0 · 프록시/IP 로테이션 없음 |
-| 총 요청 | 84건 (robots 20 · 사이트맵 12 · 콘텐츠 24 · 약관 14 · API 6 · 기타 8) |
+| 총 요청 | 84건 (robots 24 · 사이트맵 12 · 콘텐츠 24 · 약관 12 · API 6 · 기타 6) |
 | robots 판정 | `parseRobots` → `robotsVerdict(path, 'solutionarchive-review-probe')` 실측 |
 
 ⚠️ **egress 가 다르다.** 1차 실측(2026-08-29)은 "차단은 IP 기반이 아니다"를
@@ -626,32 +626,102 @@ JSON-LD 0개. 영상 본문·댓글·해시태그 목록 전부 JS 안에 있다
 
 ---
 
-## 기존 판정·기록이 틀린 것 2건
+## 공통 제약 대조 — 후보별로 걸리는 자리
 
-### 1. 발주서의 SP-018 설명이 낡았다 (문서 쪽이 이미 정정돼 있다)
+### SP-018(와일드카드) 은 **닫힌 항목이다.** 이걸로 보류한 후보는 없다
 
 발주서는 공통 제약으로 "SP-018: robots 파서가 와일드카드 `*` / `$` 미구현"을
-들었다. **이미 고쳐졌다.** `lib/review/robots.ts` 의 `pathMatches()` 가 투포인터
-글롭 매처로 `*` 와 끝 앵커 `$` 를 구현하고 있고(ReDoS 회피까지 주석에 적혀 있다),
-`docs/review-source-findings.md` 337~361행에는 2026-09-16 정정 블록이 붙어 있다
-("~~구현하지 않는다~~ **구현했다**").
+들었지만 **이미 고쳐져 있다.** `lib/review/robots.ts` 의 `pathMatches()`(72행)가
+투포인터 글롭 매처로 `*` 와 끝 앵커 `$` 를 구현한다(ReDoS 회피용으로 정규식을 버린
+구현이라는 주석까지 붙어 있다). CEO-STAFF 도 2026-09-18 실측으로 같은 결론을 확인했다
+(`Allow: /*.json$` 매칭, `Disallow: /*?keyword=` 금지 판정 등).
 
-이번 조사가 그 구현에 의존했다: OKKY `Disallow: /users/*/articles`, 인프런
-`/course/*/edit`, 티스토리 없음, 미디엄 `/*/edit$` 같은 와일드카드 규칙이 실제로
-판정에 반영됐다(예: `DENY /users/1/articles (Disallow: /users/*/articles)`).
-**와일드카드가 안 됐다면 OKKY 판정이 틀렸을 수 있었다.**
+**이번 조사는 그 구현에 의존해서 판정을 냈다.** 실제로 반영된 와일드카드 규칙:
 
-`docs/strategy-principles.md` 의 SP-018 행은 여전히 "오탐 가능 … 수정 확정"으로
-적혀 있어 현재 상태(수정 완료)와 읽는 사람이 헷갈릴 수 있다. **정정은 이 브랜치
-범위가 아니라 별건으로 남긴다**(A군 조사가 같은 파일을 볼 수 있어 충돌을 피한다).
+```
+DENY  /users/1/articles         (Disallow: /users/*/articles)   ← OKKY
+DENY  /course/lecture-something  (Disallow: /course/lecture)     ← 인프런(접두)
+DENY  /api/course/1             (Disallow: /api)                ← 인프런
+```
 
-### 2. SP-026 은 그대로 살아 있다 (재확인)
+와일드카드 금지 규칙이 있다는 것 자체는 보류 사유가 아니다 — 파서가 읽고 금지로
+판정하면 정상 작동이고, 결론은 "그 경로는 가지 않는다"다. **SP-018 을 이유로
+보류한 후보는 이 문서에 하나도 없다.**
 
-`lib/review/runner.ts:153` 이 여전히 `robotsVerdict(cached, u.pathname, PRODUCT_TOKEN)`
-다 — 쿼리스트링이 판정에 안 들어간다. B군에서 쿼리형 URL 을 쓰는 후보는
-**인프런 강의 페이지(`?cid=`) 하나**이고, 인프런 robots 의 쿼리 대상 규칙
-(`/community/*?*tag=*,`)은 강의 경로와 겹치지 않아 이번엔 안 밟는다. `/community/`
-쪽으로 넓히면 SP-026 이 선행돼야 한다.
+⚠️ **`docs/review-source-findings.md` 337~361행은 낡았다.** 거기엔 여전히
+"`robots.ts` 는 와일드카드를 구현하지 않는다"고 적혀 있다(바로 아래 2026-09-16
+정정 블록이 붙어 있지만, 본문만 읽으면 오독한다). `docs/strategy-principles.md`
+SP-018 행도 "수정 확정"이라 현재 상태(수정 완료)와 헷갈린다. **robots 판정은
+문서를 읽어서 내지 말고 파서를 돌려서 내라.** 두 파일 정정은 A군 조사와 충돌하지
+않게 별건으로 남긴다.
+
+### SP-026(쿼리 미판정) 은 살아 있다 — 후보별 표시
+
+`lib/review/runner.ts:153` 이 `robotsVerdict(cached, u.pathname, PRODUCT_TOKEN)` 다.
+파서는 쿼리를 정확히 판정하는데 호출부에서 `u.search` 가 잘린다(코드로 재확인).
+
+| 후보 | 수집 URL 형태 | robots 에 쿼리 대상 규칙 | SP-026 밟는가 |
+|---|---|---|---|
+| OKKY | `/articles/<id>` 경로형 | 없음 | ❌ 안 밟는다 |
+| 벨로그 | `/@<핸들>/<슬러그>` 경로형 | 없음(규칙 0개) | ❌ |
+| 티스토리 | `/<번호>` · `/m/<번호>` 경로형 | 없음 | ❌ (글 URL 에 `?` 없음) |
+| **인프런** | **`/course/<슬러그>?cid=…` 쿼리형** | **있다** — `Disallow: /community/*?*tag=*%2C` · `…*,` | ⚠️ **지금은 안 밟는다** — 그 규칙이 `/community/` 대상이고 강의 경로와 겹치지 않는다. `/community/` 로 수집을 넓히면 **SP-026 수정이 선행돼야 한다** |
+| 인프런(후기 permalink) | `/community/reviews/<id>` 경로형 | 위 규칙은 `?`+`tag=` 가 있어야 매칭 | ❌ |
+| GitHub API | `?per_page=&page=` 쿼리형 | `api.github.com/robots.txt` = 404(규칙 0개) | ❌ 규칙이 없어 무영향 |
+| 팟빵 | `/channels/<id>` 경로형 | 없음 | ❌ (⛔ 판정이라 무의미) |
+| SOOP | `/player/<번호>` 경로형 | 없음 | ❌ (⛔ 판정이라 무의미) |
+
+즉 **B군에서 SP-026 을 실제로 밟는 후보는 없다.** 인프런만 조건부 표시다.
+
+### 러너 요청 계약(GET·`{ url }` 전용) 에 걸리는 자리
+
+| 후보 | 걸리는가 | 내용 |
+|---|---|---|
+| **벨로그 댓글** | ⛔ 걸린다 | 댓글 실물이 `POST /graphql` 에만 있다 → 본문 전용으로 남긴다(theqoo 와 같은 자리) |
+| **GitHub** | ✅ 안 걸린다 | 무인증 GET 으로 본문·댓글 전부 온다. Authorization 헤더 불필요(실측) |
+| 티스토리 댓글 | ⛔ 걸린다 | `setInitialEntryComments()` AJAX / React 마운트 → 본문 전용 |
+| OKKY 댓글 | ✅ 안 걸린다 | 글 HTML 의 JSON-LD 에 댓글 전문이 들어 있다 |
+| SOOP 댓글 | ⛔ 걸린다(그리고 robots 금지) | `/api/` 경로 |
+
+### 리브랜딩·리다이렉트 — robots 를 **어느 호스트에서** 읽어야 하나
+
+A군에서 나온 `goodchoice.kr` 형 함정(robots 200 인데 `*` 그룹이 없어 "해당 그룹
+없음 → 허용"이 되고, 실제 콘텐츠는 다른 호스트로 이전)을 B군 후보 전부에
+대조했다. 받은 robots 24개를 파서에 통과시킨 결과:
+
+- **`*` 그룹이 없는 200 응답은 0건이다.** 24개 중 규칙 파일로 온 21개 전부
+  `'*' 그룹 1개`였다. goodchoice 와 같은 형태는 이번 후보에 없다.
+- 다만 **사촌 함정이 2건 있다: `*` 그룹이 있는데 규칙이 0개**다 —
+  `velog.io`(57B, `User-agent: *` 한 줄뿐) 와 `docs.github.com`(13B). 파서는
+  "일치하는 규칙 없음 → 허용"을 돌려주는데, 이건 **"사이트가 허락했다"가 아니라
+  "규칙을 안 적었다"**다. 그래서 벨로그의 ✅ 근거는 robots 가 아니라 **약관 전문
+  4,193자를 읽어 관련 조항 0건을 확인한 것**이다.
+- **robots.txt 자리에 HTML 이 오는 곳 3건**: `kickstarter.com`(403 + Cloudflare
+  챌린지 HTML), `www.tistory.com`(404 + 23KB HTML). 그 HTML 을 `parseRobots` 에
+  넣으면 **규칙 0개 = 허용**이 나온다. ⚠️ 러너는 4xx 를 "규칙 없음 = 허용"으로
+  캐시하므로(`runner.ts` 의 `else { this.groups.set(origin, []) }`), **킥스타터를
+  등록하면 러너가 조용히 "허용"으로 판정한다.** 안전장치가 초록불을 띄우는
+  형태다(CLAUDE.md §7.2, SP-027 과 같은 구조). 그래서 킥스타터는 "만들지 않는다"를
+  문서로 못 박아 둔다.
+
+호스트가 옮겨간 후보:
+
+| 후보 | 요청한 호스트 | 실제로 규칙을 준 호스트 | 주의 |
+|---|---|---|---|
+| SOOP(웹) | `www.sooplive.co.kr` | **`www.sooplive.com`** 로 리다이렉트 | `Allow: /` |
+| SOOP(VOD) | `vod.sooplive.co.kr` | **`vod.sooplive.com`** 로 리다이렉트 | **`Disallow: /api/`** — www 것과 규칙이 다르다. 파일 첫 줄이 아직 `# robots.txt file for AfreecaTV` 이고 사이트맵도 `oapi.afreecatv.com` 이다 |
+| 티스토리 | `www.tistory.com` | **없음(404·HTML)** | 규칙은 **각 블로그 서브도메인**(`<blog>.tistory.com`)에 있다. 플랫폼 본체를 읽으면 규칙 0개가 나온다 |
+| 디스콰이엇 | 콘텐츠는 `disquiet.io` | **약관만 `www.relate.kr`** 로 이전(픽셀릭코리아 통합 약관) | robots 는 disquiet.io, 약관은 relate.kr 에서 읽어야 한다 |
+| 탈잉 | `taling.me` | `www.taling.me` | 규칙 동일. **약관은 제3자 호스트 `talingrules.oopy.io`**(별도 robots 확인: `Allow: /`) |
+
+⚠️ **여기서 러너의 잠재 결함 하나를 적어 둔다.** 러너는
+`fetchText(`${origin}/robots.txt`)` 의 결과를 **요청한 origin 의 규칙으로 캐시**한다.
+SOOP 처럼 `.co.kr → .com` 리다이렉트가 걸리면 **다른 호스트의 파일을 이 호스트의
+규칙으로 쓴다.** 이번엔 두 파일 내용이 같아 무해했지만, 갈라지는 순간 틀린 규칙으로
+판정한다. SOOP 은 ⛔ 라 당장 문제는 아니고, 리다이렉트를 타는 호스트를 나중에
+등록할 때 확인해야 한다.
+
+### 📌 요약: SP-018 로 보류한 후보 0건. SP-026 조건부 1건(인프런). 계약 위반 2건(벨로그 댓글·티스토리 댓글 → 본문 전용으로 수용)
 
 ## 내가 낸 검사 오류 1건 (§7.1 — 남겨 둔다)
 

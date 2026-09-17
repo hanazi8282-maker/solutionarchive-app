@@ -320,3 +320,126 @@ export function rankDraftsFor(thread: ThreadsPost, drafts: DraftRow[]): { draftI
     .map(d => ({ draftId: d.id, score: diceSimilarity(normalizeBody(d.body), t) }))
     .sort((a, b) => b.score - a.score)
 }
+
+// ── 미연결 게시물의 분류 ───────────────────────────────────────
+//
+// matchDrafts 의 unmatchedThreads 에는 성질이 다른 것들이 섞여 있다. 한 숫자로
+// 뭉쳐 놓으면 매시 같은 ⚠️ 가 떠서, 다음에 진짜 미연결이 생겨도 아무도 안 본다
+// (2026-09-16 이후 실제로 그 상태였다).
+//
+//   manual_link    — posts 초안이 후보로 잡힌다. 대시보드에서 바로 연결할 수 있다.
+//   column_episode — posts 에는 후보가 없고 **칼럼 연재 편**(content_columns.threads[])이
+//                    후보다. 그 편은 아직 posts 행이 없어서 연결할 자리부터 만들어야 한다
+//                    (scripts/column-threads-stage.mjs). 이것도 조치 대상이다 — ⚠️ 에 남는다.
+//   off_pipeline   — 넓힌 후보 집합(초안 + 칼럼 편) 어디와도 **현저히** 안 닮았다.
+//                    초안 없이 사람이 직접 쓴 글로 본다.
+//   undecidable    — 비교 자체를 못 했다(게시물 본문 없음 / 비교 가능한 후보 0건).
+//                    off_pipeline 로 접지 않는다(§7.1) — "닮은 게 없다"와
+//                    "닮았는지 볼 수 없다"는 다른 사건이다.
+//
+// ⚠️ 후보 집합을 먼저 넓히고, 분류는 그 다음이다. 순서를 뒤집으면 안 된다.
+//    2026-09-18 에 실제로 뒤집어 봤고 결론이 반대로 나왔다: 게시물
+//    18165008242467071(남헌이 직접 쓴 글로 보였던 것)은 posts 27행만 놓고 재면
+//    최고 0.103 이라 "파이프라인 외"였는데, 실은 칼럼 `beauty-of-joseon` 연재
+//    1편의 발행본이었다. 후보를 덜 본 상태의 점수로 임계값을 정하면 칼럼 연재의
+//    발행본이 전부 오분류된다.
+//
+// OFF_PIPELINE_MAX = 0.08 — 일부러 낮게 잡았다. 실측을 늘어놓으면 이유가 보인다.
+//
+//   같은 글의 사람 재작성(= 놓치면 안 되는 쪽)
+//     0.267  CS-20260910-01. 발행 직전에 구어체로 다시 쓴 글.
+//     ~0.20  칼럼 1편(419자) vs 그 발행본(498자). **추정값이다** — 발행본 전문이
+//            content_columns.review_note(DB)에만 있어 이 세션은 읽지 못했다.
+//            요지로 만든 근사본으로 0.223 이 나왔고, 그 근사본은 같은 대조에서
+//            0.128(실측 0.103)을 내 실물보다 0.025 높게 나오는 경향이 있었다.
+//            실측은 다음 매처 실행이 남긴다(detail.candidates 에 점수가 기록된다).
+//
+//   닮지 않은 쪽(= 파이프라인 외로 봐도 되는 쪽)
+//     0.051~0.071  소재가 완전히 다른 글 쌍.
+//     0.109~0.130  같은 브랜드·다른 무브(칼럼 1편 vs 초안 CS-20260910-02 = 0.130).
+//     0.114~0.175  같은 칼럼의 형제 편끼리(1편 vs 2편 = 0.175).
+//     0.155        같은 화자·같은 문체·다른 소재.
+//
+//   두 띠가 **겹친다.** 사람이 다시 쓴 글에는 사실·수치만 남아 유사도가 0.2 언저리로
+//   떨어지는데, 같은 브랜드의 형제 편끼리도 0.17 이 나온다. 게다가 후보가 수십 개면
+//   최고값은 띠의 위쪽으로 밀린다(후보 27개 대비 최고 0.103 이 그 예다).
+//   그래서 **이 지표로는 "파이프라인 외"를 자신 있게 가릴 수 없다.**
+//
+//   결론: 0.08 은 "여기보다 낮으면 어떤 재작성도 아니다"라고 말할 수 있는 선까지만
+//   내려온 값이다. 이 아래는 소재가 다른 글 쌍(0.051~0.071)뿐이다. 실측 0.103 —
+//   칼럼 연재의 발행본으로 판명된 그 글 — 은 이 선 위에 남아야 하고, 남는다.
+//   off_pipeline 은 자주 뜨지 않는다. 그게 맞다: ⚠️ 소음의 진짜 원인은 분류가 없어서가
+//   아니라 **연결할 자리(posts 행)가 없어서**였고, 그건 스테이징 경로로 푼다.
+//
+//   임계값을 올리고 싶으면 실측을 먼저 늘려라. 올리는 쪽의 대가는
+//   "칼럼 연재 발행본이 경고에서 조용히 사라지는 것"이다.
+//
+//   ⚠️ 분류는 판단을 대신 내리지 않는다. off_pipeline 로 분류된 게시물도 대시보드에
+//      그대로 남고 수동 연결 폼이 붙는다(app/dashboard/actions.ts linkDraft).
+//      다이제스트의 ⚠️ 에서만 빠지고 별도 줄로 건수가 남는다. 오분류의 대가는
+//      "주목도"이지 "경로 차단"이 아니다. 이 성질을 없애지 마라.
+//
+//   경계값은 조치 대상 쪽이다(`< OFF_PIPELINE_MAX` 만 off_pipeline).
+export const OFF_PIPELINE_MAX = 0.08
+
+export type UnmatchedKind = 'manual_link' | 'column_episode' | 'off_pipeline' | 'undecidable'
+
+export interface UnmatchedInfo {
+  threadsId: string
+  kind: UnmatchedKind
+  /** 두 후보 풀 전체에서의 최고 유사도. undecidable 이면 null — 0 으로 적지 않는다. */
+  bestScore: number | null
+  /** 1등 후보의 식별자. 초안이면 posts.id, 칼럼 편이면 `COL-<slug>-<편>` 코드. */
+  bestId: string | null
+  bestFrom: 'draft' | 'episode' | null
+  /**
+   * undecidable 인 이유. 그 밖에는 null.
+   * `candidates_unavailable` 은 이 함수가 만들지 않는다 — 후보 조회 자체가 실패했을 때
+   * 호출자(라우트·대시보드)가 붙인다. 후보를 못 읽은 것을 "안 닮았다"로 읽으면
+   * 칼럼 연재의 발행본이 파이프라인 외로 오분류된다.
+   */
+  undecidable: 'no_text' | 'no_comparable_candidates' | 'candidates_unavailable' | null
+}
+
+/**
+ * 미연결 게시물 1건을 분류한다. 매처 크론과 대시보드가 **같은 이 함수**를 쓴다.
+ *
+ * `episodes` 는 승인된 칼럼 연재 편이다(lib/threads/column-episodes.ts 가 만든다).
+ * 자동 연결 후보가 아니라 **분류·보고용**이다 — 그 편에는 아직 posts 행이 없어서
+ * 매처가 갱신할 대상이 없다. 매처는 새 행을 만들지 않는다(route.ts 규약).
+ */
+export function classifyUnmatched(
+  thread: ThreadsPost,
+  drafts: DraftRow[],
+  episodes: DraftRow[] = [],
+): UnmatchedInfo {
+  const unjudgeable = (why: UnmatchedInfo['undecidable']): UnmatchedInfo => ({
+    threadsId: thread.id, kind: 'undecidable', bestScore: null, bestId: null, bestFrom: null, undecidable: why,
+  })
+
+  if (!normalizeBody(thread.text)) return unjudgeable('no_text')
+
+  // 본문이 빈 후보는 비교 대상이 아니다. 양쪽 풀이 다 비었으면 "닮은 게 없다"가
+  // 아니라 "비교 불가"다 — diceSimilarity 가 주는 0 을 근거로 쓰면 안 된다.
+  const top = (pool: DraftRow[]) => {
+    const comparable = pool.filter(d => normalizeBody(d.body))
+    return comparable.length ? rankDraftsFor(thread, comparable)[0] : null
+  }
+  const draft = top(drafts)
+  const episode = top(episodes)
+  if (!draft && !episode) return unjudgeable('no_comparable_candidates')
+
+  // 동점이면 초안 쪽을 고른다 — 그쪽은 대시보드에서 바로 연결되고, 칼럼 편은
+  // posts 행부터 만들어야 한다. 사람이 할 일이 적은 쪽으로 보낸다.
+  const useEpisode = !draft || (!!episode && episode.score > draft.score)
+  const best = useEpisode ? episode! : draft!
+
+  return {
+    threadsId: thread.id,
+    kind: best.score < OFF_PIPELINE_MAX ? 'off_pipeline' : useEpisode ? 'column_episode' : 'manual_link',
+    bestScore: best.score,
+    bestId: best.draftId,
+    bestFrom: useEpisode ? 'episode' : 'draft',
+    undecidable: null,
+  }
+}

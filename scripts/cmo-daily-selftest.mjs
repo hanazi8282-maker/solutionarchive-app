@@ -1189,10 +1189,41 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   const fresh = '2026-09-13T20:00:05Z'
   const row = (status, counts, detail = {}, updated_at = fresh) => ({ row: { status, counts, detail, updated_at }, error: null })
 
-  const n = unlinkedDigestLine(row('ok', { unlinked: 2 }, { oldest_timestamp: '2026-09-12T19:00:00+0000' }), now)
+  // 분류 4종을 모두 채운 정상 기록(매처가 남기는 모양). unlinked = 바로 연결할 대상만.
+  const counts = (o) => ({ column_episode: 0, off_pipeline: 0, undecidable: 0, ...o })
+
+  const n = unlinkedDigestLine(row('ok', counts({ unlinked: 2 }), { oldest_timestamp: '2026-09-12T19:00:00+0000' }), now)
   check('미연결 — N건이면 건수·경과시간·연결 안내', /연결 안 된 Threads 게시물 2건\(가장 오래된 것 26시간 경과\) — \/dashboard 에서 연결/.test(n), n)
-  const zero = unlinkedDigestLine(row('ok', { unlinked: 0 }), now)
+  const zero = unlinkedDigestLine(row('ok', counts({ unlinked: 0 })), now)
   check('미연결 — 0건은 0건', /게시물 0건$/.test(zero) && !/확인 불가/.test(zero), zero)
+
+  // 파이프라인 외 게시물(초안 없이 직접 쓴 글)은 ⚠️ 에서 빠지되 줄에서 사라지지 않는다.
+  const off = unlinkedDigestLine(row('ok', counts({ unlinked: 0, off_pipeline: 1 })), now)
+  check('미연결 — 파이프라인 외는 경고 아님', !off.startsWith('⚠️') && !/확인 불가/.test(off), off)
+  check('미연결 — 파이프라인 외 건수는 별도로 남는다', /게시물 0건 · 파이프라인 외 게시물 1건/.test(off), off)
+  check('미연결 — 파이프라인 외만 있으면 사람판단 불필요',
+    buildCmoStatusEntry({ date: '2026-09-13', runKey: 'x', state: { blocked: 0, failed: 0, counts: {}, steps: [] }, log: [], runStatus: 'ok', unlinkedLine: off }).needsHuman === false, off)
+
+  // 둘이 함께 있으면 ⚠️ 는 수동 연결 대상 수만 말한다
+  const both = unlinkedDigestLine(row('ok', counts({ unlinked: 1, off_pipeline: 2 }), { oldest_timestamp: '2026-09-13T19:00:00Z' }), now)
+  check('미연결 — 혼재 시 ⚠️ 건수는 수동 연결 대상만', /^⚠️ .*게시물 1건\(/.test(both) && /파이프라인 외 게시물 2건/.test(both), both)
+
+  // 비교 자체를 못 한 게시물(본문 없음 등)도 0건으로 접지 않는다
+  const und = unlinkedDigestLine(row('ok', counts({ unlinked: 0, undecidable: 1 })), now)
+  check('미연결 — 판정 불가는 별도 건수로 남는다', /판정 불가 1건/.test(und), und)
+
+  // 칼럼 연재 편의 발행본은 **조치 대상**이다 — 경고에 남고, 할 일(스테이징)을 알려준다.
+  const col = unlinkedDigestLine(row('ok', counts({ unlinked: 0, column_episode: 1 }), { oldest_timestamp: '2026-09-13T19:00:00Z' }), now)
+  check('미연결 — 칼럼 편도 경고 대상(건수에 포함)', /^⚠️ .*게시물 1건\(/.test(col), col)
+  check('미연결 — 칼럼 편은 스테이징 안내를 붙인다', /칼럼 연재 편 1건은 posts 스테이징 먼저/.test(col), col)
+  check('미연결 — 칼럼 편이 있으면 사람판단 필요',
+    buildCmoStatusEntry({ date: '2026-09-13', runKey: 'x', state: { blocked: 0, failed: 0, counts: {}, steps: [] }, log: [], runStatus: 'ok', unlinkedLine: col }).needsHuman === true, col)
+
+  // 분류 이전 버전의 매처가 남긴 행: 없는 칸을 "0건"으로 읽히게 두지 않는다(§7.1)
+  const legacy = unlinkedDigestLine(row('ok', { unlinked: 0 }), now)
+  check('미연결 — 구버전 기록은 분류 없음을 밝힌다', /분류 없음\(매처 구버전 기록/.test(legacy), legacy)
+  const legacyBad = unlinkedDigestLine(row('ok', { unlinked: 0, column_episode: 0, off_pipeline: '1', undecidable: 0 }), now)
+  check('미연결 — 분류 칸 형식 이상도 분류 없음으로', /분류 없음\(매처 구버전 기록/.test(legacyBad), legacyBad)
 
   const cases = [
     ['조회 에러', { row: null, error: 'PGRST205 no table' }, /매처 기록 조회 실패/],

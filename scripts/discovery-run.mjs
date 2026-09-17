@@ -221,24 +221,57 @@ async function propose(kind, count, known) {
 
   const bin = (await resolveClaudeBinary()).path
   const prompt = proposalPrompt(kind, count, known)
-  log(`후보 ${count}건 제안 요청 (kind=${kind})`)
-  const r = await runClaude(
-    bin,
-    ['-p', '--output-format', 'text', '--max-turns', '1'],
-    {
-      cwd: repoRoot,
-      // ⚠️ DB 자격증명을 자식에게 주지 않는다(CLAUDE.md §10.1). 이름만 받으면 된다.
-      env: { CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN },
-      timeoutMs: 5 * 60_000,
-      input: prompt,
-    },
-  )
+  const childEnvKeys = ['CLAUDE_CODE_OAUTH_TOKEN']
+
+  // ⚠️ `--output-format json` 을 쓴다. `text` 는 이 리포에서 이 호출만 쓰던 형식이고,
+  //    claude 가 시작 단계에서 죽으면 stdout·stderr 둘 다 비어 exit 1 만 남는다
+  //    (2026-09-17 실측 — run 35181944240). json 봉투는 `is_error` 와 `result` 를
+  //    실어 주므로 실패 이유가 드러난다. 매일 성공하는 두 호출자
+  //    (`lib/insight/llm.ts`, `scripts/cmo-daily.mjs`)도 전부 json 이다.
+  const args = ['-p', '--output-format', 'json', '--max-turns', '1']
+  log(`후보 ${count}건 제안 요청 (kind=${kind}) — 프롬프트 ${Buffer.byteLength(prompt, 'utf8')}B / args: ${args.join(' ')} / cwd=${repoRoot}`)
+
+  const r = await runClaude(bin, args, {
+    cwd: repoRoot,
+    // ⚠️ DB 자격증명을 자식에게 주지 않는다(CLAUDE.md §10.1). 이름만 받으면 된다.
+    env: { CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN },
+    timeoutMs: 5 * 60_000,
+    input: prompt,
+  })
+
+  // 실패했는데 왜 실패했는지 못 적으면 다음 사람이 같은 자리에서 또 막힌다(§7.1).
+  // 값이 아니라 **키 이름만** 찍는다 — 토큰을 로그에 흘리지 않는다.
   if (r.exitCode !== 0) {
+    log(`⚠️ claude exit ${r.exitCode}${r.timedOut ? ' (timeout)' : ''} / stderr ${r.stderr.length}B / stdout ${r.stdout.length}B / 넘긴 env 키: ${childEnvKeys.join(',')}`)
+    if (r.stderr.trim()) log(`   stderr: ${r.stderr.slice(0, 500)}`)
+    if (r.stdout.trim()) log(`   stdout: ${r.stdout.slice(0, 500)}`)
+    if (!r.stderr.trim() && !r.stdout.trim()) {
+      log('   둘 다 비었다 — claude 가 자격증명·설정 단계에서 떴다가 조용히 죽은 형태다.')
+    }
     throw new Error(`후보 제안 실패: exit ${r.exitCode}${r.timedOut ? '(timeout)' : ''} ${r.stderr.slice(0, 300)}`)
   }
 
-  const parsed = parseCandidates(r.stdout)
-  if (!parsed.ok) throw new Error(`후보 제안 응답을 못 읽었다: ${parsed.error}`)
+  // json 봉투를 벗긴다(`lib/insight/llm.ts` 와 같은 규약). 봉투가 아니면 원문 그대로 쓴다 —
+  // parseCandidates 가 앞뒤 설명이 붙어도 배열만 건져 내므로 둘 다 통과한다.
+  let payload = r.stdout
+  try {
+    const envelope = JSON.parse(r.stdout)
+    if (envelope && typeof envelope === 'object') {
+      if (envelope.is_error === true) {
+        throw new Error(`claude 가 오류를 보고했다: ${String(envelope.result ?? '').slice(0, 300)}`)
+      }
+      if (typeof envelope.result === 'string') payload = envelope.result
+    }
+  } catch (e) {
+    // 봉투가 아니었을 뿐이면 넘어간다. claude 가 보고한 오류는 그대로 올린다.
+    if (e instanceof Error && e.message.startsWith('claude 가 오류를')) throw e
+  }
+
+  const parsed = parseCandidates(payload)
+  if (!parsed.ok) {
+    log(`⚠️ 응답 앞 300자: ${payload.slice(0, 300)}`)
+    throw new Error(`후보 제안 응답을 못 읽었다: ${parsed.error}`)
+  }
   return parsed.items.slice(0, count)
 }
 

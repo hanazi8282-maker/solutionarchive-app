@@ -119,8 +119,12 @@ INFO 34건(의도된 상태). 서버 스크립트는 전부 service_role 이라 
 - `20260921000001_discovery_candidates.sql` (브랜치 `feat/voc-discovery-engine`)
   — `discovery_candidates` 테이블 신규. FK 3건(`review_sources.key`·`analysis_projects.id`·`agent_runs.id`).
 
-두 파일은 **미머지 브랜치의 워크트리에만 있다 — `main` 에는 없다.** 즉 DB 가 코드보다
-앞서 있는 상태이며, 두 브랜치가 머지될 때까지 그렇다.
+두 파일은 적용 시점에 **이미 `main` 에 있었다** — PR #128(`feat/voc-discovery-engine`),
+PR #130(`feat/column-feedback-loop`) 이 2026-09-16 에 머지됐다. 코드와 DB 가 어긋난
+구간은 없다. (조사 초기에 "미머지 브랜치에만 있다"고 판단했으나 이는 오류였다.
+메인 작업 트리가 `feat/review-sources-expand` 를 체크아웃 중이어서 파일이 안 보였을 뿐,
+`git ls-tree origin/main` 으로 확인하니 네 파일 모두 main 에 있었다. 워크트리에서
+파일을 찾았다는 사실을 "그 브랜치에만 있다"로 접으면 안 된다 — §7.1 과 같은 종류의 오류다.)
 
 적용 전 실측: 두 테이블 미존재, 잔여 인덱스 0건, `content_columns.feedback_at` 미존재
 (= 부분 적용 흔적 없음). 선행 `content_columns` 12행 확인. FK 대상 3개 전부 PK 보유.

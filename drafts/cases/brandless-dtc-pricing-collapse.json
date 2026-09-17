@@ -82,7 +82,7 @@
       "published_at": "2020-02-10",
       "retrieved_at": "2026-09-07",
       "snippet": "There was little wrong with Brandless from a consumer standpoint... the low price points and high cost of customer acquisition created a puzzling and money-losing operation.",
-      "supports_claim": "리테일 컨설턴트 Neil Stern(Forbes 기고, McMillanDoolittle 대표)의 분석. $3 객단가와 온라인 고객획득비용의 구조적 불일치가 병목(UNIT_ECONOMICS)이었다는 서사를 뒷받침한다. 구체 AOV 수치는 없어 supports_metric=false."
+      "supports_claim": "리테일 컨설턴트 Neil Stern(Forbes 기고, McMillanDoolittle 대표)의 분석. $3 객단가와 온라인 고객획득비용의 구조적 불일치가 문제(UNIT_ECONOMICS)였다는 서사를 뒷받침한다. 구체 AOV 수치는 없어 supports_metric=false."
     },
     {
       "move": 1,

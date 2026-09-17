@@ -363,6 +363,13 @@ t('userinfo 는 거절', buildProductRef('damoang', 'url:/free/1@evil.example').
   t('이름 없는 항목은 버린다', parseCandidates('[{"why":"x"},{"name":"A","why":"y"}]').items.length, 1)
   t('why 가 없으면 표시를 남긴다', parseCandidates('[{"name":"A"}]').items[0].why, '(이유 미기재)')
   t('빈 배열은 성공이되 0건이다', parseCandidates('[]').items.length, 0)
+
+  // `--output-format json` 봉투 (2026-09-17 text→json 전환). 봉투 안의 배열은
+  // 따옴표가 이스케이프돼 있어 **봉투째로는 못 읽는다** — propose() 가 result 를
+  // 반드시 벗겨서 넘겨야 하는 이유다. 그 계약을 여기에 못 박는다.
+  const envelope = JSON.stringify({ type: 'result', is_error: false, result: clean })
+  t('봉투째로는 못 읽는다 — 벗겨야 한다', parseCandidates(envelope).ok, false)
+  t('벗긴 result 는 읽는다', parseCandidates(JSON.parse(envelope).result).items[0].name, 'Linear')
 }
 
 // ── 후보 제안 프롬프트 ────────────────────────────────────────────

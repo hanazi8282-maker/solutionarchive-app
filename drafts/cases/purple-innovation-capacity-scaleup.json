@@ -11,7 +11,7 @@
   "outcome_status": "active",
   "period_start": "2018-01-01",
   "period_end": "2019-12-31",
-  "summary": "퍼플의 병목은 수요가 아니라 자기 공장이었다. 킹사이즈 폴리머를 한 장으로 성형할 수 있는 기계가 시중에 없어 회사가 직접 설계·제작했고(Mattress Max), 그래서 생산능력을 늘리려면 기계를 새로 '만들어야' 했다. 2018년에 그 제약이 실제로 터졌다 — 매출은 285.8백만 달러로 늘었는데 매출총이익률은 43.2%에서 39.4%로 떨어졌고, 회사는 10-K 에 원인을 '제조 공정의 비효율'이라고 직접 적었다. 2019년에 설비를 늘리고 공정·물류를 고쳤다. 설비 취득원가는 15.5 → 19.8백만 달러, 건설 중 설비는 2.9 → 5.3백만 달러로 늘었고, 매출총이익률은 44.1%로 회복돼 2018년의 하락분을 되돌리고 2017년 수준을 넘었다. 영업손익도 -16.9백만 달러에서 +16.2백만 달러로 흑자 전환했다. 오틀리·펠로톤과 같은 SUPPLY 병목·같은 OPERATIONS 레버인데 결과가 반대다 — 두 실패는 수요보다 먼저 크게 지었고, 퍼플은 수요가 이미 밀려 있는 상태에서 그만큼만 늘렸다.",
+  "summary": "퍼플의 문제는 수요가 아니라 자기 공장이었다. 킹사이즈 폴리머를 한 장으로 성형할 수 있는 기계가 시중에 없어 회사가 직접 설계·제작했고(Mattress Max), 그래서 생산능력을 늘리려면 기계를 새로 '만들어야' 했다. 2018년에 그 제약이 실제로 터졌다 — 매출은 285.8백만 달러로 늘었는데 매출총이익률은 43.2%에서 39.4%로 떨어졌고, 회사는 10-K 에 원인을 '제조 공정의 비효율'이라고 직접 적었다. 2019년에 설비를 늘리고 공정·물류를 고쳤다. 설비 취득원가는 15.5 → 19.8백만 달러, 건설 중 설비는 2.9 → 5.3백만 달러로 늘었고, 매출총이익률은 44.1%로 회복돼 2018년의 하락분을 되돌리고 2017년 수준을 넘었다. 영업손익도 -16.9백만 달러에서 +16.2백만 달러로 흑자 전환했다. 오틀리·펠로톤과 같은 SUPPLY 병목·같은 OPERATIONS 레버인데 결과가 반대다 — 두 실패는 수요보다 먼저 크게 지었고, 퍼플은 수요가 이미 밀려 있는 상태에서 그만큼만 늘렸다.",
   "tags": ["매트리스", "생산능력", "수직계열화", "자체설비", "성공사례", "SUPPLY", "positive"],
   "researched_by": "claude-code (Opus 5)",
   "moves": [
@@ -114,7 +114,7 @@
       "published_at": "2019-03-14",
       "retrieved_at": "2026-09-06",
       "snippet": "Because of the unique features of our Mattress Max machines, new machines are not readily available and must be constructed. We also have experienced inefficiencies in sourcing of materials and production of finished products.",
-      "supports_claim": "케이스 단위 근거. 이 케이스의 병목이 왜 SUPPLY 인지의 원문 근거다 — 생산능력을 사올 수 없고 만들어야 한다는 제약을 회사가 위험요인에 직접 적었다."
+      "supports_claim": "케이스 단위 근거. 이 케이스의 문제가 왜 SUPPLY 인지의 원문 근거다 — 생산능력을 사올 수 없고 만들어야 한다는 제약을 회사가 위험요인에 직접 적었다."
     },
     {
       "url": "https://bedtimesmagazine.com/2020/09/purple-innovation-sets-itself-up-for-rosy-future/",

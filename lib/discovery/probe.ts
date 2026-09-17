@@ -158,6 +158,9 @@ export async function probeSaas(name: string, fetchText: FetchText): Promise<Pro
 
   return {
     hits: parsed.nbHits,
+    // HN 은 캡이 없다 — 실측 79,072 건까지 그대로 준다(Notion, 2026-09-17).
+    // 그래서 상한 판정에 모호함이 없다.
+    capped: false,
     // 0건이어도 ref 는 만들 수 있지만, judge 가 어차피 기각한다.
     ref: `q:${name.trim()}`,
     note: `hn comments nbHits=${parsed.nbHits} (phrase)`,
@@ -187,6 +190,9 @@ export async function probePhysical(name: string, fetchText: FetchText): Promise
   const top = withCount.reduce((a, b) => ((b.reviews ?? 0) > (a.reviews ?? 0) ? b : a))
   return {
     hits: top.reviews,
+    // ⚠️ `999+` 는 점이 아니라 하한선이다. 이 한 줄을 빼면 judge 가 999 를 정확한
+    //    값으로 믿고, 실제 5만 건짜리 초대형 상품을 상한 이하로 통과시킨다.
+    capped: top.capped,
     ref: top.pcode,
     note:
       `danawa pcode=${top.pcode} "${top.name ?? '상품명 못읽음'}" ` +

@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url'
 
 import {
   ACTIVE_KINDS,
+  MAX_VOC_HITS,
   MIN_VOC_HITS,
   SATURATION_LIMIT,
   judge,
@@ -123,9 +124,78 @@ t('hits=31 → accepted', judge({ hits: 31, ref: 'p1', note: '' }).verdict, 'acc
 t('임계값을 올리면 30 도 기각된다', judge({ hits: 30, ref: 'p1', note: '' }, 50).verdict, 'rejected')
 t(
   'hits 는 충분한데 ref 가 없으면 unverified — 채택하지 않는다',
-  judge({ hits: 999, ref: null, note: '' }).verdict,
+  judge({ hits: 99, ref: null, note: '' }).verdict,
   'unverified',
 )
+
+// ── AC-1 judge 상한: "너무 많다"도 기각이다 ──────────────────────
+// 하한만 있으면 초대형 브랜드가 전부 통과한다(2026-09-17 dry-run 실측).
+// ⚠️ 상한 초과는 `unverified` 가 아니라 `rejected` 다 — 실측을 해 봤고, 그 값이
+//    우리 기준 밖이라는 뜻이다. 구분은 사유 문자열(oversized_voc)이 진다.
+t('MAX_VOC_HITS 는 500', MAX_VOC_HITS, 500)
+ok('채택 창이 뒤집혀 있지 않다', MIN_VOC_HITS < MAX_VOC_HITS)
+{
+  const j = (hits, extra = {}) => judge({ hits, ref: 'p1', note: '', ...extra })
+
+  t('hits=499 → accepted (상한 직전)', j(499).verdict, 'accepted')
+  t('hits=500 → accepted (상한과 같으면 통과)', j(500).verdict, 'accepted')
+  t('hits=501 → rejected (상한 직후)', j(501).verdict, 'rejected')
+  ok('상한 초과 사유는 oversized_voc', j(501).reason.startsWith('oversized_voc'))
+  ok('상한 초과를 insufficient_voc 로 적지 않는다', !j(501).reason.includes('insufficient'))
+  ok('상한 초과를 unverified 로 접지 않는다 — 알아본 결과다', j(501).verdict !== 'unverified')
+
+  // 2026-09-17 실측값 그대로. 이 네 건이 통과한 게 상한을 넣는 이유다.
+  t('Notion 79,072 → rejected', j(79072).verdict, 'rejected')
+  t('Heroku 25,461 → rejected', j(25461).verdict, 'rejected')
+  t('하기스 648 → rejected', j(648).verdict, 'rejected')
+  t('필립스 에어프라이어 93 → accepted (남헌이 kept 로 판정한 값)', j(93).verdict, 'accepted')
+  t('상한은 env 로 올릴 수 있다', judge({ hits: 648, ref: 'p1', note: '' }, 30, 1000).verdict, 'accepted')
+
+  // ── 캡된 값: `999+` 는 점이 아니라 "999 이상" 이다 ──────────────
+  t('999+ → rejected (하한선이 이미 상한 500 을 넘었다)', j(999, { capped: true }).verdict, 'rejected')
+  ok('그 사유는 oversized_voc', j(999, { capped: true }).reason.startsWith('oversized_voc'))
+  ok('캡 표기가 사유에 남는다', j(999, { capped: true }).reason.includes('999+(하한)'))
+  ok('캡이 아닌 999 는 그냥 999 로 적힌다', !j(999).reason.includes('+(하한)'))
+
+  // ⚠️ 여기가 가장 틀리기 쉽다. 상한을 캡값 이상으로 올리면 캡된 값은 **판정
+  //    자체가 불가능**하다. "상한 이하"로 접으면 실제 5만 건짜리가 통과하고,
+  //    "상한 초과"로 접으면 정확히 999 인 멀쩡한 상품을 근거 없이 버린다.
+  const capAtCeiling = judge({ hits: 999, ref: 'p1', note: '', capped: true }, 30, 999)
+  t('상한 999 + 999+ → unverified (넘는지 알 수 없다)', capAtCeiling.verdict, 'unverified')
+  ok('그 사유는 bounds_unverifiable', capAtCeiling.reason.startsWith('bounds_unverifiable'))
+  const capBelowCeiling = judge({ hits: 999, ref: 'p1', note: '', capped: true }, 30, 5000)
+  t('상한 5,000 + 999+ → unverified (통과로 접지 않는다)', capBelowCeiling.verdict, 'unverified')
+  ok('캡된 값을 accepted 로 접는 경로가 없다', capBelowCeiling.verdict !== 'accepted')
+  t('같은 999 가 캡이 아니면 상한 5,000 에서 accepted', judge({ hits: 999, ref: 'p1', note: '' }, 30, 5000).verdict, 'accepted')
+
+  // 하한 쪽 거울 — 캡된 하한선이 최소선보다 낮으면 그것도 판정 불가다.
+  // 999+ 의 진짜 값이 5만일 수 있으므로 "미달"로 접으면 거짓 기각이다.
+  t(
+    '최소선 2,000 + 999+ → unverified (미달로 접지 않는다)',
+    judge({ hits: 999, ref: 'p1', note: '', capped: true }, 2000, 9999).verdict,
+    'unverified',
+  )
+  t(
+    '캡이 아니면 최소선 2,000 에서 999 는 rejected',
+    judge({ hits: 999, ref: 'p1', note: '' }, 2000, 9999).verdict,
+    'rejected',
+  )
+
+  // ── 하한·상한 동시 위반 = 창이 뒤집힌 설정 ──────────────────────
+  // env 오타 하나로 난다. 전부 "정상 기각"으로 찍히면 발굴이 영영 0건이고
+  // 로그는 초록불이다(CLAUDE.md §7.2).
+  const bad = judge({ hits: 100, ref: 'p1', note: '' }, 500, 30)
+  t('min>max 설정은 unverified', bad.verdict, 'unverified')
+  ok('사유는 config_error', bad.reason.startsWith('config_error'))
+  ok('뒤집힌 두 값이 사유에 적힌다', bad.reason.includes('500') && bad.reason.includes('30'))
+  t('뒤집힌 창에서는 어떤 값도 rejected 로 찍지 않는다', judge({ hits: 40, ref: 'p1', note: '' }, 500, 30).verdict, 'unverified')
+
+  // 프로브 실패는 여전히 창보다 먼저다 — 상한 초과로 오인하면 안 된다.
+  ok(
+    'hits=null 은 상한과 무관하게 probe_failed',
+    judge({ hits: null, ref: null, note: 'HTTP 503' }, 30, 500).reason.startsWith('probe_failed'),
+  )
+}
 
 // ── AC-2 다나와 검색 파서 ─────────────────────────────────────────
 const dHit = await fx('danawa-search-hit.html')
@@ -190,7 +260,13 @@ const okRes = (body) => ({ status: 200, body })
   const p = await probePhysical('무선이어폰', fakeFetch(okRes(dHit)))
   t('리뷰 최다 상품의 리뷰수를 hits 로 쓴다', p.hits, 999)
   ok('그 상품의 pcode 를 ref 로 쓴다', /^\d+$/.test(p.ref))
-  t('채택 판정', judge(p).verdict, 'accepted')
+
+  // ⚠️ 경계면 검사(CLAUDE.md §7.1). 프로브와 judge 가 각각 통과해도 **캡 여부가
+  //    그 사이를 못 건너면** 상한이 무력해진다. 픽스처의 최다 리뷰 상품은
+  //    `999+`(에어팟 프로3)라 정확히 이 경로를 밟는다.
+  ok('프로브가 캡 여부를 판정에 넘긴다 — 이게 없으면 상한이 무력하다', p.capped === true)
+  t('999+ 짜리는 기본 상한(500)에 걸려 기각', judge(p).verdict, 'rejected')
+  ok('사유는 oversized_voc', judge(p).reason.startsWith('oversized_voc'))
 }
 {
   const p = await probePhysical('없는상품', fakeFetch(okRes(dNoResults)))
@@ -221,6 +297,7 @@ const okRes = (body) => ({ status: 200, body })
   const p = await probeSaas('linear app', fakeFetch(okRes(hHit)))
   t('HN hits 를 읽는다', p.hits, 20)
   t('ref 는 `q:<이름>`', p.ref, 'q:linear app')
+  t('HN 은 캡이 없다 — 상한 판정에 모호함이 없다', p.capped, false)
   t('20건은 최소선(30) 미달이라 기각', judge(p).verdict, 'rejected')
 }
 {

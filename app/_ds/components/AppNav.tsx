@@ -17,6 +17,9 @@ const LINKS = [
   // 네비에 없어서, 대기함이 0건인 날에는 가는 길 자체가 사라졌다.
   { href: '/cases', match: '/cases', label: '케이스 검수' },
   { href: '/columns', match: '/columns', label: '칼럼·스레드 검수' },
+  // 야간 발굴 루프가 스스로 고른 후보를 사람이 뒤집는 자리. 네비에 없으면 매일 밤
+  // 쌓이는 후보를 아무도 안 보고, 자동 채택이 그대로 굳는다.
+  { href: '/discovery', match: '/discovery', label: '발굴 후보 검증' },
 ] as const
 
 /**

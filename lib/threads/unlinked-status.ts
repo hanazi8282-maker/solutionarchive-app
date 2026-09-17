@@ -20,8 +20,25 @@ export const UNLINKED_STEP_KEY = 'threads_unlinked'
 // 매처는 매시 정각에 돈다. 2회 연속 누락까지는 봐주고 그 이상이면 수치를 믿지 않는다.
 export const UNLINKED_STALE_MS = 3 * 60 * 60 * 1000
 
+// 기록하는 분류는 lib/threads/match.ts 의 UnmatchedKind 와 1:1 이다.
+//   unlinked      = manual_link    — 대시보드에서 바로 연결할 대상. ⚠️
+//   columnEpisode = column_episode — 칼럼 연재 편의 발행본. posts 행부터 만들어야 한다. ⚠️
+//   offPipeline   = off_pipeline   — 초안 없이 직접 쓴 글. 경고는 아니지만 건수는 남긴다.
+//   undecidable   = undecidable    — 비교 불가. 0 으로 접지 않는다(§7.1).
 export type UnlinkedCheck =
-  | { status: 'ok'; unlinked: number; oldestTimestamp: string | null; threadsChecked: number; applyFailed: number }
+  | {
+      status: 'ok'
+      unlinked: number
+      columnEpisode: number
+      offPipeline: number
+      undecidable: number
+      /** 조치 대상(manual_link + column_episode) 중 가장 오래된 게시물 시각. */
+      oldestTimestamp: string | null
+      threadsChecked: number
+      applyFailed: number
+      /** 미연결 게시물별 분류 근거(유사도·1등 후보). 임계값을 다시 정할 실측점이 여기 쌓인다. */
+      candidates?: unknown[]
+    }
   | { status: 'failed' | 'skipped'; reason: string }
 
 /**
@@ -52,8 +69,19 @@ export async function recordUnlinkedCheck(supabase: SupabaseClient, r: UnlinkedC
       step_key: UNLINKED_STEP_KEY,
       label: '발행됐는데 초안에 안 붙은 게시물 확인',
       status: r.status,
-      counts: ok ? { unlinked: r.unlinked, threads_checked: r.threadsChecked, apply_failed: r.applyFailed } : {},
-      detail: ok ? { oldest_timestamp: r.oldestTimestamp } : { reason: r.reason },
+      counts: ok
+        ? {
+            unlinked: r.unlinked,
+            column_episode: r.columnEpisode,
+            off_pipeline: r.offPipeline,
+            undecidable: r.undecidable,
+            threads_checked: r.threadsChecked,
+            apply_failed: r.applyFailed,
+          }
+        : {},
+      detail: ok
+        ? { oldest_timestamp: r.oldestTimestamp, candidates: r.candidates ?? [] }
+        : { reason: r.reason },
       updated_at: iso,
     }, { onConflict: 'run_id,step_key' })
     if (step.error) throw new Error(`agent_run_steps ${step.error.code ?? ''} ${step.error.message}`)
@@ -72,7 +100,17 @@ const hoursSince = (iso: unknown, now: number) => {
   return Number.isNaN(t) ? null : Math.max(0, Math.floor((now - t) / 3_600_000))
 }
 
-/** 다이제스트 한 줄. 3상태(§7.1): N건 / 0건 / 확인 불가 — 확인 불가를 0건으로 접지 않는다. */
+/** counts 의 건수 칸. 정수·0 이상만 인정한다. 그 밖이면 null = 못 읽은 것. */
+const countOf = (v: unknown): number | null =>
+  typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : null
+
+/**
+ * 다이제스트 한 줄. 3상태(§7.1): N건 / 0건 / 확인 불가 — 확인 불가를 0건으로 접지 않는다.
+ *
+ * ⚠️ 는 **조치 대상(manual_link + column_episode)에만 붙인다.** 파이프라인 외 게시물과
+ * 판정 불가는 같은 줄의 뒤쪽에 건수로만 남는다 — 경고에서 빼되 조용히 지우지는 않는다.
+ * (섞어 놓으면 매시 같은 ⚠️ 가 떠서 진짜 미연결을 못 보게 된다. 그게 이 분류의 이유다.)
+ */
 export function unlinkedDigestLine({ row, error }: UnlinkedRead, now = Date.now()): string {
   const head = '발행됐는데 연결 안 된 Threads 게시물'
   const unknown = (why: string) => `${head}: 확인 불가(${why}) — /dashboard 에서 직접 확인`
@@ -83,11 +121,26 @@ export function unlinkedDigestLine({ row, error }: UnlinkedRead, now = Date.now(
     return unknown(`매처 기록 없음 — 마지막 기록 ${age === null ? '시각 모름' : `${age}시간 전`}`)
   }
   if (row.status !== 'ok') return unknown(`매처가 조회 못 함 — ${String(row.detail?.reason ?? row.status)}`)
-  const n = row.counts?.unlinked
-  if (typeof n !== 'number' || !Number.isInteger(n) || n < 0) return unknown('매처 기록 형식 이상')
+  const n = countOf(row.counts?.unlinked)
+  if (n === null) return unknown('매처 기록 형식 이상')
   const failed = Number(row.counts?.apply_failed ?? 0)
-  const tail = failed > 0 ? ` · 자동 연결 실패 ${failed}건` : ''
-  if (n === 0) return `${head} 0건${tail}`
+  const col = countOf(row.counts?.column_episode)
+  const off = countOf(row.counts?.off_pipeline)
+  const und = countOf(row.counts?.undecidable)
+  // 분류 이전 버전의 매처가 남긴 행. 없는 칸을 "0건"으로 읽히게 두지 않는다 —
+  // 그 해석이 §7.1 위반이고, 다음 정각 실행이 채운다.
+  const legacy = col === null || off === null || und === null
+  const tail = [
+    failed > 0 ? `자동 연결 실패 ${failed}건` : null,
+    legacy ? '분류 없음(매처 구버전 기록 — 다음 정각에 채워진다)' : null,
+    col ? `그중 칼럼 연재 편 ${col}건은 posts 스테이징 먼저(scripts/column-threads-stage.mjs)` : null,
+    off ? `파이프라인 외 게시물 ${off}건(초안 없이 직접 쓴 글 — 연결 대상 아님)` : null,
+    und ? `판정 불가 ${und}건(본문 없는 게시물·후보 조회 실패 — /dashboard 확인)` : null,
+  ].filter(Boolean).join(' · ')
+  const suffix = tail ? ` · ${tail}` : ''
+  // 조치 대상 = 바로 연결할 것 + 칼럼 편(스테이징 후 연결). 둘 다 늦으면 views_1h 창을 잃는다.
+  const actionable = n + (col ?? 0)
+  if (actionable === 0) return `${head} 0건${suffix}`
   const oldest = hoursSince(row.detail?.oldest_timestamp, now)
-  return `⚠️ ${head} ${n}건(가장 오래된 것 ${oldest === null ? '경과 시간 모름' : `${oldest}시간 경과`}) — /dashboard 에서 연결${tail}`
+  return `⚠️ ${head} ${actionable}건(가장 오래된 것 ${oldest === null ? '경과 시간 모름' : `${oldest}시간 경과`}) — /dashboard 에서 연결${suffix}`
 }

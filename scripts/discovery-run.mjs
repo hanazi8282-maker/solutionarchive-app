@@ -27,6 +27,7 @@
 // env:
 //   DISCOVERY_TARGET        하루 후보 수 (기본 2) — 비용 가드는 이 횟수다
 //   DISCOVERY_MIN_VOC_HITS  채택 최소 VOC 건수 (기본 30)
+//   DISCOVERY_MAX_VOC_HITS  채택 최대 VOC 건수 (기본 500) — 초대형 브랜드를 거른다
 //   DISCOVERY_KIND          축 고정(physical|saas). 안 주면 이력에서 고른다
 
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -36,6 +37,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { resolveClaudeBinary, runClaude } from '../lib/insight/claude-cli.ts'
 import {
   ACTIVE_KINDS,
+  MAX_VOC_HITS,
   MIN_VOC_HITS,
   judge,
   nameKey,
@@ -55,6 +57,7 @@ const arg = (name, dflt) => {
 
 const TARGET = Number(process.env.DISCOVERY_TARGET ?? 2)
 const MIN_HITS = Number(process.env.DISCOVERY_MIN_VOC_HITS ?? MIN_VOC_HITS)
+const MAX_HITS = Number(process.env.DISCOVERY_MAX_VOC_HITS ?? MAX_VOC_HITS)
 
 /** 프로브가 쓰는 소스 키. review_sources.key 와 철자가 같아야 한다(FK). */
 const PROBE_SOURCE = { physical: 'danawa', saas: 'hackernews' }
@@ -393,7 +396,10 @@ async function persist(supabase, row) {
 
 // ── 본체 ─────────────────────────────────────────────────────────
 async function main() {
-  log(`발굴 루프 시작 — ${dryRun ? 'DRY RUN (DB 쓰기 0건)' : '적재 모드'} / 목표 ${TARGET}건 / 최소 ${MIN_HITS} hits`)
+  log(
+    `발굴 루프 시작 — ${dryRun ? 'DRY RUN (DB 쓰기 0건)' : '적재 모드'} / 목표 ${TARGET}건 / ` +
+      `채택 창 ${MIN_HITS}~${MAX_HITS} hits`,
+  )
 
   const known = await loadKnown()
   // ⚠️ `??` 를 쓰면 안 된다. 워크플로가 `DISCOVERY_KIND: ${{ inputs.kind }}` 로 넘기는데,
@@ -421,8 +427,9 @@ async function main() {
     }
 
     const probe = kind === 'saas' ? await probeSaas(cand.name, fetchText) : await probePhysical(cand.name, fetchText)
-    const judgement = judge(probe, MIN_HITS)
-    log(`  프로브: hits=${probe.hits ?? 'null'} ref=${probe.ref ?? '-'} (${probe.note})`)
+    const judgement = judge(probe, MIN_HITS, MAX_HITS)
+    // 캡 여부를 여기 찍는다 — `999` 와 `999+`(하한선)는 상한 판정이 다르다.
+    log(`  프로브: hits=${probe.hits ?? 'null'}${probe.capped ? '+(하한)' : ''} ref=${probe.ref ?? '-'} (${probe.note})`)
     log(`  판정: ${judgement.verdict} — ${judgement.reason}`)
 
     // 채택분은 같은 실행 안에서도 중복을 막는다(후보 둘이 같은 카테고리인 경우).

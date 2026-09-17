@@ -21,6 +21,7 @@
 //   node --env-file=.env.local scripts/case-review.mjs reject  --slug notion --move 1 --by 남헌
 //   node --env-file=.env.local scripts/case-review.mjs transferability --slug notion --move 0 --value HIGH --by 남헌
 //   node --env-file=.env.local scripts/case-review.mjs regrade [--slug notion] [--dry]
+//   node --env-file=.env.local scripts/case-review.mjs backfill-reader-axis --slug notion [--write] [--overwrite]
 //
 // 종료 코드: 0 정상 / 1 음성(거절·불일치) / 2 확인 불가(테이블 없음·설정 없음 등)
 
@@ -29,6 +30,10 @@ import path from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
 import { validateDraft, toRows, gradeMove, factCheckGrade } from '../lib/cases/draft.ts'
 import { moveApprovalWarning, caseApprovalWarning } from '../lib/cases/review.ts'
+import {
+  planReaderAxisBackfill, assertBackfillColumns,
+  MOVE_BACKFILL_COLUMNS, STUDY_BACKFILL_COLUMNS,
+} from '../lib/cases/backfill.ts'
 
 const DRAFT_DIR = path.join(process.cwd(), 'drafts', 'cases')
 
@@ -537,6 +542,146 @@ async function regrade() {
   if (dry) console.log('\n(--dry 였다. DB 는 안 바뀌었다)')
 }
 
+// ────────────────────────────────────────────────────────────
+// backfill-reader-axis — 전이축 3필드만 빈칸에 채운다
+// ────────────────────────────────────────────────────────────
+//
+// 반려된 케이스가 못 통과하는 이유는 무브의 transfer_note 가 비어 있어서다
+// (draft.ts::gradeMove 가 그걸 보면 다른 판정 전에 인사이트 D 를 준다). 그런데
+// 그 필드를 DB 에 넣는 경로는 `commit`(초안 전체 INSERT) 하나뿐이고, 그걸 다시
+// 돌리는 건 승인 상태까지 새로 만드는 짓이다 (regrade 위 주석). 그래서 좁은
+// 백필이 따로 있다.
+//
+// ★ 쓰는 컬럼은 정확히 셋뿐이다 —
+//   case_moves.transfer_note / case_moves.preconditions / case_studies.reader_problem.
+//   목록은 lib/cases/backfill.ts 의 MOVE_BACKFILL_COLUMNS·STUDY_BACKFILL_COLUMNS 이고,
+//   UPDATE 직전에 assertBackfillColumns 가 그 밖의 키를 던진다. review_status ·
+//   reviewed_by · reviewed_at · evidence_grade · fact_check_grade · claim ·
+//   metric_* 는 이 경로가 건드리지 않는다. 등급은 이어서 `regrade` 가 근거에서
+//   계산하고, 승인은 사람 몫이다 (CLAUDE.md §10.1).
+//
+// ★ 기본이 dry 다. 실제 쓰기는 --write 를 명시해야 한다.
+// ★ 짝짓기는 lever+metric_name 이다. 애매하면 건너뛰고 "확인 불가"로 보고한다 —
+//   근거는 lib/cases/backfill.ts 헤더. created_at 정렬에 의존하지 않는다.
+async function backfillReaderAxis() {
+  const slug = opt('slug')
+  const write = flag('write')
+  const overwrite = flag('overwrite')
+  if (!slug) {
+    console.error('사용: backfill-reader-axis --slug <slug> [--write] [--overwrite]')
+    console.error('  기본은 --dry 와 같다 (아무 플래그 없으면 DB 를 안 바꾼다). 실제 쓰기는 --write.')
+    process.exit(2)
+  }
+
+  const p = path.join(DRAFT_DIR, `${slug}.json`)
+  if (!fs.existsSync(p)) die('확인 불가', `초안 파일이 없다: ${p}`)
+  let draft
+  try { draft = JSON.parse(fs.readFileSync(p, 'utf-8')) }
+  catch (e) { die('확인 불가', `JSON 파싱 실패 — ${e.message}`) }
+
+  // 컬럼 유무를 먼저 본다. 미적용인데 그대로 돌리면 PGRST204 를 각 행마다 맞는다.
+  const probe = await supabase.from('case_moves').select(`id, ${MOVE_BACKFILL_COLUMNS.join(', ')}`).limit(1)
+  if (probe.error) {
+    console.error(`✗ 확인 불가: case_moves 의 전이축 컬럼이 없다 — ${probe.error.code} ${probe.error.message}`)
+    console.error('  → 20260915000001_case_reader_axis.sql 미적용이다. §12-5 절차로 사람이 적용한다.')
+    process.exitCode = 2
+    return
+  }
+  const studyProbe = await supabase.from('case_studies').select(`id, ${STUDY_BACKFILL_COLUMNS.join(', ')}`).limit(1)
+  if (studyProbe.error) {
+    console.error(`✗ 확인 불가: case_studies.reader_problem 이 없다 — ${studyProbe.error.code} ${studyProbe.error.message}`)
+    console.error('  → 20260915000001_case_reader_axis.sql 미적용이다.')
+    process.exitCode = 2
+    return
+  }
+
+  const study = await fetchStudy(slug)
+  if (!study) { console.error(`✗ 음성: DB 에 slug=${slug} 가 없다`); process.exit(1) }
+  const rows = await fetchMoves(study.id)
+
+  const plan = planReaderAxisBackfill(draft, study, rows, { overwrite })
+
+  console.log(`${study.brand_name} (${slug}) — 초안 무브 ${draft.moves?.length ?? 0}개 / DB 행 ${rows.length}개`
+    + `${write ? '' : '  [dry — DB 안 바꾼다]'}${overwrite ? '  [--overwrite]' : ''}`)
+  console.log(`케이스 reader_problem: 지금 ${plan.study.from ?? '(빈칸)'} → ${plan.study.status === 'write' ? plan.study.to : '그대로'} — ${plan.study.reason}`)
+
+  for (const m of plan.moves) {
+    const mark = m.status === 'matched' ? '·' : m.status === 'no_match' ? '✗' : '⚠️'
+    console.log(`${mark} 초안[${m.index}] ${m.key}`)
+    console.log(`     ${m.status} — ${m.reason}${m.row_id ? ` (DB 행 ${m.row_id})` : ''}`)
+    for (const f of m.write) {
+      console.log(`     쓴다 ${f.column}: ${f.from === null ? '(빈칸)' : `"${f.from}"`} → "${f.to}"`)
+    }
+    for (const s of m.skip) {
+      console.log(`     건너뜀 ${s.column}: 지금 ${s.from === null ? '(빈칸)' : `"${s.from}"`} — ${s.reason}`)
+    }
+  }
+  for (const o of plan.orphanRows) {
+    console.log(`⚠️ DB 행 ${o.id} (${o.lever} / ${o.metric_name ?? '수치명없음'}) — 초안의 어떤 무브와도 짝이 안 됐다`)
+  }
+
+  if (!write) {
+    console.log(`\n(--write 없음. 쓸 예정이던 필드 ${plan.writeCount}개, DB 는 안 바뀌었다)`)
+    process.exitCode = plan.negative ? 1 : 0
+    return
+  }
+
+  let wrote = 0
+  let missed = 0
+  for (const m of plan.moves) {
+    if (m.status !== 'matched' || m.write.length === 0) continue
+    const patch = {}
+    for (const f of m.write) patch[f.column] = f.to
+    assertBackfillColumns(patch, MOVE_BACKFILL_COLUMNS)
+    // ★ update() 는 0행이 바뀌어도 error 를 주지 않는다. 같은 함정이 수동 연결에서
+    //   실제로 났다 (app/dashboard/actions.ts LINKABLE_STATUSES 위 주석 — 0행 갱신이
+    //   조용히 지나가 엉뚱한 오류로 나타났다). 그래서 select() 로 갱신 행을 받아 센다.
+    const back = must(
+      await supabase.from('case_moves').update(patch).eq('id', m.row_id)
+        .select(`id, ${MOVE_BACKFILL_COLUMNS.join(', ')}`),
+      `case_moves UPDATE (초안[${m.index}])`,
+    ) ?? []
+    if (back.length !== 1) {
+      console.error(`✗ 음성: 초안[${m.index}] UPDATE 가 ${back.length}행을 돌려줬다 (기대 1행, id=${m.row_id})`)
+      missed++
+      continue
+    }
+    const bad = m.write.filter((f) => (back[0][f.column] ?? '') !== f.to)
+    if (bad.length > 0) {
+      console.error(`✗ 음성: 초안[${m.index}] 갱신 후 값이 다르다 — ${bad.map((f) => f.column).join(', ')}`)
+      missed++
+      continue
+    }
+    wrote += m.write.length
+    console.log(`✅ 초안[${m.index}] ${m.write.map((f) => f.column).join(' + ')} 갱신 (행 ${m.row_id})`)
+  }
+
+  if (plan.study.status === 'write') {
+    const patch = assertBackfillColumns({ [plan.study.column]: plan.study.to }, STUDY_BACKFILL_COLUMNS)
+    const back = must(
+      await supabase.from('case_studies').update(patch).eq('id', study.id)
+        .select(`id, ${STUDY_BACKFILL_COLUMNS.join(', ')}`),
+      'case_studies UPDATE',
+    ) ?? []
+    if (back.length !== 1 || back[0][plan.study.column] !== plan.study.to) {
+      console.error(`✗ 음성: case_studies.${plan.study.column} 갱신 확인 실패 (${back.length}행)`)
+      missed++
+    } else {
+      wrote++
+      console.log(`✅ case_studies.${plan.study.column} = ${plan.study.to}`)
+    }
+  }
+
+  const unmatched = plan.moves.filter((m) => m.status !== 'matched')
+  console.log(`\n갱신 ${wrote}개 필드 / 짝 못 지은 무브 ${unmatched.length}개 / 확인 실패 ${missed}개`)
+  if (unmatched.length > 0) {
+    console.log('  짝 못 지은 무브는 건드리지 않았다. 추측으로 쓰지 않는다 — 사람이 수치명을 맞춰 줘야 한다.')
+  }
+  console.log('  등급은 이 명령이 쓰지 않는다. 이어서 `regrade` 를 돌려 근거에서 다시 계산한다.')
+  console.log('  승인 상태도 그대로다 — 반려를 푸는 건 사람이다 (§10.1).')
+  process.exitCode = (plan.negative || missed > 0) ? 1 : 0
+}
+
 switch (cmd) {
   case 'commit': await commit(); break
   case 'list': await list(); break
@@ -545,7 +690,8 @@ switch (cmd) {
   case 'reject': await decide('rejected'); break
   case 'transferability': await setTransferability(); break
   case 'regrade': await regrade(); break
+  case 'backfill-reader-axis': await backfillReaderAxis(); break
   default:
-    console.error('명령: commit | list | show | approve | reject | transferability | regrade')
+    console.error('명령: commit | list | show | approve | reject | transferability | regrade | backfill-reader-axis')
     process.exit(2)
 }

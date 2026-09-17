@@ -14,10 +14,12 @@ import {
   rankDraftsFor,
   suggestedCandidates,
   candidateMatchesQuery,
+  classifyUnmatched,
   AUTO_MATCH_MIN,
   AMBIGUITY_MARGIN,
   MANUAL_SUGGEST_MIN,
   MANUAL_SUGGEST_LIMIT,
+  OFF_PIPELINE_MAX,
 } from '../lib/threads/match.ts'
 
 let passed = 0
@@ -276,9 +278,202 @@ eq('유사도: 빈 문자열끼리는 0 (아무 글에나 붙는 사고 방지)'
   eq('빈 입력: 보류 0', out.skipped.length, 0)
 }
 
-// ── 4) 임계값 상수 자체 ───────────────────────────────────────
+// ── 4) 미연결 게시물 분류 ─────────────────────────────────────
+//
+// 후보 집합을 먼저 넓히고(posts 초안 + 칼럼 연재 편) 분류는 그 다음이다.
+// 순서를 뒤집으면 칼럼 연재의 발행본이 "파이프라인 외"로 오분류된다 —
+// 2026-09-18 에 실제로 그렇게 판정했다가 뒤집혔다(match.ts OFF_PIPELINE_MAX 주석).
+
+// 칼럼 `beauty-of-joseon` 연재 1편 본문(419자). content_columns
+// fc5c4409-b5cf-475c-a0c9-e966d9b7b4cd 의 threads[0].body 와 같다
+// (정본 파일: drafts/columns/2026-09-15-beauty-of-joseon.threads.md).
+// ⚠️ 이 픽스처를 "비슷한 다른 글"로 바꾸지 마라. 이 편의 발행본이 매처에
+//    파이프라인 외로 보였던 그 사건이 이 테스트의 이유다.
+const COLUMN_EPISODE_1 = `아이템을 못 정한 창업자는 보통 새로 만들 것부터 찾는다.
+
+조선미녀를 키운 천주혁 대표는 반대로 갔다. 중국향 화장품 유통을 하던 그는 2016년 무렵 경쟁이 과열되며 기회를 잡기 어려워졌다고 본인이 밝혔다. 그가 고른 건 새 브랜드가 아니라 독점 유통하던 조선미녀였다.
+
+당시 미국에서는 제품 하나만 팔아 판매량이 많지 않았다. 대신 아마존과 현지 셀렉숍 반응이 정말 좋았고, 상품군만 정비하면 키울 수 있겠다고 봤다고 한다. 보도에 따르면 인수 당시 연 매출은 1억 원, 2024년 매출은 3237억 원이다.
+
+이 사례에서 옮길 건 순서다. 남의 제품 여러 개를 먼저 팔아 보고, 판매량이 아니라 반응의 온도로 하나를 고른다. 그리고 그 제품에 빠진 것을 채운다.
+
+지금 팔고 있는 것 중에, 적게 팔리지만 반응이 유난히 좋은 게 있지 않은가?`
+
+// 위 편을 사람이 다시 쓴 발행본(Threads 18165008242467071, 2026-09-16, 498자)의 **근사본**이다.
+// 발행본 전문은 content_columns.review_note(DB)에만 있어 이 테스트에 넣을 수 없었다.
+// 근사본은 같은 대조에서 실물보다 0.025 높게 나오는 경향이 관측됐다(실물 0.103 → 근사 0.128).
+// 실측은 매처가 다음 실행에서 detail.candidates 에 남긴다.
+const REPUBLISHED_REWRITE = `조선미녀 천주혁 대표는 처음부터 브랜드를 만든 사람이 아닙니다.
+중계업을 했습니다. 해외 바이어와 국내 브랜드를 붙여주는 일이었죠.
+
+그 일을 하면서 어떤 제품이 어느 나라에서 얼마나 팔리는지 데이터가 손에 쌓였습니다.
+남의 물건을 팔아주면서 시장이 무엇을 원하는지 먼저 알게 된 겁니다.
+
+그리고 그 데이터가 가리키는 브랜드를 인수했습니다. 인수 당시 연 매출 1억이던 브랜드가
+2024년에는 3237억이 됐습니다. 없는 시장을 개척한 게 아니라, 이미 팔리는 것을 확인하고 들어간 거죠.
+
+순서가 반대입니다. 대부분은 브랜드를 만들고 나서 시장을 찾습니다.
+그는 시장을 먼저 읽고 브랜드를 골랐습니다.`
+
+// 같은 브랜드·다른 무브의 posts 초안(CS-20260910-02, 342자).
+// 발행본과의 실측 유사도가 0.103 이었던 그 초안이다 — 그 값은 "파이프라인 외"의
+// 근거가 아니었다. 진짜 주인이 후보에 없었을 뿐이다.
+const DRAFT_SAME_BRAND = `"국내 로드샵→백화점→해외" 순서가 K뷰티의 정석이었다. 조선미녀는 이 순서를 거꾸로 탔다. 국내 유통망을 깔기 전에 미국 아마존을 1차 시장으로 잡았다.
+
+국내 인지도는 그 다음에 왔다. "미국에서 더 유명한 K뷰티 브랜드"라는 타이틀이 해외 성과를 국내로 역수입하는 마케팅 소재가 됐다.
+
+전자공시 기준으로 보면(연결·별도 집계 방식에 따라 수치가 갈린다), 연매출은 2022년 400억원에서 2024년 3237억원으로 늘었다. 매출의 90% 이상이 해외에서 나온다고 조선미녀가 협업 기사에서 밝힌 바 있다.
+
+국내부터 다지지 않고 해외에서 먼저 터뜨리는 순서, 재현 가능한 전략일까 이 브랜드만의 예외일까.`
+
+const POSTS_DRAFTS = [{ id: 'd1', body: DRAFT_A }, { id: 'd2', body: DRAFT_SAME_BRAND }]
+const EPISODES = [{ id: 'COL-beauty-of-joseon-01', body: COLUMN_EPISODE_1 }]
+
+{
+  // ⭐ 이 작업의 핵심 회귀 테스트.
+  //    같은 발행본을 두고, 후보에 칼럼 편이 있을 때와 없을 때 결론이 달라야 한다.
+  const thread = { id: 't1', text: REPUBLISHED_REWRITE }
+
+  const wide = classifyUnmatched(thread, POSTS_DRAFTS, EPISODES)
+  eq('칼럼 발행본: 후보에 편이 있으면 column_episode', wide.kind, 'column_episode')
+  eq('칼럼 발행본: 1등은 그 편', wide.bestId, 'COL-beauty-of-joseon-01')
+  eq('칼럼 발행본: 출처 표시', wide.bestFrom, 'episode')
+  check('칼럼 발행본: 파이프라인 외가 아니다', wide.bestScore >= OFF_PIPELINE_MAX, `점수 ${wide.bestScore}`)
+
+  // 후보를 덜 본 상태(= 고치기 전 동작). 초안만 보면 점수가 0.1 대로 떨어진다.
+  const narrow = classifyUnmatched(thread, POSTS_DRAFTS)
+  check('칼럼 발행본: 초안만 보면 점수가 급락한다', narrow.bestScore < wide.bestScore, `${narrow.bestScore} vs ${wide.bestScore}`)
+  // ★ 그래도 파이프라인 외로 내려가서는 안 된다. 임계값이 이 점수 위로 올라가면
+  //   칼럼 연재 발행본이 경고에서 조용히 사라진다.
+  eq('칼럼 발행본: 초안만 봐도 파이프라인 외는 아니다', narrow.kind, 'manual_link')
+}
+
+{
+  // 임계값 양쪽의 실측점. 임계값을 올리려면 이 목록을 먼저 늘려야 한다.
+  check('임계값: 실측 0.103(칼럼 발행본 vs 같은 브랜드 초안)은 위 — 파이프라인 외가 아니었다',
+    0.103 >= OFF_PIPELINE_MAX)
+  check('임계값: 실측 0.267(CS-20260910-01 재작성)은 위', 0.267 >= OFF_PIPELINE_MAX)
+  check('임계값: 같은 칼럼 형제 편끼리 0.175 도 위(조치 대상으로 남는다)', 0.175 >= OFF_PIPELINE_MAX)
+  check('임계값: 소재가 다른 글 쌍 0.071 은 아래', 0.071 < OFF_PIPELINE_MAX)
+  check('임계값: 자동 연결 문턱보다 훨씬 아래', OFF_PIPELINE_MAX < AUTO_MATCH_MIN - 0.5)
+}
+
+{
+  // 소재가 완전히 다른 글 — 파이프라인 외로 간다
+  const info = classifyUnmatched({ id: 't1', text: DRAFT_OTHER.replace('발주서를', '지난 주말') }, EPISODES)
+  eq('무관한 글: 파이프라인 외', info.kind, 'off_pipeline')
+  check('무관한 글: 점수가 임계값 미만', info.bestScore < OFF_PIPELINE_MAX, `점수 ${info.bestScore}`)
+  eq('무관한 글: 비교는 했다(사유 없음)', info.undecidable, null)
+  check('무관한 글: 1등 후보는 남긴다(사람이 되짚을 단서)', !!info.bestId, info.bestId)
+}
+
+{
+  // 초안이 1등이면 수동 연결 대상이다(칼럼 편이 후보에 있어도)
+  const info = classifyUnmatched({ id: 't1', text: DRAFT_A + ' 조금 고침' }, POSTS_DRAFTS, EPISODES)
+  eq('초안이 1등: manual_link', info.kind, 'manual_link')
+  eq('초안이 1등: 출처 표시', info.bestFrom, 'draft')
+  eq('초안이 1등: id 는 초안 id', info.bestId, 'd1')
+}
+
+{
+  // 동점이면 초안 쪽으로 보낸다 — 그쪽이 바로 연결된다(칼럼 편은 스테이징이 먼저다)
+  const same = [{ id: 'dSame', body: DRAFT_A }]
+  const ep = [{ id: 'COL-x-01', body: DRAFT_A }]
+  const info = classifyUnmatched({ id: 't1', text: DRAFT_A }, same, ep)
+  eq('동점: 초안 우선', info.bestFrom, 'draft')
+  eq('동점: manual_link', info.kind, 'manual_link')
+}
+
+{
+  // 경계값을 정확히 맞춘 합성 픽스처. 한국어 본문으로는 특정 점수를 겨냥할 수
+  // 없어서, 바이그램이 모두 서로 다른 문자열로 Dice 를 산수로 고정한다.
+  //   A: 51자(바이그램 50개), B: 51자(50개) → 분모 100.
+  //   앞머리 n자를 공유하면 겹치는 바이그램이 n-1개 → 점수 = 2(n-1)/100.
+  const pool = Array.from({ length: 140 }, (_, i) => String.fromCharCode(0x4e00 + i))
+  const a = pool.slice(0, 51).join('')
+  const b = (n) => pool.slice(0, n).join('') + pool.slice(60, 60 + (51 - n)).join('')
+  const drafts = [{ id: 'dx', body: a }]
+  const at = (n) => classifyUnmatched({ id: 'tx', text: b(n) }, drafts)
+
+  eq('경계: 정확히 임계값(0.080) 점수 확인', at(5).bestScore, 0.08)
+  eq('경계: 정확히 임계값이면 파이프라인 외 아님', at(5).kind, 'manual_link')
+  eq('경계: 임계값 아래(0.060) 점수 확인', at(4).bestScore, 0.06)
+  eq('경계: 임계값 아래는 파이프라인 외', at(4).kind, 'off_pipeline')
+  eq('경계: 임계값 위(0.100) 점수 확인', at(6).bestScore, 0.1)
+  eq('경계: 임계값 위는 조치 대상', at(6).kind, 'manual_link')
+}
+
+{
+  // 후보가 0건 — "닮은 게 없다"가 아니라 "비교를 못 했다"다(§7.1).
+  const none = classifyUnmatched({ id: 't1', text: REPUBLISHED_REWRITE }, [])
+  eq('후보 0건: 확인 불가', none.kind, 'undecidable')
+  eq('후보 0건: 사유', none.undecidable, 'no_comparable_candidates')
+  eq('후보 0건: 점수를 0 으로 적지 않는다', none.bestScore, null)
+  eq('후보 0건: 출처도 비워 둔다', none.bestFrom, null)
+
+  // 초안·편 행은 있지만 본문이 전부 비어 있는 경우도 같다 — diceSimilarity 의 0 을
+  // "닮지 않았다"의 근거로 쓰면 안 된다.
+  const empty = classifyUnmatched({ id: 't1', text: REPUBLISHED_REWRITE },
+    [{ id: 'd1', body: '' }, { id: 'd2', body: null }], [{ id: 'COL-x-01', body: '  ' }])
+  eq('본문 빈 후보만: 확인 불가', empty.kind, 'undecidable')
+
+  // 초안은 0건이어도 칼럼 편이 있으면 비교는 된다
+  const epOnly = classifyUnmatched({ id: 't1', text: REPUBLISHED_REWRITE }, [], EPISODES)
+  eq('초안 0건 + 편 1건: 비교 가능', epOnly.kind, 'column_episode')
+}
+
+{
+  // 게시물에 본문이 없는 경우(이미지 전용 글 등) — 역시 판정 불가다
+  for (const [name, text] of [['null', null], ['빈 문자열', ''], ['이모지만', '🔥🙏']]) {
+    const info = classifyUnmatched({ id: 't1', text }, POSTS_DRAFTS, EPISODES)
+    eq(`게시물 본문 없음(${name}): 확인 불가`, info.kind, 'undecidable')
+    eq(`게시물 본문 없음(${name}): 사유`, info.undecidable, 'no_text')
+  }
+}
+
+{
+  // 여러 건이 섞인 실제 모양 — 매처가 못 붙인 것들을 분류하면 넷으로 갈린다.
+  const threads = [
+    { id: 'tOK', text: DRAFT_A, permalink: null, timestamp: '2026-09-16T10:00:00+0000' },            // 자동 연결됨
+    // 초안 d1 을 발행 직전에 구어체로 다시 쓴 글(CS-20260910-01 계열, 실측 0.267 대).
+    // 자동 연결 문턱(0.82)에는 못 미치지만 후보로는 확실히 잡힌다.
+    {
+      id: 'tManual',
+      text: `솔직히 말하면 재고로 300만원 날렸어요.
+그 SKU 진짜 잘 나갔거든요. 숫자도 다 확인했고요. 근데 한 달 지나니까 창고에 그대로더라고요.
+제가 본 건 판매량이었어요. 봤어야 하는 건 재구매율이었고요.
+한 번 사고 끝나는 물건은 아무리 많이 팔려도 결국 멈춰요.`,
+      permalink: null,
+      timestamp: '2026-09-16T12:00:00+0000',
+    },
+    { id: 'tColumn', text: REPUBLISHED_REWRITE, permalink: null, timestamp: '2026-09-16T17:48:28+0000' },
+    { id: 'tOff', text: '오늘 점심은 김치찌개였다. 어제도 김치찌개였고 그제도 김치찌개였다. 회사 앞에 다른 가게가 없다.', permalink: null, timestamp: '2026-09-16T18:00:00+0000' },
+    { id: 'tNoText', text: null, permalink: null, timestamp: '2026-09-16T19:00:00+0000' },
+  ]
+  const out = matchDrafts(POSTS_DRAFTS, threads)
+  eq('혼재: 자동 연결 1건', out.matched.length, 1)
+  eq('혼재: 자동 연결은 완전 일치 건', out.matched[0]?.threadsId, 'tOK')
+
+  const kinds = Object.fromEntries(
+    threads
+      .filter(t => out.unmatchedThreads.includes(t.id))
+      .map(t => [t.id, classifyUnmatched(t, POSTS_DRAFTS, EPISODES).kind]),
+  )
+  eq('혼재: 미연결 4건', Object.keys(kinds).length, 4)
+  eq('혼재: 손본 초안 발행본 → 수동 연결', kinds.tManual, 'manual_link')
+  eq('혼재: 칼럼 편 발행본 → 칼럼 편', kinds.tColumn, 'column_episode')
+  eq('혼재: 무관한 글 → 파이프라인 외', kinds.tOff, 'off_pipeline')
+  eq('혼재: 본문 없는 글 → 확인 불가', kinds.tNoText, 'undecidable')
+  // ⚠️ 경고 대상은 조치 가능한 둘(manual_link + column_episode)이다. 넷을 한 숫자로
+  //    뭉치면(과거 동작) 매시 같은 경고가 떠서 진짜 미연결을 아무도 안 보게 된다.
+  eq('혼재: 경고 대상은 2건',
+    Object.values(kinds).filter(k => k === 'manual_link' || k === 'column_episode').length, 2)
+}
+
+// ── 5) 임계값 상수 자체 ───────────────────────────────────────
 check('상수: AUTO_MATCH_MIN 범위', AUTO_MATCH_MIN > 0.5 && AUTO_MATCH_MIN < 1)
 check('상수: AMBIGUITY_MARGIN 범위', AMBIGUITY_MARGIN > 0 && AMBIGUITY_MARGIN < 0.2)
+check('상수: OFF_PIPELINE_MAX 범위', OFF_PIPELINE_MAX > 0.071 && OFF_PIPELINE_MAX <= 0.103)
 
 // ── 5) 수동 연결 화면의 후보 좁히기 ───────────────────────────
 //

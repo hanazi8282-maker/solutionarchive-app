@@ -84,6 +84,11 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           DISCOVERY_TARGET: ${{ inputs.target || vars.DISCOVERY_TARGET || '2' }}
           DISCOVERY_MIN_VOC_HITS: ${{ vars.DISCOVERY_MIN_VOC_HITS || '30' }}
+          # 상한. 하한만 있으면 초대형 브랜드가 전부 통과한다(2026-09-17 실측:
+          # Notion 79,072 · Heroku 25,461 전부 accepted). 근거는 lib/discovery/candidate.ts
+          # 의 MAX_VOC_HITS 주석. ⚠️ 이 값을 999 이상으로 올리면 다나와 캡(`999+`)이
+          # 판정 불가가 되어 physical 후보가 모두 unverified 로 떨어진다.
+          DISCOVERY_MAX_VOC_HITS: ${{ vars.DISCOVERY_MAX_VOC_HITS || '500' }}
           DISCOVERY_KIND: ${{ inputs.kind }}
         run: |
           node scripts/discovery-run.mjs \

@@ -8,7 +8,8 @@ import MetricForm, { type PostOption } from './metric-form'
 import DraftLinkForm, { UnlinkedThreadList, type DraftOption, type UnlinkedThread } from './draft-link-form'
 import { ensureValidToken } from '@/lib/threads/token'
 import { fetchRecentThreads, LOOKBACK_DAYS } from '@/lib/threads/recent'
-import { matchDrafts, rankDraftsFor } from '@/lib/threads/match'
+import { matchDrafts, rankDraftsFor, classifyUnmatched, OFF_PIPELINE_MAX, type UnmatchedKind } from '@/lib/threads/match'
+import { flattenEpisodes, asCandidates, type ColumnRow } from '@/lib/threads/column-episodes'
 import { checkThreadPost } from '@/lib/threads/voice-check'
 import { PostReviewCard, type PendingPost } from './post-review-form'
 
@@ -43,7 +44,11 @@ export default async function DashboardPage() {
   // "발행됐는데 어떤 초안에도 안 붙은 게시물". 3상태(§7.1):
   //   null = 확인 불가(사유 unlinkedError) / [] = 확인했고 없음 / [..] = 있음
   // 매처 크론은 이런 글을 200 응답의 skipped 에만 남기고 아무도 보지 않는다.
-  let unlinked: UnlinkedThread[] | null = null
+  //
+  // 목록 안에서 다시 네 분류로 갈린다(kind — lib/threads/match.ts classifyUnmatched).
+  // 매처 크론이 agent_run_steps 에 남기는 분류와 **같은 함수·같은 후보 집합**으로 계산한다.
+  // 다이제스트가 "N건"이라고 하면 이 카드 위쪽 목록에 같은 N건이 떠야 한다.
+  let unlinked: (UnlinkedThread & { kind: UnmatchedKind })[] | null = null
   let unlinkedError = ''
   let threadsChecked = 0
 
@@ -53,7 +58,7 @@ export default async function DashboardPage() {
     unlinkedError = 'Supabase 연결이 없어 확인하지 못했습니다.'
     refsError = 'Supabase 연결이 없어 소재·가설 목록을 읽지 못했습니다.'
   } else {
-    const [ci, hy, po, dr, ln] = await Promise.all([
+    const [ci, hy, po, dr, ln, cl] = await Promise.all([
       supabase.from('content_items').select('code, title').order('code'),
       supabase.from('hypotheses').select('code, statement').order('code'),
       // 성과 입력 대상은 발행된 글뿐이다. 초안은 published_at 이 없어 경과 시간을
@@ -72,7 +77,10 @@ export default async function DashboardPage() {
         .in('status', ['draft', 'pending_review'])
         .order('created_at', { ascending: false }),
       // 이미 연결된 Threads id (매처 route.ts 2단계와 같다).
-      supabase.from('posts').select('external_id').not('external_id', 'is', null),
+      supabase.from('posts').select('external_id, content_code').not('external_id', 'is', null),
+      // 승인된 칼럼의 연재 편. 매처와 같은 후보 집합을 봐야 한다 — 이걸 빼면 칼럼
+      // 연재의 발행본이 "파이프라인 외"로 오분류된다(2026-09-16 게시물).
+      supabase.from('content_columns').select('id, slug, title, threads').eq('review_status', 'approved'),
     ])
 
     contentItems = ci.data ?? []
@@ -82,13 +90,15 @@ export default async function DashboardPage() {
     postsOk = !po.error
     draftsOk = !dr.error
 
-    const errs = [ci.error, hy.error, po.error, dr.error, ln.error].filter(Boolean)
+    const errs = [ci.error, hy.error, po.error, dr.error, ln.error, cl.error].filter(Boolean)
     if (errs.length) loadError = errs.map(e => e!.message).join(' / ')
     const refErrs = [ci.error, hy.error].filter(Boolean)
     if (refErrs.length) refsError = `소재·가설 목록을 읽지 못했습니다 (${refErrs.map(e => e!.message).join(' / ')}).`
 
-    if (dr.error || ln.error) {
-      unlinkedError = '초안 또는 기연결 게시물 조회에 실패해 확인하지 못했습니다.'
+    // 후보 집합(초안 + 칼럼 연재 편) 중 하나라도 못 읽으면 분류를 신뢰할 수 없다.
+    // 빠진 후보를 "안 닮았다"로 읽는 순간 칼럼 발행본이 파이프라인 외로 내려간다(§7.1).
+    if (dr.error || ln.error || cl.error) {
+      unlinkedError = '초안·기연결 게시물·칼럼 연재 편 중 하나를 읽지 못해 확인하지 못했습니다.'
     } else {
       // ensureValidToken 은 DB 조회 실패도 null 로 돌려준다 — "토큰 없음"으로 단정하지 않는다.
       const creds = await ensureValidToken()
@@ -100,42 +110,69 @@ export default async function DashboardPage() {
           unlinkedError = `Threads 게시물 조회 실패 (HTTP ${recent.status}).`
         } else {
           const linked = new Set((ln.data ?? []).map(r => r.external_id as string))
+          const linkedCodes = new Set((ln.data ?? []).map(r => r.content_code as string | null).filter(Boolean))
           const threads = recent.data.filter(t => t.id && !linked.has(t.id))
           threadsChecked = recent.data.length
+          // 매처와 같은 후보 집합: posts 초안 + 아직 연결 안 된 승인 칼럼 편.
+          const episodes = flattenEpisodes((cl.data ?? []) as ColumnRow[]).filter(e => !linkedCodes.has(e.code))
+          const episodeCandidates = asCandidates(episodes)
           // 매처가 다음 정각에 스스로 붙일 글은 빼고, 매처가 포기한 글만 올린다.
           const { unmatchedThreads } = matchDrafts(drafts, threads)
           const byId = new Map(drafts.map(d => [d.id, d]))
           unlinked = threads
             .filter(t => unmatchedThreads.includes(t.id))
-            .map(t => ({
-              id: t.id,
-              text: t.text ?? '',
-              permalink: t.permalink ?? null,
-              timestamp: t.timestamp ?? null,
-              whenKst: t.timestamp
-                ? new Date(t.timestamp).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
-                : '시각 없음',
-              // 점수가 낮아도 전부 고를 수 있어야 한다. 자동 선택도, 여기서 잘라내는 것도
-              // 하지 않는다 — 화면이 상위 몇 건만 펼치고 나머지 전체에는 검색으로 닿게 한다
-              // (draft-link-form.tsx). 여기서 자르면 순위가 틀렸을 때 우회할 길이 사라진다.
-              candidates: rankDraftsFor(t, drafts).map(({ draftId, score }) => {
-                const d = byId.get(draftId)!
-                return {
-                  id: draftId,
-                  score,
-                  code: d.content_code ?? d.status,
-                  createdKst: kstMinute(d.created_at),
-                  // 판정 근거로 보여 주고, 동시에 검색 대상이 된다.
-                  // ponytail: 본문 앞 90자만 내려보낸다(초안 × 게시물 만큼 복제되는 값이다).
-                  //   본문 중간 문구로 찾아야 할 일이 생기면 서버 쪽 검색으로 바꾼다.
-                  preview: oneLine(d.body, 90),
-                }
-              }),
-            }))
+            .map(t => {
+              const info = classifyUnmatched(t, drafts, episodeCandidates)
+              return {
+                id: t.id,
+                text: t.text ?? '',
+                permalink: t.permalink ?? null,
+                timestamp: t.timestamp ?? null,
+                whenKst: t.timestamp
+                  ? new Date(t.timestamp).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
+                  : '시각 없음',
+                kind: info.kind,
+                // 분류 근거를 행에 같이 적는다. 사람이 "왜 여기 있나"를 물었을 때
+                // 화면만 보고 답할 수 있어야 한다.
+                why: info.bestScore !== null
+                  ? `1등 후보 ${info.bestFrom === 'episode' ? `칼럼 편 ${info.bestId}` : '초안'} · 유사도 ${info.bestScore.toFixed(3)}`
+                    + (info.kind === 'off_pipeline' ? ` (기준 ${OFF_PIPELINE_MAX} 미만)` : '')
+                  : info.undecidable === 'no_text' ? '게시물 본문 없음 — 유사도 비교 불가'
+                    : '비교 가능한 후보 0건 — 유사도 비교 불가',
+                // 점수가 낮아도 전부 고를 수 있어야 한다. 자동 선택도, 여기서 잘라내는 것도
+                // 하지 않는다 — 화면이 상위 몇 건만 펼치고 나머지 전체에는 검색으로 닿게 한다
+                // (draft-link-form.tsx). 여기서 자르면 순위가 틀렸을 때 우회할 길이 사라진다.
+                // ⚠️ 후보는 posts 초안뿐이다 — 칼럼 연재 편은 posts 행이 없어 여기 못 들어온다.
+                //    그 편이 1등이면 아래 Notice 가 스테이징 명령을 안내한다.
+                candidates: rankDraftsFor(t, drafts).map(({ draftId, score }) => {
+                  const d = byId.get(draftId)!
+                  return {
+                    id: draftId,
+                    score,
+                    code: d.content_code ?? d.status,
+                    createdKst: kstMinute(d.created_at),
+                    // 판정 근거로 보여 주고, 동시에 검색 대상이 된다.
+                    // ponytail: 본문 앞 90자만 내려보낸다(초안 × 게시물 만큼 복제되는 값이다).
+                    //   본문 중간 문구로 찾아야 할 일이 생기면 서버 쪽 검색으로 바꾼다.
+                    preview: oneLine(d.body, 90),
+                  }
+                }),
+              }
+            })
         }
       }
     }
   }
+
+  // 분류별 목록. unlinked === null(확인 불가)이면 전부 빈 배열이 되므로, 화면에서는
+  // 반드시 unlinked === null 분기를 먼저 본다 — 확인 불가를 0건으로 접지 않는다(§7.1).
+  const ofKind = (...ks: UnmatchedKind[]) => (unlinked ?? []).filter(u => ks.includes(u.kind))
+  // 조치 대상: 바로 연결할 것 + 칼럼 연재 편(posts 스테이징 후 연결).
+  const actionable = ofKind('manual_link', 'column_episode')
+  const columnEpisode = ofKind('column_episode')
+  const offPipeline = ofKind('off_pipeline')
+  const undecidable = ofKind('undecidable')
+  const asideN = offPipeline.length + undecidable.length
 
   const pendingN = drafts.filter(d => d.status === 'pending_review').length
   const DRAFT_LIMIT = 50
@@ -172,12 +209,17 @@ export default async function DashboardPage() {
 
       {/* 지금 할 일 — 숫자마다 기준(몇 건 중·어디서 셌나)을 붙인다. 누르면 해당 섹션으로 간다. */}
       <StatGrid min={160}>
+        {/* 숫자는 "사람이 조치할 것"만이다(연결 + 칼럼 편 스테이징). 파이프라인 외 게시물과
+            판정 불가는 여기서 빼고 캡션에 건수만 남긴다 — 섞으면 매번 경고가 떠서 아무도 안 본다. */}
         <StatTile
           href="#unlinked"
           label="초안에 안 붙은 발행 글"
-          tone={unlinked === null ? 'danger' : unlinked.length > 0 ? 'warning' : 'success'}
-          value={unlinked === null ? '확인 불가' : `${unlinked.length}건`}
-          caption={unlinked === null ? '아래 사유 참고' : `최근 ${LOOKBACK_DAYS}일 Threads 게시물 ${threadsChecked}건 중`}
+          tone={unlinked === null ? 'danger' : actionable.length > 0 ? 'warning' : 'success'}
+          value={unlinked === null ? '확인 불가' : `${actionable.length}건`}
+          caption={unlinked === null
+            ? '아래 사유 참고'
+            : `최근 ${LOOKBACK_DAYS}일 Threads 게시물 ${threadsChecked}건 중`
+              + (asideN > 0 ? ` · 파이프라인 외·판정 불가 ${asideN}건 별도` : '')}
         />
         <StatTile
           href="#drafts"
@@ -203,10 +245,10 @@ export default async function DashboardPage() {
       <Card
         id="unlinked"
         title="초안에 안 붙은 발행 글"
-        subtitle={`최근 ${LOOKBACK_DAYS}일 Threads 게시물 중 매처가 어떤 초안에도 자동 연결하지 않은 글. 발행 전에 본문을 크게 고쳐 쓰면 여기로 온다.`}
+        subtitle={`최근 ${LOOKBACK_DAYS}일 Threads 게시물 중 매처가 어떤 초안에도 자동 연결하지 않은 글. 발행 전에 본문을 크게 고쳐 쓰면 여기로 온다. 후보는 초안 + 승인된 칼럼 연재 편이고, 그 어느 것과도 유사도가 ${OFF_PIPELINE_MAX} 미만인 글은 아래 접이단으로 따로 뺀다.`}
         action={
           unlinked === null ? <Badge tone="danger">확인 불가</Badge>
-            : unlinked.length > 0 ? <Badge tone="warning" dot>처리 필요 {unlinked.length}건</Badge>
+            : actionable.length > 0 ? <Badge tone="warning" dot>처리 필요 {actionable.length}건</Badge>
               : <Badge tone="success">0건</Badge>
         }
         bodyStyle={unlinked?.length === 0 ? { padding: 0 } : undefined}
@@ -220,7 +262,50 @@ export default async function DashboardPage() {
             description={`최근 ${LOOKBACK_DAYS}일 게시물 ${threadsChecked}건을 확인했습니다.`}
           />
         ) : (
-          <UnlinkedThreadList items={unlinked} />
+          <div style={{ display: 'grid', gap: 16 }}>
+            {actionable.length > 0 ? (
+              <>
+                <UnlinkedThreadList items={actionable} />
+                {columnEpisode.length > 0 && (
+                  <Notice tone="warning" title={`칼럼 연재 편의 발행본 ${columnEpisode.length}건 — 연결할 초안 행이 아직 없습니다.`}>
+                    1등 후보가 <code>COL-…</code> 코드면 그 글의 원본은 <code>content_columns.threads[]</code> 의 연재 편입니다.
+                    그 편은 <code>posts</code> 행이 없어 위 드롭다운에 나오지 않습니다. 먼저
+                    <code> node --env-file=.env.local scripts/column-threads-stage.mjs --slug &lt;slug&gt; --apply </code>
+                    로 편을 발행 대기 초안으로 올린 다음 연결하세요(성과 수집은 <code>posts.status=&apos;published&apos;</code> 만 봅니다).
+                  </Notice>
+                )}
+              </>
+            ) : (
+              <p style={muted}>
+                사람이 연결할 게시물은 없습니다 — 아래 {asideN}건은 파이프라인 산출물로 보이지 않거나 판정할 수 없는 글입니다.
+              </p>
+            )}
+
+            {/* 파이프라인 외·판정 불가. 경고에서는 뺐지만 사라지게 두지 않는다.
+                연결 폼은 그대로 붙어 있다 — 분류가 사람의 판단을 막지 않는다. */}
+            {asideN > 0 && (
+              <details>
+                <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--text-muted)' }}>
+                  파이프라인 외 게시물 {offPipeline.length}건 · 판정 불가 {undecidable.length}건 (조치 대상 아님 — 펼쳐서 확인)
+                </summary>
+                <div style={{ display: 'grid', gap: 16, marginTop: 12 }}>
+                  {offPipeline.length > 0 && (
+                    <UnlinkedThreadList
+                      items={offPipeline}
+                      intro={`초안·칼럼 연재 편 어느 것과도 유사도가 ${OFF_PIPELINE_MAX} 미만이라 파이프라인 산출물의 발행본으로 보기 어려운 글입니다(초안 없이 직접 쓴 글). 그래도 붙일 초안이 있으면 여기서 연결하면 됩니다 — 분류는 참고일 뿐입니다.`}
+                    />
+                  )}
+                  {undecidable.length > 0 && (
+                    <UnlinkedThreadList
+                      items={undecidable}
+                      intro={'유사도 비교 자체를 못 한 글입니다(게시물 본문 없음 또는 비교 가능한 후보 0건). '
+                        + '‘닮은 초안이 없다’가 아니라 ‘닮았는지 볼 수 없다’입니다 — 맞는 초안을 아는 사람이 직접 고르세요.'}
+                    />
+                  )}
+                </div>
+              </details>
+            )}
+          </div>
         )}
       </Card>
 

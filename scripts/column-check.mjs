@@ -50,20 +50,31 @@ export function checkThreads(src) {
   const out = []
   for (let k = 1; k < parts.length; k += 2) {
     const p = parts[k + 1]
-    let body = (p.match(/```text\n([\s\S]*?)```/) || [])[1]
-    if (body === undefined) body = (p.match(/\*\*본문\*\*\s*\n([\s\S]*?)\n\s*\*\*자기답글\*\*/) || [])[1]
-    body = (body || '').replace(/\n$/, '')
+    // 블록을 전부 모은다. ```text 펜스가 본문·자기답글 순으로 온다.
+    // 첫 펜스만 보면 자기답글이 통째로 검사에서 빠진다(2026-09-17 juicero 4편에서 실제로 놓쳤다).
+    let blocks = [...p.matchAll(/```text\n([\s\S]*?)```/g)].map((m) => m[1].replace(/\n+$/, ''))
+    if (!blocks.length) {
+      const b = (p.match(/\*\*본문\*\*\s*\n([\s\S]*?)\n\s*\*\*자기답글\*\*/) || [])[1]
+      const r = (p.match(/\*\*자기답글\*\*\s*\n([\s\S]*)$/) || [])[1]
+      blocks = [b, r].filter((x) => x !== undefined).map((x) => x.replace(/\n+$/, '').trim())
+    }
+    const body = blocks[0] || ''
     const errors = [], warns = []
     const n = len(body)
     if (!body) errors.push('본문 블록을 찾지 못했다 (```text 또는 **본문**/**자기답글**)')
-    if (n > THREAD_MAX) errors.push(`본문 ${n}자 — ${THREAD_MAX}자 초과`)
+    // 길이는 블록마다 독립으로 본다. 자기답글은 개수 제한이 없고 이어 달 수 있다(가이드 §5).
+    // 기호·출처 검사는 본문에만 건다 — 자기답글은 출처 URL 을 적는 자리다.
+    const overs = blocks
+      .map((b, i) => ({ label: i === 0 ? '본문' : `자기답글 ${i}`, c: len(b) }))
+      .filter((x) => x.c > THREAD_MAX)
+    if (overs.length) errors.push(`${THREAD_MAX}자 초과 — ${overs.map((x) => `${x.label} ${x.c}자`).join(', ')}`)
     if (/[→⇒←—]/.test(body)) errors.push('본문에 기호 (voice-guide §5)')
     if (/\(출처|S-1|8-K|10-K|제3자 검증/.test(body)) errors.push('본문에 출처 괄호·게이트 용어 (voice-guide §5)')
     const hook = body.split('\n')[0] || ''
     if (hook && GENERAL.test(hook + ' ')) warns.push(`훅이 "${hook.slice(0, 20)}…" — 사례에 붙은 문장인지 본다 (가이드 §11)`)
     if (!/마무리 유형/.test(p)) warns.push('마무리 유형(질문·정리) 표기가 없다')
     if (/부정 사례|실패/.test(text.slice(0, 600)) && !/발행:\s*불가/.test(p)) warns.push('부정 사례인데 `발행: 불가` 표시가 없다')
-    out.push({ n: parts[k], chars: n, errors, warns, body })
+    out.push({ n: parts[k], chars: n, blockChars: blocks.map(len), errors, warns, body })
   }
   return out
 }
@@ -78,7 +89,8 @@ function run(paths) {
       if (!res.length) { console.log(`✗ ${f}: 편을 하나도 못 찾았다`); bad++; continue }
       for (const t of res) {
         const mark = t.errors.length ? '✗' : '✓'
-        console.log(`${mark} ${f} ${t.n}편 ${t.chars}자${t.errors.map((e) => `\n    오류: ${e}`).join('')}${t.warns.map((w) => `\n    확인: ${w}`).join('')}`)
+        const reply = t.blockChars.length > 1 ? ` · 자기답글 ${t.blockChars.slice(1).join('/')}자` : ''
+        console.log(`${mark} ${f} ${t.n}편 본문 ${t.chars}자${reply}${t.errors.map((e) => `\n    오류: ${e}`).join('')}${t.warns.map((w) => `\n    확인: ${w}`).join('')}`)
         if (t.errors.length) bad++
       }
     } else if (/\.md$/.test(f) && !/\.(research|analysis|verify)\.md$/.test(f)) {
@@ -112,6 +124,12 @@ function selfTest() {
   assert(t[0].errors.some((e) => e.includes('초과')), 'over 500')
   assert(t[0].warns.some((w) => w.includes('훅이')), 'general hook flagged')
   assert(t[1].errors.length === 0 && t[1].chars === 5, 'bold-format thread parsed')
+  // 본문은 짧고 자기답글만 500자를 넘는 경우. 이걸 못 잡아서 juicero 4편을 놓쳤다.
+  const reply = `# t\n\n## 1편\n\n- 마무리 유형: 질문\n\n\`\`\`text\n짧은 본문\n\`\`\`\n\n**자기답글**\n\n\`\`\`text\n${'다'.repeat(513)}\n\`\`\`\n`
+  const tr = checkThreads(reply)
+  assert(tr[0].chars === 5, 'body still measured alone')
+  assert(tr[0].blockChars.length === 2 && tr[0].blockChars[1] === 513, 'self-reply block captured')
+  assert(tr[0].errors.some((e) => e.includes('자기답글 1 513자')), 'over-length self-reply flagged with label')
   console.log('self-test ok')
 }
 

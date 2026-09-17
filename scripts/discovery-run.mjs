@@ -228,11 +228,22 @@ async function propose(kind, count, known) {
   //    (2026-09-17 실측 — run 35181944240). json 봉투는 `is_error` 와 `result` 를
   //    실어 주므로 실패 이유가 드러난다. 매일 성공하는 두 호출자
   //    (`lib/insight/llm.ts`, `scripts/cmo-daily.mjs`)도 전부 json 이다.
-  const args = ['-p', '--output-format', 'json', '--max-turns', '1']
-  log(`후보 ${count}건 제안 요청 (kind=${kind}) — 프롬프트 ${Buffer.byteLength(prompt, 'utf8')}B / args: ${args.join(' ')} / cwd=${repoRoot}`)
+  //
+  // ⚠️ `--allowedTools ''` 로 도구를 전부 막는다. 이게 이 호출이 죽던 진짜 이유다:
+  //    2026-09-17 실측(run 35182471112)에서 봉투가 `is_error:true`,
+  //    `stop_reason:"tool_use"`, `num_turns:2` 를 돌려줬다. 모델이 "후기가 많을 법한
+  //    제품"을 고르려고 도구를 집었고 `--max-turns 1` 에 걸려 죽은 것이다.
+  //    설계상 **LLM 은 이름만 낸다 — 건수는 프로브가 센다**(docs/discovery-design.md).
+  //    그러니 도구를 줄 이유가 애초에 없다. 자기 지식으로 한 턴에 답해야 한다.
+  //
+  // ⚠️ cwd 를 리포가 아니라 /tmp 로 둔다. repoRoot 를 주면 claude 가 CLAUDE.md 와
+  //    리포 컨텍스트를 통째로 읽는다 — 위 실패 한 번에 캐시 생성 22,434 토큰,
+  //    $0.098 이 들었다. 이름 2개 받는 데 리포를 읽힐 이유가 없다.
+  //    (성공하는 lib/insight/llm.ts 도 cwd 를 주지 않아 기본값 /tmp 를 쓴다.)
+  const args = ['-p', '--output-format', 'json', '--allowedTools', '', '--max-turns', '1']
+  log(`후보 ${count}건 제안 요청 (kind=${kind}) — 프롬프트 ${Buffer.byteLength(prompt, 'utf8')}B / args: ${JSON.stringify(args)} / cwd=/tmp`)
 
   const r = await runClaude(bin, args, {
-    cwd: repoRoot,
     // ⚠️ DB 자격증명을 자식에게 주지 않는다(CLAUDE.md §10.1). 이름만 받으면 된다.
     env: { CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN },
     timeoutMs: 5 * 60_000,
@@ -244,7 +255,17 @@ async function propose(kind, count, known) {
   if (r.exitCode !== 0) {
     log(`⚠️ claude exit ${r.exitCode}${r.timedOut ? ' (timeout)' : ''} / stderr ${r.stderr.length}B / stdout ${r.stdout.length}B / 넘긴 env 키: ${childEnvKeys.join(',')}`)
     if (r.stderr.trim()) log(`   stderr: ${r.stderr.slice(0, 500)}`)
-    if (r.stdout.trim()) log(`   stdout: ${r.stdout.slice(0, 500)}`)
+    // 봉투가 읽히면 판정에 쓰이는 필드부터 따로 찍는다. stop_reason='tool_use' 는
+    // "도구를 집었다가 턴 상한에 걸렸다"는 뜻이라 원문 500자에 묻히면 놓친다.
+    try {
+      const env = JSON.parse(r.stdout)
+      if (env && typeof env === 'object') {
+        log(`   봉투: is_error=${env.is_error} stop_reason=${env.stop_reason} num_turns=${env.num_turns} cost=$${env.total_cost_usd}`)
+        if (env.result) log(`   result: ${String(env.result).slice(0, 300)}`)
+      }
+    } catch {
+      if (r.stdout.trim()) log(`   stdout: ${r.stdout.slice(0, 500)}`)
+    }
     if (!r.stderr.trim() && !r.stdout.trim()) {
       log('   둘 다 비었다 — claude 가 자격증명·설정 단계에서 떴다가 조용히 죽은 형태다.')
     }

@@ -30,6 +30,8 @@ export type UnlinkedThread = {
   whenKst: string
   /** 본문 유사도 내림차순. label 에 점수가 들어 있다. */
   candidates: { id: string; label: string }[]
+  /** 왜 이 분류인지(최고 유사도·비교 불가 사유). 분류가 판단을 대신하지 않도록 근거를 같이 보여준다. */
+  why?: string
 }
 
 const rowStyle = {
@@ -105,6 +107,7 @@ function UnlinkedThreadRow({ t }: { t: UnlinkedThread }) {
       </p>
       <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
         발행 {t.whenKst} · 게시물 ID {t.id}
+        {t.why ? ` · ${t.why}` : ''}
         {t.permalink ? <> · <a href={t.permalink} target="_blank" rel="noreferrer">게시물 열기 ↗</a></> : null}
       </p>
 
@@ -146,13 +149,21 @@ function UnlinkedThreadRow({ t }: { t: UnlinkedThread }) {
   )
 }
 
-export function UnlinkedThreadList({ items }: { items: UnlinkedThread[] }) {
+const DEFAULT_INTRO =
+  '사람이 올렸지만 매처가 어느 초안의 글인지 확신하지 못한 게시물입니다. 게시물을 열어 보고 맞는 초안을 '
+  + '고르세요. 점수가 낮아도 같은 글이면 연결하면 됩니다. 연결하면 초안 본문이 발행본으로 바뀌고 '
+  + '성과 수집(매시 30분)이 시작됩니다. 해당 초안이 없으면(초안 없이 쓴 글) 연결하지 말고 두세요.'
+
+/**
+ * 미연결 게시물 목록. `intro` 로 분류별 안내를 갈아 끼운다 — 어느 분류든 **연결 폼은 같다.**
+ * "파이프라인 외"로 분류된 글도 사람이 나중에 초안에 붙일 수 있어야 한다(분류가 판단을 대신
+ * 내리지 않는다). 폼을 빼거나 비활성화하지 마라.
+ */
+export function UnlinkedThreadList({ items, intro = DEFAULT_INTRO }: { items: UnlinkedThread[]; intro?: string }) {
   return (
     <>
       <p style={{ margin: '0 0 16px', fontSize: 13, lineHeight: 1.6, color: 'var(--text-muted)' }}>
-        사람이 올렸지만 매처가 어느 초안의 글인지 확신하지 못한 게시물입니다. 게시물을 열어 보고 맞는 초안을
-        고르세요. 점수가 낮아도 같은 글이면 연결하면 됩니다. 연결하면 초안 본문이 발행본으로 바뀌고
-        성과 수집(매시 30분)이 시작됩니다. 해당 초안이 없으면(초안 없이 쓴 글) 연결하지 말고 두세요.
+        {intro}
       </p>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
         {items.map(t => (

@@ -13,6 +13,13 @@
 //      + body 를 발행본으로 덮어쓴다(아래 📌 참조).
 //      새 행은 절대 만들지 않는다. 못 붙인 건 목록으로 응답에 남기고, 사람이
 //      /dashboard 의 "미매칭 초안" 섹션에서 직접 연결한다.
+//   5. 못 붙은 게시물을 분류해 기록한다. 후보 집합은 posts 초안 + 승인된 칼럼 연재 편
+//      (content_columns.threads[])이다 — 초안만 보면 칼럼 연재의 발행본이
+//      "파이프라인 외"로 오분류된다(2026-09-16 게시물이 그 사례다).
+//      manual_link(바로 연결) · column_episode(편을 posts 로 스테이징 후 연결) ·
+//      off_pipeline(초안 없이 직접 쓴 글) · undecidable(비교 불가).
+//      ⚠️ 는 앞의 둘만 받는다. 판정 근거는 lib/threads/match.ts OFF_PIPELINE_MAX 주석에 있다.
+//      ⛔ 칼럼 편은 분류·보고에만 쓴다. 여기서 posts 행을 만들지 않는다.
 //
 // 📥 왜 pending_review 도 스캔하는가
 //
@@ -76,7 +83,9 @@ import { NextResponse } from 'next/server'
 import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
 import { loadThreadsToken, tokenFailure } from '@/lib/threads/token'
-import { matchDrafts, type DraftRow, type ThreadsPost } from '@/lib/threads/match'
+import { matchDrafts, classifyUnmatched, type DraftRow, type ThreadsPost, type UnmatchedInfo } from '@/lib/threads/match'
+// 칼럼 연재 편 후보. 자동 연결 대상이 아니라 분류·보고용이다(같은 파일 헤더 참조).
+import { loadApprovedEpisodes, asCandidates } from '@/lib/threads/column-episodes'
 // 조회 창(기간·개수)은 대시보드 "초안에 안 붙은 게시물" 목록과 공유한다.
 import { fetchRecentThreads } from '@/lib/threads/recent'
 // 데일리 다이제스트용 "안 붙은 게시물" 기록. 다이제스트는 토큰 없이 DB 만 읽는다(§10.1).
@@ -136,9 +145,12 @@ export async function POST(req: Request) {
   }, {})
 
   // ── 2) 이미 연결된 Threads id ─────────────────────────────────
+  // content_code 도 같이 읽는다 — 이미 연결된 칼럼 연재 편(COL-<slug>-<편>)을
+  // 후보에서 빼는 데 쓴다. content_columns 에는 연결 여부를 적을 칸이 없어서,
+  // "그 편의 posts 행이 연결됐는가"가 유일한 판별식이다.
   const { data: linkedRows, error: linkedErr } = await supabase
     .from('posts')
-    .select('external_id')
+    .select('external_id, content_code')
     .not('external_id', 'is', null)
 
   if (linkedErr) {
@@ -149,6 +161,7 @@ export async function POST(req: Request) {
   }
 
   const linked = new Set((linkedRows ?? []).map(r => r.external_id as string))
+  const linkedCodes = new Set((linkedRows ?? []).map(r => r.content_code as string | null).filter(Boolean))
 
   // ── 3) Threads 게시물 조회 ────────────────────────────────────
   const recent = await fetchRecentThreads(creds.accessToken)
@@ -251,6 +264,37 @@ export async function POST(req: Request) {
     applied.push({ draftId: m.draftId, threadsId: m.threadsId, score: Number(m.score.toFixed(3)), from: draft.status })
   }
 
+  // ── 6) 미연결 게시물 분류 ─────────────────────────────────────
+  //
+  // 후보 집합을 **먼저** 넓힌다: posts 초안 + 승인된 칼럼 연재 편. 그 다음에
+  // 분류한다. 순서를 뒤집으면(초안만 보고 "파이프라인 외"를 가르면) 칼럼 연재의
+  // 발행본이 전부 오분류된다 — 2026-09-16 게시물이 그 사례다.
+  //
+  // 판정은 lib/threads/match.ts 가 하고 대시보드도 같은 함수를 쓴다 — 두 곳에서
+  // 따로 판정하면 화면과 다이제스트가 조용히 갈라진다.
+  const eps = await loadApprovedEpisodes(supabase)
+  if (eps.error) console.error(`[match] 칼럼 연재 편 조회 실패: ${eps.error}`)
+  // 이미 연결된 편은 후보에서 뺀다(그 편의 posts 행이 external_id 를 가졌다).
+  const episodeCandidates = eps.episodes
+    ? asCandidates(eps.episodes.filter(e => !linkedCodes.has(e.code)))
+    : null
+
+  const unmatched = threads
+    .filter(t => outcome.unmatchedThreads.includes(t.id))
+    .map(t => ({
+      thread: t,
+      // 후보를 못 읽었으면 "안 닮았다"가 아니라 "판정 불가"다(§7.1).
+      info: episodeCandidates
+        ? classifyUnmatched(t, drafts, episodeCandidates)
+        : ({
+            threadsId: t.id, kind: 'undecidable', bestScore: null, bestId: null,
+            bestFrom: null, undecidable: 'candidates_unavailable',
+          } satisfies UnmatchedInfo),
+    }))
+  const ofKind = (...ks: UnmatchedInfo['kind'][]) => unmatched.filter(u => ks.includes(u.info.kind))
+  // ⚠️ 대상 = 사람이 조치할 것. 칼럼 편도 조치 대상이다(스테이징 → 연결).
+  const actionable = ofKind('manual_link', 'column_episode')
+
   const summary = {
     ok: failed.length === 0,
     draftsScanned: drafts.length,
@@ -269,29 +313,55 @@ export async function POST(req: Request) {
     })),
     // 어떤 초안과도 안 붙은 게시물. 대개 매처 도입 이전 글이거나 자답글이다.
     unmatchedThreads: outcome.unmatchedThreads,
+    // 그 내역. manual_link·column_episode 가 조치 대상이다.
+    unmatchedDetail: unmatched.map(u => detailOf(u.info)),
+    columnEpisodes: eps.episodes
+      ? { candidates: episodeCandidates?.length ?? 0, error: null }
+      : { candidates: null, error: eps.error },
   }
 
   const scanBreakdown = SCANNED_STATUSES.map(s => `${s} ${scannedByStatus[s] ?? 0}`).join(' + ')
   const appliedFrom = SCANNED_STATUSES.map(s => `${s} ${applied.filter(a => a.from === s).length}`).join(' + ')
-  console.info(`[match] 초안 ${drafts.length}(${scanBreakdown}) / 게시물 ${threads.length} → 연결 ${applied.length}(${appliedFrom}), 보류 ${summary.skipped.length}, 실패 ${failed.length}`)
+  const unmatchedBreakdown = `수동연결 ${ofKind('manual_link').length} + 칼럼편 ${ofKind('column_episode').length}`
+    + ` + 파이프라인외 ${ofKind('off_pipeline').length} + 판정불가 ${ofKind('undecidable').length}`
+  console.info(`[match] 초안 ${drafts.length}(${scanBreakdown}) / 게시물 ${threads.length} → 연결 ${applied.length}(${appliedFrom}), 보류 ${summary.skipped.length}, 실패 ${failed.length}, 미연결 게시물 ${unmatched.length}(${unmatchedBreakdown})`)
 
-  // 대시보드 "초안에 안 붙은 게시물" 과 같은 정의(unmatchedThreads)로 센다 —
-  // 다이제스트가 "N건, /dashboard 에서 연결" 이라고 할 때 화면에 같은 N건이 떠야 한다.
+  // 대시보드 "초안에 안 붙은 게시물" 과 같은 분류로 센다 — 다이제스트가
+  // "N건, /dashboard 에서 연결" 이라고 할 때 화면의 그 섹션에 같은 N건이 떠야 한다.
+  // 경과 시간도 조치 대상(manual_link + column_episode) 기준이다 — 파이프라인 외 글의
+  // 나이는 아무 조치를 부르지 않으므로, 섞으면 "몇 시간 경과"가 오도한다.
   // 토큰·DB 실패로 여기까지 못 오면 기록이 안 남고, 다이제스트는 3시간 뒤 '확인 불가'가 된다.
-  const unlinkedTs = threads
-    .filter(t => outcome.unmatchedThreads.includes(t.id))
-    .map(t => t.timestamp)
+  const oldestActionable = actionable
+    .map(u => u.thread.timestamp)
     .filter((ts): ts is string => !!ts)
     .sort((a, b) => Date.parse(a) - Date.parse(b))
   await recordUnlinkedCheck(supabase, {
     status: 'ok',
-    unlinked: outcome.unmatchedThreads.length,
-    oldestTimestamp: unlinkedTs[0] ?? null,
+    unlinked: ofKind('manual_link').length,
+    columnEpisode: ofKind('column_episode').length,
+    offPipeline: ofKind('off_pipeline').length,
+    undecidable: ofKind('undecidable').length,
+    // 분류 근거를 그대로 남긴다. 사람이 "왜 이 분류인가"를 DB 만 보고 되짚을 수 있어야
+    // 하고, 임계값을 다시 정할 때 쓸 실측점이 여기 쌓인다(미연결은 많아도 한 줌이다).
+    candidates: unmatched.map(u => detailOf(u.info)),
+    oldestTimestamp: oldestActionable[0] ?? null,
     threadsChecked: recent.data.length,
     applyFailed: failed.length,
   })
 
   return NextResponse.json(summary)
+}
+
+/** 분류 1건의 기록 모양. 응답과 agent_run_steps.detail 이 같은 값을 쓴다. */
+function detailOf(info: UnmatchedInfo) {
+  return {
+    threadsId: info.threadsId,
+    kind: info.kind,
+    bestScore: info.bestScore === null ? null : Number(info.bestScore.toFixed(3)),
+    bestId: info.bestId,
+    bestFrom: info.bestFrom,
+    undecidable: info.undecidable,
+  }
 }
 
 // Threads 는 사용량을 헤더로만 알려준다. 남겨두지 않으면 한도에 닿았을 때

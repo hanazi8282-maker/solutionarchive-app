@@ -24,6 +24,11 @@ jobs:
       # Threads 토큰 3상태·refresh-token 크론 응답(만료·임박을 200 으로 숨기지 않는다), 크론 감시 판정.
       - run: node scripts/threads-token-selftest.mjs
       - run: node scripts/cron-watchdog-selftest.mjs
+      # 발행 매칭·미연결 분류. 후보 집합(초안 + 칼럼 연재 편)이 좁아지면 칼럼 발행본이
+      # "파이프라인 외"로 조용히 내려간다 — 그 회귀를 여기서 막는다. 네트워크·DB 없음.
+      - run: node scripts/threads-match-selftest.mjs
+      # 칼럼 연재 편 → posts 스테이징 행 생성. 연결된 행을 덮어쓰지 않는지 포함.
+      - run: node scripts/column-threads-stage.mjs --self-test
       # 추출 시작 게이트가 서버·화면 한 벌인지. 갈라지면 시작할 수 있는데 버튼이 없는 화면이 된다.
       - run: node scripts/analyze-extract-gate-selftest.mjs
       # 어드바이저 매칭 3상태·불용어 회귀·SP-024 저신뢰 판정. 픽스처만 쓴다(네트워크·DB 없음).

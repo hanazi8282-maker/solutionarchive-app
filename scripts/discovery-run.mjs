@@ -337,7 +337,11 @@ async function main() {
   log(`발굴 루프 시작 — ${dryRun ? 'DRY RUN (DB 쓰기 0건)' : '적재 모드'} / 목표 ${TARGET}건 / 최소 ${MIN_HITS} hits`)
 
   const known = await loadKnown()
-  const kind = arg('kind', process.env.DISCOVERY_KIND) ?? nextKind(known.recentKinds)
+  // ⚠️ `??` 를 쓰면 안 된다. 워크플로가 `DISCOVERY_KIND: ${{ inputs.kind }}` 로 넘기는데,
+  //    schedule 실행에는 inputs 가 없어 **빈 문자열**이 들어온다. `??` 는 null/undefined 만
+  //    폴백하므로 `''` 이 그대로 통과해 "이번에 뽑을 수 없는 축이다: " 로 매번 죽는다
+  //    (2026-09-17 실측 — 첫 크론 실행 전에 dry-run 으로 잡았다). 빈 값 = 미지정이다.
+  const kind = arg('kind', process.env.DISCOVERY_KIND) || nextKind(known.recentKinds)
   if (!ACTIVE_KINDS.includes(kind)) {
     throw new Error(`이번에 뽑을 수 없는 축이다: ${kind} (가능: ${ACTIVE_KINDS.join(', ')})`)
   }

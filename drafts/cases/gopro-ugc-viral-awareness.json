@@ -8,6 +8,7 @@
   "purchase_frequency": "OCCASIONAL",
   "price_band": "MID",
   "bottleneck": "AWARENESS",
+  "reader_problem": "NO_CHANNEL",
   "outcome_status": "active",
   "period_start": "2011-01-01",
   "period_end": "2014-05-19",
@@ -18,6 +19,8 @@
     {
       "lever": "CONTENT",
       "claim": "카메라 자체를 '내 콘텐츠를 만드는 도구'로 포지셔닝하고, 사용자가 찍은 영상을 유튜브·소셜에 대량으로 업로드하도록 설계했다(영상 내 'GoPro' 태그, GoPro Awards 보상 프로그램). 이 사용자 제작 콘텐츠가 유료 광고 없이 인지도를 유통시켰고, 그 결과 매출은 4배 넘게 늘면서도 매출 대비 판매·마케팅비 비중은 하락했다.",
+      "transfer_note": "내 제품을 쓰는 고객이 직접 찍은 사진·영상을 이번 주에 10개 모아, 그중 좋은 3개를 고객 이름과 함께 내 채널에 올리고 상세페이지에도 붙여라. 그리고 다음 주 발송 상자에 찍어서 지정 태그로 올리면 매달 뽑아 소개한다는 카드 한 장을 넣는다.",
+      "preconditions": "제품을 쓰는 장면 자체가 볼 만해야 한다 — 결과물이 눈에 보이지 않는 제품이면 이 행동이 붙지 않는다. 고객 콘텐츠를 쓰겠다는 동의를 받는 절차와, 매달 고르고 올릴 사람 한 명의 시간이 필요하다.",
       "outcome_direction": "positive",
       "metric_name": "매출 대비 판매·마케팅비 비중",
       "metric_before": 27.5,

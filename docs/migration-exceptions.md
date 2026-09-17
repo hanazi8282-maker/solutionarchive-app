@@ -1,7 +1,13 @@
-# 마이그레이션 적용 원칙의 예외 이력
+# 마이그레이션 적용 이력
 
-> `CLAUDE.md §10.1` 은 "마이그레이션 적용은 사람이 한다"고 정한다. 이 문서는 남헌이 1회성으로 예외를 승인해 클로드코드가 직접 적용한 이력이다.
-> 원칙 문구는 바뀌지 않았다. 새 예외가 생기면 여기에 덧붙이고, `CLAUDE.md` 에는 넣지 않는다 — 모든 역할 세션이 시작할 때 읽는 파일이라 이력이 쌓일수록 세션 시작 비용이 커진다 (2026-09-15 기준 이 절만 약 4,000자로 CLAUDE.md 의 27%였다).
+> **2026-09-17 개정** — `CLAUDE.md §10.2` 가 "남헌 승인을 받은 대화형 세션은 적용할 수 있다"로 바뀌었다.
+> 그러므로 이 문서는 더 이상 "예외" 모음이 아니라 **적용 이력**이다.
+>
+> - 아래 2026-09-15 까지의 6건은 개정 전, "사람만 적용"이 원칙이던 시기의 **1회성 예외** 기록이다.
+> - 2026-09-17 이후의 적용은 예외가 아니라 §10.2 절차(승인 → 사전 실측 → 적용 → 양성·음성 검증)를 따른 정상 경로다. 같은 형식으로 이어 쌓는다.
+> - 무인 루프와 서브에이전트는 개정 후에도 적용하지 않는다. 바뀐 것은 대화형 세션의 자리뿐이다.
+>
+> 이력은 `CLAUDE.md` 에 넣지 않는다 — 모든 역할 세션이 시작할 때 읽는 파일이라 이력이 쌓일수록 세션 시작 비용이 커진다 (2026-09-15 기준 이 절만 약 4,000자로 CLAUDE.md 의 27%였다).
 
 
 2026-09-10, 남헌 명시적 승인 — 위 "마이그레이션 적용" 원칙(사람이 대시보드에서
@@ -99,3 +105,36 @@ INFO 34건(의도된 상태). 서버 스크립트는 전부 service_role 이라 
 
 **원칙 문구(§10.1) 자체는 변경하지 않는다. 다음 마이그레이션부터는 별도 승인이
 없는 한 다시 원칙대로 사람이 적용한다.**
+
+> ⚠️ 위 문장은 **2026-09-17 §10.2 개정으로 폐기됐다.** 여기까지가 "예외" 이력이고,
+> 아래부터는 승인 절차를 따른 정상 경로 기록이다.
+
+---
+
+2026-09-17, 남헌 명시적 승인 — **§10.2 개정 당일이자, 개정 절차를 따른 첫 적용이다.**
+마이그레이션 2건을 클로드코드(CEO-STAFF 세션)가 직접 적용함:
+
+- `20260917000001_column_review_patterns.sql` (브랜치 `feat/column-feedback-loop`)
+  — `column_review_patterns` 테이블 신규 + `content_columns.feedback_at` 컬럼 추가.
+- `20260921000001_discovery_candidates.sql` (브랜치 `feat/voc-discovery-engine`)
+  — `discovery_candidates` 테이블 신규. FK 3건(`review_sources.key`·`analysis_projects.id`·`agent_runs.id`).
+
+두 파일은 **미머지 브랜치의 워크트리에만 있다 — `main` 에는 없다.** 즉 DB 가 코드보다
+앞서 있는 상태이며, 두 브랜치가 머지될 때까지 그렇다.
+
+적용 전 실측: 두 테이블 미존재, 잔여 인덱스 0건, `content_columns.feedback_at` 미존재
+(= 부분 적용 흔적 없음). 선행 `content_columns` 12행 확인. FK 대상 3개 전부 PK 보유.
+`discovery_candidates.sql` 주석이 "`agent_runs` 가 없으면 `run_id` 한 줄을 지우고
+적용하라"고 경고했으나, `agent_runs` 는 17행으로 실재해 **컬럼을 그대로 유지**했다.
+
+MCP `apply_migration` 사용(`project_id` 명시, 반환 스키마가 SolutionArchive 것임을 확인).
+`column_review_patterns.sql` 의 `BEGIN;`/`COMMIT;` 두 줄은 도구가 자체 트랜잭션을 걸어
+중첩 시 바깥 트랜잭션이 조기 커밋될 수 있어 제거했다 — DDL 내용은 원문과 동일하다.
+
+검증(§7.1 양성·음성 둘 다 실행):
+- 양성 11/11 — 컬럼수 12·17, `run_id` 존재, `feedback_at` nullable=YES,
+  `content_columns` 12행 무변동, `feedback_at` 채워진 행 0, 두 테이블 RLS/FORCE 전부
+  true, 정책 0개, FK 3건 생성, `schema_migrations` 이력 2건 등록.
+- 음성 6/6 — status CHECK · `pattern_key` UNIQUE · `accepted_needs_probe` ·
+  verdict CHECK · 대소문자 중복 · `unverified_has_no_project` 전부 거절됨.
+  음성 검사는 `RAISE EXCEPTION` 으로 전체 롤백해 잔존 0행을 확인했다.

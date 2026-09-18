@@ -30,13 +30,17 @@
 //    전부 러너에 있다(types.ts 의 ⛔ 참조).
 //
 // ⚠️ robots.txt 가 **없다**(2026-09-16 실측: `https://theqoo.net/robots.txt`
-//    → HTTP 404, 본문은 Rhymix 에러 HTML). 러너는 4xx 를 "규칙 없음 = 허용"
-//    으로 본다(RFC 9309). 못 볼 규칙이 없으므로 SP-026(쿼리 미판정)도
-//    이 소스에는 해당 사항이 없다 — **나중에 robots 가 생기면 그때부터는
-//    쿼리 규칙을 우리가 못 본다.** 그 전에 러너를 고쳐라.
-//    404 가 200 으로 바뀌면 parseRobots 가 HTML 을 먹고 "규칙 없음"이라는
-//    같은 답을 낸다(groups=0). 그걸 잡는 트립와이어가
-//    scripts/review-robots-selftest.mjs 에 있다.
+//    → HTTP 404, 본문은 Rhymix 에러 HTML).
+//
+//    ⚠️ 2026-09-18 정정. 그 전까지 이 주석은 "러너는 4xx 를 규칙 없음 = 허용으로
+//       본다"고 적었고 그게 실제 동작이었다. **지금은 아니다** — 4xx 는
+//       `unverified` 이고 러너는 요청하지 않는다(SP-032). 이 소스가 도는 것은
+//       아래 `proceedWhenRobotsUnverified` 표식 덕이다.
+//       404 가 200 으로 바뀌어 같은 HTML 이 와도 `looksLikeMarkup` 이 잡는다.
+//
+//    못 볼 규칙이 없으므로 SP-026(쿼리 미판정)도 이 소스에는 해당 사항이 없다 —
+//    **나중에 robots 가 생기면 그때부터는 쿼리 규칙을 우리가 못 본다.**
+//    그 전에 러너를 고쳐라. 트립와이어는 scripts/review-robots-selftest.mjs 에 있다.
 //
 // ⚠️ **1글=1요청이다.** 페이지네이션을 붙이지 마라.
 //
@@ -92,6 +96,15 @@ function stripHtml(s: string): string {
 export const theqooAdapter: ReviewSourceAdapter = {
   key: 'theqoo',
   displayName: '더쿠 게시글',
+
+  // robots 확인 불가여도 진행하는 호스트 (types.ts 의 필드 주석이 규칙 정본).
+  //
+  // ⚠️ `https://theqoo.net/robots.txt` 는 **HTTP 404 에 Rhymix 기본 HTML** 이다
+  //    (2026-09-16 실측, 본문 원문은 scripts/review-robots-selftest.mjs 의
+  //    `theqooSoft404` 에 그대로 있다). 채택 근거는 robots 가 아니라 이용약관
+  //    전문 6,315자 확인이다 — 크롤링·봇·AI·재가공 조항 0건.
+  //    `review_sources.disabled_reason` 에도 "robots.txt 없음(실측 404)"로 적혀 있다.
+  proceedWhenRobotsUnverified: ['theqoo.net'],
 
   nextRequest(target: TargetState): { url: string } | null {
     const p = parseProductRef(target.productRef)

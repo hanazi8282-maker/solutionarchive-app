@@ -47,14 +47,14 @@ async function robotsAllows(url) {
     }
   }
   const groups = robotsCache.get(origin)
-  if (groups === null) return { allowed: false, reason: 'robots.txt 를 읽지 못함' }
+  if (groups === null) return { state: 'unverified', reason: 'robots.txt 를 읽지 못함' }
   return robotsVerdict(groups, u.pathname, PRODUCT_TOKEN)
 }
 
 let reqCount = 0
 async function get(url) {
   const v = await robotsAllows(url)
-  if (!v.allowed) {
+  if (v.state !== 'allowed') {
     return { skipped: true, reason: v.reason, status: null, body: null }
   }
   reqCount++

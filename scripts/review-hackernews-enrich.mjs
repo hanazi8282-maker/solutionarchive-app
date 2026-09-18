@@ -154,7 +154,7 @@ async function main() {
     process.exit(1)
   }
   const probe = robotsVerdict(robotsGroups, '/v0/item/1.json', PRODUCT_TOKEN)
-  if (!probe.allowed) {
+  if (probe.state !== 'allowed') {
     console.error(`❌ robots 가 Firebase item 경로를 막는다 (${probe.reason}) — 멈춘다`)
     process.exit(1)
   }

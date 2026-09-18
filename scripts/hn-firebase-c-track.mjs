@@ -50,14 +50,14 @@ async function robotsAllows(url) {
     }
   }
   const g = robotsCache.get(origin)
-  if (g === null) return { allowed: false, reason: 'robots.txt 를 못 읽음' }
+  if (g === null) return { state: 'unverified', reason: 'robots.txt 를 못 읽음' }
   return robotsVerdict(g, u.pathname, PRODUCT_TOKEN)
 }
 
 let requests = 0
 async function getJson(url) {
   const v = await robotsAllows(url)
-  if (!v.allowed) return { skipped: true, reason: v.reason }
+  if (v.state !== 'allowed') return { skipped: true, reason: v.reason }
   requests++
   const res = await fetch(url, { headers: { 'user-agent': PRODUCT_TOKEN }, signal: AbortSignal.timeout(20_000) })
   if (!res.ok) return { status: res.status }

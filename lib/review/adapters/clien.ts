@@ -142,6 +142,17 @@ export const clienAdapter: ReviewSourceAdapter = {
   key: 'clien',
   displayName: '클리앙 게시글·댓글',
 
+  // robots 확인 불가여도 진행하는 호스트 (types.ts 의 필드 주석이 규칙 정본).
+  //
+  // ⚠️ **이건 "robots 가 없다"가 아니다. 우리에게만 안 보여 준다**(SP-027).
+  //    2026-09-17 실측 4조합: 우리 봇 UA → www 404 · apex 404 /
+  //    브라우저 UA → www 200(1,691B 규칙) · apex 404.
+  //    UA 를 위장해 읽지 않는다(프로브 규칙). 그래서 규칙을 이 파일의
+  //    `parseProductRef` 가 코드로 내재화하고 있고 **그게 유일한 방어선이다**
+  //    — ROBOTS_DENY / 쿼리 금지 / `/service/board/` 접두 가드.
+  //    표식을 달아 진행하는 근거는 그 가드이고, 사람이 인지한 리스크다.
+  proceedWhenRobotsUnverified: ['www.clien.net'],
+
   nextRequest(target: TargetState): { url: string } | null {
     const p = parseProductRef(target.productRef)
     if (!p) return null

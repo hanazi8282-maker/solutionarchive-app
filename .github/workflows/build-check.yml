@@ -54,7 +54,15 @@ jobs:
       - run: node scripts/review-velog-selftest.mjs
       # 위 둘의 소스 키가 마이그레이션·ADAPTERS 맵·워크플로 선택지와 같은 집합인지.
       # 하나라도 빠지면 코드만 있고 수집은 0건인 상태가 로그도 없이 유지된다.
+      #
+      # 여기에 robots fail-closed 경로도 들어 있다(2026-09-18, SP-032):
+      # 403/404/HTML 본문 · `*` 그룹 없음 · `*` 그룹 있고 규칙 0개 · robots 가
+      # 다른 호스트로 리다이렉트 · 소스별 통과 표식 · Crawl-delay.
       - run: node scripts/review-runner-selftest.mjs
+      # robots 순수 판정(3상태 · 와일드카드 · 끝앵커 · ReDoS 방어 · 실측 원문 12종).
+      # ⚠️ 2026-09-18 까지 이 파일은 CI 에 배선돼 있지 않았다 — 리뷰 수집 트랙의
+      #    안전장치인데 사람이 손으로 돌려야만 돌았다. 깨져도 초록불이었다.
+      - run: node scripts/review-robots-selftest.mjs
       # 빌드가 **실제로 읽는** 값만 준다. 나머지는 요청 시점(Vercel env)에서
       # 읽히지 서버 빌드에서 읽히지 않는다. 안 쓰는 이름을 여기 적어 두면
       # "CI 에 배선돼 있으니 등록돼 있겠지"로 읽혀 진단을 헛돌게 만든다.

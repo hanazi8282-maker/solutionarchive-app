@@ -142,3 +142,44 @@ MCP `apply_migration` 사용(`project_id` 명시, 반환 스키마가 SolutionAr
 - 음성 6/6 — status CHECK · `pattern_key` UNIQUE · `accepted_needs_probe` ·
   verdict CHECK · 대소문자 중복 · `unverified_has_no_project` 전부 거절됨.
   음성 검사는 `RAISE EXCEPTION` 으로 전체 롤백해 잔존 0행을 확인했다.
+
+---
+
+## 2026-09-18 — `20260922000001_review_sources_okky_velog.sql` (okky · velog 소스 등록)
+
+2026-09-17 개정(§10.2) 이후의 **정상 경로** 적용이다. 예외가 아니다.
+
+- 승인: 남헌 명시 승인 1회(2026-09-18, "승인했으니 실제 반영해줘"). 대화형 세션(CEO-STAFF)이 적용.
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 리포 정본 스키마 확인
+  (`case_studies`·`agent_runs`·`content_columns`·`review_sources`·`review_targets` 5개 존재,
+  Dothegy OS 발주·공장 테이블 0건).
+- 방식: `supabase db query --linked -f` (CLI 2.105.0). Supabase MCP 는 이 세션에서
+  `CONNECT_TIMEOUT` 으로 붙지 않았다.
+- 비파괴. DDL 없음, 백필 없음 — 새 행 2개 + `review_targets.product_ref` 컬럼 주석 갱신.
+  롤백 파일 있음(`..._rollback.sql`, 행을 지우지 않고 `enabled=false` 로 되돌린다).
+
+**적용 전 실측에서 마이그레이션 파일의 기대값 오류 1건을 잡았다.**
+파일 주석이 "기존 13행 → 적용 후 15행"을 기대값으로 적었는데 **실 DB 는 18행**이었다.
+누락된 5개 키: `naver_blog` · `naver_cafe` · `naver_kin` · `reddit` · `youtube`
+(주석이 나열한 13개는 전부 실재했다 — 빠진 것이지 틀린 것은 아니다).
+그 기대값을 그대로 검증에 썼다면 **20행을 보고 "가짜 실패"를 보고했을 것이다.**
+파일 하단 확인 쿼리의 기대값은 20행으로 읽어야 한다.
+
+dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 20행 · `okky=false` ·
+`velog=false` · `ivl=4000` 확인 후 실적용.
+
+검증(양성·음성 둘 다 직접 실행):
+- 양성 — 총 20행, okky·velog 2행, 둘 다 `enabled=false` · `health='ok'` ·
+  `min_interval_ms=4000` · `daily_request_cap=100`.
+- 양성 — `review_targets.product_ref` 주석에 `okky`·`velog` 반영됨 **그리고**
+  기존 SSRF 경고가 살아 있음(주석은 덮어쓰기라 통째로 날아갈 수 있던 자리).
+- 음성 — `enabled=true` 인 okky·velog 행 0건(활성화는 남헌 결정 대기).
+  전체 `enabled=true` 는 6개로 무변동: `82cook`·`bobaedream`·`damoang`·`danawa`·
+  `hackernews`·`youtube`.
+- `review_targets` 의 okky·velog 타깃 0건 — 등록 전이다.
+
+**수집 실동작은 확인하지 않았다(확인 불가).** 셀프테스트 608건(okky 115 · velog 136 ·
+러너 357)은 전부 픽스처 기반이라 파서를 증명하지만 통합을 증명하지 않는다(§7.1).
+`enabled=false` 이고 타깃 0건이라 러너가 이 두 소스를 아예 건너뛴다. 마이그레이션 주석이
+경고한 대로 실측은 전부 한국 가정용 IP 였고 Actions 러너(Azure egress) 응답은 미측정이다 —
+켜는 날 dry-run 으로 응답 코드를 눈으로 보고 나서 켜야 한다.

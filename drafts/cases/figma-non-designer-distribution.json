@@ -52,9 +52,13 @@
       "is_self_reported": true,
       "is_estimate": false,
       "is_regulatory_filing": true,
+      "is_issuer_defined_metric": true,
+      "observation_key": "figma-s1-2025-07-01-q1fy25",
+      "supports_metric": true,
       "published_at": "2025-07-01",
-      "snippet": "two-thirds of our monthly active users are not designers",
-      "supports_claim": "MAU 1,300만 명과 비디자이너 3분의 2, 개발자 30%. EDGAR 접수일 2025-07-01 을 직접 확인했다. 66% 는 'two-thirds' 를 옮긴 값이라 반올림된 자기보고 수치다."
+      "retrieved_at": "2026-09-18",
+      "snippet": "designers work alongside developers, product managers (\"PMs\"), researchers, marketers, writers, and other non-designers who, in the three months ended March 31, 2025, made up two-thirds of our more than 13 million monthly active users.",
+      "supports_claim": "MAU 1,300만·비디자이너 2/3·개발자 약 30% 의 원문 출처. 같은 공시의 다른 두 문장도 2026-09-18 에 함께 대조했다(스니펫 300자 상한 때문에 여기 옮겨 적는다): \"Dev Mode, a product tailored for developers, who, during the three months ended March 31, 2025, made up approximately 30% of our monthly active users.\" · \"(1) We define monthly active users as the number of unique users that access at least one of our products during a given month.\" 2026-09-18 에 EDGAR 원문(10.8MB)을 직접 내려받아 대조했다 — 종전 스니펫('two-thirds of our monthly active users are not designers')은 S-1 에 그 형태로 존재하지 않는 축약이었다. 66% 는 'two-thirds' 의 반올림이고 13,000,000 은 'more than 13 million' 의 하한이다. ★ is_issuer_defined_metric=true 로 적었다(L-56): 법정 공시이지만 'monthly active users' 를 각주 (1)·(5) 에서 회사가 스스로 정의하고, 그 안의 디자이너/비디자이너 구분도 회사 내부 분류다. 그래서 '법정 공시 1건 → A' 경로를 타지 않는다. ⚠️ claim 문구 '개발자만 30%' 는 원문이 'approximately 30%' 이므로 '약 30%' 가 정확하다."
     },
     {
       "move": 1,
@@ -63,9 +67,13 @@
       "is_self_reported": true,
       "is_estimate": false,
       "is_regulatory_filing": true,
+      "is_issuer_defined_metric": true,
+      "observation_key": "figma-s1-2025-07-01-q1fy25",
+      "supports_metric": true,
       "published_at": "2025-07-01",
-      "snippet": null,
-      "supports_claim": "2025-03-31 기준 NDR 132%(2024-12-31 기준 134%), 연 1만 달러 이상 고객 총유지율 96%, 유료 고객 450,000곳·연 1만 달러 이상 10,517곳, 2개 이상 제품 사용 76%, Global 2000 침투 78% 중 10만 달러 이상 24%, LTM 매출 8.21억 달러·매출총이익률 91%."
+      "retrieved_at": "2026-09-18",
+      "snippet": "We had a Net Dollar Retention Rate (as defined below) of 134% and 132% as of December 31, 2024 and as of March 31, 2025, respectively. / While 78% of the Forbes Global 2000 used Figma in March 2025, only 24% spent more than $100,000 in ARR on Figma as of March 31, 2025.",
+      "supports_claim": "NDR 134%→132%, 2개 이상 제품 사용 76%, Global 2000 78%/24% 의 원문 출처. 2026-09-18 EDGAR 원문 직접 대조. 스니펫 300자 상한 때문에 여기 옮겨 적는 나머지 원문 3개: \"with 76% of our customers using two or more products during the three months ended March 31, 2025\" · \"Our Net Dollar Retention Rate was 122% and 134% as of December 31, 2023 and 2024, respectively, and 132% as of March 31, 2025\" · \"We then divide Current Period ARR by Previous Period ARR to calculate our Net Dollar Retention Rate... We calculate Net Dollar Retention Rate using ARR from Paid Customers with more than $10,000 in ARR\". 위 Global 2000 문장은 원문의 'only 24% of the Forbes Global 2000 spent' 에서 반복 어구를 줄여 인용했다. 같은 표에서 Paid Customers with more than $10,000 in ARR 11,107곳 · $100,000 이상 1,031곳(2025-03-31 기준)도 확인했다. ★ is_issuer_defined_metric=true(L-56): NDR 은 GAAP 지표가 아니고 S-1 이 산식을 스스로 정의하며 모집단도 '>$10,000 ARR 고객'으로 회사가 잘랐다 — 표지 각주가 'our definition of Net Dollar Retention Rate' 를 따로 안내한다. 그래서 공시 경로로 A 를 만들지 않는다. ⚠️ claim 정정 필요: 원문은 '76% of our customers' / '76% of Figma customers' 이고, S-1 의 정의어 'Paid Customers' 를 쓰지 않았다 — claim 의 '유료 고객 76%' 는 출처에 없는 좁힘이다."
     },
     {
       "move": 0,
@@ -74,9 +82,13 @@
       "is_self_reported": false,
       "is_estimate": false,
       "is_regulatory_filing": false,
+      "is_issuer_defined_metric": false,
+      "observation_key": "figma-s1-2025-07-01-q1fy25",
+      "supports_metric": false,
       "published_at": "2025-07-01",
+      "retrieved_at": "2026-09-18",
       "snippet": null,
-      "supports_claim": "S-1 제출 사실과 주요 수치의 독립 보도. 회사가 낸 숫자를 옮긴 기사라 수치 자체의 교차검증은 아니고, 공시 존재와 날짜의 확인으로만 쓴다."
+      "supports_claim": "S-1 제출 사실과 주요 수치의 독립 보도. 회사가 낸 숫자를 옮긴 기사라 수치 자체의 교차검증은 아니고, 공시 존재와 날짜의 확인으로만 쓴다. ★ 2026-09-18 추가: observation_key 를 S-1 행과 **같은 값**으로 적었다(L-60) — 이 기사의 숫자는 S-1 을 읽은 것이라 원 관측이 하나다. supports_metric=false 로 명시해 교차 확인 계수에서 빠지게 한다."
     },
     {
       "move": 1,
@@ -86,10 +98,12 @@
       "is_estimate": false,
       "is_regulatory_filing": false,
       "is_issuer_defined_metric": false,
+      "observation_key": "figma-s1-2025-07-01-q1fy25",
+      "supports_metric": false,
       "published_at": "2025-07-02",
       "retrieved_at": "2026-09-06",
       "snippet": "Net Dollar Retention (NDR): 134% in 2024; 132% as of Q1 2025",
-      "supports_claim": "S-1 밖에서 134 → 132% 를 둘 다 싣고 있는 유일한 출처(2026-09-06 본문 직접 대조). 같은 매체가 별도 글에서 Figma 의 NDR 산식이 역방향이라 최근 12개월 이탈 고객이 계산에 안 보인다고 지적한다. ★ 원문 해설이지 독립 실측이 아니라 tertiary 로 둔다(L-58)."
+      "supports_claim": "S-1 밖에서 134 → 132% 를 둘 다 싣고 있는 유일한 출처(2026-09-06 본문 직접 대조). 같은 매체가 별도 글에서 Figma 의 NDR 산식이 역방향이라 최근 12개월 이탈 고객이 계산에 안 보인다고 지적한다. ★ 원문 해설이지 독립 실측이 아니라 tertiary 로 둔다(L-58). ★ 2026-09-18: observation_key 를 S-1 과 같은 값으로 적었다 — 같은 공시를 읽은 것이라 원 관측이 하나다(L-60)."
     },
     {
       "move": 1,
@@ -99,10 +113,12 @@
       "is_estimate": false,
       "is_regulatory_filing": false,
       "is_issuer_defined_metric": false,
+      "observation_key": "figma-s1-2025-07-01-q1fy25",
+      "supports_metric": false,
       "published_at": "2025-07-02",
       "retrieved_at": "2026-09-06",
       "snippet": null,
-      "supports_claim": "벤처투자자 Tomasz Tunguz 의 S-1 분석. 132% 가 본문에 실린 것을 2026-09-06 직접 대조했다. 스니펫은 문장 원형을 확정하지 못해 비워 둔다(§7.1). 원문 해설이라 tertiary."
+      "supports_claim": "벤처투자자 Tomasz Tunguz 의 S-1 분석. 132% 가 본문에 실린 것을 2026-09-06 직접 대조했다. 스니펫은 문장 원형을 확정하지 못해 비워 둔다(§7.1). 원문 해설이라 tertiary. ★ 2026-09-18: observation_key 를 S-1 과 같은 값으로 적었다(L-60)."
     }
   ]
 }

@@ -63,3 +63,15 @@
 - 작성일: 2026-09-10
 
 > > it’s still the same organization maintaining the same mission operating under the same budget WWII demonstrated wars of conquest don't work in the industrial age. When America and its Department of War and Navy were founded, invasion and conquest could still be done profitably. WWII showed that was no longer true–industrial machinery and skilled workers are destroyed by invasion and even base resources quickly become useless when surrounded by people who hate you. (Nuclear weapons sealed the e…
+
+## HN 49749833
+
+- 판정: (미검토)
+- 매칭: `we shut down`
+- 원본: https://news.ycombinator.com/item?id=49749833
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-09-18 UTC)
+- 스레드: Why I didn’t sign the Fields medallists’ letter
+- 작성자: Dylan16807
+- 작성일: 2026-09-18
+
+> > And if calculus was the only useful thing to come out of 1600s mathematical research, it would have been worth it. The other dead ends don't need to justify themselves. Getting one thing of this magnitude justifies it all It would have been worth what? Doing mathematical research at all? Nobody is suggesting we shut down mathematical research. It doesn't justify a funding system that didn't exist / didn't fund those researchers. We need to come up with better reasons to fund such a thing.

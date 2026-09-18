@@ -12,9 +12,13 @@ import {
   diceSimilarity,
   matchDrafts,
   rankDraftsFor,
+  suggestedCandidates,
+  candidateMatchesQuery,
   classifyUnmatched,
   AUTO_MATCH_MIN,
   AMBIGUITY_MARGIN,
+  MANUAL_SUGGEST_MIN,
+  MANUAL_SUGGEST_LIMIT,
   OFF_PIPELINE_MAX,
 } from '../lib/threads/match.ts'
 
@@ -470,6 +474,76 @@ const EPISODES = [{ id: 'COL-beauty-of-joseon-01', body: COLUMN_EPISODE_1 }]
 check('상수: AUTO_MATCH_MIN 범위', AUTO_MATCH_MIN > 0.5 && AUTO_MATCH_MIN < 1)
 check('상수: AMBIGUITY_MARGIN 범위', AMBIGUITY_MARGIN > 0 && AMBIGUITY_MARGIN < 0.2)
 check('상수: OFF_PIPELINE_MAX 범위', OFF_PIPELINE_MAX > 0.071 && OFF_PIPELINE_MAX <= 0.103)
+
+// ── 5) 수동 연결 화면의 후보 좁히기 ───────────────────────────
+//
+// 화면(app/dashboard/draft-link-form.tsx)은 추천 건수로 세 갈래로 갈린다:
+// 0건이면 "자동으로 후보를 찾지 못했습니다" 문장, 1건·다수면 라디오 목록.
+// 브라우저 없이 확인할 수 있는 건 그 갈림을 정하는 이 함수뿐이라 여기서 못 박는다.
+
+check('상수: MANUAL_SUGGEST_MIN 은 자동 임계값보다 낮다', MANUAL_SUGGEST_MIN < AUTO_MATCH_MIN)
+check('상수: MANUAL_SUGGEST_MIN 범위', MANUAL_SUGGEST_MIN > 0 && MANUAL_SUGGEST_MIN < 0.3)
+check('상수: MANUAL_SUGGEST_LIMIT 범위', MANUAL_SUGGEST_LIMIT >= 3 && MANUAL_SUGGEST_LIMIT <= 10)
+
+{
+  // 다수: 임계값을 넘은 것만, 점수순 그대로, 상한만큼.
+  const ranked = [
+    { draftId: 'a', score: 0.9 },
+    { draftId: 'b', score: 0.5 },
+    { draftId: 'c', score: 0.2 },
+    { draftId: 'd', score: 0.14 },
+    { draftId: 'e', score: 0 },
+  ]
+  const top = suggestedCandidates(ranked)
+  eq('후보 다수: 임계값 넘은 3건만', top.length, 3)
+  eq('후보 다수: 순서 유지(1등)', top[0].draftId, 'a')
+  eq('후보 다수: 순서 유지(3등)', top[2].draftId, 'c')
+  eq('후보 다수: 상한이 걸리면 잘린다', suggestedCandidates(ranked, 2).length, 2)
+  eq('후보 다수: 전체 목록은 건드리지 않는다', ranked.length, 5)
+}
+
+{
+  // 1건
+  const top = suggestedCandidates([{ draftId: 'a', score: 0.31 }, { draftId: 'b', score: 0.02 }])
+  eq('후보 1건: 1건만 추천', top.length, 1)
+  eq('후보 1건: 그 1건이 1등', top[0].draftId, 'a')
+}
+
+{
+  // 0건 — 오류가 아니라 정상 결과다. 화면은 이때 문장을 띄운다.
+  eq('후보 0건: 전부 임계값 미만이면 빈 배열', suggestedCandidates([{ draftId: 'a', score: 0.1 }]).length, 0)
+  eq('후보 0건: 초안이 아예 없으면 빈 배열', suggestedCandidates([]).length, 0)
+}
+
+{
+  // 회귀 방지. 실사례 CS-20260910-01 은 발행 전에 통째로 다시 써서 0.267 이었고
+  // 그게 맞는 연결이었다. 임계값을 그 위로 올리면 여기서 깨져야 한다.
+  const rewritten = `재고 300만원을 날렸습니다. 판매량만 보고 재구매율을 안 봤거든요.
+한 번 사고 다시 안 사는 상품은 아무리 팔려도 결국 멈춥니다.
+봐야 할 숫자를 아는 것이 많이 보는 것보다 중요합니다.`
+  const ranked = rankDraftsFor({ id: 't1', text: rewritten }, [
+    { id: 'd2', body: DRAFT_OTHER },
+    { id: 'd1', body: DRAFT_A },
+  ])
+  const top = suggestedCandidates(ranked)
+  check('다시 쓴 발행본: 추천 0건이 아니다', top.length >= 1, `점수 ${ranked.map(r => r.score.toFixed(3)).join(', ')}`)
+  eq('다시 쓴 발행본: 추천 1등은 원래 초안', top[0]?.draftId, 'd1')
+  check('다시 쓴 발행본: 1등 점수는 자동 임계값 미만', ranked[0].score < AUTO_MATCH_MIN)
+}
+
+{
+  // 검색 — 순위가 틀렸을 때의 우회로. 여기서 막히면 사람이 전체 후보에 닿을 길이 없다.
+  const hay = 'SP-024 26. 9. 12. 오후 7:54 재고를 300만원어치 태웠습니다.'
+  eq('검색: 빈 질의는 전부 통과(필터 없음)', candidateMatchesQuery(hay, ''), true)
+  eq('검색: 공백뿐인 질의도 전부 통과', candidateMatchesQuery(hay, '   '), true)
+  eq('검색: 이모지뿐인 질의도 전부 통과', candidateMatchesQuery(hay, '🙂'), true)
+  eq('검색: 소재 코드로 찾힌다', candidateMatchesQuery(hay, 'SP-024'), true)
+  eq('검색: 소문자로 쳐도 찾힌다', candidateMatchesQuery(hay, 'sp-024'), true)
+  eq('검색: 띄어쓰기가 달라도 찾힌다', candidateMatchesQuery(hay, '재고를 300만원'), true)
+  eq('검색: 붙여 써도 찾힌다', candidateMatchesQuery(hay, '재고를300만원어치'), true)
+  eq('검색: 없는 말은 안 찾힌다', candidateMatchesQuery(hay, '발주서'), false)
+  eq('검색: 다른 코드는 안 찾힌다', candidateMatchesQuery(hay, 'SP-025'), false)
+}
 
 // ── 결과 ──────────────────────────────────────────────────────
 if (failures.length) {

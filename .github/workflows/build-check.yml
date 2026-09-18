@@ -43,6 +43,18 @@ jobs:
       - run: node scripts/analyze-judge-prompt-selftest.mjs
       # LLM 재시도 예산(함수 상한 300초 안) + 요청당·하루 비용 상한이 실제로 막는지.
       - run: node scripts/analyze-llm-budget-selftest.mjs
+      # 리뷰 수집 소스 2종(round-5 채택분). 픽스처만 쓴다 — 네트워크·DB 없음.
+      #   okky  : commentCount 는 대댓글 포함 총합이다. 재귀 평탄화가 풀리면
+      #           대댓글이 전부 "못 읽은 것"으로 세어져 가짜 실패가 쌓인다.
+      #           반대로 삭제된 댓글이 카운터에만 남는 경우는 실패가 아니다.
+      #   velog : released_at 이 UTC 다. KST 변환이 빠지면 증분 종료가 하루 밀린다.
+      #           그리고 블롭에 이전/다음 글이 같이 오므로 스코프 필터가 유일한
+      #           중복 적재 방어선이다(SP-031 과 같은 형태).
+      - run: node scripts/review-okky-selftest.mjs
+      - run: node scripts/review-velog-selftest.mjs
+      # 위 둘의 소스 키가 마이그레이션·ADAPTERS 맵·워크플로 선택지와 같은 집합인지.
+      # 하나라도 빠지면 코드만 있고 수집은 0건인 상태가 로그도 없이 유지된다.
+      - run: node scripts/review-runner-selftest.mjs
       # 빌드가 **실제로 읽는** 값만 준다. 나머지는 요청 시점(Vercel env)에서
       # 읽히지 서버 빌드에서 읽히지 않는다. 안 쓰는 이름을 여기 적어 두면
       # "CI 에 배선돼 있으니 등록돼 있겠지"로 읽혀 진단을 헛돌게 만든다.

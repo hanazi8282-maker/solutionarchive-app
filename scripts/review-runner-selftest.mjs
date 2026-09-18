@@ -1238,6 +1238,49 @@ for (const [file, keys] of [
   ok('롤백(r3): 자식 행 건수 확인 SQL 이 주석으로 있다', /review_fingerprints/.test(rb) && /analysis_inputs/.test(rb))
 }
 
+// ── 같은 대조, round-5 채택분(okky · velog) ───────────────────────
+//
+// 위 블록들과 검사 내용은 같다. 파일이 다르므로 블록을 나란히 둔다
+// (위 블록들은 손대지 않는다 — 다른 세션이 같은 파일을 만질 수 있다).
+{
+  const sql = await fs.readFile(
+    path.join(here, '..', 'supabase', 'migrations', '20260922000001_review_sources_okky_velog.sql'),
+    'utf8',
+  )
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  const mapBlock = collect.slice(collect.indexOf('const ADAPTERS ='), collect.indexOf('}', collect.indexOf('const ADAPTERS =')))
+  const mapKeys = new Set([...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]))
+  const sqlKeys = new Set([...sql.matchAll(/^\s*'([\w-]+)',$/gm)].map((m) => m[1]))
+
+  for (const key of ['okky', 'velog']) {
+    ok(`등록(r5): 마이그레이션 review_sources.key 에 '${key}' 가 있다`, sqlKeys.has(key))
+    ok(`등록(r5): ADAPTERS 맵 키가 '${key}' 와 철자까지 같다`, mapKeys.has(key))
+  }
+  t('등록(r5): 2행 전부 enabled=false 로만 들어간다', (sql.match(/^\s*false,$/gm) || []).length, 2)
+  ok('등록(r5): DDL 이 없다 (INSERT + COMMENT 만)', !/\b(create|alter|drop)\s+table\b/i.test(sql))
+  ok('등록(r5): ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+
+  // ⚠️ 두 소스의 **근거 성질이 다르다**는 사실이 본문에서 사라지면, 나중에
+  //    이 행을 켜는 사람이 "robots 가 허용했으니 됐다"로 읽는다. 벨로그
+  //    robots 는 규칙이 0개일 뿐이고 채택 근거는 약관이다. 문구를 고정한다.
+  ok('근거(r5): 벨로그가 robots 가 아니라 약관 근거임이 적혀 있다', /초대가 아니다/.test(sql) && /약관/.test(sql))
+  ok('근거(r5): 벨로그 본문 전용 사유(대댓글·마커 불화해)가 적혀 있다', /velog[\s\S]{0,1200}?본문 전용/.test(sql))
+  ok('근거(r5): OKKY 의 /api/ 금지 사실이 적혀 있다', /okky[\s\S]{0,1200}?\/api\/ 금지/.test(sql))
+  ok('근거(r5): OKKY 의 /users\\/\\*\\/articles 금지 사실이 적혀 있다', /users\/\*\/articles 금지/.test(sql))
+  // Actions 러너에서 재지 않았다는 한계. 이게 사라지면 "로컬에서 됐다"가
+  // "Actions 에서 된다"의 근거로 쓰인다(CLAUDE.md §7.1).
+  ok('근거(r5): Actions 러너 미측정이라는 한계가 적혀 있다', /(Actions 러너|Azure egress)[\s\S]{0,80}?미측정/.test(sql))
+
+  const rb = await fs.readFile(
+    path.join(here, '..', 'supabase', 'migrations', '20260922000001_review_sources_okky_velog_rollback.sql'),
+    'utf8',
+  )
+  const live = rb.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n')
+  ok('롤백(r5): 되돌리는 문장이 있다', /update\s+public\.review_sources/i.test(live))
+  ok('롤백(r5): DELETE 를 바로 실행하지 않는다', !/^\s*delete\s+from/im.test(live))
+  ok('롤백(r5): 자식 행 건수 확인 SQL 이 주석으로 있다', /review_fingerprints/.test(rb) && /analysis_inputs/.test(rb))
+}
+
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {
   console.log('러너가 틀렸다. 남의 서버에 대한 규칙이 걸려 있는 코드다.')

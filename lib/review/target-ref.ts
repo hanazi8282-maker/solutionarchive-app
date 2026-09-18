@@ -30,9 +30,11 @@ import { HOST as CLIEN_HOST, parseProductRef as parseClienRef } from './adapters
 import { HOST as DAMOANG_HOST, parseProductRef as parseDamoangRef } from './adapters/damoang.ts'
 import { HOST as FMKOREA_HOST, parseProductRef as parseFmkoreaRef } from './adapters/fmkorea.ts'
 import { HOST as NAVER_HOST, parseProductRef as parseNaverRef } from './adapters/naver-blog.ts'
+import { HOST as OKKY_HOST, parseProductRef as parseOkkyRef } from './adapters/okky.ts'
 import { HOST as THEQOO_HOST, parseProductRef as parseTheqooRef } from './adapters/theqoo.ts'
 import { HOST as TODAYHUMOR_HOST, parseProductRef as parseTodayhumorRef } from './adapters/todayhumor.ts'
 import { HOST as TUMBLBUG_HOST, parseProductRef as parseTumblbugRef } from './adapters/tumblbug.ts'
+import { HOST as VELOG_HOST, parseProductRef as parseVelogRef } from './adapters/velog.ts'
 
 export type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
 
@@ -151,9 +153,16 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   //    어댑터가 거절한다 — 여기서 예시를 그 셋 중 하나로 든다.
   fmkorea: urlRefBuilder(FMKOREA_HOST, parseFmkoreaRef, '/best/1234567890'),
   naver_blog_post: urlRefBuilder(NAVER_HOST, parseNaverRef, '/PostView.naver?blogId=abc&logNo=123'),
+  // ⚠️ okky 는 robots 가 `/questions/*` 도 열지만 어댑터가 `/articles/<번호>` 만
+  //    받는다(그 경로만 실측했다). 예시를 그 형태로 든다.
+  okky: urlRefBuilder(OKKY_HOST, parseOkkyRef, '/articles/1564214'),
   theqoo: urlRefBuilder(THEQOO_HOST, parseTheqooRef, '/square/1234567'),
   todayhumor: urlRefBuilder(TODAYHUMOR_HOST, parseTodayhumorRef, '/board/view.php?table=bestofbest&no=123'),
   tumblbug: urlRefBuilder(TUMBLBUG_HOST, parseTumblbugRef, '/project-slug'),
+  // ⚠️ velog 슬러그에는 한글이 들어간다. urlRefBuilder 가 `new URL().pathname`
+  //    으로 퍼센트 인코딩해 넘기고, 어댑터는 인코딩된 ASCII 만 받는다.
+  //    brunch 와 같은 이유로 공용 parseUrlRef(`@` 금지)를 못 쓴다.
+  velog: urlRefBuilder(VELOG_HOST, parseVelogRef, '/@handle/post-slug'),
 }
 
 export function buildProductRef(sourceKey: string, raw: string): RefResult | null {

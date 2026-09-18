@@ -35,6 +35,8 @@ import { todayhumorAdapter } from '../lib/review/adapters/todayhumor.ts'
 import { brunchAdapter } from '../lib/review/adapters/brunch.ts'
 import { clienAdapter } from '../lib/review/adapters/clien.ts'
 import { fmkoreaAdapter } from '../lib/review/adapters/fmkorea.ts'
+import { okkyAdapter } from '../lib/review/adapters/okky.ts'
+import { velogAdapter } from '../lib/review/adapters/velog.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
@@ -55,6 +57,8 @@ const ADAPTERS = {
   brunch: brunchAdapter,
   clien: clienAdapter,
   fmkorea: fmkoreaAdapter,
+  okky: okkyAdapter,
+  velog: velogAdapter,
 }
 
 const args = process.argv.slice(2)

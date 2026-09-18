@@ -1,0 +1,77 @@
+{
+  "slug": "harrys-razor-factory-vertical-integration",
+  "brand_name": "Harry's",
+  "market": "면도용품 D2C (미국)",
+  "geo": "US",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "UNIT_ECONOMICS",
+  "reader_problem": "MAKE_BUT_NO_MONEY",
+  "outcome_status": "active",
+  "period_start": null,
+  "period_end": null,
+  "summary": "면도날 D2C 브랜드 Harry's 가 창업 약 10개월 만에 외주 제조(계약 공장)의 한계 — 속도·품질 통제가 안 되고 마진이 공급사 쪽으로 빠지는 구조 — 를 확인하고, 2014년 1월 독일 면도날 제조사 Feintechnik 을 1억 달러에 인수해 제조를 직접 소유(수직계열화)로 옮긴 무브. 창업자 1인칭 팟캐스트 인터뷰(2023, How I Built This)에서 관찰→추론→결정의 흐름이 직접 확인된다. 다만 인수 전후의 카트리지 단가·마진율 같은 구체적 수치는 신뢰할 만한 출처로 확인하지 못해, 이 무브는 서술 중심으로만 남긴다.",
+  "tags": ["D2C", "vertical-integration", "manufacturing", "razors", "unit-economics"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "OPERATIONS",
+      "claim": "창업자 Jeff Raider·Andy Katz-Mayfield 는 외주 공장에 카트리지 제조를 맡기던 초기, 고객 피드백(예: 손잡이 뒷면에 트리머 블레이드를 추가해 달라는 요청)을 받고도 계약 제조 구조로는 제품을 빠르게 못 바꾼다는 것을 관찰했다. 동시에 주문량이 월 수백만 개 단위로 커질 것을 계산하면서 '언젠가는 이 공정 자체를 소유해야 한다'는 결론에 이르렀고, 창업 약 10개월 만인 2014년 1월 독일 면도날 제조사 Feintechnik 을 1억 달러에 인수해 제조를 직접 통제하는 쪽으로 결정을 옮겼다.",
+      "transfer_note": "지금 외주 공장(계약 제조)에 생산을 맡기고 있다면, 내일 그 공장에 전화하거나 메일로 원가 내역(원자재비·가공비·공장 마진을 각각 얼마씩 받는지)을 요청해서 받아봐라. 그 숫자를 받아야 '내가 직접 만들면 얼마나 싸지는지, 그리고 그게 지금 투자할 만한 금액인지'를 계산할 수 있다 — 계산 없이 '언젠가 내가 만들겠다'는 결심만으로는 아무것도 안 바뀐다.",
+      "preconditions": "이미 그 외주 공장과 거래 이력이 있어야 한다 — Harry's 도 계약 고객으로 먼저 관계를 쌓은 뒤에 인수 협상으로 넘어갔다. 그리고 공장을 사거나 설비를 갖출 만한 목돈이 있어야 한다: Harry's 는 창업 10개월 만에 투자자에게서 1억 2,250만 달러를 모은 뒤에야 공장을 샀다. 이미 검증된 수요(외주로도 팔리고 있다는 확인)와, 그 목돈을 댈 투자자 또는 자기 자본이 없으면 이 무브는 성립하지 않는다.",
+      "outcome_direction": "positive",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": "2014-01-22"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://podscripts.co/podcasts/how-i-built-this-with-guy-raz/harrys-razors-andy-katz-mayfield-and-jeff-raider",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "harrys-hibt-2023-founder-account",
+      "supports_metric": false,
+      "published_at": "2023-06-12",
+      "retrieved_at": "2026-09-18",
+      "snippet": "\"it would be really difficult to meaningfully inflect product improvement without actually owning the manufacturing process\" — 고객 피드백(트리머 블레이드 추가 요청 등)을 받고도 계약 제조로는 못 바꿨다는 관찰 뒤, 물량이 커지면 결국 공정을 직접 사야 한다는 결론에 이르렀다는 창업자 1인칭 회고.",
+      "supports_claim": "외주 계약 제조로는 제품을 빠르게 개선할 수 없었다는 관찰과, 물량이 커질수록 결국 직접 소유해야 한다는 추론 — 창업자 본인의 1인칭 회고(2023년 팟캐스트)."
+    },
+    {
+      "move": 0,
+      "url": "https://techcrunch.com/2014/01/22/10-month-old-harrys-lands-122-5m-buys-93-year-old-factory-to-go-toe-to-toe-with-gillette-and-schick",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "harrys-techcrunch-2014-deal",
+      "supports_metric": false,
+      "published_at": "2014-01-22",
+      "retrieved_at": "2026-09-18",
+      "snippet": "\"Harry's has shelled out $100 million to purchase Feintechnik\" — a company and factory that have been manufacturing razor blades since 1920. \"With the purchase of Feintechnik, Harry's now has the ability to control the design and manufacturing of its products.\"",
+      "supports_claim": "인수 금액($1억)·인수 대상(Feintechnik)·시점(창업 10개월 후, 2014-01-22 보도)을 확인하는 제3자 저널리즘 기록."
+    },
+    {
+      "move": null,
+      "url": "https://en.wikipedia.org/wiki/Harry%27s",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "harrys-wikipedia-status-2026",
+      "supports_metric": false,
+      "published_at": null,
+      "retrieved_at": "2026-09-18",
+      "snippet": "\"On February 3, 2020, the Federal Trade Commission sued Edgewell to block the merger\" — 이후 Edgewell 이 인수를 철회했고, Harry's 는 2025년 로고·패키징·웹사이트를 새로 단장하는 첫 리브랜딩을 공개했다.",
+      "supports_claim": "케이스 단위 근거 — Edgewell 인수 실패(2020) 이후에도 Harry's 가 독립 기업으로 존속·리브랜딩(2025)했다는 outcome_status='active' 확인용. 무브의 수치를 뒷받침하지 않는다."
+    }
+  ]
+}

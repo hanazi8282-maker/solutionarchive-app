@@ -460,6 +460,22 @@ t('userinfo 는 거절', buildProductRef('damoang', 'url:/free/1@evil.example').
   ok('LLM 이 리뷰 수를 지어내지 않게 못박는다', p.includes('추측해서 쓰지 마라'))
   ok('physical 은 다나와를 말한다', proposalPrompt('physical', 2, k).includes('다나와'))
   ok('아는 게 없으면 그 줄이 빠진다', !proposalPrompt('saas', 2, known()).includes('겹치지 마라'))
+
+  // ⚠️ 프롬프트와 게이트가 **반대 방향을 당기면** 후보가 전부 기각된다. 2026-09-18
+  //    첫 자동 실행이 그랬다(채택 0 / 기각 2 — Notion 79,077 · Datadog 3,576).
+  //    임계값이 아니라 프롬프트가 원인이었고, 그 모순을 잡는 검사가 하나도 없었다.
+  //    아래 세 줄이 같은 사고의 재발을 막는 유일한 자동 장치다.
+  for (const kind of ACTIVE_KINDS) {
+    const q = proposalPrompt(kind, 2, k)
+    ok(`${kind}: 볼륨을 최대화하라고 시키지 않는다`, !/많이|많을수록|최대한 많|가장 많/.test(q))
+    ok(`${kind}: 표본을 대형 브랜드 반대쪽으로 민다`, q.includes('대형 브랜드는 아닌') && q.includes('작은 쪽'))
+    // 창의 숫자를 흘리면 모델이 hits 를 추정해 자기검열한다 — 위 "추측해서 쓰지
+    // 마라"와 어긋나는, 같은 종류의 모순이다. 판정은 실측만 한다.
+    ok(
+      `${kind}: 채택 창 숫자를 프롬프트에 흘리지 않는다`,
+      !q.includes(String(MAX_VOC_HITS)) && !q.includes(`${MIN_VOC_HITS}~`),
+    )
+  }
 }
 
 // ── 다이제스트 섹션 ──────────────────────────────────────────────

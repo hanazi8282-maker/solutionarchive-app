@@ -189,6 +189,19 @@ export const todayhumorAdapter: ReviewSourceAdapter = {
   key: 'todayhumor',
   displayName: '오늘의유머 게시글·댓글',
 
+  // robots 확인 불가여도 진행하는 호스트 (types.ts 의 필드 주석이 규칙 정본).
+  //
+  // ⚠️ **양 오리진 실측 404** 다(2026-09-16). `www.todayhumor.co.kr` 은 Apache
+  //    기본 404 HTML("The requested URL /robots.txt was not found"), apex 도 404 다.
+  //    apex 는 `http://www.` 로 리다이렉트하므로 www 를 정본 호스트로 쓴다.
+  //    둘 다 적는 이유: apex 로 요청이 새면 그쪽도 확인 불가가 되고, 표식이
+  //    없으면 막힌다.
+  //
+  // ⚠️ robots.txt 가 생기면 이 줄을 지우기 전에 **쿼리 대상 규칙**을 먼저 봐야
+  //    한다. 이 소스의 글 주소는 쿼리형(`/board/view.php?table=..&no=..`)인데
+  //    러너는 아직 판정에 쿼리를 넘기지 않는다(SP-026, 이번 PR 범위 밖).
+  proceedWhenRobotsUnverified: ['www.todayhumor.co.kr', 'todayhumor.co.kr'],
+
   nextRequest(target: TargetState): { url: string } | null {
     const p = parseProductRef(target.productRef)
     if (!p) return null

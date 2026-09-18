@@ -290,9 +290,15 @@ RFC 9309 §2.3.1.3 은 4xx("Unavailable")를 받으면 크롤러가 모든 경�
 ⚠️ **이건 "못 읽었다"가 아니다.** CLAUDE.md §7.1 의 "읽지 못한 규칙을 허용으로
 해석하지 마라"는 5xx·네트워크 오류처럼 **규칙이 있는지조차 알 수 없는** 경우를
 말한다. 404 는 서버가 "그런 파일 없다"고 확정적으로 답한 것이라 사건이 다르다.
-러너도 같게 판정한다 — `lib/review/runner.ts` 의 `RobotsCache` 가
-`status === null || >= 500` 만 `unreadable` 로 두고 4xx 는 빈 규칙으로 처리한다.
-셀프테스트가 이 404 경로를 재현해 둔다(여기가 막히면 수집이 통째로 0건이다).
+
+> **⚠️ 2026-09-18 정정 — 러너의 동작이 바뀌었다.**
+> 이 판단(404 는 확정 응답이다)은 유지하지만, **러너는 더 이상 4xx 를 허용으로
+> 처리하지 않는다.** 4xx 본문이 사실은 robots 를 감춘 HTML 인 경우가 실측에서
+> 줄줄이 나왔기 때문이다(킥스타터 403 · tistory 404 · 클리앙 SP-027).
+> 지금은 4xx = `unverified` = 요청하지 않음이고, `hn.algolia.com` 은
+> `lib/review/adapters/hackernews.ts` 의 `proceedWhenRobotsUnverified` 표식으로
+> 통과한다. **그 한 줄이 이 소스를 살려 두는 유일한 장치다** — 지우면 수집이
+> 통째로 0건이 된다. 자세한 설계는 아래 §robots 확인 불가 3상태.
 
 ### API 형태
 
@@ -334,51 +340,90 @@ Allow: /*.json?*$
 Disallow: /
 ```
 
-사이트의 의도는 "`.json` 은 허용, 나머지는 금지"로 읽힌다. 그런데 **이 리포의
+#### ✅ 현재 상태 (2026-09-18 확인) — 와일드카드·끝앵커는 **구현돼 있다**
+
+**결론을 먼저 둔다. 이 절의 아래 "2026-09-10 당시 기록"은 이미 해소된 상태의
+기록이고, 현재 코드 설명으로 읽으면 틀린다.** 2026-09-18 세션에서 조사 에이전트
+둘이 이 문단을 현재형으로 읽고 각각 잘못된 전제로 출발했다. 그래서 순서를 뒤집었다.
+
+- `lib/review/robots.ts` 의 `pathMatches()` 는 `*`(길이 0 이상 임의 문자열)와
+  끝 앵커 `$` 를 **구현한다.** 정규식이 아니라 **투 포인터 글롭 매처**다 —
+  악성 robots.txt 로 nightly 수집기를 멈출 수 있는 ReDoS 를 실측으로 확인해
+  정규식을 버렸다. 그래서 선형 시간이다.
+- SP-018 이 `fix/robots-wildcard` 로 수정했고, 그 결과 appstore 가 Apple
+  robots.txt 위반 상태였음이 드러나 `enabled=false` 가 됐다(SP-019/021).
+
+2026-09-18 실측(실제 robots.txt 원문을 `parseRobots`→`robotsVerdict` 에 통과):
+
+```
+Allow: /*.json$                                 → /v0/item/1.json 매칭됨
+Disallow: /companies/*/salaries_of_job_rank/    → 해당 경로만 금지, 형제 경로는 허용
+Allow: /$                                       → `/` 만 허용(하위 경로는 아님)
+Disallow: /*?keyword=                           → 쿼리 붙은 경로 매칭됨
+```
+
+2026-09-16 실측(다모앙 실제 robots.txt):
+
+```
+/free/7341567         => allowed     reason='Allow: /'
+/free/7341567?page=2  => disallowed  reason='Disallow: /*?page='
+/admin/x              => disallowed  reason='Disallow: /admin/'
+```
+
+재현: `node scripts/review-robots-selftest.mjs` — 와일드카드·끝앵커·리터럴
+특수문자·ReDoS 방어를 못박은 블록이 그대로 있다.
+
+**남은 별개 결함 2건.** 와일드카드 구현과 무관하다.
+
+- **SP-026 (미해소, 2026-09-18 확인)** — `lib/review/runner.ts` 가 판정에
+  `u.pathname` 만 넘기고 `u.search` 를 뺀다. 그래서 위 `Disallow: /*?page=` 같은
+  **쿼리 대상 규칙은 실제 수집 경로에서 영영 매칭되지 않는다.** 파서는 맞게
+  판정하는데 호출부에서 잘린다.
+- **robots 확인 불가 (2026-09-18 해소, `fix/robots-fail-closed`)** — 러너가
+  4xx 를 "규칙 0개 = 허용"으로 캐시했다. 아래 §robots 확인 불가 3상태 참조.
+
+<details>
+<summary>2026-09-10 당시 기록 (지금은 사실이 아니다 — 펼치기)</summary>
+
+~~사이트의 의도는 "`.json` 은 허용, 나머지는 금지"로 읽힌다. 그런데 **이 리포의
 `lib/review/robots.ts` 는 와일드카드(`*`)와 끝 앵커(`$`)를 구현하지 않는다.**
-경로 규칙을 문자열 접두사로만 비교한다. 그래서 실제 판정은 이렇게 나온다:
+경로 규칙을 문자열 접두사로만 비교한다. 그래서 실제 판정은 이렇게 나온다:~~
 
 ```
 robotsVerdict(groups, '/v0/item/49628981.json', 'solutionarchive-review-collector')
-  → { allowed: false, reason: 'Disallow: /' }
+  → { allowed: false, reason: 'Disallow: /' }     ← 2026-09-10 당시. 지금은 allowed 다.
 ```
 
-`/*.json$` 은 `/v0/...` 의 접두사가 아니라 매칭되지 않고, `Disallow: /` 만
-남아서 **금지**가 된다. 우리 자신의 안전장치가 이 호스트를 막고 있다.
+~~`/*.json$` 은 `/v0/...` 의 접두사가 아니라 매칭되지 않고, `Disallow: /` 만
+남아서 **금지**가 된다. 우리 자신의 안전장치가 이 호스트를 막고 있다.~~
 
-그래서 2단계를 구현하지 않았다. 뚫고 지나가지 않는다.
+그래서 그때 2단계를 구현하지 않았다. 뚫고 지나가지 않았다. (HN Firebase 2단계는
+이후 별도 이유로 은퇴했다 — 코호트를 고정하지 못해 "검증 못함"이다.)
 
-#### 여기서 같이 발견한 것 — 기존 소스에도 영향이 있다
-
-이건 HN 만의 문제가 아니다. `robots.ts` 가 `*` 와 `$` 를 안 읽는다는 것은
-**와일드카드로 쓴 `Disallow` 규칙을 우리가 지금 하나도 안 지키고 있다**는
+~~**와일드카드로 쓴 `Disallow` 규칙을 우리가 지금 하나도 안 지키고 있다**는
 뜻이기도 하다. 예를 들어 `Disallow: /*?sort=` 나 `Disallow: /*.pdf$` 같은
-규칙은 어떤 경로와도 매칭되지 않아 조용히 무시된다. RFC 9309 §2.2.2 는 둘 다
-필수로 정한다.
+규칙은 어떤 경로와도 매칭되지 않아 조용히 무시된다.~~ → **해소됐다.**
 
-이번 방향(과하게 막힘)보다 **반대 방향(막아야 할 걸 안 막음)이 위험하다.**
-다만 `robots.ts` 는 리뷰 수집 트랙 전체의 안전장치라 이번 브랜치에서 손대지
-않았다. 별도 판단이 필요하다.
+당시 적어 둔 판단은 지금도 유효하다: 이 방향(과하게 막힘)보다 **반대 방향
+(막아야 할 걸 안 막음)이 위험하다.**
 
-> #### ⚠️ 2026-09-16 정정 — 위 337~361행은 더 이상 사실이 아니다
->
-> ~~`lib/review/robots.ts` 는 와일드카드(`*`)와 끝 앵커(`$`)를 구현하지 않는다.~~
-> **구현했다.** SP-018 이 `fix/robots-wildcard` 로 수정했고, 그 결과 appstore 가
-> Apple robots.txt 위반 상태였음이 드러나 `enabled=false` 가 됐다(SP-019/021).
-> 위 문단은 수정 **이전** 시점의 기록이다. 근거를 찾아 이 파일을 읽는 사람이
-> "우리는 와일드카드를 안 지킨다"로 오독하지 않도록 남긴다.
->
-> 2026-09-16 실측(다모앙 실제 robots.txt 를 `parseRobots`→`robotsVerdict` 에 통과):
-> ```
-> /free/7341567         => allowed=true   reason='Allow: /'
-> /free/7341567?page=2  => allowed=false  reason='Disallow: /*?page='
-> /admin/x              => allowed=false  reason='Disallow: /admin/'
-> ```
-> `*` 매칭이 정상 동작한다.
->
-> **다만 진짜 구멍은 따로 있다(아래 §커뮤니티 소스 실측 참조):** 호출부가
-> 쿼리스트링을 넘기지 않아, 위 2행 같은 쿼리 대상 규칙은 실제 수집 경로에서
-> 영영 매칭되지 않는다. 와일드카드 구현 여부와 무관한 별개 결함이다.
+</details>
+
+#### robots 확인 불가 3상태 (2026-09-18, `fix/robots-fail-closed`)
+
+위 `hn.algolia.com` 항목이 "**판정: 허용.** robots.txt 가 존재하지 않으므로 …
+404 는 서버가 확정적으로 답한 것이라 사건이 다르다"고 적고 있다. 그 판단 자체는
+유지하지만, **그걸 러너의 기본값으로 두는 것은 폐기했다.** 2026-09-18 VOC 소스
+조사 20곳에서 4xx 본문이 사실은 robots 를 감춘 HTML 인 경우가 줄줄이 나왔다 —
+킥스타터 403(Cloudflare 챌린지) · `www.tistory.com` 404 · 클리앙은 우리 UA 에게만
+404(SP-027). "규칙이 없다"와 "규칙을 안 보여 준다"가 한 값이 되어 있었다.
+
+- 판정이 3상태가 됐다: `allowed` / `disallowed` / `unverified`.
+- `unverified` 는 **요청하지 않는다**(fail-closed).
+- 이미 robots 가 404 인 상태로 등록된 소스는 어댑터의
+  `proceedWhenRobotsUnverified` 호스트 표식으로만 통과한다 — 근거는 각 어댑터
+  주석. 표식 없는 신규 호스트는 막힌다.
+- 표식은 `disallowed` 와 5xx·네트워크 오류를 **뚫지 못한다.**
 
 ### 남헌 2026-09-10 결정 — Algolia HN Search API evidence_grade=B로 확정
 

@@ -183,7 +183,9 @@ for (const sourceKey of sourceKeys) {
               redirect: 'follow',
               signal: AbortSignal.timeout(20_000),
             })
-            return { status: res.status, body: await res.text() }
+            // ⚠️ finalUrl 은 robots 캐시가 쓴다. 빠지면 리다이렉트로 남의 호스트
+            //    robots 를 읽고도 요청한 호스트의 규칙으로 판정한다(runner.ts).
+            return { status: res.status, body: await res.text(), finalUrl: res.url }
           } catch (e) {
             return { status: null, body: '', error: e instanceof Error ? e.message : String(e) }
           }

@@ -6,7 +6,7 @@
 //
 // Node 22+ 의 타입 스트리핑 덕에 .ts 를 그대로 import 한다(검증 환경: v24.16.0).
 
-import { parseRobots, robotsVerdict } from '../lib/review/robots.ts'
+import { looksLikeMarkup, parseRobots, robotsCrawlDelaySec, robotsVerdict } from '../lib/review/robots.ts'
 
 const TOKEN = 'solutionarchive-review-probe'
 
@@ -22,7 +22,11 @@ const t = (name, got, want) => {
   }
 }
 
-const allowed = (txt, path) => robotsVerdict(parseRobots(txt), path, TOKEN).allowed
+// ⚠️ 판정은 2026-09-18 부터 3상태다: allowed / disallowed / unverified.
+//    "allowed 가 아니다" 를 한 글자로 접지 마라 — 금지와 확인 불가는 다음 행동이
+//    정반대다(_principles.md §1). 그래서 헬퍼를 둘로 나눠 둔다.
+const state = (txt, path, token = TOKEN) => robotsVerdict(parseRobots(txt), path, token).state
+const allowed = (txt, path) => state(txt, path) === 'allowed'
 
 // ── 최장 일치 ─────────────────────────────────────────────────────
 const longest = 'User-agent: *\nDisallow: /search\nAllow: /search/public\n'
@@ -35,7 +39,14 @@ t('경계 — Disallow 경로 자체', allowed(longest, '/search'), false)
 t('Disallow: / 는 전체 금지', allowed('User-agent: *\nDisallow: /\n', '/anything'), false)
 t('빈 Disallow 는 전부 허용', allowed('User-agent: *\nDisallow:\n', '/anything'), true)
 t('Allow: / 만 있으면 허용', allowed('User-agent: *\nAllow: /\n', '/anything'), true)
-t('robots.txt 가 비면 허용', allowed('', '/x'), true)
+// ⚠️ 2026-09-18 변경. 빈 robots.txt 는 **확인 불가**다.
+//    그룹이 하나도 없으면 "규칙이 없다" / "HTML 을 robots 로 읽었다" / "파싱이
+//    실패했다" 를 구분할 재료가 없다. 러너는 이 상태에서 요청하지 않는다.
+t('robots.txt 가 비면 확인 불가다 (예전에는 허용이었다)', state('', '/x'), 'unverified')
+const LF = String.fromCharCode(10)
+t('공백만 있어도 확인 불가', state(['', '', '   ', ''].join(LF), '/x'), 'unverified')
+t('주석만 있어도 확인 불가', state('# hello' + LF, '/x'), 'unverified')
+t('CRLF 만 있어도 확인 불가', state(String.fromCharCode(13) + LF, '/x'), 'unverified')
 
 // ── User-agent 그룹 선택 ──────────────────────────────────────────
 const otherBot = 'User-agent: Googlebot\nDisallow: /\n\nUser-agent: *\nAllow: /\n'
@@ -88,8 +99,12 @@ t('주석 제거', allowed('# hi\nUser-agent: *   # inline\nDisallow: /admin\n',
 t('CRLF 줄바꿈', allowed('User-agent: *\r\nDisallow: /a\r\n', '/a/b'), false)
 t('필드명 대소문자 무시', allowed('USER-AGENT: *\nDISALLOW: /a\n', '/a'), false)
 t('공백 여유', allowed('User-agent:    *   \nDisallow:   /a   \n', '/a'), false)
-t('규칙 앞에 User-agent 가 없으면 무시', allowed('Disallow: /a\n', '/a'), true)
-t('알 수 없는 필드는 건너뛴다', allowed('User-agent: *\nCrawl-delay: 10\nDisallow: /a\n', '/a'), false)
+// ⚠️ 2026-09-18 변경. 규칙 앞에 User-agent 가 없으면 그 규칙은 버려지고 그룹이
+//    0개가 된다. 예전에는 그게 "허용"이었다 — 즉 `Disallow: /a` 라고 써 둔
+//    사이트를 전면 허용으로 읽었다. 지금은 확인 불가다.
+t('규칙 앞에 User-agent 가 없으면 그룹 0개 = 확인 불가', state('Disallow: /a\n', '/a'), 'unverified')
+t('규칙 앞에 User-agent 가 없으면 규칙 자체가 버려진다', parseRobots('Disallow: /a\n').length, 0)
+t('Crawl-delay 는 경로 규칙이 아니다', allowed('User-agent: *\nCrawl-delay: 10\nDisallow: /a\n', '/a'), false)
 t('Sitemap 줄이 그룹을 깨지 않는다', allowed('User-agent: *\nDisallow: /a\nSitemap: https://x/s.xml\n', '/a'), false)
 
 // ── 와일드카드 `*` 와 끝앵커 `$` (RFC 9309 §2.2.2) ────────────────
@@ -170,7 +185,7 @@ t('접두사 불변 — 경로는 대소문자 구분', allowed(adminOnly, '/ADM
     const v = robotsVerdict(parseRobots(txt), victim, TOKEN)
     const dt = performance.now() - t0
     t(`ReDoS 방어 — ${name} 패턴이 100ms 안에 끝난다 (${dt.toFixed(1)}ms)`, dt < 100, true)
-    t(`ReDoS 방어 — ${name}: 안 맞는 경로는 허용`, v.allowed, true)
+    t(`ReDoS 방어 — ${name}: 안 맞는 경로는 허용`, v.state, 'allowed')
   }
 }
 t('글롭 — 연속 `*` 는 하나처럼', allowed('User-agent: *\nDisallow: /a****b\n', '/axyzb'), false)
@@ -263,8 +278,8 @@ t(
 //    "그래서 허용"이라는 기계 판정과, 사이트가 자칭 수집기를 거부한다는
 //    사실은 별개다 — 후자는 사람이 판단했다(SP-025).
 t('다모앙: 우리 UA 는 AI크롤러 그룹에 안 걸린다(= * 그룹 적용)', allowed(damoangRobots, '/free/1'), true)
-t('다모앙: anthropic-ai 로 오면 전면 금지다', robotsVerdict(parseRobots(damoangRobots), '/free/1', 'anthropic-ai').allowed, false)
-t('다모앙: CollectorHub 로 오면 전면 금지다', robotsVerdict(parseRobots(damoangRobots), '/free/1', 'CollectorHub').allowed, false)
+t('다모앙: anthropic-ai 로 오면 전면 금지다', robotsVerdict(parseRobots(damoangRobots), '/free/1', 'anthropic-ai').state, 'disallowed')
+t('다모앙: CollectorHub 로 오면 전면 금지다', robotsVerdict(parseRobots(damoangRobots), '/free/1', 'CollectorHub').state, 'disallowed')
 
 const cook82Robots = `User-agent: Googlebot
 Disallow:
@@ -334,7 +349,7 @@ t('보배드림: 루트도 허용', allowed(bobaedreamRobots, '/'), true)
 t('보배드림: /admin/ 도 막히지 않는다 (규칙 자체가 없다)', allowed(bobaedreamRobots, '/admin/config'), true)
 t('보배드림: ?page= 도 막히지 않는다', allowed(bobaedreamRobots, '/list?code=freeb&page=3'), true)
 // (c) 이름으로 막힌 봇은 실제로 막혀야 한다 — Allow: / 가 그걸 덮으면 안 된다.
-t('보배드림: Amazonbot 으로 오면 전면 금지다', robotsVerdict(parseRobots(bobaedreamRobots), '/view', 'Amazonbot').allowed, false)
+t('보배드림: Amazonbot 으로 오면 전면 금지다', robotsVerdict(parseRobots(bobaedreamRobots), '/view', 'Amazonbot').state, 'disallowed')
 t('보배드림: 우리 UA 는 * 그룹을 적용받는다', allowed(bobaedreamRobots, '/view?code=freeb&No=1'), true)
 
 // ── 텀블벅 — 실제 robots.txt 원문 (실측 2026-09-17) ───────────────
@@ -440,9 +455,9 @@ t(
 // (c) ⚠️ 여기가 SP-030 의 핵심이다. **이름으로 오면 전면 금지**인데
 //     우리 UA 는 그 목록에 없어 통과한다. 이 두 줄이 같이 참이라는 것이
 //     "기계 판정 allowed" 를 근거로 쓰면 안 되는 이유다.
-t('네이버: ClaudeBot 으로 오면 전면 금지다', robotsVerdict(parseRobots(naverBlogRobots), '/PostView.naver', 'ClaudeBot').allowed, false)
-t('네이버: Claude-SearchBot 도 전면 금지다', robotsVerdict(parseRobots(naverBlogRobots), '/PostView.naver', 'Claude-SearchBot').allowed, false)
-t('네이버: GPTBot 도 전면 금지다', robotsVerdict(parseRobots(naverBlogRobots), '/PostView.naver', 'GPTBot').allowed, false)
+t('네이버: ClaudeBot 으로 오면 전면 금지다', robotsVerdict(parseRobots(naverBlogRobots), '/PostView.naver', 'ClaudeBot').state, 'disallowed')
+t('네이버: Claude-SearchBot 도 전면 금지다', robotsVerdict(parseRobots(naverBlogRobots), '/PostView.naver', 'Claude-SearchBot').state, 'disallowed')
+t('네이버: GPTBot 도 전면 금지다', robotsVerdict(parseRobots(naverBlogRobots), '/PostView.naver', 'GPTBot').state, 'disallowed')
 t('네이버: 그런데 우리 UA 는 * 그룹이라 allowed 다', allowed(naverBlogRobots, '/PostView.naver'), true)
 // robots 원문에 적힌 의사 표시. 파서는 주석을 안 읽지만 사람은 읽어야 한다.
 t(
@@ -491,15 +506,21 @@ const todayhumor404 = `<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 </body></html>
 `
 
+// ⚠️ 2026-09-18 정정. 위 (1) 이 예고한 구멍을 막았다 — 아래 줄들이 **뒤집혔다.**
+//    같은 HTML 이 200 으로 와도 이제 "허용"이 되지 않는다. 두 겹으로 막는다:
+//      (a) looksLikeMarkup 이 본문을 HTML 로 판정한다 (상태 코드와 무관하게)
+//      (b) 설령 (a)를 빠져나가도 그룹이 0개라 robotsVerdict 가 unverified 를 낸다
 t('theqoo: 404 HTML 을 robots 로 읽으면 규칙 0개가 된다', parseRobots(theqooSoft404).length, 0)
-t('theqoo: 그 결과가 "허용"이다 — 규칙 없음과 구분되지 않는다', allowed(theqooSoft404, '/square/4347529638'), true)
+t('theqoo: 그 HTML 은 마크업으로 판정된다', looksLikeMarkup(theqooSoft404), true)
+t('theqoo: 판정은 허용이 아니라 확인 불가다', state(theqooSoft404, '/square/4347529638'), 'unverified')
 t(
-  'theqoo: 사유까지 "규칙 없음"으로 같다 (소프트404 트립와이어)',
+  'theqoo: 사유가 "규칙 없음"이 아니라 "그룹을 읽지 못했다"다',
   robotsVerdict(parseRobots(theqooSoft404), '/square/1', TOKEN).reason,
-  'robots.txt 에 규칙 없음',
+  'robots.txt 에서 그룹을 하나도 읽지 못했다',
 )
 t('todayhumor: 404 HTML 도 규칙 0개', parseRobots(todayhumor404).length, 0)
-t('todayhumor: 글 경로 허용', allowed(todayhumor404, '/board/view.php?table=bestofbest&no=483825'), true)
+t('todayhumor: 그 HTML 도 마크업으로 판정된다', looksLikeMarkup(todayhumor404), true)
+t('todayhumor: 글 경로도 확인 불가다', state(todayhumor404, '/board/view.php?table=bestofbest&no=483825'), 'unverified')
 
 // ⚠️ SP-026 트립와이어. todayhumor 가 나중에 robots 를 올리고 거기에 쿼리 규칙을
 //    넣으면, 러너는 pathname 만 넘기므로 그 규칙을 **못 본다**. 아래 두 줄이
@@ -561,7 +582,7 @@ t('brunch: 통계 페이지 금지 ($ 앵커)', allowed(brunchRobots, '/@brunch/
 t('brunch: stats 로 끝나지 않으면 허용', allowed(brunchRobots, '/@brunch/stats/2'), true)
 // AI 학습 크롤러 그룹이 앞에 있다. 우리 토큰은 그 목록에 없으므로 `*` 그룹을 받는다.
 t('brunch: 우리 토큰은 AI 크롤러 그룹에 없어 `*` 규칙을 받는다', robotsVerdict(parseRobots(brunchRobots), '/@brunch/431', TOKEN).reason, '일치하는 규칙 없음')
-t('brunch: ClaudeBot 이었다면 전면 금지였다', robotsVerdict(parseRobots(brunchRobots), '/@brunch/431', 'claudebot').allowed, false)
+t('brunch: ClaudeBot 이었다면 전면 금지였다', robotsVerdict(parseRobots(brunchRobots), '/@brunch/431', 'claudebot').state, 'disallowed')
 // ⚠️ robots.ts 는 Crawl-delay 를 파싱하지 않는다. 그 사실을 여기 못으로 박는다 —
 //    `*` 그룹의 Crawl-delay: 5 를 지키는 건 DB 의 min_interval_ms 뿐이다.
 t(
@@ -605,11 +626,14 @@ Disallow: /*?*
 `
 
 t('clien: 404 HTML 을 robots 로 읽으면 규칙 0개', parseRobots(clien404).length, 0)
-t('clien: 그래서 우리 러너 판정은 "허용"이 된다', allowed(clien404, '/service/board/park/19264755'), true)
+t('clien: 그 HTML 은 마크업으로 판정된다', looksLikeMarkup(clien404), true)
+// ⚠️ 2026-09-18 뒤집혔다. 예전에는 여기서 "허용"이 나왔고, 그래서 사이트가
+//    실제로 건 규칙(아래 clienRealRobots)이 판정에 한 번도 반영되지 않았다.
+t('clien: 판정은 허용이 아니라 확인 불가다', state(clien404, '/service/board/park/19264755'), 'unverified')
 t(
-  'clien: 사유까지 "규칙 없음" — 실재하는 규칙과 구분되지 않는다',
+  'clien: 사유가 "그룹을 읽지 못했다"다 — 실재하는 규칙과 섞이지 않는다',
   robotsVerdict(parseRobots(clien404), '/service/board/sold/1', TOKEN).reason,
-  'robots.txt 에 규칙 없음',
+  'robots.txt 에서 그룹을 하나도 읽지 못했다',
 )
 // 아래가 우리가 **못 보는** 진짜 규칙이다. 어댑터가 대신 지킨다.
 t('clien(실재): 글 경로는 허용', allowed(clienRealRobots, '/service/board/park/19264755'), true)
@@ -673,10 +697,103 @@ t(
   robotsVerdict(parseRobots(fmkoreaRobots), '/best/1', TOKEN).reason,
   'Allow: /best',
 )
-t('fmkorea: ClaudeBot 이었다면 글이 금지였다', robotsVerdict(parseRobots(fmkoreaRobots), '/best/1', 'claudebot').allowed, false)
+t('fmkorea: ClaudeBot 이었다면 글이 금지였다', robotsVerdict(parseRobots(fmkoreaRobots), '/best/1', 'claudebot').state, 'disallowed')
 // ⚠️ 쿼리 규칙은 러너가 판정 못 한다(SP-026). 어댑터가 쿼리 ref 를 안 만드는 이유.
 t('fmkorea: listStyle 쿼리까지 주면 금지', allowed(fmkoreaRobots, '/best/1?listStyle=viewer'), false)
 t('fmkorea: 쿼리를 떼면 허용으로 보인다 — 러너의 구멍', allowed(fmkoreaRobots, '/best/1'), true)
+
+// ── 3상태 판정 — 우리 UA 에 적용되는 그룹이 없는 경우 (2026-09-18) ──
+//
+// 구멍 ③. `goodchoice.kr` 이 실측 반례다 — robots.txt 는 200 인데 특정 봇
+// 그룹만 있고 `User-agent: *` 가 아예 없다. 예전 파서는 "해당 그룹 없음 →
+// 허용"을 돌려줬다. 사이트가 우리에 대해 아무 말도 하지 않은 것을 초대로 읽은 것이다.
+
+const noStarGroup = `User-agent: Googlebot
+Disallow: /admin/
+
+User-agent: Yeti
+Disallow: /admin/
+`
+
+t('우리 UA 그룹이 없으면 확인 불가', state(noStarGroup, '/domestic/search'), 'unverified')
+t(
+  '그 사유가 "그룹이 없다"임을 못박는다',
+  robotsVerdict(parseRobots(noStarGroup), '/domestic/search', TOKEN).reason,
+  '우리 UA 에 적용되는 User-agent 그룹이 없다',
+)
+t('Googlebot 으로 오면 그 그룹을 받는다 (반대 방향 확인)', state(noStarGroup, '/admin/x', 'Googlebot'), 'disallowed')
+t('우리 토큰이 그룹에 있으면 확인 불가가 아니다', state(noStarGroup + 'User-agent: ' + TOKEN + LF + 'Disallow: /x' + LF, '/y'), 'allowed')
+
+// ── 사촌 사례 — `*` 그룹은 있는데 규칙이 0개 (velog 57B · docs.github.com 13B) ──
+//
+// ⚠️ 이건 **허용으로 판정한다.** RFC 9309 §2.2.2 대로 빈 그룹은 제약을 걸지
+//    않는다. 위 "그룹이 없다"와는 다른 사건이다 — 사이트가 우리를 포함하는
+//    그룹을 **쓰긴 썼다.**
+//    다만 사유를 따로 낸다. "금지하지 않았다"를 "허용해 줬다"로 읽고 채택 근거로
+//    쓰는 걸 막는 장치다. velog 의 실제 채택 근거는 robots 가 아니라 이용약관이다
+//    (lib/review/adapters/velog.ts 헤더).
+
+const velogRobots = '# https://www.robotstxt.org/robotstxt.html' + LF + 'User-agent: *' + LF
+
+t('velog: `*` 그룹이 1개 파싱된다', parseRobots(velogRobots).length, 1)
+t('velog: 그 그룹의 규칙은 0개다', parseRobots(velogRobots)[0].rules.length, 0)
+t('velog: 판정은 허용이다 (그룹이 없는 것과 다른 사건)', state(velogRobots, '/@velopert/x'), 'allowed')
+t(
+  'velog: 사유가 "규칙 0개"를 드러낸다 — 초대가 아니다',
+  robotsVerdict(parseRobots(velogRobots), '/@velopert/x', TOKEN).reason,
+  '적용 그룹에 규칙이 0개 — 금지하지 않았을 뿐 초대는 아니다',
+)
+
+// ── 구멍 ① — robots.txt 자리에 온 HTML (looksLikeMarkup) ──
+//
+// 킥스타터는 robots.txt 가 403(Cloudflare 챌린지 HTML), `www.tistory.com` 은 404.
+// 상태 코드로 거르는 것만으로는 부족하다 — **200 에 HTML 을 주는 소프트 404** 가 있고
+// 그때 상태는 200, 규칙은 0개다. 그래서 본문 자체를 본다.
+
+t('마크업 판정: doctype', looksLikeMarkup('<!DOCTYPE html>' + LF + '<html></html>'), true)
+t('마크업 판정: 앞에 빈 줄이 있어도', looksLikeMarkup(LF + LF + '  <html lang="ko">'), true)
+t('마크업 판정: BOM 이 붙어도', looksLikeMarkup(String.fromCharCode(0xfeff) + '<html>'), true)
+t('마크업 판정: 주석 뒤 첫 줄이 태그여도', looksLikeMarkup('# x' + LF + '<html>'), true)
+// Cloudflare 챌린지 페이지는 본문 한참 뒤에 태그가 오고, 앞쪽에 텍스트가 섞인다.
+t(
+  '마크업 판정: 첫 줄이 태그가 아니어도 앞 4KB 안에 <html> 이 있으면 마크업',
+  looksLikeMarkup('Just a moment...' + LF + '<html><head><title>Attention Required</title>'),
+  true,
+)
+t('마크업 판정: 진짜 robots 는 마크업이 아니다', looksLikeMarkup('User-agent: *' + LF + 'Disallow: /a' + LF), false)
+t('마크업 판정: 주석만 있는 robots 도 마크업이 아니다', looksLikeMarkup('# nothing here' + LF), false)
+t('마크업 판정: 빈 본문은 마크업이 아니다 (판정은 robotsVerdict 가 unverified 로 낸다)', looksLikeMarkup(''), false)
+// `Disallow: /*.html` 같은 규칙이 마크업으로 오판되면 정상 robots 가 전부 막힌다.
+t('마크업 판정: .html 을 막는 규칙은 오판하지 않는다', looksLikeMarkup('User-agent: *' + LF + 'Disallow: /*.html' + LF), false)
+
+// ── Crawl-delay — 파서가 읽고, 쓰는 쪽은 runner 의 Pacer 다 ──
+//
+// ⚠️ 2026-09-18 까지 이 파서가 없었다. robots 가 `Crawl-delay: 5` 를 선언해도
+//    러너는 못 읽었고, 유일한 방어선이 `review_sources.min_interval_ms` 의
+//    **사람이 손으로 넣은 값**이었다. brunch 가 그 경우다.
+
+t('brunch: `*` 그룹의 Crawl-delay 5 를 읽는다', robotsCrawlDelaySec(parseRobots(brunchRobots), TOKEN), 5)
+t('brunch: Googlebot 은 자기 그룹의 1 을 받는다', robotsCrawlDelaySec(parseRobots(brunchRobots), 'Googlebot'), 1)
+t('brunch: ClaudeBot 그룹에는 선언이 없다 → null', robotsCrawlDelaySec(parseRobots(brunchRobots), 'claudebot'), null)
+t('Crawl-delay 선언이 없으면 null (0 이 아니다)', robotsCrawlDelaySec(parseRobots('User-agent: *' + LF + 'Allow: /' + LF), TOKEN), null)
+t('Crawl-delay: 0 은 null 이 아니라 0 이다', robotsCrawlDelaySec(parseRobots('User-agent: *' + LF + 'Crawl-delay: 0' + LF + 'Allow: /' + LF), TOKEN), 0)
+t('소수 Crawl-delay 도 읽는다', robotsCrawlDelaySec(parseRobots('User-agent: *' + LF + 'Crawl-delay: 0.5' + LF + 'Allow: /' + LF), TOKEN), 0.5)
+t('숫자가 아닌 Crawl-delay 는 무시한다', robotsCrawlDelaySec(parseRobots('User-agent: *' + LF + 'Crawl-delay: soon' + LF + 'Allow: /' + LF), TOKEN), null)
+// 같은 UA 그룹이 여러 번 나오면 **큰 쪽**을 쓴다. 작은 쪽으로 덮으면 규율을 완화한다.
+t(
+  '같은 UA 그룹이 둘이면 Crawl-delay 는 큰 쪽',
+  robotsCrawlDelaySec(
+    parseRobots('User-agent: *' + LF + 'Crawl-delay: 2' + LF + 'Allow: /a' + LF + LF + 'User-agent: *' + LF + 'Crawl-delay: 9' + LF + 'Allow: /b' + LF),
+    TOKEN,
+  ),
+  9,
+)
+// Crawl-delay 가 rules 에 섞이면 경로 매칭 대상이 되어 엉뚱한 경로를 막는다.
+t(
+  'Crawl-delay 는 rules 에 들어가지 않는다',
+  parseRobots(brunchRobots).every((g) => g.rules.every((r) => !/crawl/i.test(r.path))),
+  true,
+)
 
 // ⚠️ 총계 출력은 **항상 파일 맨 아래**에 있어야 한다. 위에 두면 그 뒤에 붙은
 //    테스트의 실패가 종료 코드에 반영되지 않아, 초록불인데 깨진 상태가 된다.

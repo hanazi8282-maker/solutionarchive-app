@@ -215,6 +215,19 @@ export const hackernewsAdapter: ReviewSourceAdapter = {
   key: 'hackernews',
   displayName: 'Hacker News 댓글 (Algolia 검색)',
 
+  // robots 확인 불가여도 진행하는 호스트 (types.ts 의 필드 주석이 규칙 정본).
+  //
+  // ⚠️ `hn.algolia.com/robots.txt` 는 **HTTP 404** 다. 2026-09-10 최초 실측,
+  //    2026-09-18 재실측에서도 같다:
+  //      HTTP/1.1 404 · content-type text/html · 207B · Google Frontend
+  //      리다이렉트 없음(final URL 이 요청 URL 과 같다)
+  //    404 는 서버가 "그런 파일 없다"고 **확정적으로** 답한 것이다(RFC 9309
+  //    §2.3.1.3). 5xx·타임아웃과 다른 사건이라 여기 등재한다.
+  //
+  // ⛔ 이 줄을 지우면 hackernews 수집이 통째로 0건이 된다 — 러너가 확인 불가를
+  //    fail-closed 로 막기 때문이다. 지우려면 robots.txt 가 생겼는지 먼저 실측하라.
+  proceedWhenRobotsUnverified: ['hn.algolia.com'],
+
   nextRequest(target: TargetState): { url: string } | null {
     const keyword = parseProductRef(target.productRef)
     if (!keyword) return null

@@ -32,6 +32,7 @@ const t = (name, got, want) => {
   }
 }
 const ok = (name, cond) => t(name, Boolean(cond), true)
+const LF = String.fromCharCode(10)
 
 // ── 지문 (순수) ───────────────────────────────────────────────────
 const rv = (over = {}) => ({
@@ -87,6 +88,10 @@ ok('정규화가 구두점을 지우지 않는다', normalizeText('좋아요!') 
 function makeHarness({
   robots = 'User-agent: *\nAllow: /\n',
   robotsStatus = 200,
+  // 200 이 아닐 때의 본문. 404/403 이 HTML 을 주는 실측 상황을 재현한다.
+  robotsBody = '',
+  // robots.txt 를 **실제로 읽은** URL. 리다이렉트 재현용 (runner 의 FetchOutcome.finalUrl).
+  robotsFinalUrl = null,
   pages = {},
   pageStatus = {},
   sourceOver = {},
@@ -106,9 +111,12 @@ function makeHarness({
       log.fetched.push(url)
       clock += 10
       if (url.endsWith('/robots.txt')) {
-        return robotsStatus === 200
-          ? { status: 200, body: robots }
-          : { status: robotsStatus, body: '' }
+        if (robotsStatus === null) return { status: null, body: '', error: 'ECONNRESET' }
+        return {
+          status: robotsStatus,
+          body: robotsStatus === 200 ? robots : robotsBody,
+          finalUrl: robotsFinalUrl ?? url,
+        }
       }
       const page = new URL(url).searchParams.get('page')
       if (pageStatus[page] != null) {
@@ -222,12 +230,22 @@ const run = (h, over = {}) =>
   ok('예외를 허용으로 다루지 않는다', r.perTarget[0].outcome.includes('robots'))
 }
 {
-  // 반대편. theqoo·todayhumor 의 실제 응답이 404 다 — "규칙 없음 = 허용"(RFC 9309).
-  // 위 두 블록과 **값이 달라야** 한다. 같아지면 새 소스가 통째로 안 돈다.
+  // ⚠️ 2026-09-18 **뒤집혔다.** 예전에는 여기서 "404 = 규칙 없음 = 허용"(RFC 9309
+  //    §2.3.1.3)을 못박고 있었다. 그런데 실측에서 그 404 본문은 전부 **robots 를
+  //    감춘 HTML** 이었다 — 킥스타터 403(Cloudflare) · www.tistory.com 404 ·
+  //    theqoo/todayhumor 404 · clien 은 우리 UA 에게만 404(SP-027).
+  //    "규칙이 없다"와 "규칙을 안 보여 준다"를 같은 값으로 접으면 사이트가 실제로
+  //    건 규칙이 판정에 한 번도 반영되지 않는다(CLAUDE.md §7.2).
+  //
+  //    그래서 기본값은 **막는다.** 이미 등록된 404 소스가 조용히 0건이 되는 것을
+  //    막는 장치는 어댑터의 proceedWhenRobotsUnverified 표식이다(아래 블록).
   const h = makeHarness({ robotsStatus: 404 })
   const r = await run(h)
-  ok('robots.txt 404 는 규칙 없음 = 허용이다', r.requests > 0)
-  t('robots.txt 404 면 robotsSkips 0', r.robotsSkips, 0)
+  t('robots.txt 404 는 확인 불가다 — 요청하지 않는다', r.requests, 0)
+  t('확인 불가도 robotsSkips 로 센다', r.robotsSkips, 1)
+  ok('금지가 아니라 확인 불가로 적는다', r.perTarget[0].outcome.includes('robots 확인 불가'))
+  ok('사유에 상태 코드가 남는다', r.perTarget[0].outcome.includes('HTTP 404'))
+  ok('"금지"라고 적지 않는다', !r.perTarget[0].outcome.includes('robots 금지'))
 }
 {
   // robots 는 호스트당 한 번만 묻는다
@@ -1279,6 +1297,195 @@ for (const [file, keys] of [
   ok('롤백(r5): 되돌리는 문장이 있다', /update\s+public\.review_sources/i.test(live))
   ok('롤백(r5): DELETE 를 바로 실행하지 않는다', !/^\s*delete\s+from/im.test(live))
   ok('롤백(r5): 자식 행 건수 확인 SQL 이 주석으로 있다', /review_fingerprints/.test(rb) && /analysis_inputs/.test(rb))
+}
+
+// ── robots 확인 불가 3상태 + 소스별 통과 표식 (2026-09-18) ────────
+//
+// 여기서 고정하는 것: **막아야 할 것을 조용히 통과시키지 않는다.**
+// 구멍 3곳이 실측에서 드러났다(2026-09-18 VOC 소스 조사 20곳).
+//   ① robots.txt 자리에 HTML 이 오면 "규칙 0개 = 전체 허용"이 됐다
+//   ② robots 캐시가 요청한 origin 기준이라 리다이렉트된 남의 규칙을 이식했다
+//   ③ 우리 UA 에 적용되는 그룹이 없으면 자동 허용이었다
+
+/** 표식이 달린 어댑터. example.test 는 robots 확인 불가여도 진행한다. */
+const markedAdapter = { ...fakeAdapter, proceedWhenRobotsUnverified: ['example.test'] }
+const runMarked = (h, over = {}) =>
+  runCollection(markedAdapter, { dryRun: false, targetLimit: 5, ...over }, h.ports)
+
+{
+  // ③ 우리 UA 에 적용되는 그룹이 없다 (goodchoice.kr 실측 형태 — 200 인데 `*` 그룹이 없다)
+  const h = makeHarness({ robots: 'User-agent: Googlebot' + LF + 'Disallow: /admin/' + LF })
+  const r = await run(h)
+  t('적용 그룹이 없으면 요청하지 않는다', r.requests, 0)
+  ok('사유가 "그룹이 없다"다', r.perTarget[0].outcome.includes('적용되는 User-agent 그룹이 없다'))
+}
+{
+  // ③ 사촌 — `*` 그룹은 있고 규칙이 0개 (velog 57B 실측 형태). 이건 **허용이다.**
+  //    여기가 unverified 로 바뀌면 velog 가 통째로 안 돈다.
+  const h = makeHarness({
+    robots: '# https://www.robotstxt.org/robotstxt.html' + LF + 'User-agent: *' + LF,
+    pages: { 1: page([], null) },
+  })
+  const r = await run(h)
+  ok('`*` 그룹이 있고 규칙 0개면 요청한다 (velog 회귀 방지)', r.requests > 0)
+  t('robotsSkips 0', r.robotsSkips, 0)
+}
+{
+  // ① 200 인데 본문이 HTML — 소프트 404. 상태 코드만 보면 못 잡는다.
+  const h = makeHarness({ robots: '<!DOCTYPE html>' + LF + '<html><head></head></html>' + LF })
+  const r = await run(h)
+  t('200 에 HTML 이 오면 요청하지 않는다', r.requests, 0)
+  ok('사유에 HTML 이라고 적는다', r.perTarget[0].outcome.includes('HTML'))
+}
+{
+  // ① 403 + Cloudflare 챌린지 HTML (킥스타터 실측 형태)
+  const h = makeHarness({
+    robotsStatus: 403,
+    robotsBody:
+      'Just a moment...' + LF + '<html><head><title>Attention Required</title></head></html>',
+  })
+  const r = await run(h)
+  t('403 은 확인 불가다', r.requests, 0)
+  ok('사유에 403 이 남는다', r.perTarget[0].outcome.includes('HTTP 403'))
+}
+{
+  // ② robots.txt 가 다른 호스트로 리다이렉트됐다 (SOOP .co.kr → .com 실측 형태).
+  //    읽은 건 other.test 의 규칙이다. example.test 의 규칙으로 쓰면 안 된다.
+  const h = makeHarness({
+    robots: 'User-agent: *' + LF + 'Allow: /' + LF,
+    robotsFinalUrl: 'https://other.test/robots.txt',
+  })
+  const r = await run(h)
+  t('리다이렉트된 robots 를 요청 호스트 규칙으로 쓰지 않는다', r.requests, 0)
+  ok('사유에 리다이렉트 사실이 남는다', r.perTarget[0].outcome.includes('리다이렉트'))
+  ok('사유에 읽은 호스트가 남는다', r.perTarget[0].outcome.includes('other.test'))
+}
+{
+  // ② 최종 origin 이 요청 origin 과 같으면(http→https 정도) 문제가 아니다.
+  const h = makeHarness({
+    robots: 'User-agent: *' + LF + 'Allow: /' + LF,
+    robotsFinalUrl: 'https://example.test/robots.txt',
+    pages: { 1: page([], null) },
+  })
+  const r = await run(h)
+  ok('최종 origin 이 같으면 정상 통과', r.requests > 0)
+}
+{
+  // finalUrl 을 안 주는 포트(픽스처)는 "리다이렉트 없음"으로 본다. 이게 아니면
+  // 기존 셀프테스트 전량이 fail-closed 로 막혀 버린다.
+  const h = makeHarness({
+    robots: 'User-agent: *' + LF + 'Allow: /' + LF,
+    robotsFinalUrl: null,
+    pages: { 1: page([], null) },
+  })
+  const r = await run(h)
+  ok('finalUrl 이 없으면 리다이렉트 없음으로 본다', r.requests > 0)
+}
+
+// ── 소스별 통과 표식 — 기존 404 소스의 회귀를 막는 유일한 장치 ────
+{
+  const h = makeHarness({ robotsStatus: 404, pages: { 1: page([], null) } })
+  const r = await runMarked(h)
+  ok('표식이 있으면 404 여도 진행한다 (hackernews·theqoo·todayhumor·clien)', r.requests > 0)
+  t('표식으로 통과하면 robotsSkips 0', r.robotsSkips, 0)
+}
+{
+  const h = makeHarness({
+    robots: '<!DOCTYPE html>' + LF + '<html></html>',
+    pages: { 1: page([], null) },
+  })
+  const r = await runMarked(h)
+  ok('표식이 있으면 HTML 응답도 진행한다', r.requests > 0)
+}
+{
+  const h = makeHarness({
+    robots: 'User-agent: Googlebot' + LF + 'Disallow: /admin/' + LF,
+    pages: { 1: page([], null) },
+  })
+  const r = await runMarked(h)
+  ok('표식이 있으면 적용 그룹 없음도 진행한다', r.requests > 0)
+}
+{
+  // ⛔ 표식은 **확인 불가만** 뚫는다. 규칙이 막는 건 못 뚫는다.
+  const h = makeHarness({ robots: 'User-agent: *' + LF + 'Disallow: /' + LF })
+  const r = await runMarked(h)
+  t('표식이 있어도 Disallow 는 못 뚫는다', r.requests, 0)
+  ok('금지로 적는다', r.perTarget[0].outcome.includes('robots 금지'))
+}
+{
+  // ⛔ 표식은 5xx 를 뚫지 못한다. 404 는 서버의 확정 응답이지만 5xx 는 "규칙이
+  //    있는지조차 모른다"다. 이 구분이 사라지면 서버가 흔들린 틈에 금지 경로를 긁는다.
+  const h = makeHarness({ robotsStatus: 503 })
+  const r = await runMarked(h)
+  t('표식이 있어도 503 은 못 뚫는다', r.requests, 0)
+  ok('사유에 서버 오류라고 적는다', r.perTarget[0].outcome.includes('서버 오류'))
+}
+{
+  const h = makeHarness({ robotsStatus: null })
+  const r = await runMarked(h)
+  t('표식이 있어도 네트워크 오류는 못 뚫는다', r.requests, 0)
+}
+{
+  // 표식은 호스트 단위다. 다른 호스트에는 적용되지 않는다.
+  const other = { ...fakeAdapter, proceedWhenRobotsUnverified: ['somewhere-else.test'] }
+  const h = makeHarness({ robotsStatus: 404 })
+  const r = await runCollection(other, { dryRun: false, targetLimit: 5 }, h.ports)
+  t('다른 호스트 표식은 이 호스트를 통과시키지 않는다', r.requests, 0)
+}
+
+// ── Crawl-delay — DB 값과 **큰 쪽**을 쓴다 ────────────────────────
+//
+// ⚠️ 2026-09-18 까지 파서가 이 줄을 아예 안 읽었다. 유일한 방어선이
+//    review_sources.min_interval_ms 의 **사람이 손으로 넣은 값**이었고,
+//    brunch 는 사람이 5000 을 넣어서 지켜졌다. 다음 소스에서 그 손질을
+//    빠뜨리면 그대로 robots 위반이 된다.
+{
+  const h = makeHarness({
+    robots: 'User-agent: *' + LF + 'Allow: /' + LF + 'Crawl-delay: 10' + LF,
+    sourceOver: { minIntervalMs: 4000 },
+    pages: { 1: page([rv({ externalId: 'a' })], '1'), 2: page([], null) },
+  })
+  await run(h)
+  ok(
+    'robots 가 DB 값보다 크면 robots 를 쓴다',
+    h.log.slept.some((ms) => ms > 4000 && ms <= 10000),
+  )
+  ok('4000 짜리 대기가 남지 않는다', !h.log.slept.includes(4000))
+}
+{
+  const h = makeHarness({
+    robots: 'User-agent: *' + LF + 'Allow: /' + LF + 'Crawl-delay: 1' + LF,
+    sourceOver: { minIntervalMs: 4000 },
+    pages: { 1: page([rv({ externalId: 'a' })], '1'), 2: page([], null) },
+  })
+  await run(h)
+  ok(
+    'DB 값이 더 크면 DB 값을 쓴다 (완화하지 않는다)',
+    h.log.slept.length > 0 && h.log.slept.every((ms) => ms > 1000),
+  )
+}
+{
+  const h = makeHarness({
+    robots: 'User-agent: *' + LF + 'Allow: /' + LF,
+    sourceOver: { minIntervalMs: 4000 },
+    pages: { 1: page([rv({ externalId: 'a' })], '1'), 2: page([], null) },
+  })
+  await run(h)
+  ok(
+    'Crawl-delay 선언이 없으면 DB 값 그대로',
+    h.log.slept.length > 0 && h.log.slept.every((ms) => ms <= 4000),
+  )
+}
+
+// ── 실제 네트워크 포트가 finalUrl 을 채우는가 (경계면 검사) ────────
+//
+// ⚠️ robots 캐시의 리다이렉트 방어는 포트가 finalUrl 을 넣어 줘야 작동한다.
+//    부품 테스트는 가짜 포트를 쓰니 이 배선이 빠져도 전부 통과한다(§7.1 의
+//    "부품 테스트를 통합의 근거로 쓰지 마라"). 그래서 실제 포트의 원문을 본다.
+{
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  ok('review-collect 의 fetchText 가 finalUrl 을 채운다', /finalUrl:\s*res\.url/.test(collect))
+  ok('review-collect 가 리다이렉트를 따라간다', /redirect:\s*'follow'/.test(collect))
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

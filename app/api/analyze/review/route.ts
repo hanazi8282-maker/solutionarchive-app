@@ -101,7 +101,22 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: '속성 조회 실패' }, { status: 500 })
   }
 
-  return NextResponse.json({ project, aspects: aspects ?? [] })
+  // PMF 선례축 — pmf_assessments 최신 1건(CLI scripts/pmf-assess.mjs 가 남긴다). 읽기만.
+  // 조회 실패는 검수 화면 전체를 막지 않는다. 대신 `pmf_lookup_failed` 로 "진단 없음"과 가른다(§7.1).
+  const { data: pmfRows, error: pmfError } = await supabase
+    .from('pmf_assessments')
+    .select('demand_axis, precedent_axis, quadrant, match_status, match_reason, created_at')
+    .eq('target_project_id', projectId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+  if (pmfError) console.error('[analyze/review] pmf_assessments fetch error:', pmfError.message)
+
+  return NextResponse.json({
+    project,
+    aspects: aspects ?? [],
+    pmf: pmfError ? null : (pmfRows?.[0] ?? null),
+    pmf_lookup_failed: Boolean(pmfError),
+  })
 }
 
 // ── 검수 결과 저장 ───────────────────────────────────────────────

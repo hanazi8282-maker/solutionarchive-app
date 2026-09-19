@@ -437,14 +437,21 @@ export async function GET(req: Request) {
   }
 
   // extracted 이후 단계(reviewed 등)도 완료로 본다.
-  const { count } = await supabase
+  const { count, error: countError } = await supabase
     .from('analysis_aspects')
     .select('id', { count: 'exact', head: true })
     .eq('project_id', projectId)
 
+  // 조회 실패를 "속성 0개"로 접지 않는다(§7.1). 전에는 `count ?? 0` 이라 실패가 화면에
+  // "분석 완료 — 속성 0개" 로 갔다. 폴링 쪽(review/page.tsx)은 !ok 면 error 를 그대로 보여준다.
+  if (countError || count == null) {
+    console.error('[analyze/extract] aspects count error:', countError?.message ?? 'count is null')
+    return NextResponse.json({ error: '속성 수를 확인하지 못했습니다 — 0개라는 뜻이 아닙니다. 새로고침해 다시 확인하세요.' }, { status: 500 })
+  }
+
   return NextResponse.json({
     status: project.status,
-    aspects_count: count ?? 0,
+    aspects_count: count,
     maturity_stage: project.maturity_stage,
     finished_at: project.extract_finished_at,
     attempts: project.extract_attempts,

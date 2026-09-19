@@ -332,12 +332,15 @@ export async function PUT(req: Request) {
     }
     projectStatus = updated?.status ?? null
   } else {
-    const { data: current } = await supabase
+    const { data: current, error: currentErr } = await supabase
       .from('analysis_projects')
       .select('status')
       .eq('id', projectId)
       .single()
-    projectStatus = current?.status ?? null
+    // 저장은 이미 끝났다. 상태 재조회만 실패한 것이라 500 으로 되돌리지 않고, 화면이
+    // "저장했습니다 … 상태는 'null' 유지" 로 거짓말하지 않게 실패를 문장으로 남긴다(감사 2-7).
+    if (currentErr) console.error('[analyze/review] project status re-read error:', currentErr.message)
+    projectStatus = currentErr ? '확인 불가(저장은 됨)' : (current?.status ?? null)
   }
 
   // 사분면을 반영한 최신 상태로 다시 읽어 돌려준다.

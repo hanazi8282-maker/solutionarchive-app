@@ -729,10 +729,16 @@ export async function GET(req: Request) {
 
   // 사분면·페르소나·인지시점은 analysis_angles 가 아니라 analysis_aspects 에만 있다.
   // 화면이 배지로 표시하려면 조인해서 내려줘야 한다.
-  const { data: aspects } = await supabase
+  const { data: aspects, error: aspectsError } = await supabase
     .from('analysis_aspects')
     .select('id, name, quadrant, persona_role, pain_timing, attribution, opportunity_score')
     .eq('project_id', projectId)
+  // 조인 실패를 "속성 없음"으로 접지 않는다(§7.1, 09-19 감사 2-5). 전에는 error 를 버려
+  // 사분면·페르소나 배지가 전부 사라진 채 화면이 "정상"으로 그려졌다.
+  if (aspectsError) {
+    console.error('[analyze/angle] aspects join error:', aspectsError.message)
+    return NextResponse.json({ error: '속성 조회 실패 — 앵글은 있는데 속성 배지를 붙이지 못했습니다' }, { status: 500 })
+  }
   const aspectById = new Map((aspects ?? []).map(a => [a.id, a]))
 
   return NextResponse.json({

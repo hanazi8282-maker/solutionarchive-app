@@ -151,6 +151,14 @@ export function matchMoves(
 export const QUADRANT = ['PROVEN_DEMAND', 'UNCHARTED_DEMAND', 'CROWDED_NO_DEMAND', 'PARK'] as const
 export type Quadrant = (typeof QUADRANT)[number]
 
+/** 화면용 짧은 라벨. quadrantOf() 의 reason 문장이 긴 설명이고 이건 배지다. */
+export const PMF_QUADRANT_LABELS: Record<Quadrant, string> = {
+  PROVEN_DEMAND: '수요·선례 둘 다 있음',
+  UNCHARTED_DEMAND: '수요 있음·선례 약함',
+  CROWDED_NO_DEMAND: '선례 많음·수요 없음',
+  PARK: '둘 다 약함 — 보류',
+}
+
 /**
  * 수요축: opportunity_score 를 0~1 로 정규화. 산식 O_k = I + max(I-S,0) 의 이론 최대는 2*max(I).
  *

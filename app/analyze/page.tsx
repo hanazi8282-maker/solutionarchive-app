@@ -5,6 +5,7 @@ import {
   ANGLE_READY_STATUSES, MODE_LABELS, PURPOSE_LABELS,
   type AnalysisMode, type AnalysisPurpose,
 } from '@/lib/analysis/types'
+import { demandAxis, PMF_QUADRANT_LABELS, type Quadrant as PmfQuadrant } from '@/lib/cases/match'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { ButtonLink } from '../_ds/components/Button'
@@ -26,6 +27,57 @@ type Row = {
   product_elevator_pitch: string
   /** PostgREST 임베디드 count — FK(analysis_inputs.project_id) 로 묶인 원문 수. */
   analysis_inputs: { count: number }[] | null
+  /** 수요축 재료. opportunity_score 는 DB 생성 컬럼 — 읽기만 한다(재계산 금지, lib/cases/match.ts). */
+  analysis_aspects: { opportunity_score: number | string | null }[] | null
+  /** 선례축. FK(pmf_assessments.target_project_id). 진단이 여러 번이면 최신 1건만 쓴다. */
+  pmf_assessments: {
+    demand_axis: number | string | null
+    precedent_axis: number | string | null
+    quadrant: PmfQuadrant | null
+    match_status: 'matched' | 'no_match' | 'not_run'
+    created_at: string | null
+  }[] | null
+}
+
+// ── 2축 (수요 · 선례) ──────────────────────────────────────────
+// 전에는 목록이 opportunity_score 를 아예 읽지 않아 "어느 프로젝트에 수요가 있나"를 상세에
+// 들어가기 전엔 알 수 없었다. 산식은 lib/cases/match.ts 한 벌뿐이다 — 여기서 다시 만들지 않는다.
+// 두 축을 한 숫자로 합치지 않는다(pmf-assess.mjs 헤더의 이유와 같다).
+const num = (v: number | string | null | undefined) => (v == null || v === '' ? null : Number(v))
+const fmt1 = (v: number | null) => (v == null ? '—' : v.toFixed(2))
+
+function axesOf(r: Row) {
+  const demand = demandAxis(r.analysis_aspects == null ? null : r.analysis_aspects.map((a) => num(a.opportunity_score)))
+  const latest = [...(r.pmf_assessments ?? [])]
+    .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')))[0] ?? null
+  const precedent = latest == null ? null : num(latest.precedent_axis)
+  return { demand, latest, precedent }
+}
+
+const QUADRANT_TONE: Record<PmfQuadrant, Tone> = {
+  PROVEN_DEMAND: 'success', UNCHARTED_DEMAND: 'warning', CROWDED_NO_DEMAND: 'neutral', PARK: 'neutral',
+}
+
+function AxisStrip({ r }: { r: Row }) {
+  const { demand, latest, precedent } = axesOf(r)
+  const cell: CSSProperties = { fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }
+  const strong: CSSProperties = { fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--text-strong)' }
+  // 세 상태를 문장으로 가른다(§7.1): 값 / 0건 / 확인 불가·미진단.
+  const demandText = demand.value == null
+    ? (r.analysis_aspects?.length ? '확인 불가' : '속성 없음')
+    : fmt1(demand.value)
+  const precedentText = latest == null ? '미진단' : latest.match_status === 'not_run' ? '확인 불가' : fmt1(precedent)
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px', marginTop: 6 }}>
+      <span style={cell} title={demand.reason}>수요축 <span style={strong}>{demandText}</span></span>
+      <span style={cell} title={latest ? `${latest.match_status} · ${latest.created_at ? `${KST.format(Date.parse(latest.created_at))} KST` : ''}` : 'pmf-assess 로 선례 진단을 돌린 적이 없다'}>
+        선례축 <span style={strong}>{precedentText}</span>
+      </span>
+      {latest?.quadrant && (
+        <Badge tone={QUADRANT_TONE[latest.quadrant]} size="sm">{PMF_QUADRANT_LABELS[latest.quadrant]}</Badge>
+      )}
+    </div>
+  )
 }
 
 // 수집 중인데 원문이 이미 있는 프로젝트. 야간 수집 루프가 리뷰를 수백 건 쌓아 둔 프로젝트가
@@ -74,8 +126,18 @@ function FilterLink({ href, active, children }: { href: string; active: boolean;
   )
 }
 
-export default async function AnalyzeListPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  const filter = (await searchParams).status ?? DEFAULT_FILTER
+export default async function AnalyzeListPage({ searchParams }: { searchParams: Promise<{ status?: string; sort?: string }> }) {
+  const sp = await searchParams
+  const filter = sp.status ?? DEFAULT_FILTER
+  // 정렬은 수요축 하나만 연다 — "어디부터 볼까"의 기본 질문이 그것이다. 선례축은 진단이 있는 행이 드물어 정렬 축으로는 아직 이르다.
+  const byDemand = sp.sort === 'demand'
+  const qs = (patch: Record<string, string | undefined>) => {
+    const p = new URLSearchParams()
+    const next = { status: filter === DEFAULT_FILTER ? undefined : filter, sort: byDemand ? 'demand' : undefined, ...patch }
+    for (const [k, v] of Object.entries(next)) if (v) p.set(k, v)
+    const s = p.toString()
+    return s ? `/analyze?${s}` : '/analyze'
+  }
   const sb = await createClient()
 
   const header = (
@@ -100,7 +162,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   // ponytail: 전체를 한 번에 읽어 상태별 건수와 필터를 같이 만든다. 500건을 넘기면 서버 필터·페이지네이션으로.
   const res = await sb
     .from('analysis_projects')
-    .select('id,status,created_at,purpose,mode,competitor_url,product_elevator_pitch,analysis_inputs(count)')
+    .select('id,status,created_at,purpose,mode,competitor_url,product_elevator_pitch,analysis_inputs(count),analysis_aspects(opportunity_score),pmf_assessments(demand_axis,precedent_axis,quadrant,match_status,created_at)')
     .order('created_at', { ascending: false })
     .limit(LIMIT)
 
@@ -121,10 +183,20 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   const collectingN = counts.get('collecting') ?? 0
   const readyN = all.filter(isReady).length
 
-  const rows = filter === 'all' ? all
+  const filtered = filter === 'all' ? all
     : filter === DEFAULT_FILTER ? all.filter((r) => r.status !== 'collecting')
       : filter === READY_FILTER ? all.filter(isReady)
         : all.filter((r) => r.status === filter)
+  // 수요축 정렬: 값 있는 행이 앞, 그 안에서 큰 값 순. 확인 불가·속성 없음은 뒤로(0 으로 접지 않는다).
+  const rows = byDemand
+    ? [...filtered].sort((a, b) => {
+      const da = axesOf(a).demand.value, db = axesOf(b).demand.value
+      if (da == null && db == null) return 0
+      if (da == null) return 1
+      if (db == null) return -1
+      return db - da
+    })
+    : filtered
 
   return (
     <PageShell maxWidth={960}>
@@ -135,20 +207,25 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
       )}
 
       <nav aria-label="상태 필터" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        <FilterLink href="/analyze" active={filter === DEFAULT_FILTER}>
+        <FilterLink href={qs({ status: undefined })} active={filter === DEFAULT_FILTER}>
           수집 중 제외 {all.length - collectingN}
         </FilterLink>
         {readyN > 0 && (
-          <FilterLink href={`/analyze?status=${READY_FILTER}`} active={filter === READY_FILTER}>
+          <FilterLink href={qs({ status: READY_FILTER })} active={filter === READY_FILTER}>
             원문 있음·분석 전 {readyN}
           </FilterLink>
         )}
         {[...counts.entries()].map(([s, n]) => (
-          <FilterLink key={s} href={`/analyze?status=${encodeURIComponent(s)}`} active={filter === s}>
+          <FilterLink key={s} href={qs({ status: s })} active={filter === s}>
             {STATUS[s]?.label ?? s} {n}
           </FilterLink>
         ))}
-        <FilterLink href="/analyze?status=all" active={filter === 'all'}>전체 {all.length}</FilterLink>
+        <FilterLink href={qs({ status: 'all' })} active={filter === 'all'}>전체 {all.length}</FilterLink>
+      </nav>
+      <nav aria-label="정렬" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+        정렬
+        <FilterLink href={qs({ sort: undefined })} active={!byDemand}>최근 생성 순</FilterLink>
+        <FilterLink href={qs({ sort: 'demand' })} active={byDemand}>수요축 높은 순</FilterLink>
       </nav>
 
       <Card bodyStyle={{ padding: 0 }}>
@@ -189,6 +266,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
                     <div style={{ marginTop: 2, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)', ...wrap }}>
                       {r.competitor_url}
                     </div>
+                    <AxisStrip r={r} />
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <ButtonLink href={`/analyze/${r.id}/review`} size="sm">상세·검수</ButtonLink>

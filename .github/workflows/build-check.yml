@@ -63,6 +63,44 @@ jobs:
       # ⚠️ 2026-09-18 까지 이 파일은 CI 에 배선돼 있지 않았다 — 리뷰 수집 트랙의
       #    안전장치인데 사람이 손으로 돌려야만 돌았다. 깨져도 초록불이었다.
       - run: node scripts/review-robots-selftest.mjs
+      # ── 2026-09-19 배선 (코드 감사 2-1) ─────────────────────────────────
+      # 아래 31개는 리포에 있었지만 어떤 워크플로도 돌리지 않아 깨져도 초록불이었다.
+      # 전부 픽스처만 쓰고(네트워크·DB·env 없음) 각 1초 안에 끝난다 — 09-19 에 env 없이 실측.
+      # 빠진 2개(failed-angles-sync · strategy-principles-sync)는 docs/ 표 행수 단정이 현재
+      # 원장과 어긋나 실패한다 — 테스트 기대값을 고칠지 원장을 되돌릴지는 사람 판단(감사 보고서).
+      # 발행 게이트 CG-1/CG-2 의 유일한 테스트(case-pipeline)가 여기 처음 들어간다.
+      - run: node scripts/case-pipeline-selftest.mjs
+      - run: node scripts/case-match-selftest.mjs
+      - run: node scripts/case-review-rules-selftest.mjs
+      - run: node scripts/score-predictions-selftest.mjs
+      - run: node scripts/agents-status-selftest.mjs
+      - run: node scripts/analyze-angle-adaptation-selftest.mjs
+      - run: node scripts/analyze-angle-validate-selftest.mjs
+      - run: node scripts/analyze-danawa-url-selftest.mjs
+      - run: node scripts/onboarding-quiz-selftest.mjs
+      - run: node scripts/voice-check-selftest.mjs
+      - run: node scripts/insight-cli-selftest.mjs
+      - run: node scripts/insight-kakao-selftest.mjs
+      - run: node scripts/insight-patterns-selftest.mjs
+      - run: node scripts/kakao-proxy-selftest.mjs
+      - run: node scripts/threads-collect-selftest.mjs
+      - run: node scripts/threads-replies-selftest.mjs
+      - run: node scripts/review-health-selftest.mjs
+      - run: node scripts/review-purge-selftest.mjs
+      # 리뷰 소스 파서 13종 — 구조 소실을 0건과 가르는 검사(§7.1)가 각 파일에 있다.
+      - run: node scripts/review-82cook-selftest.mjs
+      - run: node scripts/review-appstore-selftest.mjs
+      - run: node scripts/review-bobaedream-selftest.mjs
+      - run: node scripts/review-brunch-selftest.mjs
+      - run: node scripts/review-clien-selftest.mjs
+      - run: node scripts/review-damoang-selftest.mjs
+      - run: node scripts/review-danawa-selftest.mjs
+      - run: node scripts/review-fmkorea-selftest.mjs
+      - run: node scripts/review-hackernews-selftest.mjs
+      - run: node scripts/review-naver-blog-selftest.mjs
+      - run: node scripts/review-theqoo-selftest.mjs
+      - run: node scripts/review-todayhumor-selftest.mjs
+      - run: node scripts/review-tumblbug-selftest.mjs
       # 빌드가 **실제로 읽는** 값만 준다. 나머지는 요청 시점(Vercel env)에서
       # 읽히지 서버 빌드에서 읽히지 않는다. 안 쓰는 이름을 여기 적어 두면
       # "CI 에 배선돼 있으니 등록돼 있겠지"로 읽혀 진단을 헛돌게 만든다.

@@ -69,6 +69,8 @@ jobs:
       # 빠진 2개(failed-angles-sync · strategy-principles-sync)는 docs/ 표 행수 단정이 현재
       # 원장과 어긋나 실패한다 — 테스트 기대값을 고칠지 원장을 되돌릴지는 사람 판단(감사 보고서).
       # 발행 게이트 CG-1/CG-2 의 유일한 테스트(case-pipeline)가 여기 처음 들어간다.
+      # 발굴 게이트(감사 2-2) — 전에는 nightly-discovery 에서만 돌아 회귀가 머지 뒤 첫 밤에야 드러났다.
+      - run: node scripts/discovery-selftest.mjs
       - run: node scripts/case-pipeline-selftest.mjs
       - run: node scripts/case-match-selftest.mjs
       - run: node scripts/case-review-rules-selftest.mjs

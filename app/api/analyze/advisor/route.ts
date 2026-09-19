@@ -73,11 +73,17 @@ export async function GET(req: Request) {
     let aspectName: string | null = null
     let aspectNotes: string | null = null
     if (angle.aspect_id) {
-      const { data: aspect } = await supabase
+      const { data: aspect, error: aspectErr } = await supabase
         .from('analysis_aspects')
         .select('name, notes, aspect_layer')
         .eq('id', angle.aspect_id)
         .maybeSingle()
+      // 속성 조회 실패면 질의어가 headline 만으로 줄어 매칭 품질이 조용히 떨어진다(감사 2-6).
+      // 확인 불가를 "속성 없음"으로 접지 않는다 — 500 으로 돌려 화면이 "불러오지 못했다"로 말하게 한다.
+      if (aspectErr) {
+        console.error('[analyze/advisor] aspect fetch error:', aspectErr.message)
+        return NextResponse.json({ error: '앵글의 속성 조회에 실패했습니다.' }, { status: 500 })
+      }
       aspectName = aspect?.name ?? null
       aspectNotes = aspect?.notes ?? null
     }

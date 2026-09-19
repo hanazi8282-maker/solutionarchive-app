@@ -80,6 +80,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":2})
 - ✅ `stage` 발행 대기 스테이징 ({"staged":2})
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":17})
+- ℹ️ Notion 푸시: zon-review-trust → https://app.notion.com/p/CASE-tuft-and-needle-amazon-review-trust-3e0100b7ffb4819c84faedef53b15146 ⏭️ 발굴 — 채택·확인불가 0건 (후보 2건). 페이지를 만들지 않는다. 푸시 완료 — 초안 2건 · 신규케이스 1건 · 발굴 0건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-09-20-CMO 기록·재확인
 
 _실행 키 `cmo-2026-09-19-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

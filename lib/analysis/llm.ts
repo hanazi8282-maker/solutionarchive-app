@@ -302,16 +302,6 @@ export async function callLlmWithModel(
   throw new AllGeminiModelsExhaustedError(tried)
 }
 
-/** 모델명이 필요 없는 호출부를 위한 얇은 래퍼. */
-export async function callLlm(
-  provider: LlmProvider,
-  systemPrompt: string,
-  userPrompt: string,
-  label = 'llm',
-): Promise<string> {
-  return (await callLlmWithModel(provider, systemPrompt, userPrompt, label)).text
-}
-
 /**
  * JSON 응답을 기대하는 호출. 모델이 간혹 설명문을 섞어 JSON 파싱이 깨지는데,
  * 그때 원문을 로그에 남기고 "JSON 만 출력하라"고 한 번 더 요청한다.
@@ -345,16 +335,6 @@ export async function callLlmJsonWithModel(
       )
     }
   }
-}
-
-/** 모델명이 필요 없는 호출부를 위한 얇은 래퍼. */
-export async function callLlmJson(
-  provider: LlmProvider,
-  systemPrompt: string,
-  userPrompt: string,
-  label = 'llm',
-): Promise<Record<string, unknown>> {
-  return (await callLlmJsonWithModel(provider, systemPrompt, userPrompt, label)).data
 }
 
 /** 코드블록/앞뒤 잡텍스트를 방어하며 JSON 객체를 추출한다. */

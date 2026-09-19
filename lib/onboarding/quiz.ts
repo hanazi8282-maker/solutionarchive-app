@@ -25,7 +25,6 @@ export const QUESTION_COUNT = 10
 export const PERCENTILE_MIN_N = 30
 
 export type Side = 'a' | 'b'
-export type OptionSource = 'case_move' | 'failed_angle'
 
 /** case_moves 한 행 (성공 쪽). */
 export interface SuccessMoveRow {

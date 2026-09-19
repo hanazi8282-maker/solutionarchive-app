@@ -77,27 +77,8 @@ export type OutputType = (typeof OUTPUT_TYPES)[number]
 export const SUBSTANTIATION_VERDICTS = ['SUBSTANTIATED', 'EXPERIENTIAL', 'UNSUBSTANTIATED'] as const
 export type SubstantiationVerdict = (typeof SUBSTANTIATION_VERDICTS)[number]
 
-export type AnalysisProject = {
-  id: string
-  competitor_url: string
-  product_elevator_pitch: string
-  purpose: AnalysisPurpose
-  mode: AnalysisMode
-  seller_own_guess: string | null
-  status: string
-  maturity_stage: number | null
-  maturity_notes: string | null
-  m_meta_signal: boolean | null
-  created_at: string | null
-}
-
-export type AnalysisInput = {
-  id: string
-  project_id: string
-  source_type: AnalysisSourceType
-  raw_text: string
-  created_at: string | null
-}
+// AnalysisProject / AnalysisInput 행 타입은 여기 있었지만 참조 0건이었다(2026-09-19 감사 3-3).
+// 각 화면·라우트가 자기 select 컬럼에 맞춘 Row 타입을 따로 두므로 여기서 지웠다.
 
 export const ANGLE_TYPE_LABELS: Record<AngleType, string> = {
   PAS:            '문제-자극-해결',

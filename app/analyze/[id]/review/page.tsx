@@ -20,6 +20,7 @@ import { EmptyState } from '../../../_ds/components/EmptyState'
 import { Choice, Field, Input, Select, Textarea, labelStyle } from '../../../_ds/components/Field'
 import { ProgressBar } from '../../../_ds/components/ProgressBar'
 import { Notice, PageHeader, PageShell } from '../../../_ds/components/Shell'
+import { PmfPanel, type PmfLatest } from './pmf-panel'
 
 type AspectRow = {
   id: string
@@ -128,6 +129,9 @@ export default function AnalyzeReviewPage() {
   const [elapsedSec, setElapsedSec] = useState(0)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  // PMF 선례축(pmf_assessments 최신 1건). null 은 "진단 없음", 조회 실패는 별도 플래그(§7.1).
+  const [pmf, setPmf] = useState<PmfLatest | null>(null)
+  const [pmfLookupFailed, setPmfLookupFailed] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true); setError('')
@@ -137,6 +141,8 @@ export default function AnalyzeReviewPage() {
       if (!res.ok) { setError(json.error ?? '불러오지 못했습니다.'); return }
       setProject(json.project)
       setAspects(json.aspects)
+      setPmf(json.pmf ?? null)
+      setPmfLookupFailed(Boolean(json.pmf_lookup_failed))
     } catch {
       setError('네트워크 오류가 발생했습니다.')
     } finally {
@@ -354,6 +360,17 @@ export default function AnalyzeReviewPage() {
           </div>
         )}
       </Card>
+
+      {/* ── PMF 진단 (수요축 · 선례축) + 프로젝트 단위 어드바이저 ──────────── */}
+      {/* 속성이 있을 때만 — 추출 전 프로젝트에 "속성 없음 / 미진단" 두 칸을 먼저 보여 주면 첫 행동(분석 시작)을 가린다. */}
+      {aspects.length > 0 && (
+        <PmfPanel
+          projectId={projectId}
+          opportunityScores={aspects.map(a => a.opportunity_score)}
+          pmf={pmf}
+          pmfLookupFailed={pmfLookupFailed}
+        />
+      )}
 
       {/* ── 속성 검수 ──────────────────────────────────────────── */}
       <section aria-labelledby="aspects-title" style={{ display: 'grid', gap: 12 }}>

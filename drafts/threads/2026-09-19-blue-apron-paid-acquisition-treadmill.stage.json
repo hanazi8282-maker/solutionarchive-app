@@ -1,0 +1,16 @@
+{
+  "case_slug": "blue-apron-paid-acquisition-treadmill",
+  "move_id": "1ef925a6-c764-4776-859b-43d439833092",
+  "content_code": "CS-20260919-01",
+  "log_code": "LOG-20260919-01",
+  "body_path": "drafts/threads/2026-09-19-blue-apron-paid-acquisition-treadmill.body.txt",
+  "reply_path": "drafts/threads/2026-09-19-blue-apron-paid-acquisition-treadmill.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-09-19-blue-apron-paid-acquisition-treadmill.md",
+  "title": "광고비가 매출보다 빨리 는다",
+  "twist_line": "매출을 키우려면 광고비를 매출보다 빠르게 올려야 하는 구조 그대로 상장 서류를 냈다",
+  "hook_type": "병목-반전형(voice-guide 모드A 4단 골격)",
+  "closing_type": "평어체 질문형",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ U-1/U-2 통과, U-3 확인불가(상시점검 항목). Ⅱ D-1 프드프(Threads). Ⅲ pdp G-0~G-12 통과 또는 예외통과(G-0 TPL 미적용/voice-guide 골격 사용, G-10 CTA 없음/질문이 대체), G-9 면제(30분 미만), G-11 해당없음(텍스트). Ⅳ X-3 부분해당(부정 사례, 조롱 없이 사실 서술로 처리) 그 외 없음. 지시받은 등급 A는 evidence_grade(gradeMove)이고, lib/cases/draft.ts factCheckGrade 산식을 손으로 재현한 결과 이 무브는 fact_check_grade=A(법정공시 SEC S-1 1건, 자기보고이나 법적 책임이 따르는 문서)라 두 값이 같은 근거에서 나온 것으로 확인됨 · CG-1 비대상(등급 C 아님) · CG-2 비대상(등급 D 아님) · X-1·X-2 해당없음",
+  "applied_patterns": []
+}

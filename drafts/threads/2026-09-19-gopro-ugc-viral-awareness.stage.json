@@ -1,0 +1,15 @@
+{
+  "case_slug": "gopro-ugc-viral-awareness",
+  "move_id": "1e555f29-e8f5-420e-b2f1-957d0a547998",
+  "content_code": "CS-20260919-02",
+  "body_path": "drafts/threads/2026-09-19-gopro-ugc-viral-awareness.body.txt",
+  "reply_path": "drafts/threads/2026-09-19-gopro-ugc-viral-awareness.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-09-19-gopro-ugc-viral-awareness.md",
+  "title": "고프로, 카메라가 광고했다",
+  "twist_line": "매출은 4배 넘게 늘었는데 매출 대비 판매 마케팅비 비중은 27.5%에서 16.0%로 오히려 줄었다",
+  "hook_type": "병목제시형",
+  "closing_type": "열린질문",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ~Ⅴ 전 항목 통과, 탈락 없음. 예외통과 2건(U-3·G-0 — 이 역할 도구로는 남의 Threads 글을 새로 열람할 수 없어 threads-playbook.md 기존 실측을 레퍼런스로 참조). G-9·G-11은 적용 조건 밖(30분 미만 제작·릴스 전용 규격)이라 해당 없음. X-3 판정 완료(타인 미등장·광고주체 아님·사실 전부 실제). 등급 A는 오케스트레이터 지시값이며, factCheckGrade·gradeMove를 손으로 추적해 evidence 배열과 일치를 확인함(법정 공시 1건 → A). CG-1·CG-2 비대상.",
+  "applied_patterns": []
+}

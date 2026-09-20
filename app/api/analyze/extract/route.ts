@@ -4,6 +4,7 @@ import { requiredKeyFor, resolveProvider } from '@/lib/analysis/llm'
 import { withLlmBudget } from '@/lib/analysis/budget'
 import { REANALYZABLE } from '@/lib/analysis/extract-gate'
 import { claimExtraction, runExtraction } from '@/lib/analysis/extract-run'
+import { MIN_SAMPLES, extractStats } from '@/lib/analysis/extract-stats'
 
 // 응답은 202 로 즉시 나가지만, after() 안의 추출 작업은 같은 인스턴스에서
 // 계속 돌기 때문에 함수 실행시간 상한이 그대로 적용된다. 긴 입력을 감당하려면
@@ -69,7 +70,31 @@ export async function GET(req: Request) {
   const supabase = await createClient()
   if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })
 
-  const projectId = new URL(req.url).searchParams.get('project_id')?.trim() ?? ''
+  const params = new URL(req.url).searchParams
+
+  // ?stats=1 — 프로젝트 하나가 아니라 "추출이 보통 얼마나 걸리나" 를 묻는다.
+  // 화면(검수)이 "분석 시작" 옆에 붙이는 실측값이다. 표본이 얕으면 숫자를 내지 않는다.
+  if (params.get('stats') === '1') {
+    const { data, error: statsError } = await supabase
+      .from('analysis_projects')
+      .select('extract_started_at, extract_finished_at')
+      .in('status', ['extracted', 'reviewed', 'angled', 'done'])
+      .not('extract_started_at', 'is', null)
+      .not('extract_finished_at', 'is', null)
+      .limit(500)
+
+    // 조회 실패를 "표본 0건" 으로 접지 않는다(§7.1). 화면은 그때 "확인 불가" 라고 말한다.
+    if (statsError || !data) {
+      console.error('[analyze/extract] stats query error:', statsError?.message ?? 'data is null')
+      return NextResponse.json({ error: '소요시간 표본을 읽지 못했습니다 — 표본이 0건이라는 뜻이 아닙니다.' }, { status: 500 })
+    }
+
+    const stats = extractStats(data)
+    // 표본 5건 미만이면 중앙값·p90 을 아예 보내지 않는다. 받는 쪽이 실수로 그릴 수 없게.
+    return NextResponse.json(stats.samples < MIN_SAMPLES ? { samples: stats.samples } : stats)
+  }
+
+  const projectId = params.get('project_id')?.trim() ?? ''
   if (!projectId) {
     return NextResponse.json({ error: '프로젝트 정보가 없습니다.' }, { status: 400 })
   }

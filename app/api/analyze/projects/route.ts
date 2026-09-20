@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { ANALYSIS_PURPOSES, ANALYSIS_MODES, type AnalysisPurpose, type AnalysisMode } from '@/lib/analysis/types'
 import { parseFacets } from '@/lib/analysis/facets'
 import { parseDanawaProductUrl } from '@/lib/review/danawa-url'
+import { getAuthVerdict } from '@/lib/auth/session'
+import { guardFromVerdict } from '@/lib/auth/policy'
 
 // 소구점 분석 프로젝트 생성 (1단계 폼)
 export async function POST(req: Request) {
@@ -57,6 +59,13 @@ export async function POST(req: Request) {
   const facets = parseFacets(body)
   if (!facets.ok) return NextResponse.json({ error: facets.error, field: facets.field }, { status: 400 })
 
+  // 소유자(2026-09-21, 20260925000001). **세션에서만** 온다 — 본문 owner_email 은 읽지 않는다.
+  // 프록시가 이미 세션을 검사했지만, 여기서 다시 못 읽으면(확인 불가) 프로젝트는 만들되 NULL 로 남긴다 —
+  // 추정해 채우지 않고, 로그로 남겨 재사용률 집계에서 "모름" 이 보이게 한다(§7.1).
+  const guard = guardFromVerdict(await getAuthVerdict())
+  const ownerEmail = guard.ok ? guard.email : null
+  if (!ownerEmail) console.warn('[analyze/projects] owner_email unresolved — stored as NULL')
+
   const { data, error } = await supabase
     .from('analysis_projects')
     .insert({
@@ -66,6 +75,7 @@ export async function POST(req: Request) {
       mode:                   mode,
       seller_own_guess:       guess || null,
       status:                 'collecting',
+      owner_email:            ownerEmail,
       ...facets.values,
     })
     .select()

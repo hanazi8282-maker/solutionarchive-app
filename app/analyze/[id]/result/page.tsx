@@ -15,6 +15,7 @@ import { AdvisorLoader } from '../advisor-cards'
 import { CopySummary } from './copy-summary'
 import { PmfRunCard, type Facets } from './pmf-run-card'
 import { RemedySection } from './remedy-section'
+import { WtpCard } from './wtp-card'
 
 // ── /analyze/[id]/result — 진단 보고서 한 장 (docs/pmf-product-design.md §3-1) ──
 //
@@ -328,6 +329,9 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
           <AdvisorLoader query={`project_id=${encodeURIComponent(id)}`} focus="c" label="원칙은 뭐라고 하나 (원칙 원장)" />
         </div>
       </Card>
+
+      {/* ── 7-1. 지불의사 신호 ────────────────────────────── */}
+      <WtpCard projectId={id} />
 
       {/* ── 8. 행동 ───────────────────────────────────────── */}
       <Card title="다음 행동">

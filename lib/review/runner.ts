@@ -164,9 +164,11 @@ interface RobotsDecision {
  * ⚠️ 캐시 키는 **robots.txt 를 실제로 읽은 최종 URL 의 origin** 이다.
  *    요청한 origin 으로 캐시하면 리다이렉트된 남의 규칙을 이식한다(아래 load 주석).
  */
-class RobotsCache {
+export class RobotsCache {
   private readonly groups = new Map<string, RobotsGroup[] | RobotsUnread>()
-  private readonly ports: RunnerPorts
+  private readonly ports: Pick<RunnerPorts, 'fetchText'>
+  /** robots 그룹 선택에 쓰는 우리 제품 토큰. 러너는 리뷰 수집기, 발굴 엔진은 자기 토큰을 넘긴다. */
+  private readonly productToken: string
   /** 소스가 "robots 확인 불가여도 진행"을 명시 등재한 호스트들. */
   private readonly proceedHosts: Set<string>
 
@@ -174,9 +176,16 @@ class RobotsCache {
   //    타입 스트리핑은 코드를 생성하는 TS 문법을 지원하지 않아서
   //    ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX 로 죽는다. 이 트리는 Next 빌드가
   //    아니라 Node 스크립트가 직접 로드한다.
-  constructor(ports: RunnerPorts, proceedWhenUnverified: string[] = []) {
+  // ⚠️ 2026-09-20: export 했다. `scripts/discovery-run.mjs` 가 다나와 검색 앞에 같은 판정을
+  //    쓴다(감사 1-1 — 발굴 엔진이 robots 없이 GET 하던 구멍). 판정 로직은 한 벌이어야 한다.
+  constructor(
+    ports: Pick<RunnerPorts, 'fetchText'>,
+    proceedWhenUnverified: string[] = [],
+    productToken: string = PRODUCT_TOKEN,
+  ) {
     this.ports = ports
     this.proceedHosts = new Set(proceedWhenUnverified.map((h) => h.toLowerCase()))
+    this.productToken = productToken
   }
 
   async decide(url: string): Promise<RobotsDecision> {
@@ -187,14 +196,14 @@ class RobotsCache {
       return this.unverified(u.hostname, entry.reason, entry.bypassable, 0)
     }
 
-    const crawlDelaySec = robotsCrawlDelaySec(entry, PRODUCT_TOKEN)
+    const crawlDelaySec = robotsCrawlDelaySec(entry, this.productToken)
     const crawlDelayMs = crawlDelaySec === null ? 0 : Math.round(crawlDelaySec * 1000)
 
     // ⚠️ SP-026 은 이번 범위 밖이다 — 여기 `u.search` 가 빠져 있어 쿼리 대상
     //    규칙(`Disallow: /*?page=`)은 여전히 판정에 안 걸린다. 이 PR 은
     //    "못 읽은 것을 통과시키는" 구멍만 막는다. 자세한 이유는 PR 설명과
     //    docs/strategy-principles.md 의 SP-026 행.
-    const v = robotsVerdict(entry, u.pathname, PRODUCT_TOKEN)
+    const v = robotsVerdict(entry, u.pathname, this.productToken)
     if (v.state === 'unverified') {
       return this.unverified(u.hostname, v.reason, true, crawlDelayMs)
     }

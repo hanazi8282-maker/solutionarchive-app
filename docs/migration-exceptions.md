@@ -204,3 +204,12 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 양성: 테이블 1/1, 행 0
 - 음성: DO 블록 — would_pay=false 인데 amount 있음 · billing='yearly' 둘 다 check_violation 으로 거부(잔여 행 0)
 - 롤백: `_rollback.sql`(DROP TABLE — 신호 이력 소실)
+
+## 2026-09-21 — 20260925000001_analysis_projects_owner_email.sql
+
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf` (사전 실측: owner_email 컬럼 0개)
+- 승인자: 남헌(후속 지시 4번 "스키마 추가만, 자율 승인 범위") → 자체 판단 적용
+- 적용: Supabase MCP `apply_migration` — success
+- 양성: 컬럼 1/1 · 인덱스 1/1 · 기존 24행 전부 NULL(추정 채움 없음)
+- 음성: 해당 없음(제약 없는 nullable 컬럼)
+- 롤백: `_rollback.sql`

@@ -9,7 +9,8 @@ import { Card } from '../../../_ds/components/Card'
 import { Button, ButtonLink } from '../../../_ds/components/Button'
 import { EmptyState } from '../../../_ds/components/EmptyState'
 import { Field, Textarea } from '../../../_ds/components/Field'
-import { PageHeader, PageShell } from '../../../_ds/components/Shell'
+import { Notice, PageHeader, PageShell } from '../../../_ds/components/Shell'
+import { VERDICT_LABEL } from '@/lib/analysis/aspect-verdict'
 import { AdvisorLoader } from '../advisor-cards'
 import {
   ANGLE_READY_STATUSES,
@@ -543,6 +544,11 @@ export default function AnalyzeAnglesPage() {
         </div>
       </div>
 
+      {/* 고정 한 줄. 이 화면의 산출물이 어디까지인지 매번 같은 문장으로 못 박는다(설계 §3-1 8). */}
+      <Notice tone="warning">
+        여기까지가 초안이다. 실제 상세페이지 문구는 사실 확인·표시광고 검토·자사 톤 조정을 거쳐야 하고, 이 도구는 그걸 하지 않는다.
+      </Notice>
+
       {/* ── 프로젝트 요약 ──────────────────────────────────── */}
       {project && (
         <Card padded bodyStyle={{ display: 'grid', gap: 4 }}>
@@ -562,8 +568,8 @@ export default function AnalyzeAnglesPage() {
       {/* ── 차별화 앵글 ────────────────────────────────────── */}
       <section>
         <SectionHeading
-          title="차별화 앵글"
-          desc={`${QUADRANT_SHORT_LABELS.DIFFERENTIATOR} — 중요한데 아직 충족되지 않은 지점. 카피의 주인공입니다. 기회점수 높은 순.`}
+          title={`차별화 앵글 — ${VERDICT_LABEL.PUSH}`}
+          desc={`${QUADRANT_SHORT_LABELS.DIFFERENTIATOR} — 중요한데 아직 충족되지 않은 지점. 검수 화면의 “${VERDICT_LABEL.PUSH}” 판정과 같은 뜻입니다. 카피의 주인공입니다. 기회점수 높은 순.`}
           count={differentiators.length}
         />
 
@@ -596,7 +602,7 @@ export default function AnalyzeAnglesPage() {
       {(tableStakes.length > 0 || tableStakesAngles.length > 0) && (
         <section>
           <SectionHeading
-            title="기본기"
+            title={`기본기 — ${VERDICT_LABEL.TABLE_STAKES}`}
             desc="이미 시장 표준이라 설득 대상이 아닙니다. 경쟁하듯 어필하지 말고 신뢰 배지 수준으로만 얹으세요."
             count={tableStakes.length}
           />
@@ -624,8 +630,8 @@ export default function AnalyzeAnglesPage() {
       {others.length > 0 && (
         <section>
           <SectionHeading
-            title="미분류"
-            desc="속성이 삭제됐거나 사분면이 비어 있어 어느 섹션에도 속하지 않는 앵글입니다."
+            title={`미분류 — ${VERDICT_LABEL.UNKNOWN}`}
+            desc="속성이 삭제됐거나 사분면이 비어 있어 어느 섹션에도 속하지 않는 앵글입니다. 판정에 쓸 값이 없다는 뜻이지, 버리라는 뜻이 아닙니다."
             count={others.length}
           />
           <div style={{ display: 'grid', gap: 'var(--space-4)' }}>

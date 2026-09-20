@@ -57,6 +57,8 @@ export interface CaseMoveCard {
   lever: string
   claim: string
   evidence_grade: string
+  /** 사실확인 등급. 조회에 없으면 null — 화면은 "미기재" 로 말한다(등급 D 와 다르다). */
+  fact_check_grade: string | null
   outcome_direction: string
   matched_terms: string[]
   score: number
@@ -297,6 +299,7 @@ export function matchCaseMoves(
       lever: m.lever,
       claim: m.claim,
       evidence_grade: m.evidence_grade,
+      fact_check_grade: m.fact_check_grade ?? null,
       outcome_direction: m.outcome_direction,
       matched_terms: matched,
       score: (GRADE_RANK[m.evidence_grade] ?? 0) * 10 + matched.length,

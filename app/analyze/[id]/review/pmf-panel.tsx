@@ -1,6 +1,6 @@
 'use client'
 
-import { demandAxis, quadrantOf, PMF_QUADRANT_LABELS, type Quadrant } from '@/lib/cases/match'
+import { demandAxis, quadrantOf, PMF_QUADRANT_ADVICE, PMF_QUADRANT_LABELS, noQuadrantAdvice, type Quadrant } from '@/lib/cases/match'
 import { Card } from '../../../_ds/components/Card'
 import { Badge, type Tone } from '../../../_ds/components/Badge'
 import { AdvisorLoader } from '../advisor-cards'
@@ -31,6 +31,26 @@ const KST = new Intl.DateTimeFormat('sv-SE', {
 
 const num = (v: number | string | null | undefined) => (v == null || v === '' ? null : Number(v))
 const fmt = (v: number | null) => (v == null ? '—' : v.toFixed(2))
+
+/**
+ * 선례축 MatchWhy — 저장된 `match_reason` 문장에서 숫자만 뽑아 한 줄로 되읽는다.
+ *
+ * ⚠️ `matchMoves()` 가 돌려주는 `excluded`(자기 케이스 / 미승인 / 등급 D)는 **저장되지 않는다**
+ *    — `pmf_assessments` 에 컬럼이 없다. 그래서 여기서 "제외 N건" 을 만들어 내지 않고,
+ *    match_reason 에 적혀 있는 만큼만 그대로 보여주고 출처를 밝힌다(§7.1: 없는 걸 있는 척하지 않는다).
+ */
+function precedentWhy(reason: string | null): string | null {
+  if (!reason) return null
+  const moves = reason.match(/선례 (\d+)건/)
+  const studies = reason.match(/케이스 (\d+)곳/)
+  const excluded = reason.match(/\(([^()]*제외[^()]*)\)/)
+  const parts = [
+    moves ? `무브 ${moves[1]}건` : null,
+    studies ? `케이스 ${studies[1]}곳` : null,
+    excluded ? excluded[1] : null,
+  ].filter(Boolean)
+  return parts.length ? `매칭 근거 · ${parts.join(' · ')} (진단 기록 match_reason 에 적힌 값)` : null
+}
 
 function Axis({ label, value, note }: { label: string; value: string; note: string }) {
   return (
@@ -73,6 +93,14 @@ export function PmfPanel({ projectId, opportunityScores, pmf, pmfLookupFailed }:
   const stored = pmf?.quadrant ?? null
   const now = quadrantOf(demand.value, precedent)
 
+  // 처방은 "지금 값" 기준이다 — 저장 시점 이후 검수로 수요축이 바뀌었을 수 있고,
+  // 화면이 이미 "지금 값으로 보면" 을 말하고 있다. 둘 다 없으면 어느 축이 비었는지 말한다.
+  const advised = now.quadrant ?? stored
+  const advice = advised ? PMF_QUADRANT_ADVICE[advised] : noQuadrantAdvice(demand.value, precedent)
+
+  const assessedAt = pmf?.created_at ? `${KST.format(Date.parse(pmf.created_at))} KST` : null
+  const why = precedentWhy(pmf?.match_reason ?? null)
+
   return (
     <Card
       title="PMF 진단 — 수요축 · 선례축"
@@ -91,8 +119,27 @@ export function PmfPanel({ projectId, opportunityScores, pmf, pmfLookupFailed }:
           <span style={{ color: 'var(--warning-fg)' }}> · 저장된 진단({PMF_QUADRANT_LABELS[stored]})과 다르다. 수요축이 그 뒤 바뀌었다.</span>
         )}
       </p>
+
+      {/* 처방 — 라벨만 보여주면 분류지 판정이 아니다. 문장 끝의 한 줄은 톤을 고정한다(설계 §3-1 1). */}
+      <p style={{ margin: '8px 0 0', fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-relaxed)', color: 'var(--text-strong)' }}>
+        {advice}
+      </p>
+      <p style={{ margin: '4px 0 0', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
+        권고이지 보장이 아니다 — 같은 사분면이어도 상품·시점이 다르면 결과가 달라진다.
+      </p>
+
+      {/* 선례축 근거와 마지막 진단 시각. "미진단" 과 "오래된 진단" 은 다른 사건이다. */}
+      <p style={{ margin: '8px 0 0', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+        {why ? `${why} · ` : ''}
+        {pmfLookupFailed
+          ? '마지막 진단 시각 확인 불가 — 조회가 실패했다'
+          : assessedAt
+            ? `마지막 진단 ${assessedAt}`
+            : '마지막 진단 없음 — 선례축은 아직 한 번도 돌지 않았다'}
+      </p>
       {/* 프로젝트 단위 어드바이저 — 전에는 앵글 화면(2단 아래)에만 있었다. 상품 소개·판매자 가설로 매칭한다. */}
-      <AdvisorLoader query={`project_id=${encodeURIComponent(projectId)}`} label="이 상품과 겹치는 선례·실패 사례·원칙 보기" variant="primary" />
+      {/* 질문 3개. 어느 걸 눌러도 요청은 한 번이고, 누른 질문만 펼쳐진다. */}
+      <AdvisorLoader query={`project_id=${encodeURIComponent(projectId)}`} variant="primary" />
     </Card>
   )
 }

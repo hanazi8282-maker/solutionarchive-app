@@ -22,7 +22,7 @@ import type { FailedAngleRow, PrincipleRow } from '@/lib/cases/advisor'
 const STUDY_COLS =
   'id, slug, brand_name, bottleneck, business_model, buyer_type, price_band, outcome_status, review_status'
 const MOVE_COLS =
-  'id, case_study_id, lever, claim, evidence_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit'
+  'id, case_study_id, lever, claim, evidence_grade, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit'
 
 /** 조회 실패는 null 로. 빈 배열([])과 절대 안 섞는다 — advisor 가 3상태로 구분한다. */
 async function safeSelect<T>(

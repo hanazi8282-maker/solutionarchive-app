@@ -12,7 +12,7 @@ import {
 
 // aspects 조회 시 공통으로 쓰는 컬럼 목록 (quadrant 포함)
 const ASPECT_SELECT =
-  'id, name, aspect_layer, importance, satisfaction, opportunity_score, quadrant, attribution, pain_timing, persona_role, proxy_consumption, is_segmentation_axis, value_realization_frequency, human_confirmed, notes'
+  'id, name, aspect_layer, importance, satisfaction, opportunity_score, quadrant, attribution, pain_timing, persona_role, proxy_consumption, is_segmentation_axis, value_realization_frequency, human_confirmed, notes, evidence_quotes'
 
 // ── 사분면(Stage3) ───────────────────────────────────────────────
 /** 오름차순 정렬 후 중앙값. 짝수 개면 가운데 두 값의 평균. */

@@ -344,7 +344,7 @@ export default function AnalyzeReviewPage() {
       <PageHeader
         title="소구점 검수"
         subtitle="AI 가 뽑은 속성을 사람이 확인하고 고친다. 전부 확인해 저장하면 앵글을 만들 수 있다."
-        action={hasAngles ? <ButtonLink href={anglesHref} variant="outline">앵글 결과 보기 →</ButtonLink> : null}
+        action={<><ButtonLink href={`/analyze/${projectId}/result`} variant="primary">진단 결과 보기 →</ButtonLink>{hasAngles ? <ButtonLink href={anglesHref} variant="outline">앵글 결과 보기 →</ButtonLink> : null}</>}
       />
 
       {error && <Notice tone="danger">{error}</Notice>}

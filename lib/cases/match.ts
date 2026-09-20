@@ -28,6 +28,8 @@ export interface MoveRow {
   lever: string
   claim: string
   evidence_grade: string
+  /** 사실확인 등급(2026-09-16 재설계로 인사이트 등급과 분리). 조회에서 빼면 undefined 다 — 없음이 아니다. */
+  fact_check_grade?: string | null
   outcome_direction: string
   review_status: string
   metric_name?: string | null

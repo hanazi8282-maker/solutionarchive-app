@@ -24,6 +24,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '../lib/supabase/server.ts'
 import { matchMoves, demandAxis, precedentAxis, quadrantOf } from '../lib/cases/match.ts'
+// 저장 행의 모양(CHECK 제약과 맞물린 부분)은 앱 라우트와 한 벌이다 — lib/cases/pmf-run.ts.
+import { buildAssessmentRow, buildMoveRows } from '../lib/cases/pmf-run.ts'
 import {
   BUSINESS_MODEL, BUYER_TYPE, PURCHASE_FREQUENCY, PRICE_BAND, BOTTLENECK,
 } from '../lib/cases/draft.ts'
@@ -228,18 +230,15 @@ if (isMain()) {
   //
   // not_run 이면 축·사분면을 전부 NULL 로 넣는다. DB CHECK 도 같은 걸 강제하지만
   // 여기서 먼저 지운다 — 제약에 걸려 저장이 통째로 실패하면 진단 기록 자체가 사라진다.
-  const notRun = match.status === 'not_run'
-  const row = {
+  const row = buildAssessmentRow({
     input,
     facets,
-    target_project_id: projectId,
-    demand_axis: notRun ? null : demand.value,
-    precedent_axis: notRun ? null : precedent.value,
-    quadrant: notRun ? null : quad.quadrant,
-    match_status: match.status,
-    match_reason: match.reason,
-    created_by: input.created_by ?? 'pmf-assess.mjs',
-  }
+    targetProjectId: projectId,
+    match,
+    demand,
+    quadrant: quad.quadrant,
+    createdBy: input.created_by ?? 'pmf-assess.mjs',
+  })
 
   if (dry) {
     console.log('\n(dry) DB 에 쓰지 않았다. 일일 상태 로그도 남기지 않는다.')
@@ -258,13 +257,7 @@ if (isMain()) {
   console.log(`\n✅ pmf_assessments ${ins.data.id} 저장 (match_status=${match.status})`)
 
   if (match.moves.length) {
-    const moveRows = match.moves.slice(0, 20).map((m) => ({
-      assessment_id: ins.data.id,
-      case_move_id: m.id,
-      match_score: m.match_score,
-      match_reason: m.facet_hits.length ? `패싯일치 ${m.facet_hits.join('/')}` : '병목 일치',
-      matched_by: 'facet',
-    }))
+    const moveRows = buildMoveRows(ins.data.id, match)
     const mr = await supabase.from('pmf_assessment_moves').insert(moveRows)
     if (mr.error) {
       // 진단 본체는 저장됐다. 근거 연결만 실패했다 — 그 사실을 감추지 않는다.

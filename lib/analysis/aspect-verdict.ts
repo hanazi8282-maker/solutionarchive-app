@@ -44,7 +44,9 @@ export const VERDICT_CUT = { importanceHigh: 6, satisfactionLow: 4, satisfaction
  *   I≥6 ∧ 4<S<6 → WATCH     "지켜본다"          — 중요한데 만족이 반반. 리뷰를 더 모아야 판정이 선다.
  *   null 하나라도 → UNKNOWN "판정 없음"         — 값이 없다. 0 으로 접지 않는다(§7.1).
  */
-export function aspectVerdict(importance: number | null | undefined, satisfaction: number | null | undefined): AspectVerdict {
+// 인자는 number 와 문자열 숫자를 둘 다 받는다 — PostgREST 가 numeric 컬럼을 문자열로 돌려주는 자리가 있다.
+// num() 이 이미 그렇게 동작하고 셀프테스트도 문자열을 넣는다. 타입만 좁아서 호출부가 캐스팅하고 있었다.
+export function aspectVerdict(importance: number | string | null | undefined, satisfaction: number | string | null | undefined): AspectVerdict {
   const I = num(importance), S = num(satisfaction)
   if (I === null || S === null) {
     return { code: 'UNKNOWN', label: VERDICT_LABEL.UNKNOWN, reading: `중요도 ${I ?? '—'} · 만족도 ${S ?? '—'} — 값이 비어 판정하지 않는다` }
@@ -72,8 +74,8 @@ export interface OpportunityBreakdown {
 
 /** 기회점수를 세 조각으로 편다. 저장하지 않는다 — 표시용. */
 export function opportunityBreakdown(
-  importance: number | null | undefined,
-  satisfaction: number | null | undefined,
+  importance: number | string | null | undefined,
+  satisfaction: number | string | null | undefined,
   stored: number | string | null | undefined,
 ): OpportunityBreakdown {
   const I = num(importance), S = num(satisfaction), st = num(stored)

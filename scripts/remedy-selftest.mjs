@@ -61,6 +61,10 @@ t('보완 선례 한 줄 — 사실확인·인사이트 등급을 둘 다 적는
   fixLine(fx), '두피랩 가 CONTENT 로 "두피 가려움 리뷰를 상세페이지에 그대로 붙였다" (사실확인 B · 인사이트 A · positive)')
 t('사실확인 등급이 조회에 없으면 "미기재" (D 와 다르다)',
   fixLine({ ...fx, fact_check_grade: null }).includes('사실확인 미기재'), true)
+t('fixLine — negative 무브는 반면교사로 명시(이렇게 하지 마라)',
+  fixLine({ ...fx, brand_name: 'Zenefits', lever: 'OPERATIONS', claim: '라이선스 교육을 매크로로 건너뛰었다', outcome_direction: 'negative' }).startsWith('⛔ 반면교사 — 이렇게 하지 마라: Zenefits 는 OPERATIONS 로'), true)
+t('fixLine — negative 는 "보완" 어투(가 … 로)를 쓰지 않는다',
+  /Zenefits 가 /.test(fixLine({ ...fx, brand_name: 'Zenefits', outcome_direction: 'negative' })), false)
 const est = r.cards[0].failures.find((f) => f.case_key === 'f2')
 t('막힌 사례 한 줄 — 추정 표시', est ? failureLine(est) : '', '가려움 없는 두피 → 반품률 상승 (secondary · 추정 포함)')
 t('막힌 사례 한 줄 — 추정 아님',

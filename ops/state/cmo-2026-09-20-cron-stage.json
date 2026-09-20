@@ -1,0 +1,17 @@
+[
+  {
+    "case_slug": "oatly-capacity-overbuild",
+    "move_id": "5ac8b901-3a81-4ad3-9e4f-58ed5103566a",
+    "content_code": "CS-20260920-02",
+    "body_path": "drafts/threads/2026-09-20-oatly-capacity-overbuild.body.txt",
+    "reply_path": "drafts/threads/2026-09-20-oatly-capacity-overbuild.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-09-20-oatly-capacity-overbuild.md",
+    "title": "오틀리, 공장을 세 곳 더 얹었다",
+    "twist_line": "가동 중인 곳과 계획 중인 곳을 합치면 7곳, 전부 수요가 공급을 계속 앞선다는 하나의 전제 위에 있었다",
+    "hook_type": "병목제시형",
+    "closing_type": "열린질문",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅴ 전 항목 통과, 탈락 없음. 예외통과 1건(U-3 — 이 역할 도구로는 남의 Threads 글을 새로 열람할 수 없어 threads-playbook.md 기존 실측을 레퍼런스로 참조). G-9·G-11은 적용 조건 밖(30분 미만 제작·릴스 전용 규격)이라 해당 없음. G-6(7곳 중 3곳은 완공 미대조)은 자기답글로 이관. X-3 판정 완료(타인 미등장·광고주체 아님·사실 전부 실제). 등급 인사이트 A·사실확인 A는 오케스트레이터 지시값이며, evidence(F-1, primary, 법정공시, 비추정)와 transfer_note/preconditions를 손으로 대조해 일치 확인. CG-1·CG-2 비대상.",
+    "applied_patterns": []
+  }
+]

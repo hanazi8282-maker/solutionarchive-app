@@ -1,0 +1,113 @@
+{
+  "slug": "munchery-precook-overproduction-collapse",
+  "brand_name": "Munchery",
+  "market": "미국 가정식 배달 (온디맨드 조리식 배달)",
+  "geo": "US",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "UNIT_ECONOMICS",
+  "reader_problem": "MAKE_BUT_NO_MONEY",
+  "outcome_status": "shutdown",
+  "period_start": "2014-09-01",
+  "period_end": "2019-01-21",
+  "summary": "직접 조리한 저녁식사를 배달하던 Munchery 는 1억 달러 이상을 조달하고 밸류 3억 달러까지 찍었지만, 주간 수요예측 후 미리 조리하는 생산모델의 만성적 과잉생산(폐기율 16%, 외식업 평균의 1.6~4배)을 구조적으로 고치지 못한 채 확장→감원→축소를 반복하다 2019년 1월 전면 폐업했다.",
+  "tags": ["food-delivery", "unit-economics", "overproduction", "shutdown"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "OPERATIONS",
+      "claim": "2014년 9월~2016년 7월(22개월) 샌프란시스코 주방에서 만든 음식의 평균 16%(외식업 평균 4~10%의 1.6~4배)인 65만3,400접시가 팔리지 않고 버려졌다(가치 190만 달러, 접시당 평균원가 2.96달러) — Bloomberg 가 내부 문서를 근거로 보도했다. 공동창업자 트랜(Tri Tran)은 이 보도에 대해 '우리는 매주 단위로 수요를 예측하고 고객 주문보다 앞서 메뉴를 실행한다. 적정 생산량은 모든 식품 사업이 겪는 과제'라고 답하며 예측 후 선제작(precook) 모델 자체를 바꾸겠다는 계획을 밝히지 않았다. 이후에도 회사는 밀키트(2015)·멤버십(2015~2016)·오피스런치(2016) 등 수요 안정화 시도를 계속했지만, 생산 구조 자체는 바뀌지 않았다.",
+      "transfer_note": "이번 주 내가 만든 수량과 실제로 팔린 수량을 항목별로 나란히 적어서 '만들었지만 안 팔린' 비율을 숫자로 낸다. 그 비율이 외식업 평균(4~10%)보다 높으면, 마케팅비를 더 쓰기 전에 생산 방식 자체(수요를 미리 예측해서 만들어 두는 방식 vs 주문이 확정된 뒤에 만드는 방식)부터 의심한다.",
+      "preconditions": "판매 시점 기록과 폐기·미판매 수량을 항목별로 따로 집계할 수 있어야 한다. 지금 이 둘을 나눠서 못 보고 있다면, 비율 계산보다 그 집계 체계부터 만드는 게 먼저다.",
+      "outcome_direction": "negative",
+      "metric_name": "미판매 폐기율",
+      "metric_before": null,
+      "metric_after": 16,
+      "metric_unit": "%",
+      "observed_period_start": "2014-09-01",
+      "observed_period_end": "2016-07-31"
+    },
+    {
+      "lever": "OPERATIONS",
+      "claim": "2016년 서부 전역+워싱턴DC 까지 넓혔던 서비스 지역을, 만성 과잉생산·적자를 해결하지 못한 채 2018년 5월 LA·뉴욕·시애틀에서 철수하고 인력의 약 30%(약 257명)를 감원해 샌프란시스코 단일 시장으로 후퇴시켰다. CEO 베리커(James Beriker)는 '단기 흑자 전환과 장기적으로 지속 가능한 사업을 만들기 위해서'라고 밝혔다. 그러고도 회복하지 못해 2019년 1월 21일 전면 폐업했고, 파산 신청서에서 베리커는 '초기에 너무 공격적으로 확장했다'고 밝혔다.",
+      "transfer_note": "여러 지역/채널로 동시에 넓히기 전에, 지금 가장 잘 되는 지역·채널 1곳에서 '팔수록 남는 돈'이 실제로 플러스인지부터 숫자로 확인한다. 거기서 마이너스면, 확장은 마이너스를 여러 배로 복제하는 것과 같다.",
+      "preconditions": "지역/채널별로 매출과 원가를 나눠서 볼 수 있는 최소한의 장부가 있어야 한다. 전체 합산 매출만 보고 있다면 이 판단 자체가 불가능하다.",
+      "outcome_direction": "negative",
+      "metric_name": "감원 인원",
+      "metric_before": null,
+      "metric_after": 257,
+      "metric_unit": "명",
+      "observed_period_start": "2018-05-01",
+      "observed_period_end": "2018-05-11"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://techcrunch.com/2016/11/21/munchery-appoints-new-ceo-amid-reported-struggles/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "bloomberg-munchery-waste-doc-2016",
+      "supports_metric": true,
+      "published_at": "2016-11-21",
+      "snippet": "Bloomberg 보도(내부 문서 근거): Munchery 는 만든 음식의 평균 16%를 폐기하고, 마케팅 전단에도 수십만 달러를 지출했다.",
+      "supports_claim": "16% 폐기율 수치 — Bloomberg 가 내부 문서를 근거로 보도"
+    },
+    {
+      "move": 0,
+      "url": "https://finance.yahoo.com/news/san-francisco-food-delivery-startup-201449416.html",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "bloomberg-munchery-waste-doc-2016",
+      "supports_metric": true,
+      "published_at": "2016-11-21",
+      "snippet": "2014년 9월~2016년 7월 22개월간 SF 주방에서 만든 65만3,400접시가 안 팔렸다. 평균 폐기율 16%(외식업 4~10%), 접시당 평균원가 2.96달러, 총 가치 190만달러. 원 보도: Bloomberg(Eric Newcomer).",
+      "supports_claim": "22개월 폐기 접시 수·금액·비율 상세 수치 — 같은 Bloomberg 내부 문서 보도의 재전재"
+    },
+    {
+      "move": 0,
+      "url": "https://techcrunch.com/2016/11/21/munchery-appoints-new-ceo-amid-reported-struggles/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "tran-statement-2016-techcrunch",
+      "supports_metric": false,
+      "published_at": "2016-11-21",
+      "snippet": "트랜(공동창업자) 성명: '우리는 매주 단위로 수요를 예측하고 고객 주문에 앞서 메뉴를 실행한다... 적정 생산량은 모든 식품 사업이 겪는 과제다. 우리는 계속 균형을 맞추려 노력하고 있다.'",
+      "supports_claim": "사고의 흐름 — 과잉생산 보도에 대해 생산모델(예측 후 선제작)을 유지하기로 한 창업자의 판단 근거"
+    },
+    {
+      "move": 1,
+      "url": "https://techcrunch.com/2018/05/11/munchery-shuts-down-operations-in-la-new-york-and-seattle/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "munchery-2018-city-closure-layoff",
+      "supports_metric": true,
+      "published_at": "2018-05-11",
+      "snippet": "Munchery 가 LA·뉴욕·시애틀 서비스를 접고 약 257명(전체 인력의 약 30%)을 감원, 샌프란시스코 단일 시장에 집중한다고 발표. CEO 베리커: '단기 흑자 전환과 장기적으로 지속 가능한 사업을 만들기 위해서.'",
+      "supports_claim": "감원 인원·비율, 폐쇄 지역, CEO 의 결정 근거"
+    },
+    {
+      "move": 1,
+      "url": "https://techcrunch.com/2019/03/04/failed-meal-kit-service-munchery-owes-6m-to-gift-card-holders-vendors",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "beriker-bankruptcy-declaration-2019",
+      "supports_metric": false,
+      "published_at": "2019-03-04",
+      "snippet": "파산 신청서에서 베리커: '회사는 초기에 너무 공격적으로 확장했다.' 1억달러 이상 조달, 2015년 밸류 3억달러, 선순위담보부채 530만달러, 전환사채 약 2,300만달러.",
+      "supports_claim": "사고의 흐름 — CEO 가 파산 신청서에서 밝힌 실패 원인(과잉 자금조달·공격적 조기 확장)"
+    }
+  ]
+}

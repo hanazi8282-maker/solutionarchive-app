@@ -1144,6 +1144,9 @@ export function selectAngles({ moves = [], usedSlugs = new Set(), usedMoveIds = 
     .filter((m) => !usedMoveIds.has(m.id))
     .map((m) => ({
       id: m.id, lever: m.lever, claim: m.claim, grade: m.evidence_grade,
+      // ★ CG-1 이 보는 축. 작가가 이 값을 못 보면 사실확인 C 무브에 귀속 지시가 빠져
+      //   스테이징에서 막힌다(2026-09-17~19 3일 연속). 컬럼 미존재(42703)면 null.
+      fact_check_grade: m.fact_check_grade ?? null,
       direction: m.outcome_direction, slug: m.case_studies?.slug,
       brand: m.case_studies?.brand_name, bottleneck: m.case_studies?.bottleneck,
       transferability: m.transferability ?? null,
@@ -1221,7 +1224,7 @@ export function selectAngles({ moves = [], usedSlugs = new Set(), usedMoveIds = 
  * 신규 컬럼을 뺀 채로 다시 조회하되 `notices` 에 미적용을 남기고, 호출부가 보고에 찍는다(§7.2).
  */
 export async function pickAngles(supabase, n, repoRoot = process.cwd()) {
-  const MOVE_COLS = 'id,lever,claim,evidence_grade,outcome_direction,review_status,case_study_id'
+  const MOVE_COLS = 'id,lever,claim,evidence_grade,fact_check_grade,outcome_direction,review_status,case_study_id'
   const notices = []
   const missingColumn = (e) => e?.code === '42703' || e?.code === 'PGRST204'
 
@@ -1806,12 +1809,22 @@ export function writerPrompt(m, date, contentCode) {
     `오늘 날짜: ${date}`,
     `대상 무브: case_moves ${m.id}`,
     `케이스: ${m.brand} (${m.slug}) · 병목 ${m.bottleneck} · 레버 ${m.lever}`,
-    `등급: ${m.grade} · 방향: ${m.direction}`,
+    `등급: 인사이트 ${m.grade} · 사실확인 ${m.fact_check_grade ?? '미판정'} · 방향: ${m.direction}`,
     `주장: ${m.claim}`,
     `근거 상세는 drafts/cases/${m.slug}.json 을 Read 해서 확인하라.`,
     '',
-    m.grade === 'C'
-      ? '★ 등급 C 다. 본문에 출처 귀속 문구가 없으면 CG-1 이 막는다. 반드시 넣어라.'
+    // ★ CG-1 은 `fact_check_grade` 를 본다(`lib/cases/publish-gate.ts`). 인사이트 등급(`m.grade`)이
+    //   A 여도 사실확인이 C 면 귀속 문구가 없으면 막힌다 — 옛 조건 `m.grade === 'C'` 가
+    //   그 조합을 놓쳐 09-17~19 3일 연속 스테이징에서 차단됐다. 문구는 게이트가 인식하는
+    //   표현(SELF_MARKERS)이어야 하고, **수치 바로 옆**에 붙어야 한다(게이트는 위치를 못 본다).
+    m.fact_check_grade === 'C'
+      ? [
+          '★ 사실확인 등급 C 다. 본문에 출처 귀속 문구가 없으면 CG-1 이 막는다. 반드시 넣어라.',
+          '   인용하는 수치 바로 옆에 다음 중 하나로 주체를 밝혀라 (게이트가 인식하는 표현):',
+          '   "자사 발표/집계 기준" · "회사가 밝힌" · "자체 집계" · "제3자 검증을 받지 않은" ·',
+          `   "${m.brand}가 밝힌 바로는" (브랜드명 + 밝혔다/발표했다).`,
+          '   "업계에 따르면" 처럼 주체를 흐리는 표현은 통과하지 않는다.',
+        ].join('\n')
       : '',
     '',
     `산출물 4개 (전부 drafts/threads/ 아래, 파일명 접두 ${date}-${m.slug}):`,

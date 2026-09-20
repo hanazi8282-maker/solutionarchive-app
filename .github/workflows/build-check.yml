@@ -32,6 +32,9 @@ jobs:
       # 추출 시작 게이트가 서버·화면 한 벌인지. 갈라지면 시작할 수 있는데 버튼이 없는 화면이 된다.
       - run: node scripts/analyze-extract-gate-selftest.mjs
       - run: node scripts/aspect-verdict-selftest.mjs
+      # 지불의사(WTP) 답 검증기 = wtp_signals 의 CHECK. 갈라지면 사람이 답을 다 채우고
+      # 버튼을 누른 뒤에야 23514 로 죽는다. 가격을 내는 코드가 아니다 — 재료만 담는다.
+      - run: node scripts/wtp-selftest.mjs
       # PMF 진단 저장 행이 DB CHECK(not_run 이면 축 전부 NULL)와 어긋나지 않는지 + 원문에 없는
       # 인용을 저장하지 않는지. 깨지면 진단 기록이 통째로 사라지거나 지어낸 인용이 화면에 앉는다.
       - run: node scripts/pmf-run-selftest.mjs

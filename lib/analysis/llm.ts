@@ -4,7 +4,8 @@
 // 프로바이더별로 다른 것은 "호출 방식과 텍스트를 꺼내는 방법" 뿐이고,
 // 프롬프트·기대 JSON 스키마·파싱은 호출부가 그대로 공유한다.
 import Anthropic from '@anthropic-ai/sdk'
-import { MOCK_MODEL, mockResponse } from './mock'
+// ⚠️ 확장자를 붙인다 — Node 가 타입 스트리핑으로 이 파일을 직접 로드한다(scripts/analyze-extract-run.mjs).
+import { MOCK_MODEL, mockResponse } from './mock.ts'
 import {
   LlmBudgetExceededError,
   MAX_ATTEMPTS,
@@ -12,7 +13,7 @@ import {
   backoffFor,
   chargeOutput,
   reserveOrThrow,
-} from './budget'
+} from './budget.ts'
 
 export type LlmProvider = 'gemini' | 'anthropic' | 'mock'
 

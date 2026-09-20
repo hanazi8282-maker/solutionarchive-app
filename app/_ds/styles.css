@@ -63,3 +63,10 @@
 
 /* 앵커로 섹션에 뛰어갈 때 sticky 네비(52px)에 제목이 가리지 않게 */
 [id] { scroll-margin-top: 68px; }
+
+/* 질문 버튼 줄 (advisor-cards.tsx) — 좁은 화면에서는 세로로 쌓고 각자 풀폭.
+   375px 에서 "남들은 어떻게 풀었나(선례)" 같은 긴 라벨이 옆으로 삐져나가지 않게. */
+@media (max-width: 480px) {
+  .dgy-btnrow { flex-direction: column; align-items: stretch; }
+  .dgy-btnrow > * { width: 100%; }
+}

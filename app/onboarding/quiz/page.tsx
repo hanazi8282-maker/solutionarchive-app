@@ -177,6 +177,14 @@ export default function OnboardingQuizPage() {
           </p>
         </Card>
 
+        {/* 점수만 보고 끝나면 퀴즈는 장난이 된다. 다음 한 걸음을 한 개만 크게 둔다. */}
+        <div style={{ display: 'grid', gap: 10, justifyItems: 'center' }}>
+          <ButtonLink href="/analyze/new" variant="primary" size="lg" fullWidth>
+            이제 내 상품으로 해보기
+          </ButtonLink>
+          <a href="/cases" style={{ fontSize: 'var(--fs-sm)' }}>먼저 남의 사례 구경하기</a>
+        </div>
+
         {summary.percentile === null && summary.respondents !== null && (
           <Notice tone="info">
             응답자가 30명을 넘으면 상위 몇 %인지도 같이 보여드립니다. 지금은 표본이 작아 퍼센타일을 계산하지 않습니다.
@@ -197,9 +205,10 @@ export default function OnboardingQuizPage() {
               alt={`감 점수 공유 이미지 — ${scoreHeadline(summary)}`}
               style={{ width: '100%', maxWidth: 600, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}
             />
+            {/* 위 CTA 가 이 화면의 주행동이라 내려받기는 보조로 내린다. */}
             <ButtonLink
               href={shareUrl}
-              variant="primary"
+              variant="outline"
               download={`solutionarchive-quiz-${summary.score}of${summary.question_count}.png`}
             >
               공유 이미지 내려받기

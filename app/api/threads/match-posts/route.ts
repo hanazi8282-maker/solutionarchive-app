@@ -80,6 +80,7 @@
 //    vercel.json 은 순수 JSON 이라 주석을 못 넣는다. 그래서 이 설명이 여기 있다.
 
 import { NextResponse } from 'next/server'
+import { cronStatus } from '@/lib/threads/cron-status'
 import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
 import { loadThreadsToken, tokenFailure } from '@/lib/threads/token'
@@ -349,7 +350,7 @@ export async function POST(req: Request) {
     applyFailed: failed.length,
   })
 
-  return NextResponse.json(summary)
+  return NextResponse.json(summary, { status: cronStatus(failed.length) })
 }
 
 /** 분류 1건의 기록 모양. 응답과 agent_run_steps.detail 이 같은 값을 쓴다. */

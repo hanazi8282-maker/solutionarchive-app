@@ -14,6 +14,7 @@
 // scripts/threads-replies-selftest.mjs 가 검증한다. 여기는 실행만.
 
 import { NextResponse } from 'next/server'
+import { cronStatus } from '@/lib/threads/cron-status'
 import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
 import { loadThreadsToken, tokenFailure } from '@/lib/threads/token'
@@ -161,5 +162,5 @@ export async function POST(req: Request) {
     missing,
     failed,
     usage: finalUsage,
-  })
+  }, { status: cronStatus(failed.length) })
 }

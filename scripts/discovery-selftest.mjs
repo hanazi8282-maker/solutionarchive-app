@@ -36,7 +36,9 @@ import {
 import { REF_BUILDERS, buildProductRef } from '../lib/review/target-ref.ts'
 // ⚠️ import 만으로 루프가 돌면 안 된다(남의 서버를 때린다). 아래 import 가
 //    조용히 통과하는 것 자체가 "직접 실행일 때만 돈다"의 검사다.
-import { parseCandidates, proposalPrompt } from './discovery-run.mjs'
+import { ROBOTS_EXEMPT_HOSTS, gatedFetch, parseCandidates, proposalPrompt } from './discovery-run.mjs'
+import { RobotsCache } from '../lib/review/runner.ts'
+import { DANAWA_CRAWL_DELAY_MS } from '../lib/discovery/probe.ts'
 import { discoveryBlocks } from './notion-push-digest.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -484,6 +486,74 @@ t('userinfo 는 거절', buildProductRef('damoang', 'url:/free/1@evil.example').
   ok('확인불가를 눈에 띄게 적는다', text(unv).includes('확인 불가 1건'))
   ok('hits 가 null 이면 "확인불가" 로 적는다(0 이 아니다)', text(unv).includes('hits 확인불가'))
   ok('기각은 이름만 한 줄로 묶는다', text(unv).includes('기각 1건'))
+}
+
+// ── robots fail-closed (감사 2026-09-19 치명 1-1) ────────────────────────
+//
+// 발굴 엔진의 검색 GET 은 리뷰 러너와 같은 RobotsCache 판정을 거친다. 못 읽으면 안 간다.
+{
+  const DSEARCH = 'https://search.danawa.com/dsearch.php?query=x'
+  const HN = 'https://hn.algolia.com/api/v1/search_by_date?query=x'
+  const harness = (robots) => {
+    const fetched = []
+    const rawFetch = async (url) => {
+      fetched.push(url)
+      if (url.endsWith('/robots.txt')) return robots
+      return { status: 200, body: 'id="productListArea"' }
+    }
+    const waits = []
+    let clock = 0
+    const f = gatedFetch({
+      rawFetch,
+      gate: new RobotsCache({ fetchText: rawFetch }, [], 'solutionarchive-discovery'),
+      sleep: async (ms) => { waits.push(ms); clock += ms },
+      now: () => clock,
+    })
+    return { f, fetched, waits, searches: () => fetched.filter((u) => !u.endsWith('/robots.txt')) }
+  }
+
+  const notFound = harness({ status: 404, body: '' })
+  const r404 = await notFound.f(DSEARCH)
+  t('robots 404 → 검색 GET 0건 (확인 불가는 허용이 아니다)', notFound.searches().length, 0)
+  t('robots 404 → status null 로 프로브에 넘긴다(unverified 경로)', r404.status, null)
+  ok('robots 404 → error 에 unverified 를 적는다', /robots unverified/.test(r404.error))
+
+  const down = harness({ status: null, body: '', error: 'ECONNRESET' })
+  await down.f(DSEARCH)
+  t('robots 네트워크 실패 → 검색 GET 0건', down.searches().length, 0)
+
+  const blocked = harness({ status: 200, body: 'User-agent: *\nDisallow: /dsearch.php\n' })
+  const rBlocked = await blocked.f(DSEARCH)
+  t('robots Disallow /dsearch.php → 검색 GET 0건', blocked.searches().length, 0)
+  ok('robots Disallow → error 에 disallowed 를 적는다', /robots disallowed/.test(rBlocked.error))
+
+  const noGroup = harness({ status: 200, body: 'User-agent: googlebot\nDisallow: /\n' })
+  await noGroup.f(DSEARCH)
+  t('우리 UA 그룹이 없으면(확인 불가) 검색 GET 0건', noGroup.searches().length, 0)
+
+  // 2026-09-20 실측 다나와 robots 형태 — /dsearch.php 는 Disallow 밖, Crawl-delay 10.
+  const live = harness({ status: 200, body: '# robots.txt for https://search.danawa.com/\n\nUser-agent: *\nDisallow: /api_ui/\nDisallow: /classes/\nDisallow: /tpl/\nCrawl-delay: 10\n' })
+  const rLive = await live.f(DSEARCH)
+  t('실측 다나와 robots → 검색 GET 1건', live.searches().length, 1)
+  t('허용이면 본문을 그대로 돌려준다', rLive.status, 200)
+  await live.f(DSEARCH)
+  t('robots.txt 는 한 실행에 한 번만 받는다', live.fetched.filter((u) => u.endsWith('/robots.txt')).length, 1)
+  t('두 번째 검색은 Crawl-delay 만큼 기다린다(상수 10s 와 선언 10s 중 긴 쪽)', live.waits[0], DANAWA_CRAWL_DELAY_MS)
+
+  const slow = harness({ status: 200, body: 'User-agent: *\nAllow: /\nCrawl-delay: 20\n' })
+  await slow.f(DSEARCH); await slow.f(DSEARCH)
+  t('robots Crawl-delay 가 상수보다 길면 선언값을 지킨다', slow.waits[0], 20_000)
+
+  const hn = harness({ status: 404, body: '' })
+  const rHn = await hn.f(HN)
+  t('HN 공개 API 는 robots 를 묻지 않는다(면제 목록)', hn.fetched.filter((u) => u.endsWith('/robots.txt')).length, 0)
+  t('HN 요청은 그대로 나간다', rHn.status, 200)
+  ok('면제 목록은 hn.algolia.com 하나뿐이다', ROBOTS_EXEMPT_HOSTS.size === 1 && ROBOTS_EXEMPT_HOSTS.has('hn.algolia.com'))
+
+  // 변이 테스트 — 프로브가 게이트 없는 fetch 를 직접 받는 회귀를 잡는다.
+  const src = await fs.readFile(path.join(here, 'discovery-run.mjs'), 'utf8')
+  ok('프로브에 넘기는 fetchText 는 gatedFetch 로 조립한 것이다', /const fetchText = gatedFetch\(\{/.test(src))
+  ok('probePhysical 은 gatedFetch 산출물(fetchText)만 받는다', /probePhysical\(cand\.name, fetchText\)/.test(src) && !/probePhysical\(cand\.name, rawFetchText\)/.test(src))
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

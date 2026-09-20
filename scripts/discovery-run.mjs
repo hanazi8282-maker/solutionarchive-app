@@ -45,6 +45,7 @@ import {
   screen,
 } from '../lib/discovery/candidate.ts'
 import { DANAWA_CRAWL_DELAY_MS, probePhysical, probeSaas } from '../lib/discovery/probe.ts'
+import { RobotsCache } from '../lib/review/runner.ts'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -68,23 +69,21 @@ const log = (msg) => console.log(`[${new Date().toISOString()}] ${msg}`)
 // ── 네트워크 포트 ────────────────────────────────────────────────
 // lib/review/runner.ts 와 같은 FetchOutcome 을 돌려준다. 던지지 않는다 —
 // 요청 실패는 예외가 아니라 **판정 입력**이다(unverified).
-const USER_AGENT = 'solutionarchive-discovery/0.1 (+https://github.com/hanazi8282-maker/solutionarchive-app)'
+const PRODUCT_TOKEN = 'solutionarchive-discovery'
+const USER_AGENT = `${PRODUCT_TOKEN}/0.1 (+https://github.com/hanazi8282-maker/solutionarchive-app)`
+
+/**
+ * robots 판정을 **건너뛰는** 호스트. 문서화된 공개 API 만 넣는다.
+ *   - hn.algolia.com: HN 공식 검색 API. robots 가 아니라 API 약관이 근거다.
+ * 여기 없는 호스트(= 다나와 검색)는 전부 robots 를 먼저 읽고, 못 읽으면 요청하지 않는다.
+ */
+export const ROBOTS_EXEMPT_HOSTS = new Set(['hn.algolia.com'])
 
 let lastDanawaAt = 0
 let requestCount = 0
 
-async function fetchText(url) {
-  // 다나와만 Crawl-delay 를 진다. HN 은 공개 API 라 해당 없음.
-  if (url.includes('search.danawa.com')) {
-    const gap = Date.now() - lastDanawaAt
-    if (lastDanawaAt > 0 && gap < DANAWA_CRAWL_DELAY_MS) {
-      const waitMs = DANAWA_CRAWL_DELAY_MS - gap
-      log(`  ⏳ 다나와 Crawl-delay 대기 ${waitMs}ms (직전 요청과 ${gap}ms)`)
-      await sleep(waitMs)
-    }
-    lastDanawaAt = Date.now()
-  }
-
+/** 실제 네트워크. robots 를 보지 않는다 — 판정은 아래 gatedFetch 가 한다. */
+async function rawFetchText(url) {
   requestCount++
   log(`  → GET ${url}`)
   const t0 = Date.now()
@@ -92,12 +91,60 @@ async function fetchText(url) {
     const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT }, redirect: 'follow' })
     const body = await res.text()
     log(`  ← HTTP ${res.status} ${body.length}B ${Date.now() - t0}ms`)
-    return { status: res.status, body }
+    // finalUrl: robots 캐시가 리다이렉트된 origin 을 키로 쓴다(runner.ts FetchOutcome 주석).
+    return { status: res.status, body, finalUrl: res.url }
   } catch (e) {
     log(`  ← 요청 실패 ${e.message} ${Date.now() - t0}ms`)
     return { status: null, body: '', error: e.message }
   }
 }
+
+/**
+ * robots 를 먼저 묻고 허용일 때만 요청하는 fetch 를 만든다 (감사 2026-09-19 치명 1-1).
+ *
+ * ⚠️ 2026-09-20 이전에는 `search.danawa.com/dsearch.php` 를 손으로 잰 Crawl-delay 상수만
+ *    지키고 바로 GET 했다. 리뷰 수집 러너(`lib/review/runner.ts`)가 fail-closed 로 막는 바로
+ *    그 규칙을 발굴 엔진이 우회한 것이다. 이제 같은 `RobotsCache` 판정을 거친다:
+ *    - allowed     → 요청한다. robots 가 선언한 Crawl-delay 와 우리 상수 중 **긴 쪽**을 지킨다.
+ *    - disallowed  → 요청하지 않는다. `{ status: null }` 을 돌려 프로브가 unverified 를 내게 한다.
+ *    - unverified  → 요청하지 않는다(robots 404/5xx/네트워크 실패/그룹 없음 전부). 표식(proceedHosts)은
+ *                    발굴 엔진에 **없다** — 사람이 실측 근거를 달 자리가 없기 때문이다.
+ *    `ROBOTS_EXEMPT_HOSTS` 만 판정 없이 지나간다.
+ *
+ * 순수 함수로 뺀 이유: 셀프테스트가 가짜 rawFetch 로 "robots 를 못 읽으면 검색 GET 이 0건" 을 고정한다.
+ */
+export function gatedFetch({ rawFetch, gate, log: emit = () => {}, sleep: wait = sleep, now = Date.now }) {
+  let lastAt = null
+  return async function fetchText(url) {
+    const host = new URL(url).hostname.toLowerCase()
+    if (ROBOTS_EXEMPT_HOSTS.has(host)) return rawFetch(url)
+
+    const d = await gate.decide(url)
+    if (d.state !== 'allowed') {
+      emit(`  ⛔ robots ${d.state} — ${d.reason} → 요청하지 않는다 (${url})`)
+      return { status: null, body: '', error: `robots ${d.state} — ${d.reason}` }
+    }
+
+    // Crawl-delay: robots 선언값과 손으로 잰 상수 중 긴 쪽. 선언이 줄어도 우리 상수 아래로는 안 내려간다.
+    const delayMs = Math.max(DANAWA_CRAWL_DELAY_MS, d.crawlDelayMs ?? 0)
+    const gap = now() - lastAt
+    if (lastAt !== null && gap < delayMs) {
+      const waitMs = delayMs - gap
+      emit(`  ⏳ Crawl-delay 대기 ${waitMs}ms (직전 요청과 ${gap}ms, robots ${d.crawlDelayMs ?? 0}ms)`)
+      await wait(waitMs)
+    }
+    lastAt = now()
+    return rawFetch(url)
+  }
+}
+
+// 실행 시에만 조립한다 — import 만으로는 아무 것도 만들지 않는다(셀프테스트가 이 파일을 import 한다).
+const fetchText = gatedFetch({
+  rawFetch: rawFetchText,
+  gate: new RobotsCache({ fetchText: rawFetchText }, [], PRODUCT_TOKEN),
+  log,
+})
+void lastDanawaAt
 
 // ── [1] 기존 상태 ────────────────────────────────────────────────
 //

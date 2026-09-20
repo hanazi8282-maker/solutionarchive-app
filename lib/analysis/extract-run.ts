@@ -28,6 +28,7 @@ import {
   type ValueRealizationFrequency,
 } from './types.ts'
 import { REANALYZABLE, canStart } from './extract-gate.ts'
+import { normalizeEvidenceQuotes } from './evidence-quotes.ts'
 
 // 컨텍스트 폭주 방지: 입력 1건당 / 전체 합계 상한
 export const MAX_CHARS_PER_INPUT = 8000
@@ -51,6 +52,9 @@ Stage1 — 각 텍스트에서 반복되는 속성(aspect)을 추출해라. 각 
 - is_segmentation_axis: 같은 속성에 대해 극찬과 혐오가 동시에 존재하면 true
 - value_realization_frequency: 이 카테고리의 핵심 편익이 자주 실현되는지(HIGH),
   가끔인지(MEDIUM), 드물게(보험처럼 사고 나야만, LOW)인지
+- evidence_quotes: 이 속성을 그렇게 판단하게 만든 **입력 원문의 문장 1~3개**.
+  ★ 입력 원문에 있는 문장만, 한 글자도 바꾸지 말고 그대로 옮겨라. 요약·다듬기·합치기 금지.
+  원문에 마땅한 문장이 없으면 지어내지 말고 빈 배열 [] 로 둬라.
 
 "많이 언급되는 것"과 "중요한 것"을 구분해라 — 다들 만족하는 속성(예: 기본 품질)은
 importance는 높아도 satisfaction도 높게 나오는 게 정상이다. 실제 페인/불만이
@@ -75,6 +79,7 @@ Stage2 — 전체 텍스트를 보고:
     "satisfaction": 0-10, "attribution": "...", "pain_timing": "...",
     "persona_role": "...", "proxy_consumption": true/false,
     "is_segmentation_axis": true/false, "value_realization_frequency": "...",
+    "evidence_quotes": ["원문 그대로 1~3문장"],
     "notes": "이 속성 판단 근거 한 줄" }] }`
 
 // ── 파싱 헬퍼 ────────────────────────────────────────────────────
@@ -334,6 +339,11 @@ export async function runExtraction(
         ),
         human_confirmed: false, // 사람 검수 전
         notes: pickText(a.notes),
+
+        // 원문 인용 — 저장 전에 **입력 원문에 실제로 있는지** 확인하고 통과한 것만 넣는다.
+        // 대조 대상은 (프롬프트에 실린 잘린 본문이 아니라) 수집 원문 전체다 — 상한에 걸려 잘린
+        // 뒤쪽에서 인용했더라도 그건 지어낸 게 아니다. lib/analysis/evidence-quotes.ts
+        evidence_quotes: normalizeEvidenceQuotes(a.evidence_quotes, inputs),
 
         // ── LLM 원본 스냅샷 ──────────────────────────────────────
         // 검수 PUT 은 이 컬럼들을 payload 에 넣지 않으므로, 사람이 위쪽 실제

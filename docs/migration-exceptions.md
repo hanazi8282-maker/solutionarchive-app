@@ -195,3 +195,12 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 양성: 패싯 컬럼 6/6 · evidence_quotes 1/1 · seller_profiles 테이블 1/1 · 기존 41 aspects 전부 `[]` 기본값
 - 음성: DO 블록에서 어휘 밖 bottleneck INSERT · price_band UPDATE 둘 다 check_violation 으로 거부(잔여 행 0, 값 NULL 유지)
 - 롤백 파일: `_rollback.sql` (컬럼 DROP + 테이블 DROP — 되돌리면 사람이 넣은 패싯·인용이 사라진다)
+
+## 2026-09-21 — 20260924000001_wtp_signals.sql
+
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf` (사전 실측: wtp_signals 없음, analysis_projects·content_columns 존재)
+- 승인자: **자체 판단(§10.2, 예외 아님: 신규 테이블 CREATE IF NOT EXISTS 1개, 기존 테이블 무변경, 가격 노출 없음 — 신호 수집만)**
+- 적용: Supabase MCP `apply_migration` — success
+- 양성: 테이블 1/1, 행 0
+- 음성: DO 블록 — would_pay=false 인데 amount 있음 · billing='yearly' 둘 다 check_violation 으로 거부(잔여 행 0)
+- 롤백: `_rollback.sql`(DROP TABLE — 신호 이력 소실)

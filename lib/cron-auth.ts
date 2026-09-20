@@ -14,8 +14,10 @@
 //     curl -X POST -H "Authorization: Bearer undefined" .../api/threads/publish
 //     → HTTP 200
 //
-//   영향받는 라우트에 /api/threads/publish 가 있다. 그건 Threads 에 실제로
-//   글을 발행하고 되돌릴 수 없다.
+//   영향받는 라우트에 /api/threads/publish 가 있었다. 그건 Threads 에 실제로
+//   글을 발행하고 되돌릴 수 없다. (2026-09-20 삭제 — 읽는 `thread_posts` 테이블이
+//   마이그레이션 어디에도 없어 항상 500 이었고, §10 "자동 발행 API 사용 안 함" 과도
+//   어긋났다. 이 가드는 남은 크론 라우트를 위해 그대로 둔다.)
 //
 //   그래서 여기서는 **변수가 없으면 무조건 거부**한다. 설정 누락이
 //   인증 우회가 아니라 서비스 중단으로 나타나야 한다 — 조용히 열리는 것보다

@@ -32,6 +32,13 @@ jobs:
       # 추출 시작 게이트가 서버·화면 한 벌인지. 갈라지면 시작할 수 있는데 버튼이 없는 화면이 된다.
       - run: node scripts/analyze-extract-gate-selftest.mjs
       - run: node scripts/aspect-verdict-selftest.mjs
+      # PMF 진단 저장 행이 DB CHECK(not_run 이면 축 전부 NULL)와 어긋나지 않는지 + 원문에 없는
+      # 인용을 저장하지 않는지. 깨지면 진단 기록이 통째로 사라지거나 지어낸 인용이 화면에 앉는다.
+      - run: node scripts/pmf-run-selftest.mjs
+      # 처방 대상 선별((I,S)만) · 3상태 · 문장 템플릿 · 저신뢰 전달.
+      - run: node scripts/remedy-selftest.mjs
+      # 요약 마크다운 — 화면 밖으로 나가는 유일한 산출물이라 "없음"과 "확인 불가"가 섞이면 안 된다.
+      - run: node scripts/summary-selftest.mjs
       # 어드바이저 매칭 3상태·불용어 회귀·SP-024 저신뢰 판정. 픽스처만 쓴다(네트워크·DB 없음).
       - run: node scripts/advisor-selftest.mjs
       # HN 실패신호 탐지(다단어 구문만·중복 append 방지·스윕 질의 URL). 네트워크 없음.

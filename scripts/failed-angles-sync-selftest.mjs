@@ -19,7 +19,9 @@ const throws = (name, fn) => {
 
 // ── 정본 md ──────────────────────────────────────────────────────
 const rows = parseFailedAnglesTable(fs.readFileSync('docs/failed-angles.md', 'utf8'))
-ok('정본: 5~10행 사이(§13-2 지시)', rows.length >= 5 && rows.length <= 10)
+// 2026-09-21 남헌 결정: §13-2 콜드스타트 5~10행은 시작 기준이었고 09-12(PR #49)에 12행으로 늘린 것은 의도된 것.
+//   이제는 원장 실제 행수를 고정한다 — 행을 더 넣으면 이 숫자를 같이 올려라.
+t('정본: 12행', rows.length, 12)
 ok('정본: 전부 case_key 형식(소문자·숫자·하이픈)', rows.every((r) => /^[a-z0-9-]+$/.test(r.case_key)))
 ok('정본: 전부 source_tier=공개 보도', rows.every((r) => r.source_tier === '공개 보도'))
 ok('정본: is_estimate 전부 boolean', rows.every((r) => typeof r.is_estimate === 'boolean'))
@@ -67,4 +69,4 @@ throws('행이 0건 → throw', () => parseFailedAnglesTable(H))
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) { console.log('표 파서가 틀렸다. 시드/동기화가 원장과 어긋난다.'); process.exitCode = 1 }
-else console.log('표 파서 정상 — 정본 5~10행 + 형식 위반 전부 throw.')
+else console.log('표 파서 정상 — 정본 12행 + 형식 위반 전부 throw.')

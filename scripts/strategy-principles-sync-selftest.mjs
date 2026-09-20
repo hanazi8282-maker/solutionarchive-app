@@ -22,9 +22,10 @@ const rows = parseStrategyTable(fs.readFileSync('docs/strategy-principles.md', '
 // ⚠️ 행을 추가하면 이 숫자도 같이 올려라. SP-024~026 을 넣을 때 안 올려서
 //    이 검사가 26 vs 23 으로 **이미 빨간불이었다**(round-3 에서 발견해 정정).
 //    빨간불을 방치하면 다음 사람이 "원래 실패하는 검사"로 배우고 넘긴다.
-t('정본: 30행', rows.length, 30)
+// 2026-09-21 남헌 결정: 원장 추가(SP-032, PR #152)는 의도된 것 — 기대값을 원장에 맞춘다. 행을 더 넣으면 아래 세 숫자를 같이 올려라.
+t('정본: 31행', rows.length, 31)
 t('정본: 첫 행 SP-001', rows[0].sp_id, 'SP-001')
-t('정본: 끝 행 SP-031', rows[rows.length - 1].sp_id, 'SP-031')
+t('정본: 끝 행 SP-032', rows[rows.length - 1].sp_id, 'SP-032')
 // 번호가 1부터 빈칸 없이 이어지는지 — 단 **SP-029 는 의도된 결번**이다.
 // 미머지 브랜치(feat/review-sources-expand, PR #106)가 그 번호를 먼저 선점했고
 // round-2(clien·fmkorea=SP-027·028)가 main 에 먼저 들어오면서 그 브랜치의
@@ -33,10 +34,10 @@ t('정본: 끝 행 SP-031', rows[rows.length - 1].sp_id, 'SP-031')
 // 알고 넘어가는 것이 "채워 넣은 척"보다 낫다(§7.1).
 const KNOWN_RESERVED_GAPS = new Set(['SP-029']) // PR #106 미머지로 인한 의도된 결번
 ok(
-  '정본: SP-001..SP-031 이 (알려진 결번 제외) 중복 없이 이어진다',
+  '정본: SP-001..SP-032 가 (알려진 결번 제외) 중복 없이 이어진다',
   (() => {
     const expected = []
-    for (let i = 1; i <= 31; i++) {
+    for (let i = 1; i <= 32; i++) {
       const id = `SP-${String(i).padStart(3, '0')}`
       if (!KNOWN_RESERVED_GAPS.has(id)) expected.push(id)
     }

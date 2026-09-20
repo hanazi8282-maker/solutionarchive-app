@@ -71,7 +71,13 @@ export function remedyHeadline(aspectName: string): string {
 
 /** 보완 선례 한 줄. 사실확인 등급과 인사이트 등급은 **다른 축**이라 둘 다 적는다(2026-09-16 재설계). */
 export function fixLine(c: CaseMoveCard): string {
-  return `${c.brand_name} 가 ${c.lever} 로 "${c.claim}" (사실확인 ${c.fact_check_grade ?? '미기재'} · 인사이트 ${c.evidence_grade} · ${c.outcome_direction})`
+  const tail = `(사실확인 ${c.fact_check_grade ?? '미기재'} · 인사이트 ${c.evidence_grade} · ${c.outcome_direction})`
+  // ★ 반면교사(negative)는 "보완 선례" 로 읽히면 안 된다 — 2026-09-21 남헌: 명시적으로 "이렇게 하지 마라" 로 프레이밍.
+  //   승인된 negative 무브(예: Zenefits 라이선스 매크로)가 같은 병목으로 매칭되면 이 줄로 나간다.
+  if (c.outcome_direction === 'negative') {
+    return `⛔ 반면교사 — 이렇게 하지 마라: ${c.brand_name} 는 ${c.lever} 로 "${c.claim}" 를 했다가 막혔다 ${tail}`
+  }
+  return `${c.brand_name} 가 ${c.lever} 로 "${c.claim}" ${tail}`
 }
 
 /** 이렇게 갔다가 막힌 사례 한 줄. 추정이 섞인 재서술이면 그 사실을 붙인다. */

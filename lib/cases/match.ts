@@ -220,3 +220,21 @@ export function quadrantOf(
   if (!hiD && hiP) return { quadrant: 'CROWDED_NO_DEMAND', reason: '남들은 많이 했는데 우리 데이터에 수요가 없다' }
   return { quadrant: 'PARK', reason: '둘 다 약하다 — 지금 건드리지 않는다' }
 }
+
+/**
+ * 사분면별 처방 문장 — 라벨(분류)만 보여주면 판정이 아니다 (docs/pmf-product-design.md §3-1 1).
+ * 전부 권고다. 보장으로 읽히는 낱말(된다·성공·확실)을 쓰지 않는다.
+ */
+export const PMF_QUADRANT_ADVICE: Record<Quadrant, string> = {
+  PROVEN_DEMAND: '수요도 있고 남이 푼 선례도 있다. 선례 무브를 그대로 옮겨 붙이는 게 가장 싸다 — 아래 보완 사례부터 읽어라.',
+  UNCHARTED_DEMAND: '수요는 있는데 남이 푼 적이 없다. 우리가 1번이다 — 실패 사례부터 확인하고, 크게 걸기 전에 작게 검증해라.',
+  CROWDED_NO_DEMAND: '남들은 많이 했는데 우리 리뷰엔 근거가 없다. 리뷰를 더 모으거나 소구점을 바꿔라 — 선례만 믿고 밀지 마라.',
+  PARK: '둘 다 약하다. 지금은 건드리지 않는다 — 다른 속성이나 다른 프로젝트를 봐라.',
+}
+
+/** 사분면을 못 낸 경우(축 하나 확인 불가)의 안내. 어느 축이 비었는지와 채우는 법을 같이 말한다. */
+export function noQuadrantAdvice(demand: number | null, precedent: number | null): string {
+  if (demand === null && precedent === null) return '두 축 다 확인 불가다. 원문을 모아 분석을 돌리고(수요축), 진단을 실행해라(선례축).'
+  if (demand === null) return '수요축이 확인 불가다 — 속성이 없거나 척도 밖이다. 원문을 더 모아 분석을 다시 돌려라. 선례축만으로 판단하지 않는다.'
+  return '선례축이 확인 불가다 — 진단을 아직 안 돌렸거나 케이스 조회가 실패했다. 아래 "진단 실행" 을 눌러라. 수요축만으로 판단하지 않는다.'
+}

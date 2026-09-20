@@ -127,3 +127,27 @@ export const QUADRANT_SHORT_LABELS: Record<Quadrant, string> = {
   OVER_INVESTED:  '과잉투자',
   IGNORE:         '무시',
 }
+
+// ── 시장 성숙도(Stage 2) 해설 — 숫자 옆에 "그래서 뭘 해라" (docs/pmf-product-design.md §3-1 3) ──
+// 단계 정의는 추출 프롬프트(lib/analysis/extract-run.ts SYSTEM_PROMPT)와 같은 문장이어야 한다. 바꾸면 둘 다 바꾼다.
+export interface MaturityStage {
+  stage: 1 | 2 | 3 | 4 | 5
+  name: string
+  /** 리뷰가 어떤 이야기를 하고 있나. */
+  meaning: string
+  /** 이 단계의 셀러가 지금 할 일 1줄. 권고이지 보장이 아니다. */
+  action: string
+}
+
+export const MATURITY_STAGES: readonly MaturityStage[] = [
+  { stage: 1, name: '시장 창출', meaning: '직접 편익 위주. 주장이 서로 겹치지 않는다 — 카테고리 자체를 설명해야 팔린다.', action: '편익을 한 문장으로 못 박아라. 비교보다 "이게 뭔지" 가 먼저다.' },
+  { stage: 2, name: '주장 확장', meaning: '여러 브랜드가 각자 다른 주장을 편다. 겹침은 아직 낮다.', action: '남이 안 하는 주장 하나를 잡아라. 리뷰에서 만족도가 낮은 속성이 그 자리다.' },
+  { stage: 3, name: '고유 메커니즘 등장', meaning: '"왜 되는가" 를 설명하는 브랜드가 나온다. 메커니즘이 곧 차별화다.', action: '메커니즘을 증거와 함께 말해라. 주장만 있는 소구점은 이 단계부터 안 먹힌다.' },
+  { stage: 4, name: '메커니즘 정제', meaning: '주장이 서로 겹친다. 스펙·수치 비교가 리뷰의 주 언어다.', action: '스펙 경쟁에 끼지 마라. 만족도가 낮은 속성(격차)만 골라 좁게 쳐라.' },
+  { stage: 5, name: '정체성·재창출', meaning: '스펙 경쟁이 소진됐다. 부작용·유지보수·"요즘은 다 비슷하다" 이야기가 주를 이룬다.', action: '누구를 위한 제품인지(정체성)로 다시 시작해라. 성능 소구는 끝났다.' },
+] as const
+
+export function maturityStageOf(stage: number | null | undefined): MaturityStage | null {
+  if (stage == null) return null
+  return MATURITY_STAGES.find((m) => m.stage === stage) ?? null
+}

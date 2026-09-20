@@ -186,3 +186,12 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 `enabled=false` 이고 타깃 0건이라 러너가 이 두 소스를 아예 건너뛴다. 마이그레이션 주석이
 경고한 대로 실측은 전부 한국 가정용 IP 였고 Actions 러너(Azure egress) 응답은 미측정이다 —
 켜는 날 dry-run 으로 응답 코드를 눈으로 보고 나서 켜야 한다.
+
+## 2026-09-20 — 20260923000001_pmf_product_facets.sql
+
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf` (사전 실측: content_columns·case_studies·pmf_assessments 존재 확인, 대상 컬럼 0개·seller_profiles 없음, 24 projects / 41 aspects)
+- 승인자: **자체 판단(§10.2 2026-09-20 개정, 예외 아님: 전부 ADD COLUMN IF NOT EXISTS / CREATE TABLE IF NOT EXISTS — 삭제·데이터 변경·키·법적·사업방향 해당 없음)**
+- 적용: Supabase MCP `apply_migration` — success
+- 양성: 패싯 컬럼 6/6 · evidence_quotes 1/1 · seller_profiles 테이블 1/1 · 기존 41 aspects 전부 `[]` 기본값
+- 음성: DO 블록에서 어휘 밖 bottleneck INSERT · price_band UPDATE 둘 다 check_violation 으로 거부(잔여 행 0, 값 NULL 유지)
+- 롤백 파일: `_rollback.sql` (컬럼 DROP + 테이블 DROP — 되돌리면 사람이 넣은 패싯·인용이 사라진다)

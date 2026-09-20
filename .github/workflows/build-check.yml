@@ -39,6 +39,12 @@ jobs:
       - run: node scripts/remedy-selftest.mjs
       # 요약 마크다운 — 화면 밖으로 나가는 유일한 산출물이라 "없음"과 "확인 불가"가 섞이면 안 된다.
       - run: node scripts/summary-selftest.mjs
+      # 진단 입력(패싯) 어휘가 화면·API·DB CHECK 한 벌인지. 갈라지면 폼을 다 채운 뒤 23514 로 죽는다.
+      - run: node scripts/analyze-projects-facets-selftest.mjs
+      # 목록의 "오래 멈춤"·정체 한 줄. 상태별 기준 시각이 뭉쳐지면 멀쩡한 행이 정체로 찍힌다.
+      - run: node scripts/analyze-list-signals-selftest.mjs
+      # 추출 소요시간 실측(중앙값·p90). 표본 5건 미만이면 화면에 숫자를 내지 않는 규칙을 고정한다.
+      - run: node scripts/analyze-extract-stats-selftest.mjs
       # 어드바이저 매칭 3상태·불용어 회귀·SP-024 저신뢰 판정. 픽스처만 쓴다(네트워크·DB 없음).
       - run: node scripts/advisor-selftest.mjs
       # HN 실패신호 탐지(다단어 구문만·중복 append 방지·스윕 질의 URL). 네트워크 없음.

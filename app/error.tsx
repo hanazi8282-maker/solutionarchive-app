@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { PageHeader, PageShell, Notice } from './_ds/components/Shell'
-import { Button } from './_ds/components/Button'
+import { Button, ButtonLink } from './_ds/components/Button'
 
 // 서버 컴포넌트가 던지면 Next 기본 오류 화면(영문) 대신 이 화면이 뜬다.
 // "데이터가 없다"와 헷갈리지 않게, 확인하지 못한 상태라고 명시한다(CLAUDE.md §7.1).
@@ -20,7 +20,15 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
       <Notice
         tone="danger"
         title="오류"
-        action={<Button variant="neutral" onClick={reset}>다시 시도</Button>}
+        action={
+          // ≤480px 에서는 세로로 쌓고 각자 풀폭(app/_ds/styles.css .dgy-btnrow).
+          <div className="dgy-btnrow" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, width: '100%' }}>
+            <Button variant="primary" onClick={reset}>새로고침</Button>
+            {/* 로그인 세션이 끊겨도 같은 화면이 뜬다 — 그때 여기가 출구다. */}
+            <ButtonLink href="/login" variant="outline">로그인 다시 하기 · 문의</ButtonLink>
+            <ButtonLink href="/" variant="outline">홈으로</ButtonLink>
+          </div>
+        }
       >
         {error.message || '알 수 없는 오류'}
         {error.digest ? ` (서버 로그 digest ${error.digest})` : ''}

@@ -6,6 +6,8 @@ import {
   type AnalysisMode, type AnalysisPurpose,
 } from '@/lib/analysis/types'
 import { demandAxis, PMF_QUADRANT_LABELS, type Quadrant as PmfQuadrant } from '@/lib/cases/match'
+import { DWELL_FIELD_LABEL, STALL_DAYS, funnelStats, stallOf } from '@/lib/analysis/list-signals'
+import { DismissBanner } from './dismiss-banner'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { ButtonLink } from '../_ds/components/Button'
@@ -21,6 +23,9 @@ type Row = {
   id: string
   status: string
   created_at: string | null
+  /** 체류 시간의 기준 시각. 상태마다 다른 걸 쓴다 — lib/analysis/list-signals.ts */
+  extract_started_at: string | null
+  extract_finished_at: string | null
   purpose: AnalysisPurpose
   mode: AnalysisMode | null
   competitor_url: string
@@ -105,6 +110,11 @@ const LIMIT = 500
 const KST = new Intl.DateTimeFormat('sv-SE', {
   timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
 })
+const KST_DAY = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
+const dayOf = (v: string | null | undefined) => {
+  const t = v ? Date.parse(v) : NaN
+  return Number.isFinite(t) ? KST_DAY.format(t) : null
+}
 
 const wrap: CSSProperties = { overflowWrap: 'anywhere', minWidth: 0 }
 
@@ -162,7 +172,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   // ponytail: 전체를 한 번에 읽어 상태별 건수와 필터를 같이 만든다. 500건을 넘기면 서버 필터·페이지네이션으로.
   const res = await sb
     .from('analysis_projects')
-    .select('id,status,created_at,purpose,mode,competitor_url,product_elevator_pitch,analysis_inputs(count),analysis_aspects(opportunity_score),pmf_assessments(demand_axis,precedent_axis,quadrant,match_status,created_at)')
+    .select('id,status,created_at,extract_started_at,extract_finished_at,purpose,mode,competitor_url,product_elevator_pitch,analysis_inputs(count),analysis_aspects(opportunity_score),pmf_assessments(demand_axis,precedent_axis,quadrant,match_status,created_at)')
     .order('created_at', { ascending: false })
     .limit(LIMIT)
 
@@ -182,6 +192,40 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   for (const r of all) counts.set(r.status, (counts.get(r.status) ?? 0) + 1)
   const collectingN = counts.get('collecting') ?? 0
   const readyN = all.filter(isReady).length
+  // async 서버 컴포넌트다. 요청마다 한 번 서버에서 실행되고 재렌더가 없으므로
+  // "재렌더할 때마다 값이 흔들린다"는 이 규칙의 전제가 성립하지 않는다(app/agents/page.tsx 와 같은 이유).
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now()
+
+  // ── 어젯밤 발굴 배너 ────────────────────────────────────────
+  // /discovery 와 같은 테이블·같은 세는 법(읽기만 한다). 조회가 실패하거나 테이블이 없으면
+  // **아무것도 그리지 않는다** — "어젯밤 후보 0건"으로 그리면 발굴이 멈춘 날과 못 읽은 날이
+  // 같은 화면이 되고, 사람은 전자로 읽는다(§7.1).
+  const dc = await sb
+    .from('discovery_candidates')
+    .select('created_at,human_review')
+    .order('created_at', { ascending: false })
+    .limit(1000)
+  const latestDay = dc.error || !dc.data?.length ? null : dayOf(dc.data[0].created_at)
+  const discovery = latestDay && dc.data
+    ? {
+      day: latestDay,
+      night: dc.data.filter((c) => dayOf(c.created_at) === latestDay).length,
+      pending: dc.data.filter((c) => c.human_review === 'pending').length,
+    }
+    : null
+
+  // ── 오늘 볼 것 1건 ─────────────────────────────────────────
+  // 수요축이 가장 높은데 아직 검수가 안 끝난 프로젝트. 산식은 demandAxis 한 벌이다(재계산 금지).
+  // 확인 불가(value=null)는 후보로 올리지 않는다 — 0 으로 접지도, 1등으로 올리지도 않는다.
+  const todays = all
+    .filter((r) => !ANGLE_READY_STATUSES.includes(r.status))
+    .map((r) => ({ r, demand: axesOf(r).demand }))
+    .filter((x): x is { r: Row; demand: { value: number; reason: string } } => x.demand.value != null)
+    .sort((a, b) => b.demand.value - a.demand.value)[0] ?? null
+
+  // ── 정체 한 줄 ─────────────────────────────────────────────
+  const funnel = funnelStats(all, now)
 
   const filtered = filter === 'all' ? all
     : filter === DEFAULT_FILTER ? all.filter((r) => r.status !== 'collecting')
@@ -202,8 +246,31 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
     <PageShell maxWidth={960}>
       {header}
 
+      {discovery && (
+        <DismissBanner storageKey={`sa.analyze.discovery-banner.${discovery.day}`}>
+          어젯밤({discovery.day}) 발굴 후보 {discovery.night}건 · 검토 대기 {discovery.pending}건{' '}
+          <Link href="/discovery" style={{ color: 'inherit', fontWeight: 600 }}>보러 가기 →</Link>
+        </DismissBanner>
+      )}
+
       {all.length >= LIMIT && (
         <Notice tone="warning">최근 {LIMIT}건까지만 불러왔다. 건수는 그 안에서 센 값이다.</Notice>
+      )}
+
+      {todays && (
+        <Card
+          title="오늘 볼 것 1건"
+          action={<ButtonLink href={`/analyze/${todays.r.id}/review`} size="sm" variant="primary">상세·검수</ButtonLink>}
+        >
+          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-strong)', ...wrap }}>
+            {todays.r.product_elevator_pitch}
+          </div>
+          <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, ...wrap }}>
+            왜 이것인가: 검수가 안 끝난 {all.filter((r) => !ANGLE_READY_STATUSES.includes(r.status)).length}건 중 수요축이 가장 높다
+            ({fmt1(todays.demand.value)} · {todays.demand.reason}). 상태는 {STATUS[todays.r.status]?.label ?? todays.r.status}다.
+            권고이지 순서를 정해 주는 것은 아니다.
+          </p>
+        </Card>
       )}
 
       <nav aria-label="상태 필터" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -222,6 +289,22 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
         ))}
         <FilterLink href={qs({ status: 'all' })} active={filter === 'all'}>전체 {all.length}</FilterLink>
       </nav>
+
+      {/*
+        정체 한 줄. 건수만으로는 "3건이 3일째인지 3주째인지" 를 알 수 없어서 최장 체류를 같이 적고,
+        그 숫자가 **어느 시각 기준**인지도 적는다 — 상태마다 기준 시각이 다르다(list-signals.ts).
+      */}
+      {funnel.length > 0 && (
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, ...wrap }}>
+          {funnel.map((e) => {
+            const label = STATUS[e.status]?.label ?? e.status
+            const dwell = e.longestDays == null
+              ? '최장 확인 불가'
+              : `최장 ${e.longestDays}일(${DWELL_FIELD_LABEL[e.longestField!]} 기준)`
+            return `${label} ${e.count}건 · ${dwell}${e.unknown ? ` · 시각 없음 ${e.unknown}건` : ''}`
+          }).join(' | ')}
+        </p>
+      )}
       <nav aria-label="정렬" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
         정렬
         <FilterLink href={qs({ sort: undefined })} active={!byDemand}>최근 생성 순</FilterLink>
@@ -231,9 +314,14 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
       <Card bodyStyle={{ padding: 0 }}>
         {all.length === 0 ? (
           <EmptyState
-            compact
-            title="분석 프로젝트 0건 (조회는 정상)"
-            action={<ButtonLink href="/analyze/new" variant="primary">새 분석 시작</ButtonLink>}
+            title="아직 분석한 게 없다 — 괜찮다 (조회는 정상)"
+            description="처음엔 다들 여기서 시작한다. 내 상품으로 바로 해도 되고, 남이 이미 푼 사례를 먼저 구경해도 된다. 첫 분석은 리뷰 몇 줄만 붙여넣어도 돈다."
+            action={
+              <div style={{ display: 'grid', gap: 8, width: 'min(100%, 320px)' }}>
+                <ButtonLink href="/analyze/new" variant="primary" size="lg" fullWidth>첫 분석 시작</ButtonLink>
+                <ButtonLink href="/cases" variant="ghost" size="sm">먼저 남의 사례 구경하기 →</ButtonLink>
+              </div>
+            }
           />
         ) : rows.length === 0 ? (
           <EmptyState
@@ -245,6 +333,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {rows.map((r, i) => {
               const st = STATUS[r.status]
+              const stall = stallOf(r, now)
               return (
                 <li key={r.id} style={{
                   display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12,
@@ -259,6 +348,16 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
                         {' · '}원문 {inputCount(r)}건
                       </span>
                       {isReady(r) && <Badge tone="warning" size="sm">분석 전</Badge>}
+                      {/* 기준 시각을 title 에 적는다 — 어느 날짜로 센 숫자인지 확인할 수 없으면 사람이 안 믿는다. */}
+                      {stall.stalled && (
+                        <Badge
+                          tone="danger"
+                          size="sm"
+                          title={`${DWELL_FIELD_LABEL[stall.field!]} 기준 ${stall.days}일째 ${st?.label ?? r.status} (기준 ${STALL_DAYS}일)`}
+                        >
+                          오래 멈춤 {stall.days}일
+                        </Badge>
+                      )}
                     </div>
                     <div style={{ marginTop: 6, fontSize: 14, fontWeight: 500, color: 'var(--text-strong)', ...wrap }}>
                       {r.product_elevator_pitch}

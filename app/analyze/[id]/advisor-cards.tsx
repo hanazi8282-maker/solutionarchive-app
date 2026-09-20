@@ -14,8 +14,6 @@ import { Button } from '../../_ds/components/Button'
 // 앵글 수만큼 요청이 나간다).
 
 type AdvisorStatus = 'matched' | 'no_match' | 'not_run'
-/** 어느 코퍼스 한 덩어리만 펼칠지. a 선례 · b 실패사례 · c 원칙 (lib/cases/advisor.ts 의 이름 그대로). */
-export type AdvisorFocus = 'a' | 'b' | 'c'
 type AdvisorCorpus<Card> = { status: AdvisorStatus; reason: string; cards: Card[] }
 /** 매칭 근거 — 왜 이 사례가 나왔는지. 세 코퍼스 카드가 전부 갖는다 (SP-024). */
 type AdvisorMatchInfo = { matched_terms: string[]; score: number; low_confidence: boolean }
@@ -49,12 +47,6 @@ const BOX: React.CSSProperties = {
   gap: 'var(--space-3)',
 }
 
-const FOCUS_TITLE: Record<AdvisorFocus, string> = {
-  a: '선례 · 남들은 어떻게 풀었나',
-  b: '실패 사례 · 이 소구점으로 망한 적 있나',
-  c: '원칙 · 원칙은 뭐라고 하나',
-}
-
 const muted: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }
 const body: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }
 
@@ -64,12 +56,50 @@ function fmtScore(v: number | string | null): string {
   return Number.isFinite(n) ? String(Math.round(n * 10) / 10) : '—'
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/**
+ * 세 코퍼스 = 셀러가 묻는 세 가지 질문. 버튼 문구와 섹션 제목이 같은 질문을 가리킨다.
+ * a = 남들은 어떻게 풀었나 / b = 이 소구점으로 망한 적 있나 / c = 원칙은 뭐라고 하나
+ */
+export const ADVISOR_FOCUS = ['a', 'b', 'c'] as const
+export type AdvisorFocus = (typeof ADVISOR_FOCUS)[number]
+
+const FOCUS_BUTTON: Record<AdvisorFocus, string> = {
+  a: '남들은 어떻게 풀었나(선례)',
+  b: '이 소구점으로 망한 적 있나(실패 사례)',
+  c: '원칙은 뭐라고 하나(원칙)',
+}
+
+const FOCUS_TITLE: Record<AdvisorFocus, string> = {
+  a: '선례 · 성공 사례',
+  b: '실패 사례 · 이 소구점은 이미 실패한 적 있다',
+  c: '원칙',
+}
+
+/**
+ * 코퍼스 한 칸. 한 벌만 펼치고 나머지는 접되 **건수는 접힌 채로도 보인다** —
+ * 접힌 0건과 "안 찾아봤다"가 같아 보이면 안 된다(§7.1). 펼침은 native <details> 가 한다.
+ */
+function Corpus({ k, status, reason, count, focus, children }: {
+  k: AdvisorFocus
+  status: AdvisorStatus
+  reason: string
+  count: number
+  /** null = 전부 펼친다(기존 동작). */
+  focus: AdvisorFocus | null
+  children: React.ReactNode
+}) {
+  const tally = status === 'not_run' ? '판정 불가' : `${count}건`
   return (
-    <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
-      <div className="dgy-caps">{title}</div>
-      {children}
-    </div>
+    <details className="dgy-details" open={focus === null || focus === k}>
+      <summary>{FOCUS_TITLE[k]} · {tally}</summary>
+      <div style={{ display: 'grid', gap: 'var(--space-2)', padding: '6px 0 0' }}>
+        {status === 'not_run'
+          ? <p style={muted}>판정 불가 — {reason}</p>
+          : count === 0
+            ? <p style={muted}>관련 사례 없음 — 조회는 정상인데 겹치는 근거가 0건입니다. 억지로 끼워 맞추지 않습니다.</p>
+            : children}
+      </div>
+    </details>
   )
 }
 
@@ -91,28 +121,16 @@ function LowConfidenceBadge({ m }: { m: AdvisorMatchInfo }) {
   return <Badge tone="warning" size="sm">신뢰도 낮음</Badge>
 }
 
-/**
- * 응답 본문만 그린다. 3상태를 문장으로 가른다 — 0건은 0건이라고 말한다(§13-7 AC-2).
- * focus 를 주면 그 코퍼스 한 덩어리만 편다(a 선례 · b 실패사례 · c 원칙). 안 주면 셋 다 — 기존 동작.
- */
-export function AdvisorResult({ data, focus }: { data: AdvisorPayload; focus?: AdvisorFocus }) {
+/** 응답 본문만 그린다. 3상태를 문장으로 가른다 — 0건은 0건이라고 말한다(§13-7 AC-2). */
+export function AdvisorResult({ data, focus = null }: { data: AdvisorPayload; focus?: AdvisorFocus | null }) {
   if (data.status === 'not_run') return <p style={muted}>판정 불가 — {data.reason}</p>
   if (data.status === 'no_match') {
     return <p style={muted}>관련 사례 없음 — 세 코퍼스 모두 조회는 정상인데 겹치는 근거가 0건입니다.</p>
   }
-  // 한 코퍼스만 펼친 경우, 다른 코퍼스가 걸려서 전체가 matched 여도 이 창은 비어 있을 수 있다.
-  // 빈 상자를 보여주면 "없다" 와 "못 찾았다" 가 같아진다 — 그 코퍼스의 문장을 그대로 쓴다.
-  if (focus) {
-    const c = focus === 'a' ? data.corpus_a : focus === 'b' ? data.corpus_b : data.corpus_c
-    if (c.cards.length === 0) {
-      return <p style={muted}>{c.status === 'not_run' ? '판정 불가' : '관련 사례 없음'} — {c.reason}</p>
-    }
-  }
   return (
     <>
-      {(!focus || focus === 'a') && data.corpus_a.cards.length > 0 && (
-        <Section title="선례 · 성공 사례">
-          {data.corpus_a.cards.map(c => (
+      <Corpus k="a" status={data.corpus_a.status} reason={data.corpus_a.reason} count={data.corpus_a.cards.length} focus={focus}>
+        {data.corpus_a.cards.map(c => (
             <div key={c.case_move_id} style={{ display: 'grid', gap: 4 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                 <Badge tone="neutral" size="sm">{c.brand_name}</Badge>
@@ -124,14 +142,12 @@ export function AdvisorResult({ data, focus }: { data: AdvisorPayload; focus?: A
               <MatchWhy m={c} />
             </div>
           ))}
-        </Section>
-      )}
+      </Corpus>
 
       {/* 실패 사례는 "무엇을 내세웠고(claimed_angle) 왜 안 됐는지(outcome)"를 함께
           보여줘야 회피 조언이 된다. 둘 중 하나만 보이면 쓸모가 없다. */}
-      {(!focus || focus === 'b') && data.corpus_b.cards.length > 0 && (
-        <Section title="실패 사례 · 이 소구점은 이미 실패한 적 있다">
-          {data.corpus_b.cards.map(c => (
+      <Corpus k="b" status={data.corpus_b.status} reason={data.corpus_b.reason} count={data.corpus_b.cards.length} focus={focus}>
+        {data.corpus_b.cards.map(c => (
             <div key={c.case_key} style={{ display: 'grid', gap: 4 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                 <Badge tone="neutral" size="sm">{c.product_category}</Badge>
@@ -144,12 +160,10 @@ export function AdvisorResult({ data, focus }: { data: AdvisorPayload; focus?: A
               <MatchWhy m={c} />
             </div>
           ))}
-        </Section>
-      )}
+      </Corpus>
 
-      {(!focus || focus === 'c') && data.corpus_c.cards.length > 0 && (
-        <Section title="원칙">
-          {data.corpus_c.cards.map(c => (
+      <Corpus k="c" status={data.corpus_c.status} reason={data.corpus_c.reason} count={data.corpus_c.cards.length} focus={focus}>
+        {data.corpus_c.cards.map(c => (
             <div key={c.sp_id} style={{ display: 'grid', gap: 4 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                 <Badge tone="neutral" size="sm">{c.sp_id}</Badge>
@@ -164,8 +178,7 @@ export function AdvisorResult({ data, focus }: { data: AdvisorPayload; focus?: A
               <MatchWhy m={c} />
             </div>
           ))}
-        </Section>
-      )}
+      </Corpus>
     </>
   )
 }
@@ -173,21 +186,30 @@ export function AdvisorResult({ data, focus }: { data: AdvisorPayload; focus?: A
 /**
  * 열림·닫힘 + 1회 fetch. `query` 는 `/api/analyze/advisor?` 뒤에 붙는 문자열
  * (`angle_id=…` 또는 `project_id=…`). 라우트가 둘 다 받는다(app/api/analyze/advisor/route.ts).
+ *
+ * 버튼이 세 개인 이유: "유사 사례 보기" 한 개는 셀러가 무엇을 얻는지 말해 주지 않았다.
+ * 세 버튼이 곧 세 질문이고, 어느 걸 눌러도 **요청은 한 번**이다(세 코퍼스가 한 응답에 온다).
+ * 누른 질문만 펼치고 나머지는 접히되 건수는 보인다.
+ *
+ * `focus` 를 주면 그 코퍼스 전용 버튼 하나만 그린다(결과 화면이 속성 카드마다 쓰는 형태).
+ * `label` 을 주면 전처럼 버튼 하나로 전부 펼친다 — 기존 호출부가 그대로 돈다.
  */
-export function AdvisorLoader({ query, label = '유사 사례 보기', variant = 'outline', focus }: {
+export function AdvisorLoader({ query, label, variant = 'outline', focus }: {
   query: string
   label?: string
   variant?: 'outline' | 'primary'
-  /** 한 코퍼스만 펼친다. 결과 화면의 질문 3버튼이 쓴다(같은 응답, 다른 창). */
   focus?: AdvisorFocus
 }) {
   const [open, setOpen] = useState(false)
+  // 펼칠 코퍼스. null = 전부 펼친다(label 로 부른 기존 동작).
+  const [active, setActive] = useState<AdvisorFocus | null>(focus ?? null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [data, setData] = useState<AdvisorPayload | null>(null)
 
-  const load = async () => {
+  const load = async (k: AdvisorFocus | null) => {
     setOpen(true)
+    setActive(k)
     if (data || loading) return
     setLoading(true)
     setError('')
@@ -206,23 +228,37 @@ export function AdvisorLoader({ query, label = '유사 사례 보기', variant =
     }
   }
 
+  // 트리거. focus → 그 질문 하나 / label → 옛 단일 버튼 / 그 밖 → 세 질문.
+  const triggers: (AdvisorFocus | null)[] = focus ? [focus] : label ? [null] : [...ADVISOR_FOCUS]
+
   if (!open) {
     return (
-      <Button variant={variant} size="sm" onClick={load} aria-expanded={false} style={{ marginTop: 10 }}>
-        {label}
-      </Button>
+      // ≤480px 에서는 세로로 쌓고 각 버튼이 풀폭이 된다(app/_ds/styles.css).
+      <div className="dgy-btnrow" style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {triggers.map((k, i) => (
+          <Button
+            key={k ?? 'all'}
+            variant={i === 0 ? variant : 'outline'}
+            size="sm"
+            onClick={() => load(k)}
+            aria-expanded={false}
+          >
+            {k ? FOCUS_BUTTON[k] : (label ?? '유사 사례 보기')}
+          </Button>
+        ))}
+      </div>
     )
   }
 
   return (
     <div style={BOX}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div className="dgy-caps">{focus ? FOCUS_TITLE[focus] : '유사 사례 · 선례 · 실패 · 원칙'}</div>
+        <div className="dgy-caps">{active ? FOCUS_TITLE[active] : '유사 사례 · 선례 · 실패 · 원칙'}</div>
         <Button variant="ghost" size="sm" onClick={() => setOpen(false)} aria-expanded>접기</Button>
       </div>
       {loading && <p role="status" style={muted}>찾는 중…</p>}
       {error && <p role="alert" style={{ ...muted, color: 'var(--danger-fg)' }}>{error}</p>}
-      {!loading && !error && data && <AdvisorResult data={data} focus={focus} />}
+      {!loading && !error && data && <AdvisorResult data={data} focus={active} />}
     </div>
   )
 }

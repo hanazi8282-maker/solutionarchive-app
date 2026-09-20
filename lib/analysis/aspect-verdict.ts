@@ -21,6 +21,18 @@ export interface AspectVerdict {
   reading: string
 }
 
+/**
+ * 판정 배지 문구 한 벌. 검수 화면의 속성 카드와 앵글 화면의 그룹 헤더가 같은 낱말을 써야
+ * "차별화" 와 "여기를 민다" 가 같은 뜻인지 사용자가 매번 다시 배우지 않는다.
+ */
+export const VERDICT_LABEL: Record<AspectVerdictCode, string> = {
+  PUSH: '여기를 민다',
+  TABLE_STAKES: '기본기 — 안 밀어도 된다',
+  DROP: '버린다',
+  WATCH: '지켜본다',
+  UNKNOWN: '판정 없음',
+}
+
 /** 경계값. 10점 척도(analysis_aspects 실측 3~9 / 1~10). 바꾸면 selftest 가 잡는다. */
 export const VERDICT_CUT = { importanceHigh: 6, satisfactionLow: 4, satisfactionHigh: 6 } as const
 
@@ -37,13 +49,13 @@ export const VERDICT_CUT = { importanceHigh: 6, satisfactionLow: 4, satisfaction
 export function aspectVerdict(importance: number | string | null | undefined, satisfaction: number | string | null | undefined): AspectVerdict {
   const I = num(importance), S = num(satisfaction)
   if (I === null || S === null) {
-    return { code: 'UNKNOWN', label: '판정 없음', reading: `중요도 ${I ?? '—'} · 만족도 ${S ?? '—'} — 값이 비어 판정하지 않는다` }
+    return { code: 'UNKNOWN', label: VERDICT_LABEL.UNKNOWN, reading: `중요도 ${I ?? '—'} · 만족도 ${S ?? '—'} — 값이 비어 판정하지 않는다` }
   }
   const { importanceHigh: IH, satisfactionLow: SL, satisfactionHigh: SH } = VERDICT_CUT
-  if (I < IH) return { code: 'DROP', label: '버린다', reading: `중요도 ${I} — 리뷰가 크게 신경 쓰지 않는 속성이다. 소구점으로 밀 이유가 없다` }
-  if (S <= SL) return { code: 'PUSH', label: '여기를 민다', reading: `중요도 ${I} · 만족도 ${S} — 중요한데 못 채워주고 있다. 소구점 1순위` }
-  if (S >= SH) return { code: 'TABLE_STAKES', label: '기본기 — 안 밀어도 된다', reading: `중요도 ${I} · 만족도 ${S} — 중요하고 이미 만족한다. 빠지면 감점, 밀어도 가점은 없다` }
-  return { code: 'WATCH', label: '지켜본다', reading: `중요도 ${I} · 만족도 ${S} — 중요한데 만족이 반반이다. 리뷰를 더 모아야 판정이 선다` }
+  if (I < IH) return { code: 'DROP', label: VERDICT_LABEL.DROP, reading: `중요도 ${I} — 리뷰가 크게 신경 쓰지 않는 속성이다. 소구점으로 밀 이유가 없다` }
+  if (S <= SL) return { code: 'PUSH', label: VERDICT_LABEL.PUSH, reading: `중요도 ${I} · 만족도 ${S} — 중요한데 못 채워주고 있다. 소구점 1순위` }
+  if (S >= SH) return { code: 'TABLE_STAKES', label: VERDICT_LABEL.TABLE_STAKES, reading: `중요도 ${I} · 만족도 ${S} — 중요하고 이미 만족한다. 빠지면 감점, 밀어도 가점은 없다` }
+  return { code: 'WATCH', label: VERDICT_LABEL.WATCH, reading: `중요도 ${I} · 만족도 ${S} — 중요한데 만족이 반반이다. 리뷰를 더 모아야 판정이 선다` }
 }
 
 export interface OpportunityBreakdown {

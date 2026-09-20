@@ -13,10 +13,12 @@ import {
   type AnalysisMode,
   type AnalysisSourceType,
 } from '@/lib/analysis/types'
+import type { FacetKey } from '@/lib/analysis/facets'
 import { Card } from '../../_ds/components/Card'
 import { Badge } from '../../_ds/components/Badge'
 import { Button } from '../../_ds/components/Button'
 import { Choice, Field, Input, Select, Textarea, labelStyle } from '../../_ds/components/Field'
+import { FacetSelects, type FacetValues } from '../../_ds/components/FacetSelects'
 import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
 
 type InputRow = {
@@ -82,12 +84,24 @@ export default function AnalyzeNewPage() {
   const [creating, setCreating] = useState(false)
   const [projectError, setProjectError] = useState('')
 
+  // 1단계: PMF 진단 입력(패싯 6개) — 전부 선택. 비어 있으면 결과 화면이 그 자리에서 다시 받는다.
+  const [market, setMarket] = useState('')
+  const [facets, setFacets] = useState<FacetValues>({})
+  const [saveProfile, setSaveProfile] = useState(false)
+  const [profileNote, setProfileNote] = useState('')
+
   // 2단계: 수집 원문
   const [sourceType, setSourceType] = useState<AnalysisSourceType>('review')
   const [rawText, setRawText] = useState('')
   const [inputs, setInputs] = useState<InputRow[]>([])
   const [adding, setAdding] = useState(false)
   const [inputError, setInputError] = useState('')
+
+  // 2단계 두 번째 길: 다나와 URL 등록 → 야간 수집이 원문을 채운다.
+  const [danawaUrl, setDanawaUrl] = useState('')
+  const [registering, setRegistering] = useState(false)
+  const [targetError, setTargetError] = useState('')
+  const [targetNote, setTargetNote] = useState('')
 
   // 3단계: 분석 시작 (202 → 폴링)
   const [extracting, setExtracting] = useState(false)
@@ -101,6 +115,40 @@ export default function AnalyzeNewPage() {
   const pollsRef = useRef(0)
 
   const locked = Boolean(projectId)
+
+  const setFacet = useCallback((key: FacetKey, value: string) => {
+    setFacets((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  /**
+   * 저장된 프로필로 1단계를 미리 채운다. **비어 있는 칸만** 채운다 — 사람이 이미 친 값을
+   * 나중에 도착한 응답이 덮으면, 고쳐 적은 내용이 눈앞에서 사라진다.
+   * 프로필이 없거나 조회가 실패해도 새 분석은 그대로 돌아간다(막지 않는다).
+   */
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      try {
+        const res = await fetch('/api/profile', { cache: 'no-store' })
+        if (!res.ok) return
+        const json = await res.json().catch(() => null)
+        const p = json?.profile as Record<string, string | null> | null | undefined
+        if (!p || !alive) return
+        setPitch((v) => (v.trim() ? v : p.pitch ?? ''))
+        setMarket((v) => (v.trim() ? v : p.market ?? ''))
+        setFacets((prev) => {
+          const next = { ...prev }
+          for (const k of ['bottleneck', 'business_model', 'buyer_type', 'price_band', 'purchase_frequency'] as FacetKey[]) {
+            if (!next[k] && p[k]) next[k] = p[k] as string
+          }
+          return next
+        })
+      } catch {
+        // 프리필 실패는 입력을 막지 않는다. 빈 폼으로 계속 쓴다.
+      }
+    })()
+    return () => { alive = false }
+  }, [])
 
   async function createProject() {
     if (!competitorUrl.trim()) {
@@ -121,15 +169,66 @@ export default function AnalyzeNewPage() {
           purpose,
           mode,
           seller_own_guess:       guess.trim(),
+          market:                 market.trim(),
+          ...facets,
         }),
       })
       const json = await res.json()
       if (!res.ok) { setProjectError(json.error ?? '프로젝트 생성에 실패했습니다.'); return }
       setProjectId(json.project.id)
+      if (saveProfile) await saveToProfile()
     } catch {
       setProjectError('네트워크 오류가 발생했습니다.')
     } finally {
       setCreating(false)
+    }
+  }
+
+  /** 프로젝트가 만들어진 **뒤에** 프로필을 쓴다. 프로필 저장이 실패해도 프로젝트는 살아 있다. */
+  async function saveToProfile() {
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pitch: pitch.trim(), market: market.trim(), ...facets }),
+      })
+      const json = await res.json().catch(() => null)
+      setProfileNote(res.ok
+        ? '프로필에도 저장했다. 다음 분석은 이 값으로 미리 채워진다.'
+        : `프로젝트는 만들어졌지만 프로필 저장은 실패했다: ${json?.error ?? `HTTP ${res.status}`}`)
+    } catch {
+      setProfileNote('프로젝트는 만들어졌지만 프로필 저장은 네트워크 오류로 실패했다.')
+    }
+  }
+
+  /**
+   * 다나와 상품 URL 을 수집 대상으로 등록한다. 지금 원문이 생기는 게 아니라 **오늘 밤**
+   * 수집 루프가 이 대상을 주워 간다. 소스는 danawa 하나만 연다 — 다른 소스는 robots·ToS
+   * 판단이 들어가고, 그건 사람이 마이그레이션으로만 추가한다(CLAUDE.md §10.1).
+   */
+  async function registerTarget() {
+    if (!danawaUrl.trim()) { setTargetError('다나와 상품 URL을 입력해주세요.'); return }
+
+    setRegistering(true); setTargetError(''); setTargetNote('')
+    try {
+      const res = await fetch('/api/analyze/targets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id:      projectId,
+          source_key:      'danawa',
+          product_ref_raw: danawaUrl.trim(),
+        }),
+      })
+      const json = await res.json().catch(() => null)
+      // 서버 메시지를 그대로 보여준다. 어떤 URL 이 왜 안 되는지는 그쪽이 정확히 안다.
+      if (!res.ok) { setTargetError(json?.error ?? `수집 대상 등록에 실패했습니다. (HTTP ${res.status})`); return }
+      setTargetNote(`${json?.created === false ? '이미 등록된 대상이다. ' : '등록했다. '}내일 아침 원문이 채워진다. 지금은 붙여넣기로도 시작할 수 있다.`)
+      setDanawaUrl('')
+    } catch {
+      setTargetError('네트워크 오류가 발생했습니다.')
+    } finally {
+      setRegistering(false)
     }
   }
 
@@ -341,7 +440,31 @@ export default function AnalyzeNewPage() {
             <Textarea id="seller_own_guess" rows={2} value={guess} onChange={e => setGuess(e.target.value)} disabled={locked} />
           </Field>
 
+          {/*
+            PMF 진단 입력. 여기서 안 받아도 분석은 돌고, 결과 화면이 그 자리에서 다시 받는다.
+            그래서 필수로 만들지 않는다 — 6칸을 먼저 세우면 첫 분석까지 가는 사람이 줄어든다.
+          */}
+          <fieldset style={fieldsetReset} disabled={locked}>
+            <legend style={{ ...labelStyle, padding: 0, marginBottom: 4 }}>PMF 진단 입력</legend>
+            <p style={{ ...muted, marginBottom: 12 }}>나중에 결과 화면에서도 채울 수 있다. 선례를 거르는 데 쓰지 않고 정렬에만 쓴다.</p>
+            <div style={{ display: 'grid', gap: 14 }}>
+              <Field label="시장" htmlFor="market" hint="예: 국내 유산균 건기식">
+                <Input id="market" type="text" value={market} onChange={e => setMarket(e.target.value)} disabled={locked} />
+              </Field>
+              <FacetSelects values={facets} onChange={setFacet} disabled={locked} idPrefix="new_" />
+              <Choice
+                type="checkbox"
+                checked={saveProfile}
+                onChange={e => setSaveProfile(e.target.checked)}
+                disabled={locked}
+                label="이 값을 내 프로필로 저장"
+                hint="다음 분석부터 1단계가 이 값으로 미리 채워진다. /설정 → 내 프로필에서 언제든 고친다."
+              />
+            </div>
+          </fieldset>
+
           {projectError && <Notice tone="danger">{projectError}</Notice>}
+          {profileNote && <Notice tone={profileNote.startsWith('프로필에도') ? 'success' : 'warning'}>{profileNote}</Notice>}
 
           {!locked && (
             <div>
@@ -357,10 +480,11 @@ export default function AnalyzeNewPage() {
       {locked && (
         <Card
           title="2단계 · 수집 원문"
-          subtitle="리뷰·문의 등 원문을 한 덩어리씩 추가한다. 여러 번 추가할 수 있다."
+          subtitle="길은 둘이다. 지금 붙여넣거나, 다나와 상품 URL 을 걸어 두고 밤에 모은다. 둘 다 해도 된다."
           action={<Badge tone={inputs.length ? 'info' : 'neutral'}>{inputs.length}개</Badge>}
         >
           <div style={{ display: 'grid', gap: 16 }}>
+            <p style={{ ...muted, fontWeight: 600, color: 'var(--text-body)' }}>가. 지금 붙여넣기</p>
             <Field label="수집 유형" htmlFor="source_type">
               <Select id="source_type" value={sourceType} onChange={e => setSourceType(e.target.value as AnalysisSourceType)}>
                 {ANALYSIS_SOURCE_TYPES.map(s => (
@@ -399,6 +523,38 @@ export default function AnalyzeNewPage() {
                 ))}
               </ul>
             )}
+
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+
+            {/*
+              두 번째 길. 지금 원문이 생기는 게 아니다 — 대상만 등록하고 야간 수집 루프가 채운다.
+              그걸 명시하지 않으면 사람이 등록 직후 "분석 시작"을 누르고 0건으로 실패한다.
+              소스는 danawa 하나만 연다(review_sources.enabled).
+            */}
+            <p style={{ ...muted, fontWeight: 600, color: 'var(--text-body)' }}>나. 다나와 상품 URL 로 등록하고 밤에 수집</p>
+            <Field
+              label="다나와 상품 URL"
+              htmlFor="danawa_url"
+              hint="상품 상세 URL (예: https://prod.danawa.com/info/?pcode=252495223). 오늘 밤 수집 루프가 이 상품 리뷰를 모은다."
+            >
+              <Input
+                id="danawa_url"
+                type="text"
+                inputMode="url"
+                placeholder="https://prod.danawa.com/info/?pcode="
+                value={danawaUrl}
+                onChange={e => setDanawaUrl(e.target.value)}
+              />
+            </Field>
+
+            {targetError && <Notice tone="danger">{targetError}</Notice>}
+            {targetNote && <Notice tone="success">{targetNote}</Notice>}
+
+            <div>
+              <Button variant="neutral" onClick={registerTarget} disabled={registering}>
+                {registering ? '등록 중…' : '수집 대상 등록'}
+              </Button>
+            </div>
           </div>
         </Card>
       )}
@@ -427,7 +583,9 @@ export default function AnalyzeNewPage() {
             {!locked
               ? '1단계에서 프로젝트를 먼저 만들어야 합니다.'
               : inputs.length === 0
-                ? '수집 원문을 1개 이상 추가해야 합니다.'
+                ? targetNote
+                  ? '수집 대상은 등록됐지만 원문은 아직 0건이다. 원문 없이 시작하면 분석할 재료가 없다 — 내일 아침 목록에서 시작하거나, 지금 붙여넣는다.'
+                  : '수집 원문을 1개 이상 추가해야 합니다.'
                 : extracting
                   ? '속성 추출과 시장 성숙도 진단을 진행 중입니다. 창을 닫아도 분석은 계속되며, 나중에 검수 화면에서 결과를 볼 수 있습니다.'
                   : '수집한 원문에서 소구점 후보를 추출합니다.'}

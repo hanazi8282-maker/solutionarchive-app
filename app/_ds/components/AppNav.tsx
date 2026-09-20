@@ -20,6 +20,8 @@ const LINKS = [
   // 야간 발굴 루프가 스스로 고른 후보를 사람이 뒤집는 자리. 네비에 없으면 매일 밤
   // 쌓이는 후보를 아무도 안 보고, 자동 채택이 그대로 굳는다.
   { href: '/discovery', match: '/discovery', label: '발굴 후보 검증' },
+  // 새 분석 1단계를 프리필하는 값이 사는 곳. 네비에 없으면 한 번 저장하고 영영 못 고친다.
+  { href: '/settings/profile', match: '/settings', label: '내 프로필' },
 ] as const
 
 /**

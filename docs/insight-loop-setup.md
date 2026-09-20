@@ -212,7 +212,7 @@ if (auth !== `Bearer ${process.env.CRON_SECRET}`) return 401
 환경변수가 없으면 비교 대상이 문자열 `"Bearer undefined"` 가 되어, 그 값을
 보낸 사람은 누구나 통과한다. 영향 범위:
 
-- `/api/threads/publish` — **Threads 에 실제로 글을 발행한다**
+- `/api/threads/publish` — ~~Threads 에 실제로 글을 발행한다~~ **2026-09-20 삭제.** `thread_posts` 테이블이 마이그레이션에 없어 항상 500 이었고 §10 "자동 발행 API 사용 안 함" 과 어긋났다. `sync-conversions`(`sales_fact`·`conversions` 부재)도 같은 날 삭제
 - `/api/threads/refresh-token` — 토큰을 회전시킨다
 - `/api/threads/match-posts`, `/api/threads/collect-metrics` — DB 에 쓴다
 

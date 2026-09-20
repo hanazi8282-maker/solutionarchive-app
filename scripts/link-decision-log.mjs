@@ -4,7 +4,7 @@
 //   node scripts/link-decision-log.mjs 18095695849695895 LOG-20260910-01 primary
 //
 // **왜 발행 라우트가 아니라 별도 CLI 인가.**
-// `app/api/threads/publish` 가 다루는 테이블은 `thread_posts`(초안 큐)인데,
+// (2026-09-20 삭제된) `app/api/threads/publish` 가 다루던 테이블은 `thread_posts`(초안 큐)인데,
 // `post_decision_link.post_id` 가 가리키는 건 `posts`(발행 실측 테이블)다.
 // 그리고 `posts` 행은 발행 직후가 아니라 매처(`/api/threads/match-posts`)가
 // 돌아야 생긴다. 즉 **발행 시점에는 붙일 대상 행이 아직 없다.**

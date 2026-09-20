@@ -259,6 +259,8 @@ supabase/migrations/20260829000002_insight_patterns.sql
 
 등록 후 **재배포 필요** (환경변수는 소급 적용 안 됨).
 
+> 2026-09-20: 아래 문단의 `/api/threads/publish` 와 `sync-conversions` 는 삭제됐다(읽는 테이블 `thread_posts`·`sales_fact`·`conversions` 가 마이그레이션에 없어 도달 불가). 역사 기록으로만 남긴다.
+
 ⚠️ 프로덕션에 `CRON_SECRET` 이 설정돼 있는지는 대시보드에서 사람이 확인한다.
 Claude 가 확인하지 않은 이유는 확인 자체가 부작용이기 때문이다 — 통과하면
 `/api/threads/publish` 가 Threads 에 실제로 발행한다. 다만 프로덕션은 Vercel SSO

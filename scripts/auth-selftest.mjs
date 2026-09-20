@@ -32,7 +32,8 @@ const cronRoutes = files
   .filter((f) => /^api\/.*\/route\.tsx?$/.test(f) && readFileSync(`${ROOT}/app/${f}`, 'utf8').includes('requireCronAuth('))
   .map(routeOf)
 const vercelCrons = JSON.parse(readFileSync(`${ROOT}/vercel.json`, 'utf8')).crons.map((c) => c.path)
-t(`크론 인증 라우트 추출 ≥7건 (실제 ${cronRoutes.length})`, cronRoutes.length >= 7)
+// 2026-09-20: publish · sync-conversions 삭제(존재하지 않는 테이블) → 7 → 5. 남은 5: callback 제외 refresh-token·match-posts·collect-metrics·collect-replies + insight/capture.
+t(`크론 인증 라우트 추출 ≥5건 (실제 ${cronRoutes.length})`, cronRoutes.length >= 5)
 t(`vercel.json 크론 추출 ≥4건 (실제 ${vercelCrons.length})`, vercelCrons.length >= 4)
 for (const p of [...cronRoutes, ...vercelCrons]) t(`공개(크론): ${p}`, isPublicPath(p))
 for (const p of ['/api/threads/match-posts', '/api/insight/kakao-webhook', '/login', '/auth/login', '/auth/callback', '/auth/logout',

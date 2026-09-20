@@ -13,6 +13,8 @@ import {
   type PainTiming,
 } from '@/lib/analysis/types'
 import { canStart } from '@/lib/analysis/extract-gate'
+import { aspectVerdict, opportunityBreakdown, type AspectVerdictCode } from '@/lib/analysis/aspect-verdict'
+import { extractStatsLabel, type ExtractStats } from '@/lib/analysis/extract-stats'
 import { Card } from '../../../_ds/components/Card'
 import { Badge, type Tone } from '../../../_ds/components/Badge'
 import { Button, ButtonLink } from '../../../_ds/components/Button'
@@ -37,6 +39,8 @@ type AspectRow = {
   value_realization_frequency: string | null
   human_confirmed: boolean
   notes: string | null
+  /** 원문 인용. 서버가 아직 안 보내면 undefined — "0건"과 다르다(§7.1). */
+  evidence_quotes?: { text: string; source_type?: string | null }[] | null
 }
 
 type ProjectRow = {
@@ -100,12 +104,24 @@ const MATURITY_LABELS: Record<number, string> = {
 
 const muted = { margin: 0, fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)', color: 'var(--text-muted)' } as const
 
+// 판정 배지 색. PUSH 만 눈에 띄게 — 나머지는 "지금 할 일이 아니다" 쪽이라 조용히 둔다.
+const VERDICT_TONE: Record<AspectVerdictCode, Tone> = {
+  PUSH: 'info',
+  TABLE_STAKES: 'success',
+  WATCH: 'warning',
+  DROP: 'neutral',
+  UNKNOWN: 'neutral',
+}
+
 function statusTone(status: string): Tone {
   if (status === 'failed') return 'danger'
   if (status === 'processing' || status === 'collecting') return 'info'
   if (status === 'extracted') return 'warning'
   return 'success'
 }
+
+/** 속성 카드 앵커. "다음 미확인 속성 ↓" 이 같은 규칙으로 만든다(/cases 의 caseAnchor 와 같은 패턴). */
+const aspectAnchor = (id: string) => `aspect-${id}`
 
 function Row({ k, children }: { k: string; children: ReactNode }) {
   return (
@@ -132,6 +148,8 @@ export default function AnalyzeReviewPage() {
   // PMF 선례축(pmf_assessments 최신 1건). null 은 "진단 없음", 조회 실패는 별도 플래그(§7.1).
   const [pmf, setPmf] = useState<PmfLatest | null>(null)
   const [pmfLookupFailed, setPmfLookupFailed] = useState(false)
+  // "분석 시작" 옆 실측 소요시간 문장. 빈 문자열 = 아직 묻지 않았다(버튼이 없는 상태).
+  const [statsLabel, setStatsLabel] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true); setError('')
@@ -143,6 +161,16 @@ export default function AnalyzeReviewPage() {
       setAspects(json.aspects)
       setPmf(json.pmf ?? null)
       setPmfLookupFailed(Boolean(json.pmf_lookup_failed))
+
+      // 시작 버튼이 뜰 때만 "보통 얼마나 걸리나"를 묻는다. 못 읽으면 숫자 대신 확인 불가라고 말한다.
+      if (canStart(json.project?.status, json.project?.extract_started_at).ok) {
+        const s = await fetch('/api/analyze/extract?stats=1', { cache: 'no-store' })
+          .then(async r => (r.ok ? ((await r.json()) as ExtractStats) : null))
+          .catch(() => null)
+        setStatsLabel(extractStatsLabel(s && typeof s.samples === 'number'
+          ? { samples: s.samples, median_seconds: s.median_seconds ?? null, p90_seconds: s.p90_seconds ?? null }
+          : null))
+      }
     } catch {
       setError('네트워크 오류가 발생했습니다.')
     } finally {
@@ -355,7 +383,9 @@ export default function AnalyzeReviewPage() {
             <p style={{ ...muted, fontSize: 'var(--fs-xs)', flex: '1 1 240px' }} aria-live="polite">
               {starting
                 ? '수집 원문을 모델에 넘겨 속성을 뽑는 중입니다. 이 화면을 열어 두세요.'
-                : '수집된 원문으로 속성(Stage1)·시장 성숙도(Stage2)를 추출합니다. 몇 분 걸립니다.'}
+                : '수집된 원문으로 속성(Stage1)·시장 성숙도(Stage2)를 추출합니다.'}
+              {/* 실측값이다. 표본 없는 숫자는 내보내지 않는다(lib/analysis/extract-stats.ts). */}
+              {!starting && statsLabel ? ` ${statsLabel}. 원문 분량에 따라 더 걸릴 수 있습니다.` : ''}
             </p>
           </div>
         )}
@@ -422,8 +452,16 @@ export default function AnalyzeReviewPage() {
           </Card>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
-            {aspects.map(a => (
-              <li key={a.id} style={{
+            {aspects.map((a, i) => {
+              // 판정은 (중요도, 만족도) 두 값만으로. 선례·사분면과 섞지 않는다(lib/analysis/aspect-verdict.ts).
+              const verdict = aspectVerdict(a.importance, a.satisfaction)
+              // 기회점수 분해는 표시용이다 — DB 생성 컬럼을 덮어쓰지 않는다.
+              const bd = opportunityBreakdown(a.importance, a.satisfaction, a.opportunity_score)
+              const quotes = a.evidence_quotes
+              // 결정을 내린 자리에서 바로 다음 미확인 속성으로(/cases 의 "다음 케이스 ↓" 와 같은 규칙).
+              const next = aspects.slice(i + 1).find(x => !x.human_confirmed)
+              return (
+              <li key={a.id} id={aspectAnchor(a.id)} style={{
                 background: 'var(--surface-card)',
                 border: '1px solid var(--border)',
                 borderLeft: `3px solid ${a.human_confirmed ? 'var(--success)' : 'var(--border-strong)'}`,
@@ -457,6 +495,23 @@ export default function AnalyzeReviewPage() {
                     onChange={e => patchAspect(a.id, { human_confirmed: e.target.checked })}
                     label={a.human_confirmed ? '확인함' : '확인'}
                   />
+                </div>
+
+                {/* 판정 한 줄 + 점수 분해. 숫자 옆에 "그래서 뭘 해라"가 없으면 검수자가 매번 다시 해석한다. */}
+                <div style={{ display: 'grid', gap: 4 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    <Badge tone={VERDICT_TONE[verdict.code]} size="sm" title={verdict.reading}>{verdict.label}</Badge>
+                    <span style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{verdict.reading}</span>
+                  </div>
+                  <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+                    기회점수 {a.opportunity_score ?? '—'} = {bd.reading}
+                  </p>
+                  {bd.mismatch && (
+                    <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--warning-fg)' }}>
+                      저장된 기회점수({bd.stored})와 지금 값으로 다시 푼 값({bd.computed})이 다릅니다 —
+                      DB 값이 정본이고, 저장하면 다시 계산됩니다.
+                    </p>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))' }}>
@@ -521,14 +576,44 @@ export default function AnalyzeReviewPage() {
                   />
                 </Field>
 
+                {/* 원문 인용 — 점수의 출처다. 없으면 "없다"고 말하고 채우는 방법을 같이 준다. */}
+                <div style={{ display: 'grid', gap: 4 }}>
+                  <div style={labelStyle}>원문 인용</div>
+                  {quotes && quotes.length > 0 ? (
+                    quotes.slice(0, 2).map((q, qi) => (
+                      <blockquote key={qi} style={{
+                        margin: 0, paddingLeft: 'var(--space-3)', borderLeft: '2px solid var(--border-strong)',
+                        fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)', color: 'var(--text-body)',
+                        overflowWrap: 'anywhere',
+                      }}>
+                        “{q.text}”
+                        {q.source_type ? <span style={{ ...muted, fontSize: 'var(--fs-xs)' }}> — {q.source_type}</span> : null}
+                      </blockquote>
+                    ))
+                  ) : (
+                    <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>인용 없음 — 재분석하면 채워진다</p>
+                  )}
+                </div>
+
                 <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
                   페르소나 {a.persona_role ?? '—'}
                   {a.proxy_consumption ? ' · 대리소비' : ''}
                   {a.is_segmentation_axis ? ' · 세그먼트 축' : ''}
                   {a.value_realization_frequency ? ` · 가치실현 ${a.value_realization_frequency}` : ''}
                 </p>
+
+                {next ? (
+                  <a href={`#${aspectAnchor(next.id)}`} style={{ fontSize: 'var(--fs-sm)', justifySelf: 'start' }}>
+                    다음 미확인 속성 ↓ {next.name}
+                  </a>
+                ) : (
+                  <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+                    {aspects.some(x => !x.human_confirmed) ? '아래로는 미확인 속성이 없다.' : '미확인 속성이 없다.'}
+                  </p>
+                )}
               </li>
-            ))}
+              )
+            })}
           </ul>
         )}
       </section>

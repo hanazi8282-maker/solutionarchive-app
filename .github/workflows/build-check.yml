@@ -32,6 +32,10 @@ jobs:
       # 추출 시작 게이트가 서버·화면 한 벌인지. 갈라지면 시작할 수 있는데 버튼이 없는 화면이 된다.
       - run: node scripts/analyze-extract-gate-selftest.mjs
       - run: node scripts/aspect-verdict-selftest.mjs
+      # 진단 입력(패싯) 어휘가 화면·API·DB CHECK 한 벌인지. 갈라지면 폼을 다 채운 뒤 23514 로 죽는다.
+      - run: node scripts/analyze-projects-facets-selftest.mjs
+      # 목록의 "오래 멈춤"·정체 한 줄. 상태별 기준 시각이 뭉쳐지면 멀쩡한 행이 정체로 찍힌다.
+      - run: node scripts/analyze-list-signals-selftest.mjs
       # 어드바이저 매칭 3상태·불용어 회귀·SP-024 저신뢰 판정. 픽스처만 쓴다(네트워크·DB 없음).
       - run: node scripts/advisor-selftest.mjs
       # HN 실패신호 탐지(다단어 구문만·중복 append 방지·스윕 질의 URL). 네트워크 없음.

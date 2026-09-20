@@ -87,6 +87,7 @@ jobs:
       - run: node scripts/kakao-proxy-selftest.mjs
       - run: node scripts/threads-collect-selftest.mjs
       - run: node scripts/threads-replies-selftest.mjs
+      - run: node scripts/threads-cron-status-selftest.mjs
       - run: node scripts/review-health-selftest.mjs
       - run: node scripts/review-purge-selftest.mjs
       # 리뷰 소스 파서 13종 — 구조 소실을 0건과 가르는 검사(§7.1)가 각 파일에 있다.

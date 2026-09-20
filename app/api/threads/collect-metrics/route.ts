@@ -46,6 +46,7 @@
 // 함수에 있고 scripts/threads-collect-selftest.mjs 가 검증한다. 여기는 실행만 한다.
 
 import { NextResponse } from 'next/server'
+import { cronStatus } from '@/lib/threads/cron-status'
 import { requireCronAuth } from '@/lib/cron-auth'
 import { createClient } from '@/lib/supabase/server'
 import { fetchInsights, type ThreadsUsage } from '@/lib/threads/insights'
@@ -240,5 +241,5 @@ export async function POST(req: Request) {
     skipped: plan.skipped,
     failed,
     usage: finalUsage,
-  })
+  }, { status: cronStatus(failed.length) })
 }

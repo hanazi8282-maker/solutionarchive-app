@@ -884,6 +884,31 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
 
   // ★ 변이 테스트 — 소스에 하드코딩된 `-01` 이 남아 있으면 잡는다.
   const daily = fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')
+
+  // ★ CG-1 회귀(2026-09-17~19 3일 연속 차단) — 작가는 **사실확인** 등급을 봐야 한다.
+  //   `grade`(evidence_grade)는 09-16부터 독자 인사이트 축이고 CG-1 은 `fact_check_grade` 를 본다.
+  //   인사이트 A · 사실확인 C 조합(09-18 백필 뒤 흔해짐)에 귀속 지시가 빠지던 것이 원인.
+  {
+    const insightAFactC = writerPrompt({ ...m, grade: 'A', fact_check_grade: 'C' }, D, 'CS-20260911-02')
+    check('CG-1 — 인사이트 A · 사실확인 C 무브에 귀속 지시가 들어간다', /사실확인 등급 C 다.*CG-1/.test(insightAFactC), insightAFactC.slice(0, 900))
+    check('CG-1 — 귀속 지시가 게이트 인식 표현을 예시로 준다', /자사 발표|회사가 밝힌|제3자 검증/.test(insightAFactC))
+    check('CG-1 — 귀속 지시가 브랜드명 + 밝혔다 형태를 예시로 준다', insightAFactC.includes('Figma가 밝힌 바로는'))
+    check('CG-1 — 주체를 흐리는 표현이 통과하지 않는다고 알린다', /업계에 따르면/.test(insightAFactC))
+    const insightCFactA = writerPrompt({ ...m, grade: 'C', fact_check_grade: 'A' }, D, 'CS-20260911-02')
+    check('CG-1 — 인사이트 C · 사실확인 A 무브에는 귀속 지시를 넣지 않는다(옛 조건 m.grade===C 회귀)', !/CG-1 이 막는다/.test(insightCFactA))
+    const noFact = writerPrompt({ ...m, grade: 'A', fact_check_grade: null }, D, 'CS-20260911-02')
+    check('CG-1 — 사실확인 미판정은 "미판정" 으로 적고 지시는 넣지 않는다(컬럼 미존재 폴백)', noFact.includes('사실확인 미판정') && !/CG-1 이 막는다/.test(noFact))
+    check('CG-1 — 프롬프트가 두 축을 이름으로 구분해 적는다', /인사이트 A · 사실확인 C/.test(insightAFactC))
+    // selectAngles 가 fact_check_grade 를 작가까지 실어 나른다 — 여기서 떨어지면 위 검사가 전부 무의미하다.
+    const carried = selectAngles({ moves: [{ id: 'fc-1', lever: 'PACKAGING', claim: 'x', evidence_grade: 'A', fact_check_grade: 'C', outcome_direction: 'up', case_studies: { slug: 'fc-slug', brand_name: 'FC', bottleneck: 'CONVERSION', review_status: 'approved' } }], n: 1 })
+    eq('CG-1 — selectAngles 가 fact_check_grade 를 실어 나른다', carried.moves[0]?.fact_check_grade, 'C')
+    const carriedNull = selectAngles({ moves: [{ id: 'fc-2', lever: 'PACKAGING', claim: 'x', evidence_grade: 'A', outcome_direction: 'up', case_studies: { slug: 'fc-slug-2', brand_name: 'FC', bottleneck: 'CONVERSION', review_status: 'approved' } }], n: 1 })
+    eq('CG-1 — fact_check_grade 없는 행은 null 로 실어 나른다(undefined 아님)', carriedNull.moves[0]?.fact_check_grade, null)
+    // 변이 테스트 — 옛 조건이 되살아나면 잡는다.
+    check("CG-1 — 소스에 옛 조건 `m.grade === 'C'` 가 코드 줄에 없다(주석 제외)", !/^\s*m\.grade === 'C'/m.test(daily))
+    check('CG-1 — pickAngles MOVE_COLS 가 fact_check_grade 를 조회한다', /MOVE_COLS = '[^']*fact_check_grade[^']*'/.test(daily))
+  }
+
   check('채번 — 소스에 `CS-${...}-01` 하드코딩이 없다',
     !/content_code:\s*`CS-\$\{[^}]*\}-01`/.test(daily))
   // DB 조회 실패를 조용히 -01 로 접지 않는다 — 그게 지금 버그보다 나쁘다 (§7.1).

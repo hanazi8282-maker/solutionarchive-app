@@ -1,0 +1,58 @@
+{
+  "kind": "youtube#commentThreadListResponse",
+  "etag": "SYNTHETIC",
+  "nextPageToken": "SYNTHETIC_PAGE_TOKEN_2",
+  "pageInfo": { "totalResults": 3, "resultsPerPage": 100 },
+  "items": [
+    {
+      "kind": "youtube#commentThread",
+      "id": "SyntheticThread001",
+      "snippet": {
+        "videoId": "dQw4w9WgXcQ",
+        "topLevelComment": {
+          "kind": "youtube#comment",
+          "id": "SyntheticComment001",
+          "snippet": {
+            "videoId": "dQw4w9WgXcQ",
+            "textDisplay": "펌웨어 업데이트 뒤로 연결이 자꾸 끊깁니다 <br>재페어링해도 같아요",
+            "textOriginal": "펌웨어 업데이트 뒤로 연결이 자꾸 끊깁니다\n재페어링해도 같아요",
+            "authorDisplayName": "합성_작성자1",
+            "likeCount": 12,
+            "publishedAt": "2026-09-15T04:11:00Z",
+            "updatedAt": "2026-09-15T04:11:00Z"
+          }
+        },
+        "totalReplyCount": 2
+      }
+    },
+    {
+      "kind": "youtube#commentThread",
+      "id": "SyntheticThread002",
+      "snippet": {
+        "videoId": "dQw4w9WgXcQ",
+        "topLevelComment": {
+          "kind": "youtube#comment",
+          "id": "SyntheticComment002",
+          "snippet": {
+            "videoId": "dQw4w9WgXcQ",
+            "textDisplay": "가격만 보면 아쉬운데 통화 품질은 확실히 좋습니다",
+            "textOriginal": "가격만 보면 아쉬운데 통화 품질은 확실히 좋습니다",
+            "authorDisplayName": "합성_작성자2",
+            "likeCount": 3,
+            "publishedAt": "2026-09-14T22:40:10Z",
+            "updatedAt": "2026-09-14T22:40:10Z"
+          }
+        },
+        "totalReplyCount": 0
+      }
+    },
+    {
+      "kind": "youtube#commentThread",
+      "id": "SyntheticThread003_구조변경",
+      "snippet": {
+        "videoId": "dQw4w9WgXcQ",
+        "totalReplyCount": 0
+      }
+    }
+  ]
+}

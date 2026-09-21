@@ -69,6 +69,9 @@ jobs:
       #           중복 적재 방어선이다(SP-031 과 같은 형태).
       - run: node scripts/review-okky-selftest.mjs
       - run: node scripts/review-velog-selftest.mjs
+      #   youtube: order=time 이 빠지면 관련도순이라 증분 종료가 깨지고, 쿼터 403 을
+      #            차단으로 분류하면 정상적인 일일 한도 소진이 소스를 꺼 버린다(PR #106 이식).
+      - run: node scripts/review-youtube-selftest.mjs
       # 위 둘의 소스 키가 마이그레이션·ADAPTERS 맵·워크플로 선택지와 같은 집합인지.
       # 하나라도 빠지면 코드만 있고 수집은 0건인 상태가 로그도 없이 유지된다.
       #

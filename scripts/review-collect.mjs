@@ -37,6 +37,7 @@ import { clienAdapter } from '../lib/review/adapters/clien.ts'
 import { fmkoreaAdapter } from '../lib/review/adapters/fmkorea.ts'
 import { okkyAdapter } from '../lib/review/adapters/okky.ts'
 import { velogAdapter } from '../lib/review/adapters/velog.ts'
+import { youtubeAdapter } from '../lib/review/adapters/youtube.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
@@ -59,6 +60,7 @@ const ADAPTERS = {
   fmkorea: fmkoreaAdapter,
   okky: okkyAdapter,
   velog: velogAdapter,
+  youtube: youtubeAdapter,
 }
 
 const args = process.argv.slice(2)
@@ -127,6 +129,18 @@ const sourceResults = []
 
 for (const sourceKey of sourceKeys) {
   const adapter = ADAPTERS[sourceKey]
+
+  // 공식 API 소스는 키가 없으면 돌리지 않는다. 키 없이 받은 401/403 은 러너가 "차단"으로
+  // 기록해 소스를 끈다 — 우리 설정 문제가 상대 차단으로 남는다(types.ts requiredEnv).
+  const missingEnv = (adapter.requiredEnv ?? []).filter((k) => !process.env[k])
+  if (missingEnv.length > 0) {
+    failures.push(sourceKey)
+    say('')
+    say(`### \`${sourceKey}\``)
+    say(`- ❌ 환경변수 미설정으로 건너뛴다: ${missingEnv.join(', ')} (차단이 아니라 우리 설정이다)`)
+    sourceResults.push({ key: sourceKey, fatal: `환경변수 미설정 — ${missingEnv.join(', ')}` })
+    continue
+  }
 
   // 이전 실행 정리 — running 으로 남은 행은 잡이 죽은 것이다.
   // finished_at 이 비어 있다고 성공으로 읽으면 안 된다.

@@ -56,6 +56,7 @@ on:
           - naver_blog_post
           - okky
           - velog
+          - youtube
         default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수'
@@ -97,6 +98,8 @@ jobs:
           # 끝에 Notion "일일 상태 로그" CTO 행 1개를 쓴다(scripts/review-collect-status.mjs).
           # 이 스텝에만 준다 — purge 스텝은 Notion 을 안 쓴다. 기록 실패는 수집 결과를 막지 않는다.
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+          # YouTube Data API v3. 미등록이면 빈 값이고 review-collect 가 requiredEnv 검사로 youtube 만 건너뛴다.
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
           node scripts/review-collect.mjs \
             --source=${{ inputs.source || 'all' }} \

@@ -160,6 +160,15 @@ export interface ReviewSourceAdapter {
    *     생긴 것을 확인했으면 지운다.
    */
   proceedWhenRobotsUnverified?: string[]
+
+  /**
+   * 이 소스가 돌기 위해 반드시 있어야 하는 환경변수 이름들(공식 API 키 등).
+   *
+   * 실행기(scripts/review-collect.mjs)가 **러너를 부르기 전에** 검사하고, 없으면 그 소스만
+   * 실패로 표시하고 건너뛴다. 키 없이 돌려서 401/403 을 받으면 그건 "차단"으로 기록되고
+   * 소스가 꺼진다 — 원인이 우리 쪽 설정인데 상대가 막은 것으로 남는다(§7.1).
+   */
+  requiredEnv?: string[]
 }
 
 /**

@@ -18,8 +18,8 @@ const ok = (name, cond) => t(name, Boolean(cond), true)
 
 // ── 픽스처 ───────────────────────────────────────────────────────
 const PRINCIPLES = [
-  { sp_id: 'SP-001', tags: ['pricing', 'hybrid'], statement: '하이브리드 프라이싱이 채택률 1위', evidence_grade: 'B', evidence_grade_note: '3자 서베이', source_ref: '§0-1' },
-  { sp_id: 'SP-002', tags: ['pricing', 'antipattern'], statement: '크레딧 절벽은 이탈 유발', evidence_grade: 'B', evidence_grade_note: null, source_ref: '§3' },
+  { sp_id: 'SP-001', tags: ['pricing', 'hybrid', 'seller'], statement: '하이브리드 프라이싱이 채택률 1위', evidence_grade: 'B', evidence_grade_note: '3자 서베이', source_ref: '§0-1' },
+  { sp_id: 'SP-002', tags: ['pricing', 'antipattern', 'seller'], statement: '크레딧 절벽은 이탈 유발', evidence_grade: 'B', evidence_grade_note: null, source_ref: '§3' },
   { sp_id: 'SP-007', tags: ['channel', 'legal'], statement: 'G2 이용약관은 스크래핑 금지', evidence_grade: 'A', evidence_grade_note: '원문 확인', source_ref: '§18-2' },
 ]
 
@@ -322,6 +322,34 @@ const SP024_MOVES = [
   t('advise: businessModel SAAS → D2C 제외', saasBm.corpus_a.cards.map((c) => c.case_move_id).join(','), 'm1')
   // 실패 사례·원칙 코퍼스는 이 필터의 영향을 받지 않는다(business_model 이 없다).
   t('실패 사례 코퍼스는 필터와 무관', nullBm.corpus_b.status, noBm.corpus_b.status)
+}
+
+// ── 원칙 독자 필터 (2026-09-21, 4라운드) ───────────────────────────
+// 운영 원칙(seller 태그 없음)은 낱말이 겹쳐도 셀러 화면에 나가지 않는다. software 태그는 물리 질의에서 제외.
+{
+  const P = [
+    ...PRINCIPLES, // SP-001·002 seller / SP-007 운영(seller 없음)
+    { sp_id: 'SP-090', tags: ['pricing', 'seller', 'software'], statement: 'SaaS 좌석 pricing 원칙', evidence_grade: 'B', evidence_grade_note: null, source_ref: '§x' },
+  ]
+  const ops = matchPrinciples(['스크래핑'], P)
+  t('독자: 운영 원칙(SP-007)은 낱말이 겹쳐도 no_match', ops.status, 'no_match')
+  ok('독자: 사유에 "운영 원칙 N건 제외"', /운영 원칙 1건 제외/.test(ops.reason))
+  t('독자: audience=all 이면 운영 원칙도 매칭(감사용)', matchPrinciples(['스크래핑'], P, { audience: 'all' }).cards[0]?.sp_id, 'SP-007')
+  const pr = matchPrinciples(['pricing'], P)
+  t('독자: seller 원칙은 그대로 매칭(3건)', pr.cards.length, 3)
+  const phys = matchPrinciples(['pricing'], P, { kind: 'physical' })
+  ok('종류: physical 질의는 software 원칙(SP-090) 제외', !phys.cards.some((c) => c.sp_id === 'SP-090') && phys.cards.length === 2)
+  const soft = matchPrinciples(['pricing'], P, { kind: 'software' })
+  t('종류: software 질의는 software 원칙만', soft.cards.map((c) => c.sp_id).join(','), 'SP-090')
+  const onlySoft = matchPrinciples(['좌석'], P, { kind: 'physical' })
+  ok('종류: 사유에 "제품 종류 다름"', onlySoft.status === 'no_match' && /제품 종류 다름 1건 제외/.test(onlySoft.reason))
+  // advise 기본값이 seller 다 — 화면은 옵션을 안 넘겨도 운영 원칙을 못 본다.
+  const a = advise({ category: '스크래핑' }, { principles: P, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })
+  t('advise: 기본 독자 seller → 운영 원칙 제외', a.corpus_c.status, 'no_match')
+  const b = advise({ category: '스크래핑', principleAudience: 'all' }, { principles: P, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })
+  t('advise: principleAudience=all → 매칭', b.corpus_c.cards[0]?.sp_id, 'SP-007')
+  const c = advise({ category: 'pricing', businessModel: null }, { principles: P, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })
+  ok('advise: businessModel null(physical) → software 원칙 제외', !c.corpus_c.cards.some((x) => x.sp_id === 'SP-090'))
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

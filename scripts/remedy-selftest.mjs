@@ -29,9 +29,9 @@ const failedAngles = [
   { case_key: 'f3', product_category: '샴푸', claimed_angle: '가려움 완전 정복', outcome: '재구매 없음', evidence_source: 'z', source_tier: 'tertiary', is_estimate: false },
 ]
 const principles = [
-  { sp_id: 'SP-001', tags: ['가려움', '샴푸'], statement: '가려움은 증상이지 원인이 아니다', evidence_grade: 'A', evidence_grade_note: null, source_ref: 'docs' },
-  { sp_id: 'SP-002', tags: ['샴푸'], statement: '샴푸 시장은 향으로 갈린다', evidence_grade: 'B', evidence_grade_note: null, source_ref: 'docs' },
-  { sp_id: 'SP-003', tags: ['가려움'], statement: '가려움 주장은 근거를 요구받는다', evidence_grade: 'C', evidence_grade_note: null, source_ref: 'docs' },
+  { sp_id: 'SP-001', tags: ['가려움', '샴푸', 'seller'], statement: '가려움은 증상이지 원인이 아니다', evidence_grade: 'A', evidence_grade_note: null, source_ref: 'docs' },
+  { sp_id: 'SP-002', tags: ['샴푸', 'seller'], statement: '샴푸 시장은 향으로 갈린다', evidence_grade: 'B', evidence_grade_note: null, source_ref: 'docs' },
+  { sp_id: 'SP-003', tags: ['가려움', 'seller'], statement: '가려움 주장은 근거를 요구받는다', evidence_grade: 'C', evidence_grade_note: null, source_ref: 'docs' },
 ]
 const corpora = { principles, studies, moves, failedAngles }
 

@@ -28,6 +28,7 @@ import {
   type ValueRealizationFrequency,
 } from './types.ts'
 import { REANALYZABLE, canStart } from './extract-gate.ts'
+import { judgeProjectRemedies } from '../cases/remedy-db.ts'
 import { normalizeEvidenceQuotes } from './evidence-quotes.ts'
 
 // 컨텍스트 폭주 방지: 입력 1건당 / 전체 합계 상한
@@ -395,6 +396,20 @@ export async function runExtraction(
     .eq('id', projectId)
 
   if (updateError) return fail(`프로젝트 갱신에 실패했습니다: ${updateError.message}`)
+
+  // 8. 처방 카드 관련성 판정을 미리 돌려 캐시한다(lib/cases/remedy-db.ts).
+  //    결과 화면이 LLM 을 기다리지 않게 하려는 것이고, **실패해도 추출은 성공이다** —
+  //    판정이 없으면 카드가 "미검증" 으로 나갈 뿐 사라지지 않는다(§7.1). 여기서 던지면
+  //    멀쩡히 끝난 추출이 failed 로 뒤집힌다.
+  try {
+    const judged = await judgeProjectRemedies(supabase, projectId)
+    console.log(
+      `[analyze/extract] project=${projectId} remedy-judge ${judged.status} 속성=${judged.aspects.length} 적립=${judged.upserted}` +
+        (judged.reason ? ` (${judged.reason})` : ''),
+    )
+  } catch (e) {
+    console.error('[analyze/extract] remedy-judge failed (추출은 정상):', e instanceof Error ? e.message : String(e))
+  }
 
   console.log(
     `[analyze/extract] project=${projectId} extracted aspects=${aspectRows.length} inputs=${parts.length}` +

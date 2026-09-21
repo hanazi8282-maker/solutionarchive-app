@@ -2,8 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { buildSummaryMarkdown, type SummaryAspect, type SummaryPmf } from '@/lib/cases/summary'
 import { buildRemedies, type RemedyAspectRow } from '@/lib/cases/remedy'
-import type { MoveRow, StudyRow } from '@/lib/cases/match'
-import type { FailedAngleRow, PrincipleRow } from '@/lib/cases/advisor'
+import { loadCorpora, loadVerdicts } from '@/lib/cases/remedy-db'
+import { applyGate } from '@/lib/cases/remedy-gate'
 
 // 요약 마크다운 — GET /api/analyze/summary?project_id=<uuid> → { markdown }
 //
@@ -12,24 +12,6 @@ import type { FailedAngleRow, PrincipleRow } from '@/lib/cases/advisor'
 //
 // 조립은 lib/cases/summary.ts(순수)가 한다. 여기서는 읽어서 넘기기만 하고, 조회 실패는 null 로
 // 구분해 넘긴다 — 요약본에서 "없음" 과 "확인 불가" 가 섞이면 되돌릴 자리가 없다(§7.1).
-
-const STUDY_COLS =
-  'id, slug, brand_name, bottleneck, business_model, buyer_type, price_band, outcome_status, review_status'
-const MOVE_COLS =
-  'id, case_study_id, lever, claim, evidence_grade, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit'
-
-async function safeSelect<T>(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  table: string,
-  cols: string,
-): Promise<T[] | null> {
-  const { data, error } = await supabase.from(table).select(cols)
-  if (error) {
-    console.error(`[analyze/summary] ${table} select error:`, error.code ?? '', error.message)
-    return null
-  }
-  return (data ?? []) as T[]
-}
 
 export async function GET(req: Request) {
   const supabase = await createClient()
@@ -72,27 +54,22 @@ export async function GET(req: Request) {
     .limit(3)
   if (anglesError) console.error('[analyze/summary] angles fetch error:', anglesError.message)
 
-  const principles = await safeSelect<PrincipleRow>(
-    supabase, 'strategy_principles', 'sp_id, tags, statement, evidence_grade, evidence_grade_note, source_ref',
-  )
-  const studies = await safeSelect<StudyRow>(supabase, 'case_studies', STUDY_COLS)
-  const moves = await safeSelect<MoveRow>(supabase, 'case_moves', MOVE_COLS)
-  const failedAngles = await safeSelect<FailedAngleRow>(
-    supabase, 'failed_angles', 'case_key, product_category, claimed_angle, outcome, evidence_source, source_tier, is_estimate',
-  )
-
   const remedies = buildRemedies({
     aspects: aspectsError ? null : ((aspects ?? []) as RemedyAspectRow[]),
     project,
-    corpora: { principles, studies, moves, failedAngles },
+    corpora: await loadCorpora(supabase, 'analyze/summary'),
   })
+
+  // 요약본도 화면과 같은 게이트를 통과한 카드만 담는다 — 둘이 갈라지면 복사해 간 쪽이 정본처럼 돈다.
+  // 판정 캐시 조회 실패는 빈 배열 = 전부 미검증이라 카드가 사라지지 않는다(§7.1).
+  const verdicts = await loadVerdicts(supabase, 'analyze/summary', remedies.cards.map((c) => c.aspect_id))
 
   const markdown = buildSummaryMarkdown({
     project,
     aspects: aspectsError ? null : ((aspects ?? []) as SummaryAspect[]),
     pmf: pmfError ? null : ((pmfRows?.[0] ?? null) as SummaryPmf | null),
     pmfLookupFailed: Boolean(pmfError),
-    remedies,
+    remedies: applyGate(remedies, verdicts ?? []),
     angles: anglesError ? null : (angles ?? []),
   })
 

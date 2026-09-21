@@ -153,16 +153,20 @@ export default function AnalyzeNewPage() {
         const p = json?.profile as Record<string, string | null> | null | undefined
         if (!p || !alive) return
         const FACET_KEYS: FacetKey[] = ['bottleneck', 'business_model', 'buyer_type', 'price_band', 'purchase_frequency']
-        if (p.pitch || p.market || FACET_KEYS.some((k) => p[k])) setPrefilled(true)
-        setPitch((v) => (v.trim() ? v : p.pitch ?? ''))
-        setMarket((v) => (v.trim() ? v : p.market ?? ''))
+        // "프로필 값으로 채웠다" 는 실제로 빈 칸을 채웠을 때만 참이다 — 사람이 먼저 친 값을 건너뛰었으면
+        // 아무것도 안 채운 것이고, 그때 배너가 뜨면 이 주석 위의 걱정(덮어썼다는 오해)이 그대로 생긴다.
+        let filled = false
+        setPitch((v) => { if (v.trim() || !p.pitch) return v; filled = true; return p.pitch })
+        setMarket((v) => { if (v.trim() || !p.market) return v; filled = true; return p.market })
         setFacets((prev) => {
           const next = { ...prev }
           for (const k of FACET_KEYS) {
-            if (!next[k] && p[k]) next[k] = p[k] as string
+            if (!next[k] && p[k]) { next[k] = p[k] as string; filled = true }
           }
           return next
         })
+        // 위 updater 들은 다음 렌더 전에 돈다 — 그 뒤에 읽어야 filled 가 맞다.
+        setPrefilled(() => filled)
       } catch {
         // 프리필 실패는 입력을 막지 않는다. 빈 폼으로 계속 쓴다.
       }

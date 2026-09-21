@@ -189,16 +189,12 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
     .select('project_id, opportunity_score')
 
   // 앵글이 있으면 "앵글로" 링크를 1차로 올린다.
-  const { count: angleCount } = await supabase
-    .from('analysis_angles')
-    .select('id', { count: 'exact', head: true })
-    .eq('project_id', id)
-
-  // 기준 캡션용 원문 건수. 못 세면(null) 캡션에서 그 조각만 빼고, 0 으로 적지 않는다(§7.1).
-  const { count: inputCount } = await supabase
-    .from('analysis_inputs')
-    .select('id', { count: 'exact', head: true })
-    .eq('project_id', id)
+  // 기준 캡션용 원문 건수는 앵글 수와 독립이라 같이 기다린다(직렬 왕복 하나 절약).
+  // 못 세면(null) 캡션에서 그 조각만 빼고, 0 으로 적지 않는다(§7.1).
+  const [{ count: angleCount }, { count: inputCount }] = await Promise.all([
+    supabase.from('analysis_angles').select('id', { count: 'exact', head: true }).eq('project_id', id),
+    supabase.from('analysis_inputs').select('id', { count: 'exact', head: true }).eq('project_id', id),
+  ])
 
   // ── 두 축 ────────────────────────────────────────────────
   // 수요축은 지금 속성으로 다시 낸다(저장 시 DB 가 opportunity_score 를 갱신하므로 항상 최신).
@@ -408,7 +404,7 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
                           <li key={i} style={{ ...bodyText, color: 'var(--text-muted)' }}>“{q}”</li>
                         ))}
                       </ul>
-                      <EvidenceCaption n={quoteList?.length ?? quotes.length} total={null} method="리뷰 원문 인용" />
+                      <EvidenceCaption n={quotes.length} total={quoteList?.length ?? null} method="리뷰 원문 인용" />
                     </>
                   ) : quoteList == null ? (
                     <EvidenceCaption n={null} total={null} method="리뷰 원문 인용" />

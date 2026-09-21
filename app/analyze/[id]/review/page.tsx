@@ -214,7 +214,7 @@ export default function AnalyzeReviewPage() {
     // 앵커로 하고, 여기서는 선택만 맞춘다 — 안 맞추면 스크롤은 그 행인데 패널은 1위 행이라 어긋난다.
     const pick = () => {
       const m = /^#aspect-(.+)$/.exec(window.location.hash)
-      if (m) setSelectedId(decodeURIComponent(m[1]))
+      if (m) setSelectedId(m[1]) // aspect id 는 UUID — 디코딩할 게 없고, decodeURIComponent 는 깨진 링크에 throw 한다
     }
     pick()
     window.addEventListener('hashchange', pick)

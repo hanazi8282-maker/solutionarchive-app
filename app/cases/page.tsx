@@ -89,7 +89,9 @@ function ReviewBadge({ status }: { status: string }) {
  * 세 화면이고 결정 버튼은 그 맨 아래에 있었다(2026-09-15 실화면). 요약 줄에 등급 산식이 세는 것
  * (1차·자기보고·수치 뒷받침)을 그대로 적어, 펼치지 않아도 "왜 이 등급인가"는 보이게 한다.
  */
-function EvidenceList({ rows, total, label = '근거' }: { rows: EvidenceRow[]; total: number; label?: string }) {
+// total 은 이 목록과 **같은 범위**의 분모일 때만 넘긴다(케이스 전체 근거 블록에 무브 근거까지 합친 수를 주면
+// "2/5건" 이 빠진 3건처럼 읽힌다 — 리뷰에서 잡힘). 모르면 생략해 "N건" 으로만 적는다.
+function EvidenceList({ rows, total, label = '근거' }: { rows: EvidenceRow[]; total?: number; label?: string }) {
   const primary = rows.filter((e) => e.source_tier === 'primary').length
   const selfReported = rows.filter((e) => e.is_self_reported).length
   const metric = rows.filter((e) => e.supports_metric === true).length
@@ -97,7 +99,8 @@ function EvidenceList({ rows, total, label = '근거' }: { rows: EvidenceRow[]; 
   const caption = (
     <EvidenceCaption
       n={rows.length}
-      total={total}
+      total={total ?? null}
+      noun="근거"
       source={rows.length > 0 ? `1차 ${primary} · 자기보고 ${selfReported} · 수치 뒷받침 ${metric}` : undefined}
       method={rows.length > 0 ? '케이스 근거 행에서 셈' : `${label} 행이 없다 — 조회는 정상이다`}
     />
@@ -408,7 +411,7 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
               칩 하나 = 케이스 하나, 숫자는 그 케이스에서 아직 결정 안 한 무브 수. */}
           <nav aria-label="케이스 점프 목록" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {shown.map((c) => (
-              <FilterChip key={c.id} href={`#${caseAnchor(c.slug)}`} active={false} count={c.moves.filter((m) => m.review_status === 'draft').length}>
+              <FilterChip key={c.id} href={`#${caseAnchor(c.slug)}`} active={false} count={c.moves.filter((m) => m.review_status === 'draft').length} countTone="warning">
                 {c.brand_name}
               </FilterChip>
             ))}
@@ -439,7 +442,7 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
                   {c.summary && <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, overflowWrap: 'anywhere' }}>{c.summary}</p>}
                   {c.tags && c.tags.length > 0 && <p style={muted}>태그 {c.tags.join(' · ')}</p>}
 
-                  <EvidenceList label="케이스 전체 근거" rows={c.evidence.filter((e) => !e.case_move_id)} total={c.evidence.length} />
+                  <EvidenceList label="케이스 전체 근거" rows={c.evidence.filter((e) => !e.case_move_id)} />
 
                   <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600 }}>무브 {c.moves.length}건</p>
                   {c.moves.map((m, i) => (

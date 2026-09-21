@@ -124,28 +124,7 @@ export function AppNav({ email }: { email: string | null }) {
           >
             {PROFILE_LINK.label}
           </Link>
-          <a href={MANUAL_URL} target="_blank" rel="noreferrer" title={MANUAL_TITLE} style={chromeBtn}>
-            <span aria-hidden="true" style={{ fontSize: 12, lineHeight: 1 }}>↗</span>
-            설명서
-          </a>
-          {email && (
-            <>
-              <span
-                title={email}
-                style={{
-                  color: 'var(--sidebar-fg)', fontSize: 13, padding: '0 8px',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}
-              >
-                {email}
-              </span>
-              <form action="/auth/logout" method="post">
-                <button type="submit" title={`${email} 로그아웃`} style={{ ...chromeBtn, width: '100%', justifyContent: 'center', cursor: 'pointer' }}>
-                  로그아웃
-                </button>
-              </form>
-            </>
-          )}
+          <AccountBlock email={email} layout="sidebar" />
         </div>
       </nav>
 
@@ -192,33 +171,50 @@ export function AppNav({ email }: { email: string | null }) {
               페이지 전체에 가로 스크롤이 생겼다(2026-09-21 실측). 줄어드는 쪽은 스크롤되는 링크 목록이어야 한다. */}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexShrink: 0 }}>
             {/* 설명서 — 화면 이동이 아니라 새 탭이다. 아이콘으로 그 사실을 먼저 알린다. */}
-            <a href={MANUAL_URL} target="_blank" rel="noreferrer" title={MANUAL_TITLE} style={chromeBtn}>
-              <span aria-hidden="true" style={{ fontSize: 12, lineHeight: 1 }}>↗</span>
-              설명서
-            </a>
-            {email && (
-            <>
-              <span
-                title={email}
-                className="dgy-nav-email"
-                style={{ color: 'var(--sidebar-fg)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}
-              >
-                {email}
-              </span>
-              <form action="/auth/logout" method="post">
-                <button
-                  type="submit"
-                  title={`${email} 로그아웃`}
-                  style={{ ...chromeBtn, cursor: 'pointer' }}
-                >
-                  로그아웃
-                </button>
-              </form>
-            </>
-            )}
+            <AccountBlock email={email} layout="topbar" />
           </div>
         </div>
       </nav>
+    </>
+  )
+}
+
+/**
+ * 설명서 링크 + 이메일 + 로그아웃 — 사이드바와 상단바가 같은 한 벌을 쓴다(두 벌이면 로그아웃 문구·
+ * 설명서 URL 을 고칠 때 한쪽을 빠뜨린다 — 실제로 이메일 스타일이 벌써 갈라져 있었다).
+ * layout 은 배치만 가른다: 사이드바는 세로 스택·로그아웃 전폭, 상단바는 가로 행·이메일 220px 상한.
+ */
+function AccountBlock({ email, layout }: { email: string | null; layout: 'sidebar' | 'topbar' }) {
+  const sidebar = layout === 'sidebar'
+  return (
+    <>
+      <a href={MANUAL_URL} target="_blank" rel="noreferrer" title={MANUAL_TITLE} style={chromeBtn}>
+        <span aria-hidden="true" style={{ fontSize: 12, lineHeight: 1 }}>↗</span>
+        설명서
+      </a>
+      {email && (
+        <>
+          <span
+            title={email}
+            className={sidebar ? undefined : 'dgy-nav-email'}
+            style={{
+              color: 'var(--sidebar-fg)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              ...(sidebar ? { padding: '0 8px' } : { maxWidth: 220 }),
+            }}
+          >
+            {email}
+          </span>
+          <form action="/auth/logout" method="post">
+            <button
+              type="submit"
+              title={`${email} 로그아웃`}
+              style={{ ...chromeBtn, cursor: 'pointer', ...(sidebar ? { width: '100%', justifyContent: 'center' } : {}) }}
+            >
+              로그아웃
+            </button>
+          </form>
+        </>
+      )}
     </>
   )
 }

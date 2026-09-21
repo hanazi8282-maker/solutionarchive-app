@@ -49,8 +49,9 @@
 @media (min-width: 1024px) {
   .sa-sidebar { display: flex; flex-direction: column; }
   .sa-topbar { display: none; }
-  /* fixed 사이드바가 가리지 않게 본문만 밀어 준다(margin 이 아니라 padding — 배경이 끊기지 않게) */
-  .sa-main { padding-left: var(--sidebar-w); }
+  /* fixed 사이드바가 가리지 않게 본문만 밀어 준다(margin 이 아니라 padding — 배경이 끊기지 않게).
+     사이드바가 렌더된 문서에서만 — /login·/onboarding 은 AppNav 가 null 이라 여백도 없어야 한다. */
+  body:has(.sa-sidebar) .sa-main { padding-left: var(--sidebar-w); }
 }
 
 /* 목록·검수 화면의 필터 칩 행 (PageHeader filters 슬롯).

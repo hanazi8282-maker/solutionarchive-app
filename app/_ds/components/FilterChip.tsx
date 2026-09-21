@@ -8,14 +8,18 @@ import Link from 'next/link'
  * active 는 브랜드 색을 쓴다 — info(파랑)는 "정보" 배너 색이라, 선택된 필터와 뜻이 겹쳤다.
  * count 는 숫자만 따로 받아 tabular-nums 로 붙인다(칩마다 자릿수가 달라 흔들리던 자리).
  *
- * ⚠️ 아직 소비처가 없다 — PR3(analyze) · PR5(cases·columns) · PR6(discovery)가 옮겨 붙인다.
+ * countTone='warning' 은 숫자가 "남은 일"(미결정 무브 수 등)일 때 — 0 이면 색을 주지 않는다.
+ *
+ * 소비처: analyze(상태·정렬) · cases(상태·등급·점프 목록) · columns(탭) · discovery.
  */
-export function FilterChip({ href, active, count, children }: {
+export function FilterChip({ href, active, count, countTone, children }: {
   href: string
   active: boolean
   count?: number
+  countTone?: 'warning'
   children: ReactNode
 }) {
+  const countColor = !active && countTone === 'warning' && count ? 'var(--warning-fg)' : undefined
   return (
     <Link
       href={href}
@@ -30,7 +34,7 @@ export function FilterChip({ href, active, count, children }: {
     >
       {children}
       {count == null ? null : (
-        <span style={{ fontVariantNumeric: 'tabular-nums', opacity: active ? 0.9 : 0.7 }}>{count}</span>
+        <span style={{ fontVariantNumeric: 'tabular-nums', opacity: countColor ? 1 : active ? 0.9 : 0.7, color: countColor, fontWeight: countColor ? 600 : undefined }}>{count}</span>
       )}
     </Link>
   )

@@ -37,7 +37,10 @@ export function PageHeader({ title, subtitle, meta, action, filters }: {
   action?: ReactNode
   filters?: ReactNode
 }) {
+  // filters 는 <header> 의 자식이 아니라 형제다 — sticky 는 containing block(부모) 안에서만 붙는데,
+  // 헤더 안에 두면 헤더 높이만큼만 붙었다가 같이 스크롤돼 나가 버린다(리뷰에서 잡힘).
   return (
+    <>
     <header style={{ display: 'grid', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
@@ -66,8 +69,9 @@ export function PageHeader({ title, subtitle, meta, action, filters }: {
         </div>
         {action ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{action}</div> : null}
       </div>
-      {filters ? <div className="sa-filters">{filters}</div> : null}
     </header>
+    {filters ? <div className="sa-filters">{filters}</div> : null}
+    </>
   )
 }
 

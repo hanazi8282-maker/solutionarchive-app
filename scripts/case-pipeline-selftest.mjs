@@ -53,7 +53,7 @@ const base = () => ({
   tags: ['차', '구독'],
   moves: [{
     lever: 'OFFER',
-    claim: '첫 구매에 샘플 3종 동봉',
+    claim: '첫 구매에 향기 샘플 3종 동봉', // 2026-09-22 규칙: claim 에 페인 낱말(config/pain-terms.json) 1개 이상
     outcome_direction: 'positive',
     metric_name: '재구매율',
     metric_before: 12,

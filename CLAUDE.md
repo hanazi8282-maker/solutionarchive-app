@@ -394,6 +394,20 @@ Cowork 아침 브리핑(매일 07:00 KST)은 사람이 보고를 붙여넣지 �
    Notion 에 못 쓰면 같은 내용을 `ops/state/status-log-pending/<제목>.md` 에 남기고
    사람에게 알린다. 다음 세션이 체크리스트 1번 전에 이 폴더부터 올린다.
 4. 같은 날 크론 루프 행이 이미 있어도 대화형 세션은 **별도 행**을 남긴다.
+5. **`사람판단필요 = true` 인 세션은 Hermes Inbox에도 동시 기록** (2026-09-21 확정,
+   Cowork `cowork/AGENT.md` §5-2 하이브리드 캡처의 즉시 캡처 절반). 일일 상태 로그와
+   별개로 Notion MCP `notion-create-pages`로 Hermes Inbox DB
+   (`collection://8f384b19-6223-4d6b-8a04-991b2e7d1d83`)에 행 1개 추가:
+   - Name: 일일 상태 로그와 같은 제목(`YYYY-MM-DD-<트랙>`)
+   - Domain: 이 세션 성격에 맞는 C/M/W/D 1개 이상 (자동화·인프라 작업이면 보통 `D`)
+   - Source: "SolutionArchive 세션 (즉시 캡처, 사람판단필요=YES)" + 커밋/PR 링크
+   - Synced to Local: 비워 둔다 (Cowork 쪽 Pass 0이 다음 대화형 세션에서 흡수)
+   - 이 행은 **일반화된 인사이트 주장이 아니라 원시 기록**이다 — semantic 승격 여부는
+     Cowork 쪽 curator가 판단하며, 여기서는 판단하지 않는다.
+   - 노이즈 방지: `사람판단필요 = false`인 일상적 크론/잡무 세션은 이 5번을 건너뛴다 —
+     그런 것들은 Cowork `weekly-review-monday` Pass 0.5(주간 배치)가 알아서 훑는다.
+   - 이 단계 실패 시에도 일일 상태 로그(1~4번)는 정상 완료로 취급한다 — 이 5번은
+     보너스 캡처이지 세션 종료 조건이 아니다. 실패하면 그냥 스킵하고 다음 세션에 넘긴다.
 
 ---
 

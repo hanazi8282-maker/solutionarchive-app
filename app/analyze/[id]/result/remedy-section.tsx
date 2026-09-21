@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Badge } from '../../../_ds/components/Badge'
 import { Button, ButtonLink } from '../../../_ds/components/Button'
 import { Card } from '../../../_ds/components/Card'
-import type { RemedyCard, RemedyResult } from '@/lib/cases/remedy'
+import type { GatedRemedyCard, GatedRemedyResult } from '@/lib/cases/remedy-gate'
 import { failureLine, fixLine, principleLine } from '@/lib/cases/remedy'
 
 // ── 문제 해결 제안 (산출물 C, §3-1 6) ──────────────────────────────
@@ -14,6 +14,10 @@ import { failureLine, fixLine, principleLine } from '@/lib/cases/remedy'
 //
 // 3상태를 문장으로 가른다: 근거 있음 / 관련 사례 없음 / 확인 불가. 0건을 "아직 없음" 으로 뭉개지 않는다.
 //
+// 재검사(게이트, lib/cases/remedy-gate.ts): 낱말로 걸린 카드를 LLM 이 다시 보고 "무관" 이면 뺀다.
+// 그 결과를 속성마다 한 줄로 밝힌다 — 몇 장이 통과하고 몇 장이 빠졌는지 안 보이면 남은 카드의 뜻이 달라진다.
+// **판정을 못 받은 카드는 숨기지 않는다.** "미검증" 배지를 달아 그대로 둔다(§7.1 — 확인 불가 ≠ 관련 없음).
+//
 // 색은 **유형**이다(docs/ui-redesign-plan-2026-09-21.md B-4): 보완=브랜드 보라 · 막힘=빨강 ·
 // 원칙=회색. 초록은 쓰지 않는다 — 초록이 "이대로 하면 된다" 로 읽히는데, 전부 권고일 뿐이다.
 
@@ -21,12 +25,16 @@ const muted: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color:
 const body: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)', lineHeight: 'var(--lh-normal)', overflowWrap: 'anywhere' }
 
 // estimate: failed_angles.is_estimate — 재서술에 인과 해석·추정이 섞인 행. 어드바이저 카드와 같은 "추정" 배지다.
-function Line({ text, low, tone, estimate }: { text: string; low: boolean; tone?: 'danger'; estimate?: boolean }) {
+// unverified: 관련성 재검사를 못 받은 카드(판정 실패·아직 안 돌림). 빼지 않고 표시만 한다.
+function Line({ text, low, tone, estimate, unverified }: {
+  text: string; low: boolean; tone?: 'danger'; estimate?: boolean; unverified?: boolean
+}) {
   return (
     <li style={{ ...body, color: tone === 'danger' ? 'var(--danger-fg)' : 'var(--text-body)' }}>
       {text}
       {estimate && <> <Badge tone="warning" size="sm">추정</Badge></>}
       {low && <> <Badge tone="warning" size="sm">신뢰도 낮음</Badge></>}
+      {unverified && <> <Badge tone="neutral" size="sm">미검증</Badge></>}
     </li>
   )
 }
@@ -42,10 +50,10 @@ function Group({ label, color, children }: { label: string; color: string; child
 }
 
 /** 근거 등급 순 = 근거가 붙은 카드부터. 확인 불가를 "사례 없음" 뒤로 두지 않는다. */
-const STATUS_RANK: Record<RemedyCard['status'], number> = { matched: 0, no_match: 1, not_run: 2 }
+const STATUS_RANK: Record<GatedRemedyCard['status'], number> = { matched: 0, no_match: 1, not_run: 2 }
 
 export function RemedySection({ projectId }: { projectId: string }) {
-  const [data, setData] = useState<RemedyResult | null>(null)
+  const [data, setData] = useState<GatedRemedyResult | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   // 'impact' = 서버가 준 순서(판정 PUSH → WATCH). 'grade' = 근거가 붙은 카드부터.
@@ -58,7 +66,7 @@ export function RemedySection({ projectId }: { projectId: string }) {
         const json = await res.json().catch(() => ({}))
         if (!alive) return
         if (!res.ok) setError(json.error ?? '문제 해결 제안을 불러오지 못했습니다.')
-        else setData(json.remedies as RemedyResult)
+        else setData(json.remedies as GatedRemedyResult)
       })
       .catch(() => { if (alive) setError('네트워크 오류가 발생했습니다.') })
       .finally(() => { if (alive) setLoading(false) })
@@ -99,6 +107,11 @@ export function RemedySection({ projectId }: { projectId: string }) {
             {cards.map((c) => {
               const lowCount = [...c.fixes, ...c.failures, ...c.principles].filter((x) => x.low_confidence).length
               const estimateCount = c.failures.filter((f) => f.is_estimate).length
+              const g = c.gate_summary
+              // 재검사 캡션은 "본 카드가 있었을 때"만 낸다. 낱말 단계에서 0장이면 잴 것이 없다.
+              const gateCaption = g && g.judged + g.unverified > 0
+                ? `재검사: ${g.judged - g.removed}장 통과 · ${g.removed}장 제외 · ${g.unverified}장 미검증`
+                : null
               return (
               <div key={c.aspect_id} style={{
                 display: 'grid', gap: 8, padding: '12px 14px',
@@ -110,26 +123,31 @@ export function RemedySection({ projectId }: { projectId: string }) {
                 </div>
 
                 {c.status !== 'matched' ? (
-                  <p style={muted}>
-                    {c.status === 'no_match'
-                      ? '관련 사례 없음 — 억지로 끼워 맞추지 않는다.'
-                      : `확인 불가 — ${c.reason}`}
-                  </p>
+                  <>
+                    <p style={muted}>
+                      {c.status === 'no_match'
+                        ? '관련 사례 없음 — 억지로 끼워 맞추지 않는다.'
+                        : `확인 불가 — ${c.reason}`}
+                    </p>
+                    {/* 낱말로는 걸렸는데 재검사에서 전부 빠진 경우다. 그 사실을 감추면 "원래 없었다" 로 읽힌다. */}
+                    {gateCaption && <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{gateCaption}</p>}
+                  </>
                 ) : (
                   <>
+                    {gateCaption && <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{gateCaption}</p>}
                     {c.fixes.length > 0 && (
                       <Group label="이렇게 보완한 사례" color="var(--brand)">
-                        {c.fixes.map((f) => <Line key={f.case_move_id} text={fixLine(f)} low={f.low_confidence} />)}
+                        {c.fixes.map((f) => <Line key={f.case_move_id} text={fixLine(f)} low={f.low_confidence} unverified={f.gate === 'unverified'} />)}
                       </Group>
                     )}
                     {c.failures.length > 0 && (
                       <Group label="이렇게 갔다가 막힌 사례" color="var(--sent-neg)">
-                        {c.failures.map((f) => <Line key={f.case_key} text={failureLine(f)} low={f.low_confidence} tone="danger" estimate={f.is_estimate} />)}
+                        {c.failures.map((f) => <Line key={f.case_key} text={failureLine(f)} low={f.low_confidence} tone="danger" estimate={f.is_estimate} unverified={f.gate === 'unverified'} />)}
                       </Group>
                     )}
                     {c.principles.length > 0 && (
                       <Group label="원칙" color="var(--sent-neutral)">
-                        {c.principles.map((p) => <Line key={p.sp_id} text={principleLine(p)} low={p.low_confidence} />)}
+                        {c.principles.map((p) => <Line key={p.sp_id} text={principleLine(p)} low={p.low_confidence} unverified={p.gate === 'unverified'} />)}
                       </Group>
                     )}
                     {/* 왜 이 사례가 나왔나 — 겹친 낱말과 배지 뜻을 한 자리에 접어 둔다 (SP-024). */}
@@ -142,6 +160,11 @@ export function RemedySection({ projectId }: { projectId: string }) {
                         {lowCount > 0 && (
                           <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
                             “신뢰도 낮음” {lowCount}건 — 겹친 낱말이 하나뿐입니다. 이 낱말이 우연히 겹친 것은 아닌지 직접 확인하세요.
+                          </p>
+                        )}
+                        {g && g.unverified > 0 && (
+                          <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
+                            “미검증” {g.unverified}건 — 관련성 재검사를 받지 못한 카드입니다. 무관하다는 뜻이 아니라 아직 판정이 없다는 뜻입니다.
                           </p>
                         )}
                         {estimateCount > 0 && (

@@ -62,12 +62,12 @@ export interface MatchResult {
   bottleneck: string | null
   moves: MatchedMove[]
   /** 조회 대상이었지만 걸러진 무브 수. "0건"의 뜻을 좁히는 데 쓴다. */
-  excluded: { self: number; not_approved: number; grade_d: number }
+  excluded: { self: number; not_approved: number; grade_d: number; negative: number }
 }
 
 const notRun = (reason: string): MatchResult => ({
   status: 'not_run', reason, bottleneck: null, moves: [],
-  excluded: { self: 0, not_approved: 0, grade_d: 0 },
+  excluded: { self: 0, not_approved: 0, grade_d: 0, negative: 0 },
 })
 
 /**
@@ -90,7 +90,7 @@ export function matchMoves(
   }
 
   const byId = new Map(studies.map(s => [s.id, s]))
-  const excluded = { self: 0, not_approved: 0, grade_d: 0 }
+  const excluded = { self: 0, not_approved: 0, grade_d: 0, negative: 0 }
   const out: MatchedMove[] = []
 
   for (const m of moves) {
@@ -102,6 +102,10 @@ export function matchMoves(
     // 뜻하지 않는다 (case-review.mjs 가 그렇게 경고한다).
     if (study.review_status !== 'approved' || m.review_status !== 'approved') { excluded.not_approved++; continue }
     if ((GRADE_RANK[m.evidence_grade] ?? 0) <= 0) { excluded.grade_d++; continue }
+    // ★ 반면교사(negative)는 선례가 아니다 — "남이 이 병목을 풀었다"의 근거로 세면 선례축이 부풀고
+    //   사분면이 PROVEN 쪽으로 기운다(2026-09-21 남헌: Zenefits 라이선스 매크로가 선례 8건 중 2건이었다).
+    //   처방 카드의 "⛔ 반면교사" 경고는 advisor.matchCaseMoves(낱말 매칭) 가 따로 만드므로 여기서 빼도 그대로 나간다.
+    if (m.outcome_direction === 'negative') { excluded.negative++; continue }
 
     const facet_hits: string[] = []
     if (selfFacets.business_model && selfFacets.business_model === study.business_model) facet_hits.push('business_model')
@@ -123,6 +127,7 @@ export function matchMoves(
       excluded.self ? `자기 케이스 ${excluded.self}건 제외` : '',
       excluded.not_approved ? `미승인 ${excluded.not_approved}건 제외` : '',
       excluded.grade_d ? `등급 D ${excluded.grade_d}건 제외` : '',
+      excluded.negative ? `반면교사 ${excluded.negative}건 제외` : '',
     ].filter(Boolean).join(' / ')
     return {
       status: 'no_match',

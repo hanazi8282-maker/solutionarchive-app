@@ -108,8 +108,8 @@ for (const m of match.moves) {
   if (metric) console.log(`     ${metric}`)
 }
 const excl = match.excluded
-if (excl.self || excl.not_approved || excl.grade_d) {
-  console.log(`\n  (제외: 자기 ${excl.self} / 미승인 ${excl.not_approved} / 등급D ${excl.grade_d})`)
+if (excl.self || excl.not_approved || excl.grade_d || excl.negative) {
+  console.log(`\n  (제외: 자기 ${excl.self} / 미승인 ${excl.not_approved} / 등급D ${excl.grade_d} / 반면교사 ${excl.negative})`)
 }
 
 // ── PMF 2축 ───────────────────────────────────────────────────

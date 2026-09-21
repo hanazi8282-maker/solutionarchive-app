@@ -25,6 +25,8 @@ export function DismissBanner({ storageKey, children }: { storageKey: string; ch
   return (
     <div
       ref={ref}
+      // 스크린리더에 읽히게. 이 배너는 "어젯밤 발굴 결과"라는 상태 알림이고, Notice 와 같은 취급이다.
+      role="status"
       style={{
         display: 'none',
         alignItems: 'center', gap: 12,

@@ -8,6 +8,7 @@
 //   통과하고 DB 에서 터진다 — 가장 늦게 발견되는 형태다.
 
 import readerProblemVocab from '../../config/reader-problems.json' with { type: 'json' }
+import painTermVocab from '../../config/pain-terms.json' with { type: 'json' }
 
 /**
  * 독자 문제 — 케이스 **선정의 1순위 축**이다.
@@ -47,6 +48,19 @@ export const SOURCE_TIER = ['primary', 'secondary', 'tertiary'] as const
 // 지우는 식의 편집 판단은 금지. 근거·hoka 사례: docs/case-study-pipeline-design.md §2-4 (1)
 export const SNIPPET_MAX = 300
 export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/**
+ * 페인 유형 낱말 — 처방 매칭이 질의 낱말과 만나는 자리. 정본은 `config/pain-terms.json`.
+ * 매칭(advisor.ts hitTerms)이 부분 문자열이라 "포함" 검사면 충분하다. 근거:
+ * docs/review-sources-and-remedy-roadmap-2026-09-21.md §3-5 — 실패 사례 24건 중 4건만 페인 낱말이 있었다.
+ */
+export const PAIN_TERMS: readonly string[] = painTermVocab.types.flatMap((t) => t.terms)
+export const PAIN_TERM_LEGACY_KEYS: ReadonlySet<string> = new Set(painTermVocab.legacy_case_keys)
+export const PAIN_TERM_LEGACY_SLUGS: ReadonlySet<string> = new Set(painTermVocab.legacy_draft_slugs)
+export function hasPainTerm(text: string | null | undefined): boolean {
+  const hay = (text ?? '').toLowerCase()
+  return PAIN_TERMS.some((t) => hay.includes(t))
+}
 
 export type Grade = 'A' | 'B' | 'C' | 'D'
 
@@ -451,6 +465,10 @@ export function validateDraft(draft: Draft, today = new Date()): Issue[] {
     const w = `moves[${i}]`
     oneOf(`${w}.lever`, m.lever, LEVER, true)
     if (!m.claim) err(w, 'claim 필수')
+    // 2026-09-22 규칙. 규칙 전 초안 45건은 config/pain-terms.json legacy_draft_slugs 로 면제 (실패 앵글 원장과 같은 방식).
+    else if (!PAIN_TERM_LEGACY_SLUGS.has(draft.slug ?? '') && !hasPainTerm(m.claim)) {
+      err(w, 'claim 에 페인 유형 낱말(가격·효능·성분·용기 …)이 하나도 없다 — 질의 낱말과 안 겹쳐 처방 매칭에 영영 안 잡힌다. 목록: config/pain-terms.json')
+    }
     if (m.outcome_direction !== undefined) oneOf(`${w}.outcome_direction`, m.outcome_direction, OUTCOME_DIRECTION, true)
 
     const hasNumber = m.metric_after !== null && m.metric_after !== undefined

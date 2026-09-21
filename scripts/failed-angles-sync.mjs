@@ -13,6 +13,7 @@
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { hasPainTerm, PAIN_TERM_LEGACY_KEYS } from '../lib/cases/draft.ts'
 
 const MD_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'failed-angles.md')
 
@@ -47,6 +48,11 @@ export function parseFailedAnglesTable(md) {
     const isEstimateNorm = isEstimateRaw.trim().toLowerCase()
     if (isEstimateNorm !== 'true' && isEstimateNorm !== 'false') {
       throw new Error(`${caseKey}: is_estimate 는 true/false 여야 한다 ("${isEstimateRaw}")`)
+    }
+    // 2026-09-22 규칙: 새 행의 claimed_angle 은 페인 유형 낱말을 1개 이상 포함한다 — 낱말 겹침 매칭이
+    // 질의와 만나는 유일한 자리라서다. 규칙 전 24건은 config/pain-terms.json legacy_case_keys 로 면제.
+    if (!PAIN_TERM_LEGACY_KEYS.has(caseKey) && !hasPainTerm(claimedAngle)) {
+      throw new Error(`${caseKey}: claimed_angle 에 페인 유형 낱말(가격·효능·성분·용기 …)이 없다 — 목록: config/pain-terms.json`)
     }
 
     rows.push({

@@ -88,6 +88,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":1})
 - ✅ `stage` 발행 대기 스테이징 ({"staged":1})
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":15})
+- ℹ️ Notion 푸시: collapse → https://app.notion.com/p/CASE-zume-pizza-mobile-oven-production-collapse-3e2100b7ffb481569f8ce8637e6e7b40 ⏭️ 발굴 — 채택·확인불가 0건 (후보 2건). 페이지를 만들지 않는다. 푸시 완료 — 초안 1건 · 신규케이스 11건 · 발굴 0건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-09-22-CMO 기록·재확인
 
 _실행 키 `cmo-2026-09-21-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

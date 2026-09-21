@@ -43,6 +43,8 @@
 .dgy-nav a[aria-current="page"]:hover { background: var(--sidebar-active-bg); }
 @media (max-width: 480px) {
   .dgy-nav-brand { display: none; }
+  /* 이메일까지 두면 375px 에서 화면 링크 목록이 10px 로 눌린다. 누가 로그인했는지는 로그아웃 버튼 title 로 남긴다. */
+  .dgy-nav-email { display: none; }
 }
 
 /* 접이식 섹션 요약줄 — 기본 삼각형 대신 44px 행 */

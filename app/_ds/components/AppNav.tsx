@@ -89,7 +89,9 @@ export function AppNav({ email }: { email: string | null }) {
             )
           })}
         </ul>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        {/* flexShrink 0 — 375px 에서 이 묶음이 눌리면 nowrap 인 설명서·로그아웃이 밖으로 삐져나와
+            페이지 전체에 가로 스크롤이 생겼다(2026-09-21 실측). 줄어드는 쪽은 스크롤되는 링크 목록이어야 한다. */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexShrink: 0 }}>
           {/* 설명서 — 화면 이동이 아니라 새 탭이다. 아이콘으로 그 사실을 먼저 알린다. */}
           <a
             href={MANUAL_URL}
@@ -109,6 +111,7 @@ export function AppNav({ email }: { email: string | null }) {
           <>
             <span
               title={email}
+              className="dgy-nav-email"
               style={{ color: 'var(--sidebar-fg)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}
             >
               {email}
@@ -116,6 +119,7 @@ export function AppNav({ email }: { email: string | null }) {
             <form action="/auth/logout" method="post">
               <button
                 type="submit"
+                title={`${email} 로그아웃`}
                 style={{
                   height: 30, padding: '0 10px', borderRadius: 'var(--radius-md)', fontSize: 13, whiteSpace: 'nowrap',
                   border: '1px solid var(--sidebar-border)', background: 'transparent', color: 'var(--sidebar-fg)', cursor: 'pointer',

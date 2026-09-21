@@ -1,0 +1,28 @@
+{
+  "kind": "youtube#commentThreadListResponse",
+  "etag": "SYNTHETIC",
+  "pageInfo": { "totalResults": 1, "resultsPerPage": 100 },
+  "items": [
+    {
+      "kind": "youtube#commentThread",
+      "id": "SyntheticThread101",
+      "snippet": {
+        "videoId": "dQw4w9WgXcQ",
+        "topLevelComment": {
+          "kind": "youtube#comment",
+          "id": "SyntheticComment101",
+          "snippet": {
+            "videoId": "dQw4w9WgXcQ",
+            "textDisplay": "AS 접수하고 3주 걸렸습니다",
+            "textOriginal": "AS 접수하고 3주 걸렸습니다",
+            "authorDisplayName": "합성_작성자101",
+            "likeCount": 0,
+            "publishedAt": "2026-09-10T01:00:00Z",
+            "updatedAt": "2026-09-10T01:00:00Z"
+          }
+        },
+        "totalReplyCount": 0
+      }
+    }
+  ]
+}

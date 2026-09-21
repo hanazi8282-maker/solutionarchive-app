@@ -1,0 +1,1088 @@
+{
+ "summary": {
+  "aspects": 14,
+  "docs": 82,
+  "byCorpus": {
+   "A": 28,
+   "B": 22,
+   "C": 32
+  },
+  "corpusEmbedMs": 28872,
+  "corpusTokens": 9584,
+  "judgeTokens": 16829,
+  "latency": {
+   "A_ms": 2.5714285714285716,
+   "B_ms": 484.2857142857143
+  },
+  "coverage": {
+   "A_cards_per_aspect": 2.9285714285714284,
+   "A_empty_aspects": 2
+  },
+  "relevance": {
+   "A": {
+    "A": 0.14285714285714285,
+    "B": 0.8611111111111112,
+    "C": 0
+   },
+   "B": {
+    "A": 0.49999999999999994,
+    "B": 0.5000000000000001,
+    "C": 0.07142857142857142
+   }
+  },
+  "B_zero_share": 0.738095238095238,
+  "A_zero_share": 0.8287037037037038
+ },
+ "rows": [
+  {
+   "aspect": "지성 두피 피지 케어 및 정수리 냄새 제거",
+   "project": "",
+   "msA": 22,
+   "msB": 418,
+   "topA": {
+    "A": [],
+    "B": [
+     "glossier-play-color-line",
+     "beautycounter-clean-beauty-mass",
+     "clarisonic-sonic-cleansing-brush"
+    ],
+    "C": []
+   },
+   "topB": {
+    "A": [
+     "b3d5b931-51d8-4502-a7a8-800eae83359c",
+     "302cd50a-d3ac-4bf9-9fee-f132ea36d2ab",
+     "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd"
+    ],
+    "B": [
+     "beautycounter-clean-beauty-mass",
+     "birchbox-personalized-subscription",
+     "clarisonic-sonic-cleansing-brush"
+    ],
+    "C": [
+     "SP-027",
+     "SP-028",
+     "SP-013"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.572",
+     "0.559",
+     "0.559"
+    ],
+    "B": [
+     "0.587",
+     "0.582",
+     "0.581"
+    ],
+    "C": [
+     "0.570",
+     "0.564",
+     "0.558"
+    ]
+   },
+   "relA": {
+    "A": null,
+    "B": 0.3333333333333333,
+    "C": null
+   },
+   "relB": {
+    "A": 0.3333333333333333,
+    "B": 0.3333333333333333,
+    "C": 0
+   },
+   "nA": 3,
+   "nB": 9,
+   "scores": {
+    "birchbox-personalized-subscription": 0,
+    "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd": 0,
+    "302cd50a-d3ac-4bf9-9fee-f132ea36d2ab": 0,
+    "SP-028": 0,
+    "SP-013": 0,
+    "glossier-play-color-line": 0,
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 1,
+    "beautycounter-clean-beauty-mass": 0,
+    "SP-027": 0,
+    "clarisonic-sonic-cleansing-brush": 1
+   }
+  },
+  {
+   "aspect": "두피 붉은기 개선",
+   "project": "",
+   "msA": 1,
+   "msB": 455,
+   "topA": {
+    "A": [],
+    "B": [],
+    "C": [
+     "SP-026",
+     "SP-032"
+    ]
+   },
+   "topB": {
+    "A": [
+     "b3d5b931-51d8-4502-a7a8-800eae83359c",
+     "6347df31-075c-4eb7-92c1-179af1cbfead",
+     "775c9119-7ded-409a-9649-b2343e0bf193"
+    ],
+    "B": [
+     "clarisonic-sonic-cleansing-brush",
+     "beautycounter-clean-beauty-mass",
+     "glossier-play-color-line"
+    ],
+    "C": [
+     "SP-004",
+     "SP-012",
+     "SP-006"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.594",
+     "0.591",
+     "0.587"
+    ],
+    "B": [
+     "0.600",
+     "0.599",
+     "0.590"
+    ],
+    "C": [
+     "0.608",
+     "0.599",
+     "0.590"
+    ]
+   },
+   "relA": {
+    "A": null,
+    "B": null,
+    "C": 0
+   },
+   "relB": {
+    "A": 0,
+    "B": 0.3333333333333333,
+    "C": 0
+   },
+   "nA": 2,
+   "nB": 9,
+   "scores": {
+    "SP-026": 0,
+    "glossier-play-color-line": 0,
+    "SP-032": 0,
+    "SP-006": 0,
+    "SP-012": 0,
+    "clarisonic-sonic-cleansing-brush": 0,
+    "SP-004": 0,
+    "775c9119-7ded-409a-9649-b2343e0bf193": 0,
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 0,
+    "6347df31-075c-4eb7-92c1-179af1cbfead": 0,
+    "beautycounter-clean-beauty-mass": 1
+   }
+  },
+  {
+   "aspect": "탈모 증상 완화 효과",
+   "project": "",
+   "msA": 2,
+   "msB": 432,
+   "topA": {
+    "A": [
+     "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+     "1ef925a6-c764-4776-859b-43d439833092",
+     "6dbc2db2-4349-4fe4-8552-6b9a165baff6"
+    ],
+    "B": [
+     "clarisonic-sonic-cleansing-brush"
+    ],
+    "C": [
+     "SP-024",
+     "SP-031"
+    ]
+   },
+   "topB": {
+    "A": [
+     "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd",
+     "302cd50a-d3ac-4bf9-9fee-f132ea36d2ab",
+     "b3d5b931-51d8-4502-a7a8-800eae83359c"
+    ],
+    "B": [
+     "clarisonic-sonic-cleansing-brush",
+     "birchbox-personalized-subscription",
+     "brandless-flat-price-no-brand-tax"
+    ],
+    "C": [
+     "SP-002",
+     "SP-013",
+     "SP-032"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.631",
+     "0.617",
+     "0.616"
+    ],
+    "B": [
+     "0.609",
+     "0.602",
+     "0.595"
+    ],
+    "C": [
+     "0.581",
+     "0.575",
+     "0.570"
+    ]
+   },
+   "relA": {
+    "A": 0,
+    "B": 2,
+    "C": 0
+   },
+   "relB": {
+    "A": 0.3333333333333333,
+    "B": 0.6666666666666666,
+    "C": 0
+   },
+   "nA": 6,
+   "nB": 9,
+   "scores": {
+    "brandless-flat-price-no-brand-tax": 0,
+    "6dbc2db2-4349-4fe4-8552-6b9a165baff6": 0,
+    "302cd50a-d3ac-4bf9-9fee-f132ea36d2ab": 0,
+    "1ef925a6-c764-4776-859b-43d439833092": 0,
+    "SP-031": 0,
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f": 0,
+    "SP-002": 0,
+    "clarisonic-sonic-cleansing-brush": 2,
+    "SP-024": 0,
+    "birchbox-personalized-subscription": 0,
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 1,
+    "SP-032": 0,
+    "SP-013": 0,
+    "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd": 0
+   }
+  },
+  {
+   "aspect": "탈모 완화 및 발모 효과",
+   "project": "",
+   "msA": 2,
+   "msB": 440,
+   "topA": {
+    "A": [],
+    "B": [],
+    "C": [
+     "SP-031",
+     "SP-032"
+    ]
+   },
+   "topB": {
+    "A": [
+     "b3d5b931-51d8-4502-a7a8-800eae83359c",
+     "1cc8d72b-5415-447a-89e8-8b8a593fbe57",
+     "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd"
+    ],
+    "B": [
+     "clarisonic-sonic-cleansing-brush",
+     "brandless-flat-price-no-brand-tax",
+     "birchbox-personalized-subscription"
+    ],
+    "C": [
+     "SP-032",
+     "SP-004",
+     "SP-003"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.601",
+     "0.584",
+     "0.579"
+    ],
+    "B": [
+     "0.571",
+     "0.564",
+     "0.562"
+    ],
+    "C": [
+     "0.571",
+     "0.567",
+     "0.557"
+    ]
+   },
+   "relA": {
+    "A": null,
+    "B": null,
+    "C": 0
+   },
+   "relB": {
+    "A": 1,
+    "B": 0,
+    "C": 0.6666666666666666
+   },
+   "nA": 2,
+   "nB": 9,
+   "scores": {
+    "brandless-flat-price-no-brand-tax": 0,
+    "birchbox-personalized-subscription": 0,
+    "clarisonic-sonic-cleansing-brush": 0,
+    "SP-032": 0,
+    "1cc8d72b-5415-447a-89e8-8b8a593fbe57": 1,
+    "SP-031": 0,
+    "SP-004": 2,
+    "SP-003": 0,
+    "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd": 0,
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 2
+   }
+  },
+  {
+   "aspect": "탈모 증상 완화 효과",
+   "project": "",
+   "msA": 1,
+   "msB": 433,
+   "topA": {
+    "A": [
+     "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+     "1ef925a6-c764-4776-859b-43d439833092",
+     "6dbc2db2-4349-4fe4-8552-6b9a165baff6"
+    ],
+    "B": [],
+    "C": []
+   },
+   "topB": {
+    "A": [
+     "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd",
+     "d8f0bc63-60fa-4b0f-ab5e-0539cf2b1004",
+     "302cd50a-d3ac-4bf9-9fee-f132ea36d2ab"
+    ],
+    "B": [
+     "clarisonic-sonic-cleansing-brush",
+     "birchbox-personalized-subscription",
+     "nastygal-influencer-fashion-scaleup"
+    ],
+    "C": [
+     "SP-002",
+     "SP-013",
+     "SP-018"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.615",
+     "0.599",
+     "0.598"
+    ],
+    "B": [
+     "0.589",
+     "0.583",
+     "0.579"
+    ],
+    "C": [
+     "0.569",
+     "0.564",
+     "0.563"
+    ]
+   },
+   "relA": {
+    "A": 0,
+    "B": null,
+    "C": null
+   },
+   "relB": {
+    "A": 0,
+    "B": 0.3333333333333333,
+    "C": 0
+   },
+   "nA": 3,
+   "nB": 9,
+   "scores": {
+    "birchbox-personalized-subscription": 0,
+    "clarisonic-sonic-cleansing-brush": 1,
+    "SP-002": 0,
+    "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd": 0,
+    "6dbc2db2-4349-4fe4-8552-6b9a165baff6": 0,
+    "SP-018": 0,
+    "d8f0bc63-60fa-4b0f-ab5e-0539cf2b1004": 0,
+    "302cd50a-d3ac-4bf9-9fee-f132ea36d2ab": 0,
+    "1ef925a6-c764-4776-859b-43d439833092": 0,
+    "SP-013": 0,
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f": 0,
+    "nastygal-influencer-fashion-scaleup": 0
+   }
+  },
+  {
+   "aspect": "지성 두피 세정력 및 체취 제어",
+   "project": "",
+   "msA": 1,
+   "msB": 1020,
+   "topA": {
+    "A": [],
+    "B": [
+     "clarisonic-sonic-cleansing-brush"
+    ],
+    "C": []
+   },
+   "topB": {
+    "A": [
+     "b3d5b931-51d8-4502-a7a8-800eae83359c",
+     "302cd50a-d3ac-4bf9-9fee-f132ea36d2ab",
+     "1cc8d72b-5415-447a-89e8-8b8a593fbe57"
+    ],
+    "B": [
+     "clarisonic-sonic-cleansing-brush",
+     "birchbox-personalized-subscription",
+     "beautycounter-clean-beauty-mass"
+    ],
+    "C": [
+     "SP-027",
+     "SP-004",
+     "SP-028"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.590",
+     "0.572",
+     "0.567"
+    ],
+    "B": [
+     "0.603",
+     "0.586",
+     "0.582"
+    ],
+    "C": [
+     "0.576",
+     "0.575",
+     "0.568"
+    ]
+   },
+   "relA": {
+    "A": null,
+    "B": 2,
+    "C": null
+   },
+   "relB": {
+    "A": 0,
+    "B": 1.3333333333333333,
+    "C": 0
+   },
+   "nA": 1,
+   "nB": 9,
+   "scores": {
+    "302cd50a-d3ac-4bf9-9fee-f132ea36d2ab": 0,
+    "SP-004": 0,
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 0,
+    "SP-028": 0,
+    "birchbox-personalized-subscription": 1,
+    "1cc8d72b-5415-447a-89e8-8b8a593fbe57": 0,
+    "beautycounter-clean-beauty-mass": 1,
+    "clarisonic-sonic-cleansing-brush": 2,
+    "SP-027": 0
+   }
+  },
+  {
+   "aspect": "모발 굵기 개선 효과",
+   "project": "",
+   "msA": 1,
+   "msB": 453,
+   "topA": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "topB": {
+    "A": [
+     "b3d5b931-51d8-4502-a7a8-800eae83359c",
+     "2617c921-c62b-4cc3-892f-1fd4ac8797b1",
+     "1cc8d72b-5415-447a-89e8-8b8a593fbe57"
+    ],
+    "B": [
+     "clarisonic-sonic-cleansing-brush",
+     "glossier-play-color-line",
+     "beautycounter-clean-beauty-mass"
+    ],
+    "C": [
+     "SP-031",
+     "SP-026",
+     "SP-027"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.584",
+     "0.582",
+     "0.576"
+    ],
+    "B": [
+     "0.588",
+     "0.574",
+     "0.571"
+    ],
+    "C": [
+     "0.587",
+     "0.570",
+     "0.568"
+    ]
+   },
+   "relA": {
+    "A": null,
+    "B": null,
+    "C": null
+   },
+   "relB": {
+    "A": 2,
+    "B": 0.3333333333333333,
+    "C": 0
+   },
+   "nA": 0,
+   "nB": 9,
+   "scores": {
+    "clarisonic-sonic-cleansing-brush": 0,
+    "SP-026": 0,
+    "glossier-play-color-line": 0,
+    "SP-031": 0,
+    "SP-027": 0,
+    "beautycounter-clean-beauty-mass": 1,
+    "1cc8d72b-5415-447a-89e8-8b8a593fbe57": 2,
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 2,
+    "2617c921-c62b-4cc3-892f-1fd4ac8797b1": 2
+   }
+  },
+  {
+   "aspect": "가격 및 용량 (가성비)",
+   "project": "",
+   "msA": 0,
+   "msB": 417,
+   "topA": {
+    "A": [
+     "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+     "dbc1aef4-9f62-4769-a839-f7280ef5c168",
+     "1cc8d72b-5415-447a-89e8-8b8a593fbe57"
+    ],
+    "B": [
+     "madecom-on-demand-furniture",
+     "beautycounter-clean-beauty-mass"
+    ],
+    "C": [
+     "SP-003"
+    ]
+   },
+   "topB": {
+    "A": [
+     "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd",
+     "26fc329f-6a74-4956-ad49-7c24fdb62ad8",
+     "1ef925a6-c764-4776-859b-43d439833092"
+    ],
+    "B": [
+     "beautycounter-clean-beauty-mass",
+     "brandless-flat-price-no-brand-tax",
+     "halo-top-low-calorie-ice-cream"
+    ],
+    "C": [
+     "SP-003",
+     "SP-002",
+     "SP-010"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.609",
+     "0.602",
+     "0.602"
+    ],
+    "B": [
+     "0.624",
+     "0.609",
+     "0.592"
+    ],
+    "C": [
+     "0.604",
+     "0.593",
+     "0.583"
+    ]
+   },
+   "relA": {
+    "A": 0.3333333333333333,
+    "B": 0.5,
+    "C": 0
+   },
+   "relB": {
+    "A": 0.3333333333333333,
+    "B": 0.3333333333333333,
+    "C": 0
+   },
+   "nA": 6,
+   "nB": 9,
+   "scores": {
+    "beautycounter-clean-beauty-mass": 0,
+    "SP-002": 0,
+    "dbc1aef4-9f62-4769-a839-f7280ef5c168": 1,
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f": 0,
+    "1cc8d72b-5415-447a-89e8-8b8a593fbe57": 0,
+    "halo-top-low-calorie-ice-cream": 0,
+    "26fc329f-6a74-4956-ad49-7c24fdb62ad8": 1,
+    "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd": 0,
+    "brandless-flat-price-no-brand-tax": 1,
+    "SP-010": 0,
+    "1ef925a6-c764-4776-859b-43d439833092": 0,
+    "madecom-on-demand-furniture": 1,
+    "SP-003": 0
+   }
+  },
+  {
+   "aspect": "두피 개선 효과 및 지속력",
+   "project": "",
+   "msA": 1,
+   "msB": 450,
+   "topA": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "topB": {
+    "A": [
+     "b3d5b931-51d8-4502-a7a8-800eae83359c",
+     "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+     "1cc8d72b-5415-447a-89e8-8b8a593fbe57"
+    ],
+    "B": [
+     "glossier-play-color-line",
+     "clarisonic-sonic-cleansing-brush",
+     "beautycounter-clean-beauty-mass"
+    ],
+    "C": [
+     "SP-004",
+     "SP-032",
+     "SP-006"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.578",
+     "0.574",
+     "0.571"
+    ],
+    "B": [
+     "0.580",
+     "0.579",
+     "0.571"
+    ],
+    "C": [
+     "0.576",
+     "0.565",
+     "0.561"
+    ]
+   },
+   "relA": {
+    "A": null,
+    "B": null,
+    "C": null
+   },
+   "relB": {
+    "A": 0.3333333333333333,
+    "B": 0,
+    "C": 0
+   },
+   "nA": 0,
+   "nB": 9,
+   "scores": {
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f": 0,
+    "glossier-play-color-line": 0,
+    "1cc8d72b-5415-447a-89e8-8b8a593fbe57": 0,
+    "SP-006": 0,
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 1,
+    "clarisonic-sonic-cleansing-brush": 0,
+    "beautycounter-clean-beauty-mass": 0,
+    "SP-004": 0,
+    "SP-032": 0
+   }
+  },
+  {
+   "aspect": "거품력 및 사용 편의성",
+   "project": "",
+   "msA": 1,
+   "msB": 512,
+   "topA": {
+    "A": [
+     "8bc1bc9d-64a2-440d-83d8-d9a37ec1d5e3"
+    ],
+    "B": [],
+    "C": [
+     "SP-027"
+    ]
+   },
+   "topB": {
+    "A": [
+     "d8f0bc63-60fa-4b0f-ab5e-0539cf2b1004",
+     "b3d5b931-51d8-4502-a7a8-800eae83359c",
+     "92cef543-fb77-42cc-bc8f-b9b7bdbace7e"
+    ],
+    "B": [
+     "clarisonic-sonic-cleansing-brush",
+     "beautycounter-clean-beauty-mass",
+     "glossier-play-color-line"
+    ],
+    "C": [
+     "SP-024",
+     "SP-003",
+     "SP-032"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.596",
+     "0.578",
+     "0.575"
+    ],
+    "B": [
+     "0.597",
+     "0.582",
+     "0.566"
+    ],
+    "C": [
+     "0.569",
+     "0.564",
+     "0.561"
+    ]
+   },
+   "relA": {
+    "A": 0,
+    "B": null,
+    "C": 0
+   },
+   "relB": {
+    "A": 0.3333333333333333,
+    "B": 1,
+    "C": 0
+   },
+   "nA": 2,
+   "nB": 9,
+   "scores": {
+    "8bc1bc9d-64a2-440d-83d8-d9a37ec1d5e3": 0,
+    "SP-027": 0,
+    "d8f0bc63-60fa-4b0f-ab5e-0539cf2b1004": 0,
+    "SP-003": 0,
+    "SP-024": 0,
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 1,
+    "beautycounter-clean-beauty-mass": 1,
+    "glossier-play-color-line": 0,
+    "92cef543-fb77-42cc-bc8f-b9b7bdbace7e": 0,
+    "clarisonic-sonic-cleansing-brush": 2,
+    "SP-032": 0
+   }
+  },
+  {
+   "aspect": "사용 후 머릿결 감촉 (뻑뻑함)",
+   "project": "",
+   "msA": 0,
+   "msB": 441,
+   "topA": {
+    "A": [
+     "8ff65dd9-ea1d-4e63-82c7-afac9b75dc01"
+    ],
+    "B": [],
+    "C": [
+     "SP-018",
+     "SP-025"
+    ]
+   },
+   "topB": {
+    "A": [
+     "b3d5b931-51d8-4502-a7a8-800eae83359c",
+     "26fc329f-6a74-4956-ad49-7c24fdb62ad8",
+     "4673f9d2-2cf7-4dae-be90-b27f5c24bd53"
+    ],
+    "B": [
+     "clarisonic-sonic-cleansing-brush",
+     "beautycounter-clean-beauty-mass",
+     "birchbox-personalized-subscription"
+    ],
+    "C": [
+     "SP-013",
+     "SP-031",
+     "SP-032"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.581",
+     "0.568",
+     "0.567"
+    ],
+    "B": [
+     "0.583",
+     "0.583",
+     "0.556"
+    ],
+    "C": [
+     "0.590",
+     "0.578",
+     "0.570"
+    ]
+   },
+   "relA": {
+    "A": 0,
+    "B": null,
+    "C": 0
+   },
+   "relB": {
+    "A": 0,
+    "B": 0.6666666666666666,
+    "C": 0
+   },
+   "nA": 3,
+   "nB": 9,
+   "scores": {
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 0,
+    "26fc329f-6a74-4956-ad49-7c24fdb62ad8": 0,
+    "SP-025": 0,
+    "SP-013": 0,
+    "beautycounter-clean-beauty-mass": 1,
+    "SP-032": 0,
+    "SP-018": 0,
+    "birchbox-personalized-subscription": 0,
+    "4673f9d2-2cf7-4dae-be90-b27f5c24bd53": 0,
+    "clarisonic-sonic-cleansing-brush": 1,
+    "SP-031": 0,
+    "8ff65dd9-ea1d-4e63-82c7-afac9b75dc01": 0
+   }
+  },
+  {
+   "aspect": "지루성 두피 세정성 및 염색모 한계",
+   "project": "",
+   "msA": 1,
+   "msB": 438,
+   "topA": {
+    "A": [],
+    "B": [],
+    "C": [
+     "SP-031"
+    ]
+   },
+   "topB": {
+    "A": [
+     "b3d5b931-51d8-4502-a7a8-800eae83359c",
+     "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+     "26fc329f-6a74-4956-ad49-7c24fdb62ad8"
+    ],
+    "B": [
+     "beautycounter-clean-beauty-mass",
+     "clarisonic-sonic-cleansing-brush",
+     "glossier-play-color-line"
+    ],
+    "C": [
+     "SP-004",
+     "SP-024",
+     "SP-027"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.590",
+     "0.576",
+     "0.571"
+    ],
+    "B": [
+     "0.617",
+     "0.614",
+     "0.601"
+    ],
+    "C": [
+     "0.603",
+     "0.581",
+     "0.572"
+    ]
+   },
+   "relA": {
+    "A": null,
+    "B": null,
+    "C": 0
+   },
+   "relB": {
+    "A": 0,
+    "B": 0.6666666666666666,
+    "C": 0.3333333333333333
+   },
+   "nA": 1,
+   "nB": 9,
+   "scores": {
+    "SP-004": 1,
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 0,
+    "clarisonic-sonic-cleansing-brush": 1,
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f": 0,
+    "beautycounter-clean-beauty-mass": 1,
+    "glossier-play-color-line": 0,
+    "SP-031": 0,
+    "SP-027": 0,
+    "SP-024": 0,
+    "26fc329f-6a74-4956-ad49-7c24fdb62ad8": 0
+   }
+  },
+  {
+   "aspect": "향 (약 냄새)",
+   "project": "",
+   "msA": 1,
+   "msB": 443,
+   "topA": {
+    "A": [
+     "6dbc2db2-4349-4fe4-8552-6b9a165baff6"
+    ],
+    "B": [
+     "coca-cola-life-stevia",
+     "beyond-meat-plant-based"
+    ],
+    "C": []
+   },
+   "topB": {
+    "A": [
+     "92cef543-fb77-42cc-bc8f-b9b7bdbace7e",
+     "b3d5b931-51d8-4502-a7a8-800eae83359c",
+     "55c3bdab-bfc4-4599-a0ee-732c69d52d1f"
+    ],
+    "B": [
+     "beautycounter-clean-beauty-mass",
+     "brandless-flat-price-no-brand-tax",
+     "birchbox-personalized-subscription"
+    ],
+    "C": [
+     "SP-003",
+     "SP-004",
+     "SP-013"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.582",
+     "0.566",
+     "0.558"
+    ],
+    "B": [
+     "0.600",
+     "0.572",
+     "0.566"
+    ],
+    "C": [
+     "0.588",
+     "0.570",
+     "0.570"
+    ]
+   },
+   "relA": {
+    "A": 0,
+    "B": 0,
+    "C": null
+   },
+   "relB": {
+    "A": 0.3333333333333333,
+    "B": 0,
+    "C": 0
+   },
+   "nA": 3,
+   "nB": 9,
+   "scores": {
+    "beautycounter-clean-beauty-mass": 0,
+    "b3d5b931-51d8-4502-a7a8-800eae83359c": 1,
+    "SP-003": 0,
+    "92cef543-fb77-42cc-bc8f-b9b7bdbace7e": 0,
+    "coca-cola-life-stevia": 0,
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f": 0,
+    "SP-013": 0,
+    "brandless-flat-price-no-brand-tax": 0,
+    "birchbox-personalized-subscription": 0,
+    "SP-004": 0,
+    "6dbc2db2-4349-4fe4-8552-6b9a165baff6": 0,
+    "beyond-meat-plant-based": 0
+   }
+  },
+  {
+   "aspect": "가격 및 할인 혜택",
+   "project": "유산균·프로바이오틱스(건강",
+   "msA": 2,
+   "msB": 428,
+   "topA": {
+    "A": [
+     "4d817e75-081e-4f6d-8d83-d4aac492ca38",
+     "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+     "dbc1aef4-9f62-4769-a839-f7280ef5c168"
+    ],
+    "B": [
+     "amazon-fire-phone",
+     "coca-cola-life-stevia",
+     "madecom-on-demand-furniture"
+    ],
+    "C": [
+     "SP-009",
+     "SP-015",
+     "SP-025"
+    ]
+   },
+   "topB": {
+    "A": [
+     "dbc1aef4-9f62-4769-a839-f7280ef5c168",
+     "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd",
+     "26fc329f-6a74-4956-ad49-7c24fdb62ad8"
+    ],
+    "B": [
+     "beautycounter-clean-beauty-mass",
+     "brandless-flat-price-no-brand-tax",
+     "glossier-play-color-line"
+    ],
+    "C": [
+     "SP-003",
+     "SP-001",
+     "SP-002"
+    ]
+   },
+   "topBScore": {
+    "A": [
+     "0.640",
+     "0.632",
+     "0.619"
+    ],
+    "B": [
+     "0.647",
+     "0.638",
+     "0.590"
+    ],
+    "C": [
+     "0.610",
+     "0.608",
+     "0.602"
+    ]
+   },
+   "relA": {
+    "A": 0.6666666666666666,
+    "B": 0.3333333333333333,
+    "C": 0
+   },
+   "relB": {
+    "A": 2,
+    "B": 1,
+    "C": 0
+   },
+   "nA": 9,
+   "nB": 9,
+   "scores": {
+    "SP-002": 0,
+    "dbc1aef4-9f62-4769-a839-f7280ef5c168": 2,
+    "4d817e75-081e-4f6d-8d83-d4aac492ca38": 0,
+    "SP-015": 0,
+    "SP-025": 0,
+    "glossier-play-color-line": 0,
+    "93e5a1a1-a7e8-4870-9b19-8f2505d2a7dd": 2,
+    "madecom-on-demand-furniture": 1,
+    "amazon-fire-phone": 0,
+    "coca-cola-life-stevia": 0,
+    "brandless-flat-price-no-brand-tax": 2,
+    "beautycounter-clean-beauty-mass": 1,
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f": 0,
+    "26fc329f-6a74-4956-ad49-7c24fdb62ad8": 2,
+    "SP-001": 0,
+    "SP-009": 0,
+    "SP-003": 0
+   }
+  }
+ ],
+ "judge": "gemini-3.5-flash-lite",
+ "emb": "gemini-embedding-001",
+ "dim": 768
+}

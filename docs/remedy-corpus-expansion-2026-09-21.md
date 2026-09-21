@@ -75,6 +75,25 @@
 
 **바로 편입 가능(1차 출처 확보)**: F1 Care/of, F6 Function of Beauty, S3 Native, S6 락토핏. 나머지는 1차 출처 확보가 먼저.
 
+## 2-3. 4라운드 처리 결과 (2026-09-21 남헌 승인)
+| 후보 | 처리 | 비고 |
+|---|---|---|
+| F1 Care/of | **failed_angles 편입** (`careof-personalized-vitamin-subscription`, 추정) | PR #193 |
+| F6 Function of Beauty | **failed_angles 편입** (`function-of-beauty-custom-shampoo-plant`, 추정) | 브랜드는 판매 중 — "후퇴 사례"로 서술. Crain's 단일 출처 |
+| S3 Native | **case draft** `native-deodorant-reformulation-reorder` | 재구매율 21→50%(1인칭 인터뷰) A · 전 고객 이메일 D |
+| S6 락토핏 | **case draft** `lactofit-mass-price-probiotics` | ⚠️ "국내 1위"는 2020년까지. 2021년 hy 에 1위 내줌(메디컬투데이) → outcome mixed. 1인칭 출처 없음 |
+| S2 Hims | **case draft** `hims-hair-loss-rx-subscription` | 8-K 기반 A. 탈모 부문 단독 수치 없음 — 전사 기준 명시 |
+| S5 Seed | 보류 | 1차 출처 미확보(Fast Company 언급뿐) |
+| S1 AG1 · S4 Ritual · S7 Dr. Squatch · S8 Liquid Death · F2~F5 뷰티 4건 · F7 Prose · F8·F9 원칙 후보 | **다음 라운드 후보(idea-backlog)** | 1차 출처 확보가 선행 |
+
+승인 대기 draft 케이스 3건은 남헌이 `/cases` 에서 검수한다. 세션은 approved 로 바꾸지 않는다.
+
+## 2-4. 건기식(supplement) 도메인 공백 — 다음 라운드로
+이번 편입 뒤에도 **건기식 사례는 실패 1(Care/of) · 선례 1(락토핏, draft)** 뿐이다. 유산균 프로젝트 질의(효능 입증·고함량 보장·실온 보관·캡슐 크기·가격)에 직접 닿는 무브는 락토핏 PRICING 하나다. **건기식 전용 사례 추가 조사 필요** — 다음 라운드 후보 축:
+- 성공: Seed(임상·균주 소구, 1차 출처 필요) · AG1(단일 SKU 구독) · 고려은단(비타민C, 국내) · hy 야쿠르트(기능성 인증으로 1위 탈환 — 락토핏 케이스의 반대편)
+- 실패: 국내 유산균 과장광고 제재 사례(식약처 원자료) · 프리미엄 유산균 D2C 중 철수 사례(조사 필요)
+- 원칙 후보: F8 "장 건강 단일 소구의 한계·양극화"(전자신문) · F9 "효능 단정 광고 = 제재 리스크"(식약처 통계)
+
 ## 3. 권고 (다음 라운드)
 1. **원칙 코퍼스를 셀러 화면에서 분리** — `strategy_principles`는 운영 원장이다. 처방 카드 Corpus C 는 `tags`에 `seller` 류 태그가 있는 행만 내거나, 아예 빼고 소비재 원칙(F8·F9 같은 시장 신호)을 따로 적립. 이것만으로 A/B의 무관 카드 약 3분의 1(원칙 매칭분)이 사라진다.
 2. **건기식·헤어케어 케이스 4건 우선 편입** — S2 Hims(탈모), S5 Seed·S6 락토핏(유산균), F1 Care/of(건기식 구독), F6 Function of Beauty(맞춤 샴푸). 현재 질의 35건 중 효능·가격 유형(15건)이 곧바로 짝을 얻는다.

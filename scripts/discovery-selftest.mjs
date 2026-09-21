@@ -366,6 +366,14 @@ t('hackernews: q: 접두를 붙인다', buildProductRef('hackernews', 'notion').
 t('hackernews: 1자는 거절', buildProductRef('hackernews', 'n').ok, false)
 t('hackernews: 줄바꿈은 거절', buildProductRef('hackernews', 'a\nb').ok, false)
 t('hackernews: 65자는 거절', buildProductRef('hackernews', 'x'.repeat(65)).ok, false)
+// youtube — URL 네 형태와 맨 ID 가 전부 같은 v: 로 모이고, 검증은 어댑터 한 벌이다.
+t('youtube: watch URL → v:', buildProductRef('youtube', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10s').productRef, 'v:dQw4w9WgXcQ')
+t('youtube: youtu.be → v:', buildProductRef('youtube', 'https://youtu.be/dQw4w9WgXcQ?si=abc').productRef, 'v:dQw4w9WgXcQ')
+t('youtube: shorts → v:', buildProductRef('youtube', 'youtube.com/shorts/dQw4w9WgXcQ').productRef, 'v:dQw4w9WgXcQ')
+t('youtube: 맨 ID → v:', buildProductRef('youtube', 'dQw4w9WgXcQ').productRef, 'v:dQw4w9WgXcQ')
+t('youtube: 11자가 아니면 거절', buildProductRef('youtube', 'https://www.youtube.com/watch?v=short').ok, false)
+t('youtube: 다른 호스트는 거절', buildProductRef('youtube', 'https://vimeo.com/dQw4w9WgXcQ').ok, false)
+t('youtube: 빈 입력은 거절', buildProductRef('youtube', '  ').ok, false)
 t('모르는 소스는 null 을 돌려준다(라우트가 400 으로 답한다)', buildProductRef('bandcamp', 'x'), null)
 
 // ── AC-3 커뮤니티 빌더 ────────────────────────────────────────────

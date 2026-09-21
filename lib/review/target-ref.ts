@@ -35,6 +35,7 @@ import { HOST as THEQOO_HOST, parseProductRef as parseTheqooRef } from './adapte
 import { HOST as TODAYHUMOR_HOST, parseProductRef as parseTodayhumorRef } from './adapters/todayhumor.ts'
 import { HOST as TUMBLBUG_HOST, parseProductRef as parseTumblbugRef } from './adapters/tumblbug.ts'
 import { HOST as VELOG_HOST, parseProductRef as parseVelogRef } from './adapters/velog.ts'
+import { parseProductRef as parseYoutubeRef } from './adapters/youtube.ts'
 
 export type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
 
@@ -67,6 +68,32 @@ function hackernewsRef(raw: string): RefResult {
   }
 
   return { ok: true, productRef: `q:${keyword}` }
+}
+
+/**
+ * YouTube 영상 URL 또는 영상 ID → `v:<영상ID>`. 검증은 어댑터의 parseProductRef 한 벌이다.
+ *
+ * 받는 형태: youtube.com/watch?v=ID · youtu.be/ID · youtube.com/shorts/ID · 맨 ID(11자).
+ * ⚠️ 댓글이 꺼진 영상인지는 여기서 알 수 없다 — 그건 등록하는 사람이 눈으로 확인한다
+ *    (어댑터 주석: 댓글 비활성 403 은 차단으로 분류돼 소스가 통째로 꺼진다).
+ */
+function youtubeRef(raw: string): RefResult {
+  const s = raw.trim()
+  const hint = '(예: https://www.youtube.com/watch?v=dQw4w9WgXcQ 또는 영상 ID 11자)'
+  if (!s) return { ok: false, error: `YouTube 영상 URL 또는 영상 ID 를 입력해주세요. ${hint}` }
+  let id: string | null = null
+  try {
+    const u = new URL(s.includes('://') ? s : `https://${s}`)
+    const host = u.hostname.replace(/^www\.|^m\./, '')
+    if (host === 'youtu.be') id = u.pathname.slice(1).split('/')[0]
+    else if (host === 'youtube.com') {
+      id = u.searchParams.get('v') ?? u.pathname.match(/^\/(?:shorts|embed|live)\/([^/?]+)/)?.[1] ?? null
+    }
+  } catch { /* URL 이 아니면 맨 ID 로 본다 */ }
+  const ref = parseYoutubeRef(`v:${id ?? s}`)
+  return ref
+    ? { ok: true, productRef: `v:${ref}` }
+    : { ok: false, error: `YouTube 영상 ID 를 읽지 못했습니다. ${hint}` }
 }
 
 /** App Store 는 어댑터의 검증기를 그대로 쓴다 — 규칙을 두 벌 두지 않는다. */
@@ -163,6 +190,7 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   //    으로 퍼센트 인코딩해 넘기고, 어댑터는 인코딩된 ASCII 만 받는다.
   //    brunch 와 같은 이유로 공용 parseUrlRef(`@` 금지)를 못 쓴다.
   velog: urlRefBuilder(VELOG_HOST, parseVelogRef, '/@handle/post-slug'),
+  youtube: youtubeRef,
 }
 
 export function buildProductRef(sourceKey: string, raw: string): RefResult | null {

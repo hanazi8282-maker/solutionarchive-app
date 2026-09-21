@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FacetKey } from '@/lib/analysis/facets'
 import { Card } from '../../_ds/components/Card'
-import { Button } from '../../_ds/components/Button'
+import { Button, ButtonLink } from '../../_ds/components/Button'
 import { Field, Input, Textarea } from '../../_ds/components/Field'
 import { FacetSelects, type FacetValues } from '../../_ds/components/FacetSelects'
 import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
@@ -19,6 +19,9 @@ type Profile = {
   market: string | null
   updated_at: string | null
 } & Partial<Record<FacetKey, string | null>>
+
+/** 필드 아래 프리필 설명 한 줄. 필드와 붙어 보이게 위 여백을 줄인다. */
+const fillNote = { margin: '-10px 0 0', fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)' } as const
 
 const KST = new Intl.DateTimeFormat('sv-SE', {
   timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
@@ -36,6 +39,9 @@ export default function ProfileSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [savedAt, setSavedAt] = useState<string | null>(null)
+  // 이번 화면에서 실제로 저장에 성공했나. savedAt 은 처음 불러온 프로필의 updated_at 으로도
+  // 채워지므로, 그걸로 "저장됐다"를 판정하면 아무것도 안 눌러도 다음 걸음이 떠 버린다.
+  const [justSaved, setJustSaved] = useState(false)
 
   const setFacet = useCallback((key: FacetKey, value: string) => {
     setFacets((prev) => ({ ...prev, [key]: value }))
@@ -78,7 +84,7 @@ export default function ProfileSettingsPage() {
   }, [apply])
 
   async function save() {
-    setSaving(true); setSaveError('')
+    setSaving(true); setSaveError(''); setJustSaved(false)
     try {
       const res = await fetch('/api/profile', {
         method: 'PUT',
@@ -89,6 +95,7 @@ export default function ProfileSettingsPage() {
       if (!res.ok) { setSaveError(json?.error ?? `저장에 실패했다 (HTTP ${res.status})`); return }
       apply(json.profile as Profile)
       setExisted(true)
+      setJustSaved(true)
     } catch {
       setSaveError('네트워크 오류가 발생했다. 저장되지 않았다.')
     } finally {
@@ -131,17 +138,29 @@ export default function ProfileSettingsPage() {
             <Textarea id="pitch" rows={2} value={pitch} onChange={(e) => setPitch(e.target.value)} />
           </Field>
 
+          <p style={fillNote}>↑ 이 값이 새 분석 1단계의 &ldquo;상품 한 줄 소개&rdquo;를 프리필한다.</p>
+
           <Field label="시장" htmlFor="market" hint="예: 국내 유산균 건기식. 선례를 고를 때 낱말이 겹치는지 보는 데 쓴다.">
             <Input id="market" type="text" value={market} onChange={(e) => setMarket(e.target.value)} />
           </Field>
+          <p style={fillNote}>↑ 이 값이 새 분석 1단계의 &ldquo;시장&rdquo;을 프리필한다.</p>
 
-          <FacetSelects values={facets} onChange={setFacet} idPrefix="profile_" />
+          {/* 칸마다 프리필 설명 — hintSuffix 는 이 화면만 준다(/analyze/new 는 이미 1단계라 같은 말이 필요 없다). */}
+          <FacetSelects values={facets} onChange={setFacet} idPrefix="profile_" hintSuffix="새 분석 1단계를 프리필한다" />
+          <p style={fillNote}>↑ 비어 있는 칸만 프리필하므로 1단계에서 고쳐 쓸 수 있다.</p>
 
           {saveError && <Notice tone="danger">{saveError}</Notice>}
 
           <Button variant="primary" size="lg" fullWidth onClick={save} disabled={saving}>
             {saving ? '저장 중…' : '프로필 저장'}
           </Button>
+
+          {/* 저장 다음 걸음. 여기까지 왔으면 할 일은 하나다 — 이 값으로 분석을 돌리는 것. */}
+          {justSaved && !saveError && (
+            <Notice tone="success" title="저장했다 — 다음 분석 1단계가 이 값으로 채워진다"
+              action={<ButtonLink href="/analyze/new" variant="primary" size="sm">새 분석 시작</ButtonLink>}
+            />
+          )}
 
           <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }} aria-live="polite">
             {savedAt

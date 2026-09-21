@@ -10,7 +10,7 @@ import {
 import { Card } from '../../_ds/components/Card'
 import { Button, ButtonLink } from '../../_ds/components/Button'
 import { ProgressBar } from '../../_ds/components/ProgressBar'
-import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
+import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../../_ds/components/Shell'
 
 // Stage 6 — 온보딩 "감 점수" 퀴즈 화면.
 //
@@ -168,14 +168,17 @@ export default function OnboardingQuizPage() {
         <Brand />
         <PageHeader title="내 감 점수" subtitle={`${summary.question_count}문제 기준`} />
 
-        <Card>
-          <p aria-live="polite" style={{
-            margin: 0, fontSize: 'var(--fs-display)', fontWeight: 700, lineHeight: 'var(--lh-tight)',
-            letterSpacing: 'var(--ls-tight)', color: 'var(--text-strong)', fontVariantNumeric: 'tabular-nums',
-          }}>
-            {scoreHeadline(summary)}
-          </p>
-        </Card>
+        {/* 다른 화면의 숫자와 같은 칸(StatTile)을 쓴다. 캡션은 lib 의 scoreHeadline 문장을
+            그대로 얹는다 — 퍼센타일·응답자 유무 분기가 그 함수에 있고, 화면이 다시 쓰지 않는다. */}
+        <div aria-live="polite">
+          <StatGrid min={200}>
+            <StatTile
+              label="감 점수"
+              value={`${summary.score}/${summary.question_count}`}
+              caption={scoreHeadline(summary)}
+            />
+          </StatGrid>
+        </div>
 
         {/* 점수만 보고 끝나면 퀴즈는 장난이 된다. 다음 한 걸음을 한 개만 크게 둔다. */}
         <div style={{ display: 'grid', gap: 10, justifyItems: 'center' }}>

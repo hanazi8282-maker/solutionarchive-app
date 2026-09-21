@@ -5,7 +5,9 @@ import { caseApprovalWarning, moveApprovalWarning, TRANSFERABILITY_LABEL, type T
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
-import { Notice, PageHeader, PageShell } from '../_ds/components/Shell'
+import { EvidenceCaption } from '../_ds/components/EvidenceCaption'
+import { FilterChip } from '../_ds/components/FilterChip'
+import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
 import { DecisionForm } from './decision-form'
 
 export const dynamic = 'force-dynamic'
@@ -54,6 +56,17 @@ type CaseRow = {
   case_moves: MoveRow[] | null
   case_evidence: EvidenceRow[] | null
 }
+/** 화면용으로 무브를 정렬하고 근거를 펴 놓은 행. 필터·타일·카드가 같은 배열을 본다. */
+type ViewCase = CaseRow & { moves: MoveRow[]; evidence: EvidenceRow[] }
+
+/** 상태 칩. 기본은 검수 대기 — 이 화면에 오는 이유가 그것이다. */
+const STATUS_FILTERS = [
+  { key: 'pending', label: '검수 대기' },
+  { key: 'approved', label: '승인됨' },
+  { key: 'rejected', label: '반려됨' },
+  { key: 'all', label: '전체' },
+] as const
+const GRADES = ['A', 'B', 'C', 'D'] as const
 
 const REVIEW: Record<string, { label: string; tone: Tone }> = {
   draft: { label: '검수 대기', tone: 'warning' },
@@ -76,16 +89,29 @@ function ReviewBadge({ status }: { status: string }) {
  * 세 화면이고 결정 버튼은 그 맨 아래에 있었다(2026-09-15 실화면). 요약 줄에 등급 산식이 세는 것
  * (1차·자기보고·수치 뒷받침)을 그대로 적어, 펼치지 않아도 "왜 이 등급인가"는 보이게 한다.
  */
-function EvidenceList({ rows, label = '근거' }: { rows: EvidenceRow[]; label?: string }) {
-  if (rows.length === 0) return <p style={muted}>{label} 0건</p>
+// total 은 이 목록과 **같은 범위**의 분모일 때만 넘긴다(케이스 전체 근거 블록에 무브 근거까지 합친 수를 주면
+// "2/5건" 이 빠진 3건처럼 읽힌다 — 리뷰에서 잡힘). 모르면 생략해 "N건" 으로만 적는다.
+function EvidenceList({ rows, total, label = '근거' }: { rows: EvidenceRow[]; total?: number; label?: string }) {
   const primary = rows.filter((e) => e.source_tier === 'primary').length
   const selfReported = rows.filter((e) => e.is_self_reported).length
   const metric = rows.filter((e) => e.supports_metric === true).length
+  // 근거 0건과 조회 실패를 같은 문장으로 내지 않는다(§7.1) — 조회 실패는 위쪽 danger 배너 자리다.
+  const caption = (
+    <EvidenceCaption
+      n={rows.length}
+      total={total ?? null}
+      noun="근거"
+      source={rows.length > 0 ? `1차 ${primary} · 자기보고 ${selfReported} · 수치 뒷받침 ${metric}` : undefined}
+      method={rows.length > 0 ? '케이스 근거 행에서 셈' : `${label} 행이 없다 — 조회는 정상이다`}
+    />
+  )
+  if (rows.length === 0) return caption
   return (
+    <div style={{ display: 'grid', gap: 4 }}>
     <details>
       <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--text-body)', userSelect: 'none' }}>
         {label} <b>{rows.length}건</b>
-        <span style={{ color: 'var(--text-muted)' }}> · 1차 {primary} · 자기보고 {selfReported} · 수치 뒷받침 {metric} — 펼쳐서 원문 확인</span>
+        <span style={{ color: 'var(--text-muted)' }}> — 펼쳐서 원문 확인</span>
       </summary>
     <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 6 }}>
       {rows.map((e) => (
@@ -113,14 +139,36 @@ function EvidenceList({ rows, label = '근거' }: { rows: EvidenceRow[]; label?:
       ))}
     </ul>
     </details>
+    {caption}
+    </div>
   )
 }
 
 /** 카드 앵커. 점프 목록·다음 케이스 링크가 같은 규칙으로 만든다. */
 const caseAnchor = (slug: string) => `case-${slug}`
 
-function MoveBlock({ m, i, evidence, locked, transferabilityLocked }: {
-  m: MoveRow; i: number; evidence: EvidenceRow[]; locked: boolean; transferabilityLocked: boolean
+/**
+ * 결정 영역 박스. 무브 결정과 케이스 결정이 같은 배경·같은 간격으로 이어져 있어서
+ * 무브 승인을 케이스 승인으로 착각하는 자리였다(둘 다 approved 여야 매칭에 잡힌다 —
+ * lib/cases/match.ts). 두 결정을 배경·테두리로 눈에 띄게 가른다. 안내 문구는 헤더 부제 그대로.
+ */
+function DecisionBox({ label, tone, children }: { label: string; tone: 'move' | 'case'; children: ReactNode }) {
+  return (
+    <section style={{
+      display: 'grid', gap: 8,
+      padding: tone === 'case' ? '12px 14px' : '10px 12px',
+      borderRadius: 'var(--radius-md)',
+      background: tone === 'case' ? 'var(--surface-muted)' : 'var(--surface-card)',
+      border: tone === 'case' ? '2px solid var(--border-strong)' : '1px dashed var(--border-strong)',
+    }}>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{label}</p>
+      {children}
+    </section>
+  )
+}
+
+function MoveBlock({ m, i, evidence, caseEvidenceTotal, locked, transferabilityLocked }: {
+  m: MoveRow; i: number; evidence: EvidenceRow[]; caseEvidenceTotal: number; locked: boolean; transferabilityLocked: boolean
 }) {
   const g = gradeMove(m, evidence)
   const metric = m.metric_after == null
@@ -170,18 +218,20 @@ function MoveBlock({ m, i, evidence, locked, transferabilityLocked }: {
           <code>case-review.mjs regrade --slug …</code> 로 재채점한 뒤 판단한다.
         </Notice>
       )}
-      <EvidenceList rows={evidence} />
-      {m.review_status === 'draft' ? (
-        <DecisionForm kind="move" id={m.id} locked={locked} approveWarning={warn} transferabilityLocked={transferabilityLocked} />
-      ) : (
-        <p style={muted}>
-          {REVIEW[m.review_status]?.label ?? m.review_status}
-          {m.reviewed_by ? ` · ${m.reviewed_by}` : ' · 검수자 기록 없음(CLI 결정)'}
-          {m.review_note ? ` · ${m.review_note}` : ''}
-          {m.transferability ? ` · 이식성 ${TRANSFERABILITY_LABEL[m.transferability]}${m.transferability_by ? ` (${m.transferability_by})` : ''}` : ''}
-          {m.review_status === 'approved' && warn ? ` · ⚠️ ${warn}` : ''}
-        </p>
-      )}
+      <EvidenceList rows={evidence} total={caseEvidenceTotal} />
+      <DecisionBox label={`무브 #${i} 결정`} tone="move">
+        {m.review_status === 'draft' ? (
+          <DecisionForm kind="move" id={m.id} locked={locked} approveWarning={warn} transferabilityLocked={transferabilityLocked} />
+        ) : (
+          <p style={muted}>
+            {REVIEW[m.review_status]?.label ?? m.review_status}
+            {m.reviewed_by ? ` · ${m.reviewed_by}` : ' · 검수자 기록 없음(CLI 결정)'}
+            {m.review_note ? ` · ${m.review_note}` : ''}
+            {m.transferability ? ` · 이식성 ${TRANSFERABILITY_LABEL[m.transferability]}${m.transferability_by ? ` (${m.transferability_by})` : ''}` : ''}
+            {m.review_status === 'approved' && warn ? ` · ⚠️ ${warn}` : ''}
+          </p>
+        )}
+      </DecisionBox>
     </section>
   )
 }
@@ -190,14 +240,27 @@ function Chip({ k, v, tone }: { k: string; v: ReactNode; tone?: Tone }) {
   return <Badge tone={tone ?? 'neutral'} size="sm">{k} {v ?? '—'}</Badge>
 }
 
-export default async function CasesPage() {
+// 제목·부제는 한 벌이다. 오류 화면과 정상 화면이 다른 문장을 쓰면 안 된다.
+const HEADER = {
+  title: '케이스 검수',
+  subtitle: '에이전트가 draft 로 적립한 케이스를 사람이 보고 승인·반려한다. 승인 단위는 무브다 — 케이스 승인이 무브 승인이 아니다.',
+} as const
+
+export default async function CasesPage({ searchParams }: { searchParams: Promise<{ status?: string; grade?: string }> }) {
+  const sp = await searchParams
+  const status = STATUS_FILTERS.find((f) => f.key === sp.status)?.key ?? 'pending'
+  const grade = (GRADES as readonly string[]).includes(sp.grade ?? '') ? String(sp.grade) : 'all'
+  const qs = (patch: { status?: string; grade?: string }) => {
+    const next: Record<string, string> = { status, grade, ...patch }
+    const p = new URLSearchParams()
+    if (next.status !== 'pending') p.set('status', next.status)
+    if (next.grade !== 'all') p.set('grade', next.grade)
+    const s = p.toString()
+    return s ? `/cases?${s}` : '/cases'
+  }
+
   const sb = await createClient()
-  const header = (
-    <PageHeader
-      title="케이스 검수"
-      subtitle="에이전트가 draft 로 적립한 케이스를 사람이 보고 승인·반려한다. 승인 단위는 무브다 — 케이스 승인이 무브 승인이 아니다."
-    />
-  )
+  const header = <PageHeader {...HEADER} />
 
   if (!sb) {
     return (
@@ -236,13 +299,18 @@ export default async function CasesPage() {
   const transferabilityLocked = Boolean(axisCols.error)
 
   const all = res.data as CaseRow[]
-  const pending = all
-    .map((c) => ({
-      ...c,
-      moves: [...(c.case_moves ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)),
-      evidence: c.case_evidence ?? [],
-    }))
-    .filter((c) => c.review_status === 'draft' || c.moves.some((m) => m.review_status === 'draft'))
+  const cases: ViewCase[] = all.map((c) => ({
+    ...c,
+    moves: [...(c.case_moves ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)),
+    evidence: c.case_evidence ?? [],
+  }))
+  const isPending = (c: ViewCase) => c.review_status === 'draft' || c.moves.some((m) => m.review_status === 'draft')
+  const byStatus = (c: ViewCase, s: string) => (s === 'all' ? true : s === 'pending' ? isPending(c) : c.review_status === s)
+  // 등급은 무브에 붙는다 — 케이스는 그 등급 무브를 하나라도 가지면 걸린다.
+  const byGrade = (c: ViewCase, g: string) => (g === 'all' ? true : c.moves.some((m) => m.evidence_grade === g))
+  const pending = cases.filter(isPending)
+  const shown = cases.filter((c) => byStatus(c, status) && byGrade(c, grade))
+  const statusLabel = STATUS_FILTERS.find((f) => f.key === status)?.label ?? status
   const draftMoves = pending.reduce((n, c) => n + c.moves.filter((m) => m.review_status === 'draft').length, 0)
   // 이식성 미판정 = 승인된 무브 중 판정이 없는 것. 컬럼이 없으면 세지 않는다 —
   // "전부 미판정"과 "축이 없다"를 같은 숫자로 만들면 §7.1 위반이다.
@@ -250,14 +318,65 @@ export default async function CasesPage() {
     ? null
     : all.reduce((n, c) => n + (c.case_moves ?? []).filter((m) => m.review_status === 'approved' && !m.transferability).length, 0)
 
+  const totalMoves = all.reduce((n, c) => n + (c.case_moves ?? []).length, 0)
+
   return (
     <PageShell maxWidth={960}>
-      {header}
+      <PageHeader
+        {...HEADER}
+        meta={<>전체 케이스 {all.length}건 · 무브 {totalMoves}건 중에서 셈 · 지금 보는 것은 {statusLabel}{grade === 'all' ? '' : ` · 등급 ${grade}`} {shown.length}건</>}
+        filters={
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+            {STATUS_FILTERS.map((f) => (
+              <FilterChip
+                key={f.key}
+                href={qs({ status: f.key })}
+                active={status === f.key}
+                count={cases.filter((c) => byStatus(c, f.key) && byGrade(c, grade)).length}
+              >
+                {f.label}
+              </FilterChip>
+            ))}
+            <span aria-hidden style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 2px' }} />
+            <FilterChip href={qs({ grade: 'all' })} active={grade === 'all'} count={cases.filter((c) => byStatus(c, status)).length}>
+              등급 전체
+            </FilterChip>
+            {GRADES.map((g) => (
+              <FilterChip
+                key={g}
+                href={qs({ grade: g })}
+                active={grade === g}
+                count={cases.filter((c) => byStatus(c, status) && byGrade(c, g)).length}
+              >
+                등급 {g}
+              </FilterChip>
+            ))}
+          </div>
+        }
+      />
 
-      <p style={{ margin: 0, fontSize: 14, color: 'var(--text-body)' }}>
-        승인 대기 무브 <b>{draftMoves}건</b> · 이식성 미판정 <b>{unrated === null ? '확인 불가' : `${unrated}건`}</b>
-        <span style={{ color: 'var(--text-muted)' }}> (검수 대기 케이스 {pending.length}건 / 전체 {all.length}건)</span>
-      </p>
+      {/* 숫자 3개. "확인 불가"는 0 이 아니다 — 이식성 컬럼이 없으면 세지 않고 그렇게 적는다(§7.1). */}
+      <StatGrid min={180}>
+        <StatTile
+          label="승인 대기 무브"
+          value={draftMoves}
+          tone={draftMoves > 0 ? 'warning' : undefined}
+          caption={`검수 대기 케이스 ${pending.length}건 안에서 셈`}
+        />
+        <StatTile
+          label="검수 대기 케이스"
+          value={pending.length}
+          caption={`전체 ${all.length}건 중 · 케이스가 draft 이거나 draft 무브를 가진 것`}
+        />
+        <StatTile
+          label="이식성 미판정"
+          value={unrated === null ? '확인 불가' : unrated}
+          tone={unrated === null ? 'danger' : unrated > 0 ? 'warning' : undefined}
+          caption={unrated === null
+            ? '이식성 컬럼 미적용(마이그 20260915000001) — 0건이 아니라 못 셌다'
+            : '승인된 무브 중 이식성 판정이 없는 것'}
+        />
+      </StatGrid>
 
       {transferabilityLocked && (
         <Notice tone="warning" title="이식성 축 미적용 — 마이그레이션 20260915000001">
@@ -276,9 +395,13 @@ export default async function CasesPage() {
         </Notice>
       )}
 
-      {pending.length === 0 ? (
+      {shown.length === 0 ? (
         <Card bodyStyle={{ padding: 0 }}>
-          <EmptyState compact title="검수 대기 0건 (조회는 정상)" description={`전체 케이스 ${all.length}건이 모두 결정됐다.`} />
+          {status === 'pending' && grade === 'all' ? (
+            <EmptyState compact title="검수 대기 0건 (조회는 정상)" description={`전체 케이스 ${all.length}건이 모두 결정됐다.`} />
+          ) : (
+            <EmptyState compact title="이 필터에 맞는 케이스 0건 (조회는 정상)" description={`전체 ${all.length}건 중 ${statusLabel}${grade === 'all' ? '' : ` · 등급 ${grade}`} 에 걸리는 케이스가 없다.`} />
+          )}
         </Card>
       ) : (
         <>
@@ -286,28 +409,16 @@ export default async function CasesPage() {
 
           {/* 점프 목록. 12건이 한 페이지에 세로로 이어져 있어 아래쪽 케이스는 스크롤로만 갈 수 있었다.
               칩 하나 = 케이스 하나, 숫자는 그 케이스에서 아직 결정 안 한 무브 수. */}
-          <nav aria-label="검수 대기 케이스" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {pending.map((c) => {
-              const n = c.moves.filter((m) => m.review_status === 'draft').length
-              return (
-                <a
-                  key={c.id}
-                  href={`#${caseAnchor(c.slug)}`}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px',
-                    borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', textDecoration: 'none',
-                    border: '1px solid var(--border)', background: 'var(--surface-card)', color: 'var(--text-body)',
-                  }}
-                >
-                  {c.brand_name}
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: n ? 'var(--warning-fg)' : 'var(--text-muted)' }}>{n}</span>
-                </a>
-              )
-            })}
+          <nav aria-label="케이스 점프 목록" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {shown.map((c) => (
+              <FilterChip key={c.id} href={`#${caseAnchor(c.slug)}`} active={false} count={c.moves.filter((m) => m.review_status === 'draft').length} countTone="warning">
+                {c.brand_name}
+              </FilterChip>
+            ))}
           </nav>
 
           <div style={{ display: 'grid', gap: 16 }}>
-            {pending.map((c, idx) => (
+            {shown.map((c, idx) => (
               <Card
                 key={c.id}
                 id={caseAnchor(c.slug)}
@@ -335,25 +446,24 @@ export default async function CasesPage() {
 
                   <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600 }}>무브 {c.moves.length}건</p>
                   {c.moves.map((m, i) => (
-                    <MoveBlock key={m.id} m={m} i={i} evidence={c.evidence.filter((e) => e.case_move_id === m.id)} locked={locked} transferabilityLocked={transferabilityLocked} />
+                    <MoveBlock key={m.id} m={m} i={i} evidence={c.evidence.filter((e) => e.case_move_id === m.id)} caseEvidenceTotal={c.evidence.length} locked={locked} transferabilityLocked={transferabilityLocked} />
                   ))}
 
-                  <section style={{ borderTop: '2px solid var(--border-strong)', paddingTop: 14, display: 'grid', gap: 8 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>케이스 결정</p>
+                  <DecisionBox label="케이스 결정" tone="case">
                     {c.review_status === 'draft' ? (
                       <DecisionForm kind="case" id={c.id} locked={locked} approveWarning={caseApprovalWarning(c.moves)} />
                     ) : (
                       <p style={muted}>케이스는 이미 {REVIEW[c.review_status]?.label ?? c.review_status}{c.review_note ? ` · ${c.review_note}` : ''} — draft 무브만 남아 있다.</p>
                     )}
                     {/* 결정을 내린 자리에서 바로 다음 케이스로. 위로 올라가 점프 목록을 다시 찾지 않게. */}
-                    {pending[idx + 1] ? (
-                      <a href={`#${caseAnchor(pending[idx + 1].slug)}`} style={{ fontSize: 13, justifySelf: 'start' }}>
-                        다음 케이스 ↓ {pending[idx + 1].brand_name}
+                    {shown[idx + 1] ? (
+                      <a href={`#${caseAnchor(shown[idx + 1].slug)}`} style={{ fontSize: 13, justifySelf: 'start' }}>
+                        다음 케이스 ↓ {shown[idx + 1].brand_name}
                       </a>
                     ) : (
                       <p style={muted}>마지막 케이스다.</p>
                     )}
-                  </section>
+                  </DecisionBox>
                 </div>
               </Card>
             ))}

@@ -36,6 +36,21 @@ const muted = { margin: 0, fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-norma
 
 const STEPS = ['분석 대상', '수집 원문', '분석 시작'] as const
 
+/**
+ * 이 분석이 답하는 질문. **화면 안내문이지 데이터가 아니다** — 어느 프로젝트에서도
+ * 같은 세 줄이 뜬다. 결과 화면의 섹션 제목과 같은 질문을 미리 보여 주는 것이 목적이다.
+ */
+const ANSWERS = [
+  '이 시장에서 무엇이 가장 아픈가?',
+  '그중 아직 아무도 채우지 않은 자리는 어디인가?',
+  '남들은 같은 문제를 어떻게 풀었나?',
+] as const
+
+/** 단계 진행 표시 — 카드 오른쪽 위 "n/3". StepIndicator 와 같은 값을 카드 안에서 다시 짚는다. */
+function StepOf({ n }: { n: 1 | 2 | 3 }) {
+  return <Badge tone="neutral" size="sm">{n}/{STEPS.length}</Badge>
+}
+
 function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
   return (
     <ol aria-label="진행 단계" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, listStyle: 'none', margin: 0, padding: 0 }}>
@@ -89,6 +104,9 @@ export default function AnalyzeNewPage() {
   const [facets, setFacets] = useState<FacetValues>({})
   const [saveProfile, setSaveProfile] = useState(false)
   const [profileNote, setProfileNote] = useState('')
+  // 프리필이 실제로 값을 넣었을 때만 출처를 적는다. 프로필이 없거나 조회가 실패한 경우에도
+  // "프로필에서 왔다"고 적으면, 사람이 직접 친 값을 프로필 값으로 착각한다.
+  const [prefilled, setPrefilled] = useState(false)
 
   // 2단계: 수집 원문
   const [sourceType, setSourceType] = useState<AnalysisSourceType>('review')
@@ -134,15 +152,21 @@ export default function AnalyzeNewPage() {
         const json = await res.json().catch(() => null)
         const p = json?.profile as Record<string, string | null> | null | undefined
         if (!p || !alive) return
-        setPitch((v) => (v.trim() ? v : p.pitch ?? ''))
-        setMarket((v) => (v.trim() ? v : p.market ?? ''))
+        const FACET_KEYS: FacetKey[] = ['bottleneck', 'business_model', 'buyer_type', 'price_band', 'purchase_frequency']
+        // "프로필 값으로 채웠다" 는 실제로 빈 칸을 채웠을 때만 참이다 — 사람이 먼저 친 값을 건너뛰었으면
+        // 아무것도 안 채운 것이고, 그때 배너가 뜨면 이 주석 위의 걱정(덮어썼다는 오해)이 그대로 생긴다.
+        let filled = false
+        setPitch((v) => { if (v.trim() || !p.pitch) return v; filled = true; return p.pitch })
+        setMarket((v) => { if (v.trim() || !p.market) return v; filled = true; return p.market })
         setFacets((prev) => {
           const next = { ...prev }
-          for (const k of ['bottleneck', 'business_model', 'buyer_type', 'price_band', 'purchase_frequency'] as FacetKey[]) {
-            if (!next[k] && p[k]) next[k] = p[k] as string
+          for (const k of FACET_KEYS) {
+            if (!next[k] && p[k]) { next[k] = p[k] as string; filled = true }
           }
           return next
         })
+        // 위 updater 들은 다음 렌더 전에 돈다 — 그 뒤에 읽어야 filled 가 맞다.
+        setPrefilled(() => filled)
       } catch {
         // 프리필 실패는 입력을 막지 않는다. 빈 폼으로 계속 쓴다.
       }
@@ -369,9 +393,20 @@ export default function AnalyzeNewPage() {
       <Card
         title="1단계 · 분석 대상"
         subtitle={locked ? '프로젝트가 생성되어 더 이상 수정할 수 없습니다.' : undefined}
-        action={locked ? <Badge tone="success" dot>생성됨</Badge> : null}
+        action={
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <StepOf n={1} />
+            {locked ? <Badge tone="success" dot>생성됨</Badge> : null}
+          </div>
+        }
       >
         <div style={{ display: 'grid', gap: 18 }}>
+          {/* 프리필 출처. 어디서 온 값인지 안 적으면, 사람이 안 친 값이 들어와 있는 것을 보고 멈춘다. */}
+          {prefilled && (
+            <p style={muted}>
+              비어 있던 칸은 <a href="/settings/profile">내 프로필</a>에 저장된 값으로 미리 채웠다(이미 입력한 칸은 건드리지 않는다).
+            </p>
+          )}
           <fieldset style={fieldsetReset} disabled={locked}>
             <legend style={{ ...labelStyle, padding: 0, marginBottom: 8 }}>분석 방향</legend>
             <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))' }}>
@@ -481,7 +516,12 @@ export default function AnalyzeNewPage() {
         <Card
           title="2단계 · 수집 원문"
           subtitle="길은 둘이다. 지금 붙여넣거나, 다나와 상품 URL 을 걸어 두고 밤에 모은다. 둘 다 해도 된다."
-          action={<Badge tone={inputs.length ? 'info' : 'neutral'}>{inputs.length}개</Badge>}
+          action={
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <StepOf n={2} />
+              <Badge tone={inputs.length ? 'info' : 'neutral'}>{inputs.length}개</Badge>
+            </div>
+          }
         >
           <div style={{ display: 'grid', gap: 16 }}>
             <p style={{ ...muted, fontWeight: 600, color: 'var(--text-body)' }}>가. 지금 붙여넣기</p>
@@ -560,8 +600,16 @@ export default function AnalyzeNewPage() {
       )}
 
       {/* ── 3단계 ───────────────────────────────────────── */}
-      <Card title="3단계 · 분석 시작">
+      <Card title="3단계 · 분석 시작" action={<StepOf n={3} />}>
         <div style={{ display: 'grid', gap: 12 }}>
+          {/* 버튼을 누르기 전에 무엇이 돌아오는지 적는다. 결과 화면의 섹션 제목과 같은 질문이다. */}
+          <div>
+            <p style={{ ...muted, fontWeight: 600, color: 'var(--text-body)', marginBottom: 6 }}>이 분석이 답하는 질문</p>
+            <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4 }}>
+              {ANSWERS.map((q) => <li key={q} style={muted}>{q}</li>)}
+            </ul>
+          </div>
+
           {extractError && (
             <Notice tone="danger" action={<Button variant="outline" size="sm" onClick={startAnalysis}>다시 시도</Button>}>
               {extractError}

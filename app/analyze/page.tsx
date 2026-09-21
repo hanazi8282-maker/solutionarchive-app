@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import {
   ANGLE_READY_STATUSES, MODE_LABELS, PURPOSE_LABELS,
@@ -12,7 +12,8 @@ import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { ButtonLink } from '../_ds/components/Button'
 import { EmptyState } from '../_ds/components/EmptyState'
-import { Notice, PageHeader, PageShell } from '../_ds/components/Shell'
+import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
+import { FilterChip } from '../_ds/components/FilterChip'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '소구점 분석' }
@@ -73,7 +74,7 @@ function AxisStrip({ r }: { r: Row }) {
     : fmt1(demand.value)
   const precedentText = latest == null ? '미진단' : latest.match_status === 'not_run' ? '확인 불가' : fmt1(precedent)
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px', marginTop: 6 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px' }}>
       <span style={cell} title={demand.reason}>수요축 <span style={strong}>{demandText}</span></span>
       <span style={cell} title={latest ? `${latest.match_status} · ${latest.created_at ? `${KST.format(Date.parse(latest.created_at))} KST` : ''}` : 'pmf-assess 로 선례 진단을 돌린 적이 없다'}>
         선례축 <span style={strong}>{precedentText}</span>
@@ -117,23 +118,20 @@ const dayOf = (v: string | null | undefined) => {
 }
 
 const wrap: CSSProperties = { overflowWrap: 'anywhere', minWidth: 0 }
+/** 한 줄로 자른다 — 밴드 폭이 좁아 상품 설명·URL 이 두세 줄로 번지면 행 높이가 제각각이 된다. 전문은 title 로. */
+const oneLine: CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }
 
-function FilterLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? 'page' : undefined}
-      style={{
-        display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 12px',
-        borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap',
-        border: `1px solid ${active ? 'var(--info-border)' : 'var(--border)'}`,
-        background: active ? 'var(--info-bg)' : 'var(--surface-card)',
-        color: active ? 'var(--info-fg)' : 'var(--text-body)',
-      }}
-    >
-      {children}
-    </Link>
-  )
+// ── 목록 행 = 4열 밴드 ─────────────────────────────────────────
+// 상품 / 원문 / 두 축 / 상태·경과. 폭이 좁아지면 auto-fit 이 열을 줄여 375px 에서 1열로 접힌다
+// (미디어쿼리 없이 — 인라인 스타일에는 못 쓴다). min(100%, …) 가 없으면 좁은 화면에서 행이 넘친다.
+const BANDS: CSSProperties = {
+  flex: '1 1 min(100%, 520px)', minWidth: 0,
+  display: 'grid', gap: 12, alignItems: 'start',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))',
+}
+const BAND_LABEL: CSSProperties = {
+  display: 'block', fontSize: 11, fontWeight: 500, letterSpacing: 'var(--ls-tight)',
+  color: 'var(--text-muted)', marginBottom: 4,
 }
 
 export default async function AnalyzeListPage({ searchParams }: { searchParams: Promise<{ status?: string; sort?: string }> }) {
@@ -150,10 +148,13 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   }
   const sb = await createClient()
 
-  const header = (
+  // 데이터를 읽기 전(오류 분기)에도 같은 헤더를 쓴다 — 건수 캡션과 필터 행만 나중에 채운다.
+  const header = (meta?: ReactNode, filters?: ReactNode) => (
     <PageHeader
       title="소구점 분석"
-      subtitle="분석 프로젝트 목록. 상태별로 걸러 보고, 검수·앵글 화면으로 들어간다."
+      subtitle="어느 프로젝트부터 볼까? 상태로 걸러 보고, 검수·앵글 화면으로 들어간다."
+      meta={meta}
+      filters={filters}
       action={<ButtonLink href="/analyze/new" variant="primary">새 분석</ButtonLink>}
     />
   )
@@ -161,7 +162,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   if (!sb) {
     return (
       <PageShell maxWidth={960}>
-        {header}
+        {header()}
         <Notice tone="danger" title="확인 불가 — Supabase 환경변수 미설정">
           프로젝트 목록을 조회하지 못했다. 프로젝트가 없다는 뜻이 아니다.
         </Notice>
@@ -179,7 +180,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   if (res.error || !res.data) {
     return (
       <PageShell maxWidth={960}>
-        {header}
+        {header()}
         <Notice tone="danger" title="확인 불가 — 프로젝트 목록 조회 실패">
           {res.error?.message ?? '응답에 행이 없다'} · 프로젝트가 없다는 뜻이 아니다.
         </Notice>
@@ -242,9 +243,40 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
     })
     : filtered
 
+  // ── 타일 4개 ───────────────────────────────────────────────
+  // 새 쿼리 0. 전부 위에서 이미 센 값이고, 필터 칩과 **같은 식**을 쓴다 — 타일과 칩의 숫자가
+  // 어긋나면 사람은 둘 다 안 믿는다. caption 의 기준 건수는 LIMIT 경고와 같은 숫자여야 한다.
+  const extractedN = counts.get('extracted') ?? 0
+  const stalledN = all.filter((r) => stallOf(r, now).stalled).length
+  const scope = `최근 ${LIMIT}건 안에서 센 값`
+
+  const filters = (
+    // nowrap + overflowX: 375px 에서 칩 행 **안쪽**만 가로로 스크롤된다(페이지는 안 밀린다).
+    // 인라인 스타일에는 미디어쿼리를 못 써서, 넓은 화면에서도 같은 한 줄 스크롤 컨테이너다.
+    <nav
+      aria-label="상태 필터"
+      style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, overflowX: 'auto', scrollbarWidth: 'thin' }}
+    >
+      <FilterChip href={qs({ status: undefined })} active={filter === DEFAULT_FILTER} count={all.length - collectingN}>
+        수집 중 제외
+      </FilterChip>
+      {readyN > 0 && (
+        <FilterChip href={qs({ status: READY_FILTER })} active={filter === READY_FILTER} count={readyN}>
+          원문 있음·분석 전
+        </FilterChip>
+      )}
+      {[...counts.entries()].map(([s, n]) => (
+        <FilterChip key={s} href={qs({ status: s })} active={filter === s} count={n}>
+          {STATUS[s]?.label ?? s}
+        </FilterChip>
+      ))}
+      <FilterChip href={qs({ status: 'all' })} active={filter === 'all'} count={all.length}>전체</FilterChip>
+    </nav>
+  )
+
   return (
     <PageShell maxWidth={960}>
-      {header}
+      {header(`전체 ${all.length}건 · 지금 보는 것 ${rows.length}건 · ${scope}`, filters)}
 
       {discovery && (
         <DismissBanner storageKey={`sa.analyze.discovery-banner.${discovery.day}`}>
@@ -256,6 +288,36 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
       {all.length >= LIMIT && (
         <Notice tone="warning">최근 {LIMIT}건까지만 불러왔다. 건수는 그 안에서 센 값이다.</Notice>
       )}
+
+      <StatGrid>
+        <StatTile
+          label="전체"
+          value={all.length}
+          caption={`${scope} · 수집 중 ${collectingN}건 포함`}
+          href={qs({ status: 'all' })}
+        />
+        <StatTile
+          label="검수 대기"
+          value={extractedN}
+          tone={extractedN > 0 ? 'warning' : undefined}
+          caption={`${scope} · 분석은 끝났고 사람 검수만 남은 것`}
+          href={qs({ status: 'extracted' })}
+        />
+        <StatTile
+          label="원문 있음·분석 전"
+          value={readyN}
+          tone={readyN > 0 ? 'info' : undefined}
+          caption={`${scope} · 수집 중인데 원문이 이미 쌓였다`}
+          href={qs({ status: READY_FILTER })}
+        />
+        <StatTile
+          label="오래 멈춤"
+          value={stalledN}
+          tone={stalledN > 0 ? 'danger' : undefined}
+          // 필터 칩이 없는 유일한 타일이다 — 상태가 아니라 체류 시간으로 센 값이라 링크할 곳이 없다.
+          caption={`${scope} · 검수 대기·분석 중으로 ${STALL_DAYS}일 이상`}
+        />
+      </StatGrid>
 
       {todays && (
         <Card
@@ -272,23 +334,6 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
           </p>
         </Card>
       )}
-
-      <nav aria-label="상태 필터" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        <FilterLink href={qs({ status: undefined })} active={filter === DEFAULT_FILTER}>
-          수집 중 제외 {all.length - collectingN}
-        </FilterLink>
-        {readyN > 0 && (
-          <FilterLink href={qs({ status: READY_FILTER })} active={filter === READY_FILTER}>
-            원문 있음·분석 전 {readyN}
-          </FilterLink>
-        )}
-        {[...counts.entries()].map(([s, n]) => (
-          <FilterLink key={s} href={qs({ status: s })} active={filter === s}>
-            {STATUS[s]?.label ?? s} {n}
-          </FilterLink>
-        ))}
-        <FilterLink href={qs({ status: 'all' })} active={filter === 'all'}>전체 {all.length}</FilterLink>
-      </nav>
 
       {/*
         정체 한 줄. 건수만으로는 "3건이 3일째인지 3주째인지" 를 알 수 없어서 최장 체류를 같이 적고,
@@ -307,8 +352,8 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
       )}
       <nav aria-label="정렬" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
         정렬
-        <FilterLink href={qs({ sort: undefined })} active={!byDemand}>최근 생성 순</FilterLink>
-        <FilterLink href={qs({ sort: 'demand' })} active={byDemand}>수요축 높은 순</FilterLink>
+        <FilterChip href={qs({ sort: undefined })} active={!byDemand}>최근 생성 순</FilterChip>
+        <FilterChip href={qs({ sort: 'demand' })} active={byDemand}>수요축 높은 순</FilterChip>
       </nav>
 
       <Card bodyStyle={{ padding: 0 }}>
@@ -336,36 +381,67 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
               const stall = stallOf(r, now)
               return (
                 <li key={r.id} style={{
-                  display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                  display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12,
                   padding: '14px 20px', borderTop: i ? '1px solid var(--border)' : 'none',
                 }}>
-                  <div style={{ ...wrap, flex: '1 1 420px' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-                      <Badge tone={st?.tone ?? 'neutral'} dot size="sm">{st?.label ?? r.status}</Badge>
-                      <Badge tone="neutral" size="sm">{MODE_LABELS[r.mode ?? 'forward'] ?? r.mode}</Badge>
-                      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                        {PURPOSE_LABELS[r.purpose] ?? r.purpose} · {r.created_at ? `${KST.format(Date.parse(r.created_at))} KST` : '생성일 없음'}
-                        {' · '}원문 {inputCount(r)}건
-                      </span>
-                      {isReady(r) && <Badge tone="warning" size="sm">분석 전</Badge>}
-                      {/* 기준 시각을 title 에 적는다 — 어느 날짜로 센 숫자인지 확인할 수 없으면 사람이 안 믿는다. */}
-                      {stall.stalled && (
-                        <Badge
-                          tone="danger"
-                          size="sm"
-                          title={`${DWELL_FIELD_LABEL[stall.field!]} 기준 ${stall.days}일째 ${st?.label ?? r.status} (기준 ${STALL_DAYS}일)`}
-                        >
-                          오래 멈춤 {stall.days}일
-                        </Badge>
-                      )}
+                  <div style={BANDS}>
+                    {/* 1 — 상품 한 줄 + URL 작게 */}
+                    <div style={{ minWidth: 0 }}>
+                      <span style={BAND_LABEL}>상품</span>
+                      <div
+                        title={r.product_elevator_pitch}
+                        style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-strong)', ...oneLine }}
+                      >
+                        {r.product_elevator_pitch}
+                      </div>
+                      <div
+                        title={r.competitor_url}
+                        style={{ marginTop: 2, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', ...oneLine }}
+                      >
+                        {r.competitor_url}
+                      </div>
                     </div>
-                    <div style={{ marginTop: 6, fontSize: 14, fontWeight: 500, color: 'var(--text-strong)', ...wrap }}>
-                      {r.product_elevator_pitch}
+
+                    {/* 2 — 원문 N건 */}
+                    <div style={{ minWidth: 0 }}>
+                      <span style={BAND_LABEL}>원문</span>
+                      <div style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--text-strong)' }}>
+                        {inputCount(r)}건
+                      </div>
+                      {isReady(r) && <div style={{ marginTop: 4 }}><Badge tone="warning" size="sm">분석 전</Badge></div>}
                     </div>
-                    <div style={{ marginTop: 2, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)', ...wrap }}>
-                      {r.competitor_url}
+
+                    {/* 3 — 수요축 · 선례축 · 사분면 */}
+                    <div style={{ minWidth: 0 }}>
+                      <span style={BAND_LABEL}>두 축</span>
+                      <AxisStrip r={r} />
                     </div>
-                    <AxisStrip r={r} />
+
+                    {/* 4 — 상태 · 경과 */}
+                    <div style={{ minWidth: 0 }}>
+                      <span style={BAND_LABEL}>상태·경과</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
+                        <Badge tone={st?.tone ?? 'neutral'} dot size="sm">{st?.label ?? r.status}</Badge>
+                        {/* 기준 시각을 title 에 적는다 — 어느 날짜로 센 숫자인지 확인할 수 없으면 사람이 안 믿는다. */}
+                        {stall.stalled && (
+                          <Badge
+                            tone="danger"
+                            size="sm"
+                            title={`${DWELL_FIELD_LABEL[stall.field!]} 기준 ${stall.days}일째 ${st?.label ?? r.status} (기준 ${STALL_DAYS}일)`}
+                          >
+                            오래 멈춤 {stall.days}일
+                          </Badge>
+                        )}
+                      </div>
+                      <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, ...wrap }}>
+                        {/* days == null 은 0일이 아니다 — 시각을 못 읽었다는 뜻이다(§7.1). */}
+                        {stall.days == null ? '경과 확인 불가' : `${stall.days}일째 (${DWELL_FIELD_LABEL[stall.field!]} 기준)`}
+                        <br />
+                        {MODE_LABELS[r.mode ?? 'forward'] ?? r.mode} · {PURPOSE_LABELS[r.purpose] ?? r.purpose}
+                        <br />
+                        {r.created_at ? `${KST.format(Date.parse(r.created_at))} KST 생성` : '생성일 없음'}
+                      </div>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <ButtonLink href={`/analyze/${r.id}/review`} size="sm">상세·검수</ButtonLink>

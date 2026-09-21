@@ -5,6 +5,8 @@ import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
 import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
+import { FilterChip } from '../_ds/components/FilterChip'
+import { MIN_VOC_HITS, MAX_VOC_HITS } from '@/lib/discovery/candidate'
 import { ReviewForm } from './review-form'
 
 export const dynamic = 'force-dynamic'
@@ -40,7 +42,7 @@ type CandidateRow = {
 
 const VERDICT: Record<string, { label: string; tone: Tone }> = {
   accepted: { label: '채택 — 실측 통과', tone: 'success' },
-  rejected: { label: '기각 — 알아봤는데 미달', tone: 'neutral' },
+  rejected: { label: '기각 — 알아봤는데 기준 밖', tone: 'neutral' },
   unverified: { label: '확인 불가 — 못 알아봤다', tone: 'danger' },
 }
 
@@ -60,41 +62,38 @@ const muted: CSSProperties = { margin: 0, fontSize: 12, color: 'var(--text-muted
 const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 const KST_DAY = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
 
+/** 채택 창. 판정한 것은 프로브이고, 화면은 그 기준을 실측값 옆에 그대로 적기만 한다. */
+const WINDOW_TEXT = `${MIN_VOC_HITS}~${MAX_VOC_HITS}`
+
 /**
  * probe_hits 의 NULL 은 **0 이 아니라 "못 셌다"** 다(컬럼 COMMENT).
  * 0 으로 렌더하면 "세어 봤더니 없더라"로 읽혀서, 프로브가 깨진 날을 사람이 못 알아챈다.
+ *
+ * 실측값만 두면 30 이 많은지 적은지 사람이 알 수 없다 — **기준을 나란히** 적는다.
+ * 실측값이 없으면 통과·미달을 말하지 않는다(확인 불가). 기준은 상수 하나를 읽는다 —
+ * 화면에 숫자를 다시 적으면 env 로 창을 옮긴 날 화면만 옛 값을 말한다.
  */
 function ProbeHits({ hits }: { hits: number | null }) {
   if (hits === null || hits === undefined) {
-    return <Badge tone="danger" size="sm">VOC 확인 불가 (못 셈)</Badge>
+    return <Badge tone="danger" size="sm">VOC 확인 불가 (못 셈) · 기준 {WINDOW_TEXT}</Badge>
   }
-  return <Badge tone={hits >= 30 ? 'info' : 'neutral'} size="sm">실측 VOC {hits.toLocaleString()}건</Badge>
-}
-
-function FilterLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  const inWindow = hits >= MIN_VOC_HITS && hits <= MAX_VOC_HITS
   return (
-    <Link
-      href={href}
-      aria-current={active ? 'page' : undefined}
-      style={{
-        display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 12px',
-        borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap',
-        border: `1px solid ${active ? 'var(--info-border)' : 'var(--border)'}`,
-        background: active ? 'var(--info-bg)' : 'var(--surface-card)',
-        color: active ? 'var(--info-fg)' : 'var(--text-body)',
-      }}
-    >
-      {children}
-    </Link>
+    <Badge tone={inWindow ? 'info' : 'neutral'} size="sm">
+      실측 VOC {hits.toLocaleString()}건 / 기준 {WINDOW_TEXT}
+    </Badge>
   )
 }
 
 function CandidateCard({ c }: { c: CandidateRow }) {
   const v = VERDICT[c.verdict]
   const h = HUMAN[c.human_review]
+  // 사람이 무효화한 후보는 회색으로 내린다 — 목록에서 **빼지는 않는다.** 빼면 "왜 이건
+  // 안 뽑혔나"에 아무도 답할 수 없고, 그게 이 테이블이 후보 전부를 남기는 이유다(설계 §1).
+  const overridden = c.human_review === 'killed'
   return (
-    <Card>
-      <div style={{ display: 'grid', gap: 10 }}>
+    <Card style={overridden ? { background: 'var(--surface-muted)' } : undefined}>
+      <div style={{ display: 'grid', gap: 10, opacity: overridden ? 0.72 : 1 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
           <Badge tone={v?.tone ?? 'neutral'} dot size="sm">{v?.label ?? c.verdict}</Badge>
           <Badge tone={h?.tone ?? 'neutral'} size="sm">{h?.label ?? c.human_review}</Badge>
@@ -245,8 +244,8 @@ export default async function DiscoveryPage({
         <>
           <StatGrid>
             <StatTile label="검토 대기" value={pendingN} caption="사람이 아직 안 본 후보" tone={pendingN > 0 ? 'warning' : undefined} />
-            <StatTile label="채택" value={accepted} caption="실측 VOC 30건 이상" />
-            <StatTile label="기각" value={rejected} caption="알아봤는데 미달" />
+            <StatTile label="채택" value={accepted} caption={`실측 VOC 가 기준 ${WINDOW_TEXT}건 안`} />
+            <StatTile label="기각" value={rejected} caption="알아봤는데 기준 밖" />
             <StatTile
               label="확인 불가"
               value={unverified.length}
@@ -257,7 +256,7 @@ export default async function DiscoveryPage({
 
           {/*
             확인 불가는 기각과 같은 자리에 두지 않는다. 전자는 "프로브가 깨져서 못 알아봤다"이고
-            후자는 "알아봤는데 미달"이다. 섞으면 다나와가 마크업을 바꾼 날 후보 전부가
+            후자는 "알아봤는데 기준 밖"이다. 섞으면 다나와가 마크업을 바꾼 날 후보 전부가
             "정상 기각"으로 보이고 발굴이 영영 0건이 된다(설계 §2-2, CLAUDE.md §7.1).
           */}
           {latestUnverified > 0 && (
@@ -272,17 +271,17 @@ export default async function DiscoveryPage({
           )}
 
           <nav aria-label="후보 필터" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            <FilterLink href={qs({ verdict: 'all', review: 'all', kind: 'all' })} active={fVerdict === 'all' && fReview === 'all' && fKind === 'all'}>
-              전체 {all.length}
-            </FilterLink>
-            <FilterLink href={qs({ review: 'pending' })} active={fReview === 'pending'}>검토 대기 {pendingN}</FilterLink>
-            <FilterLink href={qs({ verdict: 'accepted' })} active={fVerdict === 'accepted'}>채택 {accepted}</FilterLink>
-            <FilterLink href={qs({ verdict: 'rejected' })} active={fVerdict === 'rejected'}>기각 {rejected}</FilterLink>
-            <FilterLink href={qs({ verdict: 'unverified' })} active={fVerdict === 'unverified'}>확인 불가 {unverified.length}</FilterLink>
+            <FilterChip href={qs({ verdict: 'all', review: 'all', kind: 'all' })} active={fVerdict === 'all' && fReview === 'all' && fKind === 'all'} count={all.length}>
+              전체
+            </FilterChip>
+            <FilterChip href={qs({ review: 'pending' })} active={fReview === 'pending'} count={pendingN}>검토 대기</FilterChip>
+            <FilterChip href={qs({ verdict: 'accepted' })} active={fVerdict === 'accepted'} count={accepted}>채택</FilterChip>
+            <FilterChip href={qs({ verdict: 'rejected' })} active={fVerdict === 'rejected'} count={rejected}>기각</FilterChip>
+            <FilterChip href={qs({ verdict: 'unverified' })} active={fVerdict === 'unverified'} count={unverified.length}>확인 불가</FilterChip>
             {['physical', 'saas', 'service'].map((k) => {
               const n = all.filter((c) => c.kind === k).length
               return n === 0 ? null : (
-                <FilterLink key={k} href={qs({ kind: k })} active={fKind === k}>{KIND[k]} {n}</FilterLink>
+                <FilterChip key={k} href={qs({ kind: k })} active={fKind === k} count={n}>{KIND[k]}</FilterChip>
               )
             })}
           </nav>

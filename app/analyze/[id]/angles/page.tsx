@@ -9,7 +9,7 @@ import { Card } from '../../../_ds/components/Card'
 import { Button, ButtonLink } from '../../../_ds/components/Button'
 import { EmptyState } from '../../../_ds/components/EmptyState'
 import { Field, Textarea } from '../../../_ds/components/Field'
-import { Notice, PageHeader, PageShell } from '../../../_ds/components/Shell'
+import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../../../_ds/components/Shell'
 import { VERDICT_LABEL } from '@/lib/analysis/aspect-verdict'
 import { AdvisorLoader } from '../advisor-cards'
 import {
@@ -536,12 +536,23 @@ export default function AnalyzeAnglesPage() {
           subtitle="차별화 기회에서 뽑은 카피 초안 · 실증 게이트 통과분"
           action={<ButtonLink href={reviewHref} variant="outline" size="sm">← 검수 화면</ButtonLink>}
         />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          <Badge tone="neutral" size="sm">앵글 {visible.length}건</Badge>
-          <Badge tone="info" size="sm">차별화 {differentiators.length}</Badge>
-          <Badge tone="neutral" size="sm">기본기 {tableStakes.length}</Badge>
-          {rewrittenCount > 0 && <Badge tone="warning" size="sm">재작성 {rewrittenCount}</Badge>}
-        </div>
+        {/* 배지 세 개로 흘려보내던 숫자를 타일로 올린다 — 숫자마다 무엇을 몇 건 중에서 셌는지 적는다. */}
+        <StatGrid min={160}>
+          <StatTile
+            label="앵글"
+            value={visible.length}
+            caption={rewrittenCount > 0
+              ? `게이트 재작성 ${rewrittenCount}건 포함 · 카피 소재가 아닌 사분면은 제외`
+              : '카피 소재가 아닌 사분면은 제외'}
+          />
+          <StatTile
+            label="차별화"
+            value={differentiators.length}
+            tone={differentiators.length > 0 ? 'info' : undefined}
+            caption={`앵글 ${visible.length}건 중 · 카피의 주인공`}
+          />
+          <StatTile label="기본기" value={tableStakes.length} caption="이미 시장 표준인 속성" />
+        </StatGrid>
       </div>
 
       {/* 고정 한 줄. 이 화면의 산출물이 어디까지인지 매번 같은 문장으로 못 박는다(설계 §3-1 8). */}
@@ -568,7 +579,7 @@ export default function AnalyzeAnglesPage() {
       {/* ── 차별화 앵글 ────────────────────────────────────── */}
       <section>
         <SectionHeading
-          title={`차별화 앵글 — ${VERDICT_LABEL.PUSH}`}
+          title={`무엇을 앞세울까 — 차별화 앵글 · ${VERDICT_LABEL.PUSH}`}
           desc={`${QUADRANT_SHORT_LABELS.DIFFERENTIATOR} — 중요한데 아직 충족되지 않은 지점. 검수 화면의 “${VERDICT_LABEL.PUSH}” 판정과 같은 뜻입니다. 카피의 주인공입니다. 기회점수 높은 순.`}
           count={differentiators.length}
         />
@@ -602,7 +613,7 @@ export default function AnalyzeAnglesPage() {
       {(tableStakes.length > 0 || tableStakesAngles.length > 0) && (
         <section>
           <SectionHeading
-            title={`기본기 — ${VERDICT_LABEL.TABLE_STAKES}`}
+            title={`무엇을 기본으로 깔까 — 기본기 · ${VERDICT_LABEL.TABLE_STAKES}`}
             desc="이미 시장 표준이라 설득 대상이 아닙니다. 경쟁하듯 어필하지 말고 신뢰 배지 수준으로만 얹으세요."
             count={tableStakes.length}
           />
@@ -630,7 +641,7 @@ export default function AnalyzeAnglesPage() {
       {others.length > 0 && (
         <section>
           <SectionHeading
-            title={`미분류 — ${VERDICT_LABEL.UNKNOWN}`}
+            title={`어디에도 못 넣은 것은 — 미분류 · ${VERDICT_LABEL.UNKNOWN}`}
             desc="속성이 삭제됐거나 사분면이 비어 있어 어느 섹션에도 속하지 않는 앵글입니다. 판정에 쓸 값이 없다는 뜻이지, 버리라는 뜻이 아닙니다."
             count={others.length}
           />

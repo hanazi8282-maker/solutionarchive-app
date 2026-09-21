@@ -419,7 +419,7 @@ export default async function AgentsPage() {
             {[
               {
                 label: '승인 대기 초안', sub: 'posts · pending_review', x: queue.posts,
-                extra: <a href="/dashboard#drafts" style={{ fontSize: 13 }}>발행 기록에서 처리 →</a> as ReactNode,
+                extra: <a href="/dashboard#drafts" style={{ fontSize: 13 }}>발행 연결 수리에서 처리 →</a> as ReactNode,
               },
               {
                 label: '승인 대기 케이스', sub: 'case_studies · draft', x: queue.cases,
@@ -489,16 +489,6 @@ export default async function AgentsPage() {
                   {c.headline}
                 </p>
 
-                <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, margin: '10px 0 0' }}>
-                  <span
-                    aria-label={`스텝 진행 ${c.bar || '없음'}`}
-                    style={{ ...mono, fontSize: 18, letterSpacing: '0.12em', color: 'var(--text-strong)', ...wrap }}
-                  >
-                    {c.bar || '(스텝 없음)'}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)', ...wrap }}>{c.barLabel}</span>
-                </div>
-
                 <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', ...wrap }}>
                   {c.timeLabels?.[0] ?? '시작'} <When iso={c.startedAt} now={now} /> · {c.timeLabels?.[1] ?? '종료'}{' '}
                   {c.finishedAt ? <When iso={c.finishedAt} now={now} /> : (c.pendingEnd ?? '진행중')}
@@ -512,7 +502,26 @@ export default async function AgentsPage() {
 
                 {c.warn && <Notice tone="warning" style={{ marginTop: 12 }}>{c.warn}</Notice>}
 
-                {c.note && <p style={inset}>{c.note}</p>}
+                {/*
+                  스텝 기호 줄과 실패 사유는 접어 둔다 — 카드 4개가 각자 스텝을 펼쳐 놓으면
+                  첫 화면이 기호로 덮여서 "무엇이 막혔나"가 안 보인다. 닫힌 상태에서도
+                  헤드라인·상태 배지·시작/종료 시각은 그대로 남는다(위 세 덩어리).
+                  경고(응답 없음·풀백 지남)는 접지 않는다 — 그건 지금 봐야 하는 것이다.
+                */}
+                <details className="dgy-details" style={{ marginTop: 12 }}>
+                  <summary>작업 흔적</summary>
+                  <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, margin: '10px 0 0' }}>
+                    <span
+                      aria-label={`스텝 진행 ${c.bar || '없음'}`}
+                      style={{ ...mono, fontSize: 18, letterSpacing: '0.12em', color: 'var(--text-strong)', ...wrap }}
+                    >
+                      {c.bar || '(스텝 없음)'}
+                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)', ...wrap }}>{c.barLabel}</span>
+                  </div>
+
+                  {c.note && <p style={inset}>{c.note}</p>}
+                </details>
               </>
             )}
           </Card>

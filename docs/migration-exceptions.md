@@ -227,3 +227,15 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   앱 경로: `lib/supabase/server.ts`(service_role) select 정상. 셀프테스트 wtp 40·analyze-projects-facets 71·auth 98 통과.
 - 적용 후 음성: anon 키 PostgREST GET `seller_profiles`·`wtp_signals` → `[] HTTP 200`(차단).
 - 어드바이저 재조회: `rls_disabled_in_public` ERROR 0건. 남은 것 — `security_definer_view`(post_performance, ERROR) · `function_search_path_mutable` 2건(WARN) · leaked password protection(WARN) · `rls_enabled_no_policy` INFO 37건(기존 전 테이블 관례). 이번 지시 범위 밖, 별건.
+
+## 2026-09-21 — 20260927000002_post_performance_invoker_search_path.sql (뷰 INVOKER + 함수 search_path)
+
+- 배경: 어드바이저 `security_definer_view`(post_performance, ERROR) · `function_search_path_mutable`(guard_learning_promotion·guard_hypothesis_promotion, WARN).
+  DEFINER 는 의도가 아니라 옵션 없는 `CREATE VIEW` 의 기본값. 실측: anon 키로 뷰 35행 노출(posts·metric_snapshots 는 RLS 로 막혀 있는데 뷰가 대신 읽어 줌).
+- 승인자: **자체 판단(§10.2)** — 예외 5개 해당 없음(삭제·데이터 변경·키 노출·법적·사업방향 아님, 보안 경계를 좁히는 변경). 롤백 파일 있음.
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 호출자 전부 service_role(loop.ts·patterns.ts·threads-report.mjs·트리거). Supabase MCP `apply_migration` — success.
+- 적용 전 드라이런(DO 블록, RAISE 로 롤백): `anon_view=denied(42501) auth_view=denied(42501) service_view_24h=3 hyp=H1 n=0 expect_raise=true raised=true learn_confirmed_1_raised=true learn_candidate_ok`.
+- 적용 후 양성: `reloptions={security_invoker=true}` · grantees postgres,service_role · 두 함수 `proconfig={search_path=public, pg_temp}` · service_role 뷰 35행 · 트리거 예외 문구 그대로("가설 H1 는 표본 0개로 supported 불가" / "표본 1 개로는 확정 불가").
+  셀프테스트 insight-patterns·threads-collect·threads-match·insight-loop-db-guard 통과. service 키 PostgREST 200.
+- 적용 후 음성: anon 키 PostgREST GET `post_performance` → `401 {"code":"42501","message":"permission denied for view post_performance"}`.
+- 어드바이저 재조회: ERROR 0 · WARN 1(leaked password protection, Auth 설정) · INFO 37(기존 관례).

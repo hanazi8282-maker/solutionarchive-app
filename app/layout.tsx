@@ -19,7 +19,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="ko">
       <body>
         <AppNav email={verdict.kind === 'allowed' ? verdict.email : null} />
-        {children}
+        {/* .sa-main — ≥1024px 에서만 고정 사이드바 폭만큼 본문을 민다(styles.css). */}
+        <div className="sa-main">{children}</div>
       </body>
     </html>
   )

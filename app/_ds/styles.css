@@ -38,9 +38,34 @@
 }
 .dgy-tile:hover { border-color: var(--border-strong); }
 
-/* 상단 네비 (AppNav.tsx) */
+/* 네비 (AppNav.tsx) */
 .dgy-nav a:hover { text-decoration: none; background: var(--sidebar-hover-bg); }
 .dgy-nav a[aria-current="page"]:hover { background: var(--sidebar-active-bg); }
+
+/* 셸 분기 — 기본(좁은 화면)은 상단바, 1024px 부터 좌측 고정 사이드바.
+   AppNav 는 둘 다 렌더하고 어느 쪽을 보일지는 여기서만 정한다(JS 로 폭을 재지 않는다).
+   사이드바는 position: fixed 라 좁은 화면에서 display:none 이면 폭을 전혀 차지하지 않는다. */
+.sa-sidebar { display: none; }
+@media (min-width: 1024px) {
+  .sa-sidebar { display: flex; flex-direction: column; }
+  .sa-topbar { display: none; }
+  /* fixed 사이드바가 가리지 않게 본문만 밀어 준다(margin 이 아니라 padding — 배경이 끊기지 않게) */
+  .sa-main { padding-left: var(--sidebar-w); }
+}
+
+/* 목록·검수 화면의 필터 칩 행 (PageHeader filters 슬롯).
+   좁은 화면에서는 sticky 상단바(52px) 아래에, 사이드바 환경에서는 화면 맨 위에 붙는다. */
+.sa-filters {
+  position: sticky;
+  top: 52px;
+  z-index: 10;
+  background: var(--bg-app);
+  padding: 8px 0;
+}
+@media (min-width: 1024px) {
+  .sa-filters { top: 0; }
+}
+
 @media (max-width: 480px) {
   .dgy-nav-brand { display: none; }
   /* 이메일까지 두면 375px 에서 화면 링크 목록이 10px 로 눌린다. 누가 로그인했는지는 로그아웃 버튼 title 로 남긴다. */
@@ -63,7 +88,9 @@
 .dgy-details > summary::before { content: "▸"; color: var(--text-muted); }
 .dgy-details[open] > summary::before { content: "▾"; }
 
-/* 앵커로 섹션에 뛰어갈 때 sticky 네비(52px)에 제목이 가리지 않게 */
+/* 앵커로 섹션에 뛰어갈 때 위에 고정된 것에 제목이 가리지 않게.
+   <1024px 는 sticky 상단바 52px + 여유. ≥1024px 는 상단바가 없는 대신 sticky 필터 행
+   (칩 30px + padding 16px ≈ 46px)이 남아, 같은 68px 이 그것까지 덮는다 — 그래서 값을 가르지 않는다. */
 [id] { scroll-margin-top: 68px; }
 
 /* 질문 버튼 줄 (advisor-cards.tsx) — 좁은 화면에서는 세로로 쌓고 각자 풀폭.

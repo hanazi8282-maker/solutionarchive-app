@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card } from '../_ds/components/Card'
-import { Badge } from '../_ds/components/Badge'
+import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
 import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
 import PostForm, { type ContentItem, type Hypothesis } from './post-form'
@@ -14,10 +14,39 @@ import { checkThreadPost } from '@/lib/threads/voice-check'
 import { PostReviewCard, type PendingPost } from './post-review-form'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: '발행 기록' }
+export const metadata = { title: '발행 연결 수리' }
 
 const oneLine = (s: string | null, n: number) => (s ?? '').replace(/\s+/g, ' ').slice(0, n)
 const muted = { margin: 0, fontSize: 12, color: 'var(--text-muted)' } as const
+
+/**
+ * 어긋난 연결의 원인 유형 라벨. **새 분류를 만들지 않는다** — 매처 크론이
+ * `agent_run_steps` 에 남기는 `classifyUnmatched().kind` 네 값 그대로다(lib/threads/match.ts).
+ * 목록을 이 값으로 묶어 각 묶음에 배지를 달면, "왜 이 글이 여기 있나"를 행 위에서 바로 읽는다.
+ */
+const CAUSE: Record<UnmatchedKind, { label: string; tone: Tone }> = {
+  manual_link: { label: '원인 · 닮은 초안은 있는데 매처가 확신 못 함', tone: 'warning' },
+  column_episode: { label: '원인 · 1등 후보가 칼럼 연재 편 (posts 행 없음)', tone: 'warning' },
+  off_pipeline: { label: '원인 · 어느 후보와도 안 닮음 (파이프라인 외)', tone: 'neutral' },
+  undecidable: { label: '원인 · 유사도 비교 자체를 못 함', tone: 'neutral' },
+}
+
+/** 원인 라벨 + 그 원인의 목록. 라벨만 다르고 연결 폼은 어느 묶음이든 같다. */
+function CauseGroup({ kind, items, intro }: {
+  kind: UnmatchedKind
+  items: (UnlinkedThread & { kind: UnmatchedKind })[]
+  intro?: string
+}) {
+  if (items.length === 0) return null
+  return (
+    <div>
+      <div style={{ marginBottom: 8 }}>
+        <Badge tone={CAUSE[kind].tone} size="sm">{CAUSE[kind].label} · {items.length}건</Badge>
+      </div>
+      <UnlinkedThreadList items={items} intro={intro} />
+    </div>
+  )
+}
 
 /** 초안 생성 시각을 KST 분 단위로. 없음과 형식 이상을 가른다(§7.1). */
 function kstMinute(iso: string | null | undefined): string {
@@ -169,6 +198,7 @@ export default async function DashboardPage() {
   const ofKind = (...ks: UnmatchedKind[]) => (unlinked ?? []).filter(u => ks.includes(u.kind))
   // 조치 대상: 바로 연결할 것 + 칼럼 연재 편(posts 스테이징 후 연결).
   const actionable = ofKind('manual_link', 'column_episode')
+  const manualLink = ofKind('manual_link')
   const columnEpisode = ofKind('column_episode')
   const offPipeline = ofKind('off_pipeline')
   const undecidable = ofKind('undecidable')
@@ -197,7 +227,7 @@ export default async function DashboardPage() {
   return (
     <PageShell maxWidth={960}>
       <PageHeader
-        title="발행 기록"
+        title="발행 연결 수리"
         subtitle="자동 매칭이 놓친 발행 글을 초안에 잇고, 크론이 놓친 성과를 메운다. 사람이 처리할 일이 위에 있다."
       />
 
@@ -265,7 +295,8 @@ export default async function DashboardPage() {
           <div style={{ display: 'grid', gap: 16 }}>
             {actionable.length > 0 ? (
               <>
-                <UnlinkedThreadList items={actionable} />
+                <CauseGroup kind="manual_link" items={manualLink} />
+                <CauseGroup kind="column_episode" items={columnEpisode} />
                 {columnEpisode.length > 0 && (
                   <Notice tone="warning" title={`칼럼 연재 편의 발행본 ${columnEpisode.length}건 — 연결할 초안 행이 아직 없습니다.`}>
                     1등 후보가 <code>COL-…</code> 코드면 그 글의 원본은 <code>content_columns.threads[]</code> 의 연재 편입니다.
@@ -289,19 +320,17 @@ export default async function DashboardPage() {
                   파이프라인 외 게시물 {offPipeline.length}건 · 판정 불가 {undecidable.length}건 (조치 대상 아님 — 펼쳐서 확인)
                 </summary>
                 <div style={{ display: 'grid', gap: 16, marginTop: 12 }}>
-                  {offPipeline.length > 0 && (
-                    <UnlinkedThreadList
-                      items={offPipeline}
-                      intro={`초안·칼럼 연재 편 어느 것과도 유사도가 ${OFF_PIPELINE_MAX} 미만이라 파이프라인 산출물의 발행본으로 보기 어려운 글입니다(초안 없이 직접 쓴 글). 그래도 붙일 초안이 있으면 여기서 연결하면 됩니다 — 분류는 참고일 뿐입니다.`}
-                    />
-                  )}
-                  {undecidable.length > 0 && (
-                    <UnlinkedThreadList
-                      items={undecidable}
-                      intro={'유사도 비교 자체를 못 한 글입니다(게시물 본문 없음 또는 비교 가능한 후보 0건). '
-                        + '‘닮은 초안이 없다’가 아니라 ‘닮았는지 볼 수 없다’입니다 — 맞는 초안을 아는 사람이 직접 고르세요.'}
-                    />
-                  )}
+                  <CauseGroup
+                    kind="off_pipeline"
+                    items={offPipeline}
+                    intro={`초안·칼럼 연재 편 어느 것과도 유사도가 ${OFF_PIPELINE_MAX} 미만이라 파이프라인 산출물의 발행본으로 보기 어려운 글입니다(초안 없이 직접 쓴 글). 그래도 붙일 초안이 있으면 여기서 연결하면 됩니다 — 분류는 참고일 뿐입니다.`}
+                  />
+                  <CauseGroup
+                    kind="undecidable"
+                    items={undecidable}
+                    intro={'유사도 비교 자체를 못 한 글입니다(게시물 본문 없음 또는 비교 가능한 후보 0건). '
+                      + '‘닮은 초안이 없다’가 아니라 ‘닮았는지 볼 수 없다’입니다 — 맞는 초안을 아는 사람이 직접 고르세요.'}
+                  />
                 </div>
               </details>
             )}

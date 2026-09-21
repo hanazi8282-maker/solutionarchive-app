@@ -10,7 +10,7 @@ export default function NotFound() {
         <EmptyState
           title="없는 화면입니다"
           description="주소가 바뀌었거나 잘못 입력됐습니다. 위 메뉴에서 이동하세요."
-          action={<ButtonLink href="/dashboard" variant="neutral">발행 기록으로</ButtonLink>}
+          action={<ButtonLink href="/dashboard" variant="neutral">발행 연결 수리로</ButtonLink>}
         />
       </Card>
     </PageShell>

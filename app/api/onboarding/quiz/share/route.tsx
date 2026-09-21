@@ -24,7 +24,8 @@ const WIDTH = 1200
 const HEIGHT = 630
 const BG = '#0b0f19'
 const FG = '#f8fafc'
-const ACCENT = '#7dd3fc'
+// violet-400 — 앱 브랜드(보라)와 맞춘다. OG 이미지는 CSS 변수를 못 읽어 값을 박아야 한다.
+const ACCENT = '#a78bfa'
 const MUTED = '#94a3b8'
 
 /**

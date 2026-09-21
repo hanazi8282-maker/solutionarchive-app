@@ -23,6 +23,7 @@
   --fs-h1:      24px;  /* page title */
   --fs-h2:      20px;  /* section / card title */
   --fs-h3:      16px;  /* sub-section */
+  --fs-md:      15px;  /* 결론 문단 등 본문보다 한 칸 큰 글 (result 화면 3곳) */
   --fs-base:    14px;  /* body / table cells / inputs */
   --fs-sm:      13px;  /* secondary copy */
   --fs-xs:      12px;  /* labels, captions, badges */

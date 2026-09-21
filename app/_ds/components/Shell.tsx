@@ -24,31 +24,49 @@ export function PageShell({ maxWidth = 960, children }: { maxWidth?: number; chi
   )
 }
 
-/** 2줄 헤더(제목 + 범위를 좁히는 회색 부제) — 디자인 시스템의 페이지 헤더 규칙. */
-export function PageHeader({ title, subtitle, action }: {
+/**
+ * 페이지 헤더 — 제목 + 범위를 좁히는 회색 부제(+ 기준 캡션 `meta`, 액션, 필터 행).
+ *
+ * `meta` 는 "무엇을 몇 건 중에서 셌나"를 적는 자리다. `filters` 는 헤더 아래 sticky 칩 행
+ * (`.sa-filters`, styles.css). 둘 다 안 넘기면 기존 2줄 헤더와 같은 것이 나온다.
+ */
+export function PageHeader({ title, subtitle, meta, action, filters }: {
   title: ReactNode
   subtitle?: ReactNode
+  meta?: ReactNode
   action?: ReactNode
+  filters?: ReactNode
 }) {
   return (
-    <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-      <div style={{ minWidth: 0 }}>
-        <h1 style={{
-          margin: 0, fontSize: 'var(--fs-h1)', fontWeight: 'var(--fw-bold)',
-          letterSpacing: 'var(--ls-tight)', lineHeight: 'var(--lh-tight)', color: 'var(--text-strong)',
-        }}>
-          {title}
-        </h1>
-        {subtitle ? (
-          <p style={{
-            margin: '6px 0 0', fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)',
-            color: 'var(--text-muted)', overflowWrap: 'anywhere',
+    <header style={{ display: 'grid', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{
+            margin: 0, fontSize: 'var(--fs-h1)', fontWeight: 'var(--fw-bold)',
+            letterSpacing: 'var(--ls-tight)', lineHeight: 'var(--lh-tight)', color: 'var(--text-strong)',
           }}>
-            {subtitle}
-          </p>
-        ) : null}
+            {title}
+          </h1>
+          {subtitle ? (
+            <p style={{
+              margin: '6px 0 0', fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)',
+              color: 'var(--text-muted)', overflowWrap: 'anywhere',
+            }}>
+              {subtitle}
+            </p>
+          ) : null}
+          {meta ? (
+            <p style={{
+              margin: '4px 0 0', fontSize: 'var(--fs-xs)', lineHeight: 1.5,
+              color: 'var(--text-muted)', overflowWrap: 'anywhere',
+            }}>
+              {meta}
+            </p>
+          ) : null}
+        </div>
+        {action ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{action}</div> : null}
       </div>
-      {action ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{action}</div> : null}
+      {filters ? <div className="sa-filters">{filters}</div> : null}
     </header>
   )
 }

@@ -1,0 +1,424 @@
+{
+ "summary": {
+  "aspects": 14,
+  "before": {
+   "cards_per_aspect": 3.5,
+   "A_cards_per_aspect": 1,
+   "empty_aspects": 1,
+   "zero_share": 0.7536630036630035,
+   "rel": 0.3061660561660562,
+   "relA": 0.16666666666666666,
+   "pooled": {
+    "zero": 34,
+    "n": 49,
+    "share": 0.6938775510204082
+   }
+  },
+  "after": {
+   "cards_per_aspect": 2.642857142857143,
+   "A_cards_per_aspect": 1,
+   "empty_aspects": 2,
+   "zero_share": 0.6948412698412699,
+   "rel": 0.3726190476190476,
+   "relA": 0.16666666666666666,
+   "pooled": {
+    "zero": 22,
+    "n": 37,
+    "share": 0.5945945945945946
+   }
+  },
+  "judge": "gemini-3.5-flash-lite"
+ },
+ "rows": [
+  {
+   "aspect": "지성 두피 피지 케어 및 정수리 냄새 제거",
+   "bm": null,
+   "before": {
+    "n": 3,
+    "nA": 0,
+    "zero": 0.3333333333333333,
+    "rel": 1,
+    "relA": null
+   },
+   "after": {
+    "n": 3,
+    "nA": 0,
+    "zero": 0.3333333333333333,
+    "rel": 1,
+    "relA": null
+   },
+   "kindExcluded": "5",
+   "opsExcluded": "27",
+   "nC_before": 0,
+   "nC_after": 0,
+   "beforeA": [],
+   "afterA": [],
+   "reused": "prev"
+  },
+  {
+   "aspect": "두피 붉은기 개선",
+   "bm": null,
+   "before": {
+    "n": 2,
+    "nA": 0,
+    "zero": 1,
+    "rel": 0,
+    "relA": null
+   },
+   "after": {
+    "n": 0,
+    "nA": 0,
+    "zero": null,
+    "rel": null,
+    "relA": null
+   },
+   "kindExcluded": "5",
+   "opsExcluded": "27",
+   "nC_before": 2,
+   "nC_after": 0,
+   "beforeA": [],
+   "afterA": [],
+   "reused": "prev"
+  },
+  {
+   "aspect": "탈모 증상 완화 효과",
+   "bm": null,
+   "before": {
+    "n": 7,
+    "nA": 3,
+    "zero": 0.7142857142857143,
+    "rel": 0.2857142857142857,
+    "relA": 0
+   },
+   "after": {
+    "n": 5,
+    "nA": 3,
+    "zero": 0.6,
+    "rel": 0.4,
+    "relA": 0
+   },
+   "kindExcluded": null,
+   "opsExcluded": "27",
+   "nC_before": 2,
+   "nC_after": 0,
+   "beforeA": [
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+    "1ef925a6-c764-4776-859b-43d439833092",
+    "6dbc2db2-4349-4fe4-8552-6b9a165baff6"
+   ],
+   "afterA": [
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+    "1ef925a6-c764-4776-859b-43d439833092",
+    "6dbc2db2-4349-4fe4-8552-6b9a165baff6"
+   ],
+   "reused": "prev"
+  },
+  {
+   "aspect": "탈모 완화 및 발모 효과",
+   "bm": null,
+   "before": {
+    "n": 3,
+    "nA": 0,
+    "zero": 1,
+    "rel": 0,
+    "relA": null
+   },
+   "after": {
+    "n": 1,
+    "nA": 0,
+    "zero": 1,
+    "rel": 0,
+    "relA": null
+   },
+   "kindExcluded": "5",
+   "opsExcluded": "27",
+   "nC_before": 2,
+   "nC_after": 0,
+   "beforeA": [],
+   "afterA": [],
+   "reused": "prev"
+  },
+  {
+   "aspect": "탈모 증상 완화 효과",
+   "bm": null,
+   "before": {
+    "n": 4,
+    "nA": 3,
+    "zero": 0.75,
+    "rel": 0.25,
+    "relA": 0
+   },
+   "after": {
+    "n": 4,
+    "nA": 3,
+    "zero": 0.75,
+    "rel": 0.25,
+    "relA": 0
+   },
+   "kindExcluded": null,
+   "opsExcluded": "27",
+   "nC_before": 0,
+   "nC_after": 0,
+   "beforeA": [
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+    "1ef925a6-c764-4776-859b-43d439833092",
+    "6dbc2db2-4349-4fe4-8552-6b9a165baff6"
+   ],
+   "afterA": [
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+    "1ef925a6-c764-4776-859b-43d439833092",
+    "6dbc2db2-4349-4fe4-8552-6b9a165baff6"
+   ],
+   "reused": "prev"
+  },
+  {
+   "aspect": "지성 두피 세정력 및 체취 제어",
+   "bm": null,
+   "before": {
+    "n": 2,
+    "nA": 0,
+    "zero": 0.5,
+    "rel": 0.5,
+    "relA": null
+   },
+   "after": {
+    "n": 2,
+    "nA": 0,
+    "zero": 0.5,
+    "rel": 0.5,
+    "relA": null
+   },
+   "kindExcluded": "5",
+   "opsExcluded": "27",
+   "nC_before": 0,
+   "nC_after": 0,
+   "beforeA": [],
+   "afterA": [],
+   "reused": "prev"
+  },
+  {
+   "aspect": "모발 굵기 개선 효과",
+   "bm": null,
+   "before": {
+    "n": 0,
+    "nA": 0,
+    "zero": null,
+    "rel": null,
+    "relA": null
+   },
+   "after": {
+    "n": 0,
+    "nA": 0,
+    "zero": null,
+    "rel": null,
+    "relA": null
+   },
+   "kindExcluded": "5",
+   "opsExcluded": "27",
+   "nC_before": 0,
+   "nC_after": 0,
+   "beforeA": [],
+   "afterA": [],
+   "reused": "prev"
+  },
+  {
+   "aspect": "가격 및 용량 (가성비)",
+   "bm": null,
+   "before": {
+    "n": 6,
+    "nA": 3,
+    "zero": 0.3333333333333333,
+    "rel": 1,
+    "relA": 0.3333333333333333
+   },
+   "after": {
+    "n": 6,
+    "nA": 3,
+    "zero": 0.3333333333333333,
+    "rel": 1,
+    "relA": 0.3333333333333333
+   },
+   "kindExcluded": null,
+   "opsExcluded": "27",
+   "nC_before": 0,
+   "nC_after": 0,
+   "beforeA": [
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+    "dbc1aef4-9f62-4769-a839-f7280ef5c168",
+    "1cc8d72b-5415-447a-89e8-8b8a593fbe57"
+   ],
+   "afterA": [
+    "55c3bdab-bfc4-4599-a0ee-732c69d52d1f",
+    "dbc1aef4-9f62-4769-a839-f7280ef5c168",
+    "1cc8d72b-5415-447a-89e8-8b8a593fbe57"
+   ],
+   "reused": "prev"
+  },
+  {
+   "aspect": "두피 개선 효과 및 지속력",
+   "bm": null,
+   "before": {
+    "n": 1,
+    "nA": 0,
+    "zero": 1,
+    "rel": 0,
+    "relA": null
+   },
+   "after": {
+    "n": 1,
+    "nA": 0,
+    "zero": 1,
+    "rel": 0,
+    "relA": null
+   },
+   "kindExcluded": "5",
+   "opsExcluded": "27",
+   "nC_before": 0,
+   "nC_after": 0,
+   "beforeA": [],
+   "afterA": [],
+   "reused": "prev"
+  },
+  {
+   "aspect": "거품력 및 사용 편의성",
+   "bm": null,
+   "before": {
+    "n": 2,
+    "nA": 0,
+    "zero": 1,
+    "rel": 0,
+    "relA": null
+   },
+   "after": {
+    "n": 1,
+    "nA": 0,
+    "zero": 1,
+    "rel": 0,
+    "relA": null
+   },
+   "kindExcluded": "5",
+   "opsExcluded": "27",
+   "nC_before": 1,
+   "nC_after": 0,
+   "beforeA": [],
+   "afterA": [],
+   "reused": "prev"
+  },
+  {
+   "aspect": "사용 후 머릿결 감촉 (뻑뻑함)",
+   "bm": null,
+   "before": {
+    "n": 4,
+    "nA": 1,
+    "zero": 0.75,
+    "rel": 0.25,
+    "relA": 0
+   },
+   "after": {
+    "n": 2,
+    "nA": 1,
+    "zero": 0.5,
+    "rel": 0.5,
+    "relA": 0
+   },
+   "kindExcluded": null,
+   "opsExcluded": "27",
+   "nC_before": 2,
+   "nC_after": 0,
+   "beforeA": [
+    "8ff65dd9-ea1d-4e63-82c7-afac9b75dc01"
+   ],
+   "afterA": [
+    "8ff65dd9-ea1d-4e63-82c7-afac9b75dc01"
+   ],
+   "reused": "prev"
+  },
+  {
+   "aspect": "지루성 두피 세정성 및 염색모 한계",
+   "bm": null,
+   "before": {
+    "n": 2,
+    "nA": 0,
+    "zero": 1,
+    "rel": 0,
+    "relA": null
+   },
+   "after": {
+    "n": 1,
+    "nA": 0,
+    "zero": 1,
+    "rel": 0,
+    "relA": null
+   },
+   "kindExcluded": "5",
+   "opsExcluded": "27",
+   "nC_before": 1,
+   "nC_after": 0,
+   "beforeA": [],
+   "afterA": [],
+   "reused": "prev"
+  },
+  {
+   "aspect": "향 (약 냄새)",
+   "bm": null,
+   "before": {
+    "n": 4,
+    "nA": 1,
+    "zero": 0.75,
+    "rel": 0.25,
+    "relA": 0
+   },
+   "after": {
+    "n": 4,
+    "nA": 1,
+    "zero": 0.75,
+    "rel": 0.25,
+    "relA": 0
+   },
+   "kindExcluded": null,
+   "opsExcluded": "27",
+   "nC_before": 0,
+   "nC_after": 0,
+   "beforeA": [
+    "6dbc2db2-4349-4fe4-8552-6b9a165baff6"
+   ],
+   "afterA": [
+    "6dbc2db2-4349-4fe4-8552-6b9a165baff6"
+   ],
+   "reused": "prev"
+  },
+  {
+   "aspect": "가격 및 할인 혜택",
+   "bm": "MARKETPLACE_SELLER",
+   "before": {
+    "n": 9,
+    "nA": 3,
+    "zero": 0.6666666666666666,
+    "rel": 0.4444444444444444,
+    "relA": 0.6666666666666666
+   },
+   "after": {
+    "n": 7,
+    "nA": 3,
+    "zero": 0.5714285714285714,
+    "rel": 0.5714285714285714,
+    "relA": 0.6666666666666666
+   },
+   "kindExcluded": null,
+   "opsExcluded": null,
+   "nC_before": 3,
+   "nC_after": 1,
+   "beforeA": [
+    "4d817e75-081e-4f6d-8d83-d4aac492ca38",
+    "8ff65dd9-ea1d-4e63-82c7-afac9b75dc01",
+    "dbc1aef4-9f62-4769-a839-f7280ef5c168"
+   ],
+   "afterA": [
+    "4d817e75-081e-4f6d-8d83-d4aac492ca38",
+    "8ff65dd9-ea1d-4e63-82c7-afac9b75dc01",
+    "dbc1aef4-9f62-4769-a839-f7280ef5c168"
+   ],
+   "reused": "prev"
+  }
+ ]
+}

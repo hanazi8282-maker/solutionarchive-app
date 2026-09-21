@@ -217,7 +217,7 @@ if (isMain()) {
   console.log(`- 수요축: ${demand.value === null ? '확인 불가' : demand.value.toFixed(3)} — ${demand.reason}`)
   console.log(`- 선례축: ${precedent.value === null ? '확인 불가' : precedent.value.toFixed(3)} — ${precedent.reason}`)
   console.log(`- 사분면: ${quad.quadrant ?? '내지 않음'} — ${quad.reason}`)
-  console.log(`- 제외: 자기 ${match.excluded.self} · 미승인 ${match.excluded.not_approved} · 등급D ${match.excluded.grade_d}`)
+  console.log(`- 제외: 자기 ${match.excluded.self} · 미승인 ${match.excluded.not_approved} · 등급D ${match.excluded.grade_d} · 반면교사 ${match.excluded.negative}`)
 
   if (match.moves.length) {
     console.log('\n## 인용 선례')

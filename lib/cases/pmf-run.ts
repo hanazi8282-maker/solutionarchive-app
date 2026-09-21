@@ -93,7 +93,7 @@ export function buildAssessmentRow(args: {
     precedent_axis: notRun ? null : precedent.value,
     quadrant: notRun ? null : args.quadrant,
     match_status: match.status,
-    match_reason: `${match.reason} · 제외: 자기 ${e.self} · 미승인 ${e.not_approved} · 등급D ${e.grade_d}`,
+    match_reason: `${match.reason} · 제외: 자기 ${e.self} · 미승인 ${e.not_approved} · 등급D ${e.grade_d} · 반면교사 ${e.negative}`,
     created_by: args.createdBy,
   }
 }

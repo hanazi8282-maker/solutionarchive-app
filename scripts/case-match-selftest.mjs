@@ -127,6 +127,23 @@ const MOVES = [
   check('5-3 사유에 등급 D 가 적힌다', /등급 D 1건 제외/.test(r.reason), r.reason)
 }
 
+// ── 5b) ★ 반면교사(negative)는 선례축에 안 센다 (2026-09-21) ────
+{
+  // 승인·등급 A 인데 outcome_direction=negative — Zenefits 라이선스 매크로 같은 것.
+  const neg = move('m-neg', 's-b', { outcome_direction: 'negative' })
+  const r = matchMoves('UNIT_ECONOMICS', STUDIES, [...MOVES, neg])
+  eq('5b-1 negative 무브는 매칭 결과에 없다', r.moves.some(m => m.id === 'm-neg'), false)
+  eq('5b-2 negative 제외 카운트', r.excluded.negative, 1)
+  eq('5b-3 나머지 3건은 그대로', r.moves.length, 3)
+  // negative 만 있는 케이스는 선례 케이스 수에도 안 들어간다 → 선례축이 부풀지 않는다.
+  const onlyNeg = matchMoves('UNIT_ECONOMICS', [S_A, S_B], [MOVES[0], neg])
+  eq('5b-4 negative 케이스는 케이스 수에서 빠진다', new Set(onlyNeg.moves.map(m => m.study.id)).size, 1)
+  eq('5b-5 그래서 A등급 1케이스 = 0.8 (negative 를 셌다면 1.0)', Number(precedentAxis(onlyNeg).value.toFixed(4)), 0.8)
+  const allNeg = matchMoves('UNIT_ECONOMICS', [S_B], [neg])
+  eq('5b-6 negative 뿐이면 no_match (확인 불가 아님)', allNeg.status, 'no_match')
+  check('5b-7 사유에 반면교사가 적힌다', /반면교사 1건 제외/.test(allNeg.reason), allNeg.reason)
+}
+
 // ── 6) 패싯은 거르지 않고 정렬만 한다 ─────────────────────────
 {
   const r = matchMoves('UNIT_ECONOMICS', STUDIES, MOVES, null,

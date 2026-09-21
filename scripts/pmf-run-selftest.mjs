@@ -53,7 +53,7 @@ const row = buildAssessmentRow({
 })
 t('축은 0~1 안에 있다', row.demand_axis >= 0 && row.demand_axis <= 1 && row.precedent_axis >= 0 && row.precedent_axis <= 1, true)
 t('사분면은 두 축이 다 있을 때만', row.quadrant !== null, row.demand_axis !== null && row.precedent_axis !== null)
-t('제외 건수를 match_reason 에 남긴다 (담을 컬럼이 없다)', /제외: 자기 \d+ · 미승인 \d+ · 등급D \d+/.test(row.match_reason), true)
+t('제외 건수를 match_reason 에 남긴다 (담을 컬럼이 없다)', /제외: 자기 \d+ · 미승인 \d+ · 등급D \d+ · 반면교사 \d+/.test(row.match_reason), true)
 t('created_by 그대로', row.created_by, 'app')
 
 // 제외 사유가 실제로 세어지는지 — 미승인·등급D
@@ -66,7 +66,7 @@ const exRow = buildAssessmentRow({
 })
 t('no_match 여도 수요축은 살아 있다', exRow.demand_axis, 0.5)
 t('no_match 선례축은 0 (확인 불가가 아니라 확인해보니 없다)', exRow.precedent_axis, 0)
-t('제외 건수 문장', /미승인 1 · 등급D 1/.test(exRow.match_reason), true)
+t('제외 건수 문장', /미승인 1 · 등급D 1 · 반면교사 0/.test(exRow.match_reason), true)
 
 // ── 4. 인용 무브 연결 ───────────────────────────────────────
 const links = buildMoveRows('a1', match)

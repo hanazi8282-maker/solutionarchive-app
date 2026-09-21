@@ -35,7 +35,7 @@ const fmt = (v: number | null) => (v == null ? '—' : v.toFixed(2))
 /**
  * 선례축 MatchWhy — 저장된 `match_reason` 문장에서 숫자만 뽑아 한 줄로 되읽는다.
  *
- * ⚠️ `matchMoves()` 가 돌려주는 `excluded`(자기 케이스 / 미승인 / 등급 D)는 **저장되지 않는다**
+ * ⚠️ `matchMoves()` 가 돌려주는 `excluded`(자기 케이스 / 미승인 / 등급 D / 반면교사)는 **저장되지 않는다**
  *    — `pmf_assessments` 에 컬럼이 없다. 그래서 여기서 "제외 N건" 을 만들어 내지 않고,
  *    match_reason 에 적혀 있는 만큼만 그대로 보여주고 출처를 밝힌다(§7.1: 없는 걸 있는 척하지 않는다).
  */

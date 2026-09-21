@@ -12,11 +12,13 @@ import { Field, Select } from './Field'
  */
 export type FacetValues = Partial<Record<FacetKey, string>>
 
-export function FacetSelects({ values, onChange, disabled = false, idPrefix = '' }: {
+export function FacetSelects({ values, onChange, disabled = false, idPrefix = '', hintSuffix }: {
   values: FacetValues
   onChange: (key: FacetKey, value: string) => void
   disabled?: boolean
   idPrefix?: string
+  /** 각 칸 설명 뒤에 붙는 한 줄(예: 프로필 화면의 "이 값이 새 분석 1단계를 프리필한다"). /analyze/new 는 안 준다. */
+  hintSuffix?: string
 }) {
   return (
     <>
@@ -24,8 +26,10 @@ export function FacetSelects({ values, onChange, disabled = false, idPrefix = ''
         const v = values[f.key] ?? ''
         const picked = f.options.find((o) => o.value === v)
         const id = `${idPrefix}${f.key}`
+        const base = picked ? picked.hint : f.hint
+        const hint = hintSuffix ? (base ? `${base} · ${hintSuffix}` : hintSuffix) : base
         return (
-          <Field key={f.key} label={f.label} htmlFor={id} hint={picked ? picked.hint : f.hint}>
+          <Field key={f.key} label={f.label} htmlFor={id} hint={hint}>
             <Select id={id} value={v} disabled={disabled} onChange={(e) => onChange(f.key, e.target.value)}>
               <option value="">선택 안 함</option>
               {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}

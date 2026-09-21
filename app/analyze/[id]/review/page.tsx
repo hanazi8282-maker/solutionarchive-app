@@ -209,6 +209,18 @@ export default function AnalyzeReviewPage() {
     if (projectId) load()
   }, [projectId, load])
 
+  useEffect(() => {
+    // 결과 화면의 `#aspect-<id>` 링크로 들어오면 그 행을 상세 패널에 연다. 스크롤은 브라우저가
+    // 앵커로 하고, 여기서는 선택만 맞춘다 — 안 맞추면 스크롤은 그 행인데 패널은 1위 행이라 어긋난다.
+    const pick = () => {
+      const m = /^#aspect-(.+)$/.exec(window.location.hash)
+      if (m) setSelectedId(decodeURIComponent(m[1]))
+    }
+    pick()
+    window.addEventListener('hashchange', pick)
+    return () => window.removeEventListener('hashchange', pick)
+  }, [])
+
   function patchAspect(id: string, patch: Partial<AspectRow>) {
     setAspects(prev => prev.map(a => (a.id === id ? { ...a, ...patch } : a)))
   }
@@ -485,11 +497,8 @@ export default function AnalyzeReviewPage() {
             />
           </Card>
         ) : (
-          <div style={{
-            display: 'grid', gap: 16, alignItems: 'start',
-            // ≥1024px 급 폭에서는 2열(표 | 상세), 좁으면 상세가 표 아래로 내려온다.
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))',
-          }}>
+          // ≥1024px 2열(표 | 상세), 좁으면 상세가 표 아래로 — 분기는 styles.css .sa-review-grid (사이드바와 같은 폭)
+          <div className="sa-review-grid">
             {/* 표 자체만 가로로 스크롤한다 — 페이지에는 가로 스크롤이 생기지 않는다. */}
             <div style={{ minWidth: 0 }}>
               <div style={{

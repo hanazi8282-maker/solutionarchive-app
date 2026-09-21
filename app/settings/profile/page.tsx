@@ -145,10 +145,9 @@ export default function ProfileSettingsPage() {
           </Field>
           <p style={fillNote}>↑ 이 값이 새 분석 1단계의 &ldquo;시장&rdquo;을 프리필한다.</p>
 
-          <FacetSelects values={facets} onChange={setFacet} idPrefix="profile_" />
-          {/* 패싯 5칸의 프리필 설명은 한 줄로 묶는다 — FacetSelects 는 /analyze/new 와 공유하는
-              컴포넌트라, 거기 문구를 넣으면 이미 1단계에 있는 사람에게 같은 말이 다섯 번 나온다. */}
-          <p style={fillNote}>↑ PMF 진단 입력 5칸 전부 새 분석 1단계를 프리필한다. 비어 있는 칸만 채우므로 거기서 고쳐 쓸 수 있다.</p>
+          {/* 칸마다 프리필 설명 — hintSuffix 는 이 화면만 준다(/analyze/new 는 이미 1단계라 같은 말이 필요 없다). */}
+          <FacetSelects values={facets} onChange={setFacet} idPrefix="profile_" hintSuffix="새 분석 1단계를 프리필한다" />
+          <p style={fillNote}>↑ 비어 있는 칸만 프리필하므로 1단계에서 고쳐 쓸 수 있다.</p>
 
           {saveError && <Notice tone="danger">{saveError}</Notice>}
 

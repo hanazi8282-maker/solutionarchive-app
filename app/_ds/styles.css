@@ -66,6 +66,14 @@
   .sa-filters { top: 0; }
 }
 
+/* 검수 화면 — 표 | 상세 패널. 사이드바와 같은 1024px 에서 2열로 갈라진다(인라인 auto-fit 은
+   컨테이너 폭 기준이라 사이드바 폭만큼 늦게(≈1076px) 갈라졌다). 자식 minmax(0, …) 이라 표가
+   자체 가로 스크롤을 가져도 페이지가 넘치지 않는다. */
+.sa-review-grid { display: grid; gap: 16px; align-items: start; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1024px) {
+  .sa-review-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+}
+
 @media (max-width: 480px) {
   .dgy-nav-brand { display: none; }
   /* 이메일까지 두면 375px 에서 화면 링크 목록이 10px 로 눌린다. 누가 로그인했는지는 로그아웃 버튼 title 로 남긴다. */

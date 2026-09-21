@@ -239,20 +239,49 @@ function hitTerms(terms: string[], haystack: string): string[] {
 }
 
 /**
+ * 원칙의 독자 — 2026-09-21 남헌 결정(처방 매칭 4라운드).
+ *
+ * strategy_principles 는 원래 **우리 팀의 운영 원장**이다(채널·법무·robots·인프라). 2026-09-21 실측 32건 중
+ * 27건이 그것이고, 셀러에게 줄 수 있는 제품·가격 원칙은 5건(SP-001~004·SP-013)뿐이었다. 그런데 처방 카드가
+ * "가격"·"광고" 같은 낱말로 운영 원칙을 끌어와 셀러 화면에 냈다 — A/B(docs/remedy-matching-ab-2026-09-21.md)에서
+ * 원칙 카드 관련도가 0.00 이 나온 이유다. 그래서 원장 태그로 독자를 가르고, 셀러 화면은 `seller` 태그가
+ * 있는 행만 본다. 스키마를 늘리지 않는다 — 태그는 원장(docs/strategy-principles.md)이 정본이고 sync 로 DB 에 간다.
+ *
+ *   seller    — 셀러 처방용. 이 태그가 없으면 셀러 화면(advise)에서 제외.
+ *   software  — 그 원칙이 SaaS 전용(예: 하이브리드 프라이싱). 물리 제품 질의에는 제외(productKindOf 와 같은 축).
+ */
+export const PRINCIPLE_AUDIENCE_TAG = 'seller'
+export const PRINCIPLE_SOFTWARE_TAG = 'software'
+
+export function principleKindOf(tags: string[] | null | undefined): ProductKind {
+  return (tags ?? []).includes(PRINCIPLE_SOFTWARE_TAG) ? 'software' : 'physical'
+}
+
+/**
  * Corpus C: 원칙 원장 태그·진술 매칭.
  * principles 가 null 이면 not_run (조회 실패를 "원칙 없음"으로 접지 않는다).
+ *
+ * opts.audience — 'seller'(기본): seller 태그 없는 운영 원칙을 랭킹 전에 뺀다. 'all': 안 뺀다(감사·비교용).
+ * opts.kind     — 주면 software 태그 원칙을 물리 질의에서(그 반대도) 뺀다. null = 안 가른다.
  */
 export function matchPrinciples(
   terms: string[],
   principles: PrincipleRow[] | null | undefined,
+  opts: { audience?: 'seller' | 'all'; kind?: ProductKind | null } = {},
 ): CorpusResult<PrincipleCard> {
   if (!terms.length) return { status: 'not_run', reason: '질의어가 없다 — 무엇을 찾을지 모르는 상태다', cards: [] }
   if (principles == null) {
     return { status: 'not_run', reason: 'strategy_principles 조회 실패 (null) — "원칙 없음"이 아니라 확인 불가다', cards: [] }
   }
+  const audience = opts.audience ?? 'seller'
+  const kind = opts.kind ?? null
+  const excluded = { audience: 0, kind: 0 }
 
   const cards: PrincipleCard[] = []
   for (const p of principles) {
+    // 독자 필터 — 운영 원칙은 셀러 화면에 내지 않는다. 낱말이 겹쳐도 그건 우연이다.
+    if (audience === 'seller' && !(p.tags ?? []).includes(PRINCIPLE_AUDIENCE_TAG)) { excluded.audience++; continue }
+    if (kind !== null && principleKindOf(p.tags) !== kind) { excluded.kind++; continue }
     const tagHits = hitTerms(terms, (p.tags ?? []).join(' '))
     const stmtHits = hitTerms(terms, p.statement ?? '')
     const matched = [...new Set([...tagHits, ...stmtHits])]
@@ -274,7 +303,11 @@ export function matchPrinciples(
   cards.sort((a, b) => b.score - a.score || a.sp_id.localeCompare(b.sp_id))
 
   if (cards.length === 0) {
-    return { status: 'no_match', reason: `조회는 정상인데 질의어와 겹치는 원칙이 0건이다 — 관련 사례 없음`, cards: [] }
+    const why = [
+      excluded.audience ? `운영 원칙 ${excluded.audience}건 제외` : '',
+      excluded.kind ? `제품 종류 다름 ${excluded.kind}건 제외` : '',
+    ].filter(Boolean).join(' / ')
+    return { status: 'no_match', reason: `조회는 정상인데 질의어와 겹치는 원칙이 0건이다${why ? ` (${why})` : ''} — 관련 사례 없음`, cards: [] }
   }
   return { status: 'matched', reason: `원칙 ${cards.length}건`, cards: cards.slice(0, TOP_N) }
 }
@@ -407,8 +440,10 @@ export function advise(
     category?: string | null
     angleDescription?: string | null
     freeText?: string | null
-    /** 프로젝트 business_model. 주면 선례 코퍼스에 카테고리 선행 필터가 걸린다(productKindOf). */
+    /** 프로젝트 business_model. 주면 선례·원칙 코퍼스에 카테고리 선행 필터가 걸린다(productKindOf). */
     businessModel?: string | null
+    /** 원칙 독자. 기본 'seller' — 운영 원칙 제외. 'all' 은 감사·비교 스크립트용이지 화면용이 아니다. */
+    principleAudience?: 'seller' | 'all'
   },
   corpora: {
     principles: PrincipleRow[] | null | undefined
@@ -418,10 +453,10 @@ export function advise(
   },
 ): AdvisorResult {
   const terms = toTerms(input.category, input.angleDescription, input.freeText)
-  const corpus_c = matchPrinciples(terms, corpora.principles)
   // undefined = 호출자가 종류를 모른다(필터 없음). null 포함 문자열 = 안다(null 은 physical 로 접힌다).
   const kind = input.businessModel === undefined ? null : productKindOf(input.businessModel)
   const corpus_a = matchCaseMoves(terms, corpora.studies, corpora.moves, kind)
+  const corpus_c = matchPrinciples(terms, corpora.principles, { audience: input.principleAudience ?? 'seller', kind })
   const corpus_b = matchFailedAngles(terms, corpora.failedAngles)
 
   const all = [corpus_a, corpus_b, corpus_c]

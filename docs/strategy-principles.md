@@ -9,14 +9,17 @@
 - `evidence_grade` 셀은 `A|B|C|D` 로 시작하고, 뒤 괄호는 등급 주석(자유 텍스트).
 - `태그` 는 쉼표로 구분. 매칭에 쓰인다 — 큐레이터가 "이 원칙이 어떤 질문에
   걸려야 하는가"를 보고 단다.
+- **독자 태그(2026-09-21)**: `seller` 가 있는 행만 셀러 화면(처방·어드바이저 카드)에 나간다. 없는 행은
+  우리 팀 운영 원칙(채널·법무·robots·인프라)이고 화면에 내지 않는다. `software` 는 그 원칙이 SaaS 전용이라
+  물리 제품 질의에 제외된다는 뜻이다(lib/cases/advisor.ts PRINCIPLE_AUDIENCE_TAG).
 - 추가 후 `node --env-file=.env.local scripts/strategy-principles-sync.mjs` 재실행.
 
 | ID | 태그 | 진술(원칙/사실) | evidence_grade | 출처 |
 |---|---|---|---|---|
-| SP-001 | pricing, hybrid | 하이브리드(구독+종량) 프라이싱이 2026년 B2B SaaS 채택률 1위(37%), 전년 대비 급증 | B (3자 서베이) | §0-1 |
-| SP-002 | pricing, antipattern | AdCreative.ai식 "크레딧 절벽"(no-rollover)은 확인된 이탈 유발 안티패턴 | B | §3 |
-| SP-003 | pricing, antipattern | Triple Whale식 "GMV 구간별 가격 점프"는 확인된 이탈 유발 안티패턴 | B | §3 |
-| SP-004 | differentiation, evidence-grade | evidence_grade(A/B/C/D) 노출은 경쟁사 중 확인된 선례가 없는 유일한 방어 가능 차별화 지점 | C (자체 판단) | §0-4 |
+| SP-001 | pricing, hybrid, seller, software | 하이브리드(구독+종량) 프라이싱이 2026년 B2B SaaS 채택률 1위(37%), 전년 대비 급증 | B (3자 서베이) | §0-1 |
+| SP-002 | pricing, antipattern, seller, software | AdCreative.ai식 "크레딧 절벽"(no-rollover)은 확인된 이탈 유발 안티패턴 | B | §3 |
+| SP-003 | pricing, antipattern, seller, software | Triple Whale식 "GMV 구간별 가격 점프"는 확인된 이탈 유발 안티패턴 | B | §3 |
+| SP-004 | differentiation, evidence-grade, seller | evidence_grade(A/B/C/D) 노출은 경쟁사 중 확인된 선례가 없는 유일한 방어 가능 차별화 지점 | C (자체 판단) | §0-4 |
 | SP-005 | reddit, api-risk | GummySearch는 Reddit 상업 라이선스 협상 실패로 셧다운(2025-11 신규가입 중단, 2026-12 데이터 삭제) — 단순 비용 문제가 아니라 협상 결렬이 원인 | B (창업자 자기보고 기반) | §0, §16 |
 | SP-006 | reddit, architecture | PainMap은 Reddit API 완전 독립 아키텍처(라이브 AI 웹서치)로 API 리스크를 원천 제거 — 5개 경쟁사 중 유일하게 완전 독립 확인 | B (교차검증 완료) | §16 |
 | SP-007 | channel, legal | G2·Capterra 이용약관은 스크래핑·자동수집을 명시적으로 금지(원문 직접 확인) | A (원문 직접 확인) | §18-2 |
@@ -25,7 +28,7 @@
 | SP-010 | competitor, scantheg | ScanTheGap은 디지털 상품 전용(Buildability 필터로 실물 배제) — 솔루션아카이브와 인접시장이지 직접 경쟁 아님(초기 오판 정정됨) | B | §15 |
 | SP-011 | legal, korea-crawling | 2026 저작권법 개정(8/11 시행)으로 고의 침해 시 최대 5배 징벌적 손해배상 가능, 네이버는 2026-02 크롤러 상대 DB침해 소송 승소 | A (법조문/판례) | §0-7 |
 | SP-012 | falsification-market, data-sourcing | 반증마켓 콜드스타트 후보 4개 소스(ICPSR/Maven/CB Insights/Failory) 전부 상업적 노출 라이선스 저촉 확인 — 자동 백필 대신 수동 큐레이션으로 전환 | A (약관 원문 확인, Failory는 확인 실패로 별도 표기) | §17-3 |
-| SP-013 | positioning, byo | BYO(사용자 직접 입력)를 "임시방편"이 아니라 "우리는 리뷰를 훔쳐 팔지 않는다"는 신뢰 기반 포지셔닝으로 전환 가능 | C (자체 제안, 미검증) | §18 wildcard |
+| SP-013 | positioning, byo, seller | BYO(사용자 직접 입력)를 "임시방편"이 아니라 "우리는 리뷰를 훔쳐 팔지 않는다"는 신뢰 기반 포지셔닝으로 전환 가능 | C (자체 제안, 미검증) | §18 wildcard |
 | SP-014 | channel, legal | G2 robots.txt는 Googlebot·Bingbot의 리뷰 크롤링은 허용하되 GPTBot·ClaudeBot·Google-Extended·CCBot 등 AI 크롤러는 리뷰 경로에서 별도 차단 — "일반 검색 노출엔 동의, AI 재사용엔 비동의"라는 입장을 기술적으로 명시 | A (robots.txt 직접 확인) | §21-A |
 | SP-015 | channel, legal, korea | 한국법상 크롤링 리스크는 미국 판례뿐 아니라 데이터베이스제작자 권리(잡코리아 v 사람인)·부정경쟁방지법 카목(성과도용)·야놀자 v 여기어때(대법원, DB침해 무죄이나 접근제어 우회는 별도 유죄)까지 병존 | A (판례 직접 확인) | §21-A |
 | SP-016 | channel, hacker-news | Hacker News(Firebase 공식 API)는 상업적 이용 금지 조항이 없는 것으로 확인된 사실상 유일한 완전 자유 채널 | B (약관 검토 기반, 확정 판례 아님) | §21-B |

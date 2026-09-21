@@ -239,3 +239,17 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   셀프테스트 insight-patterns·threads-collect·threads-match·insight-loop-db-guard 통과. service 키 PostgREST 200.
 - 적용 후 음성: anon 키 PostgREST GET `post_performance` → `401 {"code":"42501","message":"permission denied for view post_performance"}`.
 - 어드바이저 재조회: ERROR 0 · WARN 1(leaked password protection, Auth 설정) · INFO 37(기존 관례).
+
+## 2026-09-22 — 20260928000001_remedy_verdicts.sql (처방 카드 판정 캐시)
+
+- 승인자: **자체 판단(§10.2)** — 남헌 09-22 "권고안 E 착수" 지시. 신규 테이블 1개(CREATE IF NOT EXISTS), 기존 무변경, RLS ENABLE+FORCE 정책 0개(service_role 전용 관례). 롤백 DROP TABLE.
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 사전 실측 has_table=0. MCP `apply_migration` — success.
+- 양성: `scripts/remedy-judge.mjs --all --dry` 후보 58장 → 실행 적립 58행(무관 37). 결과 화면 캡션 렌더 확인.
+- 음성: 해당 없음(캐시 테이블). 셀프테스트 remedy-gate 47·remedy 27·summary 27·advisor 128 통과(PR #209 CI).
+
+## 2026-09-22 — 20260928000002/3/4_review_sources_enable_batch1~3.sql (소스 활성화 8곳)
+
+- 승인자: 남헌 09-22 명시 지시("꺼져 있는 8곳 순차 켜기") → 자체 적용. 신규 소스 아님(전부 09-16~18 에 리스크 인지 후 등록된 행) → §10.2 "새 법적 리스크" 예외 아님. 각 3행/3행/2행 UPDATE, 롤백 파일 있음(원 disabled_reason 복원).
+- 대상: solutionarchive. MCP `apply_migration` 3회 — success.
+- 양성: 1차 수동 실행 신규 606건(clien 500·todayhumor 102·theqoo 4) → 2차 330건(fmkorea 323·brunch 6·tumblbug 1) → 3차 okky·velog 타깃 0(개발자 커뮤니티, SaaS 프로젝트 없음).
+- 음성: robots 회피 0건, 소스 health 전부 ok. 파싱 실패 clien 6·todayhumor 1·brunch 1 은 표본 대비 소수.

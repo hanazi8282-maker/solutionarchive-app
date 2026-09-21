@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
+import { FilterChip } from '../_ds/components/FilterChip'
 import { Notice, PageHeader, PageShell } from '../_ds/components/Shell'
 import { DecisionForm } from './decision-form'
 import { PatternForm } from './pattern-form'
@@ -38,6 +39,16 @@ const REVIEW: Record<string, { label: string; tone: Tone }> = {
   approved: { label: '승인됨', tone: 'success' },
   rejected: { label: '반려됨', tone: 'danger' },
 }
+
+/**
+ * 상태 탭. review_status 는 DB CHECK 로 이 셋뿐이라(20260916000001) 세 탭 건수 합 = 전체다 —
+ * 어느 탭에도 안 잡히는 칼럼이 생기면 그건 제약이 깨진 것이고, 합계가 어긋나서 바로 보인다.
+ */
+const TABS = [
+  { key: 'draft', label: '대기' },
+  { key: 'approved', label: '승인' },
+  { key: 'rejected', label: '반려' },
+] as const
 
 const muted: CSSProperties = { margin: 0, fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'anywhere' }
 const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -234,14 +245,19 @@ function ColumnCard({ c }: { c: ColumnRow }) {
   )
 }
 
-export default async function ColumnsPage() {
+// 제목·부제는 한 벌이다. 오류 화면과 정상 화면이 다른 문장을 쓰면 안 된다.
+const HEADER = {
+  title: '칼럼·스레드 검수',
+  subtitle: 'drafts/columns/*.md 에 적립된 칼럼과 그 스레드를 사람이 보고 승인·반려한다. 결정 단위는 칼럼이다 — 스레드는 같이 승인된다.',
+} as const
+
+export default async function ColumnsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const sp = await searchParams
+  const status = TABS.find((t) => t.key === sp.status)?.key ?? 'draft'
+  const tabHref = (key: string) => (key === 'draft' ? '/columns' : `/columns?status=${key}`)
+
   const sb = await createClient()
-  const header = (
-    <PageHeader
-      title="칼럼·스레드 검수"
-      subtitle="drafts/columns/*.md 에 적립된 칼럼과 그 스레드를 사람이 보고 승인·반려한다. 결정 단위는 칼럼이다 — 스레드는 같이 승인된다."
-    />
-  )
+  const header = <PageHeader {...HEADER} />
 
   if (!sb) {
     return (
@@ -286,45 +302,47 @@ export default async function ColumnsPage() {
   }
 
   const all = res.data as ColumnRow[]
-  const draft = all.filter((c) => c.review_status === 'draft')
-  const decided = all.filter((c) => c.review_status !== 'draft')
+  const count = (key: string) => all.filter((c) => c.review_status === key).length
+  const shown = all.filter((c) => c.review_status === status)
+  const tabLabel = TABS.find((t) => t.key === status)?.label ?? status
 
   return (
     <PageShell maxWidth={960}>
-      {header}
+      <PageHeader
+        {...HEADER}
+        meta={<>전체 {all.length}건 · 미검증 {all.filter((c) => !c.verify_verdict).length}건 · 지금 보는 것은 {tabLabel} {shown.length}건</>}
+        filters={
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {TABS.map((t) => (
+              <FilterChip key={t.key} href={tabHref(t.key)} active={status === t.key} count={count(t.key)}>
+                {t.label}
+              </FilterChip>
+            ))}
+          </div>
+        }
+      />
 
       <FeedbackSection
         rows={(patternRes.data as PatternRow[] | null) ?? null}
         error={patternRes.error ? { code: patternRes.error.code, message: patternRes.error.message } : null}
       />
 
-      <p style={{ margin: 0, fontSize: 14, color: 'var(--text-body)' }}>
-        승인 대기 <b>{draft.length}건</b>
-        <span style={{ color: 'var(--text-muted)' }}> (전체 {all.length}건 · 미검증 {all.filter((c) => !c.verify_verdict).length}건)</span>
-      </p>
       <p style={muted}>승인·반려 기록의 검수자에는 로그인한 계정 이메일이 남는다. 승인·반려해도 원본 파일(drafts/columns/*.md)은 바뀌지 않는다 — 정본은 파일이다.</p>
 
       {all.length === 0 ? (
         <Card bodyStyle={{ padding: 0 }}>
           <EmptyState compact title="적재된 칼럼 0건" description="scripts/column-stage.mjs 를 실행하면 drafts/columns/ 의 칼럼이 여기 올라온다." />
         </Card>
-      ) : draft.length === 0 ? (
+      ) : shown.length === 0 ? (
         <Card bodyStyle={{ padding: 0 }}>
-          <EmptyState compact title="검수 대기 0건 (조회는 정상)" description={`전체 칼럼 ${all.length}건이 모두 결정됐다.`} />
+          {status === 'draft'
+            ? <EmptyState compact title="검수 대기 0건 (조회는 정상)" description={`전체 칼럼 ${all.length}건이 모두 결정됐다.`} />
+            : <EmptyState compact title={`${tabLabel} 0건 (조회는 정상)`} description={`전체 칼럼 ${all.length}건 중 이 상태인 칼럼이 없다.`} />}
         </Card>
       ) : (
         <div style={{ display: 'grid', gap: 12 }}>
-          {draft.map((c) => <ColumnCard key={c.id} c={c} />)}
+          {shown.map((c) => <ColumnCard key={c.id} c={c} />)}
         </div>
-      )}
-
-      {decided.length > 0 && (
-        <details>
-          <summary style={{ cursor: 'pointer', fontSize: 14, margin: '4px 0' }}>결정된 칼럼 {decided.length}건 보기</summary>
-          <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
-            {decided.map((c) => <ColumnCard key={c.id} c={c} />)}
-          </div>
-        </details>
       )}
     </PageShell>
   )

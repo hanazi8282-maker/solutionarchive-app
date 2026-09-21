@@ -116,6 +116,15 @@ function MatchWhy({ m }: { m: AdvisorMatchInfo }) {
   )
 }
 
+/**
+ * 근거 등급 배지 — 초록(success)을 쓰지 않는다. 초록·빨강은 감성/판정 전용이라
+ * (app/_ds/tokens/colors.css `--sent-*`) 등급에 쓰면 "근거 C" 도 초록이라 좋게 읽힌다.
+ * 등급은 감성이 아니라 분류다 → 정보 톤(파랑).
+ */
+function GradeBadge({ grade }: { grade: string }) {
+  return <Badge tone="info" size="sm">근거 {grade}</Badge>
+}
+
 function LowConfidenceBadge({ m }: { m: AdvisorMatchInfo }) {
   if (!m.low_confidence) return null
   return <Badge tone="warning" size="sm">신뢰도 낮음</Badge>
@@ -135,7 +144,7 @@ export function AdvisorResult({ data, focus = null }: { data: AdvisorPayload; fo
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                 <Badge tone="neutral" size="sm">{c.brand_name}</Badge>
                 <Badge tone="neutral" size="sm">{c.lever}</Badge>
-                <Badge tone="success" size="sm">근거 {c.evidence_grade}</Badge>
+                <GradeBadge grade={c.evidence_grade} />
                 <LowConfidenceBadge m={c} />
               </div>
               <p style={body}>{c.claim}</p>
@@ -167,7 +176,7 @@ export function AdvisorResult({ data, focus = null }: { data: AdvisorPayload; fo
             <div key={c.sp_id} style={{ display: 'grid', gap: 4 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                 <Badge tone="neutral" size="sm">{c.sp_id}</Badge>
-                <Badge tone="success" size="sm">근거 {c.evidence_grade}</Badge>
+                <GradeBadge grade={c.evidence_grade} />
                 <Badge tone="neutral" size="sm">{c.source_ref}</Badge>
                 <LowConfidenceBadge m={c} />
               </div>

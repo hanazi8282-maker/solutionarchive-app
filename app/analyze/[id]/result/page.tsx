@@ -10,6 +10,7 @@ import { Badge, type Tone } from '../../../_ds/components/Badge'
 import { ButtonLink } from '../../../_ds/components/Button'
 import { Card } from '../../../_ds/components/Card'
 import { EmptyState } from '../../../_ds/components/EmptyState'
+import { EvidenceCaption } from '../../../_ds/components/EvidenceCaption'
 import { Notice, PageHeader, PageShell } from '../../../_ds/components/Shell'
 import { AdvisorLoader } from '../advisor-cards'
 import { CopySummary } from './copy-summary'
@@ -24,6 +25,11 @@ import { WtpCard } from './wtp-card'
 //
 // 섹션 순서는 "결론 → 근거 → 행동". 두 축을 한 숫자로 합치지 않고, 축이 비면 사분면을 그리지 않는다
 // (lib/cases/match.ts). 값이 없는 자리는 빈칸이 아니라 "왜 없는지 + 어떻게 채우는지" 로 채운다(§7.1).
+//
+// 첫 뷰포트는 히어로 하나다(docs/ui-redesign-plan-2026-09-21.md B-1): 사분면 · 한 줄 결론 ·
+// 두 축 숫자 · 기준 캡션. 진단 이력이 있으면 입력 폼(PmfRunCard)은 맨 아래로 내리고 히어로
+// 우상단 "다시 진단" 앵커로 간다 — 이미 답이 나온 화면에서 폼이 첫 화면을 먹지 않게.
+// 패싯이 비어 진단을 아직 못 돌리는 프로젝트는 폼이 곧 첫 행동이므로 위에 둔다.
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'PMF 진단 결과' }
@@ -55,6 +61,9 @@ const QUADRANT_TONE: Record<PmfQuadrant, Tone> = {
 /** 퍼센타일을 내려면 필요한 최소 표본. 퀴즈 결과 화면과 같은 규칙 — 적은 표본으로 순위를 말하지 않는다. */
 const PERCENTILE_MIN_SAMPLE = 30
 
+/** 진단 입력 폼(맨 아래) 앵커. 히어로 우상단 "다시 진단" 이 여기로 뛴다. */
+const RUN_ANCHOR = 'pmf-run'
+
 const num = (v: number | string | null | undefined) => (v == null || v === '' ? null : Number(v))
 const fmt = (v: number | null) => (v == null ? '확인 불가' : v.toFixed(2))
 const KST = new Intl.DateTimeFormat('sv-SE', {
@@ -73,6 +82,52 @@ function Axis({ label, value, children }: { label: string; value: string; childr
       <div className="dgy-caps">{label}</div>
       <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, fontVariantNumeric: 'tabular-nums', color: 'var(--text-strong)' }}>{value}</div>
       {children}
+    </div>
+  )
+}
+
+/**
+ * 2×2 미니 사분면. **우리 위치만 채운다** — 나머지 칸은 라벨만 회색으로 두고, 빈 칸이 무슨 뜻인지
+ * 한 줄로 말한다. 네 칸을 다 칠하면 어디가 우리인지 사라지고, 빈 칸을 지우면 축이 안 읽힌다.
+ * 축이 하나라도 확인 불가면(quadrant === null) 어느 칸도 채우지 않는다.
+ */
+const MINI_ROWS: PmfQuadrant[][] = [
+  ['CROWDED_NO_DEMAND', 'PROVEN_DEMAND'],
+  ['PARK', 'UNCHARTED_DEMAND'],
+]
+
+function MiniQuadrant({ here }: { here: PmfQuadrant | null }) {
+  return (
+    <div style={{ display: 'grid', gap: 6 }}>
+      <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+        {MINI_ROWS.flat().map((q) => {
+          const on = q === here
+          return (
+            <div
+              key={q}
+              style={{
+                minWidth: 0, padding: '8px 10px', borderRadius: 'var(--radius-md)',
+                border: `1px solid ${on ? 'var(--brand)' : 'var(--border)'}`,
+                background: on ? 'var(--surface-card)' : 'transparent',
+                boxShadow: on ? 'inset 0 0 0 1px var(--brand)' : 'none',
+                display: 'grid', gap: 2,
+              }}
+            >
+              <span style={{
+                fontSize: 'var(--fs-xs)', lineHeight: 1.4, overflowWrap: 'anywhere',
+                fontWeight: on ? 700 : 500,
+                color: on ? 'var(--text-strong)' : 'var(--text-faint)',
+              }}>
+                {PMF_QUADRANT_LABELS[q]}
+              </span>
+              <span style={{ fontSize: 'var(--fs-xs)', color: on ? 'var(--brand)' : 'var(--text-faint)' }}>
+                {on ? '여기가 우리다' : '이쪽이 비어 있다 = 다음에 채울 여지'}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>가로 = 수요축, 세로 = 선례축. 오른쪽·위가 높다.</p>
     </div>
   )
 }
@@ -139,6 +194,12 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
     .select('id', { count: 'exact', head: true })
     .eq('project_id', id)
 
+  // 기준 캡션용 원문 건수. 못 세면(null) 캡션에서 그 조각만 빼고, 0 으로 적지 않는다(§7.1).
+  const { count: inputCount } = await supabase
+    .from('analysis_inputs')
+    .select('id', { count: 'exact', head: true })
+    .eq('project_id', id)
+
   // ── 두 축 ────────────────────────────────────────────────
   // 수요축은 지금 속성으로 다시 낸다(저장 시 DB 가 opportunity_score 를 갱신하므로 항상 최신).
   // 선례축은 저장된 진단을 읽기만 한다 — 남의 케이스를 보는 축이라 화면에서 다시 낼 수 없다.
@@ -184,35 +245,95 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
     purchase_frequency: project.purchase_frequency ?? null,
   }
   const top3 = aspects === null ? [] : topAspects(aspects, 3) as AspectRow[]
+  const reviewHref = `/analyze/${id}/review`
+
+  // 기준 캡션 — 무엇을 몇 건 중에서 셌나. 못 센 조각은 빼고 적는다.
+  const basis = [
+    aspects === null ? null : `소구점 ${aspects.length}개`,
+    inputCount == null ? null : `원문 ${inputCount}건`,
+  ].filter(Boolean).join(' · ')
+  const metaCaption = [
+    basis ? `${basis} 기준` : null,
+    pmf?.created_at ? `마지막 진단 ${KST.format(Date.parse(pmf.created_at))} KST` : null,
+  ].filter(Boolean).join(', ')
+
+  // 진단 입력 폼 자리. 이력이 있고 패싯이 차 있으면 맨 아래, 그 밖(첫 진단·패싯 비었음)은 위.
+  const runCardAtBottom = Boolean(pmf && facets.bottleneck)
+  const runCard = (
+    <div id={RUN_ANCHOR}>
+      <PmfRunCard projectId={id} facets={facets} lastAssessedAt={pmf?.created_at ?? null} />
+    </div>
+  )
 
   return (
     <PageShell maxWidth={860}>
       <PageHeader
         title="PMF 진단 결과"
         subtitle={project.product_elevator_pitch ?? '(상품 한 줄 소개 없음)'}
-        action={<ButtonLink href={`/analyze/${id}/review`} variant="outline">검수로 →</ButtonLink>}
+        meta={metaCaption || null}
+        action={
+          <>
+            <ButtonLink href={reviewHref} variant="outline">검수로 →</ButtonLink>
+            {/* 요약 복사는 화면 맨 아래가 아니라 결론 옆에 둔다 — 남에게 보낼 때 여기서 바로 집는다.
+                클립보드가 막히면 이 자리에 원문이 펴지므로 폭을 묶어 둔다. */}
+            <div style={{ minWidth: 0, maxWidth: 'min(100%, 320px)', flex: '1 1 200px' }}>
+              <CopySummary projectId={id} />
+            </div>
+          </>
+        }
       />
 
-      {/* ── 1. 한 줄 결론 ─────────────────────────────────── */}
+      {/* ── 1. 히어로 — 사분면 · 한 줄 결론 · 두 축 (카드 1·4 병합) ───── */}
       <Card
         title="한 줄 결론"
-        action={quadrant
-          ? <Badge tone={QUADRANT_TONE[quadrant]} dot>{PMF_QUADRANT_LABELS[quadrant]}</Badge>
-          : <Badge tone="neutral">사분면 없음</Badge>}
+        action={
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+            {quadrant
+              ? <Badge tone={QUADRANT_TONE[quadrant]} dot>{PMF_QUADRANT_LABELS[quadrant]}</Badge>
+              : <Badge tone="neutral">사분면 없음</Badge>}
+            {runCardAtBottom && (
+              <ButtonLink href={`#${RUN_ANCHOR}`} variant="outline" size="sm">다시 진단</ButtonLink>
+            )}
+          </div>
+        }
       >
-        <p style={{ ...bodyText, fontSize: 'var(--fs-md)' }}>{advice}</p>
-        <p style={{ ...muted, marginTop: 8, fontSize: 'var(--fs-xs)' }}>
-          권고이지 보장이 아니다 — 같은 조건에서 남이 그렇게 했다는 기록일 뿐, 우리 결과를 약속하지 않는다.
-        </p>
-        {pmfError && <Notice tone="warning" style={{ marginTop: 10 }}>진단 이력 조회에 실패했다 — 진단이 없다는 뜻이 아니다.</Notice>}
+        <div style={{ display: 'grid', gap: 12 }}>
+          <p style={{ ...bodyText, fontSize: 'var(--fs-md)' }}>{advice}</p>
+
+          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))' }}>
+            <Axis label="수요축 (0~1)" value={demand.value == null ? (aspects?.length ? '확인 불가' : '속성 없음') : fmt(demand.value)}>
+              <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{demand.reason}</p>
+              <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>우리 DB 안에서 · {percentileText}</p>
+            </Axis>
+            <Axis label="선례축 (0~1)" value={pmf == null ? '미진단' : pmf.match_status === 'not_run' ? '확인 불가' : fmt(precedent)}>
+              <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+                {pmf == null
+                  ? '아직 진단을 돌리지 않았다. 위 "진단 실행" 을 눌러라.'
+                  : `${pmf.match_reason ?? pmf.match_status}`}
+              </p>
+              {pmf?.created_at && (
+                <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{KST.format(Date.parse(pmf.created_at))} KST 진단 · 병목 {facets.bottleneck ?? '미입력'}</p>
+              )}
+            </Axis>
+            <MiniQuadrant here={quadrant} />
+          </div>
+
+          <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+            두 축을 한 숫자로 합치지 않는다. 출처가 다르고 틀리는 방식도 달라서, 합치면 정반대 행동이 같은 값이 된다.
+          </p>
+          <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+            권고이지 보장이 아니다 — 같은 조건에서 남이 그렇게 했다는 기록일 뿐, 우리 결과를 약속하지 않는다.
+          </p>
+          {pmfError && <Notice tone="warning">진단 이력 조회에 실패했다 — 진단이 없다는 뜻이 아니다.</Notice>}
+        </div>
       </Card>
 
-      {/* ── 2. 진단 실행 ──────────────────────────────────── */}
-      <PmfRunCard projectId={id} facets={facets} lastAssessedAt={pmf?.created_at ?? null} />
+      {/* ── 2. 진단 실행 — 첫 진단이거나 패싯이 비었을 때만 위에 ──────── */}
+      {!runCardAtBottom && runCard}
 
       {/* ── 3. 시장 성숙도 ────────────────────────────────── */}
       <Card
-        title="시장 성숙도"
+        title="이 시장은 어디까지 왔나"
         action={project.m_meta_signal
           ? <Badge tone="info" size="sm">소비자가 카테고리 전체를 비교하고 있다</Badge>
           : null}
@@ -232,32 +353,9 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
         )}
       </Card>
 
-      {/* ── 4. 두 축 ──────────────────────────────────────── */}
+      {/* ── 4. 상위 소구점 3 ──────────────────────────────── */}
       <Card
-        title="두 축 — 수요 · 선례"
-        subtitle="한 숫자로 합치지 않는다. 출처가 다르고 틀리는 방식도 달라서, 합치면 정반대 행동이 같은 값이 된다."
-      >
-        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))' }}>
-          <Axis label="수요축 (0~1)" value={demand.value == null ? (aspects?.length ? '확인 불가' : '속성 없음') : fmt(demand.value)}>
-            <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{demand.reason}</p>
-            <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>우리 DB 안에서 · {percentileText}</p>
-          </Axis>
-          <Axis label="선례축 (0~1)" value={pmf == null ? '미진단' : pmf.match_status === 'not_run' ? '확인 불가' : fmt(precedent)}>
-            <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
-              {pmf == null
-                ? '아직 진단을 돌리지 않았다. 위 "진단 실행" 을 눌러라.'
-                : `${pmf.match_reason ?? pmf.match_status}`}
-            </p>
-            {pmf?.created_at && (
-              <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{KST.format(Date.parse(pmf.created_at))} KST 진단 · 병목 {facets.bottleneck ?? '미입력'}</p>
-            )}
-          </Axis>
-        </div>
-      </Card>
-
-      {/* ── 5. 상위 소구점 3 ──────────────────────────────── */}
-      <Card
-        title="상위 소구점 3"
+        title="무엇이 가장 아픈가"
         subtitle="판정은 (중요도, 만족도) 두 값만으로 낸다 — 선례와 섞지 않는다."
       >
         {aspects === null ? (
@@ -272,21 +370,24 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
                   : project.status === 'failed' ? '분석이 실패했습니다. 검수 화면에서 원인을 보고 다시 시도하세요.'
                     : '원문을 모아 분석을 돌리면 채워집니다.'
             }
-            action={<ButtonLink href={`/analyze/${id}/review`} variant="primary">검수 화면에서 분석하기 →</ButtonLink>}
+            action={<ButtonLink href={reviewHref} variant="primary">검수 화면에서 분석하기 →</ButtonLink>}
           />
         ) : (
           <div style={{ display: 'grid', gap: 14 }}>
             {top3.map((a) => {
               const v = aspectVerdict(a.importance, a.satisfaction)
               const b = opportunityBreakdown(a.importance, a.satisfaction, a.opportunity_score)
-              const quotes = (a.evidence_quotes ?? []).map((q) => q?.text).filter(Boolean).slice(0, 2)
+              // 검수 화면의 같은 속성으로. 앵커 규칙은 review/page.tsx aspectAnchor() 와 같다.
+              const href = `${reviewHref}#aspect-${a.id}`
+              const quoteList = a.evidence_quotes
+              const quotes = (quoteList ?? []).map((q) => q?.text).filter(Boolean).slice(0, 2)
               return (
                 <div key={a.id} id={`aspect-${a.id}`} style={{
                   display: 'grid', gap: 6, padding: '12px 14px',
                   background: 'var(--surface-muted)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
                 }}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                    <strong style={{ fontSize: 'var(--fs-md)', color: 'var(--text-strong)' }}>{a.name}</strong>
+                    <a href={href} style={{ fontSize: 'var(--fs-md)', fontWeight: 600, color: 'var(--text-link)' }}>{a.name}</a>
                     <Badge tone={v.code === 'PUSH' ? 'danger' : v.code === 'TABLE_STAKES' ? 'success' : v.code === 'DROP' ? 'neutral' : 'warning'} size="sm">
                       {v.label}
                     </Badge>
@@ -295,16 +396,22 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
                     </Badge>
                   </div>
                   <p style={muted}>
-                    기회점수 {b.stored ?? b.computed ?? '—'} = {b.reading}
+                    <a href={href}>기회점수 {b.stored ?? b.computed ?? '—'}</a> = {b.reading}
                     {b.mismatch && <span style={{ color: 'var(--warning-fg)' }}> · DB 값과 계산이 어긋난다(DB 가 정본)</span>}
                   </p>
                   <p style={bodyText}>{v.reading}</p>
+                  {/* 인용 3상태: 있음 / 셌는데 0건 / 아예 못 읽음. 셋을 같은 문장으로 내지 않는다(§7.1). */}
                   {quotes.length > 0 ? (
-                    <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4 }}>
-                      {quotes.map((q, i) => (
-                        <li key={i} style={{ ...bodyText, color: 'var(--text-muted)' }}>“{q}”</li>
-                      ))}
-                    </ul>
+                    <>
+                      <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4 }}>
+                        {quotes.map((q, i) => (
+                          <li key={i} style={{ ...bodyText, color: 'var(--text-muted)' }}>“{q}”</li>
+                        ))}
+                      </ul>
+                      <EvidenceCaption n={quoteList?.length ?? quotes.length} total={null} method="리뷰 원문 인용" />
+                    </>
+                  ) : quoteList == null ? (
+                    <EvidenceCaption n={null} total={null} method="리뷰 원문 인용" />
                   ) : (
                     <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>인용 없음 — 재분석하면 채워진다.</p>
                   )}
@@ -315,12 +422,12 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
         )}
       </Card>
 
-      {/* ── 6. 문제 해결 제안 ─────────────────────────────── */}
+      {/* ── 5. 문제 해결 제안 ─────────────────────────────── */}
       <RemedySection projectId={id} />
 
-      {/* ── 7. 어드바이저 3버튼 ───────────────────────────── */}
+      {/* ── 6. 어드바이저 3버튼 ───────────────────────────── */}
       <Card
-        title="더 물어보기"
+        title="남들은 어떻게 풀었나"
         subtitle="같은 코퍼스를 질문별로 한 덩어리씩 편다. 겹친 낱말이 하나뿐인 매칭은 “신뢰도 낮음” 으로 표시된다."
       >
         <div style={{ display: 'grid', gap: 8 }}>
@@ -330,20 +437,22 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
         </div>
       </Card>
 
-      {/* ── 7-1. 지불의사 신호 ────────────────────────────── */}
+      {/* ── 7. 지불의사 신호 ──────────────────────────────── */}
       <WtpCard projectId={id} />
 
       {/* ── 8. 행동 ───────────────────────────────────────── */}
       <Card title="다음 행동">
-        <CopySummary projectId={id} />
-        <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
-          <ButtonLink href={`/analyze/${id}/review`} variant="outline" fullWidth>검수로 — 속성을 고치거나 확인하기</ButtonLink>
+        <div style={{ display: 'grid', gap: 8 }}>
+          <ButtonLink href={reviewHref} variant="outline" fullWidth>검수로 — 속성을 고치거나 확인하기</ButtonLink>
           <ButtonLink href={`/analyze/${id}/angles`} variant="outline" fullWidth>
             앵글로 — {angleCount ? `만들어 둔 앵글 ${angleCount}건 보기` : '소구 앵글 만들기'}
           </ButtonLink>
         </div>
         <Notice tone="warning" style={{ marginTop: 12 }}>{DRAFT_NOTICE}</Notice>
       </Card>
+
+      {/* ── 9. 진단 실행 — 이미 답이 나온 화면에서는 맨 아래 ──────────── */}
+      {runCardAtBottom && runCard}
     </PageShell>
   )
 }

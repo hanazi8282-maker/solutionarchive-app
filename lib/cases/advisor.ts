@@ -209,6 +209,29 @@ export function isLowConfidence(matchedTerms: string[]): boolean {
   return matchedTerms.length === 1
 }
 
+/**
+ * 제품 종류 — 카테고리 선행 필터의 축 (2026-09-21 남헌 결정).
+ *
+ * A/B(docs/remedy-matching-ab-2026-09-21.md)에서 낱말 겹침 83%·임베딩 74% 가 무관이었고,
+ * 원인은 알고리즘이 아니라 **코퍼스가 SaaS 쪽으로 기울어** 물리 제품 질의에 짝이 없는 것이었다.
+ * 그래서 랭킹 전에 같은 종류 안으로 후보를 좁힌다. 축은 새로 만들지 않고 이미 있는
+ * `business_model`(lib/cases/draft.ts BUSINESS_MODEL) 을 둘로 접는다:
+ *   software — SAAS
+ *   physical — D2C · MARKETPLACE_SELLER · WHOLESALE · SUBSCRIPTION · OTHER · SERVICE · CREATOR · (미기재)
+ *
+ * ⚠️ 미기재(null)를 physical 로 두는 이유: analysis_projects 는 리뷰 수집(다나와 등 실물 상품)
+ *    에서 시작하는 물리 제품 프로젝트뿐이고(2026-09-21 실측 26건 중 business_model 25건 NULL),
+ *    null 을 "판단 불가"로 접어 전부 걸러 버리면 처방 카드가 통째로 빈다. 케이스 쪽 null 도 같은
+ *    규칙이다 — 케이스는 review 단계에서 business_model 을 채우므로 실제로는 거의 없다.
+ * ⚠️ 서비스(SERVICE·CREATOR)를 physical 에 두는 것은 거친 근사다. 둘 다 승인 무브가 0건이라
+ *    지금은 영향이 없고, 생기면 그때 세 갈래로 나눈다.
+ */
+export type ProductKind = 'physical' | 'software'
+
+export function productKindOf(businessModel: string | null | undefined): ProductKind {
+  return businessModel === 'SAAS' ? 'software' : 'physical'
+}
+
 /** term 이 haystack 에 부분문자열로 있는가 (양방향 — 짧은 쪽이 긴 쪽에 들어가면 hit). */
 function hitTerms(terms: string[], haystack: string): string[] {
   const hay = haystack.toLowerCase()
@@ -265,6 +288,8 @@ export function matchCaseMoves(
   terms: string[],
   studies: StudyRow[] | null | undefined,
   moves: MoveRow[] | null | undefined,
+  /** 질의 쪽 제품 종류. 주면 다른 종류의 케이스는 랭킹 전에 뺀다(productKindOf 주석). 안 주면 전과 같다. */
+  projectKind: ProductKind | null = null,
 ): CorpusResult<CaseMoveCard> {
   if (!terms.length) return { status: 'not_run', reason: '질의어가 없다', cards: [] }
   if (studies == null || moves == null) {
@@ -272,7 +297,7 @@ export function matchCaseMoves(
   }
 
   const byId = new Map(studies.map((s) => [s.id, s]))
-  const excluded = { not_approved: 0, grade_d: 0, no_context: 0 }
+  const excluded = { not_approved: 0, grade_d: 0, no_context: 0, kind: 0 }
   const cards: CaseMoveCard[] = []
 
   for (const m of moves) {
@@ -280,6 +305,8 @@ export function matchCaseMoves(
     if (!study) { excluded.no_context++; continue }
     if (study.review_status !== 'approved' || m.review_status !== 'approved') { excluded.not_approved++; continue }
     if ((GRADE_RANK[m.evidence_grade] ?? 0) <= 0) { excluded.grade_d++; continue }
+    // 카테고리 선행 필터 — 물리 제품 질의에 SaaS 선례를 내지 않는다(그 반대도).
+    if (projectKind !== null && productKindOf(study.business_model) !== projectKind) { excluded.kind++; continue }
 
     const haystack = [
       study.brand_name,
@@ -313,6 +340,7 @@ export function matchCaseMoves(
       excluded.not_approved ? `미승인 ${excluded.not_approved}건` : '',
       excluded.grade_d ? `등급 D ${excluded.grade_d}건` : '',
       excluded.no_context ? `맥락 없는 무브 ${excluded.no_context}건` : '',
+      excluded.kind ? `제품 종류 다름 ${excluded.kind}건` : '',
     ].filter(Boolean).join(' / ')
     return {
       status: 'no_match',
@@ -375,7 +403,13 @@ export function matchFailedAngles(
  * 정상인데 0건이면 no_match (= "관련 사례 없음" 명시). 그 밖은 not_run.
  */
 export function advise(
-  input: { category?: string | null; angleDescription?: string | null; freeText?: string | null },
+  input: {
+    category?: string | null
+    angleDescription?: string | null
+    freeText?: string | null
+    /** 프로젝트 business_model. 주면 선례 코퍼스에 카테고리 선행 필터가 걸린다(productKindOf). */
+    businessModel?: string | null
+  },
   corpora: {
     principles: PrincipleRow[] | null | undefined
     studies: StudyRow[] | null | undefined
@@ -385,7 +419,9 @@ export function advise(
 ): AdvisorResult {
   const terms = toTerms(input.category, input.angleDescription, input.freeText)
   const corpus_c = matchPrinciples(terms, corpora.principles)
-  const corpus_a = matchCaseMoves(terms, corpora.studies, corpora.moves)
+  // undefined = 호출자가 종류를 모른다(필터 없음). null 포함 문자열 = 안다(null 은 physical 로 접힌다).
+  const kind = input.businessModel === undefined ? null : productKindOf(input.businessModel)
+  const corpus_a = matchCaseMoves(terms, corpora.studies, corpora.moves, kind)
   const corpus_b = matchFailedAngles(terms, corpora.failedAngles)
 
   const all = [corpus_a, corpus_b, corpus_c]

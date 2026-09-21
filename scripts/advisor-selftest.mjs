@@ -6,7 +6,7 @@
 // Corpus B 가 실패 서술(outcome)로 우연히 걸리지 않는가 · 추정(is_estimate)이
 // 사실 그대로인 사례보다 뒤로 밀리는가.
 
-import { advise, isLowConfidence, matchPrinciples, matchCaseMoves, matchFailedAngles, toTerms } from '../lib/cases/advisor.ts'
+import { advise, isLowConfidence, matchPrinciples, matchCaseMoves, matchFailedAngles, toTerms, productKindOf } from '../lib/cases/advisor.ts'
 
 let pass = 0
 let fail = 0
@@ -289,6 +289,39 @@ const SP024_MOVES = [
   const r = advise({ category: '모바일 숏폼 스트리밍' }, { principles: null, studies: null, moves: null, failedAngles: FAILED_ANGLES })
   t('advise: 실패사례만 살아있음 → matched', r.status, 'matched')
   t('advise: 원칙은 not_run 으로 표시', r.corpus_c.status, 'not_run')
+}
+
+// ── 카테고리 선행 필터 (2026-09-21) ────────────────────────────────
+// 물리 제품 질의에 SaaS 선례를 내지 않는다. STUDIES: s1=SAAS(m1 하이브리드), s2=D2C(m2 리뷰 투명성).
+{
+  t('종류: SAAS → software', productKindOf('SAAS'), 'software')
+  t('종류: D2C → physical', productKindOf('D2C'), 'physical')
+  t('종류: 미기재(null) → physical (프로젝트는 전부 실물 상품)', productKindOf(null), 'physical')
+  t('종류: undefined 도 physical', productKindOf(undefined), 'physical')
+
+  const terms = toTerms('하이브리드 리뷰')
+  const none = matchCaseMoves(terms, STUDIES, MOVES)
+  t('필터 없음: SAAS·D2C 둘 다 매칭(전과 동일)', none.cards.map((c) => c.case_move_id).sort().join(','), 'm1,m2')
+
+  const phys = matchCaseMoves(terms, STUDIES, MOVES, 'physical')
+  t('physical 질의: SaaS 무브(m1)가 빠진다', phys.cards.map((c) => c.case_move_id).join(','), 'm2')
+  const soft = matchCaseMoves(terms, STUDIES, MOVES, 'software')
+  t('software 질의: D2C 무브(m2)가 빠진다', soft.cards.map((c) => c.case_move_id).join(','), 'm1')
+
+  // 종류가 달라서 0건이면 no_match 이고, 사유에 "제품 종류 다름" 이 적힌다 — "관련 사례 없음"의 뜻을 좁힌다(§7.1).
+  const onlySaas = matchCaseMoves(toTerms('하이브리드'), STUDIES, MOVES, 'physical')
+  t('종류 불일치만 남으면 no_match', onlySaas.status, 'no_match')
+  ok('사유에 "제품 종류 다름 N건"', /제품 종류 다름 \d+건/.test(onlySaas.reason))
+
+  // advise(): businessModel 을 안 주면 필터 없음, null 을 주면 physical 로 접혀 SaaS 가 빠진다.
+  const noBm = advise({ category: '하이브리드 리뷰' }, { principles: PRINCIPLES, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })
+  t('advise: businessModel 미지정 → 필터 없음', noBm.corpus_a.cards.length, 2)
+  const nullBm = advise({ category: '하이브리드 리뷰', businessModel: null }, { principles: PRINCIPLES, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })
+  t('advise: businessModel null → physical, SaaS 제외', nullBm.corpus_a.cards.map((c) => c.case_move_id).join(','), 'm2')
+  const saasBm = advise({ category: '하이브리드 리뷰', businessModel: 'SAAS' }, { principles: PRINCIPLES, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })
+  t('advise: businessModel SAAS → D2C 제외', saasBm.corpus_a.cards.map((c) => c.case_move_id).join(','), 'm1')
+  // 실패 사례·원칙 코퍼스는 이 필터의 영향을 받지 않는다(business_model 이 없다).
+  t('실패 사례 코퍼스는 필터와 무관', nullBm.corpus_b.status, noBm.corpus_b.status)
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

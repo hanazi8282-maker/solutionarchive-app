@@ -1,0 +1,71 @@
+{
+  "slug": "ritual-traceable-ingredients-multivitamin",
+  "brand_name": "Ritual",
+  "market": "건강기능식품 · 멀티비타민/프리네이탈 (미국 D2C 구독)",
+  "geo": "US",
+  "business_model": "SUBSCRIPTION",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "MID",
+  "bottleneck": "TRUST",
+  "reader_problem": "NOBODY_TRUSTS_ME",
+  "outcome_status": "active",
+  "period_start": "2016-01-01",
+  "period_end": "2023-05-24",
+  "summary": "창업자 카테리나 슈나이더가 임신 중 믿을 만한 프리네이탈 비타민을 못 찾아 만든 브랜드. 차별점은 성분이 아니라 성분의 '출처'였다 — 웹사이트에 성분마다 공급사 이름·원산지·최종 제조지를 적고(이른바 Made Traceable), 안을 들여다볼 수 있는 투명 캡슐을 썼다. 창업자는 이를 '영수증이 있는 투명성'이라 부르고, 업계가 '무엇을 뺐는가'에만 매달리다 '무엇으로 만들었는가'를 잊었다고 말했다. 여기에 업계가 요구하지 않는 대학 임상까지 자체 진행해 12주간 비타민D 43% 증가라는 수치를 공개했다. 2023년 5월 인터뷰 기준 누적 고객 100만 명 이상, 반복 매출은 수년 전에 이미 9자리(1억 달러 이상)에 올랐다고 밝혔다(자기보고).",
+  "tags": ["TRUST", "성분투명성", "원산지", "임상", "건기식", "비타민", "구독", "D2C"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "CONTENT",
+      "claim": "성분표를 넘어 성분의 '영수증'을 공개했다 — 슈나이더는 2023년 인터뷰(1인칭)에서 '우리 사이트에 가면 성분이 무엇인지, 세상 어디서 왔는지, 왜 들어갔는지, 최종 제조지가 어디인지 볼 수 있다'고 했고, 공급사 이름과 최종 제조지를 공개하는 건 지금도 자기들뿐이라고 말했다. 투명 캡슐도 같은 이유다. 중금속·인공 성분이 걱정인 임산부에게 '안전하다'고 말하는 대신 안전을 확인할 자료를 그대로 내준 것이다. 그 위에서 누적 고객 100만 명 이상(2023-05, 자기보고)을 쌓았다.",
+      "transfer_note": "내일, 내 상품의 핵심 원료 1개에 대해 공급사 이름·원산지·제조 공장을 상품 페이지 첫 화면에 한 줄로 적는다. 적을 수 없으면 공급사에 원산지 증명서를 요청하는 메일을 보낸다. 답을 받으면 그 서류 사진을 그대로 올린다.",
+      "preconditions": "① 공급사가 원산지·공장 공개에 동의해야 한다 — 위탁 제조(OEM)면 계약상 비공개 조항이 걸릴 수 있다. ② 공개한 정보가 바뀌면 페이지도 바꿔야 하므로 원료 공급이 안정적이어야 한다. ③ 공개할 만큼 원료가 좋아야 한다 — 싸구려 원료를 공개하면 역효과다.",
+      "outcome_direction": "positive",
+      "metric_name": "누적 고객 수",
+      "metric_before": null,
+      "metric_after": 100,
+      "metric_unit": "만명",
+      "observed_period_start": "2016-01-01",
+      "observed_period_end": "2023-05-24"
+    },
+    {
+      "lever": "PRODUCT_FEATURE",
+      "claim": "업계가 요구하지 않는 임상을 스스로 했다 — 슈나이더는 '그 제품은 이제 동료심사를 거쳐 발표된 인체 임상이 있고, 주요 대학과 함께 진행했다. 업계에 요구되는 일이 아니었다'고 말했다(1인칭). 공개한 수치는 멀티비타민 12주 복용 후 비타민D 수치 43% 증가. 효능을 광고 문구로 단정하는 대신 임상 숫자 하나로 입증하는 방식이다. 수치는 회사가 후원한 연구의 자기보고이고 매출과의 연결 수치는 없다.",
+      "transfer_note": "내일, 내 상품에서 숫자로 잴 수 있는 효능 지표 1개(예: 혈중 수치·수분량·사용 전후 사진 점수)를 고르고, 고객 10명에게 4주간 전후를 재 주면 사은품을 주겠다고 제안한다. 결과는 좋든 나쁘든 그대로 페이지에 올린다.",
+      "preconditions": "① 건강기능식품이면 효능 표현이 식약처 표시·광고 규정에 걸린다 — '임상 결과'를 올리는 것과 '효능이 있다'고 쓰는 것은 다르다. 규정을 먼저 본다. ② 대학·기관 임상은 비용과 1년 이상 시간이 든다 — 처음엔 소규모 자체 관찰로 시작한다. ③ 나쁜 결과도 공개할 각오. 좋은 것만 올리면 신뢰가 아니라 광고가 된다.",
+      "outcome_direction": "positive",
+      "metric_name": "임상 12주 후 비타민D 수치 증가율",
+      "metric_before": null,
+      "metric_after": 43,
+      "metric_unit": "%",
+      "observed_period_start": null,
+      "observed_period_end": "2023-05-24"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://lynnecohenfoundation.org/the-seam/stories/transparency-and-traceable-science-with-katerina-schneider-ceo-of-ritual",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2023-05-24",
+      "snippet": "\"You can go to our site and see our ingredients, where they come from in the world, why they're there, and the final destination of manufacturing.\" \"Transparency with receipts.\" Over one million customers to date; surpassed nine figures in recurring revenue a couple of years prior.",
+      "supports_claim": "성분 출처·제조지 공개(Made Traceable), 누적 고객 100만+, 반복 매출 9자리 (창업자 1인칭, 자기보고)"
+    },
+    {
+      "move": 1,
+      "url": "https://lynnecohenfoundation.org/the-seam/stories/transparency-and-traceable-science-with-katerina-schneider-ceo-of-ritual",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2023-05-24",
+      "snippet": "\"That product now has a peer-reviewed and published human clinical study, and we conducted a clinical study with a major university, not required by the industry.\" \"a 43% increase in vitamin D levels over 12 weeks.\"",
+      "supports_claim": "자체 대학 임상, 12주 비타민D +43% (창업자 1인칭, 회사 후원 연구 자기보고)"
+    }
+  ],
+  "research_notes": "1인칭 출처: Lynne Cohen Foundation 인터뷰(2023-05-24). 2024 매출 2억 5천만 달러(CNBC 2025-03-07·Forbes 2025-03-11)는 두 페이지 모두 403 으로 못 열어 초안에 쓰지 않았다 — 검색 요약에만 있는 숫자는 근거가 아니다. period_start 2016 은 후보 목록(§2-1)의 창업 연도이고 열어 본 출처에는 '10년 가까이 전'으로만 나온다 — 편입 전 확인. 비타민D 43% 는 회사 후원 임상 수치라 효능 지표이지 사업 지표가 아니다. outcome_status active 는 인터뷰 시점 기준. 2026-09-22 5라운드 건기식 편입 초안."
+}

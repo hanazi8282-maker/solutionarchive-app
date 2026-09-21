@@ -1,0 +1,93 @@
+{
+  "slug": "ag1-single-sku-subscription-greens",
+  "brand_name": "AG1 (Athletic Greens)",
+  "market": "건강기능식품 · 그린스 파우더 (미국 D2C 구독)",
+  "geo": "US",
+  "business_model": "SUBSCRIPTION",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "HIGH",
+  "bottleneck": "RETENTION",
+  "reader_problem": "ONE_OFF_ONLY",
+  "outcome_status": "active",
+  "period_start": "2010-01-01",
+  "period_end": "2024-12-31",
+  "summary": "2010년 뉴질랜드 출신 창업자 크리스 애셴든이 만든 그린스 파우더. 제품은 사실상 하나뿐이고(75가지 성분을 한 스쿱에), 자사 웹사이트 구독으로만 팔며 월 79달러의 고가다. 창업자는 2022년 팟캐스트에서 '나는 재주문 사업을 하고 싶다'고 말했고, 성분을 따로 떼어 팔지 않는 이유를 '문제 하나를 제대로 푸는 제품'이라고 설명했다. 회사가 밝힌 매출은 2021년 1억 6천만 달러에서 2024년 약 6억 달러(회사 예상치, 흑자 주장)로 늘었다. 팀 페리스·앤드루 후버만 같은 팟캐스트 진행자의 광고가 성장의 축이었다. 다만 2024년 중반 The New Consumer 는 카드 결제 데이터 기준 미국 성장이 빠르게 둔화했다고 짚었고, 같은 해 창업자가 물러나 캣 콜이 CEO 가 됐다.",
+  "tags": ["RETENTION", "구독", "단일SKU", "건기식", "그린스", "팟캐스트광고", "고가", "D2C"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "OFFER",
+      "claim": "제품을 하나로 묶고 구독으로만 팔았다. 창업자 애셴든은 2022년 Fitt Insider 팟캐스트(1인칭)에서 '재주문 사업(reorder business)을 하고 싶다', '한 번에 좋은 고객 한 명씩 얻는 것'이라고 말했고, 75가지 성분을 한 제품에 넣고 '따로 떼어 파는 일은 하지 않는다'고 했다. 10년간 재배합은 두 번뿐. 그 결과 월 79달러 고가 제품이 웹사이트 구독만으로 회사 진술 기준 2021년 1억 6천만 달러에서 2024년 약 6억 달러 매출(예상치)이 됐다. 성분을 늘려 SKU 를 쪼개는 대신 재구매 하나에 집중한 사례다.",
+      "transfer_note": "내일, 내 상품 페이지에서 '1회 구매'와 '정기 배송(언제든 해지)' 두 버튼을 나란히 놓고 정기 배송을 기본 선택으로 둔다. 일주일 동안 주문 중 정기 배송 비율을 하나의 숫자로 적는다. 그 숫자가 낮으면 상품을 더 만들 게 아니라 지금 제품의 재구매 이유부터 고객 10명에게 묻는다.",
+      "preconditions": "① 매일·매달 다 쓰는 소모품이어야 한다 — 쓰는 주기가 없으면 구독은 안 붙는다. ② 정기 결제·자동 발송이 되는 자사몰(또는 정기배송 기능 있는 마켓). ③ 재구매가 이미 어느 정도 붙어 있어야 한다 — 첫 달에 끊기는 제품에 구독을 붙이면 해지만 늘어난다. ④ 고가로 팔려면 '왜 이 값인가'를 성분·함량으로 설명할 수 있어야 한다. AG1 도 성분 함량 비공개(독점 배합)로 비판을 받는다.",
+      "outcome_direction": "positive",
+      "metric_name": "연매출",
+      "metric_before": 160,
+      "metric_after": 600,
+      "metric_unit": "백만달러",
+      "observed_period_start": "2021-01-01",
+      "observed_period_end": "2024-12-31"
+    },
+    {
+      "lever": "CONTENT",
+      "claim": "고가 제품의 첫 접점을 배너 광고가 아니라 팟캐스트 진행자가 직접 읽는 광고(팀 페리스·앤드루 후버만 등 '퍼포먼스 최적화' 계열)로 잡았다 — 듣는 사람이 이미 건강·효능에 돈을 쓰는 사람들이라 월 79달러 가격 저항이 낮다. 수치가 붙지 않은 서술 무브다 — 팟캐스트 광고가 매출에 얼마나 기여했는지 분리한 출처는 없다.",
+      "transfer_note": "내일, 내 고객이 실제로 듣거나 보는 채널(팟캐스트·유튜브·뉴스레터) 중 진행자가 자기 말로 제품을 소개해 주는 곳 3개를 적고, 가장 작은 곳 1곳에 무료 샘플과 할인 코드를 보내 소개를 부탁한다. 코드 사용 건수를 센다.",
+      "preconditions": "① 진행자가 직접 써 보고 말할 수 있는 제품(체험이 짧고 결과가 느껴지는 것). ② 추적용 할인 코드·링크를 만들 수 있는 판매 채널. ③ 고가 제품이면 그 값을 설명할 성분·근거 페이지가 먼저 있어야 진행자가 소개할 수 있다.",
+      "outcome_direction": "positive",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": "2021-01-01",
+      "observed_period_end": "2024-07-30"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://insider.fitt.co/127-chris-ashenden-founder-ceo-at-athletic-greens/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2022-03-22",
+      "snippet": "\"I want to be in the reorder business... It was all about acquiring one great customer at a time.\" / \"we're not going to put something else and sell it to you separately.\" / \"Ten years of continual investment... two iterations over those 10 years, 75 of the highest quality ingredients.\"",
+      "supports_claim": "재주문(구독) 중심·단일 제품·성분 분리 판매 안 함 (창업자 1인칭, 자기보고)"
+    },
+    {
+      "move": 0,
+      "url": "https://newconsumer.com/2024/07/whats-going-on-at-ag1/",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": true,
+      "is_regulatory_filing": false,
+      "published_at": "2024-07-30",
+      "snippet": "Revenue $160 million in 2021; company says it expects about $600 million in 2024 and is profitable. Single product, DTC-only via its website at $79/month; growth in the US has \"rapidly decelerated over the past year\" per Earnest Analytics card data.",
+      "supports_claim": "매출 2021 $160M → 2024 $600M(회사 예상치·자기보고), 월 $79 단일 제품 DTC 구독. 2024 성장 둔화 경고"
+    },
+    {
+      "move": 0,
+      "url": "https://fortune.com/2025/01/30/ag1-supplements-ceo-kat-cole-athletic-greens/",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": true,
+      "is_regulatory_filing": false,
+      "published_at": "2025-01-30",
+      "snippet": "AG1 is projected to reach $600 million in revenue this fiscal year and the company says it is profitable. Kat Cole: \"I agree that the supplement industry has got to get way more rigorous in finished research.\"",
+      "supports_claim": "$600M 매출 예상·흑자 주장(회사 자기보고) 재확인"
+    },
+    {
+      "move": 1,
+      "url": "https://newconsumer.com/2024/07/whats-going-on-at-ag1/",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2024-07-30",
+      "snippet": "Supported by performance-optimization podcasters (Tim Ferriss, Dr. Andrew Huberman); sells almost entirely in one place, its website.",
+      "supports_claim": "팟캐스트 진행자 광고가 획득 채널 (서술)"
+    }
+  ],
+  "research_notes": "1인칭 출처: Fitt Insider 팟캐스트 페이지(2022-03, 창업자 발언 발췌). 매출 $600M 의 1차 보도(Forbes 2024-12-09)는 403 으로 못 열었고, The New Consumer·Fortune 이 전한 '회사 예상치'를 썼다 — 실적 확정치가 아니라 is_estimate=true. 비상장이라 공시 없음. 2024 성장 둔화(Earnest 카드 데이터) 경고를 summary 에 남겼다. 2026-09-22 5라운드 건기식 편입 초안 — 무브 claim 에 페인 낱말(성분·고가·가격·효능) 포함 규칙 적용."
+}

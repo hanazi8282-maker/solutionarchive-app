@@ -99,3 +99,32 @@
 2. **건기식·헤어케어 케이스 4건 우선 편입** — S2 Hims(탈모), S5 Seed·S6 락토핏(유산균), F1 Care/of(건기식 구독), F6 Function of Beauty(맞춤 샴푸). 현재 질의 35건 중 효능·가격 유형(15건)이 곧바로 짝을 얻는다.
 3. `failed_angles.claimed_angle`에 **질의 낱말이 들어가게** 쓴다 — "가격"·"향"·"효능"·"용기" 같은 페인 유형 낱말을 소구점 문장에 넣지 않으면 낱말 매칭이 영원히 못 잡는다(케이스 연구 프롬프트 지침에 추가).
 4. 카테고리 필터(PR #190)는 유지하되, 코퍼스가 소비재로 채워진 뒤 **카테고리 태그(뷰티/건기식/식품/생활)** 2차 필터를 얹는다 — 지금은 축이 될 값이 케이스에 없다(`business_model`뿐).
+
+## 2-5. 5라운드 (2026-09-22) — 페인 낱말 규칙 + 1차 배치
+
+남헌 09-22 승인(권고안 E 의 2단계, 소비재 32건 확충 착수). 먼저 §3 권고 3 을 규칙으로 박았다:
+**새 failed_angles.claimed_angle 과 새 case_moves.claim 은 `config/pain-terms.json` 의 페인 유형 낱말(8종)을 1개 이상 포함해야 한다.**
+`case-research.mjs validate` 와 `failed-angles-sync.mjs` 가 막고, 규칙 전 원장 24건·초안 45건은 같은 파일의 `legacy_*` 로 면제한다(다시 쓰지 말라는 뜻이 아니라 sync·validate 가 계속 돌게 하려는 것).
+셀프테스트: `scripts/pain-terms-selftest.mjs`. 낱말은 `toTerms` 를 살아남는 것만 — 효과·개선·기능·사용 은 불용어라 질의 쪽에서 사라지므로 목록에 없다(향 도 1글자라 없다).
+
+| 후보 | 처리 | 출처 등급 | 페인 낱말 | 비고 |
+|---|---|---|---|---|
+| F2 Flower Beauty | **failed 편입 대기** `flower-beauty-celebrity-mass-price` | 공개 보도(BeautyMatter 2025-09-29) · 추정 | 저가·가격 | 메사가 색조 철수 — 셀럽 소구 실패인지 카테고리 문제인지 미상 |
+| F3 Pat McGrath Labs | **failed 편입 대기** `pat-mcgrath-labs-artist-luxury-pricing` | 공개 보도(BeautyMatter 2026-01-26 · Yahoo 2026-04-23) · 추정 | 고가·프리미엄·가격 | 챕터11(2026-01) → GDA Luma 인수로 회생(2026-04). 원인 미명시 |
+| F4 Cover FX · Mally | **failed 편입 대기** `coverfx-mally-acquired-color-brands-winddown` | 공개 보도(Beauty Independent 2026-01-22) · 추정 | 성분 | 두 브랜드 한 행 — 같은 공지·같은 출처. WWD 원문은 tollbit 리다이렉트로 못 열었다 |
+| F5 Glossier 오프라인 | **failed 편입 대기** `glossier-retail-store-rollout` | 공개 보도(Cosmetics Business 2026-03-19 · Yahoo 2026-06-26) · 추정 | 사용감·향기 | 12→3 매장. ⚠️ 소구 문장의 '체험형' 서술은 재서술이라 is_estimate=true. Fast Company·Parade 는 403 |
+| F7 Prose | **보류** | — | — | 실제 후퇴가 문서화되지 않았다: 2023-02 감원은 LinkedIn 게시 2명뿐(Retail Dive, 회사 무응답)이고 회사는 2023-05 흑자 전환을 밝혔다(Modern Retail). 실패 판정 근거 없음 |
+| 국내 건기식 실패 ① | **failed 편입 대기** `sk-naturalpharm-probiotic-cfu-shortfall` | 공개 보도(이데일리 2023-10-10, 식약처 회수 명령) · 사실 | 함량·효능 | '1억 CFU 보장' → 실측 1,500만, 3등급 회수 |
+| 국내 건기식 실패 ② | **failed 편입 대기** `ivenet-kids-probiotic-cfu-shortfall` | 공개 보도(이투데이 2023-05-23, 소비자원 비교시험) · 추정 | 함량·효능·가격 | 아이배냇 꼬마유산균 츄어블 기준 미달 → 단종·환불. 소비자원 원문 페이지는 인증서 오류로 못 열어 보도로 대체 |
+| 국내 건기식 실패 ③ (효능 단정 광고) | **보류** | — | — | 식약처 부당광고 적발 보도(SBS 2021-09 31건, 정책브리핑 2024-05 5곳)는 제품명이 없다. 제품명 있는 원자료 확보 전까지 F9 원칙 후보로만 |
+| S1 AG1 | **draft** `ag1-single-sku-subscription-greens` (무브 2) | 1인칭(Fitt Insider 2022) A + 회사 예상치(New Consumer·Fortune) | 성분·고가·가격·효능 | 매출 $600M 은 회사 예상치 → is_estimate. Forbes 원문 403 |
+| S4 Ritual | **draft** `ritual-traceable-ingredients-multivitamin` (무브 2) | 1인칭(Lynne Cohen Foundation 2023-05) A | 성분·안전·캡슐·임상·입증·효능 | $250M(2024) 은 CNBC·Forbes 403 이라 미사용. 1차 출처 확보돼 skip 안 함 |
+| S5 Seed | **draft** `seed-ds01-clinical-strain-probiotic` (무브 3) | 1인칭(Athletech 2024-12 · US Chamber 2025-08) | 임상·효능·가격·프리미엄·고가·성분 | 매출 절대액 없음, '3년 500%' 회사 발표. 유산균 질의와 직접 겹침 |
+| S7 Dr. Squatch | **draft** `dr-squatch-humor-video-natural-soap` (무브 1) | 1인칭(Practical Ecommerce 2021-01) A | 성분 | $5M→$100M 창업자 자기보고. 세정·비누 카테고리 |
+| S8 Liquid Death | **기존 draft 있음** `liquid-death` — 새로 만들지 않음 | (기존) Sacra 추정 | 없음(legacy 면제) | 이번에 연 1차 출처(New Consumer 2019 창업자 인터뷰: 첫 15만 캔 8주 완판·$1,500 영상 / TechCrunch 2022: 2019 $3M→2021 $45M 창업자 발언)로 기존 draft 보강 가능 — 중복 슬러그를 피하려 손대지 않았다 |
+| 국내 건기식 성공 ① hy 야쿠르트 | **draft** `hy-yakult-functional-probiotic-certification` (무브 1) | 언론(식품저널 2021-05 · 메디컬투데이 2023-02), 회사 자체 데이터 | 기능성·효능·입증 | 인증 후 1~4월 판매량 +22.8%(자기보고), 2021 매출 1위. 락토핏의 반대편 |
+| 국내 건기식 성공 ② 고려은단 | **draft** `korea-eundan-vitamin-c-british-ingredient` (무브 1) | 언론(이투데이 2015-03 · 경향 2013-08), 회사 발표 | 함량·성분·프리미엄 | 1인칭 없음. '10년 연속 1위' 는 조사기관 미명시라 수치 미사용. 현재 판매 여부 미확인 → unknown |
+
+**누적 (32건 목표):** 4라운드 5건(failed 2 + draft 3) + 5라운드 12건(failed 6 + draft 6) = **17/32** — draft 9건은 전부 남헌 승인 전이라 아직 코퍼스에 없다. 유형별로 보면 효능·가격·성분·함량 쪽은 채워지기 시작했고 **세정·체취 / 사용감·거품 / 용기·펌프 / 제형·보관** 유형은 아직 0~1건이다 — 다음 라운드는 이 네 유형(샴푸·바디워시·펌프 용기·실온 보관 유산균)을 먼저 찾는다.
+
+편입 절차: 원장 6행은 남헌 검토 후 `node --env-file=.env.local scripts/failed-angles-sync.mjs`(이 세션은 DB 를 만지지 않았다). draft 6건은 `/cases` 에서 검수.

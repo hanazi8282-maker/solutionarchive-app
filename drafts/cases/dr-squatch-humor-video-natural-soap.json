@@ -1,0 +1,47 @@
+{
+  "slug": "dr-squatch-humor-video-natural-soap",
+  "brand_name": "Dr. Squatch",
+  "market": "남성 천연 비누·퍼스널케어 (미국 D2C)",
+  "geo": "US",
+  "business_model": "D2C",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "MID",
+  "bottleneck": "AWARENESS",
+  "reader_problem": "MAKE_BUT_NO_MONEY",
+  "outcome_status": "active",
+  "period_start": null,
+  "period_end": "2020-12-31",
+  "summary": "창업자 잭 홀드럽이 파머스마켓에서 산 저온 공정(cold process) 천연 비누를 좋아하게 된 데서 시작한 남성 퍼스널케어 브랜드. '남자를 위한 천연 제품'을 내걸고 비누를 히어로 제품으로 삼았다. 2018년 매출 약 300만 달러이던 때 1만 8천 달러를 들여 배우가 나오는 유머 광고 영상을 만들었고 — 창업자 표현으로 '당시엔 엄청난 지출이었고 무서웠다' — 그 뒤 매출은 18개월 만에 500만 달러에서 2020년 약 1억 달러가 됐다(창업자 자기보고). 유튜브 성과는 지표에 다 안 잡힌다고 그는 말한다. 정기구독이 전체 매출의 약 30%다.",
+  "tags": ["AWARENESS", "유머영상", "유튜브", "천연성분", "비누", "생활용품", "남성", "구독", "D2C"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "CONTENT",
+      "claim": "천연 성분 비누라는 흔한 소구를 '남자용'으로 좁히고, 그걸 진지한 성분 설명이 아니라 배우가 나오는 유머 영상으로 알렸다. 홀드럽은 2021년 Practical Ecommerce 인터뷰(1인칭)에서 '2018년에 그 배우로 첫 영상을 만들었다… 영상에 약 1만 8천 달러를 썼다. 당시엔 엄청난 지출이었고 사실 무서웠다'고 했고, 매출은 18개월 만에 500만 달러에서 2020년 약 1억 달러가 됐다고 밝혔다. 그는 '유튜브에서 오는 기여는 지표에 다 안 잡힌다'고도 했다 — 유머 영상은 클릭이 아니라 브랜드를 기억시키는 쪽으로 작동했다는 관찰이다. 구독이 매출의 약 30%.",
+      "transfer_note": "내일, 내 상품의 성분·기능 설명을 30초짜리 농담 하나로 바꿔 본다 — '이 제품이 없으면 생기는 웃긴 상황' 한 장면. 스마트폰으로 찍어 올리고 조회수가 아니라 댓글에 브랜드 이름이 언급되는 횟수를 센다.",
+      "preconditions": "① 유머로 말해도 되는 카테고리·고객(비누는 됐고, 의료기기는 안 된다). ② 영상이 터졌을 때 받아 줄 재고와 배송 — Dr. Squatch 는 이미 연 300만 달러 규모였다. ③ 자기 브랜드를 스스로 놀릴 수 있는 창업자. 진지함을 못 내려놓으면 이 무브는 어색해진다. ④ 제작비를 '무서운' 크기로 한 번에 쓸 각오 — 잘게 쪼개 여러 개 만드는 것과 다른 결정이었다.",
+      "outcome_direction": "positive",
+      "metric_name": "연매출",
+      "metric_before": 5,
+      "metric_after": 100,
+      "metric_unit": "백만달러",
+      "observed_period_start": "2019-07-01",
+      "observed_period_end": "2020-12-31"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.practicalecommerce.com/dr-squatch-a-mens-soap-brand-scales-to-100-million",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2021-01-22",
+      "snippet": "\"We spent about $18,000 on the video. It was a massive expense at the time. It was scary, actually.\" Revenue $5M to $100M in 18 months (2020). \"a lot of attribution from YouTube that doesn't come through on its metrics.\" Subscriptions \"about 30 percent of overall revenue.\"",
+      "supports_claim": "유머 영상 $18k, 매출 $5M→$100M(18개월), 유튜브 기여 지표 미반영, 구독 30%, 남성용 천연 제품 포지셔닝 (창업자 1인칭, 자기보고)"
+    }
+  ],
+  "research_notes": "1인칭 출처: Practical Ecommerce 창업자 인터뷰(2021-01-22, 팟캐스트 전사). 매출 수치는 전부 창업자 자기보고이고 비상장이라 감사 수치 없음. 관측 기간 시작(2019-07)은 '2020년 1억 달러, 18개월 전 500만 달러'에서 역산한 근사값 — 편입 전 확인. 창업 연도는 열어 본 출처에 없어 period_start 를 비웠다. Forbes 2021-02 기사는 열지 않았다. 2026-09-22 5라운드 생활용품 편입 초안 — 세정·향·성분 질의와 겹치는 카테고리(비누)."
+}

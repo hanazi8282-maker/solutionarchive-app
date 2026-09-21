@@ -1,0 +1,58 @@
+{
+  "slug": "hy-yakult-functional-probiotic-certification",
+  "brand_name": "hy (한국야쿠르트) 야쿠르트 프로바이오틱스",
+  "market": "유산균·프로바이오틱스 (한국, 액상 발효유의 건강기능식품 전환)",
+  "geo": "KR",
+  "business_model": "WHOLESALE",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "TRUST",
+  "reader_problem": "NOBODY_TRUSTS_ME",
+  "outcome_status": "active",
+  "period_start": "2021-01-01",
+  "period_end": "2021-12-31",
+  "summary": "수십 년 팔던 액상 발효유를 '건강기능식품'으로 옮긴 사례다. hy 는 액상 프로바이오틱스 3종(야쿠르트 프리미엄 라이트·거꾸로 먹는 야쿠르트·멀티비타프로바이오틱스)에 식약처 프로바이오틱스 기능성 인증을 받았고, 회사 자체 판매 데이터로 2021년 1~4월 누계 판매량이 전년 같은 기간보다 22.8% 늘었다고 밝혔다 — 다른 발효유 성장률을 크게 웃돈 수치다(식품저널 2021-05). 2021년 hy 프로바이오틱스 매출은 2,749억 원으로 락토핏(2,260억 원)을 제치고 1위였고, 메디컬투데이는 그 원인을 '야쿠르트가 2021년 식약처 기능성 프로바이오틱스 인증을 획득하면서 영역이 확대된 것'으로 풀이했다. 락토핏이 저가로 연 시장에서, 기존 제품에 '효능 인증'을 붙여 상단을 가져간 반대편 사례다(락토핏 케이스 참조).",
+  "tags": ["TRUST", "기능성인증", "식약처", "효능입증", "유산균", "건기식", "발효유", "한국", "WHOLESALE"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "PRODUCT_FEATURE",
+      "claim": "제품을 새로 만들지 않고 이미 팔던 액상 발효유 3종에 식약처 프로바이오틱스 기능성 인증을 받아 '효능이 입증된 건강기능식품'으로 자리를 옮겼다. 회사는 인증 뒤 2021년 1~4월 3종 누계 판매량이 전년 동기 대비 22.8% 늘었다고 밝혔고(자체 판매 데이터, 자기보고), 같은 해 hy 는 프로바이오틱스 매출 2,749억 원으로 1위가 됐다 — 메디컬투데이는 기능성 인증으로 영역이 넓어진 것을 원인으로 풀이했다(인과는 언론 해석). 유산균처럼 효능을 눈으로 못 보는 카테고리에서 '식약처 인증' 한 줄이 곧 신뢰의 근거가 된 사례다. 1인칭 출처(경영진 인터뷰)는 확인 불가.",
+      "transfer_note": "내일, 내 상품이 받을 수 있는 공인 표시·인증 목록(식약처 기능성 표시, HACCP, KC, 유기농 등)을 하나 적고, 지금 배합·함량 그대로 신청 가능한 것 1개를 고른다. 신청에 필요한 시험 성적서를 어느 기관에서 얼마에 받는지 전화 한 통으로 확인한다.",
+      "preconditions": "① 인증 기준(식약처 고시 기능성 원료·함량)을 이미 충족하는 제품 — 배합을 바꿔야 하면 그건 신제품 개발이다. ② 인증 시험·심사 비용과 기간(수개월)을 버틸 현금. ③ 인증 뒤에는 건강기능식품 표시·광고 규정이 따라온다 — 효능 문구가 오히려 제한된다. ④ hy 는 방문판매·유통망을 이미 갖고 있었다 — 채널 없는 셀러는 인증만으로 판매가 늘지 않는다.",
+      "outcome_direction": "positive",
+      "metric_name": "액상 프로바이오틱스 3종 누계 판매량 증감률(전년 동기 대비)",
+      "metric_before": null,
+      "metric_after": 22.8,
+      "metric_unit": "%",
+      "observed_period_start": "2021-01-01",
+      "observed_period_end": "2021-04-30"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.foodnews.co.kr/news/articleView.html?idxno=92234",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2021-05-07",
+      "snippet": "인증 제품 3종: 야쿠르트 프리미엄 라이트·거꾸로 먹는 야쿠르트·멀티비타프로바이오틱스. \"자체 판매 데이터를 분석한 결과, 액상 프로바이오틱스 3종의 올 1~4월까지 누계 판매량이 전년 같은기간보다 22.8% 증가했다\". 2020년 프로바이오틱스 시장 8,856억 원(전년비 +19.4%).",
+      "supports_claim": "식약처 인증 후 3종 판매량 +22.8% (회사 자체 데이터·자기보고)"
+    },
+    {
+      "move": 0,
+      "url": "http://www.mdtoday.co.kr/news/articleViewRedirect.html?oldNo=1065603091590224",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": true,
+      "is_regulatory_filing": false,
+      "published_at": "2023-02-14",
+      "snippet": "hy 2021년 2,749억 원, 종근당건강 락토핏 2019년 2,023억 → 2020년 2,507억 → 2021년 2,260억 원. \"hy의 국내 최초 발효유 '야쿠르트'가 2021년 식약처로부터 기능성 프로바이오틱스 인증을 획득하면서 그 영역이 확대된 것\"",
+      "supports_claim": "2021년 hy 프로바이오틱스 1위(2,749억), 인증을 원인으로 풀이 (언론 해석 — is_estimate)"
+    }
+  ],
+  "research_notes": "1인칭 출처 확인 불가 — 회사 관계자 인용(식품저널)뿐이고 경영진 인터뷰·실적발표는 못 찾았다. 22.8% 는 회사 자체 판매 데이터. 2021-07 '야쿠르트 라이트' 인증(200원짜리 야쿠르트) 보도는 검색에만 잡히고 열지 않아 쓰지 않았다. 매출 1위와 인증의 인과는 메디컬투데이의 해석이라 is_estimate=true. 락토핏 draft(lactofit-mass-price-probiotics)의 반대편 사례로 2026-09-22 5라운드 편입 — 유산균 프로젝트 질의(효능 입증)와 직접 겹친다."
+}

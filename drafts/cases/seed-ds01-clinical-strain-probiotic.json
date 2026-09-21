@@ -1,0 +1,95 @@
+{
+  "slug": "seed-ds01-clinical-strain-probiotic",
+  "brand_name": "Seed Health (DS-01)",
+  "market": "유산균·프로바이오틱스 (미국 D2C 구독 → 타깃·아마존)",
+  "geo": "US",
+  "business_model": "SUBSCRIPTION",
+  "buyer_type": "B2C",
+  "purchase_frequency": "REPEAT",
+  "price_band": "HIGH",
+  "bottleneck": "TRUST",
+  "reader_problem": "NOBODY_TRUSTS_ME",
+  "outcome_status": "active",
+  "period_start": null,
+  "period_end": "2025-08-07",
+  "summary": "아라 카츠와 라자 디르가 만든 유산균 브랜드. 제품은 24균주 신바이오틱 DS-01 하나가 중심이고 한 달치 49.99달러로 시장 최상단 가격이다. 공동 CEO 카츠는 '과학은 전달되기 전엔 끝난 게 아니다'라며 스스로를 '반(反)마케팅 브랜드'라 부르고, 광고 대신 임상과 교육으로 판다 — DS-01 은 항생제 복용 중 장 면역·장벽 기능 유지, 비피도박테리아 증가를 보인 임상 2건을 마쳤고 하버드에서 IBS 연구도 했다(자기보고). 가격은 '하루 1.67달러'로 바꿔 말한다. 2024년 2월 아마존, 9월 타깃 전 매장에 들어갔고, 타깃에서는 3개월 만에 비타민·영양제 카테고리 상위 10위에 올랐으며 최근 3년 매출이 500% 넘게 늘었다고 밝혔다(자기보고).",
+  "tags": ["TRUST", "임상", "균주", "유산균", "건기식", "프리미엄가격", "구독", "타깃", "D2C"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "CONTENT",
+      "claim": "효능을 광고 문구가 아니라 임상으로 말했다. 카츠는 2024년 12월 인터뷰(1인칭)에서 'DS-01 은 방금 임상 2건을 마쳤다 — 항생제 복용 중 장 면역·장벽 기능 유지를 보인 첫 사례'라 했고, 24균주 구성을 '시장에서 가장 유전체적으로 다양한 유산균'이라 불렀다. 회사는 광고를 줄이고 교육 콘텐츠로 파는 '반마케팅 브랜드'를 자처한다 — 유산균처럼 효능을 눈으로 못 보는 카테고리에서 '몇 억 마리'보다 '어떤 균주, 어떤 임상'이 신뢰의 근거라는 판단이다. 서술 무브다 — 임상 소구가 매출에 얼마나 기여했는지 분리한 수치는 없다.",
+      "transfer_note": "내일, 내 상품 페이지에서 '효과 좋음' 같은 형용사 문장을 전부 지우고, 그 자리에 근거 한 줄(어떤 원료가, 어떤 시험에서, 무엇을 보였는지 + 출처 링크)로 바꾼다. 근거가 없는 문장은 지운 채로 둔다.",
+      "preconditions": "① 원료 공급사가 균주·원료 단위 임상 자료를 갖고 있어야 한다 — 없으면 공급사에 자료를 요구하는 게 첫 행동이다. ② 건강기능식품 표시·광고 규정상 '임상 결과 인용'과 '효능 단정'은 다르다. 식약처 인정 기능성 범위 안에서 쓴다. ③ 교육 콘텐츠로 팔려면 그걸 쓸 사람(과학 배경)이 필요하다.",
+      "outcome_direction": "positive",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": "2024-12-04"
+    },
+    {
+      "lever": "PRICING",
+      "claim": "한 달치 49.99달러라는 프리미엄 가격을 '하루 1.67달러'로 쪼개 말했다 — 카츠는 인터뷰(1인칭)에서 '하루 1.67달러로' 접근할 수 있다고 표현했다. 유산균 시장 최상단 가격을 낮추지 않고 단위를 바꿔 가격 저항을 다루는 방식이다. 수치가 붙지 않은 서술 무브다.",
+      "transfer_note": "내일, 내 상품의 한 달 가격을 '하루 ○○원'으로 나눈 숫자를 상품명 바로 아래 한 줄에 넣는다. 경쟁 상품 5개도 같은 방식으로 나눠 표로 만들고, 내 하루 가격이 비싸면 그 값이 왜 정당한지(균주·임상·함량) 한 줄을 그 옆에 적는다.",
+      "preconditions": "① 매일 먹는 제품이어야 '하루 가격'이 말이 된다. ② 하루 가격이 경쟁보다 비쌀 때 그 차이를 설명할 근거(성분·임상)가 이미 페이지에 있어야 한다 — 없으면 쪼개 말해도 비싸 보일 뿐이다.",
+      "outcome_direction": "positive",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": "2024-12-04"
+    },
+    {
+      "lever": "CHANNEL",
+      "claim": "월 49.99달러짜리 고가 유산균을 D2C 구독에서 매스 채널로 옮겼다 — 2024년 2월 아마존, 9월 타깃 전 매장. 카츠는 2025년 인터뷰(1인칭)에서 'D2C 는 소중해지기 쉽다… 우리는 사람들이 가족 건강을 위해 장 보는 곳으로 가야 했다'고 말했다. 회사 발표로 타깃 입점 3개월 만에 비타민·영양제 카테고리 상위 10위, 아마존은 1년 안에 프로바이오틱스 상위 5위, 최근 3년 매출 500% 이상 성장. 가격을 내리지 않고 매대에 올라간 것이 이 무브의 핵심이다 — 임상·균주 근거가 먼저 있었기 때문에 가능했다는 것이 회사 설명이다.",
+      "transfer_note": "내일, 내 고객이 '가족 건강을 위해 장 보는' 오프라인 매장 1곳(약국·마트·헬스장)을 정해 입점 담당자 연락처를 찾고, 상품 페이지에 이미 있는 근거(성분·임상·함량)를 한 장짜리 제안서로 만들어 보낸다.",
+      "preconditions": "① 매스 채널 마진(유통 수수료)을 감당할 원가 구조 — 고가라 가능했다. ② 매대에서 설명 없이 팔릴 만큼 패키지에 근거가 적혀 있어야 한다. ③ 재고·물류를 채널 수요에 맞출 자본. Seed 는 D2C 로 수년간 브랜드를 만든 뒤 옮겼다 — 첫날부터 매스 채널은 이 순서가 아니다.",
+      "outcome_direction": "positive",
+      "metric_name": "최근 3년 매출 성장률",
+      "metric_before": null,
+      "metric_after": 500,
+      "metric_unit": "%",
+      "observed_period_start": "2022-08-01",
+      "observed_period_end": "2025-08-07"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://athletechnews.com/ceo-corner-seed-ara-katz-science-of-probiotics-exclusive-interview/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2024-12-04",
+      "snippet": "\"DS-01 just completed two clinical trials: we're the first to demonstrate antibiotic maintenance of gut immune and gut barrier function\"; \"the most genomically diverse probiotic that exists in the market\"; \"science isn't finished until it's communicated\"; an \"anti-marketing brand\".",
+      "supports_claim": "임상 2건·24균주·교육 중심 반마케팅 (공동 CEO 1인칭, 자기보고)"
+    },
+    {
+      "move": 1,
+      "url": "https://athletechnews.com/ceo-corner-seed-ara-katz-science-of-probiotics-exclusive-interview/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2024-12-04",
+      "snippet": "\"for $1.67 a day\" consumers can access the product.",
+      "supports_claim": "월 $49.99 를 '하루 $1.67' 로 표현 (1인칭)"
+    },
+    {
+      "move": 2,
+      "url": "https://www.uschamber.com/co/good-company/the-leap/seed-health-startup-growth",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2025-08-07",
+      "snippet": "\"we needed to go where people were shopping for their and their family's health.\" Sept 2024 launch in all U.S. Target stores; top-10 in Target VMS category within three months. Amazon Feb 2024, top five probiotics within a year. Revenue growth over 500% past three years. ~$49.99 for thirty days.",
+      "supports_claim": "타깃·아마존 입점과 순위, 3년 매출 +500%, 월 $49.99 (공동 CEO 1인칭·회사 자기보고)"
+    }
+  ],
+  "research_notes": "1인칭 출처 2건(Athletech 2024-12, US Chamber CO— 2025-08). 매출 절대액은 어디에도 없고 '3년 500% 성장'만 회사가 밝혔다 — 관측 기간(2022-08~2025-08)은 기사일 기준 역산이라 편입 전 확인. 타깃 순위·아마존 순위도 회사 발표. 창업 연도는 열어 본 출처에 없어 period_start 를 비웠다. Fast Company 2025-09 기사(§2-1 S5 의 원 출처)는 403 으로 못 열었다. 2026-09-22 5라운드 건기식·유산균 편입 초안 — 유산균 프로젝트 질의(효능 입증·가격·고함량)와 직접 겹친다."
+}

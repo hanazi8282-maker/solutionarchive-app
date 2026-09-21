@@ -23,7 +23,8 @@ const rows = parseFailedAnglesTable(fs.readFileSync('docs/failed-angles.md', 'ut
 //   이제는 원장 실제 행수를 고정한다 — 행을 더 넣으면 이 숫자를 같이 올려라.
 //   2026-09-21 배치 3: DB 에만 있던 10건 중 is_estimate=false 4건 편입(12→16).
 //   2026-09-21 배치 4: 남헌 승인으로 추정 6건 편입(16→22) — 출처 URL 재검증 뒤, 검증 안 된 수치(beautycounter SKU 수)는 뺐다.
-t('정본: 22행', rows.length, 22)
+//   2026-09-21 배치 5(처방 매칭 4라운드): 건기식·헤어케어 실패 2건 편입(22→24) — Care/of 폐업, Function of Beauty 공장 폐쇄. 둘 다 인과는 추정.
+t('정본: 24행', rows.length, 24)
 ok('정본: 전부 case_key 형식(소문자·숫자·하이픈)', rows.every((r) => /^[a-z0-9-]+$/.test(r.case_key)))
 ok('정본: 전부 source_tier=공개 보도', rows.every((r) => r.source_tier === '공개 보도'))
 ok('정본: is_estimate 전부 boolean', rows.every((r) => typeof r.is_estimate === 'boolean'))
@@ -71,4 +72,4 @@ throws('행이 0건 → throw', () => parseFailedAnglesTable(H))
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) { console.log('표 파서가 틀렸다. 시드/동기화가 원장과 어긋난다.'); process.exitCode = 1 }
-else console.log('표 파서 정상 — 정본 22행 + 형식 위반 전부 throw.')
+else console.log('표 파서 정상 — 정본 24행 + 형식 위반 전부 throw.')

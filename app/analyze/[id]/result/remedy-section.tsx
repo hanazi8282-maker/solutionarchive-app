@@ -16,10 +16,12 @@ import { failureLine, fixLine, principleLine } from '@/lib/cases/remedy'
 const muted: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', lineHeight: 'var(--lh-normal)' }
 const body: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)', lineHeight: 'var(--lh-normal)', overflowWrap: 'anywhere' }
 
-function Line({ text, low, tone }: { text: string; low: boolean; tone?: 'danger' }) {
+// estimate: failed_angles.is_estimate — 재서술에 인과 해석·추정이 섞인 행. 어드바이저 카드와 같은 "추정" 배지다.
+function Line({ text, low, tone, estimate }: { text: string; low: boolean; tone?: 'danger'; estimate?: boolean }) {
   return (
     <li style={{ ...body, color: tone === 'danger' ? 'var(--danger-fg)' : 'var(--text-body)' }}>
       {text}
+      {estimate && <> <Badge tone="warning" size="sm">추정</Badge></>}
       {low && <> <Badge tone="warning" size="sm">신뢰도 낮음</Badge></>}
     </li>
   )
@@ -89,7 +91,7 @@ export function RemedySection({ projectId }: { projectId: string }) {
                       <div>
                         <div className="dgy-caps">이렇게 갔다가 막힌 사례</div>
                         <ul style={{ margin: '4px 0 0', paddingLeft: 18, display: 'grid', gap: 4 }}>
-                          {c.failures.map((f) => <Line key={f.case_key} text={failureLine(f)} low={f.low_confidence} tone="danger" />)}
+                          {c.failures.map((f) => <Line key={f.case_key} text={failureLine(f)} low={f.low_confidence} tone="danger" estimate={f.is_estimate} />)}
                         </ul>
                       </div>
                     )}

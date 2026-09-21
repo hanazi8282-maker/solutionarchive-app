@@ -213,3 +213,17 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 양성: 컬럼 1/1 · 인덱스 1/1 · 기존 24행 전부 NULL(추정 채움 없음)
 - 음성: 해당 없음(제약 없는 nullable 컬럼)
 - 롤백: `_rollback.sql`
+
+## 2026-09-21 — 20260927000001_rls_seller_profiles_wtp_signals.sql (RLS 활성화 + 소유자 정책)
+
+- 배경: Supabase 어드바이저 critical `rls_disabled_in_public` 2건(seller_profiles·wtp_signals). 두 테이블은 앱에서 서버 라우트(service_role)만 쓰는데
+  RLS 가 꺼져 있어 anon 키로 PostgREST 를 직접 치면 전 행이 읽혔다(실측 당시 두 테이블 모두 0행이라 노출된 데이터는 없다).
+- 승인자: **자체 판단(§10.2)** — 남헌 09-21 긴급 지시. 예외 5개 해당 없음(삭제·데이터 변경·키 노출·법적·사업방향 아님, 보안 경계를 **좁히는** 변경). 롤백 파일 있음.
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. Supabase MCP `apply_migration` — success.
+- 접근 경로 실측: 브라우저 anon 클라이언트 import 0건, `scripts/discovery*`·`lib/discovery` 참조 0건 → 발굴 엔진 무관. `pg_roles.service_role.rolbypassrls = true`.
+- 적용 전 검증: 스테이징 브랜치 없음(list_branches 0) → DO 블록 안에서 DDL+테스트 행 → 역할 전환 실측 → RAISE EXCEPTION 으로 전체 롤백.
+  결과 `anon_profiles=0 anon_wtp=0 authA_profiles=1 authA_wtp=1 authA_insert_other=blocked(42501) authA_insert_own=ok authA_update_B_rows=0 authA_update_A_rows=1 authA_delete_rows=0 service_profiles=2 service_wtp=3 service_insert=ok`.
+- 적용 후 양성: pg_class 둘 다 relrowsecurity/relforcerowsecurity true, 정책 5개(roles {authenticated}), 두 테이블 0행 유지(테스트 행 잔존 없음).
+  앱 경로: `lib/supabase/server.ts`(service_role) select 정상. 셀프테스트 wtp 40·analyze-projects-facets 71·auth 98 통과.
+- 적용 후 음성: anon 키 PostgREST GET `seller_profiles`·`wtp_signals` → `[] HTTP 200`(차단).
+- 어드바이저 재조회: `rls_disabled_in_public` ERROR 0건. 남은 것 — `security_definer_view`(post_performance, ERROR) · `function_search_path_mutable` 2건(WARN) · leaked password protection(WARN) · `rls_enabled_no_policy` INFO 37건(기존 전 테이블 관례). 이번 지시 범위 밖, 별건.

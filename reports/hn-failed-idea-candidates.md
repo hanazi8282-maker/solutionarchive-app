@@ -75,3 +75,15 @@
 - 작성일: 2026-09-18
 
 > > And if calculus was the only useful thing to come out of 1600s mathematical research, it would have been worth it. The other dead ends don't need to justify themselves. Getting one thing of this magnitude justifies it all It would have been worth what? Doing mathematical research at all? Nobody is suggesting we shut down mathematical research. It doesn't justify a funding system that didn't exist / didn't fund those researchers. We need to come up with better reasons to fund such a thing.
+
+## HN 49788703
+
+- 판정: (미검토)
+- 매칭: `pivoted away from`
+- 원본: https://news.ycombinator.com/item?id=49788703
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-09-21 UTC)
+- 스레드: What Sun got wrong
+- 작성자: nunez
+- 작성일: 2026-09-21
+
+> Yeah, and then Dell more-or-less turned into that. Companies get big, customers and sales get more complicated, process gets more calcified. SUNW would probably still be around if the whole x86 commodity pizza box revolution hadn't happened OR if they had pivoted away from SPARC earlier and went heavily into x86. Example: buying from IBM doesn't sound too different from buying from Sun, but they're still around because mainframes will be around until the Earth implodes (probably). (I think that …

@@ -40,6 +40,8 @@ export interface RemedyAspectRow {
 export interface RemedyProject {
   market?: string | null
   product_elevator_pitch?: string | null
+  /** 카테고리 선행 필터 축(advisor.productKindOf). 조회에서 빼면 undefined = 필터 없음. */
+  business_model?: string | null
 }
 
 export interface RemedyCard {
@@ -126,7 +128,7 @@ export function buildRemedies(input: {
   const freeText = [project?.market, project?.product_elevator_pitch].filter(Boolean).join(' ') || null
 
   const cards: RemedyCard[] = targets.map(({ a, v }) => {
-    const r = advise({ category: a.name, angleDescription: a.notes ?? null, freeText }, corpora)
+    const r = advise({ category: a.name, angleDescription: a.notes ?? null, freeText, businessModel: project?.business_model }, corpora)
     return {
       aspect_id: a.id,
       aspect_name: a.name,

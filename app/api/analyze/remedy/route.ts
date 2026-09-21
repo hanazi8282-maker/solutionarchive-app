@@ -39,7 +39,7 @@ export async function GET(req: Request) {
 
   const { data: project, error: projectError } = await supabase
     .from('analysis_projects')
-    .select('id, product_elevator_pitch, market')
+    .select('id, product_elevator_pitch, market, business_model')
     .eq('id', projectId)
     .maybeSingle()
   if (projectError) {

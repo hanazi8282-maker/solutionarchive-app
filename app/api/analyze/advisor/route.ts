@@ -54,6 +54,8 @@ export async function GET(req: Request) {
   // ── 앵글 컨텍스트 조립 ──────────────────────────────────────
   let category: string | null = null
   let angleDescription: string | null = null
+  // undefined = 프로젝트 없는 자유 질의 → 카테고리 필터 없음. 프로젝트가 있으면 null 이라도 physical 로 접힌다.
+  let businessModel: string | null | undefined = undefined
   let resolvedProjectId = projectId
   let angleContext: Record<string, unknown> | null = null
 
@@ -99,7 +101,7 @@ export async function GET(req: Request) {
   if (resolvedProjectId) {
     const { data: project, error: projErr } = await supabase
       .from('analysis_projects')
-      .select('id, product_elevator_pitch, seller_own_guess')
+      .select('id, product_elevator_pitch, seller_own_guess, business_model')
       .eq('id', resolvedProjectId)
       .maybeSingle()
     if (projErr) {
@@ -109,6 +111,7 @@ export async function GET(req: Request) {
     if (!project) return NextResponse.json({ error: '프로젝트를 찾을 수 없습니다.' }, { status: 404 })
     category = project.product_elevator_pitch ?? null
     if (!angleDescription) angleDescription = project.seller_own_guess ?? null
+    businessModel = project.business_model ?? null
   }
 
   // ── 코퍼스 로드 ────────────────────────────────────────────
@@ -126,7 +129,8 @@ export async function GET(req: Request) {
   )
 
   const result = advise(
-    { category, angleDescription, freeText: freeText || null },
+    // businessModel 이 undefined(프로젝트 없이 자유 질의)면 카테고리 필터 없이 전 코퍼스를 본다.
+    { category, angleDescription, freeText: freeText || null, businessModel },
     { principles, studies, moves, failedAngles },
   )
 

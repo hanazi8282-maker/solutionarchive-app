@@ -43,7 +43,7 @@ const draft = (claim) => ({
   slug: 'x', brand_name: 'X', moves: [{ lever: 'PRICING', claim, outcome_direction: 'positive' }], evidence: [],
 })
 const errs = (d) => validateDraft(d).filter((i) => i.level === 'error').map((i) => i.message)
-t('claim 낱말 없음 → error', errs(draft('구독으로 묶었다')).some((m) => m.includes('pain-terms.json')), true)
+t('claim 낱말 없음 → error', errs(draft('색상을 바꿨다')).some((m) => m.includes('pain-terms.json')), true)
 t('claim 낱말 있음 → error 없음', errs(draft('하루 가격 하나로 구독을 묶었다')).some((m) => m.includes('pain-terms.json')), false)
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

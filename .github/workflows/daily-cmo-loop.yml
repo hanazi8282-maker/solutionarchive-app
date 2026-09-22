@@ -56,8 +56,8 @@ permissions:
 jobs:
   loop:
     runs-on: ubuntu-latest
-    # 조사 2건(각 15분) + 초안 2건(각 12분) + 해설 8분 = 최악 62분. 여유 포함 90.
-    timeout-minutes: 90
+    # 조사 직렬 15분/건 × 6건 + 초안. (남헌 2026-09-23 확정 — 4건/일로 올리면 조사 스텝 하나가 90분을 다 쓴다)
+    timeout-minutes: 240
 
     steps:
       - uses: actions/checkout@v4

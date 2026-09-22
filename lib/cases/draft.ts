@@ -485,10 +485,14 @@ export function validateDraft(draft: Draft, today = new Date()): Issue[] {
     if (!hasNumber) {
       warn(w, '수치가 없다 (등급 D) — PMF 스코어링 입력에서 빠진다')
     }
-    // 이식성 관측. 막지 않는다 — 조사 단계에서 비어 있는 건 흔하고, 막으면
-    // 아무 말이나 채워 넣는다. 대신 검수자 눈에 띄게 남긴다.
-    if (!m.transfer_note) {
-      warn(w, 'transfer_note 가 없다 — 독자가 **내일** 할 수 있는 최소 행동 1개가 이 파이프라인의 산출물이다')
+    // 2026-09-24: warn → error. 경고로 두는 동안 무브 103건 중 D 50건이 전부 transfer_note
+    // 미기재로 쌓였다(계획서 §4). 규칙 전 초안은 pain-term 과 같은 legacy_draft_slugs 로 면제한다.
+    if (!(m.transfer_note ?? '').trim()) {
+      if (PAIN_TERM_LEGACY_SLUGS.has(draft.slug ?? '')) {
+        warn(w, 'transfer_note 가 없다 (2026-09-24 규칙 전 초안이라 면제) — 독자가 가져갈 행동이 없다')
+      } else {
+        err(w, 'transfer_note 가 없다 — 독자가 **내일** 할 수 있는 최소 행동 1개가 이 파이프라인의 산출물이다')
+      }
     }
     for (const f of ['observed_period_start', 'observed_period_end'] as const) {
       const v = m[f]

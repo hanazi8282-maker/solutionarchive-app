@@ -61,6 +61,7 @@ const base = () => ({
     metric_unit: '%',
     observed_period_start: '2023-03-01',
     observed_period_end: '2023-09-30',
+    transfer_note: '내일 첫 주문 10건에 향기 샘플 3종을 넣어 보내라', // 2026-09-24 부터 필수(error)
   }],
   evidence: [{
     move: 0,
@@ -644,8 +645,16 @@ eq('한글 slug 거부', SLUG_RE.test('에이스메'), false)
       !('transferability' in moves[0].row), JSON.stringify(Object.keys(moves[0].row)))
     eq('이식성 — reader_problem 은 케이스 행으로', toRows(withReader('NO_CHANNEL')).study.reader_problem, 'NO_CHANNEL')
     eq('이식성 — 미기재는 null 로 (false 로 접지 않는다)', study.reader_problem, null)
-    check('이식성 — transfer_note 가 없으면 warn 으로 남긴다',
-      warnsOf(base()).some((w) => /transfer_note/.test(w.message)))
+    // 2026-09-24: warn → error. D 50건의 원인이라 경고로는 안 막혔다.
+    const noNote = () => { const x = base(); delete x.moves[0].transfer_note; return x }
+    check('이식성 — transfer_note 가 없으면 error 로 막는다',
+      errorsOf(noNote()).some((e) => /transfer_note/.test(e.message)))
+    check('이식성 — 빈 문자열도 막는다',
+      errorsOf({ ...base(), moves: [{ ...base().moves[0], transfer_note: '   ' }] }).some((e) => /transfer_note/.test(e.message)))
+    // 규칙 전 초안 45건은 계속 validate 돼야 한다 — 면제는 warn 으로만 남는다.
+    check('이식성 — legacy 슬러그는 면제(error 0, warn 은 남는다)',
+      errorsOf({ ...noNote(), slug: 'chewy-autoship-retention' }).length === 0
+      && warnsOf({ ...noNote(), slug: 'chewy-autoship-retention' }).some((w) => /transfer_note/.test(w.message)))
   }
 }
 

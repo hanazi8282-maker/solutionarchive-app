@@ -469,6 +469,9 @@ t('userinfo 는 거절', buildProductRef('damoang', 'url:/free/1@evil.example').
   ok('건수를 싣는다', p.includes('2개'))
   ok('LLM 이 리뷰 수를 지어내지 않게 못박는다', p.includes('추측해서 쓰지 마라'))
   ok('physical 은 다나와를 말한다', proposalPrompt('physical', 2, k).includes('다나와'))
+  // 2026-09-24. 이 줄이 빠지면 LLM 이 다시 대형 브랜드만 내고 전건 oversized_voc 로 기각된다.
+  ok('saas 는 인디 규모를 못박는다', p.includes('인디 SaaS') && p.includes('자동 기각'))
+  ok('physical 에는 그 줄이 붙지 않는다', !proposalPrompt('physical', 2, k).includes('인디 SaaS'))
   ok('아는 게 없으면 그 줄이 빠진다', !proposalPrompt('saas', 2, known()).includes('겹치지 마라'))
 }
 

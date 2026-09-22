@@ -1785,6 +1785,8 @@ function researchPrompt(item, date, existingSlugs) {
     `목표 병목: ${item.target_bottleneck ?? '미지정'}`,
     `큐 사유: ${item.reason}`,
     `큐 메모: ${item.notes ?? '없음'}`,
+    // 2026-09-24. 큐가 SaaS 를 주는데 리서처가 WebSearch 로 소비재를 물어 오는 것을 막는다(계획서 §4 B2).
+    '대상 사업 유형: SaaS·소프트웨어(1인·소규모 팀 우선). 큐의 시장이 다른 것을 명시하지 않으면 소비재를 고르지 마라.',
     '',
     item.reason === 'failure_quota'
       ? '★ 이건 실패 사례 할당분이다. 실패·피벗·철수한 사업을 조사하라. 성공 사례로 바꾸지 마라.'

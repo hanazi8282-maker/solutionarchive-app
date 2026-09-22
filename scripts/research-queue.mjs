@@ -197,10 +197,12 @@ export function demandLine(gaps, held = []) {
   return `수요: ${demand}${hold ? ` ‖ 보류: ${hold}` : ''}`
 }
 
+// 2026-09-24. 조사 대상을 SaaS 로 돌린다 — market 이 null 이면 리서처가 VOC(소비재)를 따라간다(계획서 §4 B2).
+const SAAS_MARKET = 'SaaS · 1인/소규모 팀 소프트웨어'
 const gapSlot = (bottleneck, outcome) => ({
   slug_hint: null,
-  brand_name: `미정 (${bottleneck} · ${outcome === 'failure' ? '실패/피벗/철수' : '성공'} 사례)`,
-  market: null,
+  brand_name: `미정 (SaaS · ${bottleneck} · ${outcome === 'failure' ? '실패/피벗/철수' : '성공'} 사례)`,
+  market: SAAS_MARKET,
   target_bottleneck: bottleneck,
 })
 
@@ -229,7 +231,7 @@ export function buildPlan({ n, gaps, feedback = [], excludeBrands = new Set() })
   const failBottleneck = gaps.length ? gaps[0].bottleneck : null
   push({
     ...(failBottleneck ? gapSlot(failBottleneck, 'failure') : {
-      slug_hint: null, brand_name: '미정 (실패/피벗/철수 사례)', market: null, target_bottleneck: null,
+      slug_hint: null, brand_name: '미정 (SaaS · 실패/피벗/철수 사례)', market: SAAS_MARKET, target_bottleneck: null,
     }),
     reason: 'failure_quota',
     priority: 10,

@@ -43,12 +43,27 @@ for (const p of ['/api/threads/match-posts', '/api/insight/kakao-webhook', '/log
 const pages = files.filter((f) => /(^|\/)page\.tsx$/.test(f)).map(routeOf)
 t(`페이지 추출 ≥8건 (실제 ${pages.length})`, pages.length >= 8)
 for (const p of pages) {
-  const shouldBePublic = p === '/login' || p.startsWith('/onboarding')
+  // 2026-09-23: 랜딩 `/` 추가. 남헌이 확정한 공개 경로는 이 하나뿐이다.
+  const shouldBePublic = p === '/' || p === '/login' || p.startsWith('/onboarding')
   t(`${shouldBePublic ? '공개' : '보호'}(페이지): ${p}`, isPublicPath(p) === shouldBePublic)
 }
-for (const p of ['/', '/dashboard', '/agents', '/cases', '/analyze', '/analyze/new', '/analyze/x/review',
+for (const p of ['/dashboard', '/agents', '/cases', '/analyze', '/analyze/new', '/analyze/x/review',
   '/api/analyze/extract', '/api/deploy-status', '/api/threads/callback', '/api/threads/callback/',
   '/loginx', '/authz', '/api/threadsx', '/onboardingx']) t(`보호: ${p}`, !isPublicPath(p))
+
+// 2c. 랜딩 공개가 번지지 않는가 — 이 검사가 이 리포에서 가장 비싼 실수를 막는다.
+// `/` 를 PUBLIC_PREFIXES 에 넣으면 "이 아래 전부 공개"가 되어 앱 전체가 익명에게 열린다.
+t('공개(랜딩): /', isPublicPath('/'))
+t('공개(랜딩 OG 이미지): /opengraph-image', isPublicPath('/opengraph-image'))
+for (const p of ['/x', '/settings/profile', '/columns', '/discovery', '/api/profile', '/api/analyze/advisor',
+  '/api/cron', '/opengraph-image/x', '/opengraph-imagex', '//evil.com']) {
+  t(`보호(랜딩 공개가 번지지 않는다): ${p}`, !isPublicPath(p))
+}
+// 위 음성들은 지금의 under() 구현(`${p}/` 로 이어 붙여 비교) 덕에 `/` 가 접두사 목록에 있어도
+// 통과한다. 그래서 목록 자체를 본다 — 목록의 뜻은 "이 아래 전부 공개"이고 `/` 아래는 앱 전체다.
+const prefixBlock = readFileSync(`${ROOT}/lib/auth/policy.ts`, 'utf8').match(/const PUBLIC_PREFIXES = \[([\s\S]*?)\n\]/)?.[1] ?? ''
+t('PUBLIC_PREFIXES 블록 추출(못 뽑았으면 아래 검사는 무의미하다)', prefixBlock.includes("'/login'"))
+t("PUBLIC_PREFIXES 에 '/' 단독 항목이 없다 — 랜딩은 정확일치 분기로만 연다", !/(^|[\s[])'\/'\s*,/.test(prefixBlock))
 
 // ── 3. 세션 판정 + 서버 액션 가드 ───────────────────────────────
 const ALLOW = 'hanazi8282@gmail.com, kimnh030820@postech.ac.kr'

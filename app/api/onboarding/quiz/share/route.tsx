@@ -2,6 +2,7 @@ import { ImageResponse } from 'next/og'
 import { createClient } from '@/lib/supabase/server'
 import { QUESTION_COUNT, scoreHeadline, summarizeScore } from '@/lib/onboarding/quiz'
 import { fetchCompletedScores } from '@/lib/onboarding/quiz-store'
+import { loadKoreanFont } from '@/lib/og/korean-font'
 
 // Stage 6 — "감 점수" 공유 이미지 (1200×630 OG).
 //
@@ -28,32 +29,6 @@ const FG = '#f8fafc'
 const ACCENT = '#a78bfa'
 const MUTED = '#94a3b8'
 
-/**
- * Satori 는 woff2 를 못 읽는다. Google Fonts css2 를 User-Agent 없이 호출하면
- * truetype URL 을 돌려주는 점을 이용해 필요한 글자만 서브셋으로 받는다.
- * 실패하면 null — 폰트 없이 렌더한다(숫자는 보이고 한글은 깨진다). 이미지
- * 생성 자체를 실패시키지 않되, 실패를 조용히 넘기지도 않는다(로그).
- */
-async function loadKoreanFont(text: string): Promise<ArrayBuffer | null> {
-  try {
-    const cssUrl =
-      'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700&text=' +
-      encodeURIComponent(text)
-    const css = await fetch(cssUrl, { cache: 'force-cache' }).then((r) =>
-      r.ok ? r.text() : null,
-    )
-    if (!css) return null
-    const url = css.match(/src:\s*url\(([^)]+)\)/)?.[1]
-    if (!url) return null
-    const res = await fetch(url, { cache: 'force-cache' })
-    if (!res.ok) return null
-    return await res.arrayBuffer()
-  } catch (e) {
-    console.error('[onboarding/quiz/share] font load failed:', (e as Error).message)
-    return null
-  }
-}
-
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams
   const total = Number(params.get('total') ?? QUESTION_COUNT)
@@ -73,7 +48,7 @@ export async function GET(req: Request) {
   const headline = scoreHeadline(summary)
   const title = '소구점 판정 감 점수'
   const footer = 'SolutionArchive · 온보딩 자가진단'
-  const font = await loadKoreanFont(`${title}${headline}${footer}`)
+  const font = await loadKoreanFont(`${title}${headline}${footer}`, 'onboarding/quiz/share')
 
   return new ImageResponse(
     (

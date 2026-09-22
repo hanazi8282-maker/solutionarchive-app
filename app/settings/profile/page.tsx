@@ -106,7 +106,7 @@ export default function ProfileSettingsPage() {
   const header = (
     <PageHeader
       title="내 프로필"
-      subtitle="여기 저장한 값이 새 분석 1단계를 미리 채운다. 매번 같은 걸 다시 고르지 않으려는 자리다."
+      subtitle="내 제품이 어떤 모양인지 한 번 적어 두는 자리다. 여기 저장한 값이 새 분석 1단계를 미리 채우고, 비슷한 상황의 선례를 고르는 순서에 쓰인다."
     />
   )
 
@@ -134,13 +134,15 @@ export default function ProfileSettingsPage() {
         subtitle={existed ? undefined : '아직 저장된 프로필이 없다 (조회는 정상). 지금 채우면 다음 분석부터 자동으로 들어간다.'}
       >
         <div style={{ display: 'grid', gap: 18 }}>
-          <Field label="상품 한 줄 소개" htmlFor="pitch" hint="무엇을 누구에게 파는지 한 문장. 새 분석의 한 줄 소개 기본값이 된다.">
+          {/* 예시만 SaaS 로 바꿨다. 라벨("상품 한 줄 소개")은 /analyze/new 1단계와 같은 말이어야
+              아래 프리필 안내가 가리키는 칸을 찾을 수 있어 그대로 둔다. */}
+          <Field label="상품 한 줄 소개" htmlFor="pitch" hint="무엇을 누구에게 파는지 한 문장. 예: 1인 개발자용 구독 결제 대시보드. 새 분석의 한 줄 소개 기본값이 된다.">
             <Textarea id="pitch" rows={2} value={pitch} onChange={(e) => setPitch(e.target.value)} />
           </Field>
 
           <p style={fillNote}>↑ 이 값이 새 분석 1단계의 &ldquo;상품 한 줄 소개&rdquo;를 프리필한다.</p>
 
-          <Field label="시장" htmlFor="market" hint="예: 국내 유산균 건기식. 선례를 고를 때 낱말이 겹치는지 보는 데 쓴다.">
+          <Field label="시장" htmlFor="market" hint="예: 국내 1인 개발자용 SaaS 도구. 선례를 고를 때 낱말이 겹치는지 보는 데 쓴다.">
             <Input id="market" type="text" value={market} onChange={(e) => setMarket(e.target.value)} />
           </Field>
           <p style={fillNote}>↑ 이 값이 새 분석 1단계의 &ldquo;시장&rdquo;을 프리필한다.</p>

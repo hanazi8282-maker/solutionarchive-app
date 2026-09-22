@@ -2,9 +2,11 @@ import type { CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { loadCaseCorpus } from '@/lib/cases/corpus-db'
 import { parseSearchQuery, searchMoves } from '@/lib/cases/search'
+import { pairMoves, saasPairNotice, type MovePair } from '@/lib/cases/compare'
 import { READER_PROBLEM_LABEL, READER_PROBLEMS } from '@/lib/cases/draft'
 import { FACET_FIELDS } from '@/lib/analysis/facets'
 import { CaseMoveCards, FailedAngleCards } from '@/app/analyze/[id]/advisor-cards'
+import { Badge } from '../../_ds/components/Badge'
 import { Card } from '../../_ds/components/Card'
 import { EmptyState } from '../../_ds/components/EmptyState'
 import { FilterChip } from '../../_ds/components/FilterChip'
@@ -23,6 +25,32 @@ export const metadata = { title: '유사 케이스 검색' }
 
 const muted: CSSProperties = { margin: 0, fontSize: 13, color: 'var(--text-muted)' }
 const BOTTLENECK_OPTIONS = FACET_FIELDS.find((f) => f.key === 'bottleneck')?.options ?? []
+
+/**
+ * 갈린 짝 한 묶음 — 같은 병목·레버인데 한쪽은 됐고 한쪽은 안 됐다.
+ * 성공만 보여주면 "이 수를 쓰면 된다"로 읽힌다. 실패를 같은 칸에 붙여야 대조가 된다.
+ */
+function PairBlock({ p }: { p: MovePair }) {
+  return (
+    <div style={{ display: 'grid', gap: 6, padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+        <Badge tone="neutral" size="sm">{p.bottleneck}</Badge>
+        <Badge tone="neutral" size="sm">{p.lever}</Badge>
+        {p.saas && <Badge tone="info" size="sm">SaaS 끼리</Badge>}
+      </div>
+      {p.positive.map((s) => (
+        <p key={s.move.id} style={{ margin: 0, fontSize: 13 }}>
+          <b>됐다 · {s.study.brand_name}</b> — {s.move.claim}
+        </p>
+      ))}
+      {p.negative.map((s) => (
+        <p key={s.move.id} style={{ margin: 0, fontSize: 13, color: 'var(--danger-fg)' }}>
+          <b>안 됐다 · {s.study.brand_name}</b> — {s.move.claim}
+        </p>
+      ))}
+    </div>
+  )
+}
 
 const HEADER = {
   title: '내 문제 → 유사 케이스',
@@ -100,6 +128,11 @@ export default async function CaseSearchPage({ searchParams }: {
 
   const corpora = await loadCaseCorpus(sb, 'cases/search')
   const result = searchMoves(query, corpora)
+  // 비교 섹션은 질의와 무관하게 **코퍼스 전체**를 본다 — 짝 자체가 몇 묶음 없어서
+  // 검색 조건까지 걸면 항상 0 이 나오고, 그 0 이 "짝이 없다"로 읽힌다.
+  const pairs = pairMoves(corpora.studies, corpora.moves)
+  const saasPairs = pairs.pairs.filter((p) => p.saas)
+  const otherPairs = pairs.pairs.filter((p) => !p.saas)
 
   return (
     <PageShell maxWidth={960}>
@@ -129,6 +162,31 @@ export default async function CaseSearchPage({ searchParams }: {
           <StatusLine status={result.failed_angles.status} reason={result.failed_angles.reason}
             empty="겹치는 실패 사례가 0건이다" />
           <FailedAngleCards cards={result.failed_angles.cards} />
+        </div>
+      </Card>
+
+      {/* 같은 수를 썼는데 갈린 사례. SaaS 짝이 0이면 없는 것을 지어내지 않고 그대로 말한다. */}
+      <Card title="같은 수를 썼는데 갈린 사례" subtitle="같은 병목·레버인데 한쪽은 됐고 한쪽은 안 된 승인 케이스 짝 · 검색 조건과 무관하게 코퍼스 전체에서 셈">
+        <div style={{ display: 'grid', gap: 10 }}>
+          {pairs.status === 'not_run' && (
+            <p style={{ ...muted, color: 'var(--warning-fg)' }}>검색을 못 했다 — {pairs.reason}</p>
+          )}
+          {pairs.status === 'no_match' && (
+            <EmptyState compact title="갈린 짝이 아직 0묶음 (조회는 정상)"
+              description="같은 병목·레버로 성공과 실패가 함께 승인된 케이스가 아직 없다. 없는 것을 비슷한 사례로 채우지 않는다." />
+          )}
+          {saasPairs.length > 0 && saasPairs.map((p) => <PairBlock key={p.key} p={p} />)}
+          {pairs.status === 'matched' && saasPairs.length === 0 && (
+            <>
+              <p style={muted}>{saasPairNotice(otherPairs.length)}</p>
+              <details className="dgy-details">
+                <summary>소비재 짝 {otherPairs.length}묶음 펼치기 — 업종은 다르지만 갈린 이유는 읽을 만하다</summary>
+                <div style={{ display: 'grid', gap: 10, padding: '8px 0 0' }}>
+                  {otherPairs.map((p) => <PairBlock key={p.key} p={p} />)}
+                </div>
+              </details>
+            </>
+          )}
         </div>
       </Card>
     </PageShell>

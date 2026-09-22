@@ -66,7 +66,7 @@ type ProjectRow = {
   purpose: AnalysisPurpose
   mode: AnalysisMode
   maturity_stage: number | null
-  competitor_url: string
+  competitor_url: string | null
   product_elevator_pitch: string
 }
 
@@ -567,7 +567,8 @@ export default function AnalyzeAnglesPage() {
             <span style={{ color: 'var(--text-muted)' }}>상품</span> · {project.product_elevator_pitch}
           </p>
           <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
-            <span style={{ color: 'var(--text-muted)' }}>경쟁사</span> · {project.competitor_url}
+            {/* URL 은 선택이다(2026-09-23) — 없으면 빈 줄 대신 없다고 적는다. */}
+            <span style={{ color: 'var(--text-muted)' }}>경쟁사</span> · {project.competitor_url ?? '(없음)'}
           </p>
           <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
             <span style={{ color: 'var(--text-muted)' }}>분석 목적</span> ·{' '}

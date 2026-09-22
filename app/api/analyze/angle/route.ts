@@ -53,7 +53,7 @@ type AspectRow = {
 
 type ProjectRow = {
   id: string
-  competitor_url: string
+  competitor_url: string | null
   product_elevator_pitch: string
   purpose: string
   mode: AnalysisMode
@@ -222,7 +222,8 @@ function aspectBlock(a: AspectRow): string {
 function buildUserPrompt(plan: AnglePlan, project: ProjectRow, candidates: AngleType[]): string {
   const head = [
     '## 분석 대상',
-    `- 경쟁사 상품 URL: ${project.competitor_url}`,
+    // 선택 항목이라 null 일 수 있다. 그대로 끼우면 프롬프트에 "null" 이 박힌다.
+    `- 경쟁사 상품 URL: ${project.competitor_url ?? '(없음 — 경쟁사 없이 수집 원문만으로 분석한다)'}`,
     `- 내 상품 한 줄 소개: ${project.product_elevator_pitch}`,
     `- 분석 목적: ${project.purpose} — ${PURPOSE_TONE[project.purpose] ?? ''}`,
     `- 시장 성숙도: ${project.maturity_stage ?? '미판정'}단계 (${project.maturity_notes ?? '-'})`,

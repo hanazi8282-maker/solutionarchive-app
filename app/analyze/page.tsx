@@ -29,7 +29,7 @@ type Row = {
   extract_finished_at: string | null
   purpose: AnalysisPurpose
   mode: AnalysisMode | null
-  competitor_url: string
+  competitor_url: string | null
   product_elevator_pitch: string
   /** PostgREST 임베디드 count — FK(analysis_inputs.project_id) 로 묶인 원문 수. */
   analysis_inputs: { count: number }[] | null
@@ -395,10 +395,11 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
                         {r.product_elevator_pitch}
                       </div>
                       <div
-                        title={r.competitor_url}
+                        title={r.competitor_url ?? undefined}
                         style={{ marginTop: 2, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', ...oneLine }}
                       >
-                        {r.competitor_url}
+                        {/* URL 은 선택이다 — 빈 줄을 두면 "수집 대상이 없는 프로젝트"처럼 보인다. */}
+                        {r.competitor_url ?? '경쟁사 URL 없음'}
                       </div>
                     </div>
 

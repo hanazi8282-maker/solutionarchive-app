@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { ANALYSIS_SOURCE_TYPES, type AnalysisSourceType } from '@/lib/analysis/types'
+import { parseRawText } from '@/lib/analysis/inputs'
 
 // 분석 프로젝트에 수집 원문 추가 (2단계)
 export async function POST(req: Request) {
@@ -19,10 +20,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '수집 유형을 선택해주세요.' }, { status: 400 })
   }
 
-  const rawText = typeof body?.raw_text === 'string' ? body.raw_text.trim() : ''
-  if (!rawText) {
-    return NextResponse.json({ error: '수집 원문을 입력해주세요.' }, { status: 400 })
-  }
+  // 길이 상한은 발행 경계가 아니라 사고 방지용 안전판이다 — 근거는 lib/analysis/inputs.ts.
+  const raw = parseRawText(body?.raw_text)
+  if (!raw.ok) return NextResponse.json({ error: raw.error }, { status: 400 })
+  const rawText = raw.value
 
   const { data, error } = await supabase
     .from('analysis_inputs')

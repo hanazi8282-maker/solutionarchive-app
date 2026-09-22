@@ -47,6 +47,9 @@ jobs:
       - run: node scripts/remedy-gate-selftest.mjs
       # 진단 입력(패싯) 어휘가 화면·API·DB CHECK 한 벌인지. 갈라지면 폼을 다 채운 뒤 23514 로 죽는다.
       - run: node scripts/analyze-projects-facets-selftest.mjs
+      # 수기 입력 경로 — 경쟁사 URL 은 forward 에서 선택(남헌 2026-09-23 Q4-A), reverse 는 여전히
+      # 다나와 필수, 붙여넣기 1건 20,000자 안전판. 다시 필수로 굳으면 제품 없는 사람이 못 들어온다.
+      - run: node scripts/analyze-manual-input-selftest.mjs
       # 목록의 "오래 멈춤"·정체 한 줄. 상태별 기준 시각이 뭉쳐지면 멀쩡한 행이 정체로 찍힌다.
       - run: node scripts/analyze-list-signals-selftest.mjs
       # 추출 소요시간 실측(중앙값·p90). 표본 5건 미만이면 화면에 숫자를 내지 않는 규칙을 고정한다.

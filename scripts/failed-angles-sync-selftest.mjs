@@ -26,7 +26,7 @@ const rows = parseFailedAnglesTable(fs.readFileSync('docs/failed-angles.md', 'ut
 //   2026-09-21 배치 4: 남헌 승인으로 추정 6건 편입(16→22) — 출처 URL 재검증 뒤, 검증 안 된 수치(beautycounter SKU 수)는 뺐다.
 //   2026-09-21 배치 5(처방 매칭 4라운드): 건기식·헤어케어 실패 2건 편입(22→24) — Care/of 폐업, Function of Beauty 공장 폐쇄. 둘 다 인과는 추정.
 //   2026-09-22 배치 6(5라운드, 페인 낱말 규칙 도입): 뷰티 실패 4건 + 국내 유산균 함량 미달 2건 편입(24→30). 새 행은 전부 claimed_angle 에 페인 낱말 포함.
-t('정본: 30행', rows.length, 30)
+t('정본: 48행', rows.length, 48)
 ok('정본: 규칙 후 신규 행은 전부 페인 낱말 포함', rows.every((r) => PAIN_TERM_LEGACY_KEYS.has(r.case_key) || hasPainTerm(r.claimed_angle)))
 ok('정본: 전부 case_key 형식(소문자·숫자·하이픈)', rows.every((r) => /^[a-z0-9-]+$/.test(r.case_key)))
 ok('정본: 전부 source_tier=공개 보도', rows.every((r) => r.source_tier === '공개 보도'))

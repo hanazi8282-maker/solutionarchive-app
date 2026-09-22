@@ -267,3 +267,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 적용 전 실측 테이블 없음. MCP `apply_migration` — success.
 - 양성: `information_schema` 테이블·컬럼 8개·CHECK·RLS 확인.
 - 음성: CHECK 위반 INSERT 롤백 검사는 **미실행**(자동모드 분류기가 INSERT 문 차단). 앱 경로는 `analyze-relevance-selftest`(3상태 파싱·unknown 접힘 금지) 가 대신 검사.
+
+## 2026-09-23 — 20260929000003_content_columns_case_slug.sql (케이스↔칼럼 링크 컬럼 2개)
+
+- 승인자: 남헌 09-23 확정 9/30 기능 5(칼럼 섹션) → CEO-STAFF 세션 자체 적용. `ADD COLUMN IF NOT EXISTS` 2개(NULL 허용, 백필 없음) → 비파괴, §10.2 예외 5개 해당 없음. 롤백 파일 있음(DROP COLUMN 은 되돌리기 어려운 삭제라 사람 판단 영역이라고 파일에 명시).
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 적용 전 실측 두 컬럼 없음. MCP `apply_migration` — success.
+- 양성: `information_schema` 두 컬럼 nullable 확인. 음성: 기존 행 값 전부 NULL(백필 없음).
+- ⚠️ `/columns/read` 공개 접두사(`lib/auth/policy.ts`)는 **이 PR 에 없다** — 세션의 자동모드 분류기가 인증 경계 확장을 차단해 남헌이 직접 넣는다(§10.2 예외 3). 그때까지 읽기 화면은 로그인 벽 뒤에 있다.

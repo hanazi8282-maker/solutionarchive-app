@@ -260,3 +260,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 적용 전 실측 `is_nullable=NO`. MCP `apply_migration` — success.
 - 양성: `information_schema` `is_nullable=YES`, 컬럼 COMMENT 반영 확인.
 - 음성: NULL INSERT 롤백 검사는 **미실행** — 자동모드 분류기가 INSERT 문을 차단했다. NULL 허용 자체는 양성 검사로 확인됐고, 앱 경로는 PR 의 `analyze-manual-input-selftest`(빈 URL 허용·reverse 400) 가 대신 검사한다.
+
+## 2026-09-23 — 20260929000002_review_relevance_verdicts.sql (리뷰 관련성 판정 캐시 테이블)
+
+- 승인자: 남헌 09-23 확정 Q5(관련성 판정 Gemini 야간 배치) → CEO-STAFF 세션 자체 적용. 신규 테이블·삭제 없음·백필 없음·RLS ENABLE+FORCE·정책 0(service_role 전용) → §10.2 예외 5개 해당 없음. 롤백 파일 있음(사람 채점은 복구 불가 — 내려받고 나서).
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 적용 전 실측 테이블 없음. MCP `apply_migration` — success.
+- 양성: `information_schema` 테이블·컬럼 8개·CHECK·RLS 확인.
+- 음성: CHECK 위반 INSERT 롤백 검사는 **미실행**(자동모드 분류기가 INSERT 문 차단). 앱 경로는 `analyze-relevance-selftest`(3상태 파싱·unknown 접힘 금지) 가 대신 검사.

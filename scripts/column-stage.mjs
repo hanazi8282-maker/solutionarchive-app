@@ -66,6 +66,9 @@ export function buildRow(mdPath) {
   const readerMatch = src.match(/^독자:\s*(창업자|셀러)/m)
   if (!readerMatch) return { error: `독자 유형을 못 찾음: ${mdPath}` } // checkColumn 이 이미 걸렀겠지만 방어적으로.
   const titleMatch = src.match(/^#\s+(.+)$/m)
+  // 칼럼 md 첫머리의 `case_slug: <slug>` (있으면) -> content_columns.case_study_slug(20260929000003).
+  // 없으면 필드 자체를 안 싣는다 — 마이그 미적용 DB 에서도 적재가 깨지지 않게.
+  const caseMatch = src.match(/^case_slug:\s*([\w-]+)\s*$/m)
 
   const threadsPath = pair(mdPath, '.threads.md')
   const threadsSrc = readIfExists(threadsPath)
@@ -87,6 +90,7 @@ export function buildRow(mdPath) {
       threads,
       verify_path: verifyText ? path.relative(path.join(HERE, '..'), verifyPath).replace(/\\/g, '/') : null,
       verify_verdict: extractVerdict(verifyText),
+      ...(caseMatch ? { case_study_slug: caseMatch[1] } : {}),
     },
   }
 }
@@ -110,12 +114,17 @@ async function stageAll(targets) {
     }
     // ON CONFLICT DO UPDATE 이지만 review_status 등 사람 결정 컬럼은 SET 절에 없다 —
     // 즉 갱신되지 않고 기존 값이 그대로 남는다(신규 행이면 DEFAULT 'draft'가 적용된다).
-    const { error } = await supabase
-      .from('content_columns')
-      .upsert(
-        { ...built.row, staged_at: new Date().toISOString() },
-        { onConflict: 'slug', ignoreDuplicates: false },
-      )
+    const payload = { ...built.row, staged_at: new Date().toISOString() }
+    const upsert = (row) => supabase.from('content_columns').upsert(row, { onConflict: 'slug', ignoreDuplicates: false })
+    let { error } = await upsert(payload)
+    // 20260929000003 미적용 DB 에는 case_study_slug 컬럼이 없다 — 그 한 줄만 빼고 다시 올린다.
+    // 링크가 빠지는 것과 칼럼이 통째로 안 올라가는 것은 무게가 다르다.
+    if (error && /case_study_slug/.test(error.message)) {
+      const rest = { ...payload }
+      delete rest.case_study_slug
+      ;({ error } = await upsert(rest))
+      if (!error) console.warn(`⚠️ ${built.row.slug}: case_study_slug 컬럼 없음(20260929000003 미적용) — 케이스 링크 없이 적재`)
+    }
     if (error) {
       console.error(`✗ ${built.row.slug}: DB 적재 실패 — ${error.message}`)
       failed++
@@ -155,6 +164,14 @@ function selfTest() {
   const bare = buildRow(noExtra)
   assert(!bare.error, `짝 파일 없어도 통과해야: ${bare.error}`)
   assert(bare.row.threads.length === 0 && bare.row.verify_verdict === null, '짝 파일 없음 = 빈 스레드·미검증(null)')
+
+  assert(!('case_study_slug' in bare.row), 'case_slug 줄이 없으면 필드 자체를 싣지 않는다(마이그 미적용 대비)')
+
+  // case_slug 줄이 있으면 그대로 실린다.
+  const linked = path.join(tmp, '2026-09-15-linked.md')
+  fs.writeFileSync(linked, body.replace('독자: 창업자', '독자: 창업자\ncase_slug: convertkit-concierge-migration-conversion'))
+  const linkedBuilt = buildRow(linked)
+  assert(linkedBuilt.row?.case_study_slug === 'convertkit-concierge-migration-conversion', `case_slug 파싱: ${linkedBuilt.row?.case_study_slug ?? linkedBuilt.error}`)
 
   // 기계 점검 실패(분량 미달)는 올리지 않는다.
   const bad = path.join(tmp, '2026-09-15-bad.md')

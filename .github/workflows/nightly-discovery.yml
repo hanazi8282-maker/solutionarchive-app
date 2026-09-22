@@ -89,7 +89,8 @@ jobs:
           # 의 MAX_VOC_HITS 주석. ⚠️ 이 값을 999 이상으로 올리면 다나와 캡(`999+`)이
           # 판정 불가가 되어 physical 후보가 모두 unverified 로 떨어진다.
           DISCOVERY_MAX_VOC_HITS: ${{ vars.DISCOVERY_MAX_VOC_HITS || '500' }}
-          DISCOVERY_KIND: ${{ inputs.kind }}
+          # 스케줄에는 inputs 가 없어 빈 문자열이 온다 — 그때 리포 변수로 축을 고정한다(둘 다 비면 미지정 = 이력 교대).
+          DISCOVERY_KIND: ${{ inputs.kind || vars.DISCOVERY_KIND }}
         run: |
           node scripts/discovery-run.mjs \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

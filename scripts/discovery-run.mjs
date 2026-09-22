@@ -213,6 +213,10 @@ export function proposalPrompt(kind, count, known) {
     '- 서로 다른 카테고리로. 같은 카테고리 안에서 고르지 마라.',
     knownNames.length ? `- 아래는 이미 다루는 것들이다. 겹치지 마라: ${knownNames.slice(0, 80).join(', ')}` : null,
     cats.length ? `- 이미 채택된 카테고리(더 뽑지 마라): ${cats.join(', ')}` : null,
+    // SaaS 후보 6건이 전부 hits 상한 초과(oversized_voc)로 자동 기각됐다 — 창이 아니라 이 프롬프트가 원인이다(계획서 §5).
+    kind === 'saas'
+      ? '- **1인·소규모 팀이 만든 인디 SaaS 를 골라라**(HN 언급 수백 건 규모). Notion·Slack·Stripe·Figma 급 대형 브랜드는 hits 상한(500) 초과로 자동 기각된다 — 제안하지 마라.'
+      : null,
     '',
     '⚠️ 리뷰 수를 추측해서 쓰지 마라. 실제 건수는 이 도구가 직접 검색해서 센다.',
     // 검색하지 말라고 못박는다. 안 그러면 모델이 첫 턴을 도구에 쓰고 답할 턴을

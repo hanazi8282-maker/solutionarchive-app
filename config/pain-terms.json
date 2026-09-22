@@ -1,16 +1,180 @@
 {
-  "_about": "처방 매칭용 '페인 유형 낱말' 정본 (docs/remedy-corpus-expansion-2026-09-21.md §1-4 의 질의 유형 8종). 새 failed_angles.claimed_angle 과 새 case_moves.claim 은 이 낱말 중 1개 이상을 **포함**해야 한다 — 낱말 겹침 매칭(lib/cases/advisor.ts hitTerms = 부분 문자열)이 질의 낱말과 만나는 유일한 자리다.",
+  "_about": "처방 매칭용 '페인 유형 낱말' 정본 (docs/remedy-corpus-expansion-2026-09-21.md §1-4 의 질의 유형 8종). 새 failed_angles.claimed_angle 과 새 case_moves.claim 은 이 낱말 중 1개 이상을 **포함**해야 한다 — 낱말 겹침 매칭(lib/cases/advisor.ts hitTerms = 부분 문자열)이 질의 낱말과 만나는 유일한 자리다. 2026-09-24 SaaS 피봇: SaaS 페인 유형 8종을 **추가**했다(기존 소비재 8종은 유지 — 기존 초안이 계속 validate 돼야 한다). 남헌 2026-09-23 확정.",
   "_rule": "낱말은 2자 이상, advisor.ts STOPWORDS 에 없는 것만 (효과·개선·기능·사용 은 불용어라 질의 토큰에서 사라진다 — 못 쓴다). 검증: node scripts/pain-terms-selftest.mjs",
   "_legacy": "legacy_case_keys 는 규칙 도입(2026-09-22) 전에 편입된 failed_angles 24건, legacy_draft_slugs 는 같은 시점의 drafts/cases 45건. 이 키·슬러그는 규칙에서 면제 — 원장이 계속 sync 되고 기존 초안이 계속 validate 되게 하려는 것이지, 다시 쓰지 말라는 뜻이 아니다. 새 키·슬러그는 추가하지 않는다.",
   "types": [
-    { "type": "효능", "terms": ["효능", "완화", "기능성", "증상", "입증", "임상"] },
-    { "type": "가격·가성비·할인", "terms": ["가격", "가성비", "할인", "저가", "고가", "프리미엄", "price"] },
-    { "type": "세정·피지·체취", "terms": ["세정력", "세정", "피지", "체취", "각질"] },
-    { "type": "사용감·거품·감촉", "terms": ["사용감", "거품", "감촉", "질감", "발림"] },
-    { "type": "향·냄새", "terms": ["향기", "향료", "냄새", "잔향", "scent"] },
-    { "type": "자극·안전·성분", "terms": ["자극", "저자극", "안전", "성분", "부작용", "알레르기"] },
-    { "type": "용기·펌프·포장", "terms": ["용기", "펌프", "포장", "패키지", "토출", "뚜껑"] },
-    { "type": "제형·보관·용량", "terms": ["제형", "보관", "용량", "함량", "캡슐", "소포장"] }
+    {
+      "type": "효능",
+      "terms": [
+        "효능",
+        "완화",
+        "기능성",
+        "증상",
+        "입증",
+        "임상"
+      ]
+    },
+    {
+      "type": "가격·가성비·할인",
+      "terms": [
+        "가격",
+        "가성비",
+        "할인",
+        "저가",
+        "고가",
+        "프리미엄",
+        "price"
+      ]
+    },
+    {
+      "type": "세정·피지·체취",
+      "terms": [
+        "세정력",
+        "세정",
+        "피지",
+        "체취",
+        "각질"
+      ]
+    },
+    {
+      "type": "사용감·거품·감촉",
+      "terms": [
+        "사용감",
+        "거품",
+        "감촉",
+        "질감",
+        "발림"
+      ]
+    },
+    {
+      "type": "향·냄새",
+      "terms": [
+        "향기",
+        "향료",
+        "냄새",
+        "잔향",
+        "scent"
+      ]
+    },
+    {
+      "type": "자극·안전·성분",
+      "terms": [
+        "자극",
+        "저자극",
+        "안전",
+        "성분",
+        "부작용",
+        "알레르기"
+      ]
+    },
+    {
+      "type": "용기·펌프·포장",
+      "terms": [
+        "용기",
+        "펌프",
+        "포장",
+        "패키지",
+        "토출",
+        "뚜껑"
+      ]
+    },
+    {
+      "type": "제형·보관·용량",
+      "terms": [
+        "제형",
+        "보관",
+        "용량",
+        "함량",
+        "캡슐",
+        "소포장"
+      ]
+    },
+    {
+      "type": "요금제·과금",
+      "terms": [
+        "요금제",
+        "과금",
+        "청구",
+        "정액",
+        "종량"
+      ]
+    },
+    {
+      "type": "구독·해지·이탈",
+      "terms": [
+        "구독",
+        "해지",
+        "이탈",
+        "갱신",
+        "churn",
+        "retention"
+      ]
+    },
+    {
+      "type": "무료체험·유료전환",
+      "terms": [
+        "무료",
+        "체험",
+        "트라이얼",
+        "전환",
+        "유료",
+        "trial"
+      ]
+    },
+    {
+      "type": "온보딩·학습곡선",
+      "terms": [
+        "온보딩",
+        "가입",
+        "학습",
+        "가이드",
+        "튜토리얼",
+        "onboarding"
+      ]
+    },
+    {
+      "type": "연동·데이터이동",
+      "terms": [
+        "연동",
+        "api",
+        "웹훅",
+        "이관",
+        "내보내기",
+        "integration"
+      ]
+    },
+    {
+      "type": "좌석·권한·협업",
+      "terms": [
+        "좌석",
+        "권한",
+        "초대",
+        "협업",
+        "워크스페이스",
+        "멤버"
+      ]
+    },
+    {
+      "type": "안정성·응대",
+      "terms": [
+        "장애",
+        "버그",
+        "속도",
+        "문의",
+        "응대",
+        "다운타임"
+      ]
+    },
+    {
+      "type": "도입·계약·보안심사",
+      "terms": [
+        "도입",
+        "계약",
+        "견적",
+        "보안",
+        "인증"
+      ]
+    }
   ],
   "legacy_case_keys": [
     "quibi-mobile-shortform",
@@ -39,20 +203,50 @@
     "function-of-beauty-custom-shampoo-plant"
   ],
   "legacy_draft_slugs": [
-    "allbirds-awareness-ceiling-collapse", "beauty-of-joseon", "blue-apron-paid-acquisition-treadmill",
-    "blueland-water-weight-unit-economics", "brandless-dtc-pricing-collapse", "carvana-360-imaging-trust",
-    "casper-dtc-unit-economics", "chewy-autoship-retention", "color-labs-hype-comprehension-collapse",
-    "convertkit-concierge-migration-conversion", "dollar-shave-club-viral-launch-awareness", "duolingo-streak",
-    "elf-beauty-awareness-engine", "fab-com-curation-retention-collapse", "figma-non-designer-distribution",
-    "gopro-ugc-viral-awareness", "harrys-razor-factory-vertical-integration", "hims-hair-loss-rx-subscription",
-    "hoka-specialty-retail-awareness-engine", "homejoy-discount-conversion-collapse", "juicero-viral-trust-collapse",
-    "kurly-unit-economics", "lactofit-mass-price-probiotics", "liquid-death", "meerkat-twitter-api-awareness-collapse",
-    "moviepass-unlimited-pricing-collapse", "munchery-precook-overproduction-collapse", "native-deodorant-reformulation-reorder",
-    "notion-template-gallery", "nubank-word-of-mouth-acquisition", "oatly-capacity-overbuild", "peloton-owned-manufacturing-exit",
-    "pets-com-mass-awareness-negative-margin", "purple-innovation-capacity-scaleup", "quibi-distribution-channel-collapse",
-    "shyp-flat-fee-unit-economics-collapse", "slack-bottom-up-conversion", "stanley-quencher-viral-awareness",
-    "superhuman-pmf-survey-retention-engine", "tuft-and-needle-amazon-review-trust", "warby-parker-home-try-on",
-    "whole-pantry-unverified-claim-trust-collapse", "yeti-ambassador-brand-awareness", "yik-yak-college-only-awareness-cap",
+    "allbirds-awareness-ceiling-collapse",
+    "beauty-of-joseon",
+    "blue-apron-paid-acquisition-treadmill",
+    "blueland-water-weight-unit-economics",
+    "brandless-dtc-pricing-collapse",
+    "carvana-360-imaging-trust",
+    "casper-dtc-unit-economics",
+    "chewy-autoship-retention",
+    "color-labs-hype-comprehension-collapse",
+    "convertkit-concierge-migration-conversion",
+    "dollar-shave-club-viral-launch-awareness",
+    "duolingo-streak",
+    "elf-beauty-awareness-engine",
+    "fab-com-curation-retention-collapse",
+    "figma-non-designer-distribution",
+    "gopro-ugc-viral-awareness",
+    "harrys-razor-factory-vertical-integration",
+    "hims-hair-loss-rx-subscription",
+    "hoka-specialty-retail-awareness-engine",
+    "homejoy-discount-conversion-collapse",
+    "juicero-viral-trust-collapse",
+    "kurly-unit-economics",
+    "lactofit-mass-price-probiotics",
+    "liquid-death",
+    "meerkat-twitter-api-awareness-collapse",
+    "moviepass-unlimited-pricing-collapse",
+    "munchery-precook-overproduction-collapse",
+    "native-deodorant-reformulation-reorder",
+    "notion-template-gallery",
+    "nubank-word-of-mouth-acquisition",
+    "oatly-capacity-overbuild",
+    "peloton-owned-manufacturing-exit",
+    "pets-com-mass-awareness-negative-margin",
+    "purple-innovation-capacity-scaleup",
+    "quibi-distribution-channel-collapse",
+    "shyp-flat-fee-unit-economics-collapse",
+    "slack-bottom-up-conversion",
+    "stanley-quencher-viral-awareness",
+    "superhuman-pmf-survey-retention-engine",
+    "tuft-and-needle-amazon-review-trust",
+    "warby-parker-home-try-on",
+    "whole-pantry-unverified-claim-trust-collapse",
+    "yeti-ambassador-brand-awareness",
+    "yik-yak-college-only-awareness-cap",
     "zapier-integration-page-seo-distribution"
   ]
 }

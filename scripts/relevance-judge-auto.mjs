@@ -26,6 +26,8 @@ import { createClient } from '../lib/supabase/server.ts'
 import { requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 import { selectInputs } from '../lib/analysis/extract-select.ts'
+// 대상 순서는 야간 extract 와 같은 규칙을 쓴다(SaaS 우선 → 많은 순 → projectId).
+import { compareAutoPriority } from '../lib/analysis/extract-auto.ts'
 import {
   BATCH_SIZE,
   MAX_EXAMPLES,
@@ -73,7 +75,8 @@ log(`야간 관련성 판정 ${dry ? '(--dry: 대상 선정만)' : ''} — provi
 // ── 1. 후보 프로젝트 ─────────────────────────────────────────────
 const { data: projects, error: projectsError } = await supabase
   .from('analysis_projects')
-  .select('id, product_elevator_pitch, purpose')
+  // business_model 은 순서를 가른다 — SaaS 가 먼저다(compareAutoPriority, 남헌 2026-09-23).
+  .select('id, product_elevator_pitch, purpose, business_model')
   .eq('status', 'collecting')
   .order('created_at', { ascending: true })
 
@@ -166,16 +169,25 @@ for (const p of projects ?? []) {
 }
 
 const unknownCount = candidates.filter((c) => c.pending === null).length
-const ready = candidates.filter((c) => c.pending !== null)
+// SaaS 우선 → 미판정 많은 순 → projectId. extract 와 같은 헬퍼를 쓴다.
+const ready = candidates
+  .filter((c) => c.pending !== null)
+  .sort((a, b) =>
+    compareAutoPriority(
+      { projectId: a.project.id, newInputs: a.pending.reviews.length, businessModel: a.project.business_model },
+      { projectId: b.project.id, newInputs: b.pending.reviews.length, businessModel: b.project.business_model },
+    ),
+  )
 const targets = ready.slice(0, maxProjects)
 const remaining = ready.length - targets.length
 
 log(
   `collecting ${(projects ?? []).length}건 → 판정 대상 프로젝트 ${ready.length}건` +
-    (remaining > 0 ? ` 중 ${targets.length}건 실행 (상한 ${maxProjects}건 도달, 남은 ${remaining}건은 다음 실행)` : ' 전부 실행'),
+    (remaining > 0 ? ` 중 ${targets.length}건 실행 (상한 ${maxProjects}건 도달, 남은 ${remaining}건은 다음 실행)` : ' 전부 실행') +
+    ' (순서: SaaS 우선 → 미판정 많은 순)',
 )
 for (const t of targets) {
-  log(`  · ${t.project.id} 미판정 ${t.pending.reviews.length}건 / 표본 ${t.pending.total}건 — ${t.project.product_elevator_pitch ?? '(소개 없음)'}`)
+  log(`  · ${t.project.id} [${t.project.business_model ?? '미기재'}] 미판정 ${t.pending.reviews.length}건 / 표본 ${t.pending.total}건 — ${t.project.product_elevator_pitch ?? '(소개 없음)'}`)
 }
 if (unknownCount > 0) warn(`원문·판정 캐시를 읽지 못한 프로젝트 ${unknownCount}건 — 대상 판정에서 빠졌다(판정할 게 없다는 뜻이 아니다)`)
 

@@ -232,6 +232,20 @@ export function productKindOf(businessModel: string | null | undefined): Product
   return businessModel === 'SAAS' ? 'software' : 'physical'
 }
 
+/**
+ * 종류가 다를 때 어떻게 하나 — **되돌리는 손잡이는 이 상수 하나다** (2026-09-23).
+ *
+ * 'exclude' 가 원래 동작(하드필터)이다. 지금 승인 SaaS 무브는 5건뿐이라(2026-09-23 실측)
+ * SaaS 질의에 하드필터를 걸면 화면이 통째로 "0건"이 되고, 진짜 없는 것과 필터가 셌던 것이
+ * 구분되지 않는다(reports/2026-09-23/saas-pivot-mvp-assessment.md §2-3).
+ * 그래서 MVP 기간에는 'bonus' 로 낮춘다 — 같은 종류가 **먼저**, 다른 종류는 **뒤에**.
+ * 코퍼스가 차면 이 값을 'exclude' 로 되돌리면 되고, 다른 코드는 고칠 게 없다.
+ */
+export const KIND_MISMATCH_MODE: 'bonus' | 'exclude' = 'bonus'
+
+/** 종류가 같을 때 더하는 점수. 등급 최대(A=30)+낱말 수보다 크게 잡는다 — "먼저/뒤에"여야지 "섞임"이면 SaaS 질의 첫 화면에 텀블러가 앉는다. */
+export const KIND_MATCH_BONUS = 100
+
 /** term 이 haystack 에 부분문자열로 있는가 (양방향 — 짧은 쪽이 긴 쪽에 들어가면 hit). */
 function hitTerms(terms: string[], haystack: string): string[] {
   const hay = haystack.toLowerCase()
@@ -321,10 +335,17 @@ export function matchCaseMoves(
   terms: string[],
   studies: StudyRow[] | null | undefined,
   moves: MoveRow[] | null | undefined,
-  /** 질의 쪽 제품 종류. 주면 다른 종류의 케이스는 랭킹 전에 뺀다(productKindOf 주석). 안 주면 전과 같다. */
+  /** 질의 쪽 제품 종류. 주면 같은 종류가 먼저 온다(KIND_MISMATCH_MODE). 안 주면 전과 같다. */
   projectKind: ProductKind | null = null,
+  /**
+   * matchAllWhenNoTerms — 질의어 없이 하드필터(병목·문제 유형)만으로 좁힌 경우에도 후보로 본다.
+   *   검색 화면에서 칩만 고르고 자유 텍스트를 비운 경로다. 기본 false = 전과 같다(질의어 없으면 not_run).
+   * limit — 상위 몇 장인가. 기본 TOP_N(5).
+   */
+  opts: { matchAllWhenNoTerms?: boolean; limit?: number } = {},
 ): CorpusResult<CaseMoveCard> {
-  if (!terms.length) return { status: 'not_run', reason: '질의어가 없다', cards: [] }
+  const matchAll = opts.matchAllWhenNoTerms === true && terms.length === 0
+  if (!terms.length && !matchAll) return { status: 'not_run', reason: '질의어가 없다', cards: [] }
   if (studies == null || moves == null) {
     return { status: 'not_run', reason: 'case_studies / case_moves 조회 실패 (null) — "선례 없음"이 아니라 확인 불가다', cards: [] }
   }
@@ -338,8 +359,9 @@ export function matchCaseMoves(
     if (!study) { excluded.no_context++; continue }
     if (study.review_status !== 'approved' || m.review_status !== 'approved') { excluded.not_approved++; continue }
     if ((GRADE_RANK[m.evidence_grade] ?? 0) <= 0) { excluded.grade_d++; continue }
-    // 카테고리 선행 필터 — 물리 제품 질의에 SaaS 선례를 내지 않는다(그 반대도).
-    if (projectKind !== null && productKindOf(study.business_model) !== projectKind) { excluded.kind++; continue }
+    // 카테고리 축 — 'exclude' 면 랭킹 전에 빼고, 'bonus' 면 빼지 않고 점수로 뒤로 민다(KIND_MISMATCH_MODE).
+    const kindMatch = projectKind === null || productKindOf(study.business_model) === projectKind
+    if (!kindMatch && KIND_MISMATCH_MODE === 'exclude') { excluded.kind++; continue }
 
     const haystack = [
       study.brand_name,
@@ -348,8 +370,8 @@ export function matchCaseMoves(
       m.lever,
       m.claim,
     ].join(' ')
-    const matched = hitTerms(terms, haystack)
-    if (matched.length === 0) continue
+    const matched = matchAll ? [] : hitTerms(terms, haystack)
+    if (!matchAll && matched.length === 0) continue
 
     cards.push({
       kind: 'case_move',
@@ -362,7 +384,7 @@ export function matchCaseMoves(
       fact_check_grade: m.fact_check_grade ?? null,
       outcome_direction: m.outcome_direction,
       matched_terms: matched,
-      score: (GRADE_RANK[m.evidence_grade] ?? 0) * 10 + matched.length,
+      score: (GRADE_RANK[m.evidence_grade] ?? 0) * 10 + matched.length + (kindMatch && projectKind !== null ? KIND_MATCH_BONUS : 0),
       low_confidence: isLowConfidence(matched),
     })
   }
@@ -377,11 +399,11 @@ export function matchCaseMoves(
     ].filter(Boolean).join(' / ')
     return {
       status: 'no_match',
-      reason: `조회는 정상인데 질의어와 겹치는 승인 무브가 0건이다${why ? ` (제외: ${why})` : ''} — 관련 사례 없음`,
+      reason: `조회는 정상인데 ${matchAll ? '조건에 맞는' : '질의어와 겹치는'} 승인 무브가 0건이다${why ? ` (제외: ${why})` : ''} — 관련 사례 없음`,
       cards: [],
     }
   }
-  return { status: 'matched', reason: `승인 무브 ${cards.length}건`, cards: cards.slice(0, TOP_N) }
+  return { status: 'matched', reason: `승인 무브 ${cards.length}건`, cards: cards.slice(0, opts.limit ?? TOP_N) }
 }
 
 /**

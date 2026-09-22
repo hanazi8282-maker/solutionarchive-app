@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { advise } from '@/lib/cases/advisor'
-import type { MoveRow, StudyRow } from '@/lib/cases/match'
-import type { FailedAngleRow, PrincipleRow } from '@/lib/cases/advisor'
+import { loadCaseCorpus, loadPrinciples } from '@/lib/cases/corpus-db'
 
 // 크로스섹션 어드바이저 — 조회 전용 (M3 백엔드, 결정 C).
 //
@@ -19,24 +18,7 @@ import type { FailedAngleRow, PrincipleRow } from '@/lib/cases/advisor'
 // UI: app/analyze/[id]/angles/page.tsx 의 AdvisorPanel 이 "유사 사례 보기"를
 //     눌렀을 때만 이 라우트를 호출한다(앵글마다 자동 fetch 하지 않는다).
 
-const STUDY_COLS =
-  'id, slug, brand_name, bottleneck, business_model, buyer_type, price_band, outcome_status, review_status'
-const MOVE_COLS =
-  'id, case_study_id, lever, claim, evidence_grade, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit'
-
-/** 조회 실패는 null 로. 빈 배열([])과 절대 안 섞는다 — advisor 가 3상태로 구분한다. */
-async function safeSelect<T>(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  table: string,
-  cols: string,
-): Promise<T[] | null> {
-  const { data, error } = await supabase.from(table).select(cols)
-  if (error) {
-    console.error(`[analyze/advisor] ${table} select error:`, error.code ?? '', error.message)
-    return null
-  }
-  return (data ?? []) as T[]
-}
+// 컬럼 목록·조회 실패 처리(null vs [])는 lib/cases/corpus-db.ts 한 벌이다 — /api/cases/search 와 같은 것을 본다.
 
 export async function GET(req: Request) {
   const supabase = await createClient()
@@ -115,18 +97,8 @@ export async function GET(req: Request) {
   }
 
   // ── 코퍼스 로드 ────────────────────────────────────────────
-  const principles = await safeSelect<PrincipleRow>(
-    supabase,
-    'strategy_principles',
-    'sp_id, tags, statement, evidence_grade, evidence_grade_note, source_ref',
-  )
-  const studies = await safeSelect<StudyRow>(supabase, 'case_studies', STUDY_COLS)
-  const moves = await safeSelect<MoveRow>(supabase, 'case_moves', MOVE_COLS)
-  const failedAngles = await safeSelect<FailedAngleRow>(
-    supabase,
-    'failed_angles',
-    'case_key, product_category, claimed_angle, outcome, evidence_source, source_tier, is_estimate',
-  )
+  const principles = await loadPrinciples(supabase, 'analyze/advisor')
+  const { studies, moves, failedAngles } = await loadCaseCorpus(supabase, 'analyze/advisor')
 
   const result = advise(
     // businessModel 이 undefined(프로젝트 없이 자유 질의)면 카테고리 필터 없이 전 코퍼스를 본다.

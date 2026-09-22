@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Badge } from '../../_ds/components/Badge'
+import { GradeLegend } from '../../_ds/components/GradeLegend'
 import { Button } from '../../_ds/components/Button'
 
 // ── 크로스섹션 어드바이저 — 화면 한 벌 ─────────────────────────
@@ -17,11 +18,14 @@ type AdvisorStatus = 'matched' | 'no_match' | 'not_run'
 type AdvisorCorpus<Card> = { status: AdvisorStatus; reason: string; cards: Card[] }
 /** 매칭 근거 — 왜 이 사례가 나왔는지. 세 코퍼스 카드가 전부 갖는다 (SP-024). */
 type AdvisorMatchInfo = { matched_terms: string[]; score: number; low_confidence: boolean }
-type AdvisorCaseMoveCard = AdvisorMatchInfo & {
+export type AdvisorCaseMoveCard = AdvisorMatchInfo & {
   case_move_id: string; slug: string; brand_name: string; lever: string
-  claim: string; evidence_grade: string; outcome_direction: string
+  claim: string; evidence_grade: string
+  /** 사실확인 등급. null = 미기재(조회에 없었거나 안 적힘)이고 등급 D 와 다르다. */
+  fact_check_grade: string | null
+  outcome_direction: string
 }
-type AdvisorFailedAngleCard = AdvisorMatchInfo & {
+export type AdvisorFailedAngleCard = AdvisorMatchInfo & {
   case_key: string; product_category: string; claimed_angle: string
   outcome: string; source_tier: string; is_estimate: boolean
 }
@@ -125,9 +129,70 @@ function GradeBadge({ grade }: { grade: string }) {
   return <Badge tone="info" size="sm">근거 {grade}</Badge>
 }
 
+/**
+ * 무브 등급 두 벌 — 인사이트와 사실확인은 **다른 질문**이다(2026-09-16 축 분리).
+ * 2026-09-23 까지 셀러 화면에는 인사이트 등급만 나갔다. 데이터는 API 응답에 있었는데
+ * 렌더 타입에 없어서 조용히 버려지고 있었다 — "검증됐나"를 묻는 사람에게 답이 없었다.
+ * 뜻은 툴팁 한 줄, 자세한 것은 GradeLegend 가 답한다.
+ */
+function MoveGradeBadges({ grade, factCheck }: { grade: string; factCheck: string | null }) {
+  return (
+    <>
+      <Badge tone="info" size="sm" title="인사이트 등급 — 내가 옮겨 쓸 게 있나(옮길 행동·전제가 적혀 있나)">인사이트 {grade}</Badge>
+      <Badge tone="neutral" size="sm" title="사실확인 등급 — 그 수치를 믿을 수 있나(출처가 몇 겹인가). 미기재는 D 가 아니다">
+        사실확인 {factCheck ?? '미기재'}
+      </Badge>
+    </>
+  )
+}
+
 function LowConfidenceBadge({ m }: { m: AdvisorMatchInfo }) {
   if (!m.low_confidence) return null
   return <Badge tone="warning" size="sm">신뢰도 낮음</Badge>
+}
+
+/**
+ * 선례 카드 목록. 어드바이저 패널과 /cases/search 가 **같은 카드**를 쓴다 —
+ * 두 화면이 각자 그리면 배지·매칭 근거 표시가 곧 갈라진다(그 자리를 이미 한 번 겪었다).
+ */
+export function CaseMoveCards({ cards }: { cards: AdvisorCaseMoveCard[] }) {
+  return (
+    <>
+      {cards.map((c) => (
+        <div key={c.case_move_id} style={{ display: 'grid', gap: 4 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            <Badge tone="neutral" size="sm">{c.brand_name}</Badge>
+            <Badge tone="neutral" size="sm">{c.lever}</Badge>
+            <MoveGradeBadges grade={c.evidence_grade} factCheck={c.fact_check_grade} />
+            <LowConfidenceBadge m={c} />
+          </div>
+          <p style={body}>{c.claim}</p>
+          <MatchWhy m={c} />
+        </div>
+      ))}
+    </>
+  )
+}
+
+/** 실패 앵글 카드 목록. 내세웠던 소구점과 결과를 **같이** 보여줘야 회피 조언이 된다. */
+export function FailedAngleCards({ cards }: { cards: AdvisorFailedAngleCard[] }) {
+  return (
+    <>
+      {cards.map((c) => (
+        <div key={c.case_key} style={{ display: 'grid', gap: 4 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            <Badge tone="neutral" size="sm">{c.product_category}</Badge>
+            <Badge tone="neutral" size="sm">{c.source_tier}</Badge>
+            {c.is_estimate && <Badge tone="warning" size="sm">추정</Badge>}
+            <LowConfidenceBadge m={c} />
+          </div>
+          <p style={body}>내세웠던 소구점 · {c.claimed_angle}</p>
+          <p style={{ ...body, color: 'var(--danger-fg)' }}>결과 · {c.outcome}</p>
+          <MatchWhy m={c} />
+        </div>
+      ))}
+    </>
+  )
 }
 
 /** 응답 본문만 그린다. 3상태를 문장으로 가른다 — 0건은 0건이라고 말한다(§13-7 AC-2). */
@@ -139,37 +204,16 @@ export function AdvisorResult({ data, focus = null }: { data: AdvisorPayload; fo
   return (
     <>
       <Corpus k="a" status={data.corpus_a.status} reason={data.corpus_a.reason} count={data.corpus_a.cards.length} focus={focus}>
-        {data.corpus_a.cards.map(c => (
-            <div key={c.case_move_id} style={{ display: 'grid', gap: 4 }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                <Badge tone="neutral" size="sm">{c.brand_name}</Badge>
-                <Badge tone="neutral" size="sm">{c.lever}</Badge>
-                <GradeBadge grade={c.evidence_grade} />
-                <LowConfidenceBadge m={c} />
-              </div>
-              <p style={body}>{c.claim}</p>
-              <MatchWhy m={c} />
-            </div>
-          ))}
+        <CaseMoveCards cards={data.corpus_a.cards} />
       </Corpus>
 
       {/* 실패 사례는 "무엇을 내세웠고(claimed_angle) 왜 안 됐는지(outcome)"를 함께
           보여줘야 회피 조언이 된다. 둘 중 하나만 보이면 쓸모가 없다. */}
       <Corpus k="b" status={data.corpus_b.status} reason={data.corpus_b.reason} count={data.corpus_b.cards.length} focus={focus}>
-        {data.corpus_b.cards.map(c => (
-            <div key={c.case_key} style={{ display: 'grid', gap: 4 }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                <Badge tone="neutral" size="sm">{c.product_category}</Badge>
-                <Badge tone="neutral" size="sm">{c.source_tier}</Badge>
-                {c.is_estimate && <Badge tone="warning" size="sm">추정</Badge>}
-                <LowConfidenceBadge m={c} />
-              </div>
-              <p style={body}>내세웠던 소구점 · {c.claimed_angle}</p>
-              <p style={{ ...body, color: 'var(--danger-fg)' }}>결과 · {c.outcome}</p>
-              <MatchWhy m={c} />
-            </div>
-          ))}
+        <FailedAngleCards cards={data.corpus_b.cards} />
       </Corpus>
+
+      <GradeLegend />
 
       <Corpus k="c" status={data.corpus_c.status} reason={data.corpus_c.reason} count={data.corpus_c.cards.length} focus={focus}>
         {data.corpus_c.cards.map(c => (

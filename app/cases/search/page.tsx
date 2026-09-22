@@ -10,6 +10,7 @@ import { Badge } from '../../_ds/components/Badge'
 import { Card } from '../../_ds/components/Card'
 import { EmptyState } from '../../_ds/components/EmptyState'
 import { FilterChip } from '../../_ds/components/FilterChip'
+import { GradeLegend } from '../../_ds/components/GradeLegend'
 import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
 
 // "내 문제 → 유사 케이스" 검색 화면.
@@ -149,7 +150,7 @@ export default async function CaseSearchPage({ searchParams }: {
         <div style={{ display: 'grid', gap: 10 }}>
           <StatusLine status={result.moves.status} reason={result.moves.reason} empty={result.empty_state} />
           {result.moves.cards.length > 0
-            ? <CaseMoveCards cards={result.moves.cards} />
+            ? <><CaseMoveCards cards={result.moves.cards} /><GradeLegend /></>
             : result.moves.status === 'no_match' && (
               <EmptyState compact title={result.empty_state}
                 description="조회는 정상이다. 지금 이 조건에 맞는 승인 무브가 없다는 뜻이고, 없는 것을 다른 사례로 채우지 않는다." />

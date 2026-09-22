@@ -8,6 +8,7 @@ import { ButtonLink } from '../_ds/components/Button'
 import { EmptyState } from '../_ds/components/EmptyState'
 import { EvidenceCaption } from '../_ds/components/EvidenceCaption'
 import { FilterChip } from '../_ds/components/FilterChip'
+import { GradeLegend } from '../_ds/components/GradeLegend'
 import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
 import { DecisionForm } from './decision-form'
 
@@ -193,9 +194,9 @@ function MoveBlock({ m, i, evidence, caseEvidenceTotal, locked, transferabilityL
             : <Badge tone="warning" size="sm">이식성 미판정</Badge>
         )}
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-          <Badge tone={GRADE_TONE[m.evidence_grade] ?? 'neutral'} size="sm">등급 {m.evidence_grade}</Badge>
-          {/* 사실확인은 별도 축(2026-09-16 분리) — "얼마나 검증됐나"는 등급과 다른 질문이다. */}
-          <Badge tone="neutral" size="sm">사실확인 {m.fact_check_grade}</Badge>
+          {/* 두 축의 이름을 화면마다 같게 쓴다 — "등급"만 적혀 있으면 어느 축인지 알 수 없다(GradeLegend). */}
+          <Badge tone={GRADE_TONE[m.evidence_grade] ?? 'neutral'} size="sm" title="인사이트 등급 — 독자가 옮겨 쓸 게 있나">인사이트 {m.evidence_grade}</Badge>
+          <Badge tone="neutral" size="sm" title="사실확인 등급 — 그 수치를 믿을 수 있나. CG-1/CG-2 발행 게이트가 이걸 본다">사실확인 {m.fact_check_grade}</Badge>
         </span>
       </div>
       <p style={{ margin: 0, fontSize: 14, color: 'var(--text-strong)', overflowWrap: 'anywhere' }}>{m.claim}</p>
@@ -357,6 +358,8 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
           </div>
         }
       />
+
+      <GradeLegend />
 
       {/* 숫자 3개. "확인 불가"는 0 이 아니다 — 이식성 컬럼이 없으면 세지 않고 그렇게 적는다(§7.1). */}
       <StatGrid min={180}>

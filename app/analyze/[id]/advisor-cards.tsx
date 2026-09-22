@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Badge } from '../../_ds/components/Badge'
+import { GradeLegend } from '../../_ds/components/GradeLegend'
 import { Button } from '../../_ds/components/Button'
 
 // ── 크로스섹션 어드바이저 — 화면 한 벌 ─────────────────────────
@@ -19,7 +20,10 @@ type AdvisorCorpus<Card> = { status: AdvisorStatus; reason: string; cards: Card[
 type AdvisorMatchInfo = { matched_terms: string[]; score: number; low_confidence: boolean }
 export type AdvisorCaseMoveCard = AdvisorMatchInfo & {
   case_move_id: string; slug: string; brand_name: string; lever: string
-  claim: string; evidence_grade: string; outcome_direction: string
+  claim: string; evidence_grade: string
+  /** 사실확인 등급. null = 미기재(조회에 없었거나 안 적힘)이고 등급 D 와 다르다. */
+  fact_check_grade: string | null
+  outcome_direction: string
 }
 export type AdvisorFailedAngleCard = AdvisorMatchInfo & {
   case_key: string; product_category: string; claimed_angle: string
@@ -125,6 +129,23 @@ function GradeBadge({ grade }: { grade: string }) {
   return <Badge tone="info" size="sm">근거 {grade}</Badge>
 }
 
+/**
+ * 무브 등급 두 벌 — 인사이트와 사실확인은 **다른 질문**이다(2026-09-16 축 분리).
+ * 2026-09-23 까지 셀러 화면에는 인사이트 등급만 나갔다. 데이터는 API 응답에 있었는데
+ * 렌더 타입에 없어서 조용히 버려지고 있었다 — "검증됐나"를 묻는 사람에게 답이 없었다.
+ * 뜻은 툴팁 한 줄, 자세한 것은 GradeLegend 가 답한다.
+ */
+function MoveGradeBadges({ grade, factCheck }: { grade: string; factCheck: string | null }) {
+  return (
+    <>
+      <Badge tone="info" size="sm" title="인사이트 등급 — 내가 옮겨 쓸 게 있나(옮길 행동·전제가 적혀 있나)">인사이트 {grade}</Badge>
+      <Badge tone="neutral" size="sm" title="사실확인 등급 — 그 수치를 믿을 수 있나(출처가 몇 겹인가). 미기재는 D 가 아니다">
+        사실확인 {factCheck ?? '미기재'}
+      </Badge>
+    </>
+  )
+}
+
 function LowConfidenceBadge({ m }: { m: AdvisorMatchInfo }) {
   if (!m.low_confidence) return null
   return <Badge tone="warning" size="sm">신뢰도 낮음</Badge>
@@ -142,7 +163,7 @@ export function CaseMoveCards({ cards }: { cards: AdvisorCaseMoveCard[] }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             <Badge tone="neutral" size="sm">{c.brand_name}</Badge>
             <Badge tone="neutral" size="sm">{c.lever}</Badge>
-            <GradeBadge grade={c.evidence_grade} />
+            <MoveGradeBadges grade={c.evidence_grade} factCheck={c.fact_check_grade} />
             <LowConfidenceBadge m={c} />
           </div>
           <p style={body}>{c.claim}</p>
@@ -191,6 +212,8 @@ export function AdvisorResult({ data, focus = null }: { data: AdvisorPayload; fo
       <Corpus k="b" status={data.corpus_b.status} reason={data.corpus_b.reason} count={data.corpus_b.cards.length} focus={focus}>
         <FailedAngleCards cards={data.corpus_b.cards} />
       </Corpus>
+
+      <GradeLegend />
 
       <Corpus k="c" status={data.corpus_c.status} reason={data.corpus_c.reason} count={data.corpus_c.cards.length} focus={focus}>
         {data.corpus_c.cards.map(c => (

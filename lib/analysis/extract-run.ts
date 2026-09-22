@@ -260,7 +260,9 @@ export async function runExtraction(
 
   const userPrompt = [
     `## 분석 대상`,
-    `- 경쟁사 상품 URL: ${project.competitor_url}`,
+    // competitor_url 은 선택이다(2026-09-23). null 을 그대로 끼우면 프롬프트에
+    // 문자열 "null" 이 들어가 모델이 그걸 대상으로 읽는다.
+    `- 경쟁사 상품 URL: ${project.competitor_url ?? '(없음 — 경쟁사 없이 수집 원문만으로 분석한다)'}`,
     `- 내 상품 한 줄 소개: ${project.product_elevator_pitch}`,
     `- 분석 목적(purpose): ${project.purpose}`,
     project.seller_own_guess

@@ -46,7 +46,7 @@ type AspectRow = {
 
 type ProjectRow = {
   id: string
-  competitor_url: string
+  competitor_url: string | null
   product_elevator_pitch: string
   purpose: AnalysisPurpose
   seller_own_guess: string | null
@@ -432,7 +432,8 @@ export default function AnalyzeReviewPage() {
             display: 'grid', gridTemplateColumns: 'max-content minmax(0, 1fr)', gap: '6px 16px',
             margin: '8px 0 0', fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)',
           }}>
-            <Row k="경쟁사 URL">{project.competitor_url}</Row>
+            {/* URL 은 선택이다(2026-09-23) — 없으면 빈 칸 대신 없다고 적는다. */}
+            <Row k="경쟁사 URL">{project.competitor_url ?? '(없음)'}</Row>
             <Row k="상품 한 줄 소개">{project.product_elevator_pitch}</Row>
             <Row k="분석 목적">{PURPOSE_LABELS[project.purpose] ?? project.purpose}</Row>
             {project.seller_own_guess && <Row k="판매자 가설">{project.seller_own_guess}</Row>}

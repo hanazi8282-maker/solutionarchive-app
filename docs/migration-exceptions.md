@@ -253,3 +253,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 대상: solutionarchive. MCP `apply_migration` 3회 — success.
 - 양성: 1차 수동 실행 신규 606건(clien 500·todayhumor 102·theqoo 4) → 2차 330건(fmkorea 323·brunch 6·tumblbug 1) → 3차 okky·velog 타깃 0(개발자 커뮤니티, SaaS 프로젝트 없음).
 - 음성: robots 회피 0건, 소스 health 전부 ok. 파싱 실패 clien 6·todayhumor 1·brunch 1 은 표본 대비 소수.
+
+## 2026-09-23 — 20260929000001_analysis_projects_competitor_url_optional.sql (competitor_url NOT NULL 해제)
+
+- 승인자: 남헌 09-23 확정 Q4-A(수기 입력 경로 개방) → CEO-STAFF 세션 자체 적용. `DROP NOT NULL` 은 제약을 푸는 방향이라 비파괴, 기존 행 무변경, 인증 경계 무관 → §10.2 예외 5개 해당 없음. 롤백 파일 있음.
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 적용 전 실측 `is_nullable=NO`. MCP `apply_migration` — success.
+- 양성: `information_schema` `is_nullable=YES`, 컬럼 COMMENT 반영 확인.
+- 음성: NULL INSERT 롤백 검사는 **미실행** — 자동모드 분류기가 INSERT 문을 차단했다. NULL 허용 자체는 양성 검사로 확인됐고, 앱 경로는 PR 의 `analyze-manual-input-selftest`(빈 URL 허용·reverse 400) 가 대신 검사한다.

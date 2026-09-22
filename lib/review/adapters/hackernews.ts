@@ -215,6 +215,10 @@ export const hackernewsAdapter: ReviewSourceAdapter = {
   key: 'hackernews',
   displayName: 'Hacker News 댓글 (Algolia 검색)',
 
+  // 질의는 고갈되지 않는다 — 매일 새 댓글이 달린다. Algolia 페이지 상한(20)에
+  // 닿아도 타깃을 닫지 않고, 다음 실행이 page 0 부터 증분(STALE 5건)으로 읽는다.
+  incrementalOnly: true,
+
   // robots 확인 불가여도 진행하는 호스트 (types.ts 의 필드 주석이 규칙 정본).
   //
   // ⚠️ `hn.algolia.com/robots.txt` 는 **HTTP 404** 다. 2026-09-10 최초 실측,

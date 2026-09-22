@@ -4,6 +4,7 @@ import { gradeMove, READER_PROBLEM_LABEL, type Evidence, type Move } from '@/lib
 import { caseApprovalWarning, moveApprovalWarning, TRANSFERABILITY_LABEL, type Transferability } from '@/lib/cases/review'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
+import { ButtonLink } from '../_ds/components/Button'
 import { EmptyState } from '../_ds/components/EmptyState'
 import { EvidenceCaption } from '../_ds/components/EvidenceCaption'
 import { FilterChip } from '../_ds/components/FilterChip'
@@ -322,8 +323,10 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
 
   return (
     <PageShell maxWidth={960}>
+      {/* action = 카드 채점 모드로 가는 유일한 입구. 링크가 없으면 만든 화면이 없는 화면이다. */}
       <PageHeader
         {...HEADER}
+        action={<ButtonLink href="/cases/grade">카드 채점 모드 (하루 10장)</ButtonLink>}
         meta={<>전체 케이스 {all.length}건 · 무브 {totalMoves}건 중에서 셈 · 지금 보는 것은 {statusLabel}{grade === 'all' ? '' : ` · 등급 ${grade}`} {shown.length}건</>}
         filters={
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>

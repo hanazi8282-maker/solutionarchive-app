@@ -1,0 +1,53 @@
+/* 칼럼 읽기 화면 전용 — 렌더된 마크다운(dangerouslySetInnerHTML) 안쪽에는 클래스를 못 달아서
+   부모 클래스 하나로 자식 태그를 잡는다. 값은 app/_ds/tokens 변수만 쓴다(새 색·새 폰트 없음).
+   공용 styles.css 를 건드리지 않는 이유: 이 규칙이 필요한 화면이 여기뿐이다. */
+
+.sa-column {
+  /* 한 줄 길이 — 한글 ~40자 / 라틴 ~65자. 이보다 길면 줄바꿈에서 눈이 다음 줄을 놓친다. */
+  max-width: 40em;
+  margin: 0 auto;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--text-body);
+  overflow-wrap: anywhere;
+}
+
+.sa-column > :first-child { margin-top: 0; }
+
+.sa-column p { margin: 0 0 1.4em; }
+
+/* 소제목은 위쪽 간격을 크게 준다 — 절이 바뀌는 것이 스크롤 중에 보여야 한다. */
+.sa-column h1,
+.sa-column h2 {
+  margin: 2.4em 0 0.8em;
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight);
+  color: var(--text-strong);
+}
+
+.sa-column h3 {
+  margin: 2em 0 0.6em;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  color: var(--text-strong);
+}
+
+.sa-column ul { margin: 0 0 1.4em; padding-left: 1.2em; }
+.sa-column li { margin: 0 0 0.5em; }
+
+.sa-column blockquote {
+  margin: 0 0 1.4em;
+  padding: 0.2em 0 0.2em 1em;
+  border-left: 3px solid var(--border);
+  color: var(--text-muted);
+}
+
+.sa-column strong { font-weight: var(--fw-semibold); color: var(--text-strong); }
+.sa-column a { color: var(--info-fg); }
+
+@media (max-width: 640px) {
+  .sa-column { font-size: 16px; }
+}

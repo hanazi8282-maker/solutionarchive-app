@@ -169,6 +169,25 @@ export interface ReviewSourceAdapter {
    * 소스가 꺼진다 — 원인이 우리 쪽 설정인데 상대가 막은 것으로 남는다(§7.1).
    */
   requiredEnv?: string[]
+
+  /**
+   * **이 소스의 타깃은 "끝"이 없다 — API 페이지 상한에 닿아도 닫지 않는다.**
+   *
+   * hackernews 처럼 `product_ref` 가 질의(`q:...`)인 소스는 대상이 고정된 문서가
+   * 아니라 **계속 새 글이 달리는 검색 결과**다. 그런데 Algolia 의 페이지 상한
+   * (1000/50 = 20페이지)이 러너의 페이지 상한과 같아 첫 실행에 끝까지 읽고
+   * `nextCursor=null` 이 나온다 → 그날로 `exhausted` 로 닫히고, 되살리는 코드가
+   * 없어 그 질의는 영영 다시 안 돈다.
+   *
+   * 이 플래그가 켜진 소스는 커서가 null 이어도 `active` 로 둔다. 다음 실행은
+   * 커서 null = page 0 부터 시간 역순으로 읽다가 `last_review_at` 이전 댓글이
+   * 연속 `STALE_STREAK_TO_STOP` 건이면 멈춘다(기존 증분 종료 그대로).
+   * 즉 "매일 새 댓글만".
+   *
+   * ⚠️ 문서 1개가 대상인 소스(다나와 pcode·커뮤니티 `url:`)에는 켜지 마라.
+   *    그건 진짜로 끝이 있고, 닫지 않으면 같은 글을 매일 다시 긁는다.
+   */
+  incrementalOnly?: boolean
 }
 
 /**

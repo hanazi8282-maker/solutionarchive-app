@@ -287,8 +287,8 @@ t('quotaMarkers 미선언 — 403/429 는 차단으로 본다', hackernewsAdapte
 //
 // 여기가 이 파일의 핵심이다. 위의 파서 단위 테스트가 전부 통과해도 러너와
 // 붙였을 때 페이지가 안 넘어가는 버그는 여기서만 잡힌다.
-function makeHarness(pagesByNumber) {
-  const log = { fetched: [], inputs: [] }
+function makeHarness(pagesByNumber, targetOver = {}) {
+  const log = { fetched: [], inputs: [], saves: [] }
   const seen = new Map()
   let clock = 1_000_000
 
@@ -318,9 +318,11 @@ function makeHarness(pagesByNumber) {
         }
       },
       async listDueTargets() {
-        return [target()]
+        return [target(targetOver)]
       },
-      async saveTargetProgress() {},
+      async saveTargetProgress(p) {
+        log.saves.push(p)
+      },
       async recordFingerprint(fp) {
         const prev = seen.get(fp.identityKey)
         if (prev === undefined) {
@@ -417,6 +419,32 @@ function makeHarness(pagesByNumber) {
   }
   await runCollection(hackernewsAdapter, { dryRun: false, targetLimit: 1 }, h.ports)
   ok('지문: 전부 seq (폴백 없음)', kinds.length > 0 && kinds.every((k) => k === 'seq'))
+}
+
+{
+  // ── 증분 정책(Q6): API 상한 뒤에도 타깃을 닫지 않는다 ──────────────
+  //
+  // ⚠️ 이게 없으면 HN 질의 타깃은 **첫 실행에 exhausted 로 닫히고 영영 안 돈다**
+  //    (재활성화 코드 없음). Algolia 상한 1000/50 = 20페이지가 러너 페이지
+  //    상한과 같아 첫날 끝까지 읽어 버리기 때문이다.
+  //    마지막 페이지(19)를 바로 주어 상한 경계만 때린다.
+  const lastPage = JSON.parse(page1)
+  lastPage.hits = lastPage.hits.slice(0, 3).map((h, i) => ({
+    ...h,
+    objectID: `last-${i}`,
+    comment_text: `notion 마지막 페이지 댓글 ${i}`,
+  }))
+  const h = makeHarness({ [String(MAX_PAGE - 1)]: JSON.stringify(lastPage) }, { cursor: String(MAX_PAGE - 1) })
+  const res = await runCollection(hackernewsAdapter, { dryRun: false, targetLimit: 1 }, h.ports)
+
+  const last = h.log.saves[h.log.saves.length - 1]
+  t('증분: 어댑터가 incrementalOnly 를 선언한다', hackernewsAdapter.incrementalOnly, true)
+  t('증분: 커서는 null 로 떨어진다(API 상한)', last.cursor, null)
+  t('증분: 그래도 타깃은 active 로 남는다', last.status, 'active')
+  ok('증분: 다음 실행의 기준이 될 마지막 리뷰 시각이 저장된다', typeof last.lastReviewAt === 'string')
+  // §7.2 — 상한에 걸려 끝난 것을 "정상 종료"로 읽지 않도록 로그가 사유를 말한다.
+  ok('증분: 로그가 "API 상한 도달 → active 유지"를 남긴다', res.perTarget[0].outcome.includes('API 상한 도달'))
+  ok('증분: 로그에 마지막 댓글 시각이 있다', res.perTarget[0].outcome.includes('마지막 댓글 시각'))
 }
 
 {

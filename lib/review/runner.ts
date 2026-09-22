@@ -386,6 +386,10 @@ export async function runCollection(
 
   let aborted = false
 
+  // 증분형 소스(hackernews q:)는 "끝까지 읽음"이 끝이 아니다 — 커서가 null 이어도
+  // active 로 두고 다음 실행이 page 0 부터 새 댓글만 읽는다(types.ts incrementalOnly).
+  const endStatus: TargetProgress['status'] = adapter.incrementalOnly ? 'active' : 'exhausted'
+
   const targets = await ports.store.listDueTargets(adapter.key, opts.targetLimit)
 
   for (const target of targets) {
@@ -505,14 +509,18 @@ export async function runCollection(
           cursor,
           lastReviewAt,
           consecutiveEmpty: target.consecutiveEmpty,
-          status: cursor === null ? 'exhausted' : 'active',
+          status: cursor === null ? endStatus : 'active',
           collectedDelta: pageResult.newCount,
         })
       }
 
       if (cursor === null) {
-        outcome = '끝까지 읽음'
-        status = 'exhausted'
+        // §7.2: 상한에 걸려 끝난 것을 "정상 종료"로 읽지 않게, 몇 페이지째인지와
+        // 다음 실행의 증분 기준(마지막 리뷰 시각)을 함께 남긴다.
+        outcome = adapter.incrementalOnly
+          ? `API 상한 도달(${page + 1}페이지째) → 증분형이라 active 유지(마지막 댓글 시각 ${lastReviewAt ?? '없음'})`
+          : '끝까지 읽음'
+        status = endStatus
         break
       }
       if (staleStreak >= STALE_STREAK_TO_STOP) {

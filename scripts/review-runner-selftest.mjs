@@ -450,6 +450,28 @@ const runQuota = (h, over = {}) =>
   t('신규는 정상 적재', r.stats.newReviews, 5)
 }
 
+// ── incrementalOnly — 커서가 끝나도 닫지 않는다 (Q6) ──────────────
+//
+// 질의가 대상인 소스(hackernews)는 "마지막 페이지"가 끝이 아니다. 닫아 버리면
+// 되살리는 코드가 없어 그 질의는 영영 다시 안 돈다. 여기서는 같은 페이지 구성에
+// 플래그만 켜고 꺼서 **분기가 플래그에만 반응하는지**를 본다.
+{
+  const pages = { 1: page([rv({ externalId: 'a' })], null) }
+  const incAdapter = { ...fakeAdapter, incrementalOnly: true }
+
+  const h1 = makeHarness({ pages })
+  const r1 = await runCollection(fakeAdapter, { dryRun: false, targetLimit: 5 }, h1.ports)
+  t('플래그 없으면 커서 끝 = exhausted', h1.log.saves[h1.log.saves.length - 1].status, 'exhausted')
+  ok('플래그 없으면 로그는 "끝까지 읽음"', r1.perTarget[0].outcome.includes('끝까지 읽음'))
+
+  const h2 = makeHarness({ pages })
+  const r2 = await runCollection(incAdapter, { dryRun: false, targetLimit: 5 }, h2.ports)
+  t('플래그 켜면 커서가 끝나도 active', h2.log.saves[h2.log.saves.length - 1].status, 'active')
+  ok('플래그 켜면 로그가 상한 사유를 남긴다(§7.2)', r2.perTarget[0].outcome.includes('API 상한 도달'))
+  ok('커서는 여전히 null — 다음 실행은 처음부터 읽는다', h2.log.saves[h2.log.saves.length - 1].cursor === null)
+  t('플래그는 신규 적재 수를 바꾸지 않는다', r2.stats.newReviews, r1.stats.newReviews)
+}
+
 // ── dry-run ───────────────────────────────────────────────────────
 {
   const h = makeHarness({ pages: { 1: page([rv({ externalId: 'a' })], null) } })
@@ -619,6 +641,10 @@ ok('제품 토큰이 브라우저를 사칭하지 않는다', !/mozilla|chrome|s
   t('폴백 키 없음 — 다나와 seq 를 전부 읽었다', r.stats.fallbackKeys, 0)
   t('health ok', r.health.health, 'ok')
   ok('마지막 저장의 커서가 null — 타깃 종료', saves[saves.length - 1].cursor === null)
+  // 음성 케이스: incrementalOnly 는 hackernews 전용이다. 상품 1개 = 타깃 1개인
+  // 다나와는 끝이 진짜 끝이라 닫혀야 한다. 안 닫히면 같은 글을 매일 다시 긁는다.
+  t('danawa: 끝까지 읽으면 exhausted 로 닫힌다', saves[saves.length - 1].status, 'exhausted')
+  t('danawa: incrementalOnly 를 선언하지 않는다', danawaAdapter.incrementalOnly, undefined)
   ok('본문이 실제로 들어간다', inputs.every((i) => i.text.length > 0))
   ok('프로젝트 id 가 실려 간다', inputs.every((i) => i.projectId === 'proj1'))
 }

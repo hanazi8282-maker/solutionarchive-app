@@ -8,6 +8,7 @@
 // ★ 조회 실패를 빈 배열로 접지 않는다 — null 로 넘겨야 remedy 가 "관련 사례 없음" 과 "확인 불가" 를 가른다(§7.1).
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { productKindOf } from './advisor.ts'
 import type { CaseMoveCard, FailedAngleCard, FailedAngleRow, PrincipleCard, PrincipleRow } from './advisor.ts'
 import type { MoveRow, StudyRow } from './match.ts'
 import { buildRemedies, type RemedyAspectRow, type RemedyProject, type RemedyResult } from './remedy.ts'
@@ -183,6 +184,13 @@ export async function judgeProjectRemedies(
   if (notesError) console.error(`[${label}] aspect notes fetch error:`, notesError.message)
   const notesById = new Map((aspectNotes ?? []).map((a) => [a.id as string, (a.notes ?? null) as string | null]))
 
+  // 제품 종류(physical/software) — 판정 지시문의 첫 줄이 여기서 갈린다(remedy-judge.judgeSystem).
+  // 못 읽으면 productKindOf(undefined) = physical 로 간다. 판정을 건너뛰지는 않는다(기존 동작).
+  const { data: proj, error: projError } = await supabase
+    .from('analysis_projects').select('business_model').eq('id', projectId).maybeSingle()
+  if (projError) console.error(`[${label}] business_model fetch error:`, projError.message)
+  const kind = productKindOf(proj?.business_model as string | null | undefined)
+
   const cached = await loadVerdicts(supabase, label, aspectIds)
   const done = new Set(
     (cached ?? [])
@@ -207,7 +215,7 @@ export async function judgeProjectRemedies(
     if (todo.length === 0) {
       return { ...base, judged: 0, irrelevant: 0, unverified: 0, model: '(판정 불필요)' }
     }
-    const aspect = { name: card.aspect_name, notes: notesById.get(card.aspect_id) ?? null }
+    const aspect = { name: card.aspect_name, notes: notesById.get(card.aspect_id) ?? null, kind }
     if (opts.dry) {
       return {
         ...base, judged: 0, irrelevant: 0, unverified: 0, model: '(dry)',

@@ -13,6 +13,8 @@
 import { MOCK_MODEL } from '../analysis/mock.ts'
 import { callLlmWithModel, resolveProvider } from '../analysis/llm.ts'
 import type { CardKind } from './remedy-gate.ts'
+// 제품 종류 축은 새로 만들지 않는다 — advisor.productKindOf 와 같은 한 벌이다(business_model → physical/software).
+import type { ProductKind } from './advisor.ts'
 
 /** 판정에 넘기는 카드 한 장. text 는 화면에 나가는 그 문장이다(remedy-gate.cardLine). */
 export interface JudgeCard {
@@ -24,6 +26,11 @@ export interface JudgeCard {
 export interface JudgeAspect {
   name: string
   notes?: string | null
+  /**
+   * 이 속성이 달린 프로젝트의 제품 종류(advisor.productKindOf). 지시문 첫 줄이 여기서 갈린다.
+   * 안 주면 physical — analysis_projects 는 대부분 business_model 이 NULL 이고, 그때가 기존 동작이다.
+   */
+  kind?: ProductKind
 }
 
 export interface JudgeVerdict {
@@ -49,9 +56,17 @@ const KIND_LABEL: Record<CardKind, string> = {
 
 const KIND_PREFIX: Record<CardKind, string> = { case_move: 'A', failed_angle: 'B', principle: 'C' }
 
-const SYSTEM = [
-  '너는 물리적 제품(실물 소비재)을 파는 셀러의 개선 처방을 검수한다.',
-  '셀러가 겪는 페인 속성 하나와, 낱말 겹침으로 걸러진 처방 후보 카드가 주어진다.',
+/**
+ * 지시문 첫 줄 — 검수자가 누구의 처방을 보는지. 여기가 소비재로 고정돼 있어서 SaaS 처방이
+ * 스스로 무관 처리됐다(reports/2026-09-23/data-velocity-plan.md §2 T4 · §7-4).
+ */
+const SELLER_LINE: Record<ProductKind, string> = {
+  physical: '너는 물리적 제품(실물 소비재)을 파는 셀러의 개선 처방을 검수한다.',
+  software: '너는 소프트웨어·SaaS 제품을 파는 1인·소규모 팀 창업가의 개선 처방을 검수한다.',
+}
+
+const SYSTEM_TAIL = [
+  '그 사람이 겪는 페인 속성 하나와, 낱말 겹침으로 걸러진 처방 후보 카드가 주어진다.',
   '카드마다 이 속성에 얼마나 관련 있는지 0·1·2 로 판정해라.',
   '',
   '2 = 직접 관련 — 이 속성의 문제를 푸는 데 그대로 쓸 수 있는 처방이다.',
@@ -61,6 +76,11 @@ const SYSTEM = [
   '애매하면 낮게 준다. 억지로 관련을 만들어내지 마라.',
   '출력은 JSON 배열 하나뿐이다: [{"id":"A1","rel":0}]. 설명·코드블록·다른 키를 붙이지 마라.',
 ].join('\n')
+
+/** 제품 종류별 지시문. 안 주면 physical — 기존 동작 그대로다. */
+export function judgeSystem(kind: ProductKind = 'physical'): string {
+  return SELLER_LINE[kind] + '\n' + SYSTEM_TAIL
+}
 
 /** 프롬프트를 만든다(순수). 라벨은 카드 순서로 정해지므로 같은 입력이면 같은 프롬프트다. */
 export function buildJudgePrompt(aspect: JudgeAspect, cards: JudgeCard[]): { system: string; user: string; labels: string[] } {
@@ -73,7 +93,7 @@ export function buildJudgePrompt(aspect: JudgeAspect, cards: JudgeCard[]): { sys
     '카드:',
     ...cards.map((c, i) => `${labels[i]}. [${KIND_LABEL[c.kind]}] ${c.text}`),
   ].join('\n')
-  return { system: SYSTEM, user, labels }
+  return { system: judgeSystem(aspect.kind), user, labels }
 }
 
 /** 모델이 낸 텍스트에서 [{"id","rel"}] 배열을 건져낸다. 못 건지면 null(미검증)이지 0 이 아니다. */

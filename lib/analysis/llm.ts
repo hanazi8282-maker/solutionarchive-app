@@ -86,6 +86,17 @@ export class AllGeminiModelsExhaustedError extends Error {
   }
 }
 
+/**
+ * "오늘은 다시 불러도 같다"는 실패인가 — 한도·예산 소진, 지속되는 과부하(503).
+ * 야간 배치(scripts/extract-auto.mjs)가 다음 프로젝트로 넘어가지 않고 멈추는 기준이다.
+ * 문자열 메시지로 판정하지 않는다 — 문구가 바뀌면 조용히 폭주한다.
+ */
+export function isQuotaFailure(e: unknown): boolean {
+  if (e instanceof LlmBudgetExceededError) return true
+  if (e instanceof AllGeminiModelsExhaustedError) return true
+  return e instanceof ProviderHttpError && (e.status === 429 || e.status === 402 || e.status === 503)
+}
+
 /** 프로바이더가 돌려준 HTTP 상태로 사용자 문구를 고른다. */
 export function describeFailure(e: unknown): string {
   // 예산 가드레일은 사유가 곧 사용자 안내다(얼마를 쓰고 멈췄는지).

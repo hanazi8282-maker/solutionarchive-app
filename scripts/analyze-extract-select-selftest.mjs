@@ -115,7 +115,9 @@ const run = read('lib/analysis/extract-run.ts')
 const auto = read('scripts/extract-auto.mjs')
 const wf = read('.github/workflows/nightly-extract.yml')
 
-t('extract-run 이 selectInputs 를 쓴다', /from '\.\/extract-select\.ts'/.test(run) && /selectInputs\(inputs/.test(run))
+// T2(목적 무관 판정) 제외를 먼저 걸고 그 결과를 선별에 넘긴다 — 순서가 뒤집히면 무관 리뷰가
+// 점수 상위를 차지한 채 그대로 프롬프트에 들어간다.
+t('extract-run 이 selectInputs 를 쓴다', /from '\.\/extract-select\.ts'/.test(run) && /selectInputs\(relevance\.kept/.test(run))
 t('extract-run 에 오래된 순 자르기가 남아 있지 않다', !/truncatedInputs/.test(run))
 t('extract-run 이 droppedInputs 를 돌려준다', /droppedInputs,? model/.test(run) || /droppedInputs,/.test(run))
 t('extract-run 이 폐기 원문을 제외한다', /\.is\('purged_at', null\)/.test(run))

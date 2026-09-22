@@ -145,8 +145,8 @@ for (const target of pick.targets) {
 
   if (out.ok) {
     done += 1
-    log(`✓ ${target.projectId} ${secs}s — 속성 ${out.aspects}개 · 입력 ${out.inputs}건 · 선별 밖 ${out.droppedInputs}건 · model=${out.model}`)
-    await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'ok', seq, counts: { aspects: out.aspects, inputs: out.inputs, dropped: out.droppedInputs }, detail: { model: out.model, seconds: secs } })
+    log(`✓ ${target.projectId} ${secs}s — 속성 ${out.aspects}개 · 입력 ${out.inputs}건 · 선별 밖 ${out.droppedInputs}건 · 목적 무관 제외 ${out.droppedIrrelevant}건 · model=${out.model}`)
+    await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'ok', seq, counts: { aspects: out.aspects, inputs: out.inputs, dropped: out.droppedInputs, irrelevant: out.droppedIrrelevant }, detail: { model: out.model, seconds: secs } })
     continue
   }
 

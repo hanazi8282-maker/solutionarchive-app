@@ -34,6 +34,9 @@ jobs:
       # 추출 입력 선별(T1) + 야간 자동 실행 대상 선정. 틀려도 추출은 "성공"으로 끝나고
       # 엉뚱한 원문으로 속성이 나올 뿐이라 아무도 눈치 못 챈다(§7.2). 픽스처만 쓴다.
       - run: node scripts/analyze-extract-select-selftest.mjs
+      # 리뷰 목적 적합성 판정(T2) 3상태. 여기가 한 칸 접히면 "확인 불가" 리뷰가 조용히 "무관"이 되고,
+      # 그 원문은 extract 에서 영영 빠진 채 30일 뒤 purge 된다 — 되돌릴 방법이 없다(§7.1).
+      - run: node scripts/analyze-relevance-selftest.mjs
       - run: node scripts/aspect-verdict-selftest.mjs
       # 지불의사(WTP) 답 검증기 = wtp_signals 의 CHECK. 갈라지면 사람이 답을 다 채우고
       # 버튼을 누른 뒤에야 23514 로 죽는다. 가격을 내는 코드가 아니다 — 재료만 담는다.

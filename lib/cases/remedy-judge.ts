@@ -96,8 +96,12 @@ export function buildJudgePrompt(aspect: JudgeAspect, cards: JudgeCard[]): { sys
   return { system: judgeSystem(aspect.kind), user, labels }
 }
 
-/** 모델이 낸 텍스트에서 [{"id","rel"}] 배열을 건져낸다. 못 건지면 null(미검증)이지 0 이 아니다. */
-export function parseJudgeArray(raw: string): { id: string; rel: number }[] | null {
+/**
+ * 모델 응답에서 JSON 배열 하나를 건져낸다(코드블록·앞뒤 잡텍스트·껍데기 객체를 견딘다).
+ * 못 건지면 null 이다 — **빈 배열이 아니다.** 빈 배열은 호출부에서 "전부 무관"으로 읽힌다.
+ * 리뷰 관련성 판정(lib/analysis/relevance-judge.ts)도 이 한 벌을 쓴다.
+ */
+export function extractJsonArray(raw: string): unknown[] | null {
   const stripped = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim()
   const candidates: string[] = [stripped]
   const start = stripped.indexOf('[')
@@ -113,12 +117,18 @@ export function parseJudgeArray(raw: string): { id: string; rel: number }[] | nu
       : (parsed && typeof parsed === 'object'
         ? Object.values(parsed as Record<string, unknown>).find((v) => Array.isArray(v))
         : undefined)
-    if (!Array.isArray(arr)) continue
-    return arr
-      .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === 'object')
-      .map((x) => ({ id: String(x.id ?? ''), rel: Number(x.rel) }))
+    if (Array.isArray(arr)) return arr
   }
   return null
+}
+
+/** 모델이 낸 텍스트에서 [{"id","rel"}] 배열을 건져낸다. 못 건지면 null(미검증)이지 0 이 아니다. */
+export function parseJudgeArray(raw: string): { id: string; rel: number }[] | null {
+  const arr = extractJsonArray(raw)
+  if (!arr) return null
+  return arr
+    .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === 'object')
+    .map((x) => ({ id: String(x.id ?? ''), rel: Number(x.rel) }))
 }
 
 /**

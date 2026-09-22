@@ -1,0 +1,73 @@
+# 야간 자동 extract — 신규 리뷰가 쌓인 프로젝트의 속성(Stage1+Stage2)을 추출한다.
+#
+# 남헌 2026-09-23 확정: "extract 야간 자동 실행 허용 — 신규 리뷰 100건 이상 프로젝트만,
+# 일 $5 상한 안에서, Gemini 429 면 다음 날로" (reports/2026-09-23/data-velocity-plan.md §1 Q1).
+#
+# ⚠️ `nightly-review-collect.yml` 헤더의 "extract 는 절대 자동으로 안 부른다"는 이 결정으로
+#    해제됐다. 단 걱정의 실체(사람이 검수한 교정값이 매일 밤 날아간다)는 그대로 막힌다:
+#    이 배치는 `status='collecting'` 인 프로젝트만 돌고 `force` 를 쓰지 않는다.
+#    검수 이후 상태(reviewed/angled/done)는 `lib/analysis/extract-gate.ts` 가 거부한다.
+#
+# ⚠️ GEMINI_API_KEY 시크릿이 없으면 아무것도 하지 않고 종료코드 2 로 멈춘다.
+#    조용히 도는 것보다 시끄럽게 닫히는 편이 낫다.
+
+name: Nightly Extract
+
+on:
+  schedule:
+    # 18:33 UTC = KST 03:33. 리뷰 수집(KST 02:37)이 끝난 뒤다.
+    # 정각·30분을 쓰지 않는 이유는 nightly-review-collect.yml 주석에 있다(전 세계 크론이 몰려 건너뛴다).
+    - cron: '33 18 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '대상 선정만 하고 LLM 을 부르지 않는다'
+        type: boolean
+        default: true
+      min_new:
+        description: '마지막 추출 이후 신규 입력이 이만큼 이상인 프로젝트만'
+        type: string
+        default: '100'
+      max_projects:
+        description: '이번 실행에서 돌릴 최대 프로젝트 수'
+        type: string
+        default: '3'
+
+# 두 실행이 겹치면 같은 프로젝트의 aspects 를 서로 delete→insert 한다.
+concurrency:
+  group: extract-auto
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    # extract 1건이 수 분까지 간다. 상한 3건 + 여유.
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Extract aspects for projects with new reviews
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # ⛔ 사람이 등록해야 하는 유일한 새 시크릿. 없으면 스크립트가 시작하지 않는다.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # 비용 상한은 lib/analysis/budget.ts 가 강제한다(프로세스 단위 = 이 실행 1회분).
+          LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
+          EXTRACT_AUTO_MIN_NEW: ${{ inputs.min_new || vars.EXTRACT_AUTO_MIN_NEW || '100' }}
+          EXTRACT_AUTO_MAX_PROJECTS: ${{ inputs.max_projects || vars.EXTRACT_AUTO_MAX_PROJECTS || '3' }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          node scripts/extract-auto.mjs \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

@@ -31,6 +31,9 @@ jobs:
       - run: node scripts/column-threads-stage.mjs --self-test
       # 추출 시작 게이트가 서버·화면 한 벌인지. 갈라지면 시작할 수 있는데 버튼이 없는 화면이 된다.
       - run: node scripts/analyze-extract-gate-selftest.mjs
+      # 추출 입력 선별(T1) + 야간 자동 실행 대상 선정. 틀려도 추출은 "성공"으로 끝나고
+      # 엉뚱한 원문으로 속성이 나올 뿐이라 아무도 눈치 못 챈다(§7.2). 픽스처만 쓴다.
+      - run: node scripts/analyze-extract-select-selftest.mjs
       - run: node scripts/aspect-verdict-selftest.mjs
       # 지불의사(WTP) 답 검증기 = wtp_signals 의 CHECK. 갈라지면 사람이 답을 다 채우고
       # 버튼을 누른 뒤에야 23514 로 죽는다. 가격을 내는 코드가 아니다 — 재료만 담는다.

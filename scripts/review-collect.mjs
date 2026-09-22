@@ -11,7 +11,7 @@
 // ⛔ extract 를 부르지 않는다. analysis_inputs 를 채우고 멈춘다.
 //    POST /api/analyze/extract 는 기존 aspects 를 delete→insert 하므로,
 //    자동으로 돌리면 사람이 검수해 둔 교정값이 매일 밤 날아간다.
-//    "리뷰가 충분히 모였다"는 판단과 extract 실행은 사람이 한다.
+//    (2026-09-23) 자동 추출은 별도 워크플로다 — scripts/extract-auto.mjs, collecting 상태·force 없음.
 //
 // 사용:
 //   node scripts/review-collect.mjs [--dry] [--source=danawa,appstore] [--targets=N]

@@ -12,6 +12,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   callLlmWithModel,
   describeFailure,
+  isQuotaFailure,
   parseJsonObject,
   type LlmProvider,
 } from './llm.ts'
@@ -28,12 +29,12 @@ import {
   type ValueRealizationFrequency,
 } from './types.ts'
 import { REANALYZABLE, canStart } from './extract-gate.ts'
+import { MAX_CHARS_PER_INPUT, MAX_CHARS_TOTAL, selectInputs } from './extract-select.ts'
 import { judgeProjectRemedies } from '../cases/remedy-db.ts'
 import { normalizeEvidenceQuotes } from './evidence-quotes.ts'
 
-// 컨텍스트 폭주 방지: 입력 1건당 / 전체 합계 상한
-export const MAX_CHARS_PER_INPUT = 8000
-export const MAX_CHARS_TOTAL = 120000
+// 컨텍스트 폭주 방지 상한과 입력 선별(T1)은 lib/analysis/extract-select.ts 한 벌이다.
+export { MAX_CHARS_PER_INPUT, MAX_CHARS_TOTAL }
 
 // ── Stage1(VOC 마이닝) + Stage2(시장 성숙도 진단) 지시문 ──────────
 export const SYSTEM_PROMPT = `너는 이커머스 소구점 발굴 파이프라인의 Stage1(VOC 마이닝)+Stage2(시장 성숙도 진단)를
@@ -203,8 +204,9 @@ export async function claimExtraction(
 // 돌려주는 값은 CLI 가 종료코드·로그에 쓴다(라우트는 무시한다).
 
 export type ExtractionOutcome =
-  | { ok: true; aspects: number; inputs: number; skippedInputs: number; model: string }
-  | { ok: false; error: string }
+  | { ok: true; aspects: number; inputs: number; droppedInputs: number; model: string }
+  // quotaExhausted = 오늘 다시 불러도 같은 결과(한도·예산 소진). 배치 호출부는 여기서 멈춘다.
+  | { ok: false; error: string; quotaExhausted: boolean }
 
 export async function runExtraction(
   supabase: SupabaseClient,
@@ -213,7 +215,7 @@ export async function runExtraction(
 ): Promise<ExtractionOutcome> {
   const startedAt = Date.now()
 
-  const fail = async (message: string): Promise<ExtractionOutcome> => {
+  const fail = async (message: string, quotaExhausted = false): Promise<ExtractionOutcome> => {
     console.error(`[analyze/extract] project=${projectId} failed: ${message}`)
     await supabase
       .from('analysis_projects')
@@ -223,7 +225,7 @@ export async function runExtraction(
         extract_finished_at: new Date().toISOString(),
       })
       .eq('id', projectId)
-    return { ok: false, error: message }
+    return { ok: false, error: message, quotaExhausted }
   }
 
   // 1. 프롬프트 재료 조회
@@ -237,26 +239,25 @@ export async function runExtraction(
 
   const { data: inputs, error: inputsError } = await supabase
     .from('analysis_inputs')
-    .select('source_type, raw_text, created_at')
+    .select('source_type, raw_text, created_at, collected_at')
     .eq('project_id', projectId)
+    // 폐기된 원문(raw_text=null)은 선별에도 인용 대조에도 쓸 게 없다.
+    .is('purged_at', null)
     .order('created_at', { ascending: true })
 
   if (inputsError) return fail(`수집 원문 조회 실패: ${inputsError.message}`)
   if (!inputs || inputs.length === 0) return fail('수집 원문이 1개 이상 필요합니다.')
 
-  // 2. 사용자 프롬프트 구성 (총량 상한을 넘기면 뒤쪽 입력은 자른다)
-  const parts: string[] = []
-  let used = 0
-  let truncatedInputs = 0
-  for (let i = 0; i < inputs.length; i++) {
-    const text = String(inputs[i].raw_text ?? '').slice(0, MAX_CHARS_PER_INPUT)
-    if (used + text.length > MAX_CHARS_TOTAL) {
-      truncatedInputs = inputs.length - i
-      break
-    }
-    used += text.length
-    parts.push(`### 입력 ${i + 1} (source_type: ${inputs[i].source_type})\n${text}`)
-  }
+  // 2. 사용자 프롬프트 구성 — 총량 상한 안에서 **점수 상위**를 담는다(T1, extract-select.ts).
+  //    오래된 순으로 채우면 수천 건 중 가장 오래된 무관 댓글만 읽고 끝난다.
+  const selection = selectInputs(inputs, {
+    maxCharsTotal: MAX_CHARS_TOTAL,
+    maxCharsPerInput: MAX_CHARS_PER_INPUT,
+  })
+  const parts = selection.selected.map(
+    (s, i) => `### 입력 ${i + 1} (source_type: ${s.input.source_type})\n${s.text}`,
+  )
+  const droppedInputs = selection.droppedInputs
 
   const userPrompt = [
     `## 분석 대상`,
@@ -269,7 +270,7 @@ export async function runExtraction(
       ? `- 판매자 본인이 생각하는 소구점(가설, 편향 주의): ${project.seller_own_guess}`
       : `- 판매자 본인 가설: (없음)`,
     '',
-    `## 수집 원문 ${parts.length}건`,
+    `## 수집 원문 ${parts.length}건 (수집 ${inputs.length}건 중 관련도 상위)`,
     ...parts,
     '',
     '위 원문들을 바탕으로 Stage1과 Stage2를 수행하고, 지정된 JSON 형식 하나만 출력해라.',
@@ -288,7 +289,8 @@ export async function runExtraction(
       `[analyze/extract] project=${projectId} provider=${provider} model=${call.model} took ${Date.now() - startedAt}ms`,
     )
   } catch (e) {
-    return fail(describeFailure(e))
+    // 한도·예산 소진이면 오늘 다시 불러도 같다 — 야간 배치가 다음 프로젝트로 넘어가지 않게 알린다.
+    return fail(describeFailure(e), isQuotaFailure(e))
   }
 
   // 4. JSON 파싱
@@ -413,9 +415,11 @@ export async function runExtraction(
     console.error('[analyze/extract] remedy-judge failed (추출은 정상):', e instanceof Error ? e.message : String(e))
   }
 
+  // dropped 는 "읽지 않은 원문 수"다. 0 과 구분해 남겨야 "속성 0개"가 추출 실패인지
+  // 선별이 다 버린 결과인지 사후에 가릴 수 있다(§7.1).
   console.log(
-    `[analyze/extract] project=${projectId} extracted aspects=${aspectRows.length} inputs=${parts.length}` +
-      (truncatedInputs > 0 ? ` skipped=${truncatedInputs}` : ''),
+    `[analyze/extract] project=${projectId} extracted aspects=${aspectRows.length} inputs=${parts.length}/${inputs.length}` +
+      ` dropped=${droppedInputs} chars=${selection.usedChars}`,
   )
-  return { ok: true, aspects: aspectRows.length, inputs: parts.length, skippedInputs: truncatedInputs, model }
+  return { ok: true, aspects: aspectRows.length, inputs: parts.length, droppedInputs, model }
 }

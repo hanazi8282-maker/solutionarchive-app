@@ -43,6 +43,8 @@ export interface StudyRow {
   slug: string
   brand_name: string
   bottleneck: string
+  /** 독자 문제(config/reader-problems.json 어휘). 조회에서 빼면 undefined 다 — "미지정"이 아니다. */
+  reader_problem?: string | null
   business_model?: string | null
   buyer_type?: string | null
   price_band?: string | null

@@ -24,6 +24,8 @@ const NAV_GROUPS: readonly { label: string; links: readonly NavLink[] }[] = [
       // 야간 발굴 루프가 스스로 고른 후보를 사람이 뒤집는 자리. 네비에 없으면 매일 밤
       // 쌓이는 후보를 아무도 안 보고, 자동 채택이 그대로 굳는다.
       { href: '/discovery', match: '/discovery', label: '발굴 후보 검증' },
+      // 셀러가 자기 말로 묻는 유일한 입구. 네비에 없으면 만든 화면이 없는 화면이다.
+      { href: '/cases/search', match: '/cases/search', label: '유사 케이스 검색' },
     ],
   },
   {
@@ -78,7 +80,11 @@ export function AppNav({ email }: { email: string | null }) {
   // (로그인돼 있으면 랜딩은 /dashboard 로 보내므로 네비가 사라지는 일이 없다).
   if (path.startsWith('/onboarding') || path === '/login' || path === '/') return null
 
-  const isActive = (l: NavLink) => path.startsWith(l.match)
+  // match 가 겹칠 때(/cases 와 /cases/search) **가장 긴 것 하나만** 켠다 — 둘 다 켜지면 지금 어디인지 안 보인다.
+  const best = [...NAV_GROUPS.flatMap((g) => g.links), PROFILE_LINK]
+    .filter((l) => path.startsWith(l.match))
+    .sort((a, b) => b.match.length - a.match.length)[0]
+  const isActive = (l: NavLink) => l === best
 
   return (
     <>

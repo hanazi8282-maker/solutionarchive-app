@@ -6,7 +6,7 @@
 // Corpus B 가 실패 서술(outcome)로 우연히 걸리지 않는가 · 추정(is_estimate)이
 // 사실 그대로인 사례보다 뒤로 밀리는가.
 
-import { advise, isLowConfidence, matchPrinciples, matchCaseMoves, matchFailedAngles, toTerms, productKindOf } from '../lib/cases/advisor.ts'
+import { advise, isLowConfidence, matchPrinciples, matchCaseMoves, matchFailedAngles, toTerms, productKindOf, KIND_MISMATCH_MODE } from '../lib/cases/advisor.ts'
 
 let pass = 0
 let fail = 0
@@ -291,8 +291,10 @@ const SP024_MOVES = [
   t('advise: 원칙은 not_run 으로 표시', r.corpus_c.status, 'not_run')
 }
 
-// ── 카테고리 선행 필터 (2026-09-21) ────────────────────────────────
-// 물리 제품 질의에 SaaS 선례를 내지 않는다. STUDIES: s1=SAAS(m1 하이브리드), s2=D2C(m2 리뷰 투명성).
+// ── 카테고리 축 (2026-09-21 하드필터 → 2026-09-23 정렬 가산점) ─────
+// STUDIES: s1=SAAS(m1 하이브리드), s2=D2C(m2 리뷰 투명성).
+// 2026-09-23: KIND_MISMATCH_MODE='bonus' 로 낮췄다 — 다른 종류를 **빼지 않고 뒤로 민다**.
+// 코퍼스가 차서 'exclude' 로 되돌리면 이 블록의 기대값도 그 분기로 같이 돌아간다.
 {
   t('종류: SAAS → software', productKindOf('SAAS'), 'software')
   t('종류: D2C → physical', productKindOf('D2C'), 'physical')
@@ -303,23 +305,26 @@ const SP024_MOVES = [
   const none = matchCaseMoves(terms, STUDIES, MOVES)
   t('필터 없음: SAAS·D2C 둘 다 매칭(전과 동일)', none.cards.map((c) => c.case_move_id).sort().join(','), 'm1,m2')
 
+  const bonus = KIND_MISMATCH_MODE === 'bonus'
   const phys = matchCaseMoves(terms, STUDIES, MOVES, 'physical')
-  t('physical 질의: SaaS 무브(m1)가 빠진다', phys.cards.map((c) => c.case_move_id).join(','), 'm2')
+  t('physical 질의: 같은 종류(m2)가 먼저', phys.cards.map((c) => c.case_move_id).join(','), bonus ? 'm2,m1' : 'm2')
   const soft = matchCaseMoves(terms, STUDIES, MOVES, 'software')
-  t('software 질의: D2C 무브(m2)가 빠진다', soft.cards.map((c) => c.case_move_id).join(','), 'm1')
+  t('software 질의: 같은 종류(m1)가 먼저', soft.cards.map((c) => c.case_move_id).join(','), bonus ? 'm1,m2' : 'm1')
+  // 가산점은 등급을 이긴다 — m1 은 A(30), m2 는 B(20). physical 질의 1위가 B등급 m2 여야 "먼저/뒤에"다.
+  ok('가산점이 등급을 이긴다', !bonus || phys.cards[0].case_move_id === 'm2')
 
-  // 종류가 달라서 0건이면 no_match 이고, 사유에 "제품 종류 다름" 이 적힌다 — "관련 사례 없음"의 뜻을 좁힌다(§7.1).
+  // 'bonus' 면 빼지 않으므로 matched. 'exclude' 로 되돌리면 no_match + 사유에 "제품 종류 다름"(§7.1: 0건의 뜻을 좁힌다).
   const onlySaas = matchCaseMoves(toTerms('하이브리드'), STUDIES, MOVES, 'physical')
-  t('종류 불일치만 남으면 no_match', onlySaas.status, 'no_match')
-  ok('사유에 "제품 종류 다름 N건"', /제품 종류 다름 \d+건/.test(onlySaas.reason))
+  t('종류 불일치만 남았을 때', onlySaas.status, bonus ? 'matched' : 'no_match')
+  ok('exclude 모드면 사유에 "제품 종류 다름 N건"', bonus || /제품 종류 다름 \d+건/.test(onlySaas.reason))
 
   // advise(): businessModel 을 안 주면 필터 없음, null 을 주면 physical 로 접혀 SaaS 가 빠진다.
   const noBm = advise({ category: '하이브리드 리뷰' }, { principles: PRINCIPLES, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })
   t('advise: businessModel 미지정 → 필터 없음', noBm.corpus_a.cards.length, 2)
   const nullBm = advise({ category: '하이브리드 리뷰', businessModel: null }, { principles: PRINCIPLES, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })
-  t('advise: businessModel null → physical, SaaS 제외', nullBm.corpus_a.cards.map((c) => c.case_move_id).join(','), 'm2')
+  t('advise: businessModel null → physical 먼저', nullBm.corpus_a.cards.map((c) => c.case_move_id).join(','), bonus ? 'm2,m1' : 'm2')
   const saasBm = advise({ category: '하이브리드 리뷰', businessModel: 'SAAS' }, { principles: PRINCIPLES, studies: STUDIES, moves: MOVES, failedAngles: FAILED_ANGLES })
-  t('advise: businessModel SAAS → D2C 제외', saasBm.corpus_a.cards.map((c) => c.case_move_id).join(','), 'm1')
+  t('advise: businessModel SAAS → SaaS 먼저', saasBm.corpus_a.cards.map((c) => c.case_move_id).join(','), bonus ? 'm1,m2' : 'm1')
   // 실패 사례·원칙 코퍼스는 이 필터의 영향을 받지 않는다(business_model 이 없다).
   t('실패 사례 코퍼스는 필터와 무관', nullBm.corpus_b.status, noBm.corpus_b.status)
 }

@@ -30,6 +30,7 @@ import {
 } from './types.ts'
 import { REANALYZABLE, canStart } from './extract-gate.ts'
 import { MAX_CHARS_PER_INPUT, MAX_CHARS_TOTAL, selectInputs } from './extract-select.ts'
+import { dropIrrelevant, type RelevanceRow } from './relevance-judge.ts'
 import { judgeProjectRemedies } from '../cases/remedy-db.ts'
 import { normalizeEvidenceQuotes } from './evidence-quotes.ts'
 
@@ -204,7 +205,15 @@ export async function claimExtraction(
 // 돌려주는 값은 CLI 가 종료코드·로그에 쓴다(라우트는 무시한다).
 
 export type ExtractionOutcome =
-  | { ok: true; aspects: number; inputs: number; droppedInputs: number; model: string }
+  | {
+      ok: true
+      aspects: number
+      inputs: number
+      droppedInputs: number
+      /** 그중 "목적과 무관" 판정(T2)으로 미리 뺀 건수. 0 과 "판정 캐시가 비었다"를 가른다(§7.1). */
+      droppedIrrelevant: number
+      model: string
+    }
   // quotaExhausted = 오늘 다시 불러도 같은 결과(한도·예산 소진). 배치 호출부는 여기서 멈춘다.
   | { ok: false; error: string; quotaExhausted: boolean }
 
@@ -239,7 +248,7 @@ export async function runExtraction(
 
   const { data: inputs, error: inputsError } = await supabase
     .from('analysis_inputs')
-    .select('source_type, raw_text, created_at, collected_at')
+    .select('id, source_type, raw_text, created_at, collected_at')
     .eq('project_id', projectId)
     // 폐기된 원문(raw_text=null)은 선별에도 인용 대조에도 쓸 게 없다.
     .is('purged_at', null)
@@ -248,9 +257,29 @@ export async function runExtraction(
   if (inputsError) return fail(`수집 원문 조회 실패: ${inputsError.message}`)
   if (!inputs || inputs.length === 0) return fail('수집 원문이 1개 이상 필요합니다.')
 
+  // 2-0. 목적과 무관하다고 판정된 입력을 먼저 뺀다(T2, lib/analysis/relevance-judge.ts).
+  //      조회 실패·테이블 없음·첫날(캐시 0행)이면 **아무것도 빼지 않는다** — 확인 불가를 무관으로
+  //      접으면 멀쩡한 원문이 영영 안 읽힌다(§7.1). `unknown` 판정도 남긴다.
+  const { data: relevanceRows, error: relevanceError } = await supabase
+    .from('review_relevance_verdicts')
+    .select('input_id, verdict, human_verdict')
+    .eq('project_id', projectId)
+  if (relevanceError) {
+    console.error(
+      `[analyze/extract] project=${projectId} 관련성 판정 조회 실패 — 제외 없이 진행한다:`,
+      relevanceError.code ?? '',
+      relevanceError.message,
+    )
+  }
+  const relevance = dropIrrelevant(
+    inputs,
+    relevanceError ? null : ((relevanceRows ?? []) as RelevanceRow[]),
+  )
+  const droppedIrrelevant = relevance.droppedIrrelevant
+
   // 2. 사용자 프롬프트 구성 — 총량 상한 안에서 **점수 상위**를 담는다(T1, extract-select.ts).
   //    오래된 순으로 채우면 수천 건 중 가장 오래된 무관 댓글만 읽고 끝난다.
-  const selection = selectInputs(inputs, {
+  const selection = selectInputs(relevance.kept, {
     maxCharsTotal: MAX_CHARS_TOTAL,
     maxCharsPerInput: MAX_CHARS_PER_INPUT,
   })
@@ -270,7 +299,7 @@ export async function runExtraction(
       ? `- 판매자 본인이 생각하는 소구점(가설, 편향 주의): ${project.seller_own_guess}`
       : `- 판매자 본인 가설: (없음)`,
     '',
-    `## 수집 원문 ${parts.length}건 (수집 ${inputs.length}건 중 관련도 상위)`,
+    `## 수집 원문 ${parts.length}건 (수집 ${inputs.length}건 중 관련도 상위 · 목적 무관 판정 ${droppedIrrelevant}건 제외)`,
     ...parts,
     '',
     '위 원문들을 바탕으로 Stage1과 Stage2를 수행하고, 지정된 JSON 형식 하나만 출력해라.',
@@ -419,7 +448,7 @@ export async function runExtraction(
   // 선별이 다 버린 결과인지 사후에 가릴 수 있다(§7.1).
   console.log(
     `[analyze/extract] project=${projectId} extracted aspects=${aspectRows.length} inputs=${parts.length}/${inputs.length}` +
-      ` dropped=${droppedInputs} chars=${selection.usedChars}`,
+      ` dropped=${droppedInputs} irrelevant=${droppedIrrelevant} chars=${selection.usedChars}`,
   )
-  return { ok: true, aspects: aspectRows.length, inputs: parts.length, droppedInputs, model }
+  return { ok: true, aspects: aspectRows.length, inputs: parts.length, droppedInputs, droppedIrrelevant, model }
 }

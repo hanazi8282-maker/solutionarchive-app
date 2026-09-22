@@ -1,0 +1,72 @@
+# 야간 리뷰 관련성 판정(T2) — 수집한 원문 표본이 프로젝트 목적에 맞는지 채점한다.
+#
+# 남헌 2026-09-23 확정: "AI 관련성 판정은 Gemini, 야간 배치"
+# (reports/2026-09-23/data-velocity-plan.md §1 Q5 · §2 T2).
+#
+# ⚠️ 판정은 **플래그일 뿐**이다. 행을 지우지 않고 상태도 바꾸지 않는다. extract 입력 선별이
+#    'irrelevant' 만 빼고 'unknown' 은 그대로 읽는다(CLAUDE.md §7.1 · §10.1).
+#
+# ⚠️ GEMINI_API_KEY 시크릿이 없으면 아무것도 하지 않고 종료코드 2 로 멈춘다.
+#    조용히 도는 것보다 시끄럽게 닫히는 편이 낫다.
+
+name: Nightly Relevance Judge
+
+on:
+  schedule:
+    # 19:03 UTC = KST 04:03. extract(KST 03:33)가 끝난 뒤다 — 같은 Gemini 무료 티어 RPM 을
+    # 나눠 쓰므로 겹치면 429 가 난다(data-velocity-plan §8 🟡).
+    # 정각·30분을 쓰지 않는 이유는 nightly-review-collect.yml 주석에 있다(전 세계 크론이 몰려 건너뛴다).
+    - cron: '3 19 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '대상 선정만 하고 LLM 을 부르지 않는다'
+        type: boolean
+        default: true
+      sample:
+        description: '프로젝트당 판정할 표본 크기(T1 선별 통과분 상위)'
+        type: string
+        default: '200'
+      max_projects:
+        description: '이번 실행에서 돌릴 최대 프로젝트 수'
+        type: string
+        default: '5'
+
+# 두 실행이 겹치면 같은 리뷰를 두 번 판정해 쿼터만 태운다.
+concurrency:
+  group: relevance-judge
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  judge:
+    runs-on: ubuntu-latest
+    # 프로젝트 5건 × 10회 호출 + 백오프. 상한에 걸리면 스크립트가 스스로 멈춘다.
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Judge review relevance for collecting projects
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # ⛔ 사람이 등록해야 하는 시크릿(nightly-extract 와 같은 것). 없으면 시작하지 않는다.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # 비용 상한은 lib/analysis/budget.ts 가 강제한다(프로세스 단위 = 이 실행 1회분).
+          LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
+          RELEVANCE_SAMPLE: ${{ inputs.sample || vars.RELEVANCE_SAMPLE || '200' }}
+          RELEVANCE_MAX_PROJECTS: ${{ inputs.max_projects || vars.RELEVANCE_MAX_PROJECTS || '5' }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          node scripts/relevance-judge-auto.mjs \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

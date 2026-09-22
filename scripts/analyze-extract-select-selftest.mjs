@@ -102,6 +102,26 @@ t('대상 0 은 "대상 0건" 이라고 말한다', p0.targets.length === 0 && d
 const tie = pickAutoTargets([{ projectId: 'z', newInputs: 100 }, { projectId: 'y', newInputs: 100 }], { minNew: 100, max: 1 })
 t('동수 tie-break 는 결정적(projectId 사전순)', tie.targets[0].projectId === 'y')
 
+// ── 7-1. SaaS 우선 (남헌 2026-09-23) ────────────────────────────
+// 신규 많은 순만 보면 상위가 전부 소비재(SONY 3,272 · QCY 1,910 · 코웨이 1,349)라
+// 일 $5 가 소비재로 나간다. 순서 하나로 막는 자리다.
+const kinds = pickAutoTargets([
+  { projectId: 'sony', newInputs: 3272, businessModel: 'D2C' },
+  { projectId: 'qcy', newInputs: 1910, businessModel: null }, // 미기재는 소비재 취급
+  { projectId: 'saas-small', newInputs: 120, businessModel: 'SAAS' },
+], { minNew: 100, max: 3 })
+t('SaaS 는 신규 수가 적어도 앞선다', kinds.targets[0].projectId === 'saas-small')
+t('그 뒤는 신규 많은 순', kinds.targets.map((x) => x.projectId).join() === 'saas-small,sony,qcy')
+const saasOnly = pickAutoTargets([
+  { projectId: 'saas-b', newInputs: 150, businessModel: 'SAAS' },
+  { projectId: 'saas-a', newInputs: 900, businessModel: 'SAAS' },
+], { minNew: 100, max: 2 })
+t('SaaS 끼리는 신규 많은 순', saasOnly.targets.map((x) => x.projectId).join() === 'saas-a,saas-b')
+t('business_model 을 안 주면 예전과 같은 순서(신규 순)', p1.targets.map((x) => x.projectId).join() === 'c,a')
+t('배치 둘이 같은 비교기를 쓴다',
+  readFileSync(`${ROOT}scripts/extract-auto.mjs`, 'utf8').includes('business_model')
+  && readFileSync(`${ROOT}scripts/relevance-judge-auto.mjs`, 'utf8').includes('compareAutoPriority('))
+
 // ── 8. "오늘은 다시 불러도 같다" 판정 ────────────────────────────
 t('429 는 멈춤', isQuotaFailure(new ProviderHttpError(429, 'x')) === true)
 t('503 는 멈춤', isQuotaFailure(new ProviderHttpError(503, 'x')) === true)
@@ -115,7 +135,9 @@ const run = read('lib/analysis/extract-run.ts')
 const auto = read('scripts/extract-auto.mjs')
 const wf = read('.github/workflows/nightly-extract.yml')
 
-t('extract-run 이 selectInputs 를 쓴다', /from '\.\/extract-select\.ts'/.test(run) && /selectInputs\(inputs/.test(run))
+// T2(목적 무관 판정) 제외를 먼저 걸고 그 결과를 선별에 넘긴다 — 순서가 뒤집히면 무관 리뷰가
+// 점수 상위를 차지한 채 그대로 프롬프트에 들어간다.
+t('extract-run 이 selectInputs 를 쓴다', /from '\.\/extract-select\.ts'/.test(run) && /selectInputs\(relevance\.kept/.test(run))
 t('extract-run 에 오래된 순 자르기가 남아 있지 않다', !/truncatedInputs/.test(run))
 t('extract-run 이 droppedInputs 를 돌려준다', /droppedInputs,? model/.test(run) || /droppedInputs,/.test(run))
 t('extract-run 이 폐기 원문을 제외한다', /\.is\('purged_at', null\)/.test(run))

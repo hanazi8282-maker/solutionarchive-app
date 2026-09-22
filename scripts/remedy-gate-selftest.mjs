@@ -11,7 +11,8 @@
 
 import { buildRemedies } from '../lib/cases/remedy.ts'
 import { applyGate, cardFingerprint, cardIdOf, cardLine } from '../lib/cases/remedy-gate.ts'
-import { buildJudgePrompt, judgeAspect, parseJudgeArray } from '../lib/cases/remedy-judge.ts'
+import { buildJudgePrompt, judgeAspect, judgeSystem, parseJudgeArray } from '../lib/cases/remedy-judge.ts'
+import { readFileSync } from 'node:fs'
 
 let pass = 0, fail = 0
 const t = (name, got, want) => { if (Object.is(got, want)) pass++; else { fail++; console.log(`FAIL  ${name}\n      got=${JSON.stringify(got)} want=${JSON.stringify(want)}`) } }
@@ -119,6 +120,18 @@ t('프롬프트에 속성 이름이 들어간다', prompt.user.includes('속성:
 t('프롬프트에 카드 문장이 그대로 들어간다', prompt.user.includes(judgeCards[0].text), true)
 t('판정 기준 3단계를 명시한다', /직접 관련/.test(prompt.system) && /부분 관련/.test(prompt.system) && /무관/.test(prompt.system), true)
 t('실물 소비재 셀러 맥락을 명시한다', /물리적 제품/.test(prompt.system), true)
+
+// ── 8-1. 제품 종류로 지시문이 갈린다 (T4) ────────────────────
+// 이 한 줄이 소비재로 고정돼 있어서 SaaS 처방이 스스로 무관 처리됐다(data-velocity-plan §2 T4).
+const saas = buildJudgePrompt({ name: '온보딩 이탈', notes: null, kind: 'software' }, judgeCards)
+t('SaaS 면 소프트웨어 창업가 맥락', /소프트웨어·SaaS 제품을 파는 1인·소규모 팀 창업가/.test(saas.system), true)
+t('SaaS 지시문에 실물 소비재 문장이 남지 않는다', /물리적 제품/.test(saas.system), false)
+t('종류를 안 주면 기존(physical) 지시문 그대로', judgeSystem(), judgeSystem('physical'))
+t('판정 기준 3단계는 종류와 무관하게 같다', /직접 관련/.test(saas.system) && /부분 관련/.test(saas.system), true)
+// 프롬프트만 갈라 놓고 호출부가 안 넘기면 효과가 정확히 0 이다.
+const dbSrc = readFileSync(new URL('../lib/cases/remedy-db.ts', import.meta.url), 'utf8')
+t('호출부가 productKindOf 로 종류를 넘긴다',
+  dbSrc.includes('productKindOf(') && dbSrc.includes('notes: notesById.get(card.aspect_id) ?? null, kind'), true)
 
 // ── 9. 응답 파싱 관용도 ──────────────────────────────────────
 t('맨 배열', parseJudgeArray('[{"id":"A1","rel":2}]')[0].rel, 2)

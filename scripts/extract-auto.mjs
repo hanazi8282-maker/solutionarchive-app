@@ -65,7 +65,8 @@ log(`야간 자동 extract ${dry ? '(--dry: 대상 선정만)' : ''} — provide
 // failed 는 자동으로 다시 돌리지 않는다. 같은 원인으로 매일 밤 재시도하면 쿼터만 태운다.
 const { data: projects, error: projectsError } = await supabase
   .from('analysis_projects')
-  .select('id, extract_finished_at, extract_attempts, product_elevator_pitch')
+  // business_model 은 대상 **순서**를 가른다 — SaaS 가 먼저다(pickAutoTargets, 남헌 2026-09-23).
+  .select('id, extract_finished_at, extract_attempts, product_elevator_pitch, business_model')
   .eq('status', 'collecting')
 
 if (projectsError) {
@@ -87,15 +88,15 @@ for (const p of projects ?? []) {
   if (error) {
     // 조회 실패를 "신규 0건" 으로 접지 않는다(§7.1). null 로 넘겨 따로 센다.
     console.error(`⚠️ 신규 입력 수 확인 불가 project=${p.id}: ${error.message}`)
-    candidates.push({ projectId: p.id, newInputs: null, label: p.product_elevator_pitch })
+    candidates.push({ projectId: p.id, newInputs: null, label: p.product_elevator_pitch, businessModel: p.business_model })
     continue
   }
-  candidates.push({ projectId: p.id, newInputs: count ?? 0, label: p.product_elevator_pitch })
+  candidates.push({ projectId: p.id, newInputs: count ?? 0, label: p.product_elevator_pitch, businessModel: p.business_model })
 }
 
 const pick = pickAutoTargets(candidates, { minNew, max })
-log(`후보 collecting ${candidates.length}건 → ${describePick(pick, minNew, max)}`)
-for (const t of pick.targets) log(`  · ${t.projectId} 신규 ${t.newInputs}건 — ${t.label ?? '(소개 없음)'}`)
+log(`후보 collecting ${candidates.length}건 → ${describePick(pick, minNew, max)} (순서: SaaS 우선 → 신규 많은 순)`)
+for (const t of pick.targets) log(`  · ${t.projectId} [${t.businessModel ?? '미기재'}] 신규 ${t.newInputs}건 — ${t.label ?? '(소개 없음)'}`)
 if (pick.unknown > 0) warn(`신규 입력 수를 세지 못한 프로젝트 ${pick.unknown}건 — 대상 판정에서 빠졌다(0건이라는 뜻이 아니다)`)
 
 if (dry) {
@@ -145,8 +146,8 @@ for (const target of pick.targets) {
 
   if (out.ok) {
     done += 1
-    log(`✓ ${target.projectId} ${secs}s — 속성 ${out.aspects}개 · 입력 ${out.inputs}건 · 선별 밖 ${out.droppedInputs}건 · model=${out.model}`)
-    await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'ok', seq, counts: { aspects: out.aspects, inputs: out.inputs, dropped: out.droppedInputs }, detail: { model: out.model, seconds: secs } })
+    log(`✓ ${target.projectId} ${secs}s — 속성 ${out.aspects}개 · 입력 ${out.inputs}건 · 선별 밖 ${out.droppedInputs}건 · 목적 무관 제외 ${out.droppedIrrelevant}건 · model=${out.model}`)
+    await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'ok', seq, counts: { aspects: out.aspects, inputs: out.inputs, dropped: out.droppedInputs, irrelevant: out.droppedIrrelevant }, detail: { model: out.model, seconds: secs } })
     continue
   }
 

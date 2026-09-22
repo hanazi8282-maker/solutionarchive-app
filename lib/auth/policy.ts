@@ -43,6 +43,17 @@ const PUBLIC_PREFIXES = [
   '/api/insight', //      capture=requireCronAuth, kakao-webhook=카카오 서버가 부름(KAKAO_ALLOWED_USER_IDS)
 ]
 
+/**
+ * **정확일치로만** 공개하는 경로. ⚠️ `/` 를 위 접두사 목록에 넣지 마라. 그 목록의 뜻은
+ * "이 아래는 전부 공개"이고, `/` 아래는 앱 전체다. 지금의 `under()` 는 `${p}/` 로 이어 붙여
+ * 비교하므로 우연히 막고 있지만(`'/dashboard'.startsWith('//')` 가 false), 그 한 글자에
+ * 기대는 건 방어가 아니다 — `startsWith(p)` 로 한 번만 단순화하면 전 경로가 열린다.
+ *  - `/`                랜딩(로그인 전 첫 화면). 로그인돼 있으면 페이지가 /dashboard 로 보낸다.
+ *  - `/opengraph-image` 그 랜딩의 OG 이미지(app/opengraph-image.tsx). 링크 미리보기 크롤러는
+ *                       익명이라 막으면 이미지가 영영 안 뜬다. DB 를 읽지 않는 정적 문구 이미지다.
+ */
+const PUBLIC_EXACT = ['/', '/opengraph-image']
+
 /** 위 공개 접두사 안이지만 사람만 부르는 경로. */
 const PROTECTED_EXCEPTIONS = [
   // Meta OAuth 콜백. 크론 인증이 없고 state 검사도 없이 api_tokens 에 토큰을 쓴다 — 공개로 두면
@@ -53,6 +64,7 @@ const PROTECTED_EXCEPTIONS = [
 export function isPublicPath(pathname: string): boolean {
   const under = (p: string) => pathname === p || pathname.startsWith(`${p}/`)
   if (PROTECTED_EXCEPTIONS.some(under)) return false
+  if (PUBLIC_EXACT.includes(pathname)) return true
   return PUBLIC_PREFIXES.some(under)
 }
 

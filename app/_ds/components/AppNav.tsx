@@ -74,8 +74,9 @@ const brandStyle: CSSProperties = {
 export function AppNav({ email }: { email: string | null }) {
   const path = usePathname() ?? ''
   // 온보딩 퀴즈는 로그인 이전(익명) 화면이다. 내부 도구 네비를 보여주지 않는다.
-  // 로그인 화면도 마찬가지 — 들어갈 수 없는 화면 링크를 보여주지 않는다.
-  if (path.startsWith('/onboarding') || path === '/login') return null
+  // 로그인 화면·랜딩(`/`)도 마찬가지 — 들어갈 수 없는 화면 링크를 보여주지 않는다
+  // (로그인돼 있으면 랜딩은 /dashboard 로 보내므로 네비가 사라지는 일이 없다).
+  if (path.startsWith('/onboarding') || path === '/login' || path === '/') return null
 
   const isActive = (l: NavLink) => path.startsWith(l.match)
 

@@ -103,6 +103,9 @@ jobs:
       - run: node scripts/case-pipeline-selftest.mjs
       - run: node scripts/case-match-selftest.mjs
       - run: node scripts/case-review-rules-selftest.mjs
+      # 카드 채점 모드의 줄 세우기·10장 자르기·제출 payload. 정렬이 틀려도 카드 10장은 그대로
+      # 나오므로 화면으로는 못 잡는다 — 사람이 하루치를 엉뚱한 케이스에 쓰게 된다.
+      - run: node scripts/cases-grade-selftest.mjs
       - run: node scripts/score-predictions-selftest.mjs
       - run: node scripts/agents-status-selftest.mjs
       - run: node scripts/analyze-angle-adaptation-selftest.mjs

@@ -74,7 +74,7 @@ const t0 = Date.now()
 const out = await withLlmBudget(() => runExtraction(supabase, projectId, provider))
 if (!out.ok) { console.error(`✗ 추출 실패(${Math.round((Date.now() - t0) / 1000)}s): ${out.error} — analysis_projects.status=failed 로 기록됨`); process.exit(3) }
 // dropped 는 항상 찍는다 — 0 이어야 "전부 읽었다"이고, 큰 수면 선별(T1)이 대부분을 버린 것이다(§7.1).
-log(`✓ 추출 완료 ${Math.round((Date.now() - t0) / 1000)}s — 속성 ${out.aspects}개 · 입력 ${out.inputs}건 · 선별 밖 ${out.droppedInputs}건 · model=${out.model}`)
+log(`✓ 추출 완료 ${Math.round((Date.now() - t0) / 1000)}s — 속성 ${out.aspects}개(사람 확인 보존 ${out.keptAspects}개) · 입력 ${out.inputs}건 · 선별 밖 ${out.droppedInputs}건 · model=${out.model}`)
 
 // 양성 확인 — 도구가 준 ok 만 믿지 않는다(§7.1). DB 를 다시 읽는다.
 const { data: after, error: afterErr } = await supabase

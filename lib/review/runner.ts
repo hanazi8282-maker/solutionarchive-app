@@ -518,7 +518,8 @@ export async function runCollection(
         // §7.2: 상한에 걸려 끝난 것을 "정상 종료"로 읽지 않게, 몇 페이지째인지와
         // 다음 실행의 증분 기준(마지막 리뷰 시각)을 함께 남긴다.
         outcome = adapter.incrementalOnly
-          ? `API 상한 도달(${page + 1}페이지째) → 증분형이라 active 유지(마지막 댓글 시각 ${lastReviewAt ?? '없음'})`
+          ? `끝까지 읽음(${page + 1}페이지째 — API 상한이거나 문서 끝) → 증분형이라 닫지 않는다` +
+            `(active 유지 · 마지막 리뷰 시각 ${lastReviewAt ?? '없음'})`
           : '끝까지 읽음'
         status = endStatus
         break

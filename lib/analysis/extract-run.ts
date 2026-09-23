@@ -208,6 +208,8 @@ export type ExtractionOutcome =
   | {
       ok: true
       aspects: number
+      /** 사람이 확인한(human_confirmed) 기존 속성 중 지우지 않고 남긴 수. aspects 와 더해야 실제 행 수다. */
+      keptAspects: number
       inputs: number
       droppedInputs: number
       /** 그중 "목적과 무관" 판정(T2)으로 미리 뺀 건수. 0 과 "판정 캐시가 비었다"를 가른다(§7.1). */
@@ -394,13 +396,38 @@ export async function runExtraction(
     })
     .filter((r): r is NonNullable<typeof r> => r !== null)
 
-  // 6. 기존 aspects 제거 후 새로 저장 (재시도 시 중복 누적 방지)
+  // 6. 기존 aspects 교체 (재시도 시 중복 누적 방지)
   //    analysis_angles.aspect_id 는 ON DELETE 절이 없어 angle 이 달린 aspect 는
   //    삭제가 막힌다(23503). 그 경우 사용자가 원인을 알 수 있게 명시한다.
+  //
+  // ⚠️ **사람이 확인한 속성(human_confirmed=true)은 지우지 않는다.** 야간 자동 재추출
+  //    (scripts/extract-auto.mjs, 남헌 2026-09-23 Q4(a))이 켜지면서 이 delete 가
+  //    사람 검수 결과를 덮어쓸 수 있게 됐다. force 재추출이 "검수 전 LLM 값만 갈아끼운다"가
+  //    되도록 여기서 범위를 좁힌다 — 호출부(라우트·CLI·야간 배치)가 모두 이 함수를 지나므로
+  //    한 곳만 고치면 된다.
+  //
+  // ⚠️ 이름 충돌 처리: analysis_aspects 에 (project_id, name) UNIQUE 가 없다.
+  //    보존한 이름을 새 행이 또 들고 오면 같은 이름이 두 줄이 된다. 그래서 새 행 쪽에서
+  //    그 이름을 뺀다 — 사람이 고친 값이 LLM 재판정보다 이긴다(T3 가 T2 를 이기는 것과 같은 방향).
+  const { data: keptRows, error: keptError } = await supabase
+    .from('analysis_aspects')
+    .select('name')
+    .eq('project_id', projectId)
+    .eq('human_confirmed', true)
+
+  if (keptError) {
+    // 조회 실패를 "보존할 게 없다"로 접지 않는다(§7.1). 여기서 멈추면 아무것도 지우지 않는다.
+    return fail(`기존 속성(사람 확인분) 조회에 실패했습니다: ${keptError.message}`)
+  }
+
+  const normName = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase() : '')
+  const keptNames = new Set((keptRows ?? []).map(r => normName(r.name)).filter(Boolean))
+
   const { error: deleteError } = await supabase
     .from('analysis_aspects')
     .delete()
     .eq('project_id', projectId)
+    .eq('human_confirmed', false)
 
   if (deleteError) {
     return fail(
@@ -410,8 +437,16 @@ export async function runExtraction(
     )
   }
 
-  if (aspectRows.length > 0) {
-    const { error: aspectError } = await supabase.from('analysis_aspects').insert(aspectRows)
+  const freshRows = aspectRows.filter(r => !keptNames.has(normName(r.name)))
+  if (freshRows.length !== aspectRows.length) {
+    console.log(
+      `[analyze/extract] project=${projectId} 사람 확인 속성 ${keptNames.size}개 보존 — ` +
+        `이름이 겹친 새 속성 ${aspectRows.length - freshRows.length}개는 넣지 않았다`,
+    )
+  }
+
+  if (freshRows.length > 0) {
+    const { error: aspectError } = await supabase.from('analysis_aspects').insert(freshRows)
     if (aspectError) return fail(`속성 저장에 실패했습니다: ${aspectError.message}`)
   }
 
@@ -450,5 +485,13 @@ export async function runExtraction(
     `[analyze/extract] project=${projectId} extracted aspects=${aspectRows.length} inputs=${parts.length}/${inputs.length}` +
       ` dropped=${droppedInputs} irrelevant=${droppedIrrelevant} chars=${selection.usedChars}`,
   )
-  return { ok: true, aspects: aspectRows.length, inputs: parts.length, droppedInputs, droppedIrrelevant, model }
+  return {
+    ok: true,
+    aspects: freshRows.length,
+    keptAspects: keptNames.size,
+    inputs: parts.length,
+    droppedInputs,
+    droppedIrrelevant,
+    model,
+  }
 }

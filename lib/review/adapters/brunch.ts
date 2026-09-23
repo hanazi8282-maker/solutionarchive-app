@@ -85,6 +85,23 @@ export const brunchAdapter: ReviewSourceAdapter = {
   key: 'brunch',
   displayName: '브런치 글 본문',
 
+  // 남헌 2026-09-23 Q3(a): 이 소스의 타깃은 페이지 상한에 닿아도 닫지 않는다.
+  //
+  // ⚠️ **types.ts 의 incrementalOnly 주석이 "커뮤니티 url: 에는 켜지 마라"고 적어 둔
+  //    바로 그 자리다.** 그 경고는 유효하고, 남헌이 그걸 알고 뒤집었다. 전제가 바뀐 게 아니다 —
+  //    대가(같은 글을 매일 1요청씩 다시 읽는다)를 받아들인 것이다. 근거:
+  //    커뮤니티 타깃 85개 중 80개가 "성과 없어서"가 아니라 "끝까지 읽어서" 닫혔고,
+  //    되살리는 코드가 리포에 없어 그 질의는 영영 다시 안 돌았다
+  //    (reports/2026-09-23/voc-expansion-investigation.md §3).
+  //
+  // ⚠️ 이 어댑터는 **본문 전용**이다(댓글은 robots 가 막는다, 위 주석). 즉 다시 읽어도 새 건이 0 이다.
+  //    그래도 11개 일괄 지정에 포함됐다 — 요청 낭비가 신경 쓰이면 여기만 되돌리면 된다.
+  //
+  // 비용: 1글 = 1요청이므로 실행당 타깃 수만큼이다(커서가 첫 페이지에 null 이 되어
+  // 20페이지를 훑지 않는다). 새 글이 안 달리면 consecutive_empty 만 늘고 닫히지 않는다 —
+  // 그 상한은 아직 없다. 늘어나면 재활성화 조건(empty<3)을 러너에 넣어야 한다.
+  incrementalOnly: true,
+
   nextRequest(target: TargetState): { url: string } | null {
     const p = parseProductRef(target.productRef)
     if (!p) return null

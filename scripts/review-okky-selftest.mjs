@@ -318,7 +318,9 @@ for (const [name, body] of [
   ok('종료: outcome 이 "끝까지 읽음"', r.perTarget[0].outcome.startsWith('끝까지 읽음'))
   ok('종료: outcome 에 "페이지 상한" 이 없다 — 안전장치가 끊은 게 아니다', !r.perTarget[0].outcome.includes('페이지 상한'))
   ok('종료: 요청 수가 안전판보다 훨씬 작다', r.requests < MAX_PAGES_PER_TARGET)
-  ok('종료: 마지막 저장이 exhausted', saves.at(-1).status === 'exhausted')
+  // 남헌 2026-09-23 Q3(a) 이후 닫지 않는다 — 글에 댓글이 더 달리면 다음 실행이 받는다.
+  // 닫히면 listDueTargets(status='active')가 영영 다시 안 집는다.
+  ok('종료: 마지막 저장이 active (incrementalOnly)', saves.at(-1).status === 'active')
   ok('종료: 커서를 남기지 않는다', saves.at(-1).cursor === null)
   t('종료: robots 금지로 건너뛴 요청 0건', r.robotsSkips, 0)
   t('종료: 7건 적재', inputs.length, 7)

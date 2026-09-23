@@ -467,7 +467,10 @@ const runQuota = (h, over = {}) =>
   const h2 = makeHarness({ pages })
   const r2 = await runCollection(incAdapter, { dryRun: false, targetLimit: 5 }, h2.ports)
   t('플래그 켜면 커서가 끝나도 active', h2.log.saves[h2.log.saves.length - 1].status, 'active')
-  ok('플래그 켜면 로그가 상한 사유를 남긴다(§7.2)', r2.perTarget[0].outcome.includes('API 상한 도달'))
+  ok(
+    '플래그 켜면 로그가 종료 사유와 페이지 수를 남긴다(§7.2)',
+    r2.perTarget[0].outcome.includes('증분형이라 닫지 않는다') && /\d+페이지째/.test(r2.perTarget[0].outcome),
+  )
   ok('커서는 여전히 null — 다음 실행은 처음부터 읽는다', h2.log.saves[h2.log.saves.length - 1].cursor === null)
   t('플래그는 신규 적재 수를 바꾸지 않는다', r2.stats.newReviews, r1.stats.newReviews)
 }
@@ -929,9 +932,17 @@ for (const [name, mod, pick, ref, robots, robotsStatus, fixture, expectCount] of
   // externalId 를 전건 확보했다 = 폴백 지문(composite)으로 샌 게 없다.
   t(`${name}: 폴백 지문 0 — externalId 를 전부 읽었다`, r.stats.fallbackKeys, 0)
   ok(`${name}: 본문이 실제로 들어간다`, inputs.every((i) => i.text.length > 0))
-  // 1글=1요청이므로 커서가 없어야 하고, 그래서 타깃이 닫혀야 한다.
+  // 1글=1요청이므로 커서가 없어야 한다.
   ok(`${name}: 마지막 저장의 커서가 null`, saves[saves.length - 1].cursor === null)
-  t(`${name}: 타깃이 exhausted 로 닫힌다`, saves[saves.length - 1].status, 'exhausted')
+  // 커서가 끝난 뒤의 status 는 incrementalOnly 가 가른다. 켜져 있으면 active 로 남아
+  // 다음 실행이 새 댓글을 받고(남헌 2026-09-23 Q3(a) — 커뮤니티 11곳), 꺼져 있으면 닫힌다
+  // (naver_blog_post 처럼 대상이 고정된 문서). 어느 소스가 어느 쪽인지는 파일 끝
+  // "incrementalOnly 지도" 블록이 목록으로 고정한다 — 여기서 한 소스만 몰래 바뀌지 않게.
+  t(
+    `${name}: 커서 종료 후 status`,
+    saves[saves.length - 1].status,
+    adapter.incrementalOnly ? 'active' : 'exhausted',
+  )
   // ⚠️ robots 가 /*?page= 를 막는데 러너는 쿼리를 떼고 판정한다(SP-026).
   //    그러니 애초에 page 쿼리를 만들지 않아야 한다.
   ok(`${name}: page 쿼리를 만들지 않는다`, !pageUrls.some((u) => /[?&]page=/.test(u)))
@@ -1073,9 +1084,17 @@ for (const [name, mod, exportName, ref, robots, fixture, expectCount] of [
   // externalId 를 전건 확보했다 = 폴백 지문(composite)으로 샌 게 없다.
   t(`${name}: 폴백 지문 0 — externalId 를 전부 읽었다`, r.stats.fallbackKeys, 0)
   ok(`${name}: 본문이 실제로 들어간다`, inputs.every((i) => i.text.length > 0))
-  // 1문서=1요청이므로 커서가 없어야 하고, 그래서 타깃이 닫혀야 한다.
+  // 1문서=1요청이므로 커서가 없어야 한다.
   ok(`${name}: 마지막 저장의 커서가 null`, saves[saves.length - 1].cursor === null)
-  t(`${name}: 타깃이 exhausted 로 닫힌다`, saves[saves.length - 1].status, 'exhausted')
+  // 커서가 끝난 뒤의 status 는 incrementalOnly 가 가른다. 켜져 있으면 active 로 남아
+  // 다음 실행이 새 댓글을 받고(남헌 2026-09-23 Q3(a) — 커뮤니티 11곳), 꺼져 있으면 닫힌다
+  // (naver_blog_post 처럼 대상이 고정된 문서). 어느 소스가 어느 쪽인지는 파일 끝
+  // "incrementalOnly 지도" 블록이 목록으로 고정한다 — 여기서 한 소스만 몰래 바뀌지 않게.
+  t(
+    `${name}: 커서 종료 후 status`,
+    saves[saves.length - 1].status,
+    adapter.incrementalOnly ? 'active' : 'exhausted',
+  )
   // 러너는 robots 판정에 쿼리를 안 넘긴다(SP-026). 지금 세 소스 다 page 쿼리를
   // 안 만들지만, 만드는 순간 안전장치가 위반을 못 막는다 — 애초에 안 만든다.
   ok(`${name}: page 쿼리를 만들지 않는다`, !pageUrls.some((u) => /[?&]page=/.test(u)))
@@ -1513,6 +1532,31 @@ const runMarked = (h, over = {}) =>
   const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
   ok('review-collect 의 fetchText 가 finalUrl 을 채운다', /finalUrl:\s*res\.url/.test(collect))
   ok('review-collect 가 리다이렉트를 따라간다', /redirect:\s*'follow'/.test(collect))
+}
+
+// ── incrementalOnly 지도 — 어느 소스가 닫히고 어느 소스가 안 닫히나 ───
+//
+// 이 플래그 하나가 "타깃이 영영 다시 안 돈다"와 "같은 글을 매일 다시 긁는다"를 가른다.
+// 어댑터를 새로 붙일 때 아무 생각 없이 복붙되기 가장 쉬운 줄이라 목록을 여기 고정한다.
+// 남헌 2026-09-23 Q3(a): 커뮤니티 11곳 + hackernews 가 켜짐, 문서 대상 소스는 꺼짐.
+{
+  const mods = await Promise.all(
+    [
+      '82cook', 'bobaedream', 'brunch', 'clien', 'damoang', 'fmkorea', 'hackernews',
+      'okky', 'theqoo', 'todayhumor', 'tumblbug', 'velog',
+      'danawa', 'appstore', 'youtube', 'naver-blog',
+    ].map((f) => import('../lib/review/adapters/' + f + '.ts')),
+  )
+  const adapters = mods.flatMap((m) => Object.values(m).filter((v) => v && typeof v === 'object' && 'key' in v && 'nextRequest' in v))
+  const byKey = new Map(adapters.map((a) => [a.key, a]))
+
+  const ON = ['82cook', 'bobaedream', 'brunch', 'clien', 'damoang', 'fmkorea', 'hackernews', 'okky', 'theqoo', 'todayhumor', 'tumblbug', 'velog']
+  // 대상이 고정된 문서(상품 pcode·앱 id·영상 id·블로그 글)라 진짜로 끝이 있다. 켜면 매일 다시 긁는다.
+  const OFF = ['danawa', 'appstore', 'youtube', 'naver_blog_post']
+
+  for (const k of ON) t(`incrementalOnly 켜짐: ${k}`, byKey.get(k)?.incrementalOnly, true)
+  for (const k of OFF) ok(`incrementalOnly 꺼짐: ${k}`, byKey.has(k) && !byKey.get(k).incrementalOnly)
+  t('켜진 소스가 정확히 12개다(커뮤니티 11 + hackernews)', adapters.filter((a) => a.incrementalOnly).length, 12)
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

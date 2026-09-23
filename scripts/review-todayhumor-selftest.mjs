@@ -353,7 +353,11 @@ for (const [name, body] of [
   ok('통합: 시스템 메시지는 적재되지 않았다', !inputs.some((i) => i.text.includes('MOVE_BESTOFBEST')))
   ok('통합: 타깃이 닫혔다', result.perTarget[0].outcome.includes('끝까지 읽음'))
   // 안전장치(페이지 상한 20)에 걸려 끝난 게 아니어야 한다(§7.2).
-  ok('통합: 페이지 상한에 걸리지 않았다', !result.perTarget[0].outcome.includes('상한'))
+  // ⚠️ '상한' 부분일치로 보지 않는다 — incrementalOnly 종료 문구에도 'API 상한' 이 들어간다.
+  //    러너가 안전장치로 끊었을 때만 쓰는 문구는 '페이지 상한 20 도달' 이다.
+  ok('통합: 페이지 상한에 걸리지 않았다', !result.perTarget[0].outcome.includes('페이지 상한'))
+  // 남헌 2026-09-23 Q3(a): 게시글에 댓글이 더 달리므로 닫지 않는다.
+  ok('통합: 타깃이 active 로 남는다(incrementalOnly)', result.perTarget[0].outcome.includes('닫지 않는다'))
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

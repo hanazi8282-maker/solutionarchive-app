@@ -443,8 +443,12 @@ function makeHarness(pagesByNumber, targetOver = {}) {
   t('증분: 그래도 타깃은 active 로 남는다', last.status, 'active')
   ok('증분: 다음 실행의 기준이 될 마지막 리뷰 시각이 저장된다', typeof last.lastReviewAt === 'string')
   // §7.2 — 상한에 걸려 끝난 것을 "정상 종료"로 읽지 않도록 로그가 사유를 말한다.
-  ok('증분: 로그가 "API 상한 도달 → active 유지"를 남긴다', res.perTarget[0].outcome.includes('API 상한 도달'))
-  ok('증분: 로그에 마지막 댓글 시각이 있다', res.perTarget[0].outcome.includes('마지막 댓글 시각'))
+  ok(
+    '증분: 로그가 "끝까지 읽음 → 닫지 않는다"와 몇 페이지째인지를 남긴다',
+    res.perTarget[0].outcome.includes('증분형이라 닫지 않는다') && /\d+페이지째/.test(res.perTarget[0].outcome),
+  )
+  // 다음 실행의 증분 기준선이 로그에 보여야 한다. 문구는 소스 12곳 공용이라 '리뷰' 다.
+  ok('증분: 로그에 마지막 리뷰 시각이 있다', res.perTarget[0].outcome.includes('마지막 리뷰 시각'))
 }
 
 {

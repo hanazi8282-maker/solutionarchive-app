@@ -23,7 +23,14 @@ export type LoopDef = {
   key: LoopKey
   label: string
   table: string
+  /** 주 슬롯. 풀백 예정 시각 계산(nextDailyFire)은 이 값만 쓴다. */
   cronExpr: string
+  /**
+   * 같은 워크플로의 추가 슬롯. 하루 2회 이상 도는 루프만 채운다.
+   * 셀프테스트가 [cronExpr, ...extraCronExprs] 를 워크플로의 cron 줄 순서와 그대로 대조한다 —
+   * 워크플로에 슬롯을 더하고 여기를 안 고치면 /agents 가 하루 1회라고 거짓말한다.
+   */
+  extraCronExprs?: readonly string[]
   scheduleActive: boolean
   deptFilter?: string
   workflow: string
@@ -34,7 +41,8 @@ export type LoopDef = {
 export const LOOPS: readonly LoopDef[] = [
   { key: 'cmo', label: 'CMO 데일리 루프', table: 'agent_runs', cronExpr: '17 20 * * *', scheduleActive: true, deptFilter: 'cmo', workflow: 'daily-cmo-loop.yml' },
   { key: 'insight', label: '나이틀리 인사이트 루프', table: 'insight_loop_runs', cronExpr: '41 18 * * *', scheduleActive: true, workflow: 'nightly-insight-loop.yml' },
-  { key: 'review', label: '나이틀리 리뷰 수집', table: 'review_collection_runs', cronExpr: '37 17 * * *', scheduleActive: true, workflow: 'nightly-review-collect.yml' },
+  // 수집만 하루 2회다(남헌 2026-09-23 Q2(a)). extract·relevance 는 1회 그대로다.
+  { key: 'review', label: '나이틀리 리뷰 수집', table: 'review_collection_runs', cronExpr: '37 17 * * *', extraCronExprs: ['37 5 * * *'], scheduleActive: true, workflow: 'nightly-review-collect.yml' },
   { key: 'notion', label: '나이틀리 노션 피드백', table: 'notion_sync_log', cronExpr: '7 12 * * *', scheduleActive: true, workflow: 'nightly-notion-feedback.yml' },
 ] as const
 
@@ -133,6 +141,11 @@ export function cronToLabel(cron: string): string {
   const kst = (hh + 9) % 24
   const p = (n: number) => String(n).padStart(2, '0')
   return `UTC ${p(hh)}:${p(mm)} · KST ${p(kst)}:${p(mm)}`
+}
+
+/** 루프의 모든 슬롯을 한 줄로. 하루 2회면 둘 다 보여야 한다. */
+export function loopScheduleLabel(d: { cronExpr: string; extraCronExprs?: readonly string[] }): string {
+  return [d.cronExpr, ...(d.extraCronExprs ?? [])].map(cronToLabel).join(' · ')
 }
 
 // ── 노션 페이지 회수 ─────────────────────────────────────────────

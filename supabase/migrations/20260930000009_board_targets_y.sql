@@ -99,7 +99,8 @@ DECLARE
   --    후보 보기:
   --      SELECT id, product_elevator_pitch, purpose, status, created_at
   --        FROM public.analysis_projects ORDER BY created_at DESC LIMIT 20;
-  v_project uuid := NULL;  -- ← 예: '11111111-2222-3333-4444-555555555555'::uuid
+  -- 남헌 2026-09-24 지정: "SaaS 창업가 페인 VOC — 만들 줄은 아는데 그걸 돈으로 바꾸는 법"(MAKE_BUT_NO_MONEY) 프로젝트.
+  v_project uuid := 'e819f101-77da-4d42-9d50-f5248449052f'::uuid;
   v_inserted integer;
 BEGIN
   IF v_project IS NULL THEN

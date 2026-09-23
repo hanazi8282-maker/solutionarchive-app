@@ -109,26 +109,37 @@
 //
 // 커서 규약(JSON 1줄) — `{"q":["<글 경로>",…],"last":"<가장 최근 released_at ISO>"}`
 //   · `q`    = 아직 안 읽은 글 경로 큐. 목록 순서(최신순) 그대로다.
-//   · `last` = 지금까지 목록에서 본 **가장 최근 released_at 원본 ISO**.
+//   · `last` = 목록에서 본 **가장 최근 released_at 원본 ISO**.
 //              "마지막 글 id"를 쓰지 않는 이유: velog 의 글 id 는 uuid 라 순서가
 //              없다. 같은 형식의 UTC ISO 는 문자열 비교가 곧 시각 비교다.
-//   · 페이지 0 = 목록, 1~19 = 글. 러너의 MAX_PAGES_PER_TARGET(20)에 그대로 맞는다
-//     — 실행당 목록 1 + 글 최대 19.
+//   · 커서 null = 목록부터. 큐가 비면 **다시 null 을 낸다**(아래 ⚠️).
+//     한 실행은 목록 1 + 글 최대 19 = 러너의 MAX_PAGES_PER_TARGET(20)에 맞는다.
 //
-// ⛔ **러너 변경 2건이 필요하다(에이전트 X 소유). 그게 없으면 이 모드는 못 돈다.**
-//    1. `nextRequest(target, page)` · `ParseContext.page` — 지금 러너는 페이지
-//       번호를 어댑터에 넘기지 않는다. 그래서 "실행 시작(목록을 받아야 한다)"과
-//       "큐를 다 비웠다(이번 실행 끝)"를 **커서만으로는 구분할 수 없다.**
-//       (둘 다 `q` 가 비어 있다.)
-//    2. `runner.ts` 의 `if (!req)` 분기가 `status = 'exhausted'` 를 literal 로
-//       박는다. `cursor === null` 분기는 `endStatus` 를 쓰는데 이 분기는 안 쓴다.
-//       게시판 타깃은 커서를 계속 들고 있으므로 **항상 이 분기로 끝난다** →
-//       `incrementalOnly` 가 무력화돼 첫 실행에서 닫히고 다시 안 돈다.
-//       `status = endStatus` 로 바꿔야 한다.
-//    ⇒ 그때까지 이 파일은 `page` 가 없으면 **커서 null = 목록** 폴백으로 돈다.
-//      그 폴백은 "한 번 돌고 닫힌다"로 안전하게 끝난다 — 목록을 20번 다시 받는
-//      폭주는 어떤 경우에도 만들지 않는다. 그래서 타깃 등록 SQL 은 **미적용**이다
-//      (supabase/migrations/20260930000010_board_targets_z.sql).
+// ⚠️ **큐를 다 비우면 커서를 `null` 로 낸다. 빈 큐를 들고 있지 않는다.**
+//    이유는 러너의 종료 경로가 둘인데 취급이 다르기 때문이다:
+//      `cursor === null` 분기 → `endStatus` 를 쓴다 → incrementalOnly 라서 `active` 유지 ✅
+//      `if (!req)` 분기      → `status = 'exhausted'` 를 **literal 로 박는다** ❌
+//    빈 큐를 들고 있으면 항상 후자로 끝나 첫 실행에 닫히고 다시 안 돈다
+//    (`listDueTargets` 는 `active` 만 집고, 되살리는 코드가 리포에 없다).
+//    okky 게시판 모드(2026-09-24, PR #244)가 같은 결론을 냈다 — **두 어댑터의
+//    규약을 일부러 맞춰 뒀다.** X 가 공용 규약을 넣을 때 한 벌로 합치기 쉽게.
+//
+// ⚠️ **그래서 `last` 는 실행 간에 살아남지 못한다(오늘 기준).** 커서가 null 로
+//    돌아가므로 다음 실행은 목록 10건을 전부 큐에 넣는다. 그게 낭비로 끝나지 않는
+//    이유는 러너에 이미 증분 장치가 있기 때문이다:
+//      · 지문 대조(`identity_key`)가 **중복 적재를 막는다.**
+//      · `last_review_at` 기준 STALE 판정이 **요청을 끊는다** — 목록이 최신순이라
+//        새 글이 앞에 오고, 이미 본 글에 닿으면 그 글의 리뷰가 전부 stale 이어서
+//        `STALE_STREAK_TO_STOP`(5)에 한 글 만에 걸린다.
+//      ⇒ 정상 상태 비용은 목록 1 + 새 글 N + 1 정도다(상한은 20).
+//    `last` 를 **기록은 한다** — X 가 커서를 실행 간 보존하게 만들면 그때
+//    목록 필터가 곧바로 켜진다(아래 `parseBoardPage` 의 `fresh` 필터). 지금도
+//    한 실행 안에서는 유효하고, 셀프테스트가 그 필터를 단위로 고정한다.
+//
+// ⚠️ `nextRequest(target, page)` 의 `page` 는 **아직 러너가 넘기지 않는다.**
+//    넘기지 않아도 위 규약(빈 큐 = 커서 null)이면 "커서 null = 목록" 폴백만으로
+//    정확하다. optional 로 둔 것은 X 가 넘기기 시작할 때 이 파일을 안 고쳐도
+//    되게 하려는 것뿐이다.
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
 
@@ -682,9 +693,15 @@ function parseBoardPage(body: string, cursor: string | null, page: number | unde
   if (isListPage(cursor, page)) {
     const got = readBoardList(body)
     if (!got) {
-      // 목록 컨테이너가 없다 = 구조가 바뀌었다. **큐와 `last` 를 지우지 않는다** —
-      // 지우면 다음 실행이 목록 전체를 처음부터 다시 큐에 넣는다.
-      return { reviews: [], nextCursor: writeBoardCursor(cur), parseFailures: 1, filtered: 0 }
+      // 목록 컨테이너가 없다 = 구조가 바뀌었다. 남은 큐가 있으면 그걸 들고 계속
+      // 간다(읽던 글을 버리지 않는다). 없으면 커서를 null 로 내서 러너가
+      // `endStatus`(active) 로 끝내게 한다 — 빈 큐를 들고 있으면 닫힌다(파일 머리 ⚠️).
+      return {
+        reviews: [],
+        nextCursor: cur.q.length > 0 ? writeBoardCursor(cur) : null,
+        parseFailures: 1,
+        filtered: 0,
+      }
     }
 
     // 이미 본 글은 큐에 넣지 않는다. `last` 는 우리가 쓴 값이라 원본 ISO 끼리
@@ -699,12 +716,19 @@ function parseBoardPage(body: string, cursor: string | null, page: number | unde
     for (const x of got.items) if (!last || x.releasedAt > last) last = x.releasedAt
 
     // 목록 페이지는 리뷰를 내지 않는다. 항목을 읽지 못한 수만 실패로 센다.
-    return { reviews: [], nextCursor: writeBoardCursor({ q, last }), parseFailures: got.unreadable, filtered: 0 }
+    // 큐가 비면(새 글 0건) 커서를 null 로 — 그래야 타깃이 active 로 남는다.
+    return {
+      reviews: [],
+      nextCursor: q.length > 0 ? writeBoardCursor({ q, last }) : null,
+      parseFailures: got.unreadable,
+      filtered: 0,
+    }
   }
 
   // 글 페이지 — 큐의 맨 앞이 방금 요청한 글이다.
   const path = cur.q[0]
-  const rest = writeBoardCursor({ q: cur.q.slice(1), last: cur.last })
+  const left = cur.q.slice(1)
+  const rest = left.length > 0 ? writeBoardCursor({ q: left, last: cur.last }) : null
   const parts = path ? parseRefParts(`url:${path}`) : null
   if (!parts) {
     // 큐가 비었는데 글 본문이 왔다(= 러너와 어긋났다). 스코프를 모르는 채로

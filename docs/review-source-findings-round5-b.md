@@ -109,6 +109,15 @@ commentCount: 3 | comment[] 길이: 3             ← 마커와 실제 건수가
 
 - 글 목록은 `https://okky.kr/sitemap.xml`(328건, 최근 글 위주)에 있다. `/api/` 가
   robots 금지라 **목록 API 를 쓰면 안 된다.**
+
+  > ⚠️ **정정 (2026-09-24).** 아래 "목록 페이지는 CSR 이라 글 URL 을 여기서 긁지
+  > 못한다"는 **틀렸다.** 이 조사가 받아 본 `/articles` 는 HTTP **404** 다(그 경로가
+  > 없다). 실제 목록은 `/community` · `/questions` · `/events` · `/jobs` 이고,
+  > `/community` 는 200 · 265,203B 로 **정적 HTML 에 글 20건이 전부 들어 있다**
+  > (`<time dateTime="…">` 20개 + `href="/articles/<id>?topic=community"` 앵커 20개, 1:1).
+  > 그래서 게시판 모드(`board:community`)는 사이트맵을 쓰지 않는다 —
+  > `lib/review/adapters/okky.ts` 헤더와 `scripts/review-board-y-selftest.mjs` 참조.
+  > (`/questions` 의 목록·상세는 여전히 미실측이다.)
 - 댓글 `author.url` 이 `https://okky.kr/users/162597` 로 온다. 기존 원칙대로
   작성자 정보는 담지 않는다.
 - `/todays-best` 는 이번 주 선정이 없어 빈 페이지였다(200 · 렌더 624자). 목록

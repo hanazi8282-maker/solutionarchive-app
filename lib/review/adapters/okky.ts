@@ -56,10 +56,53 @@
 //      정도로는 broken 까지 안 간다. 오탐이 실제로 쌓이면 상한을 올리지 말고
 //      review_sources 에 소스별 허용치 컬럼을 두고 사람이 정하게 해라.
 //
-// ⚠️ **1글=1요청이다.** 커서를 내지 않으므로 러너가 page 0 뒤에 곧바로
-//    exhausted 로 닫는다(runner.ts:344). 즉 종료는 MAX_PAGES_PER_TARGET(20)
+// ⚠️ **`url:` 모드는 1글=1요청이다.** 커서를 내지 않으므로 러너가 page 0 뒤에
+//    곧바로 exhausted 로 닫는다(runner.ts:344). 즉 종료는 MAX_PAGES_PER_TARGET(20)
 //    안전판이 아니라 구조로 성립한다 — 실측으로 고정해 뒀다
 //    (scripts/review-okky-selftest.mjs "종료" 블록, CLAUDE.md §7.2 다나와 사건).
+//
+// ── 약관 재확인 (2026-09-24) ─────────────────────────────────────────
+//
+// 출처 URL: **https://okky.kr/legal/terms** (200 · 평문 6,968자). 위 ⚠️ 의 문구를
+// 그 URL 에서 다시 떠서 대조했다 — `크롤`·`로봇`·`스크래`·`마이닝` 여전히 0건,
+// 저작권 라이선스 조항의 *"… 외부 사이트에서의 검색, 수집 및 링크 허용을 위해서만
+// 제한적으로 행사할 것입니다."* 1건 그대로다. 자동화 조항 1건도 업로드 방향 그대로.
+//
+// ── 게시판 모드 `board:<slug>` (2026-09-24 신설) ─────────────────────
+//
+// `url:` 모드는 사람이 글 주소를 하나씩 등록해야 해서 그게 병목이었다. 게시판
+// 모드는 타깃 1개가 **목록 → 새 글 → 댓글**까지 스스로 순회한다.
+//
+// ⚠️ **`docs/review-source-findings-round5-b.md` 의 "목록 페이지는 CSR 이라 글 URL 을
+//    긁지 못한다 — 사이트맵을 쓴다" 는 틀렸다(2026-09-24 실측).** 그 조사가 받아 본
+//    `/articles` 는 **HTTP 404** 다(경로가 없다. 91KB 짜리 404 페이지가 온다).
+//    실제 목록 경로는 404 페이지의 내비게이션에 있다: `/community` · `/questions` ·
+//    `/events` · `/jobs`. `/community` 는 200 · 265,203B 이고 **정적 HTML 에
+//    글 20건이 전부 들어 있다**:
+//      <time dateTime="2026-09-24T00:59:11" …>약 8시간</time> … <a … href="/articles/1564558?topic=community">제목</a>
+//    앵커 20개 · `<time>` 20개 · 1:1. 그래서 사이트맵을 쓰지 않는다.
+//
+// ⚠️ **카드 안에서 `<time>` 이 제목 앵커보다 먼저 온다.** 인덱스로 zip 하면 한 칸
+//    밀려 다른 글의 시각이 붙는다(실측: 앵커0 뒤의 첫 `<time>` 은 앵커1 것이다).
+//    그래서 "앵커 직전의 가장 가까운 `<time>`" 으로 짝지운다.
+//
+// ⚠️ 목록 slug 는 `community` 하나만 연다. `/questions` 는 목록이 SSR 인지,
+//    상세(`/questions/<번호>`)의 JSON-LD 가 `/articles` 와 같은 구조인지 **실측하지
+//    않았다**(이 세션의 호스트당 요청 예산을 다 썼다). 규칙만 넓히고 파서를 안 보면
+//    조용히 0건이 된다 — 위 `url:` 모드 주석과 같은 이유로 막아 둔다.
+//
+// ⚠️ **robots 는 `/community` 를 막지 않는다**(2026-09-24 robots.txt 200 · 1,733B,
+//    `fixtures/review/okky/robots.txt` 에 원문 저장). `*` 그룹이 막는 건
+//    `/auth/ /new/ /settings/ /login /logout /recruits/*/new /api/ /changes$
+//    /*/changes$ /users/*/{questions,articles,scraped,activity}` 다. 문서가 아니라
+//    **리포 파서로** 판정한 결과를 scripts/review-board-y-selftest.mjs 가 고정한다.
+//    Crawl-delay 는 `*` 그룹에 없다(bingbot 만 1초) → 간격은 DB 의 min_interval_ms
+//    가 정한다. 등록 SQL 이 3,000ms 로 올린다.
+//
+// ⚠️ **같은 글을 `url:` 타깃과 `board:` 타깃이 동시에 덮으면 두 행이 된다.**
+//    identity_key 가 `sourceKey|productRef|externalId` 라서 productRef 가 다르면
+//    다른 리뷰로 적재된다(fingerprint.ts, SP-031 과 같은 형태). 게시판 모드로 넘어간
+//    보드의 `url:` 타깃은 사람이 정리해야 한다 — 코드가 막지 못한다.
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
 import { parseUrlRef } from './url-ref.ts'
@@ -80,6 +123,120 @@ const REF_RE = /^\/articles\/\d{1,10}$/
 export function parseProductRef(productRef: string): string | null {
   const p = parseUrlRef(productRef)
   return p !== null && REF_RE.test(p) ? p : null
+}
+
+/**
+ * 게시판 모드가 아는 목록. slug → 목록 경로 + 그 목록 앵커의 `topic` 값.
+ *
+ * `topic` 을 대조하는 이유: 한 페이지에 다른 목록의 글(사이드바 인기글 등)이
+ * 섞여 와도 이 보드 것만 큐에 넣는다. 실측 `/community` 는 20개 전부
+ * `?topic=community` 였다.
+ */
+const BOARDS: Record<string, { list: string; topic: string }> = {
+  community: { list: '/community', topic: 'community' },
+}
+
+/**
+ * 한 실행에 읽을 글 수 상한. 목록 1 + 글 19 = 러너의 MAX_PAGES_PER_TARGET(20).
+ *
+ * 상한을 어댑터가 들고 있는 이유: 커서가 DB 의 text 한 칸이라 목록이 갑자기
+ * 100건을 주면 커서가 그만큼 커진다. 한 실행 몫으로 잘라 두면 커서 크기가
+ * 구조적으로 묶인다.
+ */
+export const BOARD_QUEUE_MAX = 19
+
+/**
+ * `board:community` → `community`. 모르는 slug·형식 위반이면 null.
+ *
+ * ⚠️ **X 의 러너 PR(범용 게시판 큐 규약)이 머지되면 이 로컬 함수를 공용
+ *    `parseBoardRef` 로 교체한다.** 규약이 두 벌이면 한쪽만 고쳐지는 사고가 난다.
+ *    지금 그 파일이 아직 없어서 어댑터 안에 둔다.
+ */
+export function parseBoardRef(productRef: string): string | null {
+  const m = /^board:([a-z0-9-]{1,32})$/i.exec((productRef ?? '').trim())
+  if (!m) return null
+  const slug = m[1].toLowerCase()
+  return Object.prototype.hasOwnProperty.call(BOARDS, slug) ? slug : null
+}
+
+/** 게시판 커서: 안 읽은 글 큐 + 마지막(가장 새) 글 id. */
+export interface BoardCursor {
+  queue: string[]
+  lastId: string | null
+}
+
+/**
+ * 커서 디코드. **큐가 비면 null 을 돌려준다** — 호출부에서 "목록부터"와 같은 뜻이다.
+ *
+ * 읽을 수 없는 값(사람이 DB 를 손으로 고친 경우 등)도 null 이다. 그러면 목록
+ * 패스로 되돌아가 스스로 복구한다. 여기서 실패로 세면 타깃이 영구히 멈춘다.
+ */
+function decodeBoardCursor(raw: string | null): BoardCursor | null {
+  if (!raw) return null
+  let doc: unknown
+  try {
+    doc = JSON.parse(raw)
+  } catch {
+    return null
+  }
+  if (!doc || typeof doc !== 'object') return null
+  const d = doc as Record<string, unknown>
+  const queue = Array.isArray(d.queue) ? d.queue.filter((x): x is string => typeof x === 'string' && REF_RE.test(x)) : []
+  if (queue.length === 0) return null
+  return { queue, lastId: typeof d.lastId === 'string' ? d.lastId : null }
+}
+
+function encodeBoardCursor(c: BoardCursor): string {
+  return JSON.stringify({ v: 1, queue: c.queue, lastId: c.lastId })
+}
+
+/**
+ * 목록 HTML → 글 경로 큐.
+ *
+ * ⚠️ 항목이 0건이면 **파싱 실패 1건**이다. "오늘 새 글이 없다"가 아니라 목록
+ *    컨테이너가 사라진 것이다 — 이 둘을 같은 글자로 찍으면 소스가 조용히 멈춘다
+ *    (CLAUDE.md §7.1). okky `/community` 는 항상 20건을 준다.
+ */
+function parseBoardList(body: string, slug: string): { queue: string[]; lastId: string | null; parseFailures: number; timed: number; items: Array<{ path: string; at: string | null }> } {
+  const topic = BOARDS[slug].topic
+  // 하나의 정규식으로 `<time>` 과 글 앵커를 **문서 순서대로** 훑는다. 그래야
+  // "앵커 직전의 가장 가까운 시각"을 한 번의 스캔으로 짝지을 수 있다.
+  const re = /<time\s+dateTime="([^"]+)"|<a\b[^>]*?href="\/articles\/(\d{1,10})\?topic=([a-z]+)"/gi
+  const seen = new Set<string>()
+  const queue: string[] = []
+  let pendingTime: string | null = null
+  let timed = 0
+  const items: Array<{ path: string; at: string | null }> = []
+  let best: number | null = null
+
+  for (;;) {
+    const m = re.exec(body)
+    if (!m) break
+    if (m[1] !== undefined) {
+      pendingTime = m[1]
+      continue
+    }
+    const at = pendingTime
+    pendingTime = null
+    if (m[3].toLowerCase() !== topic) continue // 다른 목록의 글. 큐에 넣지 않는다.
+    const id = m[2]
+    if (seen.has(id)) continue
+    seen.add(id)
+    if (at !== null) timed++
+    const n = Number(id)
+    if (best === null || n > best) best = n
+    const itemPath = `/articles/${id}`
+    items.push({ path: itemPath, at })
+    queue.push(itemPath)
+  }
+
+  // 항목은 있는데 시각 마커가 **전부** 없다 = 카드 구조가 바뀐 것이다.
+  // (한두 건 빠지는 것은 공지·고정글일 수 있으므로 전멸만 실패로 센다.)
+  const parseFailures = queue.length === 0 ? 1 : timed === 0 ? 1 : 0
+
+  // items 는 검사용이다 — 짝짓기가 한 칸 밀렸는지 보려면 (경로, 시각) 쌍 자체를
+  // 봐야 한다. 큐만 보면 잘못 짝지어도 똑같이 통과한다(§7.1: 검사 방법이 주장과 같아야).
+  return { queue: queue.slice(0, BOARD_QUEUE_MAX), lastId: best === null ? null : String(best), parseFailures, timed, items }
 }
 
 /**
@@ -186,6 +343,108 @@ function splitCommentUrl(raw: unknown): { path: string; note: string } | null {
   return m ? { path: u.pathname, note: m[1] } : null
 }
 
+/**
+ * 글 1개의 본문+댓글을 읽는다. `url:` 모드와 `board:` 모드가 **같은 이 함수**를 쓴다.
+ *
+ * `postPath` 가 스코프다 — 응답이 다른 글이면 받지 않는다. url: 모드는 productRef
+ * 에서, board: 모드는 커서 큐의 머리에서 오고, 둘 다 nextRequest 가 그 경로로
+ * 요청한 뒤라 일치해야 정상이다.
+ */
+function parsePost(body: string, postPath: string): { reviews: ParsedReview[]; parseFailures: number; filtered: number } {
+  const reviews: ParsedReview[] = []
+  let parseFailures = 0
+  let filtered = 0
+
+  const ld = readJsonLd(body)
+  if (!ld) {
+    return { reviews, parseFailures: 1, filtered }
+  }
+
+  // ── 우리가 요청한 글이 맞는지 ──────────────────────────────────
+  // 리다이렉트나 canonical 변경으로 다른 글이 오면, 그 글 내용이 이 타깃의
+  // project_id 로 적재된다(텀블벅에서 실제로 났던 사고 — SP-031).
+  if (ld.url) {
+    let served: string | null = null
+    try {
+      served = new URL(ld.url).pathname
+    } catch {
+      served = null
+    }
+    if (served !== postPath) {
+      return { reviews, parseFailures: 1, filtered }
+    }
+  }
+
+  // ── 글 본문 ───────────────────────────────────────────────────
+  const postText = [ld.headline, decodeEntities(ld.text)].filter(Boolean).join('\n\n').trim()
+  if (!postText) {
+    // DiscussionForumPosting 은 있는데 제목·본문이 둘 다 비었다 = 필드명이
+    // 바뀐 것이다. 댓글만 읽히면 "수집은 되는데 글이 없는" 상태로 몇 주 간다.
+    parseFailures++
+  } else {
+    reviews.push({
+      externalId: postPath,
+      text: postText,
+      rating: null,
+      seller: null,
+      authorMasked: null,
+      // datePublished 는 **KST 오프셋이 붙은 ISO** 다(실측
+      // `2026-09-17T20:42:12+09:00` · `2023-12-30T15:56:12+09:00`).
+      // 앞 10자가 곧 KST 날짜다. 벨로그(UTC `Z`)와 다르다 — 헷갈리지 마라.
+      writtenAt: /^\d{4}-\d{2}-\d{2}/.test(ld.datePublished) ? ld.datePublished.slice(0, 10) : null,
+      storyId: null,
+    })
+  }
+
+  // ── 댓글 ──────────────────────────────────────────────────────
+  const flat = flattenComments(ld.comment)
+
+  for (const c of flat) {
+    const loc = splitCommentUrl(c.url)
+    if (!loc) {
+      // url 이 없거나 `#note-<숫자>` 가 아니다 = 정체성을 만들 수 없다.
+      // 본문 해시를 정체성으로 쓰면 수정된 댓글이 매번 새 행이 된다
+      // (fingerprint.ts 의 ⚠️). 그래서 버리고 실패로 센다.
+      parseFailures++
+      continue
+    }
+    if (loc.path !== postPath) {
+      // **이 글의 댓글이 아니다.** 필드는 멀쩡히 읽혔고 이 타깃과 무관할
+      // 뿐이라 실패가 아니라 filtered 다(hackernews·tumblbug 와 같은 용법).
+      // 안 거르면 같은 댓글이 타깃마다 새 행으로 적재된다 — identity_key 에
+      // productRef 가 들어가기 때문이다(fingerprint.ts:69, SP-031).
+      filtered++
+      continue
+    }
+    const text = decodeEntities(typeof c.text === 'string' ? c.text : '').trim()
+    // 컨테이너는 멀쩡한데 알맹이가 없는 경우다. 파서가 깨진 게 아니므로
+    // 실패로 세지 않는다 — 저장할 텍스트가 없을 뿐이다(damoang 과 같다).
+    if (!text) continue
+
+    const at = typeof c.datePublished === 'string' ? c.datePublished : ''
+    reviews.push({
+      externalId: `${postPath}#note-${loc.note}`,
+      text,
+      rating: null,
+      seller: null,
+      authorMasked: null,
+      // 댓글도 KST 오프셋 ISO 다(실측 `2026-09-17T21:08:33+09:00`).
+      // damoang 과 달리 전 건에 다 들어 있어 추정할 게 없다.
+      writtenAt: /^\d{4}-\d{2}-\d{2}/.test(at) ? at.slice(0, 10) : null,
+      storyId: postPath,
+    })
+  }
+
+  // ── 마커 대조 ─────────────────────────────────────────────────
+  // `commentCount` 가 유일한 개수 마커다(렌더 DOM 은 비어 있다). 부족분에서
+  // 삭제 허용치를 뺀 만큼만 실패로 센다 — 근거는 파일 머리의 실측 17건.
+  if (ld.commentCount !== null && ld.commentCount > flat.length) {
+    parseFailures += Math.max(0, ld.commentCount - flat.length - DELETED_COMMENT_TOLERANCE)
+  }
+
+  return { reviews, parseFailures, filtered }
+}
+
 export const okkyAdapter: ReviewSourceAdapter = {
   key: 'okky',
   displayName: 'OKKY 게시글·댓글',
@@ -206,7 +465,29 @@ export const okkyAdapter: ReviewSourceAdapter = {
   // 그 상한은 아직 없다. 늘어나면 재활성화 조건(empty<3)을 러너에 넣어야 한다.
   incrementalOnly: true,
 
+  // ⚠️ **게시판 모드에 필요한 러너 변경(이 PR 에서 고치지 않았다 — X 소유 파일)**
+  //
+  //   1) `nextRequest` 가 null 을 내면 러너는 `status='exhausted'` 로 닫는다
+  //      (runner.ts 의 `outcome='다음 요청 없음'` 분기). `incrementalOnly` 를 보지
+  //      않는다. 그래서 게시판 모드는 **큐를 다 비울 때 nextCursor=null 로 끝낸다** —
+  //      그 경로는 endStatus(=active)를 타서 타깃이 살아남는다. nextRequest 로 끝내면
+  //      첫 실행 뒤 영구히 닫힌다.
+  //   2) 그 대가로 **`lastId` 가 실행마다 초기화된다.** 커서가 null 이 되면서 사라진다.
+  //      즉 매 실행이 목록 첫 페이지를 다시 읽고 그 20건을 다시 받는다(지문이 중복
+  //      적재는 막지만 요청은 쓴다). `url:` 커뮤니티 타깃이 같은 글을 매일 다시 읽는
+  //      것과 같은 대가다(types.ts incrementalOnly).
+  //      ponytail: 상한은 "보드당 매 실행 20요청". X 의 러너가 커서를 보존하면
+  //        `lastId` 로 이미 읽은 글을 건너뛰게 연결해라. 지금 그 분기를 미리 써 두면
+  //        **절대 실행되지 않는 코드**가 되므로 값만 기록하고 쓰지 않는다.
   nextRequest(target: TargetState): { url: string } | null {
+    const slug = parseBoardRef(target.productRef)
+    if (slug) {
+      const c = decodeBoardCursor(target.cursor)
+      // 커서가 없거나 못 읽는 값이다 = 목록부터. 손상된 커서로 멈추지 않고 복구한다.
+      if (!c) return { url: `${HOST}${BOARDS[slug].list}` }
+      return { url: `${HOST}${c.queue[0]}` }
+    }
+
     const p = parseProductRef(target.productRef)
     if (!p) return null
     // 커서가 있다 = 이미 한 번 받았다. 1글=1요청이라 다시 가지 않는다.
@@ -215,6 +496,32 @@ export const okkyAdapter: ReviewSourceAdapter = {
   },
 
   parse(body: string, ctx: ParseContext): ParseResult {
+    const slug = parseBoardRef(ctx.productRef)
+    if (slug) {
+      // ⚠️ nextRequest 와 **같은 커서로 같은 판단**을 해야 한다. 러너는 요청에
+      //    쓴 커서를 그대로 ctx.cursor 로 넘기므로(runner.ts), 두 함수가 커서만
+      //    보고 결정하면 "무엇을 받았는지"가 어긋날 수 없다.
+      const c = decodeBoardCursor(ctx.cursor)
+      if (!c) {
+        const list = parseBoardList(body, slug)
+        return {
+          reviews: [],
+          // 큐가 비면 null — 러너가 endStatus(active)로 끝낸다. 위 ⚠️ 1) 참조.
+          nextCursor: list.queue.length > 0 ? encodeBoardCursor({ queue: list.queue, lastId: list.lastId }) : null,
+          parseFailures: list.parseFailures,
+          filtered: 0,
+        }
+      }
+      const post = parsePost(body, c.queue[0])
+      const rest = c.queue.slice(1)
+      return {
+        reviews: post.reviews,
+        nextCursor: rest.length > 0 ? encodeBoardCursor({ queue: rest, lastId: c.lastId }) : null,
+        parseFailures: post.parseFailures,
+        filtered: post.filtered,
+      }
+    }
+
     const p = parseProductRef(ctx.productRef)
     if (!p) {
       // nextRequest 가 같은 검사를 하므로 실행 경로에서는 안 온다. 그래도
@@ -223,105 +530,15 @@ export const okkyAdapter: ReviewSourceAdapter = {
       return { reviews: [], nextCursor: null, parseFailures: 1, filtered: 0 }
     }
 
-    const reviews: ParsedReview[] = []
-    let parseFailures = 0
-    let filtered = 0
-
-    const ld = readJsonLd(body)
-    if (!ld) {
-      return { reviews, nextCursor: null, parseFailures: 1, filtered }
-    }
-
-    // ── 우리가 요청한 글이 맞는지 ──────────────────────────────────
-    // 리다이렉트나 canonical 변경으로 다른 글이 오면, 그 글 내용이 이 타깃의
-    // project_id 로 적재된다(텀블벅에서 실제로 났던 사고 — SP-031).
-    if (ld.url) {
-      let served: string | null = null
-      try {
-        served = new URL(ld.url).pathname
-      } catch {
-        served = null
-      }
-      if (served !== p) {
-        return { reviews, nextCursor: null, parseFailures: 1, filtered }
-      }
-    }
-
-    // ── 글 본문 ───────────────────────────────────────────────────
-    const postText = [ld.headline, decodeEntities(ld.text)].filter(Boolean).join('\n\n').trim()
-    if (!postText) {
-      // DiscussionForumPosting 은 있는데 제목·본문이 둘 다 비었다 = 필드명이
-      // 바뀐 것이다. 댓글만 읽히면 "수집은 되는데 글이 없는" 상태로 몇 주 간다.
-      parseFailures++
-    } else {
-      reviews.push({
-        externalId: p,
-        text: postText,
-        rating: null,
-        seller: null,
-        authorMasked: null,
-        // datePublished 는 **KST 오프셋이 붙은 ISO** 다(실측
-        // `2026-09-17T20:42:12+09:00` · `2023-12-30T15:56:12+09:00`).
-        // 앞 10자가 곧 KST 날짜다. 벨로그(UTC `Z`)와 다르다 — 헷갈리지 마라.
-        writtenAt: /^\d{4}-\d{2}-\d{2}/.test(ld.datePublished) ? ld.datePublished.slice(0, 10) : null,
-        storyId: null,
-      })
-    }
-
-    // ── 댓글 ──────────────────────────────────────────────────────
-    const flat = flattenComments(ld.comment)
-
-    for (const c of flat) {
-      const loc = splitCommentUrl(c.url)
-      if (!loc) {
-        // url 이 없거나 `#note-<숫자>` 가 아니다 = 정체성을 만들 수 없다.
-        // 본문 해시를 정체성으로 쓰면 수정된 댓글이 매번 새 행이 된다
-        // (fingerprint.ts 의 ⚠️). 그래서 버리고 실패로 센다.
-        parseFailures++
-        continue
-      }
-      if (loc.path !== p) {
-        // **이 글의 댓글이 아니다.** 필드는 멀쩡히 읽혔고 이 타깃과 무관할
-        // 뿐이라 실패가 아니라 filtered 다(hackernews·tumblbug 와 같은 용법).
-        // 안 거르면 같은 댓글이 타깃마다 새 행으로 적재된다 — identity_key 에
-        // productRef 가 들어가기 때문이다(fingerprint.ts:69, SP-031).
-        filtered++
-        continue
-      }
-      const text = decodeEntities(typeof c.text === 'string' ? c.text : '').trim()
-      // 컨테이너는 멀쩡한데 알맹이가 없는 경우다. 파서가 깨진 게 아니므로
-      // 실패로 세지 않는다 — 저장할 텍스트가 없을 뿐이다(damoang 과 같다).
-      if (!text) continue
-
-      const at = typeof c.datePublished === 'string' ? c.datePublished : ''
-      reviews.push({
-        externalId: `${p}#note-${loc.note}`,
-        text,
-        rating: null,
-        seller: null,
-        authorMasked: null,
-        // 댓글도 KST 오프셋 ISO 다(실측 `2026-09-17T21:08:33+09:00`).
-        // damoang 과 달리 전 건에 다 들어 있어 추정할 게 없다.
-        writtenAt: /^\d{4}-\d{2}-\d{2}/.test(at) ? at.slice(0, 10) : null,
-        storyId: p,
-      })
-    }
-
-    // ── 마커 대조 ─────────────────────────────────────────────────
-    // `commentCount` 가 유일한 개수 마커다(렌더 DOM 은 비어 있다). 부족분에서
-    // 삭제 허용치를 뺀 만큼만 실패로 센다 — 근거는 파일 머리의 실측 17건.
-    if (ld.commentCount !== null && ld.commentCount > flat.length) {
-      parseFailures += Math.max(0, ld.commentCount - flat.length - DELETED_COMMENT_TOLERANCE)
-    }
-
     // 1글=1요청. 커서를 내지 않으므로 러너가 이 타깃을 exhausted 로 닫는다.
     // 나중에 달린 댓글을 받으려면 사람이 DB 에서 status='active' 로 되돌려야
     // 한다(자동 재활성화는 만들지 않았다).
-    return { reviews, nextCursor: null, parseFailures, filtered }
+    const post = parsePost(body, p)
+    return { reviews: post.reviews, nextCursor: null, parseFailures: post.parseFailures, filtered: post.filtered }
   },
 
   // quotaMarkers 를 선언하지 않는다 = 모든 403/429 를 차단으로 본다.
   // 스크래핑 소스라 "정상적인 쿼터 소진" 개념이 없다.
 }
 
-export const __internal = { readJsonLd, flattenComments, splitCommentUrl, decodeEntities, REF_RE }
+export const __internal = { readJsonLd, flattenComments, splitCommentUrl, decodeEntities, REF_RE, parseBoardList, decodeBoardCursor, encodeBoardCursor, BOARDS }

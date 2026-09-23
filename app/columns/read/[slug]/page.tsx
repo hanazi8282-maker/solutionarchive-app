@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Badge } from '../../../_ds/components/Badge'
-import { Notice, PageShell } from '../../../_ds/components/Shell'
+import { PubShell } from '../../../_pub/components/PubShell'
+import { Hero } from '../../../_pub/components/Hero'
+import { Panel } from '../../../_pub/components/Panel'
+import { PubArticle } from '../../../_pub/components/PubArticle'
 import { columnReadable, renderMarkdown } from '@/lib/columns/markdown'
 import { getApprovedColumn } from '@/lib/columns/read'
-import '../column-read.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,9 @@ export const dynamic = 'force-dynamic'
 // 본문은 dangerouslySetInnerHTML 로 들어간다. 안전한 이유는 renderMarkdown 이 텍스트를
 // 전부 이스케이프한 뒤에만 태그를 만들기 때문이고, 그 보장은 scripts/columns-markdown-selftest.mjs
 // 의 이스케이프 케이스 9개가 지킨다. 파서를 고칠 때 그 셀프테스트를 같이 돌려라.
+//
+// 2026-09-23 A3: 화면만 `app/_pub` 라이트 테마로 옮겼다(본문 타이포는 `PubArticle`).
+// 조회 조건·케이스 링크·OG 이미지(opengraph-image.tsx)는 손대지 않았다.
 
 const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
 
@@ -30,11 +34,12 @@ export default async function ColumnReadPage({ params }: { params: Promise<{ slu
   // 조회 실패를 404 로 접지 않는다(§7.1) — "없다"와 "못 읽었다"는 다른 사건이다.
   if (!res.ok) {
     return (
-      <PageShell maxWidth={760}>
-        <Notice tone="danger" title="확인 불가 — 칼럼 조회 실패">
-          {res.reason} · 이 칼럼이 없다는 뜻이 아니다.
-        </Notice>
-      </PageShell>
+      <PubShell theme="light">
+        <Hero eyebrow="COLUMNS" title="칼럼을 열지 못했다" />
+        <Panel tone="alert" titleAs="h2" title="확인 불가 — 칼럼 조회 실패">
+          <p className="pub-text">{res.reason} · 이 칼럼이 없다는 뜻이 아니다.</p>
+        </Panel>
+      </PubShell>
     )
   }
   if (!res.data) notFound()
@@ -43,33 +48,27 @@ export default async function ColumnReadPage({ params }: { params: Promise<{ slu
   const { markdown } = columnReadable(c.body)
 
   return (
-    <PageShell maxWidth={760}>
-      <article className="sa-column">
-        <header style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-            <Badge tone="neutral" size="sm">{c.reader_type}</Badge>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {KST.format(new Date(c.published_at ?? c.staged_at))} · {c.char_count.toLocaleString()}자
-            </span>
-          </div>
-          <h1 style={{
-            margin: 0, fontSize: 'var(--fs-h1)', fontWeight: 'var(--fw-bold)',
-            lineHeight: 'var(--lh-snug)', letterSpacing: 'var(--ls-tight)', color: 'var(--text-strong)',
-          }}>
-            {c.title}
-          </h1>
-        </header>
+    <PubShell theme="light">
+      <article className="pub-section">
+        {/* h1 은 Hero 하나뿐이다. 본문 마크다운의 `# 제목` 줄은 columnReadable 이 떼 낸다. */}
+        <Hero
+          eyebrow={c.reader_type}
+          title={c.title}
+          note={`${KST.format(new Date(c.published_at ?? c.staged_at))} · ${c.char_count.toLocaleString()}자`}
+        />
 
-        <div dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }} />
+        <PubArticle html={renderMarkdown(markdown)} />
 
-        <footer style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'grid', gap: 8, fontSize: 13 }}>
+        <footer className="pub-column-foot">
           {/* case_study_slug 는 20260929000003 미적용이면 undefined — 그때는 링크 줄 자체가 없다. */}
           {c.case_study_slug ? (
-            <Link href={`/library/${c.case_study_slug}`}>이 칼럼의 근거 케이스 보기 ({c.case_study_slug})</Link>
+            <Link className="pub-link" href={`/library/${c.case_study_slug}`}>
+              이 칼럼의 근거 케이스 보기 ({c.case_study_slug})
+            </Link>
           ) : null}
-          <Link href="/columns/read">다른 칼럼 보기</Link>
+          <Link className="pub-link" href="/columns/read">다른 칼럼 보기</Link>
         </footer>
       </article>
-    </PageShell>
+    </PubShell>
   )
 }

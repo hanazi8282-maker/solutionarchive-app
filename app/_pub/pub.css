@@ -1,0 +1,393 @@
+/* ============================================================
+   PUB — 공개 화면 컴포넌트 CSS. 이 파일과 tokens.css 가 `_pub` 의 전부다.
+   컴포넌트는 **인라인 스타일을 쓰지 않는다** — 여기 있는 클래스만 붙인다.
+
+   ⚠️ 왜 전부 `.pub-root` 로 감싸는가.
+      app/layout.tsx 가 `_ds/styles.css` 를 전역으로 넣는다(다른 작업이 병렬로 도는
+      파일이라 손대지 않는다). 그 안의 `body{...}` · `a{...}` · `:focus-visible{...}` 가
+      우리 화면에도 내려오므로, 클래스 선택자(specificity 0,1,0 이상)로 덮는다.
+      CSS 파일 로드 순서에 기대지 않는다 — 순서가 바뀌어도 클래스가 요소를 이긴다.
+   ============================================================ */
+
+@import "./tokens.css";
+
+/* ── 루트: 캔버스 · 기본 서체 ──────────────────────────── */
+.pub-root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--pub-canvas);
+  color: var(--pub-ink);
+  font-family: var(--pub-type);
+  font-size: var(--pub-size-text-sm);
+  line-height: var(--pub-leading-text);
+  font-weight: var(--pub-weight-text);
+  -webkit-font-smoothing: antialiased;
+}
+.pub-root *,
+.pub-root *::before,
+.pub-root *::after { box-sizing: border-box; }
+
+/* 링크는 상속색 + 밑줄 없음이 기본이다(_ds 의 파란 링크·hover 밑줄을 덮는다). */
+.pub-root a { color: inherit; text-decoration: none; }
+.pub-root a:hover { text-decoration: none; }
+/* 본문 안 링크만 밑줄을 유지한다 — 문장 속 링크는 밑줄이 있어야 보인다. */
+.pub-root .pub-text a,
+.pub-root .pub-link { text-decoration: underline; text-underline-offset: 3px; }
+
+/* 포커스 링 — _ds 의 box-shadow 링을 끄고 outline 으로 통일한다.
+   `--pub-focus` 는 테마·패널에 따라 뒤집히므로 흰 섬 위에서도 보인다. */
+.pub-root :focus-visible {
+  outline: 2px solid var(--pub-focus);
+  outline-offset: 3px;
+  box-shadow: none;
+  border-radius: var(--pub-round-control);
+}
+
+.pub-root h1, .pub-root h2, .pub-root h3, .pub-root p, .pub-root ul, .pub-root ol {
+  margin: 0;
+}
+.pub-root ul, .pub-root ol { padding: 0; list-style: none; }
+
+/* ── 프레임 · 본문 폭 ─────────────────────────────────── */
+.pub-main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--pub-frame);
+  margin: 0 auto;
+  padding: 0 var(--pub-gap-5) var(--pub-gap-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-14);
+  min-width: 0;
+}
+.pub-measure { max-width: var(--pub-measure); }
+
+/* ── 헤더(PubNav) ─────────────────────────────────────── */
+.pub-nav {
+  width: 100%;
+  max-width: var(--pub-frame);
+  margin: 0 auto;
+  padding: var(--pub-gap-5);
+  display: flex;
+  align-items: center;
+  gap: var(--pub-gap-4);
+  flex-wrap: wrap;
+}
+.pub-nav-brand {
+  font-size: var(--pub-size-caption);
+  font-weight: var(--pub-weight-display);
+  letter-spacing: var(--pub-tracking-eyebrow);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pub-nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--pub-gap-1);
+  margin-left: auto;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.pub-nav-link {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 var(--pub-gap-3);
+  border-radius: var(--pub-round-pill);
+  font-size: var(--pub-size-text-sm);
+  color: var(--pub-ink-muted);
+  white-space: nowrap;
+  transition: color var(--pub-motion-quick) var(--pub-motion-ease),
+              background var(--pub-motion-quick) var(--pub-motion-ease);
+}
+.pub-nav-link:hover { color: var(--pub-ink); background: var(--pub-edge); }
+
+/* ── 눈썹 라벨 (Foreplay "RESEARCH & INSPIRATION") ────── */
+.pub-eyebrow {
+  font-size: var(--pub-size-caption);
+  font-weight: var(--pub-weight-strong);
+  letter-spacing: var(--pub-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--pub-ink-faint);
+}
+
+/* ── 히어로 ───────────────────────────────────────────── */
+.pub-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-6);
+  padding: var(--pub-gap-14) 0 var(--pub-gap-8);
+  max-width: 960px;
+}
+.pub-hero-title {
+  font-size: var(--pub-size-display-sm);
+  line-height: var(--pub-leading-display);
+  letter-spacing: var(--pub-tracking-display);
+  font-weight: var(--pub-weight-display);
+  overflow-wrap: break-word;
+}
+.pub-lead {
+  font-size: var(--pub-size-text);
+  line-height: var(--pub-leading-text);
+  color: var(--pub-ink-muted);
+  max-width: var(--pub-measure);
+}
+.pub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pub-gap-3);
+  align-items: center;
+}
+
+/* ── 섹션 ─────────────────────────────────────────────── */
+.pub-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-6);
+  min-width: 0;
+}
+.pub-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-2);
+  max-width: var(--pub-measure);
+}
+.pub-section-title {
+  font-size: var(--pub-size-head-sm);
+  line-height: var(--pub-leading-head);
+  letter-spacing: var(--pub-tracking-display);
+  font-weight: var(--pub-weight-display);
+}
+.pub-text {
+  font-size: var(--pub-size-text-sm);
+  line-height: var(--pub-leading-text);
+  color: var(--pub-ink-muted);
+}
+.pub-caption {
+  font-size: var(--pub-size-caption);
+  line-height: 1.6;
+  color: var(--pub-ink-faint);
+}
+
+/* 자동 3열 — 280px 아래로는 한 열. */
+.pub-grid {
+  display: grid;
+  gap: var(--pub-gap-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  min-width: 0;
+}
+
+/* ── 패널 = 흰 섬. 다크 캔버스 위에서도 내부는 라이트다 ── */
+.pub-panel {
+  /* 패널 안에서 테마 변수를 뒤집는다. 덕분에 다크 랜딩의 흰 카드 안에서
+     버튼·칩·포커스 링이 자동으로 "흰 배경용"이 된다 — 컴포넌트 분기 없음. */
+  --pub-ink: var(--pub-island-ink);
+  --pub-ink-muted: var(--pub-island-ink-muted);
+  --pub-ink-faint: var(--pub-island-ink-muted);
+  --pub-edge: var(--pub-island-edge);
+  --pub-edge-strong: #cbd4e0;
+  --pub-cta: var(--pub-island-ink);
+  --pub-cta-ink: var(--pub-island);
+  --pub-focus: var(--pub-island-ink);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-3);
+  padding: var(--pub-gap-6);
+  background: var(--pub-island);
+  color: var(--pub-island-ink);
+  border: 1px solid var(--pub-island-edge);
+  border-radius: var(--pub-round-card);
+  box-shadow: var(--pub-lift-1);
+  min-width: 0;
+}
+.pub-panel-title {
+  font-size: var(--pub-size-text);
+  font-weight: var(--pub-weight-strong);
+  line-height: var(--pub-leading-head);
+  color: var(--pub-island-ink);
+}
+/* 배너 = 큰 흰 카드(radius 32). Foreplay 하단 CTA 리듬. */
+.pub-panel--banner {
+  gap: var(--pub-gap-5);
+  padding: var(--pub-gap-10) var(--pub-gap-6);
+  border-radius: var(--pub-round-banner);
+  box-shadow: var(--pub-lift-2);
+  align-items: center;
+  text-align: center;
+}
+/* 배너 안의 제목은 섹션 제목 크기다(h2 이므로 크기도 그 단계로). */
+.pub-panel--banner .pub-panel-title {
+  font-size: var(--pub-size-head-sm);
+  letter-spacing: var(--pub-tracking-display);
+  font-weight: var(--pub-weight-display);
+}
+/* 알림(로그인 화면의 오류·잠김 안내). 색이 아니라 왼쪽 굵은 선으로 구분한다. */
+.pub-panel--alert {
+  border-left: 4px solid var(--pub-island-ink);
+  box-shadow: none;
+}
+
+/* ── 버튼 ─────────────────────────────────────────────── */
+.pub-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pub-gap-2);
+  height: 44px;
+  padding: 0 var(--pub-gap-5);
+  border: 1px solid transparent;
+  border-radius: var(--pub-round-pill);
+  font-family: var(--pub-type);
+  font-size: var(--pub-size-text-sm);
+  font-weight: var(--pub-weight-strong);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--pub-motion-quick) var(--pub-motion-ease),
+              opacity var(--pub-motion-quick) var(--pub-motion-ease),
+              background var(--pub-motion-quick) var(--pub-motion-ease);
+}
+.pub-btn:hover { text-decoration: none; }
+.pub-btn:active { transform: translateY(1px); }
+.pub-btn--primary {
+  background: var(--pub-cta);
+  color: var(--pub-cta-ink);
+}
+.pub-btn--primary:hover { opacity: 0.88; }
+.pub-btn--ghost {
+  background: transparent;
+  color: var(--pub-ink);
+  border-color: var(--pub-edge-strong);
+}
+.pub-btn--ghost:hover { background: var(--pub-edge); }
+.pub-btn--lg { height: 52px; padding: 0 var(--pub-gap-8); font-size: var(--pub-size-text); }
+
+/* ── 칩 ───────────────────────────────────────────────── */
+.pub-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pub-gap-1);
+  height: 28px;
+  padding: 0 var(--pub-gap-3);
+  border: 1px solid var(--pub-edge);
+  border-radius: var(--pub-round-pill);
+  font-size: var(--pub-size-caption);
+  color: var(--pub-ink-muted);
+  white-space: nowrap;
+}
+.pub-chip--solid {
+  background: var(--pub-cta);
+  color: var(--pub-cta-ink);
+  border-color: transparent;
+}
+
+/* ── 통계 ─────────────────────────────────────────────── */
+.pub-statrow {
+  display: grid;
+  gap: var(--pub-gap-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+}
+.pub-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-1);
+  padding: var(--pub-gap-5) 0;
+  border-top: 1px solid var(--pub-edge);
+  min-width: 0;
+}
+.pub-stat-value {
+  font-size: var(--pub-size-head);
+  line-height: var(--pub-leading-head);
+  letter-spacing: var(--pub-tracking-display);
+  font-weight: var(--pub-weight-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--pub-ink);
+}
+.pub-stat-label {
+  font-size: var(--pub-size-caption);
+  font-weight: var(--pub-weight-strong);
+  letter-spacing: var(--pub-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--pub-ink-faint);
+}
+.pub-stat-caption { font-size: var(--pub-size-caption); line-height: 1.6; color: var(--pub-ink-muted); }
+
+/* ── 푸터 ─────────────────────────────────────────────── */
+.pub-footer {
+  width: 100%;
+  max-width: var(--pub-frame);
+  margin: 0 auto;
+  padding: var(--pub-gap-8) var(--pub-gap-5) var(--pub-gap-10);
+  border-top: 1px solid var(--pub-edge);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-3);
+}
+.pub-footer-links { display: flex; flex-wrap: wrap; gap: var(--pub-gap-4); }
+.pub-footer-links a { font-size: var(--pub-size-caption); color: var(--pub-ink-muted); }
+.pub-footer-links a:hover { color: var(--pub-ink); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── 케이스 줄 (랜딩의 "최신 승인 케이스 3장"). A2 의 카드 그리드가
+      이 규칙을 그대로 가져가 `.pub-case` 를 카드로 키우면 된다. ── */
+.pub-caselist { display: flex; flex-direction: column; gap: var(--pub-gap-2); }
+.pub-case {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-2);
+  padding: var(--pub-gap-4);
+  border: 1px solid var(--pub-edge);
+  border-radius: var(--pub-round-control);
+  transition: border-color var(--pub-motion-quick) var(--pub-motion-ease),
+              background var(--pub-motion-quick) var(--pub-motion-ease);
+}
+.pub-case:hover { border-color: var(--pub-edge-strong); background: var(--pub-island-wash); }
+.pub-case-title {
+  font-size: var(--pub-size-text);
+  font-weight: var(--pub-weight-strong);
+  line-height: var(--pub-leading-head);
+  overflow-wrap: anywhere;
+  /* 제목은 `detailTitle` 이 만드는 "브랜드 — summary 첫 문장" 이라 길면 6줄까지 간다.
+     자르되(2줄) 원문을 바꾸지 않는다 — 전문은 상세 화면에 그대로 있다. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.pub-case-meta { display: flex; flex-wrap: wrap; gap: var(--pub-gap-2); align-items: center; }
+
+/* ── 로그인 화면: 한 장 카드 가운데 ───────────────────── */
+.pub-form { display: flex; flex-direction: column; gap: var(--pub-gap-4); }
+.pub-solo {
+  width: 100%;
+  max-width: 480px;
+  margin: var(--pub-gap-10) auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-4);
+}
+/* 한 장 카드 화면의 히어로는 작다 — 제목이 "로그인" 두 글자인데 56px 은 과하다. */
+.pub-solo .pub-hero { padding: var(--pub-gap-6) 0 0; gap: var(--pub-gap-3); }
+.pub-solo .pub-hero-title { font-size: var(--pub-size-head); }
+.pub-solo .pub-lead { font-size: var(--pub-size-text-sm); }
+.pub-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--pub-size-caption);
+  word-break: break-all;
+}
+
+/* ── ≥768px: 타입 한 단 올림 + 섹션 리듬 넓힘 ─────────── */
+@media (min-width: 768px) {
+  .pub-main { padding: 0 var(--pub-gap-8) var(--pub-gap-20); }
+  .pub-nav, .pub-footer { padding-left: var(--pub-gap-8); padding-right: var(--pub-gap-8); }
+  .pub-root { font-size: var(--pub-size-text); }
+  .pub-hero { padding: var(--pub-gap-20) 0 var(--pub-gap-10); gap: var(--pub-gap-8); }
+  .pub-hero-title { font-size: var(--pub-size-display); }
+  .pub-section-title { font-size: var(--pub-size-head); }
+  .pub-text { font-size: var(--pub-size-text); }
+  .pub-panel { padding: var(--pub-gap-8); }
+  .pub-panel--banner { padding: var(--pub-gap-20) var(--pub-gap-10); }
+}

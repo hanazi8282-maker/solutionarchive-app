@@ -65,7 +65,7 @@ export default async function ColumnReadPage({ params }: { params: Promise<{ slu
         <footer style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'grid', gap: 8, fontSize: 13 }}>
           {/* case_study_slug 는 20260929000003 미적용이면 undefined — 그때는 링크 줄 자체가 없다. */}
           {c.case_study_slug ? (
-            <a href={`/cases?status=approved#case-${c.case_study_slug}`}>이 칼럼의 근거 케이스 보기 ({c.case_study_slug})</a>
+            <Link href={`/library/${c.case_study_slug}`}>이 칼럼의 근거 케이스 보기 ({c.case_study_slug})</Link>
           ) : null}
           <Link href="/columns/read">다른 칼럼 보기</Link>
         </footer>

@@ -161,9 +161,10 @@ export function CaseMoveCards({ cards }: { cards: AdvisorCaseMoveCard[] }) {
       {cards.map((c) => (
         <div key={c.case_move_id} style={{ display: 'grid', gap: 4 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-            {/* 전용 상세 라우트(/cases/<slug>)는 아직 없다 — 목록의 앵커로 보낸다. */}
-            <a href={`/cases?status=approved#case-${c.slug}`} style={{ textDecoration: 'none' }}
-              title="케이스 목록에서 이 케이스 보기">
+            {/* 공개 상세 라우트(/library/<slug>). 전에는 검수 목록 앵커(`/cases?status=approved#case-…`)로
+                보냈는데, 그 화면은 로그인 벽 뒤 검수용이라 셀러가 눌러도 볼 게 없었다. */}
+            <a href={`/library/${c.slug}`} style={{ textDecoration: 'none' }}
+              title="이 케이스의 상세 보기">
               <Badge tone="neutral" size="sm">{c.brand_name} ↗</Badge>
             </a>
             <Badge tone="neutral" size="sm">{c.lever}</Badge>

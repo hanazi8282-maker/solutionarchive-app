@@ -28,6 +28,12 @@ type Client = NonNullable<Awaited<ReturnType<typeof createClient>>>
 export const RELATED_LIMIT = 3
 /** 카드 한 줄에 싣는 `transfer_note` 길이(§4). */
 export const TRANSFER_NOTE_CLIP = 60
+/**
+ * 피드백 한 줄 상한. **DB CHECK(`case_feedback.note` length <= 500)과 같은 값이어야 한다** —
+ * 갈라지면 사람이 다 쓰고 보내기를 누른 뒤에 23514 로 죽는다(wtp_signals 에서 겪은 형태).
+ * `'use server'` 파일은 async 함수만 export 할 수 있어 상수가 여기 있다.
+ */
+export const FEEDBACK_NOTE_MAX = 500
 
 export type DetailStudyRow = StudyRow & {
   summary?: string | null
@@ -294,7 +300,7 @@ export function pickLeadMove(moves: DetailMoveRow[]): DetailMoveRow | null {
   return [...approved].sort((a, b) =>
     (GRADE_RANK[b.evidence_grade] ?? -1) - (GRADE_RANK[a.evidence_grade] ?? -1)
     || (b.transfer_note ? 1 : 0) - (a.transfer_note ? 1 : 0)
-    || (a.created_at ?? '').localeCompare(b.created_at ?? ''))
+    || (a.created_at ?? '').localeCompare(b.created_at ?? ''))[0]
 }
 
 /**

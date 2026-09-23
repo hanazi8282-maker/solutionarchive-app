@@ -88,6 +88,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":1})
 - ▲ `stage` 발행 대기 스테이징 ({"staged":1}) — CG-1 미통과 — 등급 C 무브를 인용했는데 본문에 출처 귀속 문구가 없다. posts 는 draft 로 눕혔다(본문은 남아 있다).
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":19})
+- ℹ️ Notion 푸시: -plus-pricing-collapse-3e4100b7ffb481f48b0de8f7927987ce ✅ DISCOVERY-2026-09-23 → https://app.notion.com/p/DISCOVERY-2026-09-23-3e4100b7ffb4814d9b92fdd557029a71 푸시 완료 — 초안 0건 · 신규케이스 4건 · 발굴 1건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-09-24-CMO 기록·재확인
 
 _실행 키 `cmo-2026-09-23-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

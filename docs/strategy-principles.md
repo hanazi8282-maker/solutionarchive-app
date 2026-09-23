@@ -39,7 +39,7 @@
 | SP-021 | channel, legal, conflict | App Store RSS 피드에 대해 우호적인 개발자포럼 답변이 있으나, 실측된 robots.txt가 해당 경로를 명시적으로 Disallow — 라이브 robots.txt가 과거 포럼 답변보다 우선한다고 판단해 SP-019의 중단 결정 유지 | A (robots.txt는 실측, 포럼 답변은 3자 정황) | §29 |
 | SP-022 | channel, rejected | 유료 데이터벤더(Appfigures Public Data API add-on, Sensor Tower/data.ai, Datarade)는 전부 "구매형 데이터 조달" 범주로 배제 | B (공식 문서 기반) | §29 |
 | SP-023 | competitor, market | G2가 Gartner로부터 Capterra·GetApp·Software Advice 인수를 2026-01-29 공식 발표(Q1 2026 종결 예정) — 향후 이 3사 약관이 G2 체계로 통합될 가능성, Tier 4 배제 목록 갱신 필요 시점 모니터링 | B (보도자료 기반) | §29 |
-| SP-024 | advisor, matching, false-positive | 크로스섹션 어드바이저 Corpus A 점수는 `evidence_grade랭크 × 10 + 겹친 낱말 수` 라 등급 가중이 겹침 강도를 압도한다 — 광범위 도메인어 낱말 1개로 걸린 A등급 무브가 31점, 정확한 낱말 5개로 걸린 C등급 무브가 15점이라 "점수가 낮으면 저신뢰"가 성립하지 않는다. 불용어 필터(PR #43)는 낱말 목록만 고칠 뿐 이 역전을 못 막는다. 그래서 단일 낱말 매칭은 점수 임계로 숨기지 않고, 겹친 낱말·점수·"신뢰도 낮음"을 화면에 그대로 노출해 사람이 판단하게 한다 | A (산식 실측 — scripts/advisor-selftest.mjs 재현) | PR #43 후속 · **2026-09-23 SaaS 적용 재검토 = 보류 유지**(아래 근거, 재개 조건 2개) |
+| SP-024 | advisor, matching, false-positive | 크로스섹션 어드바이저 Corpus A 점수는 `evidence_grade랭크 × 10 + 겹친 낱말 수` 라 등급 가중이 겹침 강도를 압도한다 — 광범위 도메인어 낱말 1개로 걸린 A등급 무브가 31점, 정확한 낱말 5개로 걸린 C등급 무브가 15점이라 "점수가 낮으면 저신뢰"가 성립하지 않는다. 불용어 필터(PR #43)는 낱말 목록만 고칠 뿐 이 역전을 못 막는다. 그래서 단일 낱말 매칭은 점수 임계로 숨기지 않고, 겹친 낱말·점수·"신뢰도 낮음"을 화면에 그대로 노출해 사람이 판단하게 한다 | A (산식 실측 — scripts/advisor-selftest.mjs 재현) | PR #43 후속 · **2026-09-23 SaaS 적용 재검토 = 보류 유지**(아래 근거, 재개 조건 2개) · 2026-09-23 `GRADE_RANK` 입력을 `pmf_grade` 로 전환(`gradeRankOf`), 공식 재개는 SaaS 무브 20건 이후 |
 
 | SP-025 | channel, legal, community, risk-accepted | 다모앙(damoang.net) robots.txt 는 `anthropic-ai`·`Claude-Web`·`GPTBot`·`CCBot`·`Google-Extended` 등을 "AI 크롤러 차단 (콘텐츠 학습 방지)" 로 전면 금지하고, `trend-archive/0.1`·`CollectorHub/0.1` 같은 **자칭 수집기**도 이름을 확인하는 대로 차단 목록에 추가하며 "robots 는 의사 표시이고 분쟁 시 근거가 된다"고 문서에 적어 두었다 — 우리 UA(`solutionarchive-review-collector/0.1`)는 아직 목록에 없어 `User-agent: *` / `Allow: /` 가 적용돼 **기계 판정은 allowed** 지만, 사이트의 거부 의사가 우리 용도(AI 분석·콘텐츠 생성)를 덮는다. 남헌이 **2026-09-16 이 사실을 인지한 채로 수집 진행을 결정**했다(Reddit/SP-005 와 같은 리스크 수용 방식). 단 `enabled=false` 로 등록해 사람이 켜야 시작한다 | A (robots.txt 원문 실측 2026-09-16 + 사람 결정) | 2026-09-16 실측 |
 | SP-026 | infra, bug, robots-txt | `lib/review/runner.ts:153` 이 `robotsVerdict(cached, u.pathname, PRODUCT_TOKEN)` 로 **쿼리스트링을 빼고** 판정을 부른다 — `robots.ts` 자체는 `*`·`$` 와 쿼리를 정확히 판정하는데(SP-018 로 수정됨), 호출부에서 `u.search` 가 잘려 `Disallow: /*?page=` (다모앙) 나 `Disallow: /entiz/read.php?bn=15&num=1166440&page=6` (82cook) 같은 **쿼리 대상 규칙이 어떤 경로와도 매칭되지 않는다.** 와일드카드 구현 여부와 무관한 별개 결함이고 전 소스에 동시 영향을 준다. 이번 커뮤니티 어댑터는 1글=1요청이라 이 구멍을 밟지 않지만(수집 URL 에 `?page=` 가 없다), **댓글 페이지네이션을 붙이려면 이 수정이 선행되어야 한다** — 안 고치고 붙이면 안전장치가 robots 위반을 못 막는다(§7.2) | A (실측 — 실제 robots 를 통과시켜 재현) | 2026-09-16 실측 |
@@ -153,6 +153,13 @@ SaaS 피봇 코퍼스에 이 고도화를 적용할지 프로덕션 DB 로 재�
 3. **효과를 측정할 표본이 없다.** 승인 SaaS 무브 11건, 실측 질의당 카드 1~6장이다(`q:결제` 1장 · `q:무료` 4장 · 병목 CONVERSION 6장). 이 규모에서 산식을 바꾸면 무엇이 좋아졌는지 확인할 방법이 없고, 바꾼 것 자체가 근거 없는 변경으로 남는다.
 
 그리고 SP-024 가 채택한 대응(겹친 낱말·점수·"신뢰도 낮음"을 숨기지 않고 노출)은 이미 화면에 있고(PR #110), 2026-09-23 에 인사이트·사실확인 **두 축 병기 + 등급 범례**까지 붙었다. 사람이 판단할 재료는 오히려 늘었다.
+
+**2026-09-23 후속 — 등급항이 변수가 됐다(그래도 재개는 아니다).** PMF 등급축이 붙으면서
+`GRADE_RANK` 의 입력이 `evidence_grade` → `pmf_grade ?? evidence_grade`(`gradeRankOf`)로
+바뀌었다. 위 (1) "등급항이 지금 상수다"는 재채점 후 더 이상 성립하지 않는다 —
+재개 조건 (a) 는 충족되는 방향이다. **그러나 (b) 승인 SaaS 무브 20건은 아직 11건이라
+SP-024 공식 재개는 선언하지 않는다**(남헌 2026-09-23). 손댄 것은 등급의 **입력**뿐이고,
+보너스 크기(`KIND_MATCH_BONUS=100`)와 가중(×10)은 그대로다.
 
 **재개 조건 — 둘이 같이 성립할 때만 산식을 다시 본다.**
 - (a) 승인 무브에 등급 **B 또는 C 가 1건 이상** 생긴다 (등급항이 변수가 되는 시점).

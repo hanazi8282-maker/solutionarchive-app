@@ -19,8 +19,13 @@
 export const MATCH_STATUS = ['matched', 'no_match', 'not_run'] as const
 export type MatchStatus = (typeof MATCH_STATUS)[number]
 
-// 등급 순위. A 가 가장 세다. D 는 수치가 없는 무브라 매칭 결과에서 뺀다.
-export const GRADE_RANK: Record<string, number> = { A: 3, B: 2, C: 1, D: 0 }
+// 등급 순위. A 가 가장 세다. D 는 결과가 불분명한 무브라 매칭 결과에서 뺀다.
+//
+// ★ 2026-09-23: 정의가 `grade-display.ts` 로 옮겨졌고 여기는 재수출이다. 랭킹이 보는
+//   등급과 화면이 보여 주는 등급을 갈라 놓지 않기 위해서다 — 등급을 읽는 자리는
+//   `gradeRankOf(move)` 하나이고, 그 함수가 `pmf_grade ?? evidence_grade` 를 본다.
+export { GRADE_RANK, gradeRankOf } from './grade-display.ts'
+import { gradeRankOf } from './grade-display.ts'
 
 export interface MoveRow {
   id: string
@@ -103,7 +108,7 @@ export function matchMoves(
     // 케이스와 무브 **둘 다** approved 여야 한다. 케이스 승인이 무브 승인을
     // 뜻하지 않는다 (case-review.mjs 가 그렇게 경고한다).
     if (study.review_status !== 'approved' || m.review_status !== 'approved') { excluded.not_approved++; continue }
-    if ((GRADE_RANK[m.evidence_grade] ?? 0) <= 0) { excluded.grade_d++; continue }
+    if ((gradeRankOf(m) ?? 0) <= 0) { excluded.grade_d++; continue }
     // ★ 반면교사(negative)는 선례가 아니다 — "남이 이 병목을 풀었다"의 근거로 세면 선례축이 부풀고
     //   사분면이 PROVEN 쪽으로 기운다(2026-09-21 남헌: Zenefits 라이선스 매크로가 선례 8건 중 2건이었다).
     //   처방 카드의 "⛔ 반면교사" 경고는 advisor.matchCaseMoves(낱말 매칭) 가 따로 만드므로 여기서 빼도 그대로 나간다.
@@ -116,7 +121,7 @@ export function matchMoves(
 
     out.push({
       ...m, study, facet_hits,
-      match_score: (GRADE_RANK[m.evidence_grade] ?? 0) * 10 + facet_hits.length,
+      match_score: (gradeRankOf(m) ?? 0) * 10 + facet_hits.length,
     })
   }
 
@@ -202,7 +207,7 @@ export function precedentAxis(match: MatchResult): { value: number | null; reaso
   if (match.status === 'not_run') return { value: null, reason: `선례 확인 불가 — ${match.reason}` }
   if (match.status === 'no_match') return { value: 0, reason: match.reason }
   const caseIds = new Set(match.moves.map(m => m.study.id))
-  const bestRank = Math.max(...match.moves.map(m => GRADE_RANK[m.evidence_grade] ?? 0))
+  const bestRank = Math.max(...match.moves.map(m => gradeRankOf(m) ?? 0))
   // 케이스 2곳 이상 = 비교가 성립하는 최소선. 그걸 만점의 기준으로 삼는다.
   const breadth = Math.min(1, caseIds.size / 2)
   return {

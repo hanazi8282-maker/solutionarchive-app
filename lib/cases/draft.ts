@@ -573,3 +573,196 @@ export function toRows(draft: Draft) {
   })
   return { study, moves, evidence }
 }
+
+// ────────────────────────────────────────────────────────────
+// PMF 등급축 (2026-09-23) — "그래서 얼마나 됐나(S) × 타인이 내일 할 수 있나(T)"
+// ────────────────────────────────────────────────────────────
+//
+// 설계 정본: reports/2026-09-23/pmf-grade-axis-design.md §3 / docs/case-study-pipeline-design.md §10.
+//
+// 왜 축을 더하나: `gradeMove`(인사이트)는 "옮길 행동·전제·근거가 적혀 있나"만 본다.
+// 그래서 승인 무브 41개 중 39개가 A 다 — 변별력이 없다. 빠진 물음이 하나다:
+// **그 행동으로 실제로 얼마나 됐나.** 그걸 S 로 세고, 이미 있는 이식성(T)과 합성한다.
+//
+// ★ 기존 두 산식(`gradeMove` · `factCheckGrade`)은 **건드리지 않았다.** 발행 게이트
+//   CG-1/CG-2 는 그대로 사실확인 축을 본다. 이 축은 새 컬럼에만 쓴다.
+//
+// ★ S 의 정본은 **사람**이다 (남헌 2026-09-23). 코드는 벤치마크를 모른다 — NPS 76 이
+//   높은지, 반품률 5% 가 낮은지 판정할 자료가 없다. 그래서 채점 카드가 사람이 고른 S 를
+//   넘기면 그걸 쓰고, 안 넘기면 `suggestSignal()` 의 **제안값**으로 계산한 뒤
+//   `provisional` 를 켠다. 제안으로 매긴 등급을 사람이 고른 등급과 같은 것으로 보이게
+//   하지 않는다(§7.1 — 확인하지 않은 것을 확인한 것으로 접지 않는다).
+
+/** 채점 카드·DB 행이 함께 넘기는 무브. `Move` + 사람 판정 3필드. */
+export type PmfMove = Move & {
+  /** 사람만 쓰는 이식성 판정(HIGH/MEDIUM/LOW). `null` 은 **미판정**이지 LOW 가 아니다. */
+  transferability?: string | null
+  /**
+   * 이 수치가 **결과**인가 **투입**인가. 사람이 채점 카드에서 고른다(기본 outcome).
+   * "지원 앱 2→6,000개"는 3,000배 개선이 아니라 행동의 크기다 — 투입을 개선폭 산식에
+   * 그대로 넣으면 돈을 많이 쓴 무브가 A 가 된다. 그래서 투입은 S2 가 상한이다.
+   */
+  metric_kind?: string | null
+  /** 케이스의 `outcome_status`(active/pivoted/shutdown/unknown). 실패 확정 판정에 쓴다. */
+  outcome_status?: string | null
+}
+
+export type Signal = 0 | 1 | 2 | 3
+export type SignalResult = { signal: Signal; reason: string }
+export type TransferResult = { transfer: Signal; reason: string; provisional: boolean }
+export type PmfGradeResult = {
+  grade: Grade
+  signal: Signal
+  transfer: Signal
+  reason: string
+  /** S 를 제안값으로 썼거나 T 를 전제 문장에서 뽑았다 = 사람이 확정하지 않은 등급. */
+  provisional: boolean
+}
+
+/** 비율 지표인가 — 배수가 아니라 pp 로 봐야 하는 단위(설계 §3-1 규칙 ③). */
+const RATIO_UNIT = /^\s*(%|pp|퍼센트|퍼센트포인트|percent)\s*$/i
+
+/**
+ * S 신호 강도 **제안값**. 최종 판정은 사람이 채점 카드에서 한다.
+ *
+ * 3 = 상대 변화 ≥2배(감소는 ≤½) · 비율 지표 ≥10pp · 또는 실패 확정(negative + pivoted/shutdown)
+ * 2 = 20~99% 변화 · 5~10pp
+ * 1 = <20% 변화 · 5pp 미만 · **단일 시점 수치**(벤치마크는 코드가 모른다)
+ * 0 = 수치 없음(사실확인 D)
+ *
+ * ★ 단일 시점(`metric_before` 없음)을 1 로 두는 것이 이 함수의 가장 보수적인 자리다.
+ *   "NPS 76 · 반품률 5% · 비디자이너 66%" 는 사람이 보면 강한 수치인데 코드는 그걸 모른다.
+ *   그래서 낮게 제안하고 잠정으로 남긴다 — 높게 제안해 사람이 그대로 넘기면 기계 추측이
+ *   사람 판정으로 굳는다.
+ * ★ 투입 지표(`metric_kind='input'`)는 상한 2. 실패 확정 경로에도 이 상한이 먼저 걸린다.
+ */
+export function suggestSignal(move: PmfMove, evidence: Evidence[]): SignalResult {
+  const fc = factCheckGrade(move, evidence)
+  if (fc.grade === 'D') return { signal: 0, reason: `수치 없음 — ${fc.reason}` }
+
+  const isInput = (move.metric_kind ?? 'outcome') === 'input'
+  const cap = (s: Signal, why: string): SignalResult =>
+    isInput && s > 2
+      ? { signal: 2, reason: `${why} — 단, 투입 지표라 S2 가 상한이다(행동의 크기는 성과가 아니다)` }
+      : { signal: s, reason: why }
+
+  const failed = move.outcome_direction === 'negative'
+    && (move.outcome_status === 'pivoted' || move.outcome_status === 'shutdown')
+  if (failed) {
+    return cap(3, `실패 확정 — 방향 negative + 케이스 ${move.outcome_status} + 수치 있음(반증 강도)`)
+  }
+
+  const before = move.metric_before
+  const after = move.metric_after as number
+  if (before === null || before === undefined) {
+    return cap(1, '단일 시점 수치 — 벤치마크 대비 강한지는 코드가 모른다. 사람이 채점 카드에서 S 를 고른다')
+  }
+
+  if (before === 0) return cap(3, `0 → ${after}${move.metric_unit ?? ''} (없던 것이 생겼다)`)
+  const rel = Math.abs(after - before) / Math.abs(before)
+  // "≥2배, 감소는 ≤½" 는 **배수**로 봐야 한다. |Δ|/before 로만 보면 절반으로 준 지표가
+  // 0.5 로 읽혀 S2 가 된다 — 설계가 S3 예로 든 ConvertKit 이탈 5.5→1.5% 가 그 꼴이었다.
+  // 부호가 뒤집힌 것(이익 → 손실)은 배수를 셀 수 없고, 그건 언제나 큰 신호다.
+  const flipped = after / before < 0
+  const mult = flipped ? Infinity : Math.max(Math.abs(after / before), Math.abs(before / after))
+  const big = flipped || mult >= 2
+
+  if (RATIO_UNIT.test(move.metric_unit ?? '')) {
+    // 규칙 ③ — 비율 지표는 pp 로 본다(14.8→24.8% 는 1.68배가 아니라 +10pp). 단 §3-1 의
+    // "≥2배(감소는 ≤½)" 조항은 비율 지표에도 그대로 살아 있다(ConvertKit 예) — OR 이다.
+    const pp = Math.abs(after - before)
+    const s: Signal = pp >= 10 || big ? 3 : pp >= 5 || rel >= 0.2 ? 2 : 1
+    return cap(s, `비율 지표 ${before}→${after}${move.metric_unit} = ${Math.round(pp * 10) / 10}pp`
+      + (big ? ` · ${flipped ? '부호 반전' : `${Math.round(mult * 10) / 10}배`}` : ''))
+  }
+
+  const s: Signal = big ? 3 : rel >= 0.2 ? 2 : 1
+  return cap(s, `${before}→${after}${move.metric_unit ?? ''} = ${flipped ? '부호 반전' : `${Math.round(mult * 10) / 10}배`} / ${Math.round(rel * 100)}% 변화`)
+}
+
+// 전제 문장에서 T 를 뽑는 낱말 — 설계 §3-2. 순서가 뜻을 만든다: 자본·규제 쪽이 하나라도
+// 걸리면 T1 이다(가장 옮기기 어려운 조건이 그 무브의 천장이니까).
+//
+// ponytail: 낱말 포함 검사라 부정문("큰 자본은 전제가 아니다")을 못 읽는다. 그래서 이
+// 경로의 결과는 전부 잠정이고, 사람이 `transferability` 를 채우면 낱말은 아예 안 본다.
+// 정확도를 올리는 길은 낱말을 늘리는 게 아니라 사람 판정을 채우는 것이다.
+const T_CAPITAL = ['공장', '설비', '임상', '규제', '허가', '인허가', '식약처', '특허', '규모', '자체 생산']
+const T_RELATION = ['관계', '현금', '계약', '채널', '도매', '매장', '유통', '협상', '담당자', '파트너', '재고', '위탁', '발주']
+const T_DATA = ['데이터', '기록', '집계', '측정', '수치', '셀 수', '숫자로', '알 수 있어야', '볼 수 있어야']
+
+/**
+ * T 이식성 (0~3). `transferability`(사람 판정)가 있으면 그것이 정본이고 확정이다.
+ * 없으면 전제 문장에서 낱말로 뽑고 **잠정**으로 표시한다(미판정을 LOW 로 접지 않는
+ * §9-2 원칙 그대로 — 41개 중 38개가 미판정이라, 접으면 코퍼스가 사라진다).
+ *
+ * T0 = `preconditions` 미기재. 이건 "전제가 없다"가 아니라 "안 적었다"다.
+ */
+export function transferScore(move: PmfMove): TransferResult {
+  const t = (move.transferability ?? '').trim().toUpperCase()
+  if (t === 'HIGH') return { transfer: 3, reason: '이식성 HIGH (사람 판정)', provisional: false }
+  if (t === 'MEDIUM') return { transfer: 2, reason: '이식성 MEDIUM (사람 판정)', provisional: false }
+  if (t === 'LOW') return { transfer: 1, reason: '이식성 LOW (사람 판정)', provisional: false }
+
+  const pre = (move.preconditions ?? '').trim()
+  if (!pre) {
+    return { transfer: 0, reason: 'preconditions 미기재 — 옮길 수 있는지 판정할 재료가 없다(전제 없음이 아니다)', provisional: true }
+  }
+  const hit = (list: string[]) => list.filter((k) => pre.includes(k))
+  const capital = hit(T_CAPITAL)
+  if (capital.length) return { transfer: 1, reason: `전제에 자본·규제·규모가 든다(${capital.join('·')}) — 잠정`, provisional: true }
+  const relation = hit(T_RELATION)
+  if (relation.length) return { transfer: 2, reason: `전제에 관계·채널·현금이 든다(${relation.join('·')}) — 잠정`, provisional: true }
+  const data = hit(T_DATA)
+  if (data.length) return { transfer: 3, reason: `전제가 자기 데이터·시간뿐이다(${data.join('·')}) — 잠정`, provisional: true }
+  return { transfer: 2, reason: '전제는 적혀 있으나 어느 쪽인지 낱말로 못 가렸다 — 중간으로 두고 사람 판정을 기다린다', provisional: true }
+}
+
+/**
+ * PMF 등급 = S × T (설계 §3-3).
+ *
+ *   A = S3 & T≥2  또는  S2 & T3      크게 됐고 내일 옮길 수 있다
+ *   B = S2 & T2 · S3 & T1 · S1 & T3   하나가 아쉽다
+ *   C = S1 & T≤2 · S2 & T1            작거나 옮기기 어렵다
+ *   D = S0                            결과 불분명 (매칭·스코어링 입력에서 빠진다)
+ *
+ * T0(전제 미기재)은 위 표에 없다. 판정 불가라서 C + 잠정으로 둔다 — S3 인데도 A 로
+ * 올리지 않고, "옮길 수 있다"를 확인하지 않은 채 D 로 내리지도 않는다(§7.1).
+ *
+ * ★ 실패(negative) 케이스도 A 가 될 수 있다 (남헌 2026-09-23). "무엇이 크게 틀렸나"는
+ *   "무엇이 크게 됐나"와 같은 값을 가진다. 배지에서는 방향 아이콘(↑/↓)으로 가른다 —
+ *   `lib/cases/grade-display.ts directionMark`. 등급을 셋으로 늘리지 않는다.
+ *
+ * @param opts.signal 사람이 채점 카드에서 고른 S(0~3). 주면 그것이 정본이고 확정이다.
+ */
+export function pmfGrade(
+  move: PmfMove,
+  evidence: Evidence[],
+  opts: { signal?: number | null } = {},
+): PmfGradeResult {
+  const picked = opts.signal
+  const human = typeof picked === 'number' && Number.isInteger(picked) && picked >= 0 && picked <= 3
+  const sig: SignalResult = human
+    ? { signal: picked as Signal, reason: `S${picked} (사람이 채점 카드에서 고름)` }
+    : suggestSignal(move, evidence)
+  const t = transferScore(move)
+  const provisional = !human || t.provisional
+  const out = (grade: Grade, why: string): PmfGradeResult => ({
+    grade,
+    signal: sig.signal,
+    transfer: t.transfer,
+    reason: `S${sig.signal}·T${t.transfer} → ${grade}: ${why} / 신호: ${sig.reason} / 이식성: ${t.reason}`
+      + (provisional ? ' / ⚠️ 잠정 — 사람이 S·이식성을 확정하면 바뀔 수 있다' : ''),
+    provisional,
+  })
+
+  if (sig.signal === 0) return out('D', '결과가 불분명하다 — 수치가 없다')
+  if (t.transfer === 0) return out('C', '전제를 안 적어 이식성을 판정할 수 없다')
+  if (sig.signal === 3) {
+    return t.transfer >= 2 ? out('A', '크게 됐고 옮길 수 있다') : out('B', '크게 됐으나 전제가 무겁다')
+  }
+  if (sig.signal === 2) {
+    if (t.transfer === 3) return out('A', '중간 규모지만 전제가 가벼워 그대로 옮긴다')
+    return t.transfer === 2 ? out('B', '규모·이식성 둘 다 중간') : out('C', '중간 규모인데 옮기기 어렵다')
+  }
+  return t.transfer === 3 ? out('B', '작지만 그대로 옮긴다') : out('C', '작고 옮기기도 쉽지 않다')
+}

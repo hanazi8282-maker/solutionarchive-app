@@ -1,8 +1,8 @@
 'use client'
 
 import { useActionState } from 'react'
+import Link from 'next/link'
 import { toggleSave, type SaveState } from './save-actions'
-import { Button, ButtonLink } from '../../_ds/components/Button'
 
 /**
  * 저장(북마크) 토글. 히어로 액션 줄에서 링크 복사 버튼 옆에 앉는다.
@@ -16,6 +16,8 @@ import { Button, ButtonLink } from '../../_ds/components/Button'
  *
  * `initialSaved` 는 서버가 읽어 넘긴 값이다. 누르기 전까지는 그 값이 화면의 진실이고,
  * 누른 뒤에는 액션이 돌려준 `saved` 가 이긴다(액션이 DB 를 다시 읽고 뒤집는다).
+ *
+ * ⚠️ 클라이언트 컴포넌트라 `_pub` 의 서버용 버튼을 못 쓴다 — `.pub-btn` 클래스를 직접 붙인다.
  */
 export function SaveButton({ caseStudyId, slug, signedIn, initialSaved, unavailable }: {
   caseStudyId: string
@@ -30,35 +32,33 @@ export function SaveButton({ caseStudyId, slug, signedIn, initialSaved, unavaila
 
   if (!signedIn) {
     return (
-      <ButtonLink href={`/login?next=${encodeURIComponent(`/library/${slug}`)}`} variant="outline" size="sm">
+      <Link className="pub-btn pub-btn--ghost pub-btn--sm" href={`/login?next=${encodeURIComponent(`/library/${slug}`)}`}>
         로그인하면 저장할 수 있다
-      </ButtonLink>
+      </Link>
     )
   }
 
   if (unavailable) {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        <Button variant="outline" size="sm" disabled>저장</Button>
-        <span role="status" style={{ fontSize: 12, color: 'var(--warning-fg)' }}>{unavailable}</span>
+      <span className="pub-formrow">
+        <button className="pub-btn pub-btn--ghost pub-btn--sm" type="button" disabled>저장</button>
+        <span className="pub-caption" role="status">{unavailable}</span>
       </span>
     )
   }
 
   return (
-    <form action={action} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+    <form className="pub-formrow" action={action}>
       <input type="hidden" name="case_study_id" value={caseStudyId} />
-      <Button type="submit" variant={saved ? 'primary' : 'outline'} size="sm" aria-pressed={saved} disabled={pending}>
+      <button
+        className={`pub-btn pub-btn--sm ${saved ? 'pub-btn--primary' : 'pub-btn--ghost'}`}
+        type="submit"
+        aria-pressed={saved}
+        disabled={pending}
+      >
         {pending ? '…' : saved ? '저장됨' : '저장'}
-      </Button>
-      {state && (
-        <span
-          role={state.ok ? 'status' : 'alert'}
-          style={{ fontSize: 12, color: state.ok ? 'var(--success-fg)' : 'var(--warning-fg)' }}
-        >
-          {state.message}
-        </span>
-      )}
+      </button>
+      {state && <span className="pub-caption" role={state.ok ? 'status' : 'alert'}>{state.message}</span>}
     </form>
   )
 }

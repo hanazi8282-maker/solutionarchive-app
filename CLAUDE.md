@@ -284,6 +284,7 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   (남헌 2026-09-17 승인 — 자율 VOC 발굴 엔진. 사람이 `review_targets` 를 하나씩
   등록하던 병목을 없애려고 이 한 줄을 열었다. 근거는 `docs/discovery-design.md`.
   **채택은 LLM 의 주장이 아니라 실측 hits 가 정한다** — 그게 이 권한을 준 조건이다.)
+- **요청 상한 자동 반영** — 위 "`review_sources` 에는 INSERT/UPDATE 하지 않는다" 의 **유일한 예외**(남헌 2026-09-24 지시): `review_sources.daily_request_cap` **한 컬럼**만, **현재값의 2배 이내**로만, `review_source_cap_log` 에 **감사 로그 행을 남긴 변경만**(로그 테이블 미적용이면 반영하지 않는다). 권장값이 2배를 넘으면 보류로 보고만 한다. 계산은 `lib/review/request-cap.ts`, 집행은 `scripts/review-request-cap.mjs`(nightly-review-collect pre-step). 상한을 **내리는 변경은 자동으로 하지 않는다.**
 - **reports/ 파일** — `reports/` · `drafts/cases/` · `drafts/threads/` · `ops/state/`
   4개 프리픽스에만 커밋한다. 그 밖의 경로가 스테이징에 있으면 커밋하지 않고 실패한다.
 

@@ -51,6 +51,12 @@ for (const p of pages) {
 // 2026-09-23 공개 라이브러리 — `/library` 접두사는 열되 검수 `/cases/*` 는 닫혀 있어야 한다(남헌 확정).
 t('공개(라이브러리 그리드): /library', isPublicPath('/library'))
 t('공개(라이브러리 상세): /library/convertkit-concierge-migration-conversion', isPublicPath('/library/convertkit-concierge-migration-conversion'))
+t('공개(라이브러리 OG): /library/x/opengraph-image', isPublicPath('/library/x/opengraph-image'))
+// ⚠️ `/library/saved`(내 저장함)도 접두사 때문에 **proxy 는 통과시킨다.** 그건 버그가 아니라
+//    이 목록의 뜻이다 — 그래서 `app/library/saved/page.tsx` 가 스스로 판정해 /login 으로 보낸다.
+//    이 줄은 그 사실을 고정한다: 여기가 false 로 바뀌면 페이지의 자체 가드가 중복이 되는 게 아니라,
+//    정책이 바뀐 것이므로 그 변경을 사람이 봐야 한다(인증 경계 = §10.2 사람 판단).
+t('공개(접두사): /library/saved — 페이지가 스스로 막는다', isPublicPath('/library/saved'))
 for (const p of ['/libraryx', '/cases/convertkit-concierge-migration-conversion', '/cases/search', '/cases/grade']) {
   t(`보호(라이브러리 공개가 검수 화면까지 번지지 않는다): ${p}`, !isPublicPath(p))
 }
@@ -134,7 +140,8 @@ for (const f of actionFiles) {
     guarded.push(name)
   }
 }
-for (const name of ['createPost', 'createSnapshot', 'linkDraft', 'decideMove', 'decideCase']) t(`서버 액션 검사 대상에 포함: ${name}`, guarded.includes(name))
+// toggleSave: `/library` 접두사가 공개라 이 액션만은 proxy 가 안 막아 준다 — 가드가 유일한 방어선이다.
+for (const name of ['createPost', 'createSnapshot', 'linkDraft', 'decideMove', 'decideCase', 'toggleSave']) t(`서버 액션 검사 대상에 포함: ${name}`, guarded.includes(name))
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 허용 목록 파서 · 공개/보호 경로(크론 ${cronRoutes.length}·페이지 ${pages.length}) · 세션 3상태 판정 · 서버 액션 가드 ${guarded.length}개`)
 process.exitCode = fail ? 1 : 0

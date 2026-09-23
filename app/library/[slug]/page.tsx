@@ -18,7 +18,9 @@ import { EmptyState } from '../../_ds/components/EmptyState'
 import { EvidenceCaption } from '../../_ds/components/EvidenceCaption'
 import { GradeLegend } from '../../_ds/components/GradeLegend'
 import { Notice, PageShell } from '../../_ds/components/Shell'
+import { isSaved } from '@/lib/cases/saves'
 import { FeedbackForm } from './feedback-form'
+import { SaveButton } from './save-button'
 import { ShareLinkButton } from './share-button'
 
 // 공개 케이스 상세. **승인된 케이스만** 그린다 — 미승인·없는 slug 는 똑같이 404 다.
@@ -141,7 +143,10 @@ function MoveBlock({ move, index, total }: { move: DetailMoveRow; index: number;
   )
 }
 
-function Detail({ d, signedIn }: { d: CaseDetail; signedIn: boolean }) {
+/** 저장 상태 — 서버가 읽어 초기값으로 내려 준다. `unavailable` 은 "저장 안 됨"이 아니다(§7.1). */
+type SaveView = { saved: boolean; unavailable: string | null }
+
+function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save: SaveView }) {
   const s = d.study
   const lead = pickLeadMove(d.moves)
   const leadEvidence = lead ? (d.evidence_by_move.get(lead.id) ?? []) : []
@@ -205,6 +210,13 @@ function Detail({ d, signedIn }: { d: CaseDetail; signedIn: boolean }) {
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <ButtonLink href={problemHref} variant="primary" size="sm">내 상황으로 옮기기</ButtonLink>
+            <SaveButton
+              caseStudyId={s.id}
+              slug={s.slug}
+              signedIn={signedIn}
+              initialSaved={save.saved}
+              unavailable={save.unavailable}
+            />
             <ShareLinkButton />
           </div>
           <BrandLogoNotice />
@@ -463,13 +475,21 @@ export default async function LibraryCasePage({ params }: { params: Promise<{ sl
   }
   if (res.status === 'not_found') notFound()
 
-  // 로그인 여부는 **표시용**이다(피드백 저장 가드는 서버 액션이 스스로 한다).
+  // 로그인 여부는 **표시용**이다(피드백·저장 가드는 서버 액션이 스스로 한다).
   const verdict = await getAuthVerdict()
+
+  // 저장 여부는 로그인한 사람에게만 묻는다. 못 읽었으면 "저장 안 됨"이 아니라 사유를 넘긴다 —
+  // 마이그 20260930000002 미적용 상태에서 버튼이 눌리는 것처럼 보이면 안 된다(§7.1).
+  const saveState = verdict.kind === 'allowed' ? await isSaved(sb, res.detail.study.id, verdict.email) : null
+  const save = {
+    saved: saveState?.state === 'saved',
+    unavailable: saveState?.state === 'unavailable' ? saveState.reason : null,
+  }
 
   return (
     <div className="sa-lib">
       <PageShell maxWidth={1100}>
-        <Detail d={res.detail} signedIn={verdict.kind === 'allowed'} />
+        <Detail d={res.detail} signedIn={verdict.kind === 'allowed'} save={save} />
       </PageShell>
     </div>
   )

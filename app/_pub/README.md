@@ -34,6 +34,10 @@
 | `Chip` | `components/Chip.tsx` | `children` · `tone?: 'quiet'\|'solid'` · `title?` | 뜻은 글자로 적는다. 색으로만 상태를 말하지 않는다 |
 | `Stat` / `StatRow` | `components/Stat.tsx` | `Stat`: `label` · `value: string` · `caption?` / `StatRow`: `children` | `value` 가 문자열인 이유: 집계 실패를 `0` 으로 접지 않는다(§7.1, "집계 불가"를 그대로 넘긴다) |
 | `Footer` | `components/Footer.tsx` | `note?: string` | 링크 4개 + 상태 한 줄 |
+| `PubProgress` | `components/PubProgress.tsx` | `value: number` · `max: number` · `label: string` | **A3.** 네이티브 `<progress>` — 채운 폭을 인라인 스타일로 주지 않으려고(규칙 3). `label` 을 막대 위에 글자로도 적는다 |
+| `PubChoice` | `components/PubChoice.tsx` | `children` · `onClick: () => void` · `eyebrow?` · `disabled?` | **A3. `'use client'`** — 퀴즈 선택지 흰 카드. 진짜 `<button>` 이라 키보드·포커스가 공짜다. onClick 을 받으므로 서버 컴포넌트에서는 못 쓴다(`PubButton` 과 나뉜 이유) |
+| `PubArticle` | `components/PubArticle.tsx` | `html: string` | **A3.** `renderMarkdown()` 결과를 받는 긴 글 타이포(h2/h3·인용·목록·표·코드, 폭 `--pub-measure`). 무해화는 `lib/columns/markdown.ts` 가 한다 — 여기서 또 하지 않는다 |
+| `PubColumnCard` | `components/PubColumnCard.tsx` | `href` · `title` · `summary` · `readerType` · `date` | **A3.** 칼럼 목록 카드(제목 h3). `.pub-case` 를 재사용하지 않는다 — 그쪽은 A2 가 케이스 카드로 키운다 |
 
 ## 토큰 (`tokens.css`)
 
@@ -70,3 +74,23 @@
    `lib/cases/grade-display.ts`(등급 라벨). 화면만 갈아 끼우고 로더는 새로 쓰지 않는다.
 5. **`/library/saved` 는 스스로 로그인 판정을 한다**(정책 접두사가 proxy 를 통과시킨다).
    화면을 옮길 때 그 가드를 지우지 마라.
+
+## A3 가 정한 것 (2026-09-23)
+
+1. **헤더 중복은 (a) 로 풀었다** — `app/_ds/components/AppNav.tsx` 에
+   `if (path.startsWith('/columns/read')) return null` 한 줄을 더했다(`app/layout.tsx` 는 그대로).
+   (b)(`PubShell` 에 헤더 빼는 prop)를 안 고른 이유: 그래도 `AppNav` 가 렌더되어
+   `.sa-main` 좌측 여백이 남고 본문 폭이 사이드바만큼 줄어든다(위 주의 2번).
+   접두사를 `/columns/read` 로 좁혀 검수 화면 `/columns` 는 네비를 그대로 쓴다.
+   **A2 가 `/library` 에 같은 해법을 쓰면 이 파일에서 만난다** — 두 줄은 서로 독립이니
+   충돌하면 양쪽을 남기면 된다.
+2. **온보딩만 다크다.** 다크 랜딩의 "내 문제로 시작"에서 이어지는 첫 화면이라
+   `PubShell theme="dark"` 이고, 읽고 누르는 부분(선택지·결과·공유 이미지)은 흰 섬으로
+   뒤집었다. 칼럼 목록·본문은 `theme="light"`.
+3. **`pub.css` 는 파일 끝 A3 블록으로만 덧붙였다**(기존 규칙 0줄 수정):
+   `.pub-progress` · `.pub-choice` · `.pub-column-list` · `.pub-column-card` · `.pub-article` ·
+   `.pub-quiz`(폭 760 — `.pub-solo` 480 은 선택지 두 장이 안 들어간다) · `.pub-share-img` ·
+   `.pub-column-foot`. `app/columns/read/column-read.css`(`.sa-column`)는 지웠다.
+4. **클라이언트 화면을 옮기는 법.** `PubShell` 이 async 서버 컴포넌트라 `'use client'` 페이지가
+   직접 감쌀 수 없다. 온보딩 퀴즈는 `page.tsx`(서버, 껍데기) + `quiz-client.tsx`(상태·fetch)로
+   갈랐다 — 같은 상황이 또 오면 이 모양을 쓴다.

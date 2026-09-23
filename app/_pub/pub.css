@@ -391,3 +391,179 @@
   .pub-panel { padding: var(--pub-gap-8); }
   .pub-panel--banner { padding: var(--pub-gap-20) var(--pub-gap-10); }
 }
+
+/* ============================================================
+   A3 — 온보딩 퀴즈 · 칼럼 읽기용 클래스. 위쪽 규칙은 고치지 않는다
+   (A1 랜딩·로그인과 A2 라이브러리가 같은 파일을 쓴다).
+   ============================================================ */
+
+/* ── 진행 막대 (네이티브 <progress>) ──────────────────── */
+.pub-progress-wrap { display: flex; flex-direction: column; gap: var(--pub-gap-2); }
+.pub-progress {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  height: 6px;
+  border: none;
+  border-radius: var(--pub-round-pill);
+  background: var(--pub-edge);
+  color: var(--pub-ink); /* IE/구형 폴백 */
+}
+.pub-progress::-webkit-progress-bar { background: var(--pub-edge); border-radius: var(--pub-round-pill); }
+.pub-progress::-webkit-progress-value {
+  background: var(--pub-ink);
+  border-radius: var(--pub-round-pill);
+  transition: width var(--pub-motion-base) var(--pub-motion-ease);
+}
+.pub-progress::-moz-progress-bar { background: var(--pub-ink); border-radius: var(--pub-round-pill); }
+
+/* ── 선택지 카드 (퀴즈 A/B) — 흰 섬이라 안쪽 변수를 뒤집는다 ── */
+.pub-choice {
+  --pub-ink: var(--pub-island-ink);
+  --pub-ink-muted: var(--pub-island-ink-muted);
+  --pub-ink-faint: var(--pub-island-ink-muted);
+  --pub-edge: var(--pub-island-edge);
+  --pub-focus: var(--pub-island-ink);
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pub-gap-3);
+  min-height: 132px;
+  padding: var(--pub-gap-5);
+  border: 1px solid var(--pub-island-edge);
+  border-radius: var(--pub-round-card);
+  background: var(--pub-island);
+  color: var(--pub-island-ink);
+  box-shadow: var(--pub-lift-1);
+  font-family: var(--pub-type);
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+  transition: transform var(--pub-motion-quick) var(--pub-motion-ease),
+              box-shadow var(--pub-motion-quick) var(--pub-motion-ease);
+}
+.pub-choice:hover { box-shadow: var(--pub-lift-2); }
+.pub-choice:active { transform: translateY(1px); }
+.pub-choice:disabled { cursor: progress; opacity: 0.6; }
+.pub-choice-text {
+  font-size: var(--pub-size-text);
+  line-height: var(--pub-leading-text);
+  overflow-wrap: anywhere;
+}
+
+/* ── 칼럼 목록 카드 ───────────────────────────────────── */
+.pub-column-list { display: flex; flex-direction: column; gap: var(--pub-gap-3); }
+.pub-column-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-2);
+  padding: var(--pub-gap-5);
+  background: var(--pub-island);
+  color: var(--pub-island-ink);
+  border: 1px solid var(--pub-island-edge);
+  border-radius: var(--pub-round-card);
+  box-shadow: var(--pub-lift-1);
+  min-width: 0;
+  transition: box-shadow var(--pub-motion-quick) var(--pub-motion-ease);
+}
+.pub-column-card:hover { box-shadow: var(--pub-lift-2); }
+.pub-column-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pub-gap-2); }
+.pub-column-card-title {
+  font-size: var(--pub-size-text);
+  font-weight: var(--pub-weight-strong);
+  line-height: var(--pub-leading-head);
+  color: var(--pub-island-ink);
+  overflow-wrap: anywhere;
+}
+/* 카드 안은 흰 섬이므로 본문 글자색도 섬 기준으로 되돌린다. */
+.pub-column-card .pub-text { color: var(--pub-island-ink-muted); }
+.pub-column-card .pub-caption { color: var(--pub-island-ink-muted); }
+.pub-column-card .pub-chip { border-color: var(--pub-island-edge); color: var(--pub-island-ink-muted); }
+
+/* ── 긴 글 본문 (renderMarkdown 결과) ─────────────────── */
+.pub-article {
+  max-width: var(--pub-measure); /* 한 줄 라틴 ~65자 / 한글 ~40자 */
+  font-size: var(--pub-size-text);
+  line-height: 1.78;
+  color: var(--pub-ink);
+  overflow-wrap: anywhere;
+}
+.pub-article > :first-child { margin-top: 0; }
+.pub-article p { margin: 0 0 1.4em; }
+/* 절이 바뀌는 것이 스크롤 중에 보이도록 위 간격을 크게 준다. */
+.pub-article h2 {
+  margin: 2.4em 0 0.8em;
+  font-size: var(--pub-size-head-sm);
+  font-weight: var(--pub-weight-display);
+  line-height: var(--pub-leading-head);
+  letter-spacing: var(--pub-tracking-display);
+}
+.pub-article h3 {
+  margin: 2em 0 0.6em;
+  font-size: var(--pub-size-text);
+  font-weight: var(--pub-weight-strong);
+  line-height: var(--pub-leading-head);
+}
+.pub-article ul, .pub-article ol { margin: 0 0 1.4em; padding-left: 1.2em; list-style: disc; }
+.pub-article ol { list-style: decimal; }
+.pub-article li { margin: 0 0 0.5em; }
+.pub-article blockquote {
+  margin: 0 0 1.4em;
+  padding: 0.2em 0 0.2em 1em;
+  border-left: 3px solid var(--pub-edge-strong);
+  color: var(--pub-ink-muted);
+}
+.pub-article strong { font-weight: var(--pub-weight-strong); }
+.pub-article a { text-decoration: underline; text-underline-offset: 3px; }
+/* 표·코드는 지금 파서가 만들지 않는다(lib/columns/markdown.ts). 원문에 섞여 들어오거나
+   파서가 자라도 글자가 캔버스 밖으로 새지 않게 최소한만 잡아 둔다. */
+.pub-article code, .pub-article pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+.pub-article code { padding: 0.1em 0.35em; border-radius: 6px; background: var(--pub-edge); }
+.pub-article pre { margin: 0 0 1.4em; padding: var(--pub-gap-4); border-radius: var(--pub-round-control); background: var(--pub-edge); overflow-x: auto; }
+.pub-article pre code { padding: 0; background: none; }
+.pub-article table { width: 100%; margin: 0 0 1.4em; border-collapse: collapse; font-size: var(--pub-size-text-sm); }
+.pub-article th, .pub-article td { padding: var(--pub-gap-2) var(--pub-gap-3); border: 1px solid var(--pub-edge); text-align: left; }
+
+@media (min-width: 768px) {
+  .pub-choice { padding: var(--pub-gap-6); }
+  .pub-column-card { padding: var(--pub-gap-6); }
+  .pub-column-card-title { font-size: var(--pub-size-head-sm); letter-spacing: var(--pub-tracking-display); }
+  .pub-article h2 { font-size: var(--pub-size-head); }
+  .pub-article h3 { font-size: var(--pub-size-head-sm); }
+}
+
+/* ── 퀴즈 한 폭 (760px). `.pub-solo`(480) 는 선택지 두 장이 나란히 못 들어간다 ── */
+.pub-quiz {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-6);
+}
+/* 질문 자체가 제목이라 한 문장이 길다 — display 56px 은 과하다(40px 고정). */
+.pub-quiz .pub-hero { padding: var(--pub-gap-6) 0 0; gap: var(--pub-gap-4); }
+.pub-quiz .pub-hero-title { font-size: var(--pub-size-display-sm); }
+.pub-share-img {
+  width: 100%;
+  max-width: 600px;
+  border-radius: var(--pub-round-control);
+  border: 1px solid var(--pub-island-edge);
+}
+
+/* ── 칼럼 본문 아래 링크 줄 ───────────────────────────── */
+.pub-column-foot {
+  max-width: var(--pub-measure);
+  margin-top: var(--pub-gap-6);
+  padding-top: var(--pub-gap-4);
+  border-top: 1px solid var(--pub-edge);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pub-gap-2);
+  font-size: var(--pub-size-text-sm);
+}

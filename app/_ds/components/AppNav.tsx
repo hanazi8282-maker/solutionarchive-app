@@ -83,6 +83,10 @@ export function AppNav({ email }: { email: string | null }) {
   // 로그인 화면·랜딩(`/`)도 마찬가지 — 들어갈 수 없는 화면 링크를 보여주지 않는다
   // (로그인돼 있으면 랜딩은 /dashboard 로 보내므로 네비가 사라지는 일이 없다).
   if (path.startsWith('/onboarding') || path === '/login' || path === '/') return null
+  // 공개 읽기 화면(`app/_pub`)은 자기 헤더(PubNav)를 들고 온다. 이 네비까지 나오면 헤더가
+  // 두 개 겹치고 `.sa-main` 좌측 여백이 남아 본문 폭이 줄어든다(app/_pub/README.md 주의 ①).
+  // 검수 화면 `/columns` 는 그대로 네비를 쓴다 — 접두사가 `/columns/read` 인 이유다.
+  if (path.startsWith('/columns/read')) return null
 
   // match 가 겹칠 때(/cases 와 /cases/search) **가장 긴 것 하나만** 켠다 — 둘 다 켜지면 지금 어디인지 안 보인다.
   const best = [...NAV_GROUPS.flatMap((g) => g.links), PROFILE_LINK]

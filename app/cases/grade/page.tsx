@@ -43,7 +43,9 @@ export default async function CasesGradePage({ searchParams }: { searchParams: P
 
   const res = await sb
     .from('case_studies')
-    .select('id, slug, brand_name, business_model, bottleneck, reader_problem, summary, review_status, reviewed_at, created_at, case_moves(*), case_evidence(id, url, domain, case_move_id)')
+    // 배경 6칸(market·geo·기간·결과·구매자·가격대)과 근거 snippet 은 카드의 "왜 택했나"를 받치는 자리다.
+    // 전후 수치는 case_moves(*) 에 이미 들어온다. 새 컬럼을 추가하지 않았다 — 전부 20260906000001 에 있다.
+    .select('id, slug, brand_name, business_model, bottleneck, reader_problem, summary, review_status, reviewed_at, created_at, market, geo, period_start, period_end, outcome_status, buyer_type, price_band, case_moves(*), case_evidence(id, url, domain, case_move_id, snippet)')
 
   if (res.error || !res.data) {
     return (

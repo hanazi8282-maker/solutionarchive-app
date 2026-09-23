@@ -59,6 +59,13 @@ export const DRAFT_TARGET = Number(process.env.CMO_DRAFT_TARGET ?? 2)
 export const COMMIT_PREFIXES = ['reports/', 'drafts/cases/', 'drafts/threads/', 'ops/state/']
 
 /**
+ * 케이스 조사 프롬프트에 끼우는 "최근 이식성 반려 사유" 파일.
+ * `scripts/transferability-feedback-digest.mjs` 가 KST 06:04 크론으로 갱신한다.
+ * 설계: docs/transferability-feedback-loop.md §4.
+ */
+export const TRANSFERABILITY_FEEDBACK_FILE = 'ops/state/transferability-feedback/latest.md'
+
+/**
  * 봇 신원을 **이 커밋 하나에만** 실어 보내는 인자.
  *
  * ★ `git config user.name ...` 로 세우면 안 된다. `--local` 도 `--global` 도
@@ -1774,7 +1781,10 @@ async function flushSummary(log) {
 // ────────────────────────────────────────────────────────────
 // 프롬프트 — 역할 본문은 에이전트 파일에만 있다. 여기서 복사하지 않는다.
 // ────────────────────────────────────────────────────────────
-function researchPrompt(item, date, existingSlugs) {
+// export 인 이유는 writerPrompt 와 같다 — 프롬프트 사본을 만들면 두 벌이 갈라진다.
+// `feedbackFile` 을 인자로 뺀 것은 배선이 실제로 붙는지 검사할 수 있게 하기 위해서다:
+// 조용히 안 붙어도 프롬프트는 멀쩡해 보이고, 루프는 그냥 예전처럼 돈다(§7.1).
+export function researchPrompt(item, date, existingSlugs, feedbackFile = TRANSFERABILITY_FEEDBACK_FILE) {
   return [
     '`.claude/agents/sa-cmo-researcher.md` 를 Read 하고, 그 문서가 규정하는 역할로 아래 작업을 수행하라.',
     '(그 파일이 지시하는 `ops/roles/_principles.md` 도 반드시 먼저 Read 한다.)',
@@ -1792,6 +1802,18 @@ function researchPrompt(item, date, existingSlugs) {
       ? '★ 이건 실패 사례 할당분이다. 실패·피벗·철수한 사업을 조사하라. 성공 사례로 바꾸지 마라.'
       : '',
     `대상이 "미정"이면 WebSearch 로 직접 정하라. 다음 slug 는 이미 적립돼 있으니 피하라: ${existingSlugs.join(', ') || '(없음)'}`,
+    '',
+    // 이식성 피드백 루프의 유일한 배선(docs/transferability-feedback-loop.md §4).
+    // 파일이 없으면 줄을 아예 넣지 않는다 — 없는 파일을 Read 하라고 시키면 조사원이 실패로 보고한다.
+    // "참고, 규칙 아님" 을 명시하는 이유: 금지 목록으로 읽으면 제약이 필요한 무브는 존재하지
+    // 않는다는 왜곡된 아카이브가 된다.
+    fs.existsSync(feedbackFile)
+      ? [
+          `참고 자료: \`${feedbackFile}\` 를 Read 하라 — 사람이 최근 채점에서`,
+          '이식성을 LOW/MEDIUM 으로 본 이유 모음이다. **규칙이 아니라 참고다.** 조사 금지 목록이',
+          '아니고, 같은 종류의 "독자가 옮길 수 없는 전제"를 또 골라 오지 않는 데 쓴다.',
+        ].join('\n')
+      : '',
     '',
     '끝내기 전에 반드시 `node scripts/case-research.mjs validate --slug <slug>` 를 직접 실행해 exit 0 을 확인하라.',
     `조사 노트는 reports/${date}/research/<slug>.md 에 남겨라.`,

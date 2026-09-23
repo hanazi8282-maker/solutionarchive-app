@@ -65,6 +65,9 @@ jobs:
       # 케이스 검색(질의 파싱·종류 가산점·3상태·빈 상태 문구). 가산점이 하드필터로 되돌아가면
       # SaaS 질의 결과가 통째로 0건이 되는데, 화면에서는 "선례 없음"과 구분되지 않는다(§7.1).
       - run: node scripts/cases-search-selftest.mjs
+      # 공개 라이브러리 그리드(`/library`) — 대표 무브(승인·시간순 첫 것)·정렬 3종·종류 필터·3상태.
+      # 정렬이나 대표 무브가 틀려도 카드는 그대로 나와서 화면으로는 못 잡는다.
+      - run: node scripts/library-selftest.mjs
       # 성공/실패 짝(같은 병목·레버, 방향 반대, 케이스 다름, 양쪽 승인). 조건 한 줄이 느슨해지면
       # 같은 케이스 안에서 갈린 것이 "남들은 갈렸다"로 화면에 올라간다.
       - run: node scripts/cases-compare-selftest.mjs

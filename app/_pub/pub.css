@@ -1,12 +1,13 @@
 /* ============================================================
    PUB — 공개 화면 컴포넌트 CSS. 이 파일과 tokens.css 가 `_pub` 의 전부다.
    컴포넌트는 **인라인 스타일을 쓰지 않는다** — 여기 있는 클래스만 붙인다.
+   **리터럴 값을 쓰지 않는다** — 색·반경·그림자·모션·서체는 전부 `--pub-*` 토큰이다.
+   (`scripts/pub-tokens-overlap-selftest.mjs` 가 이 파일도 훑어 `_ds` 와의 겹침을 센다.)
 
    ⚠️ 왜 전부 `.pub-root` 로 감싸는가.
-      app/layout.tsx 가 `_ds/styles.css` 를 전역으로 넣는다(다른 작업이 병렬로 도는
-      파일이라 손대지 않는다). 그 안의 `body{...}` · `a{...}` · `:focus-visible{...}` 가
-      우리 화면에도 내려오므로, 클래스 선택자(specificity 0,1,0 이상)로 덮는다.
-      CSS 파일 로드 순서에 기대지 않는다 — 순서가 바뀌어도 클래스가 요소를 이긴다.
+      app/layout.tsx 가 `_ds/styles.css` 를 전역으로 넣는다. 그 안의 `body{...}` ·
+      `a{...}` · `:focus-visible{...}` 가 우리 화면에도 내려오므로, 클래스 선택자로
+      덮는다. CSS 로드 순서에 기대지 않는다 — 순서가 바뀌어도 클래스가 요소를 이긴다.
    ============================================================ */
 
 @import "./tokens.css";
@@ -19,7 +20,7 @@
   background: var(--pub-canvas);
   color: var(--pub-ink);
   font-family: var(--pub-type);
-  font-size: var(--pub-size-text-sm);
+  font-size: var(--pub-size-text);
   line-height: var(--pub-leading-text);
   font-weight: var(--pub-weight-text);
   -webkit-font-smoothing: antialiased;
@@ -33,10 +34,9 @@
 .pub-root a:hover { text-decoration: none; }
 /* 본문 안 링크만 밑줄을 유지한다 — 문장 속 링크는 밑줄이 있어야 보인다. */
 .pub-root .pub-text a,
-.pub-root .pub-link { color: var(--pub-accent, inherit); text-decoration: underline; text-underline-offset: 3px; }
+.pub-root .pub-link { color: var(--pub-accent); text-decoration: underline; text-underline-offset: 3px; }
 
-/* 포커스 링 — _ds 의 box-shadow 링을 끄고 outline 으로 통일한다.
-   `--pub-focus` 는 테마·패널에 따라 뒤집히므로 흰 섬 위에서도 보인다. */
+/* 포커스 링 — _ds 의 box-shadow 링(--shadow-focus)을 끄고 outline 으로 통일한다. */
 .pub-root :focus-visible {
   outline: 2px solid var(--pub-focus);
   outline-offset: 3px;
@@ -49,16 +49,19 @@
 }
 .pub-root ul, .pub-root ol { padding: 0; list-style: none; }
 
+/* 아이콘 — 옆 글자 크기·색을 그대로 따라간다(icons.tsx). */
+.pub-icon { flex: none; vertical-align: -0.12em; }
+
 /* ── 프레임 · 본문 폭 ─────────────────────────────────── */
 .pub-main {
   flex: 1;
   width: 100%;
   max-width: var(--pub-frame);
   margin: 0 auto;
-  padding: 0 var(--pub-gap-5) var(--pub-gap-20);
+  padding: 0 var(--pub-gap-5) var(--pub-gap-section);
   display: flex;
   flex-direction: column;
-  gap: var(--pub-gap-14);
+  gap: var(--pub-gap-section);
   min-width: 0;
 }
 .pub-measure { max-width: var(--pub-measure); }
@@ -75,9 +78,9 @@
   flex-wrap: wrap;
 }
 .pub-nav-brand {
-  font-size: var(--pub-size-caption);
-  font-weight: var(--pub-weight-display);
-  letter-spacing: var(--pub-tracking-eyebrow);
+  font-size: var(--pub-size-label);
+  font-weight: var(--pub-weight-strong);
+  letter-spacing: var(--pub-tracking-label);
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -92,24 +95,25 @@
 .pub-nav-link {
   display: inline-flex;
   align-items: center;
-  height: 36px;
+  height: var(--pub-h-sm);
   padding: 0 var(--pub-gap-3);
   border-radius: var(--pub-round-pill);
   font-size: var(--pub-size-text-sm);
   color: var(--pub-ink-muted);
   white-space: nowrap;
-  transition: color var(--pub-motion-quick) var(--pub-motion-ease),
-              background var(--pub-motion-quick) var(--pub-motion-ease);
+  transition: color var(--pub-motion-color) var(--pub-ease),
+              background var(--pub-motion-color) var(--pub-ease);
 }
-.pub-nav-link:hover { color: var(--pub-ink); background: var(--pub-edge); }
+.pub-nav-link:hover { color: var(--pub-ink); background: var(--pub-surface-2); }
 
-/* ── 눈썹 라벨 (Foreplay "RESEARCH & INSPIRATION") ────── */
+/* ── 눈썹 라벨 ([F] "RESEARCH & INSPIRATION") ──────────── */
 .pub-eyebrow {
-  font-size: var(--pub-size-caption);
-  font-weight: var(--pub-weight-strong);
-  letter-spacing: var(--pub-tracking-eyebrow);
+  font-size: var(--pub-size-label);
+  font-weight: var(--pub-weight-label);
+  letter-spacing: var(--pub-tracking-label);
+  line-height: var(--pub-leading-caption);
   text-transform: uppercase;
-  color: var(--pub-ink-faint);
+  color: var(--pub-ink-muted);
 }
 
 /* ── 히어로 ───────────────────────────────────────────── */
@@ -117,13 +121,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--pub-gap-6);
-  padding: var(--pub-gap-14) 0 var(--pub-gap-8);
+  padding: var(--pub-gap-10) 0 var(--pub-gap-8);
   max-width: 960px;
 }
 .pub-hero-title {
   font-size: var(--pub-size-display-sm);
-  line-height: var(--pub-leading-display);
-  letter-spacing: var(--pub-tracking-display);
+  line-height: var(--pub-leading-display-sm);
+  letter-spacing: var(--pub-tracking-display-sm);
   font-weight: var(--pub-weight-display);
   overflow-wrap: break-word;
 }
@@ -155,25 +159,27 @@
 }
 .pub-section-title {
   font-size: var(--pub-size-head-sm);
-  line-height: var(--pub-leading-head);
-  letter-spacing: var(--pub-tracking-display);
-  font-weight: var(--pub-weight-display);
+  line-height: var(--pub-leading-head-sm);
+  letter-spacing: var(--pub-tracking-head-sm);
+  font-weight: var(--pub-weight-head);
 }
 .pub-text {
-  font-size: var(--pub-size-text-sm);
+  font-size: var(--pub-size-text);
   line-height: var(--pub-leading-text);
   color: var(--pub-ink-muted);
 }
 .pub-caption {
   font-size: var(--pub-size-caption);
-  line-height: 1.6;
-  color: var(--pub-ink-faint);
+  font-weight: var(--pub-weight-caption);
+  letter-spacing: var(--pub-tracking-caption);
+  line-height: var(--pub-leading-caption);
+  color: var(--pub-ink-muted);
 }
 
 /* 자동 3열 — 280px 아래로는 한 열. */
 .pub-grid {
   display: grid;
-  gap: var(--pub-gap-4);
+  gap: var(--pub-gap-grid);
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   min-width: 0;
 }
@@ -186,44 +192,44 @@
   --pub-ink-muted: var(--pub-island-ink-muted);
   --pub-ink-faint: var(--pub-island-ink-muted);
   --pub-edge: var(--pub-island-edge);
-  --pub-edge-strong: #cbd4e0;
-  --pub-cta: var(--pub-island-ink);
-  --pub-cta-ink: var(--pub-island);
-  --pub-focus: var(--pub-island-ink);
+  --pub-surface: var(--pub-island);
+  --pub-surface-2: var(--pub-island-wash);
+  --pub-focus: var(--pub-accent);
 
   display: flex;
   flex-direction: column;
   gap: var(--pub-gap-3);
-  padding: var(--pub-gap-6);
+  padding: var(--pub-pad-card);
   background: var(--pub-island);
   color: var(--pub-island-ink);
   border: 1px solid var(--pub-island-edge);
   border-radius: var(--pub-round-card);
-  box-shadow: var(--pub-lift-1);
+  box-shadow: var(--pub-lift-rest);
   min-width: 0;
 }
 .pub-panel-title {
   font-size: var(--pub-size-text);
   font-weight: var(--pub-weight-strong);
-  line-height: var(--pub-leading-head);
+  line-height: var(--pub-leading-head-sm);
   color: var(--pub-island-ink);
 }
-/* 배너 = 큰 흰 카드(radius 32). Foreplay 하단 CTA 리듬. */
+/* 배너 = 큰 흰 카드. [F] 하단 CTA 리듬. */
 .pub-panel--banner {
   gap: var(--pub-gap-5);
   padding: var(--pub-gap-10) var(--pub-gap-6);
   border-radius: var(--pub-round-banner);
-  box-shadow: var(--pub-lift-2);
+  box-shadow: var(--pub-lift-float);
   align-items: center;
   text-align: center;
 }
 /* 배너 안의 제목은 섹션 제목 크기다(h2 이므로 크기도 그 단계로). */
 .pub-panel--banner .pub-panel-title {
   font-size: var(--pub-size-head-sm);
-  letter-spacing: var(--pub-tracking-display);
-  font-weight: var(--pub-weight-display);
+  letter-spacing: var(--pub-tracking-head-sm);
+  line-height: var(--pub-leading-head-sm);
+  font-weight: var(--pub-weight-head);
 }
-/* 알림(로그인 화면의 오류·잠김 안내). 색이 아니라 왼쪽 굵은 선으로 구분한다. */
+/* 알림(오류·잠김 안내). 색이 아니라 왼쪽 굵은 선으로 구분한다. */
 .pub-panel--alert {
   border-left: 4px solid var(--pub-island-ink);
   box-shadow: none;
@@ -235,20 +241,22 @@
   align-items: center;
   justify-content: center;
   gap: var(--pub-gap-2);
-  height: 44px;
+  height: var(--pub-h-lg);
   padding: 0 var(--pub-gap-5);
   border: 1px solid transparent;
   border-radius: var(--pub-round-pill);
   font-family: var(--pub-type);
-  font-size: var(--pub-size-text-sm);
-  font-weight: var(--pub-weight-strong);
-  line-height: 1;
+  font-size: var(--pub-size-label);
+  font-weight: var(--pub-weight-label);
+  letter-spacing: var(--pub-tracking-label);
+  line-height: var(--pub-leading-label);
   white-space: nowrap;
   cursor: pointer;
   text-decoration: none;
-  transition: transform var(--pub-motion-quick) var(--pub-motion-ease),
-              opacity var(--pub-motion-quick) var(--pub-motion-ease),
-              background var(--pub-motion-quick) var(--pub-motion-ease);
+  transition: background var(--pub-motion-color) var(--pub-ease),
+              color var(--pub-motion-color) var(--pub-ease),
+              border-color var(--pub-motion-color) var(--pub-ease),
+              transform var(--pub-motion-move) var(--pub-ease);
 }
 .pub-btn:hover { text-decoration: none; }
 .pub-btn:active { transform: translateY(1px); }
@@ -260,21 +268,28 @@
 .pub-btn--ghost {
   background: transparent;
   color: var(--pub-ink);
-  border-color: var(--pub-edge-strong);
+  border-color: var(--pub-ink-faint);
 }
-.pub-btn--ghost:hover { background: var(--pub-edge); }
-.pub-btn--lg { height: 52px; padding: 0 var(--pub-gap-8); font-size: var(--pub-size-text); }
+.pub-btn--ghost:hover { background: var(--pub-surface-2); border-color: var(--pub-ink-muted); }
+.pub-btn--lg { height: 52px; padding: 0 var(--pub-gap-8); font-size: var(--pub-size-text-sm); }
+.pub-btn--sm { height: var(--pub-h-sm); padding: 0 var(--pub-gap-4); }
+.pub-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.pub-btn[disabled]:active { transform: none; }
 
 /* ── 칩 ───────────────────────────────────────────────── */
 .pub-chip {
   display: inline-flex;
   align-items: center;
   gap: var(--pub-gap-1);
-  height: 28px;
+  height: 26px;
   padding: 0 var(--pub-gap-3);
   border: 1px solid var(--pub-edge);
   border-radius: var(--pub-round-pill);
-  font-size: var(--pub-size-caption);
+  background: var(--pub-surface);
+  font-size: var(--pub-size-label);
+  font-weight: var(--pub-weight-label);
+  letter-spacing: var(--pub-tracking-label);
+  line-height: var(--pub-leading-label);
   color: var(--pub-ink-muted);
   white-space: nowrap;
 }
@@ -283,11 +298,16 @@
   color: var(--pub-cta-ink);
   border-color: transparent;
 }
+/* 판정 배지 — 뜻은 글자가 말하고 색은 거들기만 한다(tokens.css 주석).
+   코랄·앰버는 제 바탕 위 글자 대비가 안 나와 테두리로만 쓴다. */
+.pub-chip--pos { background: var(--pub-verdict-pos-bg); border-color: var(--pub-verdict-pos); color: var(--pub-verdict-pos); }
+.pub-chip--neg { background: var(--pub-verdict-neg-bg); border-color: var(--pub-verdict-neg); color: var(--pub-island-ink); }
+.pub-chip--mix { background: var(--pub-verdict-mix-bg); border-color: var(--pub-verdict-mix); color: var(--pub-island-ink); }
 
 /* ── 통계 ─────────────────────────────────────────────── */
 .pub-statrow {
   display: grid;
-  gap: var(--pub-gap-4);
+  gap: var(--pub-gap-grid);
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
 }
 .pub-stat {
@@ -301,19 +321,23 @@
 .pub-stat-value {
   font-size: var(--pub-size-head);
   line-height: var(--pub-leading-head);
-  letter-spacing: var(--pub-tracking-display);
-  font-weight: var(--pub-weight-display);
+  letter-spacing: var(--pub-tracking-head);
+  font-weight: var(--pub-weight-head);
   font-variant-numeric: tabular-nums;
   color: var(--pub-ink);
 }
 .pub-stat-label {
-  font-size: var(--pub-size-caption);
-  font-weight: var(--pub-weight-strong);
-  letter-spacing: var(--pub-tracking-eyebrow);
+  font-size: var(--pub-size-label);
+  font-weight: var(--pub-weight-label);
+  letter-spacing: var(--pub-tracking-label);
   text-transform: uppercase;
-  color: var(--pub-ink-faint);
+  color: var(--pub-ink-muted);
 }
-.pub-stat-caption { font-size: var(--pub-size-caption); line-height: 1.6; color: var(--pub-ink-muted); }
+.pub-stat-caption {
+  font-size: var(--pub-size-caption);
+  line-height: var(--pub-leading-caption);
+  color: var(--pub-ink-muted);
+}
 
 /* ── 푸터 ─────────────────────────────────────────────── */
 .pub-footer {
@@ -330,8 +354,7 @@
 .pub-footer-links a { font-size: var(--pub-size-caption); color: var(--pub-ink-muted); }
 .pub-footer-links a:hover { color: var(--pub-ink); text-decoration: underline; text-underline-offset: 3px; }
 
-/* ── 케이스 줄 (랜딩의 "최신 승인 케이스 3장"). A2 의 카드 그리드가
-      이 규칙을 그대로 가져가 `.pub-case` 를 카드로 키우면 된다. ── */
+/* ── 케이스 줄 (랜딩의 "최신 승인 케이스 3장") ─────────── */
 .pub-caselist { display: flex; flex-direction: column; gap: var(--pub-gap-2); }
 .pub-case {
   display: flex;
@@ -340,16 +363,16 @@
   padding: var(--pub-gap-4);
   border: 1px solid var(--pub-edge);
   border-radius: var(--pub-round-control);
-  transition: border-color var(--pub-motion-quick) var(--pub-motion-ease),
-              background var(--pub-motion-quick) var(--pub-motion-ease);
+  transition: border-color var(--pub-motion-color) var(--pub-ease),
+              background var(--pub-motion-color) var(--pub-ease);
 }
-.pub-case:hover { border-color: var(--pub-edge-strong); background: var(--pub-island-wash); }
+.pub-case:hover { border-color: var(--pub-ink-faint); background: var(--pub-surface-2); }
 .pub-case-title {
   font-size: var(--pub-size-text);
   font-weight: var(--pub-weight-strong);
-  line-height: var(--pub-leading-head);
+  line-height: var(--pub-leading-head-sm);
   overflow-wrap: anywhere;
-  /* 제목은 `detailTitle` 이 만드는 "브랜드 — summary 첫 문장" 이라 길면 6줄까지 간다.
+  /* 제목은 `detailTitle` 이 만드는 "브랜드 — summary 첫 문장" 이라 길면 여섯 줄까지 간다.
      자르되(2줄) 원문을 바꾸지 않는다 — 전문은 상세 화면에 그대로 있다. */
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -369,32 +392,41 @@
   flex-direction: column;
   gap: var(--pub-gap-4);
 }
-/* 한 장 카드 화면의 히어로는 작다 — 제목이 "로그인" 두 글자인데 56px 은 과하다. */
+/* 한 장 카드 화면의 히어로는 작다 — 제목이 "로그인" 두 글자인데 48px 은 과하다. */
 .pub-solo .pub-hero { padding: var(--pub-gap-6) 0 0; gap: var(--pub-gap-3); }
-.pub-solo .pub-hero-title { font-size: var(--pub-size-head); }
-.pub-solo .pub-lead { font-size: var(--pub-size-text-sm); }
+.pub-solo .pub-hero-title { font-size: var(--pub-size-head); letter-spacing: var(--pub-tracking-head); line-height: var(--pub-leading-head); }
+.pub-solo .pub-lead { font-size: var(--pub-size-text-sm); line-height: var(--pub-leading-text-sm); }
 .pub-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--pub-type-mono);
   font-size: var(--pub-size-caption);
   word-break: break-all;
 }
 
-/* ── ≥768px: 타입 한 단 올림 + 섹션 리듬 넓힘 ─────────── */
+/* ── ≥768px: 디스플레이 한 단 올림 + 리듬 넓힘 ────────── */
 @media (min-width: 768px) {
-  .pub-main { padding: 0 var(--pub-gap-8) var(--pub-gap-20); }
+  .pub-root {
+    --pub-pad-card: 24px;
+    --pub-gap-grid: 20px;
+    --pub-gap-section: 64px;
+  }
+  .pub-main { padding: 0 var(--pub-gap-8) var(--pub-gap-section); }
   .pub-nav, .pub-footer { padding-left: var(--pub-gap-8); padding-right: var(--pub-gap-8); }
-  .pub-root { font-size: var(--pub-size-text); }
-  .pub-hero { padding: var(--pub-gap-20) 0 var(--pub-gap-10); gap: var(--pub-gap-8); }
-  .pub-hero-title { font-size: var(--pub-size-display); }
-  .pub-section-title { font-size: var(--pub-size-head); }
-  .pub-text { font-size: var(--pub-size-text); }
-  .pub-panel { padding: var(--pub-gap-8); }
-  .pub-panel--banner { padding: var(--pub-gap-20) var(--pub-gap-10); }
+  .pub-hero { padding: var(--pub-gap-section) 0 var(--pub-gap-10); gap: var(--pub-gap-8); }
+  .pub-hero-title {
+    font-size: var(--pub-size-display);
+    letter-spacing: var(--pub-tracking-display);
+    line-height: var(--pub-leading-display);
+  }
+  .pub-section-title {
+    font-size: var(--pub-size-head);
+    letter-spacing: var(--pub-tracking-head);
+    line-height: var(--pub-leading-head);
+  }
+  .pub-panel--banner { padding: var(--pub-gap-section) var(--pub-gap-10); }
 }
 
 /* ============================================================
-   A3 — 온보딩 퀴즈 · 칼럼 읽기용 클래스. 위쪽 규칙은 고치지 않는다
-   (A1 랜딩·로그인과 A2 라이브러리가 같은 파일을 쓴다).
+   A3 — 온보딩 퀴즈 · 칼럼 읽기용 클래스.
    ============================================================ */
 
 /* ── 진행 막대 (네이티브 <progress>) ──────────────────── */
@@ -408,15 +440,15 @@
   border: none;
   border-radius: var(--pub-round-pill);
   background: var(--pub-edge);
-  color: var(--pub-ink); /* IE/구형 폴백 */
+  color: var(--pub-accent); /* IE/구형 폴백 */
 }
 .pub-progress::-webkit-progress-bar { background: var(--pub-edge); border-radius: var(--pub-round-pill); }
 .pub-progress::-webkit-progress-value {
-  background: var(--pub-ink);
+  background: var(--pub-accent);
   border-radius: var(--pub-round-pill);
-  transition: width var(--pub-motion-base) var(--pub-motion-ease);
+  transition: width var(--pub-motion-move) var(--pub-ease);
 }
-.pub-progress::-moz-progress-bar { background: var(--pub-ink); border-radius: var(--pub-round-pill); }
+.pub-progress::-moz-progress-bar { background: var(--pub-accent); border-radius: var(--pub-round-pill); }
 
 /* ── 선택지 카드 (퀴즈 A/B) — 흰 섬이라 안쪽 변수를 뒤집는다 ── */
 .pub-choice {
@@ -424,27 +456,27 @@
   --pub-ink-muted: var(--pub-island-ink-muted);
   --pub-ink-faint: var(--pub-island-ink-muted);
   --pub-edge: var(--pub-island-edge);
-  --pub-focus: var(--pub-island-ink);
+  --pub-focus: var(--pub-accent);
 
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--pub-gap-3);
   min-height: 132px;
-  padding: var(--pub-gap-5);
+  padding: var(--pub-pad-card);
   border: 1px solid var(--pub-island-edge);
   border-radius: var(--pub-round-card);
   background: var(--pub-island);
   color: var(--pub-island-ink);
-  box-shadow: var(--pub-lift-1);
+  box-shadow: var(--pub-lift-rest);
   font-family: var(--pub-type);
   text-align: left;
   cursor: pointer;
   min-width: 0;
-  transition: transform var(--pub-motion-quick) var(--pub-motion-ease),
-              box-shadow var(--pub-motion-quick) var(--pub-motion-ease);
+  transition: transform var(--pub-motion-move) var(--pub-ease),
+              box-shadow var(--pub-motion-move) var(--pub-ease);
 }
-.pub-choice:hover { box-shadow: var(--pub-lift-2); }
+.pub-choice:hover { box-shadow: var(--pub-lift-hover); }
 .pub-choice:active { transform: translateY(1px); }
 .pub-choice:disabled { cursor: progress; opacity: 0.6; }
 .pub-choice-text {
@@ -459,32 +491,32 @@
   display: flex;
   flex-direction: column;
   gap: var(--pub-gap-2);
-  padding: var(--pub-gap-5);
+  padding: var(--pub-pad-card);
   background: var(--pub-island);
   color: var(--pub-island-ink);
   border: 1px solid var(--pub-island-edge);
   border-radius: var(--pub-round-card);
-  box-shadow: var(--pub-lift-1);
+  box-shadow: var(--pub-lift-rest);
   min-width: 0;
-  transition: box-shadow var(--pub-motion-quick) var(--pub-motion-ease);
+  transition: box-shadow var(--pub-motion-move) var(--pub-ease);
 }
-.pub-column-card:hover { box-shadow: var(--pub-lift-2); }
+.pub-column-card:hover { box-shadow: var(--pub-lift-hover); }
 .pub-column-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pub-gap-2); }
 .pub-column-card-title {
   font-size: var(--pub-size-text);
   font-weight: var(--pub-weight-strong);
-  line-height: var(--pub-leading-head);
+  line-height: var(--pub-leading-head-sm);
   color: var(--pub-island-ink);
   overflow-wrap: anywhere;
 }
 /* 카드 안은 흰 섬이므로 본문 글자색도 섬 기준으로 되돌린다. */
 .pub-column-card .pub-text { color: var(--pub-island-ink-muted); }
 .pub-column-card .pub-caption { color: var(--pub-island-ink-muted); }
-.pub-column-card .pub-chip { border-color: var(--pub-island-edge); color: var(--pub-island-ink-muted); }
+.pub-column-card .pub-chip { border-color: var(--pub-island-edge); color: var(--pub-island-ink-muted); background: var(--pub-island); }
 
 /* ── 긴 글 본문 (renderMarkdown 결과) ─────────────────── */
 .pub-article {
-  max-width: var(--pub-measure); /* 한 줄 라틴 ~65자 / 한글 ~40자 */
+  max-width: var(--pub-measure);
   font-size: var(--pub-size-text);
   line-height: 1.78;
   color: var(--pub-ink);
@@ -496,15 +528,15 @@
 .pub-article h2 {
   margin: 2.4em 0 0.8em;
   font-size: var(--pub-size-head-sm);
-  font-weight: var(--pub-weight-display);
-  line-height: var(--pub-leading-head);
-  letter-spacing: var(--pub-tracking-display);
+  font-weight: var(--pub-weight-head);
+  line-height: var(--pub-leading-head-sm);
+  letter-spacing: var(--pub-tracking-head-sm);
 }
 .pub-article h3 {
   margin: 2em 0 0.6em;
   font-size: var(--pub-size-text);
   font-weight: var(--pub-weight-strong);
-  line-height: var(--pub-leading-head);
+  line-height: var(--pub-leading-head-sm);
 }
 .pub-article ul, .pub-article ol { margin: 0 0 1.4em; padding-left: 1.2em; list-style: disc; }
 .pub-article ol { list-style: decimal; }
@@ -512,7 +544,7 @@
 .pub-article blockquote {
   margin: 0 0 1.4em;
   padding: 0.2em 0 0.2em 1em;
-  border-left: 3px solid var(--pub-edge-strong);
+  border-left: 3px solid var(--pub-edge);
   color: var(--pub-ink-muted);
 }
 .pub-article strong { font-weight: var(--pub-weight-strong); }
@@ -520,20 +552,18 @@
 /* 표·코드는 지금 파서가 만들지 않는다(lib/columns/markdown.ts). 원문에 섞여 들어오거나
    파서가 자라도 글자가 캔버스 밖으로 새지 않게 최소한만 잡아 둔다. */
 .pub-article code, .pub-article pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--pub-type-mono);
   font-size: 0.9em;
 }
-.pub-article code { padding: 0.1em 0.35em; border-radius: 6px; background: var(--pub-edge); }
-.pub-article pre { margin: 0 0 1.4em; padding: var(--pub-gap-4); border-radius: var(--pub-round-control); background: var(--pub-edge); overflow-x: auto; }
+.pub-article code { padding: 0.1em 0.35em; border-radius: var(--pub-round-thumb); background: var(--pub-surface-2); }
+.pub-article pre { margin: 0 0 1.4em; padding: var(--pub-gap-4); border-radius: var(--pub-round-control); background: var(--pub-surface-2); overflow-x: auto; }
 .pub-article pre code { padding: 0; background: none; }
 .pub-article table { width: 100%; margin: 0 0 1.4em; border-collapse: collapse; font-size: var(--pub-size-text-sm); }
 .pub-article th, .pub-article td { padding: var(--pub-gap-2) var(--pub-gap-3); border: 1px solid var(--pub-edge); text-align: left; }
 
 @media (min-width: 768px) {
-  .pub-choice { padding: var(--pub-gap-6); }
-  .pub-column-card { padding: var(--pub-gap-6); }
-  .pub-column-card-title { font-size: var(--pub-size-head-sm); letter-spacing: var(--pub-tracking-display); }
-  .pub-article h2 { font-size: var(--pub-size-head); }
+  .pub-column-card-title { font-size: var(--pub-size-head-sm); letter-spacing: var(--pub-tracking-head-sm); }
+  .pub-article h2 { font-size: var(--pub-size-head); letter-spacing: var(--pub-tracking-head); }
   .pub-article h3 { font-size: var(--pub-size-head-sm); }
 }
 
@@ -546,9 +576,13 @@
   flex-direction: column;
   gap: var(--pub-gap-6);
 }
-/* 질문 자체가 제목이라 한 문장이 길다 — display 56px 은 과하다(40px 고정). */
+/* 질문 자체가 제목이라 한 문장이 길다 — 48px 은 과하다(40px 고정). */
 .pub-quiz .pub-hero { padding: var(--pub-gap-6) 0 0; gap: var(--pub-gap-4); }
-.pub-quiz .pub-hero-title { font-size: var(--pub-size-display-sm); }
+.pub-quiz .pub-hero-title {
+  font-size: var(--pub-size-display-sm);
+  letter-spacing: var(--pub-tracking-display-sm);
+  line-height: var(--pub-leading-display-sm);
+}
 .pub-share-img {
   width: 100%;
   max-width: 600px;
@@ -569,10 +603,9 @@
 }
 
 /* ============================================================
-   A2 — 공개 라이브러리 4화면 (/library · /library/[slug] ·
-   /library/saved · /library/methodology). 위 A1 규칙 그대로:
-   색·크기는 `--pub-*` 만, 인라인 스타일 없음.
-   구조 스펙은 reports/2026-09-23/ui-overhaul-reference-plan.md §3·§4.
+   A2 — 공개 라이브러리 (/library · /library/[slug] · /library/saved ·
+   /library/methodology). 구조 스펙은
+   reports/2026-09-23/ui-overhaul-reference-plan.md §3·§4.
    ============================================================ */
 
 /* 앵커 스크롤 여백 — TOC 로 뛰었을 때 제목이 화면 위에 붙지 않게. */
@@ -589,9 +622,14 @@
 /* ── 히어로: 왼쪽 로고 + 오른쪽 제목 (상세 화면) ─────────── */
 .pub-hero-head { display: flex; gap: var(--pub-gap-4); align-items: flex-start; min-width: 0; }
 .pub-hero-headtext { display: flex; flex-direction: column; gap: var(--pub-gap-3); min-width: 0; }
-/* 상세의 h1 은 "브랜드 — 요약 첫 문장" 이라 길다. 56px 로 두면 세 줄이 화면을 덮는다. */
-.pub-hero--detail { padding: var(--pub-gap-8) 0 0; gap: var(--pub-gap-4); }
-.pub-hero--detail .pub-hero-title { font-size: var(--pub-size-head); }
+/* [F] 리듬 — 상단 여백을 넉넉히 두고 디스플레이 굵기 500 을 그대로 쓴다.
+   제목은 "브랜드 — 요약 첫 문장" 이라 길어서 한 단 내린다(≥768px 에서 40px). */
+.pub-hero--detail { padding: var(--pub-gap-10) 0 0; gap: var(--pub-gap-5); }
+.pub-hero--detail .pub-hero-title {
+  font-size: var(--pub-size-head);
+  letter-spacing: var(--pub-tracking-head);
+  line-height: var(--pub-leading-head);
+}
 
 /* ── 라이브러리 레이아웃: 좌측 패싯 | 카드 그리드 ────────── */
 .pub-liblayout {
@@ -604,7 +642,18 @@
 
 /* <1024px 는 상단 가로 스크롤 칩, ≥1024px 는 좌측 세로 목록.
    **같은 목록 한 벌**이다 — 두 벌로 렌더하면 건수가 갈라진다. */
-.pub-facets {
+.pub-facets { display: grid; gap: var(--pub-gap-2); min-width: 0; }
+.pub-facets-head {
+  display: flex;
+  align-items: center;
+  gap: var(--pub-gap-2);
+  font-size: var(--pub-size-label);
+  font-weight: var(--pub-weight-label);
+  letter-spacing: var(--pub-tracking-label);
+  text-transform: uppercase;
+  color: var(--pub-ink-muted);
+}
+.pub-facets-list {
   display: flex;
   gap: var(--pub-gap-2);
   overflow-x: auto;
@@ -616,20 +665,23 @@
   display: inline-flex;
   align-items: center;
   gap: var(--pub-gap-2);
-  height: 32px;
+  height: var(--pub-h-sm);
   padding: 0 var(--pub-gap-3);
   border: 1px solid var(--pub-edge);
   border-radius: var(--pub-round-pill);
-  background: var(--pub-canvas-raised);
+  background: var(--pub-surface);
   color: var(--pub-ink-muted);
-  font-size: var(--pub-size-caption);
+  font-size: var(--pub-size-label);
+  font-weight: var(--pub-weight-label);
+  letter-spacing: var(--pub-tracking-label);
   white-space: nowrap;
-  transition: border-color var(--pub-motion-quick) var(--pub-motion-ease),
-              color var(--pub-motion-quick) var(--pub-motion-ease);
+  transition: border-color var(--pub-motion-color) var(--pub-ease),
+              color var(--pub-motion-color) var(--pub-ease),
+              background var(--pub-motion-color) var(--pub-ease);
 }
-.pub-facet:hover { border-color: var(--pub-edge-strong); color: var(--pub-ink); }
+.pub-facet:hover { border-color: var(--pub-ink-faint); color: var(--pub-ink); }
 /* 선택 상태를 색 하나로만 말하지 않는다 — aria-current 가 스크린리더용 문장이다. */
-.pub-facet[aria-current="page"] { background: var(--pub-cta); color: var(--pub-cta-ink); border-color: transparent; }
+.pub-facet[aria-current="page"] { background: var(--pub-accent); color: var(--pub-accent-ink); border-color: transparent; }
 .pub-facet-n { font-variant-numeric: tabular-nums; opacity: 0.75; }
 .pub-facet-sep { flex: none; width: 1px; min-width: 1px; align-self: stretch; background: var(--pub-edge); margin: 0 var(--pub-gap-1); }
 
@@ -638,44 +690,50 @@
 .pub-inline { display: flex; gap: var(--pub-gap-2); align-items: center; min-width: 0; }
 .pub-inline--grow { flex: 1 1 260px; }
 .pub-field {
-  height: 40px;
+  height: var(--pub-h-md);
   padding: 0 var(--pub-gap-3);
   border: 1px solid var(--pub-edge);
   border-radius: var(--pub-round-control);
-  background: var(--pub-canvas-raised);
+  background: var(--pub-surface);
   color: var(--pub-ink);
   font-family: var(--pub-type);
   font-size: var(--pub-size-text-sm);
   min-width: 0;
 }
 .pub-field--grow { flex: 1 1 auto; }
+/* 검색 아이콘을 칸 안에 앉힌다 — 아이콘만 있는 버튼을 만들지 않는다(icons.tsx 주석). */
+.pub-field-wrap { display: flex; align-items: center; gap: var(--pub-gap-2); flex: 1 1 auto; min-width: 0; padding-left: var(--pub-gap-3); border: 1px solid var(--pub-edge); border-radius: var(--pub-round-control); background: var(--pub-surface); color: var(--pub-ink-muted); }
+.pub-field-wrap .pub-field { border: 0; background: none; padding-left: 0; }
+.pub-field-wrap:focus-within { outline: 2px solid var(--pub-focus); outline-offset: 2px; }
+.pub-field-wrap .pub-field:focus-visible { outline: none; }
 
-/* ── 카드 그리드 ─────────────────────────────────────────── */
+/* ── 카드 그리드 ([A] 카드: 듀오톤 썸네일 → 칩 → 제목 → 2줄 → 메타) ── */
 .pub-cardgrid {
   display: grid;
-  gap: var(--pub-gap-4);
+  gap: var(--pub-gap-grid);
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   min-width: 0;
 }
 .pub-card {
   display: flex;
-  gap: var(--pub-gap-4);
-  align-items: flex-start;
-  padding: var(--pub-gap-5);
-  background: var(--pub-canvas-raised);
+  flex-direction: column;
+  gap: var(--pub-gap-3);
+  padding: var(--pub-pad-card);
+  background: var(--pub-surface);
   border: 1px solid var(--pub-edge);
   border-radius: var(--pub-round-card);
-  box-shadow: var(--pub-lift-1);
+  box-shadow: var(--pub-lift-rest);
   min-width: 0;
-  transition: border-color var(--pub-motion-quick) var(--pub-motion-ease),
-              box-shadow var(--pub-motion-base) var(--pub-motion-ease);
+  transition: box-shadow var(--pub-motion-move) var(--pub-ease),
+              border-color var(--pub-motion-color) var(--pub-ease);
 }
-.pub-card:hover { border-color: var(--pub-edge-strong); box-shadow: var(--pub-lift-2); }
-.pub-card-body { display: grid; gap: var(--pub-gap-2); min-width: 0; flex: 1; }
+.pub-card:hover { border-color: var(--pub-ink-faint); box-shadow: var(--pub-lift-hover); }
+.pub-card-body { display: grid; gap: var(--pub-gap-2); min-width: 0; }
 .pub-card-title {
-  font-size: var(--pub-size-text);
-  font-weight: var(--pub-weight-strong);
-  line-height: var(--pub-leading-head);
+  font-size: var(--pub-size-head-sm);
+  font-weight: var(--pub-weight-head);
+  letter-spacing: var(--pub-tracking-head-sm);
+  line-height: var(--pub-leading-head-sm);
   color: var(--pub-ink);
   overflow-wrap: anywhere;
   display: -webkit-box;
@@ -684,7 +742,17 @@
   line-clamp: 2;
   overflow: hidden;
 }
-.pub-card-note { font-size: var(--pub-size-text-sm); line-height: 1.6; color: var(--pub-ink-muted); }
+/* 2줄 요약 자리에는 요약이 아니라 **내일 할 행동**(transfer_note)이 온다(§4). */
+.pub-card-note {
+  font-size: var(--pub-size-text-sm);
+  line-height: var(--pub-leading-text-sm);
+  color: var(--pub-ink-muted);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
 /* 행동이 안 적힌 카드는 문장으로 그렇게 말한다(색으로 말하지 않는다). */
 .pub-card-note--empty { color: var(--pub-ink-faint); }
 .pub-card-meta {
@@ -693,6 +761,7 @@
   gap: var(--pub-gap-2);
   align-items: center;
   font-size: var(--pub-size-caption);
+  font-weight: var(--pub-weight-caption);
   color: var(--pub-ink-muted);
 }
 .pub-card-brand { font-weight: var(--pub-weight-strong); color: var(--pub-ink); }
@@ -706,19 +775,28 @@
   justify-content: center;
   width: 56px;
   height: 56px;
-  border-radius: var(--pub-round-card);
+  border-radius: var(--pub-round-thumb);
   overflow: hidden;
   /* 두 hue 는 컴포넌트가 --pub-logo-hue{,-2} 로 넣는다(데이터값이라 CSS 에 못 적는다). */
   background: linear-gradient(135deg, hsl(var(--pub-logo-hue, 220) 62% 46%), hsl(var(--pub-logo-hue-2, 248) 68% 34%));
-  color: #fff;
-  font-weight: var(--pub-weight-display);
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: -0.02em;
+  color: var(--pub-accent-ink);
+  font-weight: var(--pub-weight-head);
+  font-size: var(--pub-size-head);
+  letter-spacing: var(--pub-tracking-display);
+  line-height: var(--pub-leading-label);
 }
-.pub-logo--lg { width: 72px; height: 72px; font-size: 30px; }
+.pub-logo--lg { width: 72px; height: 72px; }
+/* [A] 카드 상단 듀오톤 띠 — 제품 사진이 없으니 컬러 오버레이 + 로고만 남긴다(§4). */
+.pub-logo--cover {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 7;
+  border-radius: var(--pub-round-thumb);
+  font-size: var(--pub-size-display-sm);
+}
 /* 파비콘이 404 여도 깨진 이미지 아이콘이 아니라 이니셜이 보인다(JS 없이 되는 유일한 방법). */
 .pub-logo img { position: absolute; inset: 18%; width: 64%; height: 64%; object-fit: contain; }
+.pub-logo--cover img { inset: 22%; width: 56%; height: 56%; }
 
 /* ── 빈 상태 ─────────────────────────────────────────────── */
 .pub-empty {
@@ -728,13 +806,13 @@
   text-align: center;
   gap: var(--pub-gap-2);
   padding: var(--pub-gap-10) var(--pub-gap-6);
-  border: 1px dashed var(--pub-edge-strong);
+  border: 1px dashed var(--pub-ink-faint);
   border-radius: var(--pub-round-card);
-  background: var(--pub-canvas-raised);
+  background: var(--pub-surface);
 }
 .pub-empty--compact { padding: var(--pub-gap-6) var(--pub-gap-5); }
 .pub-empty-title { font-size: var(--pub-size-text-sm); font-weight: var(--pub-weight-strong); color: var(--pub-ink); }
-.pub-empty-desc { font-size: var(--pub-size-caption); line-height: 1.6; color: var(--pub-ink-muted); max-width: 420px; }
+.pub-empty-desc { font-size: var(--pub-size-caption); line-height: var(--pub-leading-caption); color: var(--pub-ink-muted); max-width: 420px; }
 
 /* ── 상세: 본문 + 사이드 TOC. JS 를 쓰지 않는다 ──────────── */
 .pub-detail {
@@ -743,7 +821,7 @@
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
-.pub-detail-body { display: grid; gap: var(--pub-gap-10); min-width: 0; }
+.pub-detail-body { display: grid; gap: var(--pub-gap-section); min-width: 0; }
 .pub-toc { display: flex; gap: var(--pub-gap-2); overflow-x: auto; padding-bottom: var(--pub-gap-1); scrollbar-width: thin; }
 .pub-toc a {
   flex: none;
@@ -753,12 +831,15 @@
   padding: 0 var(--pub-gap-3);
   border: 1px solid var(--pub-edge);
   border-radius: var(--pub-round-pill);
-  background: var(--pub-canvas-raised);
+  background: var(--pub-surface);
   color: var(--pub-ink-muted);
-  font-size: var(--pub-size-caption);
+  font-size: var(--pub-size-label);
+  letter-spacing: var(--pub-tracking-label);
   white-space: nowrap;
+  transition: color var(--pub-motion-color) var(--pub-ease),
+              border-color var(--pub-motion-color) var(--pub-ease);
 }
-.pub-toc a:hover { border-color: var(--pub-edge-strong); color: var(--pub-ink); }
+.pub-toc a:hover { border-color: var(--pub-ink-faint); color: var(--pub-ink); }
 
 /* ── 상세 본문 조각 ──────────────────────────────────────── */
 /* 목록 한 줄(무브·근거). 첫 줄에는 구분선이 없다. */
@@ -770,49 +851,62 @@
   padding: var(--pub-gap-3) var(--pub-gap-4);
   border: 1px solid var(--pub-edge);
   border-radius: var(--pub-round-control);
-  background: var(--pub-island-wash);
+  background: var(--pub-surface-2);
 }
 /* 수치 타일. */
 .pub-tile {
   display: grid;
   gap: var(--pub-gap-1);
   padding: var(--pub-gap-4) var(--pub-gap-5);
-  background: var(--pub-canvas-raised);
+  background: var(--pub-surface);
   border: 1px solid var(--pub-edge);
   border-radius: var(--pub-round-card);
 }
 .pub-tile-value {
   font-size: var(--pub-size-head-sm);
-  font-weight: var(--pub-weight-display);
+  font-weight: var(--pub-weight-head);
+  letter-spacing: var(--pub-tracking-head-sm);
   font-variant-numeric: tabular-nums;
-  line-height: var(--pub-leading-head);
+  line-height: var(--pub-leading-head-sm);
   color: var(--pub-ink);
 }
 .pub-tile-unit { font-size: var(--pub-size-text-sm); font-weight: var(--pub-weight-text); color: var(--pub-ink-muted); }
 /* 갈린 사례·실패 기록 한 묶음. */
-.pub-quote { display: grid; gap: var(--pub-gap-2); padding: var(--pub-gap-3) var(--pub-gap-4); border-radius: var(--pub-round-control); background: var(--pub-island-wash); }
+.pub-quote { display: grid; gap: var(--pub-gap-2); padding: var(--pub-gap-3) var(--pub-gap-4); border-radius: var(--pub-round-control); background: var(--pub-surface-2); }
 /* 접히는 범례. */
-.pub-details summary { cursor: pointer; font-size: var(--pub-size-text-sm); font-weight: var(--pub-weight-strong); color: var(--pub-ink); }
+.pub-details summary {
+  display: flex;
+  align-items: center;
+  gap: var(--pub-gap-2);
+  cursor: pointer;
+  font-size: var(--pub-size-text-sm);
+  font-weight: var(--pub-weight-strong);
+  color: var(--pub-ink);
+  list-style: none;
+}
+.pub-details summary::-webkit-details-marker { display: none; }
+.pub-details[open] summary .pub-icon { transform: rotate(180deg); }
+.pub-details summary .pub-icon { transition: transform var(--pub-motion-move) var(--pub-ease); }
 .pub-details-body { display: grid; gap: var(--pub-gap-3); padding-top: var(--pub-gap-3); }
 .pub-deflist { display: grid; gap: var(--pub-gap-1); }
 .pub-url { font-size: var(--pub-size-caption); overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 3px; }
 
 /* 폼 줄 (피드백·저장). 버튼과 상태 문구가 한 줄로 붙는다. */
 .pub-formrow { display: flex; flex-wrap: wrap; gap: var(--pub-gap-2); align-items: center; }
-.pub-btn--sm { height: 36px; padding: 0 var(--pub-gap-4); font-size: var(--pub-size-caption); }
-.pub-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
-.pub-btn[disabled]:active { transform: none; }
 
 @media (min-width: 768px) {
-  .pub-hero--detail { padding: var(--pub-gap-10) 0 0; }
-  .pub-hero--detail .pub-hero-title { font-size: var(--pub-size-display-sm); }
+  .pub-hero--detail { padding: var(--pub-gap-section) 0 0; }
+  .pub-hero--detail .pub-hero-title {
+    font-size: var(--pub-size-display-sm);
+    letter-spacing: var(--pub-tracking-display-sm);
+    line-height: var(--pub-leading-display-sm);
+  }
 }
 
 @media (min-width: 1024px) {
   .pub-liblayout { grid-template-columns: 240px minmax(0, 1fr); }
-  .pub-facets {
-    position: sticky;
-    top: var(--pub-gap-3);
+  .pub-facets { position: sticky; top: var(--pub-gap-3); }
+  .pub-facets-list {
     flex-direction: column;
     align-items: stretch;
     overflow: visible;
@@ -834,7 +928,7 @@
   }
   .pub-detail > .pub-toc a {
     height: auto;
-    min-height: 32px;
+    min-height: var(--pub-h-sm);
     padding: var(--pub-gap-1) var(--pub-gap-3);
     border: 0;
     border-left: 2px solid var(--pub-edge);
@@ -842,6 +936,6 @@
     background: transparent;
     white-space: normal;
   }
-  .pub-detail > .pub-toc a:hover { border-left-color: var(--pub-ink); background: var(--pub-island-wash); }
+  .pub-detail > .pub-toc a:hover { border-left-color: var(--pub-accent); background: var(--pub-surface-2); }
   .pub-detail > .pub-detail-body { grid-column: 1; grid-row: 1; min-width: 0; }
 }

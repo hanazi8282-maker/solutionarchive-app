@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { toggleSave, type SaveState } from './save-actions'
+import { IconBookmark } from '../../_pub/icons'
 
 /**
  * 저장(북마크) 토글. 히어로 액션 줄에서 링크 복사 버튼 옆에 앉는다.
@@ -56,7 +57,7 @@ export function SaveButton({ caseStudyId, slug, signedIn, initialSaved, unavaila
         aria-pressed={saved}
         disabled={pending}
       >
-        {pending ? '…' : saved ? '저장됨' : '저장'}
+        <IconBookmark />{pending ? '…' : saved ? '저장됨' : '저장'}
       </button>
       {state && <span className="pub-caption" role={state.ok ? 'status' : 'alert'}>{state.message}</span>}
     </form>

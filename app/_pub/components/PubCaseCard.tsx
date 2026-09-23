@@ -58,6 +58,11 @@ export function PubCaseCard({ study, move, moveCount, reason }: {
 
   return (
     <Link className="pub-card" href={`/library/${study.slug}`}>
+      {/* [A] 카드 리듬: 듀오톤 썸네일(위) → 라벨 칩 → 제목 → 2줄 → 메타.
+          v1 은 썸네일을 오른쪽에 붙였는데, 그러면 제목이 56px 만큼 좁아져 두 줄 자르기가
+          거의 항상 걸린다. 위로 올리면 제목이 카드 폭을 다 쓴다. */}
+      <PubBrandLogo study={study} bottleneck={study.bottleneck} size="cover" />
+
       <div className="pub-card-body">
         <div className="pub-chiprow">
           {problem ? <Chip>{READER_PROBLEM_LABEL[problem] ?? problem}</Chip> : null}
@@ -80,8 +85,6 @@ export function PubCaseCard({ study, move, moveCount, reason }: {
 
         {reason ? <p className="pub-caption">{reason}</p> : null}
       </div>
-
-      <PubBrandLogo study={study} bottleneck={study.bottleneck} />
     </Link>
   )
 }

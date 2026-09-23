@@ -19,6 +19,12 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+      # `app/_pub` 토큰이 두더지웍스(`app/_ds`)에서 승계된 값으로 되돌아가지 않는지.
+      # 2026-09-23 판은 컴포넌트만 새로 짜고 값은 40개 중 23개가 같았는데 화면은 멀쩡해
+      # 보여서 아무도 못 잡았다 — 그래서 사람 눈이 아니라 기계가 센다.
+      # 두 번 돌린다: 정상(겹침 0) + `--mutate`(일부러 `_ds` 색을 넣어 **실패해야** 통과).
+      - run: node scripts/pub-tokens-overlap-selftest.mjs
+      - run: node scripts/pub-tokens-overlap-selftest.mjs --mutate
       # 로그인 보호 경로·서버 액션 가드. 크론 라우트가 로그인에 막히면 여기서 실패한다.
       - run: node scripts/auth-selftest.mjs
       # Threads 토큰 3상태·refresh-token 크론 응답(만료·임박을 200 으로 숨기지 않는다), 크론 감시 판정.

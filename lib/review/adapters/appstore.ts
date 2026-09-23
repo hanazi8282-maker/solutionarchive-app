@@ -106,6 +106,15 @@ export const appstoreAdapter: ReviewSourceAdapter = {
   key: 'appstore',
   displayName: 'App Store 고객 리뷰',
 
+  /**
+   * **RSS 리뷰 id 가 앱 전역에서 유일한지 실측하지 않았다 → 옛 키(productRef 포함)를 유지한다.**
+   *
+   * 2026-09-24 판단. 확인 불가를 유일함으로 접지 않는다(§7.1). 여기서는 얻는 것도
+   * 없다 — product_ref 가 `<국가>:<앱 id>` 이고 한 리뷰는 한 앱에만 달리므로
+   * **두 타깃이 같은 리뷰를 덮을 수 없다.** 다나와와 같은 이유로 좁혀 둔다.
+   */
+  productScopedExternalId: true,
+
   nextRequest(target: TargetState): { url: string } | null {
     const ref = parseProductRef(target.productRef)
     if (!ref) return null

@@ -61,9 +61,19 @@ const rv = (over = {}) => ({
   t('같은 본문이면 content_hash 는 같다', a.contentHash, b.contentHash)
 }
 {
-  const a = computeFingerprint('danawa', 'p1', rv())
-  const b = computeFingerprint('danawa', 'p2', rv())
+  // 4번째 인수 = `productScopedExternalId`(어댑터가 선언한다). 다나와는 true 다 —
+  // seq 공간이 몰마다 달라서 상품으로 좁혀야 한다.
+  const a = computeFingerprint('danawa', 'p1', rv(), true)
+  const b = computeFingerprint('danawa', 'p2', rv(), true)
   ok('상품이 다르면 다른 리뷰 — seq 공간이 몰마다 다르다', a.identityKey !== b.identityKey)
+
+  // 기본값(사이트 전역 유일)에서는 productRef 가 키에서 빠진다. 같은 글이 `url:`
+  // 타깃과 `board:` 타깃으로 들어와도 한 행이어야 하기 때문이다(2026-09-24).
+  const u1 = computeFingerprint('clien', 'url:/service/board/use/1', rv())
+  const u2 = computeFingerprint('clien', 'board:use', rv())
+  t('타깃 경로가 달라도 같은 리뷰 — productRef 를 키에서 뺐다', u1.identityKey, u2.identityKey)
+  ok('그때 옛 키를 폴백으로 들고 있다', u1.legacyIdentityKey !== u2.legacyIdentityKey)
+  t('좁힌 소스는 폴백이 없다(키가 그대로다)', a.legacyIdentityKey, null)
 }
 {
   const f = computeFingerprint('danawa', 'p1', rv({ externalId: null }))
@@ -97,6 +107,8 @@ function makeHarness({
   pageStatus = {},
   sourceOver = {},
   targets = null,
+  // 지문 판정을 고정한다(store 가 DB 를 보고 내리는 판정을 러너 쪽에서 시험할 때).
+  verdictOver = null,
 } = {}) {
   const log = { fetched: [], slept: [], saves: [], inputs: [], health: [] }
   const seen = new Map() // identityKey -> contentHash
@@ -159,6 +171,7 @@ function makeHarness({
         log.saves.push(p)
       },
       async recordFingerprint(fp) {
+        if (verdictOver) return verdictOver
         const prev = seen.get(fp.identityKey)
         if (prev === undefined) {
           seen.set(fp.identityKey, fp.contentHash)
@@ -399,6 +412,20 @@ const runQuota = (h, over = {}) =>
   await run(h)
   t('수정된 리뷰를 재적재하지 않는다', h.log.inputs.length, 1)
   t('적재된 건 처음 본문이다', h.log.inputs[0].text, '원래 본문')
+}
+{
+  // 2차 방어(같은 글이 다른 타깃 경로로 들어옴)를 러너가 **따로 센다.**
+  // "신규 0건"과 "중복만 받았다"가 같은 숫자로 보이면 안 된다(§7.1).
+  const h = makeHarness({
+    pages: { 1: page([rv({ externalId: 'x1' }), rv({ externalId: 'x2' })], null) },
+    verdictOver: 'cross-target',
+  })
+  const r = await run(h)
+  t('교차 타깃 중복은 적재하지 않는다', h.log.inputs.length, 0)
+  t('교차 타깃 중복을 따로 센다', r.stats.crossTargetDuplicates, 2)
+  t('신규에 섞지 않는다', r.stats.newReviews, 0)
+  t('파싱 실패에도 섞지 않는다', r.stats.parseFailures, 0)
+  t('파싱 건수는 그대로다', r.stats.reviewsParsed, 2)
 }
 
 // ── 증분 종료 ─────────────────────────────────────────────────────

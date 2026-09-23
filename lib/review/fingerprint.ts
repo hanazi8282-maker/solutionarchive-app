@@ -39,6 +39,19 @@ export function normalizeText(text: string): string {
 }
 
 /**
+ * 본문 길이 하한 — 이 길이 미만은 **교차 타깃 content_hash 방어(2차)를 적용하지
+ * 않는다**(store.ts `recordFingerprint`).
+ *
+ * ⚠️ 이 상수가 없으면 이 파일 맨 위 경고를 정면으로 어긴다. "감사합니다" 같은
+ *    짧고 흔한 본문은 서로 다른 사람의 글이 같은 해시가 되고, 그걸 중복으로
+ *    버리면 조용히 데이터를 잃는다. 긴 본문의 완전 일치만 "같은 글"로 본다.
+ *
+ * ponytail: 120자는 실측 없이 고른 보수적 값이다. 실제로 걸러지는 건수를 보고
+ * 조이거나 풀 수 있다 — 올리면 방어가 약해지고, 내리면 오탐이 늘어난다.
+ */
+export const CROSS_TARGET_MIN_TEXT_LEN = 120
+
+/**
  * 지문을 만든다. 만들 수 없으면 null.
  *
  * null 을 돌려주는 경우: 소스가 준 고유번호도 없고, 조합에 쓸 재료
@@ -55,19 +68,56 @@ export function normalizeText(text: string): string {
  *    파서가 이미 missingIdentity 로 실패 처리하는 경우와 같아서
  *    (lib/review/adapters/danawa.ts), 건강도가 broken 으로 떨어져 소스가
  *    멈춘다. 조용히 데이터를 망가뜨리는 것보다 멈추는 게 낫다.
+ *
+ * ── ⚠️ 2026-09-24: externalId 가 있으면 productRef 를 키에서 뺀다 ──
+ *
+ *    원래는 `sha256(sourceKey|productRef|externalId)` 였다. 그래서 **같은 글이
+ *    `url:` 타깃과 `board:` 타깃 두 경로로 들어오면 서로 다른 키가 되어
+ *    analysis_inputs 에 두 행**이 됐다(SP-031 과 같은 형태 — 그때는 어댑터가
+ *    비켜 갔지만, 게시판 순회가 붙으면서 소스 8곳이 같은 함정에 들어왔다).
+ *
+ *    글·댓글의 정체성은 **사이트 + 그 사이트가 준 식별자**다. 어느 타깃으로
+ *    들어왔는지는 정체성이 아니라 경로이고, 그건 `review_fingerprints.product_ref`
+ *    컬럼이 이미 따로 남긴다.
+ *
+ *    두 갈래로 갈리는 자리:
+ *
+ *      · `productScopedExternalId = false`(기본) — externalId 가 사이트 전역
+ *        유일하다. 정규화된 경로(`/service/board/use/12345`)나 플랫폼 전역 id
+ *        (HN objectID · YouTube 댓글 id · `tbr:245885`)를 쓰는 어댑터가 전부 여기다.
+ *        → `sha256(sourceKey|externalId)`
+ *
+ *      · `productScopedExternalId = true` — externalId 가 **타깃 안에서만** 유일하다.
+ *        다나와가 그렇다: 판매처 리뷰 seq 가 몰마다 다른 id 공간에서 와서
+ *        (9자리 vs 11자리 0패딩) 상품으로 좁혀야 한다는 게 원래 설계 판단이다
+ *        (20260829000003 마이그레이션 주석). 여기서 productRef 를 빼면 **다른
+ *        상품의 다른 리뷰 둘이 한 리뷰로 뭉개진다** — 중복 적재보다 나쁜 방향이다.
+ *        → `sha256(sourceKey|productRef|externalId)` (= 옛 키 그대로, 이행 없음)
+ *
+ *    `legacyIdentityKey` 는 **이미 옛 키로 저장된 행을 찾기 위한 것**이다.
+ *    옛 키는 externalId 를 DB 에 남기지 않아 SQL 로 되계산할 수 없다 — 그래서
+ *    백필이 아니라 **조회 폴백 + 히트 시 새 키로 승격**으로 이행한다
+ *    (store.ts · supabase/migrations/20260930000012_fingerprint_dedupe.sql 헤더).
  */
 export function computeFingerprint(
   sourceKey: string,
   productRef: string,
   review: ParsedReview,
+  productScopedExternalId = false,
 ): Fingerprint | null {
-  const contentHash = sha256(normalizeText(review.text))
+  const normalized = normalizeText(review.text)
+  const contentHash = sha256(normalized)
+  const textLength = normalized.length
 
   if (review.externalId) {
+    const scoped = sha256(`${sourceKey}|${productRef}|${review.externalId}`)
     return {
       sourceKey,
-      identityKey: sha256(`${sourceKey}|${productRef}|${review.externalId}`),
+      identityKey: productScopedExternalId ? scoped : sha256(`${sourceKey}|${review.externalId}`),
+      // 타깃 범위 id 는 옛 키와 새 키가 같으므로 폴백할 것이 없다(null).
+      legacyIdentityKey: productScopedExternalId ? null : scoped,
       contentHash,
+      textLength,
       kind: 'seq',
       productRef,
       writtenAt: review.writtenAt,
@@ -83,8 +133,14 @@ export function computeFingerprint(
 
   return {
     sourceKey,
+    // ⚠️ 폴백 조합은 productRef 를 **그대로 남긴다.** `판매처|작성자|작성일` 만으로는
+    //    사이트 안에서 유일하지 않다 — 같은 날 같은 판매처에서 같은 마스킹 이름
+    //    (`vl****`)으로 다른 상품에 쓴 리뷰가 한 리뷰로 뭉개진다. 여기서는 중복
+    //    적재보다 오식별이 더 비싸다.
     identityKey: sha256(`${sourceKey}|${productRef}|${seller}|${author}|${written}`),
+    legacyIdentityKey: null,
     contentHash,
+    textLength,
     kind: 'composite',
     productRef,
     writtenAt: review.writtenAt,

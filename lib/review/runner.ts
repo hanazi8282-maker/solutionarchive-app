@@ -92,8 +92,11 @@ export interface RunnerStore {
    *   new       : 처음 보는 리뷰
    *   duplicate : identity 도 content 도 같음
    *   revised   : identity 는 같은데 content 가 다름(수정된 리뷰)
+   *   cross-target : identity 는 처음인데 **같은 소스에 같은 본문이 이미 적재돼
+   *                  있다**. 같은 글이 다른 타깃 경로로 들어온 것이다(2차 방어).
+   *                  판정은 DB 를 보는 store 가 한다 — 러너는 세고 로그만 남긴다.
    */
-  recordFingerprint(fp: Fingerprint): Promise<'new' | 'duplicate' | 'revised'>
+  recordFingerprint(fp: Fingerprint): Promise<'new' | 'duplicate' | 'revised' | 'cross-target'>
   /** analysis_inputs 에 리뷰 1건 = 1행으로 적재하고 id 를 돌려준다. */
   appendInput(input: {
     projectId: string
@@ -137,6 +140,7 @@ const emptyStats = (): RunStats => ({
   relevanceFiltered: 0,
   newReviews: 0,
   fallbackKeys: 0,
+  crossTargetDuplicates: 0,
   blockedResponses: 0,
   quotaExhaustedResponses: 0,
 })
@@ -513,7 +517,12 @@ export async function runCollection(
 
       const pageResult = await ingestPage(
         parsed.reviews,
-        { target, lastReviewAt: baselineReviewAt, sourceKey: adapter.key },
+        {
+          target,
+          lastReviewAt: baselineReviewAt,
+          sourceKey: adapter.key,
+          productScopedExternalId: adapter.productScopedExternalId === true,
+        },
         opts,
         ports,
         stats,
@@ -659,7 +668,12 @@ export async function runCollection(
 /** 한 페이지분 리뷰를 지문 대조하고 적재한다. */
 async function ingestPage(
   reviews: ParsedReview[],
-  ctx: { target: TargetState; lastReviewAt: string | null; sourceKey: string },
+  ctx: {
+    target: TargetState
+    lastReviewAt: string | null
+    sourceKey: string
+    productScopedExternalId: boolean
+  },
   opts: RunOptions,
   ports: RunnerPorts,
   stats: RunStats,
@@ -672,7 +686,12 @@ async function ingestPage(
   for (const review of reviews) {
     stats.reviewsParsed++
 
-    const fp = computeFingerprint(ctx.sourceKey, ctx.target.productRef, review)
+    const fp = computeFingerprint(
+      ctx.sourceKey,
+      ctx.target.productRef,
+      review,
+      ctx.productScopedExternalId,
+    )
     if (!fp) {
       // 지문을 만들 수 없다 = 정체성 재료가 전부 비었다. 파서가 이미
       // 실패로 세는 상황과 같지만, 여기서 한 번 더 센다 — 어댑터가 놓쳐도
@@ -700,6 +719,18 @@ async function ingestPage(
     if (opts.dryRun) continue
 
     const verdict = await ports.store.recordFingerprint(fp)
+
+    // 2차 방어: 키는 달랐지만 **같은 소스에 같은 본문이 이미 적재돼 있다**.
+    // 같은 글이 다른 타깃 경로(`url:` ↔ `board:`)로 들어와 옛 키 행을 못 만난
+    // 경우가 이것이다. 키 이행이 덜 끝난 상태에서도 중복 적재를 막는다.
+    //
+    // ⚠️ 0건과 구분해 따로 센다(§7.1). newReviews 에도 parseFailures 에도
+    //    섞지 않는다 — 셋은 서로 다른 사건이다.
+    if (verdict === 'cross-target') {
+      stats.crossTargetDuplicates++
+      continue
+    }
+
     if (verdict === 'duplicate' || verdict === 'revised') {
       // 수정된 리뷰도 재적재하지 않는다. 이미 분석에 반영된 의견인데
       // 수정본을 또 넣으면 같은 사람 의견이 두 번 세어진다(설계 §4.5).

@@ -277,6 +277,31 @@ identity_key = sha256("danawa" | product_ref | review_seq)
 `product_ref` 는 다나와 pcode 다. 같은 상품 페이지 안에서 seq 는 유일함을
 실측으로 확인했고, 상품이 다르면 애초에 다른 타깃이다.
 
+> ⚠️ **2026-09-24 개정 — 위 공식은 이제 다나와·appstore 에만 적용된다.**
+>
+> 커뮤니티 소스에 게시판 순회(`board:<slug>`)가 붙으면서, **같은 글이 `url:` 타깃과
+> `board:` 타깃 두 경로로 들어와 서로 다른 키가 되는** 문제가 드러났다(SP-031 과 같은
+> 형태). 그 소스들의 `external_id` 는 정규화된 글 경로(`/service/board/use/19268762`)나
+> 플랫폼 전역 id(HN objectID 등)라 **사이트 전역에서 유일**하므로, 정체성에서
+> `product_ref` 를 뺀다:
+>
+> ```
+> identity_key = sha256(source_key | external_id)          -- 기본
+> identity_key = sha256(source_key | product_ref | external_id)
+>                                  -- 어댑터가 productScopedExternalId 를 켠 경우(danawa·appstore)
+> ```
+>
+> 어느 타깃으로 들어왔는지는 정체성이 아니라 경로이고, `review_fingerprints.product_ref`
+> 컬럼이 이미 따로 남긴다. 다나와 seq 처럼 **타깃 안에서만 유일한** id 는 좁힌 채로
+> 남긴다 — 거기서 `product_ref` 를 빼면 다른 상품의 다른 리뷰가 한 리뷰로 뭉개진다.
+>
+> 이행: 옛 키로 저장된 행은 조회 폴백으로 찾아 **새 키로 승격**한다
+> (`lib/review/store.ts`). `external_id` 를 DB 에 남기지 않아 SQL 백필은 불가능하다 —
+> 판단과 정리 SQL 은 `supabase/migrations/20260930000012_fingerprint_dedupe.sql` 헤더에 있다.
+> 2차 방어로 러너가 "같은 소스에 같은 긴 본문이 이미 적재됐는가"를 보고 건너뛰며,
+> 그 건수는 `중복(다른 타깃 경로): N` 으로 따로 찍는다(0건과 구분한다).
+> 고정: `scripts/review-fingerprint-selftest.mjs`.
+
 **seq 를 못 찾은 경우의 폴백**(다나와가 구조를 바꿔 seq 가 사라지면):
 
 ```

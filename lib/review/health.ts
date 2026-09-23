@@ -47,6 +47,17 @@ export interface RunStats {
   newReviews: number
   /** externalId 를 못 찾아 폴백 조합으로 지문을 만든 수. */
   fallbackKeys: number
+  /**
+   * **같은 글이 다른 타깃 경로로 들어와 2차 방어(content_hash)로 걸러진 수.**
+   *
+   * ⚠️ `judgeHealth` 는 이 값을 보지 않는다 — 파싱 성공률 분모에 안 들어간다.
+   *    파서가 깨진 것이 아니라 타깃 등록이 겹친 것이고, 그건 사람이 `url:` 타깃을
+   *    정리해 요청을 아끼면 되는 문제다.
+   *
+   * ⚠️ 이 값이 크고 `newReviews` 가 0 인 실행은 "신규 0건"이 아니다 —
+   *    **중복만 받았다**다. 둘을 같은 글자로 찍으면 안 된다(§7.1).
+   */
+  crossTargetDuplicates: number
   /** 차단으로 판정된 403 / 429 횟수. 쿼터 소진은 여기 세지 않는다. */
   blockedResponses: number
   /**

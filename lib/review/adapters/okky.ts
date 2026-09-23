@@ -99,10 +99,11 @@
 //    Crawl-delay 는 `*` 그룹에 없다(bingbot 만 1초) → 간격은 DB 의 min_interval_ms
 //    가 정한다. 등록 SQL 이 3,000ms 로 올린다.
 //
-// ⚠️ **같은 글을 `url:` 타깃과 `board:` 타깃이 동시에 덮으면 두 행이 된다.**
+// ✅ **같은 글을 `url:` 타깃과 `board:` 타깃이 동시에 덮어도 한 행이다**(2026-09-24 수정).
 //    identity_key 가 `sourceKey|productRef|externalId` 라서 productRef 가 다르면
-//    다른 리뷰로 적재된다(fingerprint.ts, SP-031 과 같은 형태). 게시판 모드로 넘어간
-//    보드의 `url:` 타깃은 사람이 정리해야 한다 — 코드가 막지 못한다.
+//    두 행이 됐다(SP-031 과 같은 형태). 이제 externalId 가 있으면 productRef 를
+//    키에서 뺀다(fingerprint.ts) — externalId 가 정규화된 글 경로라 사이트 전역
+//    유일하기 때문이다. `url:` 타깃 정리는 요청을 아끼는 문제로만 남는다.
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
 import { parseUrlRef } from './url-ref.ts'

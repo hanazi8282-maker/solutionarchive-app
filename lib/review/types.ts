@@ -113,8 +113,10 @@ export interface ParseResult {
    *   hackernews — Algolia search_by_date 가 키워드 무관 최신 댓글을 섞어 준다.
    *   tumblbug   — 창작자 후기 프리뷰에 **다른 프로젝트** 후기가 섞여 온다.
    *                이 타깃 프로젝트 것만 받고 나머지를 여기 센다. 안 거르면
-   *                같은 후기가 타깃마다 새 행으로 적재된다(identity_key 에
-   *                productRef 가 들어가기 때문이다 — fingerprint.ts).
+   *                후기가 **남의 프로젝트 타깃의 project_id 로** 적재된다.
+   *                (중복 적재 쪽은 2026-09-24 지문 변경으로 막혔다 — 이제
+   *                identity_key 에 productRef 가 없다. 귀속 오류는 그대로 남으므로
+   *                이 필터는 유지한다.)
    */
   filtered?: number
   /**
@@ -234,6 +236,27 @@ export interface ReviewSourceAdapter {
    *      · **본문 전용 소스(brunch·velog)는 다시 읽어도 새 건이 0 이다.** 되돌릴 첫 후보다.
    */
   incrementalOnly?: boolean
+
+  /**
+   * **이 소스의 `externalId` 는 타깃(상품) 안에서만 유일하다 — 사이트 전역이 아니다.**
+   *
+   * 기본값 `false`(= 사이트 전역 유일)에서 지문의 `identity_key` 는
+   * `sha256(sourceKey|externalId)` 다. 그래야 같은 글이 `url:` 타깃과 `board:`
+   * 타깃 두 경로로 들어와도 한 행이다(2026-09-24 이전에는 productRef 가 키에
+   * 들어가 두 행이 됐다 — fingerprint.ts 헤더).
+   *
+   * 이 플래그를 켜면 productRef 를 키에 남긴다(= 옛 키 그대로).
+   *
+   * ⚠️ 켜고 끄는 기준은 **실측**이다. 어댑터가 내는 externalId 가 정규화된 경로나
+   *    플랫폼 전역 id 면 끈 채로 둔다. 의미를 모르는 불투명한 번호(다나와 리뷰 seq
+   *    — 몰마다 id 공간이 다른 것으로 관측됨)면 켠다. 판단을 미루고 끈 채로 두면
+   *    **서로 다른 리뷰 둘이 한 리뷰로 뭉개진다**(중복 적재보다 나쁘다).
+   *
+   * ⚠️ 새 어댑터는 `scripts/review-fingerprint-selftest.mjs` 의 감사 표에 한 줄을
+   *    추가해야 그 셀프테스트가 통과한다. 판단을 강제하려고 그렇게 만들었다 —
+   *    표에 없으면 "확인하지 않았다"이고, 그건 통과가 아니다(§7.1).
+   */
+  productScopedExternalId?: boolean
 }
 
 /**
@@ -250,7 +273,22 @@ export type FingerprintKind = 'seq' | 'composite'
 export interface Fingerprint {
   sourceKey: string
   identityKey: string
+  /**
+   * 2026-09-24 이전 공식으로 계산한 키(`sha256(sourceKey|productRef|externalId)`).
+   * 옛 키로 이미 저장된 행을 찾는 데만 쓴다. 새 키와 같으면 null 이다.
+   *
+   * ponytail: 백필이 끝나면 제거 — 다만 옛 키는 externalId 를 DB 에 남기지 않아
+   * SQL 로 되계산할 수 없다(마이그레이션 20260930000012 헤더). 지금은 폴백이
+   * 유일한 이행 경로다.
+   */
+  legacyIdentityKey: string | null
   contentHash: string
+  /**
+   * 정규화된 본문 길이. 교차 타깃 content_hash 방어(2차)를 적용할지 가르는 값이다 —
+   * 짧고 흔한 본문은 서로 다른 글이 같은 해시가 되므로 적용하지 않는다
+   * (fingerprint.ts `CROSS_TARGET_MIN_TEXT_LEN`).
+   */
+  textLength: number
   kind: FingerprintKind
   productRef: string | null
   writtenAt: string | null

@@ -396,9 +396,9 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
         {/* ── 7) VOC 인용: 만들지 않았다. 이유는 파일 상단 주석. ── */}
 
         {/* ── 8) 피드백 위젯 ─────────────────────────────────── */}
-        <Section id="feedback" title="의견 남기기" subtitle="이 케이스가 옮길 만했는지 한 번만 눌러 주면 다음 조사 순서가 바뀐다. 집계는 화면에 내지 않는다 — 앞사람의 표를 따라가지 않게.">
+        <Section id="feedback" title="의견 남기기" subtitle="로그인 없이 남길 수 있다(남헌 2026-09-23 명시 승인: 익명 피드백 허용, 하루 1회 제한). 집계는 화면에 내지 않는다 — 앞사람의 표를 따라가지 않게.">
           <Card>
-            <FeedbackForm caseStudyId={s.id} signedIn={signedIn} />
+            <FeedbackForm caseStudyId={s.id} />
           </Card>
         </Section>
 

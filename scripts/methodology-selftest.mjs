@@ -67,9 +67,9 @@ for (const [axis, table] of Object.entries(GRADE_TABLE)) {
   }
 }
 
-// ── 3. PMF 축 — "코드 구현 없음" 주장이 아직 참인가 ──────────────
-// content.ts 가 PMF 표를 "설계"라고 적는 근거는 draft.ts 에 산식이 없다는 것뿐이다.
-// 누가 pmfGrade 를 구현하면 그 문장이 거짓이 되고, 이 검사가 그때 막는다.
+// ── 3. PMF 축 — 화면이 말하는 구현 상태가 코드 실물과 같은가 ─────
+// content.ts 의 구현 여부 주장은 draft.ts 에 산식이 있느냐 하나로 갈린다. 2026-09-23 에
+// pmfGrade 가 들어와 플래그가 true 로 뒤집혔다. 앞으로도 한쪽만 바뀌면 여기서 막힌다.
 const draftSrc = readFileSync(join(repoRoot, 'lib/cases/draft.ts'), 'utf8')
 const hasPmfGrade = /export\s+function\s+pmfGrade\b/.test(draftSrc)
 t('PMF_GRADE_IMPLEMENTED 가 코드 실물과 같다', PMF_GRADE_IMPLEMENTED, hasPmfGrade)
@@ -78,7 +78,16 @@ ok('PMF 섹션이 있다', Boolean(pmf))
 ok('PMF 섹션은 S×T 두 축을 말한다', /신호 강도 S/.test(pmf.body) && /이식성 T/.test(pmf.body))
 ok('PMF 섹션은 미판정을 LOW 로 접지 않는다고 적는다', /잠정/.test(pmf.body))
 ok('PMF 섹션은 실패 사례도 A 가 될 수 있다고 적는다', /실패 사례도 A/.test(pmf.body))
-ok('PMF 표 자체가 설계임을 밝힌다', /구현은 아직 없다|설계/.test(pmf.table.caption))
+// 캡션이 구현 상태를 **플래그와 같은 방향으로** 말하는지 본다. 예전 검사는 '설계' 라는
+// 낱말만 찾아서, "설계·산식 둘 다 구현됨" 도 통과시켰다 — 거짓 초록불이다(§7.1).
+ok('PMF 표 캡션이 구현 상태를 플래그와 같게 말한다',
+  PMF_GRADE_IMPLEMENTED
+    ? /구현됨|구현 완료/.test(pmf.table.caption) && !/구현은 아직 없다/.test(pmf.table.caption)
+    : /구현은 아직 없다/.test(pmf.table.caption))
+// 구현됐다고 말하려면 출처에 산식 파일이 있어야 한다. 설계 문서만 걸어 두고 "구현됨"이라고
+// 적으면 읽는 사람이 확인할 방법이 없다.
+ok('구현됐다면 출처에 산식 파일이 있다',
+  !PMF_GRADE_IMPLEMENTED || pmf.sources.some((s) => s.startsWith('lib/cases/draft.ts')))
 
 // ── 4. 독자 문제 표는 어휘 정본을 읽는다 ────────────────────────
 const readerRows = SECTIONS.find((s) => s.id === 'case-unit').table.rows

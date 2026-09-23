@@ -65,7 +65,7 @@ const insightTable: Table = {
 
 // ── 4) PMF 등급 S×T ────────────────────────────────────────────
 const pmfTable: Table = {
-  caption: 'PMF 등급 = 신호 강도 S(0~3) × 이식성 T(0~3) 합성 — 설계 확정, 코드 구현은 아직 없다',
+  caption: 'PMF 등급 = 신호 강도 S(0~3) × 이식성 T(0~3) 합성 — 설계·산식 둘 다 구현됨(lib/cases/draft.ts pmfGrade)',
   head: ['등급', '조건', '뜻'],
   rows: [
     ['A', 'S3 & T≥2, 또는 S2 & T3', '크게 됐고, 내일 옮길 수 있다'],
@@ -76,11 +76,18 @@ const pmfTable: Table = {
 }
 
 /**
- * PMF 등급은 아직 코드에 없다. `lib/cases/draft.ts` 에 `pmfGrade` 가 생기면 위 표는
- * "설계"가 아니라 "산식"이 되므로, 그때 이 플래그와 화면 문구를 함께 고쳐야 한다.
- * 셀프테스트가 그 시점을 잡는다.
+ * 2026-09-23: 구현됐다. 산식은 `lib/cases/draft.ts pmfGrade`(+ `suggestSignal` ·
+ * `transferScore`), 컬럼은 마이그 `20260930000004`, 재채점은
+ * `scripts/case-review.mjs regrade` 다. 화면 배지는 `pmf_grade ?? evidence_grade`
+ * (`lib/cases/grade-display.ts displayGrade`).
+ *
+ * 다만 **자동으로 다 매겨지는 축이 아니다.** S 는 사람이 채점 카드에서 고르고(코드는
+ * 제안만 한다), 이식성 사람 판정이 없으면 전제 문장에서 뽑은 잠정값이다 — 그렇게 매긴
+ * 등급은 `pmf_provisional=true` 로 나간다. 그 사실을 화면에서 지우지 않는다(§7.1).
+ *
+ * 이 플래그는 `scripts/methodology-selftest.mjs` 가 코드 실물과 대조한다.
  */
-export const PMF_GRADE_IMPLEMENTED = false
+export const PMF_GRADE_IMPLEMENTED = true
 
 // ── 5) 발행하지 않는 것 ────────────────────────────────────────
 const gateTable: Table = {
@@ -147,9 +154,14 @@ export const SECTIONS: readonly Section[] = [
       '2026-09-23 확정한 축. 신호 강도 S("그래서 얼마나 됐나")와 이식성 T("타인이 내일 할 수 '
       + '있나")를 0~3 으로 매겨 합성한다. S 는 사람이 채점 카드에서 고른다. T 는 사람 판정이 '
       + '먼저이고, 미판정이면 전제 문장으로 뽑되 "잠정"을 붙인다 — 미판정을 LOW 로 접지 않는다. '
-      + '실패 사례도 A 가 될 수 있고(반증 강도로 센다), 성공·실패 방향을 함께 적는다.',
+      + '실패 사례도 A 가 될 수 있고(반증 강도로 센다), 성공·실패 방향을 함께 적는다. '
+      + '사람이 고르지 않은 자리는 "잠정"으로 남는다.',
     table: pmfTable,
-    sources: ['reports/2026-09-23/pmf-grade-axis-design.md §3'],
+    sources: [
+      'lib/cases/draft.ts pmfGrade',
+      'docs/case-study-pipeline-design.md §10',
+      'reports/2026-09-23/pmf-grade-axis-design.md §3',
+    ],
   },
   {
     id: 'not-published',

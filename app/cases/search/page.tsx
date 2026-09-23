@@ -146,7 +146,7 @@ export default async function CaseSearchPage({ searchParams }: {
         </Notice>
       )}
 
-      <Card title="남들은 어떻게 풀었나 (선례 무브)" subtitle={`승인된 케이스·무브만 · 등급 D 제외 · 같은 종류(${result.kind === 'software' ? 'SaaS' : '실물'})가 먼저`}>
+      <Card title="남들은 어떻게 풀었나 (선례 무브)" subtitle={`${result.browse ? '조건 없이 전체 승인 무브 상위 20건 — 위 칩·병목·검색어로 좁힐 수 있다 · ' : ''}승인된 케이스·무브만 · 등급 D 제외 · 같은 종류(${result.kind === 'software' ? 'SaaS' : '실물'})가 먼저`}>
         <div style={{ display: 'grid', gap: 10 }}>
           <StatusLine status={result.moves.status} reason={result.moves.reason} empty={result.empty_state} />
           {result.moves.cards.length > 0

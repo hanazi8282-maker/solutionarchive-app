@@ -417,6 +417,10 @@ async function persist(supabase, row) {
       seller_own_guess: row.why,
       status: 'collecting',
       mode: 'forward',
+      // ⚠️ 이 줄이 없으면 새 후보가 business_model=NULL 로 들어가고, extract·관련성 배치의
+      //    SaaS 우선 정렬(lib/analysis/extract-auto.ts compareAutoPriority)이 소비재로 읽는다.
+      //    2026-09-23 실측: Baremetrics·Help Scout 가 그렇게 들어갔다.
+      business_model: row.kind === 'saas' ? 'SAAS' : null,
     })
     .select('id')
     .single()

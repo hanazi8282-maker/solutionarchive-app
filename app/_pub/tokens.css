@@ -1,44 +1,77 @@
 /* ============================================================
-   PUB — 공개 화면 디자인 시스템 토큰 (남헌 2026-09-23 B안)
-   레퍼런스 실측: reports/2026-09-23/ui-overhaul-reference-plan.md §2
-     · 다크 랜딩 = Foreplay (캔버스 #020308, 흰 섹션 카드 radius 32)
-     · 라이트 앱  = Trend Seeker (캔버스 #F4F7FA, 텍스트 #0F172A, 흰 카드 radius 16)
+   PUB 토큰 v2 — 레퍼런스 4곳 실측값에서 **다시 도출**했다 (남헌 2026-09-24 확정).
 
-   ⚠️ `app/_ds`(두더지웍스) 와 **완전히 별개**다. 이 파일은 `_ds` 를 import 하지 않고,
-      `_ds` 의 토큰 이름(--bg-app·--brand·--fs-h1 …)이나 값을 재사용하지 않는다.
-      유일한 예외는 셀프호스팅 폰트 변수 `--font-pretendard` 하나 —
-      그건 app/layout.tsx 의 next/font/local 이 <html> 에 심는 것이라
-      디자인 시스템 소유가 아니다(같은 폰트 파일을 두 번 받지 않기 위해 읽는다).
+   왜 다시 짰나. v1 은 컴포넌트만 새로 짜고 토큰은 두더지웍스(`app/_ds`)를 승계했다
+   (Pretendard 단일 서체 · Tailwind slate 뉴트럴 · 4px 간격 리듬 · 그림자·모션은 레퍼런스
+   재도출 없이 임의). 값이 40개 중 23개 겹쳤다. 그래서 색·반경·그림자·모션·서체를
+   레퍼런스 CSS 실측값으로 전부 갈았고, 겹침 0을 `scripts/pub-tokens-overlap-selftest.mjs`
+   가 CI 에서 지킨다(간격 px 은 제외 — 레퍼런스도 8의 배수라 같아질 수밖에 없다).
 
-   두 테마는 **같은 변수 이름**을 쓴다. 그래서 컴포넌트는 테마를 모른다 —
-   `data-pub-theme` 만 바뀌면 같은 마크업이 다크/라이트로 뒤집힌다.
+   출처 표기: [F]=Foreplay(다크) · [A]=Atria(라이트·카드) · [T]=Trend Seeker(본문·코랄)
+   값별 출처는 `app/_pub/README.md` 의 토큰 표가 정본이다.
+
+   ⚠️ 이 파일이 `_pub` 의 **유일한** 값 정의처다. 컴포넌트와 `pub.css` 는 토큰만 읽는다 —
+      나머지 공개 화면 6개도 같은 토큰을 입히므로, 화면별 예외를 여기 밖에 두면 갈라진다.
+   ⚠️ `_ds` 를 import 하지 않고 이름·값도 재사용하지 않는다. 예외는 셀프호스팅 폰트 변수
+      `--font-pretendard` / `--font-inter` 둘 — app/layout.tsx 의 next/font 가 <html> 에
+      심는 것이라 디자인 시스템 소유가 아니다(같은 폰트를 두 번 받지 않으려고 읽는다).
+
+   두 테마는 **같은 변수 이름**을 쓴다. 컴포넌트는 테마를 모른다 — `data-pub-theme` 만
+   바뀌면 같은 마크업이 다크/라이트로 뒤집힌다.
    ============================================================ */
 
 .pub-root {
-  /* ── 서체 ───────────────────────────────────────────── */
-  --pub-type: var(--font-pretendard, "Pretendard"), -apple-system, BlinkMacSystemFont,
-              "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
+  /* ── 서체 ─────────────────────────────────────────────────
+     영문·숫자·디스플레이는 Inter, 한글은 Pretendard. Inter 에 한글 글리프가 없어
+     **글리프 단위로** Pretendard 로 떨어진다(스택 순서가 그 규칙이다). 둘 다
+     next/font 셀프호스팅이고 런타임 CDN 을 쓰지 않는다. */
+  --pub-type: var(--font-inter), var(--font-pretendard), sans-serif;
+  --pub-type-mono: ui-monospace, "SF Mono", monospace;
 
-  /* ── 타입 스케일 (px). 각 단은 데스크톱/좁은화면 두 값이다 ── */
-  --pub-size-display: 56px;
+  /* ── 타입 스케일 ──────────────────────────────────────────
+     [F] 디스플레이 40~50 / 굵기 300~500 / 자간 -0.01~-0.02em
+     [A] 헤드 22~28 / 자간 -1.2~-2.8px
+     [T] 본문 13~17 / 행간 1.6 / 자간 +0.01~0.02em */
+  --pub-size-display: 48px;
+  --pub-weight-display: 500;
+  --pub-tracking-display: -0.02em;
+  --pub-leading-display: 1.08;
+
   --pub-size-display-sm: 40px;
+  --pub-tracking-display-sm: -0.018em;
+  --pub-leading-display-sm: 1.12;
+
   --pub-size-head: 28px;
+  --pub-weight-head: 600;
+  --pub-tracking-head: -0.015em;
+  --pub-leading-head: 1.25;
+
   --pub-size-head-sm: 22px;
-  --pub-size-text: 17px;
-  --pub-size-text-sm: 15px;
-  --pub-size-caption: 13px;
+  --pub-tracking-head-sm: -0.01em;
+  --pub-leading-head-sm: 1.3;
 
-  --pub-leading-display: 1.14;
-  --pub-leading-head: 1.3;
-  --pub-leading-text: 1.72;
-  --pub-tracking-display: -0.022em;
-  --pub-tracking-eyebrow: 0.09em;
-
+  --pub-size-text: 16px;
   --pub-weight-text: 400;
-  --pub-weight-strong: 600;
-  --pub-weight-display: 700;
+  --pub-leading-text: 1.6;
 
-  /* ── 간격: 4pt 리듬. 이름의 숫자 × 4px 다 ─────────────── */
+  --pub-size-text-sm: 15px;
+  --pub-leading-text-sm: 1.55;
+
+  --pub-size-caption: 13px;
+  --pub-weight-caption: 500;
+  --pub-tracking-caption: 0.01em;
+  --pub-leading-caption: 1.5;
+
+  /* 칩·버튼·눈썹 라벨 — 한 줄짜리 UI 글자. 행간 1 이라 높이는 컨트롤 높이가 정한다. */
+  --pub-size-label: 13px;
+  --pub-weight-label: 500;
+  --pub-tracking-label: 0.02em;
+  --pub-leading-label: 1;
+
+  --pub-weight-strong: 600;
+
+  /* ── 여백·밀도 ───────────────────────────────────────────
+     간격만은 `_ds` 와 값이 겹칠 수 있다(레퍼런스도 8의 배수다). 겹침 검사에서 제외한다. */
   --pub-gap-1: 4px;
   --pub-gap-2: 8px;
   --pub-gap-3: 12px;
@@ -47,74 +80,104 @@
   --pub-gap-6: 24px;
   --pub-gap-8: 32px;
   --pub-gap-10: 40px;
-  --pub-gap-14: 56px;
-  --pub-gap-20: 80px;
 
-  /* ── 곡률 ───────────────────────────────────────────── */
-  --pub-round-banner: 32px;
-  --pub-round-card: 16px;
+  --pub-pad-card: 20px;      /* ≥768px 에서 24px [A] */
+  --pub-gap-grid: 16px;      /* ≥768px 에서 20px */
+  --pub-gap-section: 40px;   /* ≥768px 에서 64px */
+
+  /* 컨트롤 높이 3단. 44px 은 터치 목표 최소치이므로 기본 버튼이 그 값이다. */
+  --pub-h-sm: 32px;
+  --pub-h-md: 40px;
+  --pub-h-lg: 44px;
+
+  /* ── 반경 [A] ────────────────────────────────────────────
+     `_ds` 의 8·16·32 는 쓰지 않는다. 알약은 999 가 아니라 100px [F]. */
+  --pub-round-card: 20px;
   --pub-round-control: 10px;
-  --pub-round-pill: 999px;
+  --pub-round-banner: 24px;
+  --pub-round-pill: 100px;
+  --pub-round-thumb: 12px;
 
-  /* ── 그림자 2단 (살짝 뜬 것 / 크게 뜬 것) ─────────────── */
-  --pub-lift-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.05);
-  --pub-lift-2: 0 12px 32px rgba(2, 3, 8, 0.12), 0 2px 6px rgba(2, 3, 8, 0.06);
+  /* ── 그림자 ──────────────────────────────────────────────
+     기본은 **없음**이다 [F] — 선과 면으로 위계를 만든다. 카드만 아주 얕게 뜨고,
+     호버에서 더 진하지만 더 낮게 깔린다 [A](떠오르는 게 아니라 눌리는 느낌). */
+  --pub-lift-rest: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --pub-lift-hover: 0 1px 6px rgba(0, 0, 0, 0.18);
+  --pub-lift-float: 0 4px 20px rgba(0, 0, 0, 0.03);
 
-  /* ── 모션 ───────────────────────────────────────────── */
-  --pub-motion-quick: 110ms;
-  --pub-motion-base: 220ms;
-  --pub-motion-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  /* ── 모션 [F] 곡선 · [T] 색 150ms ────────────────────────
+     포커스는 outline 2px 이다. box-shadow 링을 쓰지 않는다(`_ds` 의 --shadow-focus 를 끈다). */
+  --pub-ease: cubic-bezier(0.19, 1, 0.22, 1);
+  --pub-motion-color: 150ms;
+  --pub-motion-move: 220ms;
+  --pub-motion-enter: 400ms;
 
-  /* ── 흰 섬(패널) 공통값 — 두 테마에서 같다 ───────────── */
+  /* ── 흰 섬(패널) — 다크 캔버스 위의 라이트 카드. 두 테마에서 같다 [A] ── */
   --pub-island: #ffffff;
-  --pub-island-ink: #0f172a;
-  --pub-island-ink-muted: #5b6874;
-  --pub-island-edge: #e2e8f0;
-  --pub-island-wash: #f8fafc; /* 흰 섬 위 hover */
+  --pub-island-ink: #000000;
+  --pub-island-ink-muted: #909094;
+  --pub-island-edge: #e6e6e6;
+  --pub-island-wash: #f0f1f9; /* 두 번째 표면(사이드바·강조 칸) */
 
-  /* 본문 최대 폭. 한국어 17px 에서 한 줄 ≈ 40~45자. */
+  /* 본문 최대 폭. 16px 한국어에서 한 줄 ≈ 40자. */
   --pub-measure: 720px;
   --pub-frame: 1120px;
 }
 
-/* ── 다크 (랜딩·CTA 배너) ─────────────────────────────── */
-.pub-root[data-pub-theme="dark"] {
-  --pub-canvas: #020308;
-  --pub-canvas-raised: #0a0d16;
-  --pub-ink: #ffffff;
-  --pub-ink-muted: rgba(255, 255, 255, 0.64);
-  --pub-ink-faint: rgba(255, 255, 255, 0.58); /* 4.5:1 — 0.46 은 #020308 위에서 4.5 아래로 떨어진다 */
-  --pub-edge: rgba(255, 255, 255, 0.16);
-  --pub-edge-strong: rgba(255, 255, 255, 0.34);
-  /* 브랜드 액센트 — 남헌 2026-09-24 확정(Fable 자율 판단): Trend Seeker 딥 블루 #1D4ED8.
-     두더지웍스 보라·액션 블루(#3B82F6)는 쓰지 않는다. 흰 글자 대비 6.7:1. */
-  --pub-accent: #1d4ed8;
-  --pub-cta: #1d4ed8;
-  --pub-cta-ink: #ffffff;
-  --pub-focus: #60a5fa; /* 다크 캔버스 위 포커스 링은 밝은 파랑이 보인다 */
-  color-scheme: dark;
-}
-
-/* ── 라이트 (앱·로그인·읽기 화면) ─────────────────────── */
+/* ── 라이트 (앱·읽기 화면) [A] ────────────────────────────── */
 .pub-root[data-pub-theme="light"] {
-  --pub-canvas: #f4f7fa;
-  --pub-canvas-raised: #ffffff;
-  --pub-ink: #0f172a;
-  --pub-ink-muted: #5b6874;
-  --pub-ink-faint: #5b6874; /* #76828f 은 #f4f7fa 위에서 3.5:1 이라 못 쓴다 — 위계는 크기·굵기로 */
-  --pub-edge: #e2e8f0;
-  --pub-edge-strong: #cbd4e0;
+  --pub-canvas: #fbfbfd;
+  --pub-surface: #ffffff;
+  --pub-surface-2: #f0f1f9;
+  --pub-edge: #e6e6e6;
+  --pub-ink: #000000;
+  --pub-ink-muted: #909094;
+  /* ⚠️ 장식용만 — 본문·캡션에 쓰지 않는다(#FBFBFD 위 대비 미달). 구분선·비활성 표시용. */
+  --pub-ink-faint: #b3b3b8;
   --pub-accent: #1d4ed8;
+  --pub-accent-ink: #ffffff;
   --pub-cta: #1d4ed8;
   --pub-cta-ink: #ffffff;
   --pub-focus: #1d4ed8;
   color-scheme: light;
 }
 
+/* ── 다크 (랜딩·CTA 배너) [F] ─────────────────────────────── */
+.pub-root[data-pub-theme="dark"] {
+  --pub-canvas: #020308;
+  --pub-surface: #030407;
+  --pub-surface-2: #030407;
+  --pub-edge: rgba(250, 250, 250, 0.14);
+  --pub-ink: #fafafa;
+  --pub-ink-muted: rgba(250, 250, 250, 0.62);
+  --pub-ink-faint: rgba(250, 250, 250, 0.62);
+  --pub-accent: #1d4ed8;
+  --pub-accent-ink: #ffffff;
+  --pub-cta: #1d4ed8;
+  --pub-cta-ink: #ffffff;
+  --pub-focus: #5dbce5; /* [F] 스카이 — 딥네이비 위에서 #1d4ed8 링은 안 보인다 */
+  color-scheme: dark;
+}
+
+/* ── 판정 색 (긍정 / 부정 / 혼합) ──────────────────────────
+   [A] 라임 · [T] 코랄 · 혼합은 앰버. 두더지웍스의 초록·빨강(emerald/red)은 쓰지 않는다.
+   ⚠️ 색은 **보조**다 — 배지의 뜻은 항상 글자로도 적는다(색을 못 보는 사람에게 남는 것).
+   ⚠️ 코랄·앰버는 제 바탕 위에서 글자 대비가 안 나온다. 그래서 테두리·점으로만 쓰고
+      글자는 잉크색을 쓴다. 라임(#396C00)만 제 바탕 위에서 글자로 읽힌다. */
+.pub-root {
+  --pub-verdict-pos: #396c00;
+  --pub-verdict-pos-bg: #e9ffd2;
+  --pub-verdict-neg: #e58b73;
+  --pub-verdict-neg-bg: #fff1ec;
+  --pub-verdict-mix: #e2b866;
+  --pub-verdict-mix-bg: #fff7e0;
+}
+
 /* 움직임을 줄여 달라고 한 사람에게는 전환 지속시간을 0 으로. */
 @media (prefers-reduced-motion: reduce) {
   .pub-root {
-    --pub-motion-quick: 0ms;
-    --pub-motion-base: 0ms;
+    --pub-motion-color: 0ms;
+    --pub-motion-move: 0ms;
+    --pub-motion-enter: 0ms;
   }
 }

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import localFont from 'next/font/local'
+import { Inter } from 'next/font/google'
 import './_ds/styles.css'
 import { AppNav } from './_ds/components/AppNav'
 import { getAuthVerdict } from '@/lib/auth/session'
@@ -32,6 +33,25 @@ const pretendard = localFont({
   fallback: ['-apple-system', 'BlinkMacSystemFont', 'Apple SD Gothic Neo', 'Segoe UI', 'Roboto', 'sans-serif'],
 })
 
+/**
+ * Inter — `app/_pub` 공개 화면의 영문·숫자·디스플레이 서체 (남헌 2026-09-24 확정).
+ * 레퍼런스 4곳(Foreplay·Trend Seeker·BigIdeasDB·Atria) 본문이 전부 Inter 다.
+ *
+ * `next/font/google` 은 **빌드 때 받아 셀프호스팅**한다 — 런타임에 구글 CDN 을 때리지 않는다
+ * (Pretendard 를 CDN 에서 내린 것과 같은 이유). variable 축이라 굵기 300~600 이 파일 한 장이다.
+ *
+ * 한글은 그대로 Pretendard 다. `_pub` 의 스택이 `var(--font-inter), var(--font-pretendard)`
+ * 라서 **글리프 단위로** 떨어진다 — 라틴·숫자는 Inter, 한글은 Pretendard 가 그린다.
+ * subsets 에 'latin' 만 넣는 이유가 그것이다(한글을 Inter 로 받을 일이 없다).
+ *
+ * ⚠️ `_ds`(두더지웍스) 화면은 이 변수를 읽지 않는다 — `--font-sans` 는 Pretendard 그대로다.
+ */
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
+
 // 전에는 body 에 인라인 fontFamily(system-ui)를 박아 두어 디자인 시스템의 Pretendard 를
 // 덮었다. 이제 base.css 의 body 규칙(폰트·배경·글자색)이 전 라우트에 그대로 적용된다.
 //
@@ -40,7 +60,7 @@ const pretendard = localFont({
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const verdict = await getAuthVerdict()
   return (
-    <html lang="ko" className={pretendard.variable}>
+    <html lang="ko" className={`${pretendard.variable} ${inter.variable}`}>
       <body>
         <AppNav email={verdict.kind === 'allowed' ? verdict.email : null} />
         {/* .sa-main — ≥1024px 에서만 고정 사이드바 폭만큼 본문을 민다(styles.css). */}

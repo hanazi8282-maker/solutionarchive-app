@@ -12,8 +12,10 @@
 
 1. **`_pub` 는 `_ds` 를 import 하지 않는다.** 토큰 이름·값도 재사용하지 않는다.
    예외 하나: 폰트 변수 `--font-pretendard`(app/layout.tsx 의 next/font/local 소유).
-2. **`app/layout.tsx` 를 수정하지 않는다.** `_pub` CSS 는 `PubShell` 이 `import '../pub.css'` 로
-   끌어온다. 페이지가 CSS 를 따로 import 할 필요가 없다.
+2. **`app/layout.tsx` 는 폰트 로더 자리만 만진다.** `_pub` CSS 는 `PubShell` 이
+   `import '../pub.css'` 로 끌어온다 — 페이지가 CSS 를 따로 import 할 필요가 없다.
+   2026-09-24 에 `next/font/google` Inter 로더 한 곳이 추가됐다(토큰 v2 서체). 그 밖의
+   줄은 건드리지 않는다.
 3. **인라인 스타일 금지.** `pub.css` 의 클래스만 쓴다. 새 모양이 필요하면 `pub.css` 에 클래스를
    추가하고 이 문서에 적는다.
 4. 색·크기는 리터럴로 적지 않는다. `tokens.css` 의 변수(`--pub-*`)만 쓴다.
@@ -55,23 +57,84 @@
 클라이언트 컴포넌트(저장·피드백·링크복사)는 `PubButton` 을 못 쓴다(onClick) — `.pub-btn` 클래스를
 직접 붙인다.
 
-## 토큰 (`tokens.css`)
+## 토큰 (`tokens.css`) — v2, 레퍼런스 실측 재도출 (남헌 2026-09-24 확정)
 
-| 묶음 | 변수 | 값 |
+v1 은 컴포넌트만 새로 짜고 **값은 `_ds` 를 승계**했다(Pretendard 단일 서체 · Tailwind slate
+뉴트럴 · 4px 리듬 · 임의 그림자 → 40개 중 23개 값 일치). v2 는 색·반경·그림자·모션·서체를
+레퍼런스 CSS 실측값에서 다시 도출했다. 출처: **[F]** Foreplay(다크) · **[A]** Atria(라이트·카드) ·
+**[T]** Trend Seeker(본문·코랄).
+
+### 서체
+
+| 변수 | 값 | 출처 |
 |---|---|---|
-| 타입 | `--pub-size-display` / `-display-sm` | 56 / 40 (≥768px 에서 56) |
-| | `--pub-size-head` / `-head-sm` | 28 / 22 |
-| | `--pub-size-text` / `-text-sm` / `-caption` | 17 / 15 / 13 |
-| 간격 | `--pub-gap-1 … -20` | 이름의 숫자 × 4px (4pt 리듬) |
-| 곡률 | `--pub-round-banner/card/control/pill` | 32 / 16 / 10 / 999 |
-| 그림자 | `--pub-lift-1` · `--pub-lift-2` | 2단 |
-| 모션 | `--pub-motion-quick/base/ease` | 110ms / 220ms / cubic-bezier. `prefers-reduced-motion: reduce` 면 둘 다 0ms |
-| 다크 | `--pub-canvas #020308` · `--pub-ink #fff` · `--pub-cta #fff` | Foreplay 실측 |
-| 라이트 | `--pub-canvas #f4f7fa` · `--pub-ink #0f172a` · `--pub-cta #0f172a` | Trend Seeker 실측 |
-| 흰 섬 | `--pub-island #fff` · `--pub-island-ink #0f172a` · `--pub-island-edge #e2e8f0` | 두 테마 공통 |
+| `--pub-type` | `var(--font-inter), var(--font-pretendard), sans-serif` | 레퍼런스 4곳 본문이 전부 Inter. Inter 에 한글이 없어 **글리프 단위로** Pretendard 로 떨어진다 |
+| `--pub-type-mono` | `ui-monospace, "SF Mono", monospace` | `_ds` 의 JetBrains Mono 스택을 쓰지 않는다(CDN 의존도 같이 끊긴다) |
 
-**액센트 색이 없다(의도).** 지금은 잉크 단색 CTA다 — 브랜드 색은 사업 방향 결정(CLAUDE.md §10.2
-사람 판단 예외)이라 에이전트가 고르지 않는다. 정해지면 `--pub-cta` / `--pub-cta-ink` 두 줄이 입구다.
+Inter 는 `app/layout.tsx` 의 `next/font/google`(빌드 때 받아 셀프호스팅, 런타임 CDN 0),
+Pretendard 는 `next/font/local`. **`app/layout.tsx` 에서 허용된 수정은 이 로더 한 곳뿐이다.**
+
+### 타입 스케일 — 크기 / 굵기 / 자간 / 행간
+
+| 단 | px | 굵기 | 자간 | 행간 | 출처 |
+|---|---|---|---|---|---|
+| display | 48 | 500 | -0.02em | 1.08 | [F] 디스플레이 40~50 · 굵기 300~500 |
+| display-sm | 40 | 500 | -0.018em | 1.12 | [F] |
+| head | 28 | 600 | -0.015em | 1.25 | [A] 헤드 22~28 · 자간 -1.2~-2.8px |
+| head-sm | 22 | 600 | -0.01em | 1.3 | [A] |
+| text | 16 | 400 | 0 | 1.6 | [T] 본문 행간 1.6 |
+| text-sm | 15 | 400 | 0 | 1.55 | [T] |
+| caption | 13 | 500 | +0.01em | 1.5 | [T] 자간 +0.01~0.02em |
+| label(칩·버튼·눈썹) | 13 | 500 | +0.02em | 1 | [T] |
+
+### 색
+
+| 묶음 | 변수 · 값 | 출처 |
+|---|---|---|
+| 라이트 | `--pub-canvas #FBFBFD` · `--pub-surface #FFFFFF` · `--pub-surface-2 #F0F1F9` · `--pub-edge #E6E6E6` · `--pub-ink #000000` · `--pub-ink-muted #909094` · `--pub-ink-faint #B3B3B8` | [A] 실측 |
+| 다크 | `--pub-canvas #020308` · `--pub-surface #030407` · `--pub-ink #FAFAFA` · `--pub-ink-muted rgba(250,250,250,.62)` · `--pub-edge rgba(250,250,250,.14)` | [F] 실측 |
+| 액센트 | `--pub-accent`/`--pub-cta` **#1D4ED8**(확정·변경 금지) · `--pub-accent-ink`/`--pub-cta-ink #FFFFFF` · `--pub-focus` 라이트 #1D4ED8 / 다크 **#5DBCE5** | 다크 포커스는 [F] 스카이 |
+| 판정 | `--pub-verdict-pos #396C00` / `-bg #E9FFD2` · `--pub-verdict-neg #E58B73` / `-bg #FFF1EC` · `--pub-verdict-mix #E2B866` / `-bg #FFF7E0` | 긍정 [A] 라임 · 부정 [T] 코랄 · 혼합 앰버. **두더지웍스의 emerald/red 금지** |
+| 흰 섬 | `--pub-island #FFFFFF` · `--pub-island-ink #000000` · `--pub-island-ink-muted #909094` · `--pub-island-edge #E6E6E6` · `--pub-island-wash #F0F1F9` | 두 테마 공통([A] 값) |
+
+⚠️ `--pub-ink-faint`(#B3B3B8)는 **장식용만**이다 — 구분선·점선·비활성 표시. 본문·캡션에 쓰면
+`#FBFBFD` 위에서 대비가 안 난다. 캡션은 `--pub-ink-muted`(#909094)를 쓴다.
+⚠️ 코랄·앰버는 제 바탕 위에서 글자 대비가 안 나온다. 그래서 **테두리로만** 쓰고 글자는
+잉크색이다(`.pub-chip--neg` / `--mix`). 라임(#396C00)만 제 바탕 위에서 글자로 읽힌다.
+⚠️ 판정 색은 **결과 방향**(됐다/안 됐다/갈렸다)에만 붙인다. 등급 A~D 는 분류이지 방향이
+아니라서 색을 입히지 않는다 — D 는 "아직 안 적혔다"이지 실패가 아니다.
+
+### 반경 · 그림자 · 모션 · 간격
+
+| 묶음 | 변수 · 값 | 출처 |
+|---|---|---|
+| 반경 | 카드 20 · 컨트롤 10 · 배너 24 · 알약 **100px**(999 아님) · 썸네일 12 | [A] · 알약은 [F]. `_ds` 의 8·16·32 를 쓰지 않는다 |
+| 그림자 | 기본 **없음** · `--pub-lift-rest 0 2px 8px rgba(0,0,0,.04)` · `--pub-lift-hover 0 1px 6px rgba(0,0,0,.18)` · `--pub-lift-float 0 4px 20px rgba(0,0,0,.03)` | 기본 없음 [F] · 카드 [A] |
+| 모션 | `--pub-ease cubic-bezier(.19,1,.22,1)` · 색 `--pub-motion-color 150ms` · 위치·그림자 `--pub-motion-move 220ms` · 등장 `--pub-motion-enter 400ms` | 곡선 [F] · 색 150ms [T]. `prefers-reduced-motion: reduce` 면 셋 다 0ms |
+| 포커스 | `outline: 2px solid var(--pub-focus)` — **box-shadow 링 금지**(`_ds` 의 `--shadow-focus` 를 끈다) | |
+| 간격 | `--pub-gap-1…10`(4·8·12·16·20·24·32·40) · 카드 패딩 `--pub-pad-card` 20→24 · 그리드 `--pub-gap-grid` 16→20 · 섹션 `--pub-gap-section` 40→64 | 레퍼런스도 8의 배수라 `_ds` 와 값이 겹칠 수 있다 — **겹침 검사에서 제외**한다 |
+| 컨트롤 높이 | `--pub-h-sm 32` · `--pub-h-md 40` · `--pub-h-lg 44`(터치 최소치) | |
+
+### 아이콘 (`icons.tsx`)
+
+외부 라이브러리를 쓰지 않는다. 8종(`arrow-right` · `bookmark` · `share` · `search` ·
+`filter` · `check` · `external` · `chevron-down`), 20px 그리드 · stroke 1.5 · round cap/join ·
+`currentColor` · 크기 `1em`(옆 글자를 따라간다). 색·크기 prop 이 없는 이유는 파일 주석에.
+**아이콘만 있는 버튼을 만들지 않는다** — 뜻은 옆 글자가 말한다.
+
+### 겹침 0 을 기계가 지킨다
+
+`scripts/pub-tokens-overlap-selftest.mjs` 가 `app/_pub/**/*.{css,tsx}` 와
+`app/_ds/{styles.css,tokens/*.css}` 에서 색·반경·그림자·easing·서체 스택을 뽑아 교집합을
+센다. CI(`build-check.yml`)에서 두 번 돈다 — 정상(설명되지 않은 겹침 0) + `--mutate`
+(일부러 `_ds` 색을 넣어 **실패해야** 통과).
+
+불가피한 겹침 3건은 스크립트의 `UNAVOIDABLE` 표에 이유와 함께 적혀 있다:
+`#ffffff`(원색) · `#1d4ed8`(액센트 확정값, `_ds` 는 같은 값을 `--blue-700` 램프로 들고 있다) ·
+`radius 12px`(썸네일, `_ds` 의 `--radius-xl` 과 값 동일). **간격 px 은 세지 않는다**(위 표 참고).
+
+**액센트 색이 생겼다.** v1 에는 없었다(잉크 단색 CTA). #1D4ED8 은 남헌 확정값이라 에이전트가
+바꾸지 않는다 — 바뀌면 `--pub-accent` / `--pub-cta` 두 줄이 입구다.
 
 ## A2 가 어떻게 결정했나 (A3 는 1번을 그대로 따라가면 된다)
 
@@ -117,3 +180,30 @@
 5. **A2 와 만난 자리 3곳** — `AppNav`(숨김 두 줄이 나란히 있다) · `pub.css`(A3 블록 뒤에 A2
    블록) · 이 문서(표 두 개). 세 곳 모두 양쪽을 다 살렸고, 서로 덮는 선택자는 없다
    (`.pub-hero-title` 만 겹치는데 각자 `.pub-quiz` · `.pub-hero--detail` 스코프다).
+
+## 토큰 v2 (2026-09-24) — 다음 에이전트가 알아야 할 것
+
+토큰을 전부 갈고 **`/library` 그리드·상세 두 화면에만** 새 감각을 입혔다. 나머지 6개 화면
+(`/` · `/login` · `/onboarding/quiz` · `/columns/read` · `/columns/read/[slug]` ·
+`/library/saved` · `/library/methodology`)은 같은 토큰을 읽어 **깨지지 않고** 돌아가지만,
+레이아웃·리듬은 아직 v1 그대로다. 다시 입히는 것이 다음 몫이다.
+
+바뀐 것 중 화면에 영향이 있는 것:
+
+1. **없어진 토큰** — `--pub-canvas-raised`(→ `--pub-surface`) · `--pub-edge-strong`
+   (→ 강한 선이 필요하면 `--pub-ink-faint`) · `--pub-lift-1`/`-2`(→ `--pub-lift-rest`/`-hover`/`-float`) ·
+   `--pub-motion-quick`/`-base`/`-ease`(→ `--pub-motion-color`/`-move` · `--pub-ease`) ·
+   `--pub-tracking-eyebrow`(→ `--pub-tracking-label`) · `--pub-gap-14`/`-20`(→ `--pub-gap-section`).
+   **`pub.css` 밖에서 이 이름을 쓰는 곳은 없다**(컴포넌트는 클래스만 붙인다) — 새 화면에서
+   쓰지 마라.
+2. **`.pub-facets` 마크업이 두 겹이 됐다** — `PubFacetBar` 가 `.pub-facets-head`(필터
+   아이콘 + 라벨)와 `.pub-facets-list`(칩 줄)를 만든다. sticky 는 바깥, 가로↔세로 전환은
+   안쪽이다. 라벨을 화면에도 적은 이유: `aria-label` 만 있으면 눈으로 보는 사람에게 이 칩
+   줄이 무엇을 거르는지 말하지 못한다.
+3. **`.pub-card` 가 세로가 됐다**(Atria) — 듀오톤 썸네일(`PubBrandLogo size="cover"`, 16:7 띠)
+   → 라벨 칩 → 제목(head-sm) → 2줄 `transfer_note` → 메타. v1 은 썸네일이 오른쪽이라
+   제목이 56px 만큼 좁았다.
+4. **`Chip` 에 판정 3색이 붙었다** — `tone="positive" | "negative" | "mixed"`.
+   결과 방향에만 쓴다(등급에는 쓰지 않는다 — 위 색 표의 ⚠️).
+5. **`.pub-field-wrap`** — 칸 안에 검색 아이콘을 앉히는 껍데기. 포커스 링이 껍데기로 옮겨간다
+   (`:focus-within`), 안쪽 `input` 의 링은 끈다.

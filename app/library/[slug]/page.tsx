@@ -18,6 +18,7 @@ import { PubCaseCard } from '../../_pub/components/PubCaseCard'
 import { PubEmpty } from '../../_pub/components/PubEmpty'
 import { PubGradeBadge, PubGradeLegend } from '../../_pub/components/PubGradeBadge'
 import { PubTOC } from '../../_pub/components/PubTOC'
+import { IconArrowRight, IconCheck, IconExternal } from '../../_pub/icons'
 import { isSaved } from '@/lib/cases/saves'
 import { FeedbackForm } from './feedback-form'
 import { SaveButton } from './save-button'
@@ -89,7 +90,7 @@ function EvidenceRow({ e }: { e: DetailEvidenceRow }) {
         {e.is_regulatory_filing ? <Chip>공시</Chip> : null}
       </div>
       {e.snippet ? <p className="pub-text">&ldquo;{e.snippet}&rdquo;</p> : <p className="pub-caption">인용 미기재</p>}
-      <a className="pub-url" href={e.url} target="_blank" rel="noreferrer noopener">{e.url}</a>
+      <a className="pub-url" href={e.url} target="_blank" rel="noreferrer noopener">{e.url} <IconExternal /></a>
     </li>
   )
 }
@@ -182,7 +183,7 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
           lead={s.summary ?? undefined}
           actions={
             <>
-              <PubButtonLink href={problemHref} variant="primary" size="sm">내 상황으로 옮기기</PubButtonLink>
+              <PubButtonLink href={problemHref} variant="primary" size="sm">내 상황으로 옮기기<IconArrowRight /></PubButtonLink>
               <SaveButton
                 caseStudyId={s.id}
                 slug={s.slug}
@@ -224,7 +225,10 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
             <ul className="pub-deflist">
               {checklist.map((item) => (
                 <li key={item.key} className="pub-chiprow">
-                  <Chip tone={item.pass ? 'solid' : 'quiet'}>
+                  {/* 판정 3색([A] 라임 · [T] 코랄 · 앰버). 색은 거들고 뜻은 글자가 말한다 —
+                      "없음"은 미달이 아니라 선택 항목이라 혼합색이다. */}
+                  <Chip tone={item.pass ? 'positive' : item.required ? 'negative' : 'mixed'}>
+                    {item.pass ? <IconCheck /> : null}
                     {item.pass ? '통과' : item.required ? '미달' : '없음'}
                   </Chip>
                   <span className="pub-text">
@@ -256,8 +260,8 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
                     <span className="pub-tile-unit"> {t.unit}</span>
                   </span>
                   <div className="pub-chiprow">
-                    {t.estimate_only && <Chip>추정</Chip>}
-                    {t.no_evidence && <Chip>근거 0건</Chip>}
+                    {t.estimate_only && <Chip tone="mixed">추정</Chip>}
+                    {t.no_evidence && <Chip tone="negative">근거 0건</Chip>}
                   </div>
                 </div>
               ))}
@@ -318,10 +322,12 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
                     <div className="pub-chiprow">
                       <Chip>{sp.bottleneck}</Chip>
                       <Chip>{sp.lever}</Chip>
+                      {/* 결과 방향 = 판정 색이 붙는 자리다(Chip 주석). 뜻은 칩 글자가 말한다. */}
+                      <Chip tone={sp.ours.outcome_direction === 'positive' ? 'positive' : 'negative'}>
+                        이 케이스는 {sp.ours.outcome_direction === 'positive' ? '됐다' : '안 됐다'}
+                      </Chip>
                     </div>
-                    <p className="pub-text">
-                      <b>이 케이스({sp.ours.outcome_direction === 'positive' ? '됐다' : '안 됐다'})</b> — {sp.ours.claim}
-                    </p>
+                    <p className="pub-text">{sp.ours.claim}</p>
                     {sp.others.map((o) => (
                       <p key={o.move.id} className="pub-text">
                         <b>
@@ -349,8 +355,8 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
                     <div className="pub-chiprow">
                       <Chip>{c.product_category}</Chip>
                       <Chip>{c.source_tier}</Chip>
-                      {c.is_estimate && <Chip>추정</Chip>}
-                      {c.low_confidence && <Chip>신뢰도 낮음</Chip>}
+                      {c.is_estimate && <Chip tone="mixed">추정</Chip>}
+                      {c.low_confidence && <Chip tone="mixed">신뢰도 낮음</Chip>}
                     </div>
                     <p className="pub-text">내세웠던 소구점 · {c.claimed_angle}</p>
                     <p className="pub-text">결과 · {c.outcome}</p>
@@ -395,7 +401,7 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
         <Panel tone="banner" title="같은 곳에 막혀 있다면, 내 문제로 검색해 보라.">
           <p className="pub-text">승인된 케이스·무브만 나온다. 없으면 없다고 말한다.</p>
           <div className="pub-actions">
-            <PubButtonLink href={problemHref} variant="primary">내 문제로 검색하기</PubButtonLink>
+            <PubButtonLink href={problemHref} variant="primary">내 문제로 검색하기<IconArrowRight /></PubButtonLink>
             {!signedIn && <PubButtonLink href="/" variant="ghost">베타 신청</PubButtonLink>}
           </div>
         </Panel>

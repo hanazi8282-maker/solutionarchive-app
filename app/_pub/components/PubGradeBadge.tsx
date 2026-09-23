@@ -1,5 +1,6 @@
 import { displayGradeLabel, factCheckLabel, type DisplayGradeInput } from '@/lib/cases/grade-display'
 import { Chip } from './Chip'
+import { IconChevronDown } from '../icons'
 
 /**
  * 등급 2축 칩 — **인사이트**("내가 옮겨 쓸 게 있나") + **사실확인**("그 수치를 믿을 수 있나").
@@ -30,8 +31,9 @@ export function PubGradeBadge({ move }: {
  * ⚠️ 산식을 여기 적지 않는다. 정본은 `docs/evidence-rules.md §3`(사실확인) ·
  *    `lib/cases/draft.ts gradeMove`(인사이트) 이고, 재채점으로 바뀐다 — 화면에 복사해 두면
  *    조용히 옛말이 된다. 여기 있는 것은 요약이다.
- * ⚠️ 색으로 좋고 나쁨을 말하지 않는다(`_pub` 에는 액센트 색이 아예 없다). 등급은 감성이
- *    아니라 분류다.
+ * ⚠️ 등급 배지에는 판정 색(`--pub-verdict-*`)을 쓰지 않는다. 등급은 감성이 아니라 **분류**이고,
+ *    색이 붙는 순간 A 가 "좋음", D 가 "나쁨"으로 읽힌다 — D 는 "아직 안 적혔다"이지 실패가 아니다.
+ *    판정 3색은 결과 방향(됐다/안 됐다/갈렸다)에만 쓴다(Chip 주석).
  */
 const INSIGHT: readonly [string, string][] = [
   ['A', '옮길 행동 + 그 전제 + 뒷받침 근거가 다 있다'],
@@ -61,7 +63,7 @@ function Axis({ title, rows }: { title: string; rows: readonly [string, string][
 export function PubGradeLegend() {
   return (
     <details className="pub-details">
-      <summary>등급이 무슨 뜻인가 (A~D 범례)</summary>
+      <summary><IconChevronDown />등급이 무슨 뜻인가 (A~D 범례)</summary>
       <div className="pub-details-body">
         <p className="pub-caption">
           등급은 <b>두 축</b>이다. <b>인사이트 등급</b>은 &quot;내가 옮겨 쓸 게 있나&quot;,

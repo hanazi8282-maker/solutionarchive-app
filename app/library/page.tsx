@@ -14,6 +14,7 @@ import { PubGradeLegend } from '../_pub/components/PubGradeBadge'
 import { PubFacet, PubFacetBar, PubFacetSep } from '../_pub/components/PubFacetBar'
 import { PubEmpty } from '../_pub/components/PubEmpty'
 import { PubButtonLink } from '../_pub/components/Button'
+import { IconArrowRight, IconChevronDown, IconSearch } from '../_pub/icons'
 
 /**
  * 공개 케이스 라이브러리 — 카드 그리드(reports/2026-09-23/ui-overhaul-reference-plan.md §4).
@@ -89,11 +90,14 @@ export default async function LibraryPage({ searchParams }: {
       <form className="pub-inline pub-inline--grow" method="get" action="/cases/search">
         {query.problem && <input type="hidden" name="problem" value={query.problem} />}
         {query.kind !== DEFAULT_SEARCH_KIND && <input type="hidden" name="kind" value={query.kind} />}
-        <input
-          className="pub-field pub-field--grow"
-          name="q" maxLength={200} aria-label="내 말로 검색 (유사 케이스 검색으로 이동)"
-          placeholder="내 말로 한 줄 (예: 무료로는 쓰는데 결제를 안 한다)"
-        />
+        <span className="pub-field-wrap">
+          <IconSearch />
+          <input
+            className="pub-field pub-field--grow"
+            name="q" maxLength={200} aria-label="내 말로 검색 (유사 케이스 검색으로 이동)"
+            placeholder="내 말로 한 줄 (예: 무료로는 쓰는데 결제를 안 한다)"
+          />
+        </span>
         <button className="pub-btn pub-btn--ghost pub-btn--sm" type="submit">검색</button>
       </form>
 
@@ -104,7 +108,7 @@ export default async function LibraryPage({ searchParams }: {
         <select className="pub-field" name="sort" defaultValue={query.sort} aria-label="정렬">
           {LIBRARY_SORTS.map((s) => <option key={s} value={s}>{LIBRARY_SORT_LABEL[s]}</option>)}
         </select>
-        <button className="pub-btn pub-btn--ghost pub-btn--sm" type="submit">적용</button>
+        <button className="pub-btn pub-btn--ghost pub-btn--sm" type="submit">적용<IconChevronDown /></button>
       </form>
     </div>
   )
@@ -166,8 +170,8 @@ export default async function LibraryPage({ searchParams }: {
                     : '조회는 정상이다. 지금 이 조건에 맞는 승인 케이스가 없다는 뜻이고, 없는 것을 비슷한 사례로 채우지 않는다.'
                 }
                 action={result.hidden_consumer > 0
-                  ? <PubButtonLink href={href({ kind: 'all' })} variant="ghost" size="sm">소비재 포함해서 보기 {result.hidden_consumer}</PubButtonLink>
-                  : <PubButtonLink href={href({ problem: null })} variant="ghost" size="sm">문제 유형 전체 보기</PubButtonLink>}
+                  ? <PubButtonLink href={href({ kind: 'all' })} variant="ghost" size="sm">소비재 포함해서 보기 {result.hidden_consumer}<IconArrowRight /></PubButtonLink>
+                  : <PubButtonLink href={href({ problem: null })} variant="ghost" size="sm">문제 유형 전체 보기<IconArrowRight /></PubButtonLink>}
               />
             )}
 

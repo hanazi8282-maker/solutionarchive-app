@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { IconShare } from '../../_pub/icons'
 
 /**
  * 링크 복사 버튼. SNS 공유는 만들지 않았다 — 각 플랫폼 SDK 를 붙이는 값에 비해 링크 복사와
@@ -25,7 +26,7 @@ export function ShareLinkButton() {
 
   return (
     <span className="pub-formrow">
-      <button className="pub-btn pub-btn--ghost pub-btn--sm" type="button" onClick={copy}>링크 복사</button>
+      <button className="pub-btn pub-btn--ghost pub-btn--sm" type="button" onClick={copy}><IconShare />링크 복사</button>
       {state === 'copied' && <span className="pub-caption" role="status">복사했습니다</span>}
       {state === 'failed' && <span className="pub-caption" role="alert">복사가 막혔습니다 — 주소창의 URL 을 쓰세요</span>}
     </span>

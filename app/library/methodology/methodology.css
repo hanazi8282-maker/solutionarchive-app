@@ -10,7 +10,7 @@
 .mth-table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--pub-canvas-raised);
+  background: var(--pub-surface);
   border: 1px solid var(--pub-edge);
   border-radius: var(--pub-round-control);
   font-size: var(--pub-size-text-sm);
@@ -32,7 +32,7 @@
   border-bottom: 1px solid var(--pub-edge);
   text-align: left;
   vertical-align: top;
-  line-height: 1.6;
+  line-height: var(--pub-leading-text);
 }
 
 .mth-table thead th {
@@ -50,7 +50,7 @@
 .mth-table tbody th {
   width: 1%;
   white-space: nowrap;
-  font-weight: var(--pub-weight-display);
+  font-weight: var(--pub-weight-head);
 }
 
 /* 표가 좁은 화면을 넘칠 때 잘리지 말고 가로로 밀린다(글자를 줄이지 않는다). */

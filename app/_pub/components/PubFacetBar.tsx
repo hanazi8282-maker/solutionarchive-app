@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
+import { IconFilter } from '../icons'
 
 /**
  * 필터 칩 목록 — **한 벌을 두 모양으로** 쓴다: <1024px 상단 가로 스크롤 행, ≥1024px 좌측
@@ -11,7 +12,13 @@ import Link from 'next/link'
  * 아무 말도 안 한 것이 된다.
  */
 export function PubFacetBar({ label, children }: { label: string; children: ReactNode }) {
-  return <aside className="pub-facets" aria-label={label}>{children}</aside>
+  return (
+    <aside className="pub-facets" aria-label={label}>
+      {/* 라벨을 화면에도 적는다 — 아이콘만으로는 이 칩 줄이 무엇을 거르는지 말하지 못한다. */}
+      <p className="pub-facets-head"><IconFilter />{label}</p>
+      <div className="pub-facets-list">{children}</div>
+    </aside>
+  )
 }
 
 export function PubFacet({ href, active, count, children }: {

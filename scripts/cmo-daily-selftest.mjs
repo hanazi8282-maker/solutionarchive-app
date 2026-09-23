@@ -1660,7 +1660,8 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   for (const f of TOUCHED) {
     check(`AC-14 — ${f} 은 transferability 를 쓰지 않는다 (읽기만)`, !writesTransferability(read(f)), f)
   }
-  check('AC-14 — 값이 들어오는 곳은 /cases 서버 액션', /transferability_by: input\.by/.test(read('app/cases/actions.ts')))
+  // 2026-09-23 #234 가 gradeCase 의 변수명을 input → d 로 바꿨다. 검사의 뜻(값은 서버 액션에서만 들어온다)은 그대로다.
+  check('AC-14 — 값이 들어오는 곳은 /cases 서버 액션', /transferability_by: (input|d)\.by/.test(read('app/cases/actions.ts')))
   check('AC-14 — 그리고 CLI 하나뿐이다', /transferability: next/.test(read('scripts/case-review.mjs')))
   check('AC-14 — 그 CLI 는 --by 가 필수다',
     /사용: transferability[\s\S]{0,300}--by 는 필수다/.test(read('scripts/case-review.mjs')))

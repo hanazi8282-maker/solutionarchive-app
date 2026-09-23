@@ -7,8 +7,12 @@
    ============================================================ */
 
 :root {
-  /* Families */
-  --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+  /* Families
+     --font-pretendard 는 next/font/local 이 <html> 에 심는 변수다(app/layout.tsx).
+     폴백으로 "Pretendard" 를 남겨 둔 이유: 변수가 없으면 var() 가 무효가 되어 이 선언
+     전체가 버려지고 본문이 브라우저 기본 글꼴로 떨어진다 — 폰트 하나 때문에 자간·행간이
+     통째로 어긋나는 것이 가장 늦게 발견되는 회귀다. */
+  --font-sans: var(--font-pretendard, "Pretendard"), -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 

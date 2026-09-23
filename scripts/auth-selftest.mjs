@@ -43,8 +43,9 @@ for (const p of ['/api/threads/match-posts', '/api/insight/kakao-webhook', '/log
 const pages = files.filter((f) => /(^|\/)page\.tsx$/.test(f)).map(routeOf)
 t(`페이지 추출 ≥8건 (실제 ${pages.length})`, pages.length >= 8)
 for (const p of pages) {
-  // 2026-09-23: 랜딩 `/` 추가. 남헌이 확정한 공개 경로는 이 하나뿐이다.
+  // 2026-09-23: 랜딩 `/` 와 승인 칼럼 읽기 `/columns/read` 추가(둘 다 남헌 명시 승인).
   const shouldBePublic = p === '/' || p === '/login' || p.startsWith('/onboarding')
+    || p.startsWith('/columns/read')
   t(`${shouldBePublic ? '공개' : '보호'}(페이지): ${p}`, isPublicPath(p) === shouldBePublic)
 }
 for (const p of ['/dashboard', '/agents', '/cases', '/analyze', '/analyze/new', '/analyze/x/review',
@@ -55,6 +56,15 @@ for (const p of ['/dashboard', '/agents', '/cases', '/analyze', '/analyze/new', 
 // `/` 를 PUBLIC_PREFIXES 에 넣으면 "이 아래 전부 공개"가 되어 앱 전체가 익명에게 열린다.
 t('공개(랜딩): /', isPublicPath('/'))
 t('공개(랜딩 OG 이미지): /opengraph-image', isPublicPath('/opengraph-image'))
+
+// 2026-09-23 기능 5 — `/columns/read` 접두사는 열되 **검수 화면 `/columns` 는 닫혀 있어야 한다.**
+// 접두사 하나가 형제 경로까지 여는지를 보는 자리다(랜딩 `/` 와 같은 종류의 실수).
+t('공개(칼럼 읽기 목록): /columns/read', isPublicPath('/columns/read'))
+t('공개(칼럼 본문): /columns/read/convertkit', isPublicPath('/columns/read/convertkit'))
+t('공개(칼럼 OG): /columns/read/x/opengraph-image', isPublicPath('/columns/read/x/opengraph-image'))
+for (const p of ['/columns', '/columns/decide', '/columns/readx']) {
+  t(`보호(칼럼 공개가 검수 화면까지 번지지 않는다): ${p}`, !isPublicPath(p))
+}
 for (const p of ['/x', '/settings/profile', '/columns', '/discovery', '/api/profile', '/api/analyze/advisor',
   '/api/cron', '/opengraph-image/x', '/opengraph-imagex', '//evil.com']) {
   t(`보호(랜딩 공개가 번지지 않는다): ${p}`, !isPublicPath(p))

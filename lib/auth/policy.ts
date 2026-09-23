@@ -41,6 +41,11 @@ const PUBLIC_PREFIXES = [
   '/api/onboarding', //   그 퀴즈의 API·공유 이미지
   '/api/threads', //      Vercel Cron·수동 트리거 — 전부 requireCronAuth(Bearer CRON_SECRET)
   '/api/insight', //      capture=requireCronAuth, kakao-webhook=카카오 서버가 부름(KAKAO_ALLOWED_USER_IDS)
+  // 승인된 칼럼 공개 읽기 + 그 OG 이미지. **읽기 전용**이고 approved 행만 나온다.
+  // 검수 화면 `/columns` 는 under() 가 `${p}/` 로 이어 붙여 비교하므로 여기에 걸리지 않는다
+  // — 그 경계를 auth-selftest 음성 3건(`/columns`·`/columns/decide`·`/columns/readx`)이 지킨다.
+  // 남헌 2026-09-23 명시 승인(기능 5 "사이트에 칼럼을 기재하는 장소").
+  '/columns/read',
 ]
 
 /**

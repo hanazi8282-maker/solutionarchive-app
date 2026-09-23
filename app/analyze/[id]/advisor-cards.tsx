@@ -161,7 +161,11 @@ export function CaseMoveCards({ cards }: { cards: AdvisorCaseMoveCard[] }) {
       {cards.map((c) => (
         <div key={c.case_move_id} style={{ display: 'grid', gap: 4 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-            <Badge tone="neutral" size="sm">{c.brand_name}</Badge>
+            {/* 전용 상세 라우트(/cases/<slug>)는 아직 없다 — 목록의 앵커로 보낸다. */}
+            <a href={`/cases?status=approved#case-${c.slug}`} style={{ textDecoration: 'none' }}
+              title="케이스 목록에서 이 케이스 보기">
+              <Badge tone="neutral" size="sm">{c.brand_name} ↗</Badge>
+            </a>
             <Badge tone="neutral" size="sm">{c.lever}</Badge>
             <MoveGradeBadges grade={c.evidence_grade} factCheck={c.fact_check_grade} />
             <LowConfidenceBadge m={c} />

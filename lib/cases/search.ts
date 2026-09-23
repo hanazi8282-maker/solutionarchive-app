@@ -49,6 +49,8 @@ export interface SearchResult {
   failed_angles: CorpusResult<FailedAngleCard>
   /** 승인된 SaaS 케이스 수. null = 못 셌다(조회 실패) — 0 과 다르다. 빈 상태 문구가 이 값을 쓴다. */
   saas_case_count: number | null
+  /** 조건 없이 들어온 둘러보기인가. 화면이 "전체 상위 N"임을 밝히는 데 쓴다. */
+  browse: boolean
   empty_state: string
 }
 
@@ -113,9 +115,13 @@ export function searchMoves(
     filteredOut = studies.length - scoped.length
   }
 
-  const movesResult = !hasFilter && terms.length === 0
-    ? notRun<CaseMoveCard>('검색 조건이 없다 — 문제 유형·병목·검색어 중 하나는 필요하다')
-    : matchCaseMoves(terms, scoped, scopedMoves, kind, { matchAllWhenNoTerms: hasFilter, limit: SEARCH_LIMIT })
+  // 조건이 하나도 없으면 **둘러보기**다 — 승인 무브 전체를 점수순 상위 N 으로 낸다.
+  // 예전엔 not_run('검색 조건이 없다')으로 빈 화면을 냈는데, 첫 진입이 항상 빈 화면이라
+  // "결과가 아예 안 뜬다"로 읽혔다(남헌 2026-09-23 보고). 3상태는 그대로 지킨다 —
+  // 둘러보기도 실제로 찾은 것이므로 matched/no_match 로만 답하고, not_run 은 조회 실패에만 남긴다.
+  const browse = !hasFilter && terms.length === 0
+  const movesResult = matchCaseMoves(terms, scoped, scopedMoves, kind,
+    { matchAllWhenNoTerms: hasFilter || browse, limit: SEARCH_LIMIT })
 
   // 실패 앵글 원장에는 병목·문제 유형 컬럼이 없다. 자유 텍스트가 없으면 **찾지 않은 것**이지
   // "실패 사례가 없는 것"이 아니다(§7.1).
@@ -132,7 +138,9 @@ export function searchMoves(
   let reason: string
   if (both.some((c) => c.status === 'matched')) {
     status = 'matched'
-    reason = `무브 ${movesResult.cards.length}건 · 실패 앵글 ${failed.cards.length}건`
+    reason = (browse
+      ? `조건 없이 전체 상위 ${movesResult.cards.length}건`
+      : `무브 ${movesResult.cards.length}건 · 실패 앵글 ${failed.cards.length}건`)
       + (filteredOut ? ` (조건 밖 케이스 ${filteredOut}건 제외)` : '')
   } else if (both.every((c) => c.status === 'no_match')) {
     status = 'no_match'
@@ -147,7 +155,7 @@ export function searchMoves(
   }
 
   return {
-    status, reason, query, terms, kind,
+    status, reason, query, terms, kind, browse,
     moves: movesResult,
     failed_angles: failed,
     saas_case_count,

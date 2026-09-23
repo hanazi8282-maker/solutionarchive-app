@@ -85,8 +85,12 @@ const CORPORA = { studies: STUDIES, moves: MOVES, failedAngles: FAILED }
 }
 {
   const r = searchMoves(parseSearchQuery({}).query, CORPORA)
-  t('3상태: 조건 없음 → not_run(0건이 아니다)', r.status, 'not_run')
-  ok('not_run 사유가 "검색을 못 했다"', r.reason.startsWith('검색을 못 했다'))
+  // 2026-09-23 남헌 보고로 바꾼 자리: 조건 없는 첫 진입은 빈 화면이 아니라 둘러보기다.
+  t('조건 없음 → 둘러보기(matched)', r.status, 'matched')
+  ok('browse 플래그가 켜진다', r.browse === true)
+  ok('사유가 "조건 없이 전체 상위"', r.reason.startsWith('조건 없이 전체 상위'))
+  ok('둘러보기도 승인 무브를 낸다', r.moves.cards.length > 0)
+  ok('실패 앵글은 자유 텍스트가 없으면 여전히 not_run', r.failed_angles.status === 'not_run')
 }
 {
   const r = searchMoves(parseSearchQuery({ q: '결제' }).query, { studies: null, moves: null, failedAngles: null })

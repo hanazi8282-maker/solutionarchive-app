@@ -52,6 +52,8 @@ for (const p of pages) {
 t('공개(라이브러리 그리드): /library', isPublicPath('/library'))
 t('공개(라이브러리 상세): /library/convertkit-concierge-migration-conversion', isPublicPath('/library/convertkit-concierge-migration-conversion'))
 t('공개(라이브러리 OG): /library/x/opengraph-image', isPublicPath('/library/x/opengraph-image'))
+// 방법론 공개 페이지. 정책을 넓히지 않았다는 것을 여기서 확인한다 — 접두사만으로 공개다.
+t('공개(방법론): /library/methodology', isPublicPath('/library/methodology'))
 // ⚠️ `/library/saved`(내 저장함)도 접두사 때문에 **proxy 는 통과시킨다.** 그건 버그가 아니라
 //    이 목록의 뜻이다 — 그래서 `app/library/saved/page.tsx` 가 스스로 판정해 /login 으로 보낸다.
 //    이 줄은 그 사실을 고정한다: 여기가 false 로 바뀌면 페이지의 자체 가드가 중복이 되는 게 아니라,

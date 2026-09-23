@@ -1,0 +1,155 @@
+/* 방법론 공개 페이지 전용 스타일. 이 한 파일이 전부다.
+ *
+ * `app/_ds/*` 를 import 하지 않는다 — 공개 디자인 시스템(`app/_pub/`)이 만들어지는 중이라,
+ * 나중에 껍데기만 그 컴포넌트로 갈린다. 그때 이 파일은 지워진다.
+ * 서체는 layout 의 next/font/local 변수(`--font-pretendard`)를 그대로 읽는다. */
+
+.mth {
+  --mth-bg: #f4f7fa;
+  --mth-ink: #0f172a;
+  --mth-muted: #55637a;
+  --mth-line: #d9e1ea;
+  --mth-card: #ffffff;
+
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 20px 72px;
+  background: var(--mth-bg);
+  color: var(--mth-ink);
+  font-family: var(--font-pretendard), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.7;
+}
+
+/* 본문 배경이 어두운 전역 테마를 덮는다 — 이 페이지만 라이트 톤이다. */
+.mth-root {
+  background: #f4f7fa;
+}
+
+.mth h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.mth-lead {
+  margin: 0 0 8px;
+  color: var(--mth-muted);
+  font-size: 15px;
+}
+
+.mth-toc {
+  margin: 24px 0 0;
+  padding: 14px 18px;
+  list-style: none;
+  background: var(--mth-card);
+  border: 1px solid var(--mth-line);
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.mth-toc li + li {
+  margin-top: 4px;
+}
+
+.mth-toc a {
+  color: var(--mth-ink);
+}
+
+.mth section {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--mth-line);
+}
+
+.mth h2 {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.mth section > p {
+  margin: 0 0 16px;
+  font-size: 15px;
+}
+
+.mth table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--mth-card);
+  border: 1px solid var(--mth-line);
+  border-radius: 12px;
+  font-size: 14px;
+  /* 긴 조건 문장이 표를 밀어내지 않게 한다. */
+  table-layout: auto;
+}
+
+.mth caption {
+  caption-side: top;
+  padding: 0 0 8px;
+  color: var(--mth-muted);
+  font-size: 13px;
+  text-align: left;
+}
+
+.mth th,
+.mth td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--mth-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.mth thead th {
+  background: #eaf0f6;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mth tbody tr:last-child th,
+.mth tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mth tbody th {
+  width: 1%;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.mth-sources {
+  margin: 12px 0 0;
+  color: var(--mth-muted);
+  font-size: 13px;
+}
+
+.mth-sources code {
+  padding: 1px 5px;
+  background: #e8eef5;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.mth-footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--mth-line);
+  color: var(--mth-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .mth {
+    padding: 28px 14px 56px;
+  }
+
+  .mth table {
+    font-size: 13px;
+  }
+
+  .mth th,
+  .mth td {
+    padding: 8px 10px;
+  }
+}

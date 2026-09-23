@@ -257,7 +257,7 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
               ))}
             </ul>
             <p style={{ ...muted, marginTop: 12 }}>
-              산식 정본은 <code>docs/evidence-rules.md §3</code>(사실확인) ·{' '}
+              산식 정본은 <Link href="/library/methodology">방법론 페이지</Link>(사실확인) ·{' '}
               <code>lib/cases/draft.ts gradeMove</code>(인사이트) 이고, 재채점으로 바뀐다.
             </p>
             <div style={{ marginTop: 8 }}><GradeLegend /></div>

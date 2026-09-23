@@ -87,6 +87,10 @@ export function AppNav({ email }: { email: string | null }) {
   // 두 개 겹치고 `.sa-main` 좌측 여백이 남아 본문 폭이 줄어든다(app/_pub/README.md 주의 ①).
   // 검수 화면 `/columns` 는 그대로 네비를 쓴다 — 접두사가 `/columns/read` 인 이유다.
   if (path.startsWith('/columns/read')) return null
+  // 같은 이유로 `/library/*`(A2 이관: 그리드·상세·저장함·방법론)도 숨긴다. 대가는 로그인한
+  // 내부 검수자가 그 화면에서 사이드바를 잃는 것 — 대신 `PubNav` 가 대시보드 링크를 낸다.
+  // 라이브러리는 익명 방문자가 보는 화면이고, 그쪽을 기준으로 잡았다.
+  if (path.startsWith('/library')) return null
 
   // match 가 겹칠 때(/cases 와 /cases/search) **가장 긴 것 하나만** 켠다 — 둘 다 켜지면 지금 어디인지 안 보인다.
   const best = [...NAV_GROUPS.flatMap((g) => g.links), PROFILE_LINK]

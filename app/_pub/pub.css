@@ -567,3 +567,281 @@
   gap: var(--pub-gap-2);
   font-size: var(--pub-size-text-sm);
 }
+
+/* ============================================================
+   A2 — 공개 라이브러리 4화면 (/library · /library/[slug] ·
+   /library/saved · /library/methodology). 위 A1 규칙 그대로:
+   색·크기는 `--pub-*` 만, 인라인 스타일 없음.
+   구조 스펙은 reports/2026-09-23/ui-overhaul-reference-plan.md §3·§4.
+   ============================================================ */
+
+/* 앵커 스크롤 여백 — TOC 로 뛰었을 때 제목이 화면 위에 붙지 않게. */
+.pub-root [id] { scroll-margin-top: var(--pub-gap-4); }
+
+/* ── 칩 한 줄 (히어로 메타·카드 메타 공용) ───────────────── */
+.pub-chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pub-gap-2);
+  align-items: center;
+}
+
+/* ── 히어로: 왼쪽 로고 + 오른쪽 제목 (상세 화면) ─────────── */
+.pub-hero-head { display: flex; gap: var(--pub-gap-4); align-items: flex-start; min-width: 0; }
+.pub-hero-headtext { display: flex; flex-direction: column; gap: var(--pub-gap-3); min-width: 0; }
+/* 상세의 h1 은 "브랜드 — 요약 첫 문장" 이라 길다. 56px 로 두면 세 줄이 화면을 덮는다. */
+.pub-hero--detail { padding: var(--pub-gap-8) 0 0; gap: var(--pub-gap-4); }
+.pub-hero--detail .pub-hero-title { font-size: var(--pub-size-head); }
+
+/* ── 라이브러리 레이아웃: 좌측 패싯 | 카드 그리드 ────────── */
+.pub-liblayout {
+  display: grid;
+  gap: var(--pub-gap-6);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+.pub-libmain { display: grid; gap: var(--pub-gap-5); min-width: 0; }
+
+/* <1024px 는 상단 가로 스크롤 칩, ≥1024px 는 좌측 세로 목록.
+   **같은 목록 한 벌**이다 — 두 벌로 렌더하면 건수가 갈라진다. */
+.pub-facets {
+  display: flex;
+  gap: var(--pub-gap-2);
+  overflow-x: auto;
+  padding-bottom: var(--pub-gap-1);
+  scrollbar-width: thin;
+}
+.pub-facet {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pub-gap-2);
+  height: 32px;
+  padding: 0 var(--pub-gap-3);
+  border: 1px solid var(--pub-edge);
+  border-radius: var(--pub-round-pill);
+  background: var(--pub-canvas-raised);
+  color: var(--pub-ink-muted);
+  font-size: var(--pub-size-caption);
+  white-space: nowrap;
+  transition: border-color var(--pub-motion-quick) var(--pub-motion-ease),
+              color var(--pub-motion-quick) var(--pub-motion-ease);
+}
+.pub-facet:hover { border-color: var(--pub-edge-strong); color: var(--pub-ink); }
+/* 선택 상태를 색 하나로만 말하지 않는다 — aria-current 가 스크린리더용 문장이다. */
+.pub-facet[aria-current="page"] { background: var(--pub-cta); color: var(--pub-cta-ink); border-color: transparent; }
+.pub-facet-n { font-variant-numeric: tabular-nums; opacity: 0.75; }
+.pub-facet-sep { flex: none; width: 1px; min-width: 1px; align-self: stretch; background: var(--pub-edge); margin: 0 var(--pub-gap-1); }
+
+/* ── 도구줄 (검색 폼 + 정렬 폼) ──────────────────────────── */
+.pub-toolbar { display: flex; flex-wrap: wrap; gap: var(--pub-gap-3); align-items: center; }
+.pub-inline { display: flex; gap: var(--pub-gap-2); align-items: center; min-width: 0; }
+.pub-inline--grow { flex: 1 1 260px; }
+.pub-field {
+  height: 40px;
+  padding: 0 var(--pub-gap-3);
+  border: 1px solid var(--pub-edge);
+  border-radius: var(--pub-round-control);
+  background: var(--pub-canvas-raised);
+  color: var(--pub-ink);
+  font-family: var(--pub-type);
+  font-size: var(--pub-size-text-sm);
+  min-width: 0;
+}
+.pub-field--grow { flex: 1 1 auto; }
+
+/* ── 카드 그리드 ─────────────────────────────────────────── */
+.pub-cardgrid {
+  display: grid;
+  gap: var(--pub-gap-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  min-width: 0;
+}
+.pub-card {
+  display: flex;
+  gap: var(--pub-gap-4);
+  align-items: flex-start;
+  padding: var(--pub-gap-5);
+  background: var(--pub-canvas-raised);
+  border: 1px solid var(--pub-edge);
+  border-radius: var(--pub-round-card);
+  box-shadow: var(--pub-lift-1);
+  min-width: 0;
+  transition: border-color var(--pub-motion-quick) var(--pub-motion-ease),
+              box-shadow var(--pub-motion-base) var(--pub-motion-ease);
+}
+.pub-card:hover { border-color: var(--pub-edge-strong); box-shadow: var(--pub-lift-2); }
+.pub-card-body { display: grid; gap: var(--pub-gap-2); min-width: 0; flex: 1; }
+.pub-card-title {
+  font-size: var(--pub-size-text);
+  font-weight: var(--pub-weight-strong);
+  line-height: var(--pub-leading-head);
+  color: var(--pub-ink);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.pub-card-note { font-size: var(--pub-size-text-sm); line-height: 1.6; color: var(--pub-ink-muted); }
+/* 행동이 안 적힌 카드는 문장으로 그렇게 말한다(색으로 말하지 않는다). */
+.pub-card-note--empty { color: var(--pub-ink-faint); }
+.pub-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pub-gap-2);
+  align-items: center;
+  font-size: var(--pub-size-caption);
+  color: var(--pub-ink-muted);
+}
+.pub-card-brand { font-weight: var(--pub-weight-strong); color: var(--pub-ink); }
+
+/* ── 브랜드 썸네일 (듀오톤 + 파비콘) ─────────────────────── */
+.pub-logo {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--pub-round-card);
+  overflow: hidden;
+  /* 두 hue 는 컴포넌트가 --pub-logo-hue{,-2} 로 넣는다(데이터값이라 CSS 에 못 적는다). */
+  background: linear-gradient(135deg, hsl(var(--pub-logo-hue, 220) 62% 46%), hsl(var(--pub-logo-hue-2, 248) 68% 34%));
+  color: #fff;
+  font-weight: var(--pub-weight-display);
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.pub-logo--lg { width: 72px; height: 72px; font-size: 30px; }
+/* 파비콘이 404 여도 깨진 이미지 아이콘이 아니라 이니셜이 보인다(JS 없이 되는 유일한 방법). */
+.pub-logo img { position: absolute; inset: 18%; width: 64%; height: 64%; object-fit: contain; }
+
+/* ── 빈 상태 ─────────────────────────────────────────────── */
+.pub-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--pub-gap-2);
+  padding: var(--pub-gap-10) var(--pub-gap-6);
+  border: 1px dashed var(--pub-edge-strong);
+  border-radius: var(--pub-round-card);
+  background: var(--pub-canvas-raised);
+}
+.pub-empty--compact { padding: var(--pub-gap-6) var(--pub-gap-5); }
+.pub-empty-title { font-size: var(--pub-size-text-sm); font-weight: var(--pub-weight-strong); color: var(--pub-ink); }
+.pub-empty-desc { font-size: var(--pub-size-caption); line-height: 1.6; color: var(--pub-ink-muted); max-width: 420px; }
+
+/* ── 상세: 본문 + 사이드 TOC. JS 를 쓰지 않는다 ──────────── */
+.pub-detail {
+  display: grid;
+  gap: var(--pub-gap-6);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+.pub-detail-body { display: grid; gap: var(--pub-gap-10); min-width: 0; }
+.pub-toc { display: flex; gap: var(--pub-gap-2); overflow-x: auto; padding-bottom: var(--pub-gap-1); scrollbar-width: thin; }
+.pub-toc a {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 var(--pub-gap-3);
+  border: 1px solid var(--pub-edge);
+  border-radius: var(--pub-round-pill);
+  background: var(--pub-canvas-raised);
+  color: var(--pub-ink-muted);
+  font-size: var(--pub-size-caption);
+  white-space: nowrap;
+}
+.pub-toc a:hover { border-color: var(--pub-edge-strong); color: var(--pub-ink); }
+
+/* ── 상세 본문 조각 ──────────────────────────────────────── */
+/* 목록 한 줄(무브·근거). 첫 줄에는 구분선이 없다. */
+.pub-rowlist { display: grid; }
+.pub-row { display: grid; gap: var(--pub-gap-2); padding: var(--pub-gap-3) 0; border-top: 1px solid var(--pub-edge); }
+.pub-row:first-child { border-top: 0; padding-top: 0; }
+/* 강조 한 칸 — "내일 할 행동". 색이 아니라 배경·테두리로만 띄운다. */
+.pub-callout {
+  padding: var(--pub-gap-3) var(--pub-gap-4);
+  border: 1px solid var(--pub-edge);
+  border-radius: var(--pub-round-control);
+  background: var(--pub-island-wash);
+}
+/* 수치 타일. */
+.pub-tile {
+  display: grid;
+  gap: var(--pub-gap-1);
+  padding: var(--pub-gap-4) var(--pub-gap-5);
+  background: var(--pub-canvas-raised);
+  border: 1px solid var(--pub-edge);
+  border-radius: var(--pub-round-card);
+}
+.pub-tile-value {
+  font-size: var(--pub-size-head-sm);
+  font-weight: var(--pub-weight-display);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--pub-leading-head);
+  color: var(--pub-ink);
+}
+.pub-tile-unit { font-size: var(--pub-size-text-sm); font-weight: var(--pub-weight-text); color: var(--pub-ink-muted); }
+/* 갈린 사례·실패 기록 한 묶음. */
+.pub-quote { display: grid; gap: var(--pub-gap-2); padding: var(--pub-gap-3) var(--pub-gap-4); border-radius: var(--pub-round-control); background: var(--pub-island-wash); }
+/* 접히는 범례. */
+.pub-details summary { cursor: pointer; font-size: var(--pub-size-text-sm); font-weight: var(--pub-weight-strong); color: var(--pub-ink); }
+.pub-details-body { display: grid; gap: var(--pub-gap-3); padding-top: var(--pub-gap-3); }
+.pub-deflist { display: grid; gap: var(--pub-gap-1); }
+.pub-url { font-size: var(--pub-size-caption); overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 3px; }
+
+/* 폼 줄 (피드백·저장). 버튼과 상태 문구가 한 줄로 붙는다. */
+.pub-formrow { display: flex; flex-wrap: wrap; gap: var(--pub-gap-2); align-items: center; }
+.pub-btn--sm { height: 36px; padding: 0 var(--pub-gap-4); font-size: var(--pub-size-caption); }
+.pub-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.pub-btn[disabled]:active { transform: none; }
+
+@media (min-width: 768px) {
+  .pub-hero--detail { padding: var(--pub-gap-10) 0 0; }
+  .pub-hero--detail .pub-hero-title { font-size: var(--pub-size-display-sm); }
+}
+
+@media (min-width: 1024px) {
+  .pub-liblayout { grid-template-columns: 240px minmax(0, 1fr); }
+  .pub-facets {
+    position: sticky;
+    top: var(--pub-gap-3);
+    flex-direction: column;
+    align-items: stretch;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+  /* 세로 목록에서는 칩이 줄 전체를 쓰고 긴 라벨이 두 줄로 흐른다(잘라서 뜻을 잃지 않게). */
+  .pub-facet { height: auto; min-height: 34px; padding: var(--pub-gap-2) var(--pub-gap-3); white-space: normal; justify-content: space-between; }
+  .pub-facet-sep { width: auto; height: 1px; min-width: 0; margin: var(--pub-gap-2) 0; }
+
+  .pub-detail { grid-template-columns: minmax(0, 1fr) 216px; }
+  .pub-detail > .pub-toc {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: var(--pub-gap-4);
+    flex-direction: column;
+    overflow: visible;
+    gap: 2px;
+  }
+  .pub-detail > .pub-toc a {
+    height: auto;
+    min-height: 32px;
+    padding: var(--pub-gap-1) var(--pub-gap-3);
+    border: 0;
+    border-left: 2px solid var(--pub-edge);
+    border-radius: 0;
+    background: transparent;
+    white-space: normal;
+  }
+  .pub-detail > .pub-toc a:hover { border-left-color: var(--pub-ink); background: var(--pub-island-wash); }
+  .pub-detail > .pub-detail-body { grid-column: 1; grid-row: 1; min-width: 0; }
+}

@@ -12,10 +12,11 @@ import type { ReactNode } from 'react'
  */
 
 type Variant = 'primary' | 'ghost'
-type Size = 'md' | 'lg'
+/** sm 은 A2 에서 붙었다 — 목록·상세의 인라인 액션 줄에서 44px 알약이 문장을 밀어낸다. */
+type Size = 'sm' | 'md' | 'lg'
 
 const cls = (variant: Variant, size: Size) =>
-  ['pub-btn', `pub-btn--${variant}`, size === 'lg' ? 'pub-btn--lg' : ''].filter(Boolean).join(' ')
+  ['pub-btn', `pub-btn--${variant}`, size === 'md' ? '' : `pub-btn--${size}`].filter(Boolean).join(' ')
 
 export function PubButtonLink({ href, children, variant = 'primary', size = 'md', external = false }: {
   href: string

@@ -110,6 +110,34 @@ jobs:
 
       - run: npm ci
 
+      # 요청 상한(review_sources.daily_request_cap) 자동 계산·반영. **수집 직전 1회.**
+      #
+      # 왜 여기인가(기술 판단, 2026-09-24):
+      #   · 마이그레이션 후처리로 두면 사람이 타깃을 등록한 뒤 마이그레이션을 또 써야
+      #     상한이 따라온다. 발굴 엔진이 `review_targets` 를 자동 등록하는 경로
+      #     (CLAUDE.md §10.1)에는 마이그레이션이 아예 없어서 영영 안 따라온다.
+      #   · DB 트리거로 두면 상한이 조용히 바뀌고 감사가 어렵다 — 누가 왜 올렸는지
+      #     남기려면 트리거 안에서 로그를 쓰고 2배 규칙까지 SQL 로 복제해야 한다.
+      #     그 규칙은 이미 순수함수(lib/review/request-cap.ts)에 한 벌 있고,
+      #     셀프테스트가 그것만 본다. 두 벌로 늘리지 않는다.
+      #   · 수집 직전이면 **이번 실행이 쓸 상한이 이번 실행의 타깃 수로 정해진다.**
+      #     간격이 0 이라 "타깃은 늘었는데 상한은 내일부터" 가 생기지 않는다.
+      #
+      # 무인 실행이므로 `apply`(권장 ≤ 현재×2)만 반영한다. 그 위는 보류로 찍고 DB 를
+      # 건드리지 않는다. ⚠️ 이 잡의 permissions 는 contents: read 라 보류 파일
+      # (ops/state/request-cap/)은 커밋되지 않는다 — 여기서 보류의 기록은 이 스텝의
+      # 로그와 review_source_cap_log 의 `new_cap IS NULL` 행이다(스크립트 머리말).
+      #
+      # continue-on-error: 상한 계산이 실패해도 수집은 돈다. 옛 상한으로 도는 것은
+      # 안전한 쪽이고(모자라면 '일일 상한 도달'로 잘릴 뿐이다), 여기서 잡을 세우면
+      # 계산 버그 하나가 그날 밤 수집을 0건으로 만든다.
+      - name: Autocalc request cap
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/review-request-cap.mjs
+
       - name: Collect reviews
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

@@ -28,7 +28,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
-import { validateDraft, toRows, gradeMove, factCheckGrade } from '../lib/cases/draft.ts'
+import { validateDraft, toRows, gradeMove, factCheckGrade, pmfGrade } from '../lib/cases/draft.ts'
 import { moveApprovalWarning, caseApprovalWarning } from '../lib/cases/review.ts'
 import {
   planReaderAxisBackfill, assertBackfillColumns,
@@ -467,8 +467,21 @@ async function regrade() {
     console.log(`⚠️ --force — ${obsWhy}. 아래 등급은 **투영**이지 판정이 아니다(§7.1).`)
   }
 
+  // ★ PMF 축(2026-09-23, 마이그 20260930000004)은 **있으면 계산하고 없으면 건너뛴다.**
+  //   위 두 가드와 다른 처리인 이유: 관측 키는 없으면 옛 축의 등급이 **틀리게** 내려가지만,
+  //   pmf 컬럼이 없는 것은 그냥 새 축이 아직 없는 상태다. 그때 멈춰 버리면 evidence_grade
+  //   재채점까지 막힌다. 대신 "계산했다"고 말하지는 않는다 — 건너뛴 사실을 매번 출력한다(§7.1).
+  const pmfProbe = await supabase.from('case_moves')
+    .select('id, pmf_grade, pmf_signal, pmf_transfer, pmf_provisional, metric_kind').limit(1)
+  const pmfReady = !pmfProbe.error
+  if (!pmfReady) {
+    console.log(`⚠️ PMF 축 건너뜀 — case_moves.pmf_* 컬럼 없음 (${pmfProbe.error.code} ${pmfProbe.error.message}).`)
+    console.log('   마이그 20260930000004_case_moves_pmf_grade.sql **미적용**이다. 아래는 evidence_grade / fact_check_grade 재계산뿐이다.')
+  }
+
   const studies = must(
-    await supabase.from('case_studies').select('id, slug, brand_name')
+    // outcome_status 는 PMF 축이 본다 — 실패 확정(negative + pivoted/shutdown)은 반증 강도로 센다.
+    await supabase.from('case_studies').select('id, slug, brand_name, outcome_status')
       .order('slug', { ascending: true }),
     'case_studies SELECT',
   ).filter(s => !slug || s.slug === slug)
@@ -476,12 +489,18 @@ async function regrade() {
 
   // 2026-09-16: 두 등급을 같이 재계산한다 — evidence_grade(독자 인사이트, gradeMove) 와
   // fact_check_grade(사실확인, factCheckGrade). 후자는 위 축 가드가 보호하는 그 산식 그대로다.
+  // 2026-09-23: 셋째 축 pmf_grade(pmfGrade) 가 붙었다. 컬럼이 있을 때만 돈다.
   const before = {}
   const after = {}
   const fcBefore = {}
   const fcAfter = {}
+  const pmfBefore = {}
+  const pmfAfter = {}
   let changed = 0
   let fcChanged = 0
+  let pmfChanged = 0
+  let pmfProvisional = 0
+  let pmfHumanSignal = 0
   let total = 0
   let provisionalCount = 0
 
@@ -506,18 +525,46 @@ async function regrade() {
       after[grade] = (after[grade] ?? 0) + 1
       fcBefore[m.fact_check_grade] = (fcBefore[m.fact_check_grade] ?? 0) + 1
       fcAfter[fc.grade] = (fcAfter[fc.grade] ?? 0) + 1
+      // ── PMF 축 ──
+      // S 는 **사람이 채점 카드에서 고른 값**(m.pmf_signal)이 정본이다. 비어 있으면
+      // suggestSignal 제안값으로 계산하고 pmf_provisional 을 켠다. 그 제안값은 **DB 에
+      // 쓰지 않는다** — pmf_signal 에 써 버리면 다음 실행부터 기계 추측이 사람 판정처럼
+      // 보인다(§7.1). 그래서 patch 는 등급·사유·잠정·T 만 건드린다.
+      let pmf = null
+      if (pmfReady) {
+        pmf = pmfGrade(
+          { ...m, outcome_status: s.outcome_status },
+          mine,
+          { signal: m.pmf_signal ?? null },
+        )
+        pmfBefore[m.pmf_grade ?? '미기재'] = (pmfBefore[m.pmf_grade ?? '미기재'] ?? 0) + 1
+        pmfAfter[pmf.grade] = (pmfAfter[pmf.grade] ?? 0) + 1
+        if (pmf.provisional) pmfProvisional++
+        if (m.pmf_signal !== null && m.pmf_signal !== undefined) pmfHumanSignal++
+      }
       const gradeSame = grade === m.evidence_grade
       const fcSame = fc.grade === m.fact_check_grade
-      if (gradeSame && fcSame) continue
+      const pmfSame = !pmf || (pmf.grade === m.pmf_grade && pmf.transfer === m.pmf_transfer
+        && pmf.provisional === m.pmf_provisional)
+      if (gradeSame && fcSame && pmfSame) continue
       if (!gradeSame) changed++
       if (!fcSame) fcChanged++
+      if (!pmfSame) pmfChanged++
       const line = [!gradeSame ? `인사이트 ${m.evidence_grade} → ${grade} — ${reason}` : null,
-        !fcSame ? `사실확인 ${m.fact_check_grade} → ${fc.grade} — ${fc.reason}` : null].filter(Boolean).join(' · ')
+        !fcSame ? `사실확인 ${m.fact_check_grade} → ${fc.grade} — ${fc.reason}` : null,
+        !pmfSame ? `PMF ${m.pmf_grade ?? '미기재'} → ${pmf.grade}${pmf.provisional ? '(잠정)' : ''} — ${pmf.reason}` : null,
+      ].filter(Boolean).join(' · ')
       console.log(`${dry ? '·' : '✅'} ${s.slug} / ${m.lever}: ${line}`)
       if (!dry) {
         const patch = {}
         if (!gradeSame) patch.evidence_grade = grade
         if (!fcSame) patch.fact_check_grade = fc.grade
+        if (!pmfSame) {
+          patch.pmf_grade = pmf.grade
+          patch.pmf_transfer = pmf.transfer
+          patch.pmf_grade_reason = pmf.reason
+          patch.pmf_provisional = pmf.provisional
+        }
         must(
           await supabase.from('case_moves').update(patch).eq('id', m.id).select('id'),
           'case_moves UPDATE',
@@ -530,11 +577,23 @@ async function regrade() {
   }
 
   const fmt = (h) => ['A', 'B', 'C', 'D'].map(g => `${g}${h[g] ?? 0}`).join(' · ')
-  console.log(`\n무브 ${total}개 / 인사이트 등급 바뀐 것 ${changed}개 / 사실확인 등급 바뀐 것 ${fcChanged}개`)
+  console.log(`\n무브 ${total}개 / 인사이트 등급 바뀐 것 ${changed}개 / 사실확인 등급 바뀐 것 ${fcChanged}개`
+    + (pmfReady ? ` / PMF 등급 바뀐 것 ${pmfChanged}개` : ''))
   console.log(`  인사이트 이전 ${fmt(before)}`)
   console.log(`  인사이트 이후 ${fmt(after)}`)
   console.log(`  사실확인 이전 ${fmt(fcBefore)}`)
   console.log(`  사실확인 이후 ${fmt(fcAfter)}`)
+  if (pmfReady) {
+    console.log(`  pmf 이전 ${fmt(pmfBefore)} (미기재 ${pmfBefore['미기재'] ?? 0})`)
+    console.log(`  pmf 이후 ${fmt(pmfAfter)}`)
+    console.log(`  · S 를 사람이 고른 무브 ${pmfHumanSignal} / ${total} — 나머지는 코드 제안값이다`)
+    if (pmfProvisional > 0) {
+      console.log(`  ⚠️ PMF 등급 ${pmfProvisional}개가 **잠정**이다 — S 또는 이식성을 사람이 확정하지 않았다.`)
+      console.log('     "등급이 낮다"가 아니라 "아직 안 골랐다"의 표기다(§7.1). 채점 카드에서 채우면 확정된다.')
+    }
+  } else {
+    console.log('  pmf — 계산하지 않았다(컬럼 미적용). "변화 없음"이 아니라 **확인 불가**다.')
+  }
   if (provisionalCount > 0) {
     console.log(`  ⚠️ 그중 ${provisionalCount}개는 **잠정**이다 — 관측 키 미기재라 교차 확인 여부를 판정하지 못했다.`)
     console.log('     이 등급은 "근거가 약하다"가 아니라 "아직 확인하지 않았다"의 표기다(§7.1).')

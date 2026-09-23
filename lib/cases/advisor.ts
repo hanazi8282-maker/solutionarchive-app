@@ -21,7 +21,7 @@
 //   not_run  = 조회를 못 했거나 질의어가 없어 판정 자체를 못 했다 (확인 불가)
 //   억지로 끼워맞추지 않는다.
 
-import { GRADE_RANK, type MoveRow, type StudyRow } from './match.ts'
+import { GRADE_RANK, gradeRankOf, type MoveRow, type StudyRow } from './match.ts'
 
 export const ADVISOR_STATUS = ['matched', 'no_match', 'not_run'] as const
 export type AdvisorStatus = (typeof ADVISOR_STATUS)[number]
@@ -358,7 +358,7 @@ export function matchCaseMoves(
     const study = byId.get(m.case_study_id)
     if (!study) { excluded.no_context++; continue }
     if (study.review_status !== 'approved' || m.review_status !== 'approved') { excluded.not_approved++; continue }
-    if ((GRADE_RANK[m.evidence_grade] ?? 0) <= 0) { excluded.grade_d++; continue }
+    if ((gradeRankOf(m) ?? 0) <= 0) { excluded.grade_d++; continue }
     // 카테고리 축 — 'exclude' 면 랭킹 전에 빼고, 'bonus' 면 빼지 않고 점수로 뒤로 민다(KIND_MISMATCH_MODE).
     const kindMatch = projectKind === null || productKindOf(study.business_model) === projectKind
     if (!kindMatch && KIND_MISMATCH_MODE === 'exclude') { excluded.kind++; continue }
@@ -384,7 +384,7 @@ export function matchCaseMoves(
       fact_check_grade: m.fact_check_grade ?? null,
       outcome_direction: m.outcome_direction,
       matched_terms: matched,
-      score: (GRADE_RANK[m.evidence_grade] ?? 0) * 10 + matched.length + (kindMatch && projectKind !== null ? KIND_MATCH_BONUS : 0),
+      score: (gradeRankOf(m) ?? 0) * 10 + matched.length + (kindMatch && projectKind !== null ? KIND_MATCH_BONUS : 0),
       low_confidence: isLowConfidence(matched),
     })
   }

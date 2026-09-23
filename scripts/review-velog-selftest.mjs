@@ -14,10 +14,14 @@
 // ⚠️ 이 파일이 지키는 핵심 4개. 각각 과거 사고 하나에 대응한다.
 //
 //   1) 마커−파싱 차액을 가짜 실패로 찍지 않는다 (에펨 사건 · §7.1)
-//      벨로그는 **개수 마커를 쓰지 않는다.** `comments_count` 가 최상위+대댓글과
-//      화해되지 않기 때문이다(실측 3건 중 1건 어긋남). 그래서 "본문 전용"이고
-//      댓글 0건은 고장이 아니다. 이 파일은 그 결정이 되돌아가지 않았는지 —
-//      즉 comments_count 를 마커로 쓰기 시작하지 않았는지 — 를 고정한다.
+//      ⚠️ **2026-09-24 에 이 항목의 결론이 바뀌었다(본문 전용 → 본문+최상위 댓글).**
+//      관측은 그대로다: `comments_count` 는 최상위+대댓글과 화해되지 않는다
+//      (실측 3건 중 1건 어긋남 — 11 ≠ 6+4). 틀렸던 것은 **마커 선택**이다.
+//      이 페이지가 실어 준 수는 `Post.comments` 의 **참조 배열 길이**이고
+//      그건 정확히 화해된다(참조 6 → 루트에서 6 전부 해소).
+//      이 파일이 고정하는 것은 그 방향이다: 마커는 참조 배열이고,
+//      `comments_count` 로 되돌아가면 11−10=1 이 매 실행 가짜 실패로 찍힌다.
+//      대댓글(level>0)은 여전히 오지 않는다 — **그 0건은 고장이 아니다.**
 //   2) 지문 중복 적재를 막는다 (텀블벅 사건 · SP-031)
 //      블롭에 Post 키가 여러 개 온다(이전/다음 글). url_slug·username 을
 //      대조해 이 타깃 글만 받는다. 안 거르면 남의 글이 이 project_id 로 들어간다.
@@ -29,7 +33,10 @@
 //
 // ⚠️ 그리고 이 소스에만 있는 함정 하나 — **released_at 은 UTC 다.**
 //    앞 10자를 그냥 쓰면 KST 날짜가 하루 어긋나고 증분 종료가 9시간 밀린다.
-//    변환 검사를 아래 "KST" 블록에 넣었다.
+//    변환 검사를 아래 "KST" 블록에 넣었다. **댓글의 `created_at` 도 UTC 다.**
+//
+// ⚠️ 게시판 순회 모드(`board:tag:<태그>`)는 이 파일이 아니라
+//    scripts/review-board-z-selftest.mjs 가 본다. 여기는 `url:` 글 타깃 전용이다.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -139,7 +146,7 @@ ok('URL: /graphql 을 만들지 않는다 (POST 는 러너 계약 밖)', !velogA
 {
   const r = velogAdapter.parse(fx('post.html'), ctx())
 
-  t('정상: 리뷰 1건 — 본문 전용', r.reviews.length, 1)
+  t('정상: 리뷰 7건 — 본문 1 + 최상위 댓글 6', r.reviews.length, 7)
   t('정상: 파싱 실패 0', r.parseFailures, 0)
   t('정상: 커서 없음 — 1글=1요청', r.nextCursor, null)
 
@@ -181,7 +188,7 @@ t('KST: 숫자는 null', kstDate(1600000000000), null)
 {
   const r = velogAdapter.parse(fx('post-no-date.html'), ctx())
   t('KST: released_at 이 null 이면 writtenAt 도 null (추정 금지)', r.reviews[0].writtenAt, null)
-  t('KST: 날짜가 없어도 본문은 적재한다', r.reviews.length, 1)
+  t('KST: 날짜가 없어도 본문은 적재한다', r.reviews.filter((x) => x.storyId === null).length, 1)
   t('KST: 날짜 없음은 파싱 실패가 아니다', r.parseFailures, 0)
 }
 
@@ -216,24 +223,31 @@ t('KST: 숫자는 null', kstDate(1600000000000), null)
   ok('스코프: 실패로 보고한다', r.parseFailures > 0)
 }
 
-// ── 사고 1: 개수 마커를 쓰지 않는다는 결정이 살아 있는가 ──────────
+// ── 사고 1: 어느 개수 마커를 쓰는가 (2026-09-24 결론 변경) ─────────
 {
   const state = __internal.readState(fx('post.html'))
   const key = Object.keys(state).find((k) => k.startsWith('Post:') && 'body' in state[k])
   const comments = Object.keys(state).filter((k) => k.startsWith('Comment:'))
   // 실측: comments_count 11 인데 루트 Comment 는 6건(전부 level 0)이고
-  // replies_count 합은 4다 → 6+4=10 ≠ 11. 어느 쪽으로도 화해되지 않는다.
+  // replies_count 합은 4다 → 6+4=10 ≠ 11. **이 값은 마커로 못 쓴다.**
   t('마커: comments_count 는 11 (실측)', state[key].comments_count, 11)
   t('마커: 블롭의 최상위 Comment 는 6건', comments.length, 6)
   t('마커: 전부 level 0 — 대댓글은 오지 않는다', comments.filter((k) => state[k].level === 0).length, 6)
   t('마커: replies_count 합은 4', comments.reduce((s, k) => s + (state[k].replies_count ?? 0), 0), 4)
   ok('마커: 최상위+대댓글(10)이 comments_count(11)와 화해되지 않는다', 6 + 4 !== state[key].comments_count)
 
-  // ⇒ 그래서 본문 전용이다. **댓글 0건은 고장이 아니다.**
+  // ⇒ 그래서 쓰는 마커는 `Post.comments` 의 **참조 배열 길이**다. 이건 화해된다.
+  const post = __internal.readPosts(state)[0]
+  t('마커: Post.comments 참조는 6개', post.commentRefs.length, 6)
+  t('마커: 루트에서 해소된 수도 6개 — 정확히 화해된다', post.commentRefs.filter((refKey) => refKey in state).length, 6)
+
   const r = velogAdapter.parse(fx('post.html'), ctx())
-  t('마커: 댓글을 적재하지 않는다 — 본문 1건뿐', r.reviews.length, 1)
-  t('마커: 그리고 그것을 실패로 세지 않는다', r.parseFailures, 0)
-  ok('마커: storyId 를 쓰지 않는다 (댓글 개념이 없다)', r.reviews.every((x) => x.storyId === null))
+  t('마커: 본문 1 + 댓글 6 = 7건', r.reviews.length, 7)
+  // ⛔ comments_count 로 되돌아가면 이 줄이 11−10=1 로 깨진다. 그게 이 줄의 목적이다.
+  t('마커: 차액(11−10=1)을 가짜 실패로 세지 않는다', r.parseFailures, 0)
+  t('마커: 본문의 storyId 는 null', r.reviews[0].storyId, null)
+  ok('마커: 댓글의 storyId 는 글 경로다', r.reviews.slice(1).every((x) => x.storyId === PATH))
+  ok('마커: 댓글 externalId 는 <글경로>#<uuid>', r.reviews.slice(1).every((x) => x.externalId.startsWith(`${PATH}#`)))
 }
 
 // ── 블롭·본문 소실 — 실패다 ───────────────────────────────────────
@@ -338,7 +352,7 @@ for (const [name, body] of [
   ok('종료: 마지막 저장이 active (incrementalOnly)', saves.at(-1).status === 'active')
   ok('종료: 커서를 남기지 않는다', saves.at(-1).cursor === null)
   t('종료: robots 금지로 건너뛴 요청 0건 (규칙 0개)', r.robotsSkips, 0)
-  t('종료: 1건 적재', inputs.length, 1)
+  t('종료: 7건 적재 (본문 1 + 댓글 6)', inputs.length, 7)
   t('종료: health ok', r.health.health, 'ok')
 
   const before = inputs.length
@@ -392,8 +406,10 @@ for (const [name, body] of [
     },
   }
   const r = await runCollection(velogAdapter, { dryRun: false, targetLimit: 3 }, ports)
-  t('타깃간중복: 합계 1건 적재 (2건이면 중복이다)', inputs.length, 1)
-  t('타깃간중복: 지문도 1개', seenFp.size, 1)
+  // ⚠️ 같은 글을 두 프로젝트로 등록했어도 **지문이 같아 한 번만 적재된다.**
+  //    본문 1 + 댓글 6 = 7건이고, 14건이면 중복이다.
+  t('타깃간중복: 합계 7건 적재 (14건이면 중복이다)', inputs.length, 7)
+  t('타깃간중복: 지문도 7개', seenFp.size, 7)
   t('타깃간중복: 이전 글 타깃은 남의 글을 받지 않았다', r.stats.relevanceFiltered, 1)
   t('타깃간중복: 슬러그 불일치 1건이 실패로 잡힌다 (조용한 0건 금지)', r.stats.parseFailures, 1)
 }
@@ -403,4 +419,4 @@ if (fail) {
   console.log('벨로그 파서가 틀렸다.')
   process.exit(1)
 }
-console.log('벨로그 파서 정상 — 본문 전용이고, released_at 을 KST 로 변환하며, 블롭의 남의 글을 거른다.')
+console.log("벨로그 파서 정상 — 본문+최상위 댓글을 받고, 마커는 Post.comments 참조 배열이며, released_at·created_at 을 KST 로 변환하고 블롭의 남의 글을 거른다.")

@@ -104,6 +104,19 @@ jobs:
       #     보고하면 소스가 조용히 멈춘 것처럼 보인다(§7.1). 실측 robots 원문으로
       #     러너의 쿼리 미판정 구멍(SP-026)까지 고정한다.
       - run: node scripts/review-board-y-selftest.mjs
+      # 게시판 순회 모드 Z(velog 태그 · damoang) — 2026-09-24. 지키는 것:
+      #   · 목록 컨테이너 소실을 "글 0건"으로 접지 않는다.
+      #   · 큐에 들어가는 경로는 원격 데이터라 **두 번** 글 ref 화이트리스트를 탄다.
+      #   · 댓글 마커가 comments_count 로 되돌아가지 않는다 — 그러면 11−10=1 이 매 실행
+      #     가짜 실패로 찍힌다. 마커는 Post.comments 참조 배열 길이다(정확히 화해된다).
+      #   · 커서의 `last` 에 글 id 가 아니라 released_at 원본 ISO 를 넣는다 — velog 의
+      #     글 id 는 uuid 라 순서가 없어 compareBoardId 로 비교하면 증분이 조용히 틀린다.
+      #   · slug 은 어댑터 BOARDS 표에 있는 것만. 표에 없으면 0요청 타깃이 된다.
+      #   · damoang 목록 403 은 **robots 가 아니라 서버(Cloudflare)** 가 막은 것이다.
+      # ⚠️ 여기서만 **실행 간 커서 인수**를 실제로 돌린다 — 상태를 가진 가짜 스토어로
+      #    1회차(목록 1 + 글 10) → 2회차(목록 1, 새 글 0) → 연속 0건 3회 자동 닫힘까지.
+      #    매번 새 타깃을 주는 스토어로는 그 경로가 통째로 안 보인다(§7.1 사례 5).
+      - run: node scripts/review-board-z-selftest.mjs
       #   youtube: order=time 이 빠지면 관련도순이라 증분 종료가 깨지고, 쿼터 403 을
       #            차단으로 분류하면 정상적인 일일 한도 소진이 소스를 꺼 버린다(PR #106 이식).
       - run: node scripts/review-youtube-selftest.mjs

@@ -17,6 +17,27 @@
 //    붙이려면 러너부터 고쳐라(SP-026).
 //
 // 수집 단위는 상품이 아니라 글 1건이다. 글 본문 1건 + 댓글 N건 = 리뷰 N+1건.
+//
+// ⛔ **게시판 순회 모드(`board:<게시판>`)를 만들지 않았다. 목록 페이지를 못 받는다.**
+//    2026-09-24 실측(우리 UA `solutionarchive-review-collector/0.1`, 요청 3회):
+//      GET /free            → **403** · 5,627B · Cloudflare 인터랙티브 챌린지
+//                             (`<title>Just a moment...</title>` · challenges.cloudflare.com)
+//      GET /feed (새글 목록) → **403** · 같은 챌린지
+//      GET /free/7341567    → **200** · 418,582B · JSON-LD 정상 (기존 경로는 멀쩡하다)
+//    픽스처: fixtures/review/damoang/board-list-cloudflare-403.html
+//
+//    ⚠️ **robots 가 막은 게 아니다.** 리포 파서 판정으로 `/free` 는 `Allow: /` 에
+//       걸려 `allowed` 다. 막은 것은 서버(Cloudflare) 다. 둘을 같은 문장으로
+//       적으면 다음 사람이 "robots 를 다시 읽어 보자"로 잘못 움직인다(§7.1).
+//
+//    ⚠️ **그래서 `board:` 타깃을 등록해서도 안 된다.** 러너는 403 을 `blocked` 로
+//       분류하고(quotaMarkers 미선언 — 파일 끝) `aborted = true` 로 **그 실행의
+//       damoang 소스 전체를 중단**한다. 목록 타깃 하나가 잘 돌던 `url:` 타깃
+//       11개를 같이 죽인다. 이건 조용한 손실이라 더 나쁘다.
+//
+//    다시 시도하려면 순서가 이것이다: ① 목록 URL 이 200 을 주는지 먼저 1회 실측
+//    → ② 그다음에 어댑터. JS 챌린지를 푸는 방향(헤드리스·쿠키 재생)은 SP-025 의
+//    "사이트의 의사"를 정면으로 거스르므로 하지 않는다.
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
 import { parseUrlRef } from './url-ref.ts'
@@ -24,9 +45,20 @@ import { parseUrlRef } from './url-ref.ts'
 /** 호스트는 어댑터가 상수로 갖는다. product_ref 에 넣게 하면 SSRF 가 된다. */
 export const HOST = 'https://damoang.net'
 
-/** `url:/free/7341567` → `/free/7341567`. 규칙 위반이면 null. */
+/**
+ * `url:/free/7341567` → `/free/7341567`. 규칙 위반이면 null.
+ *
+ * ⚠️ **`<게시판>/<글번호>` 두 세그먼트만 받는다(2026-09-24 좁힘).**
+ *    공용 `parseUrlRef` 는 경로 모양을 안 보므로 `url:/free`(목록)도 통과시켰다.
+ *    그런데 목록 URL 은 Cloudflare 챌린지 **403** 이고(파일 머리 ⛔), 러너는 403 을
+ *    차단으로 분류해 `aborted = true` 로 **그 실행의 damoang 소스 전체를 중단**한다.
+ *    즉 목록 타깃 하나를 잘못 등록하면 잘 돌던 글 타깃들이 같이 죽는다.
+ *    이 파서는 애초에 글 페이지(JSON-LD + 댓글 앵커)만 읽으므로, 목록을 받아도
+ *    할 수 있는 일이 없다 — 좁히는 게 기능 축소가 아니다.
+ */
 export function parseProductRef(productRef: string): string | null {
-  return parseUrlRef(productRef)
+  const p = parseUrlRef(productRef)
+  return p !== null && /^\/[A-Za-z0-9_-]+\/\d+$/.test(p) ? p : null
 }
 
 /**

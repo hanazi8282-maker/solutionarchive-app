@@ -33,7 +33,7 @@
 .pub-root a:hover { text-decoration: none; }
 /* 본문 안 링크만 밑줄을 유지한다 — 문장 속 링크는 밑줄이 있어야 보인다. */
 .pub-root .pub-text a,
-.pub-root .pub-link { text-decoration: underline; text-underline-offset: 3px; }
+.pub-root .pub-link { color: var(--pub-accent, inherit); text-decoration: underline; text-underline-offset: 3px; }
 
 /* 포커스 링 — _ds 의 box-shadow 링을 끄고 outline 으로 통일한다.
    `--pub-focus` 는 테마·패널에 따라 뒤집히므로 흰 섬 위에서도 보인다. */

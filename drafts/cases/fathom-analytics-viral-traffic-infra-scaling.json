@@ -1,0 +1,90 @@
+{
+  "slug": "fathom-analytics-viral-traffic-infra-scaling",
+  "brand_name": "Fathom Analytics",
+  "market": "SaaS — 프라이버시 중심 웹 애널리틱스 (구글 애널리틱스 대체재)",
+  "geo": "캐나다 빅토리아(BC) 기반, 원격 팀",
+  "business_model": "SAAS",
+  "buyer_type": "B2B",
+  "purchase_frequency": "CONTRACT",
+  "price_band": "LOW",
+  "bottleneck": "SUPPLY",
+  "reader_problem": "SOLO_CEILING",
+  "outcome_status": "active",
+  "period_start": "2020-08-19",
+  "period_end": "2021-03-30",
+  "summary": "Jack Ellis(기술)와 Paul Jarvis(디자인) 2인이 2018년 4월 창업한 프라이버시 중심 웹 애널리틱스 SaaS. 외부 투자 없이 부트스트래핑했고, 계약직 몇 명을 두는 수준의 소규모 팀으로 IBM·GitHub 같은 대형 고객까지 포함한 트래픽을 처리했다. 2020년 8월 19일, 고객 한 곳의 사이트가 몇 시간 만에 1천만 페이지뷰 이상을 기록하며 바이럴이 터졌고, 큐에 150만~200만 건의 처리 대기 작업이 쌓이고 DB CPU가 97~99%까지 치솟는 위기가 발생했다. Jack Ellis는 이 상황을 실시간으로 자사 블로그에 1인칭으로 기록했다: 우선 스토리지를 100GB에서 1000GB로 늘려 IOPS를 즉시 10배로 올리고('돈으로 먼저 해결한다'는 판단), DB 사양을 16vCPU/64GB로 두 배 늘렸으며, 진짜 원인이었던 스키마 문제(site_id 컬럼이 VARCHAR로 저장돼 있던 것)를 정수형+인덱스로 고쳐 쿼리 하나를 2초에서 58밀리초로 줄였다. GDPR 준수를 위해 자정(UTC) 전에 해시 백로그를 반드시 처리해야 하는 마감까지 맞췄다. 이 사건 이후 반복되는 IOPS 한계를 근본적으로 없애기 위해, 2021년 3월 공개한 글에서는 자체 인프라팀을 꾸리는 대신(\"We are Jack & Paul, with a few folks helping us\") 이미 컴캐스트(초당 30만 이벤트)·아카마이(초당 1천만 업서트) 같은 대기업 규모를 처리해 본 관리형 분산 DB(SingleStore)로 옮기는 결정을 내렸다. 자사 트래픽은 그런 규모에 비하면 \"식은 죽 먹기\"라는 게 이유였고, 비용은 월 2,000달러 미만이었다. 2026-09-23 기준 usefathom.com은 로그인·7일 무료체험·요금표가 살아 있는 정상 운영 서비스다.",
+  "tags": ["SaaS", "1인창업", "부트스트래핑", "인프라", "트래픽폭주", "오퍼레이션", "데이터베이스", "매니지드서비스"],
+  "researched_by": "sa-cmo-researcher",
+  "moves": [
+    {
+      "lever": "OPERATIONS",
+      "claim": "2020년 8월 19일, 고객 사이트 한 곳이 몇 시간 만에 1천만 페이지뷰 이상을 기록하며 큐에 150만 건(최대 200만 건 이상) 작업이 쌓이고 DB CPU가 97%까지 치솟았다. Jack Ellis는 개발자 지인(Chris Fidao)에게 실시간으로 조언을 구해 원인이 IOPS 상한(100GB 스토리지에서 300 IOPS)이라는 것을 알아냈고, 우선 스토리지를 1000GB로 올려 IOPS를 즉시 10배로 늘리는 방식으로 '돈으로 먼저 해결'했다(\"we'd rather spend a bunch of cash on solving the problem\"). 이후 두 번째 장애 파동에서 진짜 원인 중 하나가 site_id 컬럼이 VARCHAR로 저장돼 매번 느리게 비교되던 것임을 찾아 정수형(Unsigned Big Integer)으로 바꾸고 인덱스를 추가했고, 이 수정만으로 해당 쿼리가 2초에서 58밀리초로 줄었다. GDPR 해시 보관 규정 때문에 자정(UTC) 전에 백로그를 반드시 정리해야 하는 마감이 걸려 있었고, 팀은 이를 지켰다.",
+      "transfer_note": "오늘 안에 서비스에서 가장 자주 조회되는 테이블 하나를 골라, ID나 매칭에 쓰는 컬럼이 숫자인데도 문자열(VARCHAR)로 저장돼 있는지 확인해라. 그런 컬럼을 찾으면 정수형으로 바꾸고 인덱스를 하나 걸어라. 페이텀은 이 수정 하나만으로 쿼리 하나를 2초에서 58밀리초로 줄여 트래픽 폭주를 버텼다.",
+      "preconditions": "직접 DB 스키마와 느린 쿼리 로그에 접근할 수 있어야 한다. 운영 중인 서비스의 테이블 구조를 바꾸는 것이라 되돌릴 백업 계획이 먼저 있어야 하고, 급하게 인프라 사양을 올릴 수 있는 카드 한도나 현금(페이텀은 스토리지를 즉시 10배로 올렸다)도 확인해 둬야 한다.",
+      "outcome_direction": "positive",
+      "metric_name": "느린 쿼리 응답시간",
+      "metric_before": 2000,
+      "metric_after": 58,
+      "metric_unit": "ms",
+      "observed_period_start": "2020-08-19",
+      "observed_period_end": "2020-08-19"
+    },
+    {
+      "lever": "OPERATIONS",
+      "claim": "2020년 8월 위기 이후, 고정 용량 MySQL(RDS)이 트래픽이 몰릴 때마다 IOPS 상한에 부딪히는 구조적 문제가 반복될 것이라고 판단했다. Jack Ellis는 2021년 3월 글에서 자신들을 \"Jack & Paul, with a few folks helping us\"라고 표현하며, 컴캐스트(초당 30만 이벤트 스트리밍)·아카마이(초당 1천만 업서트)를 처리하는 관리형 분산 DB(SingleStore)에게는 자사 규모가 '식은 죽 먹기(a walk in the park)'라는 판단 아래, 자체 인프라팀을 꾸려 샤딩·스케일링을 직접 구축하는 대신 이미 하이퍼스케일 고객을 검증받은 관리형 서비스로 옮기기로 결정했다. 마이그레이션 이후 7분 넘게 타임아웃 나던 대시보드 쿼리가 초 단위로 돌아갔고, 비용은 월 2,000달러 미만이었다(이전 MySQL 구성에서는 불필요한 스토리지에 월 500달러를 과지출하고 있었다). 정확한 '이후' 응답시간(초 단위 중 몇 초인지)은 원문에 구체 수치로 나오지 않아 무브 수치로는 적지 않는다.",
+      "transfer_note": "이번 주 안에 지금 쓰는 데이터베이스가 지금보다 트래픽이 10배 늘어도 버틸지, 관리형(매니지드) 대체 서비스 한 곳에서 견적만 받아봐라. 비용이 감당할 만하면(페이텀은 월 20만원 정도), 사람을 새로 뽑아 직접 확장 인프라를 만드는 대신 이미 훨씬 큰 규모를 처리해 본 관리형 서비스로 옮기는 쪽을 택하라.",
+      "preconditions": "매달 카드로 결제 가능한 예산(페이텀 기준 월 20만원 안팎)이 있어야 하고, 마이그레이션 동안 서비스 중단 없이 기존 데이터를 옮길 시간 여유(페이텀은 수억 건 단위 이관을 진행했다)가 있어야 한다. 직접 인프라팀을 꾸릴 만한 채용 예산이 없는 소규모 팀일수록 이 판단이 더 맞는다.",
+      "outcome_direction": "positive",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": "2021-03-30",
+      "observed_period_end": "2021-03-30"
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://usefathom.com/blog/viral",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "fathom-viral-crisis-2020-08-19",
+      "supports_metric": true,
+      "published_at": "2020-08-19",
+      "retrieved_at": "2026-09-23",
+      "snippet": "\"we'd rather spend a bunch of cash on solving the problem\" — 스토리지 100GB→1000GB(IOPS 10배), DB 16vCPU/64GB로 증설. site_id를 VARCHAR에서 정수형으로 바꾸고 인덱스를 추가해 쿼리 하나가 2초→58ms로 줄었다. 큐 백로그 150만~200만 건, DB CPU 97~99%.",
+      "supports_claim": "쿼리 응답시간 2000ms→58ms 수치, IOPS 진단(300 IOPS 한계)에서 스키마 수정 결정까지 이어지는 사고 흐름의 1인칭 출처."
+    },
+    {
+      "move": 1,
+      "url": "https://usefathom.com/blog/worlds-fastest-analytics",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "fathom-singlestore-migration-2021-03-30",
+      "supports_metric": false,
+      "published_at": "2021-03-30",
+      "retrieved_at": "2026-09-23",
+      "snippet": "\"We are Jack & Paul, with a few folks helping us\" — 컴캐스트(초당 30만 이벤트)·아카마이(초당 1천만 업서트) 대비 자사 트래픽은 '식은 죽 먹기'. MySQL→SingleStore 이전. 7분 타임아웃 쿼리가 초 단위로 개선, 비용 월 2,000달러 미만.",
+      "supports_claim": "자체 인프라팀 대신 관리형 서비스를 산 buy-vs-build 결정과 그 이유(소규모 팀 규모 대비 하이퍼스케일 처리 실적)의 1인칭 서술. 무브에 수치를 적지 않았으므로 수치 뒷받침이 아니라 서사만 뒷받침한다."
+    },
+    {
+      "move": null,
+      "url": "https://usefathom.com/pricing",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "fathom-pricing-live-check-2026-09-23",
+      "supports_metric": false,
+      "published_at": null,
+      "retrieved_at": "2026-09-23",
+      "snippet": "2026-09-23 직접 조회: 로그인·7일 무료체험·요금표($15~$470/월)가 있는 정상 운영 서비스. 셧다운·인수 정황 없음.",
+      "supports_claim": "outcome_status=active 확인."
+    }
+  ]
+}

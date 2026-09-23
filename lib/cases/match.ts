@@ -41,6 +41,22 @@ export interface MoveRow {
   metric_before?: number | null
   metric_after?: number | null
   metric_unit?: string | null
+  /**
+   * 이식 4필드. 전부 `?` 다 — 조회에서 빼면 `undefined` 고 그건 "없음"이 아니다
+   * (`fact_check_grade` 와 같은 규약). 싣는 자리는 corpus-db.MOVE_COLS 한 곳이다.
+   */
+  transfer_note?: string | null
+  preconditions?: string | null
+  transferability?: string | null
+  observed_period_start?: string | null
+  created_at?: string
+  /**
+   * PMF 등급축(마이그 20260930000004). **미적용이 현재 상태다**(2026-09-23) — 그래서 `?` 다.
+   * `undefined` 는 "컬럼이 조회에 없었다", `null` 은 "아직 채점 전"이고 둘 다 D 가 아니다.
+   * 읽는 자리는 `grade-display.ts` 의 `displayGrade`/`gradeRankOf` 하나뿐이다.
+   */
+  pmf_grade?: string | null
+  pmf_provisional?: boolean | null
 }
 
 export interface StudyRow {

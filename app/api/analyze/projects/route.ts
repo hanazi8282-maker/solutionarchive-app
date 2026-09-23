@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { ANALYSIS_PURPOSES, ANALYSIS_MODES, type AnalysisPurpose, type AnalysisMode } from '@/lib/analysis/types'
-import { parseFacets } from '@/lib/analysis/facets'
+import {
+  isMissingColumn, MIGRATION_20260930000003_KEYS, MISSING_COLUMN_HINT, omitKeys, parseFacets,
+} from '@/lib/analysis/facets'
 import { parseCompetitorUrl } from '@/lib/analysis/inputs'
 import { getAuthVerdict } from '@/lib/auth/session'
 import { guardFromVerdict } from '@/lib/auth/policy'
@@ -36,7 +38,7 @@ export async function POST(req: Request) {
 
   const guess = typeof body?.seller_own_guess === 'string' ? body.seller_own_guess.trim() : ''
 
-  // PMF 진단 입력(패싯 6개)은 전부 선택이다. 안 보내면 컬럼이 NULL 로 남고, 결과 화면이
+  // PMF 진단 입력(패싯 7개 = market + 어휘 6개)은 전부 선택이다. 안 보내면 컬럼이 NULL 로 남고, 결과 화면이
   // 그 자리에서 다시 받는다(PATCH). 보냈는데 어휘 밖이면 조용히 버리지 않고 막는다.
   const facets = parseFacets(body)
   if (!facets.ok) return NextResponse.json({ error: facets.error, field: facets.field }, { status: 400 })
@@ -48,23 +50,34 @@ export async function POST(req: Request) {
   const ownerEmail = guard.ok ? guard.email : null
   if (!ownerEmail) console.warn('[analyze/projects] owner_email unresolved — stored as NULL')
 
-  const { data, error } = await supabase
-    .from('analysis_projects')
-    .insert({
-      competitor_url:         competitor.value,
-      product_elevator_pitch: pitch,
-      purpose:                purpose,
-      mode:                   mode,
-      seller_own_guess:       guess || null,
-      status:                 'collecting',
-      owner_email:            ownerEmail,
-      ...facets.values,
-    })
-    .select()
-    .single()
+  const row: Record<string, unknown> = {
+    competitor_url:         competitor.value,
+    product_elevator_pitch: pitch,
+    purpose:                purpose,
+    mode:                   mode,
+    seller_own_guess:       guess || null,
+    status:                 'collecting',
+    owner_email:            ownerEmail,
+    ...facets.values,
+  }
+  const create = (payload: Record<string, unknown>) =>
+    supabase.from('analysis_projects').insert(payload).select().single()
+
+  let { data, error } = await create(row)
+
+  // `reader_problem` 은 FACET_KEYS 에 있으므로 위 스프레드로 자동으로 실린다. 마이그
+  // 20260930000003 이 배포보다 늦으면 이 INSERT 가 죽고 **새 분석을 아예 시작할 수 없다**
+  // (설계서 리스크). 그 키만 빼고 **1회** 재시도한다 — 프로젝트는 만들어지고 문제 유형만 빠진다.
+  // 조용히 넘기지 않고 무엇을 뺐는지 로그에 남긴다 — 안 남기면 사람이 고른 문제 유형이 저장되지
+  // 않은 것을 아무도 모른다(§7.1 · §7.2).
+  if (error && isMissingColumn(error.code)) {
+    console.warn('[analyze/projects] insert ' + error.code + ' — ' + MISSING_COLUMN_HINT + '. '
+      + MIGRATION_20260930000003_KEYS.join('·') + ' 를 빼고 1회 재시도한다 (그 값은 저장되지 않는다): ' + error.message)
+    ;({ data, error } = await create(omitKeys(row, MIGRATION_20260930000003_KEYS)))
+  }
 
   if (error) {
-    console.error('[analyze/projects] insert error:', error.message)
+    console.error('[analyze/projects] insert error:', error.code ?? '', error.message)
     return NextResponse.json({ error: '프로젝트 생성 실패' }, { status: 500 })
   }
 

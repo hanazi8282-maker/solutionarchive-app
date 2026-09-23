@@ -2,7 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { getAuthVerdict } from '@/lib/auth/session'
 import { denyStatus, guardFromVerdict } from '@/lib/auth/policy'
-import { parseFacets } from '@/lib/analysis/facets'
+import {
+  isMissingColumn, MIGRATION_20260930000003_KEYS, MISSING_COLUMN_HINT, omitKeys, parseFacets,
+} from '@/lib/analysis/facets'
+import { parseCompetitorUrl } from '@/lib/analysis/inputs'
 
 // 판매자 프로필 — 로그인 이메일당 1행(seller_profiles.owner_email UNIQUE).
 // /analyze/new 1단계를 프리필하고 /settings/profile 이 편집한다.
@@ -62,17 +65,35 @@ export async function PUT(req: Request) {
   }
   const pitch = typeof rawPitch === 'string' ? rawPitch.trim() || null : null
 
-  const { data, error } = await supabase
-    .from('seller_profiles')
-    .upsert(
-      { owner_email: who.email, pitch, ...facets.values, updated_at: new Date().toISOString() },
-      { onConflict: 'owner_email' },
-    )
-    .select()
-    .single()
+  // 경쟁사·비교 대상 URL(선택, 남헌 2026-09-23 Q3-A). 검증은 /analyze/new 와 **같은 함수**를
+  // 재사용한다 — 두 곳이 각자 판정하면 프로필에 저장된 URL 이 새 분석에서 거절되는 꼴이 난다.
+  // 빈 문자열은 null 로 저장한다(= "비웠다"). mode 는 forward 고정 — 프로필은 역설계 대상이 아니다.
+  const competitor = parseCompetitorUrl((body as { competitor_url?: unknown } | null)?.competitor_url, 'forward')
+  if (!competitor.ok) return NextResponse.json({ error: competitor.error, field: 'competitor_url' }, { status: 400 })
+
+  const row: Record<string, unknown> = {
+    owner_email: who.email,
+    pitch,
+    competitor_url: competitor.value,
+    ...facets.values,
+    updated_at: new Date().toISOString(),
+  }
+  const save = (payload: Record<string, unknown>) =>
+    supabase.from('seller_profiles').upsert(payload, { onConflict: 'owner_email' }).select().single()
+
+  let { data, error } = await save(row)
+
+  // 마이그 20260930000003 이 아직 안 갔으면 PostgREST 가 PGRST204(또는 42703)로 거절한다.
+  // 그 키만 빼고 **1회** 다시 보낸다. 조용히 넘기지 않고 무엇을 뺐는지 로그에 남긴다 —
+  // 안 남기면 사람이 고른 문제 유형이 저장되지 않은 것을 아무도 모른다(§7.1 · §7.2).
+  if (error && isMissingColumn(error.code)) {
+    console.warn('[profile] upsert ' + error.code + ' — ' + MISSING_COLUMN_HINT + '. '
+      + MIGRATION_20260930000003_KEYS.join('·') + ' 를 빼고 1회 재시도한다 (그 값은 저장되지 않는다): ' + error.message)
+    ;({ data, error } = await save(omitKeys(row, MIGRATION_20260930000003_KEYS)))
+  }
 
   if (error) {
-    console.error('[profile] upsert error:', error.message)
+    console.error('[profile] upsert error:', error.code ?? '', error.message)
     return NextResponse.json({ error: '프로필 저장에 실패했습니다.' }, { status: 500 })
   }
 

@@ -49,9 +49,24 @@ export interface PrincipleCard {
   low_confidence: boolean
 }
 
+/**
+ * 같은 케이스에 기록된 무브 한 줄 — 카드 안 "기록된 무브 N개(시간순)" 접힘에 쓴다.
+ * 정렬은 화면이 `lib/cases/detail.ts sortMovesByTime` 으로 한다(같은 데이터 계약을 두 번 적지 않는다).
+ */
+export interface CaseMoveSibling {
+  id: string
+  lever: string
+  claim: string
+  /** null = 관측 시점 미기재. 화면이 "시점 미확인"으로 말한다 — 모르는 것을 1단계로 배치하지 않는다. */
+  observed_period_start: string | null
+  created_at?: string
+}
+
 export interface CaseMoveCard {
   kind: 'case_move'
   case_move_id: string
+  /** 같은 케이스의 무브를 묶는 열쇠. 카드가 형제 무브를 들고 다니게 된 뒤로 필요해졌다. */
+  case_study_id: string
   slug: string
   brand_name: string
   lever: string
@@ -59,7 +74,24 @@ export interface CaseMoveCard {
   evidence_grade: string
   /** 사실확인 등급. 조회에 없으면 null — 화면은 "미기재" 로 말한다(등급 D 와 다르다). */
   fact_check_grade: string | null
+  /**
+   * PMF 등급축(마이그 20260930000004). 배지 1순위 축이다 — 화면은 `displayGrade(card)` 로만 읽는다.
+   * null = 컬럼 미적용이거나 재채점 전. 그때 배지는 `evidence_grade` 로 폴백하고 **그 사실을 이름으로 밝힌다**.
+   */
+  pmf_grade: string | null
+  /** 사람이 신호 강도·이식성을 확정하지 않은 잠정 등급인가. 확정과 같게 보이면 §7.1 위반이다. */
+  pmf_provisional: boolean | null
   outcome_direction: string
+  /**
+   * 내일 할 행동 — `case_moves.transfer_note` **원문 그대로**. LLM 이 다시 쓰지 않는다(§10.1).
+   * null = 미기재. 빈 줄로 두지 않고 화면이 "행동 미기재" 배지로 말한다.
+   */
+  transfer_note: string | null
+  /** 옮기려면 뭐가 있어야 하나. null = 미기재이고 "전제가 없다"는 뜻이 아니다. */
+  preconditions: string | null
+  observed_period_start: string | null
+  /** 같은 케이스의 승인 무브 전부(자기 포함). 1개면 화면이 접힘을 그리지 않는다. */
+  siblings: CaseMoveSibling[]
   matched_terms: string[]
   score: number
   low_confidence: boolean
@@ -354,6 +386,22 @@ export function matchCaseMoves(
   const excluded = { not_approved: 0, grade_d: 0, no_context: 0, kind: 0 }
   const cards: CaseMoveCard[] = []
 
+  // 케이스별 승인 무브 — 카드의 "기록된 무브 N개" 접힘 재료다. 등급 D 도 남긴다(타임라인은
+  // 랭킹이 아니라 그 케이스의 이야기라서, 수치 없는 무브도 단계로는 실제로 있었던 일이다).
+  const siblingsOf = new Map<string, CaseMoveSibling[]>()
+  for (const m of moves) {
+    if (m.review_status !== 'approved') continue
+    const list = siblingsOf.get(m.case_study_id) ?? []
+    list.push({
+      id: m.id,
+      lever: m.lever,
+      claim: m.claim,
+      observed_period_start: m.observed_period_start ?? null,
+      created_at: m.created_at,
+    })
+    siblingsOf.set(m.case_study_id, list)
+  }
+
   for (const m of moves) {
     const study = byId.get(m.case_study_id)
     if (!study) { excluded.no_context++; continue }
@@ -376,13 +424,22 @@ export function matchCaseMoves(
     cards.push({
       kind: 'case_move',
       case_move_id: m.id,
+      case_study_id: m.case_study_id,
       slug: study.slug,
       brand_name: study.brand_name,
       lever: m.lever,
       claim: m.claim,
       evidence_grade: m.evidence_grade,
       fact_check_grade: m.fact_check_grade ?? null,
+      pmf_grade: m.pmf_grade ?? null,
+      pmf_provisional: m.pmf_provisional ?? null,
       outcome_direction: m.outcome_direction,
+      // 이식 3필드는 **그대로 옮긴다** — 여기서 다듬거나 기본값을 채우지 않는다.
+      // `undefined`(조회에서 빠짐)와 null(안 적힘)을 화면이 가를 수 있게 null 로만 접는다.
+      transfer_note: m.transfer_note ?? null,
+      preconditions: m.preconditions ?? null,
+      observed_period_start: m.observed_period_start ?? null,
+      siblings: siblingsOf.get(m.case_study_id) ?? [],
       matched_terms: matched,
       score: (gradeRankOf(m) ?? 0) * 10 + matched.length + (kindMatch && projectKind !== null ? KIND_MATCH_BONUS : 0),
       low_confidence: isLowConfidence(matched),

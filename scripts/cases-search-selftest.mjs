@@ -3,7 +3,8 @@
 //
 // 고정하는 것:
 //   1. 질의 파싱 — 어휘 밖 값을 조용히 무시하지 않는다(무시하면 "전체 결과"를 "그 유형 결과"로 읽는다)
-//   2. 정렬 가산점 — SaaS 질의에 SaaS 무브가 **먼저**, 소비재는 **뒤에**(빠지지 않는다)
+//   2. 정렬 가산점(kind=all) — SaaS 질의에 SaaS 무브가 **먼저**, 소비재는 **뒤에**(빠지지 않는다)
+//   2-b. 종류 하드필터(kind 기본 'saas') — 소비재는 숨기고, 숨긴 건수와 되돌리는 방법을 사유에 적는다
 //   3. §7.1 3상태 — matched / no_match / not_run 이 응답 모양에 그대로 실리는가
 //   4. 빈 상태 문구 — 숫자는 DB 에서 센 것만 쓰고 다른 말로 채우지 않는다
 //
@@ -55,20 +56,63 @@ const CORPORA = { studies: STUDIES, moves: MOVES, failedAngles: FAILED }
 {
   const { query } = parseSearchQuery({ q: 'ㄱ'.repeat(QUERY_MAX + 50) })
   t(`파싱: 자유 텍스트 ${QUERY_MAX}자 상한`, query.q.length, QUERY_MAX)
-  t('파싱: 빈 입력은 전부 null', JSON.stringify(parseSearchQuery({}).query), JSON.stringify({ bottleneck: null, problem: null, q: null }))
+  t('파싱: 빈 입력은 전부 null(kind 만 기본값 saas)', JSON.stringify(parseSearchQuery({}).query), JSON.stringify({ bottleneck: null, problem: null, q: null, kind: 'saas' }))
 }
 
 // ── 2. 정렬 가산점 ───────────────────────────────────────────────
+// 가산점은 **kind=all 일 때만** 관찰된다 — 기본(kind=saas)에서는 소비재가 하드필터로 빠지므로
+// "뒤에 있다"를 확인할 대상 자체가 없다. 두 동작을 한 질의에서 같이 보려 하면 기대값이 거짓말이 된다.
 {
   const bonus = KIND_MISMATCH_MODE === 'bonus'
-  const r = searchMoves(parseSearchQuery({ q: '결제' }).query, CORPORA)
+  const r = searchMoves(parseSearchQuery({ q: '결제', kind: 'all' }).query, CORPORA)
   const ids = r.moves.cards.map((c) => c.case_move_id)
   t('가산점: SaaS 질의 1위는 SaaS 무브(등급이 낮아도)', ids[0], 'm1')
   ok('가산점: 소비재 무브는 빠지지 않고 뒤로 간다', bonus ? ids.includes('m2') : !ids.includes('m2'))
   ok('제외: 등급 D 무브(m3)는 안 나온다', !ids.includes('m3'))
   ok('제외: 미승인 케이스 무브(m4)는 안 나온다', !ids.includes('m4'))
-  const phys = searchMoves(parseSearchQuery({ q: '결제' }).query, CORPORA, { kind: 'physical' })
+  const phys = searchMoves(parseSearchQuery({ q: '결제', kind: 'all' }).query, CORPORA, { kind: 'physical' })
   t('가산점: 실물 질의 1위는 소비재 무브', phys.moves.cards[0].case_move_id, 'm2')
+}
+
+// ── 2-b. 종류 하드필터 (남헌 2026-09-23: SaaS 기본, 소비재는 필터 켰을 때만) ────────
+{
+  t('종류: 기본은 saas', parseSearchQuery({}).query.kind, 'saas')
+  t('종류: kind=all 통과', parseSearchQuery({ kind: 'ALL' }).query.kind, 'all')
+  const bad = parseSearchQuery({ kind: 'physical' })
+  t('종류: 어휘 밖 kind 는 오류 1건 — 라우트가 이걸 400 으로 낸다', bad.errors.length, 1)
+  ok('종류: 어휘 밖 kind 사유에 가능한 값이 적힌다', bad.errors[0].includes('saas') && bad.errors[0].includes('all'))
+
+  const def = searchMoves(parseSearchQuery({ q: '결제' }).query, CORPORA)
+  const defIds = def.moves.cards.map((c) => c.case_move_id)
+  ok('종류: 기본 검색에서 소비재 무브(m2)가 숨는다', !defIds.includes('m2'))
+  ok('종류: 기본 검색에도 SaaS 무브(m1)는 나온다', defIds.includes('m1'))
+  ok('종류: 숨긴 건수와 되돌리는 방법을 사유에 밝힌다', def.reason.includes('소비재 1건 숨김(kind=all 로 보기)'))
+
+  const all = searchMoves(parseSearchQuery({ q: '결제', kind: 'all' }).query, CORPORA)
+  ok('종류: kind=all 이면 소비재 무브가 나온다', all.moves.cards.some((c) => c.case_move_id === 'm2'))
+  ok('종류: kind=all 사유에는 숨김 문구가 없다', !all.reason.includes('숨김'))
+
+  // business_model 미기재(null)는 physical 이다(advisor.productKindOf) — 기본 검색에서 숨는다.
+  const withNull = {
+    ...CORPORA,
+    studies: [...STUDIES, { id: 's4', slug: 'delta-null', brand_name: 'Delta', bottleneck: 'CONVERSION', reader_problem: 'PRICE_TOO_LOW', business_model: null, review_status: 'approved' }],
+    moves: [...MOVES, { id: 'm5', case_study_id: 's4', lever: 'PRICING', claim: '결제 페이지 단순화', evidence_grade: 'A', fact_check_grade: 'A', outcome_direction: 'positive', review_status: 'approved' }],
+  }
+  ok('종류: business_model 미기재(null)도 기본 검색에서 숨는다', !searchMoves(parseSearchQuery({ q: '결제' }).query, withNull).moves.cards.some((c) => c.case_move_id === 'm5'))
+  ok('종류: kind=all 이면 미기재 케이스도 나온다', searchMoves(parseSearchQuery({ q: '결제', kind: 'all' }).query, withNull).moves.cards.some((c) => c.case_move_id === 'm5'))
+
+  // 둘러보기(조건 0개)에도 같은 필터가 걸린다 — 첫 화면이 가장 많이 읽히는 자리다.
+  const br = searchMoves(parseSearchQuery({}).query, CORPORA)
+  ok('종류: 둘러보기도 browse + 소비재 숨김', br.browse === true && !br.moves.cards.some((c) => c.case_move_id === 'm2'))
+  ok('종류: 둘러보기 사유에도 숨김 문구', br.reason.includes('소비재 1건 숨김(kind=all 로 보기)'))
+  ok('종류: 둘러보기 kind=all 이면 소비재도 나온다', searchMoves(parseSearchQuery({ kind: 'all' }).query, CORPORA).moves.cards.some((c) => c.case_move_id === 'm2'))
+
+  // 숨김 건수는 **승인된 소비재만** 센다 — 미승인은 kind 와 무관하게 어차피 안 나간다.
+  const draftConsumer = {
+    ...CORPORA,
+    studies: [...STUDIES, { id: 's5', slug: 'echo-draft-d2c', brand_name: 'Echo', bottleneck: 'CONVERSION', reader_problem: 'PRICE_TOO_LOW', business_model: 'D2C', review_status: 'draft' }],
+  }
+  ok('종류: 미승인 소비재는 숨김 건수에 안 센다', searchMoves(parseSearchQuery({ q: '결제' }).query, draftConsumer).reason.includes('소비재 1건 숨김'))
 }
 
 // ── 3. 3상태 ─────────────────────────────────────────────────────
@@ -115,5 +159,5 @@ const CORPORA = { studies: STUDIES, moves: MOVES, failedAngles: FAILED }
   ok('빈 상태: 못 셌을 때는 "확인 불가"라고 쓴다', emptyStateText(null).includes('확인 불가') && !emptyStateText(null).includes('0건 — 축적'))
 }
 
-console.log(fail === 0 ? `\n통과 ${pass}건\n케이스 검색 정상 — 질의 파싱 · 종류 가산점 · 3상태 · 빈 상태 문구.` : `\n통과 ${pass}건, 실패 ${fail}건`)
+console.log(fail === 0 ? `\n통과 ${pass}건\n케이스 검색 정상 — 질의 파싱 · 종류 하드필터(saas 기본)·가산점 · 3상태 · 빈 상태 문구.` : `\n통과 ${pass}건, 실패 ${fail}건`)
 process.exit(fail === 0 ? 0 : 1)

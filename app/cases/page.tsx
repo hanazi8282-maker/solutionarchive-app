@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { productKindOf } from '@/lib/cases/advisor'
 import { gradeMove, READER_PROBLEM_LABEL, type Evidence, type Move } from '@/lib/cases/draft'
 import { caseApprovalWarning, moveApprovalWarning, TRANSFERABILITY_LABEL, type Transferability } from '@/lib/cases/review'
 import { Card } from '../_ds/components/Card'
@@ -69,6 +70,15 @@ const STATUS_FILTERS = [
   { key: 'all', label: '전체' },
 ] as const
 const GRADES = ['A', 'B', 'C', 'D'] as const
+/**
+ * 종류 칩. **이 화면의 기본은 '전체'다** — 검수자는 소비재 케이스도 봐야 승인·반려를 할 수 있다
+ * (셀러가 보는 /cases/search 는 반대로 기본이 'saas' 다. 화면의 목적이 다르니 기본값도 다르다).
+ */
+const KIND_FILTERS = [
+  { key: 'all', label: '종류 전체' },
+  { key: 'saas', label: 'SaaS' },
+  { key: 'consumer', label: '소비재' },
+] as const
 
 const REVIEW: Record<string, { label: string; tone: Tone }> = {
   draft: { label: '검수 대기', tone: 'warning' },
@@ -248,15 +258,17 @@ const HEADER = {
   subtitle: '에이전트가 draft 로 적립한 케이스를 사람이 보고 승인·반려한다. 승인 단위는 무브다 — 케이스 승인이 무브 승인이 아니다.',
 } as const
 
-export default async function CasesPage({ searchParams }: { searchParams: Promise<{ status?: string; grade?: string }> }) {
+export default async function CasesPage({ searchParams }: { searchParams: Promise<{ status?: string; grade?: string; kind?: string }> }) {
   const sp = await searchParams
   const status = STATUS_FILTERS.find((f) => f.key === sp.status)?.key ?? 'pending'
   const grade = (GRADES as readonly string[]).includes(sp.grade ?? '') ? String(sp.grade) : 'all'
-  const qs = (patch: { status?: string; grade?: string }) => {
-    const next: Record<string, string> = { status, grade, ...patch }
+  const kind = KIND_FILTERS.find((f) => f.key === sp.kind)?.key ?? 'all'
+  const qs = (patch: { status?: string; grade?: string; kind?: string }) => {
+    const next: Record<string, string> = { status, grade, kind, ...patch }
     const p = new URLSearchParams()
     if (next.status !== 'pending') p.set('status', next.status)
     if (next.grade !== 'all') p.set('grade', next.grade)
+    if (next.kind !== 'all') p.set('kind', next.kind)
     const s = p.toString()
     return s ? `/cases?${s}` : '/cases'
   }
@@ -310,8 +322,11 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
   const byStatus = (c: ViewCase, s: string) => (s === 'all' ? true : s === 'pending' ? isPending(c) : c.review_status === s)
   // 등급은 무브에 붙는다 — 케이스는 그 등급 무브를 하나라도 가지면 걸린다.
   const byGrade = (c: ViewCase, g: string) => (g === 'all' ? true : c.moves.some((m) => m.evidence_grade === g))
+  // 종류 판정은 productKindOf 한 곳을 쓴다 — 검색 화면과 이 화면이 각자 계산하면 갈린다(business_model NULL 은 소비재).
+  const byKind = (c: ViewCase, k: string) =>
+    (k === 'all' ? true : k === 'saas' ? productKindOf(c.business_model) === 'software' : productKindOf(c.business_model) !== 'software')
   const pending = cases.filter(isPending)
-  const shown = cases.filter((c) => byStatus(c, status) && byGrade(c, grade))
+  const shown = cases.filter((c) => byStatus(c, status) && byGrade(c, grade) && byKind(c, kind))
   const statusLabel = STATUS_FILTERS.find((f) => f.key === status)?.label ?? status
   const draftMoves = pending.reduce((n, c) => n + c.moves.filter((m) => m.review_status === 'draft').length, 0)
   // 이식성 미판정 = 승인된 무브 중 판정이 없는 것. 컬럼이 없으면 세지 않는다 —
@@ -328,7 +343,7 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
       <PageHeader
         {...HEADER}
         action={<ButtonLink href="/cases/grade">카드 채점 모드 (하루 10장)</ButtonLink>}
-        meta={<>전체 케이스 {all.length}건 · 무브 {totalMoves}건 중에서 셈 · 지금 보는 것은 {statusLabel}{grade === 'all' ? '' : ` · 등급 ${grade}`} {shown.length}건</>}
+        meta={<>전체 케이스 {all.length}건 · 무브 {totalMoves}건 중에서 셈 · 지금 보는 것은 {statusLabel}{grade === 'all' ? '' : ` · 등급 ${grade}`}{kind === 'all' ? '' : ` · ${KIND_FILTERS.find((f) => f.key === kind)?.label}`} {shown.length}건</>}
         filters={
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
             {STATUS_FILTERS.map((f) => (
@@ -336,13 +351,13 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
                 key={f.key}
                 href={qs({ status: f.key })}
                 active={status === f.key}
-                count={cases.filter((c) => byStatus(c, f.key) && byGrade(c, grade)).length}
+                count={cases.filter((c) => byStatus(c, f.key) && byGrade(c, grade) && byKind(c, kind)).length}
               >
                 {f.label}
               </FilterChip>
             ))}
             <span aria-hidden style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 2px' }} />
-            <FilterChip href={qs({ grade: 'all' })} active={grade === 'all'} count={cases.filter((c) => byStatus(c, status)).length}>
+            <FilterChip href={qs({ grade: 'all' })} active={grade === 'all'} count={cases.filter((c) => byStatus(c, status) && byKind(c, kind)).length}>
               등급 전체
             </FilterChip>
             {GRADES.map((g) => (
@@ -350,9 +365,20 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
                 key={g}
                 href={qs({ grade: g })}
                 active={grade === g}
-                count={cases.filter((c) => byStatus(c, status) && byGrade(c, g)).length}
+                count={cases.filter((c) => byStatus(c, status) && byGrade(c, g) && byKind(c, kind)).length}
               >
                 등급 {g}
+              </FilterChip>
+            ))}
+            <span aria-hidden style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 2px' }} />
+            {KIND_FILTERS.map((f) => (
+              <FilterChip
+                key={f.key}
+                href={qs({ kind: f.key })}
+                active={kind === f.key}
+                count={cases.filter((c) => byStatus(c, status) && byGrade(c, grade) && byKind(c, f.key)).length}
+              >
+                {f.label}
               </FilterChip>
             ))}
           </div>

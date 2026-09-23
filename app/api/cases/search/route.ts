@@ -5,7 +5,7 @@ import { parseSearchQuery, searchMoves } from '@/lib/cases/search'
 
 // "내 문제 → 유사 케이스" 검색 — 조회 전용.
 //
-//   GET /api/cases/search?bottleneck=CONVERSION&problem=PRICE_TOO_LOW&q=무료로는 쓰는데 결제를 안 한다
+//   GET /api/cases/search?bottleneck=CONVERSION&problem=PRICE_TOO_LOW&q=무료로는 쓰는데 결제를 안 한다&kind=all
 //
 // 셋 다 선택이지만 **하나는 있어야** 한다(없으면 not_run: "검색 조건이 없다").
 // 로그인 필요 — 공개 접두사(lib/auth/policy.ts PUBLIC_PREFIXES)에 없으므로 기본 잠김이다.
@@ -24,6 +24,8 @@ export async function GET(req: Request) {
     bottleneck: url.searchParams.get('bottleneck'),
     problem: url.searchParams.get('problem'),
     q: url.searchParams.get('q'),
+    // kind 는 결과 범위(saas 기본 / all). 안 주면 SaaS만 — 소비재는 숨기고 그 건수를 사유에 적는다.
+    kind: url.searchParams.get('kind'),
   })
   // 어휘 밖 값은 400 이다. 무시하고 전체를 돌려주면 "그 유형의 결과"로 읽힌다.
   if (errors.length) return NextResponse.json({ error: errors.join(' / ') }, { status: 400 })

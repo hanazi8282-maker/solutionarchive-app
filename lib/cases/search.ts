@@ -11,7 +11,7 @@
 
 import { BOTTLENECK, READER_PROBLEMS } from './draft.ts'
 import {
-  matchCaseMoves, matchFailedAngles, toTerms,
+  matchCaseMoves, matchFailedAngles, productKindOf, toTerms,
   type AdvisorStatus, type CaseMoveCard, type CorpusResult, type FailedAngleCard,
   type FailedAngleRow, type ProductKind,
 } from './advisor.ts'
@@ -27,10 +27,25 @@ export const SEARCH_LIMIT = 20
  */
 export const DEFAULT_KIND: ProductKind = 'software'
 
+/**
+ * 결과 쪽 종류 범위 — 화면 필터다(남헌 2026-09-23 확정).
+ *   'saas' (기본) — `productKindOf(business_model)==='software'` 인 케이스만. 소비재는 **하드필터로 숨긴다.**
+ *   'all'         — 지금까지와 같다. 소비재도 나오고 `KIND_MISMATCH_MODE='bonus'` 로 뒤에 앉는다.
+ *
+ * ⚠️ 위 `DEFAULT_KIND`(질의 쪽 ProductKind, 가산점 축)와 **다른 축**이다.
+ *    이건 "무엇을 보여줄지", 저건 "무엇을 먼저 보여줄지".
+ * ⚠️ 소비재 케이스는 삭제하지 않는다(CLAUDE.md §10.2 예외 1). 숨기기만 하므로 `?kind=all` 로 되돌아온다.
+ *    그래서 숨긴 건수를 사유에 반드시 밝힌다 — "0건"과 "숨겨서 0건"은 다른 사건이다(§7.1).
+ */
+export const SEARCH_KINDS = ['saas', 'all'] as const
+export type SearchKind = (typeof SEARCH_KINDS)[number]
+export const DEFAULT_SEARCH_KIND: SearchKind = 'saas'
+
 export interface SearchQuery {
   bottleneck: string | null
   problem: string | null
   q: string | null
+  kind: SearchKind
 }
 
 export interface SearchCorpora {
@@ -62,6 +77,7 @@ export function parseSearchQuery(raw: {
   bottleneck?: string | null
   problem?: string | null
   q?: string | null
+  kind?: string | null
 }): { query: SearchQuery; errors: string[] } {
   const errors: string[] = []
   const pick = (v: string | null | undefined, vocab: readonly string[], name: string): string | null => {
@@ -71,11 +87,20 @@ export function parseSearchQuery(raw: {
     return t
   }
   const q = (raw.q ?? '').trim().slice(0, QUERY_MAX) || null
+  // kind 어휘는 소문자다(URL 에 그대로 보인다). 어휘 밖이면 기본값으로 조용히 떨어지지 않고 오류다 —
+  // 조용히 떨어지면 "소비재 포함해서 봤다"고 믿은 사람이 SaaS만 본 결과를 읽는다.
+  const rawKind = (raw.kind ?? '').trim().toLowerCase()
+  let kind: SearchKind = DEFAULT_SEARCH_KIND
+  if (rawKind) {
+    if ((SEARCH_KINDS as readonly string[]).includes(rawKind)) kind = rawKind as SearchKind
+    else errors.push(`kind 어휘 밖: ${rawKind} (가능: ${SEARCH_KINDS.join(', ')})`)
+  }
   return {
     query: {
       bottleneck: pick(raw.bottleneck, BOTTLENECK, 'bottleneck'),
       problem: pick(raw.problem, READER_PROBLEMS, 'problem'),
       q,
+      kind,
     },
     errors,
   }
@@ -106,13 +131,24 @@ export function searchMoves(
   let scoped = studies
   let scopedMoves = moves
   let filteredOut = 0
+  let hiddenConsumer = 0
   if (studies && moves) {
-    scoped = studies.filter((s) =>
+    // 종류 필터가 **먼저** 걸린다(kind='saas' 기본). 소비재를 걸러 낸 뒤에 병목·문제 유형을 좁혀야
+    // 두 사유의 건수가 겹치지 않는다 — 겹치면 "조건 밖 N건"이 숨긴 소비재까지 세어 거짓말이 된다.
+    const kindScoped = query.kind === 'saas'
+      ? studies.filter((s) => productKindOf(s.business_model) === 'software')
+      : studies
+    // 숨긴 건수는 **승인된 것만** 센다. 미승인 케이스는 kind 와 무관하게 어차피 카드로 안 나가므로
+    // 세면 "숨겨서 안 보인다"로 오해할 수치가 된다.
+    hiddenConsumer = studies.length - kindScoped.length === 0
+      ? 0
+      : studies.filter((s) => s.review_status === 'approved' && productKindOf(s.business_model) !== 'software').length
+    scoped = kindScoped.filter((s) =>
       (!query.bottleneck || s.bottleneck === query.bottleneck)
       && (!query.problem || s.reader_problem === query.problem))
     const ids = new Set(scoped.map((s) => s.id))
     scopedMoves = moves.filter((m) => ids.has(m.case_study_id))
-    filteredOut = studies.length - scoped.length
+    filteredOut = kindScoped.length - scoped.length
   }
 
   // 조건이 하나도 없으면 **둘러보기**다 — 승인 무브 전체를 점수순 상위 N 으로 낸다.
@@ -133,6 +169,13 @@ export function searchMoves(
     ? null
     : studies.filter((s) => s.review_status === 'approved' && s.business_model === 'SAAS').length
 
+  // 무엇을 왜 뺐는지 한 줄로 밝힌다(§7.1). 숨긴 것은 되돌리는 방법까지 같이 적는다.
+  const notes = [
+    filteredOut ? `조건 밖 케이스 ${filteredOut}건 제외` : null,
+    hiddenConsumer ? `소비재 ${hiddenConsumer}건 숨김(kind=all 로 보기)` : null,
+  ].filter(Boolean)
+  const scopeNote = notes.length ? ` (${notes.join(' · ')})` : ''
+
   const both = [movesResult, failed]
   let status: AdvisorStatus
   let reason: string
@@ -141,10 +184,10 @@ export function searchMoves(
     reason = (browse
       ? `조건 없이 전체 상위 ${movesResult.cards.length}건`
       : `무브 ${movesResult.cards.length}건 · 실패 앵글 ${failed.cards.length}건`)
-      + (filteredOut ? ` (조건 밖 케이스 ${filteredOut}건 제외)` : '')
+      + scopeNote
   } else if (both.every((c) => c.status === 'no_match')) {
     status = 'no_match'
-    reason = `조회는 정상인데 조건에 맞는 무브·실패 앵글이 0건이다${filteredOut ? ` (조건 밖 케이스 ${filteredOut}건 제외)` : ''}`
+    reason = `조회는 정상인데 조건에 맞는 무브·실패 앵글이 0건이다${scopeNote}`
   } else if (both.every((c) => c.status === 'not_run')) {
     status = 'not_run'
     reason = `검색을 못 했다 — 무브: ${movesResult.reason} · 실패 앵글: ${failed.reason}`

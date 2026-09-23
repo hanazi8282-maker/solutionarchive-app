@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { loadCaseCorpus } from '@/lib/cases/corpus-db'
-import { parseSearchQuery, searchMoves } from '@/lib/cases/search'
+import { DEFAULT_SEARCH_KIND, parseSearchQuery, searchMoves, type SearchKind } from '@/lib/cases/search'
 import { pairMoves, saasPairNotice, type MovePair } from '@/lib/cases/compare'
 import { READER_PROBLEM_LABEL, READER_PROBLEMS } from '@/lib/cases/draft'
 import { FACET_FIELDS } from '@/lib/analysis/facets'
@@ -68,17 +68,20 @@ function StatusLine({ status, reason, empty }: { status: string; reason: string;
 }
 
 export default async function CaseSearchPage({ searchParams }: {
-  searchParams: Promise<{ bottleneck?: string; problem?: string; q?: string }>
+  searchParams: Promise<{ bottleneck?: string; problem?: string; q?: string; kind?: string }>
 }) {
   const sp = await searchParams
   const { query, errors } = parseSearchQuery(sp)
   // 칩 링크는 **다른 입력을 지우지 않는다.** 하나 고칠 때마다 나머지를 다시 쓰게 만들지 않는다.
-  const href = (patch: { problem?: string | null }) => {
+  const href = (patch: { problem?: string | null; kind?: SearchKind }) => {
     const p = new URLSearchParams()
     const problem = patch.problem === undefined ? query.problem : patch.problem
+    const kind = patch.kind ?? query.kind
     if (problem) p.set('problem', problem)
     if (query.bottleneck) p.set('bottleneck', query.bottleneck)
     if (query.q) p.set('q', query.q)
+    // 기본값(saas)은 URL 에 안 적는다 — 링크가 짧아지고, 파라미터 없는 첫 진입과 같은 화면이 된다.
+    if (kind !== DEFAULT_SEARCH_KIND) p.set('kind', kind)
     const s = p.toString()
     return s ? `/cases/search?${s}` : '/cases/search'
   }
@@ -87,6 +90,7 @@ export default async function CaseSearchPage({ searchParams }: {
     <form method="get" style={{ display: 'grid', gap: 10 }}>
       {/* 칩으로 고른 문제 유형을 폼이 들고 간다 — 링크와 폼이 같은 URL 을 만든다. */}
       {query.problem && <input type="hidden" name="problem" value={query.problem} />}
+      {query.kind !== DEFAULT_SEARCH_KIND && <input type="hidden" name="kind" value={query.kind} />}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
         <select name="bottleneck" defaultValue={query.bottleneck ?? ''} aria-label="지금 막힌 곳 (병목)"
           style={{ height: 36, padding: '0 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface-card)', color: 'var(--text-body)', fontSize: 13 }}>
@@ -111,6 +115,10 @@ export default async function CaseSearchPage({ searchParams }: {
           {READER_PROBLEM_LABEL[code] ?? code}
         </FilterChip>
       ))}
+      {/* 종류 토글. 소비재 케이스는 지우지 않고 숨기기만 하므로(§10.2 예외 1) 되돌리는 손잡이가 화면에 있어야 한다. */}
+      <span aria-hidden style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 2px' }} />
+      <FilterChip href={href({ kind: 'saas' })} active={query.kind === 'saas'}>SaaS만(기본)</FilterChip>
+      <FilterChip href={href({ kind: 'all' })} active={query.kind === 'all'}>소비재 포함</FilterChip>
     </div>
   )
 
@@ -146,7 +154,7 @@ export default async function CaseSearchPage({ searchParams }: {
         </Notice>
       )}
 
-      <Card title="남들은 어떻게 풀었나 (선례 무브)" subtitle={`${result.browse ? '조건 없이 전체 승인 무브 상위 20건 — 위 칩·병목·검색어로 좁힐 수 있다 · ' : ''}승인된 케이스·무브만 · 등급 D 제외 · 같은 종류(${result.kind === 'software' ? 'SaaS' : '실물'})가 먼저`}>
+      <Card title="남들은 어떻게 풀었나 (선례 무브)" subtitle={`${result.browse ? '조건 없이 전체 승인 무브 상위 20건 — 위 칩·병목·검색어로 좁힐 수 있다 · ' : ''}승인된 케이스·무브만 · 등급 D 제외 · ${query.kind === 'saas' ? 'SaaS 케이스만(소비재는 숨김 — 위 "소비재 포함" 칩)' : `소비재 포함 · 같은 종류(${result.kind === 'software' ? 'SaaS' : '실물'})가 먼저`}`}>
         <div style={{ display: 'grid', gap: 10 }}>
           <StatusLine status={result.moves.status} reason={result.moves.reason} empty={result.empty_state} />
           {result.moves.cards.length > 0

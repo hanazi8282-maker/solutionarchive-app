@@ -142,7 +142,14 @@ t('extract-run 에 오래된 순 자르기가 남아 있지 않다', !/truncated
 t('extract-run 이 droppedInputs 를 돌려준다', /droppedInputs,? model/.test(run) || /droppedInputs,/.test(run))
 t('extract-run 이 폐기 원문을 제외한다', /\.is\('purged_at', null\)/.test(run))
 t('야간 배치가 pickAutoTargets 를 쓴다', /pickAutoTargets\(/.test(auto))
-t('야간 배치는 force 를 쓰지 않는다(검수값 보호)', !/force/.test(auto) && /claimExtraction\(supabase, target\.projectId, false\)/.test(auto))
+// 2026-09-23 이전: 야간 배치는 force 를 아예 안 썼다. 그게 검수값 보호의 전부였고,
+// 대가는 프로젝트당 평생 1회 추출이었다(SaaS 3건이 +602·+401 건을 받고도 다시 안 돌았다).
+// 남헌 Q4(a) 로 force 재추출이 열리면서 보호 장치가 **두 겹으로 옮겨 갔다.** 둘 다 확인한다:
+//   ① 어느 상태에 force 를 주는지는 extract-gate.REANALYZABLE 이 정한다(검수 이후는 없다).
+//   ② 사람이 확인한 속성은 extract-run 이 아예 지우지 않는다(human_confirmed=false 만 delete).
+t('야간 배치의 force 는 needsForce 가 정한다', /const force = needsForce\(target\)/.test(auto) && /claimExtraction\(supabase, target\.projectId, force\)/.test(auto))
+t('야간 배치가 force 를 상수로 켜 두지 않는다', !/claimExtraction\(supabase, target\.projectId, true\)/.test(auto))
+t('검수값 보호는 extract-run 의 삭제 범위가 맡는다', /\.eq\('human_confirmed', false\)/.test(run))
 t('야간 배치가 한도면 멈춘다', /quotaExhausted/.test(auto) && /break/.test(auto))
 t('워크플로가 스케줄로 돈다', /cron: '33 18 \* \* \*'/.test(wf) && /scripts\/extract-auto\.mjs/.test(wf))
 t('워크플로에 dry-run 스위치가 있다', /dry_run/.test(wf) && /'--dry'/.test(wf))

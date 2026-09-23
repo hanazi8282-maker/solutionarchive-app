@@ -9,10 +9,24 @@
 // 전부 소비재(SONY 3,272 · QCY 1,910 · 코웨이 1,349)라 일 $5 를 소비재에 태우게 된다.
 // 피봇 방향이 SaaS 인데 추출 예산이 소비재로 나가는 것을 순서 하나로 막는다.
 //
+// 남헌 2026-09-23 Q4(a): **추출이 끝난 프로젝트도 다시 태운다.** 그전까지 후보는
+// `status='collecting'` 뿐이라 extract 는 프로젝트당 평생 1회였다 — 어제 추출된 SaaS 3건에
+// 그 뒤로 +602·+401건이 들어왔는데 야간 루프에서 영구히 빠져 있었다
+// (reports/2026-09-23/voc-expansion-investigation.md §4-2). 재추출 주기는 새 조건을 만들지
+// 않고 기존 `신규 ≥ EXTRACT_AUTO_MIN_NEW` 가 그대로 조절한다(신규 0건이면 대상이 아니다).
+//
+// ⚠️ 재추출은 `force` 로 들어가고 force 는 기존 aspects 를 교체한다. 사람이 확인한
+//    (human_confirmed=true) 속성은 extract-run.ts 가 지우지 않고 남긴다 — 그 보호가 없으면
+//    이 기능이 매일 밤 검수 결과를 지운다. 검수 **이후** 단계(reviewed/angled/done)는
+//    extract-gate.REANALYZABLE 이 애초에 후보에서 뺀다.
+//
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다. `@/` 별칭·enum 을 쓰지 않는다.
 
 // 제품 종류 축은 새로 만들지 않는다 — advisor.productKindOf(business_model) 한 벌이다.
 import { productKindOf } from '../cases/advisor.ts'
+// 어느 상태가 재추출 가능한지는 extract-gate 가 정본이다. 여기서 문자열을 다시 적지 않는다 —
+// 두 벌이 되면 후보에는 들어오는데 claimExtraction 이 거부하는 상태가 생긴다.
+import { REANALYZABLE } from './extract-gate.ts'
 
 const num = (v: string | undefined, fallback: number) => {
   const n = Number(v)
@@ -31,6 +45,19 @@ export type AutoCandidate = {
   label?: string | null
   /** analysis_projects.business_model. 'SAAS' 면 순서에서 앞선다. 안 주면 physical 취급(기존 동작). */
   businessModel?: string | null
+  /**
+   * analysis_projects.status. 'extracted' 면 **재추출**이라 force 가 필요하고 순서에서 뒤로 간다.
+   * 안 주면 첫 추출로 본다(기존 동작 — 후보가 collecting 뿐이던 시절과 같다).
+   */
+  status?: string | null
+}
+
+/**
+ * 이 후보를 돌리려면 `claimExtraction(..., force)` 가 필요한가.
+ * 판단 기준을 호출부에 복사하지 않기 위해 여기 한 벌만 둔다.
+ */
+export function needsForce(c: { status?: string | null }): boolean {
+  return REANALYZABLE.includes((c.status ?? '').trim())
 }
 
 /** SaaS 가 0, 나머지·미기재가 1. 미기재를 SaaS 로 올리지 않는다 — 대부분 NULL 이라 순서가 무의미해진다. */
@@ -38,16 +65,30 @@ const saasRank = (c: { businessModel?: string | null }): number =>
   productKindOf(c.businessModel) === 'software' ? 0 : 1
 
 /**
- * 야간 배치의 프로젝트 우선순위: **SaaS 먼저 → 신규(또는 미판정) 많은 순 → projectId**.
+ * 첫 추출이 0, 재추출이 1.
+ *
+ * 속성이 **0개**인 프로젝트를 채우는 것이, 이미 5개 있는 프로젝트를 갱신하는 것보다 먼저다.
+ * 이 축이 없으면 HN 이 주 소스인 재추출 후보(신규가 하루 수백 건 늘어난다)가 매일 밤 상한을
+ * 다 먹고, 한 번도 추출 안 된 프로젝트가 영원히 순서를 못 받는다.
+ */
+const firstRunRank = (c: { status?: string | null }): number => (needsForce(c) ? 1 : 0)
+
+/**
+ * 야간 배치의 프로젝트 우선순위:
+ * **SaaS 먼저 → 첫 추출 먼저 → 신규(또는 미판정) 많은 순 → projectId**.
  * extract 와 관련성 판정이 같은 순서를 쓴다(scripts/extract-auto.mjs · relevance-judge-auto.mjs).
  * 두 벌이 되면 어느 날 한쪽만 소비재를 먼저 태운다.
+ *
+ * status 를 안 주는 호출부(relevance-judge-auto.mjs 는 collecting 만 본다)에서는
+ * firstRunRank 가 전부 0 이라 기존 순서와 같다.
  */
 export function compareAutoPriority(
-  a: { projectId: string; newInputs: number | null; businessModel?: string | null },
-  b: { projectId: string; newInputs: number | null; businessModel?: string | null },
+  a: { projectId: string; newInputs: number | null; businessModel?: string | null; status?: string | null },
+  b: { projectId: string; newInputs: number | null; businessModel?: string | null; status?: string | null },
 ): number {
   return (
     saasRank(a) - saasRank(b) ||
+    firstRunRank(a) - firstRunRank(b) ||
     (b.newInputs ?? 0) - (a.newInputs ?? 0) ||
     (a.projectId < b.projectId ? -1 : a.projectId > b.projectId ? 1 : 0)
   )
@@ -67,7 +108,8 @@ export type AutoPick = {
 }
 
 /**
- * 기준(minNew)을 넘긴 것 중 **SaaS 우선 → 신규 많은 순 → projectId** 로 상한까지 고른다(결정적).
+ * 기준(minNew)을 넘긴 것 중 **SaaS 우선 → 첫 추출 우선 → 신규 많은 순 → projectId** 로
+ * 상한까지 고른다(결정적).
  * `newInputs === null`(조회 실패)은 대상에도 제외에도 넣지 않고 따로 센다 —
  * "새 리뷰가 없다"와 "세지 못했다"는 다른 사건이고, 후자는 사람이 봐야 한다.
  */
@@ -100,7 +142,9 @@ export function describePick(pick: AutoPick, minNew: number, max: number): strin
       : pick.remaining > 0
         ? `대상 ${pick.eligible}건 중 ${pick.targets.length}건 실행 — 실행 상한 ${max}건 도달, 남은 대상 ${pick.remaining}건은 다음 실행`
         : `대상 ${pick.eligible}건 전부 실행`
+  const reruns = pick.targets.filter(needsForce).length
   const tail = [
+    reruns > 0 ? `그중 재추출(force) ${reruns}건` : null,
     pick.belowMin > 0 ? `신규 부족 제외 ${pick.belowMin}건` : null,
     pick.unknown > 0 ? `⚠️ 신규 수 확인 불가 ${pick.unknown}건` : null,
   ].filter(Boolean)

@@ -44,7 +44,10 @@ jobs:
   judge:
     runs-on: ubuntu-latest
     # 프로젝트 5건 × 10회 호출 + 백오프. 상한에 걸리면 스크립트가 스스로 멈춘다.
-    timeout-minutes: 45
+    # 45분에 잘려 4번째 프로젝트가 9배치째에서 죽었고 agent_runs 가 running 으로 남았다
+    # (2026-09-22 실측: 프로젝트당 약 11분). 남헌 2026-09-23 Q1(a) → 90분.
+    # 스크립트 쪽 실행 시간 상한은 없다 — 멈추는 것은 예산(budget.ts)과 429 뿐이다.
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4

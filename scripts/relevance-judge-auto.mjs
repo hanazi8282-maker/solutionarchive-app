@@ -73,16 +73,58 @@ if (!supabase) {
 log(`야간 관련성 판정 ${dry ? '(--dry: 대상 선정만)' : ''} — provider=${provider} · 표본 ${sampleSize}건/프로젝트 · 프로젝트 상한 ${maxProjects}건 · 일 예산 $${DAILY_BUDGET_USD}`)
 
 // ── 1. 후보 프로젝트 ─────────────────────────────────────────────
-const { data: projects, error: projectsError } = await supabase
-  .from('analysis_projects')
-  // business_model 은 순서를 가른다 — SaaS 가 먼저다(compareAutoPriority, 남헌 2026-09-23).
-  .select('id, product_elevator_pitch, purpose, business_model')
-  .eq('status', 'collecting')
-  .order('created_at', { ascending: true })
+//
+// reader_problem 은 **판정 품질의 1순위 입력**이다. relevance-judge.describePurpose 가
+// reader_problem → product_elevator_pitch → purpose 순으로 떨어지는데, 지금은 이 SELECT 에
+// 컬럼이 없어 항상 2순위(제품 이름)로 내려간다. 그래서 모델이 "이 제품 리뷰인가?"로 읽고
+// 경쟁사 후기·페인 토로를 무관으로 버린다(무관 195건 표본 10건 중 4건이 그것이다 —
+// reports/2026-09-23/voc-expansion-investigation.md §5-2).
+//
+// ⚠️ **컬럼이 아직 없을 수 있다.** analysis_projects.reader_problem 은 별 작업의
+//    마이그레이션 20260930000003 으로 들어오고, 그건 아직 적용 전이다. 적용 전 DB 에
+//    이 컬럼을 SELECT 하면 PostgREST 가 42703 을 준다. 그래서 존재를 **3상태**로 다룬다
+//    (CLAUDE.md §7.1: 확인 불가를 양성으로도 음성으로도 접지 않는다):
+//      · 있다   → 목적 1순위로 쓴다.
+//      · 없다   → 42703 확인 후 컬럼 없이 다시 조회하고, **경고를 남긴다.** 조용히 넘어가면
+//                 "왜 아직 제품 이름으로 판정하나"를 아무도 모른다.
+//      · 그 외 오류 → 조회 실패다. 컬럼 없음으로 접지 않고 여기서 멈춘다.
+const PROJECT_COLS = 'id, product_elevator_pitch, purpose, business_model'
+const projectQuery = (cols) =>
+  supabase
+    .from('analysis_projects')
+    // business_model 은 순서를 가른다 — SaaS 가 먼저다(compareAutoPriority, 남헌 2026-09-23).
+    .select(cols)
+    .eq('status', 'collecting')
+    .order('created_at', { ascending: true })
+
+let readerProblemColumn = 'unknown' // 'present' | 'absent' | 'unknown'
+let { data: projects, error: projectsError } = await projectQuery(`${PROJECT_COLS}, reader_problem`)
+
+if (!projectsError) {
+  readerProblemColumn = 'present'
+} else if (projectsError.code === '42703') {
+  readerProblemColumn = 'absent'
+  warn(
+    'analysis_projects.reader_problem 컬럼이 없다(42703) — 마이그레이션 20260930000003 미적용. ' +
+      '목적 문장이 제품 이름(product_elevator_pitch)으로 떨어진다. 이번 판정의 무관 비율은 ' +
+      '"목적을 병목으로 준 결과"가 아니다.',
+  )
+  ;({ data: projects, error: projectsError } = await projectQuery(PROJECT_COLS))
+}
 
 if (projectsError) {
   console.error(`✗ 프로젝트 조회 실패: ${projectsError.message}`)
   process.exit(2)
+}
+
+log(
+  `목적 1순위 입력(reader_problem 컬럼): ${readerProblemColumn === 'present' ? '있다 — 목적을 병목으로 준다' : '없다 — 제품 이름으로 판정한다'}`,
+)
+if (readerProblemColumn === 'present') {
+  const filled = (projects ?? []).filter((p) => (p.reader_problem ?? '').trim()).length
+  // 컬럼이 있어도 값이 비면 효과는 0 이다. "컬럼 있음"을 "목적 고쳐짐"으로 읽지 않는다(§7.1).
+  if (filled === 0) warn(`reader_problem 컬럼은 있지만 값이 채워진 프로젝트가 0건이다 — 여전히 제품 이름으로 판정한다`)
+  else log(`  · reader_problem 값이 있는 후보 ${filled}/${(projects ?? []).length}건`)
 }
 
 /** 이 프로젝트에서 판정할 리뷰 목록. 실패는 null 로 올려 "0건" 과 가른다(§7.1). */

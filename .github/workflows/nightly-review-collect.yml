@@ -27,6 +27,20 @@ on:
     #    발화하지 않았고, 이 워크플로의 `schedule` 실행 이력은 그때까지
     #    0건이었다(수동 실행만 있었다). 어중간한 분으로 옮긴다.
     - cron: '37 17 * * *'
+    # 05:37 UTC = KST 14:37. 남헌 2026-09-23 Q2(a) — **수집만** 하루 2회.
+    # extract·relevance 는 1회 그대로다(LLM 무료 티어를 더 태우지 않는다. 수집은 LLM 을 안 쓴다).
+    #
+    # ⚠️ 요청 총량은 늘지 않는다. daily_request_cap 은 **UTC 날짜** 누적이고
+    #    (lib/review/store.ts loadSource: since = 오늘 UTC 00:00), 두 슬롯은 같은 UTC 날짜
+    #    (05:37 · 17:37)에 들어가 **한 몫을 나눠 쓴다**. 그래서 2회째의 효과는 '상한 증가'가
+    #    아니라 **순서를 한 번 더 돌려 뒤쪽 소스에 차례를 주는 것**이다 — 2026-09-22 실측으로
+    #    hackernews 가 30분을 혼자 쓰고 잘려 그 뒤 13개 소스가 한 줄도 안 돌았다.
+    #    listDueTargets 가 last_run_at NULLS FIRST 라 한 번도 안 돈 타깃이 먼저 잡힌다.
+    #
+    # ⚠️ 순서상 UTC 날짜의 첫 소비자는 KST 14:37 쪽이다. KST 02:37(= 전날 17:37 UTC)이
+    #    아니다 — 그 실행은 그 UTC 날짜의 두 번째가 되어 남은 몫만 쓴다. 상한에 걸린
+    #    소스는 '일일 상한 도달'로 건너뛴다(runner.ts). 정상이지만 확인 대상이다(§7.2).
+    - cron: '37 5 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -80,7 +94,11 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 30분에 잘려 hackernews 뒤 13개 소스가 한 줄도 안 돌았다(2026-09-22 실측: HN 혼자 29분 27초).
+    # 남헌 2026-09-23 Q1(a) → 90분. 스크립트 쪽에는 실행 시간 상한이 없다 —
+    # review-collect.mjs 의 유일한 시간 제한은 요청당 AbortSignal.timeout(20초)이고,
+    # 실행 전체를 끊는 것은 이 값뿐이다. 그래서 여기만 늘리면 실제로 늘어난다.
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4

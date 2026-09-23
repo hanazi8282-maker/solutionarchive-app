@@ -180,7 +180,7 @@ t('extract 가 dropIrrelevant 를 쓴다', run.includes('dropIrrelevant(') && ru
 t('extract 가 입력 id 를 조회한다(제외 키)', run.includes("select('id, source_type, raw_text"))
 t('extract 가 조회 실패를 null 로 넘긴다(제외 없음)', run.includes('relevanceError ? null :'))
 t('extract 가 droppedIrrelevant 를 로그·반환에 남긴다',
-  run.includes('irrelevant=${droppedIrrelevant}') && run.includes('droppedInputs, droppedIrrelevant, model'))
+  run.includes('irrelevant=${droppedIrrelevant}') && /droppedIrrelevant,?\s/.test(run) && /return \{[\s\S]{0,200}droppedInputs,/.test(run))
 t('배치가 T1 선별을 재사용한다', auto.includes('selectInputs('))
 t('배치가 판정 있는 입력을 건너뛴다', auto.includes('done.has(s.input.id)'))
 t('배치가 사람 채점을 덮지 않는다', auto.includes('human_verdict·human_graded_at 은 payload 에 없다') && !auto.includes('human_verdict: '))

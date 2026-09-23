@@ -1,0 +1,117 @@
+/* ============================================================
+   PUB — 공개 화면 디자인 시스템 토큰 (남헌 2026-09-23 B안)
+   레퍼런스 실측: reports/2026-09-23/ui-overhaul-reference-plan.md §2
+     · 다크 랜딩 = Foreplay (캔버스 #020308, 흰 섹션 카드 radius 32)
+     · 라이트 앱  = Trend Seeker (캔버스 #F4F7FA, 텍스트 #0F172A, 흰 카드 radius 16)
+
+   ⚠️ `app/_ds`(두더지웍스) 와 **완전히 별개**다. 이 파일은 `_ds` 를 import 하지 않고,
+      `_ds` 의 토큰 이름(--bg-app·--brand·--fs-h1 …)이나 값을 재사용하지 않는다.
+      유일한 예외는 셀프호스팅 폰트 변수 `--font-pretendard` 하나 —
+      그건 app/layout.tsx 의 next/font/local 이 <html> 에 심는 것이라
+      디자인 시스템 소유가 아니다(같은 폰트 파일을 두 번 받지 않기 위해 읽는다).
+
+   두 테마는 **같은 변수 이름**을 쓴다. 그래서 컴포넌트는 테마를 모른다 —
+   `data-pub-theme` 만 바뀌면 같은 마크업이 다크/라이트로 뒤집힌다.
+   ============================================================ */
+
+.pub-root {
+  /* ── 서체 ───────────────────────────────────────────── */
+  --pub-type: var(--font-pretendard, "Pretendard"), -apple-system, BlinkMacSystemFont,
+              "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
+
+  /* ── 타입 스케일 (px). 각 단은 데스크톱/좁은화면 두 값이다 ── */
+  --pub-size-display: 56px;
+  --pub-size-display-sm: 40px;
+  --pub-size-head: 28px;
+  --pub-size-head-sm: 22px;
+  --pub-size-text: 17px;
+  --pub-size-text-sm: 15px;
+  --pub-size-caption: 13px;
+
+  --pub-leading-display: 1.14;
+  --pub-leading-head: 1.3;
+  --pub-leading-text: 1.72;
+  --pub-tracking-display: -0.022em;
+  --pub-tracking-eyebrow: 0.09em;
+
+  --pub-weight-text: 400;
+  --pub-weight-strong: 600;
+  --pub-weight-display: 700;
+
+  /* ── 간격: 4pt 리듬. 이름의 숫자 × 4px 다 ─────────────── */
+  --pub-gap-1: 4px;
+  --pub-gap-2: 8px;
+  --pub-gap-3: 12px;
+  --pub-gap-4: 16px;
+  --pub-gap-5: 20px;
+  --pub-gap-6: 24px;
+  --pub-gap-8: 32px;
+  --pub-gap-10: 40px;
+  --pub-gap-14: 56px;
+  --pub-gap-20: 80px;
+
+  /* ── 곡률 ───────────────────────────────────────────── */
+  --pub-round-banner: 32px;
+  --pub-round-card: 16px;
+  --pub-round-control: 10px;
+  --pub-round-pill: 999px;
+
+  /* ── 그림자 2단 (살짝 뜬 것 / 크게 뜬 것) ─────────────── */
+  --pub-lift-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.05);
+  --pub-lift-2: 0 12px 32px rgba(2, 3, 8, 0.12), 0 2px 6px rgba(2, 3, 8, 0.06);
+
+  /* ── 모션 ───────────────────────────────────────────── */
+  --pub-motion-quick: 110ms;
+  --pub-motion-base: 220ms;
+  --pub-motion-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  /* ── 흰 섬(패널) 공통값 — 두 테마에서 같다 ───────────── */
+  --pub-island: #ffffff;
+  --pub-island-ink: #0f172a;
+  --pub-island-ink-muted: #5b6874;
+  --pub-island-edge: #e2e8f0;
+  --pub-island-wash: #f8fafc; /* 흰 섬 위 hover */
+
+  /* 본문 최대 폭. 한국어 17px 에서 한 줄 ≈ 40~45자. */
+  --pub-measure: 720px;
+  --pub-frame: 1120px;
+}
+
+/* ── 다크 (랜딩·CTA 배너) ─────────────────────────────── */
+.pub-root[data-pub-theme="dark"] {
+  --pub-canvas: #020308;
+  --pub-canvas-raised: #0a0d16;
+  --pub-ink: #ffffff;
+  --pub-ink-muted: rgba(255, 255, 255, 0.64);
+  --pub-ink-faint: rgba(255, 255, 255, 0.58); /* 4.5:1 — 0.46 은 #020308 위에서 4.5 아래로 떨어진다 */
+  --pub-edge: rgba(255, 255, 255, 0.16);
+  --pub-edge-strong: rgba(255, 255, 255, 0.34);
+  /* CTA 는 캔버스 반대색 알약이다 — 다크에서는 흰 알약(Foreplay). */
+  --pub-cta: #ffffff;
+  --pub-cta-ink: #0f172a;
+  --pub-focus: #ffffff;
+  color-scheme: dark;
+}
+
+/* ── 라이트 (앱·로그인·읽기 화면) ─────────────────────── */
+.pub-root[data-pub-theme="light"] {
+  --pub-canvas: #f4f7fa;
+  --pub-canvas-raised: #ffffff;
+  --pub-ink: #0f172a;
+  --pub-ink-muted: #5b6874;
+  --pub-ink-faint: #5b6874; /* #76828f 은 #f4f7fa 위에서 3.5:1 이라 못 쓴다 — 위계는 크기·굵기로 */
+  --pub-edge: #e2e8f0;
+  --pub-edge-strong: #cbd4e0;
+  --pub-cta: #0f172a;
+  --pub-cta-ink: #ffffff;
+  --pub-focus: #0f172a;
+  color-scheme: light;
+}
+
+/* 움직임을 줄여 달라고 한 사람에게는 전환 지속시간을 0 으로. */
+@media (prefers-reduced-motion: reduce) {
+  .pub-root {
+    --pub-motion-quick: 0ms;
+    --pub-motion-base: 0ms;
+  }
+}

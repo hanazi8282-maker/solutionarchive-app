@@ -86,10 +86,12 @@
   --pub-ink-faint: rgba(255, 255, 255, 0.58); /* 4.5:1 — 0.46 은 #020308 위에서 4.5 아래로 떨어진다 */
   --pub-edge: rgba(255, 255, 255, 0.16);
   --pub-edge-strong: rgba(255, 255, 255, 0.34);
-  /* CTA 는 캔버스 반대색 알약이다 — 다크에서는 흰 알약(Foreplay). */
-  --pub-cta: #ffffff;
-  --pub-cta-ink: #0f172a;
-  --pub-focus: #ffffff;
+  /* 브랜드 액센트 — 남헌 2026-09-24 확정(Fable 자율 판단): Trend Seeker 딥 블루 #1D4ED8.
+     두더지웍스 보라·액션 블루(#3B82F6)는 쓰지 않는다. 흰 글자 대비 6.7:1. */
+  --pub-accent: #1d4ed8;
+  --pub-cta: #1d4ed8;
+  --pub-cta-ink: #ffffff;
+  --pub-focus: #60a5fa; /* 다크 캔버스 위 포커스 링은 밝은 파랑이 보인다 */
   color-scheme: dark;
 }
 
@@ -102,9 +104,10 @@
   --pub-ink-faint: #5b6874; /* #76828f 은 #f4f7fa 위에서 3.5:1 이라 못 쓴다 — 위계는 크기·굵기로 */
   --pub-edge: #e2e8f0;
   --pub-edge-strong: #cbd4e0;
-  --pub-cta: #0f172a;
+  --pub-accent: #1d4ed8;
+  --pub-cta: #1d4ed8;
   --pub-cta-ink: #ffffff;
-  --pub-focus: #0f172a;
+  --pub-focus: #1d4ed8;
   color-scheme: light;
 }
 

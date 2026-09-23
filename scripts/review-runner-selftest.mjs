@@ -565,6 +565,39 @@ const runQuota = (h, over = {}) =>
   }
 }
 
+// ── nextRequest 가 null 일 때 — 증분형은 닫지 않는다 ────────────────
+//
+// 2026-09-24 까지 이 분기는 `incrementalOnly` 를 보지 않고 무조건 exhausted 였다.
+// 그래서 게시판 순회 어댑터가 **커서 큐를 nextRequest 에서 비울 수 없었다** —
+// 큐를 다 읽고 null 을 내면 그 타깃이 영구히 닫혔다(되살리는 코드가 없다).
+// 이제 닫는 것은 연속 0건 안전장치 한 곳이다.
+{
+  const noReq = { key: 'fake', displayName: 'fake', nextRequest: () => null, parse: () => ({ reviews: [], nextCursor: null, parseFailures: 0 }) }
+  const tgt = (over = {}) => [
+    { id: 'tgt1', projectId: 'proj1', sourceKey: 'fake', productRef: 'board:x', cursor: null, lastReviewAt: null, consecutiveEmpty: 0, ...over },
+  ]
+
+  {
+    const h = makeHarness({ targets: tgt() })
+    const r = await runCollection({ ...noReq, incrementalOnly: true }, { dryRun: false, targetLimit: 5 }, h.ports)
+    t('요청 없음 + 증분형 = active 로 남는다', h.log.saves[h.log.saves.length - 1].status, 'active')
+    t('요청 없음이면 네트워크를 쓰지 않는다', r.requests, 0)
+    ok('닫지 않았다는 사실을 로그에 적는다', r.perTarget[0].outcome.includes('증분형이라 닫지 않는다'))
+  }
+  {
+    const h = makeHarness({ targets: tgt() })
+    await runCollection(noReq, { dryRun: false, targetLimit: 5 }, h.ports)
+    t('요청 없음 + 문서형 = 예전대로 닫는다', h.log.saves[h.log.saves.length - 1].status, 'exhausted')
+  }
+  {
+    // 잘못된 ref 로 영원히 살아 있지는 않는다 — 연속 0건 안전장치가 받는다.
+    const h = makeHarness({ targets: tgt({ consecutiveEmpty: MAX_CONSECUTIVE_EMPTY - 1 }) })
+    const r = await runCollection({ ...noReq, incrementalOnly: true }, { dryRun: false, targetLimit: 5 }, h.ports)
+    t('요청 없음이 연속되면 안전장치가 닫는다', h.log.saves[h.log.saves.length - 1].status, 'exhausted')
+    ok('닫은 수치가 남는다', r.perTarget[0].outcome.includes('→ 닫음('))
+  }
+}
+
 // ── pauseRun · ctx.lastReviewAt — 게시판 순회용 범용 규약 ──────────
 //
 // 게시판 순회 타깃은 "이번 실행 몫은 끝났지만 커서는 살려 둬야" 한다.

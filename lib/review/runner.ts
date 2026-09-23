@@ -431,8 +431,21 @@ export async function runCollection(
 
       const req = adapter.nextRequest({ ...target, cursor })
       if (!req) {
-        outcome = '다음 요청 없음'
-        status = 'exhausted'
+        // ⚠️ 2026-09-24 까지 여기는 `incrementalOnly` 를 보지 않고 무조건 닫았다.
+        //    그래서 **게시판 순회 어댑터가 커서 큐를 nextRequest 에서 비울 수 없었다** —
+        //    큐를 다 읽고 null 을 내면 그 타깃이 첫 실행 뒤 영구히 닫혔다
+        //    (되살리는 코드가 없다 — store.ts listDueTargets 는 active 만 본다).
+        //    그 제약 때문에 어댑터들이 "끝은 반드시 nextCursor=null 로" 라는 우회를
+        //    쓰고 있었고, 그 대가로 커서에 담아 둔 마지막 글 id 가 매 실행 날아갔다.
+        //
+        //    이제 `endStatus` 를 쓴다. 증분형 타깃은 여기서도 살아남고, **닫는 것은
+        //    연속 0건 안전장치 한 곳**이다(아래 emptyClose). 잘못된 ref 로 요청을
+        //    못 만드는 타깃도 그 규칙으로 3회 뒤에 닫힌다 — 그때까지 요청은 0건이라
+        //    남의 서버에는 무해하다.
+        outcome = adapter.incrementalOnly
+          ? '다음 요청 없음 → 증분형이라 닫지 않는다(연속 0건 안전장치가 닫는다)'
+          : '다음 요청 없음'
+        status = endStatus
         break
       }
 

@@ -9,10 +9,28 @@
 // ⚠️ 설계 단계의 EUC-KR 우려는 **실측에서 기각됐다.** 응답이 UTF-8 이라
 //    scripts/review-collect.mjs 의 fetchText(res.text())를 고칠 필요가 없다.
 //
-// ⚠️ **1글=1요청이다.** 댓글은 전부 정적 HTML 로 한 번에 온다(실측 72건).
+// ⚠️ **글 1개 = 1요청이다.** 댓글은 전부 정적 HTML 로 한 번에 온다(실측 72건).
 //    `/ajax/` 는 robots 가 막는데, 다행히 댓글이 거기 의존하지 않는다.
+//
+// ⚠️ robots 2026-09-24 재실측(우리 UA · HTTP 200 · 325B · fixtures/review/82cook/robots.txt):
+//    `*` 그룹의 금지는 `/tempfile/ /tempimg/ /ajax/ /temp/ /zb41/` 와 **특정 글 1건**뿐이다.
+//    게시판 목록(`/entiz/enti.php?bn=N`)·글(`/entiz/read.php?num=N`)은 금지 목록에 없다.
+//    2026-09-16 기록과 한 글자도 다르지 않다.
+//
+// 타깃 형식이 둘이다:
+//   `url:/entiz/read.php?num=4239440`  글 1건(기존)
+//   `board:15`                         **게시판 순회**(2026-09-24 추가). slug 는
+//       숫자 게시판 번호(bn)다. 목록 1페이지 → 새 글 → 댓글. 규약은 types.ts 의
+//       `board:` 블록.
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
+import {
+  type BoardListItem,
+  decodeBoardCursor,
+  encodeBoardCursor,
+  nextBoardCursor,
+  parseBoardRef,
+} from '../types.ts'
 import { parseUrlRef } from './url-ref.ts'
 
 export const HOST = 'https://www.82cook.com'
@@ -45,6 +63,25 @@ export function parseProductRef(productRef: string): string | null {
   if (isRobotsDenied(p)) return null
   return p
 }
+
+/**
+ * 목록 행 앵커. `<td class="title"><a  href="read.php?bn=15&num=4242494&page=1">제목</a>`
+ *
+ * ⚠️ `<a` 바로 뒤에 `href` 를 요구하는 것이 공지를 거르는 장치다. 공지 행은
+ *    `<a class="bbs_title_word" href=...>` 로 class 가 먼저 온다(실측 4행).
+ *    공지를 같이 담으면 2012년 글이 매 실행 "새 글"로 큐에 들어간다.
+ */
+const LIST_ROW = /<td class="title">\s*<a\s+href="read\.php\?bn=\d+&(?:amp;)?num=(\d+)/g
+
+/**
+ * 목록 행의 작성 시각. 두 표기가 섞여 온다(실측):
+ *   오늘 글   `<td class="regdate numbers" title="2026-09-24 01:29:18"> 01:29:18</td>`
+ *   지난 글   `<td class="regdate numbers">2025.07.24</td>`
+ * 앞은 title 속성에 절대시각이 있고, 뒤는 본문에 연·월·일이 다 있다. 둘 다 연도가
+ * 있으므로 추정이 필요 없다.
+ */
+const LIST_DATE_ABS = /class="regdate[^"]*"\s+title="(\d{4})-(\d{2})-(\d{2})/
+const LIST_DATE_YMD = /class="regdate[^"]*"[^>]*>\s*(\d{4})\.(\d{2})\.(\d{2})/
 
 /** 글 본문 컨테이너. `<div id="articleBody">` */
 const ARTICLE_OPEN = /<div id="articleBody"[^>]*>/
@@ -128,6 +165,18 @@ export const cook82Adapter: ReviewSourceAdapter = {
   incrementalOnly: true,
 
   nextRequest(target: TargetState): { url: string } | null {
+    // ── board: 모드 — 목록 1페이지 ↔ 큐에 든 글 1개 ────────────────
+    const bn = parseBoardNo(target.productRef)
+    if (bn) {
+      const cur = decodeBoardCursor(target.cursor)
+      // 목록도 1페이지만 본다. `&page=N` 은 robots 가 막지 않지만(금지는
+      // `/tempfile/ /tempimg/ /ajax/ /temp/ /zb41/` + 특정 글 1건뿐, 2026-09-24 재실측)
+      // 깊은 페이지를 훑는 것은 상대 서버 부담이고 증분에도 필요 없다.
+      if (cur.q.length === 0) return { url: `${HOST}/entiz/enti.php?bn=${bn}` }
+      const p = boardPostPath(cur.q[0])
+      return p ? { url: `${HOST}${p}` } : null
+    }
+
     const p = parseProductRef(target.productRef)
     if (!p) return null
     if (target.cursor) return null
@@ -135,7 +184,81 @@ export const cook82Adapter: ReviewSourceAdapter = {
   },
 
   parse(body: string, ctx: ParseContext): ParseResult {
-    const p = parseProductRef(ctx.productRef)
+    const bn = parseBoardNo(ctx.productRef)
+    if (bn) {
+      const cur = decodeBoardCursor(ctx.cursor)
+      // 큐가 있으면 이 응답은 큐 맨 앞 글이다(types.ts 규약 2 — 본문으로 추측하지 않는다).
+      if (cur.q.length > 0) {
+        const rest = { q: cur.q.slice(1), last: cur.last }
+        const res = parsePost(body, boardPostPath(cur.q[0]))
+        return { ...res, nextCursor: encodeBoardCursor(rest), pauseRun: rest.q.length === 0 }
+      }
+      return parseBoardList(body, cur, ctx.lastReviewAt)
+    }
+    return parsePost(body, parseProductRef(ctx.productRef))
+  },
+}
+
+/**
+ * `board:15` → `15`. 82cook 의 게시판 slug 는 **숫자 게시판 번호(bn)** 다.
+ * 낱말 slug 를 받으면 `enti.php?bn=use` 같은 요청이 되어 남의 서버에 쓰레기를 보낸다.
+ */
+export function parseBoardNo(productRef: string): string | null {
+  const slug = parseBoardRef(productRef)
+  return slug !== null && /^\d{1,4}$/.test(slug) ? slug : null
+}
+
+/** 큐에 든 경로 재검증(robots 금지 글 1건 포함). 통과 못 하면 null. */
+function boardPostPath(queued: string): string | null {
+  const p = parseProductRef(`url:${queued}`)
+  return p !== null && p.startsWith('/entiz/read.php?num=') ? p : null
+}
+
+/**
+ * 목록 1페이지 → 커서(새 글 큐). 리뷰는 내지 않는다.
+ *
+ * ⚠️ 행 앵커가 0개면 `parseFailures` 다 — "새 글 0건"과 "선택자가 깨졌다"는
+ *    다른 사건이다(§7.1). 행은 찾았는데 전부 걸러진 것은 실패가 아니다.
+ */
+function parseBoardList(
+  body: string,
+  prev: { q: string[]; last: string | null },
+  lastReviewAt: string | null | undefined,
+): ParseResult {
+  const anchors: Array<{ id: string; at: number }> = []
+  LIST_ROW.lastIndex = 0
+  for (;;) {
+    const m = LIST_ROW.exec(body)
+    if (!m) break
+    anchors.push({ id: m[1], at: m.index })
+  }
+
+  const items: BoardListItem[] = []
+  for (let i = 0; i < anchors.length; i++) {
+    const chunk = body.slice(anchors[i].at, i + 1 < anchors.length ? anchors[i + 1].at : body.length)
+    const abs = LIST_DATE_ABS.exec(chunk)
+    const ymd = abs ? null : LIST_DATE_YMD.exec(chunk)
+    const d = abs ?? ymd
+    // href 를 믿지 않고 숫자 num 으로 조립한다(types.ts 규약 4).
+    // `?num=` 만 쓰는 이유: 기존 url: 타깃이 그 형태라, bn·page 를 붙이면 같은 글이
+    // 다른 externalId 로 두 번 적재된다.
+    const path = boardPostPath(`/entiz/read.php?num=${anchors[i].id}`)
+    if (!path) continue
+    items.push({ id: anchors[i].id, path, writtenAt: d ? `${d[1]}-${d[2]}-${d[3]}` : null })
+  }
+
+  const next = nextBoardCursor(items, prev, lastReviewAt)
+  return {
+    reviews: [],
+    nextCursor: encodeBoardCursor(next),
+    parseFailures: anchors.length === 0 ? 1 : 0,
+    pauseRun: next.q.length === 0,
+  }
+}
+
+/** 글 1건(본문 + 댓글) 파싱. `url:` 모드와 `board:` 모드가 공유한다. */
+function parsePost(body: string, p: string | null): ParseResult {
+  {
     const reviews: ParsedReview[] = []
     let parseFailures = 0
 
@@ -220,8 +343,10 @@ export const cook82Adapter: ReviewSourceAdapter = {
       parseFailures += declared - anchors.length
     }
 
+    // `url:` 모드는 1글=1요청이라 커서를 내지 않는다. `board:` 모드에서는
+    // 호출부(adapter.parse)가 남은 큐로 nextCursor 를 덮어쓴다.
     return { reviews, nextCursor: null, parseFailures }
-  },
+  }
 }
 
-export const __internal = { stripHtml, parseShortDate, isRobotsDenied }
+export const __internal = { stripHtml, parseShortDate, isRobotsDenied, parseBoardList, boardPostPath }

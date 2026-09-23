@@ -39,6 +39,20 @@ export interface ParseContext {
   productRef: string
   /** 이 응답을 받은 커서. 파서가 다음 커서를 계산할 때 쓴다. */
   cursor: string | null
+  /**
+   * 증분 기준선(옵셔널). 러너가 **실행 시작 시점의** `TargetState.lastReviewAt` 을
+   * 그대로 넘긴다 — 실행 중에 갱신된 값이 아니다(runner.ts `baselineReviewAt`).
+   *
+   * 게시판 순회(`board:`)에서 목록의 오래된 글을 **요청하기 전에** 걸러내려고
+   * 열었다. 러너의 증분 종료(STALE_STREAK_TO_STOP)는 이미 받아 온 응답을 보고
+   * 판정하므로 요청 비용을 아끼지 못한다.
+   *
+   * ⚠️ 이걸 쓰는 파서는 **날짜를 확실히 읽을 수 있을 때만** 걸러라. 목록에
+   *    연도가 없는 사이트(보배드림 `09/23`)에서 연도를 추정해 거르면 1월에
+   *    한 해치를 건너뛴다. 못 읽으면 거르지 말고 통과시킨다 — 중복 적재는
+   *    지문이 막아 주지만 건너뛴 글은 아무도 되찾아 주지 않는다.
+   */
+  lastReviewAt?: string | null
 }
 
 export interface ParsedReview {
@@ -103,6 +117,23 @@ export interface ParseResult {
    *                productRef 가 들어가기 때문이다 — fingerprint.ts).
    */
   filtered?: number
+  /**
+   * **이 실행에서 이 타깃을 여기서 끝내되 커서를 버리지 않는다**(옵셔널).
+   *
+   * `nextCursor: null` 은 "끝났다 + 커서 폐기"라 다음 실행이 처음부터 다시 읽는다.
+   * 그런데 게시판 순회는 "마지막으로 본 글 id"를 **다음 실행까지** 들고 가야
+   * 같은 글을 매일 다시 받지 않는다. 커서가 유일한 영속 저장소라 둘 다 필요하다:
+   *   · 이번 실행은 여기서 멈춘다        → `pauseRun: true`
+   *   · 다음 실행은 이 커서에서 이어간다  → `nextCursor: <상태 JSON>`
+   *
+   * 러너 동작: 그 타깃의 페이지 루프를 끊고 커서를 그대로 저장한다. status 는
+   * `active` 로 남는다(닫지 않는다). `nextCursor` 가 null 이면 이 플래그는 무시된다 —
+   * 그때는 "끝"이 우선이고 `incrementalOnly` 가 닫을지 말지를 가른다.
+   *
+   * ⚠️ 이걸로 무한 루프를 만들지 마라. `pauseRun` 없이 매 실행 목록만 다시 읽는
+   *    커서를 내면 페이지 상한 20 에 걸릴 때까지 같은 목록을 훑는다.
+   */
+  pauseRun?: boolean
 }
 
 export interface ReviewSourceAdapter {
@@ -195,9 +226,11 @@ export interface ReviewSourceAdapter {
    *        코드가 리포에 없다 → 그 질의는 영영 다시 안 돈다.
    *      · 대가: 게시글 1개 = 1요청이라 실행마다 타깃 수만큼 다시 읽는다. 게시글은 커서가
    *        첫 페이지에 null 이 되므로 20페이지를 훑지는 않는다.
-   *      · 남은 구멍: 새 댓글이 영원히 안 달리는 글도 닫히지 않는다. `consecutive_empty` 는
-   *        세지만 아무도 그걸로 닫지 않는다(runner.ts 는 기록만 한다). 타깃이 수백 개로
-   *        늘어 일일 상한을 먹기 시작하면 그 상한을 먼저 넣어라.
+   *      · 그 구멍은 2026-09-24 에 막았다: 새 댓글이 영원히 안 달리는 글도 닫히지
+   *        않는다던 문제다. 러너가 **연속 `MAX_CONSECUTIVE_EMPTY` 회 신규 0건이면
+   *        `exhausted` 로 닫는다**(health.ts 와 같은 상수 · runner.ts 의 `emptyClose`).
+   *        차단(403/429)·dry-run 은 세지 않는다 — 그건 "신규 0건"이 아니다.
+   *        되살리는 것은 여전히 사람 몫이다(`listDueTargets` 는 active 만 본다).
    *      · **본문 전용 소스(brunch·velog)는 다시 읽어도 새 건이 0 이다.** 되돌릴 첫 후보다.
    */
   incrementalOnly?: boolean
@@ -221,4 +254,158 @@ export interface Fingerprint {
   kind: FingerprintKind
   productRef: string | null
   writtenAt: string | null
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 게시판 순회 모드 — `product_ref = 'board:<게시판 slug>'`
+// ════════════════════════════════════════════════════════════════════
+//
+// 왜 있나. 커뮤니티 타깃이 전부 `url:`(게시글 1개 = 타깃 1개)이라 **새 글이
+// 안 잡힌다.** 사람이 글 주소를 하나씩 등록해야 했고 그게 VOC 수집의 병목이었다
+// (reports/2026-09-23/voc-expansion-investigation.md §3). 타깃 하나가 게시판을
+// 순회하면 새 글이 저절로 들어온다.
+//
+// 규약 (어댑터가 이걸 지킨다 — 새로 붙이는 어댑터도 같게 해라):
+//
+//   1. `nextRequest` 는 커서 상태로 **두 종류 URL 을 번갈아** 낸다.
+//        큐가 비어 있다 → 목록 페이지(1페이지만)
+//        큐가 있다      → 큐 맨 앞 글의 URL(댓글 포함 페이지)
+//      러너는 어느 쪽인지 모른다. "한 타깃이 여러 URL 종류를 낸다"를 그냥 허용한다.
+//
+//   2. `parse` 는 `ctx.cursor` 로 **자기가 무엇을 요청했는지** 안다. 본문을 보고
+//      추측하지 않는다 — 목록 HTML 과 글 HTML 을 냄새로 가르면 한쪽이 바뀔 때
+//      조용히 오판한다(§7.1).
+//
+//   3. 목록 응답에서는 리뷰를 내지 않는다(`reviews: []`). 목록에는 제목만 있고
+//      본문·댓글이 없다. 대신 새 글 경로를 큐에 담아 커서로 돌려준다.
+//
+//   4. **글 URL 은 목록의 href 를 그대로 쓰지 않는다.** 추출한 **숫자 id** 로
+//      어댑터가 다시 조립한다. HTML 은 남의 서버가 준 문자열이라, href 를 믿으면
+//      `//evil.example/...` 한 줄로 우리 수집기가 임의 주소를 때리는 장치가 된다
+//      (url-ref.ts 와 같은 SSRF 경계).
+//
+//   5. 목록에서 **행 앵커를 하나도 못 찾으면 `parseFailures`** 다. "새 글 0건"과
+//      "선택자가 깨졌다"는 다른 사건이다(§7.1 사례 1). 행은 찾았는데 전부
+//      걸러진 것은 실패가 아니다.
+//
+//   6. 실행당 요청은 러너의 `MAX_PAGES_PER_TARGET`(20) = 목록 1 + 글 최대 19 다.
+//      `BOARD_QUEUE_MAX` 가 그 19 다.
+
+/**
+ * 실행 1회에 큐에 담을 글 수 상한.
+ *
+ * ⚠️ `MAX_PAGES_PER_TARGET - 1` 이다(목록 1페이지를 빼고 남는 몫). 러너를
+ *    import 하면 순환이 되므로 숫자를 여기 두고, 두 값이 어긋나지 않는지는
+ *    scripts/review-board-selftest.mjs 가 양쪽을 import 해 단정한다.
+ */
+export const BOARD_QUEUE_MAX = 19
+
+/**
+ * `board:<slug>` → slug. 규칙을 어기면 null(러너는 그 타깃을 조용히 넘긴다).
+ *
+ * slug 는 URL 에 그대로 박히므로 **영숫자·`_`·`-` 만** 받는다. 82cook 은 숫자
+ * 게시판 번호(`board:15`)를, 클리앙·보배드림은 낱말 slug(`board:use`·`board:battle`)를
+ * 쓴다. 점·슬래시·쿼리·공백을 하나라도 허용하면 경로 탈출과 파라미터 주입이 열린다.
+ */
+export function parseBoardRef(productRef: string): string | null {
+  const raw = (productRef ?? '').trim()
+  if (!/^board:/i.test(raw)) return null
+
+  const slug = raw.slice(6)
+  return /^[A-Za-z0-9_-]{1,40}$/.test(slug) ? slug : null
+}
+
+/**
+ * 게시판 커서에 담는 것. `review_targets.cursor` 는 text 라 JSON 문자열로 넣는다.
+ *
+ * 왜 이 둘인가:
+ *   · `q`    — 아직 안 읽은 글 경로 큐. 실행이 중간에 잘려도(타임아웃·일일 상한)
+ *              다음 실행이 목록부터 다시 읽지 않고 남은 글을 이어서 읽는다.
+ *   · `last` — 마지막으로 본 글 id. 다음 실행이 목록에서 **이보다 큰 id 만** 큐에
+ *              담는다. 이게 증분의 본체다. 날짜는 사이트마다 연도가 없거나
+ *              형식이 흔들려서 단독으로는 믿을 수 없다.
+ */
+export interface BoardCursor {
+  q: string[]
+  last: string | null
+}
+
+/**
+ * 커서 문자열 → `BoardCursor`. **읽을 수 없으면 빈 상태**(처음부터)로 본다.
+ *
+ * ⚠️ 던지지 않는다. 사람이 대시보드에서 커서를 손으로 지우거나, `url:` 시절
+ *    커서(페이지 번호 문자열)가 남아 있을 수 있다. 그때 빈 상태로 떨어지면
+ *    목록 1페이지를 다시 읽을 뿐이고 중복 적재는 지문이 막는다. 던지면
+ *    그 소스 실행 전체가 죽는다.
+ */
+export function decodeBoardCursor(cursor: string | null): BoardCursor {
+  if (!cursor) return { q: [], last: null }
+  try {
+    const raw: unknown = JSON.parse(cursor)
+    if (!raw || typeof raw !== 'object') return { q: [], last: null }
+    const o = raw as { q?: unknown; last?: unknown }
+    const q = Array.isArray(o.q) ? o.q.filter((v): v is string => typeof v === 'string') : []
+    const last = typeof o.last === 'string' && o.last.length > 0 ? o.last : null
+    return { q, last }
+  } catch {
+    return { q: [], last: null }
+  }
+}
+
+/** `BoardCursor` → 커서 문자열. 키 순서를 고정한다(같은 상태가 같은 문자열이어야 diff 가 읽힌다). */
+export function encodeBoardCursor(c: BoardCursor): string {
+  return JSON.stringify({ q: c.q, last: c.last })
+}
+
+/**
+ * 목록에서 뽑은 글 1건. 어댑터가 자기 마크업에서 이 모양으로 깎아 낸다.
+ *
+ * `path` 는 숫자 id 로 **조립한** 경로다(위 규약 4). `writtenAt` 은 확실할 때만
+ * 채운다 — 추정하지 않는다(ParseContext.lastReviewAt 주석).
+ */
+export interface BoardListItem {
+  id: string
+  path: string
+  writtenAt: string | null
+}
+
+/**
+ * 목록 항목 → 다음 커서. 게시판 어댑터들이 공유한다.
+ *
+ * 규칙:
+ *   · `last` 보다 크지 않은 id 는 버린다(이미 본 글 — 증분).
+ *   · `lastReviewAt` 보다 오래된 글은 버린다(날짜를 읽은 경우만).
+ *   · 최신순 입력을 전제로 앞에서 `BOARD_QUEUE_MAX` 개만 담는다.
+ *   · 새 `last` 는 **이번에 본 목록의 최대 id** 다. 큐에 담은 것만이 아니다 —
+ *     상한에 잘려 못 담은 글을 다음 실행이 다시 큐에 넣지 않게 하려면 그게 맞다.
+ *     덜 받는 쪽이 같은 글을 영원히 다시 받는 쪽보다 낫다.
+ */
+export function nextBoardCursor(
+  items: BoardListItem[],
+  prev: BoardCursor,
+  lastReviewAt?: string | null,
+): BoardCursor {
+  const newer = (id: string) => (prev.last === null ? true : compareBoardId(id, prev.last) > 0)
+  const fresh = (at: string | null) => !(at && lastReviewAt && at < lastReviewAt)
+
+  const q = items.filter((it) => newer(it.id) && fresh(it.writtenAt)).slice(0, BOARD_QUEUE_MAX)
+
+  let last = prev.last
+  for (const it of items) if (last === null || compareBoardId(it.id, last) > 0) last = it.id
+
+  return { q: q.map((it) => it.path), last }
+}
+
+/**
+ * 글 id 비교. 둘 다 숫자면 수치로, 아니면 문자열로 비교한다.
+ *
+ * ⚠️ 숫자 id 를 문자열로 비교하면 `'9' > '10'` 이 되어 새 글이 "이미 본 글"로
+ *    걸러진다. 지금 세 사이트는 전부 숫자 id 다. 문자 id 게시판이 오면 문자열
+ *    비교로 폴백한다(그쪽은 순서 보장이 없으니 중복 지문이 받는다).
+ */
+export function compareBoardId(a: string, b: string): number {
+  if (/^\d+$/.test(a) && /^\d+$/.test(b)) {
+    return a.length === b.length ? (a < b ? -1 : a > b ? 1 : 0) : a.length - b.length
+  }
+  return a < b ? -1 : a > b ? 1 : 0
 }

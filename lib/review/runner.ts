@@ -19,7 +19,13 @@ import {
   type RobotsState,
 } from './robots.ts'
 import { computeFingerprint } from './fingerprint.ts'
-import { judgeHealth, classifyBlockedResponse, type HealthVerdict, type RunStats } from './health.ts'
+import {
+  judgeHealth,
+  classifyBlockedResponse,
+  MAX_CONSECUTIVE_EMPTY,
+  type HealthVerdict,
+  type RunStats,
+} from './health.ts'
 import type { Fingerprint, ParsedReview, ReviewSourceAdapter, TargetState } from './types.ts'
 
 /** robots.txt 와 대조할 제품 토큰(RFC 9309 §2.2.1). UA 문자열 전체가 아니다. */
@@ -425,8 +431,21 @@ export async function runCollection(
 
       const req = adapter.nextRequest({ ...target, cursor })
       if (!req) {
-        outcome = '다음 요청 없음'
-        status = 'exhausted'
+        // ⚠️ 2026-09-24 까지 여기는 `incrementalOnly` 를 보지 않고 무조건 닫았다.
+        //    그래서 **게시판 순회 어댑터가 커서 큐를 nextRequest 에서 비울 수 없었다** —
+        //    큐를 다 읽고 null 을 내면 그 타깃이 첫 실행 뒤 영구히 닫혔다
+        //    (되살리는 코드가 없다 — store.ts listDueTargets 는 active 만 본다).
+        //    그 제약 때문에 어댑터들이 "끝은 반드시 nextCursor=null 로" 라는 우회를
+        //    쓰고 있었고, 그 대가로 커서에 담아 둔 마지막 글 id 가 매 실행 날아갔다.
+        //
+        //    이제 `endStatus` 를 쓴다. 증분형 타깃은 여기서도 살아남고, **닫는 것은
+        //    연속 0건 안전장치 한 곳**이다(아래 emptyClose). 잘못된 ref 로 요청을
+        //    못 만드는 타깃도 그 규칙으로 3회 뒤에 닫힌다 — 그때까지 요청은 0건이라
+        //    남의 서버에는 무해하다.
+        outcome = adapter.incrementalOnly
+          ? '다음 요청 없음 → 증분형이라 닫지 않는다(연속 0건 안전장치가 닫는다)'
+          : '다음 요청 없음'
+        status = endStatus
         break
       }
 
@@ -479,7 +498,14 @@ export async function runCollection(
       }
 
       pagesFetched++
-      const parsed = adapter.parse(res.body, { productRef: target.productRef, cursor })
+      // ⚠️ 증분 기준선은 실행 시작 시점 값(baselineReviewAt)을 넘긴다. 진행 중에
+      //    갱신되는 lastReviewAt 을 넘기면 파서가 방금 읽은 글보다 오래된 것을
+      //    전부 "이미 본 것"으로 걸러 한 페이지만 읽고 멈춘다(위 baselineReviewAt 주석).
+      const parsed = adapter.parse(res.body, {
+        productRef: target.productRef,
+        cursor,
+        lastReviewAt: baselineReviewAt,
+      })
       stats.parseFailures += parsed.parseFailures
       // 순수 누적 카운터. 종료 조건·커서·STALE 판정 어디에도 안 쓴다.
       // filtered 를 안 내는 어댑터(danawa·appstore)는 여기서 0 이 더해진다.
@@ -524,6 +550,19 @@ export async function runCollection(
         status = endStatus
         break
       }
+      // 이번 실행 몫은 끝났지만 **커서는 버리지 않는다**(types.ts ParseResult.pauseRun).
+      //
+      // `nextCursor: null` 로는 이걸 표현할 수 없다 — 그건 "끝 + 커서 폐기"라
+      // 다음 실행이 처음부터 다시 읽는다. 게시판 순회는 "마지막으로 본 글 id"를
+      // 다음 실행까지 들고 가야 같은 글을 매일 다시 받지 않는다.
+      //
+      // ⚠️ status 는 active 다. 닫는 판단은 위의 연속 0건 안전장치가 한다 —
+      //    여기서 닫으면 "이번 실행 분량을 다 읽었다"가 "고갈됐다"로 기록된다.
+      if (parsed.pauseRun) {
+        outcome = `이번 실행 몫 종료(${page + 1}페이지째 · 커서 유지 — 다음 실행이 이어간다)`
+        status = 'active'
+        break
+      }
       if (staleStreak >= STALE_STREAK_TO_STOP) {
         outcome = `이미 본 구간 도달(연속 ${staleStreak}건)`
         status = 'active'
@@ -532,6 +571,38 @@ export async function runCollection(
     }
 
     const consecutiveEmpty = collected === 0 ? target.consecutiveEmpty + 1 : 0
+
+    // ── 증분형 타깃의 종료 조건 ────────────────────────────────────
+    //
+    // `incrementalOnly` 는 "끝이 없다"는 선언이라 **아무도 이 타깃을 닫지 않았다.**
+    // types.ts 가 그걸 "남은 구멍"으로 적어 뒀다: `consecutive_empty` 는 세지만
+    // 러너는 기록만 하고 판정에 쓰지 않았다. 그래서 새 댓글이 영원히 안 달리는
+    // 글도, 글이 지워진 글도, ref 가 잘못돼 요청조차 못 하는 타깃도 매 실행
+    // 그대로 남아 일일 상한을 먹었다.
+    //
+    // 여기서 닫는다. 문턱은 건강도 판정과 **같은 상수**를 쓴다
+    // (health.ts MAX_CONSECUTIVE_EMPTY) — 두 곳이 다른 숫자를 쓰면 소스는
+    // degraded 인데 타깃은 안 닫히거나 그 반대가 된다.
+    //
+    // ⚠️ 닫을 때 수치를 남긴다(§7.2). "닫았다"만 적으면 사람이 그게 예상된
+    //    것인지 판단할 수 없다.
+    //
+    // 세지 않는 경우:
+    //   · dry-run — `ingestPage` 가 newCount 를 올리기 전에 빠져나가므로 collected 가
+    //     **구조적으로** 항상 0 이다. 세면 dry-run 3회로 멀쩡한 타깃이 닫힌다.
+    //   · aborted(403/429) · failed — 신규 0건이 아니라 차단·오류다. health.ts 가
+    //     차단을 연속 0건과 다른 사건으로 다루는 것과 같은 이유다.
+    let emptyClose: string | null = null
+    if (
+      adapter.incrementalOnly &&
+      !opts.dryRun &&
+      !aborted &&
+      status === 'active' &&
+      consecutiveEmpty >= MAX_CONSECUTIVE_EMPTY
+    ) {
+      status = 'exhausted'
+      emptyClose = `연속 ${consecutiveEmpty}회 0건 → 닫음(${consecutiveEmpty}/${MAX_CONSECUTIVE_EMPTY})`
+    }
 
     if (!opts.dryRun) {
       await ports.store.saveTargetProgress({
@@ -558,7 +629,7 @@ export async function runCollection(
     perTarget.push({
       targetId: target.id,
       productRef: target.productRef,
-      outcome: `${label} · ${newLabel}`,
+      outcome: emptyClose ? `${label} · ${newLabel} · ${emptyClose}` : `${label} · ${newLabel}`,
     })
   }
 

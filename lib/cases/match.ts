@@ -41,6 +41,15 @@ export interface MoveRow {
   metric_before?: number | null
   metric_after?: number | null
   metric_unit?: string | null
+  /**
+   * 이식 4필드. 전부 `?` 다 — 조회에서 빼면 `undefined` 고 그건 "없음"이 아니다
+   * (`fact_check_grade` 와 같은 규약). 싣는 자리는 corpus-db.MOVE_COLS 한 곳이다.
+   */
+  transfer_note?: string | null
+  preconditions?: string | null
+  transferability?: string | null
+  observed_period_start?: string | null
+  created_at?: string
 }
 
 export interface StudyRow {

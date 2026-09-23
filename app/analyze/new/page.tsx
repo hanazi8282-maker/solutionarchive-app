@@ -13,7 +13,7 @@ import {
   type AnalysisMode,
   type AnalysisSourceType,
 } from '@/lib/analysis/types'
-import type { FacetKey } from '@/lib/analysis/facets'
+import { FACET_KEYS, type FacetKey } from '@/lib/analysis/facets'
 import { Card } from '../../_ds/components/Card'
 import { Badge } from '../../_ds/components/Badge'
 import { Button } from '../../_ds/components/Button'
@@ -152,14 +152,18 @@ export default function AnalyzeNewPage() {
         const json = await res.json().catch(() => null)
         const p = json?.profile as Record<string, string | null> | null | undefined
         if (!p || !alive) return
-        const FACET_KEYS: FacetKey[] = ['bottleneck', 'business_model', 'buyer_type', 'price_band', 'purchase_frequency']
         // "프로필 값으로 채웠다" 는 실제로 빈 칸을 채웠을 때만 참이다 — 사람이 먼저 친 값을 건너뛰었으면
         // 아무것도 안 채운 것이고, 그때 배너가 뜨면 이 주석 위의 걱정(덮어썼다는 오해)이 그대로 생긴다.
         let filled = false
         setPitch((v) => { if (v.trim() || !p.pitch) return v; filled = true; return p.pitch })
         setMarket((v) => { if (v.trim() || !p.market) return v; filled = true; return p.market })
+        // 경쟁사 URL 은 **서버 경유로만** 온다 — 쿼리스트링으로 넘기면 사용자 입력 URL 이
+        // 리퍼러·액세스 로그에 남는다. 여기서도 이미 친 값은 덮지 않는다.
+        setCompetitorUrl((v) => { if (v.trim() || !p.competitor_url) return v; filled = true; return p.competitor_url as string })
         setFacets((prev) => {
           const next = { ...prev }
+          // 키 목록을 이 파일에 다시 적지 않는다(전에는 5개를 손으로 적어 뒀다) — 패싯이 늘면
+          // 여기만 안 늘어나고, 그 칸은 프로필에 있는데도 영영 프리필되지 않는다.
           for (const k of FACET_KEYS) {
             if (!next[k] && p[k]) { next[k] = p[k] as string; filled = true }
           }

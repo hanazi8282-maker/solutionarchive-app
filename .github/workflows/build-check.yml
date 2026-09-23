@@ -65,6 +65,10 @@ jobs:
       # 케이스 검색(질의 파싱·종류 가산점·3상태·빈 상태 문구). 가산점이 하드필터로 되돌아가면
       # SaaS 질의 결과가 통째로 0건이 되는데, 화면에서는 "선례 없음"과 구분되지 않는다(§7.1).
       - run: node scripts/cases-search-selftest.mjs
+      # 프로필 → 케이스 추천(프리필 규칙·어휘 밖 거절·이식 4필드 도달·무브 시간순).
+      # 프리필이 사람이 고른 조건을 덮으면 화면이 제멋대로 움직이는 것으로 읽히고,
+      # MOVE_COLS 에서 컬럼이 빠지면 "내일 할 행동"이 전부 미기재로 보인다(§7.1).
+      - run: node scripts/profile-recommend-selftest.mjs
       # 공개 라이브러리 그리드(`/library`) — 대표 무브(승인·시간순 첫 것)·정렬 3종·종류 필터·3상태.
       # 정렬이나 대표 무브가 틀려도 카드는 그대로 나와서 화면으로는 못 잡는다.
       - run: node scripts/library-selftest.mjs

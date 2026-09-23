@@ -9,7 +9,7 @@
 
 import { FACET_FIELDS, FACET_KEYS, MARKET_MAX, parseFacets } from '../lib/analysis/facets.ts'
 import {
-  BOTTLENECK, BUSINESS_MODEL, BUYER_TYPE, PRICE_BAND, PURCHASE_FREQUENCY,
+  BOTTLENECK, BUSINESS_MODEL, BUYER_TYPE, PRICE_BAND, PURCHASE_FREQUENCY, READER_PROBLEMS,
 } from '../lib/cases/draft.ts'
 
 let pass = 0, fail = 0
@@ -20,17 +20,21 @@ const t = (name, got, want) => {
 
 // ── 1. 어휘 대조 (정본 = lib/cases/draft.ts = 마이그레이션 CHECK) ──────
 const VOCAB = {
+  reader_problem: READER_PROBLEMS,
   bottleneck: BOTTLENECK,
   business_model: BUSINESS_MODEL,
   buyer_type: BUYER_TYPE,
   price_band: PRICE_BAND,
   purchase_frequency: PURCHASE_FREQUENCY,
 }
-t('패싯 5개', FACET_KEYS.length, 5)
-t('필드 정의도 5개', FACET_FIELDS.length, 5)
+t('패싯 6개', FACET_KEYS.length, 6)
+t('필드 정의도 6개', FACET_FIELDS.length, 6)
+t('문제 유형이 맨 앞(하드필터라 먼저 묻는다)', FACET_KEYS[0], 'reader_problem')
 for (const f of FACET_FIELDS) {
   t(`${f.key}: 선택지 = 어휘(순서까지)`, f.options.map((o) => o.value).join(','), VOCAB[f.key].join(','))
-  t(`${f.key}: 모든 선택지에 한 줄 설명`, f.options.every((o) => o.label && o.hint), true)
+  // reader_problem 만 예외다: 라벨 자체가 완성된 문장이고 어휘 정본이 config/reader-problems.json 이라,
+  // 그 파일이 통째로 갈아끼워졌을 때 설명이 없다고 CI 가 죽으면 어휘 교체가 막힌다.
+  t(`${f.key}: 모든 선택지에 한 줄 설명`, f.options.every((o) => o.label && (o.hint || f.key === 'reader_problem')), true)
   t(`${f.key}: 라벨이 영어 코드 그대로가 아니다`, f.options.every((o) => o.label !== o.value), true)
 }
 
@@ -53,6 +57,16 @@ for (const [name, body] of [['null', { buyer_type: null }], ['빈 문자열', { 
 }
 
 // ── 4. 어휘 밖 값은 400 + 필드 이름 ───────────────────────────────────
+// reader_problem 음성 — 어휘 밖(소문자 원문 그대로)을 조용히 null 로 접지 않는다.
+// DB CHECK 은 형식(^[A-Z][A-Z_]*$)만 보므로 어휘를 막는 자리는 여기뿐이다(마이그 20260930000003).
+const badProblem = parseFacets({ reader_problem: 'make but no money' })
+t('문제 유형 어휘 밖: ok=false', badProblem.ok, false)
+t('문제 유형 어휘 밖: 어느 필드인지 말한다', badProblem.field, 'reader_problem')
+t('문제 유형 어휘 밖: 허용 목록을 알려준다', badProblem.error.includes('NO_FIRST_CUSTOMER'), true)
+t('문제 유형 형식만 맞는 값도 거절', parseFacets({ reader_problem: 'NOT_A_REAL_CODE' }).ok, false)
+t('문제 유형 정상 값은 통과', parseFacets({ reader_problem: 'NO_FIRST_CUSTOMER' }).values.reader_problem, 'NO_FIRST_CUSTOMER')
+t('문제 유형 빈 값은 지우기(null)', parseFacets({ reader_problem: '' }).values.reader_problem, null)
+
 const bad = parseFacets({ bottleneck: 'GROWTH' })
 t('어휘 밖: ok=false', bad.ok, false)
 t('어휘 밖: 어느 필드인지 말한다', bad.field, 'bottleneck')

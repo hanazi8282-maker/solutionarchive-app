@@ -9,10 +9,19 @@
 
 import {
   BOTTLENECK, BUSINESS_MODEL, BUYER_TYPE, PRICE_BAND, PURCHASE_FREQUENCY,
+  READER_PROBLEM_LABEL, READER_PROBLEMS,
 } from '../cases/draft.ts'
 
-/** 어휘가 정해진 5개. `market` 은 자유 텍스트라 따로 다룬다. */
-export const FACET_KEYS = ['bottleneck', 'business_model', 'buyer_type', 'price_band', 'purchase_frequency'] as const
+/**
+ * 어휘가 정해진 6개. `market` 은 자유 텍스트라 따로 다룬다.
+ *
+ * `reader_problem` 이 **맨 앞**이다 — 케이스 추천의 유일한 하드필터라 화면에서 먼저 물어야 한다
+ * (docs/profile-recommend-analysis-design.md). 나머지는 정렬에만 쓴다.
+ * ⚠️ 이 키가 늘면 POST /api/analyze/projects · PUT /api/profile 이 INSERT 에 그 컬럼을 싣는다.
+ *    마이그 20260930000003 이 배포보다 먼저 가야 하고, 안 갔을 때의 방어막은 이 파일 맨 아래
+ *    `isMissingColumn` 이다.
+ */
+export const FACET_KEYS = ['reader_problem', 'bottleneck', 'business_model', 'buyer_type', 'price_band', 'purchase_frequency'] as const
 export type FacetKey = (typeof FACET_KEYS)[number]
 
 /** 패싯 6개(= 5 + market). 진단 입력 한 벌의 이름. */
@@ -26,6 +35,21 @@ const opts = (vocab: readonly string[], table: Record<string, [string, string]>)
   vocab.map((v) => ({ value: v, label: table[v]?.[0] ?? v, hint: table[v]?.[1] ?? '' }))
 
 /**
+ * 문제 유형 한 줄 설명. **라벨은 여기 없다** — 라벨 정본은 config/reader-problems.json
+ * (`READER_PROBLEM_LABEL`)이고 그건 이미 완성된 문장이다. 여기는 셀러 어투로 한 번 더 풀어 주는 줄만 둔다.
+ * 어휘가 통째로 갈아끼워지면 이 표에 없는 코드는 설명 없이 라벨만 뜬다 — 값이 사라지는 것보다 낫다.
+ */
+const READER_PROBLEM_HINT: Record<string, string> = {
+  MAKE_BUT_NO_MONEY: '제품은 돌아가는데 결제가 안 붙는다',
+  NO_FIRST_CUSTOMER: '만들어는 놨는데 아직 아무도 안 썼다',
+  PRICE_TOO_LOW:     '팔리긴 하는데 남는 게 없다',
+  ONE_OFF_ONLY:      '한 번 결제하고 갱신이 안 된다',
+  NO_CHANNEL:        '어디에 내놓아야 할지 모르겠다',
+  SOLO_CEILING:      '문의는 오는데 혼자라 못 따라간다',
+  NOBODY_TRUSTS_ME:  '무명이라 첫 거래가 안 붙는다',
+}
+
+/**
  * 화면이 그대로 렌더하는 선택지. 옵션마다 한 줄 설명을 붙인다 — 어휘가 영어 대문자라
  * 라벨만 보면 D2C 와 MARKETPLACE_SELLER 를 셀러가 반대로 고른다. 패싯은 거르는 데
  * 쓰지 않고 정렬(matchMoves)에만 쓰므로, 틀리게 고르면 조용히 엉뚱한 선례가 올라온다.
@@ -34,6 +58,17 @@ const opts = (vocab: readonly string[], table: Record<string, [string, string]>)
  * **어휘(value)는 그대로다** — DB CHECK + lib/cases/draft.ts 3중 결합이라 건드리면 23514 다.
  */
 export const FACET_FIELDS: readonly FacetField[] = [
+  {
+    // 어휘·라벨 정본은 config/reader-problems.json 이다(READER_PROBLEM_LABEL 이 그걸 읽는다).
+    // 여기서 코드를 다시 적지 않는다 — 어긋나면 INSERT 가 23514/400 으로 죽는다(이 파일 헤더 규약).
+    // 라벨 자체가 완성된 문장이라 옵션별 hint 는 비워 둔다.
+    key: 'reader_problem',
+    label: '지금 겪는 문제 유형',
+    hint: '이 값이 추천을 좁히는 유일한 조건이다. 비워 두면 전체에서 고른다.',
+    options: READER_PROBLEMS.map((code) => ({
+      value: code, label: READER_PROBLEM_LABEL[code] ?? code, hint: READER_PROBLEM_HINT[code] ?? '',
+    })),
+  },
   {
     key: 'bottleneck',
     label: '지금 막힌 곳 (병목)',
@@ -98,6 +133,7 @@ export const FACET_FIELDS: readonly FacetField[] = [
 ]
 
 const VOCAB: Record<FacetKey, readonly string[]> = {
+  reader_problem:     READER_PROBLEMS,
   bottleneck:         BOTTLENECK,
   business_model:     BUSINESS_MODEL,
   buyer_type:         BUYER_TYPE,
@@ -164,4 +200,29 @@ export function parseFacets(body: unknown): FacetParse {
   }
 
   return { ok: true, values, keys }
+}
+
+// ── 컬럼 미적용 방어 ─────────────────────────────────────────
+/**
+ * "그 컬럼이 없다"를 뜻하는 코드 — PostgREST 는 `PGRST204`, Postgres 는 `42703` 으로 답한다.
+ *
+ * 왜 필요한가: `FACET_KEYS` 에 `reader_problem` 이 들어간 순간 POST /api/analyze/projects 와
+ * PUT /api/profile 이 그 키를 INSERT/UPSERT 에 싣는다. 마이그 20260930000003 이 배포보다 늦게
+ * 적용되면 두 라우트가 통째로 죽는다(설계서 리스크). 그래서 쓰는 곳은 그 키를 빼고 **1회만**
+ * 재시도하고, 무엇을 왜 뺐는지 로그에 남긴다 — 조용히 무시하면 사람이 고른 문제 유형이 저장되지
+ * 않은 것을 아무도 모르고, 그건 안전장치가 버그를 감추는 꼴이다(§7.1 · §7.2).
+ */
+export const MISSING_COLUMN_CODES: readonly string[] = ['42703', 'PGRST204']
+/** 로그에 그대로 박는 문구. 이 줄이 보이면 마이그레이션을 적용하라는 뜻이다. */
+export const MISSING_COLUMN_HINT = '마이그 20260930000003 미적용'
+/** 마이그 20260930000003 으로 생기는 컬럼들 — 재시도할 때 빼는 키가 이것뿐이다. */
+export const MIGRATION_20260930000003_KEYS: readonly string[] = ['reader_problem', 'competitor_url']
+
+export function isMissingColumn(code: string | null | undefined): boolean {
+  return typeof code === 'string' && MISSING_COLUMN_CODES.includes(code)
+}
+
+/** 키 몇 개를 뺀 사본. 원본은 건드리지 않는다(재시도 payload 용). */
+export function omitKeys<T extends Record<string, unknown>>(row: T, keys: readonly string[]): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(row).filter(([k]) => !keys.includes(k)))
 }

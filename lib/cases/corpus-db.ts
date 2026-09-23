@@ -10,8 +10,14 @@ type Client = NonNullable<Awaited<ReturnType<typeof createClient>>>
 
 export const STUDY_COLS =
   'id, slug, brand_name, bottleneck, reader_problem, business_model, buyer_type, price_band, outcome_status, review_status'
+/**
+ * ★ 뒤 5개(`transfer_note` 이후)가 "내일 할 행동"의 병목이었다 — 컬럼이 SELECT 에 없어서
+ *   데이터가 DB 에 있는데도 화면까지 도달하지 못했다. 전부 20260915000001·20260906000001 로
+ *   이미 적용된 컬럼이다(docs/migration-exceptions.md) — 없는 컬럼을 넣으면 42703 으로
+ *   **조회 전체가** 죽고 그게 "선례 없음"으로 보인다. 컬럼을 더할 때는 적용 여부를 먼저 확인한다.
+ */
 export const MOVE_COLS =
-  'id, case_study_id, lever, claim, evidence_grade, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit'
+  'id, case_study_id, lever, claim, evidence_grade, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit, transfer_note, preconditions, transferability, observed_period_start, created_at'
 export const FAILED_ANGLE_COLS =
   'case_key, product_category, claimed_angle, outcome, evidence_source, source_tier, is_estimate'
 export const PRINCIPLE_COLS = 'sp_id, tags, statement, evidence_grade, evidence_grade_note, source_ref'

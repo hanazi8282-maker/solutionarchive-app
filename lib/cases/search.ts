@@ -106,6 +106,67 @@ export function parseSearchQuery(raw: {
   }
 }
 
+/**
+ * 프로필 → 검색 파라미터. **순수 함수다** — DB 조회는 화면이 하고 여기엔 행 하나를 넘긴다.
+ *
+ * 남헌 2026-09-23 Q2-A: 프리필은 **문제 유형 + 자유 텍스트(pitch·market)** 까지만 건다.
+ * `bottleneck` 은 일부러 채우지 않는다 — 하드필터 2겹(problem+bottleneck)에 기본
+ * `kind=saas` 숨김까지 겹치면 0건이 급증하고, 그 0건이 "선례가 없다"로 읽힌다.
+ * 병목은 사람이 필요할 때 select 로 직접 좁힌다.
+ *
+ * `filled` 는 **실제로 값을 넣은 파라미터만** 담는다. 화면의 "내 프로필에서 가져왔다" 한 줄이
+ * 이 배열이 비지 않았을 때만 뜬다 — 안 채웠는데 적으면 사람이 자기가 친 값을 프로필 값으로 착각한다.
+ */
+export interface SellerProfileForQuery {
+  reader_problem?: string | null
+  pitch?: string | null
+  market?: string | null
+  business_model?: string | null
+}
+
+export interface ProfilePrefill {
+  problem: string | null
+  q: string | null
+  /** 질의 쪽 제품 종류(정렬 가산점 축). null = 프로필에 사업 모델이 없어 기본값을 쓴다. */
+  kind: ProductKind | null
+  filled: ('problem' | 'q')[]
+}
+
+/** 화면이 URL 에서 읽는 검색 파라미터. 프리필 판정은 **값이 아니라 키의 존재**로 한다. */
+export const SEARCH_PARAM_KEYS = ['problem', 'bottleneck', 'q', 'kind'] as const
+
+/**
+ * 프로필로 채워도 되나. 파라미터가 **하나도 없을 때만** true 다.
+ *
+ * `?problem=`(빈 값)도 파라미터로 센다 — 그건 "전체 보기"라는 명시적 의사이고, 그걸 프로필이
+ * 되돌리면 사람이 누른 링크가 아무 일도 안 한 것처럼 보인다.
+ */
+export function shouldPrefill(searchParams: Record<string, unknown>): boolean {
+  return !SEARCH_PARAM_KEYS.some((k) => k in searchParams)
+}
+
+export function profileToQuery(profile: SellerProfileForQuery | null | undefined): ProfilePrefill {
+  const filled: ('problem' | 'q')[] = []
+  if (!profile) return { problem: null, q: null, kind: null, filled }
+
+  // 어휘 밖 값은 프리필하지 않는다. DB CHECK 은 형식만 보므로(마이그 20260930000003) 어휘가
+  // 갈아끼워진 뒤 남은 옛 코드가 들어와 있을 수 있고, 그걸 그대로 걸면 무조건 0건이 된다.
+  const rawProblem = (profile.reader_problem ?? '').trim().toUpperCase()
+  const problem = rawProblem && READER_PROBLEMS.includes(rawProblem) ? rawProblem : null
+  if (problem) filled.push('problem')
+
+  const q = [profile.pitch, profile.market]
+    .map((v) => (v ?? '').trim())
+    .filter(Boolean)
+    .join(' ')
+    .slice(0, QUERY_MAX) || null
+  if (q) filled.push('q')
+
+  const kind = (profile.business_model ?? '').trim() ? productKindOf(profile.business_model) : null
+
+  return { problem, q, kind, filled }
+}
+
 /** 결과 0건일 때의 문구. 다른 말로 채우지 않는다 — 숫자는 DB 에서 센 것만 쓴다. */
 export function emptyStateText(saasCaseCount: number | null): string {
   return saasCaseCount === null

@@ -1,7 +1,12 @@
 import type { CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { loadCaseCorpus } from '@/lib/cases/corpus-db'
-import { DEFAULT_SEARCH_KIND, parseSearchQuery, searchMoves, type SearchKind } from '@/lib/cases/search'
+import {
+  DEFAULT_SEARCH_KIND, parseSearchQuery, profileToQuery, searchMoves, shouldPrefill,
+  type ProfilePrefill, type SearchKind, type SellerProfileForQuery,
+} from '@/lib/cases/search'
+import { getAuthVerdict } from '@/lib/auth/session'
+import { guardFromVerdict } from '@/lib/auth/policy'
 import { pairMoves, saasPairNotice, type MovePair } from '@/lib/cases/compare'
 import { READER_PROBLEM_LABEL, READER_PROBLEMS } from '@/lib/cases/draft'
 import { FACET_FIELDS } from '@/lib/analysis/facets'
@@ -11,6 +16,7 @@ import { Card } from '../../_ds/components/Card'
 import { EmptyState } from '../../_ds/components/EmptyState'
 import { FilterChip } from '../../_ds/components/FilterChip'
 import { GradeLegend } from '../../_ds/components/GradeLegend'
+import { ButtonLink } from '../../_ds/components/Button'
 import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
 
 // "내 문제 → 유사 케이스" 검색 화면.
@@ -53,6 +59,35 @@ function PairBlock({ p }: { p: MovePair }) {
   )
 }
 
+const NO_PREFILL: ProfilePrefill = { problem: null, q: null, kind: null, filled: [] }
+
+/**
+ * 프로필 한 행. §7.1 3상태를 그대로 돌린다:
+ *   found   — 프로필이 있다
+ *   none    — 조회는 정상인데 행이 없다(첫 방문)
+ *   unknown — 세션을 못 읽었거나 조회가 실패했다. **"프로필 없음"이 아니다** — 프리필하지 않고
+ *             화면이 경고 한 줄을 띄운다. 검색 자체는 그대로 돈다.
+ *
+ * `select('*')` 을 쓴다(lib/cases/detail.ts 와 같은 이유): 마이그 20260930000003 미적용 환경에서
+ * 컬럼 이름을 적으면 42703 으로 조회 전체가 실패하고, 그게 "프로필을 못 읽었다"로 보인다.
+ */
+async function loadProfile(sb: NonNullable<Awaited<ReturnType<typeof createClient>>>): Promise<
+  { state: 'found'; profile: SellerProfileForQuery } | { state: 'none' } | { state: 'unknown' }
+> {
+  const guard = guardFromVerdict(await getAuthVerdict())
+  if (!guard.ok) {
+    console.warn('[cases/search] 세션 이메일을 못 읽었다 — 프로필 프리필 건너뜀:', guard.message)
+    return { state: 'unknown' }
+  }
+  const { data, error } = await sb
+    .from('seller_profiles').select('*').eq('owner_email', guard.email).maybeSingle()
+  if (error) {
+    console.error('[cases/search] seller_profiles select error:', error.code ?? '', error.message)
+    return { state: 'unknown' }
+  }
+  return data ? { state: 'found', profile: data as SellerProfileForQuery } : { state: 'none' }
+}
+
 const HEADER = {
   title: '내 문제 → 유사 케이스',
   subtitle: '지금 막힌 것과 같은 문제를 남들은 어떻게 풀었나. 승인된 케이스·무브만 나온다(등급 D 제외).',
@@ -71,13 +106,28 @@ export default async function CaseSearchPage({ searchParams }: {
   searchParams: Promise<{ bottleneck?: string; problem?: string; q?: string; kind?: string }>
 }) {
   const sp = await searchParams
-  const { query, errors } = parseSearchQuery(sp)
+  const sb = await createClient()
+
+  // ── 프로필 프리필 ─────────────────────────────────────────
+  // URL 에 검색 파라미터가 **하나도 없을 때만** 프로필을 읽는다. 하나라도 있으면 덮지 않는다 —
+  // 사람이 칩을 눌러 좁힌 결과를 프로필이 되돌리면 화면이 자기 마음대로 움직이는 것으로 읽힌다.
+  const loaded = shouldPrefill(sp) && sb ? await loadProfile(sb) : null
+  const prefill = loaded?.state === 'found' ? profileToQuery(loaded.profile) : NO_PREFILL
+  // 실제로 값을 넣었을 때만 "프로필에서 가져왔다"고 적는다(/analyze/new 의 prefilled 와 같은 규약).
+  const prefilled = prefill.filled.length > 0
+
+  const { query, errors } = parseSearchQuery(
+    prefilled ? { problem: prefill.problem, q: prefill.q } : sp,
+  )
   // 칩 링크는 **다른 입력을 지우지 않는다.** 하나 고칠 때마다 나머지를 다시 쓰게 만들지 않는다.
   const href = (patch: { problem?: string | null; kind?: SearchKind }) => {
     const p = new URLSearchParams()
     const problem = patch.problem === undefined ? query.problem : patch.problem
     const kind = patch.kind ?? query.kind
     if (problem) p.set('problem', problem)
+    // 프리필로 들어온 화면에서는 빈 problem 도 **명시적으로** 적는다. 안 적으면 파라미터가
+    // 하나도 없는 URL 이 되고, 그 링크를 누른 순간 프로필이 조건을 도로 채워 넣는다.
+    else if (prefilled) p.set('problem', '')
     if (query.bottleneck) p.set('bottleneck', query.bottleneck)
     if (query.q) p.set('q', query.q)
     // 기본값(saas)은 URL 에 안 적는다 — 링크가 짧아지고, 파라미터 없는 첫 진입과 같은 화면이 된다.
@@ -122,7 +172,6 @@ export default async function CaseSearchPage({ searchParams }: {
     </div>
   )
 
-  const sb = await createClient()
   if (!sb) {
     return (
       <PageShell maxWidth={960}>
@@ -148,6 +197,28 @@ export default async function CaseSearchPage({ searchParams }: {
       <PageHeader {...HEADER} filters={chips} meta={<>{result.reason}</>} />
       <Card>{form}</Card>
 
+      {/* 프리필 출처. 실제로 채웠을 때만 적는다 — 안 채웠는데 적으면 사람이 자기가 친 값을
+          프로필 값으로 착각한다. 되돌리는 손잡이(전체 보기)를 같은 줄에 둔다. */}
+      {prefilled && (
+        <Notice tone="info">
+          내 <a href="/settings/profile">프로필</a>에서 {prefill.filled.includes('problem') ? '문제 유형' : ''}
+          {prefill.filled.length === 2 ? '·' : ''}{prefill.filled.includes('q') ? '검색어' : ''}를 가져왔다.
+          병목은 걸지 않았다 — 조건을 두 겹 걸면 0건이 급증한다.{' '}
+          <a href={href({ problem: null })}>프로필 무시하고 전체 보기</a>
+        </Notice>
+      )}
+      {/* 조회 실패를 "프로필 없음"으로 접지 않는다(§7.1). 검색 결과 건수는 이 경고와 무관하게 그대로다. */}
+      {loaded?.state === 'unknown' && (
+        <Notice tone="warning" title="확인 불가 — 프로필을 못 읽었다">
+          프로필이 없다는 뜻이 아니다. 프리필 없이 전체에서 찾았고, 검색 결과는 그대로다.
+        </Notice>
+      )}
+      {loaded?.state === 'none' && (
+        <p style={muted}>
+          <a href="/settings/profile">내 프로필</a>을 채우면 내 문제로 좁혀 보여준다 →
+        </p>
+      )}
+
       {errors.length > 0 && (
         <Notice tone="warning" title="질의를 그대로 쓰지 못했다">
           {errors.join(' / ')} — 그 조건은 빼고 검색했다.
@@ -161,7 +232,19 @@ export default async function CaseSearchPage({ searchParams }: {
             ? <><CaseMoveCards cards={result.moves.cards} /><GradeLegend /></>
             : result.moves.status === 'no_match' && (
               <EmptyState compact title={result.empty_state}
-                description="조회는 정상이다. 지금 이 조건에 맞는 승인 무브가 없다는 뜻이고, 없는 것을 다른 사례로 채우지 않는다." />
+                description="조회는 정상이다. 지금 이 조건에 맞는 승인 무브가 없다는 뜻이고, 없는 것을 다른 사례로 채우지 않는다."
+                action={(
+                  // 회복 경로 2개. 소비재를 **자동으로 섞지 않는다**(남헌 2026-09-23 Q5-A) —
+                  // 자동으로 섞으면 소비재 선례가 SaaS 선례가 있는 것처럼 읽힌다. 사람이 누른다.
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                    {query.problem && (
+                      <ButtonLink href={href({ problem: null })} size="sm">문제 유형 조건 떼고 다시</ButtonLink>
+                    )}
+                    {query.kind === 'saas' && (
+                      <ButtonLink href={href({ kind: 'all' })} size="sm">소비재 포함해서 보기</ButtonLink>
+                    )}
+                  </div>
+                )} />
             )}
         </div>
       </Card>
@@ -197,6 +280,14 @@ export default async function CaseSearchPage({ searchParams }: {
             </>
           )}
         </div>
+      </Card>
+
+      {/* 3단계로 가는 길. 남의 사례로 방향을 잡았으면 다음은 내 경쟁사 리뷰로 직접 확인한다.
+          경쟁사 URL 은 **쿼리스트링으로 넘기지 않는다** — 사용자 입력 URL 이 리퍼러·액세스 로그에
+          남는다. 프로필에 저장돼 있으면 /analyze/new 가 서버 경유로 받아 칸을 채운다. */}
+      <Card title="여기까지 봤으면, 다음은 내 경쟁사 리뷰로 확인한다"
+        subtitle="남이 푼 방법은 방향이다. 내 시장에서도 그 문제가 아픈지는 내 리뷰 원문이 답한다.">
+        <ButtonLink href="/analyze/new" variant="primary">새 분석 시작</ButtonLink>
       </Card>
     </PageShell>
   )

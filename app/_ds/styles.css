@@ -171,6 +171,33 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
 }
 
+/* 공개 라이브러리 그리드(`/library`, 트랙 3 §4) — 좌측 사이드바 | 카드 그리드.
+   같은 칩 목록 한 벌을 두 모양으로 쓴다: <1024px 는 상단 가로 스크롤 행, ≥1024px 는
+   좌측 세로 목록(sticky). 두 벌로 렌더하면 칩 건수가 갈라진다. */
+.sa-lib-layout { display: grid; gap: 16px; align-items: start; grid-template-columns: minmax(0, 1fr); }
+.sa-lib-facets { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.sa-lib-facet-sep { width: 1px; min-width: 1px; margin: 0 2px; }
+@media (min-width: 1024px) {
+  .sa-lib-layout { grid-template-columns: 240px minmax(0, 1fr); }
+  .sa-lib-facets {
+    position: sticky;
+    top: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+  /* 세로 목록에서는 칩이 줄 전체를 쓰고 라벨이 길면 두 줄로 흐른다(잘라서 뜻을 잃지 않게). */
+  .sa-lib-facets > a {
+    height: auto;
+    min-height: 30px;
+    padding: 6px 12px;
+    white-space: normal;
+    justify-content: space-between;
+  }
+  .sa-lib-facet-sep { width: auto; height: 1px; min-width: 0; margin: 6px 0; }
+}
+
 /* 질문 버튼 줄 (advisor-cards.tsx) — 좁은 화면에서는 세로로 쌓고 각자 풀폭.
    375px 에서 "남들은 어떻게 풀었나(선례)" 같은 긴 라벨이 옆으로 삐져나가지 않게. */
 @media (max-width: 480px) {

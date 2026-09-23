@@ -46,6 +46,10 @@ const PUBLIC_PREFIXES = [
   // — 그 경계를 auth-selftest 음성 3건(`/columns`·`/columns/decide`·`/columns/readx`)이 지킨다.
   // 남헌 2026-09-23 명시 승인(기능 5 "사이트에 칼럼을 기재하는 장소").
   '/columns/read',
+  // 공개 케이스 라이브러리(그리드 `/library` + 상세 `/library/<slug>`). **읽기 전용**, approved 만.
+  // 검수 화면은 `/cases/*` 에 그대로 남는다 — 남헌 2026-09-23 확정("공개 그리드는 /library 신규
+  // 라우트, /cases 는 검수 유지"). auth-selftest 양성 2·음성 2(`/libraryx`, `/cases/<slug>`)가 경계를 지킨다.
+  '/library',
 ]
 
 /**

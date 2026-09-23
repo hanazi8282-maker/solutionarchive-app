@@ -45,8 +45,14 @@ t(`페이지 추출 ≥8건 (실제 ${pages.length})`, pages.length >= 8)
 for (const p of pages) {
   // 2026-09-23: 랜딩 `/` 와 승인 칼럼 읽기 `/columns/read` 추가(둘 다 남헌 명시 승인).
   const shouldBePublic = p === '/' || p === '/login' || p.startsWith('/onboarding')
-    || p.startsWith('/columns/read')
+    || p.startsWith('/columns/read') || p.startsWith('/library')
   t(`${shouldBePublic ? '공개' : '보호'}(페이지): ${p}`, isPublicPath(p) === shouldBePublic)
+}
+// 2026-09-23 공개 라이브러리 — `/library` 접두사는 열되 검수 `/cases/*` 는 닫혀 있어야 한다(남헌 확정).
+t('공개(라이브러리 그리드): /library', isPublicPath('/library'))
+t('공개(라이브러리 상세): /library/convertkit-concierge-migration-conversion', isPublicPath('/library/convertkit-concierge-migration-conversion'))
+for (const p of ['/libraryx', '/cases/convertkit-concierge-migration-conversion', '/cases/search', '/cases/grade']) {
+  t(`보호(라이브러리 공개가 검수 화면까지 번지지 않는다): ${p}`, !isPublicPath(p))
 }
 for (const p of ['/dashboard', '/agents', '/cases', '/analyze', '/analyze/new', '/analyze/x/review',
   '/api/analyze/extract', '/api/deploy-status', '/api/threads/callback', '/api/threads/callback/',

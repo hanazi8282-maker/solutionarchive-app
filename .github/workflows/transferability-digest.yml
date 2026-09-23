@@ -1,0 +1,86 @@
+# 이식성 반려 사유 하루치 다이제스트 — 사람이 채점 카드에 적은 "왜 못 옮기나"를 모아
+# 다음 케이스 조사 프롬프트가 읽을 파일로 만든다.
+#
+# 설계: docs/transferability-feedback-loop.md · 구현: scripts/transferability-feedback-digest.mjs
+#
+# ⛔ DB 는 읽기만 한다(UPDATE·INSERT 0줄, CLAUDE.md §10.1). 커밋 경로는 `ops/state/` 뿐이다 —
+#    무인 루프 커밋 화이트리스트 안이다.
+#
+# ⚠️ 마이그 20260930000005 미적용이면 스크립트가 종료코드 2 로 멈추고 **파일을 쓰지 않는다.**
+#    이 워크플로가 빨간불이 되는 것이 정상 동작이다 — 0건 파일을 써 두면 사람이 "어제 사유가
+#    없었구나"로 읽는다(§7.1: 확인 불가를 음성으로 접지 않는다).
+
+name: Transferability Feedback Digest
+
+on:
+  schedule:
+    # 21:04 UTC = KST 06:04. 남헌 지시는 "KST 06:00 1회"인데 정각을 피했다 —
+    # 전 세계 크론이 정각에 몰려 GitHub 이 조용히 건너뛴다(nightly-review-collect.yml 주석).
+    #
+    # 🕐 daily-cmo-loop 는 20:17 UTC(KST 05:17)라 **그날 조사는 전날 판 latest.md 를 읽는다.**
+    #    의도한 것이다: 이 루프의 단위가 "하루치를 모아서"이고, 즉시 반영은 사유 1건이 방향을
+    #    돌리는 것을 막으려고 일부러 하지 않는다. 지연을 없애야 하면 여기를 19:50 으로 당기면 된다.
+    - cron: '4 21 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '대상 날짜(KST, YYYY-MM-DD). 비우면 어제'
+        type: string
+        default: ''
+      dry_run:
+        description: '파일을 쓰지 않고 stdout 만'
+        type: boolean
+        default: false
+
+concurrency:
+  group: transferability-digest
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # 집계가 하루 밀려도 파일은 "0건"으로 멀쩡해 보인다. 쓰기 전에 여기서 막는다.
+      - run: node scripts/transferability-digest-selftest.mjs
+
+      - name: Digest
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # `| tee` 가 node 의 종료코드를 삼킨다 — pipefail 없이는 exit 2 여도 초록불이다.
+          set -o pipefail
+          node scripts/transferability-feedback-digest.mjs \
+            ${{ inputs.date && format('--date {0}', inputs.date) || '' }} \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }} \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit digest
+        # schedule 에선 inputs 가 null 이라 `null == false` 가 참이 된다 — event_name 으로 가드.
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+        run: |
+          # ⛔ 화이트리스트: ops/state/ 밖은 add 하지 않는다(CLAUDE.md §10.1).
+          if git diff --quiet -- ops/state/transferability-feedback/ \
+             && [ -z "$(git ls-files --others --exclude-standard ops/state/transferability-feedback/)" ]; then
+            echo "변경 없음 — 커밋 생략"
+            exit 0
+          fi
+          git config user.name  "transferability-digest-bot"
+          git config user.email "noreply@anthropic.com"
+          git add ops/state/transferability-feedback/
+          git commit -m "chore(cases): 이식성 반려 사유 다이제스트 — $(date -u +%F)"
+          git push

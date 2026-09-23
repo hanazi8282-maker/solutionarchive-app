@@ -167,6 +167,26 @@ export async function decideCase(_prev: ReviewActionState, fd: FormData): Promis
 //    "몇 건까지 반영됐는지"를 그대로 보고한다 — 부분 반영을 성공으로도 실패로도 접지 않는다(§7.1).
 type GradeMoveRow = { id: string; review_status: string; lever: string; outcome_direction: string | null; fact_check_grade: string | null }
 
+/**
+ * 승인 뒤에 얹는 **맥락 필드**. 승인(writeMove)과 분리한 이유가 둘이다.
+ *
+ * 1. 저장 컬럼이 서로 다른 마이그레이션에서 온다 — 이유는 20260930000005(이 트랙),
+ *    `pmf_signal`·`metric_kind` 는 20260930000004(D 트랙). 한쪽이 미적용일 때
+ *    다른 쪽까지 같이 버리면 안 되므로 묶음별로 따로 쓴다.
+ * 2. `writeMove` 는 `decideMove`(개별 결정 화면)도 쓴다. 그 경로에는 이 칸들이 없다.
+ *
+ * 컬럼 없음(42703 / PGRST204)은 **조용히 넘기지 않는다** — `missing` 으로 올려서 화면
+ * 메시지에 "저장 안 됨 + 어느 마이그가 미적용인지"를 적는다(§7.1 · §7.2).
+ * 승인은 이미 끝났으므로 여기서 실패해도 되돌리지 않는다.
+ */
+async function writeMoveContext(sb: Sb, id: string, row: Record<string, unknown>) {
+  if (Object.keys(row).length === 0) return { missing: false, error: null as null | { code?: string; message: string } }
+  const { error } = await sb.from('case_moves').update(row).eq('id', id)
+  if (!error) return { missing: false, error: null }
+  const missing = error.code === '42703' || error.code === 'PGRST204'
+  return { missing, error: missing ? null : error }
+}
+
 export async function gradeCase(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {
   const auth = await requireAllowedUser()
   if (!auth.ok) return { ok: false, message: auth.message }
@@ -175,6 +195,9 @@ export async function gradeCase(_prev: ReviewActionState, fd: FormData): Promise
     caseId: fd.get('case_id'),
     moveIds: fd.getAll('move'),
     transferabilityOf: (id) => fd.get(`transferability:${id}`),
+    transferabilityReasonOf: (id) => fd.get(`transferability_reason:${id}`),
+    pmfSignalOf: (id) => fd.get(`pmf_signal:${id}`),
+    metricKindOf: (id) => fd.get(`metric_kind:${id}`),
     approveCase: fd.get('approve_case'),
   })
   if (!sub.value) return { ok: false, message: sub.error ?? '제출 내용을 읽지 못했습니다.' }
@@ -205,6 +228,8 @@ export async function gradeCase(_prev: ReviewActionState, fd: FormData): Promise
   const done: string[] = []
   const warns: string[] = []
   let axisMissing = false
+  let reasonMissing = false   // 마이그 20260930000005 미적용
+  let pmfMissing = false      // 마이그 20260930000004 미적용 (D 트랙)
   for (const m of moves) {
     const res = await writeMove(sb, m.id, { decision: 'approved', by: auth.email, note: '', transferability: m.transferability })
     const stopped = `무브 ${done.length}/${moves.length}건 승인 후 중단`
@@ -212,6 +237,23 @@ export async function gradeCase(_prev: ReviewActionState, fd: FormData): Promise
     if (!res.data || res.data.length === 0) return { ok: false, message: `${stopped} — 방금 다른 곳에서 결정됐습니다. 새로고침 후 확인하세요.` }
     done.push(m.id)
     axisMissing = axisMissing || res.axisMissing
+
+    // 맥락 필드 — 승인 뒤에 묶음 2개로 얹는다. 빈 값은 아예 안 쓴다(기존 값을 NULL 로 덮지 않는다).
+    if (m.transferabilityReason !== null) {
+      const r = await writeMoveContext(sb, m.id, {
+        transferability_reason: m.transferabilityReason,
+        transferability_reason_at: new Date().toISOString(),
+      })
+      if (r.error) warns.push(`이식성 이유 저장 실패 — ${r.error.message}`)
+      reasonMissing = reasonMissing || r.missing
+    }
+    const pmfRow: Record<string, unknown> = {}
+    if (m.pmfSignal !== null) pmfRow.pmf_signal = Number(m.pmfSignal)
+    if (m.metricKind !== null) pmfRow.metric_kind = m.metricKind
+    const p = await writeMoveContext(sb, m.id, pmfRow)
+    if (p.error) warns.push(`S·지표종류 저장 실패 — ${p.error.message}`)
+    pmfMissing = pmfMissing || p.missing
+
     const row = rows.find((r) => r.id === m.id)
     const w = row ? moveApprovalWarning(row) : null
     if (w) warns.push(`${row?.lever} — ${w}`)
@@ -239,9 +281,11 @@ export async function gradeCase(_prev: ReviewActionState, fd: FormData): Promise
   // 그래서 승인 경고는 **누르기 전에** 카드 안에서 보여 준다(grade-card.tsx). 실패는 revalidate 가 없어 그대로 남는다.
   revalidatePath('/cases/grade')
   revalidatePath('/cases')
-  const axisNote = axisMissing
+  const axisNote = (axisMissing
     ? ' · ⚠️ 이식성 축 미적용(마이그 20260915000001) — 고른 이식성은 저장되지 않았습니다.'
-    : ''
+    : '')
+    + (reasonMissing ? ' · ⚠️ 이유는 저장 안 됨(마이그 20260930000005 미적용) — 승인은 반영됐습니다.' : '')
+    + (pmfMissing ? ' · ⚠️ S·지표종류는 저장 안 됨(마이그 20260930000004 미적용) — 승인은 반영됐습니다.' : '')
   return {
     ok: true,
     message: `${study.brand_name} — 무브 ${done.length}건 승인${caseApproved ? ' · 케이스 승인' : ' · 케이스는 그대로(draft)'} · 검수자 ${auth.email}`

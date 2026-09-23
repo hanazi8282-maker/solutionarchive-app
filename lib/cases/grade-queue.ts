@@ -83,11 +83,62 @@ export function caseApproveDefault(checkedMoveCount: number): boolean {
   return checkedMoveCount > 0
 }
 
+// ────────────────────────────────────────────────────────────
+// 카드에서 사람이 손으로 채우는 나머지 축들
+// ────────────────────────────────────────────────────────────
+//
+// 어휘를 `draft.ts` 에 두지 않았다. 여긴 **폼에서 온 문자열을 정규화하는 자리**고,
+// 저장 컬럼은 서로 다른 마이그레이션 둘에서 온다:
+//   transferability_reason  → 20260930000005 (이 트랙)
+//   pmf_signal · metric_kind → 20260930000004 (D 트랙)
+// 한쪽이 미적용이어도 다른 쪽은 저장돼야 하므로 검증도 따로 둔다(actions.ts 의 묶음 2개).
+
+/** 이유 한 줄 상한. DB CHECK(20260930000005)·textarea maxLength 와 같은 수여야 한다. */
+export const TRANSFERABILITY_REASON_MAX = 200
+
+/** PMF 신호 강도 S. 정의는 reports/2026-09-23/pmf-grade-axis-design.md §3-1. 빈 값 = 코드 제안값 사용. */
+export const PMF_SIGNALS = ['0', '1', '2', '3'] as const
+export type PmfSignal = (typeof PMF_SIGNALS)[number]
+
+/** 이 무브의 지표가 결과 지표인가 투입 지표인가. 투입 지표는 최대 S2 (§3-1 규칙 ②). */
+export const METRIC_KINDS = ['outcome', 'input'] as const
+export type MetricKind = (typeof METRIC_KINDS)[number]
+
+export type GradeMoveSubmission = {
+  id: string
+  transferability: Transferability | null
+  /** 빈칸은 null = **미기재**다. "이유 없음"이 아니다(§7.1). */
+  transferabilityReason: string | null
+  /** null = 사람이 고르지 않았다 → 코드 제안값을 그대로 둔다(덮어쓰지 않는다). */
+  pmfSignal: PmfSignal | null
+  metricKind: MetricKind | null
+}
 export type GradeSubmission = {
   caseId: string
-  moves: { id: string; transferability: Transferability | null }[]
+  moves: GradeMoveSubmission[]
   approveCase: boolean
 }
+
+/** 이유 한 줄 정규화. 줄바꿈은 공백으로 접는다 — 다이제스트가 한 줄 목록으로 쓰기 때문이다. */
+export function readTransferabilityReason(raw: unknown): { value: string | null; error?: string } {
+  const s = typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim() : ''
+  if (!s) return { value: null }
+  if (s.length > TRANSFERABILITY_REASON_MAX) {
+    return { value: null, error: `이식성 이유는 ${TRANSFERABILITY_REASON_MAX}자까지입니다 (${s.length}자 입력).` }
+  }
+  return { value: s }
+}
+
+/** 어휘 밖은 조용히 null 로 접지 않는다 — 사람이 고른 것을 버리는 것이라서다(readTransferability 와 같은 규칙). */
+function readEnum<T extends string>(raw: unknown, vocab: readonly T[], label: string): { value: T | null; error?: string } {
+  const s = typeof raw === 'string' ? raw.trim() : ''
+  if (!s) return { value: null }
+  if (!(vocab as readonly string[]).includes(s)) return { value: null, error: `${label} 값이 어휘 밖입니다: ${s} (${vocab.join('/')})` }
+  return { value: s as T }
+}
+
+export const readPmfSignal = (raw: unknown) => readEnum(raw, PMF_SIGNALS, 'PMF 신호 강도(S)')
+export const readMetricKind = (raw: unknown) => readEnum(raw, METRIC_KINDS, '지표 종류')
 
 /**
  * 제출 payload 검증. 체크 안 한 무브는 **아예 빠진다** — 이 화면에 반려는 없고,
@@ -99,6 +150,10 @@ export function readGradeSubmission(input: {
   moveIds: readonly unknown[]
   transferabilityOf: (moveId: string) => unknown
   approveCase: unknown
+  /** 아래 셋은 없어도 된다(옛 폼·CLI). 없으면 미기재로 남고 저장 대상에서 빠진다. */
+  transferabilityReasonOf?: (moveId: string) => unknown
+  pmfSignalOf?: (moveId: string) => unknown
+  metricKindOf?: (moveId: string) => unknown
 }): { value: GradeSubmission | null; error?: string } {
   const caseId = typeof input.caseId === 'string' ? input.caseId.trim() : ''
   if (!caseId) return { value: null, error: '대상 케이스가 없습니다. 새로고침 후 다시 시도하세요.' }
@@ -119,7 +174,13 @@ export function readGradeSubmission(input: {
   for (const id of ids) {
     const t = readTransferability(input.transferabilityOf(id))
     if (t.error) return { value: null, error: t.error }
-    moves.push({ id, transferability: t.value })
+    const reason = readTransferabilityReason(input.transferabilityReasonOf?.(id))
+    if (reason.error) return { value: null, error: reason.error }
+    const s = readPmfSignal(input.pmfSignalOf?.(id))
+    if (s.error) return { value: null, error: s.error }
+    const kind = readMetricKind(input.metricKindOf?.(id))
+    if (kind.error) return { value: null, error: kind.error }
+    moves.push({ id, transferability: t.value, transferabilityReason: reason.value, pmfSignal: s.value, metricKind: kind.value })
   }
   return { value: { caseId, moves, approveCase } }
 }

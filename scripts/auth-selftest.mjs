@@ -127,12 +127,33 @@ t('next: 내부 경로 유지', safeNext('/cases?x=1') === '/cases?x=1' && safeN
 
 // ── 4. 'use server' 파일의 모든 export 가 DB 접근 전에 가드를 부르는가 ─────
 const actionFiles = files.filter((f) => /\.tsx?$/.test(f) && /^['"]use server['"]/m.test(readFileSync(`${ROOT}/app/${f}`, 'utf8')))
+
+// ⚠️ **가드 예외 목록.** 여기 이름을 더하는 것은 인증 경계를 넓히는 변경이다 —
+//    CLAUDE.md §10.2 사람 판단 예외이고, 승인 없이 더하면 안 된다.
+//    지금 1건: `submitCaseFeedback` — **남헌 2026-09-23 명시 승인: 익명 피드백 허용, 하루 1회 제한.**
+//    (`/library/<slug>` 의 👍/👎 를 로그인 없이 받는다. 근거는 그 파일 헤더 주석에도 적혀 있다.)
+//    예외를 **좁게** 고정한다: 목록 길이 1 · 그 액션이 가드 대신 하루 1회 제한을 실제로 세는가 ·
+//    파일이 승인 근거를 적고 있는가. 가드도 없고 제한도 없으면 그냥 열린 쓰기 경로다.
+const GUARD_EXEMPT = new Map([
+  ['submitCaseFeedback', { file: 'library/[slug]/actions.ts', approval: '남헌 2026-09-23 명시 승인' }],
+])
 const guarded = []
+const exempted = []
 for (const f of actionFiles) {
   const src = readFileSync(`${ROOT}/app/${f}`, 'utf8')
   const chunks = src.split(/export async function (\w+)/).slice(1)
   for (let i = 0; i < chunks.length; i += 2) {
     const [name, body] = [chunks[i], chunks[i + 1]]
+    const exempt = GUARD_EXEMPT.get(name)
+    if (exempt) {
+      t(`가드 예외는 승인된 파일에서만: app/${f} ${name}`, f === exempt.file)
+      t(`가드 예외 파일에 승인 근거가 적혀 있다: ${name}`, src.includes(exempt.approval) && src.includes('하루 1회 제한'))
+      // 음성: 가드를 뺀 대신 제한을 세야 한다. 이 줄이 빠지면 익명 무제한 쓰기가 된다.
+      t(`가드 예외 액션은 하루 1회 제한을 센다: ${name}`, /withinDailyLimit\(/.test(body))
+      t(`가드 예외 액션도 확인 불가면 저장하지 않는다: ${name}`, /'unknown'/.test(body))
+      exempted.push(name)
+      continue
+    }
     // 부르기만 하고 결과를 버리면 가드가 아니다 — 바로 다음 줄에서 거절을 돌려줘야 한다.
     const g = body.search(/const (\w+) = await requireAllowedUser\(\)\s*\n\s*if \(!\1\.ok\) return /)
     const db = body.search(/createClient\(|\.from\(/)
@@ -141,7 +162,11 @@ for (const f of actionFiles) {
   }
 }
 // toggleSave: `/library` 접두사가 공개라 이 액션만은 proxy 가 안 막아 준다 — 가드가 유일한 방어선이다.
+// (같은 폴더의 submitCaseFeedback 이 예외라고 해서 그 옆 액션까지 풀리지 않는다 — 이 줄이 그걸 고정한다.)
 for (const name of ['createPost', 'createSnapshot', 'linkDraft', 'decideMove', 'decideCase', 'toggleSave']) t(`서버 액션 검사 대상에 포함: ${name}`, guarded.includes(name))
+// 음성: 예외가 딱 1건인가. 늘어나면 사람이 봐야 한다(인증 경계 변경).
+t(`가드 예외는 1건뿐 (실제 ${exempted.length}: ${exempted.join(', ') || '없음'})`, exempted.length === 1 && exempted[0] === 'submitCaseFeedback')
+t('예외 액션이 가드 목록에 중복 계상되지 않는다', !guarded.includes('submitCaseFeedback'))
 
-console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 허용 목록 파서 · 공개/보호 경로(크론 ${cronRoutes.length}·페이지 ${pages.length}) · 세션 3상태 판정 · 서버 액션 가드 ${guarded.length}개`)
+console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 허용 목록 파서 · 공개/보호 경로(크론 ${cronRoutes.length}·페이지 ${pages.length}) · 세션 3상태 판정 · 서버 액션 가드 ${guarded.length}개 + 승인된 예외 ${exempted.length}개`)
 process.exitCode = fail ? 1 : 0

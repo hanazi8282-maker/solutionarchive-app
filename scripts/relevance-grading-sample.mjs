@@ -45,12 +45,22 @@ if (!verdicts || verdicts.length === 0) {
   process.exit(0)
 }
 
-const { data: inputs, error: inputsError } = await supabase
-  .from('analysis_inputs')
-  .select('id, raw_text')
-  .in('id', verdicts.map((v) => v.input_id))
-if (inputsError) { console.error(`✗ 원문 조회 실패: ${inputsError.message}`); process.exit(2) }
-const textById = new Map((inputs ?? []).map((i) => [i.id, i.raw_text ?? '']))
+// ⚠️ 2026-09-24: 판정이 780건이 되자 `.in('id', 전부)` 한 방이 PostgREST 에서 "Bad Request" 로
+//    죽었다 — uuid 780개가 GET 쿼리스트링 상한을 넘긴다(남헌 실측). 200개씩 끊어 묻는다.
+//    묶음 하나라도 실패하면 전체 실패로 보고한다 — 일부만 받아 놓고 "원문 없음"으로 접으면
+//    그 행이 조용히 표본에서 빠진다(§7.1).
+const IN_CHUNK = 200
+const textById = new Map()
+const allIds = verdicts.map((v) => v.input_id)
+for (let i = 0; i < allIds.length; i += IN_CHUNK) {
+  const ids = allIds.slice(i, i + IN_CHUNK)
+  const { data: inputs, error: inputsError } = await supabase
+    .from('analysis_inputs')
+    .select('id, raw_text')
+    .in('id', ids)
+  if (inputsError) { console.error(`✗ 원문 조회 실패(${i + 1}~${i + ids.length}/${allIds.length}): ${inputsError.code ?? ''} ${inputsError.message}`); process.exit(2) }
+  for (const row of inputs ?? []) textById.set(row.id, row.raw_text ?? '')
+}
 
 const { data: projects } = await supabase.from('analysis_projects').select('id, product_elevator_pitch')
 const projectById = new Map((projects ?? []).map((p) => [p.id, p.product_elevator_pitch ?? '(소개 없음)']))

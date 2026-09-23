@@ -74,6 +74,13 @@ export interface CaseMoveCard {
   evidence_grade: string
   /** 사실확인 등급. 조회에 없으면 null — 화면은 "미기재" 로 말한다(등급 D 와 다르다). */
   fact_check_grade: string | null
+  /**
+   * PMF 등급축(마이그 20260930000004). 배지 1순위 축이다 — 화면은 `displayGrade(card)` 로만 읽는다.
+   * null = 컬럼 미적용이거나 재채점 전. 그때 배지는 `evidence_grade` 로 폴백하고 **그 사실을 이름으로 밝힌다**.
+   */
+  pmf_grade: string | null
+  /** 사람이 신호 강도·이식성을 확정하지 않은 잠정 등급인가. 확정과 같게 보이면 §7.1 위반이다. */
+  pmf_provisional: boolean | null
   outcome_direction: string
   /**
    * 내일 할 행동 — `case_moves.transfer_note` **원문 그대로**. LLM 이 다시 쓰지 않는다(§10.1).
@@ -424,6 +431,8 @@ export function matchCaseMoves(
       claim: m.claim,
       evidence_grade: m.evidence_grade,
       fact_check_grade: m.fact_check_grade ?? null,
+      pmf_grade: m.pmf_grade ?? null,
+      pmf_provisional: m.pmf_provisional ?? null,
       outcome_direction: m.outcome_direction,
       // 이식 3필드는 **그대로 옮긴다** — 여기서 다듬거나 기본값을 채우지 않는다.
       // `undefined`(조회에서 빠짐)와 null(안 적힘)을 화면이 가를 수 있게 null 로만 접는다.

@@ -10,11 +10,13 @@
 //   5. 다단계 정렬 — observed_period_start 순, NULL 은 **맨 뒤**, 같으면 created_at
 //   6. MOVE_COLS 가 실제로 그 컬럼들을 SELECT 한다 — 화면 코드만 고치고 조회를 안 고치면
 //      "내일 할 행동"이 영영 미기재로 보인다(그게 이 기능 전의 상태였다)
+//   7. PMF 컬럼 미적용(42703) 폴백 — 그 묶음만 빼고 1회 재시도하고, 다른 오류는 null 이다
+//      (안전장치가 걸린 실행을 성공으로 읽지 않는다, §7.2)
 
 import { profileToQuery, shouldPrefill, QUERY_MAX } from '../lib/cases/search.ts'
 import { matchCaseMoves } from '../lib/cases/advisor.ts'
 import { sortMovesByTime } from '../lib/cases/detail.ts'
-import { MOVE_COLS } from '../lib/cases/corpus-db.ts'
+import { MOVE_COLS, MOVE_COLS_BASE, MOVE_COLS_PMF, selectMoves } from '../lib/cases/corpus-db.ts'
 
 let pass = 0, fail = 0
 const t = (name, got, want) => {
@@ -85,6 +87,9 @@ const MOVES = [
   {
     id: 'm1', case_study_id: 's1', lever: 'PRICING', claim: '무료 상한을 두고 결제 유도',
     evidence_grade: 'B', fact_check_grade: 'B', outcome_direction: 'positive', review_status: 'approved',
+    // PMF 축(마이그 20260930000004). 컬럼이 적용된 뒤의 모양이다 — 카드가 이 값을 그대로 들고 가야
+    // 배지가 PMF 로 뜬다. 안 실으면 화면은 조용히 evidence_grade 로 폴백한다.
+    pmf_grade: 'A', pmf_provisional: true,
     transfer_note: '내일 무료 플랜에 사용량 상한 한 줄을 붙인다',
     preconditions: '사용량을 재는 계측이 이미 있어야 한다',
     observed_period_start: '2019-04-01', created_at: '2026-01-01T00:00:00Z',
@@ -119,6 +124,9 @@ const MOVES = [
   t('관측 시점도 실린다', m1.observed_period_start, '2019-04-01')
   t('빈 문자열 전제는 그대로 — 화면이 미기재로 말한다', m4.preconditions, '')
   t('케이스 열쇠가 실린다(형제 묶기용)', m1.case_study_id, 's1')
+  t('PMF 등급이 카드까지 온다(배지 1순위 축)', m1.pmf_grade, 'A')
+  t('잠정 표시도 온다 — 확정과 같게 보이면 §7.1 위반', m1.pmf_provisional, true)
+  t('PMF 등급 없는 무브는 null — undefined 로 흘리지 않는다', m4.pmf_grade, null)
 
   // 형제 무브 = 그 케이스의 **승인** 무브 전부(자기 포함). draft 는 셀러 화면에 나가지 않는다.
   t('s1 형제 무브 2개(자기 포함)', m1.siblings.length, 2)
@@ -138,10 +146,59 @@ const MOVES = [
 }
 
 // ── 6. 조회가 실제로 그 컬럼을 가져오는가 ────────────────────────
+const cols = (s) => s.split(',').map((c) => c.trim())
 for (const col of ['transfer_note', 'preconditions', 'transferability', 'observed_period_start', 'created_at']) {
-  ok(`MOVE_COLS 에 ${col} 이 있다`, MOVE_COLS.split(',').map((c) => c.trim()).includes(col))
+  ok(`MOVE_COLS 에 ${col} 이 있다`, cols(MOVE_COLS).includes(col))
+}
+for (const col of ['pmf_grade', 'pmf_provisional']) {
+  ok(`MOVE_COLS 에 ${col} 이 있다(등급 배지·랭킹의 1순위 축)`, cols(MOVE_COLS).includes(col))
+  ok(`MOVE_COLS_BASE 에는 ${col} 이 없다(폴백용 묶음)`, !cols(MOVE_COLS_BASE).includes(col))
+}
+
+// ── 7. PMF 컬럼 미적용 폴백 ──────────────────────────────────────
+// 마이그 20260930000004 는 아직 미적용이다. 없는 컬럼을 SELECT 하면 42703 으로 조회 전체가
+// 죽고, 그러면 화면이 통째로 "검색을 못 했다" 가 된다 — 정직하지만 기능이 멎는다.
+{
+  const stub = (responses) => {
+    const asked = []
+    return {
+      asked,
+      client: { from: () => ({ select: (c) => { asked.push(c); return Promise.resolve(responses.shift()) } }) },
+    }
+  }
+  const quiet = async (fn) => {
+    const [w, e] = [console.warn, console.error]
+    console.warn = () => {}; console.error = () => {}
+    try { return await fn() } finally { console.warn = w; console.error = e }
+  }
+
+  const okCase = stub([{ data: [{ id: 'm1' }], error: null }])
+  const rows = await selectMoves(okCase.client, 'selftest')
+  t('컬럼이 다 있으면 한 번에 읽는다', okCase.asked.length, 1)
+  ok('첫 조회는 PMF 컬럼까지 요청한다', okCase.asked[0].includes('pmf_grade'))
+  t('행을 그대로 돌려준다', rows.length, 1)
+
+  const missing = stub([
+    { data: null, error: { code: '42703', message: 'column case_moves.pmf_grade does not exist' } },
+    { data: [{ id: 'm1' }, { id: 'm2' }], error: null },
+  ])
+  const fell = await quiet(() => selectMoves(missing.client, 'selftest'))
+  t('★ 42703 이면 1회 재시도한다', missing.asked.length, 2)
+  t('재시도는 PMF 묶음을 뺀 컬럼으로', missing.asked[1], MOVE_COLS_BASE)
+  t('재시도가 성공하면 무브를 돌려준다(null 아님)', fell.length, 2)
+
+  const other = stub([{ data: null, error: { code: '08006', message: 'connection failure' } }])
+  const dead = await quiet(() => selectMoves(other.client, 'selftest'))
+  t('★ 컬럼 문제가 아닌 오류는 재시도하지 않는다', other.asked.length, 1)
+  t('그때는 null — "무브 0건"이 아니다', dead, null)
+
+  const bothFail = stub([
+    { data: null, error: { code: 'PGRST204', message: 'pmf_grade not found' } },
+    { data: null, error: { code: '42P01', message: 'relation does not exist' } },
+  ])
+  t('재시도까지 실패하면 null', await quiet(() => selectMoves(bothFail.client, 'selftest')), null)
 }
 
 console.log(`\n통과 ${pass}건${fail ? ` / 실패 ${fail}건` : ''}`)
 if (fail) process.exit(1)
-console.log('프로필 추천 정상 — 프리필 규칙(파라미터 우선) · 어휘 밖 거절 · 이식 4필드 도달 · 시간순(NULL 뒤).')
+console.log('프로필 추천 정상 — 프리필 규칙(파라미터 우선) · 어휘 밖 거절 · 이식 4필드 도달 · 시간순(NULL 뒤) · PMF 컬럼 미적용 폴백.')

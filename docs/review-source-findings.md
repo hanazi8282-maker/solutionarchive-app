@@ -1220,7 +1220,7 @@ todayhumor → https://www.todayhumor.co.kr/board/view.php?table=bestofbest&no=4
 | | key | HOST | 수집 단위 | robots | min_interval / cap |
 |---|---|---|---|---|---|
 | 브런치 | `brunch` | `https://brunch.co.kr` | 본문 1건 | 200 · `Crawl-delay: 5` | 5000 / 50 |
-| 클리앙 | `clien` | `https://www.clien.net` | 본문 1 + 댓글 N | **우리 UA 에겐 404** | 3000 / 100 |
+| 클리앙 | `clien` | `https://www.clien.net` | 본문 1 + 댓글 N | ~~우리 UA 에겐 404~~ **2026-09-24 재실측: 200(규칙 정상 수신, SP-027 재정정)** | 3000 / 100 |
 | 에펨코리아 | `fmkorea` | `https://www.fmkorea.com` | 본문 1 + 댓글 N(마지막 페이지) | 200 | 3000 / 100 |
 
 ### 🔴 정정 1 — 클리앙 robots 는 호스트 분열이 아니라 UA 게이팅이다

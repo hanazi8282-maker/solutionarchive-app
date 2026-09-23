@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 // 게시판 순회 모드 셀프테스트 (Z 몫: velog · damoang) — 저장한 픽스처로만 돈다. 네트워크 없음.
 //
+// 공용 규약(lib/review/types.ts 의 "게시판 순회 모드" 블록)을 이 어댑터가 지키는지 본다.
+// 규약 자체의 단위 테스트는 scripts/review-board-selftest.mjs 에 있다 — 여기서는
+// **velog 가 그 규약에 어떻게 맞춰졌는지**와 velog 만의 함정을 고정한다.
+//
 // 실측 근거는 2026-09-24, 호스트당 3요청·간격 5초 이상으로 쟀다.
 //   velog.io    ① /policy/terms  ② /tags/생산성  ③ /@papapat/…micuq9o1
 //   damoang.net ① /free  ② /free/7341567  ③ /feed
@@ -17,20 +21,23 @@
 //        (기존 픽스처를 그대로 쓴다. 댓글 확장의 근거가 여기 있다.)
 //   fixtures/review/damoang/board-list-cloudflare-403.html — damoang 목록 403 실물.
 //
-// ⚠️ 이 파일이 지키는 것 5개.
+// ⚠️ 이 파일이 지키는 것 6개.
 //
 //   1) **컨테이너 없음 = 파싱 실패다. 0건이 아니다.**(CLAUDE.md §7.1 사례 1)
-//      목록 키가 사라졌을 때 큐를 비우고 "오늘은 새 글이 없네"로 넘어가면
-//      벨로그가 구조를 바꿔도 몇 주 동안 초록불이다.
-//   2) **큐 값은 원격 데이터다 = SSRF 경계다.**
+//      목록 키가 사라졌을 때 "오늘은 새 글이 없네"로 넘어가면 벨로그가 구조를
+//      바꿔도 몇 주 동안 초록불이다.
+//   2) **큐 값은 원격 데이터다 = SSRF 경계다.**(공용 규약 4)
 //      목록이 준 문자열로 URL 을 만들기 전에 글 ref 화이트리스트를 통과시킨다.
 //      큐에 넣을 때와 요청을 만들 때 두 번 본다(커서는 DB 를 거쳐 온다).
 //   3) **댓글 마커를 `comments_count` 로 되돌리지 않는다.**
 //      마커는 `Post.comments` 의 **참조 배열 길이**다. 실측에서 전자는 화해되지
 //      않고(11 ≠ 6+4) 후자는 정확히 화해된다(참조 6 → 해소 6).
-//   4) **`last` 가 살아서 같은 글을 매일 다시 받지 않는다.**
-//      날짜가 아니라 원본 ISO 로 비교한다 — 날짜로 뭉개면 같은 날 글을 매 실행 다시 받는다.
-//   5) **damoang 게시판 모드는 없다. robots 가 아니라 서버가 막았다.**
+//   4) **커서의 `last` 가 살아남아 같은 글을 매일 다시 받지 않는다.**
+//      velog 의 글 id 는 uuid 라 순서가 없다 → 그 자리에 `released_at` 원본 ISO 를
+//      넣어 `compareBoardId` 의 문자열 폴백을 **의도적으로** 쓴다.
+//   5) **slug 은 표(`BOARDS`)에 있는 것만.** 표에 없는 slug 을 저장하면 그 타깃은
+//      매일 밤 0요청으로 끝난다(아무 에러도 안 난다).
+//   6) **damoang 게시판 모드는 없다. robots 가 아니라 서버가 막았다.**
 //      그 구분이 사라지면 다음 사람이 robots 를 다시 읽는 헛일을 한다.
 
 import fs from 'node:fs'
@@ -38,8 +45,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   velogAdapter,
-  parseBoardRef,
-  readBoardCursor,
+  BOARDS,
+  boardList,
   readBoardList,
   parseRefParts,
   HOST as VELOG_HOST,
@@ -47,7 +54,9 @@ import {
 } from '../lib/review/adapters/velog.ts'
 import { damoangAdapter, parseProductRef as parseDamoangRef } from '../lib/review/adapters/damoang.ts'
 import { buildProductRef } from '../lib/review/target-ref.ts'
+import { BOARD_QUEUE_MAX, decodeBoardCursor, parseBoardRef } from '../lib/review/types.ts'
 import { MAX_PAGES_PER_TARGET, PRODUCT_TOKEN, runCollection } from '../lib/review/runner.ts'
+import { MAX_CONSECUTIVE_EMPTY } from '../lib/review/health.ts'
 import { looksLikeMarkup, parseRobots, robotsVerdict } from '../lib/review/robots.ts'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -102,9 +111,12 @@ function blobPage({ username, slug, comments = [], releasedAt = '2026-09-20T15:0
 }
 
 // 태그 `생산성` — 2026-09-24 실측 10건 중 8건이 AI·SaaS 도구 후기였다.
-const TAG = '%EC%83%9D%EC%82%B0%EC%84%B1'
-const BOARD_REF = `board:tag:${TAG}`
-const LIST_URL = `${VELOG_HOST}/tags/${TAG}`
+const SLUG = 'productivity'
+const BOARD_REF = `board:${SLUG}`
+const LIST_PATH = '/tags/%EC%83%9D%EC%82%B0%EC%84%B1'
+const LIST_URL = `${VELOG_HOST}${LIST_PATH}`
+const POST_REF = 'url:/@doondoony/mechanical-keyboards'
+const POST_PATH = '/@doondoony/mechanical-keyboards'
 
 const target = (over = {}) => ({
   id: 't1',
@@ -116,6 +128,7 @@ const target = (over = {}) => ({
   consecutiveEmpty: 0,
   ...over,
 })
+const cur = (q, last = null) => JSON.stringify({ q, last })
 
 // ══ robots — 실측 원문으로 코드 판정을 돌린다 ═══════════════════════
 //
@@ -129,7 +142,7 @@ const target = (over = {}) => ({
   t('robots(velog): 그룹 1개', groups.length, 1)
   t('robots(velog): 규칙 0개', groups[0].rules.length, 0)
 
-  const list = robotsVerdict(groups, '/tags/%EC%83%9D%EC%82%B0%EC%84%B1', PRODUCT_TOKEN)
+  const list = robotsVerdict(groups, LIST_PATH, PRODUCT_TOKEN)
   t('robots(velog): 목록 경로 allowed', list.state, 'allowed')
   // ⚠️ 이 문장이 사라지면 다음 사람이 "robots 가 허용해 줬다"를 채택 근거로 쓴다.
   //    실제 채택 근거는 약관이다(velog.ts 헤더 · 2026-09-24 재확인 4,193자 동일).
@@ -164,64 +177,54 @@ const target = (over = {}) => ({
   t('robots(damoang): ?page= 는 규칙상 disallowed (러너는 못 본다 — SP-026)', robotsVerdict(groups, '/free?page=2', PRODUCT_TOKEN).state, 'disallowed')
 }
 
-// ══ 지킬 것 5: damoang 게시판 모드는 없다 ══════════════════════════
+// ══ 지킬 것 6: damoang 게시판 모드는 없다 ══════════════════════════
 {
   const body = fx('damoang', 'board-list-cloudflare-403.html')
-  // 응답 실물이 목록이 아니라 챌린지다. 200 이 아니라 403 이었다 — 상태 코드가
-  // 아니라 본문 표지로도 확인한다(§7.1: 상태 코드로 성공을 판정하지 마라).
+  // 응답 실물이 목록이 아니라 챌린지다. 403 이었다 — 상태 코드가 아니라 본문
+  // 표지로도 확인한다(§7.1: 상태 코드로 성공을 판정하지 마라).
   ok('damoang: 목록 응답이 Cloudflare 챌린지다', body.includes('Just a moment...'))
   ok('damoang: challenges.cloudflare.com 이 들어 있다', body.includes('challenges.cloudflare.com'))
   ok('damoang: 글 링크가 0건이다 (파싱할 목록이 아니다)', !/href="\/free\/\d+"/.test(body))
 
   // 어댑터가 `board:` 를 아예 안 받는다. 받아 두면 0요청 타깃이 조용히 생긴다.
-  t('damoang: board: ref 는 파싱되지 않는다', parseDamoangRef('board:free'), null)
-  t('damoang: board: 타깃은 요청을 만들지 않는다', damoangAdapter.nextRequest({ ...target({ sourceKey: 'damoang', productRef: 'board:free' }) }), null)
+  t('damoang: board: ref 는 글 ref 로 파싱되지 않는다', parseDamoangRef('board:free'), null)
+  t('damoang: board: 타깃은 요청을 만들지 않는다', damoangAdapter.nextRequest(target({ sourceKey: 'damoang', productRef: 'board:free' })), null)
   t('damoang: 등록 빌더도 거절한다', buildProductRef('damoang', 'board:free').ok, false)
   t('damoang: 목록 URL 등록도 거절한다 (글 경로가 아니다)', buildProductRef('damoang', 'https://damoang.net/free').ok, false)
   // 기존 글 경로는 멀쩡하다 — 게시판 모드를 못 만든 것이 소스 전체의 문제가 아니다.
   t('damoang: 글 ref 는 그대로 동작한다', parseDamoangRef('url:/free/7341567'), '/free/7341567')
 }
 
-// ══ 지킬 것 2: board ref 파싱 = SSRF 경계 ══════════════════════════
+// ══ 지킬 것 5: slug 은 표에 있는 것만 ══════════════════════════════
 {
-  const b = parseBoardRef(BOARD_REF)
-  t('boardref: token 은 인코딩된 그대로', b.token, TAG)
-  t('boardref: tag 는 디코딩해서 둔다', b.tag, '생산성')
-  t('boardref: 목록 경로', b.path, `/tags/${TAG}`)
-  t('boardref: 대문자 접두도 허용', parseBoardRef(`BOARD:TAG:${TAG}`).token, TAG)
-  t('boardref: 앞뒤 공백 허용', parseBoardRef(`  ${BOARD_REF}  `).token, TAG)
+  t('표: 등록된 태그는 1개', Object.keys(BOARDS).length, 1)
+  t('표: productivity → 생산성', BOARDS[SLUG].tag, '생산성')
+  t('표: 목록 경로가 인코딩된 형태다', BOARDS[SLUG].list, LIST_PATH)
+  ok('표: 목록 경로에 쿼리가 없다 (1페이지만 간다)', !BOARDS[SLUG].list.includes('?'))
+
+  t('boardList: 등록 slug 은 목록 경로를 준다', boardList(BOARD_REF), LIST_PATH)
+  t('boardList: 대문자 접두도 공용 파서가 받는다', boardList(`BOARD:${SLUG}`), LIST_PATH)
+  // 표에 없는 slug — 공용 파서는 통과시키지만 이 어댑터는 순회할 수 없다.
+  t('boardList: 공용 파서는 미등록 slug 도 slug 으로 읽는다', parseBoardRef('board:free'), 'free')
+  t('boardList: 그러나 표에 없으면 null (0요청 타깃을 만들지 않는다)', boardList('board:free'), null)
+  for (const bad of ['board:', 'board:a/b', 'board:a.b', 'board:생산성', 'board:a b', 'board:a?x=1', 'url:/tags/x', '', 'tag:x']) {
+    t(`boardList: 거절 — ${JSON.stringify(bad)}`, boardList(bad), null)
+  }
+  t('boardList: 글 ref 는 게시판이 아니다', boardList(POST_REF), null)
 }
-for (const bad of [
-  'board:tag:',
-  'board:tag:a/b',
-  'board:tag:a%2fb',
-  'board:tag:%2e%2e',
-  'board:tag:a b',
-  'board:tag:a?x=1',
-  'board:tag:a#b',
-  'board:tag:a\\b',
-  'board:tag:https://evil.example/x',
-  'board:trending', // 미구현 — 실측하지 않았다
-  'board:free',
-  'board:',
-  'url:/tags/x',
-  'tag:x',
-  '',
-]) {
-  t(`boardref: 거절 — ${JSON.stringify(bad)}`, parseBoardRef(bad), null)
-}
-t('boardref: 깨진 퍼센트 시퀀스는 null', parseBoardRef('board:tag:a%zz'), null)
-t('boardref: 120자를 넘으면 null', parseBoardRef(`board:tag:${'a'.repeat(121)}`), null)
 
 // ── 등록 빌더가 어댑터와 같은 규칙인가 ────────────────────────────
 t('빌더: 태그 목록 URL 을 board ref 로 바꾼다', buildProductRef('velog', `${VELOG_HOST}/tags/생산성`).productRef, BOARD_REF)
-t('빌더: board: 값을 그대로 넣어도 된다', buildProductRef('velog', BOARD_REF).productRef, BOARD_REF)
+t('빌더: board:<slug> 를 그대로 넣어도 된다', buildProductRef('velog', BOARD_REF).productRef, BOARD_REF)
+t('빌더: 표에 없는 태그 URL 은 거절', buildProductRef('velog', `${VELOG_HOST}/tags/%EA%B0%9C%EB%B0%9C`).ok, false)
+t('빌더: 표에 없는 slug 도 거절', buildProductRef('velog', 'board:free').ok, false)
 t('빌더: 남의 호스트 /tags/ 는 거절', buildProductRef('velog', 'https://evil.example/tags/x').ok, false)
 t('빌더: 태그가 비면 거절', buildProductRef('velog', `${VELOG_HOST}/tags/`).ok, false)
+ok('빌더: 거절 문구가 등록된 태그를 알려 준다', buildProductRef('velog', 'board:free').error.includes('생산성'))
 // ⚠️ 저장값을 어댑터가 되읽지 못하면 그 타깃은 매일 밤 0요청으로 끝난다(아무 에러도 없다).
-ok('빌더: 저장값을 어댑터가 되읽는다', parseBoardRef(buildProductRef('velog', `${VELOG_HOST}/tags/생산성`).productRef) !== null)
+ok('빌더: 저장값을 어댑터가 되읽는다', boardList(buildProductRef('velog', `${VELOG_HOST}/tags/생산성`).productRef) !== null)
 // 글 ref 경로는 그대로 살아 있다 — 한 소스가 두 형태를 받는다.
-t('빌더: 글 URL 은 여전히 url: 로 간다', buildProductRef('velog', `${VELOG_HOST}/@doondoony/mechanical-keyboards`).productRef, 'url:/@doondoony/mechanical-keyboards')
+t('빌더: 글 URL 은 여전히 url: 로 간다', buildProductRef('velog', `${VELOG_HOST}${POST_PATH}`).productRef, POST_REF)
 
 // ══ 슬러그 길이 상한 — 실측으로 올린 값이다 ════════════════════════
 {
@@ -235,37 +238,20 @@ t('빌더: 글 URL 은 여전히 url: 로 간다', buildProductRef('velog', `${V
   t('슬러그: 길어도 / 가 들어가면 null', parseRefParts(`url:/@a/${'b'.repeat(400)}/c`), null)
 }
 
-// ══ 커서 규약 ══════════════════════════════════════════════════════
-{
-  t('커서: null 은 빈 큐', readBoardCursor(null).q.length, 0)
-  t('커서: null 은 last 없음', readBoardCursor(null).last, null)
-  const c = readBoardCursor('{"q":["/@a/b","/@c/d"],"last":"2026-09-22T08:15:11.419Z"}')
-  t('커서: 큐 2건', c.q.length, 2)
-  t('커서: last 를 그대로 읽는다', c.last, '2026-09-22T08:15:11.419Z')
-  // 쓰레기 커서에 throw 하지 않는다. 러너가 그 타깃 하나 때문에 죽으면 안 된다.
-  for (const bad of ['', 'not json', '[]', '{}', 'null', '{"q":"x"}', '{"q":[1,2]}', '{"last":"어제"}', '{"last":"2026-09-22"}']) {
-    let threw = false
-    let got = null
-    try {
-      got = readBoardCursor(bad)
-    } catch {
-      threw = true
-    }
-    t(`커서: 쓰레기(${JSON.stringify(bad)}) throw 안 함`, threw, false)
-    ok(`커서: 쓰레기(${JSON.stringify(bad)}) 는 빈 큐`, got && got.q.length === 0)
-  }
-  // ⚠️ 날짜만 온 last 를 받아 주면 ISO 비교가 어긋난다 — 형식을 추정하지 않는다.
-  t('커서: 날짜만 온 last 는 버린다', readBoardCursor('{"last":"2026-09-22"}').last, null)
-}
-
 // ══ 목록 파싱 ══════════════════════════════════════════════════════
 {
   const body = fx('velog', 'board-tag.html')
   const got = readBoardList(body)
   t('목록: 글 10건', got.items.length, 10)
   t('목록: 못 읽은 항목 0건', got.unreadable, 0)
-  t('목록: 최신이 맨 앞 (목록 순서 그대로)', got.items[0].releasedAt, '2026-09-22T08:15:11.419Z')
-  ok('목록: 내림차순이다', got.items.every((x, i) => i === 0 || got.items[i - 1].releasedAt >= x.releasedAt))
+  ok('목록: 10건이 큐 상한 안이다', got.items.length <= BOARD_QUEUE_MAX)
+  // 지킬 것 4 — id 자리에 released_at 원본 ISO 가 들어간다(uuid 는 순서가 없다).
+  t('목록: id 가 released_at 원본 ISO 다', got.items[0].id, '2026-09-22T08:15:11.419Z')
+  ok('목록: id 가 전부 ISO 형식이다', got.items.every((x) => /^\d{4}-\d{2}-\d{2}T/.test(x.id)))
+  ok('목록: id 가 내림차순이다 (문자열 비교가 곧 시각 비교)', got.items.every((x, i) => i === 0 || got.items[i - 1].id > x.id))
+  // writtenAt 은 KST 날짜 — 목록에 연도가 있으므로 lastReviewAt 필터에 써도 안전하다.
+  t('목록: writtenAt 은 KST 날짜다 (08:15Z → 같은 날 17:15 KST)', got.items[0].writtenAt, '2026-09-22')
+  ok('목록: writtenAt 이 전부 채워졌다', got.items.every((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.writtenAt)))
   ok('목록: 경로가 전부 /@ 로 시작한다', got.items.every((x) => x.path.startsWith('/@')))
   // 지킬 것 2 — 목록이 준 경로가 전부 글 ref 화이트리스트를 통과한다.
   ok('목록: 경로가 전부 글 ref 로 되읽힌다', got.items.every((x) => parseRefParts(`url:${x.path}`) !== null))
@@ -286,26 +272,31 @@ t('빌더: 글 URL 은 여전히 url: 로 간다', buildProductRef('velog', `${V
 }
 {
   // 지킬 것 1 — 컨테이너 없음은 "0건"이 아니다.
-  const r = velogAdapter.parse(fx('velog', 'board-tag-missing-posts.html'), { productRef: BOARD_REF, cursor: null, page: 0 })
-  t('컨테이너소실: readBoardList 가 null', readBoardList(fx('velog', 'board-tag-missing-posts.html')), null)
+  const body = fx('velog', 'board-tag-missing-posts.html')
+  t('컨테이너소실: readBoardList 가 null', readBoardList(body), null)
+
+  const r = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: null, lastReviewAt: null })
   t('컨테이너소실: parseFailures 1', r.parseFailures, 1)
   t('컨테이너소실: 적재 0건', r.reviews.length, 0)
-  // ⚠️ **커서를 지우지 않는다.** 지우면 다음 실행이 목록 전체를 다시 큐에 넣는다.
-  const keep = JSON.stringify({ q: ['/@a/b'], last: '2026-09-01T00:00:00.000Z' })
-  const r2 = velogAdapter.parse(fx('velog', 'board-tag-missing-posts.html'), { productRef: BOARD_REF, cursor: keep, page: 0 })
-  t('컨테이너소실: 큐를 유지한다', readBoardCursor(r2.nextCursor).q.length, 1)
-  t('컨테이너소실: last 를 유지한다', readBoardCursor(r2.nextCursor).last, '2026-09-01T00:00:00.000Z')
+  t('컨테이너소실: 이번 실행만 끊는다 (pauseRun)', r.pauseRun, true)
+  // ⚠️ **`last` 를 버리지 않는다.** 지우면 다음 실행이 목록 전체를 다시 큐에 넣는다.
+  //    (큐가 비어 있을 때만 이 경로로 온다 — 큐가 있으면 그 응답은 글 페이지다.)
+  const r2 = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: cur([], '2026-09-01T00:00:00.000Z'), lastReviewAt: null })
+  t('컨테이너소실: last 를 유지한다', decodeBoardCursor(r2.nextCursor).last, '2026-09-01T00:00:00.000Z')
+  t('컨테이너소실: 큐는 그대로 비어 있다', decodeBoardCursor(r2.nextCursor).q.length, 0)
+  t('컨테이너소실: 이때도 pauseRun', r2.pauseRun, true)
 }
 for (const [name, body] of [
   ['빈 문자열', ''],
   ['HTML 뿐', '<html><body>hi</body></html>'],
   ['플라이트 마커만', '<script>self.__next_f.push([1,"x"])</script>'],
   ['깨진 JSON', '<script>self.__next_f.push([1,"{\\"posts\\":[{ broken"])</script>'],
+  ['빈 목록 배열', '<script>self.__next_f.push([1,"{\\"posts\\":[]}"])</script>'],
 ]) {
   let threw = false
   let r = null
   try {
-    r = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: null, page: 0 })
+    r = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: null, lastReviewAt: null })
   } catch {
     threw = true
   }
@@ -317,53 +308,58 @@ for (const [name, body] of [
 // ══ 지킬 것 4: last 가 살아서 같은 글을 다시 받지 않는다 ═══════════
 {
   const body = fx('velog', 'board-tag.html')
-  const first = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: null, page: 0 })
-  const c1 = readBoardCursor(first.nextCursor)
+  const first = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: null, lastReviewAt: null })
+  const c1 = decodeBoardCursor(first.nextCursor)
   t('증분: 첫 실행은 10건 전부 큐에 넣는다', c1.q.length, 10)
   t('증분: last 는 목록의 가장 최근 released_at', c1.last, '2026-09-22T08:15:11.419Z')
   t('증분: 목록 페이지는 리뷰를 내지 않는다', first.reviews.length, 0)
+  t('증분: 큐가 남았으니 이번 실행은 계속한다', first.pauseRun, false)
 
   // 같은 목록을 다시 받으면 새 글이 0건이다.
-  const second = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: JSON.stringify({ q: [], last: c1.last }), page: 0 })
-  t('증분: 두 번째 실행은 0건', readBoardCursor(second.nextCursor).q.length, 0)
-  t('증분: last 는 그대로', readBoardCursor(second.nextCursor).last, c1.last)
+  const second = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: cur([], c1.last), lastReviewAt: null })
+  t('증분: 두 번째 실행은 0건', decodeBoardCursor(second.nextCursor).q.length, 0)
+  t('증분: last 는 그대로', decodeBoardCursor(second.nextCursor).last, c1.last)
   t('증분: 그리고 그것을 실패로 세지 않는다', second.parseFailures, 0)
+  t('증분: 새 글 0건이면 이번 실행 몫 종료', second.pauseRun, true)
 
   // last 가 목록 중간(09-08 09:02)이면 그보다 새것만 = 09-22 · 09-13 · 09-11.
-  const mid = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: JSON.stringify({ q: [], last: '2026-09-08T09:02:06.743Z' }), page: 0 })
-  t('증분: last 중간 → 그보다 새 글 3건', readBoardCursor(mid.nextCursor).q.length, 3)
+  const mid = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: cur([], '2026-09-08T09:02:06.743Z'), lastReviewAt: null })
+  t('증분: last 중간 → 그보다 새 글 3건', decodeBoardCursor(mid.nextCursor).q.length, 3)
   // ⚠️ **날짜가 아니라 원본 ISO 로 비교한다.** 같은 날 09:02 에 올라온 글이 있어서
   //    last 를 그날 00:00 으로 두면 4건이 된다(위와 1건 차이). 날짜 단위로 뭉개면
   //    이 1건을 매 실행 다시 받거나(>=) 영영 놓친다(>).
-  const sameDay = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: JSON.stringify({ q: [], last: '2026-09-08T00:00:00.000Z' }), page: 0 })
-  t('증분: 같은 날 더 늦은 글은 새 글이다 (3건 → 4건)', readBoardCursor(sameDay.nextCursor).q.length, 4)
+  const sameDay = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: cur([], '2026-09-08T00:00:00.000Z'), lastReviewAt: null })
+  t('증분: 같은 날 더 늦은 글은 새 글이다 (3건 → 4건)', decodeBoardCursor(sameDay.nextCursor).q.length, 4)
 
-  // 이미 큐에 있는 경로를 두 번 넣지 않는다.
-  const dup = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: JSON.stringify({ q: [c1.q[0]], last: null }), page: 0 })
-  t('증분: 큐 중복을 만들지 않는다', readBoardCursor(dup.nextCursor).q.length, 10)
+  // ⚠️ uuid 를 last 로 썼다면 이게 깨진다 — 문자열 비교에 순서가 없으니까.
+  //    ISO 를 쓰는 선택이 여기서 값을 낸다.
+  ok('증분: last 가 ISO 라 시각 비교가 성립한다', '2026-09-22T08:15:11.419Z' > '2026-09-08T09:02:06.743Z')
+
+  // ParseContext.lastReviewAt 필터 — 목록에 연도가 있어서 쓸 수 있다.
+  const byDate = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: null, lastReviewAt: '2026-09-11' })
+  t('증분: lastReviewAt 보다 오래된 글은 요청하지 않는다 (09-11 이상 3건)', decodeBoardCursor(byDate.nextCursor).q.length, 3)
+  // last 는 걸러진 글까지 포함해 올린다 — 안 그러면 제자리다(공용 nextBoardCursor).
+  t('증분: 걸러도 last 는 목록 최대치로 올라간다', decodeBoardCursor(byDate.nextCursor).last, '2026-09-22T08:15:11.419Z')
 }
 
-// ══ nextRequest — 페이지 0 = 목록, 1~ = 큐 ═════════════════════════
+// ══ nextRequest — 큐가 비면 목록, 있으면 큐 맨 앞(공용 규약 1) ══════
 {
-  t('요청: page 0 은 목록', velogAdapter.nextRequest(target(), 0).url, LIST_URL)
-  // 큐가 남아 있어도 page 0 이면 목록을 다시 받는다(실행당 1회). 새 글을 받는 통로다.
-  const withQ = JSON.stringify({ q: ['/@a/b'], last: null })
-  t('요청: 큐가 있어도 page 0 은 목록', velogAdapter.nextRequest(target({ cursor: withQ }), 0).url, LIST_URL)
-  t('요청: page 1 은 큐의 맨 앞', velogAdapter.nextRequest(target({ cursor: withQ }), 1).url, `${VELOG_HOST}/@a/b`)
-  t('요청: 큐가 비면 요청 없음 = 이번 실행 끝', velogAdapter.nextRequest(target({ cursor: '{"q":[],"last":null}' }), 1), null)
-  ok('요청: 쿼리스트링을 만들지 않는다', !velogAdapter.nextRequest(target(), 0).url.includes('?'))
-  ok('요청: /graphql 을 만들지 않는다 (POST 는 러너 GET 계약 밖)', !velogAdapter.nextRequest(target(), 0).url.includes('graphql'))
-  t('요청: 호스트가 velog.io 와 정확히 일치', new URL(velogAdapter.nextRequest(target(), 0).url).host, 'velog.io')
+  t('요청: 큐가 비면 목록', velogAdapter.nextRequest(target()).url, LIST_URL)
+  t('요청: 커서가 있어도 큐가 비면 목록', velogAdapter.nextRequest(target({ cursor: cur([], '2026-09-01T00:00:00.000Z') })).url, LIST_URL)
+  t('요청: 큐가 있으면 맨 앞 글', velogAdapter.nextRequest(target({ cursor: cur(['/@a/b']) })).url, `${VELOG_HOST}/@a/b`)
+  ok('요청: 쿼리스트링을 만들지 않는다', !velogAdapter.nextRequest(target()).url.includes('?'))
+  ok('요청: /graphql 을 만들지 않는다 (POST 는 러너 GET 계약 밖)', !velogAdapter.nextRequest(target()).url.includes('graphql'))
+  t('요청: 호스트가 velog.io 와 정확히 일치', new URL(velogAdapter.nextRequest(target()).url).host, 'velog.io')
+  t('요청: 표에 없는 slug 은 요청을 만들지 않는다', velogAdapter.nextRequest(target({ productRef: 'board:free' })), null)
 
   // 지킬 것 2 — 커서는 DB 를 거쳐 오므로 요청을 만들 때 한 번 더 본다.
-  for (const evil of ['//evil.example/x', 'https://evil.example/@a/b', '/@a/../../etc', '/@a/b?x=1', '/free/1', '/@a/b c']) {
-    t(`요청: 오염된 큐 값 거절 — ${evil}`, velogAdapter.nextRequest(target({ cursor: JSON.stringify({ q: [evil], last: null }) }), 1), null)
+  for (const evil of ['//evil.example/x', 'https://evil.example/@a/b', '/@a/../../etc', '/@a/b?x=1', '/free/1', '/@a/b c', '/@a/b\\c']) {
+    t(`요청: 오염된 큐 값 거절 — ${evil}`, velogAdapter.nextRequest(target({ cursor: cur([evil]) })), null)
   }
-
-  // page 를 안 넘기는 지금 러너 폴백 — 커서 null 이면 목록, 아니면 큐.
-  t('폴백: page 없음 + 커서 null → 목록', velogAdapter.nextRequest(target()).url, LIST_URL)
-  t('폴백: page 없음 + 큐 있음 → 큐', velogAdapter.nextRequest(target({ cursor: withQ })).url, `${VELOG_HOST}/@a/b`)
-  t('폴백: page 없음 + 큐 빔 → 요청 없음 (목록을 20번 다시 받지 않는다)', velogAdapter.nextRequest(target({ cursor: '{"q":[],"last":null}' })), null)
+  // 깨진 커서는 빈 상태로 떨어진다 = 목록부터. 던지지 않는다(공용 decodeBoardCursor).
+  for (const bad of ['not json', '[]', '{}', 'null', '{"q":"x"}', '1']) {
+    t(`요청: 깨진 커서(${bad})는 목록부터`, velogAdapter.nextRequest(target({ cursor: bad })).url, LIST_URL)
+  }
 }
 
 // ══ 지킬 것 3: 댓글 마커 ═══════════════════════════════════════════
@@ -384,14 +380,14 @@ for (const [name, body] of [
   t('마커: Post.comments 참조는 6개', post.commentRefs.length, 6)
   ok('마커: 참조가 전부 Comment: 키다', post.commentRefs.every((r) => r.startsWith('Comment:')))
 
-  const r = velogAdapter.parse(body, { productRef: 'url:/@doondoony/mechanical-keyboards', cursor: null })
+  const r = velogAdapter.parse(body, { productRef: POST_REF, cursor: null })
   t('댓글: 본문 1 + 댓글 6 = 7건', r.reviews.length, 7)
   // ⚠️ 여기가 핵심이다. comments_count 로 되돌아가면 11−10=1 이 매 실행 가짜 실패로 찍힌다.
   t('댓글: parseFailures 0 — 차액을 가짜 실패로 세지 않는다', r.parseFailures, 0)
   t('댓글: 본문의 storyId 는 null', r.reviews[0].storyId, null)
-  ok('댓글: 댓글의 storyId 는 글 경로다', r.reviews.slice(1).every((x) => x.storyId === '/@doondoony/mechanical-keyboards'))
+  ok('댓글: 댓글의 storyId 는 글 경로다', r.reviews.slice(1).every((x) => x.storyId === POST_PATH))
   ok('댓글: externalId 가 <글경로>#<uuid> 다', r.reviews.slice(1).every((x) => /^\/@doondoony\/mechanical-keyboards#[0-9a-f-]{36}$/.test(x.externalId)))
-  ok('댓글: externalId 가 전부 다르다', new Set(r.reviews.map((x) => x.externalId)).size, 7)
+  t('댓글: externalId 가 전부 다르다', new Set(r.reviews.map((x) => x.externalId)).size, 7)
   // 집계가 아니라 내용을 본다(§7.1 사례 4).
   ok('댓글: 실제 댓글 본문이 들어 있다', r.reviews.some((x) => x.text.includes('글작성은 노션으로 하신건가요?')))
   ok('댓글: 줄바꿈이 보존된다', r.reviews.some((x) => x.storyId && x.text.includes('\n')))
@@ -403,49 +399,64 @@ for (const [name, body] of [
 
   // 참조가 풀리지 않으면 그게 "보이는데 못 읽은 수"다.
   const broken = body.replace('"Comment:bdcd4db0-909b-11e9-a381-cdb19866bede":', '"Cmt:bdcd4db0-909b-11e9-a381-cdb19866bede":')
-  const rb = velogAdapter.parse(broken, { productRef: 'url:/@doondoony/mechanical-keyboards', cursor: null })
+  const rb = velogAdapter.parse(broken, { productRef: POST_REF, cursor: null })
   t('댓글: 참조 미해소 1건을 실패로 센다', rb.parseFailures, 1)
   t('댓글: 나머지는 그대로 적재한다', rb.reviews.length, 6)
 }
 {
   // 댓글 0건은 고장이 아니다. 실측 /@papapat/…micuq9o1 이 `comments_count: 0` ·
   // `comments: []` · 루트 Comment 키 0개였다(2026-09-24 요청 ③).
-  const body = blobPage({ username: 'papapat', slug: 'zero', comments: [] })
-  const r = velogAdapter.parse(body, { productRef: 'url:/@papapat/zero', cursor: null })
+  const r = velogAdapter.parse(blobPage({ username: 'papapat', slug: 'zero', comments: [] }), {
+    productRef: 'url:/@papapat/zero',
+    cursor: null,
+  })
   t('댓글0건: 본문만 적재', r.reviews.length, 1)
   t('댓글0건: 실패가 아니다', r.parseFailures, 0)
   // 반대쪽 — 참조는 있는데 루트가 통째로 없으면 실패다(0건과 다른 사건).
-  const gone = blobPage({ username: 'papapat', slug: 'zero', comments: [{ id: 'x1', text: 'hi' }] }).replace(
-    '"Comment:x1":',
-    '"Cmt:x1":',
-  )
+  const gone = blobPage({ username: 'papapat', slug: 'zero', comments: [{ id: 'x1', text: 'hi' }] }).replace('"Comment:x1":', '"Cmt:x1":')
   const rg = velogAdapter.parse(gone, { productRef: 'url:/@papapat/zero', cursor: null })
   t('댓글0건: 참조만 남고 루트가 없으면 실패', rg.parseFailures, 1)
   t('댓글0건: 그때도 본문은 적재한다', rg.reviews.length, 1)
+  // 삭제된 댓글은 건너뛰되 실패로 세지 않는다.
+  const del = blobPage({
+    username: 'papapat',
+    slug: 'zero',
+    comments: [{ id: 'x1', text: '지워짐', deleted: true }, { id: 'x2', text: '남음' }],
+  })
+  const rd = velogAdapter.parse(del, { productRef: 'url:/@papapat/zero', cursor: null })
+  t('댓글삭제: 본문 1 + 살아 있는 댓글 1', rd.reviews.length, 2)
+  t('댓글삭제: 실패로 세지 않는다', rd.parseFailures, 0)
 }
 
 // ══ 게시판 모드 글 페이지 ══════════════════════════════════════════
 {
   const body = fx('velog', 'post.html')
-  const cursor = JSON.stringify({ q: ['/@doondoony/mechanical-keyboards', '/@a/b'], last: '2026-09-01T00:00:00.000Z' })
-  const r = velogAdapter.parse(body, { productRef: BOARD_REF, cursor, page: 1 })
+  const c = cur([POST_PATH, '/@a/b'], '2026-09-01T00:00:00.000Z')
+  const r = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: c })
   t('글페이지: 본문 1 + 댓글 6', r.reviews.length, 7)
-  t('글페이지: 큐에서 하나 뺀다', readBoardCursor(r.nextCursor).q.length, 1)
-  t('글페이지: 남은 것은 다음 글', readBoardCursor(r.nextCursor).q[0], '/@a/b')
-  t('글페이지: last 는 건드리지 않는다', readBoardCursor(r.nextCursor).last, '2026-09-01T00:00:00.000Z')
-  t('글페이지: externalId 는 큐의 경로다', r.reviews[0].externalId, '/@doondoony/mechanical-keyboards')
+  t('글페이지: 큐에서 하나 뺀다', decodeBoardCursor(r.nextCursor).q.length, 1)
+  t('글페이지: 남은 것은 다음 글', decodeBoardCursor(r.nextCursor).q[0], '/@a/b')
+  t('글페이지: last 는 건드리지 않는다', decodeBoardCursor(r.nextCursor).last, '2026-09-01T00:00:00.000Z')
+  t('글페이지: 큐가 남았으니 계속한다', r.pauseRun, false)
+  t('글페이지: externalId 는 큐의 경로다', r.reviews[0].externalId, POST_PATH)
+
+  // 마지막 글이면 이번 실행 몫 종료 — 커서(`last`)는 남는다.
+  const lastOne = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: cur([POST_PATH], '2026-09-01T00:00:00.000Z') })
+  t('글페이지: 마지막 글에서 pauseRun', lastOne.pauseRun, true)
+  t('글페이지: 그래도 커서를 낸다 (last 보존)', decodeBoardCursor(lastOne.nextCursor).last, '2026-09-01T00:00:00.000Z')
+  ok('글페이지: 커서가 null 이 아니다 — null 이면 last 가 사라진다', lastOne.nextCursor !== null)
 
   // 스코프 — 큐의 글과 응답의 글이 다르면 한 건도 적재하지 않는다(SP-031).
-  const wrong = JSON.stringify({ q: ['/@doondoony/posix-eol'], last: null })
-  const rw = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: wrong, page: 1 })
+  const rw = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: cur(['/@doondoony/posix-eol']) })
   t('글페이지: 다른 글이 오면 적재 0건', rw.reviews.length, 0)
   ok('글페이지: 조용히 넘어가지 않는다', rw.parseFailures > 0)
-  t('글페이지: 그래도 큐는 전진한다 (같은 글에 갇히지 않는다)', readBoardCursor(rw.nextCursor).q.length, 0)
+  t('글페이지: 그래도 큐는 전진한다 (같은 글에 갇히지 않는다)', decodeBoardCursor(rw.nextCursor).q.length, 0)
 
-  // 큐가 빈데 글 본문이 왔다 = 러너와 어긋났다.
-  const empty = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: '{"q":[],"last":null}', page: 1 })
-  t('글페이지: 큐가 비었으면 적재 0건', empty.reviews.length, 0)
-  t('글페이지: 그것을 실패로 보고한다', empty.parseFailures, 1)
+  // 큐 값이 오염됐으면 스코프를 모르는 채로 적재하지 않는다.
+  const rp = velogAdapter.parse(body, { productRef: BOARD_REF, cursor: cur(['//evil.example/x']) })
+  t('글페이지: 오염된 큐 값이면 적재 0건', rp.reviews.length, 0)
+  t('글페이지: 그것을 실패로 보고한다', rp.parseFailures, 1)
+  t('글페이지: 큐는 전진해서 갇히지 않는다', decodeBoardCursor(rp.nextCursor).q.length, 0)
 }
 
 // ══ 러너와 붙여 실제로 돌린다 (§7.1 사례 5: 부품 테스트로 끝내지 않는다) ══
@@ -453,14 +464,13 @@ for (const [name, body] of [
   const listBody = fx('velog', 'board-tag.html')
   const robots = '# https://www.robotstxt.org/robotstxt.html\nUser-agent: *\n'
   let clock = Date.parse('2026-09-24T02:00:00+09:00')
-  const urls = []
+  let urls = []
   const inputs = []
   const seenFp = new Map()
-  const gaps = []
 
   // ⚠️ 스토어를 **상태를 가진 것으로** 만든다. 매번 새 타깃을 돌려주는 가짜
   //    스토어는 "다음 실행이 커서를 이어받는다"를 절대 못 본다 — 실행 간 규약이
-  //    바로 이 트랙의 핵심인데 그게 테스트에서 통째로 빠진다(§7.1 사례 5).
+  //    이 트랙의 핵심인데 그게 테스트에서 통째로 빠진다(§7.1 사례 5).
   const row = { ...target() }
 
   const ports = {
@@ -481,6 +491,7 @@ for (const [name, body] of [
         body: blobPage({
           username: handle.slice(1),
           slug,
+          releasedAt: '2026-09-22T08:15:11.419Z',
           comments: [
             { id: `${slug.slice(0, 6)}-c1`, text: `${slug} 에 달린 댓글 1` },
             { id: `${slug.slice(0, 6)}-c2`, text: `${slug} 에 달린 댓글 2` },
@@ -521,8 +532,7 @@ for (const [name, body] of [
 
   const r = await runCollection(velogAdapter, { dryRun: false, targetLimit: 1 }, ports)
 
-  // 실행당 목록 1 + 글 ≤19. 지금 러너는 page 를 안 넘기므로 폴백 경로로 돈다:
-  // 커서 null → 목록 1회 → 큐 10건 → 글 10회. 합 11요청.
+  // 실행당 목록 1 + 글 10 = 11요청.
   t('러너: 요청 11건 (목록 1 + 글 10)', urls.length, 11)
   t('러너: 첫 요청이 목록', urls[0], LIST_URL)
   t('러너: 목록 요청은 1회뿐', urls.filter((u) => u.includes('/tags/')).length, 1)
@@ -534,43 +544,42 @@ for (const [name, body] of [
   ok('러너: 간격 5초가 실제로 적용됐다', clock - Date.parse('2026-09-24T02:00:00+09:00') >= 5000 * 10)
   // ⚠️ §7.2 — 상한에 걸려 끝난 것을 정상으로 읽지 않는다.
   ok('러너: 페이지 상한으로 잘린 게 아니다', !r.perTarget[0].outcome.includes('페이지 상한'))
+  ok('러너: 이번 실행 몫 종료로 끝났다', r.perTarget[0].outcome.includes('이번 실행 몫 종료'))
   t('러너: robots 로 건너뛴 요청 0건', r.robotsSkips, 0)
   t('러너: 파싱 실패 0', r.stats.parseFailures, 0)
   t('러너: health ok', r.health.health, 'ok')
   // 글 10건 × (본문 1 + 댓글 2) = 30건.
   t('러너: 30건 적재 (글 10 × 본문1+댓글2)', inputs.length, 30)
   t('러너: 지문도 30개', seenFp.size, 30)
-  t('러너: 큐를 다 비웠다', readBoardCursor(row.cursor).q.length, 0)
-  t('러너: last 가 남았다', readBoardCursor(row.cursor).last, '2026-09-22T08:15:11.419Z')
 
-  // 재실행 — 같은 목록이면 새로 적재할 것이 없다.
+  // ⚠️ 여기가 이 블록의 존재 이유다. **커서가 실행 간에 살아남는가.**
+  t('러너: 타깃이 열려 있다 (닫히지 않았다)', row.status, 'active')
+  t('러너: 큐를 다 비웠다', decodeBoardCursor(row.cursor).q.length, 0)
+  t('러너: last 가 남았다', decodeBoardCursor(row.cursor).last, '2026-09-22T08:15:11.419Z')
+
+  // ── 두 번째 실행 — 목록만 다시 받고 새 글이 없으니 끝난다 ─────────
   const before = inputs.length
-  urls.length = 0
-  const r2 = await runCollection(velogAdapter, { dryRun: false, targetLimit: 1 }, ports)
-  t('러너: 재실행에서 새로 적재된 것 0건', inputs.length - before, 0)
+  urls = []
+  await runCollection(velogAdapter, { dryRun: false, targetLimit: 1 }, ports)
+  t('재실행: 목록 1회만 요청한다 (같은 글을 다시 받지 않는다)', urls.length, 1)
+  t('재실행: 그 1회가 목록이다', urls[0], LIST_URL)
+  t('재실행: 새로 적재된 것 0건', inputs.length - before, 0)
+  t('재실행: last 가 그대로다', decodeBoardCursor(row.cursor).last, '2026-09-22T08:15:11.419Z')
+  t('재실행: 연속 0건 1회', row.consecutiveEmpty, 1)
+  t('재실행: 아직 열려 있다', row.status, 'active')
 
-  // ── 여기부터는 **러너 쪽 미비**를 고정한다(에이전트 X 몫) ──────────
-  //
-  // ⛔ 아래 두 줄은 **X 의 러너 변경이 머지되면 실패해야 한다. 그게 신호다.**
-  //    "둘 다 허용"으로 느슨하게 쓰면 규약이 바뀐 것을 아무도 모른다(§7.1).
-  if (row.status === 'exhausted') {
-    gaps.push(
-      'runner.ts `if (!req)` 가 status 를 literal `exhausted` 로 박는다(`cursor===null` 분기만 endStatus 를 쓴다). ' +
-        '게시판 타깃은 커서를 계속 들고 있어 항상 이 분기로 끝나므로 incrementalOnly 가 무력화된다 → `status = endStatus` 로 바꿔야 한다',
-    )
+  // ⚠️ 닫는 것은 **연속 0건 안전장치 하나뿐**이다. 그게 실제로 닫는지 본다 —
+  //    안 닫으면 성과 없는 타깃이 영원히 매일 목록을 1회씩 받는다.
+  for (let i = row.consecutiveEmpty; i < MAX_CONSECUTIVE_EMPTY; i++) {
+    urls = []
+    await runCollection(velogAdapter, { dryRun: false, targetLimit: 1 }, ports)
   }
-  t('러너미비①: 지금은 exhausted 로 닫힌다 (X 머지 후 active 여야 한다)', row.status, 'exhausted')
-  if (r2.targetsVisited === 0) {
-    gaps.push(
-      'nextRequest(target, page) · ParseContext.page 가 없어 "실행 시작(목록을 받아야 한다)"과 "큐 소진(이번 실행 끝)"을 ' +
-        '구분할 수 없다(둘 다 큐가 비어 있다). 위 ① 를 고쳐 active 로 남겨도 두 번째 실행이 0요청으로 끝난다',
-    )
-  }
-  t('러너미비②: 닫혀서 두 번째 실행은 타깃을 집지도 못한다', r2.targetsVisited, 0)
-  t('러너미비②: 그래서 요청이 0건이다', urls.length, 0)
-
-  console.log('')
-  for (const g of gaps) console.log(`⚠️  러너 변경 필요(에이전트 X): ${g}`)
+  t(`안전장치: 연속 ${MAX_CONSECUTIVE_EMPTY}회 0건이면 닫는다`, row.status, 'exhausted')
+  t('안전장치: 닫힐 때도 last 는 남는다 (사람이 되살리면 이어간다)', decodeBoardCursor(row.cursor).last, '2026-09-22T08:15:11.419Z')
+  urls = []
+  const after = await runCollection(velogAdapter, { dryRun: false, targetLimit: 1 }, ports)
+  t('안전장치: 닫힌 뒤에는 타깃을 집지 않는다', after.targetsVisited, 0)
+  t('안전장치: 요청도 0건', urls.length, 0)
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
@@ -578,4 +587,4 @@ if (fail) {
   console.log('게시판 모드가 틀렸다.')
   process.exit(1)
 }
-console.log('게시판 모드 정상 — velog 태그 순회는 큐/last 로 증분하고, damoang 목록은 서버가 막아 만들지 않았다.')
+console.log('게시판 모드 정상 — velog 태그 순회는 공용 큐/last 규약으로 증분하고, damoang 목록은 서버가 막아 만들지 않았다.')

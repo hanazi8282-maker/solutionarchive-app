@@ -84,15 +84,27 @@
 //    **더 좁은 화이트리스트**를 여기서 자체 검증한다.
 //
 // ⚠️ **`url:` 타깃은 1글=1요청이다.** 커서를 내지 않으므로 러너가 page 0 뒤에
-//    곧바로 닫는다. 종료는 MAX_PAGES_PER_TARGET(20) 안전판이 아니라 구조로
-//    성립한다(CLAUDE.md §7.2 다나와 사건).
+//    곧바로 끝낸다. 종료는 MAX_PAGES_PER_TARGET(20) 안전판이 아니라 구조로
+//    성립한다(CLAUDE.md §7.2 다나와 사건). `board:` 타깃은 그 반대로 커서를
+//    계속 들고 간다 — 아래 게시판 블록.
 //
 // ─────────────────────────────────────────────────────────────────
-// 게시판 모드 (`board:tag:<태그>`) — 2026-09-24 추가
+// 게시판 모드 (`board:<slug>`) — 2026-09-24 추가
 // ─────────────────────────────────────────────────────────────────
 //
 // 타깃 1개가 **목록 1페이지 → 안 읽은 글 큐 → 글마다 본문+댓글**을 돈다.
 // `url:` 모드(사람이 글 하나를 등록)와 같은 파일에 있지만 경로가 완전히 갈린다.
+//
+// ⚠️ **규약·헬퍼는 전부 `types.ts` 의 공용 것을 쓴다.** 어댑터 로컬 사본을 두지
+//    않는다 — 규약 6개와 `parseBoardRef`·`decodeBoardCursor`·`encodeBoardCursor`·
+//    `nextBoardCursor`·`compareBoardId`·`BOARD_QUEUE_MAX` 가 그쪽 정본이다.
+//    (초판은 이 파일에 사본을 뒀다. 공용 규약이 들어오면서 지웠다.)
+//
+// ⚠️ **slug 은 태그 원문이 아니라 내부 이름이다.** 공용 `parseBoardRef` 가 slug 을
+//    `[A-Za-z0-9_-]` 로 묶는데(경로 탈출·파라미터 주입 차단) velog 태그는 한글이
+//    흔하다(`생산성`). okky·clien 과 같은 방식으로 **표를 코드에 둔다**(`BOARDS`) —
+//    목록 경로가 상수라 ref 에서 경로가 파생되지 않는다. 새 태그를 열려면 그 태그
+//    목록을 **1회 실측해서 글의 성격을 세고** 표에 한 줄 더한다(추정 금지).
 //
 // ⚠️ **GraphQL(`/graphql`)을 쓰지 않는다.** 벨로그는 공개 GraphQL 로 목록을 내는
 //    오픈소스 서비스이지만 그건 POST 이고, 러너의 유일한 네트워크 포트는
@@ -100,48 +112,46 @@
 //    fetch 하면 robots 판정·요청 간격·일일 상한이 전부 우회된다(types.ts 의 ⛔).
 //    그래서 목록도 **HTML GET** 으로 받는다 — 2026-09-24 실측으로 `/tags/<태그>`
 //    RSC 플라이트에 `data.posts[]` 가 통째로 들어 있음을 확인했다
-//    (`id`·`title`·`url_slug`·`released_at`·`user.username` 전부 있다).
+//    (`url_slug`·`released_at`·`user.username` 전부 있다). **1페이지만 간다** —
+//    다음 장은 무한 스크롤의 GraphQL POST 라 GET 계약 밖이다.
 //
-// ⚠️ **큐에 들어가는 경로는 원격 데이터다. 그대로 요청하지 않는다.**
-//    목록 페이지가 주는 문자열로 URL 을 만들면 그게 곧 SSRF 경로다. 그래서
-//    큐에 넣기 전에도, 요청을 만들 때도 **같은 `parseRefParts()` 화이트리스트**를
-//    통과시킨다. 통과하지 못한 항목은 조용히 버리지 않고 파싱 실패로 센다(§7.1).
+// ⚠️ **큐에 들어가는 경로는 원격 데이터다(공용 규약 4).** 목록 페이지가 주는
+//    문자열로 URL 을 만들면 그게 곧 SSRF 경로다. 그래서 큐에 넣을 때도, 요청을
+//    만들 때도 **같은 `parseRefParts()` 화이트리스트**를 통과시킨다. 통과하지
+//    못한 항목은 조용히 버리지 않고 파싱 실패로 센다(§7.1).
+//    ⚠️ 공용 규약은 "숫자 id 로 조립"이라고 적지만 **velog 에는 숫자 id 가 없다.**
+//       href 를 쓰지 않는 것은 같다 — JSON 필드(`user.username`·`url_slug`)로
+//       경로를 조립하고, `parseRefParts` 가 유일한 관문이 된다.
 //
-// 커서 규약(JSON 1줄) — `{"q":["<글 경로>",…],"last":"<가장 최근 released_at ISO>"}`
-//   · `q`    = 아직 안 읽은 글 경로 큐. 목록 순서(최신순) 그대로다.
-//   · `last` = 목록에서 본 **가장 최근 released_at 원본 ISO**.
-//              "마지막 글 id"를 쓰지 않는 이유: velog 의 글 id 는 uuid 라 순서가
-//              없다. 같은 형식의 UTC ISO 는 문자열 비교가 곧 시각 비교다.
-//   · 커서 null = 목록부터. 큐가 비면 **다시 null 을 낸다**(아래 ⚠️).
-//     한 실행은 목록 1 + 글 최대 19 = 러너의 MAX_PAGES_PER_TARGET(20)에 맞는다.
+// ⚠️ **커서의 `last` 자리에 글 id 가 아니라 `released_at` 원본 ISO 를 넣는다.**
+//    공용 `compareBoardId` 는 숫자면 수치로, 아니면 문자열로 비교한다. velog 의
+//    글 id 는 **uuid 라 순서가 없어** 그대로 쓰면 증분이 조용히 틀린다. 같은
+//    형식의 UTC ISO 는 문자열 비교가 곧 시각 비교이므로 그 자리에 시각을 넣어
+//    문자열 폴백을 **의도적으로** 쓴다. 이 어댑터의 `last` 는 순서가 보장된다.
 //
-// ⚠️ **큐를 다 비우면 커서를 `null` 로 낸다. 빈 큐를 들고 있지 않는다.**
-//    이유는 러너의 종료 경로가 둘인데 취급이 다르기 때문이다:
-//      `cursor === null` 분기 → `endStatus` 를 쓴다 → incrementalOnly 라서 `active` 유지 ✅
-//      `if (!req)` 분기      → `status = 'exhausted'` 를 **literal 로 박는다** ❌
-//    빈 큐를 들고 있으면 항상 후자로 끝나 첫 실행에 닫히고 다시 안 돈다
-//    (`listDueTargets` 는 `active` 만 집고, 되살리는 코드가 리포에 없다).
-//    okky 게시판 모드(2026-09-24, PR #244)가 같은 결론을 냈다 — **두 어댑터의
-//    규약을 일부러 맞춰 뒀다.** X 가 공용 규약을 넣을 때 한 벌로 합치기 쉽게.
+// ⚠️ 목록에 **연도가 있으므로** `ParseContext.lastReviewAt` 필터를 쓴다(공용
+//    `nextBoardCursor` 가 `writtenAt` 으로 거른다). 보배드림 `09/23` 처럼 연도가
+//    없는 목록에서 그걸 쓰면 1월에 한 해치를 건너뛴다 — 그 경고는 types.ts 에 있다.
 //
-// ⚠️ **그래서 `last` 는 실행 간에 살아남지 못한다(오늘 기준).** 커서가 null 로
-//    돌아가므로 다음 실행은 목록 10건을 전부 큐에 넣는다. 그게 낭비로 끝나지 않는
-//    이유는 러너에 이미 증분 장치가 있기 때문이다:
-//      · 지문 대조(`identity_key`)가 **중복 적재를 막는다.**
-//      · `last_review_at` 기준 STALE 판정이 **요청을 끊는다** — 목록이 최신순이라
-//        새 글이 앞에 오고, 이미 본 글에 닿으면 그 글의 리뷰가 전부 stale 이어서
-//        `STALE_STREAK_TO_STOP`(5)에 한 글 만에 걸린다.
-//      ⇒ 정상 상태 비용은 목록 1 + 새 글 N + 1 정도다(상한은 20).
-//    `last` 를 **기록은 한다** — X 가 커서를 실행 간 보존하게 만들면 그때
-//    목록 필터가 곧바로 켜진다(아래 `parseBoardPage` 의 `fresh` 필터). 지금도
-//    한 실행 안에서는 유효하고, 셀프테스트가 그 필터를 단위로 고정한다.
-//
-// ⚠️ `nextRequest(target, page)` 의 `page` 는 **아직 러너가 넘기지 않는다.**
-//    넘기지 않아도 위 규약(빈 큐 = 커서 null)이면 "커서 null = 목록" 폴백만으로
-//    정확하다. optional 로 둔 것은 X 가 넘기기 시작할 때 이 파일을 안 고쳐도
-//    되게 하려는 것뿐이다.
+// 실행당 요청 = 목록 1 + 새 글 최대 `BOARD_QUEUE_MAX`(19). 큐를 다 비우면
+// `pauseRun` 으로 이번 실행만 끊고 **커서(`last`)는 남긴다** — 그래야 다음 실행이
+// 목록 10건을 처음부터 다시 큐에 넣지 않는다. 타깃은 `incrementalOnly` 라 닫히지
+// 않고, 닫는 것은 러너의 "연속 `MAX_CONSECUTIVE_EMPTY` 회 신규 0건" 안전장치뿐이다.
 
-import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
+import {
+  BOARD_QUEUE_MAX,
+  decodeBoardCursor,
+  encodeBoardCursor,
+  nextBoardCursor,
+  parseBoardRef,
+  type BoardCursor,
+  type BoardListItem,
+  type ParseContext,
+  type ParseResult,
+  type ParsedReview,
+  type ReviewSourceAdapter,
+  type TargetState,
+} from '../types.ts'
 
 /** 호스트는 어댑터가 상수로 갖는다. product_ref 에 넣게 하면 SSRF 가 된다. */
 export const HOST = 'https://velog.io'
@@ -204,93 +214,30 @@ export function parseProductRef(productRef: string): string | null {
   return parseRefParts(productRef)?.path ?? null
 }
 
-// ── 게시판 ref ────────────────────────────────────────────────────
-
-export interface BoardRef {
-  /** 퍼센트 인코딩된 태그 토큰. 저장·요청에 쓰는 형태다. */
-  token: string
-  /** 디코딩한 태그(사람이 읽는 값). */
-  tag: string
-  /** 목록 요청 경로. */
-  path: string
+// ── 게시판 순회: 태그 표 ──────────────────────────────────────────
+//
+// ⚠️ **slug 검증은 공용 `parseBoardRef`(types.ts) 한 벌만 쓴다.** 어댑터 로컬
+//    사본을 두지 않는다 — 두 벌이 갈리면 저장은 되고 파싱은 안 되는 타깃이
+//    조용히 생긴다(target-ref.ts 머리말).
+//
+// ⚠️ **slug 은 태그 원문이 아니라 내부 이름이다.** 공용 규약이 slug 을
+//    `[A-Za-z0-9_-]` 로 묶는데(경로 탈출·파라미터 주입 차단) velog 태그는 한글이
+//    흔하다(`생산성`). 그래서 okky·clien 과 같은 방식으로 **표를 코드에 둔다** —
+//    목록 경로가 상수라 ref 에서 경로가 파생되지 않는다(SSRF 경계가 구조로 닫힌다).
+export const BOARDS: Record<string, { list: string; tag: string }> = {
+  // 2026-09-24 실측(`GET /tags/생산성`): 목록 1페이지 = 글 10건, 그중 8건이
+  // SaaS·AI 도구 사용 후기였다. 등록 SQL 의 근거와 같은 측정이다.
+  productivity: { list: '/tags/%EC%83%9D%EC%82%B0%EC%84%B1', tag: '생산성' },
 }
 
-/**
- * `board:tag:<퍼센트 인코딩된 태그>` → 목록 경로.
- *
- * ⚠️ **이 함수는 어댑터 로컬이다. 에이전트 X 의 공용 `parseBoardRef` 가 머지되면
- *    그걸로 교체한다**(그때 `board:` 문법·검증은 한 벌만 남긴다). 지금 공용으로
- *    빼지 않는 이유는 X 가 아직 그 규약을 안 넣었고, 두 벌이 갈리면 저장은 되고
- *    파싱은 안 되는 타깃이 조용히 생기기 때문이다(target-ref.ts 머리말).
- *
- * 태그는 한글이 흔하다(`생산성`). `url:` 슬러그와 같은 이유로 **인코딩된 ASCII
- * 만** 받고, 경로를 앵커로 묶어 `/`·`..`·공백·쿼리를 전부 탈락시킨다.
- */
-export function parseBoardRef(productRef: string): BoardRef | null {
-  const raw = (productRef ?? '').trim()
-  const m = /^board:tag:([A-Za-z0-9%_.~-]{1,120})$/i.exec(raw)
-  if (!m) return null
-  const token = m[1]
-
-  let tag: string
-  try {
-    tag = decodeURIComponent(token)
-  } catch {
-    return null // 깨진 퍼센트 시퀀스
-  }
-  // 디코딩 후에도 세그먼트를 늘리거나 상위로 올라가지 못한다(%2f·%2e%2e 차단).
-  if (!tag || tag.includes('/') || tag.includes('..') || /[\s\\?#]/.test(tag)) return null
-
-  return { token, tag, path: `/tags/${token}` }
+/** 이 어댑터가 순회할 수 있는 게시판인가. 표에 없는 slug 은 받지 않는다. */
+export function boardList(productRef: string): string | null {
+  const slug = parseBoardRef(productRef)
+  return slug && slug in BOARDS ? BOARDS[slug].list : null
 }
-
-/** 게시판 커서. `q` = 안 읽은 글 경로 큐, `last` = 본 것 중 가장 최근 released_at. */
-export interface BoardCursor {
-  q: string[]
-  last: string | null
-}
-
-const EMPTY_CURSOR: BoardCursor = { q: [], last: null }
 
 /** UTC ISO 판별. 같은 형식끼리는 문자열 비교가 곧 시각 비교다. */
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T/
-
-/**
- * 커서 문자열 → 큐. **깨진 커서를 빈 커서로 조용히 바꾸지 않는다** —
- * 그러면 `last` 가 리셋돼 목록 전체를 매일 다시 큐에 넣는다. 읽을 수 있는
- * 부분만 쓰고, 읽지 못했으면 빈 커서를 돌려주되 호출부가 그걸 "첫 실행"과
- * 같게 다룬다(그 경우 지문 대조가 중복 적재를 막는다).
- */
-export function readBoardCursor(cursor: string | null): BoardCursor {
-  if (!cursor) return EMPTY_CURSOR
-  let doc: unknown
-  try {
-    doc = JSON.parse(cursor)
-  } catch {
-    return EMPTY_CURSOR
-  }
-  if (!doc || typeof doc !== 'object') return EMPTY_CURSOR
-  const n = doc as Record<string, unknown>
-  const q = Array.isArray(n.q) ? n.q.filter((x): x is string => typeof x === 'string') : []
-  const last = typeof n.last === 'string' && ISO_RE.test(n.last) ? n.last : null
-  return { q, last }
-}
-
-function writeBoardCursor(c: BoardCursor): string {
-  return JSON.stringify({ q: c.q, last: c.last })
-}
-
-/**
- * 이번 요청이 **목록 페이지**인가.
- *
- * ⚠️ `page` 가 있으면 그것만 본다(0 = 목록). 없으면 커서 null 로 폴백한다 —
- *    지금 러너가 페이지 번호를 안 넘겨서다(파일 머리 ⛔ 1번). 폴백은 "한 번
- *    돌고 끝"으로 안전하게 수렴한다: 큐가 비면 요청을 만들지 않으므로
- *    목록을 20번 다시 받는 폭주가 구조적으로 불가능하다.
- */
-function isListPage(cursor: string | null, page: number | undefined): boolean {
-  return typeof page === 'number' ? page === 0 : cursor === null
-}
 
 /** 하이드레이션 블롭의 시작 지점. `window.__APOLLO_STATE__={…}` (등호 주변 공백 없음 — 실측) */
 const STATE_MARK = 'window.__APOLLO_STATE__'
@@ -355,20 +302,24 @@ function readFlight(body: string): string {
   return out
 }
 
-export interface BoardListItem {
-  /** 인코딩된 글 경로(`/@핸들/슬러그`). 화이트리스트를 통과한 것만 담긴다. */
-  path: string
-  /** 원본 released_at(UTC ISO). 커서의 `last` 와 비교하는 값이다. */
-  releasedAt: string
-}
-
 /**
- * 목록 페이지 → 글 항목들. `null` 이면 **컨테이너가 없다**(구조 변경).
+ * 목록 페이지 → 공용 `BoardListItem[]`. `null` 이면 **컨테이너가 없다**(구조 변경).
  *
  * ⚠️ `null`(못 읽음)과 `{items:[]}`(글이 0건인 태그)를 가른다. 합치면 태그가
  *    비어 있는 것과 목록 구조가 바뀐 것이 똑같이 보인다(§7.1).
  *
  * `unreadable` = 항목은 보이는데 경로·날짜를 못 만든 수. 조용히 버리지 않는다.
+ *
+ * ⚠️ **`id` 에 `released_at` 원본 ISO 를 넣는다.** 공용 규약은 "마지막으로 본 글
+ *    id"를 쓰고 `compareBoardId` 가 숫자면 수치로, 아니면 문자열로 비교한다.
+ *    velog 의 글 id 는 **uuid 라 순서가 없어** 그대로 쓰면 증분이 틀린다.
+ *    같은 형식의 UTC ISO 는 문자열 비교가 곧 시각 비교이므로, 그 자리에 시각을
+ *    넣어 문자열 폴백을 **의도적으로** 쓴다(`compareBoardId` 주석의 "문자 id
+ *    게시판"에 해당하지만, 이쪽은 순서가 보장된다).
+ *
+ * ⚠️ `writtenAt` 은 KST 날짜로 채운다. velog 목록에는 **연도가 있으므로**
+ *    `ParseContext.lastReviewAt` 필터를 써도 안전하다(보배드림 `09/23` 같은
+ *    연도 없는 목록에 그 필터를 쓰면 1월에 한 해치를 건너뛴다 — types.ts 경고).
  */
 export function readBoardList(body: string): { items: BoardListItem[]; unreadable: number } | null {
   const flight = readFlight(body)
@@ -404,16 +355,18 @@ export function readBoardList(body: string): { items: BoardListItem[]; unreadabl
       continue
     }
 
-    // ⛔ 여기가 SSRF 경계다. 목록이 준 문자열로 URL 을 만들기 전에 **글 ref 와
-    //    똑같은 화이트리스트**를 통과시킨다. `encodeURIComponent` 로 슬러그를
-    //    인코딩하되(`/`·`?`·공백이 들어와도 인코딩돼 탈락한다), 최종 판정은
-    //    parseRefParts 가 한다 — 규칙을 두 벌 두지 않는다.
+    // ⛔ 여기가 SSRF 경계다(공용 규약 4). href 를 쓰지 않는다 — JSON 필드
+    //    (`user.username`·`url_slug`)로 경로를 **조립**하고, 만든 경로를 **글 ref 와
+    //    똑같은 화이트리스트**에 통과시킨다. `encodeURIComponent` 가 `/`·`?`·공백을
+    //    인코딩하므로 그런 값이 섞여 오면 최종 판정에서 탈락한다.
+    //    (velog 는 숫자 id 가 없어 "숫자 id 로 조립"을 못 한다. 대신 경로 후보를
+    //     만든 뒤 parseRefParts 가 유일한 관문이 된다 — 규칙을 두 벌 두지 않는다.)
     const path = `/@${username}/${encodeURIComponent(slug)}`
     if (!parseRefParts(`url:${path}`)) {
       unreadable++
       continue
     }
-    items.push({ path, releasedAt })
+    items.push({ id: releasedAt, path, writtenAt: kstDate(releasedAt) })
   }
   return { items, unreadable }
 }
@@ -639,22 +592,22 @@ export const velogAdapter: ReviewSourceAdapter = {
   //    그래서 같은 글을 다시 읽는 것이 무의미하지 않다 — 새 댓글이 달리면 받는다.
   //    `board:` 타깃은 새 글까지 받으므로 더더욱 닫아서는 안 된다.
   //
-  // 비용: `url:` 타깃은 1글 = 1요청. `board:` 타깃은 실행당 목록 1 + 글 최대 19
-  // (러너의 MAX_PAGES_PER_TARGET 20). 새 글이 안 달리면 consecutive_empty 만 늘고
-  // 닫히지 않는다 — 그 상한은 아직 없다(에이전트 X 의 "연속 N회 0건 자동 닫힘" 몫).
+  // 비용: `url:` 타깃은 1글 = 1요청. `board:` 타깃은 실행당 목록 1 + 새 글 최대
+  // `BOARD_QUEUE_MAX`(19). 새 글이 없으면 목록 1요청으로 끝난다(`pauseRun`).
+  // 닫는 것은 러너의 **연속 `MAX_CONSECUTIVE_EMPTY` 회 신규 0건** 안전장치뿐이고,
+  // 되살리는 것은 사람 몫이다(`listDueTargets` 는 active 만 본다).
   incrementalOnly: true,
 
-  // ⚠️ `page` 는 **아직 러너가 넘기지 않는다**(파일 머리 ⛔ 1번 — X 소유).
-  //    optional 이라 기존 호출(`nextRequest(target)`)과 타입이 호환된다.
-  nextRequest(target: TargetState, page?: number): { url: string } | null {
-    const board = parseBoardRef(target.productRef)
-    if (board) {
-      if (isListPage(target.cursor, page)) return { url: `${HOST}${board.path}` }
-      const next = readBoardCursor(target.cursor).q[0]
-      if (!next) return null // 큐를 다 비웠다 = 이번 실행 끝
-      // ⛔ 큐 값도 원격 데이터다. 넣을 때 검증했지만 여기서 한 번 더 본다 —
-      //    커서는 DB 를 거쳐 오므로 중간에 손댈 수 있는 값이다.
-      return parseRefParts(`url:${next}`) ? { url: `${HOST}${next}` } : null
+  nextRequest(target: TargetState): { url: string } | null {
+    // ── board: 모드 — 목록 1페이지 ↔ 큐에 든 글 1개를 번갈아 낸다(공용 규약 1) ──
+    const list = boardList(target.productRef)
+    if (list) {
+      const cur = decodeBoardCursor(target.cursor)
+      // ⚠️ **목록은 1페이지만 간다.** velog 목록은 무한 스크롤이고 다음 장은
+      //    GraphQL POST 다 — 러너의 GET 계약 밖이다(파일 머리 ⚠️).
+      if (cur.q.length === 0) return { url: `${HOST}${list}` }
+      const p = boardPostPath(cur.q[0])
+      return p ? { url: `${HOST}${p}` } : null
     }
 
     const parts = parseRefParts(target.productRef)
@@ -665,11 +618,21 @@ export const velogAdapter: ReviewSourceAdapter = {
   },
 
   parse(body: string, ctx: ParseContext): ParseResult {
-    // ⚠️ `page` 캐스트는 X 가 ParseContext 에 그 필드를 넣으면 지운다(파일 머리 ⛔ 1번).
-    const page = (ctx as ParseContext & { page?: number }).page
-
-    const board = parseBoardRef(ctx.productRef)
-    if (board) return parseBoardPage(body, ctx.cursor, page)
+    if (boardList(ctx.productRef)) {
+      const cur = decodeBoardCursor(ctx.cursor)
+      // 큐가 있으면 이 응답은 **큐 맨 앞 글**이다. 본문을 보고 추측하지 않는다(공용 규약 2).
+      if (cur.q.length > 0) {
+        const rest: BoardCursor = { q: cur.q.slice(1), last: cur.last }
+        const parts = parseQueuedRef(cur.q[0])
+        const res = parts
+          ? parsePostPage(body, parts)
+          : // 큐 값이 화이트리스트를 통과하지 못한다 = 커서가 손상됐다. 스코프를
+            // 모르는 채로 적재하지 않는다 — 남의 글이 이 타깃의 project_id 로 들어간다(SP-031).
+            { reviews: [], parseFailures: 1, filtered: 0 }
+        return { ...res, nextCursor: encodeBoardCursor(rest), pauseRun: rest.q.length === 0 }
+      }
+      return parseBoardListPage(body, cur, ctx.lastReviewAt)
+    }
 
     const parts = parseRefParts(ctx.productRef)
     if (!parts) {
@@ -686,57 +649,50 @@ export const velogAdapter: ReviewSourceAdapter = {
   // quotaMarkers 를 선언하지 않는다 = 모든 403/429 를 차단으로 본다.
 }
 
-/** 게시판 모드의 한 페이지. 목록이면 큐를 채우고, 글이면 큐에서 하나 빼면서 읽는다. */
-function parseBoardPage(body: string, cursor: string | null, page: number | undefined): ParseResult {
-  const cur = readBoardCursor(cursor)
+/**
+ * 큐에 든 경로를 **다시 검증**한다. 큐는 남의 서버가 준 목록에서 나왔고,
+ * 그 뒤 DB(`review_targets.cursor`)를 거쳐 돌아온다 — 사람이 손댈 수 있는 값이다.
+ * 담을 때 검증했어도 쓸 때 한 번 더 본다(공용 규약 4 · url-ref.ts 와 같은 이유).
+ */
+function parseQueuedRef(queued: string): RefParts | null {
+  return parseRefParts(`url:${queued}`)
+}
 
-  if (isListPage(cursor, page)) {
-    const got = readBoardList(body)
-    if (!got) {
-      // 목록 컨테이너가 없다 = 구조가 바뀌었다. 남은 큐가 있으면 그걸 들고 계속
-      // 간다(읽던 글을 버리지 않는다). 없으면 커서를 null 로 내서 러너가
-      // `endStatus`(active) 로 끝내게 한다 — 빈 큐를 들고 있으면 닫힌다(파일 머리 ⚠️).
-      return {
-        reviews: [],
-        nextCursor: cur.q.length > 0 ? writeBoardCursor(cur) : null,
-        parseFailures: 1,
-        filtered: 0,
-      }
-    }
+function boardPostPath(queued: string): string | null {
+  return parseQueuedRef(queued)?.path ?? null
+}
 
-    // 이미 본 글은 큐에 넣지 않는다. `last` 는 우리가 쓴 값이라 원본 ISO 끼리
-    // 정확히 비교된다(날짜 단위로 뭉개면 같은 날 글을 매 실행 다시 받는다).
-    const fresh = got.items.filter((x) => !cur.last || x.releasedAt > cur.last)
-    const seen = new Set(cur.q)
-    const q = [...fresh.map((x) => x.path).filter((p) => !seen.has(p)), ...cur.q]
-
-    // 목록에서 본 가장 최근 시각. **걸러진 글도 포함해서** 올린다 — 안 그러면
-    // 큐에 안 들어간 글 때문에 `last` 가 영원히 제자리다.
-    let last = cur.last
-    for (const x of got.items) if (!last || x.releasedAt > last) last = x.releasedAt
-
-    // 목록 페이지는 리뷰를 내지 않는다. 항목을 읽지 못한 수만 실패로 센다.
-    // 큐가 비면(새 글 0건) 커서를 null 로 — 그래야 타깃이 active 로 남는다.
-    return {
-      reviews: [],
-      nextCursor: q.length > 0 ? writeBoardCursor({ q, last }) : null,
-      parseFailures: got.unreadable,
-      filtered: 0,
-    }
+/**
+ * 목록 1페이지 → 커서(새 글 큐). 리뷰는 내지 않는다(공용 규약 3).
+ *
+ * ⚠️ 항목이 0개인 것과 **컨테이너가 없는 것**을 가른다(공용 규약 5 · §7.1 사례 1).
+ *    RSC 플라이트에서 `"posts":[` 를 못 찾으면 velog 가 목록 렌더를 바꾼 것이고,
+ *    배열은 있는데 항목이 0개면 그 태그에 글이 없는 것이다 — 다른 사건이다.
+ *    ⚠️ 그런데 **`생산성` 태그가 글 0건이 되는 일은 사실상 없다**(실측 10건).
+ *       그래서 0개도 실패로 센다 — 후자를 정상으로 열어 두면 셀렉터가 아니라
+ *       "플라이트 조각 경계"가 바뀐 날 조용히 0건이 된다.
+ */
+function parseBoardListPage(
+  body: string,
+  prev: BoardCursor,
+  lastReviewAt: string | null | undefined,
+): ParseResult {
+  const got = readBoardList(body)
+  if (!got) {
+    // 커서를 **버리지 않는다.** `last` 를 지우면 다음 실행이 목록 전체를 다시
+    // 큐에 넣는다. 이번 실행만 여기서 끝낸다(pauseRun).
+    return { reviews: [], nextCursor: encodeBoardCursor(prev), parseFailures: 1, pauseRun: true, filtered: 0 }
   }
 
-  // 글 페이지 — 큐의 맨 앞이 방금 요청한 글이다.
-  const path = cur.q[0]
-  const left = cur.q.slice(1)
-  const rest = left.length > 0 ? writeBoardCursor({ q: left, last: cur.last }) : null
-  const parts = path ? parseRefParts(`url:${path}`) : null
-  if (!parts) {
-    // 큐가 비었는데 글 본문이 왔다(= 러너와 어긋났다). 스코프를 모르는 채로
-    // 적재하지 않는다 — 남의 글이 이 타깃의 project_id 로 들어간다(SP-031).
-    return { reviews: [], nextCursor: rest, parseFailures: 1, filtered: 0 }
+  const next = nextBoardCursor(got.items, prev, lastReviewAt)
+  return {
+    reviews: [],
+    nextCursor: encodeBoardCursor(next),
+    parseFailures: got.items.length === 0 ? got.unreadable + 1 : got.unreadable,
+    // 새 글이 0건이면 이번 실행은 여기서 끝이다. `last` 는 커서에 남는다.
+    pauseRun: next.q.length === 0,
+    filtered: 0,
   }
-
-  return { ...parsePostPage(body, parts), nextCursor: rest }
 }
 
 export const __internal = { sliceJson, readState, readPosts, readFlight, REF_RE }

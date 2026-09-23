@@ -21,6 +21,7 @@
 //     프로젝트는 "프로브가 찾아낸 pcode 가 곧 그 프로젝트의 정의"라 붙일
 //     대상 자체가 없다. 기존 프로젝트에는 그 경로로도 못 붙인다.)
 
+import { parseBoardRef } from './types.ts'
 import { parseDanawaProductUrl } from './danawa-url.ts'
 import { parseProductRef as parseAppstoreRef } from './adapters/appstore.ts'
 import { HOST as COOK82_HOST, parseProductRef as parseCook82Ref } from './adapters/82cook.ts'
@@ -34,11 +35,7 @@ import { HOST as OKKY_HOST, parseProductRef as parseOkkyRef } from './adapters/o
 import { HOST as THEQOO_HOST, parseProductRef as parseTheqooRef } from './adapters/theqoo.ts'
 import { HOST as TODAYHUMOR_HOST, parseProductRef as parseTodayhumorRef } from './adapters/todayhumor.ts'
 import { HOST as TUMBLBUG_HOST, parseProductRef as parseTumblbugRef } from './adapters/tumblbug.ts'
-import {
-  HOST as VELOG_HOST,
-  parseBoardRef as parseVelogBoardRef,
-  parseProductRef as parseVelogRef,
-} from './adapters/velog.ts'
+import { BOARDS as VELOG_BOARDS, HOST as VELOG_HOST, parseProductRef as parseVelogRef } from './adapters/velog.ts'
 import { parseProductRef as parseYoutubeRef } from './adapters/youtube.ts'
 
 export type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
@@ -168,27 +165,32 @@ function urlRefBuilder(
 }
 
 /**
- * 벨로그 — 글 하나(`url:/@핸들/슬러그`)와 태그 게시판(`board:tag:<태그>`) 둘을 받는다.
+ * 벨로그 — 글 하나(`url:/@핸들/슬러그`)와 태그 게시판(`board:<slug>`) 둘을 받는다.
  *
- * 받는 입력: 글 URL · `url:` 값 · **태그 목록 URL**(`https://velog.io/tags/생산성`) ·
- *            `board:tag:…` 값 그대로.
+ * 받는 입력: 글 URL · `url:` 값 · `board:<slug>` · **태그 목록 URL**
+ *            (`https://velog.io/tags/생산성` → 표에서 slug 을 되찾는다).
  *
- * ⚠️ 판정은 **어댑터의 parseBoardRef / parseProductRef 가 한다.** 여기서 문법을
- *    다시 쓰지 않는다 — 두 벌이 갈리면 저장은 되고 파싱은 안 되는 타깃이 조용히
- *    생긴다(이 파일 머리말). `board:` 규약이 에이전트 X 의 공용 함수로 옮겨가면
- *    import 만 갈아끼운다.
+ * ⚠️ **slug 은 태그 원문이 아니라 어댑터 `BOARDS` 표의 내부 이름이다.** 공용
+ *    `parseBoardRef` 가 slug 을 `[A-Za-z0-9_-]` 로 묶는데 velog 태그는 한글이
+ *    흔해서다. 그래서 **표에 있는 slug 만** 통과시킨다 — 없는 slug 을 저장하면
+ *    그 타깃은 매일 밤 요청 0건으로 끝난다(아무 에러도 안 난다, 이 파일 머리말).
  */
 function velogRef(raw: string): RefResult {
   const s = (raw ?? '').trim()
-  const boardHint = `(예: ${VELOG_HOST}/tags/생산성)`
+  const slugs = Object.keys(VELOG_BOARDS)
+  const boardHint = `(예: board:${slugs[0]} 또는 ${VELOG_HOST}${VELOG_BOARDS[slugs[0]].list})`
+  const known = (slug: string | null): RefResult =>
+    slug && slug in VELOG_BOARDS
+      ? { ok: true, productRef: `board:${slug}` }
+      : {
+          ok: false,
+          error: `이 소스가 순회할 수 있는 게시판이 아닙니다. 등록된 태그: ${slugs
+            .map((k) => `${k}(${VELOG_BOARDS[k].tag})`)
+            .join(', ')}. ${boardHint}`,
+        }
 
-  // `board:` 값을 그대로 옮겨 적는 경우.
-  if (/^board:/i.test(s)) {
-    const b = parseVelogBoardRef(s)
-    return b
-      ? { ok: true, productRef: `board:tag:${b.token}` }
-      : { ok: false, error: `게시판 ref 형식이 아닙니다. \`board:tag:<태그>\` 로 입력해주세요. ${boardHint}` }
-  }
+  // `board:<slug>` 를 그대로 옮겨 적는 경우. 판정은 공용 parseBoardRef 한 벌이다.
+  if (/^board:/i.test(s)) return known(parseBoardRef(s))
 
   // 태그 목록 URL. 이 소스의 호스트일 때만 받는다 — 아무 URL 의 경로만 쓰면
   // 어댑터가 자기 호스트에 그 경로를 붙여 엉뚱한 목록을 긁는다.
@@ -200,12 +202,10 @@ function velogRef(raw: string): RefResult {
       url = null
     }
     if (url && url.origin === VELOG_HOST && url.pathname.startsWith('/tags/')) {
-      // ⚠️ `new URL().pathname` 이 한글 태그를 퍼센트 인코딩해 준다. 그 형태가
-      //    곧 저장값이다(어댑터도 인코딩된 ASCII 만 받는다).
-      const b = parseVelogBoardRef(`board:tag:${url.pathname.slice('/tags/'.length)}`)
-      return b
-        ? { ok: true, productRef: `board:tag:${b.token}` }
-        : { ok: false, error: `이 소스가 순회할 수 있는 태그 주소가 아닙니다. ${boardHint}` }
+      // ⚠️ `new URL().pathname` 이 한글 태그를 퍼센트 인코딩한다. 표의 `list` 도
+      //    인코딩된 형태로 적혀 있어 그대로 대조된다 — 여기서 디코딩하지 않는다.
+      const hit = slugs.find((k) => VELOG_BOARDS[k].list === url.pathname)
+      return known(hit ?? null)
     }
   }
 

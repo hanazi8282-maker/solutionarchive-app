@@ -12,7 +12,7 @@
 --    프로젝트를 정말 지우려면 그건 "데이터 DELETE" 라 §10.2 의 사람 판단 예외다 —
 --    세션이 스스로 하지 않는다.
 --
--- ⚠️ 코드 쪽(`board:tag:` 지원 · velog 댓글 확장)은 이 파일이 되돌리지 않는다.
+-- ⚠️ 코드 쪽(velog `board:productivity` 지원 · 댓글 확장)은 이 파일이 되돌리지 않는다.
 --    되돌릴 필요도 없다 — 등록된 `board:` 타깃이 없으면 그 경로는 아무 일도 안 한다.
 --
 -- ⚠️ product_ref 컬럼 주석은 되돌리지 않는다. 주석을 앞 버전으로 덮어쓰면
@@ -31,7 +31,7 @@ BEGIN;
 -- ① 타깃 제거 — 더 수집되지 않는다.
 DELETE FROM public.review_targets
  WHERE source_key = 'velog'
-   AND product_ref = 'board:tag:%EC%83%9D%EC%82%B0%EC%84%B1';
+   AND product_ref = 'board:productivity';
 
 -- ② 프로젝트는 리뷰가 0건일 때만. 1건이라도 있으면 남긴다(CASCADE 삭제 방지).
 DELETE FROM public.analysis_projects p
@@ -43,7 +43,9 @@ COMMIT;
 
 -- 확인
 -- 양성: 게시판 타깃이 0건이다.
--- SELECT count(*) FROM public.review_targets WHERE product_ref LIKE 'board:%';  -- 기대: 0
+-- ⚠️ source_key 로 좁힌다 — okky 의 board:community(20260930000009)는 이 롤백과 무관하다.
+-- SELECT count(*) FROM public.review_targets
+--  WHERE source_key = 'velog' AND product_ref LIKE 'board:%';   -- 기대: 0
 --
 -- 리뷰가 남아 있으면 프로젝트도 남는다. 그게 정상이다 — 눈으로 확인한다.
 -- SELECT p.id, p.competitor_url,

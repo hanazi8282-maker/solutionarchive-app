@@ -9,30 +9,23 @@
 --    기존 행을 UPDATE·DELETE 하지 않는다. 롤백 파일이 그 2행만 지운다
 --    (20260930000010_board_targets_z_rollback.sql).
 --
--- ── ⛔ 적용 전 조건 2개. 둘 다 충족되기 전에 돌리면 타깃이 한 번 돌고 죽는다 ──
+-- ── ⛔ 적용 전 조건: **`review_sources` 의 velog 행이 존재해야 한다** ────
 --
---   (1) **에이전트 X 의 러너 변경이 머지되어 있어야 한다.** 두 군데다:
---       · `nextRequest(target, page)` · `ParseContext.page` — 러너가 페이지 번호를
---         어댑터에 넘겨야 한다. 없으면 "실행 시작(목록을 받는다)"과 "큐 소진
---         (이번 실행 끝)"을 구분할 수 없다(둘 다 큐가 비어 있다) → 두 번째 실행이
---         0요청으로 끝난다.
---       · `runner.ts` 의 `if (!req)` 분기가 `status = 'exhausted'` 를 literal 로
---         박는다(`cursor === null` 분기만 `endStatus` 를 쓴다). 게시판 타깃은 커서를
---         계속 들고 있어 **항상 이 분기로 끝나므로** `incrementalOnly: true` 가
---         무력화되고 첫 실행에서 닫힌다. `status = endStatus` 로 바꿔야 한다.
---       확인법: `node scripts/review-board-z-selftest.mjs` 의 "러너미비①·②" 두 줄이
---       **실패로 바뀌면** 러너가 고쳐진 것이다(그 줄은 현재 상태를 고정해 둔 것이다).
---       그때 그 두 줄을 새 기대값으로 갱신하고 이 파일을 돌린다.
+--   `review_targets.source_key` 가 거기로 FK 를 건다. 그 행은
+--   `20260922000001_review_sources_okky_velog.sql` 이 넣는데 **그 파일도
+--   미적용일 수 있다.** 먼저 확인한다:
+--     SELECT key, enabled, min_interval_ms, daily_request_cap
+--       FROM public.review_sources WHERE key = 'velog';
+--   ⚠️ 없으면 이 파일이 FK 위반으로 실패한다(조용히 넘어가지 않는다 — 좋다).
+--   ⚠️ velog 행은 `enabled = false` 로 들어간다. 그건 그대로 둔다 —
+--      켜는 것은 별개 판단이고, 첫날은 dry-run 으로 응답 코드를 눈으로 본다.
 --
---   (2) **`review_sources` 의 velog 행이 존재해야 한다.**
---       `review_targets.source_key` 가 거기로 FK 를 건다. 그 행은
---       `20260922000001_review_sources_okky_velog.sql` 이 넣는데 **그 파일도
---       미적용일 수 있다.** 먼저 확인한다:
---         SELECT key, enabled, min_interval_ms, daily_request_cap
---           FROM public.review_sources WHERE key = 'velog';
---       ⚠️ 없으면 이 파일이 FK 위반으로 실패한다(조용히 넘어가지 않는다 — 좋다).
---       ⚠️ velog 행은 `enabled = false` 로 들어간다. 그건 그대로 둔다 —
---          켜는 것은 별개 판단이고, 첫날은 dry-run 으로 응답 코드를 눈으로 본다.
+--   (러너 쪽 선행 조건은 **해소됐다.** 초판은 `nextRequest(target, page)` 와
+--    `if (!req)` 분기의 `endStatus` 두 건을 조건으로 적어 뒀는데, 공용 게시판
+--    규약 PR(#246)이 `ParseResult.pauseRun` · `ParseContext.lastReviewAt` ·
+--    "연속 0건 3회 안전장치" 로 그 문제를 다르게 풀었다. 어댑터는 그 규약에
+--    맞춰져 있고 `scripts/review-board-z-selftest.mjs` 가 실행 간 커서 인수를
+--    실제로 돌려 확인한다.)
 --
 -- ── 왜 이 소스·이 태그인가 ────────────────────────────────────────
 --
@@ -47,7 +40,7 @@
 --   ⇒ 게시판 순회를 새로 붙이는 데도 약관상 명시 금지는 없다. 그래도 "없음"을
 --     "허가"로 읽지 않으므로 목록 요청을 실행당 1회·간격 5초 이상으로 묶는다.
 --
--- 태그 `생산성`(`board:tag:%EC%83%9D%EC%82%B0%EC%84%B1`) — 2026-09-24 실측
+-- 태그 `생산성`(`board:productivity`) — 2026-09-24 실측
 -- (`GET /tags/생산성`, 목록 1페이지 = 글 10건). 10건 중 8건이 SaaS·AI 도구 사용
 -- 후기였다. 제목 원문:
 --   · Jev에게 내 Obsidian vault 정리를 맡겨봤다
@@ -94,14 +87,14 @@
 --          t.last_review_at, t.total_collected, p.competitor_url
 --     FROM public.review_targets t
 --     JOIN public.analysis_projects p ON p.id = t.project_id
---    WHERE t.product_ref LIKE 'board:%';
+--    WHERE t.source_key = 'velog' AND t.product_ref LIKE 'board:%';
 --   -- 기대: 1행 · source_key='velog' · status='active' · cursor IS NULL ·
 --   --       total_collected=0 · competitor_url='https://velog.io/tags/생산성'
 --
 --   -- 음성 검사: 게시판 ref 가 어댑터에 되읽히는지. (DB 가 아니라 코드로 본다)
 --   --   node -e "import('./lib/review/adapters/velog.ts').then(m=>
---   --     console.log(m.parseBoardRef('board:tag:%EC%83%9D%EC%82%B0%EC%84%B1')))"
---   --   기대: { token:'%EC%83%9D%EC%82%B0%EC%84%B1', tag:'생산성', path:'/tags/…' }
+--   --     console.log(m.boardList('board:productivity')))"
+--   --   기대: '/tags/%EC%83%9D%EC%82%B0%EC%84%B1'  (boardList 가 목록 경로를 준다)
 --   --   null 이면 그 타깃은 매일 밤 0요청으로 끝난다(아무 에러도 안 난다).
 -- ============================================================
 
@@ -121,13 +114,13 @@ WHERE NOT EXISTS (
 );
 
 -- 2. 게시판 타깃. cursor 는 NULL 로 시작한다 — 첫 실행이 목록부터 받는다.
---    ⚠️ product_ref 는 **퍼센트 인코딩된 형태**여야 한다. 어댑터가 인코딩된 ASCII 만
---       받는다(한글을 그대로 넣으면 parseBoardRef 가 null 을 내고 0요청으로 끝난다).
+--    ⚠️ product_ref 의 slug 은 **어댑터 BOARDS 표의 내부 이름**이다(태그 원문이 아니다).
+--       표에 없는 값을 넣으면 boardList 가 null 을 내고 그 타깃은 0요청으로 끝난다.
 INSERT INTO public.review_targets (project_id, source_key, product_ref, label, cursor, status)
 SELECT
   p.id,
   'velog',
-  'board:tag:%EC%83%9D%EC%82%B0%EC%84%B1',
+  'board:productivity',
   '벨로그 태그 순회 · 생산성',
   NULL,
   'active'
@@ -135,50 +128,62 @@ SELECT
  WHERE p.competitor_url = 'https://velog.io/tags/생산성'
    AND NOT EXISTS (
      SELECT 1 FROM public.review_targets
-      WHERE source_key = 'velog' AND product_ref = 'board:tag:%EC%83%9D%EC%82%B0%EC%84%B1'
+      WHERE source_key = 'velog' AND product_ref = 'board:productivity'
    );
 
 -- 3. product_ref 컬럼 주석에 `board:` 형식을 덧붙인다.
---    ⚠️ COMMENT ON COLUMN 은 **덮어쓰기다.** 20260922000001 의 전체 문구를 그대로
---       옮기고 board: 단락만 추가했다. 한 줄만 쓰면 기존 SSRF 경고와
---       exhausted·SP-026·027·028 안내가 통째로 사라진다.
-COMMENT ON COLUMN public.review_targets.product_ref IS
-  '소스 안에서 수집 대상을 가리키는 값. danawa=pcode / appstore=<국가>:<앱ID> / hackernews=q:<키워드> / '
-  'damoang·82cook·theqoo·todayhumor·brunch·clien·fmkorea·okky·velog=url:<글 경로>. '
-  'velog 만 추가로 board:tag:<퍼센트 인코딩된 태그> 를 받는다 — 타깃 1개가 목록 1페이지 → 안 읽은 글 큐 → '
-  '글마다 본문+댓글을 도는 **게시판 순회 모드**다. 커서에 {"q":[경로…],"last":"<최신 released_at ISO>"} JSON 이 '
-  '들어가고 어댑터가 그걸 직접 관리한다(실행당 목록 1 + 글 최대 19). 큐에 들어가는 경로는 목록 페이지가 준 '
-  '**원격 데이터**라 큐에 넣을 때와 요청을 만들 때 두 번 글 ref 화이트리스트를 통과시킨다. '
-  'last 는 글 id 가 아니라 released_at 원본 ISO 다 — velog 의 글 id 는 uuid 라 순서가 없고, 날짜 단위로 '
-  '뭉개면 같은 날 늦게 올라온 글을 매 실행 다시 받거나 영영 놓친다. '
-  'damoang 에는 게시판 모드가 없다: 목록(/free·/feed)이 Cloudflare 인터랙티브 챌린지 403 이다(글 페이지는 200). '
-  'robots 는 목록을 허용하므로 "robots 가 막았다"로 읽지 마라. '
-  '어느 값을 붙일지는 사람이 정한다 — 시스템이 키워드로 상품을 검색해 후보 중 하나를 자동 선택하지 않는다. '
-  'hackernews 의 q: 는 상품 식별자가 아니라 질의 자체이며, 한 질의에 여러 스레드가 걸리는 것이 정상 동작이다. '
-  '커뮤니티 소스의 url: 은 **경로만** 담는다(호스트는 어댑터 상수). 호스트를 넣게 하면 SSRF 가 되므로 '
-  'lib/review/adapters/url-ref.ts 가 ''..'' ''//'' ''@'' 와 공백을 거부한다. '
-  'brunch·velog 만 예외로 그 공용 함수를 못 쓴다 — 글 경로가 /@핸들/… 라 ''@'' 에 걸린다. 대신 각 어댑터가 '
-  '경로 전체를 화이트리스트 정규식으로 더 좁게 검증한다(공용 함수를 완화하지 않는다). velog 는 슬러그에 '
-  '한글이 들어가므로 퍼센트 인코딩된 형태로 저장되고, 디코딩 후에도 세그먼트가 둘인지 다시 확인한다. '
-  '그 슬러그 상한은 인코딩 600자다 — 한글 1자가 인코딩 9자라 300 이던 시절 실제 글이 탈락했다(실측 344자). '
-  'damoang 은 반대로 2026-09-24 에 좁혔다: <게시판>/<글번호> 두 세그먼트만 받는다. url:/free 같은 목록 ref 를 '
-  '등록하면 Cloudflare 403 이 오고, 러너가 그것을 차단으로 분류해 그 실행의 damoang 소스 전체를 중단한다 '
-  '— 잘 돌던 글 타깃까지 같이 죽는다. '
-  '이 소스들은 1글=1요청이라 수집 후 타깃이 status=exhausted 로 닫힌다 — 나중에 달린 댓글을 받으려면 '
-  '사람이 status=''active'' 로 되돌려야 한다(자동 재활성화 없음). '
-  'theqoo·todayhumor·brunch 는 **본문 1건만** 적재된다 — 앞 둘은 댓글이 AJAX 라서, brunch 는 댓글 API 가 '
-  'robots 금지(/api/)라서다. 댓글 0건은 고장이 아니다. '
-  'velog 는 2026-09-24 부터 본문 + **최상위 댓글**을 받는다. 개수 마커는 comments_count 가 아니라 '
-  'Post.comments 의 참조 배열 길이다 — 전자는 대댓글·삭제분을 섞어 화해되지 않고(실측 11 ≠ 6+4), '
-  '후자는 정확히 화해된다(참조 6 → 해소 6). 대댓글(level>0)은 GraphQL POST 에만 있어 오지 않는다. '
-  'todayhumor 의 경로는 쿼리형이다(/board/view.php?table=..&no=..). 이 사이트에 robots.txt 가 생기고 '
-  '거기 쿼리 규칙이 들어가면 러너가 그 규칙을 못 본다(pathname 만 판정 — SP-026). '
-  'clien 은 반대로 robots 에 ''Disallow: /*?*'' 가 있어 쿼리형 ref 를 어댑터가 거부한다. 그 robots 를 '
-  '우리 UA 로는 못 읽으므로(404, SP-027) 어댑터의 가드가 유일한 방어선이다 — 넓히지 마라. '
-  'fmkorea 는 robots 가 /best·/best2·/humor 만 열어 그 밖의 경로를 어댑터가 거부하며(SP-028), '
-  '댓글이 많은 글은 마지막 댓글 페이지만 수집된다(알려진 한계 — 차액을 파싱 실패로 세지 않는다). '
-  'okky 는 robots 가 /articles 와 /questions 를 모두 열지만 어댑터가 /articles/<번호> 만 받는다 '
-  '(/questions 는 미실측 — 넓히려면 그 경로의 JSON-LD 를 먼저 떠라). /api/ 가 robots 금지라 '
-  '글 목록은 sitemap.xml 에서 얻는다.';
+--    ⚠️ COMMENT ON COLUMN 은 **덮어쓰기다.** 한 세대 전(20260922000001)이 아니라
+--       **바로 앞 20260930000009(Y)의 전체 문구**를 옮기고 Z 단락을 덧붙였다. 한 세대를
+--       건너뛰면 Y 가 적어 둔 board:<slug> 규약과 tumblbug 금지 문단이 통째로 사라진다.
+COMMENT ON COLUMN public.review_targets.product_ref IS
+  '소스 안에서 수집 대상을 가리키는 값. danawa=pcode / appstore=<국가>:<앱ID> / hackernews=q:<키워드> / '
+  'damoang·82cook·theqoo·todayhumor·brunch·clien·fmkorea·okky·velog=url:<글 경로>. '
+  '어느 값을 붙일지는 사람이 정한다 — 시스템이 키워드로 상품을 검색해 후보 중 하나를 자동 선택하지 않는다. '
+  'hackernews 의 q: 는 상품 식별자가 아니라 질의 자체이며, 한 질의에 여러 스레드가 걸리는 것이 정상 동작이다. '
+  '커뮤니티 소스의 url: 은 **경로만** 담는다(호스트는 어댑터 상수). 호스트를 넣게 하면 SSRF 가 되므로 '
+  'lib/review/adapters/url-ref.ts 가 ''..'' ''//'' ''@'' 와 공백을 거부한다. '
+  'brunch·velog 만 예외로 그 공용 함수를 못 쓴다 — 글 경로가 /@핸들/… 라 ''@'' 에 걸린다. 대신 각 어댑터가 '
+  '경로 전체를 화이트리스트 정규식으로 더 좁게 검증한다(공용 함수를 완화하지 않는다). velog 는 슬러그에 '
+  '한글이 들어가므로 퍼센트 인코딩된 형태로 저장되고, 디코딩 후에도 세그먼트가 둘인지 다시 확인한다. '
+  '이 소스들은 1글=1요청이라 수집 후 타깃이 status=exhausted 로 닫힌다 — 나중에 달린 댓글을 받으려면 '
+  '사람이 status=''active'' 로 되돌려야 한다(자동 재활성화 없음). '
+  'theqoo·todayhumor·brunch·velog 는 **본문 1건만** 적재된다 — 앞 둘은 댓글이 AJAX 라서, brunch 는 댓글 API 가 '
+  'robots 금지(/api/)라서, velog 는 대댓글이 GraphQL POST 에만 있고 comments_count 가 화해되지 않아서다. '
+  '댓글 0건은 고장이 아니다. '
+  'todayhumor 의 경로는 쿼리형이다(/board/view.php?table=..&no=..). 이 사이트에 robots.txt 가 생기고 '
+  '거기 쿼리 규칙이 들어가면 러너가 그 규칙을 못 본다(pathname 만 판정 — SP-026). '
+  'clien 은 반대로 robots 에 ''Disallow: /*?*'' 가 있어 쿼리형 ref 를 어댑터가 거부한다. 그 robots 를 '
+  '우리 UA 로는 못 읽으므로(404, SP-027) 어댑터의 가드가 유일한 방어선이다 — 넓히지 마라. '
+  'fmkorea 는 robots 가 /best·/best2·/humor 만 열어 그 밖의 경로를 어댑터가 거부하며(SP-028), '
+  '댓글이 많은 글은 마지막 댓글 페이지만 수집된다(알려진 한계 — 차액을 파싱 실패로 세지 않는다). '
+  'okky 는 robots 가 /articles 와 /questions 를 모두 열지만 어댑터가 /articles/<번호> 만 받는다 '
+  '(/questions 는 미실측 — 넓히려면 그 경로의 JSON-LD 를 먼저 떠라). /api/ 가 robots 금지라 '
+  '글 목록은 sitemap.xml 에서 얻는다. '
+  '⚠️ 2026-09-24 추가 — 게시판 모드 ''board:<slug>''. 타깃 1개가 목록 1요청 + 글 최대 19요청으로 '
+  '목록→글→댓글을 스스로 순회한다. 커서에 "안 읽은 글 큐 + 마지막 글 id" JSON 이 들어간다 — '
+  '사람이 손으로 고치지 마라(읽을 수 없는 값이면 어댑터가 목록부터 다시 시작한다). '
+  '현재 okky=''board:community'' 하나뿐이고, okky 의 목록 경로는 /community 다 '
+  '(위 문단의 "sitemap.xml 을 쓴다"는 url: 모드 이야기다 — /articles 는 404 이고 /community 는 '
+  '정적 HTML 에 글 20건이 다 온다는 것을 2026-09-24 에 실측했다). '
+  '⛔ tumblbug 의 ''board:discover:<category>'' 는 등록하지 않는다 — Allow 된 /discover?category= 가 '
+  'CSR 껍데기라(projectStore.projects=[]) 목록을 못 읽는다. 그건 0건이 아니라 파싱 실패다. '
+  '⚠️ 2026-09-24 추가(Z) — velog 도 게시판 모드를 쓴다: ''board:productivity''(태그 생산성). '
+  'slug 은 태그 원문이 아니라 어댑터 BOARDS 표의 내부 이름이다 — 공용 parseBoardRef 가 slug 을 '
+  '[A-Za-z0-9_-] 로 묶는데 velog 태그는 한글이라서다. 표에 없는 slug 을 넣으면 그 타깃은 매일 밤 '
+  '0요청으로 끝난다(아무 에러도 안 난다). 목록은 /tags/<인코딩된 태그> 1페이지만 받는다 — 다음 장은 '
+  '무한 스크롤의 GraphQL POST 이고 그건 러너의 GET 계약 밖이다. '
+  '⚠️ velog 커서의 last 에는 글 id 가 아니라 released_at 원본 ISO 가 들어간다. velog 의 글 id 는 '
+  'uuid 라 순서가 없어 compareBoardId 로 비교하면 증분이 조용히 틀린다 — 같은 형식의 UTC ISO 는 '
+  '문자열 비교가 곧 시각 비교이므로 그 자리에 시각을 넣어 문자열 폴백을 의도적으로 쓴다. '
+  '⚠️ velog 는 2026-09-24 부터 **본문 + 최상위 댓글**을 받는다(위 문단의 "본문 1건만" 목록에서 빠졌다). '
+  '개수 마커는 comments_count 가 아니라 Post.comments 의 참조 배열 길이다 — 전자는 대댓글·삭제분을 '
+  '섞어 화해되지 않고(실측 11 ≠ 6+4), 후자는 정확히 화해된다(참조 6 → 해소 6). 대댓글(level>0)은 '
+  'GraphQL POST 에만 있어 오지 않는다. 그 0건은 고장이 아니다. '
+  'velog 글 슬러그 상한은 인코딩 600자다 — 한글 1자가 인코딩 9자라 300 이던 시절 실제 글이 탈락했다(실측 344자). '
+  '⛔ damoang 에는 게시판 모드를 만들지 않았다 — 목록(/free·/feed)이 Cloudflare 인터랙티브 챌린지 '
+  '403 이다(글 페이지는 200, 2026-09-24 실측). **robots 는 목록을 허용한다** — 막은 것은 서버다. '
+  '그래서 damoang 의 url: 도 2026-09-24 에 <게시판>/<글번호> 두 세그먼트로 좁혔다: url:/free 같은 '
+  '목록 ref 를 등록하면 403 이 오고, 러너가 그것을 차단으로 분류해 그 실행의 damoang 소스 전체를 '
+  '중단한다 — 잘 돌던 글 타깃까지 같이 죽는다.';
 
 COMMIT;

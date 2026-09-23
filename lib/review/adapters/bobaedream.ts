@@ -7,11 +7,19 @@
 // 어댑터를 만들지 않았다(근거는 위 문서). 여기 흉내 내서 추가하기 전에
 // 그 절을 먼저 읽어라.
 //
-// robots.txt 는 `User-agent: * / Allow: /` 로 전면 허용이다(실측 2026-09-17).
+// robots.txt 는 `User-agent: * / Allow: /` 로 전면 허용이다
+// (2026-09-17 실측 → **2026-09-24 재실측 동일**, 97B 원문을
+//  fixtures/review/bobaedream/robots.txt 에 저장했다).
 // 다모앙·82cook 과 달리 금지 경로가 없어 ROBOTS_DENY 상수가 없다.
 // 금지 목록은 Amazonbot 하나뿐이고 우리 UA 와 무관하다.
 //
-// ⚠️ **1글=1요청이다.** 댓글 페이지네이션을 붙이지 마라.
+// 타깃 형식이 둘이다:
+//   `url:/view?code=freeb&No=3438906`  글 1건(기존)
+//   `board:battle`                     **게시판 순회**(2026-09-24 추가). slug 는
+//       게시판 code. 목록 1페이지 → 새 글 → 댓글. 규약은 types.ts 의 `board:` 블록.
+//       목록의 BEST 블록(`<tr class="best">`)은 담지 않는다 — 옛 인기 글이다.
+//
+// ⚠️ **글 1개 = 1요청이다.** 댓글 페이지네이션을 붙이지 마라.
 //
 // ⚠️ 그래서 **댓글 100건이 넘는 글은 일부만 수집한다.** 실측 2026-09-17:
 //    댓글 155건짜리 글의 정적 HTML 에 앵커가 55개뿐이었다(나머지는
@@ -22,6 +30,13 @@
 // 수집 단위는 상품이 아니라 글 1건이다. 글 본문 1건 + 댓글 N건 = 리뷰 N+1건.
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
+import {
+  type BoardListItem,
+  decodeBoardCursor,
+  encodeBoardCursor,
+  nextBoardCursor,
+  parseBoardRef,
+} from '../types.ts'
 import { parseUrlRef } from './url-ref.ts'
 
 /** 호스트는 어댑터가 상수로 갖는다. product_ref 에 넣게 하면 SSRF 가 된다. */
@@ -57,6 +72,19 @@ export function parseProductRef(productRef: string): string | null {
   // 안 하면 `?No=1&code=freeb` 와 `?code=freeb&No=1` 이 다른 리뷰로 쌓인다.
   return `/view?code=${code}&No=${no}`
 }
+
+/**
+ * 목록 행 앵커. `<tr itemscope itemtype="http://schema.org/Article">`
+ *
+ * ⚠️ 이 마커가 **BEST 블록을 거르는 장치**다. 목록 맨 위에 `<tr class="best">` 6행이
+ *    따로 오는데(실측 2026-09-24), 그건 조회수 높은 **옛 글**이고 번호 순서도 아니다.
+ *    같이 담으면 매 실행 같은 인기 글이 큐에 들어오고, 최신순 전제가 깨져
+ *    `last` 증분이 엉킨다.
+ */
+const LIST_ROW = /<tr itemscope itemtype="http:\/\/schema\.org\/Article">/g
+
+/** 목록 행의 글 번호. `<a class="bsubject" … href="/view?code=freeb&No=3438906&bm=1"` */
+const LIST_NO_RE = /href="\/view\?code=([a-z0-9_]+)&(?:amp;)?No=(\d+)/i
 
 /** 글 본문 컨테이너. `<div class="bodyCont" itemprop="articleBody">` */
 const BODY_OPEN = /<div class="bodyCont"[^>]*>/
@@ -169,6 +197,17 @@ export const bobaedreamAdapter: ReviewSourceAdapter = {
   incrementalOnly: true,
 
   nextRequest(target: TargetState): { url: string } | null {
+    // ── board: 모드 — 목록 1페이지 ↔ 큐에 든 글 1개 ────────────────
+    const code = parseBoardRef(target.productRef)
+    if (code) {
+      const cur = decodeBoardCursor(target.cursor)
+      // robots 가 `Allow: /` 로 전면 허용이라 `&page=N` 도 금지는 아니다(2026-09-24 재실측).
+      // 그래도 1페이지만 본다 — 증분에 필요하지 않고 남의 서버 부담만 늘린다.
+      if (cur.q.length === 0) return { url: `${HOST}/list?code=${code}` }
+      const p = boardPostPath(code, cur.q[0])
+      return p ? { url: `${HOST}${p}` } : null
+    }
+
     const p = parseProductRef(target.productRef)
     if (!p) return null
     // 커서가 있다 = 이미 한 번 받았다. 1글=1요청이라 다시 가지 않는다.
@@ -177,7 +216,80 @@ export const bobaedreamAdapter: ReviewSourceAdapter = {
   },
 
   parse(body: string, ctx: ParseContext): ParseResult {
-    const p = parseProductRef(ctx.productRef)
+    const code = parseBoardRef(ctx.productRef)
+    if (code) {
+      const cur = decodeBoardCursor(ctx.cursor)
+      // 큐가 있으면 이 응답은 큐 맨 앞 글이다(types.ts 규약 2).
+      if (cur.q.length > 0) {
+        const rest = { q: cur.q.slice(1), last: cur.last }
+        const res = parsePost(body, boardPostPath(code, cur.q[0]))
+        return { ...res, nextCursor: encodeBoardCursor(rest), pauseRun: rest.q.length === 0 }
+      }
+      return parseBoardList(body, code, cur, ctx.lastReviewAt)
+    }
+    return parsePost(body, parseProductRef(ctx.productRef))
+  },
+
+  // quotaMarkers 를 선언하지 않는다 = 모든 403/429 를 차단으로 본다.
+  // 공식 API 가 아니라 커뮤니티 사이트라 "정상적인 쿼터 소진" 개념이 없다.
+}
+
+/** 큐에 든 경로 재검증. 이 게시판(code) 글인지까지 본다. 통과 못 하면 null. */
+function boardPostPath(code: string, queued: string): string | null {
+  const p = parseProductRef(`url:${queued}`)
+  // parseProductRef 가 `/view?code=<code>&No=<n>` 으로 정규화해 주므로 접두 비교로 충분하다.
+  return p !== null && p.startsWith(`/view?code=${code}&No=`) ? p : null
+}
+
+/**
+ * 목록 1페이지 → 커서(새 글 큐). 리뷰는 내지 않는다.
+ *
+ * ⚠️ 행 앵커가 0개면 `parseFailures` 다 — "새 글 0건"과 "선택자가 깨졌다"는
+ *    다른 사건이다(§7.1).
+ *
+ * ⚠️ **작성 시각은 채우지 않는다.** 목록의 `<td class="date">09/23</td>` 에는
+ *    연도가 없다(실측). 연도를 추정하면 1월에 한 해치를 건너뛴다. 증분은
+ *    커서의 `last`(글 번호)가 맡는다 — 그쪽은 단조 증가라 추정이 없다.
+ */
+function parseBoardList(
+  body: string,
+  code: string,
+  prev: { q: string[]; last: string | null },
+  _lastReviewAt: string | null | undefined,
+): ParseResult {
+  const rows: number[] = []
+  LIST_ROW.lastIndex = 0
+  for (;;) {
+    const m = LIST_ROW.exec(body)
+    if (!m) break
+    rows.push(m.index)
+  }
+
+  const items: BoardListItem[] = []
+  for (let i = 0; i < rows.length; i++) {
+    const chunk = body.slice(rows[i], i + 1 < rows.length ? rows[i + 1] : body.length)
+    const m = LIST_NO_RE.exec(chunk)
+    // 이 게시판 글이 아니면(광고·다른 게시판 링크) 담지 않는다.
+    if (!m || m[1].toLowerCase() !== code.toLowerCase()) continue
+    // href 를 믿지 않고 숫자 No 로 조립한다(types.ts 규약 4). parseProductRef 와
+    // **같은 정규화**를 써야 같은 글이 두 externalId 로 쌓이지 않는다.
+    const path = boardPostPath(code, `/view?code=${code}&No=${m[2]}`)
+    if (!path) continue
+    items.push({ id: m[2], path, writtenAt: null })
+  }
+
+  const next = nextBoardCursor(items, prev)
+  return {
+    reviews: [],
+    nextCursor: encodeBoardCursor(next),
+    parseFailures: rows.length === 0 ? 1 : 0,
+    pauseRun: next.q.length === 0,
+  }
+}
+
+/** 글 1건(본문 + 댓글) 파싱. `url:` 모드와 `board:` 모드가 공유한다. */
+function parsePost(body: string, p: string | null): ParseResult {
+  {
     const reviews: ParsedReview[] = []
     let parseFailures = 0
 
@@ -284,14 +396,10 @@ export const bobaedreamAdapter: ReviewSourceAdapter = {
     //   깨는 일이고 러너의 robots 판정이 쿼리를 안 본다는 구멍(SP-026)과 맞물린다.
     //   먼저 SP-026 을 고치고 나서 손대라. 지금은 "덜 받는다"를 아는 채로 둔다.
 
-    // 1글=1요청. 커서를 내지 않으므로 러너가 이 타깃을 exhausted 로 닫는다.
-    // 나중에 달린 댓글을 다시 받으려면 사람이 DB 에서 status='active' 로
-    // 되돌려야 한다(자동 재활성화는 만들지 않았다).
+    // `url:` 모드는 글 1개 = 1요청이라 커서를 내지 않는다. `board:` 모드에서는
+    // 호출부(adapter.parse)가 남은 큐로 nextCursor 를 덮어쓴다.
     return { reviews, nextCursor: null, parseFailures }
-  },
-
-  // quotaMarkers 를 선언하지 않는다 = 모든 403/429 를 차단으로 본다.
-  // 공식 API 가 아니라 커뮤니티 사이트라 "정상적인 쿼터 소진" 개념이 없다.
+  }
 }
 
-export const __internal = { stripHtml, sliceDiv, parseShortDate }
+export const __internal = { stripHtml, sliceDiv, parseShortDate, parseBoardList, boardPostPath }

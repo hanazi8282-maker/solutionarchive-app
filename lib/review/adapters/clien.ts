@@ -3,8 +3,23 @@
 // 실측 근거: docs/review-source-findings.md
 //   "커뮤니티 소스 실측 round-3 — brunch · clien · fmkorea (2026-09-17)"
 //
-// ⚠️ **클리앙은 우리에게 robots.txt 를 안 보여 준다(SP-027).**
-//    2026-09-17 실측:
+// ⚠️ **2026-09-24 재실측: 이제는 보여 준다.** 우리 UA 그대로
+//    `https://www.clien.net/robots.txt` = **HTTP 200 · 규칙 있음**(1,691자 / 1,737B UTF-8)
+//    (아래 2026-09-17 기록과 정반대다 — 사이트 쪽이 바뀌었다). 원문은
+//    fixtures/review/clien/robots.txt 에 저장했고, 그 파일이 이 주석의 근거다.
+//    따라서 `proceedWhenRobotsUnverified` 표식은 **자동으로 무력화**됐다
+//    (확인 불가가 아니게 됐다 — types.ts 그 필드 주석대로다). 필드는 남겨 둔다:
+//    사이트가 다시 404 로 돌아갈 수 있고, 그때 조용히 0건이 되는 것보다
+//    표식이 있는 쪽이 낫다. 되돌아갔는지는 재실측으로만 안다.
+//
+//    ⚠️ 규칙을 읽게 됐어도 **어댑터 가드를 지우지 마라.** 기계 판정은 최장 일치라
+//       `Allow:/service/board/`(20자)가 `Disallow: /*?*`(4자)를 이겨서 쿼리가 붙은
+//       글도 allowed 가 된다. 게다가 러너는 판정에 쿼리를 아예 안 넘긴다(SP-026).
+//       `Disallow: /*?*` 를 실제로 지키는 것은 parseProductRef 의 `?` 거부뿐이다.
+//       이 둘을 scripts/review-board-selftest.mjs 가 코드로 단정해 둔다.
+//
+// ⚠️ **2026-09-17 기록(그때는 안 보여 줬다 — SP-027).**
+//    당시 실측:
 //      우리 봇 UA  → www.clien.net/robots.txt = 404, clien.net = 404
 //      브라우저 UA → www.clien.net/robots.txt = 200 (규칙 있음), clien.net = 404
 //    즉 규칙은 존재하는데 **UA 로 게이팅**돼 있다. 러너는 4xx 를
@@ -24,13 +39,25 @@
 //      Disallow:/service/recommend
 //      Disallow: /*?*
 //
-// ⚠️ **1글=1요청이다.** 댓글 페이지네이션을 붙이지 마라. 쿼리를 붙이는 순간
-//    위 `Disallow: /*?*` 위반인데, 러너는 robots 판정에 쿼리를 안 넘기고
-//    (SP-026) 애초에 위 규칙을 읽지도 못한다. 안전장치가 **둘 다** 없다.
+// ⚠️ **글 1개 = 1요청이다.** 댓글 페이지네이션을 붙이지 마라. 쿼리를 붙이는 순간
+//    위 `Disallow: /*?*` 위반인데, 러너는 robots 판정에 쿼리를 안 넘긴다(SP-026).
+//
+// 타깃 형식이 둘이다:
+//   `url:/service/board/park/19264755`  글 1건(기존)
+//   `board:use`                         **게시판 순회**(2026-09-24 추가) —
+//       목록 1페이지 → 새 글 → 그 글의 댓글. 규약은 types.ts 의 `board:` 블록.
+//       목록도 1페이지만 본다(2페이지부터 `?po=` 쿼리가 붙는다 = 위 Disallow).
 //
 // 수집 단위는 상품이 아니라 글 1건이다. 글 본문 1건 + 댓글 N건 = 리뷰 N+1건.
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
+import {
+  type BoardListItem,
+  decodeBoardCursor,
+  encodeBoardCursor,
+  nextBoardCursor,
+  parseBoardRef,
+} from '../types.ts'
 import { parseUrlRef } from './url-ref.ts'
 
 /**
@@ -91,6 +118,19 @@ const VIEW_OPEN = 'class="comment_view"'
 
 /** 댓글 작성일. `<span class="timestamp">2026-09-16 23:37:50` — 4자리 연도가 있다. */
 const CMT_TIME_RE = /<span class="timestamp">\s*(\d{4})-(\d{2})-(\d{2})/
+
+/**
+ * 목록 행 앵커. 속성값에 따옴표가 없다(실측):
+ *   `<div class="list_item symph_row  " data-role="list-row" data-author-id=x data-board-sn=19268762 …>`
+ *
+ * ⚠️ `data-role="list-row"` 를 먼저 요구하는 것이 핵심이다. 공지(`list_item notice`)와
+ *    직접홍보 자리(`list_item hongbo`)에는 이 속성이 없다 — 그래서 큐에 안 섞인다.
+ *    `list_item` 만으로 잡으면 공지 4건이 매 실행 새 글로 들어온다.
+ */
+const LIST_ROW = /data-role="list-row"[^>]*?data-board-sn=(\d+)/g
+
+/** 목록 행의 작성 시각. `<span class="timestamp">2026-09-23 23:18:18</span>` — 4자리 연도가 있다. */
+const LIST_TIME_RE = /<span class="timestamp">\s*(\d{4})-(\d{2})-(\d{2})/
 
 /** 글 제목. `<h3 class="post_subject" …><span>제목</span></h3>` */
 const SUBJECT_RE = /class="post_subject"[^>]*>\s*<span>([\s\S]*?)<\/span>/
@@ -170,6 +210,21 @@ export const clienAdapter: ReviewSourceAdapter = {
   proceedWhenRobotsUnverified: ['www.clien.net'],
 
   nextRequest(target: TargetState): { url: string } | null {
+    // ── board: 모드 — 목록 1페이지 ↔ 큐에 든 글 1개를 번갈아 낸다 ──
+    const slug = parseBoardRef(target.productRef)
+    if (slug) {
+      const cur = decodeBoardCursor(target.cursor)
+      if (cur.q.length === 0) {
+        // ⚠️ **1페이지만 간다.** 2페이지부터는 `?po=1` 같은 쿼리가 붙고, 클리앙
+        //    robots 의 `Disallow: /*?*` 가 그걸 막는다(2026-09-24 재실측).
+        //    최장 일치 규칙상 기계 판정은 `Allow:/service/board/` 를 택해 통과시키지만
+        //    (review-board-selftest.mjs 가 그 사실을 단정한다), 사이트 의도는 명백하다.
+        return { url: `${HOST}${ALLOW_PREFIX}${slug}` }
+      }
+      const p = boardPostPath(slug, cur.q[0])
+      return p ? { url: `${HOST}${p}` } : null
+    }
+
     const p = parseProductRef(target.productRef)
     if (!p) return null
     // 커서가 있다 = 이미 한 번 받았다. 1글=1요청이라 다시 가지 않는다.
@@ -178,7 +233,85 @@ export const clienAdapter: ReviewSourceAdapter = {
   },
 
   parse(body: string, ctx: ParseContext): ParseResult {
-    const p = parseProductRef(ctx.productRef)
+    const slug = parseBoardRef(ctx.productRef)
+    if (slug) {
+      const cur = decodeBoardCursor(ctx.cursor)
+      // 큐가 있으면 이 응답은 **큐 맨 앞 글**이다. 본문을 보고 추측하지 않는다(types.ts 규약 2).
+      if (cur.q.length > 0) {
+        const rest = { q: cur.q.slice(1), last: cur.last }
+        const res = parsePost(body, boardPostPath(slug, cur.q[0]))
+        return { ...res, nextCursor: encodeBoardCursor(rest), pauseRun: rest.q.length === 0 }
+      }
+      return parseBoardList(body, slug, cur, ctx.lastReviewAt)
+    }
+    return parsePost(body, parseProductRef(ctx.productRef))
+  },
+
+  // quotaMarkers 를 선언하지 않는다 = 모든 403/429 를 차단으로 본다.
+}
+
+/**
+ * 큐에 든 경로를 **다시 검증**한다. 큐는 남의 서버가 준 HTML 에서 나왔다.
+ * 지금은 숫자 id 로 조립하므로 통과가 보장되지만, 목록 파서가 나중에
+ * 바뀌어도 이 관문이 남아 있어야 한다(url-ref.ts 와 같은 이유).
+ */
+function boardPostPath(slug: string, queued: string): string | null {
+  const p = parseProductRef(`url:${queued}`)
+  return p !== null && p.startsWith(`${ALLOW_PREFIX}${slug}/`) ? p : null
+}
+
+/**
+ * 목록 1페이지 → 커서(새 글 큐). 리뷰는 내지 않는다 — 목록에는 본문이 없다.
+ *
+ * ⚠️ 행 앵커가 0개면 `parseFailures` 다. "새 글 0건"과 "선택자가 깨졌다"를
+ *    같은 값으로 접으면, 클리앙이 마크업을 바꾼 날부터 이 타깃은 조용히
+ *    0건이 되고 아무도 모른다(CLAUDE.md §7.1 사례 1).
+ */
+function parseBoardList(
+  body: string,
+  slug: string,
+  prev: { q: string[]; last: string | null },
+  lastReviewAt: string | null | undefined,
+): ParseResult {
+  const items: BoardListItem[] = []
+  const anchors: Array<{ id: string; at: number }> = []
+
+  LIST_ROW.lastIndex = 0
+  for (;;) {
+    const m = LIST_ROW.exec(body)
+    if (!m) break
+    anchors.push({ id: m[1], at: m.index })
+  }
+
+  for (let i = 0; i < anchors.length; i++) {
+    const chunk = body.slice(anchors[i].at, i + 1 < anchors.length ? anchors[i + 1].at : body.length)
+    const t = LIST_TIME_RE.exec(chunk)
+    // href 를 믿지 않는다. 숫자 id 로 조립한다(types.ts 규약 4).
+    // 쿼리를 붙이지 않는 것이 robots `Disallow: /*?*` 의 의도다.
+    const path = boardPostPath(slug, `${ALLOW_PREFIX}${slug}/${anchors[i].id}`)
+    // 큐에 넣기 전에 검증한다. 못 통과하면 담지 않는다 — nextRequest 가 null 을
+    // 내면 러너가 타깃을 닫아 버리므로, 잘못된 경로는 여기서 떨어져야 한다.
+    if (!path) continue
+    items.push({
+      id: anchors[i].id,
+      path,
+      writtenAt: t ? `${t[1]}-${t[2]}-${t[3]}` : null,
+    })
+  }
+
+  const next = nextBoardCursor(items, prev, lastReviewAt)
+  return {
+    reviews: [],
+    nextCursor: encodeBoardCursor(next),
+    // 목록은 행이 하나도 없을 때만 실패다. 전부 걸러진 것(새 글 없음)은 정상이다.
+    parseFailures: anchors.length === 0 ? 1 : 0,
+    pauseRun: next.q.length === 0,
+  }
+}
+
+/** 글 1건(본문 + 댓글) 파싱. `url:` 모드와 `board:` 모드가 공유한다. */
+function parsePost(body: string, p: string | null): ParseResult {
+  {
     const reviews: ParsedReview[] = []
     let parseFailures = 0
 
@@ -267,11 +400,10 @@ export const clienAdapter: ReviewSourceAdapter = {
       parseFailures += declared - anchors.length
     }
 
-    // 1글=1요청. 커서를 내지 않으므로 러너가 이 타깃을 exhausted 로 닫는다.
+    // `url:` 모드는 1글=1요청이라 커서를 내지 않는다. `board:` 모드에서는
+    // 호출부(adapter.parse)가 남은 큐로 nextCursor 를 덮어쓴다.
     return { reviews, nextCursor: null, parseFailures }
-  },
-
-  // quotaMarkers 를 선언하지 않는다 = 모든 403/429 를 차단으로 본다.
+  }
 }
 
-export const __internal = { stripHtml, sliceDiv, DENY_PREFIXES }
+export const __internal = { stripHtml, sliceDiv, DENY_PREFIXES, parseBoardList, boardPostPath }

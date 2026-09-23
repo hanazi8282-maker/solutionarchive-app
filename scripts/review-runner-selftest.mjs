@@ -18,6 +18,7 @@ import {
   MAX_PAGES_PER_TARGET,
   PRODUCT_TOKEN,
 } from '../lib/review/runner.ts'
+import { MAX_CONSECUTIVE_EMPTY } from '../lib/review/health.ts'
 import { computeFingerprint, normalizeText } from '../lib/review/fingerprint.ts'
 
 let pass = 0
@@ -473,6 +474,95 @@ const runQuota = (h, over = {}) =>
   )
   ok('커서는 여전히 null — 다음 실행은 처음부터 읽는다', h2.log.saves[h2.log.saves.length - 1].cursor === null)
   t('플래그는 신규 적재 수를 바꾸지 않는다', r2.stats.newReviews, r1.stats.newReviews)
+}
+
+// ── incrementalOnly 의 종료 조건 — 연속 N회 0건이면 닫는다 ─────────
+//
+// 이게 없던 동안 `incrementalOnly` 타깃은 **아무도 닫지 않았다.** 새 댓글이
+// 영원히 안 달리는 글도, 글이 지워진 글도 매 실행 요청을 먹었다. 문턱은
+// 건강도와 같은 상수(health.ts MAX_CONSECUTIVE_EMPTY)를 쓴다 — 여기서
+// 그 상수를 직접 import 해 두 곳이 갈라지지 않게 고정한다.
+{
+  const incAdapter = { ...fakeAdapter, incrementalOnly: true }
+  // 신규 0건을 만드는 가장 정직한 방법: 리뷰가 아예 없는 페이지 1개.
+  const emptyPages = { 1: page([], null) }
+  const tgt = (over = {}) => [
+    {
+      id: 'tgt1',
+      projectId: 'proj1',
+      sourceKey: 'fake',
+      productRef: 'p1',
+      cursor: null,
+      lastReviewAt: null,
+      consecutiveEmpty: 0,
+      ...over,
+    },
+  ]
+
+  // 양성 — N-1 회까지 쌓인 타깃이 이번 실행에서 N 회째가 되면 닫힌다.
+  {
+    const h = makeHarness({ pages: emptyPages, targets: tgt({ consecutiveEmpty: MAX_CONSECUTIVE_EMPTY - 1 }) })
+    const r = await runCollection(incAdapter, { dryRun: false, targetLimit: 5 }, h.ports)
+    const last = h.log.saves[h.log.saves.length - 1]
+    t(`연속 ${MAX_CONSECUTIVE_EMPTY}회째 0건이면 exhausted 로 닫는다`, last.status, 'exhausted')
+    t('닫을 때 카운터도 그 값으로 저장한다', last.consecutiveEmpty, MAX_CONSECUTIVE_EMPTY)
+    ok(
+      '로그에 "연속 N회 0건 → 닫음(N/N)" 수치가 남는다(§7.2)',
+      r.perTarget[0].outcome.includes(
+        `연속 ${MAX_CONSECUTIVE_EMPTY}회 0건 → 닫음(${MAX_CONSECUTIVE_EMPTY}/${MAX_CONSECUTIVE_EMPTY})`,
+      ),
+    )
+  }
+
+  // 음성 ① — N-1 회째에서는 닫지 않는다.
+  {
+    const h = makeHarness({ pages: emptyPages, targets: tgt({ consecutiveEmpty: MAX_CONSECUTIVE_EMPTY - 2 }) })
+    const r = await runCollection(incAdapter, { dryRun: false, targetLimit: 5 }, h.ports)
+    const last = h.log.saves[h.log.saves.length - 1]
+    t(`연속 ${MAX_CONSECUTIVE_EMPTY - 1}회면 아직 active`, last.status, 'active')
+    t('카운터는 1 올라간다', last.consecutiveEmpty, MAX_CONSECUTIVE_EMPTY - 1)
+    ok('닫았다고 적지 않는다', !r.perTarget[0].outcome.includes('닫음'))
+  }
+
+  // 음성 ② — 1건이라도 신규가 들어오면 카운터가 0 으로 리셋된다.
+  {
+    const h = makeHarness({
+      pages: { 1: page([rv({ externalId: 'fresh' })], null) },
+      targets: tgt({ consecutiveEmpty: MAX_CONSECUTIVE_EMPTY - 1 }),
+    })
+    const r = await runCollection(incAdapter, { dryRun: false, targetLimit: 5 }, h.ports)
+    const last = h.log.saves[h.log.saves.length - 1]
+    t('신규 1건이면 카운터 리셋', last.consecutiveEmpty, 0)
+    t('신규가 있으면 닫지 않는다', last.status, 'active')
+    ok('닫았다고 적지 않는다', !r.perTarget[0].outcome.includes('닫음'))
+  }
+
+  // 음성 ③ — dry-run 은 구조적으로 신규 0건이다. 세면 멀쩡한 타깃이 닫힌다.
+  {
+    const h = makeHarness({ pages: emptyPages, targets: tgt({ consecutiveEmpty: MAX_CONSECUTIVE_EMPTY - 1 }) })
+    const r = await runCollection(incAdapter, { dryRun: true, targetLimit: 5 }, h.ports)
+    ok('dry-run 은 타깃을 닫지 않는다', !r.perTarget[0].outcome.includes('닫음'))
+  }
+
+  // 음성 ④ — 차단(403)은 "신규 0건"이 아니다. 차단으로 닫으면 원인이 지워진다.
+  {
+    const h = makeHarness({
+      pageStatus: { 1: 403 },
+      targets: tgt({ consecutiveEmpty: MAX_CONSECUTIVE_EMPTY - 1 }),
+    })
+    const r = await runCollection(incAdapter, { dryRun: false, targetLimit: 5 }, h.ports)
+    const last = h.log.saves[h.log.saves.length - 1]
+    t('차단된 타깃은 닫지 않는다', last.status, 'active')
+    ok('로그에는 차단이 남는다', r.perTarget[0].outcome.includes('차단 응답 403'))
+  }
+
+  // 음성 ⑤ — 플래그가 꺼진 소스는 이 경로를 타지 않는다(그건 원래 exhausted 로 닫힌다).
+  {
+    const h = makeHarness({ pages: emptyPages, targets: tgt({ consecutiveEmpty: 99 }) })
+    const r = await runCollection(fakeAdapter, { dryRun: false, targetLimit: 5 }, h.ports)
+    ok('플래그 꺼진 소스는 "닫음" 문구를 쓰지 않는다', !r.perTarget[0].outcome.includes('닫음'))
+    ok('대신 원래대로 "끝까지 읽음"', r.perTarget[0].outcome.includes('끝까지 읽음'))
+  }
 }
 
 // ── dry-run ───────────────────────────────────────────────────────

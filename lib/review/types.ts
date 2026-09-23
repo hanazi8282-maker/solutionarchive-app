@@ -195,9 +195,11 @@ export interface ReviewSourceAdapter {
    *        코드가 리포에 없다 → 그 질의는 영영 다시 안 돈다.
    *      · 대가: 게시글 1개 = 1요청이라 실행마다 타깃 수만큼 다시 읽는다. 게시글은 커서가
    *        첫 페이지에 null 이 되므로 20페이지를 훑지는 않는다.
-   *      · 남은 구멍: 새 댓글이 영원히 안 달리는 글도 닫히지 않는다. `consecutive_empty` 는
-   *        세지만 아무도 그걸로 닫지 않는다(runner.ts 는 기록만 한다). 타깃이 수백 개로
-   *        늘어 일일 상한을 먹기 시작하면 그 상한을 먼저 넣어라.
+   *      · 그 구멍은 2026-09-24 에 막았다: 새 댓글이 영원히 안 달리는 글도 닫히지
+   *        않는다던 문제다. 러너가 **연속 `MAX_CONSECUTIVE_EMPTY` 회 신규 0건이면
+   *        `exhausted` 로 닫는다**(health.ts 와 같은 상수 · runner.ts 의 `emptyClose`).
+   *        차단(403/429)·dry-run 은 세지 않는다 — 그건 "신규 0건"이 아니다.
+   *        되살리는 것은 여전히 사람 몫이다(`listDueTargets` 는 active 만 본다).
    *      · **본문 전용 소스(brunch·velog)는 다시 읽어도 새 건이 0 이다.** 되돌릴 첫 후보다.
    */
   incrementalOnly?: boolean

@@ -244,6 +244,10 @@ for (const sourceKey of sourceKeys) {
     say(
       `- 파싱 ${s.reviewsParsed}건(실패 ${s.parseFailures}) · ${newLabel} · 폴백키 ${s.fallbackKeys}건 · robots 회피 ${result.robotsSkips}건${quotaLabel}${filteredLabel}`,
     )
+    // ⚠️ 0 이어도 찍는다. "신규 0건"과 "중복만 받았다"는 다른 사건이고, 이 줄이
+    //    없으면 둘이 똑같이 보인다(§7.1). 같은 글이 `url:`·`board:` 두 타깃으로
+    //    들어오는 것을 2차 방어(content_hash)가 걸러낸 수다.
+    say(`- 중복(다른 타깃 경로): ${dryRun ? '—(dry-run 은 판정하지 않음)' : `${s.crossTargetDuplicates}건`}`)
 
     for (const w of result.health.warnings) say(`- ⚠️ ${w}`)
 

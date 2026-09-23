@@ -169,6 +169,19 @@ export const danawaAdapter: ReviewSourceAdapter = {
   key: 'danawa',
   displayName: '다나와 판매처 리뷰',
 
+  /**
+   * **리뷰 seq 는 상품 안에서만 유일하다 — 사이트 전역이 아니다.**
+   *
+   * 형식이 섞여 온다(9자리 `252495223` vs 11자리 0패딩) = 판매처별 id 공간이
+   * 그대로 실려 오는 것으로 관측됐다(2026-08-29 실측, 20260829000003 마이그레이션
+   * 주석). 그래서 지문이 productRef(pcode)로 범위를 좁힌 채로 남는다.
+   *
+   * ⚠️ 이걸 끄면 서로 다른 상품의 다른 리뷰 둘이 같은 seq 로 만나 **한 리뷰로
+   *    뭉개진다.** 다나와는 상품 1개 = 타깃 1개라 타깃끼리 같은 리뷰를 덮을 일이
+   *    없어서(게시판 순회가 없다) 얻는 것도 없다.
+   */
+  productScopedExternalId: true,
+
   nextRequest(target: TargetState) {
     const page = target.cursor ? Number(target.cursor) + 1 : 1
     if (!Number.isFinite(page) || page < 1) return null

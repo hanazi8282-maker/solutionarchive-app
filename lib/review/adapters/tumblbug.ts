@@ -59,6 +59,27 @@
 // ⚠️ **한 번에 최대 4건이다.** 마커(`totalReviewCount`)는 66 인데 `contents` 는
 //    4건만 온다 — 프리뷰 상한이다. 그래서 마커와 항목 수의 차이를 실패로 세면
 //    안 된다(그랬다면 매번 실패 62건이 찍힌다). 마커가 >0 인데 0건일 때만 실패다.
+//
+// ── 게시판 모드 `board:discover:<category>` — ⛔ 열지 못했다 (2026-09-24 실측) ──
+//
+// robots 가 `Allow: /discover?category=` 로 **딱 한 경로만** 열어 둔다. 그 경로를
+// 실제로 받아 봤고(200 · 59,697B), **목록을 얻을 수 없다**는 결론이다:
+//
+//   렌더 텍스트           690자
+//   프로젝트 링크          0개 (href 는 CDN·푸터·`/notices`·`/onboarding` 뿐)
+//   MOBX_STATE            projectStore.projects = **[]** (빈 배열)
+//
+// 즉 목록도 창작자 설명·코멘트와 같은 자리에 있다 — `/api/` XHR 이고 robots 금지다.
+// 남은 정적 목록은 `Sitemap: https://www.tumblbug.com/sitemap/sitemap.xml` 하나인데
+// 그건 카테고리로 갈리지 않으므로 "게시판"이 아니다(요청하지 않았다).
+//
+// ⚠️ **이건 "댓글/후기가 없다"가 아니다. "목록을 못 읽었다"다.** 그래서 파서가
+//    빈 목록을 0건이 아니라 **파싱 실패 1건**으로 낸다(§7.1). 코드와 셀프테스트에
+//    남겨 둔 이유는 텀블벅이 목록을 SSR 로 바꾸는 날 빨간불이 뜨게 하려는 것이다.
+//
+// ⚠️ **그래서 `board:discover:*` 타깃을 등록하지 않았다.** 등록 SQL
+//    (supabase/migrations/20260930000009_board_targets_y.sql)에 근거와 함께
+//    주석으로만 남겼다. 지금 켜면 매일 실패 1건을 찍는 타깃이 된다.
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
 import { parseUrlRef } from './url-ref.ts'
@@ -174,6 +195,219 @@ function readCreatorReviews(state: Record<string, unknown> | null): CreatorRevie
   return out
 }
 
+/**
+ * robots 가 **유일하게 연** 목록 경로. 쿼리까지가 규칙의 일부다.
+ *
+ * 실측 robots.txt(2026-09-24 · 200 · 318B, 원문은 `fixtures/review/tumblbug/robots.txt`):
+ *   Allow:    /discover?category=
+ *   Disallow: /discover?
+ *   Disallow: /search?
+ *
+ * ⚠️ **러너의 robots 판정으로는 이 규칙을 못 지킨다.** 판정이 `u.pathname` 만 보므로
+ *    (runner.ts, SP-026) `/discover?category=x`(허용) 과 `/discover?sort=popular`(금지)가
+ *    둘 다 "일치하는 규칙 없음 = allowed" 로 나온다. 그래서 **어댑터가 쿼리를
+ *    직접 고정한다** — `?category=<slug>` 외의 어떤 쿼리도 만들지 않는다.
+ *    scripts/review-board-y-selftest.mjs 가 이 두 사실(코드 판정이 쿼리를 못 본다 /
+ *    쿼리를 붙여 판정하면 Allow 가 이긴다)을 실측 robots 원문으로 고정한다.
+ */
+const DISCOVER_PATH = '/discover'
+
+/**
+ * 한 실행에 읽을 프로젝트 수 상한. 목록 1 + 프로젝트 19 = 러너의 MAX_PAGES_PER_TARGET(20).
+ * okky.ts 가 같은 값을 갖는다 — X 의 러너 PR 이 공용 상수를 내면 그걸로 바꾼다.
+ */
+const BOARD_QUEUE_MAX = 19
+
+/** 카테고리 slug. 소문자·숫자·`-` 만. 쿼리 스머글링(`a&b=`)이 낄 자리를 없앤다. */
+const CATEGORY_RE = /^[a-z0-9-]{1,32}$/
+
+/**
+ * `board:discover:technology` → `technology`. 형식 위반이면 null.
+ *
+ * ⚠️ **X 의 러너 PR(범용 게시판 큐 규약)이 머지되면 공용 `parseBoardRef` 로 교체한다.**
+ *    지금 그 파일이 없어서 어댑터 로컬에 둔다. okky.ts 에도 같은 이름의 로컬 함수가
+ *    있다 — 규약이 두 벌인 상태이므로 한쪽만 고치지 마라.
+ */
+export function parseBoardRef(productRef: string): string | null {
+  const m = /^board:discover:(.+)$/i.exec((productRef ?? '').trim())
+  if (!m) return null
+  const cat = m[1].trim().toLowerCase()
+  return CATEGORY_RE.test(cat) ? cat : null
+}
+
+/** 게시판 커서: 안 읽은 프로젝트 큐 + 마지막 프로젝트 permalink. */
+interface BoardCursor {
+  queue: string[]
+  lastId: string | null
+}
+
+/** 큐가 비거나 못 읽는 값이면 null = "목록부터". okky.ts 와 같은 규약이다. */
+function decodeBoardCursor(raw: string | null): BoardCursor | null {
+  if (!raw) return null
+  let doc: unknown
+  try {
+    doc = JSON.parse(raw)
+  } catch {
+    return null
+  }
+  if (!doc || typeof doc !== 'object') return null
+  const d = doc as Record<string, unknown>
+  const queue = Array.isArray(d.queue)
+    ? d.queue.filter((x): x is string => typeof x === 'string' && /^\/[A-Za-z0-9_-]+$/.test(x))
+    : []
+  if (queue.length === 0) return null
+  return { queue, lastId: typeof d.lastId === 'string' ? d.lastId : null }
+}
+
+function encodeBoardCursor(c: BoardCursor): string {
+  return JSON.stringify({ v: 1, queue: c.queue, lastId: c.lastId })
+}
+
+/**
+ * 카테고리 목록 → 프로젝트 경로 큐.
+ *
+ * ⛔ **2026-09-24 실측: 이 경로로는 목록을 얻을 수 없다.** `/discover?category=technology`
+ *    는 200 · 59,697B 인데 **렌더 텍스트가 690자**고, hydration 에
+ *    `projectStore.projects` 가 **빈 배열**로 온다(`"projects":[]`). 프로젝트 링크가
+ *    HTML 에 **0개**다(href 는 전부 CDN·푸터·`/notices`·`/onboarding`). 목록은
+ *    `/api/` XHR 로만 오고 그건 robots 가 막은 경로다.
+ *
+ *    그래서 이 파서는 **빈 목록을 0건이 아니라 파싱 실패 1건으로 보고한다**(§7.1).
+ *    "이 카테고리에 프로젝트가 없다"와 "목록이 CSR 이라 우리에게 안 온다"는 다른
+ *    사건이고, 후자는 우리가 못 읽은 것이다. 이 판정을 코드로 박아 둔 이유는,
+ *    텀블벅이 나중에 목록을 SSR 로 바꾸면 셀프테스트가 **빨간불로** 알려 주게
+ *    하려는 것이다(그때 큐가 채워지고 아래 프로젝트 패스가 살아난다).
+ *
+ * ⚠️ 그래서 이 소스의 `board:discover:*` 타깃은 **등록하지 않았다.** 등록하면 매일
+ *    실패 1건을 찍으며 도는 타깃이 된다. 근거는 등록 SQL
+ *    (supabase/migrations/20260930000009_board_targets_y.sql)의 주석에 같이 남겼다.
+ */
+function parseDiscoverList(body: string): { queue: string[]; lastId: string | null; parseFailures: number } {
+  const state = readState(body)
+  if (!state) {
+    // hydration JSON 자체가 없다 = 우리가 아는 페이지가 아니다.
+    return { queue: [], lastId: null, parseFailures: 1 }
+  }
+  const store = state.projectStore as Record<string, unknown> | undefined
+  const projects = Array.isArray(store?.projects) ? (store.projects as unknown[]) : null
+  if (projects === null) {
+    // `projects` 키가 사라졌다 = 구조 변경. 빈 배열(위 ⛔)과 구분해 둔다.
+    return { queue: [], lastId: null, parseFailures: 1 }
+  }
+
+  const queue: string[] = []
+  for (const raw of projects) {
+    if (!raw || typeof raw !== 'object') continue
+    const permalink = (raw as Record<string, unknown>).permalink
+    if (typeof permalink !== 'string' || !/^[A-Za-z0-9_-]+$/.test(permalink)) continue
+    const path = `/${permalink}`
+    if (!queue.includes(path)) queue.push(path)
+  }
+
+  return {
+    queue: queue.slice(0, BOARD_QUEUE_MAX),
+    lastId: queue.length > 0 ? queue[0].slice(1) : null,
+    // 0건 = 위 ⛔ 의 CSR 껍데기다. 실패로 센다.
+    parseFailures: queue.length === 0 ? 1 : 0,
+  }
+}
+
+/**
+ * 프로젝트 1개의 창작자 후기를 읽는다. `url:` 모드와 `board:` 모드가 같은 이 함수를 쓴다.
+ *
+ * `scopeSlug` 가 정체성의 스코프다 — 다른 프로젝트 후기는 filtered 로 버린다(헤더 SP-031).
+ */
+function parseProjectReviews(body: string, scopeSlug: string): { reviews: ParsedReview[]; parseFailures: number; filtered: number } {
+  const reviews: ParsedReview[] = []
+  let parseFailures = 0
+  let filtered = 0
+
+  const state = readState(body)
+  if (!state) {
+    // hydration JSON 이 통째로 없다. SPA 껍데기를 받은 것이다 —
+    // HTTP 200 이어도 내용이 0 인 경우다(CLAUDE.md §7.1).
+    return { reviews, parseFailures: 1, filtered }
+  }
+
+  const creators = readCreatorReviews(state)
+  if (creators === null || creators.length === 0) {
+    // creators 자체가 없다 = 구조 변경.
+    return { reviews, parseFailures: 1, filtered }
+  }
+
+  const seen = new Set<string>()
+  for (const c of creators) {
+    if (c.totalReviewCount === null) {
+      // review 키 소실. "후기 0건"과 **다른 사건**이다.
+      parseFailures++
+      continue
+    }
+
+    for (const item of c.contents) {
+      const id = item.projectWarrantyReviewId
+      const text = typeof item.body === 'string' ? item.body.trim() : ''
+      if (typeof id !== 'number' && typeof id !== 'string') {
+        // 고유 id 가 없다. composite 폴백을 만들지 않고 실패로 센다 —
+        // 폴백으로 지문을 만들면 같은 후기가 새 리뷰로 계속 쌓인다.
+        parseFailures++
+        continue
+      }
+      const permalink = typeof item.projectPermalink === 'string' ? item.projectPermalink : null
+      if (!permalink) {
+        // 소속 프로젝트를 모르면 이 후기를 어느 타깃에 묶을지 정할 수 없다.
+        // 그 상태로 받으면 정체성이 productRef 에 따라 갈려 중복이 된다.
+        // 고유 id 소실과 같은 급의 구조 변경이라 실패로 센다.
+        parseFailures++
+        continue
+      }
+      if (permalink !== scopeSlug) {
+        // 이 창작자의 **다른 프로젝트** 후기다. 그 프로젝트를 타깃으로 잡으면
+        // 거기서 받는다 — 여기서 받으면 타깃 간 중복 적재가 된다(헤더 참조).
+        filtered++
+        continue
+      }
+
+      if (!text) {
+        // 컨테이너는 멀쩡한데 알맹이가 없다(사진만 올린 후기).
+        // 파서가 깨진 게 아니므로 실패로 세지 않는다.
+        continue
+      }
+
+      // 프로젝트 경로를 안 섞는다. 스코프가 이미 프로젝트 단위라 경로를
+      // 또 넣으면 지문에 같은 정보가 두 번 들어갈 뿐이다.
+      const externalId = `tbr:${id}`
+      if (seen.has(externalId)) continue
+      seen.add(externalId)
+
+      reviews.push({
+        externalId,
+        text,
+        rating: null,
+        seller: null,
+        authorMasked: null,
+        writtenAt: isoDate(item.createdAt),
+        // storyId 를 두지 않는다. 스코프 필터 때문에 항상 productRef 와
+        // 같은 값이라 아무것도 알려 주지 않는다.
+      })
+    }
+
+    // 마커가 >0 인데 한 건도 못 읽었다 = 구조가 바뀐 것이다.
+    //
+    // ⚠️ `totalReviewCount - contents.length` 를 실패로 세면 안 된다.
+    //    프리뷰가 4건 상한이라 정상일 때도 66 vs 4 로 어긋난다.
+    if (c.totalReviewCount > 0 && c.contents.length === 0) parseFailures++
+  }
+
+  // ponytail: 창작자당 최대 4건만 받는다(프리뷰 상한). 전량이 필요하면
+  //   후기 목록 XHR 을 붙여야 하는데 그건 robots 가 막은 `/api/` 다.
+  //   막힌 길이라 상한을 아는 채로 둔다.
+  //
+  // filtered 는 "남의 프로젝트 후기라 버렸다" 는 뜻이다. parseFailures 와
+  // 분리해야 건강도 분모에 안 들어간다 — 안 그러면 정상 동작하는 타깃이
+  // broken 으로 꺼진다(types.ts ParseResult.filtered).
+  return { reviews, parseFailures, filtered }
+}
+
 export const tumblbugAdapter: ReviewSourceAdapter = {
   key: 'tumblbug',
   displayName: '텀블벅 창작자 후기',
@@ -194,7 +428,21 @@ export const tumblbugAdapter: ReviewSourceAdapter = {
   // 그 상한은 아직 없다. 늘어나면 재활성화 조건(empty<3)을 러너에 넣어야 한다.
   incrementalOnly: true,
 
+  // ⚠️ **게시판 모드에 필요한 러너 변경(이 PR 은 X 소유 파일을 고치지 않았다)**
+  //    okky.ts 의 같은 주석과 동일하다: `nextRequest` 가 null 을 내면 러너가
+  //    `incrementalOnly` 와 무관하게 타깃을 exhausted 로 닫으므로, 게시판 모드는
+  //    **큐를 비울 때 nextCursor=null 로** 끝낸다. 그 대가로 `lastId` 가 실행마다
+  //    초기화된다(값만 기록하고 건너뛰기에는 아직 쓰지 않는다).
   nextRequest(target: TargetState): { url: string } | null {
+    const category = parseBoardRef(target.productRef)
+    if (category) {
+      const c = decodeBoardCursor(target.cursor)
+      // 쿼리를 문자열로 조립한다. `category` 는 CATEGORY_RE 를 통과한 값뿐이므로
+      // robots 가 허용한 `?category=<slug>` 외의 모양이 나올 수 없다.
+      if (!c) return { url: `${HOST}${DISCOVER_PATH}?category=${category}` }
+      return { url: `${HOST}${c.queue[0]}` }
+    }
+
     const p = parseProductRef(target.productRef)
     if (!p) return null
     // 커서가 있다 = 이미 한 번 받았다. 1문서=1요청이라 다시 가지 않는다.
@@ -203,9 +451,29 @@ export const tumblbugAdapter: ReviewSourceAdapter = {
   },
 
   parse(body: string, ctx: ParseContext): ParseResult {
-    const reviews: ParsedReview[] = []
-    let parseFailures = 0
-    let filtered = 0
+    const category = parseBoardRef(ctx.productRef)
+    if (category) {
+      // nextRequest 와 **같은 커서로 같은 판단**을 한다(러너가 요청에 쓴 커서를
+      // 그대로 넘긴다) — 그래서 "무엇을 받았는지"가 어긋날 수 없다.
+      const c = decodeBoardCursor(ctx.cursor)
+      if (!c) {
+        const list = parseDiscoverList(body)
+        return {
+          reviews: [],
+          nextCursor: list.queue.length > 0 ? encodeBoardCursor({ queue: list.queue, lastId: list.lastId }) : null,
+          parseFailures: list.parseFailures,
+          filtered: 0,
+        }
+      }
+      const got = parseProjectReviews(body, c.queue[0].slice(1))
+      const rest = c.queue.slice(1)
+      return {
+        reviews: got.reviews,
+        nextCursor: rest.length > 0 ? encodeBoardCursor({ queue: rest, lastId: c.lastId }) : null,
+        parseFailures: got.parseFailures,
+        filtered: got.filtered,
+      }
+    }
 
     // 이 타깃이 가리키는 프로젝트. 정체성이 여기에 묶인다(헤더 참조).
     const scope = parseProductRef(ctx.productRef)
@@ -213,97 +481,13 @@ export const tumblbugAdapter: ReviewSourceAdapter = {
       // nextRequest 가 같은 검사를 하므로 실행 경로에서는 안 온다. 그래도
       // 스코프를 모르는 채로 받지는 않는다 — 그러면 다시 타깃 간 중복이 된다.
       // 조용히 0건으로 지나가면 "후기 없음"과 구분이 안 되므로 실패로 센다(§7.1).
-      return { reviews, nextCursor: null, parseFailures: 1, filtered }
+      return { reviews: [], nextCursor: null, parseFailures: 1, filtered: 0 }
     }
-    const scopeSlug = scope.slice(1)
-
-    const state = readState(body)
-    if (!state) {
-      // hydration JSON 이 통째로 없다. SPA 껍데기를 받은 것이다 —
-      // HTTP 200 이어도 내용이 0 인 경우다(CLAUDE.md §7.1).
-      return { reviews, nextCursor: null, parseFailures: 1, filtered }
-    }
-
-    const creators = readCreatorReviews(state)
-    if (creators === null || creators.length === 0) {
-      // creators 자체가 없다 = 구조 변경.
-      return { reviews, nextCursor: null, parseFailures: 1, filtered }
-    }
-
-    const seen = new Set<string>()
-    for (const c of creators) {
-      if (c.totalReviewCount === null) {
-        // review 키 소실. "후기 0건"과 **다른 사건**이다.
-        parseFailures++
-        continue
-      }
-
-      for (const item of c.contents) {
-        const id = item.projectWarrantyReviewId
-        const text = typeof item.body === 'string' ? item.body.trim() : ''
-        if (typeof id !== 'number' && typeof id !== 'string') {
-          // 고유 id 가 없다. composite 폴백을 만들지 않고 실패로 센다 —
-          // 폴백으로 지문을 만들면 같은 후기가 새 리뷰로 계속 쌓인다.
-          parseFailures++
-          continue
-        }
-        const permalink = typeof item.projectPermalink === 'string' ? item.projectPermalink : null
-        if (!permalink) {
-          // 소속 프로젝트를 모르면 이 후기를 어느 타깃에 묶을지 정할 수 없다.
-          // 그 상태로 받으면 정체성이 productRef 에 따라 갈려 중복이 된다.
-          // 고유 id 소실과 같은 급의 구조 변경이라 실패로 센다.
-          parseFailures++
-          continue
-        }
-        if (permalink !== scopeSlug) {
-          // 이 창작자의 **다른 프로젝트** 후기다. 그 프로젝트를 타깃으로 잡으면
-          // 거기서 받는다 — 여기서 받으면 타깃 간 중복 적재가 된다(헤더 참조).
-          filtered++
-          continue
-        }
-
-        if (!text) {
-          // 컨테이너는 멀쩡한데 알맹이가 없다(사진만 올린 후기).
-          // 파서가 깨진 게 아니므로 실패로 세지 않는다.
-          continue
-        }
-
-        // 프로젝트 경로를 안 섞는다. 스코프가 이미 프로젝트 단위라 경로를
-        // 또 넣으면 지문에 같은 정보가 두 번 들어갈 뿐이다.
-        const externalId = `tbr:${id}`
-        if (seen.has(externalId)) continue
-        seen.add(externalId)
-
-        reviews.push({
-          externalId,
-          text,
-          rating: null,
-          seller: null,
-          authorMasked: null,
-          writtenAt: isoDate(item.createdAt),
-          // storyId 를 두지 않는다. 스코프 필터 때문에 항상 productRef 와
-          // 같은 값이라 아무것도 알려 주지 않는다.
-        })
-      }
-
-      // 마커가 >0 인데 한 건도 못 읽었다 = 구조가 바뀐 것이다.
-      //
-      // ⚠️ `totalReviewCount - contents.length` 를 실패로 세면 안 된다.
-      //    프리뷰가 4건 상한이라 정상일 때도 66 vs 4 로 어긋난다.
-      if (c.totalReviewCount > 0 && c.contents.length === 0) parseFailures++
-    }
-
-    // ponytail: 창작자당 최대 4건만 받는다(프리뷰 상한). 전량이 필요하면
-    //   후기 목록 XHR 을 붙여야 하는데 그건 robots 가 막은 `/api/` 다.
-    //   막힌 길이라 상한을 아는 채로 둔다.
-    //
-    // filtered 는 "남의 프로젝트 후기라 버렸다" 는 뜻이다. parseFailures 와
-    // 분리해야 건강도 분모에 안 들어간다 — 안 그러면 정상 동작하는 타깃이
-    // broken 으로 꺼진다(types.ts ParseResult.filtered).
-    return { reviews, nextCursor: null, parseFailures, filtered }
+    const got = parseProjectReviews(body, scope.slice(1))
+    return { reviews: got.reviews, nextCursor: null, parseFailures: got.parseFailures, filtered: got.filtered }
   },
 
   // quotaMarkers 를 선언하지 않는다 = 모든 403/429 를 차단으로 본다.
 }
 
-export const __internal = { sliceJson, readState, readCreatorReviews, isoDate }
+export const __internal = { sliceJson, readState, readCreatorReviews, isoDate, parseDiscoverList, decodeBoardCursor, encodeBoardCursor, DISCOVER_PATH }

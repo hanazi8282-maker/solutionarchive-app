@@ -97,6 +97,13 @@ jobs:
       #           중복 적재 방어선이다(SP-031 과 같은 형태).
       - run: node scripts/review-okky-selftest.mjs
       - run: node scripts/review-velog-selftest.mjs
+      # 게시판 모드(board:<slug>) — 목록 1회 → 글 순회. 지키는 것 셋:
+      #   · 목록 0건은 "새 글 없음"이 아니라 파싱 실패다(okky /community 는 항상 20건).
+      #   · (경로, 시각) 짝짓기 — 카드 안에서 <time> 이 제목 앵커보다 **먼저** 온다.
+      #   · tumblbug /discover?category= 는 목록이 CSR 이라 **못 읽는다**. 그걸 0건으로
+      #     보고하면 소스가 조용히 멈춘 것처럼 보인다(§7.1). 실측 robots 원문으로
+      #     러너의 쿼리 미판정 구멍(SP-026)까지 고정한다.
+      - run: node scripts/review-board-y-selftest.mjs
       #   youtube: order=time 이 빠지면 관련도순이라 증분 종료가 깨지고, 쿼터 403 을
       #            차단으로 분류하면 정상적인 일일 한도 소진이 소스를 꺼 버린다(PR #106 이식).
       - run: node scripts/review-youtube-selftest.mjs

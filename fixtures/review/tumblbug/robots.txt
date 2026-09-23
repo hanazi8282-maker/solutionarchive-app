@@ -1,0 +1,12 @@
+User-agent: *
+Disallow: /api/
+Disallow: /auth/
+Disallow: /sessions/
+Disallow: /oauth/
+Allow: /discover?category=
+Disallow: /discover?
+Disallow: /search?
+
+Sitemap: https://www.tumblbug.com/sitemap/sitemap.xml
+
+#DaumWebMasterTool:8ecb7a394803bb3a6c4edfeec91567a9c402b48aa2dfef957d73c3fb96ad7dc6:2A3PJmPDvvaHvnc1VlA1xQ==

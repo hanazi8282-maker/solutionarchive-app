@@ -1,0 +1,102 @@
+User-Agent: *
+Disallow: /auth/
+Disallow: /new/
+Disallow: /settings/
+Disallow: /login
+Disallow: /logout
+Disallow: /recruits/*/new
+Disallow: /api/
+Disallow: /changes$
+Disallow: /*/changes$
+Disallow: /users/*/questions
+Disallow: /users/*/articles
+Disallow: /users/*/scraped
+Disallow: /users/*/activity
+
+User-Agent: bingbot
+Disallow: /auth/
+Disallow: /new/
+Disallow: /settings/
+Disallow: /login
+Disallow: /logout
+Disallow: /recruits/*/new
+Disallow: /api/
+Disallow: /changes$
+Disallow: /*/changes$
+Disallow: /users/*/questions
+Disallow: /users/*/articles
+Disallow: /users/*/scraped
+Disallow: /users/*/activity
+Crawl-delay: 1
+
+User-Agent: Googlebot
+User-Agent: Googlebot-Image
+User-Agent: OAI-SearchBot
+User-Agent: GPTBot
+User-Agent: Claude-User
+User-Agent: ClaudeBot
+User-Agent: PerplexityBot
+Disallow: /auth/
+Disallow: /new/
+Disallow: /settings/
+Disallow: /login
+Disallow: /logout
+Disallow: /recruits/*/new
+Disallow: /api/
+Disallow: /changes$
+Disallow: /*/changes$
+Disallow: /users/*/questions
+Disallow: /users/*/articles
+Disallow: /users/*/scraped
+Disallow: /users/*/activity
+
+User-Agent: MJ12bot
+Disallow: /
+
+User-Agent: DataForSeoBot
+Disallow: /
+
+User-Agent: CriteoBot
+Disallow: /
+
+User-Agent: peer39_crawler
+Disallow: /
+
+User-Agent: IAS Crawler
+Disallow: /
+
+User-Agent: bidswitchbot
+Disallow: /
+
+User-Agent: PubMatic Crawler Bot
+Disallow: /
+
+User-Agent: Thinkbot
+Disallow: /
+
+User-Agent: ShapBot
+Disallow: /
+
+User-Agent: HaloBot
+Disallow: /
+
+User-Agent: LinerBot
+Disallow: /
+
+User-Agent: MauiBot
+Disallow: /
+
+User-Agent: ArchiveTeam
+Disallow: /
+
+User-Agent: Bytespider
+Disallow: /
+
+User-Agent: Connatix
+Disallow: /
+
+User-Agent: SiteAuditBot
+Disallow: /
+
+Sitemap: https://okky.kr/sitemap.xml
+Sitemap: https://okky.kr/news-sitemap.xml

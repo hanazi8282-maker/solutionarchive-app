@@ -104,6 +104,18 @@ jobs:
       #     보고하면 소스가 조용히 멈춘 것처럼 보인다(§7.1). 실측 robots 원문으로
       #     러너의 쿼리 미판정 구멍(SP-026)까지 고정한다.
       - run: node scripts/review-board-y-selftest.mjs
+      # 게시판 순회 모드 Z(velog 태그 · damoang) — 2026-09-24. 지키는 것:
+      #   · 목록 컨테이너 소실을 "글 0건"으로 접지 않는다.
+      #   · 큐에 들어가는 경로는 원격 데이터라 **두 번** 글 ref 화이트리스트를 탄다.
+      #   · 댓글 마커가 comments_count 로 되돌아가지 않는다 — 그러면 11−10=1 이 매 실행
+      #     가짜 실패로 찍힌다. 마커는 Post.comments 참조 배열 길이다(정확히 화해된다).
+      #   · `last` 를 날짜가 아니라 원본 ISO 로 비교한다(같은 날 늦게 올라온 글 경계).
+      #   · damoang 목록 403 은 **robots 가 아니라 서버(Cloudflare)** 가 막은 것이다.
+      # ⚠️ 마지막 두 단정("러너미비①·②")은 **현재 러너 상태를 고정한 것**이라
+      #    러너에 nextRequest(target, page)·ParseContext.page 가 들어오고 `if (!req)`
+      #    분기가 endStatus 를 쓰게 되면 실패한다. 그게 신호다 — 그때 기대값을 갱신하고
+      #    supabase/migrations/20260930000010_board_targets_z.sql 을 적용한다.
+      - run: node scripts/review-board-z-selftest.mjs
       #   youtube: order=time 이 빠지면 관련도순이라 증분 종료가 깨지고, 쿼터 403 을
       #            차단으로 분류하면 정상적인 일일 한도 소진이 소스를 꺼 버린다(PR #106 이식).
       - run: node scripts/review-youtube-selftest.mjs

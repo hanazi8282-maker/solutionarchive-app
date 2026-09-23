@@ -5,7 +5,7 @@ import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
 import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
 import {
-  LOOPS, classify, renderStepBar, isStale, staleMinutes, truncate, cronToLabel,
+  LOOPS, classify, renderStepBar, isStale, staleMinutes, truncate, cronToLabel, loopScheduleLabel,
   UNAVAILABLE_TEXT, EMPTY_TEXT, PULL_GRACE_MS, nextDailyFire, pullState, DAY_MS, statusAt, deltaText,
   type Classified, type LoopDef, type Step,
 } from '@/lib/agents/status'
@@ -274,7 +274,7 @@ function StatusBadges({ c }: { c: LoopCard }) {
 function LoopSubtitle({ d }: { d: LoopDef }) {
   return (
     <span style={wrap}>
-      {cronToLabel(d.cronExpr)}
+      {loopScheduleLabel(d)}
       {d.scheduleActive
         ? ' · 스케줄 활성'
         : <b style={{ color: 'var(--warning-fg)' }}> · 자동 스케줄 비활성 (수동 실행만)</b>}

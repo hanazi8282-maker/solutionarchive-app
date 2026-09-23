@@ -15,7 +15,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  LOOPS, STALE_MS, MARKS, classify, renderStepBar, isStale, truncate, cronToLabel,
+  LOOPS, STALE_MS, MARKS, classify, renderStepBar, isStale, truncate, cronToLabel, loopScheduleLabel,
   isMissingTableError, UNAVAILABLE_TEXT, EMPTY_TEXT,
   PULL_GRACE_MS, nextDailyFire, pullState, statusAt, deltaText,
 } from '../lib/agents/status.ts'
@@ -138,8 +138,12 @@ for (const loop of LOOPS) {
   // 주석 처리된 cron 도 잡는다 — 노션 루프가 그 상태다. 활성/비활성은 따로 본다.
   const lines = yml.split('\n').filter((l) => /-\s*cron:/.test(l))
   const crons = lines.map((l) => (l.match(/cron:\s*'([^']+)'/) ?? [])[1]).filter(Boolean)
-  ok(`${loop.key}: 워크플로에 cron 1개`, crons.length === 1)
-  t(`${loop.key}: cron 일치`, crons[0], loop.cronExpr)
+  // 슬롯이 둘 이상인 루프가 있다(review = 하루 2회). 개수를 1 로 못 박지 않고 레지스트리와 대조한다 —
+  // 워크플로에만 슬롯을 더하면 /agents 가 하루 1회라고 거짓말하고, 여기만 더하면 안 도는 시각을 그린다.
+  const expected = [loop.cronExpr, ...(loop.extraCronExprs ?? [])]
+  t(`${loop.key}: 워크플로 cron 개수`, crons.length, expected.length)
+  t(`${loop.key}: cron 목록 일치(순서까지)`, crons.join(' | '), expected.join(' | '))
+  ok(`${loop.key}: 화면 라벨에 모든 슬롯이 든다`, expected.every((c) => loopScheduleLabel(loop).includes(cronToLabel(c))))
 
   const active = lines.some((l) => !/^\s*#/.test(l))
   t(`${loop.key}: scheduleActive 일치`, active, loop.scheduleActive)

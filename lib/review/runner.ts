@@ -485,7 +485,14 @@ export async function runCollection(
       }
 
       pagesFetched++
-      const parsed = adapter.parse(res.body, { productRef: target.productRef, cursor })
+      // ⚠️ 증분 기준선은 실행 시작 시점 값(baselineReviewAt)을 넘긴다. 진행 중에
+      //    갱신되는 lastReviewAt 을 넘기면 파서가 방금 읽은 글보다 오래된 것을
+      //    전부 "이미 본 것"으로 걸러 한 페이지만 읽고 멈춘다(위 baselineReviewAt 주석).
+      const parsed = adapter.parse(res.body, {
+        productRef: target.productRef,
+        cursor,
+        lastReviewAt: baselineReviewAt,
+      })
       stats.parseFailures += parsed.parseFailures
       // 순수 누적 카운터. 종료 조건·커서·STALE 판정 어디에도 안 쓴다.
       // filtered 를 안 내는 어댑터(danawa·appstore)는 여기서 0 이 더해진다.
@@ -528,6 +535,19 @@ export async function runCollection(
             `(active 유지 · 마지막 리뷰 시각 ${lastReviewAt ?? '없음'})`
           : '끝까지 읽음'
         status = endStatus
+        break
+      }
+      // 이번 실행 몫은 끝났지만 **커서는 버리지 않는다**(types.ts ParseResult.pauseRun).
+      //
+      // `nextCursor: null` 로는 이걸 표현할 수 없다 — 그건 "끝 + 커서 폐기"라
+      // 다음 실행이 처음부터 다시 읽는다. 게시판 순회는 "마지막으로 본 글 id"를
+      // 다음 실행까지 들고 가야 같은 글을 매일 다시 받지 않는다.
+      //
+      // ⚠️ status 는 active 다. 닫는 판단은 위의 연속 0건 안전장치가 한다 —
+      //    여기서 닫으면 "이번 실행 분량을 다 읽었다"가 "고갈됐다"로 기록된다.
+      if (parsed.pauseRun) {
+        outcome = `이번 실행 몫 종료(${page + 1}페이지째 · 커서 유지 — 다음 실행이 이어간다)`
+        status = 'active'
         break
       }
       if (staleStreak >= STALE_STREAK_TO_STOP) {

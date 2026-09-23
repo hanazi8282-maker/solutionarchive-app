@@ -565,6 +565,76 @@ const runQuota = (h, over = {}) =>
   }
 }
 
+// ── pauseRun · ctx.lastReviewAt — 게시판 순회용 범용 규약 ──────────
+//
+// 게시판 순회 타깃은 "이번 실행 몫은 끝났지만 커서는 살려 둬야" 한다.
+// nextCursor=null 로는 그걸 표현할 수 없다(끝 + 커서 폐기). 어댑터에
+// 무관한 규약이라 러너에서 가짜 어댑터로 고정한다 — 실제 어댑터 3종은
+// review-board-selftest.mjs 가 경계면까지 본다(§7.1 "부품 테스트를
+// 통합의 근거로 쓰지 마라").
+{
+  const seenCtx = []
+  const boardish = {
+    key: 'fake',
+    displayName: 'fake',
+    incrementalOnly: true,
+    nextRequest(target) {
+      return { url: `https://example.test/reviews?prodCode=${target.productRef}&page=${target.cursor ? 2 : 1}` }
+    },
+    parse(body, ctx) {
+      seenCtx.push(ctx)
+      return JSON.parse(body)
+    },
+  }
+  const tgt = (over = {}) => [
+    {
+      id: 'tgt1',
+      projectId: 'proj1',
+      sourceKey: 'fake',
+      productRef: 'board:use',
+      cursor: null,
+      lastReviewAt: '2026-09-01',
+      consecutiveEmpty: 0,
+      ...over,
+    },
+  ]
+  const KEPT = '{"q":[],"last":"9"}'
+
+  {
+    const pages = {
+      1: JSON.stringify({ reviews: [rv({ externalId: 'a' })], nextCursor: KEPT, parseFailures: 0, pauseRun: true }),
+      2: JSON.stringify({ reviews: [rv({ externalId: 'b' })], nextCursor: null, parseFailures: 0 }),
+    }
+    const h = makeHarness({ pages, targets: tgt() })
+    const r = await runCollection(boardish, { dryRun: false, targetLimit: 5 }, h.ports)
+    const last = h.log.saves[h.log.saves.length - 1]
+    t('pauseRun 이면 그 실행에서 더 요청하지 않는다', r.pagesFetched, 1)
+    t('pauseRun 은 커서를 버리지 않는다', last.cursor, KEPT)
+    t('pauseRun 은 타깃을 닫지 않는다', last.status, 'active')
+    ok('로그에 커서를 유지했다는 사실이 남는다', r.perTarget[0].outcome.includes('커서 유지'))
+    t('파서는 실행 시작 시점의 증분 기준선을 받는다', seenCtx[0].lastReviewAt, '2026-09-01')
+    t('파서는 자기가 요청한 커서를 그대로 받는다', seenCtx[0].cursor, null)
+  }
+  {
+    // nextCursor=null 과 겹치면 "끝"이 이긴다. 커서를 살릴 자리가 없으니 당연하고,
+    // 그때 닫을지 말지는 incrementalOnly 가 가른다(여기서는 켜져 있어 active).
+    const pages = {
+      1: JSON.stringify({ reviews: [], nextCursor: null, parseFailures: 0, pauseRun: true }),
+    }
+    const h = makeHarness({ pages, targets: tgt() })
+    const r = await runCollection(boardish, { dryRun: false, targetLimit: 5 }, h.ports)
+    ok('nextCursor=null 이면 pauseRun 은 무시된다', r.perTarget[0].outcome.includes('끝까지 읽음'))
+    ok('"커서 유지" 라고 적지 않는다', !r.perTarget[0].outcome.includes('커서 유지'))
+  }
+  {
+    // 커서가 살아 있으면 다음 실행은 목록부터가 아니라 그 커서에서 이어간다.
+    const pages = { 2: JSON.stringify({ reviews: [], nextCursor: null, parseFailures: 0 }) }
+    const h = makeHarness({ pages, targets: tgt({ cursor: KEPT }) })
+    await runCollection(boardish, { dryRun: false, targetLimit: 5 }, h.ports)
+    ok('다음 실행은 저장된 커서를 그대로 받는다', h.log.fetched.some((u) => u.includes('page=2')))
+  }
+}
+
 // ── dry-run ───────────────────────────────────────────────────────
 {
   const h = makeHarness({ pages: { 1: page([rv({ externalId: 'a' })], null) } })

@@ -1,0 +1,55 @@
+/* ============================================================
+   라이트 앱 팔레트 (남헌 2026-09-23 Q1 결정: 라이트 앱 + 다크 랜딩)
+   실측 출처: Trend Seeker — bg #F4F7FA · 텍스트 #0F172A · 흰 카드 radius 16.
+   근거: reports/2026-09-23/ui-overhaul-reference-plan.md §2.
+
+   ⚠️ **기존 토큰 값을 바꾸지 않는다.** 이 파일은 추가만 한다.
+      전 화면 적용은 트랙 1(10/4)이고, 지금 적용되는 곳은 `.sa-lib` 안 —
+      공개 상세(`/library/<slug>`)와 CaseCard 뿐이다. 19개 화면을 한 번에
+      물들이면 회귀가 어디서 났는지 못 가른다.
+
+   어떻게 쓰나: 스코프 요소에 `class="sa-lib"` 하나. 그 안에서는 DS 컴포넌트
+   (Card·Badge·Notice)가 이미 읽고 있는 **의미 별칭**이 라이트 값으로 다시
+   가리켜지므로 컴포넌트를 고칠 필요가 없다. 새 컴포넌트를 만들지 않는 게
+   이 방식을 고른 이유다.
+   ============================================================ */
+
+:root {
+  /* 원시값 — 이름에 쓰임이 아니라 출처가 남아 있게 lib- 접두사를 붙인다. */
+  --lib-bg:       #f4f7fa; /* 회청 캔버스 */
+  --lib-surface:  #ffffff;
+  --lib-ink:      #0f172a; /* 본문·제목(슬레이트 900 과 같은 값) */
+  --lib-muted:    #5b6874;
+  --lib-line:     #e2e8f0;
+  --lib-radius-card:   16px;
+  --lib-radius-banner: 32px;
+}
+
+/* 스코프 — 이 안에서만 의미 별칭을 다시 가리킨다. */
+.sa-lib {
+  --bg-app:         var(--lib-bg);
+  --surface-card:   var(--lib-surface);
+  --surface-sunken: var(--lib-bg);
+  --text-strong:    var(--lib-ink);
+  --text-body:      #33404d;
+  --text-muted:     var(--lib-muted);
+  --border:         var(--lib-line);
+
+  /* 카드 radius 는 8px(--radius-lg) 대신 16px. 레퍼런스 4곳 중 3곳이 16 이다. */
+  --radius-lg:      var(--lib-radius-card);
+
+  background: var(--bg-app);
+  color: var(--text-body);
+}
+
+/* 다크 테마에서는 스코프를 적용하지 않는다 — 라이트 값을 다크 캔버스에 덮으면
+   글자와 배경이 같은 밝기가 된다. data-theme="dark" 를 쓰는 화면은 그대로 둔다. */
+[data-theme="dark"] .sa-lib {
+  --bg-app:         #0a0f1d;
+  --surface-card:   var(--slate-900);
+  --surface-sunken: #0a0f1d;
+  --text-strong:    var(--slate-50);
+  --text-body:      var(--slate-300);
+  --text-muted:     var(--slate-400);
+  --border:         rgba(255, 255, 255, 0.09);
+}

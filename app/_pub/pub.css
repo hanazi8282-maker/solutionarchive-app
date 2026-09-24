@@ -371,6 +371,8 @@
 .pub-solo .pub-hero { padding: var(--pub-gap-6) 0 0; gap: var(--pub-gap-3); }
 .pub-solo .pub-hero-title { font-size: var(--pub-size-head); letter-spacing: var(--pub-tracking-head); line-height: var(--pub-leading-head); }
 .pub-solo .pub-lead { font-size: var(--pub-size-text-sm); line-height: var(--pub-leading-text-sm); }
+/* M1: 한 장 카드의 버튼은 카드 폭을 다 쓴다([A] 인증 카드) — 누를 곳이 하나뿐인 화면이다. */
+.pub-solo .pub-form .pub-btn { width: 100%; }
 .pub-code {
   font-family: var(--pub-type-mono);
   font-size: var(--pub-size-caption);
@@ -398,6 +400,8 @@
     line-height: var(--pub-leading-head);
   }
   .pub-panel--banner { padding: var(--pub-gap-section) var(--pub-gap-10); }
+  /* M1: 한 장 카드 화면도 [F] 상단 리듬을 따른다(위 여백 40 → 64). */
+  .pub-solo { margin-top: var(--pub-gap-section); }
 }
 
 /* ============================================================

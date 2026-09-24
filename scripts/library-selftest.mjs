@@ -14,6 +14,7 @@
 import {
   buildLibrary, parseLibraryQuery, pickFirstMove, problemCounts, sortLibrary,
   DEFAULT_SORT, LIBRARY_SORTS,
+  kstWeekStart, kstDate, approvedThisWeek, pickTodayCase, buildSourceTiles,
 } from '../lib/cases/library.ts'
 import { emptyStateText } from '../lib/cases/search.ts'
 
@@ -148,6 +149,48 @@ const slugs = (r) => r.cards.map((c) => c.study.slug).join(',')
   t('로고 컬럼: 응답에 logo_url 키가 없으면 missing', buildLibrary(Q(), CORPORA).logo_columns, 'missing')
   const withLogo = STUDIES.map((s) => ({ ...s, logo_url: null }))
   t('로고 컬럼: 키가 있으면 present(값이 NULL 이어도)', buildLibrary(Q(), { ...CORPORA, studies: withLogo }).logo_columns, 'present')
+}
+
+// ── 랜딩 부가 집계(경쟁사 기능 9·10a) ────────────────────────────
+// 6. 이번 주 = KST 월요일 00:00. UTC 로 계산하면 월요일 00:00~08:59 KST 승인분이 지난주로 샌다.
+t('주 시작: 수요일 → 월요일 KST 자정', kstWeekStart(new Date('2026-09-23T12:00:00Z')).toISOString(), '2026-09-20T15:00:00.000Z')
+t('주 시작: 월 00:30 KST(=일 15:30 UTC) 는 이번 주', kstWeekStart(new Date('2026-09-20T15:30:00Z')).toISOString(), '2026-09-20T15:00:00.000Z')
+t('주 시작: 일 23:59 KST 는 지난주', kstWeekStart(new Date('2026-09-20T14:59:00Z')).toISOString(), '2026-09-13T15:00:00.000Z')
+t('KST 날짜: UTC 15:00 은 다음 날', kstDate(new Date('2026-09-23T15:00:00Z')), '2026-09-24')
+{
+  const r = buildLibrary(Q(), CORPORA)
+  // 이번 주 = 09-21 00:00 KST 이후. s1(09-20)·s5(09-18) 는 지난주, s4 는 승인일 미기재 → 0.
+  t('이번 주 승인: 지난주·미기재는 안 센다', approvedThisWeek(r, new Date('2026-09-23T03:00:00Z')), 0)
+  t('이번 주 승인: 지난주 기준이면 s1·s5 를 센다', approvedThisWeek(r, new Date('2026-09-16T03:00:00Z')), 2)
+  t('이번 주 승인: 조회 실패는 null(0 아님)', approvedThisWeek(buildLibrary(Q(), { studies: null, moves: [], evidence: [] }), new Date()), null)
+  t('이번 주 승인: 결과 없음은 null', approvedThisWeek(null, new Date()), null)
+
+  // 7. 오늘의 케이스 — 같은 날 같은 카드, 무브 0 카드는 안 고른다, 후보를 뒤집어도 같다.
+  const day = new Date('2026-09-24T01:00:00Z')
+  const a = pickTodayCase(r.cards, day)
+  ok('오늘의 케이스: 후보가 있으면 고른다', a)
+  t('오늘의 케이스: 같은 KST 날짜면 같은 카드', pickTodayCase(r.cards, new Date('2026-09-24T14:59:00Z'))?.study.slug, a?.study.slug)
+  t('오늘의 케이스: 배열 순서와 무관', pickTodayCase([...r.cards].reverse(), day)?.study.slug, a?.study.slug)
+  ok('오늘의 케이스: 무브 0 카드는 후보가 아니다', a && a.move_count > 0)
+  t('오늘의 케이스: 후보 0 이면 null', pickTodayCase([], day), null)
+  const days = new Set(Array.from({ length: 30 }, (_, i) => pickTodayCase(r.cards, new Date(Date.UTC(2026, 8, 1 + i)))?.study.slug))
+  ok('오늘의 케이스: 30일 동안 한 카드에 고정되지 않는다', days.size > 1)
+}
+// 8. 소스 타일 — 못 셌다(null)는 남기고, 0건만 뺀다. 레지스트리 실패는 tiles=null.
+{
+  const src = [{ key: 'hn', display_name: 'Hacker News' }, { key: 'okky', display_name: 'OKKY' }, { key: 'velog', display_name: null }, { key: 'danawa', display_name: '다나와' }]
+  const got = buildSourceTiles(src, new Map([['hn', 4022], ['okky', 0], ['velog', null], ['danawa', 12]]))
+  t('소스 타일: 0건은 빼고 센다', got.hidden_zero, 1)
+  t('소스 타일: 건수 내림차순 · 못 센 것은 맨 뒤 · 이름 없으면 key', got.tiles?.map((x) => `${x.name}=${x.count}`).join(','), 'Hacker News=4022,다나와=12,velog=null')
+  t('소스 타일: 카운트 누락 소스는 null(0 아님)', buildSourceTiles([{ key: 'x', display_name: 'X' }], new Map()).tiles?.[0]?.count, null)
+  t('소스 타일: 레지스트리 실패는 tiles=null', buildSourceTiles(null, new Map()).tiles, null)
+}
+// 9. 소스 타일 count 조건 — 누적(중복 정리분만 제외). purged_at IS NULL 로 되돌아가면 30일 보관분이 된다.
+{
+  const lib = (await import('node:fs')).readFileSync(new URL('../lib/cases/library.ts', import.meta.url), 'utf8')
+  const body = lib.slice(lib.indexOf('export async function loadSourceTiles'))
+  ok('소스 타일: dedupe 만 제외(purge_reason IS DISTINCT FROM dedupe)', body.includes(".or('purge_reason.is.null,purge_reason.neq.dedupe')"))
+  ok('소스 타일: purged_at IS NULL 로 세지 않는다(30일 보관분 아님)', !/.is('purged_at', null)/.test(body))
 }
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} library-selftest: ${pass} pass, ${fail} fail`)

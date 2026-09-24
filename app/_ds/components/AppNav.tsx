@@ -26,6 +26,8 @@ const NAV_GROUPS: readonly { label: string; links: readonly NavLink[] }[] = [
       { href: '/discovery', match: '/discovery', label: '발굴 후보 검증' },
       // 셀러가 자기 말로 묻는 유일한 입구. 네비에 없으면 만든 화면이 없는 화면이다.
       { href: '/cases/search', match: '/cases/search', label: '유사 케이스 검색' },
+      // 아이디어 한 줄 → 매칭 리포트 한 장(11a). 로그인 전용 — 공개 입구(11b)는 10/4 이후.
+      { href: '/cases/report', match: '/cases/report', label: '아이디어 매칭 리포트' },
       // 공개 카드 그리드. **익명으로도 열리는 화면**이라(lib/auth/policy.ts `/library`) 로그인
       // 전에도 이 링크가 보여야 한다 — 이 네비는 email 이 없어도 렌더되므로 여기 한 줄로 끝난다
       // (`/columns/read` 도 같은 처리다. 네비를 아예 숨기는 것은 `/onboarding`·`/login`·`/` 뿐).

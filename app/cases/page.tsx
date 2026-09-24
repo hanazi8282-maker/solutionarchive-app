@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { productKindOf } from '@/lib/cases/advisor'
 import { gradeMove, READER_PROBLEM_LABEL, type Evidence, type Move } from '@/lib/cases/draft'
+import { classifyFeedbackError, tallyFeedback, type FeedbackTally, type FeedbackVoteRow } from '@/lib/cases/feedback'
 import { caseApprovalWarning, moveApprovalWarning, TRANSFERABILITY_LABEL, type Transferability } from '@/lib/cases/review'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
@@ -248,6 +249,26 @@ function MoveBlock({ m, i, evidence, caseEvidenceTotal, locked, transferabilityL
   )
 }
 
+/**
+ * 공개 상세의 👍/👎(case_feedback) — T3 사람 신호. 받기만 하고 읽는 곳이 없던 표를 검수자가 본다.
+ * 3상태: 못 읽음(fbError) / 0건("피드백 없음") / 집계. 빈칸으로 두지 않는다(§7.1).
+ */
+function FeedbackLine({ tally, fbError }: { tally: FeedbackTally | undefined; fbError: string | null }) {
+  if (fbError) return <p style={{ ...muted, color: 'var(--warning-fg)' }}>독자 피드백 확인 불가 — {fbError}</p>
+  if (!tally) return <p style={muted}>독자 피드백 없음 (조회는 정상 — 👍/👎 0건)</p>
+  return (
+    <div style={{ display: 'grid', gap: 4 }}>
+      <p style={{ margin: 0, fontSize: 13 }}>
+        독자 피드백 <b>👍 {tally.up} · 👎 {tally.down}</b>
+        <span style={{ color: 'var(--text-muted)' }}> · 코멘트 {tally.noted}건{tally.noted > tally.notes.length ? ` 중 최근 ${tally.notes.length}` : ''}</span>
+      </p>
+      {tally.notes.map((n, i) => (
+        <p key={i} style={muted}>{n.vote > 0 ? '👍' : '👎'} {n.note} · {KST.format(Date.parse(n.at))}</p>
+      ))}
+    </div>
+  )
+}
+
 function Chip({ k, v, tone }: { k: string; v: ReactNode; tone?: Tone }) {
   return <Badge tone={tone ?? 'neutral'} size="sm">{k} {v ?? '—'}</Badge>
 }
@@ -285,13 +306,15 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
     )
   }
 
-  const [res, moveCols, caseCols, axisCols] = await Promise.all([
+  const [res, moveCols, caseCols, axisCols, fbRes] = await Promise.all([
     sb.from('case_studies').select('*, case_moves(*), case_evidence(*)').order('created_at', { ascending: false }),
     // 결정 기록 컬럼 존재 확인. select 에 없는 컬럼을 넣으면 에러가 온다(head:true 트랩과 달리 정직하다).
     sb.from('case_moves').select('review_note,reviewed_by,reviewed_at').limit(1),
     sb.from('case_studies').select('review_note').limit(1),
     // 이식성 축(마이그 20260915000001). 없으면 화면을 죽이지 않고 배너 + 기존 정보만 보인다.
     sb.from('case_moves').select('transferability,transfer_note,preconditions').limit(1),
+    // ponytail: 표 전체를 읽어 JS 에서 센다. 수천 건을 넘으면 집계 뷰/RPC 로 옮긴다(limit 로 자르면 숫자가 조용히 틀린다).
+    sb.from('case_feedback').select('case_study_id, vote, note, created_at'),
   ])
 
   if (res.error || !res.data) {
@@ -334,6 +357,12 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
   const unrated = transferabilityLocked
     ? null
     : all.reduce((n, c) => n + (c.case_moves ?? []).filter((m) => m.review_status === 'approved' && !m.transferability).length, 0)
+
+  // 피드백을 못 읽어도 검수는 계속된다 — 그 칸만 "확인 불가"로 말한다.
+  const fbError = fbRes.error
+    ? (classifyFeedbackError(fbRes.error)?.reason ?? fbRes.error.message)
+    : Array.isArray(fbRes.data) ? null : '응답에 행 배열이 없다'
+  const feedback = tallyFeedback(fbError ? [] : (fbRes.data as FeedbackVoteRow[]))
 
   const totalMoves = all.reduce((n, c) => n + (c.case_moves ?? []).length, 0)
 
@@ -473,6 +502,7 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
                   </div>
                   {c.summary && <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, overflowWrap: 'anywhere' }}>{c.summary}</p>}
                   {c.tags && c.tags.length > 0 && <p style={muted}>태그 {c.tags.join(' · ')}</p>}
+                  <FeedbackLine tally={feedback.get(c.id)} fbError={fbError} />
 
                   <EvidenceList label="케이스 전체 근거" rows={c.evidence.filter((e) => !e.case_move_id)} />
 

@@ -256,3 +256,103 @@ export async function loadLibrary(sb: Client, query: LibraryQuery, where = 'libr
   ])
   return buildLibrary(query, { studies, moves, evidence })
 }
+
+// ── 랜딩 부가 집계(경쟁사 기능 9·10a, reports/2026-09-24/competitor-features-reestimate.md) ──
+//
+// 전부 `loadLibrary` 결과(`cards`)를 다시 쓴다 — 랜딩의 "승인 케이스 N건"과 "+N 이번 주"·
+// "오늘의 케이스"가 서로 다른 모집단을 보면 방문자가 세어 보고 틀렸다고 판단한다.
+
+const DAY_MS = 86_400_000
+/** KST 는 DST 가 없어 항상 +09:00 이다 — 오프셋을 상수로 더한다(`Intl` 왕복보다 짧고 틀릴 곳이 없다). */
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000
+
+/** 이번 주 시작 = **KST 월요일 00:00** 의 UTC 시각. 1970-01-01 은 목요일이라 `+3` 이 월요일을 0 으로 맞춘다. */
+export function kstWeekStart(now: Date): Date {
+  const day = Math.floor((now.getTime() + KST_OFFSET_MS) / DAY_MS)
+  return new Date((day - ((day + 3) % 7)) * DAY_MS - KST_OFFSET_MS)
+}
+
+/** KST 날짜 문자열(YYYY-MM-DD). "오늘의 케이스" 씨앗이다. */
+export function kstDate(now: Date): string {
+  return new Date(now.getTime() + KST_OFFSET_MS).toISOString().slice(0, 10)
+}
+
+/**
+ * 이번 주(KST 월요일부터) 승인된 카드 수. `reviewed_at` 미기재·못 읽는 값은 **세지 않는다**
+ * (적립일로 메우지 않는다 — byRecent 와 같은 규칙). 조회 실패면 null — 0 이 아니다(§7.1).
+ */
+export function approvedThisWeek(result: LibraryResult | null, now: Date): number | null {
+  if (!result || result.status === 'error') return null
+  const start = kstWeekStart(now).getTime()
+  return result.cards.filter((c) => {
+    const at = Date.parse(c.study.reviewed_at ?? '')
+    return Number.isFinite(at) && at >= start
+  }).length
+}
+
+/** FNV-1a 32bit. 암호가 아니라 "날짜마다 고르게 흩어지는 순서"만 필요하다. */
+function fnv1a(s: string): number {
+  let h = 0x811c9dc5
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193)
+  return h >>> 0
+}
+
+/**
+ * 오늘의 케이스 1장 — 승인 무브가 있는 카드 중 `hash(KST 날짜 : slug)` 가 가장 큰 것.
+ * 배열 순서·길이로 나머지를 취하지 않는 이유: 같은 날 새 케이스가 승인되면 `% n` 은 전부
+ * 밀리지만, 이 방식은 새 케이스가 그날 1등일 때만 바뀐다(같은 날 새로고침해도 같은 카드).
+ * 후보가 없으면 null — 화면이 조회 실패와 0건을 따로 말한다.
+ */
+export function pickTodayCase(cards: LibraryCard[], now: Date): LibraryCard | null {
+  const seed = kstDate(now)
+  let best: LibraryCard | null = null
+  let bestScore = -1
+  for (const c of cards) {
+    if (c.move_count === 0) continue
+    const score = fnv1a(`${seed}:${c.study.slug}`)
+    if (score > bestScore) { best = c; bestScore = score }
+  }
+  return best
+}
+
+/** 소스 한 칸. `count === null` = 못 셌다(0 이 아니다). */
+export type SourceTile = { key: string; name: string; count: number | null }
+
+/**
+ * 소스별 VOC 건수 타일. 0건(정상 조회)인 소스는 타일에서 빼고 `hidden_zero` 로 센다 —
+ * 켜 두기만 하고 아직 못 모은 소스가 "0건" 칸으로 줄을 채우지 않게. 못 센 소스는 **빼지 않는다**.
+ * `sources === null`(레지스트리 조회 실패)이면 tiles 도 null — 화면이 "집계 불가"를 그린다.
+ */
+export function buildSourceTiles(
+  sources: { key: string; display_name: string | null }[] | null,
+  counts: Map<string, number | null>,
+): { tiles: SourceTile[] | null; hidden_zero: number } {
+  if (sources === null) return { tiles: null, hidden_zero: 0 }
+  const all = sources.map((s) => ({ key: s.key, name: s.display_name || s.key, count: counts.get(s.key) ?? null }))
+  const tiles = all
+    .filter((t) => t.count !== 0)
+    .sort((a, b) => (b.count ?? -1) - (a.count ?? -1) || a.key.localeCompare(b.key))
+  return { tiles, hidden_zero: all.length - tiles.length }
+}
+
+/**
+ * 소스별 VOC 건수 — `review_sources` 각 행마다 `analysis_inputs`(source_key 일치,
+ * `purge_reason IS DISTINCT FROM 'dedupe'`)를 count 한다 = **누적 수집(중복 정리분만 제외)**.
+ * 30일 폐기(retention)로 원문을 비운 행도 센다 — 모은 건 모은 것이다.
+ * 컬럼(마이그 000015)이 없으면 42703 → 그 소스 count=null → 타일이 "집계 불가"를 그린다(0 으로 접지 않는다). HEAD 가 아니라 `limit(0)` GET 이다: HEAD 는 없는 테이블에도 204 를 돌려
+ * 실패가 0 으로 접힌다(PostgREST HEAD 함정).
+ *
+ * ponytail: 소스 수만큼 count 요청(현재 20여 개)을 병렬로 보낸다. 소스가 50개를 넘거나
+ *   랜딩 응답이 느려지면 `GROUP BY source_key` 뷰/RPC 1개로 내린다(그땐 마이그가 필요하다).
+ */
+export async function loadSourceTiles(sb: Client, where = 'landing') {
+  const sources = await safeSelect<{ key: string; display_name: string | null }>(sb, 'review_sources', 'key, display_name', where)
+  const counts = new Map<string, number | null>()
+  await Promise.all((sources ?? []).map(async (s) => {
+    const { count, error } = await sb.from('analysis_inputs')
+      .select('id', { count: 'exact' }).eq('source_key', s.key).or('purge_reason.is.null,purge_reason.neq.dedupe').limit(0)
+    if (error) console.error(`[${where}] analysis_inputs count(${s.key}) error:`, error.code ?? '', error.message)
+    counts.set(s.key, error ? null : count)
+  }))
+  return buildSourceTiles(sources, counts)
+}

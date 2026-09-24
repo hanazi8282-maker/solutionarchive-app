@@ -314,3 +314,8 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 양성: 컬럼 nullable · CHECK 1 · dedupe 50 · retention 0 · 불변식(purged_at NOT NULL ⇒ reason NOT NULL) 위반 0 · 역방향(reason 있고 purged_at NULL) 0 · 누적 집계(reason IS DISTINCT FROM 'dedupe') 24,920 / 총 24,970.
 - 음성: CHECK 위반 UPDATE 롤백 검사 **미실행**(호스티드 MCP). 앱 경로는 review-purge-selftest 34건이 대신 검사.
 - 순서 주의: PR #258 의 소스 타일 count 가 이 컬럼을 읽는다(커밋 1994580). 컬럼은 이미 적용됐으므로 #258 을 언제 머지해도 "집계 불가"로 빠지지 않는다.
+
+### 2026-09-24 추기 — 000013 hoka 1행 후속 (남헌 7차 결정 1번 "hoka A 확정")
+
+- 000013 적용 시 `hoka-specialty-retail-awareness-engine` 은 DB 에 행이 없어 0건 UPDATE 였다. 같은 날 PR #262(전이축 3칸 채움, 인사이트 D/D→A/A)를 `case-review.mjs commit` 으로 draft 적재한 뒤, 000013 과 같은 값(`hoka.com`, `config/brand-domains.json` status=active)으로 1행 UPDATE 를 CEO-STAFF 가 직접 실행했다(`WHERE brand_domain IS NULL` 가드, RETURNING 확인). 롤백은 000013 롤백 파일이 같은 슬러그를 포함하므로 별도 파일 없음.
+- 적재 실측: case_studies 58행(57→58), hoka 무브 2(draft/A·draft/A), 근거 8, reader_problem NO_CHANNEL, brand_domain 채움 40/58. 승인은 남헌(/cases 에서 무브+케이스 둘 다).

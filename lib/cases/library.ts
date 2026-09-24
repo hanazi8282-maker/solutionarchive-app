@@ -336,8 +336,10 @@ export function buildSourceTiles(
 }
 
 /**
- * 소스별 VOC 건수 — `review_sources` 각 행마다 `analysis_inputs`(source_key 일치, `purged_at IS NULL`)
- * 를 count 한다. HEAD 가 아니라 `limit(0)` GET 이다: HEAD 는 없는 테이블에도 204 를 돌려
+ * 소스별 VOC 건수 — `review_sources` 각 행마다 `analysis_inputs`(source_key 일치,
+ * `purge_reason IS DISTINCT FROM 'dedupe'`)를 count 한다 = **누적 수집(중복 정리분만 제외)**.
+ * 30일 폐기(retention)로 원문을 비운 행도 센다 — 모은 건 모은 것이다.
+ * 컬럼(마이그 000015)이 없으면 42703 → 그 소스 count=null → 타일이 "집계 불가"를 그린다(0 으로 접지 않는다). HEAD 가 아니라 `limit(0)` GET 이다: HEAD 는 없는 테이블에도 204 를 돌려
  * 실패가 0 으로 접힌다(PostgREST HEAD 함정).
  *
  * ponytail: 소스 수만큼 count 요청(현재 20여 개)을 병렬로 보낸다. 소스가 50개를 넘거나
@@ -348,7 +350,7 @@ export async function loadSourceTiles(sb: Client, where = 'landing') {
   const counts = new Map<string, number | null>()
   await Promise.all((sources ?? []).map(async (s) => {
     const { count, error } = await sb.from('analysis_inputs')
-      .select('id', { count: 'exact' }).eq('source_key', s.key).is('purged_at', null).limit(0)
+      .select('id', { count: 'exact' }).eq('source_key', s.key).or('purge_reason.is.null,purge_reason.neq.dedupe').limit(0)
     if (error) console.error(`[${where}] analysis_inputs count(${s.key}) error:`, error.code ?? '', error.message)
     counts.set(s.key, error ? null : count)
   }))

@@ -138,14 +138,14 @@ export default async function Home() {
         </StatRow>
       </Section>
 
-      {/* 소스별 VOC — 원문을 보관 중인 수집 행만 센다(purged_at IS NULL). 못 셌으면 "집계 불가"(§7.1). */}
+      {/* 소스별 VOC — 누적 수집 행을 센다(purge_reason IS DISTINCT FROM 'dedupe'). 못 셌으면 "집계 불가"(§7.1). */}
       <Section
         eyebrow="어디서 듣나"
         title="소스별로 모은 목소리"
         lead={
           sources.tiles === null
             ? '소스 목록을 읽지 못했다. 수집이 0건이라는 뜻이 아니라 확인에 실패한 것이다.'
-            : `수집기가 가져와 원문을 보관 중인 글·댓글 수다(30일 지나 원문을 비운 것·중복 정리분은 빠진다).${sources.hidden_zero > 0 ? ` 아직 0건인 소스 ${sources.hidden_zero}곳은 뺐다.` : ''}`
+            : `수집기가 가져온 글·댓글의 누적 수집(중복 정리분 제외)이다.${sources.hidden_zero > 0 ? ` 아직 0건인 소스 ${sources.hidden_zero}곳은 뺐다.` : ''}`
         }
       >
         {sources.tiles && sources.tiles.length > 0 ? (

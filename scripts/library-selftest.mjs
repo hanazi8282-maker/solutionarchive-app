@@ -185,6 +185,13 @@ t('KST 날짜: UTC 15:00 은 다음 날', kstDate(new Date('2026-09-23T15:00:00Z
   t('소스 타일: 카운트 누락 소스는 null(0 아님)', buildSourceTiles([{ key: 'x', display_name: 'X' }], new Map()).tiles?.[0]?.count, null)
   t('소스 타일: 레지스트리 실패는 tiles=null', buildSourceTiles(null, new Map()).tiles, null)
 }
+// 9. 소스 타일 count 조건 — 누적(중복 정리분만 제외). purged_at IS NULL 로 되돌아가면 30일 보관분이 된다.
+{
+  const lib = (await import('node:fs')).readFileSync(new URL('../lib/cases/library.ts', import.meta.url), 'utf8')
+  const body = lib.slice(lib.indexOf('export async function loadSourceTiles'))
+  ok('소스 타일: dedupe 만 제외(purge_reason IS DISTINCT FROM dedupe)', body.includes(".or('purge_reason.is.null,purge_reason.neq.dedupe')"))
+  ok('소스 타일: purged_at IS NULL 로 세지 않는다(30일 보관분 아님)', !/.is('purged_at', null)/.test(body))
+}
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} library-selftest: ${pass} pass, ${fail} fail`)
 process.exit(fail === 0 ? 0 : 1)

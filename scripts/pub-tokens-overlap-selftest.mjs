@@ -211,5 +211,33 @@ for (const g of GROUPS) {
   console.log(`${tag} PASS — 설명되지 않은 겹침 0건 (불가피 ${r.overlaps.length}건은 위에 이유와 함께 적혀 있다)`)
 }
 
+// M2 구멍 막기 — 위 검사는 **리터럴 값**만 센다. 화면이 `var(--text-muted)` 처럼 `_ds` 변수를 읽으면
+// 리터럴은 0 인데 실제로는 두더지웍스 값이 칠해진다. 그래서 (1) 5화면 page.tsx 가 `.sa-v2` 스코프를
+// 두르고 있는지, (2) 5화면·그들이 쓰는 `_ds` 컴포넌트가 읽는 변수가 전부 v2.css 에서 다시
+// 가리켜졌는지를 센다. 색·반경·그림자·서체와 무관한 레이아웃 변수(간격·행 높이·굵기)는 제외.
+if (!mutateMode) {
+  const v2Css = readFileSync(join(ROOT, 'app', '_ds', 'v2', 'v2.css'), 'utf8')
+  const declared = new Set([...strip(v2Css).matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]))
+  const LAYOUT_ONLY = /^--(row-h|space-|sidebar-w|content-|header-h|fw-|lh-|ls-|font-inter|font-pretendard)/
+  const COMPONENTS = ['Badge', 'Button', 'Card', 'EmptyState', 'Field', 'FilterChip', 'ProgressBar', 'Shell']
+    .map((c) => join(ROOT, 'app', '_ds', 'components', `${c}.tsx`))
+  const m2Screens = M2_DIRS.slice(1).flatMap(({ dir, deep }) => walk(dir, [], deep))
+  const leaks = []
+  for (const f of [...m2Screens, ...COMPONENTS]) {
+    for (const m of readFileSync(f, 'utf8').matchAll(/var\((--[\w-]+)/g)) {
+      if (!declared.has(m[1]) && !LAYOUT_ONLY.test(m[1])) leaks.push(`${f.slice(ROOT.length)} ${m[1]}`)
+    }
+  }
+  const unwrapped = ['agents', 'discovery', 'dashboard', 'columns', join('cases', 'grade')]
+    .map((d) => join(ROOT, 'app', d, 'page.tsx'))
+    .filter((f) => !readFileSync(f, 'utf8').includes('className="sa-v2"'))
+  // 인라인 style 0 — M1 규칙 3("인라인 스타일 금지")을 5화면에도. 새 모양은 v2.css 클래스로.
+  const inline = m2Screens.filter((f) => /\bstyle=\{/.test(readFileSync(f, "utf8")))
+  if (inline.length) fail(`M2: 인라인 style 이 남은 파일 ${inline.length}개 — ${inline.map((f) => f.slice(ROOT.length)).join(", ")}`)
+  if (unwrapped.length) fail(`M2: .sa-v2 스코프를 안 두른 화면 ${unwrapped.length}개 — ${unwrapped.map((f) => f.slice(ROOT.length)).join(', ')}`)
+  if (leaks.length) fail(`M2: v2.css 가 다시 가리키지 않은 _ds 변수 ${leaks.length}곳(두더지웍스 값이 그대로 칠해진다): ${[...new Set(leaks)].join(', ')}`)
+  console.log(`[m2-tokens-overlap] PASS — 5화면 스코프 5/5 · 인라인 style 0 · 읽는 _ds 변수 전부 v2 로 재지정(선언 ${declared.size}개)`)
+}
+
 // 간격은 따로 보고만 한다(겹침으로 세지 않는다).
 console.log('[tokens-overlap] 간격(px)은 제외했다 — 레퍼런스 4곳도 8의 배수라 _ds 의 4/8/12/16/20/24/32/40 과 겹친다. 의도된 것이고 디자인 승계가 아니다.')

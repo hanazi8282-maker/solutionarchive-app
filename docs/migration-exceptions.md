@@ -274,3 +274,48 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 적용 전 실측 두 컬럼 없음. MCP `apply_migration` — success.
 - 양성: `information_schema` 두 컬럼 nullable 확인. 음성: 기존 행 값 전부 NULL(백필 없음).
 - ⚠️ `/columns/read` 공개 접두사(`lib/auth/policy.ts`)는 **이 PR 에 없다** — 세션의 자동모드 분류기가 인증 경계 확장을 차단해 남헌이 직접 넣는다(§10.2 예외 3). 그때까지 읽기 화면은 로그인 벽 뒤에 있다.
+
+## 2026-09-24 — 20260930000011_review_source_cap_log.sql (상한 자동반영 감사 로그 테이블)
+
+- 승인자: 자체 판단(예외 아님: 신규 테이블 1개+인덱스 1개, 삭제·백필·UPDATE 없음, RLS ENABLE+FORCE·정책 0). CEO-STAFF 세션. 롤백 파일 있음.
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 적용 전 실측 테이블 없음(information_schema 0). claude.ai Supabase MCP `apply_migration`(project_id 명시) — success. 로컬 stdio MCP 는 세션 시작 시 타임아웃이라 못 썼고, 별도 stdio 호출로 같은 프로젝트를 보는 것은 확인함.
+- 양성: 컬럼 9개·인덱스 1·RLS true/true·정책 0.
+- 음성: CHECK 위반 INSERT 롤백 검사 **미실행**(호스티드 MCP 는 트랜잭션 롤백 제어 불가). 앱 경로는 `scripts/review-request-cap.mjs` 가 테이블 부재 시 "반영 안 함"으로 멈추는 3상태 로직으로 대신 검사.
+
+## 2026-09-24 — 20260930000012_fingerprint_dedupe.sql (지문 키 이행 · 교차 타깃 중복 소프트 처리)
+
+- 승인자: 남헌 2026-09-24 2차 결정 2번 — 대량 UPDATE 도 4조건(드라이런·롤백 파일·무중단·Notion 기록) 충족 시 자율 적용 허용. CEO-STAFF 세션 적용. 롤백 파일 있음(`review_dedupe_soft_purges` 가 유일한 근거 — 지우면 복구 불가).
+- 드라이런(적용 전): base 13,951 · 소프트 처리 대상 50건(hackernews 46 · danawa 3 · youtube 1) · keeper 47 · 판정 이동 후보 3.
+- 대상: solutionarchive. 적용 전 인덱스·테이블 없음. `apply_migration` — success.
+- 양성: 인덱스 1 · soft_purges 50행 · 그 50건 전부 purged_at 기록 · 최근 10분 purged 50(=대상 외 purge 없음) · RLS true/true·정책 0.
+- 음성: verdict_moved 0 — 이동 후보 3건은 keeper 에 이미 판정이 있어 이동 안 함(설계대로). 판정 총수 860 변동 없음.
+- 참고: 적용 중 수집 크론이 동시에 돌아 `analysis_inputs` 활성 행이 24,187→24,331 로 늘었다(+194 신규 적재, 이 마이그와 무관). 신규 행은 인덱스+`lib/review/store.ts` 2차 방어가 이후 처리.
+
+## 2026-09-24 — 20260930000013_case_studies_brand_domain_backfill.sql (케이스 브랜드 도메인 백필 40건)
+
+- 승인자: 남헌 2026-09-24 2차 결정 2번(위 4조건). CEO-STAFF 세션 적용. 롤백 파일 있음(40 슬러그 NULL 복원 — 적용 전 57건 전부 NULL 이었으므로 롤백이 정확히 원상태).
+- 드라이런: `brand_domain` 컬럼 존재(마이그 000001 적용됨) · 57건 전부 NULL · 40 슬러그 중 39 일치, `hoka-specialty-retail-awareness-engine` 은 DB 에 없음(0건 UPDATE, 무해).
+- 대상: solutionarchive. `apply_migration` — success.
+- 양성: brand_domain NOT NULL 39 · 도메인 형식 불일치 0.
+- 음성: NULL 잔여 18건 = 백필 목록 밖 17건(실패 케이스 위주: brandless·quibi·juicero 등) + hoka 1. 백필 대상이 아니므로 정상. hoka 는 슬러그 확인 후 후속.
+
+## 2026-09-24 — 20260930000014_review_verdict_labels.sql (T2 라벨 컬럼 4개, PR #257)
+
+- 승인자: 자체 판단(예외 아님: nullable ADD COLUMN 4개 + CHECK, 삭제·백필·UPDATE 없음). CEO-STAFF 세션. 롤백 파일 있음(DROP COLUMN 은 되돌리기 어려운 삭제라 롤백 실행은 사람 판단 영역).
+- 대상: solutionarchive. 적용 전 실측 컬럼 8개(새 4개 없음). `apply_migration` — success. PR #257 코드 머지 전 적용 — 코드는 컬럼 부재 시 "라벨 미기록" 경로가 있어 순서 무관.
+- 양성: 4컬럼 전부 nullable, CHECK 제약 확인, 기존 860행 라벨 전부 NULL(소급 없음, 설계대로).
+- 음성: CHECK 위반 INSERT 롤백 검사 **미실행**(호스티드 MCP). 앱 경로는 analyze-relevance-selftest 87건(허용값 밖 → NULL) 이 대신 검사.
+
+## 2026-09-24 — 20260930000015_analysis_inputs_purge_reason.sql (purged_at 사유 분리, PR #259)
+
+- 승인자: 남헌 2026-09-24 5차 판단 4번("purged_at 을 30일 자동폐기용과 중복 정리용으로 분리, 4조건 규칙"). CEO-STAFF 세션 적용. 롤백 파일 있음(CHECK+컬럼 DROP — 000012 롤백보다 먼저 돌려야 함, 파일 주석).
+- 드라이런(적용 전): dedupe 대상 50 · purged 총 50 · 그중 dedupe 50 · raw_text NULL 0(30일 폐기는 아직 한 번도 발화 안 함) · 컬럼 없음.
+- 대상: solutionarchive. `apply_migration` — success.
+- 양성: 컬럼 nullable · CHECK 1 · dedupe 50 · retention 0 · 불변식(purged_at NOT NULL ⇒ reason NOT NULL) 위반 0 · 역방향(reason 있고 purged_at NULL) 0 · 누적 집계(reason IS DISTINCT FROM 'dedupe') 24,920 / 총 24,970.
+- 음성: CHECK 위반 UPDATE 롤백 검사 **미실행**(호스티드 MCP). 앱 경로는 review-purge-selftest 34건이 대신 검사.
+- 순서 주의: PR #258 의 소스 타일 count 가 이 컬럼을 읽는다(커밋 1994580). 컬럼은 이미 적용됐으므로 #258 을 언제 머지해도 "집계 불가"로 빠지지 않는다.
+
+### 2026-09-24 추기 — 000013 hoka 1행 후속 (남헌 7차 결정 1번 "hoka A 확정")
+
+- 000013 적용 시 `hoka-specialty-retail-awareness-engine` 은 DB 에 행이 없어 0건 UPDATE 였다. 같은 날 PR #262(전이축 3칸 채움, 인사이트 D/D→A/A)를 `case-review.mjs commit` 으로 draft 적재한 뒤, 000013 과 같은 값(`hoka.com`, `config/brand-domains.json` status=active)으로 1행 UPDATE 를 CEO-STAFF 가 직접 실행했다(`WHERE brand_domain IS NULL` 가드, RETURNING 확인). 롤백은 000013 롤백 파일이 같은 슬러그를 포함하므로 별도 파일 없음.
+- 적재 실측: case_studies 58행(57→58), hoka 무브 2(draft/A·draft/A), 근거 8, reader_problem NO_CHANNEL, brand_domain 채움 40/58. 승인은 남헌(/cases 에서 무브+케이스 둘 다).

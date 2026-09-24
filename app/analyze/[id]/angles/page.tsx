@@ -110,9 +110,10 @@ function internalReason(a: AngleRow): string {
 function AngleBadges({ a, trailing }: { a: AngleRow; trailing?: React.ReactNode }) {
   const internal = isInternalOutput(a.output_type)
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+    <div className="v2-chiprow">
       {a.output_type && (
-        <Badge tone={internal ? 'warning' : 'info'} solid={internal} size="sm">
+        // 내부 표시는 solid 를 뺐다 — v2 앰버 바탕 위 흰 글자는 대비가 안 나온다(연한 앰버 + 잉크 글자).
+        <Badge tone={internal ? 'warning' : 'info'} size="sm">
           {internal ? `내부 · ${OUTPUT_TYPE_LABELS[a.output_type]}` : OUTPUT_TYPE_LABELS[a.output_type]}
         </Badge>
       )}
@@ -148,10 +149,7 @@ function RewriteToggle({ a, open, onToggle }: { a: AngleRow; open: boolean; onTo
       type="button"
       onClick={onToggle}
       aria-expanded={open}
-      style={{
-        border: 'none', background: 'none', padding: 0, cursor: 'pointer',
-        font: 'inherit', display: 'inline-flex', alignItems: 'center',
-      }}
+      className="v2-btn-bare"
     >
       <Badge tone="warning" size="sm">재작성됨 {open ? '▴' : '▾'}</Badge>
     </button>
@@ -161,29 +159,16 @@ function RewriteToggle({ a, open, onToggle }: { a: AngleRow; open: boolean; onTo
 function RewritePanel({ a, open }: { a: AngleRow; open: boolean }) {
   if (!a.gate_rewritten || !open) return null
   return (
-    <div
-      style={{
-        marginTop: 10,
-        background: 'var(--surface-muted)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-md)',
-        padding: 'var(--space-3) var(--space-4)',
-        display: 'grid',
-        gap: 'var(--space-3)',
-      }}
-    >
+    <div className="v2-advisor">
       <div>
-        <div className="dgy-caps" style={{ marginBottom: 2 }}>원본</div>
-        <p style={{
-          margin: 0, fontSize: 'var(--fs-sm)',
-          color: 'var(--text-faint)', textDecoration: 'line-through',
-        }}>
+        <div className="dgy-caps v2-mb-xs">원본</div>
+        <p className="v2-text v2-text--muted v2-strike">
           {a.headline_original ?? '기록되지 않음'}
         </p>
       </div>
       <div>
-        <div className="dgy-caps" style={{ marginBottom: 2 }}>재작성 사유</div>
-        <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
+        <div className="dgy-caps v2-mb-xs">재작성 사유</div>
+        <p className="v2-text">
           {a.substantiation_reason ?? '사유가 기록되지 않았습니다.'}
         </p>
       </div>
@@ -197,15 +182,9 @@ function RewritePanel({ a, open }: { a: AngleRow; open: boolean }) {
 function AdaptationSuggestion({ a, isReverse }: { a: AngleRow; isReverse: boolean }) {
   if (!isReverse || !a.adaptation_suggestion) return null
   return (
-    <div style={{
-      marginTop: 10,
-      background: 'var(--surface-muted)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-md)',
-      padding: 'var(--space-3) var(--space-4)',
-    }}>
-      <div className="dgy-caps" style={{ marginBottom: 4 }}>각색 제안 · 경쟁사 앵글 → 내 상품</div>
-      <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
+    <div className="v2-advisor">
+      <div className="dgy-caps">각색 제안 · 경쟁사 앵글 → 내 상품</div>
+      <p className="v2-text">
         {a.adaptation_suggestion}
       </p>
     </div>
@@ -249,7 +228,7 @@ function ValidateAction({ a }: { a: AngleRow }) {
 
   if (done) {
     return (
-      <div style={{ marginTop: 10 }}>
+      <div className="v2-mt">
         <Badge tone="success" size="sm" dot>실전 채택으로 기록됨</Badge>
       </div>
     )
@@ -258,22 +237,14 @@ function ValidateAction({ a }: { a: AngleRow }) {
   // 행동은 배지가 아니라 버튼으로 — 배지는 상태 표시용이다(디자인 시스템 규칙).
   if (!open) {
     return (
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} style={{ marginTop: 10, marginRight: 8 }}>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="v2-mt v2-mr">
         실전 채택 표시
       </Button>
     )
   }
 
   return (
-    <div style={{
-      marginTop: 10,
-      background: 'var(--surface-muted)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-md)',
-      padding: 'var(--space-3) var(--space-4)',
-      display: 'grid',
-      gap: 'var(--space-2)',
-    }}>
+    <div className="v2-advisor">
       {/* 전에는 라벨 없는 textarea 에 존재하지 않는 토큰(--surface)을 배경으로 썼다. */}
       <Field label="실전에서 어떻게 됐나요? (필수)" htmlFor={`validate-${a.id}`}>
         <Textarea
@@ -284,8 +255,8 @@ function ValidateAction({ a }: { a: AngleRow }) {
           placeholder="예: 이 카피로 바꾼 뒤 클릭률이 올랐다"
         />
       </Field>
-      {error && <p role="alert" style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--danger-fg)' }}>{error}</p>}
-      <div style={{ display: 'flex', gap: 8 }}>
+      {error && <p role="alert" className="v2-danger-text">{error}</p>}
+      <div className="v2-actions">
         <Button variant="primary" onClick={submit} disabled={submitting || !note.trim()}>
           {submitting ? '저장 중...' : '기록'}
         </Button>
@@ -304,13 +275,7 @@ function AdvisorPanel({ a }: { a: AngleRow }) {
 function EvidenceQuote({ a }: { a: AngleRow }) {
   if (!a.substantiation_evidence) return null
   return (
-    <blockquote style={{
-      margin: '10px 0 0',
-      paddingLeft: 'var(--space-3)',
-      borderLeft: '2px solid var(--success)',
-      color: 'var(--text-muted)',
-      fontSize: 'var(--fs-sm)',
-    }}>
+    <blockquote className="v2-quote">
       원문 인용 · “{a.substantiation_evidence}”
     </blockquote>
   )
@@ -322,13 +287,7 @@ function ConsumerAngleCard({ a, isReverse }: { a: AngleRow; isReverse: boolean }
   return (
     <Card>
       <AngleBadges a={a} trailing={<RewriteToggle a={a} open={open} onToggle={() => setOpen(v => !v)} />} />
-      <p style={{
-        margin: '12px 0 0',
-        fontSize: 'var(--fs-h2)',
-        fontWeight: 'var(--fw-semibold)',
-        lineHeight: 'var(--lh-snug)',
-        color: 'var(--text-strong)',
-      }}>
+      <p className="v2-headline v2-mt">
         {a.headline_draft ?? '(문구 없음)'}
       </p>
       <EvidenceQuote a={a} />
@@ -345,40 +304,17 @@ function ConsumerAngleCard({ a, isReverse }: { a: AngleRow; isReverse: boolean }
 function InternalMemoCard({ a, isReverse }: { a: AngleRow; isReverse: boolean }) {
   const [open, setOpen] = useState(false)
   return (
-    <div style={{
-      background: 'var(--surface-muted)',
-      border: '1px dashed var(--border-strong)',
-      borderLeft: '3px solid var(--warning)',
-      borderRadius: 'var(--radius-lg)',
-      overflow: 'hidden',
-    }}>
-      <div style={{
-        background: 'var(--warning-bg)',
-        borderBottom: '1px solid var(--warning-border)',
-        color: 'var(--warning-fg)',
-        padding: '6px var(--space-4)',
-        fontSize: 'var(--fs-xs)',
-        fontWeight: 'var(--fw-semibold)',
-      }}>
+    <div className="v2-memo">
+      <div className="v2-memo-head">
         내부 검토용 메모 — 소비자에게 노출하지 마세요
       </div>
 
-      <div style={{ padding: 'var(--space-4)' }}>
+      <div className="v2-memo-body">
         <AngleBadges a={a} trailing={<RewriteToggle a={a} open={open} onToggle={() => setOpen(v => !v)} />} />
-        <p style={{
-          margin: '10px 0 0',
-          fontSize: 'var(--fs-base)',
-          fontWeight: 'var(--fw-medium)',
-          lineHeight: 'var(--lh-normal)',
-          color: 'var(--text-body)',
-        }}>
+        <p className="v2-lead v2-mt">
           {a.headline_draft ?? '(내용 없음)'}
         </p>
-        <p style={{
-          margin: '8px 0 0',
-          fontSize: 'var(--fs-xs)',
-          color: 'var(--text-muted)',
-        }}>
+        <p className="v2-note v2-mt-sm">
           {internalReason(a)}
         </p>
         <EvidenceQuote a={a} />
@@ -399,19 +335,16 @@ function AngleItem({ a, isReverse }: { a: AngleRow; isReverse: boolean }) {
 
 function SectionHeading({ title, desc, count }: { title: string; desc: string; count?: number }) {
   return (
-    <div style={{ marginBottom: 'var(--space-4)' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <h2 style={{
-          margin: 0, fontSize: 'var(--fs-h2)',
-          fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)',
-        }}>
+    <div className="v2-mb-lg">
+      <div className="v2-inline">
+        <h2 className="v2-h2 v2-h2--lg">
           {title}
         </h2>
         {count != null && (
-          <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>{count}건</span>
+          <span className="v2-text v2-text--muted">{count}건</span>
         )}
       </div>
-      <p style={{ margin: '4px 0 0', fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>{desc}</p>
+      <p className="v2-text v2-text--muted v2-mt-xs">{desc}</p>
     </div>
   )
 }
@@ -451,14 +384,14 @@ export default function AnalyzeAnglesPage() {
   }, [projectId, load])
 
   const reviewHref = `/analyze/${projectId}/review`
-  // 공용 PageShell — 전에는 모바일에서도 좌우 32px 고정 여백이었다.
-  const page = (children: React.ReactNode) => <PageShell maxWidth={960}>{children}</PageShell>
+  // 공용 PageShell — 전에는 모바일에서도 좌우 32px 고정 여백이었다. 조기 반환까지 같은 .sa-v2 껍데기(M2).
+  const page = (children: React.ReactNode) => <div className="sa-v2"><PageShell maxWidth={960}>{children}</PageShell></div>
 
   if (loading) {
     return page(
       <>
         <PageHeader title="소구 앵글" />
-        <p role="status" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>불러오는 중…</p>
+        <p role="status" className="v2-text v2-text--muted">불러오는 중…</p>
       </>,
     )
   }
@@ -530,7 +463,7 @@ export default function AnalyzeAnglesPage() {
   return page(
     <>
       {/* ── 헤더 ───────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+      <div className="v2-stack">
         <PageHeader
           title="소구 앵글"
           subtitle="차별화 기회에서 뽑은 카피 초안 · 실증 게이트 통과분"
@@ -562,18 +495,20 @@ export default function AnalyzeAnglesPage() {
 
       {/* ── 프로젝트 요약 ──────────────────────────────────── */}
       {project && (
-        <Card padded bodyStyle={{ display: 'grid', gap: 4 }}>
-          <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
-            <span style={{ color: 'var(--text-muted)' }}>상품</span> · {project.product_elevator_pitch}
-          </p>
-          <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
-            {/* URL 은 선택이다(2026-09-23) — 없으면 빈 줄 대신 없다고 적는다. */}
-            <span style={{ color: 'var(--text-muted)' }}>경쟁사</span> · {project.competitor_url ?? '(없음)'}
-          </p>
-          <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
-            <span style={{ color: 'var(--text-muted)' }}>분석 목적</span> ·{' '}
-            {PURPOSE_LABELS[project.purpose] ?? project.purpose}
-          </p>
+        <Card>
+          <div className="v2-stack-tight">
+            <p className="v2-text">
+              <span className="v2-muted">상품</span> · {project.product_elevator_pitch}
+            </p>
+            <p className="v2-text">
+              {/* URL 은 선택이다(2026-09-23) — 없으면 빈 줄 대신 없다고 적는다. */}
+              <span className="v2-muted">경쟁사</span> · {project.competitor_url ?? '(없음)'}
+            </p>
+            <p className="v2-text">
+              <span className="v2-muted">분석 목적</span> ·{' '}
+              {PURPOSE_LABELS[project.purpose] ?? project.purpose}
+            </p>
+          </div>
         </Card>
       )}
 
@@ -592,15 +527,12 @@ export default function AnalyzeAnglesPage() {
             description="DIFFERENTIATOR 로 분류된 속성이 없어 카피 초안이 만들어지지 않았습니다."
           />
         ) : (
-          <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+          <div className="v2-stack-lg">
             {consumerAngles.map(a => <AngleItem key={a.id} a={a} isReverse={isReverse} />)}
 
             {internalAngles.length > 0 && (
               <>
-                <p style={{
-                  margin: 'var(--space-2) 0 0', fontSize: 'var(--fs-xs)',
-                  color: 'var(--text-muted)',
-                }}>
+                <p className="v2-note v2-mt-sm">
                   아래부터는 카피가 아니라 내부 검토용입니다.
                 </p>
                 {internalAngles.map(a => <AngleItem key={a.id} a={a} isReverse={isReverse} />)}
@@ -620,7 +552,7 @@ export default function AnalyzeAnglesPage() {
           />
 
           {tableStakes.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 'var(--space-4)' }}>
+            <div className="v2-chiprow v2-mb-lg">
               {tableStakes.map(t => (
                 <Badge key={t.id} tone="neutral" size="md">
                   {t.name}
@@ -631,7 +563,7 @@ export default function AnalyzeAnglesPage() {
           )}
 
           {tableStakesAngles.length > 0 && (
-            <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+            <div className="v2-stack-lg">
               {tableStakesAngles.map(a => <AngleItem key={a.id} a={a} isReverse={isReverse} />)}
             </div>
           )}
@@ -646,13 +578,13 @@ export default function AnalyzeAnglesPage() {
             desc="속성이 삭제됐거나 사분면이 비어 있어 어느 섹션에도 속하지 않는 앵글입니다. 판정에 쓸 값이 없다는 뜻이지, 버리라는 뜻이 아닙니다."
             count={others.length}
           />
-          <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+          <div className="v2-stack-lg">
             {others.map(a => <AngleItem key={a.id} a={a} isReverse={isReverse} />)}
           </div>
         </section>
       )}
 
-      <footer style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--space-5)' }}>
+      <footer className="v2-divided v2-pt-lg">
         <ButtonLink href={reviewHref} variant="outline">
           검수 화면으로 돌아가기
         </ButtonLink>

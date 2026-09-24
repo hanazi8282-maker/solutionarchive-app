@@ -229,9 +229,12 @@
   line-height: var(--pub-leading-head-sm);
   font-weight: var(--pub-weight-head);
 }
-/* 알림(오류·잠김 안내). 색이 아니라 왼쪽 굵은 선으로 구분한다. */
+/* 알림(오류·잠김 안내). 색이 아니라 왼쪽 굵은 선으로 구분한다.
+   M1: 카드 반경(20)에서는 왼쪽 굵은 선이 모서리를 따라 휘어 괄호처럼 보였다 —
+   알림은 컨트롤 반경(10)으로 낮춰 선이 곧게 서게 한다. 떠 있는 카드가 아니라 문장이라 그림자도 없다. */
 .pub-panel--alert {
   border-left: 4px solid var(--pub-island-ink);
+  border-radius: var(--pub-round-control);
   box-shadow: none;
 }
 
@@ -353,34 +356,6 @@
 .pub-footer-links { display: flex; flex-wrap: wrap; gap: var(--pub-gap-4); }
 .pub-footer-links a { font-size: var(--pub-size-caption); color: var(--pub-ink-muted); }
 .pub-footer-links a:hover { color: var(--pub-ink); text-decoration: underline; text-underline-offset: 3px; }
-
-/* ── 케이스 줄 (랜딩의 "최신 승인 케이스 3장") ─────────── */
-.pub-caselist { display: flex; flex-direction: column; gap: var(--pub-gap-2); }
-.pub-case {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pub-gap-2);
-  padding: var(--pub-gap-4);
-  border: 1px solid var(--pub-edge);
-  border-radius: var(--pub-round-control);
-  transition: border-color var(--pub-motion-color) var(--pub-ease),
-              background var(--pub-motion-color) var(--pub-ease);
-}
-.pub-case:hover { border-color: var(--pub-ink-faint); background: var(--pub-surface-2); }
-.pub-case-title {
-  font-size: var(--pub-size-text);
-  font-weight: var(--pub-weight-strong);
-  line-height: var(--pub-leading-head-sm);
-  overflow-wrap: anywhere;
-  /* 제목은 `detailTitle` 이 만드는 "브랜드 — summary 첫 문장" 이라 길면 여섯 줄까지 간다.
-     자르되(2줄) 원문을 바꾸지 않는다 — 전문은 상세 화면에 그대로 있다. */
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-}
-.pub-case-meta { display: flex; flex-wrap: wrap; gap: var(--pub-gap-2); align-items: center; }
 
 /* ── 로그인 화면: 한 장 카드 가운데 ───────────────────── */
 .pub-form { display: flex; flex-direction: column; gap: var(--pub-gap-4); }

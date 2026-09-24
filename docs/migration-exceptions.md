@@ -298,3 +298,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 대상: solutionarchive. `apply_migration` — success.
 - 양성: brand_domain NOT NULL 39 · 도메인 형식 불일치 0.
 - 음성: NULL 잔여 18건 = 백필 목록 밖 17건(실패 케이스 위주: brandless·quibi·juicero 등) + hoka 1. 백필 대상이 아니므로 정상. hoka 는 슬러그 확인 후 후속.
+
+## 2026-09-24 — 20260930000014_review_verdict_labels.sql (T2 라벨 컬럼 4개, PR #257)
+
+- 승인자: 자체 판단(예외 아님: nullable ADD COLUMN 4개 + CHECK, 삭제·백필·UPDATE 없음). CEO-STAFF 세션. 롤백 파일 있음(DROP COLUMN 은 되돌리기 어려운 삭제라 롤백 실행은 사람 판단 영역).
+- 대상: solutionarchive. 적용 전 실측 컬럼 8개(새 4개 없음). `apply_migration` — success. PR #257 코드 머지 전 적용 — 코드는 컬럼 부재 시 "라벨 미기록" 경로가 있어 순서 무관.
+- 양성: 4컬럼 전부 nullable, CHECK 제약 확인, 기존 860행 라벨 전부 NULL(소급 없음, 설계대로).
+- 음성: CHECK 위반 INSERT 롤백 검사 **미실행**(호스티드 MCP). 앱 경로는 analyze-relevance-selftest 87건(허용값 밖 → NULL) 이 대신 검사.

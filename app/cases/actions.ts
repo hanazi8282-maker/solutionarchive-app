@@ -1,6 +1,7 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
+import { CASE_CORPUS_TAG } from '@/lib/cases/corpus-db'
 import { createClient } from '@/lib/supabase/server'
 import { requireAllowedUser } from '@/lib/auth/session'
 import { checkDecisionInput, moveApprovalWarning, caseApprovalWarning, readTransferability, type ReviewDecision } from '@/lib/cases/review'
@@ -113,6 +114,7 @@ export async function decideMove(_prev: ReviewActionState, fd: FormData): Promis
   if (!data || data.length === 0) return { ok: false, message: '방금 다른 곳에서 결정됐습니다. 새로고침 후 확인하세요.' }
 
   revalidatePath('/cases')
+  revalidateTag(CASE_CORPUS_TAG, { expire: 0 }) // 검색·리포트·어드바이저 코퍼스 캐시 즉시 만료(stale 안 줌)
   const warn = decision === 'approved' ? moveApprovalWarning(move) : null
   const axisNote = axisMissing
     ? ' · ⚠️ 이식성 축 미적용(마이그 20260915000001) — 고른 이식성은 저장되지 않았습니다. 승인만 반영됐습니다.'
@@ -153,6 +155,7 @@ export async function decideCase(_prev: ReviewActionState, fd: FormData): Promis
   if (!data || data.length === 0) return { ok: false, message: '방금 다른 곳에서 결정됐습니다. 새로고침 후 확인하세요.' }
 
   revalidatePath('/cases')
+  revalidateTag(CASE_CORPUS_TAG, { expire: 0 }) // 검색·리포트·어드바이저 코퍼스 캐시 즉시 만료(stale 안 줌)
   const warn = decision === 'approved' ? caseApprovalWarning(study.case_moves ?? []) : null
   return { ok: true, message: `케이스 ${LABEL[decision]} — ${study.brand_name} · 검수자 ${input.by}${warn ? ` · ⚠️ ${warn}` : ''}` }
 }
@@ -281,6 +284,7 @@ export async function gradeCase(_prev: ReviewActionState, fd: FormData): Promise
   // 그래서 승인 경고는 **누르기 전에** 카드 안에서 보여 준다(grade-card.tsx). 실패는 revalidate 가 없어 그대로 남는다.
   revalidatePath('/cases/grade')
   revalidatePath('/cases')
+  revalidateTag(CASE_CORPUS_TAG, { expire: 0 }) // 검색·리포트·어드바이저 코퍼스 캐시 즉시 만료(stale 안 줌)
   const axisNote = (axisMissing
     ? ' · ⚠️ 이식성 축 미적용(마이그 20260915000001) — 고른 이식성은 저장되지 않았습니다.'
     : '')

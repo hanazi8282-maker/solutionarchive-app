@@ -71,6 +71,9 @@ export async function selectMoves(supabase: Client, where: string): Promise<Move
   return (retry.data ?? []) as MoveRow[]
 }
 
+/** loadCaseCorpus 캐시 태그. 승인·반려 액션이 이걸로 즉시 만료시킨다. */
+export const CASE_CORPUS_TAG = 'case-corpus'
+
 type CaseCorpus = {
   studies: StudyRow[] | null
   moves: MoveRow[] | null
@@ -102,7 +105,9 @@ async function readCaseCorpus(supabase: Client, where: string): Promise<CaseCorp
  *  - 키에 컬럼 문자열을 넣는다 — SELECT 컬럼이 바뀌면 옛 모양의 캐시를 읽지 않는다.
  *  - `next/cache` 는 동적 import 다. 이 파일을 node 셀프테스트(library·profile-recommend)가 직접
  *    불러오는데 node ESM 은 `next/cache` 를 못 찾는다. 이 함수는 Next 안에서만 불린다.
- * ponytail: 승인 직후 최대 300초 동안 새 무브가 안 보인다. 거슬리면 태그를 붙여 승인 액션에서 revalidateTag.
+ *  - 태그 `CASE_CORPUS_TAG` — `/cases` 승인·반려 서버 액션(app/cases/actions.ts)이 `revalidateTag(…, { expire: 0 })`
+ *    로 즉시 만료시킨다. 승인 직후 검색·리포트·어드바이저에 바로 보인다(CEO-STAFF 09-25). 300초는 그 밖의
+ *    경로(마이그·수동 SQL·무인 루프 draft 적재)로 바뀐 것의 상한이다.
  */
 export async function loadCaseCorpus(supabase: Client, where: string): Promise<CaseCorpus> {
   const { unstable_cache } = await import('next/cache')
@@ -110,7 +115,7 @@ export async function loadCaseCorpus(supabase: Client, where: string): Promise<C
     const c = await readCaseCorpus(supabase, where)
     if (!c.studies || !c.moves || !c.failedAngles) throw new CorpusUnavailable(c)
     return c
-  }, ['case-corpus', STUDY_COLS, MOVE_COLS, FAILED_ANGLE_COLS], { revalidate: 300 })
+  }, ['case-corpus', STUDY_COLS, MOVE_COLS, FAILED_ANGLE_COLS], { revalidate: 300, tags: [CASE_CORPUS_TAG] })
   try {
     return await cached()
   } catch (e) {

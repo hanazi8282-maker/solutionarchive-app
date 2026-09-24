@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 공개 신호 화면(lib/signals/feed.ts) 순수 함수 셀프테스트 — 네트워크·DB 없음.
 //   node scripts/signals-selftest.mjs
-import { EXCERPT_MAX, MAX_PAGE, SAAS_BUSINESS_MODELS, excerptOf, feedHref, parseFeedQuery, sourceLinkOf } from '../lib/signals/feed.ts'
+import { EXCERPT_MAX, MAX_PAGE, SAAS_BUSINESS_MODELS, countBySource, excerptOf, feedHref, parseFeedQuery, sourceChips, sourceLinkOf } from '../lib/signals/feed.ts'
 import { productKindOf } from '../lib/cases/advisor.ts'
 
 let pass = 0
@@ -51,5 +51,20 @@ t('기본값만이면 /signals', feedHref({ kind: 'saas', source: null, signal: 
 t('필터 변경 시 page 초기화', feedHref(f, { signal: 'demand' }) === '/signals?source=hackernews&signal=demand&impact=high')
 t('페이지 이동은 필터 유지', feedHref(f, { page: 3 }) === '/signals?source=hackernews&signal=pain&impact=high&page=3')
 
+// 소스 칩 건수 — 다 받았을 때만 세고, 1건 이상만 낸다. 못 셌으면 전부·숫자 없이(§7.1)
+const rows = [{ source_key: 'hackernews' }, { source_key: 'hackernews' }, { source_key: 'youtube' }, { source_key: null }]
+const cnt = countBySource(rows, 4)
+t('소스별 건수를 센다(source_key null 은 빼고)', cnt && cnt.hackernews === 2 && cnt.youtube === 1 && Object.keys(cnt).length === 2)
+t('잘렸으면(받은 행 < 전체) null — 일부만 센 값을 내지 않는다', countBySource(rows, 5) === null)
+t('전체 건수를 모르면 null', countBySource(rows, null) === null)
+t('행을 못 받았으면 null', countBySource(null, 0) === null)
+t('0건 전체는 빈 객체(= 셌고 없다)', JSON.stringify(countBySource([], 0)) === '{}')
+const srcs = [{ key: 'danawa', name: '다나와' }, { key: 'hackernews', name: 'HN' }, { key: 'youtube', name: 'YouTube' }]
+const chips = sourceChips(srcs, { hackernews: 2, youtube: 1 }, null)
+t('0건 소스는 숨기고 건수를 붙인다', chips.length === 2 && chips[0].key === 'hackernews' && chips[0].count === 2 && chips[1].count === 1)
+t('고른 소스는 0건이어도 남긴다(해제 손잡이)', sourceChips(srcs, { hackernews: 2 }, 'danawa').some((c) => c.key === 'danawa' && c.count === 0))
+const unk = sourceChips(srcs, null, null)
+t('못 셌으면 전부 내고 count 없음(0 과 섞지 않는다)', unk.length === 3 && unk.every((c) => c.count === undefined))
+
 if (fail) { console.log(`실패 ${fail}건 / 통과 ${pass}건`); process.exit(1) }
-console.log(`통과 ${pass}건 — 발췌 상한 · 출처 링크 3소스 · 질의 파서 · 종류(kind) · 링크`)
+console.log(`통과 ${pass}건 — 발췌 상한 · 출처 링크 3소스 · 질의 파서 · 종류(kind) · 링크 · 소스 칩 건수`)

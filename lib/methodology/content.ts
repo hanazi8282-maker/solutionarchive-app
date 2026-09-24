@@ -13,7 +13,7 @@ import {
 } from '../cases/draft.ts'
 
 /** 이 페이지 기준의 최종 갱신일. 코드·문서를 고치면 같이 올린다. */
-export const UPDATED_AT = '2026-09-23'
+export const UPDATED_AT = '2026-09-25'
 
 export type Table = {
   caption: string
@@ -44,7 +44,7 @@ const factCheckTable: Table = {
   caption: '사실확인 등급 — "이 수치가 얼마나 검증 가능한가"만 본다',
   head: ['등급', '조건'],
   rows: [
-    ['A', '법정 공시 1개(발행사가 스스로 정의·집계한 지표는 제외) · 또는 비자기보고 1차 출처 1개 · 또는 서로 다른 원 관측 2개 이상'],
+    ['A', '법정 공시 1개(발행사가 스스로 정의·집계한 지표는 제외) · 또는 결제사 데이터를 자동집계하는 공개 대시보드(Baremetrics Open Startups 등) 1개 · 또는 비자기보고 1차 출처 1개 · 또는 서로 다른 원 관측 2개 이상'],
     ['B', '자기보고 1차 출처 1개 + 다른 원 관측 1개'],
     ['C', '근거는 있으나 위에 못 미침 (자기보고뿐 · 추정치뿐 · 교차 확인 없음)'],
     ['D', '수치 자체가 없다 — 서술만'],
@@ -246,10 +246,21 @@ const tradePress: Evidence = {
   supports_metric: true,
 }
 
+const openDashboard: Evidence = {
+  url: 'https://example.baremetrics.com/',
+  source_tier: 'primary',
+  is_self_reported: true,
+  is_estimate: false,
+  is_regulatory_filing: false,
+  observation_key: 'baremetrics-open-2025',
+  supports_metric: true,
+}
+
 const action = '가격표에서 최저가 옵션을 빼고 보장 문구를 상세 첫 화면으로 올린다'
 
 export const GRADE_FIXTURES: readonly GradeFixture[] = [
   { label: '법정 공시 1건', axis: 'fact_check', expect: 'A', move: numbered, evidence: [filing] },
+  { label: '자동집계 공개 대시보드 자기보고 1건', axis: 'fact_check', expect: 'A', move: numbered, evidence: [openDashboard] },
   {
     label: '자기보고 1차 + 다른 원 관측 1개', axis: 'fact_check', expect: 'B',
     move: numbered, evidence: [founderInterview, tradePress],

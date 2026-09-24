@@ -9,6 +9,7 @@
 
 import readerProblemVocab from '../../config/reader-problems.json' with { type: 'json' }
 import painTermVocab from '../../config/pain-terms.json' with { type: 'json' }
+import openDashboards from '../../config/open-dashboards.json' with { type: 'json' }
 
 /**
  * 독자 문제 — 케이스 **선정의 1순위 축**이다.
@@ -168,6 +169,21 @@ export type GradeResult = {
 }
 
 /**
+ * 자동집계 공개 대시보드(Baremetrics Open Startups 등) URL 인가. 목록 정본은
+ * `config/open-dashboards.json` — 확인한 패턴만 거기 있다. 파싱 못 하는 URL 은 false.
+ */
+export function isOpenDashboardUrl(url: string): boolean {
+  let u: URL
+  try { u = new URL(url) } catch { return false }
+  const host = u.hostname.toLowerCase()
+  return openDashboards.dashboards.some((d) => {
+    if (d.exclude_hosts?.includes(host)) return false
+    const hostOk = d.host.startsWith('*.') ? host.endsWith(d.host.slice(1)) : host === d.host
+    return hostOk && (d.path_prefix === undefined || u.pathname.startsWith(d.path_prefix))
+  })
+}
+
+/**
  * 근거를 **원 관측** 단위로 접는다 (L-60).
  *
  * `observation_key` 가 있으면 그것으로, 없으면 세지 않는다. 도메인으로 대신
@@ -194,8 +210,8 @@ export function foldObservations(evidence: Evidence[]): { keys: Set<string>; unk
  *   산식으로 이름만 바뀐 채 남는다. **로직은 그대로다** — 등급의 의미가 사실확인이라는 건
  *   여전히 유효하고 필요하다, 다만 그게 케이스를 대표하는 1등급이 아니게 됐을 뿐이다.
  *
- *   A = 법정 공시 1개(발행사 자체 정의 지표 제외)  또는  비자기보고 1차 출처 1개
- *       또는  **서로 다른 원 관측 2개 이상**
+ *   A = 법정 공시 1개(발행사 자체 정의 지표 제외)  또는  자동집계 공개 대시보드 자기보고 1개
+ *       또는  비자기보고 1차 출처 1개  또는  **서로 다른 원 관측 2개 이상**
  *   B = 자기보고 1차 출처 1개 + **다른 원 관측** 1개
  *   C = 근거는 있으나 위에 못 미침
  *   D = 수치 자체가 없다 (서술만)
@@ -251,6 +267,17 @@ export function factCheckGrade(move: Move, evidence: Evidence[]): GradeResult {
     e.is_regulatory_filing && !e.is_estimate && !e.is_issuer_defined_metric)
   if (attested.length >= 1) {
     return { grade: 'A', reason: `법정 공시 ${attested.length}건 (자기보고이나 법적 책임이 따르는 문서)` }
+  }
+
+  // ★ 자동집계 공개 대시보드도 같은 층이다 (남헌 2026-09-25, 9/23 Q5 채택). 창업자가
+  //   링크한 것이라 자기보고지만, 숫자는 결제사(Stripe 등) 데이터에서 대시보드가 집계한다 —
+  //   창업자가 손으로 적은 숫자가 아니다. 추정치·발행사 자체 정의 지표는 법정 공시와 같은
+  //   이유로 뺀다. 문서 성격 경로라 관측 키를 요구하지 않는다(설계 §8-2).
+  const openDash = onMetric.filter(e =>
+    e.source_tier === 'primary' && e.is_self_reported && !e.is_estimate
+    && !e.is_issuer_defined_metric && isOpenDashboardUrl(e.url))
+  if (openDash.length >= 1) {
+    return { grade: 'A', reason: `자동집계 공개 대시보드(Stripe 연동) ${openDash.length}건 — 자기보고이나 집계는 결제사가 한다` }
   }
 
   const nonSelfPrimary = onMetric.filter(e =>

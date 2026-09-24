@@ -71,18 +71,57 @@ export async function selectMoves(supabase: Client, where: string): Promise<Move
   return (retry.data ?? []) as MoveRow[]
 }
 
-/** 케이스·무브·실패앵글 3종. 원칙 원장은 어드바이저만 쓰므로 여기서 안 읽는다. */
-export async function loadCaseCorpus(supabase: Client, where: string): Promise<{
+/** loadCaseCorpus 캐시 태그. 승인·반려 액션이 이걸로 즉시 만료시킨다. */
+export const CASE_CORPUS_TAG = 'case-corpus'
+
+type CaseCorpus = {
   studies: StudyRow[] | null
   moves: MoveRow[] | null
   failedAngles: FailedAngleRow[] | null
-}> {
+}
+
+/** 3종 중 하나라도 조회 실패(null)면 캐시에 넣지 않으려고 던진다 — 결과는 들고 나간다. */
+class CorpusUnavailable extends Error {
+  corpus: CaseCorpus // 파라미터 프로퍼티 금지 — node 셀프테스트가 strip-only 로 이 파일을 읽는다
+  constructor(corpus: CaseCorpus) { super('case corpus partially unavailable'); this.corpus = corpus }
+}
+
+async function readCaseCorpus(supabase: Client, where: string): Promise<CaseCorpus> {
   const [studies, moves, failedAngles] = await Promise.all([
     safeSelect<StudyRow>(supabase, 'case_studies', STUDY_COLS, where),
     selectMoves(supabase, where),
     safeSelect<FailedAngleRow>(supabase, 'failed_angles', FAILED_ANGLE_COLS, where),
   ])
   return { studies, moves, failedAngles }
+}
+
+/**
+ * 케이스·무브·실패앵글 3종. 원칙 원장은 어드바이저만 쓰므로 여기서 안 읽는다.
+ *
+ * 300초 캐시(Next `unstable_cache`) — `/cases/report` 가 익명 공개(남헌 09-25 결정 2)라 연속 호출이
+ * 매번 3테이블 전체를 읽지 않게 한다. 모든 호출자(검색·리포트·어드바이저)가 같은 키를 나눠 쓴다.
+ *  - **조회 실패는 캐시하지 않는다.** 하나라도 null 이면 던져서 캐시를 건너뛰고 그 결과를 그대로 돌린다
+ *    — "확인 불가"가 5분 동안 굳으면 안 된다(§7.1).
+ *  - 키에 컬럼 문자열을 넣는다 — SELECT 컬럼이 바뀌면 옛 모양의 캐시를 읽지 않는다.
+ *  - `next/cache` 는 동적 import 다. 이 파일을 node 셀프테스트(library·profile-recommend)가 직접
+ *    불러오는데 node ESM 은 `next/cache` 를 못 찾는다. 이 함수는 Next 안에서만 불린다.
+ *  - 태그 `CASE_CORPUS_TAG` — `/cases` 승인·반려 서버 액션(app/cases/actions.ts)이 `revalidateTag(…, { expire: 0 })`
+ *    로 즉시 만료시킨다. 승인 직후 검색·리포트·어드바이저에 바로 보인다(CEO-STAFF 09-25). 300초는 그 밖의
+ *    경로(마이그·수동 SQL·무인 루프 draft 적재)로 바뀐 것의 상한이다.
+ */
+export async function loadCaseCorpus(supabase: Client, where: string): Promise<CaseCorpus> {
+  const { unstable_cache } = await import('next/cache')
+  const cached = unstable_cache(async () => {
+    const c = await readCaseCorpus(supabase, where)
+    if (!c.studies || !c.moves || !c.failedAngles) throw new CorpusUnavailable(c)
+    return c
+  }, ['case-corpus', STUDY_COLS, MOVE_COLS, FAILED_ANGLE_COLS], { revalidate: 300, tags: [CASE_CORPUS_TAG] })
+  try {
+    return await cached()
+  } catch (e) {
+    if (e instanceof CorpusUnavailable) return e.corpus
+    throw e
+  }
 }
 
 export const loadPrinciples = (supabase: Client, where: string) =>

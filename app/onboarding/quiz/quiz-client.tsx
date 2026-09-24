@@ -13,6 +13,7 @@ import { PubButtonLink } from '../../_pub/components/Button'
 import { PubChoice } from '../../_pub/components/PubChoice'
 import { PubProgress } from '../../_pub/components/PubProgress'
 import { Stat, StatRow } from '../../_pub/components/Stat'
+import { IconArrowRight } from '../../_pub/icons'
 
 // Stage 6 — 온보딩 "감 점수" 퀴즈. 화면만 `app/_pub` 로 옮겼다(2026-09-23 A3).
 // **동작은 한 줄도 바뀌지 않았다**: 문제 조회(GET /api/onboarding/quiz?session_id=),
@@ -173,7 +174,7 @@ export function QuizClient() {
         {/* 점수만 보고 끝나면 퀴즈는 장난이 된다. 다음 한 걸음을 한 개만 크게 둔다. */}
         <div className="pub-actions">
           <PubButtonLink href="/analyze/new" variant="primary" size="lg">
-            이제 내 상품으로 해보기
+            이제 내 상품으로 해보기<IconArrowRight />
           </PubButtonLink>
           <PubButtonLink href="/cases" variant="ghost" size="lg">
             먼저 남의 사례 구경하기

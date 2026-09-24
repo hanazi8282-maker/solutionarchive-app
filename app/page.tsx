@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { PubShell } from './_pub/components/PubShell'
 import { Hero } from './_pub/components/Hero'
@@ -10,13 +9,12 @@ import { Stat, StatRow } from './_pub/components/Stat'
 import { getAuthVerdict } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { PubCaseCard } from './_pub/components/PubCaseCard'
+import { PubEmpty } from './_pub/components/PubEmpty'
+import { IconArrowRight } from './_pub/icons'
 import {
   DEFAULT_SORT, approvedThisWeek, loadLibrary, loadSourceTiles, pickTodayCase, type LibraryResult,
 } from '@/lib/cases/library'
 import { DEFAULT_SEARCH_KIND } from '@/lib/cases/search'
-import { clipTransferNote, detailTitle } from '@/lib/cases/detail'
-import { displayGradeLabel, factCheckLabel } from '@/lib/cases/grade-display'
-import { READER_PROBLEM_LABEL } from '@/lib/cases/draft'
 
 // 로그인 안 한 방문자가 보는 첫 화면.
 //
@@ -105,7 +103,7 @@ export default async function Home() {
         lead="만들 줄은 아는데 그걸 돈으로 바꾸는 법을 모르는 1인 창업가를 위해 모은다. 사례마다 근거 등급과 내일 할 행동 한 줄이 붙는다."
         actions={
           <>
-            <PubButtonLink href="/library" variant="primary" size="lg">케이스 둘러보기</PubButtonLink>
+            <PubButtonLink href="/library" variant="primary" size="lg">케이스 둘러보기<IconArrowRight /></PubButtonLink>
             <PubButtonLink href="/onboarding/quiz" variant="ghost" size="lg">내 문제로 시작</PubButtonLink>
           </>
         }
@@ -182,7 +180,7 @@ export default async function Home() {
               <p className="pub-text">
                 승인 케이스 중 한 장을 한국 시간 날짜로 골라 하루 동안 고정한다. 새로고침해도 오늘은 같은 카드고, 자정이 지나면 바뀐다.
               </p>
-              <PubButtonLink href="/library" variant="ghost">다른 케이스 둘러보기</PubButtonLink>
+              <PubButtonLink href="/library" variant="ghost" size="sm">다른 케이스 둘러보기<IconArrowRight /></PubButtonLink>
             </Panel>
           </div>
         ) : (
@@ -199,41 +197,29 @@ export default async function Home() {
         title="최신 케이스"
         lead="카드의 한 줄은 요약이 아니라 내일 할 행동이다."
       >
-        <Panel>
-          {latest.length > 0 ? (
-            <div className="pub-caselist">
-              {latest.map(({ study, move, move_count }) => (
-                <Link key={study.id} className="pub-case" href={`/library/${study.slug}`}>
-                  <div className="pub-case-meta">
-                    {study.reader_problem
-                      ? <Chip>{READER_PROBLEM_LABEL[study.reader_problem] ?? study.reader_problem}</Chip>
-                      : null}
-                    {study.bottleneck ? <Chip>병목 {study.bottleneck}</Chip> : null}
-                  </div>
-                  <span className="pub-case-title">{detailTitle(study)}</span>
-                  <span className="pub-text">
-                    {clipTransferNote(move?.transfer_note)
-                      ? `내일 할 행동 · ${clipTransferNote(move?.transfer_note)}`
-                      : '가져갈 행동이 아직 안 적혀 있다 (인사이트 등급 D)'}
-                  </span>
-                  <div className="pub-case-meta">
-                    <Chip title="인사이트 등급 — 내가 옮겨 쓸 게 있나">인사이트 {displayGradeLabel(move)}</Chip>
-                    <Chip title="사실확인 등급 — 그 수치를 믿을 수 있나. 미기재는 D 가 아니다">사실확인 {factCheckLabel(move)}</Chip>
-                    <span className="pub-caption">무브 {move_count}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            // 3상태를 가른다(§7.1): 조회 실패와 "아직 0건"을 같은 문장으로 접지 않는다.
-            <p className="pub-text">
-              {result?.status === 'error' || !result
-                ? '케이스 목록을 읽지 못했다. 승인 케이스가 없다는 뜻이 아니다 — 라이브러리에서 다시 시도해 볼 수 있다.'
-                : '아직 승인된 케이스가 없다. 초안은 쌓이고 있고, 사람 검수를 통과한 것만 여기 올라온다.'}
-            </p>
-          )}
-          <PubButtonLink href="/library" variant="ghost">전체 라이브러리 보기</PubButtonLink>
-        </Panel>
+        {/* v2: 랜딩 한 줄 목록(.pub-case)을 /library 와 같은 [A] 카드로 바꿨다 — 같은 케이스가
+            두 화면에서 다른 모양이면 방문자가 다른 것으로 읽는다. */}
+        {latest.length > 0 ? (
+          <div className="pub-cardgrid">
+            {latest.map(({ study, move, move_count }) => (
+              <PubCaseCard key={study.id} study={study} move={move} moveCount={move_count} />
+            ))}
+          </div>
+        ) : result?.status === 'error' || !result ? (
+          // 3상태를 가른다(§7.1): 조회 실패는 알림, "아직 0건"은 빈 상태 — 같은 문장으로 접지 않는다.
+          <Panel tone="alert" title="확인 불가 — 케이스 목록 조회 실패">
+            <p className="pub-text">승인 케이스가 없다는 뜻이 아니다 — 라이브러리에서 다시 시도해 볼 수 있다.</p>
+          </Panel>
+        ) : (
+          <PubEmpty
+            compact
+            title="아직 승인된 케이스가 없다 (조회는 정상)"
+            description="초안은 쌓이고 있고, 사람 검수를 통과한 것만 여기 올라온다."
+          />
+        )}
+        <div className="pub-actions">
+          <PubButtonLink href="/library" variant="ghost" size="sm">전체 라이브러리 보기<IconArrowRight /></PubButtonLink>
+        </div>
       </Section>
 
       <Panel tone="banner" eyebrow="어디서 막혀 있나" title="내 문제부터 고르면 사례가 좁혀진다">
@@ -241,7 +227,7 @@ export default async function Home() {
           7가지 문제 유형 중 하나를 고르는 것으로 시작한다. 브랜드 이름이나 규모보다 그 축이 먼저다.
         </p>
         <div className="pub-actions">
-          <PubButtonLink href="/onboarding/quiz" variant="primary" size="lg">내 문제로 시작</PubButtonLink>
+          <PubButtonLink href="/onboarding/quiz" variant="primary" size="lg">내 문제로 시작<IconArrowRight /></PubButtonLink>
           <PubButtonLink href="/library" variant="ghost" size="lg">케이스 둘러보기</PubButtonLink>
         </div>
       </Panel>

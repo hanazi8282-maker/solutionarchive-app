@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { IconArrowRight } from '../icons'
 
 /**
  * 선택지 한 장(온보딩 퀴즈의 A/B 카드). 진짜 `<button type="button">` 이라
@@ -22,6 +23,8 @@ export function PubChoice({ eyebrow, children, onClick, disabled }: {
     <button className="pub-choice" type="button" onClick={onClick} disabled={disabled}>
       {eyebrow ? <span className="pub-eyebrow">{eyebrow}</span> : null}
       <span className="pub-choice-text">{children}</span>
+      {/* [A] 카드 하단 행동 줄 — 카드 전체가 버튼이라는 것을 글자로도 말한다(아이콘만 두지 않는다). */}
+      <span className="pub-choice-cta">이걸 고른다<IconArrowRight /></span>
     </button>
   )
 }

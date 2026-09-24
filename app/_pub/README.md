@@ -39,7 +39,7 @@
 | `PubProgress` | `components/PubProgress.tsx` | `value: number` · `max: number` · `label: string` | **A3.** 네이티브 `<progress>` — 채운 폭을 인라인 스타일로 주지 않으려고(규칙 3). `label` 을 막대 위에 글자로도 적는다 |
 | `PubChoice` | `components/PubChoice.tsx` | `children` · `onClick: () => void` · `eyebrow?` · `disabled?` | **A3. `'use client'`** — 퀴즈 선택지 흰 카드. 진짜 `<button>` 이라 키보드·포커스가 공짜다. onClick 을 받으므로 서버 컴포넌트에서는 못 쓴다(`PubButton` 과 나뉜 이유) |
 | `PubArticle` | `components/PubArticle.tsx` | `html: string` | **A3.** `renderMarkdown()` 결과를 받는 긴 글 타이포(h2/h3·인용·목록·표·코드, 폭 `--pub-measure`). 무해화는 `lib/columns/markdown.ts` 가 한다 — 여기서 또 하지 않는다 |
-| `PubColumnCard` | `components/PubColumnCard.tsx` | `href` · `title` · `summary` · `readerType` · `date` | **A3.** 칼럼 목록 카드(제목 h3). `.pub-case` 를 재사용하지 않는다 — 그쪽은 A2 가 케이스 카드로 키운다 |
+| `PubColumnCard` | `components/PubColumnCard.tsx` | `href` · `title` · `summary` · `readerType` · `date` | **A3 → M1.** 칼럼 목록 카드(제목 h3). M1 부터 케이스 카드와 같은 `.pub-card` 클래스를 쓴다(듀오톤 띠만 없다 — 칼럼엔 로고가 없다) |
 
 ### A2 에서 추가된 것 (라이브러리 4화면)
 
@@ -207,3 +207,21 @@ Pretendard 는 `next/font/local`. **`app/layout.tsx` 에서 허용된 수정은 
    결과 방향에만 쓴다(등급에는 쓰지 않는다 — 위 색 표의 ⚠️).
 5. **`.pub-field-wrap`** — 칸 안에 검색 아이콘을 앉히는 껍데기. 포커스 링이 껍데기로 옮겨간다
    (`:focus-within`), 안쪽 `input` 의 링은 끈다.
+
+## M1 (2026-09-24) — 나머지 공개 7화면 재입힘 완료
+
+위 절의 7화면(`/` · `/login` · `/onboarding/quiz` · `/columns/read` · `/columns/read/[slug]` ·
+`/library/saved` · `/library/methodology`)을 v2 리듬으로 다시 입혔다. 이제 v1 리듬으로 남은 공개 화면은 없다.
+
+- **카드는 한 모양이다.** 랜딩 "최신 케이스"는 `PubCaseCard` 그리드, 칼럼 목록은 `PubColumnCard` 가
+  같은 `.pub-card` 를 쓴다. 그래서 **지운 클래스**: `.pub-case` · `.pub-caselist` · `.pub-case-title` ·
+  `.pub-case-meta` · `.pub-column-list` · `.pub-column-card*`. 새 화면에서 쓰지 마라.
+- **추가한 클래스**: `.pub-card-go`(메타 줄 끝 "읽기 →") · `.pub-choice-cta`(퀴즈 선택지 하단 행동 줄) ·
+  `.pub-solo .pub-form .pub-btn`(한 장 카드 버튼 전폭) · `.pub-quiz .pub-panel .pub-stat*`(패널 안 점수).
+- **`.pub-panel--alert` 가 바뀌었다** — 반경 10 + 굵은 선을 테두리가 아니라 `inset` 그림자로. 테두리는
+  흰 섬 바깥에 그려져 다크 캔버스에서 검은 선이 사라졌고, 반경 20 에서는 괄호처럼 휘었다.
+  `/library` 두 화면의 알림도 같이 바뀐다(모양만).
+- 방법론은 목차 패널 대신 `.pub-detail` + `PubTOC`(케이스 상세와 같은 sticky 목차), 표는 `.mth-scroll` 이 카드 틀.
+- 3상태는 라이브러리 규칙을 따른다: 조회 실패 = `Panel tone="alert"`, 0건 = `PubEmpty`(조회는 정상).
+- 전후 스크린샷: `reports/2026-09-24/m1-screenshots/`(DB 없이 찍어 숫자 칸은 "집계 불가" 상태,
+  퀴즈 선택지·결과는 API route-mock, 저장함은 로그인 벽이라 확인 불가).

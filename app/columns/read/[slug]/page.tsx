@@ -4,6 +4,8 @@ import { PubShell } from '../../../_pub/components/PubShell'
 import { Hero } from '../../../_pub/components/Hero'
 import { Panel } from '../../../_pub/components/Panel'
 import { PubArticle } from '../../../_pub/components/PubArticle'
+import { Chip } from '../../../_pub/components/Chip'
+import { IconArrowRight } from '../../../_pub/icons'
 import { columnReadable, renderMarkdown } from '@/lib/columns/markdown'
 import { getApprovedColumn } from '@/lib/columns/read'
 
@@ -35,7 +37,7 @@ export default async function ColumnReadPage({ params }: { params: Promise<{ slu
   if (!res.ok) {
     return (
       <PubShell theme="light">
-        <Hero eyebrow="COLUMNS" title="칼럼을 열지 못했다" />
+        <Hero variant="detail" eyebrow="COLUMN" title="칼럼을 열지 못했다" />
         <Panel tone="alert" titleAs="h2" title="확인 불가 — 칼럼 조회 실패">
           <p className="pub-text">{res.reason} · 이 칼럼이 없다는 뜻이 아니다.</p>
         </Panel>
@@ -51,10 +53,18 @@ export default async function ColumnReadPage({ params }: { params: Promise<{ slu
     <PubShell theme="light">
       <article className="pub-section">
         {/* h1 은 Hero 하나뿐이다. 본문 마크다운의 `# 제목` 줄은 columnReadable 이 떼 낸다. */}
+        {/* M1: 칼럼 제목은 한 문장이라 길다 — 케이스 상세와 같은 detail 히어로(한 단 작게)에 메타 칩 줄. */}
         <Hero
-          eyebrow={c.reader_type}
+          variant="detail"
+          eyebrow="COLUMN"
           title={c.title}
-          note={`${KST.format(new Date(c.published_at ?? c.staged_at))} · ${c.char_count.toLocaleString()}자`}
+          meta={
+            <div className="pub-chiprow">
+              <Chip>{c.reader_type}</Chip>
+              <Chip>{KST.format(new Date(c.published_at ?? c.staged_at))}</Chip>
+              <Chip>{c.char_count.toLocaleString()}자</Chip>
+            </div>
+          }
         />
 
         <PubArticle html={renderMarkdown(markdown)} />
@@ -63,10 +73,10 @@ export default async function ColumnReadPage({ params }: { params: Promise<{ slu
           {/* case_study_slug 는 20260929000003 미적용이면 undefined — 그때는 링크 줄 자체가 없다. */}
           {c.case_study_slug ? (
             <Link className="pub-link" href={`/library/${c.case_study_slug}`}>
-              이 칼럼의 근거 케이스 보기 ({c.case_study_slug})
+              이 칼럼의 근거 케이스 보기 ({c.case_study_slug})<IconArrowRight />
             </Link>
           ) : null}
-          <Link className="pub-link" href="/columns/read">다른 칼럼 보기</Link>
+          <Link className="pub-link" href="/columns/read">다른 칼럼 보기<IconArrowRight /></Link>
         </footer>
       </article>
     </PubShell>

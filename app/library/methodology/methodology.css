@@ -10,9 +10,6 @@
 .mth-table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--pub-surface);
-  border: 1px solid var(--pub-edge);
-  border-radius: var(--pub-round-control);
   font-size: var(--pub-size-text-sm);
   /* 긴 조건 문장이 표를 밀어내지 않게 한다. */
   table-layout: auto;
@@ -20,7 +17,8 @@
 
 .mth-table caption {
   caption-side: top;
-  padding: 0 0 var(--pub-gap-2);
+  padding: var(--pub-gap-3) var(--pub-gap-4);
+  border-bottom: 1px solid var(--pub-edge);
   color: var(--pub-ink-muted);
   font-size: var(--pub-size-caption);
   text-align: left;
@@ -54,9 +52,15 @@
 }
 
 /* 표가 좁은 화면을 넘칠 때 잘리지 말고 가로로 밀린다(글자를 줄이지 않는다). */
+/* M1(토큰 v2): 표는 [A] 카드 한 장이다 — 둥근 모서리는 표가 아니라 이 틀이 가진다
+   (border-collapse 표에는 border-radius 가 먹지 않아 v1 은 모서리가 각져 보였다). */
 .mth-scroll {
   overflow-x: auto;
   scrollbar-width: thin;
+  background: var(--pub-surface);
+  border: 1px solid var(--pub-edge);
+  border-radius: var(--pub-round-card);
+  box-shadow: var(--pub-lift-rest);
 }
 
 @media (max-width: 640px) {

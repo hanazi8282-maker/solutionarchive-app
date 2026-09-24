@@ -17,7 +17,7 @@
 
 import fs from 'node:fs/promises'
 import { createClient } from '@supabase/supabase-js'
-import { planPurge, purgePatch, purgeLine, RETENTION_DAYS } from '../lib/review/purge.ts'
+import { planPurge, purgePatch, withoutReason, purgeLine, RETENTION_DAYS } from '../lib/review/purge.ts'
 
 const args = process.argv.slice(2)
 const apply = args.includes('--apply')
@@ -83,30 +83,40 @@ let failed = 0
 const failures = []
 
 if (apply && plan.purge.length > 0) {
-  const patch = purgePatch(now)
+  // 이미 중복 정리('dedupe')로 purged_at 이 찍힌 행은 원문만 비운다 — 이유를 덮지 않는다.
+  const groups = [
+    { ids: plan.purge.filter((p) => !p.alreadyPurged).map((p) => p.id), patch: purgePatch(now) },
+    { ids: plan.purge.filter((p) => p.alreadyPurged).map((p) => p.id), patch: purgePatch(now, true) },
+  ]
   // 한 번에 다 지우지 않고 나눠서 넣는다. 중간에 실패해도 어디까지 됐는지
   // 남고, 되돌릴 수 없는 작업이라 한 방에 터지는 경로를 만들지 않는다.
   const CHUNK = 100
-  for (let i = 0; i < plan.purge.length; i += CHUNK) {
-    const ids = plan.purge.slice(i, i + CHUNK).map((p) => p.id)
-    const { data: updated, error: upErr } = await supabase
-      .from('analysis_inputs')
-      .update(patch)
-      .in('id', ids)
-      .select('id')
+  for (const g of groups) {
+    for (let i = 0; i < g.ids.length; i += CHUNK) {
+      const ids = g.ids.slice(i, i + CHUNK)
+      let res = await update(g.patch, ids)
 
-    if (upErr) {
-      failed += ids.length
-      failures.push(upErr.message)
-      continue
-    }
+      // 마이그 000015 미적용 — purge_reason 컬럼이 없다. 조용히 접지 않고(§7.1)
+      // 경고를 남긴 뒤 옛 패치(raw_text + purged_at)로 폴백한다. 폐기 자체는 막지 않는다.
+      if (res.error?.code === 'PGRST204' && 'purge_reason' in g.patch) {
+        say('- ⚠️ purge_reason 미기록(마이그 000015 미적용) — raw_text·purged_at 만 썼다')
+        g.patch = withoutReason(g.patch)
+        res = await update(g.patch, ids)
+      }
 
-    // ⚠️ 응답이 에러가 아니라는 것과 실제로 지워졌다는 것은 다르다.
-    //    돌아온 행 수를 세어 요청한 수와 맞는지 본다(§7.1).
-    const n = (updated ?? []).length
-    purged += n
-    if (n !== ids.length) {
-      failures.push(`요청 ${ids.length}건 중 ${n}건만 갱신됨`)
+      if (res.error) {
+        failed += ids.length
+        failures.push(res.error.message)
+        continue
+      }
+
+      // ⚠️ 응답이 에러가 아니라는 것과 실제로 지워졌다는 것은 다르다.
+      //    돌아온 행 수를 세어 요청한 수와 맞는지 본다(§7.1).
+      const n = (res.data ?? []).length
+      purged += n
+      if (n !== ids.length) {
+        failures.push(`요청 ${ids.length}건 중 ${n}건만 갱신됨`)
+      }
     }
   }
 }
@@ -134,6 +144,10 @@ await flush()
 //    윈도우에서 실측) **종료코드가 127 로 나온다.** 성공 실행이 실패로
 //    보고되는 경로다. exitCode 만 세우고 이벤트 루프가 스스로 비도록 둔다.
 process.exitCode = failed > 0 || plan.unjudgeable.length > 0 ? 1 : 0
+
+function update(patch, ids) {
+  return supabase.from('analysis_inputs').update(patch).in('id', ids).select('id')
+}
 
 async function flush() {
   if (process.env.GITHUB_STEP_SUMMARY) {

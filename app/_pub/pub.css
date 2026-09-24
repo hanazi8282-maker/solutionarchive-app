@@ -562,6 +562,7 @@
 }
 
 /* ── 칼럼 본문 아래 링크 줄 ───────────────────────────── */
+.pub-column-foot .pub-link { display: inline-flex; align-items: center; gap: var(--pub-gap-1); }
 .pub-column-foot {
   max-width: var(--pub-measure);
   margin-top: var(--pub-gap-6);

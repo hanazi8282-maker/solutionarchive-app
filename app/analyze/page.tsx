@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import {
   ANGLE_READY_STATUSES, MODE_LABELS, PURPOSE_LABELS,
@@ -66,18 +66,16 @@ const QUADRANT_TONE: Record<PmfQuadrant, Tone> = {
 
 function AxisStrip({ r }: { r: Row }) {
   const { demand, latest, precedent } = axesOf(r)
-  const cell: CSSProperties = { fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }
-  const strong: CSSProperties = { fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--text-strong)' }
   // 세 상태를 문장으로 가른다(§7.1): 값 / 0건 / 확인 불가·미진단.
   const demandText = demand.value == null
     ? (r.analysis_aspects?.length ? '확인 불가' : '속성 없음')
     : fmt1(demand.value)
   const precedentText = latest == null ? '미진단' : latest.match_status === 'not_run' ? '확인 불가' : fmt1(precedent)
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px' }}>
-      <span style={cell} title={demand.reason}>수요축 <span style={strong}>{demandText}</span></span>
-      <span style={cell} title={latest ? `${latest.match_status} · ${latest.created_at ? `${KST.format(Date.parse(latest.created_at))} KST` : ''}` : 'pmf-assess 로 선례 진단을 돌린 적이 없다'}>
-        선례축 <span style={strong}>{precedentText}</span>
+    <div className="v2-axis">
+      <span className="v2-axis-cell" title={demand.reason}>수요축 <span className="v2-fig">{demandText}</span></span>
+      <span className="v2-axis-cell" title={latest ? `${latest.match_status} · ${latest.created_at ? `${KST.format(Date.parse(latest.created_at))} KST` : ''}` : 'pmf-assess 로 선례 진단을 돌린 적이 없다'}>
+        선례축 <span className="v2-fig">{precedentText}</span>
       </span>
       {latest?.quadrant && (
         <Badge tone={QUADRANT_TONE[latest.quadrant]} size="sm">{PMF_QUADRANT_LABELS[latest.quadrant]}</Badge>
@@ -117,21 +115,13 @@ const dayOf = (v: string | null | undefined) => {
   return Number.isFinite(t) ? KST_DAY.format(t) : null
 }
 
-const wrap: CSSProperties = { overflowWrap: 'anywhere', minWidth: 0 }
-/** 한 줄로 자른다 — 밴드 폭이 좁아 상품 설명·URL 이 두세 줄로 번지면 행 높이가 제각각이 된다. 전문은 title 로. */
-const oneLine: CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }
+// ── 목록 행 = 4열 밴드 (.v2-bands, app/_ds/v2/v2.css) ──────────────
+// 상품 / 원문 / 두 축 / 상태·경과. 폭이 좁아지면 auto-fit 이 열을 줄여 375px 에서 1열로 접힌다.
+// 상품 설명·URL 은 한 줄로 자르고(.v2-oneline) 전문은 title 로 — 두세 줄로 번지면 행 높이가 제각각이 된다.
 
-// ── 목록 행 = 4열 밴드 ─────────────────────────────────────────
-// 상품 / 원문 / 두 축 / 상태·경과. 폭이 좁아지면 auto-fit 이 열을 줄여 375px 에서 1열로 접힌다
-// (미디어쿼리 없이 — 인라인 스타일에는 못 쓴다). min(100%, …) 가 없으면 좁은 화면에서 행이 넘친다.
-const BANDS: CSSProperties = {
-  flex: '1 1 min(100%, 520px)', minWidth: 0,
-  display: 'grid', gap: 12, alignItems: 'start',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))',
-}
-const BAND_LABEL: CSSProperties = {
-  display: 'block', fontSize: 11, fontWeight: 500, letterSpacing: 'var(--ls-tight)',
-  color: 'var(--text-muted)', marginBottom: 4,
+/** M2 v2 스코프 — 조기 반환 2곳과 정상 화면이 같은 껍데기를 쓴다. */
+function Shell({ children }: { children: ReactNode }) {
+  return <div className="sa-v2"><PageShell maxWidth={960}>{children}</PageShell></div>
 }
 
 export default async function AnalyzeListPage({ searchParams }: { searchParams: Promise<{ status?: string; sort?: string }> }) {
@@ -161,12 +151,12 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
 
   if (!sb) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header()}
         <Notice tone="danger" title="확인 불가 — Supabase 환경변수 미설정">
           프로젝트 목록을 조회하지 못했다. 프로젝트가 없다는 뜻이 아니다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -179,12 +169,12 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
 
   if (res.error || !res.data) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header()}
         <Notice tone="danger" title="확인 불가 — 프로젝트 목록 조회 실패">
           {res.error?.message ?? '응답에 행이 없다'} · 프로젝트가 없다는 뜻이 아니다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -251,12 +241,8 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   const scope = `최근 ${LIMIT}건 안에서 센 값`
 
   const filters = (
-    // nowrap + overflowX: 375px 에서 칩 행 **안쪽**만 가로로 스크롤된다(페이지는 안 밀린다).
-    // 인라인 스타일에는 미디어쿼리를 못 써서, 넓은 화면에서도 같은 한 줄 스크롤 컨테이너다.
-    <nav
-      aria-label="상태 필터"
-      style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, overflowX: 'auto', scrollbarWidth: 'thin' }}
-    >
+    // .v2-scroll-row: 375px 에서 칩 행 **안쪽**만 가로로 스크롤된다(페이지는 안 밀린다).
+    <nav aria-label="상태 필터" className="v2-scroll-row">
       <FilterChip href={qs({ status: undefined })} active={filter === DEFAULT_FILTER} count={all.length - collectingN}>
         수집 중 제외
       </FilterChip>
@@ -275,13 +261,13 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
   )
 
   return (
-    <PageShell maxWidth={960}>
+    <Shell>
       {header(`전체 ${all.length}건 · 지금 보는 것 ${rows.length}건 · ${scope}`, filters)}
 
       {discovery && (
         <DismissBanner storageKey={`sa.analyze.discovery-banner.${discovery.day}`}>
           어젯밤({discovery.day}) 발굴 후보 {discovery.night}건 · 검토 대기 {discovery.pending}건{' '}
-          <Link href="/discovery" style={{ color: 'inherit', fontWeight: 600 }}>보러 가기 →</Link>
+          <Link href="/discovery" className="v2-link-plain v2-fig">보러 가기 →</Link>
         </DismissBanner>
       )}
 
@@ -324,10 +310,10 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
           title="오늘 볼 것 1건"
           action={<ButtonLink href={`/analyze/${todays.r.id}/review`} size="sm" variant="primary">상세·검수</ButtonLink>}
         >
-          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-strong)', ...wrap }}>
+          <div className="v2-lead">
             {todays.r.product_elevator_pitch}
           </div>
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, ...wrap }}>
+          <p className="v2-note v2-mt-sm">
             왜 이것인가: 검수가 안 끝난 {all.filter((r) => !ANGLE_READY_STATUSES.includes(r.status)).length}건 중 수요축이 가장 높다
             ({fmt1(todays.demand.value)} · {todays.demand.reason}). 상태는 {STATUS[todays.r.status]?.label ?? todays.r.status}다.
             권고이지 순서를 정해 주는 것은 아니다.
@@ -340,7 +326,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
         그 숫자가 **어느 시각 기준**인지도 적는다 — 상태마다 기준 시각이 다르다(list-signals.ts).
       */}
       {funnel.length > 0 && (
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, ...wrap }}>
+        <p className="v2-note">
           {funnel.map((e) => {
             const label = STATUS[e.status]?.label ?? e.status
             const dwell = e.longestDays == null
@@ -350,19 +336,19 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
           }).join(' | ')}
         </p>
       )}
-      <nav aria-label="정렬" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+      <nav aria-label="정렬" className="v2-chiprow v2-note">
         정렬
         <FilterChip href={qs({ sort: undefined })} active={!byDemand}>최근 생성 순</FilterChip>
         <FilterChip href={qs({ sort: 'demand' })} active={byDemand}>수요축 높은 순</FilterChip>
       </nav>
 
-      <Card bodyStyle={{ padding: 0 }}>
+      <Card padded={false}>
         {all.length === 0 ? (
           <EmptyState
             title="아직 분석한 게 없다 — 괜찮다 (조회는 정상)"
             description="처음엔 다들 여기서 시작한다. 내 상품으로 바로 해도 되고, 남이 이미 푼 사례를 먼저 구경해도 된다. 첫 분석은 리뷰 몇 줄만 붙여넣어도 돈다."
             action={
-              <div style={{ display: 'grid', gap: 8, width: 'min(100%, 320px)' }}>
+              <div className="v2-cta-stack">
                 <ButtonLink href="/analyze/new" variant="primary" size="lg" fullWidth>첫 분석 시작</ButtonLink>
                 <ButtonLink href="/cases" variant="ghost" size="sm">먼저 남의 사례 구경하기 →</ButtonLink>
               </div>
@@ -375,53 +361,44 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
             description={`전체 ${all.length}건 중${filter === DEFAULT_FILTER ? ` 수집 중 ${collectingN}건만 있다${readyN ? ` (그중 ${readyN}건은 원문이 있어 분석을 시작할 수 있다)` : ''}` : ''}.`}
           />
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {rows.map((r, i) => {
+          <ul className="v2-list">
+            {rows.map((r) => {
               const st = STATUS[r.status]
               const stall = stallOf(r, now)
               return (
-                <li key={r.id} style={{
-                  display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12,
-                  padding: '14px 20px', borderTop: i ? '1px solid var(--border)' : 'none',
-                }}>
-                  <div style={BANDS}>
+                <li key={r.id} className="v2-row">
+                  <div className="v2-bands">
                     {/* 1 — 상품 한 줄 + URL 작게 */}
-                    <div style={{ minWidth: 0 }}>
-                      <span style={BAND_LABEL}>상품</span>
-                      <div
-                        title={r.product_elevator_pitch}
-                        style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-strong)', ...oneLine }}
-                      >
+                    <div className="v2-row-main">
+                      <span className="v2-band-label">상품</span>
+                      <div title={r.product_elevator_pitch} className="v2-row-title v2-oneline">
                         {r.product_elevator_pitch}
                       </div>
-                      <div
-                        title={r.competitor_url ?? undefined}
-                        style={{ marginTop: 2, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', ...oneLine }}
-                      >
+                      <div title={r.competitor_url ?? undefined} className="v2-row-sub v2-oneline">
                         {/* URL 은 선택이다 — 빈 줄을 두면 "수집 대상이 없는 프로젝트"처럼 보인다. */}
                         {r.competitor_url ?? '경쟁사 URL 없음'}
                       </div>
                     </div>
 
                     {/* 2 — 원문 N건 */}
-                    <div style={{ minWidth: 0 }}>
-                      <span style={BAND_LABEL}>원문</span>
-                      <div style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--text-strong)' }}>
+                    <div className="v2-row-main">
+                      <span className="v2-band-label">원문</span>
+                      <div className="v2-text v2-fig">
                         {inputCount(r)}건
                       </div>
-                      {isReady(r) && <div style={{ marginTop: 4 }}><Badge tone="warning" size="sm">분석 전</Badge></div>}
+                      {isReady(r) && <div className="v2-mt-xs"><Badge tone="warning" size="sm">분석 전</Badge></div>}
                     </div>
 
                     {/* 3 — 수요축 · 선례축 · 사분면 */}
-                    <div style={{ minWidth: 0 }}>
-                      <span style={BAND_LABEL}>두 축</span>
+                    <div className="v2-row-main">
+                      <span className="v2-band-label">두 축</span>
                       <AxisStrip r={r} />
                     </div>
 
                     {/* 4 — 상태 · 경과 */}
-                    <div style={{ minWidth: 0 }}>
-                      <span style={BAND_LABEL}>상태·경과</span>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
+                    <div className="v2-row-main">
+                      <span className="v2-band-label">상태·경과</span>
+                      <div className="v2-chiprow">
                         <Badge tone={st?.tone ?? 'neutral'} dot size="sm">{st?.label ?? r.status}</Badge>
                         {/* 기준 시각을 title 에 적는다 — 어느 날짜로 센 숫자인지 확인할 수 없으면 사람이 안 믿는다. */}
                         {stall.stalled && (
@@ -434,7 +411,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
                           </Badge>
                         )}
                       </div>
-                      <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, ...wrap }}>
+                      <div className="v2-note v2-mt-xs">
                         {/* days == null 은 0일이 아니다 — 시각을 못 읽었다는 뜻이다(§7.1). */}
                         {stall.days == null ? '경과 확인 불가' : `${stall.days}일째 (${DWELL_FIELD_LABEL[stall.field!]} 기준)`}
                         <br />
@@ -444,7 +421,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <div className="v2-actions">
                     <ButtonLink href={`/analyze/${r.id}/review`} size="sm">상세·검수</ButtonLink>
                     {ANGLE_READY_STATUSES.includes(r.status) && (
                       <ButtonLink href={`/analyze/${r.id}/angles`} size="sm">앵글</ButtonLink>
@@ -456,6 +433,6 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
           </ul>
         )}
       </Card>
-    </PageShell>
+    </Shell>
   )
 }

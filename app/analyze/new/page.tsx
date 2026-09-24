@@ -17,7 +17,7 @@ import { FACET_KEYS, type FacetKey } from '@/lib/analysis/facets'
 import { Card } from '../../_ds/components/Card'
 import { Badge } from '../../_ds/components/Badge'
 import { Button } from '../../_ds/components/Button'
-import { Choice, Field, Input, Select, Textarea, labelStyle } from '../../_ds/components/Field'
+import { Choice, Field, Input, Select, Textarea } from '../../_ds/components/Field'
 import { FacetSelects, type FacetValues } from '../../_ds/components/FacetSelects'
 import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
 
@@ -30,9 +30,7 @@ type InputRow = {
 // 전에는 Tailwind 클래스로 짜여 있었지만 이 리포에는 Tailwind 가 없어 브라우저 기본
 // 스타일로 떴다. 표시만 디자인 시스템 컴포넌트로 바꿨다 — 상태·fetch·폴링 로직은 그대로.
 
-const REQ = <span style={{ color: 'var(--danger-fg)' }}> · 필수</span>
-const fieldsetReset = { border: 'none', margin: 0, padding: 0, minWidth: 0 } as const
-const muted = { margin: 0, fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)', color: 'var(--text-muted)' } as const
+const REQ = <span className="v2-req"> · 필수</span>
 
 const STEPS = ['분석 대상', '수집 원문', '분석 시작'] as const
 
@@ -53,7 +51,7 @@ function StepOf({ n }: { n: 1 | 2 | 3 }) {
 
 function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
   return (
-    <ol aria-label="진행 단계" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, listStyle: 'none', margin: 0, padding: 0 }}>
+    <ol aria-label="진행 단계" className="v2-steplist">
       {STEPS.map((label, i) => {
         const n = i + 1
         const done = n < current
@@ -62,20 +60,10 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
           <li
             key={label}
             aria-current={active ? 'step' : undefined}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8, height: 32, padding: '0 12px 0 6px',
-              borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 500,
-              background: active ? 'var(--info-bg)' : 'var(--surface-card)',
-              border: `1px solid ${active ? 'var(--info-border)' : 'var(--border)'}`,
-              color: active ? 'var(--info-fg)' : done ? 'var(--text-body)' : 'var(--text-muted)',
-            }}
+            // 현재 단계는 aria-current 로, 지난 단계는 --done 으로 모양을 가른다(.v2-step, v2.css).
+            className={done ? 'v2-step v2-step--done' : 'v2-step'}
           >
-            <span aria-hidden style={{
-              width: 22, height: 22, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700,
-              background: done ? 'var(--success)' : active ? 'var(--primary)' : 'var(--slate-200)',
-              color: done || active ? '#fff' : 'var(--text-muted)',
-            }}>
+            <span aria-hidden className="v2-step-dot">
               {done ? '✓' : n}
             </span>
             {label}
@@ -387,7 +375,7 @@ export default function AnalyzeNewPage() {
   const step: 1 | 2 | 3 = !locked ? 1 : inputs.length === 0 ? 2 : 3
 
   return (
-    <PageShell maxWidth={760}>
+    <div className="sa-v2"><PageShell maxWidth={760}>
       <PageHeader
         title="새 소구점 분석"
         subtitle="분석 대상을 정하고, 리뷰 같은 수집 원문을 붙인 뒤 분석을 돌리면 검수 화면으로 넘어간다."
@@ -400,22 +388,22 @@ export default function AnalyzeNewPage() {
         title="1단계 · 분석 대상"
         subtitle={locked ? '프로젝트가 생성되어 더 이상 수정할 수 없습니다.' : undefined}
         action={
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div className="v2-chiprow">
             <StepOf n={1} />
             {locked ? <Badge tone="success" dot>생성됨</Badge> : null}
           </div>
         }
       >
-        <div style={{ display: 'grid', gap: 18 }}>
+        <div className="v2-stack-lg">
           {/* 프리필 출처. 어디서 온 값인지 안 적으면, 사람이 안 친 값이 들어와 있는 것을 보고 멈춘다. */}
           {prefilled && (
-            <p style={muted}>
+            <p className="v2-text v2-text--muted">
               비어 있던 칸은 <a href="/settings/profile">내 프로필</a>에 저장된 값으로 미리 채웠다(이미 입력한 칸은 건드리지 않는다).
             </p>
           )}
-          <fieldset style={fieldsetReset} disabled={locked}>
-            <legend style={{ ...labelStyle, padding: 0, marginBottom: 8 }}>분석 방향</legend>
-            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))' }}>
+          <fieldset className="v2-fieldset" disabled={locked}>
+            <legend className="v2-label v2-legend">분석 방향</legend>
+            <div className="v2-choicegrid">
               {ANALYSIS_MODES.map(m => (
                 <Choice
                   key={m}
@@ -461,9 +449,9 @@ export default function AnalyzeNewPage() {
             <Textarea id="product_elevator_pitch" rows={2} value={pitch} onChange={e => setPitch(e.target.value)} disabled={locked} />
           </Field>
 
-          <fieldset style={fieldsetReset} disabled={locked}>
-            <legend style={{ ...labelStyle, padding: 0, marginBottom: 8 }}>분석 목적{REQ}</legend>
-            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))' }}>
+          <fieldset className="v2-fieldset" disabled={locked}>
+            <legend className="v2-label v2-legend">분석 목적{REQ}</legend>
+            <div className="v2-choicegrid">
               {ANALYSIS_PURPOSES.map(p => (
                 <Choice
                   key={p}
@@ -487,10 +475,10 @@ export default function AnalyzeNewPage() {
             PMF 진단 입력. 여기서 안 받아도 분석은 돌고, 결과 화면이 그 자리에서 다시 받는다.
             그래서 필수로 만들지 않는다 — 6칸을 먼저 세우면 첫 분석까지 가는 사람이 줄어든다.
           */}
-          <fieldset style={fieldsetReset} disabled={locked}>
-            <legend style={{ ...labelStyle, padding: 0, marginBottom: 4 }}>PMF 진단 입력</legend>
-            <p style={{ ...muted, marginBottom: 12 }}>나중에 결과 화면에서도 채울 수 있다. 선례를 거르는 데 쓰지 않고 정렬에만 쓴다.</p>
-            <div style={{ display: 'grid', gap: 14 }}>
+          <fieldset className="v2-fieldset" disabled={locked}>
+            <legend className="v2-label v2-mb-xs">PMF 진단 입력</legend>
+            <p className="v2-text v2-text--muted v2-mb">나중에 결과 화면에서도 채울 수 있다. 선례를 거르는 데 쓰지 않고 정렬에만 쓴다.</p>
+            <div className="v2-stack">
               <Field label="시장" htmlFor="market" hint="예: 국내 유산균 건기식">
                 <Input id="market" type="text" value={market} onChange={e => setMarket(e.target.value)} disabled={locked} />
               </Field>
@@ -525,14 +513,14 @@ export default function AnalyzeNewPage() {
           title="2단계 · 수집 원문"
           subtitle="길은 둘이다. 지금 붙여넣거나, 다나와 상품 URL 을 걸어 두고 밤에 모은다. 둘 다 해도 된다."
           action={
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div className="v2-chiprow">
               <StepOf n={2} />
               <Badge tone={inputs.length ? 'info' : 'neutral'}>{inputs.length}개</Badge>
             </div>
           }
         >
-          <div style={{ display: 'grid', gap: 16 }}>
-            <p style={{ ...muted, fontWeight: 600, color: 'var(--text-body)' }}>가. 지금 붙여넣기</p>
+          <div className="v2-stack-lg">
+            <p className="v2-lead">가. 지금 붙여넣기</p>
             <Field label="수집 유형" htmlFor="source_type">
               <Select id="source_type" value={sourceType} onChange={e => setSourceType(e.target.value as AnalysisSourceType)}>
                 {ANALYSIS_SOURCE_TYPES.map(s => (
@@ -554,17 +542,13 @@ export default function AnalyzeNewPage() {
             </div>
 
             {inputs.length === 0 ? (
-              <p style={muted}>아직 추가된 원문이 없습니다.</p>
+              <p className="v2-text v2-text--muted">아직 추가된 원문이 없습니다.</p>
             ) : (
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+              <ul className="v2-list v2-form">
                 {inputs.map(row => (
-                  <li key={row.id} style={{
-                    display: 'flex', gap: 8, alignItems: 'flex-start',
-                    padding: '10px 12px', borderRadius: 'var(--radius-md)',
-                    background: 'var(--surface-muted)', fontSize: 'var(--fs-sm)', lineHeight: 1.55,
-                  }}>
-                    <Badge tone="neutral" size="sm" style={{ flex: 'none', marginTop: 1 }}>{SOURCE_TYPE_LABELS[row.source_type]}</Badge>
-                    <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                  <li key={row.id} className="v2-inset v2-inset-row">
+                    <Badge tone="neutral" size="sm" className="v2-none">{SOURCE_TYPE_LABELS[row.source_type]}</Badge>
+                    <span className="v2-grow">
                       {row.raw_text.slice(0, 100)}{row.raw_text.length > 100 ? '…' : ''}
                     </span>
                   </li>
@@ -572,14 +556,14 @@ export default function AnalyzeNewPage() {
               </ul>
             )}
 
-            <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+            <hr className="v2-hr" />
 
             {/*
               두 번째 길. 지금 원문이 생기는 게 아니다 — 대상만 등록하고 야간 수집 루프가 채운다.
               그걸 명시하지 않으면 사람이 등록 직후 "분석 시작"을 누르고 0건으로 실패한다.
               소스는 danawa 하나만 연다(review_sources.enabled).
             */}
-            <p style={{ ...muted, fontWeight: 600, color: 'var(--text-body)' }}>나. 다나와 상품 URL 로 등록하고 밤에 수집</p>
+            <p className="v2-lead">나. 다나와 상품 URL 로 등록하고 밤에 수집</p>
             <Field
               label="다나와 상품 URL"
               htmlFor="danawa_url"
@@ -609,12 +593,12 @@ export default function AnalyzeNewPage() {
 
       {/* ── 3단계 ───────────────────────────────────────── */}
       <Card title="3단계 · 분석 시작" action={<StepOf n={3} />}>
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div className="v2-stack">
           {/* 버튼을 누르기 전에 무엇이 돌아오는지 적는다. 결과 화면의 섹션 제목과 같은 질문이다. */}
           <div>
-            <p style={{ ...muted, fontWeight: 600, color: 'var(--text-body)', marginBottom: 6 }}>이 분석이 답하는 질문</p>
-            <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4 }}>
-              {ANSWERS.map((q) => <li key={q} style={muted}>{q}</li>)}
+            <p className="v2-lead v2-mb-xs">이 분석이 답하는 질문</p>
+            <ul className="v2-olist">
+              {ANSWERS.map((q) => <li key={q} className="v2-text v2-text--muted">{q}</li>)}
             </ul>
           </div>
 
@@ -635,7 +619,7 @@ export default function AnalyzeNewPage() {
               {extracting ? `분석 중… ${elapsedSec}초` : '분석 시작'}
             </Button>
           </div>
-          <p style={muted} aria-live="polite">
+          <p className="v2-text v2-text--muted" aria-live="polite">
             {!locked
               ? '1단계에서 프로젝트를 먼저 만들어야 합니다.'
               : inputs.length === 0
@@ -648,6 +632,6 @@ export default function AnalyzeNewPage() {
           </p>
         </div>
       </Card>
-    </PageShell>
+    </PageShell></div>
   )
 }

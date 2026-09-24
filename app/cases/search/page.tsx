@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { loadCaseCorpus } from '@/lib/cases/corpus-db'
 import {
@@ -30,7 +30,10 @@ import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '유사 케이스 검색' }
 
-const muted: CSSProperties = { margin: 0, fontSize: 13, color: 'var(--text-muted)' }
+/** M2 v2 스코프 — 조기 반환과 정상 화면이 같은 껍데기를 쓴다. */
+function Shell({ children }: { children: ReactNode }) {
+  return <div className="sa-v2"><PageShell maxWidth={960}>{children}</PageShell></div>
+}
 const BOTTLENECK_OPTIONS = FACET_FIELDS.find((f) => f.key === 'bottleneck')?.options ?? []
 
 const NO_PREFILL: ProfilePrefill = { problem: null, q: null, kind: null, filled: [] }
@@ -71,9 +74,9 @@ const HEADER = {
 function StatusLine({ status, reason, empty }: { status: string; reason: string; empty?: string }) {
   if (status === 'matched') return null
   if (status === 'not_run') {
-    return <p style={{ ...muted, color: 'var(--warning-fg)' }}>검색을 못 했다 — {reason}</p>
+    return <p className="v2-text v2-flag">검색을 못 했다 — {reason}</p>
   }
-  return <p style={muted}>{empty ?? '조회는 정상인데 0건이다'} · {reason}</p>
+  return <p className="v2-text v2-text--muted">{empty ?? '조회는 정상인데 0건이다'} · {reason}</p>
 }
 
 export default async function CaseSearchPage({ searchParams }: {
@@ -111,20 +114,20 @@ export default async function CaseSearchPage({ searchParams }: {
   }
 
   const form = (
-    <form method="get" style={{ display: 'grid', gap: 10 }}>
+    <form method="get" className="v2-stack-sm">
       {/* 칩으로 고른 문제 유형을 폼이 들고 간다 — 링크와 폼이 같은 URL 을 만든다. */}
       {query.problem && <input type="hidden" name="problem" value={query.problem} />}
       {query.kind !== DEFAULT_SEARCH_KIND && <input type="hidden" name="kind" value={query.kind} />}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+      <div className="v2-actions">
         <select name="bottleneck" defaultValue={query.bottleneck ?? ''} aria-label="지금 막힌 곳 (병목)"
-          style={{ height: 36, padding: '0 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface-card)', color: 'var(--text-body)', fontSize: 13 }}>
+          className="dgy-field v2-control">
           <option value="">병목 — 선택 안 함</option>
           {BOTTLENECK_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <input name="q" defaultValue={query.q ?? ''} placeholder="내 말로 한 줄 (예: 무료로는 쓰는데 결제를 안 한다)"
           aria-label="자유 텍스트 검색어" maxLength={200}
-          style={{ flex: '1 1 260px', height: 36, padding: '0 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface-card)', color: 'var(--text-body)', fontSize: 13 }} />
-        <button type="submit" style={{ height: 36, padding: '0 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--brand)', background: 'var(--brand)', color: 'var(--brand-fg)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          className="dgy-field v2-control v2-grow-260" />
+        <button type="submit" className="v2-submit">
           찾기
         </button>
       </div>
@@ -132,7 +135,7 @@ export default async function CaseSearchPage({ searchParams }: {
   )
 
   const chips = (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+    <div className="v2-chiprow">
       <FilterChip href={href({ problem: null })} active={!query.problem}>문제 유형 전체</FilterChip>
       {READER_PROBLEMS.map((code) => (
         <FilterChip key={code} href={href({ problem: code })} active={query.problem === code}>
@@ -140,7 +143,7 @@ export default async function CaseSearchPage({ searchParams }: {
         </FilterChip>
       ))}
       {/* 종류 토글. 소비재 케이스는 지우지 않고 숨기기만 하므로(§10.2 예외 1) 되돌리는 손잡이가 화면에 있어야 한다. */}
-      <span aria-hidden style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 2px' }} />
+      <span aria-hidden className="v2-vrule" />
       <FilterChip href={href({ kind: 'saas' })} active={query.kind === 'saas'}>SaaS만(기본)</FilterChip>
       <FilterChip href={href({ kind: 'all' })} active={query.kind === 'all'}>소비재 포함</FilterChip>
     </div>
@@ -148,13 +151,13 @@ export default async function CaseSearchPage({ searchParams }: {
 
   if (!sb) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         <PageHeader {...HEADER} filters={chips} />
         <Card>{form}</Card>
         <Notice tone="danger" title="확인 불가 — Supabase 환경변수 미설정">
           검색을 돌리지 못했다. 선례가 없다는 뜻이 아니다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -167,7 +170,7 @@ export default async function CaseSearchPage({ searchParams }: {
   const otherPairs = pairs.pairs.filter((p) => !p.saas)
 
   return (
-    <PageShell maxWidth={960}>
+    <Shell>
       <PageHeader {...HEADER} filters={chips} meta={<>{result.reason}</>} />
       <Card>{form}</Card>
 
@@ -188,7 +191,7 @@ export default async function CaseSearchPage({ searchParams }: {
         </Notice>
       )}
       {loaded?.state === 'none' && (
-        <p style={muted}>
+        <p className="v2-text v2-text--muted">
           <a href="/settings/profile">내 프로필</a>을 채우면 내 문제로 좁혀 보여준다 →
         </p>
       )}
@@ -200,7 +203,7 @@ export default async function CaseSearchPage({ searchParams }: {
       )}
 
       <Card title="남들은 어떻게 풀었나 (선례 무브)" subtitle={`${result.browse ? '조건 없이 전체 승인 무브 상위 20건 — 위 칩·병목·검색어로 좁힐 수 있다 · ' : ''}승인된 케이스·무브만 · 등급 D 제외 · ${query.kind === 'saas' ? 'SaaS 케이스만(소비재는 숨김 — 위 "소비재 포함" 칩)' : `소비재 포함 · 같은 종류(${result.kind === 'software' ? 'SaaS' : '실물'})가 먼저`}`}>
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div className="v2-stack-sm">
           <StatusLine status={result.moves.status} reason={result.moves.reason} empty={result.empty_state} />
           {result.moves.cards.length > 0
             ? <><CaseMoveCards cards={result.moves.cards} /><GradeLegend /></>
@@ -210,7 +213,7 @@ export default async function CaseSearchPage({ searchParams }: {
                 action={(
                   // 회복 경로 2개. 소비재를 **자동으로 섞지 않는다**(남헌 2026-09-23 Q5-A) —
                   // 자동으로 섞으면 소비재 선례가 SaaS 선례가 있는 것처럼 읽힌다. 사람이 누른다.
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                  <div className="v2-actions v2-center">
                     {query.problem && (
                       <ButtonLink href={href({ problem: null })} size="sm">문제 유형 조건 떼고 다시</ButtonLink>
                     )}
@@ -224,7 +227,7 @@ export default async function CaseSearchPage({ searchParams }: {
       </Card>
 
       <Card title="이 소구점으로 망한 적 있나 (실패 앵글)" subtitle="자유 텍스트와 겹치는 실패 원장 행">
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div className="v2-stack-sm">
           <StatusLine status={result.failed_angles.status} reason={result.failed_angles.reason}
             empty="겹치는 실패 사례가 0건이다" />
           <FailedAngleCards cards={result.failed_angles.cards} />
@@ -233,9 +236,9 @@ export default async function CaseSearchPage({ searchParams }: {
 
       {/* 같은 수를 썼는데 갈린 사례. SaaS 짝이 0이면 없는 것을 지어내지 않고 그대로 말한다. */}
       <Card title="같은 수를 썼는데 갈린 사례" subtitle="같은 병목·레버인데 한쪽은 됐고 한쪽은 안 된 승인 케이스 짝 · 검색 조건과 무관하게 코퍼스 전체에서 셈">
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div className="v2-stack-sm">
           {pairs.status === 'not_run' && (
-            <p style={{ ...muted, color: 'var(--warning-fg)' }}>검색을 못 했다 — {pairs.reason}</p>
+            <p className="v2-text v2-flag">검색을 못 했다 — {pairs.reason}</p>
           )}
           {pairs.status === 'no_match' && (
             <EmptyState compact title="갈린 짝이 아직 0묶음 (조회는 정상)"
@@ -244,10 +247,10 @@ export default async function CaseSearchPage({ searchParams }: {
           {saasPairs.length > 0 && saasPairs.map((p) => <PairBlock key={p.key} p={p} />)}
           {pairs.status === 'matched' && saasPairs.length === 0 && (
             <>
-              <p style={muted}>{saasPairNotice(otherPairs.length)}</p>
+              <p className="v2-text v2-text--muted">{saasPairNotice(otherPairs.length)}</p>
               <details className="dgy-details">
                 <summary>소비재 짝 {otherPairs.length}묶음 펼치기 — 업종은 다르지만 갈린 이유는 읽을 만하다</summary>
-                <div style={{ display: 'grid', gap: 10, padding: '8px 0 0' }}>
+                <div className="v2-stack-sm v2-pt">
                   {otherPairs.map((p) => <PairBlock key={p.key} p={p} />)}
                 </div>
               </details>
@@ -263,6 +266,6 @@ export default async function CaseSearchPage({ searchParams }: {
         subtitle="남이 푼 방법은 방향이다. 내 시장에서도 그 문제가 아픈지는 내 리뷰 원문이 답한다.">
         <ButtonLink href="/analyze/new" variant="primary">새 분석 시작</ButtonLink>
       </Card>
-    </PageShell>
+    </Shell>
   )
 }

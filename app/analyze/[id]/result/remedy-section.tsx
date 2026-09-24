@@ -21,16 +21,15 @@ import { failureLine, fixLine, principleLine } from '@/lib/cases/remedy'
 // 색은 **유형**이다(docs/ui-redesign-plan-2026-09-21.md B-4): 보완=브랜드 보라 · 막힘=빨강 ·
 // 원칙=회색. 초록은 쓰지 않는다 — 초록이 "이대로 하면 된다" 로 읽히는데, 전부 권고일 뿐이다.
 
-const muted: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', lineHeight: 'var(--lh-normal)' }
-const body: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)', lineHeight: 'var(--lh-normal)', overflowWrap: 'anywhere' }
 
 // estimate: failed_angles.is_estimate — 재서술에 인과 해석·추정이 섞인 행. 어드바이저 카드와 같은 "추정" 배지다.
 // unverified: 관련성 재검사를 못 받은 카드(판정 실패·아직 안 돌림). 빼지 않고 표시만 한다.
-function Line({ text, low, tone, estimate, unverified }: {
-  text: string; low: boolean; tone?: 'danger'; estimate?: boolean; unverified?: boolean
+// 막힌 사례 줄은 글자색을 바꾸지 않는다 — v2 코랄은 글자 대비가 안 나와, 묶음의 코랄 왼쪽 띠가 뜻을 말한다.
+function Line({ text, low, estimate, unverified }: {
+  text: string; low: boolean; estimate?: boolean; unverified?: boolean
 }) {
   return (
-    <li style={{ ...body, color: tone === 'danger' ? 'var(--danger-fg)' : 'var(--text-body)' }}>
+    <li className="v2-text">
       {text}
       {estimate && <> <Badge tone="warning" size="sm">추정</Badge></>}
       {low && <> <Badge tone="warning" size="sm">신뢰도 낮음</Badge></>}
@@ -39,12 +38,15 @@ function Line({ text, low, tone, estimate, unverified }: {
   )
 }
 
-/** 유형 한 묶음. 제목·왼쪽 띠 색이 유형을 말한다 — 등급이나 감성이 아니다. */
-function Group({ label, color, children }: { label: string; color: string; children: React.ReactNode }) {
+// 클래스 이름을 문자열로 조립하지 않는다 — 겹침 검사가 v2.css 에 있는지 셀 수 있게 전체 이름으로 둔다.
+const GROUP_CLASS = { fix: 'v2-group v2-group--fix', fail: 'v2-group v2-group--fail', principle: 'v2-group v2-group--principle' } as const
+
+/** 유형 한 묶음. 왼쪽 띠 색이 유형을 말한다(글자는 잉크) — 등급이나 감성이 아니다. */
+function Group({ label, kind, children }: { label: string; kind: 'fix' | 'fail' | 'principle'; children: React.ReactNode }) {
   return (
-    <div style={{ borderLeft: `3px solid ${color}`, paddingLeft: 10 }}>
-      <div className="dgy-caps" style={{ color }}>{label}</div>
-      <ul style={{ margin: '4px 0 0', paddingLeft: 18, display: 'grid', gap: 4 }}>{children}</ul>
+    <div className={GROUP_CLASS[kind]}>
+      <div className="dgy-caps">{label}</div>
+      <ul className="v2-olist v2-mt-xs">{children}</ul>
     </div>
   )
 }
@@ -84,7 +86,7 @@ export function RemedySection({ projectId }: { projectId: string }) {
       title="무엇을 먼저 고칠까"
       subtitle="판정이 “여기를 민다”·“지켜본다” 인 속성마다, 비슷한 문제를 푼 선례와 같은 소구점으로 막힌 사례를 붙인다."
       action={cards.length > 1 ? (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div className="v2-chiprow">
           <Button variant={sort === 'impact' ? 'primary' : 'outline'} size="sm" aria-pressed={sort === 'impact'} onClick={() => setSort('impact')}>
             영향 큰 순
           </Button>
@@ -94,16 +96,16 @@ export function RemedySection({ projectId }: { projectId: string }) {
         </div>
       ) : null}
     >
-      {loading && <p role="status" style={muted}>찾는 중…</p>}
-      {error && <p role="alert" style={{ ...muted, color: 'var(--danger-fg)' }}>{error} — 제안이 없다는 뜻이 아닙니다.</p>}
+      {loading && <p role="status" className="v2-text v2-text--muted">찾는 중…</p>}
+      {error && <p role="alert" className="v2-danger-text">{error} — 제안이 없다는 뜻이 아닙니다.</p>}
 
       {!loading && !error && data && (
         data.cards.length === 0 ? (
-          <p style={muted}>
+          <p className="v2-text v2-text--muted">
             {data.status === 'not_run' ? `확인 불가 — ${data.reason}` : `관련 사례 없음 — 억지로 끼워 맞추지 않는다. (${data.reason})`}
           </p>
         ) : (
-          <div style={{ display: 'grid', gap: 16 }}>
+          <div className="v2-stack-lg">
             {cards.map((c) => {
               const lowCount = [...c.fixes, ...c.failures, ...c.principles].filter((x) => x.low_confidence).length
               const estimateCount = c.failures.filter((f) => f.is_estimate).length
@@ -113,62 +115,59 @@ export function RemedySection({ projectId }: { projectId: string }) {
                 ? `재검사: ${g.judged - g.removed}장 통과 · ${g.removed}장 제외 · ${g.unverified}장 미검증`
                 : null
               return (
-              <div key={c.aspect_id} style={{
-                display: 'grid', gap: 8, padding: '12px 14px',
-                background: 'var(--surface-muted)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-              }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              <div key={c.aspect_id} className="v2-box v2-box--edge v2-box--roomy">
+                <div className="v2-chiprow">
                   <Badge tone={c.verdict.code === 'PUSH' ? 'danger' : 'warning'} size="sm">{c.verdict.label}</Badge>
-                  <strong style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-strong)' }}>{c.headline}</strong>
+                  <strong className="v2-lead">{c.headline}</strong>
                 </div>
 
                 {c.status !== 'matched' ? (
                   <>
-                    <p style={muted}>
+                    <p className="v2-text v2-text--muted">
                       {c.status === 'no_match'
                         ? '관련 사례 없음 — 억지로 끼워 맞추지 않는다.'
                         : `확인 불가 — ${c.reason}`}
                     </p>
                     {/* 낱말로는 걸렸는데 재검사에서 전부 빠진 경우다. 그 사실을 감추면 "원래 없었다" 로 읽힌다. */}
-                    {gateCaption && <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{gateCaption}</p>}
+                    {gateCaption && <p className="v2-note">{gateCaption}</p>}
                   </>
                 ) : (
                   <>
-                    {gateCaption && <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{gateCaption}</p>}
+                    {gateCaption && <p className="v2-note">{gateCaption}</p>}
                     {c.fixes.length > 0 && (
-                      <Group label="이렇게 보완한 사례" color="var(--brand)">
+                      <Group label="이렇게 보완한 사례" kind="fix">
                         {c.fixes.map((f) => <Line key={f.case_move_id} text={fixLine(f)} low={f.low_confidence} unverified={f.gate === 'unverified'} />)}
                       </Group>
                     )}
                     {c.failures.length > 0 && (
-                      <Group label="이렇게 갔다가 막힌 사례" color="var(--sent-neg)">
-                        {c.failures.map((f) => <Line key={f.case_key} text={failureLine(f)} low={f.low_confidence} tone="danger" estimate={f.is_estimate} unverified={f.gate === 'unverified'} />)}
+                      <Group label="이렇게 갔다가 막힌 사례" kind="fail">
+                        {c.failures.map((f) => <Line key={f.case_key} text={failureLine(f)} low={f.low_confidence} estimate={f.is_estimate} unverified={f.gate === 'unverified'} />)}
                       </Group>
                     )}
                     {c.principles.length > 0 && (
-                      <Group label="원칙" color="var(--sent-neutral)">
+                      <Group label="원칙" kind="principle">
                         {c.principles.map((p) => <Line key={p.sp_id} text={principleLine(p)} low={p.low_confidence} unverified={p.gate === 'unverified'} />)}
                       </Group>
                     )}
                     {/* 왜 이 사례가 나왔나 — 겹친 낱말과 배지 뜻을 한 자리에 접어 둔다 (SP-024). */}
                     <details className="dgy-details">
                       <summary>매칭 근거</summary>
-                      <div style={{ display: 'grid', gap: 4, padding: '6px 0 0' }}>
-                        <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+                      <div className="v2-stack-tight v2-pt">
+                        <p className="v2-note">
                           겹친 낱말 · {c.terms.slice(0, 6).map((t) => `“${t}”`).join(', ')}
                         </p>
                         {lowCount > 0 && (
-                          <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
+                          <p className="v2-note">
                             “신뢰도 낮음” {lowCount}건 — 겹친 낱말이 하나뿐입니다. 이 낱말이 우연히 겹친 것은 아닌지 직접 확인하세요.
                           </p>
                         )}
                         {g && g.unverified > 0 && (
-                          <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
+                          <p className="v2-note">
                             “미검증” {g.unverified}건 — 관련성 재검사를 받지 못한 카드입니다. 무관하다는 뜻이 아니라 아직 판정이 없다는 뜻입니다.
                           </p>
                         )}
                         {estimateCount > 0 && (
-                          <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
+                          <p className="v2-note">
                             “추정” {estimateCount}건 — 재서술에 인과 해석·추정이 섞인 행입니다. 원 기록이 그렇게 말한 것은 아닙니다.
                           </p>
                         )}

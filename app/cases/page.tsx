@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { productKindOf } from '@/lib/cases/advisor'
 import { gradeMove, READER_PROBLEM_LABEL, type Evidence, type Move } from '@/lib/cases/draft'
@@ -86,10 +86,8 @@ const REVIEW: Record<string, { label: string; tone: Tone }> = {
   approved: { label: '승인됨', tone: 'success' },
   rejected: { label: '반려됨', tone: 'danger' },
 }
-const GRADE_TONE: Record<string, Tone> = { A: 'success', B: 'info', C: 'warning', D: 'neutral' }
 const TIER: Record<string, string> = { primary: '1차', secondary: '2차', tertiary: '3차' }
 
-const muted: CSSProperties = { margin: 0, fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'anywhere' }
 const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
 
 function ReviewBadge({ status }: { status: string }) {
@@ -120,16 +118,16 @@ function EvidenceList({ rows, total, label = '근거' }: { rows: EvidenceRow[]; 
   )
   if (rows.length === 0) return caption
   return (
-    <div style={{ display: 'grid', gap: 4 }}>
+    <div className="v2-stack-tight">
     <details>
-      <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--text-body)', userSelect: 'none' }}>
+      <summary className="v2-summary v2-nosel">
         {label} <b>{rows.length}건</b>
-        <span style={{ color: 'var(--text-muted)' }}> — 펼쳐서 원문 확인</span>
+        <span className="v2-muted"> — 펼쳐서 원문 확인</span>
       </summary>
-    <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 6 }}>
+    <ul className="v2-list v2-stack-tight v2-mt-sm">
       {rows.map((e) => (
-        <li key={e.id} style={{ padding: '8px 10px', borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)', fontSize: 13, overflowWrap: 'anywhere' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+        <li key={e.id} className="v2-inset">
+          <div className="v2-chiprow">
             <Badge tone="neutral" size="sm">{TIER[e.source_tier ?? ''] ?? e.source_tier ?? '등급 없음'}</Badge>
             {e.is_self_reported && <Badge tone="warning" size="sm">자기보고</Badge>}
             {e.is_estimate && <Badge tone="warning" size="sm">추정치</Badge>}
@@ -139,15 +137,15 @@ function EvidenceList({ rows, total, label = '근거' }: { rows: EvidenceRow[]; 
             {e.supports_metric === true ? <Badge tone="success" size="sm">수치 뒷받침</Badge>
               : e.supports_metric === false ? <Badge tone="neutral" size="sm">서술만</Badge>
                 : <Badge tone="neutral" size="sm">수치 뒷받침 미기재</Badge>}
-            <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+            <span className="v2-note">
               원문 {e.published_at ?? '시점 없음'} · 관측 {e.observation_key ?? '키 미기재'}
             </span>
           </div>
-          <a href={e.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 4 }}>
+          <a href={e.url} target="_blank" rel="noopener noreferrer" className="v2-block-link">
             {e.domain ?? e.url}
           </a>
-          {e.snippet && <blockquote style={{ margin: '4px 0 0', paddingLeft: 8, borderLeft: '2px solid var(--border-strong)', color: 'var(--text-body)' }}>{e.snippet}</blockquote>}
-          {e.supports_claim && <p style={{ ...muted, marginTop: 4 }}>뒷받침: {e.supports_claim}</p>}
+          {e.snippet && <blockquote className="v2-quote v2-quote--plain v2-mt-xs">{e.snippet}</blockquote>}
+          {e.supports_claim && <p className="v2-note v2-mt-xs">뒷받침: {e.supports_claim}</p>}
         </li>
       ))}
     </ul>
@@ -167,14 +165,9 @@ const caseAnchor = (slug: string) => `case-${slug}`
  */
 function DecisionBox({ label, tone, children }: { label: string; tone: 'move' | 'case'; children: ReactNode }) {
   return (
-    <section style={{
-      display: 'grid', gap: 8,
-      padding: tone === 'case' ? '12px 14px' : '10px 12px',
-      borderRadius: 'var(--radius-md)',
-      background: tone === 'case' ? 'var(--surface-muted)' : 'var(--surface-card)',
-      border: tone === 'case' ? '2px solid var(--border-strong)' : '1px dashed var(--border-strong)',
-    }}>
-      <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{label}</p>
+    // 케이스 결정은 회색 바탕 + 굵은 테두리(.v2-callout, /cases/grade 와 같은 모양), 무브 결정은 점선.
+    <section className={tone === 'case' ? 'v2-callout' : 'v2-decision-move'}>
+      <p className="v2-title-sm">{label}</p>
       {children}
     </section>
   )
@@ -189,13 +182,13 @@ function MoveBlock({ m, i, evidence, caseEvidenceTotal, locked, transferabilityL
     : `${m.metric_name}: ${m.metric_before ?? '?'} → ${m.metric_after}${m.metric_unit ?? ''}`
   const warn = moveApprovalWarning(m)
   return (
-    <section style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'grid', gap: 8 }}>
+    <section className="v2-divided v2-form">
       {/* ★ 등급 배지는 **오른쪽 끝**이다. 정보는 그대로 두되 시선 1순위만 이식성에 양보한다.
           읽는 사람이 먼저 물어야 할 것은 "이걸 내가 옮길 수 있나"이고, 등급은 그 무브에
           붙는 성질이지 판단의 출발점이 아니다. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+      <div className="v2-chiprow">
         {/* 번호는 CLI `case-review.mjs --move <n>` 인덱스와 같다(created_at, id 순). */}
-        <b style={{ fontSize: 13, fontFamily: 'var(--font-mono)' }}>#{i}</b>
+        <b className="v2-mono">#{i}</b>
         <Badge tone="neutral" size="sm">{m.lever}</Badge>
         <Badge tone={m.outcome_direction === 'negative' ? 'danger' : 'neutral'} size="sm">{m.outcome_direction ?? 'positive'}</Badge>
         <ReviewBadge status={m.review_status} />
@@ -204,26 +197,27 @@ function MoveBlock({ m, i, evidence, caseEvidenceTotal, locked, transferabilityL
             ? <Badge tone={m.transferability === 'HIGH' ? 'success' : m.transferability === 'MEDIUM' ? 'info' : 'neutral'} size="sm">이식성 {m.transferability}</Badge>
             : <Badge tone="warning" size="sm">이식성 미판정</Badge>
         )}
-        <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+        <span className="v2-chiprow v2-push">
           {/* 두 축의 이름을 화면마다 같게 쓴다 — "등급"만 적혀 있으면 어느 축인지 알 수 없다(GradeLegend). */}
-          <Badge tone={GRADE_TONE[m.evidence_grade] ?? 'neutral'} size="sm" title="인사이트 등급 — 독자가 옮겨 쓸 게 있나">인사이트 {m.evidence_grade}</Badge>
+          {/* 등급 배지는 색을 쓰지 않는다 — 분류이지 결과 방향이 아니다(/cases/grade·M1 과 같은 규칙). */}
+          <Badge tone="neutral" size="sm" title="인사이트 등급 — 독자가 옮겨 쓸 게 있나">인사이트 {m.evidence_grade}</Badge>
           <Badge tone="neutral" size="sm" title="사실확인 등급 — 그 수치를 믿을 수 있나. CG-1/CG-2 발행 게이트가 이걸 본다">사실확인 {m.fact_check_grade}</Badge>
         </span>
       </div>
-      <p style={{ margin: 0, fontSize: 14, color: 'var(--text-strong)', overflowWrap: 'anywhere' }}>{m.claim}</p>
+      <p className="v2-text v2-strong">{m.claim}</p>
       {/* 본문급. 독자가 내일 할 수 있는 행동 1개가 이 파이프라인의 산출물이다. */}
-      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--text-strong)', overflowWrap: 'anywhere' }}>
+      <p className="v2-body v2-strong">
         {m.transfer_note
           ? <>→ {m.transfer_note}</>
-          : <span style={{ color: 'var(--warning-fg)' }}>→ 옮길 행동 미기재 — 이게 없으면 독자가 가져갈 게 없다</span>}
+          : <span className="v2-flag">→ 옮길 행동 미기재 — 이게 없으면 독자가 가져갈 게 없다</span>}
       </p>
-      <p style={muted}>
+      <p className="v2-note">
         {m.preconditions ? `전제: ${m.preconditions}` : '전제: 미기재 (— "전제 없음"이 아니다)'}
       </p>
-      <p style={muted}>{metric} · 관측 {m.observed_period_start ?? '?'} ~ {m.observed_period_end ?? '?'}</p>
-      <p style={muted}>
+      <p className="v2-note">{metric} · 관측 {m.observed_period_start ?? '?'} ~ {m.observed_period_end ?? '?'}</p>
+      <p className="v2-note">
         현재 산식(인사이트) {g.grade} — {g.reason}
-        {g.provisional && <> · <b style={{ color: 'var(--warning-fg)' }}>잠정(미기재 {g.unkeyed ?? 0}건 — 약하다가 아니라 아직 안 적었다)</b></>}
+        {g.provisional && <> · <b className="v2-warn-text">잠정(미기재 {g.unkeyed ?? 0}건 — 약하다가 아니라 아직 안 적었다)</b></>}
       </p>
       {g.grade !== m.evidence_grade && (
         <Notice tone="warning">
@@ -236,7 +230,7 @@ function MoveBlock({ m, i, evidence, caseEvidenceTotal, locked, transferabilityL
         {m.review_status === 'draft' ? (
           <DecisionForm kind="move" id={m.id} locked={locked} approveWarning={warn} transferabilityLocked={transferabilityLocked} />
         ) : (
-          <p style={muted}>
+          <p className="v2-note">
             {REVIEW[m.review_status]?.label ?? m.review_status}
             {m.reviewed_by ? ` · ${m.reviewed_by}` : ' · 검수자 기록 없음(CLI 결정)'}
             {m.review_note ? ` · ${m.review_note}` : ''}
@@ -254,16 +248,16 @@ function MoveBlock({ m, i, evidence, caseEvidenceTotal, locked, transferabilityL
  * 3상태: 못 읽음(fbError) / 0건("피드백 없음") / 집계. 빈칸으로 두지 않는다(§7.1).
  */
 function FeedbackLine({ tally, fbError }: { tally: FeedbackTally | undefined; fbError: string | null }) {
-  if (fbError) return <p style={{ ...muted, color: 'var(--warning-fg)' }}>독자 피드백 확인 불가 — {fbError}</p>
-  if (!tally) return <p style={muted}>독자 피드백 없음 (조회는 정상 — 👍/👎 0건)</p>
+  if (fbError) return <p className="v2-note v2-flag">독자 피드백 확인 불가 — {fbError}</p>
+  if (!tally) return <p className="v2-note">독자 피드백 없음 (조회는 정상 — 👍/👎 0건)</p>
   return (
-    <div style={{ display: 'grid', gap: 4 }}>
-      <p style={{ margin: 0, fontSize: 13 }}>
+    <div className="v2-stack-tight">
+      <p className="v2-text">
         독자 피드백 <b>👍 {tally.up} · 👎 {tally.down}</b>
-        <span style={{ color: 'var(--text-muted)' }}> · 코멘트 {tally.noted}건{tally.noted > tally.notes.length ? ` 중 최근 ${tally.notes.length}` : ''}</span>
+        <span className="v2-muted"> · 코멘트 {tally.noted}건{tally.noted > tally.notes.length ? ` 중 최근 ${tally.notes.length}` : ''}</span>
       </p>
       {tally.notes.map((n, i) => (
-        <p key={i} style={muted}>{n.vote > 0 ? '👍' : '👎'} {n.note} · {KST.format(Date.parse(n.at))}</p>
+        <p key={i} className="v2-note">{n.vote > 0 ? '👍' : '👎'} {n.note} · {KST.format(Date.parse(n.at))}</p>
       ))}
     </div>
   )
@@ -271,6 +265,11 @@ function FeedbackLine({ tally, fbError }: { tally: FeedbackTally | undefined; fb
 
 function Chip({ k, v, tone }: { k: string; v: ReactNode; tone?: Tone }) {
   return <Badge tone={tone ?? 'neutral'} size="sm">{k} {v ?? '—'}</Badge>
+}
+
+/** M2 v2 스코프 — 조기 반환 2곳과 정상 화면이 같은 껍데기를 쓴다. */
+function Shell({ children }: { children: ReactNode }) {
+  return <div className="sa-v2"><PageShell maxWidth={960}>{children}</PageShell></div>
 }
 
 // 제목·부제는 한 벌이다. 오류 화면과 정상 화면이 다른 문장을 쓰면 안 된다.
@@ -299,10 +298,10 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
 
   if (!sb) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header}
         <Notice tone="danger" title="확인 불가 — Supabase 환경변수 미설정">케이스를 조회하지 못했다. 검수할 케이스가 없다는 뜻이 아니다.</Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -319,12 +318,12 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
 
   if (res.error || !res.data) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header}
         <Notice tone="danger" title="확인 불가 — 케이스 조회 실패">
           {res.error?.message ?? '응답에 행이 없다'} · 검수할 케이스가 없다는 뜻이 아니다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -367,14 +366,14 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
   const totalMoves = all.reduce((n, c) => n + (c.case_moves ?? []).length, 0)
 
   return (
-    <PageShell maxWidth={960}>
+    <Shell>
       {/* action = 카드 채점 모드로 가는 유일한 입구. 링크가 없으면 만든 화면이 없는 화면이다. */}
       <PageHeader
         {...HEADER}
         action={<ButtonLink href="/cases/grade">카드 채점 모드 (하루 10장)</ButtonLink>}
         meta={<>전체 케이스 {all.length}건 · 무브 {totalMoves}건 중에서 셈 · 지금 보는 것은 {statusLabel}{grade === 'all' ? '' : ` · 등급 ${grade}`}{kind === 'all' ? '' : ` · ${KIND_FILTERS.find((f) => f.key === kind)?.label}`} {shown.length}건</>}
         filters={
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+          <div className="v2-chiprow">
             {STATUS_FILTERS.map((f) => (
               <FilterChip
                 key={f.key}
@@ -385,7 +384,7 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
                 {f.label}
               </FilterChip>
             ))}
-            <span aria-hidden style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 2px' }} />
+            <span aria-hidden className="v2-vrule" />
             <FilterChip href={qs({ grade: 'all' })} active={grade === 'all'} count={cases.filter((c) => byStatus(c, status) && byKind(c, kind)).length}>
               등급 전체
             </FilterChip>
@@ -399,7 +398,7 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
                 등급 {g}
               </FilterChip>
             ))}
-            <span aria-hidden style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 2px' }} />
+            <span aria-hidden className="v2-vrule" />
             {KIND_FILTERS.map((f) => (
               <FilterChip
                 key={f.key}
@@ -457,7 +456,7 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
       )}
 
       {shown.length === 0 ? (
-        <Card bodyStyle={{ padding: 0 }}>
+        <Card padded={false}>
           {status === 'pending' && grade === 'all' ? (
             <EmptyState compact title="검수 대기 0건 (조회는 정상)" description={`전체 케이스 ${all.length}건이 모두 결정됐다.`} />
           ) : (
@@ -466,11 +465,11 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
         </Card>
       ) : (
         <>
-          <p style={muted}>승인·반려 기록의 검수자에는 로그인한 계정 이메일이 남는다.</p>
+          <p className="v2-note">승인·반려 기록의 검수자에는 로그인한 계정 이메일이 남는다.</p>
 
           {/* 점프 목록. 12건이 한 페이지에 세로로 이어져 있어 아래쪽 케이스는 스크롤로만 갈 수 있었다.
               칩 하나 = 케이스 하나, 숫자는 그 케이스에서 아직 결정 안 한 무브 수. */}
-          <nav aria-label="케이스 점프 목록" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <nav aria-label="케이스 점프 목록" className="v2-chiprow">
             {shown.map((c) => (
               <FilterChip key={c.id} href={`#${caseAnchor(c.slug)}`} active={false} count={c.moves.filter((m) => m.review_status === 'draft').length} countTone="warning">
                 {c.brand_name}
@@ -478,18 +477,17 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
             ))}
           </nav>
 
-          <div style={{ display: 'grid', gap: 16 }}>
+          <div className="v2-stack-lg">
             {shown.map((c, idx) => (
               <Card
                 key={c.id}
                 id={caseAnchor(c.slug)}
-                style={{ scrollMarginTop: 64 }}
                 title={c.brand_name}
                 subtitle={<>{c.slug} · {[c.market, c.geo].filter(Boolean).join(' / ') || '시장 미기재'} · 조사 {c.researched_by ?? '미기재'} · 적립 {KST.format(Date.parse(c.created_at))}</>}
                 action={<ReviewBadge status={c.review_status} />}
               >
-                <div style={{ display: 'grid', gap: 12 }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <div className="v2-stack">
+                  <div className="v2-chiprow">
                     <Chip k="병목" v={c.bottleneck} />
                     {/* 선정 1순위 축. 빈칸으로 두지 않는다 — 빈칸은 "해당 없음"처럼 보인다. */}
                     <Chip k="독자 문제" v={c.reader_problem ? (READER_PROBLEM_LABEL[c.reader_problem] ?? c.reader_problem) : '미지정'} />
@@ -500,13 +498,13 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
                     <Chip k="결말" v={c.outcome_status} tone={c.outcome_status === 'unknown' ? 'warning' : undefined} />
                     <Chip k="기간" v={`${c.period_start ?? '?'} ~ ${c.period_end ?? '?'}`} />
                   </div>
-                  {c.summary && <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, overflowWrap: 'anywhere' }}>{c.summary}</p>}
-                  {c.tags && c.tags.length > 0 && <p style={muted}>태그 {c.tags.join(' · ')}</p>}
+                  {c.summary && <p className="v2-body">{c.summary}</p>}
+                  {c.tags && c.tags.length > 0 && <p className="v2-note">태그 {c.tags.join(' · ')}</p>}
                   <FeedbackLine tally={feedback.get(c.id)} fbError={fbError} />
 
                   <EvidenceList label="케이스 전체 근거" rows={c.evidence.filter((e) => !e.case_move_id)} />
 
-                  <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600 }}>무브 {c.moves.length}건</p>
+                  <p className="v2-title-sm v2-mt-xs">무브 {c.moves.length}건</p>
                   {c.moves.map((m, i) => (
                     <MoveBlock key={m.id} m={m} i={i} evidence={c.evidence.filter((e) => e.case_move_id === m.id)} caseEvidenceTotal={c.evidence.length} locked={locked} transferabilityLocked={transferabilityLocked} />
                   ))}
@@ -515,15 +513,15 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
                     {c.review_status === 'draft' ? (
                       <DecisionForm kind="case" id={c.id} locked={locked} approveWarning={caseApprovalWarning(c.moves)} />
                     ) : (
-                      <p style={muted}>케이스는 이미 {REVIEW[c.review_status]?.label ?? c.review_status}{c.review_note ? ` · ${c.review_note}` : ''} — draft 무브만 남아 있다.</p>
+                      <p className="v2-note">케이스는 이미 {REVIEW[c.review_status]?.label ?? c.review_status}{c.review_note ? ` · ${c.review_note}` : ''} — draft 무브만 남아 있다.</p>
                     )}
                     {/* 결정을 내린 자리에서 바로 다음 케이스로. 위로 올라가 점프 목록을 다시 찾지 않게. */}
                     {shown[idx + 1] ? (
-                      <a href={`#${caseAnchor(shown[idx + 1].slug)}`} style={{ fontSize: 13, justifySelf: 'start' }}>
+                      <a href={`#${caseAnchor(shown[idx + 1].slug)}`} className="v2-link v2-self-start">
                         다음 케이스 ↓ {shown[idx + 1].brand_name}
                       </a>
                     ) : (
-                      <p style={muted}>마지막 케이스다.</p>
+                      <p className="v2-note">마지막 케이스다.</p>
                     )}
                   </DecisionBox>
                 </div>
@@ -532,6 +530,6 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
           </div>
         </>
       )}
-    </PageShell>
+    </Shell>
   )
 }

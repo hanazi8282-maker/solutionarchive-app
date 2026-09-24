@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { loadCaseCorpus } from '@/lib/cases/corpus-db'
 import { DEFAULT_SEARCH_KIND, QUERY_MAX, parseSearchQuery, searchMoves } from '@/lib/cases/search'
@@ -26,7 +26,6 @@ import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '아이디어 매칭 리포트' }
 
-const muted: CSSProperties = { margin: 0, fontSize: 13, color: 'var(--text-muted)' }
 /** 리포트는 한 장이다. 무브는 상위 N 만 싣고 나머지는 검색 화면으로 넘긴다(건수는 밝힌다). */
 const REPORT_MOVES = 5
 
@@ -39,7 +38,7 @@ const HEADER = {
 function SectionState({ status, reason, none }: { status: string; reason: string; none: string }) {
   if (status === 'matched') return null
   if (status === 'not_run') {
-    return <p style={{ ...muted, color: 'var(--warning-fg)' }}>확인 불가 — {reason} (&quot;해당 없음&quot;이 아니다)</p>
+    return <p className="v2-text v2-flag">확인 불가 — {reason} (&quot;해당 없음&quot;이 아니다)</p>
   }
   return <EmptyState compact title={`해당 없음 — ${none}`} description={reason} />
 }
@@ -61,13 +60,13 @@ export default async function IdeaReportPage({ searchParams }: {
   const href = (kind: string) => withParams('/cases/report', kind)
 
   const form = (
-    <form method="get" style={{ display: 'grid', gap: 10 }}>
+    <form method="get" className="v2-stack-sm">
       {query.kind !== DEFAULT_SEARCH_KIND && <input type="hidden" name="kind" value={query.kind} />}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+      <div className="v2-actions">
         <input name="q" defaultValue={query.q ?? ''} maxLength={QUERY_MAX} required
           placeholder="내 아이디어 한 줄 (예: 프리랜서용 인보이스 자동 발송 SaaS)" aria-label="아이디어 한 줄"
-          style={{ flex: '1 1 320px', height: 36, padding: '0 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface-card)', color: 'var(--text-body)', fontSize: 13 }} />
-        <button type="submit" style={{ height: 36, padding: '0 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--brand)', background: 'var(--brand)', color: 'var(--brand-fg)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          className="dgy-field v2-control v2-grow-320" />
+        <button type="submit" className="v2-submit">
           리포트 만들기
         </button>
       </div>
@@ -75,21 +74,22 @@ export default async function IdeaReportPage({ searchParams }: {
   )
 
   const chips = (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+    <div className="v2-chiprow">
       <FilterChip href={href('saas')} active={query.kind === 'saas'}>SaaS만(기본)</FilterChip>
       <FilterChip href={href('all')} active={query.kind === 'all'}>소비재 포함</FilterChip>
     </div>
   )
 
+  // 모든 반환(입력 전·낱말 0·환경변수 없음·정상)이 이 껍데기 하나를 지난다 → .sa-v2 도 여기 한 번(M2).
   const shell = (body: ReactNode, meta?: ReactNode) => (
-    <PageShell maxWidth={960}>
+    <div className="sa-v2"><PageShell maxWidth={960}>
       <PageHeader {...HEADER} filters={chips} meta={meta} />
       <Card>{form}</Card>
       {errors.length > 0 && (
         <Notice tone="warning" title="질의를 그대로 쓰지 못했다">{errors.join(' / ')} — 그 조건은 빼고 만들었다.</Notice>
       )}
       {body}
-    </PageShell>
+    </PageShell></div>
   )
 
   // 입력 전. 둘러보기로 채우지 않는다(위 머리말).
@@ -125,13 +125,13 @@ export default async function IdeaReportPage({ searchParams }: {
 
   return shell(<>
     <Card title="1. 닮은 성공 무브" subtitle={`승인된 케이스·무브만 · 등급 D 제외 · ${query.kind === 'saas' ? 'SaaS 케이스만(소비재는 숨김 — 위 "소비재 포함")' : '소비재 포함'}`}>
-      <div style={{ display: 'grid', gap: 10 }}>
+      <div className="v2-stack-sm">
         <SectionState status={result.moves.status} reason={result.moves.reason} none={result.empty_state} />
         {moveCards.length > 0 && <>
           <CaseMoveCards cards={moveCards.slice(0, REPORT_MOVES)} />
           <GradeLegend />
           {moveCards.length > REPORT_MOVES && (
-            <p style={muted}>상위 {REPORT_MOVES}건만 실었다 — 나머지 {moveCards.length - REPORT_MOVES}건은 <a href={withParams('/cases/search', query.kind)}>검색 화면</a>에서.</p>
+            <p className="v2-text v2-text--muted">상위 {REPORT_MOVES}건만 실었다 — 나머지 {moveCards.length - REPORT_MOVES}건은 <a href={withParams('/cases/search', query.kind)}>검색 화면</a>에서.</p>
           )}
         </>}
         {result.moves.status === 'no_match' && query.kind === 'saas' && (
@@ -141,14 +141,14 @@ export default async function IdeaReportPage({ searchParams }: {
     </Card>
 
     <Card title="2. 실패 경고 앵글" subtitle="아이디어 낱말과 겹치는 실패 원장 행 — 같은 소구점으로 망한 적이 있나">
-      <div style={{ display: 'grid', gap: 10 }}>
+      <div className="v2-stack-sm">
         <SectionState status={result.failed_angles.status} reason={result.failed_angles.reason} none="겹치는 실패 사례 0건" />
         <FailedAngleCards cards={result.failed_angles.cards} />
       </div>
     </Card>
 
     <Card title="3. 갈린 짝 비교" subtitle="1번에 매칭된 무브와 같은 병목·레버인데 한쪽은 됐고 한쪽은 안 된 승인 케이스 짝">
-      <div style={{ display: 'grid', gap: 10 }}>
+      <div className="v2-stack-sm">
         <SectionState status={pairs.status} reason={pairs.reason} none="내 매칭과 겹치는 갈린 짝 0묶음" />
         {pairs.pairs.map((p) => <PairBlock key={p.key} p={p} />)}
       </div>
@@ -156,10 +156,10 @@ export default async function IdeaReportPage({ searchParams }: {
 
     {/* 아이디어 텍스트를 /analyze/new 쿼리스트링으로 넘기지 않는다(/cases/search 와 같은 이유 — 리퍼러·액세스 로그). */}
     <Card title="4. 다음 행동" subtitle="남의 사례는 방향이다. 내 시장에서도 그 문제가 아픈지는 내 경쟁사 리뷰가 답한다.">
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+      <div className="v2-actions">
         <ButtonLink href="/analyze/new" variant="primary">경쟁사 분석 시작</ButtonLink>
         <ButtonLink href="/analyze">PMF 진단 (분석 프로젝트에서)</ButtonLink>
-        <p style={muted}>PMF 진단은 분석 프로젝트의 검토 화면에서 돈다 — 프로젝트가 없으면 경쟁사 분석부터.</p>
+        <p className="v2-text v2-text--muted">PMF 진단은 분석 프로젝트의 검토 화면에서 돈다 — 프로젝트가 없으면 경쟁사 분석부터.</p>
       </div>
     </Card>
   </>, meta)

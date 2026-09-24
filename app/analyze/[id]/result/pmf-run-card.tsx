@@ -127,12 +127,12 @@ export function PmfRunCard({ projectId, facets, lastAssessedAt }: {
         ? '같은 입력으로 다시 돌리면 그 사이 늘어난 리뷰·승인된 케이스가 반영된다.'
         : '진단 입력이 비어 있다. 아래를 채우면 선례축을 낼 수 있다 — 비운 채로 추정하지 않는다.'}
     >
-      {error && <Notice tone="danger" style={{ marginBottom: 12 }}>{error}</Notice>}
-      {pending && <Notice tone="warning" style={{ marginBottom: 12 }}>{pending}</Notice>}
-      {done && <Notice tone="success" style={{ marginBottom: 12 }}>{done}</Notice>}
+      {error && <div className="v2-mb"><Notice tone="danger">{error}</Notice></div>}
+      {pending && <div className="v2-mb"><Notice tone="warning">{pending}</Notice></div>}
+      {done && <div className="v2-mb"><Notice tone="success">{done}</Notice></div>}
 
       {editing ? (
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div className="v2-stack">
           <Field label="시장 한 줄 (선택)" htmlFor="facet-market" hint="예: 탈모·두피 케어. 비워도 진단은 돈다.">
             <Input
               id="facet-market"
@@ -149,7 +149,7 @@ export function PmfRunCard({ projectId, facets, lastAssessedAt }: {
               </Select>
             </Field>
           ))}
-          <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', lineHeight: 'var(--lh-normal)' }}>
+          <p className="v2-note">
             병목 말고는 걸러내는 데 쓰지 않는다 — 같은 조건의 선례를 위로 올리는 정렬 재료다.
           </p>
           <Button variant="primary" size="lg" fullWidth onClick={saveAndRun} disabled={busy}>
@@ -160,13 +160,13 @@ export function PmfRunCard({ projectId, facets, lastAssessedAt }: {
           )}
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 10 }}>
-          <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)', overflowWrap: 'anywhere' }}>
+        <div className="v2-stack">
+          <p className="v2-text">
             입력 · {[facets.bottleneck, facets.business_model, facets.buyer_type, facets.price_band, facets.purchase_frequency]
               .filter(Boolean).join(' · ') || '병목만 있음'}
             {facets.market ? ` · ${facets.market}` : ''}
           </p>
-          <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
+          <p className="v2-note">
             마지막 진단 · {lastAssessedAt ? `${KST.format(Date.parse(lastAssessedAt))} KST` : '없음'}
           </p>
           <Button variant="primary" size="lg" fullWidth onClick={rerun} disabled={busy}>

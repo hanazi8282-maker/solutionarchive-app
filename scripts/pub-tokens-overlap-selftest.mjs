@@ -26,7 +26,7 @@ const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '
 const PUB_DIR = join(ROOT, 'app', '_pub')
 
 /**
- * M2(남헌 2026-09-24): 내부 5화면도 같은 기준 — `_ds` 옛 값과 겹침 0.
+ * M2(남헌 2026-09-24): 내부 화면도 같은 기준 — `_ds` 옛 값과 겹침 0. PR #261 이 5화면, feat/m2-internal-9 가 나머지.
  * v2 값은 `app/_ds/v2/` 에만 산다(`_ds/tokens/` 에 두면 이름이 달라도 값이 겹쳐 위 _pub 검사가 깨진다).
  * `/columns` 는 최상위 파일만 — `columns/read/**` 는 공개 화면(M1, _pub) 몫이다.
  */
@@ -37,7 +37,19 @@ const M2_DIRS = [
   { dir: join(ROOT, 'app', 'dashboard'), deep: true },
   { dir: join(ROOT, 'app', 'columns'), deep: false },
   { dir: join(ROOT, 'app', 'cases', 'grade'), deep: true },
+  { dir: join(ROOT, 'app', 'analyze'), deep: false },
+  { dir: join(ROOT, 'app', 'analyze', 'new'), deep: true },
+  { dir: join(ROOT, 'app', 'analyze', '[id]'), deep: false },
+  { dir: join(ROOT, 'app', 'analyze', '[id]', 'angles'), deep: true },
+  { dir: join(ROOT, 'app', 'analyze', '[id]', 'result'), deep: true },
+  { dir: join(ROOT, 'app', 'analyze', '[id]', 'review'), deep: true },
+  { dir: join(ROOT, 'app', 'cases'), deep: false },
+  { dir: join(ROOT, 'app', 'cases', 'search'), deep: true },
+  { dir: join(ROOT, 'app', 'cases', 'report'), deep: true },
+  { dir: join(ROOT, 'app', 'settings', 'profile'), deep: true },
 ]
+/** `.sa-v2` 스코프를 둘러야 하는 page.tsx(ROOT/app 기준). 화면을 M2 에 넣을 때 여기와 M2_DIRS 에 한 줄씩. */
+const M2_PAGES = ['agents', 'discovery', 'dashboard', 'columns', join('cases', 'grade'), 'analyze', join('analyze', 'new'), join('analyze', '[id]', 'angles'), join('analyze', '[id]', 'result'), join('analyze', '[id]', 'review'), 'cases', join('cases', 'search'), join('cases', 'report'), join('settings', 'profile')]
 const DS_FILES = [
   join(ROOT, 'app', '_ds', 'styles.css'),
   ...readdirSync(join(ROOT, 'app', '_ds', 'tokens')).map((f) => join(ROOT, 'app', '_ds', 'tokens', f)),
@@ -179,7 +191,7 @@ const fail = (msg) => { console.error('FAIL:', msg); process.exit(1) }
 
 const GROUPS = [
   { name: 'pub', label: 'app/_pub', files: walk(PUB_DIR) },
-  { name: 'm2', label: 'M2 내부 5화면 + app/_ds/v2', files: M2_DIRS.flatMap(({ dir, deep }) => walk(dir, [], deep)) },
+  { name: 'm2', label: `M2 내부 ${M2_PAGES.length}화면 + app/_ds/v2`, files: M2_DIRS.flatMap(({ dir, deep }) => walk(dir, [], deep)) },
 ]
 
 for (const g of GROUPS) {
@@ -219,7 +231,7 @@ if (!mutateMode) {
   const v2Css = readFileSync(join(ROOT, 'app', '_ds', 'v2', 'v2.css'), 'utf8')
   const declared = new Set([...strip(v2Css).matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]))
   const LAYOUT_ONLY = /^--(row-h|space-|sidebar-w|content-|header-h|fw-|lh-|ls-|font-inter|font-pretendard)/
-  const COMPONENTS = ['Badge', 'Button', 'Card', 'EmptyState', 'Field', 'FilterChip', 'ProgressBar', 'Shell']
+  const COMPONENTS = ['Badge', 'Button', 'Card', 'EmptyState', 'EvidenceCaption', 'FacetSelects', 'Field', 'FilterChip', 'GradeLegend', 'ProgressBar', 'Shell']
     .map((c) => join(ROOT, 'app', '_ds', 'components', `${c}.tsx`))
   const m2Screens = M2_DIRS.slice(1).flatMap(({ dir, deep }) => walk(dir, [], deep))
   const leaks = []
@@ -228,15 +240,20 @@ if (!mutateMode) {
       if (!declared.has(m[1]) && !LAYOUT_ONLY.test(m[1])) leaks.push(`${f.slice(ROOT.length)} ${m[1]}`)
     }
   }
-  const unwrapped = ['agents', 'discovery', 'dashboard', 'columns', join('cases', 'grade')]
+  const unwrapped = M2_PAGES
     .map((d) => join(ROOT, 'app', d, 'page.tsx'))
     .filter((f) => !readFileSync(f, 'utf8').includes('className="sa-v2"'))
   // 인라인 style 0 — M1 규칙 3("인라인 스타일 금지")을 5화면에도. 새 모양은 v2.css 클래스로.
   const inline = m2Screens.filter((f) => /\bstyle=\{/.test(readFileSync(f, "utf8")))
   if (inline.length) fail(`M2: 인라인 style 이 남은 파일 ${inline.length}개 — ${inline.map((f) => f.slice(ROOT.length)).join(", ")}`)
   if (unwrapped.length) fail(`M2: .sa-v2 스코프를 안 두른 화면 ${unwrapped.length}개 — ${unwrapped.map((f) => f.slice(ROOT.length)).join(', ')}`)
+  // 오타 난 클래스는 아무 에러 없이 스타일만 빠진다 — 화면이 쓰는 .v2-* 가 전부 v2.css 에 있는지 센다.
+  const definedCls = new Set([...strip(v2Css).matchAll(/\.(v2-[\w-]+)/g)].map((m) => m[1]))
+  const undefinedCls = [...new Set(m2Screens.flatMap((f) => [...readFileSync(f, 'utf8').matchAll(/\b(v2-[\w-]+)/g)].map((m) => m[1])))]
+    .filter((c) => !definedCls.has(c))
+  if (undefinedCls.length) fail(`M2: v2.css 에 없는 클래스 ${undefinedCls.length}개(오타면 스타일이 조용히 빠진다): ${undefinedCls.join(', ')}`)
   if (leaks.length) fail(`M2: v2.css 가 다시 가리키지 않은 _ds 변수 ${leaks.length}곳(두더지웍스 값이 그대로 칠해진다): ${[...new Set(leaks)].join(', ')}`)
-  console.log(`[m2-tokens-overlap] PASS — 5화면 스코프 5/5 · 인라인 style 0 · 읽는 _ds 변수 전부 v2 로 재지정(선언 ${declared.size}개)`)
+  console.log(`[m2-tokens-overlap] PASS — ${M2_PAGES.length}화면 스코프 ${M2_PAGES.length}/${M2_PAGES.length} · 인라인 style 0 · 쓰는 .v2-* 클래스 전부 정의됨 · 읽는 _ds 변수 전부 v2 로 재지정(선언 ${declared.size}개)`)
 }
 
 // 간격은 따로 보고만 한다(겹침으로 세지 않는다).

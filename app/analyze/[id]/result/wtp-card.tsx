@@ -107,13 +107,13 @@ export function WtpCard({ projectId }: { projectId: string }) {
       title="이 진단, 얼마짜리였나"
       subtitle="묻는 것이지 값을 매긴 게 아니다. 아직 가격이 없고, 이 답으로 가격이 정해지지도 않는다 — 사람이 정할 때 재료로 쓴다."
     >
-      <div style={{ display: 'grid', gap: 12 }}>
+      <div className="v2-stack">
         {loadError && <Notice tone="warning">{loadError}</Notice>}
         {error && <Notice tone="danger">{error}</Notice>}
         {done && <Notice tone="success">{done}</Notice>}
 
         {mine && (
-          <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+          <p className="v2-text v2-text--muted">
             내 지난 답 · {mineLine(mine)}
             {mine.note ? ` — “${mine.note}”` : ''}
             {mine.created_at ? ` (${KST.format(Date.parse(mine.created_at))} KST)` : ''}
@@ -121,7 +121,7 @@ export function WtpCard({ projectId }: { projectId: string }) {
           </p>
         )}
 
-        <div style={{ display: 'grid', gap: 8 }}>
+        <div className="v2-stack-sm">
           {ANSWERS.map((a) => (
             <Choice
               key={a.value}
@@ -157,7 +157,7 @@ export function WtpCard({ projectId }: { projectId: string }) {
                 placeholder="숫자만"
               />
             </Field>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div className="v2-chiprow">
               {CHIPS.map((c) => (
                 <Button key={c} variant="outline" size="sm" disabled={busy} onClick={() => setAmount(String(c))}>
                   {won(c)}

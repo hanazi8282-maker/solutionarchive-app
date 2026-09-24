@@ -62,18 +62,8 @@ export type AdvisorPayload = {
   corpus_c: AdvisorCorpus<AdvisorPrincipleCard>
 }
 
-const BOX: React.CSSProperties = {
-  marginTop: 10,
-  background: 'var(--surface-muted)',
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--radius-md)',
-  padding: 'var(--space-3) var(--space-4)',
-  display: 'grid',
-  gap: 'var(--space-3)',
-}
-
-const muted: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }
-const body: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }
+// 모양은 app/_ds/v2/v2.css 의 .v2-* 클래스(M2). 이 카드를 쓰는 화면은 전부 .sa-v2 안이다
+// — /analyze/[id]/angles·result·review, /cases/search, /cases/report.
 
 function fmtScore(v: number | string | null): string {
   if (v == null) return '—'
@@ -117,11 +107,11 @@ function Corpus({ k, status, reason, count, focus, children }: {
   return (
     <details className="dgy-details" open={focus === null || focus === k}>
       <summary>{FOCUS_TITLE[k]} · {tally}</summary>
-      <div style={{ display: 'grid', gap: 'var(--space-2)', padding: '6px 0 0' }}>
+      <div className="v2-stack-sm v2-pt">
         {status === 'not_run'
-          ? <p style={muted}>판정 불가 — {reason}</p>
+          ? <p className="v2-text v2-text--muted">판정 불가 — {reason}</p>
           : count === 0
-            ? <p style={muted}>관련 사례 없음 — 조회는 정상인데 겹치는 근거가 0건입니다. 억지로 끼워 맞추지 않습니다.</p>
+            ? <p className="v2-text v2-text--muted">관련 사례 없음 — 조회는 정상인데 겹치는 근거가 0건입니다. 억지로 끼워 맞추지 않습니다.</p>
             : children}
       </div>
     </details>
@@ -134,7 +124,7 @@ function Corpus({ k, status, reason, count, focus, children }: {
  */
 function MatchWhy({ m }: { m: AdvisorMatchInfo }) {
   return (
-    <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
+    <p className="v2-note">
       매칭 근거 · {m.matched_terms.map(t => `“${t}”`).join(', ')} · 점수 {fmtScore(m.score)}
       {m.low_confidence && ' — 겹친 낱말이 하나뿐입니다. 이 낱말이 우연히 겹친 것은 아닌지 직접 확인하세요.'}
     </p>
@@ -142,12 +132,11 @@ function MatchWhy({ m }: { m: AdvisorMatchInfo }) {
 }
 
 /**
- * 근거 등급 배지 — 초록(success)을 쓰지 않는다. 초록·빨강은 감성/판정 전용이라
- * (app/_ds/tokens/colors.css `--sent-*`) 등급에 쓰면 "근거 C" 도 초록이라 좋게 읽힌다.
- * 등급은 감성이 아니라 분류다 → 정보 톤(파랑).
+ * 근거 등급 배지 — 색을 쓰지 않는다(neutral). 등급은 결과 방향이 아니라 분류라서
+ * 초록·빨강은 물론 파랑(정보)도 붙이지 않는다 — M1(_pub)·/cases/grade 와 같은 규칙. 뜻은 글자가 말한다.
  */
 function GradeBadge({ grade }: { grade: string }) {
-  return <Badge tone="info" size="sm">근거 {grade}</Badge>
+  return <Badge tone="neutral" size="sm">근거 {grade}</Badge>
 }
 
 /**
@@ -165,7 +154,7 @@ function MoveGradeBadges({ move }: { move: AdvisorCaseMoveCard }) {
   const mark = directionMark(move)
   return (
     <>
-      <Badge tone="info" size="sm"
+      <Badge tone="neutral" size="sm"
         title={isPmf
           ? 'PMF 등급 — 그래서 얼마나 됐고(신호) 내가 내일 옮길 수 있나(이식성). 방향은 ↑성공 ↓실패 ↕혼재'
           : '인사이트 등급 — 내가 옮겨 쓸 게 있나(옮길 행동·전제가 적혀 있나). PMF 등급이 아직 없어 이 축으로 보여준다'}>
@@ -194,7 +183,7 @@ function TransferNote({ note }: { note?: string | null }) {
   const t = (note ?? '').trim()
   if (!t) return <Badge tone="warning" size="sm">행동 미기재</Badge>
   return (
-    <p style={{ ...body, fontWeight: 'var(--fw-medium)', color: 'var(--text-strong)' }}>
+    <p className="v2-lead">
       내일 할 행동 · {t}
     </p>
   )
@@ -206,7 +195,7 @@ function Preconditions({ text }: { text?: string | null }) {
   return (
     <details className="dgy-details">
       <summary>전제</summary>
-      <p style={{ ...muted, padding: '4px 0 0' }}>{t || '전제 미기재 — 전제가 없다는 뜻이 아니다.'}</p>
+      <p className="v2-text v2-text--muted v2-pt">{t || '전제 미기재 — 전제가 없다는 뜻이 아니다.'}</p>
     </details>
   )
 }
@@ -226,16 +215,16 @@ function MoveTimeline({ siblings }: { siblings?: AdvisorMoveSibling[] }) {
   return (
     <details className="dgy-details">
       <summary>이 케이스에 기록된 무브 {list.length}개(시간순)</summary>
-      <ol style={{ margin: '4px 0 0', paddingLeft: 20, display: 'grid', gap: 4 }}>
+      <ol className="v2-olist v2-mt-xs">
         {sortMovesByTime(list).map((m) => (
-          <li key={m.id} style={{ ...muted, color: 'var(--text-body)' }}>
-            <span style={{ color: 'var(--text-muted)' }}>
+          <li key={m.id} className="v2-text">
+            <span className="v2-muted">
               {m.observed_period_start ? m.observed_period_start : '시점 미확인'} · {m.lever}
             </span>{' '}— {m.claim}
           </li>
         ))}
       </ol>
-      <p style={{ ...muted, fontSize: 'var(--fs-xs)', padding: '4px 0 0' }}>
+      <p className="v2-note v2-pt">
         번호는 기록된 시점 순서다. 앞이 뒤의 원인이라는 뜻은 아니다.
       </p>
     </details>
@@ -253,11 +242,11 @@ export function CaseMoveCards({ cards }: { cards: AdvisorCaseMoveCard[] }) {
   return (
     <>
       {cards.map((c) => (
-        <div key={c.case_move_id} style={{ display: 'grid', gap: 4 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+        <div key={c.case_move_id} className="v2-stack-tight">
+          <div className="v2-chiprow">
             {/* 공개 상세 라우트(/library/<slug>). 전에는 검수 목록 앵커(`/cases?status=approved#case-…`)로
                 보냈는데, 그 화면은 로그인 벽 뒤 검수용이라 셀러가 눌러도 볼 게 없었다. */}
-            <a href={`/library/${c.slug}`} style={{ textDecoration: 'none' }}
+            <a href={`/library/${c.slug}`} className="v2-link-bare"
               title="이 케이스의 상세 보기">
               <Badge tone="neutral" size="sm">{c.brand_name} ↗</Badge>
             </a>
@@ -265,7 +254,7 @@ export function CaseMoveCards({ cards }: { cards: AdvisorCaseMoveCard[] }) {
             <MoveGradeBadges move={c} />
             <LowConfidenceBadge m={c} />
           </div>
-          <p style={body}>{c.claim}</p>
+          <p className="v2-text">{c.claim}</p>
           <TransferNote note={c.transfer_note} />
           <Preconditions text={c.preconditions} />
           <MatchWhy m={c} />
@@ -281,15 +270,15 @@ export function FailedAngleCards({ cards }: { cards: AdvisorFailedAngleCard[] })
   return (
     <>
       {cards.map((c) => (
-        <div key={c.case_key} style={{ display: 'grid', gap: 4 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+        <div key={c.case_key} className="v2-stack-tight">
+          <div className="v2-chiprow">
             <Badge tone="neutral" size="sm">{c.product_category}</Badge>
             <Badge tone="neutral" size="sm">{c.source_tier}</Badge>
             {c.is_estimate && <Badge tone="warning" size="sm">추정</Badge>}
             <LowConfidenceBadge m={c} />
           </div>
-          <p style={body}>내세웠던 소구점 · {c.claimed_angle}</p>
-          <p style={{ ...body, color: 'var(--danger-fg)' }}>결과 · {c.outcome}</p>
+          <p className="v2-text">내세웠던 소구점 · {c.claimed_angle}</p>
+          <p className="v2-text"><span className="v2-danger-text">결과 · {c.outcome}</span></p>
           <MatchWhy m={c} />
         </div>
       ))}
@@ -299,9 +288,9 @@ export function FailedAngleCards({ cards }: { cards: AdvisorFailedAngleCard[] })
 
 /** 응답 본문만 그린다. 3상태를 문장으로 가른다 — 0건은 0건이라고 말한다(§13-7 AC-2). */
 export function AdvisorResult({ data, focus = null }: { data: AdvisorPayload; focus?: AdvisorFocus | null }) {
-  if (data.status === 'not_run') return <p style={muted}>판정 불가 — {data.reason}</p>
+  if (data.status === 'not_run') return <p className="v2-text v2-text--muted">판정 불가 — {data.reason}</p>
   if (data.status === 'no_match') {
-    return <p style={muted}>관련 사례 없음 — 세 코퍼스 모두 조회는 정상인데 겹치는 근거가 0건입니다.</p>
+    return <p className="v2-text v2-text--muted">관련 사례 없음 — 세 코퍼스 모두 조회는 정상인데 겹치는 근거가 0건입니다.</p>
   }
   return (
     <>
@@ -319,16 +308,16 @@ export function AdvisorResult({ data, focus = null }: { data: AdvisorPayload; fo
 
       <Corpus k="c" status={data.corpus_c.status} reason={data.corpus_c.reason} count={data.corpus_c.cards.length} focus={focus}>
         {data.corpus_c.cards.map(c => (
-            <div key={c.sp_id} style={{ display: 'grid', gap: 4 }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            <div key={c.sp_id} className="v2-stack-tight">
+              <div className="v2-chiprow">
                 <Badge tone="neutral" size="sm">{c.sp_id}</Badge>
                 <GradeBadge grade={c.evidence_grade} />
                 <Badge tone="neutral" size="sm">{c.source_ref}</Badge>
                 <LowConfidenceBadge m={c} />
               </div>
-              <p style={body}>{c.statement}</p>
+              <p className="v2-text">{c.statement}</p>
               {c.evidence_grade_note && (
-                <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>{c.evidence_grade_note}</p>
+                <p className="v2-note">{c.evidence_grade_note}</p>
               )}
               <MatchWhy m={c} />
             </div>
@@ -389,7 +378,7 @@ export function AdvisorLoader({ query, label, variant = 'outline', focus }: {
   if (!open) {
     return (
       // ≤480px 에서는 세로로 쌓고 각 버튼이 풀폭이 된다(app/_ds/styles.css).
-      <div className="dgy-btnrow" style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <div className="dgy-btnrow v2-actions v2-mt">
         {triggers.map((k, i) => (
           <Button
             key={k ?? 'all'}
@@ -406,13 +395,13 @@ export function AdvisorLoader({ query, label, variant = 'outline', focus }: {
   }
 
   return (
-    <div style={BOX}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+    <div className="v2-advisor">
+      <div className="v2-between">
         <div className="dgy-caps">{active ? FOCUS_TITLE[active] : '유사 사례 · 선례 · 실패 · 원칙'}</div>
         <Button variant="ghost" size="sm" onClick={() => setOpen(false)} aria-expanded>접기</Button>
       </div>
-      {loading && <p role="status" style={muted}>찾는 중…</p>}
-      {error && <p role="alert" style={{ ...muted, color: 'var(--danger-fg)' }}>{error}</p>}
+      {loading && <p role="status" className="v2-text v2-text--muted">찾는 중…</p>}
+      {error && <p role="alert" className="v2-danger-text">{error}</p>}
       {!loading && !error && data && <AdvisorResult data={data} focus={active} />}
     </div>
   )

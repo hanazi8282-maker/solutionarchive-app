@@ -913,3 +913,18 @@
   .pub-detail > .pub-toc a:hover { border-left-color: var(--pub-accent); background: var(--pub-surface-2); }
   .pub-detail > .pub-detail-body { grid-column: 1; grid-row: 1; min-width: 0; }
 }
+
+/* ── 신호 화면 (/signals · /signals/community · /signals/card, 남헌 2026-09-25 B항) ── */
+/* 발췌는 원문의 짧은 조각이다(lib/signals/feed.ts EXCERPT_MAX). 긴 URL 이 폭을 밀지 않게 끊는다. */
+.pub-signal-excerpt { overflow-wrap: anywhere; }
+/*
+ * 내부 네비(`_ds/AppNav`)를 공개 화면에서 걷는다. AppNav 는 `/`·`/login`·`/onboarding`·
+ * `/columns/read`·`/library` 에서 스스로 null 을 돌려주지만 `/signals` 는 그 목록에 없고,
+ * AppNav 파일은 M2 병렬 작업 중이라 이번 PR 에서 손대지 않는다(CEO-STAFF 09-25 지시).
+ * 그래서 `.pub-root`(= PubShell) 가 있는 문서에서만 숨긴다 — 다른 공개 화면에는 이미 AppNav 가
+ * 없어서 아무 효과가 없다. ponytail: CSS 로 가린 것이라 DOM 에는 남는다(내부 링크는 전부 로그인
+ * 보호라 노출 위험은 없다). M2 머지 뒤 AppNav 숨김 조건에 `/signals` 한 줄을 넣고 이 블록을 지운다.
+ */
+html body:has(.pub-root) .sa-sidebar,
+html body:has(.pub-root) .sa-topbar { display: none; }
+html body:has(.pub-root) .sa-main { padding-left: 0; }

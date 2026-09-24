@@ -57,6 +57,16 @@
 클라이언트 컴포넌트(저장·피드백·링크복사)는 `PubButton` 을 못 쓴다(onClick) — `.pub-btn` 클래스를
 직접 붙인다.
 
+### 신호 화면에서 추가된 것 (2026-09-25, 남헌 위임 B항)
+
+| 컴포넌트 | 파일 | props | 비고 |
+|---|---|---|---|
+| `PubSignalCard` | `components/PubSignalCard.tsx` | `item: SignalItem` · `showSignal?` | 리뷰 1건 카드(피드·3열 공용). 카드 전체가 `/signals/card?id=` 링크 — 외부 출처 링크는 상세에만(링크 안 링크 금지). 라벨 NULL 은 칩을 안 만들고 "라벨 없음" 을 글자로 적는다 |
+
+클래스: `.pub-signal-excerpt`(발췌 줄바꿈) · `.pub-signalcols`/`.pub-signalcol`(3열, ≥1024px 세 칼럼).
+⚠️ `pub.css` 맨 끝의 `body:has(.pub-root) .sa-*` 블록은 **임시**다 — `/signals` 가 `_ds/AppNav` 숨김 목록에 없는데
+AppNav 가 M2 작업 중이라 손대지 못했다. M2 머지 뒤 AppNav 에 한 줄 넣고 그 블록을 지운다.
+
 ## 토큰 (`tokens.css`) — v2, 레퍼런스 실측 재도출 (남헌 2026-09-24 확정)
 
 v1 은 컴포넌트만 새로 짜고 **값은 `_ds` 를 승계**했다(Pretendard 단일 서체 · Tailwind slate

@@ -39,6 +39,8 @@ for (const p of [...cronRoutes, ...vercelCrons]) t(`공개(크론): ${p}`, isPub
 for (const p of ['/api/threads/match-posts', '/api/insight/kakao-webhook', '/login', '/auth/login', '/auth/callback', '/auth/logout',
   '/onboarding/quiz', '/api/onboarding/quiz', '/api/onboarding/quiz/share']) t(`공개: ${p}`, isPublicPath(p))
 
+// 2026-09-25 신호 화면 — PUBLIC_EXACT 정확일치로만 연다(접두사 아님).
+const SIGNAL_PAGES = ['/signals']
 // 2b. 페이지는 /login·/onboarding 말고 전부 보호(새 화면은 기본 잠김)
 const pages = files.filter((f) => /(^|\/)page\.tsx$/.test(f)).map(routeOf)
 t(`페이지 추출 ≥8건 (실제 ${pages.length})`, pages.length >= 8)
@@ -46,6 +48,7 @@ for (const p of pages) {
   // 2026-09-23: 랜딩 `/` 와 승인 칼럼 읽기 `/columns/read` 추가(둘 다 남헌 명시 승인).
   const shouldBePublic = p === '/' || p === '/login' || p.startsWith('/onboarding')
     || p.startsWith('/columns/read') || p.startsWith('/library')
+    || SIGNAL_PAGES.includes(p) // 2026-09-25 남헌 위임 B항 — 정확일치 공개(아래 2d)
   t(`${shouldBePublic ? '공개' : '보호'}(페이지): ${p}`, isPublicPath(p) === shouldBePublic)
 }
 // 2026-09-23 공개 라이브러리 — `/library` 접두사는 열되 검수 `/cases/*` 는 닫혀 있어야 한다(남헌 확정).
@@ -88,6 +91,15 @@ for (const p of ['/x', '/settings/profile', '/columns', '/discovery', '/api/prof
 const prefixBlock = readFileSync(`${ROOT}/lib/auth/policy.ts`, 'utf8').match(/const PUBLIC_PREFIXES = \[([\s\S]*?)\n\]/)?.[1] ?? ''
 t('PUBLIC_PREFIXES 블록 추출(못 뽑았으면 아래 검사는 무의미하다)', prefixBlock.includes("'/login'"))
 t("PUBLIC_PREFIXES 에 '/' 단독 항목이 없다 — 랜딩은 정확일치 분기로만 연다", !/(^|[\s[])'\/'\s*,/.test(prefixBlock))
+
+// 2d. 신호 화면(남헌 2026-09-25 위임 B항) — 정확일치라 이웃·하위 경로는 닫혀 있어야 한다.
+for (const p of SIGNAL_PAGES) t(`공개(신호): ${p}`, isPublicPath(p))
+for (const p of ['/signalsx', '/signals/', '/signals/x', '/signals/community/x', '/signals/card/x', '/api/signals']) {
+  t(`보호(신호 공개가 이웃 경로로 번지지 않는다): ${p}`, !isPublicPath(p))
+}
+t('PUBLIC_PREFIXES 에 /signals 가 없다 — 정확일치로만 연다', !prefixBlock.includes("'/signals"))
+// 유사 케이스 검색 API — 검수 화면 /cases/search 의 짝. 로그인 전용이다(CEO-STAFF 09-25 확인: 목록에 없었다).
+t('보호: /api/cases/search', !isPublicPath('/api/cases/search'))
 
 // ── 3. 세션 판정 + 서버 액션 가드 ───────────────────────────────
 const ALLOW = 'hanazi8282@gmail.com, kimnh030820@postech.ac.kr'

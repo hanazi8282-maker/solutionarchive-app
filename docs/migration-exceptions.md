@@ -274,3 +274,27 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 적용 전 실측 두 컬럼 없음. MCP `apply_migration` — success.
 - 양성: `information_schema` 두 컬럼 nullable 확인. 음성: 기존 행 값 전부 NULL(백필 없음).
 - ⚠️ `/columns/read` 공개 접두사(`lib/auth/policy.ts`)는 **이 PR 에 없다** — 세션의 자동모드 분류기가 인증 경계 확장을 차단해 남헌이 직접 넣는다(§10.2 예외 3). 그때까지 읽기 화면은 로그인 벽 뒤에 있다.
+
+## 2026-09-24 — 20260930000011_review_source_cap_log.sql (상한 자동반영 감사 로그 테이블)
+
+- 승인자: 자체 판단(예외 아님: 신규 테이블 1개+인덱스 1개, 삭제·백필·UPDATE 없음, RLS ENABLE+FORCE·정책 0). CEO-STAFF 세션. 롤백 파일 있음.
+- 대상: solutionarchive `qmgrfqjfxqhxuufrnkwf`. 적용 전 실측 테이블 없음(information_schema 0). claude.ai Supabase MCP `apply_migration`(project_id 명시) — success. 로컬 stdio MCP 는 세션 시작 시 타임아웃이라 못 썼고, 별도 stdio 호출로 같은 프로젝트를 보는 것은 확인함.
+- 양성: 컬럼 9개·인덱스 1·RLS true/true·정책 0.
+- 음성: CHECK 위반 INSERT 롤백 검사 **미실행**(호스티드 MCP 는 트랜잭션 롤백 제어 불가). 앱 경로는 `scripts/review-request-cap.mjs` 가 테이블 부재 시 "반영 안 함"으로 멈추는 3상태 로직으로 대신 검사.
+
+## 2026-09-24 — 20260930000012_fingerprint_dedupe.sql (지문 키 이행 · 교차 타깃 중복 소프트 처리)
+
+- 승인자: 남헌 2026-09-24 2차 결정 2번 — 대량 UPDATE 도 4조건(드라이런·롤백 파일·무중단·Notion 기록) 충족 시 자율 적용 허용. CEO-STAFF 세션 적용. 롤백 파일 있음(`review_dedupe_soft_purges` 가 유일한 근거 — 지우면 복구 불가).
+- 드라이런(적용 전): base 13,951 · 소프트 처리 대상 50건(hackernews 46 · danawa 3 · youtube 1) · keeper 47 · 판정 이동 후보 3.
+- 대상: solutionarchive. 적용 전 인덱스·테이블 없음. `apply_migration` — success.
+- 양성: 인덱스 1 · soft_purges 50행 · 그 50건 전부 purged_at 기록 · 최근 10분 purged 50(=대상 외 purge 없음) · RLS true/true·정책 0.
+- 음성: verdict_moved 0 — 이동 후보 3건은 keeper 에 이미 판정이 있어 이동 안 함(설계대로). 판정 총수 860 변동 없음.
+- 참고: 적용 중 수집 크론이 동시에 돌아 `analysis_inputs` 활성 행이 24,187→24,331 로 늘었다(+194 신규 적재, 이 마이그와 무관). 신규 행은 인덱스+`lib/review/store.ts` 2차 방어가 이후 처리.
+
+## 2026-09-24 — 20260930000013_case_studies_brand_domain_backfill.sql (케이스 브랜드 도메인 백필 40건)
+
+- 승인자: 남헌 2026-09-24 2차 결정 2번(위 4조건). CEO-STAFF 세션 적용. 롤백 파일 있음(40 슬러그 NULL 복원 — 적용 전 57건 전부 NULL 이었으므로 롤백이 정확히 원상태).
+- 드라이런: `brand_domain` 컬럼 존재(마이그 000001 적용됨) · 57건 전부 NULL · 40 슬러그 중 39 일치, `hoka-specialty-retail-awareness-engine` 은 DB 에 없음(0건 UPDATE, 무해).
+- 대상: solutionarchive. `apply_migration` — success.
+- 양성: brand_domain NOT NULL 39 · 도메인 형식 불일치 0.
+- 음성: NULL 잔여 18건 = 백필 목록 밖 17건(실패 케이스 위주: brandless·quibi·juicero 등) + hoka 1. 백필 대상이 아니므로 정상. hoka 는 슬러그 확인 후 후속.

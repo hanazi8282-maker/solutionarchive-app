@@ -40,7 +40,7 @@ for (const p of ['/api/threads/match-posts', '/api/insight/kakao-webhook', '/log
   '/onboarding/quiz', '/api/onboarding/quiz', '/api/onboarding/quiz/share']) t(`공개: ${p}`, isPublicPath(p))
 
 // 2026-09-25 신호 화면 — PUBLIC_EXACT 정확일치로만 연다(접두사 아님).
-const SIGNAL_PAGES = ['/signals']
+const SIGNAL_PAGES = ['/signals', '/signals/community']
 // 2b. 페이지는 /login·/onboarding 말고 전부 보호(새 화면은 기본 잠김)
 const pages = files.filter((f) => /(^|\/)page\.tsx$/.test(f)).map(routeOf)
 t(`페이지 추출 ≥8건 (실제 ${pages.length})`, pages.length >= 8)

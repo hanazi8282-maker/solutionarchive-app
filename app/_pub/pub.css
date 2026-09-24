@@ -917,6 +917,13 @@
 /* ── 신호 화면 (/signals · /signals/community · /signals/card, 남헌 2026-09-25 B항) ── */
 /* 발췌는 원문의 짧은 조각이다(lib/signals/feed.ts EXCERPT_MAX). 긴 URL 이 폭을 밀지 않게 끊는다. */
 .pub-signal-excerpt { overflow-wrap: anywhere; }
+/* 3열: <1024px 한 줄씩 쌓고, ≥1024px 세 칼럼. 칼럼 안 카드는 한 줄 목록이다. */
+.pub-signalcols { display: grid; gap: var(--pub-gap-grid); min-width: 0; }
+.pub-signalcol { display: grid; gap: var(--pub-gap-3); align-content: start; min-width: 0; }
+@media (min-width: 1024px) {
+  .pub-signalcols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 /*
  * 내부 네비(`_ds/AppNav`)를 공개 화면에서 걷는다. AppNav 는 `/`·`/login`·`/onboarding`·
  * `/columns/read`·`/library` 에서 스스로 null 을 돌려주지만 `/signals` 는 그 목록에 없고,

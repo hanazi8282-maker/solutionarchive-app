@@ -342,3 +342,27 @@
 .v2-memo { overflow: hidden; border: 1px dashed var(--border-strong); border-left: 3px solid var(--v2-mix); border-radius: var(--radius-lg); background: var(--surface-muted); }
 .v2-memo-head { padding: 6px 16px; border-bottom: 1px solid var(--warning-border); background: var(--warning-bg); color: var(--text-strong); font-size: var(--fs-xs); font-weight: 600; }
 .v2-memo-body { padding: 16px; }
+
+/* ── /analyze/[id]/result ───────────────────────────────── */
+.v2-box--edge { border: 1px solid var(--border); min-width: 0; }
+.v2-box--roomy { gap: 8px; }
+.v2-num--lg { font-size: var(--fs-h1); line-height: 1.1; }
+.v2-body--md { font-size: var(--fs-md); }
+.v2-grid-240 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.v2-copy-slot { flex: 1 1 200px; min-width: 0; max-width: min(100%, 320px); }
+.v2-link-accent { color: var(--text-link); }
+/* 성공 알림 글자 — v2 초록(#396c00)은 흰 바탕 대비 6:1 이라 글자로 써도 된다. */
+.v2-ok-text { color: var(--success-fg); }
+/* 2×2 미니 사분면 — 우리 칸만 액센트 테두리, 나머지는 라벨만 흐리게. */
+.v2-quad { display: grid; gap: 6px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.v2-quad-cell { display: grid; gap: 2px; min-width: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-md); background: transparent; }
+.v2-quad-cell--on { border-color: var(--v2-accent); background: var(--surface-card); box-shadow: inset 0 0 0 1px var(--v2-accent); }
+.v2-quad-name { font-size: var(--fs-xs); line-height: 1.4; font-weight: 500; color: var(--text-muted); overflow-wrap: anywhere; }
+.v2-quad-cell--on .v2-quad-name { font-weight: 600; color: var(--text-strong); }
+.v2-quad-hint { font-size: var(--fs-xs); color: var(--text-muted); }
+.v2-quad-cell--on .v2-quad-hint { color: var(--v2-accent); }
+/* 문제 해결 제안 묶음 — 왼쪽 띠 색이 유형(보완·막힘·원칙). 글자는 잉크. */
+.v2-group { padding-left: 10px; border-left: 3px solid var(--border-strong); }
+.v2-group--fix { border-left-color: var(--v2-accent); }
+.v2-group--fail { border-left-color: var(--v2-neg); }
+.v2-group--principle { border-left-color: var(--v2-ink-muted); }

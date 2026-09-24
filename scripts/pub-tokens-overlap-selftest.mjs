@@ -41,9 +41,10 @@ const M2_DIRS = [
   { dir: join(ROOT, 'app', 'analyze', 'new'), deep: true },
   { dir: join(ROOT, 'app', 'analyze', '[id]'), deep: false },
   { dir: join(ROOT, 'app', 'analyze', '[id]', 'angles'), deep: true },
+  { dir: join(ROOT, 'app', 'analyze', '[id]', 'result'), deep: true },
 ]
 /** `.sa-v2` 스코프를 둘러야 하는 page.tsx(ROOT/app 기준). 화면을 M2 에 넣을 때 여기와 M2_DIRS 에 한 줄씩. */
-const M2_PAGES = ['agents', 'discovery', 'dashboard', 'columns', join('cases', 'grade'), 'analyze', join('analyze', 'new'), join('analyze', '[id]', 'angles')]
+const M2_PAGES = ['agents', 'discovery', 'dashboard', 'columns', join('cases', 'grade'), 'analyze', join('analyze', 'new'), join('analyze', '[id]', 'angles'), join('analyze', '[id]', 'result')]
 const DS_FILES = [
   join(ROOT, 'app', '_ds', 'styles.css'),
   ...readdirSync(join(ROOT, 'app', '_ds', 'tokens')).map((f) => join(ROOT, 'app', '_ds', 'tokens', f)),

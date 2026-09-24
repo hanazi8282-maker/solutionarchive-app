@@ -39,15 +39,15 @@ export function CopySummary({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 8 }}>
+    <div className="v2-stack-sm">
       <Button variant="primary" size="lg" fullWidth onClick={run} disabled={busy}>
         {busy ? '요약 만드는 중…' : '요약 마크다운 복사'}
       </Button>
-      {state === 'copied' && <p role="status" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--success-fg)' }}>클립보드에 복사했습니다.</p>}
-      {state === 'error' && <p role="alert" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--danger-fg)' }}>{error}</p>}
+      {state === 'copied' && <p role="status" className="v2-text v2-ok-text">클립보드에 복사했습니다.</p>}
+      {state === 'error' && <p role="alert" className="v2-danger-text">{error}</p>}
       {state === 'manual' && (
         <>
-          <p role="status" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--warning-fg)' }}>
+          <p role="status" className="v2-text v2-flag">
             브라우저가 클립보드를 막았습니다. 아래 내용을 직접 복사하세요.
           </p>
           <Textarea readOnly rows={12} value={text} onFocus={(e) => e.currentTarget.select()} aria-label="요약 마크다운" />

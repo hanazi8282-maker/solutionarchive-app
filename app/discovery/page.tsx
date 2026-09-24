@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Card } from '../_ds/components/Card'
@@ -58,7 +58,6 @@ const KIND: Record<string, string> = {
   service: '무형 서비스',
 }
 
-const muted: CSSProperties = { margin: 0, fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'anywhere' }
 const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 const KST_DAY = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
 
@@ -92,46 +91,46 @@ function CandidateCard({ c }: { c: CandidateRow }) {
   // 안 뽑혔나"에 아무도 답할 수 없고, 그게 이 테이블이 후보 전부를 남기는 이유다(설계 §1).
   const overridden = c.human_review === 'killed'
   return (
-    <Card style={overridden ? { background: 'var(--surface-muted)' } : undefined}>
-      <div style={{ display: 'grid', gap: 10, opacity: overridden ? 0.72 : 1 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+    <Card className={overridden ? 'v2-card--muted' : undefined}>
+      <div className={overridden ? 'v2-stack v2-dim' : 'v2-stack'}>
+        <div className="v2-chiprow">
           <Badge tone={v?.tone ?? 'neutral'} dot size="sm">{v?.label ?? c.verdict}</Badge>
           <Badge tone={h?.tone ?? 'neutral'} size="sm">{h?.label ?? c.human_review}</Badge>
           <Badge tone="neutral" size="sm">{KIND[c.kind] ?? c.kind}</Badge>
           <ProbeHits hits={c.probe_hits} />
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
+          <span className="v2-note v2-push">
             {KST.format(new Date(c.created_at))} KST
           </span>
         </div>
 
-        <h3 style={{ margin: 0, fontSize: 16 }}>
+        <h3 className="v2-h3">
           {c.homepage_url
-            ? <a href={c.homepage_url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{c.name} ↗</a>
+            ? <a href={c.homepage_url} target="_blank" rel="noreferrer" className="v2-link-plain">{c.name} ↗</a>
             : c.name}
         </h3>
-        {c.category_hint && <p style={muted}>카테고리: {c.category_hint}</p>}
+        {c.category_hint && <p className="v2-note">카테고리: {c.category_hint}</p>}
 
         {/* LLM 이 왜 뽑았는지. 판정 근거가 아니라 참고다 — 채택은 아래 실측이 정했다. */}
-        <div style={{ padding: 10, borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)' }}>
-          <p style={{ ...muted, marginBottom: 4 }}>왜 뽑았나 (LLM 주장 — 판정 근거 아님)</p>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{c.why}</p>
+        <div className="v2-box">
+          <p className="v2-note">왜 뽑았나 (LLM 주장 — 판정 근거 아님)</p>
+          <p className="v2-body v2-pre">{c.why}</p>
         </div>
 
         {/* 판정 근거. 남헌이 뒤집을지 말지 보는 자리라 숫자를 그대로 노출한다. */}
-        <div style={{ display: 'grid', gap: 4 }}>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7 }}>
+        <div className="v2-stack-tight">
+          <p className="v2-body">
             <b>판정 근거</b>: {c.verdict_reason}
           </p>
-          <p style={muted}>
+          <p className="v2-note">
             프로브: {c.probe_source_key ?? '실행 안 됨'}
             {c.probe_ref ? ` · 대상 ${c.probe_ref}` : ''}
             {c.probe_at ? ` · ${KST.format(new Date(c.probe_at))} KST` : ''}
           </p>
-          {c.probe_note && <p style={muted}>프로브 메모: {c.probe_note}</p>}
+          {c.probe_note && <p className="v2-note">프로브 메모: {c.probe_note}</p>}
         </div>
 
         {c.project_id && (
-          <p style={{ margin: 0, fontSize: 13 }}>
+          <p className="v2-body">
             {/* 상세 화면은 /review 다 — /analyze 목록의 "상세·검수" 버튼과 같은 곳(app/analyze/page.tsx).
                 맨 `/analyze/<id>` 는 09-18 까지 라우트가 없어 404 였고(여기 링크 사고), 지금은
                 app/analyze/[id]/page.tsx 가 /review 로 넘긴다. 링크는 그래도 최종 목적지를 직접 가리킨다. */}
@@ -143,6 +142,11 @@ function CandidateCard({ c }: { c: CandidateRow }) {
       </div>
     </Card>
   )
+}
+
+/** M2 v2 스코프 — 조기 반환 4곳이 같은 껍데기를 쓴다. */
+function Shell({ children }: { children: ReactNode }) {
+  return <div className="sa-v2"><PageShell maxWidth={960}>{children}</PageShell></div>
 }
 
 export default async function DiscoveryPage({
@@ -165,12 +169,12 @@ export default async function DiscoveryPage({
 
   if (!sb) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header}
         <Notice tone="danger" title="확인 불가 — Supabase 환경변수 미설정">
           후보를 조회하지 못했다. 검증할 후보가 없다는 뜻이 아니다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -180,22 +184,22 @@ export default async function DiscoveryPage({
   // head:true 는 없는 테이블에도 204 를 주는 함정이 있다(§7.1).
   if (res.error && (res.error.code === '42P01' || res.error.code === 'PGRST205')) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header}
         <Notice tone="warning" title="마이그레이션 미적용 — discovery_candidates 테이블 없음">
           <code>supabase/migrations/20260921000001_discovery_candidates.sql</code> 을 적용해야 이 화면이 데이터를 보여준다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
   if (res.error || !res.data) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header}
         <Notice tone="danger" title="확인 불가 — 조회 실패">
           {res.error?.message ?? '응답에 행이 없다'} · 검증할 후보가 없다는 뜻이 아니다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -230,11 +234,11 @@ export default async function DiscoveryPage({
   }
 
   return (
-    <PageShell maxWidth={960}>
+    <Shell>
       {header}
 
       {all.length === 0 ? (
-        <Card bodyStyle={{ padding: 0 }}>
+        <Card padded={false}>
           <EmptyState
             title="아직 발굴 결과가 없다 (조회는 정상)"
             description="야간 발굴 루프는 매일 KST 02:13 에 돈다. 첫 실행 뒤 후보가 여기 올라온다. 채택된 후보는 분석 프로젝트와 수집 대상까지 자동으로 만들고, 같은 밤 24분 뒤 리뷰 수집이 그 대상을 주워 간다."
@@ -270,7 +274,7 @@ export default async function DiscoveryPage({
             </Notice>
           )}
 
-          <nav aria-label="후보 필터" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <nav aria-label="후보 필터" className="v2-chiprow">
             <FilterChip href={qs({ verdict: 'all', review: 'all', kind: 'all' })} active={fVerdict === 'all' && fReview === 'all' && fKind === 'all'} count={all.length}>
               전체
             </FilterChip>
@@ -286,22 +290,22 @@ export default async function DiscoveryPage({
             })}
           </nav>
 
-          <p style={muted}>
+          <p className="v2-note">
             판정은 <b>실측 결과를 뒤집는 게 아니라</b> 그 결과를 받아들일지 정하는 것이다. 무효화해도 이미 수집된
             리뷰는 남는다 — 앞으로의 수집만 멈춘다.
           </p>
 
           {sorted.length === 0 ? (
-            <Card bodyStyle={{ padding: 0 }}>
+            <Card padded={false}>
               <EmptyState compact title="이 조건의 후보 0건 (조회는 정상)" description={`전체 ${all.length}건 중 걸러진 결과가 없다.`} />
             </Card>
           ) : (
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div className="v2-stack">
               {sorted.map((c) => <CandidateCard key={c.id} c={c} />)}
             </div>
           )}
         </>
       )}
-    </PageShell>
+    </Shell>
   )
 }

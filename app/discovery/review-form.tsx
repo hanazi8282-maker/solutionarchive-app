@@ -14,19 +14,19 @@ export function ReviewForm({ id, current, hasProject }: { id: string; current: s
   const [state, action, pending] = useActionState<ReviewActionState, FormData>(decideCandidate, null)
 
   return (
-    <form action={action} style={{ display: 'grid', gap: 6 }}>
+    <form action={action} className="v2-form">
       <input type="hidden" name="id" value={id} />
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+      <div className="v2-actions">
         {/* 누른 버튼의 name/value 가 FormData 의 decision 이 된다. 서버가 값을 다시 검증한다. */}
         <Button type="submit" name="decision" value="kept" variant="primary" size="sm" disabled={pending || current === 'kept'}>
           유지
         </Button>
-        <Button type="submit" name="decision" value="killed" variant="destructive" size="sm" disabled={pending || current === 'killed'}>
+        <Button type="submit" name="decision" value="killed" variant="destructive" size="sm" className="v2-btn-danger" disabled={pending || current === 'killed'}>
           무효화
         </Button>
-        {pending && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>저장 중…</span>}
+        {pending && <span className="v2-note">저장 중…</span>}
       </div>
-      <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+      <p className="v2-note">
         {hasProject
           ? '무효화하면 이 후보가 만든 수집 대상도 함께 멈춘다 (분석 프로젝트 행은 남는다). 되돌려도 수집은 자동으로 다시 켜지지 않는다.'
           : '채택되지 않은 후보라 수집 대상이 없다 — 표시만 남는다. 같은 이름이 다음 밤에 다시 제안되는 것을 막는 용도다.'}

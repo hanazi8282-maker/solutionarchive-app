@@ -26,6 +26,23 @@ import { READER_PROBLEM_LABEL } from '../cases/draft.ts'
 export const RELEVANCE_VERDICTS = ['relevant', 'irrelevant', 'unknown'] as const
 export type Relevance = (typeof RELEVANCE_VERDICTS)[number]
 
+// T2 라벨(reports/2026-09-24/competitor-features-reestimate.md A1 · §F 7·8 · 12 WTP).
+// 같은 호출에서 함께 받는다. 모델이 못 정하면 NULL 이다 — 'mid'·false 로 접지 않는다(§7.1).
+export const LABEL_LEVELS = ['high', 'mid', 'low'] as const
+export type LabelLevel = (typeof LABEL_LEVELS)[number]
+export const COMMUNITY_SIGNALS = ['pain', 'demand', 'objection'] as const
+export type CommunitySignal = (typeof COMMUNITY_SIGNALS)[number]
+
+export interface RelevanceLabels {
+  impact: LabelLevel | null
+  frequency: LabelLevel | null
+  community_signal: CommunitySignal | null
+  /** true = 지불 의사·가격 언급 있음, false = 없음이라고 모델이 답함, null = 못 정함. */
+  wtp_mentioned: boolean | null
+}
+
+const NO_LABELS: RelevanceLabels = { impact: null, frequency: null, community_signal: null, wtp_mentioned: null }
+
 /** 리뷰 1건을 프롬프트에 실을 때의 상한. 긴 본문 하나가 배치를 독식하지 않게. */
 export const MAX_REVIEW_CHARS = 1500
 /** 한 번의 호출에 넣는 리뷰 수. 20건이면 입력 ≈15k 토큰(상한 기준)으로 한 호출에 들어간다. */
@@ -53,7 +70,7 @@ export interface RelevanceExample {
   verdict: 'relevant' | 'irrelevant'
 }
 
-export interface RelevanceVerdict {
+export interface RelevanceVerdict extends RelevanceLabels {
   input_id: string
   verdict: Relevance
   /** 모델이 적은 한 줄. 없으면 null — 사람이 표본을 볼 때 판단 근거가 된다. */
@@ -83,7 +100,13 @@ const SYSTEM = [
   '',
   'irrelevant 는 확실할 때만 쓴다. 버려진 리뷰는 다시 읽히지 않는다 — 애매하면 unknown 이다.',
   '없는 id 를 만들지 말고, 주어진 id 전부에 대해 한 줄씩 답해라.',
-  '출력은 JSON 배열 하나뿐이다: [{"id":"R1","rel":"relevant","why":"한 줄 근거"}].',
+  '',
+  '라벨 4개를 함께 달아라. 원문으로 정할 수 없으면 null 이다 — 추측으로 채우지 마라.',
+  'impact = 이 문제가 그 사람에게 얼마나 큰가: "high" | "mid" | "low" | null',
+  'freq   = 이 문제를 얼마나 자주 겪는다고 읽히나: "high" | "mid" | "low" | null',
+  'signal = "pain"(겪는 문제) | "demand"(원하는 기능·해결책) | "objection"(안 쓰는/안 사는 이유) | null',
+  'wtp    = 돈을 내겠다·가격이 얼마면 산다 같은 지불 의사 언급이 있으면 true, 분명히 없으면 false, 애매하면 null',
+  '출력은 JSON 배열 하나뿐이다: [{"id":"R1","rel":"relevant","why":"한 줄 근거","impact":"high","freq":"low","signal":"pain","wtp":null}].',
   '설명·코드블록·다른 키를 붙이지 마라.',
 ].join('\n')
 
@@ -145,7 +168,9 @@ function oneLine(text: string): string {
  * 모델이 낸 텍스트에서 [{"id","rel","why"}] 배열을 건져낸다.
  * 못 건지면 null(= 전부 unknown)이지 빈 배열이 아니다 — 빈 배열은 "다 무관" 으로 읽힌다.
  */
-export function parseRelevanceArray(raw: string): { id: string; rel: Relevance; why: string | null }[] | null {
+export function parseRelevanceArray(
+  raw: string,
+): ({ id: string; rel: Relevance; why: string | null } & RelevanceLabels)[] | null {
   const arr = extractJsonArray(raw)
   if (!arr) return null
   return arr
@@ -158,8 +183,36 @@ export function parseRelevanceArray(raw: string): { id: string; rel: Relevance; 
         // 어휘 밖 값은 unknown 이다. 'no'·'0'·'irrelevant?' 같은 응답을 무관으로 읽지 않는다.
         rel: ((RELEVANCE_VERDICTS as readonly string[]).includes(rel) ? rel : 'unknown') as Relevance,
         why,
+        impact: pick(x.impact, LABEL_LEVELS),
+        frequency: pick(x.freq ?? x.frequency, LABEL_LEVELS),
+        community_signal: pick(x.signal ?? x.community_signal, COMMUNITY_SIGNALS),
+        wtp_mentioned: toBool(x.wtp ?? x.wtp_mentioned),
       }
     })
+}
+
+/** 어휘 안이면 그 값, 밖이면 null. 'medium' 을 'mid' 로 짐작하지 않는다. */
+function pick<T extends string>(v: unknown, allowed: readonly T[]): T | null {
+  const s = typeof v === 'string' ? v.trim().toLowerCase() : ''
+  return (allowed as readonly string[]).includes(s) ? (s as T) : null
+}
+
+/** true/false(문자열 포함)만 받는다. 'yes'·1 같은 것은 null 이다. */
+function toBool(v: unknown): boolean | null {
+  if (typeof v === 'boolean') return v
+  const s = typeof v === 'string' ? v.trim().toLowerCase() : ''
+  return s === 'true' ? true : s === 'false' ? false : null
+}
+
+/** 페인 카드 태그(§F 7번). NULL 라벨은 태그를 만들지 않는다 — 빈 태그 금지. */
+export function impactFrequencyTags(row: Partial<RelevanceLabels> | null | undefined): string[] {
+  const KO: Record<LabelLevel, string> = { high: '높음', mid: '보통', low: '낮음' }
+  const out: string[] = []
+  const impact = pick(row?.impact, LABEL_LEVELS)
+  const frequency = pick(row?.frequency, LABEL_LEVELS)
+  if (impact) out.push(`영향 ${KO[impact]}`)
+  if (frequency) out.push(`빈도 ${KO[frequency]}`)
+  return out
 }
 
 /**
@@ -174,7 +227,7 @@ export async function judgeRelevanceBatch(
 ): Promise<RelevanceOutcome> {
   const allUnknown = (model: string, error?: string, quotaExhausted = false): RelevanceOutcome => ({
     model,
-    verdicts: reviews.map(r => ({ input_id: r.input_id, verdict: 'unknown' as Relevance, reason: null })),
+    verdicts: reviews.map(r => ({ input_id: r.input_id, verdict: 'unknown' as Relevance, reason: null, ...NO_LABELS })),
     ...(error ? { error } : {}),
     ...(quotaExhausted ? { quotaExhausted } : {}),
   })
@@ -216,6 +269,10 @@ export async function judgeRelevanceBatch(
         input_id: r.input_id,
         verdict: hit ? hit.rel : ('unknown' as Relevance),
         reason: hit ? hit.why : null,
+        impact: hit ? hit.impact : null,
+        frequency: hit ? hit.frequency : null,
+        community_signal: hit ? hit.community_signal : null,
+        wtp_mentioned: hit ? hit.wtp_mentioned : null,
       }
     }),
   }

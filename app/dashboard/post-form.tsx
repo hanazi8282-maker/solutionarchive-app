@@ -5,7 +5,7 @@ import { createPost, type ActionState } from './actions'
 import { Field, Input, Select, Textarea } from '../_ds/components/Field'
 import { Button } from '../_ds/components/Button'
 import { Notice } from '../_ds/components/Shell'
-import { REQUIRED, ResultMessage, formGrid, span2 } from './form-ui'
+import { REQUIRED, ResultMessage } from './form-ui'
 
 export type ContentItem = { code: string; title: string | null }
 export type Hypothesis = { code: string; statement: string | null }
@@ -23,16 +23,19 @@ export default function PostForm({
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createPost, null)
 
   return (
-    <form action={formAction} style={formGrid}>
+    <form action={formAction} className="v2-formgrid">
       {refsError && (
-        <Notice tone="danger" title="등록을 막았습니다 — 소재·가설 목록 확인 불가" style={span2}>
-          {refsError} 선택지가 비어 보여도 소재·가설이 없다는 뜻이 아닙니다. 새로고침 후 다시 시도하세요.
-        </Notice>
+        <div className="v2-span2">
+          <Notice tone="danger" title="등록을 막았습니다 — 소재·가설 목록 확인 불가">
+            {refsError} 선택지가 비어 보여도 소재·가설이 없다는 뜻이 아닙니다. 새로고침 후 다시 시도하세요.
+          </Notice>
+        </div>
       )}
       {/* 서버 액션이 이 값을 본다. 화면이 막아도 오래 열린 탭·직접 POST 는 서버가 거른다. */}
       <input type="hidden" name="refs_loaded" value={refsError ? '0' : '1'} />
 
-      <Field label="소재 (content_code)" htmlFor="content_code" style={span2}>
+      <div className="v2-span2">
+      <Field label="소재 (content_code)" htmlFor="content_code">
         <Select id="content_code" name="content_code" defaultValue="">
           <option value="">— 선택 안 함 —</option>
           {contentItems.map(c => (
@@ -42,10 +45,13 @@ export default function PostForm({
           ))}
         </Select>
       </Field>
+      </div>
 
-      <Field label={<>본문 (body){REQUIRED}</>} htmlFor="body" style={span2}>
+      <div className="v2-span2">
+      <Field label={<>본문 (body){REQUIRED}</>} htmlFor="body">
         <Textarea id="body" name="body" rows={8} required />
       </Field>
+      </div>
 
       <Field label={<>발행일시 (published_at, 한국 시간){REQUIRED}</>} htmlFor="published_at">
         <Input id="published_at" name="published_at" type="datetime-local" required />
@@ -68,7 +74,8 @@ export default function PostForm({
         <Input id="closing_type" name="closing_type" type="text" />
       </Field>
 
-      <Field label="가설 (hypothesis_code)" htmlFor="hypothesis_code" style={span2}>
+      <div className="v2-span2">
+      <Field label="가설 (hypothesis_code)" htmlFor="hypothesis_code">
         <Select id="hypothesis_code" name="hypothesis_code" defaultValue="">
           <option value="">— 선택 안 함 —</option>
           {hypotheses.map(h => (
@@ -78,14 +85,15 @@ export default function PostForm({
           ))}
         </Select>
       </Field>
+      </div>
 
-      <div style={span2}>
+      <div className="v2-span2">
         <Button type="submit" variant="primary" disabled={pending || Boolean(refsError)}>
           {pending ? '저장 중…' : '글 등록'}
         </Button>
       </div>
 
-      {state && <ResultMessage state={state} style={span2} />}
+      {state && <ResultMessage state={state} className="v2-span2" />}
     </form>
   )
 }

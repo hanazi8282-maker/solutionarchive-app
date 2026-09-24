@@ -404,3 +404,11 @@
 .v2-decision-move { display: grid; gap: 8px; padding: 10px 12px; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-card); }
 .v2-radio { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); }
 .v2-neg-line { padding-left: 8px; border-left: 3px solid var(--v2-neg); }
+
+/* ── /cases/search · /cases/report (GET 폼의 네이티브 컨트롤) ─ */
+.v2-center { justify-content: center; }
+.v2-grow-260 { flex: 1 1 260px; min-width: 0; }
+.v2-grow-320 { flex: 1 1 320px; min-width: 0; }
+.v2-control { height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-card); color: var(--text-body); font: inherit; font-size: var(--fs-sm); }
+.v2-submit { height: 36px; padding: 0 16px; border: 1px solid var(--primary); border-radius: var(--radius-md); background: var(--primary); color: var(--primary-fg); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
+.v2-submit:hover { background: var(--primary-hover); border-color: var(--primary-hover); }

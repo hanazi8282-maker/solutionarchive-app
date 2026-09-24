@@ -17,7 +17,6 @@ export const dynamic = 'force-dynamic'
 export const metadata = { title: '발행 연결 수리' }
 
 const oneLine = (s: string | null, n: number) => (s ?? '').replace(/\s+/g, ' ').slice(0, n)
-const muted = { margin: 0, fontSize: 12, color: 'var(--text-muted)' } as const
 
 /**
  * 어긋난 연결의 원인 유형 라벨. **새 분류를 만들지 않는다** — 매처 크론이
@@ -39,8 +38,8 @@ function CauseGroup({ kind, items, intro }: {
 }) {
   if (items.length === 0) return null
   return (
-    <div>
-      <div style={{ marginBottom: 8 }}>
+    <div className="v2-form">
+      <div>
         <Badge tone={CAUSE[kind].tone} size="sm">{CAUSE[kind].label} · {items.length}건</Badge>
       </div>
       <UnlinkedThreadList items={items} intro={intro} />
@@ -225,6 +224,7 @@ export default async function DashboardPage() {
   const decidedPosts = pendingReview.filter((d) => d.reviewed_at)
 
   return (
+    <div className="sa-v2">
     <PageShell maxWidth={960}>
       <PageHeader
         title="발행 연결 수리"
@@ -267,7 +267,7 @@ export default async function DashboardPage() {
         />
       </StatGrid>
       {/* 전일 대비를 붙이지 않은 이유. 되짚을 수 없는 값을 0·"변화 없음"으로 채우지 않는다(§7.1). */}
-      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)' }}>
+      <p className="v2-note">
         전일 대비 없음 — 세 숫자 모두 어제 이 시각 값을 되짚을 기록이 없다. 안 붙은 발행 글은 Threads 실시간 조회라 과거 값이 없고,
         초안·발행 글 수는 글 상태가 바뀐 시각이 남지 않는다(발행일시는 Threads 게시 시각이지 초안에 연결된 시각이 아니다).
       </p>
@@ -281,7 +281,7 @@ export default async function DashboardPage() {
             : actionable.length > 0 ? <Badge tone="warning" dot>처리 필요 {actionable.length}건</Badge>
               : <Badge tone="success">0건</Badge>
         }
-        bodyStyle={unlinked?.length === 0 ? { padding: 0 } : undefined}
+        padded={unlinked?.length !== 0}
       >
         {unlinked === null ? (
           <Notice tone="danger" title="확인하지 못했습니다 — 0건이라는 뜻이 아닙니다.">{unlinkedError}</Notice>
@@ -292,7 +292,7 @@ export default async function DashboardPage() {
             description={`최근 ${LOOKBACK_DAYS}일 게시물 ${threadsChecked}건을 확인했습니다.`}
           />
         ) : (
-          <div style={{ display: 'grid', gap: 16 }}>
+          <div className="v2-stack-lg">
             {actionable.length > 0 ? (
               <>
                 <CauseGroup kind="manual_link" items={manualLink} />
@@ -307,7 +307,7 @@ export default async function DashboardPage() {
                 )}
               </>
             ) : (
-              <p style={muted}>
+              <p className="v2-note">
                 사람이 연결할 게시물은 없습니다 — 아래 {asideN}건은 파이프라인 산출물로 보이지 않거나 판정할 수 없는 글입니다.
               </p>
             )}
@@ -316,10 +316,10 @@ export default async function DashboardPage() {
                 연결 폼은 그대로 붙어 있다 — 분류가 사람의 판단을 막지 않는다. */}
             {asideN > 0 && (
               <details>
-                <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--text-muted)' }}>
+                <summary className="v2-summary v2-muted">
                   파이프라인 외 게시물 {offPipeline.length}건 · 판정 불가 {undecidable.length}건 (조치 대상 아님 — 펼쳐서 확인)
                 </summary>
-                <div style={{ display: 'grid', gap: 16, marginTop: 12 }}>
+                <div className="v2-stack-lg v2-mt">
                   <CauseGroup
                     kind="off_pipeline"
                     items={offPipeline}
@@ -343,34 +343,34 @@ export default async function DashboardPage() {
         title="발행 전 검수"
         subtitle="본문 전체를 읽고 승인(그대로/수정)·반려한다. 승인해도 발행은 안 된다 — 승인 후 이 내용을 Threads 앱에 직접 붙여 넣는다(CLAUDE.md §10)."
         action={!draftsOk ? <Badge tone="danger">확인 불가</Badge> : <Badge tone={toReviewPosts.length > 0 ? 'warning' : 'success'} dot={toReviewPosts.length > 0}>{toReviewPosts.length}건</Badge>}
-        bodyStyle={draftsOk && toReviewPosts.length === 0 && decidedPosts.length === 0 ? { padding: 0 } : undefined}
+        padded={!(draftsOk && toReviewPosts.length === 0 && decidedPosts.length === 0)}
       >
         {!draftsOk ? (
           <Notice tone="danger">초안 목록을 읽지 못했습니다. 검수할 초안이 없다는 뜻이 아닙니다.</Notice>
         ) : toReviewPosts.length === 0 && decidedPosts.length === 0 ? (
           <EmptyState compact title="검수 대기 중인 초안이 없습니다." />
         ) : (
-          <div style={{ display: 'grid', gap: 16 }}>
+          <div className="v2-stack-lg">
             {cleanPosts.length > 0 && (
               <div>
-                <p style={muted}>문체 점검 통과 {cleanPosts.length}건 — 여기부터 보면 됩니다.</p>
-                <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 12 }}>
+                <p className="v2-note">문체 점검 통과 {cleanPosts.length}건 — 여기부터 보면 됩니다.</p>
+                <ul className="v2-list v2-stack v2-mt-sm">
                   {cleanPosts.map((p) => <PostReviewCard key={p.id} post={p} />)}
                 </ul>
               </div>
             )}
             {warnPosts.length > 0 && (
               <details open={cleanPosts.length === 0}>
-                <summary style={{ cursor: 'pointer', fontSize: 13 }}>확인할 점이 있는 초안 {warnPosts.length}건</summary>
-                <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 12 }}>
+                <summary className="v2-summary">확인할 점이 있는 초안 {warnPosts.length}건</summary>
+                <ul className="v2-list v2-stack v2-mt-sm">
                   {warnPosts.map((p) => <PostReviewCard key={p.id} post={p} />)}
                 </ul>
               </details>
             )}
             {errorPosts.length > 0 && (
               <details>
-                <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--danger-fg)' }}>문체 오류가 있는 초안 {errorPosts.length}건 — 고치거나 반려</summary>
-                <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 12 }}>
+                <summary className="v2-summary"><span className="v2-danger-text">문체 오류가 있는 초안 {errorPosts.length}건 — 고치거나 반려</span></summary>
+                <ul className="v2-list v2-stack v2-mt-sm">
                   {errorPosts.map((p) => <PostReviewCard key={p.id} post={p} />)}
                 </ul>
               </details>
@@ -379,10 +379,10 @@ export default async function DashboardPage() {
               <details>
                 {/* 반려는 status 가 discarded 로 바뀌어 이 목록(pending_review만 조회)에서 아예 빠진다.
                     여기 남는 건 승인뿐이다 — pending_review 인 채 reviewed_at 만 찍힌 행. */}
-                <summary style={{ cursor: 'pointer', fontSize: 13 }}>승인된 초안 {decidedPosts.length}건 — 게시 대기</summary>
-                <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 6 }}>
+                <summary className="v2-summary">승인된 초안 {decidedPosts.length}건 — 게시 대기</summary>
+                <ul className="v2-list v2-stack-tight v2-mt-sm">
                   {decidedPosts.map((d) => (
-                    <li key={d.id} style={{ fontSize: 13, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+                    <li key={d.id} className="v2-line">
                       <Badge tone="success" size="sm">승인</Badge>
                       {' '}{d.content_code ?? '코드 없음'} · {d.reviewed_by ?? '검수자 기록 없음'} · {(d.reviewed_at ?? '').slice(0, 16).replace('T', ' ')}
                       {d.review_note ? ` · ${d.review_note}` : ''}
@@ -400,7 +400,7 @@ export default async function DashboardPage() {
         title="게시물 ID로 직접 연결"
         subtitle={`위 목록에 안 뜨는 글(${LOOKBACK_DAYS}일이 지난 글 등)을 초안에 손으로 잇는다.`}
         action={draftsOk ? <Badge tone="neutral">{drafts.length}건</Badge> : <Badge tone="danger">확인 불가</Badge>}
-        bodyStyle={draftsOk && drafts.length === 0 ? { padding: 0 } : undefined}
+        padded={!(draftsOk && drafts.length === 0)}
       >
         {!draftsOk ? (
           <Notice tone="danger">초안 목록을 읽지 못했습니다. 연결 대기 초안이 없다는 뜻이 아닙니다.</Notice>
@@ -413,7 +413,7 @@ export default async function DashboardPage() {
               초안 {Math.min(drafts.length, DRAFT_LIMIT)}건 펼치기
               {drafts.length > DRAFT_LIMIT ? ` (전체 ${drafts.length}건 중 최근 ${DRAFT_LIMIT}건)` : ''}
             </summary>
-            <div style={{ marginTop: 12 }}>
+            <div className="v2-mt">
               {/* ponytail: 최근 50건만 보여준다. 더 오래된 초안이 필요해지면 검색을 붙인다. */}
               <DraftLinkForm drafts={drafts.slice(0, DRAFT_LIMIT)} />
             </div>
@@ -428,7 +428,7 @@ export default async function DashboardPage() {
       >
         <details className="dgy-details">
           <summary>등록 폼 열기</summary>
-          <div style={{ marginTop: 12 }}>
+          <div className="v2-mt">
             <PostForm contentItems={contentItems} hypotheses={hypotheses} refsError={refsError || null} />
           </div>
         </details>
@@ -444,7 +444,7 @@ export default async function DashboardPage() {
           </>
         }
         action={postsOk ? null : <Badge tone="danger">확인 불가</Badge>}
-        bodyStyle={postsOk && posts.length === 0 ? { padding: 0 } : undefined}
+        padded={!(postsOk && posts.length === 0)}
       >
         {!postsOk ? (
           <Notice tone="danger">발행 글 목록을 읽지 못했습니다. 발행 글이 없다는 뜻이 아닙니다.</Notice>
@@ -457,12 +457,13 @@ export default async function DashboardPage() {
         ) : (
           <details className="dgy-details">
             <summary>입력 폼 열기</summary>
-            <div style={{ marginTop: 12 }}>
+            <div className="v2-mt">
               <MetricForm posts={posts} />
             </div>
           </details>
         )}
       </Card>
     </PageShell>
+    </div>
   )
 }

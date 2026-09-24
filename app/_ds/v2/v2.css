@@ -228,3 +228,26 @@
 /* 파괴 버튼 — Button destructive 는 var(--danger) 위에 흰 글자를 박는다. v2 의 코랄은 흰 글자 대비가
    2.5:1 이라 버튼 요소에서만 잉크로 되돌린다(뜻은 버튼 글자 "무효화·기각"이 말한다). */
 .v2-btn-danger { --danger: var(--v2-ink); --red-600: var(--v2-ink-hover); }
+
+/* ── /dashboard (폼·패널) ───────────────────────────────── */
+.v2-stack-lg { display: grid; gap: 16px; }
+.v2-panel { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-card); padding: 16px 20px; min-width: 0; }
+.v2-title-sm { margin: 0 0 4px; font-size: var(--fs-sm); font-weight: 600; line-height: 1.55; color: var(--text-strong); overflow-wrap: anywhere; }
+.v2-summary { cursor: pointer; font-size: var(--fs-xs); }
+.v2-line { padding: 8px 0; border-top: 1px solid var(--border); font-size: var(--fs-xs); overflow-wrap: anywhere; }
+.v2-bullets { margin: 0; padding: 0 0 0 18px; font-size: var(--fs-2xs); color: var(--text-muted); }
+.v2-bullet-err { color: var(--text-strong); font-weight: 600; }
+.v2-inline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.v2-fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.v2-label { padding: 0; font-size: var(--fs-2xs); font-weight: 500; line-height: 1.4; color: var(--text-muted); }
+.v2-legend { margin-bottom: 8px; }
+.v2-req { font-weight: 600; color: var(--text-strong); }
+.v2-self-start { justify-self: start; }
+/* 2열 폼 — 좁은 화면에서 1열. min(100%, …) 가 없으면 최소폭보다 좁을 때 가로 스크롤. */
+.v2-formgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; align-items: start; }
+.v2-formgrid-sm { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 12px; align-items: end; }
+.v2-span2 { grid-column: 1 / -1; }
+/* 여백 — 위 클래스들이 margin:0 을 먼저 선언하므로 반드시 이 뒤에 둔다. */
+.v2-mt-sm { margin-top: 8px; }
+.v2-mt { margin-top: 12px; }
+.v2-mb { margin-bottom: 12px; }

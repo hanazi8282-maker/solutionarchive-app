@@ -231,11 +231,11 @@
 }
 /* 알림(오류·잠김 안내). 색이 아니라 왼쪽 굵은 선으로 구분한다.
    M1: 카드 반경(20)에서는 왼쪽 굵은 선이 모서리를 따라 휘어 괄호처럼 보였다 —
-   알림은 컨트롤 반경(10)으로 낮춰 선이 곧게 서게 한다. 떠 있는 카드가 아니라 문장이라 그림자도 없다. */
+   알림은 컨트롤 반경(10)으로 낮춰 선이 곧게 서게 한다. 선은 테두리가 아니라 안쪽 그림자다 —
+   테두리는 흰 섬 **바깥**에 그려져 다크 캔버스(검정) 위에서 검은 선이 사라졌다(퀴즈 오류 화면). */
 .pub-panel--alert {
-  border-left: 4px solid var(--pub-island-ink);
   border-radius: var(--pub-round-control);
-  box-shadow: none;
+  box-shadow: inset 4px 0 0 var(--pub-island-ink);
 }
 
 /* ── 버튼 ─────────────────────────────────────────────── */
@@ -455,14 +455,28 @@
   transition: transform var(--pub-motion-move) var(--pub-ease),
               box-shadow var(--pub-motion-move) var(--pub-ease);
 }
-.pub-choice:hover { box-shadow: var(--pub-lift-hover); }
+.pub-choice:hover { border-color: var(--pub-ink-faint); box-shadow: var(--pub-lift-hover); }
 .pub-choice:active { transform: translateY(1px); }
 .pub-choice:disabled { cursor: progress; opacity: 0.6; }
 .pub-choice-text {
+  flex: 1;
   font-size: var(--pub-size-text);
   line-height: var(--pub-leading-text);
   overflow-wrap: anywhere;
 }
+
+.pub-choice-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pub-gap-2);
+  font-size: var(--pub-size-label);
+  font-weight: var(--pub-weight-label);
+  letter-spacing: var(--pub-tracking-label);
+  line-height: var(--pub-leading-label);
+  color: var(--pub-accent);
+}
+.pub-choice-cta .pub-icon { transition: transform var(--pub-motion-move) var(--pub-ease); }
+.pub-choice:hover .pub-choice-cta .pub-icon { transform: translateX(2px); }
 
 /* ── 칼럼 목록 카드 ───────────────────────────────────── */
 .pub-column-list { display: flex; flex-direction: column; gap: var(--pub-gap-3); }
@@ -561,6 +575,14 @@
   font-size: var(--pub-size-display-sm);
   letter-spacing: var(--pub-tracking-display-sm);
   line-height: var(--pub-leading-display-sm);
+}
+/* 패널 안 숫자 한 칸은 패널이 이미 틀이다 — 윗선·위아래 여백을 빼고 점수를 디스플레이로 키운다. */
+.pub-quiz .pub-panel .pub-stat { border-top: 0; padding: 0; }
+.pub-quiz .pub-panel .pub-stat-value {
+  font-size: var(--pub-size-display-sm);
+  letter-spacing: var(--pub-tracking-display-sm);
+  line-height: var(--pub-leading-display-sm);
+  font-weight: var(--pub-weight-display);
 }
 .pub-share-img {
   width: 100%;

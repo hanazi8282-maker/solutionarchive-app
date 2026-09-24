@@ -255,3 +255,12 @@
 /* ── /columns ───────────────────────────────────────────── */
 .v2-nosel { user-select: none; }
 .v2-summary-lg { cursor: pointer; margin: 4px 0; font-size: var(--fs-sm); font-weight: 500; color: var(--text-strong); }
+
+/* ── /cases/grade ───────────────────────────────────────── */
+.v2-claim { margin: 0; font-size: var(--fs-sm); color: var(--text-strong); overflow-wrap: anywhere; cursor: pointer; }
+.v2-clamp1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+/* 주의 표시 — 앰버는 글자 대비가 안 나와 왼쪽 선으로만 쓰고 글자는 잉크. */
+.v2-flag { padding-left: 8px; border-left: 3px solid var(--v2-mix); color: var(--text-strong); }
+.v2-field-inline { display: flex; align-items: center; gap: 6px; }
+.v2-divided { border-top: 1px solid var(--border); padding-top: 12px; }
+.v2-callout { display: grid; gap: 6px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-muted); border: 2px solid var(--border-strong); }

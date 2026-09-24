@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import {
   GRADE_PAGE_SIZE, approvedMovesByBottleneck, countReviewedToday, gradeQueuePage, kstDate, sortGradeQueue,
@@ -26,6 +27,11 @@ const HEADER = {
   subtitle: '카드 1장 = 케이스 1건. 무브마다 체크 1 + 이식성 1, 카드마다 제출 1회. 체크 안 한 무브는 draft 그대로다 — 반려는 전체 검수 화면에서 사유와 함께 한다.',
 } as const
 
+/** M2 v2 스코프 — 조기 반환 2곳과 정상 화면이 같은 껍데기를 쓴다. */
+function Shell({ children }: { children: ReactNode }) {
+  return <div className="sa-v2"><PageShell maxWidth={960}>{children}</PageShell></div>
+}
+
 export default async function CasesGradePage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const sp = await searchParams
   const requested = Number(sp.page ?? '1')
@@ -34,10 +40,10 @@ export default async function CasesGradePage({ searchParams }: { searchParams: P
 
   if (!sb) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header}
         <Notice tone="danger" title="확인 불가 — Supabase 환경변수 미설정">큐를 조회하지 못했다. 채점할 카드가 없다는 뜻이 아니다.</Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -49,12 +55,12 @@ export default async function CasesGradePage({ searchParams }: { searchParams: P
 
   if (res.error || !res.data) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header}
         <Notice tone="danger" title="확인 불가 — 케이스 조회 실패">
           {res.error?.message ?? '응답에 행이 없다'} · 채점할 카드가 없다는 뜻이 아니다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -71,7 +77,7 @@ export default async function CasesGradePage({ searchParams }: { searchParams: P
   const { items, page, pages, total } = gradeQueuePage(queue, Number.isFinite(requested) ? requested : 1)
 
   return (
-    <PageShell maxWidth={960}>
+    <Shell>
       <PageHeader
         {...HEADER}
         action={<ButtonLink href="/cases">전체 검수 화면</ButtonLink>}
@@ -80,20 +86,20 @@ export default async function CasesGradePage({ searchParams }: { searchParams: P
 
       {/* 오늘 몇 장 했나. reviewed_at 이 오늘(KST)인 케이스를 센다 — 이 화면 밖(CLI·전체 검수 화면)에서 결정한 것도 들어온다. */}
       <Card>
-        <div style={{ display: 'grid', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <b style={{ fontSize: 14 }}>오늘 {doneToday}/{GRADE_PAGE_SIZE}장</b>
+        <div className="v2-form">
+          <div className="v2-actions">
+            <b className="v2-lead">오늘 {doneToday}/{GRADE_PAGE_SIZE}장</b>
             <Badge tone={doneToday >= GRADE_PAGE_SIZE ? 'success' : 'neutral'} size="sm">{today || '날짜 확인 불가'}</Badge>
           </div>
           <ProgressBar value={doneToday} max={GRADE_PAGE_SIZE} />
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+          <p className="v2-note">
             하루 30분 = 카드 10장(2026-09-23 결정). 결정된 케이스(승인·반려)를 KST 날짜로 센다.
           </p>
         </div>
       </Card>
 
       {items.length === 0 ? (
-        <Card bodyStyle={{ padding: 0 }}>
+        <Card padded={false}>
           <EmptyState
             compact
             title={total === 0 ? '검수 대기 카드 0장 (조회는 정상)' : `${page}페이지에는 카드가 없다 (조회는 정상)`}
@@ -101,7 +107,7 @@ export default async function CasesGradePage({ searchParams }: { searchParams: P
           />
         </Card>
       ) : (
-        <div style={{ display: 'grid', gap: 16 }}>
+        <div className="v2-stack-lg">
           {items.map((c, i) => (
             <GradeCard key={c.id} c={c} nextAnchor={items[i + 1] ? `grade-${items[i + 1].slug}` : null} />
           ))}
@@ -109,7 +115,7 @@ export default async function CasesGradePage({ searchParams }: { searchParams: P
       )}
 
       {pages > 1 && (
-        <nav aria-label="페이지" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <nav aria-label="페이지" className="v2-chiprow">
           {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
             <FilterChip key={p} href={p === 1 ? '/cases/grade' : `/cases/grade?page=${p}`} active={p === page}>
               {p}페이지
@@ -117,6 +123,6 @@ export default async function CasesGradePage({ searchParams }: { searchParams: P
           ))}
         </nav>
       )}
-    </PageShell>
+    </Shell>
   )
 }

@@ -81,6 +81,8 @@ jobs:
       # 공개 라이브러리 그리드(`/library`) — 대표 무브(승인·시간순 첫 것)·정렬 3종·종류 필터·3상태.
       # 정렬이나 대표 무브가 틀려도 카드는 그대로 나와서 화면으로는 못 잡는다.
       - run: node scripts/library-selftest.mjs
+      # 공개 신호 화면(/signals*): 원문 발췌 상한·출처 링크(못 만들면 null)·질의 파서. 상한이 풀리면 원문 재게시가 된다.
+      - run: node scripts/signals-selftest.mjs
       # 익명 피드백 하루 1회 제한(로그인 가드 없는 쓰기의 유일한 방어선) + 읽는 쪽 집계(/cases·다이제스트).
       - run: node scripts/case-feedback-selftest.mjs
       # 성공/실패 짝(같은 병목·레버, 방향 반대, 케이스 다름, 양쪽 승인). 조건 한 줄이 느슨해지면

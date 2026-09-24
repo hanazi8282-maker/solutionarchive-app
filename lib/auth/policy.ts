@@ -60,8 +60,12 @@ const PUBLIC_PREFIXES = [
  *  - `/`                랜딩(로그인 전 첫 화면). 로그인돼 있으면 페이지가 /dashboard 로 보낸다.
  *  - `/opengraph-image` 그 랜딩의 OG 이미지(app/opengraph-image.tsx). 링크 미리보기 크롤러는
  *                       익명이라 막으면 이미지가 영영 안 뜬다. DB 를 읽지 않는 정적 문구 이미지다.
+ *  - `/signals`        신호 라이브 피드(관련 판정 리뷰 발췌, 읽기 전용). 남헌 2026-09-25 위임 B항.
+ *  - `/signals/community` 같은 행을 겪는 문제·원하는 것·안 쓰는 이유 3열로(읽기 전용). 같은 위임.
+ *  - `/signals/card`   리뷰 1건 페인 카드. id 는 질의(?id=)라 경로 공개가 정확일치 하나로 끝난다. 같은 위임.
+ *                       **접두사가 아니라 정확일치다** — `/signals/*` 아래 새 화면은 자동으로 열리지 않는다.
  */
-const PUBLIC_EXACT = ['/', '/opengraph-image']
+const PUBLIC_EXACT = ['/', '/opengraph-image', '/signals', '/signals/community', '/signals/card']
 
 /** 위 공개 접두사 안이지만 사람만 부르는 경로. */
 const PROTECTED_EXCEPTIONS = [

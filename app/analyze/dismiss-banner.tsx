@@ -27,15 +27,10 @@ export function DismissBanner({ storageKey, children }: { storageKey: string; ch
       ref={ref}
       // 스크린리더에 읽히게. 이 배너는 "어젯밤 발굴 결과"라는 상태 알림이고, Notice 와 같은 취급이다.
       role="status"
-      style={{
-        display: 'none',
-        alignItems: 'center', gap: 12,
-        padding: '10px 14px', borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--info-border)', background: 'var(--info-bg)',
-        color: 'var(--info-fg)', fontSize: 13, lineHeight: 1.5,
-      }}
+      // 처음엔 .v2-banner 가 display:none 으로 숨긴다 — 위 useEffect 가 안 닫았으면 flex 로 켠다.
+      className="v2-banner"
     >
-      <span style={{ minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>{children}</span>
+      <span className="v2-grow">{children}</span>
       <button
         type="button"
         aria-label="오늘은 닫기"
@@ -43,11 +38,7 @@ export function DismissBanner({ storageKey, children }: { storageKey: string; ch
           try { localStorage.setItem(storageKey, '1') } catch { /* 못 써도 이번 화면에서는 닫힌다 */ }
           if (ref.current) ref.current.style.display = 'none'
         }}
-        style={{
-          flex: 'none', height: 28, padding: '0 10px', borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--info-border)', background: 'transparent',
-          color: 'inherit', fontSize: 12, cursor: 'pointer',
-        }}
+        className="v2-banner-close"
       >
         오늘은 닫기
       </button>

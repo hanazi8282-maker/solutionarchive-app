@@ -63,7 +63,10 @@ const UNUSED_KEYS: readonly FacetKey[] = FACET_KEYS.filter(
 )
 
 /** 필드 아래 프리필 설명 한 줄. 필드와 붙어 보이게 위 여백을 줄인다. */
-const fillNote = { margin: '-10px 0 0', fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)' } as const
+/** M2 v2 스코프 — 로딩·조회 실패 조기 반환과 정상 화면이 같은 껍데기를 쓴다. */
+function Shell({ children }: { children: React.ReactNode }) {
+  return <div className="sa-v2"><PageShell maxWidth={640}>{children}</PageShell></div>
+}
 
 const KST = new Intl.DateTimeFormat('sv-SE', {
   timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
@@ -151,32 +154,32 @@ export default function ProfileSettingsPage() {
   )
 
   if (phase === 'loading') {
-    return <PageShell maxWidth={640}>{header}<Card><p style={{ margin: 0, color: 'var(--text-muted)' }}>불러오는 중…</p></Card></PageShell>
+    return <Shell>{header}<Card><p className="v2-text v2-text--muted">불러오는 중…</p></Card></Shell>
   }
 
   if (phase === 'unavailable') {
     return (
-      <PageShell maxWidth={640}>
+      <Shell>
         {header}
         <Notice tone="danger" title="확인 불가 — 프로필 조회 실패">
           {loadError} · 프로필이 없다는 뜻이 아니다. 지금 저장하면 기존 값을 덮어쓸 수 있어 폼을 열지 않는다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
   return (
-    <PageShell maxWidth={640}>
+    <Shell>
       {header}
 
       <Card
         title="판매자 프로필"
         subtitle={existed ? undefined : '아직 저장된 프로필이 없다 (조회는 정상). 지금 채우면 다음 분석부터 자동으로 들어간다.'}
       >
-        <div style={{ display: 'grid', gap: 18 }}>
+        <div className="v2-stack-xl">
           {/* 칸 순서 = 추천에 미치는 영향이 큰 순. 문제 유형이 맨 위인 이유는 그것만이 하드필터라서다. */}
           <FacetGroup keys={RANKING_KEYS} values={facets} onChange={setFacet} />
-          <p style={fillNote}>↑ 이 둘이 추천을 좁힌다. 문제 유형은 케이스 단위 조건이고, 병목은 검색 화면에서 직접 고를 수도 있다.</p>
+          <p className="v2-note v2-fillnote">↑ 이 둘이 추천을 좁힌다. 문제 유형은 케이스 단위 조건이고, 병목은 검색 화면에서 직접 고를 수도 있다.</p>
 
           {/* 예시만 SaaS 로 바꿨다. 라벨("상품 한 줄 소개")은 /analyze/new 1단계와 같은 말이어야
               아래 프리필 안내가 가리키는 칸을 찾을 수 있어 그대로 둔다. */}
@@ -184,12 +187,12 @@ export default function ProfileSettingsPage() {
             <Textarea id="pitch" rows={2} value={pitch} onChange={(e) => setPitch(e.target.value)} />
           </Field>
 
-          <p style={fillNote}>↑ 이 값이 새 분석 1단계의 &ldquo;상품 한 줄 소개&rdquo;를 프리필하고, 케이스 추천의 검색어가 된다.</p>
+          <p className="v2-note v2-fillnote">↑ 이 값이 새 분석 1단계의 &ldquo;상품 한 줄 소개&rdquo;를 프리필하고, 케이스 추천의 검색어가 된다.</p>
 
           <Field label="시장" htmlFor="market" hint="예: 국내 1인 개발자용 SaaS 도구. 선례를 고를 때 낱말이 겹치는지 보는 데 쓴다.">
             <Input id="market" type="text" value={market} onChange={(e) => setMarket(e.target.value)} />
           </Field>
-          <p style={fillNote}>↑ 한 줄 소개와 합쳐 케이스 추천의 검색어(200자까지)가 된다.</p>
+          <p className="v2-note v2-fillnote">↑ 한 줄 소개와 합쳐 케이스 추천의 검색어(200자까지)가 된다.</p>
 
           <FacetGroup keys={SORTING_KEYS} values={facets} onChange={setFacet} hintSuffix="같은 종류 선례를 먼저 보여주는 데 쓴다" />
 
@@ -198,16 +201,16 @@ export default function ProfileSettingsPage() {
             <Input id="competitor_url" type="url" inputMode="url" value={competitorUrl}
               onChange={(e) => setCompetitorUrl(e.target.value)} />
           </Field>
-          <p style={fillNote}>↑ 비우고 저장하면 지워진다.</p>
+          <p className="v2-note v2-fillnote">↑ 비우고 저장하면 지워진다.</p>
 
           {/* 숨기지 않고 접는다. "왜 물어봤는데 안 쓰냐"에 답이 있어야 한다(§4-C). */}
           <details className="dgy-details">
             <summary>지금 추천 순서를 바꾸지 않는 항목 — 나중에 2축 진단에서 쓴다</summary>
-            <div style={{ display: 'grid', gap: 18, padding: '10px 0 0' }}>
+            <div className="v2-stack-xl v2-pt-md">
               <FacetGroup keys={UNUSED_KEYS} values={facets} onChange={setFacet} hintSuffix="지금 추천 순서를 바꾸지 않는다" />
             </div>
           </details>
-          <p style={fillNote}>↑ 위 칸들도 새 분석 1단계를 프리필한다. 비어 있는 칸만 채우므로 1단계에서 고쳐 쓸 수 있다.</p>
+          <p className="v2-note v2-fillnote">↑ 위 칸들도 새 분석 1단계를 프리필한다. 비어 있는 칸만 채우므로 1단계에서 고쳐 쓸 수 있다.</p>
 
           {saveError && <Notice tone="danger">{saveError}</Notice>}
 
@@ -227,7 +230,7 @@ export default function ProfileSettingsPage() {
             />
           )}
 
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }} aria-live="polite">
+          <p className="v2-note" aria-live="polite">
             {savedAt
               ? `마지막 저장 ${KST.format(Date.parse(savedAt))} KST`
               : '아직 저장한 적 없음'}
@@ -235,6 +238,6 @@ export default function ProfileSettingsPage() {
           </p>
         </div>
       </Card>
-    </PageShell>
+    </Shell>
   )
 }

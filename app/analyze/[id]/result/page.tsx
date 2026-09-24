@@ -70,17 +70,16 @@ const KST = new Intl.DateTimeFormat('sv-SE', {
   timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
 })
 
-const muted: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', lineHeight: 'var(--lh-normal)' }
-const bodyText: React.CSSProperties = { margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-body)', lineHeight: 'var(--lh-relaxed)', overflowWrap: 'anywhere' }
+/** M2 v2 스코프 — 조기 반환 2곳과 정상 화면이 같은 껍데기를 쓴다(폭만 다르다). */
+function Shell({ maxWidth, children }: { maxWidth: number; children: React.ReactNode }) {
+  return <div className="sa-v2"><PageShell maxWidth={maxWidth}>{children}</PageShell></div>
+}
 
 function Axis({ label, value, children }: { label: string; value: string; children: React.ReactNode }) {
   return (
-    <div style={{
-      padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-      background: 'var(--surface-muted)', minWidth: 0, display: 'grid', gap: 4,
-    }}>
+    <div className="v2-box v2-box--edge">
       <div className="dgy-caps">{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, fontVariantNumeric: 'tabular-nums', color: 'var(--text-strong)' }}>{value}</div>
+      <div className="v2-num">{value}</div>
       {children}
     </div>
   )
@@ -98,36 +97,23 @@ const MINI_ROWS: PmfQuadrant[][] = [
 
 function MiniQuadrant({ here }: { here: PmfQuadrant | null }) {
   return (
-    <div style={{ display: 'grid', gap: 6 }}>
-      <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+    <div className="v2-stack-tight">
+      <div className="v2-quad">
         {MINI_ROWS.flat().map((q) => {
           const on = q === here
           return (
-            <div
-              key={q}
-              style={{
-                minWidth: 0, padding: '8px 10px', borderRadius: 'var(--radius-md)',
-                border: `1px solid ${on ? 'var(--brand)' : 'var(--border)'}`,
-                background: on ? 'var(--surface-card)' : 'transparent',
-                boxShadow: on ? 'inset 0 0 0 1px var(--brand)' : 'none',
-                display: 'grid', gap: 2,
-              }}
-            >
-              <span style={{
-                fontSize: 'var(--fs-xs)', lineHeight: 1.4, overflowWrap: 'anywhere',
-                fontWeight: on ? 700 : 500,
-                color: on ? 'var(--text-strong)' : 'var(--text-faint)',
-              }}>
+            <div key={q} className={on ? 'v2-quad-cell v2-quad-cell--on' : 'v2-quad-cell'}>
+              <span className="v2-quad-name">
                 {PMF_QUADRANT_LABELS[q]}
               </span>
-              <span style={{ fontSize: 'var(--fs-xs)', color: on ? 'var(--brand)' : 'var(--text-faint)' }}>
+              <span className="v2-quad-hint">
                 {on ? '여기가 우리다' : '이쪽이 비어 있다 = 다음에 채울 여지'}
               </span>
             </div>
           )
         })}
       </div>
-      <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>가로 = 수요축, 세로 = 선례축. 오른쪽·위가 높다.</p>
+      <p className="v2-note">가로 = 수요축, 세로 = 선례축. 오른쪽·위가 높다.</p>
     </div>
   )
 }
@@ -138,10 +124,10 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
 
   if (!supabase) {
     return (
-      <PageShell maxWidth={860}>
+      <Shell maxWidth={860}>
         <PageHeader title="진단 결과" />
         <Notice tone="danger">DB 연결에 실패했습니다 — 결과가 없다는 뜻이 아닙니다.</Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -153,7 +139,7 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
 
   if (projectError || !project) {
     return (
-      <PageShell maxWidth={720}>
+      <Shell maxWidth={720}>
         <PageHeader title="진단 결과" />
         <Card padded={false}>
           <EmptyState
@@ -163,7 +149,7 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
             action={<ButtonLink href="/analyze" variant="neutral">프로젝트 목록으로</ButtonLink>}
           />
         </Card>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -262,7 +248,7 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
   )
 
   return (
-    <PageShell maxWidth={860}>
+    <Shell maxWidth={860}>
       <PageHeader
         title="PMF 진단 결과"
         subtitle={project.product_elevator_pitch ?? '(상품 한 줄 소개 없음)'}
@@ -272,7 +258,7 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
             <ButtonLink href={reviewHref} variant="outline">검수로 →</ButtonLink>
             {/* 요약 복사는 화면 맨 아래가 아니라 결론 옆에 둔다 — 남에게 보낼 때 여기서 바로 집는다.
                 클립보드가 막히면 이 자리에 원문이 펴지므로 폭을 묶어 둔다. */}
-            <div style={{ minWidth: 0, maxWidth: 'min(100%, 320px)', flex: '1 1 200px' }}>
+            <div className="v2-copy-slot">
               <CopySummary projectId={id} />
             </div>
           </>
@@ -283,7 +269,7 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
       <Card
         title="한 줄 결론"
         action={
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div className="v2-actions">
             {quadrant
               ? <Badge tone={QUADRANT_TONE[quadrant]} dot>{PMF_QUADRANT_LABELS[quadrant]}</Badge>
               : <Badge tone="neutral">사분면 없음</Badge>}
@@ -293,31 +279,31 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
           </div>
         }
       >
-        <div style={{ display: 'grid', gap: 12 }}>
-          <p style={{ ...bodyText, fontSize: 'var(--fs-md)' }}>{advice}</p>
+        <div className="v2-stack">
+          <p className="v2-body v2-body--md">{advice}</p>
 
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))' }}>
+          <div className="v2-grid-240">
             <Axis label="수요축 (0~1)" value={demand.value == null ? (aspects?.length ? '확인 불가' : '속성 없음') : fmt(demand.value)}>
-              <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{demand.reason}</p>
-              <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>우리 DB 안에서 · {percentileText}</p>
+              <p className="v2-note">{demand.reason}</p>
+              <p className="v2-note">우리 DB 안에서 · {percentileText}</p>
             </Axis>
             <Axis label="선례축 (0~1)" value={pmf == null ? '미진단' : pmf.match_status === 'not_run' ? '확인 불가' : fmt(precedent)}>
-              <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+              <p className="v2-note">
                 {pmf == null
                   ? '아직 진단을 돌리지 않았다. 위 "진단 실행" 을 눌러라.'
                   : `${pmf.match_reason ?? pmf.match_status}`}
               </p>
               {pmf?.created_at && (
-                <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{KST.format(Date.parse(pmf.created_at))} KST 진단 · 병목 {facets.bottleneck ?? '미입력'}</p>
+                <p className="v2-note">{KST.format(Date.parse(pmf.created_at))} KST 진단 · 병목 {facets.bottleneck ?? '미입력'}</p>
               )}
             </Axis>
             <MiniQuadrant here={quadrant} />
           </div>
 
-          <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+          <p className="v2-note">
             두 축을 한 숫자로 합치지 않는다. 출처가 다르고 틀리는 방식도 달라서, 합치면 정반대 행동이 같은 값이 된다.
           </p>
-          <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+          <p className="v2-note">
             권고이지 보장이 아니다 — 같은 조건에서 남이 그렇게 했다는 기록일 뿐, 우리 결과를 약속하지 않는다.
           </p>
           {pmfError && <Notice tone="warning">진단 이력 조회에 실패했다 — 진단이 없다는 뜻이 아니다.</Notice>}
@@ -335,17 +321,17 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
           : null}
       >
         {stage ? (
-          <div style={{ display: 'grid', gap: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1, color: 'var(--text-strong)' }}>{stage.stage}</span>
-              <strong style={{ fontSize: 'var(--fs-md)', color: 'var(--text-strong)' }}>{stage.name}</strong>
+          <div className="v2-stack-tight">
+            <div className="v2-inline">
+              <span className="v2-num v2-num--lg">{stage.stage}</span>
+              <strong className="v2-h3">{stage.name}</strong>
             </div>
-            <p style={bodyText}>{stage.meaning}</p>
-            <p style={{ ...bodyText, fontWeight: 600 }}>지금 할 일 · {stage.action}</p>
-            {project.maturity_notes && <p style={muted}>판단 근거 · {project.maturity_notes}</p>}
+            <p className="v2-body">{stage.meaning}</p>
+            <p className="v2-body v2-fig">지금 할 일 · {stage.action}</p>
+            {project.maturity_notes && <p className="v2-text v2-text--muted">판단 근거 · {project.maturity_notes}</p>}
           </div>
         ) : (
-          <p style={muted}>미판정 — 분석(Stage2)을 돌리면 채워진다. 0단계가 아니다.</p>
+          <p className="v2-text v2-text--muted">미판정 — 분석(Stage2)을 돌리면 채워진다. 0단계가 아니다.</p>
         )}
       </Card>
 
@@ -355,7 +341,7 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
         subtitle="판정은 (중요도, 만족도) 두 값만으로 낸다 — 선례와 섞지 않는다."
       >
         {aspects === null ? (
-          <p style={{ ...muted, color: 'var(--danger-fg)' }}>속성 조회에 실패했다 — 0개가 아니라 확인 불가다.</p>
+          <p className="v2-danger-text">속성 조회에 실패했다 — 0개가 아니라 확인 불가다.</p>
         ) : aspects.length === 0 ? (
           <EmptyState
             compact
@@ -369,7 +355,7 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
             action={<ButtonLink href={reviewHref} variant="primary">검수 화면에서 분석하기 →</ButtonLink>}
           />
         ) : (
-          <div style={{ display: 'grid', gap: 14 }}>
+          <div className="v2-stack">
             {top3.map((a) => {
               const v = aspectVerdict(a.importance, a.satisfaction)
               const b = opportunityBreakdown(a.importance, a.satisfaction, a.opportunity_score)
@@ -378,12 +364,9 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
               const quoteList = a.evidence_quotes
               const quotes = (quoteList ?? []).map((q) => q?.text).filter(Boolean).slice(0, 2)
               return (
-                <div key={a.id} id={`aspect-${a.id}`} style={{
-                  display: 'grid', gap: 6, padding: '12px 14px',
-                  background: 'var(--surface-muted)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-                }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                    <a href={href} style={{ fontSize: 'var(--fs-md)', fontWeight: 600, color: 'var(--text-link)' }}>{a.name}</a>
+                <div key={a.id} id={`aspect-${a.id}`} className="v2-box v2-box--edge">
+                  <div className="v2-chiprow">
+                    <a href={href} className="v2-h3 v2-link-accent">{a.name}</a>
                     <Badge tone={v.code === 'PUSH' ? 'danger' : v.code === 'TABLE_STAKES' ? 'success' : v.code === 'DROP' ? 'neutral' : 'warning'} size="sm">
                       {v.label}
                     </Badge>
@@ -391,17 +374,17 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
                       {a.human_confirmed ? '사람 확인 완료' : '사람 확인 전'}
                     </Badge>
                   </div>
-                  <p style={muted}>
+                  <p className="v2-text v2-text--muted">
                     <a href={href}>기회점수 {b.stored ?? b.computed ?? '—'}</a> = {b.reading}
-                    {b.mismatch && <span style={{ color: 'var(--warning-fg)' }}> · DB 값과 계산이 어긋난다(DB 가 정본)</span>}
+                    {b.mismatch && <span className="v2-warn-text"> · DB 값과 계산이 어긋난다(DB 가 정본)</span>}
                   </p>
-                  <p style={bodyText}>{v.reading}</p>
+                  <p className="v2-body">{v.reading}</p>
                   {/* 인용 3상태: 있음 / 셌는데 0건 / 아예 못 읽음. 셋을 같은 문장으로 내지 않는다(§7.1). */}
                   {quotes.length > 0 ? (
                     <>
-                      <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4 }}>
+                      <ul className="v2-olist">
                         {quotes.map((q, i) => (
-                          <li key={i} style={{ ...bodyText, color: 'var(--text-muted)' }}>“{q}”</li>
+                          <li key={i} className="v2-body v2-muted">“{q}”</li>
                         ))}
                       </ul>
                       <EvidenceCaption n={quotes.length} total={quoteList?.length ?? null} method="리뷰 원문 인용" />
@@ -409,7 +392,7 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
                   ) : quoteList == null ? (
                     <EvidenceCaption n={null} total={null} method="리뷰 원문 인용" />
                   ) : (
-                    <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>인용 없음 — 재분석하면 채워진다.</p>
+                    <p className="v2-note">인용 없음 — 재분석하면 채워진다.</p>
                   )}
                 </div>
               )
@@ -426,7 +409,7 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
         title="남들은 어떻게 풀었나"
         subtitle="같은 코퍼스를 질문별로 한 덩어리씩 편다. 겹친 낱말이 하나뿐인 매칭은 “신뢰도 낮음” 으로 표시된다."
       >
-        <div style={{ display: 'grid', gap: 8 }}>
+        <div className="v2-stack-sm">
           <AdvisorLoader query={`project_id=${encodeURIComponent(id)}`} focus="a" label="남들은 어떻게 풀었나 (선례)" />
           <AdvisorLoader query={`project_id=${encodeURIComponent(id)}`} focus="b" label="이 소구점으로 망한 적 있나 (실패 사례)" />
           <AdvisorLoader query={`project_id=${encodeURIComponent(id)}`} focus="c" label="원칙은 뭐라고 하나 (원칙 원장)" />
@@ -438,17 +421,17 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
 
       {/* ── 8. 행동 ───────────────────────────────────────── */}
       <Card title="다음 행동">
-        <div style={{ display: 'grid', gap: 8 }}>
+        <div className="v2-stack-sm">
           <ButtonLink href={reviewHref} variant="outline" fullWidth>검수로 — 속성을 고치거나 확인하기</ButtonLink>
           <ButtonLink href={`/analyze/${id}/angles`} variant="outline" fullWidth>
             앵글로 — {angleCount ? `만들어 둔 앵글 ${angleCount}건 보기` : '소구 앵글 만들기'}
           </ButtonLink>
         </div>
-        <Notice tone="warning" style={{ marginTop: 12 }}>{DRAFT_NOTICE}</Notice>
+        <div className="v2-mt"><Notice tone="warning">{DRAFT_NOTICE}</Notice></div>
       </Card>
 
       {/* ── 9. 진단 실행 — 이미 답이 나온 화면에서는 맨 아래 ──────────── */}
       {runCardAtBottom && runCard}
-    </PageShell>
+    </Shell>
   )
 }

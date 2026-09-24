@@ -54,15 +54,12 @@ function precedentWhy(reason: string | null): string | null {
 
 function Axis({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <div style={{
-      flex: '1 1 200px', minWidth: 0, padding: '12px 14px',
-      border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)',
-    }}>
+    <div className="v2-box v2-box--edge v2-grow-200">
       <div className="dgy-caps">{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, fontVariantNumeric: 'tabular-nums', color: 'var(--text-strong)' }}>
+      <div className="v2-num">
         {value}
       </div>
-      <p style={{ margin: 0, fontSize: 'var(--fs-xs)', lineHeight: 'var(--lh-normal)', color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>{note}</p>
+      <p className="v2-note">{note}</p>
     </div>
   )
 }
@@ -107,29 +104,29 @@ export function PmfPanel({ projectId, opportunityScores, pmf, pmfLookupFailed }:
       subtitle="우리 리뷰에서 나온 수요(기회점수)와 남이 푼 선례(케이스 매칭)를 따로 본다. 한 점수로 합치지 않는다."
       action={stored ? <Badge tone={TONE[stored]} dot>{PMF_QUADRANT_LABELS[stored]}</Badge> : null}
     >
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+      <div className="v2-actions">
         <Axis label="수요축 (0~1)" value={demandText} note={demand.reason} />
         <Axis label="선례축 (0~1)" value={precedentText} note={precedentNote} />
       </div>
-      <p style={{ margin: '10px 0 0', fontSize: 'var(--fs-sm)', color: 'var(--text-body)' }}>
+      <p className="v2-text v2-mt">
         {now.quadrant
           ? `지금 값으로 보면 · ${PMF_QUADRANT_LABELS[now.quadrant]} — ${now.reason}`
           : `사분면 없음 — ${now.reason}`}
         {stored && now.quadrant && stored !== now.quadrant && (
-          <span style={{ color: 'var(--warning-fg)' }}> · 저장된 진단({PMF_QUADRANT_LABELS[stored]})과 다르다. 수요축이 그 뒤 바뀌었다.</span>
+          <span className="v2-warn-text"> · 저장된 진단({PMF_QUADRANT_LABELS[stored]})과 다르다. 수요축이 그 뒤 바뀌었다.</span>
         )}
       </p>
 
       {/* 처방 — 라벨만 보여주면 분류지 판정이 아니다. 문장 끝의 한 줄은 톤을 고정한다(설계 §3-1 1). */}
-      <p style={{ margin: '8px 0 0', fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-relaxed)', color: 'var(--text-strong)' }}>
+      <p className="v2-body v2-strong v2-mt-sm">
         {advice}
       </p>
-      <p style={{ margin: '4px 0 0', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
+      <p className="v2-note v2-mt-xs">
         권고이지 보장이 아니다 — 같은 사분면이어도 상품·시점이 다르면 결과가 달라진다.
       </p>
 
       {/* 선례축 근거와 마지막 진단 시각. "미진단" 과 "오래된 진단" 은 다른 사건이다. */}
-      <p style={{ margin: '8px 0 0', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+      <p className="v2-note v2-mt-sm">
         {why ? `${why} · ` : ''}
         {pmfLookupFailed
           ? '마지막 진단 시각 확인 불가 — 조회가 실패했다'

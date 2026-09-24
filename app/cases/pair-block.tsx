@@ -8,19 +8,20 @@ import { Badge } from '../_ds/components/Badge'
  */
 export function PairBlock({ p }: { p: MovePair }) {
   return (
-    <div style={{ display: 'grid', gap: 6, padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+    <div className="v2-inset v2-stack-tight">
+      <div className="v2-chiprow">
         <Badge tone="neutral" size="sm">{p.bottleneck}</Badge>
         <Badge tone="neutral" size="sm">{p.lever}</Badge>
         {p.saas && <Badge tone="info" size="sm">SaaS 끼리</Badge>}
       </div>
       {p.positive.map((s) => (
-        <p key={s.move.id} style={{ margin: 0, fontSize: 13 }}>
+        <p key={s.move.id} className="v2-text">
           <b>됐다 · {s.study.brand_name}</b> — {s.move.claim}
         </p>
       ))}
+      {/* 안 된 쪽은 코랄 글자 대신 코랄 왼쪽 선(대비) — 뜻은 "안 됐다" 글자가 말한다. */}
       {p.negative.map((s) => (
-        <p key={s.move.id} style={{ margin: 0, fontSize: 13, color: 'var(--danger-fg)' }}>
+        <p key={s.move.id} className="v2-text v2-neg-line">
           <b>안 됐다 · {s.study.brand_name}</b> — {s.move.claim}
         </p>
       ))}

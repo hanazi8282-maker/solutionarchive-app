@@ -20,7 +20,7 @@ import { Badge, type Tone } from '../../../_ds/components/Badge'
 import { Button, ButtonLink } from '../../../_ds/components/Button'
 import { EmptyState } from '../../../_ds/components/EmptyState'
 import { EvidenceCaption } from '../../../_ds/components/EvidenceCaption'
-import { Field, Input, Select, Textarea, labelStyle } from '../../../_ds/components/Field'
+import { Field, Input, Select, Textarea } from '../../../_ds/components/Field'
 import { ProgressBar } from '../../../_ds/components/ProgressBar'
 import { Notice, PageHeader, PageShell } from '../../../_ds/components/Shell'
 import { PmfPanel, type PmfLatest } from './pmf-panel'
@@ -103,15 +103,12 @@ const MATURITY_LABELS: Record<number, string> = {
 // 전에는 Tailwind 클래스로 짜여 있었지만 이 리포에는 Tailwind 가 없어 브라우저 기본
 // 스타일로 떴다. 표시만 디자인 시스템 컴포넌트로 바꿨다 — 상태·fetch·저장 로직은 그대로.
 
-const muted = { margin: 0, fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)', color: 'var(--text-muted)' } as const
+// 순위 테이블(.v2-table, app/_ds/v2/v2.css). 40행을 카드로 쌓으면 이름이 첫 화면에 다 안 들어와서 표로 바꿨다.
 
-// 순위 테이블 셀. 40행을 카드로 쌓으면 이름이 첫 화면에 다 안 들어와서 표로 바꿨다.
-const th = {
-  textAlign: 'left', padding: '8px 10px', fontSize: 'var(--fs-xs)', fontWeight: 600,
-  color: 'var(--text-muted)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)',
-} as const
-const td = { padding: '8px 10px', verticalAlign: 'middle', color: 'var(--text-body)' } as const
-const tdNum = { ...td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' } as const
+/** M2 v2 스코프 — 조기 반환 2곳과 정상 화면이 같은 껍데기를 쓴다(폭만 다르다). */
+function Shell({ maxWidth, children }: { maxWidth: number; children: ReactNode }) {
+  return <div className="sa-v2"><PageShell maxWidth={maxWidth}>{children}</PageShell></div>
+}
 
 // 판정 배지 색. PUSH 만 눈에 띄게 — 나머지는 "지금 할 일이 아니다" 쪽이라 조용히 둔다.
 const VERDICT_TONE: Record<AspectVerdictCode, Tone> = {
@@ -135,8 +132,8 @@ const aspectAnchor = (id: string) => `aspect-${id}`
 function Row({ k, children }: { k: string; children: ReactNode }) {
   return (
     <>
-      <dt style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{k}</dt>
-      <dd style={{ margin: 0, color: 'var(--text-body)', overflowWrap: 'anywhere' }}>{children}</dd>
+      <dt className="v2-muted v2-nowrap">{k}</dt>
+      <dd className="v2-dd">{children}</dd>
     </>
   )
 }
@@ -144,10 +141,7 @@ function Row({ k, children }: { k: string; children: ReactNode }) {
 /** 숫자·낱말 옆 물음표. 읽기 문장은 lib/analysis/aspect-verdict.ts 가 만든 것을 그대로 쓴다. */
 function Hint({ text }: { text: string }) {
   return (
-    <abbr
-      title={text}
-      style={{ marginLeft: 4, cursor: 'help', textDecoration: 'none', color: 'var(--text-faint)', fontSize: 'var(--fs-xs)' }}
-    >
+    <abbr title={text} className="v2-hint">
       ?
     </abbr>
   )
@@ -360,10 +354,10 @@ export default function AnalyzeReviewPage() {
 
   if (loading) {
     return (
-      <PageShell maxWidth={1040}>
+      <Shell maxWidth={1040}>
         <PageHeader title="소구점 검수" />
-        <p role="status" style={muted}>불러오는 중…</p>
-      </PageShell>
+        <p role="status" className="v2-text v2-text--muted">불러오는 중…</p>
+      </Shell>
     )
   }
 
@@ -371,7 +365,7 @@ export default function AnalyzeReviewPage() {
   // 전에는 조회 실패와 진짜 0개가 같은 화면이었다(§7.1).
   if (!project) {
     return (
-      <PageShell maxWidth={720}>
+      <Shell maxWidth={720}>
         <PageHeader title="소구점 검수" />
         <Card padded={false}>
           <EmptyState
@@ -381,12 +375,12 @@ export default function AnalyzeReviewPage() {
             action={<Button variant="neutral" onClick={load}>다시 시도</Button>}
           />
         </Card>
-      </PageShell>
+      </Shell>
     )
   }
 
   return (
-    <PageShell maxWidth={1040}>
+    <Shell maxWidth={1040}>
       <PageHeader
         title="소구점 검수"
         subtitle="AI 가 뽑은 속성을 사람이 확인하고 고친다. 전부 확인해 저장하면 앵글을 만들 수 있다."
@@ -416,22 +410,19 @@ export default function AnalyzeReviewPage() {
       >
         {/* 실패 원인은 접지 않는다 — 접힌 칸 안에 있으면 실패한 줄 모르고 검수를 시작한다. */}
         {project.status === 'failed' && project.extract_error && (
-          <p style={{ margin: '0 0 6px', fontSize: 'var(--fs-sm)', color: 'var(--danger-fg)', overflowWrap: 'anywhere' }}>
+          <p className="v2-danger-text v2-mb-xs">
             실패 원인 — {project.extract_error}
           </p>
         )}
         <details className="dgy-details">
           <summary>
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span className="v2-oneline">
               {project.product_elevator_pitch} · {PURPOSE_LABELS[project.purpose] ?? project.purpose}
               {' · 성숙도 '}
               {project.maturity_stage ? (MATURITY_LABELS[project.maturity_stage] ?? project.maturity_stage) : '미판정'}
             </span>
           </summary>
-          <dl style={{
-            display: 'grid', gridTemplateColumns: 'max-content minmax(0, 1fr)', gap: '6px 16px',
-            margin: '8px 0 0', fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)',
-          }}>
+          <dl className="v2-dl v2-mt-sm">
             {/* URL 은 선택이다(2026-09-23) — 없으면 빈 칸 대신 없다고 적는다. */}
             <Row k="경쟁사 URL">{project.competitor_url ?? '(없음)'}</Row>
             <Row k="상품 한 줄 소개">{project.product_elevator_pitch}</Row>
@@ -446,13 +437,13 @@ export default function AnalyzeReviewPage() {
         </details>
 
         {canExtract && (
-          <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+          <div className="v2-actions v2-mt">
             <Button variant="primary" onClick={startExtract} disabled={starting}>
               {starting
                 ? `분석 중… ${elapsedSec}초`
                 : project.status === 'collecting' ? '분석 시작' : '다시 분석'}
             </Button>
-            <p style={{ ...muted, fontSize: 'var(--fs-xs)', flex: '1 1 240px' }} aria-live="polite">
+            <p className="v2-note v2-grow-240" aria-live="polite">
               {starting
                 ? '수집 원문을 모델에 넘겨 속성을 뽑는 중입니다. 이 화면을 열어 두세요.'
                 : '수집된 원문으로 속성(Stage1)·시장 성숙도(Stage2)를 추출합니다.'}
@@ -464,13 +455,13 @@ export default function AnalyzeReviewPage() {
       </Card>
 
       {/* ── 속성 검수 — 순위 테이블 + 상세 패널 ──────────────────── */}
-      <section aria-labelledby="aspects-title" style={{ display: 'grid', gap: 12 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ minWidth: 0 }}>
-            <h2 id="aspects-title" style={{ margin: 0, fontSize: 'var(--fs-h3)', fontWeight: 600, color: 'var(--text-strong)' }}>
+      <section aria-labelledby="aspects-title" className="v2-stack">
+        <div className="v2-between v2-between--end">
+          <div className="v2-row-main">
+            <h2 id="aspects-title" className="v2-h2">
               속성 {aspects.length}개
             </h2>
-            <p style={{ ...muted, fontSize: 'var(--fs-xs)', marginTop: 4 }}>
+            <p className="v2-note v2-mt-xs">
               기회점수(O = 중요도 + max(중요도 − 만족도, 0))는 DB가 계산합니다. 저장하면 다시 계산됩니다.
             </p>
           </div>
@@ -501,24 +492,18 @@ export default function AnalyzeReviewPage() {
           // ≥1024px 2열(표 | 상세), 좁으면 상세가 표 아래로 — 분기는 styles.css .sa-review-grid (사이드바와 같은 폭)
           <div className="sa-review-grid">
             {/* 표 자체만 가로로 스크롤한다 — 페이지에는 가로 스크롤이 생기지 않는다. */}
-            <div style={{ minWidth: 0 }}>
-              <div style={{
-                overflowX: 'auto', background: 'var(--surface-card)', border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)',
-              }}>
-                <table
-                  aria-labelledby="aspects-title"
-                  style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse', fontSize: 'var(--fs-sm)' }}
-                >
+            <div className="v2-row-main">
+              <div className="v2-table-wrap">
+                <table aria-labelledby="aspects-title" className="v2-table">
                   <thead>
                     <tr>
-                      <th scope="col" style={th}>소구점</th>
-                      <th scope="col" style={th}>기회점수</th>
-                      <th scope="col" style={th}>중요도</th>
-                      <th scope="col" style={th}>만족도</th>
-                      <th scope="col" style={th}>판정</th>
-                      <th scope="col" style={th}>인용</th>
-                      <th scope="col" style={th}>확인</th>
+                      <th scope="col">소구점</th>
+                      <th scope="col">기회점수</th>
+                      <th scope="col">중요도</th>
+                      <th scope="col">만족도</th>
+                      <th scope="col">판정</th>
+                      <th scope="col">인용</th>
+                      <th scope="col">확인</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -534,49 +519,40 @@ export default function AnalyzeReviewPage() {
                           key={a.id}
                           id={aspectAnchor(a.id)}
                           onClick={() => setSelectedId(a.id)}
-                          style={{
-                            cursor: 'pointer',
-                            borderTop: '1px solid var(--border)',
-                            background: isSelected ? 'var(--info-bg)' : undefined,
-                          }}
+                          className={isSelected ? 'v2-trow v2-trow--on' : 'v2-trow'}
                         >
-                          <td style={{
-                            ...td, minWidth: 160,
-                            borderLeft: `3px solid ${a.human_confirmed ? 'var(--success)' : 'transparent'}`,
-                          }}>
+                          {/* 확인된 속성은 첫 칸 왼쪽 초록 띠(.v2-td-ok). */}
+                          <td className={a.human_confirmed ? 'v2-td-name v2-td-ok' : 'v2-td-name'}>
                             <button
                               type="button"
                               onClick={() => setSelectedId(a.id)}
                               aria-current={isSelected ? 'true' : undefined}
-                              style={{
-                                background: 'none', border: 0, padding: 0, font: 'inherit', textAlign: 'left',
-                                fontWeight: 600, color: 'var(--text-strong)', cursor: 'pointer', overflowWrap: 'anywhere',
-                              }}
+                              className="v2-btn-bare v2-btn-name"
                             >
                               {a.name || '(이름 없음)'}
                             </button>
                             <Hint text={verdict.reading} />
                           </td>
-                          <td style={tdNum}>
+                          <td className="v2-td-num">
                             {a.opportunity_score ?? '—'}
                             <Hint text={bd.reading} />
                           </td>
-                          <td style={tdNum}>{a.importance ?? '—'}</td>
-                          <td style={tdNum}>{a.satisfaction ?? '—'}</td>
-                          <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                          <td className="v2-td-num">{a.importance ?? '—'}</td>
+                          <td className="v2-td-num">{a.satisfaction ?? '—'}</td>
+                          <td className="v2-nowrap">
                             <Badge tone={VERDICT_TONE[verdict.code]} size="sm" title={verdict.reading}>{verdict.label}</Badge>
                           </td>
                           {/* 인용: 서버가 안 보냈으면(undefined/null) "—", 빈 배열이면 "0". 같은 표시로 뭉개지 않는다(§7.1). */}
-                          <td style={tdNum} title={quotes == null ? '서버가 인용을 보내지 않았다 — 확인 불가' : `검증된 인용 ${quotes.length}건`}>
+                          <td className="v2-td-num" title={quotes == null ? '서버가 인용을 보내지 않았다 — 확인 불가' : `검증된 인용 ${quotes.length}건`}>
                             {quotes == null ? '—' : quotes.length}
                           </td>
-                          <td style={{ ...td, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                          <td className="v2-nowrap" onClick={e => e.stopPropagation()}>
                             <input
                               type="checkbox"
                               checked={a.human_confirmed}
                               onChange={e => patchAspect(a.id, { human_confirmed: e.target.checked })}
                               aria-label={`${a.name || '이름 없는 속성'} 확인`}
-                              style={{ accentColor: 'var(--ring)', width: 18, height: 18 }}
+                              className="v2-check"
                             />
                           </td>
                         </tr>
@@ -599,53 +575,44 @@ export default function AnalyzeReviewPage() {
                   ? '추출이 인용을 남기지 않았다'
                   : '최대 2건만 표시'
               return (
-                <div style={{
-                  minWidth: 0, display: 'grid', gap: 12,
-                  background: 'var(--surface-card)',
-                  border: '1px solid var(--border)',
-                  borderLeft: `3px solid ${selected.human_confirmed ? 'var(--success)' : 'var(--border-strong)'}`,
-                  borderRadius: 'var(--radius-lg)',
-                  boxShadow: 'var(--shadow-sm)',
-                  padding: 16,
-                }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 12 }}>
-                    <Field label="속성 이름" htmlFor={`${selected.id}-name`} style={{ flex: '1 1 200px' }}>
-                      <Input
-                        id={`${selected.id}-name`}
-                        value={selected.name}
-                        onChange={e => patchAspect(selected.id, { name: e.target.value })}
-                        style={{ fontWeight: 600 }}
-                      />
-                    </Field>
-                    <div style={{ minWidth: 72 }}>
-                      <div style={labelStyle}>기회점수</div>
-                      <div style={{
-                        fontSize: 22, fontWeight: 700, lineHeight: '36px',
-                        fontVariantNumeric: 'tabular-nums', color: 'var(--text-strong)',
-                      }}>
+                <div className={selected.human_confirmed ? 'v2-detail v2-detail--ok' : 'v2-detail'}>
+                  <div className="v2-actions v2-actions--end">
+                    {/* Field·Input 은 className 을 안 받아서(Input 은 받으면 dgy-field 를 덮는다) 감싼 div 로 폭·굵기를 준다. */}
+                    <div className="v2-grow-200 v2-input-strong">
+                      <Field label="속성 이름" htmlFor={`${selected.id}-name`}>
+                        <Input
+                          id={`${selected.id}-name`}
+                          value={selected.name}
+                          onChange={e => patchAspect(selected.id, { name: e.target.value })}
+                        />
+                      </Field>
+                    </div>
+                    <div className="v2-score">
+                      <div className="v2-label">기회점수</div>
+                      <div className="v2-num">
                         {selected.opportunity_score ?? '—'}
                       </div>
                     </div>
                   </div>
 
                   {/* 판정 한 줄 + 점수 분해. 숫자 옆에 "그래서 뭘 해라"가 없으면 검수자가 매번 다시 해석한다. */}
-                  <div style={{ display: 'grid', gap: 4 }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                  <div className="v2-stack-tight">
+                    <div className="v2-actions">
                       <Badge tone={VERDICT_TONE[verdict.code]} size="sm" title={verdict.reading}>{verdict.label}</Badge>
-                      <span style={{ ...muted, fontSize: 'var(--fs-xs)' }}>{verdict.reading}</span>
+                      <span className="v2-note">{verdict.reading}</span>
                     </div>
-                    <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+                    <p className="v2-note">
                       기회점수 {selected.opportunity_score ?? '—'} = {bd.reading}
                     </p>
                     {bd.mismatch && (
-                      <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--warning-fg)' }}>
+                      <p className="v2-note v2-flag">
                         저장된 기회점수({bd.stored})와 지금 값으로 다시 푼 값({bd.computed})이 다릅니다 —
                         DB 값이 정본이고, 저장하면 다시 계산됩니다.
                       </p>
                     )}
                   </div>
 
-                  <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))' }}>
+                  <div className="v2-grid-150">
                     <Field label="레이어" htmlFor={`${selected.id}-layer`}>
                       <Select
                         id={`${selected.id}-layer`}
@@ -708,17 +675,13 @@ export default function AnalyzeReviewPage() {
                   </Field>
 
                   {/* 원문 인용 — 점수의 출처다. 없으면 "없다"고 말하고 채우는 방법을 같이 준다. */}
-                  <div style={{ display: 'grid', gap: 4 }}>
-                    <div style={labelStyle}>원문 인용</div>
+                  <div className="v2-stack-tight">
+                    <div className="v2-label">원문 인용</div>
                     {quotes && quotes.length > 0
                       ? quotes.slice(0, 2).map((q, qi) => (
-                        <blockquote key={qi} style={{
-                          margin: 0, paddingLeft: 'var(--space-3)', borderLeft: '2px solid var(--border-strong)',
-                          fontSize: 'var(--fs-sm)', lineHeight: 'var(--lh-normal)', color: 'var(--text-body)',
-                          overflowWrap: 'anywhere',
-                        }}>
+                        <blockquote key={qi} className="v2-quote v2-quote--plain">
                           “{q.text}”
-                          {q.source_type ? <span style={{ ...muted, fontSize: 'var(--fs-xs)' }}> — {q.source_type}</span> : null}
+                          {q.source_type ? <span className="v2-note"> — {q.source_type}</span> : null}
                         </blockquote>
                       ))
                       : null}
@@ -730,7 +693,7 @@ export default function AnalyzeReviewPage() {
                     />
                   </div>
 
-                  <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+                  <p className="v2-note">
                     페르소나 {selected.persona_role ?? '—'}
                     {selected.proxy_consumption ? ' · 대리소비' : ''}
                     {selected.is_segmentation_axis ? ' · 세그먼트 축' : ''}
@@ -741,12 +704,12 @@ export default function AnalyzeReviewPage() {
                     <a
                       href={`#${aspectAnchor(nextUnconfirmed.id)}`}
                       onClick={() => setSelectedId(nextUnconfirmed.id)}
-                      style={{ fontSize: 'var(--fs-sm)', justifySelf: 'start' }}
+                      className="v2-link v2-self-start"
                     >
                       다음 미확인 속성 ↓ {nextUnconfirmed.name}
                     </a>
                   ) : (
-                    <p style={{ ...muted, fontSize: 'var(--fs-xs)' }}>
+                    <p className="v2-note">
                       {aspects.some(x => !x.human_confirmed) ? '아래로는 미확인 속성이 없다.' : '미확인 속성이 없다.'}
                     </p>
                   )}
@@ -770,16 +733,11 @@ export default function AnalyzeReviewPage() {
       )}
 
       {/* ── 저장 — 속성 목록이 길어서 스크롤 중에도 바닥에 붙어 있게 ───────── */}
-      <div style={{
-        position: 'sticky', bottom: 12, zIndex: 10,
-        background: 'var(--surface-card)', border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)',
-        padding: '12px 16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12,
-      }}>
+      <div className="v2-savebar">
         <Button variant="primary" onClick={save} disabled={saving || aspects.length === 0 || !reviewable}>
           {saving ? '저장 중…' : '검수 결과 저장'}
         </Button>
-        <p style={{ ...muted, flex: '1 1 240px' }}>
+        <p className="v2-text v2-text--muted v2-grow-240">
           {!reviewable
             ? `현재 상태(${project.status})에서는 검수를 저장할 수 없습니다.`
             : aspects.length === 0
@@ -792,8 +750,8 @@ export default function AnalyzeReviewPage() {
 
       {/* ── 앵글 생성 (Stage4) ─────────────────────────────────── */}
       <Card title="앵글 생성" subtitle="차별화 속성별로 카피 초안을 만들고 실증 게이트를 통과시킨다.">
-        <div style={{ display: 'grid', gap: 10 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+        <div className="v2-stack">
+          <div className="v2-actions">
             <Button
               variant={canGenerateAngles ? 'primary' : 'outline'}
               onClick={generateAngles}
@@ -803,7 +761,7 @@ export default function AnalyzeReviewPage() {
             </Button>
             {hasAngles && <ButtonLink href={anglesHref} variant="outline">앵글 결과 보기</ButtonLink>}
           </div>
-          <p style={muted} aria-live="polite">
+          <p className="v2-text v2-text--muted" aria-live="polite">
             {canGenerateAngles
               ? '기존 앵글은 교체됩니다.'
               : hasAngles
@@ -812,6 +770,6 @@ export default function AnalyzeReviewPage() {
           </p>
         </div>
       </Card>
-    </PageShell>
+    </Shell>
   )
 }

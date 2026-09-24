@@ -144,6 +144,21 @@ eq('플래그 없는 공시는 여전히 A',
   factCheckGrade(M, [{ url: 'https://www.sec.gov/z', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_issuer_defined_metric: false }]).grade, 'A')
 eq('추정 딱지가 붙은 공시는 A 가 아니다',
   factCheckGrade(M, [{ url: 'https://www.sec.gov/x', source_tier: 'primary', is_self_reported: true, is_regulatory_filing: true, is_estimate: true }]).grade, 'C')
+// ★ 자동집계 공개 대시보드(남헌 2026-09-25, 9/23 Q5) — 자기보고여도 집계는 결제사가 한다.
+//   allowlist 정본 config/open-dashboards.json. 밖의 자기보고는 종전대로 C.
+{
+  const dash = { url: 'https://rb2b.baremetrics.com/', source_tier: 'primary', is_self_reported: true, is_estimate: false }
+  const r = factCheckGrade(M, [dash])
+  eq('공개 대시보드 자기보고 1건이면 A', r.grade, 'A')
+  check('사유가 대시보드 경로를 말한다', /자동집계 공개 대시보드/.test(r.reason), r.reason)
+  eq('같은 URL 이라도 추정치면 A 가 아니다', factCheckGrade(M, [{ ...dash, is_estimate: true }]).grade, 'C')
+  eq('allowlist 밖 자기보고는 종전 C', factCheckGrade(M, [{ ...dash, url: 'https://brand.example.com/revenue', observation_key: 'k' }]).grade, 'C')
+  eq('TrustMRR 스타트업 페이지도 A', factCheckGrade(M, [{ ...dash, url: 'https://trustmrr.com/startup/chatbase' }]).grade, 'A')
+  eq('TrustMRR 경로 밖은 A 아님', factCheckGrade(M, [{ ...dash, url: 'https://trustmrr.com/blog/x', observation_key: 'k' }]).grade, 'C')
+  eq('Baremetrics 데모(가짜 데이터)는 A 아님', factCheckGrade(M, [{ ...dash, url: 'https://demo.baremetrics.com/', observation_key: 'k' }]).grade, 'C')
+  eq('도메인 흉내(baremetrics.com.evil)는 A 아님', factCheckGrade(M, [{ ...dash, url: 'https://x.baremetrics.com.evil.io/', observation_key: 'k' }]).grade, 'C')
+  eq('수치를 안 받친다고 적힌 대시보드는 A 아님', factCheckGrade(M, [{ ...dash, supports_metric: false, observation_key: 'k' }]).grade, 'C')
+}
 {
   const d = base()
   d.evidence[0].is_regulatory_filing = true // source_tier 는 secondary 인 채로

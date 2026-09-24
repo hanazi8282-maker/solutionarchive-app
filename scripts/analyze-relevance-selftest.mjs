@@ -19,6 +19,7 @@ import {
   chunkReviews,
   describePurpose,
   dropIrrelevant,
+  impactFrequencyTags,
   judgeRelevanceBatch,
   parseGradingMarkdown,
   parseRelevanceArray,
@@ -54,6 +55,16 @@ t('어휘 밖 값은 unknown (무관이 아니다)', parseRelevanceArray('[{"id"
 t('대소문자·공백을 견딘다', parseRelevanceArray('[{"id":" r1 ","rel":" RELEVANT "}]')[0].rel === 'relevant')
 t('why 가 없으면 null', parseRelevanceArray('[{"id":"R1","rel":"relevant"}]')[0].why === null)
 
+// ── 2b. T2 라벨 — 못 정하면 NULL, 어휘 밖도 NULL ───────────────
+const lab = parseRelevanceArray('[{"id":"R1","rel":"relevant","impact":"HIGH","freq":"low","signal":"pain","wtp":true},{"id":"R2","rel":"relevant","impact":"medium","freq":null,"signal":"complaint","wtp":"yes"},{"id":"R3","rel":"relevant","wtp":"false"}]')
+t('라벨 4종을 읽는다', lab[0].impact === 'high' && lab[0].frequency === 'low' && lab[0].community_signal === 'pain' && lab[0].wtp_mentioned === true)
+t('어휘 밖 라벨은 null (medium→mid 짐작 금지)', lab[1].impact === null && lab[1].frequency === null && lab[1].community_signal === null)
+t('wtp 는 true/false 만, yes 는 null', lab[1].wtp_mentioned === null && lab[2].wtp_mentioned === false)
+t('라벨이 없으면 null (false·mid 로 접지 않는다)', lab[2].impact === null && lab[2].community_signal === null)
+t('태그: 둘 다 있으면 2개', impactFrequencyTags(lab[0]).join('|') === '영향 높음|빈도 낮음')
+t('태그: NULL 이면 빈 태그를 만들지 않는다', impactFrequencyTags(lab[2]).length === 0 && impactFrequencyTags(null).length === 0)
+t('태그: 한쪽만 있으면 1개', impactFrequencyTags({ impact: null, frequency: 'mid' }).join() === '빈도 보통')
+
 // ── 3. unknown 접힘 금지 ────────────────────────────────────────
 const prevProvider = process.env.LLM_PROVIDER
 process.env.LLM_PROVIDER = 'gemini'
@@ -64,12 +75,14 @@ t('응답에 있는 라벨은 그 값', ok.verdicts[0].verdict === 'relevant' &&
 t('응답에 없는 라벨은 unknown (무관이 아니다)', ok.verdicts[2].verdict === 'unknown')
 t('라벨이 아니라 원래 input_id 를 돌려준다', ok.verdicts[0].input_id === reviews[0].input_id)
 t('모델명을 남긴다', ok.model === 'fake-relevance')
+t('응답에 라벨이 없으면 라벨 전부 null', ok.verdicts.every((v) => v.impact === null && v.frequency === null && v.community_signal === null && v.wtp_mentioned === null))
 
 const extra = await judgeRelevanceBatch(purpose, reviews, [], call('[{"id":"R1","rel":"relevant"},{"id":"Z9","rel":"irrelevant"}]'))
 t('응답에만 있는 라벨은 버린다', extra.verdicts.length === 3 && extra.verdicts[1].verdict === 'unknown')
 
 const broken = await judgeRelevanceBatch(purpose, reviews, [], call('판정 못 하겠다'))
 t('파싱 실패는 전부 unknown', broken.verdicts.every((v) => v.verdict === 'unknown'))
+t('파싱 실패는 라벨도 전부 null', broken.verdicts.every((v) => v.impact === null && v.wtp_mentioned === null))
 t('파싱 실패에 irrelevant 가 하나도 없다', !broken.verdicts.some((v) => v.verdict === 'irrelevant'))
 
 const thrown = await judgeRelevanceBatch(purpose, reviews, [], async () => { throw new Error('boom') })
@@ -175,6 +188,12 @@ const run = read('lib/analysis/extract-run.ts')
 const auto = read('scripts/relevance-judge-auto.mjs')
 const wf = read('.github/workflows/nightly-relevance.yml')
 const mig = read('supabase/migrations/20260929000002_review_relevance_verdicts.sql')
+const labelMig = read('supabase/migrations/20260930000014_review_verdict_labels.sql')
+const sampleScript = read('scripts/relevance-grading-sample.mjs')
+t('라벨 마이그: nullable ADD COLUMN + 허용값 CHECK', labelMig.includes('ADD COLUMN IF NOT EXISTS impact') && labelMig.includes("impact IN ('high','mid','low')") && labelMig.includes("community_signal IN ('pain','demand','objection')") && !/NOT NULL|UPDATE public|DROP /.test(labelMig.split('-- 확인 쿼리')[0].replace(/^--.*$/gm, '')))
+t('라벨 마이그: 미적용 표기·예외 5개 해당 없음', labelMig.includes('**미적용**') && labelMig.includes('해당 없음'))
+t('배치가 라벨을 저장하고, 컬럼 없으면 라벨만 버린다', auto.includes('LABEL_KEYS') && auto.includes("'PGRST204'") && auto.includes('라벨 미기록(마이그 미적용)'))
+t('채점표가 라벨 컬럼 이름을 부르지 않고(*) 태그를 붙인다', sampleScript.includes(".select('*')") && sampleScript.includes('impactFrequencyTags('))
 
 t('extract 가 dropIrrelevant 를 쓴다', run.includes('dropIrrelevant(') && run.includes("from './relevance-judge.ts'"))
 t('extract 가 입력 id 를 조회한다(제외 키)', run.includes("select('id, source_type, raw_text"))

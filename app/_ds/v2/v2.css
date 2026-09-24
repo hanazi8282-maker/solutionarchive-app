@@ -1,6 +1,7 @@
 /* ============================================================
    M2 내부 화면 v2 레이어 (남헌 2026-09-24 5차 판단 3번).
-   `/agents` `/discovery` `/dashboard` `/columns` `/cases/grade` 5화면만 입는다.
+   `/agents` `/discovery` `/dashboard` `/columns` `/cases/grade` 5화면(PR #261) + 나머지 내부 화면
+   (`/analyze/*` `/cases` `/cases/search` `/cases/report` `/settings/profile`, PR feat/m2-internal-9)이 입는다.
 
    왜 `_ds/tokens/` 가 아니라 여기인가 — 실측(2026-09-24):
      `scripts/pub-tokens-overlap-selftest.mjs` 는 `_ds/styles.css` + `_ds/tokens/*.css` 를
@@ -17,7 +18,7 @@
 
    어떻게 쓰나: 화면 최상위를 `<div className="sa-v2">` 로 감싼다. 그 안에서는 `_ds`
    컴포넌트(Card·Badge·Notice·StatTile·Button)가 이미 읽는 변수가 v2 값으로 다시 가리켜진다
-   — 컴포넌트 파일은 고치지 않는다(나머지 9화면 회귀 격리). 새 모양은 아래 `.v2-*` 클래스.
+   — 컴포넌트 파일은 고치지 않는다(`.sa-v2` 밖 화면 회귀 격리). 새 모양은 아래 `.v2-*` 클래스.
    ============================================================ */
 
 .sa-v2 {
@@ -264,3 +265,31 @@
 .v2-field-inline { display: flex; align-items: center; gap: 6px; }
 .v2-divided { border-top: 1px solid var(--border); padding-top: 12px; }
 .v2-callout { display: grid; gap: 6px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-muted); border: 2px solid var(--border-strong); }
+
+/* ── /analyze (목록) ────────────────────────────────────── */
+.v2-fig { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-strong); }
+.v2-oneline { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.v2-grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.v2-mt-xs { margin-top: 4px; }
+.v2-axis { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.v2-axis-cell { font-size: var(--fs-2xs); color: var(--text-muted); white-space: nowrap; }
+/* 4열 밴드 — 좁아지면 auto-fit 이 열을 줄여 375px 에서 1열. min(100%, …) 가 없으면 행이 넘친다. */
+.v2-bands {
+  flex: 1 1 min(100%, 520px); min-width: 0;
+  display: grid; gap: 12px; align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+}
+.v2-band-label { display: block; margin-bottom: 4px; font-size: var(--fs-2xs); font-weight: 500; color: var(--text-muted); }
+/* 칩 한 줄 — 좁은 화면에서 행 안쪽만 가로 스크롤(페이지는 안 밀린다). */
+.v2-scroll-row { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: thin; }
+.v2-cta-stack { display: grid; gap: 8px; width: min(100%, 320px); }
+/* 하루 한 번 배너 — 처음엔 숨김, dismiss-banner.tsx 가 마운트 후 display:flex 로 켠다. */
+.v2-banner {
+  display: none; align-items: center; gap: 12px; padding: 10px 14px;
+  border: 1px solid var(--info-border); border-radius: var(--radius-md);
+  background: var(--info-bg); color: var(--text-strong); font-size: var(--fs-xs); line-height: 1.5;
+}
+.v2-banner-close {
+  flex: none; height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: transparent; color: inherit; font-size: var(--fs-2xs); cursor: pointer;
+}

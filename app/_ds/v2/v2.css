@@ -412,3 +412,9 @@
 .v2-control { height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-card); color: var(--text-body); font: inherit; font-size: var(--fs-sm); }
 .v2-submit { height: 36px; padding: 0 16px; border: 1px solid var(--primary); border-radius: var(--radius-md); background: var(--primary); color: var(--primary-fg); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
 .v2-submit:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+
+/* ── /settings/profile ─────────────────────────────────── */
+.v2-stack-xl { display: grid; gap: 18px; }
+.v2-pt-md { padding-top: 10px; }
+/* 칸 바로 아래 붙는 설명 — 18px 간격을 당겨 위 칸에 붙인다(.v2-note 의 margin:0 뒤에 둔다). */
+.v2-fillnote { margin-top: -10px; }

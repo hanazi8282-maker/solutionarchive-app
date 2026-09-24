@@ -211,3 +211,4 @@
 /* ── /agents ────────────────────────────────────────────── */
 .v2-steps { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
 .v2-steps-bar { font-family: var(--font-mono); font-size: 18px; letter-spacing: 0.12em; color: var(--text-strong); overflow-wrap: anywhere; }
+.v2-steps + .v2-inset { margin-top: 12px; }

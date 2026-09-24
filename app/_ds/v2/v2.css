@@ -212,3 +212,19 @@
 .v2-steps { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
 .v2-steps-bar { font-family: var(--font-mono); font-size: 18px; letter-spacing: 0.12em; color: var(--text-strong); overflow-wrap: anywhere; }
 .v2-steps + .v2-inset { margin-top: 12px; }
+
+/* ── 공용 조각 2 (/discovery 부터) ───────────────────────── */
+.v2-stack-tight { display: grid; gap: 4px; }
+.v2-dim { opacity: 0.72; }
+.v2-chiprow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.v2-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.v2-push { margin-left: auto; }
+.v2-h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; letter-spacing: var(--ls-tight); color: var(--text-strong); overflow-wrap: anywhere; }
+.v2-link-plain { color: inherit; }
+.v2-body { margin: 0; font-size: var(--fs-sm); line-height: 1.7; overflow-wrap: anywhere; }
+.v2-pre { white-space: pre-wrap; }
+.v2-box { display: grid; gap: 4px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-muted); }
+.v2-form { display: grid; gap: 8px; }
+/* 파괴 버튼 — Button destructive 는 var(--danger) 위에 흰 글자를 박는다. v2 의 코랄은 흰 글자 대비가
+   2.5:1 이라 버튼 요소에서만 잉크로 되돌린다(뜻은 버튼 글자 "무효화·기각"이 말한다). */
+.v2-btn-danger { --danger: var(--v2-ink); --red-600: var(--v2-ink-hover); }

@@ -2,6 +2,7 @@ import { PubShell } from '../../_pub/components/PubShell'
 import { Hero } from '../../_pub/components/Hero'
 import { Panel } from '../../_pub/components/Panel'
 import { PubColumnCard } from '../../_pub/components/PubColumnCard'
+import { PubEmpty } from '../../_pub/components/PubEmpty'
 import { columnReadable } from '@/lib/columns/markdown'
 import { listApprovedColumns } from '@/lib/columns/read'
 
@@ -36,11 +37,9 @@ export default async function ColumnsReadPage() {
           <p className="pub-text">{res.reason} · 읽을 칼럼이 없다는 뜻이 아니다.</p>
         </Panel>
       ) : res.data.length === 0 ? (
-        <Panel titleAs="h2" title="공개된 칼럼 0편 (조회는 정상)">
-          <p className="pub-text">승인된 칼럼이 생기면 여기 올라온다.</p>
-        </Panel>
+        <PubEmpty title="공개된 칼럼 0편 (조회는 정상)" description="승인된 칼럼이 생기면 여기 올라온다." />
       ) : (
-        <div className="pub-column-list">
+        <div className="pub-cardgrid">
           {res.data.map((c) => (
             <PubColumnCard
               key={c.slug}

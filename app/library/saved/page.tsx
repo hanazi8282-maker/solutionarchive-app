@@ -10,6 +10,8 @@ import { PubButtonLink } from '../../_pub/components/Button'
 import { PubCaseCard } from '../../_pub/components/PubCaseCard'
 import { PubBrandLogoNotice } from '../../_pub/components/PubBrandLogo'
 import { PubEmpty } from '../../_pub/components/PubEmpty'
+import { Chip } from '../../_pub/components/Chip'
+import { IconArrowRight, IconBookmark } from '../../_pub/icons'
 
 // 내 저장함. **이 페이지는 스스로 막는다.**
 //
@@ -96,7 +98,14 @@ export default async function SavedCasesPage() {
         eyebrow="MY SAVES"
         title="저장한 케이스"
         lead={`${verdict.email} 이(가) 저장한 것만 보입니다. 저장은 사람마다 따로입니다.`}
-        note={`저장 ${saved.rows.length}건 · 볼 수 있는 것 ${cards.length}장`}
+        meta={
+          // M1: 개수를 note 한 줄에서 칩 줄로(라이브러리 상세 히어로와 같은 자리). 두 숫자를 같이 둔다 —
+          // 저장 수와 지금 볼 수 있는 수가 다르면 그 차이가 아래 알림의 근거다.
+          <div className="pub-chiprow">
+            <Chip><IconBookmark />저장 {saved.rows.length}건</Chip>
+            <Chip>볼 수 있는 것 {cards.length}장</Chip>
+          </div>
+        }
       />
 
       {hidden > 0 && (
@@ -114,7 +123,7 @@ export default async function SavedCasesPage() {
           description={saved.rows.length === 0
             ? '케이스 상세에서 "저장" 을 누르면 여기 쌓입니다. 추천으로 채우지 않습니다 — 이 화면은 당신이 고른 것만 보여 줍니다.'
             : '승인이 내려갔거나 지워진 케이스입니다.'}
-          action={<PubButtonLink href="/library" variant="primary" size="sm">케이스 둘러보기</PubButtonLink>}
+          action={<PubButtonLink href="/library" variant="primary" size="sm">케이스 둘러보기<IconArrowRight /></PubButtonLink>}
         />
       ) : (
         <div className="pub-libmain">

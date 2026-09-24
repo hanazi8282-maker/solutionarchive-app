@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { logoFor, LOGO_NOTICE, type LogoInput } from '@/lib/cases/logo'
+import { LogoImg } from '../../_ds/components/LogoImg'
 
 /**
  * 브랜드 썸네일 — 카드와 상세 히어로가 같은 것을 쓴다(둘이 갈라지면 같은 케이스가
@@ -13,8 +14,8 @@ import { logoFor, LOGO_NOTICE, type LogoInput } from '@/lib/cases/logo'
  *    그라디언트 방향)은 전부 `.pub-logo` 가 정한다.
  * ⚠️ `<img>` 를 쓴다 — 이유는 lib/cases/logo.ts 주석(외부 호스트가 브랜드마다 달라
  *    next.config images 화이트리스트를 유지할 수 없다).
- * ⚠️ 파비콘이 404 여도 깨진 이미지 아이콘을 보여주지 않는다: 듀오톤 배경 위에 이니셜을
- *    깔고 그 위에 이미지를 얹는다. 이미지가 없으면 이니셜이 그대로 보인다(JS 없이).
+ * ⚠️ 듀오톤 배경 위에 이니셜을 깔고 그 위에 이미지를 얹는다. Brandfetch 404 → Google 파비콘 →
+ *    그것도 실패면 이미지를 치워 이니셜이 보인다(LogoImg 의 onError — 유일한 클라이언트 경계).
  */
 const SIZE_CLASS = { md: '', lg: 'pub-logo--lg', cover: 'pub-logo--cover' } as const
 
@@ -38,12 +39,11 @@ export function PubBrandLogo({ study, bottleneck, size = 'md' }: {
       className={SIZE_CLASS[size] ? `pub-logo ${SIZE_CLASS[size]}` : 'pub-logo'}
       style={hues}
       aria-hidden={logo.kind === 'initial' ? undefined : true}
-      title={logo.kind === 'favicon' ? `${logo.domain} 파비콘` : undefined}
+      title={logo.kind === 'favicon' ? `${logo.domain} 로고` : undefined}
     >
       {logo.initial}
       {logo.kind === 'initial' ? null : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logo.src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+        <LogoImg src={logo.src} fallbackSrc={logo.kind === 'favicon' ? logo.fallbackSrc : undefined} />
       )}
     </span>
   )

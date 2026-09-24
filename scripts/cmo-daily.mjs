@@ -46,6 +46,7 @@ import { createTracker } from './agent-status.mjs'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 // 토큰 없이 DB 기록만 읽는다. lib/threads/recent·token 을 여기서 import 하지 마라(§10.1).
 import { unlinkedDigestLine, UNLINKED_STEP_KEY } from '../lib/threads/unlinked-status.ts'
+import { feedbackDigestLines } from '../lib/cases/feedback.ts'
 
 // ────────────────────────────────────────────────────────────
 // 물량 — 첫 주는 2/2. 나중에 5/5 로 올릴 때는 이 값만 바꾼다.
@@ -1548,6 +1549,7 @@ export function buildDigest({
   perf = { coverage: null, coverageReason: '성과 원자료를 읽지 않았다', commentary: null },
   held = [], staged = [],
   unlinked = { row: null, error: '조회하지 않았다' }, now = Date.now(),
+  feedback = { rows: null, error: '조회하지 않았다' },
 }) {
   const counts = state.counts ?? {}
   const waiting = counts.staged ?? 0
@@ -1622,6 +1624,13 @@ export function buildDigest({
   }
   L.push('')
 
+  // ── 독자 피드백(T3 사람 신호) ───────────────────────────────
+  // 루프 성패와 무관한 DB 읽기라 preflight 중단에도 싣는다. 못 읽음/0건은 본문에서 가른다(§7.1).
+  L.push('## 독자 피드백 (최근 24시간)')
+  L.push('')
+  L.push(...feedbackDigestLines(feedback.rows, feedback.error))
+  L.push('')
+
   // ── 4) 개선 방안 ────────────────────────────────────────────
   L.push('## 개선 방안')
   L.push('')
@@ -1672,6 +1681,7 @@ export async function writeDigest({ reportDir, date, runKey, dryRun, log = [], s
     held: heldMetrics(perfRaw),
     staged: stagedMetrics(repoRoot, runKey),
     unlinked: await readUnlinkedCheck(),
+    feedback: await readRecentFeedback(),
   })
 
   fs.mkdirSync(reportDir, { recursive: true })
@@ -1770,6 +1780,23 @@ async function readUnlinkedCheck() {
     return { row: data[0] ?? null, error: null }
   } catch (e) {
     return { row: null, error: e.message }
+  }
+}
+
+/** 최근 24시간 케이스 👍/👎. 읽기만 한다. 못 읽으면 rows:null + error — 빈 배열(0건)과 섞지 않는다. */
+async function readRecentFeedback() {
+  try {
+    const { createClient } = await import('../lib/supabase/server.ts')
+    const supabase = await createClient()
+    if (!supabase) return { rows: null, error: 'Supabase 자격증명 미설정' }
+    const { data, error } = await supabase.from('case_feedback')
+      .select('case_study_id, vote, note, created_at, case_studies(brand_name, slug)')
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+    if (error) return { rows: null, error: `${error.code ?? ''} ${error.message}`.trim() }
+    if (!Array.isArray(data)) return { rows: null, error: '응답에 행 배열이 없다' }
+    return { rows: data, error: null }
+  } catch (e) {
+    return { rows: null, error: e.message }
   }
 }
 

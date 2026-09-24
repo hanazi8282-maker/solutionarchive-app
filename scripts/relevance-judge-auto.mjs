@@ -261,6 +261,10 @@ await tracker.step({
 // ── 3. 프로젝트별 판정 ───────────────────────────────────────────
 let judgedTotal = 0
 let saveFailed = 0
+// T2 라벨 컬럼(20260930000014) 존재 3상태 — 'unknown' 은 첫 저장 전, 'absent' 면 라벨 없이 저장한다.
+let labelColumns = 'unknown'
+let labeledTotal = 0
+const LABEL_KEYS = ['impact', 'frequency', 'community_signal', 'wtp_mentioned']
 let blocker = null
 let seq = 1
 
@@ -291,9 +295,18 @@ for (const { project, pending } of targets) {
         model: out.model,
         judged_at: new Date().toISOString(),
         reason: v.reason,
+        ...(labelColumns === 'absent' ? {} : Object.fromEntries(LABEL_KEYS.map((k) => [k, v[k]]))),
       }))
       // human_verdict·human_graded_at 은 payload 에 없다 — 재판정이 사람 채점을 덮지 않는다.
-      const { error } = await supabase.from('review_relevance_verdicts').upsert(rows, { onConflict: 'input_id' })
+      const save = (payload) => supabase.from('review_relevance_verdicts').upsert(payload, { onConflict: 'input_id' })
+      let { error } = await save(rows)
+      // 라벨 컬럼이 없으면(PGRST204 스키마 캐시에 없음 · 42703) 판정은 그대로 저장하고 라벨만 버린다.
+      // 조용히 넘기지 않는다 — "라벨 0건"이 "모델이 라벨을 못 달았다"로 읽히면 안 된다(§7.1).
+      if (error && labelColumns !== 'absent' && (error.code === 'PGRST204' || error.code === '42703')) {
+        labelColumns = 'absent'
+        warn(`라벨 미기록(마이그 미적용) — review_relevance_verdicts 에 라벨 컬럼이 없다(${error.code}). 20260930000014 적용 전까지 verdict·reason 만 저장한다.`)
+        ;({ error } = await save(rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !LABEL_KEYS.includes(k))))))
+      }
       if (error) {
         saveFailed += 1
         console.error(`✗ ${project.id} 판정 저장 실패(${doneBatches + 1}번째 묶음): ${error.code ?? ''} ${error.message}`)
@@ -301,6 +314,10 @@ for (const { project, pending } of targets) {
         break
       }
       judgedTotal += rows.length
+      if (labelColumns !== 'absent') {
+        labelColumns = 'present'
+        labeledTotal += out.verdicts.filter((v) => LABEL_KEYS.some((k) => v[k] !== null)).length
+      }
       doneBatches += 1
     }
   })
@@ -330,11 +347,12 @@ await tracker.finish({
   status,
   summary: {
     projects: targets.length, judged: judgedTotal, remaining, blocker,
+    label_columns: labelColumns, labeled: labelColumns === 'present' ? labeledTotal : null,
     est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls,
   },
 })
 
-log(`끝 — 판정 ${judgedTotal}건 · 남은 프로젝트 ${remaining}건 · 이번 실행 추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD}) · 상태 ${status}`)
+log(`끝 — 판정 ${judgedTotal}건 · 라벨 ${labelColumns === 'present' ? `${labeledTotal}건` : labelColumns === 'absent' ? '미기록(마이그 미적용)' : '확인 불가(저장 0회)'} · 남은 프로젝트 ${remaining}건 · 이번 실행 추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD}) · 상태 ${status}`)
 if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 — ops/state 폴백. 이 실행의 기록은 "DB 확인 불가"다')
 
 process.exit(saveFailed > 0 ? 3 : 0)

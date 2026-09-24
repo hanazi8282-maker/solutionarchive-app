@@ -560,12 +560,15 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
 // 15) 다이제스트 5헤딩 · 성과 실패 판정 · 스텝 종료코드 (AC-12, 부수관측 1·2)
 // ════════════════════════════════════════════════════════════
 {
-  const REQUIRED = ['## TL;DR', '## 스코어보드', '## 병목 진단', '## 개선 방안', '## 다음 주 주목 지표']
+  const REQUIRED = ['## TL;DR', '## 스코어보드', '## 병목 진단', '## 독자 피드백 (최근 24시간)', '## 개선 방안', '## 다음 주 주목 지표']
   const baseState = { blocked: 0, failed: 0, counts: { new_drafts: 1, committed: 1, drafted: 2, staged: 2 }, steps: [] }
 
   // ── AC-12: 5헤딩은 무조건 전부 ──────────────────────────────
   const normal = buildDigest({ date: '2026-09-08', runKey: 'cmo-2026-09-08-cron', state: baseState, log: [] })
   for (const h of REQUIRED) check(`다이제스트 — 정상 실행에 "${h}" 헤딩`, normal.includes(`\n${h}\n`))
+  check('다이제스트 — 피드백을 안 읽었으면 "확인 불가"(피드백 없음 아님)', /독자 피드백[^\n]*\n\n_확인 불가/.test(normal))
+  check('다이제스트 — 피드백 0건은 "피드백 없음"',
+    buildDigest({ date: 'd', runKey: 'x', state: baseState, log: [], feedback: { rows: [], error: null } }).includes('- 피드백 없음'))
 
   const dry = buildDigest({ date: '2026-09-08', runKey: 'x', dryRun: true, state: baseState, log: [] })
   for (const h of REQUIRED) check(`다이제스트 — dry-run 에도 "${h}" 헤딩`, dry.includes(`\n${h}\n`))

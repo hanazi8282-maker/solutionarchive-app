@@ -179,3 +179,68 @@ export function withinDailyLimit(
   const already = mine.some((r) => new Date(r.created_at).getTime() >= since)
   return already ? { state: 'deny', message: DAILY_LIMIT_MESSAGE } : { state: 'allow' }
 }
+
+// ────────────────────────────────────────────────────────────
+// 4) 읽는 쪽 — T3 사람 신호로 소비 (순수)
+// ────────────────────────────────────────────────────────────
+// 표를 받기만 하고 읽는 곳이 없던 테이블을 `/cases` 검수 화면과 CMO 다이제스트가 읽는다.
+// 집계 규칙은 여기 한 벌이다 — 두 화면이 각자 세면 숫자가 갈린다.
+
+export type FeedbackVoteRow = {
+  case_study_id: string
+  vote: number
+  note: string | null
+  created_at: string
+  /** 다이제스트가 임베드로 붙여 온다. /cases 는 이미 케이스를 들고 있어 안 붙인다. */
+  case_studies?: { brand_name: string | null; slug: string | null } | null
+}
+
+export type FeedbackTally = {
+  up: number
+  down: number
+  /** 코멘트가 달린 표 수(전체). notes 는 그중 최근 몇 개만 담는다. */
+  noted: number
+  /** 최근 순, 비어 있지 않은 코멘트만, 최대 FEEDBACK_NOTES_SHOWN 개. */
+  notes: { vote: number; note: string; at: string }[]
+}
+
+export const FEEDBACK_NOTES_SHOWN = 3
+
+/** 케이스별 👍/👎 수와 최근 코멘트. 표가 없는 케이스는 Map 에 없다(= "피드백 없음"). */
+export function tallyFeedback(rows: FeedbackVoteRow[]): Map<string, FeedbackTally> {
+  const out = new Map<string, FeedbackTally>()
+  const sorted = [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at))
+  for (const r of sorted) {
+    const t = out.get(r.case_study_id) ?? { up: 0, down: 0, noted: 0, notes: [] }
+    if (r.vote > 0) t.up++
+    else if (r.vote < 0) t.down++
+    const note = (r.note ?? '').trim()
+    if (note) t.noted++
+    if (note &&t.notes.length < FEEDBACK_NOTES_SHOWN) t.notes.push({ vote: r.vote, note, at: r.created_at })
+    out.set(r.case_study_id, t)
+  }
+  return out
+}
+
+/**
+ * CMO 다이제스트 한 절의 본문 줄. **코멘트 원문은 싣지 않는다** — DIGEST 는 공개 리포에
+ * 커밋되고(CLAUDE.md §2), 코멘트는 익명 입력이라 그대로 옮기면 익명 텍스트를 공개 재게시하게
+ * 된다. 원문은 로그인 뒤 `/cases` 에서 본다.
+ *
+ * @param rows null = 못 읽었다. 빈 배열 = 0건. 둘을 다른 문장으로 낸다(§7.1).
+ */
+export function feedbackDigestLines(rows: FeedbackVoteRow[] | null, error: string | null): string[] {
+  if (rows === null) return [`_확인 불가 — 케이스 피드백을 읽지 못했다(${error ?? '사유 미기록'}). "피드백 없음" 아님._`]
+  if (rows.length === 0) return ['- 피드백 없음 (조회는 정상 — 최근 24시간 표 0건).']
+  const tally = tallyFeedback(rows)
+  const label = new Map<string, string>()
+  for (const r of rows) {
+    const name = r.case_studies?.brand_name || r.case_studies?.slug
+    if (name || !label.has(r.case_study_id)) label.set(r.case_study_id, name || r.case_study_id.slice(0, 8))
+  }
+  const lines = [...tally.entries()]
+    .sort(([, a], [, b]) => (b.up + b.down) - (a.up + a.down))
+    .map(([id, t]) => `- ${label.get(id)} — 👍 ${t.up} · 👎 ${t.down}${t.noted ? ` · 코멘트 ${t.noted}건` : ''}`)
+  const up = rows.filter((r) => r.vote > 0).length
+  return [`- 합계 ${rows.length}표 (👍 ${up} · 👎 ${rows.length - up}) · 케이스 ${tally.size}곳. 코멘트 원문은 /cases 에서 본다(공개 리포에 싣지 않는다).`, ...lines]
+}

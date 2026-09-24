@@ -16,6 +16,7 @@
 import {
   classifyFeedbackError, clientIp, kstDayStart, voterKey, withinDailyLimit,
   DAILY_LIMIT_MESSAGE, FEEDBACK_VOTER_MIGRATION,
+  tallyFeedback, feedbackDigestLines, FEEDBACK_NOTES_SHOWN,
 } from '../lib/cases/feedback.ts'
 
 let pass = 0
@@ -98,6 +99,31 @@ t('IPv6 도 받는다', clientIp('2001:db8::1', null), '2001:db8::1')
 t('호스트명·쓰레기 값은 버린다', clientIp('evil.example.com', null), null)
 t('or 필터를 깨는 쉼표·따옴표는 애초에 모양 검사에서 걸린다', clientIp('1.2.3.4")--', null), null)
 t('과하게 긴 값은 버린다(해시 입력 폭주 방지)', clientIp('1'.repeat(200), null), null)
+
+// ── 6. 읽는 쪽 — T3 사람 신호 집계(/cases · CMO 다이제스트) ──────────
+const fb = (over) => ({ case_study_id: CASE_A, vote: 1, note: null, created_at: '2026-09-23T05:00:00.000Z', ...over })
+const tally = tallyFeedback([
+  fb({}), fb({ vote: -1, note: '가격대가 안 맞다', created_at: '2026-09-23T06:00:00.000Z' }),
+  fb({ note: '  ', created_at: '2026-09-23T07:00:00.000Z' }),
+  fb({ note: 'n1', created_at: '2026-09-23T08:00:00.000Z' }), fb({ note: 'n2', created_at: '2026-09-23T09:00:00.000Z' }),
+  fb({ note: 'n3', created_at: '2026-09-23T10:00:00.000Z' }),
+  fb({ case_study_id: CASE_B, vote: -1 }),
+])
+t('케이스별 👍 수', tally.get(CASE_A)?.up, 5)
+t('케이스별 👎 수', tally.get(CASE_A)?.down, 1)
+t('다른 케이스는 따로 센다', tally.get(CASE_B)?.down, 1)
+t('표 없는 케이스는 Map 에 없다(= 피드백 없음)', tally.has('none'), false)
+t('코멘트 수는 공백 코멘트를 빼고 전체를 센다', tally.get(CASE_A)?.noted, 4)
+t(`코멘트는 최근 ${FEEDBACK_NOTES_SHOWN}개만`, tally.get(CASE_A)?.notes.length, FEEDBACK_NOTES_SHOWN)
+t('코멘트는 최근 순', tally.get(CASE_A)?.notes.map((n) => n.note).join(','), 'n3,n2,n1')
+
+ok('다이제스트: 못 읽음은 "확인 불가" — 피드백 없음으로 접지 않는다',
+  feedbackDigestLines(null, 'PGRST205 x')[0].includes('확인 불가'))
+ok('다이제스트: 0건은 "피드백 없음"(빈칸 아님)', feedbackDigestLines([], null)[0].includes('피드백 없음'))
+const digestLines = feedbackDigestLines([fb({ note: '비밀 코멘트', case_studies: { brand_name: 'Notion', slug: 'notion' } }), fb({ vote: -1 })], null)
+ok('다이제스트: 합계 줄', digestLines[0].includes('합계 2표') && digestLines[0].includes('👍 1 · 👎 1'))
+ok('다이제스트: 케이스 줄은 브랜드명', digestLines.some((l) => l.startsWith('- Notion — 👍 1 · 👎 1 · 코멘트 1건')))
+ok('다이제스트: 코멘트 원문은 싣지 않는다(공개 리포)', !digestLines.join('\n').includes('비밀 코멘트'))
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 하루 1회(해시·쿠키 OR · 케이스 단위 · KST 자정) · 3상태(확인 불가를 허용으로 접지 않음) · 마이그 미적용 분류 · 투표자 키(솔트 필수)`)
 process.exitCode = fail ? 1 : 0

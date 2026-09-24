@@ -305,3 +305,12 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 대상: solutionarchive. 적용 전 실측 컬럼 8개(새 4개 없음). `apply_migration` — success. PR #257 코드 머지 전 적용 — 코드는 컬럼 부재 시 "라벨 미기록" 경로가 있어 순서 무관.
 - 양성: 4컬럼 전부 nullable, CHECK 제약 확인, 기존 860행 라벨 전부 NULL(소급 없음, 설계대로).
 - 음성: CHECK 위반 INSERT 롤백 검사 **미실행**(호스티드 MCP). 앱 경로는 analyze-relevance-selftest 87건(허용값 밖 → NULL) 이 대신 검사.
+
+## 2026-09-24 — 20260930000015_analysis_inputs_purge_reason.sql (purged_at 사유 분리, PR #259)
+
+- 승인자: 남헌 2026-09-24 5차 판단 4번("purged_at 을 30일 자동폐기용과 중복 정리용으로 분리, 4조건 규칙"). CEO-STAFF 세션 적용. 롤백 파일 있음(CHECK+컬럼 DROP — 000012 롤백보다 먼저 돌려야 함, 파일 주석).
+- 드라이런(적용 전): dedupe 대상 50 · purged 총 50 · 그중 dedupe 50 · raw_text NULL 0(30일 폐기는 아직 한 번도 발화 안 함) · 컬럼 없음.
+- 대상: solutionarchive. `apply_migration` — success.
+- 양성: 컬럼 nullable · CHECK 1 · dedupe 50 · retention 0 · 불변식(purged_at NOT NULL ⇒ reason NOT NULL) 위반 0 · 역방향(reason 있고 purged_at NULL) 0 · 누적 집계(reason IS DISTINCT FROM 'dedupe') 24,920 / 총 24,970.
+- 음성: CHECK 위반 UPDATE 롤백 검사 **미실행**(호스티드 MCP). 앱 경로는 review-purge-selftest 34건이 대신 검사.
+- 순서 주의: PR #258 의 소스 타일 count 가 이 컬럼을 읽는다(커밋 1994580). 컬럼은 이미 적용됐으므로 #258 을 언제 머지해도 "집계 불가"로 빠지지 않는다.

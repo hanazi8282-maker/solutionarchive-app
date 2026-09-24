@@ -9,7 +9,10 @@ import { Chip } from './_pub/components/Chip'
 import { Stat, StatRow } from './_pub/components/Stat'
 import { getAuthVerdict } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
-import { DEFAULT_SORT, loadLibrary, type LibraryResult } from '@/lib/cases/library'
+import { PubCaseCard } from './_pub/components/PubCaseCard'
+import {
+  DEFAULT_SORT, approvedThisWeek, loadLibrary, loadSourceTiles, pickTodayCase, type LibraryResult,
+} from '@/lib/cases/library'
 import { DEFAULT_SEARCH_KIND } from '@/lib/cases/search'
 import { clipTransferNote, detailTitle } from '@/lib/cases/detail'
 import { displayGradeLabel, factCheckLabel } from '@/lib/cases/grade-display'
@@ -89,6 +92,10 @@ export default async function Home() {
   const counts = countsOf(result)
   const latest = result?.status === 'ok' ? result.cards.slice(0, 3) : []
   const hiddenConsumer = result?.hidden_consumer ?? 0
+  const now = new Date()
+  const thisWeek = approvedThisWeek(result, now)
+  const today = result?.status === 'ok' ? pickTodayCase(result.cards, now) : null
+  const sources = sb ? await loadSourceTiles(sb, 'landing') : { tiles: null, hidden_zero: 0 }
 
   return (
     <PubShell theme="dark">
@@ -115,6 +122,11 @@ export default async function Home() {
             : '자동 수집분은 초안으로만 쌓인다. 아래 숫자는 사람이 사실확인·이식성까지 보고 승인한 것이다.'
         }
       >
+        <div className="pub-inline">
+          <Chip tone="solid" title="KST 월요일 00:00 이후 승인(reviewed_at) 기준">
+            {thisWeek === null ? '이번 주 승인 집계 불가' : `+${thisWeek} 이번 주`}
+          </Chip>
+        </div>
         <StatRow>
           <Stat
             label="승인 케이스"
@@ -126,6 +138,30 @@ export default async function Home() {
         </StatRow>
       </Section>
 
+      {/* 소스별 VOC — 누적 수집 행을 센다(purge_reason IS DISTINCT FROM 'dedupe'). 못 셌으면 "집계 불가"(§7.1). */}
+      <Section
+        eyebrow="어디서 듣나"
+        title="소스별로 모은 목소리"
+        lead={
+          sources.tiles === null
+            ? '소스 목록을 읽지 못했다. 수집이 0건이라는 뜻이 아니라 확인에 실패한 것이다.'
+            : `수집기가 가져온 글·댓글의 누적 수집(중복 정리분 제외)이다.${sources.hidden_zero > 0 ? ` 아직 0건인 소스 ${sources.hidden_zero}곳은 뺐다.` : ''}`
+        }
+      >
+        {sources.tiles && sources.tiles.length > 0 ? (
+          <div className="pub-statrow">
+            {sources.tiles.map((t) => (
+              <div key={t.key} className="pub-tile">
+                <span className="pub-caption">{t.name}</span>
+                <span className="pub-tile-value">{t.count === null ? UNKNOWN : `${t.count.toLocaleString('ko-KR')}건`}</span>
+              </div>
+            ))}
+          </div>
+        ) : sources.tiles ? (
+          <p className="pub-text">등록된 소스는 있지만 아직 모은 글이 없다.</p>
+        ) : null}
+      </Section>
+
       <Section eyebrow="어떻게 다른가" title="사례집이 아니라 판정문에 가깝다">
         <div className="pub-grid">
           {DIFFERENCES.map((d) => (
@@ -134,6 +170,28 @@ export default async function Home() {
             </Panel>
           ))}
         </div>
+      </Section>
+
+      {/* 오늘의 케이스 — KST 날짜로 하루 1장 고정(lib/cases/library.ts pickTodayCase). 표시만, 구독·발송 없음. */}
+      <Section eyebrow="오늘의 케이스" title="오늘 하나만 읽는다면">
+        {today ? (
+          // 카드 1장만 두면 그리드 한 칸이 전폭으로 늘어난다 — 옆 칸에 고르는 규칙을 적어 폭을 나눈다.
+          <div className="pub-cardgrid">
+            <PubCaseCard study={today.study} move={today.move} moveCount={today.move_count} />
+            <Panel eyebrow="고르는 법" title="날짜마다 한 장">
+              <p className="pub-text">
+                승인 케이스 중 한 장을 한국 시간 날짜로 골라 하루 동안 고정한다. 새로고침해도 오늘은 같은 카드고, 자정이 지나면 바뀐다.
+              </p>
+              <PubButtonLink href="/library" variant="ghost">다른 케이스 둘러보기</PubButtonLink>
+            </Panel>
+          </div>
+        ) : (
+          <p className="pub-text">
+            {result?.status === 'error' || !result
+              ? '케이스 목록을 읽지 못해 오늘의 케이스를 고르지 못했다. 승인 케이스가 없다는 뜻이 아니다.'
+              : '아직 무브까지 승인된 케이스가 없어 오늘의 케이스를 고를 수 없다.'}
+          </p>
+        )}
       </Section>
 
       <Section

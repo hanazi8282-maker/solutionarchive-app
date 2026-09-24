@@ -14,6 +14,8 @@
 @import "./tokens/base.css";
 /* 라이트 앱 팔레트 — `.sa-lib` 스코프 안에서만 먹는다(공개 상세·CaseCard). base 뒤에 온다. */
 @import "./tokens/app-light.css";
+/* M2 내부 5화면 v2 레이어 — `.sa-v2` 스코프 안에서만 먹는다. 값이 tokens/ 밖에 사는 이유는 그 파일 머리말. */
+@import "./v2/v2.css";
 
 /* 인라인 스타일로는 :hover / :focus / :has 를 표현할 수 없어서 이 몇 규칙만 클래스로 둔다. */
 

@@ -24,6 +24,20 @@ import { join } from 'node:path'
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
 
 const PUB_DIR = join(ROOT, 'app', '_pub')
+
+/**
+ * M2(남헌 2026-09-24): 내부 5화면도 같은 기준 — `_ds` 옛 값과 겹침 0.
+ * v2 값은 `app/_ds/v2/` 에만 산다(`_ds/tokens/` 에 두면 이름이 달라도 값이 겹쳐 위 _pub 검사가 깨진다).
+ * `/columns` 는 최상위 파일만 — `columns/read/**` 는 공개 화면(M1, _pub) 몫이다.
+ */
+const M2_DIRS = [
+  { dir: join(ROOT, 'app', '_ds', 'v2'), deep: true },
+  { dir: join(ROOT, 'app', 'agents'), deep: true },
+  { dir: join(ROOT, 'app', 'discovery'), deep: true },
+  { dir: join(ROOT, 'app', 'dashboard'), deep: true },
+  { dir: join(ROOT, 'app', 'columns'), deep: false },
+  { dir: join(ROOT, 'app', 'cases', 'grade'), deep: true },
+]
 const DS_FILES = [
   join(ROOT, 'app', '_ds', 'styles.css'),
   ...readdirSync(join(ROOT, 'app', '_ds', 'tokens')).map((f) => join(ROOT, 'app', '_ds', 'tokens', f)),
@@ -123,10 +137,10 @@ function readAll(files) {
   return merged
 }
 
-function walk(dir, hits = []) {
+function walk(dir, hits = [], deep = true) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name)
-    if (statSync(p).isDirectory()) walk(p, hits)
+    if (statSync(p).isDirectory()) { if (deep) walk(p, hits) }
     else if (/\.(css|tsx)$/.test(name)) hits.push(p)
   }
   return hits
@@ -136,12 +150,12 @@ function walk(dir, hits = []) {
 
 const KINDS = ['color', 'radius', 'shadow', 'ease', 'font']
 
-function run({ mutate = false } = {}) {
-  const pubFiles = walk(PUB_DIR)
+function run({ mutate = false, files } = {}) {
+  const pubFiles = files
   const pub = readAll(pubFiles)
   const ds = readAll(DS_FILES)
 
-  // 변이: `_ds` 슬레이트 900 을 `_pub` 가 쓰고 있는 셈 친다. 통과가 나오면 검사가 헛돈 것이다.
+  // 변이: `_ds` 슬레이트 900 을 대상 그룹이 쓰고 있는 셈 친다. 통과가 나오면 검사가 헛돈 것이다.
   if (mutate) pub.color.add('#0f172a')
 
   const overlaps = []
@@ -160,36 +174,42 @@ function counts(sets) {
 }
 
 const mutateMode = process.argv.includes('--mutate')
-const r = run({ mutate: mutateMode })
-
-console.log('[pub-tokens-overlap] _pub 파일', r.pubFiles.length, '개 ·', counts(r.pub))
-console.log('[pub-tokens-overlap] _ds  파일', DS_FILES.length, '개 ·', counts(r.ds))
-
 // §7.1 — 못 센 것을 겹침 0 으로 읽지 않는다.
 const fail = (msg) => { console.error('FAIL:', msg); process.exit(1) }
 
-if (r.pubFiles.length === 0) fail('app/_pub 에서 검사할 파일을 하나도 못 찾았다 (겹침 0 이 아니라 확인 불가다)')
-for (const kind of KINDS) {
-  if (r.pub[kind].size === 0) fail(`_pub 에서 ${kind} 값을 하나도 못 뽑았다 — 추출기가 깨졌거나 토큰이 사라졌다`)
-  if (r.ds[kind].size === 0) fail(`_ds 에서 ${kind} 값을 하나도 못 뽑았다 — 비교 대상이 비면 겹침은 항상 0 이다`)
-}
+const GROUPS = [
+  { name: 'pub', label: 'app/_pub', files: walk(PUB_DIR) },
+  { name: 'm2', label: 'M2 내부 5화면 + app/_ds/v2', files: M2_DIRS.flatMap(({ dir, deep }) => walk(dir, [], deep)) },
+]
 
-if (mutateMode) {
-  // 변이 모드는 **실패해야** 정상이다.
-  if (r.unexplained.length === 0) fail('변이(#0f172a 주입)를 넣었는데도 통과했다 — 이 검사는 아무것도 지키지 않는다')
-  console.log('[pub-tokens-overlap] 변이 확인 OK — 주입한 값을 잡았다:', r.unexplained.map((o) => o.value).join(', '))
-  process.exit(0)
-}
+for (const g of GROUPS) {
+  const r = run({ mutate: mutateMode, files: g.files })
+  const tag = `[${g.name}-tokens-overlap]`
+  console.log(tag, g.label, '파일', r.pubFiles.length, '개 ·', counts(r.pub))
+  console.log(tag, '_ds  파일', DS_FILES.length, '개 ·', counts(r.ds))
 
-for (const o of r.overlaps) {
-  const why = UNAVOIDABLE.get(`${o.kind}:${o.value}`)
-  console.log(`  ${why ? '허용' : '겹침'} ${o.kind} ${o.value}${why ? ` — ${why}` : ''}`)
+  if (r.pubFiles.length === 0) fail(`${g.label} 에서 검사할 파일을 하나도 못 찾았다 (겹침 0 이 아니라 확인 불가다)`)
+  for (const kind of KINDS) {
+    if (r.pub[kind].size === 0) fail(`${g.label} 에서 ${kind} 값을 하나도 못 뽑았다 — 추출기가 깨졌거나 토큰이 사라졌다`)
+    if (r.ds[kind].size === 0) fail(`_ds 에서 ${kind} 값을 하나도 못 뽑았다 — 비교 대상이 비면 겹침은 항상 0 이다`)
+  }
+
+  if (mutateMode) {
+    // 변이 모드는 **실패해야** 정상이다.
+    if (r.unexplained.length === 0) fail(`${g.label}: 변이(#0f172a 주입)를 넣었는데도 통과했다 — 이 검사는 아무것도 지키지 않는다`)
+    console.log(tag, '변이 확인 OK — 주입한 값을 잡았다:', r.unexplained.map((o) => o.value).join(', '))
+    continue
+  }
+
+  for (const o of r.overlaps) {
+    const why = UNAVOIDABLE.get(`${o.kind}:${o.value}`)
+    console.log(`  ${why ? '허용' : '겹침'} ${o.kind} ${o.value}${why ? ` — ${why}` : ''}`)
+  }
+  if (r.unexplained.length > 0) {
+    fail(`${g.label}: 설명되지 않은 겹침 ${r.unexplained.length}건: ` + r.unexplained.map((o) => `${o.kind} ${o.value}`).join(', '))
+  }
+  console.log(`${tag} PASS — 설명되지 않은 겹침 0건 (불가피 ${r.overlaps.length}건은 위에 이유와 함께 적혀 있다)`)
 }
 
 // 간격은 따로 보고만 한다(겹침으로 세지 않는다).
-console.log('[pub-tokens-overlap] 간격(px)은 제외했다 — 레퍼런스 4곳도 8의 배수라 _ds 의 4/8/12/16/20/24/32/40 과 겹친다. 의도된 것이고 디자인 승계가 아니다.')
-
-if (r.unexplained.length > 0) {
-  fail(`설명되지 않은 겹침 ${r.unexplained.length}건: ` + r.unexplained.map((o) => `${o.kind} ${o.value}`).join(', '))
-}
-console.log(`[pub-tokens-overlap] PASS — 설명되지 않은 겹침 0건 (불가피 ${r.overlaps.length}건은 위에 이유와 함께 적혀 있다)`)
+console.log('[tokens-overlap] 간격(px)은 제외했다 — 레퍼런스 4곳도 8의 배수라 _ds 의 4/8/12/16/20/24/32/40 과 겹친다. 의도된 것이고 디자인 승계가 아니다.')

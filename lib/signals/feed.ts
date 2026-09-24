@@ -16,6 +16,10 @@ import {
   COMMUNITY_SIGNALS, LABEL_LEVELS, type CommunitySignal, type LabelLevel,
 } from '../analysis/relevance-judge.ts'
 import { extractStoryIdFromText, hnThreadUrl } from '../review/adapters/hackernews.ts'
+// 종류 축은 /library 와 한 벌이다(남헌 2026-09-23: SaaS 창업가 대상, 소비재는 숨기되 지우지 않는다).
+import { DEFAULT_SEARCH_KIND, SEARCH_KINDS, type SearchKind } from '../cases/search.ts'
+import { productKindOf } from '../cases/advisor.ts'
+import { BUSINESS_MODEL } from '../cases/draft.ts'
 
 /** 발췌 상한(글자). 원문 재게시가 되지 않을 만큼 짧게 — 보고에 가정으로 적은 값이다. */
 export const EXCERPT_MAX = 140
@@ -52,7 +56,16 @@ export interface SignalItem {
 
 export type Loaded<T> = { status: 'error'; reason: string } | ({ status: 'ok' } & T)
 
+/**
+ * kind='saas' 일 때 남기는 analysis_projects.business_model 값. /library 는 행마다
+ * `productKindOf(business_model) === 'software'` 로 거르는데, 여기는 DB 에서 걸러야 건수가 맞아서
+ * 같은 판정을 어휘 전체에 돌려 값 목록으로 편다 — 산식을 두 벌 만들지 않는다(지금은 ['SAAS']).
+ * NULL(미기재)은 productKindOf 가 physical 로 보므로 여기서도 숨는다.
+ */
+export const SAAS_BUSINESS_MODELS: readonly string[] = BUSINESS_MODEL.filter((m) => productKindOf(m) === 'software')
+
 export interface FeedFilters {
+  kind: SearchKind
   source: string | null
   signal: CommunitySignal | null
   impact: LabelLevel | null
@@ -98,6 +111,10 @@ const pick = <T extends string>(v: unknown, allowed: readonly T[]): T | null =>
 export function parseFeedQuery(sp: Record<string, string | string[] | undefined>): { filters: FeedFilters; errors: string[] } {
   const one = (k: string) => (Array.isArray(sp[k]) ? sp[k][0] : sp[k]) ?? ''
   const errors: string[] = []
+  // kind 어휘 밖이면 기본값으로 조용히 떨어지지 않는다 — /library(parseSearchQuery)와 같은 규칙.
+  const rawKind = one('kind').trim().toLowerCase()
+  const kind = (SEARCH_KINDS as readonly string[]).includes(rawKind) ? (rawKind as SearchKind) : DEFAULT_SEARCH_KIND
+  if (rawKind && kind !== rawKind) errors.push(`kind "${rawKind.slice(0, 20)}" 는 ${SEARCH_KINDS.join('·')} 가 아니다`)
   const src = one('source').trim()
   const source = /^[a-z0-9_-]{1,40}$/.test(src) ? src : null
   if (src && !source) errors.push(`소스 "${src.slice(0, 40)}" 는 형식이 아니다`)
@@ -108,13 +125,14 @@ export function parseFeedQuery(sp: Record<string, string | string[] | undefined>
   const p = Number(one('page') || 1)
   const page = Number.isInteger(p) && p >= 1 ? Math.min(p, MAX_PAGE) : 1
   if (one('page') && page !== p) errors.push(`페이지 번호는 1~${MAX_PAGE} 이다`)
-  return { filters: { source, signal, impact, page }, errors }
+  return { filters: { kind, source, signal, impact, page }, errors }
 }
 
 /** 기본값은 URL 에 안 적는다 — 파라미터 없는 첫 진입과 같은 화면이 된다. */
 export function feedHref(f: FeedFilters, patch: Partial<FeedFilters>): string {
   const n = { ...f, page: 1, ...patch }
   const p = new URLSearchParams()
+  if (n.kind !== DEFAULT_SEARCH_KIND) p.set('kind', n.kind)
   if (n.source) p.set('source', n.source)
   if (n.signal) p.set('signal', n.signal)
   if (n.impact) p.set('impact', n.impact)
@@ -129,7 +147,8 @@ export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 
 const SELECT = [
   'input_id, judged_at, reason, impact, frequency, community_signal, wtp_mentioned',
-  'analysis_projects(product_elevator_pitch)',
+  // !inner — kind 필터가 임베드 컬럼(business_model)에 걸려야 행이 걸러진다(아니면 임베드만 null 이 된다).
+  'analysis_projects!inner(product_elevator_pitch, business_model)',
   'analysis_inputs!inner(source_key, raw_text, purged_at, review_sources(display_name), review_fingerprints(product_ref))',
 ].join(', ')
 
@@ -172,13 +191,18 @@ function toItem(r: Raw): SignalItem {
  * 공개 대상 행의 공통 조건: 사람 채점이 이기고(human_verdict), 없으면 LLM 판정이 relevant,
  * 원문이 아직 폐기되지 않은 것. count 를 원하면 exact 로 센다(HEAD 는 쓰지 않는다 — 없는 테이블도 204).
  */
-function base(sb: SupabaseClient, withCount: boolean) {
-  return sb
+function base(sb: SupabaseClient, withCount: boolean, kind: SearchKind = 'all') {
+  const q = sb
     .from('review_relevance_verdicts')
     .select(SELECT, withCount ? { count: 'exact' } : undefined)
     .or('human_verdict.eq.relevant,and(human_verdict.is.null,verdict.eq.relevant)')
     .is('analysis_inputs.purged_at', null)
+  return kind === 'saas' ? q.in('analysis_projects.business_model', [...SAAS_BUSINESS_MODELS]) : q
 }
+
+/** kind='saas' 로 숨긴 건수 = 같은 조건의 전체 − SaaS. 못 셌으면 null(0 과 섞지 않는다). */
+const hiddenOf = (all: { count: number | null; error: unknown } | null, shown: number | null) =>
+  all && !all.error && all.count != null && shown != null ? Math.max(0, all.count - shown) : null
 
 const why = (e: { code?: string; message: string }) =>
   e.code === '42703' || e.code === 'PGRST204'
@@ -188,15 +212,22 @@ const why = (e: { code?: string; message: string }) =>
 export async function loadFeed(
   sb: SupabaseClient,
   f: FeedFilters,
-): Promise<Loaded<{ items: SignalItem[]; total: number | null; sources: { key: string; name: string }[] | null }>> {
-  let q = base(sb, true)
-  if (f.source) q = q.eq('analysis_inputs.source_key', f.source)
-  if (f.signal) q = q.eq('community_signal', f.signal)
-  if (f.impact) q = q.eq('impact', f.impact)
+): Promise<Loaded<{
+  items: SignalItem[]; total: number | null; hiddenConsumer: number | null; sources: { key: string; name: string }[] | null
+}>> {
+  const scoped = (kind: SearchKind) => {
+    let q = base(sb, true, kind)
+    if (f.source) q = q.eq('analysis_inputs.source_key', f.source)
+    if (f.signal) q = q.eq('community_signal', f.signal)
+    if (f.impact) q = q.eq('impact', f.impact)
+    return q
+  }
   const from = (f.page - 1) * PAGE_SIZE
-  const [{ data, error, count }, src] = await Promise.all([
-    q.order('judged_at', { ascending: false }).order('input_id').range(from, from + PAGE_SIZE - 1),
+  const [{ data, error, count }, src, all] = await Promise.all([
+    scoped(f.kind).order('judged_at', { ascending: false }).order('input_id').range(from, from + PAGE_SIZE - 1),
     sb.from('review_sources').select('key, display_name').eq('enabled', true).order('key'),
+    // 숨긴 소비재 건수용 — kind=saas 일 때만. 한 행만 받는다.
+    f.kind === 'saas' ? scoped('all').limit(1) : Promise.resolve(null),
   ])
   if (error) {
     console.error('[signals] feed query failed:', error.code, error.message)
@@ -207,6 +238,7 @@ export async function loadFeed(
     status: 'ok',
     items: ((data ?? []) as unknown as Raw[]).map(toItem),
     total: count ?? null,
+    hiddenConsumer: f.kind === 'saas' ? hiddenOf(all, count ?? null) : 0,
     // 소스 목록을 못 읽으면 칩을 안 낸다(null). 빈 배열(= 소스 0곳)과 다르다.
     sources: src.error ? null : (src.data ?? []).map((s) => ({ key: s.key as string, name: (s.display_name as string) ?? s.key })),
   }
@@ -214,12 +246,19 @@ export async function loadFeed(
 
 export async function loadColumns(
   sb: SupabaseClient,
-): Promise<Loaded<{ columns: { signal: CommunitySignal; items: SignalItem[]; count: number }[]; relevantTotal: number | null }>> {
-  const [all, ...cols] = await Promise.all([
-    // 관련 행 전체 수 — "라벨 N / 관련 M" 을 사실로 적으려고. 한 행만 받는다.
-    base(sb, true).limit(1),
+  kind: SearchKind,
+): Promise<Loaded<{
+  columns: { signal: CommunitySignal; items: SignalItem[]; count: number }[]
+  relevantTotal: number | null
+  /** kind=saas 로 숨긴 **라벨 붙은** 소비재 행 수. null = 못 셌다. */
+  hiddenConsumer: number | null
+}>> {
+  const [all, labeledAll, ...cols] = await Promise.all([
+    // 관련 행 전체 수(현재 kind 기준) — "라벨 N / 관련 M" 을 사실로 적으려고. 한 행만 받는다.
+    base(sb, true, kind).limit(1),
+    kind === 'saas' ? base(sb, true, 'all').not('community_signal', 'is', null).limit(1) : Promise.resolve(null),
     ...COMMUNITY_SIGNALS.map((s) =>
-      base(sb, true).eq('community_signal', s).order('judged_at', { ascending: false }).order('input_id').limit(COLUMN_SIZE)),
+      base(sb, true, kind).eq('community_signal', s).order('judged_at', { ascending: false }).order('input_id').limit(COLUMN_SIZE)),
   ])
   const failed = cols.find((c) => c.error)
   if (failed?.error) {
@@ -236,6 +275,7 @@ export async function loadColumns(
       count: cols[i].count as number,
     })),
     relevantTotal: all.error ? null : (all.count ?? null),
+    hiddenConsumer: kind === 'saas' ? hiddenOf(labeledAll, cols.reduce((n, c) => n + (c.count as number), 0)) : 0,
   }
 }
 

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { SIGNAL_LABEL, loadColumns } from '@/lib/signals/feed'
+import { SIGNAL_LABEL, loadColumns, parseFeedQuery } from '@/lib/signals/feed'
 import { PubShell } from '../../_pub/components/PubShell'
 import { Hero } from '../../_pub/components/Hero'
 import { Panel } from '../../_pub/components/Panel'
@@ -14,6 +14,7 @@ import { IconArrowRight } from '../../_pub/icons'
  * 남헌 2026-09-25 위임 B항(reports/2026-09-24/competitor-features-reestimate.md B2 · §F 8).
  *
  * 익명 공개(PUBLIC_EXACT `/signals/community`), 읽기 전용, LLM 0.
+ * 종류: 기본 SaaS만, `?kind=all` 이면 소비재 포함(/signals · /library 와 같은 축).
  * ★ 3상태: 조회 실패 = 경고 패널 / 세 칼럼 모두 0건 = "라벨 수집 중" 한 장 / 있음 = 3열.
  *   라벨이 없는 행을 어느 칼럼에 짐작으로 넣지 않는다 — 라벨 NULL 은 "모름"이다.
  */
@@ -24,10 +25,19 @@ export const metadata = {
   description: '관련 판정을 받은 리뷰·댓글을 겪는 문제 · 원하는 것 · 안 쓰는 이유 세 칼럼으로 나눠 본다.',
 }
 
-export default async function SignalColumnsPage() {
+export default async function SignalColumnsPage({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  // 종류만 읽는다(다른 필터는 이 화면에 없다). 파서는 피드와 한 벌.
+  const { filters: { kind }, errors } = parseFeedQuery({ kind: (await searchParams).kind })
   const sb = await createClient()
-  const result = sb ? await loadColumns(sb) : null
+  const result = sb ? await loadColumns(sb, kind) : null
   const labeled = result?.status === 'ok' ? result.columns.reduce((n, c) => n + c.count, 0) : null
+  const hidden = result?.status === 'ok' ? result.hiddenConsumer : null
+  const hiddenNote = kind !== 'saas' ? null
+    : hidden == null ? '숨긴 소비재 건수 집계 불가 — "소비재 포함"으로 볼 수 있다.'
+    : hidden > 0 ? `라벨이 붙은 숨긴 소비재 ${hidden}건은 "소비재 포함"으로 볼 수 있다.` : null
+  const colHref = (signal: string) => `/signals?signal=${signal}${kind === 'all' ? '&kind=all' : ''}`
 
   return (
     <PubShell theme="light">
@@ -39,6 +49,15 @@ export default async function SignalColumnsPage() {
         actions={<PubButtonLink href="/signals" variant="ghost" size="sm">전체 신호 피드<IconArrowRight /></PubButtonLink>}
       />
 
+      <nav className="pub-chiprow" aria-label="종류">
+        <PubButtonLink href="/signals/community" variant={kind === 'saas' ? 'primary' : 'ghost'} size="sm">SaaS만(기본)</PubButtonLink>
+        <PubButtonLink href="/signals/community?kind=all" variant={kind === 'all' ? 'primary' : 'ghost'} size="sm">소비재 포함</PubButtonLink>
+      </nav>
+      {errors.length > 0 && (
+        <Panel tone="alert" title="질의를 그대로 쓰지 못했다">
+          <p className="pub-text">{errors.join(' / ')} — 기본값(SaaS만)으로 보여줬다.</p>
+        </Panel>
+      )}
       {!sb && (
         <Panel tone="alert" title="확인 불가 — Supabase 환경변수 미설정">
           <p className="pub-text">판정 행을 읽지 못했다. 신호가 없다는 뜻이 아니다.</p>
@@ -56,12 +75,16 @@ export default async function SignalColumnsPage() {
             {result.relevantTotal == null
               ? `신호 라벨이 붙은 관련 판정 ${labeled}건 (관련 판정 전체 수는 집계 불가)`
               : `관련 판정 ${result.relevantTotal}건 중 신호 라벨이 붙은 행 ${labeled}건`}
+            {kind === 'saas' ? ' · SaaS만' : ' · 소비재 포함'}
+            {hiddenNote ? ` · ${hiddenNote}` : ''}
           </p>
           {labeled === 0 ? (
             <PubEmpty
               title="라벨 수집 중 — 야간 판정이 새 행부터 채운다"
-              description="조회는 정상이다. 신호 라벨은 라벨 도입 뒤 판정된 행부터 붙는다. 그 전에 판정된 행은 라벨이 비어 있고, 짐작으로 칼럼에 넣지 않는다."
-              action={<PubButtonLink href="/signals" variant="ghost" size="sm">라벨 없이 전체 신호 보기<IconArrowRight /></PubButtonLink>}
+              description={['조회는 정상이다. 신호 라벨은 라벨 도입 뒤 판정된 행부터 붙는다. 그 전에 판정된 행은 라벨이 비어 있고, 짐작으로 칼럼에 넣지 않는다.', hiddenNote].filter(Boolean).join(' ')}
+              action={kind === 'saas' && hidden
+                ? <PubButtonLink href="/signals/community?kind=all" variant="ghost" size="sm">소비재 포함해서 보기 {hidden}<IconArrowRight /></PubButtonLink>
+                : <PubButtonLink href={kind === 'all' ? '/signals?kind=all' : '/signals'} variant="ghost" size="sm">라벨 없이 전체 신호 보기<IconArrowRight /></PubButtonLink>}
             />
           ) : (
             <div className="pub-signalcols">
@@ -72,7 +95,7 @@ export default async function SignalColumnsPage() {
                     ? c.items.map((it) => <PubSignalCard key={it.input_id} item={it} showSignal={false} />)
                     : <PubEmpty compact title="이 칼럼은 아직 0건이다" description="조회는 정상이다. 이 신호로 라벨된 관련 판정이 아직 없다." />}
                   {c.count > c.items.length && (
-                    <PubButtonLink href={`/signals?signal=${c.signal}`} variant="ghost" size="sm">{SIGNAL_LABEL[c.signal]} 전체 {c.count}건<IconArrowRight /></PubButtonLink>
+                    <PubButtonLink href={colHref(c.signal)} variant="ghost" size="sm">{SIGNAL_LABEL[c.signal]} 전체 {c.count}건<IconArrowRight /></PubButtonLink>
                   )}
                 </section>
               ))}

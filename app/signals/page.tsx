@@ -19,6 +19,7 @@ import { IconArrowRight } from '../_pub/icons'
  * **익명으로 열린다**(`lib/auth/policy.ts` PUBLIC_EXACT `/signals`). 읽기 전용이고 LLM 호출 0.
  * 원문은 발췌 EXCERPT_MAX 자만 싣는다 — 출처 링크는 카드 상세에 있다(lib/signals/feed.ts 머리말).
  *
+ * 종류: 기본 SaaS만(/library 와 같은 축·같은 결정 — 소비재는 숨기되 지우지 않는다), `?kind=all` 이면 소비재 포함.
  * 필터는 전부 링크(JS 0). ★ 3상태: 조회 실패 = 경고 패널(카드 영역 없음) / 0건 = 빈 상태 / 있음.
  * 신호·영향 필터의 0건은 대개 "라벨이 아직 없다"이다 — 빈 상태 문구가 그 사실을 말한다.
  */
@@ -41,6 +42,10 @@ export default async function SignalsPage({ searchParams }: {
     <PubFacetBar label="신호 필터">
       <PubFacet href={feedHref(f, { source: null, signal: null, impact: null })} active={!f.source && !labelFilter}>전체</PubFacet>
       <PubFacetSep />
+      {/* 종류 토글. 소비재는 지우지 않고 숨기기만 하므로 되돌리는 손잡이가 화면에 있어야 한다(/library 와 같다). */}
+      <PubFacet href={feedHref(f, { kind: 'saas' })} active={f.kind === 'saas'}>SaaS만(기본)</PubFacet>
+      <PubFacet href={feedHref(f, { kind: 'all' })} active={f.kind === 'all'}>소비재 포함</PubFacet>
+      <PubFacetSep />
       {(result.sources ?? []).map((s) => (
         <PubFacet key={s.key} href={feedHref(f, { source: f.source === s.key ? null : s.key })} active={f.source === s.key}>
           {s.name}
@@ -62,6 +67,11 @@ export default async function SignalsPage({ searchParams }: {
   ) : null
 
   const total = result?.status === 'ok' ? result.total : null
+  const hidden = result?.status === 'ok' ? result.hiddenConsumer : null
+  // 숨긴 소비재 문장 — 못 셌으면(null) 그렇다고 적는다. 0 이면 말하지 않는다.
+  const hiddenNote = f.kind !== 'saas' ? null
+    : hidden == null ? '숨긴 소비재 건수 집계 불가 — "소비재 포함"으로 볼 수 있다.'
+    : hidden > 0 ? `숨긴 소비재 ${hidden}건은 "소비재 포함"으로 볼 수 있다.` : null
   const lastPage = total == null ? null : Math.min(MAX_PAGE, Math.max(1, Math.ceil(total / PAGE_SIZE)))
 
   return (
@@ -97,6 +107,8 @@ export default async function SignalsPage({ searchParams }: {
             <p className="pub-caption">
               {total == null ? '전체 건수 집계 불가' : `조건에 맞는 관련 판정 ${total}건`}
               {result.items.length > 0 ? ` · 이 페이지 ${(f.page - 1) * PAGE_SIZE + 1}–${(f.page - 1) * PAGE_SIZE + result.items.length}` : ''}
+              {f.kind === 'saas' ? ' · SaaS만' : ' · 소비재 포함'}
+              {hiddenNote && result.items.length > 0 ? ` · ${hiddenNote}` : ''}
             </p>
             {result.sources === null && <p className="pub-caption">소스 목록을 읽지 못해 소스 칩을 뺐다(소스가 없다는 뜻이 아니다).</p>}
 
@@ -107,10 +119,13 @@ export default async function SignalsPage({ searchParams }: {
             ) : (
               <PubEmpty
                 title={labelFilter ? '라벨 수집 중 — 이 조건에 맞는 라벨이 아직 없다' : '조건에 맞는 관련 판정이 없다'}
-                description={labelFilter
+                description={[labelFilter
                   ? '조회는 정상이다. 신호·영향 라벨은 야간 판정이 새 행부터 채운다 — 라벨 도입 전에 판정된 행에는 아직 라벨이 없다.'
-                  : '조회는 정상이다. 지금 이 조건으로 관련 판정을 받은 리뷰가 없다는 뜻이고, 다른 것으로 채우지 않는다.'}
-                action={<PubButtonLink href="/signals" variant="ghost" size="sm">필터 없이 보기<IconArrowRight /></PubButtonLink>}
+                  : '조회는 정상이다. 지금 이 조건으로 관련 판정을 받은 리뷰가 없다는 뜻이고, 다른 것으로 채우지 않는다.',
+                hiddenNote].filter(Boolean).join(' ')}
+                action={f.kind === 'saas' && hidden !== 0
+                  ? <PubButtonLink href={feedHref(f, { kind: 'all' })} variant="ghost" size="sm">소비재 포함해서 보기{hidden ? ` ${hidden}` : ''}<IconArrowRight /></PubButtonLink>
+                  : <PubButtonLink href="/signals" variant="ghost" size="sm">필터 없이 보기<IconArrowRight /></PubButtonLink>}
               />
             )}
 

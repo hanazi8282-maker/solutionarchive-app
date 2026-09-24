@@ -342,9 +342,10 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 1. **무엇을 적용하는지 먼저 적는다** — 파일 경로, 대상 프로젝트, 비파괴 여부,
    롤백 파일 유무, 그리고 **위 예외 5개에 걸리지 않는 이유**. 예외에 걸리면 여기서 멈추고 묻는다.
 2. **대상 프로젝트를 확인한다** — solutionarchive `qmgrfqjfxqhxuufrnkwf`.
-   ⚠️ 이 리포에 연결된 Supabase MCP 는 **기본적으로 회사 운영 DB "Dothegy OS"
-   (`hrplbrstntyanzwxcsft`)를 가리킨다**(`.claude/agents/implementer.md` 참조).
-   MCP 를 쓸 때는 `project_id` 를 반드시 명시하고, 돌아온 스키마가 이 리포의 것인지
+   ⚠️ 로컬 stdio `supabase` MCP 는 2026-09-14 부터 Cowork·SolutionArchive 스코프 모두
+   solutionarchive 를 가리킨다(2026-09-24 CEO-STAFF 실측 확인 — Dothegy OS 고정은 옛말).
+   다만 claude.ai 호스티드 Supabase MCP 는 계정 전체(3 프로젝트)를 보므로 `project_id` 를
+   반드시 명시하고, 돌아온 스키마가 이 리포의 것인지
    (`content_columns`·`case_studies`·`agent_runs` 등) 눈으로 확인한다. 발주·공장
    테이블이 보이면 잘못된 프로젝트다.
 3. **적용 전에 현재 상태를 실측한다** — 대상 테이블·컬럼이 이미 있는지,

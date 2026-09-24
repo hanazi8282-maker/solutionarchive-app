@@ -63,6 +63,8 @@
 |---|---|---|---|
 | `PubSignalCard` | `components/PubSignalCard.tsx` | `item: SignalItem` · `showSignal?` | 리뷰 1건 카드(피드·3열 공용). 카드 전체가 `/signals/card?id=` 링크 — 외부 출처 링크는 상세에만(링크 안 링크 금지). 라벨 NULL 은 칩을 안 만들고 "라벨 없음" 을 글자로 적는다 |
 
+전역 `app/error.tsx`·`app/loading.tsx`(2026-09-25 결정 4번)도 `_pub` 톤이다 — 공개·내부 공용 파일. 오류는 `.pub-solo`+`Hero`+`Panel tone="alert"` 재사용, 로딩만 `.pub-loading`·`.pub-skel`(`--tall`)을 새로 썼다.
+
 클래스: `.pub-signal-excerpt`(발췌 줄바꿈) · `.pub-signalcols`/`.pub-signalcol`(3열, ≥1024px 세 칼럼).
 내부 네비(`_ds/AppNav`)는 `/signals*` 에서 스스로 null 을 돌려준다(2026-09-25). #264 가 넣었던 `pub.css` 임시
 블록(`body:has(.pub-root) .sa-*`)은 지웠다. 새 공개 화면을 만들면 AppNav 숨김 목록에 한 줄 넣는다 — CSS 로 가리지 않는다.

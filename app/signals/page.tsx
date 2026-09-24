@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { COMMUNITY_SIGNALS, LABEL_LEVELS } from '@/lib/analysis/relevance-judge'
 import {
-  EXCERPT_MAX, LEVEL_LABEL, MAX_PAGE, PAGE_SIZE, SIGNAL_LABEL, feedHref, loadFeed, parseFeedQuery,
+  EXCERPT_MAX, LEVEL_LABEL, MAX_PAGE, PAGE_SIZE, SIGNAL_LABEL, feedHref, loadFeed, parseFeedQuery, sourceChips,
 } from '@/lib/signals/feed'
 import { PubShell } from '../_pub/components/PubShell'
 import { Hero } from '../_pub/components/Hero'
@@ -46,8 +46,9 @@ export default async function SignalsPage({ searchParams }: {
       <PubFacet href={feedHref(f, { kind: 'saas' })} active={f.kind === 'saas'}>SaaS만(기본)</PubFacet>
       <PubFacet href={feedHref(f, { kind: 'all' })} active={f.kind === 'all'}>소비재 포함</PubFacet>
       <PubFacetSep />
-      {(result.sources ?? []).map((s) => (
-        <PubFacet key={s.key} href={feedHref(f, { source: f.source === s.key ? null : s.key })} active={f.source === s.key}>
+      {/* 관련 판정 1건 이상인 소스만 + 건수(현재 kind 기준). 못 셌으면 전부 내고 숫자 자리를 비운다. */}
+      {sourceChips(result.sources ?? [], result.sourceCounts, f.source).map((s) => (
+        <PubFacet key={s.key} href={feedHref(f, { source: f.source === s.key ? null : s.key })} active={f.source === s.key} count={s.count}>
           {s.name}
         </PubFacet>
       ))}
@@ -111,6 +112,7 @@ export default async function SignalsPage({ searchParams }: {
               {hiddenNote && result.items.length > 0 ? ` · ${hiddenNote}` : ''}
             </p>
             {result.sources === null && <p className="pub-caption">소스 목록을 읽지 못해 소스 칩을 뺐다(소스가 없다는 뜻이 아니다).</p>}
+            {result.sources !== null && result.sourceCounts === null && <p className="pub-caption">소스별 건수 집계 불가 — 소스 칩을 건수 없이 전부 냈다(0건 소스가 섞여 있을 수 있다).</p>}
 
             {result.items.length > 0 ? (
               <div className="pub-cardgrid">

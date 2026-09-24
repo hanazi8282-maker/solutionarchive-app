@@ -141,6 +141,40 @@ export function feedHref(f: FeedFilters, patch: Partial<FeedFilters>): string {
   return s ? `/signals?${s}` : '/signals'
 }
 
+/**
+ * 소스 칩 건수를 세려고 읽는 관련 행 상한. PostgREST 에 group by 가 없어 행을 받아 앱에서 센다.
+ * Supabase 기본 max-rows(1000)와 같게 둔다 — 그보다 크게 적어도 서버가 1000 에서 자른다.
+ * ponytail: 행 수에 비례해 읽는다. 관련 행이 상한을 넘으면 건수는 "집계 불가"로 떨어진다(잘린 걸
+ *   세지 않는다) — 그때 RPC(마이그 필요)로 옮긴다.
+ */
+export const SOURCE_COUNT_CAP = 1000
+
+/**
+ * 받은 행에서 소스별 건수를 센다. 다 못 받았으면(total 모름 · 잘림) null — 일부만 센 값을
+ * 건수로 내보내지 않는다(§7.1).
+ */
+export function countBySource(rows: { source_key: string | null }[] | null, total: number | null): Record<string, number> | null {
+  if (!rows || total == null || rows.length < total) return null
+  const n: Record<string, number> = {}
+  for (const r of rows) if (r.source_key) n[r.source_key] = (n[r.source_key] ?? 0) + 1
+  return n
+}
+
+/**
+ * 칩에 낼 소스. 건수를 셌으면 1건 이상인 소스만(+ 지금 고른 소스는 0건이어도 남긴다 — 안 그러면
+ * 해제할 손잡이가 사라진다). 못 셌으면 전부 내되 count 없이(숫자 자리 없음 ≠ 0).
+ */
+export function sourceChips(
+  sources: { key: string; name: string }[],
+  counts: Record<string, number> | null,
+  active: string | null,
+): { key: string; name: string; count?: number }[] {
+  if (!counts) return sources
+  return sources
+    .filter((s) => (counts[s.key] ?? 0) > 0 || s.key === active)
+    .map((s) => ({ ...s, count: counts[s.key] ?? 0 }))
+}
+
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // ── 조회 ────────────────────────────────────────────────────────
@@ -191,10 +225,10 @@ function toItem(r: Raw): SignalItem {
  * 공개 대상 행의 공통 조건: 사람 채점이 이기고(human_verdict), 없으면 LLM 판정이 relevant,
  * 원문이 아직 폐기되지 않은 것. count 를 원하면 exact 로 센다(HEAD 는 쓰지 않는다 — 없는 테이블도 204).
  */
-function base(sb: SupabaseClient, withCount: boolean, kind: SearchKind = 'all') {
+function base(sb: SupabaseClient, withCount: boolean, kind: SearchKind = 'all', select = SELECT) {
   const q = sb
     .from('review_relevance_verdicts')
-    .select(SELECT, withCount ? { count: 'exact' } : undefined)
+    .select(select, withCount ? { count: 'exact' } : undefined)
     .or('human_verdict.eq.relevant,and(human_verdict.is.null,verdict.eq.relevant)')
     .is('analysis_inputs.purged_at', null)
   return kind === 'saas' ? q.in('analysis_projects.business_model', [...SAAS_BUSINESS_MODELS]) : q
@@ -203,6 +237,9 @@ function base(sb: SupabaseClient, withCount: boolean, kind: SearchKind = 'all') 
 /** kind='saas' 로 숨긴 건수 = 같은 조건의 전체 − SaaS. 못 셌으면 null(0 과 섞지 않는다). */
 const hiddenOf = (all: { count: number | null; error: unknown } | null, shown: number | null) =>
   all && !all.error && all.count != null && shown != null ? Math.max(0, all.count - shown) : null
+
+/** 소스 건수용 — 필터가 걸리는 임베드(!inner 두 개)만 남기고 나머지 컬럼은 뺀다. */
+const COUNT_SELECT = 'input_id, analysis_projects!inner(business_model), analysis_inputs!inner(source_key, purged_at)'
 
 const why = (e: { code?: string; message: string }) =>
   e.code === '42703' || e.code === 'PGRST204'
@@ -214,6 +251,8 @@ export async function loadFeed(
   f: FeedFilters,
 ): Promise<Loaded<{
   items: SignalItem[]; total: number | null; hiddenConsumer: number | null; sources: { key: string; name: string }[] | null
+  /** 현재 kind 기준 소스별 관련 판정 건수(소스·신호·영향 필터 무관). null = 못 셌다. */
+  sourceCounts: Record<string, number> | null
 }>> {
   const scoped = (kind: SearchKind) => {
     let q = base(sb, true, kind)
@@ -223,23 +262,32 @@ export async function loadFeed(
     return q
   }
   const from = (f.page - 1) * PAGE_SIZE
-  const [{ data, error, count }, src, all] = await Promise.all([
+  const [{ data, error, count }, src, all, bysrc] = await Promise.all([
     scoped(f.kind).order('judged_at', { ascending: false }).order('input_id').range(from, from + PAGE_SIZE - 1),
     sb.from('review_sources').select('key, display_name').eq('enabled', true).order('key'),
     // 숨긴 소비재 건수용 — kind=saas 일 때만. 한 행만 받는다.
     f.kind === 'saas' ? scoped('all').limit(1) : Promise.resolve(null),
+    // 소스 칩 건수 — kind 만 건다(칩은 소스를 고르는 손잡이라 다른 필터로 숨기지 않는다). 한 번에 읽어 앱에서 센다.
+    base(sb, true, f.kind, COUNT_SELECT).range(0, SOURCE_COUNT_CAP - 1),
   ])
   if (error) {
     console.error('[signals] feed query failed:', error.code, error.message)
     return { status: 'error', reason: why(error) }
   }
   if (src.error) console.error('[signals] review_sources query failed:', src.error.message)
+  if (bysrc.error) console.error('[signals] source count query failed:', bysrc.error.code, bysrc.error.message)
+  const sourceCounts = bysrc.error ? null : countBySource(
+    ((bysrc.data ?? []) as unknown as { analysis_inputs: { source_key: string | null } }[]).map((r) => r.analysis_inputs),
+    bysrc.count ?? null,
+  )
+  if (!bysrc.error && !sourceCounts) console.error('[signals] source count truncated:', bysrc.data?.length, '/', bysrc.count)
   return {
     status: 'ok',
     items: ((data ?? []) as unknown as Raw[]).map(toItem),
     total: count ?? null,
     hiddenConsumer: f.kind === 'saas' ? hiddenOf(all, count ?? null) : 0,
     // 소스 목록을 못 읽으면 칩을 안 낸다(null). 빈 배열(= 소스 0곳)과 다르다.
+    sourceCounts,
     sources: src.error ? null : (src.data ?? []).map((s) => ({ key: s.key as string, name: (s.display_name as string) ?? s.key })),
   }
 }

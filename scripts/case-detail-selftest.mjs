@@ -169,10 +169,16 @@ t('제목 — 요약 없으면 브랜드만(지어내지 않는다)', detailTitl
 
 // ── 8. 로고 폴백 ─────────────────────────────────────────────────
 t('logo_url 이 있으면 그것', logoFor({ brand_name: 'Acme', logo_url: 'https://cdn.x/a.png', brand_domain: 'acme.com' }).kind, 'url')
-const fav = logoFor({ brand_name: 'Acme', brand_domain: 'https://www.Acme.com/pricing?x=1' })
+const fav = logoFor({ brand_name: 'Acme', brand_domain: 'https://www.Acme.com/pricing?x=1' }, null, '')
 t('logo_url 없고 도메인 있으면 파비콘', fav.kind, 'favicon')
 t('도메인 정리 — 스킴·www·경로·쿼리 제거', fav.domain, 'acme.com')
 ok('파비콘 주소에 키가 필요 없다', fav.src.startsWith('https://www.google.com/s2/favicons?domain=acme.com'))
+t('클라이언트 ID 없으면 Google 파비콘', fav.provider, 'google')
+const bf = logoFor({ brand_name: 'Acme', brand_domain: 'acme.com' }, null, 'cid123')
+t('클라이언트 ID 있으면 Brandfetch', bf.provider, 'brandfetch')
+t('Brandfetch 주소 — 문서 경로 순서(identifier/w/h/fallback) + ?c=', bf.src, 'https://cdn.brandfetch.io/domain/acme.com/w/128/h/128/fallback/404?c=cid123')
+ok('Brandfetch 404 면 Google 파비콘으로 갈아탈 주소가 붙는다', bf.fallbackSrc?.startsWith('https://www.google.com/s2/favicons?domain=acme.com'))
+t('logo_url 은 Brandfetch 보다 우선', logoFor({ brand_name: 'Acme', logo_url: 'https://cdn.x/a.png', brand_domain: 'acme.com' }, null, 'cid123').kind, 'url')
 t('둘 다 없으면 이니셜', logoFor({ brand_name: '무명상회' }).kind, 'initial')
 t('이니셜은 첫 글자', brandInitial('무명상회'), '무')
 t('브랜드명 없으면 ? (빈 칸을 그리지 않는다)', brandInitial(''), '?')

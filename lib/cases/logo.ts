@@ -2,8 +2,10 @@
 //
 // 3단계, 순서가 곧 신뢰도다 (남헌 2026-09-23 Q4 승인: 외부 API 기본 + logo_url 폴백):
 //   1) logo_url     — 사람이 확정한 이미지. 있으면 무조건 이것.
-//   2) brand_domain — 외부 파비콘 API(키 불필요). 도메인이 틀리면 남의 로고가 붙으므로
-//                     추측하지 않는다. DB 에 사람이 적은 값만 쓴다(백필 없음).
+//   2) brand_domain — Brandfetch Logo CDN(NEXT_PUBLIC_BRANDFETCH_CLIENT_ID 필요, 남헌 2026-09-24).
+//                     fallback/404 로 불러서 모르는 브랜드면 404 → 화면이 Google 파비콘으로
+//                     한 번 갈아탄다(fallbackSrc). 클라이언트 ID 가 없으면 처음부터 Google 파비콘.
+//                     도메인이 틀리면 남의 로고가 붙으므로 추측하지 않는다 — DB 에 적힌 값만 쓴다.
 //   3) 둘 다 없음   — 브랜드 이니셜 듀오톤. "로고를 못 불러왔다"가 아니라 "없다"다.
 //
 // ⚠️ `<img>` 로 그린다. next/image 는 외부 호스트를 next.config 의 images.remotePatterns 에
@@ -11,14 +13,22 @@
 //    빠진 호스트는 런타임 에러가 된다. 썸네일 하나에 그 비용을 지지 않는다.
 //    ESLint 의 no-img-element 는 사용처에서 한 줄 주석으로 끈다.
 //
+// ⚠️ Brandfetch 약관: attribution 요구 없음, 대신 CDN 직접 임베드(핫링크) 필수·이미지 캐싱/재호스팅 금지
+//    (docs.brandfetch.com/logo-api, 2026-09-24 확인). 그래서 src 를 내려받지 않고 <img> 에 그대로 건다.
+//
 // ⚠️ 상표: 로고는 각 브랜드 소유다. 고지 문구가 이 파일에 함께 있는 이유 — 썸네일을 쓰는
 //    화면이 고지를 빼먹지 않게 같은 모듈에서 가져가게 한다.
 
 export const LOGO_NOTICE = '각 브랜드 로고·상표는 해당 기업의 소유입니다.'
 
-/** 파비콘 API. 키·계정이 필요 없고 도메인 하나로 끝난다. */
+/** 파비콘 API. 키·계정이 필요 없고 도메인 하나로 끝난다. Brandfetch 가 없거나 404 일 때의 폴백. */
 const FAVICON_ENDPOINT = 'https://www.google.com/s2/favicons'
+/** Brandfetch Logo CDN. 경로 순서는 문서 그대로: identifier/w/h/fallback. type 기본값은 icon. */
+const BRANDFETCH_ENDPOINT = 'https://cdn.brandfetch.io/domain'
 export const LOGO_SIZE = 128
+
+const faviconSrc = (domain: string) =>
+  `${FAVICON_ENDPOINT}?domain=${encodeURIComponent(domain)}&sz=${LOGO_SIZE}`
 
 export type LogoInput = {
   brand_name?: string | null
@@ -30,8 +40,11 @@ export type LogoInput = {
 export type LogoVerdict =
   /** 사람이 확정한 이미지. */
   | { kind: 'url'; src: string; initial: string; hue: number }
-  /** 도메인으로 외부 API 에서 가져온 파비콘. 틀릴 수 있으므로 화면이 그 사실을 알 수 있게 kind 를 가른다. */
-  | { kind: 'favicon'; src: string; domain: string; initial: string; hue: number }
+  /**
+   * 도메인으로 외부 API 에서 가져온 로고. 틀릴 수 있으므로 화면이 그 사실을 알 수 있게 kind 를 가른다.
+   * provider 'brandfetch' 면 fallbackSrc(Google 파비콘)가 붙는다 — 404 면 화면이 그걸로 갈아탄다.
+   */
+  | { kind: 'favicon'; provider: 'brandfetch' | 'google'; src: string; fallbackSrc?: string; domain: string; initial: string; hue: number }
   /** 로고 없음. 이니셜 듀오톤을 그린다. */
   | { kind: 'initial'; initial: string; hue: number }
 
@@ -77,7 +90,12 @@ export function duotoneHue(bottleneck: string | null | undefined, brandName: str
 }
 
 /** 썸네일 판정. 이 함수 밖에서 폴백 순서를 다시 쓰지 않는다. */
-export function logoFor(study: LogoInput, bottleneck?: string | null): LogoVerdict {
+export function logoFor(
+  study: LogoInput,
+  bottleneck?: string | null,
+  // NEXT_PUBLIC_ 는 문자 그대로 적어야 빌드 때 인라인된다. 셀프테스트는 세 번째 인자로 넣는다.
+  brandfetchClientId: string | undefined = process.env.NEXT_PUBLIC_BRANDFETCH_CLIENT_ID,
+): LogoVerdict {
   const initial = brandInitial(study.brand_name)
   const hue = duotoneHue(bottleneck, study.brand_name)
 
@@ -86,13 +104,19 @@ export function logoFor(study: LogoInput, bottleneck?: string | null): LogoVerdi
 
   const domain = normalizeDomain(study.brand_domain)
   if (domain) {
-    return {
-      kind: 'favicon',
-      src: `${FAVICON_ENDPOINT}?domain=${encodeURIComponent(domain)}&sz=${LOGO_SIZE}`,
-      domain,
-      initial,
-      hue,
+    const clientId = brandfetchClientId?.trim()
+    if (clientId) {
+      return {
+        kind: 'favicon',
+        provider: 'brandfetch',
+        src: `${BRANDFETCH_ENDPOINT}/${encodeURIComponent(domain)}/w/${LOGO_SIZE}/h/${LOGO_SIZE}/fallback/404?c=${encodeURIComponent(clientId)}`,
+        fallbackSrc: faviconSrc(domain),
+        domain,
+        initial,
+        hue,
+      }
     }
+    return { kind: 'favicon', provider: 'google', src: faviconSrc(domain), domain, initial, hue }
   }
   return { kind: 'initial', initial, hue }
 }

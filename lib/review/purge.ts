@@ -72,7 +72,8 @@ export function decidePurge(row: PurgeCandidate, now: Date): PurgeDecision {
 }
 
 export interface PurgePlan {
-  purge: Array<{ id: string; ageDays: number }>
+  /** alreadyPurged = 다른 이유로 purged_at 이 이미 찍힘(원문만 비운다). */
+  purge: Array<{ id: string; ageDays: number; alreadyPurged: boolean }>
   keep: number
   unjudgeable: Array<{ id: string; reason: string }>
 }
@@ -81,7 +82,7 @@ export function planPurge(rows: PurgeCandidate[], now: Date): PurgePlan {
   const plan: PurgePlan = { purge: [], keep: 0, unjudgeable: [] }
   for (const row of rows) {
     const d = decidePurge(row, now)
-    if (d.action === 'purge') plan.purge.push({ id: row.id, ageDays: d.ageDays })
+    if (d.action === 'purge') plan.purge.push({ id: row.id, ageDays: d.ageDays, alreadyPurged: row.purged_at !== null })
     else if (d.action === 'keep') plan.keep++
     else plan.unjudgeable.push({ id: row.id, reason: d.reason })
   }
@@ -96,9 +97,29 @@ export function planPurge(rows: PurgeCandidate[], now: Date): PurgePlan {
  *    `raw_text IS NOT NULL OR purged_at IS NOT NULL` 이므로, raw_text 만
  *    비우면 제약 위반으로 실패한다. 그 제약이 있는 이유가 바로
  *    "아직 안 받은 것"과 "받았다가 폐기한 것"을 구분하기 위해서다.
+ *
+ * `purge_reason: 'retention'` 도 같은 UPDATE 에서 쓴다(마이그 000015 불변식:
+ * purged_at IS NOT NULL ⇒ purge_reason IS NOT NULL).
+ *
+ * 이미 다른 이유(중복 정리 'dedupe')로 purged_at 이 찍힌 행은 원문만 비운다 —
+ * purged_at·purge_reason 을 덮으면 'dedupe' 가 'retention' 이 되어 누적 집계에 다시 섞인다.
  */
-export function purgePatch(now: Date): { raw_text: null; purged_at: string } {
-  return { raw_text: null, purged_at: now.toISOString() }
+export interface PurgePatch {
+  raw_text: null
+  purged_at?: string
+  purge_reason?: 'retention'
+}
+
+export function purgePatch(now: Date, alreadyPurged = false): PurgePatch {
+  if (alreadyPurged) return { raw_text: null }
+  return { raw_text: null, purged_at: now.toISOString(), purge_reason: 'retention' }
+}
+
+/** 컬럼 미적용(마이그 000015 전) 폴백용 — purge_reason 만 뺀다. */
+export function withoutReason(patch: PurgePatch): PurgePatch {
+  const p = { ...patch }
+  delete p.purge_reason
+  return p
 }
 
 /** 야간 보고 한 줄. 지울 게 없고 판정 불가도 없으면 null — 늘 있는 줄은 안 읽힌다. */

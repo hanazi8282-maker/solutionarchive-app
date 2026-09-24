@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
@@ -225,13 +225,7 @@ const STATUS_LABEL: Record<string, string> = {
   ok: '정상', running: '실행중', failed: '실패', blocked: '막힘',
 }
 
-const mono: CSSProperties = { fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }
-const wrap: CSSProperties = { overflowWrap: 'anywhere' }
-const inset: CSSProperties = {
-  margin: '12px 0 0', fontSize: 13, lineHeight: 1.55,
-  background: 'var(--surface-muted)', color: 'var(--text-body)',
-  padding: '8px 10px', borderRadius: 'var(--radius-md)', ...wrap,
-}
+// 모양은 전부 app/_ds/v2/v2.css 의 `.v2-*` 클래스다(M2, 인라인 스타일 0).
 
 // 운영자는 한국에 있다. 표시는 KST + 상대 시각, 정밀한 UTC 원문은 title 에 둔다.
 const KST_FMT = new Intl.DateTimeFormat('sv-SE', {
@@ -268,18 +262,18 @@ function StatusBadges({ c }: { c: LoopCard }) {
   if (c.warn) badges.push(<Badge key="warn" tone="warning" size="sm">풀백 지남·미회수</Badge>)
   if (c.dryRun) badges.push(<Badge key="dry" tone="neutral" size="sm">dry-run</Badge>)
   if (!c.def.scheduleActive) badges.push(<Badge key="sch" tone="neutral" size="sm">스케줄 비활성</Badge>)
-  return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>{badges}</div>
+  return <div className="v2-badges">{badges}</div>
 }
 
 function LoopSubtitle({ d }: { d: LoopDef }) {
   return (
-    <span style={wrap}>
+    <span className="v2-wrap">
       {loopScheduleLabel(d)}
       {d.scheduleActive
         ? ' · 스케줄 활성'
-        : <b style={{ color: 'var(--warning-fg)' }}> · 자동 스케줄 비활성 (수동 실행만)</b>}
+        : <> · <b className="v2-warn-text">자동 스케줄 비활성 (수동 실행만)</b></>}
       <br />
-      <code style={{ ...mono, fontSize: 12 }}>{d.table}</code> · {d.workflow}
+      <code className="v2-row-sub">{d.table}</code> · {d.workflow}
     </span>
   )
 }
@@ -379,6 +373,7 @@ export default async function AgentsPage() {
   }
 
   return (
+    <div className="sa-v2">
     <PageShell maxWidth={1040}>
       <PageHeader
         title="AI 에이전트 진행상황"
@@ -399,7 +394,7 @@ export default async function AgentsPage() {
         <StatTile label="실행 중" value={counted(runningN)} tone={runningN > 0 ? 'info' : undefined} caption={withDelta(scope, runningN, prevRunning)} href="#loops" />
         <StatTile label="확인 불가" value={naN} tone={naN > 0 ? 'danger' : undefined} caption={`루프 ${total}개 중`} href="#loops" />
       </StatGrid>
-      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)' }}>
+      <p className="v2-note">
         전일 대비 — 실패·막힘과 실행 중은 실행 시작·종료 시각으로 어제 이 시각 상태를 되짚는다(어제 상태를 못 읽은 루프가 있으면 생략).
         응답 없음은 그 시점의 스텝 갱신 기록이 남지 않고, 확인 불가는 지금 조회의 성질이라 표시하지 않는다.
       </p>
@@ -409,21 +404,21 @@ export default async function AgentsPage() {
         id="queue"
         title="사람 대기함"
         subtitle="에이전트가 만들어 두고 사람 결정을 기다리는 항목 · 전일 대비는 케이스(결정 시각)·조사 큐(해소 시각)만 — 초안 검토 대기는 상태가 바뀐 시각이 남지 않아 생략"
-        bodyStyle={{ padding: 0 }}
+        padded={false}
       >
         {!queue ? (
           <EmptyState compact title={UNAVAILABLE_TEXT.env_missing}
             description="대기함 건수를 조회하지 못했다. 0건이라는 뜻이 아니다." />
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          <ul className="v2-list">
             {[
               {
                 label: '승인 대기 초안', sub: 'posts · pending_review', x: queue.posts,
-                extra: <a href="/dashboard#drafts" style={{ fontSize: 13 }}>발행 연결 수리에서 처리 →</a> as ReactNode,
+                extra: <a href="/dashboard#drafts" className="v2-link">발행 연결 수리에서 처리 →</a> as ReactNode,
               },
               {
                 label: '승인 대기 케이스', sub: 'case_studies · draft', x: queue.cases,
-                extra: <a href="/cases" style={{ fontSize: 13 }}>케이스 검수에서 처리 →</a> as ReactNode,
+                extra: <a href="/cases" className="v2-link">케이스 검수에서 처리 →</a> as ReactNode,
               },
               {
                 label: '미해소 조사 큐', sub: 'research_queue · done·failed 제외', x: queue.research,
@@ -433,18 +428,14 @@ export default async function AgentsPage() {
                     ? <Badge tone="danger" size="sm">claimed 인 채 24시간 초과 {queue.stuck}건</Badge>
                     : null,
               },
-            ].map((row, i) => (
-              <li key={row.sub} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                flexWrap: 'wrap', gap: 8, minHeight: 'var(--row-h)',
-                padding: '12px 20px', borderTop: i ? '1px solid var(--border)' : 'none',
-              }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-strong)', ...wrap }}>{row.label}</div>
-                  <div style={{ ...mono, fontSize: 11, color: 'var(--text-muted)', ...wrap }}>{row.sub}</div>
-                  {row.extra && <div style={{ marginTop: 6 }}>{row.extra}</div>}
+            ].map((row) => (
+              <li key={row.sub} className="v2-row">
+                <div className="v2-row-main">
+                  <div className="v2-row-title">{row.label}</div>
+                  <div className="v2-row-sub">{row.sub}</div>
+                  {row.extra && <div className="v2-row-extra">{row.extra}</div>}
                 </div>
-                <div style={{ textAlign: 'right', ...wrap }}>{cell(row.x)}</div>
+                <div className="v2-row-end">{cell(row.x)}</div>
               </li>
             ))}
           </ul>
@@ -452,14 +443,14 @@ export default async function AgentsPage() {
       </Card>
 
       {/* 루프 카드 */}
-      <section id="loops" aria-labelledby="loops-title" style={{ display: 'grid', gap: 12 }}>
+      <section id="loops" aria-labelledby="loops-title" className="v2-stack">
         <div>
-          <h2 id="loops-title" style={{ margin: 0, fontSize: 'var(--fs-h3)', fontWeight: 600, color: 'var(--text-strong)' }}>
+          <h2 id="loops-title" className="v2-h2">
             무인 루프 {total}개
           </h2>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-muted)', ...wrap }}>
-            스텝 기호 <span style={mono}>●</span> 완료 · <span style={mono}>◐</span> 진행 ·{' '}
-            <span style={mono}>○</span> 대기·건너뜀 · <span style={mono}>✕</span> 실패 · <span style={mono}>▲</span> 막힘
+          <p className="v2-note">
+            스텝 기호 <span className="v2-mono">●</span> 완료 · <span className="v2-mono">◐</span> 진행 ·{' '}
+            <span className="v2-mono">○</span> 대기·건너뜀 · <span className="v2-mono">✕</span> 실패 · <span className="v2-mono">▲</span> 막힘
           </p>
         </div>
 
@@ -469,38 +460,37 @@ export default async function AgentsPage() {
             title={c.def.label}
             subtitle={<LoopSubtitle d={c.def} />}
             action={<StatusBadges c={c} />}
-            style={c.cls.state === 'UNAVAILABLE' ? { background: 'var(--surface-muted)' } : undefined}
-            bodyStyle={{ padding: '16px 20px' }}
+            className={c.cls.state === 'UNAVAILABLE' ? 'v2-card--muted' : undefined}
           >
             {c.cls.state === 'UNAVAILABLE' && (
-              <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', ...wrap }}>
+              <p className="v2-text v2-text--muted">
                 {UNAVAILABLE_TEXT[c.cls.reason ?? 'query_failed']}
                 {c.cls.detail && <span> — {c.cls.detail}</span>}
               </p>
             )}
 
             {c.cls.state === 'EMPTY' && (
-              <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', ...wrap }}>{EMPTY_TEXT}</p>
+              <p className="v2-text v2-text--muted">{EMPTY_TEXT}</p>
             )}
 
             {c.cls.state === 'OK' && (
-              <>
-                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-strong)', fontWeight: 500, ...wrap }}>
+              <div className="v2-stack">
+                <p className="v2-lead">
                   {c.headline}
                 </p>
 
-                <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', ...wrap }}>
+                <p className="v2-note v2-tnum">
                   {c.timeLabels?.[0] ?? '시작'} <When iso={c.startedAt} now={now} /> · {c.timeLabels?.[1] ?? '종료'}{' '}
                   {c.finishedAt ? <When iso={c.finishedAt} now={now} /> : (c.pendingEnd ?? '진행중')}
                 </p>
 
                 {c.stale && (
-                  <Notice tone="warning" style={{ marginTop: 12 }}>
+                  <Notice tone="warning">
                     응답 없음 — running 인 채 {c.staleMin}분 미갱신. 돌고 있는 게 아니라 죽었을 수 있다.
                   </Notice>
                 )}
 
-                {c.warn && <Notice tone="warning" style={{ marginTop: 12 }}>{c.warn}</Notice>}
+                {c.warn && <Notice tone="warning">{c.warn}</Notice>}
 
                 {/*
                   스텝 기호 줄과 실패 사유는 접어 둔다 — 카드 4개가 각자 스텝을 펼쳐 놓으면
@@ -508,40 +498,38 @@ export default async function AgentsPage() {
                   헤드라인·상태 배지·시작/종료 시각은 그대로 남는다(위 세 덩어리).
                   경고(응답 없음·풀백 지남)는 접지 않는다 — 그건 지금 봐야 하는 것이다.
                 */}
-                <details className="dgy-details" style={{ marginTop: 12 }}>
+                <details className="dgy-details">
                   <summary>작업 흔적</summary>
-                  <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, margin: '10px 0 0' }}>
-                    <span
-                      aria-label={`스텝 진행 ${c.bar || '없음'}`}
-                      style={{ ...mono, fontSize: 18, letterSpacing: '0.12em', color: 'var(--text-strong)', ...wrap }}
-                    >
+                  <div className="v2-steps">
+                    <span aria-label={`스텝 진행 ${c.bar || '없음'}`} className="v2-steps-bar">
                       {c.bar || '(스텝 없음)'}
                     </span>
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)', ...wrap }}>{c.barLabel}</span>
+                    <span className="v2-note">{c.barLabel}</span>
                   </div>
 
-                  {c.note && <p style={inset}>{c.note}</p>}
+                  {c.note && <p className="v2-inset">{c.note}</p>}
                 </details>
-              </>
+              </div>
             )}
           </Card>
         ))}
       </section>
     </PageShell>
+    </div>
   )
 }
 
 function cell(x: { cls: Classified; count: number; prev?: number | null }) {
   if (x.cls.state === 'UNAVAILABLE') {
-    return <span style={{ fontSize: 13, color: 'var(--danger-fg)' }}>{UNAVAILABLE_TEXT[x.cls.reason ?? 'query_failed']}</span>
+    return <span className="v2-danger-text">{UNAVAILABLE_TEXT[x.cls.reason ?? 'query_failed']}</span>
   }
   // prev 가 undefined(되짚을 기록 없음)·null(되짚기 실패)이면 변화 줄을 그리지 않는다.
   const d = x.prev == null ? null : deltaText(x.count, x.prev)
-  const delta = d && <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>{d}</span>
-  if (x.cls.state === 'EMPTY') return <><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>0건 (조회 정상)</span>{delta}</>
+  const delta = d && <span className="v2-delta">{d}</span>
+  if (x.cls.state === 'EMPTY') return <><span className="v2-text v2-text--muted">0건 (조회 정상)</span>{delta}</>
   return (
     <>
-      <b style={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-strong)' }}>
+      <b className="v2-num">
         {x.count}건
       </b>
       {delta}

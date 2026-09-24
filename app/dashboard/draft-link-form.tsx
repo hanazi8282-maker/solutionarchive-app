@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import { linkDraft, type ActionState } from './actions'
-import { Choice, Field, Input, labelStyle } from '../_ds/components/Field'
+import { Choice, Field, Input } from '../_ds/components/Field'
 import { Button } from '../_ds/components/Button'
 import { REQUIRED, ResultMessage } from './form-ui'
 import { MANUAL_SUGGEST_MIN, candidateMatchesQuery, suggestedCandidates } from '@/lib/threads/match'
@@ -56,13 +56,6 @@ export type UnlinkedThread = {
   why?: string
 }
 
-const rowStyle = {
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--radius-lg)',
-  background: 'var(--surface-card)',
-  padding: 16,
-} as const
-
 function preview(body: string | null) {
   const head = (body ?? '').replace(/\s+/g, ' ').slice(0, 60)
   return `${head}${(body ?? '').length > 60 ? '…' : ''}`
@@ -72,24 +65,16 @@ function DraftRow({ draft }: { draft: DraftOption }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(linkDraft, null)
 
   return (
-    <li style={rowStyle}>
-      <p style={{
-        margin: '0 0 4px', fontSize: 14, fontWeight: 600,
-        color: 'var(--text-strong)', lineHeight: 1.55, overflowWrap: 'anywhere',
-      }}>
+    <li className="v2-panel">
+      <p className="v2-title-sm">
         {preview(draft.body)}
       </p>
-      <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+      <p className="v2-note v2-mb">
         생성 {draft.created_at ? draft.created_at.slice(0, 16).replace('T', ' ') : '날짜없음'}
         {draft.notes ? ` · ${draft.notes.replace(/\s+/g, ' ').slice(0, 60)}` : ''}
       </p>
 
-      <form action={formAction} style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))',
-        gap: 12,
-        alignItems: 'end',
-      }}>
+      <form action={formAction} className="v2-formgrid-sm">
         <input type="hidden" name="draft_id" value={draft.id} />
 
         <Field label={<>Threads 게시물 ID{REQUIRED}</>} htmlFor={`external_id-${draft.id}`}>
@@ -106,20 +91,18 @@ function DraftRow({ draft }: { draft: DraftOption }) {
           <Input id={`permalink-${draft.id}`} name="permalink" type="url" placeholder="https://www.threads.net/@…" />
         </Field>
 
-        <Button type="submit" variant="primary" disabled={pending} style={{ justifySelf: 'start' }}>
+        <Button type="submit" variant="primary" disabled={pending} className="v2-self-start">
           {pending ? '연결 중…' : '연결'}
         </Button>
       </form>
 
-      {state && <ResultMessage state={state} style={{ marginTop: 12 }} />}
+      {state && <ResultMessage state={state} className="v2-mt" />}
     </li>
   )
 }
 
 /** 검색으로 찾은 후보를 한 번에 몇 건까지 그릴지. 넘치면 넘쳤다고 화면에 적는다(§7.2). */
 const FILTER_LIMIT = 15
-
-const noteStyle = { margin: '6px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-muted)' } as const
 
 /** 검색 대상 문자열. 본문 전체가 아니라 화면에 보이는 것만 본다 — 보이는 것으로 찾게 한다. */
 const candidateHaystack = (c: ThreadCandidate) => `${c.code} ${c.createdKst} ${c.preview}`
@@ -136,12 +119,11 @@ function CandidateChoice({ c }: { c: ThreadCandidate }) {
       name="draft_id"
       value={c.id}
       required
-      style={{ display: 'flex', width: '100%' }}
       label={
-        <span style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' }}>
-          <b style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>{c.score.toFixed(3)}</b>
+        <span className="v2-inline">
+          <b className="v2-mono">{c.score.toFixed(3)}</b>
           <span>{c.code}</span>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>초안 {c.createdKst}</span>
+          <span className="v2-note">초안 {c.createdKst}</span>
         </span>
       }
       hint={c.preview || '(본문 없음)'}
@@ -166,50 +148,47 @@ function UnlinkedThreadRow({ t }: { t: UnlinkedThread }) {
     : []
 
   return (
-    <li style={rowStyle}>
-      <p style={{
-        margin: '0 0 4px', fontSize: 14, fontWeight: 600,
-        color: 'var(--text-strong)', lineHeight: 1.55, overflowWrap: 'anywhere',
-      }}>
+    <li className="v2-panel">
+      <p className="v2-title-sm">
         {t.text ? preview(t.text) : '(텍스트 없음)'}
       </p>
-      <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+      <p className="v2-note v2-mb">
         발행 {t.whenKst} · 게시물 ID {t.id}
         {t.why ? ` · ${t.why}` : ''}
         {t.permalink ? <> · <a href={t.permalink} target="_blank" rel="noreferrer">게시물 열기 ↗</a></> : null}
       </p>
 
-      <form action={formAction} style={{ display: 'grid', gap: 14 }}>
+      <form action={formAction} className="v2-stack">
         {/* 게시물 쪽 값은 전부 API 가 준 그대로 보낸다 — 사람이 옮겨 적다 틀릴 자리를 없앤다. */}
         <input type="hidden" name="external_id" value={t.id} />
         <input type="hidden" name="published_at" value={t.timestamp ?? ''} />
         <input type="hidden" name="permalink" value={t.permalink ?? ''} />
         <input type="hidden" name="published_body" value={t.text} />
 
-        <fieldset style={{ margin: 0, padding: 0, border: 0, minWidth: 0 }}>
-          <legend style={{ ...labelStyle, padding: 0 }}>
+        <fieldset className="v2-fieldset">
+          <legend className="v2-label">
             어느 초안의 발행본인가 — 앞 숫자가 본문 유사도(1.000 = 글자까지 같음)
           </legend>
 
           {t.candidates.length === 0 ? (
-            <p style={noteStyle}>연결할 초안이 없습니다 — 고를 대상이 아예 없어 이 게시물은 여기서 연결할 수 없습니다.</p>
+            <p className="v2-note v2-mt-sm">연결할 초안이 없습니다 — 고를 대상이 아예 없어 이 게시물은 여기서 연결할 수 없습니다.</p>
           ) : suggested.length === 0 ? (
             /* 임계값을 넘은 후보가 없다. 빈 목록으로 두면 "고를 게 없다"와 "찾지 못했다"가
                같은 화면이 된다(§7.1). 가장 높은 점수를 함께 적어 사람이 판단하게 한다. */
-            <p style={noteStyle}>
+            <p className="v2-note v2-mt-sm">
               자동으로 후보를 찾지 못했습니다 — 초안 {t.candidates.length}건 중 본문 유사도가{' '}
               {MANUAL_SUGGEST_MIN} 이상인 것이 없습니다(가장 높은 값 {best!.score.toFixed(3)}).
               아래에서 검색해 직접 고르세요. 초안 없이 쓴 글이면 연결하지 말고 두면 됩니다.
             </p>
           ) : (
             <>
-              <p style={noteStyle}>
+              <p className="v2-note v2-mt-sm">
                 유사도 상위 {suggested.length}건 (전체 초안 {t.candidates.length}건 중).
                 점수가 낮아도 같은 글이면 연결하면 됩니다.
               </p>
               {/* 1등을 미리 고르지 않는다(defaultChecked 없음). 저점수 구간에서는 1등이
                   틀릴 수 있고, 미리 골라 두면 확인 없이 누르게 된다. */}
-              <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+              <div className="v2-form v2-mt-sm">
                 {suggested.map(c => <CandidateChoice key={c.id} c={c} />)}
               </div>
             </>
@@ -217,7 +196,7 @@ function UnlinkedThreadRow({ t }: { t: UnlinkedThread }) {
         </fieldset>
 
         {t.candidates.length > 0 && (
-          <div style={{ minWidth: 0 }}>
+          <div className="v2-row-main">
             <Field
               label="위에 없으면 검색해서 고르세요"
               htmlFor={`q-${t.id}`}
@@ -233,15 +212,15 @@ function UnlinkedThreadRow({ t }: { t: UnlinkedThread }) {
             </Field>
 
             {query.trim() && (hits.length === 0 ? (
-              <p style={noteStyle}>
+              <p className="v2-note v2-mt-sm">
                 검색 결과 0건 — 위 추천을 뺀 초안 {t.candidates.length - suggested.length}건 중 일치하는 것이 없습니다.
               </p>
             ) : (
               <>
-                <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+                <div className="v2-form v2-mt-sm">
                   {hits.slice(0, FILTER_LIMIT).map(c => <CandidateChoice key={c.id} c={c} />)}
                 </div>
-                <p style={noteStyle}>
+                <p className="v2-note v2-mt-sm">
                   {hits.length > FILTER_LIMIT
                     ? `${hits.length}건 중 ${FILTER_LIMIT}건만 표시했습니다 — 검색어를 좁히세요.`
                     : `검색 결과 ${hits.length}건.`}
@@ -255,18 +234,18 @@ function UnlinkedThreadRow({ t }: { t: UnlinkedThread }) {
           type="submit"
           variant="primary"
           disabled={pending || !t.timestamp || t.candidates.length === 0}
-          style={{ justifySelf: 'start' }}
+          className="v2-self-start"
         >
           {pending ? '연결 중…' : '연결'}
         </Button>
       </form>
 
       {!t.timestamp && (
-        <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--danger-fg)' }}>
+        <p className="v2-danger-text v2-mt">
           API 가 발행 시각을 주지 않아 여기서 연결할 수 없습니다. 아래 &quot;게시물 ID로 직접 연결&quot;을 쓰세요.
         </p>
       )}
-      {state && <ResultMessage state={state} style={{ marginTop: 12 }} />}
+      {state && <ResultMessage state={state} className="v2-mt" />}
     </li>
   )
 }
@@ -285,10 +264,10 @@ const DEFAULT_INTRO =
 export function UnlinkedThreadList({ items, intro = DEFAULT_INTRO }: { items: UnlinkedThread[]; intro?: string }) {
   return (
     <>
-      <p style={{ margin: '0 0 16px', fontSize: 13, lineHeight: 1.6, color: 'var(--text-muted)' }}>
+      <p className="v2-note v2-mb">
         {intro}
       </p>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+      <ul className="v2-list v2-stack">
         {items.map(t => (
           <UnlinkedThreadRow key={t.id} t={t} />
         ))}
@@ -300,12 +279,12 @@ export function UnlinkedThreadList({ items, intro = DEFAULT_INTRO }: { items: Un
 export default function DraftLinkForm({ drafts }: { drafts: DraftOption[] }) {
   return (
     <>
-      <p style={{ margin: '0 0 16px', fontSize: 13, lineHeight: 1.6, color: 'var(--text-muted)' }}>
+      <p className="v2-note v2-mb">
         매처(/api/threads/match-posts)가 자동으로 연결하지 못한 초안입니다. 본문이 거의 같은
         A/B 변형처럼 텍스트만으로 구분이 안 되는 경우가 대부분이라, 어느 게시물인지는 사람이 지정해야 합니다.
         게시물 ID는 permalink 끝의 코드가 아니라 Threads API가 주는 숫자 ID입니다.
       </p>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+      <ul className="v2-list v2-stack">
         {drafts.map(d => (
           <DraftRow key={d.id} draft={d} />
         ))}

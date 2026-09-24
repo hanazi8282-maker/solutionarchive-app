@@ -8,6 +8,7 @@ import {
   decidePurge,
   planPurge,
   purgePatch,
+  withoutReason,
   purgeLine,
   RETENTION_DAYS,
 } from '../lib/review/purge.ts'
@@ -118,7 +119,19 @@ t(
   const p = purgePatch(NOW)
   t('패치: raw_text 를 null 로', p.raw_text, null)
   t('패치: purged_at 을 같이 쓴다', p.purged_at, NOW.toISOString())
-  t('패치: 두 필드뿐', Object.keys(p).sort().join(','), 'purged_at,raw_text')
+  t('패치: purge_reason=retention 을 같이 쓴다', p.purge_reason, 'retention')
+  t('패치: 세 필드뿐', Object.keys(p).sort().join(','), 'purge_reason,purged_at,raw_text')
+  // 중복 정리로 이미 찍힌 행 — purged_at·purge_reason 을 덮지 않는다
+  const q = purgePatch(NOW, true)
+  t('이미 폐기 표시된 행: 원문만 비운다', Object.keys(q).join(','), 'raw_text')
+  // 컬럼 미적용 폴백 — purge_reason 만 빠지고 purged_at 은 남는다(제약 만족)
+  const w = withoutReason(p)
+  t('폴백: purge_reason 제거', Object.keys(w).sort().join(','), 'purged_at,raw_text')
+  t('폴백: 원본 패치는 그대로', p.purge_reason, 'retention')
+}
+{
+  const plan = planPurge([row({ id: 'x' }), row({ id: 'y', purged_at: daysAgo(1) })], NOW)
+  t('계획: alreadyPurged 구분', plan.purge.map((p) => `${p.id}:${p.alreadyPurged}`).join(','), 'x:false,y:true')
 }
 
 // ── 보고 줄 — 정상이면 줄이 없다 ──────────────────────────────────

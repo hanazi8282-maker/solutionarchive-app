@@ -4,7 +4,7 @@
 // 고정하는 것: 짝의 4조건(같은 병목·레버 / 방향 반대 / 케이스 다름 / 양쪽 승인) ·
 // §7.1 3상태 · SaaS 짝 0일 때의 문구(가짜로 채우지 않는다).
 
-import { pairMoves, saasPairNotice } from '../lib/cases/compare.ts'
+import { pairMoves, pairsForMoves, saasPairNotice } from '../lib/cases/compare.ts'
 
 let pass = 0
 let fail = 0
@@ -69,6 +69,20 @@ const STUDIES = [
   t('조회 실패 → not_run', nr.status, 'not_run')
   ok('not_run 사유가 "확인 불가"', nr.reason.includes('확인 불가'))
   t('SaaS 0일 때 문구', saasPairNotice(3), 'SaaS 비교 사례 축적 중 — 지금은 소비재 짝 3묶음')
+}
+
+// ── 5. 리포트용 좁히기(pairsForMoves) — 내 매칭과 같은 병목·레버만 ──────────
+{
+  const saasStudies = [...STUDIES, S('c7', 'SAAS')]
+  const all = pairMoves(saasStudies, [M('f1', 'c3', 'positive'), M('f2', 'c7', 'negative'), M('f3', 'c1', 'positive', 'PRICING'), M('f4', 'c2', 'negative', 'PRICING')])
+  const hit = pairsForMoves(all, [{ case_study_id: 'c1', lever: 'PRICING' }], saasStudies)
+  t('좁히기: 같은 병목·레버 1묶음만 남는다', hit.pairs.length, 1)
+  t('좁히기: 남은 묶음 키', hit.pairs[0]?.key, 'TRUST|PRICING')
+  const miss = pairsForMoves(all, [{ case_study_id: 'c1', lever: 'CONTENT' }], saasStudies)
+  t('좁히기: 겹치는 짝이 없으면 no_match', miss.status, 'no_match')
+  ok('좁히기: 0묶음 사유에 코퍼스 전체 묶음 수를 밝힌다', miss.reason.includes('코퍼스 전체로는 2묶음'))
+  t('좁히기: 매칭 무브 0장이면 no_match', pairsForMoves(all, [], saasStudies).status, 'no_match')
+  t('좁히기: 조회 실패는 not_run 그대로', pairsForMoves(pairMoves(null, null), [], null).status, 'not_run')
 }
 
 console.log(fail === 0 ? `\n통과 ${pass}건\n성공/실패 비교 정상 — 짝 4조건 · 3상태 · SaaS 축적 중 문구.` : `\n통과 ${pass}건, 실패 ${fail}건`)

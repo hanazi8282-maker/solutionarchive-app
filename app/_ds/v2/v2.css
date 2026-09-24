@@ -1,0 +1,266 @@
+/* ============================================================
+   M2 내부 화면 v2 레이어 (남헌 2026-09-24 5차 판단 3번).
+   `/agents` `/discovery` `/dashboard` `/columns` `/cases/grade` 5화면만 입는다.
+
+   왜 `_ds/tokens/` 가 아니라 여기인가 — 실측(2026-09-24):
+     `scripts/pub-tokens-overlap-selftest.mjs` 는 `_ds/styles.css` + `_ds/tokens/*.css` 를
+     "승계하면 안 되는 두더지웍스 값" 집합으로 읽고 **이름이 아니라 값**을 센다. v2 값을
+     `_ds/tokens/` 에 별도 이름(`--v2-*`)으로 넣어도 `_pub` 와 5건이 겹쳐 CI 가 빨강이 된다.
+     그래서 v2 값은 이 디렉터리에만 살고, 같은 스크립트의 M2 그룹이 "이 파일 + 5화면" 이
+     `_ds` 옛 값과 겹치지 않는지를 따로 센다(겹침 0 을 M1 과 같은 기계가 지킨다).
+
+   값의 출처: `app/_pub/tokens.css` 라이트 테마(레퍼런스 실측 v2)를 그대로 옮겼다.
+     ponytail: 값 두 벌(여기·_pub). `_pub` 는 `.pub-root` 스코프라 이 화면에 끌어오면
+       pub.css 규칙까지 따라온다. _pub 값이 바뀌면 여기도 같이 고친다.
+   예외 1건: 캡션 회색 `#6e6e73`. _pub 의 `#909094` 는 흰 바탕 3.2:1 로 AA 미달이고,
+     내부 화면은 11~13px 캡션이 본문의 절반이라 그대로 쓰면 읽히지 않는다(5.1:1).
+
+   어떻게 쓰나: 화면 최상위를 `<div className="sa-v2">` 로 감싼다. 그 안에서는 `_ds`
+   컴포넌트(Card·Badge·Notice·StatTile·Button)가 이미 읽는 변수가 v2 값으로 다시 가리켜진다
+   — 컴포넌트 파일은 고치지 않는다(나머지 9화면 회귀 격리). 새 모양은 아래 `.v2-*` 클래스.
+   ============================================================ */
+
+.sa-v2 {
+  /* ── 원시값 (출처 [A] Atria · [T] Trend Seeker · [F] Foreplay — _pub/README 토큰 표) ── */
+  --v2-canvas: #fbfbfd;
+  --v2-surface: #ffffff;
+  --v2-surface-2: #f0f1f9;
+  --v2-edge: #e6e6e6;
+  --v2-ink: #000000;
+  --v2-ink-muted: #6e6e73; /* AA 예외 — 위 머리말 */
+  --v2-ink-faint: #b3b3b8; /* 장식용만(구분선·비활성) */
+  --v2-accent: #1d4ed8;    /* 남헌 확정·변경 금지 */
+  --v2-accent-hover: #1e40af;
+  --v2-ink-hover: #2a2a2e;
+  --v2-pos: #396c00;
+  --v2-pos-bg: #e9ffd2;
+  --v2-pos-edge: rgba(57, 108, 0, 0.25);
+  --v2-neg: #e58b73;
+  --v2-neg-bg: #fff1ec;
+  --v2-neg-edge: rgba(229, 139, 115, 0.45);
+  --v2-mix: #e2b866;
+  --v2-mix-bg: #fff7e0;
+  --v2-mix-edge: rgba(226, 184, 102, 0.5);
+  --v2-round-card: 20px;
+  --v2-round-control: 10px;
+  --v2-round-banner: 24px;
+  --v2-round-pill: 100px;
+  --v2-lift-rest: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --v2-lift-hover: 0 1px 6px rgba(0, 0, 0, 0.18);
+  --v2-lift-float: 0 4px 20px rgba(0, 0, 0, 0.03);
+  --v2-ease: cubic-bezier(0.19, 1, 0.22, 1);
+
+  /* ── `_ds` 의미 별칭을 v2 로 다시 가리킨다 ── */
+  --font-sans: var(--font-inter), var(--font-pretendard), sans-serif;
+  --font-mono: ui-monospace, "SF Mono", monospace;
+
+  --bg-app: var(--v2-canvas);
+  --surface-card: var(--v2-surface);
+  --surface-muted: var(--v2-surface-2);
+  --surface-sunken: var(--v2-canvas);
+  --text-strong: var(--v2-ink);
+  --text-body: var(--v2-ink);
+  --text-muted: var(--v2-ink-muted);
+  --text-faint: var(--v2-ink-faint);
+  --text-link: var(--v2-accent);
+  --border: var(--v2-edge);
+  --border-strong: var(--v2-ink-faint);
+  --ring: var(--v2-accent);
+
+  --brand: var(--v2-accent);
+  --brand-hover: var(--v2-accent-hover);
+  --brand-fg: var(--v2-surface);
+  --primary: var(--v2-accent);
+  --primary-hover: var(--v2-accent-hover);
+  --primary-fg: var(--v2-surface);
+  --neutral-btn: var(--v2-ink);
+  --neutral-btn-hover: var(--v2-ink-hover);
+  --neutral-btn-fg: var(--v2-surface);
+
+  /* 판정 색 — 코랄·앰버는 제 바탕 위 글자 대비가 안 나와 글자는 잉크, 색은 선에만. */
+  --danger: var(--v2-neg);
+  --danger-fg: var(--v2-ink);
+  --danger-bg: var(--v2-neg-bg);
+  --danger-border: var(--v2-neg-edge);
+  --warning: var(--v2-mix);
+  --warning-fg: var(--v2-ink);
+  --warning-bg: var(--v2-mix-bg);
+  --warning-border: var(--v2-mix-edge);
+  --success: var(--v2-pos);
+  --success-fg: var(--v2-pos);
+  --success-bg: var(--v2-pos-bg);
+  --success-border: var(--v2-pos-edge);
+  --info: var(--v2-accent);
+  --info-fg: var(--v2-accent);
+  --info-bg: var(--v2-surface-2);
+  --info-border: var(--v2-edge);
+  --sent-pos: var(--v2-pos);
+  --sent-neg: var(--v2-neg);
+  --sent-neutral: var(--v2-ink-muted);
+  --sent-mixed: var(--v2-mix);
+
+  /* 컴포넌트가 원시 램프를 직접 읽는 자리(Badge neutral·violet, Button hover) */
+  --slate-50: var(--v2-canvas);
+  --slate-100: var(--v2-surface-2);
+  --slate-200: var(--v2-edge);
+  --slate-400: var(--v2-ink-faint);
+  --slate-500: var(--v2-ink-muted);
+  --slate-600: var(--v2-ink-muted);
+  --violet-50: var(--v2-surface-2);
+  --violet-100: var(--v2-edge);
+  --violet-500: var(--v2-accent);
+  --violet-600: var(--v2-accent);
+  --red-600: var(--v2-neg);
+
+  /* 반경 — 카드 20 · 컨트롤 10 · 배너 24 · 알약 100px [A][F] */
+  --radius-sm: var(--v2-round-control);
+  --radius-md: var(--v2-round-control);
+  --radius-lg: var(--v2-round-card);
+  --radius-xl: var(--v2-round-banner);
+  --radius-full: var(--v2-round-pill);
+
+  /* 그림자 — 기본은 거의 없음 [F], 카드만 얕게 [A]. 포커스 링은 outline 으로(아래). */
+  --shadow-xs: var(--v2-lift-rest);
+  --shadow-sm: var(--v2-lift-rest);
+  --shadow-md: var(--v2-lift-float);
+  --shadow-lg: var(--v2-lift-hover);
+  --shadow-focus: none;
+
+  --ease-standard: var(--v2-ease);
+  --ease-out: var(--v2-ease);
+  --dur-fast: 150ms;
+  --dur-base: 150ms;
+  --dur-slow: 220ms;
+
+  /* 타입 — head 28/600 · head-sm 22 · text-sm 15 · caption 13 [A][T] */
+  --fs-h1: 28px;
+  --fs-h2: 22px;
+  --fs-h3: 17px;
+  --fs-md: 16px;
+  --fs-base: 15px;
+  --fs-sm: 14px;
+  --fs-xs: 13px;
+  --fs-2xs: 12px;
+  --fw-bold: 600;
+  --ls-tight: -0.015em;
+  --lh-tight: 1.25;
+  --lh-normal: 1.55;
+  --lh-relaxed: 1.6;
+  --card-pad: 24px;
+
+  min-height: 100vh;
+  background: var(--bg-app);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+}
+
+/* 포커스 — box-shadow 링 대신 outline 2px(M1 과 같은 규칙). */
+.sa-v2 :focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--v2-accent);
+  outline-offset: 2px;
+}
+.sa-v2 .dgy-field:focus { outline: 2px solid var(--v2-accent); outline-offset: 1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-v2 { --dur-fast: 0ms; --dur-base: 0ms; --dur-slow: 0ms; }
+}
+
+/* ── 공용 조각 (5화면이 같이 쓴다) ───────────────────────── */
+.v2-wrap { overflow-wrap: anywhere; }
+.v2-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.v2-tnum { font-variant-numeric: tabular-nums; }
+.v2-muted { color: var(--text-muted); }
+.v2-strong { color: var(--text-strong); }
+.v2-note { margin: 0; font-size: var(--fs-xs); line-height: 1.5; color: var(--text-muted); overflow-wrap: anywhere; }
+.v2-text { margin: 0; font-size: var(--fs-sm); line-height: var(--lh-normal); color: var(--text-body); overflow-wrap: anywhere; }
+.v2-text--muted { color: var(--text-muted); }
+.v2-lead { margin: 0; font-size: var(--fs-sm); font-weight: 500; color: var(--text-strong); overflow-wrap: anywhere; }
+.v2-link { font-size: var(--fs-sm); }
+.v2-stack { display: grid; gap: 12px; }
+.v2-h2 { margin: 0; font-size: var(--fs-h3); font-weight: 600; letter-spacing: var(--ls-tight); color: var(--text-strong); }
+.v2-badges { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.v2-inset {
+  margin: 0; padding: 10px 12px; font-size: var(--fs-xs); line-height: 1.55;
+  background: var(--surface-muted); color: var(--text-body);
+  border-radius: var(--radius-md); overflow-wrap: anywhere;
+}
+/* Card 는 배경을 인라인 var(--surface-card) 로 읽는다 — 요소에서 변수만 바꾸면 인라인도 따라온다. */
+.v2-card--muted { --surface-card: var(--surface-muted); }
+/* 경고·실패 글자 — 코랄·앰버는 글자색으로 대비가 안 나와 잉크 글자 + 색 선으로 말한다. */
+.v2-warn-text { color: var(--text-strong); font-weight: 600; text-decoration: underline; text-decoration-color: var(--v2-mix); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.v2-danger-text { display: inline-block; padding-left: 8px; border-left: 3px solid var(--v2-neg); font-size: var(--fs-xs); color: var(--text-strong); }
+
+/* 목록 행 (사람 대기함 등) */
+.v2-list { list-style: none; margin: 0; padding: 0; }
+.v2-row {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  min-height: var(--row-h); padding: 14px 24px;
+}
+.v2-row + .v2-row { border-top: 1px solid var(--border); }
+.v2-row-main { min-width: 0; }
+.v2-row-title { font-size: var(--fs-sm); font-weight: 500; color: var(--text-strong); overflow-wrap: anywhere; }
+.v2-row-sub { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-muted); overflow-wrap: anywhere; }
+.v2-row-extra { margin-top: 6px; }
+.v2-row-end { text-align: right; overflow-wrap: anywhere; }
+.v2-num { display: block; font-size: var(--fs-h2); font-weight: 600; letter-spacing: var(--ls-tight); font-variant-numeric: tabular-nums; color: var(--text-strong); }
+.v2-delta { display: block; font-size: var(--fs-2xs); color: var(--text-muted); }
+
+/* ── /agents ────────────────────────────────────────────── */
+.v2-steps { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.v2-steps-bar { font-family: var(--font-mono); font-size: 18px; letter-spacing: 0.12em; color: var(--text-strong); overflow-wrap: anywhere; }
+.v2-steps + .v2-inset { margin-top: 12px; }
+
+/* ── 공용 조각 2 (/discovery 부터) ───────────────────────── */
+.v2-stack-tight { display: grid; gap: 4px; }
+.v2-dim { opacity: 0.72; }
+.v2-chiprow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.v2-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.v2-push { margin-left: auto; }
+.v2-h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; letter-spacing: var(--ls-tight); color: var(--text-strong); overflow-wrap: anywhere; }
+.v2-link-plain { color: inherit; }
+.v2-body { margin: 0; font-size: var(--fs-sm); line-height: 1.7; overflow-wrap: anywhere; }
+.v2-pre { white-space: pre-wrap; font-family: inherit; }
+.v2-box { display: grid; gap: 4px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-muted); }
+.v2-form { display: grid; gap: 8px; }
+/* 파괴 버튼 — Button destructive 는 var(--danger) 위에 흰 글자를 박는다. v2 의 코랄은 흰 글자 대비가
+   2.5:1 이라 버튼 요소에서만 잉크로 되돌린다(뜻은 버튼 글자 "무효화·기각"이 말한다). */
+.v2-btn-danger { --danger: var(--v2-ink); --red-600: var(--v2-ink-hover); }
+
+/* ── /dashboard (폼·패널) ───────────────────────────────── */
+.v2-stack-lg { display: grid; gap: 16px; }
+.v2-panel { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-card); padding: 16px 20px; min-width: 0; }
+.v2-title-sm { margin: 0 0 4px; font-size: var(--fs-sm); font-weight: 600; line-height: 1.55; color: var(--text-strong); overflow-wrap: anywhere; }
+.v2-summary { cursor: pointer; font-size: var(--fs-xs); }
+.v2-line { padding: 8px 0; border-top: 1px solid var(--border); font-size: var(--fs-xs); overflow-wrap: anywhere; }
+.v2-bullets { margin: 0; padding: 0 0 0 18px; font-size: var(--fs-2xs); color: var(--text-muted); }
+.v2-bullet-err { color: var(--text-strong); font-weight: 600; }
+.v2-inline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.v2-fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.v2-label { padding: 0; font-size: var(--fs-2xs); font-weight: 500; line-height: 1.4; color: var(--text-muted); }
+.v2-legend { margin-bottom: 8px; }
+.v2-req { font-weight: 600; color: var(--text-strong); }
+.v2-self-start { justify-self: start; }
+/* 2열 폼 — 좁은 화면에서 1열. min(100%, …) 가 없으면 최소폭보다 좁을 때 가로 스크롤. */
+.v2-formgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; align-items: start; }
+.v2-formgrid-sm { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 12px; align-items: end; }
+.v2-span2 { grid-column: 1 / -1; }
+/* 여백 — 위 클래스들이 margin:0 을 먼저 선언하므로 반드시 이 뒤에 둔다. */
+.v2-mt-sm { margin-top: 8px; }
+.v2-mt { margin-top: 12px; }
+.v2-mb { margin-bottom: 12px; }
+
+/* ── /columns ───────────────────────────────────────────── */
+.v2-nosel { user-select: none; }
+.v2-summary-lg { cursor: pointer; margin: 4px 0; font-size: var(--fs-sm); font-weight: 500; color: var(--text-strong); }
+
+/* ── /cases/grade ───────────────────────────────────────── */
+.v2-claim { margin: 0; font-size: var(--fs-sm); color: var(--text-strong); overflow-wrap: anywhere; cursor: pointer; }
+.v2-clamp1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+/* 주의 표시 — 앰버는 글자 대비가 안 나와 왼쪽 선으로만 쓰고 글자는 잉크. */
+.v2-flag { padding-left: 8px; border-left: 3px solid var(--v2-mix); color: var(--text-strong); }
+.v2-field-inline { display: flex; align-items: center; gap: 6px; }
+.v2-divided { border-top: 1px solid var(--border); padding-top: 12px; }
+.v2-callout { display: grid; gap: 6px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-muted); border: 2px solid var(--border-strong); }

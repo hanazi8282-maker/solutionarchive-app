@@ -84,3 +84,33 @@ export function pairMoves(
     saas_pairs,
   }
 }
+
+/**
+ * 매칭 리포트(/cases/report)용 — 갈린 짝을 **내 아이디어에 매칭된 무브와 같은 병목·레버**로만 좁힌다.
+ *
+ * /cases/search 는 코퍼스 전체 짝을 보여준다(질의와 무관하다고 화면이 밝힌다). 리포트는 "내 아이디어에
+ * 대한 한 장"이라 무관한 짝을 섞으면 내 아이디어의 대조로 읽힌다. 그래서 여기서 좁히고, 0이면
+ * 코퍼스 전체 묶음 수를 같이 적어 "짝이 아예 없다"와 "내 것과 겹치는 짝이 없다"를 가른다(§7.1).
+ */
+export function pairsForMoves(
+  all: PairResult,
+  moveCards: { case_study_id: string; lever: string }[],
+  studies: StudyRow[] | null | undefined,
+): PairResult {
+  if (all.status !== 'matched') return all
+  const byId = new Map((studies ?? []).map((s) => [s.id, s]))
+  const keys = new Set(moveCards.flatMap((c) => {
+    const s = byId.get(c.case_study_id)
+    return s ? [`${s.bottleneck}|${c.lever}`] : []
+  }))
+  const pairs = all.pairs.filter((p) => keys.has(p.key))
+  const saas_pairs = pairs.filter((p) => p.saas).length
+  if (pairs.length === 0) {
+    return {
+      status: 'no_match',
+      reason: `매칭된 무브와 같은 병목·레버로 갈린 짝이 0묶음이다 (코퍼스 전체로는 ${all.pairs.length}묶음)`,
+      pairs, saas_pairs,
+    }
+  }
+  return { status: 'matched', reason: `내 매칭과 같은 병목·레버의 갈린 짝 ${pairs.length}묶음 (SaaS 끼리 ${saas_pairs}묶음)`, pairs, saas_pairs }
+}

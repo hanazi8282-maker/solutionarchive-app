@@ -16,7 +16,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
-import { pickGradingSample } from '../lib/analysis/relevance-judge.ts'
+import { impactFrequencyTags, pickGradingSample } from '../lib/analysis/relevance-judge.ts'
 
 const args = process.argv.slice(2)
 const dry = args.includes('--dry')
@@ -35,7 +35,8 @@ if (!supabase) { console.error('✗ DB 연결 실패 — NEXT_PUBLIC_SUPABASE_UR
 // 모집단 = 아직 사람이 채점하지 않은 관련/무관 판정.
 const { data: verdicts, error } = await supabase
   .from('review_relevance_verdicts')
-  .select('input_id, project_id, verdict, reason')
+  // '*' — T2 라벨 컬럼(20260930000014)이 아직 없는 DB 에서도 죽지 않게 이름을 부르지 않는다.
+  .select('*')
   .in('verdict', ['relevant', 'irrelevant'])
   .is('human_verdict', null)
 if (error) { console.error(`✗ 판정 조회 실패: ${error.code ?? ''} ${error.message}`); process.exit(2) }
@@ -72,6 +73,7 @@ const pool = verdicts
     input_id: v.input_id,
     verdict: v.verdict,
     reason: v.reason,
+    tags: impactFrequencyTags(v),
     project: projectById.get(v.project_id) ?? '(프로젝트 미상)',
     text: textById.get(v.input_id),
   }))
@@ -98,7 +100,7 @@ const lines = [
   '| # | 프로젝트 | 리뷰 원문 | 관련 ☐ | 무관 ☐ | 모델 판정 | 키 |',
   '|---|---|---|---|---|---|---|',
   ...sample.map((r, i) =>
-    `| ${i + 1} | ${md(cut(r.project, 30))} | ${md(cut(r.text, 400))} | ☐ | ☐ | ${r.verdict === 'relevant' ? '관련' : '무관'}${r.reason ? ` (${md(cut(r.reason, 60))})` : ''} | \`${r.input_id}\` |`,
+    `| ${i + 1} | ${md(cut(r.project, 30))} | ${md(cut(r.text, 400))} | ☐ | ☐ | ${r.verdict === 'relevant' ? '관련' : '무관'}${r.reason ? ` (${md(cut(r.reason, 60))})` : ''}${r.tags.map((g) => ` · ${g}`).join('')} | \`${r.input_id}\` |`,
   ),
   '',
 ]

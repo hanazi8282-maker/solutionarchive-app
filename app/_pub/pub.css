@@ -478,35 +478,6 @@
 .pub-choice-cta .pub-icon { transition: transform var(--pub-motion-move) var(--pub-ease); }
 .pub-choice:hover .pub-choice-cta .pub-icon { transform: translateX(2px); }
 
-/* ── 칼럼 목록 카드 ───────────────────────────────────── */
-.pub-column-list { display: flex; flex-direction: column; gap: var(--pub-gap-3); }
-.pub-column-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pub-gap-2);
-  padding: var(--pub-pad-card);
-  background: var(--pub-island);
-  color: var(--pub-island-ink);
-  border: 1px solid var(--pub-island-edge);
-  border-radius: var(--pub-round-card);
-  box-shadow: var(--pub-lift-rest);
-  min-width: 0;
-  transition: box-shadow var(--pub-motion-move) var(--pub-ease);
-}
-.pub-column-card:hover { box-shadow: var(--pub-lift-hover); }
-.pub-column-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pub-gap-2); }
-.pub-column-card-title {
-  font-size: var(--pub-size-text);
-  font-weight: var(--pub-weight-strong);
-  line-height: var(--pub-leading-head-sm);
-  color: var(--pub-island-ink);
-  overflow-wrap: anywhere;
-}
-/* 카드 안은 흰 섬이므로 본문 글자색도 섬 기준으로 되돌린다. */
-.pub-column-card .pub-text { color: var(--pub-island-ink-muted); }
-.pub-column-card .pub-caption { color: var(--pub-island-ink-muted); }
-.pub-column-card .pub-chip { border-color: var(--pub-island-edge); color: var(--pub-island-ink-muted); background: var(--pub-island); }
-
 /* ── 긴 글 본문 (renderMarkdown 결과) ─────────────────── */
 .pub-article {
   max-width: var(--pub-measure);
@@ -555,7 +526,6 @@
 .pub-article th, .pub-article td { padding: var(--pub-gap-2) var(--pub-gap-3); border: 1px solid var(--pub-edge); text-align: left; }
 
 @media (min-width: 768px) {
-  .pub-column-card-title { font-size: var(--pub-size-head-sm); letter-spacing: var(--pub-tracking-head-sm); }
   .pub-article h2 { font-size: var(--pub-size-head); letter-spacing: var(--pub-tracking-head); }
   .pub-article h3 { font-size: var(--pub-size-head-sm); }
 }
@@ -766,6 +736,8 @@
   color: var(--pub-ink-muted);
 }
 .pub-card-brand { font-weight: var(--pub-weight-strong); color: var(--pub-ink); }
+/* 메타 줄 끝 "읽기 →" — 오른쪽으로 민다(칼럼 카드). */
+.pub-card-go { margin-left: auto; display: inline-flex; align-items: center; gap: var(--pub-gap-1); color: var(--pub-accent); }
 
 /* ── 브랜드 썸네일 (듀오톤 + 파비콘) ─────────────────────── */
 .pub-logo {

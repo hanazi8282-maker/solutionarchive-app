@@ -397,3 +397,10 @@
 .v2-detail--ok { border-left-color: var(--success); }
 /* 저장 바 — 긴 목록을 스크롤하는 중에도 바닥에 붙는다. */
 .v2-savebar { position: sticky; bottom: 12px; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-card); box-shadow: var(--shadow-md); }
+
+/* ── /cases (검수) ─────────────────────────────────────── */
+.v2-block-link { display: inline-block; margin-top: 4px; }
+.v2-vrule { width: 1px; height: 20px; margin: 0 2px; background: var(--border); }
+.v2-decision-move { display: grid; gap: 8px; padding: 10px 12px; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-card); }
+.v2-radio { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); }
+.v2-neg-line { padding-left: 8px; border-left: 3px solid var(--v2-neg); }

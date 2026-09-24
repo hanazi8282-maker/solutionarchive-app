@@ -26,7 +26,7 @@ export function DecisionForm({ kind, id, locked, approveWarning, transferability
   const what = kind === 'move' ? '무브' : '케이스'
 
   return (
-    <form action={action} style={{ display: 'grid', gap: 8 }}>
+    <form action={action} className="v2-form">
       <input type="hidden" name="id" value={id} />
       <Textarea
         name="note"
@@ -38,16 +38,16 @@ export function DecisionForm({ kind, id, locked, approveWarning, transferability
         placeholder="반려 사유 (반려 시 필수) · 승인 메모 (선택)"
       />
       {approveWarning && (
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--warning-fg)', overflowWrap: 'anywhere' }}>승인 시 주의 — {approveWarning}</p>
+        <p className="v2-note v2-flag">승인 시 주의 — {approveWarning}</p>
       )}
       {/* 이식성 — 승인 단위가 무브라 무브 폼에만 있다. **미선택도 승인된다.**
           판정을 필수로 걸면 검수가 더 밀린다. 미선택은 "낮음"이 아니라 "미판정"이다. */}
       {kind === 'move' && (
-        <fieldset style={{ margin: 0, padding: 0, border: 0, display: 'grid', gap: 4 }}>
-          <legend style={{ padding: 0, fontSize: 12, fontWeight: 600 }}>이식성 — 이 무브를 독자가 자기 상황에 옮길 수 있나</legend>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <fieldset className="v2-fieldset v2-stack-tight">
+          <legend className="v2-label v2-strong">이식성 — 이 무브를 독자가 자기 상황에 옮길 수 있나</legend>
+          <div className="v2-actions">
             {TRANSFERABILITY.map((v) => (
-              <label key={v} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+              <label key={v} className="v2-radio">
                 <input
                   type="radio"
                   name="transferability"
@@ -60,23 +60,23 @@ export function DecisionForm({ kind, id, locked, approveWarning, transferability
               </label>
             ))}
           </div>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+          <p className="v2-note">
             {transferabilityLocked
               ? '이식성 축 미적용(마이그 20260915000001) — 지금은 고를 수 없다. 승인은 그대로 된다.'
               : transfer ? '승인할 때 함께 저장됩니다.' : TRANSFERABILITY_UNRATED_HINT}
           </p>
         </fieldset>
       )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+      <div className="v2-actions">
         {/* 누른 버튼의 name/value 가 FormData 의 decision 이 된다. 서버가 값을 다시 검증한다. */}
         <Button type="submit" name="decision" value="approved" variant="primary" size="sm" disabled={off}>
           {what} 승인
         </Button>
-        <Button type="submit" name="decision" value="rejected" variant="destructive" size="sm" disabled={off || !note.trim()}>
+        <Button type="submit" name="decision" value="rejected" variant="destructive" size="sm" className="v2-btn-danger" disabled={off || !note.trim()}>
           {what} 반려
         </Button>
-        {pending && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>저장 중…</span>}
-        {!locked && !note.trim() && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>반려하려면 사유를 적는다</span>}
+        {pending && <span className="v2-note">저장 중…</span>}
+        {!locked && !note.trim() && <span className="v2-note">반려하려면 사유를 적는다</span>}
       </div>
       {state && <Notice tone={state.ok ? 'success' : 'danger'}>{state.message}</Notice>}
     </form>

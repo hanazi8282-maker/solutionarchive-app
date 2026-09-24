@@ -1,0 +1,23 @@
+{
+  "_doc": "자동집계 공개 대시보드 allowlist — 결제사(Stripe 등)에서 직접 끌어와 집계하는 공개 매출 페이지. 여기 URL 인 자기보고 1차 근거는 사실확인 A (lib/cases/draft.ts factCheckGrade, 남헌 2026-09-25 결정 5번 = 9/23 Q5 채택). 실제로 확인한 패턴만 넣는다. host 가 '*.' 로 시작하면 서브도메인 전부, exclude_hosts 는 대시보드가 아닌 호스트(제품 앱·데모·문서).",
+  "dashboards": [
+    {
+      "name": "Baremetrics Open Startups",
+      "host": "*.baremetrics.com",
+      "exclude_hosts": ["baremetrics.com", "www.baremetrics.com", "app.baremetrics.com", "demo.baremetrics.com", "help.baremetrics.com", "docs.baremetrics.com", "status.baremetrics.com"],
+      "source": "https://baremetrics.com/open-startups (목록이 <회사>.baremetrics.com 으로 링크: rb2b·friendly·grokability-stats 등). Stripe·Braintree·Recurly 에서 직접 끌어온다: https://baremetrics.com/blog/open-startups",
+      "checked_at": "2026-09-25"
+    },
+    {
+      "name": "TrustMRR",
+      "host": "trustmrr.com",
+      "path_prefix": "/startup/",
+      "source": "https://trustmrr.com — 'All revenue is verified through supported payment providers like Stripe, RevenueCat, Superwall, and Creem. Data is updated hourly.' 개별 페이지 trustmrr.com/startup/<slug>",
+      "checked_at": "2026-09-25"
+    }
+  ],
+  "rejected": [
+    { "name": "ProfitWell", "why": "공개 대시보드 링크 기능이 확인되지 않음 (2026-09-25 조사)" },
+    { "name": "ChartMogul", "why": "호스팅 공개 페이지가 없다 — Ghost 는 자사 사이트(ghost.org/about)에 API 로 직접 그린다. 회사가 렌더링하므로 URL 패턴으로 '결제사 집계'를 보장할 수 없다. https://chartmogul.com/blog/ghost-chartmogul-dashboard/" }
+  ]
+}

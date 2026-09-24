@@ -128,6 +128,9 @@ export function briefText(brand = '<브랜드>', market = null) {
      조사하면 틀린 숫자를 쌓는다 — 듀오링고에서 실제로 그럴 뻔했다.
   3. 추정치("Sacra 추정", "업계 추산", "~로 알려졌다")는 실측이 아니다.
      반드시 is_estimate=true 로 표시한다.
+     ★ 창업자가 링크한 결제사 자동집계 공개 대시보드(<회사>.baremetrics.com,
+     trustmrr.com/startup/…)는 primary + 자기보고 + URL 그대로. 목록은
+     config/open-dashboards.json 이고, 거기 있으면 등급은 코드가 올린다.
   4. **\`observation_key\` 를 채운다.** 독립은 도메인 수가 아니라 원 관측 수로
      센다. 같은 보도자료를 받아쓴 기사 5개는 출처 1개다.
   5. published_at 은 원문 게시일이다. 모르면 비우되 **비우기 전에 한 번은 찾아봐라.**

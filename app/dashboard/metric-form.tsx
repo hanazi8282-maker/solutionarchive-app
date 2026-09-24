@@ -2,9 +2,9 @@
 
 import { useActionState } from 'react'
 import { createSnapshot, type ActionState } from './actions'
-import { Choice, Field, Input, Select, labelStyle } from '../_ds/components/Field'
+import { Choice, Field, Input, Select } from '../_ds/components/Field'
 import { Button } from '../_ds/components/Button'
-import { REQUIRED, ResultMessage, formGrid, span2 } from './form-ui'
+import { REQUIRED, ResultMessage } from './form-ui'
 
 export type PostOption = {
   id: string
@@ -31,8 +31,9 @@ export default function MetricForm({ posts }: { posts: PostOption[] }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createSnapshot, null)
 
   return (
-    <form action={formAction} style={formGrid}>
-      <Field label={<>대상 글 (post){REQUIRED}</>} htmlFor="post_id" style={span2}>
+    <form action={formAction} className="v2-formgrid">
+      <div className="v2-span2">
+      <Field label={<>대상 글 (post){REQUIRED}</>} htmlFor="post_id">
         <Select id="post_id" name="post_id" defaultValue="" required>
           <option value="">— 선택하세요 —</option>
           {posts.map(p => (
@@ -42,12 +43,13 @@ export default function MetricForm({ posts }: { posts: PostOption[] }) {
           ))}
         </Select>
       </Field>
+      </div>
 
-      <fieldset style={{ ...span2, border: 'none', margin: 0, padding: 0, minWidth: 0 }}>
-        <legend style={{ ...labelStyle, padding: 0, marginBottom: 8 }}>
+      <fieldset className="v2-fieldset v2-span2">
+        <legend className="v2-label v2-legend">
           발행 후 경과 (hours_since_publish){REQUIRED}
         </legend>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div className="v2-actions">
           {[1, 24, 168].map(h => (
             <Choice key={h} type="radio" name="hours_since_publish" value={h} required label={`${h}시간`} />
           ))}
@@ -60,13 +62,13 @@ export default function MetricForm({ posts }: { posts: PostOption[] }) {
         </Field>
       ))}
 
-      <div style={span2}>
+      <div className="v2-span2">
         <Button type="submit" variant="primary" disabled={pending}>
           {pending ? '저장 중…' : '성과 기록'}
         </Button>
       </div>
 
-      {state && <ResultMessage state={state} style={span2} />}
+      {state && <ResultMessage state={state} className="v2-span2" />}
     </form>
   )
 }

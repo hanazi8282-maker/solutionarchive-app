@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
@@ -50,7 +50,6 @@ const TABS = [
   { key: 'rejected', label: '반려' },
 ] as const
 
-const muted: CSSProperties = { margin: 0, fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'anywhere' }
 const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 
 function ReviewBadge({ status }: { status: string }) {
@@ -63,34 +62,31 @@ function ReviewBadge({ status }: { status: string }) {
 function ColumnBody({ body }: { body: string }) {
   return (
     <details>
-      <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--text-body)', userSelect: 'none' }}>
+      <summary className="v2-summary v2-nosel">
         본문 펼쳐서 읽기 (근거 메모·자체 점검 포함, 원문 그대로)
       </summary>
-      <pre style={{
-        margin: '8px 0 0', padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)',
-        fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontFamily: 'inherit',
-      }}>{body}</pre>
+      <pre className="v2-inset v2-pre v2-mt-sm">{body}</pre>
     </details>
   )
 }
 
 function ThreadList({ threads }: { threads: ThreadEntry[] }) {
-  if (!threads.length) return <p style={muted}>스레드 짝 파일 없음 (.threads.md 미확보)</p>
+  if (!threads.length) return <p className="v2-note">스레드 짝 파일 없음 (.threads.md 미확보)</p>
   return (
     <details>
-      <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--text-body)', userSelect: 'none' }}>
+      <summary className="v2-summary v2-nosel">
         스레드 {threads.length}편 펼쳐서 읽기
       </summary>
-      <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 6 }}>
+      <ul className="v2-list v2-stack-tight v2-mt-sm">
         {threads.map((t) => (
-          <li key={t.n} style={{ padding: '8px 10px', borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)', fontSize: 13 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <li key={t.n} className="v2-inset v2-stack-tight">
+            <div className="v2-chiprow">
               <Badge tone="neutral" size="sm">{t.n}편</Badge>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.char_count}자 / 500자</span>
+              <span className="v2-note">{t.char_count}자 / 500자</span>
             </div>
-            <p style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{t.body}</p>
+            <p className="v2-body v2-pre">{t.body}</p>
             {t.warns && t.warns.length > 0 && (
-              <p style={{ ...muted, marginTop: 4, color: 'var(--warning-fg)' }}>⚠️ {t.warns.join(' · ')}</p>
+              <p className="v2-note v2-strong">⚠️ {t.warns.join(' · ')}</p>
             )}
           </li>
         ))}
@@ -132,23 +128,23 @@ function PatternCard({ p }: { p: PatternRow }) {
   const s = PATTERN_STATUS[p.status]
   return (
     <Card>
-      <div style={{ display: 'grid', gap: 8 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+      <div className="v2-form">
+        <div className="v2-chiprow">
           <Badge tone={s?.tone ?? 'neutral'} dot size="sm">{s?.label ?? p.status}</Badge>
           <Badge tone={p.evidence_count > 1 ? 'info' : 'neutral'} size="sm">근거 {p.evidence_count}편</Badge>
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{p.pattern_key}</span>
+          <span className="v2-note v2-mono v2-push">{p.pattern_key}</span>
         </div>
-        <h3 style={{ margin: 0, fontSize: 15 }}>{p.title}</h3>
-        <p style={muted}>근거 칼럼: {p.source_slugs.join(', ') || '없음'}</p>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{p.description}</p>
-        <div style={{ padding: 10, borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)' }}>
-          <p style={{ ...muted, marginBottom: 4 }}>가이드에 넣을 문장 초안 (사람이 직접 옮겨 적는다)</p>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{p.advice}</p>
+        <h3 className="v2-h3">{p.title}</h3>
+        <p className="v2-note">근거 칼럼: {p.source_slugs.join(', ') || '없음'}</p>
+        <p className="v2-body v2-pre">{p.description}</p>
+        <div className="v2-box">
+          <p className="v2-note">가이드에 넣을 문장 초안 (사람이 직접 옮겨 적는다)</p>
+          <p className="v2-body v2-pre">{p.advice}</p>
         </div>
         {p.status === 'proposed' ? (
           <PatternForm id={p.id} />
         ) : (
-          <p style={muted}>
+          <p className="v2-note">
             {s?.label ?? p.status}
             {p.decided_by ? ` · ${p.decided_by}` : ' · 결정자 기록 없음'}
             {p.decided_at ? ` · ${KST.format(new Date(p.decided_at))} KST` : ''}
@@ -188,22 +184,22 @@ function FeedbackSection({ rows, error }: { rows: PatternRow[] | null; error: { 
 
   return (
     <details>
-      <summary style={{ cursor: 'pointer', fontSize: 14, margin: '4px 0' }}>
+      <summary className="v2-summary-lg">
         검수 피드백 제안 {open.length}건 (근거 {evidence}편){closed.length > 0 ? ` · 결정된 제안 ${closed.length}건` : ''}
       </summary>
-      <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
-        <p style={muted}>
+      <div className="v2-stack v2-mt">
+        <p className="v2-note">
           검수 메모에서 뽑은 가이드 반영 후보다. 반영을 눌러도 가이드 문서는 바뀌지 않는다 — 문서는 사람이 직접 고치고, 여기엔 결정만 남는다.
         </p>
         {open.length === 0 ? (
-          <p style={muted}>결정 대기 0건 (조회는 정상)</p>
+          <p className="v2-note">결정 대기 0건 (조회는 정상)</p>
         ) : (
           open.map((p) => <PatternCard key={p.id} p={p} />)
         )}
         {closed.length > 0 && (
           <details>
-            <summary style={{ cursor: 'pointer', fontSize: 13, margin: '4px 0' }}>결정된 제안 {closed.length}건 보기</summary>
-            <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
+            <summary className="v2-summary">결정된 제안 {closed.length}건 보기</summary>
+            <div className="v2-stack v2-mt">
               {closed.map((p) => <PatternCard key={p.id} p={p} />)}
             </div>
           </details>
@@ -216,24 +212,24 @@ function FeedbackSection({ rows, error }: { rows: PatternRow[] | null; error: { 
 function ColumnCard({ c }: { c: ColumnRow }) {
   return (
     <Card>
-      <div style={{ display: 'grid', gap: 10 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+      <div className="v2-stack">
+        <div className="v2-chiprow">
           <ReviewBadge status={c.review_status} />
           <Badge tone="neutral" size="sm">독자: {c.reader_type}</Badge>
           <Badge tone={c.char_count > 8000 || c.char_count < 3000 ? 'danger' : 'neutral'} size="sm">{c.char_count.toLocaleString()}자</Badge>
           {c.verify_verdict
             ? <Badge tone="info" size="sm">검증: {c.verify_verdict.slice(0, 24)}{c.verify_verdict.length > 24 ? '…' : ''}</Badge>
             : <Badge tone="warning" size="sm">미검증 (.verify.md 없음)</Badge>}
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{c.source_path}</span>
+          <span className="v2-note v2-mono v2-push">{c.source_path}</span>
         </div>
-        <h3 style={{ margin: 0, fontSize: 16 }}>{c.title}</h3>
-        <p style={muted}>slug: {c.slug} · 적재 {KST.format(new Date(c.staged_at))} KST</p>
+        <h3 className="v2-h3">{c.title}</h3>
+        <p className="v2-note">slug: {c.slug} · 적재 {KST.format(new Date(c.staged_at))} KST</p>
         <ColumnBody body={c.body} />
         <ThreadList threads={c.threads ?? []} />
         {c.review_status === 'draft' ? (
           <DecisionForm id={c.id} />
         ) : (
-          <p style={muted}>
+          <p className="v2-note">
             {REVIEW[c.review_status]?.label ?? c.review_status}
             {c.reviewed_by ? ` · ${c.reviewed_by}` : ' · 검수자 기록 없음'}
             {c.reviewed_at ? ` · ${KST.format(new Date(c.reviewed_at))} KST` : ''}
@@ -251,6 +247,11 @@ const HEADER = {
   subtitle: 'drafts/columns/*.md 에 적립된 칼럼과 그 스레드를 사람이 보고 승인·반려한다. 결정 단위는 칼럼이다 — 스레드는 같이 승인된다.',
 } as const
 
+/** M2 v2 스코프 — 조기 반환 3곳과 정상 화면이 같은 껍데기를 쓴다. */
+function Shell({ children }: { children: ReactNode }) {
+  return <div className="sa-v2"><PageShell maxWidth={960}>{children}</PageShell></div>
+}
+
 export default async function ColumnsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const sp = await searchParams
   const status = TABS.find((t) => t.key === sp.status)?.key ?? 'draft'
@@ -261,10 +262,10 @@ export default async function ColumnsPage({ searchParams }: { searchParams: Prom
 
   if (!sb) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header}
         <Notice tone="danger" title="확인 불가 — Supabase 환경변수 미설정">칼럼을 조회하지 못했다. 검수할 칼럼이 없다는 뜻이 아니다.</Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -280,24 +281,24 @@ export default async function ColumnsPage({ searchParams }: { searchParams: Prom
   const tableMissing = res.error && (res.error.code === '42P01' || res.error.code === 'PGRST205')
   if (tableMissing) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header}
         <Notice tone="warning" title="마이그레이션 미적용 — content_columns 테이블 없음">
           <code>supabase/migrations/20260916000001_content_columns.sql</code> 을 사람이 적용해야 이 화면이 데이터를 보여준다
           (<code>supabase db query --linked -f supabase/migrations/20260916000001_content_columns.sql</code>).
           적용 후 <code>node --env-file=.env.local scripts/column-stage.mjs</code> 로 <code>drafts/columns/</code> 를 이 화면에 올린다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
   if (res.error || !res.data) {
     return (
-      <PageShell maxWidth={960}>
+      <Shell>
         {header}
         <Notice tone="danger" title="확인 불가 — 조회 실패">
           {res.error?.message ?? '응답에 행이 없다'} · 검수할 칼럼이 없다는 뜻이 아니다.
         </Notice>
-      </PageShell>
+      </Shell>
     )
   }
 
@@ -307,12 +308,12 @@ export default async function ColumnsPage({ searchParams }: { searchParams: Prom
   const tabLabel = TABS.find((t) => t.key === status)?.label ?? status
 
   return (
-    <PageShell maxWidth={960}>
+    <Shell>
       <PageHeader
         {...HEADER}
         meta={<>전체 {all.length}건 · 미검증 {all.filter((c) => !c.verify_verdict).length}건 · 지금 보는 것은 {tabLabel} {shown.length}건</>}
         filters={
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div className="v2-chiprow">
             {TABS.map((t) => (
               <FilterChip key={t.key} href={tabHref(t.key)} active={status === t.key} count={count(t.key)}>
                 {t.label}
@@ -327,23 +328,23 @@ export default async function ColumnsPage({ searchParams }: { searchParams: Prom
         error={patternRes.error ? { code: patternRes.error.code, message: patternRes.error.message } : null}
       />
 
-      <p style={muted}>승인·반려 기록의 검수자에는 로그인한 계정 이메일이 남는다. 승인·반려해도 원본 파일(drafts/columns/*.md)은 바뀌지 않는다 — 정본은 파일이다.</p>
+      <p className="v2-note">승인·반려 기록의 검수자에는 로그인한 계정 이메일이 남는다. 승인·반려해도 원본 파일(drafts/columns/*.md)은 바뀌지 않는다 — 정본은 파일이다.</p>
 
       {all.length === 0 ? (
-        <Card bodyStyle={{ padding: 0 }}>
+        <Card padded={false}>
           <EmptyState compact title="적재된 칼럼 0건" description="scripts/column-stage.mjs 를 실행하면 drafts/columns/ 의 칼럼이 여기 올라온다." />
         </Card>
       ) : shown.length === 0 ? (
-        <Card bodyStyle={{ padding: 0 }}>
+        <Card padded={false}>
           {status === 'draft'
             ? <EmptyState compact title="검수 대기 0건 (조회는 정상)" description={`전체 칼럼 ${all.length}건이 모두 결정됐다.`} />
             : <EmptyState compact title={`${tabLabel} 0건 (조회는 정상)`} description={`전체 칼럼 ${all.length}건 중 이 상태인 칼럼이 없다.`} />}
         </Card>
       ) : (
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div className="v2-stack">
           {shown.map((c) => <ColumnCard key={c.id} c={c} />)}
         </div>
       )}
-    </PageShell>
+    </Shell>
   )
 }

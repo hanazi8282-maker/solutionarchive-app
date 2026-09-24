@@ -6,7 +6,7 @@ import { gradeCase, type ReviewActionState } from '../actions'
 import { caseApproveDefault } from '@/lib/cases/grade-queue'
 import { PMF_SIGNALS, TRANSFERABILITY_REASON_MAX } from '@/lib/cases/grade-queue'
 import { TRANSFERABILITY, TRANSFERABILITY_LABEL, TRANSFERABILITY_UNRATED_HINT, caseApprovalWarning, moveApprovalWarning } from '@/lib/cases/review'
-import { Badge, type Tone } from '../../_ds/components/Badge'
+import { Badge } from '../../_ds/components/Badge'
 import { Button } from '../../_ds/components/Button'
 import { Card } from '../../_ds/components/Card'
 import { Choice, Select, Textarea } from '../../_ds/components/Field'
@@ -55,9 +55,8 @@ export type GradeCaseData = {
   moves: GradeMove[]
 }
 
-const GRADE_TONE: Record<string, Tone> = { A: 'success', B: 'info', C: 'warning', D: 'neutral' }
-const muted: React.CSSProperties = { margin: 0, fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'anywhere' }
-const clamp1: React.CSSProperties = { display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }
+// 등급 A~D 는 분류이지 결과 방향이 아니다 — 색을 입히지 않는다(M1 과 같은 규칙, app/_pub/README.md 색 표 ⚠️).
+// 초록 A·앰버 C 로 칠하면 "C 는 경고"로 읽힌다. 뜻은 배지 글자("근거 A")가 말한다.
 
 /** 스니펫 미리보기 길이. 저장 상한은 300(case_evidence CHECK)이고, 카드에선 앞부분만 본다. */
 const SNIPPET_PREVIEW = 160
@@ -108,8 +107,8 @@ const PMF_SIGNAL_HINT: Readonly<Record<string, string>> = {
 /** 등급 배지 2종. `app/analyze/[id]/advisor-cards.tsx` 의 GradeBadge 와 같은 모양(Badge size="sm"). */
 function GradeBadges({ m }: { m: GradeMove }) {
   return (
-    <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-      <Badge tone={GRADE_TONE[m.evidence_grade] ?? 'neutral'} size="sm">근거 {m.evidence_grade}</Badge>
+    <span className="v2-chiprow v2-push">
+      <Badge tone="neutral" size="sm">근거 {m.evidence_grade}</Badge>
       <Badge tone="neutral" size="sm">사실확인 {m.fact_check_grade ?? '미기재'}</Badge>
     </span>
   )
@@ -117,11 +116,11 @@ function GradeBadges({ m }: { m: GradeMove }) {
 
 /** 근거는 펼치지 않아도 링크가 보인다 — 펼치기 클릭 1회가 케이스마다 붙던 자리다. */
 function EvidenceLinks({ rows }: { rows: GradeEvidence[] }) {
-  if (rows.length === 0) return <p style={muted}>근거 0건 — 조회는 정상이다(이 무브에 걸린 행이 없다)</p>
+  if (rows.length === 0) return <p className="v2-note">근거 0건 — 조회는 정상이다(이 무브에 걸린 행이 없다)</p>
   const snippets = rows.filter((e) => (e.snippet ?? '').trim() !== '')
   return (
     <>
-      <p style={{ ...muted, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <p className="v2-note v2-inline">
         <span>근거 {rows.length}건:</span>
         {rows.map((e) => (
           <a key={e.id} href={e.url} target="_blank" rel="noopener noreferrer">{e.domain ?? e.url}</a>
@@ -131,17 +130,17 @@ function EvidenceLinks({ rows }: { rows: GradeEvidence[] }) {
           접어 두는 이유는 카드 10장이 한 화면에 들어와야 하기 때문이다 — 펼침은 필요할 때만. */}
       {snippets.length > 0 ? (
         <details>
-          <summary style={{ ...muted, cursor: 'pointer' }}>근거 원문 발췌 {snippets.length}건 펼치기</summary>
-          <ul style={{ margin: '4px 0 0', paddingLeft: 18, display: 'grid', gap: 3 }}>
+          <summary className="v2-summary v2-muted">근거 원문 발췌 {snippets.length}건 펼치기</summary>
+          <ul className="v2-bullets v2-stack-tight v2-mt-sm">
             {snippets.map((e) => (
-              <li key={e.id} style={muted}>
+              <li key={e.id} className="v2-wrap">
                 <b>{e.domain ?? '출처 미기재'}</b> — {clip(e.snippet, SNIPPET_PREVIEW)}
               </li>
             ))}
           </ul>
         </details>
       ) : (
-        <p style={muted}>근거 원문 발췌 0건 — 수집 시 스니펫을 안 남긴 것이다(근거가 없다는 뜻이 아니다)</p>
+        <p className="v2-note">근거 원문 발췌 0건 — 수집 시 스니펫을 안 남긴 것이다(근거가 없다는 뜻이 아니다)</p>
       )}
     </>
   )
@@ -168,9 +167,9 @@ export function GradeCard({ c, nextAnchor }: { c: GradeCaseData; nextAnchor: str
     const on = checked.includes(m.id)
     const warn = on ? moveApprovalWarning(m) : null
     return (
-      <div style={{ display: 'grid', gap: 6 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-          <b style={{ fontSize: 13, fontFamily: 'var(--font-mono)' }}>#{i}</b>
+      <div className="v2-form">
+        <div className="v2-chiprow">
+          <b className="v2-mono">#{i}</b>
           <Badge tone="neutral" size="sm">{m.lever}</Badge>
           {m.outcome_direction === 'negative' && <Badge tone="danger" size="sm">부정 사례</Badge>}
           <GradeBadges m={m} />
@@ -178,20 +177,20 @@ export function GradeCard({ c, nextAnchor }: { c: GradeCaseData; nextAnchor: str
         {/* claim 은 한 줄. 전체는 펼쳐서 본다 — 카드 10장이 한 화면에 들어와야 하는 게 이 모드의 목적이다. */}
         <p
           onClick={() => setOpenClaim((s) => toggle(s, m.id))}
-          style={{ margin: 0, fontSize: 14, color: 'var(--text-strong)', overflowWrap: 'anywhere', cursor: 'pointer', ...(openClaim.includes(m.id) ? {} : clamp1) }}
+          className={openClaim.includes(m.id) ? 'v2-claim' : 'v2-claim v2-clamp1'}
           title="눌러서 전체 보기"
         >
           {m.claim}
         </p>
-        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+        <p className="v2-body">
           {m.transfer_note
             ? <>→ {m.transfer_note}</>
-            : <span style={{ color: 'var(--warning-fg)' }}>→ 옮길 행동 미기재</span>}
+            : <span className="v2-flag">→ 옮길 행동 미기재</span>}
         </p>
-        <p style={muted}>{metricLine(m)}</p>
-        <p style={muted}>{m.preconditions ? `전제: ${m.preconditions}` : '전제: 미기재 (— "전제 없음"이 아니다)'}</p>
+        <p className="v2-note">{metricLine(m)}</p>
+        <p className="v2-note">{m.preconditions ? `전제: ${m.preconditions}` : '전제: 미기재 (— "전제 없음"이 아니다)'}</p>
         <EvidenceLinks rows={m.evidence} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+        <div className="v2-actions">
           <Choice
             type="checkbox"
             name="move"
@@ -213,7 +212,7 @@ export function GradeCard({ c, nextAnchor }: { c: GradeCaseData; nextAnchor: str
               onChange={() => setTransfer((s) => ({ ...s, [m.id]: v }))}
               disabled={pending}
               title={TRANSFERABILITY_LABEL[v]}
-              label={<span style={{ fontSize: 13 }}>{v} {TRANSFERABILITY_LABEL[v].split(' — ')[0]}</span>}
+              label={<span>{v} {TRANSFERABILITY_LABEL[v].split(' — ')[0]}</span>}
             />
           ))}
         </div>
@@ -226,28 +225,27 @@ export function GradeCard({ c, nextAnchor }: { c: GradeCaseData; nextAnchor: str
             maxLength={TRANSFERABILITY_REASON_MAX}
             disabled={pending}
             placeholder={`왜 옮기기 어려운가 한 줄 (${TRANSFERABILITY_REASON_MAX}자, 선택 — 빈칸은 "미기재"로 남는다)`}
-            style={{ fontSize: 13 }}
           />
         )}
         {/* S·지표종류 — 컬럼은 D 트랙 마이그(20260930000004)가 만든다. 미적용이면 이 두 값만
             저장에서 빠지고 화면이 그렇게 말한다(app/cases/actions.ts writeMoveContext). */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-          <label style={{ ...muted, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="v2-actions">
+          <label className="v2-note v2-field-inline">
             PMF 신호 강도(S)
-            <Select name={`pmf_signal:${m.id}`} defaultValue="" disabled={pending} style={{ fontSize: 12, padding: '2px 6px' }}>
+            <Select name={`pmf_signal:${m.id}`} defaultValue="" disabled={pending}>
               <option value="">코드 제안값 사용</option>
               {PMF_SIGNALS.map((v) => <option key={v} value={v}>{PMF_SIGNAL_HINT[v]}</option>)}
             </Select>
           </label>
-          <label style={{ ...muted, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <label className="v2-note v2-field-inline">
             지표 종류
-            <Select name={`metric_kind:${m.id}`} defaultValue="outcome" disabled={pending} style={{ fontSize: 12, padding: '2px 6px' }}>
+            <Select name={`metric_kind:${m.id}`} defaultValue="outcome" disabled={pending}>
               <option value="outcome">outcome — 결과 지표</option>
               <option value="input">input — 투입 지표(최대 S2)</option>
             </Select>
           </label>
         </div>
-        {warn && <p style={{ ...muted, color: 'var(--warning-fg)' }}>승인 시 주의 — {warn}</p>}
+        {warn && <p className="v2-note v2-flag">승인 시 주의 — {warn}</p>}
       </div>
     )
   }
@@ -255,37 +253,36 @@ export function GradeCard({ c, nextAnchor }: { c: GradeCaseData; nextAnchor: str
   return (
     <Card
       id={`grade-${c.slug}`}
-      style={{ scrollMarginTop: 64 }}
       title={c.brand_name}
       subtitle={<>{c.slug} · {c.business_model ?? '모델 미기재'} · 병목 {c.bottleneck ?? '미기재'} · 독자 문제 {c.reader_problem ?? '미지정'}</>}
       action={<Badge tone="warning" dot size="sm">검수 대기</Badge>}
     >
-      <form action={action} style={{ display: 'grid', gap: 12 }}>
+      <form action={action} className="v2-stack">
         <input type="hidden" name="case_id" value={c.id} />
         {/* 배경 — 남헌 2026-09-23: "카드만 보고는 맥락이 부족하다". 있는 값만, 한 줄만. */}
-        {backgroundBits(c).length > 0 && <p style={muted}>배경 — {backgroundBits(c).join(' · ')}</p>}
-        {c.summary &&<p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text-body)', overflowWrap: 'anywhere' }}>{c.summary}</p>}
+        {backgroundBits(c).length > 0 && <p className="v2-note">배경 — {backgroundBits(c).join(' · ')}</p>}
+        {c.summary && <p className="v2-body">{c.summary}</p>}
 
-        {draftMoves.length === 0 && <p style={muted}>검수 대기 무브 0건 — 케이스 승인만 남았다.</p>}
+        {draftMoves.length === 0 && <p className="v2-note">검수 대기 무브 0건 — 케이스 승인만 남았다.</p>}
         {draftMoves.map((m, i) =>
           // transfer_note 가 없으면 독자가 가져갈 게 없다(등급 D 의 실체). 접어 두되 배지로 보인다 —
           // 승인을 막지는 않는다. 기계가 반려하지 않는 것과 같은 이유다(CLAUDE.md §10.1).
           m.transfer_note ? (
-            <section key={m.id} style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>{row(m, i)}</section>
+            <section key={m.id} className="v2-divided">{row(m, i)}</section>
           ) : (
-            <details key={m.id} style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <summary style={{ cursor: 'pointer', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                <b style={{ fontFamily: 'var(--font-mono)' }}>#{i}</b>
+            <details key={m.id} className="v2-divided">
+              <summary className="v2-summary v2-chiprow">
+                <b className="v2-mono">#{i}</b>
                 <Badge tone="neutral" size="sm">{m.lever}</Badge>
                 <Badge tone="danger" size="sm">독자 행동 없음(D)</Badge>
-                <span style={{ color: 'var(--text-muted)' }}>펼쳐서 채점</span>
+                <span className="v2-muted">펼쳐서 채점</span>
               </summary>
-              <div style={{ marginTop: 8 }}>{row(m, i)}</div>
+              <div className="v2-mt-sm">{row(m, i)}</div>
             </details>
           ),
         )}
 
-        <section style={{ display: 'grid', gap: 6, padding: '12px 14px', borderRadius: 'var(--radius-md)', background: 'var(--surface-muted)', border: '2px solid var(--border-strong)' }}>
+        <section className="v2-callout">
           <Choice
             type="checkbox"
             name="approve_case"
@@ -295,14 +292,14 @@ export function GradeCard({ c, nextAnchor }: { c: GradeCaseData; nextAnchor: str
             label={<b>케이스 승인</b>}
             hint="무브를 하나라도 승인하면 기본으로 켜진다. 케이스와 무브가 둘 다 승인돼야 매칭에 들어간다."
           />
-          {caseWarn && <p style={{ ...muted, color: 'var(--warning-fg)' }}>{caseWarn}</p>}
-          <p style={muted}>{checked.length === 0 ? '고른 무브 0건 — 체크한 것만 반영된다.' : `고른 무브 ${checked.length}건 · ${TRANSFERABILITY_UNRATED_HINT}`}</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+          {caseWarn && <p className="v2-note v2-flag">{caseWarn}</p>}
+          <p className="v2-note">{checked.length === 0 ? '고른 무브 0건 — 체크한 것만 반영된다.' : `고른 무브 ${checked.length}건 · ${TRANSFERABILITY_UNRATED_HINT}`}</p>
+          <div className="v2-actions">
             <Button type="submit" variant="primary" size="sm" disabled={pending || (checked.length === 0 && !caseChecked)}>제출</Button>
             {nextAnchor
-              ? <a href={`#${nextAnchor}`} style={{ fontSize: 13 }}>보류(다음에) ↓</a>
-              : <span style={muted}>마지막 카드다.</span>}
-            {pending && <span style={muted}>저장 중…</span>}
+              ? <a href={`#${nextAnchor}`} className="v2-link">보류(다음에) ↓</a>
+              : <span className="v2-note">마지막 카드다.</span>}
+            {pending && <span className="v2-note">저장 중…</span>}
           </div>
         </section>
 

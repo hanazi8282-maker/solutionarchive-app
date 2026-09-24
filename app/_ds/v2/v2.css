@@ -293,3 +293,27 @@
   flex: none; height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-md);
   background: transparent; color: inherit; font-size: var(--fs-2xs); cursor: pointer;
 }
+
+/* ── /analyze/new ───────────────────────────────────────── */
+.v2-mb-xs { margin-bottom: 4px; }
+.v2-none { flex: none; }
+.v2-hr { margin: 0; border: 0; border-top: 1px solid var(--border); }
+.v2-choicegrid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.v2-inset-row { display: flex; align-items: flex-start; gap: 8px; font-size: var(--fs-sm); }
+.v2-olist { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+/* 단계 표시 — 현재 단계는 aria-current, 지난 단계는 --done. */
+.v2-steplist { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.v2-step {
+  display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 6px;
+  border: 1px solid var(--border); border-radius: var(--radius-full);
+  background: var(--surface-card); color: var(--text-muted); font-size: var(--fs-xs); font-weight: 500;
+}
+.v2-step--done { color: var(--text-body); }
+.v2-step[aria-current="step"] { border-color: var(--v2-accent); color: var(--text-strong); }
+.v2-step-dot {
+  display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px;
+  border-radius: var(--radius-full); background: var(--surface-muted); color: var(--text-muted);
+  font-size: var(--fs-2xs); font-weight: 600;
+}
+.v2-step--done .v2-step-dot { background: var(--success); color: var(--v2-surface); }
+.v2-step[aria-current="step"] .v2-step-dot { background: var(--primary); color: var(--v2-surface); }

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { getAuthVerdict } from '@/lib/auth/session'
 import { loadCaseCorpus } from '@/lib/cases/corpus-db'
 import { DEFAULT_SEARCH_KIND, QUERY_MAX, parseSearchQuery, searchMoves } from '@/lib/cases/search'
 import { toTerms } from '@/lib/cases/advisor'
@@ -18,7 +19,10 @@ import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
 // 새 매칭기가 아니다. /cases/search 의 searchMoves(무브 + 실패 앵글)와 compare.pairMoves(갈린 짝)를
 // 그대로 돌려 **섹션 4개 한 장**으로 묶는다. 새 LLM 호출·마이그 없음.
 //
-// ★ 로그인 전용. lib/auth/policy.ts PUBLIC_PREFIXES 에 넣지 않는다(§10.2 예외 3) — 공개 입구는 11b(10/4 이후).
+// ★ 비로그인 체험판(남헌 2026-09-25 결정 2, §10.2 예외 3 승인). lib/auth/policy.ts PUBLIC_EXACT **정확일치**로만
+//   연다 — PUBLIC_PREFIXES 에 넣지 않는다(검수 /cases/* 가 같이 열린다). 익명이면 내부 화면 링크(검색·분석)를
+//   숨기고 공개 화면(/library·/signals)으로 보낸다. 아이디어는 GET ?q= 로 남는다 — 공유 링크가 되는 대신
+//   URL·접근 로그에 원문이 남고, 그것도 승인됐다(화면에 한 줄로 밝힌다).
 // ★ §7.1: 섹션마다 0건이면 "해당 없음"을 그대로 그리고, 조회 실패(not_run)는 "확인 불가"로 따로 말한다.
 //   /cases/search 와 달리 **조건 없는 둘러보기를 하지 않는다** — 아이디어와 무관한 상위 N건을
 //   리포트에 실으면 "내 아이디어에 매칭됐다"로 읽힌다.
@@ -47,6 +51,9 @@ export default async function IdeaReportPage({ searchParams }: {
   searchParams: Promise<{ q?: string; kind?: string }>
 }) {
   const sp = await searchParams
+  // 로그인 여부는 **표시용**이다(app/library/[slug] 와 같은 방식). 허용 목록 밖 계정도 내부 화면에
+  // 못 들어가므로 익명과 같이 체험판 화면을 본다.
+  const signedIn = (await getAuthVerdict()).kind === 'allowed'
   const { query, errors } = parseSearchQuery({ q: sp.q, kind: sp.kind })
   const terms = toTerms(query.q)
 
@@ -70,6 +77,9 @@ export default async function IdeaReportPage({ searchParams }: {
           리포트 만들기
         </button>
       </div>
+      {!signedIn && (
+        <p className="v2-text v2-text--muted">입력한 아이디어 원문은 주소(URL)에 그대로 남는다 — 이 주소를 보내면 같은 리포트가 열린다.</p>
+      )}
     </form>
   )
 
@@ -131,7 +141,9 @@ export default async function IdeaReportPage({ searchParams }: {
           <CaseMoveCards cards={moveCards.slice(0, REPORT_MOVES)} />
           <GradeLegend />
           {moveCards.length > REPORT_MOVES && (
-            <p className="v2-text v2-text--muted">상위 {REPORT_MOVES}건만 실었다 — 나머지 {moveCards.length - REPORT_MOVES}건은 <a href={withParams('/cases/search', query.kind)}>검색 화면</a>에서.</p>
+            <p className="v2-text v2-text--muted">상위 {REPORT_MOVES}건만 실었다 — 나머지 {moveCards.length - REPORT_MOVES}건은 {signedIn
+              ? <><a href={withParams('/cases/search', query.kind)}>검색 화면</a>에서.</>
+              : '가입 후 검색 화면에서.'}</p>
           )}
         </>}
         {result.moves.status === 'no_match' && query.kind === 'saas' && (
@@ -156,11 +168,19 @@ export default async function IdeaReportPage({ searchParams }: {
 
     {/* 아이디어 텍스트를 /analyze/new 쿼리스트링으로 넘기지 않는다(/cases/search 와 같은 이유 — 리퍼러·액세스 로그). */}
     <Card title="4. 다음 행동" subtitle="남의 사례는 방향이다. 내 시장에서도 그 문제가 아픈지는 내 경쟁사 리뷰가 답한다.">
-      <div className="v2-actions">
-        <ButtonLink href="/analyze/new" variant="primary">경쟁사 분석 시작</ButtonLink>
-        <ButtonLink href="/analyze">PMF 진단 (분석 프로젝트에서)</ButtonLink>
-        <p className="v2-text v2-text--muted">PMF 진단은 분석 프로젝트의 검토 화면에서 돈다 — 프로젝트가 없으면 경쟁사 분석부터.</p>
-      </div>
+      {signedIn ? (
+        <div className="v2-actions">
+          <ButtonLink href="/analyze/new" variant="primary">경쟁사 분석 시작</ButtonLink>
+          <ButtonLink href="/analyze">PMF 진단 (분석 프로젝트에서)</ButtonLink>
+          <p className="v2-text v2-text--muted">PMF 진단은 분석 프로젝트의 검토 화면에서 돈다 — 프로젝트가 없으면 경쟁사 분석부터.</p>
+        </div>
+      ) : (
+        <div className="v2-actions">
+          <ButtonLink href="/library" variant="primary">케이스 라이브러리 보기</ButtonLink>
+          <ButtonLink href="/signals">신호 피드 보기</ButtonLink>
+          <p className="v2-text v2-text--muted">경쟁사 분석·PMF 진단은 가입 후 쓸 수 있다 — 가입은 10/12 개방 예정이다.</p>
+        </div>
+      )}
     </Card>
   </>, meta)
 }

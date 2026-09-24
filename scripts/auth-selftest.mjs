@@ -49,6 +49,7 @@ for (const p of pages) {
   const shouldBePublic = p === '/' || p === '/login' || p.startsWith('/onboarding')
     || p.startsWith('/columns/read') || p.startsWith('/library')
     || SIGNAL_PAGES.includes(p) // 2026-09-25 남헌 위임 B항 — 정확일치 공개(아래 2d)
+    || p === '/cases/report' // 2026-09-25 남헌 결정 2 — 체험판 정확일치 공개(아래 2e)
   t(`${shouldBePublic ? '공개' : '보호'}(페이지): ${p}`, isPublicPath(p) === shouldBePublic)
 }
 // 2026-09-23 공개 라이브러리 — `/library` 접두사는 열되 검수 `/cases/*` 는 닫혀 있어야 한다(남헌 확정).
@@ -62,7 +63,7 @@ t('공개(방법론): /library/methodology', isPublicPath('/library/methodology'
 //    이 줄은 그 사실을 고정한다: 여기가 false 로 바뀌면 페이지의 자체 가드가 중복이 되는 게 아니라,
 //    정책이 바뀐 것이므로 그 변경을 사람이 봐야 한다(인증 경계 = §10.2 사람 판단).
 t('공개(접두사): /library/saved — 페이지가 스스로 막는다', isPublicPath('/library/saved'))
-for (const p of ['/libraryx', '/cases/convertkit-concierge-migration-conversion', '/cases/search', '/cases/report', '/cases/grade']) {
+for (const p of ['/libraryx', '/cases/convertkit-concierge-migration-conversion', '/cases/search', '/cases/grade']) {
   t(`보호(라이브러리 공개가 검수 화면까지 번지지 않는다): ${p}`, !isPublicPath(p))
 }
 for (const p of ['/dashboard', '/agents', '/cases', '/analyze', '/analyze/new', '/analyze/x/review',
@@ -100,6 +101,13 @@ for (const p of ['/signalsx', '/signals/', '/signals/x', '/signals/community/x',
 t('PUBLIC_PREFIXES 에 /signals 가 없다 — 정확일치로만 연다', !prefixBlock.includes("'/signals"))
 // 유사 케이스 검색 API — 검수 화면 /cases/search 의 짝. 로그인 전용이다(CEO-STAFF 09-25 확인: 목록에 없었다).
 t('보호: /api/cases/search', !isPublicPath('/api/cases/search'))
+
+// 2e. 아이디어 매칭 리포트 체험판(남헌 2026-09-25 결정 2) — 정확일치. 이웃·하위·검수 형제는 닫혀 있어야 한다.
+t('공개(체험판): /cases/report', isPublicPath('/cases/report'))
+for (const p of ['/cases/reportx', '/cases/report/x', '/cases', '/cases/search']) {
+  t(`보호(체험판 공개가 이웃 경로로 번지지 않는다): ${p}`, !isPublicPath(p))
+}
+t('PUBLIC_PREFIXES 에 /cases 가 없다 — 정확일치로만 연다', !prefixBlock.includes("'/cases"))
 
 // ── 3. 세션 판정 + 서버 액션 가드 ───────────────────────────────
 const ALLOW = 'hanazi8282@gmail.com, kimnh030820@postech.ac.kr'

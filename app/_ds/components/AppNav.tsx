@@ -93,6 +93,12 @@ export function AppNav({ email }: { email: string | null }) {
   // 내부 검수자가 그 화면에서 사이드바를 잃는 것 — 대신 `PubNav` 가 대시보드 링크를 낸다.
   // 라이브러리는 익명 방문자가 보는 화면이고, 그쪽을 기준으로 잡았다.
   if (path.startsWith('/library')) return null
+  // 신호 화면(`/signals*`, 공개 3화면 — 남헌 09-25 B항)도 `_pub` 이다. #264 가 pub.css 의
+  // `body:has(.pub-root)` CSS 로 가리던 것을 여기로 옮겼다(그 임시 블록은 지웠다).
+  if (path.startsWith('/signals')) return null
+  // 리포트 체험판(`/cases/report`, 남헌 09-25 결정 2)은 **익명일 때만** 숨긴다 — 들어갈 수 없는 내부
+  // 링크를 보여주지 않는다. 로그인한 검수자에게는 내부 화면이라 네비를 그대로 둔다.
+  if (path === '/cases/report' && !email) return null
 
   // match 가 겹칠 때(/cases 와 /cases/search) **가장 긴 것 하나만** 켠다 — 둘 다 켜지면 지금 어디인지 안 보인다.
   const best = [...NAV_GROUPS.flatMap((g) => g.links), PROFILE_LINK]

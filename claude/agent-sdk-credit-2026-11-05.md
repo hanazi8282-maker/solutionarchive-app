@@ -12,7 +12,7 @@
 | 3 | 인사이트 루프 | nightly-insight-loop.yml · claude-cli | — | 가동 | 미측정 | INSIGHT_LLM_PROVIDER 미설정 = claude-cli |
 | 4 | T2 관련성 판정 | nightly-relevance.yml · `LLM_PROVIDER=claude-cli` (PR #279) | 09-25 밤부터 | 전환 | <$1 | 되돌리기: 리포 변수 RELEVANCE_LLM_PROVIDER=gemini |
 | 5 | 사람 채점 대비 평가 리포트 | nightly-relevance.yml 마지막 스텝 (LLM 0) | 09-25~ | 가동 | $0 | 증량 싱크 8번 |
-| 6 | **칼럼 전수검수(문체·가독성 고쳐쓰기)** | `scripts/column-review-claude.mjs` · claude-cli (남헌 결정 4) | 09-25 | 진행 | 초안 1편 ≈ 입력 6k자+출력 6k자 → Opus 단가 기준 ≈ $0.2 | 대상 = 미발행 초안(9 + 신규 2). 예산 가드 LLM_DAILY_BUDGET_BOOST_USD=15 안 |
+| 6 | **칼럼 전수검수(문체·가독성 고쳐쓰기)** | `.github/workflows/column-review.yml` · claude-cli (남헌 결정 4) | 09-25 | **1회 완료** 11/11편 | 실측 추정 $2.46 (첫 실행 $0.52 + 본실행 $1.94, 편당 126~658초) | 대상 = 미발행 초안(9 + 신규 2). 예산 가드 LLM_DAILY_BUDGET_BOOST_USD=15 안 |
 | 7 | (후보) extract 백로그 12,443건 | 미착수 | — | 대기 | — | 증량 싱크 1번, 승인 시 |
 | 8 | (후보) T2 2차 판정 로그 | 미착수 | — | 대기 | — | 증량 싱크 2번 |
 

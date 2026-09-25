@@ -29,7 +29,7 @@
 - [ ] **F-1** `drafts/columns/2026-09-25-*.threads.md` 7편을 voice-guide 로 검수해 `drafts/columns/_review/<slug>.threads.revised.md` 로. 원문은 그대로.
 
 ## V. 검증 (본작업 전 1회)
-- [ ] **V-0** 되돌리기 쉬운 검증. CLAUDE.md §10 그대로(DB 쓰기·발행 없음, methodology/ 수정 없음). (1) 이 파일 맨 아래에 `## 검증 세션 기록` 절을 추가하고 오늘 날짜(UTC)·OS·node 버전·git 원격 URL 을 적어라. (2) 자격증명 주입 실측: 헤더 없이 `curl -s -o /dev/null -w '%{http_code}' 'https://qmgrfqjfxqhxuufrnkwf.supabase.co/rest/v1/review_sources?select=key&limit=1'` 을 실행해 HTTP 코드를 같은 절에 적어라(401 = 주입 없음, 200 = 주입됨). env 에 이름이 `SUPABASE`·`NEXT_PUBLIC` 으로 시작하는 변수가 있으면 **값은 절대 적지 말고 이름만**(없으면 '없음'). (3) 브랜치 `verify/cloud-session-probe` 로 이 파일 하나만 커밋·push 하고 `gh pr create` 로 제목 `verify(cloud): 클라우드 세션 검증 기록` PR 을 만들어라. 다른 파일은 건드리지 마라.
+- [x] **V-0** (#292) 되돌리기 쉬운 검증. CLAUDE.md §10 그대로(DB 쓰기·발행 없음, methodology/ 수정 없음). (1) 이 파일 맨 아래에 `## 검증 세션 기록` 절을 추가하고 오늘 날짜(UTC)·OS·node 버전·git 원격 URL 을 적어라. (2) 자격증명 주입 실측: 헤더 없이 `curl -s -o /dev/null -w '%{http_code}' 'https://qmgrfqjfxqhxuufrnkwf.supabase.co/rest/v1/review_sources?select=key&limit=1'` 을 실행해 HTTP 코드를 같은 절에 적어라(401 = 주입 없음, 200 = 주입됨). env 에 이름이 `SUPABASE`·`NEXT_PUBLIC` 으로 시작하는 변수가 있으면 **값은 절대 적지 말고 이름만**(없으면 '없음'). (3) 브랜치 `verify/cloud-session-probe` 로 이 파일 하나만 커밋·push 하고 `gh pr create` 로 제목 `verify(cloud): 클라우드 세션 검증 기록` PR 을 만들어라. 다른 파일은 건드리지 마라.
   - 남헌 실행: `claude --cloud "docs/cloud-session-tasks.md 의 작업 V-0 을 수행하라."` — **대화형 터미널에서만** 된다(CEO-STAFF 세션의 셸은 TTY 가 아니라 거부됨, 2026-09-26 실측).
   - 통과 기준: PR 이 열리고 CI(build·Vercel)가 붙어 자동머지 규칙을 탄다 = (a)(c) 확인. HTTP 코드가 (b)의 답.
 

@@ -70,7 +70,20 @@ const num = (v: string | undefined, fallback: number) => {
 export const USD_PER_MTOK_IN = num(process.env.LLM_USD_PER_MTOK_IN, 0.5)
 export const USD_PER_MTOK_OUT = num(process.env.LLM_USD_PER_MTOK_OUT, 4)
 export const REQUEST_BUDGET_USD = num(process.env.LLM_REQUEST_BUDGET_USD, 0.5)
-export const DAILY_BUDGET_USD = num(process.env.LLM_DAILY_BUDGET_USD, 5)
+/**
+ * 하루 상한. 크레딧 기간 한시 상향(남헌 2026-09-25 결정 c): LLM_DAILY_BUDGET_BOOST_USD 를
+ * LLM_DAILY_BUDGET_BOOST_UNTIL(YYYY-MM-DD, UTC 날짜 포함)까지만 쓰고, 그 다음 날부터는 코드·설정 변경 없이
+ * 기본값(LLM_DAILY_BUDGET_USD, 기본 $5)으로 자동 복귀한다. 워크플로에 UNTIL=2026-11-05 로 박혀 있다.
+ * 순수 함수라 selftest 가 날짜 경계를 고정한다(scripts/llm-provider-selftest.mjs).
+ */
+export function dailyBudgetFor(env: Record<string, string | undefined> = process.env, now = new Date()): number {
+  const base = num(env.LLM_DAILY_BUDGET_USD, 5)
+  const boost = num(env.LLM_DAILY_BUDGET_BOOST_USD, 0)
+  const until = (env.LLM_DAILY_BUDGET_BOOST_UNTIL ?? '').trim()
+  if (!(boost > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(until)) return base
+  return now.toISOString().slice(0, 10) <= until ? Math.max(base, boost) : base
+}
+export const DAILY_BUDGET_USD = dailyBudgetFor()
 
 /** 한 호출에 얹어 볼 기본 출력 예상치(토큰). judge 는 100토큰대, 추출은 수천 토큰이다. */
 const ASSUMED_OUTPUT_TOKENS = 1500

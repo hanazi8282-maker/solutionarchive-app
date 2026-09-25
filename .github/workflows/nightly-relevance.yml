@@ -59,6 +59,14 @@ jobs:
 
       - run: npm ci
 
+      # claude -p 헤드리스용 CLI. 버전 고정 이유는 daily-cmo-loop.yml 과 같다.
+      # 2026-09-25 남헌 결정 a: T2 판정을 claude-cli(구독 OAuth = Agent SDK 크레딧 경로)로 전환. 되돌리기 = 리포 변수 RELEVANCE_LLM_PROVIDER=gemini.
+      - name: Install Claude Code CLI
+        run: |
+          npm i -g @anthropic-ai/claude-code@2.1.251
+          echo "CLAUDE_CLI_PATH=$(which claude)" >> "$GITHUB_ENV"
+          claude --version
+
       - name: Judge review relevance for collecting projects
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -67,9 +75,24 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # 비용 상한은 lib/analysis/budget.ts 가 강제한다(프로세스 단위 = 이 실행 1회분).
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
+          # 크레딧 기간 한시 상향(결정 c): 11/5 까지 $15, 그 뒤 자동으로 위 기본값 복귀(lib/analysis/budget.ts dailyBudgetFor).
+          LLM_DAILY_BUDGET_BOOST_USD: '15'
+          LLM_DAILY_BUDGET_BOOST_UNTIL: '2026-11-05'
+          # 예산 추정 단가를 Opus 로(claude-cli 는 크레딧이지만 폭주 상한은 유지). gemini 로 되돌리면 이 둘도 지운다.
+          LLM_USD_PER_MTOK_IN: '5'
+          LLM_USD_PER_MTOK_OUT: '25'
           RELEVANCE_SAMPLE: ${{ inputs.sample || vars.RELEVANCE_SAMPLE || '200' }}
           RELEVANCE_MAX_PROJECTS: ${{ inputs.max_projects || vars.RELEVANCE_MAX_PROJECTS || '5' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           node scripts/relevance-judge-auto.mjs \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
+
+      # 결정 b(증량 싱크 8번): 사람 채점(human_verdict) 대비 LLM 판정 일치율을 매일 요약에 남긴다. 읽기 전용.
+      - name: Relevance eval report (human vs LLM)
+        if: always()
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/relevance-eval-report.mjs | tee -a "$GITHUB_STEP_SUMMARY"

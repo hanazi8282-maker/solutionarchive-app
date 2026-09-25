@@ -127,8 +127,13 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
   const bin = await resolveClaudeBinary()
   const res = await runClaude(
     bin.path,
-    ['-p', '--output-format', 'json', '--max-turns', '1'],
-    { timeoutMs: 180_000, input: `${systemPrompt}\n\n---\n\n${userPrompt}` },
+    [
+      '-p', '--output-format', 'json', '--max-turns', '1',
+      // 모델은 CLI 기본값. 속도가 필요하면 env 로(예: sonnet). 비워 두면 인자를 안 넘긴다.
+      ...(process.env.CLAUDE_CLI_MODEL ? ['--model', process.env.CLAUDE_CLI_MODEL] : []),
+    ],
+    // 판정(짧은 출력)은 3분이면 넉넉하지만 6천 자 고쳐쓰기는 몇 분 걸린다 — 호출부가 env 로 늘린다(column-review.yml 900s).
+    { timeoutMs: Number(process.env.LLM_CLAUDE_CLI_TIMEOUT_MS) > 0 ? Number(process.env.LLM_CLAUDE_CLI_TIMEOUT_MS) : 180_000, input: `${systemPrompt}\n\n---\n\n${userPrompt}` },
   )
   if (res.exitCode !== 0) {
     throw new Error(`claude -p 실패 (exit ${res.exitCode}${res.timedOut ? ', timeout' : ''}): ${res.stderr.slice(0, 500)}`)

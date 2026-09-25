@@ -71,7 +71,9 @@ fs.mkdirSync(diffDir, { recursive: true }); fs.mkdirSync(revDir, { recursive: tr
 let done = 0, saved = 0, skipped = 0, failed = 0, blocker = null
 for (const c of targets) {
   try {
+    const t0 = Date.now()
     const out = await withLlmBudget(() => callLlmWithModel(provider, SYSTEM, `[칼럼 초안 · slug ${c.slug} · ${c.char_count}자]\n\n${c.body}`, `column-review:${c.slug}`))
+    log(`  ${c.slug}: 응답 ${Math.round((Date.now() - t0) / 1000)}s`)
     done++
     const text = out.text
     const si = text.indexOf('<<<SUMMARY>>>'), bi = text.indexOf('<<<BODY>>>')

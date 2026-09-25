@@ -348,3 +348,8 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 남헌 2026-09-25 즉시발행 버튼 착수 승인(접근안 A). nullable ADD COLUMN 2개 + CHECK, 비파괴, 롤백 파일 있음, §10.2 예외 5개 해당 없음 → CEO-STAFF 세션이 hosted Supabase MCP `apply_migration` 으로 적용.
 - 양성 확인: information_schema 에 두 컬럼 존재(REST 조회). 음성: 없는 값('auto')은 CHECK 로 거부되는 것이 설계.
 - 코드는 컬럼이 없으면(42703/PGRST204) **발행하지 않고** "미적용" 메시지를 돌려준다 — 이중 게시 방어 없이는 게시하지 않는다.
+
+### 2026-09-25 — 000019 todayhumor 폐기 · 000020 content_columns 수정본 컬럼 (세션 자체 판단 적용)
+
+- 000019: 남헌 확정(폐기). `review_sources` 1행 UPDATE, 네이버 계열과 같은 패턴(enabled=false + disabled_reason "폐기(dead)…"). 비파괴. 되살리기 = 000017 재적용.
+- 000020: 칼럼 전수검수용 nullable 컬럼 5개(body_revised·revision_summary·revision_status·revised_by·revised_at) + CHECK. 원문 body 는 안 건드린다. 롤백 파일 있음. hosted Supabase MCP `apply_migration` 으로 적용, 양성 확인은 첫 검수 행 저장으로.

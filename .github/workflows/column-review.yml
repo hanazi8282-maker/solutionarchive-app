@@ -76,17 +76,21 @@ jobs:
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
           LLM_DAILY_BUDGET_BOOST_USD: '15'
           LLM_DAILY_BUDGET_BOOST_UNTIL: '2026-11-05'
+          # 6천 자 칼럼 고쳐쓰기는 한 호출이 몇 분 걸린다. 첫 실행(36142051226)이 180초 타임아웃으로 전부 실패했다.
+          LLM_CLAUDE_CLI_TIMEOUT_MS: '900000'
         run: |
           set -o pipefail
+          echo "dry_run=${{ inputs.dry_run }} limit=${{ inputs.limit }} slug=${{ inputs.slug }} force=${{ inputs.force }}"
           node scripts/column-review-claude.mjs \
-            ${{ inputs.dry_run && '' || '--run' }} \
+            ${{ inputs.dry_run == false && '--run' || '' }} \
             --limit ${{ inputs.limit || '11' }} \
             ${{ inputs.slug && format('--slug {0}', inputs.slug) || '' }} \
             ${{ inputs.force && '--force' || '' }} \
             | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Commit revised drafts + diffs
-        if: ${{ !inputs.dry_run }}
+        # 검수 스텝이 일부 실패해도(타임아웃 등) 저장된 수정본·diff 는 커밋한다 — 첫 실행에서 1편 성공분이 커밋되지 않았다.
+        if: ${{ always() && inputs.dry_run == false }}
         run: |
           # 화이트리스트: 수정본 파일과 diff 만. 원문 drafts/columns/*.md 는 건드리지 않는다.
           git add drafts/columns/_review/ reports/ || true

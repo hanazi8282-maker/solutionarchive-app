@@ -241,6 +241,14 @@ const hiddenOf = (all: { count: number | null; error: unknown } | null, shown: n
 /** 소스 건수용 — 필터가 걸리는 임베드(!inner 두 개)만 남기고 나머지 컬럼은 뺀다. */
 const COUNT_SELECT = 'input_id, analysis_projects!inner(business_model), analysis_inputs!inner(source_key, purged_at)'
 
+/** 소스 칩 건수 조회 — 목록과 같은 kind·신호·영향 조건, 소스 조건만 제외. 순수 조립이라 selftest 가 형태를 고정한다. */
+export function sourceCountQuery(sb: SupabaseClient, f: Pick<FeedFilters, 'kind' | 'signal' | 'impact'>, select = COUNT_SELECT) {
+  let q = base(sb, true, f.kind, select)
+  if (f.signal) q = q.eq('community_signal', f.signal)
+  if (f.impact) q = q.eq('impact', f.impact)
+  return q
+}
+
 const why = (e: { code?: string; message: string }) =>
   e.code === '42703' || e.code === 'PGRST204'
     ? `라벨 컬럼이 없다(${e.code}) — 마이그 20260930000014 미적용 환경`
@@ -251,7 +259,7 @@ export async function loadFeed(
   f: FeedFilters,
 ): Promise<Loaded<{
   items: SignalItem[]; total: number | null; hiddenConsumer: number | null; sources: { key: string; name: string }[] | null
-  /** 현재 kind 기준 소스별 관련 판정 건수(소스·신호·영향 필터 무관). null = 못 셌다. */
+  /** 현재 kind·신호·영향 필터 기준 소스별 관련 판정 건수(소스 필터만 무관). null = 못 셌다. */
   sourceCounts: Record<string, number> | null
 }>> {
   const scoped = (kind: SearchKind) => {
@@ -267,8 +275,9 @@ export async function loadFeed(
     sb.from('review_sources').select('key, display_name').eq('enabled', true).order('key'),
     // 숨긴 소비재 건수용 — kind=saas 일 때만. 한 행만 받는다.
     f.kind === 'saas' ? scoped('all').limit(1) : Promise.resolve(null),
-    // 소스 칩 건수 — kind 만 건다(칩은 소스를 고르는 손잡이라 다른 필터로 숨기지 않는다). 한 번에 읽어 앱에서 센다.
-    base(sb, true, f.kind, COUNT_SELECT).range(0, SOURCE_COUNT_CAP - 1),
+    // 소스 칩 건수 — kind + 신호·영향 필터를 건다(남헌 2026-09-25 결정: 칩 숫자가 지금 보이는 목록과 맞아야 한다).
+    //   소스 필터만 뺀다 — 칩은 소스를 고르는 손잡이라 다른 소스 칩이 0 으로 사라지면 안 된다. 한 번에 읽어 앱에서 센다.
+    sourceCountQuery(sb, f, COUNT_SELECT).range(0, SOURCE_COUNT_CAP - 1),
   ])
   if (error) {
     console.error('[signals] feed query failed:', error.code, error.message)

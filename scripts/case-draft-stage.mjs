@@ -29,6 +29,9 @@
 //   배치일 때는 **가장 나쁜 결과**가 종료 코드가 된다 (2 > 4 > 3 > 0).
 //   한 건이 막혔는데 exit 0 이 나오면 그 건은 영원히 아무도 안 본다.
 import fs from 'node:fs'
+import { bpNoteLine } from '../lib/threads/instant-gate.ts'
+/** 작가가 'true'/'false' 문자열로 쓰는 경우까지 불리언으로. 그 밖은 null(미선언) — 추측하지 않는다. */
+const asBool = (v) => (v === true || v === 'true' ? true : v === false || v === 'false' ? false : null)
 import { createClient } from '../lib/supabase/server.ts'
 import { linkDecisionLog } from '../lib/predictions/link.ts'
 import { attributionGate, attributionHint, numericGate, numericHint } from '../lib/cases/publish-gate.ts'
@@ -211,6 +214,8 @@ async function stageOne(job) {
     [job.log_code ? `판정 로그 ${job.log_code}` : null, job.decision_doc ? `게이트 판정 전문 ${job.decision_doc}` : null]
       .filter(Boolean).join(' / ') || '판정 전문 경로 미기재',
     job.gate_note ? `게이트: ${job.gate_note}` : null,
+    // 즉시발행 게이트 BP-1·BP-2 선언(작가가 stage.json 에 쓴 값). 둘 다 불리언일 때만 한 줄 — 없으면 게이트가 needs_human 으로 남긴다.
+    bpNoteLine({ exclusiveNumbers: asBool(job.bp1_exclusive_numbers), transferable: asBool(job.bp2_transferable) }),
     `자기답글(고정 댓글, ${[...selfReply].length}자):\n${selfReply}`,
     `⛔ 미발행. 발행 버튼은 사람이 Threads 앱에서 직접 누른다 (CLAUDE.md §10).`,
   ].filter(Boolean).join('\n\n')

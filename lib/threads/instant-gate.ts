@@ -58,6 +58,23 @@ export const BP3_FORBIDDEN: { re: RegExp; label: string }[] = [
   { re: /처방/, label: '처방' },
 ]
 
+/**
+ * 작가가 stage.json 에 선언한 BP-1·BP-2 는 case-draft-stage.mjs 가 posts.notes 한 줄로 옮긴다:
+ *   `BP: 독점수치=true · 전이=false`
+ * 그 줄을 다시 읽는다. 줄이 없으면 둘 다 null(미선언). 컬럼 대신 notes 를 쓰는 건 마이그 없이 끝내려는 선택이다.
+ * ponytail: 선언 필드가 셋을 넘으면 posts.bp_declared jsonb 컬럼으로 옮긴다.
+ */
+export const BP_NOTE_RE = /^BP:\s*독점수치=(true|false)\s*·\s*전이=(true|false)\s*$/m
+export function bpNoteLine(d: { exclusiveNumbers?: boolean | null; transferable?: boolean | null } | null | undefined): string | null {
+  if (typeof d?.exclusiveNumbers !== 'boolean' || typeof d?.transferable !== 'boolean') return null
+  return `BP: 독점수치=${d.exclusiveNumbers} · 전이=${d.transferable}`
+}
+export function parseBpDeclaration(notes: string | null | undefined): { exclusiveNumbers: boolean | null; transferable: boolean | null } {
+  const m = BP_NOTE_RE.exec((notes ?? '').replace(/\r/g, ''))
+  if (!m) return { exclusiveNumbers: null, transferable: null }
+  return { exclusiveNumbers: m[1] === 'true', transferable: m[2] === 'true' }
+}
+
 const PASS_GRADES = new Set(['A', 'B'])
 
 export function instantGate(input: InstantGateInput): InstantGateVerdict {

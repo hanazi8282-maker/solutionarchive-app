@@ -68,6 +68,7 @@ log(`라벨 소급 ${run ? '(--run: LLM 호출 + UPDATE)' : '(--dry: 대상 선�
 
 // ── 1. 대상 선정 (페이지로 끝까지 읽는다 — PostgREST 기본 상한 1000행에 잘리지 않게) ──
 const rows = []
+let unavailableColumnMissing = false
 for (let from = 0; ; from += 1000) {
   let q = supabase
     .from('review_relevance_verdicts')
@@ -76,7 +77,16 @@ for (let from = 0; ; from += 1000) {
     .order('input_id')
     .range(from, from + 999)
   if (!all) q = q.or('human_verdict.eq.relevant,and(human_verdict.is.null,verdict.eq.relevant)')
-  const { data, error } = await q
+  // 라벨 불가로 표시된 행(마이그 000016, 평판·의견성 글)은 다시 묻지 않는다 — 매 실행 헛도는 34행(2026-09-25).
+  if (!unavailableColumnMissing) q = q.is('labels_unavailable_reason', null)
+  let { data, error } = await q
+  if (error?.code === '42703' && !all && !unavailableColumnMissing) {
+    // 마이그 000016 미적용 환경 — 불가 표시 컬럼 없이 옛 조건으로 다시 읽는다. 컬럼이 없다는 사실은 남긴다(§7.1).
+    unavailableColumnMissing = true
+    log('⚠️ review_relevance_verdicts.labels_unavailable_reason 컬럼 없음(42703) — 마이그 000016 미적용. 불가 표시 없이 대상을 고른다')
+    from -= 1000
+    continue
+  }
   if (error) {
     console.error(`✗ 대상 조회 실패: ${error.code ?? ''} ${error.message}`)
     process.exit(2)
@@ -94,7 +104,7 @@ for (const r of eligible) {
 }
 const calls = [...byProject.values()].reduce((n, rs) => n + Math.ceil(rs.length / BATCH_SIZE), 0)
 
-log(`라벨 전부 NULL ${rows.length}행 → 원문 폐기로 제외 ${purged.length}행 → 대상 ${eligible.length}행` +
+log(`라벨 전부 NULL(불가 표시 제외) ${rows.length}행 → 원문 폐기로 제외 ${purged.length}행 → 대상 ${eligible.length}행` +
   (Number.isFinite(limit) ? ` (--limit ${limit})` : '') +
   ` · 프로젝트 ${byProject.size}건 · 예상 호출 ${calls}회(${BATCH_SIZE}건씩)`)
 

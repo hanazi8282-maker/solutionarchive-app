@@ -7,7 +7,7 @@
 1. 조사 1건 · 적립 1건 · 초안 2건.
 2. 막힌 단계 없음.
 3. 발행 대기 2건. 앱에서 확인하고 직접 발행한다.
-4. ⚠️ 발행됐는데 연결 안 된 Threads 게시물 4건(가장 오래된 것 54시간 경과) — /dashboard 에서 연결
+4. ⚠️ 발행됐는데 연결 안 된 Threads 게시물 4건(가장 오래된 것 55시간 경과) — /dashboard 에서 연결
 
 ## 스코어보드
 
@@ -88,6 +88,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":2})
 - ✅ `stage` 발행 대기 스테이징 ({"staged":2})
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":17})
+- ℹ️ Notion 푸시: pse → https://app.notion.com/p/CASE-content-goblin-low-tier-pricing-support-collapse-3e6100b7ffb481d4974fdcb8ca032a04 ⏭️ 발굴 — 채택·확인불가 0건 (후보 4건). 페이지를 만들지 않는다. 푸시 완료 — 초안 2건 · 신규케이스 1건 · 발굴 0건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-09-26-CMO 기록·재확인
 
 _실행 키 `cmo-2026-09-25-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

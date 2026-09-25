@@ -12,6 +12,7 @@ import { matchDrafts, rankDraftsFor, classifyUnmatched, OFF_PIPELINE_MAX, type U
 import { flattenEpisodes, asCandidates, type ColumnRow } from '@/lib/threads/column-episodes'
 import { checkThreadPost } from '@/lib/threads/voice-check'
 import { PostReviewCard, type PendingPost } from './post-review-form'
+import { instantGateForPost, parseStageNotes, type InstantMove } from '@/lib/threads/instant-gate'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '발행 연결 수리' }
@@ -211,12 +212,23 @@ export default async function DashboardPage() {
   // 안 바꾼다, actions.ts 주석 참고). 문체 점검은 읽기 전용 표시일 뿐 필터링하지 않는다 —
   // 통과·확인·오류 세 그룹으로만 나눠 사람이 어디부터 볼지 고르게 한다.
   const pendingReview = drafts.filter((d): d is typeof d & { status: 'pending_review' } => d.status === 'pending_review')
+  // 즉시발행 게이트 — 인용 무브를 DB 에서 읽어 CG·등급을 본다. 못 읽으면 needs_human(pass 로 접지 않는다).
+  const moveIds = [...new Set(pendingReview.map((d) => parseStageNotes(d.notes).moveId).filter((x): x is string => !!x))]
+  const movesById = new Map<string, InstantMove[]>()
+  if (moveIds.length > 0 && supabase) {
+    const { data: mv } = await supabase.from('case_moves').select('id, fact_check_grade, evidence_grade, pmf_grade, lever, case_studies(brand_name, slug)').in('id', moveIds)
+    for (const m of mv ?? []) {
+      const st = (Array.isArray(m.case_studies) ? m.case_studies[0] : m.case_studies) as { brand_name?: string | null; slug?: string | null } | null
+      movesById.set(m.id as string, [{ fact_check_grade: String(m.fact_check_grade ?? ''), lever: m.lever as string | null, slug: st?.slug ?? null, brand_name: st?.brand_name ?? null, pmf_grade: m.pmf_grade as string | null, evidence_grade: m.evidence_grade as string | null }])
+    }
+  }
   const toReviewPosts: PendingPost[] = pendingReview
     .filter((d) => !d.reviewed_at)
     .map((d) => ({
       id: d.id, body: d.body ?? '', content_code: d.content_code, hook_type: d.hook_type ?? null,
       closing_type: d.closing_type ?? null, notes: d.notes, created_at: d.created_at,
       check: checkThreadPost(d.body ?? '', d.created_at ?? new Date().toISOString()),
+      instant: instantGateForPost({ body: d.body ?? '', notes: d.notes }, movesById.get(parseStageNotes(d.notes).moveId ?? '') ?? null),
     }))
   const cleanPosts = toReviewPosts.filter((p) => p.check.errors.length === 0 && p.check.warns.length === 0)
   const warnPosts = toReviewPosts.filter((p) => p.check.errors.length === 0 && p.check.warns.length > 0)
@@ -341,7 +353,7 @@ export default async function DashboardPage() {
       <Card
         id="review"
         title="발행 전 검수"
-        subtitle="본문 전체를 읽고 승인(그대로/수정)·반려한다. 승인해도 발행은 안 된다 — 승인 후 이 내용을 Threads 앱에 직접 붙여 넣는다(CLAUDE.md §10)."
+        subtitle="본문 전체를 읽고 승인(그대로/수정)·반려한다. 승인은 발행이 아니다 — Threads 앱에서 직접 게시한다. 게이트를 통과한 초안에만 '그대로 발행' 버튼이 뜬다(§10 개정 2026-09-25, 누르는 것은 항상 사람)."
         action={!draftsOk ? <Badge tone="danger">확인 불가</Badge> : <Badge tone={toReviewPosts.length > 0 ? 'warning' : 'success'} dot={toReviewPosts.length > 0}>{toReviewPosts.length}건</Badge>}
         padded={!(draftsOk && toReviewPosts.length === 0 && decidedPosts.length === 0)}
       >

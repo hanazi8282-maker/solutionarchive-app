@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireAllowedUser } from '@/lib/auth/session'
 import { normalizeBody, diceSimilarity } from '@/lib/threads/match'
+import { loadThreadsToken } from '@/lib/threads/token'
+import { publishTextPost } from '@/lib/threads/publish'
+import { instantGateForPost, parseStageNotes } from '@/lib/threads/instant-gate'
 
 export type ActionState = { ok: boolean; message: string } | null
 
@@ -290,4 +293,72 @@ export async function reviewPost(_prev: ReviewActionState, fd: FormData): Promis
 
   revalidatePath('/dashboard')
   return { ok: true, message: decision === 'approved' ? '승인 완료 — 이 내용 그대로 Threads 에 게시하세요.' : '반려 완료 — 발행 대기에서 빠졌습니다.' }
+}
+
+// ── 즉시발행 — 게이트 pass 초안을 사람이 버튼으로 그대로 게시 ──────────────
+// CLAUDE.md §10 개정(남헌 2026-09-25): 무인 자동 발행은 금지 유지, 로그인한 사람이 앱에서 누르는 이 버튼만 허용.
+// 서버가 게이트를 다시 계산한다(화면 판정을 믿지 않는다). 선점(publishing_at) → 게시 → 매처와 같은 필드 세트로 UPDATE.
+// 마이그 20260930000018 미적용이면(42703) 발행하지 않고 그 사실을 돌려준다 — 이중 게시 방어 없이 게시하지 않는다.
+const LOCK_STALE_MS = 5 * 60_000
+
+export async function publishNow(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
+  const id = String(fd.get('id') ?? '').trim()
+  if (!id) return { ok: false, message: '대상 초안이 없습니다.' }
+  const sb = await createClient()
+  if (!sb) return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다.' }
+
+  const { data: post, error: readErr } = await sb.from('posts').select('id, status, body, notes, external_id').eq('id', id).maybeSingle()
+  if (readErr) return { ok: false, message: `조회 실패 — 발행하지 않았습니다: ${readErr.message}` }
+  if (!post) return { ok: false, message: '초안을 찾지 못했습니다.' }
+  if (post.status !== 'pending_review' || post.external_id) return { ok: false, message: `발행 대기 상태가 아닙니다(${post.status}${post.external_id ? ', 이미 연결됨' : ''}).` }
+
+  // 게이트 재계산 — 인용 무브를 DB 에서 읽는다(notes 의 등급은 폴백).
+  const ref = parseStageNotes(post.notes)
+  let moves = null
+  if (ref.moveId) {
+    const { data: mv } = await sb.from('case_moves').select('id, fact_check_grade, evidence_grade, pmf_grade, lever, case_studies(brand_name, slug)').eq('id', ref.moveId)
+    moves = (mv ?? []).map((m) => {
+      const st = (Array.isArray(m.case_studies) ? m.case_studies[0] : m.case_studies) as { brand_name?: string | null; slug?: string | null } | null
+      return { fact_check_grade: String(m.fact_check_grade ?? ''), lever: m.lever, slug: st?.slug ?? null, brand_name: st?.brand_name ?? null, pmf_grade: m.pmf_grade, evidence_grade: m.evidence_grade }
+    })
+  }
+  const verdict = instantGateForPost({ body: post.body ?? '', notes: post.notes }, moves && moves.length ? moves : null)
+  if (verdict.status !== 'pass') return { ok: false, message: `즉시발행 조건 미충족 — ${[...verdict.failed, ...verdict.pending].join(' · ')}` }
+
+  // 선점 — 한 행만 잡는다. 이중 클릭·다른 탭은 여기서 0행이 된다.
+  const now = new Date()
+  const stale = new Date(now.getTime() - LOCK_STALE_MS).toISOString()
+  const { data: locked, error: lockErr } = await sb.from('posts').update({ publishing_at: now.toISOString() })
+    .eq('id', id).eq('status', 'pending_review').is('external_id', null)
+    .or(`publishing_at.is.null,publishing_at.lt.${stale}`)
+    .select('id')
+  if (lockErr) {
+    if (lockErr.code === '42703' || lockErr.code === 'PGRST204') return { ok: false, message: '마이그 20260930000018(posts.publishing_at) 미적용 — 이중 게시 방어 없이는 발행하지 않습니다.' }
+    return { ok: false, message: `선점 실패 — 발행하지 않았습니다: ${lockErr.message}` }
+  }
+  if (!locked || locked.length === 0) return { ok: false, message: '다른 곳에서 발행 중이거나 방금 상태가 바뀌었습니다. 새로고침 후 확인하세요.' }
+
+  const release = () => sb.from('posts').update({ publishing_at: null }).eq('id', id)
+  const tok = await loadThreadsToken()
+  if (tok.status !== 'ok') { await release(); return { ok: false, message: `Threads 토큰 ${tok.status === 'needs_reauth' ? '재인증 필요' : '확인 불가'} — ${tok.reason}` } }
+
+  const r = await publishTextPost(tok.creds, post.body ?? '')
+  if (!r.ok) { await release(); return { ok: false, message: `발행 실패(${r.stage}) — ${r.reason}` } }
+
+  // 매처(app/api/threads/match-posts)와 같은 필드 세트. 성과 수집이 이 필드들을 본다.
+  const publishedAt = r.timestamp ? new Date(r.timestamp).toISOString() : now.toISOString()
+  const note = `[instant] 대시보드 "그대로 발행" — ${auth.email} · Threads ${r.id} · ${publishedAt}`
+  const { error: upErr, data: up } = await sb.from('posts').update({
+    status: 'published', external_id: r.id, published_at: publishedAt, permalink: r.permalink,
+    published_via: 'instant', publishing_at: null, reviewed_by: auth.email, reviewed_at: now.toISOString(),
+    notes: [post.notes, note].filter(Boolean).join('\n'),
+  }).eq('id', id).eq('status', 'pending_review').select('id')
+  if (upErr || !up || up.length === 0) {
+    // 게시는 됐는데 DB 갱신이 안 됐다 — 매처 크론이 external_id 로 다시 연결한다. 사람이 알 수 있게 그 사실을 남긴다.
+    return { ok: false, message: `Threads 에는 게시됐지만(id ${r.id}) DB 갱신 실패 — ${upErr?.message ?? '0행'}. 매처 크론이 연결합니다.` }
+  }
+  revalidatePath('/dashboard')
+  return { ok: true, message: `발행 완료 — Threads ${r.id}${r.permalink ? ` · ${r.permalink}` : ''}` }
 }

@@ -22,6 +22,8 @@
 //   · BP-3 금지어                 → 기계 (아래 목록). 목록은 남헌 원문 그대로이고 "등" 뒤는 넣지 않았다 — 늘리면 여기서.
 //   · CG · 등급                   → 호출자가 넘긴다 (publish-gate 결과, gradeRankOf 입력). 이 모듈이 다시 계산하지 않는다.
 
+import { attributionGate, numericGate, type GateMove } from '../cases/publish-gate.ts'
+
 export type InstantGateInput = {
   body: string
   /** 사람 또는 작가(stage.json)가 선언한 판정. `null`/미기재 = 아직 판정 없음 → needs_human. */
@@ -109,4 +111,30 @@ export function instantGate(input: InstantGateInput): InstantGateVerdict {
 
   const status: InstantGateStatus = failed.length ? 'fail' : pending.length ? 'needs_human' : 'pass'
   return { status, failed, pending }
+}
+
+/**
+ * 스테이징이 posts.notes 첫 줄에 남기는 인용 무브 — `케이스 <slug> / case_moves <id> (<병목> · <레버> · 등급 <X> · <방향>)`
+ * (scripts/case-draft-stage.mjs). 무브 id 로 DB 의 등급을 다시 읽는 것이 정본이고, notes 의 "등급 X" 는 그 조회가 안 될 때의 폴백이다.
+ */
+export function parseStageNotes(notes: string | null | undefined): { moveId: string | null; slug: string | null; gradeAtStage: string | null } {
+  const t = (notes ?? '').replace(/\r/g, '')
+  const m = /케이스\s+(\S+)\s+\/\s+case_moves\s+([0-9a-f-]{36})/.exec(t)
+  const g = /등급\s+([A-D])\b/.exec(t)
+  return { moveId: m?.[2] ?? null, slug: m?.[1] ?? null, gradeAtStage: g?.[1] ?? null }
+}
+
+export type InstantMove = GateMove & { pmf_grade?: string | null; evidence_grade?: string | null }
+
+/**
+ * 초안 한 건의 즉시발행 판정. 호출자(대시보드 서버 컴포넌트·publishNow 액션)가 notes 에서 무브 id 를 뽑아 DB 로 무브를 읽고 넘긴다.
+ * moves 가 null 이면 CG·등급을 확인하지 못한 것 → needs_human (pass 로 접지 않는다).
+ */
+export function instantGateForPost(post: { body: string; notes: string | null }, moves: InstantMove[] | null): InstantGateVerdict {
+  const declared = parseBpDeclaration(post.notes)
+  if (!moves || moves.length === 0) return instantGate({ body: post.body, declared, cgOk: null, grade: null })
+  const cg = attributionGate(moves, post.body).ok && numericGate(moves, post.body).ok
+  const lead = moves[0]
+  const grade = (lead.pmf_grade ?? lead.evidence_grade ?? null)
+  return instantGate({ body: post.body, declared, cgOk: cg, grade })
 }

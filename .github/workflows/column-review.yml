@@ -1,0 +1,103 @@
+# 칼럼 전수검수 — claude-cli(구독 OAuth = Agent SDK 크레딧 경로)로 미발행 초안을 고쳐 쓴다. 남헌 2026-09-25 결정 4.
+#
+# 수동 실행만 한다(스케줄 없음). 자동 발행 아님 — 결과는 content_columns.body_revised + revision_status='pending' 이고
+# 남헌이 /columns 에서 채택/기각한다(CLAUDE.md §10). 산출 파일(수정본·diff)은 봇 토큰으로 커밋한다.
+#
+# ⛔ THREADS_ACCESS_TOKEN 을 넣지 않는다(발행 불가 구조). ANTHROPIC_API_KEY 도 넣지 않는다(크레딧 경로가 아니다).
+
+name: Column Review (claude-cli)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '대상 선정만 (LLM·DB 쓰기 없음)'
+        type: boolean
+        default: true
+      limit:
+        description: '이번 실행 최대 편수'
+        type: string
+        default: '11'
+      slug:
+        description: '특정 slug 만 (비우면 전부)'
+        type: string
+        default: ''
+      force:
+        description: '이미 수정본이 있어도 다시'
+        type: boolean
+        default: false
+
+concurrency:
+  group: column-review
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Mint bot token
+        id: bot
+        continue-on-error: true
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.bot.outputs.token || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Claude Code CLI
+        run: |
+          npm i -g @anthropic-ai/claude-code@2.1.251
+          echo "CLAUDE_CLI_PATH=$(which claude)" >> "$GITHUB_ENV"
+          claude --version
+
+      - name: Review columns
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          LLM_PROVIDER: claude-cli
+          LLM_USD_PER_MTOK_IN: '5'
+          LLM_USD_PER_MTOK_OUT: '25'
+          LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
+          LLM_DAILY_BUDGET_BOOST_USD: '15'
+          LLM_DAILY_BUDGET_BOOST_UNTIL: '2026-11-05'
+        run: |
+          set -o pipefail
+          node scripts/column-review-claude.mjs \
+            ${{ inputs.dry_run && '' || '--run' }} \
+            --limit ${{ inputs.limit || '11' }} \
+            ${{ inputs.slug && format('--slug {0}', inputs.slug) || '' }} \
+            ${{ inputs.force && '--force' || '' }} \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit revised drafts + diffs
+        if: ${{ !inputs.dry_run }}
+        run: |
+          # 화이트리스트: 수정본 파일과 diff 만. 원문 drafts/columns/*.md 는 건드리지 않는다.
+          git add drafts/columns/_review/ reports/ || true
+          if git diff --cached --quiet; then echo "변경 없음 — 커밋 생략"; exit 0; fi
+          git config user.name  "column-review-bot"
+          git config user.email "noreply@anthropic.com"
+          git commit -m "content(columns): claude-cli 전수검수 수정본 · diff — $(date -u +%F)"
+          for i in 1 2 3; do
+            if git push; then exit 0; fi
+            echo "push 거부(${i}회) — fetch + rebase 후 재시도"
+            git fetch origin main
+            if ! git rebase origin/main; then git rebase --abort; echo "::error::rebase 충돌 — 강제 push 안 함"; exit 1; fi
+          done
+          echo "::error::push 3회 재시도 후에도 거부"; exit 1

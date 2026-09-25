@@ -119,3 +119,27 @@ export async function decideColumnPattern(_prev: ReviewActionState, fd: FormData
   revalidatePath('/columns')
   return { ok: true, message: `${PATTERN_LABEL[decision]} 완료. 가이드 문서는 직접 고쳐야 합니다.` }
 }
+
+// ── 수정본 재승인(남헌 2026-09-25 결정 4) — 채택하면 body 를 수정본으로 바꾸고 원문은 body_revised 자리에 남긴다(맞바꿈, 둘 다 보존). 기각은 revision_status 만. ──
+// review_status 는 안 건드린다 — 발행 승인은 여전히 DecisionForm(칼럼 승인) 이다. 자동 발행 없음.
+export async function decideRevision(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
+  const id = String(fd.get('id') ?? '').trim()
+  const decision = String(fd.get('decision') ?? '')
+  if (!id || (decision !== 'approved' && decision !== 'rejected')) return { ok: false, message: '대상 또는 결정이 없습니다.' }
+  const sb = await createClient()
+  if (!sb) return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다.' }
+  const { data: col, error } = await sb.from('content_columns').select('id, body, body_revised, revision_status').eq('id', id).maybeSingle()
+  if (error) return { ok: false, message: `조회 실패: ${error.message}` }
+  if (!col || !col.body_revised) return { ok: false, message: '수정본이 없습니다.' }
+  if (col.revision_status !== 'pending') return { ok: false, message: `이미 ${col.revision_status} 상태입니다.` }
+  const patch = decision === 'approved'
+    ? { body: col.body_revised, body_revised: col.body, char_count: [...col.body_revised].length, revision_status: 'approved', reviewed_by: auth.email }
+    : { revision_status: 'rejected', reviewed_by: auth.email }
+  const { data, error: upErr } = await sb.from('content_columns').update(patch).eq('id', id).eq('revision_status', 'pending').select('id')
+  if (upErr) return { ok: false, message: `저장 실패: ${upErr.message}` }
+  if (!data || data.length === 0) return { ok: false, message: '방금 다른 곳에서 결정됐습니다. 새로고침 후 확인하세요.' }
+  revalidatePath('/columns')
+  return { ok: true, message: decision === 'approved' ? '수정본 채택 — 본문이 수정본으로 바뀌었습니다(원문은 수정본 칸에 보존). 발행 승인은 따로.' : '원문 유지 — 수정본은 기각했습니다.' }
+}

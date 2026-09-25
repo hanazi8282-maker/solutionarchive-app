@@ -1,0 +1,154 @@
+독자: 창업자
+판단 이유: 케이스 조사에서 나온 글이고, 독자가 가져갈 행동이 "내 아이템에 재구매 주기가 있는가, 그 주기가 돌아올 때 고객이 매번 다시 고르는가"를 재고 그 자리를 닫는 설계를 시험해 보는 것이라서 (§B-4 창업자용). 특정 상품군의 리뷰 분석에서 나온 글이 아니고, 상세페이지나 가격 구성을 당장 바꾸라는 글도 아니다.
+
+# 활성 고객이 2년 줄어드는 동안 매출을 24% 키운 츄이, 정기배송 비중을 62.8%에서 83.3%로 올린 10년
+
+매출이 막히면 고객을 더 데려와야 한다고들 생각한다.
+
+츄이는 활성 고객이 2년 연속 줄어드는 동안 매출을 24% 키웠다. 회계연도 2021년 말 활성 고객은 2,066만 3천 명이었고 2023년 말에는 2,008만 3천 명이었다. 같은 기간 순매출은 89억 6,741만 달러에서 111억 4,772만 달러가 됐다.
+
+줄어든 것은 사람 수였고 늘어난 것은 한 사람이 쓴 돈이었다. 활성 고객당 순매출은 434달러에서 555달러로 올랐다. 이 수치들은 전부 미국 증권거래위원회에 낸 연차보고서(10-K)에 적혀 있다. 순매출은 감사받은 재무제표 값이다. 활성 고객 수와 고객당 순매출은 회사가 스스로 정의해 밝히는 운영 지표다.
+
+그 사이에 계속 올라간 지표가 하나 더 있다. 정기배송 프로그램 'Autoship'을 쓰는 고객에게서 나온 매출이 전체 순매출에서 차지하는 비중이다. 70.5%에서 76.2%가 됐고, 회계연도 2025년에는 83.3%가 됐다.
+
+## 사료가 떨어졌을 때, 고객은 왜 매번 다시 고르나
+
+사료는 떨어지면 다시 사야 하는 물건이라 재구매가 저절로 될 것 같다. 그런데 떨어지는 그 시점은 "어디서 살까"를 다시 정하는 시점이기도 하다.
+
+이 표현은 우리 정리다. 츄이가 이렇게 말한 적은 없다. 다만 회사가 공시에 적은 문장들은 같은 자리를 다르게 가리킨다. 10-K는 Autoship을 "반복 순매출과 고객 유지의 핵심 동인"으로 본다고 적는다.
+
+츄이는 2011년에 문을 열었고, 정기배송을 언제 처음 붙였는지는 공시에 나오지 않는다. 확인되는 가장 이른 숫자는 상장 투자설명서에 적힌 회계연도 2014년 Autoship 고객 매출 1억 1,500만 달러다. 회계연도 2018년에는 23억 2,248만 달러가 됐다.
+
+그러니까 이 회사는 상장하기 전부터 이미 정기배송에 크게 기대고 있었다. 상장 투자설명서가 밝힌 회계연도 2018년 Autoship 비중은 65.7%였고, 회사는 그 숫자를 "우리 플랫폼의 강한 고객 유지를 보여 준다"는 근거로 적었다.
+
+## 비중이 내려간 해가 두 번 있었고, 둘 다 신규가 쏟아진 해였다
+
+공시에 적힌 Autoship 비중을 회계연도 순서대로 놓으면 이렇다. 2016년 62.8%, 2017년 61.5%, 2018년 65.7%, 2019년 69.4%, 2020년 68.4%, 2021년 70.5%, 2022년 73.2%, 2023년 76.2%, 2024년 79.2%, 2025년 83.3%.
+
+10년 중 내려간 해는 2017년과 2020년 둘이다. 그리고 그 두 해는 활성 고객이 가장 많이 늘어난 해이기도 하다. 2017년에 303만 4천 명에서 678만 9천 명으로 123.8%, 2020년에 1,345만 9천 명에서 1,920만 6천 명으로 42.7% 늘었다.
+
+이렇게 보면 비중은 성과가 아니라 구성비다. 새 고객이 한꺼번에 들어오면 아직 구독하지 않은 사람이 분모에 먼저 쌓인다. 공시는 이 인과를 적지 않았고, 두 해의 숫자가 나란히 그렇게 놓여 있을 뿐이다.
+
+주의할 것이 하나 더 있다. 회계연도 2021년과 2022년 수치는 나중에 낸 공시에서 소폭 위로 조정됐다. 2021년 10-K는 70.2%와 430달러로 적었고, 2023년 10-K는 같은 해를 70.5%와 434달러로 적는다. 이 글은 한 문서 안에서 정의가 일관된 2023년 10-K 값을 쓴다.
+
+## 회사가 자기 입으로 밝힌 계산
+
+왜 사람을 더 데려오는 대신 있는 사람의 지출을 키우는 쪽으로 갔나. 이 판단의 근거는 상장 투자설명서에 회사 말로 적혀 있다.
+
+> "우리 사이트에서 계속 활동하는 고객은 3년 차에 첫해의 세 배에서 네 배를 쓰고, 그 코호트 전체의 순매출은 시간이 지나며 늘어 첫해 매출의 약 1.5배에 이른다."
+
+회사는 같은 문단에서 이 일관성이 "긴 기간에 걸쳐 비교적 예측 가능한 매출 흐름을 준다"고 적었다. 그리고 같은 문단 끝에 Autoship 비중을 붙였다. 고객이 오래 남을수록 더 쓴다는 관찰과, 오래 남게 하는 장치를 한 문단 안에 나란히 놓은 것이다.
+
+2023년 3월 주주서한에는 같은 계산이 더 구체적으로 나온다. 회사는 가장 오래된 세 코호트가 2022년에 각각 1,000달러 넘게 썼고, 가장 최근 두 코호트를 빼면 전부 500달러를 넘겼다고 밝혔다. 그리고 이렇게 덧붙였다.
+
+> "고객의 60% 가까이가 최근 3년 안에 우리 플랫폼에 들어왔다. 우리는 고객이 오래 머무를수록 점점 더 많이 쓸 여지가 크게 남아 있다고 본다."
+
+이 두 문장을 이어 보면 흐름이 보인다. 이미 들어온 사람들 대부분이 아직 초년 차라는 관찰이 있고, 초년 차는 앞으로 더 쓴다는 코호트 데이터가 있다. 그렇다면 다음에 손댈 곳은 신규 유입이 아니라 이 사람들이 떠나지 않게 하는 쪽이 된다.
+
+마지막 연결은 우리 해석이다. 회사가 "그래서 신규 대신 유지를 골랐다"고 말한 적은 없다.
+
+## 해지할 때 잃는 것을 할인이 아니라 서비스로 만들려던 1년
+
+정기배송의 약한 고리는 언제든 끊을 수 있다는 점이다. 츄이가 시험한 장치 하나가 공시에 연도별로 남아 있다. 원격 수의사 상담 'Connect with a Vet'이다.
+
+2020년 10월에 출시했다. 2021년에 전 고객으로 접근을 넓히면서 비구독 고객에게는 상담 건당 과금으로 돌리고, Autoship 고객에게는 무료를 유지했다. 10-K의 문장은 이렇다.
+
+> "2021년에 우리는 Connect with a Vet의 접근을 모든 츄이 고객에게 넓혔고, Autoship 고객에게는 무료 접근을 유지했으며, 2022년에는 등록된 모든 츄이 고객으로 이 접근을 더 넓혔다."
+
+구독을 끊을 때 잃는 것이 할인이 아니라 서비스 접근권이었던 셈이다. 다만 같은 문장이 이 장치의 유효기간도 알려 준다. 구독 전용이었던 기간은 사실상 2021년 한 해다. 2022년에는 등록만 하면 누구나 무료였다.
+
+그리고 여기서 넘지 말아야 할 선이 있다. 같은 기간 활성 고객당 순매출이 434달러에서 555달러로 올랐지만, 공시는 이 상승을 Connect with a Vet에 귀속하지 않는다. 10-K는 2023년 상승분 59달러를 "소비재와 헬스케어 사업 전반의 성장"으로 설명한다. 기능 도입 시점과 지표 추이를 각각 적을 뿐이다.
+
+지금 츄이가 쓰는 락인 장치는 유료 멤버십 쪽으로 옮겨 갔다. 보도에 따르면 회사는 2024년에 무료 배송과 적립을 묶은 'Chewy+'를 내놨고, 연 49달러였던 가격을 2025년 11월에 79달러로 올렸다. 최고경영자 수미트 싱은 2026년 3월 실적 발표에서 이 프로그램의 침투율이 고객 기반의 약 4% 수준으로 한 해를 마쳤다고 밝혔고, 아직 "시험하며 배우는" 단계라고 했다.
+
+> "우리는 이쪽저쪽으로 오가며 보고 있다. 고객이 저 가치를 어떻게 받아들이는가, 우리가 가치를 너무 많이 주고 있는가, 얼마나 거두고 있는가."
+
+## 고객 수가 줄었을 때 회사는 그것을 어떻게 설명했나
+
+여기서 이 사례의 가장 흔한 오독을 끊어 둘 필요가 있다. 츄이가 신규 획득을 일부러 멈추고 유지로 갈아탄 것이 아니다.
+
+회사는 2023년 3월 주주서한에서 활성 고객 감소를 이렇게 설명했다.
+
+> "우리는 활성 고객의 완만한 순차 감소가 경제 전반에서 이어진 재량 지출 둔화, 그리고 2020년과 2021년 코호트에서 나온 이탈의 잔여 영향을 반영한다고 본다."
+
+같은 서한에서 회사는 2023년에 활성 고객 증가로 돌아갈 것으로 본다고 적었다. 실제로는 2023년에도 줄었고, 2024년에 2,051만 4천 명, 2025년에 2,132만 7천 명으로 돌아왔다.
+
+2024년 3월 주주서한은 업계 쪽 사정도 적는다. 다만 지난 감소의 원인이 아니라 2024년 전망을 설명하면서다. 반려동물 가구 형성 추세가 과거 평균을 밑돌아 2024년 수량 성장이 눌릴 것으로 본다는 것이다. 바깥에서 물이 덜 들어오는 동안 안쪽 밸브를 잠갔다는 쪽에 가깝고, 밸브를 잠그려고 물을 끊은 것이 아니다.
+
+그 안쪽 밸브가 실제로 작동했다는 회사 말은 있다. 2024년 3월 주주서한의 문장이다.
+
+> "우리 Autoship 정기배송 프로그램은 2023년 한 해 동안 85억 달러에 가까운 Autoship 고객 매출을 냈고, 반려인에게 차별화된 편의를 계속 제공하는 한편 츄이에 대한 고객 고착도를 높이고 있다."
+
+싱은 2026년 6월 1분기 실적 발표에서 고객 행동을 이렇게 요약했다.
+
+> "고객 행동을 보면 이탈은 계속 낮아지고 재활성화율은 더 건강해지고 있으며, 신규 고객 획득은 건강하되 기대보다는 완만하게 나쁘다."
+
+이탈은 내려가는데 획득은 기대에 못 미친다. 이 사례의 구조가 당사자 입으로 한 문장에 들어 있다.
+
+## 옮길 것과 조건
+
+이 사례에서 창업자가 옮길 수 있는 행동은 셋이다.
+
+첫째, 자기 제품의 재구매 주기를 재고, 그 주기가 돌아올 때 고객에게 기본값이 있는지 확인한다. 기본값이 없다면 그 시점은 매번 경쟁사와 다시 붙는 시점이다. 설정 한 번으로 그 자리를 닫는 옵션을 만들어 보고, 첫 구매 대비 두 번째 구매 전환율이 아니라 정기배송 가입률을 지표로 세운다.
+
+둘째, 할인을 혼자 내지 않는 구조인지 먼저 확인한다. 츄이의 10-K 회계정책에는 "일부 벤더가 Autoship 정기배송 프로그램 관련 할인 자금을 대고 그것이 고객에게 전달된다"고 적혀 있다. 보도에 따르면 첫 정기배송 주문에 35%, 이후 주문에 5%가 붙는다. 벤더나 공급사가 이 비용을 나눌 이유가 없는 구조라면 할인율부터 그 부담을 견디는 선으로 잡아야 한다.
+
+셋째, 해지할 때 잃는 것을 하나 정한다. 그것이 할인이면 경쟁사가 더 큰 할인으로 지울 수 있고, 서비스 접근권이면 지우기 어렵다. 다만 츄이의 사례는 그 접근권을 좁게 유지하기가 얼마나 어려운지도 같이 보여 준다. 2021년에 구독 전용이던 원격 상담은 2022년에 전 고객에게 풀렸다.
+
+이 사례에서 통하는 조건은 넷으로 읽힌다.
+
+소모 주기가 있어야 한다. 사료와 약처럼 떨어지면 반드시 다시 사야 하는 물건이다. 츄이는 비재량 소비재와 헬스케어가 2023년 순매출의 약 85%라고 밝혔다.
+
+브랜드 전환이 드문 카테고리여야 한다. 가트너 디렉터 애널리스트 브래드 재신스키는 이유 하나를 이렇게 들었다. 반려동물에게 의학적 변화가 없는 한, 사람들은 같은 사료를 계속 쓰는 경향이 있다는 것이다(기자가 정리한 발언이다).
+
+수요 예측과 재고가 받쳐야 한다. 같은 인터뷰에서 재신스키는 이렇게 말했다.
+
+> "공급망 예측이 정말 강해야 한다. 고객이 전부 구독해 놨는데 채워 주지 못하는 것이 가장 나쁜 일이다. 배송을 못 하면 고객은 다른 데로 옮겨 간다."
+
+마지막으로 할인을 견딜 마진이나 분담 구조가 있어야 한다. 첫 주문 35% 할인은 그 자체로 획득 비용이다.
+
+안 통하는 조건도 분명하다. 구매 주기가 불규칙하거나 취향이 자주 바뀌는 카테고리에서는 같은 설계가 걸리지 않는다고 읽힌다. 츄이 자신도 2022년 4분기에 소비재와 헬스케어가 18.5% 성장하는 동안 하드굿즈 같은 재량 카테고리가 그 성장을 깎았다고 밝혔다.
+
+락인을 구독 전용 혜택으로 만들려는 경우도 조심해야 한다. 성장 압력이 오면 그 혜택을 곧 전 고객에게 풀게 될 수 있다. 그리고 재신스키의 말대로, 채워 주지 못할 정기배송은 안 파는 것보다 나쁘다.
+
+규모 차이도 적어 둔다. 츄이는 상장사이고 2023년 순매출이 111억 달러다. 10-K에 따르면 물류센터 배치로 미국 인구의 80% 넘는 지역에 익일, 거의 100%에 이틀 안에 보낼 수 있다. 초기 창업자에게 그 네트워크는 없다. 옮길 것은 그 인프라가 아니라 "재구매 시점의 선택을 없앤다"는 순서다. 다만 그 순서를 지키려면 약속한 날짜에 물건이 가야 한다는 것도, 같은 사례가 보여 준다.
+
+## 배운 점
+
+**재구매가 당연한 카테고리일수록 재구매 시점이 경쟁 시점이다.** 츄이의 Autoship 비중은 회계연도 2016년 62.8%에서 2025년 83.3%가 됐고, 내려간 두 해는 활성 고객이 123.8%와 42.7% 늘어난 해였다. 비중은 성과가 아니라 구성비라서, 새 고객이 쏟아지면 먼저 떨어진다. 이 해석에 회사 공시의 뒷받침은 없다.
+
+**유지를 먼저 손대는 근거는 코호트에서 나온다.** 츄이가 상장 투자설명서와 2023년 3월 주주서한에 적은 근거는 감이 아니라 숫자였다. 계속 남는 고객이 3년 차에 첫해의 세 배에서 네 배를 쓴다는 것, 그리고 고객의 60% 가까이가 최근 3년 안에 들어왔다는 것이다. 지금 고객을 가입 연도별로 갈라 연차 지출을 세로로 본 적이 없다면 그것부터 한 번 뽑아 보라.
+
+**해지 비용을 서비스로 설계하되, 그 서비스가 얼마나 오래 전용으로 남을지도 같이 정하라.** 츄이는 2021년 한 해 동안 원격 수의사 상담을 Autoship 고객에게만 무료로 남겼고, 2022년에는 등록 고객 전체에 풀었다. 그 사이 고객당 매출이 434달러에서 555달러로 올랐지만 공시는 그 상승을 이 기능에 귀속하지 않는다. 락인 장치의 수명을 1년으로 잡고 그 안에 무엇을 얻을지 먼저 적어 두는 편이 안전하다.
+
+---
+
+## 근거 메모
+
+- Autoship 고객 매출 8,493,199천 달러, 비중 76.2% / 73.2% / 70.5% (회계연도 2023·2022·2021), 활성 고객 20,083 / 20,405 / 20,663천 명, 활성 고객당 순매출 555 / 496 / 434달러 / https://www.sec.gov/Archives/edgar/data/1766502/000176650224000014/chwy-20240128.htm (FY2023 10-K, 결산 2024-01-28) / 2024-03-20 / 감사받은 규제 공시. MD&A 핵심 운영 지표 표
+- 순매출 회계연도 2023년 11,147,720천 달러, 2022년 10,119,000천 달러, 2021년 8,967,407천 달러 / 같은 FY2023 10-K 손익계산서·핵심 지표 표 / 규제 공시. ★ FY2022 10-K 와 Q4 FY2022 주주서한은 2022년을 10,098,939천, 2021년을 8,890,773천으로 적는다. FY2023 10-K 부터 두 해가 위로 조정됐고 사유는 찾지 못했다(확인 불가). 본문은 고객당 순매출 434달러와 같은 기준인 FY2023 10-K 값을 쓴다(검증 2026-09-15 수정, 이전 본문은 8,890,773 을 썼다)
+- 24% 증가 = 11,147,720 / 8,967,407 − 1 = 24.3% (계산값. 구 수치 8,890,773 기준이면 25.4%)
+- 활성 고객당 순매출 2023년 상승분에 대한 공시 서술 "Net sales per active customer increased $59, or 11.9%, to $555 in Fiscal Year 2023 compared to Fiscal Year 2022, driven by growth across our consumables and healthcare businesses." / 같은 FY2023 10-K / 2024-03-20 / 규제 공시. ★ 공시는 이 상승을 Connect with a Vet 에 귀속하지 않는다
+- Autoship 정의와 "반복 순매출과 고객 유지의 핵심 동인" 서술 "We view our Autoship subscription program as a key driver of recurring net sales and customer retention." / 같은 FY2023 10-K / 2024-03-20 / 규제 공시
+- 벤더 할인 분담 "certain vendors provide funding for discounts relating to the Autoship subscription program which are passed on to the Company's customers" / 같은 FY2023 10-K 회계정책 주석 / 2024-03-20 / 규제 공시
+- 물류 커버리지 "cost-efficiently ship to over 80% of the U.S. population overnight and almost 100% in two days" / 같은 FY2023 10-K / 2024-03-20 / 규제 공시
+- Connect with a Vet 연도별 접근 범위 "In 2021, we expanded access to 'Connect with a Vet' to all Chewy customers, with access remaining free of charge for our Autoship customers and in 2022, we further expanded this access to all registered Chewy customers." / 같은 FY2023 10-K / 2024-03-20 / 규제 공시
+- Connect with a Vet 2020년 10월 출시 / https://www.sec.gov/Archives/edgar/data/1766502/000176650221000008/chwy-20210131.htm (FY2020 10-K) / 2021-03-30 / 규제 공시
+- 2021년 비구독 고객 건당 과금 "During 2021, we expanded access to 'Connect with a Vet' to our entire base of more than 20 million active customers and any new-to-Chewy customers on a pay-per-consult basis, with complimentary access for our Autoship customers." / https://www.sec.gov/Archives/edgar/data/1766502/000176650222000008/chwy-20220130.htm (FY2021 10-K) / 2022-03-29 / 규제 공시
+- Autoship 비중 회계연도 2016년 62.8% / 2017년 61.5% / 2018년 65.7%, Autoship 고객 매출 2014년 1억 1,500만 달러에서 2018년 2,322,480천 달러로, 활성 고객 3,034 / 6,789 / 10,585천 명, 고객당 순매출 297 / 310 / 334달러 / https://www.sec.gov/Archives/edgar/data/1766502/000119312519174261/d665122d424b4.htm (상장 투자설명서 424B4) / 2019-06-17 / 규제 공시(자기보고 운영지표)
+- 코호트 "Customers who remain active on our site spend an average of three to four times as much in their third year as they did in their first year, and total net sales across all customers in that cohort increase over time, reaching approximately 1.5x their first year sales." 및 "This consistency in spending by our customers provides us with a relatively predictable revenue stream over long periods of time" / 같은 424B4 / 2019-06-17 / 회사 서술
+- 회계연도 2018년 Autoship 비중이 "강한 고객 유지를 보여 준다"는 회사 서술 "Autoship customer sales represented approximately 66% of our net sales in fiscal year 2018, demonstrating the strong customer retention of our platform." / 같은 424B4 / 2019-06-17 / 회사 서술. 본문은 표에 적힌 정확한 값 65.7%를 썼다
+- 활성 고객 2019년 13,459 / 2020년 19,206천 명, Autoship 비중 2019년 69.4% / 2020년 68.4% / https://www.sec.gov/Archives/edgar/data/1766502/000176650220000007/chwy-20200202.htm (FY2019 10-K) 및 FY2021 10-K / 2020-04-02, 2022-03-29 / 규제 공시
+- 활성 고객 2024년 20,514 / 2025년 21,327천 명, 고객당 순매출 578 / 591달러, Autoship 비중 79.2% / 83.3%, Autoship 고객 매출 9,393.3 / 10,497.1백만 달러, 순매출 12,601.5백만 달러 / https://www.sec.gov/Archives/edgar/data/1766502/000176650226000034/chwy-20260201.htm (FY2025 10-K) 및 https://www.sec.gov/Archives/edgar/data/1766502/000176650225000014/chwy-20250202.htm (FY2024 10-K) / 2026-03-25, 2025-03-26 / 규제 공시
+- 활성 고객 감소 설명 "We believe the modest sequential decline in active customers reflects the continued softness in discretionary spending experienced across the broader economy, as well as the residual impact of attrition from our 2020 and 2021 cohorts. We anticipate returning to positive active customer growth in 2023 and expect NSPAC will continue to strengthen." / https://www.sec.gov/Archives/edgar/data/1766502/000176650223000009/chwyq42022exhibit992.htm (Q4 FY2022 주주서한) / 2023-03-22 / 회사 서술
+- 코호트 지출 "our three oldest cohorts each spending over $1,000 in 2022 and all but our two most recent cohorts spending over $500. With nearly 60 percent of our customers having joined our platform within the last three years, we believe significant runway remains for our customers to spend progressively more with us the longer they stay." / 같은 Q4 FY2022 주주서한 / 2023-03-22 / 회사 서술
+- 2022년 4분기 비재량 카테고리 18.5% 성장, 하드굿즈 등 재량 카테고리가 상쇄 / 같은 Q4 FY2022 주주서한 / 2023-03-22 / 회사 서술
+- Autoship 고착도 "Our Autoship subscription program delivered nearly $8.5 billion of Autoship customer sales in full year 2023 and continues to provide differentiated convenience for pet parents, while enhancing customer stickiness for Chewy." 및 비재량 소비재·헬스케어가 2023년 순매출의 약 85% / https://www.sec.gov/Archives/edgar/data/1766502/000176650224000012/chwyq42023exhibit992.htm (Q4 FY2023 주주서한) / 2024-03-20 / 회사 서술
+- 반려동물 가구 형성 추세가 과거 평균을 밑돌아 수량 성장이 눌린다는 전망 "Unit growth is expected to be muted due to pet household formation trends that remain below historical levels." / 같은 Q4 FY2023 주주서한 / 2024-03-20 / 회사 전망
+- 수미트 싱 "when you look at our customer behavior, we continue to see lower churn, healthier reactivation rates as well as healthy yet modestly worse than expected new customer acquisition." (2026년 1분기 실적 발표) / https://www.customerexperiencedive.com/news/chewys-autoship-subscription-grows-offering-reliability-and-repeat-sales/822715/ / 2026-06-11 / CX Dive 가 싱의 발언으로 전달
+- Chewy+ 2024년 도입, 연 49달러에서 2025년 11월 79달러로, 고객 기반 약 4% 침투, 싱의 "We're sort of ebbing and flowing back and forth to go, Great, how are customers perceiving that value? Are we giving too much value? Are we extracting how much value?'" / https://www.modernretail.co/operations/after-nailing-subscription-chewy-eyes-ai-and-new-categories/ / 2026-03-26 / Modern Retail 기자 서술 + 싱 발언 인용
+- Autoship 할인 첫 주문 35%·이후 5% / 같은 Modern Retail URL / 2026-03-26 / 기자 서술. 츄이 공시에는 할인율이 없다. 본문에 "보도에 따르면"을 붙였다
+- 브래드 재신스키(가트너 디렉터 애널리스트) "You have to have really strong supply chain forecasting, because the last thing you want is to have all of these customers subscribed and not be able to fulfill it. They're going to shift their business elsewhere if you can't deliver." 및 "people tend to stick with the same pet food unless there's a medical change for their pet" / 같은 Modern Retail URL / 2026-03-26 / 외부 애널리스트 본인 발언과 기자 정리. 츄이 자기보고가 아니다
+- 활성 고객 1.6% 감소와 Autoship 약 76% 비중을 공시 밖에서 확인 / https://www.retaildive.com/news/chewy-sales-gain-active-customers-decline/710989/ / 2024-03-21 / 업계지 보도. "The online pet retailer ended the year with 20.1 million active customers, a decline of 1.6% from the year-ago period" 및 "Autoship customer sales also represented about 76% of overall net sales for the year". 케이스 JSON 에서 비어 있던 스니펫을 이번에 원문에서 확보했다
+- ★ 수치 조정: 회계연도 2021년 Autoship 비중과 고객당 순매출이 FY2021 10-K 에서 70.2%·430달러, FY2023 10-K 에서 70.5%·434달러다. 2022년도 73.0%·495달러에서 73.2%·496달러로 바뀐다. 조정 사유는 어느 공시에서도 찾지 못했다(확인 불가). 같은 문서에서 순매출 자체도 2021년 8,890,773천→8,967,407천, 2022년 10,098,939천→10,119,000천으로 바뀌어 있어 분모·분자가 함께 조정된 것으로 보인다(6,324,145/8,967,407=70.5%, 8,967,407/20,663=434). 본문은 정의가 한 문서 안에서 일관된 FY2023 10-K 값을 쓰고, 그 사실을 본문에 한 문단으로 밝혔다
+- ★ Autoship 최초 도입 시점: 확인 불가. 10-K·투자설명서 어디에도 출시 연도가 없다. 확인되는 가장 이른 값이 회계연도 2014년 1억 1,500만 달러이고 본문은 거기까지만 적었다

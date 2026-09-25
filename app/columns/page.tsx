@@ -6,6 +6,7 @@ import { EmptyState } from '../_ds/components/EmptyState'
 import { FilterChip } from '../_ds/components/FilterChip'
 import { Notice, PageHeader, PageShell } from '../_ds/components/Shell'
 import { DecisionForm } from './decision-form'
+import { RevisionForm } from './revision-form'
 import { PatternForm } from './pattern-form'
 
 export const dynamic = 'force-dynamic'
@@ -28,6 +29,12 @@ type ColumnRow = {
   verify_path: string | null
   verify_verdict: string | null
   review_status: string
+  /** 마이그 20260930000020 — 검수 모델 수정본. 미적용이면 undefined 로 온다(없음과 구분: 화면은 둘 다 "수정본 없음"). */
+  body_revised?: string | null
+  revision_summary?: string | null
+  revision_status?: 'pending' | 'approved' | 'rejected' | null
+  revised_by?: string | null
+  revised_at?: string | null
   review_note: string | null
   reviewed_by: string | null
   reviewed_at: string | null
@@ -209,6 +216,23 @@ function FeedbackSection({ rows, error }: { rows: PatternRow[] | null; error: { 
   )
 }
 
+/** claude-cli 전수검수 수정본(2026-09-25 남헌 결정 4). 원문은 위 ColumnBody 그대로, 여기는 수정본 + 요약 + 재승인. */
+function RevisionBlock({ c }: { c: ColumnRow }) {
+  if (!c.body_revised) return null
+  const label = c.revision_status === 'approved' ? '수정본 채택' : c.revision_status === 'rejected' ? '원문 유지' : '재승인 대기'
+  return (
+    <details open={c.revision_status === 'pending'}>
+      <summary className="v2-summary">
+        수정본 펼치기 — {label} · {c.revised_by ?? '모델 미기재'}{c.revised_at ? ` · ${KST.format(new Date(c.revised_at))} KST` : ''}
+      </summary>
+      {c.revision_summary && <p className="v2-note v2-mt-sm">{c.revision_summary}</p>}
+      <p className="v2-note">전/후 diff: reports/&lt;날짜&gt;/column-review/{c.slug}.diff · 파일: drafts/columns/_review/{c.slug}.revised.md</p>
+      <pre className="v2-inset v2-pre v2-mt-sm">{c.body_revised}</pre>
+      {c.revision_status === 'pending' && <RevisionForm id={c.id} />}
+    </details>
+  )
+}
+
 function ColumnCard({ c }: { c: ColumnRow }) {
   return (
     <Card>
@@ -225,6 +249,7 @@ function ColumnCard({ c }: { c: ColumnRow }) {
         <h3 className="v2-h3">{c.title}</h3>
         <p className="v2-note">slug: {c.slug} · 적재 {KST.format(new Date(c.staged_at))} KST</p>
         <ColumnBody body={c.body} />
+        <RevisionBlock c={c} />
         <ThreadList threads={c.threads ?? []} />
         {c.review_status === 'draft' ? (
           <DecisionForm id={c.id} />

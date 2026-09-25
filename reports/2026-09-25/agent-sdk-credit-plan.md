@@ -99,3 +99,17 @@
 4. 크레딧 기간 `LLM_DAILY_BUDGET_USD` $5 → $15 — 승인 여부.
 
 출처: [Agent SDK 크레딧 해설(Totalum)](https://www.totalum.app/blog/claude-agent-sdk-credits-2026) · [Agent SDK 크레딧 해설(claudefa.st)](https://claudefa.st/blog/guide/development/agent-sdk-credit) · 리포 실측 `lib/analysis/llm.ts` `lib/insight/llm.ts` `lib/insight/claude-cli.ts` `.github/workflows/*.yml` · DB 실측 2026-09-25(review_relevance_verdicts·analysis_inputs).
+
+---
+
+## ⚠️ 2026-09-26 정정 — 이 문서의 전제가 틀렸다
+
+남헌이 계정 화면에서 잔액 $250 이 그대로인 것을 확인해 조사했다(세션 CEO-STAFF, 실측 근거는 Notion 2026-09-26-기타-1).
+
+1. **$250 은 "Agent SDK 크레딧"이 아니라 "Claude Code 클라우드 세션 런칭 크레딧"이다.** Max 구독자 1회 $250, 10/7 까지 클레임, **11/4(PT) 만료** — 남헌이 적은 "11/5 만료(KST)"와 정확히 맞는다. 이 크레딧은 **클라우드 세션에만** 쓰이고 `claude -p`·Agent SDK·GitHub Actions 트래픽은 **아예 빠지지 않는다.** 이 문서 §0 은 "$250·11/5 는 월 갱신 $200 과 다르다"고 적어 놓고도 Agent SDK 크레딧으로 단정했다. 그 판단이 틀렸다.
+2. 따라서 §1~§7 의 "크레딧 경로로 전환하면 소진된다"는 계획은 **성립하지 않는다.** 헤드리스 워크플로(CMO 루프·발굴·인사이트·칼럼 전수검수)가 쓴 것은 `CLAUDE_CODE_OAUTH_TOKEN`(2026-09-01 등록) 계정의 **구독 사용량 한도**(그 계정에 월 Agent SDK 크레딧이 있다면 그것)이지 이 $250 이 아니다.
+3. **"추정 $2.46" 은 실측이 아니다.** `lib/analysis/budget.ts` 가 글자 수÷2 를 토큰으로 놓고 세션이 env 로 넣은 단가($5/$25)를 곱한 자체 계산값이다. `claude -p` 봉투의 `total_cost_usd` 는 코드가 읽지 않고 버렸다(2026-09-26 부터 로그에 남긴다). "추정"이라 적었지만 "크레딧 소모" 옆에 놓아 실측처럼 읽히게 한 것은 보고 잘못이다.
+4. **T2 판정(nightly-relevance) 은 claude-cli 로 전환되지 않았다.** PR #279 의 워크플로 패치가 `LLM_PROVIDER`·`CLAUDE_CODE_OAUTH_TOKEN` 두 줄을 빠뜨렸다(주석에 같은 낱말이 있어 "이미 있음"으로 오판한 스크립트 버그). 09-25 밤 스케줄도 발화하지 않았다. 즉 relevance 는 여전히 Gemini 다. "전환 완료" 보고는 틀렸다.
+5. 실과금 경로는 없다: GitHub Secrets 에 `ANTHROPIC_API_KEY` 없음(insight-loop 의 env 는 빈 값으로 들어감), `.env.local`·Vercel 에도 없음.
+
+**클라우드 세션 크레딧을 쓰려면** 클라우드 세션(claude.ai/code 또는 `claude` 의 클라우드 세션)에서 작업을 돌려야 한다 — 그건 이 리포의 Actions 워크플로와 다른 실행 환경이다. 그 설계는 별건.

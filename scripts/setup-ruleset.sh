@@ -4,7 +4,7 @@
 # 왜 (3줄)
 #   1) 클래식 보호는 필수 체크에 "예외 주체"를 못 둔다. 그래서 무인 루프(daily-cmo-loop·transferability-digest)가
 #      GITHUB_TOKEN 으로 main 에 바로 push 하는 커밋이 매일 GH006 으로 거부된다(2026-09-24 부터).
-#   2) 룰셋은 bypass actor 를 둘 수 있다. GitHub Actions 앱(id 15368)만 예외로 두고, 사람의 push·PR 에는
+#   2) 룰셋은 bypass actor 를 둘 수 있다. **전용 GitHub App(남헌 소유, 2026-09-25 B안 확정)** 만 예외로 두고, 사람의 push·PR 에는
 #      필수 체크(build + Vercel, strict)를 그대로 건다.
 #   3) 순서가 생명이다: 룰셋이 **실제로 생긴 것을 확인한 뒤에만** 클래식 보호를 지운다. 먼저 지우면 main 이 무방비다.
 #
@@ -17,19 +17,29 @@
 #   bash scripts/setup-branch-protection.sh                  # 클래식 보호 복구(PR #263 스크립트)
 #   (0 단계 백업 파일 ops/state/branch-protection-backup-<UTC>.json 에 원본 JSON 이 있다)
 #
-# ⚠️ GitHub Actions 앱을 bypass actor 로 받아 주는지는 실측한 적이 없다(2026-09-25 CEO-STAFF 세션은
-#    분류기 차단으로 호출 자체를 못 했다). 그래서 1 단계가 실패하면 여기서 멈추고 대안을 출력한다 —
-#    클래식 보호는 그대로 남아 있으므로 실패해도 아무것도 나빠지지 않는다.
+# ⚠️ 2026-09-25 실측: 기본 GitHub Actions 앱(15368)은 "리포/조직 소유가 아니라" bypass actor 가 될 수 없다.
+#    그래서 남헌이 만든 전용 GitHub App 의 ID 를 env BYPASS_APP_ID 로 받는다(하드코딩 없음). 워크플로는
+#    actions/create-github-app-token 으로 그 앱의 설치 토큰을 받아 push 한다(daily-cmo-loop.yml·transferability-digest.yml).
+#    사용: BYPASS_APP_ID=<새 App ID> bash scripts/setup-ruleset.sh
+#    1 단계가 실패하면 여기서 멈추고 대안을 출력한다 — 클래식 보호는 그대로 남아 있으므로 실패해도 아무것도 나빠지지 않는다.
 set -euo pipefail
 
 REPO="${REPO:-hanazi8282-maker/solutionarchive-app}"
 BRANCH="${BRANCH:-main}"
 RULESET_NAME="${RULESET_NAME:-main-protection}"
-ACTIONS_APP_ID=15368   # GitHub Actions 앱. 필수 체크 `build` 의 app_id 와 같다(클래식 보호 API 실측값).
+ACTIONS_APP_ID=15368   # GitHub Actions 앱 — 필수 체크 `build` 의 integration_id 로만 쓴다(bypass 주체로는 불가, 09-25 실측).
+BYPASS_APP_ID="${BYPASS_APP_ID:-}"   # 무인 push 용 전용 GitHub App 의 App ID(숫자). 남헌이 앱을 만든 뒤 알려 준 값.
 VERCEL_APP_ID=8329     # Vercel 앱. 필수 체크 `Vercel` 의 app_id.
 TEST_WORKFLOW="${TEST_WORKFLOW:-transferability-digest.yml}"
 DRY_RUN=0
 [ "${1:-}" = "--dry-run" ] && DRY_RUN=1
+
+if [ -z "$BYPASS_APP_ID" ] || ! [[ "$BYPASS_APP_ID" =~ ^[0-9]+$ ]]; then
+  echo "❌ BYPASS_APP_ID 가 없거나 숫자가 아니다. 전용 GitHub App 의 App ID 를 넣어라:"
+  echo "   BYPASS_APP_ID=<App ID> bash scripts/setup-ruleset.sh [--dry-run]"
+  echo "   (App ID 는 github.com/settings/apps/<앱> 상단. 리포 시크릿 BOT_APP_ID 와 같은 값.)"
+  exit 2
+fi
 
 ruleset=$(cat <<JSON
 {
@@ -38,7 +48,7 @@ ruleset=$(cat <<JSON
   "enforcement": "active",
   "conditions": { "ref_name": { "include": ["refs/heads/$BRANCH"], "exclude": [] } },
   "bypass_actors": [
-    { "actor_id": $ACTIONS_APP_ID, "actor_type": "Integration", "bypass_mode": "always" }
+    { "actor_id": $BYPASS_APP_ID, "actor_type": "Integration", "bypass_mode": "always" }
   ],
   "rules": [
     { "type": "deletion" },
@@ -57,7 +67,7 @@ ruleset=$(cat <<JSON
 JSON
 )
 
-echo "리포: $REPO · 브랜치: $BRANCH · 룰셋: $RULESET_NAME"
+echo "리포: $REPO · 브랜치: $BRANCH · 룰셋: $RULESET_NAME · bypass App ID: $BYPASS_APP_ID"
 echo "── 보낼 룰셋 JSON ──"
 echo "$ruleset"
 echo
@@ -97,13 +107,10 @@ else
     echo "$resp"
     echo
     echo "클래식 보호는 그대로다 — 아무것도 나빠지지 않았다."
-    echo "가장 흔한 원인: GitHub Actions 앱(id $ACTIONS_APP_ID)을 bypass actor 로 받지 않는 경우."
-    echo "다음 대안 두 가지 중 하나를 고른 뒤 다시 요청하라:"
-    echo "  A) 관리자 PAT — 남헌 계정에서 fine-grained PAT(Contents: write) 발급 → 리포 시크릿 BOT_PUSH_TOKEN"
-    echo "     → daily-cmo-loop.yml·transferability-digest.yml 의 checkout/push 토큰을 그걸로 교체."
-    echo "     (클래식 보호의 enforce_admins=false 라 관리자 토큰은 필수 체크를 통과한다. 되돌리기 쉬움.)"
-    echo "  B) 전용 GitHub App — 앱 생성·리포 설치 → 그 앱을 룰셋 bypass actor 로 등록,"
-    echo "     워크플로는 actions/create-github-app-token 으로 토큰 발급. 설정이 가장 많지만 PAT 만료가 없다."
+    echo "가장 흔한 원인: 앱(id $BYPASS_APP_ID)이 이 리포에 설치돼 있지 않거나, App ID 가 아니라 Client ID/설치 ID 를 넣은 경우."
+    echo "확인할 것: (1) github.com/settings/apps/<앱> → Install App → 이 리포에 설치됐는가"
+    echo "           (2) 앱 권한 Contents: Read and write 인가  (3) 넣은 값이 App ID(숫자) 인가"
+    echo "그래도 안 되면 대안 A) 관리자 fine-grained PAT 를 시크릿으로 두고 워크플로 토큰을 그걸로 교체(되돌리기 쉬움)."
     exit 1
   fi
   ruleset_id=$(printf '%s' "$resp" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).id||""))}catch{}})')
@@ -118,7 +125,7 @@ check=$(gh api "repos/$REPO/rulesets/$ruleset_id")
 enf=$(printf '%s' "$check" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);const ba=(r.bypass_actors||[]).map(a=>a.actor_type+":"+a.actor_id).join(",");const rules=(r.rules||[]).map(x=>x.type).join(",");process.stdout.write(`${r.enforcement}|${ba}|${rules}`)})')
 echo "   재조회: enforcement|bypass|rules = $enf"
 case "$enf" in
-  active\|*Integration:$ACTIONS_APP_ID*\|*required_status_checks*) echo "   ✅ 활성 · bypass=GitHub Actions · 필수 체크 포함";;
+  active\|*Integration:$BYPASS_APP_ID*\|*required_status_checks*) echo "   ✅ 활성 · bypass=App $BYPASS_APP_ID · 필수 체크 포함";;
   *) echo "❌ 룰셋이 기대와 다르다(비활성이거나 bypass/필수 체크 누락). 클래식 보호를 지우지 않는다."; exit 1;;
 esac
 

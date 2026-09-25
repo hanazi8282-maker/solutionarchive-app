@@ -60,7 +60,21 @@ jobs:
     timeout-minutes: 240
 
     steps:
+      # 무인 push 용 전용 GitHub App 설치 토큰(남헌 2026-09-25 B안). 기본 GITHUB_TOKEN(Actions 앱)은 룰셋 bypass 주체가
+      # 될 수 없어 main 필수 체크에 막힌다(GH006). 시크릿이 아직 없으면 이 스텝은 실패해도 넘어가고(continue-on-error)
+      # 아래 checkout 이 github.token 으로 폴백한다 — 그러면 예전처럼 push 단계에서만 실패한다(수집·초안은 그대로 남는다).
+      - name: Mint bot token
+        id: bot
+        continue-on-error: true
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
+        with:
+          # 여기서 준 토큰이 git 자격증명으로 남아 뒤의 `git push` 가 그대로 쓴다(persist-credentials 기본 true).
+          token: ${{ steps.bot.outputs.token || github.token }}
 
       - uses: actions/setup-node@v4
         with:

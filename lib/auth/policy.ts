@@ -71,6 +71,15 @@ const PUBLIC_PREFIXES = [
 const PUBLIC_EXACT = ['/', '/opengraph-image', '/signals', '/signals/community', '/signals/card', '/cases/report']
 
 /** 위 공개 접두사 안이지만 사람만 부르는 경로. */
+/**
+ * 공개 정적 이미지 — `public/case-art/<slug>.jpg` 하나뿐. 로고를 구할 수 없는 폐업 케이스의 카드 썸네일
+ * (Pexels 스톡, 남헌 2026-09-25 승인). 공개 `/library` 가 `<img>` 로 부르는데 proxy 가 `/login` 으로 보내면
+ * 비로그인 화면에 깨진 이미지가 뜬다(2026-09-25 프로덕션 실측 307).
+ * ⚠️ **이미지 파일 하나의 꼴로만** 연다 — 디렉터리·credits.json·다른 확장자·다른 접두사는 그대로 보호.
+ *    `public/` 전체를 여는 게 아니다. 새 정적 자산을 공개하려면 여기 정규식을 넓히고 auth-selftest 에 양성·음성을 추가한다.
+ */
+const PUBLIC_STATIC_IMAGE = /^\/case-art\/[a-z0-9-]+\.(jpe?g|png|webp)$/
+
 const PROTECTED_EXCEPTIONS = [
   // Meta OAuth 콜백. 크론 인증이 없고 state 검사도 없이 api_tokens 에 토큰을 쓴다 — 공개로 두면
   // 남의 Threads 계정 인가 코드로 우리 토큰을 덮어쓸 수 있다. 부르는 건 사람 브라우저뿐이다.
@@ -80,6 +89,7 @@ const PROTECTED_EXCEPTIONS = [
 export function isPublicPath(pathname: string): boolean {
   const under = (p: string) => pathname === p || pathname.startsWith(`${p}/`)
   if (PROTECTED_EXCEPTIONS.some(under)) return false
+  if (PUBLIC_STATIC_IMAGE.test(pathname)) return true
   if (PUBLIC_EXACT.includes(pathname)) return true
   return PUBLIC_PREFIXES.some(under)
 }

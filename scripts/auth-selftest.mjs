@@ -63,6 +63,13 @@ t('공개(방법론): /library/methodology', isPublicPath('/library/methodology'
 //    이 줄은 그 사실을 고정한다: 여기가 false 로 바뀌면 페이지의 자체 가드가 중복이 되는 게 아니라,
 //    정책이 바뀐 것이므로 그 변경을 사람이 봐야 한다(인증 경계 = §10.2 사람 판단).
 t('공개(접두사): /library/saved — 페이지가 스스로 막는다', isPublicPath('/library/saved'))
+// 2026-09-25 남헌 승인 — 폐업 케이스 카드 썸네일(public/case-art/<slug>.jpg)만 공개. 이미지 파일 하나의 꼴로만 연다.
+for (const p of ['/case-art/homejoy-discount-conversion-collapse.jpg', '/case-art/zume-pizza-mobile-oven-production-collapse.jpg', '/case-art/x-1.png', '/case-art/a.webp']) {
+  t(`공개(케이스 아트 이미지): ${p}`, isPublicPath(p))
+}
+for (const p of ['/case-art', '/case-art/', '/case-art/credits.json', '/case-art/a.svg', '/case-art/a.jpg/', '/case-art/sub/a.jpg', '/case-artx/a.jpg', '/CASE-ART/a.jpg', '/case-art/../dashboard']) {
+  t(`보호(케이스 아트 공개가 파일 하나 꼴 밖으로 번지지 않는다): ${p}`, !isPublicPath(p))
+}
 for (const p of ['/libraryx', '/cases/convertkit-concierge-migration-conversion', '/cases/search', '/cases/grade']) {
   t(`보호(라이브러리 공개가 검수 화면까지 번지지 않는다): ${p}`, !isPublicPath(p))
 }

@@ -145,6 +145,9 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
     if (env.is_error === true) throw new Error(`claude 가 오류를 보고했다: ${String(env.result ?? '').slice(0, 300)}`)
     if (typeof env.result === 'string') text = env.result
     if (typeof env.model === 'string' && env.model) model = env.model
+    // 실측 비용·토큰. budget.ts 의 추정치와 별개다 — 보고에는 이 줄의 숫자를 쓴다(2026-09-26 정정).
+    const u = (env.usage && typeof env.usage === 'object' ? env.usage : {}) as Record<string, unknown>
+    console.log(`[analysis/llm] claude-cli 실측 total_cost_usd=${String(env.total_cost_usd ?? 'n/a')} in=${String(u.input_tokens ?? '?')} out=${String(u.output_tokens ?? '?')} cache_read=${String(u.cache_read_input_tokens ?? '?')} model=${model}`)
   } catch (e) {
     if (e instanceof Error && e.message.startsWith('claude 가 오류를')) throw e
     // 봉투가 아니면 본문이 그대로 온 것이다.

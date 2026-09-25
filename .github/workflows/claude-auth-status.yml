@@ -1,0 +1,30 @@
+# 진단 전용 — 러너의 CLAUDE_CODE_OAUTH_TOKEN 이 어느 계정(이메일 앞 3자만)·어떤 인증 방식인지 본다. LLM 호출 0, DB 0, 커밋 0.
+# 2026-09-26: $250 크레딧이 안 빠지는 원인 조사에서 "이 토큰이 누구 계정인가"를 시크릿 값 없이 확인하려고 만들었다.
+# 출력은 sed 로 이메일을 가린다(앞 3자 + ***@도메인). 토큰 값은 절대 출력하지 않는다(GitHub 마스킹과 별개로 echo 하지 않는다).
+
+name: Claude auth status (diagnostic)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install Claude Code CLI
+        run: npm i -g @anthropic-ai/claude-code@2.1.251
+
+      - name: Auth status (masked)
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -o pipefail
+          claude --version
+          claude auth status 2>&1 \
+            | sed -E 's/([A-Za-z0-9._%+-]{3})[A-Za-z0-9._%+-]*@/\1***@/g' \
+            | grep -v -i -E 'token|key' \
+            | tee -a "$GITHUB_STEP_SUMMARY"

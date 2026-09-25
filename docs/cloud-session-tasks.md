@@ -37,3 +37,17 @@
 - export: `node --env-file=.env.local scripts/relevance-export.mjs` → `ops/state/relevance-export-<날짜>.json`(판정·라벨 미포함, 눈가림)
 - import(드라이런): `node --env-file=.env.local scripts/relevance-second-opinion-import.mjs ops/state/relevance-second-opinion-<날짜>.json` → `reports/<날짜>/relevance-second-opinion.md`
 - import(라벨 채움): 같은 명령 + `--apply` — 라벨 4개 전부 NULL·불가 표시 없음·세션 relevant·라벨 있음 인 행만. verdict·사람 채점·기존 라벨은 절대 안 덮음. 서비스키가 있는 환경(로컬/Actions)에서만.
+
+## 검증 세션 기록
+
+V-0 실행 결과 (Claude Code 클라우드 세션, 세션 링크 https://claude.ai/code/session_01Jr9KtEnkPvLm1n4g9o3x6x).
+
+- **실행일(UTC):** 2026-09-25
+- **OS:** Linux 6.18.44-fc-v37 x86_64 (Ubuntu 24.04.4 LTS)
+- **node:** v22.22.2
+- **git 원격 URL:** `https://github.com/hanazi8282-maker/solutionarchive-app.git`
+  - 세션 시작 시 `origin` 이 **등록돼 있지 않았고**, 로컬 체크아웃은 #290(`a384c5e`)에서 멈춰 이 파일에 V-0 가 없었다. 공개 리포라 `raw.githubusercontent.com` 으로 최신 `main` 을 읽어 V-0 를 찾았고, 세션이 위 URL 로 `origin` 을 추가해 `main`(#291 `eaddd13`)을 받은 뒤 그 위에서 작업했다.
+- **자격증명 주입 실측 — HTTP 코드 `000` = 확인 불가.** 헤더 없는 `curl` 이 supabase.co 에 닿지 못했다. 원인은 세션의 에이전트 프록시가 `qmgrfqjfxqhxuufrnkwf.supabase.co` CONNECT 를 **403 으로 거부**(환경 네트워크 정책의 egress 차단, `recentRelayFailures` 에 "policy denial" 기록). 401(주입 없음)·200(주입됨) 어느 쪽도 아니므로 §7.1 대로 양성·음성으로 접지 않는다. 판정하려면 환경 설정에서 supabase.co 를 허용한 뒤 재실행해야 한다.
+- **env 변수 (`SUPABASE*`·`NEXT_PUBLIC*`):** 없음.
+- **push·PR — 세션 안에서 불가(확인 불가가 아니라 음성).** `git push` 가 git 프록시에서 403 으로 거부됐다: "hanazi8282-maker/solutionarchive-app is not in this session's authorized repository set". `GH_TOKEN`·`GITHUB_TOKEN` 이름의 변수는 있지만(값 미기재) 같은 토큰으로 `api.github.com` 을 호출해도 403("GitHub access to this repository is not enabled for this session. Use add_repo…"). `gh` CLI 는 미설치. 즉 **이 세션은 리포를 소스로 붙이지 않은 채 시작됐고**(그래서 `origin` 도 없었다), 리포를 세션 소스에 push 권한으로 추가한 뒤 재실행해야 (a)(c) 가 확인된다. 커밋은 로컬 브랜치 `verify/cloud-session-probe` 에 있고 같은 내용을 `ops/state/verify-cloud-session-probe.patch` 로 남겼다.
+- **DB 쓰기·발행·`methodology/` 수정:** 없음. 변경 파일은 이 파일 1개.

@@ -38,6 +38,17 @@ function contextOf(a) {
 
 // SP-024: 겹친 낱말이 1개뿐인 저신뢰 매칭이 몇 건 노출되고 있는지 따로 센다.
 const lowMark = (card) => (card.low_confidence ? ' ⚠저신뢰' : '')
+
+// SP-024 역전 계수 — 같은 앵글의 선례 카드 중 "겹친 낱말이 더 적은데 점수가 더 높은" 쌍. 산식이 등급을 낱말 수보다
+// 앞세우면 이 값이 커진다. 2026-09-25 재개 판정의 전후 지표(재개 전 실측 → 재개 후 0 이어야 한다).
+function countReversals(cards) {
+  let n = 0
+  for (const x of cards) for (const y of cards) {
+    if (x !== y && x.matched_terms.length < y.matched_terms.length && x.score > y.score) n++
+  }
+  return n
+}
+let reversalPairs = 0
 let pairs = 0
 let lowPairs = 0
 console.log(`앵글 ${db.angles.length} · 실패사례 ${db.failed_angles.length} · 원칙 ${db.principles.length} · 케이스 ${db.studies.length}/${db.moves.length}\n`)
@@ -48,6 +59,7 @@ for (const a of db.angles) {
   const b = matchFailedAngles(terms, db.failed_angles)
   const c = matchPrinciples(terms, db.principles)
   const A = matchCaseMoves(terms, db.studies, db.moves)
+  reversalPairs += countReversals(A.cards)
   if (b.cards.length === 0 && c.cards.length === 0 && A.cards.length === 0) continue
 
   console.log(`■ ${a.angle_id.slice(0, 8)} · "${trim(ctx.category, 40)}"`)
@@ -68,3 +80,4 @@ for (const a of db.angles) {
 }
 
 console.log(`총 매칭 쌍 ${pairs}건 (그중 저신뢰 ${lowPairs}건 — 겹친 낱말 1개, SP-024)`)
+console.log(`SP-024 역전 쌍(같은 앵글, 낱말 더 적은데 점수 더 높음): ${reversalPairs}쌍`)

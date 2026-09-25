@@ -194,11 +194,11 @@ const SP024_MOVES = [
 
   t('SP-024: 낱말 1개짜리 A등급 무브가 그대로 노출된다', m6 !== undefined, true)
   t('SP-024: 그 무브의 겹친 낱말은 "광고" 하나뿐', JSON.stringify(m6.matched_terms), JSON.stringify(['광고']))
-  t('SP-024: 낱말 1개 × A등급 = 31점', m6.score, 31)
-  t('SP-024: 낱말 5개 × C등급 = 15점', m7.score, 15)
+  t('SP-024 재개: 낱말 1개 × A등급 = 13점 (1×10 + 3)', m6.score, 13)
+  t('SP-024 재개: 낱말 5개 × C등급 = 51점 (5×10 + 1)', m7.score, 51)
   // 이게 핵심이다 — "점수가 낮으면 저신뢰"라는 임계가 성립하지 않는다.
-  ok('SP-024: 얇은 근거가 두꺼운 근거보다 위에 뜬다(31 > 15)', m6.score > m7.score)
-  t('SP-024: 그래서 정렬 1위가 낱말 1개짜리다', r.cards[0].case_move_id, 'm6')
+  ok('SP-024 재개: 두꺼운 근거가 얇은 근거보다 위에 뜬다(51 > 13) — 역전 해소', m7.score > m6.score)
+  t('SP-024 재개: 그래서 정렬 1위가 낱말 5개짜리다', r.cards[0].case_move_id, 'm7')
 
   t('SP-024: 낱말 1개 → low_confidence true', m6.low_confidence, true)
   t('SP-024: 낱말 5개 → low_confidence false', m7.low_confidence, false)
@@ -206,9 +206,9 @@ const SP024_MOVES = [
   t('SP-024: 저신뢰라도 상태는 matched', r.status, 'matched')
 }
 {
-  // 등급별 고정값. 겹친 낱말이 1개면 점수는 11/21/31 셋 중 하나로 결정된다.
+  // 등급별 고정값(재개 후). 겹친 낱말이 1개면 점수는 11/12/13 — 등급은 동점 처리(+1 씩)일 뿐이다.
   const one = ['광고']
-  const grades = [['A', 31], ['B', 21], ['C', 11]]
+  const grades = [['A', 13], ['B', 12], ['C', 11]]
   for (const [g, want] of grades) {
     const moves = [{ id: 'mg', case_study_id: 's4', lever: 'CHANNEL', claim: '광고 예산 재배분', evidence_grade: g, outcome_direction: 'positive', review_status: 'approved' }]
     const r = matchCaseMoves(one, SP024_STUDIES, moves)

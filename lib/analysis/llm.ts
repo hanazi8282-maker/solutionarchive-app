@@ -1,6 +1,9 @@
 // 소구점 파이프라인 공용 LLM 호출 레이어.
 // extract(Stage1~2) 와 angle(Stage4) 이 같은 프로바이더 스위치를 공유한다.
-// LLM_PROVIDER=gemini (기본) | anthropic | mock
+// LLM_PROVIDER=gemini (기본) | claude-cli | anthropic | mock
+//   claude-cli — `claude -p` 헤드리스(구독 OAuth, CLAUDE_CODE_OAUTH_TOKEN). Agent SDK 크레딧이 빠지는 경로다
+//                (남헌 2026-09-25, reports/2026-09-25/agent-sdk-credit-plan.md). anthropic(SDK+API 키)는 크레딧과 무관.
+//                실행 부품은 lib/insight/claude-cli.ts 를 그대로 쓴다(바이너리 확보·spawn·타임아웃).
 // 프로바이더별로 다른 것은 "호출 방식과 텍스트를 꺼내는 방법" 뿐이고,
 // 프롬프트·기대 JSON 스키마·파싱은 호출부가 그대로 공유한다.
 import Anthropic from '@anthropic-ai/sdk'
@@ -14,13 +17,15 @@ import {
   chargeOutput,
   reserveOrThrow,
 } from './budget.ts'
+import { resolveClaudeBinary, runClaude } from '../insight/claude-cli.ts'
 
-export type LlmProvider = 'gemini' | 'anthropic' | 'mock'
+export type LlmProvider = 'gemini' | 'claude-cli' | 'anthropic' | 'mock'
 
 const DEFAULT_PROVIDER: LlmProvider = 'gemini'
 
 export function resolveProvider(): LlmProvider {
   const raw = (process.env.LLM_PROVIDER ?? '').trim().toLowerCase()
+  if (raw === 'claude-cli' || raw === 'claude_cli') return 'claude-cli'
   if (raw === 'anthropic') return 'anthropic'
   if (raw === 'gemini') return 'gemini'
   if (raw === 'mock') return 'mock'
@@ -30,12 +35,15 @@ export function resolveProvider(): LlmProvider {
 /** 이 프로바이더를 쓰려면 반드시 있어야 하는 환경변수. mock 은 아무것도 필요 없다. */
 export function requiredKeyFor(
   provider: LlmProvider,
-): 'GEMINI_API_KEY' | 'ANTHROPIC_API_KEY' | null {
+): 'GEMINI_API_KEY' | 'ANTHROPIC_API_KEY' | 'CLAUDE_CODE_OAUTH_TOKEN' | null {
   if (provider === 'mock') return null
+  if (provider === 'claude-cli') return 'CLAUDE_CODE_OAUTH_TOKEN'
   return provider === 'gemini' ? 'GEMINI_API_KEY' : 'ANTHROPIC_API_KEY'
 }
 
 const ANTHROPIC_MODEL = 'claude-opus-5'
+/** claude -p 는 모델을 CLI 기본값으로 쓴다. 추적용 라벨이라 실제 모델명이 아니다 — 응답 봉투의 model 을 우선 쓴다. */
+const CLAUDE_CLI_LABEL = 'claude-cli'
 
 // 모델별로 무료 티어 일일 요청 한도가 따로 걸린다(gemini-3.6-flash 는 20건/일).
 // 그래서 단일 모델이 아니라 우선순위 배열로 두고, 한도가 소진되면(백오프를 다 쓰고도 429)
@@ -108,6 +116,35 @@ export function describeFailure(e: unknown): string {
     return `사용량 한도를 초과했습니다. (HTTP ${e.status})`
   }
   return e instanceof Error ? e.message : String(e)
+}
+
+/**
+ * claude -p 한 번. 시스템 프롬프트와 사용자 프롬프트를 stdin 으로 이어 준다(`--system-prompt` 를 안 쓰는 이유:
+ * 프롬프트가 길어 인자 상한에 걸릴 수 있고, insight 루프도 stdin 방식이다). `--output-format json` 봉투에서 result 를 꺼낸다.
+ * 실패(exit≠0·timeout·is_error)는 Error 로 던진다 — callWithRetry 가 재시도 대상이 아닌 것으로 보고 곧장 올린다.
+ */
+async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<{ text: string; model: string }> {
+  const bin = await resolveClaudeBinary()
+  const res = await runClaude(
+    bin.path,
+    ['-p', '--output-format', 'json', '--max-turns', '1'],
+    { timeoutMs: 180_000, input: `${systemPrompt}\n\n---\n\n${userPrompt}` },
+  )
+  if (res.exitCode !== 0) {
+    throw new Error(`claude -p 실패 (exit ${res.exitCode}${res.timedOut ? ', timeout' : ''}): ${res.stderr.slice(0, 500)}`)
+  }
+  let text = res.stdout
+  let model = CLAUDE_CLI_LABEL
+  try {
+    const env = JSON.parse(res.stdout) as Record<string, unknown>
+    if (env.is_error === true) throw new Error(`claude 가 오류를 보고했다: ${String(env.result ?? '').slice(0, 300)}`)
+    if (typeof env.result === 'string') text = env.result
+    if (typeof env.model === 'string' && env.model) model = env.model
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('claude 가 오류를')) throw e
+    // 봉투가 아니면 본문이 그대로 온 것이다.
+  }
+  return { text: text.trim(), model }
 }
 
 async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
@@ -277,6 +314,17 @@ export async function callLlmWithModel(
 
   const budgetChars = systemPrompt.length + userPrompt.length
 
+  if (provider === 'claude-cli') {
+    let model = CLAUDE_CLI_LABEL
+    const text = await callWithRetry(
+      label,
+      CLAUDE_CLI_LABEL,
+      async () => { const r = await callClaudeCli(systemPrompt, userPrompt); model = r.model; return r.text },
+      budgetChars,
+    )
+    console.log(`[analysis/llm] ${label} provider=claude-cli model=${model}`)
+    return { text, model }
+  }
   if (provider === 'anthropic') {
     const text = await callWithRetry(
       label,

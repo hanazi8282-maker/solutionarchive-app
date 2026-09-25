@@ -34,6 +34,8 @@ import { createClient } from '../lib/supabase/server.ts'
 import { requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 import { BATCH_SIZE, MAX_REVIEW_CHARS, chunkReviews, judgeRelevanceBatch } from '../lib/analysis/relevance-judge.ts'
+import fs from 'node:fs'
+import { kstDate, recordStatusLog } from './notion-status-log.mjs'
 
 const args = process.argv.slice(2)
 const run = args.includes('--run')
@@ -179,4 +181,17 @@ if (blocker) log(`⚠️ 멈췄다 — ${done}/${eligible.length}행 처리 후.
 log(`끝 — 라벨 기록 ${written}행 · 모델이 라벨 못 줌 ${noLabels}행 · 이미 채워져 건너뜀 ${raced}행 · ` +
   `저장 실패 ${saveFailed}행 · 저장 verdict 와 새 판정 불일치 ${mismatch}행(verdict 는 안 바꿈) · ` +
   `추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD})`)
+// 멈춤·저장 실패 사유를 콘솔 밖에도 남긴다 — 2026-09-25 소급이 93/602 에서 멈췄는데 사유가 남헌 터미널에만
+// 있어 아무도 확인하지 못했다. 파일(ops/state)은 항상, Notion 행은 토큰이 있을 때(없으면 status-log-pending 폴백).
+if (blocker || saveFailed > 0) {
+  const why = blocker ? `멈춤 ${done}/${eligible.length}행 — ${blocker}` : `저장 실패 ${saveFailed}행`
+  fs.mkdirSync('ops/state', { recursive: true })
+  fs.appendFileSync('ops/state/relevance-labels-backfill.jsonl', JSON.stringify({ at: new Date().toISOString(), done, eligible: eligible.length, written, noLabels, saveFailed, blocker }) + '\n')
+  const w = await recordStatusLog({
+    date: kstDate(), track: '기타', done: `T2 라벨 소급 — 라벨 기록 ${written}행 · 처리 ${done}/${eligible.length}행`,
+    blocked: why, next: `남은 ${eligible.length - done}행은 같은 명령 --run 으로 이어서 처리`, needsHuman: false,
+    note: 'scripts/relevance-labels-backfill.mjs 자동 기록 · ops/state/relevance-labels-backfill.jsonl',
+  }, { pendingDir: 'ops/state/status-log-pending' })
+  log(w.ok ? `사유 기록: ops/state/relevance-labels-backfill.jsonl + Notion ${w.title}` : `사유 기록: ops/state/relevance-labels-backfill.jsonl · Notion 실패(${w.stage}: ${w.error})${w.pendingPath ? ` → ${w.pendingPath}` : ''}`)
+}
 process.exit(saveFailed > 0 ? 3 : 0)

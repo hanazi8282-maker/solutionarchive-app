@@ -1,0 +1,38 @@
+[
+  {
+    "case_slug": "magic-spoon-cereal-supply-reorder-discipline",
+    "move_id": "bd017380-e8a4-48a6-967f-7c659ee0e490",
+    "content_code": "CS-20260925-01",
+    "body_path": "drafts/threads/2026-09-25-magic-spoon-cereal-supply-reorder-discipline.body.txt",
+    "reply_path": "drafts/threads/2026-09-25-magic-spoon-cereal-supply-reorder-discipline.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-09-25-magic-spoon-cereal-supply-reorder-discipline.md",
+    "title": "매직스푼 재주문 체계 전환",
+    "twist_line": "감으로 잡은 초도 재고가 몇 주 만에 완판되자, 판매 속도를 계산해 재고가 바닥나기 전에 다음 생산을 미리 주문하는 방식으로 바꿨다",
+    "hook_type": "병목제시형",
+    "closing_type": "열린질문",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅴ 전 항목 판정 완료, 탈락 없음. 예외통과 1건(U-3 — 이 역할의 도구셋에 웹 열람 수단이 없어 남의 Threads 글을 새로 열람하지 못함, threads-playbook.md 기존 실측을 레퍼런스로 참조). G-9·G-11은 적용 조건 밖(30분 미만 제작·릴스 전용 규격)이라 해당 없음. G-6(수치 신뢰 의심)은 자기답글로 이관. X-3은 타인(게이비 루이스) 실명 인용이 걸려 판정 대상 — 공개 인터뷰 발화만 서술하고 감정·대사를 지어내지 않아 R-14 통과, 광고주체 아니라 P-14 비대상. 등급 인사이트 A·사실확인 C는 오케스트레이터 지시값이며, evidence(4건 중 3건 self-reported 인터뷰, 규제 공시 없음, 독립 보도 1건은 중간 지점 확인용일 뿐 핵심 두 수치를 직접 검증하지 않음)와 transfer_note/preconditions를 손으로 대조해 일치 확인. CG-1 대상 — 본문에 핵심 수치(1,300개→22,000개 이상) 바로 옆 '회사는 밝혔다'(SELF_MARKERS 정규식 '회사(는)\\s*밝혔' 그대로 일치) 삽입, 재고 완판 일화에도 '게이비 루이스는 밝혔다' 추가, 자기답글에 '둘 다 회사 쪽 인터뷰 진술이고 독립 기관 대조 수치는 없다' 한계 명시. CG-2 비대상(등급 D 아님).",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": []
+  },
+  {
+    "case_slug": "plausible-analytics-usage-based-pricing-margin",
+    "move_id": "137abb2a-5556-4b98-8c68-f9a0d910fc80",
+    "content_code": "CS-20260925-02",
+    "body_path": "drafts/threads/2026-09-25-plausible-analytics-usage-based-pricing-margin.body.txt",
+    "reply_path": "drafts/threads/2026-09-25-plausible-analytics-usage-based-pricing-margin.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-09-25-plausible-analytics-usage-based-pricing-margin.md",
+    "title": "플로저블, 아플 때까지 안 뽑았다",
+    "twist_line": "채용 시점을 정한 것은 매출이 아니라 밀린 문의와 버티지 못한 서버였다",
+    "hook_type": "병목제시형",
+    "closing_type": "열린질문",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅴ 전 항목 판정 완료, 탈락 없음. 예외통과 1건(U-3 — 이 역할의 도구셋에 웹 열람 수단이 없어 남의 Threads 글을 새로 열람하지 못함, threads-playbook.md §3-0 기존 실측을 근거로 참조). 부분통과 2건(G-6 반박 제거는 수치 신뢰·적용 조건 두 의심을 자기답글로 이관 / TC-8은 케이스 단락이 5문장 한 덩어리로 직전 초안 2건과 동일 형태). G-9·G-11은 적용 조건 밖(30분 미만 제작·릴스 전용 규격). X-3은 타인 등장으로 판정 대상 — 창업자는 공개 블로그 1인칭 발화만 옮겼고 직원 실명 2건(Robert·Cenk)은 동의 확인 불가라 본문에서 익명화, 광고 주체 아니라 P-14 비대상. 등급 인사이트 A·사실확인 C는 오케스트레이터 지시값이며 DB 실측은 이 세션에 도구가 없어 미수행(확인 불가로 보고), 조사 초안 moves[1]과 evidence 1건(primary·self_reported·비공시, 독립 검증 0건)을 손으로 대조해 지시값과 정합만 확인. CG-1 대상 — 본문 수치(약 13만 달러에서 약 100만 달러) 바로 다음 문장에 '창업자가 블로그에 직접 올린 자체 집계 수치다' 삽입(SELF_MARKERS 정규식 '자체\\s*집계' 그대로 일치), 자기답글에 '독립 기관이 따로 집계해 대조한 수치는 없다' 한계 명시. CG-2 비대상(등급 D 아님). preconditions 2건 모두 반영(본문 1건·자기답글 1건).",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": [
+      "edit-report-tone-to-spoken"
+    ]
+  }
+]

@@ -70,6 +70,7 @@ jobs:
       # 추출 소요시간 실측(중앙값·p90). 표본 5건 미만이면 화면에 숫자를 내지 않는 규칙을 고정한다.
       - run: node scripts/analyze-extract-stats-selftest.mjs
       - run: node scripts/instant-gate-selftest.mjs
+      - run: node scripts/git-push-retry-selftest.mjs
       # 어드바이저 매칭 3상태·불용어 회귀·SP-024 저신뢰 판정. 픽스처만 쓴다(네트워크·DB 없음).
       - run: node scripts/advisor-selftest.mjs
       # 케이스 검색(질의 파싱·종류 가산점·3상태·빈 상태 문구). 가산점이 하드필터로 되돌아가면

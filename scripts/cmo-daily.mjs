@@ -44,6 +44,7 @@ import { fileURLToPath } from 'node:url'
 import { resolveClaudeBinary, runClaude } from '../lib/insight/claude-cli.ts'
 import { createTracker } from './agent-status.mjs'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
+import { pushWithRetry } from './git-push-retry.mjs'
 // 토큰 없이 DB 기록만 읽는다. lib/threads/recent·token 을 여기서 import 하지 마라(§10.1).
 import { unlinkedDigestLine, UNLINKED_STEP_KEY } from '../lib/threads/unlinked-status.ts'
 import { feedbackDigestLines } from '../lib/cases/feedback.ts'
@@ -724,8 +725,9 @@ async function main() {
     if (c.code !== 0) return { status: 'failed', detail: { error: `commit 실패 — ${tail(c.stderr)}` } }
 
     if (process.env.GITHUB_ACTIONS === 'true') {
-      const p = await sh('git', ['push'])
-      if (p.code !== 0) return { status: 'failed', counts: { committed: staged.length }, detail: { error: `push 실패 — ${tail(p.stderr)}` } }
+      // 거부(fetch first)면 fetch+rebase 후 최대 3회. 리베이스 충돌이면 abort 하고 실패로 남긴다 — 강제 push 없음(scripts/git-push-retry.mjs).
+      const p = await pushWithRetry((args) => sh('git', args), { identity: commitIdentity() })
+      if (!p.ok) return { status: 'failed', counts: { committed: staged.length }, detail: { error: `push 실패(${p.attempts}회) — ${p.reason}` } }
     }
     return { status: 'ok', counts: { committed_files: staged.length } }
   })
@@ -778,8 +780,8 @@ async function main() {
       if (c.code !== 0) {
         say(`- ⚠️ 대시보드 재렌더 커밋 실패 — ${tail(c.stderr)} (실행 결과 자체엔 영향 없음)`)
       } else if (process.env.GITHUB_ACTIONS === 'true') {
-        const p = await sh('git', ['push'])
-        if (p.code !== 0) say(`- ⚠️ 대시보드 재렌더 push 실패 — ${tail(p.stderr)}`)
+        const p = await pushWithRetry((args) => sh('git', args), { identity: commitIdentity() })
+        if (!p.ok) say(`- ⚠️ 대시보드 재렌더 push 실패(${p.attempts}회) — ${p.reason}`)
       }
     }
   }

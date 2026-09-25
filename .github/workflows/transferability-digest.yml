@@ -97,4 +97,17 @@ jobs:
           git config user.email "noreply@anthropic.com"
           git add ops/state/transferability-feedback/
           git commit -m "chore(cases): 이식성 반려 사유 다이제스트 — $(date -u +%F)"
-          git push
+          # 거부(fetch first · 다른 실행이 먼저 push)면 fetch + rebase 후 재시도, 최대 3회(2026-09-25 실측 대응).
+          # 리베이스 충돌이면 abort 하고 실패로 남긴다 — 강제 push 는 하지 않는다. 다음 실행이 같은 파일을 다시 만든다.
+          for i in 1 2 3; do
+            if git push; then exit 0; fi
+            echo "push 거부(${i}회) — fetch + rebase 후 재시도"
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo "::error::rebase 충돌 — 재시도 없이 중단(강제 push 안 함). 다음 실행이 다시 커밋한다."
+              exit 1
+            fi
+          done
+          echo "::error::push 3회 재시도 후에도 거부"
+          exit 1

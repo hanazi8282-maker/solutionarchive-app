@@ -1,7 +1,8 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { reviewPost, type ReviewActionState } from './actions'
+import { publishNow, reviewPost, type ReviewActionState } from './actions'
+import type { InstantGateVerdict } from '../../lib/threads/instant-gate'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { Button } from '../_ds/components/Button'
 import { Textarea } from '../_ds/components/Field'
@@ -16,6 +17,8 @@ export type PendingPost = {
   notes: string | null
   created_at: string | null
   check: { errors: string[]; warns: string[]; chars: number }
+  /** 즉시발행 게이트(lib/threads/instant-gate.ts). 서버가 계산해 내려준다 — 화면은 판정하지 않는다. */
+  instant?: InstantGateVerdict
 }
 
 
@@ -30,12 +33,17 @@ export function PostReviewCard({ post }: { post: PendingPost }) {
   const [body, setBody] = useState(post.body)
   const [note, setNote] = useState('')
   const [state, action, pending] = useActionState<ReviewActionState, FormData>(reviewPost, null)
+  const [pubState, pubAction, publishing] = useActionState<ReviewActionState, FormData>(publishNow, null)
+  const [confirming, setConfirming] = useState(false)
   const changed = body !== post.body
 
   return (
     <li className="v2-panel v2-stack">
       <div className="v2-chiprow">
         <VoiceBadge check={post.check} />
+        {post.instant?.status === 'pass' && <Badge tone="success" size="sm">즉시발행 가능</Badge>}
+        {post.instant?.status === 'needs_human' && <Badge tone="warning" size="sm">즉시발행 판정 보류 {post.instant.pending.length}</Badge>}
+        {post.instant?.status === 'fail' && <Badge tone="neutral" size="sm">즉시발행 불가 {post.instant.failed.length}</Badge>}
         <Badge tone="neutral" size="sm">{post.check.chars}자</Badge>
         {post.hook_type && <Badge tone="neutral" size="sm">{post.hook_type}</Badge>}
         {post.closing_type && <Badge tone="neutral" size="sm">{post.closing_type}</Badge>}
@@ -85,6 +93,36 @@ export function PostReviewCard({ post }: { post: PendingPost }) {
         </div>
         {state && <Notice tone={state.ok ? 'success' : 'danger'}>{state.message}</Notice>}
       </form>
+
+      {/* 즉시발행 — 게이트 pass 인 초안만, 본문을 고치지 않았을 때만. 누르는 것은 항상 사람이다(CLAUDE.md §10 개정 2026-09-25). */}
+      {post.instant?.status === 'pass' && !pubState?.ok && (
+        <div className="v2-inset v2-stack">
+          {!confirming ? (
+            <div className="v2-actions">
+              <Button type="button" variant="outline" size="sm" disabled={changed || publishing} onClick={() => setConfirming(true)}>
+                그대로 발행 (Threads 에 바로 게시)
+              </Button>
+              {changed && <span className="v2-note">본문을 고쳤으면 먼저 승인(수정본 저장)하고, 그 뒤 Threads 앱에서 게시하세요.</span>}
+            </div>
+          ) : (
+            <form action={pubAction} className="v2-form">
+              <input type="hidden" name="id" value={post.id} />
+              <p className="v2-note"><strong>수정 없이 아래 본문이 그대로 발행됩니다.</strong> 되돌릴 수 없습니다(삭제는 Threads 앱에서).</p>
+              <pre className="v2-inset v2-pre">{post.body}</pre>
+              <div className="v2-actions">
+                <Button type="submit" variant="primary" size="sm" disabled={publishing}>발행 확정</Button>
+                <Button type="button" variant="ghost" size="sm" disabled={publishing} onClick={() => setConfirming(false)}>취소</Button>
+                {publishing && <span className="v2-note">Threads 에 게시 중…</span>}
+              </div>
+            </form>
+          )}
+          {post.instant.pending.length > 0 && <p className="v2-note">{post.instant.pending.join(' · ')}</p>}
+        </div>
+      )}
+      {post.instant && post.instant.status !== 'pass' && (post.instant.failed.length > 0 || post.instant.pending.length > 0) && (
+        <p className="v2-note">즉시발행 조건: {[...post.instant.failed, ...post.instant.pending].join(' · ')}</p>
+      )}
+      {pubState && <Notice tone={pubState.ok ? 'success' : 'danger'}>{pubState.message}</Notice>}
     </li>
   )
 }

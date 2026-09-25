@@ -342,3 +342,9 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 남헌 2026-09-25 결정("마이그레이션 파일로 enabled=true 전환, DB 직접 UPDATE 금지"). `review_sources` 1행 UPDATE(enabled·health·disabled_*), 비파괴, 롤백 파일 있음, §10.2 예외 5개 해당 없음 → CEO-STAFF 세션이 hosted Supabase MCP `apply_migration` 으로 적용(이번엔 분류기 차단 없음).
 - 양성 확인: `enabled=true, health=ok, disabled_at=NULL, health_checked_at=2026-09-25T12:41:13Z`.
 - 재차단 여부: 재활성화 직후 `nightly-review-collect.yml` 을 `source=todayhumor, dry_run=false` 로 수동 실행(run 36136401877). 결과는 상태 로그에.
+
+### 2026-09-25 — 000018 posts.publishing_at · published_via (세션 자체 판단 적용)
+
+- 남헌 2026-09-25 즉시발행 버튼 착수 승인(접근안 A). nullable ADD COLUMN 2개 + CHECK, 비파괴, 롤백 파일 있음, §10.2 예외 5개 해당 없음 → CEO-STAFF 세션이 hosted Supabase MCP `apply_migration` 으로 적용.
+- 양성 확인: information_schema 에 두 컬럼 존재(REST 조회). 음성: 없는 값('auto')은 CHECK 로 거부되는 것이 설계.
+- 코드는 컬럼이 없으면(42703/PGRST204) **발행하지 않고** "미적용" 메시지를 돌려준다 — 이중 게시 방어 없이는 게시하지 않는다.

@@ -1,6 +1,6 @@
 // 즉시발행 게이트 셀프테스트 — BP-1~3 + CG + 등급, 3상태(pass/fail/needs_human).
 //   node scripts/instant-gate-selftest.mjs
-import { instantGate, BP3_FORBIDDEN } from '../lib/threads/instant-gate.ts'
+import { instantGate, BP3_FORBIDDEN, bpNoteLine, parseBpDeclaration } from '../lib/threads/instant-gate.ts'
 
 let pass = 0, fail = 0
 const t = (name, got, want) => {
@@ -46,6 +46,16 @@ t('등급 모름 → needs_human', instantGate({ ...ok, grade: null }).status, '
 
 // fail 이 pending 보다 우선 — 사람이 답해도 실격인 글에 답을 요구하지 않는다
 t('fail + pending 동시 → fail', instantGate({ ...ok, declared: null, grade: 'D' }).status, 'fail')
+
+// notes 트레일러 왕복 — stage.json 선언 → posts.notes 한 줄 → 게이트 입력
+t('bpNoteLine 둘 다 불리언이면 한 줄', bpNoteLine({ exclusiveNumbers: true, transferable: false }), 'BP: 독점수치=true · 전이=false')
+t('bpNoteLine 하나라도 미선언이면 null(줄을 안 쓴다)', bpNoteLine({ exclusiveNumbers: true }), null)
+t('bpNoteLine 문자열 "true" 는 불리언이 아니다 → null', bpNoteLine({ exclusiveNumbers: 'true', transferable: true }), null)
+t('parse 왕복', parseBpDeclaration('게이트: 통과\nBP: 독점수치=true · 전이=false\n메모'), { exclusiveNumbers: true, transferable: false })
+t('parse CRLF 도 읽는다', parseBpDeclaration('게이트: 통과\r\nBP: 독점수치=false · 전이=true\r\n'), { exclusiveNumbers: false, transferable: true })
+t('parse 줄 없음 → 둘 다 null', parseBpDeclaration('게이트: 통과'), { exclusiveNumbers: null, transferable: null })
+t('parse notes null', parseBpDeclaration(null), { exclusiveNumbers: null, transferable: null })
+t('parse 결과를 declared 로 넣으면 pass', instantGate({ ...ok, declared: parseBpDeclaration('BP: 독점수치=true · 전이=true') }).status, 'pass')
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) { console.log('즉시발행 게이트가 실격을 통과시키거나 미판정을 통과로 접는다.'); process.exit(1) }

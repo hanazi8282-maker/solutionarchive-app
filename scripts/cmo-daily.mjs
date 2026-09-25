@@ -1900,6 +1900,10 @@ export function writerPrompt(m, date, contentCode) {
       closing_type: '<마무리 유형>',
       topic_tag: 'case-study',
       gate_note: '<게이트 판정 요약>',
+      // 즉시발행 게이트 BP-1·BP-2 선언(남헌 2026-09-25: 작가가 초안 시점에 스스로 판정한다. 대시보드 수동 체크 아님).
+      //   불리언으로 쓴다. 모르면 false — 추측으로 true 를 쓰지 않는다(§7.1). lib/threads/instant-gate.ts 가 읽는다.
+      bp1_exclusive_numbers: '<true|false — 본문 수치가 우리 실제 작업·실측에서만 나온 값이면 true. 검색하면 나오는 통계·업계 평균이거나 수치가 없으면 false>',
+      bp2_transferable: '<true|false — 그 수치가 독자 자신의 작업에 대입되는 교훈으로 이어지면 true. "나 이거 했다"로 끝나면 false>',
       // 반응률 판정(lib/insight/loop.ts measure)이 이 배열로 발행글을 패턴에 붙인다.
       applied_patterns: ['<learned-patterns.md 에서 실제로 적용한 패턴 키. 없으면 빈 배열>'],
     }, null, 2),

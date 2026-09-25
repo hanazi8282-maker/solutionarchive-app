@@ -319,3 +319,20 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 
 - 000013 적용 시 `hoka-specialty-retail-awareness-engine` 은 DB 에 행이 없어 0건 UPDATE 였다. 같은 날 PR #262(전이축 3칸 채움, 인사이트 D/D→A/A)를 `case-review.mjs commit` 으로 draft 적재한 뒤, 000013 과 같은 값(`hoka.com`, `config/brand-domains.json` status=active)으로 1행 UPDATE 를 CEO-STAFF 가 직접 실행했다(`WHERE brand_domain IS NULL` 가드, RETURNING 확인). 롤백은 000013 롤백 파일이 같은 슬러그를 포함하므로 별도 파일 없음.
 - 적재 실측: case_studies 58행(57→58), hoka 무브 2(draft/A·draft/A), 근거 8, reader_problem NO_CHANNEL, brand_domain 채움 40/58. 승인은 남헌(/cases 에서 무브+케이스 둘 다).
+
+### 2026-09-25 — 000016 `review_relevance_verdicts.labels_unavailable_reason` (미적용 — 남헌 SQL Editor)
+
+- 목적: T2 라벨 소급을 2회 돌려도 남는 34행(평판·의견성 글, 모델이 라벨 4개를 일관되게 null 로 반환)을 "라벨 불가"로 표시해 미해결 잔여로 계속 세지 않게 한다(남헌 2026-09-25 지시).
+- 비파괴(nullable ADD COLUMN 1개 + CHECK). 롤백 파일 있음. §10.2 예외 5개에 해당 없음 → 세션 자체 판단 범위이나, **자동모드 분류기가 hosted Supabase MCP `apply_migration` 을 "Production Deploy" 로 차단**해 CEO-STAFF 세션이 적용하지 못했다.
+- 남헌 절차: SQL Editor 에서 마이그 파일 실행 → 아래 UPDATE 로 34행 표시 → `node --env-file=.env.local scripts/relevance-labels-backfill.mjs`(드라이런) 대상이 0행이면 양성.
+  ```sql
+  UPDATE public.review_relevance_verdicts v
+     SET labels_unavailable_reason = 'opinion_no_pain_signal'
+    FROM public.analysis_inputs i
+   WHERE i.id = v.input_id AND i.purged_at IS NULL
+     AND v.impact IS NULL AND v.frequency IS NULL AND v.community_signal IS NULL AND v.wtp_mentioned IS NULL
+     AND (v.human_verdict = 'relevant' OR (v.human_verdict IS NULL AND v.verdict = 'relevant'))
+     AND v.labels_unavailable_reason IS NULL;
+  -- 기대 34행(2026-09-25 09:38 UTC 실측). 크게 다르면 그사이 야간 판정이 새 행을 만든 것이니 숫자를 확인하고 진행.
+  ```
+- 컬럼이 없어도 스크립트는 죽지 않는다: `relevance-labels-backfill.mjs` 가 42703 을 받으면 "마이그 000016 미적용" 경고를 남기고 옛 조건으로 대상을 고른다.

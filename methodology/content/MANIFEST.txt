@@ -47,4 +47,4 @@ solfa/03-excerpts.md           33ff71a6f3f6fac87aaf2c3fce548a01  lines:259
 solfa/04-decisions.md          b5ad56a411849d6b67aaedec026fa85c  rules:15  logs:0
 solfa/05-provenance.md         b59b70ca13b4f3966e09e609c65ef4c3  lines:132
 solfa/README.md                2bc0dfcbd247cdcb1539967126b4428c  lines:140
-threads-playbook.md            9c4be8137f0a09082c5d42671f236012  lines:980
+threads-playbook.md            c16cdb9b3f8681545157aaf95f21f935  lines:980

@@ -441,7 +441,10 @@ export function matchCaseMoves(
       observed_period_start: m.observed_period_start ?? null,
       siblings: siblingsOf.get(m.case_study_id) ?? [],
       matched_terms: matched,
-      score: (gradeRankOf(m) ?? 0) * 10 + matched.length + (kindMatch && projectKind !== null ? KIND_MATCH_BONUS : 0),
+      // SP-024 재개(남헌 2026-09-25): 겹친 낱말 수가 1순위, 등급은 동점 처리. 재개 전엔 등급×10 + 낱말 수 라
+      // 낱말 1개짜리 A 무브(31)가 낱말 5개짜리 C 무브(15)보다 위였다 — 코퍼스 감사에서 역전 쌍이 실측됐다.
+      // 종류 보너스(KIND_MATCH_BONUS=100)는 여전히 둘 다 압도한다("먼저/뒤에").
+      score: matched.length * 10 + (gradeRankOf(m) ?? 0) + (kindMatch && projectKind !== null ? KIND_MATCH_BONUS : 0),
       low_confidence: isLowConfidence(matched),
     })
   }

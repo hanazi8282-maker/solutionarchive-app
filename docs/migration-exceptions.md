@@ -336,3 +336,9 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   -- 기대 34행(2026-09-25 09:38 UTC 실측). 크게 다르면 그사이 야간 판정이 새 행을 만든 것이니 숫자를 확인하고 진행.
   ```
 - 컬럼이 없어도 스크립트는 죽지 않는다: `relevance-labels-backfill.mjs` 가 42703 을 받으면 "마이그 000016 미적용" 경고를 남기고 옛 조건으로 대상을 고른다.
+
+### 2026-09-25 — 000017 todayhumor 재활성화 (세션 자체 판단 적용)
+
+- 남헌 2026-09-25 결정("마이그레이션 파일로 enabled=true 전환, DB 직접 UPDATE 금지"). `review_sources` 1행 UPDATE(enabled·health·disabled_*), 비파괴, 롤백 파일 있음, §10.2 예외 5개 해당 없음 → CEO-STAFF 세션이 hosted Supabase MCP `apply_migration` 으로 적용(이번엔 분류기 차단 없음).
+- 양성 확인: `enabled=true, health=ok, disabled_at=NULL, health_checked_at=2026-09-25T12:41:13Z`.
+- 재차단 여부: 재활성화 직후 `nightly-review-collect.yml` 을 `source=todayhumor, dry_run=false` 로 수동 실행(run 36136401877). 결과는 상태 로그에.

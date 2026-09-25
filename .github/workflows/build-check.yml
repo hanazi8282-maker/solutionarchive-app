@@ -73,6 +73,7 @@ jobs:
       - run: node scripts/git-push-retry-selftest.mjs
       - run: node scripts/llm-provider-selftest.mjs
       - run: node scripts/threads-publish-selftest.mjs
+      - run: node scripts/second-opinion-selftest.mjs
       # 어드바이저 매칭 3상태·불용어 회귀·SP-024 저신뢰 판정. 픽스처만 쓴다(네트워크·DB 없음).
       - run: node scripts/advisor-selftest.mjs
       # 케이스 검색(질의 파싱·종류 가산점·3상태·빈 상태 문구). 가산점이 하드필터로 되돌아가면

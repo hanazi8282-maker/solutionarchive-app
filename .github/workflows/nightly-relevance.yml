@@ -72,6 +72,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # ⛔ 사람이 등록해야 하는 시크릿(nightly-extract 와 같은 것). 없으면 시작하지 않는다.
+          # 2026-09-26 실제 전환(09-25 PR #279 는 이 두 줄이 빠져 gemini 로 돌았다). 되돌리기 = 리포 변수 RELEVANCE_LLM_PROVIDER=gemini.
+          LLM_PROVIDER: ${{ vars.RELEVANCE_LLM_PROVIDER || 'claude-cli' }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # 비용 상한은 lib/analysis/budget.ts 가 강제한다(프로세스 단위 = 이 실행 1회분).
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}

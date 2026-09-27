@@ -85,6 +85,19 @@ export class ProviderHttpError extends Error {
   }
 }
 
+/**
+ * claude -p 프로세스 자체가 실패했을 때(exit≠0 · 봉투 is_error). 구독 사용량 한도가 여기로 온다.
+ * 한도 문구는 CLI 버전마다 바뀌어 문자열로 가리지 않는다 — 대신 isQuotaFailure 가 timeout 만 빼고 전부 "오늘은 멈춤"으로 본다.
+ * 반환된 텍스트의 파싱·검증 실패는 이 타입이 아니다(callClaudeCli 가 돌아온 뒤에 난다) — 그건 프로젝트 단위 실패로 남는다.
+ */
+export class ClaudeCliError extends Error {
+  timedOut: boolean
+  constructor(message: string, timedOut = false) {
+    super(message)
+    this.timedOut = timedOut
+  }
+}
+
 /** 우선순위 배열의 모든 Gemini 모델이 한도 소진/사용 불가였을 때. */
 export class AllGeminiModelsExhaustedError extends Error {
   tried: string[]
@@ -102,6 +115,9 @@ export class AllGeminiModelsExhaustedError extends Error {
 export function isQuotaFailure(e: unknown): boolean {
   if (e instanceof LlmBudgetExceededError) return true
   if (e instanceof AllGeminiModelsExhaustedError) return true
+  // CLI 실패는 한도로 본다 — 남은 프로젝트마다 같은 실패로 extract_attempts(상한 3)를 태우지 않게.
+  // timeout 만 예외: 입력이 긴 그 프로젝트 하나의 문제다(2026-09-28).
+  if (e instanceof ClaudeCliError) return !e.timedOut
   return e instanceof ProviderHttpError && (e.status === 429 || e.status === 402 || e.status === 503)
 }
 
@@ -121,7 +137,8 @@ export function describeFailure(e: unknown): string {
 /**
  * claude -p 한 번. 시스템 프롬프트와 사용자 프롬프트를 stdin 으로 이어 준다(`--system-prompt` 를 안 쓰는 이유:
  * 프롬프트가 길어 인자 상한에 걸릴 수 있고, insight 루프도 stdin 방식이다). `--output-format json` 봉투에서 result 를 꺼낸다.
- * 실패(exit≠0·timeout·is_error)는 Error 로 던진다 — callWithRetry 가 재시도 대상이 아닌 것으로 보고 곧장 올린다.
+ * 실패(exit≠0·timeout·is_error)는 ClaudeCliError 로 던진다 — ProviderHttpError 가 아니라 callWithRetry 가 재시도하지 않고 곧장 올린다
+ * (사용량 한도를 4번 두드리지 않는다).
  */
 async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<{ text: string; model: string }> {
   const bin = await resolveClaudeBinary()
@@ -136,20 +153,24 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
     { timeoutMs: Number(process.env.LLM_CLAUDE_CLI_TIMEOUT_MS) > 0 ? Number(process.env.LLM_CLAUDE_CLI_TIMEOUT_MS) : 180_000, input: `${systemPrompt}\n\n---\n\n${userPrompt}` },
   )
   if (res.exitCode !== 0) {
-    throw new Error(`claude -p 실패 (exit ${res.exitCode}${res.timedOut ? ', timeout' : ''}): ${res.stderr.slice(0, 500)}`)
+    // 한도·오류 문구는 stderr 가 아니라 stdout 봉투(result)로 오는 경우가 많아 둘 다 남긴다.
+    throw new ClaudeCliError(
+      `claude -p 실패 (exit ${res.exitCode}${res.timedOut ? ', timeout' : ''}): ${res.stderr.slice(0, 300)} ${res.stdout.slice(0, 300)}`.trim(),
+      res.timedOut,
+    )
   }
   let text = res.stdout
   let model = CLAUDE_CLI_LABEL
   try {
     const env = JSON.parse(res.stdout) as Record<string, unknown>
-    if (env.is_error === true) throw new Error(`claude 가 오류를 보고했다: ${String(env.result ?? '').slice(0, 300)}`)
+    if (env.is_error === true) throw new ClaudeCliError(`claude 가 오류를 보고했다: ${String(env.result ?? '').slice(0, 300)}`)
     if (typeof env.result === 'string') text = env.result
     if (typeof env.model === 'string' && env.model) model = env.model
     // 실측 비용·토큰. budget.ts 의 추정치와 별개다 — 보고에는 이 줄의 숫자를 쓴다(2026-09-26 정정).
     const u = (env.usage && typeof env.usage === 'object' ? env.usage : {}) as Record<string, unknown>
     console.log(`[analysis/llm] claude-cli 실측 total_cost_usd=${String(env.total_cost_usd ?? 'n/a')} in=${String(u.input_tokens ?? '?')} out=${String(u.output_tokens ?? '?')} cache_read=${String(u.cache_read_input_tokens ?? '?')} model=${model}`)
   } catch (e) {
-    if (e instanceof Error && e.message.startsWith('claude 가 오류를')) throw e
+    if (e instanceof ClaudeCliError) throw e
     // 봉투가 아니면 본문이 그대로 온 것이다.
   }
   return { text: text.trim(), model }

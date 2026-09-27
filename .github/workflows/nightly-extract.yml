@@ -8,8 +8,13 @@
 #    이 배치는 `status='collecting'` 인 프로젝트만 돌고 `force` 를 쓰지 않는다.
 #    검수 이후 상태(reviewed/angled/done)는 `lib/analysis/extract-gate.ts` 가 거부한다.
 #
-# ⚠️ GEMINI_API_KEY 시크릿이 없으면 아무것도 하지 않고 종료코드 2 로 멈춘다.
-#    조용히 도는 것보다 시끄럽게 닫히는 편이 낫다.
+# 엔진: 2026-09-28 부터 Gemini → Claude Sonnet(claude-cli, 구독 OAuth = Agent SDK 크레딧 경로).
+#    GEMINI_API_KEY 는 더 이상 필요 없다. column-review.yml 과 같은 CLI 설치·시크릿을 쓴다.
+#    구독 사용량 한도에 걸리면 lib/analysis/llm.ts ClaudeCliError → isQuotaFailure=true 로 배치를 멈춘다
+#    (남은 프로젝트마다 extract_attempts 를 태우지 않는다). timeout 은 그 프로젝트만 실패.
+#
+# ⚠️ CLAUDE_CODE_OAUTH_TOKEN 시크릿이 없으면 아무것도 하지 않고 종료코드 2 로 멈춘다
+#    (scripts/extract-auto.mjs requiredKeyFor). 조용히 도는 것보다 시끄럽게 닫히는 편이 낫다.
 
 name: Nightly Extract
 
@@ -44,8 +49,9 @@ permissions:
 jobs:
   extract:
     runs-on: ubuntu-latest
-    # extract 1건 실측 40~110초(2026-09-27). 상한은 vars.EXTRACT_AUTO_MAX_PROJECTS(기본 3, 10 으로 올려도 45분 안).
-    timeout-minutes: 45
+    # extract 1건 Gemini 실측 40~110초(2026-09-27). Sonnet(claude-cli)은 입력 ~12만 자에 최대 ~5분으로 잡는다 —
+    # vars.EXTRACT_AUTO_MAX_PROJECTS=10 × 5분 + 설치 여유.
+    timeout-minutes: 75
 
     steps:
       - uses: actions/checkout@v4
@@ -57,12 +63,25 @@ jobs:
 
       - run: npm ci
 
+      - name: Install Claude Code CLI
+        run: |
+          npm i -g @anthropic-ai/claude-code@2.1.251
+          echo "CLAUDE_CLI_PATH=$(which claude)" >> "$GITHUB_ENV"
+          claude --version
+
       - name: Extract aspects for projects with new reviews
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # ⛔ 사람이 등록해야 하는 유일한 새 시크릿. 없으면 스크립트가 시작하지 않는다.
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # 기존 시크릿 재사용(column-review.yml). 없으면 스크립트가 시작하지 않는다. ANTHROPIC_API_KEY 는 넣지 않는다.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          LLM_PROVIDER: claude-cli
+          CLAUDE_CLI_MODEL: sonnet
+          # 예산 추정기(budget.ts) 단가 = Sonnet. 실측 비용은 로그의 "claude-cli 실측 total_cost_usd" 줄을 본다.
+          LLM_USD_PER_MTOK_IN: '3'
+          LLM_USD_PER_MTOK_OUT: '15'
+          # extract 입력은 최대 ~12만 자다. 기본 180초로는 모자란다.
+          LLM_CLAUDE_CLI_TIMEOUT_MS: '600000'
           # 비용 상한은 lib/analysis/budget.ts 가 강제한다(프로세스 단위 = 이 실행 1회분).
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
           EXTRACT_AUTO_MIN_NEW: ${{ inputs.min_new || vars.EXTRACT_AUTO_MIN_NEW || '100' }}

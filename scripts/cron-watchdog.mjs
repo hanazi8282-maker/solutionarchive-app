@@ -53,6 +53,22 @@ export function scheduledWorkflows(dir) {
     .filter((w) => w.crons.length)
 }
 
+/**
+ * `git push` 하는 워크플로 중 전용 GitHub App 토큰 스텝(actions/create-github-app-token)이 없는 파일.
+ * 09-25 main 룰셋 뒤 기본 GITHUB_TOKEN 의 push 는 GH013 으로 거부된다 — 수집은 되고 커밋만 매일 유실되는데
+ * 워크플로 자체는 failure 라 원인이 로그 끝에 묻힌다(2026-09-25·26 hn-failure-signal·nightly-notion-feedback).
+ * 주석 줄은 빼고 본다(checkout 주석이 `git push` 를 언급한다).
+ */
+export function pushWithoutBotToken(dir) {
+  return fs.readdirSync(dir)
+    .filter((f) => /\.ya?ml$/.test(f))
+    .filter((file) => {
+      const code = fs.readFileSync(path.join(dir, file), 'utf-8').split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
+      return /\bgit push\b/.test(code) && !/create-github-app-token/.test(code)
+    })
+    .sort()
+}
+
 /** now - GRACE 이전의 가장 최근 예정 시각. 일일 크론만 이해한다 — 그 밖은 null(확인 불가). */
 export function lastSlot(cron, now) {
   const m = /^(\d{1,2}) (\d{1,2}) \* \* \*$/.exec(cron.trim())
@@ -142,6 +158,9 @@ export async function runWatchdog({
     }
   }
 
+  for (const f of pushWithoutBotToken(workflowsDir)) {
+    problems.push(`${f}: git push 하는데 전용 앱 토큰 스텝(create-github-app-token)이 없다 — main 룰셋(GH013)에 막혀 push 단계에서 매일 실패한다. daily-cmo-loop.yml 의 "Mint bot token" 블록을 복사하라`)
+  }
   const sbUrl = env.NEXT_PUBLIC_SUPABASE_URL
   const sbKey = env.SUPABASE_SERVICE_ROLE_KEY
   if (!sbUrl || !sbKey) problems.push('Threads 토큰: 확인 불가 — Supabase 환경변수 없음')

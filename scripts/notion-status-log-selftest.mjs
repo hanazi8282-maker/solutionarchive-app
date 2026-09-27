@@ -184,4 +184,35 @@ try {
   assert.equal(noisy.needsHuman, true)
 }
 
+// 9) 폴백 파일 왕복 — renderPending → parsePending (flush 가 올리는 입력). 빈 칸·CRLF·본문 안 '#' 도 살아남는다.
+{
+  const { renderPending, parsePending } = await import('./notion-status-log.mjs')
+  const entry = { date: '2026-09-27', track: '기타', needsHuman: true, done: '한 일 1\n- # 해시 붙은 줄\n한 일 3', blocked: '', next: '다음', note: 'PR #294' }
+  const text = renderPending(entry, '2026-09-27-기타-2', 'env: 토큰 없음')
+  const back = parsePending(text)
+  assert.deepEqual(back, { title: '2026-09-27-기타-2', ...entry })
+  assert.deepEqual(parsePending(text.replace(/\n/g, '\r\n')), back, 'CRLF 도 같다')
+  assert.equal(parsePending('# 제목만\n\n## 한일\n\nx\n'), null, '날짜·트랙 없으면 올리지 않는다')
+  assert.equal(parsePending(renderPending({ ...entry, track: 'ETC' }, 't', 'w')), null, '모르는 트랙은 null')
+
+  // 10) flush — 올린 파일만 지우고, 깨진 파일·토큰 없음은 남긴다. 제목은 DB 가 다시 매기고 파일명은 비고에 남는다.
+  const { flushPending, collectPending } = await import('./notion-status-log-flush.mjs')
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pending-'))
+  fs.writeFileSync(path.join(dir, '2026-09-27-기타.md'), text)
+  fs.writeFileSync(path.join(dir, 'broken.md'), '# 제목만\n')
+  assert.equal(collectPending(dir).length, 2)
+  const noTok = await flushPending({ dir, token: '', log: () => {} })
+  assert.deepEqual(noTok, { code: 1, uploaded: [], failed: ['2026-09-27-기타.md', 'broken.md'] })
+  assert.equal(fs.readdirSync(dir).length, 2, '토큰 없으면 아무것도 안 지운다')
+  const recorded = []
+  const okRun = await flushPending({ dir, token: 't', log: () => {}, record: async (e) => { recorded.push(e); return { ok: true, title: '2026-09-27-기타-3', url: 'u' } } })
+  assert.deepEqual(okRun, { code: 1, uploaded: ['2026-09-27-기타.md'], failed: ['broken.md'] })
+  assert.equal(recorded[0].title, undefined, '제목 번호는 DB 에서 다시')
+  assert.match(recorded[0].note, /PR #294 · 폴백 파일 2026-09-27-기타\.md/)
+  assert.deepEqual(fs.readdirSync(dir), ['broken.md'])
+  const dry = await flushPending({ dir, dry: true, token: '', log: () => {}, record: async () => { throw new Error('dry 인데 기록') } })
+  assert.equal(dry.code, 1, 'dry 도 깨진 파일은 실패로 센다')
+  fs.rmSync(dir, { recursive: true, force: true })
+}
+
 console.log('✅ notion-status-log-selftest: 통과')

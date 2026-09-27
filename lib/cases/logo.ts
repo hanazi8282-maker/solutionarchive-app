@@ -8,6 +8,11 @@
 //                     도메인이 틀리면 남의 로고가 붙으므로 추측하지 않는다 — DB 에 적힌 값만 쓴다.
 //   3) 둘 다 없음   — 브랜드 이니셜 듀오톤. "로고를 못 불러왔다"가 아니라 "없다"다.
 //
+// ⚠️ logo_url 이 `/case-art/` 로 시작하면 로고가 아니라 **사진**(kind 'photo')이다. 공개 카드는 띠 전체를
+//    사진으로 채우고 흰 플레이트에 이니셜을 올린다(reports/2026-09-27/library-thumbnail-spec.md §3.3).
+//    규약이 데이터가 아니라 경로에 있다 — 진짜 로고를 public/case-art/ 에 넣으면 사진 취급된다(로고는
+//    다른 폴더에). 세 번째 출처(사용자 업로드 등)가 생기면 그때 logo_kind 컬럼으로 승격한다.
+//
 // ⚠️ `<img>` 로 그린다. next/image 는 외부 호스트를 next.config 의 images.remotePatterns 에
 //    등록해야 하는데, 여기 오는 호스트는 브랜드마다 다르다 — 화이트리스트를 유지할 수 없고,
 //    빠진 호스트는 런타임 에러가 된다. 썸네일 하나에 그 비용을 지지 않는다.
@@ -35,18 +40,25 @@ export type LogoInput = {
   /** 마이그 20260930000001 미적용이면 `undefined` 로 온다 — 미기재와 구분해 다루지 않는다(둘 다 이니셜). */
   logo_url?: string | null
   brand_domain?: string | null
+  /** 공개 썸네일 띠 색의 순환 키(불변 라우트 키). 없으면 brand_name 으로 대신한다. */
+  slug?: string | null
 }
 
+/** hue 는 `_ds/BrandLogo`(내부 화면)의 병목색, slot 은 공개 썸네일 팔레트 칸(0..5). */
+type LogoBase = { initial: string; hue: number; slot: number }
+
 export type LogoVerdict =
-  /** 사람이 확정한 이미지. */
-  | { kind: 'url'; src: string; initial: string; hue: number }
+  /** 사람이 확정한 로고 이미지. */
+  | ({ kind: 'url'; src: string } & LogoBase)
+  /** 자체 호스팅 사진(`/case-art/…`). 로고가 아니라 띠 배경이다. */
+  | ({ kind: 'photo'; src: string } & LogoBase)
   /**
    * 도메인으로 외부 API 에서 가져온 로고. 틀릴 수 있으므로 화면이 그 사실을 알 수 있게 kind 를 가른다.
    * provider 'brandfetch' 면 fallbackSrc(Google 파비콘)가 붙는다 — 404 면 화면이 그걸로 갈아탄다.
    */
-  | { kind: 'favicon'; provider: 'brandfetch' | 'google'; src: string; fallbackSrc?: string; domain: string; initial: string; hue: number }
-  /** 로고 없음. 이니셜 듀오톤을 그린다. */
-  | { kind: 'initial'; initial: string; hue: number }
+  | ({ kind: 'favicon'; provider: 'brandfetch' | 'google'; src: string; fallbackSrc?: string; domain: string } & LogoBase)
+  /** 로고 없음. 이니셜을 그린다. */
+  | ({ kind: 'initial' } & LogoBase)
 
 /** 도메인 정리 — 스킴·www·경로·포트를 떼고 소문자. 도메인 꼴이 아니면 null(짐작하지 않는다). */
 export function normalizeDomain(raw: string | null | undefined): string | null {
@@ -72,9 +84,15 @@ export function brandInitial(name: string | null | undefined): string {
   return [...s][0].toUpperCase()
 }
 
+function hash360(s: string | null | undefined): number {
+  let h = 0
+  for (const ch of (s ?? '')) h = (h * 31 + ch.codePointAt(0)!) % 360
+  return h
+}
+
 /**
- * 듀오톤 색상(HSL hue). 병목이 있으면 병목별 고정색, 없으면 브랜드명 해시.
- * 병목별로 두는 이유: 카드 그리드에서 같은 병목이 같은 색으로 묶여 보인다(§4 Atria 방식).
+ * 듀오톤 색상(HSL hue) — **내부 화면(`_ds/BrandLogo`) 전용**. 병목이 있으면 병목별 고정색, 없으면 브랜드명 해시.
+ * 공개 썸네일은 이걸 쓰지 않는다(아래 paletteSlot) — 15장 중 7장이 주황으로 몰렸다(spec §2b).
  */
 const BOTTLENECK_HUE: Record<string, number> = {
   AWARENESS: 265, TRUST: 210, CONVERSION: 330, RETENTION: 160,
@@ -84,9 +102,18 @@ const BOTTLENECK_HUE: Record<string, number> = {
 export function duotoneHue(bottleneck: string | null | undefined, brandName: string | null | undefined): number {
   const b = (bottleneck ?? '').trim().toUpperCase()
   if (BOTTLENECK_HUE[b] != null) return BOTTLENECK_HUE[b]
-  let h = 0
-  for (const ch of (brandName ?? '')) h = (h * 31 + ch.codePointAt(0)!) % 360
-  return h
+  return hash360(brandName)
+}
+
+/**
+ * 공개 썸네일 띠 팔레트(hue) — Atria 실측 5색 + 초록 1칸(spec §3.2). 병목과 무관하다.
+ * pub.css 의 `.pub-logo--s0…s5` 가 같은 순서로 같은 값을 적는다 — 한쪽을 바꾸면 둘 다 바꾼다.
+ */
+export const PALETTE_HUES = [320, 201, 239, 28, 270, 160] as const
+
+/** 팔레트 칸 0..5. slug 해시라 카드·저장함·상세 어디서나 같은 색이다(목록 순서·필터와 무관). */
+export function paletteSlot(key: string | null | undefined): number {
+  return hash360(key) % PALETTE_HUES.length
 }
 
 /** 썸네일 판정. 이 함수 밖에서 폴백 순서를 다시 쓰지 않는다. */
@@ -98,9 +125,10 @@ export function logoFor(
 ): LogoVerdict {
   const initial = brandInitial(study.brand_name)
   const hue = duotoneHue(bottleneck, study.brand_name)
+  const slot = paletteSlot(study.slug?.trim() || study.brand_name)
 
   const url = safeImageUrl(study.logo_url)
-  if (url) return { kind: 'url', src: url, initial, hue }
+  if (url) return { kind: url.startsWith('/case-art/') ? 'photo' : 'url', src: url, initial, hue, slot }
 
   const domain = normalizeDomain(study.brand_domain)
   if (domain) {
@@ -114,9 +142,10 @@ export function logoFor(
         domain,
         initial,
         hue,
+        slot,
       }
     }
-    return { kind: 'favicon', provider: 'google', src: faviconSrc(domain), domain, initial, hue }
+    return { kind: 'favicon', provider: 'google', src: faviconSrc(domain), domain, initial, hue, slot }
   }
-  return { kind: 'initial', initial, hue }
+  return { kind: 'initial', initial, hue, slot }
 }

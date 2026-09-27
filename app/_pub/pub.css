@@ -740,37 +740,73 @@
 /* 메타 줄 끝 "읽기 →" — 오른쪽으로 민다(칼럼 카드). */
 .pub-card-go { margin-left: auto; display: inline-flex; align-items: center; gap: var(--pub-gap-1); color: var(--pub-accent); }
 
-/* ── 브랜드 썸네일 (듀오톤 + 파비콘) ─────────────────────── */
-.pub-logo {
+/* ── 브랜드 썸네일 — 띠 + 흰 플레이트 두 층 ─────────────────
+   수치 정본: reports/2026-09-27/library-thumbnail-spec.md §3 ([A'] Atria 재실측).
+   플레이트는 항상 있고 내용만 바뀐다(아이콘 / 이니셜). 사진은 띠 배경일 뿐 층을 늘리지 않는다. */
+
+/* 팔레트 6칸(lib/cases/logo.ts PALETTE_HUES 와 같은 순서) — slug 해시로 고른다(병목 무관). */
+.pub-logo--s0 { --pub-band-h: 320; }
+.pub-logo--s1 { --pub-band-h: 201; }
+.pub-logo--s2 { --pub-band-h: 239; }
+.pub-logo--s3 { --pub-band-h: 28; }
+.pub-logo--s4 { --pub-band-h: 270; }
+.pub-logo--s5 { --pub-band-h: 160; }
+
+/* 플레이트 — md·lg 는 .pub-logo 자체가 플레이트, cover 는 안쪽 .pub-logo-plate 가 플레이트(§3.4). */
+.pub-logo,
+.pub-logo-plate {
   position: relative;
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--pub-round-thumb);
   overflow: hidden;
-  /* 두 hue 는 컴포넌트가 --pub-logo-hue{,-2} 로 넣는다(데이터값이라 CSS 에 못 적는다). */
-  background: linear-gradient(135deg, hsl(var(--pub-logo-hue, 220) 62% 46%), hsl(var(--pub-logo-hue-2, 248) 68% 34%));
-  color: var(--pub-accent-ink);
+  background: #fff;
+  /* 그림자 없음(Atria). 흰색에 가까운 아이콘의 대비용 inset 선 하나만. */
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
+  /* 이니셜 = 띠 hue 의 진한 톤(흰 판 위라 흰 글자를 쓸 수 없다, §3.2). */
+  color: hsl(var(--pub-band-h, 201) 45% 38%);
   font-weight: var(--pub-weight-head);
-  font-size: var(--pub-size-head);
   letter-spacing: var(--pub-tracking-display);
   line-height: var(--pub-leading-label);
 }
-.pub-logo--lg { width: 72px; height: 72px; }
-/* [A] 카드 상단 듀오톤 띠 — 제품 사진이 없으니 컬러 오버레이 + 로고만 남긴다(§4). */
+.pub-logo { width: 56px; height: 56px; border-radius: 8px; font-size: 20px; }
+.pub-logo--lg { width: 72px; height: 72px; border-radius: var(--pub-round-thumb); font-size: var(--pub-size-head); }
+/* 로고는 이니셜 위에 절대배치 — 404 면 LogoImg 가 빠지고 밑의 이니셜이 보인다. 내용 60%. */
+.pub-logo img { position: absolute; inset: 20%; width: 60%; height: 60%; object-fit: contain; }
+
+/* 카드 띠 — 16:9 · 12px · 팔레트 그라디언트(§3.0). 띠 자체는 플레이트가 아니다. */
 .pub-logo--cover {
   width: 100%;
   height: auto;
-  aspect-ratio: 16 / 7;
+  aspect-ratio: 16 / 9;
   border-radius: var(--pub-round-thumb);
+  box-shadow: none;
+  background: linear-gradient(135deg, hsl(var(--pub-band-h, 201) 40% 60%), hsl(var(--pub-band-h, 201) 36% 46%));
+}
+/* 카드 플레이트 — 62px(띠 높이 33%) · #fff · 8px · 패딩 12px → 내용 37px. 폭 최대 띠의 75%.
+   ponytail: px 고정 — 375px(띠 343×193)에서도 플레이트 32% 로 거의 같다. 폭이 크게 다른 화면이 생기면 cqh. */
+.pub-logo-plate {
+  z-index: 1;
+  height: 62px;
+  min-width: 62px;
+  max-width: 75%;
+  padding: 12px;
+  border-radius: 8px;
   font-size: var(--pub-size-display-sm);
 }
-/* 파비콘이 404 여도 깨진 이미지 아이콘이 아니라 이니셜이 보인다(JS 없이 되는 유일한 방법). */
-.pub-logo img { position: absolute; inset: 18%; width: 64%; height: 64%; object-fit: contain; }
-.pub-logo--cover img { inset: 22%; width: 56%; height: 56%; }
+.pub-logo-plate img { inset: 12px; width: 37px; height: 37px; }
+
+/* (c) 사진 — 자체 호스팅 /case-art/ 에만. 띠 전체 cover + grayscale + 62% 틴트(§3.3).
+   Brandfetch 아이콘에는 filter 를 걸지 않는다(로고 변형 금지 소지). */
+.pub-logo--photo > img { inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1); }
+/* 틴트는 사진이 실제로 있을 때만 — 404 로 사진이 빠지면 그라디언트 띠가 그대로 남는다. */
+.pub-logo--photo:has(> img)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--pub-band-h, 201) 45% 60% / 0.62);
+}
 
 /* ── 빈 상태 ─────────────────────────────────────────────── */
 .pub-empty {

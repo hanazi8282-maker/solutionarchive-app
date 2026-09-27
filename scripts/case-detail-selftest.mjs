@@ -18,7 +18,7 @@ import {
   metricTiles, splitCases, relatedCases, pickLeadMove, clipTransferNote, detailTitle,
 } from '../lib/cases/detail.ts'
 import { displayGrade, displayGradeLabel, factCheckLabel } from '../lib/cases/grade-display.ts'
-import { logoFor, normalizeDomain, safeImageUrl, brandInitial, duotoneHue } from '../lib/cases/logo.ts'
+import { logoFor, normalizeDomain, safeImageUrl, brandInitial, duotoneHue, paletteSlot, PALETTE_HUES } from '../lib/cases/logo.ts'
 import { pairMoves } from '../lib/cases/compare.ts'
 
 let pass = 0
@@ -187,8 +187,23 @@ t('빈 도메인은 null', normalizeDomain('  '), null)
 t('javascript: 는 이미지 주소가 아니다', safeImageUrl('javascript:alert(1)'), null)
 t('프로토콜 상대(//) 도 아니다', safeImageUrl('//evil.com/a.png'), null)
 t('사이트 내부 경로는 통과', safeImageUrl('/fonts/a.png'), '/fonts/a.png')
-t('병목이 같으면 색도 같다', duotoneHue('TRUST', 'A'), duotoneHue('TRUST', 'B'))
-ok('병목 미기재는 브랜드명 해시로 갈린다', duotoneHue(null, 'A') !== duotoneHue(null, 'BBBB'))
+// 병목색 hue 는 이제 내부 화면(_ds/BrandLogo) 전용이다 — 공개 썸네일은 아래 팔레트 칸.
+t('(_ds) 병목이 같으면 색도 같다', duotoneHue('TRUST', 'A'), duotoneHue('TRUST', 'B'))
+ok('(_ds) 병목 미기재는 브랜드명 해시로 갈린다', duotoneHue(null, 'A') !== duotoneHue(null, 'BBBB'))
+
+// ── 8b. 공개 썸네일 — 사진 판정 · 팔레트 칸 (spec 2026-09-27 §3) ─────
+t('/case-art/ 는 로고가 아니라 사진', logoFor({ brand_name: 'Cydoc', logo_url: '/case-art/cydoc.jpg', slug: 'cydoc' }).kind, 'photo')
+t('/case-art/ 가 아닌 내부 경로는 로고(url)', logoFor({ brand_name: 'Acme', logo_url: '/logos/acme.png' }).kind, 'url')
+t('외부 https logo_url 은 여전히 url', logoFor({ brand_name: 'Acme', logo_url: 'https://cdn.x/a.png', slug: 'acme' }, null, 'cid123').kind, 'url')
+t('사진이어도 이니셜은 있다(플레이트 내용)', logoFor({ brand_name: 'cydoc', logo_url: '/case-art/cydoc.jpg' }).initial, 'C')
+t('팔레트는 6칸', PALETTE_HUES.length, 6)
+t('같은 slug 는 같은 칸(결정적)', paletteSlot('fathom-pricing'), paletteSlot('fathom-pricing'))
+ok('칸은 0..5 정수', ['', 'a', 'fathom-pricing', '한글-슬러그', 'x'.repeat(200)].every(k => {
+  const s = paletteSlot(k); return Number.isInteger(s) && s >= 0 && s < 6
+}))
+ok('slug 가 다르면 칸이 갈릴 수 있다(해시가 상수가 아니다)', new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(paletteSlot)).size > 1)
+t('판정의 slot = slug 해시(병목 무관)', logoFor({ brand_name: 'X', slug: 'fathom-pricing' }, 'UNIT_ECONOMICS').slot, paletteSlot('fathom-pricing'))
+t('slug 없으면 brand_name 으로 대신', logoFor({ brand_name: 'Juttu' }).slot, paletteSlot('Juttu'))
 
 console.log(fail
   ? `실패 ${fail}건 / 통과 ${pass}건`

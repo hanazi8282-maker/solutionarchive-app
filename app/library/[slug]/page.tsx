@@ -157,7 +157,7 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
         <Hero
           variant="detail"
           title={detailTitle(s)}
-          media={<PubBrandLogo study={s} bottleneck={s.bottleneck} size="lg" />}
+          media={<PubBrandLogo study={s} size="lg" />}
           meta={
             <>
               <div className="pub-chiprow">

@@ -360,3 +360,9 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - UPDATE 5행, 각 행 id·현재값 가드, 비파괴. 롤백 파일 있음. §10.2 예외 해당 없음.
 - exhausted 를 자동으로 되살리는 코드 없음(러너는 active 만 집음, discovery kill 도 되살리지 않음). cap 이 모자라면 review-request-cap 이 2배 이내에서 올린다.
 - 적용: 2026-09-27 hosted Supabase MCP `apply_migration`(qmgrfqjfxqhxuufrnkwf). 양성 확인: danawa exhausted 17 · active 0 · todayhumor failed 3 · danawa cap 30 · enabled=true. 음성 검사는 hosted MCP 가 롤백 제어를 못 해 미실행(가드 조건이 재실행 시 0행이 되도록 작성됨).
+
+### 2026-09-28 — 000024 활성 SaaS 소스 수집 상한 3배 (CEO-STAFF 세션, 남헌 지시)
+
+- hackernews 600 · clien 462 · bobaedream 336 · 82cook 369 · okky/velog/damoang/theqoo/fmkorea 300 · brunch 150. min_interval_ms 불변. 제외: danawa·youtube·tumblbug.
+- 안전 근거: 7일간 상한 도달 0·403/429 0, robots Crawl-delay ≤2s < 현재 간격. 3배가 안 되는 소스 없음.
+- 적용: hosted MCP apply_migration. 양성 확인 10행 모두 새 값·간격 불변. 음성 미실행(hosted MCP 롤백 제어 불가, 현재값 가드라 재실행 0행).

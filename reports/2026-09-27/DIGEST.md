@@ -54,6 +54,9 @@ _이번 실행은 해설을 생성하지 못했다 — analyst exit 1. 원자료
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":2})
 - ✅ `stage` 발행 대기 스테이징 ({"staged":2})
 - ✅ `performance` 성과 분석 ({"raw_only":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":17})
+- ℹ️ Notion 푸시: ck-fixed-cost-collapse-3e8100b7ffb481638bc4e1458049c88e ✅ DISCOVERY-2026-09-27 → https://app.notion.com/p/DISCOVERY-2026-09-27-3e8100b7ffb48152914eefb9955e74fb 푸시 완료 — 초안 2건 · 신규케이스 1건 · 발굴 1건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-09-28-CMO 기록·재확인
 
 _실행 키 `cmo-2026-09-27-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

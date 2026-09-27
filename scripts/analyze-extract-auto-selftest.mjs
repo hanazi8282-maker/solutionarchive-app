@@ -14,9 +14,10 @@ import {
   compareAutoPriority,
   describePick,
   needsForce,
+  newInputsSince,
   pickAutoTargets,
 } from '../lib/analysis/extract-auto.ts'
-import { REANALYZABLE } from '../lib/analysis/extract-gate.ts'
+import { AUTO_EXTRACT_STATUSES, AUTO_RETRY_MAX_ATTEMPTS, REANALYZABLE, canStart } from '../lib/analysis/extract-gate.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 let pass = 0
@@ -84,9 +85,53 @@ t('확인 불가를 로그에 드러낸다', describePick(unknown, 100, 3).inclu
 const noRerun = pickAutoTargets([p('z', 500, 'SAAS', 'collecting')], { minNew: 100, max: 3 })
 t('재추출 0건이면 그 문구가 없다', !describePick(noRerun, 100, 3).includes('재추출'))
 
+// ── 3b. failed 자동 재시도 (2026-09-27) ─────────────────────────
+// 실측: run 36322068002 에서 ConvertKit(8207483a)이 Gemini 503 → status=failed, attempts=1.
+// 그 전까지 failed 는 후보 쿼리에 없어서 영구 제외였다.
+t('후보 상태 목록에 failed 가 있다', AUTO_EXTRACT_STATUSES.includes('failed'))
+t('후보 상태는 전부 canStart 를 통과한다(force 는 needsForce 대로)',
+  AUTO_EXTRACT_STATUSES.every(s => canStart(s, null, needsForce({ status: s })).ok))
+t('failed 는 force 없이 돈다(첫 추출 취급)', needsForce({ status: 'failed' }) === false)
+
+// 503 실패 직후의 행: fail() 이 extract_finished_at 을 실패 시각으로 찍는다. 그걸 기준으로 세면 신규 0.
+t('failed 는 신규를 전체로 센다(실패 시각 기준 아님)',
+  newInputsSince({ status: 'failed', extract_finished_at: '2026-09-27T01:00:00Z' }) === null)
+t('extracted 는 마지막 완료 시각 기준', newInputsSince({ status: 'extracted', extract_finished_at: '2026-09-27T01:00:00Z' }) === '2026-09-27T01:00:00Z')
+t('collecting(미실행)은 전체', newInputsSince({ status: 'collecting', extract_finished_at: null }) === null)
+
+const f = (projectId, newInputs, attempts, businessModel = 'SAAS') => ({ projectId, newInputs, businessModel, status: 'failed', attempts })
+// 503 실패 → 다음 실행: 같은 행이 다시 뽑히고, 첫 추출 순위(재추출보다 앞)를 받는다.
+const after503 = pickAutoTargets(
+  [p('e819f101', 602, 'SAAS', 'extracted'), f('8207483a', 2381, 1)],
+  { minNew: 100, max: 1 },
+)
+t('503 실패(attempts=1)는 다음 실행에서 재선정된다', after503.targets[0]?.projectId === '8207483a')
+t('실패 재시도는 재추출보다 앞선다(첫 추출 취급)', after503.remaining === 1)
+t('실패 재시도를 로그에 드러낸다', describePick(after503, 100, 1).includes('실패 재시도 1건'))
+// d62f3caa(재추출 503 → failed, attempts=2)도 한 번 더 탄다.
+t('failed attempts=2 는 아직 대상', pickAutoTargets([f('d62f3caa', 500, 2)], { minNew: 100, max: 3 }).targets.length === 1)
+
+const over = pickAutoTargets([f('dead', 2000, AUTO_RETRY_MAX_ATTEMPTS), f('ok', 2000, 1)], { minNew: 100, max: 3 })
+t(`failed attempts>=${AUTO_RETRY_MAX_ATTEMPTS} 는 뽑지 않는다`, over.targets.length === 1 && over.targets[0].projectId === 'ok')
+t('상한 도달 제외를 따로 센다(신규 부족으로 접지 않는다)', over.retryExhausted === 1 && over.belowMin === 0)
+t('상한 도달 제외를 로그에 드러낸다', describePick(over, 100, 3).includes('재시도 상한'))
+t('상한은 failed 에만 — extracted 는 시도 수와 무관', pickAutoTargets([p('x', 500, 'SAAS', 'extracted')].map(c => ({ ...c, attempts: 9 })), { minNew: 100, max: 3 }).targets.length === 1)
+
+// 재추출 실패는 failed 로 떨어지지 않는다 — 속성 삭제 전 실패면 claim 직전 상태로 되돌린다.
+{
+  const run = readFileSync(new URL('../lib/analysis/extract-run.ts', import.meta.url), 'utf8')
+  t('claim 이 재분석일 때 복원값을 돌려준다', /restore: isReanalysis \? \{ status: project\.status, finishedAt: project\.extract_finished_at \?\? null \} : null/.test(run))
+  t('fail() 은 삭제 전일 때만 복원한다', /const back = restore && !aspectsDeleted \? restore : null/.test(run))
+  t('복원 시 status·완료 시각을 되돌린다', /status: back \? back\.status : 'failed'/.test(run) && /extract_finished_at: back \? back\.finishedAt :/.test(run))
+  t('삭제 실패 분기 뒤에서 표시한다', run.indexOf('aspectsDeleted = true') > run.indexOf('기존 속성 삭제에 실패했습니다'))
+}
+
 // ── 4. 호출부 배선 — 함수가 옳아도 안 쓰면 소용없다 ─────────────
 const auto = readFileSync(new URL('extract-auto.mjs', import.meta.url), 'utf8')
-t('후보 쿼리가 REANALYZABLE 을 펼쳐 넣는다', /\.in\('status', \['collecting', \.\.\.REANALYZABLE\]\)/.test(auto))
+t('후보 쿼리가 extract-gate 의 AUTO_EXTRACT_STATUSES 를 쓴다', /\.in\('status', AUTO_EXTRACT_STATUSES\)/.test(auto))
+t('신규 기준 시각은 newInputsSince 가 정한다', /const since = newInputsSince\(p\)/.test(auto))
+t('후보에 extract_attempts 를 실어 보낸다', /attempts: p\.extract_attempts/.test(auto))
+t('재추출 실패 복원값을 runExtraction 에 넘긴다', /runExtraction\(supabase, target\.projectId, provider, claim\.restore\)/.test(auto))
 t('후보 쿼리가 status 를 select 한다', /\.select\('id, status,/.test(auto))
 t('후보에 status 를 실어 보낸다', /status: p\.status/.test(auto))
 t('claimExtraction 에 force 를 넘긴다', /claimExtraction\(supabase, target\.projectId, force\)/.test(auto))

@@ -353,3 +353,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 
 - 000019: 남헌 확정(폐기). `review_sources` 1행 UPDATE, 네이버 계열과 같은 패턴(enabled=false + disabled_reason "폐기(dead)…"). 비파괴. 되살리기 = 000017 재적용.
 - 000020: 칼럼 전수검수용 nullable 컬럼 5개(body_revised·revision_summary·revision_status·revised_by·revised_at) + CHECK. 원문 body 는 안 건드린다. 롤백 파일 있음. hosted Supabase MCP `apply_migration` 으로 적용, 양성 확인은 첫 검수 행 저장으로.
+
+### 2026-09-27 — 000023 danawa 야간 수집 최소화 · todayhumor 잔여 타깃 정리 (적용 완료 — CEO-STAFF 세션 자체 판단)
+
+- CEO-STAFF 결정: danawa 는 끄지 않는다(/analyze/new·발굴 프로브가 사람 주도 소비재 분석에 씀). active 타깃 1개 exhausted + daily_request_cap 200→30. todayhumor(000019 폐기) 타깃 3개 active→failed.
+- UPDATE 5행, 각 행 id·현재값 가드, 비파괴. 롤백 파일 있음. §10.2 예외 해당 없음.
+- exhausted 를 자동으로 되살리는 코드 없음(러너는 active 만 집음, discovery kill 도 되살리지 않음). cap 이 모자라면 review-request-cap 이 2배 이내에서 올린다.
+- 적용: 2026-09-27 hosted Supabase MCP `apply_migration`(qmgrfqjfxqhxuufrnkwf). 양성 확인: danawa exhausted 17 · active 0 · todayhumor failed 3 · danawa cap 30 · enabled=true. 음성 검사는 hosted MCP 가 롤백 제어를 못 해 미실행(가드 조건이 재실행 시 0행이 되도록 작성됨).

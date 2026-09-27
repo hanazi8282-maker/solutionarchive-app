@@ -118,10 +118,17 @@ function pickText(value: unknown): string | null {
 // 라우트 POST 의 1~4단계. HTTP 상태는 여기서 정하지 않고 `httpStatus` 로 돌려준다 —
 // CLI 는 그 숫자를 종료코드 사유로만 쓴다.
 
+export type ExtractRestore = { status: string; finishedAt: string | null }
+
 export type ClaimResult =
   | {
       ok: true
       isReanalysis: boolean
+      /**
+       * 재분석(force)일 때 잠그기 직전 값. runExtraction 에 넘기면 실패 시 이 값으로 되돌린다
+       * (기존 속성을 지우기 전 실패에 한해서). 첫 추출이면 null.
+       */
+      restore: ExtractRestore | null
       startedAt: string | null
       attempts: number | null
       inputCount: number
@@ -136,7 +143,7 @@ export async function claimExtraction(
   // 1. 현재 상태 조회
   const { data: project, error: projectError } = await supabase
     .from('analysis_projects')
-    .select('id, status, extract_started_at, extract_attempts')
+    .select('id, status, extract_started_at, extract_finished_at, extract_attempts')
     .eq('id', projectId)
     .single()
 
@@ -193,6 +200,7 @@ export async function claimExtraction(
   return {
     ok: true,
     isReanalysis,
+    restore: isReanalysis ? { status: project.status, finishedAt: project.extract_finished_at ?? null } : null,
     startedAt: locked[0].extract_started_at ?? null,
     attempts: locked[0].extract_attempts ?? null,
     inputCount: count,
@@ -223,17 +231,24 @@ export async function runExtraction(
   supabase: SupabaseClient,
   projectId: string,
   provider: LlmProvider,
+  // claimExtraction 의 restore. 재추출(force) 실패가 멀쩡한 extracted 프로젝트를 failed 로 떨어뜨리던 것을 막는다
+  // (2026-09-27 d62f3caa: 503 한 번에 extracted→failed, 속성 5개는 그대로 남아 있었다).
+  restore: ExtractRestore | null = null,
 ): Promise<ExtractionOutcome> {
   const startedAt = Date.now()
+  // 기존 속성을 지운 뒤의 실패는 되돌리지 않는다 — 그때 extracted 로 돌리면 속성이 비어 있는데 "끝났다"가 된다.
+  let aspectsDeleted = false
 
   const fail = async (message: string, quotaExhausted = false): Promise<ExtractionOutcome> => {
-    console.error(`[analyze/extract] project=${projectId} failed: ${message}`)
+    const back = restore && !aspectsDeleted ? restore : null
+    console.error(`[analyze/extract] project=${projectId} failed${back ? ` (재추출 실패 — ${back.status} 로 되돌림)` : ''}: ${message}`)
     await supabase
       .from('analysis_projects')
       .update({
-        status: 'failed',
+        status: back ? back.status : 'failed',
         extract_error: message.slice(0, 1000),
-        extract_finished_at: new Date().toISOString(),
+        // 되돌릴 때는 직전 완료 시각을 복원한다 — 실패 시각을 찍으면 "마지막 추출 이후 신규" 기준이 밀린다.
+        extract_finished_at: back ? back.finishedAt : new Date().toISOString(),
       })
       .eq('id', projectId)
     return { ok: false, error: message, quotaExhausted }
@@ -436,6 +451,7 @@ export async function runExtraction(
         : `기존 속성 삭제에 실패했습니다: ${deleteError.message}`,
     )
   }
+  aspectsDeleted = true
 
   const freshRows = aspectRows.filter(r => !keptNames.has(normName(r.name)))
   if (freshRows.length !== aspectRows.length) {

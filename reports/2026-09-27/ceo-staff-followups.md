@@ -7,7 +7,7 @@
 
 1. 크론 실패 패치는 **PR #295 에 들어갔고 브랜치에서 재실행까지 성공** — Notion 풀백 ✅, HN 스윕 ✅(유실 후보 49838329 복구). main 룰셋 bypass 자체는 머지 뒤 첫 스케줄 실행이 증명한다.
 2. Notion 로그 인증 실패 원인은 **이 세션 종류(Claude Code CLI)에 Notion MCP·토큰이 둘 다 없는 것** — flush 워크플로를 만들어 대기 파일이 main 에 들어오면 Actions 시크릿으로 올린다. 09-27 로그는 #294 머지 시 자동 업로드.
-3. T2 export(B-0) 실행 완료 — **공개 소스(HN) 프로젝트 14개·420행**. 다나와·유튜브 원문은 공개 리포라 뺐다 → 남헌 판단 1건.
+3. T2 export(B-0) 실행 완료 — PR #291 의 `scripts/relevance-export.mjs`(09-26 main 반영분)로 **819행·9 프로젝트**, 판정·라벨 눈가림. 내가 먼저 만든 중복 스크립트는 리베이스에서 버렸다(정정 아래 §5).
 4. **[막힘] `gh pr merge` 는 이 세션에서 여전히 분류기 차단.** #294·#295 둘 다 남헌이 누른다. CLAUDE.md 는 §10.2 본문 블록만 들어가고 변경 이력 한 줄·§11 안내는 Self-Modification 차단.
 
 ## 0. 거버넌스 — 워크플로 수정 자율 조항
@@ -40,14 +40,15 @@
 
 ## 5. T2 2차 판정 export (B-0)
 
-- [직접 실행 확인] `scripts/relevance-export.mjs` 신설·실행 → `ops/state/relevance-export-2026-09-27.json` (343KB). 공개 소스 hackernews 프로젝트 14개(타깃 124행 중) · 420행 · relevant 282 / irrelevant 121 / unknown 17 · 사람 채점 0 · 라벨 있음 221. DB 쓰기 0.
-- 공개 대상 정의: 리포가 공개라 **재배포 가능한 소스로만 수집한 프로젝트**. 다나와+유튜브 프로젝트 4개(판정 ~780행)는 `analysis_inputs` 에 소스 열이 없어 행 단위로 못 가르므로 통째로 제외. 넓히려면 `--sources hackernews,danawa,youtube` 로 명시(사람 판단).
-- 셀프테스트 `relevance-export-selftest.mjs` 를 build-check 에 추가. B-1(클라우드 세션 판정)·B-2(import) 는 이 세션 범위 밖.
+- **정정** — 이 스크립트는 PR #291(09-26, "남헌 결정 2")로 이미 main 에 있었다. 내 로컬 main 이 #290 에서 멈춰 있어 "리포에 없다"고 잘못 읽고 중복 구현을 만들었다가, 리베이스 충돌(add/add)에서 발견해 **내 것을 버리고 main 버전을 썼다**. 중복분(스크립트·셀프테스트·build-check 줄·1차 JSON)은 PR 에 남아 있지 않다.
+- [직접 실행 확인] main 버전 `node --env-file=.env.local scripts/relevance-export.mjs`(기본 범위 public = 사람 채점 relevant 또는 사람 채점 없음+LLM relevant, 원문 미폐기) → `ops/state/relevance-export-2026-09-27.json` 437KB · **819행 · 9 프로젝트** · 필드 input_id·project_id·project_pitch·text(600자). 판정·라벨은 파일에 없다(눈가림, B-1 규약). DB 쓰기 0. `--all` 이면 irrelevant 까지 전부.
+- 공개 리포 커밋: main 버전은 소스를 가리지 않아 다나와 리뷰 원문 600자도 들어간다. 이는 #291 에서 이미 정해진 설계라 그대로 따랐다 — 아래 Q2 로 한 번만 확인.
+- B-1(클라우드 세션 판정)·B-2(import, `scripts/relevance-second-opinion-import.mjs` 도 #291 에 있음)는 이 세션 범위 밖.
 
 ## 남헌 결정
 
 - **Q1. PR 머지 순서** — A) #295 먼저 → #294(flush 자동) · B) #294 먼저 → #295 뒤 flush 수동 dispatch. 권고 A.
-- **Q2. 다나와·유튜브 판정 780행도 export 에 넣을지** — 공개 리포에 리뷰 원문 600자 커밋이 된다. A) HN 만(현재) · B) 전부 포함(약관 리스크 남헌 판단) · C) 비공개 아티팩트로 전달하는 경로 별도 설계. 권고 A 로 먼저 돌리고 결과 보고 B/C.
+- **Q2. 공개 리포에 다나와 리뷰 원문 600자가 커밋된 상태를 그대로 둘지** — #291 설계대로 819행에 다나와 원문이 들어 있다. A) 그대로(09-26 결정 유지) · B) HN 등 공개 소스만 남기고 나머지는 Actions 아티팩트로 전달(스크립트에 `--sources` 옵션 30분). 권고 A — 이미 결정된 사안이라 이 세션이 되돌리지 않았다(§10.2 "명시 지시 되돌리기 불허").
 - **Q3. `gh pr merge` 분류기 차단** — 09-25 에 넣은 `~/.claude/settings.json` allow 규칙이 이 세션에서는 안 먹는다. A) 이번처럼 남헌이 누른다 · B) 규칙을 다시 확인해 세션 자율 머지 복구. 어느 쪽이든 CLAUDE.md 표의 "자체 판단 머지" 문구와 실제가 다르다.
 
 ## 개선안

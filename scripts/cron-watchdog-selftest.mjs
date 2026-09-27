@@ -9,7 +9,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-const { lastSlot, judgeRuns, scheduledWorkflows, runWatchdog, workflowLandedAt, GRACE_MS } = await import('./cron-watchdog.mjs')
+const { lastSlot, judgeRuns, scheduledWorkflows, runWatchdog, workflowLandedAt, pushWithoutBotToken, GRACE_MS } = await import('./cron-watchdog.mjs')
 const { tokenExpiryAlert } = await import('../lib/threads/token.ts')
 
 let passed = 0
@@ -198,6 +198,21 @@ fs.rmSync(tmp2, { recursive: true, force: true })
   const hit = real.at?.toISOString() === '2026-09-16T18:38:37.000Z'
   if (!hit && real.unknown) console.log(`  · 실물 도입 시각 확인 불가(예상됨): ${real.unknown}`)
   ok('실물 — nightly-discovery.yml 은 2026-09-16T18:38:37Z 머지(또는 확인 불가)', hit || Boolean(real.unknown), JSON.stringify(real))
+}
+
+// ── 7) git push 워크플로의 전용 앱 토큰 스텝 누락 (2026-09-25·26 GH013 실측) ─────────────
+{
+  const tmp2 = fs.mkdtempSync(path.join(os.tmpdir(), 'watchdog-push-'))
+  fs.writeFileSync(path.join(tmp2, 'c.yml'), 'jobs:\n  j:\n    steps:\n      - uses: actions/checkout@v4\n      - run: |\n          git commit -m x\n          git push\n')
+  fs.writeFileSync(path.join(tmp2, 'd.yml'), 'jobs:\n  j:\n    steps:\n      - uses: actions/create-github-app-token@v2\n      - uses: actions/checkout@v4\n      - run: git push\n')
+  fs.writeFileSync(path.join(tmp2, 'e.yml'), 'jobs:\n  j:\n    steps:\n      # 주석에서만 git push 를 말한다\n      - run: echo hi\n')
+  const missing = pushWithoutBotToken(tmp2)
+  ok('봇 토큰 — push 하는데 스텝 없는 파일만', missing.length === 1 && missing[0] === 'c.yml', JSON.stringify(missing))
+  const s7 = await scenario({ dir: tmp2 })
+  ok('통합 봇 토큰 누락 — exit 1 · 파일명·복사 안내', s7.code === 1 && s7.problems.some((p) => p.startsWith('c.yml:') && p.includes('create-github-app-token')), JSON.stringify(s7.problems))
+  fs.rmSync(tmp2, { recursive: true, force: true })
+  const realMissing = pushWithoutBotToken(path.join(import.meta.dirname, '..', '.github', 'workflows'))
+  ok('실제 리포 — push 워크플로 전부 봇 토큰 스텝 있음', realMissing.length === 0, JSON.stringify(realMissing))
 }
 
 fs.rmSync(tmp, { recursive: true, force: true })

@@ -87,3 +87,27 @@
 - 작성일: 2026-09-21
 
 > Yeah, and then Dell more-or-less turned into that. Companies get big, customers and sales get more complicated, process gets more calcified. SUNW would probably still be around if the whole x86 commodity pizza box revolution hadn't happened OR if they had pivoted away from SPARC earlier and went heavily into x86. Example: buying from IBM doesn't sound too different from buying from Sun, but they're still around because mainframes will be around until the Earth implodes (probably). (I think that …
+
+## HN 49863100
+
+- 판정: (미검토)
+- 매칭: `we shut down`
+- 원본: https://news.ycombinator.com/item?id=49863100
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-09-27 UTC)
+- 스레드: Japan moves to tighten rules for foreigners
+- 작성자: Tiktaalik
+- 작성일: 2026-09-27
+
+> People criticize everything all the time. Why wouldn't people? I mean should we shut down hacker news? the whole point is discussing.
+
+## HN 49838329
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=49838329
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-09-27 UTC)
+- 스레드: Tutoring company tells parents to save their money and 'use AI instead'
+- 작성자: mullingitover
+- 작성일: 2026-09-24
+
+> Tutoring is another situation where it can succeed wildly or fail miserably, and it will depend more on the harness than the model. Tutoring is a process, and the end result is that the student gains a demonstrable new capability. The how isn't as important as the end result. If we end up with a bunch of people with increased personal capabilities, it's a win. If we're lazy and we end up with a bunch of people leaning on crutches, we failed. Time will tell, I guess. Could be a surprise answer to…

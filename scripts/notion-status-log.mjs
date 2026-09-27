@@ -162,6 +162,31 @@ export function renderPending(entry, title, why) {
 }
 
 /**
+ * renderPending 의 역함수 — 폴백 파일 → entry. notion-status-log-flush.mjs 가 쓴다.
+ * 날짜·트랙이 없으면 null (그 파일은 올리지 않고 남긴다 — 추측해서 올리지 않는다).
+ * 제목은 파일 것을 돌려주지만 올릴 때는 DB 번호를 다시 매긴다(renderPending 의 "올릴 때 DB 에서 다시 확인").
+ */
+export function parsePending(text) {
+  const lines = String(text ?? '').replace(/\r\n/g, '\n').split('\n')
+  const head = (re) => { const m = lines.map((l) => re.exec(l)).find(Boolean); return m ? m[1].trim() : '' }
+  const title = head(/^# (.+)$/)
+  const date = head(/^- 날짜:\s*(.+)$/)
+  const track = head(/^- 트랙:\s*(.+)$/)
+  const needsHuman = head(/^- 사람판단필요:\s*(.+)$/) === 'true'
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !TRACKS.includes(track)) return null
+  const sections = {}
+  let cur = null
+  for (const l of lines) {
+    const h = /^## (.+)$/.exec(l)
+    if (h) { cur = h[1].trim(); sections[cur] = []; continue }
+    if (/^_Notion 기록 실패/.test(l)) { cur = null; continue }
+    if (cur) sections[cur].push(l)
+  }
+  const sec = (k) => { const v = (sections[k] ?? []).join('\n').trim(); return v === '(비어 있음)' ? '' : v }
+  return { title, date, track, needsHuman, done: sec('한일'), blocked: sec('막힌것'), next: sec('다음할일'), note: sec('비고') }
+}
+
+/**
  * 루프·CLI 가 부르는 한 번에 끝나는 기록: 제목 번호 → 생성·재확인 → (옵션) 폴백 파일.
  * throw 하지 않는다. 반환: writeStatusLog 결과 + { title, pendingPath?, pendingError? }
  *

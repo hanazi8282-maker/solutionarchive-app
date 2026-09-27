@@ -26,7 +26,7 @@
 import { productKindOf } from '../cases/advisor.ts'
 // 어느 상태가 재추출 가능한지는 extract-gate 가 정본이다. 여기서 문자열을 다시 적지 않는다 —
 // 두 벌이 되면 후보에는 들어오는데 claimExtraction 이 거부하는 상태가 생긴다.
-import { REANALYZABLE } from './extract-gate.ts'
+import { AUTO_RETRY_MAX_ATTEMPTS, REANALYZABLE } from './extract-gate.ts'
 
 const num = (v: string | undefined, fallback: number) => {
   const n = Number(v)
@@ -50,6 +50,21 @@ export type AutoCandidate = {
    * 안 주면 첫 추출로 본다(기존 동작 — 후보가 collecting 뿐이던 시절과 같다).
    */
   status?: string | null
+  /** analysis_projects.extract_attempts. status='failed' 일 때만 본다(재시도 상한). */
+  attempts?: number | null
+}
+
+const isFailed = (c: { status?: string | null }) => (c.status ?? '').trim() === 'failed'
+
+/**
+ * "신규 입력"을 셀 기준 시각. null = 전체가 신규.
+ *
+ * failed 는 성공한 추출이 없는 것으로 보고 전체를 센다(첫 추출 취급). runExtraction 의 fail() 이
+ * extract_finished_at 을 실패 시각으로 찍기 때문에, 그 값을 기준으로 삼으면 실패 이후 신규가
+ * minNew 를 넘을 때까지(사실상 영영) 재시도가 안 된다.
+ */
+export function newInputsSince(p: { status?: string | null; extract_finished_at?: string | null }): string | null {
+  return isFailed(p) ? null : (p.extract_finished_at ?? null)
 }
 
 /**
@@ -105,6 +120,8 @@ export type AutoPick = {
   belowMin: number
   /** 신규 수를 세지 못한 수. 0 으로 접지 않는다(§7.1). */
   unknown: number
+  /** failed 인데 시도 수가 AUTO_RETRY_MAX_ATTEMPTS 이상이라 자동 재시도에서 뺀 수. 사람이 봐야 한다. */
+  retryExhausted: number
 }
 
 /**
@@ -120,8 +137,13 @@ export function pickAutoTargets(
   const minNew = opts.minNew ?? autoMinNew()
   const max = opts.max ?? autoMaxProjects()
 
-  const unknown = candidates.filter(c => c.newInputs === null).length
-  const known = candidates.filter(c => c.newInputs !== null)
+  // failed 는 시도 상한 안에서만 다시 탄다. 영구 오류가 매일 밤 쿼터를 태우지 않게 하는 자리다.
+  const retryOver = (c: AutoCandidate) => isFailed(c) && (c.attempts ?? 0) >= AUTO_RETRY_MAX_ATTEMPTS
+  const retryExhausted = candidates.filter(retryOver).length
+  const live = candidates.filter(c => !retryOver(c))
+
+  const unknown = live.filter(c => c.newInputs === null).length
+  const known = live.filter(c => c.newInputs !== null)
   const eligibleList = known.filter(c => (c.newInputs as number) >= minNew).sort(compareAutoPriority)
 
   const targets = eligibleList.slice(0, Math.max(0, max))
@@ -131,6 +153,7 @@ export function pickAutoTargets(
     remaining: eligibleList.length - targets.length,
     belowMin: known.length - eligibleList.length,
     unknown,
+    retryExhausted,
   }
 }
 
@@ -143,10 +166,13 @@ export function describePick(pick: AutoPick, minNew: number, max: number): strin
         ? `대상 ${pick.eligible}건 중 ${pick.targets.length}건 실행 — 실행 상한 ${max}건 도달, 남은 대상 ${pick.remaining}건은 다음 실행`
         : `대상 ${pick.eligible}건 전부 실행`
   const reruns = pick.targets.filter(needsForce).length
+  const retries = pick.targets.filter(isFailed).length
   const tail = [
     reruns > 0 ? `그중 재추출(force) ${reruns}건` : null,
+    retries > 0 ? `그중 실패 재시도 ${retries}건` : null,
     pick.belowMin > 0 ? `신규 부족 제외 ${pick.belowMin}건` : null,
     pick.unknown > 0 ? `⚠️ 신규 수 확인 불가 ${pick.unknown}건` : null,
+    pick.retryExhausted > 0 ? `⚠️ 재시도 상한(${AUTO_RETRY_MAX_ATTEMPTS}회) 도달 제외 ${pick.retryExhausted}건` : null,
   ].filter(Boolean)
   return tail.length ? `${head} · ${tail.join(' · ')}` : head
 }

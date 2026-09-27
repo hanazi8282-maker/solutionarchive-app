@@ -44,7 +44,7 @@ permissions:
 jobs:
   extract:
     runs-on: ubuntu-latest
-    # extract 1건이 수 분까지 간다. 상한 3건 + 여유.
+    # extract 1건 실측 40~110초(2026-09-27). 상한은 vars.EXTRACT_AUTO_MAX_PROJECTS(기본 3, 10 으로 올려도 45분 안).
     timeout-minutes: 45
 
     steps:

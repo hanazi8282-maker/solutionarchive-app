@@ -376,6 +376,8 @@ const AUDIT = {
   'hackernews.ts': false,
   'youtube.ts': false,
   'tumblbug.ts': false,
+  // PH GraphQL Comment.id — 노드 id 라 PH 전역 유일.
+  'producthunt.ts': false,
   // 판매처 리뷰 seq 가 몰마다 다른 id 공간에서 온다(9자리 vs 11자리 0패딩, 2026-08-29 실측).
   'danawa.ts': true,
   // RSS 리뷰 id 의 전역 유일성을 실측하지 않았다. 한 리뷰는 한 앱에만 달리므로

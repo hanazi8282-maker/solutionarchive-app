@@ -1,5 +1,6 @@
-// LLM 프로바이더 스위치·한시 예산 셀프테스트 — 네트워크·LLM 없음.
+// LLM 프로바이더 스위치·예산 적용 범위 셀프테스트 — 네트워크·LLM 없음.
 //   node scripts/llm-provider-selftest.mjs
+import fs from 'node:fs'
 import { resolveProvider, requiredKeyFor, isQuotaFailure, ClaudeCliError } from '../lib/analysis/llm.ts'
 import { dailyBudgetFor } from '../lib/analysis/budget.ts'
 
@@ -23,16 +24,22 @@ t('CLI 봉투 is_error → 멈춤', isQuotaFailure(new ClaudeCliError('claude �
 t('CLI timeout → 계속(프로젝트 단위)', isQuotaFailure(new ClaudeCliError('claude -p 실패 (exit null, timeout): ', true)), false)
 t('파싱 실패(일반 Error) → 계속', isQuotaFailure(new Error('JSON 파싱 실패')), false)
 
-// 한시 예산 — 날짜 경계
-const env = { LLM_DAILY_BUDGET_USD: '5', LLM_DAILY_BUDGET_BOOST_USD: '15', LLM_DAILY_BUDGET_BOOST_UNTIL: '2026-11-05' }
-t('기간 안(9/25) → 15', dailyBudgetFor(env, new Date('2026-09-25T00:00:00Z')), 15)
-t('마지막 날(11/5 23:59 UTC) → 15', dailyBudgetFor(env, new Date('2026-11-05T23:59:59Z')), 15)
-t('다음 날(11/6 00:00 UTC) → 5 자동 복귀', dailyBudgetFor(env, new Date('2026-11-06T00:00:00Z')), 5)
-t('BOOST 없음 → 기본', dailyBudgetFor({ LLM_DAILY_BUDGET_USD: '5' }, new Date('2026-09-25T00:00:00Z')), 5)
-t('UNTIL 형식 틀림 → 기본', dailyBudgetFor({ ...env, LLM_DAILY_BUDGET_BOOST_UNTIL: '11/05' }, new Date('2026-09-25T00:00:00Z')), 5)
-t('기본이 더 크면 기본 유지', dailyBudgetFor({ ...env, LLM_DAILY_BUDGET_USD: '20' }, new Date('2026-09-25T00:00:00Z')), 20)
-t('env 비면 5', dailyBudgetFor({}, new Date()), 5)
+// 하루 예산 — env 한 줄. 옛 BOOST/UNTIL(크레딧 기간 한시 상향)은 2026-09-29 에 뺐다: 있어도 무시돼야 한다.
+t('env 비면 5', dailyBudgetFor({}), 5)
+t('LLM_DAILY_BUDGET_USD 그대로', dailyBudgetFor({ LLM_DAILY_BUDGET_USD: '20' }), 20)
+t('0·음수·문자는 기본 5', dailyBudgetFor({ LLM_DAILY_BUDGET_USD: '-1' }), 5)
+t('옛 BOOST/UNTIL 은 무시', dailyBudgetFor({ LLM_DAILY_BUDGET_USD: '5', LLM_DAILY_BUDGET_BOOST_USD: '15', LLM_DAILY_BUDGET_BOOST_UNTIL: '2099-01-01' }), 5)
+
+// 예산 적용 범위 — claude-cli(구독)는 달러 예산 밖, 청구되는 프로바이더는 안. llm.ts 소스를 정적으로 고정한다
+// (실제 호출은 CLI 바이너리가 필요해 여기서 못 돌린다). 되돌아가면 09-28 처럼 정상 실행이 추정 예산에 끊긴다(PR #329).
+const llmSrc = fs.readFileSync(new URL('../lib/analysis/llm.ts', import.meta.url), 'utf8')
+// lastIndexOf — 같은 조건문이 requiredKeyFor 에도 한 번 더 있다(그건 키 이름 분기).
+const cliBranch = llmSrc.slice(llmSrc.lastIndexOf("if (provider === 'claude-cli')"), llmSrc.lastIndexOf("if (provider === 'anthropic')"))
+t('claude-cli 분기는 UNMETERED 로 부른다', /callWithRetry\([\s\S]*?UNMETERED,\s*\)/.test(cliBranch), true)
+t('claude-cli 분기에 budgetChars 를 넘기지 않는다', /budgetChars/.test(cliBranch), false)
+t('callWithRetry 는 metered 일 때만 예산을 적립한다', /if \(metered\) reserveOrThrow\(/.test(llmSrc) && /if \(metered\) chargeOutput\(/.test(llmSrc), true)
+t('anthropic·gemini 분기는 여전히 budgetChars 를 넘긴다', (llmSrc.match(/^\s*budgetChars,\s*$/gm) ?? []).length >= 2, true)
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
-if (fail) { console.log('프로바이더 어휘나 한시 예산 날짜 경계가 틀렸다.'); process.exit(1) }
-console.log('프로바이더 스위치·한시 예산·CLI 실패 분류 정상 — claude-cli 는 OAuth 토큰, 한도는 멈춤·timeout 은 계속, 11/5 뒤 자동 $5.')
+if (fail) { console.log('프로바이더 어휘·예산 기본값·예산 적용 범위(claude-cli 미터링 없음) 중 하나가 틀렸다.'); process.exit(1) }
+console.log('프로바이더 스위치·예산 범위·CLI 실패 분류 정상 — claude-cli 는 OAuth 토큰·달러 예산 밖, 한도는 멈춤·timeout 은 계속.')

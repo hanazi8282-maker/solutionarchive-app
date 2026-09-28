@@ -14,7 +14,7 @@
 // 지키는 것
 //   · mock·파싱 실패·라벨 누락은 전부 'unknown' 이다. 절대 'irrelevant' 로 접지 않는다(§7.1).
 //   · 429/503/예산이면 그 자리에서 멈추고 "남은 k건은 내일" 을 남긴다(§7.2). 실패가 아니라 확인 대상이다.
-//   · 비용 상한은 lib/analysis/budget.ts 가 강제한다. 프로젝트 1건 = withLlmBudget 1지갑.
+//   · 비용 상한은 lib/analysis/budget.ts 가 강제한다(청구되는 프로바이더만 — claude-cli 는 llm.ts UNMETERED). 프로젝트 1건 = withLlmBudget 1지갑.
 //
 // 사용:
 //   node scripts/relevance-judge-auto.mjs --dry   # 대상 선정만. LLM·DB 쓰기 없음
@@ -70,7 +70,9 @@ if (!supabase) {
   process.exit(2)
 }
 
-log(`야간 관련성 판정 ${dry ? '(--dry: 대상 선정만)' : ''} — provider=${provider} · 표본 ${sampleSize}건/프로젝트 · 프로젝트 상한 ${maxProjects}건 · 일 예산 $${DAILY_BUDGET_USD}`)
+// claude-cli 는 달러 예산 밖이다(llm.ts UNMETERED) — 상한은 표본·프로젝트 수. gemini 로 되돌리면 예산이 다시 적용된다.
+const budgetNote = provider === 'claude-cli' ? '달러 예산 미적용(구독)' : `일 예산 $${DAILY_BUDGET_USD}`
+log(`야간 관련성 판정 ${dry ? '(--dry: 대상 선정만)' : ''} — provider=${provider} · 표본 ${sampleSize}건/프로젝트 · 프로젝트 상한 ${maxProjects}건 · ${budgetNote}`)
 
 // ── 1. 후보 프로젝트 ─────────────────────────────────────────────
 //
@@ -368,7 +370,7 @@ await tracker.finish({
   },
 })
 
-log(`끝 — 판정 ${judgedTotal}건 · 라벨 ${labelColumns === 'present' ? `${labeledTotal}건` : labelColumns === 'absent' ? '미기록(마이그 미적용)' : '확인 불가(저장 0회)'} · 정보 판정 ${infoColumn === 'present' ? `${informativeTotal}건` : infoColumn === 'absent' ? '미기록(마이그 000031 미적용)' : '확인 불가(저장 0회)'} · 남은 프로젝트 ${remaining}건 · 이번 실행 추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD}) · 상태 ${status}`)
+log(`끝 — 판정 ${judgedTotal}건 · 라벨 ${labelColumns === 'present' ? `${labeledTotal}건` : labelColumns === 'absent' ? '미기록(마이그 미적용)' : '확인 불가(저장 0회)'} · 정보 판정 ${infoColumn === 'present' ? `${informativeTotal}건` : infoColumn === 'absent' ? '미기록(마이그 000031 미적용)' : '확인 불가(저장 0회)'} · 남은 프로젝트 ${remaining}건 · 이번 실행 ${provider === 'claude-cli' ? '달러 예산 미적용(구독 · 실측은 로그의 total_cost_usd)' : `추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD})`} · 상태 ${status}`)
 if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 — ops/state 폴백. 이 실행의 기록은 "DB 확인 불가"다')
 
 process.exit(saveFailed > 0 ? 3 : 0)

@@ -270,6 +270,25 @@ for (const target of pick.targets) {
     if (out.costUsd != null) { costUsd += out.costUsd; costKnown += 1 }
     log(`✓ ${target.projectId} ${secs}s ${force ? '(재추출)' : ''} — 속성 ${out.aspects}개(사람 확인 보존 ${out.keptAspects}개) · 입력 ${out.inputs}건 · 선별 밖 ${out.droppedInputs}건 · 목적 무관 제외 ${out.droppedIrrelevant}건 · model=${out.model}`)
     await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'ok', seq, counts: { aspects: out.aspects, kept: out.keptAspects, inputs: out.inputs, dropped: out.droppedInputs, irrelevant: out.droppedIrrelevant }, detail: { model: out.model, seconds: secs, force, cost_usd: out.costUsd } })
+    // 경쟁사 프로필(extract-run 9단계) — extract 스텝과 같은 단위(seconds·cost_usd)로 따로 남긴다: "프로필을 붙인 뒤
+    // extract 처리량이 달라졌나"를 주간 점검에서 이 두 스텝을 나란히 놓고 센다. seq 는 100 뒤로 밀어 추출 스텝 뒤에 정렬된다.
+    // 프로필이 없으면(예외로 못 돎) 그것도 남긴다 — 행이 없는 것과 "안 돌았다"를 가른다(§7.1).
+    const p = out.profile
+    await tracker.step({
+      stepKey: `profile-${target.projectId}`, label: `경쟁사 프로필 ${target.projectId}`, seq: 100 + seq,
+      status: !p ? 'failed' : p.status === 'failed' ? 'failed' : p.status === 'skipped' ? 'skipped' : 'ok',
+      counts: p ? { claims: p.claims, dropped: p.droppedClaims, inputs: p.inputs } : {},
+      detail: p
+        ? { profile_status: p.status, reason: p.reason, snapshot_id: p.snapshotId, model: p.model, seconds: Math.round(p.durationMs / 1000), cost_usd: p.costUsd }
+        : { reason: '프로필 단계가 돌지 않았다(extract-run 로그 확인)' },
+    })
+    if (p?.quotaExhausted) {
+      // 추출은 끝났고 프로필에서 한도에 걸렸다 — 다음 프로젝트의 추출도 같은 한도에 걸리므로 여기서 멈춘다(extract_attempts 를 태우지 않게).
+      blocker = `LLM 한도/예산 소진(프로필 단계) — ${p.reason}`
+      quotaResetAt = parseQuotaResetAt(p.reason ?? '', new Date())
+      warn(`${target.projectId} 프로필 단계에서 한도에 걸려 이번 실행을 멈춘다. 남은 대상 ${pick.targets.length - seq + 1}건은 쿨다운 뒤 슬롯에서 돈다.`)
+      break
+    }
     continue
   }
 

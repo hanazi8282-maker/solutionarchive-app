@@ -33,6 +33,7 @@ import { MAX_CHARS_PER_INPUT, MAX_CHARS_TOTAL, selectInputs } from './extract-se
 import { dropIrrelevant, type RelevanceRow } from './relevance-judge.ts'
 import { judgeProjectRemedies } from '../cases/remedy-db.ts'
 import { normalizeEvidenceQuotes } from './evidence-quotes.ts'
+import { generateCompetitorProfile, type ProfileOutcome } from './competitor-profile-db.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 
 // 컨텍스트 폭주 방지 상한과 입력 선별(T1)은 lib/analysis/extract-select.ts 한 벌이다.
@@ -228,6 +229,8 @@ export type ExtractionOutcome =
       model: string
       /** claude-cli total_cost_usd(명목값). 다른 프로바이더·못 읽음은 null(0 으로 접지 않는다). */
       costUsd: number | null
+      /** 추출 직후 경쟁사 프로필 스냅샷(9단계). 실패해도 추출은 성공 — 시간·비용은 배치가 따로 남긴다. 예외로 못 돌면 null. */
+      profile: ProfileOutcome | null
     }
   // quotaExhausted = 오늘 다시 불러도 같은 결과(한도·예산 소진). 배치 호출부는 여기서 멈춘다.
   | { ok: false; error: string; quotaExhausted: boolean }
@@ -502,6 +505,19 @@ export async function runExtraction(
     console.error('[analyze/extract] remedy-judge failed (추출은 정상):', e instanceof Error ? e.message : String(e))
   }
 
+  // 9. 경쟁사 프로필 스냅샷(남헌 2026-09-29: extract 직후 생성). 8단계와 같은 원칙 — **실패해도 추출은 성공이다.**
+  //    generateCompetitorProfile 은 던지지 않고 status 로 돌려주지만, 예외가 새면 여기서 잡는다.
+  let profile: ProfileOutcome | null = null
+  try {
+    profile = await generateCompetitorProfile(supabase, projectId, provider, { trigger: 'extract' })
+    console.log(
+      `[analyze/extract] project=${projectId} competitor-profile ${profile.status} 주장=${profile.claims} 버림=${profile.droppedClaims}` +
+        ` 입력=${profile.inputs} took ${profile.durationMs}ms cost=${profile.costUsd ?? 'n/a'}` + (profile.reason ? ` (${profile.reason})` : ''),
+    )
+  } catch (e) {
+    console.error('[analyze/extract] competitor-profile failed (추출은 정상):', e instanceof Error ? e.message : String(e))
+  }
+
   // dropped 는 "읽지 않은 원문 수"다. 0 과 구분해 남겨야 "속성 0개"가 추출 실패인지
   // 선별이 다 버린 결과인지 사후에 가릴 수 있다(§7.1).
   console.log(
@@ -517,5 +533,6 @@ export async function runExtraction(
     droppedIrrelevant,
     model,
     costUsd,
+    profile,
   }
 }

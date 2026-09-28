@@ -209,12 +209,26 @@ function rejudgeResponse(): object {
  * 반환 형식(문자열)은 실제 프로바이더와 같아야 한다 — 호출부의 파싱까지 검증하려면
  * 파싱된 객체가 아니라 모델이 낸 원문 텍스트 자리에 그대로 들어가야 하기 때문이다.
  */
+// ── 경쟁사 프로필 (competitor-profile) ────────────────────────────
+// 여섯 섹션 전부 · 근거는 원문 번호 1·2 만(프롬프트에 원문이 1건뿐이어도 #1 은 있다). 코드가 번호를 input_id 로 바꾼다.
+const PROFILE_RESPONSE = {
+  sections: {
+    at_a_glance: [{ claim: '(mock) 두피 트러블을 겪는 사용자가 쓰는 약산성 샴푸', refs: [1] }],
+    positioning: [{ claim: '(mock) 기존 대형 브랜드에서 환승한 사용자가 "순하다"고 비교한다', refs: [1, 2] }],
+    pricing: [],
+    strengths: [{ claim: '(mock) 자극이 적다는 칭찬이 반복된다', refs: [1] }],
+    weaknesses: [{ claim: '(mock) 사용법 안내가 없어 잘못 쓴 뒤 효과 없다는 후기가 있다', refs: [2] }],
+    implications: [{ claim: '(mock) 사용법을 첫 화면에 못 박으면 이 약점을 파고들 수 있다', refs: [2] }],
+  },
+}
+
 export function mockResponse(label: string, userPrompt: string): string {
   const body =
     label === 'angle:generate' ? generateResponse(userPrompt)
     : label === 'angle:judge' ? judgeResponse(userPrompt)
     : label === 'angle:rejudge' ? rejudgeResponse()
     : label === 'angle:rewrite' ? rewriteResponse()
+    : label === 'competitor-profile' ? PROFILE_RESPONSE
     : EXTRACT_RESPONSE
 
   return JSON.stringify(body)

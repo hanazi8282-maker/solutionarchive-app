@@ -90,6 +90,8 @@ export const DELEGATES = {
   'scripts/relevance-second-judge-auto.mjs': ['lib/analysis/second-opinion.ts'],
   'scripts/t2-approval-eval.mjs': ['lib/analysis/relevance-judge.ts', 'lib/analysis/second-opinion.ts'],
   'scripts/relevance-translate.mjs': ['lib/relevance-feedback/translate.ts'],
+  // 경쟁사 프로필 — 프롬프트(PROFILE_SYSTEM_PROMPT)는 순수 모듈이 만들고 DB 모듈이 부른다.
+  'lib/analysis/competitor-profile-db.ts': ['lib/analysis/competitor-profile.ts'],
 }
 
 /** 외부 텍스트를 싣지 않는 호출 — 이유 한 줄 필수. 외부 텍스트를 싣기 시작하면 여기서 빼고 문구를 넣는다. */

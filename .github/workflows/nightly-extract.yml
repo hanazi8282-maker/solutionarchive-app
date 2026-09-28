@@ -69,7 +69,8 @@ jobs:
     runs-on: ubuntu-latest
     # extract 1건 Gemini 실측 40~110초(2026-09-27). Sonnet(claude-cli)은 입력 ~12만 자에 최대 ~5분으로 잡는다 —
     # vars.EXTRACT_AUTO_MAX_PROJECTS=10 × 5분 + 설치 여유.
-    timeout-minutes: 75
+    # 2026-09-29 남헌 결정: extract 뒤 경쟁사 프로필 단계(프로젝트당 1~2분 × 최대 10건) 추가로 75→120.
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4

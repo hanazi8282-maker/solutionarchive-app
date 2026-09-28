@@ -29,11 +29,13 @@ export const SATURATION_LIMIT = 3
 /**
  * 채택 최소 VOC 건수.
  *
- * 30 은 "한 상품/키워드에서 분석할 거리가 나오는 최소선"이다. 이보다 적으면
- * 수집을 붙여 봐야 analysis_inputs 가 한 자릿수로 끝난다.
- * env `DISCOVERY_MIN_VOC_HITS` 로 조정한다 — 상수를 고치러 오지 마라.
+ * 200 은 "한 상품/키워드에서 분석할 거리가 나오는 최소선"이다(남헌 2026-09-28,
+ * 이전 30). 30~199 로 채택된 타깃은 수집해도 분석 효율이 낮았다(inefficient).
+ * **포함**이다 — hits=200 은 정상.
+ * env `DISCOVERY_MIN_VOC_HITS` 로 조정한다. 기본값의 정본은 이 상수 하나다 —
+ * 워크플로는 vars 가 비면 빈 문자열을 넘기고 discovery-run 이 이 값으로 떨어진다.
  */
-export const MIN_VOC_HITS = 30
+export const MIN_VOC_HITS = 200
 
 /**
  * 채택 최대 VOC 건수.
@@ -45,18 +47,25 @@ export const MIN_VOC_HITS = 30
  * LLM 에게 "대형 브랜드는 빼라"고 시키는 방식은 채택 근거를 다시 LLM 의 주장으로
  * 되돌리므로 쓰지 않는다(남헌 2026-09-18 기각).
  *
- * 500 의 근거(읽을 수 있는 실측 두 점 사이):
- *   -  93  필립스 에어프라이어 XXL — 남헌이 kept 로 판정한 값. 창 안에 있어야 한다.
- *   - 648  하기스(킴벌리클라크) — 걸러야 하는 쪽. 그래서 93 < 500 < 648.
- *   - 999  다나와 리뷰수 캡. 상한을 999 이상으로 두면 캡된 값이 전부 판정 불가가
- *          되어 physical 쪽 상한이 사실상 죽는다(judge 주석 참조).
- * env `DISCOVERY_MAX_VOC_HITS` 로 조정한다 — 상수를 고치러 오지 마라.
+ * 50,000 (남헌 2026-09-28, 이전 500). **배타**다 — hits=50,000 은 과대(oversize).
+ * 정상 창은 [MIN_VOC_HITS, MAX_VOC_HITS) = 200 이상 50,000 미만.
+ *   - 500 시절 SaaS 후보는 HN 댓글수 스케일 때문에 거의 전부 oversized_voc 였다.
+ *   - 50,000 이상으로 남는 것은 Notion 79,077 · Slack 73,041 · Linear 72,107 급이다.
+ * ⚠️ 이 값은 다나와 캡(999) 위다. physical 의 `999+` 는 구간 [999, ∞) 가 상한을
+ *    걸치므로 rejected 가 아니라 **unverified/bounds_unverifiable** 로 떨어진다
+ *    (judge 주석). 캡을 푸는 프로브가 생기기 전까지는 의도된 결과다.
+ * env `DISCOVERY_MAX_VOC_HITS` 로 조정한다. 기본값의 정본은 이 상수 하나다.
  *
  * ponytail: 두 축의 hits 는 스케일이 다르다(다나와=한 상품 리뷰수, 캡 999 /
  * HN=구절 댓글수, 캡 없음, 실측 최대 79,072). 지금은 한 값으로 본다. 한쪽 축만
  * 기각이 몰리면 env 를 `DISCOVERY_MAX_VOC_HITS_{PHYSICAL,SAAS}` 로 쪼개라.
  */
-export const MAX_VOC_HITS = 500
+export const MAX_VOC_HITS = 50_000
+
+/** 정상 창 판정 하나. 화면·판정이 경계(포함/배타)를 따로 적지 않게 여기만 본다. */
+export function inVocWindow(hits: number, minHits: number = MIN_VOC_HITS, maxHits: number = MAX_VOC_HITS): boolean {
+  return hits >= minHits && hits < maxHits
+}
 
 export type Verdict = 'accepted' | 'rejected' | 'unverified'
 
@@ -145,7 +154,7 @@ export interface ProbeResult {
 /**
  * 프로브 결과 → 판정.
  *
- * 채택 창은 **양쪽이 닫혀 있다**: `minHits ≤ hits ≤ maxHits`.
+ * 채택 창은 **반열린 구간**이다: `minHits ≤ hits < maxHits` (2026-09-28 부터).
  * 하한은 "분석할 거리가 없다", 상한은 "우리 독자에게 이식 가능한 규모가 아니다"다.
  *
  * ⚠️ **실측값은 점이 아니라 구간이다.** 다나와는 리뷰수를 999 에서 끊는다
@@ -156,14 +165,13 @@ export interface ProbeResult {
  *    캡된 값을 "상한 이하"로 접으면 5만 건짜리가 조용히 통과한다. 반대로
  *    전부 "상한 초과"로 접으면 정확히 999 인 멀쩡한 상품을 근거 없이 버린다.
  *    둘 다 하지 않는다 — 모르는 것은 모른다고 적는다(CLAUDE.md §7.1).
- *    기본 상한(500)에서는 `999+` 의 하한선이 이미 상한을 넘으므로 **판정이
- *    가능하고 rejected 다.** 판정 불가는 상한을 999 이상으로 올렸을 때만 난다.
+ *    기본 상한(50,000)에서는 `999+` 가 상한을 걸치므로 **판정 불가(unverified)** 다.
  *
  * 판정 순서(바꾸지 마라):
  * - hits=null      → unverified (요청·파싱 실패. 다시 시도할 대상이다)
- * - min>max 설정   → unverified/config_error (전부 조용히 기각되는 것을 막는다)
+ * - min>=max 설정  → unverified/config_error (전부 조용히 기각되는 것을 막는다)
  * - 구간 < 최소선  → rejected/insufficient_voc
- * - 구간 > 상한    → rejected/oversized_voc
+ * - 구간 ≥ 상한    → rejected/oversized_voc
  * - 경계 걸침      → unverified/bounds_unverifiable
  * - ref 없음       → unverified (셌는데 붙일 대상을 못 찾았다 = 파서가 반쪽만 읽었다)
  * - 그 밖          → accepted
@@ -179,10 +187,11 @@ export function judge(
 
   // 창이 뒤집힌 설정(env 오타 하나로 충분하다)은 모든 후보를 기각한다. 그걸
   // "정상 기각"으로 찍으면 발굴이 영영 0건이 되고 로그만 초록불이다(§7.2).
-  if (minHits > maxHits) {
+  // 반열린 창이라 min==max 도 빈 창이다.
+  if (minHits >= maxHits) {
     return {
       verdict: 'unverified',
-      reason: `config_error: 채택 창이 뒤집혔다 (최소 ${minHits} > 상한 ${maxHits})`,
+      reason: `config_error: 채택 창이 비었다 (최소 ${minHits} >= 상한 ${maxHits})`,
     }
   }
 
@@ -193,13 +202,13 @@ export function judge(
   if (hi < minHits) {
     return { verdict: 'rejected', reason: `insufficient_voc: ${shown} < ${minHits}` }
   }
-  if (lo > maxHits) {
-    return { verdict: 'rejected', reason: `oversized_voc: ${shown} > ${maxHits}` }
+  if (lo >= maxHits) {
+    return { verdict: 'rejected', reason: `oversized_voc: ${shown} >= ${maxHits}` }
   }
-  if (lo < minHits || hi > maxHits) {
+  if (!inVocWindow(lo, minHits, maxHits) || !inVocWindow(hi, minHits, maxHits)) {
     return {
       verdict: 'unverified',
-      reason: `bounds_unverifiable: ${shown} 로는 채택 창 ${minHits}~${maxHits} 판정을 할 수 없다`,
+      reason: `bounds_unverifiable: ${shown} 로는 채택 창 ${minHits} 이상 ${maxHits} 미만 판정을 할 수 없다`,
     }
   }
   if (!probe.ref) {

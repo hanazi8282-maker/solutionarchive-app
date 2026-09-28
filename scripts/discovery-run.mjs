@@ -26,8 +26,9 @@
 //
 // env:
 //   DISCOVERY_TARGET        하루 후보 수 (기본 2) — 비용 가드는 이 횟수다
-//   DISCOVERY_MIN_VOC_HITS  채택 최소 VOC 건수 (기본 30)
-//   DISCOVERY_MAX_VOC_HITS  채택 최대 VOC 건수 (기본 500) — 초대형 브랜드를 거른다
+//   DISCOVERY_MIN_VOC_HITS  채택 최소 VOC 건수, 포함 (기본 MIN_VOC_HITS=200)
+//   DISCOVERY_MAX_VOC_HITS  과대 기준, 배타 — 이 값 이상이면 oversized (기본 MAX_VOC_HITS=50,000)
+//   빈 문자열은 "미지정"이다(워크플로가 vars 없을 때 넘긴다) — Number('') 가 0 이 되지 않게 `||` 로 받는다.
 //   DISCOVERY_KIND          축 고정(physical|saas). 안 주면 이력에서 고른다
 
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -57,8 +58,8 @@ const arg = (name, dflt) => {
 }
 
 const TARGET = Number(process.env.DISCOVERY_TARGET ?? 2)
-const MIN_HITS = Number(process.env.DISCOVERY_MIN_VOC_HITS ?? MIN_VOC_HITS)
-const MAX_HITS = Number(process.env.DISCOVERY_MAX_VOC_HITS ?? MAX_VOC_HITS)
+const MIN_HITS = Number(process.env.DISCOVERY_MIN_VOC_HITS || MIN_VOC_HITS)
+const MAX_HITS = Number(process.env.DISCOVERY_MAX_VOC_HITS || MAX_VOC_HITS)
 
 /** 프로브가 쓰는 소스 키. review_sources.key 와 철자가 같아야 한다(FK). */
 const PROBE_SOURCE = { physical: 'danawa', saas: 'hackernews' }
@@ -453,7 +454,7 @@ async function persist(supabase, row) {
 async function main() {
   log(
     `발굴 루프 시작 — ${dryRun ? 'DRY RUN (DB 쓰기 0건)' : '적재 모드'} / 목표 ${TARGET}건 / ` +
-      `채택 창 ${MIN_HITS}~${MAX_HITS} hits`,
+      `채택 창 ${MIN_HITS} 이상 ${MAX_HITS} 미만 hits`,
   )
 
   const known = await loadKnown()

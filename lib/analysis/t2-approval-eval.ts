@@ -86,8 +86,11 @@ export function scoreEval(rows: readonly EvalInput[]): EvalResult {
   const seen = new Set<string>()
   const push = (input_id: string, reason: RecheckReason) => { if (!seen.has(input_id)) { seen.add(input_id); recheck.push({ input_id, reason }) } }
 
+  // 좁은 기준 8건 중 정보 열까지 다시 받은 행은 재확인이 끝났다 — 다시 올리지 않는다.
+  const resolved = new Set(rows.filter((r) => NARROW.has(r.input_id) && typeof r.human_product_informative === 'boolean').map((r) => r.input_id))
+
   for (const r of rows) {
-    if (NARROW.has(r.input_id)) push(r.input_id, 'b')
+    if (NARROW.has(r.input_id) && !resolved.has(r.input_id)) push(r.input_id, 'b')
     if (EXAMPLES.has(r.input_id)) { excluded++; continue }
     const a = predictA(r.first, r.second)
     const gold = goldOf(r)
@@ -101,8 +104,8 @@ export function scoreEval(rows: readonly EvalInput[]): EvalResult {
     if (gold.value) pos++
     if (a) { nA++; if (gold.estimated) est++; if (!gold.value) errors++; else hit++ }
   }
-  // 좁은 기준 8건은 이번 표본에 없어도 항상 재확인 목록에 든다.
-  for (const id of NARROW) push(id, 'b')
+  // 좁은 기준 8건은 이번 표본에 없어도 재확인이 끝나기 전까지 목록에 든다(표본에 없으면 끝났는지 모른다 — 넣는다).
+  for (const id of NARROW) if (!resolved.has(id)) push(id, 'b')
 
   const precision = nA ? (nA - errors) / nA : null
   const recall = pos ? hit / pos : null

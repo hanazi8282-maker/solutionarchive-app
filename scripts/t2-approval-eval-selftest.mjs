@@ -70,6 +70,9 @@ ok(RR39_NARROW_IRRELEVANT_INPUT_IDS.every((x) => nrc.get(x) === 'b'), '정보 �
 ok(RR39_NARROW_IRRELEVANT_INPUT_IDS.every((x) => rc.get(x) === 'b'), '좁은 기준 8건은 표본에 없어도 항상 b 로 들어간다')
 ok(RR39_NARROW_IRRELEVANT_INPUT_IDS.length === 8 && new Set(r.recheck.map((x) => x.input_id)).size === r.recheck.length, '8건·중복 없음')
 ok(!r.meets_gate, '문턱 미달(n_A<40)')
+// 회귀(2026-09-28): 좁은 8건을 다시 채점해 정보 열이 채워지면 재확인에서 빠져야 한다 — 끝난 행이 계속 올라오던 버그.
+const done = scoreEval([{ ...row(19, 'relevant', true, X, X), input_id: narrow }])
+ok(!done.recheck.some((x) => x.input_id === narrow) && done.recheck.length === RR39_NARROW_IRRELEVANT_INPUT_IDS.length - 1, `재채점 끝난 좁은 행은 재확인에서 빠진다 (실제 ${done.recheck.length})`)
 const big = scoreEval([...Array(40)].map((_, i) => row(100 + i, 'relevant', true)))
 ok(big.meets_gate && big.n_A === 40 && big.errors === 0, '40건 오류 0 재현율 100% → 문턱 충족')
 const gap = scoreEval([...[...Array(40)].map((_, i) => row(200 + i, 'relevant', true)), row(300, 'relevant', true, null, R)])

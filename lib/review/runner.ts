@@ -132,6 +132,13 @@ export interface RunResult {
   requests: number
   pagesFetched: number
   robotsSkips: number
+  /**
+   * robots 를 못 읽었는데 어댑터 `proceedWhenRobotsUnverified` 표식 **때문에만** 보낸 요청 수.
+   * 정상으로 읽고 허용된 요청은 세지 않는다. 0 이면 "오늘은 표식이 필요 없었다"는 뜻이다.
+   */
+  robotsBypassed: number
+  /** 표식으로 통과한 호스트 → 못 읽은 이유(예: "HTTP 403"). */
+  robotsBypassedHosts: Record<string, string>
   perTarget: Array<{ targetId: string; productRef: string; outcome: string }>
 }
 
@@ -158,6 +165,8 @@ const emptyStats = (): RunStats => ({
  */
 interface RobotsUnread {
   reason: string
+  /** 요약 줄용 짧은 이유(예: "HTTP 403"). */
+  cause: string
   bypassable: boolean
 }
 
@@ -167,6 +176,10 @@ interface RobotsDecision {
   reason: string
   /** robots 가 선언한 최소 간격(ms). 선언이 없으면 0. */
   crawlDelayMs: number
+  /** true = 규칙을 못 읽었는데 소스 표식 때문에만 허용했다. 정상 허용과 가르는 유일한 표지다. */
+  bypassed?: boolean
+  /** bypassed 일 때 못 읽은 짧은 이유(예: "HTTP 403"). */
+  unreadCause?: string
 }
 
 /**
@@ -204,7 +217,7 @@ export class RobotsCache {
     const entry = await this.load(u.origin)
 
     if (!Array.isArray(entry)) {
-      return this.unverified(u.hostname, entry.reason, entry.bypassable, 0)
+      return this.unverified(u.hostname, entry.reason, entry.cause, entry.bypassable, 0)
     }
 
     const crawlDelaySec = robotsCrawlDelaySec(entry, this.productToken)
@@ -216,7 +229,7 @@ export class RobotsCache {
     //    docs/strategy-principles.md 의 SP-026 행.
     const v = robotsVerdict(entry, u.pathname, this.productToken)
     if (v.state === 'unverified') {
-      return this.unverified(u.hostname, v.reason, true, crawlDelayMs)
+      return this.unverified(u.hostname, v.reason, v.reason, true, crawlDelayMs)
     }
     return { state: v.state, reason: v.reason, crawlDelayMs }
   }
@@ -229,6 +242,7 @@ export class RobotsCache {
   private unverified(
     hostname: string,
     reason: string,
+    cause: string,
     bypassable: boolean,
     crawlDelayMs: number,
   ): RobotsDecision {
@@ -237,6 +251,8 @@ export class RobotsCache {
         state: 'allowed',
         reason: `robots 확인 불가(${reason}) — 소스가 이 호스트를 명시 등재해 진행한다`,
         crawlDelayMs,
+        bypassed: true,
+        unreadCause: cause,
       }
     }
     return { state: 'unverified', reason, crawlDelayMs }
@@ -257,11 +273,12 @@ export class RobotsCache {
     //    금지로 보라고 하고, 네트워크 오류도 같게 다룬다. 상대 서버가 잠깐
     //    흔들린 틈에 금지 경로를 긁는 걸 막는다. **표식으로도 못 뚫는다.**
     if (res.status === null) {
-      return { reason: `robots.txt 요청 실패 — ${res.error}`, bypassable: false }
+      return { reason: `robots.txt 요청 실패 — ${res.error}`, cause: '요청 실패', bypassable: false }
     }
     if (res.status >= 500) {
       return {
         reason: `robots.txt HTTP ${res.status} — 서버 오류라 규칙이 있는지조차 모른다`,
+        cause: `HTTP ${res.status}`,
         bypassable: false,
       }
     }
@@ -275,7 +292,7 @@ export class RobotsCache {
     //    실제로 건 규칙이 판정에 한 번도 반영되지 않는다(CLAUDE.md §7.2).
     //    그래서 확인 불가로 두고, 소스별 명시 표식만 통과시킨다.
     if (res.status !== 200) {
-      return { reason: `robots.txt HTTP ${res.status} — 규칙을 읽지 못했다`, bypassable: true }
+      return { reason: `robots.txt HTTP ${res.status} — 규칙을 읽지 못했다`, cause: `HTTP ${res.status}`, bypassable: true }
     }
 
     // ⚠️ 구멍 ② — 리다이렉트로 다른 호스트의 robots 를 읽었으면, 그건 우리가
@@ -288,6 +305,7 @@ export class RobotsCache {
       if (!this.groups.has(finalOrigin)) this.groups.set(finalOrigin, groups)
       return {
         reason: `robots.txt 가 ${finalOrigin} 로 리다이렉트됐다 — ${origin} 의 규칙을 읽은 게 아니다`,
+        cause: `${finalOrigin} 로 리다이렉트`,
         bypassable: true,
       }
     }
@@ -313,7 +331,7 @@ export class RobotsCache {
   private parsed(body: string): RobotsGroup[] | RobotsUnread {
     // ⚠️ 200 인데 본문이 HTML 인 소프트 404. 상태 코드만 보면 못 잡는다(§7.1).
     if (looksLikeMarkup(body)) {
-      return { reason: 'robots.txt 자리에 HTML 이 왔다 — 규칙을 읽지 못했다', bypassable: true }
+      return { reason: 'robots.txt 자리에 HTML 이 왔다 — 규칙을 읽지 못했다', cause: 'HTML 응답', bypassable: true }
     }
     return parseRobots(body)
   }
@@ -357,6 +375,8 @@ export async function runCollection(
   let requests = 0
   let pagesFetched = 0
   let robotsSkips = 0
+  let robotsBypassed = 0
+  const robotsBypassedHosts: Record<string, string> = {}
   let targetsVisited = 0
 
   const source = await ports.store.loadSource(adapter.key)
@@ -371,6 +391,8 @@ export async function runCollection(
       requests: 0,
       pagesFetched: 0,
       robotsSkips: 0,
+      robotsBypassed: 0,
+      robotsBypassedHosts: {},
       perTarget,
     }
   }
@@ -387,6 +409,8 @@ export async function runCollection(
       requests: 0,
       pagesFetched: 0,
       robotsSkips: 0,
+      robotsBypassed: 0,
+      robotsBypassedHosts: {},
       perTarget,
     }
   }
@@ -471,6 +495,11 @@ export async function runCollection(
         break
       }
 
+      // 표식으로만 통과한 요청을 따로 센다 — 요약 줄에서 "정상 허용"과 구분돼야 한다(_principles.md §2).
+      if (verdict.bypassed) {
+        robotsBypassed++
+        robotsBypassedHosts[new URL(req.url).hostname] = verdict.unreadCause ?? '이유 미상'
+      }
       await pacer.wait(verdict.crawlDelayMs)
       const res = await ports.fetchText(req.url, req.init)
       requests++
@@ -662,6 +691,8 @@ export async function runCollection(
     requests,
     pagesFetched,
     robotsSkips,
+    robotsBypassed,
+    robotsBypassedHosts,
     perTarget,
   }
 }

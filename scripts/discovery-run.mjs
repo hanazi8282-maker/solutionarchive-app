@@ -30,8 +30,11 @@
 //   DISCOVERY_MAX_VOC_HITS  과대 기준, 배타 — 이 값 이상이면 oversized (기본 MAX_VOC_HITS=50,000)
 //   빈 문자열은 "미지정"이다(워크플로가 vars 없을 때 넘긴다) — Number('') 가 0 이 되지 않게 `||` 로 받는다.
 //   DISCOVERY_KIND          축 고정(physical|saas). 안 주면 이력에서 고른다
+//   DISCOVERY_TRANSFER_GATE 이식성 판정 모드(on|shadow). 비우면 lib/discovery/transfer.ts DEFAULT_GATE_MODE.
+//                           on=fail·확인불가는 적재 안 함 / shadow=판정만 기록하고 오늘처럼 적재
 
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import os from 'node:os'
 import path from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 
@@ -46,6 +49,7 @@ import {
   screen,
 } from '../lib/discovery/candidate.ts'
 import { DANAWA_CRAWL_DELAY_MS, probePhysical, probeSaas } from '../lib/discovery/probe.ts'
+import { applyTransfer, gateMode, transferFromRun, transferPrompt } from '../lib/discovery/transfer.ts'
 import { RobotsCache } from '../lib/review/runner.ts'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -60,6 +64,7 @@ const arg = (name, dflt) => {
 const TARGET = Number(process.env.DISCOVERY_TARGET ?? 2)
 const MIN_HITS = Number(process.env.DISCOVERY_MIN_VOC_HITS || MIN_VOC_HITS)
 const MAX_HITS = Number(process.env.DISCOVERY_MAX_VOC_HITS || MAX_VOC_HITS)
+const GATE_MODE = gateMode(process.env.DISCOVERY_TRANSFER_GATE)
 
 /** 프로브가 쓰는 소스 키. review_sources.key 와 철자가 같아야 한다(FK). */
 const PROBE_SOURCE = { physical: 'danawa', saas: 'hackernews' }
@@ -155,7 +160,7 @@ void lastDanawaAt
 async function loadKnown() {
   if (dryRun) {
     log('⚠️ --dry: DB 를 열지 않는다. 기존 이름·카테고리 목록이 없어 중복/포화 게이트가 무력하다.')
-    return { names: new Set(), acceptedByCategory: new Map(), recentKinds: [], supabase: null }
+    return { names: new Set(), acceptedByCategory: new Map(), recentKinds: [], killed: [], supabase: null }
   }
 
   const { createClient } = await import('../lib/supabase/server.ts')
@@ -164,7 +169,7 @@ async function loadKnown() {
 
   const { data: cands, error: cErr } = await supabase
     .from('discovery_candidates')
-    .select('kind, name, category_hint, verdict, created_at')
+    .select('kind, name, category_hint, verdict, human_review, human_note, created_at')
     .order('created_at', { ascending: false })
     .limit(500)
   if (cErr) throw new Error(`discovery_candidates 조회 실패: ${cErr.message}`)
@@ -195,6 +200,8 @@ async function loadKnown() {
     names,
     acceptedByCategory,
     recentKinds: (cands ?? []).map((c) => c.kind),
+    // 사람이 무효화한 후보 — 제안 프롬프트의 반례. 사유(human_note)가 있으면 같이 준다.
+    killed: (cands ?? []).filter((c) => c.human_review === 'killed').map((c) => ({ kind: c.kind, name: c.name, note: c.human_note ?? null })),
     supabase,
   }
 }
@@ -205,6 +212,9 @@ export function proposalPrompt(kind, count, known) {
   const source = kind === 'saas' ? 'Hacker News 댓글' : '다나와 상품 리뷰'
   const knownNames = [...known.names].map((k) => k.split(':').slice(1).join(':')).filter(Boolean)
   const cats = [...known.acceptedByCategory.entries()].map(([c, n]) => `${c}(${n})`)
+  const killed = (known.killed ?? [])
+    .filter((k) => k.kind === kind)
+    .map((k) => (k.note ? `${k.name}(${k.note})` : k.name))
 
   return [
     `${kindWord} ${count}개를 후보로 제안하라. 고객 불만(VOC)을 분석할 대상을 찾는 중이다.`,
@@ -214,10 +224,14 @@ export function proposalPrompt(kind, count, known) {
     '- 서로 다른 카테고리로. 같은 카테고리 안에서 고르지 마라.',
     knownNames.length ? `- 아래는 이미 다루는 것들이다. 겹치지 마라: ${knownNames.slice(0, 80).join(', ')}` : null,
     cats.length ? `- 이미 채택된 카테고리(더 뽑지 마라): ${cats.join(', ')}` : null,
-    // SaaS 후보 6건이 전부 hits 상한 초과(oversized_voc)로 자동 기각됐다 — 창이 아니라 이 프롬프트가 원인이다(계획서 §5).
+    // ⚠️ 2026-09-29 까지 여기 "hits 상한(500) 초과로 자동 기각된다"고 적혀 있었다. 09-28 창이 50,000 으로
+    //    넓어진 뒤로는 거짓이었고, Stripe·Figma·Datadog 급이 그대로 통과했다. 규모 대신 **이식성**을 말한다.
+    //    이 문장은 제안의 방향만 잡는다 — 판정은 별도 판정자(lib/discovery/transfer.ts)가 한다.
     kind === 'saas'
-      ? '- **1인·소규모 팀이 만든 인디 SaaS 를 골라라**(HN 언급 수백 건 규모). Notion·Slack·Stripe·Figma 급 대형 브랜드는 hits 상한(500) 초과로 자동 기각된다 — 제안하지 마라.'
+      ? '- **1인·3명 이하 팀의 SaaS 창업가가 자기 제품에 옮겨 쓸 교훈이 나오는 제품**을 골라라. 회사 규모가 아니라 교훈이 기준이다. ' +
+        '인프라·R&D 자체가 경쟁력이거나, 영업 조직·대규모 투자·네트워크 효과가 있어야 재현되는 제품은 별도 판정에서 기각된다 — 제안하지 마라.'
       : null,
+    killed.length ? `- 사람이 "쓸모없다"고 무효화한 후보들이다. 이런 결의 제품을 내지 마라: ${killed.slice(0, 40).join(', ')}` : null,
     '',
     '⚠️ 리뷰 수를 추측해서 쓰지 마라. 실제 건수는 이 도구가 직접 검색해서 센다.',
     // 검색하지 말라고 못박는다. 안 그러면 모델이 첫 턴을 도구에 쓰고 답할 턴을
@@ -356,6 +370,34 @@ async function propose(kind, count, known) {
   return parsed.items.slice(0, count)
 }
 
+// ── [4.5] 이식성 판정 ─────────────────────────────────────────────
+//
+// VOC 창을 통과한 SaaS 후보만 돈다. 제안과 **다른 호출**이다 — 제안한 모델이 자기 후보를 채점하면
+// 제안 때의 착각(`why` 의 "인디 출신")을 그대로 되풀이한다. 판정자는 이름·카테고리·홈페이지만 받는다.
+
+/**
+ * 판정자 자식 프로세스 env. DB 키는 어느 쪽에도 없다(§10.1).
+ * - CI: OAuth 토큰 하나(제안 호출과 같다).
+ * - 로컬(토큰 없음): 이 PC 에 로그인된 claude 설정 폴더를 가리킨다. runClaude 는 HOME 을
+ *   /tmp/claude-home 으로 돌리는데 거기엔 자격증명이 없어 exit 1 로 죽는다 → 전부 확인 불가.
+ *   CI 에서 토큰이 빠지면 이 분기로 와도 runner 홈에 자격증명이 없으니 똑같이 확인 불가다(통과 아님).
+ */
+export function judgeEnv(env = process.env) {
+  if (env.CLAUDE_CODE_OAUTH_TOKEN) return { CLAUDE_CODE_OAUTH_TOKEN: env.CLAUDE_CODE_OAUTH_TOKEN }
+  const home = os.homedir()
+  return { HOME: home, USERPROFILE: home, APPDATA: env.APPDATA, LOCALAPPDATA: env.LOCALAPPDATA, CLAUDE_CONFIG_DIR: undefined }
+}
+
+/** 판정자 1회 호출. 던지지 않는다 — 실패는 확인 불가 판정이다. */
+export async function judgeTransfer(cand, { bin, run = runClaude } = {}) {
+  const r = await run(bin, ['-p', '--output-format', 'json', '--max-turns', '4'], {
+    env: judgeEnv(),
+    timeoutMs: 5 * 60_000,
+    input: transferPrompt(cand),
+  })
+  return transferFromRun(r)
+}
+
 // ── [5] 적재 ─────────────────────────────────────────────────────
 //
 // ⚠️ **--dry 에서는 호출되지 않는다.** supabase 는 loadKnown 이 null 로 준다.
@@ -376,6 +418,10 @@ async function persist(supabase, row) {
     probe_note: row.probe?.note ?? null,
     verdict: row.judgement.verdict,
     verdict_reason: row.judgement.reason,
+    // 판정자가 안 돈 행(VOC 미통과·실물 축)은 NULL 이다 — "판정 안 함"이지 통과가 아니다.
+    transfer_verdict: row.transfer?.state ?? null,
+    transfer_lesson: row.transfer?.lesson ?? null,
+    transfer_reason: row.transfer?.reason ?? null,
   }
 
   if (row.judgement.verdict !== 'accepted') {
@@ -454,7 +500,7 @@ async function persist(supabase, row) {
 async function main() {
   log(
     `발굴 루프 시작 — ${dryRun ? 'DRY RUN (DB 쓰기 0건)' : '적재 모드'} / 목표 ${TARGET}건 / ` +
-      `채택 창 ${MIN_HITS} 이상 ${MAX_HITS} 미만 hits`,
+      `채택 창 ${MIN_HITS} 이상 ${MAX_HITS} 미만 hits / 이식성 게이트 ${GATE_MODE}`,
   )
 
   const known = await loadKnown()
@@ -472,6 +518,7 @@ async function main() {
   log(`후보 ${candidates.length}건: ${candidates.map((c) => c.name).join(' / ')}`)
 
   const results = []
+  let judgeBin = null
   for (const cand of candidates) {
     log(`— ${cand.name} (${cand.categoryHint ?? '카테고리 미기재'})`)
 
@@ -483,10 +530,20 @@ async function main() {
     }
 
     const probe = kind === 'saas' ? await probeSaas(cand.name, fetchText) : await probePhysical(cand.name, fetchText)
-    const judgement = judge(probe, MIN_HITS, MAX_HITS)
+    const vocJudgement = judge(probe, MIN_HITS, MAX_HITS)
     // 캡 여부를 여기 찍는다 — `999` 와 `999+`(하한선)는 상한 판정이 다르다.
     log(`  프로브: hits=${probe.hits ?? 'null'}${probe.capped ? '+(하한)' : ''} ref=${probe.ref ?? '-'} (${probe.note})`)
-    log(`  판정: ${judgement.verdict} — ${judgement.reason}`)
+    log(`  VOC 판정: ${vocJudgement.verdict} — ${vocJudgement.reason}`)
+
+    // 이식성 판정은 SaaS 축의 VOC 통과분만. 실물 소비재 축은 "SaaS 창업가 교훈"이라는 질문이 성립하지 않는다.
+    let transfer = null
+    if (kind === 'saas' && vocJudgement.verdict === 'accepted') {
+      judgeBin ??= (await resolveClaudeBinary()).path
+      transfer = await judgeTransfer(cand, { bin: judgeBin })
+      log(`  이식성(${GATE_MODE}): ${transfer.state} [${transfer.foundingScale}] — ${transfer.lesson ?? transfer.reason}`)
+    }
+    const judgement = transfer ? applyTransfer(vocJudgement, transfer, GATE_MODE) : vocJudgement
+    if (judgement !== vocJudgement) log(`  최종 판정: ${judgement.verdict} — ${judgement.reason}`)
 
     // 채택분은 같은 실행 안에서도 중복을 막는다(후보 둘이 같은 카테고리인 경우).
     known.names.add(nameKey(kind, cand.name))
@@ -495,7 +552,7 @@ async function main() {
       known.acceptedByCategory.set(key, (known.acceptedByCategory.get(key) ?? 0) + 1)
     }
 
-    results.push({ ...cand, kind, probe, probeSourceKey: PROBE_SOURCE[kind], judgement })
+    results.push({ ...cand, kind, probe, probeSourceKey: PROBE_SOURCE[kind], judgement, transfer })
   }
 
   // ── 적재 ───────────────────────────────────────────────────────
@@ -516,6 +573,7 @@ async function main() {
     console.log(`│ ${mark} ${r.name}  [${r.kind}/${r.categoryHint ?? '-'}]`)
     console.log(`│    hits=${r.probe?.hits ?? 'null'}  ref=${r.probe?.ref ?? '-'}`)
     console.log(`│    ${r.judgement.reason}`)
+    if (r.transfer) console.log(`│    이식성: ${r.transfer.state} — ${r.transfer.lesson ?? r.transfer.reason}`)
     console.log(`│    why: ${r.why}`)
   }
   console.log('└────────────────────────────────────────────')
@@ -528,7 +586,7 @@ async function main() {
   // ⚠️ unverified 는 실패가 아니지만 **조용히 넘어가서도 안 된다.** 이게 쌓이면
   //    프로브가 깨진 것이다. 종료코드가 아니라 로그로 눈에 띄게 남긴다.
   if (count('unverified') === results.length && results.length > 0) {
-    log('⚠️ 전부 확인 불가다. 프로브 경로가 깨졌을 수 있다 — scripts/discovery-selftest.mjs 를 돌려라.')
+    log('⚠️ 전부 확인 불가다. 프로브 경로가 깨졌거나(probe_failed) 이식성 판정자가 못 돌았다(transfer_unverified) — 사유를 보고 scripts/discovery-selftest.mjs 를 돌려라.')
   }
 }
 

@@ -38,6 +38,11 @@ type CandidateRow = {
   run_id: string | null
   human_review: string
   created_at: string
+  // 20260930000035 — 이식성 판정·무효화 사유. NULL=판정 안 함(통과 아님).
+  transfer_verdict?: string | null
+  transfer_lesson?: string | null
+  transfer_reason?: string | null
+  human_note?: string | null
 }
 
 const VERDICT: Record<string, { label: string; tone: Tone }> = {
@@ -47,9 +52,18 @@ const VERDICT: Record<string, { label: string; tone: Tone }> = {
 }
 
 const HUMAN: Record<string, { label: string; tone: Tone }> = {
-  pending: { label: '검토 대기', tone: 'warning' },
+  // 'pending' 은 "검토 대기"가 아니다 — 채택은 이미 자동으로 반영됐다(프로젝트·수집 대상 생성).
+  // 사람은 이상한 것만 골라 무효화한다. DB 값은 그대로 두고 표시만 바꾼다(2026-09-29).
+  pending: { label: '자동 반영 · 이의 시 무효화', tone: 'neutral' },
   kept: { label: '사람이 유지', tone: 'success' },
   killed: { label: '사람이 무효화', tone: 'danger' },
+}
+
+/** 이식성 판정(lib/discovery/transfer.ts). 키 없음(NULL)은 "판정 안 함" — 통과로 그리지 않는다. */
+const TRANSFER: Record<string, { label: string; tone: Tone }> = {
+  pass: { label: '이식성 통과', tone: 'success' },
+  fail: { label: '이식성 미달 — 1인 창업가가 못 옮김', tone: 'danger' },
+  unverified: { label: '이식성 확인 불가', tone: 'warning' },
 }
 
 const KIND: Record<string, string> = {
@@ -98,6 +112,11 @@ function CandidateCard({ c }: { c: CandidateRow }) {
           <Badge tone={h?.tone ?? 'neutral'} size="sm">{h?.label ?? c.human_review}</Badge>
           <Badge tone="neutral" size="sm">{KIND[c.kind] ?? c.kind}</Badge>
           <ProbeHits hits={c.probe_hits} />
+          {c.transfer_verdict && (
+            <Badge tone={TRANSFER[c.transfer_verdict]?.tone ?? 'neutral'} size="sm">
+              {TRANSFER[c.transfer_verdict]?.label ?? c.transfer_verdict}
+            </Badge>
+          )}
           <span className="v2-note v2-push">
             {KST.format(new Date(c.created_at))} KST
           </span>
@@ -115,6 +134,16 @@ function CandidateCard({ c }: { c: CandidateRow }) {
           <p className="v2-note">왜 뽑았나 (LLM 주장 — 판정 근거 아님)</p>
           <p className="v2-body v2-pre">{c.why}</p>
         </div>
+
+        {/* 이식성 판정자(제안과 다른 호출)의 결론. 사람이 "이상한 게 들어왔네"를 가장 빨리 알아채는 자리다. */}
+        {c.transfer_verdict && (
+          <div className="v2-box">
+            <p className="v2-note">1인 SaaS 창업가가 가져갈 교훈 (이식성 판정자)</p>
+            {c.transfer_lesson && <p className="v2-body v2-pre">{c.transfer_lesson}</p>}
+            {c.transfer_reason && <p className="v2-note v2-pre">이유: {c.transfer_reason}</p>}
+          </div>
+        )}
+        {c.human_note && <p className="v2-note">무효화 사유: {c.human_note}</p>}
 
         {/* 판정 근거. 남헌이 뒤집을지 말지 보는 자리라 숫자를 그대로 노출한다. */}
         <div className="v2-stack-tight">
@@ -163,7 +192,7 @@ export default async function DiscoveryPage({
   const header = (
     <PageHeader
       title="발굴 후보 검증"
-      subtitle="야간 발굴 루프가 스스로 고른 후보를 사람이 사후 검증한다. 채택은 LLM 주장이 아니라 실측 VOC 건수가 정했고, 여기서는 그 판정을 받아들일지만 정한다."
+      subtitle="야간 발굴 루프가 고른 후보는 실측 VOC 건수(와 이식성 판정)를 통과하면 자동으로 반영된다. 사람은 이상한 것만 골라 사유와 함께 무효화한다."
     />
   )
 
@@ -221,7 +250,7 @@ export default async function DiscoveryPage({
     (fReview === 'all' || c.human_review === fReview) &&
     (fKind === 'all' || c.kind === fKind))
 
-  // 검토 대기를 위로. 같은 그룹 안에서는 최신순(쿼리 정렬 유지).
+  // 사람이 아직 손대지 않은 것(자동 반영)을 위로. 같은 그룹 안에서는 최신순(쿼리 정렬 유지).
   const sorted = [...rows].sort((a, b) =>
     Number(b.human_review === 'pending') - Number(a.human_review === 'pending'))
 
@@ -247,7 +276,7 @@ export default async function DiscoveryPage({
       ) : (
         <>
           <StatGrid>
-            <StatTile label="검토 대기" value={pendingN} caption="사람이 아직 안 본 후보" tone={pendingN > 0 ? 'warning' : undefined} />
+            <StatTile label="자동 반영" value={pendingN} caption="이의 시 무효화 — 사람이 아직 손대지 않은 후보" />
             <StatTile label="채택" value={accepted} caption={`실측 VOC 가 기준 ${WINDOW_TEXT}건 안`} />
             <StatTile label="기각" value={rejected} caption="알아봤는데 기준 밖" />
             <StatTile
@@ -278,7 +307,7 @@ export default async function DiscoveryPage({
             <FilterChip href={qs({ verdict: 'all', review: 'all', kind: 'all' })} active={fVerdict === 'all' && fReview === 'all' && fKind === 'all'} count={all.length}>
               전체
             </FilterChip>
-            <FilterChip href={qs({ review: 'pending' })} active={fReview === 'pending'} count={pendingN}>검토 대기</FilterChip>
+            <FilterChip href={qs({ review: 'pending' })} active={fReview === 'pending'} count={pendingN}>자동 반영 · 이의 시 무효화</FilterChip>
             <FilterChip href={qs({ verdict: 'accepted' })} active={fVerdict === 'accepted'} count={accepted}>채택</FilterChip>
             <FilterChip href={qs({ verdict: 'rejected' })} active={fVerdict === 'rejected'} count={rejected}>기각</FilterChip>
             <FilterChip href={qs({ verdict: 'unverified' })} active={fVerdict === 'unverified'} count={unverified.length}>확인 불가</FilterChip>

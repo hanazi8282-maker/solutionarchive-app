@@ -414,6 +414,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 000033(PR #328): review_collection_runs.blocked_responses·quota_responses int NOT NULL DEFAULT 0(메타데이터 변경). 000034: review_source_ramp·review_source_ramp_log(FORCE RLS·정책 0). 양성: 컬럼 2·테이블 2·정책 0. 음성: level=5 INSERT → 23514 거부.
 - 전부 비파괴(INSERT/ADD/CREATE), 롤백 파일 있음. 로컬 supabase MCP apply_migration.
 
+### 2026-09-29 — 000035 발굴 이식성 판정 컬럼 (CEO-STAFF 세션, 남헌 확정 지시 "리스크 낮으면 바로 구현")
+
+- 000035(PR #339): discovery_candidates 에 transfer_verdict·transfer_lesson·transfer_reason·human_note(nullable) + CHECK(pass|fail|unverified|NULL). 적용 전 부재 확인(0컬럼). 양성: 4컬럼, 기존 40행 중 변경 0. 음성: transfer_verdict='maybe' → 23514 거부, 잔존 0. 비파괴, 롤백 파일 있음. 호스티드 Supabase MCP apply_migration. 게이트 기본값 shadow(교정 20/27 < 기준).
+
 ### 2026-09-29 — 000036 채점 화면 번역·제품 배경 캐시 (CEO-STAFF 세션, 남헌 확정 지시)
 
 - 000036(PR #340): relevance_translations·relevance_product_backgrounds 신규 + 원문 폐기 추종 트리거. 서브에이전트가 000035 로 만들었으나 발굴 이식성(#339)과 번호 충돌 → 000036 으로 재번호. 적용 전 부재 확인. 양성: 컬럼 11/7·RLS true/true·정책 0·search_path 고정·트리거 O. 음성 3건 23514 거부, 트리거(원문 NULL → 번역 행 삭제) 0, 잔존 0(세이브포인트 롤백). 비파괴, 롤백 파일 있음. 호스티드 Supabase MCP apply_migration.

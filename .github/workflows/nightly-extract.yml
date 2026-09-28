@@ -2,6 +2,9 @@
 #
 # 남헌 2026-09-23 확정: "extract 야간 자동 실행 허용 — 신규 리뷰 100건 이상 프로젝트만,
 # 일 $5 상한 안에서, Gemini 429 면 다음 날로" (reports/2026-09-23/data-velocity-plan.md §1 Q1).
+#   ↳ 2026-09-29: "일 $5" 는 Gemini 종량 시절의 값이다. claude-cli(구독)는 청구액이 없어 달러 예산을 타지 않는다
+#     (lib/analysis/llm.ts UNMETERED). 상한은 슬롯당 EXTRACT_AUTO_MAX_PROJECTS · 하루 EXTRACT_AUTO_DAILY_MAX(24) 두 건수이고,
+#     한도에 걸리면 CLI 한도 정지·쿨다운(PR #330)이 막는다. 실측 명목 비용은 로그 "claude-cli 실측 total_cost_usd" 와 agent_runs cost_usd.
 #
 # ⚠️ `nightly-review-collect.yml` 헤더의 "extract 는 절대 자동으로 안 부른다"는 이 결정으로
 #    해제됐다. 단 걱정의 실체(사람이 검수한 교정값이 매일 밤 날아간다)는 그대로 막힌다:
@@ -92,14 +95,10 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           LLM_PROVIDER: claude-cli
           CLAUDE_CLI_MODEL: sonnet
-          # 예산 추정기(budget.ts) 단가 = Sonnet. 실측 비용은 로그의 "claude-cli 실측 total_cost_usd" 줄을 본다.
-          LLM_USD_PER_MTOK_IN: '3'
-          LLM_USD_PER_MTOK_OUT: '15'
+          # 달러 예산(LLM_DAILY_BUDGET_USD · LLM_USD_PER_MTOK_*)은 2026-09-29 에 뺐다 — claude-cli 는 budget.ts 를 타지 않는다(머리말).
           # extract 입력은 최대 ~12만 자다. 기본 180초로는 모자란다(실측 117~430초). 이 프로세스의 claude-cli 호출은
           # 전부 lib/analysis/llm.ts callClaudeCli 한 곳을 지나며(extract · 뒤따르는 remedy-judge) 그 자리가 이 env 를 읽는다.
           LLM_CLAUDE_CLI_TIMEOUT_MS: '600000'
-          # 비용 상한은 lib/analysis/budget.ts 가 강제한다(프로세스 단위 = 이 실행 1회분).
-          LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
           EXTRACT_AUTO_MIN_NEW: ${{ inputs.min_new || vars.EXTRACT_AUTO_MIN_NEW || '100' }}
           EXTRACT_AUTO_MAX_PROJECTS: ${{ inputs.max_projects || vars.EXTRACT_AUTO_MAX_PROJECTS || '3' }}
           # 하루(KST) 처리 상한 = done+failed 합(D4). 3일 실측 뒤 리포 변수로 조정한다.

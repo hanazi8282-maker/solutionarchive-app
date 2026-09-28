@@ -106,9 +106,18 @@ export function discoveryBlocks(rows) {
 
   if (accepted.length === 0 && unverified.length === 0) return null
 
+  // 이식성 판정(lib/discovery/transfer.ts)을 후보마다 한 줄. "이상한 게 들어왔네"를 사람이 여기서 바로 본다.
+  // shadow 모드에서는 fail 이어도 채택 칸에 올라온다 — 그래서 ⚠️ 를 붙인다. NULL 은 "판정 안 함"(통과 아님).
+  const transferLine = (r) => {
+    if (!r.transfer_verdict) return ''
+    const mark = r.transfer_verdict === 'pass' ? '' : '⚠️ '
+    const body = r.transfer_verdict === 'pass' ? (r.transfer_lesson ?? r.transfer_reason) : r.transfer_reason
+    return `\n  ${mark}이식성 ${r.transfer_verdict}: ${body ?? '(내용 없음)'}`
+  }
   const line = (r) =>
-    `- ${r.name} [${r.kind}/${r.category_hint ?? '-'}] — hits ${r.probe_hits ?? '확인불가'}` +
+    `- ${r.name} [${r.kind}/${r.category_hint ?? '-'}] — ${r.verdict} · hits ${r.probe_hits ?? '확인불가'}` +
     `${r.probe_ref ? ` · ref ${r.probe_ref}` : ''}\n  ${r.verdict_reason}` +
+    transferLine(r) +
     `${r.why ? `\n  왜: ${r.why}` : ''}`
 
   const blocks = []
@@ -122,7 +131,7 @@ export function discoveryBlocks(rows) {
   }
   if (rejected.length) {
     // 기각은 건수만. 이름까지 매일 올리면 읽을 게 너무 많아진다.
-    blocks.push(...paragraphBlocks(`기각 ${rejected.length}건: ${rejected.map((r) => r.name).join(', ')}`))
+    blocks.push(...paragraphBlocks(`기각 ${rejected.length}건: ${rejected.map((r) => (r.transfer_verdict === 'fail' ? `${r.name}(이식성 미달)` : r.name)).join(', ')}`))
   }
   return blocks
 }
@@ -267,7 +276,7 @@ async function run() {
   let pushedDiscovery = 0
   {
     const { data: cands, error: cErr } = await supabase.from('discovery_candidates')
-      .select('kind,name,category_hint,why,probe_hits,probe_ref,verdict,verdict_reason,created_at')
+      .select('kind,name,category_hint,why,probe_hits,probe_ref,verdict,verdict_reason,transfer_verdict,transfer_lesson,transfer_reason,created_at')
       .gte('created_at', `${date}T00:00:00Z`).lt('created_at', `${date}T23:59:59.999Z`)
       .order('created_at', { ascending: true })
 

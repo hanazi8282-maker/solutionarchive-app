@@ -68,6 +68,13 @@ export const COMMIT_PREFIXES = ['reports/', 'drafts/cases/', 'drafts/threads/', 
 export const TRANSFERABILITY_FEEDBACK_FILE = 'ops/state/transferability-feedback/latest.md'
 
 /**
+ * 리서처용 VOC 색인. S2 research 가 조사 직전에 `scripts/voc-export.mjs` 로 만든다(git 제외).
+ * 파일이 없으면 프롬프트에 VOC 줄을 넣지 않는다 — 내보내기 실패는 "VOC 없이 조사" 이지 조사 실패가 아니다.
+ * 설계: reports/2026-09-28/researcher-voc-input-plan.md §1.
+ */
+export const VOC_INPUTS_INDEX = 'ops/state/voc-inputs/index.md'
+
+/**
  * 봇 신원을 **이 커밋 하나에만** 실어 보내는 인자.
  *
  * ★ `git config user.name ...` 로 세우면 안 된다. `--local` 도 `--global` 도
@@ -404,6 +411,16 @@ async function main() {
     if (!claimed.length) return { status: 'skipped', detail: { reason: '조사 대상 0건 (큐가 비었다)' } }
     if (!claudeBin) return { status: 'failed', detail: { error: 'claude 바이너리 없음' } }
 
+    // ── VOC 내보내기 (P1) ── 리서처는 DB 가 없으니 오케스트레이터가 파일로 건넨다.
+    //   3상태로 남긴다: written / none(0건 — 조회 정상) / unavailable(확인 불가). unavailable 이면
+    //   스크립트가 index.md 를 지우고 researchPrompt 가 VOC 줄을 빼므로 조사원은 없는 파일을 찾지 않는다.
+    //   조사를 막지 않는다 — 재료가 하나 빠진 것이지 조사 자체가 불가능한 게 아니다. 대신 여기 적혀 DIGEST 에 남는다.
+    const voc = await sh('node', ['scripts/voc-export.mjs'])
+    const vocExport = voc.code === 0
+      ? (/inputs=0\b/.test(voc.stdout) ? `none — ${tail(voc.stdout, 120)}` : `written — ${tail(voc.stdout, 120)}`)
+      : `unavailable — exit ${voc.code} ${tail(voc.stderr || voc.stdout, 200)}`
+    if (voc.code !== 0) say(`- ⚠️ VOC 내보내기 확인 불가 — ${tail(voc.stderr || voc.stdout, 200)}. VOC 없이 조사한다.`)
+
     let done = 0
     const failures = []
     let seenCases = beforeCases
@@ -430,8 +447,8 @@ async function main() {
       seenCases = afterCases
     }
     newSlugs = listJson(path.join(repoRoot, 'drafts', 'cases')).filter((s) => !beforeCases.includes(s))
-    if (done === 0 && failures.length) return { status: 'failed', counts: { attempted: claimed.length, new_drafts: 0 }, detail: { error: failures.join(' | ') } }
-    return { status: 'ok', counts: { attempted: claimed.length, agent_ok: done, new_drafts: newSlugs.length }, detail: { failures, slugs: newSlugs } }
+    if (done === 0 && failures.length) return { status: 'failed', counts: { attempted: claimed.length, new_drafts: 0 }, detail: { error: failures.join(' | '), voc_export: vocExport } }
+    return { status: 'ok', counts: { attempted: claimed.length, agent_ok: done, new_drafts: newSlugs.length }, detail: { failures, slugs: newSlugs, voc_export: vocExport } }
   })
 
   // ── S3 commit_cases ─────────────────────────────────────────
@@ -1813,7 +1830,7 @@ async function flushSummary(log) {
 // export 인 이유는 writerPrompt 와 같다 — 프롬프트 사본을 만들면 두 벌이 갈라진다.
 // `feedbackFile` 을 인자로 뺀 것은 배선이 실제로 붙는지 검사할 수 있게 하기 위해서다:
 // 조용히 안 붙어도 프롬프트는 멀쩡해 보이고, 루프는 그냥 예전처럼 돈다(§7.1).
-export function researchPrompt(item, date, existingSlugs, feedbackFile = TRANSFERABILITY_FEEDBACK_FILE) {
+export function researchPrompt(item, date, existingSlugs, feedbackFile = TRANSFERABILITY_FEEDBACK_FILE, vocIndexFile = VOC_INPUTS_INDEX) {
   return [
     '`.claude/agents/sa-cmo-researcher.md` 를 Read 하고, 그 문서가 규정하는 역할로 아래 작업을 수행하라.',
     '(그 파일이 지시하는 `ops/roles/_principles.md` 도 반드시 먼저 Read 한다.)',
@@ -1841,6 +1858,19 @@ export function researchPrompt(item, date, existingSlugs, feedbackFile = TRANSFE
           `참고 자료: \`${feedbackFile}\` 를 Read 하라 — 사람이 최근 채점에서`,
           '이식성을 LOW/MEDIUM 으로 본 이유 모음이다. **규칙이 아니라 참고다.** 조사 금지 목록이',
           '아니고, 같은 종류의 "독자가 옮길 수 없는 전제"를 또 골라 오지 않는 데 쓴다.',
+        ].join('\n')
+      : '',
+    '',
+    // VOC 입력 경로(P1, 2026-09-28). 파일이 없으면 줄을 넣지 않는다 — 내보내기가 확인 불가였거나 아직 안 돌았다.
+    // "재료이지 근거가 아니다" 를 명시하는 이유: evidence[] 에 리뷰를 넣으면 url 필수에 걸리고 등급 산식이 오염된다.
+    fs.existsSync(vocIndexFile)
+      ? [
+          `VOC 재료: \`${vocIndexFile}\` 를 Read 하라 — 관련성 판정이 relevant 인 손님 후기의 프로젝트별 색인이다.`,
+          '맡은 브랜드와 맞는 프로젝트가 있으면(대상이 "미정" 이면 색인의 프로젝트 중 하나를 골라 조사해도 된다)',
+          '`ops/state/voc-inputs/<project_id>.json` 을 Read 하고, **무브의 주장을 실제로 받치는 목소리만** 그 무브의',
+          '`voc_inputs` 에 `input_id` 로 적어라. 규칙: (1) input_id 만 적는다 — 리뷰 원문을 초안·조사 노트에 옮기지 않는다.',
+          '(2) VOC 는 수치 근거가 아니다 — `evidence[]` 는 그대로 URL 전용이고, 리뷰로 수치를 뒷받침하지 않는다.',
+          '(3) 맞는 프로젝트가 없으면 `voc_inputs` 를 비워 두고 조사 노트에 "VOC 해당 없음" 이라 적는다. 억지로 붙이지 마라.',
         ].join('\n')
       : '',
     '',

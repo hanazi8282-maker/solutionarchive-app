@@ -252,6 +252,12 @@ for (const sourceKey of sourceKeys) {
     say(
       `- 파싱 ${s.reviewsParsed}건(실패 ${s.parseFailures}) · ${newLabel} · 폴백키 ${s.fallbackKeys}건 · robots 회피 ${result.robotsSkips}건${quotaLabel}${filteredLabel}`,
     )
+    // robots 를 못 읽었는데 어댑터 표식(proceedWhenRobotsUnverified) 때문에만 보낸 요청.
+    // ⚠️ 0 이어도 찍는다 — "오늘은 표식이 필요 없었다"(예: PH 가 robots 403 을 멈췄다)가 보여야 한다.
+    const bypassHosts = Object.entries(result.robotsBypassedHosts ?? {})
+      .map(([h, c]) => `${h}: ${c}`)
+      .join(', ')
+    say(`- robots 예외 통과 ${result.robotsBypassed ?? 0}건${bypassHosts ? `(${bypassHosts})` : ''}`)
     // ⚠️ 0 이어도 찍는다. "신규 0건"과 "중복만 받았다"는 다른 사건이고, 이 줄이
     //    없으면 둘이 똑같이 보인다(§7.1). 같은 글이 `url:`·`board:` 두 타깃으로
     //    들어오는 것을 2차 방어(content_hash)가 걸러낸 수다.
@@ -284,6 +290,8 @@ for (const sourceKey of sourceKeys) {
         parse_failures: s?.parseFailures ?? 0,
         new_reviews: s?.newReviews ?? 0,
         robots_skips: result?.robotsSkips ?? 0,
+        // robotsBypassed 는 저장하지 않는다 — 이 테이블엔 json 칸이 없고 새 컬럼은 마이그가 필요하다.
+        // 지금은 실행 요약(GITHUB_STEP_SUMMARY)의 "robots 예외 통과" 줄에만 남는다.
         health_after: result?.health?.health ?? null,
         error: fatal,
       },

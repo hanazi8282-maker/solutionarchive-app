@@ -42,7 +42,9 @@ ok('락: 409 문구는 사용자용 한국어', /이미|잠시/.test(lockVerdict
     const named = [...sql.matchAll(/ADD CONSTRAINT analysis_projects_status_check[\s\S]{0,120}?status IN \(([\s\S]*?)\)\s*\)/g)].pop()
     let body = named?.[1]
     if (!body) {
-      const create = /CREATE TABLE[^;]*?public\.analysis_projects[\s\S]*?;/.exec(sql)
+      // 테이블 이름이 CREATE TABLE 바로 뒤에 와야 한다 — 다른 테이블의 `REFERENCES public.analysis_projects` 를
+      // 잡으면 그 테이블의 status CHECK 를 읽는다(2026-09-29 000036 relevance_product_backgrounds 에서 실제로 났다).
+      const create = /CREATE TABLE(?:\s+IF NOT EXISTS)?\s+public\.analysis_projects\s*\([\s\S]*?;/.exec(sql)
       body = create ? /status\s+text[^\n]*?CHECK \(status IN \(([^)]*)\)\)/.exec(create[0])?.[1] : undefined
     }
     // 마지막으로 정의한 마이그레이션이 현재 허용값이다.

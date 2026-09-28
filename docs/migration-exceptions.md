@@ -396,3 +396,13 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 000031(PR #324): review_relevance_verdicts 에 product_informative · second_product_informative · human_product_informative(nullable boolean). 양성 3컬럼 boolean · 채워진 행 0.
 - 000032(PR #323): relevance_criteria_feedback 새 테이블, FORCE RLS·정책 0. 음성: 공백 메모 INSERT → 23514 거부.
 - 셋 다 추가만 하는 비파괴 변경, §10.2 예외 해당 없음, 롤백 파일 있음. 로컬 supabase MCP apply_migration(qmgrfqjfxqhxuufrnkwf).
+### 2026-09-27 — 000021 published_via 'external' 허용 · 000022 외부 게시물 4행 백필 (세션 자체 판단 적용)
+
+- 근거: 남헌 2026-09-27 확정 — 대시보드 "미연결" Threads 게시물 4건(가장 오래된 것 78시간)은 CMO 파이프라인 산출물이 아니라 별도 Claude 세션 첨삭본. "수동/외부 발행" 출처로 등록해 통계 반영 + 미연결 해소. 마이그레이션은 4조건(드라이런·롤백 파일·무중단·Notion 로그) 충족 시 자율.
+- 000021: `posts_published_via_check` 를 DROP→ADD 로 넓힘(instant·manual → +external). 기존 값 전부 통과, 비파괴, 롤백 파일 있음. §10.2 예외 5개 해당 없음(삭제 없음·기존 행 손상 없음·키 무관·법적 무관·사업 방향 아님).
+- 000022: INSERT 4행(ON CONFLICT DO NOTHING, 멱등). 본문은 GET /me/threads 발행본 그대로, content_code·hook_type 은 추측하지 않고 NULL, topic_tag 는 기존 T3-1 과 같은 "빌드인퍼블릭". 롤백 = 그 4행만 DELETE.
+- 방식: `supabase db query --linked -f` (CLI 2.105.0, 프로젝트 `qmgrfqjfxqhxuufrnkwf` 확인). Supabase MCP 는 CONNECT_TIMEOUT.
+- 드라이런: BEGIN → 000022 → count → ROLLBACK 으로 4행/총 46행 확인 뒤 잔존 0행 확인. 그 다음 실적용.
+- 양성: `published_via='external'` 4행(char_count 477·392·465·494, channel 귀속 O). 매처 즉시 1회 실행 → `agent_run_steps.threads_unlinked counts.unlinked` 4 → 0 (threads_checked 6).
+- 음성: 000021 제약 정의를 다시 읽어 3값만 허용됨을 확인. 잘못된 값('auto') 삽입 거부 테스트는 분류기가 프로덕션 쓰기로 막아 **돌리지 못했다** — CHECK 정의 텍스트로만 확인.
+- Notion 일일 상태 로그: 세션 종료 시 기록(§11). 로컬에 NOTION_API_TOKEN 이 없어 MCP 불가 시 `ops/state/status-log-pending/` 에 남긴다.

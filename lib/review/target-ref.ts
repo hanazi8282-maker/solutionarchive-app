@@ -38,6 +38,7 @@ import { HOST as TUMBLBUG_HOST, parseProductRef as parseTumblbugRef } from './ad
 import { BOARDS as VELOG_BOARDS, HOST as VELOG_HOST, parseProductRef as parseVelogRef } from './adapters/velog.ts'
 import { parseProductRef as parseYoutubeRef } from './adapters/youtube.ts'
 import { BOARDS as DISQUIET_BOARDS, HOST as DISQUIET_HOST, parseProductRef as parseDisquietRef } from './adapters/disquiet.ts'
+import { parseProductRef as parseProducthuntRef } from './adapters/producthunt.ts'
 
 export type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
 
@@ -96,6 +97,20 @@ function youtubeRef(raw: string): RefResult {
   return ref
     ? { ok: true, productRef: `v:${ref}` }
     : { ok: false, error: `YouTube 영상 ID 를 읽지 못했습니다. ${hint}` }
+}
+
+/**
+ * Product Hunt 런칭 URL(producthunt.com/posts/<슬러그>) · `post:<슬러그>` · 맨 슬러그 → `post:<슬러그>`.
+ * 검증은 어댑터의 parseProductRef 한 벌이다.
+ */
+function producthuntRef(raw: string): RefResult {
+  const s = (raw ?? '').trim()
+  const hint = '(예: https://www.producthunt.com/posts/notion 또는 post:notion)'
+  const slug = s.match(/producthunt\.com\/posts\/([^/?#]+)/i)?.[1] ?? s.replace(/^post:/i, '')
+  const ref = parseProducthuntRef(`post:${slug}`)
+  return ref
+    ? { ok: true, productRef: `post:${ref}` }
+    : { ok: false, error: `Product Hunt 런칭 슬러그를 읽지 못했습니다. ${hint}` }
 }
 
 /** App Store 는 어댑터의 검증기를 그대로 쓴다 — 규칙을 두 벌 두지 않는다. */
@@ -259,6 +274,7 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   velog: velogRef,
   youtube: youtubeRef,
   disquiet: disquietRef,
+  producthunt: producthuntRef,
 }
 
 export function buildProductRef(sourceKey: string, raw: string): RefResult | null {

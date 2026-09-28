@@ -26,7 +26,7 @@ import {
   type HealthVerdict,
   type RunStats,
 } from './health.ts'
-import type { Fingerprint, ParsedReview, ReviewSourceAdapter, TargetState } from './types.ts'
+import type { Fingerprint, ParsedReview, ReviewRequest, ReviewSourceAdapter, TargetState } from './types.ts'
 
 /** robots.txt 와 대조할 제품 토큰(RFC 9309 §2.2.1). UA 문자열 전체가 아니다. */
 export const PRODUCT_TOKEN = 'solutionarchive-review-collector'
@@ -111,7 +111,8 @@ export interface RunnerStore {
 export interface RunnerPorts {
   now(): Date
   sleep(ms: number): Promise<void>
-  fetchText(url: string): Promise<FetchOutcome>
+  /** `init` 은 POST API 어댑터만 쓴다(types.ts ReviewRequest). robots.txt 조회는 항상 GET 이다. */
+  fetchText(url: string, init?: ReviewRequest['init']): Promise<FetchOutcome>
   store: RunnerStore
 }
 
@@ -471,7 +472,7 @@ export async function runCollection(
       }
 
       await pacer.wait(verdict.crawlDelayMs)
-      const res = await ports.fetchText(req.url)
+      const res = await ports.fetchText(req.url, req.init)
       requests++
 
       // 403/429 는 두 사건이 겹쳐 있다 — 차단과 쿼터 소진.

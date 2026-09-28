@@ -83,12 +83,12 @@ jobs:
           # 후보 제안용. 자식 프로세스에는 이것만 넘어간다 — DB 자격증명은 안 넘어간다.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           DISCOVERY_TARGET: ${{ inputs.target || vars.DISCOVERY_TARGET || '2' }}
-          DISCOVERY_MIN_VOC_HITS: ${{ vars.DISCOVERY_MIN_VOC_HITS || '30' }}
-          # 상한. 하한만 있으면 초대형 브랜드가 전부 통과한다(2026-09-17 실측:
-          # Notion 79,072 · Heroku 25,461 전부 accepted). 근거는 lib/discovery/candidate.ts
-          # 의 MAX_VOC_HITS 주석. ⚠️ 이 값을 999 이상으로 올리면 다나와 캡(`999+`)이
-          # 판정 불가가 되어 physical 후보가 모두 unverified 로 떨어진다.
-          DISCOVERY_MAX_VOC_HITS: ${{ vars.DISCOVERY_MAX_VOC_HITS || '500' }}
+          # 채택 창 [MIN, MAX). 기본값은 lib/discovery/candidate.ts 의 MIN_VOC_HITS·MAX_VOC_HITS
+          # 한 곳에만 둔다(2026-09-28: 200 이상 50,000 미만). 여기에 숫자 폴백을 적지 않는다 —
+          # vars 가 비면 빈 문자열이 가고 discovery-run 이 상수로 떨어진다. 폴백을 여기 두면
+          # 상수를 바꿔도 크론은 옛 값으로 돈다(2026-09-28 실제로 그 상태였다).
+          DISCOVERY_MIN_VOC_HITS: ${{ vars.DISCOVERY_MIN_VOC_HITS }}
+          DISCOVERY_MAX_VOC_HITS: ${{ vars.DISCOVERY_MAX_VOC_HITS }}
           # 스케줄에는 inputs 가 없어 빈 문자열이 온다 — 그때 리포 변수로 축을 고정한다(둘 다 비면 미지정 = 이력 교대).
           DISCOVERY_KIND: ${{ inputs.kind || vars.DISCOVERY_KIND }}
         run: |

@@ -19,6 +19,7 @@ import {
   MAX_VOC_HITS,
   MIN_VOC_HITS,
   SATURATION_LIMIT,
+  inVocWindow,
   judge,
   nameKey,
   nextKind,
@@ -109,7 +110,7 @@ t(
 )
 
 // ── AC-1 judge: unverified 와 rejected 를 절대 섞지 않는다 ────────
-t('MIN_VOC_HITS 는 30', MIN_VOC_HITS, 30)
+t('MIN_VOC_HITS 는 200 (2026-09-28)', MIN_VOC_HITS, 200)
 {
   const nullHits = judge({ hits: null, ref: null, note: 'HTTP 503' })
   const zeroHits = judge({ hits: 0, ref: null, note: '0건' })
@@ -120,13 +121,15 @@ t('MIN_VOC_HITS 는 30', MIN_VOC_HITS, 30)
   ok('hits=null 의 사유는 probe_failed', nullHits.reason.startsWith('probe_failed'))
   ok('실패 사유 원문이 남는다', nullHits.reason.includes('HTTP 503'))
 }
-t('hits=29 → rejected (경계 아래)', judge({ hits: 29, ref: 'p1', note: '' }).verdict, 'rejected')
-t('hits=30 → accepted (경계)', judge({ hits: 30, ref: 'p1', note: '' }).verdict, 'accepted')
-t('hits=31 → accepted', judge({ hits: 31, ref: 'p1', note: '' }).verdict, 'accepted')
-t('임계값을 올리면 30 도 기각된다', judge({ hits: 30, ref: 'p1', note: '' }, 50).verdict, 'rejected')
+t('hits=199 → rejected (경계 아래)', judge({ hits: 199, ref: 'p1', note: '' }).verdict, 'rejected')
+ok('hits=199 사유는 insufficient_voc', judge({ hits: 199, ref: 'p1', note: '' }).reason.startsWith('insufficient_voc'))
+t('hits=200 → accepted (하한 포함)', judge({ hits: 200, ref: 'p1', note: '' }).verdict, 'accepted')
+t('hits=201 → accepted', judge({ hits: 201, ref: 'p1', note: '' }).verdict, 'accepted')
+t('옛 하한 30 은 이제 rejected', judge({ hits: 30, ref: 'p1', note: '' }).verdict, 'rejected')
+t('임계값을 올리면 200 도 기각된다', judge({ hits: 200, ref: 'p1', note: '' }, 250).verdict, 'rejected')
 t(
   'hits 는 충분한데 ref 가 없으면 unverified — 채택하지 않는다',
-  judge({ hits: 99, ref: null, note: '' }).verdict,
+  judge({ hits: 999, ref: null, note: '' }).verdict,
   'unverified',
 )
 
@@ -134,37 +137,49 @@ t(
 // 하한만 있으면 초대형 브랜드가 전부 통과한다(2026-09-17 dry-run 실측).
 // ⚠️ 상한 초과는 `unverified` 가 아니라 `rejected` 다 — 실측을 해 봤고, 그 값이
 //    우리 기준 밖이라는 뜻이다. 구분은 사유 문자열(oversized_voc)이 진다.
-t('MAX_VOC_HITS 는 500', MAX_VOC_HITS, 500)
-ok('채택 창이 뒤집혀 있지 않다', MIN_VOC_HITS < MAX_VOC_HITS)
+t('MAX_VOC_HITS 는 50,000 (2026-09-28)', MAX_VOC_HITS, 50000)
+ok('채택 창이 비어 있지 않다', MIN_VOC_HITS < MAX_VOC_HITS)
 {
   const j = (hits, extra = {}) => judge({ hits, ref: 'p1', note: '', ...extra })
 
-  t('hits=499 → accepted (상한 직전)', j(499).verdict, 'accepted')
-  t('hits=500 → accepted (상한과 같으면 통과)', j(500).verdict, 'accepted')
-  t('hits=501 → rejected (상한 직후)', j(501).verdict, 'rejected')
-  ok('상한 초과 사유는 oversized_voc', j(501).reason.startsWith('oversized_voc'))
-  ok('상한 초과를 insufficient_voc 로 적지 않는다', !j(501).reason.includes('insufficient'))
-  ok('상한 초과를 unverified 로 접지 않는다 — 알아본 결과다', j(501).verdict !== 'unverified')
+  t('hits=49,999 → accepted (상한 직전)', j(49999).verdict, 'accepted')
+  t('hits=50,000 → rejected (상한은 배타 — 50,000 자체가 oversize)', j(50000).verdict, 'rejected')
+  t('hits=50,001 → rejected', j(50001).verdict, 'rejected')
+  ok('상한 이상 사유는 oversized_voc', j(50000).reason.startsWith('oversized_voc'))
+  ok('상한 이상을 insufficient_voc 로 적지 않는다', !j(50000).reason.includes('insufficient'))
+  ok('상한 이상을 unverified 로 접지 않는다 — 알아본 결과다', j(50000).verdict !== 'unverified')
 
-  // 2026-09-17 실측값 그대로. 이 네 건이 통과한 게 상한을 넣는 이유다.
-  t('Notion 79,072 → rejected', j(79072).verdict, 'rejected')
-  t('Heroku 25,461 → rejected', j(25461).verdict, 'rejected')
-  t('하기스 648 → rejected', j(648).verdict, 'rejected')
-  t('필립스 에어프라이어 93 → accepted (남헌이 kept 로 판정한 값)', j(93).verdict, 'accepted')
-  t('상한은 env 로 올릴 수 있다', judge({ hits: 648, ref: 'p1', note: '' }, 30, 1000).verdict, 'accepted')
+  // 실측값. 50,000 창에서 무엇이 남고 무엇이 걸리나.
+  t('Notion 79,077 → rejected', j(79077).verdict, 'rejected')
+  t('Buffer 45,354 → accepted (옛 기준 oversize)', j(45354).verdict, 'accepted')
+  t('Heroku 25,461 → accepted', j(25461).verdict, 'accepted')
+  t('하기스 648 → accepted', j(648).verdict, 'accepted')
+  t('필립스 에어프라이어 93 → rejected (옛 기준 정상, 새 하한 미달)', j(93).verdict, 'rejected')
+  t('상한은 env 로 내릴 수 있다', judge({ hits: 648, ref: 'p1', note: '' }, 200, 500).verdict, 'rejected')
+
+  // ── inVocWindow: 화면과 판정이 같은 경계를 쓴다 ───────────────────
+  t('inVocWindow(199)', inVocWindow(199), false)
+  t('inVocWindow(200)', inVocWindow(200), true)
+  t('inVocWindow(49,999)', inVocWindow(49999), true)
+  t('inVocWindow(50,000)', inVocWindow(50000), false)
 
   // ── 캡된 값: `999+` 는 점이 아니라 "999 이상" 이다 ──────────────
-  t('999+ → rejected (하한선이 이미 상한 500 을 넘었다)', j(999, { capped: true }).verdict, 'rejected')
-  ok('그 사유는 oversized_voc', j(999, { capped: true }).reason.startsWith('oversized_voc'))
-  ok('캡 표기가 사유에 남는다', j(999, { capped: true }).reason.includes('999+(하한)'))
+  // 기본 상한 50,000 은 캡(999) 위라 999+ 는 판정 불가다(통과로 접지 않는다).
+  const cap = j(999, { capped: true })
+  t('999+ → unverified (상한 50,000 을 넘는지 알 수 없다)', cap.verdict, 'unverified')
+  ok('그 사유는 bounds_unverifiable', cap.reason.startsWith('bounds_unverifiable'))
+  ok('캡 표기가 사유에 남는다', cap.reason.includes('999+(하한)'))
   ok('캡이 아닌 999 는 그냥 999 로 적힌다', !j(999).reason.includes('+(하한)'))
+  t('상한 500 이면 999+ 는 여전히 rejected', judge({ hits: 999, ref: 'p1', note: '', capped: true }, 30, 500).verdict, 'rejected')
 
   // ⚠️ 여기가 가장 틀리기 쉽다. 상한을 캡값 이상으로 올리면 캡된 값은 **판정
   //    자체가 불가능**하다. "상한 이하"로 접으면 실제 5만 건짜리가 통과하고,
   //    "상한 초과"로 접으면 정확히 999 인 멀쩡한 상품을 근거 없이 버린다.
-  const capAtCeiling = judge({ hits: 999, ref: 'p1', note: '', capped: true }, 30, 999)
-  t('상한 999 + 999+ → unverified (넘는지 알 수 없다)', capAtCeiling.verdict, 'unverified')
+  const capAtCeiling = judge({ hits: 999, ref: 'p1', note: '', capped: true }, 30, 1000)
+  t('상한 1,000 + 999+ → unverified (넘는지 알 수 없다)', capAtCeiling.verdict, 'unverified')
   ok('그 사유는 bounds_unverifiable', capAtCeiling.reason.startsWith('bounds_unverifiable'))
+  // 반열린 창: 상한 999 면 999+ (≥999) 는 전부 창 밖이다 — 판정 가능, rejected.
+  t('상한 999 + 999+ → rejected (배타 상한)', judge({ hits: 999, ref: 'p1', note: '', capped: true }, 30, 999).verdict, 'rejected')
   const capBelowCeiling = judge({ hits: 999, ref: 'p1', note: '', capped: true }, 30, 5000)
   t('상한 5,000 + 999+ → unverified (통과로 접지 않는다)', capBelowCeiling.verdict, 'unverified')
   ok('캡된 값을 accepted 로 접는 경로가 없다', capBelowCeiling.verdict !== 'accepted')
@@ -191,6 +206,7 @@ ok('채택 창이 뒤집혀 있지 않다', MIN_VOC_HITS < MAX_VOC_HITS)
   ok('사유는 config_error', bad.reason.startsWith('config_error'))
   ok('뒤집힌 두 값이 사유에 적힌다', bad.reason.includes('500') && bad.reason.includes('30'))
   t('뒤집힌 창에서는 어떤 값도 rejected 로 찍지 않는다', judge({ hits: 40, ref: 'p1', note: '' }, 500, 30).verdict, 'unverified')
+  ok('min==max 도 빈 창이라 config_error', judge({ hits: 200, ref: 'p1', note: '' }, 200, 200).reason.startsWith('config_error'))
 
   // 프로브 실패는 여전히 창보다 먼저다 — 상한 초과로 오인하면 안 된다.
   ok(
@@ -267,8 +283,10 @@ const okRes = (body) => ({ status: 200, body })
   //    그 사이를 못 건너면** 상한이 무력해진다. 픽스처의 최다 리뷰 상품은
   //    `999+`(에어팟 프로3)라 정확히 이 경로를 밟는다.
   ok('프로브가 캡 여부를 판정에 넘긴다 — 이게 없으면 상한이 무력하다', p.capped === true)
-  t('999+ 짜리는 기본 상한(500)에 걸려 기각', judge(p).verdict, 'rejected')
-  ok('사유는 oversized_voc', judge(p).reason.startsWith('oversized_voc'))
+  // 기본 상한 50,000 은 캡 위라 999+ 는 판정 불가다. 캡 여부가 새면 999 가 accepted 로 샌다.
+  t('999+ 짜리는 기본 상한(50,000)에서 unverified — accepted 로 새지 않는다', judge(p).verdict, 'unverified')
+  ok('사유는 bounds_unverifiable', judge(p).reason.startsWith('bounds_unverifiable'))
+  t('상한 500 이면 같은 프로브가 oversized 로 기각', judge(p, 200, 500).verdict, 'rejected')
 }
 {
   const p = await probePhysical('없는상품', fakeFetch(okRes(dNoResults)))

@@ -167,8 +167,10 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
     if (typeof env.result === 'string') text = env.result
     if (typeof env.model === 'string' && env.model) model = env.model
     // 실측 비용·토큰. budget.ts 의 추정치와 별개다 — 보고에는 이 줄의 숫자를 쓴다(2026-09-26 정정).
+    // result_chars·duration_api_ms 는 속도 진단용(2026-09-28): extract 1건 시간은 out 토큰에 비례하는데,
+    // out 이 결과 글자 수에 비해 크면 사고(thinking) 토큰이 섞인 것이다. 그걸 가르는 숫자다.
     const u = (env.usage && typeof env.usage === 'object' ? env.usage : {}) as Record<string, unknown>
-    console.log(`[analysis/llm] claude-cli 실측 total_cost_usd=${String(env.total_cost_usd ?? 'n/a')} in=${String(u.input_tokens ?? '?')} out=${String(u.output_tokens ?? '?')} cache_read=${String(u.cache_read_input_tokens ?? '?')} model=${model}`)
+    console.log(`[analysis/llm] claude-cli 실측 total_cost_usd=${String(env.total_cost_usd ?? 'n/a')} in=${String(u.input_tokens ?? '?')} out=${String(u.output_tokens ?? '?')} cache_read=${String(u.cache_read_input_tokens ?? '?')} cache_write=${String(u.cache_creation_input_tokens ?? '?')} result_chars=${typeof env.result === 'string' ? env.result.length : '?'} duration_api_ms=${String(env.duration_api_ms ?? '?')} model=${model}`)
   } catch (e) {
     if (e instanceof ClaudeCliError) throw e
     // 봉투가 아니면 본문이 그대로 온 것이다.

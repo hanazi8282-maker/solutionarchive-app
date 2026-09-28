@@ -279,10 +279,13 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 **허용 (무인 루프가 스스로 한다)**
 
 - **케이스 적립** — `case_studies` / `case_moves` / `case_evidence` 에 INSERT.
-  기본은 전부 `review_status='draft'` 로만 들어간다.
+  기본은 전부 `review_status='draft'` 로만 들어간다. **이 예외는 `case_studies`/`case_moves`
+  의 `review_status` 에는 적용되지 않는다** — 구현 단계(2026-09-28, PR #311)에서 두 테이블에
+  `input_id` 연결 컬럼이 없는 것이 확인돼, 범위를 판정 행 하나로 좁혔다(바로 아래).
   **예외(남헌 2026-09-28 개정) — T2 완전 동의 자동 승인.** 1차 판정(`relevance-judge-auto`)과
   2차 판정(second-opinion)이 **같은 input_id 에 대해 독립적으로 둘 다 `verdict='relevant'`** 를
-  낸 건에 한해서만, 무인 루프가 `review_status='approved'` 를 직접 기록할 수 있다. 아래를
+  낸 건에 한해서만, 무인 루프가 `review_relevance_verdicts.auto_approved_at` 을 직접 기록할
+  수 있다(`lib/analysis/auto-approval.ts`). 아래를
   전부 지켜야 이 예외가 성립한다 — 하나라도 못 지키면 예외가 아니라 §10.1 위반이다.
   1. **완전 동의만.** `irrelevant`·`unknown` 이 하나라도 섞이거나 판정이 하나뿐이면 기존 규칙(`draft`)대로 간다.
   2. **판정 기준이 통일된 뒤에만 켠다.** 2026-09-28 지시 3번(1차·2차 "관련 있다" 기준 통일 문서 +

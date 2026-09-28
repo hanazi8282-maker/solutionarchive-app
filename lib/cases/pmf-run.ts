@@ -22,6 +22,7 @@ import {
   PMF_QUADRANT_ADVICE, noQuadrantAdvice,
   type MatchResult, type MoveRow, type StudyRow, type Quadrant,
 } from './match.ts'
+import { loadDeletedCaseIds, withoutDeleted } from './deleted.ts'
 
 /** 진단 입력이 되는 프로젝트 패싯. 어휘는 lib/cases/draft.ts = DB CHECK 와 같다. */
 export interface ProjectFacets {
@@ -187,8 +188,12 @@ export async function runPmfAssessment(
     return (data ?? []) as T[]
   }
 
-  const studies = await select<StudyRow>('case_studies', STUDY_COLS)
-  const moves = await select<MoveRow>('case_moves', MOVE_COLS)
+  // 숨긴 케이스(lib/cases/deleted.ts)는 선례로 세지 않는다. 숨김 목록을 못 읽으면 둘 다 null → 확인 불가.
+  const { studies, moves } = withoutDeleted(
+    await select<StudyRow>('case_studies', STUDY_COLS),
+    await select<MoveRow>('case_moves', MOVE_COLS),
+    await loadDeletedCaseIds(supabase, 'analyze/pmf'),
+  )
   const aspects = await select<{ opportunity_score: number | string | null }>(
     'analysis_aspects', 'opportunity_score', ['project_id', projectId],
   )

@@ -7,6 +7,7 @@ import { normalizeBody, diceSimilarity } from '@/lib/threads/match'
 import { loadThreadsToken } from '@/lib/threads/token'
 import { publishTextPost } from '@/lib/threads/publish'
 import { instantGateForPost, parseStageNotes } from '@/lib/threads/instant-gate'
+import { loadDeletedCaseIds } from '@/lib/cases/deleted'
 
 export type ActionState = { ok: boolean; message: string } | null
 
@@ -318,7 +319,13 @@ export async function publishNow(_prev: ReviewActionState, fd: FormData): Promis
   const ref = parseStageNotes(post.notes)
   let moves = null
   if (ref.moveId) {
-    const { data: mv } = await sb.from('case_moves').select('id, fact_check_grade, evidence_grade, pmf_grade, lever, case_studies(brand_name, slug)').eq('id', ref.moveId)
+    const { data: mv } = await sb.from('case_moves').select('id, case_study_id, fact_check_grade, evidence_grade, pmf_grade, lever, case_studies(brand_name, slug)').eq('id', ref.moveId)
+    // 인용 케이스를 사람이 공개에서 내렸으면(lib/cases/deleted.ts) 즉시발행하지 않는다. 숨김 목록을 못 읽어도 막는다.
+    const hidden = await loadDeletedCaseIds(sb, 'dashboard/publishNow')
+    if (!hidden) return { ok: false, message: '인용 케이스의 숨김 여부를 확인하지 못했습니다 — 발행하지 않았습니다.' }
+    if ((mv ?? []).some((m) => hidden.has(m.case_study_id as string))) {
+      return { ok: false, message: '인용 케이스가 공개에서 내려졌습니다(숨김) — 발행하지 않았습니다. 복원은 /cases.' }
+    }
     moves = (mv ?? []).map((m) => {
       const st = (Array.isArray(m.case_studies) ? m.case_studies[0] : m.case_studies) as { brand_name?: string | null; slug?: string | null } | null
       return { fact_check_grade: String(m.fact_check_grade ?? ''), lever: m.lever, slug: st?.slug ?? null, brand_name: st?.brand_name ?? null, pmf_grade: m.pmf_grade, evidence_grade: m.evidence_grade }

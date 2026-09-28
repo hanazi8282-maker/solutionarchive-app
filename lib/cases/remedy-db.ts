@@ -11,6 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { productKindOf } from './advisor.ts'
 import type { CaseMoveCard, FailedAngleCard, FailedAngleRow, PrincipleCard, PrincipleRow } from './advisor.ts'
 import type { MoveRow, StudyRow } from './match.ts'
+import { loadDeletedCaseIds, withoutDeleted } from './deleted.ts'
 import { buildRemedies, type RemedyAspectRow, type RemedyProject, type RemedyResult } from './remedy.ts'
 import { CARD_KINDS, cardFingerprint, cardIdOf, cardLine, type CardKind, type VerdictRow } from './remedy-gate.ts'
 import { judgeAspect, type JudgeCard, buildJudgePrompt } from './remedy-judge.ts'
@@ -38,12 +39,18 @@ async function safeSelect<T>(supabase: SupabaseClient, label: string, table: str
 
 /** 처방 코퍼스 4종. 어느 하나라도 실패하면 그 자리는 null 이고, 그게 not_run 의 근거가 된다. */
 export async function loadCorpora(supabase: SupabaseClient, label: string): Promise<RemedyCorpora> {
+  // 숨긴 케이스(lib/cases/deleted.ts)는 처방 카드에 안 나간다. 숨김 목록을 못 읽으면 둘 다 null → not_run.
+  const { studies, moves } = withoutDeleted(
+    await safeSelect<StudyRow>(supabase, label, 'case_studies', STUDY_COLS),
+    await safeSelect<MoveRow>(supabase, label, 'case_moves', MOVE_COLS),
+    await loadDeletedCaseIds(supabase, label),
+  )
   return {
     principles: await safeSelect<PrincipleRow>(
       supabase, label, 'strategy_principles', 'sp_id, tags, statement, evidence_grade, evidence_grade_note, source_ref',
     ),
-    studies: await safeSelect<StudyRow>(supabase, label, 'case_studies', STUDY_COLS),
-    moves: await safeSelect<MoveRow>(supabase, label, 'case_moves', MOVE_COLS),
+    studies,
+    moves,
     failedAngles: await safeSelect<FailedAngleRow>(
       supabase, label, 'failed_angles', 'case_key, product_category, claimed_angle, outcome, evidence_source, source_tier, is_estimate',
     ),

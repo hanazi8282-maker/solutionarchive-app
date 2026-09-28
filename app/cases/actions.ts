@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAllowedUser } from '@/lib/auth/session'
 import { checkDecisionInput, moveApprovalWarning, caseApprovalWarning, readTransferability, type ReviewDecision } from '@/lib/cases/review'
 import { readGradeSubmission } from '@/lib/cases/grade-queue'
+import { checkDeleteInput, SOFT_DELETE_MIGRATION } from '@/lib/cases/deleted'
 
 // ⛔ 사람 전용 쓰기 경로 (CLAUDE.md §10.1 — 승인·반려는 사람만 한다).
 //    /cases 화면의 버튼으로만 부른다. API 라우트로 만들지 않는다 — 무인 루프·에이전트는
@@ -296,4 +297,75 @@ export async function gradeCase(_prev: ReviewActionState, fd: FormData): Promise
       + warns.map((w) => ` · ⚠️ ${w}`).join('')
       + axisNote,
   }
+}
+
+// ── 공개에서 내리기(숨김) · 복원 — lib/cases/deleted.ts · 마이그 20260930000030 ──────────────
+//
+// 자동 승인이 잘못 내보낸 케이스를 사람이 즉시 내리는 자리(남헌 2026-09-28). 반려와 다른 축이다 —
+// review_status 는 그대로 두고 deleted_at 만 찍는다. 그래서 승인·반려·draft 어느 상태에서도 누를 수 있다.
+//
+// 누가: **"관리자" 역할은 없다**(CLAUDE.md §5-1 — RBAC 미구현). 로그인 허용목록(AUTH_ALLOWED_EMAILS)에 든
+//   사람 전원이 내리고 복원할 수 있다 — 승인·반려와 같은 가드(requireAllowedUser)다. 권한을 넓히지도 좁히지도 않았다.
+// 하드 DELETE 는 없다 — 자식 5개 테이블 CASCADE 로 되돌릴 수 없다(§10.2 예외 1, 사람이 SQL 로 판단).
+// API 라우트로 만들지 않는다 — 위 결정 액션과 같은 이유(무인 루프·에이전트가 부를 경로를 만들지 않는다).
+
+function softDeleteFailure(error: { code?: string; message: string }): string {
+  return error.code === 'PGRST204' || error.code === '42703' || /deleted_at|deleted_by|delete_reason/.test(error.message)
+    ? `숨김 컬럼(deleted_at)이 DB 에 없습니다 — 마이그레이션 ${SOFT_DELETE_MIGRATION} 미적용. 아무것도 바꾸지 않았습니다.`
+    : `저장 실패: ${error.message}`
+}
+
+function revalidateCaseViews() {
+  revalidatePath('/cases')
+  revalidatePath('/cases/grade')
+  revalidatePath('/library', 'layout') // 그리드·상세·저장함
+  revalidatePath('/') //                 랜딩(오늘의 케이스·승인 수)
+  revalidateTag(CASE_CORPUS_TAG, { expire: 0 }) // 검색·리포트·어드바이저 코퍼스 캐시
+}
+
+export async function deleteCase(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
+  const input = { id: String(fd.get('id') ?? '').trim(), reason: String(fd.get('reason') ?? '').trim() }
+  const bad = checkDeleteInput(input)
+  if (bad) return { ok: false, message: bad }
+
+  const sb = await createClient()
+  if (!sb) return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다.' }
+
+  const { data, error } = await sb
+    .from('case_studies')
+    .update({ deleted_at: new Date().toISOString(), deleted_by: auth.email, delete_reason: input.reason })
+    .eq('id', input.id)
+    .is('deleted_at', null) // 이미 숨긴 것의 시각·사유를 덮지 않는다
+    .select('id, brand_name')
+  if (error) return { ok: false, message: softDeleteFailure(error) }
+  if (!data || data.length === 0) return { ok: false, message: '이미 숨겨졌거나 케이스가 없습니다. 새로고침 후 확인하세요.' }
+
+  revalidateCaseViews()
+  return { ok: true, message: `${data[0].brand_name} — 공개에서 내렸습니다(숨김) · ${auth.email}. 복원하면 다시 보입니다.` }
+}
+
+export async function restoreCase(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
+  const id = String(fd.get('id') ?? '').trim()
+  if (!id) return { ok: false, message: '대상 케이스가 없습니다. 새로고침 후 다시 시도하세요.' }
+
+  const sb = await createClient()
+  if (!sb) return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다.' }
+
+  // deleted_at 만 비운다. deleted_by·delete_reason 은 "마지막으로 누가 왜 내렸나" 기록으로 남긴다.
+  const { data, error } = await sb
+    .from('case_studies')
+    .update({ deleted_at: null })
+    .eq('id', id)
+    .not('deleted_at', 'is', null)
+    .select('id, brand_name, review_status')
+  if (error) return { ok: false, message: softDeleteFailure(error) }
+  if (!data || data.length === 0) return { ok: false, message: '숨긴 상태가 아니거나 케이스가 없습니다. 새로고침 후 확인하세요.' }
+
+  revalidateCaseViews()
+  const note = data[0].review_status === 'approved' ? '공개 화면에 다시 보입니다.' : `검수 상태는 ${data[0].review_status} 그대로입니다(승인돼야 공개).`
+  return { ok: true, message: `${data[0].brand_name} — 복원했습니다 · ${auth.email}. ${note}` }
 }

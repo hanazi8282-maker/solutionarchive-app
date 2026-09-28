@@ -1715,6 +1715,43 @@ const runMarked = (h, over = {}) =>
   const h = makeHarness({ robotsStatus: 404 })
   const r = await runCollection(other, { dryRun: false, targetLimit: 5 }, h.ports)
   t('다른 호스트 표식은 이 호스트를 통과시키지 않는다', r.requests, 0)
+  t('다른 호스트 표식: robotsBypassed 0', r.robotsBypassed, 0)
+  t('다른 호스트 표식: robotsSkips 1', r.robotsSkips, 1)
+}
+
+// ── robots 예외 통과 카운터 — 표식 **때문에만** 보낸 요청을 센다 ─────
+{
+  // Product Hunt 형태: robots.txt 403 + 표식 → 진행하고, 예외로 센다.
+  const h = makeHarness({ robotsStatus: 403, robotsBody: 'Forbidden', pages: { 1: page([], null) } })
+  const r = await runMarked(h)
+  ok('403 + 표식이면 진행한다', r.requests > 0)
+  t('403 + 표식: robotsBypassed = requests', r.robotsBypassed, r.requests)
+  t('403 + 표식: 호스트별 이유가 HTTP 403', r.robotsBypassedHosts['example.test'], 'HTTP 403')
+  t('403 + 표식: robotsSkips 0', r.robotsSkips, 0)
+}
+{
+  // robots 를 정상으로 읽고 허용 — 표식이 있어도 예외가 아니다(3상태).
+  const h = makeHarness({ robots: 'User-agent: *' + LF + 'Allow: /' + LF, pages: { 1: page([], null) } })
+  const r = await runMarked(h)
+  ok('정상 읽기 + 표식: 진행한다', r.requests > 0)
+  t('정상 읽기 + 표식: robotsBypassed 0', r.robotsBypassed, 0)
+  t('정상 읽기 + 표식: 호스트 상세 비었음', Object.keys(r.robotsBypassedHosts).length, 0)
+}
+{
+  // 5xx·네트워크 오류는 표식이 있어도 멈추고, 예외로 세지 않는다.
+  for (const [label, robotsStatus] of [['503', 503], ['네트워크 오류', null]]) {
+    const h = makeHarness({ robotsStatus })
+    const r = await runMarked(h)
+    t(`${label} + 표식: robotsBypassed 0`, r.robotsBypassed, 0)
+    t(`${label} + 표식: robotsSkips 1`, r.robotsSkips, 1)
+  }
+}
+{
+  // 404 + 표식 (YouTube·HN 형태)도 같은 카운터로 잡힌다.
+  const h = makeHarness({ robotsStatus: 404, pages: { 1: page([], null) } })
+  const r = await runMarked(h)
+  t('404 + 표식: 호스트별 이유가 HTTP 404', r.robotsBypassedHosts['example.test'], 'HTTP 404')
+  ok('404 + 표식: robotsBypassed > 0', r.robotsBypassed > 0)
 }
 
 // ── Crawl-delay — DB 값과 **큰 쪽**을 쓴다 ────────────────────────

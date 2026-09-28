@@ -17,7 +17,11 @@
 
 /** 실증 판정은 writer 가 아니라 이 프롬프트를 쓰는 별도 호출이 담당한다.
  * (writer 가 자기 문구를 스스로 판정하면 "1인칭 경험담이라 검증 대상 아님"으로 면죄부를 준다) */
+import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
+
 export const JUDGE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 심사자다. 카피를 고치지 마라. 판정만 해라.
+
+${UNTRUSTED_INPUT_NOTICE}
 
 판정 분류:
 - SUBSTANTIATED: 임상·인체적용시험·시험성적서·인증 등 원문에 제시된 근거로 뒷받침되는 주장

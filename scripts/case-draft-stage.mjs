@@ -263,8 +263,8 @@ async function stageOne(job) {
 
   // ── 2-1) 발행 게이트 CG-1 · CG-2 ─────────────────────────
   //
-  // 등급 C 무브를 인용하는 초안은 본문에 출처 귀속 문구가 있어야 pending_review 로 간다
-  // (L-62 결정). 순수 로컬 텍스트 검사다 — 어떤 외부 API 도 부르지 않는다.
+  // 등급 C 무브를 인용하는 초안은 **자기답글**에 "자사 공시" 귀속이 있어야 pending_review 로 간다
+  // (L-62 결정 → 2026-09-29 UPD-20260929-01: 본문 귀속은 선택, 자리는 자기답글). 순수 로컬 텍스트 검사다.
   //
   // ★ 막힐 때 저장을 통째로 건너뛰지 않는다. status='draft' 로 눕혀 둔다. 초안 본문을
   //   날리면 사람이 고칠 대상 자체가 사라진다. 대신 exit 4 로 "게이트에서 막혔다"를 구분한다.
@@ -273,7 +273,7 @@ async function stageOne(job) {
   const gateMoves = [{ ...move, slug: job.case_slug, brand_name: move.case_studies?.brand_name ?? null }]
   // CG-2 는 CG-1 과 대상 등급이 겹치지 않는다(C 와 D). 둘 다 돌리고 **먼저 걸린 쪽**을 낸다.
   const gates = [
-    { result: attributionGate(gateMoves, body), hint: attributionHint },
+    { result: attributionGate(gateMoves, body, selfReply), hint: attributionHint },
     { result: numericGate(gateMoves, body), hint: numericHint },
   ]
   for (const { result } of gates) {

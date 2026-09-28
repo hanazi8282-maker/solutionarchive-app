@@ -132,6 +132,8 @@ G-R 질문표는 양쪽에 다 있다 — `references/solfa-gate.md` G-R,
 기계 검사: `node scripts/column-check.mjs <칼럼.md> <칼럼.threads.md>` — 오류 0 이어야 넘긴다. 규칙 근거는
 `references/pdp-decisions.md` NEW-20260929-01~03, T-체크 TC-21~TC-23(`references/threads-playbook.md` §10).
 케이스 무브에서 바로 쓰는 초안(`drafts/threads/*.body.txt`)에도 같은 명령이 걸린다 — 그 글도 혼자 서야 한다.
+2026-09-29 2차: 카피 문장 규칙(§7-4, NEW-20260929-04·05, TC-24)과 CG-1 자리 이동(UPD-20260929-01 — 등급 C 귀속은 본문이 아니라
+자기답글·근거 메모의 "자사 공시"). TC-19 를 옛 문구대로 "본문에 귀속" 으로 판정하지 않는다.
 
 ## 공통 금지
 

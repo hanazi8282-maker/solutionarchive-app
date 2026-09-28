@@ -124,6 +124,16 @@ export function parseStageNotes(notes: string | null | undefined): { moveId: str
   return { moveId: m?.[2] ?? null, slug: m?.[1] ?? null, gradeAtStage: g?.[1] ?? null }
 }
 
+/**
+ * 스테이징이 notes 에 남기는 자기답글 블록 — `자기답글(고정 댓글, N자):\n<본문>` (다음 문단 `⛔ 미발행` 앞까지).
+ * CG-1 은 2026-09-29 부터 본문이 아니라 이 블록에서 "자사 공시" 를 본다. 블록이 없으면 null = 확인 불가.
+ */
+export function parseSelfReply(notes: string | null | undefined): string | null {
+  const t = (notes ?? '').replace(/\r/g, '')
+  const m = /자기답글\(고정 댓글, \d+자\):\n([\s\S]*?)(?:\n\n⛔ 미발행|$)/.exec(t)
+  return m ? m[1].trim() : null
+}
+
 export type InstantMove = GateMove & { pmf_grade?: string | null; evidence_grade?: string | null }
 
 /**
@@ -133,8 +143,13 @@ export type InstantMove = GateMove & { pmf_grade?: string | null; evidence_grade
 export function instantGateForPost(post: { body: string; notes: string | null }, moves: InstantMove[] | null): InstantGateVerdict {
   const declared = parseBpDeclaration(post.notes)
   if (!moves || moves.length === 0) return instantGate({ body: post.body, declared, cgOk: null, grade: null })
-  const cg = attributionGate(moves, post.body).ok && numericGate(moves, post.body).ok
   const lead = moves[0]
   const grade = (lead.pmf_grade ?? lead.evidence_grade ?? null)
+  // CG-1 은 자기답글(notes 블록)을 본다. 등급 C 인데 블록을 못 읽으면 fail 도 pass 도 아닌 needs_human — 확인 불가는 접지 않는다(§7.1).
+  const reply = parseSelfReply(post.notes)
+  if (reply == null && moves.some((m) => m.fact_check_grade === 'C')) {
+    return instantGate({ body: post.body, declared, cgOk: null, grade })
+  }
+  const cg = attributionGate(moves, post.body, reply).ok && numericGate(moves, post.body).ok
   return instantGate({ body: post.body, declared, cgOk: cg, grade })
 }

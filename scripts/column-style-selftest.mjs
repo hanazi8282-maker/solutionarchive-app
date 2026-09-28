@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import { columnRevisePrompt, threadDerivePrompt, guideSection, STYLE_RULES, GUIDE_PATH, VOICE_PATH } from '../lib/columns/style-prompt.ts'
 import { checkCitation, checkThreadPost, checkThreadSelfContained, readability } from '../lib/threads/voice-check.ts'
-import { checkColumn, checkThreads } from './column-check.mjs'
+import { checkColumn, checkPost, checkThreads } from './column-check.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 let pass = 0
@@ -26,7 +26,7 @@ const ok = (name, cond, detail = '') => { if (cond) pass++; else fails.push(`${n
 // ── 1. 프롬프트가 정본 절을 싣는다 ─────────────────────────────
 const guide = readFileSync(join(root, GUIDE_PATH), 'utf8')
 const voice = readFileSync(join(root, VOICE_PATH), 'utf8')
-for (const [file, text, head] of [[GUIDE_PATH, guide, '### 7-3.'], [GUIDE_PATH, guide, '### 8-2.'], [GUIDE_PATH, guide, '### 7-2.'], [VOICE_PATH, voice, '## 7.']]) {
+for (const [file, text, head] of [[GUIDE_PATH, guide, '### 7-3.'], [GUIDE_PATH, guide, '### 7-4.'], [GUIDE_PATH, guide, '### 8-2.'], [GUIDE_PATH, guide, '### 7-2.'], [VOICE_PATH, voice, '## 7.']]) {
   const sec = guideSection(text, head)
   ok(`${file} 에 "${head}" 절이 있고 비어 있지 않다`, sec.length > 200, `${sec.length}자`)
 }
@@ -40,6 +40,13 @@ ok('칼럼 프롬프트에 §7-3 절 본문', /### 7-3\./.test(col) && /90자/.t
 ok('칼럼 프롬프트에 §8-2 절 본문', /### 8-2\./.test(col))
 ok('칼럼 프롬프트가 숫자·인용문 불변 규칙을 유지', /한 글자도 바꾸지 않고/.test(col))
 ok('칼럼 프롬프트 출력 마커', col.includes('<<<SUMMARY>>>') && col.includes('<<<BODY>>>'))
+// 2026-09-29 2차 — 카피 문장 규칙(§7-4)·CG-1 자리 이동(UPD-20260929-01)이 두 프롬프트에 실린다.
+ok('두 프롬프트에 §7-4 절 본문', /### 7-4\./.test(col) && /### 7-4\./.test(thr))
+ok('두 프롬프트에 완충 표현 금지', /완충 표현을 지운다/.test(col) && /완충 표현을 지운다/.test(thr))
+ok('두 프롬프트에 예고형 마무리 금지', /예고로 끝내지 않는다/.test(col) && /예고로 끝내지 않는다/.test(thr))
+ok('두 프롬프트에 훅 충돌 해소(솔파 G-3 우선)', /솔파 G-3/.test(col) && /솔파 G-3/.test(thr))
+ok('두 프롬프트가 본문 귀속을 의무로 말하지 않는다', !/CG-1\)이 필요하면 그 1회를/.test(col) && !/CG-1\)이 필요하면 그 1회를/.test(thr))
+ok('편 프롬프트 자기답글 형식에 "자사 공시"', /자사 공시/.test(thr))
 ok('편 프롬프트에 자족성 SC 규칙', /SC-1/.test(thr) && /500자에 안 들어가면/.test(thr))
 ok('편 프롬프트에 voice-guide §7 절 본문', /## 7\. 칼럼에서 뗀 편/.test(thr))
 ok('편 프롬프트에 주체 줄 형식', /- 주체:/.test(thr))
@@ -65,6 +72,16 @@ ok('SC-3 subject 가 앞에 있으면 통과', sc('조선미녀는 반대로 갔
 ok('SC-3 subject 없고 이름 단서도 없으면 경고만', (() => { const r = sc('가나다라 마바사 아자차. ' + '가'.repeat(300)); return r.errors.length === 0 && r.warns.some((w) => w.startsWith('SC-3')) })())
 ok('SC-4 마무리 질문이 없으면 경고', sc('조선미녀는 반대로 갔다. ' + '가'.repeat(250)).warns.some((w) => w.startsWith('SC-4')))
 ok('SC-5 200자 미만은 경고', sc('조선미녀는 반대로 갔다.').warns.some((w) => w.startsWith('SC-5')))
+ok('SC-1 예고형 마무리("다음 글에 적겠습니다")는 오류', sc('조선미녀는 반대로 갔다. 그건 다음 글에 적겠습니다.').errors.some((e) => e.startsWith('SC-1') && e.includes('예고')))
+
+// ── 3b. 모드 B 오탐 — 실제 초안 T1-3 A/B(drafts/threads/2026-09-07-t1-3-review-proxy.body-A/B.txt) ──
+for (const rel of ['2026-09-07-t1-3-review-proxy.body-A.txt', '2026-09-07-t1-3-review-proxy.body-B.txt', '2026-09-07-t3-1-hand-before-code.body.txt']) {
+  const p = join(root, 'drafts/threads', rel)
+  if (!existsSync(p)) { fails.push(`${p} 가 없어 모드 B 실측을 못 했다(확인 불가)`); continue }
+  const r = checkPost(readFileSync(p, 'utf8'))
+  ok(`${rel}(모드 B 실제 초안)에 해요체·SC-4 경고 없음`, !r.warns.some((w) => w.includes('해요체') || w.startsWith('SC-4')), r.warns.join(' / '))
+}
+ok('모드 A 글의 해요체 마무리는 여전히 경고', checkPost('조선미녀는 반대로 갔다. ' + '가'.repeat(200) + '\n\n당신은 어떤가요?').warns.some((w) => w.includes('해요체')))
 
 // ── 4. 실제 초안 — 남헌이 기준 예시로 지목한 조선미녀 1편은 통과해야 한다 ─
 const bojPath = join(root, 'drafts/columns/2026-09-15-beauty-of-joseon.threads.md')
@@ -85,6 +102,11 @@ ok('풀이 없는 약어를 잡는다', readability('ARR 이 100만 달러를 �
 ok('풀이 붙은 약어는 넘긴다', readability('ARR(연 반복 매출)이 100만 달러를 넘겼다.').acronyms.length === 0)
 const longCol = `독자: 창업자\n\n# 제목\n\n${'이 문장은 아주 길어서 고등학생이 한 번에 읽기 어렵고 숫자와 이름이 계속 이어지며 끝날 줄을 모르고 이어지는 문장으로 구십 자를 훌쩍 넘긴다고 봐야 하는데 그래도 계속 이어진다. '.repeat(40)}\n\n---\n\n## 근거 메모\n- x\n\n## 자체 점검\n0. 예`
 ok('칼럼 90자 문장은 "확인"(경고)', checkColumn(longCol).warns.some((w) => w.includes('90자')))
+// ── 5b. CG-1 칼럼판 — 근거 메모 자기보고 줄의 "자사 공시" (UPD-20260929-01) ──
+const memoCol = (memo) => `독자: 창업자\n\n# 제목\n\n${'가'.repeat(3100)}\n\n---\n\n## 근거 메모\n${memo}\n\n## 자체 점검\n0. 예`
+ok('근거 메모 자기보고 줄에 자사 공시 없음은 오류', checkColumn(memoCol('- MRR 1만 달러 / https://a.com / 2022-06-22 / 자사 블로그, 자기보고')).errors.some((e) => e.includes('자사 공시')))
+ok('자사 공시 있으면 통과', checkColumn(memoCol('- MRR 1만 달러 / https://a.com / 2022-06-22 / 자사 블로그, 자기보고, 자사 공시')).errors.length === 0)
+ok('본문 "밝힌" 0회는 더 이상 경고가 아니다', !checkColumn(memoCol('- x / https://a.com / 2022 / 규제 공시')).warns.some((w) => w.includes('밝힌')))
 
 // ── 6. 배선 ──────────────────────────────────────────────────────
 const review = readFileSync(join(root, 'scripts/column-review-claude.mjs'), 'utf8')

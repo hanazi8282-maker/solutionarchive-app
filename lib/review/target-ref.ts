@@ -37,6 +37,7 @@ import { HOST as TODAYHUMOR_HOST, parseProductRef as parseTodayhumorRef } from '
 import { HOST as TUMBLBUG_HOST, parseProductRef as parseTumblbugRef } from './adapters/tumblbug.ts'
 import { BOARDS as VELOG_BOARDS, HOST as VELOG_HOST, parseProductRef as parseVelogRef } from './adapters/velog.ts'
 import { parseProductRef as parseYoutubeRef } from './adapters/youtube.ts'
+import { BOARDS as DISQUIET_BOARDS, HOST as DISQUIET_HOST, parseProductRef as parseDisquietRef } from './adapters/disquiet.ts'
 
 export type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
 
@@ -213,6 +214,21 @@ function velogRef(raw: string): RefResult {
 }
 
 /**
+ * 디스콰이엇 — 글 하나(`url:/posts/<slug>`)와 홈 피드 순회(`board:feed`).
+ * 게시판 slug 은 어댑터 BOARDS 표에 있는 것만 받는다(없는 slug 은 0요청 타깃이 된다).
+ */
+function disquietRef(raw: string): RefResult {
+  const s = (raw ?? '').trim()
+  if (/^board:/i.test(s)) {
+    const slug = parseBoardRef(s)
+    return slug && slug in DISQUIET_BOARDS
+      ? { ok: true, productRef: `board:${slug}` }
+      : { ok: false, error: `이 소스가 순회할 수 있는 게시판이 아닙니다. (가능: ${Object.keys(DISQUIET_BOARDS).map((k) => `board:${k}`).join(', ')})` }
+  }
+  return urlRefBuilder(DISQUIET_HOST, parseDisquietRef, '/posts/D1CXy9')(raw)
+}
+
+/**
  * 소스 키 → 빌더. **키는 review_sources.key 와 철자까지 같아야 한다.**
  * (`scripts/review-collect.mjs` 의 ADAPTERS 와 같은 집합이어야 한다.)
  */
@@ -242,6 +258,7 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   //       게시판 순회(`board:tag:`). 아래 velogRef 가 갈라 준다.
   velog: velogRef,
   youtube: youtubeRef,
+  disquiet: disquietRef,
 }
 
 export function buildProductRef(sourceKey: string, raw: string): RefResult | null {

@@ -366,6 +366,8 @@ const AUDIT = {
   'theqoo.ts': false,
   'todayhumor.ts': false,
   'velog.ts': false,
+  // `/posts/<slug>` · `/posts/<slug>#<댓글 숫자 id>` — slug 는 사이트 전역 글 식별자다.
+  'disquiet.ts': false,
   // `blogId:logNo` — 네이버 전역에서 글 1개를 가리킨다.
   'naver-blog.ts': false,
   // 플랫폼 전역 id. HN objectID · YouTube 댓글 id · 텀블벅 후기 id(`tbr:<id>`).

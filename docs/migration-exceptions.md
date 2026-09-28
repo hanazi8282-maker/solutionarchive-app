@@ -413,3 +413,7 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 000025(PR #302): 'producthunt' 행(파일은 enabled=false) 적용 뒤 남헌 지시로 enabled=true·disabled_reason NULL UPDATE + review_targets 34행(SaaS 25개 제품 런칭글, Fly.io 동명 의심·Figma 미발견 제외). 시험 run 36427238079: **Actions 러너에서 api.producthunt.com/robots.txt 가 403 → fail-closed 로 요청 0건**(로컬 09-28 실측은 200). 수집 0건 — 사람 판단 대기.
 - 000033(PR #328): review_collection_runs.blocked_responses·quota_responses int NOT NULL DEFAULT 0(메타데이터 변경). 000034: review_source_ramp·review_source_ramp_log(FORCE RLS·정책 0). 양성: 컬럼 2·테이블 2·정책 0. 음성: level=5 INSERT → 23514 거부.
 - 전부 비파괴(INSERT/ADD/CREATE), 롤백 파일 있음. 로컬 supabase MCP apply_migration.
+
+### 2026-09-29 — 000035 발굴 이식성 판정 컬럼 (CEO-STAFF 세션, 남헌 확정 지시 "리스크 낮으면 바로 구현")
+
+- 000035(PR #339): discovery_candidates 에 transfer_verdict·transfer_lesson·transfer_reason·human_note(nullable) + CHECK(pass|fail|unverified|NULL). 적용 전 부재 확인(0컬럼). 양성: 4컬럼, 기존 40행 중 변경 0. 음성: transfer_verdict='maybe' → 23514 거부, 잔존 0. 비파괴, 롤백 파일 있음. 호스티드 Supabase MCP apply_migration. 게이트 기본값 shadow(교정 20/27 < 기준).

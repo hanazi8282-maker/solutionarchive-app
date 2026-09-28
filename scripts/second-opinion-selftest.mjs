@@ -8,7 +8,8 @@ const t = (name, got, want) => { const g = JSON.stringify(got), w = JSON.stringi
 // export 행 — 판정·라벨 없음, 원문 600자, 공백 정리
 {
   const r = toExportRow({ input_id: 'a', project_id: 'p', raw_text: '  줄바꿈\n\n포함  ' + '가'.repeat(1000), pitch: '피치' })
-  t('export: 키는 4개뿐(판정·라벨 없음)', Object.keys(r).sort(), ['input_id', 'project_id', 'project_pitch', 'text'])
+  // business_model 은 기준(SaaS/소비재)을 고르는 입력이다(2026-09-28 기준 통일). 판정·라벨은 여전히 없다.
+  t('export: 키는 5개뿐(판정·라벨 없음)', Object.keys(r).sort(), ['business_model', 'input_id', 'project_id', 'project_pitch', 'text'])
   t('export: 600자 상한', r.text.length, EXPORT_TEXT_MAX)
   t('export: 공백 정리', r.text.startsWith('줄바꿈 포함 가'), true)
   t('export: raw_text null → 빈 문자열', toExportRow({ input_id: 'b', project_id: 'p', raw_text: null }).text, '')

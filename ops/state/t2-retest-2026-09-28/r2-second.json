@@ -1,0 +1,905 @@
+{
+ "criteria_version": "t2c-2026-09-28",
+ "rows": [
+  {
+   "input_id": "01f698bb-34d2-4148-97f2-a98d900b08c5",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "회사 마케팅 전략 기사, 사용자 목소리 없음"
+  },
+  {
+   "input_id": "046af2a4-227b-4010-94f5-70d437b730a1",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "유료 비광고 분석 vs 무료 GA(사용자가 상품) 선택 기준 제시"
+  },
+  {
+   "input_id": "08f10ada-daa6-495c-8c6b-1aad17963bb3",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "초기부터 쓴 만족 고객, 무료판 충분·Calendly 대비 개선이라는 구체 이유"
+  },
+  {
+   "input_id": "0a881c67-0c4f-41e2-b11c-d2567f0ab610",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "데브애드버킷 설명 중 예시 목록 나열"
+  },
+  {
+   "input_id": "0dd76440-47c8-466c-a087-29aa9e9cda34",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "대체재 Paddle 사용자: 지원 부족·결제 실패 페인, 환불·VAT 처리 장점"
+  },
+  {
+   "input_id": "0e38208e-7763-4b63-b9bf-8dd1aea9ca54",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "홍보글이나 구독자 수 기준 과금에 지친 비용 페인 명시"
+  },
+  {
+   "input_id": "1075b9ec-a0ee-46e7-92c5-e17da956f6f4",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "링크만"
+  },
+  {
+   "input_id": "10c3aa0c-685c-43a3-b9f5-13ca96601a3e",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": false,
+   "reason": "뉴스레터를 ConvertKit 무료 티어로 운영, 비용이 선택 이유"
+  },
+  {
+   "input_id": "11749511-5409-472c-9a16-22964c2cb272",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "Stripe 측 연동 목록 언급"
+  },
+  {
+   "input_id": "12c0cc97-1970-4ed2-a838-96481348ced4",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "엑싯·매출 등 회사 이야기"
+  },
+  {
+   "input_id": "1521c65f-f1c3-4ff7-930e-3a2436695b1b",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "공개 매출 데이터 열람 이야기, 도구 경험 아님"
+  },
+  {
+   "input_id": "16355784-5df5-46d1-983f-03e2321a755b",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "인도에서 Stripe 불가, MoR(LS/Paddle)만 대안이라는 선택 이유"
+  },
+  {
+   "input_id": "1c7bb3aa-47bd-42f2-ac24-ef85199a8cd4",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "엑싯 금액 회사 이야기"
+  },
+  {
+   "input_id": "1da3aa20-9298-475e-bcde-1771487ec0e1",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "Calendly보다 나은 경험, 무료로 충분, 월 5유로 지불 의향이나 맞는 요금제 없음"
+  },
+  {
+   "input_id": "2161a370-3793-4408-ac9d-71a310ef7631",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": true,
+   "reason": "Baremetrics 같은 부가 서비스 비용이 누적된다는 비용 부담"
+  },
+  {
+   "input_id": "26f29153-71aa-4a49-88a2-69b623f67209",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "MoR·역발행 인보이스로 세금 단순화라는 구체 이유로 권유"
+  },
+  {
+   "input_id": "2cd4dc71-e37a-4804-a6e7-1196f884bd9d",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "경쟁 제품 창업자의 자사 설명"
+  },
+  {
+   "input_id": "2da752ff-be41-438f-8cbb-a28ccf901c9f",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "인수 공지에 대한 막연한 우려, 사용 경험 여부 불명"
+  },
+  {
+   "input_id": "2dcba3c1-dbc3-46e4-b361-83b057b64c3b",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "방문자 입장 배지 차단 팁, 사용자·구매자 목소리 아님"
+  },
+  {
+   "input_id": "2f15d202-c5cb-4bd4-ab4e-2abfea0575ee",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "회사 정책 변경 사실 언급"
+  },
+  {
+   "input_id": "37505c7c-0f97-4058-ad1c-065ddc38dd83",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "LS 위에 만든 자사 도구 홍보"
+  },
+  {
+   "input_id": "3a543c11-eb2b-4e99-b1fb-881c762e2d23",
+   "verdict": "relevant",
+   "impact": "high",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "체험 후 결제 예정, 단순 UI·프라이버시·셀프호스팅 옵션이 선택 이유"
+  },
+  {
+   "input_id": "3da1395f-61e3-4ca8-b0ea-1231ac31d389",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "크롬 확장 제작기, 도구 경험 없음"
+  },
+  {
+   "input_id": "3fd83bc3-3c88-4a0b-884d-96a95bc5764a",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "회사 성장 칭찬"
+  },
+  {
+   "input_id": "43fc1d1c-9adc-4380-9d82-70a014b396db",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "가격 페이지에 없는 추가 수수료에 놀람"
+  },
+  {
+   "input_id": "44e5822d-778a-4050-82c0-4dc0cb7af664",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "판매용으로 LS가 쉬워서 선택"
+  },
+  {
+   "input_id": "44e898d3-82b9-43e5-a9fb-639ac7d3212b",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "Stripe Sigma 추측, Baremetrics 경험 없음"
+  },
+  {
+   "input_id": "453c1a4d-d802-4dbe-be01-c551efd5684f",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "Stripe가 후원형 서비스 금지해 LS 선택, 인수 후 정책 우려"
+  },
+  {
+   "input_id": "45ad8d3d-448f-427b-9c83-022d0880caa1",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "들어본 적만 있음, 경험 없음"
+  },
+  {
+   "input_id": "4792891d-c82e-4541-9b44-3c3d28056cc3",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "대체재 Paddle 선택 후 국가별 세금 신경 안 씀"
+  },
+  {
+   "input_id": "47adb1ea-710d-4388-8843-74c25d828d2f",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "템플릿 홍보, 연동 목록"
+  },
+  {
+   "input_id": "4878cb3f-127c-4ee4-a408-107013ae05af",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "기술 스택 질문, 도구 언급 없음"
+  },
+  {
+   "input_id": "4c9ac207-77b3-4035-87dc-efe2f4cad9b7",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "프라이버시 표방하면서 CNAME 은폐 지원한다는 반대 이유"
+  },
+  {
+   "input_id": "52c2c101-2601-402a-833a-36a683ee8e24",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "대체재 Paddle을 플랫폼 결제 폐지 위험 때문에 선택"
+  },
+  {
+   "input_id": "54f41e1b-37d8-492b-bd53-781c31185ac6",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업자 블로그·출시 예정 제품 소개"
+  },
+  {
+   "input_id": "561e3a11-e07c-4f6f-90ac-60166676c993",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "PayPal용 Baremetrics에 월 30달러 지불 의향"
+  },
+  {
+   "input_id": "570c2eb2-ac9e-4b6e-b97c-8f6b9bbdaf3a",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "경쟁 제품 홍보"
+  },
+  {
+   "input_id": "594036ab-9291-431e-aa4a-d8977ac7a416",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "가격 민감 스타트업에 Mailchimp 대비 저렴함을 이유로 권유"
+  },
+  {
+   "input_id": "5edcc588-4f15-48c7-a547-c3892c6cb171",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "튜토리얼 홍보, 페인·이유 없음"
+  },
+  {
+   "input_id": "5f4e7725-7544-446d-9efd-f5119fb5fe82",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "일반 이메일 조언, 도구 경험 없음"
+  },
+  {
+   "input_id": "6374499d-14f5-4793-a648-9bad2276faac",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "제품 측(창업자) 타깃 설명"
+  },
+  {
+   "input_id": "6399605c-4f35-4ab1-8589-c266df3c89b7",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "규모 커지면 과도하게 비싸다"
+  },
+  {
+   "input_id": "65e2fc54-a812-4a56-8794-21745b3052c8",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "통계 인용만"
+  },
+  {
+   "input_id": "6ba74bb4-cd9f-4eff-b84c-8ffb76d5149e",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "이슈 링크만 있고 내용 잘림"
+  },
+  {
+   "input_id": "6e82a440-b502-4cc3-81ea-f16cd56b9c02",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "세금 문제 해결책으로 LS/Paddle 권유"
+  },
+  {
+   "input_id": "71c4ea37-8de3-4f7d-8094-04c6ad388a22",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "회사 성장 이야기"
+  },
+  {
+   "input_id": "7272d1ee-c959-4390-83bf-160976ca15a8",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "매출 공유, LS 제휴 프로그램 경험·이유 없음"
+  },
+  {
+   "input_id": "74ef9891-d651-4fb7-b1c3-5a7917cf24cc",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "SEO 광고 불만, 도구 사용 경험 없음"
+  },
+  {
+   "input_id": "77200c50-cb2a-491d-ac44-4e35b10c33c6",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "다른 회사 이야기"
+  },
+  {
+   "input_id": "7b874b9c-b479-4c1f-9eca-7074acacb3c6",
+   "verdict": "relevant",
+   "impact": "high",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": true,
+   "reason": "월 29달러 감당 못해 Baremetrics 못 씀, 1달러 플랜 대체재 선택"
+  },
+  {
+   "input_id": "7f93e98c-3701-4884-8a26-e934a16ffae6",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "Substack 대비 덜 단순하지만 통제권 많음"
+  },
+  {
+   "input_id": "8a499c50-5519-4824-8f72-75c0d1f3eead",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": false,
+   "reason": "Substack 분석·전달률 불만, ConvertKit이 더 강력·1000명 무료"
+  },
+  {
+   "input_id": "8c414277-0512-4585-b37a-ec7fd67f9368",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "Paddle 대비 경쟁력 없음, 부가기능 업셀"
+  },
+  {
+   "input_id": "8c7083d6-3fef-4c0f-b294-e99df9c4a924",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "필요했던 도구, 향후 수수료 인상 우려"
+  },
+  {
+   "input_id": "8cf74b96-1502-477e-aa37-fd4f4ae75d7f",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "세금 준수를 이유로 MoR 사용 권유"
+  },
+  {
+   "input_id": "9256a8c8-91e8-4f12-9a2d-032980d681d2",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "일정 도구 대체재 기능 평가, CalDAV 부재 등 요구"
+  },
+  {
+   "input_id": "98056b6c-0fca-4333-bcbb-fb51e8a38dcc",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "5% 수수료로 세금·사기 처리하는 MoR로 사용 중"
+  },
+  {
+   "input_id": "98457a83-25ca-4021-a675-4d6b77bf2f8a",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "100달러 구매 이유 구체적, HTTPS 깨짐 페인"
+  },
+  {
+   "input_id": "9cce5b0f-938b-4042-8592-eb918c6aa31c",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "전환은 있으나 이유 없음(질문)"
+  },
+  {
+   "input_id": "9ff5b220-4606-4437-a006-a00509bbab4b",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "VC 투자로 향후 가격 인상 우려해 망설임"
+  },
+  {
+   "input_id": "a1379f7c-965d-4def-ba15-ff74c419b69c",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "시장 공백 논평"
+  },
+  {
+   "input_id": "a266713e-68df-4570-8a6e-27c3b5facae5",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "Stripe와 LS 중 고민 중, 이유 없음"
+  },
+  {
+   "input_id": "a346d00d-224a-4ef9-908c-e7f33363d07e",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "LS 5%·Stripe 3%·Gumroad 호스팅 비교"
+  },
+  {
+   "input_id": "a57916d0-559e-44d9-89cc-c2cb396178c4",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업자 전자책 가격 모델, 도구와 무관"
+  },
+  {
+   "input_id": "a6828791-ee3b-4eab-be9e-f43a9f5e7278",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "사용한다는 언급만, 페인·이유 없음"
+  },
+  {
+   "input_id": "a6c4a961-19fb-448b-bc3e-e7acd5cee3e0",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "Stripe의 계정 동결 이력 때문에 인수가 아쉽다는 우려"
+  },
+  {
+   "input_id": "a8c92f93-1da3-4b71-bd3e-67838aa763e3",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "세금 처리 기능 알지만 Stripe 유지 선호"
+  },
+  {
+   "input_id": "ad1734df-e329-4b47-b393-2d51fb1f38d3",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "코드 저장소 품질 칭찬, 제품 사용 아님"
+  },
+  {
+   "input_id": "b0bd2294-7c79-4c0c-ac04-8229319f8236",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "회사 측 해지 정책 설명"
+  },
+  {
+   "input_id": "b4cd9ff3-2f9f-41e9-9b31-8eeedf811432",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "예시로 한 번 언급"
+  },
+  {
+   "input_id": "b98a31bd-7379-4f86-9c40-c5b2ededbdb1",
+   "verdict": "relevant",
+   "impact": "high",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "수치가 많이 빠져 Baremetrics 떠나 ChartMogul로 전환"
+  },
+  {
+   "input_id": "bc36cddf-a9c0-4552-b771-fcb9cd8f231a",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업자·직원의 자사 설명"
+  },
+  {
+   "input_id": "bc59e908-286c-414c-a159-841aa982a015",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업자 판매 글에 대한 반응, 제품 경험 없음"
+  },
+  {
+   "input_id": "be2741df-4d92-43d8-86be-9dfcff9e69d8",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "Baremetrics 블로그 통계 인용, 도구 경험 없음"
+  },
+  {
+   "input_id": "bec97c10-9782-49b6-ae0f-379d3e6a1d60",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "ConvertKit 기술 문제로 가입자 키트 전달 실패"
+  },
+  {
+   "input_id": "c03c5842-23bc-49c5-8fde-5850a91b483f",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "개인 뉴스레터에 비즈니스 도구가 과해서 떠남"
+  },
+  {
+   "input_id": "c0884688-1843-480b-88dd-81a63943ba79",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "링크만"
+  },
+  {
+   "input_id": "c4056446-50e6-4151-b82a-12a5275ad975",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "외부인 구현 추측, 사용 경험 없음"
+  },
+  {
+   "input_id": "c5a5eebe-c16c-4624-b923-bb8d84cf1d2b",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "공개 데이터 활용 제안"
+  },
+  {
+   "input_id": "c899eb1d-5128-4663-9cc8-6ac3706d5b29",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "일반 스타터킷 조언, 도구 언급 없음"
+  },
+  {
+   "input_id": "cc9597a9-6297-417c-a953-c4d54974bf0b",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업기"
+  },
+  {
+   "input_id": "cd8f8921-6c6f-41da-86ac-559f0b95b25a",
+   "verdict": "relevant",
+   "impact": "high",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "Stripe+PayPal 동시 지원 지표 도구 없어 수작업 계산"
+  },
+  {
+   "input_id": "dad559b2-1a23-40e9-b7db-1f98f75abe47",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "카테고리 구분 사실 진술, 경험·이유 없음"
+  },
+  {
+   "input_id": "dd4f20d8-df21-4dc0-a905-b07df4c8227c",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": true,
+   "reason": "유료 사용 시 고객지원 최악 2위"
+  },
+  {
+   "input_id": "ddffa67d-c72c-4eab-bcd4-aaf46654a82c",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "Stripe 팁, 도구 경험 없음"
+  },
+  {
+   "input_id": "e0b8db87-3fe4-497d-a8ad-a362f45a4792",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "경쟁 제품 창업자 홍보"
+  },
+  {
+   "input_id": "e0eb4fb6-1790-443a-a058-f2cf183504ff",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "여러 도구 써봤다는 데서 잘림"
+  },
+  {
+   "input_id": "e8491369-40a6-4439-b620-565b02ab2ffd",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "경쟁 서비스 홍보 속 6~10% 수수료 언급, 본인 경험 여부 불명"
+  },
+  {
+   "input_id": "eae91ed0-c149-4e6e-8f4c-326bacb6322b",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "숨은 수수료 있지만 더 싸다, 파일 제공·웹사이트 선택 기준"
+  },
+  {
+   "input_id": "eb097080-7643-47cd-b1d5-1f13e474191c",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "사업 구조 논평"
+  },
+  {
+   "input_id": "eb21075f-e64f-4126-a40e-26d75d2fd8d8",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "직원의 자사 설명"
+  },
+  {
+   "input_id": "eb335900-fc3b-46b4-841c-464d7ca177e1",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "매월 과금이 비싸 SendFox가 훨씬 저렴"
+  },
+  {
+   "input_id": "efb584e8-87df-44ce-a531-d58ab1287d8b",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업자 글"
+  },
+  {
+   "input_id": "f3e83783-577b-4e38-b0ae-591fa2ee0e90",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "타 판매자에게 결제수단 요청, 도구 경험 없음"
+  },
+  {
+   "input_id": "f53e1f21-b695-4ac5-90e7-84b423764fed",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "폼 용도로 쓰기엔 번거롭고 과함"
+  },
+  {
+   "input_id": "f5682b76-cea1-4895-93cb-bbc74dc20b9c",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "월 100~150달러, 적은 노동·결과 편차·응대 평가"
+  },
+  {
+   "input_id": "f6901f91-c846-4454-93af-7d2574e23f72",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "어떤 조건에서 LS를 고르는지 기준 제시"
+  },
+  {
+   "input_id": "f93f2f10-01df-4bd0-9c86-127ac3b1c940",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "프레임워크 홍보"
+  },
+  {
+   "input_id": "fe66ed93-cddc-4dc3-ad78-0b18585ffb6e",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업자 인터뷰"
+  },
+  {
+   "input_id": "feb028c6-408a-4ce9-bebe-257cde57db47",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "WordPress.com 요금 불만, 도구 경험 아님"
+  }
+ ]
+}

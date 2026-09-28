@@ -78,6 +78,9 @@ jobs:
       - run: node scripts/auto-approval-selftest.mjs
       # rr-v2 평가 하네스 순수 부품: gold(=감사 채점과 같은 잣대)·예시 제외·재확인 a/b·문턱. 픽스처만.
       - run: node scripts/t2-approval-eval-selftest.mjs
+      # 관련성 기준 피드백(/relevance/grade·/relevance/feedback): 층 A~D 가르기·배분 6·4·3·2·빈 층 보충·같은 날 같은 묶음·
+      # 본 행 제외·컬럼 없는 층은 확인 불가(0 으로 접지 않음)·층별 일치율·채점 입력 검증·채점 전 모델 판정 비공개.
+      - run: node scripts/relevance-feedback-selftest.mjs
       # 케이스 자동 승인 ca-v1: 규칙 6조건·케이스 따라가기·게이트(연결 테이블 3상태·rr-v1 종속)·킬스위치·되돌리기·검증중 정렬.
       - run: node scripts/case-auto-approval-selftest.mjs
       # 어드바이저 매칭 3상태·불용어 회귀·SP-024 저신뢰 판정. 픽스처만 쓴다(네트워크·DB 없음).

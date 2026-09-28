@@ -40,6 +40,8 @@ const NAV_GROUPS: readonly { label: string; links: readonly NavLink[] }[] = [
       // 전에는 /agents 의 사람 대기함 링크로만 들어갈 수 있었다. 매일 승인 버튼을 누르는 화면이
       // 네비에 없어서, 대기함이 0건인 날에는 가는 길 자체가 사라졌다.
       { href: '/cases', match: '/cases', label: '케이스 검수' },
+      // 관련성 판정 기준을 사람이 조금씩 채점해 되먹이는 자리(남헌 09-28). 요약은 /relevance/feedback.
+      { href: '/relevance/grade', match: '/relevance', label: '관련성 기준 채점' },
       { href: '/columns', match: '/columns', label: '칼럼·스레드 검수' },
       // 이름을 바꿨다: 열람 화면이 아니라 어긋난 연결을 고치는 수리소다(화면 안 문구는 PR6).
       { href: '/dashboard', match: '/dashboard', label: '발행 연결 수리' },

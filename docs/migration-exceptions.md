@@ -374,3 +374,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 4조건: 드라이런(적용 직전 스냅샷 29건 일치 재확인) · 롤백 파일(`reports/2026-09-28/voc-thresholds/rollback.sql`) · 무중단(discovery_candidates 는 서빙 경로 없음, 읽기 전용 화면만 영향) · Notion 기록(예정).
 - 적용: hosted Supabase MCP `execute_sql`(qmgrfqjfxqhxuufrnkwf). 양성 확인: `verdict_reason like '%(reclass 2026-09-28%'` → 29건. 음성 확인은 하지 않음(가드 조건 `d.verdict = v.old_verdict` 라 재실행 시 0행이 되도록 작성됨 — 롤백은 `rollback.sql` 로 원래 verdict/verdict_reason 복원).
 - 주의: 살아난 19건은 project_id 없음 — 수집이 자동으로 붙지 않는다(등록은 별도). 걸러진 10건은 project_id 있는 것 4건 포함 — 기존 프로젝트·수집 데이터는 유지.
+
+### 2026-09-28 — 되살아난 SaaS 후보 17건 수집 등록 (CEO-STAFF 세션, 남헌 지시 B)
+
+- 재분류로 accepted 가 된 19건 중 Stripe(38,548)·Buffer(45,354) 제외 17건. 발굴 엔진 `persist()` 와 같은 규칙: analysis_projects INSERT(`collecting`·`SAAS`·purpose product_fit) + review_targets INSERT(hackernews `q:<이름>` active) + discovery_candidates.project_id 연결.
+- INSERT 뿐인 비파괴 변경(§10.1 발굴 적재 범위와 같은 모양). 사전 확인: 같은 이름 프로젝트·타깃 0건. 한 트랜잭션(데이터 변경 CTE) — 결과 후보 17·프로젝트 17·타깃 17·연결 17.
+- 양성 확인: 17행 전부 collecting·SAAS·hackernews·active 로 재조회. 되돌리기: `reports/2026-09-28/voc-thresholds/register-17-rollback.sql`(1단계 수집 중지, 2단계 삭제는 입력 0건 확인 뒤).
+- 영향: 다음 수집 슬롯부터 HN 타깃 27→44. 이 17개가 첫 추출(신규 ≥100) 문턱을 넘으면 SaaS 우선 정렬로 extract 대기열 앞에 선다.

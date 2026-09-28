@@ -138,6 +138,19 @@ export interface ParseResult {
   pauseRun?: boolean
 }
 
+/**
+ * 러너가 보낼 요청 1건. 기본은 GET(`init` 없음).
+ *
+ * `init` 은 **POST 전용 API(GraphQL) 를 위한 좁은 확장**이다(2026-09-28, Product Hunt).
+ * robots 판정·요청 간격·일일 상한은 여전히 러너가 `url` 로 건다 — 어댑터가 직접 fetch 하지 않는 것은 그대로다.
+ * ⚠️ 헤더에 토큰을 싣는 어댑터는 그 값을 URL·로그·커서에 넣지 마라(러너는 `url` 만 로그에 남긴다).
+ * 쿠키·응답 헤더는 여전히 없다(theqoo 주석의 1·3번 제약은 그대로다).
+ */
+export interface ReviewRequest {
+  url: string
+  init?: { method: 'POST'; headers: Record<string, string>; body: string }
+}
+
 export interface ReviewSourceAdapter {
   key: string
   displayName: string
@@ -150,7 +163,7 @@ export interface ReviewSourceAdapter {
    *    어댑터가 직접 fetch 하면 소스를 추가할 때마다 그 규칙들이 복사되고,
    *    한 곳에서 빠뜨리는 순간 상대 서버를 규칙 없이 때리게 된다.
    */
-  nextRequest(target: TargetState): { url: string } | null
+  nextRequest(target: TargetState): ReviewRequest | null
 
   /** 순수 함수. 네트워크 없음. 입력은 문자열과 맥락뿐이다. */
   parse(body: string, ctx: ParseContext): ParseResult

@@ -145,4 +145,5 @@ UPDATE public.case_studies s
 
 - 0단계. `AUTO_APPROVAL_ENABLED` 꺼짐, 000027 미적용, `case_move_inputs` 없음, P1 조사 경로 없음, §10.1 은 조건 5 로 케이스를 막고 있음.
 - 실측: 소비재 1·2차 일치 93.3%(537건) · SaaS 재시험 92.4%(Sonnet×Opus, 92건) · SaaS 완전 동의 비율 40/100 · SaaS 사람 채점 0건 · 케이스 60건 전부 웹 근거(연결 0건).
+- 09-28 구현(가동 아님): `lib/cases/case-auto-approval.ts`(규칙·게이트·킬스위치·되돌리기·노출) · `scripts/case-auto-approve.mjs`(nightly-relevance 스텝, continue-on-error) · 마이그 `20260930000029_case_auto_approval.sql`(미적용, §5-2 컬럼 5개). 변수 `CASE_AUTO_APPROVAL_STAGE`(기본 off) + `CASE_AUTO_APPROVAL_SINCE`(이 날 이후 적립 무브만). 자동 승인 ∧ `reviewed_by IS NULL` 케이스는 `/library`·랜딩에서 아래로 내려가고 '검증중' 배지 — 사람이 `case-review.mjs approve --all-moves --case --by` 로 검수 통과시키면 정식 노출. 남은 것: `/cases/grade` 감사 카드 2/일(§2-3 마지막 줄)·2단계 후보 배지 UI.
 - 다음 행동은 2-1 표의 "운영 조합 재확인" 과 연결 설계 §2 P1 의 형태 결정이다. 둘 다 사람 판단이 들어간다.

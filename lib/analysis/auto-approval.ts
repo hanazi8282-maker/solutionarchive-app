@@ -30,6 +30,9 @@ export const KILL = {
   minRecentAudits: 20,
 } as const
 
+/** 킬스위치 수치 한 벌. ca-v1(lib/cases/case-auto-approval.ts)이 같은 산식을 다른 수치로 쓴다. */
+export type KillParams = { readonly [K in keyof typeof KILL]: number }
+
 const DAY_MS = 86_400_000
 
 export interface VerdictRow {
@@ -79,25 +82,26 @@ export interface KillResult {
  * 감사 창을 읽어 켜둘지 정한다. audits = 자동 승인됐고 사람 채점이 있는 행.
  * 사람이 irrelevant 라고 한 것이 오류 1건이다. 사람 unknown 은 "봤지만 모르겠다" — 오류도 정답도 아니다.
  */
-export function killSwitch(audits: readonly AuditRow[], opts: { now: Date; since: Date }): KillResult {
+export function killSwitch(audits: readonly AuditRow[], opts: { now: Date; since: Date; kill?: KillParams }): KillResult {
+  const K = opts.kill ?? KILL
   const scored = audits
     .filter(a => (a.human_verdict === 'relevant' || a.human_verdict === 'irrelevant') && a.human_graded_at)
     .sort((a, b) => Date.parse(b.human_graded_at as string) - Date.parse(a.human_graded_at as string))
-  const win = scored.slice(0, KILL.window)
+  const win = scored.slice(0, K.window)
   const n = win.length
   const errors = win.filter(a => a.human_verdict === 'irrelevant').length
-  const recent = scored.filter(a => opts.now.getTime() - Date.parse(a.human_graded_at as string) <= KILL.warmupDays * DAY_MS).length
-  const threshold = n >= KILL.minAudits ? tripThreshold(n) : null
+  const recent = scored.filter(a => opts.now.getTime() - Date.parse(a.human_graded_at as string) <= K.warmupDays * DAY_MS).length
+  const threshold = n >= K.minAudits ? tripThreshold(n, K.p0) : null
 
   if (threshold !== null && errors >= threshold) {
     return { state: 'tripped', n, errors, threshold, recent, reason: `감사 최근 ${n}건 중 오류 ${errors}건(문턱 ${threshold}) — 정확도 ${pct(n - errors, n)}` }
   }
   const age = opts.now.getTime() - opts.since.getTime()
-  if (age > KILL.warmupDays * DAY_MS && recent < KILL.minRecentAudits) {
-    return { state: 'unverifiable', n, errors, threshold, recent, reason: `최근 ${KILL.warmupDays}일 감사 ${recent}건(필요 ${KILL.minRecentAudits}) — 감사가 돌지 않아 정확도 확인 불가` }
+  if (age > K.warmupDays * DAY_MS && recent < K.minRecentAudits) {
+    return { state: 'unverifiable', n, errors, threshold, recent, reason: `최근 ${K.warmupDays}일 감사 ${recent}건(필요 ${K.minRecentAudits}) — 감사가 돌지 않아 정확도 확인 불가` }
   }
   if (threshold === null) {
-    return { state: 'warmup', n, errors, threshold, recent, reason: `감사 ${n}건 — ${KILL.minAudits}건 전까지 워밍업(시행 ${KILL.warmupDays}일 안)` }
+    return { state: 'warmup', n, errors, threshold, recent, reason: `감사 ${n}건 — ${K.minAudits}건 전까지 워밍업(시행 ${K.warmupDays}일 안)` }
   }
   return { state: 'ok', n, errors, threshold, recent, reason: `감사 최근 ${n}건 중 오류 ${errors}건(문턱 ${threshold}) — 정확도 ${pct(n - errors, n)}` }
 }

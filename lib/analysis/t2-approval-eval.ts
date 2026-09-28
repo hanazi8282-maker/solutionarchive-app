@@ -2,7 +2,9 @@
 // 집행은 scripts/t2-approval-eval.mjs, 셀프테스트는 scripts/t2-approval-eval-selftest.mjs.
 //
 // 질문: 1차·2차가 둘 다 relevant ∧ 둘 다 정보 있음(= rr-v2 가 승인할 행, "A")을 사람 기준으로 채점하면 몇 건이 틀리나.
-// gold 는 감사 킬스위치와 **같은 함수**(scoreApproval)로 정한다 — 평가와 운영 감사가 다른 잣대면 평가 숫자가 운영을 예측하지 못한다.
+// gold 는 사람 정보 열이 있으면 감사 킬스위치와 **같은 함수**(scoreApproval)로 정한다. 정보 열이 비었으면(마이그 000031 이전 채점 전부)
+// 사람 '관련' 을 true 로 **추정**한다(estimated) — 킬스위치처럼 비었다고 버리면 n_A 가 0 이 된다(09-28 실측: A 0 · 재확인 57).
+// 킬스위치(운영 감사)는 엄격한 잣대 그대로 둔다. 추정 정답으로 채점된 승인 수는 gold_estimated 로 따로 내 "잠정"을 표시한다.
 //
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다. `@/` 별칭·enum 을 쓰지 않는다.
 
@@ -27,21 +29,32 @@ export interface EvalInput {
   second: Judgement | null
 }
 
-export type RecheckReason = 'a' | 'b'
-/** a = gold 를 못 정함(사람 정보 열 비었거나 관련 모름) · b = 09-28 좁은 기준으로 '무관' 매긴 8건 — 관련 열까지 다시 받는다. */
+export type RecheckReason = 'a' | 'b' | 'c'
+/**
+ * 정답이 추정·미정이면서 예측과 부딪치는 행만 다시 묻는다(사람 정보 열 미기재 전제).
+ * a = 사람 무관·모름인데 예측 승인 · c = 사람 관련인데 예측 미승인 · b = 09-28 좁은 기준으로 '무관' 매긴 8건(항상) — 관련 열까지 다시 받는다.
+ */
 export interface RecheckItem { input_id: string; reason: RecheckReason }
 
 const NARROW = new Set(RR39_NARROW_IRRELEVANT_INPUT_IDS)
 const EXAMPLES = new Set(INFORMATIVE_EXAMPLE_INPUT_IDS)
 
+export interface Gold { value: boolean; estimated: boolean }
+
 /**
- * 사람 기준 정답. true = 승인해도 된다 · false = 승인하면 오류 · null = 모른다.
+ * 사람 기준 정답. value true = 승인해도 된다 · false = 승인하면 오류 · null = 모른다.
+ * 정보 열 있음 → scoreApproval(관련 ∧ 정보). 없음 → 관련은 true 추정 · 무관은 false(정보와 무관하게 오류) · 모름·미채점은 null.
  * 좁은 기준 8건은 정보 열이 채워지기(= 재확인 표를 거치기) 전에는 human_verdict 를 믿지 않는다.
  */
-export function goldOf(r: Pick<EvalInput, 'input_id' | 'human_verdict' | 'human_product_informative' | 'human_graded_at'>): boolean | null {
-  if (NARROW.has(r.input_id) && typeof r.human_product_informative !== 'boolean') return null
-  const s = scoreApproval({ human_verdict: r.human_verdict, human_product_informative: r.human_product_informative, human_graded_at: r.human_graded_at })
-  return s === null ? null : s === 'correct'
+export function goldOf(r: Pick<EvalInput, 'input_id' | 'human_verdict' | 'human_product_informative' | 'human_graded_at'>): Gold | null {
+  if (typeof r.human_product_informative === 'boolean') {
+    const s = scoreApproval({ human_verdict: r.human_verdict, human_product_informative: r.human_product_informative, human_graded_at: r.human_graded_at })
+    return s === null ? null : { value: s === 'correct', estimated: false }
+  }
+  if (NARROW.has(r.input_id) || !r.human_graded_at) return null
+  if (r.human_verdict === 'relevant') return { value: true, estimated: true }
+  if (r.human_verdict === 'irrelevant') return { value: false, estimated: false }
+  return null
 }
 
 /** rr-v2 가 승인할 행인가. 판정이 하나라도 없으면 null(예측 불가). */
@@ -58,6 +71,8 @@ export interface EvalResult {
   gold_known: number
   gold_positive: number
   n_A: number
+  /** n_A 중 정답이 추정(사람 관련 ∧ 정보 열 미기재)인 건수. 0 이 아니면 정밀도는 잠정이다. */
+  gold_estimated: number
   errors: number
   precision: number | null
   recall: number | null
@@ -66,7 +81,7 @@ export interface EvalResult {
 }
 
 export function scoreEval(rows: readonly EvalInput[]): EvalResult {
-  let unjudged = 0, excluded = 0, known = 0, pos = 0, nA = 0, errors = 0, hit = 0
+  let unjudged = 0, excluded = 0, known = 0, pos = 0, nA = 0, errors = 0, hit = 0, est = 0
   const recheck: RecheckItem[] = []
   const seen = new Set<string>()
   const push = (input_id: string, reason: RecheckReason) => { if (!seen.has(input_id)) { seen.add(input_id); recheck.push({ input_id, reason }) } }
@@ -76,13 +91,15 @@ export function scoreEval(rows: readonly EvalInput[]): EvalResult {
     if (EXAMPLES.has(r.input_id)) { excluded++; continue }
     const a = predictA(r.first, r.second)
     const gold = goldOf(r)
-    const humanSeen = r.human_verdict != null
-    if (gold === null && (humanSeen || a === true)) push(r.input_id, 'a')
+    if (r.human_graded_at && typeof r.human_product_informative !== 'boolean') {
+      if (a === true && (r.human_verdict === 'irrelevant' || r.human_verdict === 'unknown')) push(r.input_id, 'a')
+      if (a === false && r.human_verdict === 'relevant') push(r.input_id, 'c')
+    }
     if (a === null) { unjudged++; continue }
     if (gold === null) continue
     known++
-    if (gold) pos++
-    if (a) { nA++; if (!gold) errors++; else hit++ }
+    if (gold.value) pos++
+    if (a) { nA++; if (gold.estimated) est++; if (!gold.value) errors++; else hit++ }
   }
   // 좁은 기준 8건은 이번 표본에 없어도 항상 재확인 목록에 든다.
   for (const id of NARROW) push(id, 'b')
@@ -91,7 +108,7 @@ export function scoreEval(rows: readonly EvalInput[]): EvalResult {
   const recall = pos ? hit / pos : null
   return {
     n: rows.length, unjudged, excluded_examples: excluded, gold_known: known, gold_positive: pos,
-    n_A: nA, errors, precision, recall,
+    n_A: nA, gold_estimated: est, errors, precision, recall,
     meets_gate: unjudged === 0 && nA >= EVAL_GATE.minNA && errors <= EVAL_GATE.maxErrors && recall !== null && recall >= EVAL_GATE.minRecall,
     recheck,
   }

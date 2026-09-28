@@ -198,17 +198,17 @@ fs.writeFileSync(mdPath, [
   '',
   `- 대상 ${result.n}행 · 예시 제외 ${result.excluded_examples} · 판정 빠짐(unjudged) ${result.unjudged} · 원문 폐기 제외 ${purged.length} · 사람 정보 열 ${infoColumn === 'present' ? '있음' : '없음(마이그 000031 미적용)'}`,
   `- gold 확정 ${result.gold_known}행(그중 승인해도 되는 행 ${result.gold_positive})`,
-  `- **A(둘 다 관련 ∧ 둘 다 정보 있음) ${result.n_A}건 · 오류 ${result.errors}건 · 정밀도 ${pct(result.precision)} · 재현율 ${pct(result.recall)}**`,
+  `- **A(둘 다 관련 ∧ 둘 다 정보 있음) ${result.n_A}건 · 오류 ${result.errors}건 · 정밀도 ${pct(result.precision)} · 재현율 ${pct(result.recall)}**${result.gold_estimated ? ` — **잠정**: A 중 ${result.gold_estimated}건은 사람 정보 열이 비어 '관련=정보 있음'으로 추정한 정답` : ''}`,
   `- 가동 문턱(문서화만, 플래그는 사람이 켠다): n_A≥${EVAL_GATE.minNA} · 오류≤${EVAL_GATE.maxErrors} · 재현율≥${EVAL_GATE.minRecall * 100}% → ${result.meets_gate ? '충족' : '미충족'}`,
   `- 옛 프롬프트 대비 1차 verdict 일치: ${drift ? `${drift.agree}/${drift.n} (${pct(drift.pct)}) · 기준선 ${drift.baseline}` : '확인 불가(기준선 없음)'}`,
   '',
-  `## 재확인 목록 ${result.recheck.length}건 (a = gold 미확정 · b = 09-28 좁은 기준 무관 — 관련 열도 다시)`,
+  `## 재확인 목록 ${result.recheck.length}건 (정보 열 미기재 ∧ 예측과 부딪침: a = 사람 무관·모름인데 예측 승인 · c = 사람 관련인데 예측 미승인 · b = 09-28 좁은 기준 무관, 항상 — 관련 열도 다시)`,
   ...result.recheck.map((r) => `- \`${r.input_id}\` · ${r.reason}`),
   '',
   `표 만들기: \`node --env-file=.env.local scripts/relevance-grading-sample.mjs --recheck ${outPath}\``,
   ...(drift && drift.flips.length ? ['', '## 1차 verdict 가 바뀐 행 (최대 30)', ...drift.flips.slice(0, 30).map((f) => `- \`${f.input_id}\` · ${f.from} → ${f.to}`)] : []),
   '',
 ].join('\n'))
-console.log(`A ${result.n_A} · 오류 ${result.errors} · 정밀도 ${pct(result.precision)} · 재현율 ${pct(result.recall)} · unjudged ${result.unjudged} · 재확인 ${result.recheck.length}`)
+console.log(`A ${result.n_A}(추정 정답 ${result.gold_estimated}) · 오류 ${result.errors} · 정밀도 ${pct(result.precision)} · 재현율 ${pct(result.recall)} · unjudged ${result.unjudged} · 재확인 ${result.recheck.length}`)
 console.log(`✅ ${outPath}\n✅ ${mdPath}`)
 process.exit(result.unjudged > 0 ? 3 : 0)

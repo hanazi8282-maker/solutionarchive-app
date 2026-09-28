@@ -6,7 +6,7 @@ import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
 import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
 import { FilterChip } from '../_ds/components/FilterChip'
-import { MIN_VOC_HITS, MAX_VOC_HITS } from '@/lib/discovery/candidate'
+import { MIN_VOC_HITS, MAX_VOC_HITS, inVocWindow } from '@/lib/discovery/candidate'
 import { ReviewForm } from './review-form'
 
 export const dynamic = 'force-dynamic'
@@ -62,7 +62,7 @@ const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'nu
 const KST_DAY = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
 
 /** 채택 창. 판정한 것은 프로브이고, 화면은 그 기준을 실측값 옆에 그대로 적기만 한다. */
-const WINDOW_TEXT = `${MIN_VOC_HITS}~${MAX_VOC_HITS}`
+const WINDOW_TEXT = `${MIN_VOC_HITS.toLocaleString()} 이상 ${MAX_VOC_HITS.toLocaleString()} 미만`
 
 /**
  * probe_hits 의 NULL 은 **0 이 아니라 "못 셌다"** 다(컬럼 COMMENT).
@@ -76,7 +76,7 @@ function ProbeHits({ hits }: { hits: number | null }) {
   if (hits === null || hits === undefined) {
     return <Badge tone="danger" size="sm">VOC 확인 불가 (못 셈) · 기준 {WINDOW_TEXT}</Badge>
   }
-  const inWindow = hits >= MIN_VOC_HITS && hits <= MAX_VOC_HITS
+  const inWindow = inVocWindow(hits)
   return (
     <Badge tone={inWindow ? 'info' : 'neutral'} size="sm">
       실측 VOC {hits.toLocaleString()}건 / 기준 {WINDOW_TEXT}

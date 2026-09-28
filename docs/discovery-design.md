@@ -22,9 +22,9 @@
                        ⚠️ 네트워크 쓰기 전에 돈다
 [4] 프로브(네트워크)    saas    : hn.algolia.com search_by_date → nbHits
                        physical: search.danawa.com/dsearch.php → 최다리뷰 pcode + 리뷰수
-                       채택 창은 양쪽이 닫혀 있다: 30 ≤ hits ≤ 500
-                       hits < MIN_VOC_HITS(30) → rejected/insufficient_voc
-                       hits > MAX_VOC_HITS(500) → rejected/oversized_voc
+                       채택 창은 반열린 구간: 200 ≤ hits < 50,000 (2026-09-28)
+                       hits < MIN_VOC_HITS(200)     → rejected/insufficient_voc
+                       hits ≥ MAX_VOC_HITS(50,000)  → rejected/oversized_voc
                        캡된 값이 경계를 걸침   → unverified/bounds_unverifiable
                        요청·파싱 실패          → unverified  (rejected 와 다르다)
 [5] 적재(DB, 통과분만)  analysis_projects INSERT(status='collecting', mode='forward')
@@ -67,9 +67,11 @@ Notion 79,072 · Heroku 25,461 · 다이슨 999+ · 하기스 648 이 네 건 �
 - **상한도 실측값으로만 거른다.** "LLM 프롬프트로 대형 브랜드를 제외하라"는
   대안은 기각됐다(남헌 2026-09-18) — 프롬프트 제약은 LLM 의 주장에 의존해
   "채택은 hits 가 정한다"는 이 엔진의 전제를 깨뜨린다.
-- 기본값 `MAX_VOC_HITS = 500`. 읽을 수 있는 실측 두 점 사이다:
-  93(필립스, 남헌이 kept 로 판정 → 창 안) < 500 < 648(하기스, 킴벌리클라크 → 창 밖).
-  env `DISCOVERY_MAX_VOC_HITS` · 워크플로 `vars` 로 조정한다.
+- ~~기본값 `MAX_VOC_HITS = 500`~~ → **2026-09-28 남헌 확정: 하한 200(포함) · 상한
+  50,000(배타).** 500 시절 SaaS 후보는 HN 댓글수 스케일 때문에 거의 전부 기각됐다.
+  기본값의 정본은 `lib/discovery/candidate.ts` 상수 하나다. 워크플로는 숫자 폴백을
+  두지 않는다(두면 상수를 바꿔도 크론이 옛 값으로 돈다 — 09-28 실제로 `'30'`/`'500'`
+  폴백이 돌고 있었다). 조정은 env `DISCOVERY_{MIN,MAX}_VOC_HITS` · 리포 `vars`.
 - **verdict 어휘는 늘리지 않았다.** 상한 초과는 `rejected` + 사유
   `oversized_voc:` 다. `rejected` 는 이미 사유로 사건을 가르는 바구니이고
   (`insufficient_voc` · `already_known` · `duplicate_category`), 상한 초과는
@@ -93,10 +95,11 @@ Notion 79,072 · Heroku 25,461 · 다이슨 999+ · 하기스 648 이 네 건 �
 접으면 정확히 999 인 멀쩡한 상품을 근거 없이 버린다. 둘 다 하지 않는다 — 모르는
 것은 모른다고 적는다(CLAUDE.md §7.1).
 
-**따라서 상한을 999 이상으로 올리면 physical 쪽 상한은 사실상 죽는다**(캡된 값이
-전부 판정 불가가 되어 아무도 채택되지 않는다). 기본값 500 이 그 아래인 이유다.
+**따라서 상한이 999 를 넘으면 physical 의 `999+` 는 판정 불가다.** 2026-09-28 기본
+상한 50,000 이 그 상태다 — 리뷰 999+ 인 다나와 상품은 `unverified/bounds_unverifiable`
+로 남고 자동 채택되지 않는다. 캡을 푸는 프로브(상품 상세의 정확한 리뷰수)가 생기면 풀린다.
 
-`DISCOVERY_MIN_VOC_HITS > DISCOVERY_MAX_VOC_HITS` 로 창이 뒤집힌 설정은
+`DISCOVERY_MIN_VOC_HITS >= DISCOVERY_MAX_VOC_HITS` 로 창이 비거나 뒤집힌 설정은
 모든 후보를 `unverified/config_error` 로 만든다. 조용히 전부 기각하면 발굴이
 영영 0건인데 로그는 초록불이다(§7.2).
 

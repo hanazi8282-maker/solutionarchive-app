@@ -4,6 +4,7 @@
 
 import type { createClient } from '@/lib/supabase/server'
 import { isMissingColumn } from '../analysis/facets.ts'
+import { loadDeletedCaseIds, withoutDeleted } from './deleted.ts'
 import type { MoveRow, StudyRow } from './match'
 import type { FailedAngleRow, PrincipleRow } from './advisor'
 
@@ -87,11 +88,14 @@ class CorpusUnavailable extends Error {
 }
 
 async function readCaseCorpus(supabase: Client, where: string): Promise<CaseCorpus> {
-  const [studies, moves, failedAngles] = await Promise.all([
+  const [rawStudies, rawMoves, failedAngles, deleted] = await Promise.all([
     safeSelect<StudyRow>(supabase, 'case_studies', STUDY_COLS, where),
     selectMoves(supabase, where),
     safeSelect<FailedAngleRow>(supabase, 'failed_angles', FAILED_ANGLE_COLS, where),
+    loadDeletedCaseIds(supabase, where),
   ])
+  // 숨긴 케이스(lib/cases/deleted.ts)와 그 무브를 뺀다. 숨김 목록을 못 읽으면 둘 다 null → 캐시 안 됨·"확인 불가".
+  const { studies, moves } = withoutDeleted(rawStudies, rawMoves, deleted)
   return { studies, moves, failedAngles }
 }
 

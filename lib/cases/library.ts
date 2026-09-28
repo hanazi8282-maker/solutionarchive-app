@@ -17,6 +17,7 @@
 
 import type { createClient } from '@/lib/supabase/server'
 import { safeSelect } from './corpus-db.ts'
+import { deletedIdsOf, withoutDeleted } from './deleted.ts'
 import { sortMovesByTime, type DetailMoveRow, type DetailStudyRow } from './detail.ts'
 import { displayGrade } from './grade-display.ts'
 import { productKindOf } from './advisor.ts'
@@ -253,11 +254,13 @@ export function buildLibrary(query: LibraryQuery, corpora: LibraryCorpora): Libr
  *   문제 유형·종류 필터와 정렬을 SQL 로 내린다(그때 건수 칩은 count 쿼리 1번으로).
  */
 export async function loadLibrary(sb: Client, query: LibraryQuery, where = 'library'): Promise<LibraryResult> {
-  const [studies, moves, evidence] = await Promise.all([
+  const [rawStudies, rawMoves, evidence] = await Promise.all([
     safeSelect<DetailStudyRow>(sb, 'case_studies', '*', where),
     safeSelect<DetailMoveRow>(sb, 'case_moves', '*', where),
     safeSelect<{ case_study_id: string | null }>(sb, 'case_evidence', 'case_study_id', where),
   ])
+  // 숨긴 케이스는 승인 상태여도 그리드·랜딩에 안 나간다(lib/cases/deleted.ts). '*' 라 행에 deleted_at 이 실려 온다.
+  const { studies, moves } = withoutDeleted(rawStudies, rawMoves, deletedIdsOf(rawStudies ?? []))
   return buildLibrary(query, { studies, moves, evidence })
 }
 

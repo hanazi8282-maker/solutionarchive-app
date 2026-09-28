@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { loadDeletedCaseIds } from '@/lib/cases/deleted'
 import {
   GRADE_PAGE_SIZE, approvedMovesByBottleneck, countReviewedToday, gradeQueuePage, kstDate, sortGradeQueue,
 } from '@/lib/cases/grade-queue'
@@ -53,18 +54,20 @@ export default async function CasesGradePage({ searchParams }: { searchParams: P
     // 전후 수치는 case_moves(*) 에 이미 들어온다. 새 컬럼을 추가하지 않았다 — 전부 20260906000001 에 있다.
     .select('id, slug, brand_name, business_model, bottleneck, reader_problem, summary, review_status, reviewed_at, created_at, market, geo, period_start, period_end, outcome_status, buyer_type, price_band, case_moves(*), case_evidence(id, url, domain, case_move_id, snippet)')
 
-  if (res.error || !res.data) {
+  // 숨긴 케이스(lib/cases/deleted.ts)는 채점 큐에 올리지 않는다 — 복원은 /cases 에서.
+  const deleted = await loadDeletedCaseIds(sb, 'cases/grade')
+  if (res.error || !res.data || !deleted) {
     return (
       <Shell>
         {header}
         <Notice tone="danger" title="확인 불가 — 케이스 조회 실패">
-          {res.error?.message ?? '응답에 행이 없다'} · 채점할 카드가 없다는 뜻이 아니다.
+          {res.error?.message ?? (deleted ? '응답에 행이 없다' : '숨김 목록 조회 실패')} · 채점할 카드가 없다는 뜻이 아니다.
         </Notice>
       </Shell>
     )
   }
 
-  const all = (res.data as CaseRow[]).map((c) => ({
+  const all = (res.data as CaseRow[]).filter((c) => !deleted.has(c.id)).map((c) => ({
     ...c,
     moves: [...(c.case_moves ?? [])]
       .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))

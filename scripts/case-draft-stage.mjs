@@ -34,6 +34,7 @@ import { bpNoteLine } from '../lib/threads/instant-gate.ts'
 const asBool = (v) => (v === true || v === 'true' ? true : v === false || v === 'false' ? false : null)
 import { createClient } from '../lib/supabase/server.ts'
 import { linkDecisionLog } from '../lib/predictions/link.ts'
+import { loadDeletedCaseIds } from '../lib/cases/deleted.ts'
 import { attributionGate, attributionHint, numericGate, numericHint } from '../lib/cases/publish-gate.ts'
 
 const CHANNEL_ID = '64558fd1-06a5-4440-8fb1-bb78375479e0' // threads / @solution_arch_
@@ -155,6 +156,20 @@ async function stageOne(job) {
 
   if (charCount > 500) {
     console.error(`⚠️ 본문 ${charCount}자 — Threads 상한 500 초과. 저장하지 않는다 (G-11).`)
+    return 2
+  }
+
+  // ── 0) 숨긴 케이스면 아무것도 쓰지 않는다 ─────────────────────
+  // 사람이 공개에서 내린 케이스(lib/cases/deleted.ts)로 초안을 만들지 않는다. 앵글 선택(cmo-daily)이 이미 거르지만,
+  // --input 수동 실행과 "고른 뒤 내린" 틈을 여기서 막는다. 새 종료 코드를 만들지 않고 2 로 크게 실패한다.
+  const hidden = await loadDeletedCaseIds(supabase, 'case-draft-stage')
+  const owner = await supabase.from('case_moves').select('case_study_id').eq('id', job.move_id).maybeSingle()
+  if (!hidden || owner.error || !owner.data) {
+    console.error(`⚠️ 확인 불가: 숨김 여부를 확인하지 못했다 — ${owner.error?.message ?? (hidden ? '무브 없음' : '숨김 목록 조회 실패')}. 저장하지 않는다.`)
+    return 2
+  }
+  if (hidden.has(owner.data.case_study_id)) {
+    console.error(`⛔ ${job.case_slug} 는 공개에서 내린(숨긴) 케이스다 — 스테이징하지 않는다. 복원은 /cases.`)
     return 2
   }
 

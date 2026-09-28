@@ -9,6 +9,7 @@
 
 import type { createClient } from '@/lib/supabase/server'
 import type { FailedAngleRow, Side, SuccessMoveRow } from '@/lib/onboarding/quiz'
+import { loadDeletedCaseIds, withoutDeleted } from '@/lib/cases/deleted'
 
 export type Supabase = NonNullable<Awaited<ReturnType<typeof createClient>>>
 
@@ -27,13 +28,16 @@ export interface QuizCorpora {
 export async function loadCorpora(supabase: Supabase): Promise<QuizCorpora | null> {
   const { data: moves, error: movesErr } = await supabase
     .from('case_moves')
-    .select('id, claim, outcome_direction')
+    .select('id, claim, outcome_direction, case_study_id')
     .eq('outcome_direction', 'positive')
     .eq('review_status', 'approved')
   if (movesErr) {
     console.error('[onboarding/quiz] case_moves select error:', movesErr.code ?? '', movesErr.message)
     return null
   }
+  // 숨긴 케이스(lib/cases/deleted.ts)의 무브는 퀴즈에 안 낸다. 숨김 목록을 못 읽으면 퀴즈도 확인 불가(null).
+  const visible = withoutDeleted([], moves ?? [], await loadDeletedCaseIds(supabase, 'onboarding/quiz')).moves
+  if (visible === null) return null
 
   const { data: failedAngles, error: failedErr } = await supabase
     .from('failed_angles')
@@ -44,7 +48,7 @@ export async function loadCorpora(supabase: Supabase): Promise<QuizCorpora | nul
   }
 
   return {
-    moves: (moves ?? []) as SuccessMoveRow[],
+    moves: visible as SuccessMoveRow[],
     failedAngles: (failedAngles ?? []) as FailedAngleRow[],
   }
 }

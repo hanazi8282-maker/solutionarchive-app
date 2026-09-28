@@ -13,7 +13,13 @@
 //   이어 붙이면 "게이트 P-10 vs 규칙 P-10"(사고 4)과 똑같은 모양이 된다.
 //   정본 설명은 `docs/case-study-pipeline-design.md`.
 
-/** 사실확인 등급 C 무브를 인용하는 초안은 본문에 출처 귀속 문구가 있어야 발행 대기로 간다. */
+/**
+ * 사실확인 등급 C 무브를 인용하는 초안은 **근거 메타**(스레드 자기답글 · 칼럼 근거 메모)에 "자사 공시" 귀속이 있어야 발행 대기로 간다.
+ *
+ * ★ 2026-09-29 남헌 결정(UPD-20260929-01, 09-16 L-62 뒤집음): 카피 규칙(케이스-작성-가이드 §7-4)이 우선한다. 독자가 읽는
+ *   본문에는 "회사가 스스로 밝힌 숫자" 한 줄을 넣지 않아도 된다. 대신 자사 공시 vs 제3자 검증의 구분은 절대 잃지 않는다 —
+ *   그 구분이 사는 자리가 본문에서 근거 메타로 옮겨졌다. 메타를 못 읽었으면 "확인 불가"이지 통과가 아니다(§7.1).
+ */
 export const CG_1 = 'CG-1'
 
 /** 사실확인 등급 D 무브를 인용하는 초안 본문에는 수치가 들어갈 수 없다. */
@@ -37,12 +43,14 @@ export type GateResult = {
   caveat: string | null
 }
 
-// 주체가 '그 회사 자신'임을 문장이 스스로 밝히는 표현들.
+// 주체가 '그 회사 자신'임을 근거 메타 줄이 스스로 밝히는 표현들. 정본 표시는 "자사 공시" 하나이고
+// 나머지는 2026-09-16 부터 쓰던 동의어라 그대로 받는다(옛 초안의 자기답글을 다시 쓰게 하지 않으려고).
 //
 // ★ 왜 이렇게 좁게 잡았나. "~에 따르면" 같은 일반 표현을 넣으면 "업계에 따르면"으로도
 //   통과한다. 그건 귀속이 아니라 얼버무림이다. 검사가 통과시켜야 할 것은 "이 숫자를 말한
-//   주체가 회사 자신"이라는 사실을 독자가 알 수 있는 문장뿐이다.
-const SELF_MARKERS: { re: RegExp; label: string }[] = [
+//   주체가 회사 자신"이라는 사실을 검수자가 알 수 있는 줄뿐이다.
+export const SELF_MARKERS: { re: RegExp; label: string }[] = [
+  { re: /자사\s*공시/, label: '자사 공시 (정본 표시)' },
   { re: /자사\s*(발표|집계|기준|자료|추산)/, label: '자사 발표/집계/기준' },
   { re: /회사\s*(발표|자료|추산)/, label: '회사 발표/자료' },
   { re: /회사(가|는|의)\s*(밝힌|밝혔|발표한|발표했|공개한|공개했|공시한|공시했|집계한|집계했)/, label: '회사가 밝힌/발표한' },
@@ -83,18 +91,22 @@ function findNamedMarker(body: string, names: string[]): string | null {
 }
 
 /**
- * CG-1. 사실확인 등급 C 무브를 인용하는 초안은 본문에 출처 귀속 문구를 달아야 한다.
+ * CG-1. 사실확인 등급 C 무브를 인용하는 초안은 **근거 메타**(자기답글·근거 메모)에 "자사 공시" 귀속을 달아야 한다.
  *
  * 왜 금지가 아니라 조건부인가: C 는 "근거가 없다"가 아니라 "제3자 확인이 없다"이다.
- * 버리면 케이스 13건이 죽는다. 대신 독자가 그 숫자의 출처를 알고 읽게 만든다 —
+ * 버리면 케이스 13건이 죽는다. 대신 검수자와 자기답글을 연 독자가 그 숫자의 출처를 알게 만든다 —
  * Nubank 20-F 가 스스로 "not independently verified"라고 적는 것과 같은 수위다.
  *
- * ★ 이 검사가 확인하는 것: **귀속 문구가 본문에 있는가.**
- *   확인하지 못하는 것: 그 문구가 **문제의 그 수치에 붙어 있는가.**
- *   문구를 아무 데나 한 줄 넣어도 통과한다. 그래서 통과는 "사람이 안 봐도 된다"가 아니라
+ * ★ 2026-09-29 부터 `body` 는 검사하지 않는다(카피 규칙 우선 — 본문 귀속은 선택). 검사 대상은 `evidence` 다.
+ *   `evidence` 가 null/undefined 면 "메타를 못 읽었다" = 확인 불가 → ok:false. 통과로 접지 않는다(§7.1).
+ *   부르는 쪽: case-draft-stage.mjs 는 .selfreply.txt, instant-gate 는 posts.notes 의 자기답글 블록을 넘긴다.
+ *
+ * ★ 이 검사가 확인하는 것: **귀속 표시가 근거 메타에 있는가.**
+ *   확인하지 못하는 것: 그 표시가 **문제의 그 수치 줄에 붙어 있는가.**
+ *   아무 줄에나 넣어도 통과한다. 그래서 통과는 "사람이 안 봐도 된다"가 아니라
  *   "사람이 볼 준비가 됐다"는 뜻이다(§7.1 — 통과를 양성으로 읽지 마라).
  */
-export function attributionGate(moves: GateMove[], body: string): GateResult {
+export function attributionGate(moves: GateMove[], _body: string, evidence?: string | null): GateResult {
   const cMoves = moves.filter(m => m.fact_check_grade === 'C')
   if (cMoves.length === 0) {
     return {
@@ -106,24 +118,34 @@ export function attributionGate(moves: GateMove[], body: string): GateResult {
     }
   }
 
-  const names = cMoves.flatMap(m => [m.brand_name, m.slug]).filter(Boolean) as string[]
-  const matched = findSelfMarker(body) ?? findNamedMarker(body, names)
-
   const where = cMoves.map(m => `${m.slug ?? '?'}/${m.lever ?? '?'}`).join(', ')
+  if (evidence == null) {
+    return {
+      ok: false,
+      code: CG_1,
+      reason: `사실확인 등급 C 무브 ${cMoves.length}건(${where})을 인용하는데 근거 메타(자기답글·근거 메모)를 읽지 못했다 — 확인 불가, 통과로 접지 않는다`,
+      matched: null,
+      caveat: null,
+    }
+  }
+
+  const names = cMoves.flatMap(m => [m.brand_name, m.slug]).filter(Boolean) as string[]
+  const matched = findSelfMarker(evidence) ?? findNamedMarker(evidence, names)
+
   if (matched) {
     return {
       ok: true,
       code: CG_1,
-      reason: `사실확인 등급 C 무브 ${cMoves.length}건(${where})을 인용하는데 귀속 문구가 있다`,
+      reason: `사실확인 등급 C 무브 ${cMoves.length}건(${where})을 인용하는데 근거 메타에 자사 공시 귀속이 있다`,
       matched,
-      caveat: '문구가 본문에 있다는 것만 확인했다. 그 문구가 그 수치에 붙어 있는지는 사람이 읽어야 안다.',
+      caveat: '표시가 근거 메타에 있다는 것만 확인했다. 그 표시가 그 수치 줄에 붙어 있는지는 사람이 읽어야 안다. 본문 귀속은 2026-09-29 부터 선택이다.',
     }
   }
 
   return {
     ok: false,
     code: CG_1,
-    reason: `사실확인 등급 C 무브 ${cMoves.length}건(${where})을 인용하는데 본문에 출처 귀속 문구가 없다`,
+    reason: `사실확인 등급 C 무브 ${cMoves.length}건(${where})을 인용하는데 근거 메타(자기답글·근거 메모)에 "자사 공시" 귀속이 없다`,
     matched: null,
     caveat: null,
   }
@@ -193,10 +215,12 @@ export function numericHint(): string[] {
 /** 사람에게 뭘 쓰라고 알려 주는 문구. 에러 메시지에서 그대로 쓴다. */
 export function attributionHint(): string[] {
   return [
-    '사실확인 등급 C 는 "근거가 없다"가 아니라 "제3자 확인이 없다"이다. 그 사실을 독자가 알고 읽게 하라.',
-    '본문에 아래 중 하나를 넣어라 (자기 귀속이 드러나는 표현이어야 한다):',
+    '사실확인 등급 C 는 "근거가 없다"가 아니라 "제3자 확인이 없다"이다. 그 구분을 근거 메타에서 잃지 마라.',
+    '자기답글(.selfreply.txt) 또는 근거 메모의 그 수치 줄에 "자사 공시" 를 적어라. 본문에는 안 넣어도 된다(2026-09-29 카피 규칙 우선).',
+    '받는 표시(정본은 첫 줄):',
     ...SELF_MARKERS.map(m => `  · ${m.label}`),
     '  · 브랜드 이름 + 밝혔다/발표했다 (예: "Chewy가 밝힌 바로는")',
     '"업계에 따르면" 처럼 주체를 흐리는 표현은 통과하지 않는다 — 그건 귀속이 아니라 얼버무림이다.',
+    '자기답글을 읽지 못하면 확인 불가로 막힌다 — 파일이 비어 있지 않은지 먼저 본다.',
   ]
 }

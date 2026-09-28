@@ -237,6 +237,9 @@ function selfTest() {
   // 2026-09-29 편 자족성 — 다른 편을 가리키는 편은 올리지 않는다.
   const dep = buildStageRows({ ...column, threads: [{ n: '3', body: '앞 편에서 본 그 결정은 이렇게 끝났다.', char_count: 22 }] })
   check('다른 편을 가리키는 편은 error(SC-1)', /SC-1/.test(dep.error ?? ''), dep.error ?? 'error 없음')
+  // 2026-09-29 2차 — 예고형 마무리("다음 편에 적겠다")도 올리지 않는다(NEW-20260929-05).
+  const tz = buildStageRows({ ...column, threads: [{ n: '3', body: '조선미녀는 반대로 갔다. 나머지는 다음 글에 적겠다.', char_count: 30 }] })
+  check('예고형 마무리 편은 error(SC-1 예고)', /SC-1.*예고/.test(tz.error ?? ''), tz.error ?? 'error 없음')
 
   // 연결된 행을 덮어쓰지 않는다 — 이게 이 스크립트의 가장 위험한 자리다.
   check('연결된 행은 건너뜀', canOverwrite({ status: 'published', external_id: '18165008242467071' }).ok === false)

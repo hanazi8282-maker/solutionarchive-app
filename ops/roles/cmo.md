@@ -86,8 +86,9 @@
 - content-gate Ⅰ~Ⅴ 를 **실제로 실행한 기록**이 있어야 한다. 스킬 자동 발동에
   의존하지 말고 `.claude/skills/content-gate/SKILL.md` 와 `references/00-gate.md`,
   분기된 매체 게이트 파일을 직접 Read 해서 항목별로 판정한다.
-- 등급 C 무브를 인용하면 본문에 출처 귀속 문구가 있어야 한다 (`CG-1`).
-  없으면 `case-draft-stage.mjs` 가 `draft` 로 눕히고 exit 4 를 낸다 — 이건
+- 등급 C 무브를 인용하면 **자기답글**의 그 수치 줄에 "자사 공시" 가 있어야 한다 (`CG-1`,
+  2026-09-29 부터 본문이 아니라 자기답글을 본다 — UPD-20260929-01). 없거나 자기답글을 못 읽으면
+  `case-draft-stage.mjs` 가 `draft` 로 눕히고 exit 4 를 낸다 — 이건
   정상 동작이다. 스텝 상태는 `blocked` 이고 blocker 에 사유가 들어간다.
 
 ### 다이제스트

@@ -125,6 +125,14 @@ G-R 질문표는 양쪽에 다 있다 — `references/solfa-gate.md` G-R,
 원문(`01-methodology.md`, `references/*-gate.md`, `*-decisions.md`)에서만 끌어온다.
 답지를 읽었으면 그 사실을 응답에 반드시 밝힌다 — 밝히지 않으면 점수가 거짓이 된다.
 
+## 칼럼·연재 편 (2026-09-29)
+
+칼럼(`drafts/columns/*.md`)과 거기서 뗀 편(`.threads.md`)은 게이트 Ⅰ~Ⅴ 를 매번 돌리지 않는다.
+대신 `content/guides/케이스-작성-가이드.md` §10 점검표(0~16) + `content/guides/voice-guide.md` §7 자족성(SC-1~SC-5)으로 본다.
+기계 검사: `node scripts/column-check.mjs <칼럼.md> <칼럼.threads.md>` — 오류 0 이어야 넘긴다. 규칙 근거는
+`references/pdp-decisions.md` NEW-20260929-01~03, T-체크 TC-21~TC-23(`references/threads-playbook.md` §10).
+케이스 무브에서 바로 쓰는 초안(`drafts/threads/*.body.txt`)에도 같은 명령이 걸린다 — 그 글도 혼자 서야 한다.
+
 ## 공통 금지
 
 - 게이트 항목을 건너뛰지 않는다

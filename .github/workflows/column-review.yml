@@ -26,6 +26,10 @@ on:
         description: '이미 수정본이 있어도 다시'
         type: boolean
         default: false
+      threads:
+        description: '칼럼 대신 연재 편을 자족성 규칙(voice-guide §7)으로 다시 쓴다 — 파일만 남기고 DB 는 안 쓴다'
+        type: boolean
+        default: false
 
 concurrency:
   group: column-review
@@ -77,12 +81,13 @@ jobs:
           LLM_CLAUDE_CLI_TIMEOUT_MS: '900000'
         run: |
           set -o pipefail
-          echo "dry_run=${{ inputs.dry_run }} limit=${{ inputs.limit }} slug=${{ inputs.slug }} force=${{ inputs.force }}"
+          echo "dry_run=${{ inputs.dry_run }} limit=${{ inputs.limit }} slug=${{ inputs.slug }} force=${{ inputs.force }} threads=${{ inputs.threads }}"
           node scripts/column-review-claude.mjs \
             ${{ inputs.dry_run == false && '--run' || '' }} \
             --limit ${{ inputs.limit || '11' }} \
             ${{ inputs.slug && format('--slug {0}', inputs.slug) || '' }} \
             ${{ inputs.force && '--force' || '' }} \
+            ${{ inputs.threads && '--threads' || '' }} \
             | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Commit revised drafts + diffs

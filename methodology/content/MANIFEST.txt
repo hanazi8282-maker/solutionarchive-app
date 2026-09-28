@@ -37,7 +37,7 @@ eval-set.md                    0c5f938c51a33d8e41916c809ea8771e  lines:165
 pdp/01-methodology.md          0262bfa7298cbcd95e57d753ace733b2  subs:95  marks:92
 pdp/02-gate.md                 22be978090cafaa7091bb99c4492b22d  gates:14  GR:yes
 pdp/03-excerpts.md             932132e9a578e9184a48f47680be60a8  lines:334
-pdp/04-decisions.md            e148c5c9ec99b26754db221fa380d9ee  rules:16  logs:0
+pdp/04-decisions.md            951ab5d7b0c62fca871c0ef97d3c0818  rules:17  logs:0
 pdp/05-provenance.md           cae070c2d0dfc7e5cc56718d7ab8a64a  lines:137
 pdp/README.md                  dc96519181a12e412fb6314b1fc90549  lines:143
 prediction-schema.md           e46ea81d7f9d550c69206d19f4a84ad0  lines:524
@@ -47,4 +47,4 @@ solfa/03-excerpts.md           33ff71a6f3f6fac87aaf2c3fce548a01  lines:259
 solfa/04-decisions.md          b5ad56a411849d6b67aaedec026fa85c  rules:15  logs:0
 solfa/05-provenance.md         b59b70ca13b4f3966e09e609c65ef4c3  lines:132
 solfa/README.md                2bc0dfcbd247cdcb1539967126b4428c  lines:140
-threads-playbook.md            c16cdb9b3f8681545157aaf95f21f935  lines:980
+threads-playbook.md            7dd7a218062e3be0de8ee1cfd3d43924  lines:987

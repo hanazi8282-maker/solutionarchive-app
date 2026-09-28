@@ -12,6 +12,10 @@
 //     + 전/후 diff reports/<KST date>/column-review/<slug>.diff (사람이 읽는 형태).
 //   · 예산: claude-cli 는 달러 예산 밖이다(llm.ts UNMETERED, 2026-09-29). 상한은 --limit 편수뿐. 429/한도면 그 자리에서 멈추고 남은 건수를 남긴다.
 //   · 검증: 수정본이 원문의 30% 미만이거나 2배 초과면 저장하지 않는다(모델이 요약·부풀림). 헤더 "독자:" 줄이 사라져도 저장하지 않는다.
+//   · 문체 규칙(남헌 2026-09-29): 프롬프트는 lib/columns/style-prompt.ts 가 가이드 정본(§7-3·§8-2)을 잘라 만든다. 여기 복사하지 않는다.
+//   · --threads: 그 칼럼의 연재 편(content_columns.threads)을 편 자족성 규칙(voice-guide §7)으로 다시 써서
+//     drafts/columns/_review/<slug>.threads.revised.md 에만 남긴다. DB 는 안 쓴다 — 편은 사람이 파일을 보고 .threads.md 로 옮긴다.
+//     column-check.mjs 와 같은 검사(SC-1~SC-5·출처 설명 문장)를 통과한 편만 저장한다. 하나라도 오류면 그 칼럼은 저장 안 함.
 // 종료코드: 0 정상 · 2 설정/조회 실패 · 3 저장 실패 1건 이상
 
 import fs from 'node:fs'
@@ -20,11 +24,14 @@ import { spawnSync } from 'node:child_process'
 import { createClient } from '../lib/supabase/server.ts'
 import { callLlmWithModel, resolveProvider, requiredKeyFor } from '../lib/analysis/llm.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
+import { columnRevisePrompt, threadDerivePrompt } from '../lib/columns/style-prompt.ts'
 import { kstDate } from './notion-status-log.mjs'
+import { checkThreads } from './column-check.mjs'
 
 const args = process.argv.slice(2)
 const run = args.includes('--run')
 const force = args.includes('--force')
+const threadsMode = args.includes('--threads')
 const opt = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : null }
 const onlySlug = opt('slug')
 const limit = Number(opt('limit') ?? Infinity)
@@ -40,42 +47,52 @@ if (run && key && !process.env[key] && !process.env.CLAUDE_CLI_PATH) {
 const sb = await createClient()
 if (!sb) { console.error('✗ DB 연결 실패'); process.exit(2) }
 
-const VOICE = fs.existsSync('content/guides/voice-guide.md') ? fs.readFileSync('content/guides/voice-guide.md', 'utf8').slice(0, 12000) : ''
-
-let q = sb.from('content_columns').select('id, slug, title, body, char_count, reader_type, review_status, revision_status, published_at').eq('review_status', 'draft').is('published_at', null).order('staged_at')
+let q = sb.from('content_columns').select('id, slug, title, body, char_count, reader_type, review_status, revision_status, published_at, threads').eq('review_status', 'draft').is('published_at', null).order('staged_at')
 if (onlySlug) q = q.eq('slug', onlySlug)
 const { data: cols, error } = await q
 if (error) { console.error(`✗ 조회 실패: ${error.message}`); process.exit(2) }
-const targets = cols.filter((c) => force || !c.revision_status).slice(0, limit)
-log(`미발행 draft ${cols.length}편 → 대상 ${targets.length}편${force ? ' (--force)' : ''} · provider=${provider} · ${provider === 'claude-cli' ? '달러 예산 미적용(구독)' : `일 예산 $${DAILY_BUDGET_USD}`}`)
-for (const c of targets) log(`  - ${c.slug} (${c.char_count}자${c.revision_status ? `, 기존 수정본 ${c.revision_status}` : ''})`)
+const targets = cols
+  .filter((c) => threadsMode ? (Array.isArray(c.threads) && c.threads.length > 0) : (force || !c.revision_status))
+  .slice(0, limit)
+log(`미발행 draft ${cols.length}편 → 대상 ${targets.length}편${force ? ' (--force)' : ''}${threadsMode ? ' (--threads: 연재 편 파생)' : ''} · provider=${provider} · ${provider === 'claude-cli' ? '달러 예산 미적용(구독)' : `일 예산 $${DAILY_BUDGET_USD}`}`)
+for (const c of targets) log(`  - ${c.slug} (${c.char_count}자${c.revision_status ? `, 기존 수정본 ${c.revision_status}` : ''}${threadsMode ? `, 편 ${c.threads.length}` : ''})`)
 if (!run) { log('--dry: 여기서 끝낸다. 실행은 --run.'); process.exit(0) }
 
-const SYSTEM = [
-  '너는 한국어 칼럼 편집자다. 아래 칼럼 초안을 **문체와 가독성 위주로 고쳐 써서 전문을 돌려준다.**',
-  '지키는 것(어기면 수정본은 버려진다):',
-  '1. 파일 첫머리의 "독자: …" 줄과 "판단 이유: …" 줄, 제목(# 로 시작하는 한 줄), 절 제목(## ) 구조는 유지한다. 절을 합치거나 없애지 않는다.',
-  '2. 숫자·날짜·고유명사·인용문·출처 표기는 한 글자도 바꾸지 않고 빼지도 않는다. 새 사실을 추가하지 않는다.',
-  '3. 문체: 구어체에 가까운 자연스러운 서술. 전신형 단문(명사 종결 반복), 기호(→ ⇒ — ·), 경구·격언투, 영어 투 직역, 내부 용어(케이스/무브/코퍼스/승인/게이트/등급/처방)를 없앤다. 한 문장은 되도록 40자 안팎.',
-  '4. 독자가 자기 작업에 옮길 행동이 분명한 절이 하나는 있어야 한다. 없으면 기존 내용 안에서 그 문장을 또렷하게 세운다(새 사실 추가 금지).',
-  '5. 근거 메모·자체 점검 절이 있으면 그대로 둔다(고치지 않는다).',
-  '출력 형식: 먼저 "<<<SUMMARY>>>" 한 줄 뒤에 무엇을 왜 고쳤는지 3~6문장, 그 다음 "<<<BODY>>>" 한 줄 뒤에 수정본 전문. 그 밖의 말은 쓰지 않는다.',
-  VOICE ? `\n[문체 지침 원문 발췌]\n${VOICE}` : '',
-].join('\n')
+const SYSTEM = threadsMode ? threadDerivePrompt() : columnRevisePrompt()
 
 const date = kstDate()
 const diffDir = path.join('reports', date, 'column-review')
 const revDir = path.join('drafts', 'columns', '_review')
 fs.mkdirSync(diffDir, { recursive: true }); fs.mkdirSync(revDir, { recursive: true })
 
+/** --threads 산출물 검사 — column-check.mjs 가 .threads.md 에 거는 것과 같은 규칙. 오류 편이 하나라도 있으면 저장하지 않는다. */
+function threadIssues(markdown) {
+  const eps = checkThreads(markdown)
+  if (!eps.length) return ['편을 하나도 못 찾았다(## N편 블록 없음)']
+  return eps.flatMap((t) => t.errors.map((e) => `${t.n}편: ${e}`))
+}
+
 let done = 0, saved = 0, skipped = 0, failed = 0, blocker = null
 for (const c of targets) {
   try {
     const t0 = Date.now()
-    const out = await withLlmBudget(() => callLlmWithModel(provider, SYSTEM, `[칼럼 초안 · slug ${c.slug} · ${c.char_count}자]\n\n${c.body}`, `column-review:${c.slug}`))
+    const user = threadsMode
+      ? `[칼럼 전문 · slug ${c.slug}]\n\n${c.body}\n\n[기존 편 ${c.threads.length}개 — 인사이트는 유지, 본문은 자족성 규칙으로 다시]\n\n${c.threads.map((t) => `## ${t.n}편\n${t.body}`).join('\n\n')}`
+      : `[칼럼 초안 · slug ${c.slug} · ${c.char_count}자]\n\n${c.body}`
+    const out = await withLlmBudget(() => callLlmWithModel(provider, SYSTEM, user, `column-review${threadsMode ? ':threads' : ''}:${c.slug}`))
     log(`  ${c.slug}: 응답 ${Math.round((Date.now() - t0) / 1000)}s`)
     done++
     const text = out.text
+    if (threadsMode) {
+      const md = `# ${c.title} — 연재 편 재작성 (${date}, ${out.model}, voice-guide §7 자족성)\n\n> 원 칼럼: ${c.slug} · 기존 편 ${c.threads.length} → 재작성 ${(text.match(/^## \d+편/gm) ?? []).length}\n> DB 에 쓰지 않았다. 사람이 읽고 drafts/columns/<파일>.threads.md 로 옮긴 뒤 column-stage.mjs 로 적재한다.\n\n---\n\n${text.trim()}\n`
+      const issues = threadIssues(md)
+      if (issues.length) { skipped++; log(`⚠️ ${c.slug}: 편 검사 오류 ${issues.length}건 — 저장 안 함\n     ${issues.slice(0, 5).join('\n     ')}`); continue }
+      const outPath = path.join(revDir, `${c.slug}.threads.revised.md`)
+      fs.writeFileSync(outPath, md)
+      saved++
+      log(`✅ ${c.slug}: 편 ${(md.match(/^## \d+편/gm) ?? []).length}개 → ${outPath} (DB 미기록)`)
+      continue
+    }
     const si = text.indexOf('<<<SUMMARY>>>'), bi = text.indexOf('<<<BODY>>>')
     if (si < 0 || bi < 0 || bi < si) { skipped++; log(`⚠️ ${c.slug}: 출력 형식 불일치(마커 없음) — 저장 안 함`); continue }
     const summary = text.slice(si + 13, bi).trim()

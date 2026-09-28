@@ -1455,6 +1455,23 @@ for (const [file, keys] of [
   ok(`등록(${file}): ON CONFLICT DO NOTHING 이 있다`, /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
 }
 
+// ── 같은 대조, disquiet — **enabled=true 로 들어가는 유일한 등록 파일** ──
+//
+// 위 루프는 "enabled=false 로만 들어간다"를 단정하므로 이 파일을 거기 넣을 수 없다.
+// 남헌 2026-09-28 이 약관 리스크를 인수하고 켰다(마이그레이션 헤더). 키 철자·DDL 없음·멱등은 같게 본다.
+{
+  const sql = await fs.readFile(path.join(here, '..', 'supabase', 'migrations', '20260930000026_review_sources_disquiet.sql'), 'utf8')
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  const mapBlock = collect.slice(collect.indexOf('const ADAPTERS ='), collect.indexOf('}', collect.indexOf('const ADAPTERS =')))
+  const mapKeys = new Set([...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]))
+  const sqlKeys = new Set([...sql.matchAll(/^\s*'([\w-]+)',$/gm)].map((m) => m[1]))
+  ok("등록(disquiet): 마이그레이션 review_sources.key 에 'disquiet' 가 있다", sqlKeys.has('disquiet'))
+  ok("등록(disquiet): ADAPTERS 맵 키가 'disquiet' 와 철자까지 같다", mapKeys.has('disquiet'))
+  t('등록(disquiet): enabled=true 1행', (sql.match(/^\s*true,$/gm) || []).length, 1)
+  ok('등록(disquiet): DDL 이 없다', !/\b(create|alter|drop)\s+table\b/i.test(sql))
+  ok('등록(disquiet): ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+}
+
 // ── 워크플로 선택지에 소스가 다 올라가 있는가 ─────────────────────
 //
 // ⚠️ 어댑터를 만들고 ADAPTERS 에 꽂아도 **워크플로 options 에 없으면 스케줄로는

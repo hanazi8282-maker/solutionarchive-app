@@ -421,3 +421,7 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 ### 2026-09-29 — 000036 채점 화면 번역·제품 배경 캐시 (CEO-STAFF 세션, 남헌 확정 지시)
 
 - 000036(PR #340): relevance_translations·relevance_product_backgrounds 신규 + 원문 폐기 추종 트리거. 서브에이전트가 000035 로 만들었으나 발굴 이식성(#339)과 번호 충돌 → 000036 으로 재번호. 적용 전 부재 확인. 양성: 컬럼 11/7·RLS true/true·정책 0·search_path 고정·트리거 O. 음성 3건 23514 거부, 트리거(원문 NULL → 번역 행 삭제) 0, 잔존 0(세이브포인트 롤백). 비파괴, 롤백 파일 있음. 호스티드 Supabase MCP apply_migration.
+
+### 2026-09-29 — 000037 경쟁사 프로필 스냅샷 (CEO-STAFF 세션, 남헌 확정 지시)
+
+- 000037(PR #345): competitor_profile_snapshots 신규(project FK CASCADE, status ok|unverified|failed, trigger extract|backfill|manual). 적용 전 부재 확인. 양성: 컬럼 17·RLS true/true·정책 0. 음성 3건(ok+sections NULL · failed+sections · trigger='cron') 23514 거부, 잔존 0. 비파괴, 롤백 파일 있음. 호스티드 Supabase MCP apply_migration. nightly-extract timeout 75→120분(남헌 승인).

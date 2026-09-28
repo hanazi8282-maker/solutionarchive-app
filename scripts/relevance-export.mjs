@@ -10,7 +10,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
-import { toExportRow, EXPORT_TEXT_MAX } from '../lib/analysis/second-opinion.ts'
+import { toExportRow, EXPORT_TEXT_MAX, SECOND_OPINION_INSTRUCTIONS } from '../lib/analysis/second-opinion.ts'
+import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import { kstDate } from './notion-status-log.mjs'
 
 const args = process.argv.slice(2)
@@ -26,7 +27,7 @@ if (!sb) { console.error('✗ DB 연결 실패 — NEXT_PUBLIC_SUPABASE_URL / SU
 const rows = []
 for (let from = 0; ; from += 1000) {
   let q = sb.from('review_relevance_verdicts')
-    .select('input_id, project_id, analysis_inputs!inner(raw_text, purged_at), analysis_projects(product_elevator_pitch)')
+    .select('input_id, project_id, analysis_inputs!inner(raw_text, purged_at), analysis_projects(product_elevator_pitch, business_model)')
     .is('analysis_inputs.purged_at', null)
     .order('input_id').range(from, from + 999)
   if (!all) q = q.or('human_verdict.eq.relevant,and(human_verdict.is.null,verdict.eq.relevant)')
@@ -35,11 +36,13 @@ for (let from = 0; ; from += 1000) {
   rows.push(...data)
   if (data.length < 1000) break
 }
-const out = rows.slice(0, limit).map((r) => toExportRow({ input_id: r.input_id, project_id: r.project_id, raw_text: r.analysis_inputs?.raw_text ?? null, pitch: r.analysis_projects?.product_elevator_pitch ?? null }))
+const out = rows.slice(0, limit).map((r) => toExportRow({ input_id: r.input_id, project_id: r.project_id, raw_text: r.analysis_inputs?.raw_text ?? null, pitch: r.analysis_projects?.product_elevator_pitch ?? null, business_model: r.analysis_projects?.business_model ?? null }))
   .filter((r) => r.text.length > 0)
 const doc = {
   exported_at: new Date().toISOString(), scope: all ? 'all' : 'public', text_max: EXPORT_TEXT_MAX, count: out.length,
-  instructions: '각 행을 독립적으로 판정: verdict(relevant|irrelevant|unknown) · impact/frequency(high|mid|low|null) · community_signal(pain|demand|objection|null) · wtp_mentioned(true|false|null) · reason(한 줄). 결과는 같은 input_id 로 {rows:[...]} 형태의 relevance-second-opinion-<날짜>.json. 기존 판정은 이 파일에 없다 — 보지 말고 판정하라.',
+  // 기준 본문은 1차 판정 프롬프트와 같은 상수다(lib/analysis/relevance-criteria.ts). 여기에 문구를 따로 쓰지 않는다.
+  criteria_version: RELEVANCE_CRITERIA_VERSION,
+  instructions: SECOND_OPINION_INSTRUCTIONS,
   rows: out,
 }
 fs.mkdirSync(path.dirname(outPath), { recursive: true })

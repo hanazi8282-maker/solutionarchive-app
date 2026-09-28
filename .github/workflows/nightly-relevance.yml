@@ -91,6 +91,21 @@ jobs:
           node scripts/relevance-judge-auto.mjs \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
 
+      # T2 완전 동의 자동 승인(CLAUDE.md §10.1 예외, reports/2026-09-28/approval-automation-design.md).
+      # ⛔ 기본 꺼짐 — 리포 변수 AUTO_APPROVAL_ENABLED=true 와 AUTO_APPROVAL_SINCE=<YYYY-MM-DD> 가 없으면 DB 도 열지 않고 끝난다.
+      # 킬스위치가 걸리면 승인 0건 + Notion 일일 상태 로그(사람판단필요). NOTION_API_TOKEN 은 다른 워크플로와 같은 목적의 기존 시크릿이다.
+      - name: Auto-approve full-agreement verdicts (flag-gated, default off)
+        if: success() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+          AUTO_APPROVAL_ENABLED: ${{ vars.AUTO_APPROVAL_ENABLED || 'false' }}
+          AUTO_APPROVAL_SINCE: ${{ vars.AUTO_APPROVAL_SINCE || '' }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: node scripts/relevance-auto-approve.mjs
+
       # 결정 b(증량 싱크 8번): 사람 채점(human_verdict) 대비 LLM 판정 일치율을 매일 요약에 남긴다. 읽기 전용.
       - name: Relevance eval report (human vs LLM)
         if: always()

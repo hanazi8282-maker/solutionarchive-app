@@ -27,7 +27,8 @@ for (let from = 0; ; from += 1000) {
   const { data, error } = await sb
     .from('review_relevance_verdicts')
     .select('input_id, project_id, model, verdict, human_verdict, human_graded_at, judged_at')
-    .not('human_verdict', 'is', null)
+    // 사람 'unknown'(채점표 모름 칸)은 정답이 아니다 — 일치·오답 어느 쪽에도 세지 않는다.
+    .in('human_verdict', ['relevant', 'irrelevant'])
     .order('input_id')
     .range(from, from + 999)
   if (error) { console.error(`✗ 조회 실패: ${error.code ?? ''} ${error.message}`); process.exit(2) }

@@ -17,13 +17,16 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
 import { impactFrequencyTags, pickGradingSample } from '../lib/analysis/relevance-judge.ts'
+import { AUDIT_DAILY } from '../lib/analysis/auto-approval.ts'
 
 const args = process.argv.slice(2)
 const dry = args.includes('--dry')
 const opt = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : null }
 
 const n = Number(opt('n') ?? 10)
-if (!Number.isFinite(n) || n <= 0) { console.error('사용법: [--n 10] [--seed 42] [--out <경로.md>] [--dry]'); process.exit(64) }
+// 자동 승인 감사 표본(CLAUDE.md §10.1 예외 조건 3) — 같은 표·같은 칸·같은 import 로 들어간다. 새 화면·새 테이블 없음.
+const audit = Number(opt('audit') ?? AUDIT_DAILY)
+if (!Number.isFinite(n) || n <= 0 || !Number.isFinite(audit) || audit < 0) { console.error('사용법: [--n 10] [--audit 5] [--seed 42] [--out <경로.md>] [--dry]'); process.exit(64) }
 const seed = Number(opt('seed') ?? 42)
 
 const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date())
@@ -76,9 +79,17 @@ const pool = verdicts
     tags: impactFrequencyTags(v),
     project: projectById.get(v.project_id) ?? '(프로젝트 미상)',
     text: textById.get(v.input_id),
+    auto: Boolean(v.auto_approved_at),
   }))
 
-const sample = pickGradingSample(pool, { n, seed })
+// 자동 승인 컬럼(20260930000027)이 없으면 감사할 것도 없다. 있음/없음을 가려 적는다(§7.1).
+const autoColumn = verdicts.some((v) => 'auto_approved_at' in v)
+// 신규 채점은 자동 승인되지 않은 행에서만 — 사람 시간은 기계가 못 정한 쪽에 쓴다. 감사는 자동 승인 행에서 따로.
+const mainPick = pickGradingSample(pool.filter((r) => !r.auto), { n, seed })
+const auditPick = audit > 0 ? pickGradingSample(pool.filter((r) => r.auto), { n: audit, seed: seed + 1 }) : []
+// 채점자가 어느 줄이 감사인지 모르게 섞는다(uuid 순 = 사실상 무작위, 재현 가능). 표에도 표시하지 않는다.
+const sample = [...mainPick, ...auditPick].sort((a, b) => a.input_id.localeCompare(b.input_id))
+console.log(`신규 채점 ${mainPick.length}장 · 자동 승인 감사 ${auditPick.length}장${autoColumn ? '' : ' (자동 승인 컬럼 없음 — 마이그 20260930000027 미적용)'}`)
 if (sample.length === 0) { console.log('모집단은 있으나 원문이 남은 것이 0건이다 — 채점할 것이 없다(실패가 아니다).'); process.exit(0) }
 
 const md = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\s*[\r\n]+\s*/g, ' ').trim()
@@ -90,17 +101,19 @@ const lines = [
   `모집단 ${pool.length}건(관련/무관 판정 중 사람 채점 전) 에서 ${sample.length}장. seed=${seed}.`,
   `내역: 모델이 관련이라 한 것 ${sample.filter((r) => r.verdict === 'relevant').length}장 · 무관이라 한 것 ${sample.filter((r) => r.verdict === 'irrelevant').length}장 (표에는 섞여 있다).`,
   '',
-  '**채점하는 법**: 이 리뷰가 그 프로젝트의 분석 재료로 쓸 만하면 `관련`, 다른 주제이거나 내용이 없으면 `무관` 에 `x` 를 넣는다.',
-  '판단이 서지 않으면 **둘 다 비워 둔다** — 빈 줄은 "판정 불가" 이지 "무관" 이 아니다(CLAUDE.md §7.1).',
+  `이 중 ${auditPick.length}장은 자동 승인된 행의 감사 표본이다(어느 줄인지는 표시하지 않는다 — 같은 기준으로 채점하면 된다).`,
+  '',
+  '**채점하는 법**: 기준은 docs/t2-relevance-criteria.md. 분석 재료로 쓸 만하면 `관련`, 다른 주제이거나 내용이 없으면 `무관` 에 `x` 를 넣는다.',
+  '읽었는데 판단이 서지 않으면 `모름` 에 `x`. 못 읽고 넘기면 **셋 다 비워 둔다** — 빈 줄은 "안 봄" 이지 "무관" 이 아니다(CLAUDE.md §7.1).',
   '모델 판정 열은 **채점 뒤에 보라**. 먼저 보면 그 답에 끌린다.',
   '',
   '마지막 열 `키` 는 채점을 `review_relevance_verdicts.human_verdict` 로 되돌려 넣기 위한 것이다. 건드리지 않는다.',
   `되돌려 넣기: \`node --env-file=.env.local scripts/relevance-grading-import.mjs ${outPath} --dry\` 로 먼저 본다.`,
   '',
-  '| # | 프로젝트 | 리뷰 원문 | 관련 ☐ | 무관 ☐ | 모델 판정 | 키 |',
-  '|---|---|---|---|---|---|---|',
+  '| # | 프로젝트 | 리뷰 원문 | 관련 ☐ | 무관 ☐ | 모름 ☐ | 모델 판정 | 키 |',
+  '|---|---|---|---|---|---|---|---|',
   ...sample.map((r, i) =>
-    `| ${i + 1} | ${md(cut(r.project, 30))} | ${md(cut(r.text, 400))} | ☐ | ☐ | ${r.verdict === 'relevant' ? '관련' : '무관'}${r.reason ? ` (${md(cut(r.reason, 60))})` : ''}${r.tags.map((g) => ` · ${g}`).join('')} | \`${r.input_id}\` |`,
+    `| ${i + 1} | ${md(cut(r.project, 30))} | ${md(cut(r.text, 400))} | ☐ | ☐ | ☐ | ${r.verdict === 'relevant' ? '관련' : '무관'}${r.reason ? ` (${md(cut(r.reason, 60))})` : ''}${r.tags.map((g) => ` · ${g}`).join('')} | \`${r.input_id}\` |`,
   ),
   '',
 ]

@@ -6,11 +6,35 @@
 //   import  → 서비스키가 있는 환경(로컬 .env.local 또는 Actions)에서만. 기본은 드라이런(비교 리포트만). --apply 는
 //             **라벨 4개 전부 NULL 이고 불가 표시가 없는 행에만** 라벨을 채운다. verdict·human_verdict·기존 라벨은 절대 덮지 않는다.
 
+// "관련"의 정의는 1차 판정(relevance-judge.ts SYSTEM)과 같은 상수다 — 2026-09-28 기준 통일(docs/t2-relevance-criteria.md).
+import { RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION } from './relevance-criteria.ts'
+
 export const VERDICTS = ['relevant', 'irrelevant', 'unknown'] as const
 export const LEVELS = ['high', 'mid', 'low'] as const
 export const SIGNALS = ['pain', 'demand', 'objection'] as const
 
-export type ExportRow = { input_id: string; project_id: string; project_pitch: string | null; text: string }
+/**
+ * export 파일의 `instructions` — 2차 판정 세션이 읽는 프롬프트 본문. 기준은 1차와 같은 RELEVANCE_CRITERIA 를 글자 그대로 싣는다.
+ * 결과 파일에 criteria_version 을 되돌려 적게 한다 — import 가 버전이 다른 판정을 자동 승인 입력으로 쓰지 않게(auto-approval.ts).
+ */
+export const SECOND_OPINION_INSTRUCTIONS = [
+  '각 행을 독립적으로 판정하라. 기존 판정은 이 파일에 없다 — 보지 말고 판정하라.',
+  '행의 business_model 로 아래 기준 중 어느 쪽을 쓸지 고른다(null 이면 project_pitch 와 원문으로 고른다).',
+  '',
+  RELEVANCE_CRITERIA,
+  '',
+  '출력: 같은 input_id 로 {criteria_version, rows:[...]} 형태의 relevance-second-opinion-<날짜>.json.',
+  `criteria_version 은 "${RELEVANCE_CRITERIA_VERSION}" 을 그대로 적는다.`,
+  '행: verdict(relevant|irrelevant|unknown) · impact/frequency(high|mid|low|null) · community_signal(pain|demand|objection|null) · wtp_mentioned(true|false|null) · reason(한 줄).',
+  '원문으로 정할 수 없는 라벨은 null 이다 — 추측으로 채우지 마라.',
+].join('\n')
+
+/** 결과 파일이 지금 기준으로 판정됐나. 버전이 없거나 다르면 false — 옛 기준 판정은 자동 승인 입력이 아니다(§7.1: 없음을 같음으로 접지 않는다). */
+export function isCurrentCriteria(raw: unknown): boolean {
+  return Boolean(raw) && typeof raw === 'object' && (raw as { criteria_version?: unknown }).criteria_version === RELEVANCE_CRITERIA_VERSION
+}
+
+export type ExportRow = { input_id: string; project_id: string; project_pitch: string | null; business_model: string | null; text: string }
 export type OpinionRow = {
   input_id: string
   verdict: (typeof VERDICTS)[number]
@@ -34,8 +58,8 @@ export type DbRow = {
 export const EXPORT_TEXT_MAX = 600
 
 /** export 행 만들기 — 원문은 앞 600자만(세션 컨텍스트 절약), 판정·라벨은 싣지 않는다. */
-export function toExportRow(r: { input_id: string; project_id: string; raw_text: string | null; pitch?: string | null }): ExportRow {
-  return { input_id: r.input_id, project_id: r.project_id, project_pitch: r.pitch ?? null, text: (r.raw_text ?? '').replace(/\s+/g, ' ').trim().slice(0, EXPORT_TEXT_MAX) }
+export function toExportRow(r: { input_id: string; project_id: string; raw_text: string | null; pitch?: string | null; business_model?: string | null }): ExportRow {
+  return { input_id: r.input_id, project_id: r.project_id, project_pitch: r.pitch ?? null, business_model: r.business_model ?? null, text: (r.raw_text ?? '').replace(/\s+/g, ' ').trim().slice(0, EXPORT_TEXT_MAX) }
 }
 
 /** 세션 결과 파일 검증 — 어휘 밖 값·중복·빈 id 는 거부 목록으로 돌려준다(조용히 버리지 않는다, §7.1). */

@@ -366,3 +366,11 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - hackernews 600 · clien 462 · bobaedream 336 · 82cook 369 · okky/velog/damoang/theqoo/fmkorea 300 · brunch 150. min_interval_ms 불변. 제외: danawa·youtube·tumblbug.
 - 안전 근거: 7일간 상한 도달 0·403/429 0, robots Crawl-delay ≤2s < 현재 간격. 3배가 안 되는 소스 없음.
 - 적용: hosted MCP apply_migration. 양성 확인 10행 모두 새 값·간격 불변. 음성 미실행(hosted MCP 롤백 제어 불가, 현재값 가드라 재실행 0행).
+
+### 2026-09-28 — discovery_candidates VOC 개수 기준 재분류 29건 (CEO-STAFF 세션, 남헌 지시 + AskUserQuestion 확인)
+
+- PR #309 로 기준 자체(30/500 → 200/50,000) 변경 적용. 별도로 **기존 discovery_candidates 40건 전체를 새 기준으로 재분류**(테이블 마이그레이션 아님, 값 UPDATE).
+- 사람 판정(human_review)과 겹치는 9건(killed 5·kept 4)이 있어 AskUserQuestion 으로 확인 — 남헌이 "새 기준 우선, 29건 전체 그대로 적용"으로 확정.
+- 4조건: 드라이런(적용 직전 스냅샷 29건 일치 재확인) · 롤백 파일(`reports/2026-09-28/voc-thresholds/rollback.sql`) · 무중단(discovery_candidates 는 서빙 경로 없음, 읽기 전용 화면만 영향) · Notion 기록(예정).
+- 적용: hosted Supabase MCP `execute_sql`(qmgrfqjfxqhxuufrnkwf). 양성 확인: `verdict_reason like '%(reclass 2026-09-28%'` → 29건. 음성 확인은 하지 않음(가드 조건 `d.verdict = v.old_verdict` 라 재실행 시 0행이 되도록 작성됨 — 롤백은 `rollback.sql` 로 원래 verdict/verdict_reason 복원).
+- 주의: 살아난 19건은 project_id 없음 — 수집이 자동으로 붙지 않는다(등록은 별도). 걸러진 10건은 project_id 있는 것 4건 포함 — 기존 프로젝트·수집 데이터는 유지.

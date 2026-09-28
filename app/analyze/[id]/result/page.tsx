@@ -13,6 +13,7 @@ import { EmptyState } from '../../../_ds/components/EmptyState'
 import { EvidenceCaption } from '../../../_ds/components/EvidenceCaption'
 import { Notice, PageHeader, PageShell } from '../../../_ds/components/Shell'
 import { AdvisorLoader } from '../advisor-cards'
+import { CompetitorProfileCard } from './competitor-profile-card'
 import { CopySummary } from './copy-summary'
 import { PmfRunCard, type Facets } from './pmf-run-card'
 import { RemedySection } from './remedy-section'
@@ -400,6 +401,9 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
           </div>
         )}
       </Card>
+
+      {/* ── 4b. 경쟁사 프로필 — 최신 스냅샷 + 근거 링크 + 이전 스냅샷 날짜 ── */}
+      <CompetitorProfileCard supabase={supabase} projectId={id} />
 
       {/* ── 5. 문제 해결 제안 ─────────────────────────────── */}
       <RemedySection projectId={id} />

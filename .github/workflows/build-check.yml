@@ -49,6 +49,9 @@ jobs:
       # 야간 extract 대상 선정 — 재추출(force) 후보·순서·검수값 보존 배선. 여기가 틀리면
       # "대상 3건 · 실행 0건" 이 되면서도 종료코드는 0 이고, 최악은 재추출이 검수 결과를 지운다.
       - run: node scripts/analyze-extract-auto-selftest.mjs
+      # 경쟁사 프로필(남헌 2026-09-29) — 근거는 코드가 단다: 모르는 원문 번호는 버리고 근거 없는 주장은 센다.
+      # 여기가 접히면 지어낸 문장이 원문 링크를 달고 화면에 앉는다. 3상태(ok/unverified/failed)·배선·외부 텍스트 고지도 본다.
+      - run: node scripts/competitor-profile-selftest.mjs
       # 리뷰 목적 적합성 판정(T2) 3상태. 여기가 한 칸 접히면 "확인 불가" 리뷰가 조용히 "무관"이 되고,
       # 그 원문은 extract 에서 영영 빠진 채 30일 뒤 purge 된다 — 되돌릴 방법이 없다(§7.1).
       - run: node scripts/analyze-relevance-selftest.mjs

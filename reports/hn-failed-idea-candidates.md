@@ -111,3 +111,15 @@
 - 작성일: 2026-09-24
 
 > Tutoring is another situation where it can succeed wildly or fail miserably, and it will depend more on the harness than the model. Tutoring is a process, and the end result is that the student gains a demonstrable new capability. The how isn't as important as the end result. If we end up with a bunch of people with increased personal capabilities, it's a win. If we're lazy and we end up with a bunch of people leaning on crutches, we failed. Time will tell, I guess. Could be a surprise answer to…
+
+## HN 49878147
+
+- 판정: (미검토)
+- 매칭: `we shut down`
+- 원본: https://news.ycombinator.com/item?id=49878147
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-09-28 UTC)
+- 스레드: The smart home graveyard is getting crowded
+- 작성자: jerf
+- 작성일: 2026-09-28
+
+> The math I have always done is, "If I removed 100% of my issues with controlling my home appliances and I was absolutely sure it would only ever cost me, let's say, $1000, and it was never going to need maintenance and would never fail, how interested would I be?" And the answer still keeps coming back, "not very". Not zero. But the problem is that there isn't a lot of value there to capture, so I'm not willing to pay all that much, especially when you consider the full cost-of-ownership of fail…

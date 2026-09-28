@@ -48,6 +48,7 @@ import { pushWithRetry } from './git-push-retry.mjs'
 // 토큰 없이 DB 기록만 읽는다. lib/threads/recent·token 을 여기서 import 하지 마라(§10.1).
 import { unlinkedDigestLine, UNLINKED_STEP_KEY } from '../lib/threads/unlinked-status.ts'
 import { feedbackDigestLines } from '../lib/cases/feedback.ts'
+import { loadDeletedCaseIds } from '../lib/cases/deleted.ts'
 
 // ────────────────────────────────────────────────────────────
 // 물량 — 첫 주는 2/2. 나중에 5/5 로 올릴 때는 이 값만 바꾼다.
@@ -1248,6 +1249,11 @@ export async function pickAngles(supabase, n, repoRoot = process.cwd()) {
       .eq('review_status', 'approved')
   }
   if (mv.error) return { error: `case_moves 조회 실패 — ${mv.error.code ?? ''} ${mv.error.message}`, moves: [], notices }
+  // 숨긴 케이스(lib/cases/deleted.ts — 사람이 공개에서 내린 것)의 무브는 앵글로 고르지 않는다.
+  // 숨김 목록을 못 읽으면 고르지 않는다 — 내린 케이스로 초안을 쓰는 게 앵글 하루 쉬는 것보다 나쁘다(§7.1).
+  const deleted = await loadDeletedCaseIds(supabase, 'cmo-daily/angles')
+  if (!deleted) return { error: 'case_studies 숨김 목록 조회 실패 — 내린 케이스를 가려낼 수 없어 앵글을 고르지 않았다', moves: [], notices }
+  const liveMoves = (mv.data ?? []).filter((m) => !deleted.has(m.case_study_id))
 
   let used = await supabase.from('content_items').select('source_case,source_move')
   if (used.error && missingColumn(used.error)) {
@@ -1285,7 +1291,7 @@ export async function pickAngles(supabase, n, repoRoot = process.cwd()) {
     return { error: `drafts/threads 매니페스트 확인 불가 — ${e.message}. 이 신호 없이 고르면 이미 초안이 나간 무브를 다시 고른다`, moves: [], notices }
   }
 
-  return { ...selectAngles({ moves: mv.data ?? [], usedSlugs, usedMoveIds, stagedSlugs, draftFileNames, n }), notices }
+  return { ...selectAngles({ moves: liveMoves, usedSlugs, usedMoveIds, stagedSlugs, draftFileNames, n }), notices }
 }
 
 /**

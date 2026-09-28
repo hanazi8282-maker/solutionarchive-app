@@ -13,6 +13,7 @@ import { FilterChip } from '../_ds/components/FilterChip'
 import { GradeLegend } from '../_ds/components/GradeLegend'
 import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../_ds/components/Shell'
 import { DecisionForm } from './decision-form'
+import { CaseDeleteForm } from './delete-form'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '케이스 검수' }
@@ -55,6 +56,10 @@ type CaseRow = {
   tags: string[] | null
   review_status: string
   review_note?: string | null
+  /** 숨김(마이그 20260930000030). 컬럼이 없으면 undefined. */
+  deleted_at?: string | null
+  deleted_by?: string | null
+  delete_reason?: string | null
   researched_by: string | null
   created_at: string
   case_moves: MoveRow[] | null
@@ -524,6 +529,7 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
                       <p className="v2-note">마지막 케이스다.</p>
                     )}
                   </DecisionBox>
+                  <CaseDeleteForm id={c.id} brand={c.brand_name} deletedAt={c.deleted_at ?? null} deletedBy={c.deleted_by ?? null} reason={c.delete_reason ?? null} available={'deleted_at' in c} />
                 </div>
               </Card>
             ))}

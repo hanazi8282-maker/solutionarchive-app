@@ -19,6 +19,7 @@
 import type { createClient } from '@/lib/supabase/server'
 import { matchFailedAngles, productKindOf, toTerms, type FailedAngleCard, type FailedAngleRow } from './advisor.ts'
 import { pairMoves, type MovePair, type PairSide } from './compare.ts'
+import { deletedIdsOf, withoutDeleted } from './deleted.ts'
 import type { MoveRow, StudyRow } from './match.ts'
 import type { Evidence } from './draft.ts'
 
@@ -408,11 +409,13 @@ export async function loadCaseDetail(sb: Client, slug: string, where = 'library/
   const clean = (slug ?? '').trim().toLowerCase()
   if (!clean) return { status: 'not_found', reason: 'slug 가 비었다' }
 
-  const [studies, moves, failedAngles] = await Promise.all([
+  const [rawStudies, rawMoves, failedAngles] = await Promise.all([
     selectAll<DetailStudyRow>(sb, 'case_studies', where),
     selectAll<DetailMoveRow>(sb, 'case_moves', where),
     selectAll<FailedAngleRow>(sb, 'failed_angles', where),
   ])
+  // 숨긴 케이스(lib/cases/deleted.ts)는 상세·관련 케이스·갈린 사례 어디에도 안 나간다 — 숨긴 slug 는 404 다.
+  const { studies, moves } = withoutDeleted(rawStudies, rawMoves, deletedIdsOf(rawStudies ?? []))
   if (studies === null || moves === null) {
     return { status: 'error', reason: '케이스·무브 조회가 실패했다 — 이 케이스가 없다는 뜻이 아니다' }
   }

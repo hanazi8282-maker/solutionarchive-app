@@ -1,7 +1,7 @@
 // 즉시발행 셀프테스트 — Threads 게시 4단계(가짜 fetch) + notes 파서 + 초안 한 건 판정. 네트워크·DB 없음.
 //   node scripts/threads-publish-selftest.mjs
 import { publishTextPost, THREADS_TEXT_MAX } from '../lib/threads/publish.ts'
-import { parseStageNotes, instantGateForPost } from '../lib/threads/instant-gate.ts'
+import { parseStageNotes, parseSelfReply, instantGateForPost } from '../lib/threads/instant-gate.ts'
 
 let pass = 0, fail = 0
 const t = (name, got, want) => { const g = JSON.stringify(got), w = JSON.stringify(want); if (g === w) pass++; else { fail++; console.log(`FAIL  ${name}\n      got=${g}\n      want=${w}`) } }
@@ -77,7 +77,14 @@ const noSleep = async () => {}
   t('무브 A + BP 선언 → pass', instantGateForPost({ body, notes }, mvA).status, 'pass')
   t('무브 없음(못 읽음) → needs_human', instantGateForPost({ body, notes }, null).status, 'needs_human')
   const mvC = [{ fact_check_grade: 'C', lever: 'CHANNEL', slug: 'x', brand_name: 'X브랜드', pmf_grade: 'B', evidence_grade: 'B' }]
-  t('사실확인 C 인용인데 귀속 문구 없음 → CG 미통과 fail', instantGateForPost({ body, notes }, mvC).status, 'fail')
+  // 2026-09-29 UPD-20260929-01 — CG-1 은 본문이 아니라 notes 의 자기답글 블록에서 "자사 공시" 를 본다.
+  const withReply = (reply) => `${notes}\n\n자기답글(고정 댓글, ${[...reply].length}자):\n${reply}\n\n⛔ 미발행. 발행 버튼은 사람이 Threads 앱에서 직접 누른다 (CLAUDE.md §10).`
+  t('parseSelfReply: 블록을 잘라 낸다', parseSelfReply(withReply('전환율 3.4% — 자사 공시.\n독립 집계 없음.')), '전환율 3.4% — 자사 공시.\n독립 집계 없음.')
+  t('parseSelfReply: 블록 없으면 null', parseSelfReply(notes), null)
+  t('사실확인 C 인용인데 자기답글 블록 없음 → 확인 불가 needs_human(fail 도 pass 도 아님)', instantGateForPost({ body, notes }, mvC).status, 'needs_human')
+  t('사실확인 C + 자기답글에 자사 공시 없음 → CG 미통과 fail', instantGateForPost({ body, notes: withReply('출처 https://x.com') }, mvC).status, 'fail')
+  t('사실확인 C + 자기답글 "자사 공시" → pass(본문 귀속 없이)', instantGateForPost({ body, notes: withReply('전환율 3.4% — https://x.com, 자사 공시.') }, mvC).status, 'pass')
+  t('사실확인 A 는 자기답글 블록 없어도 pass', instantGateForPost({ body, notes }, mvA).status, 'pass')
   const mvD = [{ fact_check_grade: 'A', lever: 'CHANNEL', slug: 'x', brand_name: 'X', pmf_grade: 'D', evidence_grade: 'A' }]
   t('인사이트 등급 D → fail', instantGateForPost({ body, notes }, mvD).status, 'fail')
   t('BP 선언 없는 notes → needs_human', instantGateForPost({ body, notes: '케이스 s / case_moves 5f2c8a0e-1d3b-4c2a-9e7f-0a1b2c3d4e5f (A · B · 등급 A · positive)' }, mvA).status, 'needs_human')

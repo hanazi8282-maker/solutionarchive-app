@@ -11,7 +11,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 // 2026-09-29 남헌 결정 3건(읽기 수준·출처 흘려 쓰기·편 자족성)은 스레드 검사기와 같은 함수를 쓴다 — 칼럼과 편이 한 벌이라서다.
-import { checkCitation, checkThreadPost, checkThreadSelfContained, readability } from '../lib/threads/voice-check.ts'
+import { checkCitation, checkCopy, checkThreadPost, checkThreadSelfContained, readability, voiceModeHint } from '../lib/threads/voice-check.ts'
 
 // 상한 8,000: 케이스-작성-가이드.md §5 (2026-09-15 남헌이 6,000 → 8,000). 가이드와 따로 놀면 기준에 맞는 칼럼이 오류로 뜬다.
 const COLUMN_MIN = 3000, COLUMN_MAX = 8000, THREAD_MAX = 500
@@ -24,7 +24,31 @@ function readabilityWarns(text) {
   if (rd.avg > 55) out.push(`문장 평균 ${rd.avg}자 — 40자 안팎으로(§7-3 고1·고2 기준)`)
   if (rd.long.length) out.push(`90자 넘는 문장 ${rd.long.length}개("${rd.long[0]}") — 둘로 자른다(§7-3)`)
   if (rd.acronyms.length) out.push(`풀이 없는 약어 ${rd.acronyms.join(', ')} — 첫 등장에서 우리말로(§7-3)`)
+  // §7-4 카피 문장 규칙(2026-09-29) — 완충 표현·재진술은 "확인". 근거 메모가 받치니 본문은 단정한다.
+  const cp = checkCopy(text)
+  if (cp.hedges.length) out.push(`완충 표현 ${cp.hedges.length}종("${cp.hedges[0]}") — 확신형으로 쓴다(§7-4)`)
+  if (cp.restates.length) out.push(`재진술·요약 문장("${cp.restates[0]}") — 한 번 말한 근거를 다시 풀지 않는다(§7-4)`)
   return out
+}
+
+/**
+ * CG-1 칼럼판(2026-09-29 UPD-20260929-01) — 본문의 "밝힌" 을 세지 않는다. 대신 `## 근거 메모` 의 자기보고 줄에
+ * "자사 공시" 가 있는지 본다. 자기보고 vs 제3자 검증 구분이 사는 자리가 본문에서 근거 메모로 옮겨졌다.
+ *  · 줄에 "자기보고" 라고 적혀 있는데(부정형 제외) "자사 공시" 가 없다 → 오류 (형식 §8 "자기보고인지" 는 의무 항목이다)
+ *  · "회사 서술/본인 발언/등급 C" 처럼 자기보고로 읽히는 줄 → 확인 (분류가 추정이라 막지 않는다)
+ */
+const SELF_LINE = /자기\s*보고/
+const SELF_LINE_NOT = /자기\s*보고\s*(가\s*)?(아님|아니|않)/
+const SELF_LINE_SOFT = /회사\s*(서술|전망|발표|사이트\s*표시값)|본인\s*(발언|글)|(공동)?창업자\s*(본인\s*)?글|자체\s*(집계|추산)|등급\s*C(?![A-Za-z0-9])/
+export function checkEvidenceMemo(text) {
+  const memo = (text.split(/\n## 근거 메모[^\n]*\n/)[1] || '').split(/\n## /)[0]
+  const lines = memo.split('\n').filter((l) => /^\s*[-*]\s/.test(l))
+  const errors = [], warns = []
+  const hard = lines.filter((l) => SELF_LINE.test(l) && !SELF_LINE_NOT.test(l) && !/자사\s*공시/.test(l))
+  const soft = lines.filter((l) => !SELF_LINE.test(l) && SELF_LINE_SOFT.test(l) && !/자사\s*공시/.test(l))
+  if (hard.length) errors.push(`근거 메모 자기보고 줄 ${hard.length}개에 "자사 공시" 표시가 없다("${hard[0].trim().slice(0, 30)}…") — CG-1 은 2026-09-29부터 본문이 아니라 여기서 본다 (§8-2)`)
+  if (soft.length) warns.push(`근거 메모에 자기보고로 읽히는 줄 ${soft.length}개("${soft[0].trim().slice(0, 30)}…") — 자기보고면 "자사 공시" 를 적는다 (§8-2)`)
+  return { errors, warns, selfLines: hard.length + soft.length }
 }
 
 // 검증에서 실제로 걸린 패턴만. 걸리면 "고쳐라"가 아니라 "원문에 있는지 봐라"다.
@@ -51,8 +75,10 @@ export function checkColumn(src, research = '') {
   if (time.length) warns.push(`시점 표현 ${time.length}회 (${[...new Set(time)].join(', ')}) — 근거 시점과 맞는지 본다 (§10-11)`)
   const gen = head.match(GENERAL)
   if (gen) warns.push(`문장이 "${gen[1]}"로 시작 — 몇 건이 받치는지 적었는지 본다 (§10-10)`)
-  const selfReport = (head.match(/밝힌/g) || []).length
-  if (selfReport === 0) warns.push('"밝힌" 귀속이 0회 — 자기보고 수치가 없는 글인지 확인 (§10-7)')
+  // 2026-09-29: 본문 "밝힌" 0회 경고를 없앴다(본문 귀속은 선택). 대신 근거 메모의 자기보고 줄에 "자사 공시" 가 있는지 본다.
+  const memo = checkEvidenceMemo(text)
+  errors.push(...memo.errors)
+  warns.push(...memo.warns)
   // §8-2 출처 흘려 쓰기 — 설명 문장은 오류, 귀속 표현은 1,000자당 1회 안팎(넘으면 확인).
   const cit = checkCitation(head)
   if (cit.meta) errors.push(`출처 설명 문장("${cit.meta.slice(0, 30)}…") — 본문에서 지우고 근거 메모로 (§8-2)`)
@@ -65,10 +91,11 @@ export function checkColumn(src, research = '') {
 /**
  * 편 하나(본문 평문) — drafts/threads/*.body.txt 나 .threads.md 의 한 블록. 문체(checkThreadPost) + 자족성(SC-1~SC-5).
  * checkThreadPost 의 해요체 경고는 정착일(2026-09-11) 이후 기준으로 본다 — 지금 쓰는 글이라서다.
+ * mode: 'A'|'B'|null — null 이면 본문에서 판정(1인칭 '저/제' = B). 모드 A 전용 경고(해요체·SC-4 평어체 마무리)는 A 에만 건다.
  */
-export function checkPost(body, { subject = null } = {}) {
-  const voice = checkThreadPost(body, new Date().toISOString())
-  const sc = checkThreadSelfContained(body, { subject })
+export function checkPost(body, { subject = null, mode = null } = {}) {
+  const voice = checkThreadPost(body, new Date().toISOString(), { mode })
+  const sc = checkThreadSelfContained(body, { subject, mode })
   return { chars: voice.chars, errors: [...voice.errors, ...sc.errors], warns: [...voice.warns, ...sc.warns] }
 }
 
@@ -101,7 +128,8 @@ export function checkThreads(src) {
     // 2026-09-29: 편 자족성(SC-1~SC-5) + 출처 흘려 쓰기 + 읽기 수준. `- 주체:` 줄이 있으면 SC-3 을 그 이름으로 정확히 본다.
     if (body) {
       const subject = (p.match(/^-\s*\*{0,2}주체\*{0,2}\s*[:：]\s*\*{0,2}([^\n*]+)/m) || [])[1]?.trim() || null
-      const sc = checkThreadSelfContained(body, { subject })
+      // `- 모드: B` 줄이 있으면 그것, 없으면 본문 1인칭 여부로(voice-guide §0). 모드 B 편에 모드 A 경고를 걸지 않는다.
+      const sc = checkThreadSelfContained(body, { subject, mode: voiceModeHint(p) })
       errors.push(...sc.errors)
       warns.push(...sc.warns)
       const cit = checkCitation(body)
@@ -123,9 +151,12 @@ function run(paths) {
   for (const f of paths) {
     if (!existsSync(f)) { console.log(`✗ ${f}: 파일 없음`); bad++; continue }
     const src = readFileSync(f, 'utf8')
-    if (/\.body\.txt$/.test(f)) {
-      // 케이스 무브 초안(drafts/threads/*.body.txt). 편 하나짜리 글도 혼자 서야 한다(voice-guide §7).
-      const r = checkPost(src)
+    if (/\.body(-[A-Za-z0-9]+)?\.txt$/.test(f)) {
+      // 케이스 무브 초안(drafts/threads/*.body.txt, A/B 짝은 .body-A.txt). 편 하나짜리 글도 혼자 서야 한다(voice-guide §7).
+      // 모드는 짝 판정 전문(.md)의 `- 모드: A|B` 줄이 있으면 그것, 없으면 본문에서 판정한다.
+      const mdPath = f.replace(/\.body(-[A-Za-z0-9]+)?\.txt$/, '.md')
+      const mode = existsSync(mdPath) ? voiceModeHint(readFileSync(mdPath, 'utf8')) : null
+      const r = checkPost(src, { mode })
       const mark = r.errors.length ? '✗' : '✓'
       console.log(`${mark} ${f} 본문 ${r.chars}자${r.errors.map((e) => `\n    오류: ${e}`).join('')}${r.warns.map((w) => `\n    확인: ${w}`).join('')}`)
       if (r.errors.length) bad++
@@ -187,6 +218,29 @@ function selfTest() {
   assert(checkColumn(good).errors.length === 0, 'good column still passes after 09-29 checks')
   const ok = checkPost('조선미녀는 한방 화장품을 미국에 팔았다. ' + '국내에서 촌스럽다던 한방을 숨기지 않았다. '.repeat(6) + '\n\n당신의 약점은 어느 시장에서 무기가 되는가?')
   assert(ok.errors.length === 0, `self-contained post passes: ${ok.errors.join(' / ')}`)
+  // 2026-09-29 — CG-1 자리 이동(UPD-20260929-01): 본문 "밝힌" 은 세지 않고 근거 메모 자기보고 줄의 "자사 공시" 를 본다.
+  assert(!checkColumn(good).warns.some((w) => w.includes('밝힌')), 'no more 밝힌-0회 warning')
+  const memoBad = good.replace('## 근거 메모\n- x', '## 근거 메모\n- 매출 3억 / https://a.com / 2024-01-01 / 창업자 블로그, 자기보고')
+  assert(checkColumn(memoBad).errors.some((e) => e.includes('자사 공시')), 'self-reported memo line without 자사 공시 is error')
+  const memoOk = good.replace('## 근거 메모\n- x', '## 근거 메모\n- 매출 3억 / https://a.com / 2024-01-01 / 창업자 블로그, 자기보고, 자사 공시')
+  assert(checkColumn(memoOk).errors.length === 0, 'self-reported memo line with 자사 공시 passes')
+  const memoNot = good.replace('## 근거 메모\n- x', '## 근거 메모\n- 인물정보 / https://a.com / 2024-01-01 / 기사, 자기보고 아님')
+  assert(checkColumn(memoNot).errors.length === 0, 'negated 자기보고 line is not flagged')
+  const memoSoft = good.replace('## 근거 메모\n- x', '## 근거 메모\n- 코호트 서술 / https://a.com / 2024-01-01 / 회사 서술')
+  assert(checkColumn(memoSoft).errors.length === 0 && checkColumn(memoSoft).warns.some((w) => w.includes('자사 공시')), 'soft self-report line is warn only')
+  // 2026-09-29 — 모드 B(1인칭 합쇼체) 글에 모드 A 전용 경고(해요체·SC-4)를 걸지 않는다. T1-3 A/B·T3-5 오탐 수정.
+  const modeB = '기저귀 리뷰에서 가장 칭찬받은 항목이 정작 아기에겐 상관이 없었습니다. ' + '리뷰를 쓰는 건 엄마고 기저귀를 차는 건 아기니까요. '.repeat(5) + '저는 그 숫자를 한참 고객 만족도라고 불렀습니다.\n\n돈 내는 사람과 실제로 쓰는 사람이 같으신가요?'
+  const rb = checkPost(modeB)
+  assert(!rb.warns.some((w) => w.includes('해요체')) && !rb.warns.some((w) => w.startsWith('SC-4')), `mode B no A-only warns: ${rb.warns.join(' / ')}`)
+  const modeA = '조선미녀는 한방 화장품을 미국에 팔았다. ' + '국내에서 촌스럽다던 한방을 숨기지 않았다. '.repeat(6) + '\n\n당신의 약점은 어느 시장에서 무기가 되나요?'
+  assert(checkPost(modeA).warns.some((w) => w.includes('해요체')), 'mode A still warns on 해요체 ending')
+  assert(!checkPost(modeA, { mode: 'B' }).warns.some((w) => w.includes('해요체')), 'explicit mode B overrides detection')
+  // 2026-09-29 — 예고형 마무리(T3-5 "다음 글에 적겠습니다")는 SC-1 오류.
+  const teaser = checkPost('조선미녀는 반대로 갔다. ' + '가'.repeat(200) + '\n\n아직 못 푼 부분이 하나 남아 있는데, 그건 다음 글에 적겠습니다.')
+  assert(teaser.errors.some((e) => e.startsWith('SC-1') && e.includes('예고')), 'teaser closing is SC-1 error')
+  const th2 = checkThreads(`# t\n\n## 1편\n\n- 모드: B\n- 마무리 유형: 질문\n\n\`\`\`text\n${modeB}\n\`\`\`\n`)[0]
+  assert(!th2.warns.some((w) => w.startsWith('SC-4')), 'threads block `- 모드: B` respected')
+  assert(checkColumn(good.replace('가'.repeat(3100), '이 회사는 잘된 것으로 보인다. ' + '가'.repeat(3100))).warns.some((w) => w.includes('완충 표현')), 'hedge is warn')
   console.log('self-test ok')
 }
 

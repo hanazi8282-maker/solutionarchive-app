@@ -10,10 +10,22 @@
 import { readFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+// 2026-09-29 남헌 결정 3건(읽기 수준·출처 흘려 쓰기·편 자족성)은 스레드 검사기와 같은 함수를 쓴다 — 칼럼과 편이 한 벌이라서다.
+import { checkCitation, checkThreadPost, checkThreadSelfContained, readability } from '../lib/threads/voice-check.ts'
 
 // 상한 8,000: 케이스-작성-가이드.md §5 (2026-09-15 남헌이 6,000 → 8,000). 가이드와 따로 놀면 기준에 맞는 칼럼이 오류로 뜬다.
 const COLUMN_MIN = 3000, COLUMN_MAX = 8000, THREAD_MAX = 500
 const len = (s) => [...s].length
+
+/** §7-3 읽기 수준 — 칼럼·편 공통 "확인" 줄. 판정 수치는 가이드 §7-3 과 같다(평균 40자 안팎 → 55 넘으면 경고, 90자 초과 0). */
+function readabilityWarns(text) {
+  const rd = readability(text)
+  const out = []
+  if (rd.avg > 55) out.push(`문장 평균 ${rd.avg}자 — 40자 안팎으로(§7-3 고1·고2 기준)`)
+  if (rd.long.length) out.push(`90자 넘는 문장 ${rd.long.length}개("${rd.long[0]}") — 둘로 자른다(§7-3)`)
+  if (rd.acronyms.length) out.push(`풀이 없는 약어 ${rd.acronyms.join(', ')} — 첫 등장에서 우리말로(§7-3)`)
+  return out
+}
 
 // 검증에서 실제로 걸린 패턴만. 걸리면 "고쳐라"가 아니라 "원문에 있는지 봐라"다.
 const CAUSAL = /(불렀다|때문에|그래서|덕분에|이끌었다|만들었다|낳았다)/g
@@ -41,7 +53,23 @@ export function checkColumn(src, research = '') {
   if (gen) warns.push(`문장이 "${gen[1]}"로 시작 — 몇 건이 받치는지 적었는지 본다 (§10-10)`)
   const selfReport = (head.match(/밝힌/g) || []).length
   if (selfReport === 0) warns.push('"밝힌" 귀속이 0회 — 자기보고 수치가 없는 글인지 확인 (§10-7)')
+  // §8-2 출처 흘려 쓰기 — 설명 문장은 오류, 귀속 표현은 1,000자당 1회 안팎(넘으면 확인).
+  const cit = checkCitation(head)
+  if (cit.meta) errors.push(`출처 설명 문장("${cit.meta.slice(0, 30)}…") — 본문에서 지우고 근거 메모로 (§8-2)`)
+  const attrCap = Math.ceil(n / 1000) + 1
+  if (cit.attributions > attrCap) warns.push(`귀속 표현 ${cit.attributions}회 — 1,000자당 1회 안팎(${attrCap}회까지)으로 줄인다 (§8-2)`)
+  warns.push(...readabilityWarns(head))
   return { chars: n, errors, warns }
+}
+
+/**
+ * 편 하나(본문 평문) — drafts/threads/*.body.txt 나 .threads.md 의 한 블록. 문체(checkThreadPost) + 자족성(SC-1~SC-5).
+ * checkThreadPost 의 해요체 경고는 정착일(2026-09-11) 이후 기준으로 본다 — 지금 쓰는 글이라서다.
+ */
+export function checkPost(body, { subject = null } = {}) {
+  const voice = checkThreadPost(body, new Date().toISOString())
+  const sc = checkThreadSelfContained(body, { subject })
+  return { chars: voice.chars, errors: [...voice.errors, ...sc.errors], warns: [...voice.warns, ...sc.warns] }
 }
 
 export function checkThreads(src) {
@@ -70,6 +98,17 @@ export function checkThreads(src) {
     if (overs.length) errors.push(`${THREAD_MAX}자 초과 — ${overs.map((x) => `${x.label} ${x.c}자`).join(', ')}`)
     if (/[→⇒←—]/.test(body)) errors.push('본문에 기호 (voice-guide §5)')
     if (/\(출처|S-1|8-K|10-K|제3자 검증/.test(body)) errors.push('본문에 출처 괄호·게이트 용어 (voice-guide §5)')
+    // 2026-09-29: 편 자족성(SC-1~SC-5) + 출처 흘려 쓰기 + 읽기 수준. `- 주체:` 줄이 있으면 SC-3 을 그 이름으로 정확히 본다.
+    if (body) {
+      const subject = (p.match(/^-\s*\*{0,2}주체\*{0,2}\s*[:：]\s*\*{0,2}([^\n*]+)/m) || [])[1]?.trim() || null
+      const sc = checkThreadSelfContained(body, { subject })
+      errors.push(...sc.errors)
+      warns.push(...sc.warns)
+      const cit = checkCitation(body)
+      if (cit.meta) errors.push(`출처 설명 문장("${cit.meta.slice(0, 30)}…") — 자기답글로 (가이드 §8-2)`)
+      if (cit.attributions > 1) warns.push(`귀속 표현 ${cit.attributions}회 — 한 편 1회까지 (가이드 §8-2)`)
+      warns.push(...readabilityWarns(body))
+    }
     const hook = body.split('\n')[0] || ''
     if (hook && GENERAL.test(hook + ' ')) warns.push(`훅이 "${hook.slice(0, 20)}…" — 사례에 붙은 문장인지 본다 (가이드 §11)`)
     if (!/마무리 유형/.test(p)) warns.push('마무리 유형(질문·정리) 표기가 없다')
@@ -84,7 +123,13 @@ function run(paths) {
   for (const f of paths) {
     if (!existsSync(f)) { console.log(`✗ ${f}: 파일 없음`); bad++; continue }
     const src = readFileSync(f, 'utf8')
-    if (/\.threads\.md$/.test(f)) {
+    if (/\.body\.txt$/.test(f)) {
+      // 케이스 무브 초안(drafts/threads/*.body.txt). 편 하나짜리 글도 혼자 서야 한다(voice-guide §7).
+      const r = checkPost(src)
+      const mark = r.errors.length ? '✗' : '✓'
+      console.log(`${mark} ${f} 본문 ${r.chars}자${r.errors.map((e) => `\n    오류: ${e}`).join('')}${r.warns.map((w) => `\n    확인: ${w}`).join('')}`)
+      if (r.errors.length) bad++
+    } else if (/\.threads\.md$/.test(f)) {
       const res = checkThreads(src)
       if (!res.length) { console.log(`✗ ${f}: 편을 하나도 못 찾았다`); bad++; continue }
       for (const t of res) {
@@ -130,6 +175,18 @@ function selfTest() {
   assert(tr[0].chars === 5, 'body still measured alone')
   assert(tr[0].blockChars.length === 2 && tr[0].blockChars[1] === 513, 'self-reply block captured')
   assert(tr[0].errors.some((e) => e.includes('자기답글 1 513자')), 'over-length self-reply flagged with label')
+  // 2026-09-29 — 편 자족성·출처 흘려 쓰기·읽기 수준. 상세 픽스처는 scripts/column-style-selftest.mjs 에 있다.
+  const dep = `# t\n\n## 3편\n\n- 주체: 조선미녀\n- 마무리 유형: 질문\n\n\`\`\`text\n그 회사는 1편에서 말한 대로 갔다. 이 수치는 회사 블로그에 있다.\n\n${'라'.repeat(200)}\n\`\`\`\n`
+  const td = checkThreads(dep)[0]
+  assert(td.errors.some((e) => e.startsWith('SC-1')), 'series reference is SC-1 error')
+  assert(td.errors.some((e) => e.startsWith('SC-2')), 'anaphora opening is SC-2 error')
+  assert(td.errors.some((e) => e.startsWith('SC-3')), 'declared subject missing is SC-3 error')
+  assert(td.errors.some((e) => e.includes('출처 설명 문장')), 'citation meta sentence is error')
+  const meta = `독자: 창업자\n\n# 제목\n\n이 근거는 회사 블로그에서 나왔다. ${'가'.repeat(3100)}\n\n---\n\n## 근거 메모\n- x\n\n## 자체 점검\n0. 예`
+  assert(checkColumn(meta).errors.some((e) => e.includes('출처 설명 문장')), 'column citation meta sentence is error')
+  assert(checkColumn(good).errors.length === 0, 'good column still passes after 09-29 checks')
+  const ok = checkPost('조선미녀는 한방 화장품을 미국에 팔았다. ' + '국내에서 촌스럽다던 한방을 숨기지 않았다. '.repeat(6) + '\n\n당신의 약점은 어느 시장에서 무기가 되는가?')
+  assert(ok.errors.length === 0, `self-contained post passes: ${ok.errors.join(' / ')}`)
   console.log('self-test ok')
 }
 

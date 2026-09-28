@@ -13,6 +13,8 @@ import { fileURLToPath } from 'node:url'
 import {
   compareAutoPriority,
   describePick,
+  EXTRACT_SLOTS,
+  extractRunKey,
   needsForce,
   newInputsSince,
   pickAutoTargets,
@@ -158,10 +160,29 @@ t('수집 워크플로에 30분이 남아 있지 않다', !/timeout-minutes: 30\
 t('수집 워크플로에 KST 14:37 슬롯이 있다', /cron: '37 5 \* \* \*'/.test(collectYml))
 t('수집 워크플로가 KST 02:37 슬롯을 유지한다', /cron: '37 17 \* \* \*'/.test(collectYml))
 t('관련성 워크플로 timeout 90분', /timeout-minutes: 90/.test(relevanceYml))
-// extract·relevance 는 1회 유지다 — LLM 무료 티어를 더 태우지 않기로 한 결정(Q2(a)).
+// relevance 는 1회 유지다 — LLM 무료 티어를 더 태우지 않기로 한 결정(Q2(a)). extract 는 아래 6번 끝.
 t('관련성 워크플로는 cron 이 1개다', (relevanceYml.match(/- cron:/g) ?? []).length === 1)
 const extractYml = readFileSync(new URL('../.github/workflows/nightly-extract.yml', import.meta.url), 'utf8')
-t('extract 워크플로도 cron 이 1개다', (extractYml.match(/- cron:/g) ?? []).length === 1)
+// extract 는 2026-09-28 남헌 지시(하루 10→20)로 2슬롯이 됐다. 크론 줄 = EXTRACT_SLOTS 키, 1:1.
+const extractCrons = [...extractYml.matchAll(/- cron: '([^']+)'/g)].map(m => m[1])
+t('extract 워크플로 cron 은 슬롯 표와 1:1', extractCrons.length === 2 && extractCrons.every(c => EXTRACT_SLOTS[c]) && Object.keys(EXTRACT_SLOTS).length === 2)
+t('extract 워크플로가 발화 크론을 EXTRACT_SLOT_CRON 으로 넘긴다', /EXTRACT_SLOT_CRON: \$\{\{ github\.event\.schedule \}\}/.test(extractYml))
+t('extract 는 concurrency 그룹을 유지한다(두 슬롯이 겹쳐도 순차)', /group: extract-auto\n\s*cancel-in-progress: false/.test(extractYml.replace(/\r\n/g, '\n')))
+
+// ── 6b. run_key 슬롯 접미사(설계 F3) — 같은 KST 날짜 두 실행이 agent_runs 행을 덮지 않는다 ─
+t('s1 run_key', extractRunKey('2026-09-29', { eventName: 'schedule', slotCron: '33 18 * * *', runId: '1' }) === 'extract-auto-2026-09-29-s1')
+t('s2 run_key', extractRunKey('2026-09-29', { eventName: 'schedule', slotCron: '33 3 * * *', runId: '2' }) === 'extract-auto-2026-09-29-s2')
+t('수동 실행은 run_id 로 갈린다', extractRunKey('2026-09-29', { eventName: 'workflow_dispatch', runId: '99' }) === 'extract-auto-2026-09-29-m99')
+t('로컬 실행', extractRunKey('2026-09-29', {}) === 'extract-auto-2026-09-29-local')
+{
+  let threw = false
+  try { extractRunKey('2026-09-29', { eventName: 'schedule', slotCron: '0 0 * * *' }) } catch { threw = true }
+  t('표에 없는 크론은 s1 로 접지 않고 throw', threw)
+  threw = false
+  try { extractRunKey('2026-09-29', { eventName: 'schedule' }) } catch { threw = true }
+  t('schedule 인데 크론이 비었으면 throw', threw)
+}
+t('extract-auto.mjs 가 extractRunKey 로 run_key 를 만든다', /runKey = extractRunKey\(kstDate\(\)/.test(auto) && !/runKey: `extract-auto-\$\{kstDate\(\)\}`/.test(auto))
 
 // ── 7. 관련성 판정 — reader_problem 컬럼을 3상태로 다룬다 ───────
 const rel = readFileSync(new URL('relevance-judge-auto.mjs', import.meta.url), 'utf8')

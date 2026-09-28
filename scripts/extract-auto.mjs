@@ -29,6 +29,7 @@ import {
   autoMaxProjects,
   autoMinNew,
   describePick,
+  extractRunKey,
   needsForce,
   newInputsSince,
   pickAutoTargets,
@@ -42,6 +43,18 @@ const args = process.argv.slice(2)
 const dry = args.includes('--dry')
 const minNew = autoMinNew()
 const max = autoMaxProjects()
+// 하루 2슬롯(KST 03:33 · 12:33)이 같은 KST 날짜라 run_key 에 슬롯을 붙인다(설계 F3). 표에 없는 크론이면 exit 2.
+let runKey
+try {
+  runKey = extractRunKey(kstDate(), {
+    eventName: process.env.GITHUB_EVENT_NAME,
+    slotCron: process.env.EXTRACT_SLOT_CRON,
+    runId: process.env.GITHUB_RUN_ID,
+  })
+} catch (e) {
+  console.error(`✗ ${e.message}`)
+  process.exit(2)
+}
 
 const log = (m) => console.log(`[${new Date().toISOString()}] ${m}`)
 const warn = (m) => {
@@ -63,7 +76,7 @@ if (!supabase) {
   process.exit(2)
 }
 
-log(`야간 자동 extract ${dry ? '(--dry: 대상 선정만)' : ''} — provider=${provider} · 신규 기준 ${minNew}건 · 실행 상한 ${max}건 · 일 예산 $${DAILY_BUDGET_USD}`)
+log(`야간 자동 extract ${dry ? '(--dry: 대상 선정만)' : ''} — run_key=${runKey} · provider=${provider} · 신규 기준 ${minNew}건 · 실행 상한 ${max}건 · 일 예산 $${DAILY_BUDGET_USD}`)
 
 // ── 1. 후보 = status='collecting' + 재추출 가능 상태(extracted) ──
 // 남헌 2026-09-23 Q4(a). extracted 도 후보다 — 마지막 추출 이후 신규 ≥ minNew 면 force 로 다시 돈다.
@@ -120,7 +133,7 @@ if (dry) {
 
 // ── 3. 실행 상태 기록 (기존 헬퍼 재사용: agent_runs / agent_run_steps) ──
 const tracker = await createTracker({
-  runKey: `extract-auto-${kstDate()}`,
+  runKey,
   dept: 'cto',
   trigger: process.env.GITHUB_EVENT_NAME === 'schedule' ? 'cron' : process.env.GITHUB_ACTIONS ? 'manual' : 'local',
   dryRun: false,

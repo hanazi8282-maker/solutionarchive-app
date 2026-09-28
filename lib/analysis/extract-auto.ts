@@ -157,6 +157,28 @@ export function pickAutoTargets(
   }
 }
 
+/**
+ * 스케줄 크론 → 슬롯 이름. yml 의 `- cron:` 줄과 1:1 이다(reports/2026-09-28/extract-adaptive-frequency-design.md §3.1).
+ * 두 슬롯(KST 03:33 · 12:33)은 같은 KST 날짜에 떨어지므로 run_key 에 슬롯이 없으면 두 번째가 첫 번째 행을 덮는다(F3).
+ */
+export const EXTRACT_SLOTS: Readonly<Record<string, string>> = { '33 18 * * *': 's1', '33 3 * * *': 's2' }
+
+/**
+ * agent_runs.run_key — `extract-auto-<KST날짜>-<s1|s2|m<run_id>|local>`.
+ * 표에 없는 크론이면 throw — yml 과 코드가 갈라진 것을 조용히 s1 로 접지 않는다(§7.1).
+ */
+export function extractRunKey(
+  date: string,
+  env: { eventName?: string; slotCron?: string; runId?: string },
+): string {
+  if (env.eventName === 'schedule') {
+    const slot = EXTRACT_SLOTS[(env.slotCron ?? '').trim()]
+    if (!slot) throw new Error(`슬롯 표에 없는 크론 '${env.slotCron ?? ''}' — nightly-extract.yml 과 EXTRACT_SLOTS 를 맞춰라`)
+    return `extract-auto-${date}-${slot}`
+  }
+  return `extract-auto-${date}-${env.runId ? `m${env.runId}` : 'local'}`
+}
+
 /** 로그 한 줄 — "대상 0"과 "상한 도달, 남은 k건"을 말로 구분한다(§7.2). */
 export function describePick(pick: AutoPick, minNew: number, max: number): string {
   const head =

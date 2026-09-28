@@ -65,6 +65,23 @@ export type DetailEvidenceRow = Evidence & {
   domain: string | null
 }
 
+/**
+ * 공개 경로(`/library`·`/library/<slug>`·랜딩·OG)로 나가는 케이스·무브 행에서 **검수자 신원을 지운다.**
+ *
+ * `reviewed_by` 에는 로그인 이메일이 들어간다(app/cases/actions.ts). `select('*')` 라 그대로 실려 와
+ * 상세 칩에 이메일이 찍혔다(2026-09-28 운영 실측). 렌더에서만 숨기면 다음 화면이 또 찍는다 — 그래서
+ * 로더 출구에서 값 자체를 바꾼다. **참/거짓만 남긴다**: "사람이 봤다" 판별(`caseExposure`·상세 칩)이
+ * `reviewed_by` 의 truthiness 를 쓰기 때문이다. 검수 메모(`review_note`)도 내부용이라 같이 지운다.
+ * 로그인 전용 검수 화면(`/cases`)은 이 함수를 거치지 않는다.
+ */
+export const PUBLIC_REVIEWER = 'human'
+export function redactReviewer<T extends object>(rows: T[] | null): T[] | null {
+  return rows && rows.map((r) => {
+    const x = r as { reviewed_by?: string | null }
+    return { ...r, reviewed_by: x.reviewed_by ? PUBLIC_REVIEWER : null, review_note: null }
+  })
+}
+
 // ────────────────────────────────────────────────────────────
 // 1) 무브 정렬 — 시간순. NULL 은 맨 뒤다.
 // ────────────────────────────────────────────────────────────
@@ -415,7 +432,9 @@ export async function loadCaseDetail(sb: Client, slug: string, where = 'library/
     selectAll<FailedAngleRow>(sb, 'failed_angles', where),
   ])
   // 숨긴 케이스(lib/cases/deleted.ts)는 상세·관련 케이스·갈린 사례 어디에도 안 나간다 — 숨긴 slug 는 404 다.
-  const { studies, moves } = withoutDeleted(rawStudies, rawMoves, deletedIdsOf(rawStudies ?? []))
+  const visible = withoutDeleted(rawStudies, rawMoves, deletedIdsOf(rawStudies ?? []))
+  const studies = redactReviewer(visible.studies)
+  const moves = redactReviewer(visible.moves)
   if (studies === null || moves === null) {
     return { status: 'error', reason: '케이스·무브 조회가 실패했다 — 이 케이스가 없다는 뜻이 아니다' }
   }

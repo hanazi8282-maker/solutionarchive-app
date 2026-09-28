@@ -205,6 +205,40 @@ ok('slug 가 다르면 칸이 갈릴 수 있다(해시가 상수가 아니다)',
 t('판정의 slot = slug 해시(병목 무관)', logoFor({ brand_name: 'X', slug: 'fathom-pricing' }, 'UNIT_ECONOMICS').slot, paletteSlot('fathom-pricing'))
 t('slug 없으면 brand_name 으로 대신', logoFor({ brand_name: 'Juttu' }).slot, paletteSlot('Juttu'))
 
+// ── 8. 공개 경로에 검수자 이메일이 나가지 않는다(2026-09-28 운영 실측: 상세 칩에 이메일 노출) ──
+{
+  const { redactReviewer, PUBLIC_REVIEWER } = await import('../lib/cases/detail.ts')
+  const { caseExposure } = await import('../lib/cases/case-auto-approval.ts')
+  const { readFileSync, readdirSync, statSync } = await import('node:fs')
+  const EMAIL = 'someone@example.com'
+  const rows = redactReviewer([
+    { id: 'a', reviewed_by: EMAIL, review_note: '내부 메모', reviewed_at: '2026-09-24T00:00:00Z' },
+    { id: 'b', reviewed_by: null, auto_approval_rule: 'ca-v1' },
+    { id: 'c' },
+  ])
+  ok('redact — 결과 JSON 어디에도 이메일·메모가 없다', !/@|내부 메모/.test(JSON.stringify(rows)))
+  t('redact — 사람이 봤다는 사실(truthy)은 남는다', rows[0].reviewed_by, PUBLIC_REVIEWER)
+  t('redact — 안 본 행은 null 그대로', rows[1].reviewed_by, null)
+  t('redact — 검증중 판별이 그대로 동작', caseExposure(rows[1]), 'verifying')
+  t('redact — 사람 승인은 정식 노출 그대로', caseExposure(rows[0]), 'verified')
+  t('redact — 조회 실패(null)는 null 그대로(빈 배열로 접지 않는다)', redactReviewer(null), null)
+
+  // 정적: 공개 로더 출구가 redactReviewer 를 거친다.
+  const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8')
+  ok('detail.ts loadCaseDetail 이 redact 한다', /redactReviewer\(visible\.studies\)/.test(src('lib/cases/detail.ts')) && /redactReviewer\(visible\.moves\)/.test(src('lib/cases/detail.ts')))
+  ok('library.ts loadLibrary 가 redact 한다', /studies: redactReviewer\(studies\), moves: redactReviewer\(moves\)/.test(src('lib/cases/library.ts')))
+  ok('library/saved 가 redact 한다', /redactReviewer\(visible\.studies\)/.test(src('app/library/saved/page.tsx')))
+
+  // 정적: 공개 화면(랜딩·/library·_pub)이 reviewed_by 값을 그리지 않는다 — JSX `{…reviewed_by}`·템플릿 `${…reviewed_by…}`.
+  const walk = (d) => readdirSync(new URL(`../${d}`, import.meta.url)).flatMap((f) => {
+    const p = `${d}/${f}`
+    return statSync(new URL(`../${p}`, import.meta.url)).isDirectory() ? walk(p) : /\.tsx?$/.test(f) ? [p] : []
+  })
+  const pub = ['app/page.tsx', 'app/opengraph-image.tsx', ...walk('app/library'), ...walk('app/_pub')]
+  const draws = pub.filter((p) => /\{\s*[\w.?]*reviewed_by\s*\}|\$\{[^}]*reviewed_by[^}]*\}/.test(src(p)))
+  t('공개 화면이 reviewed_by 를 그리는 자리 0곳', draws.join(','), '')
+}
+
 console.log(fail
   ? `실패 ${fail}건 / 통과 ${pass}건`
   : `통과 ${pass}건 — 무브 정렬(NULL 뒤) · 근거 그룹 배타 · displayGrade 미기재/D 구분 · 체크리스트(점수 없음) · 수치 타일 · 갈린 짝 · 관련 3장 · 로고 폴백 3단계`)

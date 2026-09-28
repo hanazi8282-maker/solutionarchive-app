@@ -36,9 +36,9 @@ Vercel 에는 상시 라우트(capture / match / collect / refresh)만 남는다
 **실행 (GitHub Actions)**
 
 - `.github/workflows/nightly-insight-loop.yml` — 19:00 UTC + `workflow_dispatch`
-- `.github/workflows/insight-headless-probe.yml` — 읽기 전용 환경 판정
+- ~~`.github/workflows/insight-headless-probe.yml` — 읽기 전용 환경 판정~~ (2026-09-29 삭제 — 09-01 `viable` 판정으로 목적 달성)
 - `scripts/insight-loop.mjs` — 루프 진입점. 잡 요약 패널에 결과를 남긴다
-- `scripts/insight-headless-probe.mjs` — `claude -p` 4단계 판정
+- ~~`scripts/insight-headless-probe.mjs` — `claude -p` 4단계 판정~~ (같이 삭제)
 
 **Vercel (상시 라우트만)**
 
@@ -369,7 +369,7 @@ true 다. 214MB 재다운로드도 사라졌다(`CLAUDE_CLI_PATH` 분기).
 - [ ] 며칠 dry-run 관찰 후 `dry_run=false` 자동 실행 활성화 판단
 - [ ] 프로덕션 `CRON_SECRET` 설정 여부 확인 (지금 비어 있을 가능성 높음)
 - [ ] Vercel 프로젝트 3개 중 정본 하나만 남길지 판단 (리스크 0)
-- [ ] 머지 후 `insight-headless-probe.yml` 의 `push` 트리거 제거
+- [x] 머지 후 `insight-headless-probe.yml` 의 `push` 트리거 제거 — 2026-09-29 워크플로 자체를 삭제(§실행 목록 참조)
 - [ ] 60일 무활동 시 Actions 스케줄 자동 비활성화 — 승격이 오래 없으면
       커밋도 없어 조용히 멈출 수 있다. 분기에 한 번 실행 이력 확인
 

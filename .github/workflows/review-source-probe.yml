@@ -14,8 +14,8 @@ name: Review Source Probe
 
 on:
   workflow_dispatch:
-  push:
-    branches: [feat/review-source-probe]
+  # 2026-09-29: `push: branches: [feat/review-source-probe]` 트리거 제거 — 08-29 개발용 임시 트리거였고
+  # 그 브랜치는 머지·삭제됐다(마지막 push 실행 2026-09-01). 수동 실행만 남긴다.
 
 permissions:
   contents: read

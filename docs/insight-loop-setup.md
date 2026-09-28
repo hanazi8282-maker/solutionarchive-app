@@ -235,6 +235,12 @@ if (auth !== `Bearer ${process.env.CRON_SECRET}`) return 401
 
 읽기 전용이고(`permissions: contents: read`) 아무것도 쓰지 않는다.
 
+> **2026-09-29 은퇴.** 판정은 2026-09-01 실행(33477777051)에서 `viable` 로 끝났고 그 뒤 나이틀리 루프가 매일
+> 같은 경로로 돈다 — 그 자체가 상시 프로브다. 워크플로 `insight-headless-probe.yml` 과 `scripts/insight-headless-probe.mjs` 는
+> 삭제했다(파일 머리말대로 "판정이 끝나면 지워도 된다"). 다시 재야 하면 git 이력에서 복구한다.
+
+옛 실행 명령(기록용):
+
 ```bash
 gh workflow run insight-headless-probe.yml
 RUN=$(gh run list --workflow=insight-headless-probe.yml --limit 1 --json databaseId -q '.[0].databaseId')

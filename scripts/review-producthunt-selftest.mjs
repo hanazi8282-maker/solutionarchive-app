@@ -36,6 +36,9 @@ const ok = (name, cond) => t(name, Boolean(cond), true)
 const TOKEN = 'TEST_PH_TOKEN'
 process.env.PRODUCT_HUNT_API_TOKEN = TOKEN
 
+// CLAUDE.md §7.1 예외(남헌 2026-09-29) — Actions 에서 robots 403 이어도 공식 API 호스트는 진행
+t('robots 확인 불가 예외 호스트', JSON.stringify(producthuntAdapter.proceedWhenRobotsUnverified), '["api.producthunt.com"]')
+
 const page1 = await fx('page1.json')
 const page2 = await fx('page2-last.json')
 const errors = await fx('graphql-errors.json')

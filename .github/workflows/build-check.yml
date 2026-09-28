@@ -33,6 +33,8 @@ jobs:
       # 발행 매칭·미연결 분류. 후보 집합(초안 + 칼럼 연재 편)이 좁아지면 칼럼 발행본이
       # "파이프라인 외"로 조용히 내려간다 — 그 회귀를 여기서 막는다. 네트워크·DB 없음.
       - run: node scripts/threads-match-selftest.mjs
+      # 외부 게시물 사후 등록(createPost external 경로) — 입력 검증·중복·000022 와 같은 행 모양. 발행 API 안 부름.
+      - run: node scripts/threads-external-post-selftest.mjs
       # 칼럼 연재 편 → posts 스테이징 행 생성. 연결된 행을 덮어쓰지 않는지 포함.
       - run: node scripts/column-threads-stage.mjs --self-test
       # 추출 시작 게이트가 서버·화면 한 벌인지. 갈라지면 시작할 수 있는데 버튼이 없는 화면이 된다.

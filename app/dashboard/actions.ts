@@ -8,6 +8,7 @@ import { loadThreadsToken } from '@/lib/threads/token'
 import { publishTextPost } from '@/lib/threads/publish'
 import { instantGateForPost, parseStageNotes } from '@/lib/threads/instant-gate'
 import { loadDeletedCaseIds } from '@/lib/cases/deleted'
+import { parseExternalInput, checkDuplicate, externalFields } from '@/lib/threads/external-post'
 
 export type ActionState = { ok: boolean; message: string } | null
 
@@ -47,6 +48,9 @@ export async function createPost(
   }
 
   if (!body) return { ok: false, message: '본문(body)은 필수입니다.' }
+  // 외부에서 이미 발행한 글(초안 없음)이면 id·링크를 받아 000022 와 같은 모양으로 넣는다. 발행 API 는 부르지 않는다.
+  const ext = parseExternalInput(String(formData.get('external_id') ?? ''), String(formData.get('permalink') ?? ''))
+  if (ext.kind === 'invalid') return { ok: false, message: ext.message }
   if (!published_at) return { ok: false, message: '발행일시(published_at)는 필수입니다.' }
   const when = parseKstDateTime(published_at)
   if (Number.isNaN(when.getTime())) return { ok: false, message: '발행일시 형식이 올바르지 않습니다.' }
@@ -72,6 +76,11 @@ export async function createPost(
   if (hypoRes && !hypoRes.data) return { ok: false, message: `없는 가설 코드입니다: ${hypothesis_code}` }
   const channel = channelRes.data
 
+  if (ext.kind === 'external') {
+    const dup = await checkDuplicate(supabase, ext)
+    if (dup.status !== 'clear') return { ok: false, message: dup.message }
+  }
+
   const { error } = await supabase.from('posts').insert({
     channel_id: channel?.id ?? null,
     content_code: content_code || null,
@@ -85,15 +94,25 @@ export async function createPost(
     // 컬럼 기본값 'draft' 가 들어가고, 매처가 이 글을 초안으로 착각해
     // 엉뚱한 Threads 게시물에 붙이려 든다. 명시적으로 published 로 넣는다.
     status: 'published',
+    char_count: [...body].length,
+    ...(ext.kind === 'external' ? externalFields(ext, auth.email) : {}),
   })
 
-  if (error) return { ok: false, message: `저장 실패: ${error.message}` }
+  if (error) {
+    // 23505 = 확인과 저장 사이에 같은 external_id 가 들어왔다(매처 크론 등).
+    // 23514 = CHECK 위반 — published_via 에 'external' 을 허용하는 마이그 000021 이 없는 DB.
+    if (error.code === '23505') return { ok: false, message: '이 Threads 게시물 ID 는 이미 등록돼 있습니다.' }
+    if (error.code === '23514' && ext.kind === 'external') {
+      return { ok: false, message: `저장 실패 — 'external' 을 허용하는 마이그 20260930000021 미적용일 수 있습니다: ${error.message}` }
+    }
+    return { ok: false, message: `저장 실패: ${error.message}` }
+  }
 
   revalidatePath('/dashboard')
   return {
     ok: true,
     message: channel?.id
-      ? '글이 등록되었습니다.'
+      ? (ext.kind === 'external' ? `외부 게시물이 등록되었습니다 — Threads ${ext.externalId}.` : '글이 등록되었습니다.')
       : '글이 등록되었습니다. (주의: self 채널을 찾지 못해 channel_id가 비어 있습니다)',
   }
 }

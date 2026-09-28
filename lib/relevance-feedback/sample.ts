@@ -10,6 +10,8 @@
 //
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다(셀프테스트). `@/` 별칭·enum 을 쓰지 않는다.
 
+import { meetsRrV2 } from '../analysis/auto-approval.ts'
+
 export type Stratum = 'A' | 'B' | 'C' | 'D'
 export const STRATA: readonly Stratum[] = ['A', 'B', 'C', 'D']
 
@@ -65,10 +67,8 @@ export function stratumAvailable(s: Stratum, a: Availability): boolean {
   return s === 'C' || s === 'D' ? true : a.informative === true
 }
 
-// TODO(feat/rr-v2-informative-gate): 그 PR 이 main 에 들어오면 lib/analysis/auto-approval.ts 의 rr-v2 조건
-//   (isFullAgreement 의 판정 부분)으로 교체한다. 그쪽은 "사람 미채점·시행일 이후" 까지 보므로 판정 조건만 떼어 쓴다.
-export const isRrV2 = (r: FeedbackRow): boolean =>
-  r.verdict === 'relevant' && r.second_verdict === 'relevant' && r.product_informative === true && r.second_product_informative === true
+// rr-v2 판정 조건은 자동승인과 같은 한 벌(lib/analysis/auto-approval.ts meetsRrV2)을 쓴다 — 갈라지면 A 층이 실제 승인과 어긋난다.
+export const isRrV2 = (r: FeedbackRow): boolean => meetsRrV2(r)
 
 /** 행 하나의 층. 어느 층도 아니거나(판정 하나뿐·둘 다 unknown) 그 층을 못 가르면 null. */
 export function stratumOf(r: FeedbackRow, a: Availability): Stratum | null {

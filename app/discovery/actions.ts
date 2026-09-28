@@ -26,6 +26,12 @@ export async function decideCandidate(_prev: ReviewActionState, fd: FormData): P
     return { ok: false, message: '유지 또는 무효화 중 하나를 골라야 합니다.' }
   }
   const decision = decisionRaw
+  // 무효화는 사유가 필수다. 사유 없는 무효화는 다음 발굴이 배울 게 없고(제안 프롬프트의 반례로 들어간다),
+  // "왜 죽였나"를 나중에 아무도 못 답한다 — Fly.io 가 이름 충돌 때문인지 이식성 때문인지 지금 모르는 것처럼.
+  const note = String(fd.get('note') ?? '').trim()
+  if (decision === 'killed' && note.length < 5) {
+    return { ok: false, message: '무효화 사유를 5자 이상 적어 주세요. 다음 발굴이 같은 결의 후보를 피하는 데 씁니다.' }
+  }
 
   const sb = await createClient()
   if (!sb) return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다.' }
@@ -45,7 +51,8 @@ export async function decideCandidate(_prev: ReviewActionState, fd: FormData): P
 
   const { data, error: writeErr } = await sb
     .from('discovery_candidates')
-    .update({ human_review: decision })
+    // 유지로 되돌릴 때는 사유를 지우지 않는다 — 한 번 무효화됐던 이력이다.
+    .update(decision === 'killed' ? { human_review: decision, human_note: note } : { human_review: decision })
     .eq('id', id)
     .eq('human_review', prev) // 낙관적 락 — 읽은 뒤 사이에 바뀌었으면 0행 갱신.
     .select('id')

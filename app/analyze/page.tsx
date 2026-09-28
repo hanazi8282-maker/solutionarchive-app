@@ -266,7 +266,7 @@ export default async function AnalyzeListPage({ searchParams }: { searchParams: 
 
       {discovery && (
         <DismissBanner storageKey={`sa.analyze.discovery-banner.${discovery.day}`}>
-          어젯밤({discovery.day}) 발굴 후보 {discovery.night}건 · 검토 대기 {discovery.pending}건{' '}
+          어젯밤({discovery.day}) 발굴 후보 {discovery.night}건 · 자동 반영(이의 시 무효화) {discovery.pending}건{' '}
           <Link href="/discovery" className="v2-link-plain v2-fig">보러 가기 →</Link>
         </DismissBanner>
       )}

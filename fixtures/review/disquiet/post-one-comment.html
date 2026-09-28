@@ -1,0 +1,139 @@
+<!doctype html>
+<html><head><title>Post | Disquiet*</title>
+<link rel="canonical" href="https://disquiet.io/posts/qaC6ZB">
+</head><body>
+<main class="relative w-full max-w-2xl mx-auto">
+          
+
+          
+<div>
+  <a class="inline-flex items-center gap-1 text-sm text-base-content/60 hover:text-base-content mb-4" data-controller="disquiet--back" data-action="disquiet--back#navigate" href="/">
+    <svg></svg>
+    <span>뒤로</span>
+</a>
+  <div class="card card-md">
+    <div class="card-body">
+      <header class="flex items-start gap-3 mb-5">
+          <a class="shrink-0" href="/profiles/LZtNp01">
+            <img class="shrink-0 object-cover rounded-full " style="width: 36px; height: 36px;" alt="Peterslab" src="https://disquiet-public.s3.ap-northeast-2.amazonaws.com/osglyvt2qf15aoc2yqhmhh84so18" />
+</a>        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5">
+              <a class="font-medium text-base-content hover:underline" href="/profiles/LZtNp01">Peterslab</a>
+            <span class="text-base-content/60">&middot;</span>
+            <span class="text-base-content/60"><time datetime="2026-09-26T13:50:10Z" data-local="time-ago">September 26, 2026  1:50pm</time></span>
+          </div>
+        </div>
+      </header>
+
+      <div class="prose prose-neutral disquiet-prose">
+        <p>1인 개발로 만화 AI 번역기를 만들면서 마주한 OCR 지옥과 해결 과정 (feat. AI Manga Translator)<br>
+혼자서 여러 마이크로서비스를 빌드하다 보면, "이건 진짜 내가 써야겠다" 싶은 순간이 오기 마련입니다. 최근 <a href="https://ai-manga-translator.com" target="_blank" rel="noopener noreferrer nofollow">AI Manga Translator</a> 를 운영하면서 글로벌 사용자들이 원서 만화나 웹툰을 파싱하는 패턴을 분석하게 되었는데요.</p>
+
+<p>시중에 있는 범용 OCR이나 일반 번역 API를 만화에 그대로 밀어 넣었을 때 얼마나 처참하게 무너지는지, 그리고 이걸 1인 개발자의 호흡으로 어떻게 헤쳐나왔는지 핵심만 공유해 드립니다.</p>
+
+<ol>
+<li>만화 OCR이 일반 문서 OCR과 완전히 다른 이유
+우측에서 좌측으로 흐르는 세로쓰기(Tategaki): 전통적인 일본 만화 레이아웃은 일반 문서 파서의 읽기 순서를 완전히 곤충처럼 찢어놓습니다.</li>
+</ol>
+
+<p>후리가나(Ruby Text)의 폭격: 한자 위에 작게 붙은 독음 글자가 본문 텍스트와 엉겨 붙어 데이터가 완전히 오염됩니다.</p>
+
+<p>효과음(SFX) 노이즈: 배경에 꽉찬 거대한 폰트의 효과음(예: ゴゴゴ)을 대사로 오인식하여 번역 결과가 삼천포로 빠집니다.</p>
+
+<ol>
+<li>엔지ニア링 관점의 해결책: 공간 인식 파이프라인
+이 문제를 풀기 위해 단순 텍스트 추출을 넘어서는 공간 인식 기반 파이프라인(Spatial-Aware Parsing)을 설계했습니다.</li>
+</ol>
+
+<p>바운딩 박스 최적화: 말풍선 영역을 정밀하게 격리하고 읽기 방향에 따른 동적 정렬을 적용.</p>
+
+<p>루비 텍스트 필터링: 번역 모델로 들어가기 전 노이즈 원천 차단.</p>
+
+<p>SFX 마스킹: 배경 효과음과 핵심 스토리 대사를 엄격하게 분리.</p>
+
+<ol>
+<li>마무리하며
+작은 툴을 빠르게 만들고(Ship) 전 세계 유저들의 피드백을 받으며 백엔드를 다듬어가는 과정 자체가 1인 개발의 가장 큰 쾌감인 것 같습니다.</li>
+</ol>
+
+<p>만화 원서 독해나 관련 멀티모달 비전 파이프라인에 관심 있으신 개발자분들은 언제든 가볍게 테스트해 보시고 피드백 주시면 감사하겠습니다!</p>
+
+<p>👉 Live Service: <a href="https://ai-manga-translator.com" target="_blank" rel="noopener noreferrer nofollow">https://ai-manga-translator.com</a><br>
+👉 Indie Lab Logs: <a href="https://peterslab.co" target="_blank" rel="noopener noreferrer nofollow">https://peterslab.co</a></p>
+
+<p>오늘도 각자의 자리에서 멋진 코드를 빌드하고 계실 모든 개발자분들을 응원합니다!</p>
+
+      </div>
+
+        <div class="flex items-center gap-3 mt-6 pt-4 border-t border-base-300">
+            <img class="size-10 rounded-lg object-cover shrink-0" src="https://disquiet-public.s3.ap-northeast-2.amazonaws.com/8h0ok9gpm8d0brg5yagwl19b0ajf" />
+          <div class="min-w-0">
+            <a class="text-base-content hover:underline" href="/products/ai-manga-translator">AI Manga Translator</a>
+            <p class="text-sm text-base-content/60 truncate">웹 브라우저 및 크롬 확장 프로그램을 통해 원본 만화를 실시간으로 인식하여 완벽한 번역과 식자 디자인을 제공하는 AI 기반 번역 서비스입니다.</p>
+          </div>
+        </div>
+
+
+      <div class="flex items-center justify-between mt-5 pt-4 border-t border-base-300">
+        <div class="flex items-center gap-1">
+          <div id="upvote_post_6553">
+      <span class="inline-flex items-center gap-1.5 px-2 py-1 text-base-content/60"
+            role="img" aria-label="추천 1">
+        <svg></svg>
+        <span>1</span>
+      </span>
+</div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-md mt-4">
+    <div class="card-body">
+      <section id="comments" data-controller="disquiet--reply-form">
+        <h2 class="text-base-content/60 mb-4">댓글</h2>
+
+          <div id="comment_form">
+      <p class="text-base-content/60 text-center py-6">
+        <a class="underline hover:text-base-content" href="/users/sign_in">로그인</a> 후 댓글을 남길 수 있습니다.
+      </p>
+  </div>
+
+
+        
+
+        <div id="comments_list" class="mt-6 divide-y divide-base-300">
+            <div id="disquiet_comment_64345" class="flex gap-3 py-4">
+  <div class="shrink-0 mt-0.5">
+      <img class="shrink-0 object-cover rounded-full " style="width: 28px; height: 28px;" alt="오피셜메일" src="https://disquiet-public.s3.ap-northeast-2.amazonaws.com/atezbhtx7a4vwj4jkfxfj20fwt3d" />
+  </div>
+
+  <div class="flex-1 min-w-0">
+    <div class="flex items-baseline gap-1.5">
+        <a class="font-medium text-base-content hover:underline" href="/profiles/RKt6N4n">오피셜메일</a>
+      <span class="text-sm text-base-content/60"><time datetime="2026-09-26T19:59:51Z" data-local="time-ago">September 26, 2026  7:59pm</time></span>
+    </div>
+
+      <p class="text-base-content mt-1 leading-relaxed whitespace-pre-wrap">세로쓰기·후리가나·효과음을 각각 분리한 공간 인식 파이프라인 설명이 구체적이어서 좋았습니다. 번역 품질은 말풍선 단위 정확도와 식자 후 가독성을 따로 측정하면 개선 지점을 찾기 더 쉬울 것 같아요.</p>
+
+      <div class="flex items-center gap-3 mt-2">
+      </div>
+
+      <div id="replies_64345"
+           class="mt-3 pl-4 border-l-2 border-base-300 space-y-0 empty:hidden empty:mt-0 empty:pl-0 empty:border-0">
+      </div>
+  </div>
+</div>
+
+        </div>
+
+      </section>
+    </div>
+  </div>
+</div>
+
+
+            
+        </main>
+</body></html>

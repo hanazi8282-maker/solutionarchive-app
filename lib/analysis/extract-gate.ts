@@ -17,6 +17,19 @@ export const STALE_AFTER_MS = 10 * 60 * 1000
 /** force 로 재분석을 허용하는 상태. 사람 검수가 끝난 이후 단계는 제외한다. */
 export const REANALYZABLE = ['extracted']
 
+/**
+ * 야간 자동 extract(scripts/extract-auto.mjs)의 후보 상태 — 이 목록이 정본이다.
+ * failed 는 canStart 가 force 없이 받는다(첫 추출 취급). 2026-09-27 전까지는 failed 가 빠져 있어
+ * Gemini 503 한 번이 프로젝트를 야간 루프에서 영구히 뺐다(fac878dc·f6900c17·8207483a).
+ */
+export const AUTO_EXTRACT_STATUSES = ['collecting', ...REANALYZABLE, 'failed']
+
+/**
+ * failed 자동 재시도 상한 — extract_attempts(누적 시도 수, claimExtraction 이 +1)가 이 값 미만일 때만.
+ * 일시 오류(503)와 영구 오류를 가르지 않는다. 이 상한이 영구 오류의 비용을 막는 안전장치다.
+ */
+export const AUTO_RETRY_MAX_ATTEMPTS = 3
+
 export type StartVerdict = { ok: true } | { ok: false; reason: string }
 
 /**

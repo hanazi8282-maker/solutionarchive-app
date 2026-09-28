@@ -126,6 +126,7 @@ Pretendard 는 `next/font/local`. **`app/layout.tsx` 에서 허용된 수정은 
 | 포커스 | `outline: 2px solid var(--pub-focus)` — **box-shadow 링 금지**(`_ds` 의 `--shadow-focus` 를 끈다) | |
 | 간격 | `--pub-gap-1…10`(4·8·12·16·20·24·32·40) · 카드 패딩 `--pub-pad-card` 20→24 · 그리드 `--pub-gap-grid` 16→20 · 섹션 `--pub-gap-section` 40→64 | 레퍼런스도 8의 배수라 `_ds` 와 값이 겹칠 수 있다 — **겹침 검사에서 제외**한다 |
 | 컨트롤 높이 | `--pub-h-sm 32` · `--pub-h-md 40` · `--pub-h-lg 44`(터치 최소치) | |
+| 썸네일(`PubBrandLogo`) | 띠 **16:9** · 12 · 팔레트 6칸 `.pub-logo--s0…s5`(hue 320·201·239·28·270·160, slug 해시) · 흰 플레이트 62px(패딩 12 · 반경 8 · 내용 37) · md/lg 는 플레이트만 56/72 · 사진(`/case-art/`)은 띠 cover + grayscale + 62% 틴트 | **[A']** `reports/2026-09-27/library-thumbnail-spec.md` §3.5 (Atria 재실측). 여기 없는 값을 새로 지어 넣지 않는다 |
 
 ### 아이콘 (`icons.tsx`)
 
@@ -212,7 +213,7 @@ Pretendard 는 `next/font/local`. **`app/layout.tsx` 에서 허용된 수정은 
    아이콘 + 라벨)와 `.pub-facets-list`(칩 줄)를 만든다. sticky 는 바깥, 가로↔세로 전환은
    안쪽이다. 라벨을 화면에도 적은 이유: `aria-label` 만 있으면 눈으로 보는 사람에게 이 칩
    줄이 무엇을 거르는지 말하지 못한다.
-3. **`.pub-card` 가 세로가 됐다**(Atria) — 듀오톤 썸네일(`PubBrandLogo size="cover"`, 16:7 띠)
+3. **`.pub-card` 가 세로가 됐다**(Atria) — 썸네일(`PubBrandLogo size="cover"`, 16:9 띠 + 흰 플레이트 — 09-27 재실측)
    → 라벨 칩 → 제목(head-sm) → 2줄 `transfer_note` → 메타. v1 은 썸네일이 오른쪽이라
    제목이 56px 만큼 좁았다.
 4. **`Chip` 에 판정 3색이 붙었다** — `tone="positive" | "negative" | "mixed"`.

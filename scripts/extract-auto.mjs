@@ -30,10 +30,11 @@ import {
   autoMinNew,
   describePick,
   needsForce,
+  newInputsSince,
   pickAutoTargets,
 } from '../lib/analysis/extract-auto.ts'
-// 어느 상태가 재추출 대상인지는 extract-gate 가 정본이다(claimExtraction 이 같은 목록을 본다).
-import { REANALYZABLE } from '../lib/analysis/extract-gate.ts'
+// 어느 상태가 후보인지는 extract-gate 가 정본이다(claimExtraction 이 같은 canStart 를 본다).
+import { AUTO_EXTRACT_STATUSES } from '../lib/analysis/extract-gate.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate } from './notion-status-log.mjs'
 
@@ -68,14 +69,15 @@ log(`야간 자동 extract ${dry ? '(--dry: 대상 선정만)' : ''} — provide
 // 남헌 2026-09-23 Q4(a). extracted 도 후보다 — 마지막 추출 이후 신규 ≥ minNew 면 force 로 다시 돈다.
 // 신규 수 계산이 이미 extract_finished_at 기준이라 "다시 돌 때가 됐는가"를 그 조건이 정한다.
 //
-// failed 는 자동으로 다시 돌리지 않는다. 같은 원인으로 매일 밤 재시도하면 쿼터만 태운다.
-// 검수 이후(reviewed/angled/done)는 REANALYZABLE 에 없으므로 여기서도 빠진다.
+// failed 도 후보다(2026-09-27) — 단 extract_attempts < AUTO_RETRY_MAX_ATTEMPTS 인 것만(pickAutoTargets).
+// 전에는 뺐는데, Gemini 503 한 번이 프로젝트를 영구 제외시키는 경로가 실제로 돌았다. 첫 추출 취급(force 없음).
+// 검수 이후(reviewed/angled/done)는 AUTO_EXTRACT_STATUSES 에 없으므로 여기서도 빠진다.
 const { data: projects, error: projectsError } = await supabase
   .from('analysis_projects')
   // business_model 은 대상 **순서**를 가른다 — SaaS 가 먼저다(pickAutoTargets, 남헌 2026-09-23).
   // status 도 순서를 가른다 — 첫 추출이 재추출보다 먼저다.
   .select('id, status, extract_finished_at, extract_attempts, product_elevator_pitch, business_model')
-  .in('status', ['collecting', ...REANALYZABLE])
+  .in('status', AUTO_EXTRACT_STATUSES)
 
 if (projectsError) {
   console.error(`✗ 프로젝트 조회 실패: ${projectsError.message}`)
@@ -90,20 +92,22 @@ for (const p of projects ?? []) {
     .select('id', { count: 'exact', head: true })
     .eq('project_id', p.id)
     .is('purged_at', null)
-  // 한 번도 안 돌린 프로젝트(extract_finished_at null)는 전체가 신규다.
-  if (p.extract_finished_at) q = q.gt('created_at', p.extract_finished_at)
+  // 한 번도 안 돌린 프로젝트(extract_finished_at null)·failed 는 전체가 신규다(newInputsSince).
+  const since = newInputsSince(p)
+  if (since) q = q.gt('created_at', since)
   const { count, error } = await q
+  const base = { projectId: p.id, label: p.product_elevator_pitch, businessModel: p.business_model, status: p.status, attempts: p.extract_attempts }
   if (error) {
     // 조회 실패를 "신규 0건" 으로 접지 않는다(§7.1). null 로 넘겨 따로 센다.
     console.error(`⚠️ 신규 입력 수 확인 불가 project=${p.id}: ${error.message}`)
-    candidates.push({ projectId: p.id, newInputs: null, label: p.product_elevator_pitch, businessModel: p.business_model, status: p.status })
+    candidates.push({ ...base, newInputs: null })
     continue
   }
-  candidates.push({ projectId: p.id, newInputs: count ?? 0, label: p.product_elevator_pitch, businessModel: p.business_model, status: p.status })
+  candidates.push({ ...base, newInputs: count ?? 0 })
 }
 
 const pick = pickAutoTargets(candidates, { minNew, max })
-log(`후보 ${candidates.length}건(collecting + ${REANALYZABLE.join('/')}) → ${describePick(pick, minNew, max)} (순서: SaaS 우선 → 첫 추출 우선 → 신규 많은 순)`)
+log(`후보 ${candidates.length}건(${AUTO_EXTRACT_STATUSES.join('/')}) →${describePick(pick, minNew, max)} (순서: SaaS 우선 → 첫 추출 우선 → 신규 많은 순)`)
 for (const t of pick.targets) {
   log(`  · ${t.projectId} [${t.businessModel ?? '미기재'}] ${needsForce(t) ? '재추출(force)' : '첫 추출'} · 신규 ${t.newInputs}건 — ${t.label ?? '(소개 없음)'}`)
 }
@@ -153,7 +157,8 @@ for (const target of pick.targets) {
   }
 
   const t0 = Date.now()
-  const out = await withLlmBudget(() => runExtraction(supabase, target.projectId, provider))
+  // 재추출 실패면 claim.restore 로 extracted 를 되돌린다 — 503 한 번이 멀쩡한 프로젝트를 failed 로 떨어뜨리지 않게.
+  const out = await withLlmBudget(() => runExtraction(supabase, target.projectId, provider, claim.restore))
   const secs = Math.round((Date.now() - t0) / 1000)
 
   if (out.ok) {
@@ -171,7 +176,7 @@ for (const target of pick.targets) {
   }
 
   failed += 1
-  console.error(`✗ ${target.projectId} ${secs}s 추출 실패: ${out.error} — analysis_projects.status=failed 로 기록됨`)
+  console.error(`✗ ${target.projectId} ${secs}s 추출 실패: ${out.error} — ${force ? '재추출이라 이전 상태로 되돌림(속성 삭제 전 실패일 때)' : 'analysis_projects.status=failed 로 기록됨'}`)
   await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'failed', seq, detail: { error: out.error, seconds: secs } })
 }
 

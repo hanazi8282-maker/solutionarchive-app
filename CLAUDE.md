@@ -241,6 +241,27 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   판단할 수 있는 수치(몇 페이지째, 몇 건째)를 함께 남겨라.
 - 안전장치를 넣기 전에, 그것 없이도 정상 종료하는지 먼저 확인하라.
 
+### 7.3 UI 작업 규칙 (2026-09-29 남헌 확정)
+
+- **앱 UI**(케이스 목록·`/relevance/grade`·어드민 화면) → Impeccable **Operate** 모드, "기존 화면을 확장하는" 경로만.
+  새 시각 세계·새 화면의 콘셉트 시드·결정 페이지는 **남헌이 참여하는 세션에서만** 만든다 —
+  무인 루프(크론·nightshift)·서브에이전트에서는 금지.
+- **랜딩·마케팅·카드뉴스** → Impeccable **Persuade** + `docs/design/landing-reference.md`.
+  레퍼런스를 뜯어볼 때는 `docs/design/reference-study-protocol.md` 절차를 따른다.
+- **ui-ux-pro-max 는 조회 전용.** `--persist` 금지. 디자인 정본은 **`DESIGN.md` 한 파일**뿐이다 —
+  아직 리포에 없다(2026-09-29 실측). 남헌과 함께 `/impeccable document` 로 만든다. 세션이 임의로 만들지 않는다.
+- **UI 변경 PR 은 web-design-guidelines 를 통과한 뒤에만 머지한다.**
+  - UI 변경 = diff 에 `app/**/*.tsx` · `app/**/*.css`(`app/_ds/**`·`app/_pub/**` 포함)가 하나라도 있는 PR. `ai-office/` 는 제외(§2.1).
+  - 통과 = 변경된 UI 파일 전부를 `/web-design-guidelines` 로 검사해 **위반 0건**(남기는 위반은 건마다 사유 한 줄).
+    검사한 파일 목록·위반 수·검사 일시를 **PR 본문**에 적는다. 본문에 없으면 미검사다.
+  - 이 스킬은 실행할 때마다 `raw.githubusercontent.com/vercel-labs/web-interface-guidelines` 에서 규칙을 받아온다.
+    받아오기에 실패하면 "통과"가 아니라 **확인 불가**다(§7.1) — 그 상태로 머지하지 않는다.
+- **`python`/`python3` 은 이 머신에서 Microsoft Store 스텁이다** — "Python" 한 줄 찍고 exit 0(조용한 실패).
+  파이썬은 항상 `py -3` 으로 부른다. 스킬 문서의 `python3 …/search.py` 는 `py -3 .claude/skills/ui-ux-pro-max/scripts/search.py …` 로 읽는다.
+- 위 스킬(impeccable · ui-ux-pro-max · web-design-guidelines · emil-design-eng · review-animations · mobile-native)과
+  Playwright MCP 는 **이 머신 `.claude/skills/` 의 로컬 설치**이고 git 에 없다. 다른 머신·워크트리 세션에는 없을 수 있다.
+  스킬이 없으면 게이트를 조용히 건너뛰지 말고 "스킬 없음 → 확인 불가"로 보고한다.
+
 ---
 
 ## 8. 도메인 용어집 (Glossary)

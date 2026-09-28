@@ -9,7 +9,8 @@
 //
 // ⚠️ 러너의 기본 요청은 GET 인데 이 API 는 POST 만 받는다(2026-09-28 실측: GET → 404).
 //    그래서 types.ts `ReviewRequest.init` 으로 POST 본문·Authorization 헤더를 싣는다. robots(api 호스트
-//    robots.txt 는 200, /v2/api/graphql 을 막지 않는다 — 2026-09-28 실측)·간격·일일 상한은 러너가 그대로 건다.
+//    robots.txt 는 로컬에서 200, /v2/api/graphql 을 막지 않는다 — 2026-09-28 실측. Actions 에선 403 → 아래
+//    proceedWhenRobotsUnverified)·간격·일일 상한은 러너가 그대로 건다.
 //    토큰은 헤더에만 싣는다 — URL·커서에 넣으면 로그와 DB 에 남는다.
 //
 // ⚠️ 댓글 순서는 `order: NEWEST` 다. 러너의 증분 종료(연속 STALE)가 시간 역순을 전제한다.
@@ -72,6 +73,10 @@ export const producthuntAdapter: ReviewSourceAdapter = {
   requiredEnv: ['PRODUCT_HUNT_API_TOKEN'],
   // 429 본문 표지. 그 밖의 403/429 는 차단으로 본다(안전한 쪽, health.ts).
   quotaMarkers: ['rate_limit_reached', 'rate limit'],
+  // api.producthunt.com/robots.txt 는 로컬에선 200 인데 GitHub Actions 러너에선 403 이다(2026-09-28
+  // 시험수집 실측 — 클라우드 IP 차단으로 보인다). 토큰 인증 공식 API 라 토큰·레이트리밋·약관이 이 호스트의
+  // 규율이다(CLAUDE.md §7.1 예외, 남헌 2026-09-29). 5xx·타임아웃은 이 표식으로도 통과하지 않는다.
+  proceedWhenRobotsUnverified: ['api.producthunt.com'],
 
   nextRequest(target: TargetState): ReviewRequest | null {
     const slug = parseProductRef(target.productRef)

@@ -123,7 +123,18 @@ export type Move = {
   metric_unit?: string | null
   observed_period_start?: string | null
   observed_period_end?: string | null
+  /**
+   * 이 무브의 주장을 받치는 사용자 목소리 — `analysis_inputs.id`(uuid) 목록.
+   * 오케스트레이터가 `ops/state/voc-inputs/` 로 내보낸 파일에서 리서처가 고른다.
+   * **수치 근거가 아니다** — `evidence[]`·등급 산식에 들어가지 않고, commit 이
+   * `case_move_inputs` 로만 옮긴다(reports/2026-09-28/researcher-voc-input-plan.md §2).
+   * 없거나 빈 배열이면 "VOC 없는 케이스" 이고 그건 정상이다.
+   */
+  voc_inputs?: string[] | null
 }
+
+/** `analysis_inputs.id` 형식. 버전·변형 비트를 따지지 않는다 — DB 가 uuid 로 받는지만 본다. */
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export type Draft = {
   slug: string
@@ -532,6 +543,23 @@ export function validateDraft(draft: Draft, today = new Date()): Issue[] {
     if (hasNumber && !m.observed_period_start) {
       warn(w, '수치는 있는데 관측 시점이 없다 — 몇 년도 얘긴지 모르면 나중에 못 쓴다')
     }
+    // ── VOC 연결 ── 없으면 아무 말 없음(VOC 없는 케이스는 정상). 있으면 형식만 본다 —
+    // 존재 여부(DB)는 commit 의 FK 가 가른다. 여기서 우연히 맞는 형식을 통과시켜도 DB 가 거절한다.
+    if (m.voc_inputs !== undefined && m.voc_inputs !== null) {
+      if (!Array.isArray(m.voc_inputs)) {
+        err(`${w}.voc_inputs`, '배열이어야 한다 (analysis_inputs.id 목록)')
+      } else {
+        const seen = new Set<string>()
+        m.voc_inputs.forEach((id, j) => {
+          if (typeof id !== 'string' || !UUID_RE.test(id)) {
+            err(`${w}.voc_inputs[${j}]`, `uuid 가 아니다: ${JSON.stringify(id)} — ops/state/voc-inputs/<project_id>.json 의 input_id 를 그대로 적어라`)
+          } else if (seen.has(id.toLowerCase())) {
+            err(`${w}.voc_inputs[${j}]`, `같은 input_id 가 두 번 들어갔다: ${id}`)
+          }
+          if (typeof id === 'string') seen.add(id.toLowerCase())
+        })
+      }
+    }
     if (m.outcome_direction === 'negative') {
       // 여기는 사실확인 축을 본다(2026-09-16 분리) — "그 브랜드가 실패했다"는 주장은
       // 독자 인사이트가 아니라 **얼마나 검증됐는가**가 위험을 가른다. 안 그러면 근거 0건에
@@ -579,6 +607,9 @@ export function toRows(draft: Draft) {
       index: i,
       grade_reason: reason,
       fact_check_reason: fc.reason,
+      // ★ 행(row)에 넣지 않는다 — case_moves 에 그 컬럼이 없다. commit 이 무브 id 를 받은 뒤
+      //   case_move_inputs 로 따로 옮긴다. 소문자로 정규화해 PK 중복(대소문자 차이)을 막는다.
+      voc_inputs: Array.isArray(m.voc_inputs) ? m.voc_inputs.map((s) => String(s).toLowerCase()) : [],
       row: {
         lever: m.lever,
         claim: m.claim,

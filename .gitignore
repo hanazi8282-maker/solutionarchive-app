@@ -46,3 +46,7 @@ __pycache__/
 
 # graphify local artifacts (not part of the repo)
 graphify-out/
+
+# 리서처용 VOC 내보내기 (scripts/voc-export.mjs) — 리뷰 원문이라 공개 리포에 올리지 않는다.
+# 30일 purge 대상 데이터이고, 초안에는 input_id 만 남는다(reports/2026-09-28/researcher-voc-input-plan.md §1).
+ops/state/voc-inputs/

@@ -136,6 +136,13 @@ export function briefText(brand = '<브랜드>', market = null) {
   5. published_at 은 원문 게시일이다. 모르면 비우되 **비우기 전에 한 번은 찾아봐라.**
   6. snippet 은 ${SNIPPET_MAX}자 이하. 원문 전문 복사 금지.
 
+■ 손님 후기(VOC) — 재료이지 근거가 아니다 (2026-09-28)
+  오케스트레이터가 \`ops/state/voc-inputs/index.md\` 를 만들어 뒀으면 거기서 맡은 브랜드와
+  맞는 프로젝트를 찾아 \`<project_id>.json\` 을 읽고, 무브의 주장을 실제로 받치는 후기의
+  input_id 만 그 무브의 \`voc_inputs\` 에 적는다. 원문은 초안·노트에 옮기지 않는다.
+  수치 근거는 여전히 evidence[] 의 URL 이다 — 후기로 숫자를 뒷받침하지 않는다.
+  파일이 없으면 이 항목은 건너뛴다(VOC 없는 케이스는 정상이다).
+
 ■ 검색어 예시
   "${brand}" growth / "${brand}" 매출 성장 / "${brand}" case study
   "${brand}" 리브랜딩 OR 가격정책 OR 전환율
@@ -234,6 +241,8 @@ function scaffold() {
         metric_unit: null,
         observed_period_start: null,
         observed_period_end: null,
+        // 이 무브를 받치는 손님 후기 — ops/state/voc-inputs/<project_id>.json 의 input_id 만. 원문 금지. 없으면 빈 배열.
+        voc_inputs: [],
       },
     ],
     evidence: [

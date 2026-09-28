@@ -199,6 +199,35 @@ async function commit() {
     evCount++
   }
   console.log(`✅ case_evidence ${evCount}행`)
+
+  // ── VOC 연결 (case_move_inputs) ── 초안 moves[i].voc_inputs → 무브 id 와 짝지어 INSERT.
+  //   테이블이 없으면(마이그 20260930000028 미적용) 적립은 그대로 두고 연결만 건너뛴다 — 다른 축과 같은 취급.
+  //   조용히 0건으로 접지 않는다: 몇 건을 못 넣었는지 크게 찍는다. 없는 input_id(FK 23503)는 그 행만 건너뛴다.
+  //   linked_by: --by(사람) > 초안 researched_by(에이전트) > 'sa-cmo-researcher'. NOT NULL — 출처 없는 연결은 연결이 아니다.
+  const linkedBy = opt('by') ?? draft.researched_by ?? 'sa-cmo-researcher'
+  const links = moves.flatMap((m) => m.voc_inputs.map((input_id) => ({ case_move_id: moveIds[m.index], input_id, linked_by: linkedBy })))
+  if (links.length) {
+    let linked = 0
+    let linkTable = true
+    const linkErrs = []
+    for (const row of links) {
+      if (!linkTable) break
+      const res = await supabase.from('case_move_inputs').insert(row)
+      if (!res.error) { linked++; continue }
+      if (/42P01|PGRST205/.test(`${res.error.code ?? ''} ${res.error.message ?? ''}`)) { linkTable = false; break }
+      linkErrs.push(`${row.input_id}: ${res.error.code ?? ''} ${res.error.message}`)
+    }
+    if (!linkTable) {
+      console.log(`⚠️ case_move_inputs 테이블이 DB 에 없다 — 마이그 20260930000028 미적용.`)
+      console.log(`   초안의 VOC 연결 ${links.length}건을 저장하지 못했다(케이스·무브·근거는 저장됐다). 초안 JSON 에는 남아 있다.`)
+      console.log('   → 마이그 적용 뒤 다시 연결해야 자동 승인 후보 판정(ca-v1)이 이 무브를 본다.')
+    } else {
+      console.log(`✅ case_move_inputs ${linked}행 (linked_by=${linkedBy})`)
+      for (const e of linkErrs) console.log(`  ⚠️ VOC 연결 실패 — ${e}`)
+      if (linkErrs.length) console.log(`   ${linkErrs.length}건은 저장되지 않았다 — 없는 input_id 거나 purge 로 사라진 입력이다. 초안을 고쳐라.`)
+    }
+  }
+
   if (!issuerAxis) {
     console.log('⚠️ is_issuer_defined_metric 컬럼이 DB 에 없다 — 마이그 20260906000003 미적용.')
     console.log(`   그 축을 뺀 채로 저장했다. 초안에서 true 였던 근거 ${droppedIssuerAxis}건이 DB 에는 안 들어갔다.`)

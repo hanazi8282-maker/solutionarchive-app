@@ -87,6 +87,9 @@ jobs:
       # 관련성 기준 피드백(/relevance/grade·/relevance/feedback): 층 A~D 가르기·배분 6·4·3·2·빈 층 보충·같은 날 같은 묶음·
       # 본 행 제외·컬럼 없는 층은 확인 불가(0 으로 접지 않음)·층별 일치율·채점 입력 검증·채점 전 모델 판정 비공개.
       - run: node scripts/relevance-feedback-selftest.mjs
+      # 채점 카드의 번역·제품 배경·스레드 제목(순수 사실만): 프롬프트 제한 문구·평가 표지 사후검사·저장된 스레드 제목만 읽기·
+      # 캐시(버전·failed 재시도)·판정 필드가 프롬프트·props 에 안 실리는지(정적). 가짜 호출만 — 네트워크·DB 없음.
+      - run: node scripts/relevance-translate-selftest.mjs
       # 야간 2차 판정: 대상 선정·독립성(1차 gemini 제외)·어휘·기록 WHERE(경쟁 방지)·503 순환 헬퍼(평가 하네스와 공용). 가짜 클라이언트·주입 호출만.
       - run: node scripts/relevance-second-judge-selftest.mjs
       # 케이스 자동 승인 ca-v1: 규칙 6조건·케이스 따라가기·게이트(연결 테이블 3상태·rr-v1 종속)·킬스위치·되돌리기·검증중 정렬.

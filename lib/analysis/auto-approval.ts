@@ -55,10 +55,14 @@ export interface VerdictRow {
  * 자동 승인 대상인가 — 완전 동의(둘 다 relevant **이고 둘 다 정보 있음 true**)이고, 사람이 아직 안 봤고, 이미 승인되지 않았고,
  * 1차 판정이 통일 기준 시행(since) 이후인 행만. 판정이 하나뿐이거나 unknown·irrelevant·정보 null/false 가 섞이면 false.
  */
-export function isFullAgreement(r: VerdictRow, since: Date): boolean {
-  if (r.verdict !== 'relevant' || r.second_verdict !== 'relevant') return false
+/** rr-v2 판정 조건만(사람·시행일 무관) — 채점 화면 층 가르기도 이 한 벌을 쓴다. */
+export function meetsRrV2(r: Pick<VerdictRow, 'verdict' | 'second_verdict' | 'product_informative' | 'second_product_informative'>): boolean {
   // 정보 판정이 없으면(null·컬럼 없음) 대상이 아니다 — 모름을 있음으로 접지 않는다(§7.1).
-  if (r.product_informative !== true || r.second_product_informative !== true) return false
+  return r.verdict === 'relevant' && r.second_verdict === 'relevant' && r.product_informative === true && r.second_product_informative === true
+}
+
+export function isFullAgreement(r: VerdictRow, since: Date): boolean {
+  if (!meetsRrV2(r)) return false
   if (r.human_verdict != null || r.auto_approved_at != null) return false
   const t = r.judged_at ? Date.parse(r.judged_at) : NaN
   // 판정 시각을 모르면 옛 기준 판정일 수 있다 — 대상이 아니다(§7.1).

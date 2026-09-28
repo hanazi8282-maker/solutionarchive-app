@@ -22,6 +22,7 @@ import { createClient } from '../lib/supabase/server.ts'
 import { runCollection, USER_AGENT } from '../lib/review/runner.ts'
 import { createReviewStore } from '../lib/review/store.ts'
 import { alertLine } from '../lib/review/health.ts'
+import { finishRunRow } from '../lib/review/run-log.ts'
 import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
 import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { hackernewsAdapter } from '../lib/review/adapters/hackernews.ts'
@@ -268,9 +269,12 @@ for (const sourceKey of sourceKeys) {
   // ── 소스별 실행 로그 마감 ──────────────────────────────────────
   if (runId) {
     const s = result?.stats
-    await supabase
-      .from('review_collection_runs')
-      .update({
+    // 차단·쿼터 건수(마이그 20260930000033). 컬럼이 없으면 두 필드만 빼고 저장 + 경고(3상태, lib/review/run-log.ts).
+    // ⚠️ fatal 실행은 stats 가 없어 0 으로 쓴다 = 측정 못 함. status='failed' 로 구별한다.
+    const saved = await finishRunRow(
+      supabase,
+      runId,
+      {
         finished_at: new Date().toISOString(),
         status: fatal ? 'failed' : 'ok',
         targets_visited: result?.targetsVisited ?? 0,
@@ -282,8 +286,16 @@ for (const sourceKey of sourceKeys) {
         robots_skips: result?.robotsSkips ?? 0,
         health_after: result?.health?.health ?? null,
         error: fatal,
-      })
-      .eq('id', runId)
+      },
+      { blockedResponses: s?.blockedResponses ?? 0, quotaExhaustedResponses: s?.quotaExhaustedResponses ?? 0 },
+    )
+    if (saved.state === 'saved_without_counts') {
+      console.warn(`⚠️ [${sourceKey}] ${saved.warning}`)
+      say(`- ⚠️ ${saved.warning}`)
+    } else if (saved.state === 'failed') {
+      console.error(`❌ [${sourceKey}] 실행 로그 마감 실패: ${saved.error}`)
+      say(`- ❌ 실행 로그 마감 실패(행이 running 으로 남는다): ${saved.error}`)
+    }
   }
 
   // 차단(403/429)은 실패로 센다. 잡이 초록불이면 아무도 안 본다.

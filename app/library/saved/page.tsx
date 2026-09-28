@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthVerdict } from '@/lib/auth/session'
 import { listSaved, savedCards, SAVES_MIGRATION } from '@/lib/cases/saves'
-import type { DetailMoveRow, DetailStudyRow } from '@/lib/cases/detail'
+import { redactReviewer, type DetailMoveRow, type DetailStudyRow } from '@/lib/cases/detail'
 import { deletedIdsOf, withoutDeleted } from '@/lib/cases/deleted'
 import { PubShell } from '../../_pub/components/PubShell'
 import { Hero } from '../../_pub/components/Hero'
@@ -90,7 +90,7 @@ export default async function SavedCasesPage() {
   // 숨긴 케이스(lib/cases/deleted.ts)는 저장함에서도 빠진다 — 아래 "지금 목록에 없습니다" 개수에 잡힌다.
   const studyRows = (studiesRes.data ?? []) as DetailStudyRow[]
   const visible = withoutDeleted(studyRows, (movesRes.data ?? []) as DetailMoveRow[], deletedIdsOf(studyRows))
-  const { cards, hidden } = savedCards(saved.rows, visible.studies ?? [], visible.moves ?? [])
+  const { cards, hidden } = savedCards(saved.rows, redactReviewer(visible.studies) ?? [], redactReviewer(visible.moves) ?? [])
 
   return (
     <PubShell theme="light">

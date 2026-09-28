@@ -306,6 +306,8 @@
 .pub-chip--pos { background: var(--pub-verdict-pos-bg); border-color: var(--pub-verdict-pos); color: var(--pub-verdict-pos); }
 .pub-chip--neg { background: var(--pub-verdict-neg-bg); border-color: var(--pub-verdict-neg); color: var(--pub-island-ink); }
 .pub-chip--mix { background: var(--pub-verdict-mix-bg); border-color: var(--pub-verdict-mix); color: var(--pub-island-ink); }
+/* 문장형 긴 칩(상세 "근거 N건 · 사람 검토 완료 …") — 375px 에서 nowrap 이 문서 폭을 밀어 가로 스크롤을 만들었다. */
+.pub-chip--wrap { height: auto; min-height: 26px; white-space: normal; overflow-wrap: anywhere; }
 
 /* ── 통계 ─────────────────────────────────────────────── */
 .pub-statrow {

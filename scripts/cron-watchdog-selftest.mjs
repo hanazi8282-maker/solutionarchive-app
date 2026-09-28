@@ -9,7 +9,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-const { lastSlot, judgeRuns, scheduledWorkflows, runWatchdog, workflowLandedAt, pushWithoutBotToken, GRACE_MS } = await import('./cron-watchdog.mjs')
+const { lastSlot, judgeRuns, nextSlotAfter, scheduledWorkflows, runWatchdog, workflowLandedAt, pushWithoutBotToken, GRACE_MS } = await import('./cron-watchdog.mjs')
 const { tokenExpiryAlert } = await import('../lib/threads/token.ts')
 
 let passed = 0
@@ -52,6 +52,17 @@ ok('판정 — 최신 실행 기준', judgeRuns('a.yml', slot, [run({ conclusion
 ok('판정 — 지연 3h59m 실행은 그 슬롯을 채운다', judgeRuns('a.yml', slot, [run({ created_at: '2026-09-16T00:16:00Z' })]) === null)
 ok('판정 — 23h59m 뒤 실행도 아직 그 슬롯', judgeRuns('a.yml', slot, [run({ created_at: '2026-09-16T20:16:00Z' })]) === null)
 ok('판정 — 24h 지난 실행은 다음 슬롯 것 = 이 슬롯은 미발화', judgeRuns('a.yml', slot, [run({ created_at: '2026-09-16T20:18:00Z' })])?.missing === true)
+// 다중 슬롯 파일(nightly-extract s1 18:33 · s2 03:33 · s3 09:33): 창 상한 = 같은 파일의 다음 슬롯(설계 §4.3 · §6-5).
+{
+  const ex = ['33 18 * * *', '33 3 * * *', '33 9 * * *']
+  const s2 = new Date('2026-09-15T03:33:00Z')
+  ok('다음 슬롯 — s2 다음은 같은 날 s3', iso(nextSlotAfter(ex, s2)) === '2026-09-15T09:33:00.000Z')
+  ok('다음 슬롯 — s1 다음은 다음 날 s2', iso(nextSlotAfter(ex, new Date('2026-09-14T18:33:00Z'))) === '2026-09-15T03:33:00.000Z')
+  ok('다음 슬롯 — 크론 하나면 +24h(기존과 같다)', iso(nextSlotAfter(['17 20 * * *'], slot)) === iso(slot.getTime() + DAY))
+  const s3run = run({ created_at: '2026-09-15T10:40:00Z' })
+  ok('다중 슬롯 — s2 미발화를 s3 실행이 메우지 않는다', judgeRuns('nightly-extract.yml', s2, [s3run], nextSlotAfter(ex, s2))?.missing === true)
+  ok('다중 슬롯 — s2 지연 실행(2h)은 s2 를 채운다', judgeRuns('nightly-extract.yml', s2, [run({ created_at: '2026-09-15T05:40:00Z' })], nextSlotAfter(ex, s2)) === null)
+}
 
 // ── 3) 워크플로 파일 읽기 ────────────────────────────────────────
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'watchdog-'))

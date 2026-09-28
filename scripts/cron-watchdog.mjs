@@ -84,16 +84,32 @@ export function lastSlot(cron, now) {
  * 실행은 그 슬롯 이후 **24시간 안**의 것만 센다. 이 상한이 없으면 어제 슬롯을 판정할 때
  * 오늘 실행이 어제 자리를 메워 미발화가 영영 초록불이 된다(GRACE 완화의 함정).
  */
-export function judgeRuns(file, slot, runs) {
+export function judgeRuns(file, slot, runs, until = slot.getTime() + DAY_MS) {
   const hhmm = `${slot.toISOString().slice(0, 16).replace('T', ' ')} UTC`
   const after = runs
-    .filter((r) => Date.parse(r.created_at) >= slot.getTime() - 60_000 && Date.parse(r.created_at) < slot.getTime() + DAY_MS)
+    .filter((r) => Date.parse(r.created_at) >= slot.getTime() - 60_000 && Date.parse(r.created_at) < until)
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
   if (!after.length) return { missing: true, line: `${file}: ${hhmm} 예정 실행이 없다 — 미발화 또는 ${GRACE_MS / 3600000}시간 넘게 지연` }
   const r = after[0]
   if (r.status !== 'completed') return { missing: false, line: `${file}: ${hhmm} 실행이 아직 안 끝났다(${r.status}) ${r.html_url ?? ''}`.trim() }
   if (r.conclusion !== 'success') return { missing: false, line: `${file}: ${hhmm} 실행 ${r.conclusion} ${r.html_url ?? ''}`.trim() }
   return null
+}
+
+/**
+ * 같은 파일의 다음 슬롯 시각(ms) — judgeRuns 창의 상한. 크론이 하나면 slot+24h(기존과 같다).
+ * 슬롯이 여럿(nightly-extract s1·s2·s3)인데 24시간 창을 쓰면 s2 미발화를 s3 실행이 메워 안 보인다.
+ */
+export function nextSlotAfter(crons, slot) {
+  let next = slot.getTime() + DAY_MS
+  for (const c of crons) {
+    const m = /^(\d{1,2}) (\d{1,2}) \* \* \*$/.exec(c.trim())
+    if (!m) continue
+    let t = Date.UTC(slot.getUTCFullYear(), slot.getUTCMonth(), slot.getUTCDate(), Number(m[2]), Number(m[1]))
+    if (t <= slot.getTime()) t += DAY_MS
+    next = Math.min(next, t)
+  }
+  return next
 }
 
 const gitLines = (args) => execFileSync('git', args, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
@@ -140,7 +156,7 @@ export async function runWatchdog({
         const res = await fetchImpl(url, { headers: { authorization: `Bearer ${env.GITHUB_TOKEN}`, accept: 'application/vnd.github+json' } })
         const body = await res.json().catch(() => null)
         if (!res.ok || !Array.isArray(body?.workflow_runs)) { problems.push(`${file}: 실행 이력 조회 실패(HTTP ${res.status}) — 확인 불가`); continue }
-        const j = judgeRuns(file, slot, body.workflow_runs)
+        const j = judgeRuns(file, slot, body.workflow_runs, nextSlotAfter(crons, slot))
         if (!j) continue
         if (!j.missing) { problems.push(j.line); continue }
         // 미발화로 보일 때만 도입 시각을 본다 — 실행이 있으면 물어볼 것도 없다.

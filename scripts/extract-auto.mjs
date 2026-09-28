@@ -17,7 +17,11 @@
 //   node scripts/extract-auto.mjs --dry      # 대상 선정만. LLM·DB 쓰기 없음
 //   node scripts/extract-auto.mjs            # 실제 추출 (LLM 비용 발생)
 //
-// 종료코드: 0 정상(대상 0건·한도 도달 포함) · 2 설정/조회 실패 · 3 추출 실패 1건 이상
+// 적응형 슬롯(남헌 2026-09-28, reports/2026-09-28/extract-adaptive-frequency-design.md): 하루 3슬롯이 각각 먼저
+//   백로그(Bw)·하루 상한·한도 쿨다운을 보고(decideSlot) 쉴지 정한다. 쉼도 agent_runs 에 gate 스텝 skipped 로 남긴다.
+//   --dry 는 게이트 판정까지 찍는다(agent_runs 읽기만). 수동 실행은 EXTRACT_SLOT_INPUT=s1|s2|s3 로 그 슬롯 문턱을 시험한다.
+//
+// 종료코드: 0 정상(대상 0건·쉼·한도 도달 포함) · 1 한도 blocked 가 연속 3슬롯(사람이 볼 것) · 2 설정/조회 실패 · 3 추출 실패 1건 이상
 //   한도(429/예산)로 멈춘 것은 실패가 아니라 **확인 대상**이라 0 으로 끝내되
 //   `::warning::` 애노테이션과 agent_runs.status='blocked' 로 남긴다(CLAUDE.md §7.2).
 
@@ -26,13 +30,20 @@ import { requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 import { claimExtraction, runExtraction } from '../lib/analysis/extract-run.ts'
 import {
+  autoDailyMax,
   autoMaxProjects,
   autoMinNew,
+  backlogOf,
+  blockedAlarm,
+  decideSlot,
   describePick,
   extractRunKey,
   needsForce,
   newInputsSince,
+  parseQuotaResetAt,
   pickAutoTargets,
+  resolveSlot,
+  slotStateOf,
 } from '../lib/analysis/extract-auto.ts'
 // 어느 상태가 후보인지는 extract-gate 가 정본이다(claimExtraction 이 같은 canStart 를 본다).
 import { AUTO_EXTRACT_STATUSES } from '../lib/analysis/extract-gate.ts'
@@ -43,14 +54,20 @@ const args = process.argv.slice(2)
 const dry = args.includes('--dry')
 const minNew = autoMinNew()
 const max = autoMaxProjects()
-// 하루 2슬롯(KST 03:33 · 12:33)이 같은 KST 날짜라 run_key 에 슬롯을 붙인다(설계 F3). 표에 없는 크론이면 exit 2.
+const dailyMax = autoDailyMax()
+const today = kstDate()
+// 하루 3슬롯(KST 03:33 · 12:33 · 18:33)이 같은 KST 날짜라 run_key 에 슬롯을 붙인다(설계 F3). 표에 없는 크론이면 exit 2.
 let runKey
+let slot
 try {
-  runKey = extractRunKey(kstDate(), {
+  const slotEnv = {
     eventName: process.env.GITHUB_EVENT_NAME,
     slotCron: process.env.EXTRACT_SLOT_CRON,
+    slotInput: process.env.EXTRACT_SLOT_INPUT,
     runId: process.env.GITHUB_RUN_ID,
-  })
+  }
+  runKey = extractRunKey(today, slotEnv)
+  slot = resolveSlot(slotEnv)
 } catch (e) {
   console.error(`✗ ${e.message}`)
   process.exit(2)
@@ -76,7 +93,7 @@ if (!supabase) {
   process.exit(2)
 }
 
-log(`야간 자동 extract ${dry ? '(--dry: 대상 선정만)' : ''} — run_key=${runKey} · provider=${provider} · 신규 기준 ${minNew}건 · 실행 상한 ${max}건 · 일 예산 $${DAILY_BUDGET_USD}`)
+log(`야간 자동 extract ${dry ? '(--dry: 대상 선정·게이트 판정만)' : ''} — run_key=${runKey} · 슬롯 ${slot} · provider=${provider} · 신규 기준 ${minNew}건 · 슬롯 상한 ${max}건 · 하루 상한 ${dailyMax}건 · 일 예산 $${DAILY_BUDGET_USD}`)
 
 // ── 1. 후보 = status='collecting' + 재추출 가능 상태(extracted) ──
 // 남헌 2026-09-23 Q4(a). extracted 도 후보다 — 마지막 추출 이후 신규 ≥ minNew 면 force 로 다시 돈다.
@@ -119,8 +136,86 @@ for (const p of projects ?? []) {
   candidates.push({ ...base, newInputs: count ?? 0 })
 }
 
-const pick = pickAutoTargets(candidates, { minNew, max })
-log(`후보 ${candidates.length}건(${AUTO_EXTRACT_STATUSES.join('/')}) →${describePick(pick, minNew, max)} (순서: SaaS 우선 → 첫 추출 우선 → 신규 많은 순)`)
+// ── 3. 슬롯 게이트 (설계 §3·§4, 남헌 2026-09-28 D1~D8) ────────────
+// 백로그 = 상한 없이 고른 eligible 전체. 상태 = agent_runs(extract-auto-* 만 — D8: 다른 잡의 한도 정지는 안 본다).
+const full = pickAutoTargets(candidates, { minNew, max: Infinity })
+const backlog = backlogOf(full)
+let state = null
+{
+  const since = new Date(Date.now() - 3 * 86_400_000).toISOString()
+  const { data, error } = await supabase
+    .from('agent_runs')
+    .select('run_key, status, summary, started_at, finished_at')
+    .like('run_key', 'extract-auto-%')
+    .gte('started_at', since)
+    .order('started_at', { ascending: false })
+    .limit(100)
+  // 조회 실패를 "이력 없음"으로 접지 않는다(§7.1) — null 이면 추가 슬롯은 쉰다.
+  if (error) warn(`실행 이력(agent_runs) 조회 실패 — ${error.code ?? ''} ${error.message}`)
+  else state = slotStateOf(data ?? [], { today, slot })
+}
+const gate = decideSlot({ slot, backlog, state, dailyMax, slotMax: max, now: new Date() })
+const gateFields = {
+  decision: gate.run ? 'run' : 'skip',
+  reason: gate.reason,
+  slot,
+  B: backlog.B,
+  S: backlog.S,
+  Bw: backlog.Bw,
+  threshold: gate.threshold,
+  prev_ran: state?.prevRan ?? null,
+  done_today: state?.doneToday ?? null,
+  daily_max: dailyMax,
+  max_this_run: gate.max,
+  quota_cooldown_until: state?.cooldownUntil ?? null,
+  prior_blocked_streak: state?.consecutiveBlocked ?? null,
+  unknown: full.unknown,
+}
+const gateLine =
+  `슬롯 ${slot} ${gate.run ? '실행' : '쉼'} — ${gate.reason} · B ${backlog.B}(SaaS ${backlog.S}) · Bw ${backlog.Bw} · ` +
+  `오늘 처리 ${state ? `${state.doneToday}/${dailyMax}` : '확인 불가'} · ` +
+  `한도 쿨다운 ${state?.cooldownUntil ? `~${state.cooldownUntil}` : state ? '없음' : '확인 불가'}`
+if (gate.warn) warn(gateLine)
+else {
+  if (process.env.GITHUB_ACTIONS) console.log(`::notice::${gateLine}`)
+  log(gateLine)
+}
+
+const trackerOpts = {
+  runKey,
+  dept: 'cto',
+  trigger: process.env.GITHUB_EVENT_NAME === 'schedule' ? 'cron' : process.env.GITHUB_ACTIONS ? 'manual' : 'local',
+  dryRun: false,
+  gitSha: process.env.GITHUB_SHA ?? null,
+  runUrl: process.env.GITHUB_RUN_ID
+    ? `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+    : null,
+}
+const raiseAlarm = (thisStatus) => {
+  const on = blockedAlarm(state?.consecutiveBlocked ?? 0, thisStatus)
+  if (on) {
+    const m = `extract 가 연속 ${(state?.consecutiveBlocked ?? 0) + (thisStatus === 'blocked' ? 1 : 0)}번 한도(blocked)로 멈췄다 — 한도가 풀리지 않는다. 사람이 볼 것(설계 §4.1)`
+    if (process.env.GITHUB_ACTIONS) console.log(`::error::${m}`)
+    console.error(`✗ ${m}`)
+  }
+  return on
+}
+
+if (!gate.run) {
+  if (dry) {
+    log('--dry: 쉼 판정. 여기서 끝낸다. DB 쓰기 없음.')
+    process.exit(0)
+  }
+  // 쉼도 기록한다(§4.2) — 안 남기면 "어젯밤 왜 아무것도 안 바뀌었나"에 답을 못 한다.
+  const t = await createTracker(trackerOpts)
+  await t.step({ stepKey: 'gate', label: '슬롯 게이트', status: 'skipped', counts: { B: backlog.B, S: backlog.S }, detail: gateFields })
+  await t.finish({ status: 'ok', summary: { ...gateFields, targets: 0, done: 0, failed: 0 } })
+  if (!t.dbOk) warn('쉼 기록을 agent_runs 에 남기지 못했다 — ops/state 폴백')
+  process.exit(raiseAlarm('skip') ? 1 : 0)
+}
+
+const pick = pickAutoTargets(candidates, { minNew, max: gate.max })
+log(`후보 ${candidates.length}건(${AUTO_EXTRACT_STATUSES.join('/')}) →${describePick(pick, minNew, gate.max)} (순서: SaaS 우선 → 첫 추출 우선 → 신규 많은 순)`)
 for (const t of pick.targets) {
   log(`  · ${t.projectId} [${t.businessModel ?? '미기재'}] ${needsForce(t) ? '재추출(force)' : '첫 추출'} · 신규 ${t.newInputs}건 — ${t.label ?? '(소개 없음)'}`)
 }
@@ -131,30 +226,24 @@ if (dry) {
   process.exit(0)
 }
 
-// ── 3. 실행 상태 기록 (기존 헬퍼 재사용: agent_runs / agent_run_steps) ──
-const tracker = await createTracker({
-  runKey,
-  dept: 'cto',
-  trigger: process.env.GITHUB_EVENT_NAME === 'schedule' ? 'cron' : process.env.GITHUB_ACTIONS ? 'manual' : 'local',
-  dryRun: false,
-  gitSha: process.env.GITHUB_SHA ?? null,
-  runUrl: process.env.GITHUB_RUN_ID
-    ? `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-    : null,
-})
+// ── 4. 실행 상태 기록 (기존 헬퍼 재사용: agent_runs / agent_run_steps) ──
+const tracker = await createTracker(trackerOpts)
 
 await tracker.step({
   stepKey: 'select',
   label: '대상 선정',
   status: 'ok',
   counts: { candidates: candidates.length, eligible: pick.eligible, targets: pick.targets.length, remaining: pick.remaining, unknown: pick.unknown },
-  detail: { min_new: minNew, max_projects: max },
+  detail: { min_new: minNew, max_projects: max, ...gateFields },
 })
 
-// ── 4. 순차 추출. 한도에 걸리면 그 자리에서 멈춘다(다음 날로) ────
+// ── 5. 순차 추출. 한도에 걸리면 그 자리에서 멈춘다(다음 슬롯이 쿨다운을 본다) ────
 let done = 0
 let failed = 0
 let blocker = null
+let quotaResetAt = null
+let costUsd = 0
+let costKnown = 0
 let seq = 1
 
 for (const target of pick.targets) {
@@ -176,15 +265,18 @@ for (const target of pick.targets) {
 
   if (out.ok) {
     done += 1
+    if (out.costUsd != null) { costUsd += out.costUsd; costKnown += 1 }
     log(`✓ ${target.projectId} ${secs}s ${force ? '(재추출)' : ''} — 속성 ${out.aspects}개(사람 확인 보존 ${out.keptAspects}개) · 입력 ${out.inputs}건 · 선별 밖 ${out.droppedInputs}건 · 목적 무관 제외 ${out.droppedIrrelevant}건 · model=${out.model}`)
-    await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'ok', seq, counts: { aspects: out.aspects, kept: out.keptAspects, inputs: out.inputs, dropped: out.droppedInputs, irrelevant: out.droppedIrrelevant }, detail: { model: out.model, seconds: secs, force } })
+    await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'ok', seq, counts: { aspects: out.aspects, kept: out.keptAspects, inputs: out.inputs, dropped: out.droppedInputs, irrelevant: out.droppedIrrelevant }, detail: { model: out.model, seconds: secs, force, cost_usd: out.costUsd } })
     continue
   }
 
   if (out.quotaExhausted) {
     blocker = `LLM 한도/예산 소진 — ${out.error}`
-    warn(`${target.projectId} 에서 한도에 걸려 이번 실행을 멈춘다. 남은 대상 ${pick.targets.length - seq + 1}건은 내일 돈다. (${out.error})`)
-    await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'blocked', seq, blocker, detail: { seconds: secs } })
+    // D6: CLI 문구에서 리셋 시각을 뽑으면 다음 슬롯 쿨다운이 그걸 쓴다. 못 뽑으면 null → 5시간 폴백.
+    quotaResetAt = parseQuotaResetAt(out.error, new Date())
+    warn(`${target.projectId} 에서 한도에 걸려 이번 실행을 멈춘다. 남은 대상 ${pick.targets.length - seq + 1}건은 쿨다운(${quotaResetAt ? `리셋 ${quotaResetAt}` : '5시간'}) 뒤 슬롯에서 돈다. (${out.error})`)
+    await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'blocked', seq, blocker, detail: { seconds: secs, quota_reset_at: quotaResetAt } })
     break
   }
 
@@ -197,10 +289,17 @@ const spent = dailySpent()
 const status = blocker ? 'blocked' : failed > 0 ? (done > 0 ? 'partial' : 'failed') : 'ok'
 await tracker.finish({
   status,
-  summary: { targets: pick.targets.length, done, failed, remaining: pick.remaining, blocker, est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls },
+  summary: {
+    ...gateFields,
+    targets: pick.targets.length, done, failed, remaining: pick.remaining, blocker, quota_reset_at: quotaResetAt,
+    est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls,
+    // 성공 건 중 봉투에서 비용을 읽은 것만 합한다. 0건이면 null(0 달러로 접지 않는다).
+    cost_usd: costKnown > 0 ? Number(costUsd.toFixed(4)) : null, cost_known: costKnown,
+  },
 })
 
 log(`끝 — 추출 ${done}건 · 실패 ${failed}건 · 남은 대상 ${pick.remaining}건 · 이번 실행 추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD}) · 상태 ${status}`)
 if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 — ops/state 폴백. 이 실행의 기록은 "DB 확인 불가"다')
 
-process.exit(failed > 0 ? 3 : 0)
+const alarm = raiseAlarm(status)
+process.exit(failed > 0 ? 3 : alarm ? 1 : 0)

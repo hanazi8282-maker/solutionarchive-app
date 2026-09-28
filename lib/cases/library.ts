@@ -18,7 +18,7 @@
 import type { createClient } from '@/lib/supabase/server'
 import { safeSelect } from './corpus-db.ts'
 import { deletedIdsOf, withoutDeleted } from './deleted.ts'
-import { sortMovesByTime, type DetailMoveRow, type DetailStudyRow } from './detail.ts'
+import { redactReviewer, sortMovesByTime, type DetailMoveRow, type DetailStudyRow } from './detail.ts'
 import { displayGrade } from './grade-display.ts'
 import { productKindOf } from './advisor.ts'
 import { READER_PROBLEMS } from './draft.ts'
@@ -261,7 +261,8 @@ export async function loadLibrary(sb: Client, query: LibraryQuery, where = 'libr
   ])
   // 숨긴 케이스는 승인 상태여도 그리드·랜딩에 안 나간다(lib/cases/deleted.ts). '*' 라 행에 deleted_at 이 실려 온다.
   const { studies, moves } = withoutDeleted(rawStudies, rawMoves, deletedIdsOf(rawStudies ?? []))
-  return buildLibrary(query, { studies, moves, evidence })
+  // 공개 그리드·랜딩 — 검수자 이메일은 여기서 지운다(detail.ts redactReviewer).
+  return buildLibrary(query, { studies: redactReviewer(studies), moves: redactReviewer(moves), evidence })
 }
 
 // ── 랜딩 부가 집계(경쟁사 기능 9·10a, reports/2026-09-24/competitor-features-reestimate.md) ──

@@ -171,10 +171,12 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
               </div>
               <div className="pub-chiprow">
                 <PubGradeBadge move={lead} />
-                {/* "사람 검토 완료" 는 검수자·시각이 **둘 다** 있을 때만 말한다 — 없으면 승인 사실만 말한다. */}
-                <Chip>
+                {/* "사람 검토 완료" 는 검수자·시각이 **둘 다** 있을 때만 말한다 — 없으면 승인 사실만 말한다.
+                    검수자 신원은 공개 화면에 내지 않는다(이메일 노출 사고 2026-09-28). 로더가 이미
+                    redactReviewer 로 지웠고, 여기서도 이름 자리를 두지 않는다. */}
+                <Chip wrap>
                   근거 {d.evidence.length}건 · {s.reviewed_by && reviewedOn
-                    ? `사람 검토 완료 (${s.reviewed_by}, ${reviewedOn})`
+                    ? `사람 검토 완료 (${reviewedOn})`
                     : '검토 기록 미기재 (승인은 됐다)'}
                 </Chip>
               </div>

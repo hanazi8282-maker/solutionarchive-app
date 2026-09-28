@@ -19,14 +19,16 @@ const TONE_CLASS = {
   mixed: 'pub-chip--mix',
 } as const
 
-export function Chip({ children, tone = 'quiet', title }: {
+export function Chip({ children, tone = 'quiet', title, wrap = false }: {
   children: ReactNode
   tone?: keyof typeof TONE_CLASS
   title?: string
+  /** 문장형 긴 칩만 켠다 — 좁은 화면에서 줄바꿈(`.pub-chip--wrap`). 기본 칩은 한 줄 그대로. */
+  wrap?: boolean
 }) {
-  const extra = TONE_CLASS[tone]
+  const cls = ['pub-chip', TONE_CLASS[tone], wrap ? 'pub-chip--wrap' : ''].filter(Boolean).join(' ')
   return (
-    <span className={extra ? `pub-chip ${extra}` : 'pub-chip'} title={title}>
+    <span className={cls} title={title}>
       {children}
     </span>
   )

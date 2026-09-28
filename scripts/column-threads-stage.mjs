@@ -27,6 +27,7 @@
 // 종료 코드: 0 = 정상 / 1 = 실패 / 2 = 확인 불가(env 없음·조회 실패)
 
 import { flattenEpisodes } from '../lib/threads/column-episodes.ts'
+import { checkThreadSelfContained } from '../lib/threads/voice-check.ts'
 
 const CHANNEL_ID = '64558fd1-06a5-4440-8fb1-bb78375479e0' // threads / @solution_arch_ (case-draft-stage.mjs 와 같은 값)
 const THREADS_MAX = 500 // G-11. case-draft-stage.mjs 와 같은 상한.
@@ -55,6 +56,14 @@ export function buildStageRows(column, { channelId = CHANNEL_ID, episode = null 
   const over = eps.filter((e) => e.charCount > THREADS_MAX)
   if (over.length) {
     return { error: `${THREADS_MAX}자 초과 — ${over.map((e) => `${e.n}편 ${e.charCount}자`).join(', ')} (G-11)` }
+  }
+  // 2026-09-29 남헌 결정 — 편 자족성(voice-guide §7-2 SC-1~SC-3 오류). 다른 편을 가리키거나 지시어로 시작하는 편은
+  // 그 편만 읽는 사람에게 빈 글이라 발행 대기로 올리지 않는다. 경고(SC-4·SC-5)는 사람이 /dashboard 에서 본다.
+  const dependent = eps
+    .map((e) => ({ e, sc: checkThreadSelfContained(e.body) }))
+    .filter((x) => x.sc.errors.length)
+  if (dependent.length) {
+    return { error: `편 자족성 미달 — ${dependent.map((x) => `${x.e.n}편: ${x.sc.errors[0]}`).join(' / ')} (voice-guide §7, NEW-20260929-01)` }
   }
 
   return {
@@ -225,6 +234,9 @@ function selfTest() {
   check('500자 초과는 error',
     !!buildStageRows({ ...column, threads: [{ n: '1', body: 'ㄱ'.repeat(501), char_count: 501 }] }).error)
   check('편 0건은 error', !!buildStageRows({ ...column, threads: [] }).error)
+  // 2026-09-29 편 자족성 — 다른 편을 가리키는 편은 올리지 않는다.
+  const dep = buildStageRows({ ...column, threads: [{ n: '3', body: '앞 편에서 본 그 결정은 이렇게 끝났다.', char_count: 22 }] })
+  check('다른 편을 가리키는 편은 error(SC-1)', /SC-1/.test(dep.error ?? ''), dep.error ?? 'error 없음')
 
   // 연결된 행을 덮어쓰지 않는다 — 이게 이 스크립트의 가장 위험한 자리다.
   check('연결된 행은 건너뜀', canOverwrite({ status: 'published', external_id: '18165008242467071' }).ok === false)

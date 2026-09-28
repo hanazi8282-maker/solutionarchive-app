@@ -72,6 +72,9 @@
 - 검증 판정은 `통과 / 수정 후 통과 / 불통과` 셋이고 확인 불가를 통과로 접지 않는다.
 - 배치마다 `drafts/columns/_review/<날짜>-batch<N>-summary.md` 에 편별 판정·남헌 판단 항목·
   누적 소재 비율을 적는다.
+- **문체는 칼럼과 편이 한 벌이다(남헌 2026-09-29).** 고1·고2 읽기 수준(가이드 §7-3)·출처 흘려 쓰기(§8-2)·편 자족성
+  (`voice-guide.md` §7 SC-1~SC-5). `node scripts/column-check.mjs <칼럼.md> <칼럼.threads.md>` 오류 0 이 넘기는 조건이고,
+  자족성 오류인 편은 `column-threads-stage.mjs` 가 발행 대기로 올리지 않는다.
 
 ### 초안 (건당)
 - `drafts/threads/<날짜>-<slug>.body.txt` (본문, 500자 이하) +

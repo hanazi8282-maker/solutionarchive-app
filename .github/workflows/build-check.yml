@@ -35,8 +35,12 @@ jobs:
       - run: node scripts/threads-match-selftest.mjs
       # 외부 게시물 사후 등록(createPost external 경로) — 입력 검증·중복·000022 와 같은 행 모양. 발행 API 안 부름.
       - run: node scripts/threads-external-post-selftest.mjs
-      # 칼럼 연재 편 → posts 스테이징 행 생성. 연결된 행을 덮어쓰지 않는지 포함.
+      # 칼럼 연재 편 → posts 스테이징 행 생성. 연결된 행을 덮어쓰지 않는지 포함. 2026-09-29 부터 편 자족성(SC) 오류 편 차단도.
       - run: node scripts/column-threads-stage.mjs --self-test
+      # 칼럼·편 문체 한 벌(남헌 2026-09-29): 프롬프트가 가이드 정본 절을 실제로 싣는지, 고1·고2 기준·출처 설명 문장 금지·
+      # 편 자족성 SC-1~SC-5 가 검사기에서 살아 있는지. 가이드 제목을 바꾸면 프롬프트가 조용히 비어 여기서 잡힌다.
+      - run: node scripts/column-style-selftest.mjs
+      - run: node scripts/column-check.mjs --self-test
       # 추출 시작 게이트가 서버·화면 한 벌인지. 갈라지면 시작할 수 있는데 버튼이 없는 화면이 된다.
       - run: node scripts/analyze-extract-gate-selftest.mjs
       # 추출 입력 선별(T1) + 야간 자동 실행 대상 선정. 틀려도 추출은 "성공"으로 끝나고

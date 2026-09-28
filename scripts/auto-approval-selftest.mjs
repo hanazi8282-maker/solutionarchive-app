@@ -118,7 +118,8 @@ ok(/isFullAgreement/.test(src('scripts/relevance-auto-approve.mjs')) && /autoApp
   const ca = src('scripts/case-auto-approve.mjs')
   ok(/human_product_informative/.test(ca) && /auto_approval_rule', RR_RULE/.test(ca), 'ca-v1 의 rr 종속 입력도 같은 감사 창을 읽는다')
   const imp = src('scripts/relevance-second-opinion-import.mjs')
-  ok(/second_product_informative: o\.product_informative/.test(imp), '--record-second 가 2차 정보 판정을 함께 쓴다')
+  // UPDATE 는 공용 recordSecondOpinion(second-opinion.ts) 한 곳 — import·야간 2차가 같이 쓴다.
+  ok(/recordSecondOpinion\(/.test(imp) && /recordSecondOpinion\(/.test(src('scripts/relevance-second-judge-auto.mjs')) && /second_product_informative: o\.product_informative/.test(src('lib/analysis/second-opinion.ts')), '--record-second·야간 2차가 2차 정보 판정을 함께 쓴다(공용 기록 함수)')
 }
 ok(!/case_studies|case_moves/.test(src('scripts/relevance-auto-approve.mjs').replace(/^\/\/.*$/gm, '')), '집행 스크립트는 케이스 테이블을 쓰지 않는다(조건 5)')
 

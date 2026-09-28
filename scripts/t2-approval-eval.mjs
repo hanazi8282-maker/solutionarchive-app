@@ -17,8 +17,8 @@ import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { createClient } from '../lib/supabase/server.ts'
 import { judgeRelevanceBatch, chunkReviews, MAX_REVIEW_CHARS } from '../lib/analysis/relevance-judge.ts'
-import { callLlmWithModel, parseJsonObject, geminiModelChain, resolveProvider } from '../lib/analysis/llm.ts'
-import { SECOND_OPINION_INSTRUCTIONS, validateOpinions, toExportRow } from '../lib/analysis/second-opinion.ts'
+import { callGeminiRotating, parseJsonObject, resolveProvider } from '../lib/analysis/llm.ts'
+import { SECOND_OPINION_INSTRUCTIONS, validateOpinions, toExportRow, secondOpinionUserPrompt } from '../lib/analysis/second-opinion.ts'
 import { RELEVANCE_CRITERIA_VERSION as VERSION, criteriaKindOf } from '../lib/analysis/relevance-criteria.ts'
 import { EVAL_GATE, scoreEval, verdictAgreement } from '../lib/analysis/t2-approval-eval.ts'
 import { kstDate } from './notion-status-log.mjs'
@@ -134,25 +134,19 @@ firstLoop: for (const pid of pids) {
 if (!process.env.GEMINI_API_KEY) console.warn('⚠️ GEMINI_API_KEY 없음 — 2차를 건너뛴다. 2차가 없는 행은 unjudged 로 남는다(평가 불완전).')
 else {
   delete process.env.GEMINI_MODEL
-  const CHAIN = geminiModelChain()
-  const failures = []
+  const exhausted = new Set()
   for (const batch of chunkReviews(targets.filter((r) => !second.has(r.input_id)), 20)) {
     const rows = batch.map((r) => {
       const p = projects.get(r.project_id)
       return toExportRow({ input_id: r.input_id, project_id: r.project_id, raw_text: raw.get(r.input_id), pitch: p.product_elevator_pitch, business_model: p.business_model })
     })
-    const user = `아래 행들을 판정하라. JSON 객체 하나만 출력: {"criteria_version":"${VERSION}","rows":[{input_id,verdict,product_informative,impact,frequency,community_signal,wtp_mentioned,reason}]}\n\n${JSON.stringify(rows)}`
-    let res = null
-    for (let round = 0; round < 4 && !res; round++) {
-      for (const m of CHAIN) {
-        process.env.GEMINI_MODEL = m
-        try { res = await callLlmWithModel('gemini', SECOND_OPINION_INSTRUCTIONS, user, 't2-eval-second'); break }
-        catch (e) { failures.push(`${m}: ${e.status ?? ''} ${String(e.message).slice(0, 60)}`) }
-      }
-      if (!res) await new Promise((r) => setTimeout(r, 30_000 * (round + 1)))
+    // 503 순환·4바퀴 백오프는 야간 2차와 같은 헬퍼다(lib/analysis/llm.ts callGeminiRotating).
+    const res = await callGeminiRotating(SECOND_OPINION_INSTRUCTIONS, secondOpinionUserPrompt(rows), 't2-eval-second', { exhausted })
+    if (!res.ok) {
+      console.error(`2차 ${batch.length}건 실패 — ${res.reason}(캐시 안 함). 최근: ${res.failures.slice(-3).join(' | ')}`)
+      if (res.stop) break
+      continue
     }
-    delete process.env.GEMINI_MODEL
-    if (!res) { console.error(`2차 ${batch.length}건 실패 — 모든 모델·4바퀴 소진(캐시 안 함). 최근: ${failures.slice(-3).join(' | ')}`); continue }
     let obj
     try { obj = parseJsonObject(res.text) } catch { console.error(`2차 JSON 파싱 실패(캐시 안 함) model=${res.model}`); continue }
     const { ok, rejected } = validateOpinions(obj)

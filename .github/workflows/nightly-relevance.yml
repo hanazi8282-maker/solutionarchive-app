@@ -91,6 +91,28 @@ jobs:
           node scripts/relevance-judge-auto.mjs \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
 
+      # T2 2차 판정 — 자동 승인(rr-v2)의 입력인 second_verdict 를 단다. 이 스텝 전까지는 세션이 손으로만 달아 자동 승인이 0건이었다.
+      # 대상: 1차 판정 ∧ 2차·사람 없음 ∧ judged_at ≥ AUTO_APPROVAL_SINCE(없으면 오늘 KST) ∧ 1차가 Gemini 아님(독립성). 상한 RELEVANCE_SECOND_MAX.
+      # provider 는 스크립트가 gemini 로 고정한다(1차 claude-cli 와 다른 계열). GEMINI_API_KEY 는 위 1차 스텝과 같은 기존 시크릿이다(새 시크릿 없음).
+      # 실패해도 자동 승인·리포트를 막지 않는다(continue-on-error). 2차가 0건이면 자동 승인도 0건일 뿐이다.
+      # 되돌리기 = 이 스텝 삭제(또는 리포 변수 RELEVANCE_SECOND_MAX 로 상한 조정).
+      - name: Second-opinion judge (gemini, independent of first pass)
+        if: success()
+        continue-on-error: true
+        # 스크립트가 20분(RELEVANCE_SECOND_DEADLINE_MIN)에 스스로 멈춘다. 이건 그게 고장 났을 때의 안전판.
+        timeout-minutes: 30
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AUTO_APPROVAL_SINCE: ${{ vars.AUTO_APPROVAL_SINCE || '' }}
+          RELEVANCE_SECOND_MAX: ${{ vars.RELEVANCE_SECOND_MAX || '200' }}
+          LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          node scripts/relevance-second-judge-auto.mjs \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
+
       # T2 완전 동의 자동 승인(CLAUDE.md §10.1 예외, reports/2026-09-28/approval-automation-design.md).
       # ⛔ 기본 꺼짐 — 리포 변수 AUTO_APPROVAL_ENABLED=true 와 AUTO_APPROVAL_SINCE=<YYYY-MM-DD> 가 없으면 DB 도 열지 않고 끝난다.
       # 킬스위치가 걸리면 승인 0건 + Notion 일일 상태 로그(사람판단필요). NOTION_API_TOKEN 은 다른 워크플로와 같은 목적의 기존 시크릿이다.

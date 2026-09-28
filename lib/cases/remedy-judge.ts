@@ -15,6 +15,7 @@ import { callLlmWithModel, resolveProvider } from '../analysis/llm.ts'
 import type { CardKind } from './remedy-gate.ts'
 // 제품 종류 축은 새로 만들지 않는다 — advisor.productKindOf 와 같은 한 벌이다(business_model → physical/software).
 import type { ProductKind } from './advisor.ts'
+import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 
 /** 판정에 넘기는 카드 한 장. text 는 화면에 나가는 그 문장이다(remedy-gate.cardLine). */
 export interface JudgeCard {
@@ -69,7 +70,9 @@ const SYSTEM_TAIL = [
   '그 사람이 겪는 페인 속성 하나와, 낱말 겹침으로 걸러진 처방 후보 카드가 주어진다.',
   '카드마다 이 속성에 얼마나 관련 있는지 0·1·2 로 판정해라.',
   '',
-  '2 = 직접 관련 — 이 속성의 문제를 푸는 데 그대로 쓸 수 있는 처방이다.',
+  UNTRUSTED_INPUT_NOTICE,
+  '',
+  '2 =직접 관련 — 이 속성의 문제를 푸는 데 그대로 쓸 수 있는 처방이다.',
   '1 = 부분 관련 — 같은 페인 유형이지만 도메인·조건이 다르다.',
   '0 = 무관 — 그 외 전부. 낱말만 겹쳤을 뿐 이 속성과 상관이 없다.',
   '',

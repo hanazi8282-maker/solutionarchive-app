@@ -18,6 +18,7 @@
 // 선택: INSIGHT_LLM_PROVIDER = claude-cli(기본) | anthropic | mock
 
 import { resolveClaudeBinary, runClaude } from './claude-cli.ts'
+import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 
 export type InsightProvider = 'claude-cli' | 'anthropic' | 'mock'
 
@@ -117,6 +118,7 @@ export function buildPrompt(input: ExtractionInput): string {
   return [
     '아래는 사용자가 "인사이트가 있다"고 판단해 저장한 Threads 글이다.',
     '이 글이 왜 좋은 글인지 구조적으로 분석하라.',
+    UNTRUSTED_INPUT_NOTICE,
     ...reuseBlock,
     '',
     '판정 기준 3종 중 하나로 insight_type 을 정한다:',

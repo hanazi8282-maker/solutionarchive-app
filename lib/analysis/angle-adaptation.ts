@@ -5,6 +5,7 @@
 // (scripts/analyze-angle-adaptation-selftest.mjs).
 
 import type { AnalysisMode } from './types'
+import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 
 export const ANGLE_TYPE_GUIDE = `앵글 유형 정의:
 - PAS: 문제(Problem)→동요(Agitate)→해결(Solution). 감정적 페인을 정면으로 건드린다.
@@ -48,6 +49,8 @@ export function systemPromptFor(mode: AnalysisMode): string {
 
   return `너는 이커머스 소구점 발굴 파이프라인의 Stage4(앵글 생성)를 수행한다.
 주어진 속성(aspect) 하나와 배정된 앵글 유형에 맞춰 한국어 산출물 1건을 만든다.
+
+${UNTRUSTED_INPUT_NOTICE}
 
 ${ANGLE_TYPE_GUIDE}
 

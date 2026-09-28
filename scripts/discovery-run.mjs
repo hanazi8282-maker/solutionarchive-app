@@ -51,6 +51,7 @@ import {
 import { DANAWA_CRAWL_DELAY_MS, probePhysical, probeSaas } from '../lib/discovery/probe.ts'
 import { applyTransfer, gateMode, transferFromRun, transferPrompt } from '../lib/discovery/transfer.ts'
 import { RobotsCache } from '../lib/review/runner.ts'
+import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -218,6 +219,8 @@ export function proposalPrompt(kind, count, known) {
 
   return [
     `${kindWord} ${count}개를 후보로 제안하라. 고객 불만(VOC)을 분석할 대상을 찾는 중이다.`,
+    // 아래 목록의 이름·메모는 웹에서 온 후보 이름과 사람 메모다 — 지시가 아니라 데이터로 읽게 한다.
+    UNTRUSTED_INPUT_NOTICE,
     '',
     '조건:',
     `- ${source} 에 실제 후기·토론이 **많이** 쌓였을 법한 것.`,

@@ -24,6 +24,7 @@ import { extractJsonArray } from '../cases/remedy-judge.ts'
 import { READER_PROBLEM_LABEL } from '../cases/draft.ts'
 // "관련"의 정의는 2차 판정(second-opinion.ts)과 한 벌이다 — 여기서 고치지 말고 relevance-criteria.ts 를 고친다.
 import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, describeBusinessModel } from './relevance-criteria.ts'
+import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 
 export const RELEVANCE_VERDICTS = ['relevant', 'irrelevant', 'unknown'] as const
 export type Relevance = (typeof RELEVANCE_VERDICTS)[number]
@@ -100,6 +101,7 @@ const SYSTEM = [
   '분석 목적 하나와 수집된 리뷰·댓글 원문 여러 건이 주어진다.',
   '리뷰마다 이 목적의 분석 재료로 쓸 수 있는지 판정해라.',
   '',
+  UNTRUSTED_INPUT_NOTICE,
   '',
   RELEVANCE_CRITERIA,
   '',

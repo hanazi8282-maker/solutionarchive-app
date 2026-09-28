@@ -34,7 +34,7 @@ export const isMissingRelation = (e: { code?: string; message?: string }) =>
 export const isMissingColumn = (e: { code?: string }) => e.code === 'PGRST204' || e.code === '42703'
 
 /**
- * 번역·배경 캐시(000035) 읽기. 화면에 올리는 것은 **본문 컬럼만**이다 — 판정 계열은 이 테이블에 없고 여기서도 고르지 않는다.
+ * 번역·배경 캐시(000036) 읽기. 화면에 올리는 것은 **본문 컬럼만**이다 — 판정 계열은 이 테이블에 없고 여기서도 고르지 않는다.
  * 3상태: present(행 맵) · missing(테이블 없음 = 마이그 전) · unknown(조회 실패). 0건과 못 읽음을 가른다(§7.1).
  */
 export type CacheLoad<T> = { state: 'present'; rows: Map<string, T> } | { state: 'missing' } | { state: 'unknown'; error: string }

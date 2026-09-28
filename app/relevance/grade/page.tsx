@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 export const metadata = { title: '관련성 기준 채점' }
 
 // 읽기만 한다. 쓰기는 ../actions.ts 의 gradeRelevance 하나. 표본 선택은 lib/relevance-feedback/sample.ts(순수, 셀프테스트).
-// 번역·제품 배경·스레드 제목은 캐시(000035)에서 읽기만 한다 — 만드는 것은 scripts/relevance-translate.mjs(야간 배치). 없으면 "준비 중".
+// 번역·제품 배경·스레드 제목은 캐시(000036)에서 읽기만 한다 — 만드는 것은 scripts/relevance-translate.mjs(야간 배치). 없으면 "준비 중".
 // ⛔ 카드로 넘기는 맥락(CardContext)에 판정 계열 값을 싣지 않는다 — 번역·배경은 순수 사실 문자열뿐이다(채점 독립성).
 
 const HEADER = {

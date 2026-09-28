@@ -17,7 +17,7 @@
 -- RLS: ENABLE + FORCE, 정책 0개 = service_role 전용(리포 관례, 20260915000002). 트리거 함수는 SECURITY INVOKER(기본) +
 --      search_path 고정(어드바이저 function_search_path_mutable, 20260927000002 와 같은 방식).
 --
--- 적용: **미적용** — 서브에이전트가 만든 파일이다(CLAUDE.md §10.2). 미적용이어도 화면은 돈다 — 카드에 "번역 미적용(마이그 000035 전)" 만 뜬다.
+-- 적용: **미적용** — 서브에이전트가 만든 파일이다(CLAUDE.md §10.2). 미적용이어도 화면은 돈다 — 카드에 "번역 미적용(마이그 000036 전)" 만 뜬다.
 --   절차: 1) solutionarchive qmgrfqjfxqhxuufrnkwf 확인 2) information_schema 로 부재 확인 3) 실행 → 하단 확인 쿼리
 --         4) docs/migration-exceptions.md 한 줄 5) 워크플로 relevance-translate.yml 을 workflow_dispatch(dry_run=false)로 1회 → 첫 백필.
 

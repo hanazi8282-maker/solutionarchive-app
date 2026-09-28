@@ -19,7 +19,7 @@
 //   node scripts/relevance-translate.mjs --ids <uuid,uuid>     # 묶음 대신 지정 행
 //   provider: LLM_PROVIDER(기본 claude-cli — 구독 경로, Gemini 무료 쿼터를 안 건드린다). 모델: CLAUDE_CLI_MODEL(워크플로 기본 sonnet).
 //
-// 종료코드: 0 정상(대상 0·마감 도달 포함) · 2 설정/조회 실패(마이그 000035 미적용 포함) · 3 저장 실패 1건 이상
+// 종료코드: 0 정상(대상 0·마감 도달 포함) · 2 설정/조회 실패(마이그 000036 미적용 포함) · 3 저장 실패 1건 이상
 
 import { spawn } from 'node:child_process'
 import { createClient } from '../lib/supabase/server.ts'

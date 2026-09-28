@@ -1,5 +1,5 @@
 // /relevance/grade 카드의 번역·제품 배경·스레드 제목 — 순수 모듈(DB·시계·네트워크 없음).
-// 배치 생성: scripts/relevance-translate.mjs · 셀프테스트: scripts/relevance-translate-selftest.mjs · 저장: 마이그 20260930000035.
+// 배치 생성: scripts/relevance-translate.mjs · 셀프테스트: scripts/relevance-translate-selftest.mjs · 저장: 마이그 20260930000036.
 //
 // ⛔ 채점 독립성(남헌 2026-09-29). 이 화면은 사람 채점이 모델 판정에 끌리지 않게 판정을 숨긴다. 그래서 여기서 만드는
 //    글은 전부 **순수 사실**이어야 한다 — 번역은 충실한 옮김만, 배경은 "이 제품이 무엇이고 무엇을 하는가"만.
@@ -12,7 +12,7 @@
 
 /** 프롬프트·검사 규칙을 바꾸면 올린다. 캐시 행의 prompt_version 이 다르면 다시 만든다. */
 export const TRANSLATE_PROMPT_VERSION = 'tr-v1-2026-09-29'
-export const TRANSLATIONS_MIGRATION = '20260930000035_relevance_translations.sql'
+export const TRANSLATIONS_MIGRATION = '20260930000036_relevance_translations.sql'
 
 export type CacheStatus = 'ok' | 'failed' | 'skipped'
 

@@ -81,6 +81,9 @@ jobs:
           # 크레딧 기간 한시 상향(결정 c): 11/5 까지 $15, 그 뒤 자동으로 위 기본값 복귀(lib/analysis/budget.ts dailyBudgetFor).
           LLM_DAILY_BUDGET_BOOST_USD: '15'
           LLM_DAILY_BUDGET_BOOST_UNTIL: '2026-11-05'
+          # 요청당(=프로젝트 지갑) 상한. 기본 0.5 는 09-28 rr-v2 프롬프트(기준+정보 질문+사람 예시)로 5호출·100건에서 걸려
+          # 1Password 1개만 돌고 전체가 멈췄다. 표본 200건=10호출≈$0.88 추정(claude-cli 는 구독이라 명목값). 하루 상한은 그대로.
+          LLM_REQUEST_BUDGET_USD: '2'
           # 예산 추정 단가를 Opus 로(claude-cli 는 크레딧이지만 폭주 상한은 유지). gemini 로 되돌리면 이 둘도 지운다.
           LLM_USD_PER_MTOK_IN: '5'
           LLM_USD_PER_MTOK_OUT: '25'

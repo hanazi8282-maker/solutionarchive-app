@@ -223,6 +223,8 @@ export type ExtractionOutcome =
       /** 그중 "목적과 무관" 판정(T2)으로 미리 뺀 건수. 0 과 "판정 캐시가 비었다"를 가른다(§7.1). */
       droppedIrrelevant: number
       model: string
+      /** claude-cli total_cost_usd(명목값). 다른 프로바이더·못 읽음은 null(0 으로 접지 않는다). */
+      costUsd: number | null
     }
   // quotaExhausted = 오늘 다시 불러도 같은 결과(한도·예산 소진). 배치 호출부는 여기서 멈춘다.
   | { ok: false; error: string; quotaExhausted: boolean }
@@ -325,12 +327,14 @@ export async function runExtraction(
   // 3. 모델 호출 (프로바이더 분기·재시도·모델 폴백은 llm.ts 가 처리한다)
   let rawText = ''
   let model = ''
+  let costUsd: number | null = null
   try {
     // 이 결과를 어느 모델이 만들었는지 남긴다. 폴백으로 모델이 바뀌면
     // 같은 입력에도 결과가 달라지는데, 이 로그가 없으면 사후에 가릴 방법이 없다.
     const call = await callLlmWithModel(provider, SYSTEM_PROMPT, userPrompt, 'extract')
     rawText = call.text
     model = call.model
+    costUsd = call.costUsd ?? null
     console.log(
       `[analyze/extract] project=${projectId} provider=${provider} model=${call.model} took ${Date.now() - startedAt}ms`,
     )
@@ -509,5 +513,6 @@ export async function runExtraction(
     droppedInputs,
     droppedIrrelevant,
     model,
+    costUsd,
   }
 }

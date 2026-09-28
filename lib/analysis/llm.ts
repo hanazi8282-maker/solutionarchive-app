@@ -140,7 +140,7 @@ export function describeFailure(e: unknown): string {
  * 실패(exit≠0·timeout·is_error)는 ClaudeCliError 로 던진다 — ProviderHttpError 가 아니라 callWithRetry 가 재시도하지 않고 곧장 올린다
  * (사용량 한도를 4번 두드리지 않는다).
  */
-async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<{ text: string; model: string }> {
+async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<{ text: string; model: string; costUsd: number | null }> {
   const bin = await resolveClaudeBinary()
   const res = await runClaude(
     bin.path,
@@ -161,11 +161,14 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
   }
   let text = res.stdout
   let model = CLAUDE_CLI_LABEL
+  let costUsd: number | null = null
   try {
     const env = JSON.parse(res.stdout) as Record<string, unknown>
     if (env.is_error === true) throw new ClaudeCliError(`claude 가 오류를 보고했다: ${String(env.result ?? '').slice(0, 300)}`)
     if (typeof env.result === 'string') text = env.result
     if (typeof env.model === 'string' && env.model) model = env.model
+    // API 환산 명목값(청구액 아님). 슬롯 상한 재산정용으로 agent_run_steps.detail.cost_usd 에 남는다(설계 §3.4).
+    if (typeof env.total_cost_usd === 'number' && Number.isFinite(env.total_cost_usd)) costUsd = env.total_cost_usd
     // 실측 비용·토큰. budget.ts 의 추정치와 별개다 — 보고에는 이 줄의 숫자를 쓴다(2026-09-26 정정).
     // result_chars·duration_api_ms 는 속도 진단용(2026-09-28): extract 1건 시간은 out 토큰에 비례하는데,
     // out 이 결과 글자 수에 비해 크면 사고(thinking) 토큰이 섞인 것이다. 그걸 가르는 숫자다.
@@ -175,7 +178,7 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
     if (e instanceof ClaudeCliError) throw e
     // 봉투가 아니면 본문이 그대로 온 것이다.
   }
-  return { text: text.trim(), model }
+  return { text: text.trim(), model, costUsd }
 }
 
 async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
@@ -324,7 +327,12 @@ function shouldFallOverToNextModel(e: unknown): boolean {
 }
 
 /** 호출 결과 + 실제로 응답을 만든 모델명. "이 결과가 어느 모델이었는지" 추적용. */
-export type LlmCall = { text: string; model: string }
+export type LlmCall = {
+  text: string
+  model: string
+  /** claude-cli 봉투의 total_cost_usd(API 환산 명목값). 다른 프로바이더·못 읽음은 없거나 null. */
+  costUsd?: number | null
+}
 
 /**
  * 프로바이더에 무관하게 "모델이 낸 원문 텍스트"와 그 텍스트를 만든 모델명을 돌려준다.
@@ -347,14 +355,15 @@ export async function callLlmWithModel(
 
   if (provider === 'claude-cli') {
     let model = CLAUDE_CLI_LABEL
+    let costUsd: number | null = null
     const text = await callWithRetry(
       label,
       CLAUDE_CLI_LABEL,
-      async () => { const r = await callClaudeCli(systemPrompt, userPrompt); model = r.model; return r.text },
+      async () => { const r = await callClaudeCli(systemPrompt, userPrompt); model = r.model; costUsd = r.costUsd; return r.text },
       budgetChars,
     )
     console.log(`[analysis/llm] ${label} provider=claude-cli model=${model}`)
-    return { text, model }
+    return { text, model, costUsd }
   }
   if (provider === 'anthropic') {
     const text = await callWithRetry(

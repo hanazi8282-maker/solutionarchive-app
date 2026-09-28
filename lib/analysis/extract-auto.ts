@@ -159,23 +159,230 @@ export function pickAutoTargets(
 
 /**
  * 스케줄 크론 → 슬롯 이름. yml 의 `- cron:` 줄과 1:1 이다(reports/2026-09-28/extract-adaptive-frequency-design.md §3.1).
- * 두 슬롯(KST 03:33 · 12:33)은 같은 KST 날짜에 떨어지므로 run_key 에 슬롯이 없으면 두 번째가 첫 번째 행을 덮는다(F3).
+ * 세 슬롯(KST 03:33 · 12:33 · 18:33)은 같은 KST 날짜에 떨어지므로 run_key 에 슬롯이 없으면 뒤 실행이 앞 행을 덮는다(F3).
  */
-export const EXTRACT_SLOTS: Readonly<Record<string, string>> = { '33 18 * * *': 's1', '33 3 * * *': 's2' }
+export const EXTRACT_SLOTS: Readonly<Record<string, string>> = { '33 18 * * *': 's1', '33 3 * * *': 's2', '33 9 * * *': 's3' }
+
+// ── 적응형 슬롯 게이트 (남헌 2026-09-28 D1~D8 확정, 설계 §3·§4) ────────────
+// 매 슬롯이 먼저 백로그를 재고, 그 슬롯의 문턱보다 작으면 이유를 남기고 쉰다. 상태는 agent_runs 에서 읽는다.
+
+/** 히스테리시스 문턱(Bw 기준). 직전 같은 슬롯이 돌았으면 OFF, 아니면 ON. s1·수동은 B ≥ 1(D2: 하루 최소 1회). */
+export const SLOT_THRESHOLDS: Readonly<Record<string, { on: number; off: number }>> = {
+  s2: { on: 5, off: 2 },
+  s3: { on: 12, off: 6 },
+}
+/** 한도 정지 뒤 리셋 시각을 못 읽었을 때 쉬는 시간(D6 폴백). */
+export const QUOTA_COOLDOWN_MS = 5 * 60 * 60 * 1000
+/** 실제로 돈 실행이 이만큼 연속 blocked 면 ::error:: + exit 1(§4.1). */
+export const BLOCKED_ALARM_STREAK = 3
+
+/** 하루(KST) 처리 상한 — done + failed 합(D4). 3일 실측 뒤 리포 변수로 조정. */
+export const autoDailyMax = () => num(process.env.EXTRACT_AUTO_DAILY_MAX, 24)
 
 /**
- * agent_runs.run_key — `extract-auto-<KST날짜>-<s1|s2|m<run_id>|local>`.
+ * 이 실행이 어느 슬롯인가. schedule 은 크론 표에서, 수동은 입력 slot(s1/s2/s3 — dry_run 으로 게이트만 보려고)이 있으면 그것, 없으면 'm'.
+ * 표에 없는 크론은 throw(extractRunKey 와 같은 이유).
+ */
+export function resolveSlot(env: { eventName?: string; slotCron?: string; slotInput?: string }): string {
+  if (env.eventName === 'schedule') {
+    const slot = EXTRACT_SLOTS[(env.slotCron ?? '').trim()]
+    if (!slot) throw new Error(`슬롯 표에 없는 크론 '${env.slotCron ?? ''}' — nightly-extract.yml 과 EXTRACT_SLOTS 를 맞춰라`)
+    return slot
+  }
+  const input = (env.slotInput ?? '').trim()
+  return Object.values(EXTRACT_SLOTS).includes(input) ? input : 'm'
+}
+
+export type Backlog = { B: number; S: number; Bw: number }
+
+/**
+ * 백로그 지표(설계 §1). `full` 은 pickAutoTargets(c, { max: Infinity }) 결과 — targets 가 곧 eligible 전체다.
+ * 가중치: SaaS 2 · 비SaaS 재추출 0.5(D5 — 소비재 재추출이 하루 200~400건씩 들어와 추가 슬롯을 상시 켜던 것) · 나머지 1.
+ * unknown·retryExhausted 는 B 밖이다(§7.1 — 모르는 것을 0 도 1 도 아닌 것으로 둔다).
+ */
+export function backlogOf(full: AutoPick): Backlog {
+  let S = 0
+  let Bw = 0
+  for (const c of full.targets) {
+    const saas = productKindOf(c.businessModel) === 'software'
+    if (saas) S += 1
+    Bw += saas ? 2 : needsForce(c) ? 0.5 : 1
+  }
+  return { B: full.targets.length, S, Bw }
+}
+
+export type AgentRunRow = {
+  run_key: string
+  status: string
+  summary?: Record<string, unknown> | null
+  started_at?: string | null
+  finished_at?: string | null
+}
+
+export type SlotState = {
+  /** 이 슬롯의 가장 최근 실행이 일을 했나. 행이 없으면 false(ON 문턱). */
+  prevRan: boolean
+  /** 오늘(KST) extract-auto 실행들의 done + failed 합. */
+  doneToday: number
+  /** 가장 최근 blocked 실행의 쿨다운 종료 시각(ISO). 없으면 null. */
+  cooldownUntil: string | null
+  /** cooldownUntil 이 CLI 리셋 시각에서 왔나(false = 5시간 폴백). */
+  cooldownFromReset: boolean
+  /** 실제로 돈 실행(쉼·진행 중 제외) 중 최근부터 연속 blocked 수. */
+  consecutiveBlocked: number
+}
+
+const numOr0 = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+const ranRow = (r: AgentRunRow) => r.summary?.decision !== 'skip' && r.status !== 'running'
+
+/**
+ * agent_runs 행(최근 며칠, run_key LIKE 'extract-auto-%') → 슬롯 상태. 순수함수.
+ * 쉼 행(summary.decision='skip')은 "일한 실행"이 아니다 — 연속 blocked·prevRan 에서 뺀다.
+ * decision 필드가 없는 옛 행(게이트 이전)은 돈 것으로 본다 — 그때는 매번 돌았다.
+ */
+export function slotStateOf(rows: readonly AgentRunRow[], opts: { today: string; slot: string }): SlotState {
+  const desc = [...rows].sort((a, b) => Date.parse(b.started_at ?? '') - Date.parse(a.started_at ?? ''))
+  const todayPrefix = `extract-auto-${opts.today}`
+  const doneToday = desc
+    .filter(r => r.run_key === todayPrefix || r.run_key.startsWith(`${todayPrefix}-`))
+    .reduce((s, r) => s + numOr0(r.summary?.done) + numOr0(r.summary?.failed), 0)
+
+  const same = desc.find(r => r.run_key.endsWith(`-${opts.slot}`))
+  const prevRan = same ? same.summary?.decision !== 'skip' : false
+
+  let cooldownUntil: string | null = null
+  let cooldownFromReset = false
+  const lastBlocked = desc.find(r => r.status === 'blocked')
+  if (lastBlocked) {
+    const reset = lastBlocked.summary?.quota_reset_at
+    const resetMs = typeof reset === 'string' ? Date.parse(reset) : NaN
+    if (Number.isFinite(resetMs)) {
+      cooldownUntil = new Date(resetMs).toISOString()
+      cooldownFromReset = true
+    } else {
+      const at = Date.parse(lastBlocked.finished_at ?? lastBlocked.started_at ?? '')
+      // 시각을 못 읽은 blocked 는 "쿨다운 없음"으로 접지 않는다 — 지금부터 5시간으로 본다(보수적).
+      if (Number.isFinite(at)) cooldownUntil = new Date(at + QUOTA_COOLDOWN_MS).toISOString()
+      else cooldownUntil = 'unknown'
+    }
+  }
+
+  let consecutiveBlocked = 0
+  for (const r of desc.filter(ranRow)) {
+    if (r.status !== 'blocked') break
+    consecutiveBlocked += 1
+  }
+  return { prevRan, doneToday, cooldownUntil, cooldownFromReset, consecutiveBlocked }
+}
+
+export type SlotDecision = {
+  run: boolean
+  reason: string
+  /** 이번 실행의 프로젝트 상한. run=false 면 0. */
+  max: number
+  threshold: number | null
+  /** true 면 ::warning::(쿨다운·확인 불가), false 면 ::notice::(평범한 쉼). */
+  warn: boolean
+}
+
+/**
+ * 슬롯 게이트(순수함수). 순서: 상태 확인 불가 → 한도 쿨다운 → 하루 상한 → 문턱.
+ * state=null = agent_runs 를 못 읽었다: s2·s3 는 쉰다(모른 채 구독 풀을 태우지 않는다), s1·수동은 진행(§4.1).
+ * 수동(m)은 문턱을 건너뛰되(대상 1건 이상이면 돈다) 쿨다운·하루 상한은 지킨다(§3.1).
+ */
+export function decideSlot(i: {
+  slot: string
+  backlog: Backlog
+  state: SlotState | null
+  dailyMax: number
+  slotMax: number
+  now: Date
+}): SlotDecision {
+  const { slot, backlog, state } = i
+  const skip = (reason: string, warn = false, threshold: number | null = null): SlotDecision => ({ run: false, reason, max: 0, threshold, warn })
+  const extra = slot in SLOT_THRESHOLDS
+
+  if (!state && extra) return skip(`실행 이력(agent_runs) 확인 불가 — 추가 슬롯 ${slot} 은 쉰다`, true)
+
+  if (state?.cooldownUntil) {
+    const until = Date.parse(state.cooldownUntil)
+    if (!Number.isFinite(until) || i.now.getTime() < until) {
+      const src = state.cooldownFromReset ? 'CLI 리셋 시각' : `blocked 뒤 ${QUOTA_COOLDOWN_MS / 3600000}시간`
+      return skip(`한도 쿨다운 — ${Number.isFinite(until) ? `~${state.cooldownUntil} 까지(${src})` : 'blocked 시각 확인 불가'}`, true)
+    }
+  }
+
+  let max = i.slotMax
+  if (state) {
+    const left = i.dailyMax - state.doneToday
+    if (left <= 0) return skip(`하루 상한 도달 — 오늘 처리 ${state.doneToday}/${i.dailyMax}`)
+    max = Math.min(max, left)
+  }
+
+  if (!extra) {
+    if (backlog.B < 1) return skip('대상 0건', false, 1)
+    return { run: true, reason: `${slot === 'm' ? '수동' : '기본 슬롯'} — 대상 ${backlog.B}건`, max, threshold: 1, warn: false }
+  }
+
+  const t = SLOT_THRESHOLDS[slot]
+  const prevRan = state?.prevRan ?? false
+  const threshold = prevRan ? t.off : t.on
+  const which = prevRan ? `OFF ${t.off}(직전 ${slot} 실행함)` : `ON ${t.on}(직전 ${slot} 쉼/없음)`
+  if (backlog.Bw < threshold) return skip(`Bw ${backlog.Bw} < ${which}`, false, threshold)
+  return { run: true, reason: `Bw ${backlog.Bw} ≥ ${which}`, max, threshold, warn: false }
+}
+
+/** 이 실행이 끝난 뒤 연속 blocked 경보를 올릴까(§4.1). thisStatus: 'skip' | run status. */
+export function blockedAlarm(priorStreak: number, thisStatus: string): boolean {
+  if (thisStatus === 'skip') return priorStreak >= BLOCKED_ALARM_STREAK
+  return thisStatus === 'blocked' && priorStreak + 1 >= BLOCKED_ALARM_STREAK
+}
+
+/**
+ * claude CLI 한도 오류 문구 → 리셋 시각(ISO). 못 읽으면 null — 호출부는 5시간으로 떨어진다(D6).
+ * 없는 값을 "지금 리셋됨"으로 읽지 않는다(§7.1): now 이전이거나 8일 넘게 뒤면 버린다.
+ * 알아보는 형태 두 가지(CLI 버전마다 다르다):
+ *   `Claude AI usage limit reached|1727467200`            (epoch 초)
+ *   `... resets 3pm (Asia/Seoul)` · `resets 3:30am (UTC)`   (그 시간대의 다음 해당 시각)
+ * 날짜가 붙은 주간 한도 문구(`resets Oct 3, 9am`)는 일부러 안 읽는다 — 5시간 폴백이 매 슬롯 1건씩만 두드린다.
+ */
+export function parseQuotaResetAt(msg: string, now: Date): string | null {
+  const sane = (ms: number) => (ms > now.getTime() && ms <= now.getTime() + 8 * 86_400_000 ? new Date(ms).toISOString() : null)
+  const epoch = /limit reached\|(\d{10})\b/i.exec(msg)
+  if (epoch) return sane(Number(epoch[1]) * 1000)
+
+  const m = /resets\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*\(([A-Za-z_]+(?:\/[A-Za-z_+-]+)*)\)/i.exec(msg)
+  if (!m) return null
+  let h = Number(m[1]) % 12
+  if (m[3].toLowerCase() === 'pm') h += 12
+  const min = Number(m[2] ?? 0)
+  let parts: Intl.DateTimeFormatPart[]
+  try {
+    parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: m[4], year: 'numeric', month: '2-digit', day: '2-digit', timeZoneName: 'longOffset',
+    }).formatToParts(now)
+  } catch {
+    return null // 모르는 시간대
+  }
+  const get = (t: string) => parts.find(p => p.type === t)?.value ?? ''
+  const off = /GMT([+-])(\d{2}):(\d{2})/.exec(get('timeZoneName'))
+  const offMs = off ? (off[1] === '-' ? -1 : 1) * (Number(off[2]) * 60 + Number(off[3])) * 60_000 : 0 // 'GMT' 단독 = UTC
+  // ponytail: 오늘의 오프셋 하나로 계산 — 리셋 직전에 서머타임이 바뀌면 1시간 어긋난다. 쿨다운이라 허용.
+  let at = Date.UTC(Number(get('year')), Number(get('month')) - 1, Number(get('day')), h, min) - offMs
+  if (at <= now.getTime()) at += 86_400_000
+  return sane(at)
+}
+
+/**
+ * agent_runs.run_key — `extract-auto-<KST날짜>-<s1|s2|s3|m<run_id>|local>`.
  * 표에 없는 크론이면 throw — yml 과 코드가 갈라진 것을 조용히 s1 로 접지 않는다(§7.1).
  */
 export function extractRunKey(
   date: string,
   env: { eventName?: string; slotCron?: string; runId?: string },
 ): string {
-  if (env.eventName === 'schedule') {
-    const slot = EXTRACT_SLOTS[(env.slotCron ?? '').trim()]
-    if (!slot) throw new Error(`슬롯 표에 없는 크론 '${env.slotCron ?? ''}' — nightly-extract.yml 과 EXTRACT_SLOTS 를 맞춰라`)
-    return `extract-auto-${date}-${slot}`
-  }
+  // 수동 실행은 입력 slot 과 무관하게 m<run_id> — 게이트 시험(dry_run·slot=s2)이 진짜 s2 행을 덮지 않게.
+  if (env.eventName === 'schedule') return `extract-auto-${date}-${resolveSlot(env)}`
   return `extract-auto-${date}-${env.runId ? `m${env.runId}` : 'local'}`
 }
 

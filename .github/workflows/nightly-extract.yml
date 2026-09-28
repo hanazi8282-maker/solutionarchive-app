@@ -29,6 +29,10 @@ on:
     # (reports/2026-09-28/extract-adaptive-frequency-design.md §0 F9 · §3.1 s2). 크론 줄은
     # lib/analysis/extract-auto.ts EXTRACT_SLOTS 와 1:1 — 여기만 바꾸면 스크립트가 exit 2 로 멈춘다.
     - cron: '33 3 * * *'
+    # 09:33 UTC = KST 18:33 (남헌 2026-09-28 D3). 05:37Z 리뷰 수집 뒤, 야간 혼잡 구간 앞.
+    # s2·s3 는 백로그(Bw)가 문턱(s2 ON5/OFF2 · s3 ON12/OFF6)을 넘을 때만 일하고, 아니면 exit 0 으로 쉰다(쉼도 agent_runs 에 기록).
+    # 건너뛰기는 job `if:` 가 아니라 스크립트 안에서 한다 — skipped 결론은 cron-watchdog 가 이상으로 읽는다.
+    - cron: '33 9 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -43,6 +47,11 @@ on:
         description: '이번 실행에서 돌릴 최대 프로젝트 수'
         type: string
         default: '3'
+      slot:
+        description: '게이트를 이 슬롯 문턱으로 판정(m=수동: 문턱 없음). run_key 는 항상 m<run_id>'
+        type: choice
+        options: [m, s1, s2, s3]
+        default: m
 
 # 두 실행이 겹치면 같은 프로젝트의 aspects 를 서로 delete→insert 한다.
 concurrency:
@@ -86,15 +95,19 @@ jobs:
           # 예산 추정기(budget.ts) 단가 = Sonnet. 실측 비용은 로그의 "claude-cli 실측 total_cost_usd" 줄을 본다.
           LLM_USD_PER_MTOK_IN: '3'
           LLM_USD_PER_MTOK_OUT: '15'
-          # extract 입력은 최대 ~12만 자다. 기본 180초로는 모자란다.
+          # extract 입력은 최대 ~12만 자다. 기본 180초로는 모자란다(실측 117~430초). 이 프로세스의 claude-cli 호출은
+          # 전부 lib/analysis/llm.ts callClaudeCli 한 곳을 지나며(extract · 뒤따르는 remedy-judge) 그 자리가 이 env 를 읽는다.
           LLM_CLAUDE_CLI_TIMEOUT_MS: '600000'
           # 비용 상한은 lib/analysis/budget.ts 가 강제한다(프로세스 단위 = 이 실행 1회분).
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
           EXTRACT_AUTO_MIN_NEW: ${{ inputs.min_new || vars.EXTRACT_AUTO_MIN_NEW || '100' }}
           EXTRACT_AUTO_MAX_PROJECTS: ${{ inputs.max_projects || vars.EXTRACT_AUTO_MAX_PROJECTS || '3' }}
+          # 하루(KST) 처리 상한 = done+failed 합(D4). 3일 실측 뒤 리포 변수로 조정한다.
+          EXTRACT_AUTO_DAILY_MAX: ${{ vars.EXTRACT_AUTO_DAILY_MAX || '24' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
-          # 발화한 크론 문자열 → run_key 슬롯 접미사(s1/s2). 같은 KST 날짜의 두 실행이 agent_runs 행을 덮지 않게(F3).
+          # 발화한 크론 문자열 → 슬롯(s1/s2/s3) — run_key 접미사(F3)와 게이트 문턱을 정한다.
           EXTRACT_SLOT_CRON: ${{ github.event.schedule }}
+          EXTRACT_SLOT_INPUT: ${{ inputs.slot }}
         run: |
           node scripts/extract-auto.mjs \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

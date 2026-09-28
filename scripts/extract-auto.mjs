@@ -93,7 +93,9 @@ if (!supabase) {
   process.exit(2)
 }
 
-log(`야간 자동 extract ${dry ? '(--dry: 대상 선정·게이트 판정만)' : ''} — run_key=${runKey} · 슬롯 ${slot} · provider=${provider} · 신규 기준 ${minNew}건 · 슬롯 상한 ${max}건 · 하루 상한 ${dailyMax}건 · 일 예산 $${DAILY_BUDGET_USD}`)
+// claude-cli 는 달러 예산 밖이다(llm.ts UNMETERED) — 상한은 슬롯·하루 건수, 실측 명목값은 봉투 cost_usd 로만 본다.
+const budgetNote = provider === 'claude-cli' ? '달러 예산 미적용(구독)' : `일 예산 $${DAILY_BUDGET_USD}`
+log(`야간 자동 extract ${dry ? '(--dry: 대상 선정·게이트 판정만)' : ''} — run_key=${runKey} · 슬롯 ${slot} · provider=${provider} · 신규 기준 ${minNew}건 · 슬롯 상한 ${max}건 · 하루 상한 ${dailyMax}건 · ${budgetNote}`)
 
 // ── 1. 후보 = status='collecting' + 재추출 가능 상태(extracted) ──
 // 남헌 2026-09-23 Q4(a). extracted 도 후보다 — 마지막 추출 이후 신규 ≥ minNew 면 force 로 다시 돈다.
@@ -298,7 +300,8 @@ await tracker.finish({
   },
 })
 
-log(`끝 — 추출 ${done}건 · 실패 ${failed}건 · 남은 대상 ${pick.remaining}건 · 이번 실행 추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD}) · 상태 ${status}`)
+const spentNote = provider === 'claude-cli' ? `실측 명목 $${costKnown > 0 ? costUsd.toFixed(3) : '확인 불가'}(${costKnown}/${done}건)` : `추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD})`
+log(`끝 — 추출 ${done}건 · 실패 ${failed}건 · 남은 대상 ${pick.remaining}건 · 이번 실행 ${spentNote} · 상태 ${status}`)
 if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 — ops/state 폴백. 이 실행의 기록은 "DB 확인 불가"다')
 
 const alarm = raiseAlarm(status)

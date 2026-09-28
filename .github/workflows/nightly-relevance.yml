@@ -2,19 +2,23 @@
 #
 # 남헌 2026-09-23 확정: "AI 관련성 판정은 Gemini, 야간 배치"
 # (reports/2026-09-23/data-velocity-plan.md §1 Q5 · §2 T2).
+#   ↳ 2026-09-25 결정 a 로 1차 판정은 claude-cli(구독 OAuth)로 바뀌었다(09-26 실제 전환). Gemini 는 2차 판정(독립성) 전용.
+#     되돌리기 = 리포 변수 RELEVANCE_LLM_PROVIDER=gemini.
 #
 # ⚠️ 판정은 **플래그일 뿐**이다. 행을 지우지 않고 상태도 바꾸지 않는다. extract 입력 선별이
 #    'irrelevant' 만 빼고 'unknown' 은 그대로 읽는다(CLAUDE.md §7.1 · §10.1).
 #
-# ⚠️ GEMINI_API_KEY 시크릿이 없으면 아무것도 하지 않고 종료코드 2 로 멈춘다.
-#    조용히 도는 것보다 시끄럽게 닫히는 편이 낫다.
+# ⚠️ 프로바이더의 필수 키(claude-cli=CLAUDE_CODE_OAUTH_TOKEN · gemini=GEMINI_API_KEY)가 없으면 아무것도 하지 않고
+#    종료코드 2 로 멈춘다. 조용히 도는 것보다 시끄럽게 닫히는 편이 낫다.
 
 name: Nightly Relevance Judge
 
 on:
   schedule:
-    # 19:03 UTC = KST 04:03. extract(KST 03:33)가 끝난 뒤다 — 같은 Gemini 무료 티어 RPM 을
-    # 나눠 쓰므로 겹치면 429 가 난다(data-velocity-plan §8 🟡).
+    # 19:03 UTC = KST 04:03. extract s1(18:33Z)보다 30분 뒤. 원래 이유("같은 Gemini 무료 티어 RPM 을 나눠 쓴다")는
+    # 둘 다 claude-cli 로 바뀌며 사라졌고, 실측으로는 Actions 지연(2~3시간) 탓에 둘이 겹쳐 돈다(09-27: extract 21:32~22:16Z,
+    # relevance 21:50~22:33Z). 구독 한도는 5시간 창 사용량 기준이라 동시 실행 자체는 문제가 아니고, 야간 혼잡 구간 설계는
+    # reports/2026-09-28/extract-adaptive-frequency-design.md §3.1 을 따른다. 시각은 그대로 둔다.
     # 정각·30분을 쓰지 않는 이유는 nightly-review-collect.yml 주석에 있다(전 세계 크론이 몰려 건너뛴다).
     - cron: '3 19 * * *'
   workflow_dispatch:
@@ -76,17 +80,12 @@ jobs:
           LLM_PROVIDER: ${{ vars.RELEVANCE_LLM_PROVIDER || 'claude-cli' }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # 비용 상한은 lib/analysis/budget.ts 가 강제한다(프로세스 단위 = 이 실행 1회분).
+          # 달러 예산은 **gemini 로 되돌렸을 때만** 적용된다 — claude-cli 는 budget.ts 를 타지 않는다(llm.ts UNMETERED, 2026-09-29).
+          # 옛 "크레딧 기간 한시 상향 $15 까지 11/5"(BOOST/UNTIL)와 Opus 추정 단가는 뺐다: 전제였던 $250 크레딧이 이 경로와
+          # 무관하다고 09-26 정정됐고, 추정 예산이 정상 실행을 끊은 사고(09-28, PR #329)의 뿌리가 그 추정 자체였다.
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
-          # 크레딧 기간 한시 상향(결정 c): 11/5 까지 $15, 그 뒤 자동으로 위 기본값 복귀(lib/analysis/budget.ts dailyBudgetFor).
-          LLM_DAILY_BUDGET_BOOST_USD: '15'
-          LLM_DAILY_BUDGET_BOOST_UNTIL: '2026-11-05'
-          # 요청당(=프로젝트 지갑) 상한. 기본 0.5 는 09-28 rr-v2 프롬프트(기준+정보 질문+사람 예시)로 5호출·100건에서 걸려
-          # 1Password 1개만 돌고 전체가 멈췄다. 표본 200건=10호출≈$0.88 추정(claude-cli 는 구독이라 명목값). 하루 상한은 그대로.
+          # 요청당(=프로젝트 지갑) 상한(PR #329 값 유지). gemini 폴백에서 표본 200건=10호출이 기본 0.5 에 걸리지 않게.
           LLM_REQUEST_BUDGET_USD: '2'
-          # 예산 추정 단가를 Opus 로(claude-cli 는 크레딧이지만 폭주 상한은 유지). gemini 로 되돌리면 이 둘도 지운다.
-          LLM_USD_PER_MTOK_IN: '5'
-          LLM_USD_PER_MTOK_OUT: '25'
           RELEVANCE_SAMPLE: ${{ inputs.sample || vars.RELEVANCE_SAMPLE || '200' }}
           RELEVANCE_MAX_PROJECTS: ${{ inputs.max_projects || vars.RELEVANCE_MAX_PROJECTS || '5' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}

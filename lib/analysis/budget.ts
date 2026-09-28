@@ -71,17 +71,13 @@ export const USD_PER_MTOK_IN = num(process.env.LLM_USD_PER_MTOK_IN, 0.5)
 export const USD_PER_MTOK_OUT = num(process.env.LLM_USD_PER_MTOK_OUT, 4)
 export const REQUEST_BUDGET_USD = num(process.env.LLM_REQUEST_BUDGET_USD, 0.5)
 /**
- * 하루 상한. 크레딧 기간 한시 상향(남헌 2026-09-25 결정 c): LLM_DAILY_BUDGET_BOOST_USD 를
- * LLM_DAILY_BUDGET_BOOST_UNTIL(YYYY-MM-DD, UTC 날짜 포함)까지만 쓰고, 그 다음 날부터는 코드·설정 변경 없이
- * 기본값(LLM_DAILY_BUDGET_USD, 기본 $5)으로 자동 복귀한다. 워크플로에 UNTIL=2026-11-05 로 박혀 있다.
- * 순수 함수라 selftest 가 날짜 경계를 고정한다(scripts/llm-provider-selftest.mjs).
+ * 하루 상한(LLM_DAILY_BUDGET_USD, 기본 $5). 청구되는 프로바이더(gemini·anthropic)에만 적용된다 —
+ * claude-cli 는 llm.ts UNMETERED 로 이 예산을 타지 않는다.
+ * 2026-09-25~29 에 있던 "크레딧 기간 한시 상향"(BOOST_USD/BOOST_UNTIL=2026-11-05)은 뺐다: 전제였던 $250 크레딧이
+ * claude -p 경로와 무관하다고 09-26 에 정정됐고(claude/agent-sdk-credit-2026-11-05.md), 그 경로는 이제 예산 밖이다.
  */
-export function dailyBudgetFor(env: Record<string, string | undefined> = process.env, now = new Date()): number {
-  const base = num(env.LLM_DAILY_BUDGET_USD, 5)
-  const boost = num(env.LLM_DAILY_BUDGET_BOOST_USD, 0)
-  const until = (env.LLM_DAILY_BUDGET_BOOST_UNTIL ?? '').trim()
-  if (!(boost > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(until)) return base
-  return now.toISOString().slice(0, 10) <= until ? Math.max(base, boost) : base
+export function dailyBudgetFor(env: Record<string, string | undefined> = process.env): number {
+  return num(env.LLM_DAILY_BUDGET_USD, 5)
 }
 export const DAILY_BUDGET_USD = dailyBudgetFor()
 

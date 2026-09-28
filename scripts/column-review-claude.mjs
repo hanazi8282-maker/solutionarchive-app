@@ -10,7 +10,7 @@
 //   · 우선순위: 문체·가독성(voice-guide) > 구조 > 사실관계·인용 소폭. 수치·출처·인용문은 **바꾸지 않는다**(있던 것을 빼는 것도 금지).
 //   · 저장: content_columns.body_revised/revision_summary/revision_status='pending'/revised_by/revised_at + 파일 drafts/columns/_review/<slug>.revised.md
 //     + 전/후 diff reports/<KST date>/column-review/<slug>.diff (사람이 읽는 형태).
-//   · 예산: callLlmWithModel 이 budget.ts 가드를 탄다(LLM_DAILY_BUDGET_BOOST_USD 안). 429/예산이면 그 자리에서 멈추고 남은 건수를 남긴다.
+//   · 예산: claude-cli 는 달러 예산 밖이다(llm.ts UNMETERED, 2026-09-29). 상한은 --limit 편수뿐. 429/한도면 그 자리에서 멈추고 남은 건수를 남긴다.
 //   · 검증: 수정본이 원문의 30% 미만이거나 2배 초과면 저장하지 않는다(모델이 요약·부풀림). 헤더 "독자:" 줄이 사라져도 저장하지 않는다.
 // 종료코드: 0 정상 · 2 설정/조회 실패 · 3 저장 실패 1건 이상
 
@@ -47,7 +47,7 @@ if (onlySlug) q = q.eq('slug', onlySlug)
 const { data: cols, error } = await q
 if (error) { console.error(`✗ 조회 실패: ${error.message}`); process.exit(2) }
 const targets = cols.filter((c) => force || !c.revision_status).slice(0, limit)
-log(`미발행 draft ${cols.length}편 → 대상 ${targets.length}편${force ? ' (--force)' : ''} · provider=${provider} · 일 예산 $${DAILY_BUDGET_USD}`)
+log(`미발행 draft ${cols.length}편 → 대상 ${targets.length}편${force ? ' (--force)' : ''} · provider=${provider} · ${provider === 'claude-cli' ? '달러 예산 미적용(구독)' : `일 예산 $${DAILY_BUDGET_USD}`}`)
 for (const c of targets) log(`  - ${c.slug} (${c.char_count}자${c.revision_status ? `, 기존 수정본 ${c.revision_status}` : ''})`)
 if (!run) { log('--dry: 여기서 끝낸다. 실행은 --run.'); process.exit(0) }
 
@@ -107,5 +107,5 @@ for (const c of targets) {
 }
 const spent = dailySpent()
 if (blocker) log(`⚠️ 멈췄다 — ${done}/${targets.length}편 처리 후. 사유: ${blocker.slice(0, 200)}. 남은 ${targets.length - done}편은 다음 실행.`)
-log(`끝 — 수정본 저장 ${saved} · 형식/길이 탈락 ${skipped} · 실패 ${failed} · 추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD})`)
+log(`끝 — 수정본 저장 ${saved} · 형식/길이 탈락 ${skipped} · 실패 ${failed} · ${provider === 'claude-cli' ? '달러 예산 미적용(구독 · 실측은 로그의 total_cost_usd)' : `추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD})`}`)
 process.exit(failed > 0 ? 3 : 0)

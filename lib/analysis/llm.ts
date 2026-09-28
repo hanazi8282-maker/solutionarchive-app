@@ -44,6 +44,13 @@ export function requiredKeyFor(
 const ANTHROPIC_MODEL = 'claude-opus-5'
 /** claude -p 는 모델을 CLI 기본값으로 쓴다. 추적용 라벨이라 실제 모델명이 아니다 — 응답 봉투의 model 을 우선 쓴다. */
 const CLAUDE_CLI_LABEL = 'claude-cli'
+/**
+ * callWithRetry 의 budgetChars 에 넣으면 달러 예산(budget.ts)을 타지 않는다.
+ * claude-cli 는 구독 OAuth 라 청구액이 없다(2026-09-26 정정: $250 크레딧과도 무관). 추정 단가로 세는 "$5 하루 상한"은
+ * 그 경로에서 비용을 재는 것도 구독 한도를 재는 것도 아니어서, 09-28 에 정상 실행을 요청당 $0.5 에서 끊었다(PR #329).
+ * 폭주는 호출 수 상한(프로젝트·표본·하루 건수)과 CLI 한도 정지(isQuotaFailure)가 막는다. 실측 명목값은 봉투의 total_cost_usd.
+ */
+const UNMETERED = 0
 
 // 모델별로 무료 티어 일일 요청 한도가 따로 걸린다(gemini-3.6-flash 는 20건/일).
 // 그래서 단일 모델이 아니라 우선순위 배열로 두고, 한도가 소진되면(백오프를 다 쓰고도 429)
@@ -280,22 +287,24 @@ function isRetryable(e: unknown): boolean {
  * 모델 하나에 대해 재시도까지 포함한 1회 호출.
  * 일시적 장애(429/5xx)는 지수 백오프로 최대 4회까지 재시도한다 —
  * 앵글 생성처럼 호출을 여러 건 병렬로 던지면 503 하나에 배치 전체가 죽기 때문.
+ * budgetChars 가 UNMETERED(0)면 달러 예산을 적립하지도 막지도 않는다(청구 없는 프로바이더).
  */
 async function callWithRetry(
   label: string,
   model: string,
   run: () => Promise<string>,
-  budgetChars = 0,
+  budgetChars = UNMETERED,
 ): Promise<string> {
+  const metered = budgetChars > UNMETERED
   let lastError: unknown
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       // 예산은 시도마다 적립한다 — 실패한 호출의 입력 토큰도 과금되기 때문.
       // 넘으면 여기서 던지고, 예산 초과는 재시도 대상이 아니다(아래 isRetryable=false).
-      reserveOrThrow(`${label}/${model}`, budgetChars)
+      if (metered) reserveOrThrow(`${label}/${model}`, budgetChars)
       const text = await run()
       if (!text) throw new Error('empty model output')
-      chargeOutput(text.length)
+      if (metered) chargeOutput(text.length)
       return text
     } catch (e) {
       lastError = e
@@ -360,7 +369,7 @@ export async function callLlmWithModel(
       label,
       CLAUDE_CLI_LABEL,
       async () => { const r = await callClaudeCli(systemPrompt, userPrompt); model = r.model; costUsd = r.costUsd; return r.text },
-      budgetChars,
+      UNMETERED,
     )
     console.log(`[analysis/llm] ${label} provider=claude-cli model=${model}`)
     return { text, model, costUsd }

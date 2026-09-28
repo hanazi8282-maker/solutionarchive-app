@@ -191,6 +191,7 @@ jobs:
       # 발행 게이트 CG-1/CG-2 의 유일한 테스트(case-pipeline)가 여기 처음 들어간다.
       # 발굴 게이트(감사 2-2) — 전에는 nightly-discovery 에서만 돌아 회귀가 머지 뒤 첫 밤에야 드러났다.
       - run: node scripts/discovery-selftest.mjs
+      - run: node scripts/discovery-transfer-selftest.mjs
       - run: node scripts/case-pipeline-selftest.mjs
       # 리서처 VOC 입력 경로(P1): 선택 규칙(사람 판정 우선·purge 제외)·초안 voc_inputs 검증·프롬프트 배선·
       # 마이그 000028 의 테이블·컬럼 이름 고정(feat/case-auto-approval 이 같은 이름을 읽는다).

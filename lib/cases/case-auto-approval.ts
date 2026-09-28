@@ -120,8 +120,9 @@ export function caseEligibility(s: CaStudy, moves: readonly Pick<CaMove, 'review
 /** 감사 1건 = 기계가 표시/승인했고 사람이 그 뒤 결정한 무브. 사람이 approved 로 둔 것이 정답, 그 밖(draft·rejected)이 오류. */
 export type CaAuditRow = { review_status: string; reviewed_at: string | null }
 
+// human_product_informative 는 rr-v2 의 질문이라 무브 감사에는 없다 — true 로 고정해 오류 판정을 review_status 하나로 둔다(ca-v1 산식 불변).
 export const toAuditRows = (rows: readonly CaAuditRow[]): AuditRow[] =>
-  rows.map((r) => ({ human_verdict: r.review_status === 'approved' ? 'relevant' : 'irrelevant', human_graded_at: r.reviewed_at }))
+  rows.map((r) => ({ human_verdict: r.review_status === 'approved' ? 'relevant' : 'irrelevant', human_product_informative: true, human_graded_at: r.reviewed_at }))
 
 export type LinkTableState = 'present' | 'absent' | 'unverifiable'
 

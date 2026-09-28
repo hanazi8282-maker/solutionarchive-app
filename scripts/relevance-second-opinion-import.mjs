@@ -8,7 +8,7 @@
 // 규칙: verdict·human_verdict·기존 라벨은 **절대 덮지 않는다.** --apply 는 라벨 4개 전부 NULL·불가 표시 없음·세션 판정 relevant·라벨 1개 이상 인 행만.
 //       UPDATE 조건에 "라벨 4개 전부 NULL" 을 다시 걸어 그사이 야간 판정이 채운 행을 덮지 않는다.
 //   node --env-file=.env.local scripts/relevance-second-opinion-import.mjs <파일> --record-second [--second-model <이름>]    # 2차 판정 기록
-//       second_verdict·second_model·second_judged_at 만 쓴다(마이그 20260930000027). 자동 승인(relevance-auto-approve.mjs)의 입력이다.
+//       second_verdict·second_model·second_judged_at·second_product_informative 만 쓴다(마이그 20260930000027·000031). 자동 승인(relevance-auto-approve.mjs)의 입력이다.
 //       **파일의 criteria_version 이 현재 기준(relevance-criteria.ts)과 같을 때만** 기록한다 — 옛 기준 판정은 승인 입력이 아니다.
 //       이미 second_verdict 가 있는 행은 덮지 않는다. verdict·human_verdict·라벨은 여기서도 안 쓴다.
 // 리포트: reports/<KST 날짜>/relevance-second-opinion.md (DB 판정 대비·사람 채점 대비 일치, 채운 행, 거부된 행).
@@ -64,7 +64,7 @@ if (apply) {
 }
 
 // 2차 판정 기록 — 기준 버전이 다르면 통째로 거부한다(행 단위로 섞지 않는다).
-let second = { recorded: 0, skipped: 0, failed: 0, refused: null }
+let second = { recorded: 0, skipped: 0, failed: 0, refused: null, infoColumn: 'unknown' }
 if (recordSecond) {
   if (!isCurrentCriteria(raw)) {
     second.refused = `criteria_version=${JSON.stringify(raw?.criteria_version ?? null)} ≠ 현재 ${RELEVANCE_CRITERIA_VERSION} — 기록하지 않는다`
@@ -73,10 +73,17 @@ if (recordSecond) {
     const model = opt('second-model') ?? (typeof raw.model === 'string' ? raw.model : 'second-opinion-session')
     const judgedAt = typeof raw.generated_at === 'string' && Number.isFinite(Date.parse(raw.generated_at)) ? raw.generated_at : new Date().toISOString()
     for (const o of opinions.filter((x) => db.has(x.input_id))) {
-      const { data, error } = await sb.from('review_relevance_verdicts')
-        .update({ second_verdict: o.verdict, second_model: model, second_judged_at: judgedAt })
+      const write = (withInfo) => sb.from('review_relevance_verdicts')
+        .update({ second_verdict: o.verdict, second_model: model, second_judged_at: judgedAt, ...(withInfo ? { second_product_informative: o.product_informative } : {}) })
         .eq('input_id', o.input_id).is('second_verdict', null)
         .select('input_id')
+      let { data, error } = await write(second.infoColumn !== 'absent')
+      // 정보 컬럼(마이그 000031)만 없으면 그 필드만 빼고 기록한다 — rr-v2 대상은 0건이 되므로 조용히 넘기지 않는다(§7.1).
+      if (error && (error.code === '42703' || error.code === 'PGRST204') && /second_product_informative/.test(error.message ?? '')) {
+        second.infoColumn = 'absent'
+        console.error('⚠️ second_product_informative 컬럼 없음 — 마이그 20260930000031 미적용. 2차 정보 판정 없이 기록한다(rr-v2 자동 승인 대상 0건).')
+        ;({ data, error } = await write(false))
+      }
       if (error) {
         second.failed++
         console.error(`✗ ${o.input_id} 2차 기록 실패: ${error.code ?? ''} ${error.message}`)
@@ -99,7 +106,7 @@ const L = [
   `- DB(1차 LLM) 판정 대비 일치: ${s.vs_db.agree}/${s.vs_db.compared} (${pct(s.vs_db.agree, s.vs_db.compared)})`,
   `- 사람 채점 대비 일치: ${s.vs_human.agree}/${s.vs_human.compared} (${pct(s.vs_human.agree, s.vs_human.compared)}) — 기준은 이쪽`,
   `- 라벨 채울 수 있는 행(라벨 NULL·불가 표시 없음·relevant·라벨 있음): ${s.fillable}${apply ? ` → 채움 ${filled} · 그사이 채워져 건너뜀 ${raced} · 실패 ${failed}` : ' (드라이런 — --apply 로 채움)'}`,
-  `- 2차 판정 기록(--record-second): ${recordSecond ? (second.refused ? `거부 — ${second.refused}` : `기록 ${second.recorded} · 이미 있어 건너뜀 ${second.skipped} · 실패 ${second.failed}`) : '안 함'} · 파일 기준 버전 ${raw?.criteria_version ?? '(없음 — 옛 기준)'}`,
+  `- 2차 판정 기록(--record-second): ${recordSecond ? (second.refused ? `거부 — ${second.refused}` : `기록 ${second.recorded} · 이미 있어 건너뜀 ${second.skipped} · 실패 ${second.failed}${second.infoColumn === 'absent' ? ' · 정보 판정 미기록(마이그 000031 미적용)' : ''}`) : '안 함'} · 정보 판정 ${opinions.filter((o) => o.product_informative !== null).length}/${opinions.length}행 · 파일 기준 버전 ${raw?.criteria_version ?? '(없음 — 옛 기준)'}`,
   '',
   '### 불일치 (DB 판정 ≠ 세션 판정, 최대 30)',
   ...rows.filter((r) => r.agrees_with_db === false).slice(0, 30).map((r) => `- ${r.input_id.slice(0, 8)} · DB=${r.db_verdict} · 세션=${r.opinion_verdict}${r.human_verdict ? ` · 사람=${r.human_verdict}` : ''}`),

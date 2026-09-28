@@ -13,7 +13,7 @@
 // 종료코드: 0 정상(꺼짐·킬스위치 포함 — 사유는 로그·Notion) · 2 설정/조회 실패 · 3 저장 실패
 
 import { createClient } from '../lib/supabase/server.ts'
-import { autoApprovalGate } from '../lib/analysis/auto-approval.ts'
+import { AUTO_APPROVAL_RULE as RR_RULE, autoApprovalGate } from '../lib/analysis/auto-approval.ts'
 import {
   CASE_AUTO_APPROVAL_RULE as RULE, CASE_AUTO_APPROVAL_REVERTED,
   caseAutoApprovalGate, caseEligibility, moveEligibility, parseStage, selectRevert,
@@ -54,9 +54,9 @@ async function selectIn(table, cols, col, ids, what) {
 }
 
 // ── 게이트 입력 ────────────────────────────────────────────
-// rr-v1 상태 — relevance-auto-approve.mjs 와 같은 입력으로 같은 함수를 부른다(종속, 로드맵 §3-3).
-const rrAudits = await sb.from('review_relevance_verdicts').select('human_verdict, human_graded_at')
-  .not('auto_approved_at', 'is', null).not('human_verdict', 'is', null)
+// rr 상태(현재 규칙 rr-v2) — relevance-auto-approve.mjs 와 같은 입력으로 같은 함수를 부른다(종속, 로드맵 §3-3).
+const rrAudits = await sb.from('review_relevance_verdicts').select('human_verdict, human_product_informative, human_graded_at')
+  .not('auto_approved_at', 'is', null).eq('auto_approval_rule', RR_RULE).not('human_verdict', 'is', null)
 if (rrAudits.error) warn(`rr-v1 감사 창 조회 실패: ${rrAudits.error.message}`)
 const rr = autoApprovalGate({ enabled: process.env.AUTO_APPROVAL_ENABLED, since: process.env.AUTO_APPROVAL_SINCE, now, audits: rrAudits.error ? null : rrAudits.data })
 

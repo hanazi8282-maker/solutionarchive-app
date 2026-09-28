@@ -265,6 +265,9 @@ let saveFailed = 0
 let labelColumns = 'unknown'
 let labeledTotal = 0
 const LABEL_KEYS = ['impact', 'frequency', 'community_signal', 'wtp_mentioned']
+// rr-v2 정보 판정 컬럼(20260930000031) 존재 3상태 — 같은 방식. 'absent' 면 product_informative 만 빼고 저장한다.
+let infoColumn = 'unknown'
+let informativeTotal = 0
 let blocker = null
 let seq = 1
 
@@ -295,17 +298,25 @@ for (const { project, pending } of targets) {
         model: out.model,
         judged_at: new Date().toISOString(),
         reason: v.reason,
+        ...(infoColumn === 'absent' ? {} : { product_informative: v.product_informative }),
         ...(labelColumns === 'absent' ? {} : Object.fromEntries(LABEL_KEYS.map((k) => [k, v[k]]))),
       }))
-      // human_verdict·human_graded_at 은 payload 에 없다 — 재판정이 사람 채점을 덮지 않는다.
+      // human_verdict·human_graded_at 은 payload 에 없다(human_product_informative 도) — 재판정이 사람 채점을 덮지 않는다.
       const save = (payload) => supabase.from('review_relevance_verdicts').upsert(payload, { onConflict: 'input_id' })
+      const without = (keys) => rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !keys.includes(k))))
       let { error } = await save(rows)
-      // 라벨 컬럼이 없으면(PGRST204 스키마 캐시에 없음 · 42703) 판정은 그대로 저장하고 라벨만 버린다.
-      // 조용히 넘기지 않는다 — "라벨 0건"이 "모델이 라벨을 못 달았다"로 읽히면 안 된다(§7.1).
-      if (error && labelColumns !== 'absent' && (error.code === 'PGRST204' || error.code === '42703')) {
+      // 컬럼이 없으면(PGRST204 스키마 캐시에 없음 · 42703) 판정은 그대로 저장하고 **그 필드만** 버린다. 어느 컬럼인지는 메시지로 가른다.
+      // 조용히 넘기지 않는다 — "정보 판정 0건"·"라벨 0건"이 "모델이 못 달았다"로 읽히면 안 된다(§7.1).
+      const missingCol = (e) => e && (e.code === 'PGRST204' || e.code === '42703')
+      if (missingCol(error) && infoColumn !== 'absent' && /product_informative/.test(error.message ?? '')) {
+        infoColumn = 'absent'
+        warn(`정보 판정 미기록(마이그 미적용) — product_informative 컬럼이 없다(${error.code}). 20260930000031 적용 전까지 이 필드만 빼고 저장한다. rr-v2 자동 승인 대상은 0건이 된다.`)
+        ;({ error } = await save(without(['product_informative', ...(labelColumns === 'absent' ? LABEL_KEYS : [])])))
+      }
+      if (missingCol(error) && labelColumns !== 'absent') {
         labelColumns = 'absent'
         warn(`라벨 미기록(마이그 미적용) — review_relevance_verdicts 에 라벨 컬럼이 없다(${error.code}). 20260930000014 적용 전까지 verdict·reason 만 저장한다.`)
-        ;({ error } = await save(rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !LABEL_KEYS.includes(k))))))
+        ;({ error } = await save(without([...LABEL_KEYS, ...(infoColumn === 'absent' ? ['product_informative'] : [])])))
       }
       if (error) {
         saveFailed += 1
@@ -314,6 +325,10 @@ for (const { project, pending } of targets) {
         break
       }
       judgedTotal += rows.length
+      if (infoColumn !== 'absent') {
+        infoColumn = 'present'
+        informativeTotal += out.verdicts.filter((v) => v.product_informative !== null).length
+      }
       if (labelColumns !== 'absent') {
         labelColumns = 'present'
         labeledTotal += out.verdicts.filter((v) => LABEL_KEYS.some((k) => v[k] !== null)).length
@@ -348,11 +363,12 @@ await tracker.finish({
   summary: {
     projects: targets.length, judged: judgedTotal, remaining, blocker,
     label_columns: labelColumns, labeled: labelColumns === 'present' ? labeledTotal : null,
+    info_column: infoColumn, informative_answered: infoColumn === 'present' ? informativeTotal : null,
     est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls,
   },
 })
 
-log(`끝 — 판정 ${judgedTotal}건 · 라벨 ${labelColumns === 'present' ? `${labeledTotal}건` : labelColumns === 'absent' ? '미기록(마이그 미적용)' : '확인 불가(저장 0회)'} · 남은 프로젝트 ${remaining}건 · 이번 실행 추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD}) · 상태 ${status}`)
+log(`끝 — 판정 ${judgedTotal}건 · 라벨 ${labelColumns === 'present' ? `${labeledTotal}건` : labelColumns === 'absent' ? '미기록(마이그 미적용)' : '확인 불가(저장 0회)'} · 정보 판정 ${infoColumn === 'present' ? `${informativeTotal}건` : infoColumn === 'absent' ? '미기록(마이그 000031 미적용)' : '확인 불가(저장 0회)'} · 남은 프로젝트 ${remaining}건 · 이번 실행 추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD}) · 상태 ${status}`)
 if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 — ops/state 폴백. 이 실행의 기록은 "DB 확인 불가"다')
 
 process.exit(saveFailed > 0 ? 3 : 0)

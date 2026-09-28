@@ -23,7 +23,7 @@ import { extractJsonArray } from '../cases/remedy-judge.ts'
 // 목적 어휘 정본은 config/reader-problems.json 이다(lib/cases/draft.ts 가 읽는다).
 import { READER_PROBLEM_LABEL } from '../cases/draft.ts'
 // "관련"의 정의는 2차 판정(second-opinion.ts)과 한 벌이다 — 여기서 고치지 말고 relevance-criteria.ts 를 고친다.
-import { RELEVANCE_CRITERIA, describeBusinessModel } from './relevance-criteria.ts'
+import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, describeBusinessModel } from './relevance-criteria.ts'
 
 export const RELEVANCE_VERDICTS = ['relevant', 'irrelevant', 'unknown'] as const
 export type Relevance = (typeof RELEVANCE_VERDICTS)[number]
@@ -79,6 +79,8 @@ export interface RelevanceVerdict extends RelevanceLabels {
   verdict: Relevance
   /** 모델이 적은 한 줄. 없으면 null — 사람이 표본을 볼 때 판단 근거가 된다. */
   reason: string | null
+  /** 자동 승인 rr-v2 추가 질문(PRODUCT_INFORMATIVE_CRITERIA). 어휘 밖·누락·호출 실패는 null — false 로 접지 않는다. */
+  product_informative: boolean | null
 }
 
 export interface RelevanceOutcome {
@@ -101,6 +103,8 @@ const SYSTEM = [
   '',
   RELEVANCE_CRITERIA,
   '',
+  PRODUCT_INFORMATIVE_CRITERIA,
+  '',
   '없는 id 를 만들지 말고, 주어진 id 전부에 대해 한 줄씩 답해라.',
   '',
   '라벨 4개를 함께 달아라. 원문으로 정할 수 없으면 null 이다 — 추측으로 채우지 마라.',
@@ -108,7 +112,8 @@ const SYSTEM = [
   'freq   = 이 문제를 얼마나 자주 겪는다고 읽히나: "high" | "mid" | "low" | null',
   'signal = "pain"(겪는 문제) | "demand"(원하는 기능·해결책) | "objection"(안 쓰는/안 사는 이유) | null',
   'wtp    = 돈을 내겠다·가격이 얼마면 산다 같은 지불 의사 언급이 있으면 true, 분명히 없으면 false, 애매하면 null',
-  '출력은 JSON 배열 하나뿐이다: [{"id":"R1","rel":"relevant","why":"한 줄 근거","impact":"high","freq":"low","signal":"pain","wtp":null}].',
+  'info   = 위 추가 질문의 답: true | false | null (rel 과 따로 답한다)',
+  '출력은 JSON 배열 하나뿐이다: [{"id":"R1","rel":"relevant","info":true,"why":"한 줄 근거","impact":"high","freq":"low","signal":"pain","wtp":null}].',
   '설명·코드블록·다른 키를 붙이지 마라.',
 ].join('\n')
 
@@ -175,7 +180,7 @@ function oneLine(text: string): string {
  */
 export function parseRelevanceArray(
   raw: string,
-): ({ id: string; rel: Relevance; why: string | null } & RelevanceLabels)[] | null {
+): ({ id: string; rel: Relevance; why: string | null; product_informative: boolean | null } & RelevanceLabels)[] | null {
   const arr = extractJsonArray(raw)
   if (!arr) return null
   return arr
@@ -188,6 +193,8 @@ export function parseRelevanceArray(
         // 어휘 밖 값은 unknown 이다. 'no'·'0'·'irrelevant?' 같은 응답을 무관으로 읽지 않는다.
         rel: ((RELEVANCE_VERDICTS as readonly string[]).includes(rel) ? rel : 'unknown') as Relevance,
         why,
+        // 'yes'·1·'maybe' 는 null 이다 — 정보 없음(false)으로 읽지 않는다.
+        product_informative: toBool(x.info ?? x.product_informative),
         impact: pick(x.impact, LABEL_LEVELS),
         frequency: pick(x.freq ?? x.frequency, LABEL_LEVELS),
         community_signal: pick(x.signal ?? x.community_signal, COMMUNITY_SIGNALS),
@@ -232,7 +239,7 @@ export async function judgeRelevanceBatch(
 ): Promise<RelevanceOutcome> {
   const allUnknown = (model: string, error?: string, quotaExhausted = false): RelevanceOutcome => ({
     model,
-    verdicts: reviews.map(r => ({ input_id: r.input_id, verdict: 'unknown' as Relevance, reason: null, ...NO_LABELS })),
+    verdicts: reviews.map(r => ({ input_id: r.input_id, verdict: 'unknown' as Relevance, reason: null, product_informative: null, ...NO_LABELS })),
     ...(error ? { error } : {}),
     ...(quotaExhausted ? { quotaExhausted } : {}),
   })
@@ -274,6 +281,7 @@ export async function judgeRelevanceBatch(
         input_id: r.input_id,
         verdict: hit ? hit.rel : ('unknown' as Relevance),
         reason: hit ? hit.why : null,
+        product_informative: hit ? hit.product_informative : null,
         impact: hit ? hit.impact : null,
         frequency: hit ? hit.frequency : null,
         community_signal: hit ? hit.community_signal : null,
@@ -395,8 +403,13 @@ export function pickGradingSample(
 
 export interface GradingMark {
   input_id: string
-  /** unknown = `모름` 칸 체크("봤지만 판단 못 함"). 빈칸(안 봄)과 다르다 — 빈칸은 marks 에 없다. */
-  verdict: 'relevant' | 'irrelevant' | 'unknown'
+  /**
+   * unknown = `모름` 칸 체크("봤지만 판단 못 함"). null = 관련 칸을 안 건드림(정보 열만 채점) — 그때 human_verdict 는 바꾸지 않는다.
+   * 전부 빈 줄(안 봄)은 marks 에 없다.
+   */
+  verdict: 'relevant' | 'irrelevant' | 'unknown' | null
+  /** 선택 열 `정보있음`/`정보없음`(rr-v2 추가 질문). null = 그 열이 없거나 비었다 — false 로 접지 않는다. */
+  product_informative: boolean | null
 }
 
 export interface GradingParse {
@@ -421,29 +434,46 @@ export function parseGradingMarkdown(md: string): GradingParse {
   const conflict: string[] = []
   let blank = 0
 
+  // 정보 열(선택)은 위치가 아니라 **머리글 이름**으로 찾는다 — 관련 칸 쌍과 모양이 같아 위치로는 못 가른다.
+  let info: { yes: number; no: number } | null = null
+
   for (const line of String(md ?? '').split(/\r?\n/)) {
     if (!line.trim().startsWith('|')) continue
     const cells = line.split('|').slice(1, -1).map(c => c.trim())
     if (cells.length < 4) continue
     const key = cells[cells.length - 1].replace(/`/g, '').trim()
-    // uuid 가 아니면 머리글·구분선이다.
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) continue
+    // uuid 가 아니면 머리글·구분선이다. 머리글이면 정보 열 위치를 새로 읽는다(표가 여럿이어도 표마다).
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) {
+      if (!/^-+$/.test(key.replace(/[:\s]/g, ''))) {
+        const yes = cells.findIndex(c => c.startsWith('정보있음'))
+        const no = cells.findIndex(c => c.startsWith('정보없음'))
+        info = yes >= 0 && no >= 0 ? { yes, no } : null
+      }
+      continue
+    }
 
-    const pair = cells.findIndex((c, i) => i + 1 < cells.length && BOX.test(c) && BOX.test(cells[i + 1]))
-    if (pair === -1) continue
-    const rel = CHECKED.test(cells[pair])
-    const irr = CHECKED.test(cells[pair + 1])
+    const isInfo = (i: number) => info !== null && (i === info.yes || i === info.no)
+    const pair = cells.findIndex((c, i) => i + 1 < cells.length && !isInfo(i) && !isInfo(i + 1) && BOX.test(c) && BOX.test(cells[i + 1]))
+    const rel = pair >= 0 && CHECKED.test(cells[pair])
+    const irr = pair >= 0 && CHECKED.test(cells[pair + 1])
     // 세 번째 칸 `모름` 은 선택이다 — 옛 채점표(두 칸)는 그 자리에 모델 판정 글이 있어 BOX 가 아니다.
-    const unk = pair + 2 < cells.length - 1 && BOX.test(cells[pair + 2]) && CHECKED.test(cells[pair + 2])
-    if (Number(rel) + Number(irr) + Number(unk) > 1) {
+    const unk = pair >= 0 && pair + 2 < cells.length - 1 && !isInfo(pair + 2) && BOX.test(cells[pair + 2]) && CHECKED.test(cells[pair + 2])
+    const infoYes = info !== null && CHECKED.test(cells[info.yes] ?? '')
+    const infoNo = info !== null && CHECKED.test(cells[info.no] ?? '')
+    if (pair === -1 && info === null) continue
+    if (Number(rel) + Number(irr) + Number(unk) > 1 || (infoYes && infoNo)) {
       conflict.push(key)
       continue
     }
-    if (!rel && !irr && !unk) {
+    if (!rel && !irr && !unk && !infoYes && !infoNo) {
       blank++
       continue
     }
-    marks.push({ input_id: key, verdict: rel ? 'relevant' : irr ? 'irrelevant' : 'unknown' })
+    marks.push({
+      input_id: key,
+      verdict: rel ? 'relevant' : irr ? 'irrelevant' : unk ? 'unknown' : null,
+      product_informative: infoYes ? true : infoNo ? false : null,
+    })
   }
 
   return { marks, blank, conflict }

@@ -1,6 +1,7 @@
 // T2 2차 판정 export/import 순수 부품 셀프테스트 — 네트워크·DB 없음.
 //   node scripts/second-opinion-selftest.mjs
-import { toExportRow, validateOpinions, compare, summarize, EXPORT_TEXT_MAX } from '../lib/analysis/second-opinion.ts'
+import { toExportRow, validateOpinions, compare, summarize, EXPORT_TEXT_MAX, SECOND_OPINION_INSTRUCTIONS } from '../lib/analysis/second-opinion.ts'
+import { PRODUCT_INFORMATIVE_CRITERIA } from '../lib/analysis/relevance-criteria.ts'
 
 let pass = 0, fail = 0
 const t = (name, got, want) => { const g = JSON.stringify(got), w = JSON.stringify(want); if (g === w) pass++; else { fail++; console.log(`FAIL  ${name}\n      got=${g}\n      want=${w}`) } }
@@ -30,6 +31,21 @@ const t = (name, got, want) => { const g = JSON.stringify(got), w = JSON.stringi
   t('validate: 거부 5행(중복·어휘·대문자·불리언·id없음)', v.rejected.length, 5)
   t('validate: 배열 그대로도 받음', validateOpinions([{ input_id: 'y', verdict: 'unknown' }]).ok.length, 1)
   t('validate: 엉뚱한 입력 → 거부 1', validateOpinions('nope').rejected.length, 1)
+}
+// rr-v2 정보 판정 — 불리언·null 만, 생략은 null(옛 t2c 파일 호환), 그 밖은 거부
+{
+  const v = validateOpinions({ rows: [
+    { input_id: 'i1', verdict: 'relevant', product_informative: true },
+    { input_id: 'i2', verdict: 'relevant', product_informative: false },
+    { input_id: 'i3', verdict: 'relevant' },
+    { input_id: 'i4', verdict: 'relevant', product_informative: null },
+    { input_id: 'i5', verdict: 'relevant', product_informative: 'true' },
+    { input_id: 'i6', verdict: 'relevant', product_informative: 1 },
+  ] })
+  t('info: true·false 통과', v.ok.slice(0, 2).map((o) => o.product_informative), [true, false])
+  t('info: 생략·null → null', v.ok.slice(2).map((o) => o.product_informative), [null, null])
+  t('info: 문자열·숫자는 거부(조용히 접지 않는다)', v.rejected.map((r) => r.index), [4, 5])
+  t('지시문이 정보 질문을 싣는다', SECOND_OPINION_INSTRUCTIONS.includes(PRODUCT_INFORMATIVE_CRITERIA) && SECOND_OPINION_INSTRUCTIONS.includes('product_informative(true|false|null'), true)
 }
 // compare — 일치·채우기 조건
 {

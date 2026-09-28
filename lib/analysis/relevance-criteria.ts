@@ -7,7 +7,16 @@
 //
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다. `@/` 별칭·enum 을 쓰지 않는다.
 
-export const RELEVANCE_CRITERIA_VERSION = 't2c-2026-09-28'
+// t2d(2026-09-28): 관련 기준 본문은 그대로이고 자동 승인용 추가 질문 PRODUCT_INFORMATIVE_CRITERIA 가 생겼다.
+//   2차 판정 파일이 product_informative 를 담아야 하므로 버전을 올린다 — t2c 파일은 rr-v2 승인 입력이 아니다.
+export const RELEVANCE_CRITERIA_VERSION = 't2d-2026-09-28'
+
+/**
+ * RELEVANCE_CRITERIA 본문의 머리글 버전. 본문은 t2c 에서 **바이트 단위로 불변**이다(selftest 가 해시로 고정) —
+ * 추가 질문 때문에 버전을 올렸다고 관련성 기준 문구가 흔들리면 옛 판정과의 비교가 무의미해진다.
+ * 관련 기준 본문을 실제로 고칠 때만 이 값을 올린다.
+ */
+const RELEVANCE_TEXT_VERSION = 't2c-2026-09-28'
 
 /** analysis_projects.business_model → 기준 묶음. 미기재는 모델이 원문으로 고르게 둔다(추측해 채우지 않는다). */
 export function criteriaKindOf(businessModel: string | null | undefined): 'saas' | 'consumer' | 'unspecified' {
@@ -30,7 +39,7 @@ export function describeBusinessModel(businessModel: string | null | undefined):
 
 /** 판정 기준 본문. 1차 SYSTEM 과 2차 지시문에 글자 그대로 들어간다. */
 export const RELEVANCE_CRITERIA = [
-  `## "관련(relevant)"의 기준 — 사업유형별 (기준 버전 ${RELEVANCE_CRITERIA_VERSION})`,
+  `## "관련(relevant)"의 기준 — 사업유형별 (기준 버전 ${RELEVANCE_TEXT_VERSION})`,
   '질문은 하나다: 이 글이 이 프로젝트의 분석 재료(사용자·구매자의 목소리)가 되는가.',
   '',
   '[SaaS·소프트웨어 도구]',
@@ -74,3 +83,60 @@ export const RELEVANCE_CRITERIA = [
   'I "여기 회장이 개 돌아이임 ... 공정위에서 제재먹음" (안마의자) — 회사 잡담, 제품 경험 없음',
   'I "좋아요 주문후 배송까지 5일 걸린거 같네요. 포장 꼼꼼" (전동칫솔) — 배송·포장만',
 ].join('\n')
+
+/**
+ * 자동 승인(rr-v2)의 추가 질문 — relevant 와 **따로** 답한다(출력 키 `info`: true | false | null).
+ * 정의는 남헌 2026-09-28 최종 정정. 1차 SYSTEM 과 2차 지시문에 글자 그대로 들어간다. 사람용 설명은 docs/t2-relevance-criteria.md.
+ * 경계 사례는 reports/2026-09-28/relevance-grading-rr39.md 의 번호(#)다 — 그 행들은 프롬프트에 실렸으므로
+ * 평가 하네스(scripts/t2-approval-eval.mjs)가 채점에서 뺀다(INFORMATIVE_EXAMPLE_INPUT_IDS).
+ */
+export const PRODUCT_INFORMATIVE_CRITERIA = [
+  `## 추가 질문 "정보 있음(info)" — relevant 와 따로 답한다 (기준 버전 ${RELEVANCE_CRITERIA_VERSION})`,
+  '질문: 이 글에 독자가 이 제품을 판단하는 데 쓸 수 있는 구체 정보가 있는가.',
+  'true  = (1) 글이 이 제품 또는 그 경쟁·대체재(같은 선택지)에 관한 것이고',
+  '        (2) 장단점·비교·비용·수수료·요금제 조건·기능 유무·문제와 해결·쓰는/떠난 이유 같은 구체 정보가 원문에 있다.',
+  '        직접 써 본 경험일 필요 없다. 경쟁사의 장점·단점도 true 다 — 그걸로 이 제품의 장단을 찾을 수 있다.',
+  'false = 정보 없는 질문 한 줄, 이름·링크만, 제품이 도구로 지나가는 남의 이야기(자기 프로젝트를 올려 테스트했다·',
+  '        자기 인프라 비용 목록 속 한 항목), 자기소개("나는 타깃 고객"), 선택지와 무관한 주제.',
+  'null  = 원문이 잘려 판단할 수 없다.',
+  'relevant 여부와 섞지 마라. relevant 인데 info=false 일 수 있고, 그 반대도 있다.',
+  '',
+  '경계 사례 (T=true · F=false):',
+  'F "Can you support Apple Pay? https://docs.lemonsqueezy.com/..." — 정보 없는 질문 한 줄',
+  'T "Are there any plans to adjust the extra % fees ... I found these surprising as I didn\'t see them mentioned on the pricing page" — 질문 형태지만 가격 페이지에 없는 추가 수수료라는 사실이 있다',
+  'F "It was just easy to put that thing on Lemon Squeezy to see if there are people willing to pay for this." — 자기 프로젝트 테스트에 도구로 지나감',
+  'F "RDS for the primary store, SES for emails, EC2 ... Add on extra services such as Baremetrics and these things add up" — 자기 인프라 비용 목록 속 한 항목',
+  'F "Actually, I fit the target market pretty well. ... That\'s what ConvertKit is going to help me setup." — 자기소개',
+  'T "Ah Mailchimp. The king of terrible customer service. ... (though Convertkit came a close 2nd)" — 경쟁사(와 이 제품)의 고객지원 단점',
+  'T "I find their feature set a bit underwhelming - ... integrations with Zoom/Google/etc (but not CalDAV, somehow)" — 경쟁 대안의 기능 장단',
+  'T "Substack (less control, more simple) or Convertkit (less simple, more control)" — 대안 간 비교',
+  'T "Lemon has some hidden fees on top of the 5% ... Paddle that have true 5% + 50¢ pricing" — 숨은 수수료 대 경쟁사 요금',
+].join('\n')
+
+/** 위 경계 사례의 원문 input_id(rr39 #18·#13·#35·#27·#8·#36·#12·#19·#28). 프롬프트에 실렸으니 평가에서 뺀다(누설). */
+export const INFORMATIVE_EXAMPLE_INPUT_IDS: readonly string[] = [
+  'f3e83783-577b-4e38-b0ae-591fa2ee0e90', // #18 Apple Pay 질문 — F
+  '43fc1d1c-9adc-4380-9d82-70a014b396db', // #13 가격 페이지에 없는 추가 수수료 — T
+  '44e5822d-778a-4050-82c0-4dc0cb7af664', // #35 LS 지불의사 테스트 — F
+  '2161a370-3793-4408-ac9d-71a310ef7631', // #27 Baremetrics 비용 나열 속 — F
+  '6374499d-14f5-4793-a648-9bad2276faac', // #8 타깃 고객 자기소개 — F
+  'dd4f20d8-df21-4dc0-a905-b07df4c8227c', // #36 Mailchimp 고객지원 불만 — T
+  '9256a8c8-91e8-4f12-9a2d-032980d681d2', // #12 NeetoCal 기능 평 — T
+  '7f93e98c-3701-4884-8a26-e934a16ffae6', // #19 Substack vs ConvertKit — T
+  'eae91ed0-c149-4e6e-8f4c-326bacb6322b', // #28 LS 숨은 수수료 vs Paddle — T
+]
+
+/**
+ * 09-28 rr39 에서 사람이 '무관'으로 매긴 SaaS 8건(#8·#12·#18·#19·#27·#35·#36·#37). 그때는 좁은 감각(직접 사용 경험)으로 매겼다 —
+ * 넓은 기준(경쟁·대체재 포함)으로 human_verdict 도 다시 받아야 한다. 재확인 목록에 **항상** 들어간다.
+ */
+export const RR39_NARROW_IRRELEVANT_INPUT_IDS: readonly string[] = [
+  '6374499d-14f5-4793-a648-9bad2276faac', // #8
+  '9256a8c8-91e8-4f12-9a2d-032980d681d2', // #12
+  'f3e83783-577b-4e38-b0ae-591fa2ee0e90', // #18
+  '7f93e98c-3701-4884-8a26-e934a16ffae6', // #19
+  '2161a370-3793-4408-ac9d-71a310ef7631', // #27
+  '44e5822d-778a-4050-82c0-4dc0cb7af664', // #35
+  'dd4f20d8-df21-4dc0-a905-b07df4c8227c', // #36
+  'f6901f91-c846-4454-93af-7d2574e23f72', // #37
+]

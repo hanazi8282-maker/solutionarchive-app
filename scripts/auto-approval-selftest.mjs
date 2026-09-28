@@ -9,12 +9,13 @@
 //   4) 킬스위치 수치(창 50 · p0 7% → 오류 8건) 와 워밍업·확인 불가 경로.
 //   5) 채점표 `모름` 칸 — 새 표(세 칸)와 옛 표(두 칸) 둘 다 읽는다.
 
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION, criteriaKindOf } from '../lib/analysis/relevance-criteria.ts'
+import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION, criteriaKindOf } from '../lib/analysis/relevance-criteria.ts'
 import { buildRelevancePrompt, parseGradingMarkdown } from '../lib/analysis/relevance-judge.ts'
 import { SECOND_OPINION_INSTRUCTIONS, isCurrentCriteria } from '../lib/analysis/second-opinion.ts'
-import { AUDIT_DAILY, KILL, autoApprovalGate, isFullAgreement, killSwitch, tripThreshold } from '../lib/analysis/auto-approval.ts'
+import { AUDIT_DAILY, AUTO_APPROVAL_RULE, KILL, autoApprovalGate, isFullAgreement, killSwitch, scoreApproval, tripThreshold } from '../lib/analysis/auto-approval.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 let pass = 0, fail = 0
@@ -31,12 +32,26 @@ ok(criteriaKindOf('SAAS') === 'saas' && criteriaKindOf('D2C') === 'consumer' && 
 ok(!src('lib/analysis/relevance-judge.ts').includes('불만이든 칭찬이든 상관없다'), '1차에 옛 기준 문구가 남아 있지 않다(두 벌 금지)')
 ok(/SECOND_OPINION_INSTRUCTIONS/.test(src('scripts/relevance-export.mjs')) && /criteria_version/.test(src('scripts/relevance-export.mjs')), 'export 가 공유 지시문·버전을 쓴다')
 ok(isCurrentCriteria({ criteria_version: RELEVANCE_CRITERIA_VERSION, rows: [] }), '현재 버전 파일은 통과')
+// rr-v2: 관련 기준 본문은 바이트 단위로 그대로, 추가 질문은 따로. 버전은 t2d.
+ok(createHash('sha256').update(RELEVANCE_CRITERIA).digest('hex') === '03e8b059cd199d7f911cb4273d37216012c12293485b5b2e581ecd0d9d278b41', 'RELEVANCE_CRITERIA 는 t2c 와 바이트 단위로 같다(해시 고정)')
+ok(RELEVANCE_CRITERIA_VERSION === 't2d-2026-09-28' && !isCurrentCriteria({ criteria_version: 't2c-2026-09-28' }), '버전 t2d — t2c 파일(정보 판정 없음)은 승인 입력이 아니다')
+ok(system.includes(PRODUCT_INFORMATIVE_CRITERIA) && SECOND_OPINION_INSTRUCTIONS.includes(PRODUCT_INFORMATIVE_CRITERIA), '1차·2차가 같은 정보 질문 상수를 싣는다')
+ok(system.includes('"info":true') && !RELEVANCE_CRITERIA.includes('info'), '1차 출력 키 info — 관련 기준 본문에는 섞이지 않는다')
+ok(['경쟁사의 장점·단점도 true', 'Apple Pay', 'Mailchimp', 'CalDAV', 'null  = 원문이 잘려'].every((k) => PRODUCT_INFORMATIVE_CRITERIA.includes(k)), '정보 기준: 경쟁사 장단 true·경계 사례·null 정의(남헌 09-28 정정)')
+ok(!/feb028c6/.test(src('lib/analysis/relevance-criteria.ts')), '#29 는 예시로 쓰지 않는다(재확인 목록 몫)')
+ok(!/const RELEVANCE_CRITERIA\b|PRODUCT_INFORMATIVE_CRITERIA = \[/.test(src('lib/analysis/relevance-judge.ts') + src('lib/analysis/second-opinion.ts')), '정보 기준은 relevance-criteria.ts 한 곳(1차·2차에 복사본 없음)')
 ok(!isCurrentCriteria({ rows: [] }) && !isCurrentCriteria({ criteria_version: 'old' }) && !isCurrentCriteria(null), '버전 없음·다름은 거부')
 
 // 2) 완전 동의
 const since = new Date('2026-10-01T00:00:00+09:00')
-const base = { input_id: 'a', verdict: 'relevant', second_verdict: 'relevant', human_verdict: null, judged_at: '2026-10-02T00:00:00Z', auto_approved_at: null }
-ok(isFullAgreement(base, since), 'RR → 대상')
+const base = { input_id: 'a', verdict: 'relevant', second_verdict: 'relevant', product_informative: true, second_product_informative: true, human_verdict: null, judged_at: '2026-10-02T00:00:00Z', auto_approved_at: null }
+ok(AUTO_APPROVAL_RULE === 'rr-v2', '규칙 태그 rr-v2')
+ok(isFullAgreement(base, since), 'RR ∧ 정보 둘 다 true → 대상')
+ok(!isFullAgreement({ ...base, product_informative: null }, since), '1차 정보 null → 아님(모름을 있음으로 접지 않는다)')
+ok(!isFullAgreement({ ...base, second_product_informative: null }, since), '2차 정보 null → 아님')
+ok(!isFullAgreement({ ...base, product_informative: false }, since), '1차 정보 false → 아님')
+ok(!isFullAgreement({ ...base, second_product_informative: false }, since), '2차 정보 false → 아님')
+ok(!isFullAgreement({ ...base, product_informative: undefined, second_product_informative: undefined }, since), '정보 컬럼 없음(옛 행) → 아님')
 ok(!isFullAgreement({ ...base, second_verdict: null }, since), '2차 없음 → 아님')
 ok(!isFullAgreement({ ...base, second_verdict: 'unknown' }, since), 'R·U → 아님')
 ok(!isFullAgreement({ ...base, verdict: 'unknown' }, since), 'U·R → 아님')
@@ -59,7 +74,7 @@ ok(g.on && g.kill.state === 'warmup', '시행 4일째·감사 0건 → 워밍업
 // 4) 킬스위치
 ok(tripThreshold(10) === 3 && tripThreshold(50) === 8, `문턱 10건→3 · 50건→8 (실제 ${tripThreshold(10)}·${tripThreshold(50)})`)
 ok(KILL.window === 50 && AUDIT_DAILY === 5, '창 50 · 하루 감사 5')
-const at = (d, v) => ({ human_verdict: v, human_graded_at: `2026-10-${String(d).padStart(2, '0')}T01:00:00Z` })
+const at = (d, v, info = true) => ({ human_verdict: v, human_product_informative: info, human_graded_at: `2026-10-${String(d).padStart(2, '0')}T01:00:00Z` })
 const mk = (good, bad, day = 4) => [...Array(good)].map(() => at(day, 'relevant')).concat([...Array(bad)].map(() => at(day, 'irrelevant')))
 ok(killSwitch(mk(43, 7), { now, since }).state === 'ok', '50건 중 오류 7 → 유지')
 ok(killSwitch(mk(42, 8), { now, since }).state === 'tripped', '50건 중 오류 8 → 끔')
@@ -68,6 +83,14 @@ ok(killSwitch(mk(8, 2), { now, since }).state === 'ok', '10건 중 오류 2 → 
 ok(killSwitch(mk(3, 1), { now, since }).state === 'warmup', '4건 → 워밍업')
 ok(killSwitch([...mk(40, 0), at(4, 'unknown'), at(4, 'unknown')], { now, since }).n === 40, '사람 모름은 창에 안 들어간다')
 const later = new Date('2026-10-30T00:00:00+09:00')
+// rr-v2 감사 채점: 사람 irrelevant 또는 정보 없음 = 오류, 한쪽이라도 비면 창 밖
+ok(scoreApproval(at(4, 'relevant')) === 'correct' && scoreApproval(at(4, 'irrelevant')) === 'error', 'scoreApproval: 관련∧정보 = 정답 · 무관 = 오류')
+ok(scoreApproval(at(4, 'relevant', false)) === 'error', 'scoreApproval: 관련이어도 정보 없음 = 오류')
+ok(scoreApproval(at(4, 'relevant', null)) === null && scoreApproval(at(4, 'irrelevant', null)) === null, 'scoreApproval: 정보 열 비면 창 밖(둘 다 채워진 행만)')
+ok(scoreApproval(at(4, 'unknown')) === null && scoreApproval({ human_verdict: 'relevant', human_product_informative: true, human_graded_at: null }) === null, 'scoreApproval: 사람 모름·채점 시각 없음 → 창 밖')
+ok(killSwitch([...mk(42, 0), ...[...Array(8)].map(() => at(4, 'relevant', false))], { now, since }).state === 'tripped', '관련이지만 정보 없음 8건/50 → 끔')
+const halfFilled = killSwitch([...mk(40, 0), ...[...Array(10)].map(() => at(4, 'irrelevant', null))], { now, since })
+ok(halfFilled.n === 40 && halfFilled.errors === 0, '정보 열 빈 감사 행은 창에 안 들어간다(무관이어도)')
 ok(killSwitch(mk(19, 0), { now: later, since }).state === 'unverifiable', '워밍업 뒤 최근 14일 감사 19건 → 확인 불가로 끔')
 ok(killSwitch(mk(20, 0, 25), { now: later, since }).state === 'ok', '워밍업 뒤 최근 감사 20건 → 유지')
 ok(!autoApprovalGate({ enabled: 'true', since: '2026-10-01', now, audits: mk(42, 8) }).on, '킬스위치 → 게이트 닫힘(플래그가 켜져 있어도)')
@@ -88,6 +111,15 @@ ok(r2.marks.length === 1 && r2.marks[0].verdict === 'irrelevant' && r2.blank ===
 // 배선
 ok(/--audit/.test(src('scripts/relevance-grading-sample.mjs')) && /AUDIT_DAILY/.test(src('scripts/relevance-grading-sample.mjs')), '채점표가 감사 표본을 섞는다')
 ok(/isFullAgreement/.test(src('scripts/relevance-auto-approve.mjs')) && /autoApprovalGate/.test(src('scripts/relevance-auto-approve.mjs')), '집행 스크립트가 게이트·판정 함수를 쓴다')
+{
+  const ra = src('scripts/relevance-auto-approve.mjs')
+  ok(/select\('human_verdict, human_product_informative, human_graded_at'\)/.test(ra) && /\.eq\('auto_approval_rule', AUTO_APPROVAL_RULE\)/.test(ra), '감사 창: 정보 열 포함·rr-v2 행만')
+  ok((ra.match(/\.eq\('product_informative', true\)\.eq\('second_product_informative', true\)/g) ?? []).length === 2, '대상 조회·UPDATE WHERE 둘 다 정보 true 를 건다')
+  const ca = src('scripts/case-auto-approve.mjs')
+  ok(/human_product_informative/.test(ca) && /auto_approval_rule', RR_RULE/.test(ca), 'ca-v1 의 rr 종속 입력도 같은 감사 창을 읽는다')
+  const imp = src('scripts/relevance-second-opinion-import.mjs')
+  ok(/second_product_informative: o\.product_informative/.test(imp), '--record-second 가 2차 정보 판정을 함께 쓴다')
+}
 ok(!/case_studies|case_moves/.test(src('scripts/relevance-auto-approve.mjs').replace(/^\/\/.*$/gm, '')), '집행 스크립트는 케이스 테이블을 쓰지 않는다(조건 5)')
 
 console.log(`\n${fail ? '❌' : '✅'} 자동 승인 셀프테스트: ${pass} pass / ${fail} fail`)

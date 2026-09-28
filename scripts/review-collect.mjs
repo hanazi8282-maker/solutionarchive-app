@@ -38,6 +38,7 @@ import { fmkoreaAdapter } from '../lib/review/adapters/fmkorea.ts'
 import { okkyAdapter } from '../lib/review/adapters/okky.ts'
 import { velogAdapter } from '../lib/review/adapters/velog.ts'
 import { youtubeAdapter } from '../lib/review/adapters/youtube.ts'
+import { disquietAdapter } from '../lib/review/adapters/disquiet.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
@@ -61,6 +62,7 @@ const ADAPTERS = {
   okky: okkyAdapter,
   velog: velogAdapter,
   youtube: youtubeAdapter,
+  disquiet: disquietAdapter,
 }
 
 const args = process.argv.slice(2)

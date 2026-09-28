@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html >
+  <head>
+    <script>
+(function(){
+  // `.dark` drives the `dark:` Tailwind variant; `data-theme` activates the daisyUI theme.
+  // Both must be set before first paint to avoid a flash of the wrong theme.
+  function apply(d){
+    document.documentElement.classList.toggle("dark",d);
+    document.documentElement.dataset.theme=d?"dark":"light";
+  }
+  var p=(document.cookie.match(/(?:^|; )theme-preference=([^;]*)/)||[])[1]||"light";
+  apply(p==="dark"||(p==="system"&&matchMedia("(prefers-color-scheme:dark)").matches));
+  if(p==="system")matchMedia("(prefers-color-scheme:dark)").addEventListener("change",function(e){
+    apply(e.matches);
+  });
+})();
+</script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Relate</title>
+    <meta name="csrf-param" content="authenticity_token" />
+<meta name="csrf-token" content="f23nAaK0_m2tkYd5Z79OYrZZ4s1EOU645hb7mOnSXf_p_CTiT44qprVwPBXmZDpGhqUQsjERaxTN0wpWa4DwVA" />
+    
+
+
+    <link rel="stylesheet" href="/assets/application.bundle-44ebc694.css" media="all" />
+    <link rel="stylesheet" href="/assets/tailwind-c2acbc39.css" />
+
+    <script src="/assets/application-e83fbb68.js" data-turbo-track="reload" type="module"></script>
+
+    <!-- Cloudflare Turnstile for captcha -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+
+        <meta name="sentry-dsn" content="https://3e2d93233bf96a67d2b15eec0f93ef0b@o4509557025538048.ingest.us.sentry.io/4509557029797888">
+  <meta name="sentry-environment" content="production">
+
+
+    
+  </head>
+
+  <body
+  >
+    <div
+  class="toast toast-top toast-end z-50"
+  id="flash-messages"
+>
+
+</div>
+
+<script>
+  document.addEventListener("turbo:load", () => {
+    document.querySelectorAll("#flash-messages > .alert").forEach(function (el) {
+      setTimeout(() => {
+        el.style.opacity = "0";
+        el.style.transition = "opacity 150ms ease";
+        setTimeout(() => el.remove(), 150);
+      }, 5000);
+
+      const closeBtn = el.querySelector("button");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+          el.style.opacity = "0";
+          el.style.transition = "opacity 150ms ease";
+          setTimeout(() => el.remove(), 150);
+        });
+      }
+    });
+  });
+</script>
+
+    <div class="min-h-dvh">
+      <div class="flex items-center justify-center h-screen m-0">
+  <div class="w-[30rem] text-center font-sans">
+    <h1 class="mt-0 text-3xl">Page not found</h1>
+    <p class="text-base">The page you were looking for doesn't exist</p>
+    <div class="mt-8 flex gap-2 justify-center">
+      <a class="btn" href="javascript:history.back()">Go back</a>
+      <a class="btn" href="/">Go home</a>
+    </div>
+    <svg></svg>
+  </div>
+</div>
+
+    </div>
+  </body>
+
+</html>

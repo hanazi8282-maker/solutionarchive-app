@@ -127,6 +127,9 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   막는 용도로만 켜져 있다(정책 0개 = service_role 전용, `20260915000002`, PR #97).
 - `super_admin` / `admin` / `member` / `brand_access[]` 는 **코드·스키마 어디에도 없다.**
   `CREATE POLICY` 도 마이그레이션 전체에 0건이다.
+- **케이스 숨김(soft delete, `/cases` 숨김·복원) 권한 = 허용목록 전원(남헌 2026-09-28 결정 A).** 되돌릴 수 있고
+  사유가 필수라 낮은 리스크로 판단해 관리자 역할(B안) 구축은 보류했다. **"일단"의 결정이다 — 허용목록 구성이
+  바뀌면(예: 외부 베타유저 추가) 이 권한을 먼저 재검토한다.** 허용목록을 넓히는 변경은 §10.2 예외 3번(인증 경계)이기도 하다.
 
 ⛔ 그러므로 **민감 재무(원가 배합비·순이익 원장)를 지금 이 DB 에 넣지 않는다.**
    넣는 순간 허용목록에 있는 전원에게 열린다. 역할 분리가 실제로 생긴 뒤에 넣는다.
@@ -282,14 +285,18 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   기본은 전부 `review_status='draft'` 로만 들어간다. **이 예외는 `case_studies`/`case_moves`
   의 `review_status` 에는 적용되지 않는다** — 구현 단계(2026-09-28, PR #311)에서 두 테이블에
   `input_id` 연결 컬럼이 없는 것이 확인돼, 범위를 판정 행 하나로 좁혔다(바로 아래). 케이스까지 넓히는 조건은 예외 2 다.
-  **예외(남헌 2026-09-28 개정) — T2 완전 동의 자동 승인.** 1차 판정(`relevance-judge-auto`)과
-  2차 판정(second-opinion)이 **같은 input_id 에 대해 독립적으로 둘 다 `verdict='relevant'`** 를
-  낸 건에 한해서만, 무인 루프가 `review_relevance_verdicts.auto_approved_at` 을 직접 기록할
-  수 있다(`lib/analysis/auto-approval.ts`). 아래를
+  **예외(남헌 2026-09-28 개정) — T2 완전 동의 자동 승인(규칙 `rr-v2`).** 1차 판정(`relevance-judge-auto`, claude-cli)과
+  2차 판정(`relevance-second-judge-auto`, Gemini — 1차와 다른 계열)이 **같은 input_id 에 대해 독립적으로 둘 다
+  `verdict='relevant'` 이고 둘 다 `product_informative=true`**(이 제품·경쟁/대체재를 판단할 구체 정보가 있다 —
+  정의는 `lib/analysis/relevance-criteria.ts` PRODUCT_INFORMATIVE_CRITERIA 한 벌)인 건에 한해서만, 무인 루프가
+  `review_relevance_verdicts.auto_approved_at`·`auto_approval_rule='rr-v2'` 를 직접 기록할 수 있다
+  (`lib/analysis/auto-approval.ts` meetsRrV2·isFullAgreement). 아래를
   전부 지켜야 이 예외가 성립한다 — 하나라도 못 지키면 예외가 아니라 §10.1 위반이다.
-  1. **완전 동의만.** `irrelevant`·`unknown` 이 하나라도 섞이거나 판정이 하나뿐이면 기존 규칙(`draft`)대로 간다.
-  2. **판정 기준이 통일된 뒤에만 켠다.** 2026-09-28 지시 3번(1차·2차 "관련 있다" 기준 통일 문서 +
-     SaaS 100건 재시험 90% 이상)이 끝나기 전에는 이 경로를 활성화하지 않는다.
+  1. **완전 동의만.** `irrelevant`·`unknown`·정보없음·정보 판정 없음(null)이 하나라도 섞이거나 판정이 하나뿐이면 기존 규칙(`draft`)대로 간다.
+  2. **가동 근거(2026-09-28 남헌 결정).** 기준 통일(t2d) 뒤 사람 채점 대조 평가(`scripts/t2-approval-eval.mjs`)에서
+     승인 예측 30건 · 오류 2건 · 정밀도 93.3% · 재현율 96.6%(30건 중 26건은 추정 정답). 문서화된 문턱(승인 예측 ≥40)에
+     못 미쳤지만 **남헌이 26건 기준으로 가동을 결정**했다. 리포 변수 `AUTO_APPROVAL_ENABLED=true`,
+     `AUTO_APPROVAL_SINCE`(새 프롬프트 머지 뒤 시각) 이전에 판정된 행은 대상이 아니다. 기준 문구를 바꾸면(버전 올림) 같은 하네스로 다시 잰다.
   3. **감사 표본이 상시로 돈다.** 자동 승인된 건 중 매일 일부를 사람이 사후 검수한다(2026-09-28
      지시 2번의 감사 루프). 이건 "출시 초반 확인용"이 아니라 **이 예외가 살아있는 한 계속 도는
      상시 조건**이다 — 사람 검토를 없앤 자리를 대신 지키는 유일한 장치이기 때문이다.
@@ -329,6 +336,12 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   등록하던 병목을 없애려고 이 한 줄을 열었다. 근거는 `docs/discovery-design.md`.
   **채택은 LLM 의 주장이 아니라 실측 hits 가 정한다** — 그게 이 권한을 준 조건이다.)
 - **요청 상한 자동 반영** — 위 "`review_sources` 에는 INSERT/UPDATE 하지 않는다" 의 **유일한 예외**(남헌 2026-09-24 지시): `review_sources.daily_request_cap` **한 컬럼**만, **현재값의 2배 이내**로만, `review_source_cap_log` 에 **감사 로그 행을 남긴 변경만**(로그 테이블 미적용이면 반영하지 않는다). 권장값이 2배를 넘으면 보류로 보고만 한다. 계산은 `lib/review/request-cap.ts`, 집행은 `scripts/review-request-cap.mjs`(nightly-review-collect pre-step). 상한을 **내리는 변경은 자동으로 하지 않는다.**
+- **수집 램프 단계 자동 기록**(남헌 2026-09-28 승인) — 무인 루프는 `review_source_ramp`(소스별 현재 단계·1회 타깃 수·동결 기한)와
+  `review_source_ramp_log`(변경 이력)를 스스로 쓸 수 있다. 단계를 올리는 것과 **안전 되돌리기(직전 단계로 내리고 동결)** 둘 다
+  허용한다 — 위 cap 의 "내리는 변경 금지"와 달리 이건 차단 신호에 대한 안전장치라서다. 조건: 모든 변경은 ramp_log 에 행을 남긴다
+  (로그 없이 바꾸지 않는다), 차단 이력 소스(todayhumor 등)와 남헌이 속도를 정해 둔 소스(danawa, 09-27 최소화)는 대상이 아니다,
+  근거 수치는 `review_collection_runs.blocked_responses`·`quota_responses`(000033 이후 행만 측정값)다. 정책은
+  `reports/2026-09-28/cowork-four-orders.md` §2-2. `review_sources` 자체는 여전히 건드리지 않는다.
 - **reports/ 파일** — `reports/` · `drafts/cases/` · `drafts/threads/` · `ops/state/`
   4개 프리픽스에만 커밋한다. 그 밖의 경로가 스테이징에 있으면 커밋하지 않고 실패한다.
 

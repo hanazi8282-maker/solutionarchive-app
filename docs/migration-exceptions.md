@@ -406,3 +406,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 양성: `published_via='external'` 4행(char_count 477·392·465·494, channel 귀속 O). 매처 즉시 1회 실행 → `agent_run_steps.threads_unlinked counts.unlinked` 4 → 0 (threads_checked 6).
 - 음성: 000021 제약 정의를 다시 읽어 3값만 허용됨을 확인. 잘못된 값('auto') 삽입 거부 테스트는 분류기가 프로덕션 쓰기로 막아 **돌리지 못했다** — CHECK 정의 텍스트로만 확인.
 - Notion 일일 상태 로그: 세션 종료 시 기록(§11). 로컬에 NOTION_API_TOKEN 이 없어 MCP 불가 시 `ops/state/status-log-pending/` 에 남긴다.
+
+### 2026-09-28 — 000026 디스콰이엇 · 000025 Product Hunt(+활성화·타깃 34) · 000033 차단 카운트 컬럼 · 000034 램프 테이블 (CEO-STAFF 세션, 남헌 확정 지시)
+
+- 000026(PR #305): review_sources 'disquiet' 활성 1행 + board:feed 타깃 1. 약관 리스크는 남헌이 인수(09-28). 실수집 run 36428890518: 파싱 19·실패 0·신규 19·차단 0.
+- 000025(PR #302): 'producthunt' 행(파일은 enabled=false) 적용 뒤 남헌 지시로 enabled=true·disabled_reason NULL UPDATE + review_targets 34행(SaaS 25개 제품 런칭글, Fly.io 동명 의심·Figma 미발견 제외). 시험 run 36427238079: **Actions 러너에서 api.producthunt.com/robots.txt 가 403 → fail-closed 로 요청 0건**(로컬 09-28 실측은 200). 수집 0건 — 사람 판단 대기.
+- 000033(PR #328): review_collection_runs.blocked_responses·quota_responses int NOT NULL DEFAULT 0(메타데이터 변경). 000034: review_source_ramp·review_source_ramp_log(FORCE RLS·정책 0). 양성: 컬럼 2·테이블 2·정책 0. 음성: level=5 INSERT → 23514 거부.
+- 전부 비파괴(INSERT/ADD/CREATE), 롤백 파일 있음. 로컬 supabase MCP apply_migration.

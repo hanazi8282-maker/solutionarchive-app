@@ -33,7 +33,8 @@ for (const k of conflict) console.log(`  ⚠️ 양쪽 체크라 건너뛴다: $
 if (marks.length === 0) { console.log('적용할 채점이 없다. 끝.'); process.exit(0) }
 
 const counts = marks.reduce((acc, m) => ({ ...acc, [m.verdict]: (acc[m.verdict] ?? 0) + 1 }), {})
-console.log(`  관련 ${counts.relevant ?? 0}건 · 무관 ${counts.irrelevant ?? 0}건`)
+// 모름(unknown)도 human_verdict 로 남긴다 — "봤다"는 기록이라 감사 표본이 다시 뽑히지 않고, 정확도 계산에서는 빠진다.
+console.log(`  관련 ${counts.relevant ?? 0}건 · 무관 ${counts.irrelevant ?? 0}건 · 모름 ${counts.unknown ?? 0}건`)
 
 if (dry) {
   for (const m of marks) console.log(`  ${m.input_id} → ${m.verdict}`)

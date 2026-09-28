@@ -1,0 +1,905 @@
+{
+ "criteria_version": "t2c-2026-09-28",
+ "rows": [
+  {
+   "input_id": "02405724-93d6-42ca-bc41-0ea21fb509c1",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "시장 틈새 나열 속 이름만 등장"
+  },
+  {
+   "input_id": "028e8140-7789-47f1-abd7-26ed0a45a25b",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "LS 현 사용자 비추천·Paddle 채팅지원 1일 지연으로 대안 탐색"
+  },
+  {
+   "input_id": "02be465e-dad4-49a0-855b-b68ba715f509",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "MoR 이름 나열, 사용 경험 없음"
+  },
+  {
+   "input_id": "03f62b88-0d5a-48bc-9bd3-1bc5cf6148d0",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "오픈소스 라이선스 일반론, 회사 이야기"
+  },
+  {
+   "input_id": "07731e2e-333e-49fb-8352-10ecd53b1873",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "회사의 프리미엄 정책 결정 논평"
+  },
+  {
+   "input_id": "08c370ad-d7ff-4d81-80e1-7b8bce9e9003",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "ConvertKit 권고대로 발송하면 포워딩 메일에서 SPF 실패·스팸행"
+  },
+  {
+   "input_id": "10b59d1a-406c-40c1-86a1-7fa40bc61f08",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": true,
+   "reason": "Stripe Sigma 건당 과금 부담, MRR 기준 Baremetrics 가격과 비교"
+  },
+  {
+   "input_id": "12d702a6-e364-44ee-823b-208b61a42947",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "제휴 마케팅 잡담"
+  },
+  {
+   "input_id": "15ed6387-be49-4108-a102-bdc734e1ba31",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "인수 논평"
+  },
+  {
+   "input_id": "164449bd-2e99-4354-a93c-88b4b4319fc0",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "Stripe Tax 직원의 회사 관점 설명"
+  },
+  {
+   "input_id": "1766ebc7-3db5-4862-8d7d-c714284c4b12",
+   "verdict": "relevant",
+   "impact": "high",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "LS 고객지원 부재로 구독·카드데이터 이전(오프보딩) 불가"
+  },
+  {
+   "input_id": "1ac43a03-00e0-4ccf-951d-ada55af0f976",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "경쟁사·인수 잡담"
+  },
+  {
+   "input_id": "257f9033-95d8-44aa-89a0-ed1ec6338e18",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "Mailchimp 자동화 기능 부족·쓰기 불편, ConvertKit 선택 배경"
+  },
+  {
+   "input_id": "25fcd6aa-d7ba-4c3d-826c-e329e5316e6a",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "cal.com 측의 가격 정책 해명"
+  },
+  {
+   "input_id": "270c1ca8-fd56-4be3-84a7-47fb2c8bd32a",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "MoR vs 결제대행 개념 설명, 사용 경험 없음"
+  },
+  {
+   "input_id": "27279592-5988-43e8-b6b8-45662457bac9",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "$37/월 가격 망설임·자체 도메인 랜딩페이지 호스팅 요구"
+  },
+  {
+   "input_id": "278be421-b32c-42b8-8f42-b6af81cce483",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "\"Built with ConvertKit\" 배지 추측"
+  },
+  {
+   "input_id": "2ae3deea-945e-4f68-9dcc-05870076c6b6",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "cal.com 써보며 기술 스택 비판하나 핵심이 잘림"
+  },
+  {
+   "input_id": "2c9fec9e-90ff-41ca-9a92-2d7a1eb6d71e",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "결제 도구 비용 목록 나열"
+  },
+  {
+   "input_id": "2ce83fe9-5077-4707-9750-eca0a55c8c00",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "EU 프라이버시·무쿠키·데이터 내보내기·응답성 때문에 Plausible 선택"
+  },
+  {
+   "input_id": "2eaa73b4-d83a-4605-90d3-5f7856ca02d4",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "ChartMogul 구독 병합 기능으로 가짜 이탈 회피"
+  },
+  {
+   "input_id": "3072cea4-6340-4285-9a15-a46527226341",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "무료 플랜 한도 사실 진술+가격 링크, 사용 경험·선택 이유 불명"
+  },
+  {
+   "input_id": "30f503e8-ad07-463a-81b3-9b12c49e7b2a",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "Baremetrics 운영자의 자사 비용(Intercom 등) 이야기"
+  },
+  {
+   "input_id": "3b9b53ec-4fe5-4d5e-bffb-309055ad5dd1",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "대안 이름 나열"
+  },
+  {
+   "input_id": "3ed012cd-6895-4a17-a209-b52ca403c717",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "일반 창업 조언"
+  },
+  {
+   "input_id": "41e7af59-8eaa-4f18-8b72-f7e5d5a3402b",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "ConvertKit 측의 자사 설명"
+  },
+  {
+   "input_id": "4292b86d-1eef-442e-b523-0a0144228f61",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "ConvertKit 등 크리에이터 플랫폼의 그로스해킹·타 뉴스레터 끼워넣기가 싫음"
+  },
+  {
+   "input_id": "45aa2804-55c8-4143-a840-1560d4883f8e",
+   "verdict": "relevant",
+   "impact": "mid",
+   "frequency": "mid",
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "Baremetrics 가짜 이탈로 매달 수시간 수동 보정"
+  },
+  {
+   "input_id": "4d3a1f83-99fd-4d8f-8661-8ebc2980a351",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업자 반응 인용"
+  },
+  {
+   "input_id": "4dcc1cb4-77f7-4300-abd5-f1c9f8d3f355",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "백엔드 없이 이메일 수집+내장 분석 때문에 ConvertKit 권장"
+  },
+  {
+   "input_id": "4ebd3a91-d0fd-48da-a254-ee2ccc81bb1a",
+   "verdict": "relevant",
+   "impact": "high",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "LS 스토어 신청 무사유 거절로 Paddle 이동"
+  },
+  {
+   "input_id": "50aac790-39e8-4934-86a7-6a6c5262fc7f",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "연동 목록에 이름만"
+  },
+  {
+   "input_id": "539c2dad-2e87-4acb-8878-ce8c32b719cd",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "다른 제품(Postcard)에 대한 연동 요청"
+  },
+  {
+   "input_id": "548ed381-13f1-4269-be92-b57ca0c19868",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "여러 결제 서비스 매출 합산 대시보드 프로젝트 이야기"
+  },
+  {
+   "input_id": "57e1098b-f780-4436-bf06-575c1f1fe413",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": true,
+   "reason": "Baremetrics 과가격·기능 과잉, mrr.io·profitwell 대비"
+  },
+  {
+   "input_id": "598d6dc9-c059-45ca-a2d4-e4a7702ae549",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "자국에 Stripe 없고 PayPal 불편해 LS 지지"
+  },
+  {
+   "input_id": "598ee3b6-e44c-41a3-9b2a-7205169ee6db",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "Plausible 가격 $36→$50 인상, 재방문자 기능·100만 이벤트당 가격 기준"
+  },
+  {
+   "input_id": "5bc29584-5edb-477f-b964-d249961b0eda",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "공개 통계에 고객 핸들 노출 지적, 사용자 여부 불명"
+  },
+  {
+   "input_id": "5c2e8de8-550d-4d87-aff2-c86e44e93138",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "이메일 추적 조사 글 저자 소개"
+  },
+  {
+   "input_id": "5fd9bb6d-f026-4e00-8eb1-bba40d6a40c5",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "차단 도메인 목록에 등장"
+  },
+  {
+   "input_id": "6269cdab-41ad-4390-ad33-c1814642b206",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "부트스트랩 회사 목록"
+  },
+  {
+   "input_id": "668c05b4-8ed1-4b9d-8d5b-5f87f58623b3",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "예시로 한 번 언급"
+  },
+  {
+   "input_id": "6b8e91a4-c6e1-4f12-bf4b-4f93ed17ba9c",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업자 출시 소개"
+  },
+  {
+   "input_id": "6cc0ef62-b175-419c-8b13-e09bf89557d7",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "저렴·주소 제공·시퀀스 자동응답으로 오픈율 상승"
+  },
+  {
+   "input_id": "6cd14d91-09c0-436f-bbcb-d328ac334e3c",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "호스팅 분석 중 Plausible 진입가가 가장 저렴"
+  },
+  {
+   "input_id": "6e933f2e-9954-4760-a6f6-e9d59ebc9c50",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": true,
+   "reason": "Sendfox가 RSS 자동발송에 ConvertKit보다 훨씬 저렴"
+  },
+  {
+   "input_id": "78135231-344d-476f-8b89-51ab1524b69d",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "보일러플레이트 홍보글"
+  },
+  {
+   "input_id": "7b92dcde-6a49-461c-94bb-b6981a044f77",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "비용 목록 나열"
+  },
+  {
+   "input_id": "7d589848-d016-4ae9-99ed-28ab21bec666",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "LS 구매 시 커스텀 데이터 전달로 라이선스키 연동"
+  },
+  {
+   "input_id": "7d7d44a6-c8ee-40b4-9bd6-a6fe4662f5bf",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "인수 후 Stripe 논평"
+  },
+  {
+   "input_id": "7dc71002-6cb2-43c7-8af2-9b005df837f9",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": true,
+   "reason": "ConvertKit 비싸고 에디터가 느리고 입력을 먹음"
+  },
+  {
+   "input_id": "7ee56f99-8174-48e5-9ed3-582463279f49",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "인수 관계 논평"
+  },
+  {
+   "input_id": "83db03b0-ea56-4681-a737-2017720e1b6b",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "공개 데모 칭찬·기능 제안, 사용자 여부 불명"
+  },
+  {
+   "input_id": "86f477d7-cf4e-4669-b4c1-b8c01a3dd964",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "인수사 운영 방식 회사 이야기"
+  },
+  {
+   "input_id": "8719f528-73ec-407f-856d-33381411cd49",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "EU 세금 우려로 LS 전환, 미국 거주자 선택 이유 질문"
+  },
+  {
+   "input_id": "8aa5626f-1bdc-4056-b3db-5b82fcc1f99f",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "다른 회사의 요금제 이야기"
+  },
+  {
+   "input_id": "914ad1f8-e166-4af5-92fb-00a564dc8869",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "무관한 기술 스택 질문"
+  },
+  {
+   "input_id": "9524ef0f-6800-4edc-b1d8-332e8b9c9ba8",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "책 이야기"
+  },
+  {
+   "input_id": "99423050-f9ad-4ec2-9aa1-2c9dbef72260",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": true,
+   "reason": "Paddle 견적문의식 구식 태도로 기피, Gumroad 비싸고 기능 부족"
+  },
+  {
+   "input_id": "9a2b379a-1b3d-4239-bd29-b47d17ad7f88",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "질문만 있고 맥락 없음"
+  },
+  {
+   "input_id": "9d117883-42f4-4c0a-9aab-6777716c7a23",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "다른 제품 창업 이야기"
+  },
+  {
+   "input_id": "9fb22caa-1b10-444c-b6fe-3bed3729a354",
+   "verdict": "relevant",
+   "impact": "low",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": null,
+   "reason": "LS 스토어 설정이 적용 안 되는 버그"
+  },
+  {
+   "input_id": "a73ef0c9-629d-4f6e-b156-fc43a5ca8b69",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "Stripe 트릭 설명 중 예시로 언급"
+  },
+  {
+   "input_id": "aee7077b-660d-4ad7-9381-616e4704c9b8",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "구독+스토어프런트 끄기로 SaaS에 적합"
+  },
+  {
+   "input_id": "af5e7bea-8fb0-4a7e-85f8-a147d83d52a0",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "세금 부담 대신 2% 더 내고 MoR 사용 권장"
+  },
+  {
+   "input_id": "b11ec017-525f-4f4e-a38a-6085650210e4",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "회사 수익성 논평"
+  },
+  {
+   "input_id": "b68c281e-cb59-475f-83eb-a3bbc112ec9c",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "Plausible 체험: 스크립트 지연·기능 비대·UI 버그로 보류"
+  },
+  {
+   "input_id": "b6d8403f-43ee-4f25-aaa3-d1d8a720fe5f",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "구독자 관점 성공 요인 추측"
+  },
+  {
+   "input_id": "bc04905e-163d-48cf-b569-5bd50efa4224",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업자 자사 소개"
+  },
+  {
+   "input_id": "beec5703-073c-43c7-80eb-b77106d2cca8",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "마이그레이션 경험 링크만, 내용 없음"
+  },
+  {
+   "input_id": "c3928234-5d4d-4ac9-b37b-ae654d278463",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "이름만 제안"
+  },
+  {
+   "input_id": "c5512834-e072-4fe9-833c-0890aca6cdad",
+   "verdict": "relevant",
+   "impact": "high",
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": null,
+   "reason": "서버·성능 문제로 Baremetrics 해지"
+  },
+  {
+   "input_id": "c8b1803b-1b42-4dff-bd0f-d5ec252f62e9",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "다른 회사가 Cal.com 전략 참고"
+  },
+  {
+   "input_id": "c8c1dc16-d5a6-4f75-b3dc-93afbd4454fd",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "공개 통계 링크로만 등장"
+  },
+  {
+   "input_id": "cb40d2b9-efd8-4deb-a466-aa738476ab33",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "수신자 DNS 차단 이슈, 사용자 아님"
+  },
+  {
+   "input_id": "cd6fc72a-3f28-4ad5-adae-81509a188977",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "타사 재무 수치 출처로 언급"
+  },
+  {
+   "input_id": "d4747094-2fd7-45d5-a01c-c381aee102ca",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "이유 없는 사용 언급"
+  },
+  {
+   "input_id": "d5985085-98c7-4ea0-a403-418492de47f0",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "비교 예시로 언급"
+  },
+  {
+   "input_id": "d5af614f-bd3d-413b-9ac0-ebc63ea3d812",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "구현 방식 기술 설명"
+  },
+  {
+   "input_id": "dc27ca45-44fa-42dc-8d0d-8ee3eaab6ac0",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "1만 구독자 무료 플랜·PO Box 주소 제공으로 추천"
+  },
+  {
+   "input_id": "dcbc8672-bde5-41f4-9bc4-ffba25ec185f",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "수수료 세금 처리 때문에 MoR(LS/Paddle) 고려"
+  },
+  {
+   "input_id": "ddcb8643-5150-4341-8434-ff720d4ba55a",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "LS API가 쉬워서 사용"
+  },
+  {
+   "input_id": "df8222d4-46f9-4fe4-9f7c-45d3ddf547f7",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "objection",
+   "wtp_mentioned": true,
+   "reason": "Paddle 지원·API·차지백 불만, LS는 Stripe 인수로 비싸질까 망설임"
+  },
+  {
+   "input_id": "e14c5491-2103-46fb-a9ca-c8b0ac71bc51",
+   "verdict": "unknown",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "LS/Paddle 가능하다는 한 줄, 이유 불명"
+  },
+  {
+   "input_id": "e1c845de-b1f8-440d-88a2-458498b2469f",
+   "verdict": "relevant",
+   "impact": "high",
+   "frequency": null,
+   "community_signal": "pain",
+   "wtp_mentioned": true,
+   "reason": "인수 후 Baremetrics 가격 2배 인상·이탈"
+  },
+  {
+   "input_id": "e232a64b-9b78-4e7b-a086-b956a53bee22",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "일반 창업 조언"
+  },
+  {
+   "input_id": "e99c52c2-88e5-44c3-9565-060c7543e363",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "Baremetrics가 이탈을 세분화해 보여주지 않아 경쟁사 시도 고려"
+  },
+  {
+   "input_id": "ef87aa8a-74e7-4f5f-9e96-823b6c88855a",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "경쟁 제품 창업자 홍보"
+  },
+  {
+   "input_id": "f003c39a-d8a8-489e-86e0-ca3dfc53941c",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "수익성 일반론"
+  },
+  {
+   "input_id": "f00f65ae-99db-4161-81b2-a354adeae1da",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "회사 MRR 예시"
+  },
+  {
+   "input_id": "f299631a-37aa-4a59-89db-7f45705f6805",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "다른 제품 논평 중 이름만"
+  },
+  {
+   "input_id": "f491e058-4dc7-4878-818e-ed343e133423",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "제휴 매출 회사 이야기"
+  },
+  {
+   "input_id": "f4e1703d-efde-4c9e-81d9-34224fb575f6",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "창업자 회상"
+  },
+  {
+   "input_id": "f560e62a-e690-44be-b320-d49302a3bc32",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "공동창업자의 자사 설계 설명"
+  },
+  {
+   "input_id": "f7fa9554-f32c-47af-b4b2-2bcf979f1cad",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "이름만 추천"
+  },
+  {
+   "input_id": "f812610e-a285-4001-b077-38b1ac108075",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": true,
+   "reason": "가용성 공유 용도에 cal.com 무료 티어로 충분"
+  },
+  {
+   "input_id": "f8c27b51-ce27-48dc-8b5b-1b5619a21a32",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "이유 없는 사용 언급"
+  },
+  {
+   "input_id": "f9f0988b-43ce-4a5e-ab2d-f2f3455be6bc",
+   "verdict": "relevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": "demand",
+   "wtp_mentioned": null,
+   "reason": "푸터 주소 대체 제공하는 유일한 서비스"
+  },
+  {
+   "input_id": "fb75b8c2-0841-433a-bebf-3004433b66c7",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "제휴 게이트키퍼 시장 논평"
+  },
+  {
+   "input_id": "ffb83c10-655d-4f91-bccb-283355e82f93",
+   "verdict": "irrelevant",
+   "impact": null,
+   "frequency": null,
+   "community_signal": null,
+   "wtp_mentioned": null,
+   "reason": "GDPR 법리 일반론"
+  }
+ ]
+}

@@ -22,6 +22,8 @@ import { callLlmWithModel, isQuotaFailure, resolveProvider } from './llm.ts'
 import { extractJsonArray } from '../cases/remedy-judge.ts'
 // 목적 어휘 정본은 config/reader-problems.json 이다(lib/cases/draft.ts 가 읽는다).
 import { READER_PROBLEM_LABEL } from '../cases/draft.ts'
+// "관련"의 정의는 2차 판정(second-opinion.ts)과 한 벌이다 — 여기서 고치지 말고 relevance-criteria.ts 를 고친다.
+import { RELEVANCE_CRITERIA, describeBusinessModel } from './relevance-criteria.ts'
 
 export const RELEVANCE_VERDICTS = ['relevant', 'irrelevant', 'unknown'] as const
 export type Relevance = (typeof RELEVANCE_VERDICTS)[number]
@@ -57,6 +59,8 @@ export interface RelevancePurpose {
   reader_problem?: string | null
   product_elevator_pitch?: string | null
   purpose?: string | null
+  /** analysis_projects.business_model — 어느 기준(SaaS/소비재)을 쓸지 가른다. 없으면 모델이 원문으로 고른다. */
+  business_model?: string | null
 }
 
 export interface RelevanceReview {
@@ -94,11 +98,9 @@ const SYSTEM = [
   '분석 목적 하나와 수집된 리뷰·댓글 원문 여러 건이 주어진다.',
   '리뷰마다 이 목적의 분석 재료로 쓸 수 있는지 판정해라.',
   '',
-  'relevant   = 이 목적이 말하는 사용자·문제·제품 맥락을 다룬다. 불만이든 칭찬이든 상관없다.',
-  'irrelevant = 다른 제품·다른 주제의 잡담이거나, 내용이 없어(광고·한 줄 감탄) 재료가 되지 않는다.',
-  'unknown    = 판단이 서지 않는다. 맥락이 모자라거나 애매하면 전부 여기로 둔다.',
   '',
-  'irrelevant 는 확실할 때만 쓴다. 버려진 리뷰는 다시 읽히지 않는다 — 애매하면 unknown 이다.',
+  RELEVANCE_CRITERIA,
+  '',
   '없는 id 를 만들지 말고, 주어진 id 전부에 대해 한 줄씩 답해라.',
   '',
   '라벨 4개를 함께 달아라. 원문으로 정할 수 없으면 null 이다 — 추측으로 채우지 마라.',
@@ -142,6 +144,9 @@ export function buildRelevancePrompt(
   const user = [
     `## 분석 목적`,
     describePurpose(purpose),
+    '',
+    `## 사업유형`,
+    describeBusinessModel(purpose?.business_model),
     '',
     // 되먹임(T3) — 사람이 채점한 것이 있으면 그 기준을 그대로 보여준다. 없으면 이 블록 자체가 없다.
     ...(shots.length > 0
@@ -390,7 +395,8 @@ export function pickGradingSample(
 
 export interface GradingMark {
   input_id: string
-  verdict: 'relevant' | 'irrelevant'
+  /** unknown = `모름` 칸 체크("봤지만 판단 못 함"). 빈칸(안 봄)과 다르다 — 빈칸은 marks 에 없다. */
+  verdict: 'relevant' | 'irrelevant' | 'unknown'
 }
 
 export interface GradingParse {
@@ -427,15 +433,17 @@ export function parseGradingMarkdown(md: string): GradingParse {
     if (pair === -1) continue
     const rel = CHECKED.test(cells[pair])
     const irr = CHECKED.test(cells[pair + 1])
-    if (rel && irr) {
+    // 세 번째 칸 `모름` 은 선택이다 — 옛 채점표(두 칸)는 그 자리에 모델 판정 글이 있어 BOX 가 아니다.
+    const unk = pair + 2 < cells.length - 1 && BOX.test(cells[pair + 2]) && CHECKED.test(cells[pair + 2])
+    if (Number(rel) + Number(irr) + Number(unk) > 1) {
       conflict.push(key)
       continue
     }
-    if (!rel && !irr) {
+    if (!rel && !irr && !unk) {
       blank++
       continue
     }
-    marks.push({ input_id: key, verdict: rel ? 'relevant' : 'irrelevant' })
+    marks.push({ input_id: key, verdict: rel ? 'relevant' : irr ? 'irrelevant' : 'unknown' })
   }
 
   return { marks, blank, conflict }

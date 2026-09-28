@@ -40,6 +40,7 @@ import { okkyAdapter } from '../lib/review/adapters/okky.ts'
 import { velogAdapter } from '../lib/review/adapters/velog.ts'
 import { youtubeAdapter } from '../lib/review/adapters/youtube.ts'
 import { disquietAdapter } from '../lib/review/adapters/disquiet.ts'
+import { producthuntAdapter } from '../lib/review/adapters/producthunt.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
@@ -64,6 +65,7 @@ const ADAPTERS = {
   velog: velogAdapter,
   youtube: youtubeAdapter,
   disquiet: disquietAdapter,
+  producthunt: producthuntAdapter,
 }
 
 const args = process.argv.slice(2)
@@ -193,10 +195,13 @@ for (const sourceKey of sourceKeys) {
       {
         now: () => new Date(),
         sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-        async fetchText(url) {
+        async fetchText(url, init) {
           try {
             const res = await fetch(url, {
-              headers: { 'User-Agent': USER_AGENT, Accept: '*/*' },
+              // init = POST API 어댑터(producthunt)만. 헤더를 합쳐도 User-Agent 는 우리 것으로 고정한다.
+              method: init?.method ?? 'GET',
+              body: init?.body,
+              headers: { Accept: '*/*', ...(init?.headers ?? {}), 'User-Agent': USER_AGENT },
               redirect: 'follow',
               signal: AbortSignal.timeout(20_000),
             })

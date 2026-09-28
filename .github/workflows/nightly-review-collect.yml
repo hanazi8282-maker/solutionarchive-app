@@ -74,6 +74,7 @@ on:
           - velog
           - youtube
           - disquiet
+          - producthunt
         default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수'
@@ -149,6 +150,8 @@ jobs:
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
           # YouTube Data API v3. 미등록이면 빈 값이고 review-collect 가 requiredEnv 검사로 youtube 만 건너뛴다.
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          # Product Hunt GraphQL v2 (남헌 등록). 소스는 enabled=false 로 출하 — 켜기 전까지는 읽히지 않는다.
+          PRODUCT_HUNT_API_TOKEN: ${{ secrets.PRODUCT_HUNT_API_TOKEN }}
         run: |
           node scripts/review-collect.mjs \
             --source=${{ inputs.source || 'all' }} \

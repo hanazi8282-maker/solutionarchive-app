@@ -65,6 +65,14 @@ t('태그: 둘 다 있으면 2개', impactFrequencyTags(lab[0]).join('|') === '�
 t('태그: NULL 이면 빈 태그를 만들지 않는다', impactFrequencyTags(lab[2]).length === 0 && impactFrequencyTags(null).length === 0)
 t('태그: 한쪽만 있으면 1개', impactFrequencyTags({ impact: null, frequency: 'mid' }).join() === '빈도 보통')
 
+// ── 2c. rr-v2 정보 판정(info) — true/false 만, 어휘 밖·누락은 null (false 로 접지 않는다) ──
+const inf = parseRelevanceArray('[{"id":"R1","rel":"relevant","info":true},{"id":"R2","rel":"relevant","info":"false"},{"id":"R3","rel":"relevant","info":"yes"},{"id":"R4","rel":"relevant"},{"id":"R5","rel":"irrelevant","info":1},{"id":"R6","rel":"relevant","product_informative":false}]')
+t('info: true / "false" 를 읽는다', inf[0].product_informative === true && inf[1].product_informative === false)
+t('info: 어휘 밖(yes·1)은 null', inf[2].product_informative === null && inf[4].product_informative === null)
+t('info: 누락은 null (false 가 아니다)', inf[3].product_informative === null)
+t('info: product_informative 키도 받는다', inf[5].product_informative === false)
+t('info: rel 과 따로 읽는다(무관인데 info 없음 → rel 그대로)', inf[4].rel === 'irrelevant')
+
 // ── 3. unknown 접힘 금지 ────────────────────────────────────────
 const prevProvider = process.env.LLM_PROVIDER
 process.env.LLM_PROVIDER = 'gemini'
@@ -76,6 +84,9 @@ t('응답에 없는 라벨은 unknown (무관이 아니다)', ok.verdicts[2].ver
 t('라벨이 아니라 원래 input_id 를 돌려준다', ok.verdicts[0].input_id === reviews[0].input_id)
 t('모델명을 남긴다', ok.model === 'fake-relevance')
 t('응답에 라벨이 없으면 라벨 전부 null', ok.verdicts.every((v) => v.impact === null && v.frequency === null && v.community_signal === null && v.wtp_mentioned === null))
+t('응답에 info 가 없으면 product_informative null', ok.verdicts.every((v) => v.product_informative === null))
+const okInfo = await judgeRelevanceBatch(purpose, reviews, [], call('[{"id":"R1","rel":"relevant","info":true},{"id":"R2","rel":"irrelevant","info":false}]'))
+t('info 가 판정 행까지 온다(R1 true · R2 false · 누락 R3 null)', okInfo.verdicts[0].product_informative === true && okInfo.verdicts[1].product_informative === false && okInfo.verdicts[2].product_informative === null)
 
 const extra = await judgeRelevanceBatch(purpose, reviews, [], call('[{"id":"R1","rel":"relevant"},{"id":"Z9","rel":"irrelevant"}]'))
 t('응답에만 있는 라벨은 버린다', extra.verdicts.length === 3 && extra.verdicts[1].verdict === 'unknown')
@@ -87,6 +98,7 @@ t('파싱 실패에 irrelevant 가 하나도 없다', !broken.verdicts.some((v) 
 
 const thrown = await judgeRelevanceBatch(purpose, reviews, [], async () => { throw new Error('boom') })
 t('호출 실패도 전부 unknown — 던지지 않는다', thrown.verdicts.every((v) => v.verdict === 'unknown'))
+t('호출 실패·파싱 실패의 info 는 null (false 로 접지 않는다)', thrown.verdicts.every((v) => v.product_informative === null) && broken.verdicts.every((v) => v.product_informative === null))
 
 const { ProviderHttpError } = await import('../lib/analysis/llm.ts')
 const quota = await judgeRelevanceBatch(purpose, reviews, [], async () => { throw new ProviderHttpError(429, 'rate limit') })
@@ -181,6 +193,28 @@ t('관련/무관을 가른다', parsed.marks[0].verdict === 'relevant' && parsed
 t('빈칸은 판정 불가로 건너뛴다(무관이 아니다)', parsed.blank === 1)
 t('양쪽 체크는 사람 실수로 보고한다', parsed.conflict.length === 1)
 t('머리글·구분선은 읽지 않는다', parsed.marks.every((m) => m.input_id.startsWith('aaaaaaaa')))
+t('정보 열 없는 표 → product_informative 전부 null', parsed.marks.every((m) => m.product_informative === null))
+
+// 7b. 정보 열(선택) — 머리글 이름으로 찾는다. 정보만 체크한 줄은 verdict=null(관련 불변).
+const infoMd = [
+  '| # | 프로젝트 | 리뷰 원문 | 관련 ☐ | 무관 ☐ | 모름 ☐ | 정보있음 ☐ | 정보없음 ☐ | 모델 판정 | 키 |',
+  '|---|---|---|---|---|---|---|---|---|---|',
+  '| 1 | p | 본문 | x | ☐ | ☐ | x | ☐ | 관련 | `aaaaaaaa-0000-4000-8000-000000000001` |',
+  '| 2 | p | 본문 | ☐ | ☐ | ☐ | ☐ | x | 관련 | `aaaaaaaa-0000-4000-8000-000000000002` |',
+  '| 3 | p | 본문 | ☐ | x | ☐ | ☐ | ☐ | 무관 | `aaaaaaaa-0000-4000-8000-000000000003` |',
+  '| 4 | p | 본문 | ☐ | ☐ | ☐ | x | x | 관련 | `aaaaaaaa-0000-4000-8000-000000000004` |',
+  '| 5 | p | 본문 | ☐ | ☐ | ☐ | ☐ | ☐ | 관련 | `aaaaaaaa-0000-4000-8000-000000000005` |',
+].join('\n')
+const pi = parseGradingMarkdown(infoMd)
+const byKey = Object.fromEntries(pi.marks.map((m) => [m.input_id.slice(-1), m]))
+t('정보 열: 관련+정보있음', byKey['1']?.verdict === 'relevant' && byKey['1']?.product_informative === true)
+t('정보 열: 정보만 체크 → verdict null(관련 불변)·정보없음 false', byKey['2']?.verdict === null && byKey['2']?.product_informative === false)
+t('정보 열: 관련만 체크 → 정보 null', byKey['3']?.verdict === 'irrelevant' && byKey['3']?.product_informative === null)
+t('정보 열: 두 칸 체크 → 충돌', pi.conflict.length === 1 && pi.conflict[0].endsWith('4'))
+t('정보 열: 전부 빈 줄 → blank', pi.blank === 1 && pi.marks.length === 3)
+// 관련 칸이 없는 표(정보 열만)여도 정보 칸 쌍을 관련으로 오독하지 않는다.
+const onlyInfo = parseGradingMarkdown('| # | 원문 | 정보있음 ☐ | 정보없음 ☐ | 키 |\n|---|---|---|---|---|\n| 1 | t | x | ☐ | `aaaaaaaa-0000-4000-8000-000000000001` |')
+t('정보 열만 있는 표: 관련으로 오독하지 않는다', onlyInfo.marks.length === 1 && onlyInfo.marks[0].verdict === null && onlyInfo.marks[0].product_informative === true)
 
 // ── 8. 호출부 배선 ──────────────────────────────────────────────
 const read = (p) => readFileSync(`${ROOT}${p}`, 'utf8')
@@ -194,6 +228,17 @@ t('라벨 마이그: nullable ADD COLUMN + 허용값 CHECK', labelMig.includes('
 t('라벨 마이그: 미적용 표기·예외 5개 해당 없음', labelMig.includes('**미적용**') && labelMig.includes('해당 없음'))
 t('배치가 라벨을 저장하고, 컬럼 없으면 라벨만 버린다', auto.includes('LABEL_KEYS') && auto.includes("'PGRST204'") && auto.includes('라벨 미기록(마이그 미적용)'))
 t('채점표가 라벨 컬럼 이름을 부르지 않고(*) 태그를 붙인다', sampleScript.includes(".select('*')") && sampleScript.includes('impactFrequencyTags('))
+
+t('배치가 product_informative 를 저장하고, 컬럼 없으면 그 필드만 뺀다', auto.includes('product_informative: v.product_informative') && auto.includes("infoColumn = 'absent'") && auto.includes('정보 판정 미기록(마이그 미적용)'))
+const gradeImport = read('scripts/relevance-grading-import.mjs')
+t('채점 import: 정보 열 → human_product_informative, 관련 칸 비면 human_verdict·human_graded_at 불변',
+  gradeImport.includes('human_product_informative: m.product_informative') && gradeImport.includes('m.verdict !== null ? { human_verdict: m.verdict, human_graded_at: now }'))
+t('채점표: 정보 열·재확인 모드', sampleScript.includes('정보있음 ☐ | 정보없음 ☐') && sampleScript.includes("opt('recheck')") && sampleScript.includes('RR39_NARROW_IRRELEVANT_INPUT_IDS'))
+const infoMig = read('supabase/migrations/20260930000031_relevance_product_informative.sql')
+t('정보 마이그: nullable boolean 3개 ADD COLUMN IF NOT EXISTS, 백필·CHECK·NOT NULL 없음',
+  ['product_informative', 'second_product_informative', 'human_product_informative'].every((c) => infoMig.includes(`ADD COLUMN IF NOT EXISTS ${c} boolean`))
+  && !/NOT NULL|UPDATE public|DROP |CHECK/.test(infoMig.split('-- 확인 쿼리')[0].replace(/^--.*$/gm, '')) && infoMig.includes('**미적용**'))
+t('정보 마이그 롤백 파일', read('supabase/migrations/20260930000031_relevance_product_informative_rollback.sql').includes('DROP COLUMN IF EXISTS human_product_informative'))
 
 t('extract 가 dropIrrelevant 를 쓴다', run.includes('dropIrrelevant(') && run.includes("from './relevance-judge.ts'"))
 t('extract 가 입력 id 를 조회한다(제외 키)', run.includes("select('id, source_type, raw_text"))

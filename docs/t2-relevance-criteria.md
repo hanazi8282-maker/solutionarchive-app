@@ -1,4 +1,4 @@
-# T2 "관련 있다"의 기준 — 1차·2차 판정 공통 (기준 버전 `t2c-2026-09-28`)
+# T2 "관련 있다"의 기준 — 1차·2차 판정 공통 (관련 기준 본문 `t2c-2026-09-28` · 현재 버전 `t2d-2026-09-28`, §5)
 
 작성 2026-09-28 · 남헌 지시 A(판정 기준 통일) · 사람용 설명과 근거 사례 문서
 
@@ -180,3 +180,43 @@
   - `isCurrentCriteria` 가 결과 파일의 `criteria_version` 을 대조한다.
   - export 행에 `business_model` 을 더했다.
 - `scripts/relevance-export.mjs` — export 파일에 `criteria_version` 을 기록하고, `instructions` 를 공유 지시문으로 쓴다.
+
+## 5. 자동승인 추가 질문 — "정보 있음" (기준 버전 `t2d-2026-09-28`, 규칙 `rr-v2`)
+
+남헌 2026-09-28 정정. rr39(두 판정자가 모두 관련이라 한 39건) 사람 채점에서 무관이 8건 나왔다. 대부분 "관련 기준"은 넘지만 **독자가 제품을 판단할 정보가 없는** 글이었다(정보 없는 질문, 도구로 지나가는 남의 이야기, 자기소개). 관련 기준(§2)은 분석 재료를 넓게 모으는 자리라 좁히지 않는다. 대신 자동 승인에만 질문 하나를 더한다.
+
+- **정본은 코드다** — `lib/analysis/relevance-criteria.ts` 의 `PRODUCT_INFORMATIVE_CRITERIA`. 1차 SYSTEM 과 2차 지시문이 같은 상수를 import 한다. `RELEVANCE_CRITERIA` 본문은 **바이트 단위로 그대로다**(셀프테스트가 sha256 으로 고정) — 버전만 `t2d` 로 올렸다. t2c 로 판정한 2차 파일은 정보 판정이 없어서 rr-v2 승인 입력이 아니다.
+- **질문**: 이 글에 독자가 이 제품을 판단하는 데 쓸 수 있는 구체 정보가 있는가. relevant 와 **따로** 답한다(1차 출력 키 `info`, 2차 행 `product_informative`, 값 true·false·null).
+- **true**: (1) 글이 이 제품, 또는 그 경쟁·대체재(같은 선택지)에 관한 것이고 (2) 원문에 구체 정보가 있다. 장단점, 비교, 비용, 수수료, 요금제 조건, 기능 유무, 문제와 해결, 쓰는 이유나 떠난 이유가 여기에 든다.
+  - 직접 써 본 경험일 필요는 없다.
+  - **경쟁사의 장점·단점도 true 다.** 그걸로 이 제품의 장단을 찾을 수 있다.
+- **false**: 정보 없는 질문 한 줄("Can you support Apple Pay?"), 이름·링크만, 제품이 도구로 지나가는 남의 이야기("LS 에 올려 지불의사 테스트", 자기 인프라 비용 목록 속 한 항목), 자기소개("나는 타깃 고객"), 선택지와 무관한 주제.
+- **null**: 원문이 잘려 판단할 수 없다. false 로 접지 않는다(§7.1).
+
+경계 사례 — rr39 번호, 원문은 `reports/2026-09-28/relevance-grading-rr39.md`:
+
+- F #18 Apple Pay 지원 질문 — 정보 없는 질문 한 줄
+- T #13 가격 페이지에 없는 추가 수수료 — 질문 형태지만 사실이 있다(#18 과 대조)
+- F #35 LS 에 올려 지불의사 테스트 — 도구로 지나감
+- F #27 Baremetrics — 자기 인프라 비용 나열 속 한 항목
+- F #8 "나는 타깃 고객" — 자기소개
+- T #36 Mailchimp 고객지원 불만 — 경쟁사 단점
+- T #12 NeetoCal 기능 평 — 경쟁 대안의 장단
+- T #19 Substack vs ConvertKit — 대안 비교
+- T #28 LS 숨은 수수료 vs Paddle — 요금 비교
+- #29(WordPress.com 비즈니스 요금제)는 예시로 쓰지 않는다. 재확인 목록 몫이다.
+
+위 9건의 input_id 는 `INFORMATIVE_EXAMPLE_INPUT_IDS` 에 있다. 프롬프트에 실렸으므로 평가에서 뺀다(정답 누설).
+
+### 규칙 rr-v2 — 무엇이 달라지나
+
+- **승인 대상**(`isFullAgreement`): 1차·2차 둘 다 `relevant` **그리고** `product_informative`·`second_product_informative` 둘 다 `true`. null 이 하나라도 있으면 대상이 아니다.
+- **감사 오류**(`scoreApproval`): 사람이 무관이라 했거나 `human_product_informative=false`. 감사 창에는 `human_verdict`(관련·무관)와 `human_product_informative` 가 **둘 다 채워진 행만** 들어간다. 창도 `auto_approval_rule='rr-v2'` 행만 센다.
+- 컬럼(마이그 `20260930000031`, 비파괴): `product_informative`·`second_product_informative`·`human_product_informative`. 채점표는 `정보있음`/`정보없음` 두 칸을 머리글 이름으로 읽는다. 정보 칸만 체크한 줄은 `human_verdict`·`human_graded_at` 을 바꾸지 않는다.
+
+### 평가와 가동 문턱 — 문서로만 둔다
+
+- 하네스: `scripts/t2-approval-eval.mjs`(순수 부품 `lib/analysis/t2-approval-eval.ts`). 사람 채점 행과 `--sample` 행을 현재 기준으로 다시 판정한다. 산출물은 `n_A`·오류·정밀도·재현율, 그리고 **옛 프롬프트 대비 1차 verdict 일치율**이다. 추가 질문이 관련성 분포를 흔드는지 보는 숫자다.
+- gold(평가 전용 — 킬스위치는 엄격 그대로): 사람 정보 열이 있으면 관련 ∧ 그 값. 없으면 관련은 true **추정**(`gold_estimated` 로 세고 보고서에 "잠정"), 무관은 false, 모름·미채점은 미정.
+- 재확인 목록(정보 열 미기재 ∧ 예측과 부딪치는 행만): `a` = 사람 무관·모름인데 예측 승인. `c` = 사람 관련인데 예측 미승인. `b` = 09-28 에 좁은 감각(직접 써 본 경험)으로 무관을 매긴 SaaS 8건(#8·#12·#18·#19·#27·#35·#36·#37). **b 는 항상 들어가고, 관련 열까지 다시 받는다.** 표는 `relevance-grading-sample.mjs --recheck <eval.json>` 으로 만든다.
+- **가동 문턱**: n_A ≥ 40 · 오류 ≤ 2 · 재현율 ≥ 50%. 판정이 빠진 행이 하나라도 있으면 판단하지 않는다. 문턱을 넘어도 코드는 플래그를 켜지 않는다. `AUTO_APPROVAL_ENABLED` 는 사람이나 역할 세션이 켠다(§10.1 조건 2).

@@ -9,7 +9,8 @@
 // 지키는 것
 //   · 둘 다 비어 있는 줄은 **건너뛴다**. 빈칸은 "판정 불가" 이지 무관이 아니다(§7.1).
 //   · 둘 다 체크된 줄은 사람 실수다 — 적용하지 않고 목록으로 보고한다.
-//   · 사람 채점만 쓴다(human_verdict·human_graded_at). LLM 판정(verdict)·model·reason 은 건드리지 않는다.
+//   · 사람 채점만 쓴다(human_verdict·human_graded_at·human_product_informative). LLM 판정(verdict)·model·reason 은 건드리지 않는다.
+//   · 선택 열 `정보있음`/`정보없음` → human_product_informative 만. 그 줄의 관련 칸이 비었으면 human_verdict·human_graded_at 은 불변.
 //   · 판정 행이 없는 input_id 는 만들지 않는다 — 채점표가 다른 DB 에서 온 것이라는 뜻이다.
 //
 // 종료코드: 0 성공 · 2 환경·조회·저장 실패 · 64 사용법 오류
@@ -32,12 +33,13 @@ for (const k of conflict) console.log(`  ⚠️ 양쪽 체크라 건너뛴다: $
 
 if (marks.length === 0) { console.log('적용할 채점이 없다. 끝.'); process.exit(0) }
 
-const counts = marks.reduce((acc, m) => ({ ...acc, [m.verdict]: (acc[m.verdict] ?? 0) + 1 }), {})
+const counts = marks.reduce((acc, m) => ({ ...acc, [m.verdict ?? 'none']: (acc[m.verdict ?? 'none'] ?? 0) + 1 }), {})
 // 모름(unknown)도 human_verdict 로 남긴다 — "봤다"는 기록이라 감사 표본이 다시 뽑히지 않고, 정확도 계산에서는 빠진다.
-console.log(`  관련 ${counts.relevant ?? 0}건 · 무관 ${counts.irrelevant ?? 0}건 · 모름 ${counts.unknown ?? 0}건`)
+console.log(`  관련 ${counts.relevant ?? 0}건 · 무관 ${counts.irrelevant ?? 0}건 · 모름 ${counts.unknown ?? 0}건 · 관련 칸 비움(정보 열만) ${counts.none ?? 0}건`)
+console.log(`  정보있음 ${marks.filter((m) => m.product_informative === true).length}건 · 정보없음 ${marks.filter((m) => m.product_informative === false).length}건`)
 
 if (dry) {
-  for (const m of marks) console.log(`  ${m.input_id} → ${m.verdict}`)
+  for (const m of marks) console.log(`  ${m.input_id} → ${m.verdict ?? '(관련 불변)'} · 정보 ${m.product_informative ?? '(불변)'}`)
   console.log('--dry: DB 를 쓰지 않았다.')
   process.exit(0)
 }
@@ -60,12 +62,23 @@ const now = new Date().toISOString()
 let applied = 0
 let failed = 0
 for (const m of marks.filter((x) => known.has(x.input_id))) {
+  // 관련 칸을 안 건드린 줄(verdict=null)은 human_verdict·human_graded_at 을 바꾸지 않는다 — 정보 열만 쓴다.
+  const patch = {
+    ...(m.verdict !== null ? { human_verdict: m.verdict, human_graded_at: now } : {}),
+    ...(m.product_informative !== null ? { human_product_informative: m.product_informative } : {}),
+  }
   const { error } = await supabase
     .from('review_relevance_verdicts')
-    .update({ human_verdict: m.verdict, human_graded_at: now })
+    .update(patch)
     .eq('input_id', m.input_id)
-  if (error) { failed += 1; console.error(`✗ ${m.input_id} 저장 실패: ${error.code ?? ''} ${error.message}`) }
-  else applied += 1
+  if (error) {
+    failed += 1
+    console.error(`✗ ${m.input_id} 저장 실패: ${error.code ?? ''} ${error.message}`)
+    if ((error.code === '42703' || error.code === 'PGRST204') && /human_product_informative/.test(error.message ?? '')) {
+      console.error('✗ human_product_informative 컬럼 없음 — 마이그 20260930000031 미적용. 적용 뒤 다시 돌려라(같은 표를 다시 넣어도 안전하다).')
+      break
+    }
+  } else applied += 1
 }
 
 console.log(`적용 ${applied}건 · 실패 ${failed}건 · 행 없음 ${missing.length}건 · 빈칸 ${blank}건`)

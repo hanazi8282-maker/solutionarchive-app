@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// T2 완전 동의 자동 승인 — 1차(verdict)·2차(second_verdict)가 둘 다 relevant 인 판정 행에 auto_approved_at 을 찍는다.
+// T2 완전 동의 자동 승인(rr-v2) — 1차(verdict)·2차(second_verdict)가 둘 다 relevant 이고 정보 있음(product_informative·
+// second_product_informative)이 둘 다 true 인 판정 행에 auto_approved_at 을 찍는다. 마이그 000027·000031 이 전제다.
 //
 // ⛔ 기본 꺼짐. 리포 변수 AUTO_APPROVAL_ENABLED=true 와 AUTO_APPROVAL_SINCE=<YYYY-MM-DD> 가 둘 다 있어야 돈다.
 //    켜는 조건(CLAUDE.md §10.1 예외 조건 2): docs/t2-relevance-criteria.md 기준 통일 + SaaS 100건 재시험 90% 이상.
@@ -33,14 +34,16 @@ if (String(process.env.AUTO_APPROVAL_ENABLED ?? '').trim().toLowerCase() !== 'tr
 const sb = await createClient()
 if (!sb) { console.error('✗ DB 연결 실패 — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY'); process.exit(2) }
 
-// 감사 창 = 자동 승인됐고 사람 채점이 있는 행. 조회 실패는 null 로 넘겨 게이트가 끄게 한다(§7.1).
+// 감사 창 = 이 규칙(rr-v2)으로 자동 승인됐고 사람 채점이 있는 행. rr-v1 승인은 섞지 않는다(태그별 창, 설계 §6).
+// 정보 열이 빈 행은 scoreApproval 이 창에서 뺀다. 조회 실패는 null 로 넘겨 게이트가 끄게 한다(§7.1).
 const { data: audits, error: auditErr } = await sb
   .from('review_relevance_verdicts')
-  .select('human_verdict, human_graded_at')
+  .select('human_verdict, human_product_informative, human_graded_at')
   .not('auto_approved_at', 'is', null)
+  .eq('auto_approval_rule', AUTO_APPROVAL_RULE)
   .not('human_verdict', 'is', null)
 if (auditErr && (auditErr.code === '42703' || auditErr.code === 'PGRST204')) {
-  console.error(`✗ 자동 승인 컬럼이 없다(${auditErr.code}) — 마이그 20260930000027 미적용인데 플래그가 켜져 있다. 켜기 전에 적용하라.`)
+  console.error(`✗ 자동 승인 컬럼이 없다(${auditErr.code}) — 마이그 20260930000027·20260930000031 미적용인데 플래그가 켜져 있다. 켜기 전에 적용하라.`)
   process.exit(2)
 }
 if (auditErr) warn(`감사 창 조회 실패: ${auditErr.message}`)
@@ -80,8 +83,9 @@ const rows = []
 for (let from = 0; ; from += 1000) {
   const { data, error } = await sb
     .from('review_relevance_verdicts')
-    .select('input_id, verdict, second_verdict, human_verdict, judged_at, auto_approved_at')
+    .select('input_id, verdict, second_verdict, product_informative, second_product_informative, human_verdict, judged_at, auto_approved_at')
     .eq('verdict', 'relevant').eq('second_verdict', 'relevant')
+    .eq('product_informative', true).eq('second_product_informative', true)
     .is('human_verdict', null).is('auto_approved_at', null)
     .gte('judged_at', gate.since.toISOString())
     .order('input_id').range(from, from + 999)
@@ -103,6 +107,7 @@ for (let i = 0; i < targets.length; i += 200) {
     .update({ auto_approved_at: stamp, auto_approval_rule: AUTO_APPROVAL_RULE })
     .in('input_id', ids)
     .eq('verdict', 'relevant').eq('second_verdict', 'relevant')
+    .eq('product_informative', true).eq('second_product_informative', true)
     .is('human_verdict', null).is('auto_approved_at', null)
     .select('input_id')
   if (error) { failed += ids.length; console.error(`✗ 저장 실패(${i + 1}~${i + ids.length}): ${error.message}`); continue }

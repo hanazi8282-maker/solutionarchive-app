@@ -7,7 +7,7 @@
 //             **라벨 4개 전부 NULL 이고 불가 표시가 없는 행에만** 라벨을 채운다. verdict·human_verdict·기존 라벨은 절대 덮지 않는다.
 
 // "관련"의 정의는 1차 판정(relevance-judge.ts SYSTEM)과 같은 상수다 — 2026-09-28 기준 통일(docs/t2-relevance-criteria.md).
-import { RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION } from './relevance-criteria.ts'
+import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION } from './relevance-criteria.ts'
 
 export const VERDICTS = ['relevant', 'irrelevant', 'unknown'] as const
 export const LEVELS = ['high', 'mid', 'low'] as const
@@ -23,9 +23,11 @@ export const SECOND_OPINION_INSTRUCTIONS = [
   '',
   RELEVANCE_CRITERIA,
   '',
+  PRODUCT_INFORMATIVE_CRITERIA,
+  '',
   '출력: 같은 input_id 로 {criteria_version, rows:[...]} 형태의 relevance-second-opinion-<날짜>.json.',
   `criteria_version 은 "${RELEVANCE_CRITERIA_VERSION}" 을 그대로 적는다.`,
-  '행: verdict(relevant|irrelevant|unknown) · impact/frequency(high|mid|low|null) · community_signal(pain|demand|objection|null) · wtp_mentioned(true|false|null) · reason(한 줄).',
+  '행: verdict(relevant|irrelevant|unknown) · product_informative(true|false|null — 위 추가 질문, verdict 와 따로) · impact/frequency(high|mid|low|null) · community_signal(pain|demand|objection|null) · wtp_mentioned(true|false|null) · reason(한 줄).',
   '원문으로 정할 수 없는 라벨은 null 이다 — 추측으로 채우지 마라.',
 ].join('\n')
 
@@ -42,6 +44,8 @@ export type OpinionRow = {
   frequency: (typeof LEVELS)[number] | null
   community_signal: (typeof SIGNALS)[number] | null
   wtp_mentioned: boolean | null
+  /** rr-v2 추가 질문. 생략·null = 판단 불가(옛 t2c 파일은 이 키가 없다). 불리언 아닌 값은 거부한다. */
+  product_informative: boolean | null
   reason?: string | null
 }
 export type DbRow = {
@@ -84,8 +88,10 @@ export function validateOpinions(raw: unknown): { ok: OpinionRow[]; rejected: { 
     if (sig === undefined) return void rejected.push({ index, reason: `community_signal 어휘 밖: ${String(o.community_signal)}` })
     const wtp = o.wtp_mentioned == null ? null : typeof o.wtp_mentioned === 'boolean' ? o.wtp_mentioned : undefined
     if (wtp === undefined) return void rejected.push({ index, reason: `wtp_mentioned 불리언 아님: ${String(o.wtp_mentioned)}` })
+    const info = o.product_informative == null ? null : typeof o.product_informative === 'boolean' ? o.product_informative : undefined
+    if (info === undefined) return void rejected.push({ index, reason: `product_informative 불리언 아님: ${String(o.product_informative)}` })
     seen.add(id)
-    ok.push({ input_id: id, verdict: verdict as OpinionRow['verdict'], impact, frequency, community_signal: sig, wtp_mentioned: wtp, reason: typeof o.reason === 'string' ? o.reason.slice(0, 500) : null })
+    ok.push({ input_id: id, verdict: verdict as OpinionRow['verdict'], impact, frequency, community_signal: sig, wtp_mentioned: wtp, product_informative: info, reason: typeof o.reason === 'string' ? o.reason.slice(0, 500) : null })
   })
   return { ok, rejected }
 }

@@ -18,6 +18,7 @@
 //   node --env-file=.env.local scripts/case-review.mjs show    --slug notion
 //   node --env-file=.env.local scripts/case-review.mjs approve --slug notion --move 0 --by 남헌
 //   node --env-file=.env.local scripts/case-review.mjs approve --slug notion --case   --by 남헌
+//   node --env-file=.env.local scripts/case-review.mjs approve --slug notion --all-moves --case --by 남헌   # ca-v1 검증중 → 불시검수 통과(정식 노출 승격)
 //   node --env-file=.env.local scripts/case-review.mjs reject  --slug notion --move 1 --by 남헌
 //   node --env-file=.env.local scripts/case-review.mjs transferability --slug notion --move 0 --value HIGH --by 남헌
 //   node --env-file=.env.local scripts/case-review.mjs regrade [--slug notion] [--dry]
@@ -319,7 +320,10 @@ async function decide(status) {
     }
     for (const m of targets) {
       must(
-        await supabase.from('case_moves').update({ review_status: status }).eq('id', m.id).select('id'),
+        // reviewed_by 를 같이 쓴다 — ca-v1 되돌리기·검증중 판별자가 `reviewed_by IS NULL`(사람이 안 봤다)이라,
+        // 비워 두면 CLI 승인이 기계 승인으로 읽힌다(연결 설계 §8). 자동 승인 무브를 여기서 다시 approve 하면
+        // 그게 불시검수 통과 = 정식 노출 승격이다.
+        await supabase.from('case_moves').update({ review_status: status, reviewed_by: by, reviewed_at: new Date().toISOString() }).eq('id', m.id).select('id'),
         'case_moves UPDATE',
       )
       // 아래 --case 경고가 이 스냅샷을 다시 읽는다. 갱신해 두지 않으면 방금 승인한

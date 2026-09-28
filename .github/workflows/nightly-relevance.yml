@@ -106,6 +106,23 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: node scripts/relevance-auto-approve.mjs
 
+      # 케이스 무브 자동 승인 ca-v1(CLAUDE.md §10.1 예외 2, docs/case-approval-automation-roadmap.md).
+      # ⛔ 기본 꺼짐 — 리포 변수 CASE_AUTO_APPROVAL_STAGE=candidate|approve 와 CASE_AUTO_APPROVAL_SINCE 가 없으면 DB 도 열지 않는다.
+      # rr-v1 게이트에 종속이라 위 스텝과 같은 AUTO_APPROVAL_* 변수를 읽는다. 시크릿은 위 스텝과 같은 셋이다(새 시크릿 없음).
+      - name: Case move auto-approval ca-v1 (stage-gated, default off)
+        if: success() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+          AUTO_APPROVAL_ENABLED: ${{ vars.AUTO_APPROVAL_ENABLED || 'false' }}
+          AUTO_APPROVAL_SINCE: ${{ vars.AUTO_APPROVAL_SINCE || '' }}
+          CASE_AUTO_APPROVAL_STAGE: ${{ vars.CASE_AUTO_APPROVAL_STAGE || 'off' }}
+          CASE_AUTO_APPROVAL_SINCE: ${{ vars.CASE_AUTO_APPROVAL_SINCE || '' }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: node scripts/case-auto-approve.mjs
+
       # 결정 b(증량 싱크 8번): 사람 채점(human_verdict) 대비 LLM 판정 일치율을 매일 요약에 남긴다. 읽기 전용.
       - name: Relevance eval report (human vs LLM)
         if: always()

@@ -281,7 +281,7 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 - **케이스 적립** — `case_studies` / `case_moves` / `case_evidence` 에 INSERT.
   기본은 전부 `review_status='draft'` 로만 들어간다. **이 예외는 `case_studies`/`case_moves`
   의 `review_status` 에는 적용되지 않는다** — 구현 단계(2026-09-28, PR #311)에서 두 테이블에
-  `input_id` 연결 컬럼이 없는 것이 확인돼, 범위를 판정 행 하나로 좁혔다(바로 아래).
+  `input_id` 연결 컬럼이 없는 것이 확인돼, 범위를 판정 행 하나로 좁혔다(바로 아래). 케이스까지 넓히는 조건은 예외 2 다.
   **예외(남헌 2026-09-28 개정) — T2 완전 동의 자동 승인.** 1차 판정(`relevance-judge-auto`)과
   2차 판정(second-opinion)이 **같은 input_id 에 대해 독립적으로 둘 다 `verdict='relevant'`** 를
   낸 건에 한해서만, 무인 루프가 `review_relevance_verdicts.auto_approved_at` 을 직접 기록할
@@ -300,6 +300,27 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   근거·설계는 `reports/2026-09-28/` 아래 승인 자동화 설계 문서가 정본이다. 이 예외는 그 설계가
   구현한 정확한 조건(테이블·컬럼·킬스위치 수치)을 반드시 따른다 — 이 문단은 승인 조건만 못박고,
   구현 세부는 설계 문서에 위임한다.
+  **예외 2(남헌 2026-09-28 개정) — 케이스 무브 자동 승인 `ca-v1`.** 무인 루프가 `case_moves.review_status` 를
+  `draft`→`approved` 로, 그 케이스의 무브가 전부 approved 일 때 `case_studies.review_status` 를 `approved` 로 쓸 수 있다.
+  조건은 설계 `reports/2026-09-28/case-approval-linkage-design.md` §4 의 여섯 가지(연결 VOC ≥3건·같은 project_id·전부
+  승인 · `metric_after IS NULL` · `outcome_direction <> 'negative'` · `transfer_note`·`preconditions` 기재 · draft ∧
+  `reviewed_by IS NULL`)이고, 하나라도 못 지키면 §10.1 위반이다. 코드 `lib/cases/case-auto-approval.ts`, 집행 `scripts/case-auto-approve.mjs`.
+  - **가동 전제 3개 — 전부 충족 전에는 `CASE_AUTO_APPROVAL_STAGE=off`(기본값)를 유지한다.**
+    (a) VOC 연결 케이스가 실제로 생산되고 있다(`case_move_inputs` 적용 + 연결 VOC ≥3건 draft 무브가 쌓인다),
+    (b) 현재 운영 조합의 `rr-v1` 사람 감사가 정확도를 확인했다(로드맵 §2-2 문턱),
+    (c) 어드민 케이스 삭제 기능이 있다. 그 위에 로드맵 `docs/case-approval-automation-roadmap.md` §2 진입 조건표를 따른다.
+  1. **쓸 수 있는 컬럼은 이것뿐이다**: `case_moves.review_status`·`auto_candidate_at`·`auto_approved_at`·`auto_approval_rule`,
+     `case_studies.review_status`·`auto_approved_at`·`auto_approval_rule`. `reviewed_by`·`review_note`·`transferability`·등급은 사람만 쓴다.
+  2. **2단계(`candidate`)** 에서는 `auto_candidate_at` 만 쓴다. 상태는 사람이 바꾼다.
+  3. **감사·킬스위치**는 T2 와 같은 구조로 따로 돈다(로드맵 §3: 창 30 · 반려 4건 · 최근 14일 감사 8건 미만이면 확인 불가,
+     `rr-v1` 이 닫히면 같이 닫힘, `case_move_inputs` 가 없거나 못 읽으면 닫힘). 걸리면 신규 승인 0건이고
+     **`auto_approval_rule='ca-v1' ∧ reviewed_by IS NULL ∧ review_status='approved'` 인 행을 `draft` 로 되돌린다**(태그
+     `ca-v1:reverted`). 사람이 본 행은 건드리지 않는다. 이 되돌리기 UPDATE 는 여기 적어 두는 것으로 허가한다.
+  4. **낮은 노출.** 자동 승인 ∧ `reviewed_by IS NULL` 케이스는 공개 목록에서 검증된 케이스 아래로 가고 '검증중' 배지를 단다.
+     사람이 불시검수에서 맞다고 결정하면(`reviewed_by` 기록) 정식 노출로 올라간다. 사람 승인 케이스는 영향 없다.
+  5. **단계를 올리는 것은 사람·역할 세션만 한다**(리포 변수 `CASE_AUTO_APPROVAL_STAGE`·`CASE_AUTO_APPROVAL_SINCE`).
+     기계는 내리기만 한다. 3단계(`approve`) 진입은 사람 판단 예외다(로드맵 §5).
+  6. 조건 5 의 "범위는 관련성 자동 승인 하나뿐" 은 이 예외 2 를 더한 것으로 읽는다. `evidence_grade`·발행·이식성에는 미치지 않는다.
 - **초안 staging** — `content_items`(`status='proposed'`) / `posts`
   (`status IN ('draft','pending_review')`, **`published_at` 은 항상 NULL**).
 - **조사 큐·실행 상태** — `research_queue` / `agent_runs` / `agent_run_steps`.
@@ -315,8 +336,8 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 
 - **승인·등급 변경** — `review_status` 를 `approved`/`rejected` 로 바꾸는 것,
   `evidence_grade` 를 손으로 올리는 것. (`regrade` 는 근거에서 계산하는 것이라
-  별개이고, 그것도 사람이 실행한다.) **유일한 예외는 위 "T2 완전 동의 자동 승인"**
-  (남헌 2026-09-28 개정, 조건 5개 전부 충족 시) — 그 밖의 모든 승인·등급 변경은 사람이 한다.
+  별개이고, 그것도 사람이 실행한다.) **예외는 위 "T2 완전 동의 자동 승인"과 예외 2(케이스 무브 `ca-v1`) 둘이다**
+  (남헌 2026-09-28 개정, 각 조건 전부 충족 시) — 그 밖의 모든 승인·등급 변경은 사람이 한다.
 - **발행** — 무인 루프는 어떤 SNS 발행 API 도 호출하지 않는다. 무인 루프의 환경에
   `THREADS_ACCESS_TOKEN` 자체가 없다. 정책이 아니라 구조다. (사람이 앱에서 누르는
   즉시발행 버튼은 §10 개정대로 허용 — 토큰은 Vercel 런타임에만 있다.)

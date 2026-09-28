@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { clipTransferNote, detailTitle } from '@/lib/cases/detail'
 import { READER_PROBLEM_LABEL } from '@/lib/cases/draft'
+import { caseExposure } from '@/lib/cases/case-auto-approval'
 import { Chip } from './Chip'
 import { PubBrandLogo } from './PubBrandLogo'
 import { PubGradeBadge } from './PubGradeBadge'
@@ -29,6 +30,10 @@ export type PubCaseCardStudy = {
   created_at?: string | null
   logo_url?: string | null
   brand_domain?: string | null
+  /** 자동 승인 표시(마이그 20260930000029). 있고 reviewed_by 가 비면 '검증중'. */
+  reviewed_by?: string | null
+  auto_approval_rule?: string | null
+  auto_approved_at?: string | null
 }
 
 export type PubCaseCardMove = {
@@ -41,6 +46,9 @@ const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'nu
 
 /** 승인일. `reviewed_at` 이 비면 **적립일이 아니라 "승인일 미기재"** 다 — 다른 날짜로 메우지 않는다. */
 function approvedOn(study: PubCaseCardStudy): string {
+  if (caseExposure(study) === 'verifying') {
+    return study.auto_approved_at ? `자동 승인 ${KST.format(new Date(study.auto_approved_at))}` : '자동 승인'
+  }
   const at = study.reviewed_at
   return at ? `승인 ${KST.format(new Date(at))}` : '승인일 미기재'
 }
@@ -65,6 +73,9 @@ export function PubCaseCard({ study, move, moveCount, reason }: {
 
       <div className="pub-card-body">
         <div className="pub-chiprow">
+          {caseExposure(study) === 'verifying'
+            ? <Chip tone="mixed" title="자동 승인됐고 사람 불시검수 전이다. 검수를 통과하면 정식 노출로 올라간다.">검증중</Chip>
+            : null}
           {problem ? <Chip>{READER_PROBLEM_LABEL[problem] ?? problem}</Chip> : null}
           {study.bottleneck ? <Chip>병목 {study.bottleneck}</Chip> : null}
         </div>

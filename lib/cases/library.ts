@@ -21,6 +21,7 @@ import { sortMovesByTime, type DetailMoveRow, type DetailStudyRow } from './deta
 import { displayGrade } from './grade-display.ts'
 import { productKindOf } from './advisor.ts'
 import { READER_PROBLEMS } from './draft.ts'
+import { caseExposure } from './case-auto-approval.ts'
 import {
   DEFAULT_SEARCH_KIND, emptyStateText, parseSearchQuery, type SearchKind,
 } from './search.ts'
@@ -124,14 +125,17 @@ function byRecent(a: LibraryCard, b: LibraryCard): number {
   return (b.study.created_at ?? '').localeCompare(a.study.created_at ?? '')
 }
 
-/** 정렬 3종. 1차 키가 같으면 전부 최신 승인순으로 떨어진다 — 같은 등급 안에서 순서가 흔들리지 않게. */
+/** 검증중(자동 승인 ∧ 사람 미검수)은 어느 정렬이든 검증된 카드 **아래**로 — 감사 통과 전 상단 노출을 낮춘다. */
+export const isVerifying = (c: LibraryCard) => caseExposure(c.study) === 'verifying'
+
+/** 정렬 3종. 검증중은 맨 아래 묶음. 1차 키가 같으면 전부 최신 승인순으로 떨어진다 — 같은 등급 안에서 순서가 흔들리지 않게. */
 export function sortLibrary(cards: LibraryCard[], sort: LibrarySort): LibraryCard[] {
   const cmp: Record<LibrarySort, (a: LibraryCard, b: LibraryCard) => number> = {
     recent: byRecent,
     grade: (a, b) => gradeRank(b) - gradeRank(a) || byRecent(a, b),
     moves: (a, b) => b.move_count - a.move_count || byRecent(a, b),
   }
-  return [...cards].sort(cmp[sort])
+  return [...cards].sort((a, b) => Number(isVerifying(a)) - Number(isVerifying(b)) || cmp[sort](a, b))
 }
 
 /** 문제 유형별 건수 — 사이드바 칩이 쓴다. 어휘 밖·빈 값은 `unlabeled` 로 따로 센다(0 으로 숨기지 않는다). */
@@ -308,7 +312,7 @@ export function pickTodayCase(cards: LibraryCard[], now: Date): LibraryCard | nu
   let best: LibraryCard | null = null
   let bestScore = -1
   for (const c of cards) {
-    if (c.move_count === 0) continue
+    if (c.move_count === 0 || isVerifying(c)) continue // 검증중은 오늘의 케이스로 올리지 않는다
     const score = fnv1a(`${seed}:${c.study.slug}`)
     if (score > bestScore) { best = c; bestScore = score }
   }

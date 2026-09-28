@@ -393,6 +393,64 @@ export async function callLlmWithModel(
   throw new AllGeminiModelsExhaustedError(tried)
 }
 
+export type RotateResult =
+  | { ok: true; text: string; model: string; failures: string[] }
+  /** stop=true: 오늘은 다시 불러도 같다(예산·402/403·모든 모델 429/404) — 호출부는 멈춘다. false: 이 요청만 실패(내일 다시). */
+  | { ok: false; stop: boolean; reason: string; failures: string[] }
+
+/**
+ * Gemini 모델 순환 호출 — callLlmWithModel('gemini') 체인은 503(과부하)에서 다음 모델로 넘어가지 않고 던진다.
+ * 그래서 모델을 하나씩 돌리고(각 모델은 callWithRetry 로 자체 백오프), 한 바퀴가 다 실패하면 쉬었다가(baseWaitMs×바퀴) 다시 돈다.
+ * 429·404 인 모델은 exhausted 에 넣어 이후 바퀴·호출에서 건너뛴다(여러 호출이 같은 Set 을 넘기면 실행 전체에서 공유).
+ * 쓰는 곳: scripts/relevance-second-judge-auto.mjs(야간 2차) · scripts/t2-approval-eval.mjs(평가 하네스).
+ * call·sleep 은 셀프테스트용 주입점이다.
+ */
+export async function callGeminiRotating(
+  systemPrompt: string,
+  userPrompt: string,
+  label: string,
+  opts: {
+    models?: readonly string[]
+    rounds?: number
+    baseWaitMs?: number
+    exhausted?: Set<string>
+    call?: (model: string) => Promise<string>
+    sleep?: (ms: number) => Promise<void>
+  } = {},
+): Promise<RotateResult> {
+  const models = opts.models ?? geminiModelChain()
+  const rounds = opts.rounds ?? 4
+  const baseWaitMs = opts.baseWaitMs ?? 30_000
+  const exhausted = opts.exhausted ?? new Set<string>()
+  const sleep = opts.sleep ?? ((ms: number) => new Promise<void>(r => setTimeout(r, ms)))
+  const budgetChars = systemPrompt.length + userPrompt.length
+  const call = opts.call ?? ((m: string) => callWithRetry(label, m, () => callGemini(m, systemPrompt, userPrompt), budgetChars))
+  const failures: string[] = []
+
+  for (let round = 0; round < rounds; round++) {
+    for (const m of models) {
+      if (exhausted.has(m)) continue
+      try {
+        const text = await call(m)
+        console.log(`[analysis/llm] ${label} provider=gemini model=${m} (순환 ${round + 1}바퀴)`)
+        return { ok: true, text, model: m, failures }
+      } catch (e) {
+        const status = e instanceof ProviderHttpError ? e.status : null
+        failures.push(`${m}: ${status ?? ''} ${(e instanceof Error ? e.message : String(e)).slice(0, 80)}`)
+        if (e instanceof LlmBudgetExceededError || status === 402 || status === 403) {
+          return { ok: false, stop: true, reason: describeFailure(e), failures }
+        }
+        if (status === 429 || status === 404) exhausted.add(m)
+      }
+    }
+    if (models.every(m => exhausted.has(m))) {
+      return { ok: false, stop: true, reason: new AllGeminiModelsExhaustedError([...models]).message, failures }
+    }
+    if (round < rounds - 1) await sleep(baseWaitMs * (round + 1))
+  }
+  return { ok: false, stop: false, reason: `모든 모델·${rounds}바퀴 실패`, failures }
+}
+
 /**
  * JSON 응답을 기대하는 호출. 모델이 간혹 설명문을 섞어 JSON 파싱이 깨지는데,
  * 그때 원문을 로그에 남기고 "JSON 만 출력하라"고 한 번 더 요청한다.

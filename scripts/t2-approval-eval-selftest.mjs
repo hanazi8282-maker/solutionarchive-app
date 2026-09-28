@@ -85,7 +85,8 @@ const h = readFileSync(`${ROOT}scripts/t2-approval-eval.mjs`, 'utf8')
 ok(h.includes('scoreEval(') && h.includes('verdictAgreement(') && !/[0-9a-f]{8}-[0-9a-f]{4}-4/.test(h), '하네스가 순수 부품을 쓴다(예시·재확인 id 는 lib 에서만)')
 ok(h.includes("원문 ${raw.size}/${ids.length}건만 읽힘") && h.includes('process.exit(2)'), '원본 읽기 건수 불일치 → 비0 종료')
 ok(h.includes("if (o.error)") && h.includes('캐시 안 함'), '호출 실패는 캐시하지 않는다')
-ok(h.includes('round < 4'), '2차 503 모델 순환 4바퀴')
+// 순환·4바퀴 로직은 야간 2차와 같은 헬퍼다 — 하네스에 복사본이 다시 생기면 실패(동작 검사는 relevance-second-judge-selftest).
+ok(h.includes('callGeminiRotating(') && !h.includes('round < 4'), '2차 503 모델 순환 4바퀴 = 공용 헬퍼')
 ok(!/\.(update|upsert|insert|delete)\(/.test(h), '하네스는 DB 에 쓰지 않는다')
 
 console.log(`\n${fail ? '❌' : '✅'} rr-v2 평가 하네스 셀프테스트: ${pass} pass / ${fail} fail`)

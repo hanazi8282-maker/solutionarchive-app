@@ -17,7 +17,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
-import { validateOpinions, compare, summarize, isCurrentCriteria } from '../lib/analysis/second-opinion.ts'
+import { validateOpinions, compare, summarize, isCurrentCriteria, recordSecondOpinion } from '../lib/analysis/second-opinion.ts'
 import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import { kstDate } from './notion-status-log.mjs'
 
@@ -73,17 +73,14 @@ if (recordSecond) {
     const model = opt('second-model') ?? (typeof raw.model === 'string' ? raw.model : 'second-opinion-session')
     const judgedAt = typeof raw.generated_at === 'string' && Number.isFinite(Date.parse(raw.generated_at)) ? raw.generated_at : new Date().toISOString()
     for (const o of opinions.filter((x) => db.has(x.input_id))) {
-      const write = (withInfo) => sb.from('review_relevance_verdicts')
-        .update({ second_verdict: o.verdict, second_model: model, second_judged_at: judgedAt, ...(withInfo ? { second_product_informative: o.product_informative } : {}) })
-        .eq('input_id', o.input_id).is('second_verdict', null)
-        .select('input_id')
-      let { data, error } = await write(second.infoColumn !== 'absent')
+      // 야간 2차(relevance-second-judge-auto.mjs)와 같은 UPDATE. 이 경로는 사람 채점 행 비교용으로도 쓰여 human_verdict 조건은 걸지 않는다(기존 동작).
+      const r = await recordSecondOpinion(sb, o, { model, judgedAt, withInfo: second.infoColumn !== 'absent', requireUngraded: false })
       // 정보 컬럼(마이그 000031)만 없으면 그 필드만 빼고 기록한다 — rr-v2 대상은 0건이 되므로 조용히 넘기지 않는다(§7.1).
-      if (error && (error.code === '42703' || error.code === 'PGRST204') && /second_product_informative/.test(error.message ?? '')) {
+      if (r.infoColumnAbsent && second.infoColumn !== 'absent') {
         second.infoColumn = 'absent'
         console.error('⚠️ second_product_informative 컬럼 없음 — 마이그 20260930000031 미적용. 2차 정보 판정 없이 기록한다(rr-v2 자동 승인 대상 0건).')
-        ;({ data, error } = await write(false))
       }
+      const { error } = r
       if (error) {
         second.failed++
         console.error(`✗ ${o.input_id} 2차 기록 실패: ${error.code ?? ''} ${error.message}`)
@@ -91,7 +88,7 @@ if (recordSecond) {
         if (error.code === '42703' || error.code === 'PGRST204') { second.refused = '2차 판정 컬럼 없음 — 마이그 20260930000027 미적용'; break }
         continue
       }
-      if (!data || data.length === 0) second.skipped++; else second.recorded++
+      if (r.result === 'skipped') second.skipped++; else second.recorded++
     }
   }
 }

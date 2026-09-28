@@ -1,0 +1,662 @@
+{
+ "0783d6ac-f5b0-4392-b327-fc0114590933": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "단순 수령 확인 및 감사 인사로 제품 경험이나 구체적 정보가 없음",
+  "model": "gemini-3-flash-preview"
+ },
+ "08f10ada-daa6-495c-8c6b-1aad17963bb3": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "오픈 소스 여부, 무료 플랜의 넉넉함, 경쟁사(Calendly) 대비 발전상 등 구체적 선택 이유 포함",
+  "model": "gemini-3-flash-preview"
+ },
+ "0dd76440-47c8-466c-a087-29aa9e9cda34": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁사(Paddle)의 고객지원 불만 및 기술적 실패를 이유로 해당 제품을 시도하겠다는 의사 표시",
+  "model": "gemini-3-flash-preview"
+ },
+ "0e38208e-7763-4b63-b9bf-8dd1aea9ca54": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "구독자 수 기반의 과금 방식에 대한 구체적인 불만과 대안 탐색 이유 명시",
+  "model": "gemini-3-flash-preview"
+ },
+ "15292b1b-1306-49ff-945d-0e2e977bbadb": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "유튜버 이름만 언급된 의미 없는 댓글",
+  "model": "gemini-3-flash-preview"
+ },
+ "16355784-5df5-46d1-983f-03e2321a755b": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "특정 지역(인도)에서 Stripe 대안으로 MoR 서비스가 필요한 구체적 상황과 이유 설명",
+  "model": "gemini-3-flash-preview"
+ },
+ "1da3aa20-9298-475e-bcde-1771487ec0e1": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "인터페이스, 통합 기능 등 구체적 장점과 지불 의사 금액(5유로), 요금제 불만 사항을 모두 포함",
+  "model": "gemini-3-flash-preview"
+ },
+ "2161a370-3793-4408-ac9d-71a310ef7631": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "인프라 비용 목록 중 하나로 이름만 언급되었을 뿐 제품 경험이나 기준이 없음",
+  "model": "gemini-3-flash-preview"
+ },
+ "26f29153-71aa-4a49-88a2-69b623f67209": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "MoR로서의 세금 처리 간소화 및 역발행 세금계산서 기능 등 구체적 선택 기준 언급",
+  "model": "gemini-3-flash-preview"
+ },
+ "2c9f6c48-bb85-4151-804b-fdb20750f8c3": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁 제품 사용 후 발생한 구체적인 부작용(뾰루지)과 그에 따른 대안 문의",
+  "model": "gemini-3-flash-preview"
+ },
+ "3a543c11-eb2b-4e99-b1fb-881c762e2d23": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "UI의 직관성, 주요 지표 확인의 용이성, 프라이버시 정책 등 구체적 만족 이유와 결제 의사 포함",
+  "model": "gemini-3-flash-preview"
+ },
+ "43fc1d1c-9adc-4380-9d82-70a014b396db": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "가격 페이지에 명시되지 않은 추가 수수료(국제 결제, 페이팔 등)에 대한 구체적 불만",
+  "model": "gemini-3-flash-preview"
+ },
+ "44e5822d-778a-4050-82c0-4dc0cb7af664": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "자기 프로젝트의 결제 테스트 도구로 사용했다는 내용일 뿐 도구 자체의 경험은 없음",
+  "model": "gemini-3-flash-preview"
+ },
+ "453c1a4d-d802-4dbe-be01-c551efd5684f": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Stripe의 정책(특정 서비스 금지)으로 인해 해당 제품을 대안으로 쓰고자 하는 구체적 요구",
+  "model": "gemini-3-flash-preview"
+ },
+ "46cba054-aa18-45ed-a9ac-08a2cb8ca0c2": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "영상 내용에 대한 단순 감탄사로 제품 경험이 없음",
+  "model": "gemini-3-flash-preview"
+ },
+ "594036ab-9291-431e-aa4a-d8977ac7a416": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁사 대비 가격 경쟁력과 기능 충족률(90%)을 구체적으로 들어 추천함",
+  "model": "gemini-3-flash-preview"
+ },
+ "597642ba-877a-48b5-9619-e6fd9da4d912": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "영상 제작 비용과 조회수에 대한 잡담으로 제품 경험과 무관함",
+  "model": "gemini-3-flash-preview"
+ },
+ "6374499d-14f5-4793-a648-9bad2276faac": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "자신이 타깃 고객이라는 자기소개일 뿐 구체적인 기능 요구나 페인이 없음",
+  "model": "gemini-3-flash-preview"
+ },
+ "6399605c-4f35-4ab1-8589-c266df3c89b7": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "대규모 사용 시 가격이 너무 비싸다는 구체적인 비용 부담(objection) 언급",
+  "model": "gemini-3-flash-preview"
+ },
+ "64e38d04-f83f-4f95-93e8-beda64f01210": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "건전지 삽입 구조의 불편함과 정체불명의 테이프 등 구체적인 제품 설계 불만",
+  "model": "gemini-3-flash-preview"
+ },
+ "7b874b9c-b479-4c1f-9eca-7074acacb3c6": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "가격 부담으로 망설이다가 저렴한 요금제로 고객이 되었다는 구체적인 선택 이유와 가격 정보가 있음",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "7f93e98c-3701-4884-8a26-e934a16ffae6": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁 제품(Substack)과 비교하여 통제력 측면에서 선택하는 이유를 언급함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "8a499c50-5519-4824-8f72-75c0d1f3eead": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁사(Substack)의 분석 기능, 전달력 등의 페인을 짚고 ConvertKit을 추천하는 이유를 설명함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "8c414277-0512-4585-b37a-ec7fd67f9368": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁사인 Paddle 대비 경쟁력이 부족하다는 점과 부가 기능으로 인한 차이점을 지적함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "8c7083d6-3fef-4c0f-b294-e99df9c4a924": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "필요한 기능(세금 처리 등) 때문에 찾게 된 제품이라며 긍정적으로 평가함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "8cf74b96-1502-477e-aa37-fd4f4ae75d7f": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "세금 처리 문제 해결을 위해 MoR(Merchant of Record) 서비스를 써야 하는 이유를 설명함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "9256a8c8-91e8-4f12-9a2d-032980d681d2": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁 제품 대체재의 기능 세트가 기대에 못 미친다는 구체적인 페인과 부족한 기능 항목을 언급함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "98056b6c-0fca-4333-bcbb-fb51e8a38dcc": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "실제 사용 중이며 수수료율(5%)과 세금 처리 장점을 구체적으로 언급함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "98457a83-25ca-4021-a675-4d6b77bf2f8a": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "가격($100) 대비 직접 개발하는 것보다 사는 게 낫다는 구매 결정 이유를 구체적으로 밝힘",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "9ff5b220-4606-4437-a006-a00509bbab4b": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "VC 투자를 받은 오픈소스 SaaS라는 점 때문에 향후 가격 인상이나 비즈니스 모델 변경에 대한 우려를 표함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "a346d00d-224a-4ef9-908c-e7f33363d07e": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "수수료율(LemonSqueezy 5%, Stripe 3%)을 비교하며 제품 호스팅 기능 여부에 따른 차이를 언급함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "a8c92f93-1da3-4b71-bd3e-67838aa763e3": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "대체재들이 세금 처리 기능을 제공하지만 기존 결제 프로세서를 유지하고 싶어 하는 선택 기준을 드러냄",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "b98a31bd-7379-4f86-9c40-c5b2ededbdb1": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "과거 Baremetrics를 써봤으나 데이터 정밀도 면에서 부족한 점이 많아 경쟁사로 옮긴 구체적 페인을 밝힘",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "ba943fc1-8b72-4818-b986-ba798b71ebba": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁 제품(쿠쿠) 사용 중 누수 피해가 반복 발생했으나 해지가 안 되고 부품 교환만 된다는 심각한 AS 페인을 고발함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "bec97c10-9782-49b6-ae0f-379d3e6a1d60": {
+  "verdict": "relevant",
+  "product_informative": false,
+  "reason": "작성자가 연동 오류에 대해 사과하며 제품을 언급한 것으로 사용자 목소리나 구체적 평가라 보기 어려움",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "c03c5842-23bc-49c5-8fde-5850a91b483f": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "개인 용도에 비즈니스 툴을 쓰는 것에 지쳐서 이탈하게 된 구체적인 사용 경험과 이유를 공유함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "cd8f8921-6c6f-41da-86ac-559f0b95b25a": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "페이팔 결제를 지원하는 유사 솔루션이 없어 직접 지표를 계산해야 하는 페인과 대안 제품의 한계를 지적함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "dd4f20d8-df21-4dc0-a905-b07df4c8227c": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "고객 지원 최악이라는 평가와 함께 과거 유료 고객이었으나 최악의 대우를 받았다는 불만(페인)을 공유함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "e8491369-40a6-4439-b620-565b02ab2ffd": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Lemon Squeezy의 높은 수수료(6-10%) 비용 부담을 피하기 위한 대안 서비스 가능성을 논의함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "eae91ed0-c149-4e6e-8f4c-326bacb6322b": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "수수료 구조(숨은 수수료, 5%+50¢ 등)와 제공 기능(파일 풀필먼트, 웹사이트 제공 여부)을 구체적으로 비교함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "eb335900-fc3b-46b4-841c-464d7ca177e1": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "ConvertKit의 월 구독료가 대체재(SendFox) 대비 비싸다는 선택 기준 및 비용 불만을 명시함.",
+  "model": "gemini-3.6-flash"
+ },
+ "f3e83783-577b-4e38-b0ae-591fa2ee0e90": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "단순 기능 문의 한 줄과 문서 링크로 구성되어 사용자 경험이나 선택 기준이 없음.",
+  "model": "gemini-3.6-flash"
+ },
+ "f4e5bae6-b495-4061-91a4-43135d5c1ff4": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "유튜브 이슈 언급글로 직접적인 제품 구매 및 사용 경험이 없음.",
+  "model": "gemini-3.6-flash"
+ },
+ "f53e1f21-b695-4ac5-90e7-84b423764fed": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "단순 문의 폼 전달용으로 ConvertKit을 설정하는 것이 번거롭고 과도하다는 페인을 명시함.",
+  "model": "gemini-3.6-flash"
+ },
+ "f5682b76-cea1-4895-93cb-bbc74dc20b9c": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "ConvertKit의 가격대($100-150/월), 타깃, 도달률, 작업 공수 등 구체적인 평가 정보를 제공함.",
+  "model": "gemini-3.6-flash"
+ },
+ "f6901f91-c846-4454-93af-7d2574e23f72": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Lemon Squeezy를 선택하는 사용자의 조건(쉬운 연동, 초기 단계 등)과 고르는 이유를 구체적으로 분석함.",
+  "model": "gemini-3.6-flash"
+ },
+ "feb028c6-408a-4ce9-bebe-257cde57db47": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "워드프레스 요금제 제약을 설명하기 위한 예시로 ConvertKit이 지나가듯 언급되었을 뿐 제품 자체 정보가 없음.",
+  "model": "gemini-3.6-flash"
+ },
+ "ffcb0e2d-1e62-4a40-baa4-b44e1de0fca7": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "특정 제품 사용 경험이 아닌 정수기 업계 일반 팁 및 필터 관리 방식에 관한 조언글임.",
+  "model": "gemini-3.6-flash"
+ },
+ "ffd02f60-aaca-4ee5-af48-405d18198497": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "제품 자체 사용감 없이 배송 속도와 쿠폰 할인가 언급만 있음.",
+  "model": "gemini-3.6-flash"
+ },
+ "01f698bb-34d2-4148-97f2-a98d900b08c5": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "ConvertKit의 매출 성장 및 마케팅 전략 분석 아티클로 사용자 목소리가 아님.",
+  "model": "gemini-3.6-flash"
+ },
+ "046af2a4-227b-4010-94f5-70d437b730a1": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "유료 프라이버시 중심 분석 도구(Plausible)와 무료 광고 기반 도구(GA)의 가치 제안 차이와 선택 기준을 논함.",
+  "model": "gemini-3.6-flash"
+ },
+ "0a881c67-0c4f-41e2-b11c-d2567f0ab610": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "비즈니스 도구 예시 목록에 Cal.com 이름만 단순 포함됨.",
+  "model": "gemini-3.6-flash"
+ },
+ "1075b9ec-a0ee-46e7-92c5-e17da956f6f4": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Buffer의 오픈 대시보드 URL 도메인으로만 언급됨.",
+  "model": "gemini-3.6-flash"
+ },
+ "10c3aa0c-685c-43a3-b9f5-13ca96601a3e": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "사용 중인 서비스 스택 목록 중 하나로 나열되었으며 구체적인 평가나 선택 이유가 없음.",
+  "model": "gemini-3.6-flash"
+ },
+ "11749511-5409-472c-9a16-22964c2cb272": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Stripe 연동 도구 예시 목록에 단순 언급됨.",
+  "model": "gemini-3.6-flash"
+ },
+ "12c0cc97-1970-4ed2-a838-96481348ced4": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Baremetrics의 매각 금액과 창업자 수익 등 회사 인수/경영에 관한 내용임.",
+  "model": "gemini-3.6-flash"
+ },
+ "1521c65f-f1c3-4ff7-930e-3a2436695b1b": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Baremetrics의 공개 데이터 차트를 찾아보았다는 언급일 뿐 제품 사용 평가가 없음.",
+  "model": "gemini-3.6-flash"
+ },
+ "1c7bb3aa-47bd-42f2-ac24-ef85199a8cd4": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "회사 매각 금액 및 투자자 수익 등 기업 재무/경영 관련 논의임.",
+  "model": "gemini-3.6-flash"
+ },
+ "2cd4dc71-e37a-4804-a6e7-1196f884bd9d": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "웹 분석 시장에서 Plausible 등 기존 도구 대비 저가 대안의 가격과 품질 포지셔닝을 언급함.",
+  "model": "gemini-3.6-flash"
+ },
+ "2da752ff-be41-438f-8cbb-a28ccf901c9f": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Lemon Squeezy 인수 발표 공식 인용문에 대한 의견으로 제품 경험이 없음.",
+  "model": "gemini-3.6-flash"
+ },
+ "2dcba3c1-dbc3-46e4-b361-83b057b64c3b": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "ConvertKit 위젯을 제거하기 위한 uBlock Origin 필터를 공유하며 불편함을 언급함.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "2f15d202-c5cb-4bd4-ab4e-2abfea0575ee": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Baremetrics의 무료 체험 모델 전환 사실을 언급함.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "37505c7c-0f97-4058-ad1c-065ddc38dd83": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Lemon Squeezy 크리에이터를 위한 서비스 홍보글이며 제품 사용 경험이나 선택 기준이 없음.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "3da1395f-61e3-4ca8-b0ea-1231ac31d389": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "크롬 익스텐션 개발 여정일 뿐 타깃 SaaS 제품과 무관함.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "3fd83bc3-3c88-4a0b-884d-96a95bc5764a": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "ConvertKit의 빠른 성장을 언급하며 오픈 파이낸셜 관점에서 긍정적으로 평가함.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "44e898d3-82b9-43e5-a9fb-639ac7d3212b": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Stripe Sigma 제품에 대한 일반적인 기능 분석과 타깃층에 대한 의문으로, 사용자 경험이 아님.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "45ad8d3d-448f-427b-9c83-022d0880caa1": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "이름만 언급되었고 구체적인 사용 경험이나 선택 기준이 없음.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "4792891d-c82e-4541-9b44-3c3d28056cc3": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "부가가치세 및 국제 세금 처리를 위해 Lemon Squeezy 등 대안을 비교하고 선택한 경험을 공유함.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "47adb1ea-710d-4388-8843-74c25d828d2f": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "템플릿 홍보글에서 Cal.com이 기능 목록으로 단순 언급됨.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "4878cb3f-127c-4ee4-a408-107013ae05af": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "자신이 만들고자 하는 SaaS 서비스에 대한 기획 내용임.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "4c9ac207-77b3-4035-87dc-efe2f4cad9b7": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "개인정보 보호 중심의 분석 도구(Plausible 등)가 추적 차단 우회 방식을 지원하는 것에 대한 우려와 페인 지적.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "52c2c101-2601-402a-833a-36a683ee8e24": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "익스텐션 결제 시스템으로 Paddle, Lemon Squeezy 등을 비교하고 선택한 이유를 설명함.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "54f41e1b-37d8-492b-bd53-781c31185ac6": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "초창기 블로그 링크 및 제품 소개로 사용자 경험이나 선택 기준이 없음.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "561e3a11-e07c-4f6f-90ac-60166676c993": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "페이팔용 Baremetrics 같은 KPI 대시보드 서비스를 30달러/월에 기꺼이 지불하겠다는 요구(WTP) 표현.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "570c2eb2-ac9e-4b6e-b97c-8f6b9bbdaf3a": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁 제품(Blogstatic)이 Mailchimp/ConvertKit 기능을 제공하며 가격 비교($39/년)를 제시함.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "5edcc588-4f15-48c7-a547-c3892c6cb171": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "ConvertKit API를 유사 CMS로 사용한 구현 세부 사항과 튜토리얼 공유.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "5f4e7725-7544-446d-9efd-f5119fb5fe82": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "이메일 마케팅 일반 조언이며 특정 제품에 대한 사용 경험이나 선택 기준이 아님.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "65e2fc54-a812-4a56-8794-21745b3052c8": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Baremetrics 데이터를 인용하여 1년 뒤 SaaS 기업의 평균 MRR 통계를 언급함.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "6ba74bb4-cd9f-4eff-b84c-8ffb76d5149e": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Cal.com의 깃허브 이슈 링크를 직접 언급하며 버그나 기능 문제를 제기함.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "6e82a440-b502-4cc3-81ea-f16cd56b9c02": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "유럽 세금 문제의 해결책으로 Lemonsqueezy나 Paddle을 선택 대안으로 제시함.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "71c4ea37-8de3-4f7d-8094-04c6ad388a22": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "ConvertKit 이름만 언급될 뿐 제품 사용 경험이나 선택 기준에 대한 내용이 없다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "7272d1ee-c959-4390-83bf-160976ca15a8": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Lemon Squeezy 제휴 프로그램을 통해 수익을 올리고 있는 구체적 사용 사례와 매출 정보가 있다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "74ef9891-d651-4fb7-b1c3-5a7917cf24cc": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "뉴스레터 서비스(Convertkit 등)를 SEO 블로그 광고로 인해 찾기 힘들었다는 불편함과 대안 탐색 경험이 포함되어 있다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "77200c50-cb2a-491d-ac44-4e35b10c33c6": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "창업자의 회사 운영 방식 및 성장 지향에 대한 이야기로 Baremetrics 제품 경험과 무관하다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "9cce5b0f-938b-4042-8592-eb918c6aa31c": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Baremetrics에서 Chartmogul로 전환한 이유(디자인 등)와 서비스 비교에 대한 언급이 있다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "a1379f7c-965d-4def-ba15-ff74c419b69c": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "인수합병 소식에 따른 시장 공백 가능성에 대한 의견일 뿐 제품 사용 경험이 없다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "a266713e-68df-4570-8a6e-27c3b5facae5": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "결제 솔루션으로 Stripe와 Lemon Squeezy 사이에서 고민하고 선택하는 과정이 담겨 있다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "a57916d0-559e-44d9-89cc-c2cb396178c4": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "가격 정책 및 번들 구성(불필요한 콘텐츠 포함) 때문에 구매를 포기한 구체적 이유가 언급되어 있다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "a6828791-ee3b-4eab-be9e-f43a9f5e7278": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "뉴스레터 발행을 위해 마크다운 편집 후 ConvertKit으로 복사해 붙여넣는 실제 워크플로우가 언급되어 있다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "a6c4a961-19fb-448b-bc3e-e7acd5cee3e0": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Stripe의 자금 동결 및 계정 차단 문제에 대한 우려와 Lemon Squeezy 인수 건에 대한 비판적 의견이 포함되어 있다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "ad1734df-e329-4b47-b393-2d51fb1f38d3": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "오픈소스 프로젝트 구조와 개발/운영 빌드 조직 방식을 참고한 사례로 예약 인프라 제품 사용 경험이 아니다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "b0bd2294-7c79-4c0c-ac04-8229319f8236": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "회사 팀원이 자사 취소 정책과 이탈 인터뷰 경험을 설명하는 글이다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "b4cd9ff3-2f9f-41e9-9b31-8eeedf811432": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "기존에 쓰던 도구가 복잡해져서 ConvertKit과 Intercom 등으로 전환해 사용하고 있다는 이력이다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "bc36cddf-a9c0-4552-b771-fcb9cd8f231a": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Cal.com 공동 창업자가 자사 제품의 오픈소스 라이선스 정책을 직접 설명하는 글이다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "bc59e908-286c-414c-a159-841aa982a015": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "작업자의 마케팅 방식에 대한 주관적 인상일 뿐 ConvertKit 사용 경험이나 기능에 대한 내용이 없다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "be2741df-4d92-43d8-86be-9dfcff9e69d8": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Baremetrics의 벤치마크 데이터를 인용하여 다른 SaaS 기업의 성장 속도와 가격 책정에 대해 논하고 있다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "c0884688-1843-480b-88dd-81a63943ba79": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "링크 공유 외에 제품 사용 경험이나 평가가 전혀 없다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "c4056446-50e6-4151-b82a-12a5275ad975": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Stripe API 한계와 요금제 구조의 기술적 복잡성에 대한 제3자의 추정적 의견이다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "c5a5eebe-c16c-4624-b923-bb8d84cf1d2b": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Baremetrics에 공개된 오픈 스타트업의 데이터를 활용해 자금 조달 옵션을 비교하고 싶다는 사용자 의견이다.",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "cc9597a9-6297-417c-a953-c4d54974bf0b": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "창업자의 회고 및 마케팅 전략을 다룬 글이며 실제 사용자나 구매자의 경험이나 선택 이유가 담겨 있지 않음",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "dad559b2-1a23-40e9-b7db-1f98f75abe47": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Merchant of Record 기능 관점에서 Stripe와 Lemon Squeezy 등 대안들을 비교하는 정보가 있음",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "ddffa67d-c72c-4eab-bcd4-aaf46654a82c": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Stripe 구독 기능 사용 팁에 관한 글이며 분석 대상 도구(Baremetrics)의 사용자 목소리가 아님",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "e0b8db87-3fe4-497d-a8ad-a362f45a4792": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "창업자가 자사 제품(LaunchPro)을 소개하면서 유사한 도구로 Baremetrics를 언급한 홍보성 글임",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "e0eb4fb6-1790-443a-a058-f2cf183504ff": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "개인 뉴스레터 유지를 위해 Substack, Revue, Convertkit 같은 도구들을 직접 다뤄본 경험과 선택 맥락이 언급됨",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "eb097080-7643-47cd-b1d5-1f13e474191c": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Stripe의 Lemon Squeezy 인수 뉴스에 대한 구조적 분석 및 기술적 설명일 뿐 사용자 경험이 아님",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "eb21075f-e64f-4126-a40e-26d75d2fd8d8": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "무료 플랜 요금제 조건(1만 명 구독자 무료)을 직접 안내하는 유용한 정보가 포함됨",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "efb584e8-87df-44ce-a531-d58ab1287d8b": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "창업자가 자사의 서비스 역사와 고객 반응에 대해 설명하는 창업자/회사 이야기임",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "f93f2f10-01df-4bd0-9c86-127ac3b1c940": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "무료로 폼과 뉴스레터를 구축할 때 ConvertKit을 선택해 연동하는 구체적인 방법과 비용 조건을 언급함",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "fe66ed93-cddc-4dc3-ad78-0b18585ffb6e": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "ConvertKit의 창업 스토리와 타깃층을 소개하는 인터뷰 기사 요약으로 개별 사용자의 선택 경험이 아님",
+  "model": "gemini-3.5-flash-lite"
+ },
+ "c899eb1d-5128-4663-9cc8-6ac3706d5b29": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "일반적인 스타터 킷과 스택(Supabase+Next.js) 선택에 관한 조언일 뿐 Lemon Squeezy에 대한 사용자 경험이나 선택 기준이 없음.",
+  "model": "gemini-3.5-flash-lite"
+ }
+}

@@ -1,0 +1,662 @@
+{
+ "0783d6ac-f5b0-4392-b327-fc0114590933": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "수령 감사 인사만 있고 제품 경험 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "15292b1b-1306-49ff-945d-0e2e977bbadb": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "유튜버 이름만 표시, 내용 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "64e38d04-f83f-4f95-93e8-beda64f01210": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "건전지 삽입 방식이 불명확하고 구조가 이상하다는 사용 중 불편 경험",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "ffd02f60-aaca-4ee5-af48-405d18198497": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "배송 속도와 쿠폰 가격만 언급, 제품 사용경험 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "08f10ada-daa6-495c-8c6b-1aad17963bb3": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "오픈소스 SaaS로 무료판이 대부분 용도에 충분하다는 구체적 선택 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "1da3aa20-9298-475e-bcde-1771487ec0e1": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Calendly 대비 UX 우위·통합·자가호스팅 가능성 언급, 무료판으로 충분하나 개인용 유료 티어가 없어 월 5유로는 내겠다는 지불의사",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "9256a8c8-91e8-4f12-9a2d-032980d681d2": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁 제품(NeetoCal) 기능 부족 비판 후 cal.com을 쓰는 구체 이유(오픈소스·자가호스팅·CalDAV로 구글 락인 없음) 제시",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "9ff5b220-4606-4437-a006-a00509bbab4b": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "VC 투자($25M Series A)로 인한 향후 가격 인상 우려가 계속 의존할지에 대한 망설임 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "0a881c67-0c4f-41e2-b11c-d2567f0ab610": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "개발자 애드보케이트 설명 중 업종 예시로 이름만 나열됨, 사용 경험 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "47adb1ea-710d-4388-8843-74c25d828d2f": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "제3자 SaaS 템플릿 홍보글에서 연동 목록으로만 등장, 사용 경험·선택 이유 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "6ba74bb4-cd9f-4eff-b84c-8ffb76d5149e": {
+  "verdict": "unknown",
+  "product_informative": null,
+  "reason": "GitHub 이슈 링크만 있고 이슈 내용이 잘려 있어 무슨 문제인지 판단 불가",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "ad1734df-e329-4b47-b393-2d51fb1f38d3": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "스케줄링 서비스 사용 경험이 아니라 오픈소스 코드베이스를 학습 자료로 평가한 글",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "bc36cddf-a9c0-4552-b771-fcb9cd8f231a": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "cal.com 소속자가 자사 오픈소스 코어와 REST API 정책을 직접 설명하는 글, 사용자 목소리 아님",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "0dd76440-47c8-466c-a087-29aa9e9cda34": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Paddle 지원 문제·환불 편의·VAT 처리 부담 등 구체적 선택 이유, LS도 대안으로 고려",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "16355784-5df5-46d1-983f-03e2321a755b": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Stripe가 인도 신규계정을 막아 LS 같은 MoR이 유일한 국제결제 수단이라는 구체적 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "26f29153-71aa-4a49-88a2-69b623f67209": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "역인보이스로 세금 단순화된다는 구체적 선택 기준, LS도 해당 가능성 언급",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "43fc1d1c-9adc-4380-9d82-70a014b396db": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "가격 페이지에 없던 국제/PayPal/구독 추가수수료에 놀랐다는 구체적 불만",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "44e5822d-778a-4050-82c0-4dc0cb7af664": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "자기 프로젝트 테스트에 LS를 도구로 스쳐 언급, 구체적 선택 이유 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "453c1a4d-d802-4dbe-be01-c551efd5684f": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Stripe가 patreon류 서비스를 금지해 LS 위에 구축하려 한다는 구체적 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "8c414277-0512-4585-b37a-ec7fd67f9368": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "LS가 Paddle 대비 경쟁력 없고 업셀 위주라는 구체적 비교로 반대",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "8c7083d6-3fef-4c0f-b294-e99df9c4a924": {
+  "verdict": "relevant",
+  "product_informative": false,
+  "reason": "LS가 필요에 맞았다는 언급과 향후 수수료 인상 우려는 있으나 구체성은 약함",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "8cf74b96-1502-477e-aa37-fd4f4ae75d7f": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "MoR(LS/Paddle) 미사용 시 세금 문제 생긴다는 구체적 이유로 권장",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "98056b6c-0fca-4333-bcbb-fb51e8a38dcc": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "자신의 사이트에 LS 사용 중, 5% 수수료·세금/사기 처리 대행이라는 구체적 정보",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "a346d00d-224a-4ef9-908c-e7f33363d07e": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "LS 5% vs Stripe Checkout 3% 수수료 비교, 실물 상품 호스팅 미지원 지적",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "a8c92f93-1da3-4b71-bd3e-67838aa763e3": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Stripe 계속 사용 중이나 Paddle/LS가 세금 대행 제공한다는 구체적 대안 정보 언급",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "e8491369-40a6-4439-b620-565b02ab2ffd": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "LS 수수료가 6~10%로 부담된다는 구체적 가격 불만",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "eae91ed0-c149-4e6e-8f4c-326bacb6322b": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "LS 숨은 수수료와 Paddle/Gumroad 대비 기능·가격을 구체적으로 비교",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "f3e83783-577b-4e38-b0ae-591fa2ee0e90": {
+  "verdict": "unknown",
+  "product_informative": false,
+  "reason": "Apple Pay 지원 여부를 묻는 질문 한 줄, 답이나 맥락 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "f6901f91-c846-4454-93af-7d2574e23f72": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "LS 수수료 대 Stripe 직접비용을 구체적 수치로 비교하며 유지 이유 분석",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "2da752ff-be41-438f-8cbb-a28ccf901c9f": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "인수 후 회사측 공식 메시지에 대한 논평, 사용자 경험 아님",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "37505c7c-0f97-4058-ad1c-065ddc38dd83": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "LS API 활용한 자기 도구 홍보글, 사용 경험·선택 이유 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "3da1395f-61e3-4ca8-b0ea-1231ac31d389": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "크롬 확장 배포에 LS를 결제 걱정 없앤다는 식으로 스쳐 언급, 구체성 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "4792891d-c82e-4541-9b44-3c3d28056cc3": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "MoR가 세금 처리를 대행해준다는 구체적 이유로 Paddle 선택, LS도 같은 대안군으로 언급",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "52c2c101-2601-402a-833a-36a683ee8e24": {
+  "verdict": "irrelevant",
+  "product_informative": true,
+  "reason": "예시로 언급되며 라이선스 키 확인 API라는 기능만 짧게 설명, 본인 선택 이유는 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "6e82a440-b502-4cc3-81ea-f16cd56b9c02": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "EU 세금 문제 해결책으로 Lemon Squeezy·Paddle을 대안으로 제시(선택 기준)",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "7272d1ee-c959-4390-83bf-160976ca15a8": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "자기 템플릿 마켓 사업 이야기이며 LS는 제휴 판매 채널로만 스쳐 지나감",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "a1379f7c-965d-4def-ba15-ff74c419b69c": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "인수 후 시장 공백에 대한 일반 코멘트, 제품 경험·비교 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "a266713e-68df-4570-8a6e-27c3b5facae5": {
+  "verdict": "unknown",
+  "product_informative": false,
+  "reason": "Stripe와 LS 중 고민 중이라고만 하고 선택 이유는 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "a6c4a961-19fb-448b-bc3e-e7acd5cee3e0": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Stripe의 자금 동결 이력을 들어 Stripe 소유가 된 LS를 우려하는 반대 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "c899eb1d-5128-4663-9cc8-6ac3706d5b29": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "세금 문제(merchant of record)를 이유로 Stripe 대신 LemonSqueezy 사용을 권함",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "dad559b2-1a23-40e9-b7db-1f98f75abe47": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Merchant of Record 여부라는 구체적 비교 기준으로 Stripe와 LS·Gumroad·Paddle을 구분",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "eb097080-7643-47cd-b1d5-1f13e474191c": {
+  "verdict": "irrelevant",
+  "product_informative": true,
+  "reason": "LS가 Stripe API 위의 추상화 계층이라는 구조 설명일 뿐 선택 이유나 사용 경험은 아님",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "0e38208e-7763-4b63-b9bf-8dd1aea9ca54": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "ConvertKit·Beehiiv의 구독자 수 기반 과금이 비싸서 대안을 만들었다는 반대 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "594036ab-9291-431e-aa4a-d8977ac7a416": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "가격 대비 기능 90%를 이유로 ConvertKit을 추천하는 선택 기준",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "6374499d-14f5-4793-a648-9bad2276faac": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "이유 없는 자기소개, 타깃 시장에 맞는다는 말뿐",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "7f93e98c-3701-4884-8a26-e934a16ffae6": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Substack 대비 '덜 단순하지만 더 많은 통제권'이라는 구체적 비교",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "8a499c50-5519-4824-8f72-75c0d1f3eead": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Substack의 분석·전달률·에디터 약점을 근거로 ConvertKit이 낫다고 판단",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "98457a83-25ca-4021-a675-4d6b77bf2f8a": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "ConvertKit HTTPS가 깨져 있다는 구체적 버그 지적",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "bec97c10-9782-49b6-ae0f-379d3e6a1d60": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "ConvertKit 사용 중 다운로드 링크 연결 오류라는 기술적 문제 겪음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "c03c5842-23bc-49c5-8fde-5850a91b483f": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "개인용으로 쓰기엔 비즈니스 툴이 과하다며 ConvertKit을 떠난 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "dd4f20d8-df21-4dc0-a905-b07df4c8227c": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Mailchimp에 이어 고객지원이 두 번째로 나쁘다는 구체적 비교",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "eb335900-fc3b-46b4-841c-464d7ca177e1": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "SendFox가 Mailchimp보다도, ConvertKit보다도 더 저렴하다는 가격 비교로 안 쓰는 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "f53e1f21-b695-4ac5-90e7-84b423764fed": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "단순 폼메일 용도로는 ConvertKit/MailChimp 설정이 번거롭고 과하다는 반대 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "f5682b76-cea1-4895-93cb-bbc74dc20b9c": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "가격($100-150/월)·타깃·전달률·팀 응답성까지 구체적으로 비교한 사용 정보",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "feb028c6-408a-4ce9-bebe-257cde57db47": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "블로그에 가입폼 추가하려면 비즈니스 요금제로 올려야 해 비용이 크다는 불만",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "01f698bb-34d2-4148-97f2-a98d900b08c5": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "회사의 마케팅 전략을 다룬 제3자 기사, 사용자 경험 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "10c3aa0c-685c-43a3-b9f5-13ca96601a3e": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "여러 무료 티어 도구 나열 중 하나로 이유 없이 언급됨",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "2dcba3c1-dbc3-46e4-b361-83b057b64c3b": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "'Built with ConvertKit' 위젯이 사이트마다 나타나 차단 필터까지 만든 불만",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "3fd83bc3-3c88-4a0b-884d-96a95bc5764a": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "회사의 성장세에 대한 감상, 제품 경험 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "45ad8d3d-448f-427b-9c83-022d0880caa1": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "본인도 잘 모른다고 밝히며 이름만 언급",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "54f41e1b-37d8-492b-bd53-781c31185ac6": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "창업자 스토리를 다룬 글, 사용자 목소리 아님",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "570c2eb2-ac9e-4b6e-b97c-8f6b9bbdaf3a": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "자기 제품 차별화 설명 중 기능 용어로만 언급, ConvertKit 경험 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "5edcc588-4f15-48c7-a547-c3892c6cb171": {
+  "verdict": "irrelevant",
+  "product_informative": true,
+  "reason": "API를 CMS로 쓴 기술 활용 설명일 뿐, 선택 이유·불만 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "5f4e7725-7544-446d-9efd-f5119fb5fe82": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "드립피드 코스로 분리해 스팸을 줄이는 구체적 기능 활용 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "71c4ea37-8de3-4f7d-8094-04c6ad388a22": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Buffer 투명성 교훈 언급, 제품 사용 경험 없는 회사 잡담",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "74ef9891-d651-4fb7-b1c3-5a7917cf24cc": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "SEO 블로그 카테고리 예시로 스쳐 지나감, 본인 사용 경험 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "a57916d0-559e-44d9-89cc-c2cb396178c4": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "번들로 딸려온 구독을 모른 채 스쳐 언급, 제품 평가 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "a6828791-ee3b-4eab-be9e-f43a9f5e7278": {
+  "verdict": "irrelevant",
+  "product_informative": true,
+  "reason": "마크다운 작성 후 복붙하는 워크플로만 서술, 선택 이유 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "b4cd9ff3-2f9f-41e9-9b31-8eeedf811432": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "과거엔 자체 구축했지만 지금은 ConvertKit으로 대체 가능하다는 비교",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "bc59e908-286c-414c-a159-841aa982a015": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "제품 경험이 아니라 런칭 홍보 톤에 대한 반응",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "cc9597a9-6297-417c-a953-c4d54974bf0b": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "창업자 성장 서사, 사용자 목소리가 아닌 회사 스토리",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "e0eb4fb6-1790-443a-a058-f2cf183504ff": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "성장해커식 기능이 과하다는 구체적 이탈 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "eb21075f-e64f-4126-a40e-26d75d2fd8d8": {
+  "verdict": "irrelevant",
+  "product_informative": true,
+  "reason": "직원 본인이 자사 요금제 사실을 홍보성으로 답변",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "f93f2f10-01df-4bd0-9c86-127ac3b1c940": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "무료로 바로 쓸 수 있다는 구체적 추천 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "fe66ed93-cddc-4dc3-ad78-0b18585ffb6e": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "타깃 시장 전략을 다룬 회사 인터뷰 서사",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "c5a5eebe-c16c-4624-b923-bb8d84cf1d2b": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "펀딩 옵션 비교 제안일 뿐 Baremetrics 사용 경험/선택 이유 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "ddffa67d-c72c-4eab-bcd4-aaf46654a82c": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Stripe 구독 팁 글, Baremetrics는 공개 데이터 관찰 대상으로만 스쳐 지나감",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "e0b8db87-3fe4-497d-a8ad-a362f45a4792": {
+  "verdict": "irrelevant",
+  "product_informative": true,
+  "reason": "경쟁 제품 창업자의 자사 홍보글이나 Baremetrics의 기능 범위(파이낸스 대시보드·기본 Stripe 연동, 비용추적·LTV/CAU 없음)를 구체 비교로 제시",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "efb584e8-87df-44ce-a531-d58ab1287d8b": {
+  "verdict": "irrelevant",
+  "product_informative": true,
+  "reason": "Baremetrics 창업자 본인의 자사 설명(사용자 목소리 아님)이나 가격 변경 이력·과거 지연 문제 해소 등 구체 정보 포함",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "2c9f6c48-bb85-4151-804b-fdb20750f8c3": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "경쟁 브랜드(폴리젠) 3통 사용 후 뾰루지 부작용 경험과 라인 전환 고민, 과거 사용 제품과의 비교",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "46cba054-aa18-45ed-a9ac-08a2cb8ca0c2": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "이모지와 영상 감상 반응뿐, 제품 사용 경험 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "3a543c11-eb2b-4e99-b1fb-881c762e2d23": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "실사용자가 UI·비교(GA·Cloudflare Privacy Analytics)까지 들어 계속 쓰는 이유를 밝힘",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "6399605c-4f35-4ab1-8589-c266df3c89b7": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Plausible 등이 '대규모에서는 과도하게 비싸다'는 구체적 가격 불만",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "046af2a4-227b-4010-94f5-70d437b730a1": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "GA 무료-광고 모델 대비 Plausible 유료-비광고 모델의 가치 논리를 구체적으로 제시",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "2cd4dc71-e37a-4804-a6e7-1196f884bd9d": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "자기 경쟁 제품 홍보글, Plausible은 품질 비교 기준으로 스치듯 언급",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "4c9ac207-77b3-4035-87dc-efe2f4cad9b7": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "프라이버시가 USP인데 CNAME 은닉 추적을 쓴다는 구체적 정책 모순 지적",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "597642ba-877a-48b5-9619-e6fd9da4d912": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "영상 제작비 회수를 바라는 댓글로 제품 경험이 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "ba943fc1-8b72-4818-b986-ba798b71ebba": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "쿠쿠 정수기 누수 7회·해지 불가라는 구체적 AS 경험과 불만",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "ffcb0e2d-1e62-4a40-baa4-b44e1de0fca7": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "사무실 7년 사용자가 필터 무게·물살로 품질 판별하는 법을 알려주는 실사용 기반 판단 기준",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "f4e5bae6-b495-4061-91a4-43135d5c1ff4": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "카피 논란·가격 조롱 등 회사 잡담이며, 효과 언급도 본인 경험이 아닌 유튜버 발언 인용일 뿐 제품 경험이 없다",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "2161a370-3793-4408-ac9d-71a310ef7631": {
+  "verdict": "relevant",
+  "product_informative": false,
+  "reason": "인프라 비용 목록에서 Baremetrics 를 비용 누적 요인으로 언급(비용 부담)",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "7b874b9c-b479-4c1f-9eca-7074acacb3c6": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "$29 가격이 부담돼 못 썼고 대신 ChartMogul $1 플랜 택함 — 가격 비교 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "b98a31bd-7379-4f86-9c40-c5b2ededbdb1": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "써봤지만 데이터가 많이 빠져 있어 떠났다는 구체적 이유",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "cd8f8921-6c6f-41da-86ac-559f0b95b25a": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "baremetrics류 툴이 PayPal+Stripe 동시지원 안 돼 답답 — 구체적 기능 요구",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "1075b9ec-a0ee-46e7-92c5-e17da956f6f4": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Buffer 매출 대시보드 링크만, 경험 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "11749511-5409-472c-9a16-22964c2cb272": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Stripe 연동 예시 목록에 이름만 등장",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "12c0cc97-1970-4ed2-a838-96481348ced4": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "창업기·매각가·투자 회수에 관한 회사 이야기",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "1521c65f-f1c3-4ff7-930e-3a2436695b1b": {
+  "verdict": "unknown",
+  "product_informative": false,
+  "reason": "Baremetrics를 보며 사례를 찾다가 질문만 던지고 답이 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "1c7bb3aa-47bd-42f2-ac24-ef85199a8cd4": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "매각가·투자수익률 비교하는 재무 잡담",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "2f15d202-c5cb-4bd4-ab4e-2abfea0575ee": {
+  "verdict": "irrelevant",
+  "product_informative": true,
+  "reason": "Baremetrics가 프리트라이얼 모델로 바꿨다는 사실 언급(사용자 경험 아님, 요금제 조건 정보는 있음)",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "44e898d3-82b9-43e5-a9fb-639ac7d3212b": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Stripe Sigma가 Baremetrics에 위협이 될지 분석가적 추측",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "4878cb3f-127c-4ee4-a408-107013ae05af": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "대시보드 디자인 참고용으로 이름만 언급, 경험 없음",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "561e3a11-e07c-4f6f-90ac-60166676c993": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "PayPal용 KPI 대시보드를 원한다는 구체 요구, $30/월 지불의사 질문에 답함",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "65e2fc54-a812-4a56-8794-21745b3052c8": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Baremetrics 블로그의 일반 SaaS 성장 통계를 인용, 제품 경험 아님",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "77200c50-cb2a-491d-ac44-4e35b10c33c6": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "baremetrics.io 운영자의 매출 규모를 추측하는 남 이야기",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "9cce5b0f-938b-4042-8592-eb918c6aa31c": {
+  "verdict": "relevant",
+  "product_informative": true,
+  "reason": "Baremetrics 대비 Chartmogul 디자인이 별로라는 비교 이유 제시",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "b0bd2294-7c79-4c0c-ac04-8229319f8236": {
+  "verdict": "irrelevant",
+  "product_informative": true,
+  "reason": "Baremetrics 자신의 해지방지 정책 설명(직원 시점, 사용자 목소리 아님)이지만 정책 내용은 구체적",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "be2741df-4d92-43d8-86be-9dfcff9e69d8": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Baremetrics 통계를 인용해 타사 MRR 속도를 평가, 제품 경험 아님",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "c0884688-1843-480b-88dd-81a63943ba79": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Buffer의 baremetrics 대시보드 링크만 던짐",
+  "model": "claude-cli-local:claude-sonnet-5"
+ },
+ "c4056446-50e6-4151-b82a-12a5275ad975": {
+  "verdict": "irrelevant",
+  "product_informative": false,
+  "reason": "Baremetrics 코드베이스는 안 써봤다고 명시, Stripe API 기술 잡담",
+  "model": "claude-cli-local:claude-sonnet-5"
+ }
+}

@@ -389,3 +389,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 적용: 로컬 supabase MCP `apply_migration`(qmgrfqjfxqhxuufrnkwf — content_columns·agent_runs·case_studies 존재로 대상 확인, 적용 전 information_schema 로 부재 확인).
 - 양성: case_move_inputs 존재·FORCE RLS·정책 0 · case_studies 5컬럼 · case_moves 3컬럼 · 값이 채워진 기존 행 0. 음성: 없는 case_move_id 로 INSERT → 23503 FK 거부(저장 0).
 - 코드 PR: #317(000028) · #318(000029) · #319(000030), 전부 머지.
+
+### 2026-09-28 — 000027 T2 2차 판정 컬럼(뒤늦은 적용) · 000031 정보성 컬럼 · 000032 기준 피드백 메모 (CEO-STAFF 세션 자체 판단 적용)
+
+- 000027: PR #311(09-28 머지) 때 "미적용"으로 남긴 뒤 누락 — 000028~030 이 먼저 들어가 순서가 어긋났다(architect 실측으로 발견). 자동승인 플래그 off 라 영향 0. 적용 뒤 5컬럼·채워진 행 0 확인, 음성: second_verdict='maybe' UPDATE → 23514 CHECK 거부.
+- 000031(PR #324): review_relevance_verdicts 에 product_informative · second_product_informative · human_product_informative(nullable boolean). 양성 3컬럼 boolean · 채워진 행 0.
+- 000032(PR #323): relevance_criteria_feedback 새 테이블, FORCE RLS·정책 0. 음성: 공백 메모 INSERT → 23514 거부.
+- 셋 다 추가만 하는 비파괴 변경, §10.2 예외 해당 없음, 롤백 파일 있음. 로컬 supabase MCP apply_migration(qmgrfqjfxqhxuufrnkwf).

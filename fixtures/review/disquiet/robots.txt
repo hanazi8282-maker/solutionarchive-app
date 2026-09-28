@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /passwordless
+Sitemap: https://disquiet.io/sitemap.xml

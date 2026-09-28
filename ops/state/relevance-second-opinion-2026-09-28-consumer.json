@@ -1,0 +1,4841 @@
+{
+  "generated_at": "2026-09-28T02:55:49.749Z",
+  "source_file": "ops/state/relevance-export-2026-09-27.json",
+  "scope_note": "9개 프로젝트 중 소비재 4개(바디프랜드 파라오 안마의자·오랄비 전동칫솔·탈모샴푸(라보에이치)·코웨이 정수기) 537건만 판정. SaaS 5개(282건)는 PR #296(relevance-second-opinion-2026-09-27.json)에서 판정됨. 기준: 제품 또는 동일 카테고리 경쟁 제품에 대한 실구매자·사용자 목소리이며 판매자 의사결정에 쓸 수 있으면 relevant.",
+  "count": 537,
+  "rows": [
+    {
+      "input_id": "0095bed7-6f58-43a6-ad9e-f5e031fc4850",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "실사용자의 AS·고객응대 불만, 타사 전환"
+    },
+    {
+      "input_id": "00a7fbbc-cf95-40e1-be11-b7c8f86b0d16",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가격 대비 가치 부족 지적"
+    },
+    {
+      "input_id": "03987eb7-1e67-4ae6-9abb-8148f4ae0dc4",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "기사가 고장 못 고치는데 렌탈료 청구 불만"
+    },
+    {
+      "input_id": "0703e644-26dd-4e78-b881-7f72db96a3e8",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "옵션 추가식 가격 인상·부피 비판"
+    },
+    {
+      "input_id": "073227f9-ea7e-45df-9c4e-308ce460ac70",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "코웨이 관리·가격 비교 우위 언급"
+    },
+    {
+      "input_id": "088b1714-4c66-485e-89ed-b6bd044e228d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "가성비 모델과 동일 생산 주장, 프리미엄 불신"
+    },
+    {
+      "input_id": "0b962178-b67d-43d2-bee1-5690daba559a",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "몇 번 쓰고 방치, 비싸고 공간 차지"
+    },
+    {
+      "input_id": "0ed2559f-388a-4328-8087-69c4f71d8a65",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "후지의료기 대비 열위 인식"
+    },
+    {
+      "input_id": "123adde2-81e1-46e0-b606-a32ba2092885",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "디자인 혐오·중국산·광고 의존 인식"
+    },
+    {
+      "input_id": "12d7c250-d051-4749-b04d-9bdf560105de",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "중고 헐값·무거워 처분 어려움"
+    },
+    {
+      "input_id": "1652a446-0a2e-4c9f-9903-b9b5dd963ec3",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "렌탈 총액 700만원 과다 비판"
+    },
+    {
+      "input_id": "183747e8-2263-423d-80f8-354e8d3f4605",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "광고비로 인한 가격 거품 인식(짧음)"
+    },
+    {
+      "input_id": "1866906b-676e-419d-bc21-53b8b444e723",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "렌탈 의무기간 상속·위약금 불만"
+    },
+    {
+      "input_id": "1c407406-dd57-4161-9bea-def26e8005ab",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "과대광고 불신(짧음)"
+    },
+    {
+      "input_id": "1d64a596-ff27-4b9d-9b07-2e8d144a9558",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "체험 비교 후 3배 싼 휴테크 선택, 사용 경험"
+    },
+    {
+      "input_id": "200e17c0-5883-4f43-8b0e-a39ca85f608b",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "패밀리S 소음 심각 구매 후회"
+    },
+    {
+      "input_id": "206d0eeb-db6f-486b-a484-b4fbb725f540",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "가격 거품 인식(짧음)"
+    },
+    {
+      "input_id": "20aa3036-e6ee-42ca-af07-412fb9509906",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "렌탈=이자 붙은 할부라는 불신"
+    },
+    {
+      "input_id": "224490c3-2120-4571-81f1-24eaf0ba1460",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "중국산 고가 판매 비판, 500만원 가격 거부"
+    },
+    {
+      "input_id": "23071fb9-50cd-4a6b-aa37-50c0d8f93b07",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "무거워 이사 잦은 가정 부적합"
+    },
+    {
+      "input_id": "2407b75a-e82a-4834-9120-aba0ab84b52d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "비싸고 원산지 의혹, 일본 브랜드 비교"
+    },
+    {
+      "input_id": "258582db-2cad-4d62-a149-ab5ed14dbb71",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "안마 강도 과해 통증 체험"
+    },
+    {
+      "input_id": "27d95cbd-aa92-4d01-865e-57711c7011b5",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "주 수요층 감소·과다마진 구매기피 의견"
+    },
+    {
+      "input_id": "2a32e774-ce70-4ce6-9563-3aaeadd2dfbd",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "대출사기 농담, 고객 신호 없음"
+    },
+    {
+      "input_id": "2b4f4dcb-4ed0-4ed4-8372-f255aa6ba3f8",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "외관 못생김·사용빈도 의문"
+    },
+    {
+      "input_id": "2c9fbf46-e7be-4483-8b77-3f8e6939fc6e",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "500~1000만원 가격 과다 비판"
+    },
+    {
+      "input_id": "2cea0246-0b78-4705-b1a2-4104fca6c32a",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "아파트에 부피 과다"
+    },
+    {
+      "input_id": "2fa5f18c-b1a5-45b5-9019-0db9e368318d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "완납 후 신제품 교체 권유 전화 불만"
+    },
+    {
+      "input_id": "30b0b67c-d682-4ae0-9087-11e6f38e7f34",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "중고 무료나눔 다수, 잔존가치 낮음"
+    },
+    {
+      "input_id": "31a9ddb1-904b-4d76-8fa4-980b907c2d28",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "AS 부실·소모품 유상수리 불만"
+    },
+    {
+      "input_id": "343b2760-55e6-4663-9b58-3dd502deeda9",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "구매 고민자가 부정 여론 보고 포기"
+    },
+    {
+      "input_id": "34bc7608-de70-4c5a-b4c3-b42c25d2a6f0",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "안마의자 가격 거품 인식(짧음)"
+    },
+    {
+      "input_id": "3577baca-b877-4b1d-be11-73769495d3ee",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "폼롤러 등 대체재 선호"
+    },
+    {
+      "input_id": "37d1f44d-96ee-4023-8767-dbcbb814489a",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "과대광고 벌금·천갈이 AS 한 달 지연"
+    },
+    {
+      "input_id": "39aff15b-70c6-4f6e-9dc4-803619809127",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "소형차 값 대비 효용 의문"
+    },
+    {
+      "input_id": "39ddab4c-6e35-423c-a6bc-6da877022236",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "현 사용자, 커버 벗겨짐·교체비 25만원·재구매 거부"
+    },
+    {
+      "input_id": "3a16f3f2-7fbd-47dd-b387-e868d7eeb766",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "브레인 마사지 광고 유사과학 조롱"
+    },
+    {
+      "input_id": "3a1a8afc-9bc5-47b1-a3f7-2c06f7f20efb",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "중고차 값 수준 가격 과다"
+    },
+    {
+      "input_id": "3c723da5-b64b-4c6c-859d-86bbcb4eb082",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "팬텀로보 4년 사용 가죽 멀쩡, 긍정"
+    },
+    {
+      "input_id": "405be07f-5ede-4925-9e5e-156439bc2c03",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "인테리어 안 맞는 투박한 디자인"
+    },
+    {
+      "input_id": "41c0775c-98ea-4e3b-90ac-cfba1b54e23a",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "삶의 질 향상 만족, AS 어려움"
+    },
+    {
+      "input_id": "41e9af03-c01e-461f-a510-93bedad70f2a",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "7년 사용, 비닐교체 비쌈, 재구매 브랜드 고민"
+    },
+    {
+      "input_id": "426b2a67-edab-4d28-947f-46f5af389ff4",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "한 달 내 고장·AS·응대 불량"
+    },
+    {
+      "input_id": "42cdc85d-3142-4cac-b8b8-f71921b333b7",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "2년차 가죽 벗겨짐, 재가죽 130만원"
+    },
+    {
+      "input_id": "42fedc34-a4f6-49ec-abd6-0c5100e64093",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "안 시원함, 마사지샵이 낫다"
+    },
+    {
+      "input_id": "434f3cd1-47d5-4dd8-a83b-d2a8e1481a38",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "경차 값 가격 납득 불가"
+    },
+    {
+      "input_id": "4510abf4-5919-479c-b4a7-84ca10b76315",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "인테리어와 안 맞는 디자인"
+    },
+    {
+      "input_id": "47799f5a-ffdc-42fd-811e-1fa42f5e80d6",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "괴상한 디자인 인식"
+    },
+    {
+      "input_id": "49b3c439-c025-4016-80ac-a4bbde135ba0",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "보유자의 애물단지 후회"
+    },
+    {
+      "input_id": "49cfc660-a28e-4f24-b4b7-57903909ac06",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "디자인 조화 안 됨·공간 차지"
+    },
+    {
+      "input_id": "4a87f609-a7ef-43d2-acb5-637f268fb923",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "성능·가격·AS 기준 추천 요청"
+    },
+    {
+      "input_id": "4bf47fed-fc4c-4781-b304-3e831a785871",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "진동·먼지 건강 우려(비과학적)"
+    },
+    {
+      "input_id": "4c6ed828-5297-43fd-9514-2e36d6c0426d",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "체험 시 타사 대비 잡소리 많음"
+    },
+    {
+      "input_id": "4ca7059b-3ee5-4fcf-a8d4-ed05f1845299",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "안마기기 전반 가격 과다"
+    },
+    {
+      "input_id": "4d019ba9-05c6-4bcd-8382-66abd9f23e95",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "여러 개 경험 후 저가 방석형이 가성비"
+    },
+    {
+      "input_id": "4d03c222-6042-4d52-a4af-20604e0d136d",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "의료기기 신고 방법 안내, 고객 경험 없음"
+    },
+    {
+      "input_id": "4e8334db-94c9-4202-a290-2bf074fb2d5e",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "초기 잡소리·AS 오진·방치"
+    },
+    {
+      "input_id": "54ae26c0-6261-42b0-94d4-84279dcf992f",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "2년 만에 커버 뜯어짐·AS 불만"
+    },
+    {
+      "input_id": "57197560-7316-4e67-bd04-5f3bf0d09499",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "10년 팬텀 내구성 만족, 시트 교체비 비쌈"
+    },
+    {
+      "input_id": "5933c034-c59f-4ea6-8018-c0b308eda781",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "비닐 가죽 벗겨짐 실망"
+    },
+    {
+      "input_id": "59a1d963-e431-4cf0-80a5-567106438b15",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "이나다·파나소닉 대비 열위 인식"
+    },
+    {
+      "input_id": "5ba01785-1310-42a4-b82d-f49904705f1c",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "의무기간 후 고장·유상수리·저가 부품"
+    },
+    {
+      "input_id": "5c15a769-731c-40db-bcf9-3764a4cbef30",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "플라스틱·시트지 마감 대비 고가"
+    },
+    {
+      "input_id": "5f26807f-4eb6-46e5-b760-14eb2aac476b",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "1인 가구에 너무 큼"
+    },
+    {
+      "input_id": "61eabc46-af96-45e2-9a09-377b843abc76",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "효도템 구매 후 고장·커버 크랙·폐기 부담"
+    },
+    {
+      "input_id": "63012e48-ed1a-4f03-8408-026268c652e0",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "70대 사용자 만족 후기"
+    },
+    {
+      "input_id": "63abbb35-8bd5-4465-a440-9860a5b2ffb1",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "회사 자금 음모론, 고객 신호 없음"
+    },
+    {
+      "input_id": "645e9207-26f0-422a-b943-f5a44ac17398",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "비싼 것과 싼 것 차이 없다는 인식"
+    },
+    {
+      "input_id": "65129529-f462-41ed-9d22-d8546e332807",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "중국산 고가 비판, 파나소닉 선호"
+    },
+    {
+      "input_id": "6664fa17-55c6-4760-bcf8-c1b791b040e8",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "팬텀→메디컬파라오 재구매, 체형맞춤 호평"
+    },
+    {
+      "input_id": "67362701-01e3-4bfe-8cbd-8ce756623e3e",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "구매 후 불만(모호)"
+    },
+    {
+      "input_id": "69d9c483-9106-458d-a78a-bf871dbd5a2b",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "비닐 커버 뜯김 목격"
+    },
+    {
+      "input_id": "6d065819-b571-4032-accf-b4604d1803d9",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "스타 광고 기업 불신"
+    },
+    {
+      "input_id": "6f46aa4d-c113-4a48-9403-b7534175724f",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "인조가죽 헤짐, 휴테크 10년 무결 비교"
+    },
+    {
+      "input_id": "706081c8-f3a0-40d1-8d10-e2798546e7ee",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "외관 호감 표현"
+    },
+    {
+      "input_id": "70f00e39-96ac-4c51-bcb1-216a20bb157f",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "싸구려 대비 고가(짧음)"
+    },
+    {
+      "input_id": "70ff27b3-080b-4a46-8b04-be075ba24fa4",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "안마의자 구매 희망(버킷리스트)"
+    },
+    {
+      "input_id": "72cb620c-9691-4cbc-bf9d-b23381a9734e",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "천만원대 가격 대비 브랜드·AS 가치 부족"
+    },
+    {
+      "input_id": "7398a28e-18e4-4f76-86e7-11e7d177203d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "마사지 회원권이 더 경제적"
+    },
+    {
+      "input_id": "758b7c31-5533-4cf2-95bb-407523621adc",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "1년 만에 껍데기 벗겨짐, 재구매 거부"
+    },
+    {
+      "input_id": "760adb8e-4847-4531-90b6-177ac172e115",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "파나소닉·코지마 선호, 국산 고가"
+    },
+    {
+      "input_id": "76230428-c1cd-45c4-b00a-bc135f815eca",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "파나소닉 사용자, 공간·여유 필요"
+    },
+    {
+      "input_id": "7903c41b-eb88-4d43-a134-286a2f12efb7",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "중국산 라벨갈이 인식(짧음)"
+    },
+    {
+      "input_id": "7adb3d21-0e79-49e4-8cf7-85bc9dabb7b6",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "중고 잔존가치 낮음"
+    },
+    {
+      "input_id": "80e829e5-9682-481c-a331-ab7d6b867c71",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "목·승모근 효과 질문"
+    },
+    {
+      "input_id": "82e18ec1-e2a4-42ac-bf9c-0a0b58f29612",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "광고비·저질 재료 대비 명품 가격"
+    },
+    {
+      "input_id": "837cb147-7651-4725-a6fc-764c21d1f06c",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "시원하다는 짧은 호평"
+    },
+    {
+      "input_id": "85943035-5ca2-4a9f-bef0-d5b448358460",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "파라오2 중고 45만원 구매 만족"
+    },
+    {
+      "input_id": "86cfeae4-d7ac-49a5-87d7-452e8bd4d108",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "550만원과 세일 110만원 제품 체감 차이 없음, 가격 대비 가치 의문"
+    },
+    {
+      "input_id": "883677e6-9204-462e-9956-03ce14227d47",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "장기 사용 시 허리 손상 우려라는 카테고리 반대 논리"
+    },
+    {
+      "input_id": "8a357830-9ab2-4d3a-b067-bf408cdd05ea",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "허위광고 인식 때문에 부모님 안마의자 구매 시 바디프랜드 제외"
+    },
+    {
+      "input_id": "8d07b531-cdc0-43a8-aa3c-07722629e389",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "제품 경험 없는 회사 비난 뿐"
+    },
+    {
+      "input_id": "8d6db181-6e2c-4078-a676-4a5884dab132",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "공간을 많이 차지한다는 카테고리 단점 언급"
+    },
+    {
+      "input_id": "8fe48a5d-d214-48d2-93a9-78fd338a6f54",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "광고비·허위광고 잡담, 제품 신호 없음"
+    },
+    {
+      "input_id": "90d50936-84f7-44a8-aac6-e3f89a274235",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "대리점 AS 문의 응대 태도 불만"
+    },
+    {
+      "input_id": "92cc421f-8512-48d9-8da4-7daa873716de",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "300만원대 이상인데 인조가죽 뜯어짐, 소가죽 원함"
+    },
+    {
+      "input_id": "93fe89ee-b6dd-433f-a3fa-f6dcf97239e6",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "몇 년 후 등·팔 비닐 뜯어짐, 파나소닉 추천"
+    },
+    {
+      "input_id": "967de731-b928-4e73-9e2c-6199ea753339",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "600만원 제품 부품 유격·천 손상, 출장비 부담으로 방치"
+    },
+    {
+      "input_id": "975b6d4c-0958-4634-abbe-cb66d653c502",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "400만원 제품 마사지볼 좌우 불균형으로 환불"
+    },
+    {
+      "input_id": "9785dbc0-82a5-4b05-9974-123d561efca9",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "450만원 제품 비닐 뜯어짐, 소재·교체 난이도 불만"
+    },
+    {
+      "input_id": "98444a49-8652-4185-b28b-98d8e44230f6",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "동일 부위 3회 고장, 계약철회 응대 불만"
+    },
+    {
+      "input_id": "98bfa3e6-0612-4af5-902c-3ad93b61e6fe",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "회장·공정위 제재 잡담"
+    },
+    {
+      "input_id": "993d08a7-b2e1-4893-8261-1f27b7425485",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가격 대비 가치 낮아 파나소닉 최상위 구매"
+    },
+    {
+      "input_id": "9a08dba2-7d2e-4cc8-a605-456028561882",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "중국산·원가 100만원 미만이라는 인식"
+    },
+    {
+      "input_id": "9b22a528-1afc-48ca-bb8c-b3bc2f67658d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "500~1000만원이면 마사지샵이 낫다는 대체재 비교"
+    },
+    {
+      "input_id": "9bb1bd55-3bc5-4ebc-8137-c284aa71b94e",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "80만원대 중소 브랜드 작고 조용해 만족, 다리 기능은 약함"
+    },
+    {
+      "input_id": "9bc93e62-cb92-47fd-bf62-8a8d2974243a",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "천 뜯어진 뒤 처분 곤란·가루 문제"
+    },
+    {
+      "input_id": "9f37d2a7-1198-4d50-a484-deae796c2d53",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "주로 매트리스 불만이나 안마기 품질 불만도 언급"
+    },
+    {
+      "input_id": "a2fcc65d-35f7-4212-a461-a4575c28fd68",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "운동·태국마사지 잡담"
+    },
+    {
+      "input_id": "a42a41c2-8c15-458c-a4cd-44f669bed965",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "1년반 만에 내부 천 찢어짐, 17일 소요·유상 수리"
+    },
+    {
+      "input_id": "a6accac5-995b-4907-8d83-24800cb3b7d5",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "마사지 성능은 만족, 서비스·가죽교체 불만"
+    },
+    {
+      "input_id": "a74d3b29-7c28-400c-bca4-fbb77b161a81",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "AS가 모바일 신청만 가능, 상담사 연결 불가"
+    },
+    {
+      "input_id": "ab8cd679-ccf3-476e-a03f-830c8c1ec1cd",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "200만원에서 1000만원으로 오른 가격에 반감"
+    },
+    {
+      "input_id": "abf9ab6e-a653-48c3-b8e2-a11313b2bcdc",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "연령대 불문 감당 어려운 가격이라는 반응"
+    },
+    {
+      "input_id": "acdfad4c-02f2-46b4-ad45-d1cb620438c8",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "1000만원짜리가 빨래건조대로 전락한다는 사용 빈도 조롱"
+    },
+    {
+      "input_id": "aef852aa-adbe-4367-97d3-191b228e1ad5",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "유튜버 고소 관련 기업 이미지 잡담"
+    },
+    {
+      "input_id": "af0ea64f-9935-41a2-9a22-212bf92af250",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "렌탈비 내는데 소모품 수리비 별도 부담"
+    },
+    {
+      "input_id": "b0e5f4f7-f346-45a4-8533-3a1fe29841b5",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "구체성 없는 소비자 비하성 잡담"
+    },
+    {
+      "input_id": "b61c27db-d2aa-435a-b442-aa8d91b24a12",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "엘리자베스 180만원 10년 무고장 만족"
+    },
+    {
+      "input_id": "b76dbd6b-ecb5-4793-b1ee-4234df99518a",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "체험 후 파나소닉 선택, 7년 내구성 만족"
+    },
+    {
+      "input_id": "ba84aaed-2a9a-4c0f-914f-988113c8cf91",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "AS 기간 이후 다리·팔 고장, 가죽 탈락"
+    },
+    {
+      "input_id": "bae5db18-81da-4347-98df-ae6ce4b59836",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "비판 댓글에 대한 옹호성 잡담"
+    },
+    {
+      "input_id": "bf53eb18-108f-49b4-ab2d-5f717b414c78",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "서서 일하는 사람 피로 회복 효용 언급"
+    },
+    {
+      "input_id": "c33a65eb-109d-487d-8123-f6abaaa69b69",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "기계는 좋으나 커버 교체 재고 없어 폐기"
+    },
+    {
+      "input_id": "ca1c0792-df17-40dc-80ec-d89b459e2ec9",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "렌탈 2회 후 가죽 벗겨짐·고장, 1000만원 가치 의문으로 재렌탈 거부"
+    },
+    {
+      "input_id": "cbf8c939-b981-4c3f-ab81-f7db576d6d5f",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "중국 OEM 의심, 일본산 선호"
+    },
+    {
+      "input_id": "cdb4cfd7-4a12-4e5e-aabd-20150d94f4b3",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "편해 보인다는 짧은 긍정 반응"
+    },
+    {
+      "input_id": "cecd3a2f-a927-465c-8129-adbf11a4932e",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "전신 안마의자는 목·어깨를 못 풀어준다는 비추천"
+    },
+    {
+      "input_id": "cfed52d3-e9e9-4463-bf01-3dbb8765e3e3",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "적정가 50만원 정도라는 지불의사"
+    },
+    {
+      "input_id": "d00a2995-3cb9-4195-ba02-2bd405617822",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "최고급형 사용 만족, 시원함"
+    },
+    {
+      "input_id": "d148694f-f005-4e1a-b7ab-cae44465c83b",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "사람 같은 마사지면 2천만원도 산다는 요구"
+    },
+    {
+      "input_id": "d1b679d3-6831-4277-a154-7e79a5b47eca",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "고가를 렌탈로 싸 보이게 한다는 가격 불신"
+    },
+    {
+      "input_id": "d34e9393-0b7e-4e8d-bc64-3cdf147bf784",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "광고비 전가로 비싸다는 가격 반감"
+    },
+    {
+      "input_id": "d396fe4c-3f61-4829-96c8-89b8c054731e",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "안마 자체가 허리에 안 좋다는 카테고리 반대"
+    },
+    {
+      "input_id": "d440a6ce-4cc5-4c4e-a819-aa7edf0f5e79",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "렌탈 방식의 추가비용·반납 분쟁 우려"
+    },
+    {
+      "input_id": "d507d717-4d5c-4001-9b8b-73b1f8af6797",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "보유 제품 폐기 방법 고민"
+    },
+    {
+      "input_id": "d525095f-0d07-48a9-9718-fce3535fc76e",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "중국산 수입 인식, 세라젬과 신뢰 비교"
+    },
+    {
+      "input_id": "d528437f-626f-4916-938f-9db0aff72f81",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "AS 출장비·부품값 부담, 새 제품 구매 유도"
+    },
+    {
+      "input_id": "d61a4e3a-a298-4807-955d-36f1ae91b979",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "월 8만원 렌탈 중 인조가죽 수리 유료 20만원"
+    },
+    {
+      "input_id": "d9b08127-4c05-4ab0-a53b-9b8eae9ec600",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "보증 만료 전후 잦은 고장, 부품 수급 지연"
+    },
+    {
+      "input_id": "daa1d9c6-a1d6-4da1-971c-cbba72713517",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "운동하라는 비하성 잡담"
+    },
+    {
+      "input_id": "dba3997b-a108-4f31-83ae-9f71ddbb05f9",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "시트 약해 천갈이 70만원, 폐기비 30만원"
+    },
+    {
+      "input_id": "dc7ebd12-5d0a-4d28-8e89-f57cffda0b70",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "재무제표 기반 영상 비판, 고객 신호 없음"
+    },
+    {
+      "input_id": "dcdce575-7a3d-4b9e-9411-ad888d2e80e9",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "PE 인조가죽 열화, 진짜 가죽 선호"
+    },
+    {
+      "input_id": "de0f69eb-8acf-4b8a-a972-81bb92c8448d",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "설치 한 달 내 시트 기름 번짐, AS 무응답"
+    },
+    {
+      "input_id": "df219c71-be82-4497-9e40-70aec1a648ca",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "광고비 일반론 잡담"
+    },
+    {
+      "input_id": "e063eed1-5d56-4886-b8b0-92ffa60efdcf",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "배송 제품 모터·펌프 소음 심함, 고객서비스 최악"
+    },
+    {
+      "input_id": "e1d18a7b-6cd5-4f19-a578-73a537bcb26d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "고객센터 응대 불만으로 브랜드 이탈"
+    },
+    {
+      "input_id": "e347b81d-2160-49c2-bc83-9f79fc978051",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "90만원 제품과 차이 없다는 가격 거품 인식"
+    },
+    {
+      "input_id": "e3ed6a69-df10-4e34-abd4-c025e51f6960",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "시트교체 신청 한 달째 무소식"
+    },
+    {
+      "input_id": "e453d903-d45c-4420-a86e-07801d1fcbd4",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "가죽 갈라짐·찢어짐, 중국산 인식"
+    },
+    {
+      "input_id": "e556e9ad-2d7e-4df1-90ee-8b02bc7d53a7",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "80만원이면 비슷한 제품 산다는 가격 거품 인식"
+    },
+    {
+      "input_id": "e5dea4e9-1549-4b10-9381-4254bad5630b",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "경쟁사 오씸도 가죽 터짐·교환 거절"
+    },
+    {
+      "input_id": "e7d6a6e9-2ee4-49cd-bcd9-1c6be9330ed5",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "구매 직후 등 가죽 늘어나고 옷에 묻음"
+    },
+    {
+      "input_id": "e94abc7e-f7c7-4521-bf49-d11fa025b825",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "소비자가 500만원을 150만원에 권유, 가격 신뢰 저하"
+    },
+    {
+      "input_id": "e9619c69-0ca6-4a67-9f54-c103bc849eda",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "중국 제품 상표갈이·수리 역량 부족 인식"
+    },
+    {
+      "input_id": "ec43ac9d-bcac-4c51-b153-b032f1cb17be",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "1000만원은 심리적 한계선 초과, 옷걸이로 방치"
+    },
+    {
+      "input_id": "ec69ea85-fcb4-4f47-ae41-ce9d96aa4884",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "새 제품 두 달 만에 고장, AS 4개월·단종 이유로 수리 불가"
+    },
+    {
+      "input_id": "ec862522-97bf-4212-9e27-1ee40d2ae4dd",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "비속어 조롱"
+    },
+    {
+      "input_id": "ec9e7026-9ae5-4c16-9f4a-e41ca4ec66ef",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "가죽 화학 냄새·표피 탈락, 폐기비 10만원"
+    },
+    {
+      "input_id": "ecde61ee-f559-4579-ba4d-b5fd000de42e",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "매트리스형이 더 시원하고 저렴하다는 대체재 선호"
+    },
+    {
+      "input_id": "ee5788ec-62aa-4bbd-a8fa-999faa0593a7",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "500만원 선물이 안 쓰는 짐덩이, 코웨이 구매도 망설임"
+    },
+    {
+      "input_id": "ee625b9c-a47d-4df3-a0e8-a93940ef25ed",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "매장에서 파라오S 구매 완료 보고"
+    },
+    {
+      "input_id": "f0c311ff-7a0e-4485-8acc-2cb06a1e674b",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "내용 없는 짧은 잡담"
+    },
+    {
+      "input_id": "f2b1ff1b-a2cd-4997-8960-be2b9e755542",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "제품 하자로 렌탈 해지 요청했는데 위약금 요구"
+    },
+    {
+      "input_id": "f3db5e37-4ad6-4406-ae65-a85f2de4902d",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "500만원 가까운 제품 AS 부품 한 달 넘게 대기"
+    },
+    {
+      "input_id": "f40602e6-9bd2-4287-844e-8ef659b18f18",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "몇 년째 잘 쓰는 만족 사용자"
+    },
+    {
+      "input_id": "f4e5bae6-b495-4061-91a4-43135d5c1ff4",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "중국 제품 모방·천만원 가격 불신"
+    },
+    {
+      "input_id": "f5a1fff5-9839-40ff-b4d2-d84bfb36272f",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "최고가 모델도 가루·너덜, 교체비 비쌈"
+    },
+    {
+      "input_id": "f805b178-2ee0-4147-8398-5e1aac9039a2",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "전 AS기사의 수리 역량·시트 재질·원가 증언"
+    },
+    {
+      "input_id": "fc78d810-84d8-447f-97dc-a7f55b63aff7",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "싼 재질로 1년이면 허름, 가격 인상 불만"
+    },
+    {
+      "input_id": "fcb9cec7-7a05-4fd5-8dba-9015122f355e",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "재직자의 영상 비판, 고객 신호 없음"
+    },
+    {
+      "input_id": "fe6ed7b8-2b8a-4f91-8c03-0dca8854baef",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "월 5만원 렌탈이 바가지라는 가격 인식"
+    },
+    {
+      "input_id": "ffbb8b04-6e44-4b55-90a2-2560e8a666cb",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "국내 생산 여부 의문, 원산지 불신"
+    },
+    {
+      "input_id": "ffc1cd64-7b19-4c1c-9a30-86a581946ce3",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "경쟁사 세라젬 등커버 교체형 구조 만족"
+    },
+    {
+      "input_id": "0364a0e2-4d26-4fb5-8464-472f12d0481b",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "키즈/프린세스 모델간 가격차 지적, 가성비 만족"
+    },
+    {
+      "input_id": "052917de-cf39-4021-a4c7-f6a7fe891dd0",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "스테이지스 최저가 탐색, 프린세스 가격 차이 불만"
+    },
+    {
+      "input_id": "06a4cc21-5ecf-45df-854f-48e0ba3f7bc1",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "타사 대비 세정력 우위, 소음·강한 진동 불편"
+    },
+    {
+      "input_id": "07370b2b-1fec-4630-80b6-ab2007cfb9e2",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가격 때문에 구매 포기"
+    },
+    {
+      "input_id": "07775246-77a5-4632-b76d-e52418e41959",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": true,
+      "reason": "아이 혼자 잘 닦음, 가격 만족"
+    },
+    {
+      "input_id": "08385c90-80b5-4de1-8f9b-825c901a8189",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "양치 습관 개선·누런 이 해결 사용 후기"
+    },
+    {
+      "input_id": "0b02530c-4bd6-4b83-b4fd-9796a400dc5c",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "2살 아이 사용 시 칫솔모 빠짐 불만"
+    },
+    {
+      "input_id": "0f5c658d-1497-45c9-a70c-15c22e35bf98",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "가격·성능 만족, 소음 큼"
+    },
+    {
+      "input_id": "102707e2-c63b-4136-8f9a-cba337d9198a",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "1년 사용자가 AI 연동 기능 인지 못함"
+    },
+    {
+      "input_id": "103eb9ac-d800-40ef-ac2a-b81513f7e320",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": true,
+      "reason": "재구매, 가격 만족·건전지 포함"
+    },
+    {
+      "input_id": "11ef454f-81ab-4361-bed0-dba0065fdaaf",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "아이 손에 무겁고 건전지 분리형 불만"
+    },
+    {
+      "input_id": "120b695d-d71d-48cc-99b2-1a5869968136",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "내구성 좋으나 방치 시 곰팡이 발생"
+    },
+    {
+      "input_id": "14dbb9ed-93f0-4b93-8336-e2031fdc7ee0",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "블루투스 기능 몇 번 쓰고 안 씀"
+    },
+    {
+      "input_id": "1507406d-7ce5-4e19-b1b8-54f3a37cacfc",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "브랜드 신뢰·세정력·구성품 만족"
+    },
+    {
+      "input_id": "156bf476-705e-4f01-ab1d-e270ea9d0f90",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가격이 너무 비쌈"
+    },
+    {
+      "input_id": "15eb8847-1605-4f83-9d5a-7d61a053441f",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "아이들이 좋아하고 잘 닦임"
+    },
+    {
+      "input_id": "163c1cbe-e690-4ae9-b18f-51a126108af6",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "가격·품질 만족, 약간 무거움"
+    },
+    {
+      "input_id": "163e01d5-ec77-44e1-8dab-e54106f596f6",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "캐릭터·여분 칫솔모 구성 선호"
+    },
+    {
+      "input_id": "17fc90be-df82-4ea8-a140-c0c4ab7dfa5a",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "충전식보다 배터리식 선호 이유 제시"
+    },
+    {
+      "input_id": "20289d51-853b-42b6-a178-9395cd513409",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "소음으로 3살 아이 거부, 무게 불만"
+    },
+    {
+      "input_id": "218e21de-64e4-4019-8d10-36c1de9b57ff",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "1년 만에 고장, 칫솔모 비쌈"
+    },
+    {
+      "input_id": "233b8bba-40e6-4619-b797-142f07af5cb7",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "아이가 물어 칫솔모 파손, 스스로 양치 효과"
+    },
+    {
+      "input_id": "24c5257f-2917-4b5b-bba7-27e0383d3d0e",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "본체 호환 몰라 중복구매, 안내 부족"
+    },
+    {
+      "input_id": "260d0333-ac91-4cb3-b069-4ffa0113a7bf",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "지니어스9000 만족, 앱 연결 번거로워 안 씀"
+    },
+    {
+      "input_id": "271419b0-a5c5-4f14-8ed4-4a74c5c71056",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "고가 전동칫솔 무용론, 구매 반대"
+    },
+    {
+      "input_id": "27df964d-5b36-41e1-8e5a-8eaa44f4f8b2",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "어금니·치간까지 잘 닦임 만족"
+    },
+    {
+      "input_id": "2930582f-0e10-4116-b65b-7c91aefccfac",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "반복 문구만 있는 무의미 텍스트"
+    },
+    {
+      "input_id": "2bcd34ca-cd07-4baa-8a12-28ecc7260b24",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "건전지 뚜껑 안 닫히는 불량 경험"
+    },
+    {
+      "input_id": "30f740a0-613a-42dd-9093-0d81eb84c2a3",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가격 대비 가치 낮다는 비판"
+    },
+    {
+      "input_id": "33de2280-6dcc-44bd-be6b-56fd5c808d57",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "건전지형에 1분 알림 없고 타이머 리셋 불만"
+    },
+    {
+      "input_id": "36091417-4011-412c-916d-8f069e5743ec",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "진동·소음 강해 아이 잇몸 통증"
+    },
+    {
+      "input_id": "366cc9ce-9ced-4059-a4d9-c8bbe354fef9",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "충치 예방 목적 구매, 아이 흥미 유발"
+    },
+    {
+      "input_id": "386a239e-db16-446b-83de-dcdc9454dca6",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "7살에게 무게·진동 버거움"
+    },
+    {
+      "input_id": "39be2f53-8179-449d-ab32-d96b773f1e7b",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "휴대성 장점, 무게·강한 진동 단점"
+    },
+    {
+      "input_id": "3a782001-5b89-4d96-a3db-e9e07d34e943",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "오랄비에서 소닉케어로 이탈, 방식 차이 비교"
+    },
+    {
+      "input_id": "3c5767d6-c5c0-43c2-9d76-60b336b3c3d1",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "지니어스9000 구매 관심·가격 인하 언급"
+    },
+    {
+      "input_id": "3ff5fd8c-de69-4521-ae7f-9f116d92d176",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "아이 양치 거부 완화, 휴대 편리"
+    },
+    {
+      "input_id": "401bec0c-7bbf-4b0a-91fb-02a730d65b4a",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "가벼움, 3일 만에 누런 이 개선"
+    },
+    {
+      "input_id": "42255dc2-83b8-4859-b811-98b156c115ab",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "양치 싫어하는 아이에게 장난감처럼 흥미"
+    },
+    {
+      "input_id": "4382cd99-fff2-4404-ac52-ea348e614a3d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "1년 후 작동불량, 호환 칫솔모 품질 문제"
+    },
+    {
+      "input_id": "43cf11b2-c1de-4cc4-8807-18de0bd20dfa",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "욕실 거울 연동 기능 희망"
+    },
+    {
+      "input_id": "4ab606ea-7bb3-4552-af8a-f49586c53357",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "잘 닦이고 캐릭터 선호"
+    },
+    {
+      "input_id": "4da54aa5-4811-4180-a7ca-66e39ac3339b",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "소음 적고 무게 묵직하나 무방"
+    },
+    {
+      "input_id": "4eabc592-321b-4b73-8a2d-852593b0cfa3",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "타사 대비 세정력 우위, 소음·진동 강함"
+    },
+    {
+      "input_id": "526c590a-0f00-43ce-bf79-48f21623d6d1",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "충전식 대신 건전지형 편의성 선호"
+    },
+    {
+      "input_id": "52a82038-6366-4655-b898-3535556a33fe",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "음파식에서 회전식 전환 망설임 질문"
+    },
+    {
+      "input_id": "553bba70-7ecb-4fea-96c4-a6b42217f732",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "여분 칫솔모 없음, 가격 비교 구매"
+    },
+    {
+      "input_id": "56008328-f962-4a0f-8607-ce094ce72212",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "영상 설명란 오타 지적 위주, 사용 신호 없음"
+    },
+    {
+      "input_id": "575a09d7-3438-4130-8b9c-6e17a47b2de1",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "선물용 구매, 구성품·캐릭터 만족"
+    },
+    {
+      "input_id": "57cff3de-1d4f-49fe-b37d-e16231ee842e",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "아이 양치 습관 개선 만족"
+    },
+    {
+      "input_id": "5a8c273c-ceb2-48eb-beff-99d315b996a8",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "고장 적은 내구성 재구매"
+    },
+    {
+      "input_id": "5ae7b83d-3c8b-43f7-92af-e3568f2e9192",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "초등생에게 칫솔모 작음"
+    },
+    {
+      "input_id": "5b59e1eb-31e9-4aa9-a314-b04ac4e3b2fe",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "30만원대 가격 놀라나 구매 의향"
+    },
+    {
+      "input_id": "5cfab4dc-e633-488f-8b5a-f6ef7918a8ff",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "입냄새 개선 효과 질문"
+    },
+    {
+      "input_id": "60b66360-6de1-4927-aabf-44c42f151dcb",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "배송·포장 언급뿐, 제품 신호 없음"
+    },
+    {
+      "input_id": "60fcf57c-3a32-49b3-94a8-b18dae3edeec",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "영상 감사 인사성 댓글, 사용 경험 없음"
+    },
+    {
+      "input_id": "62bd6a41-3be4-45cb-bf49-4c19e22a1e06",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "첫 사용 성인, 진동·소음 크고 개운함 부족"
+    },
+    {
+      "input_id": "64e38d04-f83f-4f95-93e8-beda64f01210",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "건전지 장착 구조 혼란"
+    },
+    {
+      "input_id": "64fc0ed8-5d45-491d-8909-4a9b1835b3a3",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "6년 사용 후 재구매, 소음 개선 체감"
+    },
+    {
+      "input_id": "66dd85e1-36b0-4538-978b-c8b742f7c583",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "아이 혼자 2~3분 양치, 잇몸 안 아픔"
+    },
+    {
+      "input_id": "67a37fc1-8723-47a5-8612-475f3b303803",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "29개월 아이 양치 흥미 유발 추천"
+    },
+    {
+      "input_id": "6be7a48a-f833-45fe-a785-5b9bb440b0bb",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "플라그 제거·치아 미백 효과 만족"
+    },
+    {
+      "input_id": "700a3a98-9a2a-44c9-88eb-1c99a5a6da9d",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "프린세스 모델 호감, 플라그 제거 체감"
+    },
+    {
+      "input_id": "71be6ce7-543c-4e7d-aeba-8f0439ec5811",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "가족 세트·할인 요구, 가격 부담"
+    },
+    {
+      "input_id": "7442c759-31a8-48f9-828f-b4f57a243b62",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": null,
+      "wtp_mentioned": true,
+      "reason": "저렴한 가격·아이 선호 만족"
+    },
+    {
+      "input_id": "78733782-d64f-4b56-b922-7d75b801e5c2",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "교체 칫솔모 유지비 질문"
+    },
+    {
+      "input_id": "78acaae9-f083-43ed-993b-c46318a7e7fd",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "치과 비추천 언급, 캐릭터로 흥미 유발"
+    },
+    {
+      "input_id": "79b9a8d5-66ec-4f3f-8424-8da44824c5ae",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "기능 원하나 가격 장벽, 10만원 낮으면 구매"
+    },
+    {
+      "input_id": "7a92797b-00f1-4bf5-97ef-12a966608cf6",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "충치 후 구매, 양치 습관 형성 추천"
+    },
+    {
+      "input_id": "7b7aaf89-c5cb-4954-b7b2-a9f3ab6d09a6",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "기술 정체 대비 가격 과다 비판"
+    },
+    {
+      "input_id": "807b1276-a61f-4112-bc1a-4d15c7b0c3f7",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "본인 사용 만족 후 조카 선물 구매"
+    },
+    {
+      "input_id": "80d47d79-1ad3-4bde-bed0-2142d62b6744",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "압력 연동 타이머·거울 타이머 요구와 헤드 호환 우려"
+    },
+    {
+      "input_id": "81cdc660-701d-4c99-bca0-cb20ba0ac283",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "아이용 전동칫솔 만족, 2분 진동 타이머 호평"
+    },
+    {
+      "input_id": "82969ea7-9bf3-4fd7-9bea-5d717191b6aa",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "카즈 캐릭터 칫솔로 아이가 양치를 즐김"
+    },
+    {
+      "input_id": "82e5f3b6-f7cf-453c-986b-9ca8e499674f",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "할인가 10만원도 칫솔로 비싸다는 망설임"
+    },
+    {
+      "input_id": "8338e5c9-2049-4290-9185-2673ea98391b",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "15년 사용자, 배터리 수명·교체불가·AS 불친절 불만"
+    },
+    {
+      "input_id": "87c71bbf-4ad5-4d06-881e-2416228d2f51",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "기능은 좋지만 비싸서 구매 보류"
+    },
+    {
+      "input_id": "88b301f8-8a1c-468c-a7c4-7fa161dc40ad",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "어린이용 회전 약하고 세정력 의문"
+    },
+    {
+      "input_id": "8a8f06ff-036b-438d-9d17-2915902a147b",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "특가 구매 만족, 3D 치아탐색 부정확 불만"
+    },
+    {
+      "input_id": "8aee5a3d-254b-40bb-a0f7-2e4e7b5c77c7",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "가성비 좋고 수동보다 잘 닦임"
+    },
+    {
+      "input_id": "8b0c9312-f5a7-4811-8bbb-72d242f757c9",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "전동칫솔 카테고리 필수품이라는 긍정"
+    },
+    {
+      "input_id": "8c8a43d7-1613-4d62-8249-5456509b6677",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "아이 충치로 구매, 꼼꼼한 세정 만족"
+    },
+    {
+      "input_id": "8cc94781-6f21-40c5-a8d0-7f48a5e12b92",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "5세 아이 거부감 없이 사용"
+    },
+    {
+      "input_id": "8eb37b00-5c85-4698-a8d9-f5c48d7a9abc",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "수동 칫솔이 낫다는 카테고리 거부"
+    },
+    {
+      "input_id": "8ef252cd-e868-47a0-8e91-8d2b395c73e5",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "충전식이 너무 강해 건전지 어린이용 사용"
+    },
+    {
+      "input_id": "91b47ba1-6d22-492a-a7e5-4871793da0e4",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "아이 치태 감소, 양치 재미 만족"
+    },
+    {
+      "input_id": "9c9e7e88-8a57-48f5-bbce-88c396120d67",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": true,
+      "reason": "고가격에 대한 농담성 반응"
+    },
+    {
+      "input_id": "9d81adb5-0568-40af-832b-9b7aaeb1f5f0",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "키즈 칫솔+리필모 최저가 구매 만족"
+    },
+    {
+      "input_id": "9e129ed8-141a-4c3f-ab63-e47e5cc49cf9",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "2분 타이머가 전체 양치엔 부족하다는 의견"
+    },
+    {
+      "input_id": "a581f9cd-a94f-4ff6-b73d-90bce4365ec8",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "소음이 크지만 가격대비 괜찮음"
+    },
+    {
+      "input_id": "a68c659e-c7ed-4b0d-9d35-d2d3fcbf7779",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "추가 구매 건전지 누락 배송 불만"
+    },
+    {
+      "input_id": "a8a994e5-61c4-4804-a363-3a414354dc4c",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "가격대비 좋으나 칫솔모 개선 희망"
+    },
+    {
+      "input_id": "aa0c81e8-172f-4d10-83e4-7df3bebb671e",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "초등 자녀 충치 후 구매, 세정 만족"
+    },
+    {
+      "input_id": "acbbc938-a275-415c-b8d8-b6f257277113",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "음파 대비 회전식이 아이에게 더 잘 닦임"
+    },
+    {
+      "input_id": "b081eca7-ffc3-4e18-8209-8e8df16a253c",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "힘주는 습관 잇몸 통증 해소"
+    },
+    {
+      "input_id": "b2d69eb9-e048-424c-8f0b-f9f6af08df93",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가격이 과하다는 반응"
+    },
+    {
+      "input_id": "b33d4362-4fcf-4b1c-a63b-d795c83e537b",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "경쟁사 소니케어 더블팩이 가성비라는 비교"
+    },
+    {
+      "input_id": "b710acc4-05fd-4fbc-be9d-67f4fa401f27",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "건전지식 휴대성 호평"
+    },
+    {
+      "input_id": "b72fb475-de52-4174-99fa-6067eb4c1e8d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "교정 환자 관심 있으나 가격 보고 포기"
+    },
+    {
+      "input_id": "beb9d916-3b92-410a-822b-b65528ec612c",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "반도체·전자제품 잡담"
+    },
+    {
+      "input_id": "c14e40c3-80c5-4506-ba76-5c8f5ffaa5c3",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "잡다한 기능으로 가격만 부풀렸다는 비판"
+    },
+    {
+      "input_id": "c2eab41d-367a-4e09-9c80-718e430fca3a",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "벽부착 디스플레이→앱 전환 후 사용 감소"
+    },
+    {
+      "input_id": "c399e405-57f5-4b62-96ad-68ab64876eb0",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "치과비 대비 30만원은 싸다는 구매 의향"
+    },
+    {
+      "input_id": "c5957b50-ba75-422e-8030-f72b076ac2d1",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "아이들 거부감 없이 양치, 세정 만족"
+    },
+    {
+      "input_id": "c5a174e6-1a92-4db9-a381-e8fce08b4f10",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "비싸서 못 샀던 제품에 대한 구매 관심"
+    },
+    {
+      "input_id": "cb047361-a186-46af-b553-5d5b72b04b2e",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "치아 문제 생긴 사람이 입문한다는 구매자 페르소나"
+    },
+    {
+      "input_id": "cd5b0ffd-fe59-4f9e-b1e4-f9df0cd68187",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "둘 다 써보고 음파식 소니케어로 전환"
+    },
+    {
+      "input_id": "cee0b70f-97dc-4662-b0e7-b25636e648cc",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "7살 딸 양치 쉬워짐, 판매자 응대 만족"
+    },
+    {
+      "input_id": "d15840a4-df3b-47ed-8c8d-bc929d9e4cbe",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "대고만 있는 방식이 답답해 수동 선호"
+    },
+    {
+      "input_id": "d29ad07f-7dc1-4c47-81ad-4eec6b44ec46",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "손잡이 냄새로 교체, 건조 문제"
+    },
+    {
+      "input_id": "d3aef4f1-20db-45e1-8a8a-1b91c21d7fa7",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "가장 대중적이라 선택, 입냄새 개선 기대"
+    },
+    {
+      "input_id": "d6515fde-3701-4bc1-9557-9499a6d3e0cd",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가격 부담 탄식"
+    },
+    {
+      "input_id": "d6705a2d-84f9-478c-a8b8-2425aee766c8",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "원형모 불편·잇몸 부담·교체 헤드 고가"
+    },
+    {
+      "input_id": "d684c136-7c5a-4d06-b730-89e0eea30024",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "리뷰어 지적, 고객 신호 없음"
+    },
+    {
+      "input_id": "d7a8255c-e146-4500-b552-ace71a837465",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "전동칫솔이 수동·치실 대체 못한다는 의견"
+    },
+    {
+      "input_id": "d8452dea-69d6-4802-b5d1-75e65db45d39",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "소음·진동 강해 아이가 무서워함"
+    },
+    {
+      "input_id": "d9f99b9d-4a7b-4293-90b5-9b955d8ea9ea",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "회전식 법랑질 마모 우려, 음파 추천"
+    },
+    {
+      "input_id": "d9fa266c-5602-47c1-a122-0107a594cee1",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가격 대비 필요성 의문"
+    },
+    {
+      "input_id": "da0a8ed2-606d-4d57-947f-5e24aa6225bc",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "26개월 아기 사용, 소음 적당, 캐릭터 호평"
+    },
+    {
+      "input_id": "db4f042c-b6fc-4da6-b187-5e635375ecc2",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "고장 후 동일 제품 재구매"
+    },
+    {
+      "input_id": "dd5e4f72-8b01-466c-aa6d-532a8a1431a1",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "구강세정기 구매 이야기, 다른 카테고리"
+    },
+    {
+      "input_id": "df03bf74-d4ba-4753-94f6-6c1fe9480b8d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "iO 관심 있으나 가격 부담"
+    },
+    {
+      "input_id": "df2aa55a-dc88-4824-9031-1eb3d32ec1fb",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "20년 사용 후 치아 패임, 음파식으로 전환"
+    },
+    {
+      "input_id": "e30c32d0-247c-48d1-82d4-430d89069145",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "아이 혼자 양치 시작해 기쁨"
+    },
+    {
+      "input_id": "e38ad9bf-36eb-44fa-a006-a8e37a647fa8",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "아이들이 일반 칫솔이 더 잘 닦인다고 함"
+    },
+    {
+      "input_id": "e3c854d1-0834-4e24-84e8-8d79fd24b372",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "형제 따라 구매, 세정 만족"
+    },
+    {
+      "input_id": "e51e0e21-5d7b-4dff-9364-a9c3f694b3fa",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "리뷰어 신뢰성 언급, 제품 신호 없음"
+    },
+    {
+      "input_id": "e708e0df-52c3-4ad2-b20b-4ecb1dfafeb6",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "재구매, 리필 동시구매 옵션 요청"
+    },
+    {
+      "input_id": "eb52e815-74fa-4995-b209-b0b25b1a156d",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "캐릭터 칫솔로 양치 거부 감소"
+    },
+    {
+      "input_id": "eee13d4a-8742-490d-8e24-d8b3b7a6b4aa",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": true,
+      "reason": "기존 사용자, 30만원 가격 인상"
+    },
+    {
+      "input_id": "efee85ff-1835-4395-8942-76be98dcf273",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "카즈 건전지 뚜껑 안 닫힘 불량"
+    },
+    {
+      "input_id": "effaa1f8-6925-4f8b-9185-03988cc87ff5",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "디즈니 프린세스 디자인으로 자발적 양치"
+    },
+    {
+      "input_id": "f0a6ecdc-606d-4c20-bbe9-ca13753b4886",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "광고 냄새 비꼼, 사용 신호 없음"
+    },
+    {
+      "input_id": "f3ee38b2-5a2b-471e-95ea-c08d343d2d3d",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가격에 놀람"
+    },
+    {
+      "input_id": "f40dbc8c-b1fb-44f6-815f-d672604f507d",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "스테이지파워 가격·품질 만족"
+    },
+    {
+      "input_id": "f55df956-3272-4580-ad50-2d454217e9c6",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "개운함 부족, 비싼 최상위 모델 비추"
+    },
+    {
+      "input_id": "f6ef5026-523f-42c1-9add-9d84b73c74e3",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "남매 두 개 구매, 캐릭터 호평"
+    },
+    {
+      "input_id": "f7530b6a-9cee-4425-b6cc-4bde2f714330",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가격만 낮으면 바로 구매 의향"
+    },
+    {
+      "input_id": "f9a69f85-4b84-4b62-99e6-b761db5d1aa1",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "아마존 가격 보고 구매 보류"
+    },
+    {
+      "input_id": "fa24113d-c65d-4ec1-aef2-d7c1c5584eac",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "가격·배송 만족"
+    },
+    {
+      "input_id": "faac0a12-b65d-41ed-a9bb-c1458625a835",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "타사 대비 만족, 소음·진동 강함 불만"
+    },
+    {
+      "input_id": "004c803e-ae09-4461-8dd8-e089fc0ecbfe",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "지성 두피 떡짐에 맞는 샴푸 추천 요청"
+    },
+    {
+      "input_id": "01ccba01-ab7a-400e-8738-1c412d2d4279",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "재구매, 모발 덜 빠짐 효과 만족"
+    },
+    {
+      "input_id": "0240ac58-468c-4d53-9ee8-d1af69761dc5",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "여러 탈모샴푸 비교 후 최고 평가, 비싸도 계속 사용"
+    },
+    {
+      "input_id": "02b94018-79d3-4341-93e6-c389839e5936",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "시원한 향·거품 칭찬"
+    },
+    {
+      "input_id": "034ca550-a64a-4ccb-900c-e69bfbcd3914",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "라보에이치·닥터포헤어 등 탈모샴푸 순회 사용 경험"
+    },
+    {
+      "input_id": "04675d5a-ed55-4f47-9403-4edcf64e72a5",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "경쟁 셀에너지, 지성 두피 금방 떡짐 불만·가격 언급"
+    },
+    {
+      "input_id": "04fde8f3-e3c1-4494-ae57-e044ebd87daa",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "소용량 만족 후 대용량 재구매"
+    },
+    {
+      "input_id": "052a2825-b583-4e5e-8ed9-4618877c79fa",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "경쟁 닥터포헤어 민감두피 만족, 향 약함 아쉬움"
+    },
+    {
+      "input_id": "058f2283-0dc0-4170-bc4f-e1699f249c93",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "풍성한 거품 칭찬"
+    },
+    {
+      "input_id": "05da3212-9f3b-49c8-b47a-7f007a24220c",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보 사용 2주차부터 가려움 트러블, 비추"
+    },
+    {
+      "input_id": "0810fc2d-0107-4a6c-8ea5-9ebc1215d858",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "거품·세정력 칭찬"
+    },
+    {
+      "input_id": "0871c45a-a25b-436e-a903-beb3ccafc340",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "경쟁사 설페이트 성분 우려"
+    },
+    {
+      "input_id": "0875c746-5e55-444c-adea-ddbf5aee4660",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보에이치 건성인데 가렵고 빨리 기름짐"
+    },
+    {
+      "input_id": "08a25614-f0f4-45d4-a5a6-6033befeeeec",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "4개월 사용 후 모발 갈색 변색 의문"
+    },
+    {
+      "input_id": "0c4bf047-6d38-479c-abe9-706af927a429",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "탈모샴푸 효능 자체에 대한 회의론"
+    },
+    {
+      "input_id": "0dfb6bbc-fb37-4522-9dcf-172a9913ea8b",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "라보에이치 3개월, 빠짐 줄었으나 두피강화 체감 없어 이탈"
+    },
+    {
+      "input_id": "14d9484a-6bae-48f8-a5b0-ae6d5d8ed90a",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "가성비 칭찬"
+    },
+    {
+      "input_id": "151a4b0d-6acc-4eea-a689-d7f18cd53439",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보에이치 사용 중 뾰루지·두피냄새, 경쟁사 전환 고민"
+    },
+    {
+      "input_id": "1677af76-512c-4e33-9942-966a5e6d7e21",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "두피 개운함 칭찬"
+    },
+    {
+      "input_id": "18217ef0-1264-42ee-8a57-5ff770572a2e",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보에이치 뻣뻣함·빠른 떡짐 불만"
+    },
+    {
+      "input_id": "19a899c5-192e-4b50-b77f-61eadd0cb878",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "트레오닌 성분 샴푸로 지루성 두피 개선 경험"
+    },
+    {
+      "input_id": "1a86f042-97a5-411f-b4fe-6fb846e980b3",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "닥터포헤어 오래 쓰면 붉은 트러블, 소용량 권장"
+    },
+    {
+      "input_id": "1b4126ab-ec50-497c-a14f-8a0db1f1dba8",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "품질·포장 만족"
+    },
+    {
+      "input_id": "1c4bcbbf-0677-4f63-b84d-efea2dce2f4a",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "거품 쫀쫀, 빠짐 감소 체감 초기"
+    },
+    {
+      "input_id": "1e2e158c-906f-45d2-8edc-e0a976ea70bf",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "타 브랜드 홍보성 댓글 의심"
+    },
+    {
+      "input_id": "1f726175-eada-4b7f-8d3f-085aaaf94c08",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "숱 많아 두 번 감으니 빨리 소진"
+    },
+    {
+      "input_id": "22b13ea4-362f-4394-9a2d-927d5dfba3c7",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "라보에이치 뚜껑별 라인 선택 혼란 질문"
+    },
+    {
+      "input_id": "22e60db4-6209-4f57-be73-26342754c998",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "시원함·세정력 칭찬"
+    },
+    {
+      "input_id": "2386123d-d588-4a85-9e66-709eb47a012f",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "라보 초기 사용 시원함·머릿결 만족"
+    },
+    {
+      "input_id": "2603fbd4-4166-4365-85dc-80713c9bd10e",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "트레이더스 대용량 구매 만족"
+    },
+    {
+      "input_id": "2c5662d5-6f71-46b6-9a86-489fd946ce26",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "비듬샴푸에서 라보로 전환, 예민 두피 만족"
+    },
+    {
+      "input_id": "2c9f6c48-bb85-4151-804b-fdb20750f8c3",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "경쟁 폴리젠 사용 중 뾰루지 발생"
+    },
+    {
+      "input_id": "30d1942c-7f9e-44ef-83d1-e36235d872d1",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "세정력 만족 재주문"
+    },
+    {
+      "input_id": "31c8cdc6-d449-4eef-bc30-2430c4967e18",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "탈모 목적 구매, 거품 만족"
+    },
+    {
+      "input_id": "3d8c497d-f5c1-495a-bb9f-94b57282c606",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "향 불만, 효과 미확인"
+    },
+    {
+      "input_id": "40bf3037-de5a-47ef-a92d-d614174e01af",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "민트향 강하나 약산성 머릿결·빠짐 절반 감소"
+    },
+    {
+      "input_id": "44b6e29e-c2af-4e9b-a360-424539bf5a1e",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보에이치 거품 편차 의문"
+    },
+    {
+      "input_id": "489b4719-8b3c-47bc-b056-3dc65ebb6498",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "경쟁 폴리젠 매일 사용 시 두피 건조"
+    },
+    {
+      "input_id": "4cefcf0c-7877-4180-b607-5d577ae97eb8",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "가격 비싸지만 효과 있음"
+    },
+    {
+      "input_id": "4ed1e720-0a58-4727-9dfd-b7cc9324d7c8",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "가족용 구매, 탈모 효과 기대"
+    },
+    {
+      "input_id": "51893956-6a26-49e1-88ea-37753dcbedf4",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "트레이더스 저렴 구매·사은품 만족"
+    },
+    {
+      "input_id": "536ac385-4cce-480a-82cf-ef1ebbbe7112",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "민감성 라인 제형 차이 경험"
+    },
+    {
+      "input_id": "537aa5fd-bd9b-448f-b702-ff8819d5f789",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "가성비 나쁘다는 평"
+    },
+    {
+      "input_id": "53bcfb4f-fe8d-4526-99f8-b4e0167db249",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "라보 사용 3일 만에 뾰루지·빠짐 개선"
+    },
+    {
+      "input_id": "55d2fe00-b11e-4b71-b21c-2cbf3a0c5ae3",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "라보에이치면 충분하다는 의견"
+    },
+    {
+      "input_id": "5727bd24-4c3f-4e6c-80b1-80fde73528dd",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "닥터포헤어 너무 강해 라보에이치로 전환"
+    },
+    {
+      "input_id": "5c7a0b8a-4228-4a33-a9d8-2202b84df3a7",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "닥터포헤어 vs 라보에이치 거품·세정력·빠짐 비교"
+    },
+    {
+      "input_id": "60bd4f05-8cd8-4e62-814d-b6d96973a104",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "폴리젠 효과, 라보에이치는 효과 없음"
+    },
+    {
+      "input_id": "61a75833-0ae9-4810-9979-9fdbc13821af",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "저자극 희망"
+    },
+    {
+      "input_id": "61fd4f39-fb23-4280-b3d0-fee4abcca1d6",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보에이치 트러블 없으나 빠짐 여전"
+    },
+    {
+      "input_id": "63129675-e237-4d20-90f0-0b8f70f4c393",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "할인 시 대량 구매, 순함 만족"
+    },
+    {
+      "input_id": "64f20ba0-2f55-4a82-8dd0-e14308703e0c",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "10대 사용자 사용 빈도 질문"
+    },
+    {
+      "input_id": "6522f72a-d7a9-4d60-9afe-30fa08527c11",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "두 샴푸 모두 가렵고 빠짐 동일"
+    },
+    {
+      "input_id": "6560b94a-af2a-48c5-a12e-784c031d9ccb",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "라보에치 빠짐 감소·유분 억제 만족"
+    },
+    {
+      "input_id": "65d05fb5-f98e-4b8a-bee5-bb8823a94f76",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "지성·땀 많은 두피용 샴푸 문의"
+    },
+    {
+      "input_id": "65f7b25d-8d2f-4f7d-8188-5000de466b55",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "시원함·거품 칭찬"
+    },
+    {
+      "input_id": "665a2826-d6b6-4daa-87d9-304e5aae715f",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "닥터포헤어보다 라보에이치가 덜 떡짐"
+    },
+    {
+      "input_id": "688bf3e3-adcb-41e5-b89a-e32dc08c203d",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "첫 구매 거품 만족"
+    },
+    {
+      "input_id": "68f3148b-e072-4252-828a-43f0901dec1d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "유명 탈모샴푸 비싸 저가 대안 선호"
+    },
+    {
+      "input_id": "6b99c60a-d31f-4faf-a9b7-b024110db06b",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "대용량 만족"
+    },
+    {
+      "input_id": "6ebc5994-c633-41b7-af03-74ae3481e98c",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "일반 머리감기 횟수 질문, 제품 신호 없음"
+    },
+    {
+      "input_id": "6ec3cfd2-afda-4c62-937e-f7118dd03da5",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "시원함 만족하나 향·부드러움 때문에 닥터포헤어 복귀 예정"
+    },
+    {
+      "input_id": "7429bf57-e2de-484f-b5c9-943efc952192",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "라보에이치·폴리젠 구매 후 효과 질문"
+    },
+    {
+      "input_id": "74c8e698-70fb-4087-8446-f82cf0970492",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "라보 첫 사용 힘·가려움 완화·거품 만족"
+    },
+    {
+      "input_id": "74d1e5b8-6e4c-4c60-8bfc-e0eed27eecf5",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "지루성 두피 가려움·정수리 탈모 고민, 맞는 제품 탐색"
+    },
+    {
+      "input_id": "7a3f1960-08a2-4a24-a4c0-591acbd15d6e",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보 트러블로 이틀 만에 폐기, 닥터포헤어 떡짐·냄새 불만 비교"
+    },
+    {
+      "input_id": "7b2a88c7-d71f-403d-8ca5-6e350c2eb50c",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "개운함 만족, 3번째 재구매"
+    },
+    {
+      "input_id": "7cb4752b-be12-4853-adbb-a0774e17d0d0",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "거품·부드러움 짧은 칭찬"
+    },
+    {
+      "input_id": "7d634d04-98ea-4489-860f-41771d564003",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "지성·각질 두피, 라보는 건성용 인식으로 닥터포와 고민"
+    },
+    {
+      "input_id": "7d7209fb-cf23-4e87-a8a1-356c842887b2",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "라보 안 맞아 경쟁 샴푸로 이탈 후 효과 봄"
+    },
+    {
+      "input_id": "7da41ebc-fc63-4b76-b3ef-102de1c8c251",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "향 샴푸 관련 푸념뿐, 제품 신호 없음"
+    },
+    {
+      "input_id": "7e8802c1-f126-492a-ac7e-0579520422f3",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "두피 여드름 고민, 닥터포헤어 사용 문의"
+    },
+    {
+      "input_id": "810a0e76-f8d8-4366-9db6-d19d6bf8d9eb",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "거품·순함 짧은 칭찬"
+    },
+    {
+      "input_id": "822479c0-3fbf-400d-b4e5-41679b208625",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "라보 1년 사용 후 기름기로 이탈, 폴리젠 복귀 고려"
+    },
+    {
+      "input_id": "8286588a-b5f9-4f92-8780-7c5b6e280675",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "건조·두피각질용 샴푸 추천 요청"
+    },
+    {
+      "input_id": "87f9f5c9-dc0c-44c4-9563-d4b8653bc659",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "대용량 용기가 너무 무겁다는 패키지 불만"
+    },
+    {
+      "input_id": "8ac1d8dd-40ac-4b18-b7be-0bc4e799a6cc",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "닥터포 91% vs 라보 70% 광고 수치 신뢰 의문"
+    },
+    {
+      "input_id": "8b61fb8c-e742-41f9-89a3-a640ba347889",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "지성두피 아침용으로 라보 무난, 폴리젠 저가 구매 경험"
+    },
+    {
+      "input_id": "8bc622c5-8743-4c47-8ef1-9ecb9cb20b16",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보 사용 후 탈모 증가·기름기, 큰 용량 반도 못 쓰고 이탈"
+    },
+    {
+      "input_id": "8d064c05-f049-4a49-bfe3-dfc224f57ddc",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "진행성 탈모·하루 만에 기름짐, 샴푸 추천 요청"
+    },
+    {
+      "input_id": "8e32d91f-9ce6-42a5-b2f5-b268ec3a9b01",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "지루성 두피, 닥터포 대신 라보 초록뚜껑 정착"
+    },
+    {
+      "input_id": "977a3edd-330a-4fb9-a2ef-39af6271b186",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "경쟁 폴리젠 세정력 부족, 왁스 사용자 비추"
+    },
+    {
+      "input_id": "998abc90-6ab8-4854-998b-855f1ad9eeba",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "경쟁 TS 5개월 효과 없음·볼륨 감소"
+    },
+    {
+      "input_id": "9d318e9f-0d5b-4c82-b3f6-5a7b514471cd",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "탈모 완화 기대 표현, 신호 약함"
+    },
+    {
+      "input_id": "a0c3111a-9106-477d-8be2-3ca12a19f14d",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "탈모샴푸 후 뻣뻣함 우려, 컨디셔너 병행 질문"
+    },
+    {
+      "input_id": "a90988f9-11b0-4f03-a5f5-a0726f452239",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "후기 보고 구매, 거품·쿨감·부드러움 만족, 효과는 대기"
+    },
+    {
+      "input_id": "ac04112f-fa9b-4467-b513-bc286e24be8f",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "경쟁 블랙포레 쿨링 샴푸 광고 효능 검증 요청"
+    },
+    {
+      "input_id": "ae09d5ce-eb59-41c7-8ac9-70b16704f79f",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "라보 사용 후 탈모 증상 감소 만족"
+    },
+    {
+      "input_id": "aeab9751-1f09-47af-bbd3-deec9c602052",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "4종 비교, 닥터포 최고·라보는 시원하나 탈모 증가"
+    },
+    {
+      "input_id": "af1e8597-a3bb-4265-ae59-c5cea71b5b8d",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "6개월 효과 있으나 뻣뻣함·진정 약함·냄새 단점"
+    },
+    {
+      "input_id": "b1e1108b-a708-4fe2-a317-3c2880f8ef04",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "중년여성 수년 사용, 700ml 대용량 재주문"
+    },
+    {
+      "input_id": "b4df002b-2037-4a55-903b-2186fd720c46",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "세정·거품 짧은 칭찬"
+    },
+    {
+      "input_id": "b5784998-ff65-4af3-aee1-c77c4f824276",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "세정력 만족 재구매"
+    },
+    {
+      "input_id": "b66ae213-823a-42a0-8a97-f9012cd1e20c",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "닥터포 사용에도 떡짐, 라보 지성용 전환 고민"
+    },
+    {
+      "input_id": "b79cf092-7a2a-4521-8081-d36dfab99656",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "꾸준 재구매, 단 헤어팩 필수"
+    },
+    {
+      "input_id": "b868b16b-b288-4ff8-bee0-2b03d5ffbe2b",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "지인 추천 구매, 시원한 사용감"
+    },
+    {
+      "input_id": "b892034a-0f04-40fc-acc6-91c236b14e23",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "두피 열감, 쿨링·경쟁 샴푸와 라보 비교 질문"
+    },
+    {
+      "input_id": "ba063c3b-aad2-4300-9756-c2a8ef7ab56c",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "세정력 탓 뻣뻣, 트리트먼트 필수"
+    },
+    {
+      "input_id": "bac8e7db-a94a-4a50-acfb-552fa82c0c59",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "20대 남성 M자·정수리 탈모, 비누 쓰다 구매 결심"
+    },
+    {
+      "input_id": "bfb7318b-2d99-4f5b-ae67-a44e129444a2",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "거품 짧은 칭찬"
+    },
+    {
+      "input_id": "c37ba335-71c6-4611-bcd0-d1f5c399830c",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "일반 탈모 관리 조언, 제품 사용 신호 없음"
+    },
+    {
+      "input_id": "c44c83b4-a68d-40c6-b2d9-2d708b53ca60",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "거품 2~3분 방치 사용법 질문"
+    },
+    {
+      "input_id": "c672147d-8605-4b44-b08c-adfc1050bf9a",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "지루성·지성 두피, 라보 vs 닥터포 선택 질문"
+    },
+    {
+      "input_id": "c6a4f451-3ec7-4f8d-885f-c5311636da68",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "시원함은 좋으나 약 냄새 심함, 향은 알페신 선호"
+    },
+    {
+      "input_id": "c6c05077-9ae0-420d-b20b-94726349d493",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "30대 여성 예방용 닥터포 vs 라보 구매 고민"
+    },
+    {
+      "input_id": "c8ba35bf-ac2a-4ebe-9b40-3194d8262301",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "거품·세정 만족, 탈모 효과는 미확인"
+    },
+    {
+      "input_id": "ca66c963-28c4-4d29-8754-ad7a498ecacb",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "시원한 세정감 짧은 칭찬"
+    },
+    {
+      "input_id": "cd9747e3-ee70-41ad-9c0d-5779bdf31e81",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보 사용 후 뾰루지·각질 부작용"
+    },
+    {
+      "input_id": "ce29549b-2fe2-461b-83f4-c23bdd5003a5",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "녹색 라보 사용 후 뾰루지·가려움으로 중단"
+    },
+    {
+      "input_id": "d21113b1-da4f-458b-930f-c17d44b3089f",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "탈모샴푸 뻣뻣함 우려, 린스 미사용자 질문"
+    },
+    {
+      "input_id": "d436d6d7-3a80-452c-9a8e-8ad7d2dae3d5",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보 1달 후 탈모 증가·두피 붉음, 폴리젠 전환 고민"
+    },
+    {
+      "input_id": "dc07d5c6-40b6-4bb2-9b66-75f5818f8da0",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "경쟁 그룬플러스 2배 가격에도 인기 이유 궁금"
+    },
+    {
+      "input_id": "dc8d7577-7d52-4cdc-a9ee-7a4024f30cbd",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "샴푸 유목민, 닥터포 효과 모름·라보 세정력 부족"
+    },
+    {
+      "input_id": "dcea7620-01d4-4132-97e8-e282547d60be",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "탈모약 조기치료 조언, 샴푸 제품 신호 없음"
+    },
+    {
+      "input_id": "dec19d61-fa49-4153-9c2c-5301fae2383d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "화함·탈모완화 만족, 대용량 가성비 선택"
+    },
+    {
+      "input_id": "df117ea4-8f94-45bf-a33e-73e8924b6a69",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "여러 경쟁 샴푸 사용기, 지루성 효과 부족·메디올 부작용"
+    },
+    {
+      "input_id": "e6384e82-28f5-4c77-9928-0ee686438cfd",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "성분 신뢰로 재구매"
+    },
+    {
+      "input_id": "e6cb9b3e-713b-459a-a324-7ff41bb50cd4",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "거품 짧은 칭찬"
+    },
+    {
+      "input_id": "e9ce5c76-ac24-4dbe-87f3-b1612a6e7768",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "라보 사용 후 가려움 심함, 지성두피 비추"
+    },
+    {
+      "input_id": "ea60e7d4-80fe-4b9d-a0bf-20f68b884be4",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "닥터포 3년 정착, 리뷰 신뢰로 라보 주문"
+    },
+    {
+      "input_id": "eb677ad7-a28a-40bc-b6a3-ec824b72ec36",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "비오틴 샴푸 대비 부드러움, 민트향·3분 방치 쿨감"
+    },
+    {
+      "input_id": "eef5f8bd-e419-4f9f-9fe8-270cb65f6f1f",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "냄새 괜찮고 개운함"
+    },
+    {
+      "input_id": "f1cc697b-638e-4acb-bdec-374e09cfa893",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "거품 가장 많은 제품 질문"
+    },
+    {
+      "input_id": "f309ebdd-2634-4a07-8baa-f60bff512048",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "향 무난·자극 없음"
+    },
+    {
+      "input_id": "f53e8166-8e71-49d1-8529-93653476137e",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "눈에 들어가도 안 따가운 순함"
+    },
+    {
+      "input_id": "fa6796d3-a94f-4e96-a75c-e711b3317152",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "폴리젠은 가려움·뾰루지, 라보는 잘 맞음"
+    },
+    {
+      "input_id": "fbc4b51c-d12c-4aaf-ae62-cb61268b5ba5",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "라보가 더 좋음, 폼·괄사 병행 루틴 추천"
+    },
+    {
+      "input_id": "03253de4-0353-4cef-85fa-95fbcdb72dbe",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "성능 차이 없으니 가장 싼 게 최고라는 가격 중심 구매 기준"
+    },
+    {
+      "input_id": "03e71441-f4e3-4246-89bd-db19ab4b67c9",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "영상 측정 방법에 대한 코멘트로 제품 사용 신호 없음"
+    },
+    {
+      "input_id": "0518547d-6c3e-4e61-a841-1512dbb60a30",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "쿠쿠 소형 렌탈 계약 후 아쉬움과 만족, 경쟁사 선택 경험"
+    },
+    {
+      "input_id": "06d998eb-77c0-4cf1-b2d2-340877964bf0",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "정수기 대신 브리타 대체재를 고려하는 구매 망설임"
+    },
+    {
+      "input_id": "0bdef05c-f9b3-4695-93ba-6cd900a411dc",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "코웨이 약정 만료 후 코웨이 재계약 만족, 재구매 신호"
+    },
+    {
+      "input_id": "0c6a1826-1d39-49c6-97e3-372f1096ece0",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "필터 가격·호환·제조국 정보를 원하는 구매 기준"
+    },
+    {
+      "input_id": "0e1ed20b-bc9b-442e-9549-c6d61f20615c",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "수돗물로 충분하다는 카테고리 무용론"
+    },
+    {
+      "input_id": "14c49cff-575f-4284-b931-453558ba2801",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "노인이 쓰기 편한 얼음정수기 수요, SK 불편·타사 비쌈"
+    },
+    {
+      "input_id": "14c8f5bd-c393-4dfb-b09d-ba7faf3efc39",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "출수 빠르면 덜 걸러진다는 소비자 인식"
+    },
+    {
+      "input_id": "14cfa414-47c6-45f6-8d7c-9a6f6990cfda",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "코웨이 물맛 최고지만 전기 사용량 많다는 지적과 브랜드 비교"
+    },
+    {
+      "input_id": "15099f62-79c3-4a5a-8771-358ba97e677e",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "광고 온수 온도·출수시간 미달로 분쟁 준비 중인 렌탈 고객"
+    },
+    {
+      "input_id": "1692dd88-0933-4bd0-b092-bc91c524d307",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "호환필터와 전용필터 가격차 비교 요구"
+    },
+    {
+      "input_id": "1986247e-6553-41f3-b8c7-604cd4cc9509",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "첫 구매자가 코웨이·LG 비교 검토 중"
+    },
+    {
+      "input_id": "19de882f-326b-403e-bfc4-56807f5a8d70",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "코웨이 물맛이 인위적이라 만료 후 청호로 이탈 예정"
+    },
+    {
+      "input_id": "1f02adac-bf67-44f6-bafb-e89098a3862f",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "수질검사 후 수돗물 마시라는 정수기 비용 무용론"
+    },
+    {
+      "input_id": "28f7b637-657e-4404-8e85-8a43e5832e09",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "쿠쿠 물로 물그릇에 붉은 곰팡이, SK로 전환"
+    },
+    {
+      "input_id": "2aa831c5-40df-4ce1-8d9d-bba06e9d106c",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "SK매직 고주파 소음 우려로 구매 고민"
+    },
+    {
+      "input_id": "2c10a421-70fe-4b4a-8d37-d02b896d2f88",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "필터 미세플라스틱 우려, 줄이고 싶다는 소비자 관심"
+    },
+    {
+      "input_id": "2ed270e0-eb10-4157-8404-21ed682c399b",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "냉온 기능보다 필터링 성능이 핵심이라는 구매 기준"
+    },
+    {
+      "input_id": "2fb36aad-b95a-4dee-8dc5-9f99f38ae6ca",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "필터 비규격화·가격 거품 지적, 자가관리 권장"
+    },
+    {
+      "input_id": "2fdd02e4-ea35-4d31-ad57-4b89465629df",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "수도꼭지 필터+끓인 물로 정수기 대체"
+    },
+    {
+      "input_id": "368fe539-f4ab-4c6e-9583-a58c48b03339",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "상담·설치 친절, 용량 설정·앱 관리 편의 만족 후기"
+    },
+    {
+      "input_id": "37f7204c-4f6c-4d19-86b2-51381b97be7a",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "인증 따지면 조금 비싸도 코웨이라는 선호"
+    },
+    {
+      "input_id": "3f650b19-623a-4635-857f-66dc3e3d1fa8",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "교원 20년 사용·물맛 추천, 경쟁사 충성 고객"
+    },
+    {
+      "input_id": "4365f04f-df71-4dfe-be00-8497795c6b48",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "렌탈 중 교체 필터 물맛이 달라 필터 품질 불신"
+    },
+    {
+      "input_id": "4465dad3-f287-45f9-8f78-40ccb6e8f506",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "코웨이 교체 후 크기·디자인·온수 온도조절·가격 만족"
+    },
+    {
+      "input_id": "466c05e8-2f87-402f-b6f5-56e656d75e95",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "SK매직 얼음정수기 고장과 고객센터 응대 불만"
+    },
+    {
+      "input_id": "48518c69-d22b-4cb3-a707-991dd4de5d3d",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "노후 배관 때문에 정수기 무의미, 생수가 낫다는 인식"
+    },
+    {
+      "input_id": "4923ea42-38a7-4de2-9a21-dc758c0fd7fa",
+      "verdict": "unknown",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "전기사용량 한마디뿐이라 의도 판단 불가"
+    },
+    {
+      "input_id": "4aa72f73-9efe-45cb-9c9f-998bc6684829",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "10만원대 저가 정수기와 수질 비교 요구"
+    },
+    {
+      "input_id": "4e45f5eb-d679-47f6-8e53-e50c71824fa9",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "코웨이 해지 시 철거비 청구로 재사용 거부"
+    },
+    {
+      "input_id": "53ce25da-7cc0-49e3-8a20-a145a7b8c30b",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "기술 차이 없으니 관리 편하고 싼 제품이면 된다는 기준"
+    },
+    {
+      "input_id": "56413144-137e-4835-84fa-eb07407c9d23",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "직결 필터 사용자, 필터별 성능 차이 궁금"
+    },
+    {
+      "input_id": "56b4bb33-3779-4675-a8b5-177db3fc4f8c",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "전용 필터 강제에 대한 불만, 호환 필터 수요"
+    },
+    {
+      "input_id": "58ec6e53-6a85-43f7-bf06-924d38f2fd9b",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "얼음정수기 5년 렌탈 약 300만원, 얼음냉장고로 대체 의향"
+    },
+    {
+      "input_id": "59948568-d59d-42f0-8c72-755df45cf54e",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "출수 호스 내부 이끼 경험으로 생수 권장"
+    },
+    {
+      "input_id": "59d4c5b1-c8e0-4705-aae6-20f099eaf355",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "카드할인 렌탈 불만, 자가관리 가능 여부 문의"
+    },
+    {
+      "input_id": "5b9829ed-3e8a-46a7-a587-d96de2e728c3",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "쿠쿠 온수 출수 느림, 코웨이는 빠름 비교"
+    },
+    {
+      "input_id": "5c418437-1ffe-49c3-987b-31569307f41a",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "영상 내용 요약문으로 소비자 본인 경험 아님"
+    },
+    {
+      "input_id": "5e5c3040-c5ff-42bd-8c63-aa5f7d80275f",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "언더싱크 직수로 연 10만원 미만 대체 권장"
+    },
+    {
+      "input_id": "62e498dd-df9f-45fb-a2cd-66ec9db75f5b",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "LG 퓨리케어 물맛·출수 딜레이 불만, 5년 약정 후회"
+    },
+    {
+      "input_id": "63358329-bfbe-4049-8304-922ef78df74b",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "필터 성능·방문관리·살균 기능 비교 요구"
+    },
+    {
+      "input_id": "63a4962e-8837-4057-aa99-4bb325d74f69",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "채널 제휴 링크 홍보글"
+    },
+    {
+      "input_id": "6491b1c0-567f-4da7-9aea-b12e2c6177d2",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "코웨이 플라스틱 직수관·저수조 냉수·렌탈료 더 비싸다는 반론"
+    },
+    {
+      "input_id": "6aa0dcd2-92a3-46a1-b1b1-77f7fa816907",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "SK매직 사용 만족"
+    },
+    {
+      "input_id": "6b344a47-791f-4158-9177-1631b15835d4",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "저가 정수기 온수 다량 사용 시 계기판 고장, 비싼 게 값어치"
+    },
+    {
+      "input_id": "6fbd0842-9c3d-4e19-9d83-b46ae3d635d4",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "정수기 기술력 낮다는 업계 불신"
+    },
+    {
+      "input_id": "6fc11539-df18-4947-aeb4-1f3524974df5",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "교체 설치 후기, 색상·온수·설치기사 만족"
+    },
+    {
+      "input_id": "70dc69fc-c997-47dd-bfc9-81f96840e048",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "일시불 대비 구독 비용·필터 정보 부족 지적"
+    },
+    {
+      "input_id": "71d65823-684a-4e8b-8758-261b8d07658f",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "계약 종료 후 필터 호환·구매 정보 요청"
+    },
+    {
+      "input_id": "741a6be6-a00f-4ff5-9781-76939ff96a74",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "석회 문제로 경쟁사 청호가 최고였다는 사용 경험"
+    },
+    {
+      "input_id": "7bfae864-549e-40ce-823d-e2ba79ebe6e2",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "암웨이 이스프링 사용자 비교 질문"
+    },
+    {
+      "input_id": "801bbba5-54e3-4d10-9a70-f7f6c0c8e8c2",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "정수기 미세플라스틱 우려"
+    },
+    {
+      "input_id": "84a5eb4b-dd9c-4104-86bf-02a3421f7066",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "영상 감사·스팀청소기 언급, 제품 신호 없음"
+    },
+    {
+      "input_id": "876973b4-a659-4cb6-a89f-c3403739e37d",
+      "verdict": "irrelevant",
+      "impact": null,
+      "frequency": null,
+      "community_signal": null,
+      "wtp_mentioned": null,
+      "reason": "부품 납품 구조에 대한 업계 주장, 사용자 경험 아님"
+    },
+    {
+      "input_id": "8aa3fcef-b493-4eff-9f68-4b09e76daf2f",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": false,
+      "reason": "RO 필터 단순 정수기가 낫다는 대안 선호"
+    },
+    {
+      "input_id": "8d91a6c4-5425-4e5f-9b47-42933e11fecf",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "코웨이 설치 후기, 용량·온수온도 설정·자가관리 만족"
+    },
+    {
+      "input_id": "9c069d3f-9e4d-461a-a648-a6a61db48c32",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "비싼 정수기 대신 언더싱크 필터가 현명하다는 반론"
+    },
+    {
+      "input_id": "9d178a35-d645-4362-9004-3792248fe808",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "가정용 정수기 1년 후 오염, 직수형 선호"
+    },
+    {
+      "input_id": "a074af4c-ea29-4064-a06a-9b7a557ce6f5",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "LG 렌탈 케어서비스·약정 후 교체 만족"
+    },
+    {
+      "input_id": "a083e76d-17fa-47ff-a165-ebb2f9e82637",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "정수기 가격 거품 인식"
+    },
+    {
+      "input_id": "a600354f-ff36-4f6f-833a-1f95a48a1480",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "중소 정수기 물때·업체 대응 불만, 브리타로 이탈"
+    },
+    {
+      "input_id": "a67e8003-12c0-428e-af23-9db74ab89091",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "관리방식별 요금·필터 성능 대비 렌탈료 비교 요청"
+    },
+    {
+      "input_id": "a8469509-339d-4724-a66f-3f6572b42edd",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "미니 얼음정수기 전환 후기, 냉수·얼음·터치 만족"
+    },
+    {
+      "input_id": "a8a053a8-abba-4251-bcb3-9b2327db468f",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "코웨이 아이콘2 가게용 구매, 홈쇼핑 할인·사이즈 만족"
+    },
+    {
+      "input_id": "a95873da-0d71-47a4-86ed-60982ff5f5fc",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "온수 대기전력 비효율, 가장 싼 정수전용이 정답"
+    },
+    {
+      "input_id": "ad12495a-3fca-4708-8be1-3f404ea6ea28",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "삼성 필터 가격 급등 불만, 5년 총비용 부담"
+    },
+    {
+      "input_id": "add35eef-1939-4518-a1cc-6ae59148838a",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "성능 비슷하니 카드할인이 선택 기준"
+    },
+    {
+      "input_id": "b236f52a-9cb0-4bce-a459-facc06a80a66",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "루헨스 유지비 저렴, 코웨이 신제품 교체 유도 불만"
+    },
+    {
+      "input_id": "b58de6b5-f1e0-4fd5-ab9e-3529f0d243e4",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "5년 총비용 과다, 언더싱크 자작으로 대체"
+    },
+    {
+      "input_id": "ba943fc1-8b72-4818-b986-ba798b71ebba",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "쿠쿠 누수 7회·해지 불가 불만"
+    },
+    {
+      "input_id": "bbaf84ab-8fb1-4304-a144-f5da307aab03",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "low",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "판매자 시각 브랜드 AS·타사보상, 코웨이 아이콘프로 터치 비판"
+    },
+    {
+      "input_id": "bf676e83-e8fd-4f30-b6ee-d29fe47cdb27",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "코웨이 얼음정수기 고장·AS 지연·위약금·설치 불량"
+    },
+    {
+      "input_id": "c035844e-2a9d-4964-bac6-daf48b37a10e",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "렌탈 가격에 대한 반감"
+    },
+    {
+      "input_id": "c1e56d6d-d37b-4d06-8e5c-0915768e8133",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "냉장고급 가격에 대한 의문"
+    },
+    {
+      "input_id": "c48b0f3f-71f4-49db-9a7c-22edd9401a42",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "루헨스 유지비·코웨이 교체 유도 비교(중복 댓글)"
+    },
+    {
+      "input_id": "c55c3213-4335-4ea4-a56f-3aee7dac9223",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "objection",
+      "wtp_mentioned": true,
+      "reason": "125만원 가격·코웨이 필터비 20만원 과다"
+    },
+    {
+      "input_id": "c9191aff-6d81-4b63-91dd-f04b73811694",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "high",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "LG 렌탈 만족, 생수 구매·쓰레기 감소"
+    },
+    {
+      "input_id": "d1442dd4-6eb5-4907-912a-9df13a6bc13b",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "미세플라스틱 정수 성능 정보 요구"
+    },
+    {
+      "input_id": "d44fd298-e275-418b-9443-ddbe21192f7d",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "쿠쿠 영업·약정 종료 후 교체 유도, 3~5년 교체 비용 불만"
+    },
+    {
+      "input_id": "d4d5a22e-c773-4246-aad0-27b9d8d46699",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "온수 첫잔 온도 낮음·출수량 느림"
+    },
+    {
+      "input_id": "d897c9f6-426c-464b-a961-4b6620ed9183",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "렌탈 종료 정수기 DIY 자가필터 사용 경험"
+    },
+    {
+      "input_id": "dd666264-9cf2-47e6-8bc7-41083965463d",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "LG 필터 성능 보고 구매, 필터 비교 요구"
+    },
+    {
+      "input_id": "dec6bd50-1c24-4821-85ce-27505b89d87f",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "코웨이 아이콘프로 냉수 연속 출수 시 미지근"
+    },
+    {
+      "input_id": "e466a8fe-e1c7-4f21-8131-643e61bda7ea",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "미국 8년 코웨이 사용자 신뢰 유지"
+    },
+    {
+      "input_id": "ec474d14-a33e-433a-9ea2-1e7268caefb7",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "대가족 냉수 용량 부족·AS·필터 차이 고려 요구"
+    },
+    {
+      "input_id": "ef5bce43-8a71-4c9b-8229-4a6a50a5b8df",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "필터 생산지(코웨이·원봉) 정보 요구"
+    },
+    {
+      "input_id": "f1b5001f-36ec-4638-bdc2-fff31933c11a",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": true,
+      "reason": "SK 저렴·자동청소·스텐 만족"
+    },
+    {
+      "input_id": "f458dce6-8c52-4fd9-8e03-d28f12797758",
+      "verdict": "relevant",
+      "impact": "low",
+      "frequency": "mid",
+      "community_signal": null,
+      "wtp_mentioned": false,
+      "reason": "필터 성능 다 비슷하다는 인식(차별화 약함)"
+    },
+    {
+      "input_id": "f5ae5d70-c70f-4184-8e37-a8dc1b8cdab8",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": false,
+      "reason": "쿠쿠 보일링챔버 물고임 비위생 불만"
+    },
+    {
+      "input_id": "f6f78ea6-bdf5-4a7b-a3a4-4e52e5662d20",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "스테인리스 관 선호, SK매직 긍정"
+    },
+    {
+      "input_id": "f7d85543-5ef9-4a7b-9bb2-5e0e8a0db71d",
+      "verdict": "relevant",
+      "impact": "high",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "쿠쿠 출수 불량·냉수 미지근, 비싸도 코웨이·LG 선호"
+    },
+    {
+      "input_id": "fe0b8eeb-f4af-4521-9222-3445924174c0",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "low",
+      "community_signal": "demand",
+      "wtp_mentioned": false,
+      "reason": "필터 제조방식·중금속 제거 성능 비교 요구"
+    },
+    {
+      "input_id": "ffcb0e2d-1e62-4a40-baa4-b44e1de0fca7",
+      "verdict": "relevant",
+      "impact": "mid",
+      "frequency": "mid",
+      "community_signal": "pain",
+      "wtp_mentioned": true,
+      "reason": "물탱크 관리·저가 필터 우려, 관리 품질이 핵심"
+    }
+  ]
+}

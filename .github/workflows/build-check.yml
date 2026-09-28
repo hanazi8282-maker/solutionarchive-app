@@ -95,6 +95,9 @@ jobs:
       - run: node scripts/relevance-translate-selftest.mjs
       # 야간 2차 판정: 대상 선정·독립성(1차 gemini 제외)·어휘·기록 WHERE(경쟁 방지)·503 순환 헬퍼(평가 하네스와 공용). 가짜 클라이언트·주입 호출만.
       - run: node scripts/relevance-second-judge-selftest.mjs
+      # 외부 텍스트(리뷰·VOC·웹·제목)를 싣는 LLM 프롬프트가 "데이터지 지시가 아니다" 문구(lib/llm/untrusted-input.ts)를 싣는지:
+      # 등록된 조립 지점은 실제 프롬프트로, 새 호출 지점은 lib/·scripts/·app/ 정적 스캔으로 잡는다(허용 목록은 이유 필수). 음성 확인 포함.
+      - run: node scripts/untrusted-input-selftest.mjs
       # 케이스 자동 승인 ca-v1: 규칙 6조건·케이스 따라가기·게이트(연결 테이블 3상태·rr-v1 종속)·킬스위치·되돌리기·검증중 정렬.
       - run: node scripts/case-auto-approval-selftest.mjs
       # 어드바이저 매칭 3상태·불용어 회귀·SP-024 저신뢰 판정. 픽스처만 쓴다(네트워크·DB 없음).

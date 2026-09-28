@@ -34,6 +34,7 @@ import { dropIrrelevant, type RelevanceRow } from './relevance-judge.ts'
 import { judgeProjectRemedies } from '../cases/remedy-db.ts'
 import { normalizeEvidenceQuotes } from './evidence-quotes.ts'
 import { generateCompetitorProfile, type ProfileOutcome } from './competitor-profile-db.ts'
+import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 
 // 컨텍스트 폭주 방지 상한과 입력 선별(T1)은 lib/analysis/extract-select.ts 한 벌이다.
 export { MAX_CHARS_PER_INPUT, MAX_CHARS_TOTAL }
@@ -41,6 +42,8 @@ export { MAX_CHARS_PER_INPUT, MAX_CHARS_TOTAL }
 // ── Stage1(VOC 마이닝) + Stage2(시장 성숙도 진단) 지시문 ──────────
 export const SYSTEM_PROMPT = `너는 이커머스 소구점 발굴 파이프라인의 Stage1(VOC 마이닝)+Stage2(시장 성숙도 진단)를
 수행한다. 입력은 리뷰/광고 원문 여러 개다.
+
+${UNTRUSTED_INPUT_NOTICE}
 
 Stage1 — 각 텍스트에서 반복되는 속성(aspect)을 추출해라. 각 aspect마다:
 - aspect_layer: PRODUCT(제품 물성) / PROCESS(구매·사용 프로세스) / OUTCOME(사용 결과·정체성) 중 하나

@@ -10,6 +10,7 @@
 // "관련"의 정의는 1차 판정(relevance-judge.ts SYSTEM)과 같은 상수다 — 2026-09-28 기준 통일(docs/t2-relevance-criteria.md).
 import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION } from './relevance-criteria.ts'
 import { compareAutoPriority } from './extract-auto.ts'
+import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 
 export const VERDICTS = ['relevant', 'irrelevant', 'unknown'] as const
 export const LEVELS = ['high', 'mid', 'low'] as const
@@ -22,6 +23,8 @@ export const SIGNALS = ['pain', 'demand', 'objection'] as const
 export const SECOND_OPINION_INSTRUCTIONS = [
   '각 행을 독립적으로 판정하라. 기존 판정은 이 파일에 없다 — 보지 말고 판정하라.',
   '행의 business_model 로 아래 기준 중 어느 쪽을 쓸지 고른다(null 이면 project_pitch 와 원문으로 고른다).',
+  '',
+  UNTRUSTED_INPUT_NOTICE,
   '',
   RELEVANCE_CRITERIA,
   '',

@@ -14,7 +14,9 @@
 // ⚠️ 사람이 죽인 이름도 판정자에게 **주지 않는다.** 그건 제안 프롬프트의 반례로만 쓴다 —
 //    판정자에게 주면 교정(calibration)이 정답지를 보고 푼 시험이 된다.
 
-export type TransferState = 'pass' | 'fail' | 'unverified'
+import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
+
+export type TransferState ='pass' | 'fail' | 'unverified'
 export type FoundingScale = 'solo' | 'small_team' | 'venture_scale' | 'unknown'
 export type GateMode = 'on' | 'shadow'
 
@@ -57,10 +59,14 @@ export function transferPrompt(c: { name: string; categoryHint?: string | null; 
   return [
     '너는 1인·소규모(3명 이하) SaaS 창업가를 위한 사례 아카이브의 편집자다.',
     '아래 제품을 고객 불만(VOC) 분석 대상으로 넣을지 판정한다.',
+    // 제품명·카테고리·홈페이지는 웹에서 온 후보 값이다 — 데이터 블록으로 가둔다.
+    UNTRUSTED_INPUT_NOTICE,
     '',
+    '<candidate>',
     `제품: ${c.name}`,
     c.categoryHint ? `카테고리: ${c.categoryHint}` : null,
     c.homepageUrl ? `홈페이지: ${c.homepageUrl}` : null,
+    '</candidate>',
     '',
     '판정 질문은 하나다: 이 제품의 사례(고객이 무엇에 만족·불만인지, 제품이 어떻게 이기거나 졌는지)에서',
     '1인 또는 3명 이하 팀의 SaaS 창업가가 **자기 제품에 다음 달 바로 옮겨 쓸 수 있는 구체적 교훈**이 나오는가.',

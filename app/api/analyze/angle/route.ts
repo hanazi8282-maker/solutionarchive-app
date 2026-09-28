@@ -26,6 +26,7 @@ import {
   type LlmProvider,
 } from '@/lib/analysis/llm'
 import { withLlmBudget } from '@/lib/analysis/budget'
+import { UNTRUSTED_INPUT_NOTICE } from '@/lib/llm/untrusted-input'
 
 // 앵글 1건당 LLM 호출이 붙으므로 여유를 크게 잡는다.
 export const maxDuration = 300
@@ -154,6 +155,8 @@ const PURPOSE_TONE: Record<string, string> = {
 const COPY_REWRITE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 게이트를 통과시키는 편집자다.
 입력으로 받은 문구는 근거 없이 성능·효능을 주장(UNSUBSTANTIATED)한다고 판정됐다.
 
+${UNTRUSTED_INPUT_NOTICE}
+
 성능·효능 주장을 완전히 제거하고, 대신 "불안 해소 장치"로 다시 써라.
 불안 해소 장치란 구매자가 스스로 확인·통제할 수 있게 해주는 것이다:
 사용 가이드, 확인 방법, 사용 조건 안내, 자가 점검 기준 등.
@@ -170,6 +173,8 @@ const COPY_REWRITE_SYSTEM_PROMPT = `너는 이커머스 카피의 실증 게이�
 // 그래서 재작성 지시를 산출물 유형별로 갈라, 사양 계열은 사실 서술만 하게 한다.
 const SPEC_REWRITE_SYSTEM_PROMPT = `너는 내부 문서를 다듬는 편집자다.
 입력으로 받은 문장은 근거 없이 성능·효능을 주장(UNSUBSTANTIATED)한다고 판정됐다.
+
+${UNTRUSTED_INPUT_NOTICE}
 
 이 문장은 광고 카피가 아니다. 소비자에게 노출되지 않는 내부 문서다:
 - BASELINE_SPEC: 경쟁 진입을 위해 반드시 충족해야 하는 기본 사양 요약

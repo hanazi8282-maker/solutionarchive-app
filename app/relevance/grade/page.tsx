@@ -1,18 +1,21 @@
 import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { BATCH_SIZE, DEFAULT_QUOTA, STRATA, STRATUM_LABEL, kstDate, pickBatch, type Batch, type FeedbackRow } from '@/lib/relevance-feedback/sample'
-import { feedbackTableState, loadAllVerdicts } from '@/lib/relevance-feedback/db'
+import { feedbackTableState, loadAllVerdicts, loadBackgrounds, loadTranslations } from '@/lib/relevance-feedback/db'
+import { TRANSLATIONS_MIGRATION, parseSourceContext } from '@/lib/relevance-feedback/translate'
 import { ButtonLink } from '../../_ds/components/Button'
 import { Card } from '../../_ds/components/Card'
 import { EmptyState } from '../../_ds/components/EmptyState'
 import { ProgressBar } from '../../_ds/components/ProgressBar'
 import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
-import { RelevanceCard, type Revealed } from './relevance-card'
+import { RelevanceCard, type CardContext, type Revealed } from './relevance-card'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '관련성 기준 채점' }
 
 // 읽기만 한다. 쓰기는 ../actions.ts 의 gradeRelevance 하나. 표본 선택은 lib/relevance-feedback/sample.ts(순수, 셀프테스트).
+// 번역·제품 배경·스레드 제목은 캐시(000035)에서 읽기만 한다 — 만드는 것은 scripts/relevance-translate.mjs(야간 배치). 없으면 "준비 중".
+// ⛔ 카드로 넘기는 맥락(CardContext)에 판정 계열 값을 싣지 않는다 — 번역·배경은 순수 사실 문자열뿐이다(채점 독립성).
 
 const HEADER = {
   title: `관련성 기준 채점 (하루 ${BATCH_SIZE}장)`,
@@ -39,13 +42,14 @@ export default async function RelevanceGradePage() {
   // 원문이 폐기된 행(raw_text 없음)은 채점할 게 없다 — 빼고 다시 뽑는다. 세 번이면 충분하다(빈 원문은 드물다).
   const exclude = new Set<string>()
   const texts = new Map<string, string>()
+  const sourceKeys = new Map<string, string | null>()
   let batch: Batch = pickBatch(loaded.rows, { today })
   for (let round = 0; round < 3; round++) {
     const ids = batch.items.map((i) => i.row.input_id).filter((id) => !texts.has(id))
     if (ids.length === 0) break
-    const { data, error } = await sb.from('analysis_inputs').select('id, raw_text').in('id', ids)
+    const { data, error } = await sb.from('analysis_inputs').select('id, raw_text, source_key').in('id', ids)
     if (error) return <Shell>{header}<Notice tone="danger" title="확인 불가 — 원문 조회 실패">{error.message}</Notice></Shell>
-    for (const r of data ?? []) if ((r.raw_text ?? '').trim()) texts.set(r.id, r.raw_text)
+    for (const r of data ?? []) if ((r.raw_text ?? '').trim()) { texts.set(r.id, r.raw_text); sourceKeys.set(r.id, r.source_key ?? null) }
     const empty = ids.filter((id) => !texts.has(id))
     if (empty.length === 0) break
     empty.forEach((id) => exclude.add(id))
@@ -61,6 +65,24 @@ export default async function RelevanceGradePage() {
   const projectOf = new Map((projects ?? []).map((p) => [p.id, clip(p.product_elevator_pitch ?? '(소개 없음)')]))
 
   const noteState = await feedbackTableState(sb)
+  const [translations, backgrounds] = await Promise.all([
+    loadTranslations(sb, items.map((i) => i.row.input_id)),
+    loadBackgrounds(sb, projectIds),
+  ])
+  // 번역이 없을 때의 이유 — 0건("준비 중")과 못 읽음·미적용을 가른다(§7.1).
+  const cacheNote = translations.state === 'missing' ? `미적용(마이그 ${TRANSLATIONS_MIGRATION} 전)`
+    : translations.state === 'unknown' ? `확인 불가(${translations.error})` : null
+  const contextOf = (inputId: string, projectId: string | null): CardContext => {
+    const raw = texts.get(inputId) ?? ''
+    const src = parseSourceContext(sourceKeys.get(inputId), raw)
+    const tr = translations.state === 'present' ? translations.rows.get(inputId) ?? null : null
+    const bg = backgrounds.state === 'present' ? backgrounds.rows.get(projectId ?? '') ?? null : null
+    const translationNote = cacheNote ?? (!tr ? '준비 중(야간 배치가 만든다)' : tr.status === 'failed' ? '번역 실패(사후검사 또는 호출 실패 — 원문으로 채점)' : tr.status === 'skipped' ? '한국어 원문' : null)
+    const thread = src.threadKey || src.threadTitle || src.threadRef
+      ? { title: src.threadTitle, titleKo: tr?.thread_title_ko ?? null, ref: src.threadRef }
+      : null
+    return { background: bg?.status === 'ok' ? bg.background : null, translation: tr?.status === 'ok' ? tr.text_ko : null, translationNote: tr?.status === 'ok' ? null : translationNote, thread }
+  }
   const done = items.filter((i) => i.row.human_verdict != null).length
   const a = batch.availability
   const unavailable = STRATA.filter((s) => !batch.strata[s].available)
@@ -88,6 +110,9 @@ export default async function RelevanceGradePage() {
               {a.second === null ? '판정 행이 0 건이라 컬럼 유무를 모른다' : a.second === false ? '2차 판정 컬럼(000027) 없음' : '정보성 컬럼(000031) 미적용'}. 0 건이 아니라 못 가른 것이다.
             </p>
           )}
+          {cacheNote && (
+            <p className="v2-note v2-flag">번역·제품 배경 — {cacheNote}. 원문으로 채점한다.</p>
+          )}
           {noteState !== 'present' && (
             <p className="v2-note v2-flag">기준 보완 메모 — {noteState === 'missing' ? '미적용(마이그 20260930000032 전)' : '테이블 확인 불가'}. 판정 저장은 된다.</p>
           )}
@@ -107,6 +132,7 @@ export default async function RelevanceGradePage() {
               inputId={row.input_id}
               project={projectOf.get(row.project_id ?? '') ?? '(프로젝트 미상)'}
               text={texts.get(row.input_id) ?? ''}
+              context={contextOf(row.input_id, row.project_id ?? null)}
               informativeReady={a.informative === true}
               noteState={noteState}
               revealed={row.human_verdict != null ? reveal(row, stratum) : null}

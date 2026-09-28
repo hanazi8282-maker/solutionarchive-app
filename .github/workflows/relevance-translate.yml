@@ -1,0 +1,84 @@
+# /relevance/grade 카드의 번역·제품 배경·스레드 제목을 미리 만든다(scripts/relevance-translate.mjs).
+#
+# 남헌 2026-09-29: 영어 VOC 를 채점할 때마다 다른 채팅에 복사해 번역·맥락을 묻던 것을 화면에 넣는다.
+#
+# ⛔ 채점 독립성 — 만드는 글은 순수 사실뿐이다(프롬프트 제한 + 사후검사, lib/relevance-feedback/translate.ts). 판정 값은 프롬프트에 안 들어간다.
+# ⛔ 캐시 테이블(마이그 20260930000035)이 없으면 아무것도 하지 않고 종료코드 2 로 멈춘다. 조용히 도는 것보다 시끄럽게 닫히는 편이 낫다.
+#
+# provider 는 claude-cli(구독 OAuth) — nightly-relevance 의 2차 판정이 쓰는 Gemini 무료 쿼터를 건드리지 않는다. 그래서 같은 시간대에 돌아도 경합이 없다.
+# 그래도 nightly-relevance(KST 04:03, 최장 90분+30분)가 **끝난 뒤**에 돈다 — 그 판정이 오늘 묶음의 모집단을 바꾸기 때문이다(sample.ts pickBatch).
+# 되돌리기 = 이 파일 삭제(캐시 행은 남고 화면은 "준비 중"으로 돌아간다).
+
+name: Relevance Translate
+
+on:
+  schedule:
+    # 21:33 UTC = KST 06:33. 정각·30분을 피하는 이유는 nightly-review-collect.yml 주석에 있다.
+    - cron: '33 21 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '대상 선정만 하고 LLM 을 부르지 않는다'
+        type: boolean
+        default: true
+      retry_failed:
+        description: 'failed 행도 다시 시도한다'
+        type: boolean
+        default: false
+      rounds:
+        description: '미리 만들 묶음 수(오늘 묶음 + 다음 묶음). 기본 2'
+        type: string
+        default: '2'
+
+# 두 실행이 겹치면 같은 리뷰를 두 번 번역해 크레딧만 태운다.
+concurrency:
+  group: relevance-translate
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    # 묶음 2회 = 최대 30건 + 배경 몇 건. sonnet 으로 건당 10~20초. 스크립트가 25분(TRANSLATE_DEADLINE_MIN)에 스스로 멈춘다.
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # claude -p 헤드리스용 CLI. 버전 고정 이유는 nightly-relevance.yml 과 같다.
+      - name: Install Claude Code CLI
+        run: |
+          npm i -g @anthropic-ai/claude-code@2.1.251
+          echo "CLAUDE_CLI_PATH=$(which claude)" >> "$GITHUB_ENV"
+          claude --version
+
+      - name: Translate today's grading batch
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # nightly-relevance 1차 판정과 같은 기존 시크릿(새 시크릿 없음). 되돌리기 = 리포 변수 TRANSLATE_LLM_PROVIDER=gemini.
+          LLM_PROVIDER: ${{ vars.TRANSLATE_LLM_PROVIDER || 'claude-cli' }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # 번역은 판단이 아니라 옮김이라 sonnet 이면 충분하다(속도·크레딧). 바꾸려면 리포 변수.
+          CLAUDE_CLI_MODEL: ${{ vars.TRANSLATE_CLI_MODEL || 'sonnet' }}
+          # 비용 상한은 lib/analysis/budget.ts 가 강제한다(프로세스 단위 = 이 실행 1회분). 건당 짧은 호출이라 요청 상한은 기본(0.5)으로 충분.
+          LLM_DAILY_BUDGET_USD: ${{ vars.TRANSLATE_DAILY_BUDGET_USD || '3' }}
+          LLM_USD_PER_MTOK_IN: '3'
+          LLM_USD_PER_MTOK_OUT: '15'
+          TRANSLATE_DEADLINE_MIN: '25'
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          node scripts/relevance-translate.mjs \
+            --rounds "${{ inputs.rounds || '2' }}" \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }} \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.retry_failed) && '--retry-failed' || '' }}

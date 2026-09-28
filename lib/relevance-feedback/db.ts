@@ -30,5 +30,28 @@ export async function feedbackTableState(sb: Sb): Promise<'present' | 'missing' 
 }
 
 export const isMissingRelation = (e: { code?: string; message?: string }) =>
-  e.code === 'PGRST205' || e.code === '42P01' || (/relevance_criteria_feedback/.test(e.message ?? '') && /not find|does not exist/.test(e.message ?? ''))
+  e.code === 'PGRST205' || e.code === '42P01' || (/relevance_(criteria_feedback|translations|product_backgrounds)/.test(e.message ?? '') && /not find|does not exist/.test(e.message ?? ''))
 export const isMissingColumn = (e: { code?: string }) => e.code === 'PGRST204' || e.code === '42703'
+
+/**
+ * 번역·배경 캐시(000035) 읽기. 화면에 올리는 것은 **본문 컬럼만**이다 — 판정 계열은 이 테이블에 없고 여기서도 고르지 않는다.
+ * 3상태: present(행 맵) · missing(테이블 없음 = 마이그 전) · unknown(조회 실패). 0건과 못 읽음을 가른다(§7.1).
+ */
+export type CacheLoad<T> = { state: 'present'; rows: Map<string, T> } | { state: 'missing' } | { state: 'unknown'; error: string }
+
+export type TranslationView = { text_ko: string | null; thread_title: string | null; thread_title_ko: string | null; thread_key: string | null; status: string }
+export type BackgroundView = { background: string | null; status: string }
+
+export async function loadTranslations(sb: Sb, inputIds: readonly string[]): Promise<CacheLoad<TranslationView>> {
+  if (inputIds.length === 0) return { state: 'present', rows: new Map() }
+  const { data, error } = await sb.from('relevance_translations').select('input_id, text_ko, thread_title, thread_title_ko, thread_key, status').in('input_id', inputIds)
+  if (error) return isMissingRelation(error) ? { state: 'missing' } : { state: 'unknown', error: `${error.code ?? ''} ${error.message}`.trim() }
+  return { state: 'present', rows: new Map((data ?? []).map((r) => [r.input_id as string, r as TranslationView])) }
+}
+
+export async function loadBackgrounds(sb: Sb, projectIds: readonly string[]): Promise<CacheLoad<BackgroundView>> {
+  if (projectIds.length === 0) return { state: 'present', rows: new Map() }
+  const { data, error } = await sb.from('relevance_product_backgrounds').select('project_id, background, status').in('project_id', projectIds)
+  if (error) return isMissingRelation(error) ? { state: 'missing' } : { state: 'unknown', error: `${error.code ?? ''} ${error.message}`.trim() }
+  return { state: 'present', rows: new Map((data ?? []).map((r) => [r.project_id as string, r as BackgroundView])) }
+}

@@ -57,6 +57,15 @@ export default function PostForm({
         <Input id="published_at" name="published_at" type="datetime-local" required />
       </Field>
 
+      {/* 초안 없이 외부에서 이미 올린 글 — 두 칸을 채우면 published_via='external' 로 등록되고 성과 수집이 붙는다. 발행은 하지 않는다. */}
+      <Field label="외부 게시물 ID (external_id, Threads media id)" htmlFor="external_id">
+        <Input id="external_id" name="external_id" type="text" inputMode="numeric" pattern="\d{15,20}" placeholder="예: 18109270787178013" />
+      </Field>
+
+      <Field label="외부 게시물 퍼머링크 (permalink)" htmlFor="permalink">
+        <Input id="permalink" name="permalink" type="url" placeholder="https://www.threads.com/@계정/post/코드" />
+      </Field>
+
       <Field label="패턴 (pattern)" htmlFor="pattern">
         <Select id="pattern" name="pattern" defaultValue="">
           <option value="">— 선택 안 함 —</option>

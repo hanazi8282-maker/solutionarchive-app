@@ -381,3 +381,11 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - INSERT 뿐인 비파괴 변경(§10.1 발굴 적재 범위와 같은 모양). 사전 확인: 같은 이름 프로젝트·타깃 0건. 한 트랜잭션(데이터 변경 CTE) — 결과 후보 17·프로젝트 17·타깃 17·연결 17.
 - 양성 확인: 17행 전부 collecting·SAAS·hackernews·active 로 재조회. 되돌리기: `reports/2026-09-28/voc-thresholds/register-17-rollback.sql`(1단계 수집 중지, 2단계 삭제는 입력 0건 확인 뒤).
 - 영향: 다음 수집 슬롯부터 HN 타깃 27→44. 이 17개가 첫 추출(신규 ≥100) 문턱을 넘으면 SaaS 우선 정렬로 extract 대기열 앞에 선다.
+
+### 2026-09-28 — 000028 case_move_inputs · 000029 케이스 자동승인 컬럼 · 000030 케이스 숨김 컬럼 (CEO-STAFF 세션 자체 판단 적용)
+
+- 셋 다 추가만 하는 비파괴 변경(새 테이블 1·nullable 컬럼 8·부분 인덱스 2). 기존 행 변경 0, 백필 없음. §10.2 예외 5개 해당 없음. 롤백 파일 각각 있음.
+- 적용 이유: 000030 은 케이스 자동승인 가동 전제 (c)(관리자 삭제 기능)의 실제 준비 — 없으면 숨김 버튼이 "마이그 미적용"만 돌려준다. 000028 은 리서처 VOC 연결이 오늘부터 DB 에 쌓이게(미적용이면 초안 JSON 에만 남는다). 000029 는 자동승인 컬럼 — 플래그 `CASE_AUTO_APPROVAL_STAGE` 기본 off 라 쓰는 코드는 돌지 않는다.
+- 적용: 로컬 supabase MCP `apply_migration`(qmgrfqjfxqhxuufrnkwf — content_columns·agent_runs·case_studies 존재로 대상 확인, 적용 전 information_schema 로 부재 확인).
+- 양성: case_move_inputs 존재·FORCE RLS·정책 0 · case_studies 5컬럼 · case_moves 3컬럼 · 값이 채워진 기존 행 0. 음성: 없는 case_move_id 로 INSERT → 23503 FK 거부(저장 0).
+- 코드 PR: #317(000028) · #318(000029) · #319(000030), 전부 머지.

@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { CASE_CORPUS_TAG } from '@/lib/cases/corpus-db'
+import { INSIGHT_COLS, displayGradeLabel } from '@/lib/cases/grade-display'
 import { createClient } from '@/lib/supabase/server'
 import { requireAllowedUser } from '@/lib/auth/session'
 import { checkDecisionInput, moveApprovalWarning, caseApprovalWarning, readTransferability, type ReviewDecision } from '@/lib/cases/review'
@@ -92,7 +93,7 @@ export async function decideMove(_prev: ReviewActionState, fd: FormData): Promis
     .from('case_moves')
     // fact_check_grade 는 moveApprovalWarning 이 보는 컬럼이다. 빠져 있던 동안 부정 사례 경고가
     // 등급을 undefined 로 읽어 A 여도 경고를 냈다 — 화면(page.tsx)은 같은 함수를 제대로 부르고 있었다.
-    .select('id, review_status, lever, outcome_direction, evidence_grade, fact_check_grade')
+    .select(`id, review_status, lever, outcome_direction, ${INSIGHT_COLS}, fact_check_grade`)
     .eq('id', input.id)
     .maybeSingle()
   if (readErr) return { ok: false, message: `무브 조회 실패 — 확인하지 못해 바꾸지 않았습니다: ${readErr.message}` }
@@ -120,7 +121,7 @@ export async function decideMove(_prev: ReviewActionState, fd: FormData): Promis
   const axisNote = axisMissing
     ? ' · ⚠️ 이식성 축 미적용(마이그 20260915000001) — 고른 이식성은 저장되지 않았습니다. 승인만 반영됐습니다.'
     : transfer.value ? ` · 이식성 ${transfer.value}` : ''
-  return { ok: true, message: `무브 ${LABEL[decision]} — [${move.evidence_grade}] ${move.lever} · 검수자 ${input.by}${warn ? ` · ⚠️ ${warn}` : ''}${axisNote}` }
+  return { ok: true, message: `무브 ${LABEL[decision]} — [${displayGradeLabel(move as { insight_grade?: string | null; evidence_grade?: string | null })}] ${move.lever} · 검수자 ${input.by}${warn ? ` · ⚠️ ${warn}` : ''}${axisNote}` }
 }
 
 export async function decideCase(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {

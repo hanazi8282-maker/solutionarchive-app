@@ -3,40 +3,55 @@
 // 왜 함수 하나를 위해 파일을 두나: 등급축이 바뀔 예정이었고(PMF 축), 고칠 자리가 여러
 // 화면에 흩어져 있으면 일부만 바뀐 상태로 굳는다(이 리포에서 "등급"이 두 축으로 갈린 뒤
 // 셀러 화면에 한 축만 나가고 있던 게 정확히 그 꼴이었다 — advisor-cards.tsx 주석).
-// 2026-09-23 에 그 전환이 실제로 일어났고, 바뀐 것은 아래 `displayGrade` 한 줄이다.
+// 2026-09-23 에 PMF 축으로, 2026-09-29 에 인사이트 축으로(2축 확정) 바뀌었고, 두 번 다 바뀐 것은
+// 아래 `displayGrade` 한 줄이다.
 //
 // ⚠️ 이 파일은 등급을 **계산하지 않는다.** 산식 정본은 `lib/cases/draft.ts` 의
 //    `pmfGrade`(PMF 축) / `gradeMove`(인사이트) / `factCheckGrade`(사실확인)이고, 저장값을
 //    바꾸는 것은 사람이 CLI regrade 로 한다(CLAUDE.md §10.1). 여기는 "저장된 것 중 무엇을
 //    보여줄지"만 고른다.
 
+/**
+ * `case_moves.insight_grade` 컬럼(마이그 20260930000039)이 적용됐나. **적용을
+ * information_schema 로 실측한 뒤에만** true 로 바꾼다 — 없는 컬럼을 SELECT·INSERT 에 넣으면
+ * 42703/PGRST204 로 요청 전체가 죽는다(POSTS_PILLAR_COLUMN_READY · LINK_TABLE_READY 와 같은 패턴).
+ * false 여도 화면은 같다: 전환기에는 `evidence_grade` 가 같은 값(gradeMove)을 들고 있다.
+ */
+export const INSIGHT_GRADE_COLUMN_READY = false
+
+/** SELECT 에 넣는 인사이트 등급 컬럼 묶음. 플래그 하나로 전 조회가 같이 바뀐다. */
+// 타입은 넓은 쪽 리터럴로 고정한다 — supabase-js 의 select 문자열 파서가 유니언·string 을 못 읽는다(ParserError).
+// 미적용일 때 insight_grade 는 조회에 없어 undefined 로 오고, displayGrade 가 evidence_grade 로 폴백한다.
+export const INSIGHT_COLS = (INSIGHT_GRADE_COLUMN_READY ? 'insight_grade, evidence_grade' : 'evidence_grade') as 'insight_grade, evidence_grade'
+
 /** 등급 1자. 조회에서 컬럼을 빼면 `undefined` 로 온다 — 그건 "D" 가 아니라 미기재다. */
 export type DisplayGradeInput = {
+  /** 인사이트 등급(`case_moves.insight_grade`, gradeMove). 2축 확정(남헌 2026-09-29) 후의 정본 컬럼. */
+  insight_grade?: string | null
+  /** 레거시 이름 — 2026-09-16 부터 gradeMove(인사이트)를 담아 왔다. insight_grade 미적용·미백필 시 폴백. */
   evidence_grade?: string | null
   /**
-   * PMF 등급축(`case_moves.pmf_grade`, 마이그 20260930000004). 있으면 이게 표시 축이다.
-   * 컬럼이 아직 적용되지 않았거나 재채점 전이면 `null`/`undefined` 이고, 그때는
-   * `evidence_grade` 로 폴백한다 — 화면이 빈칸이 되지 않게.
+   * PMF 등급(S×T, 마이그 20260930000004). **표시 축이 아니다**(남헌 2026-09-29: 등급은 인사이트·사실확인
+   * 2축 확정). 2026-09-23~29 동안 "인사이트" 이름표 아래 이 값이 나갔던 것이 바로잡힌 자리다.
    */
   pmf_grade?: string | null
-  /** 사람이 S·이식성을 확정하지 않은 잠정 등급인가(`case_moves.pmf_provisional`). */
   pmf_provisional?: boolean | null
   /** 성과 방향. 실패(negative) 무브도 A 가 될 수 있으므로 등급과 함께 보여야 한다. */
   outcome_direction?: string | null
 }
 
 /**
- * 화면용 등급 — **PMF 축이 먼저다**(남헌 2026-09-23 결정).
+ * 화면용 등급 = **인사이트 등급**(남헌 2026-09-29 2축 확정).
  *
- *   `pmf_grade ?? evidence_grade`
+ *   `insight_grade ?? evidence_grade`
  *
- * 이 한 줄이 전 화면(상세·카드·검색·랭킹)에 동시에 먹는 것이 이 파일의 존재 이유다.
+ * 이 한 줄이 전 화면(상세·카드·검색·랭킹·즉시발행 게이트)에 동시에 먹는 것이 이 파일의 존재 이유다.
+ * 사실확인 축은 `factCheckLabel`. pmf_grade 는 보지 않는다.
  *
- * `null` 은 **미기재**다. 'D'(결과 불분명)와 섞지 않는다(§7.1) — 섞으면 "조회에서
- * 컬럼을 빼먹었다"가 "가져갈 게 없는 무브"로 읽힌다.
+ * `null` 은 **미기재**다. 'D'(행동 없음)와 섞지 않는다(§7.1).
  */
 export function displayGrade(move: DisplayGradeInput | null | undefined): string | null {
-  const g = move?.pmf_grade ?? move?.evidence_grade
+  const g = move?.insight_grade ?? move?.evidence_grade
   return typeof g === 'string' && g.trim() ? g.trim() : null
 }
 
@@ -65,11 +80,6 @@ export function directionMark(move: { outcome_direction?: string | null } | null
     case 'mixed': return '↕'
     default: return ''
   }
-}
-
-/** 잠정 표시 — 사람이 S·이식성을 확정하지 않은 등급. 확정과 같게 보이면 §7.1 위반이다. */
-export function isProvisionalGrade(move: DisplayGradeInput | null | undefined): boolean {
-  return move?.pmf_provisional === true && typeof move?.pmf_grade === 'string'
 }
 
 /**

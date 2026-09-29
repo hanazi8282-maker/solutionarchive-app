@@ -72,11 +72,13 @@ export interface CaseMoveCard {
   lever: string
   claim: string
   evidence_grade: string
+  /** 인사이트 등급 정본 컬럼. null = 미적용·미백필 → displayGrade 가 evidence_grade(같은 값)로 폴백. */
+  insight_grade: string | null
   /** 사실확인 등급. 조회에 없으면 null — 화면은 "미기재" 로 말한다(등급 D 와 다르다). */
   fact_check_grade: string | null
   /**
-   * PMF 등급축(마이그 20260930000004). 배지 1순위 축이다 — 화면은 `displayGrade(card)` 로만 읽는다.
-   * null = 컬럼 미적용이거나 재채점 전. 그때 배지는 `evidence_grade` 로 폴백하고 **그 사실을 이름으로 밝힌다**.
+   * PMF 등급(S×T). 2026-09-29 부터 **표시 축이 아니다**(인사이트·사실확인 2축 확정).
+   * 화면은 `displayGrade(card)`(인사이트)로만 읽는다.
    */
   pmf_grade: string | null
   /** 사람이 신호 강도·이식성을 확정하지 않은 잠정 등급인가. 확정과 같게 보이면 §7.1 위반이다. */
@@ -430,6 +432,7 @@ export function matchCaseMoves(
       lever: m.lever,
       claim: m.claim,
       evidence_grade: m.evidence_grade,
+      insight_grade: m.insight_grade ?? null,
       fact_check_grade: m.fact_check_grade ?? null,
       pmf_grade: m.pmf_grade ?? null,
       pmf_provisional: m.pmf_provisional ?? null,

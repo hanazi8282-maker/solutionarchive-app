@@ -78,8 +78,8 @@ const pmfTable: Table = {
 /**
  * 2026-09-23: 구현됐다. 산식은 `lib/cases/draft.ts pmfGrade`(+ `suggestSignal` ·
  * `transferScore`), 컬럼은 마이그 `20260930000004`, 재채점은
- * `scripts/case-review.mjs regrade` 다. 화면 배지는 `pmf_grade ?? evidence_grade`
- * (`lib/cases/grade-display.ts displayGrade`).
+ * `scripts/case-review.mjs regrade` 다. 2026-09-29 남헌 2축 확정 뒤 화면 배지는 인사이트
+ * `insight_grade ?? evidence_grade`(`lib/cases/grade-display.ts displayGrade`)이고 PMF 는 표시하지 않는다.
  *
  * 다만 **자동으로 다 매겨지는 축이 아니다.** S 는 사람이 채점 카드에서 고르고(코드는
  * 제안만 한다), 이식성 사람 판정이 없으면 전제 문장에서 뽑은 잠정값이다 — 그렇게 매긴

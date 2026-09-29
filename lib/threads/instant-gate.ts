@@ -23,6 +23,7 @@
 //   · CG · 등급                   → 호출자가 넘긴다 (publish-gate 결과, gradeRankOf 입력). 이 모듈이 다시 계산하지 않는다.
 
 import { attributionGate, numericGate, type GateMove } from '../cases/publish-gate.ts'
+import { displayGrade, type DisplayGradeInput } from '../cases/grade-display.ts'
 
 export type InstantGateInput = {
   body: string
@@ -30,7 +31,7 @@ export type InstantGateInput = {
   declared?: { exclusiveNumbers?: boolean | null; transferable?: boolean | null } | null
   /** CG-1/CG-2 결과. `null` = 안 돌렸다 → needs_human. */
   cgOk: boolean | null
-  /** 인용 무브의 인사이트 등급(`pmf_grade ?? evidence_grade`). `null` = 모른다 → needs_human. */
+  /** 인용 무브의 인사이트 등급(`displayGrade` = `insight_grade ?? evidence_grade`). `null` = 모른다 → needs_human. */
   grade: string | null
 }
 
@@ -134,7 +135,7 @@ export function parseSelfReply(notes: string | null | undefined): string | null 
   return m ? m[1].trim() : null
 }
 
-export type InstantMove = GateMove & { pmf_grade?: string | null; evidence_grade?: string | null }
+export type InstantMove = GateMove & DisplayGradeInput
 
 /**
  * 초안 한 건의 즉시발행 판정. 호출자(대시보드 서버 컴포넌트·publishNow 액션)가 notes 에서 무브 id 를 뽑아 DB 로 무브를 읽고 넘긴다.
@@ -144,7 +145,7 @@ export function instantGateForPost(post: { body: string; notes: string | null },
   const declared = parseBpDeclaration(post.notes)
   if (!moves || moves.length === 0) return instantGate({ body: post.body, declared, cgOk: null, grade: null })
   const lead = moves[0]
-  const grade = (lead.pmf_grade ?? lead.evidence_grade ?? null)
+  const grade = displayGrade(lead)
   // CG-1 은 자기답글(notes 블록)을 본다. 등급 C 인데 블록을 못 읽으면 fail 도 pass 도 아닌 needs_human — 확인 불가는 접지 않는다(§7.1).
   const reply = parseSelfReply(post.notes)
   if (reply == null && moves.some((m) => m.fact_check_grade === 'C')) {

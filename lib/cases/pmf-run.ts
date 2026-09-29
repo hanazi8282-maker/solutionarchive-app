@@ -23,6 +23,7 @@ import {
   type MatchResult, type MoveRow, type StudyRow, type Quadrant,
 } from './match.ts'
 import { loadDeletedCaseIds, withoutDeleted } from './deleted.ts'
+import { INSIGHT_COLS } from './grade-display.ts'
 
 /** 진단 입력이 되는 프로젝트 패싯. 어휘는 lib/cases/draft.ts = DB CHECK 와 같다. */
 export interface ProjectFacets {
@@ -131,7 +132,7 @@ export type PmfRunResult =
 const STUDY_COLS =
   'id, slug, brand_name, bottleneck, business_model, buyer_type, price_band, outcome_status, review_status'
 const MOVE_COLS =
-  'id, case_study_id, lever, claim, evidence_grade, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit'
+  `id, case_study_id, lever, claim, ${INSIGHT_COLS}, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit`
 
 /**
  * 프로젝트 1건을 진단하고 결과를 적립한다.

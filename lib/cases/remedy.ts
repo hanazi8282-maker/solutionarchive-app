@@ -21,6 +21,7 @@ import {
   type FailedAngleRow, type PrincipleRow,
 } from './advisor.ts'
 import type { MoveRow, StudyRow } from './match.ts'
+import { displayGradeLabel } from './grade-display.ts'
 
 /** 처방 대상이 되는 판정. 앞이 1순위다. */
 export const REMEDY_VERDICTS = ['PUSH', 'WATCH'] as const
@@ -73,7 +74,7 @@ export function remedyHeadline(aspectName: string): string {
 
 /** 보완 선례 한 줄. 사실확인 등급과 인사이트 등급은 **다른 축**이라 둘 다 적는다(2026-09-16 재설계). */
 export function fixLine(c: CaseMoveCard): string {
-  const tail = `(사실확인 ${c.fact_check_grade ?? '미기재'} · 인사이트 ${c.evidence_grade} · ${c.outcome_direction})`
+  const tail = `(사실확인 ${c.fact_check_grade ?? '미기재'} · 인사이트 ${displayGradeLabel(c)} · ${c.outcome_direction})`
   // ★ 반면교사(negative)는 "보완 선례" 로 읽히면 안 된다 — 2026-09-21 남헌: 명시적으로 "이렇게 하지 마라" 로 프레이밍.
   //   승인된 negative 무브(예: Zenefits 라이선스 매크로)가 같은 병목으로 매칭되면 이 줄로 나간다.
   if (c.outcome_direction === 'negative') {

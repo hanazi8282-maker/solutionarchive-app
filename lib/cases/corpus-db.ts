@@ -5,6 +5,7 @@
 import type { createClient } from '@/lib/supabase/server'
 import { isMissingColumn } from '../analysis/facets.ts'
 import { loadDeletedCaseIds, withoutDeleted } from './deleted.ts'
+import { INSIGHT_COLS } from './grade-display.ts'
 import type { MoveRow, StudyRow } from './match'
 import type { FailedAngleRow, PrincipleRow } from './advisor'
 
@@ -19,7 +20,7 @@ export const STUDY_COLS =
  *   **조회 전체가** 죽고 그게 "선례 없음"으로 보인다. 컬럼을 더할 때는 적용 여부를 먼저 확인한다.
  */
 export const MOVE_COLS_BASE =
-  'id, case_study_id, lever, claim, evidence_grade, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit, transfer_note, preconditions, transferability, observed_period_start, created_at'
+  `id, case_study_id, lever, claim, ${INSIGHT_COLS}, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit, transfer_note, preconditions, transferability, observed_period_start, created_at` as const
 /**
  * PMF 등급축 컬럼(마이그 20260930000004). **아직 적용되지 않은 것이 현재 상태다**(2026-09-23).
  * 그래서 본문과 갈라 둔다 — 없는 컬럼을 SELECT 에 넣으면 42703 으로 **조회 전체가** 죽고,
@@ -27,7 +28,7 @@ export const MOVE_COLS_BASE =
  * 그래서 `selectMoves` 가 이 묶음만 빼고 1회 재시도한다(§7.2: 방어막이 걸리면 로그를 남긴다).
  */
 export const MOVE_COLS_PMF = 'pmf_grade, pmf_provisional'
-export const MOVE_COLS = `${MOVE_COLS_BASE}, ${MOVE_COLS_PMF}`
+export const MOVE_COLS = `${MOVE_COLS_BASE}, ${MOVE_COLS_PMF}` as const
 export const FAILED_ANGLE_COLS =
   'case_key, product_category, claimed_angle, outcome, evidence_source, source_tier, is_estimate'
 export const PRINCIPLE_COLS = 'sp_id, tags, statement, evidence_grade, evidence_grade_note, source_ref'

@@ -88,8 +88,13 @@ const noSleep = async () => {}
   t('사실확인 C + 제3자 출처 + 원문 링크 → pass', instantGateForPost({ body, notes: withReply('제3자 매체 보도 https://techcrunch.com/x.') }, mvC).status, 'pass')
   t('사실확인 C + 링크 없는 "제3자에 따르면" → fail', instantGateForPost({ body, notes: withReply('제3자에 따르면 그렇다.') }, mvC).status, 'fail')
   t('사실확인 A 는 자기답글 블록 없어도 pass', instantGateForPost({ body, notes }, mvA).status, 'pass')
-  const mvD = [{ fact_check_grade: 'A', lever: 'CHANNEL', slug: 'x', brand_name: 'X', pmf_grade: 'D', evidence_grade: 'A' }]
-  t('인사이트 등급 D → fail', instantGateForPost({ body, notes }, mvD).status, 'fail')
+  // 2026-09-29 2축 확정: 게이트의 등급은 인사이트(insight_grade ?? evidence_grade)다. pmf_grade 는 보지 않는다.
+  const mvD = [{ fact_check_grade: 'A', lever: 'CHANNEL', slug: 'x', brand_name: 'X', pmf_grade: 'A', evidence_grade: 'D' }]
+  t('인사이트 등급 D → fail (PMF A 여도)', instantGateForPost({ body, notes }, mvD).status, 'fail')
+  const mvPmfD = [{ fact_check_grade: 'A', lever: 'CHANNEL', slug: 'x', brand_name: 'X', pmf_grade: 'D', evidence_grade: 'A' }]
+  t('PMF D 는 게이트 축이 아니다 → pass', instantGateForPost({ body, notes }, mvPmfD).status, 'pass')
+  const mvInsD = [{ fact_check_grade: 'A', lever: 'CHANNEL', slug: 'x', brand_name: 'X', insight_grade: 'D', evidence_grade: 'A' }]
+  t('insight_grade 가 레거시보다 먼저 → fail', instantGateForPost({ body, notes }, mvInsD).status, 'fail')
   t('BP 선언 없는 notes → needs_human', instantGateForPost({ body, notes: '케이스 s / case_moves 5f2c8a0e-1d3b-4c2a-9e7f-0a1b2c3d4e5f (A · B · 등급 A · positive)' }, mvA).status, 'needs_human')
 }
 

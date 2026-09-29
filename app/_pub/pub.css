@@ -1367,6 +1367,7 @@ a.pub-index-row .pub-index-act { margin-top: 2px; line-height: 1.4; }
 .pub-evid-src:focus-visible { outline: 2px solid var(--pub-focus); outline-offset: 2px; border-radius: var(--pub-round-control); }
 .pub-root .pub-evid blockquote { margin-top: var(--pub-gap-1); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
+/* ============================================================
    G2 랜딩 (2026-09-30, reports/2026-09-30/design-direction-decisions.md B3-1·2·3 · B4 배치 · B5 · B6 적용)
    `/` 전용 클래스만 새로 정의한다 — 위 블록(기존·G1)의 규칙은 바꾸지 않는다. G3 블록과 겹치지 않게 이 블록에만 덧붙인다.
    ============================================================ */

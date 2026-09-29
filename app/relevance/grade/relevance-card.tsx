@@ -1,19 +1,19 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { gradeRelevance, type RelevanceActionState } from '../actions'
 import { NOTE_MAX } from '@/lib/relevance-feedback/sample'
-import { Badge } from '../../_ds/components/Badge'
-import { Button } from '../../_ds/components/Button'
-import { Card } from '../../_ds/components/Card'
-import { Choice, Textarea } from '../../_ds/components/Field'
-import { Notice } from '../../_ds/components/Shell'
+import { IconCheck, IconChevronRight, IconClock, IconExternal, IconUndo } from './icons'
 
 // 카드 1장 = 리뷰 1건 = 제출 1회. 채점 전 카드는 모델 판정·층을 **props 로도 받지 않는다** —
 // 클라이언트로 넘어가는 순간 DOM·RSC 페이로드에서 보인다(끌림 방지). 공개는 저장 뒤(revealed)에만.
 //
 // 번역·제품 배경·스레드 제목(2026-09-29)도 같은 규칙 아래 있다: **순수 사실만** 싣는다. 만든 쪽(lib/relevance-feedback/translate.ts)이
 // 프롬프트 제한 + 사후검사로 평가 문구를 걸러 failed 로 남기고, 이 카드는 그 본문 문자열만 받는다 — 판정 계열 prop 은 없다.
+//
+// 모양은 DESIGN.md §4 (남헌 09-29 승인 목업 operator-grading.html): 머리(번호·제품·상태·배경·스레드) / 원문·번역 2열 / 판정 줄(44px 타일 + kbd).
+// 저장은 **5초 뒤 전송**이다(U·되돌리기 창). 서버 액션은 이미 채점된 행을 덮어쓰지 않으므로(../actions.ts) 되돌리기는 전송 전에만 된다 —
+// 전송된 뒤에는 "저장됨"이고 다시 열어도 판정 결과만 보인다.
 
 export type Revealed = { stratum: string; human: string; lines: string[] }
 
@@ -30,36 +30,41 @@ export type CardContext = {
 }
 
 const PREVIEW = 400
+const UNDO_SECONDS = 5
 
-function longText(text: string, className: string) {
-  return text.length > PREVIEW ? (
-    <details>
-      <summary className="v2-summary v2-wrap">{text.slice(0, PREVIEW)}… <span className="v2-muted">(전체 {text.length}자 펼치기)</span></summary>
-      <p className={`${className} v2-wrap v2-mt-sm`}>{text}</p>
-    </details>
-  ) : <p className={`${className} v2-wrap`}>{text}</p>
+function LongText({ text, en }: { text: string; en?: boolean }) {
+  const cls = en ? 'v2-cols-body v2-cols-body--en' : 'v2-cols-body'
+  if (text.length <= PREVIEW) return <p className={cls}>{text}</p>
+  return (
+    <>
+      <p className={cls}>{text.slice(0, PREVIEW)}…</p>
+      <details className="v2-fold v2-mt-sm">
+        <summary><IconChevronRight />나머지 {text.length - PREVIEW}자</summary>
+        <p className={`${cls} v2-fold-body`}>{text.slice(PREVIEW)}</p>
+      </details>
+    </>
+  )
 }
 
 function ThreadLine({ t }: { t: NonNullable<CardContext['thread']> }) {
   const shown = t.titleKo ?? t.title ?? t.ref
   if (!shown) return null
+  const url = t.ref && /^https?:\/\//.test(t.ref) ? t.ref : null
   return (
-    <p className="v2-note">
-      스레드: <b>{shown}</b>
-      {t.titleKo && t.title ? <span className="v2-muted"> (원제 {t.title})</span> : null}
-      {!t.title && t.ref ? <span className="v2-muted"> — 제목 미저장(식별자만)</span> : null}
+    <p className="v2-gcard-thread">
+      <span className="v2-muted">스레드</span>
+      <b>{shown}</b>
+      {t.titleKo && t.title ? <span className="v2-muted">(원제 {t.title})</span> : null}
+      {!t.title && t.ref ? <span className="v2-muted">제목 미저장. 식별자만 있다.</span> : null}
+      {url ? <a className="v2-mono v2-wrap" href={url} target="_blank" rel="noopener noreferrer">{url.replace(/^https?:\/\//, '')} <IconExternal /></a> : null}
     </p>
   )
-}
-
-function Translation({ c }: { c: CardContext }) {
-  if (c.translation) return <div className="v2-inset">{longText(c.translation, 'v2-body')}</div>
-  return c.translationNote ? <p className="v2-note v2-muted">번역 — {c.translationNote}</p> : null
 }
 
 export function RelevanceCard(props: {
   inputId: string
   n: number
+  total: number
   project: string
   text: string
   context: CardContext
@@ -68,61 +73,138 @@ export function RelevanceCard(props: {
   revealed: Revealed | null
 }) {
   const [state, action, pending] = useActionState<RelevanceActionState, FormData>(gradeRelevance, null)
+  const [open, setOpen] = useState(props.revealed == null)
+  const [queued, setQueued] = useState<number | null>(null) // 남은 초. null 이면 대기 없음.
+  const [err, setErr] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
   const { text, context } = props
-  const body = (
-    <>
-      {context.thread && <ThreadLine t={context.thread} />}
-      {longText(text, 'v2-body')}
-      <Translation c={context} />
-    </>
-  )
+  const done = props.revealed != null || (state?.ok ?? false)
 
-  if (props.revealed) {
-    return (
-      <Card title={`#${props.n} ${props.project}`} subtitle={context.background ?? undefined} action={<Badge tone="success" size="sm">채점 완료 · {props.revealed.human}</Badge>}>
-        <div className="v2-stack">
-          {body}
-          <p className="v2-note"><b>{props.revealed.stratum}</b> · {props.revealed.lines.join(' · ')}</p>
-        </div>
-      </Card>
-    )
+  // 대기 중이면 1초마다 줄이고 0 에서 전송한다. 되돌리기(U)는 setQueued(null).
+  useEffect(() => {
+    if (queued === null) return
+    const t = setTimeout(() => {
+      if (queued <= 1) { setQueued(null); formRef.current?.requestSubmit() } else setQueued(queued - 1)
+    }, 1000)
+    return () => clearTimeout(t)
+  }, [queued])
+
+  const queue = () => {
+    const f = formRef.current
+    if (!f) return
+    if (!f.querySelector<HTMLInputElement>('input[name="verdict"]:checked')) {
+      setErr(true)
+      f.querySelector<HTMLInputElement>('input[name="verdict"]')?.focus()
+      return
+    }
+    setErr(false)
+    setQueued(UNDO_SECONDS)
   }
 
-  const noteDisabled = props.noteState !== 'present'
+  const folded = !open || (queued !== null) || done
+  const stateLabel = done ? '저장됨' : queued !== null ? `${queued}초 뒤 저장` : pending ? '저장 중…' : '채점 전'
+  const head = (
+    <div className="v2-gcard-head">
+      <span className="v2-gcard-no">{props.n}<small>/{props.total}</small></span>
+      <span className="v2-gcard-name v2-wrap">{props.project}</span>
+      <span className={done ? 'v2-gcard-state v2-gcard-state--done' : 'v2-gcard-state'} aria-live="polite">
+        {done ? <IconCheck /> : <IconClock />} {stateLabel}
+      </span>
+      <p className="v2-gcard-bg">{context.background ?? '제품 배경 없음. 야간 배치가 아직 만들지 않았다.'}</p>
+      {context.thread ? <ThreadLine t={context.thread} /> : null}
+      {props.revealed ? (
+        <p className="v2-gcard-result"><b>{props.revealed.human}</b> · {props.revealed.stratum} · {props.revealed.lines.join(' · ')}</p>
+      ) : state?.ok ? (
+        <p className="v2-gcard-result v2-wrap">{state.message}</p>
+      ) : null}
+    </div>
+  )
+
   return (
-    <Card title={`#${props.n} ${props.project}`} subtitle={context.background ?? undefined} action={<Badge tone="warning" dot size="sm">채점 전</Badge>}>
-      <form action={action} className="v2-stack">
-        <input type="hidden" name="input_id" value={props.inputId} />
-        {body}
-        <div className="v2-actions">
-          {([['relevant', '관련'], ['irrelevant', '무관'], ['unknown', '모름']] as const).map(([v, l]) => (
-            <Choice key={v} type="radio" name="verdict" value={v} required disabled={pending} label={<b>{l}</b>} />
-          ))}
+    <article
+      className={folded ? 'v2-gcard v2-gcard--folded' : 'v2-gcard'}
+      id={`c-${props.inputId}`}
+      tabIndex={-1}
+      data-gcard={done || queued !== null ? 'saved' : 'open'}
+    >
+      {folded && !done && queued === null
+        ? <button type="button" className="v2-gcard-bare" onClick={() => setOpen(true)} aria-expanded={false}>{head}</button>
+        : head}
+
+      <div className="v2-cols">
+        <div>
+          <h3><span>원문</span><span>{text.length.toLocaleString('ko-KR')}자</span></h3>
+          <LongText text={text} en={!/[가-힣]/.test(text.slice(0, 200))} />
         </div>
-        {props.informativeReady ? (
-          <div className="v2-actions">
-            <Choice type="radio" name="informative" value="true" disabled={pending} label="정보있음" />
-            <Choice type="radio" name="informative" value="false" disabled={pending} label="정보없음" />
-            <span className="v2-note">선택 — 제품에 대해 뭔가 알려 주는가</span>
+        <div>
+          <h3><span>번역</span>{context.translation ? <span>{context.translation.length.toLocaleString('ko-KR')}자</span> : null}</h3>
+          {context.translation
+            ? <LongText text={context.translation} />
+            : <p className="v2-cols-body v2-muted">{context.translationNote ?? '준비 중. 야간 배치가 만든다. 원문으로 채점한다.'}</p>}
+        </div>
+      </div>
+
+      {props.revealed ? null : (
+        <form ref={formRef} action={action} className="v2-judge" onSubmit={() => setErr(false)}>
+          <input type="hidden" name="input_id" value={props.inputId} />
+          <div className="v2-judge-row">
+            <span className="v2-judge-q">이 댓글은</span>
+            <div className="v2-tiles" role="radiogroup" aria-label="판정">
+              {([['relevant', '관련', '1'], ['irrelevant', '무관', '2'], ['unknown', '모름', '3']] as const).map(([v, l, k]) => (
+                <label key={v} className="v2-tile">
+                  <input type="radio" name="verdict" value={v} required disabled={pending} onChange={() => setErr(false)} />
+                  <span className="v2-tile-dot" aria-hidden="true" />{l}<kbd className="v2-kbd">{k}</kbd>
+                </label>
+              ))}
+            </div>
           </div>
-        ) : (
-          <p className="v2-note">정보있음/없음 — 미적용(마이그 000031 전). 판정만 저장된다.</p>
-        )}
-        <Textarea
-          name="note"
-          rows={2}
-          maxLength={NOTE_MAX}
-          disabled={pending || noteDisabled}
-          placeholder={noteDisabled
-            ? (props.noteState === 'missing' ? '기준 보완 메모 — 미적용(마이그 000032 전)' : '기준 보완 메모 — 테이블 확인 불가')
-            : '기준 보완 메모(선택) — 기준이 이 건을 어떻게 다뤄야 했나'}
-        />
-        <div className="v2-actions">
-          <Button type="submit" variant="primary" size="sm" disabled={pending}>저장</Button>
-          {pending && <span className="v2-note">저장 중…</span>}
+          <div className="v2-judge-row">
+            <span className="v2-judge-q">제품 정보가</span>
+            {props.informativeReady ? (
+              <>
+                <div className="v2-tiles" role="radiogroup" aria-label="제품 정보 유무">
+                  <label className="v2-tile"><input type="radio" name="informative" value="true" disabled={pending} /><span className="v2-tile-dot" aria-hidden="true" />있음<kbd className="v2-kbd">4</kbd></label>
+                  <label className="v2-tile"><input type="radio" name="informative" value="false" disabled={pending} /><span className="v2-tile-dot" aria-hidden="true" />없음<kbd className="v2-kbd">5</kbd></label>
+                </div>
+                <span className="v2-note">선택. 제품에 대해 뭔가 알려 주는가.</span>
+              </>
+            ) : (
+              <span className="v2-note">아직 못 묻는다. 판정만 저장된다. <span className="v2-mono">product_informative 컬럼 미적용 (마이그 000031 전)</span></span>
+            )}
+          </div>
+          <label className="v2-stack-tight">
+            <span className="v2-note">기준 보완 메모 (선택)</span>
+            <textarea
+              name="note"
+              rows={2}
+              maxLength={NOTE_MAX}
+              disabled={pending || props.noteState !== 'present'}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={props.noteState === 'present' ? '기준이 이 건을 어떻게 다뤄야 했나…' : '아직 못 쓴다. 판정 저장은 된다.'}
+            />
+            {props.noteState !== 'present' && (
+              <span className="v2-note">
+                {props.noteState === 'missing' ? '메모 저장소가 아직 없다.' : '메모 저장소를 확인하지 못했다.'}{' '}
+                <span className="v2-mono">relevance_feedback_notes {props.noteState === 'missing' ? '미적용 (마이그 000032 전)' : '확인 불가'}</span>
+              </span>
+            )}
+          </label>
+          {err && <p className="v2-err" role="alert">판정을 고르지 않았다. 1, 2, 3 중 하나를 누른다.</p>}
+          {state && !state.ok && <p className="v2-err" role="alert">{state.message}</p>}
+          <div className="v2-judge-foot">
+            <button type="button" className="v2-gbtn v2-gbtn--primary" data-save disabled={pending || queued !== null} onClick={queue}>저장 <kbd className="v2-kbd">Enter</kbd></button>
+            <span className="v2-note">모델 판정과 층은 저장한 뒤에 보인다.</span>
+          </div>
+        </form>
+      )}
+
+      {queued !== null && (
+        <div className="v2-toast v2-toast--on" role="status" aria-live="polite">
+          <span>{queued}초 뒤 저장</span>
+          <button type="button" data-undo onClick={() => { setQueued(null); setOpen(true) }}><IconUndo />되돌리기 <kbd className="v2-kbd">U</kbd></button>
         </div>
-        {state && <Notice tone={state.ok ? 'success' : 'danger'}>{state.message}</Notice>}
-      </form>
-    </Card>
+      )}
+    </article>
   )
 }

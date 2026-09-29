@@ -1343,11 +1343,14 @@ a.pub-index-row .pub-index-act { margin-top: 2px; line-height: 1.4; }
 }
 
 /* 무브 카드 3열(B3-5b) — 무엇을 했나 · 전제 · 내일 할 행동(액센트 면). <1024 세로. */
-.pub-move-cols { display: grid; gap: var(--pub-gap-3); margin: var(--pub-gap-4) 0 0; }
+.pub-move-cols { display: grid; gap: var(--pub-gap-3); margin: var(--pub-gap-3) 0 0; }
 .pub-move-col { min-width: 0; }
 .pub-move-col dt { display: flex; align-items: center; gap: var(--pub-gap-2); font-weight: var(--pub-weight-strong); font-size: var(--pub-size-text-sm); }
 .pub-move-col--act { padding: var(--pub-gap-3) var(--pub-gap-4); border-radius: var(--pub-round-control); background: var(--pub-plane-accent); }
-.pub-move .pub-move-col dd { margin-top: var(--pub-gap-2); }
+.pub-move .pub-move-col dd { margin-top: var(--pub-gap-2); line-height: 1.55; }
+/* 카드 여백 한 단 줄임 — 3열에서 높이는 글 길이가 정한다. 고정 몫(여백·머리)을 줄여 360 안에 드는 카드를 늘린다. */
+.pub-root .pub-move { padding: var(--pub-gap-5); }
+.pub-root .pub-move-head { padding-bottom: var(--pub-gap-3); }
 @media (min-width: 1024px) {
   .pub-move-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--pub-gap-5); align-items: start; }
 }

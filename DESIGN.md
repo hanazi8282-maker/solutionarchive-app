@@ -10,7 +10,8 @@
 - 한 벌 + 밀도 프리셋 2개. 공개(아카이브)와 운영(작업대)은 같은 토큰을 읽고 `[data-density="operate"]`(= `.sa-v2`)에서
   본문 크기·행간·카드 패딩·컨트롤 높이만 바뀐다.
 - 서체는 둘: 영문·숫자 Inter, 한글 Pretendard(글리프 단위 폴백). 둘 다 next/font 셀프호스팅(`app/layout.tsx`), 런타임 CDN 없음.
-- 액센트는 파랑 하나. 판정 3색(긍정·부정·혼합)은 선·아이콘·점에만 쓰고 글자는 잉크다.
+- 액센트는 울트라마린 하나(#2626e6, 2026-09-30 남헌 지시로 교체). 다크 모드는 만들지 않는다(다크는 면으로만). 판정 3색(긍정·부정·혼합)은 선·아이콘·점에만 쓰고 글자는 잉크다.
+- **flash 는 다크 면 전용, 라이트 캔버스 금지.** 라이트에서 판정 긍정색과 오독된다.
 - 판정문(A) 요소는 카드·헤더의 2축 등급 스탬프(`.stamp`, 이중선) 하나뿐. 그 밖은 아카이브(C): 12칸 편집 격자, 넓은 여백, 색인 줄.
 - 반경은 넷(컨트롤 10 · 카드 16 · 배너 24 · 알약 100). 그림자는 카드 rest 하나, 호버는 테두리를 진하게(뜨지 않는다).
 - 포커스는 outline 2px 하나. 박스섀도 링 없음. `outline: none` 금지.
@@ -24,7 +25,7 @@
 - `--sa-font` Inter, Pretendard, -apple-system, sans-serif (앱은 `var(--font-inter), var(--font-pretendard)`)
 - `--sa-font-mono` ui-monospace, "SF Mono", "Cascadia Mono", monospace
 
-### 타입 스케일 (px 고정, 9단 + 디스플레이)
+### 타입 스케일 (px 고정, 9단 + 디스플레이 2단)
 - `--sa-size-12` 12 배지 안에서만
 - `--sa-size-13` 13 캡션 최소
 - `--sa-size-14` 14 운영 보조·표
@@ -34,7 +35,8 @@
 - `--sa-size-24` 24 섹션 제목
 - `--sa-size-28` 28 페이지 제목(운영) · 스탬프 글자
 - `--sa-size-36` 36 페이지 제목(공개)
-- `--sa-size-44` 44 공개 디스플레이 전용
+- `--sa-size-44` 44 공개 디스플레이 768~1023
+- `--sa-size-56` 56 공개 디스플레이 ≥1024 전용
 - `--sa-leading-body` 1.55 (운영) · `--sa-leading-body-pub` 1.65 (공개) · `--sa-leading-head` 1.2
 - `--sa-tracking-head` -0.015em · `--sa-tracking-display` -0.02em
 - `--sa-weight-text` 400 · `--sa-weight-strong` 600 · `--sa-weight-head` 600
@@ -45,15 +47,21 @@
 - `--sa-surface-2` #f3f4f8 두 번째 면(인셋·헤더 띠)
 - `--sa-line` #e2e8f0 선
 - `--sa-line-strong` #cbd2dc 호버 테두리
-- `--sa-ink` #0f172a 글자·제목(본문도 잉크)
-- `--sa-ink-hover` #1e293b 잉크 버튼 hover 만
-- `--sa-muted` #5b6874 보조 글자(캔버스 위 6.4:1)
+- `--sa-ink` #0c0c1f 잉크 네이비. 글자·제목(본문도 잉크)
+- `--sa-ink-hover` #1c1c3a 잉크 버튼 hover 만
+- `--sa-muted` #5b6874 보조 글자
 - `--sa-faint` #a3adb8 장식·비활성 전용. 본문·캡션 금지
-- `--sa-accent` #1d4ed8 유일한 액센트 · `--sa-accent-ink` #ffffff · `--sa-accent-hover` #1a44be · `--sa-focus` #1d4ed8
+- `--sa-accent` #2626e6 유일한 액센트(울트라마린) · `--sa-accent-ink` #ffffff · `--sa-accent-hover` #1b1bd9 · `--sa-focus` #2626e6
+- 면(plane) 3색 — 라이트 캔버스 위에 크게 까는 색 면. 위 글자는 잉크·뮤트·액센트만(판정색 글자 금지):
+  - `--sa-plane-accent` #e6e9ff 액센트 10% 면. 가치제안 격자 배경 · 아이콘 타일 기본 바탕 · 히어로 우측 카드 바탕
+  - `--sa-plane-ice` #dff4ff 작동원리 4단계 띠 배경 · 신호 피드 소스 칩 활성
+  - `--sa-plane-lilac` #efe7ff 오늘의 케이스 섹션 배경 · 갈린 사례 블록 배경
+- `--sa-flash` #e4ff5a 형광 라임. **다크 면 전용**(주 알약 CTA 채움 · 화살표 원 · 다크 면 아이콘). 라이트 캔버스에서는 쓰지 않는다
 - `--sa-verdict-pos` #396c00 · `--sa-verdict-neg` #b8452a · `--sa-verdict-mix` #8f6400 — 선·아이콘·점에만(흰 바탕 3:1 이상)
 - `--sa-verdict-pos-bg` #e9ffd2 · `--sa-verdict-neg-bg` #fff1ec · `--sa-verdict-mix-bg` #fff7e0 — 기존 배지의 연한 바탕. 새 화면은 쓰지 않는다
-- 다크 면(공개 전용, 랜딩 배너·CTA 배너): `--sa-dark-canvas` #020308 · `--sa-dark-ink` #fafafa · `--sa-dark-muted` rgba(250,250,250,.62) ·
-  `--sa-dark-line` rgba(250,250,250,.14) · `--sa-dark-focus` #5dbce5
+- 다크 면(공개 전용, 랜딩 배너·CTA 배너): `--sa-dark-canvas` #060a2e(딥인디고) · `--sa-dark-ink` #fafafa · `--sa-dark-muted` rgba(250,250,250,.62) ·
+  `--sa-dark-line` rgba(250,250,250,.14) · `--sa-dark-focus` #9d9dff
+- 대비: 글자 4.5:1 · 선·아이콘·포커스 3:1 을 `scripts/design-contrast-selftest.mjs` 가 sa.css 값으로 CI 에서 센다(32조합). 금지 조합: 뮤트 글자를 flash 위에, faint 를 본문으로, 판정색 글자를 면 위 본문으로
 
 ### 반경 · 그림자 · 포커스
 - `--sa-round-control` 10px · `--sa-round-card` 16px · `--sa-round-banner` 24px · `--sa-round-pill` 100px
@@ -112,5 +120,5 @@ FacetSelects · ProgressBar · EmptyState · EvidenceCaption · GradeLegend · B
 ## 6. 게이트
 
 - UI 변경 PR: `CLAUDE.md §7.3` — web-design-guidelines(파일 목록·위반 수·일시를 PR 본문에), impeccable detect 0건,
-  before/after 375·1280 스크린샷(before 는 머지 전에), `node scripts/design-tokens-selftest.mjs`(+ `--mutate`).
+  before/after 375·1280 스크린샷(before 는 머지 전에), `node scripts/design-tokens-selftest.mjs`(+ `--mutate`), `node scripts/design-contrast-selftest.mjs`(+ `--mutate`).
 - 기준선(Impeccable critique): 운영 16/40 · 공개 22/36. 페이즈마다 재채점해 숫자를 보고한다.

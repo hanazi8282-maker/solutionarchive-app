@@ -1,0 +1,44 @@
+# 성과 원자료
+
+## score-predictions
+```
+판정 로그 엔트리 20개 / 예측이 달린 엔트리 4개 / 예측 항목 7개
+실측 스냅샷 10개 (post 4건)
+
+LOG-20260906-01  → 보류 (score 0)
+  like_rate up  실측 - / 기준 - / -×임계  → 보류  (h168 스냅샷 없음 — 확인 불가 (아직 그 시점이 안 됐거나 수집 실패))
+  share_rate up  실측 - / 기준 - / -×임계  → 보류  (h168 스냅샷 없음 — 확인 불가 (아직 그 시점이 안 됐거나 수집 실패))
+
+LOG-20260907-03  → 보류 (score 0)
+  share_rate up  실측 - / 기준 - / -×임계  → 보류  (h168 스냅샷 없음 — 확인 불가 (아직 그 시점이 안 됐거나 수집 실패))
+  like_rate up  실측 - / 기준 - / -×임계  → 보류  (h168 스냅샷 없음 — 확인 불가 (아직 그 시점이 안 됐거나 수집 실패))
+
+채점 불가 2건 — 0건이 아니라 확인 불가다:
+  LOG-20260907-01: 연결된 발행 글 없음
+  LOG-20260907-02: 연결된 발행 글 없음
+
+규칙별 신뢰도 (보류는 분모에서 뺀다)
+  C-12: 유효 0 / 무효 0 / 보류 1  Wilson하한 -
+  G-8: 유효 0 / 무효 0 / 보류 1  Wilson하한 -
+  P-03: 유효 0 / 무효 0 / 보류 1  Wilson하한 -
+  P-09: 유효 0 / 무효 0 / 보류 1  Wilson하한 -
+```
+exit 0
+
+## coverage
+```
+# 병목별 승인 커버리지
+
+  (매칭이 성립하려면 **서로 다른 케이스 2곳 이상**이 필요하다)
+
+  ✅ AWARENESS       케이스 4곳 · 무브 6건 — Dr. Squatch, e.l.f. Beauty, GoPro, HOKA (Deckers Brands)
+  ✅ TRUST           케이스 4곳 · 무브 11건 — Everlane, Ritual, Seed Health (DS-01), Tuft & Needle
+  ✅ CONVERSION      케이스 4곳 · 무브 7건 — ConvertKit, 종근당건강 락토핏, Notion, Slack
+  ✅ RETENTION       케이스 4곳 · 무브 6건 — AG1 (Athletic Greens), Hims & Hers, Native, Superhuman
+  ✅ UNIT_ECONOMICS  케이스 5곳 · 무브 7건 — Bannerbear, Blueland, Plausible Analytics, Shyp, Harry's
+  ✅ DISTRIBUTION    케이스 3곳 · 무브 6건 — Figma, Testimonial.to, Zapier
+  ✅ SUPPLY          케이스 3곳 · 무브 5건 — Fathom Analytics, Magic Spoon, Purple Innovation
+
+매칭 가능 병목 7 / 7
+```
+exit 0

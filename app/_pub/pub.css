@@ -1362,7 +1362,7 @@ a.pub-index-row .pub-index-act { margin-top: 2px; line-height: 1.4; }
 .pub-evid-meta .pub-chip { height: 22px; }
 .pub-evid-fav { position: relative; display: inline-grid; place-items: center; width: 16px; height: 16px; flex: none; font-size: 16px; color: var(--pub-ink-muted); }
 .pub-evid-fav img { position: absolute; inset: 0; width: 16px; height: 16px; background: var(--pub-canvas); }
-.pub-evid-src { display: inline-flex; align-items: center; gap: var(--pub-gap-1); min-width: 0; overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--pub-edge); transition: text-decoration-color var(--pub-motion-color) var(--pub-ease); }
+.pub-evid-src { display: inline-flex; align-items: center; gap: var(--pub-gap-1); min-width: 0; overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--pub-edge); }
 .pub-evid-src:hover { text-decoration-color: currentColor; }
 .pub-evid-src:focus-visible { outline: 2px solid var(--pub-focus); outline-offset: 2px; border-radius: var(--pub-round-control); }
 .pub-root .pub-evid blockquote { margin-top: var(--pub-gap-1); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

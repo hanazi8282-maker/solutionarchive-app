@@ -84,6 +84,9 @@ const noSleep = async () => {}
   t('사실확인 C 인용인데 자기답글 블록 없음 → 확인 불가 needs_human(fail 도 pass 도 아님)', instantGateForPost({ body, notes }, mvC).status, 'needs_human')
   t('사실확인 C + 자기답글에 자사 공시 없음 → CG 미통과 fail', instantGateForPost({ body, notes: withReply('출처 https://x.com') }, mvC).status, 'fail')
   t('사실확인 C + 자기답글 "자사 공시" → pass(본문 귀속 없이)', instantGateForPost({ body, notes: withReply('전환율 3.4% — https://x.com, 자사 공시.') }, mvC).status, 'pass')
+  // 2026-09-29 — 원문 링크가 있는 제3자 출처도 통과(자사 공시 없이). 링크 없는 제3자 언급은 여전히 fail.
+  t('사실확인 C + 제3자 출처 + 원문 링크 → pass', instantGateForPost({ body, notes: withReply('제3자 매체 보도 https://techcrunch.com/x.') }, mvC).status, 'pass')
+  t('사실확인 C + 링크 없는 "제3자에 따르면" → fail', instantGateForPost({ body, notes: withReply('제3자에 따르면 그렇다.') }, mvC).status, 'fail')
   t('사실확인 A 는 자기답글 블록 없어도 pass', instantGateForPost({ body, notes }, mvA).status, 'pass')
   const mvD = [{ fact_check_grade: 'A', lever: 'CHANNEL', slug: 'x', brand_name: 'X', pmf_grade: 'D', evidence_grade: 'A' }]
   t('인사이트 등급 D → fail', instantGateForPost({ body, notes }, mvD).status, 'fail')

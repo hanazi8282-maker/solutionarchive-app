@@ -66,10 +66,28 @@ const ATTRIBUTION_VERB = /(밝힌|밝혔|발표한|발표했|공개한|공개했
 /** 브랜드명과 귀속 동사 사이에 이 정도까지는 다른 말이 끼어도 같은 문장으로 본다. */
 const NAMED_WINDOW = 25
 
+// ★ 2026-09-29 남헌 결정 — "원문 링크가 있는 제3자 출처"도 CG-1 을 통과한다. "자사 공시"가 아니어도,
+//   회사 스스로가 아닌 제3자(기자·매체·조사기관)가 검증·보도한 수치라면 그 자체로 근거가 된다 — 단
+//   **원문을 직접 열어 확인할 수 있는 링크**가 그 줄에 있어야 한다. "제3자에 따르면" 처럼 링크 없이
+//   말만 대는 줄은 그대로 막는다 — 검증할 수 없는 제3자 주장은 얼버무림과 다르지 않다(fail-closed 유지).
+const THIRD_PARTY_MENTION = /제\s*3\s*자|제3자|서드파티|third[-\s]?party/i
+const URL_PATTERN = /https?:\/\/\S+/
+
 function findSelfMarker(body: string): string | null {
   for (const { re, label } of SELF_MARKERS) {
     const m = re.exec(body)
     if (m) return `${label} ("${m[0]}")`
+  }
+  return null
+}
+
+/** 제3자 출처를 언급하면서 같은 줄에 원문 링크가 있는지 본다. 링크 없는 "제3자" 언급은 통과시키지 않는다. */
+function findThirdPartyWithLink(body: string): string | null {
+  for (const line of body.split(/\r?\n/)) {
+    if (THIRD_PARTY_MENTION.test(line) && URL_PATTERN.test(line)) {
+      const url = URL_PATTERN.exec(line)?.[0] ?? line.trim()
+      return `제3자 출처 + 원문 링크 ("${url}")`
+    }
   }
   return null
 }
@@ -105,6 +123,10 @@ function findNamedMarker(body: string, names: string[]): string | null {
  *   확인하지 못하는 것: 그 표시가 **문제의 그 수치 줄에 붙어 있는가.**
  *   아무 줄에나 넣어도 통과한다. 그래서 통과는 "사람이 안 봐도 된다"가 아니라
  *   "사람이 볼 준비가 됐다"는 뜻이다(§7.1 — 통과를 양성으로 읽지 마라).
+ *
+ * ★ 2026-09-29 남헌 결정 — "자사 공시"가 아니어도 **원문 링크가 있는 제3자 출처**면 통과한다
+ *   (`findThirdPartyWithLink`). 제3자를 언급만 하고 링크가 없는 줄은 여전히 막는다 — 링크 없는
+ *   "제3자에 따르면"은 "업계에 따르면"과 다를 바 없는 얼버무림이다.
  */
 export function attributionGate(moves: GateMove[], _body: string, evidence?: string | null): GateResult {
   const cMoves = moves.filter(m => m.fact_check_grade === 'C')
@@ -130,13 +152,14 @@ export function attributionGate(moves: GateMove[], _body: string, evidence?: str
   }
 
   const names = cMoves.flatMap(m => [m.brand_name, m.slug]).filter(Boolean) as string[]
-  const matched = findSelfMarker(evidence) ?? findNamedMarker(evidence, names)
+  const selfMatched = findSelfMarker(evidence) ?? findNamedMarker(evidence, names)
+  const matched = selfMatched ?? findThirdPartyWithLink(evidence)
 
   if (matched) {
     return {
       ok: true,
       code: CG_1,
-      reason: `사실확인 등급 C 무브 ${cMoves.length}건(${where})을 인용하는데 근거 메타에 자사 공시 귀속이 있다`,
+      reason: `사실확인 등급 C 무브 ${cMoves.length}건(${where})을 인용하는데 근거 메타에 ${selfMatched ? '자사 공시' : '제3자 출처 + 원문 링크'} 귀속이 있다`,
       matched,
       caveat: '표시가 근거 메타에 있다는 것만 확인했다. 그 표시가 그 수치 줄에 붙어 있는지는 사람이 읽어야 안다. 본문 귀속은 2026-09-29 부터 선택이다.',
     }
@@ -145,7 +168,7 @@ export function attributionGate(moves: GateMove[], _body: string, evidence?: str
   return {
     ok: false,
     code: CG_1,
-    reason: `사실확인 등급 C 무브 ${cMoves.length}건(${where})을 인용하는데 근거 메타(자기답글·근거 메모)에 "자사 공시" 귀속이 없다`,
+    reason: `사실확인 등급 C 무브 ${cMoves.length}건(${where})을 인용하는데 근거 메타(자기답글·근거 메모)에 "자사 공시" 귀속도, 원문 링크가 있는 제3자 출처도 없다`,
     matched: null,
     caveat: null,
   }
@@ -220,7 +243,8 @@ export function attributionHint(): string[] {
     '받는 표시(정본은 첫 줄):',
     ...SELF_MARKERS.map(m => `  · ${m.label}`),
     '  · 브랜드 이름 + 밝혔다/발표했다 (예: "Chewy가 밝힌 바로는")',
-    '"업계에 따르면" 처럼 주체를 흐리는 표현은 통과하지 않는다 — 그건 귀속이 아니라 얼버무림이다.',
+    '또는(2026-09-29) 원문 링크가 있는 제3자 출처 — 예: "TechCrunch 보도 https://techcrunch.com/x". 링크가 없으면 통과하지 않는다.',
+    '"업계에 따르면" 처럼 주체를 흐리는 표현, 링크 없는 "제3자에 따르면"은 통과하지 않는다 — 그건 귀속이 아니라 얼버무림이다.',
     '자기답글을 읽지 못하면 확인 불가로 막힌다 — 파일이 비어 있지 않은지 먼저 본다.',
   ]
 }

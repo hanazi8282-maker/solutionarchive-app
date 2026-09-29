@@ -86,15 +86,15 @@ export default async function LibraryPage({ searchParams }: {
 
   const toolbar = (
     <div className="pub-toolbar">
-      {/* 검색은 이 화면이 하지 않는다 — 자유 텍스트 매칭기는 /cases/search 한 벌이다(두 벌이면 갈라진다). */}
-      <form className="pub-inline pub-inline--grow" method="get" action="/cases/search">
-        {query.problem && <input type="hidden" name="problem" value={query.problem} />}
+      {/* 검색은 이 화면이 하지 않는다 — 자유 텍스트 매칭기는 searchMoves 한 벌이고 /cases/report 가 그 비로그인
+          입구다(로그인 벽 /cases/search 는 검수용으로 남긴다, MVP 9/30 §7.1). q 파라미터 이름은 그대로 통한다. */}
+      <form className="pub-inline pub-inline--grow" method="get" action="/cases/report">
         {query.kind !== DEFAULT_SEARCH_KIND && <input type="hidden" name="kind" value={query.kind} />}
         <span className="pub-field-wrap">
           <IconSearch />
           <input
             className="pub-field pub-field--grow"
-            name="q" maxLength={200} aria-label="내 말로 검색 (유사 케이스 검색으로 이동)"
+            name="q" maxLength={200} aria-label="내 말로 검색 (아이디어 매칭 리포트로 이동)"
             placeholder="내 말로 한 줄 (예: 무료로는 쓰는데 결제를 안 한다)"
           />
         </span>

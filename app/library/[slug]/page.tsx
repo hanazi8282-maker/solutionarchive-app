@@ -145,7 +145,11 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
   const reviewedOn = day(s.reviewed_at)
   const period = [day(s.period_start), day(s.period_end)].filter(Boolean).join(' ~ ')
   const levers = [...new Set(d.moves.map((m) => m.lever))]
-  const problemHref = s.reader_problem ? `/cases/search?problem=${encodeURIComponent(s.reader_problem)}` : '/cases/search'
+  // 비로그인은 /cases/search(로그인 벽)로 보내지 않는다 — 같은 문제 유형의 공개 라이브러리 필터가
+  // 공개 등가물이다(MVP 9/30 §7.1, /library 가 이미 problem= 을 받는다).
+  const problemHref = signedIn
+    ? (s.reader_problem ? `/cases/search?problem=${encodeURIComponent(s.reader_problem)}` : '/cases/search')
+    : (s.reader_problem ? `/library?problem=${encodeURIComponent(s.reader_problem)}` : '/library')
 
   return (
     <div className="pub-detail">

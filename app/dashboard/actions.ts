@@ -9,6 +9,7 @@ import { publishTextPost } from '@/lib/threads/publish'
 import { instantGateForPost, parseStageNotes } from '@/lib/threads/instant-gate'
 import { loadDeletedCaseIds } from '@/lib/cases/deleted'
 import { parseExternalInput, checkDuplicate, externalFields } from '@/lib/threads/external-post'
+import { isPillar, pillarField } from '@/lib/content/pillar'
 
 export type ActionState = { ok: boolean; message: string } | null
 
@@ -39,6 +40,13 @@ export async function createPost(
   const hook_type = String(formData.get('hook_type') ?? '').trim()
   const closing_type = String(formData.get('closing_type') ?? '').trim()
   const hypothesis_code = String(formData.get('hypothesis_code') ?? '').trim()
+  const pillarRaw = String(formData.get('pillar') ?? '').trim()
+  // 잘못된 값이 오면 조용히 버리지 않고 막는다 — "선택 안 함"과 "이상한 값이 들어왔는데
+  // 저장은 됐다"를 구분해야 한다(§7.1). 컬럼이 아직 없으면 어차피 pillarField() 가
+  // payload 에서 빼므로, 검증만 여기서 하고 저장 여부는 그 헬퍼에 맡긴다.
+  if (pillarRaw && !isPillar(pillarRaw)) {
+    return { ok: false, message: `알 수 없는 필러입니다: ${pillarRaw}` }
+  }
 
   // 화면이 소재·가설 목록을 못 읽은 채 제출된 요청이다. 선택지가 비어 "선택 안 함"만 보낼 수
   // 있었으므로, 참조 없이 저장하면 "확인 불가"가 "참조 없음"으로 접힌다(§7.1). 화면도 버튼을
@@ -90,6 +98,7 @@ export async function createPost(
     hook_type: hook_type || null,
     closing_type: closing_type || null,
     hypothesis_code: hypothesis_code || null,
+    ...pillarField(isPillar(pillarRaw) ? pillarRaw : null),
     // 이 화면은 "이미 발행한 글을 사후에 기록"하는 용도다. status 를 생략하면
     // 컬럼 기본값 'draft' 가 들어가고, 매처가 이 글을 초안으로 착각해
     // 엉뚱한 Threads 게시물에 붙이려 든다. 명시적으로 published 로 넣는다.

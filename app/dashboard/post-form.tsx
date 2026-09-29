@@ -6,6 +6,7 @@ import { Field, Input, Select, Textarea } from '../_ds/components/Field'
 import { Button } from '../_ds/components/Button'
 import { Notice } from '../_ds/components/Shell'
 import { REQUIRED, ResultMessage } from './form-ui'
+import { PILLARS } from '@/lib/content/pillar'
 
 export type ContentItem = { code: string; title: string | null }
 export type Hypothesis = { code: string; statement: string | null }
@@ -71,6 +72,15 @@ export default function PostForm({
           <option value="">— 선택 안 함 —</option>
           {[1, 2, 3, 4, 5, 6].map(n => (
             <option key={n} value={n}>{n}</option>
+          ))}
+        </Select>
+      </Field>
+
+      <Field label="필러 (pillar)" htmlFor="pillar">
+        <Select id="pillar" name="pillar" defaultValue="">
+          <option value="">— 선택 안 함 —</option>
+          {PILLARS.map(p => (
+            <option key={p} value={p}>{p}</option>
           ))}
         </Select>
       </Field>

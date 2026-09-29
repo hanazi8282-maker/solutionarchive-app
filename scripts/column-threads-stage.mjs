@@ -23,11 +23,13 @@
 //   node --env-file=.env.local scripts/column-threads-stage.mjs --slug beauty-of-joseon    # 미리보기(쓰지 않는다)
 //   node --env-file=.env.local scripts/column-threads-stage.mjs --slug beauty-of-joseon --apply
 //   ... --episode 1                                                                        # 특정 편만
+//   ... --pillar 빌드로그                                                                   # 필러 태그(선택, § lib/content/pillar.ts)
 //
 // 종료 코드: 0 = 정상 / 1 = 실패 / 2 = 확인 불가(env 없음·조회 실패)
 
 import { flattenEpisodes } from '../lib/threads/column-episodes.ts'
 import { checkThreadSelfContained } from '../lib/threads/voice-check.ts'
+import { isPillar, pillarField } from '../lib/content/pillar.ts'
 
 const CHANNEL_ID = '64558fd1-06a5-4440-8fb1-bb78375479e0' // threads / @solution_arch_ (case-draft-stage.mjs 와 같은 값)
 const THREADS_MAX = 500 // G-11. case-draft-stage.mjs 와 같은 상한.
@@ -43,7 +45,7 @@ const opt = (n, d = null) => {
  * 칼럼 1행 → 스테이징할 행 목록. **DB 를 부르지 않는다** — 그래서 --self-test 가 가능하다.
  * 반환: { rows } 또는 { error }.
  */
-export function buildStageRows(column, { channelId = CHANNEL_ID, episode = null } = {}) {
+export function buildStageRows(column, { channelId = CHANNEL_ID, episode = null, pillar = null } = {}) {
   if (column?.review_status && column.review_status !== 'approved') {
     // 승인 전 편을 발행 대기로 올리지 않는다 — 검수 절차를 우회하는 길이 된다(§10.1).
     return { error: `승인되지 않은 칼럼이다(review_status=${column.review_status}) — /columns 에서 승인 먼저` }
@@ -90,6 +92,10 @@ export function buildStageRows(column, { channelId = CHANNEL_ID, episode = null 
           + ' 자동 연결되지 않는다 — 그때는 /dashboard "초안에 안 붙은 발행 글"에서 이 초안을 고르면 된다.',
           '⛔ 미발행. 발행 버튼은 사람이 Threads 앱에서 직접 누른다 (CLAUDE.md §10).',
         ].join('\n\n'),
+        // 칼럼 연재는 케이스처럼 필러가 고정이지 않다(숫자한줄·빌드로그·VOC발굴 다 나올 수
+        // 있다) — 호출부가 --pillar 로 명시하지 않으면 null 로 두고 사람이 나중에 채운다.
+        // 잘못 추측해서 박아 넣는 것보다 "아직 분류 안 함"이 정직하다(§7.1).
+        ...pillarField(isPillar(pillar) ? pillar : null),
       },
     })),
   }
@@ -110,8 +116,13 @@ async function main() {
   const slug = opt('slug')
   const episode = opt('episode')
   const apply = has('apply')
+  const pillar = opt('pillar')
   if (!slug) {
-    console.error('사용법: --slug <칼럼 slug> [--episode <편>] [--apply]')
+    console.error('사용법: --slug <칼럼 slug> [--episode <편>] [--apply] [--pillar <케이스|숫자한줄|빌드로그|VOC발굴>]')
+    return 1
+  }
+  if (pillar && !isPillar(pillar)) {
+    console.error(`❌ 알 수 없는 필러: ${pillar} (케이스 / 숫자한줄 / 빌드로그 / VOC발굴 중 하나)`)
     return 1
   }
 
@@ -136,7 +147,7 @@ async function main() {
     return 1
   }
 
-  const built = buildStageRows(col.data, { episode })
+  const built = buildStageRows(col.data, { episode, pillar })
   if (built.error) {
     console.error(`❌ ${built.error}`)
     return 1
@@ -226,6 +237,14 @@ function selfTest() {
   const one = buildStageRows(column, { episode: 2 })
   check('--episode 로 한 편만', one.rows?.length === 1 && one.rows[0].episode.n === '2')
   check('없는 편은 error', !!buildStageRows(column, { episode: 9 }).error)
+
+  // pillar — 2026-09-29 컬럼 적용(POSTS_PILLAR_COLUMN_READY=true). 지정하면 그 값, 안 하면 null 이 실린다.
+  check('pillar 지정 — payload 에 그 값이 실림',
+    buildStageRows(column, { pillar: '빌드로그' }).rows[0].post.pillar === '빌드로그')
+  check('pillar 미지정 — payload 에 null(분류 안 함)',
+    'pillar' in all.rows[0].post && all.rows[0].post.pillar === null)
+  check('알 수 없는 pillar 값은 무시된다(에러 아님)',
+    !buildStageRows(column, { pillar: '없는값' }).error)
 
   check('미승인 칼럼은 error',
     !!buildStageRows({ ...column, review_status: 'draft' }).error)

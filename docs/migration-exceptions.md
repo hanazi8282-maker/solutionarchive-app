@@ -425,3 +425,7 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 ### 2026-09-29 — 000037 경쟁사 프로필 스냅샷 (CEO-STAFF 세션, 남헌 확정 지시)
 
 - 000037(PR #345): competitor_profile_snapshots 신규(project FK CASCADE, status ok|unverified|failed, trigger extract|backfill|manual). 적용 전 부재 확인. 양성: 컬럼 17·RLS true/true·정책 0. 음성 3건(ok+sections NULL · failed+sections · trigger='cron') 23514 거부, 잔존 0. 비파괴, 롤백 파일 있음. 호스티드 Supabase MCP apply_migration. nightly-extract timeout 75→120분(남헌 승인).
+
+### 2026-09-29 — 000038 posts.pillar (CEO-STAFF 세션, 남헌 확정 지시)
+
+- 000038(PR #355): posts.pillar nullable + CHECK(케이스|숫자한줄|빌드로그|VOC발굴|NULL). 양성: 컬럼 1. 음성: pillar='기타' → 23514 거부. 적용 전 non-null 0. 이어서 발행 8편 소급(빌드로그 5·케이스 3), post_decision_link 1행(T3-1 → LOG-20260907-02) 멱등 INSERT. 비파괴, 롤백 파일 있음. 호스티드 Supabase MCP apply_migration. POSTS_PILLAR_COLUMN_READY=true.

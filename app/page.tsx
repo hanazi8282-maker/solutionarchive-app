@@ -17,8 +17,9 @@ import { PubSteps, type PubStepItem } from './_pub/components/PubSteps'
 import { PubValueGrid, type PubValueItem } from './_pub/components/PubValueGrid'
 import { PubLogoStrip } from './_pub/components/PubLogoStrip'
 import { Reveal } from './_pub/components/Reveal'
+import { STEPS } from './_pub/steps'
 import {
-  IconAction, IconApprove, IconArrowRight, IconChevronDown, IconCollect, IconEvidence, IconGrade, IconProblem, IconSignal, IconSplit,
+  IconAction, IconArrowRight, IconChevronDown, IconEvidence, IconGrade, IconProblem, IconSignal, IconSplit,
 } from './_pub/icons'
 import {
   DEFAULT_SORT, approvedThisWeek, loadLibrary, loadSourceTiles, pickTodayCase, summarizeSourceTiles,
@@ -73,17 +74,6 @@ function perCase(evidence: number | null, cases: number | null): { label: string
   const avg = evidence / cases
   return { label: Number.isInteger(avg) ? String(avg) : `${Math.ceil(avg)}+`, raw: `${evidence} ÷ ${cases} = ${avg.toFixed(2)}` }
 }
-
-/**
- * 작동원리 4단계(B4). 문구는 여기 한 곳 — 방법론 압축판(G4)이 같은 문구를 쓴다.
- * page.tsx 는 Next 가 허용한 이름만 export 할 수 있어 아직 export 하지 않는다(G4 에서 옮긴다).
- */
-const STEPS: Omit<PubStepItem, 'caption' | 'href'>[] = [
-  { icon: <IconCollect />, title: '찾는다', body: '공시, 창업자 글, 기사에서 케이스와 근거 링크를 모은다.' },
-  { icon: <IconGrade />, title: '매긴다', body: '근거의 종류로 사실확인 등급을, 행동과 전제가 적혔는지로 인사이트 등급을 매긴다. 산식은 방법론 페이지에 공개돼 있다.' },
-  { icon: <IconApprove />, title: '사람이 승인한다', body: '무브 하나씩 사람이 보고 승인한다. 자동 수집분은 초안으로만 남는다.' },
-  { icon: <IconProblem />, title: '내 문제로 꺼낸다', body: '문제 유형 7가지 중 하나를 고르면 내일 할 행동 한 줄과 갈린 사례가 같이 나온다.' },
-]
 
 /** 랜딩 CTA 전용 알약 + 화살표 원(B6-2). 다른 공개 화면 버튼은 그대로(G3·G4 몫). */
 function PillCta({ href, children }: { href: string; children: ReactNode }) {

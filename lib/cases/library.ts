@@ -19,7 +19,7 @@ import type { createClient } from '@/lib/supabase/server'
 import { safeSelect } from './corpus-db.ts'
 import { deletedIdsOf, withoutDeleted } from './deleted.ts'
 import { redactReviewer, sortMovesByTime, type DetailMoveRow, type DetailStudyRow } from './detail.ts'
-import { displayGrade } from './grade-display.ts'
+import { displayGrade, pmfRankOf } from './grade-display.ts'
 import { productKindOf } from './advisor.ts'
 import { READER_PROBLEMS } from './draft.ts'
 import { caseExposure } from './case-auto-approval.ts'
@@ -133,7 +133,8 @@ export const isVerifying = (c: LibraryCard) => caseExposure(c.study) === 'verify
 export function sortLibrary(cards: LibraryCard[], sort: LibrarySort): LibraryCard[] {
   const cmp: Record<LibrarySort, (a: LibraryCard, b: LibraryCard) => number> = {
     recent: byRecent,
-    grade: (a, b) => gradeRank(b) - gradeRank(a) || byRecent(a, b),
+    // 등급(인사이트) 우선, 동률이면 PMF(남헌 2026-09-30 결정 B — A 69/C 12 로 치우쳐 동률이 흔하다).
+    grade: (a, b) => gradeRank(b) - gradeRank(a) || pmfRankOf(b.move) - pmfRankOf(a.move) || byRecent(a, b),
     moves: (a, b) => b.move_count - a.move_count || byRecent(a, b),
   }
   return [...cards].sort((a, b) => Number(isVerifying(a)) - Number(isVerifying(b)) || cmp[sort](a, b))

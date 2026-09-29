@@ -23,9 +23,9 @@ export type MatchStatus = (typeof MATCH_STATUS)[number]
 //
 // ★ 2026-09-23: 정의가 `grade-display.ts` 로 옮겨졌고 여기는 재수출이다. 랭킹이 보는
 //   등급과 화면이 보여 주는 등급을 갈라 놓지 않기 위해서다 — 등급을 읽는 자리는
-//   `gradeRankOf(move)` 하나이고, 그 함수가 `pmf_grade ?? evidence_grade` 를 본다.
-export { GRADE_RANK, gradeRankOf } from './grade-display.ts'
-import { gradeRankOf } from './grade-display.ts'
+//   `gradeRankOf(move)` 하나이고, 그 함수가 `insight_grade ?? evidence_grade`(인사이트 축)를 본다.
+export { GRADE_RANK, gradeRankOf, pmfRankOf } from './grade-display.ts'
+import { gradeRankOf, pmfRankOf } from './grade-display.ts'
 
 export interface MoveRow {
   id: string
@@ -33,6 +33,8 @@ export interface MoveRow {
   lever: string
   claim: string
   evidence_grade: string
+  /** 인사이트 등급 정본 컬럼(마이그 20260930000039). 조회는 INSIGHT_COLS 로만 — 미적용이면 undefined. */
+  insight_grade?: string | null
   /** 사실확인 등급(2026-09-16 재설계로 인사이트 등급과 분리). 조회에서 빼면 undefined 다 — 없음이 아니다. */
   fact_check_grade?: string | null
   outcome_direction: string
@@ -51,9 +53,8 @@ export interface MoveRow {
   observed_period_start?: string | null
   created_at?: string
   /**
-   * PMF 등급축(마이그 20260930000004). **미적용이 현재 상태다**(2026-09-23) — 그래서 `?` 다.
-   * `undefined` 는 "컬럼이 조회에 없었다", `null` 은 "아직 채점 전"이고 둘 다 D 가 아니다.
-   * 읽는 자리는 `grade-display.ts` 의 `displayGrade`/`gradeRankOf` 하나뿐이다.
+   * PMF 등급(S×T, 마이그 20260930000004). **표시·랭킹 축이 아니다**(남헌 2026-09-29 2축 확정 —
+   * 인사이트·사실확인). 레거시 보조값으로만 싣는다. 랭킹은 `gradeRankOf`(인사이트)다.
    */
   pmf_grade?: string | null
   pmf_provisional?: boolean | null
@@ -141,9 +142,14 @@ export function matchMoves(
     })
   }
 
-  // 등급 우선, 그다음 패싯 일치 수, 그다음 슬러그(결과 고정용).
+  // 등급(인사이트) 우선, 그다음 PMF 동점 결정자(남헌 2026-09-30 결정 B — 인사이트 분포가
+  // A 69/C 12 로 치우쳐 동률이 흔해 순위가 흔들린다), 그다음 패싯 일치 수, 그다음 슬러그(결과 고정용).
   out.sort((a, b) =>
-    b.match_score - a.match_score || a.study.slug.localeCompare(b.study.slug) || a.lever.localeCompare(b.lever))
+    (gradeRankOf(b) ?? 0) - (gradeRankOf(a) ?? 0)
+    || pmfRankOf(b) - pmfRankOf(a)
+    || b.facet_hits.length - a.facet_hits.length
+    || a.study.slug.localeCompare(b.study.slug)
+    || a.lever.localeCompare(b.lever))
 
   if (out.length === 0) {
     const why = [

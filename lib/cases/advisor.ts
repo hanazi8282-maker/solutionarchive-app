@@ -21,7 +21,7 @@
 //   not_run  = 조회를 못 했거나 질의어가 없어 판정 자체를 못 했다 (확인 불가)
 //   억지로 끼워맞추지 않는다.
 
-import { GRADE_RANK, gradeRankOf, type MoveRow, type StudyRow } from './match.ts'
+import { GRADE_RANK, gradeRankOf, pmfRankOf, type MoveRow, type StudyRow } from './match.ts'
 
 export const ADVISOR_STATUS = ['matched', 'no_match', 'not_run'] as const
 export type AdvisorStatus = (typeof ADVISOR_STATUS)[number]
@@ -72,11 +72,13 @@ export interface CaseMoveCard {
   lever: string
   claim: string
   evidence_grade: string
+  /** 인사이트 등급 정본 컬럼. null = 미적용·미백필 → displayGrade 가 evidence_grade(같은 값)로 폴백. */
+  insight_grade: string | null
   /** 사실확인 등급. 조회에 없으면 null — 화면은 "미기재" 로 말한다(등급 D 와 다르다). */
   fact_check_grade: string | null
   /**
-   * PMF 등급축(마이그 20260930000004). 배지 1순위 축이다 — 화면은 `displayGrade(card)` 로만 읽는다.
-   * null = 컬럼 미적용이거나 재채점 전. 그때 배지는 `evidence_grade` 로 폴백하고 **그 사실을 이름으로 밝힌다**.
+   * PMF 등급(S×T). 2026-09-29 부터 **표시 축이 아니다**(인사이트·사실확인 2축 확정).
+   * 화면은 `displayGrade(card)`(인사이트)로만 읽는다.
    */
   pmf_grade: string | null
   /** 사람이 신호 강도·이식성을 확정하지 않은 잠정 등급인가. 확정과 같게 보이면 §7.1 위반이다. */
@@ -430,6 +432,7 @@ export function matchCaseMoves(
       lever: m.lever,
       claim: m.claim,
       evidence_grade: m.evidence_grade,
+      insight_grade: m.insight_grade ?? null,
       fact_check_grade: m.fact_check_grade ?? null,
       pmf_grade: m.pmf_grade ?? null,
       pmf_provisional: m.pmf_provisional ?? null,
@@ -448,7 +451,13 @@ export function matchCaseMoves(
       low_confidence: isLowConfidence(matched),
     })
   }
-  cards.sort((a, b) => b.score - a.score || a.slug.localeCompare(b.slug) || a.lever.localeCompare(b.lever))
+  // score(낱말 수 1순위, SP-024)가 같을 때만 PMF 로 동점을 가른다(남헌 2026-09-30 결정 B) —
+  // 등급은 이미 score 안에 정수로 녹아 있어 동률이 흔하다. 그다음 기존 키(슬러그·레버).
+  cards.sort((a, b) =>
+    b.score - a.score
+    || pmfRankOf(b) - pmfRankOf(a)
+    || a.slug.localeCompare(b.slug)
+    || a.lever.localeCompare(b.lever))
 
   if (cards.length === 0) {
     const why = [

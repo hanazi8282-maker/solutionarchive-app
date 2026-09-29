@@ -31,6 +31,7 @@ import path from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
 import { validateDraft, toRows, gradeMove, factCheckGrade, pmfGrade } from '../lib/cases/draft.ts'
 import { moveApprovalWarning, caseApprovalWarning } from '../lib/cases/review.ts'
+import { INSIGHT_GRADE_COLUMN_READY } from '../lib/cases/grade-display.ts'
 import {
   planReaderAxisBackfill, assertBackfillColumns,
   MOVE_BACKFILL_COLUMNS, STUDY_BACKFILL_COLUMNS,
@@ -576,14 +577,18 @@ async function regrade() {
         if (m.pmf_signal !== null && m.pmf_signal !== undefined) pmfHumanSignal++
       }
       const gradeSame = grade === m.evidence_grade
+      // 2026-09-29 2축 확정: 인사이트 정본 컬럼 insight_grade(000039). 플래그가 켜진 뒤에만 쓴다 —
+      // 비어 있으면(백필 전·적용 뒤 새 무브) gradeMove 재계산값으로 채운다. 이것도 백필 경로다.
+      const insightSame = !INSIGHT_GRADE_COLUMN_READY || m.insight_grade === grade
       const fcSame = fc.grade === m.fact_check_grade
       const pmfSame = !pmf || (pmf.grade === m.pmf_grade && pmf.transfer === m.pmf_transfer
         && pmf.provisional === m.pmf_provisional)
-      if (gradeSame && fcSame && pmfSame) continue
+      if (gradeSame && insightSame && fcSame && pmfSame) continue
       if (!gradeSame) changed++
       if (!fcSame) fcChanged++
       if (!pmfSame) pmfChanged++
       const line = [!gradeSame ? `인사이트 ${m.evidence_grade} → ${grade} — ${reason}` : null,
+        gradeSame && !insightSame ? `insight_grade ${m.insight_grade ?? '미기재'} → ${grade} (정본 컬럼 채움)` : null,
         !fcSame ? `사실확인 ${m.fact_check_grade} → ${fc.grade} — ${fc.reason}` : null,
         !pmfSame ? `PMF ${m.pmf_grade ?? '미기재'} → ${pmf.grade}${pmf.provisional ? '(잠정)' : ''} — ${pmf.reason}` : null,
       ].filter(Boolean).join(' · ')
@@ -591,6 +596,7 @@ async function regrade() {
       if (!dry) {
         const patch = {}
         if (!gradeSame) patch.evidence_grade = grade
+        if (!insightSame) patch.insight_grade = grade
         if (!fcSame) patch.fact_check_grade = fc.grade
         if (!pmfSame) {
           patch.pmf_grade = pmf.grade

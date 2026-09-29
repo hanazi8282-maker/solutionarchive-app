@@ -17,7 +17,8 @@ import {
   sortMovesByTime, evidenceGroupOf, groupEvidence, evidenceTally, gradeChecklist,
   metricTiles, splitCases, relatedCases, pickLeadMove, clipTransferNote, detailTitle,
 } from '../lib/cases/detail.ts'
-import { displayGrade, displayGradeLabel, factCheckLabel } from '../lib/cases/grade-display.ts'
+import { displayGrade, displayGradeLabel, factCheckLabel, gradeRankOf, INSIGHT_COLS, INSIGHT_GRADE_COLUMN_READY } from '../lib/cases/grade-display.ts'
+import { toRows, gradeMove } from '../lib/cases/draft.ts'
 import { logoFor, normalizeDomain, safeImageUrl, brandInitial, duotoneHue, paletteSlot, PALETTE_HUES } from '../lib/cases/logo.ts'
 import { pairMoves } from '../lib/cases/compare.ts'
 
@@ -75,6 +76,23 @@ t('라벨 — 미기재를 D 로 쓰지 않는다', displayGradeLabel({}), '미�
 t('라벨 — 등급 D 는 D', displayGradeLabel({ evidence_grade: 'D' }), 'D')
 t('사실확인 — null 은 미기재', factCheckLabel({ fact_check_grade: null }), '미기재')
 t('사실확인 — 값은 그대로', factCheckLabel({ fact_check_grade: 'C' }), 'C')
+
+// ── 3-1. 등급 2축 매핑(남헌 2026-09-29 확정: 인사이트 · 사실확인) ─────────────
+// 화면 "인사이트" = insight_grade ?? evidence_grade. pmf_grade(S×T)는 **보지 않는다** —
+// 09-23~29 동안 인사이트 이름표 아래 PMF 가 나가던 것을 되돌리지 않게 고정한다.
+t('2축 — insight_grade 가 정본(레거시보다 먼저)', displayGrade({ insight_grade: 'C', evidence_grade: 'A' }), 'C')
+t('2축 — insight_grade 미적용·미백필이면 evidence_grade', displayGrade({ insight_grade: null, evidence_grade: 'B' }), 'B')
+t('2축 — pmf_grade 는 표시 축이 아니다', displayGrade({ pmf_grade: 'A', evidence_grade: 'D' }), 'D')
+t('2축 — pmf_grade 만 있으면 미기재(PMF 로 채우지 않는다)', displayGrade({ pmf_grade: 'A' }), null)
+t('2축 — 랭킹도 같은 축', gradeRankOf({ pmf_grade: 'A', evidence_grade: 'C' }), 1)
+t('2축 — 사실확인은 따로 읽는다', factCheckLabel({ fact_check_grade: 'A', insight_grade: 'D' }), 'A')
+t('플래그 ↔ SELECT 묶음', INSIGHT_COLS, INSIGHT_GRADE_COLUMN_READY ? 'insight_grade, evidence_grade' : 'evidence_grade')
+{
+  const move = { lever: 'PRICING', claim: 'x', transfer_note: '가격표 첫 줄을 월 단가 대신 연 단가로 바꾼다', preconditions: '연 결제 옵션이 있다', metric_after: null }
+  const [row] = toRows({ slug: 's', brand_name: 'S', moves: [move], evidence: [] }).moves.map((m) => m.row)
+  t('toRows — evidence_grade 는 gradeMove', row.evidence_grade, gradeMove(move, []).grade)
+  t('toRows — insight_grade 는 플래그가 켜졌을 때만, 같은 값', row.insight_grade, INSIGHT_GRADE_COLUMN_READY ? row.evidence_grade : undefined)
+}
 
 // ── 4. 등급 체크리스트 ───────────────────────────────────────────
 const full = gradeChecklist(

@@ -21,6 +21,7 @@ import { matchFailedAngles, productKindOf, toTerms, type FailedAngleCard, type F
 import { pairMoves, type MovePair, type PairSide } from './compare.ts'
 import { deletedIdsOf, withoutDeleted } from './deleted.ts'
 import type { MoveRow, StudyRow } from './match.ts'
+import { gradeRankOf, pmfRankOf } from './grade-display.ts'
 import type { Evidence } from './draft.ts'
 
 type Client = NonNullable<Awaited<ReturnType<typeof createClient>>>
@@ -309,14 +310,14 @@ export type RelatedCase = {
   reason: '같은 문제 유형' | '같은 병목' | '같은 종류'
 }
 
-const GRADE_RANK: Record<string, number> = { A: 3, B: 2, C: 1, D: 0 }
-
-/** 승인 무브 중 대표 1개. 등급이 센 것 → 옮길 행동이 적힌 것 → created_at 순. */
+/** 승인 무브 중 대표 1개. 등급(인사이트)이 센 것 → PMF 동점 결정자(남헌 2026-09-30 결정 B) →
+ * 옮길 행동이 적힌 것 → created_at 순. */
 export function pickLeadMove(moves: DetailMoveRow[]): DetailMoveRow | null {
   const approved = moves.filter((m) => m.review_status === 'approved')
   if (approved.length === 0) return null
   return [...approved].sort((a, b) =>
-    (GRADE_RANK[b.evidence_grade] ?? -1) - (GRADE_RANK[a.evidence_grade] ?? -1)
+    (gradeRankOf(b) ?? -1) - (gradeRankOf(a) ?? -1)
+    || pmfRankOf(b) - pmfRankOf(a)
     || (b.transfer_note ? 1 : 0) - (a.transfer_note ? 1 : 0)
     || (a.created_at ?? '').localeCompare(b.created_at ?? ''))[0]
 }

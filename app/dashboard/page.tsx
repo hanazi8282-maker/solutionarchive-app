@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { INSIGHT_COLS } from '@/lib/cases/grade-display'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
@@ -216,10 +217,10 @@ export default async function DashboardPage() {
   const moveIds = [...new Set(pendingReview.map((d) => parseStageNotes(d.notes).moveId).filter((x): x is string => !!x))]
   const movesById = new Map<string, InstantMove[]>()
   if (moveIds.length > 0 && supabase) {
-    const { data: mv } = await supabase.from('case_moves').select('id, fact_check_grade, evidence_grade, pmf_grade, lever, case_studies(brand_name, slug)').in('id', moveIds)
+    const { data: mv } = await supabase.from('case_moves').select(`id, fact_check_grade, ${INSIGHT_COLS}, lever, case_studies(brand_name, slug)`).in('id', moveIds)
     for (const m of mv ?? []) {
       const st = (Array.isArray(m.case_studies) ? m.case_studies[0] : m.case_studies) as { brand_name?: string | null; slug?: string | null } | null
-      movesById.set(m.id as string, [{ fact_check_grade: String(m.fact_check_grade ?? ''), lever: m.lever as string | null, slug: st?.slug ?? null, brand_name: st?.brand_name ?? null, pmf_grade: m.pmf_grade as string | null, evidence_grade: m.evidence_grade as string | null }])
+      movesById.set(m.id as string, [{ fact_check_grade: String(m.fact_check_grade ?? ''), lever: m.lever as string | null, slug: st?.slug ?? null, brand_name: st?.brand_name ?? null, insight_grade: (m as { insight_grade?: string | null }).insight_grade ?? null, evidence_grade: m.evidence_grade as string | null }])
     }
   }
   const toReviewPosts: PendingPost[] = pendingReview

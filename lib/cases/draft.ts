@@ -10,6 +10,7 @@
 import readerProblemVocab from '../../config/reader-problems.json' with { type: 'json' }
 import painTermVocab from '../../config/pain-terms.json' with { type: 'json' }
 import openDashboards from '../../config/open-dashboards.json' with { type: 'json' }
+import { INSIGHT_GRADE_COLUMN_READY } from './grade-display.ts'
 
 /**
  * 독자 문제 — 케이스 **선정의 1순위 축**이다.
@@ -578,6 +579,7 @@ export function validateDraft(draft: Draft, today = new Date()): Issue[] {
 /**
  * 초안을 DB 행 3벌로 편다. 등급은 여기서 계산해 무브에 박는다 — 둘 다:
  * `evidence_grade`(독자 인사이트, gradeMove) · `fact_check_grade`(사실확인, factCheckGrade).
+ * 인사이트는 정본 컬럼 `insight_grade`(마이그 000039)에도 같은 값을 쓴다 — 플래그가 켜진 뒤에만(없는 컬럼 INSERT 는 42703).
  */
 export function toRows(draft: Draft) {
   const evidence = Array.isArray(draft.evidence) ? draft.evidence : []
@@ -625,6 +627,7 @@ export function toRows(draft: Draft) {
         observed_period_start: m.observed_period_start ?? null,
         observed_period_end: m.observed_period_end ?? null,
         evidence_grade: grade,
+        ...(INSIGHT_GRADE_COLUMN_READY ? { insight_grade: grade } : {}),
         fact_check_grade: fc.grade,
       },
     }

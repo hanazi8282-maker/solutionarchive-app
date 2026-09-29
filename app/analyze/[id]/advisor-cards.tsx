@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { sortMovesByTime } from '@/lib/cases/detail'
-import { directionMark, displayGradeLabel, factCheckLabel, isProvisionalGrade } from '@/lib/cases/grade-display'
+import { directionMark, displayGradeLabel, factCheckLabel } from '@/lib/cases/grade-display'
 import { Badge } from '../../_ds/components/Badge'
 import { GradeLegend } from '../../_ds/components/GradeLegend'
 import { Button } from '../../_ds/components/Button'
@@ -32,7 +32,9 @@ export type AdvisorCaseMoveCard = AdvisorMatchInfo & {
   claim: string; evidence_grade: string
   /** 사실확인 등급. null = 미기재(조회에 없었거나 안 적힘)이고 등급 D 와 다르다. */
   fact_check_grade: string | null
-  /** PMF 등급축. null = 컬럼 미적용이거나 재채점 전 → 배지가 인사이트 등급으로 폴백한다. */
+  /** 인사이트 등급 정본 컬럼. null → displayGrade 가 evidence_grade 로 폴백. */
+  insight_grade?: string | null
+  /** PMF 등급(S×T) — 2026-09-29 부터 표시 축이 아니다. */
   pmf_grade?: string | null
   pmf_provisional?: boolean | null
   outcome_direction: string
@@ -140,29 +142,21 @@ function GradeBadge({ grade }: { grade: string }) {
 }
 
 /**
- * 무브 등급 배지 — 축이 셋이라 **무슨 축인지 이름으로 밝힌다**(2026-09-16 분리, 2026-09-23 PMF 1순위).
+ * 무브 등급 배지 — 인사이트·사실확인 2축(남헌 2026-09-29 확정). 축 이름을 배지에 밝힌다.
  *
  * ★ 등급 문자열은 `displayGradeLabel(move)` 하나로만 만든다. 카드가 필드를 직접 읽지 않는다 —
  *   축이 또 바뀌면 그 한 함수만 바뀌고 전 화면이 같이 바뀐다. **값은 건드리지 않는다**
  *   (저장된 등급을 올리는 것은 사람이 CLI regrade 로 한다, §10.1).
- * ★ 폴백을 PMF 라고 부르지 않는다: `pmf_grade` 가 없으면 `displayGrade` 는 인사이트 등급을
- *   돌려주므로 배지 이름도 "인사이트" 가 된다(§7.1 — 폴백을 새 축으로 위장하지 않는다).
- * ★ 방향(↑/↓/↕)을 등급에 붙인다: PMF 축에서는 **실패 사례도 A** 다. 등급만 보면 성공으로 읽힌다.
+ * ★ 방향(↑/↓/↕)을 등급에 붙인다: 실패 사례도 옮길 행동이 적혀 있으면 A 다. 등급만 보면 성공으로 읽힌다.
  */
 function MoveGradeBadges({ move }: { move: AdvisorCaseMoveCard }) {
-  const isPmf = typeof move.pmf_grade === 'string' && move.pmf_grade.trim() !== ''
   const mark = directionMark(move)
   return (
     <>
       <Badge tone="neutral" size="sm"
-        title={isPmf
-          ? 'PMF 등급 — 그래서 얼마나 됐고(신호) 내가 내일 옮길 수 있나(이식성). 방향은 ↑성공 ↓실패 ↕혼재'
-          : '인사이트 등급 — 내가 옮겨 쓸 게 있나(옮길 행동·전제가 적혀 있나). PMF 등급이 아직 없어 이 축으로 보여준다'}>
-        {isPmf ? 'PMF' : '인사이트'} {displayGradeLabel(move)}{mark && ` ${mark}`}
+        title="인사이트 등급 — 내가 옮겨 쓸 게 있나(옮길 행동·전제·뒷받침 근거). 방향은 ↑성공 ↓실패 ↕혼재">
+        인사이트 {displayGradeLabel(move)}{mark && ` ${mark}`}
       </Badge>
-      {isProvisionalGrade(move) && (
-        <Badge tone="warning" size="sm" title="신호 강도·이식성을 사람이 아직 확정하지 않았다. 등급이 낮다는 뜻이 아니다">잠정</Badge>
-      )}
       <Badge tone="neutral" size="sm" title="사실확인 등급 — 그 수치를 믿을 수 있나(출처가 몇 겹인가). 미기재는 D 가 아니다">
         사실확인 {factCheckLabel(move)}
       </Badge>

@@ -12,6 +12,7 @@ import { productKindOf } from './advisor.ts'
 import type { CaseMoveCard, FailedAngleCard, FailedAngleRow, PrincipleCard, PrincipleRow } from './advisor.ts'
 import type { MoveRow, StudyRow } from './match.ts'
 import { loadDeletedCaseIds, withoutDeleted } from './deleted.ts'
+import { INSIGHT_COLS } from './grade-display.ts'
 import { buildRemedies, type RemedyAspectRow, type RemedyProject, type RemedyResult } from './remedy.ts'
 import { CARD_KINDS, cardFingerprint, cardIdOf, cardLine, type CardKind, type VerdictRow } from './remedy-gate.ts'
 import { judgeAspect, type JudgeCard, buildJudgePrompt } from './remedy-judge.ts'
@@ -19,7 +20,7 @@ import { judgeAspect, type JudgeCard, buildJudgePrompt } from './remedy-judge.ts
 const STUDY_COLS =
   'id, slug, brand_name, bottleneck, business_model, buyer_type, price_band, outcome_status, review_status'
 const MOVE_COLS =
-  'id, case_study_id, lever, claim, evidence_grade, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit'
+  `id, case_study_id, lever, claim, ${INSIGHT_COLS}, fact_check_grade, outcome_direction, review_status, metric_name, metric_before, metric_after, metric_unit`
 
 export interface RemedyCorpora {
   principles: PrincipleRow[] | null

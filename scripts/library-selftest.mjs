@@ -98,6 +98,16 @@ const slugs = (r) => r.cards.map((c) => c.study.slug).join(',')
   t('정렬: 같은 입력이면 같은 결과', twice, slugs(buildLibrary(Q({ sort: 'grade' }), CORPORA)))
 }
 
+// ── 3b. ★ 정렬 grade: 인사이트 동률이면 PMF 가 동점을 가른다(남헌 2026-09-30 결정 B) ──
+{
+  // s4·s5 둘 다 등급 A(대표 무브 m6=A, m4=A). PMF 로만 순서가 갈려야 한다.
+  const movesWithPmf = MOVES.map((m) => (m.id === 'm4' ? { ...m, pmf_grade: 'C' } : m.id === 'm6' ? { ...m, pmf_grade: 'A' } : m))
+  const r = buildLibrary(Q({ sort: 'grade', kind: 'all' }), { ...CORPORA, moves: movesWithPmf })
+  const rank = (slug) => r.cards.findIndex((c) => c.study.slug === slug)
+  ok('3b-1 인사이트 동률에서 PMF 높은 쪽(echo-saas, A)이 먼저', rank('echo-saas') < rank('bravo-tumbler'))
+  ok('3b-2 PMF 낮은 쪽(bravo-tumbler, C)이 뒤로', rank('bravo-tumbler') > rank('echo-saas'))
+}
+
 // ── 4. 종류(kind) 필터 · 문제 유형 필터 · 건수 ────────────────────
 {
   const saas = buildLibrary(Q(), CORPORA)

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { productKindOf } from '@/lib/cases/advisor'
 import { gradeMove, READER_PROBLEM_LABEL, type Evidence, type Move } from '@/lib/cases/draft'
+import { displayGrade, displayGradeLabel } from '@/lib/cases/grade-display'
 import { classifyFeedbackError, tallyFeedback, type FeedbackTally, type FeedbackVoteRow } from '@/lib/cases/feedback'
 import { caseApprovalWarning, moveApprovalWarning, TRANSFERABILITY_LABEL, type Transferability } from '@/lib/cases/review'
 import { Card } from '../_ds/components/Card'
@@ -25,8 +26,10 @@ export const metadata = { title: '케이스 검수' }
 type EvidenceRow = Evidence & { id: string; case_move_id: string | null; domain: string | null }
 type MoveRow = Move & {
   id: string
-  /** 독자 인사이트 등급(2026-09-16 재설계) — transfer_note·preconditions 기반. */
+  /** 독자 인사이트 등급 레거시 이름(2026-09-16~). 읽기는 displayGrade — insight_grade 가 있으면 그게 정본. */
   evidence_grade: string
+  /** 인사이트 등급 정본 컬럼(마이그 20260930000039). select('*') 라 미적용이면 undefined. */
+  insight_grade?: string | null
   /** 사실확인 등급(옛 evidence_grade 산식) — CG-1/CG-2 발행 게이트 전용. */
   fact_check_grade: string
   review_status: string
@@ -205,7 +208,7 @@ function MoveBlock({ m, i, evidence, caseEvidenceTotal, locked, transferabilityL
         <span className="v2-chiprow v2-push">
           {/* 두 축의 이름을 화면마다 같게 쓴다 — "등급"만 적혀 있으면 어느 축인지 알 수 없다(GradeLegend). */}
           {/* 등급 배지는 색을 쓰지 않는다 — 분류이지 결과 방향이 아니다(/cases/grade·M1 과 같은 규칙). */}
-          <Badge tone="neutral" size="sm" title="인사이트 등급 — 독자가 옮겨 쓸 게 있나">인사이트 {m.evidence_grade}</Badge>
+          <Badge tone="neutral" size="sm" title="인사이트 등급 — 독자가 옮겨 쓸 게 있나">인사이트 {displayGradeLabel(m)}</Badge>
           <Badge tone="neutral" size="sm" title="사실확인 등급 — 그 수치를 믿을 수 있나. CG-1/CG-2 발행 게이트가 이걸 본다">사실확인 {m.fact_check_grade}</Badge>
         </span>
       </div>
@@ -224,9 +227,9 @@ function MoveBlock({ m, i, evidence, caseEvidenceTotal, locked, transferabilityL
         현재 산식(인사이트) {g.grade} — {g.reason}
         {g.provisional && <> · <b className="v2-warn-text">잠정(미기재 {g.unkeyed ?? 0}건 — 약하다가 아니라 아직 안 적었다)</b></>}
       </p>
-      {g.grade !== m.evidence_grade && (
+      {g.grade !== displayGrade(m) && (
         <Notice tone="warning">
-          저장 등급 {m.evidence_grade} ≠ 현재 산식 {g.grade}. 등급은 이 화면에서 바꾸지 않는다 — 사람이{' '}
+          저장 등급 {displayGradeLabel(m)} ≠ 현재 산식 {g.grade}. 등급은 이 화면에서 바꾸지 않는다 — 사람이{' '}
           <code>case-review.mjs regrade --slug …</code> 로 재채점한 뒤 판단한다.
         </Notice>
       )}
@@ -348,7 +351,7 @@ export default async function CasesPage({ searchParams }: { searchParams: Promis
   const isPending = (c: ViewCase) => c.review_status === 'draft' || c.moves.some((m) => m.review_status === 'draft')
   const byStatus = (c: ViewCase, s: string) => (s === 'all' ? true : s === 'pending' ? isPending(c) : c.review_status === s)
   // 등급은 무브에 붙는다 — 케이스는 그 등급 무브를 하나라도 가지면 걸린다.
-  const byGrade = (c: ViewCase, g: string) => (g === 'all' ? true : c.moves.some((m) => m.evidence_grade === g))
+  const byGrade = (c: ViewCase, g: string) => (g === 'all' ? true : c.moves.some((m) => displayGrade(m) === g))
   // 종류 판정은 productKindOf 한 곳을 쓴다 — 검색 화면과 이 화면이 각자 계산하면 갈린다(business_model NULL 은 소비재).
   const byKind = (c: ViewCase, k: string) =>
     (k === 'all' ? true : k === 'saas' ? productKindOf(c.business_model) === 'software' : productKindOf(c.business_model) !== 'software')

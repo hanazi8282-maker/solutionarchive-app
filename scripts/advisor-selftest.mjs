@@ -216,6 +216,15 @@ const SP024_MOVES = [
     t(`SP-024: ${g}등급도 저신뢰 표시`, r.cards[0].low_confidence, true)
   }
 }
+// ── ★ PMF 는 score 동률일 때만 동점을 가른다(남헌 2026-09-30 결정 B) ────
+// score(낱말 수 1순위, SP-024)가 완전히 같은 두 무브에서만 PMF 가 순서를 정한다.
+{
+  const sameScoreLowPmf = { id: 'mp1', case_study_id: 's4', lever: 'CHANNEL', claim: '광고 예산 재배분', evidence_grade: 'A', pmf_grade: 'C', outcome_direction: 'positive', review_status: 'approved' }
+  const sameScoreHighPmf = { id: 'mp2', case_study_id: 's5', lever: 'OFFER', claim: '광고 소재 재배분', evidence_grade: 'A', pmf_grade: 'A', outcome_direction: 'positive', review_status: 'approved' }
+  const tie = matchCaseMoves(['광고'], SP024_STUDIES, [sameScoreLowPmf, sameScoreHighPmf])
+  t('PMF 동점 결정자: score 가 같으면 PMF 높은 쪽이 먼저', tie.cards[0].case_move_id, 'mp2')
+  t('PMF 동점 결정자: score 자체는 그대로(인사이트만 반영)', tie.cards[0].score, tie.cards[1].score)
+}
 {
   // 판정은 한 곳(isLowConfidence)이다 — 화면·감사 스크립트가 각자 계산하지 않는다.
   t('SP-024: 낱말 0개 → false (카드가 만들어지지 않는 경우)', isLowConfidence([]), false)

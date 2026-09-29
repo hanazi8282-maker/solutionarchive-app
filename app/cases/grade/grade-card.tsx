@@ -6,6 +6,7 @@ import { gradeCase, type ReviewActionState } from '../actions'
 import { caseApproveDefault } from '@/lib/cases/grade-queue'
 import { PMF_SIGNALS, TRANSFERABILITY_REASON_MAX } from '@/lib/cases/grade-queue'
 import { TRANSFERABILITY, TRANSFERABILITY_LABEL, TRANSFERABILITY_UNRATED_HINT, caseApprovalWarning, moveApprovalWarning } from '@/lib/cases/review'
+import { displayGradeLabel } from '@/lib/cases/grade-display'
 import { Badge } from '../../_ds/components/Badge'
 import { Button } from '../../_ds/components/Button'
 import { Card } from '../../_ds/components/Card'
@@ -24,6 +25,8 @@ export type GradeMove = {
   transfer_note: string | null
   preconditions: string | null
   evidence_grade: string
+  /** 인사이트 등급 정본 컬럼(마이그 20260930000039). case_moves(*) 라 미적용이면 undefined. */
+  insight_grade?: string | null
   fact_check_grade: string | null
   review_status: string
   // 전후 수치 — "왜 택했나"의 유일한 관측값이다. 전부 nullable 이고 미기재를 0 으로 접지 않는다.
@@ -108,7 +111,7 @@ const PMF_SIGNAL_HINT: Readonly<Record<string, string>> = {
 function GradeBadges({ m }: { m: GradeMove }) {
   return (
     <span className="v2-chiprow v2-push">
-      <Badge tone="neutral" size="sm">근거 {m.evidence_grade}</Badge>
+      <Badge tone="neutral" size="sm">인사이트 {displayGradeLabel(m)}</Badge>
       <Badge tone="neutral" size="sm">사실확인 {m.fact_check_grade ?? '미기재'}</Badge>
     </span>
   )

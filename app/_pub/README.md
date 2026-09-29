@@ -103,14 +103,20 @@ Pretendard 는 `next/font/local`. **`app/layout.tsx` 에서 허용된 수정은 
 
 | 묶음 | 변수 · 값 | 출처 |
 |---|---|---|
-| 라이트 | `--pub-canvas #FBFBFD` · `--pub-surface #FFFFFF` · `--pub-surface-2 #F0F1F9` · `--pub-edge #E6E6E6` · `--pub-ink #000000` · `--pub-ink-muted #909094` · `--pub-ink-faint #B3B3B8` | [A] 실측 |
+| 라이트 | `--pub-canvas #FBFBFD` · `--pub-surface #FFFFFF` · `--pub-surface-2 #F0F1F9` · `--pub-edge #E6E6E6` · `--pub-ink #000000` · `--pub-ink-muted #6E6E73`(2026-09-29 개정, 아래 참고) · `--pub-ink-faint #B3B3B8` | [A] 실측 |
 | 다크 | `--pub-canvas #020308` · `--pub-surface #030407` · `--pub-ink #FAFAFA` · `--pub-ink-muted rgba(250,250,250,.62)` · `--pub-edge rgba(250,250,250,.14)` | [F] 실측 |
 | 액센트 | `--pub-accent`/`--pub-cta` **#1D4ED8**(확정·변경 금지) · `--pub-accent-ink`/`--pub-cta-ink #FFFFFF` · `--pub-focus` 라이트 #1D4ED8 / 다크 **#5DBCE5** | 다크 포커스는 [F] 스카이 |
 | 판정 | `--pub-verdict-pos #396C00` / `-bg #E9FFD2` · `--pub-verdict-neg #E58B73` / `-bg #FFF1EC` · `--pub-verdict-mix #E2B866` / `-bg #FFF7E0` | 긍정 [A] 라임 · 부정 [T] 코랄 · 혼합 앰버. **두더지웍스의 emerald/red 금지** |
-| 흰 섬 | `--pub-island #FFFFFF` · `--pub-island-ink #000000` · `--pub-island-ink-muted #909094` · `--pub-island-edge #E6E6E6` · `--pub-island-wash #F0F1F9` | 두 테마 공통([A] 값) |
+| 흰 섬 | `--pub-island #FFFFFF` · `--pub-island-ink #000000` · `--pub-island-ink-muted #6E6E73`(2026-09-29 개정, 아래 참고) · `--pub-island-edge #E6E6E6` · `--pub-island-wash #F0F1F9` | 두 테마 공통([A] 값) |
 
 ⚠️ `--pub-ink-faint`(#B3B3B8)는 **장식용만**이다 — 구분선·점선·비활성 표시. 본문·캡션에 쓰면
-`#FBFBFD` 위에서 대비가 안 난다. 캡션은 `--pub-ink-muted`(#909094)를 쓴다.
+`#FBFBFD` 위에서 대비가 안 난다. 캡션은 `--pub-ink-muted`(#6E6E73)를 쓴다.
+⚠️ **2026-09-29**: `--pub-ink-muted` / `--pub-island-ink-muted` 를 `#909094`(캔버스 위 3.08:1,
+흰 바탕 위 3.18:1 — 본문 텍스트 기준 WCAG AA 4.5:1 미달)에서 `#6E6E73`(각각 4.91:1 · 5.07:1,
+AA 통과)로 바꿨다. `app/_ds/v2/v2.css` 의 `--v2-ink-muted` 가 같은 이유로 이미 쓰던 값이다 —
+`scripts/pub-tokens-overlap-selftest.mjs` 는 `_ds/styles.css` + `_ds/tokens/*.css` 만 "승계
+금지" 집합으로 보고 `_ds/v2/v2.css` 는 그 집합에 없어서(별도 레이어, 위 스크립트 주석 참고)
+겹침으로 잡히지 않는다 — 우연이 아니라 같은 AA 근거로 의도적으로 같아진 값이다.
 ⚠️ 코랄·앰버는 제 바탕 위에서 글자 대비가 안 나온다. 그래서 **테두리로만** 쓰고 글자는
 잉크색이다(`.pub-chip--neg` / `--mix`). 라임(#396C00)만 제 바탕 위에서 글자로 읽힌다.
 ⚠️ 판정 색은 **결과 방향**(됐다/안 됐다/갈렸다)에만 붙인다. 등급 A~D 는 분류이지 방향이

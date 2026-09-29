@@ -34,7 +34,7 @@ export function PubIndexRow({ study, move, moveCount, reason }: {
         <PubBrandLogo study={study} size="sm" />
         <span className="pub-index-main">
           <span className="pub-index-head">
-            <span className="pub-index-t">{study.brand_name ?? '브랜드명 미기재'}</span>
+            <span className="pub-index-t" translate="no">{study.brand_name ?? '브랜드명 미기재'}</span>
             <span className="pub-index-meta">무브 {moveCount}개 · {approvedOn(study)}{reason ? ` · ${reason}` : ''}</span>
           </span>
           {summary ? <span className="pub-index-s">{summary}</span> : null}

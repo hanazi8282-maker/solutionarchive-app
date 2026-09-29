@@ -131,7 +131,7 @@ export default async function LibraryPage({ searchParams }: {
       <Hero
         variant="index"
         title="케이스 라이브러리"
-        lead="승인된 케이스만 나온다. 줄마다 요약과 내일 할 행동, 2축 등급이 붙는다."
+        // 리드 문장은 뺐다(G3 B3-4: 첫 뷰포트에 색인 줄 6개). "승인 케이스 N건" 은 아래 note(조회 사유)가 말하고, 2축 등급 설명은 목록 아래 범례가 한다.
         note={result ? result.reason : undefined}
       />
 

@@ -111,7 +111,7 @@ function EvidenceRow({ e }: { e: DetailEvidenceRow }) {
       <div className="pub-evid-meta">
         <span className="pub-evid-fav" aria-hidden="true"><IconEvidence />{fav ? <LogoImg src={fav} width={16} height={16} /> : null}</span>
         <a className="pub-evid-src" href={e.url} target="_blank" rel="noreferrer noopener" title={e.url}>
-          <b>{e.domain ?? '도메인 미기재'}</b><IconExternal /><span className="pub-sr">원문, 새 창</span>
+          <b translate="no">{e.domain ?? '도메인 미기재'}</b><IconExternal /><span className="pub-sr">원문, 새 창</span>
         </a>
         {kind ? <Chip>{kind}</Chip> : null}
         <span>{day(e.published_at) ? `게시 ${day(e.published_at)}` : '게시일 확인 불가'}</span>

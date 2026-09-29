@@ -353,7 +353,10 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 - **초안 staging** — `content_items`(`status='proposed'`) / `posts`
   (`status IN ('draft','pending_review')`, **`published_at` 은 항상 NULL**).
 - **조사 큐·실행 상태** — `research_queue` / `agent_runs` / `agent_run_steps`.
-- **발굴 적재** — `discovery_candidates` 전체 / `analysis_projects`(`status='collecting'` 신규 INSERT 한정, UPDATE·DELETE 금지) / `review_targets`(`review_sources.enabled=true` 인 소스 한정). `review_sources` 에는 INSERT/UPDATE 하지 않는다 — 새 소스는 robots·ToS 판단이 들어가므로 사람이 마이그레이션으로만 추가한다.
+- **발굴 적재** — `discovery_candidates` 전체 / `analysis_projects`(`status='collecting'` 신규 INSERT 한정, UPDATE·DELETE 금지) / `review_targets`(`review_sources.enabled=true` 인 소스 한정). 무인 루프는 `review_sources` 에 INSERT/UPDATE 하지 않는다. **새 소스는 대화형·역할 세션이 스스로 찾아 마이그레이션으로 등록한다**(남헌 2026-09-30 — 사람이 하나씩 고르던 병목 제거, 09-20 자율 승인과 같은 취지):
+  법적 점검(`docs/review-collection-design.md` §1.2 — robots 3상태 · 약관 자동수집 조항 인용 · 로그인/유료벽 · 개인정보 비중)을 **전부 깨끗하게 통과한 무료 소스만** 바로 등록한다.
+  하나라도 걸리거나 **확인 불가**면 등록하지 않고 `ops/state/source-review-queue.md`(사람 판단 큐)에 올린다 — §10.2 예외 4번(새 법적 리스크)이 이 큐다.
+  등록한 소스의 수집분도 T1~T4 게이트를 그대로 거친다(우회 경로 없음).
   (남헌 2026-09-17 승인 — 자율 VOC 발굴 엔진. 사람이 `review_targets` 를 하나씩
   등록하던 병목을 없애려고 이 한 줄을 열었다. 근거는 `docs/discovery-design.md`.
   **채택은 LLM 의 주장이 아니라 실측 hits 가 정한다** — 그게 이 권한을 준 조건이다.)

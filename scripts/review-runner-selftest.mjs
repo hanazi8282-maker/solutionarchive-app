@@ -541,6 +541,17 @@ const runQuota = (h, over = {}) =>
     )
   }
 
+  // 음성 ⓑ — 게시판(board:)은 목록을 실제로 읽었으면 N 회째에도 닫지 않는다(2026-09-30).
+  //   느린 태그의 "새 글 0건"은 고갈이 아니다. 카운터는 그대로 올라간다(건강도 신호는 산다).
+  {
+    const h = makeHarness({ pages: emptyPages, targets: tgt({ productRef: 'board:x', consecutiveEmpty: MAX_CONSECUTIVE_EMPTY - 1 }) })
+    const r = await runCollection(incAdapter, { dryRun: false, targetLimit: 5 }, h.ports)
+    const last = h.log.saves[h.log.saves.length - 1]
+    ok('board: 목록을 읽었으면 요청이 나갔다', r.requests > 0)
+    t(`board: 연속 ${MAX_CONSECUTIVE_EMPTY}회째 0건이어도 active`, last.status, 'active')
+    t('board: 카운터는 계속 센다', last.consecutiveEmpty, MAX_CONSECUTIVE_EMPTY)
+  }
+
   // 음성 ① — N-1 회째에서는 닫지 않는다.
   {
     const h = makeHarness({ pages: emptyPages, targets: tgt({ consecutiveEmpty: MAX_CONSECUTIVE_EMPTY - 2 }) })

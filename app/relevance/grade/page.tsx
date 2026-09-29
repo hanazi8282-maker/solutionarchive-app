@@ -6,24 +6,52 @@ import { TRANSLATIONS_MIGRATION, parseSourceContext } from '@/lib/relevance-feed
 import { ButtonLink } from '../../_ds/components/Button'
 import { Card } from '../../_ds/components/Card'
 import { EmptyState } from '../../_ds/components/EmptyState'
-import { ProgressBar } from '../../_ds/components/ProgressBar'
-import { Notice, PageHeader, PageShell } from '../../_ds/components/Shell'
+import { Notice, PageShell } from '../../_ds/components/Shell'
 import { RelevanceCard, type CardContext, type Revealed } from './relevance-card'
+import { GradeKeys } from './grade-keys'
+import { IconChevronRight } from './icons'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: '관련성 기준 채점' }
+export const metadata = { title: '관련성 채점' }
 
 // 읽기만 한다. 쓰기는 ../actions.ts 의 gradeRelevance 하나. 표본 선택은 lib/relevance-feedback/sample.ts(순수, 셀프테스트).
 // 번역·제품 배경·스레드 제목은 캐시(000036)에서 읽기만 한다 — 만드는 것은 scripts/relevance-translate.mjs(야간 배치). 없으면 "준비 중".
 // ⛔ 카드로 넘기는 맥락(CardContext)에 판정 계열 값을 싣지 않는다 — 번역·배경은 순수 사실 문자열뿐이다(채점 독립성).
+//
+// 모양은 DESIGN.md §4 작업대(남헌 09-29 승인 목업): sticky 툴바(진행 n/m · 단축키) → 묶음 메모 → 카드 목록. 데이터·문구 규칙은 그대로다.
 
-const HEADER = {
-  title: `관련성 기준 채점 (하루 ${BATCH_SIZE}장)`,
-  subtitle: '자동승인 통과·경계·불일치·둘 다 무관을 섞어 뽑았다. 모델 판정과 어느 묶음인지는 저장한 뒤에 보인다.',
-} as const
+const KEYS: [string, string][] = [['1', '관련'], ['2', '무관'], ['3', '모름'], ['4', '정보있음'], ['5', '정보없음'], ['Enter', '저장'], ['J', '다음'], ['K', '이전'], ['U', '되돌리기']]
 
-function Shell({ children }: { children: ReactNode }) {
-  return <div className="sa-v2"><PageShell maxWidth={960}>{children}</PageShell></div>
+function Bar({ done, total }: { done: number; total: number }) {
+  return (
+    <header className="v2-bar">
+      <h1>관련성 채점</h1>
+      <div className="v2-prog" aria-live="polite">
+        <span className="v2-prog-n">{done}<small>/{total}</small></span>
+        <progress className="v2-prog-track" value={done} max={Math.max(total, 1)} aria-label={`오늘 ${done}/${total}장 채점`} />
+      </div>
+      <div className="v2-keys" aria-label="단축키">
+        {KEYS.map(([k, l], i) => (
+          <span key={k}>
+            {(i === 3 || i === 5) && <span className="v2-keys-sep" aria-hidden="true" />}
+            <kbd className="v2-kbd">{k}</kbd>{l}
+          </span>
+        ))}
+      </div>
+      <ButtonLink href="/relevance/feedback">기준 피드백 요약</ButtonLink>
+    </header>
+  )
+}
+
+function Shell({ done = 0, total = 0, children }: { done?: number; total?: number; children: ReactNode }) {
+  return (
+    <div className="sa-v2">
+      <PageShell maxWidth={1180}>
+        <Bar done={done} total={total} />
+        {children}
+      </PageShell>
+    </div>
+  )
 }
 
 const KO: Record<string, string> = { relevant: '관련', irrelevant: '무관', unknown: '모름' }
@@ -31,12 +59,11 @@ const ko = (v: string | null | undefined) => (v ? KO[v] ?? v : '없음')
 const inf = (v: boolean | null | undefined) => (v === true ? '정보있음' : v === false ? '정보없음' : '미기재')
 
 export default async function RelevanceGradePage() {
-  const header = <PageHeader {...HEADER} action={<ButtonLink href="/relevance/feedback">기준 피드백 요약</ButtonLink>} />
   const sb = await createClient()
-  if (!sb) return <Shell>{header}<Notice tone="danger" title="확인 불가 — Supabase 환경변수 미설정">채점할 카드가 없다는 뜻이 아니다.</Notice></Shell>
+  if (!sb) return <Shell><Notice tone="danger" title="확인 불가. Supabase 환경변수 미설정">채점할 카드가 없다는 뜻이 아니다.</Notice></Shell>
 
   const loaded = await loadAllVerdicts(sb)
-  if ('error' in loaded) return <Shell>{header}<Notice tone="danger" title="확인 불가 — 판정 조회 실패">{loaded.error} · 채점할 카드가 없다는 뜻이 아니다.</Notice></Shell>
+  if ('error' in loaded) return <Shell><Notice tone="danger" title="확인 불가. 판정 조회 실패">{loaded.error} · 채점할 카드가 없다는 뜻이 아니다.</Notice></Shell>
 
   const today = kstDate(new Date().toISOString()) ?? ''
   // 원문이 폐기된 행(raw_text 없음)은 채점할 게 없다 — 빼고 다시 뽑는다. 세 번이면 충분하다(빈 원문은 드물다).
@@ -48,7 +75,7 @@ export default async function RelevanceGradePage() {
     const ids = batch.items.map((i) => i.row.input_id).filter((id) => !texts.has(id))
     if (ids.length === 0) break
     const { data, error } = await sb.from('analysis_inputs').select('id, raw_text, source_key').in('id', ids)
-    if (error) return <Shell>{header}<Notice tone="danger" title="확인 불가 — 원문 조회 실패">{error.message}</Notice></Shell>
+    if (error) return <Shell><Notice tone="danger" title="확인 불가. 원문 조회 실패">{error.message}</Notice></Shell>
     for (const r of data ?? []) if ((r.raw_text ?? '').trim()) { texts.set(r.id, r.raw_text); sourceKeys.set(r.id, r.source_key ?? null) }
     const empty = ids.filter((id) => !texts.has(id))
     if (empty.length === 0) break
@@ -77,7 +104,7 @@ export default async function RelevanceGradePage() {
     const src = parseSourceContext(sourceKeys.get(inputId), raw)
     const tr = translations.state === 'present' ? translations.rows.get(inputId) ?? null : null
     const bg = backgrounds.state === 'present' ? backgrounds.rows.get(projectId ?? '') ?? null : null
-    const translationNote = cacheNote ?? (!tr ? '준비 중(야간 배치가 만든다)' : tr.status === 'failed' ? '번역 실패(사후검사 또는 호출 실패 — 원문으로 채점)' : tr.status === 'skipped' ? '한국어 원문' : null)
+    const translationNote = cacheNote ?? (!tr ? '준비 중. 야간 배치가 만든다. 원문으로 채점한다.' : tr.status === 'failed' ? '번역 실패(사후검사 또는 호출 실패). 원문으로 채점한다.' : tr.status === 'skipped' ? '한국어 원문' : null)
     const thread = src.threadKey || src.threadTitle || src.threadRef
       ? { title: src.threadTitle, titleKo: tr?.thread_title_ko ?? null, ref: src.threadRef }
       : null
@@ -94,30 +121,31 @@ export default async function RelevanceGradePage() {
   })
 
   return (
-    <Shell>
-      {header}
-      <Card>
-        <div className="v2-form">
-          <b className="v2-lead">오늘 {done}/{items.length}장 · {today || '날짜 확인 불가'}</b>
-          <ProgressBar value={done} max={Math.max(items.length, 1)} />
-          <p className="v2-note">
-            배분 기본 {STRATA.map((s) => `${s} ${DEFAULT_QUOTA[s]}`).join(' · ')} — 오늘 {STRATA.map((s) => `${s} ${batch.strata[s].picked}`).join(' · ')}
-            {' '}(층이 모자라면 다른 층에서 채운다). 같은 날엔 같은 묶음이다(seed = KST 날짜).
-          </p>
-          {unavailable.length > 0 && (
-            <p className="v2-note v2-flag">
-              확인 불가 층: {unavailable.map((s) => STRATUM_LABEL[s]).join(', ')} —{' '}
-              {a.second === null ? '판정 행이 0 건이라 컬럼 유무를 모른다' : a.second === false ? '2차 판정 컬럼(000027) 없음' : '정보성 컬럼(000031) 미적용'}. 0 건이 아니라 못 가른 것이다.
-            </p>
-          )}
-          {cacheNote && (
-            <p className="v2-note v2-flag">번역·제품 배경 — {cacheNote}. 원문으로 채점한다.</p>
-          )}
-          {noteState !== 'present' && (
-            <p className="v2-note v2-flag">기준 보완 메모 — {noteState === 'missing' ? '미적용(마이그 20260930000032 전)' : '테이블 확인 불가'}. 판정 저장은 된다.</p>
-          )}
-        </div>
-      </Card>
+    <Shell done={done} total={items.length}>
+      <GradeKeys />
+      <div className="v2-batch">
+        <p className="v2-text v2-text--muted">
+          {today || '날짜 확인 불가'} 묶음 {BATCH_SIZE}장. 자동승인 통과, 경계, 불일치, 둘 다 무관을 섞어 뽑았다. 모델 판정과 어느 묶음인지는 저장한 뒤에 보인다.
+        </p>
+        <details className="v2-fold">
+          <summary><IconChevronRight />층 배분</summary>
+          <table aria-label="층별 배분">
+            <thead><tr><th>층</th>{STRATA.map((s) => <th key={s}>{s}</th>)}</tr></thead>
+            <tbody>
+              <tr><td>기본</td>{STRATA.map((s) => <td key={s}>{DEFAULT_QUOTA[s]}</td>)}</tr>
+              <tr><td>오늘</td>{STRATA.map((s) => <td key={s}>{batch.strata[s].picked}</td>)}</tr>
+            </tbody>
+          </table>
+          <p className="v2-note v2-fold-body">층이 모자라면 다른 층에서 채운다. 같은 날엔 같은 묶음이다. <span className="v2-mono">seed = KST 날짜 · pickBatch</span></p>
+        </details>
+      </div>
+      {unavailable.length > 0 && (
+        <p className="v2-note v2-flag">
+          확인 불가 층: {unavailable.map((s) => STRATUM_LABEL[s]).join(', ')}.{' '}
+          {a.second === null ? '판정 행이 0 건이라 컬럼 유무를 모른다' : a.second === false ? '2차 판정 컬럼(000027) 없음' : '정보성 컬럼(000031) 미적용'}. 0 건이 아니라 못 가른 것이다.
+        </p>
+      )}
+      {cacheNote && <p className="v2-note v2-flag">번역·제품 배경 {cacheNote}. 원문으로 채점한다.</p>}
 
       {items.length === 0 ? (
         <Card padded={false}>
@@ -129,6 +157,7 @@ export default async function RelevanceGradePage() {
             <RelevanceCard
               key={row.input_id}
               n={i + 1}
+              total={items.length}
               inputId={row.input_id}
               project={projectOf.get(row.project_id ?? '') ?? '(프로젝트 미상)'}
               text={texts.get(row.input_id) ?? ''}

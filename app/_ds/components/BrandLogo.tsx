@@ -35,7 +35,7 @@ export function BrandLogo({ study, bottleneck, size = 56 }: {
         overflow: 'hidden',
         // 듀오톤 — 병목별 색(lib/cases/logo.ts duotoneHue). 사진이 없으니 오버레이만 쓴다(§4).
         background: `linear-gradient(135deg, hsl(${logo.hue} 62% 46%), hsl(${(logo.hue + 28) % 360} 68% 34%))`,
-        color: '#fff',
+        color: 'var(--sa-accent-ink)',
         fontWeight: 700,
         fontSize: Math.round(size * 0.42),
         lineHeight: 1,

@@ -79,3 +79,23 @@ export function IconExternal({ className }: IconProps) {
 export function IconChevronDown({ className }: IconProps) {
   return <Svg className={className}><path d="M5 7.5l5 5 5-5" /></Svg>
 }
+
+/* ── DS v1(2026-09-29) 추가 — 등급 근거 체크·엑스·대시, 접이식 셰브런, 링크 복사, 의견 엄지 ── */
+export function IconX({ className }: IconProps) {
+  return <Svg className={className}><path d="M5 5l10 10M15 5L5 15" /></Svg>
+}
+export function IconMinus({ className }: IconProps) {
+  return <Svg className={className}><path d="M5 10h10" /></Svg>
+}
+export function IconChevronRight({ className }: IconProps) {
+  return <Svg className={className}><path d="M8 5l5 5-5 5" /></Svg>
+}
+export function IconCopy({ className }: IconProps) {
+  return <Svg className={className}><rect x="7" y="7" width="9" height="9" rx="1.5" /><path d="M13 7V5a1.5 1.5 0 0 0-1.5-1.5h-6A1.5 1.5 0 0 0 4 5v6A1.5 1.5 0 0 0 5.5 12.5H7" /></Svg>
+}
+export function IconThumbUp({ className }: IconProps) {
+  return <Svg className={className}><path d="M6 9v7H3V9zM6 9l3.5-5.5a1.5 1.5 0 0 1 2.8 1L11.5 9H16a1 1 0 0 1 1 1.2l-1.2 5a1 1 0 0 1-1 .8H6" /></Svg>
+}
+export function IconThumbDown({ className }: IconProps) {
+  return <Svg className={className}><path d="M6 11V4H3v7zM6 11l3.5 5.5a1.5 1.5 0 0 0 2.8-1L11.5 11H16a1 1 0 0 0 1-1.2l-1.2-5a1 1 0 0 0-1-.8H6" /></Svg>
+}

@@ -8,7 +8,7 @@ import { READER_PROBLEM_LABEL, READER_PROBLEMS } from '@/lib/cases/draft'
 import { PubShell } from '../_pub/components/PubShell'
 import { Hero } from '../_pub/components/Hero'
 import { Panel } from '../_pub/components/Panel'
-import { PubCaseCard } from '../_pub/components/PubCaseCard'
+import { PubIndexRow } from '../_pub/components/PubIndexRow'
 import { PubBrandLogoNotice } from '../_pub/components/PubBrandLogo'
 import { PubGradeLegend } from '../_pub/components/PubGradeBadge'
 import { PubFacet, PubFacetBar, PubFacetSep } from '../_pub/components/PubFacetBar'
@@ -17,7 +17,7 @@ import { PubButtonLink } from '../_pub/components/Button'
 import { IconArrowRight, IconChevronDown, IconSearch } from '../_pub/icons'
 
 /**
- * 공개 케이스 라이브러리 — 카드 그리드(reports/2026-09-23/ui-overhaul-reference-plan.md §4).
+ * 공개 케이스 라이브러리 — 색인 줄 목록(남헌 2026-09-29 결정 b: 카드 격자 대신 색인 줄, DESIGN.md §4).
  *
  * **익명으로 열린다**(`lib/auth/policy.ts` 의 `/library` 접두사, PR #227). 그래서 이 화면은
  * **읽기 전용**이고 `review_status='approved'` 인 케이스만 낸다 — 승인 상태를 여기서 바꾸지
@@ -25,17 +25,14 @@ import { IconArrowRight, IconChevronDown, IconSearch } from '../_pub/icons'
  *
  * JS 가 0이다: 필터는 링크, 정렬·검색은 GET `<form>`. 결과가 전부 URL 에 있어 그대로 공유된다.
  *
- * ★ 3상태를 다른 화면으로 가른다(§7.1): 조회 실패는 경고 패널(카드 영역을 아예 안 낸다),
- *   0건은 빈 상태 카드. 둘을 같은 "케이스 없음"으로 접으면 DB 장애가 "아직 축적 중"으로 굳는다.
- *
- * 디자인은 `app/_pub` 라이트 테마다(A2, 남헌 2026-09-23 B안). `app/_ds` 를 import 하지 않고
- * 두더지웍스 DS 컴포넌트·그쪽 sa- 접두 클래스를 하나도 쓰지 않는다 — 그쪽 AppNav 는 이 경로에서 스스로 숨는다.
+ * ★ 3상태를 다른 화면으로 가른다(§7.1): 조회 실패는 경고 패널(목록 영역을 아예 안 낸다),
+ *   0건은 빈 상태. 둘을 같은 "케이스 없음"으로 접으면 DB 장애가 "아직 축적 중"으로 굳는다.
  */
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
   title: '케이스 라이브러리',
-  description: '승인된 케이스만 모아 둔 공개 라이브러리 — 문제 유형별로 "남들은 어떻게 풀었나"를 본다.',
+  description: '승인된 케이스만 모아 둔 공개 라이브러리. 문제 유형별로 남들은 어떻게 풀었나를 본다.',
 }
 
 export default async function LibraryPage({ searchParams }: {
@@ -95,10 +92,10 @@ export default async function LibraryPage({ searchParams }: {
           <input
             className="pub-field pub-field--grow"
             name="q" maxLength={200} aria-label="내 말로 검색 (아이디어 매칭 리포트로 이동)"
-            placeholder="내 말로 한 줄 (예: 무료로는 쓰는데 결제를 안 한다)"
+            placeholder="내 말로 한 줄 (예: 무료로는 쓰는데 결제를 안 한다)…"
           />
         </span>
-        <button className="pub-btn pub-btn--ghost pub-btn--sm" type="submit">검색</button>
+        <button className="pub-btn pub-btn--sm" type="submit">검색</button>
       </form>
 
       {/* 정렬 — JS 없이 GET 폼. select 만 두면 키보드로 바꿔도 적용이 안 되므로 버튼을 같이 둔다. */}
@@ -108,7 +105,7 @@ export default async function LibraryPage({ searchParams }: {
         <select className="pub-field" name="sort" defaultValue={query.sort} aria-label="정렬">
           {LIBRARY_SORTS.map((s) => <option key={s} value={s}>{LIBRARY_SORT_LABEL[s]}</option>)}
         </select>
-        <button className="pub-btn pub-btn--ghost pub-btn--sm" type="submit">적용<IconChevronDown /></button>
+        <button className="pub-btn pub-btn--sm" type="submit">적용<IconChevronDown /></button>
       </form>
     </div>
   )
@@ -116,25 +113,24 @@ export default async function LibraryPage({ searchParams }: {
   return (
     <PubShell theme="light">
       <Hero
-        eyebrow="CASE LIBRARY"
         title="케이스 라이브러리"
-        lead="승인된 케이스만 나온다. 카드의 한 줄은 요약이 아니라 내일 할 행동(transfer_note)이다."
+        lead="승인된 케이스만 나온다. 줄마다 요약과 내일 할 행동, 2축 등급이 붙는다."
         note={result ? result.reason : undefined}
       />
 
       {errors.length > 0 && (
         <Panel tone="alert" title="질의를 그대로 쓰지 못했다">
-          <p className="pub-text">{errors.join(' / ')} — 그 조건은 빼고 보여줬다.</p>
+          <p className="pub-text">{errors.join(' / ')}. 그 조건은 빼고 보여줬다.</p>
         </Panel>
       )}
 
       {!sb && (
-        <Panel tone="alert" title="확인 불가 — Supabase 환경변수 미설정">
+        <Panel tone="alert" title="확인 불가. Supabase 환경변수 미설정">
           <p className="pub-text">케이스를 읽지 못했다. 승인된 케이스가 없다는 뜻이 아니다.</p>
         </Panel>
       )}
       {result?.status === 'error' && (
-        <Panel tone="alert" title="확인 불가 — 케이스 조회 실패">
+        <Panel tone="alert" title="확인 불가. 케이스 조회 실패">
           <p className="pub-text">{result.reason} · 잠시 뒤 다시 열어 보라.</p>
         </Panel>
       )}
@@ -147,9 +143,9 @@ export default async function LibraryPage({ searchParams }: {
 
             {result.status === 'ok' ? (
               <>
-                <div className="pub-cardgrid">
+                <ul className="pub-index">
                   {result.cards.map((c) => (
-                    <PubCaseCard
+                    <PubIndexRow
                       key={c.study.slug}
                       study={c.study}
                       move={c.move}
@@ -158,7 +154,7 @@ export default async function LibraryPage({ searchParams }: {
                       reason={c.evidence_count === null ? '근거 수 확인 불가' : `근거 ${c.evidence_count}건`}
                     />
                   ))}
-                </div>
+                </ul>
                 <PubGradeLegend />
               </>
             ) : (
@@ -178,10 +174,10 @@ export default async function LibraryPage({ searchParams }: {
             <footer className="pub-deflist">
               <PubBrandLogoNotice />
               {counts && counts.unlabeled > 0 && (
-                <p className="pub-caption">문제 유형이 아직 안 적힌 케이스 {counts.unlabeled}건 — 위 칩 건수 합과 전체가 다른 이유다.</p>
+                <p className="pub-caption">문제 유형이 아직 안 적힌 케이스 {counts.unlabeled}건. 위 칩 건수 합과 전체가 다른 이유다.</p>
               )}
               {result.logo_columns === 'missing' && (
-                <p className="pub-caption">로고 컬럼(마이그 20260930000001)이 아직 없다 — 로고 미기재가 아니라 컬럼 없음이다.</p>
+                <p className="pub-caption">로고 컬럼(마이그 20260930000001)이 아직 없다. 로고 미기재가 아니라 컬럼 없음이다.</p>
               )}
             </footer>
           </div>

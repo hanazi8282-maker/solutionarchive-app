@@ -1,216 +1,77 @@
 /* ============================================================
-   SolutionArchive — Color Tokens
-   Built on a Tailwind/shadcn foundation: slate neutrals, a
-   violet brand accent, and an explicit semantic palette
-   (status + 감성/판정).
-   브랜드 색과 감성 색은 갈라 둔다 — 초록/빨강/회색/파랑은
-   "긍정·부정·중립·혼합"만 뜻해야 하고, CTA 는 보라다.
+   `_ds` 색 의미 별칭 — 값은 전부 `tokens/sa.css` 의 `--sa-*` (정본 DESIGN.md).
+
+   2026-09-29 까지 여기 있던 Tailwind 램프(slate·violet·red…)와 dark 테마 블록은 지웠다.
+   램프를 직접 읽던 컴포넌트(Badge·Button·ProgressBar)는 의미 별칭으로 바꿨고,
+   `data-theme="dark"` 는 어느 화면도 쓰지 않았다. 컴포넌트는 이 별칭만 읽는다.
    ============================================================ */
 
 :root {
-  /* ---- Neutral ramp (Tailwind "slate") ---- */
-  --slate-50:  #f8fafc;
-  --slate-100: #f1f5f9;
-  --slate-200: #e2e8f0;
-  --slate-300: #cbd5e1;
-  --slate-400: #94a3b8;
-  --slate-500: #64748b;
-  --slate-600: #475569;
-  --slate-700: #334155;
-  --slate-800: #1e293b;
-  --slate-900: #0f172a;
-  --slate-950: #020617;
-
-  /* ---- Action / brand blue (Tailwind "blue") ---- */
-  --blue-50:  #eff6ff;
-  --blue-100: #dbeafe;
-  --blue-200: #bfdbfe;
-  --blue-300: #93c5fd;
-  --blue-400: #60a5fa;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
-  --blue-700: #1d4ed8;
-
-  /* ---- Status hues (exact spec values) ---- */
-  --red-50:   #fef2f2;
-  --red-100:  #fee2e2;
-  --red-500:  #ef4444;   /* 지연 / 품절 위험 / 0–69% */
-  --red-600:  #dc2626;
-  --red-700:  #b91c1c;
-
-  --amber-50:  #fffbeb;
-  --amber-100: #fef3c7;
-  --amber-500: #f59e0b;  /* 주의 / 70–99% */
-  --amber-600: #d97706;
-  --amber-700: #b45309;  /* 앱 추가: warning 글자색 — 600 은 amber-50 위 대비 3:1 로 WCAG AA 미달 */
-
-  --emerald-50:  #ecfdf5;
-  --emerald-100: #d1fae5;
-  --emerald-500: #10b981; /* 정상 / 완료 / 100%+ */
-  --emerald-600: #059669;
-  --emerald-700: #047857; /* 앱 추가: success 글자색 — 600 은 emerald-50 위 대비 3.6:1 로 AA 미달 */
-
-  --violet-50:  #f5f3ff;
-  --violet-100: #ede9fe;
-  --violet-400: #a78bfa;  /* 앱 추가: 다크 브랜드 + OG 이미지 강조색 */
-  --violet-500: #8b5cf6;
-  --violet-600: #7c3aed;  /* 브랜드 CTA */
-  --violet-700: #6d28d9;  /* 앱 추가: 브랜드 hover */
-
-  --orange-500: #f97316;  /* 기타 task */
-  --gray-500:   #6b7280;  /* 공정 task — neutral gray, distinct from slate UI */
-
-  /* ============================================================
-     SEMANTIC ALIASES — reference these in components, not raw ramps
-     ============================================================ */
-
   /* Surfaces & background */
-  --bg-app:        var(--slate-50);    /* page canvas */
-  --surface-card:  #ffffff;            /* cards, panels, modals */
-  --surface-muted: var(--slate-100);   /* inset rows, read-only inputs, code */
-  --surface-sunken: var(--slate-50);
+  --bg-app:        var(--sa-canvas);
+  --surface-card:  var(--sa-surface);
+  --surface-muted: var(--sa-surface-2);
+  --surface-sunken: var(--sa-canvas);
 
   /* Sidebar (dark, always-on navigation) */
-  --sidebar-bg:        var(--slate-900);
-  --sidebar-fg:        var(--slate-300);
-  --sidebar-fg-muted:  var(--slate-500);
-  --sidebar-active-bg: var(--slate-800);
-  --sidebar-active-fg: #ffffff;
-  --sidebar-hover-bg:  rgba(255,255,255,0.05);
-  --sidebar-border:    var(--slate-800);
+  --sidebar-bg:        var(--sa-ink);
+  --sidebar-fg:        var(--sa-faint);
+  --sidebar-fg-muted:  var(--sa-muted);
+  --sidebar-active-bg: var(--sa-ink-hover);
+  --sidebar-active-fg: var(--sa-surface);
+  --sidebar-hover-bg:  var(--sa-dark-line);
+  --sidebar-border:    var(--sa-ink-hover);
 
   /* Text */
-  --text-strong:  var(--slate-900);  /* page titles, KPI numbers */
-  --text-body:    var(--slate-700);  /* default copy */
-  --text-muted:   var(--slate-500);  /* subtitles, captions, labels */
-  --text-faint:   var(--slate-400);  /* placeholders, disabled */
-  --text-on-dark: #ffffff;
-  --text-link:    var(--blue-600);
+  --text-strong:  var(--sa-ink);
+  --text-body:    var(--sa-ink);
+  --text-muted:   var(--sa-muted);
+  --text-faint:   var(--sa-faint);
+  --text-on-dark: var(--sa-dark-ink);
+  --text-link:    var(--sa-accent);
 
   /* Borders & dividers */
-  --border:        var(--slate-200);
-  --border-strong: var(--slate-300);
-  --ring:          var(--blue-500);   /* focus ring */
+  --border:        var(--sa-line);
+  --border-strong: var(--sa-line-strong);
+  --ring:          var(--sa-focus);
 
-  /* Brand accent (violet) — CTA 전용. 감성 색과 겹치지 않는다. */
-  --brand:        var(--violet-600);
-  --brand-hover:  var(--violet-700);
-  --brand-fg:     #fff;
-
-  /* Primary action ("지금 수집", "프롬프트 생성") = 브랜드 색.
-     Button 은 --primary 만 읽으므로 이 세 줄로 전 CTA 가 바뀐다. */
+  /* 액센트는 파랑 하나. Button 은 --primary 만 읽는다. */
+  --brand:        var(--sa-accent);
+  --brand-hover:  var(--sa-accent-hover);
+  --brand-fg:     var(--sa-accent-ink);
   --primary:        var(--brand);
   --primary-hover:  var(--brand-hover);
   --primary-fg:     var(--brand-fg);
 
-  /* Dark/neutral action (shadcn default button) */
-  --neutral-btn:        var(--slate-900);
-  --neutral-btn-hover:  var(--slate-800);
-  --neutral-btn-fg:     #ffffff;
+  /* Dark/neutral action */
+  --neutral-btn:        var(--sa-ink);
+  --neutral-btn-hover:  var(--sa-ink-hover);
+  --neutral-btn-fg:     var(--sa-surface);
 
-  /* Status — foreground + soft tint background for badges/banners */
-  --danger:       var(--red-500);
-  --danger-fg:    var(--red-700);
-  --danger-bg:    var(--red-50);
-  --danger-border:var(--red-100);
+  /* Status — 판정 3색은 선·아이콘에만, 글자는 잉크. -bg 는 기존 배지의 연한 바탕. */
+  --danger:       var(--sa-verdict-neg);
+  --danger-fg:    var(--sa-ink);
+  --danger-bg:    var(--sa-verdict-neg-bg);
+  --danger-border:var(--sa-verdict-neg);
 
-  --warning:      var(--amber-500);
-  --warning-fg:   var(--amber-700);
-  --warning-bg:   var(--amber-50);
-  --warning-border:var(--amber-100);
+  --warning:      var(--sa-verdict-mix);
+  --warning-fg:   var(--sa-ink);
+  --warning-bg:   var(--sa-verdict-mix-bg);
+  --warning-border:var(--sa-verdict-mix);
 
-  --success:      var(--emerald-500);
-  --success-fg:   var(--emerald-700);
-  --success-bg:   var(--emerald-50);
-  --success-border:var(--emerald-100);
+  --success:      var(--sa-verdict-pos);
+  --success-fg:   var(--sa-verdict-pos);
+  --success-bg:   var(--sa-verdict-pos-bg);
+  --success-border:var(--sa-verdict-pos);
 
-  --info:         var(--blue-500);
-  --info-fg:      var(--blue-700);
-  --info-bg:      var(--blue-50);
-  --info-border:  var(--blue-100);
+  --info:         var(--sa-accent);
+  --info-fg:      var(--sa-accent);
+  --info-bg:      var(--sa-surface-2);
+  --info-border:  var(--sa-line);
 
-  /* 감성·판정 (긍정/부정/중립/혼합) — 별도 학습 없이 읽히는 유일한 색 코드.
-     브랜드 보라와 섞지 않는다. 없는 값을 0 짜리 초록 막대로 그리지 않는다. */
-  --sent-pos:     var(--emerald-500);
-  --sent-neg:     var(--red-500);
-  --sent-neutral: var(--slate-500);
-  --sent-mixed:   var(--blue-500);
-}
-
-/* ============================================================
-   DARK THEME — opt in with <html data-theme="dark"> (or any
-   ancestor). Only semantic aliases are re-pointed; the raw
-   ramps stay identical so status and 감성 colors read
-   consistently against the dark canvas.
-   Status tints become low-alpha overlays of the hue rather
-   than the light -50 washes, which would glow on dark.
-   ============================================================ */
-[data-theme="dark"] {
-  /* Surfaces — slate-950 canvas, slate-900 cards (one step up) */
-  --bg-app:         #0a0f1d;
-  --surface-card:   var(--slate-900);
-  --surface-muted:  var(--slate-800);
-  --surface-sunken: #0a0f1d;
-
-  /* Sidebar — slightly darker than cards so it still reads as chrome */
-  --sidebar-bg:        #070b16;
-  --sidebar-fg:        var(--slate-400);
-  --sidebar-fg-muted:  var(--slate-600);
-  --sidebar-active-bg: var(--slate-800);
-  --sidebar-active-fg: #ffffff;
-  --sidebar-hover-bg:  rgba(255,255,255,0.06);
-  --sidebar-border:    rgba(255,255,255,0.07);
-
-  /* Text — inverted ramp */
-  --text-strong:  var(--slate-50);
-  --text-body:    var(--slate-300);
-  --text-muted:   var(--slate-400);
-  --text-faint:   var(--slate-600);
-  --text-on-dark: #ffffff;
-  --text-link:    var(--blue-400);
-
-  /* Borders — hairlines become low-alpha white */
-  --border:        rgba(255,255,255,0.09);
-  --border-strong: rgba(255,255,255,0.16);
-  --ring:          var(--blue-500);
-
-  /* Brand/Primary — lift one step so it pops on dark */
-  --brand:        var(--violet-500);
-  --brand-hover:  var(--violet-400);
-  --brand-fg:     #fff;
-  --primary:        var(--brand);
-  --primary-hover:  var(--brand-hover);
-  --primary-fg:     var(--brand-fg);
-
-  /* Neutral button inverts to light-on-dark */
-  --neutral-btn:        var(--slate-100);
-  --neutral-btn-hover:  #ffffff;
-  --neutral-btn-fg:     var(--slate-900);
-
-  /* Status — brighter fg, translucent tint that sits on dark cards */
-  --danger:       var(--red-500);
-  --danger-fg:    #fca5a5;
-  --danger-bg:    rgba(239,68,68,0.14);
-  --danger-border:rgba(239,68,68,0.30);
-
-  --warning:      var(--amber-500);
-  --warning-fg:   #fcd34d;
-  --warning-bg:   rgba(245,158,11,0.14);
-  --warning-border:rgba(245,158,11,0.30);
-
-  --success:      var(--emerald-500);
-  --success-fg:   #6ee7b7;
-  --success-bg:   rgba(16,185,129,0.14);
-  --success-border:rgba(16,185,129,0.30);
-
-  --info:         var(--blue-500);
-  --info-fg:      #93c5fd;
-  --info-bg:      rgba(59,130,246,0.14);
-  --info-border:  rgba(59,130,246,0.30);
-
-  /* 감성·판정 — 어두운 캔버스에서는 -500 이 탁해 한 단계 밝힌다 */
-  --sent-pos:     #34d399; /* emerald-400 */
-  --sent-neg:     #f87171; /* red-400 */
-  --sent-neutral: var(--slate-400);
-  --sent-mixed:   var(--blue-400);
+  /* 감성·판정 (긍정/부정/중립/혼합) */
+  --sent-pos:     var(--sa-verdict-pos);
+  --sent-neg:     var(--sa-verdict-neg);
+  --sent-neutral: var(--sa-muted);
+  --sent-mixed:   var(--sa-verdict-mix);
 }

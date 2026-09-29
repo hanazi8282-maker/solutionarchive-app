@@ -93,16 +93,33 @@ export class ProviderHttpError extends Error {
 }
 
 /**
- * claude -p 프로세스 자체가 실패했을 때(exit≠0 · 봉투 is_error). 구독 사용량 한도가 여기로 온다.
- * 한도 문구는 CLI 버전마다 바뀌어 문자열로 가리지 않는다 — 대신 isQuotaFailure 가 timeout 만 빼고 전부 "오늘은 멈춤"으로 본다.
+ * claude -p 프로세스 자체가 실패했을 때(exit≠0 · 봉투 is_error). 구독 사용량 한도도 여기로 오지만 **전부가 한도는 아니다.**
+ * 2026-09-29 run 36511286722: 모델이 도구를 집어 `error_max_turns`(stop_reason tool_use)로 죽은 것을 한도로 읽고 24건을 멈췄다.
+ * 그래서 한도는 봉투 api_error_status=429 또는 CLI_LIMIT_MARKERS 문구가 있을 때만이다(isCliLimitError). 나머지는 프로젝트 단위 실패.
  * 반환된 텍스트의 파싱·검증 실패는 이 타입이 아니다(callClaudeCli 가 돌아온 뒤에 난다) — 그건 프로젝트 단위 실패로 남는다.
  */
 export class ClaudeCliError extends Error {
   timedOut: boolean
-  constructor(message: string, timedOut = false) {
+  /** 봉투 `api_error_status`(2.1.x). 429 면 문구와 무관하게 한도. 봉투가 없거나 필드가 없으면 null. */
+  apiErrorStatus: number | null
+  constructor(message: string, timedOut = false, apiErrorStatus: number | null = null) {
     super(message)
     this.timedOut = timedOut
+    this.apiErrorStatus = apiErrorStatus
   }
+}
+
+/**
+ * CLI 가 한도에 걸렸을 때 result 에 싣는 문구 표지. 실측: "Claude AI usage limit reached|<epoch>", "5-hour limit reached ∙ resets 3pm",
+ * "You've hit your session limit · resets 5:50am", rate_limit(429). 문구가 바뀌면 한도가 프로젝트 단위 실패로 읽혀 배치가 계속 돌고
+ * extract_attempts(상한 3)를 태운다 — 반대 방향(도구 실패를 한도로 읽어 밤새 0건)보다 그쪽이 싸다.
+ */
+export const CLI_LIMIT_MARKERS = /usage limit|limit reached|hit your [\w-]+ limit|session limit|rate[ _-]?limit|\b429\b|resets \d{1,2}(?::\d{2})?\s*[ap]m/i
+
+/** CLI 실패가 한도인가. timeout 은 입력이 긴 그 프로젝트 하나의 문제(2026-09-28)라 언제나 아니다. */
+export function isCliLimitError(e: ClaudeCliError): boolean {
+  if (e.timedOut) return false
+  return e.apiErrorStatus === 429 || CLI_LIMIT_MARKERS.test(e.message)
 }
 
 /** 우선순위 배열의 모든 Gemini 모델이 한도 소진/사용 불가였을 때. */
@@ -117,14 +134,13 @@ export class AllGeminiModelsExhaustedError extends Error {
 /**
  * "오늘은 다시 불러도 같다"는 실패인가 — 한도·예산 소진, 지속되는 과부하(503).
  * 야간 배치(scripts/extract-auto.mjs)가 다음 프로젝트로 넘어가지 않고 멈추는 기준이다.
- * 문자열 메시지로 판정하지 않는다 — 문구가 바뀌면 조용히 폭주한다.
+ * HTTP 경로는 상태코드로, CLI 경로는 봉투 api_error_status·한도 문구 표지로 가른다(isCliLimitError). 모르는 실패는 한도가 아니다 —
+ * §7.1 대로 "failed" 로 남기고 다음 프로젝트로 간다.
  */
 export function isQuotaFailure(e: unknown): boolean {
   if (e instanceof LlmBudgetExceededError) return true
   if (e instanceof AllGeminiModelsExhaustedError) return true
-  // CLI 실패는 한도로 본다 — 남은 프로젝트마다 같은 실패로 extract_attempts(상한 3)를 태우지 않게.
-  // timeout 만 예외: 입력이 긴 그 프로젝트 하나의 문제다(2026-09-28).
-  if (e instanceof ClaudeCliError) return !e.timedOut
+  if (e instanceof ClaudeCliError) return isCliLimitError(e)
   return e instanceof ProviderHttpError && (e.status === 429 || e.status === 402 || e.status === 503)
 }
 
@@ -153,25 +169,27 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
     bin.path,
     [
       '-p', '--output-format', 'json', '--max-turns', '1',
+      // 도구 없음. `--max-turns 1` 만으로는 모델이 첫 턴에 도구를 집는 것을 못 막는다 — 그러면 답을 쓸 턴이 없어
+      // is_error·error_max_turns·stop_reason=tool_use 로 죽는다(2026-09-29 run 36511286722, 입력 746건). `--tools ""` 는 2.1.0+.
+      '--tools', '',
       // 모델은 CLI 기본값. 속도가 필요하면 env 로(예: sonnet). 비워 두면 인자를 안 넘긴다.
       ...(process.env.CLAUDE_CLI_MODEL ? ['--model', process.env.CLAUDE_CLI_MODEL] : []),
     ],
     // 판정(짧은 출력)은 3분이면 넉넉하지만 6천 자 고쳐쓰기는 몇 분 걸린다 — 호출부가 env 로 늘린다(column-review.yml 900s).
     { timeoutMs: Number(process.env.LLM_CLAUDE_CLI_TIMEOUT_MS) > 0 ? Number(process.env.LLM_CLAUDE_CLI_TIMEOUT_MS) : 180_000, input: `${systemPrompt}\n\n---\n\n${userPrompt}` },
   )
-  if (res.exitCode !== 0) {
-    // 한도·오류 문구는 stderr 가 아니라 stdout 봉투(result)로 오는 경우가 많아 둘 다 남긴다.
-    throw new ClaudeCliError(
-      `claude -p 실패 (exit ${res.exitCode}${res.timedOut ? ', timeout' : ''}): ${res.stderr.slice(0, 300)} ${res.stdout.slice(0, 300)}`.trim(),
-      res.timedOut,
-    )
+  let env: Record<string, unknown> | null = null
+  try {
+    const parsed: unknown = JSON.parse(res.stdout)
+    if (parsed && typeof parsed === 'object') env = parsed as Record<string, unknown>
+  } catch {
+    // 봉투가 아니면 본문이 그대로 온 것이다.
   }
+  if (res.exitCode !== 0 || env?.is_error === true) throw cliFailure(res, env)
   let text = res.stdout
   let model = CLAUDE_CLI_LABEL
   let costUsd: number | null = null
-  try {
-    const env = JSON.parse(res.stdout) as Record<string, unknown>
-    if (env.is_error === true) throw new ClaudeCliError(`claude 가 오류를 보고했다: ${String(env.result ?? '').slice(0, 300)}`)
+  if (env) {
     if (typeof env.result === 'string') text = env.result
     if (typeof env.model === 'string' && env.model) model = env.model
     // API 환산 명목값(청구액 아님). 슬롯 상한 재산정용으로 agent_run_steps.detail.cost_usd 에 남는다(설계 §3.4).
@@ -181,11 +199,21 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
     // out 이 결과 글자 수에 비해 크면 사고(thinking) 토큰이 섞인 것이다. 그걸 가르는 숫자다.
     const u = (env.usage && typeof env.usage === 'object' ? env.usage : {}) as Record<string, unknown>
     console.log(`[analysis/llm] claude-cli 실측 total_cost_usd=${String(env.total_cost_usd ?? 'n/a')} in=${String(u.input_tokens ?? '?')} out=${String(u.output_tokens ?? '?')} cache_read=${String(u.cache_read_input_tokens ?? '?')} cache_write=${String(u.cache_creation_input_tokens ?? '?')} result_chars=${typeof env.result === 'string' ? env.result.length : '?'} duration_api_ms=${String(env.duration_api_ms ?? '?')} model=${model}`)
-  } catch (e) {
-    if (e instanceof ClaudeCliError) throw e
-    // 봉투가 아니면 본문이 그대로 온 것이다.
   }
   return { text: text.trim(), model, costUsd }
+}
+
+/**
+ * CLI 실패를 ClaudeCliError 로 만든다. 봉투가 있으면 subtype·stop_reason·num_turns·api_error_status·result 를 싣는다 —
+ * 옛 방식(stdout 앞 300자)은 봉투 필드 순서상 result(한도 문구가 오는 자리)에 닿기 전에 잘렸다.
+ */
+export function cliFailure(res: { exitCode: number | null; timedOut: boolean; stdout: string; stderr: string }, env: Record<string, unknown> | null): ClaudeCliError {
+  const head = `claude -p 실패 (exit ${res.exitCode ?? 'null'}${res.timedOut ? ', timeout' : ''})`
+  if (!env) return new ClaudeCliError(`${head}: ${res.stderr.slice(0, 300)} ${res.stdout.slice(0, 300)}`.trim(), res.timedOut)
+  const status = typeof env.api_error_status === 'number' ? env.api_error_status : null
+  const detail = `subtype=${String(env.subtype ?? '?')} stop_reason=${String(env.stop_reason ?? '?')} num_turns=${String(env.num_turns ?? '?')}` +
+    ` api_error_status=${String(status)} result=${String(env.result ?? '').slice(0, 300)} ${res.stderr.slice(0, 200)}`
+  return new ClaudeCliError(`${head}: ${detail.trim()}`, res.timedOut, status)
 }
 
 async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {

@@ -299,6 +299,9 @@ async function claudeCliExtraction(input: ExtractionInput): Promise<ExtractionRe
       // 도구를 쓸 일이 없다. 상한을 1 로 둬야 사용량이 예측 가능하다.
       '--max-turns',
       '1',
+      // 상한 1 은 모델이 첫 턴에 도구를 집는 것을 못 막는다(error_max_turns 로 죽는다, lib/analysis/llm.ts 2026-09-29). 도구 자체를 뺀다.
+      '--tools',
+      '',
     ],
     // 프롬프트는 stdin 으로 준다 — claude-cli.ts RunClaudeOpts.input 참조.
     { timeoutMs: 120_000, input: buildPrompt(input) },

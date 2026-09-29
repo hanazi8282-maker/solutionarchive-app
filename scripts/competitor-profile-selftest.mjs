@@ -12,6 +12,7 @@ import {
   buildProfilePrompt, evidenceLinkOf, evidenceRefOf, inputWindow, needsProfile, resolveProfile, validateProfile,
 } from '../lib/analysis/competitor-profile.ts'
 import { mockResponse } from '../lib/analysis/mock.ts'
+import { CLI_LIMIT_MARKERS } from '../lib/analysis/llm.ts'
 
 let pass = 0
 let fail = 0
@@ -108,6 +109,16 @@ const auto = read('extract-auto.mjs')
 t('extract-auto 가 프로필 스텝을 extract 스텝과 같은 단위(seconds·cost_usd)로 남긴다', /stepKey: `profile-\$\{target\.projectId\}`/.test(auto) && /seconds: Math\.round\(p\.durationMs \/ 1000\), cost_usd: p\.costUsd/.test(auto))
 t('프로필이 안 돌았으면 failed 로 남긴다(행 없음 ≠ 안 돌았음)', /프로필 단계가 돌지 않았다/.test(auto))
 t('프로필 한도면 배치를 멈춘다', /if \(p\?\.quotaExhausted\) \{[\s\S]{0,400}break/.test(auto))
+// 2026-09-29 run 36511286722: 도구 호출 실패(is_error·stop_reason tool_use)를 한도로 읽어 24건이 멈췄다. 한도 판정은 llm.ts 표지 한 곳이고,
+// 프로필·백필은 quotaExhausted 가 아니면 다음 프로젝트로 간다.
+t('한도 판정은 isQuotaFailure 한 곳(DB 모듈이 따로 문구를 보지 않는다)', /quotaExhausted: isQuotaFailure\(e\)/.test(db) && !/CLI_LIMIT_MARKERS|isCliLimitError/.test(db))
+const backfill = read('competitor-profile-backfill.mjs')
+t('백필은 quotaExhausted 일 때만 멈춘다 — 그 밖의 실패는 다음 프로젝트로', /if \(out\.quotaExhausted\) \{[^\n]*break/.test(backfill) && (backfill.match(/\bbreak\b/g) ?? []).length === 1)
+t('extract-auto 프로필 스텝은 quotaExhausted 안에서만 blocker 를 세운다', /if \(p\?\.quotaExhausted\) \{[^}]*blocker = `LLM 한도\/예산 소진\(프로필 단계\)/.test(auto) && (auto.match(/프로필 단계\) — /g) ?? []).length === 1)
+const llmSrc = read('../lib/analysis/llm.ts')
+t("프로필 호출(callClaudeCli)이 --tools '' 로 도구를 끈다", /'--max-turns', '1',[\s\S]{0,400}'--tools', '',/.test(llmSrc))
+t('도구 호출 실패(stop_reason tool_use)는 한도 표지에 없다', !/tool_use/.test(String(CLI_LIMIT_MARKERS)) && !CLI_LIMIT_MARKERS.test('claude -p 실패 (exit 1): {"is_error":true,"num_turns":2,"stop_reason":"tool_use"}'))
+t('실제 한도 문구는 표지에 걸린다', CLI_LIMIT_MARKERS.test("You've hit your session limit · resets 5:50am") && CLI_LIMIT_MARKERS.test('Claude AI usage limit reached|1790654400'))
 const mig = read(`../supabase/migrations/${PROFILE_MIGRATION}`)
 t('마이그 파일이 있고 RLS ENABLE+FORCE', /ENABLE ROW LEVEL SECURITY/.test(mig) && /FORCE {2}ROW LEVEL SECURITY/.test(mig))
 t('status 3상태 CHECK 와 본문↔상태 CHECK', /status IN \('ok', 'unverified', 'failed'\)/.test(mig) && /\(status = 'failed'\) = \(sections IS NULL\)/.test(mig))

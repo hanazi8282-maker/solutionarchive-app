@@ -23,7 +23,8 @@ export function Hero({ eyebrow, title, lead, actions, note, media, meta, variant
   /** 제목 아래 칩 줄들. 페이지가 `.pub-chiprow` 로 감싼 것을 그대로 받는다. */
   meta?: ReactNode
   /** detail = 제목 한 단 작게 + 위 여백 줄임(긴 케이스 제목이 화면을 덮지 않게). */
-  variant?: 'page' | 'detail'
+  /** index = 색인 화면(/library). 여백을 줄여 첫 뷰포트에 색인 줄이 보이게(B3-4 수용: 1280 줄 6개). */
+  variant?: 'page' | 'detail' | 'index'
 }) {
   // media 가 없으면 감싸는 div 를 만들지 않는다 — 랜딩·로그인 마크업이 A1 그대로 남는다.
   const head = (
@@ -34,7 +35,7 @@ export function Hero({ eyebrow, title, lead, actions, note, media, meta, variant
   )
 
   return (
-    <header className={variant === 'detail' ? 'pub-hero pub-hero--detail' : 'pub-hero'}>
+    <header className={variant === 'page' ? 'pub-hero' : `pub-hero pub-hero--${variant}`}>
       {media
         ? <div className="pub-hero-head">{media}<div className="pub-hero-headtext">{head}</div></div>
         : head}

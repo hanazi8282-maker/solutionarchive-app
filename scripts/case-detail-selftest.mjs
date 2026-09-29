@@ -19,7 +19,7 @@ import {
 } from '../lib/cases/detail.ts'
 import { displayGrade, displayGradeLabel, factCheckLabel, gradeRankOf, INSIGHT_COLS, INSIGHT_GRADE_COLUMN_READY } from '../lib/cases/grade-display.ts'
 import { toRows, gradeMove } from '../lib/cases/draft.ts'
-import { logoFor, normalizeDomain, safeImageUrl, brandInitial, duotoneHue, paletteSlot, PALETTE_HUES, wordmarkFor } from '../lib/cases/logo.ts'
+import { logoFor, normalizeDomain, safeImageUrl, brandInitial, duotoneHue, paletteSlot, PALETTE_HUES, wordmarkFor, faviconUrl } from '../lib/cases/logo.ts'
 import { pairMoves } from '../lib/cases/compare.ts'
 
 let pass = 0
@@ -201,6 +201,8 @@ t('둘 다 없으면 이니셜', logoFor({ brand_name: '무명상회' }).kind, '
 t('wordmarkFor — 도메인+ID 면 type/logo URL', wordmarkFor({ brand_name: 'Acme', brand_domain: 'https://www.Acme.com/x' }, 'cid123'), 'https://cdn.brandfetch.io/domain/acme.com/h/40/fallback/404/type/logo?c=cid123')
 t('wordmarkFor — 도메인 없으면 null(파비콘·이니셜 폴백 없음)', wordmarkFor({ brand_name: 'Acme', logo_url: 'https://cdn.x/a.png' }, 'cid123'), null)
 t('wordmarkFor — 클라이언트 ID 없으면 null', wordmarkFor({ brand_name: 'Acme', brand_domain: 'acme.com' }, ''), null)
+t('faviconUrl — 근거 도메인 → 32px 파비콘 URL', faviconUrl('https://www.Acme.com/x'), 'https://www.google.com/s2/favicons?domain=acme.com&sz=32')
+t('faviconUrl — 도메인 꼴 아니면 null(evidence 아이콘 폴백)', faviconUrl('acme'), null)
 t('이니셜은 첫 글자', brandInitial('무명상회'), '무')
 t('브랜드명 없으면 ? (빈 칸을 그리지 않는다)', brandInitial(''), '?')
 t('도메인 꼴이 아니면 null (짐작하지 않는다)', normalizeDomain('acme'), null)

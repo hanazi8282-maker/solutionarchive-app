@@ -25,6 +25,8 @@ const PAIRS = [
   ['accent-ink', 'accent', 4.5], ['accent-ink', 'accent-hover', 4.5], ['ink', 'flash', 4.5],
   ['dark-ink', 'dark-canvas', 4.5], ['dark-muted', 'dark-canvas', 4.5],
   ['focus', 'canvas', 3], ['dark-focus', 'dark-canvas', 3], ['flash', 'dark-canvas', 3],
+  // G3: 상세 신원 칩(surface-2 면 위 라벨·값) · 근거 종류 칩(surface 위 뮤트)
+  ['ink', 'surface-2', 4.5], ['muted', 'surface-2', 4.5], ['muted', 'surface', 4.5],
 ]
 // 다크 배너(G1): 그라데이션 밝은 끝 = dark-canvas 에 액센트 N% 혼합, 그 위 흑백 노이즈 최대 불투명도 → 최악은 흰색 op 합성.
 // 두 숫자를 pub.css 에서 읽는다 — 못 읽으면 통과가 아니라 실패(§7.1).

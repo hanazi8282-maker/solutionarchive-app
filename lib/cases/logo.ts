@@ -35,6 +35,12 @@ export const LOGO_SIZE = 128
 const faviconSrc = (domain: string) =>
   `${FAVICON_ENDPOINT}?domain=${encodeURIComponent(domain)}&sz=${LOGO_SIZE}`
 
+/** 근거 목록의 16px 소스 파비콘(B3-6). 도메인 꼴이 아니면 null — 화면은 `evidence` 아이콘으로 폴백한다. 32 = 2x 밀도. */
+export function faviconUrl(raw: string | null | undefined, size = 32): string | null {
+  const domain = normalizeDomain(raw)
+  return domain ? `${FAVICON_ENDPOINT}?domain=${encodeURIComponent(domain)}&sz=${size}` : null
+}
+
 export type LogoInput = {
   brand_name?: string | null
   /** 마이그 20260930000001 미적용이면 `undefined` 로 온다 — 미기재와 구분해 다루지 않는다(둘 다 이니셜). */

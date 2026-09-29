@@ -1009,16 +1009,12 @@
 .pub-deck b { font-weight: var(--pub-weight-strong); }
 .pub-head .pub-actions { margin-top: var(--pub-gap-6); }
 .pub-head-id { display: flex; gap: var(--pub-gap-4); align-items: flex-start; }
-.pub-rec { font-size: var(--pub-size-text-sm); display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--pub-gap-4); row-gap: var(--pub-gap-1); }
-.pub-rec dt { color: var(--pub-ink-muted); }
-.pub-rec dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
 .pub-head-verdict { display: flex; align-items: flex-start; gap: var(--pub-gap-5); flex-wrap: wrap; }
 .pub-verdict-note { font-size: var(--pub-size-text-sm); color: var(--pub-ink-muted); line-height: 1.5; flex: 1 1 200px; min-width: 0; }
 .pub-verdict-note b { color: var(--pub-ink); font-weight: 500; }
 @media (min-width: 1024px) {
   .pub-head { padding: var(--pub-gap-10) 0 var(--pub-gap-10); }
   .pub-head > .pub-head-id { grid-column: 1 / span 3; grid-row: 1; display: block; }
-  .pub-head > .pub-head-id .pub-rec { margin-top: var(--pub-gap-5); }
   .pub-head > .pub-head-body { grid-column: 4 / span 6; grid-row: 1; }
   .pub-head > .pub-head-verdict { grid-column: 10 / span 3; grid-row: 1; display: block; }
   .pub-head-verdict .pub-verdict-note { margin-top: var(--pub-gap-5); }
@@ -1067,8 +1063,6 @@
 .pub-move-k { font-size: var(--pub-size-caption); color: var(--pub-ink-muted); }
 .pub-move-k b { color: var(--pub-ink); font-weight: 500; }
 .pub-move-head .pub-stamp { margin-left: auto; }
-.pub-move dl { margin: var(--pub-gap-2) 0 0; }
-.pub-move dt { font-weight: var(--pub-weight-strong); margin-top: var(--pub-gap-4); font-size: var(--pub-size-text-sm); }
 .pub-move dd { margin: var(--pub-gap-1) 0 0; line-height: var(--pub-leading-text); font-size: var(--pub-size-text-sm); overflow-wrap: anywhere; }
 .pub-move dd.act { font-weight: 500; }
 .pub-move dd.muted { color: var(--pub-ink-muted); }
@@ -1079,8 +1073,6 @@
 .pub-evid-meta { display: flex; flex-wrap: wrap; gap: var(--pub-gap-1) var(--pub-gap-4); font-size: var(--pub-size-caption); color: var(--pub-ink-muted); }
 .pub-evid-meta b { color: var(--pub-ink); font-weight: 500; }
 .pub-evid blockquote { margin: var(--pub-gap-3) 0 0; padding: 0 0 0 var(--pub-gap-4); border-left: 1px solid var(--pub-edge); line-height: 1.6; color: var(--pub-ink); font-size: var(--pub-size-text-sm); overflow-wrap: anywhere; }
-.pub-evid-url { margin-top: var(--pub-gap-3); display: flex; gap: 6px; align-items: center; font-size: var(--pub-size-caption); overflow-wrap: anywhere; min-width: 0; }
-.pub-evid-url a { min-width: 0; word-break: break-all; }
 .pub-evid-group + .pub-evid-group { margin-top: var(--pub-gap-4); }
 
 /* 갈린 사례 — 누가 / 무엇을. 이 케이스 줄은 두 번째 면. */
@@ -1292,6 +1284,88 @@ a.pub-index-row:hover { background: var(--pub-surface-2); }
   .pub-btn-circle { transition: none; }
   .pub-btn--pill:hover .pub-btn-circle { transform: none; }
 }
+
+/* ============================================================
+   G3 라이브러리·상세 (2026-09-30, reports/2026-09-30/design-direction-decisions.md B3-4·5·6)
+   새 색·반경 없음(토큰만). 모션 없음 — B6 은 "상세·라이브러리는 가만히" 로 이 화면을 뺐다.
+   ============================================================ */
+
+/* 색인 화면 히어로 — 첫 뷰포트에 색인 줄 6개(1280)가 보이게 여백·제목을 한 단 줄인다. */
+.pub-hero--index { padding: var(--pub-gap-4) 0 var(--pub-gap-2); gap: var(--pub-gap-3); }
+/* 히어로와 목록 사이 main 의 섹션 간격(64)을 이 화면만 24 로. 목록 안 간격도 한 단 줄인다. */
+.pub-main:has(> .pub-hero--index) { row-gap: var(--pub-gap-6); }
+.pub-main:has(> .pub-hero--index) .pub-libmain { gap: var(--pub-gap-3); }
+.pub-hero--index .pub-hero-title { font-size: var(--pub-size-display-sm); line-height: var(--pub-leading-display-sm); letter-spacing: var(--pub-tracking-display-sm); }
+
+/* 색인 줄(B3-4a·c) — 플레이트 48, 머리 한 줄(브랜드 + 무브·승인일), 요약 1줄 · 행동 1줄. 스탬프만 오른쪽.
+   1줄 clamp 는 링크 줄(PubIndexRow)에만 — 랜딩의 plain 줄은 그대로다. */
+.pub-index-row { grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; padding: var(--pub-gap-2); }
+.pub-index-row .pub-logo--sm { width: 48px; height: 48px; }
+.pub-index-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--pub-gap-3); min-width: 0; }
+.pub-index-meta { font-size: var(--pub-size-caption); color: var(--pub-ink-muted); font-variant-numeric: tabular-nums; }
+a.pub-index-row .pub-index-s,
+a.pub-index-row .pub-index-act { -webkit-line-clamp: 1; line-clamp: 1; }
+a.pub-index-row .pub-index-s { margin-top: 2px; line-height: 1.45; }
+a.pub-index-row .pub-index-act { margin-top: 2px; line-height: 1.4; }
+.pub-index-side { gap: 0; }
+@media (max-width: 600px) {
+  .pub-index-row { grid-template-columns: 48px minmax(0, 1fr); align-items: start; }
+}
+
+/* 문제 유형 그룹 헤딩(B3-4b) — lilac 띠 + 타일 32 + 라벨 + 건수. */
+.pub-libgroup { display: grid; gap: var(--pub-gap-1); min-width: 0; }
+.pub-root .pub-libgroup-h {
+  display: flex; align-items: center; gap: var(--pub-gap-3); margin: 0;
+  padding: 0 var(--pub-gap-4) 0 0;
+  border-radius: var(--pub-round-control); background: var(--pub-plane-lilac);
+  font-size: var(--pub-size-text-sm); font-weight: var(--pub-weight-strong); line-height: 1.35; color: var(--pub-ink);
+}
+.pub-libgroup-t { min-width: 0; overflow-wrap: anywhere; text-wrap: balance; }
+.pub-libgroup-n { margin-left: auto; flex: none; font-size: var(--pub-size-caption); font-weight: var(--pub-weight-label); color: var(--pub-ink-muted); font-variant-numeric: tabular-nums; }
+.pub-libgroup .pub-index { border-top: 0; }
+
+/* 기록 머리 데크(B3-5a) — 20px, 60ch, 3줄. */
+.pub-root .pub-deck { font-size: var(--sa-size-20); line-height: 1.5; max-width: 60ch; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* 신원 칩 격자(B3-5c) — 플레이트 옆(≥1024 은 아래) 2열. */
+.pub-recchips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--pub-gap-2); margin: 0; flex: 1 1 auto; min-width: 0; }
+.pub-recchip { padding: var(--pub-gap-2) var(--pub-gap-3); border-radius: var(--pub-round-control); background: var(--pub-surface-2); min-width: 0; }
+.pub-recchip--wide { grid-column: 1 / -1; }
+.pub-recchip dt { font-size: var(--pub-size-caption); color: var(--pub-ink-muted); }
+.pub-recchip dd { margin: 2px 0 0; font-size: var(--pub-size-text-sm); font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
+@media (min-width: 1024px) { .pub-head > .pub-head-id .pub-recchips { margin-top: var(--pub-gap-5); } }
+
+/* 전폭 섹션 — 제목 위, 본문 12칸(무브 3열 격자용). */
+@media (min-width: 1024px) {
+  .pub-sec--wide > .pub-sec-head { grid-column: 1 / -1; position: static; }
+  .pub-sec--wide > .pub-sec-main { grid-column: 1 / -1; margin-top: var(--pub-gap-5); }
+  .pub-sec--wide .pub-sec-lead { max-width: none; }
+}
+
+/* 무브 카드 3열(B3-5b) — 무엇을 했나 · 전제 · 내일 할 행동(액센트 면). <1024 세로. */
+.pub-move-cols { display: grid; gap: var(--pub-gap-3); margin: var(--pub-gap-3) 0 0; }
+.pub-move-col { min-width: 0; }
+.pub-move-col dt { display: flex; align-items: center; gap: var(--pub-gap-2); font-weight: var(--pub-weight-strong); font-size: var(--pub-size-text-sm); }
+.pub-move-col--act { padding: var(--pub-gap-3) var(--pub-gap-4); border-radius: var(--pub-round-control); background: var(--pub-plane-accent); }
+.pub-move .pub-move-col dd { margin-top: var(--pub-gap-2); line-height: 1.55; }
+/* 카드 여백 한 단 줄임 — 3열에서 높이는 글 길이가 정한다. 고정 몫(여백·머리)을 줄여 360 안에 드는 카드를 늘린다. */
+.pub-root .pub-move { padding: var(--pub-gap-5); }
+.pub-root .pub-move-head { padding-bottom: var(--pub-gap-3); }
+@media (min-width: 1024px) {
+  .pub-move-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--pub-gap-5); align-items: start; }
+}
+
+/* 근거 목록(B3-6) — 줄 목록, 파비콘 16 + 도메인 링크 · 종류 칩 · 게시일, 인용 3줄. 1건 ≤ 120px. */
+.pub-root .pub-evid { gap: 0; border-top: 1px solid var(--pub-edge); }
+.pub-root .pub-evid > li { border: 0; border-bottom: 1px solid var(--pub-edge); border-radius: 0; padding: var(--pub-gap-3) 0; background: none; }
+.pub-evid-meta { align-items: center; }
+.pub-evid-meta .pub-chip { height: 22px; }
+.pub-evid-fav { position: relative; display: inline-grid; place-items: center; width: 16px; height: 16px; flex: none; font-size: 16px; color: var(--pub-ink-muted); }
+.pub-evid-fav img { position: absolute; inset: 0; width: 16px; height: 16px; background: var(--pub-canvas); }
+.pub-evid-src { display: inline-flex; align-items: center; gap: var(--pub-gap-1); min-width: 0; overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--pub-edge); }
+.pub-evid-src:hover { text-decoration-color: currentColor; }
+.pub-evid-src:focus-visible { outline: 2px solid var(--pub-focus); outline-offset: 2px; border-radius: var(--pub-round-control); }
+.pub-root .pub-evid blockquote { margin-top: var(--pub-gap-1); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* ============================================================
    G2 랜딩 (2026-09-30, reports/2026-09-30/design-direction-decisions.md B3-1·2·3 · B4 배치 · B5 · B6 적용)

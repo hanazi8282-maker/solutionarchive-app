@@ -12,7 +12,7 @@
 // 되돌릴 때: `productKindOf`(advisor.ts)가 SAAS 판정을 바꾸면 4번 기대값이 달라진다.
 
 import {
-  buildLibrary, parseLibraryQuery, pickFirstMove, problemCounts, sortLibrary,
+  buildLibrary, parseLibraryQuery, pickFirstMove, problemCounts, sortLibrary, groupByProblem,
   DEFAULT_SORT, LIBRARY_SORTS,
   kstWeekStart, kstDate, approvedThisWeek, pickTodayCase, buildSourceTiles, summarizeSourceTiles,
 } from '../lib/cases/library.ts'
@@ -129,6 +129,14 @@ const slugs = (r) => r.cards.map((c) => c.study.slug).join(',')
   ok('문제 유형 필터: 제외 건수를 사유에 적는다', filtered.reason.includes('문제 유형 밖 2건 제외'))
   t('문제 유형 필터: 미승인 케이스(s3)는 어디에도 안 나온다', buildLibrary(Q({ problem: 'NOBODY_TRUSTS_ME', kind: 'all' }), CORPORA).cards.length, 0)
   t('건수: 빈 목록이면 전부 0', problemCounts([]).total, 0)
+
+  // 그룹 헤딩(B3-4b): counts.by_problem 그대로, 0건 유형은 헤딩 없음, 미지정은 맨 끝
+  const g = groupByProblem(all.cards, all.counts)
+  t('그룹: 0건 유형은 헤딩을 만들지 않는다', g.filter((x) => x.count === 0).length, 0)
+  t('그룹: 헤딩 = 건수>0 유형 + 미지정', g.map((x) => x.code ?? 'null').join(','), 'PRICE_TOO_LOW,ONE_OFF_ONLY,null')
+  ok('그룹: 헤딩 건수 = counts.by_problem = 그룹 줄 수', g.every((x) => x.count === x.cards.length) && g[0].count === all.counts.by_problem.PRICE_TOO_LOW)
+  t('그룹: 줄 합 = 전체 카드 수(빠짐·중복 없음)', g.reduce((n, x) => n + x.cards.length, 0), all.cards.length)
+  t('그룹: 빈 목록은 그룹 0개', groupByProblem([], problemCounts([])).length, 0)
 }
 
 // ── 5. 3상태 + 근거 수 ───────────────────────────────────────────

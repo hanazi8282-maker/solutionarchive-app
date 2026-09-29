@@ -7,8 +7,8 @@ import type { PubCaseCardMove, PubCaseCardStudy } from './PubCaseCard'
 
 /**
  * 색인 줄 — 라이브러리 목록·관련 케이스·랜딩 최신 케이스가 같은 줄을 쓴다
- * (남헌 09-29 결정 b: 카드 격자 대신 색인 줄). 왼쪽 44px 플레이트, 브랜드명, 요약 2줄,
- * 내일 할 행동 2줄, 오른쪽에 작은 스탬프와 무브 수·승인일.
+ * (남헌 09-29 결정 b: 카드 격자 대신 색인 줄). 왼쪽 48px 플레이트, 브랜드명 + 무브 수·승인일 한 줄, 요약 1줄,
+ * 내일 할 행동 1줄(G3 B3-4a: 전문은 상세에서), 오른쪽에 작은 스탬프.
  * props 는 카드와 같은 **행 조각**이다 — 데이터 조회는 부모가 한다.
  */
 const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -33,7 +33,10 @@ export function PubIndexRow({ study, move, moveCount, reason }: {
       <Link className="pub-index-row" href={`/library/${study.slug}`}>
         <PubBrandLogo study={study} size="sm" />
         <span className="pub-index-main">
-          <span className="pub-index-t">{study.brand_name ?? '브랜드명 미기재'}</span>
+          <span className="pub-index-head">
+            <span className="pub-index-t" translate="no">{study.brand_name ?? '브랜드명 미기재'}</span>
+            <span className="pub-index-meta">무브 {moveCount}개 · {approvedOn(study)}{reason ? ` · ${reason}` : ''}</span>
+          </span>
           {summary ? <span className="pub-index-s">{summary}</span> : null}
           <span className="pub-index-act">
             {note ? <><b>내일 할 행동</b> {note}</> : '가져갈 행동이 아직 안 적혀 있다 (인사이트 등급 D)'}
@@ -41,7 +44,6 @@ export function PubIndexRow({ study, move, moveCount, reason }: {
         </span>
         <span className="pub-index-side">
           <PubStamp move={move} size="sm" />
-          <span>무브 {moveCount}개 · {approvedOn(study)}{reason ? ` · ${reason}` : ''}</span>
         </span>
       </Link>
     </li>

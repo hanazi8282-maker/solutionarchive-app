@@ -17,7 +17,13 @@ import { PubIndexRow } from '../../_pub/components/PubIndexRow'
 import { PubEmpty } from '../../_pub/components/PubEmpty'
 import { FACT, INSIGHT, PubGradeLegend, gradeSentence } from '../../_pub/components/PubGradeBadge'
 import { PubStamp } from '../../_pub/components/PubStamp'
-import { IconArrowRight, IconCheck, IconChevronRight, IconExternal, IconMinus, IconX } from '../../_pub/icons'
+import { PubIconTile } from '../../_pub/components/PubIconTile'
+import { Chip } from '../../_pub/components/Chip'
+import { LogoImg } from '../../_ds/components/LogoImg'
+import { faviconUrl } from '@/lib/cases/logo'
+import {
+  IconAction, IconApprove, IconArrowRight, IconCheck, IconChevronRight, IconEvidence, IconExternal, IconJudge, IconMinus, IconX,
+} from '../../_pub/icons'
 import { isSaved } from '@/lib/cases/saves'
 import { FeedbackForm } from './feedback-form'
 import { SaveButton } from './save-button'
@@ -57,10 +63,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-/** 섹션 한 벌 — 왼쪽 제목·설명(≥1024 sticky), 오른쪽 본문. */
-function Sec({ id, title, lead, children, last }: { id: string; title: string; lead?: string; children: React.ReactNode; last?: boolean }) {
+/**
+ * 섹션 한 벌 — 왼쪽 제목·설명(≥1024 sticky), 오른쪽 본문.
+ * wide = 제목 위, 본문 12칸 전폭(무브 카드 3열 격자가 9칸 안에서는 360px 를 못 지킨다, B3-5b).
+ */
+function Sec({ id, title, lead, children, last, wide }: { id: string; title: string; lead?: string; children: React.ReactNode; last?: boolean; wide?: boolean }) {
   return (
-    <section className={last ? 'pub-sheet pub-sec pub-sec--last' : 'pub-sheet pub-sec'} id={id}>
+    <section className={['pub-sheet', 'pub-sec', last ? 'pub-sec--last' : '', wide ? 'pub-sec--wide' : ''].filter(Boolean).join(' ')} id={id}>
       <div className="pub-sec-head">
         <h2 className="pub-sec-title">{title}</h2>
         {lead ? <p className="pub-sec-lead">{lead}</p> : null}
@@ -89,18 +98,25 @@ function CheckRow({ item }: { item: GradeCheckItem }) {
   )
 }
 
-/** 근거 1건. 도메인·성격·게시일, 인용, 원문 링크. 인용은 DB 에서 이미 300자로 잘려 온다. */
+/**
+ * 근거 1건(B3-6). 파비콘 + 도메인(원문 링크) · 종류 칩 · 게시일, 그 아래 인용 3줄.
+ * 인용은 DB 에서 이미 300자로 잘려 오고 화면은 3줄에서 자른다 — 전문은 원문 링크가 정본이다.
+ * 파비콘은 `evidence` 아이콘 위에 겹쳐 그린다: 이미지가 실패하면(LogoImg 가 사라지면) 아이콘이 보여 빈 칸이 없다.
+ */
 function EvidenceRow({ e }: { e: DetailEvidenceRow }) {
   const kind = e.is_regulatory_filing ? '법정 공시' : e.is_estimate ? '추정치' : e.is_self_reported ? '당사자 자기보고' : null
+  const fav = faviconUrl(e.domain ?? e.url)
   return (
     <li>
       <div className="pub-evid-meta">
-        <b>{e.domain ?? '도메인 미기재'}</b>
-        {kind ? <span>{kind}</span> : null}
+        <span className="pub-evid-fav" aria-hidden="true"><IconEvidence />{fav ? <LogoImg src={fav} width={16} height={16} /> : null}</span>
+        <a className="pub-evid-src" href={e.url} target="_blank" rel="noreferrer noopener" title={e.url}>
+          <b translate="no">{e.domain ?? '도메인 미기재'}</b><IconExternal /><span className="pub-sr">원문, 새 창</span>
+        </a>
+        {kind ? <Chip>{kind}</Chip> : null}
         <span>{day(e.published_at) ? `게시 ${day(e.published_at)}` : '게시일 확인 불가'}</span>
       </div>
       {e.snippet ? <blockquote>&ldquo;{e.snippet}&rdquo;</blockquote> : <p className="pub-caption">인용 미기재</p>}
-      <p className="pub-evid-url"><IconExternal /><a className="pub-link" href={e.url} target="_blank" rel="noreferrer noopener">{e.url}</a></p>
     </li>
   )
 }
@@ -120,14 +136,21 @@ function MoveCard({ move, index }: { move: DetailMoveRow; index: number }) {
         <span className="pub-move-k">시점 <b>{when}</b></span>
         <PubStamp move={move} size="sm" />
       </div>
-      <dl>
-        <dt>무엇을 했나</dt>
-        <dd>{move.claim}</dd>
-        <dt>전제</dt>
-        {/* 미기재를 "전제 없음"으로 쓰지 않는다 — 이 축엔 "없음"이라는 양성 값이 없다(§7.1). */}
-        {pre ? <dd>{pre}</dd> : <dd className="muted">미기재. 무엇이 있어야 옮길 수 있는지 아직 안 적혔다.</dd>}
-        <dt>내일 할 행동</dt>
-        {note ? <dd className="act">{note}</dd> : <dd className="muted">안 적혀 있다. 사실이 맞아도 지금 가져갈 게 없다(인사이트 등급 D).</dd>}
+      {/* 3열(≥1024) — 열 머리마다 아이콘 타일, 행동 열만 액센트 면(B3-5b). dt/dd 짝을 div 로 묶는 건 HTML 표준이 허용한다. */}
+      <dl className="pub-move-cols">
+        <div className="pub-move-col">
+          <dt><PubIconTile icon={<IconAction />} size={32} />무엇을 했나</dt>
+          <dd>{move.claim}</dd>
+        </div>
+        <div className="pub-move-col">
+          <dt><PubIconTile icon={<IconJudge />} size={32} />전제</dt>
+          {/* 미기재를 "전제 없음"으로 쓰지 않는다 — 이 축엔 "없음"이라는 양성 값이 없다(§7.1). */}
+          {pre ? <dd>{pre}</dd> : <dd className="muted">미기재. 무엇이 있어야 옮길 수 있는지 아직 안 적혔다.</dd>}
+        </div>
+        <div className="pub-move-col pub-move-col--act">
+          <dt><PubIconTile icon={<IconApprove />} size={32} tone="lilac" />내일 할 행동</dt>
+          {note ? <dd className="act">{note}</dd> : <dd className="muted">안 적혀 있다. 사실이 맞아도 지금 가져갈 게 없다(인사이트 등급 D).</dd>}
+        </div>
       </dl>
     </article>
   )
@@ -182,12 +205,13 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
         </div>
         <div className="pub-head-id">
           <PubBrandLogo study={s} size="md" />
-          <dl className="pub-rec">
-            <dt>문제 유형</dt><dd>{s.reader_problem ? (READER_PROBLEM_LABEL[s.reader_problem] ?? s.reader_problem) : '미지정'}</dd>
-            <dt>병목</dt><dd>{s.bottleneck ?? '미기재'}</dd>
-            <dt>레버</dt><dd>{levers.length ? levers.join(', ') : '미기재'}</dd>
-            <dt>기간</dt><dd>{period || '확인 불가'}</dd>
-            <dt>지금</dt><dd>{OUTCOME_LABEL[s.outcome_status ?? 'unknown'] ?? s.outcome_status}</dd>
+          {/* 신원 = 2열 칩 격자(B3-5c). 긴 값(문제 유형·병목 코드·기간)은 두 칸을 쓴다. */}
+          <dl className="pub-recchips">
+            <div className="pub-recchip pub-recchip--wide"><dt>문제 유형</dt><dd>{s.reader_problem ? (READER_PROBLEM_LABEL[s.reader_problem] ?? s.reader_problem) : '미지정'}</dd></div>
+            <div className="pub-recchip pub-recchip--wide"><dt>병목</dt><dd>{s.bottleneck ?? '미기재'}</dd></div>
+            <div className="pub-recchip"><dt>레버</dt><dd>{levers.length ? levers.join(', ') : '미기재'}</dd></div>
+            <div className="pub-recchip"><dt>지금</dt><dd>{OUTCOME_LABEL[s.outcome_status ?? 'unknown'] ?? s.outcome_status}</dd></div>
+            <div className="pub-recchip pub-recchip--wide"><dt>기간</dt><dd>{period || '확인 불가'}</dd></div>
           </dl>
         </div>
       </section>
@@ -238,7 +262,7 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
         </Sec>
 
         {/* ── 무엇을 했나 ── */}
-        <Sec id="moves" title="무엇을 했나" lead={`승인된 무브 ${d.moves.length}개. 순서는 인과가 아니라 시간이다.`}>
+        <Sec id="moves" wide title="무엇을 했나" lead={`승인된 무브 ${d.moves.length}개. 순서는 인과가 아니라 시간이다.`}>
           {d.moves.length === 0
             ? <p className="pub-caption">승인된 무브가 0개다. 케이스는 승인됐지만 무브 승인이 아직 없다.</p>
             : d.moves.map((m, i) => <MoveCard key={m.id} move={m} index={i} />)}

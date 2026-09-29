@@ -25,7 +25,8 @@ const PAIRS = [
   ['accent-ink', 'accent', 4.5], ['accent-ink', 'accent-hover', 4.5], ['ink', 'flash', 4.5],
   ['dark-ink', 'dark-canvas', 4.5], ['dark-muted', 'dark-canvas', 4.5],
   ['focus', 'canvas', 3], ['dark-focus', 'dark-canvas', 3], ['flash', 'dark-canvas', 3],
-  // G2 랜딩: 흰 카드(오늘의 케이스·가치제안) 글자 + 알약 CTA 화살표 원(라이트: 흰 원 위 액센트 화살표 · 다크: 잉크 원 위 flash 화살표)
+  // G3: 상세 신원 칩(surface-2 면 위 라벨·값) · 근거 종류 칩(surface 위 뮤트)
+  ['ink', 'surface-2', 4.5], ['muted', 'surface-2', 4.5],
   ['ink', 'surface', 4.5], ['muted', 'surface', 4.5], ['accent', 'accent-ink', 3], ['flash', 'ink', 3],
 ]
 // 다크 배너(G1): 그라데이션 밝은 끝 = dark-canvas 에 액센트 N% 혼합, 그 위 흑백 노이즈 최대 불투명도 → 최악은 흰색 op 합성.

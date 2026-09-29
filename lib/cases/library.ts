@@ -153,6 +153,24 @@ export function problemCounts(studies: DetailStudyRow[]): LibraryCounts {
   return { total: studies.length, by_problem, unlabeled }
 }
 
+export type LibraryGroup = { code: string | null; count: number; cards: LibraryCard[] }
+
+/**
+ * "전체" 목록을 문제 유형 그룹으로 가른다(B3-4b). 헤딩 건수는 **`counts.by_problem` 그대로**다 —
+ * 새로 세지 않는다. 0건 유형은 헤딩을 만들지 않고, 미지정은 `unlabeled` 가 있을 때만 맨 끝(code=null).
+ * 그룹 안 순서는 들어온 정렬 그대로다.
+ */
+export function groupByProblem(cards: LibraryCard[], counts: LibraryCounts): LibraryGroup[] {
+  const groups: LibraryGroup[] = READER_PROBLEMS
+    .filter((code) => (counts.by_problem[code] ?? 0) > 0)
+    .map((code) => ({ code, count: counts.by_problem[code], cards: cards.filter((c) => (c.study.reader_problem ?? '').trim() === code) }))
+  if (counts.unlabeled > 0) {
+    const known = new Set<string>(READER_PROBLEMS)
+    groups.push({ code: null, count: counts.unlabeled, cards: cards.filter((c) => !known.has((c.study.reader_problem ?? '').trim())) })
+  }
+  return groups
+}
+
 export type LibraryCorpora = {
   studies: DetailStudyRow[] | null | undefined
   moves: DetailMoveRow[] | null | undefined

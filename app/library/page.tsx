@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import {
-  DEFAULT_SORT, LIBRARY_SORTS, LIBRARY_SORT_LABEL, loadLibrary, parseLibraryQuery,
-  type LibrarySort,
+  DEFAULT_SORT, LIBRARY_SORTS, LIBRARY_SORT_LABEL, groupByProblem, loadLibrary, parseLibraryQuery,
+  type LibraryCard, type LibrarySort,
 } from '@/lib/cases/library'
 import { DEFAULT_SEARCH_KIND, type SearchKind } from '@/lib/cases/search'
 import { READER_PROBLEM_LABEL, READER_PROBLEMS } from '@/lib/cases/draft'
@@ -14,7 +14,8 @@ import { PubGradeLegend } from '../_pub/components/PubGradeBadge'
 import { PubFacet, PubFacetBar, PubFacetSep } from '../_pub/components/PubFacetBar'
 import { PubEmpty } from '../_pub/components/PubEmpty'
 import { PubButtonLink } from '../_pub/components/Button'
-import { IconArrowRight, IconChevronDown, IconSearch } from '../_pub/icons'
+import { PubIconTile } from '../_pub/components/PubIconTile'
+import { IconArrowRight, IconChevronDown, IconProblem, IconSearch } from '../_pub/icons'
 
 /**
  * 공개 케이스 라이브러리 — 색인 줄 목록(남헌 2026-09-29 결정 b: 카드 격자 대신 색인 줄, DESIGN.md §4).
@@ -110,11 +111,27 @@ export default async function LibraryPage({ searchParams }: {
     </div>
   )
 
+  const rows = (cards: LibraryCard[]) => (
+    <ul className="pub-index">
+      {cards.map((c) => (
+        <PubIndexRow
+          key={c.study.slug}
+          study={c.study}
+          move={c.move}
+          moveCount={c.move_count}
+          // 근거 수는 "믿을 만한가"의 첫 줄이다. 못 센 것을 0 으로 적지 않는다(§7.1).
+          reason={c.evidence_count === null ? '근거 수 확인 불가' : `근거 ${c.evidence_count}건`}
+        />
+      ))}
+    </ul>
+  )
+
   return (
     <PubShell theme="light">
       <Hero
+        variant="index"
         title="케이스 라이브러리"
-        lead="승인된 케이스만 나온다. 줄마다 요약과 내일 할 행동, 2축 등급이 붙는다."
+        // 리드 문장은 뺐다(G3 B3-4: 첫 뷰포트에 색인 줄 6개). "승인 케이스 N건" 은 아래 note(조회 사유)가 말하고, 2축 등급 설명은 목록 아래 범례가 한다.
         note={result ? result.reason : undefined}
       />
 
@@ -143,18 +160,21 @@ export default async function LibraryPage({ searchParams }: {
 
             {result.status === 'ok' ? (
               <>
-                <ul className="pub-index">
-                  {result.cards.map((c) => (
-                    <PubIndexRow
-                      key={c.study.slug}
-                      study={c.study}
-                      move={c.move}
-                      moveCount={c.move_count}
-                      // 근거 수는 "믿을 만한가"의 첫 줄이다. 못 센 것을 0 으로 적지 않는다(§7.1).
-                      reason={c.evidence_count === null ? '근거 수 확인 불가' : `근거 ${c.evidence_count}건`}
-                    />
-                  ))}
-                </ul>
+                {/* "전체" 일 때만 문제 유형 그룹 헤딩(B3-4b). 건수는 칩과 같은 counts.by_problem 그대로,
+                    0건 유형은 헤딩을 만들지 않는다. 한 유형만 고른 화면은 헤딩 없이 줄만 낸다. */}
+                {query.problem ? rows(result.cards) : groupByProblem(result.cards, result.counts).map((g) => {
+                  const id = `g-${g.code ?? 'unlabeled'}`
+                  return (
+                    <section key={id} className="pub-libgroup" aria-labelledby={id}>
+                      <h2 className="pub-libgroup-h" id={id}>
+                        <PubIconTile icon={<IconProblem />} size={32} />
+                        <span className="pub-libgroup-t">{g.code ? (READER_PROBLEM_LABEL[g.code] ?? g.code) : '문제 유형 미지정'}</span>
+                        <span className="pub-libgroup-n">{g.count}건</span>
+                      </h2>
+                      {rows(g.cards)}
+                    </section>
+                  )
+                })}
                 <PubGradeLegend />
               </>
             ) : (

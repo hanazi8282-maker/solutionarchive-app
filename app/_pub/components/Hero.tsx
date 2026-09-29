@@ -23,7 +23,8 @@ export function Hero({ eyebrow, title, lead, actions, note, media, meta, aside, 
   /** 제목 아래 칩 줄들. 페이지가 `.pub-chiprow` 로 감싼 것을 그대로 받는다. */
   meta?: ReactNode
   /** detail = 제목 한 단 작게 + 위 여백 줄임(긴 케이스 제목이 화면을 덮지 않게). */
-  variant?: 'page' | 'detail'
+  /** index = 색인 화면(/library). 여백을 줄여 첫 뷰포트에 색인 줄이 보이게(B3-4 수용: 1280 줄 6개). */
+  variant?: 'page' | 'detail' | 'index'
   /** G2 랜딩: 제목 아래 오른쪽 열(≥1024). <1024 에서는 note 아래로 쌓인다. */
   aside?: ReactNode
   /**
@@ -49,7 +50,7 @@ export function Hero({ eyebrow, title, lead, actions, note, media, meta, aside, 
   )
 
   return (
-    <header className={['pub-hero', variant === 'detail' ? 'pub-hero--detail' : '', aside ? 'pub-hero--split' : ''].filter(Boolean).join(' ')}>
+    <header className={['pub-hero', variant !== 'page' ? `pub-hero--${variant}` : '', aside ? 'pub-hero--split' : ''].filter(Boolean).join(' ')}>
       {media
         ? <div className="pub-hero-head">{media}<div className="pub-hero-headtext">{head}</div></div>
         : head}

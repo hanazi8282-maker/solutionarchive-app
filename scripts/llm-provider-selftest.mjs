@@ -1,7 +1,7 @@
 // LLM 프로바이더 스위치·예산 적용 범위 셀프테스트 — 네트워크·LLM 없음.
 //   node scripts/llm-provider-selftest.mjs
 import fs from 'node:fs'
-import { resolveProvider, requiredKeyFor, isQuotaFailure, ClaudeCliError } from '../lib/analysis/llm.ts'
+import { resolveProvider, requiredKeyFor, isQuotaFailure, ClaudeCliError, cliFailure } from '../lib/analysis/llm.ts'
 import { dailyBudgetFor } from '../lib/analysis/budget.ts'
 
 let pass = 0, fail = 0
@@ -23,6 +23,19 @@ t('CLI 사용량 한도(exit 1) → 멈춤', isQuotaFailure(new ClaudeCliError('
 t('CLI 봉투 is_error → 멈춤', isQuotaFailure(new ClaudeCliError('claude 가 오류를 보고했다: 5-hour limit reached')), true)
 t('CLI timeout → 계속(프로젝트 단위)', isQuotaFailure(new ClaudeCliError('claude -p 실패 (exit null, timeout): ', true)), false)
 t('파싱 실패(일반 Error) → 계속', isQuotaFailure(new Error('JSON 파싱 실패')), false)
+// 2026-09-29 run 36511286722 — 모델이 도구를 집어 error_max_turns 로 죽은 것. 한도가 아니다: 그 프로젝트만 failed, 다음으로.
+const TOOL_USE_FAIL = 'claude -p 실패 (exit 1): {"is_error":true,"duration_api_ms":121008,"num_turns":2,"stop_reason":"tool_use","session_id":"x","total_cost_usd":0.4576,"usage":{"output_tokens":11219}}'
+t('도구 호출 실패(stop_reason tool_use) → 계속', isQuotaFailure(new ClaudeCliError(TOOL_USE_FAIL)), false)
+t('봉투 error_max_turns → 계속', isQuotaFailure(cliFailure({ exitCode: 1, timedOut: false, stdout: '{"is_error":true,"subtype":"error_max_turns","stop_reason":"tool_use","num_turns":2}', stderr: '' }, { is_error: true, subtype: 'error_max_turns', stop_reason: 'tool_use', num_turns: 2 })), false)
+t('세션 한도 문구 → 멈춤', isQuotaFailure(new ClaudeCliError("claude 가 오류를 보고했다: You've hit your session limit · resets 5:50am")), true)
+t('rate_limit 429 문구 → 멈춤', isQuotaFailure(new ClaudeCliError('claude -p 실패 (exit 1): API Error: 429 {"type":"error","error":{"type":"rate_limit_error"}}')), true)
+t('봉투 api_error_status=429 → 문구 없어도 멈춤', isQuotaFailure(cliFailure({ exitCode: 1, timedOut: false, stdout: '', stderr: '' }, { is_error: true, api_error_status: 429, result: '' })), true)
+t('한도 문구라도 timeout 이면 계속', isQuotaFailure(new ClaudeCliError('claude -p 실패 (exit null, timeout): usage limit', true)), false)
+// 실패 메시지가 result(한도 문구 자리)를 싣는다 — 옛 stdout 앞 300자는 봉투 필드 순서상 result 에 닿기 전에 잘렸다.
+t('cliFailure 가 봉투 result·subtype 을 메시지에 싣는다', /subtype=error_max_turns stop_reason=tool_use num_turns=2 api_error_status=null result=5-hour limit reached/.test(cliFailure({ exitCode: 1, timedOut: false, stdout: 'x'.repeat(400), stderr: '' }, { subtype: 'error_max_turns', stop_reason: 'tool_use', num_turns: 2, result: '5-hour limit reached' }).message), true)
+// 도구 없음 — 프로필·extract·판정은 전부 이 한 호출을 탄다. `--max-turns 1` 만으로는 첫 턴 도구 호출을 못 막는다.
+t("callClaudeCli 가 --tools '' 로 도구를 끈다", /'--max-turns', '1',[\s\S]{0,400}'--tools', '',/.test(fs.readFileSync(new URL('../lib/analysis/llm.ts', import.meta.url), 'utf8')), true)
+t('insight 경로도 도구를 끈다', /'--max-turns',\s*'1',[\s\S]{0,300}'--tools',\s*'',/.test(fs.readFileSync(new URL('../lib/insight/llm.ts', import.meta.url), 'utf8')), true)
 
 // 하루 예산 — env 한 줄. 옛 BOOST/UNTIL(크레딧 기간 한시 상향)은 2026-09-29 에 뺐다: 있어도 무시돼야 한다.
 t('env 비면 5', dailyBudgetFor({}), 5)

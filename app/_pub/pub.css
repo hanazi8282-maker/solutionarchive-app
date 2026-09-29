@@ -29,8 +29,11 @@
 .pub-root *::before,
 .pub-root *::after { box-sizing: border-box; }
 
-/* 링크는 상속색 + 밑줄 없음이 기본이다(_ds 의 파란 링크·hover 밑줄을 덮는다). */
-.pub-root a { color: inherit; text-decoration: none; }
+/* 링크는 상속색 + 밑줄 없음이 기본이다(_ds 의 파란 링크·hover 밑줄을 덮는다).
+   `.pub-btn` 은 제외한다 — 안 하면 이 규칙(클래스+엘리먼트)이 `.pub-btn--primary`
+   같은 단일 클래스 규칙보다 특정도가 높아 버튼 글자색을 상속색으로 덮어써 버린다
+   (예: 파란 배경 위 검정 글자, 3.13:1 로 WCAG AA 미달 — 2026-09-29). */
+.pub-root a:not(.pub-btn) { color: inherit; text-decoration: none; }
 .pub-root a:hover { text-decoration: none; }
 /* 본문 안 링크만 밑줄을 유지한다 — 문장 속 링크는 밑줄이 있어야 보인다. */
 .pub-root .pub-text a,

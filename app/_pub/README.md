@@ -113,10 +113,8 @@ Pretendard 는 `next/font/local`. **`app/layout.tsx` 에서 허용된 수정은 
 `#FBFBFD` 위에서 대비가 안 난다. 캡션은 `--pub-ink-muted`(#6E6E73)를 쓴다.
 ⚠️ **2026-09-29**: `--pub-ink-muted` / `--pub-island-ink-muted` 를 `#909094`(캔버스 위 3.08:1,
 흰 바탕 위 3.18:1 — 본문 텍스트 기준 WCAG AA 4.5:1 미달)에서 `#6E6E73`(각각 4.91:1 · 5.07:1,
-AA 통과)로 바꿨다. `app/_ds/v2/v2.css` 의 `--v2-ink-muted` 가 같은 이유로 이미 쓰던 값이다 —
-`scripts/pub-tokens-overlap-selftest.mjs` 는 `_ds/styles.css` + `_ds/tokens/*.css` 만 "승계
-금지" 집합으로 보고 `_ds/v2/v2.css` 는 그 집합에 없어서(별도 레이어, 위 스크립트 주석 참고)
-겹침으로 잡히지 않는다 — 우연이 아니라 같은 AA 근거로 의도적으로 같아진 값이다.
+AA 통과)로 바꿨다. 09-29 토큰 통합 뒤에는 `--pub-ink-muted` 도 `--v2-ink-muted` 도 `--sa-muted`(#5B6874, 캔버스 위 6.4:1)
+하나를 읽는다 — 값은 `DESIGN.md` → `app/_ds/tokens/sa.css` 에만 있다.
 ⚠️ 코랄·앰버는 제 바탕 위에서 글자 대비가 안 나온다. 그래서 **테두리로만** 쓰고 글자는
 잉크색이다(`.pub-chip--neg` / `--mix`). 라임(#396C00)만 제 바탕 위에서 글자로 읽힌다.
 ⚠️ 판정 색은 **결과 방향**(됐다/안 됐다/갈렸다)에만 붙인다. 등급 A~D 는 분류이지 방향이
@@ -141,12 +139,10 @@ AA 통과)로 바꿨다. `app/_ds/v2/v2.css` 의 `--v2-ink-muted` 가 같은 이
 `currentColor` · 크기 `1em`(옆 글자를 따라간다). 색·크기 prop 이 없는 이유는 파일 주석에.
 **아이콘만 있는 버튼을 만들지 않는다** — 뜻은 옆 글자가 말한다.
 
-### 겹침 0 을 기계가 지킨다
+### 값은 한 곳에만 — 기계가 지킨다
 
-`scripts/pub-tokens-overlap-selftest.mjs` 가 `app/_pub/**/*.{css,tsx}` 와
-`app/_ds/{styles.css,tokens/*.css}` 에서 색·반경·그림자·easing·서체 스택을 뽑아 교집합을
-센다. CI(`build-check.yml`)에서 두 번 돈다 — 정상(설명되지 않은 겹침 0) + `--mutate`
-(일부러 `_ds` 색을 넣어 **실패해야** 통과).
+2026-09-29 부터 `_pub` 토큰은 값을 갖지 않는다. `app/_ds/tokens/sa.css` 한 벌(정본 리포 루트 `DESIGN.md`)을 `--pub-*` 이름으로 가리킬 뿐이다.
+`scripts/design-tokens-selftest.mjs` 가 CI(`build-check.yml`)에서 두 번 돈다 — 정상(화면 파일 리터럴 색·반경 0, DESIGN.md ↔ sa.css 이름 일치) + `--mutate`(일부러 리터럴을 넣어 **실패해야** 통과).
 
 불가피한 겹침 3건은 스크립트의 `UNAVOIDABLE` 표에 이유와 함께 적혀 있다:
 `#ffffff`(원색) · `#1d4ed8`(액센트 확정값, `_ds` 는 같은 값을 `--blue-700` 램프로 들고 있다) ·

@@ -479,6 +479,14 @@ eq('한글 slug 거부', SLUG_RE.test('에이스메'), false)
   // "업계에 따르면" 은 주체를 흐린다. 자기답글에서도 귀속이 아니다.
   eq('CG-1 — 자기답글 "업계에 따르면" 은 통과시키지 않는다', attributionGate([cMove], body, `${replyNo} 업계에 따르면 그렇다.`).ok, false)
 
+  // 2026-09-29 — 원문 링크가 있는 제3자 출처는 "자사 공시" 없이도 통과한다. 링크 없는 제3자 언급은 여전히 막는다.
+  // (줄을 나눠 판정 대상 줄을 분리한다 — replyNo 자체의 10-K URL과 섞이면 어느 링크가 쓰였는지 시험이 불분명해진다.)
+  eq('CG-1 — 제3자 출처 + 원문 링크는 통과', attributionGate([cMove], body, `10-K 미인용.\n제3자 매체 TechCrunch 보도 https://techcrunch.com/x, 원문 확인 가능.`).ok, true)
+  check('CG-1 — 제3자+링크로 통과했을 때 그 링크를 돌려준다',
+    /techcrunch\.com/.test(attributionGate([cMove], body, `10-K 미인용.\n제3자 매체 TechCrunch 보도 https://techcrunch.com/x.`).matched ?? ''))
+  eq('CG-1 — 링크 없는 "제3자에 따르면" 은 막는다', attributionGate([cMove], body, `10-K 미인용.\n제3자에 따르면 그렇다.`).ok, false)
+  eq('CG-1 — 자기답글을 못 읽으면 제3자+링크 판정도 확인 불가로 막는다', attributionGate([cMove], body).ok, false)
+
   // B·A 는 이 게이트 대상이 아니다 — 자기답글이 없어도 붙잡지 않는다.
   eq('CG-1 — B 등급만이면 대상 아님(자기답글 없어도)', attributionGate([bMove], body).ok, true)
   eq('CG-1 — A 등급만이면 대상 아님', attributionGate([{ ...bMove, fact_check_grade: 'A' }], body).ok, true)

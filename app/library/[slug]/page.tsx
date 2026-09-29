@@ -205,12 +205,12 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
         </div>
         <div className="pub-head-id">
           <PubBrandLogo study={s} size="md" />
-          {/* 신원 = 2열 칩 격자(B3-5c). 긴 값(문제 유형·기간)은 두 칸을 쓴다. */}
+          {/* 신원 = 2열 칩 격자(B3-5c). 긴 값(문제 유형·병목 코드·기간)은 두 칸을 쓴다. */}
           <dl className="pub-recchips">
             <div className="pub-recchip pub-recchip--wide"><dt>문제 유형</dt><dd>{s.reader_problem ? (READER_PROBLEM_LABEL[s.reader_problem] ?? s.reader_problem) : '미지정'}</dd></div>
-            <div className="pub-recchip"><dt>병목</dt><dd>{s.bottleneck ?? '미기재'}</dd></div>
+            <div className="pub-recchip pub-recchip--wide"><dt>병목</dt><dd>{s.bottleneck ?? '미기재'}</dd></div>
+            <div className="pub-recchip"><dt>레버</dt><dd>{levers.length ? levers.join(', ') : '미기재'}</dd></div>
             <div className="pub-recchip"><dt>지금</dt><dd>{OUTCOME_LABEL[s.outcome_status ?? 'unknown'] ?? s.outcome_status}</dd></div>
-            <div className="pub-recchip pub-recchip--wide"><dt>레버</dt><dd>{levers.length ? levers.join(', ') : '미기재'}</dd></div>
             <div className="pub-recchip pub-recchip--wide"><dt>기간</dt><dd>{period || '확인 불가'}</dd></div>
           </dl>
         </div>

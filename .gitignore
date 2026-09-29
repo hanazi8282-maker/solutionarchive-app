@@ -50,3 +50,9 @@ graphify-out/
 # 리서처용 VOC 내보내기 (scripts/voc-export.mjs) — 리뷰 원문이라 공개 리포에 올리지 않는다.
 # 30일 purge 대상 데이터이고, 초안에는 input_id 만 남는다(reports/2026-09-28/researcher-voc-input-plan.md §1).
 ops/state/voc-inputs/
+
+# 로컬 도구 상태 — 에이전트 워크트리·Serena·Impeccable 개인 설정·Claude Code 로컬 설정(hooks). 커밋하지 않는다(2026-09-29).
+.claude/worktrees/
+.serena/
+.impeccable/config.local.json
+.claude/settings.local.json

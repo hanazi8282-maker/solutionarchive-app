@@ -41,6 +41,8 @@ jobs:
       # 편 자족성 SC-1~SC-5 가 검사기에서 살아 있는지. 가이드 제목을 바꾸면 프롬프트가 조용히 비어 여기서 잡힌다.
       - run: node scripts/column-style-selftest.mjs
       - run: node scripts/column-check.mjs --self-test
+      # 승인 버튼은 본문을 펼쳐 본 뒤에만 눌린다(2026-09-29) — 배선 3곳(review-gate·decision-form·actions)을 고정.
+      - run: node scripts/columns-approve-gate-selftest.mjs
       # 추출 시작 게이트가 서버·화면 한 벌인지. 갈라지면 시작할 수 있는데 버튼이 없는 화면이 된다.
       - run: node scripts/analyze-extract-gate-selftest.mjs
       # 추출 입력 선별(T1) + 야간 자동 실행 대상 선정. 틀려도 추출은 "성공"으로 끝나고

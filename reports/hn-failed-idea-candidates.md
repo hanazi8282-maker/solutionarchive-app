@@ -123,3 +123,15 @@
 - 작성일: 2026-09-28
 
 > The math I have always done is, "If I removed 100% of my issues with controlling my home appliances and I was absolutely sure it would only ever cost me, let's say, $1000, and it was never going to need maintenance and would never fail, how interested would I be?" And the answer still keeps coming back, "not very". Not zero. But the problem is that there isn't a lot of value there to capture, so I'm not willing to pay all that much, especially when you consider the full cost-of-ownership of fail…
+
+## HN 49896838
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=49896838
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-09-29 UTC)
+- 스레드: The systems that no one will test
+- 작성자: pessimizer
+- 작성일: 2026-09-29
+
+> > They try to make a counter to their fears by teaching models how to exploit vulnerabilities. The frustrating part is that they should have been leaders in sandboxing and monitoring, and instead they aggressively encouraged no sandboxing and no monitoring. If there was anything we were rehearsing for in computer security, it was a wayward program with something resembling human intelligence. Looks like we failed right out of the gate, both spiritually and materially.

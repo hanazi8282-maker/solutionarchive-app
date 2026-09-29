@@ -238,12 +238,11 @@ function selfTest() {
   check('--episode 로 한 편만', one.rows?.length === 1 && one.rows[0].episode.n === '2')
   check('없는 편은 error', !!buildStageRows(column, { episode: 9 }).error)
 
-  // pillar — 컬럼 미적용(POSTS_PILLAR_COLUMN_READY=false) 이라 지금은 무슨 값을 줘도
-  // payload 에 안 실린다. 컬럼 적용 후 플래그를 true 로 바꾸면 이 기대값도 같이 바꾼다.
-  check('pillar 지정 — 컬럼 미적용이라 payload 에 안 실림',
-    !('pillar' in buildStageRows(column, { pillar: '빌드로그' }).rows[0].post))
-  check('pillar 미지정 — payload 에 안 실림(컬럼 미적용)',
-    !('pillar' in all.rows[0].post))
+  // pillar — 2026-09-29 컬럼 적용(POSTS_PILLAR_COLUMN_READY=true). 지정하면 그 값, 안 하면 null 이 실린다.
+  check('pillar 지정 — payload 에 그 값이 실림',
+    buildStageRows(column, { pillar: '빌드로그' }).rows[0].post.pillar === '빌드로그')
+  check('pillar 미지정 — payload 에 null(분류 안 함)',
+    'pillar' in all.rows[0].post && all.rows[0].post.pillar === null)
   check('알 수 없는 pillar 값은 무시된다(에러 아님)',
     !buildStageRows(column, { pillar: '없는값' }).error)
 

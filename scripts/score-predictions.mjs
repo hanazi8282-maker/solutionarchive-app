@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url'
 import { parseDecisionLog } from '../lib/predictions/parse-log.ts'
 import { scoreOne, tallyByRule, wilsonLower, ruleAction } from '../lib/predictions/score.ts'
 import { LINK_TABLE, LINK_TABLE_READY } from '../lib/predictions/link.ts'
+import { selectBucket } from '../lib/threads/buckets.ts'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const SOURCES = [
@@ -119,7 +120,18 @@ async function loadSnapshots() {
     .from('metric_snapshots')
     .select('post_id, hours_since_publish, views, likes, replies, reposts, quotes, posts(published_at, pattern)')
   if (error) throw new Error(`metric_snapshots 조회 실패: ${error.message}`)
-  const bucketOf = h => (h <= 1.5 ? 'h1' : h <= 30 ? 'h24' : 'h168')
+  // lib/threads/buckets.ts 의 BUCKETS(수집 창)를 그대로 쓴다 — 여기서 h<=1.5 같은
+  // 범위를 따로 손으로 유지하면 수집기 창이 바뀔 때 둘이 갈라진다. 예전에는 저장값이
+  // 항상 1/24/168 정확히 셋 중 하나였어서 손으로 짠 대략의 범위(<=1.5, <=30)로도
+  // 무해했지만, collect-metrics 의 'catchup' 액션(사후 등록 글의 1회성 관측)이
+  // 정규화하지 않은 실제 나이(예: 92.3)를 그대로 저장하면서 그 전제가 깨졌다.
+  // selectBucket 이 null 을 주는 값(=어느 명목 버킷에도 안 든다)은 h1/h24/h168
+  // 그 무엇도 아니다 — 억지로 가장 가까운 쪽에 욱여넣으면 조기/사후 측정치가
+  // 마치 정식 168h 실측인 척 채점에 들어간다(§7.1).
+  const bucketOf = h => {
+    const b = selectBucket(h)
+    return b ? `h${b.hours}` : null
+  }
   const rows = (data ?? []).map(r => ({
     postId: r.post_id,
     publishedAt: r.posts?.published_at ?? null,
@@ -131,11 +143,15 @@ async function loadSnapshots() {
     quotes: r.quotes ?? 0,
     format: r.posts?.pattern == null ? null : String(r.posts.pattern),
   }))
-  const kept = rows.filter(s => s.publishedAt)
+  const withPublishedAt = rows.filter(s => s.publishedAt)
   // 버린 행을 조용히 삼키지 않는다. published_at 이 비면 기준선 정렬(시점 비교)을
   // 할 수 없어서 뺀 것이지, 그 글에 데이터가 없다는 뜻이 아니다 (§7.1).
-  if (rows.length !== kept.length) {
-    console.log(`  ⚠️ 스냅샷 ${rows.length - kept.length}건을 뺐다 — posts.published_at 이 비어 있어 시점 비교 불가. "데이터 없음"이 아니다.`)
+  if (rows.length !== withPublishedAt.length) {
+    console.log(`  ⚠️ 스냅샷 ${rows.length - withPublishedAt.length}건을 뺐다 — posts.published_at 이 비어 있어 시점 비교 불가. "데이터 없음"이 아니다.`)
+  }
+  const kept = withPublishedAt.filter(s => s.bucket !== null)
+  if (withPublishedAt.length !== kept.length) {
+    console.log(`  ⚠️ 스냅샷 ${withPublishedAt.length - kept.length}건을 뺐다 — h1/h24/h168 명목 창과 안 맞는 나이(조기·사후 1회성 관측, collect-metrics 'catchup')다. 그 글에 데이터가 없다는 뜻이 아니다.`)
   }
   return kept
 }

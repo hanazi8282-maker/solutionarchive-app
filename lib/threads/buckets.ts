@@ -51,6 +51,17 @@ export const BUCKETS: readonly Bucket[] = [
 /** 이 기간보다 오래된 글은 아예 조회하지 않는다(가장 늦은 창이 180h = 7.5일). */
 export const COLLECT_WINDOW_DAYS = 14
 
+/**
+ * `posts.created_at`(행이 DB 에 들어온 시각)이 `published_at`(실제 발행 시각)보다
+ * 이만큼(시간) 늦으면, 이 글은 **h1·h24 창을 구조적으로 놓쳤다**고 본다 — 행이
+ * 생기기도 전에 두 창이 이미 닫혀 있었으므로, 앞으로 몇 번을 더 돌려도 정상
+ * 경로로는 절대 못 잡는다(정상 흐름은 매처가 발행 직후 행을 만들어 간극이
+ * 0에 가깝다). h24 창 상한(30h)을 기준으로 잡아, "5시간 된 글이 아직 h24 를
+ * 기다리는 중"인 정상 상태와 확실히 구분한다 — 그 경우는 간극이 0에 가까워
+ * 이 문턱을 넘지 않는다.
+ */
+export const CATCHUP_GAP_HOURS = BUCKETS[1].maxAge
+
 /** 발행 시각과 현재 시각으로 나이(시간)를 낸다. 파싱 불가면 null. */
 export function ageInHours(publishedAt: string | null | undefined, now: number): number | null {
   if (!publishedAt) return null
@@ -74,6 +85,14 @@ export interface CollectTarget {
   id: string
   external_id: string | null
   published_at: string | null
+  /**
+   * 이 posts 행이 DB 에 언제 들어왔는가(정상 흐름: 매처가 초안을 만들 때 ≈ 발행 시점).
+   * `/dashboard` "글 등록" 폼의 external 경로(`published_via='external'`)는 사람이 이미
+   * 발행된 글을 **며칠 뒤에** 사후 등록한다 — 이때 created_at 이 published_at 보다
+   * 한참 뒤다. 그 간극이 h1 창(1.9h)·h24 창(30h)보다 크면, 그 글은 행이 생기기도 전에
+   * 이미 그 창을 지나쳐 있었다는 뜻이라 정상 수집으로는 **영원히** 못 잡는다(CATCHUP_GAP_HOURS 참고).
+   */
+  created_at?: string | null
 }
 
 /** metric_snapshots 에 이미 있는 행. 라우트가 사전 조회로 넘겨준다. */
@@ -94,6 +113,14 @@ export interface ExistingSnapshot {
 export type CollectAction =
   | { kind: 'insert'; postId: string; mediaId: string; bucket: number; age: number }
   | { kind: 'update'; postId: string; mediaId: string; bucket: number; age: number; snapshotId: string }
+  /**
+   * 사후 등록으로 h1·h24 창을 구조적으로 놓친 글에 **한 번만** 찍는 정직한 관측값.
+   * `bucket` 이 없다 — 1/24/168 어디에도 정규화하지 않는다. `hours` 는 실측 당시의
+   * 진짜 나이(예: 92.3)를 그대로 담는다. score-predictions.mjs 의 bucketOf 는 이 값을
+   * h1/h24/h168 그 무엇으로도 인식하지 않고 건너뛴다(§7.1 — 조기·사후 측정치를
+   * 명목 버킷인 척하지 않는다). post_performance 뷰도 이 값을 보지 않는다(범위 밖).
+   */
+  | { kind: 'catchup'; postId: string; mediaId: string; hours: number }
 
 export type SkipReason =
   /** 사람이 손으로 넣은 값이다. API 값으로 덮지 않는다. */
@@ -170,8 +197,12 @@ export function planCollection(
 ): CollectPlan {
   // (post_id, bucket) → 기존 행. 버킷은 정규화된 정수라 키가 안정적이다.
   const byKey = new Map<string, ExistingSnapshot>()
+  // 이 글에 스냅샷이 하나라도 있는가(버킷 무관 — catchup 행도 포함). 사후 등록
+  // catchup 은 "한 번도 못 잰 글"에만 한 번 찍는다. 이 Set 이 그 게이트다.
+  const hasAnySnapshot = new Set<string>()
   for (const e of existing) {
     byKey.set(`${e.post_id}:${Number(e.hours_since_publish)}`, e)
+    hasAnySnapshot.add(e.post_id)
   }
 
   const actions: CollectAction[] = []
@@ -186,7 +217,24 @@ export function planCollection(
     }
 
     const bucket = selectBucket(age)
-    if (!bucket) { outOfWindow++; continue }
+    if (!bucket) {
+      // 정상 대부분은 여기서 그냥 "아직 창이 안 왔다"로 끝난다. 다만 이 글이
+      // 사후 등록(§ CATCHUP_GAP_HOURS 주석)으로 h1·h24 를 구조적으로 이미
+      // 놓쳤고, 지금까지 스냅샷이 하나도 없다면 — 앞으로도 정상 경로로는
+      // 영원히 못 잡으므로, 지금 나이 그대로 한 번 정직하게 찍는다.
+      const regGap = t.created_at ? ageInHours(t.published_at, Date.parse(t.created_at)) : null
+      if (
+        t.external_id &&
+        regGap !== null && regGap !== undefined && Number.isFinite(regGap) &&
+        regGap > CATCHUP_GAP_HOURS &&
+        !hasAnySnapshot.has(t.id)
+      ) {
+        actions.push({ kind: 'catchup', postId: t.id, mediaId: t.external_id, hours: age })
+        continue
+      }
+      outOfWindow++
+      continue
+    }
 
     // 창 판정 뒤에 external_id 를 본다. 순서를 뒤집으면 대시보드에서 수기로 기록한
     // 글(external_id 없음)이 발행 후 14일 내내 매 실행마다 skip 목록에 쌓여

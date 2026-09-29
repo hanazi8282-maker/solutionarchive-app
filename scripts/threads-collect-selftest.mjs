@@ -11,6 +11,7 @@
 import {
   BUCKETS,
   COLLECT_WINDOW_DAYS,
+  CATCHUP_GAP_HOURS,
   ageInHours,
   selectBucket,
   planCollection,
@@ -192,6 +193,59 @@ const snap = (id, postId, hours, source, storedAge, postAge) => ({
   const plan = planCollection([post(p1, null)], [], NOW)
   eq('published_at 없음 — 액션 없음', plan.actions.length, 0)
   eq('published_at 없음 — 사유', plan.skipped[0].reason, 'no_published_at')
+}
+
+// ── 3-B) 사후 등록 catchup ───────────────────────────────────
+// `/dashboard` "글 등록" 폼의 external 경로(published_via='external')는 사람이
+// 이미 발행된 글을 며칠 뒤에 사후 등록한다. published_at(실제 발행)과
+// created_at(행이 생긴 시각) 사이 간극이 크면 h1·h24 창은 구조적으로 이미
+// 지나가 있다 — 정상 경로로는 영원히 못 잡는다. 이 블록이 그 회귀다
+// (실사례: 2026-09-23~25 발행 글 4건이 09-27 마이그로 사후 등록되며
+// metric_snapshots 가 영구히 0건이었다).
+const postLate = (id, ageNow, regGap, external = `media-${id}`) => ({
+  id, external_id: external, published_at: agoHours(ageNow),
+  created_at: agoHours(ageNow - regGap),
+})
+
+// 3-B-1) 간극이 CATCHUP_GAP_HOURS 를 넘고 스냅샷이 전혀 없으면 — 지금 나이로 1회 관측
+{
+  const plan = planCollection([postLate(p1, 90, 40)], [], NOW)
+  eq('사후 등록 — 액션 1건', plan.actions.length, 1)
+  eq('사후 등록 — kind=catchup', plan.actions[0].kind, 'catchup')
+  eq('사후 등록 — hours 는 정규화 없이 실제 나이', plan.actions[0].hours, 90)
+  eq('사후 등록 — mediaId 전달', plan.actions[0].mediaId, `media-${p1}`)
+  eq('사후 등록 — outOfWindow 로 이중 집계 안 함', plan.outOfWindow, 0)
+  eq('사후 등록 — 보류 없음', plan.skipped.length, 0)
+}
+
+// 3-B-2) 이미 스냅샷이 하나라도 있으면(버킷 무관) 다시 찍지 않는다 — 1회성 보장
+{
+  const already = [{ id: 'c1', post_id: p1, hours_since_publish: 88.4, source: 'api' }]
+  const plan = planCollection([postLate(p1, 90, 40)], already, NOW)
+  eq('이미 관측됨 — 액션 없음(재실행 안 함)', plan.actions.length, 0)
+  eq('이미 관측됨 — outOfWindow 로만 집계', plan.outOfWindow, 1)
+}
+
+// 3-B-3) 정상 흐름(방금 매칭돼 간극 0에 가까움)은 그냥 다음 창을 기다린다 — catchup 오발 금지
+{
+  const plan = planCollection([postLate(p1, 5, 0)], [], NOW)
+  eq('정상 대기(5h, 간극 0) — catchup 안 함', plan.actions.length, 0)
+  eq('정상 대기 — outOfWindow 1', plan.outOfWindow, 1)
+}
+
+// 3-B-4) external_id 가 없으면(대시보드 수기 기록) catchup 도 부를 수 없다
+{
+  const plan = planCollection([postLate(p1, 90, 40, null)], [], NOW)
+  eq('media_id 없음 + 사후등록 — catchup 안 함', plan.actions.length, 0)
+  eq('media_id 없음 + 사후등록 — outOfWindow', plan.outOfWindow, 1)
+}
+
+// 3-B-5) 경계값 — 간극이 정확히 문턱이면 아직 "구조적으로 놓쳤다"고 보지 않는다(>비교)
+{
+  const planEq = planCollection([postLate(p1, 90, CATCHUP_GAP_HOURS)], [], NOW)
+  eq('간극 = 문턱 — catchup 아직 안 함', planEq.actions.length, 0)
+  const planOver = planCollection([postLate(p1, 90, CATCHUP_GAP_HOURS + 0.1)], [], NOW)
+  eq('간극 > 문턱 — catchup', planOver.actions[0]?.kind, 'catchup')
 }
 
 // ── 3-A) 명목값 근접 판정 ─────────────────────────────────────

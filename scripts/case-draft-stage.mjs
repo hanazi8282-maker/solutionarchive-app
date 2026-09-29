@@ -34,6 +34,7 @@ import { bpNoteLine } from '../lib/threads/instant-gate.ts'
 const asBool = (v) => (v === true || v === 'true' ? true : v === false || v === 'false' ? false : null)
 import { createClient } from '../lib/supabase/server.ts'
 import { linkDecisionLog } from '../lib/predictions/link.ts'
+import { pillarField } from '../lib/content/pillar.ts'
 import { loadDeletedCaseIds } from '../lib/cases/deleted.ts'
 import { attributionGate, attributionHint, numericGate, numericHint } from '../lib/cases/publish-gate.ts'
 
@@ -245,6 +246,9 @@ async function stageOne(job) {
     topic_tag: job.topic_tag ?? 'case-study',
     published_at: null, // 발행 시각은 사람이 실제로 게시한 뒤에 생긴다
     notes,
+    // 이 스크립트가 만드는 초안은 전부 case_moves(남의 브랜드 실측) 소스다 —
+    // 필러가 고정이라 소급 분류할 필요가 없게 발행 전에 붙인다(§ pillar.ts).
+    ...pillarField('케이스'),
   }
 
   const existing = await supabase.from('posts').select('id,status').eq('content_code', job.content_code).maybeSingle()

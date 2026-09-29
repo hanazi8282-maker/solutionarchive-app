@@ -54,7 +54,6 @@ import { loadThreadsToken, tokenFailure } from '@/lib/threads/token'
 import {
   planCollection,
   COLLECT_WINDOW_DAYS,
-  BUCKETS,
   type CollectTarget,
   type ExistingSnapshot,
 } from '@/lib/threads/buckets'
@@ -102,7 +101,7 @@ export async function POST(req: Request) {
 
   const { data: postRows, error: postErr } = await supabase
     .from('posts')
-    .select('id, external_id, published_at')
+    .select('id, external_id, published_at, created_at')
     .eq('status', 'published')
     .gte('published_at', since)
     .order('published_at', { ascending: false })
@@ -132,9 +131,13 @@ export async function POST(req: Request) {
     // "그 값이 실제로 몇 시간짜리인지"를 담지 않는다. 명목값 근접 판정이
     // captured_at - published_at 으로 그 정보를 복원한다(buckets.ts 참조).
     // 이 컬럼을 빼면 판정이 조용히 무력화되고 예전의 매시간 덮어쓰기로 돌아간다.
+    // hours_since_publish 를 1/24/168 로 좁히지 않는다. planCollection 의
+    // catchup 게이트(§CATCHUP_GAP_HOURS)가 "이 글에 스냅샷이 하나라도
+    // 있는가"를 봐야 하는데, catchup 행은 정규화 값이 아닌 실측 나이(예: 92.3)로
+    // 저장돼 좁히면 안 보인다. 좁혀도 놓치던 예전 버전은 사후 등록 글에 매시간
+    // catchup 을 다시 찍었다 — 대상 수가 작아(14일 창) 비용 차이는 무시할 만하다.
     .select('id, post_id, hours_since_publish, source, captured_at')
     .in('post_id', targets.map(t => t.id))
-    .in('hours_since_publish', BUCKETS.map(b => b.hours))
 
   if (snapErr) {
     // 🔴 여기서 실패하면 무조건 중단한다. 조용히 "기존 없음"으로 진행하면
@@ -157,6 +160,7 @@ export async function POST(req: Request) {
       outOfWindow: plan.outOfWindow,
       inserted: 0,
       updated: 0,
+      caughtUp: 0,
       skipped: plan.skipped,
       failed: [],
       message: '이번 시간에 창에 든 글 없음 — Threads API 호출 생략',
@@ -168,7 +172,8 @@ export async function POST(req: Request) {
   const usageBox: { current: ThreadsUsage | null } = { current: null }
   const inserted: { postId: string; bucket: number }[] = []
   const updated: { postId: string; bucket: number }[] = []
-  const failed: { postId: string; bucket: number; message: string }[] = []
+  const caughtUp: { postId: string; hours: number }[] = []
+  const failed: { postId: string; bucket: number | null; message: string }[] = []
 
   for (const a of plan.actions) {
     try {
@@ -195,6 +200,21 @@ export async function POST(req: Request) {
         })
         if (error) throw new Error(error.message)
         inserted.push({ postId: a.postId, bucket: a.bucket })
+      } else if (a.kind === 'catchup') {
+        // 사후 등록으로 h1·h24 창을 구조적으로 놓친 글의 1회성 정직한 관측값.
+        // hours_since_publish 를 1/24/168 로 정규화하지 않는다 — 지금 나이
+        // 그대로 담아야 "이건 명목 버킷이 아니라 사후 측정치"라는 게 드러난다
+        // (buckets.ts CollectAction 'catchup' 주석 참고). UNIQUE(post_id,
+        // hours_since_publish) 와 충돌할 걱정이 없다 — planCollection 이 이
+        // 글에 스냅샷이 전혀 없을 때만 이 액션을 낸다.
+        const { error } = await supabase.from('metric_snapshots').insert({
+          post_id: a.postId,
+          hours_since_publish: Math.round(a.hours * 10) / 10,
+          captured_at: new Date().toISOString(),
+          ...metrics,
+        })
+        if (error) throw new Error(error.message)
+        caughtUp.push({ postId: a.postId, hours: a.hours })
       } else {
         // id 로 겨냥한다. (post_id, hours_since_publish) 로 걸면 그 사이 사람이
         // 같은 버킷을 manual 로 바꿔 넣었을 때 그것까지 덮는다.
@@ -211,8 +231,10 @@ export async function POST(req: Request) {
       // 한 글이 실패해도 나머지는 계속 수집한다. 창은 지나가면 끝이라
       // 전체를 중단시키는 쪽이 손실이 크다.
       const message = e instanceof Error ? e.message : String(e)
-      console.error(`[collect] 실패 post=${a.postId} bucket=${a.bucket}: ${message}`)
-      failed.push({ postId: a.postId, bucket: a.bucket, message })
+      const bucket = a.kind === 'catchup' ? null : a.bucket
+      const label = a.kind === 'catchup' ? `catchup@${a.hours.toFixed(1)}h` : String(bucket)
+      console.error(`[collect] 실패 post=${a.postId} bucket=${label}: ${message}`)
+      failed.push({ postId: a.postId, bucket, message })
     }
 
     await new Promise(r => setTimeout(r, CALL_SPACING_MS))
@@ -227,8 +249,14 @@ export async function POST(req: Request) {
 
   console.info(
     `[collect] 대상 ${targets.length} / 창 밖 ${plan.outOfWindow} → ` +
-    `신규 ${inserted.length}, 갱신 ${updated.length}, 보류 ${plan.skipped.length}, 실패 ${failed.length}`,
+    `신규 ${inserted.length}, 갱신 ${updated.length}, 사후catchup ${caughtUp.length}, 보류 ${plan.skipped.length}, 실패 ${failed.length}`,
   )
+  if (caughtUp.length) {
+    // 조용히 지나가면 안 되는 이벤트다 — 사후 등록 글이 h1/h24 를 영원히 잃고
+    // 지금 나이로 딱 한 번 측정됐다는 뜻이라, 왜 이게 떴는지 사람이 확인할
+    // 수 있어야 한다(CLAUDE.md §7.2 — 안전장치가 걸린 것을 정상으로 읽지 마라).
+    console.info(`[collect] catchup 상세: ${caughtUp.map(c => `${c.postId}@${c.hours.toFixed(1)}h`).join(', ')}`)
+  }
 
   return NextResponse.json({
     ok: failed.length === 0,
@@ -236,6 +264,8 @@ export async function POST(req: Request) {
     outOfWindow: plan.outOfWindow,
     inserted: inserted.length,
     updated: updated.length,
+    caughtUp: caughtUp.length,
+    caughtUpDetail: caughtUp,
     // 스킵된 건은 반드시 드러낸다. manual 보호로 안 건드린 글을 응답에서 숨기면
     // "왜 이 글만 갱신이 안 되지"를 나중에 추적할 방법이 없다.
     skipped: plan.skipped,

@@ -21,7 +21,7 @@
 //   not_run  = 조회를 못 했거나 질의어가 없어 판정 자체를 못 했다 (확인 불가)
 //   억지로 끼워맞추지 않는다.
 
-import { GRADE_RANK, gradeRankOf, type MoveRow, type StudyRow } from './match.ts'
+import { GRADE_RANK, gradeRankOf, pmfRankOf, type MoveRow, type StudyRow } from './match.ts'
 
 export const ADVISOR_STATUS = ['matched', 'no_match', 'not_run'] as const
 export type AdvisorStatus = (typeof ADVISOR_STATUS)[number]
@@ -451,7 +451,13 @@ export function matchCaseMoves(
       low_confidence: isLowConfidence(matched),
     })
   }
-  cards.sort((a, b) => b.score - a.score || a.slug.localeCompare(b.slug) || a.lever.localeCompare(b.lever))
+  // score(낱말 수 1순위, SP-024)가 같을 때만 PMF 로 동점을 가른다(남헌 2026-09-30 결정 B) —
+  // 등급은 이미 score 안에 정수로 녹아 있어 동률이 흔하다. 그다음 기존 키(슬러그·레버).
+  cards.sort((a, b) =>
+    b.score - a.score
+    || pmfRankOf(b) - pmfRankOf(a)
+    || a.slug.localeCompare(b.slug)
+    || a.lever.localeCompare(b.lever))
 
   if (cards.length === 0) {
     const why = [

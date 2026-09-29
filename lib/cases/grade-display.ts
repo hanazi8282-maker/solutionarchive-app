@@ -16,8 +16,11 @@
  * information_schema 로 실측한 뒤에만** true 로 바꾼다 — 없는 컬럼을 SELECT·INSERT 에 넣으면
  * 42703/PGRST204 로 요청 전체가 죽는다(POSTS_PILLAR_COLUMN_READY · LINK_TABLE_READY 와 같은 패턴).
  * false 여도 화면은 같다: 전환기에는 `evidence_grade` 가 같은 값(gradeMove)을 들고 있다.
+ *
+ * true (2026-09-30) — 마이그 20260930000039 적용 확인 + 000040 백필 125/125 완료·불일치 0건
+ * (오케스트레이터 실측, CEO-STAFF 세션 남헌 확정 B안). `docs/migration-exceptions.md` 참고.
  */
-export const INSIGHT_GRADE_COLUMN_READY = false
+export const INSIGHT_GRADE_COLUMN_READY = true
 
 /** SELECT 에 넣는 인사이트 등급 컬럼 묶음. 플래그 하나로 전 조회가 같이 바뀐다. */
 // 타입은 넓은 쪽 리터럴로 고정한다 — supabase-js 의 select 문자열 파서가 유니언·string 을 못 읽는다(ParserError).
@@ -100,4 +103,15 @@ export const GRADE_RANK: Record<string, number> = { A: 3, B: 2, C: 1, D: 0 }
 export function gradeRankOf(move: DisplayGradeInput | null | undefined): number | undefined {
   const g = displayGrade(move)
   return g === null ? undefined : GRADE_RANK[g]
+}
+
+/**
+ * PMF 등급 순위 — **랭킹의 동점 결정자일 뿐**(남헌 2026-09-30 결정 B). 표시·랭킹 1순위 축은
+ * 여전히 인사이트(`gradeRankOf`)다. 승인 무브의 인사이트 등급 분포가 치우쳐 있어(A 69 / C 12,
+ * 2026-09-30 실측) 인사이트만으로는 동률이 흔하다 — 그때만 이 값으로 순서를 가른다.
+ * 미기재는 -1 — D(0)보다 뒤로 보낸다(등급 없음을 D 와 섞지 않는다, §7.1).
+ */
+export function pmfRankOf(move: { pmf_grade?: string | null } | null | undefined): number {
+  const g = move?.pmf_grade
+  return typeof g === 'string' && g.trim() ? (GRADE_RANK[g.trim()] ?? -1) : -1
 }

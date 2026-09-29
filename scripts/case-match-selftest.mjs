@@ -155,6 +155,22 @@ const MOVES = [
     r.moves[0].evidence_grade === 'A', r.moves[0].evidence_grade)
 }
 
+// ── 6b) ★ PMF 는 인사이트 동률일 때만 동점을 가른다(남헌 2026-09-30 결정 B) ─
+{
+  // 인사이트(evidence_grade) 가 같다 — PMF 가 순서를 정한다.
+  const pmfLow = move('m-pmf1', 's-a', { evidence_grade: 'A', pmf_grade: 'C', lever: 'CHANNEL' })
+  const pmfHigh = move('m-pmf2', 's-a', { evidence_grade: 'A', pmf_grade: 'A', lever: 'PRICING' })
+  const tie = matchMoves('UNIT_ECONOMICS', [S_A], [pmfLow, pmfHigh], null)
+  eq('6b-1 인사이트 동률이면 PMF 높은 쪽이 먼저', tie.moves[0].id, 'm-pmf2')
+  eq('6b-2 나머지는 뒤로', tie.moves[1].id, 'm-pmf1')
+
+  // 인사이트가 다르면 PMF 가 아무리 높아도 못 뒤집는다.
+  const lowInsightHighPmf = move('m-pmf3', 's-b', { evidence_grade: 'C', pmf_grade: 'A', lever: 'OPERATIONS' })
+  const highInsightLowPmf = move('m-pmf4', 's-a', { evidence_grade: 'A', pmf_grade: 'D', lever: 'OFFER' })
+  const r2 = matchMoves('UNIT_ECONOMICS', [S_A, S_B], [lowInsightHighPmf, highInsightLowPmf], null)
+  eq('6b-3 인사이트가 PMF 보다 우선한다', r2.moves[0].id, 'm-pmf4')
+}
+
 // ── 7) 수요축 ─────────────────────────────────────────────────
 {
   eq('7-1 조회 실패는 null', demandAxis(null).value, null)

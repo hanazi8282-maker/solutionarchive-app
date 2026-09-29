@@ -24,8 +24,8 @@ export type MatchStatus = (typeof MATCH_STATUS)[number]
 // ★ 2026-09-23: 정의가 `grade-display.ts` 로 옮겨졌고 여기는 재수출이다. 랭킹이 보는
 //   등급과 화면이 보여 주는 등급을 갈라 놓지 않기 위해서다 — 등급을 읽는 자리는
 //   `gradeRankOf(move)` 하나이고, 그 함수가 `insight_grade ?? evidence_grade`(인사이트 축)를 본다.
-export { GRADE_RANK, gradeRankOf } from './grade-display.ts'
-import { gradeRankOf } from './grade-display.ts'
+export { GRADE_RANK, gradeRankOf, pmfRankOf } from './grade-display.ts'
+import { gradeRankOf, pmfRankOf } from './grade-display.ts'
 
 export interface MoveRow {
   id: string
@@ -142,9 +142,14 @@ export function matchMoves(
     })
   }
 
-  // 등급 우선, 그다음 패싯 일치 수, 그다음 슬러그(결과 고정용).
+  // 등급(인사이트) 우선, 그다음 PMF 동점 결정자(남헌 2026-09-30 결정 B — 인사이트 분포가
+  // A 69/C 12 로 치우쳐 동률이 흔해 순위가 흔들린다), 그다음 패싯 일치 수, 그다음 슬러그(결과 고정용).
   out.sort((a, b) =>
-    b.match_score - a.match_score || a.study.slug.localeCompare(b.study.slug) || a.lever.localeCompare(b.lever))
+    (gradeRankOf(b) ?? 0) - (gradeRankOf(a) ?? 0)
+    || pmfRankOf(b) - pmfRankOf(a)
+    || b.facet_hits.length - a.facet_hits.length
+    || a.study.slug.localeCompare(b.study.slug)
+    || a.lever.localeCompare(b.lever))
 
   if (out.length === 0) {
     const why = [

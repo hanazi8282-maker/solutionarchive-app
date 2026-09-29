@@ -23,10 +23,12 @@ import {
   judgeHealth,
   classifyBlockedResponse,
   MAX_CONSECUTIVE_EMPTY,
+  BOARD_MAX_CONSECUTIVE_EMPTY,
   type HealthVerdict,
   type RunStats,
 } from './health.ts'
 import type { Fingerprint, ParsedReview, ReviewRequest, ReviewSourceAdapter, TargetState } from './types.ts'
+import { parseBoardRef } from './types.ts'
 
 /** robots.txt 와 대조할 제품 토큰(RFC 9309 §2.2.1). UA 문자열 전체가 아니다. */
 export const PRODUCT_TOKEN = 'solutionarchive-review-collector'
@@ -449,6 +451,7 @@ export async function runCollection(
     let lastReviewAt = target.lastReviewAt
     let staleStreak = 0
     let collected = 0
+    let targetPages = 0
     let outcome = '진행'
     let status: TargetProgress['status'] = 'active'
 
@@ -532,6 +535,7 @@ export async function runCollection(
       }
 
       pagesFetched++
+      targetPages++
       // ⚠️ 증분 기준선은 실행 시작 시점 값(baselineReviewAt)을 넘긴다. 진행 중에
       //    갱신되는 lastReviewAt 을 넘기면 파서가 방금 읽은 글보다 오래된 것을
       //    전부 "이미 본 것"으로 걸러 한 페이지만 읽고 멈춘다(위 baselineReviewAt 주석).
@@ -631,16 +635,21 @@ export async function runCollection(
     //     **구조적으로** 항상 0 이다. 세면 dry-run 3회로 멀쩡한 타깃이 닫힌다.
     //   · aborted(403/429) · failed — 신규 0건이 아니라 차단·오류다. health.ts 가
     //     차단을 연속 0건과 다른 사건으로 다루는 것과 같은 이유다.
+    // 게시판(board:)은 목록을 이번 실행에 실제로 읽었으면 게시판 문턱(30)으로 센다 — 느린 태그의
+    // "새 글 0건"은 고갈이 아니다(health.ts BOARD_MAX_CONSECUTIVE_EMPTY). 요청을 못 만드는
+    // 잘못된 board ref(targetPages=0)는 기존 문턱 3 으로 닫힌다.
+    const closeAfter =
+      parseBoardRef(target.productRef) && targetPages > 0 ? BOARD_MAX_CONSECUTIVE_EMPTY : MAX_CONSECUTIVE_EMPTY
     let emptyClose: string | null = null
     if (
       adapter.incrementalOnly &&
       !opts.dryRun &&
       !aborted &&
       status === 'active' &&
-      consecutiveEmpty >= MAX_CONSECUTIVE_EMPTY
+      consecutiveEmpty >= closeAfter
     ) {
       status = 'exhausted'
-      emptyClose = `연속 ${consecutiveEmpty}회 0건 → 닫음(${consecutiveEmpty}/${MAX_CONSECUTIVE_EMPTY})`
+      emptyClose = `연속 ${consecutiveEmpty}회 0건 → 닫음(${consecutiveEmpty}/${closeAfter})`
     }
 
     if (!opts.dryRun) {

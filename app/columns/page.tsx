@@ -6,6 +6,7 @@ import { EmptyState } from '../_ds/components/EmptyState'
 import { FilterChip } from '../_ds/components/FilterChip'
 import { Notice, PageHeader, PageShell } from '../_ds/components/Shell'
 import { DecisionForm } from './decision-form'
+import { ColumnReviewGate } from './review-gate'
 import { RevisionForm } from './revision-form'
 import { PatternForm } from './pattern-form'
 
@@ -248,18 +249,24 @@ function ColumnCard({ c }: { c: ColumnRow }) {
         </div>
         <h3 className="v2-h3">{c.title}</h3>
         <p className="v2-note">slug: {c.slug} · 적재 {KST.format(new Date(c.staged_at))} KST</p>
-        <ColumnBody body={c.body} />
-        <RevisionBlock c={c} />
-        <ThreadList threads={c.threads ?? []} />
         {c.review_status === 'draft' ? (
-          <DecisionForm id={c.id} />
+          // 승인 버튼은 본문을 펼쳐 본 뒤에만 눌린다(review-gate.tsx) — 반려는 종전대로(사유 필수).
+          <ColumnReviewGate id={c.id} body={c.body}>
+            <RevisionBlock c={c} />
+            <ThreadList threads={c.threads ?? []} />
+          </ColumnReviewGate>
         ) : (
-          <p className="v2-note">
-            {REVIEW[c.review_status]?.label ?? c.review_status}
-            {c.reviewed_by ? ` · ${c.reviewed_by}` : ' · 검수자 기록 없음'}
-            {c.reviewed_at ? ` · ${KST.format(new Date(c.reviewed_at))} KST` : ''}
-            {c.review_note ? ` · ${c.review_note}` : ''}
-          </p>
+          <>
+            <ColumnBody body={c.body} />
+            <RevisionBlock c={c} />
+            <ThreadList threads={c.threads ?? []} />
+            <p className="v2-note">
+              {REVIEW[c.review_status]?.label ?? c.review_status}
+              {c.reviewed_by ? ` · ${c.reviewed_by}` : ' · 검수자 기록 없음'}
+              {c.reviewed_at ? ` · ${KST.format(new Date(c.reviewed_at))} KST` : ''}
+              {c.review_note ? ` · ${c.review_note}` : ''}
+            </p>
+          </>
         )}
       </div>
     </Card>

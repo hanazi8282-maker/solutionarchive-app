@@ -24,6 +24,11 @@ export async function decideColumn(_prev: ReviewActionState, fd: FormData): Prom
   if (!id) return { ok: false, message: '대상 칼럼이 없습니다. 새로고침 후 다시 시도하세요.' }
   if (decisionRaw !== 'approved' && decisionRaw !== 'rejected') return { ok: false, message: '승인 또는 반려 중 하나를 골라야 합니다.' }
   if (decisionRaw === 'rejected' && !note) return { ok: false, message: '반려 사유를 적어야 합니다.' }
+  // 최소 서버측 방어(스키마 변경 없음) — 클라이언트(./review-gate.tsx)가 본문 <details> 를 연 적이
+  // 있을 때만 이 히든 필드를 '1'로 채운다. 폼 값이라 조작에는 못 버티지만, UI를 안 거친 재생·자동 클릭은 막는다.
+  if (decisionRaw === 'approved' && fd.get('bodyOpened') !== '1') {
+    return { ok: false, message: '본문을 펼쳐 읽어야 승인할 수 있습니다.' }
+  }
   const decision = decisionRaw
 
   const sb = await createClient()

@@ -318,6 +318,7 @@
 .v2-fold { margin: 0; }
 .v2-fold > summary { list-style: none; cursor: pointer; color: var(--text-link); font-size: var(--fs-sm); font-weight: 500; display: inline-flex; gap: 4px; align-items: center; }
 .v2-fold > summary::-webkit-details-marker { display: none; }
+.v2-gcard .v2-fold > summary:hover, .v2-batch .v2-fold > summary:hover { text-decoration: underline; text-underline-offset: 2px; }
 .v2-fold > summary svg { transition: transform var(--dur-base) var(--ease-out); }
 .v2-fold[open] > summary svg { transform: rotate(90deg); }
 .v2-fold-body { margin-top: 6px; }
@@ -342,7 +343,7 @@
 .v2-cols > div { padding: 14px var(--card-pad); min-width: 0; }
 .v2-cols > div + div { border-left: 1px solid var(--border); }
 .v2-cols h3 { margin: 0 0 8px; font-size: var(--fs-xs); font-weight: 500; color: var(--text-muted); display: flex; justify-content: space-between; gap: 8px; }
-.v2-cols-body { margin: 0; white-space: pre-line; line-height: 1.6; overflow-wrap: anywhere; }
+.v2-cols-body { margin: 0; white-space: pre-line; line-height: 1.6; overflow-wrap: anywhere; word-break: keep-all; } /* 한국어는 어절 단위로 줄바꿈. 긴 URL 은 anywhere 가 끊는다. */
 .v2-cols-body--en { font-size: var(--fs-sm); }
 @media (max-width: 1023px) { .v2-cols { grid-template-columns: 1fr; } .v2-cols > div + div { border-left: 0; border-top: 1px solid var(--border); } }
 .v2-judge { padding: 14px var(--card-pad); border-top: 1px solid var(--border); display: grid; gap: 12px; }

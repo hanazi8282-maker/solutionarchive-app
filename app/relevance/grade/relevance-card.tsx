@@ -19,8 +19,10 @@ export type Revealed = { stratum: string; human: string; lines: string[] }
 
 /** 번역·맥락 — 전부 사실 문자열이거나 "없음"의 이유다. */
 export type CardContext = {
-  /** 제품 배경 1~2문장(프로젝트 단위 캐시). 없으면 null. */
+  /** 제품 배경 1~2문장(프로젝트 단위 캐시). 없으면 null 이고 backgroundNote 가 이유를 말한다. */
   background: string | null
+  /** 배경이 없을 때 이유("준비 중"·"생성 실패"·"소개 없음"·"미적용"). 배경이 있으면 null. */
+  backgroundNote: string | null
   /** 한국어 번역 본문. 없으면 null 이고 translationNote 가 이유를 말한다. */
   translation: string | null
   /** 번역이 없을 때 이유("번역 준비 중"·"번역 실패"·"미적용"·"한국어 원문"). 번역이 있으면 null. */
@@ -32,31 +34,42 @@ export type CardContext = {
 const PREVIEW = 400
 const UNDO_SECONDS = 5
 
-function LongText({ text, en }: { text: string; en?: boolean }) {
-  const cls = en ? 'v2-cols-body v2-cols-body--en' : 'v2-cols-body'
-  if (text.length <= PREVIEW) return <p className={cls}>{text}</p>
+/** 미리보기 끝 — 단어·문장 중간에서 자르지 않게 limit 앞의 마지막 공백·줄바꿈에서 끊는다(없으면 limit). */
+function cut(text: string, limit: number): number {
+  if (text.length <= limit) return text.length
+  const sp = Math.max(text.lastIndexOf(' ', limit), text.lastIndexOf('\n', limit))
+  return sp > limit * 0.6 ? sp : limit
+}
+
+/**
+ * 원문·번역 한쪽. 펼침 상태는 카드가 들고 두 칸에 같이 준다 — 한쪽만 펼쳐 문단 위치가 어긋나지 않게.
+ * 펼치면 같은 문단이 이어서 전부 보인다(나머지를 새 문단으로 따로 붙이지 않는다 — 문장이 중간에 끊겨 보였다).
+ * 번역은 원문과 같은 비율 지점에서 끊는다(한국어가 더 짧아 같은 글자 수로 자르면 원문보다 훨씬 뒤까지 보인다).
+ */
+function LongText({ text, lang, limit, open, onToggle }: { text: string; lang: 'ko' | 'en'; limit: number; open: boolean; onToggle: (open: boolean) => void }) {
+  const cls = lang === 'en' ? 'v2-cols-body v2-cols-body--en' : 'v2-cols-body'
+  const end = cut(text, limit)
+  if (end >= text.length) return <p className={cls} lang={lang}>{text}</p>
   return (
     <>
-      <p className={cls}>{text.slice(0, PREVIEW)}…</p>
-      <details className="v2-fold v2-mt-sm">
-        <summary><IconChevronRight />나머지 {text.length - PREVIEW}자</summary>
-        <p className={`${cls} v2-fold-body`}>{text.slice(PREVIEW)}</p>
+      <p className={cls} lang={lang}>{open ? text : `${text.slice(0, end).trimEnd()} …`}</p>
+      <details className="v2-fold v2-mt-sm" open={open} onToggle={(e) => onToggle(e.currentTarget.open)}>
+        <summary><IconChevronRight />{open ? '접기' : `이어서 ${(text.length - end).toLocaleString('ko-KR')}자 더 보기`}</summary>
       </details>
     </>
   )
 }
 
 function ThreadLine({ t }: { t: NonNullable<CardContext['thread']> }) {
-  const shown = t.titleKo ?? t.title ?? t.ref
-  if (!shown) return null
-  const url = t.ref && /^https?:\/\//.test(t.ref) ? t.ref : null
+  if (!t.titleKo && !t.title && !t.ref) return null
+  // HN 은 ref 가 URL(또는 옛 형식이면 제목)이다. PH·YouTube 는 제목이 없고 ref 가 스킴 없는 주소다 — 링크로 연다.
+  const url = t.ref && /^https?:\/\//.test(t.ref) ? t.ref : !t.title && t.ref ? `https://${t.ref}` : null
   return (
     <p className="v2-gcard-thread">
       <span className="v2-muted">스레드</span>
-      <b>{shown}</b>
-      {t.titleKo && t.title ? <span className="v2-muted">(원제 {t.title})</span> : null}
-      {!t.title && t.ref ? <span className="v2-muted">제목 미저장. 식별자만 있다.</span> : null}
-      {url ? <a className="v2-mono v2-wrap" href={url} target="_blank" rel="noopener noreferrer">{url.replace(/^https?:\/\//, '')} <IconExternal /></a> : null}
+      {t.title ? <b lang={t.titleKo ? 'ko' : 'en'}>{t.titleKo ?? t.title}</b> : <span className="v2-muted">제목이 저장되지 않았다. 주소만 있다.</span>}
+      {t.titleKo && t.title ? <span className="v2-muted">원제 <span lang="en">{t.title}</span></span> : null}
+      {url ? <a className="v2-mono v2-wrap" translate="no" href={url} target="_blank" rel="noopener noreferrer">{url.replace(/^https?:\/\//, '')} <IconExternal /></a> : null}
     </p>
   )
 }
@@ -77,7 +90,12 @@ export function RelevanceCard(props: {
   const [queued, setQueued] = useState<number | null>(null) // 남은 초. null 이면 대기 없음.
   const [err, setErr] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const [expanded, setExpanded] = useState(false)
   const { text, context } = props
+  // 원문 언어 — 번역 배치(needsTranslation)와 같은 기준: 로마자가 한글보다 많으면 영어 글.
+  const srcLang = (text.match(/[A-Za-z]/g)?.length ?? 0) > (text.match(/[가-힣]/g)?.length ?? 0) ? 'en' : 'ko'
+  const shownRatio = cut(text, PREVIEW) / Math.max(text.length, 1)
+  const trLimit = context.translation ? (shownRatio >= 1 ? context.translation.length : Math.round(context.translation.length * shownRatio)) : 0
   const done = props.revealed != null || (state?.ok ?? false)
 
   // 대기 중이면 1초마다 줄이고 0 에서 전송한다. 되돌리기(U)는 setQueued(null).
@@ -110,7 +128,7 @@ export function RelevanceCard(props: {
       <span className={done ? 'v2-gcard-state v2-gcard-state--done' : 'v2-gcard-state'} aria-live="polite">
         {done ? <IconCheck /> : <IconClock />} {stateLabel}
       </span>
-      <p className="v2-gcard-bg">{context.background ?? '제품 배경 없음. 야간 배치가 아직 만들지 않았다.'}</p>
+      <p className="v2-gcard-bg">{context.background ?? context.backgroundNote ?? '제품 배경 준비 중. 야간 배치가 만든다.'}</p>
       {context.thread ? <ThreadLine t={context.thread} /> : null}
       {props.revealed ? (
         <p className="v2-gcard-result"><b>{props.revealed.human}</b> · {props.revealed.stratum} · {props.revealed.lines.join(' · ')}</p>
@@ -134,13 +152,13 @@ export function RelevanceCard(props: {
       <div className="v2-cols">
         <div>
           <h3><span>원문</span><span>{text.length.toLocaleString('ko-KR')}자</span></h3>
-          <LongText text={text} en={!/[가-힣]/.test(text.slice(0, 200))} />
+          <LongText text={text} lang={srcLang} limit={PREVIEW} open={expanded} onToggle={setExpanded} />
         </div>
         <div>
-          <h3><span>번역</span>{context.translation ? <span>{context.translation.length.toLocaleString('ko-KR')}자</span> : null}</h3>
+          <h3><span>한국어 번역</span>{context.translation ? <span>{context.translation.length.toLocaleString('ko-KR')}자</span> : null}</h3>
           {context.translation
-            ? <LongText text={context.translation} />
-            : <p className="v2-cols-body v2-muted">{context.translationNote ?? '준비 중. 야간 배치가 만든다. 원문으로 채점한다.'}</p>}
+            ? <LongText text={context.translation} lang="ko" limit={trLimit} open={expanded} onToggle={setExpanded} />
+            : <p className="v2-note">{context.translationNote ?? '번역 준비 중. 야간 배치가 만든다. 원문으로 채점한다.'}</p>}
         </div>
       </div>
 
@@ -148,7 +166,7 @@ export function RelevanceCard(props: {
         <form ref={formRef} action={action} className="v2-judge" onSubmit={() => setErr(false)}>
           <input type="hidden" name="input_id" value={props.inputId} />
           <div className="v2-judge-row">
-            <span className="v2-judge-q">이 댓글은</span>
+            <span className="v2-judge-q">이 글은</span>
             <div className="v2-tiles" role="radiogroup" aria-label="판정">
               {([['relevant', '관련', '1'], ['irrelevant', '무관', '2'], ['unknown', '모름', '3']] as const).map(([v, l, k]) => (
                 <label key={v} className="v2-tile">
@@ -157,6 +175,7 @@ export function RelevanceCard(props: {
                 </label>
               ))}
             </div>
+            <span className="v2-note">무관은 확실할 때만. 애매하면 모름.</span>
           </div>
           <div className="v2-judge-row">
             <span className="v2-judge-q">제품 정보가</span>
@@ -166,10 +185,10 @@ export function RelevanceCard(props: {
                   <label className="v2-tile"><input type="radio" name="informative" value="true" disabled={pending} /><span className="v2-tile-dot" aria-hidden="true" />있음<kbd className="v2-kbd">4</kbd></label>
                   <label className="v2-tile"><input type="radio" name="informative" value="false" disabled={pending} /><span className="v2-tile-dot" aria-hidden="true" />없음<kbd className="v2-kbd">5</kbd></label>
                 </div>
-                <span className="v2-note">선택. 제품에 대해 뭔가 알려 주는가.</span>
+                <span className="v2-note">선택. 이 제품(또는 대체재)을 판단할 구체 정보가 있는가.</span>
               </>
             ) : (
-              <span className="v2-note">아직 못 묻는다. 판정만 저장된다. <span className="v2-mono">product_informative 컬럼 미적용 (마이그 000031 전)</span></span>
+              <span className="v2-note">아직 물을 수 없다. 관련·무관·모름만 저장된다. <span className="v2-mono" translate="no">product_informative 미적용 (마이그 000031 전)</span></span>
             )}
           </div>
           <label className="v2-stack-tight">
@@ -181,16 +200,16 @@ export function RelevanceCard(props: {
               disabled={pending || props.noteState !== 'present'}
               autoComplete="off"
               spellCheck={false}
-              placeholder={props.noteState === 'present' ? '기준이 이 건을 어떻게 다뤄야 했나…' : '아직 못 쓴다. 판정 저장은 된다.'}
+              placeholder={props.noteState === 'present' ? '기준이 이 글을 어떻게 다뤄야 했나…' : '아직 쓸 수 없다. 판정은 저장된다.'}
             />
             {props.noteState !== 'present' && (
               <span className="v2-note">
-                {props.noteState === 'missing' ? '메모 저장소가 아직 없다.' : '메모 저장소를 확인하지 못했다.'}{' '}
-                <span className="v2-mono">relevance_feedback_notes {props.noteState === 'missing' ? '미적용 (마이그 000032 전)' : '확인 불가'}</span>
+                {props.noteState === 'missing' ? '메모 저장소가 아직 없다.' : '메모 저장소를 확인하지 못했다(없다는 뜻은 아니다).'}{' '}
+                <span className="v2-mono" translate="no">relevance_feedback_notes {props.noteState === 'missing' ? '미적용 (마이그 000032 전)' : '확인 불가'}</span>
               </span>
             )}
           </label>
-          {err && <p className="v2-err" role="alert">판정을 고르지 않았다. 1, 2, 3 중 하나를 누른다.</p>}
+          {err && <p className="v2-err" role="alert">판정을 고르지 않았다. 관련(1)·무관(2)·모름(3) 중 하나를 고른다.</p>}
           {state && !state.ok && <p className="v2-err" role="alert">{state.message}</p>}
           <div className="v2-judge-foot">
             <button type="button" className="v2-gbtn v2-gbtn--primary" data-save disabled={pending || queued !== null} onClick={queue}>저장 <kbd className="v2-kbd">Enter</kbd></button>

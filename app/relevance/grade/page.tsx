@@ -55,8 +55,8 @@ function Shell({ done = 0, total = 0, children }: { done?: number; total?: numbe
 }
 
 const KO: Record<string, string> = { relevant: '관련', irrelevant: '무관', unknown: '모름' }
-const ko = (v: string | null | undefined) => (v ? KO[v] ?? v : '없음')
-const inf = (v: boolean | null | undefined) => (v === true ? '정보있음' : v === false ? '정보없음' : '미기재')
+const ko = (v: string | null | undefined) => (v ? KO[v] ?? v : '판정 없음')
+const inf = (v: boolean | null | undefined) => (v === true ? '정보있음' : v === false ? '정보없음' : '판정 없음')
 
 export default async function RelevanceGradePage() {
   const sb = await createClient()
@@ -97,27 +97,38 @@ export default async function RelevanceGradePage() {
     loadBackgrounds(sb, projectIds),
   ])
   // 번역이 없을 때의 이유 — 0건("준비 중")과 못 읽음·미적용을 가른다(§7.1).
-  const cacheNote = translations.state === 'missing' ? `미적용(마이그 ${TRANSLATIONS_MIGRATION} 전)`
-    : translations.state === 'unknown' ? `확인 불가(${translations.error})` : null
+  // 마이그 번호만 짧게 — 파일명 전체(20260930000036_relevance_translations.sql)는 좁은 칸을 넘친다. 다른 안내(000031·000032)와 같은 꼴.
+  const migNo = TRANSLATIONS_MIGRATION.slice(8, 14)
+  const cacheNote = translations.state === 'missing' ? `번역 저장소 미적용 (마이그 ${migNo} 전)`
+    : translations.state === 'unknown' ? `번역 저장소 확인 불가 (${translations.error})` : null
+  const bgCacheNote = backgrounds.state === 'missing' ? `제품 배경 저장소 미적용 (마이그 ${migNo} 전)`
+    : backgrounds.state === 'unknown' ? `제품 배경 저장소 확인 불가 (${backgrounds.error})` : null
   const contextOf = (inputId: string, projectId: string | null): CardContext => {
     const raw = texts.get(inputId) ?? ''
     const src = parseSourceContext(sourceKeys.get(inputId), raw)
     const tr = translations.state === 'present' ? translations.rows.get(inputId) ?? null : null
     const bg = backgrounds.state === 'present' ? backgrounds.rows.get(projectId ?? '') ?? null : null
-    const translationNote = cacheNote ?? (!tr ? '준비 중. 야간 배치가 만든다. 원문으로 채점한다.' : tr.status === 'failed' ? '번역 실패(사후검사 또는 호출 실패). 원문으로 채점한다.' : tr.status === 'skipped' ? '한국어 원문' : null)
+    const translationNote = cacheNote ? `${cacheNote}. 원문으로 채점한다.`
+      : !tr ? '번역 준비 중. 야간 배치가 만든다. 원문으로 채점한다.'
+      : tr.status === 'failed' ? '번역을 싣지 않았다. 호출이 실패했거나 사후검사(요약·해설·평가 문구)에 걸렸다. 원문으로 채점한다.'
+      : tr.status === 'skipped' ? '원문이 한국어라 번역하지 않았다.' : null
+    const backgroundNote = bgCacheNote ? `${bgCacheNote}.`
+      : !bg ? '제품 배경 준비 중. 야간 배치가 만든다.'
+      : bg.status === 'failed' ? '제품 배경을 싣지 않았다. 호출이 실패했거나 사후검사에 걸렸다.'
+      : bg.status === 'skipped' ? '제품 소개가 비어 있어 배경을 만들지 않았다.' : null
     const thread = src.threadKey || src.threadTitle || src.threadRef
       ? { title: src.threadTitle, titleKo: tr?.thread_title_ko ?? null, ref: src.threadRef }
       : null
-    return { background: bg?.status === 'ok' ? bg.background : null, translation: tr?.status === 'ok' ? tr.text_ko : null, translationNote: tr?.status === 'ok' ? null : translationNote, thread }
+    return { background: bg?.status === 'ok' ? bg.background : null, backgroundNote: bg?.status === 'ok' ? null : backgroundNote, translation: tr?.status === 'ok' ? tr.text_ko : null, translationNote: tr?.status === 'ok' ? null : translationNote, thread }
   }
   const done = items.filter((i) => i.row.human_verdict != null).length
   const a = batch.availability
   const unavailable = STRATA.filter((s) => !batch.strata[s].available)
 
   const reveal = (r: FeedbackRow, s: (typeof STRATA)[number]): Revealed => ({
-    stratum: STRATUM_LABEL[s],
-    human: `${ko(r.human_verdict)}${r.human_product_informative == null ? '' : ` · ${inf(r.human_product_informative)}`}`,
-    lines: [`1차 ${ko(r.verdict)}`, `2차 ${ko(r.second_verdict)}`, ...(a.informative ? [`정보성 1차 ${inf(r.product_informative)} / 2차 ${inf(r.second_product_informative)}`] : [])],
+    stratum: `층 ${STRATUM_LABEL[s]}`,
+    human: `내 판정 ${ko(r.human_verdict)}${r.human_product_informative == null ? '' : ` · ${inf(r.human_product_informative)}`}`,
+    lines: [`모델 1차 ${ko(r.verdict)} · 2차 ${ko(r.second_verdict)}`, ...(a.informative ? [`제품 정보 1차 ${inf(r.product_informative)} · 2차 ${inf(r.second_product_informative)}`] : [])],
   })
 
   return (
@@ -125,31 +136,31 @@ export default async function RelevanceGradePage() {
       <GradeKeys />
       <div className="v2-batch">
         <p className="v2-text v2-text--muted">
-          {today || '날짜 확인 불가'} 묶음 {BATCH_SIZE}장. 자동승인 통과, 경계, 불일치, 둘 다 무관을 섞어 뽑았다. 모델 판정과 어느 묶음인지는 저장한 뒤에 보인다.
+          {today || '날짜 확인 불가'} 묶음 {BATCH_SIZE}장. 네 층(자동승인 통과 · 관련이지만 정보 없음 · 1차·2차 불일치 · 둘 다 무관)에서 섞어 뽑았다. 모델 판정과 층은 저장한 뒤에 보인다.
         </p>
         <details className="v2-fold">
-          <summary><IconChevronRight />층 배분</summary>
+          <summary><IconChevronRight />층별 배분</summary>
           <table aria-label="층별 배분">
-            <thead><tr><th>층</th>{STRATA.map((s) => <th key={s}>{s}</th>)}</tr></thead>
+            <thead><tr><th scope="col">층</th>{STRATA.map((s) => <th key={s} scope="col">{s}</th>)}</tr></thead>
             <tbody>
-              <tr><td>기본</td>{STRATA.map((s) => <td key={s}>{DEFAULT_QUOTA[s]}</td>)}</tr>
-              <tr><td>오늘</td>{STRATA.map((s) => <td key={s}>{batch.strata[s].picked}</td>)}</tr>
+              <tr><th scope="row">기본 배분</th>{STRATA.map((s) => <td key={s}>{DEFAULT_QUOTA[s]}</td>)}</tr>
+              <tr><th scope="row">오늘 뽑음</th>{STRATA.map((s) => <td key={s}>{batch.strata[s].picked}</td>)}</tr>
             </tbody>
           </table>
-          <p className="v2-note v2-fold-body">층이 모자라면 다른 층에서 채운다. 같은 날엔 같은 묶음이다. <span className="v2-mono">seed = KST 날짜 · pickBatch</span></p>
+          <p className="v2-note v2-fold-body">{STRATA.map((s) => STRATUM_LABEL[s]).join(' · ')}.<br />층이 모자라면 다른 층에서 채운다. 같은 날엔 같은 묶음이다. <span className="v2-mono" translate="no">seed = KST 날짜 · pickBatch</span></p>
         </details>
       </div>
       {unavailable.length > 0 && (
         <p className="v2-note v2-flag">
           확인 불가 층: {unavailable.map((s) => STRATUM_LABEL[s]).join(', ')}.{' '}
-          {a.second === null ? '판정 행이 0 건이라 컬럼 유무를 모른다' : a.second === false ? '2차 판정 컬럼(000027) 없음' : '정보성 컬럼(000031) 미적용'}. 0 건이 아니라 못 가른 것이다.
+          {a.second === null ? '판정 행이 0건이라 컬럼이 있는지 모른다' : a.second === false ? '2차 판정 컬럼 미적용 (마이그 000027 전)' : '제품 정보 컬럼 미적용 (마이그 000031 전)'}. 0건이 아니라 가르지 못한 것이다.
         </p>
       )}
-      {cacheNote && <p className="v2-note v2-flag">번역·제품 배경 {cacheNote}. 원문으로 채점한다.</p>}
+      {(cacheNote || bgCacheNote) && <p className="v2-note v2-flag">{[cacheNote, bgCacheNote].filter(Boolean).join(' · ')}.{cacheNote ? ' 원문으로 채점한다.' : ''}</p>}
 
       {items.length === 0 ? (
         <Card padded={false}>
-          <EmptyState compact title="오늘 채점할 카드 0장 (조회는 정상)" description={`판정 ${loaded.rows.length}행 중 층에 들고 아직 안 본 것이 없다.`} />
+          <EmptyState compact title="오늘 채점할 카드 0장 (조회는 정상)" description={`판정 ${loaded.rows.length}행 가운데 네 층 어디에 들면서 아직 채점하지 않은 글이 없다.`} />
         </Card>
       ) : (
         <div className="v2-stack-lg">
@@ -160,7 +171,7 @@ export default async function RelevanceGradePage() {
               total={items.length}
               inputId={row.input_id}
               project={projectOf.get(row.project_id ?? '') ?? '(프로젝트 미상)'}
-              text={texts.get(row.input_id) ?? ''}
+              text={parseSourceContext(sourceKeys.get(row.input_id), texts.get(row.input_id) ?? '').body}
               context={contextOf(row.input_id, row.project_id ?? null)}
               informativeReady={a.informative === true}
               noteState={noteState}

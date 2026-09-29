@@ -247,12 +247,12 @@ export interface RelevanceSubmission {
 /** 채점 폼 검증. 판정은 필수(빈칸 = 안 봄이지 무관이 아니다), 정보성·메모는 선택. */
 export function readRelevanceSubmission(input: { inputId: unknown; verdict: unknown; informative: unknown; note: unknown }): { value: RelevanceSubmission | null; error?: string } {
   const inputId = typeof input.inputId === 'string' ? input.inputId.trim() : ''
-  if (!UUID.test(inputId)) return { value: null, error: '대상 리뷰 식별자가 올바르지 않습니다. 새로고침 후 다시 시도하세요.' }
+  if (!UUID.test(inputId)) return { value: null, error: '대상 글 식별자가 올바르지 않다. 새로고침해서 다시 한다.' }
   const verdict = typeof input.verdict === 'string' ? input.verdict : ''
-  if (!(VERDICTS as readonly string[]).includes(verdict)) return { value: null, error: '관련 / 무관 / 모름 중 하나를 고르세요.' }
+  if (!(VERDICTS as readonly string[]).includes(verdict)) return { value: null, error: '관련·무관·모름 중 하나를 고른다.' }
   const inf = input.informative == null ? '' : String(input.informative)
-  if (!['', 'true', 'false'].includes(inf)) return { value: null, error: '정보있음/정보없음 값이 올바르지 않습니다.' }
+  if (!['', 'true', 'false'].includes(inf)) return { value: null, error: '정보있음·정보없음 값이 올바르지 않다.' }
   const note = typeof input.note === 'string' ? input.note.trim() : ''
-  if (note.length > NOTE_MAX) return { value: null, error: `메모는 ${NOTE_MAX}자 이하로 적어 주세요(현재 ${note.length}자).` }
+  if (note.length > NOTE_MAX) return { value: null, error: `메모는 ${NOTE_MAX}자까지 적는다(현재 ${note.length}자).` }
   return { value: { inputId, verdict: verdict as Verdict, informative: inf === '' ? null : inf === 'true', note: note || null } }
 }

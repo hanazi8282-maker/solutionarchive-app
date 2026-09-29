@@ -308,16 +308,19 @@ async function propose(kind, count, known) {
   //    (run 35182471112 · 35182684521): 봉투가 매번 `is_error:true`,
   //    `stop_reason:"tool_use"`, `num_turns:2` 를 돌려줬다. 모델이 "후기가 많을 법한
   //    제품"을 고르려고 **첫 턴에 도구를 집는다.** 그러면 답을 쓸 턴이 남지 않는다.
-  //    `--allowedTools ''` 로 막아 보려 했지만 빈 값은 무시됐다(두 번째 실측).
-  //    그래서 막는 대신 **끝까지 갈 턴을 준다.** 프롬프트로도 도구를 말린다(아래).
-  //    채택 판정은 어차피 프로브가 하므로(docs/discovery-design.md) 모델이 도구를
-  //    쓰든 안 쓰든 결과의 신뢰도는 달라지지 않는다 — 비용과 시간만 문제다.
+  //    당시 `--allowedTools ''` 로 막아 보려 했지만 빈 값은 무시됐다(그때는 CLI 가 그 플래그를
+  //    안 읽었다) — 그래서 막는 대신 끝까지 갈 턴을 4 로 늘렸다.
+  //    2026-09-29(PR #348): 그 뒤 CLI 2.1.0+ 가 `--tools ''` 를 지원한다는 게 확인됐다(이 리포는
+  //    2.1.251 을 고정한다, lib/insight/claude-cli.ts CLAUDE_CLI_VERSION). 프롬프트도 "검색하지
+  //    마라, 도구를 쓰지 마라"고 이미 말리고 있어 도구가 애초에 필요 없다 — 이제는 진짜로 끈다.
+  //    `--max-turns 4` 는 그대로 둔다: 도구가 없어도 비용은 안 늘고, 다른 이유로 턴이 걸리는
+  //    경우의 여유가 된다.
   //
   // ⚠️ cwd 를 리포가 아니라 /tmp 로 둔다. repoRoot 를 주면 claude 가 CLAUDE.md 와
   //    리포 컨텍스트를 통째로 읽는다 — 캐시 생성 22,434 토큰, 실패 한 번에 $0.098.
   //    /tmp 로 옮기고 같은 실패가 $0.042 로 떨어졌다(실측). 이름 2개 받는 데 리포를
   //    읽힐 이유가 없다. 성공하는 lib/insight/llm.ts 도 cwd 를 주지 않는다.
-  const args = ['-p', '--output-format', 'json', '--max-turns', '4']
+  const args = ['-p', '--output-format', 'json', '--max-turns', '4', '--tools', '']
   log(`후보 ${count}건 제안 요청 (kind=${kind}) — 프롬프트 ${Buffer.byteLength(prompt, 'utf8')}B / args: ${JSON.stringify(args)} / cwd=/tmp`)
 
   const r = await runClaude(bin, args, {
@@ -391,9 +394,14 @@ export function judgeEnv(env = process.env) {
   return { HOME: home, USERPROFILE: home, APPDATA: env.APPDATA, LOCALAPPDATA: env.LOCALAPPDATA, CLAUDE_CONFIG_DIR: undefined }
 }
 
-/** 판정자 1회 호출. 던지지 않는다 — 실패는 확인 불가 판정이다. */
+/**
+ * 판정자 1회 호출. 던지지 않는다 — 실패는 확인 불가 판정이다.
+ * transferPrompt 가 이미 "검색하지 마라, 도구를 쓰지 마라"고 말리므로 도구가 필요 없다 —
+ * `--tools ''`(CLI 2.1.0+, PR #348)로 끈다. 도구 호출 실패든 한도든 transferFromRun 은
+ * 전부 unverified 로 접는다(§7.1) — pass 로 새는 경로가 없다.
+ */
 export async function judgeTransfer(cand, { bin, run = runClaude } = {}) {
-  const r = await run(bin, ['-p', '--output-format', 'json', '--max-turns', '4'], {
+  const r = await run(bin, ['-p', '--output-format', 'json', '--max-turns', '4', '--tools', ''], {
     env: judgeEnv(),
     timeoutMs: 5 * 60_000,
     input: transferPrompt(cand),

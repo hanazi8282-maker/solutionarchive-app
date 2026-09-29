@@ -26,6 +26,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { activeProvider, extractJsonObject, normalizePatternKey } from '../lib/insight/llm.ts'
 import { resolveClaudeBinary, runClaude } from '../lib/insight/claude-cli.ts'
+// 한도 판정은 여기 한 곳(§CLI_LIMIT_MARKERS)을 재사용한다 — 이 스크립트가 따로 문구를 보지 않는다
+// (2026-09-29 run 36511286722: 도구 호출 실패(tool_use)를 한도로 오분류해 24건이 멈췄다, PR #348).
+import { cliFailure, isCliLimitError } from '../lib/analysis/llm.ts'
 
 const COLUMN_FIELDS = 'id, slug, review_status, review_note, feedback_at'
 const PATTERN_FIELDS = 'id, pattern_key, status, evidence_count, source_slugs'
@@ -308,28 +311,38 @@ async function askLlm(prompt, targets) {
   }
 
   const bin = await resolveClaudeBinary()
-  const res = await runClaude(bin.path, ['-p', '--output-format', 'json', '--max-turns', '1'], {
-    // 배치 전체가 한 프롬프트라 건별 호출보다 길다. 기본 120초로는 모자란다.
-    timeoutMs: 300_000,
-    input: prompt,
-    // runClaude 기본 cwd 는 /tmp(Vercel 전용)다. 이건 사람이 로컬에서 돌린다.
-    cwd: os.tmpdir(),
-  })
-  if (res.exitCode !== 0) {
-    throw new Error(`claude -p 실패 (exit ${res.exitCode}${res.timedOut ? ', timeout' : ''}): ${res.stderr.slice(0, 500)}`)
-  }
+  const res = await runClaude(
+    bin.path,
+    [
+      '-p', '--output-format', 'json', '--max-turns', '1',
+      // 도구 없음. `--max-turns 1` 만으로는 모델이 첫 턴에 도구를 집는 것을 못 막는다 — 그러면 답을
+      // 쓸 턴이 없어 is_error·error_max_turns·stop_reason=tool_use 로 죽는다(lib/analysis/llm.ts, PR #348).
+      '--tools', '',
+    ],
+    {
+      // 배치 전체가 한 프롬프트라 건별 호출보다 길다. 기본 120초로는 모자란다.
+      timeoutMs: 300_000,
+      input: prompt,
+      // runClaude 기본 cwd 는 /tmp(Vercel 전용)다. 이건 사람이 로컬에서 돌린다.
+      cwd: os.tmpdir(),
+    },
+  )
   // --output-format json 은 봉투를 씌운다. 본문은 봉투의 result 안에 있다.
-  let payload = res.stdout
+  let env = null
   try {
-    const envelope = JSON.parse(res.stdout)
-    if (envelope.is_error === true) {
-      throw new Error(`claude 가 오류를 보고했다: ${String(envelope.result ?? '').slice(0, 300)}`)
-    }
-    if (typeof envelope.result === 'string') payload = envelope.result
-  } catch (e) {
-    if (e instanceof Error && e.message.startsWith('claude 가 오류를')) throw e
-    // 봉투 파싱 실패는 치명적이지 않다 — 본문이 그대로 온 경우다.
+    const parsed = JSON.parse(res.stdout)
+    if (parsed && typeof parsed === 'object') env = parsed
+  } catch {
+    // 봉투가 아니면 본문이 그대로 온 것이다.
   }
+  if (res.exitCode !== 0 || env?.is_error === true) {
+    const err = cliFailure(res, env)
+    // 사람이 직접 돌리는 스크립트다 — "한도라서 기다려야 한다"와 "도구 호출 버그다"를
+    // 헷갈리면 사람이 그대로 재시도해 버린다. 판정은 문구가 아니라 isCliLimitError 한 곳.
+    throw new Error(`${isCliLimitError(err) ? '한도' : '실패'}: ${err.message}`)
+  }
+  let payload = res.stdout
+  if (env && typeof env.result === 'string') payload = env.result
   return payload
 }
 
@@ -709,6 +722,24 @@ async function selfTest() {
   // 아래 바늘은 조립해서 만든다. 소스에 리터럴로 적으면 이 검사가 자기 자신에 걸린다.
   const guideDir = ['content', 'guides'].join('/')
   check(!src.includes(guideDir), `가이드 경로 문자열이 스크립트에 들어왔다 — ${guideDir}`)
+
+  // 9) askLlm 이 도구를 끄고(`--tools ''`), 한도 판정을 lib/analysis/llm.ts 한 곳에서만 가져온다.
+  check(
+    /'--max-turns', '1',[\s\S]{0,200}'--tools', '',/.test(src),
+    "askLlm 이 --tools '' 로 도구를 끄지 않는다 — 2026-09-29 run 36511286722 재발 경로",
+  )
+  check(
+    /cliFailure\(res, env\)/.test(src) && /isCliLimitError\(err\)/.test(src),
+    'askLlm 실패 판정이 lib/analysis/llm.ts 의 isCliLimitError/cliFailure 를 안 쓴다 — 문구 판정이 새로 생겼다',
+  )
+  // 도구 호출 실패(stop_reason tool_use / error_max_turns)는 한도가 아니다 — 직접 재현해서 고정한다.
+  const toolUseFail = cliFailure(
+    { exitCode: 1, timedOut: false, stdout: '', stderr: '' },
+    { is_error: true, subtype: 'error_max_turns', stop_reason: 'tool_use', num_turns: 2 },
+  )
+  check(!isCliLimitError(toolUseFail), '도구 호출 실패(tool_use)가 한도로 읽힌다')
+  const limitFail = cliFailure({ exitCode: 1, timedOut: false, stdout: '', stderr: '' }, { is_error: true, api_error_status: 429 })
+  check(isCliLimitError(limitFail), '실제 한도(api_error_status=429)가 한도로 안 읽힌다')
 
   console.log(`self-test ok (${n}건)`)
 }

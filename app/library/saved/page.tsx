@@ -8,7 +8,7 @@ import { PubShell } from '../../_pub/components/PubShell'
 import { Hero } from '../../_pub/components/Hero'
 import { Panel } from '../../_pub/components/Panel'
 import { PubButtonLink } from '../../_pub/components/Button'
-import { PubCaseCard } from '../../_pub/components/PubCaseCard'
+import { PubIndexRow } from '../../_pub/components/PubIndexRow'
 import { PubBrandLogoNotice } from '../../_pub/components/PubBrandLogo'
 import { PubEmpty } from '../../_pub/components/PubEmpty'
 import { Chip } from '../../_pub/components/Chip'
@@ -121,17 +121,18 @@ export default async function SavedCasesPage() {
         <PubEmpty
           title={saved.rows.length === 0 ? '아직 저장한 케이스가 없습니다 (조회는 정상)' : `저장 ${saved.rows.length}건이 전부 지금은 볼 수 없는 케이스입니다`}
           description={saved.rows.length === 0
-            ? '케이스 상세에서 "저장" 을 누르면 여기 쌓입니다. 추천으로 채우지 않습니다 — 이 화면은 당신이 고른 것만 보여 줍니다.'
+            ? '케이스 상세에서 “저장” 을 누르면 여기 쌓입니다. 추천으로 채우지 않습니다 — 이 화면은 당신이 고른 것만 보여 줍니다.'
             : '승인이 내려갔거나 지워진 케이스입니다.'}
           action={<PubButtonLink href="/library" variant="primary" size="sm">케이스 둘러보기<IconArrowRight /></PubButtonLink>}
         />
       ) : (
         <div className="pub-libmain">
-          <div className="pub-cardgrid">
+          {/* 색인 줄 — /library 목록·관련 케이스와 같은 줄(남헌 09-29 결정 b) */}
+          <ul className="pub-index">
             {cards.map((c) => (
-              <PubCaseCard key={c.study.id} study={c.study} move={c.move} moveCount={c.move_count} />
+              <PubIndexRow key={c.study.id} study={c.study} move={c.move} moveCount={c.move_count} />
             ))}
-          </div>
+          </ul>
           <PubBrandLogoNotice />
         </div>
       )}

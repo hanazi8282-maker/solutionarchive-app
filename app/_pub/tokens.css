@@ -24,6 +24,7 @@
   --pub-tracking-display: var(--sa-tracking-display);
   --pub-leading-display: var(--sa-leading-head);
 
+  --pub-size-display-lg: var(--sa-size-56); /* ≥1024 전용 */
   --pub-size-display-sm: var(--sa-size-36);
   --pub-tracking-display-sm: var(--sa-tracking-display);
   --pub-leading-display-sm: var(--sa-leading-head);
@@ -121,6 +122,11 @@
   --pub-cta: var(--sa-accent);
   --pub-cta-ink: var(--sa-accent-ink);
   --pub-focus: var(--sa-focus);
+  /* 면 3색 + flash(flash 는 다크 면 전용 — 라이트에서 읽지 않는다, DESIGN.md §1) */
+  --pub-plane-accent: var(--sa-plane-accent);
+  --pub-plane-ice: var(--sa-plane-ice);
+  --pub-plane-lilac: var(--sa-plane-lilac);
+  --pub-flash: var(--sa-flash);
   color-scheme: light;
 }
 
@@ -137,7 +143,12 @@
   --pub-accent-ink: var(--sa-accent-ink);
   --pub-cta: var(--sa-accent);
   --pub-cta-ink: var(--sa-accent-ink);
-  --pub-focus: var(--sa-dark-focus); /* 딥네이비 위에서 #1d4ed8 링은 안 보인다 */
+  --pub-focus: var(--sa-dark-focus); /* 딥인디고 위에서 액센트 링은 안 보인다 */
+  /* 다크에서 면 3색은 선 색으로 — 면 위에 면이 생기지 않게 */
+  --pub-plane-accent: var(--sa-dark-line);
+  --pub-plane-ice: var(--sa-dark-line);
+  --pub-plane-lilac: var(--sa-dark-line);
+  --pub-flash: var(--sa-flash);
   color-scheme: dark;
 }
 

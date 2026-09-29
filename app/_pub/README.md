@@ -104,8 +104,8 @@ Pretendard 는 `next/font/local`. **`app/layout.tsx` 에서 허용된 수정은 
 | 묶음 | 변수 · 값 | 출처 |
 |---|---|---|
 | 라이트 | `--pub-canvas #FBFBFD` · `--pub-surface #FFFFFF` · `--pub-surface-2 #F0F1F9` · `--pub-edge #E6E6E6` · `--pub-ink #000000` · `--pub-ink-muted #6E6E73`(2026-09-29 개정, 아래 참고) · `--pub-ink-faint #B3B3B8` | [A] 실측 |
-| 다크 | `--pub-canvas #020308` · `--pub-surface #030407` · `--pub-ink #FAFAFA` · `--pub-ink-muted rgba(250,250,250,.62)` · `--pub-edge rgba(250,250,250,.14)` | [F] 실측 |
-| 액센트 | `--pub-accent`/`--pub-cta` **#1D4ED8**(확정·변경 금지) · `--pub-accent-ink`/`--pub-cta-ink #FFFFFF` · `--pub-focus` 라이트 #1D4ED8 / 다크 **#5DBCE5** | 다크 포커스는 [F] 스카이 |
+| 다크 | `--pub-canvas #060a2e` · `--pub-surface #030407` · `--pub-ink #FAFAFA` · `--pub-ink-muted rgba(250,250,250,.62)` · `--pub-edge rgba(250,250,250,.14)` | [F] 실측 |
+| 액센트 | `--pub-accent`/`--pub-cta` #2626e6(2026-09-30 남헌 지시로 교체. 값은 sa.css) · `--pub-accent-ink`/`--pub-cta-ink #FFFFFF` · `--pub-focus` 라이트 #2626e6 / 다크 #9d9dff | 다크 포커스는 액센트 계열 |
 | 판정 | `--pub-verdict-pos #396C00` / `-bg #E9FFD2` · `--pub-verdict-neg #E58B73` / `-bg #FFF1EC` · `--pub-verdict-mix #E2B866` / `-bg #FFF7E0` | 긍정 [A] 라임 · 부정 [T] 코랄 · 혼합 앰버. **두더지웍스의 emerald/red 금지** |
 | 흰 섬 | `--pub-island #FFFFFF` · `--pub-island-ink #000000` · `--pub-island-ink-muted #6E6E73`(2026-09-29 개정, 아래 참고) · `--pub-island-edge #E6E6E6` · `--pub-island-wash #F0F1F9` | 두 테마 공통([A] 값) |
 
@@ -144,12 +144,10 @@ AA 통과)로 바꿨다. 09-29 토큰 통합 뒤에는 `--pub-ink-muted` 도 `--
 2026-09-29 부터 `_pub` 토큰은 값을 갖지 않는다. `app/_ds/tokens/sa.css` 한 벌(정본 리포 루트 `DESIGN.md`)을 `--pub-*` 이름으로 가리킬 뿐이다.
 `scripts/design-tokens-selftest.mjs` 가 CI(`build-check.yml`)에서 두 번 돈다 — 정상(화면 파일 리터럴 색·반경 0, DESIGN.md ↔ sa.css 이름 일치) + `--mutate`(일부러 리터럴을 넣어 **실패해야** 통과).
 
-불가피한 겹침 3건은 스크립트의 `UNAVOIDABLE` 표에 이유와 함께 적혀 있다:
-`#ffffff`(원색) · `#1d4ed8`(액센트 확정값, `_ds` 는 같은 값을 `--blue-700` 램프로 들고 있다) ·
-`radius 12px`(썸네일, `_ds` 의 `--radius-xl` 과 값 동일). **간격 px 은 세지 않는다**(위 표 참고).
+옛 겹침 검사의 `UNAVOIDABLE` 예외 표는 09-29 이 스크립트로 바뀌면서 없어졌다(액센트 예외도 함께 없음 — 값은 sa.css 한 곳). **간격 px 은 세지 않는다**(위 표 참고).
 
-**액센트 색이 생겼다.** v1 에는 없었다(잉크 단색 CTA). #1D4ED8 은 남헌 확정값이라 에이전트가
-바꾸지 않는다 — 바뀌면 `--pub-accent` / `--pub-cta` 두 줄이 입구다.
+**액센트 색이 생겼다.** v1 에는 없었다(잉크 단색 CTA). 값은 sa.css 의 `--sa-accent` 하나다(2026-09-30 #2626e6).
+바꾸면 `scripts/design-contrast-selftest.mjs`(CI) 가 전 조합 WCAG AA 대비를 다시 센다.
 
 ## A2 가 어떻게 결정했나 (A3 는 1번을 그대로 따라가면 된다)
 

@@ -171,12 +171,13 @@ export function QuizClient() {
           </div>
         </Panel>
 
-        {/* 점수만 보고 끝나면 퀴즈는 장난이 된다. 다음 한 걸음을 한 개만 크게 둔다. */}
+        {/* 점수만 보고 끝나면 퀴즈는 장난이 된다. 다음 한 걸음을 한 개만 크게 둔다.
+            둘 다 비로그인 공개 화면으로 보낸다(/analyze/new·/cases 는 로그인 벽) — MVP 9/30. */}
         <div className="pub-actions">
-          <PubButtonLink href="/analyze/new" variant="primary" size="lg">
+          <PubButtonLink href="/cases/report" variant="primary" size="lg">
             이제 내 상품으로 해보기<IconArrowRight />
           </PubButtonLink>
-          <PubButtonLink href="/cases" variant="ghost" size="lg">
+          <PubButtonLink href="/library" variant="ghost" size="lg">
             먼저 남의 사례 구경하기
           </PubButtonLink>
         </div>

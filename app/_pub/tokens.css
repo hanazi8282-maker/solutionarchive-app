@@ -115,7 +115,7 @@
   /* ── 흰 섬(패널) — 다크 캔버스 위의 라이트 카드. 두 테마에서 같다 [A] ── */
   --pub-island: #ffffff;
   --pub-island-ink: #000000;
-  --pub-island-ink-muted: #909094;
+  --pub-island-ink-muted: #6e6e73; /* 2026-09-29: #909094 는 흰 바탕 3.18:1 로 AA 미달 — v2.css 의 같은 AA 예외 값 */
   --pub-island-edge: #e6e6e6;
   --pub-island-wash: #f0f1f9; /* 두 번째 표면(사이드바·강조 칸) */
 
@@ -131,7 +131,7 @@
   --pub-surface-2: #f0f1f9;
   --pub-edge: #e6e6e6;
   --pub-ink: #000000;
-  --pub-ink-muted: #909094;
+  --pub-ink-muted: #6e6e73; /* 2026-09-29: #909094 는 #FBFBFD 위 3.08:1 / #FFFFFF 위 3.18:1 로 AA 미달 — v2.css 의 같은 AA 예외 값(#6e6e73)으로 교체 */
   /* ⚠️ 장식용만 — 본문·캡션에 쓰지 않는다(#FBFBFD 위 대비 미달). 구분선·비활성 표시용. */
   --pub-ink-faint: #b3b3b8;
   --pub-accent: #1d4ed8;

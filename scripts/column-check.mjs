@@ -39,7 +39,9 @@ function readabilityWarns(text) {
  */
 const SELF_LINE = /자기\s*보고/
 const SELF_LINE_NOT = /자기\s*보고\s*(가\s*)?(아님|아니|않)/
-const SELF_LINE_SOFT = /회사\s*(서술|전망|발표|사이트\s*표시값)|본인\s*(발언|글)|(공동)?창업자\s*(본인\s*)?글|자체\s*(집계|추산)|등급\s*C(?![A-Za-z0-9])/
+// 2026-09-29 남헌 결정 — "자사 공시" 판정 기준 통일. 회사가 스스로 낸 것이면 감사받은 규제 공시(10-K 등)라도
+// "자사 공시" 다 — 스레드 쪽(publish-gate.ts SELF_MARKERS)은 이미 그렇게 본다. 칼럼 근거 메모도 같은 기준으로 맞춘다.
+const SELF_LINE_SOFT = /회사\s*(서술|전망|발표|사이트\s*표시값)|본인\s*(발언|글)|(공동)?창업자\s*(본인\s*)?글|자체\s*(집계|추산)|등급\s*C(?![A-Za-z0-9])|(사업보고서|감사보고서|연차보고서|20-F|10-K|8-K|S-1)/
 export function checkEvidenceMemo(text) {
   const memo = (text.split(/\n## 근거 메모[^\n]*\n/)[1] || '').split(/\n## /)[0]
   const lines = memo.split('\n').filter((l) => /^\s*[-*]\s/.test(l))
@@ -51,6 +53,11 @@ export function checkEvidenceMemo(text) {
   return { errors, warns, selfLines: hard.length + soft.length }
 }
 
+// D-3 예외(남헌 2026-09-29, `롱폼-스레드-대시보드-관계.md` §D-3) — 부정 사례라도 창업자 본인이 공개한
+// 회고(postmortem)는 자기답글에 이 표시가 있으면 `발행: 불가` 없이도 통과한다. 무명 전직원 증언 같은
+// 제3자 발언은 이 표시를 붙여도 예외가 아니다 — 그런 글은 애초에 "본인"이 아니므로 이 문구를 쓸 근거가 없다.
+const FOUNDER_POSTMORTEM = /본인\s*회고,?\s*제3자\s*확인\s*없음/
+
 // 검증에서 실제로 걸린 패턴만. 걸리면 "고쳐라"가 아니라 "원문에 있는지 봐라"다.
 const CAUSAL = /(불렀다|때문에|그래서|덕분에|이끌었다|만들었다|낳았다)/g
 const TIME = /(지금도|여전히|현재|아직도|요즘)/g
@@ -61,7 +68,8 @@ export function checkColumn(src, research = '') {
   const errors = [], warns = []
   const text = src.replace(/\r/g, '')
   const [head] = text.split(/\n---\n/)
-  if (!/^독자:\s*(창업자|셀러)/m.test(text)) errors.push('첫머리에 `독자: 창업자` 또는 `독자: 셀러` 가 없다 (§10-0)')
+  // 2026-09-29 남헌 결정 — 독자를 하나로 통일(케이스-작성-가이드 §1). `셀러`는 더 이상 새 글에 쓰지 않는다.
+  if (!/^독자:\s*창업자/m.test(text)) errors.push('첫머리에 `독자: 창업자` 가 없다 (§10-0, 2026-09-29부터 `셀러`는 받지 않는다)')
   if (!/^#\s+/m.test(head)) errors.push('제목(# )이 없다')
   const n = len(head)
   if (n < COLUMN_MIN || n > COLUMN_MAX) errors.push(`본문 ${n}자 — ${COLUMN_MIN}~${COLUMN_MAX}자 밖 (§5)`)
@@ -140,7 +148,9 @@ export function checkThreads(src) {
     const hook = body.split('\n')[0] || ''
     if (hook && GENERAL.test(hook + ' ')) warns.push(`훅이 "${hook.slice(0, 20)}…" — 사례에 붙은 문장인지 본다 (가이드 §11)`)
     if (!/마무리 유형/.test(p)) warns.push('마무리 유형(질문·정리) 표기가 없다')
-    if (/부정 사례|실패/.test(text.slice(0, 600)) && !/발행:\s*불가/.test(p)) warns.push('부정 사례인데 `발행: 불가` 표시가 없다')
+    if (/부정 사례|실패/.test(text.slice(0, 600)) && !/발행:\s*불가/.test(p) && !FOUNDER_POSTMORTEM.test(p)) {
+      warns.push('부정 사례인데 `발행: 불가` 또는 자기답글 "본인 회고, 제3자 확인 없음" 표시가 없다 (D-3, 2026-09-29 예외는 창업자 본인 공개 회고만 해당)')
+    }
     out.push({ n: parts[k], chars: n, blockChars: blocks.map(len), errors, warns, body })
   }
   return out
@@ -228,6 +238,11 @@ function selfTest() {
   assert(checkColumn(memoNot).errors.length === 0, 'negated 자기보고 line is not flagged')
   const memoSoft = good.replace('## 근거 메모\n- x', '## 근거 메모\n- 코호트 서술 / https://a.com / 2024-01-01 / 회사 서술')
   assert(checkColumn(memoSoft).errors.length === 0 && checkColumn(memoSoft).warns.some((w) => w.includes('자사 공시')), 'soft self-report line is warn only')
+  // 2026-09-29 — "자사 공시" 기준 통일: 감사받은 규제 공시(10-K 등)도 회사가 낸 것이면 자사 공시다. 스레드는 이미 그렇게 보고 있었고, 칼럼도 맞춘다.
+  const memoFiling = good.replace('## 근거 메모\n- x', '## 근거 메모\n- 매출 5억 달러 / https://sec.gov/x / 2024-01-01 / 10-K')
+  assert(checkColumn(memoFiling).warns.some((w) => w.includes('자사 공시')), '10-K filing line without 자사 공시 is warn (unified self-disclosure standard)')
+  const memoFilingOk = good.replace('## 근거 메모\n- x', '## 근거 메모\n- 매출 5억 달러 / https://sec.gov/x / 2024-01-01 / 10-K, 자사 공시')
+  assert(!checkColumn(memoFilingOk).warns.some((w) => w.includes('자사 공시')), '10-K filing line with 자사 공시 is clean')
   // 2026-09-29 — 모드 B(1인칭 합쇼체) 글에 모드 A 전용 경고(해요체·SC-4)를 걸지 않는다. T1-3 A/B·T3-5 오탐 수정.
   const modeB = '기저귀 리뷰에서 가장 칭찬받은 항목이 정작 아기에겐 상관이 없었습니다. ' + '리뷰를 쓰는 건 엄마고 기저귀를 차는 건 아기니까요. '.repeat(5) + '저는 그 숫자를 한참 고객 만족도라고 불렀습니다.\n\n돈 내는 사람과 실제로 쓰는 사람이 같으신가요?'
   const rb = checkPost(modeB)
@@ -241,6 +256,13 @@ function selfTest() {
   const th2 = checkThreads(`# t\n\n## 1편\n\n- 모드: B\n- 마무리 유형: 질문\n\n\`\`\`text\n${modeB}\n\`\`\`\n`)[0]
   assert(!th2.warns.some((w) => w.startsWith('SC-4')), 'threads block `- 모드: B` respected')
   assert(checkColumn(good.replace('가'.repeat(3100), '이 회사는 잘된 것으로 보인다. ' + '가'.repeat(3100))).warns.some((w) => w.includes('완충 표현')), 'hedge is warn')
+  // 2026-09-29 — D-3 예외(창업자 본인 공개 회고). `발행: 불가` 가 없어도 자기답글에 "본인 회고, 제3자 확인 없음"이 있으면 통과.
+  const negNoLabel = `# t\n\n## 1편\n\n- 마무리 유형: 질문\n\n\`\`\`text\n실패했다. ${'가'.repeat(200)}\n\`\`\`\n`
+  assert(checkThreads(negNoLabel)[0].warns.some((w) => w.includes('발행: 불가')), 'negative case without label or marker warns')
+  const negLabeled = negNoLabel.replace('```\n', '```\n\n자기답글:\n```text\n발행: 불가\n```\n')
+  assert(!checkThreads(negLabeled)[0].warns.some((w) => w.includes('발행: 불가')), '발행: 불가 label still exempts')
+  const negFounder = negNoLabel.replace('```\n', '```\n\n자기답글:\n```text\n본인 회고, 제3자 확인 없음\n```\n')
+  assert(!checkThreads(negFounder)[0].warns.some((w) => w.includes('발행: 불가')), 'founder postmortem marker exempts D-3 warn')
   console.log('self-test ok')
 }
 

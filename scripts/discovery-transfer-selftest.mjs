@@ -115,6 +115,19 @@ const r2 = await judgeTransfer({ name: 'Acme', why: '소규모 인디 팀' }, { 
 t('정상 호출 → pass', r2.state, 'pass')
 ok('판정자는 제안 LLM 의 why 를 받지 않는다', !fakeRun.last.opts.input.includes('소규모 인디 팀'))
 ok('프롬프트는 stdin 으로 간다(인자 아님)', !fakeRun.last.args.some((a) => a.includes('Acme')))
+ok("judgeTransfer 가 --tools '' 로 도구를 끈다(2026-09-29, PR #348)", (() => {
+  const i = fakeRun.last.args.indexOf('--tools')
+  return i >= 0 && fakeRun.last.args[i + 1] === ''
+})())
+
+// ── 도구 호출 실패(tool_use / error_max_turns)는 한도도 pass 도 아니다 — 항상 unverified ──
+// 2026-09-29 run 36511286722(lib/analysis/llm.ts)와 같은 결의 실패다. transferFromRun 은
+// 문구·subtype 을 따로 안 보고 exit≠0/is_error 만 본다 — 그래서 이 케이스도 그냥 unverified 로 접힌다.
+const toolUseEnvelope = J({ is_error: true, subtype: 'error_max_turns', stop_reason: 'tool_use', num_turns: 2 })
+const r3 = await judgeTransfer({ name: 'Acme' }, { bin: 'x', run: fakeRun({ exitCode: 1, stdout: toolUseEnvelope, stderr: '' }) })
+t('도구 호출 실패(exit≠0) → 확인 불가 (한도로 새지 않는다)', r3.state, 'unverified')
+const r4 = await judgeTransfer({ name: 'Acme' }, { bin: 'x', run: fakeRun({ exitCode: 0, stdout: toolUseEnvelope, stderr: '' }) })
+t('도구 호출 실패(is_error 봉투) → 확인 불가', r4.state, 'unverified')
 
 // ── Notion 다이제스트: 후보마다 판정·hits·이식성 ──
 const { discoveryBlocks } = await import('./notion-push-digest.mjs')
@@ -137,6 +150,17 @@ ok('SaaS·VOC 통과분에만 판정자를 부른다', /kind === 'saas' && vocJu
 ok('최종 판정은 applyTransfer 로 합성한다', /applyTransfer\(vocJudgement, transfer, GATE_MODE\)/.test(src))
 ok('적재 행에 transfer_verdict 를 싣는다', /transfer_verdict: row\.transfer\?\.state \?\? null/.test(src))
 ok('적재는 판정 뒤다(persist 가 main 루프 뒤에서 돈다)', src.indexOf('applyTransfer(vocJudgement') < src.indexOf('await persist(known.supabase'))
+
+// ── 두 claude -p 호출(제안·판정) 모두 도구를 끈다 — 둘 다 프롬프트가 "도구 쓰지 마라"고 말리는데
+//    실제로 막힌 적은 없었다(2026-09-17 --allowedTools 실측 실패). PR #348 이 확인한 --tools '' 로 막는다.
+ok(
+  "propose() 의 claude -p 가 --tools '' 로 도구를 끈다",
+  /const args = \['-p', '--output-format', 'json', '--max-turns', '4', '--tools', ''\]/.test(src),
+)
+ok(
+  "judgeTransfer() 의 claude -p 가 --tools '' 로 도구를 끈다",
+  /run\(bin, \['-p', '--output-format', 'json', '--max-turns', '4', '--tools', ''\]/.test(src),
+)
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) process.exit(1)

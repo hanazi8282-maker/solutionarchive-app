@@ -19,7 +19,7 @@
 
 ## 등록 가능 판정 — 어댑터 대기(큐 아님, 기록용)
 
-- GeekNews (news.hada.io) — Show GN·Ask GN·토픽 댓글. robots: `*` 는 `Allow: /` + `/api/`·`/comments/comment`·`/comments/topic`·`/login` 등만 Disallow(학습용 봇 그룹은 `Disallow: /`, `Content-Signal: ai-train=no, search=yes, ai-input=yes`). 약관 제6조 금지행위 "서비스에 과도한 부하를 주는 자동화 접근, 크롤링, 스크립트 실행 행위" — **조건부 금지**라 §1.2-2 에 따라 저부하(일 수십 요청·간격 5초+)로 등록 가능. 로그인 불필요, 개인정보 적음. 새 어댑터 필요(목록 `/show`·`/ask` + `/topic?id=` 댓글 HTML, 약 1~1.5일). ⚠️ `/topic?id=` 는 쿼리형 경로 — 러너 robots 판정이 pathname 만 본다(SP-026). 지금 robots 에 쿼리 규칙이 없어 문제 없지만 어댑터 머리말에 적을 것. 우리 용도는 학습(ai-train)이 아니라 분석 입력이다.
+- GeekNews (news.hada.io) — Show GN·Ask GN·토픽 댓글. robots: `*` 는 `Allow: /` + `/api/`·`/comments/comment`·`/comments/topic`·`/login` 등만 Disallow(학습용 봇 그룹은 `Disallow: /`, `Content-Signal: ai-train=no, search=yes, ai-input=yes`). 약관 제6조 금지행위 "서비스에 과도한 부하를 주는 자동화 접근, 크롤링, 스크립트 실행 행위" — **조건부 금지**라 §1.2-2 에 따라 저부하(일 수십 요청·간격 5초+)로 등록 가능. 로그인 불필요, 개인정보 적음. 새 어댑터 필요(목록 `/show`·`/ask` + `/topic?id=` 댓글 HTML, 약 1~1.5일). ⚠️ `/topic?id=` 는 쿼리형 경로 — 러너 robots 판정이 pathname 만 본다(SP-026). 지금 robots 에 쿼리 규칙이 없어 문제 없지만 어댑터 머리말에 적을 것. 우리 용도는 학습(ai-train)이 아니라 분석 입력이다. ⚠️ 게시물 저작권·이용허락 조항(§1.2-2, 2026-09-30 추가 항목)은 아직 인용하지 않았다 — 어댑터 착수 전에 확인하고, 애매하면 위 대기로 옮긴다.
 
 ## 반려 기록
 

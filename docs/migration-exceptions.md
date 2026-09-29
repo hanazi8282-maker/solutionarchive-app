@@ -433,3 +433,9 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 ### 2026-09-30 — 000039/000040 insight_grade (CEO-STAFF 세션, 남헌 확정 B안)
 
 - 000039(case_moves.insight_grade + CHECK) 는 2026-09-29 오케스트레이터가 적용(prod), 000040 백필(125/125, evidence_grade 와 불일치 0건, CHECK negative 23514 확인)도 오케스트레이터가 실행 완료. `regrade --dry` 는 insight 변경 0건을 확인했다. 이 세션은 `INSIGHT_GRADE_COLUMN_READY=true` 로 전환하고, 랭킹(gradeRankOf 1순위·pmf_grade 는 동점 결정자)을 match.ts·library.ts·detail.ts·advisor.ts 에 반영했다(PR #356).
+
+### 2026-09-30 — 000041 velog 게시판 타깃 (CEO-STAFF 세션, 자체 판단)
+
+- 000041(analysis_projects 4행 + review_targets 4행 INSERT, 생산성 타깃 1행 재개)을 오케스트레이터가 호스티드 Supabase MCP 로 적용했다(PR #360 머지 뒤). 자체 판단 근거: DDL 0줄 · DELETE 없음 · 새 소스 아님(velog 는 기존 enabled) · 롤백 파일 있음 · 재실행 안전.
+- 적용 전 실측: velog enabled=true, 새 타깃 0건, board:productivity=exhausted. 적용은 예상 행 수(프로젝트 4·타깃 4·active 5)가 다르면 롤백되는 검증 블록과 한 트랜잭션.
+- 적용 후 양성: velog 타깃 active 5(전 exhausted 1), 새 4개 fresh·business_model SAAS. 음성: velog 밖 소스별 상태 집계가 적용 전과 동일.

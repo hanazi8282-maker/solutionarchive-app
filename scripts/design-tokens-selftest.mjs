@@ -140,4 +140,10 @@ if (usedV2.length) fail(`v2.css 가 읽는데 선언이 없는 변수: ${usedV2.
 const allCss = files.filter((f) => f.endsWith('.css')).map((f) => strip(readFileSync(f, 'utf8'))).join('\n')
 const usedSa = [...new Set([...allCss.matchAll(/var\((--sa-[\w-]+)/g)].map((m) => m[1]))].filter((n) => !inCss.has(n))
 if (usedSa.length) fail(`sa.css 에 없는 --sa-* 를 읽는 곳: ${usedSa.join(', ')}`)
-console.log(`[design-tokens] PASS — 리터럴 0 · 내부 화면 ${M2_PAGES.length}/${M2_PAGES.length} 스코프 · 인라인 style 0 · .v2-* 전부 정의 · 미선언 변수 0`)
+// 운영 화면 모션 금지(B6, 2026-09-30): 키프레임은 공개 `pub.css` 에만. 운영 스타일시트에 생기면 실패.
+const opsCss = [V2, join(ROOT, 'app', '_ds', 'styles.css')]
+const missingOps = opsCss.filter((f) => !existsSync(f))
+if (missingOps.length) fail(`운영 스타일시트를 못 찾았다(확인 불가): ${missingOps.map(rel).join(', ')}`)
+const opsKeyframes = opsCss.filter((f) => /@keyframes\b/.test(strip(readFileSync(f, 'utf8'))))
+if (opsKeyframes.length) fail(`운영 화면 스타일시트에 @keyframes: ${opsKeyframes.map(rel).join(', ')}`)
+console.log(`[design-tokens] PASS — 리터럴 0 · 내부 화면 ${M2_PAGES.length}/${M2_PAGES.length} 스코프 · 인라인 style 0 · .v2-* 전부 정의 · 미선언 변수 0 · 운영 @keyframes 0`)

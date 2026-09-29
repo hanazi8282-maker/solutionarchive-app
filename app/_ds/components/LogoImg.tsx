@@ -7,8 +7,10 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
  * src 실패 → fallbackSrc(있으면) → 둘 다 실패면 아무것도 안 그린다(밑에 깔린 이니셜이 보인다).
  * 판정(어떤 주소를 쓸지)은 lib/cases/logo.ts 가 하고 여기는 onError 만 한다.
  */
-export function LogoImg({ src, fallbackSrc, width, height, style }: {
+export function LogoImg({ src, fallbackSrc, width, height, style, alt = '' }: {
   src: string
+  /** 기본은 장식(''). 로고 띠처럼 이미지가 곧 내용이면 브랜드명을 넘긴다. */
+  alt?: string
   fallbackSrc?: string
   width?: number
   height?: number
@@ -31,7 +33,7 @@ export function LogoImg({ src, fallbackSrc, width, height, style }: {
     <img
       ref={ref}
       src={cur}
-      alt=""
+      alt={alt}
       width={width}
       height={height}
       loading="lazy"

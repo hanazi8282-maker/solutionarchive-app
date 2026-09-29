@@ -1292,3 +1292,85 @@ a.pub-index-row:hover { background: var(--pub-surface-2); }
   .pub-btn-circle { transition: none; }
   .pub-btn--pill:hover .pub-btn-circle { transform: none; }
 }
+
+/* ============================================================
+   G2 랜딩 (2026-09-30, reports/2026-09-30/design-direction-decisions.md B3-1·2·3 · B4 배치 · B5 · B6 적용)
+   `/` 전용 클래스만 새로 정의한다 — 위 블록(기존·G1)의 규칙은 바꾸지 않는다. G3 블록과 겹치지 않게 이 블록에만 덧붙인다.
+   ============================================================ */
+
+/* 2열 히어로(B3-1). 제목은 두 열을 가로질러 2줄 이내(56px 에서 반쪽 폭이면 3줄이 된다), 그 아래 왼쪽 카피 · 오른쪽 오늘의 케이스.
+   마지막 1fr 행이 aside 의 남는 높이를 받아서 왼쪽 리드·버튼·노트 사이가 벌어지지 않는다. <1024 는 세로로 쌓인다. */
+.pub-hero--split { max-width: none; }
+.pub-hero-aside { min-width: 0; }
+@media (min-width: 1024px) {
+  .pub-hero--split {
+    display: grid; align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto 1fr;
+    column-gap: var(--pub-gap-10); row-gap: var(--pub-gap-6);
+  }
+  .pub-hero--split > * { grid-column: 1; }
+  .pub-hero--split > .pub-hero-title { grid-column: 1 / -1; font-size: var(--pub-size-display-lg); }
+  .pub-hero--split > .pub-hero-aside { grid-column: 2; grid-row: 2 / -1; }
+}
+
+/* 오늘의 케이스 — plane-accent 면 위 흰 카드 한 장(플레이트 56 + 스탬프 md). 글자 모양은 색인 줄 클래스를 그대로 읽는다. */
+.pub-today { display: grid; gap: var(--pub-gap-3); min-width: 0; padding: var(--pub-gap-5); border-radius: var(--pub-round-banner); background: var(--pub-plane-accent); }
+.pub-root .pub-today-h { margin: 0; font-size: var(--pub-size-text-sm); font-weight: var(--pub-weight-strong); line-height: 1.4; color: var(--pub-ink); text-wrap: balance; }
+.pub-today-card { display: grid; gap: var(--pub-gap-3); min-width: 0; padding: var(--pub-pad-card); border-radius: var(--pub-round-card); background: var(--pub-surface); }
+.pub-today-card .pub-index-t { transition: color var(--pub-motion-color) var(--pub-ease); }
+.pub-today-card:hover .pub-index-t { color: var(--pub-accent); }
+.pub-today-head { display: flex; align-items: center; gap: var(--pub-gap-4); min-width: 0; }
+.pub-today-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--pub-gap-3); }
+/* 케이스가 없을 때 aside 에 들어가는 4단계 압축판 — 면 위 면을 만들지 않고, 반쪽 폭에서는 2×2. */
+.pub-root .pub-today .pub-steps { padding: 0; background: transparent; }
+.pub-today .pub-icontile { background: var(--pub-surface); } /* accent 면 위 accent 타일은 안 보인다 */
+/* <1024 는 aside 가 히어로 아래로 쌓여 바로 밑 4단계 섹션과 같은 내용이 두 번 이어진다 — 압축판은 2열일 때만. */
+@media (max-width: 1023.98px) { .pub-today .pub-steps { display: none; } }
+.pub-today .pub-steps::before { top: 0; bottom: 0; left: 19px; }
+@media (min-width: 1024px) {
+  .pub-root .pub-today .pub-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--pub-gap-6); }
+  .pub-today .pub-step-arrow { display: none; }
+}
+
+/* 로고 띠(랜딩 배치) — G1 간격 32 로는 워드마크 9개(96×9 + 32×8 = 1,120px)가 프레임 1,056px 을 넘어 1280 에서도 가로 스크롤이 생겼다(preview 실측).
+   ≥1024 에서 간격을 20 으로 줄이고 양끝 정렬. 12개(최대)는 여전히 넘치므로 그때는 G1 의 가로 스크롤이 받는다. */
+@media (min-width: 1024px) {
+  .pub-root .pub-logostrip-row { gap: var(--pub-gap-5); justify-content: space-between; }
+}
+
+/* 소스 요약(B3-2) — 큰 숫자 하나 + 상위 5곳 가로 타일 + 나머지 접힘. ice 면. */
+.pub-voc { display: grid; gap: var(--pub-gap-4); min-width: 0; padding: var(--pub-gap-6); border-radius: var(--pub-round-banner); background: var(--pub-plane-ice); }
+.pub-root .pub-voc-total { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--pub-gap-3); color: var(--pub-ink); }
+.pub-voc-total strong { font-size: var(--pub-size-head); line-height: var(--pub-leading-head); letter-spacing: var(--pub-tracking-head); font-weight: var(--pub-weight-head); font-variant-numeric: tabular-nums; }
+.pub-voc-total span { font-size: var(--pub-size-text-sm); color: var(--pub-ink-muted); }
+.pub-root .pub-voc-top { display: grid; gap: var(--pub-gap-3) var(--pub-gap-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); margin: 0; padding: 0; list-style: none; }
+.pub-voc-top > li { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: var(--pub-gap-3); align-items: center; min-width: 0; }
+.pub-voc-top .pub-icontile { grid-row: span 2; }
+.pub-voc-name { font-size: var(--pub-size-caption); line-height: 1.4; color: var(--pub-ink-muted); overflow-wrap: anywhere; }
+.pub-voc-count { font-size: var(--pub-size-text-sm); font-weight: var(--pub-weight-strong); color: var(--pub-ink); font-variant-numeric: tabular-nums; }
+.pub-root .pub-voc-rest { display: grid; gap: var(--pub-gap-1) var(--pub-gap-6); grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); margin: var(--pub-gap-3) 0 0; padding: 0; list-style: none; font-size: var(--pub-size-caption); color: var(--pub-ink-muted); }
+.pub-voc-rest > li { display: flex; justify-content: space-between; gap: var(--pub-gap-3); min-width: 0; }
+.pub-voc-rest .pub-voc-count { font-size: var(--pub-size-caption); }
+.pub-voc-rest > li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.pub-voc summary { transition: color var(--pub-motion-color) var(--pub-ease); }
+.pub-voc summary:hover { color: var(--pub-accent); }
+
+/* 진입 순차 등장을 목록 **항목** 단위로(B6-1: 가치제안 6장·4단계·최신 줄 3개). Reveal 이 목록(ul/ol) 하나를 감싸므로
+   G1 의 `> *` 대신 한 단 아래(`> * > *`)를 움직인다. 로고 띠는 기본 Reveal(한 덩어리). 띠가 5개 미만이라 비면 자리도 접는다. */
+.pub-reveal:empty { display: none; }
+.pub-reveal--deep[data-js]:not([data-in]) > * { opacity: 1; }
+.pub-reveal--deep[data-in] > * { animation: none; }
+.pub-reveal--deep[data-js]:not([data-in]) > * > * { opacity: 0; }
+.pub-reveal--deep[data-in] > * > * { animation: pub-rise 480ms var(--pub-ease) both; animation-delay: calc(var(--i, 0) * 60ms); }
+.pub-reveal--deep > * > :nth-child(2) { --i: 1; }
+.pub-reveal--deep > * > :nth-child(3) { --i: 2; }
+.pub-reveal--deep > * > :nth-child(4) { --i: 3; }
+.pub-reveal--deep > * > :nth-child(5) { --i: 4; }
+.pub-reveal--deep > * > :nth-child(6) { --i: 5; }
+.pub-reveal--deep > * > :nth-child(n+7) { --i: 6; }
+@media (prefers-reduced-motion: reduce) {
+  .pub-reveal--deep[data-in] > * > * { animation: none; }
+  .pub-reveal--deep[data-js]:not([data-in]) > * > * { opacity: 1; }
+  .pub-today-card .pub-index-t { transition: none; }
+}

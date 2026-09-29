@@ -14,7 +14,7 @@
 import {
   buildLibrary, parseLibraryQuery, pickFirstMove, problemCounts, sortLibrary,
   DEFAULT_SORT, LIBRARY_SORTS,
-  kstWeekStart, kstDate, approvedThisWeek, pickTodayCase, buildSourceTiles,
+  kstWeekStart, kstDate, approvedThisWeek, pickTodayCase, buildSourceTiles, summarizeSourceTiles,
 } from '../lib/cases/library.ts'
 import { emptyStateText } from '../lib/cases/search.ts'
 
@@ -194,6 +194,13 @@ t('KST 날짜: UTC 15:00 은 다음 날', kstDate(new Date('2026-09-23T15:00:00Z
   t('소스 타일: 건수 내림차순 · 못 센 것은 맨 뒤 · 이름 없으면 key', got.tiles?.map((x) => `${x.name}=${x.count}`).join(','), 'Hacker News=4022,다나와=12,velog=null')
   t('소스 타일: 카운트 누락 소스는 null(0 아님)', buildSourceTiles([{ key: 'x', display_name: 'X' }], new Map()).tiles?.[0]?.count, null)
   t('소스 타일: 레지스트리 실패는 tiles=null', buildSourceTiles(null, new Map()).tiles, null)
+  // 랜딩 요약(B3-2): 큰 숫자 = 위 칸 + 접힌 칸 전부의 합, 못 센 칸이 있으면 합은 null.
+  const many = Array.from({ length: 15 }, (_, i) => ({ key: `s${i}`, name: `S${i}`, count: (i + 1) * 100 }))
+  const s = summarizeSourceTiles(many)
+  t('소스 요약: 위 5칸', s.top.length, 5)
+  t('소스 요약: 접힘에 나머지 전부', s.rest.length, 10)
+  t('소스 요약: 합계 = 위 칸 합 + 접힘 합', s.total, [...s.top, ...s.rest].reduce((n, x) => n + x.count, 0))
+  t('소스 요약: 못 센 칸이 있으면 합계 null(작게 말하지 않는다)', summarizeSourceTiles(got.tiles).total, null)
 }
 // 9. 소스 타일 count 조건 — 누적(중복 정리분만 제외). purged_at IS NULL 로 되돌아가면 30일 보관분이 된다.
 {

@@ -345,6 +345,15 @@ export function buildSourceTiles(
 }
 
 /**
+ * 랜딩 소스 섹션 요약(B3-2) — 큰 숫자 하나 + 상위 `top` 칸 + 나머지(접힘). 타일 순서는 buildSourceTiles 그대로.
+ * `total` 은 모든 칸의 합이고, **한 칸이라도 못 셌으면 null**(합을 작게 말하지 않는다, §7.1).
+ */
+export function summarizeSourceTiles(tiles: SourceTile[], top = 5) {
+  const total = tiles.some((t) => t.count === null) ? null : tiles.reduce((n, t) => n + (t.count ?? 0), 0)
+  return { total, top: tiles.slice(0, top), rest: tiles.slice(top) }
+}
+
+/**
  * 소스별 VOC 건수 — `review_sources` 각 행마다 `analysis_inputs`(source_key 일치,
  * `purge_reason IS DISTINCT FROM 'dedupe'`)를 count 한다 = **누적 수집(중복 정리분만 제외)**.
  * 30일 폐기(retention)로 원문을 비운 행도 센다 — 모은 건 모은 것이다.

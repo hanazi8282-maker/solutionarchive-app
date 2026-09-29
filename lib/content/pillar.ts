@@ -9,7 +9,8 @@
 //    그 요청 전체가 실패한다 — 이미 되던 글 등록까지 함께 막는다. CLICKS_COLUMN_READY
 //    (collect-metrics/route.ts)·LINK_TABLE_READY(lib/predictions/link.ts)와 같은 패턴이다.
 //    적용을 `information_schema` 로 실측 확인한 뒤에만 아래 플래그를 true 로 바꾼다.
-export const POSTS_PILLAR_COLUMN_READY = false
+// 2026-09-29 오케스트레이터 적용(information_schema 로 posts.pillar 존재 확인, CHECK 음성 23514 확인) → true.
+export const POSTS_PILLAR_COLUMN_READY = true
 
 export const PILLARS = ['케이스', '숫자한줄', '빌드로그', 'VOC발굴'] as const
 export type Pillar = (typeof PILLARS)[number]

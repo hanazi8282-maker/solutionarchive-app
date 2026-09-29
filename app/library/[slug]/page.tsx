@@ -4,21 +4,20 @@ import { createClient } from '@/lib/supabase/server'
 import { getAuthVerdict } from '@/lib/auth/session'
 import {
   evidenceTally, gradeChecklist, groupEvidence, loadCaseDetail, metricTiles, pickLeadMove,
-  detailTitle, type CaseDetail, type DetailEvidenceRow, type DetailMoveRow,
+  detailTitle, type CaseDetail, type DetailEvidenceRow, type DetailMoveRow, type GradeCheckItem,
 } from '@/lib/cases/detail'
+import { displayGradeLabel, factCheckLabel } from '@/lib/cases/grade-display'
 import { READER_PROBLEM_LABEL } from '@/lib/cases/draft'
 import { PubShell } from '../../_pub/components/PubShell'
 import { Hero } from '../../_pub/components/Hero'
-import { Section } from '../../_pub/components/Section'
 import { Panel } from '../../_pub/components/Panel'
-import { Chip } from '../../_pub/components/Chip'
 import { PubButtonLink } from '../../_pub/components/Button'
 import { PubBrandLogo, PubBrandLogoNotice } from '../../_pub/components/PubBrandLogo'
-import { PubCaseCard } from '../../_pub/components/PubCaseCard'
+import { PubIndexRow } from '../../_pub/components/PubIndexRow'
 import { PubEmpty } from '../../_pub/components/PubEmpty'
-import { PubGradeBadge, PubGradeLegend } from '../../_pub/components/PubGradeBadge'
-import { PubTOC } from '../../_pub/components/PubTOC'
-import { IconArrowRight, IconCheck, IconExternal } from '../../_pub/icons'
+import { FACT, INSIGHT, PubGradeLegend, gradeSentence } from '../../_pub/components/PubGradeBadge'
+import { PubStamp } from '../../_pub/components/PubStamp'
+import { IconArrowRight, IconCheck, IconChevronRight, IconExternal, IconMinus, IconX } from '../../_pub/icons'
 import { isSaved } from '@/lib/cases/saves'
 import { FeedbackForm } from './feedback-form'
 import { SaveButton } from './save-button'
@@ -27,16 +26,12 @@ import { ShareLinkButton } from './share-button'
 // 공개 케이스 상세. **승인된 케이스만** 그린다 — 미승인·없는 slug 는 똑같이 404 다.
 // 조회 실패는 404 로 접지 않는다(§7.1): "없다"와 "못 읽었다"는 다음 행동이 정반대다.
 //
-// 구조는 reports/2026-09-23/ui-overhaul-reference-plan.md §3 의 11블록이다. 블록 7(VOC 인용)은
-// **만들지 않았다** — 케이스의 `reader_problem` 을 리뷰(analysis_inputs)로 잇는 깨끗한 키가
-// 스키마에 없다. `analysis_projects` 에 `reader_problem` 컬럼이 없고(lib/analysis/relevance-judge.ts
-// 의 주석이 그걸 "미래 대비"로 명시한다), 병목·문제 유형으로 프로젝트를 고르는 축도 없다.
-// 짐작 매핑으로 남의 리뷰를 이 케이스의 VOC 라고 붙이는 것이 그 블록을 비워 두는 것보다 나쁘다.
+// 모양은 DESIGN.md §4 (남헌 2026-09-29 승인 목업 public-case-detail.html): 기록 머리(브랜드명 H1 +
+// 요약 데크 + 2축 스탬프 + 신원 표) → 12칸 편집 격자 섹션(왼쪽 3칸 제목, 오른쪽 9칸 본문) →
+// 관련 케이스 색인 줄 → 의견 → 하나의 다크 면(CTA 배너). 데이터·문구 규칙은 그대로고 렌더만 바뀌었다.
+// 블록 7(VOC 인용)은 여전히 만들지 않았다 — 케이스와 리뷰를 잇는 깨끗한 키가 스키마에 없다.
 //
 // 이 화면은 읽기 전용이다. 쓰기는 ./actions.ts 의 피드백 INSERT 와 ./save-actions.ts 뿐이다.
-//
-// 디자인은 `app/_pub` 라이트 테마다(A2, 남헌 2026-09-23 B안). 11블록 구조·문구·데이터는
-// 그대로고 껍데기만 갈렸다. 두더지웍스 DS 컴포넌트도, 그쪽 sa- 접두 클래스도 쓰지 않는다.
 
 export const dynamic = 'force-dynamic'
 
@@ -44,19 +39,11 @@ const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'nu
 const day = (v: string | null | undefined) => (v ? KST.format(new Date(v)) : null)
 
 const OUTCOME_LABEL: Record<string, string> = {
-  active: '지금도 영업 중', pivoted: '사업을 틀었다', shutdown: '문 닫았다',
-  unknown: '지금 어떤지 확인하지 않았다',
+  active: '영업 중', pivoted: '사업을 틀었다', shutdown: '문 닫았다', unknown: '확인 불가',
 }
 
-const TOC = [
-  ['grade', '왜 이 등급인가'],
-  ['metrics', '수치'],
-  ['moves', '무엇을 했나'],
-  ['evidence', '근거'],
-  ['split', '갈린 사례 · 실패 경고'],
-  ['feedback', '의견 남기기'],
-  ['related', '관련 케이스'],
-] as const
+/** 공개 카피에 em 대시를 내지 않는다(DESIGN.md §5). lib 의 문장은 그대로 두고 렌더에서만 푼다. */
+const noDash = (s: string) => s.replace(/\s[—–]\s/g, '. ')
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -70,65 +57,79 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-/**
- * 근거 한 줄 캡션 — "몇 건 · 어디서 · 어떻게 셌나". 0건(셌는데 없었다)과 확인 불가(못 셌다)를
- * 같은 `—` 로 뭉개지 않는다(§7.1). 이 화면에서 `n` 은 항상 센 값이라 null 분기는 없다.
- */
-function evidenceCaption(n: number, source: string | undefined, method: string): string {
-  if (n === 0) return `검증된 근거 없음 (${method})`
-  return [`${n}건`, source, method].filter(Boolean).join(' · ')
+/** 섹션 한 벌 — 왼쪽 제목·설명(≥1024 sticky), 오른쪽 본문. */
+function Sec({ id, title, lead, children, last }: { id: string; title: string; lead?: string; children: React.ReactNode; last?: boolean }) {
+  return (
+    <section className={last ? 'pub-sheet pub-sec pub-sec--last' : 'pub-sheet pub-sec'} id={id}>
+      <div className="pub-sec-head">
+        <h2 className="pub-sec-title">{title}</h2>
+        {lead ? <p className="pub-sec-lead">{lead}</p> : null}
+      </div>
+      <div className="pub-sec-main">{children}</div>
+    </section>
+  )
 }
 
-/** 근거 1줄. 도메인·게시일·인용·원문 링크. 인용은 DB 에서 이미 300자로 잘려 온다. */
-function EvidenceRow({ e }: { e: DetailEvidenceRow }) {
+/** 등급 근거 한 줄 — 판정색은 아이콘에만. 필수 항목 미달은 엑스, 선택 항목 없음은 대시. */
+function CheckRow({ item }: { item: GradeCheckItem }) {
+  const v = item.pass ? 'pos' : item.required ? 'neg' : 'none'
+  const Icon = v === 'pos' ? IconCheck : v === 'neg' ? IconX : IconMinus
+  const detail = noDash(item.detail)
+  // "137자" 처럼 짧은 수치는 오른쪽 열에, 문장은 제목 아래 작은 글자로.
+  const short = detail.length <= 14 && !detail.includes('.')
   return (
-    <li className="pub-row">
-      <div className="pub-chiprow">
-        <span className="pub-card-brand">{e.domain ?? '도메인 미기재'}</span>
-        <span className="pub-caption">{day(e.published_at) ?? '게시일 미상'}</span>
-        {e.is_estimate ? <Chip>추정</Chip> : null}
-        {e.is_regulatory_filing ? <Chip>공시</Chip> : null}
-      </div>
-      {e.snippet ? <p className="pub-text">&ldquo;{e.snippet}&rdquo;</p> : <p className="pub-caption">인용 미기재</p>}
-      <a className="pub-url" href={e.url} target="_blank" rel="noreferrer noopener">{e.url} <IconExternal /></a>
+    <li>
+      <span className="pub-checks-v" data-v={v}><Icon /></span>
+      <span className="pub-checks-t">
+        {noDash(item.label).replace('(transfer_note)', '')}
+        {short ? null : <small>{detail}</small>}
+      </span>
+      <span className="pub-checks-n">{short ? detail : item.pass ? '통과' : item.required ? '미달' : '해당 없음'}</span>
     </li>
   )
 }
 
-/** 무브 한 칸 — 번호·시점·무엇을 했나·전제·내일 할 행동. 화살표를 쓰지 않는다(번호로 순서를 말한다). */
-function MoveBlock({ move, index, total }: { move: DetailMoveRow; index: number; total: number }) {
+/** 근거 1건. 도메인·성격·게시일, 인용, 원문 링크. 인용은 DB 에서 이미 300자로 잘려 온다. */
+function EvidenceRow({ e }: { e: DetailEvidenceRow }) {
+  const kind = e.is_regulatory_filing ? '법정 공시' : e.is_estimate ? '추정치' : e.is_self_reported ? '당사자 자기보고' : null
+  return (
+    <li>
+      <div className="pub-evid-meta">
+        <b>{e.domain ?? '도메인 미기재'}</b>
+        {kind ? <span>{kind}</span> : null}
+        <span>{day(e.published_at) ? `게시 ${day(e.published_at)}` : '게시일 확인 불가'}</span>
+      </div>
+      {e.snippet ? <blockquote>&ldquo;{e.snippet}&rdquo;</blockquote> : <p className="pub-caption">인용 미기재</p>}
+      <p className="pub-evid-url"><IconExternal /><a className="pub-link" href={e.url} target="_blank" rel="noreferrer noopener">{e.url}</a></p>
+    </li>
+  )
+}
+
+/** 무브 한 장 — 번호·레버·시점·스탬프, 무엇을 했나·전제·내일 할 행동. 화살표 대신 번호가 순서를 말한다. */
+function MoveCard({ move, index }: { move: DetailMoveRow; index: number }) {
   const from = day(move.observed_period_start)
   const to = day(move.observed_period_end)
-  const when = from ? (to && to !== from ? `${from} ~ ${to}` : from) : '시점 미확인'
+  const when = from ? (to && to !== from ? `${from} ~ ${to}` : from) : '확인 불가'
   const pre = (move.preconditions ?? '').trim()
   const note = (move.transfer_note ?? '').trim()
-
   return (
-    <div className="pub-row">
-      <div className="pub-chiprow">
-        <Chip tone="solid">{total === 1 ? '무브 1개' : `${index + 1} / ${total}`}</Chip>
-        <Chip>{move.lever}</Chip>
-        <span className="pub-caption">{when}</span>
-        <PubGradeBadge move={move} />
+    <article className="pub-move">
+      <div className="pub-move-head">
+        <span className="pub-move-k">무브 <b>{index + 1}</b></span>
+        <span className="pub-move-k">레버 <b>{move.lever}</b></span>
+        <span className="pub-move-k">시점 <b>{when}</b></span>
+        <PubStamp move={move} size="sm" />
       </div>
-
-      <p className="pub-text"><b>무엇을 했나</b> · {move.claim}</p>
-
-      {/* 미기재를 "전제 없음"으로 쓰지 않는다 — 이 축엔 "없음"이라는 양성 값이 없다(§7.1). */}
-      <p className="pub-caption">
-        <b>전제</b> · {pre || '미기재 — 무엇이 있어야 옮길 수 있는지 아직 안 적혔다'}
-      </p>
-
-      {note ? (
-        <div className="pub-callout">
-          <p className="pub-text"><b>내일 할 행동</b> · {note}</p>
-        </div>
-      ) : (
-        <p className="pub-caption">
-          내일 할 행동이 안 적혀 있다 — 사실이 맞아도 지금 가져갈 게 없다(인사이트 등급 D).
-        </p>
-      )}
-    </div>
+      <dl>
+        <dt>무엇을 했나</dt>
+        <dd>{move.claim}</dd>
+        <dt>전제</dt>
+        {/* 미기재를 "전제 없음"으로 쓰지 않는다 — 이 축엔 "없음"이라는 양성 값이 없다(§7.1). */}
+        {pre ? <dd>{pre}</dd> : <dd className="muted">미기재. 무엇이 있어야 옮길 수 있는지 아직 안 적혔다.</dd>}
+        <dt>내일 할 행동</dt>
+        {note ? <dd className="act">{note}</dd> : <dd className="muted">안 적혀 있다. 사실이 맞아도 지금 가져갈 게 없다(인사이트 등급 D).</dd>}
+      </dl>
+    </article>
   )
 }
 
@@ -145,6 +146,9 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
   const reviewedOn = day(s.reviewed_at)
   const period = [day(s.period_start), day(s.period_end)].filter(Boolean).join(' ~ ')
   const levers = [...new Set(d.moves.map((m) => m.lever))]
+  const insight = displayGradeLabel(lead)
+  const fact = factCheckLabel(lead)
+  const selfCount = d.evidence.filter((e) => e.is_self_reported).length
   // 비로그인은 /cases/search(로그인 벽)로 보내지 않는다 — 같은 문제 유형의 공개 라이브러리 필터가
   // 공개 등가물이다(MVP 9/30 §7.1, /library 가 이미 problem= 을 받는다).
   const problemHref = signedIn
@@ -152,267 +156,197 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
     : (s.reader_problem ? `/library?problem=${encodeURIComponent(s.reader_problem)}` : '/library')
 
   return (
-    <div className="pub-detail">
-      {/* 11) 사이드 TOC — 데스크톱 sticky, 모바일 상단 가로 칩. CSS 만(pub.css `.pub-toc`). */}
-      <PubTOC items={TOC} />
-
-      <div className="pub-detail-body">
-        {/* ── 1) 히어로 ───────────────────────────────────────── */}
-        <Hero
-          variant="detail"
-          title={detailTitle(s)}
-          media={<PubBrandLogo study={s} size="lg" />}
-          meta={
-            <>
-              <div className="pub-chiprow">
-                {s.reader_problem
-                  ? <Chip>{READER_PROBLEM_LABEL[s.reader_problem] ?? s.reader_problem}</Chip>
-                  : <Chip>문제 유형 미지정</Chip>}
-                <Chip>병목 {s.bottleneck ?? '미기재'}</Chip>
-                {levers.map((l) => <Chip key={l}>{l}</Chip>)}
-                <Chip>{period || '기간 미기재'}</Chip>
-                <Chip>{OUTCOME_LABEL[s.outcome_status ?? 'unknown'] ?? s.outcome_status}</Chip>
-              </div>
-              <div className="pub-chiprow">
-                <PubGradeBadge move={lead} />
-                {/* "사람 검토 완료" 는 검수자·시각이 **둘 다** 있을 때만 말한다 — 없으면 승인 사실만 말한다.
-                    검수자 신원은 공개 화면에 내지 않는다(이메일 노출 사고 2026-09-28). 로더가 이미
-                    redactReviewer 로 지웠고, 여기서도 이름 자리를 두지 않는다. */}
-                <Chip wrap>
-                  근거 {d.evidence.length}건 · {s.reviewed_by && reviewedOn
-                    ? `사람 검토 완료 (${reviewedOn})`
-                    : '검토 기록 미기재 (승인은 됐다)'}
-                </Chip>
-              </div>
-            </>
-          }
-          lead={s.summary ?? undefined}
-          actions={
-            <>
-              <PubButtonLink href={problemHref} variant="primary" size="sm">내 상황으로 옮기기<IconArrowRight /></PubButtonLink>
-              <SaveButton
-                caseStudyId={s.id}
-                slug={s.slug}
-                signedIn={signedIn}
-                initialSaved={save.saved}
-                unavailable={save.unavailable}
-              />
-              <ShareLinkButton />
-            </>
-          }
-        />
-
-        {s.summary ? null : <p className="pub-caption">한 줄 요약이 아직 없다.</p>}
-        <PubBrandLogoNotice />
-
-        {d.logo_columns === 'missing' && (
-          <Panel tone="alert" title="로고 컬럼 미적용">
-            <p className="pub-text">
-              마이그레이션 20260930000001 이 아직 적용되지 않아 브랜드 로고를 <b>읽지 못했다</b>.
-              로고가 없는 것이 아니라 확인 불가다 — 지금은 이니셜을 그린다.
-            </p>
-          </Panel>
-        )}
-        {d.excluded_moves > 0 && (
-          <p className="pub-caption">
-            이 케이스의 무브 {d.moves.length + d.excluded_moves}개 중 {d.excluded_moves}개는 아직 승인 전이라 이 화면에 없다.
+    <>
+      {/* ── 기록 머리: 제목·데크·CTA / 스탬프·판정 메모 / 신원 표. DOM 순서 = 모바일 순서. ── */}
+      <section className="pub-sheet pub-head">
+        <div className="pub-head-body">
+          <h1 className="pub-head-title">{s.brand_name ?? detailTitle(s)}</h1>
+          {s.summary
+            ? <p className="pub-deck">{noDash(s.summary)}</p>
+            : <p className="pub-deck pub-caption">한 줄 요약이 아직 없다.</p>}
+          <div className="pub-actions">
+            <PubButtonLink href={problemHref} variant="primary">내 상황으로 옮기기<IconArrowRight /></PubButtonLink>
+            <SaveButton caseStudyId={s.id} slug={s.slug} signedIn={signedIn} initialSaved={save.saved} unavailable={save.unavailable} />
+            <ShareLinkButton />
+          </div>
+        </div>
+        <div className="pub-head-verdict">
+          <PubStamp move={lead} />
+          <p className="pub-verdict-note">
+            <b>인사이트 {insight}</b> {gradeSentence(INSIGHT, insight) ?? '대표 무브에 등급이 아직 없다'}<br />
+            <b>사실확인 {fact}</b> {gradeSentence(FACT, fact) ?? '사실확인 등급이 아직 없다'}
+            {d.evidence.length > 0 ? `. 근거 ${d.evidence.length}건, 자기보고 ${selfCount}건` : '. 근거 0건'}<br />
+            {/* "사람 검토 완료" 는 검수자·시각이 둘 다 있을 때만. 검수자 신원은 공개 화면에 내지 않는다(2026-09-28). */}
+            {s.reviewed_by && reviewedOn ? <>사람 검토 완료 <b>{reviewedOn}</b></> : '검토 기록 미기재 (승인은 됐다)'}
           </p>
-        )}
+        </div>
+        <div className="pub-head-id">
+          <PubBrandLogo study={s} size="md" />
+          <dl className="pub-rec">
+            <dt>문제 유형</dt><dd>{s.reader_problem ? (READER_PROBLEM_LABEL[s.reader_problem] ?? s.reader_problem) : '미지정'}</dd>
+            <dt>병목</dt><dd>{s.bottleneck ?? '미기재'}</dd>
+            <dt>레버</dt><dd>{levers.length ? levers.join(', ') : '미기재'}</dd>
+            <dt>기간</dt><dd>{period || '확인 불가'}</dd>
+            <dt>지금</dt><dd>{OUTCOME_LABEL[s.outcome_status ?? 'unknown'] ?? s.outcome_status}</dd>
+          </dl>
+        </div>
+      </section>
 
-        {/* ── 2) 왜 이 등급인가 ──────────────────────────────── */}
-        <Section
-          id="grade"
-          title="왜 이 등급인가"
-          lead={lead
-            ? `대표 무브(${lead.lever})를 기준으로 본 항목별 통과·미달이다. 합계 점수를 만들지 않는다 — 등급 4단계가 이 아카이브의 판정이고, 점수는 근거 없는 숫자가 된다.`
-            : '승인된 무브가 없어 항목을 셀 수 없다.'}
-        >
-          <Panel>
-            <ul className="pub-deflist">
-              {checklist.map((item) => (
-                <li key={item.key} className="pub-chiprow">
-                  {/* 판정 3색([A] 라임 · [T] 코랄 · 앰버). 색은 거들고 뜻은 글자가 말한다 —
-                      "없음"은 미달이 아니라 선택 항목이라 혼합색이다. */}
-                  <Chip tone={item.pass ? 'positive' : item.required ? 'negative' : 'mixed'}>
-                    {item.pass ? <IconCheck /> : null}
-                    {item.pass ? '통과' : item.required ? '미달' : '없음'}
-                  </Chip>
-                  <span className="pub-text">
-                    <b>{item.label}</b> — {item.detail}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="pub-caption">
-              산식 정본은 <Link className="pub-link" href="/library/methodology">방법론 페이지</Link>(사실확인) ·{' '}
-              <code className="pub-code">lib/cases/draft.ts gradeMove</code>(인사이트) 이고, 재채점으로 바뀐다.
-            </p>
-            <PubGradeLegend />
-          </Panel>
-        </Section>
+      {d.logo_columns === 'missing' && (
+        <Panel tone="alert" title="로고 컬럼 미적용">
+          <p className="pub-text">마이그레이션 20260930000001 이 아직 적용되지 않아 브랜드 로고를 읽지 못했다. 로고가 없는 것이 아니라 확인 불가다. 지금은 이니셜을 그린다.</p>
+        </Panel>
+      )}
+      {d.excluded_moves > 0 && (
+        <p className="pub-caption">이 케이스의 무브 {d.moves.length + d.excluded_moves}개 중 {d.excluded_moves}개는 아직 승인 전이라 이 화면에 없다.</p>
+      )}
 
-        {/* ── 3) 수치 타일 ───────────────────────────────────── */}
-        <Section id="metrics" title="수치" lead="무브가 적은 지표의 before → after. 이름·단위가 없는 숫자는 타일이 되지 않는다(DB 제약이 그 조합을 막는다).">
+      <div>
+        {/* ── 왜 이 등급인가 ── */}
+        <Sec id="grade" title="왜 이 등급인가"
+          lead={lead ? `대표 무브(${lead.lever}) 기준. 합계 점수는 만들지 않는다.` : '승인된 무브가 없어 항목을 셀 수 없다.'}>
+          <ul className="pub-checks">
+            {checklist.map((item) => <CheckRow key={item.key} item={item} />)}
+          </ul>
+          <PubGradeLegend />
+          <p className="pub-caption">
+            산식 정본은 <Link className="pub-link" href="/library/methodology">방법론 페이지</Link>(사실확인) ·{' '}
+            <code className="pub-code">lib/cases/draft.ts gradeMove</code>(인사이트) 이고, 재채점으로 바뀐다.
+          </p>
+        </Sec>
+
+        {/* ── 수치 ── */}
+        <Sec id="metrics" title="수치" lead="무브가 적은 지표의 전후. 이름과 단위가 있는 수치만 싣는다.">
           {tiles.length === 0 ? (
             <PubEmpty compact title="수치가 적힌 무브가 0건 (조회는 정상)"
-              description="서술만 있는 케이스다. 없는 숫자를 만들지 않는다 — 인사이트 등급은 수치와 별개 축이다." />
+              description="서술만 있는 케이스다. 없는 숫자를 만들지 않는다. 인사이트 등급은 수치와 별개 축이다." />
           ) : (
-            <div className="pub-cardgrid">
-              {tiles.map((t) => (
-                <div key={`${t.move_id}-${t.name}`} className="pub-tile">
-                  <span className="pub-caption">{t.name}</span>
-                  <span className="pub-tile-value">
-                    {t.before == null ? '?' : t.before.toLocaleString()} → {t.after.toLocaleString()}
-                    <span className="pub-tile-unit"> {t.unit}</span>
-                  </span>
-                  <div className="pub-chiprow">
-                    {t.estimate_only && <Chip tone="mixed">추정</Chip>}
-                    {t.no_evidence && <Chip tone="negative">근거 0건</Chip>}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <table className="pub-metric">
+              <thead><tr><th>지표</th><th>전</th><th><span className="pub-sr">방향</span></th><th>후</th></tr></thead>
+              <tbody>
+                {tiles.map((t) => (
+                  <tr key={`${t.move_id}-${t.name}`}>
+                    <td className="name">{t.name}{t.estimate_only ? ' (추정)' : ''}{t.no_evidence ? ' (근거 0건)' : ''}</td>
+                    <td className="num">{t.before == null ? '?' : t.before.toLocaleString('ko-KR')}<small>{t.unit}</small></td>
+                    <td className="arrow"><IconArrowRight /></td>
+                    <td className="num">{t.after.toLocaleString('ko-KR')}<small>{t.unit}</small></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
-        </Section>
+        </Sec>
 
-        {/* ── 4) 무브 타임라인 ───────────────────────────────── */}
-        <Section
-          id="moves"
-          title="무엇을 했나"
-          lead={`승인된 무브 ${d.moves.length}개 · 관측 시점 순(시점 미확인은 뒤). 순서는 인과가 아니라 시간이다.`}
-        >
-          <Panel>
-            {d.moves.length === 0
-              ? <p className="pub-caption">승인된 무브가 0개다 — 케이스는 승인됐지만 무브 승인이 아직 없다.</p>
-              : d.moves.map((m, i) => <MoveBlock key={m.id} move={m} index={i} total={d.moves.length} />)}
-          </Panel>
-        </Section>
+        {/* ── 무엇을 했나 ── */}
+        <Sec id="moves" title="무엇을 했나" lead={`승인된 무브 ${d.moves.length}개. 순서는 인과가 아니라 시간이다.`}>
+          {d.moves.length === 0
+            ? <p className="pub-caption">승인된 무브가 0개다. 케이스는 승인됐지만 무브 승인이 아직 없다.</p>
+            : d.moves.map((m, i) => <MoveCard key={m.id} move={m} index={i} />)}
+        </Sec>
 
-        {/* ── 5) 근거 목록 ───────────────────────────────────── */}
-        <Section id="evidence" title="근거" lead="출처 성격별로 묶었다. 2차 보도와 추정치는 독립 확인으로 세지 않는다(docs/evidence-rules.md §1).">
-          <Panel>
-            <p className="pub-caption">
-              {evidenceCaption(
-                d.evidence.length,
-                d.evidence.length > 0 ? evidenceTally(d.evidence) : undefined,
-                d.evidence.length > 0 ? '이 케이스의 근거 행에서 셈' : '근거 행이 없다 — 조회는 정상이다',
-              )}
-            </p>
-            {groups.map((g) => (
-              <div key={g.key} className="pub-deflist">
-                <p className="pub-panel-title">{g.label} {g.rows.length}건</p>
-                <p className="pub-caption">{g.note}</p>
-                <ul className="pub-rowlist">
-                  {g.rows.map((e) => <EvidenceRow key={e.id} e={e} />)}
+        {/* ── 근거 ── */}
+        <Sec id="evidence" title="근거"
+          lead={d.evidence.length > 0
+            ? `${d.evidence.length}건, ${evidenceTally(d.evidence)}. 2차 보도와 추정치는 독립 확인으로 세지 않는다.`
+            : '근거 행이 없다. 조회는 정상이다.'}>
+          {groups.map((g) => (
+            <div key={g.key} className="pub-evid-group">
+              <p className="pub-caption"><b>{g.label} {g.rows.length}건</b> {noDash(g.note)}</p>
+              <ol className="pub-evid">
+                {g.rows.map((e) => <EvidenceRow key={e.id} e={e} />)}
+              </ol>
+            </div>
+          ))}
+        </Sec>
+
+        {/* ── 갈린 사례 · 실패 경고 ── */}
+        <Sec id="split" title="갈린 사례" lead={noDash(d.splits_reason)}>
+          {d.splits.length === 0 ? (
+            <PubEmpty compact title="이 케이스와 갈린 짝이 0묶음 (조회는 정상)"
+              description="같은 병목·레버로 반대 결과가 승인된 다른 케이스가 아직 없다. 없는 것을 비슷한 사례로 채우지 않는다." />
+          ) : d.splits.map((sp) => (
+            <div key={sp.ours.id}>
+              <p className="pub-caption">{sp.bottleneck} · {sp.lever}</p>
+              <ul className="pub-split">
+                <li className="pub-split--this">
+                  <span className="pub-split-who">{s.brand_name ?? '이 케이스'}<small>이 케이스는 {sp.ours.outcome_direction === 'positive' ? '됐다' : '안 됐다'}</small></span>
+                  <span className="pub-split-what">{sp.ours.claim}</span>
+                </li>
+                {sp.others.map((o) => (
+                  <li key={o.move.id}>
+                    <span className="pub-split-who">
+                      <Link className="pub-link" href={`/library/${o.study.slug}`}>{o.study.brand_name}</Link>
+                      <small>{o.move.outcome_direction === 'positive' ? '됐다' : '안 됐다'}</small>
+                    </span>
+                    <span className="pub-split-what">{o.move.claim}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          <details className="pub-fold">
+            <summary><IconChevronRight />이 소구점으로 망한 적 있나 {d.failed_angles.status !== 'not_run' ? `(실패 앵글 ${d.failed_angles.cards.length}건)` : ''}</summary>
+            <div className="pub-fold-body">
+              <p className="pub-caption">실패 앵글 원장에서 이 케이스의 요약·주장과 낱말이 겹치는 행. 겹친 낱말이 근거는 아니다.</p>
+              {d.failed_angles.status === 'not_run' ? (
+                <p className="pub-text">찾지 못했다. {noDash(d.failed_angles.reason)}</p>
+              ) : d.failed_angles.cards.length === 0 ? (
+                <PubEmpty compact title="겹치는 실패 기록이 0건 (조회는 정상)" description={noDash(d.failed_angles.reason)} />
+              ) : (
+                <ul className="pub-angles">
+                  {d.failed_angles.cards.map((c) => (
+                    <li key={c.case_key}>
+                      <b>{c.product_category} ({c.source_tier}{c.is_estimate ? ', 추정' : ''}{c.low_confidence ? ', 신뢰도 낮음' : ''})</b>
+                      {c.claimed_angle} 결과: {c.outcome}
+                      <span className="pub-caption">
+                        겹친 낱말 {c.matched_terms.map((t) => `“${t}”`).join(', ')}
+                        {c.low_confidence && '. 낱말 하나로 걸렸다. 우연인지 직접 확인하라.'}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
-              </div>
-            ))}
-          </Panel>
-        </Section>
+              )}
+            </div>
+          </details>
+        </Sec>
 
-        {/* ── 6) 갈린 사례 + 실패 경고 ───────────────────────── */}
-        <Section
-          id="split"
-          title="갈린 사례 · 실패 경고"
-          lead="같은 병목·레버인데 방향이 반대인 다른 케이스, 그리고 같은 소구점으로 이미 실패한 기록."
-        >
-          <Panel title="같은 수를 썼는데 갈렸다">
-            <p className="pub-caption">{d.splits_reason}</p>
-            {d.splits.length === 0 ? (
-              <PubEmpty compact title="이 케이스와 갈린 짝이 0묶음 (조회는 정상)"
-                description="같은 병목·레버로 반대 결과가 승인된 다른 케이스가 아직 없다. 없는 것을 비슷한 사례로 채우지 않는다." />
-            ) : (
-              <div className="pub-deflist">
-                {d.splits.map((sp) => (
-                  <div key={sp.ours.id} className="pub-quote">
-                    <div className="pub-chiprow">
-                      <Chip>{sp.bottleneck}</Chip>
-                      <Chip>{sp.lever}</Chip>
-                      {/* 결과 방향 = 판정 색이 붙는 자리다(Chip 주석). 뜻은 칩 글자가 말한다. */}
-                      <Chip tone={sp.ours.outcome_direction === 'positive' ? 'positive' : 'negative'}>
-                        이 케이스는 {sp.ours.outcome_direction === 'positive' ? '됐다' : '안 됐다'}
-                      </Chip>
-                    </div>
-                    <p className="pub-text">{sp.ours.claim}</p>
-                    {sp.others.map((o) => (
-                      <p key={o.move.id} className="pub-text">
-                        <b>
-                          <Link className="pub-link" href={`/library/${o.study.slug}`}>{o.study.brand_name}</Link>
-                          {o.move.outcome_direction === 'positive' ? '는 됐다' : '는 안 됐다'}
-                        </b> — {o.move.claim}
-                      </p>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
-          </Panel>
-
-          <Panel title="이 소구점으로 망한 적 있나">
-            <p className="pub-caption">실패 앵글 원장(failed_angles)에서 이 케이스의 요약·주장과 낱말이 겹치는 행</p>
-            {d.failed_angles.status === 'not_run' ? (
-              <p className="pub-text">찾지 못했다 — {d.failed_angles.reason}</p>
-            ) : d.failed_angles.cards.length === 0 ? (
-              <PubEmpty compact title="겹치는 실패 기록이 0건 (조회는 정상)" description={d.failed_angles.reason} />
-            ) : (
-              <div className="pub-deflist">
-                {d.failed_angles.cards.map((c) => (
-                  <div key={c.case_key} className="pub-quote">
-                    <div className="pub-chiprow">
-                      <Chip>{c.product_category}</Chip>
-                      <Chip>{c.source_tier}</Chip>
-                      {c.is_estimate && <Chip tone="mixed">추정</Chip>}
-                      {c.low_confidence && <Chip tone="mixed">신뢰도 낮음</Chip>}
-                    </div>
-                    <p className="pub-text">내세웠던 소구점 · {c.claimed_angle}</p>
-                    <p className="pub-text">결과 · {c.outcome}</p>
-                    <p className="pub-caption">
-                      겹친 낱말 · {c.matched_terms.map((t) => `“${t}”`).join(', ')}
-                      {c.low_confidence && ' — 낱말 하나로 걸렸다. 우연인지 직접 확인하라.'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Panel>
-        </Section>
-
-        {/* ── 7) VOC 인용: 만들지 않았다. 이유는 파일 상단 주석. ── */}
-
-        {/* ── 8) 피드백 위젯 ─────────────────────────────────── */}
-        <Section id="feedback" title="의견 남기기" lead="로그인 없이 남길 수 있다(남헌 2026-09-23 명시 승인: 익명 피드백 허용, 하루 1회 제한). 집계는 화면에 내지 않는다 — 앞사람의 표를 따라가지 않게.">
-          <Panel>
-            <FeedbackForm caseStudyId={s.id} />
-          </Panel>
-        </Section>
-
-        {/* ── 9) 관련 케이스 3장 ─────────────────────────────── */}
-        <Section id="related" title="관련 케이스" lead="같은 문제 유형 → 같은 병목 → 같은 종류 순. 3장을 못 채우면 비슷한 것으로 메우지 않는다.">
+        {/* ── 관련 케이스: 색인 줄 ── */}
+        <Sec id="related" title="관련 케이스" lead="같은 문제 유형이 먼저다. 3장을 못 채우면 비슷한 것으로 메우지 않는다.">
           {d.related.length === 0 ? (
             <PubEmpty compact title="관련 케이스 0건 (조회는 정상)"
               description="같은 문제 유형·병목·종류로 승인 무브가 있는 다른 케이스가 아직 없다." />
           ) : (
             <>
-              <div className="pub-cardgrid">
+              <ul className="pub-index">
                 {d.related.map((r) => (
-                  <PubCaseCard key={r.study.id} study={r.study} move={r.move} moveCount={r.move_count} reason={r.reason} />
+                  <PubIndexRow key={r.study.id} study={r.study} move={r.move} moveCount={r.move_count} reason={r.reason} />
                 ))}
-              </div>
+              </ul>
               <PubBrandLogoNotice />
             </>
           )}
-        </Section>
+          <p className="pub-caption"><Link className="pub-link" href="/library">케이스 라이브러리로</Link></p>
+        </Sec>
 
-        {/* ── 10) CTA 배너 ───────────────────────────────────── */}
-        <Panel tone="banner" title="같은 곳에 막혀 있다면, 내 문제로 검색해 보라.">
-          <p className="pub-text">승인된 케이스·무브만 나온다. 없으면 없다고 말한다.</p>
-          <div className="pub-actions">
-            <PubButtonLink href={problemHref} variant="primary">내 문제로 검색하기<IconArrowRight /></PubButtonLink>
-            {!signedIn && <PubButtonLink href="/" variant="ghost">베타 신청</PubButtonLink>}
-          </div>
-        </Panel>
+        {/* ── 의견 ── */}
+        <Sec id="feedback" title="의견 남기기" lead="로그인 없이, 케이스 1건당 하루 1번. 집계는 화면에 내지 않는다." last>
+          <FeedbackForm caseStudyId={s.id} />
+        </Sec>
       </div>
-    </div>
+
+      {/* ── 이 페이지의 유일한 다크 면 ── */}
+      <Panel tone="dark">
+        <div>
+          <h2 className="pub-panel-title">같은 곳에 막혀 있다면, 내 문제로 검색해 보라.</h2>
+          <p className="pub-text">승인된 케이스와 무브만 나온다. 없으면 없다고 말한다.</p>
+        </div>
+        <div className="pub-actions">
+          <PubButtonLink href={problemHref} variant="primary">내 문제로 검색하기<IconArrowRight /></PubButtonLink>
+          {!signedIn && <PubButtonLink href="/" variant="ghost">베타 신청</PubButtonLink>}
+        </div>
+      </Panel>
+    </>
   )
 }
 
@@ -423,7 +357,7 @@ export default async function LibraryCasePage({ params }: { params: Promise<{ sl
     return (
       <PubShell theme="light">
         <Hero title="케이스" />
-        <Panel tone="alert" title="확인 불가 — Supabase 환경변수 미설정">
+        <Panel tone="alert" title="확인 불가. Supabase 환경변수 미설정">
           <p className="pub-text">케이스를 읽지 못했다. 이 케이스가 없다는 뜻이 아니다.</p>
         </Panel>
       </PubShell>
@@ -435,7 +369,7 @@ export default async function LibraryCasePage({ params }: { params: Promise<{ sl
     return (
       <PubShell theme="light">
         <Hero title="케이스" />
-        <Panel tone="alert" title="확인 불가 — 케이스 조회 실패">
+        <Panel tone="alert" title="확인 불가. 케이스 조회 실패">
           <p className="pub-text">{res.reason} · 404 로 접지 않는다. 다시 시도해도 같으면 로그를 봐야 한다.</p>
         </Panel>
       </PubShell>

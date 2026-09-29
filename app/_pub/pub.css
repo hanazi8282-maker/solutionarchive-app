@@ -1448,3 +1448,16 @@ a.pub-index-row .pub-index-act { margin-top: 2px; line-height: 1.4; }
   .pub-reveal--deep[data-js]:not([data-in]) > * > * { opacity: 1; }
   .pub-today-card .pub-index-t { transition: none; }
 }
+
+/* ============================================================
+   G4 신호·방법론 (2026-09-30, reports/2026-09-30/design-direction-decisions.md B3-7·8)
+   새 색·반경 없음(토큰만). 모션 없음 — B6 은 "신호에는 안 쓴다" 로 이 화면을 뺐고, 방법론 압축판도 지정이 없다.
+   방법론 압축판은 G1 .pub-steps(compact) 를 그대로 쓰므로 여기 규칙이 없다.
+   ============================================================ */
+
+/* 신호 카드 머리(B3-7) — 파비콘 16(근거 목록의 .pub-evid-fav 재사용) + 소스명 + 신호 라벨 칩(오른쪽). */
+.pub-signal-head { display: flex; align-items: center; gap: var(--pub-gap-2); min-width: 0; font-size: var(--pub-size-caption); }
+.pub-signal-head .pub-card-brand { min-width: 0; overflow-wrap: anywhere; }
+.pub-signal-head .pub-chip { margin-left: auto; }
+/* 라벨이 신호 하나뿐이면 아래 칩 줄이 비는데, 빈 줄도 격자 간격을 먹는다 — 접는다. */
+.pub-card-body > .pub-chiprow:empty { display: none; }

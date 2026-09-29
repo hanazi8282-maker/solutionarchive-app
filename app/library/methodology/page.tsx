@@ -3,6 +3,8 @@ import { PubShell } from '../../_pub/components/PubShell'
 import { Hero } from '../../_pub/components/Hero'
 import { Section } from '../../_pub/components/Section'
 import { PubTOC } from '../../_pub/components/PubTOC'
+import { PubSteps } from '../../_pub/components/PubSteps'
+import { STEPS } from '../../_pub/steps'
 import './methodology.css'
 
 /**
@@ -36,6 +38,11 @@ export default function MethodologyPage() {
         lead="무엇을 케이스로 삼고, 근거에 어떻게 등급을 매기고, 무엇을 발행하지 않는지. 각 섹션 끝에 그 규칙의 정본 파일 경로를 적었다."
         note="확인하지 못한 것을 확인된 것으로 적지 않는다. 미기재는 “아니다”가 아니라 “확인하지 않았다”이고, 그렇게 매긴 등급에는 “잠정”이 붙는다."
       />
+
+      {/* G4(B3-8): 히어로 아래 작동원리 압축판 — 랜딩과 같은 문구(STEPS), 숫자 캡션 없음(compact). */}
+      <section aria-label="작동 원리 4단계">
+        <PubSteps steps={STEPS} compact />
+      </section>
 
       {/* M1: 목차 패널 → 케이스 상세와 같은 .pub-detail + PubTOC(좁으면 위 가로 칩, ≥1024px 오른쪽 sticky).
           긴 표 6개를 내려가면서도 목차가 따라온다. JS 0. */}

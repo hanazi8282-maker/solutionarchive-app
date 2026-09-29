@@ -1,0 +1,80 @@
+# 경쟁사 프로필 백필 — 이미 추출된 프로젝트(2026-09-29 기준 29건)에 현재 프롬프트 버전의 스냅샷이 없으면 만든다.
+# 수동 전용(workflow_dispatch). 스케줄 없음 — 남은 대상이 0건이 되면 더 부를 일이 없다(cron-watchdog 대상 아님).
+#
+# 스크립트: scripts/competitor-profile-backfill.mjs (PR #345). 로컬에서 못 돌리는 이유는 provider=claude-cli 가
+#    CLAUDE_CODE_OAUTH_TOKEN(Actions 시크릿에만 있음)을 요구해서다 — nightly-extract.yml 과 같은 CLI 설치·시크릿을 쓴다.
+# 종료코드: 0 정상(대상 0건 포함) · 1 LLM 한도 blocked · 2 설정/조회 실패(마이그 20260930000037 미적용 포함) · 3 생성 실패 1건 이상
+#
+# ⚠️ 기본은 dry_run=true(대상 나열만, LLM 호출·DB 쓰기 없음). 실제 생성은 dry_run 을 끄고 다시 부른다.
+
+name: Competitor Profile Backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '대상 선정만 하고 LLM 을 부르지 않는다'
+        type: boolean
+        default: true
+      limit:
+        description: '이번 실행에서 만들 최대 프로젝트 수'
+        type: string
+        default: '5'
+      project:
+        description: '이 프로젝트(uuid)만. 비우면 대상 전체에서 limit 만큼'
+        type: string
+        default: ''
+      force:
+        description: '현재 버전 스냅샷(failed 포함)이 있어도 다시 만든다'
+        type: boolean
+        default: false
+
+# nightly-extract.yml 과 같은 그룹: extract 뒤 프로필 단계(lib/analysis/extract-run.ts)와 이 백필이 같은
+# competitor_profile_snapshots 에 쓰고, 같은 claude-cli 구독 한도를 쓴다. 겹치면 한도 정지가 서로를 끊는다.
+concurrency:
+  group: extract-auto
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    # 프로젝트당 1~2분(nightly-extract.yml 실측) × limit. 기본 5건이면 15분 안이고, 상한은 60 — 그보다 큰 limit 는 나눠 부른다.
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Claude Code CLI
+        run: |
+          npm i -g @anthropic-ai/claude-code@2.1.251
+          echo "CLAUDE_CLI_PATH=$(which claude)" >> "$GITHUB_ENV"
+          claude --version
+
+      - name: Backfill competitor profiles
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # 기존 시크릿 재사용(column-review.yml). 없으면 스크립트가 시작하지 않는다(exit 2). ANTHROPIC_API_KEY 는 넣지 않는다.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          LLM_PROVIDER: claude-cli
+          CLAUDE_CLI_MODEL: sonnet
+          # 프로필 입력은 최대 6만 자(PROFILE_MAX_CHARS_TOTAL). extract(12만 자)와 같은 상한을 두면 남는다.
+          LLM_CLAUDE_CLI_TIMEOUT_MS: '600000'
+          BACKFILL_LIMIT: ${{ inputs.limit || '5' }}
+          BACKFILL_PROJECT: ${{ inputs.project }}
+        run: |
+          node scripts/competitor-profile-backfill.mjs \
+            ${{ inputs.dry_run && '--dry' || '--run' }} \
+            --limit "$BACKFILL_LIMIT" \
+            ${{ inputs.project != '' && '--project "$BACKFILL_PROJECT"' || '' }} \
+            ${{ inputs.force && '--force' || '' }}

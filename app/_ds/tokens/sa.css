@@ -1,0 +1,147 @@
+/* ============================================================
+   SolutionArchive 디자인 토큰 — 한 벌 (남헌 2026-09-29 승인, 정본은 리포 루트 DESIGN.md)
+
+   이 파일이 앱 안에서 값을 적는 **유일한** 자리다. 나머지 레이어(`_ds` 의미 별칭 ·
+   `.sa-lib` · `.sa-v2` · `.pub-root`)는 여기 `--sa-*` 를 가리키기만 한다.
+   값을 바꾸려면 DESIGN.md 표와 이 파일을 같이 고친다 — `scripts/design-tokens-selftest.mjs`
+   가 두 곳의 토큰 이름이 같은지, 화면 파일에 리터럴 색·반경이 없는지 CI 에서 센다.
+
+   원칙
+   - 한 벌 + 밀도 프리셋 2개. 공개(아카이브)와 운영(작업대)은 같은 토큰을 읽고
+     `[data-density="operate"]`(= `.sa-v2`)에서 본문 크기·행간·패딩·컨트롤 높이만 바뀐다.
+   - 서체: 영문·숫자 Inter, 한글 Pretendard(글리프 단위 폴백). 둘 다 next/font 셀프호스팅 —
+     `--font-inter` / `--font-pretendard` 는 app/layout.tsx 가 <html> 에 심는다.
+   - 액센트는 파랑 하나. 판정 3색은 선·아이콘에만, 글자는 잉크.
+   ============================================================ */
+
+:root {
+  /* ── 서체 ── */
+  --sa-font: var(--font-inter, "Inter"), var(--font-pretendard, "Pretendard"), -apple-system, sans-serif;
+  --sa-font-mono: ui-monospace, "SF Mono", "Cascadia Mono", monospace;
+
+  /* ── 타입 스케일 (px 고정, 9단 + 공개 디스플레이 44) ── */
+  --sa-size-12: 12px;   /* 배지 안에서만 */
+  --sa-size-13: 13px;   /* 캡션 최소 */
+  --sa-size-14: 14px;   /* 운영 보조·표 */
+  --sa-size-15: 15px;   /* 운영 본문 */
+  --sa-size-17: 17px;   /* 공개 리드 */
+  --sa-size-20: 20px;   /* 소제목 */
+  --sa-size-24: 24px;   /* 섹션 제목 */
+  --sa-size-28: 28px;   /* 페이지 제목(운영) · 스탬프 글자 */
+  --sa-size-36: 36px;   /* 페이지 제목(공개) */
+  --sa-size-44: 44px;   /* 공개 디스플레이 전용 */
+
+  --sa-leading-body: 1.55;       /* 운영 */
+  --sa-leading-body-pub: 1.65;   /* 공개 */
+  --sa-leading-head: 1.2;
+  --sa-tracking-head: -0.015em;
+  --sa-tracking-display: -0.02em;
+
+  --sa-weight-text: 400;
+  --sa-weight-strong: 600;
+  --sa-weight-head: 600;
+
+  /* ── 색 ── 캔버스·표면·잉크. 뮤트 #5b6874 은 #fbfbfd 위 6.4:1 */
+  --sa-canvas: #fbfbfd;
+  --sa-surface: #ffffff;
+  --sa-surface-2: #f3f4f8;     /* 두 번째 면: 인셋·헤더 띠 */
+  --sa-line: #e2e8f0;
+  --sa-line-strong: #cbd2dc;   /* 호버 테두리(뜨지 않고 진해진다) */
+  --sa-ink: #0f172a;
+  --sa-ink-hover: #1e293b;     /* 잉크 버튼 hover 만 */
+  --sa-muted: #5b6874;
+  --sa-faint: #a3adb8;         /* 장식·비활성 전용. 본문·캡션 금지 */
+
+  --sa-accent: #1d4ed8;        /* 유일한 액센트 */
+  --sa-accent-ink: #ffffff;
+  --sa-accent-hover: #1a44be;
+  --sa-focus: #1d4ed8;
+
+  /* 판정 3색: 선·아이콘·점(의미 있을 때만). 글자는 --sa-ink 를 쓴다.
+     -bg 는 기존 배지의 연한 바탕 — 새 화면은 쓰지 않는다(선·아이콘으로). */
+  --sa-verdict-pos: #396c00;
+  --sa-verdict-neg: #b8452a;   /* 코랄 #e58b73 은 흰 바탕 2.5:1 → 선·아이콘 3:1 위해 낮춤 */
+  --sa-verdict-mix: #8f6400;   /* 앰버 #e2b866 은 1.9:1 → 같은 이유 */
+  --sa-verdict-pos-bg: #e9ffd2;
+  --sa-verdict-neg-bg: #fff1ec;
+  --sa-verdict-mix-bg: #fff7e0;
+
+  /* 다크 면(공개 전용 — 랜딩 배너·CTA 배너) */
+  --sa-dark-canvas: #020308;
+  --sa-dark-ink: #fafafa;
+  --sa-dark-muted: rgba(250, 250, 250, 0.62);
+  --sa-dark-line: rgba(250, 250, 250, 0.14);
+  --sa-dark-focus: #5dbce5;
+
+  /* ── 반경 하나의 규칙 ── */
+  --sa-round-control: 10px;
+  --sa-round-card: 16px;
+  --sa-round-banner: 24px;
+  --sa-round-pill: 100px;
+
+  /* ── 그림자: 카드 rest 만. 호버는 테두리를 진하게 ── */
+  --sa-lift-rest: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --sa-lift-float: 0 8px 24px rgba(15, 23, 42, 0.10); /* 토스트 등 떠 있는 것만 */
+
+  /* ── 포커스: outline 2px 통일(박스섀도 링 없음) ── */
+  --sa-focus-outline: 2px solid var(--sa-focus);
+  --sa-focus-offset: 2px;
+
+  /* ── 모션 ── */
+  --sa-ease: cubic-bezier(0.19, 1, 0.22, 1);     /* 지수형 ease-out */
+  --sa-motion-press: 120ms;    /* 버튼 press scale(.98) */
+  --sa-motion-color: 150ms;    /* hover 는 색만 */
+  --sa-motion-move: 220ms;     /* 다음 카드 스크롤 */
+  --sa-motion-toast: 200ms;    /* 토스트 슬라이드, 진입·퇴장 같은 방향 */
+  /* 키보드로 촉발한 액션은 0ms: JS 가 html[data-kbd] 를 붙이면 전환을 끈다. */
+
+  /* ── 간격 ── */
+  --sa-gap-1: 4px;
+  --sa-gap-2: 8px;
+  --sa-gap-3: 12px;
+  --sa-gap-4: 16px;
+  --sa-gap-5: 20px;
+  --sa-gap-6: 24px;
+  --sa-gap-8: 32px;
+  --sa-gap-10: 40px;
+  --sa-gap-16: 64px;
+
+  /* ── 컨트롤 높이 ── 44 는 터치 최소치(공개 기본), 36 은 작업대 기본 */
+  --sa-h-sm: 32px;
+  --sa-h-md: 36px;
+  --sa-h-lg: 44px;
+
+  /* ── 폭 ── */
+  --sa-measure: 68ch;          /* 본문 한 줄 */
+  --sa-frame: 1120px;          /* 공개 프레임 */
+  --sa-sidebar: 232px;         /* 운영 사이드바 */
+
+  /* ── 밀도 프리셋 기본 = 공개 ── */
+  --sa-size-body: 16px;
+  --sa-leading: var(--sa-leading-body-pub);
+  --sa-pad-card: 24px;
+  --sa-h-control: var(--sa-h-lg);
+
+  font-variant-numeric: tabular-nums;
+}
+
+/* 운영 화면 프리셋: 본문 15, 행간 1.55, 카드 패딩 16, 컨트롤 36. `.sa-v2` 는 이 프리셋 자체다. */
+[data-density="operate"],
+.sa-v2 {
+  --sa-size-body: 15px;
+  --sa-leading: var(--sa-leading-body);
+  --sa-pad-card: 16px;
+  --sa-h-control: var(--sa-h-md);
+}
+
+/* 움직임 줄이기: 이동만 끈다. 색·투명 전환은 남긴다. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sa-motion-press: 0ms;
+    --sa-motion-move: 0ms;
+    --sa-motion-toast: 0ms;
+  }
+}
+
+/* 키보드로 촉발한 액션은 즉시. JS 가 keydown 에서 html[data-kbd] 를 붙였다 뗀다. */
+html[data-kbd] * { transition-duration: 0ms !important; }

@@ -1,55 +1,47 @@
 /* ============================================================
-   Dothegy Works — Typography Tokens
-   Pretendard for everything UI (Korean + Latin), JetBrains
-   Mono for tabular figures / IDs. Dashboard density: compact
-   line-heights, clear hierarchy from page title → KPI number
-   → label. shadcn-ish scale.
+   `_ds` 타이포 별칭 — 값은 전부 `tokens/sa.css` 의 `--sa-*` (정본 DESIGN.md).
+   컴포넌트(Badge·Button·Card…)가 읽는 옛 이름을 유지하고 값만 새 벌로 가리킨다.
    ============================================================ */
 
 :root {
-  /* Families
-     --font-pretendard 는 next/font/local 이 <html> 에 심는 변수다(app/layout.tsx).
-     폴백으로 "Pretendard" 를 남겨 둔 이유: 변수가 없으면 var() 가 무효가 되어 이 선언
-     전체가 버려지고 본문이 브라우저 기본 글꼴로 떨어진다 — 폰트 하나 때문에 자간·행간이
-     통째로 어긋나는 것이 가장 늦게 발견되는 회귀다. */
-  --font-sans: var(--font-pretendard, "Pretendard"), -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-               "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Families — Inter(영문·숫자) + Pretendard(한글). 둘 다 next/font 셀프호스팅(app/layout.tsx). */
+  --font-sans: var(--sa-font);
+  --font-mono: var(--sa-font-mono);
 
   /* Weights */
-  --fw-regular:  400; /* @kind font */
-  --fw-medium:   500; /* @kind font */
-  --fw-semibold: 600; /* @kind font */
-  --fw-bold:     700; /* @kind font */
+  --fw-regular:  var(--sa-weight-text);
+  --fw-medium:   500;
+  --fw-semibold: var(--sa-weight-strong);
+  --fw-bold:     var(--sa-weight-head);
 
-  /* Type scale (px) — dashboard tuned */
-  --fs-display: 32px;  /* big KPI gauge numbers */
-  --fs-h1:      24px;  /* page title */
-  --fs-h2:      20px;  /* section / card title */
-  --fs-h3:      16px;  /* sub-section */
-  --fs-md:      15px;  /* 결론 문단 등 본문보다 한 칸 큰 글 (result 화면 3곳) */
-  --fs-base:    14px;  /* body / table cells / inputs */
-  --fs-sm:      13px;  /* secondary copy */
-  --fs-xs:      12px;  /* labels, captions, badges */
-  --fs-2xs:     11px;  /* sidebar section labels, micro-meta */
+  /* Type scale → sa 9단 */
+  --fs-display: var(--sa-size-36);
+  --fs-h1:      var(--sa-size-24);
+  --fs-h2:      var(--sa-size-20);
+  --fs-h3:      var(--sa-size-17);
+  --fs-md:      var(--sa-size-15);
+  --fs-base:    var(--sa-size-14);
+  --fs-sm:      var(--sa-size-13);
+  --fs-xs:      var(--sa-size-12);
+  --fs-2xs:     var(--sa-size-12);
 
   /* Line heights */
-  --lh-tight:   1.2;  /* @kind font */
-  --lh-snug:    1.35; /* @kind font */
-  --lh-normal:  1.5;  /* @kind font */
-  --lh-relaxed: 1.65; /* @kind font */
+  --lh-tight:   var(--sa-leading-head);
+  --lh-snug:    1.35;
+  --lh-normal:  var(--sa-leading-body);
+  --lh-relaxed: var(--sa-leading-body-pub);
 
   /* Letter spacing */
-  --ls-tight:  -0.02em; /* @kind font */
-  --ls-normal: 0;       /* @kind font */
-  --ls-wide:   0.04em;  /* @kind font */
-  --ls-wider:  0.08em;  /* @kind font */
+  --ls-tight:  var(--sa-tracking-head);
+  --ls-normal: 0;
+  --ls-wide:   0.04em;
+  --ls-wider:  0.08em;
 
   /* ---- Semantic roles ---- */
   --text-display-size:   var(--fs-display);
   --text-display-weight: var(--fw-bold);
   --text-display-lh:     var(--lh-tight);
-  --text-display-ls:     var(--ls-tight);
+  --text-display-ls:     var(--sa-tracking-display);
 
   --text-title-size:     var(--fs-h1);
   --text-title-weight:   var(--fw-bold);

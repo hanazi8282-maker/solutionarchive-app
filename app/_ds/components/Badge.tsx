@@ -28,12 +28,12 @@ export function Badge({
   ...rest
 }: BadgeProps) {
   const tones: Record<Tone, { fg: string; bg: string; bd: string; solidBg: string }> = {
-    neutral: { fg: 'var(--slate-600)', bg: 'var(--slate-100)', bd: 'var(--slate-200)', solidBg: 'var(--slate-500)' },
+    neutral: { fg: 'var(--text-muted)', bg: 'var(--surface-muted)', bd: 'var(--border)', solidBg: 'var(--text-muted)' },
     info:    { fg: 'var(--info-fg)', bg: 'var(--info-bg)', bd: 'var(--info-border)', solidBg: 'var(--info)' },
     success: { fg: 'var(--success-fg)', bg: 'var(--success-bg)', bd: 'var(--success-border)', solidBg: 'var(--success)' },
     warning: { fg: 'var(--warning-fg)', bg: 'var(--warning-bg)', bd: 'var(--warning-border)', solidBg: 'var(--warning)' },
     danger:  { fg: 'var(--danger-fg)', bg: 'var(--danger-bg)', bd: 'var(--danger-border)', solidBg: 'var(--danger)' },
-    violet:  { fg: 'var(--violet-600)', bg: 'var(--violet-50)', bd: 'var(--violet-100)', solidBg: 'var(--violet-500)' },
+    violet:  { fg: 'var(--primary)', bg: 'var(--info-bg)', bd: 'var(--info-border)', solidBg: 'var(--primary)' },
   }
   const t = tones[tone] || tones.neutral
   const sz = size === 'sm'
@@ -41,7 +41,7 @@ export function Badge({
     : { fontSize: 12, padding: dot ? '3px 9px 3px 7px' : '3px 9px', height: 22 }
 
   const base = solid
-    ? { background: t.solidBg, color: '#fff', border: '1px solid transparent' }
+    ? { background: t.solidBg, color: 'var(--sa-accent-ink)', border: '1px solid transparent' }
     : { background: t.bg, color: t.fg, border: `1px solid ${t.bd}` }
 
   return (
@@ -64,7 +64,7 @@ export function Badge({
       {dot ? (
         <span style={{
           width: 6, height: 6, borderRadius: '50%',
-          background: solid ? '#fff' : t.solidBg,
+          background: solid ? 'var(--sa-surface)' : t.solidBg,
         }} />
       ) : null}
       {children}

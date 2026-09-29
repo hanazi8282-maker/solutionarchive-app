@@ -18,7 +18,7 @@ const TONE_COLOR: Partial<Record<Tone, string>> = {
   warning: 'var(--warning)',
   success: 'var(--success)',
   info: 'var(--info)',
-  neutral: 'var(--slate-400)',
+  neutral: 'var(--text-faint)',
 }
 
 type ProgressBarProps = {
@@ -53,7 +53,7 @@ export function ProgressBar({
       <div style={{
         flex: 1,
         height,
-        background: 'var(--slate-100)',
+        background: 'var(--surface-muted)',
         borderRadius: 'var(--radius-full)',
         overflow: 'hidden',
       }}>

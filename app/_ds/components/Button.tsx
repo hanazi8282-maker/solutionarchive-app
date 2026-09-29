@@ -33,15 +33,15 @@ const VARIANTS = {
   neutral: { background: 'var(--neutral-btn)', color: 'var(--neutral-btn-fg)', border: '1px solid transparent' },
   outline: { background: 'var(--surface-card)', color: 'var(--text-body)', border: '1px solid var(--border-strong)' },
   ghost: { background: 'transparent', color: 'var(--text-body)', border: '1px solid transparent' },
-  destructive: { background: 'var(--danger)', color: '#fff', border: '1px solid transparent' },
+  destructive: { background: 'var(--danger)', color: 'var(--sa-accent-ink)', border: '1px solid transparent' },
 }
 
 const HOVER_BG: Record<Variant, string> = {
   primary: 'var(--primary-hover)',
   neutral: 'var(--neutral-btn-hover)',
-  outline: 'var(--slate-50)',
-  ghost: 'var(--slate-100)',
-  destructive: 'var(--red-600)',
+  outline: 'var(--surface-sunken)',
+  ghost: 'var(--surface-muted)',
+  destructive: 'var(--sa-ink-hover)',
 }
 
 function baseStyle(variant: Variant, size: Size, disabled: boolean, fullWidth: boolean): React.CSSProperties {

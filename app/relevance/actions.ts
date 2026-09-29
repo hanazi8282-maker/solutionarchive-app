@@ -14,26 +14,26 @@ import type { FeedbackRow } from '@/lib/relevance-feedback/sample'
 export type RelevanceActionState = { ok: boolean; message: string } | null
 
 const VERDICT_KO: Record<string, string> = { relevant: '관련', irrelevant: '무관', unknown: '모름' }
-const ko = (v: unknown) => (typeof v === 'string' ? VERDICT_KO[v] ?? v : '없음')
-const infKo = (v: unknown) => (v === true ? '정보있음' : v === false ? '정보없음' : '미기재')
+const ko = (v: unknown) => (typeof v === 'string' ? VERDICT_KO[v] ?? v : '판정 없음')
+const infKo = (v: unknown) => (v === true ? '정보있음' : v === false ? '정보없음' : '판정 없음')
 
 export async function gradeRelevance(_prev: RelevanceActionState, fd: FormData): Promise<RelevanceActionState> {
   const auth = await requireAllowedUser()
   if (!auth.ok) return { ok: false, message: auth.message }
 
   const sub = readRelevanceSubmission({ inputId: fd.get('input_id'), verdict: fd.get('verdict'), informative: fd.get('informative'), note: fd.get('note') })
-  if (!sub.value) return { ok: false, message: sub.error ?? '제출 내용을 읽지 못했습니다.' }
+  if (!sub.value) return { ok: false, message: sub.error ?? '제출 내용을 읽지 못했다.' }
   const { inputId, verdict, informative, note } = sub.value
 
   const sb = await createClient()
-  if (!sb) return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다.' }
+  if (!sb) return { ok: false, message: 'Supabase 환경변수가 설정되지 않았다. 저장하지 않았다.' }
 
   // 층은 서버에서 다시 계산한다 — 폼에 실으면 채점 전에 DOM 으로 보인다(끌림 방지).
   const { data: row, error: readErr } = await sb.from('review_relevance_verdicts').select('*').eq('input_id', inputId).maybeSingle()
-  if (readErr) return { ok: false, message: `판정 행 조회 실패 — 저장하지 않았습니다: ${readErr.message}` }
-  if (!row) return { ok: false, message: '판정 행이 없습니다. 새로고침 후 확인하세요.' }
+  if (readErr) return { ok: false, message: `판정 행을 읽지 못해 저장하지 않았다: ${readErr.message}` }
+  if (!row) return { ok: false, message: '판정 행이 없어 저장하지 않았다. 새로고침해서 확인한다.' }
   const r = row as FeedbackRow
-  if (r.human_verdict != null) return { ok: false, message: `이미 채점된 행입니다(${ko(r.human_verdict)}) — 덮어쓰지 않았습니다. 새로고침하세요.` }
+  if (r.human_verdict != null) return { ok: false, message: `이미 채점된 글이다(${ko(r.human_verdict)}). 덮어쓰지 않았다. 새로고침한다.` }
 
   const avail = columnAvailability([row])
   const patch: Record<string, unknown> = { human_verdict: verdict, human_graded_at: new Date().toISOString() }
@@ -49,8 +49,8 @@ export async function gradeRelevance(_prev: RelevanceActionState, fd: FormData):
     delete patch.human_product_informative
     ;({ data, error } = await write(patch))
   }
-  if (error) return { ok: false, message: `저장 실패: ${error.message}` }
-  if (!data || data.length === 0) return { ok: false, message: '방금 다른 곳에서 채점됐습니다 — 덮어쓰지 않았습니다. 새로고침하세요.' }
+  if (error) return { ok: false, message: `저장하지 못했다(${error.message}). 잠시 뒤 다시 저장한다.` }
+  if (!data || data.length === 0) return { ok: false, message: '방금 다른 곳에서 채점됐다. 덮어쓰지 않았다. 새로고침한다.' }
 
   const stratum = stratumOf(r, avail)
   let noteMsg = ''
@@ -72,20 +72,20 @@ export async function gradeRelevance(_prev: RelevanceActionState, fd: FormData):
     // 판정은 이미 저장됐다. 메모만 실패했으면 본문을 되돌려 보여 준다 — 잃어버리지 않게.
     if (noteErr) {
       noteMsg = isMissingRelation(noteErr)
-        ? ` · ⚠️ 메모는 저장 안 됨(마이그 ${FEEDBACK_MIGRATION} 미적용) — 적은 내용: "${note}"`
-        : ` · ⚠️ 메모 저장 실패(${noteErr.message}) — 적은 내용: "${note}"`
-    } else noteMsg = ' · 메모 저장됨'
+        ? ` · 메모는 저장하지 못했다(마이그 ${FEEDBACK_MIGRATION} 미적용). 적은 내용: “${note}”`
+        : ` · 메모는 저장하지 못했다(${noteErr.message}). 적은 내용: “${note}”`
+    } else noteMsg = ' · 메모 저장'
   }
 
   revalidatePath('/relevance/grade')
   revalidatePath('/relevance/feedback')
   // 저장 뒤에야 공개한다 — 모델 판정·뽑힌 층.
-  const reveal = `공개: ${stratum ? STRATUM_LABEL[stratum] : '층 없음'} · 1차 ${ko(r.verdict)} · 2차 ${ko(r.second_verdict)}`
-    + (avail.informative ? ` · 정보성 1차 ${infKo(r.product_informative)}/2차 ${infKo(r.second_product_informative)}` : '')
+  const reveal = `층 ${stratum ? STRATUM_LABEL[stratum] : '없음'} · 모델 1차 ${ko(r.verdict)} · 2차 ${ko(r.second_verdict)}`
+    + (avail.informative ? ` · 제품 정보 1차 ${infKo(r.product_informative)} · 2차 ${infKo(r.second_product_informative)}` : '')
   return {
     ok: true,
-    message: `저장: ${ko(verdict)}${informative === null ? '' : ` · ${infKo(informative)}`} · 채점자 ${auth.email} · ${reveal}`
-      + (infMissing ? ` · ⚠️ 정보있음/없음은 저장 안 됨(마이그 ${INFORMATIVE_MIGRATION} 미적용)` : '')
+    message: `저장했다. 내 판정 ${ko(verdict)}${informative === null ? '' : ` · ${infKo(informative)}`} · 채점자 ${auth.email} · ${reveal}`
+      + (infMissing ? ` · 정보있음/정보없음은 저장하지 못했다(마이그 ${INFORMATIVE_MIGRATION} 미적용)` : '')
       + noteMsg,
   }
 }

@@ -30,6 +30,14 @@ export const PARSE_RATE_DEN = 10
 /** 연속 신규 0건이 이 횟수에 도달하면 degraded. */
 export const MAX_CONSECUTIVE_EMPTY = 3
 
+/**
+ * 게시판 순회(`board:`) 타깃을 닫는 문턱 — 목록을 실제로 읽은 실행만 센다(runner.ts emptyClose).
+ * 느린 태그는 "새 글 0건"이 정상이다: velog 생산성 태그가 목록이 안 바뀐 사흘 만에 3 에 걸려
+ * 닫혔고 09-27 부터 0요청이었다(2026-09-30). 목록 1요청/일이라 30 일을 기다려도 싸다.
+ * 소스 건강도(degraded)는 여전히 위 3 으로 본다 — 조용한 고장 신호는 그대로 산다.
+ */
+export const BOARD_MAX_CONSECUTIVE_EMPTY = 30
+
 export interface RunStats {
   /** 필드까지 정상적으로 읽어낸 리뷰 수. */
   reviewsParsed: number

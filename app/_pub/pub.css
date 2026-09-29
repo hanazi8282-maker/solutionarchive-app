@@ -108,6 +108,11 @@
               background var(--pub-motion-color) var(--pub-ease);
 }
 .pub-nav-link:hover { color: var(--pub-ink); background: var(--pub-surface-2); }
+/* 로그인·대시보드 버튼(PubNav)은 메뉴 줄 밖이다. 좁은 폭에선 브랜드 옆 첫 줄에 두고 메뉴를 다음 줄로 내린다. */
+@media (max-width: 767.98px) {
+  .pub-nav > .pub-btn { margin-left: auto; }
+  .pub-nav-links { order: 1; width: 100%; margin-left: 0; }
+}
 
 /* ── 눈썹 라벨 ([F] "RESEARCH & INSPIRATION") ──────────── */
 .pub-eyebrow {

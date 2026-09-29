@@ -56,7 +56,7 @@ import { damoangAdapter, parseProductRef as parseDamoangRef } from '../lib/revie
 import { buildProductRef } from '../lib/review/target-ref.ts'
 import { BOARD_QUEUE_MAX, decodeBoardCursor, parseBoardRef } from '../lib/review/types.ts'
 import { MAX_PAGES_PER_TARGET, PRODUCT_TOKEN, runCollection } from '../lib/review/runner.ts'
-import { MAX_CONSECUTIVE_EMPTY } from '../lib/review/health.ts'
+import { BOARD_MAX_CONSECUTIVE_EMPTY } from '../lib/review/health.ts'
 import { looksLikeMarkup, parseRobots, robotsVerdict } from '../lib/review/robots.ts'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -197,7 +197,12 @@ const cur = (q, last = null) => JSON.stringify({ q, last })
 
 // ══ 지킬 것 5: slug 은 표에 있는 것만 ══════════════════════════════
 {
-  t('표: 등록된 태그는 1개', Object.keys(BOARDS).length, 1)
+  t('표: 등록된 태그는 5개 (2026-09-30 +4)', Object.keys(BOARDS).length, 5)
+  // 새 태그의 목록 경로 오타는 0요청 타깃이 된다 — 경로를 태그 원문에서 다시 계산해 대조한다.
+  for (const [slug, b] of Object.entries(BOARDS)) {
+    t(`표: ${slug} 경로 = /tags/+인코딩(${b.tag})`, b.list, `/tags/${encodeURIComponent(b.tag)}`)
+    t(`빌더: ${slug} 태그 URL → board:${slug}`, buildProductRef('velog', `${VELOG_HOST}/tags/${b.tag}`).productRef, `board:${slug}`)
+  }
   t('표: productivity → 생산성', BOARDS[SLUG].tag, '생산성')
   t('표: 목록 경로가 인코딩된 형태다', BOARDS[SLUG].list, LIST_PATH)
   ok('표: 목록 경로에 쿼리가 없다 (1페이지만 간다)', !BOARDS[SLUG].list.includes('?'))
@@ -570,11 +575,11 @@ for (const [name, body] of [
 
   // ⚠️ 닫는 것은 **연속 0건 안전장치 하나뿐**이다. 그게 실제로 닫는지 본다 —
   //    안 닫으면 성과 없는 타깃이 영원히 매일 목록을 1회씩 받는다.
-  for (let i = row.consecutiveEmpty; i < MAX_CONSECUTIVE_EMPTY; i++) {
+  for (let i = row.consecutiveEmpty; i < BOARD_MAX_CONSECUTIVE_EMPTY; i++) {
     urls = []
     await runCollection(velogAdapter, { dryRun: false, targetLimit: 1 }, ports)
   }
-  t(`안전장치: 연속 ${MAX_CONSECUTIVE_EMPTY}회 0건이면 닫는다`, row.status, 'exhausted')
+  t(`안전장치: 연속 ${BOARD_MAX_CONSECUTIVE_EMPTY}회 0건이면 닫는다`, row.status, 'exhausted')
   t('안전장치: 닫힐 때도 last 는 남는다 (사람이 되살리면 이어간다)', decodeBoardCursor(row.cursor).last, '2026-09-22T08:15:11.419Z')
   urls = []
   const after = await runCollection(velogAdapter, { dryRun: false, targetLimit: 1 }, ports)

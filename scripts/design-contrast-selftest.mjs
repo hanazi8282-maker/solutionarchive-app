@@ -26,9 +26,23 @@ const PAIRS = [
   ['dark-ink', 'dark-canvas', 4.5], ['dark-muted', 'dark-canvas', 4.5],
   ['focus', 'canvas', 3], ['dark-focus', 'dark-canvas', 3], ['flash', 'dark-canvas', 3],
 ]
+// 다크 배너(G1): 그라데이션 밝은 끝 = dark-canvas 에 액센트 N% 혼합, 그 위 흑백 노이즈 최대 불투명도 → 최악은 흰색 op 합성.
+// 두 숫자를 pub.css 에서 읽는다 — 못 읽으면 통과가 아니라 실패(§7.1).
+const pub = readFileSync(new URL('../app/_pub/pub.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+const mixM = pub.match(/color-mix\(in srgb, var\(--sa-dark-canvas\) (\d+)%, var\(--sa-([\w-]+)\)\)/)
+const noiseM = pub.match(/feTurbulence[^"]*opacity='([\d.]+)'/)
+if (!mixM || !noiseM) { console.error('FAIL: pub.css 다크 배너 그라데이션·노이즈 값을 못 읽었다(확인 불가)'); process.exit(1) }
+const blend = (a, b, t) => a.slice(0, 3).map((x, i) => x * (1 - t) + b[i] * t)
+const hex = (c) => '#' + c.map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')
+const lightEnd = blend(rgba(tok('dark-canvas')), rgba(tok(mixM[2])), 1 - Number(mixM[1]) / 100)
+const bannerWorst = hex(blend(lightEnd, [255, 255, 255], Number(noiseM[1])))
+const EXTRA = { 'banner-worst': bannerWorst }
+PAIRS.push(['dark-ink', 'banner-worst', 4.5], ['dark-muted', 'banner-worst', 4.5], ['dark-focus', 'banner-worst', 3], ['flash', 'banner-worst', 3])
+console.log(`banner-worst = ${bannerWorst} (dark-canvas ${mixM[1]}% + ${mixM[2]}, 노이즈 흰색 ${noiseM[1]})`)
+
 let bad = 0
 for (const [fg, bg, min] of PAIRS) {
-  const r = ratio(tok(fg), tok(bg))
+  const r = ratio(tok(fg), EXTRA[bg] ?? tok(bg))
   if (r < min) bad++
   console.log(`${r >= min ? 'ok  ' : 'FAIL'} ${fg} on ${bg}: ${r.toFixed(2)} (>= ${min})`)
 }

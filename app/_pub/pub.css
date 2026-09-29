@@ -1127,7 +1127,7 @@ a.pub-index-row:hover { background: var(--pub-surface-2); }
 /* 의견 */
 .pub-vote { display: flex; flex-wrap: wrap; gap: var(--pub-gap-3); align-items: center; }
 
-/* 다크 배너 — 이 화면의 유일한 다크 면. 이미지는 public/brand-banner.png (Canva, 남헌 계정). */
+/* 다크 배너 — 이 화면의 유일한 다크 면. 배경은 토큰 그라데이션 + 노이즈(아래). */
 .pub-panel--dark {
   --pub-ink: var(--sa-dark-ink);
   --pub-ink-muted: var(--sa-dark-muted);
@@ -1141,7 +1141,13 @@ a.pub-index-row:hover { background: var(--pub-surface-2); }
   padding: 28px var(--pub-gap-5);
   border: 0;
   border-radius: var(--pub-round-banner);
-  background: var(--sa-dark-canvas) url("/brand-banner.png") center / cover no-repeat;
+  /* G1(2026-09-30 남헌 확정): 배너 이미지 대신 딥인디고 옅은 그라데이션 + feTurbulence 흑백 노이즈(불투명도 5%).
+     public/brand-banner.png 는 남겨 둔다(남헌이 새 이미지로 교체 예정). 새 색 리터럴 없음 — 토큰 두 개의 혼합뿐.
+     혼합 비율(12%)과 노이즈 불투명도(.05)는 scripts/design-contrast-selftest.mjs 가 이 줄에서 읽어 최악 배경 대비를 센다. */
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E"),
+    linear-gradient(160deg, var(--sa-dark-canvas) 35%, color-mix(in srgb, var(--sa-dark-canvas) 88%, var(--sa-accent)));
+  background-color: var(--sa-dark-canvas);
   color: var(--sa-dark-ink);
   box-shadow: none;
   color-scheme: dark;
@@ -1164,3 +1170,125 @@ a.pub-index-row:hover { background: var(--pub-surface-2); }
 /* 시각적으로만 숨김(스크린리더용 표 머리글 등). */
 .pub-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .pub-sec--last { border-bottom: 0; }
+
+/* ============================================================
+   G1 부품 (2026-09-30, reports/2026-09-30/design-direction-decisions.md B2·B4·B5·B6)
+   이 블록은 새 클래스만 정의한다 — 위의 기존 규칙은 바꾸지 않는다(다크 배너 배경만 예외, 남헌 확정).
+   화면 배치는 G2·G3 몫이다.
+   ============================================================ */
+
+/* 아이콘 타일 — 40×40, 반경 10, 면 위 20px 아이콘. 그림자·테두리 없음. */
+.pub-icontile {
+  display: inline-grid; place-items: center; flex: none;
+  width: 40px; height: 40px;
+  border-radius: var(--pub-round-control);
+  background: var(--pub-plane-accent);
+  color: var(--pub-accent);
+  font-size: var(--sa-size-20);
+}
+.pub-icontile--ice { background: var(--pub-plane-ice); }
+.pub-icontile--lilac { background: var(--pub-plane-lilac); }
+.pub-icontile--sm { width: 32px; height: 32px; }
+/* 다크 면 위: 바탕 선색 + flash 아이콘(flash 는 다크 면 전용, DESIGN.md §1). */
+.pub-root[data-pub-theme="dark"] .pub-icontile,
+.pub-panel--dark .pub-icontile { background: var(--sa-dark-line); color: var(--sa-flash); }
+
+/* 작동원리 단계 — ice 면 위. ≥1024 가로 4칸 + 화살표, 768~1023 2×2, <768 세로 레일. */
+.pub-root .pub-steps {
+  position: relative;
+  display: grid; gap: var(--pub-gap-5);
+  margin: 0; padding: var(--pub-gap-6) var(--pub-gap-5); list-style: none;
+  border-radius: var(--pub-round-banner);
+  background: var(--pub-plane-ice);
+}
+.pub-step { position: relative; display: grid; align-content: start; grid-template-columns: 40px minmax(0, 1fr); gap: var(--pub-gap-4); align-items: start; }
+.pub-step-main { min-width: 0; overflow-wrap: anywhere; }
+.pub-root .pub-step-t { margin: 0; font-size: var(--sa-size-20); font-weight: var(--pub-weight-strong); line-height: 1.35; color: var(--pub-ink); text-wrap: balance; }
+.pub-root .pub-step-b { margin: var(--pub-gap-1) 0 0; font-size: var(--pub-size-text-sm); line-height: 1.55; color: var(--pub-ink-muted); }
+.pub-root .pub-step-cap { margin: var(--pub-gap-2) 0 0; font-size: var(--pub-size-caption); line-height: 1.5; color: var(--pub-ink); font-variant-numeric: tabular-nums; }
+.pub-step-cap a { text-decoration: underline; text-underline-offset: 3px; transition: color var(--pub-motion-color) var(--pub-ease); }
+.pub-step-cap a:hover { color: var(--pub-accent); }
+.pub-step-arrow { display: none; }
+/* <768 세로 타임라인: 타일 중심(20px)에 2px 레일, 타일이 레일 위에 앉는다. */
+.pub-steps::before {
+  content: ""; position: absolute; top: var(--pub-gap-8); bottom: var(--pub-gap-8);
+  left: calc(var(--pub-gap-5) + 19px); width: 2px; background: var(--sa-line);
+}
+.pub-step .pub-icontile { position: relative; }
+@media (min-width: 768px) {
+  .pub-root .pub-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--pub-gap-8); }
+  .pub-steps::before { content: none; }
+  .pub-step { grid-template-columns: minmax(0, 1fr); }
+}
+@media (min-width: 1024px) {
+  .pub-root .pub-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--pub-gap-10); align-items: stretch; }
+  .pub-step-arrow {
+    display: block; position: absolute; top: 8px;
+    right: calc(-1 * (var(--pub-gap-10) + 24px) / 2);
+    font-size: var(--sa-size-24); line-height: 0; color: var(--pub-ink-faint);
+  }
+}
+
+/* 가치제안 격자 — plane-accent 면 위 흰 카드(반경 16, 테두리 없음). 3/2/1열. */
+.pub-root .pub-values {
+  display: grid; gap: var(--pub-gap-grid);
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0; padding: var(--pub-gap-5); list-style: none;
+  border-radius: var(--pub-round-banner);
+  background: var(--pub-plane-accent);
+}
+.pub-value { display: flex; flex-direction: column; gap: var(--pub-gap-2); min-width: 0; overflow-wrap: anywhere; padding: var(--pub-pad-card); border-radius: var(--pub-round-card); background: var(--pub-surface); }
+.pub-value .pub-icontile { margin-bottom: var(--pub-gap-2); }
+.pub-root .pub-value-t { margin: 0; font-size: var(--sa-size-20); font-weight: var(--pub-weight-strong); line-height: 1.35; color: var(--pub-ink); text-wrap: balance; }
+.pub-root .pub-value-b { margin: 0; font-size: var(--pub-size-text-sm); line-height: 1.6; color: var(--pub-ink-muted); }
+.pub-root .pub-value-stat { margin: auto 0 0; padding-top: var(--pub-gap-2); font-size: var(--pub-size-caption); font-weight: var(--pub-weight-strong); color: var(--pub-accent); font-variant-numeric: tabular-nums; cursor: help; }
+@media (min-width: 600px) { .pub-root .pub-values { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .pub-root .pub-values { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: var(--pub-gap-8); } }
+
+/* 로고 띠 — 워드마크 한 줄. 넓으면 줄바꿈 없음, 좁으면 가로 스크롤(스크롤바 숨기지 않는다). */
+.pub-logostrip { display: grid; gap: var(--pub-gap-3); }
+.pub-root .pub-logostrip-label { margin: 0; font-size: var(--pub-size-caption); font-weight: var(--pub-weight-label); color: var(--pub-ink-muted); }
+.pub-root .pub-logostrip-row {
+  display: flex; flex-wrap: nowrap; align-items: center; gap: var(--pub-gap-8);
+  margin: 0; padding: var(--pub-gap-2) 0; list-style: none;
+  overflow-x: auto; overscroll-behavior-x: contain;
+}
+.pub-logostrip-row:focus-visible { outline: 2px solid var(--pub-focus); outline-offset: 2px; }
+.pub-logostrip-row > li { flex: none; }
+.pub-logostrip-row img {
+  display: block; width: 96px; height: 20px; object-fit: contain; object-position: left center;
+  filter: grayscale(1); opacity: 0.72;
+  transition: opacity var(--pub-motion-color) var(--pub-ease);
+}
+.pub-logostrip-row img:hover { opacity: 1; filter: none; }
+
+/* 알약 CTA + 화살표 원(B6-2). 클래스만 정의 — 공개 primary 에 붙이는 건 G2(버튼을 쓰는 화면과 함께). */
+.pub-btn--pill { border-radius: var(--pub-round-pill); padding-right: var(--pub-gap-2); }
+.pub-btn-circle {
+  display: inline-grid; place-items: center; flex: none;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--pub-cta-ink); color: var(--pub-cta);
+  font-size: var(--pub-size-text);
+  transition: transform var(--pub-motion-color) var(--pub-ease);
+}
+.pub-btn--pill:hover .pub-btn-circle { transform: translateX(2px); }
+.pub-panel--dark .pub-btn--pill.pub-btn--primary { background: var(--sa-flash); border-color: var(--sa-flash); color: var(--sa-ink); }
+.pub-panel--dark .pub-btn--pill .pub-btn-circle { background: var(--sa-ink); color: var(--sa-flash); }
+
+/* 진입 등장(B6-1)·히어로 단어 등장(B6-3) — 키프레임 하나를 같이 읽는다. transform·opacity 만. */
+@keyframes pub-rise { from { opacity: 0; transform: translateY(var(--pub-rise, 12px)); } }
+.pub-reveal[data-js]:not([data-in]) > * { opacity: 0; }
+.pub-reveal[data-in] > * { animation: pub-rise 480ms var(--pub-ease) both; animation-delay: calc(var(--i, 0) * 60ms); }
+.pub-reveal > :nth-child(2) { --i: 1; }
+.pub-reveal > :nth-child(3) { --i: 2; }
+.pub-reveal > :nth-child(4) { --i: 3; }
+.pub-reveal > :nth-child(5) { --i: 4; }
+.pub-reveal > :nth-child(6) { --i: 5; }
+.pub-reveal > :nth-child(n+7) { --i: 6; }
+.pub-word { display: inline-block; --pub-rise: 8px; animation: pub-rise 500ms var(--pub-ease) both; animation-delay: calc(var(--i, 0) * 40ms); }
+@media (prefers-reduced-motion: reduce) {
+  .pub-reveal[data-in] > *, .pub-word { animation: none; }
+  .pub-reveal[data-js]:not([data-in]) > * { opacity: 1; }
+  .pub-btn-circle { transition: none; }
+  .pub-btn--pill:hover .pub-btn-circle { transform: none; }
+}

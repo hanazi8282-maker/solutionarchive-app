@@ -149,3 +149,23 @@ export function logoFor(
   }
   return { kind: 'initial', initial, hue, slot }
 }
+
+/** 워드마크 높이(px). 띠는 20px 로 그리므로 2배 밀도로 부른다. h 만 주면 너비는 비율을 따른다(Brandfetch 문서). */
+export const WORDMARK_HEIGHT = 40
+
+/**
+ * 랜딩 로고 띠용 워드마크 주소(B2). **폴백이 없다** — 파비콘·이니셜을 띠에 섞지 않는다(띠가 고른 이유는 전부 워드마크라서).
+ * 경로: `domain/{d}/h/{h}/fallback/404/type/logo` — docs.brandfetch.com/logo-api/parameters 2026-09-30 확인
+ * (식별자 → w/h → theme → fallback → type 순서, type 값 icon|logo|symbol, `logo` = 가로 워드마크).
+ * fallback/404 라 워드마크가 없는 브랜드는 404 → 띠가 그 <img> 를 지운다.
+ * 도메인이나 클라이언트 ID 가 없으면 null(§7.1: 추측 주소를 만들지 않는다).
+ */
+export function wordmarkFor(
+  study: LogoInput,
+  brandfetchClientId: string | undefined = process.env.NEXT_PUBLIC_BRANDFETCH_CLIENT_ID,
+): string | null {
+  const domain = normalizeDomain(study.brand_domain)
+  const clientId = brandfetchClientId?.trim()
+  if (!domain || !clientId) return null
+  return `${BRANDFETCH_ENDPOINT}/${encodeURIComponent(domain)}/h/${WORDMARK_HEIGHT}/fallback/404/type/logo?c=${encodeURIComponent(clientId)}`
+}

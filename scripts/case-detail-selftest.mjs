@@ -19,7 +19,7 @@ import {
 } from '../lib/cases/detail.ts'
 import { displayGrade, displayGradeLabel, factCheckLabel, gradeRankOf, INSIGHT_COLS, INSIGHT_GRADE_COLUMN_READY } from '../lib/cases/grade-display.ts'
 import { toRows, gradeMove } from '../lib/cases/draft.ts'
-import { logoFor, normalizeDomain, safeImageUrl, brandInitial, duotoneHue, paletteSlot, PALETTE_HUES } from '../lib/cases/logo.ts'
+import { logoFor, normalizeDomain, safeImageUrl, brandInitial, duotoneHue, paletteSlot, PALETTE_HUES, wordmarkFor } from '../lib/cases/logo.ts'
 import { pairMoves } from '../lib/cases/compare.ts'
 
 let pass = 0
@@ -198,6 +198,9 @@ t('Brandfetch 주소 — 문서 경로 순서(identifier/w/h/fallback) + ?c=', b
 ok('Brandfetch 404 면 Google 파비콘으로 갈아탈 주소가 붙는다', bf.fallbackSrc?.startsWith('https://www.google.com/s2/favicons?domain=acme.com'))
 t('logo_url 은 Brandfetch 보다 우선', logoFor({ brand_name: 'Acme', logo_url: 'https://cdn.x/a.png', brand_domain: 'acme.com' }, null, 'cid123').kind, 'url')
 t('둘 다 없으면 이니셜', logoFor({ brand_name: '무명상회' }).kind, 'initial')
+t('wordmarkFor — 도메인+ID 면 type/logo URL', wordmarkFor({ brand_name: 'Acme', brand_domain: 'https://www.Acme.com/x' }, 'cid123'), 'https://cdn.brandfetch.io/domain/acme.com/h/40/fallback/404/type/logo?c=cid123')
+t('wordmarkFor — 도메인 없으면 null(파비콘·이니셜 폴백 없음)', wordmarkFor({ brand_name: 'Acme', logo_url: 'https://cdn.x/a.png' }, 'cid123'), null)
+t('wordmarkFor — 클라이언트 ID 없으면 null', wordmarkFor({ brand_name: 'Acme', brand_domain: 'acme.com' }, ''), null)
 t('이니셜은 첫 글자', brandInitial('무명상회'), '무')
 t('브랜드명 없으면 ? (빈 칸을 그리지 않는다)', brandInitial(''), '?')
 t('도메인 꼴이 아니면 null (짐작하지 않는다)', normalizeDomain('acme'), null)

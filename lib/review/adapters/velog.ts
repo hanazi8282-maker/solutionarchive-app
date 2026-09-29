@@ -228,6 +228,17 @@ export const BOARDS: Record<string, { list: string; tag: string }> = {
   // 2026-09-24 실측(`GET /tags/생산성`): 목록 1페이지 = 글 10건, 그중 8건이
   // SaaS·AI 도구 사용 후기였다. 등록 SQL 의 근거와 같은 측정이다.
   productivity: { list: '/tags/%EC%83%9D%EC%82%B0%EC%84%B1', tag: '생산성' },
+  // 2026-09-30 실측(태그당 GET 1회, 러너 UA). 자율 소스 발굴 정책(CLAUDE.md §10.1)으로 연 4개.
+  // 제목·날짜 원문은 supabase/migrations/20260930000041_velog_board_targets.sql 머리말.
+  //   사이드프로젝트 — 목록 15건, 09-16~09-29 에 12건(거의 매일). 1인 빌더 제작·운영 회고(비용·정산·배포).
+  //   saas          — 목록 10건, 9월 4건. B2B SaaS 제작·첫 사용자 회고.
+  //   스타트업       — 목록 16건, 9월 2건 + 8월 다수. 창업팀 런칭 후기와 투자 뉴스가 섞인다(T2 가 거른다).
+  //   인디해커       — 목록 20건, 월 1~3건으로 느리다. 대신 "매출 0원"·"PH 런칭" 같이 독자와 정확히 겹친다.
+  // 뺀 것: 1인개발(게임 개발일지 1명이 도배) · 마케팅/PM/그로스해킹/서비스기획(수강 TIL 위주) · 창업(캠프 일지·공모전).
+  'side-project': { list: '/tags/%EC%82%AC%EC%9D%B4%EB%93%9C%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8', tag: '사이드프로젝트' },
+  saas: { list: '/tags/saas', tag: 'saas' },
+  startup: { list: '/tags/%EC%8A%A4%ED%83%80%ED%8A%B8%EC%97%85', tag: '스타트업' },
+  'indie-hacker': { list: '/tags/%EC%9D%B8%EB%94%94%ED%95%B4%EC%BB%A4', tag: '인디해커' },
 }
 
 /** 이 어댑터가 순회할 수 있는 게시판인가. 표에 없는 slug 은 받지 않는다. */

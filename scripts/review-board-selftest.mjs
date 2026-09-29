@@ -38,7 +38,7 @@ import {
   MAX_PAGES_PER_TARGET,
   PRODUCT_TOKEN,
 } from '../lib/review/runner.ts'
-import { MAX_CONSECUTIVE_EMPTY } from '../lib/review/health.ts'
+import { BOARD_MAX_CONSECUTIVE_EMPTY } from '../lib/review/health.ts'
 import { parseRobots, robotsVerdict } from '../lib/review/robots.ts'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -417,20 +417,20 @@ const target = (over = {}) => ({
 }
 
 {
-  // 안전장치 — 조용한 게시판은 연속 N회 0건에서 닫힌다. 게시판 타깃도 같은 규칙이다.
+  // 안전장치 — 조용한 게시판은 연속 N회 0건에서 닫힌다. 게시판은 목록을 읽은 실행만 세고 문턱이 30이다(2026-09-30, health.ts BOARD_MAX_CONSECUTIVE_EMPTY).
   const h = harness({
     adapter: clienAdapter,
     listUrl: `${CLIEN_HOST}/service/board/use`,
     listBody: fx('clien', 'board-list.html'),
     postBody: fx('clien', 'post-with-comments.html'),
-    targets: [target({ cursor: '{"q":[],"last":"19268762"}', consecutiveEmpty: MAX_CONSECUTIVE_EMPTY - 1 })],
+    targets: [target({ cursor: '{"q":[],"last":"19268762"}', consecutiveEmpty: BOARD_MAX_CONSECUTIVE_EMPTY - 1 })],
   })
   const r = await runCollection(clienAdapter, { dryRun: false, targetLimit: 5 }, h.ports)
-  t(`안전장치: 연속 ${MAX_CONSECUTIVE_EMPTY}회 0건이면 닫는다`, h.log.saves[h.log.saves.length - 1].status, 'exhausted')
+  t(`안전장치: 연속 ${BOARD_MAX_CONSECUTIVE_EMPTY}회 0건이면 닫는다`, h.log.saves[h.log.saves.length - 1].status, 'exhausted')
   ok(
     '안전장치: 닫은 근거 수치가 로그에 남는다(§7.2)',
     r.perTarget[0].outcome.includes(
-      `연속 ${MAX_CONSECUTIVE_EMPTY}회 0건 → 닫음(${MAX_CONSECUTIVE_EMPTY}/${MAX_CONSECUTIVE_EMPTY})`,
+      `연속 ${BOARD_MAX_CONSECUTIVE_EMPTY}회 0건 → 닫음(${BOARD_MAX_CONSECUTIVE_EMPTY}/${BOARD_MAX_CONSECUTIVE_EMPTY})`,
     ),
   )
   ok('안전장치: 커서는 남는다 — 사람이 되살리면 이어 읽는다', h.log.saves[h.log.saves.length - 1].cursor !== null)

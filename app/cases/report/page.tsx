@@ -23,6 +23,7 @@ import { PubPairCompare } from '../../_pub/components/PubPairCompare'
 import { PubLockRow } from '../../_pub/components/PubLockRow'
 import { IconChevronRight, IconSearch } from '../../_pub/icons'
 import { ShareLinkButton } from '../../library/[slug]/share-button'
+import { AnglePanel } from './angle-panel'
 
 // 아이디어 한 줄 → 매칭 리포트 한 장 (경쟁사 기능 11a, 남헌 2026-09-24 승인).
 //
@@ -38,6 +39,8 @@ import { ShareLinkButton } from '../../library/[slug]/share-button'
 //   리포트에 실으면 "내 아이디어에 매칭됐다"로 읽힌다.
 // ★ B7(2026-09-30, reports/2026-09-30/design-direction-cases-report-addendum.md R1): 운영 화면 껍데기(PageShell) →
 //   `PubShell` 공개 화면. 헤더·푸터가 생겨 익명 막다른길이 풀리고, 무브는 색인 줄 · 갈린 짝은 2열 대조표다.
+// ★ I4(2026-10-01): 로그인후에만 "앵글 검증" 섹션이 붙는다. **이 페이지 GET 은 여전히 LLM 0** — 클라이언트 섬
+//   `angle-panel.tsx` 가 POST /api/cases/report/angles 로 비동기 잡을 걸고 폴링한다(claude-cli, 본체 lib/cases/idea-angles-run.ts).
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '아이디어 매칭 리포트' }
@@ -56,6 +59,8 @@ const LEAD = '아이디어 한 줄을 넣으면 승인된 케이스와 실패 �
 const EXAMPLE = '프리랜서용 인보이스 자동 발송 SaaS'
 
 const TOC = [['moves', '닮은 성공 무브'], ['failed', '실패 경고 앵글'], ['pairs', '갈린 짝 비교'], ['next', '다음 행동']] as const
+/** 로그인후 목차 — 앵글 검증(I4)을 갈린 짝과 다음 행동 사이에. */
+const TOC_MEMBER = [...TOC.slice(0, 3), ['angles', '앵글 검증'], TOC[3]] as const
 
 /** lib 의 사유 원문은 그대로 두고 화면에서만 푼다(DESIGN.md §5: em 대시·직선 따옴표 금지). */
 const tidy = (s: string) => s.replace(/\s[—–]\s/g, '. ').replace(/"([^"]*)"/g, '“$1”')
@@ -243,7 +248,7 @@ export default async function IdeaReportPage({ searchParams }: {
     </div>
 
     <div className="pub-detail pub-report-body">
-      <PubTOC items={TOC} />
+      <PubTOC items={signedIn ? TOC_MEMBER : TOC} />
       <div className="pub-detail-body">
         <Section id="moves" title="닮은 성공 무브"
           lead={`승인된 케이스·무브만. 등급 D 제외. ${query.kind !== 'saas' ? '소비재 포함.'
@@ -299,6 +304,16 @@ export default async function IdeaReportPage({ searchParams }: {
           {tier.locked.pairs > 0 && <ul className="pub-index">{lock(tier.locked.pairs, '묶음', '갈린 짝 나머지')}</ul>}
         </Section>
 
+        {/* 앵글 검증(I4) — 로그인후만. 페이지는 LLM 0 으로 먼저 뜨고 패널(클라이언트 섬)이 비동기로 찬다.
+            선례 무브가 0건이면 판정 코퍼스가 없어 돌리지 않는다(돌리면 늘 "근거 없음"만 나온다). */}
+        {signedIn && (
+          <Section id="angles" title="앵글 검증" lead="아이디어로 소구 앵글 3개를 쓰고, 위 선례의 근거 문장으로 뒷받침되는지 판정한다.">
+            {result.moves.status === 'matched' && result.moves.cards.length > 0 && query.q
+              ? <AnglePanel q={query.q} kind={query.kind} />
+              : <PubEmpty compact title="해당 없음. 매칭된 선례 무브가 없다" description="판정 근거로 쓸 선례 문장이 없어 앵글 검증을 돌리지 않았다." />}
+          </Section>
+        )}
+
         {/* 아이디어 텍스트를 /analyze/new 쿼리스트링으로 넘기지 않는다(/cases/search 와 같은 이유 — 리퍼러·액세스 로그). */}
         <Section id="next" title="다음 행동" lead="남의 사례는 방향이다. 내 시장에서도 그 문제가 아픈지는 내 경쟁사 리뷰가 답한다.">
           <Panel tone="dark">
@@ -317,7 +332,7 @@ export default async function IdeaReportPage({ searchParams }: {
                   <PubButtonLink href="/signals" variant="ghost">신호 피드 보기</PubButtonLink>
                 </div>
                 <p className="pub-text">경쟁사 분석·PMF 진단은 가입 후 쓸 수 있다. 가입은 10/12 개방 예정이다.</p>
-                <p className="pub-text">로그인하면 나머지 무브·실패 경고·짝 전부를 본다.</p>
+                <p className="pub-text">로그인하면 나머지 무브·실패 경고·짝 전부와 내 아이디어의 앵글 검증 수치를 본다.</p>
               </>
             )}
           </Panel>

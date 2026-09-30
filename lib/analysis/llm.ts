@@ -165,7 +165,7 @@ export function describeFailure(e: unknown): string {
  * 실패(exit≠0·timeout·is_error)는 ClaudeCliError 로 던진다 — ProviderHttpError 가 아니라 callWithRetry 가 재시도하지 않고 곧장 올린다
  * (사용량 한도를 4번 두드리지 않는다).
  */
-async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<{ text: string; model: string; costUsd: number | null }> {
+async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<{ text: string; model: string; costUsd: number | null; cacheReadTokens: number | null }> {
   const bin = await resolveClaudeBinary()
   const res = await runClaude(
     bin.path,
@@ -191,6 +191,7 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
   let text = res.stdout
   let model = CLAUDE_CLI_LABEL
   let costUsd: number | null = null
+  let cacheReadTokens: number | null = null
   if (env) {
     if (typeof env.result === 'string') text = env.result
     if (typeof env.model === 'string' && env.model) model = env.model
@@ -200,9 +201,10 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
     // result_chars·duration_api_ms 는 속도 진단용(2026-09-28): extract 1건 시간은 out 토큰에 비례하는데,
     // out 이 결과 글자 수에 비해 크면 사고(thinking) 토큰이 섞인 것이다. 그걸 가르는 숫자다.
     const u = (env.usage && typeof env.usage === 'object' ? env.usage : {}) as Record<string, unknown>
+    if (typeof u.cache_read_input_tokens === 'number') cacheReadTokens = u.cache_read_input_tokens
     console.log(`[analysis/llm] claude-cli 실측 total_cost_usd=${String(env.total_cost_usd ?? 'n/a')} in=${String(u.input_tokens ?? '?')} out=${String(u.output_tokens ?? '?')} cache_read=${String(u.cache_read_input_tokens ?? '?')} cache_write=${String(u.cache_creation_input_tokens ?? '?')} result_chars=${typeof env.result === 'string' ? env.result.length : '?'} duration_api_ms=${String(env.duration_api_ms ?? '?')} model=${model}`)
   }
-  return { text: text.trim(), model, costUsd }
+  return { text: text.trim(), model, costUsd, cacheReadTokens }
 }
 
 /**
@@ -371,6 +373,8 @@ export type LlmCall = {
   model: string
   /** claude-cli 봉투의 total_cost_usd(API 환산 명목값). 다른 프로바이더·못 읽음은 없거나 null. */
   costUsd?: number | null
+  /** claude-cli 봉투 usage.cache_read_input_tokens. 프롬프트 캐시가 실제로 걸렸는지 보는 숫자. */
+  cacheReadTokens?: number | null
 }
 
 /**
@@ -395,14 +399,15 @@ export async function callLlmWithModel(
   if (provider === 'claude-cli') {
     let model = CLAUDE_CLI_LABEL
     let costUsd: number | null = null
+    let cacheReadTokens: number | null = null
     const text = await callWithRetry(
       label,
       CLAUDE_CLI_LABEL,
-      async () => { const r = await callClaudeCli(systemPrompt, userPrompt); model = r.model; costUsd = r.costUsd; return r.text },
+      async () => { const r = await callClaudeCli(systemPrompt, userPrompt); model = r.model; costUsd = r.costUsd; cacheReadTokens = r.cacheReadTokens; return r.text },
       UNMETERED,
     )
     console.log(`[analysis/llm] ${label} provider=claude-cli model=${model}`)
-    return { text, model, costUsd }
+    return { text, model, costUsd, cacheReadTokens }
   }
   if (provider === 'anthropic') {
     const text = await callWithRetry(
@@ -510,15 +515,20 @@ export async function callLlmJsonWithModel(
   systemPrompt: string,
   userPrompt: string,
   label = 'llm',
+  /**
+   * 원 호출 주입점. 기본은 callLlmWithModel. 리포트 앵글 검증(lib/cases/idea-angles-run.ts)이 JSON 재요청까지
+   * 포함한 **실제 호출 수·모델·명목 비용**을 세려고 감싸 넘기고, 셀프테스트는 가짜 CLI 를 넘긴다.
+   */
+  raw: typeof callLlmWithModel = callLlmWithModel,
 ): Promise<{ data: Record<string, unknown>; model: string }> {
-  const first = await callLlmWithModel(provider, systemPrompt, userPrompt, label)
+  const first = await raw(provider, systemPrompt, userPrompt, label)
   try {
     return { data: parseJsonObject(first.text), model: first.model }
   } catch {
     console.warn(
       `[analysis/llm] ${label}: JSON 파싱 실패 — 원문 앞 300자: ${JSON.stringify(first.text.slice(0, 300))}`,
     )
-    const retry = await callLlmWithModel(
+    const retry = await raw(
       provider,
       systemPrompt,
       `${userPrompt}\n\n(직전 응답이 JSON 형식이 아니었다. 어떤 설명도 붙이지 말고 지정된 JSON 객체 하나만 출력해라.)`,

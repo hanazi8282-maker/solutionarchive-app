@@ -197,5 +197,33 @@ for (const name of ['createPost', 'createSnapshot', 'linkDraft', 'decideMove', '
 t(`가드 예외는 1건뿐 (실제 ${exempted.length}: ${exempted.join(', ') || '없음'})`, exempted.length === 1 && exempted[0] === 'submitCaseFeedback')
 t('예외 액션이 가드 목록에 중복 계상되지 않는다', !guarded.includes('submitCaseFeedback'))
 
-console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 허용 목록 파서 · 공개/보호 경로(크론 ${cronRoutes.length}·페이지 ${pages.length}) · 세션 3상태 판정 · 서버 액션 가드 ${guarded.length}개 + 승인된 예외 ${exempted.length}개`)
+// ── 5. API 라우트 핸들러 가드 (2026-10-01 I4) ────────────────────
+// requireAllowedUser 를 쓰는 route.ts 는 **모든** export 핸들러(GET·POST…)가 첫 DB 접근 전에 가드+거절 반환을 한다.
+// 한 핸들러만 가드하고 옆 핸들러를 빠뜨리면 proxy 가 유일한 방어선이 된다. 앵글 검증 API 는 반드시 이 검사 대상이다.
+const guardRe = /const (\w+) = await requireAllowedUser\(\)\s*\n\s*if \(!\1\.ok\) return /
+const guardFirst = (body) => {
+  const g = body.search(guardRe)
+  const db = body.search(/createClient\(|\.from\(|deps\(\)|runProbe\(/)
+  return g >= 0 && (db < 0 || g < db)
+}
+const guardedRoutes = []
+for (const f of files.filter((x) => /^api\/.*\/route\.tsx?$/.test(x))) {
+  const src = readFileSync(`${ROOT}/app/${f}`, 'utf8')
+  if (!src.includes('requireAllowedUser(')) continue
+  const chunks = src.split(/export async function (GET|POST|PUT|PATCH|DELETE)\b/).slice(1)
+  for (let i = 0; i < chunks.length; i += 2) {
+    const [method, body] = [chunks[i], chunks[i + 1]]
+    t(`가드 선행(API): app/${f} ${method}`, guardFirst(body))
+    guardedRoutes.push(`${routeOf(f)} ${method}`)
+  }
+}
+for (const h of ['/api/cases/report/angles GET', '/api/cases/report/angles POST']) t(`API 가드 검사 대상에 포함: ${h}`, guardedRoutes.includes(h))
+t('보호: /api/cases/report/angles (proxy 기본 잠김, 공개 목록에 없다)', !isPublicPath('/api/cases/report/angles'))
+// 음성: 가드 없는 핸들러를 넣으면 위 정규식이 잡는지(거짓 초록불 방지).
+t('음성: 가드 없는 핸들러는 실패', !guardFirst('(req) {\n  const d = await deps()\n  return d\n}'))
+t('음성: DB 접근 뒤에 가드하면 실패', !guardFirst('(req) {\n  const d = await deps()\n  const auth = await requireAllowedUser()\n  if (!auth.ok) return x\n}'))
+t('음성: 가드를 부르고 결과를 버리면 실패', !guardFirst('(req) {\n  await requireAllowedUser()\n  const d = await deps()\n}'))
+t('양성: 가드 → 거절 반환 → DB', guardFirst('(req) {\n  const auth = await requireAllowedUser()\n  if (!auth.ok) return x\n  const d = await deps()\n}'))
+
+console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 허용 목록 파서 · 공개/보호 경로(크론 ${cronRoutes.length}·페이지 ${pages.length}) · 세션 3상태 판정 · 서버 액션 가드 ${guarded.length}개 + 승인된 예외 ${exempted.length}개 · API 핸들러 가드 ${guardedRoutes.length}개`)
 process.exitCode = fail ? 1 : 0

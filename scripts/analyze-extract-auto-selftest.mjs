@@ -328,7 +328,7 @@ t('연속 blocked 면 exit 1', /alarm \? 1 : 0/.test(auto) && /raiseAlarm\('skip
 t('게이트 판정이 --dry 종료보다 앞선다', auto.indexOf('const gate = decideSlot(') < auto.indexOf("--dry: 여기서 끝낸다"))
 {
   const llm = readFileSync(new URL('../lib/analysis/llm.ts', import.meta.url), 'utf8')
-  t('llm.ts 가 봉투 total_cost_usd 를 결과로 싣는다', /costUsd = env\.total_cost_usd/.test(llm) && /return \{ text, model, costUsd \}/.test(llm))
+  t('llm.ts 가 봉투 total_cost_usd 를 결과로 싣는다', /costUsd = env\.total_cost_usd/.test(llm) && /return \{ text, model, costUsd[ ,]/.test(llm))
   // F6: extract 경로의 claude-cli 호출은 전부 callClaudeCli 한 곳 — 거기서 env 를 읽는다.
   t('F6: callClaudeCli 가 LLM_CLAUDE_CLI_TIMEOUT_MS 를 읽는다', /timeoutMs: Number\(process\.env\.LLM_CLAUDE_CLI_TIMEOUT_MS\) > 0/.test(llm))
   t('F6: runClaude 호출은 llm.ts 에 한 곳뿐', (llm.match(/runClaude\(/g) ?? []).length === 1)

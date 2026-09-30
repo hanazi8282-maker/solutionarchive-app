@@ -459,3 +459,11 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 
 - 000045(`review_sources.health`·`health_detail`·`health_checked_at` 세 컬럼에 `COMMENT ON COLUMN … 'DEPRECATED 2026-09-30 …'`)를 PR #381 머지 뒤 호스티드 Supabase MCP 로 적용했다. 컬럼 변경·삭제 없음, 주석만(비파괴). 남헌 결정(2026-09-30): 옛 컬럼은 지금 삭제하지 않고 deprecated 표시만, 정리는 다음 분기. 삭제는 §10.2 사람 판단 예외(되돌리기 어려운 삭제)라 하지 않았다. 적용은 세 컬럼 주석이 들어갔는지 검사하는 블록과 한 트랜잭션이라 다르면 롤백된다.
 - 같은 세션에서 `review_targets` 1행을 직접 고쳤다(마이그레이션 파일 없음, 상태 데이터 수정): velog `board:side-project` 가 `failed` 로 굳어 있었다. 원인은 큐 맨 앞 글 `/@axfehlerlee/AIEXAMCOACH` 가 Actions 에서 HTTP 404(삭제된 글)를 받아 러너가 타깃을 failed 로 만든 것(러너는 failed 타깃을 다시 집지 않는다). 그 글을 `cursor` 의 큐 `q` 에서 제거(9건 → 8건)하고 `status` 를 `active` 로 되돌렸다. 코드 수정은 #383(삭제·없는 글만 건너뛰고 연속 3건이면 중단). 이 UPDATE 는 삭제·대량 변경이 아니고 큐 1건 제거 + 상태 1행이라 세션 자체 판단 범위로 봤다.
+
+### 2026-10-01 — 000046 idea_angle_runs·idea_query_log (CEO-STAFF 세션, 남헌 명시 승인 하 적용)
+
+- 000046(신규 테이블 2개: `idea_angle_runs` 앵글 검증 실행 원장, `idea_query_log` 앵글 요청 append-only 로그 + 인덱스 + RLS on·정책 0 = service_role 전용)을 PR #389 머지 전에 호스티드 Supabase MCP 로 적용했다. 승인: 남헌 2026-10-01 — 옵션 B 착수 지시, 아이디어 원문 영구 저장(analytics 목적) 결정. 새 테이블·비파괴·롤백 파일 있음(롤백은 `DROP TABLE` 이라 `idea_query_log` 에 행이 쌓인 뒤에는 백업과 남헌 판단이 먼저).
+- 적용 전 실측: 두 테이블 0건, 의존 테이블(case_studies·case_moves·case_evidence·failed_angles) 4개 존재. 적용은 테이블 2·RLS 2·정책 0 을 검사하는 블록과 한 트랜잭션이라 다르면 롤백된다.
+- **개인정보:** 이 테이블에는 아이디어 원문 텍스트와 요청자 이메일이 영구 보관된다(삭제·TTL 없음). 고지 문구 초안은 `docs/privacy-notice-draft-idea-queries.md`(적용 안 됨, 삭제 창구·기한·Anthropic 보관 조건은 남헌 결정 빈칸).
+- 적용 후 프로덕션 실주행 확인은 `docs/risk-log.md` 옆 보고 참조: 실질의 1건 done(LLM 6호출·앵글 3·캐시 읽기 49,848토큰), 캐시 히트 2건은 같은 run_id·호출 증가 0, 로그 3행(new 1 + cache_hit 2).
+- 같은 PR 묶음에서 `build-check.yml` 에 `idea-angles-selftest` 한 줄을 추가했다(§10.2 워크플로 조건: 드라이런=로컬 53건 통과, 되돌리기=revert, 무중단=PR 검사에만 쓰임, 이 기록).

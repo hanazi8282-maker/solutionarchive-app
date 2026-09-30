@@ -26,6 +26,7 @@ jobs:
       # 팔레트 대비(WCAG AA: 글자 4.5 · 선·아이콘 3.0)를 sa.css 값으로 센다. 정상 + --mutate(뮤트=faint 로 **실패를 잡아야** 통과).
       - run: node scripts/design-contrast-selftest.mjs
       - run: node scripts/design-contrast-selftest.mjs --mutate
+      - run: node scripts/idea-angles-selftest.mjs
       # 로그인 보호 경로·서버 액션 가드. 크론 라우트가 로그인에 막히면 여기서 실패한다.
       - run: node scripts/auth-selftest.mjs
       # Threads 토큰 3상태·refresh-token 크론 응답(만료·임박을 200 으로 숨기지 않는다), 크론 감시 판정.

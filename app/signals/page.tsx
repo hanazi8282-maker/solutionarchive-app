@@ -81,7 +81,7 @@ export default async function SignalsPage({ searchParams }: {
         eyebrow="SIGNAL FEED"
         title="신호 라이브 피드"
         lead="수집한 리뷰·댓글 중 관련 판정을 받은 것만, 판정 시각 최신순으로 싣는다. 판정은 야간 배치가 한다."
-        note={`원문은 옮겨 싣지 않는다 — 카드에는 ${EXCERPT_MAX}자 발췌만, 출처 링크는 카드를 누르면 나온다.`}
+        note={`원문은 옮겨 싣지 않는다 — 카드에는 ${EXCERPT_MAX}자 발췌만, 출처 링크는 카드를 누르면 나온다. 여기는 남의 목소리이고, 그 목소리에서 우리가 만든 문구와 판정은 로그인 후 인사이트 화면에 있다.`}
         actions={<PubButtonLink href="/signals/community" variant="ghost" size="sm">겪는 문제 · 원하는 것 · 안 쓰는 이유 3열로 보기<IconArrowRight /></PubButtonLink>}
       />
 

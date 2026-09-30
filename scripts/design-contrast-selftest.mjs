@@ -32,6 +32,9 @@ const PAIRS = [
   ['verdict-pos', 'surface-2', 3], ['verdict-neg', 'surface-2', 3],
   // I2: 잠금 줄(plane-lilac 면) 안 "로그인" 버튼의 포커스 링. 줄 글자(ink on plane-lilac)는 위 LIGHT 가 맡는다.
   ['focus', 'plane-lilac', 3],
+  // I1: 인사이트 카드(surface) 위 판정 칩 — 칩 테두리 선(3) + 칩 면 위 글자(4.5). pos 는 글자도 판정색, neg·mix 는 잉크.
+  ['verdict-pos', 'surface', 3], ['verdict-neg', 'surface', 3], ['verdict-mix', 'surface', 3],
+  ['verdict-pos', 'verdict-pos-bg', 4.5], ['ink', 'verdict-neg-bg', 4.5], ['ink', 'verdict-mix-bg', 4.5],
 ]
 // 다크 배너(G1): 그라데이션 밝은 끝 = dark-canvas 에 액센트 N% 혼합, 그 위 흑백 노이즈 최대 불투명도 → 최악은 흰색 op 합성.
 // 두 숫자를 pub.css 에서 읽는다 — 못 읽으면 통과가 아니라 실패(§7.1).

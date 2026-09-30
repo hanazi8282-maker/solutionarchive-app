@@ -66,8 +66,8 @@
 전역 `app/error.tsx`·`app/loading.tsx`(2026-09-25 결정 4번)도 `_pub` 톤이다 — 공개·내부 공용 파일. 오류는 `.pub-solo`+`Hero`+`Panel tone="alert"` 재사용, 로딩만 `.pub-loading`·`.pub-skel`(`--tall`)을 새로 썼다.
 
 클래스: `.pub-signal-excerpt`(발췌 줄바꿈) · `.pub-signalcols`/`.pub-signalcol`(3열, ≥1024px 세 칼럼).
-내부 네비(`_ds/AppNav`)는 `/signals*` 에서 스스로 null 을 돌려준다(2026-09-25). #264 가 넣었던 `pub.css` 임시
-블록(`body:has(.pub-root) .sa-*`)은 지웠다. 새 공개 화면을 만들면 AppNav 숨김 목록에 한 줄 넣는다 — CSS 로 가리지 않는다.
+2026-09-30 IA 재편부터 `_ds/AppNav`(좌측 사이드바)는 없다. `PubNav` 를 `app/layout.tsx` 가 전 화면에 한 번 렌더하고
+`PubShell` 은 헤더를 들고 오지 않는다 — 새 공개 화면은 숨김 목록 없이 `PubShell` 만 쓰면 된다.
 
 ### 매칭 리포트에서 추가된 것 (B7 R1, 2026-09-30)
 
@@ -78,7 +78,7 @@
 
 ## B7 가 정한 것 (2026-09-30, `/cases/report`)
 
-- `/cases/report` 는 `.sa-v2` 운영 껍데기가 아니라 `PubShell theme="light"` 공개 화면이다. `_ds/AppNav` 는 이 경로에서 **로그인 여부와 무관하게** null(헤더 하나).
+- `/cases/report` 는 `.sa-v2` 운영 껍데기가 아니라 `PubShell theme="light"` 공개 화면이다. 헤더는 전역 `PubNav` 하나다(2026-09-30 IA 재편 뒤).
 - 결과는 Hero(`variant="index"`) → 폼 → 요약 띠(`Stat` 3칸 + 매칭 낱말 칩 + 링크 복사) → `.pub-detail` + `PubTOC` 4섹션. 다크 면은 "다음 행동" 배너 하나.
 - 섹션 3상태: matched = 내용 · no_match = `PubEmpty compact`("해당 없음. …") · not_run = `Panel tone="alert"`("확인 불가"). lib 사유 원문은 화면에서만 em 대시·직선 따옴표를 푼다.
 - kind=saas 면 갈린 짝 양쪽 열도 SaaS 만(`pairsForMoves(…, { saasOnly })`). 0묶음이면 사유에 "소비재 포함 시 N묶음".

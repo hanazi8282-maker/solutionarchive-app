@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import { healthLabel, loadLatestHealth } from '@/lib/review/latest-health'
+import { healthSummary, loadLatestHealth } from '@/lib/review/latest-health'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
@@ -135,9 +135,10 @@ async function loadReview(sb: Supa, now: number): Promise<LoopCard> {
   let srcLine = `소스 ${UNAVAILABLE_TEXT[srcCls.reason ?? 'query_failed']}`
   if (srcCls.state === 'OK') {
     const list = (src.data ?? []) as { key: string; enabled: boolean }[]
+    // 최근 실행과 "판정이 있었던 마지막 실행"을 따로 보인다 — 확인 불가가 이전 broken 을 가리지 않게(남헌 2026-09-30).
     const hs = await loadLatestHealth(sb, list.map((s) => s.key))
-    srcLine = '건강도(최근 실행 기준) ' + list.map((s, i) =>
-      `${s.key}${s.enabled ? '' : '(비활성)'}:${healthLabel(hs[i].health)}`).join(' · ')
+    srcLine = '건강도 ' + list.map((s, i) =>
+      `${s.key}${s.enabled ? '' : '(비활성)'}: ${healthSummary(hs[i], now)}`).join(' / ')
   }
 
   return {

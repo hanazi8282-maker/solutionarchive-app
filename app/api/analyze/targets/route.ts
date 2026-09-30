@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { REF_BUILDERS } from '@/lib/review/target-ref'
+import { loadLatestHealth } from '@/lib/review/latest-health'
 
 // 수집 타깃 등록 API — review_sources 에 등록된 소스 전부 공용.
 //
@@ -178,6 +179,13 @@ export async function GET(req: Request) {
     console.error('[analyze/targets] list error:', error.message)
     return NextResponse.json({ error: '수집 대상 조회에 실패했습니다.' }, { status: 500 })
   }
+
+  // 응답 모양은 그대로(review_sources.health) 두고 값만 최근 비-dry-run 실행의 health_after 로 바꾼다 —
+  // 옛 컬럼은 #373 이후 안 갱신된다. 확인 불가는 null(ok 로 접지 않는다, §7.1).
+  const rows = (data ?? []) as unknown as Array<{ source_key: string; review_sources: { health: string | null } | null }>
+  const hs = await loadLatestHealth(supabase, [...new Set(rows.map((r) => r.source_key))])
+  const byKey = new Map(hs.map((h) => [h.key, h.health === 'unknown' ? null : h.health]))
+  for (const r of rows) if (r.review_sources) r.review_sources.health = byKey.get(r.source_key) ?? null
 
   return NextResponse.json({ targets: data ?? [] })
 }

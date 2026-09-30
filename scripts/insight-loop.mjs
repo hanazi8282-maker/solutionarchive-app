@@ -25,6 +25,7 @@
 import fs from 'node:fs/promises'
 import { createClient } from '../lib/supabase/server.ts'
 import { runInsightLoop } from '../lib/insight/loop.ts'
+import { loadLatestHealth, sourceAlertLines } from '../lib/review/latest-health.ts'
 
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry')
@@ -115,10 +116,8 @@ if (process.env.GITHUB_STEP_SUMMARY) {
  *    실패다. 미적용이면 미적용이라고 말한다.
  */
 async function sourceAlerts(supabase) {
-  const { data, error } = await supabase
-    .from('review_sources')
-    .select('key, enabled, health, health_detail, health_checked_at')
-    .neq('health', 'ok')
+  // 건강도 출처는 review_collection_runs.health_after(소스별 최근 비-dry-run 실행) — #373 이후 review_sources.health* 는 안 갱신된다.
+  const { data, error } = await supabase.from('review_sources').select('key, enabled')
 
   if (error) {
     // 리뷰 수집 계층 자체가 아직 없는 상태. 사고가 아니라 미적용이다.
@@ -128,12 +127,7 @@ async function sourceAlerts(supabase) {
     return [`⚠️ 소스 상태를 읽지 못했다: ${error.message}`]
   }
 
-  return (data ?? []).map((s) => {
-    const icon = s.health === 'broken' ? '🚨' : '⚠️'
-    const stopped = s.enabled ? '' : ' · 소스가 꺼져 있다'
-    const when = s.health_checked_at ? ` (${s.health_checked_at.slice(0, 16).replace('T', ' ')})` : ''
-    return `${icon} 소스 경보: ${s.key} = ${s.health} — ${s.health_detail ?? '사유 미기록'}${stopped}${when}`
-  })
+  return sourceAlertLines(data ?? [], await loadLatestHealth(supabase, (data ?? []).map((s) => s.key)))
 }
 
 function summarizeDetail(name, d) {

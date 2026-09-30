@@ -747,6 +747,70 @@ const runQuota = (h, over = {}) =>
   t('broken 이면 사람이 꺼야 한다고 판정한다(disable=true, 자동으로 쓰지는 않는다)', r.health.disable, true)
   t('broken 이어도 러너는 review_sources 에 쓰지 않는다', h.log.health.length, 0)
 }
+
+// ── 파싱 브레이크 — 첫 페이지가 파싱 고장이면 더 요청하지 않는다(남헌 2026-09-30) ──────
+// 이전엔 파서가 깨져도 daily_request_cap 까지 두드렸다. 기준은 health.ts judgeHealth 그대로다.
+{
+  const twoTargets = ['p1', 'p2'].map((ref, i) => ({
+    id: `tgt${i + 1}`, projectId: 'proj1', sourceKey: 'fake', productRef: ref,
+    cursor: null, lastReviewAt: null, consecutiveEmpty: 0,
+  }))
+  const tenGood = Array.from({ length: 10 }, (_, i) => rv({ externalId: `g${i}` }))
+  // 1페이지: 2건 파싱 · 18건 실패(2/20 < 8/10) + 다음 페이지가 있다.
+  const brokenPages = () => ({
+    1: page([rv({ externalId: 'b1' }), rv({ externalId: 'b2' })], '1', 18),
+    2: page(tenGood, '2'),
+    3: page(tenGood, null),
+  })
+  const pageFetches = (h) => h.log.fetched.filter((u) => !u.endsWith('/robots.txt')).length
+
+  const brakeCase = async (runFn) => {
+    const h = makeHarness({ pages: brokenPages(), targets: twoTargets })
+    return { h, r: await runFn(fakeAdapter, { dryRun: false, targetLimit: 5 }, h.ports) }
+  }
+
+  // (a) 첫 페이지 파싱 고장 → 요청이 첫 페이지에서 멈추고 다음 페이지·다음 타깃으로 안 나간다
+  const { h: ha, r: ra } = await brakeCase(runCollection)
+  t('파싱 브레이크(a): 요청 1건에서 멈춘다', ra.requests, 1)
+  t('파싱 브레이크(a): 실제로 나간 페이지 요청도 1건', pageFetches(ha), 1)
+  ok('파싱 브레이크(a): 둘째 타깃은 요청하지 않는다', !ha.log.fetched.some((u) => u.includes('prodCode=p2')))
+
+  // (c) 사유가 수치와 함께 남고 broken 판정 → 고장 보고(Notion) 페이로드까지 이어진다
+  const o = ra.perTarget[0]?.outcome ?? ''
+  ok(`파싱 브레이크(c): 정상 종료로 위장하지 않는다 — "${o}"`, o.includes('파싱 고장으로 첫 페이지 뒤 중단'))
+  ok('파싱 브레이크(c): 몇 페이지째·몇 건 중 실패 몇 건을 남긴다', o.includes('1페이지째') && o.includes('파싱 20건 중 실패 18건'))
+  t('파싱 브레이크(c): 판정은 broken', ra.health.health, 'broken')
+  const { brokenSources, buildBrokenEntry } = await import('./review-source-health-report.mjs')
+  const broken = brokenSources([{ key: 'fake', health: ra.health, perTarget: ra.perTarget, stats: ra.stats }])
+  t('파싱 브레이크(c): 고장 보고 대상에 오른다', broken.length, 1)
+  const entry = buildBrokenEntry({ date: '2026-09-30', broken, history: null, now: new Date(), runUrl: null })
+  ok('파싱 브레이크(c): 보고 본문에 중단 사유(마지막 에러)가 실린다', entry.blocked.includes('파싱 고장으로 첫 페이지 뒤 중단'))
+  t('파싱 브레이크(c): 사람판단필요', entry.needsHuman, true)
+
+  // (b) 정상 소스는 그대로 여러 페이지 계속 읽는다
+  const hb = makeHarness({ pages: { 1: page(tenGood.slice(0, 5), '1'), 2: page(tenGood.slice(5), '2'), 3: page([rv({ externalId: 'z' })], null) } })
+  const rb = await run(hb)
+  t('파싱 브레이크(b): 정상 소스는 3페이지 다 읽는다', rb.requests, 3)
+  t('파싱 브레이크(b): 끝까지 읽음', rb.perTarget[0].outcome.startsWith('끝까지 읽음'), true)
+
+  // (b') 표본 부족(10건 미만) 첫 페이지는 판정 보류 — 브레이크가 걸리지 않는다(기존 기준 그대로)
+  const hs = makeHarness({ pages: { 1: page([rv({ externalId: 's1' })], '1', 3), 2: page(tenGood, null) } })
+  t("파싱 브레이크(b'): 표본 4건 첫 페이지는 멈추지 않는다", (await run(hs)).requests, 2)
+
+  // (d) 뮤테이션: 브레이크를 끈 러너 사본으로 (a) 를 돌리면 실패해야 한다 — 이 테스트가 브레이크를 실제로 본다는 증거
+  const src = await fs.readFile(path.join(here, '../lib/review/runner.ts'), 'utf8')
+  const mutated = src.replace('if (targetPages === 1) {', 'if (false) {')
+  ok('파싱 브레이크(d): 뮤테이션 지점을 찾았다', mutated !== src)
+  const mutantPath = path.join(here, `../lib/review/.runner-mutant-${process.pid}.ts`)
+  await fs.writeFile(mutantPath, mutated)
+  try {
+    const mutant = await import(`../lib/review/.runner-mutant-${process.pid}.ts`)
+    const { h: hm, r: rm } = await brakeCase(mutant.runCollection)
+    ok(`파싱 브레이크(d): 브레이크를 끄면 (a) 가 깨진다(요청 ${rm.requests}건)`, rm.requests > 1 && pageFetches(hm) > 1)
+  } finally {
+    await fs.rm(mutantPath, { force: true })
+  }
+}
 {
   // 지문을 못 만든 리뷰는 러너가 실패로 센다 — 어댑터가 놓쳐도 잡는다
   const nameless = {

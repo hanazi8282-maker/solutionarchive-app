@@ -122,7 +122,17 @@ t('validated 만 실패: 카드는 나오고 "실전 채택 칩 확인 불가" �
 const anon = renderToStaticMarkup(h(PubNav, { email: null }))
 const authed = renderToStaticMarkup(h(PubNav, { email: 'someone@example.com' }))
 t('nav 익명: 인사이트 링크 0', !anon.includes('/insights') && !anon.includes('인사이트'))
-t('nav 로그인: 5번째 링크 인사이트', /href="\/voc"[^]*href="\/insights"[^>]*>인사이트</.test(authed))
+t('nav 로그인: 리소스 뒤 인사이트(현재 위치 aria-current)', /href="\/voc"[^]*href="\/insights"[^>]*aria-current="page"[^>]*>인사이트</.test(authed))
+// v9-2(2026-10-01): 아이디어 리소스 ▾(라이브러리·VOC·칼럼) · PMF 판정 · (로그인) 인사이트. 드롭다운은 닫힌 채 렌더.
+for (const [who, html] of [['익명', anon], ['로그인', authed]]) {
+  const res = html.match(/<button[^>]*aria-expanded="false"[^>]*aria-controls="([^"]+)"[^>]*>아이디어 리소스/)
+  t(`nav ${who}: "아이디어 리소스" 트리거(button·aria-expanded=false·aria-controls)`, !!res)
+  const panel = res && html.match(new RegExp(`<div id="${res[1]}"[^>]*hidden=""[^>]*>([^]*?)</div>`))
+  t(`nav ${who}: 리소스 패널 hidden + 라이브러리·VOC·칼럼 순서`, !!panel && /href="\/library"[^]*href="\/voc"[^]*href="\/columns\/read"/.test(panel[1]))
+  t(`nav ${who}: PMF 판정 → /cases/report, "매칭 리포트" 0`, /href="\/cases\/report"[^>]*>PMF 판정</.test(html) && !html.includes('매칭 리포트'))
+}
+t('nav 익명: 관리자 전환 없음·로그인 버튼', !anon.includes('관리자 전환') && anon.includes('href="/login"'))
+t('nav 로그인: 관리자 전환도 같은 드롭다운(button·aria-expanded=false)', /<button[^>]*aria-expanded="false"[^>]*aria-controls="[^"]+"[^>]*>관리자 전환/.test(authed))
 console.error = quiet
 
 // 4b) 필터 4축(B3) — 접힘·open·0건 칩·빈 결과 "이 조건 빼기"·어휘 밖 alert·컬럼 미적용

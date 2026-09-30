@@ -99,7 +99,7 @@ export default async function LibraryPage({ searchParams }: {
           <IconSearch />
           <input
             className="pub-field pub-field--grow"
-            name="q" maxLength={200} aria-label="내 말로 검색 (아이디어 매칭 리포트로 이동)"
+            name="q" maxLength={200} aria-label="내 말로 검색 (아이디어 PMF 판정으로 이동)"
             placeholder="내 말로 한 줄 (예: 무료로는 쓰는데 결제를 안 한다)…"
           />
         </span>

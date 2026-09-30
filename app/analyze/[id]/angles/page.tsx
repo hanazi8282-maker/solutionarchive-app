@@ -546,7 +546,7 @@ export default function AnalyzeAnglesPage() {
       {(tableStakes.length > 0 || tableStakesAngles.length > 0) && (
         <section>
           <SectionHeading
-            title={`무엇을 기본으로 깔까 — 기본기 · ${VERDICT_LABEL.TABLE_STAKES}`}
+            title={`무엇을 기본으로 깔까 — ${VERDICT_LABEL.TABLE_STAKES}`}
             desc="이미 시장 표준이라 설득 대상이 아닙니다. 경쟁하듯 어필하지 말고 신뢰 배지 수준으로만 얹으세요."
             count={tableStakes.length}
           />

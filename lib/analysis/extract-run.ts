@@ -35,6 +35,7 @@ import { judgeProjectRemedies } from '../cases/remedy-db.ts'
 import { normalizeEvidenceQuotes } from './evidence-quotes.ts'
 import { generateCompetitorProfile, type ProfileOutcome } from './competitor-profile-db.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
+import { translateProjectQuotes } from './quote-translate.ts'
 
 // 컨텍스트 폭주 방지 상한과 입력 선별(T1)은 lib/analysis/extract-select.ts 한 벌이다.
 export { MAX_CHARS_PER_INPUT, MAX_CHARS_TOTAL }
@@ -490,6 +491,15 @@ export async function runExtraction(
     .eq('id', projectId)
 
   if (updateError) return fail(`프로젝트 갱신에 실패했습니다: ${updateError.message}`)
+
+  // 7-1. 원문 인용 한국어 번역(evidence_quotes_ko, 검수 화면 표시용). evidence_quotes(정본)는 건드리지 않는다.
+  //      프로바이더는 extract 와 별개로 claude-cli 고정이고, **실패해도 추출은 성공이다** — 번역 칸이 NULL 로 남고
+  //      scripts/aspect-quotes-ko-backfill.mjs 가 나중에 채운다. translateProjectQuotes 는 던지지 않는다.
+  const ko = await translateProjectQuotes(supabase, projectId)
+  console.log(
+    `[analyze/extract] project=${projectId} quote-translate ${ko.status} 속성=${ko.aspects} 저장=${ko.updated} 호출=${ko.calls}` +
+      (ko.model ? ` model=${ko.model}` : '') + (ko.reason ? ` (${ko.reason})` : ''),
+  )
 
   // 8. 처방 카드 관련성 판정을 미리 돌려 캐시한다(lib/cases/remedy-db.ts).
   //    결과 화면이 LLM 을 기다리지 않게 하려는 것이고, **실패해도 추출은 성공이다** —

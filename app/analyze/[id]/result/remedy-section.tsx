@@ -6,6 +6,7 @@ import { Button, ButtonLink } from '../../../_ds/components/Button'
 import { Card } from '../../../_ds/components/Card'
 import type { GatedRemedyCard, GatedRemedyResult } from '@/lib/cases/remedy-gate'
 import { failureLine, fixLine, principleLine } from '@/lib/cases/remedy'
+import { VERDICT_LABEL } from '@/lib/analysis/aspect-verdict'
 
 // ── 문제 해결 제안 (산출물 C, §3-1 6) ──────────────────────────────
 // 페인 속성마다 "이렇게 보완한 사례 / 이렇게 갔다가 막힌 사례 / 원칙" 한 장.
@@ -84,7 +85,7 @@ export function RemedySection({ projectId }: { projectId: string }) {
   return (
     <Card
       title="무엇을 먼저 고칠까"
-      subtitle="판정이 “여기를 민다”·“지켜본다” 인 속성마다, 비슷한 문제를 푼 선례와 같은 소구점으로 막힌 사례를 붙인다."
+      subtitle={`판정이 “${VERDICT_LABEL.PUSH}”·“${VERDICT_LABEL.WATCH}” 인 속성마다, 비슷한 문제를 푼 선례와 같은 소구점으로 막힌 사례를 붙인다.`}
       action={cards.length > 1 ? (
         <div className="v2-chiprow">
           <Button variant={sort === 'impact' ? 'primary' : 'outline'} size="sm" aria-pressed={sort === 'impact'} onClick={() => setSort('impact')}>

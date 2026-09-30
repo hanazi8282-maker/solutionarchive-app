@@ -84,6 +84,21 @@
 - kind=saas 면 갈린 짝 양쪽 열도 SaaS 만(`pairsForMoves(…, { saasOnly })`). 0묶음이면 사유에 "소비재 포함 시 N묶음".
 - 클래스는 `pub.css` 끝 "B7" 블록에만: `.pub-report-ask*` · `.pub-report-stats` · `.pub-report-body` · `.pub-angle-out` · `.pub-index-s--2` · `.pub-index-why` · `.pub-pair*`. 갈린 짝 면 배경은 R2 에서 `--pub-plane-lilac` 한 줄.
 
+### 3단 IA(로그인전/후)에서 추가된 것 (I0·I1·I2, 2026-09-30)
+
+| 컴포넌트 | 파일 | props | 비고 |
+|---|---|---|---|
+| `PubLockRow` | `components/PubLockRow.tsx` | `count: number \| null` · `unit` · `what` · `next` | 로그인전 화면이 잘라낸 자리에 **건수만**. `.pub-index` 안 `<li>`, 누를 곳은 "로그인" 하나. count null = "건수 집계 불가" |
+| `PubInsightCard` | `components/PubInsightCard.tsx` | `item: InsightItem` | `/insights` 앵글 1건. 문구(h3) → 판정 칩 → 인용(SUBSTANTIATED 만) → 메타 줄 끝 "프로젝트에서 보기" → "왜 이 판정인가" 접힘. `<details>` 가 있어 카드 전체를 링크로 만들지 않는다 |
+
+## I1 이 정한 것 (2026-09-30, `/insights`)
+
+- 로그인후 전용. 공개 목록에 없어 proxy 기본 잠김으로 익명은 `/login?next=/insights`. nav 링크도 `email` 이 있을 때만 렌더한다(`PubNav` `authed`).
+- 게이트 = `lib/insights/feed.ts` `INSIGHT_GATE` 한 벌(최종 판정 SUBSTANTIATED·EXPERIENTIAL ∧ 산출물 COPY·OFFER·STRUCTURE ∧ 속성 사분면 DIFFERENTIATOR·TABLE_STAKES ∧ 프로젝트 angled·done). `?gate=all` 은 판정 조건만 넓힌다.
+- 큰 분류는 PMF 사분면(`PMF_QUADRANT_LABELS`, 프로젝트의 최신 진단 1건) + 미진단. 속성 사분면은 메타 줄의 낱말 하나다.
+- 3상태: 핵심 4테이블 중 하나라도 못 읽으면 `Panel tone="alert"` "확인 불가"(사분면을 미진단으로 접지 않는다) / 0건 `PubEmpty` / 있음.
+- 클래스는 `pub.css` 끝 "I1" 블록 두 개뿐: `.pub-insight-quote`(왼쪽 2px `--pub-edge` 선) · `.pub-insight-meta`.
+
 ## 토큰 (`tokens.css`) — v2, 레퍼런스 실측 재도출 (남헌 2026-09-24 확정)
 
 v1 은 컴포넌트만 새로 짜고 **값은 `_ds` 를 승계**했다(Pretendard 단일 서체 · Tailwind slate

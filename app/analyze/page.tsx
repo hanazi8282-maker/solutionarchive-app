@@ -6,6 +6,8 @@ import {
   type AnalysisMode, type AnalysisPurpose,
 } from '@/lib/analysis/types'
 import { demandAxis, PMF_QUADRANT_LABELS, type Quadrant as PmfQuadrant } from '@/lib/cases/match'
+// "진단 여러 번이면 created_at 최신 1건" 규칙은 /insights 와 한 벌이다.
+import { latestAssessment } from '@/lib/insights/feed'
 import { DWELL_FIELD_LABEL, STALL_DAYS, funnelStats, stallOf } from '@/lib/analysis/list-signals'
 import { DismissBanner } from './dismiss-banner'
 import { Card } from '../_ds/components/Card'
@@ -54,8 +56,7 @@ const fmt1 = (v: number | null) => (v == null ? '—' : v.toFixed(2))
 
 function axesOf(r: Row) {
   const demand = demandAxis(r.analysis_aspects == null ? null : r.analysis_aspects.map((a) => num(a.opportunity_score)))
-  const latest = [...(r.pmf_assessments ?? [])]
-    .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')))[0] ?? null
+  const latest = latestAssessment(r.pmf_assessments)
   const precedent = latest == null ? null : num(latest.precedent_axis)
   return { demand, latest, precedent }
 }

@@ -1670,3 +1670,15 @@ a.pub-index-row .pub-index-s--2 { -webkit-line-clamp: 2; line-clamp: 2; }
 }
 .pub-index-lock-t { flex: 1 1 0; min-width: 0; font-size: var(--pub-size-text-sm); line-height: 1.45; color: var(--pub-ink); overflow-wrap: anywhere; }
 .pub-index-lock .pub-btn { flex: none; }
+
+/* ============================================================
+   I1 인사이트 화면 /insights (2026-09-30, reports/2026-09-30/design-direction-ia-insights-report.md I1)
+   `PubInsightCard` 전용 두 규칙만. 카드·칩·접힘·그룹 헤딩은 .pub-card·.pub-chiprow·.pub-fold·.pub-libgroup 재사용.
+   새 색·반경 없음(토큰만). 모션 없음(읽는 화면, B6).
+   ============================================================ */
+.pub-insight-quote {
+  margin: 0; padding-left: var(--pub-gap-3); border-left: 2px solid var(--pub-edge);
+  font-size: var(--pub-size-text-sm); line-height: var(--pub-leading-text-sm); color: var(--pub-ink);
+  overflow-wrap: anywhere;
+}
+.pub-insight-meta > span { min-width: 0; overflow-wrap: anywhere; }

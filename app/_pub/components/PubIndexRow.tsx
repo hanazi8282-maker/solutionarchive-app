@@ -11,7 +11,7 @@ import type { PubCaseCardMove, PubCaseCardStudy } from './PubCaseCard'
  * 내일 할 행동 1줄(G3 B3-4a: 전문은 상세에서), 오른쪽에 작은 스탬프.
  * props 는 카드와 같은 **행 조각**이다 — 데이터 조회는 부모가 한다.
  */
-const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
+export const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
 
 function approvedOn(study: PubCaseCardStudy): string {
   if (caseExposure(study) === 'verifying') {

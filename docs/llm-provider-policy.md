@@ -32,16 +32,17 @@
   2. **하루 앵글 요청 총합** — `idea_query_log` 24시간 행 수가 **30건 이상인 날이 3일 연속**(제안).
   3. **`limited` 비율** — 최근 7일 `idea_query_log` 중 `outcome='limited'` 가 **10% 이상**(제안). 상한이 실사용을 막고 있다는 뜻이다.
   4. **구독 한도로 끝난 실행** — `idea_angle_runs.status='limited'` ∧ `error LIKE '구독 사용량 한도%'` 가 **1주에 1건이라도**(제안). 같은 날 야간 배치가 `isCliLimitError` 로 멈췄다면 즉시.
-- 트래픽 급증 **경보는 미구현이다**(새 시크릿·크론 없이 가볍게 만들 자리가 이 PR 범위에 없었다). 대신 이 SQL 로 센다(service_role, SQL Editor):
+- **닫힘(남헌 2026-10-01): 자동 경보 안 만든다, SQL 로만 센다.** 위 트리거 4개는 아래 SQL 로 세는 것으로 끝이다 — 경보·크론·Notion 자동 행을 만들지 않는다. 상용화 시점 재검토는 남헌이 직접 물어볼 사안이라 코드 작업 대상이 아니다(service_role, SQL Editor):
   ```sql
   -- 2·3번: 최근 7일 일별 요청 수 · limited 비율 · 묻는 사람 수
+  -- ⚠️ 20261001000048 적용 뒤 idea_query_log 에 리포트 조회(source='report_view', 익명 포함)도 쌓인다 — 앵글 요청만 센다.
   SELECT date_trunc('day', created_at AT TIME ZONE 'Asia/Seoul') AS kst_day,
          count(*) AS asks,
          count(*) FILTER (WHERE outcome = 'limited') AS limited,
          round(100.0 * count(*) FILTER (WHERE outcome = 'limited') / nullif(count(*), 0), 1) AS limited_pct,
          count(DISTINCT requested_by) AS people
     FROM public.idea_query_log
-   WHERE created_at > now() - interval '7 days'
+   WHERE created_at > now() - interval '7 days' AND source = 'angle_api'
    GROUP BY 1 ORDER BY 1 DESC;
   -- 4번: 구독 한도로 끝난 실행 · 하루 LLM 호출 합
   SELECT date_trunc('day', created_at AT TIME ZONE 'Asia/Seoul') AS kst_day,
@@ -51,7 +52,6 @@
    WHERE created_at > now() - interval '7 days'
    GROUP BY 1 ORDER BY 1 DESC;
   ```
-  경보가 필요해지면: 기존 Notion 보고 패턴(`scripts/cron-watchdog.mjs` 가 이상 시에만 행을 쓰는 방식)에 위 2번 쿼리를 한 항목으로 붙인다 — 새 시크릿 없이 된다.
 
 ### 리포트 앵글 검증의 호출 수 (참고)
 - 문서 추정(I4-2)은 앵글 3개 × (writer + judge, 최악 +재작성+재판정) = 6~12회였다. 구현은 **writer 를 1회로 묶어**(앵글 3개를 한 번에, 선례 문구를 앵커로 강하게 주입) **4~10회**다(+JSON 재요청 시 1회씩).

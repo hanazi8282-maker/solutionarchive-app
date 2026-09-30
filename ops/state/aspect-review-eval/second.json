@@ -1,0 +1,122 @@
+{
+ "16674930-2201-4702-890a-deeac94b368a": {
+  "judgement": {
+   "aspect_layer": "PROCESS",
+   "importance": 6,
+   "satisfaction": 3,
+   "attribution": "ENVIRONMENT",
+   "pain_timing": "PRE_PURCHASE",
+   "reason": "분석 툴 시장의 포화와 제품 간 차별화 부재에 대한 회의적 반응은 구매/도입 전 검토 단계(PROCESS)에서 환경적 요인(ENVIRONMENT)으로 발생하는 페인포인트이다."
+  },
+  "model": "gemini-3.6-flash",
+  "raw": "{\n  \"aspect_layer\": \"PROCESS\",\n  \"importance\": 6,\n  \"satisfaction\": 3,\n  \"attribution\": \"ENVIRONMENT\",\n  \"pain_timing\": \"PRE_PURCHASE\",\n  \"reason\": \"분석 툴 시장의 포화와 제품 간 차별화 부재에 대한 회의적 반응은 구매/도입 전 검토 단계(PROCESS)에서 환경적 요인(ENVIRONMENT)으로 발생하는 페인포인트이다.\"\n}"
+ },
+ "2b415451-51a2-4951-86cf-9edc7a291516": {
+  "judgement": {
+   "aspect_layer": "OUTCOME",
+   "importance": 8,
+   "satisfaction": 9,
+   "attribution": "NONE",
+   "pain_timing": null,
+   "reason": "사용자 행동 파악 및 UX 인사이트 획득 가치에 대해 매우 유용하고 가치 있다며 불만 없이 극찬하고 있습니다."
+  },
+  "model": "gemini-3.6-flash",
+  "raw": "{\"aspect_layer\": \"OUTCOME\", \"importance\": 8, \"satisfaction\": 9, \"attribution\": \"NONE\", \"pain_timing\": null, \"reason\": \"사용자 행동 파악 및 UX 인사이트 획득 가치에 대해 매우 유용하고 가치 있다며 불만 없이 극찬하고 있습니다.\"}"
+ },
+ "366d775b-7155-44cb-b9ff-e325967235eb": {
+  "judgement": {
+   "aspect_layer": "OUTCOME",
+   "importance": 8,
+   "satisfaction": 1,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "POST_PURCHASE",
+   "reason": "사용자가 핫자르의 녹화 및 수집 기능을 'creepy', 'shady'하다고 느끼며 프라이버시 침해감을 강하게 호소하므로 OUTCOME 레이어의 제품 기인(PRODUCT_FAULT) 페인 포인트로 판단됩니다."
+  },
+  "model": "gemini-3.5-flash",
+  "raw": "{\n  \"aspect_layer\": \"OUTCOME\",\n  \"importance\": 8,\n  \"satisfaction\": 1,\n  \"attribution\": \"PRODUCT_FAULT\",\n  \"pain_timing\": \"POST_PURCHASE\",\n  \"reason\": \"사용자가 핫자르의 녹화 및 수집 기능을 'creepy', 'shady'하다고 느끼며 프라이버시 침해감을 강하게 호소하므로 OUTCOME 레이어의 제품 기인(PRODUCT_FAULT) 페인 포인트로 판단됩니다.\"\n}"
+ },
+ "4aa7216b-af64-442d-bfe7-a674d291823b": {
+  "judgement": {
+   "aspect_layer": "PRODUCT",
+   "importance": null,
+   "satisfaction": null,
+   "attribution": "NONE",
+   "pain_timing": "PRE_PURCHASE",
+   "reason": "자체 호스팅 여부는 구매 전에 알 수 있는 제품 물성(PRODUCT)에 해당하나, 타사 대안 제품 개발자의 홍보성 언급만으로는 Hotjar 사용자의 실제 중요도와 만족도를 판별하기 어렵습니다."
+  },
+  "model": "gemini-3.5-flash",
+  "raw": "{\n  \"aspect_layer\": \"PRODUCT\",\n  \"importance\": null,\n  \"satisfaction\": null,\n  \"attribution\": \"NONE\",\n  \"pain_timing\": \"PRE_PURCHASE\",\n  \"reason\": \"자체 호스팅 여부는 구매 전에 알 수 있는 제품 물성(PRODUCT)에 해당하나, 타사 대안 제품 개발자의 홍보성 언급만으로는 Hotjar 사용자의 실제 중요도와 만족도를 판별하기 어렵습니다.\"\n}"
+ },
+ "613be254-3e33-4cd5-bf7b-6b2d2dcc70ef": {
+  "judgement": {
+   "aspect_layer": "PRODUCT",
+   "importance": 8,
+   "satisfaction": 1,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "POST_PURCHASE",
+   "reason": "외부 스크립트 로딩으로 인해 페이지가 작동하지 않거나 TTI가 저하되어 결국 서비스를 제거했다는 언급이 있으므로 제품 결함으로 인한 사후 페인 포인트로 판단됩니다."
+  },
+  "model": "gemini-3.5-flash",
+  "raw": "{\n  \"aspect_layer\": \"PRODUCT\",\n  \"importance\": 8,\n  \"satisfaction\": 1,\n  \"attribution\": \"PRODUCT_FAULT\",\n  \"pain_timing\": \"POST_PURCHASE\",\n  \"reason\": \"외부 스크립트 로딩으로 인해 페이지가 작동하지 않거나 TTI가 저하되어 결국 서비스를 제거했다는 언급이 있으므로 제품 결함으로 인한 사후 페인 포인트로 판단됩니다.\"\n}"
+ },
+ "63096bef-67ad-409f-bdce-6e6b75da8abd": {
+  "judgement": {
+   "aspect_layer": "PROCESS",
+   "importance": 8,
+   "satisfaction": 2,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "PRE_PURCHASE",
+   "reason": "Hotjar의 월 500~800달러에 달하는 고가 요금제에 부담을 느껴 대안 도구로 전환하겠다는 구체적인 비용 불만이 나타나 있습니다."
+  },
+  "model": "gemini-3.5-flash",
+  "raw": "{\n  \"aspect_layer\": \"PROCESS\",\n  \"importance\": 8,\n  \"satisfaction\": 2,\n  \"attribution\": \"PRODUCT_FAULT\",\n  \"pain_timing\": \"PRE_PURCHASE\",\n  \"reason\": \"Hotjar의 월 500~800달러에 달하는 고가 요금제에 부담을 느껴 대안 도구로 전환하겠다는 구체적인 비용 불만이 나타나 있습니다.\"\n}"
+ },
+ "7ee2aaf9-d97f-4061-b415-e55a31fa4a9e": {
+  "judgement": {
+   "aspect_layer": "OUTCOME",
+   "importance": 8,
+   "satisfaction": 3,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "POST_PURCHASE",
+   "reason": "민감 정보가 기본적으로 노출되어 사용자가 수동으로 필터링해야 하는 번거로움과 법적 규제 위반 리스크가 제품 설계상 존재함"
+  },
+  "model": "gemini-3-flash-preview",
+  "raw": "{\n  \"aspect_layer\": \"OUTCOME\",\n  \"importance\": 8,\n  \"satisfaction\": 3,\n  \"attribution\": \"PRODUCT_FAULT\",\n  \"pain_timing\": \"POST_PURCHASE\",\n  \"reason\": \"민감 정보가 기본적으로 노출되어 사용자가 수동으로 필터링해야 하는 번거로움과 법적 규제 위반 리스크가 제품 설계상 존재함\"\n}"
+ },
+ "9c3f7bb2-a11c-4d32-92f0-64aa6f125963": {
+  "judgement": {
+   "aspect_layer": "PRODUCT",
+   "importance": 8,
+   "satisfaction": 2,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "POST_PURCHASE",
+   "reason": "행복도 슬라이더의 심리적 부담과 텍스트 필드의 시인성 부족 등 제품 설계상의 문제로 인해 실제 피드백 수집률이 저하되는 페인포인트가 명확히 서술됨"
+  },
+  "model": "gemini-3-flash-preview",
+  "raw": "{\n  \"aspect_layer\": \"PRODUCT\",\n  \"importance\": 8,\n  \"satisfaction\": 2,\n  \"attribution\": \"PRODUCT_FAULT\",\n  \"pain_timing\": \"POST_PURCHASE\",\n  \"reason\": \"행복도 슬라이더의 심리적 부담과 텍스트 필드의 시인성 부족 등 제품 설계상의 문제로 인해 실제 피드백 수집률이 저하되는 페인포인트가 명확히 서술됨\"\n}"
+ },
+ "f0a5cf31-03a5-4fc3-b67b-4bf2cea74547": {
+  "judgement": {
+   "aspect_layer": "OUTCOME",
+   "importance": 8,
+   "satisfaction": 2,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "POST_PURCHASE",
+   "reason": "사용자가 세션 데이터의 양에 압도되어 분석에 어려움을 겪는 부정적인 사용 결과를 명시적으로 언급함"
+  },
+  "model": "gemini-3-flash-preview",
+  "raw": "{\n  \"aspect_layer\": \"OUTCOME\",\n  \"importance\": 8,\n  \"satisfaction\": 2,\n  \"attribution\": \"PRODUCT_FAULT\",\n  \"pain_timing\": \"POST_PURCHASE\",\n  \"reason\": \"사용자가 세션 데이터의 양에 압도되어 분석에 어려움을 겪는 부정적인 사용 결과를 명시적으로 언급함\"\n}"
+ },
+ "f7157c2c-f034-49d8-8593-4d626b451d67": {
+  "judgement": {
+   "aspect_layer": "PRODUCT",
+   "importance": 7,
+   "satisfaction": 2,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "POST_PURCHASE",
+   "reason": "Angular 미지원이라는 기술적 호환성 문제와 녹화 건수 제한이라는 서비스 제약을 명확한 단점으로 지적함"
+  },
+  "model": "gemini-3-flash-preview",
+  "raw": "{\n  \"aspect_layer\": \"PRODUCT\",\n  \"importance\": 7,\n  \"satisfaction\": 2,\n  \"attribution\": \"PRODUCT_FAULT\",\n  \"pain_timing\": \"POST_PURCHASE\",\n  \"reason\": \"Angular 미지원이라는 기술적 호환성 문제와 녹화 건수 제한이라는 서비스 제약을 명확한 단점으로 지적함\"\n}"
+ }
+}

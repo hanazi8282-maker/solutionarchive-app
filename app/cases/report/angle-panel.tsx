@@ -66,7 +66,8 @@ function AngleList({ angles }: { angles: IdeaAngle[] }) {
   )
 }
 
-function Meta({ run }: { run: PublicRun }) {
+/** 호출·모델·초·명목 비용 한 줄. PMF 패널(pmf-panel.tsx)도 같은 계측 필드를 싣고 이걸 쓴다. */
+export function Meta({ run }: { run: Pick<PublicRun, 'llm_calls' | 'models' | 'started_at' | 'finished_at' | 'cost_usd'> }) {
   const sec = run.started_at && run.finished_at
     ? Math.round((Date.parse(run.finished_at) - Date.parse(run.started_at)) / 1000) : null
   const models = [...new Set(run.models)].join(', ') || '모델 기록 없음'

@@ -107,6 +107,14 @@
 - 판정 색은 칩 테두리만: 패널 안에서 `.pub-chip--pos/--neg/--mix` 의 면·글자 색을 `--pub-surface`·`--pub-ink` 로 되돌린다. 인용은 `.pub-angle-quote`(왼쪽 2px 선) + `/library/[slug]` 링크.
 - 클래스는 `pub.css` 끝 "I4" 블록뿐: `.pub-angle-panel` · `.pub-angle-stat` · `.pub-angle-quote` · `.pub-angle-skel`. 새 색·반경·모션 없음.
 
+## P4 가 정한 것 (2026-10-01, `/cases/report` PMF 사분면 자가진단)
+
+- 섹션 `#pmf` "PMF 사분면 (자가진단)" 은 앵글 검증과 다음 행동 사이(목차 로그인후 6 · 로그인전 5). 서버 컴포넌트 `pmf-section.tsx` 가 로그인 분기: 익명은 `PubLockRow label=…` 한 줄(로그인 버튼 그대로)만, 패널·선례 앵커·실행 데이터는 HTML·RSC 에 없다.
+- 패널 `pmf-panel.tsx` 상태: 입력(자동 시작 없음) / 질문 만드는 중 / 해당 없음(`PubEmpty`) / 답변(질문마다 선례 앵커 링크·근거 한 줄·≤500자·건너뛰기) / 점수 중 / 완료 / 확인 불가 3종(실패·한도·기록 못 읽음 — 제목이 다르고 숫자 칸 없음). 완료인데 축이 비면 확인 불가(0 으로 그리지 않는다).
+- 수요축 라벨은 항상 `PMF_DEMAND_LABEL`("수요축 (자가진단)"), 사분면 라벨·권고는 `PMF_QUADRANT_LABELS`·`ADVICE` 원문, 고정 캡션 `PMF_CAPTION`. 종합 점수·합격 표현 없음.
+- 색: 사분면·병목 배지는 중립 `Chip` + 글자. 건너뛰기 체크만 "선택 상태 한 패턴"(`--pub-selected-*`). 모션 없음.
+- 클래스는 `pub.css` 끝 "P4" 블록뿐(`.pub-pmf-*`). 수치 칸·인용·스켈레톤은 I4 의 `.pub-angle-stat`·`.pub-angle-quote`·`.pub-angle-skel` 재사용. 렌더 검사 `scripts/idea-pmf-render-selftest.mjs`(+`--mutate`).
+
 ## 토큰 (`tokens.css`) — v2, 레퍼런스 실측 재도출 (남헌 2026-09-24 확정)
 
 v1 은 컴포넌트만 새로 짜고 **값은 `_ds` 를 승계**했다(Pretendard 단일 서체 · Tailwind slate

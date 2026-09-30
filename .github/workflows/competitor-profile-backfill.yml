@@ -67,7 +67,7 @@ jobs:
           # 기존 시크릿 재사용(column-review.yml). 없으면 스크립트가 시작하지 않는다(exit 2). ANTHROPIC_API_KEY 는 넣지 않는다.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           LLM_PROVIDER: claude-cli
-          CLAUDE_CLI_MODEL: sonnet
+          CLAUDE_CLI_MODEL: claude-sonnet-5-5
           # 프로필 입력은 최대 6만 자(PROFILE_MAX_CHARS_TOTAL). extract(12만 자)와 같은 상한을 두면 남는다.
           LLM_CLAUDE_CLI_TIMEOUT_MS: '600000'
           BACKFILL_LIMIT: ${{ inputs.limit || '5' }}

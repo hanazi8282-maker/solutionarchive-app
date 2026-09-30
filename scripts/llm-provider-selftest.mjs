@@ -45,6 +45,22 @@ for (const f of ['../lib/insight/llm.ts', '../scripts/column-feedback.mjs']) {
 }
 t('칼럼 검수는 CLAUDE_CLI_MODEL 을 Sonnet 5.5 로 기본 고정', /CLAUDE_CLI_MODEL ||= 'claude-sonnet-5-5'/.test(fs.readFileSync(new URL('../scripts/column-review-claude.mjs', import.meta.url), 'utf8')), true)
 
+// 별칭 sonnet 도 쓰지 않는다(2026-09-30) — 별칭은 움직이는 값이라 고정이 아니다. 워크플로 env·에이전트 model·스크립트 기본값은 정식 식별자만.
+for (const f of ['../.github/workflows/nightly-extract.yml', '../.github/workflows/competitor-profile-backfill.yml', '../.github/workflows/relevance-translate.yml']) {
+  const line = (fs.readFileSync(new URL(f, import.meta.url), 'utf8').match(/CLAUDE_CLI_MODEL:.*/) ?? [''])[0]
+  t(`${f} CLAUDE_CLI_MODEL 은 정식 식별자`, /claude-sonnet-5-5/.test(line) && !/'sonnet'|:s*sonnet/.test(line), true)
+}
+for (const a of ['qa-verifier', 'sa-cmo-analyst', 'sa-cto-data']) {
+  t(`.claude/agents/${a}.md model 은 정식 식별자`, /^model: claude-sonnet-5-5s*$/m.test(fs.readFileSync(new URL(`../.claude/agents/${a}.md`, import.meta.url), 'utf8')), true)
+}
+
+// Opus 도 5.5 로 고정(2026-09-30) — 'claude-opus-5' 는 5.0 이라 다른 모델이다(실호출로 확인). 에이전트 model 은 별칭이 아니라 정식 식별자만.
+t('analysis/llm.ts ANTHROPIC_MODEL 은 claude-opus-5-5', /ANTHROPIC_MODEL = 'claude-opus-5-5'/.test(fs.readFileSync(new URL('../lib/analysis/llm.ts', import.meta.url), 'utf8')), true)
+for (const a of fs.readdirSync(new URL('../.claude/agents/', import.meta.url))) {
+  const m = fs.readFileSync(new URL(`../.claude/agents/${a}`, import.meta.url), 'utf8').match(/^model:s*(S+)/m)?.[1]
+  t(`.claude/agents/${a} model 은 별칭이 아니다`, m == null || !['opus', 'sonnet', 'haiku'].includes(m), true)
+}
+
 // 하루 예산 — env 한 줄. 옛 BOOST/UNTIL(크레딧 기간 한시 상향)은 2026-09-29 에 뺐다: 있어도 무시돼야 한다.
 t('env 비면 5', dailyBudgetFor({}), 5)
 t('LLM_DAILY_BUDGET_USD 그대로', dailyBudgetFor({ LLM_DAILY_BUDGET_USD: '20' }), 20)

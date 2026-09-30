@@ -41,7 +41,7 @@ export function requiredKeyFor(
   return provider === 'gemini' ? 'GEMINI_API_KEY' : 'ANTHROPIC_API_KEY'
 }
 
-const ANTHROPIC_MODEL = 'claude-opus-5'
+const ANTHROPIC_MODEL = 'claude-opus-5-5'
 /** claude -p 는 모델을 CLI 기본값으로 쓴다. 추적용 라벨이라 실제 모델명이 아니다 — 응답 봉투의 model 을 우선 쓴다. */
 const CLAUDE_CLI_LABEL = 'claude-cli'
 /**

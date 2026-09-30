@@ -11,8 +11,9 @@
 //
 // ⚠️ 서브에이전트에 서비스키를 넘기지 않는다(CLAUDE.md §10.1) — 오케스트레이터가 직접 돌린다.
 
+import { spawnSync } from 'node:child_process'
 import { createClient } from '../lib/supabase/server.ts'
-import { requiredKeyFor } from '../lib/analysis/llm.ts'
+import { requiredKeyFor, CLAUDE_CLI_DEFAULT_MODEL } from '../lib/analysis/llm.ts'
 import { QUOTE_TRANSLATE_PROVIDER, QUOTES_KO_MIGRATION, planQuoteTranslation, translateProjectQuotes } from '../lib/analysis/quote-translate.ts'
 
 const args = process.argv.slice(2)
@@ -23,7 +24,7 @@ if (!Number.isInteger(limit) || limit < 1) { console.error('--limit 는 1 이상
 const log = (m) => console.log(`[${new Date().toISOString()}] ${m}`)
 
 const key = requiredKeyFor(QUOTE_TRANSLATE_PROVIDER)
-if (run && key && !process.env[key]) { console.error(`✗ ${key} 가 없다(provider=${QUOTE_TRANSLATE_PROVIDER}). 시작하지 않는다.`); process.exit(2) }
+if (run && key && !process.env[key] && !process.env.CLAUDE_CLI_PATH) { console.error(`✗ ${key} 가 없다(provider=${QUOTE_TRANSLATE_PROVIDER}). 시작하지 않는다.`); process.exit(2) }
 const sb = await createClient()
 if (!sb) { console.error('✗ DB 연결 실패 — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 확인'); process.exit(2) }
 
@@ -47,9 +48,23 @@ log(`대상 속성 ${rows.length}건 · 프로젝트 ${plans.length}개 · 예�
 if (!run) { log(`드라이런 — 호출·저장 없음. --run --limit N 으로 실행(이번 상한이면 프로젝트 ${Math.min(limit, plans.length)}개).`); process.exit(0) }
 
 // ── 2. 실행 ────────────────────────────────────────────────────────
+// 운영 callClaudeCli 는 자식 env 를 격리해 로컬 로그인을 못 본다 — 토큰 없이 CLAUDE_CLI_PATH 만 있으면 로컬 로그인 세션으로 직접 부른다(aspect-review-eval --local-claude 와 같은 우회).
+const localCall = (!process.env.CLAUDE_CODE_OAUTH_TOKEN && process.env.CLAUDE_CLI_PATH)
+  ? async (_provider, system, user) => {
+      const r = spawnSync(process.env.CLAUDE_CLI_PATH, ['-p', '--output-format', 'json', '--max-turns', '1', '--model', CLAUDE_CLI_DEFAULT_MODEL],
+        { input: `${system}
+
+---
+
+${user}`, encoding: 'utf8', timeout: 600_000, maxBuffer: 20_000_000 })
+      const env = JSON.parse(r.stdout || '{}')
+      if (r.status !== 0 || env.is_error) throw new Error(`claude 로컬 실패 exit=${r.status} ${String(env.result ?? r.stderr).slice(0, 200)}`)
+      return { text: env.result, model: `claude-cli-local:${Object.keys(env.modelUsage ?? {}).join('+') || CLAUDE_CLI_DEFAULT_MODEL}` }
+    }
+  : undefined
 let done = 0, failed = 0, updated = 0, calls = 0
 for (const p of plans.slice(0, limit)) {
-  const o = await translateProjectQuotes(sb, p.pid)
+  const o = await translateProjectQuotes(sb, p.pid, localCall ? { call: localCall } : {})
   done++; calls += o.calls; updated += o.updated
   log(`  · project=${p.pid} ${o.status} 속성 ${o.aspects} 저장 ${o.updated} 호출 ${o.calls}${o.model ? ` model=${o.model}` : ''}${o.reason ? ` (${o.reason})` : ''}`)
   if (o.status === 'failed' || o.status === 'partial') failed++

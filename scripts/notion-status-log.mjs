@@ -206,21 +206,80 @@ export async function recordStatusLog(entry, { token = process.env.NOTION_API_TO
     const w = await writeStatusLog(e, { token, dbId })
     const title = e.title ?? base
     if (w.ok || !pendingDir || w.pageId || w.stage === 'build') return { ...w, title }
-
-    try {
-      fs.mkdirSync(pendingDir, { recursive: true })
-      const stems = fs.readdirSync(pendingDir).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3))
-      const pendingTitle = e.title ?? nextTitle(base, stems)
-      const pendingPath = path.join(pendingDir, `${pendingTitle}.md`)
-      const why = `${w.stage}: ${w.error}${e.title ? '' : ' · 제목 번호는 로컬 파일 기준 — 올릴 때 DB 에서 다시 확인'}`
-      fs.writeFileSync(pendingPath, renderPending(e, pendingTitle, why), { encoding: 'utf-8', flag: 'wx' })
-      return { ...w, title: pendingTitle, pendingPath }
-    } catch (err) {
-      return { ...w, title, pendingError: err.message }
-    }
+    return { ...w, title, ...writePending(pendingDir, e, `${w.stage}: ${w.error}`) }
   } catch (err) {
     return { ok: false, stage: 'record', code: 1, error: err.message, title: e.title ?? base }
   }
+}
+
+/** §11-3 폴백 파일 1개. 반환 { title, pendingPath } | { pendingError }. throw 하지 않는다. */
+function writePending(pendingDir, e, why) {
+  const base = `${e.date}-${e.track}`
+  try {
+    fs.mkdirSync(pendingDir, { recursive: true })
+    const stems = fs.readdirSync(pendingDir).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3))
+    const pendingTitle = e.title ?? nextTitle(base, stems)
+    const pendingPath = path.join(pendingDir, `${pendingTitle}.md`)
+    const note = `${why}${e.title ? '' : ' · 제목 번호는 로컬 파일 기준 — 올릴 때 DB 에서 다시 확인'}`
+    fs.writeFileSync(pendingPath, renderPending(e, pendingTitle, note), { encoding: 'utf-8', flag: 'wx' })
+    return { title: pendingTitle, pendingPath }
+  } catch (err) {
+    return { pendingError: err.message }
+  }
+}
+
+const plain = (page, k) => (page?.properties?.[k]?.rich_text ?? []).map((t) => t.plain_text ?? t.text?.content ?? '').join('')
+
+/**
+ * 같은 날·같은 트랙에 비고에 `marker` 가 든 행이 있으면 그 행을 갱신하고, 없으면 recordStatusLog 로 새로 만든다.
+ * 하루 한 행으로 모아야 하는 무인 보고(예: 소스 고장, review-source-health-report.mjs)용 — 같은 날 두 번째 실행이 행을 늘리지 않는다.
+ *
+ * 갱신 = 새 내용을 **앞에** 붙인다(한일·막힌것·다음할일). 2000자에서 잘리면 오래된 쪽이 잘린다.
+ * 사람판단필요는 entry 값 OR 기존 값 — 한 번 켜진 플래그를 같은 날 뒤 실행이 끄지 않는다.
+ *
+ * ⚠️ 행 조회가 실패하면 새로 만들지 않는다 — 있는 행을 못 본 채 만들면 중복이고, 그렇다고 넘어가면 누락이다.
+ *    폴백 파일(pendingDir)로 남기고 ok:false. 호출자가 실패(빨간불)로 끝낸다(§7.1).
+ * throw 하지 않는다. 반환: recordStatusLog 와 같은 모양 + { updated?: true }.
+ */
+export async function upsertStatusLog(entry, { marker, token = process.env.NOTION_API_TOKEN, dbId = process.env.NOTION_STATUS_LOG_DB_ID || DEFAULT_STATUS_LOG_DB_ID, pendingDir = null } = {}) {
+  if (!marker) return { ok: false, stage: 'build', code: 1, error: 'marker 가 비어 있다' }
+  const e = { ...entry, note: String(entry.note ?? '').includes(marker) ? entry.note : [marker, entry.note].filter(Boolean).join(' · ') }
+  const fail = (w) => ({ ...w, title: w.title ?? `${e.date}-${e.track}`, ...(pendingDir && !w.pageId ? writePending(pendingDir, e, `${w.stage}: ${w.error}`) : {}) })
+  try { buildStatusLogProperties(e) } catch (err) { return { ok: false, stage: 'build', code: 1, error: err.message } }
+  if (!token) return fail({ ok: false, stage: 'env', code: 1, error: '확인 불가(토큰 없음) — NOTION_API_TOKEN 미설정' })
+
+  const q = await notionRequest(token, 'POST', `/databases/${dbId}/query`, {
+    filter: { and: [
+      { property: '날짜', date: { equals: e.date } },
+      { property: '트랙', select: { equals: e.track } },
+      { property: '비고', rich_text: { contains: marker } },
+    ] },
+    page_size: 10,
+  })
+  if (!q.ok || !Array.isArray(q.data?.results)) {
+    return fail({ ok: false, stage: 'lookup', status: q.status, code: 1, error: `같은 날 행 조회 실패 — ${q.error ?? 'results 배열 없음'}` })
+  }
+  const hit = q.data.results[0]
+  if (!hit) return recordStatusLog(e, { token, dbId, pendingDir })
+
+  const join = (k, v) => clip([String(v ?? '').trim(), plain(hit, k)].filter(Boolean).join('\n'))
+  const properties = {
+    한일: { rich_text: rt(join('한일', e.done)) },
+    막힌것: { rich_text: rt(join('막힌것', e.blocked)) },
+    다음할일: { rich_text: rt(join('다음할일', e.next)) },
+    사람판단필요: { checkbox: e.needsHuman === true || hit.properties?.사람판단필요?.checkbox === true },
+  }
+  const title = titleOf(hit)
+  const u = await notionRequest(token, 'PATCH', `/pages/${hit.id}`, { properties })
+  if (!u.ok) return fail({ ok: false, stage: 'update', status: u.status, code: exitCodeFor(u.status), error: u.error, title })
+  // 재확인 — 응답만 믿지 않는다(§11-2). 새 막힌것 첫 줄이 맨 앞에 있고 플래그가 켜져 있어야 한다.
+  const got = await notionRequest(token, 'GET', `/pages/${hit.id}`)
+  const head = String(e.blocked ?? '').trim().split('\n')[0]
+  if (!got.ok) return { ok: false, stage: 'verify', code: 1, pageId: hit.id, title, error: `재확인 GET 실패 — ${got.error}` }
+  if (!plain(got.data, '막힌것').startsWith(clip(head)) || got.data?.properties?.사람판단필요?.checkbox !== properties.사람판단필요.checkbox) {
+    return { ok: false, stage: 'verify', code: 1, pageId: hit.id, title, error: '재확인 불일치 — 갱신한 막힌것·사람판단필요가 안 보인다' }
+  }
+  return { ok: true, updated: true, pageId: hit.id, url: got.data?.url ?? hit.url, title }
 }
 
 /** 생성 → 재확인 → archived 정리 → archived 재확인. 각 단계 한 줄 출력, 종료 코드 반환. */

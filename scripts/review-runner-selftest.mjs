@@ -737,14 +737,15 @@ const runQuota = (h, over = {}) =>
   })
   const r = await run(h)
   t('정상 실행은 health ok', r.health.health, 'ok')
-  t('health 를 저장한다', h.log.health.length, 1)
+  t('건강도를 review_sources 에 쓰지 않는다(§10.1 — updateSourceHealth 제거, 2026-09-30)', h.log.health.length, 0)
 }
 {
   const many = Array.from({ length: 3 }, (_, i) => rv({ externalId: `a${i}` }))
   const h = makeHarness({ pages: { 1: page(many, null, 20) } })
   const r = await run(h)
   t('파싱 실패가 많으면 broken', r.health.health, 'broken')
-  t('broken 이면 소스를 끈다', r.health.disable, true)
+  t('broken 이면 사람이 꺼야 한다고 판정한다(disable=true, 자동으로 쓰지는 않는다)', r.health.disable, true)
+  t('broken 이어도 러너는 review_sources 에 쓰지 않는다', h.log.health.length, 0)
 }
 {
   // 지문을 못 만든 리뷰는 러너가 실패로 센다 — 어댑터가 놓쳐도 잡는다

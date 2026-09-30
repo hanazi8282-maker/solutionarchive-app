@@ -5,7 +5,7 @@ import { Badge } from '../../../_ds/components/Badge'
 import { Button, ButtonLink } from '../../../_ds/components/Button'
 import { Card } from '../../../_ds/components/Card'
 import type { GatedRemedyCard, GatedRemedyResult } from '@/lib/cases/remedy-gate'
-import { failureLine, fixLine, principleLine } from '@/lib/cases/remedy'
+import { failureLine, fixLine, gateCaption as gateCaptionOf, principleLine, remedyStatusLine } from '@/lib/cases/remedy'
 import { VERDICT_LABEL } from '@/lib/analysis/aspect-verdict'
 
 // ── 문제 해결 제안 (산출물 C, §3-1 6) ──────────────────────────────
@@ -111,10 +111,8 @@ export function RemedySection({ projectId }: { projectId: string }) {
               const lowCount = [...c.fixes, ...c.failures, ...c.principles].filter((x) => x.low_confidence).length
               const estimateCount = c.failures.filter((f) => f.is_estimate).length
               const g = c.gate_summary
-              // 재검사 캡션은 "본 카드가 있었을 때"만 낸다. 낱말 단계에서 0장이면 잴 것이 없다.
-              const gateCaption = g && g.judged + g.unverified > 0
-                ? `재검사: ${g.judged - g.removed}장 통과 · ${g.removed}장 제외 · ${g.unverified}장 미검증`
-                : null
+              // 재검사 캡션은 "본 카드가 있었을 때"만 낸다(문장은 lib/cases/remedy.ts gateCaption 한 곳, /insights 와 공용).
+              const gateCaption = gateCaptionOf(g)
               return (
               <div key={c.aspect_id} className="v2-box v2-box--edge v2-box--roomy">
                 <div className="v2-chiprow">
@@ -125,9 +123,7 @@ export function RemedySection({ projectId }: { projectId: string }) {
                 {c.status !== 'matched' ? (
                   <>
                     <p className="v2-text v2-text--muted">
-                      {c.status === 'no_match'
-                        ? '관련 사례 없음 — 억지로 끼워 맞추지 않는다.'
-                        : `확인 불가 — ${c.reason}`}
+                      {remedyStatusLine(c)}
                     </p>
                     {/* 낱말로는 걸렸는데 재검사에서 전부 빠진 경우다. 그 사실을 감추면 "원래 없었다" 로 읽힌다. */}
                     {gateCaption && <p className="v2-note">{gateCaption}</p>}

@@ -1701,3 +1701,23 @@ a.pub-index-row .pub-index-s--2 { -webkit-line-clamp: 2; line-clamp: 2; }
   color: var(--pub-ink); overflow-wrap: anywhere;
 }
 .pub-angle-skel { height: 56px; }
+
+/* ============================================================
+   I1-2 인사이트 카드 근거·처방 (2026-10-01, 남헌 지시 11) — `PubInsightEvidence` 전용.
+   인용은 .pub-insight-quote, 접힘은 .pub-fold--inline, 칩은 .pub-chip 재사용. 처방 3그룹의 왼쪽 띠 색은
+   결과 화면(.v2-group--*)과 같은 **유형** 규칙: 보완=액센트 · 막힘=판정 코랄 · 원칙=선 회색. 글자는 잉크.
+   새 색·반경 없음(토큰만). 모션 없음(읽는 화면, B6).
+   ============================================================ */
+.pub-insight-sub { display: grid; gap: var(--pub-gap-2); min-width: 0; padding-top: var(--pub-gap-3); border-top: 1px solid var(--pub-edge); }
+.pub-insight-sub-t { font-size: var(--pub-size-label); font-weight: var(--pub-weight-label); letter-spacing: var(--pub-tracking-label); line-height: var(--pub-leading-label); color: var(--pub-ink); }
+.pub-insight-qitem { display: grid; gap: var(--pub-gap-1); min-width: 0; }
+.pub-insight-quote--review { color: var(--pub-ink); }
+.pub-insight-group { display: grid; gap: var(--pub-gap-1); padding-left: var(--pub-gap-3); border-left: 2px solid var(--pub-edge); min-width: 0; }
+.pub-insight-group--fix { border-left-color: var(--pub-accent); }
+.pub-insight-group--fail { border-left-color: var(--pub-verdict-neg); }
+.pub-insight-group--principle { border-left-color: var(--pub-edge); }
+.pub-insight-group-t { font-size: var(--pub-size-caption); font-weight: var(--pub-weight-strong); line-height: var(--pub-leading-caption); color: var(--pub-ink); }
+.pub-insight-list { display: grid; gap: var(--pub-gap-1); margin: 0; padding-left: var(--pub-gap-4); font-size: var(--pub-size-text-sm); line-height: var(--pub-leading-text-sm); color: var(--pub-ink); overflow-wrap: anywhere; }
+.pub-insight-list a { color: var(--pub-ink); text-decoration: underline; text-underline-offset: 2px; }
+.pub-insight-list a:hover { color: var(--pub-accent); }
+.pub-insight-list a:focus-visible { outline: 2px solid var(--pub-focus); outline-offset: 2px; border-radius: var(--pub-round-control); }

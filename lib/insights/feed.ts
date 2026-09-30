@@ -119,6 +119,8 @@ export interface InsightItem {
   output_type: OutputType
   adaptation: string | null
   created_at: string | null
+  /** analysis_angles.aspect_id — 게이트가 속성 있음을 요구하므로 항상 채워진다. 처방·인용의 연결 고리(lib/insights/evidence.ts). */
+  aspect_id: string
   aspect_name: string | null
   aspect_quadrant: AspectQuadrant
   project_pitch: string | null
@@ -268,6 +270,7 @@ export function buildInsightFeed(
       output_type: pick(a.output_type, OUTPUT_TYPES) as OutputType,
       adaptation: a.adaptation_suggestion,
       created_at: a.created_at,
+      aspect_id: aspect!.id,
       aspect_name: aspect?.name ?? null,
       aspect_quadrant: pick(aspect?.quadrant, ASPECT_QUADRANTS) as AspectQuadrant,
       project_pitch: project!.product_elevator_pitch,

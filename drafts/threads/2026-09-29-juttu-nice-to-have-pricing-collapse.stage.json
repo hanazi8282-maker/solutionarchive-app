@@ -1,0 +1,19 @@
+{
+  "case_slug": "juttu-nice-to-have-pricing-collapse",
+  "move_id": "6ede8492-a888-47fd-a855-68b9b7bc78f5",
+  "content_code": "CS-20260929-02",
+  "body_path": "drafts/threads/2026-09-29-juttu-nice-to-have-pricing-collapse.body.txt",
+  "reply_path": "drafts/threads/2026-09-29-juttu-nice-to-have-pricing-collapse.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-09-29-juttu-nice-to-have-pricing-collapse.md",
+  "title": "좋아요와 결제 사이",
+  "twist_line": "고객은 좋다고 했지만 카드는 꺼내지 않았다",
+  "hook_type": "병목제시형 (케이스 4단 골격 1단계, voice-guide §2-1)",
+  "closing_type": "단정문 — N-0008 실험군(질문형 아님)",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ U-1/U-2 통과, U-3 예외통과(상시점검, 이번 주 신규 역방향 관찰 없음) / Ⅱ 프드프 분기 / Ⅲ G-0 예외통과(케이스 근거 기반 정방향이라 레퍼런스 필사 대신 구조 참고), G-1·G-2·G-4·G-6·G-8·G-12 통과, G-5 해당없음, G-9 면제(제작 30분 미만), G-10 변형통과(CTA 대신 단정 마무리가 행동유도) / Ⅳ X-3 해당없음(창업자 본인 회고, 각색 없음) / Ⅴ 로그는 본 stage.json+decision_doc으로 대체, 04-decisions.md append는 오케스트레이터 몫. CG-1: 자기답글에 '자사 공시' 표시 있음(등급 C 인용 대상).",
+  "bp1_exclusive_numbers": false,
+  "bp2_transferable": true,
+  "applied_patterns": [
+    "edit-question-to-statement"
+  ]
+}

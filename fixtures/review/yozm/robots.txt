@@ -1,0 +1,20 @@
+User-Agent: *
+Allow: /magazine/
+Allow: /media/news/
+Disallow: /api/
+Disallow: /magazine/manage/
+Disallow: /media/
+Disallow: /media/project_files/
+Disallow: /media/project_attachment/
+Disallow: /media/contract/
+Disallow: /media/agreement/
+Disallow: /media/seal/
+Disallow: /media/contract_files/
+Disallow: /w/
+Crawl-delay: 5
+
+User-Agent: Googlebot-news
+Allow: /magazine/detail/
+Allow: /media/news/
+
+Sitemap: https://yozm.wishket.com/magazine/sitemap.xml

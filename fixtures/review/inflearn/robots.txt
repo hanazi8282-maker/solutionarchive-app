@@ -1,0 +1,45 @@
+User-agent: LinkedInBot
+Disallow:
+
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: Yeti
+User-agent: DuckDuckBot
+User-agent: Daum
+Disallow: /course/14;45;44.PNG
+Disallow: /courses/lecture
+Disallow: /carts
+Disallow: /orders
+Disallow: /course/*/edit
+Disallow: /assets
+Disallow: /auth
+Disallow: /oauth2_email_not_validated
+Disallow: /signout
+Disallow: /hello
+Disallow: /password
+Disallow: /email
+Disallow: /admin
+Disallow: /course/*/dashboard
+Disallow: /course/lecture
+Disallow: /community/*?*tag=*%2C
+Disallow: /community/*?*tag=*,
+
+User-agent: *
+Disallow: /carts
+Disallow: /orders
+Disallow: /course/*/edit
+Disallow: /api
+Disallow: /assets
+Disallow: /auth
+Disallow: /oauth2_email_not_validated
+Disallow: /signout
+Disallow: /hello
+Disallow: /password
+Disallow: /email
+Disallow: /admin
+Disallow: /course/*/dashboard
+Disallow: /course/lecture
+Disallow: /community/*?*tag=*%2C
+Disallow: /community/*?*tag=*,
+
+Sitemap: https://cdn.inflearn.com/sitemaps/sitemap.xml

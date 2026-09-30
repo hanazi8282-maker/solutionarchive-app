@@ -27,6 +27,8 @@ import { PubLockRow } from '../../_pub/components/PubLockRow'
 import { IconChevronRight, IconSearch } from '../../_pub/icons'
 import { ShareLinkButton } from '../../library/[slug]/share-button'
 import { AnglePanel } from './angle-panel'
+import { PmfSection } from './pmf-section'
+import type { PmfAnchors } from './pmf-panel'
 
 // 아이디어 PMF 판정(구 매칭 리포트, 2026-10-01 남헌 v9 개명 — 라우트 /cases/report 는 그대로).
 // 아이디어 한 줄 → 리포트 한 장 (경쟁사 기능 11a, 남헌 2026-09-24 승인).
@@ -45,6 +47,8 @@ import { AnglePanel } from './angle-panel'
 //   `PubShell` 공개 화면. 헤더·푸터가 생겨 익명 막다른길이 풀리고, 무브는 색인 줄 · 갈린 짝은 2열 대조표다.
 // ★ I4(2026-10-01): 로그인후에만 "앵글 검증" 섹션이 붙는다. **이 페이지 GET 은 여전히 LLM 0** — 클라이언트 섬
 //   `angle-panel.tsx` 가 POST /api/cases/report/angles 로 비동기 잡을 걸고 폴링한다(claude-cli, 본체 lib/cases/idea-angles-run.ts).
+// ★ P4(2026-10-01, reports/2026-10-01/design-direction-pmf-judgment.md A8): 앵글 검증 뒤 `#pmf` PMF 사분면(자가진단).
+//   로그인후만 패널(`pmf-panel.tsx`, 사람이 폼을 내야 시작 — 자동 시작 없음). 익명은 서버에서 잠금 줄 한 줄만(`pmf-section.tsx`).
 // ★ 질의 기록(남헌 2026-10-01): 매칭을 실제로 돌린 요청마다 idea_query_log 1행(source='report_view', outcome='view').
 //   익명은 requested_by NULL(원문·해시·kind·시각만). after() 로 응답 뒤에 쓰고, 실패해도 리포트는 그대로 뜬다
 //   (본체 lib/cases/idea-angles-log.ts — 플러드 천장·콘솔 원문 0). 라우터 프리페치 요청은 세지 않는다.
@@ -65,9 +69,11 @@ const OPEN_ROWS = 3
 const LEAD = '아이디어 한 줄을 넣으면 승인된 케이스와 실패 원장에서 닮은 것만 모아 한 장으로 보여준다. 로그인하면 앵글 검증과 사분면 판정(자가진단)까지 본다. 없는 것은 “해당 없음”으로 적는다.'
 const EXAMPLE = '프리랜서용 인보이스 자동 발송 SaaS'
 
-const TOC = [['moves', '닮은 성공 무브'], ['failed', '실패 경고 앵글'], ['pairs', '갈린 짝 비교'], ['next', '다음 행동']] as const
-/** 로그인후 목차 — 앵글 검증(I4)을 갈린 짝과 다음 행동 사이에. */
-const TOC_MEMBER = [...TOC.slice(0, 3), ['angles', '앵글 검증'], TOC[3]] as const
+const TOC_BASE = [['moves', '닮은 성공 무브'], ['failed', '실패 경고 앵글'], ['pairs', '갈린 짝 비교'], ['next', '다음 행동']] as const
+/** 로그인전 목차 — PMF 사분면은 잠금 줄로 자리만 있다(P4). */
+const TOC = [...TOC_BASE.slice(0, 3), ['pmf', 'PMF 사분면'], TOC_BASE[3]] as const
+/** 로그인후 목차 — 앵글 검증(I4)·PMF 사분면(P4)을 갈린 짝과 다음 행동 사이에. */
+const TOC_MEMBER = [...TOC_BASE.slice(0, 3), ['angles', '앵글 검증'], ['pmf', 'PMF 사분면'], TOC_BASE[3]] as const
 
 /** lib 의 사유 원문은 그대로 두고 화면에서만 푼다(DESIGN.md §5: em 대시·직선 따옴표 금지). */
 const tidy = (s: string) => s.replace(/\s[—–]\s/g, '. ').replace(/"([^"]*)"/g, '“$1”')
@@ -213,6 +219,14 @@ export default async function IdeaReportPage({ searchParams }: {
   const moveCards = tier.moves
   const here = withParams('/cases/report', query.kind)
   const studyById = new Map((corpora.studies ?? []).map((s) => [s.id, s]))
+  // PMF 질문의 선례 앵커(무브 id → 케이스). 승인 케이스만, 로그인후만 — 익명 RSC 페이로드에 싣지 않는다.
+  const pmfAnchors: PmfAnchors = {}
+  if (signedIn) {
+    for (const m of corpora.moves ?? []) {
+      const st = studyById.get(m.case_study_id)
+      if (st && st.review_status === 'approved') pmfAnchors[m.id] = { slug: st.slug, brand: st.brand_name }
+    }
+  }
 
   const count = (s: string, n: number, unit: string) => (s === 'not_run' ? '확인 불가' : s === 'matched' ? `${n}${unit}` : '해당 없음')
   const opened = (s: string, n: number, unit: string) => (!signedIn && s === 'matched' ? `${n}${unit} 공개` : undefined)
@@ -328,6 +342,8 @@ export default async function IdeaReportPage({ searchParams }: {
               : <PubEmpty compact title="해당 없음. 매칭된 선례 무브가 없다" description="판정 근거로 쓸 선례 문장이 없어 앵글 검증을 돌리지 않았다." />}
           </Section>
         )}
+
+        {query.q && <PmfSection signedIn={signedIn} q={query.q} kind={query.kind} next={here} anchors={signedIn ? pmfAnchors : undefined} />}
 
         {/* 아이디어 텍스트를 /analyze/new 쿼리스트링으로 넘기지 않는다(/cases/search 와 같은 이유 — 리퍼러·액세스 로그). */}
         <Section id="next" title="다음 행동" lead="남의 사례는 방향이다. 내 시장에서도 그 문제가 아픈지는 내 경쟁사 리뷰가 답한다.">

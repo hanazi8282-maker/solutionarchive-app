@@ -454,3 +454,8 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 적용 전 실측: 소스·프로젝트·타깃 모두 0건. 트랜잭션 안에서 사전 상태(0/0/0)와 사후 행 수(소스 enabled 1 · 프로젝트 1 · 타깃 active 1)를 검사해 다르면 롤백되게 했고 통과해 COMMIT 됐다.
 - 적용 후 양성: `indiehackers` enabled·6000ms·일 상한 40, 타깃 `board:stories` active·fresh. 음성: devto·inflearn·yozm·velog 타깃 상태는 적용 전과 동일(velog 5·devto 1·inflearn 1·yozm 1 active), review_sources 25 → 26.
 - 한계(어댑터 보고): 인터뷰는 게시 직후 한 번만 읽어 본문은 전부 받지만 댓글은 거의 0개다. 댓글이 달릴 즈음에는 본문이 가입 벽 뒤로 간다.
+
+### 2026-09-30 — 000045 review_sources.health* DEPRECATED 주석 + velog 타깃 상태 조치 (CEO-STAFF 세션, 자체 판단)
+
+- 000045(`review_sources.health`·`health_detail`·`health_checked_at` 세 컬럼에 `COMMENT ON COLUMN … 'DEPRECATED 2026-09-30 …'`)를 PR #381 머지 뒤 호스티드 Supabase MCP 로 적용했다. 컬럼 변경·삭제 없음, 주석만(비파괴). 남헌 결정(2026-09-30): 옛 컬럼은 지금 삭제하지 않고 deprecated 표시만, 정리는 다음 분기. 삭제는 §10.2 사람 판단 예외(되돌리기 어려운 삭제)라 하지 않았다. 적용은 세 컬럼 주석이 들어갔는지 검사하는 블록과 한 트랜잭션이라 다르면 롤백된다.
+- 같은 세션에서 `review_targets` 1행을 직접 고쳤다(마이그레이션 파일 없음, 상태 데이터 수정): velog `board:side-project` 가 `failed` 로 굳어 있었다. 원인은 큐 맨 앞 글 `/@axfehlerlee/AIEXAMCOACH` 가 Actions 에서 HTTP 404(삭제된 글)를 받아 러너가 타깃을 failed 로 만든 것(러너는 failed 타깃을 다시 집지 않는다). 그 글을 `cursor` 의 큐 `q` 에서 제거(9건 → 8건)하고 `status` 를 `active` 로 되돌렸다. 코드 수정은 #383(삭제·없는 글만 건너뛰고 연속 3건이면 중단). 이 UPDATE 는 삭제·대량 변경이 아니고 큐 1건 제거 + 상태 1행이라 세션 자체 판단 범위로 봤다.

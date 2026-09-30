@@ -91,7 +91,7 @@ export function parseLibraryQuery(raw: {
   problem?: string | null
   kind?: string | null
   sort?: string | null
-}): { query: LibraryQuery; errors: string[] } {
+}, signedIn = true): { query: LibraryQuery; errors: string[] } {
   const { query, errors } = parseSearchQuery({ problem: raw.problem, kind: raw.kind })
   const rawSort = (raw.sort ?? '').trim().toLowerCase()
   let sort: LibrarySort = DEFAULT_SORT
@@ -99,7 +99,35 @@ export function parseLibraryQuery(raw: {
     if ((LIBRARY_SORTS as readonly string[]).includes(rawSort)) sort = rawSort as LibrarySort
     else errors.push(`sort 어휘 밖: ${rawSort} (가능: ${LIBRARY_SORTS.join(', ')})`)
   }
-  return { query: { problem: query.problem, kind: query.kind, sort }, errors }
+  // 로그인전(I2-2): 소비재 포함·정렬은 로그인 후 것이다. URL 로 넣어도 서버가 기본값으로 되돌리고 그 사실을 말한다.
+  let kind = query.kind
+  if (!signedIn) {
+    if (kind !== DEFAULT_SEARCH_KIND) { kind = DEFAULT_SEARCH_KIND; errors.push('소비재 포함은 로그인 후') }
+    if (sort !== DEFAULT_SORT) { sort = DEFAULT_SORT; errors.push('정렬은 로그인 후') }
+  }
+  return { query: { problem: query.problem, kind, sort }, errors }
+}
+
+/** 미지정 그룹의 `locked` 키 — READER_PROBLEMS 는 대문자 코드라 겹치지 않는다. */
+export const UNLABELED_KEY = 'unlabeled'
+
+/**
+ * 로그인전 목록(I2-2) — **렌더 전에 서버에서 자른다**(CSS 숨김 금지: 숨긴 요소도 RSC 페이로드에 실린다).
+ * 문제 유형마다 들어온 정렬(최신 승인순)의 첫 1장만 남긴다. 검증중 카드·미지정 그룹은 노출하지 않는다.
+ * `locked[code]` = 그 유형에서 안 보인 건수(미지정은 `UNLABELED_KEY`). 합 = cards 전체 − 노출.
+ * 반환값에 잘린 카드는 **없다** — 건수만 남는다.
+ */
+export function teaserLibrary(result: LibraryResult): { cards: LibraryCard[]; locked: Record<string, number> } {
+  const known = new Set<string>(READER_PROBLEMS)
+  const cards: LibraryCard[] = []
+  const locked: Record<string, number> = {}
+  for (const c of result.cards) {
+    const p = (c.study.reader_problem ?? '').trim()
+    const key = known.has(p) ? p : UNLABELED_KEY
+    if (key !== UNLABELED_KEY && !isVerifying(c) && !cards.some((x) => x.study.reader_problem?.trim() === p)) cards.push(c)
+    else locked[key] = (locked[key] ?? 0) + 1
+  }
+  return { cards, locked }
 }
 
 /**

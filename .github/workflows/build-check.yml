@@ -31,6 +31,8 @@ jobs:
       - run: node scripts/idea-pmf-selftest.mjs --mutate
       - run: node scripts/idea-pmf-run-selftest.mjs
       - run: node scripts/idea-pmf-run-selftest.mjs --mutate
+      - run: node scripts/idea-pmf-render-selftest.mjs
+      - run: node scripts/idea-pmf-render-selftest.mjs --mutate
       - run: node scripts/aspect-review-eval-selftest.mjs
       # 로그인 보호 경로·서버 액션 가드. 크론 라우트가 로그인에 막히면 여기서 실패한다.
       - run: node scripts/auth-selftest.mjs

@@ -2,7 +2,7 @@
 name: sa-cmo-researcher
 description: 외부 비즈니스 1곳을 심층 조사해 drafts/cases/<slug>.json 초안을 만든다. 6축·무브·근거(관측키 포함)까지 채우고 case-research.mjs validate 를 통과시킨다. CMO 가 조사 1건마다 1회 호출한다. 브랜드 1곳당 1회 — 여러 곳을 한 번에 맡기지 않는다.
 tools: Read, Grep, Glob, WebSearch, WebFetch, Write, Bash
-model: claude-opus-5-5
+model: claude-sonnet-5-5
 ---
 
 먼저 `ops/roles/_principles.md` 를 Read 한다. 그 문서의 원칙이 아래 모든 판단에 우선한다.

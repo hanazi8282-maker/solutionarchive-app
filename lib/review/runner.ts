@@ -22,6 +22,7 @@ import { computeFingerprint } from './fingerprint.ts'
 import {
   judgeHealth,
   classifyBlockedResponse,
+  isWafChallenge,
   MAX_CONSECUTIVE_EMPTY,
   BOARD_MAX_CONSECUTIVE_EMPTY,
   PARSE_RATE_NUM,
@@ -310,7 +311,9 @@ export class RobotsCache {
     //    실제로 건 규칙이 판정에 한 번도 반영되지 않는다(CLAUDE.md §7.2).
     //    그래서 확인 불가로 두고, 소스별 명시 표식만 통과시킨다.
     if (res.status !== 200) {
-      return { reason: `robots.txt HTTP ${res.status} — 규칙을 읽지 못했다`, cause: `HTTP ${res.status}`, bypassable: true }
+      // 405 가 AWS WAF CAPTCHA 화면이면 그렇게 적는다 — "robots 가 없다"와 "사람 확인 화면이 막았다"는 다른 사건이다.
+      const waf = isWafChallenge(res.status, res.body) ? ' (AWS WAF 사람 확인 화면)' : ''
+      return { reason: `robots.txt HTTP ${res.status}${waf} — 규칙을 읽지 못했다`, cause: `HTTP ${res.status}${waf}`, bypassable: true }
     }
 
     // ⚠️ 구멍 ② — 리다이렉트로 다른 호스트의 robots 를 읽었으면, 그건 우리가
@@ -533,14 +536,16 @@ export async function runCollection(
       // 공식 API 는 일일 한도를 다 쓰면 403 을 준다. 그걸 차단으로 세면
       // **정상적인 한도 소진이 "차단당했다"로 기록되고 소스가 꺼진다.**
       // 표지를 못 읽으면 차단으로 본다(안전한 쪽). 근거는 health.ts.
-      if (res.status === 403 || res.status === 429) {
-        const kind = classifyBlockedResponse(res.body, adapter.quotaMarkers)
+      // AWS WAF 사람 확인 화면(202·405)도 차단이다 — 파서로 넘기면 "파싱 실패 → 구조 변경"으로 잘못 보고된다(health.ts isWafChallenge).
+      const waf = res.status !== null && isWafChallenge(res.status, res.body)
+      if (res.status === 403 || res.status === 429 || waf) {
+        const kind = waf ? 'blocked' : classifyBlockedResponse(res.body, adapter.quotaMarkers)
         if (kind === 'quota') {
           stats.quotaExhaustedResponses++
           outcome = `쿼터 소진 ${res.status} — 오늘 몫을 다 썼다. 소스는 유지한다`
         } else {
           stats.blockedResponses++
-          outcome = `차단 응답 ${res.status} — 실행을 중단한다`
+          outcome = `차단 응답 ${res.status}${waf ? ' (AWS WAF 사람 확인 화면 — 우회하지 않는다)' : ''} — 실행을 중단한다`
         }
         // 어느 쪽이든 더 두드리지 않는다. 차단이면 영구 차단에 가까워지고,
         // 쿼터면 어차피 오늘은 더 못 받는다.
@@ -645,7 +650,9 @@ export async function runCollection(
         const attempted = stats.reviewsParsed + stats.parseFailures
         outcome =
           `파싱 고장으로 ${targetPages}페이지째에서 중단(이번 실행 누적 파싱 ${attempted}건 중 실패 ${stats.parseFailures}건` +
-          ` · 이 페이지 ${attempted - pageBase}건 중 실패 ${stats.parseFailures - pageFailBase}건 ·기준 ${PARSE_RATE_NUM}/${PARSE_RATE_DEN}) — 같은 소스의 남은 요청도 멈춘다`
+          ` · 이 페이지 ${attempted - pageBase}건 중 실패 ${stats.parseFailures - pageFailBase}건 ·기준 ${PARSE_RATE_NUM}/${PARSE_RATE_DEN}) — 같은 소스의 남은 요청도 멈춘다` +
+          // 무엇이 왔는지 남긴다 — 이게 없어서 09-30 inflearn 이 차단인지 구조 변경인지 로그로 못 갈랐다.
+          ` · 마지막 응답 HTTP ${res.status} · ${res.body.length}B · title=${JSON.stringify(/<title[^>]*>([^<]{0,80})/i.exec(res.body)?.[1]?.trim() ?? null)}`
         status = 'active'
         aborted = true
         break

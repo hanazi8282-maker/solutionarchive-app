@@ -8,7 +8,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-export const APPROVED = 'approved' // content_columns_review_status_check: draft|approved|rejected
+import { APPROVED } from './for-case'
+export { APPROVED } // 정의는 for-case.ts 한 곳 — 케이스 상세의 '더 알아보기'와 공개 조건이 갈라지지 않게.
 
 export type ColumnRead = {
   slug: string

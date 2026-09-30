@@ -18,7 +18,7 @@ import {
   MAX_PAGES_PER_TARGET,
   PRODUCT_TOKEN,
 } from '../lib/review/runner.ts'
-import { MAX_CONSECUTIVE_EMPTY } from '../lib/review/health.ts'
+import { MAX_CONSECUTIVE_EMPTY, isWafChallenge } from '../lib/review/health.ts'
 import { computeFingerprint, normalizeText } from '../lib/review/fingerprint.ts'
 
 let pass = 0
@@ -748,6 +748,24 @@ const runQuota = (h, over = {}) =>
   t('broken 이어도 러너는 review_sources 에 쓰지 않는다', h.log.health.length, 0)
 }
 
+// ── AWS WAF 사람 확인 화면 = 차단(2026-09-30 inflearn·yozm, Actions 실행 36707952469) ──────────────
+// 202 챌린지는 4xx 가 아니라 파서로 넘어가 "파싱 실패 → 구조 변경"으로 보고됐다. 차단으로 세야 한다.
+{
+  const WAF = '<html><head><title></title></head><body><script>window.awsWafCookieDomainList = [];window.gokuProps = {}</script></body></html>'
+  const h = makeHarness({ pageStatus: { 1: { status: 202, body: WAF } } })
+  const r = await run(h)
+  t('WAF 202 는 blockedResponses 로 센다', r.stats.blockedResponses, 1)
+  t('WAF 202 는 파싱 실패로 세지 않는다', r.stats.parseFailures, 0)
+  t('WAF 202 를 받고 더 두드리지 않는다', r.requests, 1)
+  ok('WAF 사유가 로그에 남는다', r.perTarget[0].outcome.includes('차단 응답 202 (AWS WAF'))
+  const h2 = makeHarness({ pageStatus: { 1: { status: 200, body: WAF } } })
+  t('200 이어도 WAF 표지면 차단이다', (await run(h2)).stats.blockedResponses, 1)
+  t('본문에 "AWS WAF" 낱말만 있으면 차단이 아니다', isWafChallenge(200, '<p>AWS WAF 설정기 token.awswaf.com</p>'), false)
+  const hr = makeHarness({ robotsStatus: 405, robotsBody: WAF })
+  const rr = await run(hr)
+  t('robots 405(WAF) 는 요청하지 않는다', rr.requests, 0)
+  ok('robots 405(WAF) 사유에 WAF 가 남는다', rr.perTarget[0].outcome.includes('HTTP 405 (AWS WAF 사람 확인 화면)'))
+}
 // ── 파싱 브레이크 — 매 페이지 뒤 파싱 고장이면 더 요청하지 않는다(남헌 2026-09-30, 첫 페이지 → 매 페이지 확장) ──────
 // 이전엔 파서가 깨져도 daily_request_cap 까지 두드렸다. 기준은 health.ts judgeHealth 그대로다.
 {
@@ -779,6 +797,7 @@ const runQuota = (h, over = {}) =>
   const o = ra.perTarget[0]?.outcome ?? ''
   ok(`파싱 브레이크(c): 정상 종료로 위장하지 않는다 — "${o}"`, o.includes('파싱 고장으로 1페이지째에서 중단'))
   ok('파싱 브레이크(c): 몇 페이지째·몇 건 중 실패 몇 건을 남긴다', o.includes('1페이지째') && o.includes('파싱 20건 중 실패 18건'))
+  ok('파싱 브레이크(c): 마지막 응답 상태·크기를 남긴다(차단과 구조 변경을 가르는 증거)', o.includes('마지막 응답 HTTP 200 · '))
   t('파싱 브레이크(c): 판정은 broken', ra.health.health, 'broken')
   const { brokenSources, buildBrokenEntry } = await import('./review-source-health-report.mjs')
   const broken = brokenSources([{ key: 'fake', health: ra.health, perTarget: ra.perTarget, stats: ra.stats }])

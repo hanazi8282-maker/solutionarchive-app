@@ -25,7 +25,7 @@ function Item({ s }: { s: PairSide }) {
   )
 }
 
-function Col({ title, sides, max, neg = false }: { title: string; sides: PairSide[]; max: number; neg?: boolean }) {
+function Col({ title, sides, max, neg = false, lockRest = false }: { title: string; sides: PairSide[]; max: number; neg?: boolean; lockRest?: boolean }) {
   const sorted = saasFirst(sides)
   const rest = sorted.slice(max)
   return (
@@ -34,7 +34,9 @@ function Col({ title, sides, max, neg = false }: { title: string; sides: PairSid
       <ul className="pub-pair-list">
         {sorted.slice(0, max).map((s) => <Item key={s.move.id} s={s} />)}
       </ul>
-      {rest.length > 0 ? (
+      {rest.length > 0 && lockRest ? (
+        <p className="pub-caption">{rest.length}건 더는 로그인 후 볼 수 있다</p>
+      ) : rest.length > 0 ? (
         <details className="pub-fold pub-fold--inline">
           <summary><IconChevronRight />{rest.length}건 더</summary>
           <ul className="pub-pair-list">
@@ -46,7 +48,8 @@ function Col({ title, sides, max, neg = false }: { title: string; sides: PairSid
   )
 }
 
-export function PubPairCompare({ p, max = 3 }: { p: MovePair; max?: number }) {
+/** `lockRest`(로그인전, I3-T): 열마다 `max` 밖은 접지 않고 **렌더하지 않는다**. 접힌 내용도 DOM 에 실리므로 건수만 적는다. */
+export function PubPairCompare({ p, max = 3, lockRest = false }: { p: MovePair; max?: number; lockRest?: boolean }) {
   return (
     <div className="pub-pair">
       <div className="pub-chiprow">
@@ -55,8 +58,8 @@ export function PubPairCompare({ p, max = 3 }: { p: MovePair; max?: number }) {
         {p.saas ? <Chip>SaaS 끼리</Chip> : null}
       </div>
       <div className="pub-pair-cols">
-        <Col title="됐다" sides={p.positive} max={max} />
-        <Col title="안 됐다" sides={p.negative} max={max} neg />
+        <Col title="됐다" sides={p.positive} max={max} lockRest={lockRest} />
+        <Col title="안 됐다" sides={p.negative} max={max} neg lockRest={lockRest} />
       </div>
     </div>
   )

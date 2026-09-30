@@ -12,6 +12,7 @@
 
 import { parseSearchQuery, searchMoves, emptyStateText, QUERY_MAX } from '../lib/cases/search.ts'
 import { KIND_MISMATCH_MODE } from '../lib/cases/advisor.ts'
+import { cutReport, tierOf } from '../lib/cases/report-tier.ts'
 
 let pass = 0
 let fail = 0
@@ -159,5 +160,24 @@ const CORPORA = { studies: STUDIES, moves: MOVES, failedAngles: FAILED }
   ok('빈 상태: 못 셌을 때는 "확인 불가"라고 쓴다', emptyStateText(null).includes('확인 불가') && !emptyStateText(null).includes('0건 — 축적'))
 }
 
-console.log(fail === 0 ? `\n통과 ${pass}건\n케이스 검색 정상 — 질의 파싱 · 종류 하드필터(saas 기본)·가산점 · 3상태 · 빈 상태 문구.` : `\n통과 ${pass}건, 실패 ${fail}건`)
+// ── 5. /cases/report 로그인전/후 티어(I3-T) — 로그인전은 상한만 반환, 잘린 항목은 반환값에 0회 ──
+{
+  const mk = (p, n) => Array.from({ length: n }, (_, i) => ({ id: `${p}-cut-${i + 1}`, brand_name: `${p}Brand${i + 1}` }))
+  const all = { moves: mk('mv', 20), failed: mk('fa', 5), pairs: mk('pr', 6) } // 문서 I3-4 의 20/5/6
+  t('티어: 로그인전 상한 3·2·1', JSON.stringify(tierOf(false)), JSON.stringify({ moves: 3, failed: 2, pairs: 1 }))
+  const anon = cutReport(false, all)
+  t('티어 양성: 로그인전 개수 3/2/1', [anon.moves.length, anon.failed.length, anon.pairs.length].join('/'), '3/2/1')
+  t('티어 양성: 로그인전 잠금 건수 17/3/5', [anon.locked.moves, anon.locked.failed, anon.locked.pairs].join('/'), '17/3/5')
+  const json = JSON.stringify(anon)
+  const cut = [...all.moves.slice(3), ...all.failed.slice(2), ...all.pairs.slice(1)]
+  t('티어 음성: 잘린 항목(id·브랜드)이 로그인전 반환값에 0회', cut.filter((x) => json.includes(`"${x.id}"`) || json.includes(`"${x.brand_name}"`)).length, 0)
+  ok('티어 음성 대조: 노출 항목은 같은 방법으로 잡힌다', json.includes('"mvBrand3"') && json.includes('"faBrand2"') && json.includes('"prBrand1"'))
+  const member = cutReport(true, all)
+  t('티어 양성: 로그인후 전체 20/5/6', [member.moves.length, member.failed.length, member.pairs.length].join('/'), '20/5/6')
+  t('티어: 로그인후 잠금 0', member.locked.moves + member.locked.failed + member.locked.pairs, 0)
+  const few = cutReport(false, { moves: mk('x', 2), failed: [], pairs: [] })
+  t('티어: 상한보다 적으면 잠금 줄 없음(0, 음수 아님)', [few.moves.length, few.locked.moves, few.locked.failed].join('/'), '2/0/0')
+}
+
+console.log(fail === 0 ? `\n통과 ${pass}건\n케이스 검색 정상 — 질의 파싱 · 종류 하드필터(saas 기본)·가산점 · 3상태 · 빈 상태 문구 · 리포트 티어.` : `\n통과 ${pass}건, 실패 ${fail}건`)
 process.exit(fail === 0 ? 0 : 1)

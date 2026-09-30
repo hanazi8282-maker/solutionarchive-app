@@ -105,6 +105,20 @@ export function classifyBlockedResponse(
   return 'blocked'
 }
 
+/**
+ * AWS WAF 의 사람 확인 화면(Challenge·CAPTCHA)인가.
+ *
+ * AWS WAF 는 Challenge 에 **HTTP 202**, CAPTCHA 에 **HTTP 405** 를 주고 본문은 JS 인터스티셜이다.
+ * 202 는 3xx·4xx 가 아니라 러너가 그대로 파서에 넘기고, 파서는 "표지 없음"을 파싱 실패로 센다 —
+ * 그러면 차단이 "구조가 바뀌었다(파서 교체 필요)"로 보고된다(2026-09-30 inflearn, Actions 실행 36707952469).
+ * 둘 다 CloudFront 뒤 사이트(inflearn·yozm)이고, 로컬(국내 IP)에선 정상 응답이다.
+ * 표지는 인터스티셜의 JS 식별자만 쓴다 — 본문 글에 "AWS WAF" 가 나오는 것으로는 걸리지 않는다.
+ */
+const WAF_CHALLENGE_RE = /awsWafCookieDomainList|window\.gokuProps/
+export function isWafChallenge(status: number | null, body: string | null | undefined): boolean {
+  return status === 202 || WAF_CHALLENGE_RE.test(body ?? '')
+}
+
 export interface HealthInput {
   stats: RunStats
   /** 이번 실행 **전까지의** 연속 신규 0건 횟수. */

@@ -6,6 +6,7 @@ import { loadCaseCorpus } from '@/lib/cases/corpus-db'
 import { DEFAULT_SEARCH_KIND, QUERY_MAX, parseSearchQuery, searchMoves } from '@/lib/cases/search'
 import { toTerms } from '@/lib/cases/advisor'
 import { pairMoves, pairsForMoves } from '@/lib/cases/compare'
+import { cutReport } from '@/lib/cases/report-tier'
 import { PubShell } from '../../_pub/components/PubShell'
 import { Hero } from '../../_pub/components/Hero'
 import { Section } from '../../_pub/components/Section'
@@ -19,6 +20,7 @@ import { PubButton, PubButtonLink } from '../../_pub/components/Button'
 import { PubGradeLegend } from '../../_pub/components/PubGradeBadge'
 import { PubMatchRow } from '../../_pub/components/PubMatchRow'
 import { PubPairCompare } from '../../_pub/components/PubPairCompare'
+import { PubLockRow } from '../../_pub/components/PubLockRow'
 import { IconChevronRight, IconSearch } from '../../_pub/icons'
 import { ShareLinkButton } from '../../library/[slug]/share-button'
 
@@ -44,6 +46,7 @@ export const metadata = { title: '아이디어 매칭 리포트' }
 const REPORT_MOVES = 5
 /**
  * 처음에 펴 두는 건수(무브 줄·실패 앵글 둘 다). 나머지는 `<details>` 로 접는다 — DOM 에는 그대로 있다.
+ * 그래서 접기는 **로그인후만** 쓴다. 로그인전은 `cutReport`(lib/cases/report-tier.ts)가 먼저 잘라 접을 것이 없다(I3-T).
  * 3 = 갈린 짝 대조표의 "한 열 3건 + N건 더"(B7-4)와 같은 문턱. 실데이터(2026-09-30, 닮은 무브 15·경고 5·짝 2)에서
  * 5건씩 펴면 1280 문서가 3,206px 로 기준(≤3,000)을 넘었다. 요약 띠가 전체 건수를 먼저 말하므로 상위 3건이면 방향은 보인다.
  */
@@ -78,6 +81,11 @@ export default async function IdeaReportPage({ searchParams }: {
   // 못 들어가므로 익명과 같이 체험판 화면을 본다.
   const signedIn = (await getAuthVerdict()).kind === 'allowed'
   const { query, errors } = parseSearchQuery({ q: sp.q, kind: sp.kind })
+  // 로그인전(I3-2): 필터는 SaaS만(기본) 하나. URL 로 kind=all 을 넣어도 서버가 되돌리고 그 사실을 말한다.
+  if (!signedIn && query.kind !== DEFAULT_SEARCH_KIND) {
+    query.kind = DEFAULT_SEARCH_KIND
+    errors.push('소비재 포함은 로그인 후')
+  }
   const terms = toTerms(query.q)
 
   const withParams = (path: string, kind: string, q: string | null = query.q) => {
@@ -103,7 +111,9 @@ export default async function IdeaReportPage({ searchParams }: {
       </div>
       <div className="pub-chiprow">
         <PubFacet href={href('saas')} active={query.kind === 'saas'}>SaaS만(기본)</PubFacet>
-        <PubFacet href={href('all')} active={query.kind === 'all'}>소비재 포함</PubFacet>
+        {signedIn
+          ? <PubFacet href={href('all')} active={query.kind === 'all'}>소비재 포함</PubFacet>
+          : <Chip title="로그인 후">소비재 포함 · 로그인 후</Chip>}
       </div>
       <p className="pub-caption">입력한 아이디어 원문은 주소(URL)에 그대로 남는다. 이 주소를 보내면 같은 리포트가 열린다.</p>
     </form>
@@ -175,15 +185,20 @@ export default async function IdeaReportPage({ searchParams }: {
 
   const corpora = await loadCaseCorpus(sb, 'cases/report')
   const result = searchMoves(query, corpora)
-  const moveCards = result.moves.cards
-  const pairs = pairsForMoves(pairMoves(corpora.studies, corpora.moves), moveCards, corpora.studies,
+  // 짝은 매칭 무브 전체로 찾는다 — 요약 띠 건수는 로그인전·후 같다(I3-2, 자른 사실을 숨기지 않는다).
+  const pairs = pairsForMoves(pairMoves(corpora.studies, corpora.moves), result.moves.cards, corpora.studies,
     { saasOnly: query.kind === 'saas' })
+  // ★ 로그인전은 여기서 **배열을 자른 뒤** 렌더한다(I3-T). 잘린 무브·경고·짝은 HTML·RSC 페이로드에 없고 건수만 잠금 줄로 남는다.
+  const tier = cutReport(signedIn, { moves: result.moves.cards, failed: result.failed_angles.cards, pairs: pairs.pairs })
+  const moveCards = tier.moves
+  const here = withParams('/cases/report', query.kind)
   const studyById = new Map((corpora.studies ?? []).map((s) => [s.id, s]))
 
   const count = (s: string, n: number, unit: string) => (s === 'not_run' ? '확인 불가' : s === 'matched' ? `${n}${unit}` : '해당 없음')
-  // 상위 N 밖 나머지는 케이스 단위로 중복을 빼 브랜드 칩으로 접는다(검색 화면은 익명에게 안 열려 문이 아니다).
+  const opened = (s: string, n: number, unit: string) => (!signedIn && s === 'matched' ? `${n}${unit} 공개` : undefined)
+  // 상위 N 밖 나머지는 케이스 단위로 중복을 빼 브랜드 칩으로 접는다(로그인후만 — 브랜드명은 데이터다, I3-2).
   const shown = new Set(moveCards.slice(0, REPORT_MOVES).map((c) => c.case_study_id))
-  const restCases = [...new Map(moveCards.slice(REPORT_MOVES)
+  const restCases = !signedIn ? [] : [...new Map(moveCards.slice(REPORT_MOVES)
     .filter((c) => !shown.has(c.case_study_id))
     .map((c) => [c.case_study_id, c] as const)).values()]
   const restCount = moveCards.length - REPORT_MOVES
@@ -203,15 +218,21 @@ export default async function IdeaReportPage({ searchParams }: {
     </li>
   )
   const foldedRows = moveCards.slice(OPEN_ROWS, REPORT_MOVES)
-  const foldedAngles = result.failed_angles.cards.slice(OPEN_ROWS)
+  const foldedAngles = tier.failed.slice(OPEN_ROWS)
+  // 잠금 줄은 `.pub-index` 안의 `<li>` 다(PubLockRow). 실패 경고·짝 섹션은 목록 모양이 달라 한 줄짜리 목록으로 감싼다.
+  const lock = (n: number, unit: string, what: string) =>
+    n > 0 ? <PubLockRow count={n} unit={unit} what={what} next={here} /> : null
 
   return shell(<>
     <div className="pub-section">
       <div className="pub-report-stats">
         <StatRow>
-          <Stat label="닮은 무브" value={count(result.moves.status, moveCards.length, '건')} />
-          <Stat label="실패 경고" value={count(result.failed_angles.status, result.failed_angles.cards.length, '건')} />
-          <Stat label="갈린 짝" value={count(pairs.status, pairs.pairs.length, '묶음')} />
+          <Stat label="닮은 무브" value={count(result.moves.status, result.moves.cards.length, '건')}
+            caption={opened(result.moves.status, tier.moves.length, '건')} />
+          <Stat label="실패 경고" value={count(result.failed_angles.status, result.failed_angles.cards.length, '건')}
+            caption={opened(result.failed_angles.status, tier.failed.length, '건')} />
+          <Stat label="갈린 짝" value={count(pairs.status, pairs.pairs.length, '묶음')}
+            caption={opened(pairs.status, tier.pairs.length, '묶음')} />
         </StatRow>
       </div>
       <div className="pub-chiprow">
@@ -225,21 +246,22 @@ export default async function IdeaReportPage({ searchParams }: {
       <PubTOC items={TOC} />
       <div className="pub-detail-body">
         <Section id="moves" title="닮은 성공 무브"
-          lead={`승인된 케이스·무브만. 등급 D 제외. ${query.kind === 'saas' ? 'SaaS 케이스만(소비재는 숨김, 위 “소비재 포함”).' : '소비재 포함.'}`}>
+          lead={`승인된 케이스·무브만. 등급 D 제외. ${query.kind !== 'saas' ? '소비재 포함.'
+            : signedIn ? 'SaaS 케이스만(소비재는 숨김, 위 “소비재 포함”).' : 'SaaS 케이스만(소비재 포함은 로그인 후).'}`}>
           <SectionState status={result.moves.status} reason={result.moves.reason} none={result.empty_state}
-            action={query.kind === 'saas'
+            action={signedIn && query.kind === 'saas'
               ? <PubButtonLink href={href('all')} variant="ghost" size="sm">소비재 포함해서 다시</PubButtonLink>
               : undefined} />
           {moveCards.length > 0 && <>
-            <ul className="pub-index">{moveCards.slice(0, OPEN_ROWS).map(row)}</ul>
-            {moveCards.length > OPEN_ROWS && (
+            <ul className="pub-index">
+              {moveCards.slice(0, OPEN_ROWS).map(row)}
+              {lock(tier.locked.moves, '건', '닮은 무브 나머지')}
+            </ul>
+            {signedIn && moveCards.length > OPEN_ROWS && (
               <details className="pub-fold">
                 <summary><IconChevronRight />나머지 {moveCards.length - OPEN_ROWS}건{restCases.length > 0 ? ` (브랜드 ${restCases.length}곳 더)` : ''}</summary>
                 <div className="pub-fold-body">
                   {foldedRows.length > 0 && <ul className="pub-index">{foldedRows.map(row)}</ul>}
-                  {restCount > 0 && restCases.length === 0 && !signedIn && (
-                    <p className="pub-caption">그 밖 {restCount}건은 위 브랜드의 다른 무브다.</p>
-                  )}
                   {restCases.length > 0 && (
                     <div className="pub-chiprow pub-report-rest">
                       {restCases.map((c) => (
@@ -247,7 +269,7 @@ export default async function IdeaReportPage({ searchParams }: {
                       ))}
                     </div>
                   )}
-                  {signedIn && restCount > 0 && (
+                  {restCount > 0 && (
                     <p className="pub-caption"><Link className="pub-link" href={withParams('/cases/search', query.kind)}>검색 화면</Link>에서 전부 본다.</p>
                   )}
                 </div>
@@ -259,8 +281,8 @@ export default async function IdeaReportPage({ searchParams }: {
 
         <Section id="failed" title="실패 경고 앵글" lead="아이디어 낱말과 겹치는 실패 원장 행. 같은 소구점으로 망한 적이 있나.">
           <SectionState status={result.failed_angles.status} reason={result.failed_angles.reason} none="겹치는 실패 사례 0건" />
-          {result.failed_angles.cards.length > 0 && (
-            <ul className="pub-angles">{result.failed_angles.cards.slice(0, OPEN_ROWS).map(angle)}</ul>
+          {tier.failed.length > 0 && (
+            <ul className="pub-angles">{tier.failed.slice(0, OPEN_ROWS).map(angle)}</ul>
           )}
           {foldedAngles.length > 0 && (
             <details className="pub-fold">
@@ -268,11 +290,13 @@ export default async function IdeaReportPage({ searchParams }: {
               <ul className="pub-angles">{foldedAngles.map(angle)}</ul>
             </details>
           )}
+          {tier.locked.failed > 0 && <ul className="pub-index">{lock(tier.locked.failed, '건', '실패 경고 나머지')}</ul>}
         </Section>
 
         <Section id="pairs" title="갈린 짝 비교" lead="위 무브와 같은 병목·레버인데 한쪽은 됐고 한쪽은 안 된 승인 케이스 짝.">
           <SectionState status={pairs.status} reason={pairs.reason} none="내 매칭과 겹치는 갈린 짝 0묶음" />
-          {pairs.pairs.map((p) => <PubPairCompare key={p.key} p={p} />)}
+          {tier.pairs.map((p) => <PubPairCompare key={p.key} p={p} lockRest={!signedIn} />)}
+          {tier.locked.pairs > 0 && <ul className="pub-index">{lock(tier.locked.pairs, '묶음', '갈린 짝 나머지')}</ul>}
         </Section>
 
         {/* 아이디어 텍스트를 /analyze/new 쿼리스트링으로 넘기지 않는다(/cases/search 와 같은 이유 — 리퍼러·액세스 로그). */}
@@ -293,6 +317,7 @@ export default async function IdeaReportPage({ searchParams }: {
                   <PubButtonLink href="/signals" variant="ghost">신호 피드 보기</PubButtonLink>
                 </div>
                 <p className="pub-text">경쟁사 분석·PMF 진단은 가입 후 쓸 수 있다. 가입은 10/12 개방 예정이다.</p>
+                <p className="pub-text">로그인하면 나머지 무브·실패 경고·짝 전부를 본다.</p>
               </>
             )}
           </Panel>

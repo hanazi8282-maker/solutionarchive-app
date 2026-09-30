@@ -22,6 +22,7 @@ import {
 } from './advisor.ts'
 import type { MoveRow, StudyRow } from './match.ts'
 import { displayGradeLabel } from './grade-display.ts'
+import type { GateSummary } from './remedy-gate.ts'
 
 /** 처방 대상이 되는 판정. 앞이 1순위다. */
 export const REMEDY_VERDICTS = ['PUSH', 'WATCH'] as const
@@ -90,6 +91,18 @@ export function failureLine(c: FailedAngleCard): string {
 
 export function principleLine(c: PrincipleCard): string {
   return `${c.sp_id} ${c.statement} (${c.evidence_grade})`
+}
+
+/** 속성 한 장이 matched 가 아닐 때의 한 줄. 결과 화면(remedy-section)과 /insights 가 같은 문장을 쓴다. */
+export function remedyStatusLine(c: { status: AdvisorStatus; reason: string }): string {
+  return c.status === 'no_match' ? '관련 사례 없음 — 억지로 끼워 맞추지 않는다.' : `확인 불가 — ${c.reason}`
+}
+
+/** 재검사(remedy-gate) 캡션. "본 카드가 있었을 때"만 낸다 — 낱말 단계에서 0장이면 잴 것이 없어 null. */
+export function gateCaption(g: GateSummary | null | undefined): string | null {
+  return g && g.judged + g.unverified > 0
+    ? `재검사: ${g.judged - g.removed}장 통과 · ${g.removed}장 제외 · ${g.unverified}장 미검증`
+    : null
 }
 
 /**

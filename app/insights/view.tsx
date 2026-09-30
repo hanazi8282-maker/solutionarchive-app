@@ -5,6 +5,7 @@ import {
   PAGE_SIZE, PROJECT_CHIPS, QUADRANT_ORDER, insightHref,
   type InsightFeed, type InsightQuery, type Loaded, type QuadrantKey,
 } from '@/lib/insights/feed'
+import type { InsightEvidence } from '@/lib/insights/evidence'
 import { PubShell } from '../_pub/components/PubShell'
 import { Hero } from '../_pub/components/Hero'
 import { Panel } from '../_pub/components/Panel'
@@ -23,17 +24,19 @@ const QUADRANT_ICON: Record<QuadrantKey, ReactNode> = {
 
 /** `/voc` 와의 경계. 두 화면 Hero 에 같은 뜻으로 적는다(I1-2). */
 export const BOUNDARY =
-  'VOC 피드는 남의 목소리(리뷰·댓글 발췌)이고, 여기는 그 목소리에서 우리가 만든 문구와 judge 판정이다. 리뷰 원문은 싣지 않는다.'
+  'VOC 피드는 남의 목소리(리뷰·댓글 발췌)이고, 여기는 그 목소리에서 우리가 만든 문구와 judge 판정이다. 카드마다 그 판단의 근거가 된 리뷰 인용과 유사 해결사례를 붙인다.'
 
 /**
  * `/insights` 본문. 조회는 page.tsx 가 하고 여기는 결과만 그린다 — 오프라인 렌더 셀프테스트가
  * 가짜 로더 결과(있음·0건·조회 실패)를 넣어 HTML 을 검사한다(scripts/insights-render-selftest.mjs).
  * ★ 3상태: 조회 실패 = 경고 패널(목록 없음) / 0건 = 빈 상태 / 있음 = PMF 사분면별 카드.
  */
-export function InsightsView({ query: q, errors, result }: {
+export function InsightsView({ query: q, errors, result, evidence }: {
   query: InsightQuery
   errors: string[]
   result: Loaded<InsightFeed>
+  /** aspect_id → 인용·처방(lib/insights/evidence.ts). 없으면 카드에 붙이지 않는다. */
+  evidence?: Map<string, InsightEvidence>
 }) {
   const ok = result.status === 'ok' ? result : null
   const filtered = Boolean(q.quadrant || q.project || q.gate !== 'pass')
@@ -114,7 +117,7 @@ export function InsightsView({ query: q, errors, result }: {
                       : PMF_QUADRANT_ADVICE[g.quadrant]}
                   </p>
                   <div className="pub-cardgrid">
-                    {g.items.map((it) => <PubInsightCard key={it.id} item={it} />)}
+                    {g.items.map((it) => <PubInsightCard key={it.id} item={it} evidence={evidence?.get(it.aspect_id)} />)}
                   </div>
                 </section>
               )

@@ -4,6 +4,8 @@ import {
 } from '@/lib/analysis/types'
 import { excerptOf } from '@/lib/signals/feed'
 import type { InsightItem } from '@/lib/insights/feed'
+import type { InsightEvidence } from '@/lib/insights/evidence'
+import { PubInsightEvidence } from './PubInsightEvidence'
 import { IconArrowRight, IconChevronRight } from '../icons'
 import { Chip } from './Chip'
 import { KST } from './PubIndexRow'
@@ -13,9 +15,13 @@ import { KST } from './PubIndexRow'
  * 문구(= 인사이트) → 판정 칩 → 근거 인용(SUBSTANTIATED 만) → 메타 줄 → "왜 이 판정인가" 접힘.
  *
  * 카드 전체를 링크로 만들지 않는다 — 안에 `<details>` 가 있어 링크 안 인터랙티브가 된다.
- * 누를 곳은 메타 줄 끝 "프로젝트에서 보기" 하나다. 판정은 칩 테두리와 글자로 말한다(README 판정색 규칙).
+ * 누를 곳은 메타 줄 끝 "프로젝트에서 보기"(+ 아래 처방의 보완 사례 줄 → /library/[slug]). 판정은 칩 테두리와 글자로 말한다(README 판정색 규칙).
  */
-export function PubInsightCard({ item }: { item: InsightItem }) {
+export function PubInsightCard({ item, evidence }: {
+  item: InsightItem
+  /** 이 카드 속성(item.aspect_id)의 인용·처방. undefined = 붙이지 않는다(조회 전·셀프테스트). */
+  evidence?: InsightEvidence
+}) {
   const verdictChip = item.verdict === 'SUBSTANTIATED'
     ? <Chip tone="positive">{SUBSTANTIATION_VERDICT_LABELS.SUBSTANTIATED}</Chip>
     : item.verdict === 'EXPERIENTIAL'
@@ -52,6 +58,7 @@ export function PubInsightCard({ item }: { item: InsightItem }) {
             </div>
           </details>
         ) : null}
+        <PubInsightEvidence evidence={evidence} />
       </div>
     </article>
   )

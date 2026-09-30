@@ -60,15 +60,15 @@ const PUBLIC_PREFIXES = [
  *  - `/`                랜딩(로그인 전 첫 화면). 로그인돼 있으면 페이지가 /dashboard 로 보낸다.
  *  - `/opengraph-image` 그 랜딩의 OG 이미지(app/opengraph-image.tsx). 링크 미리보기 크롤러는
  *                       익명이라 막으면 이미지가 영영 안 뜬다. DB 를 읽지 않는 정적 문구 이미지다.
- *  - `/signals`        신호 라이브 피드(관련 판정 리뷰 발췌, 읽기 전용). 남헌 2026-09-25 위임 B항.
- *  - `/signals/community` 같은 행을 겪는 문제·원하는 것·안 쓰는 이유 3열로(읽기 전용). 같은 위임.
- *  - `/signals/card`   리뷰 1건 페인 카드. id 는 질의(?id=)라 경로 공개가 정확일치 하나로 끝난다. 같은 위임.
- *                       **접두사가 아니라 정확일치다** — `/signals/*` 아래 새 화면은 자동으로 열리지 않는다.
+ *  - `/voc`        VOC 라이브 피드(2026-10-01 `/signals` 에서 개명 — 옛 경로는 next.config 301)(관련 판정 리뷰 발췌, 읽기 전용). 남헌 2026-09-25 위임 B항.
+ *  - `/voc/community` 같은 행을 겪는 문제·원하는 것·안 쓰는 이유 3열로(읽기 전용). 같은 위임.
+ *  - `/voc/card`   리뷰 1건 페인 카드. id 는 질의(?id=)라 경로 공개가 정확일치 하나로 끝난다. 같은 위임.
+ *                       **접두사가 아니라 정확일치다** — `/voc/*` 아래 새 화면은 자동으로 열리지 않는다.
  *  - `/cases/report`   아이디어 매칭 리포트 체험판(아이디어는 ?q= 질의, 읽기 전용). 남헌 2026-09-25 결정 2
  *                       (§10.2 예외 3 승인). 익명 아이디어 원문이 URL·접근 로그에 남는 것도 인지·승인됨.
  *                       정확일치라 검수 `/cases`·`/cases/search`·`/cases/<slug>` 는 계속 잠겨 있다.
  */
-const PUBLIC_EXACT = ['/', '/opengraph-image', '/signals', '/signals/community', '/signals/card', '/cases/report']
+const PUBLIC_EXACT = ['/', '/opengraph-image', '/voc', '/voc/community', '/voc/card', '/cases/report']
 
 /** 위 공개 접두사 안이지만 사람만 부르는 경로. */
 /**

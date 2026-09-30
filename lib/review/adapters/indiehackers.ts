@@ -166,7 +166,8 @@ function parseStory(body: string, id: string): ParseResult {
     const t = htmlStrip(c[1])
     if (t) reviews.push({ externalId: `${p}#${f[1]}`, text: t, rating: null, seller: null, authorMasked: null, writtenAt: commentDate(f[2]), storyId: p })
   }
-  return { reviews, nextCursor: null, parseFailures }
+  // 글·댓글 모두 글 주소로 간다(공개 VOC 카드의 "출처 보기").
+  return { reviews: reviews.map((r) => ({ ...r, sourceUrl: `${HOST}${p}` })), nextCursor: null, parseFailures }
 }
 
 export const indiehackersAdapter: ReviewSourceAdapter = {

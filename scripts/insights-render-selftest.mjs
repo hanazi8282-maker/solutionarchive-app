@@ -122,7 +122,7 @@ t('validated 만 실패: 카드는 나오고 "실전 채택 칩 확인 불가" �
 const anon = renderToStaticMarkup(h(PubNav, { email: null }))
 const authed = renderToStaticMarkup(h(PubNav, { email: 'someone@example.com' }))
 t('nav 익명: 인사이트 링크 0', !anon.includes('/insights') && !anon.includes('인사이트'))
-t('nav 로그인: 5번째 링크 인사이트', /href="\/signals"[^]*href="\/insights"[^>]*>인사이트</.test(authed))
+t('nav 로그인: 5번째 링크 인사이트', /href="\/voc"[^]*href="\/insights"[^>]*>인사이트</.test(authed))
 console.error = quiet
 
 // 5) 판정색 글자 금지(I1-4): 카드 파일에 color 라는 낱말 0

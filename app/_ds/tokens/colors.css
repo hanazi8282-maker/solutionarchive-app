@@ -13,15 +13,6 @@
   --surface-muted: var(--sa-surface-2);
   --surface-sunken: var(--sa-canvas);
 
-  /* Sidebar (dark, always-on navigation) */
-  --sidebar-bg:        var(--sa-ink);
-  --sidebar-fg:        var(--sa-faint);
-  --sidebar-fg-muted:  var(--sa-muted);
-  --sidebar-active-bg: var(--sa-ink-hover);
-  --sidebar-active-fg: var(--sa-surface);
-  --sidebar-hover-bg:  var(--sa-dark-line);
-  --sidebar-border:    var(--sa-ink-hover);
-
   /* Text */
   --text-strong:  var(--sa-ink);
   --text-body:    var(--sa-ink);

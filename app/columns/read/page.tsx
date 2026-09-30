@@ -13,8 +13,8 @@ export const metadata = { title: '칼럼' }
 // 승인 상태를 이 화면이 바꾸지 않는다(읽기 전용). 승인은 /columns 의 서버 액션(사람)뿐이다.
 //
 // 2026-09-23 A3: 화면만 `app/_pub` 라이트 테마로 옮겼다. 조회(listApprovedColumns)·
-// 승인 조건·링크 경로는 불변이다. `_ds/AppNav` 는 이제 `/columns/read` 에서도 숨는다
-// (AppNav 의 숨김 경로 한 줄 추가) — 그래야 헤더가 PubNav 와 겹치지 않는다.
+// 승인 조건·링크 경로는 불변이다. 헤더(PubNav)는 2026-09-30 부터 app/layout.tsx 가 전 화면에 한 번 렌더한다
+// (좌측 사이드바 폐기 — 남헌 IA 재편).
 
 const KST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
 const dateOf = (c: { published_at?: string | null; staged_at: string }) => KST.format(new Date(c.published_at ?? c.staged_at))

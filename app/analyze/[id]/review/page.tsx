@@ -489,7 +489,7 @@ export default function AnalyzeReviewPage() {
             />
           </Card>
         ) : (
-          // ≥1024px 2열(표 | 상세), 좁으면 상세가 표 아래로 — 분기는 styles.css .sa-review-grid (사이드바와 같은 폭)
+          // ≥1024px 2열(표 | 상세), 좁으면 상세가 표 아래로 — 분기는 styles.css .sa-review-grid
           <div className="sa-review-grid">
             {/* 표 자체만 가로로 스크롤한다 — 페이지에는 가로 스크롤이 생기지 않는다. */}
             <div className="v2-row-main">

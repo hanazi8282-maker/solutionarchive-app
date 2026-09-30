@@ -26,7 +26,7 @@ body {
 .dgy-tnum { font-variant-numeric: tabular-nums; }
 .dgy-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
-/* Section caps label used in sidebar + table headers */
+/* Section caps label used in table headers */
 .dgy-caps {
   font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);

@@ -302,6 +302,9 @@ async function claudeCliExtraction(input: ExtractionInput): Promise<ExtractionRe
       // 상한 1 은 모델이 첫 턴에 도구를 집는 것을 못 막는다(error_max_turns 로 죽는다, lib/analysis/llm.ts 2026-09-29). 도구 자체를 뺀다.
       '--tools',
       '',
+      // 2026-09-30 Sonnet 5.5 고정 — 정식 식별자. 끝의 -5 가 없는 식별자는 5.0 이라 다른 모델이다(실호출로 확인).
+      '--model',
+      'claude-sonnet-5-5',
     ],
     // 프롬프트는 stdin 으로 준다 — claude-cli.ts RunClaudeOpts.input 참조.
     { timeoutMs: 120_000, input: buildPrompt(input) },
@@ -338,7 +341,7 @@ async function anthropicExtraction(input: ExtractionInput): Promise<ExtractionRe
   const client = new Anthropic({ apiKey })
 
   const msg = await client.messages.create({
-    model: 'claude-sonnet-5',
+    model: 'claude-sonnet-5-5',
     max_tokens: 1500,
     messages: [{ role: 'user', content: buildPrompt(input) }],
   })

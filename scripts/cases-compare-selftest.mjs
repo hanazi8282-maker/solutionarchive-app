@@ -85,5 +85,24 @@ const STUDIES = [
   t('좁히기: 조회 실패는 not_run 그대로', pairsForMoves(pairMoves(null, null), [], null).status, 'not_run')
 }
 
+// ── 6. saasOnly(리포트 kind=saas) — 양쪽 열이 SaaS 케이스만 ────────────────
+{
+  const st = [...STUDIES, S('c7', 'SAAS'), S('c8', 'D2C')]
+  // TRUST|OPERATIONS: SaaS c3 성공 · SaaS c7 실패 · 소비재 c8 실패 / TRUST|PRICING: 소비재끼리만
+  const all = pairMoves(st, [
+    M('g1', 'c3', 'positive'), M('g2', 'c7', 'negative'), M('g3', 'c8', 'negative'),
+    M('g4', 'c1', 'positive', 'PRICING'), M('g5', 'c2', 'negative', 'PRICING'),
+  ])
+  const cards = [{ case_study_id: 'c3', lever: 'OPERATIONS' }, { case_study_id: 'c1', lever: 'PRICING' }]
+  const on = pairsForMoves(all, cards, st, { saasOnly: true })
+  t('saasOnly 양성: SaaS 끼리 묶음 1개만 남는다', on.pairs.length, 1)
+  ok('saasOnly 양성: 남은 묶음 양쪽 케이스 전부 SAAS',
+    on.pairs.every((p) => [...p.positive, ...p.negative].every((x) => x.study.business_model === 'SAAS')))
+  t('saasOnly 끔: 소비재 묶음까지 2개(기존 호출부 그대로)', pairsForMoves(all, cards, st).pairs.length, 2)
+  const onlyConsumer = pairsForMoves(all, [{ case_study_id: 'c1', lever: 'PRICING' }], st, { saasOnly: true })
+  t('saasOnly 음성: 소비재만인 묶음은 빠진다 → no_match', onlyConsumer.status, 'no_match')
+  ok('saasOnly 음성: 사유에 "소비재 포함 시 N묶음"', onlyConsumer.reason.includes('소비재 포함 시 1묶음'))
+}
+
 console.log(fail === 0 ? `\n통과 ${pass}건\n성공/실패 비교 정상 — 짝 4조건 · 3상태 · SaaS 축적 중 문구.` : `\n통과 ${pass}건, 실패 ${fail}건`)
 process.exit(fail === 0 ? 0 : 1)

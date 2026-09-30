@@ -91,11 +91,16 @@ export function pairMoves(
  * /cases/search 는 코퍼스 전체 짝을 보여준다(질의와 무관하다고 화면이 밝힌다). 리포트는 "내 아이디어에
  * 대한 한 장"이라 무관한 짝을 섞으면 내 아이디어의 대조로 읽힌다. 그래서 여기서 좁히고, 0이면
  * 코퍼스 전체 묶음 수를 같이 적어 "짝이 아예 없다"와 "내 것과 겹치는 짝이 없다"를 가른다(§7.1).
+ *
+ * `saasOnly`(리포트 kind=saas): 양쪽 열을 SaaS 케이스로만 좁힌다. SaaS 끼리 대조가 없는 묶음은 빠진다.
+ * 이게 없으면 "SaaS만" 화면에 소비재 짝이 그대로 섞였다(2026-09-30 실측 6묶음 중 3묶음, B7-4).
+ * 0묶음이 되면 사유에 "소비재 포함 시 N묶음"을 적는다 — 소비재까지 넓히면 있다는 사실을 숨기지 않는다.
  */
 export function pairsForMoves(
   all: PairResult,
   moveCards: { case_study_id: string; lever: string }[],
   studies: StudyRow[] | null | undefined,
+  opts: { saasOnly?: boolean } = {},
 ): PairResult {
   if (all.status !== 'matched') return all
   const byId = new Map((studies ?? []).map((s) => [s.id, s]))
@@ -103,12 +108,21 @@ export function pairsForMoves(
     const s = byId.get(c.case_study_id)
     return s ? [`${s.bottleneck}|${c.lever}`] : []
   }))
-  const pairs = all.pairs.filter((p) => keys.has(p.key))
+  const mine = all.pairs.filter((p) => keys.has(p.key))
+  const pairs = opts.saasOnly
+    ? mine.filter((p) => p.saas).map((p) => ({
+      ...p,
+      positive: p.positive.filter((x) => isSaas(x.study)),
+      negative: p.negative.filter((x) => isSaas(x.study)),
+    }))
+    : mine
   const saas_pairs = pairs.filter((p) => p.saas).length
   if (pairs.length === 0) {
     return {
       status: 'no_match',
-      reason: `매칭된 무브와 같은 병목·레버로 갈린 짝이 0묶음이다 (코퍼스 전체로는 ${all.pairs.length}묶음)`,
+      reason: opts.saasOnly && mine.length > 0
+        ? `매칭된 무브와 같은 병목·레버로 SaaS 끼리 갈린 짝이 0묶음이다 (소비재 포함 시 ${mine.length}묶음)`
+        : `매칭된 무브와 같은 병목·레버로 갈린 짝이 0묶음이다 (코퍼스 전체로는 ${all.pairs.length}묶음)`,
       pairs, saas_pairs,
     }
   }

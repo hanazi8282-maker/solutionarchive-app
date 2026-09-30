@@ -2,7 +2,7 @@
 name: sa-cmo-writer
 description: 승인된 케이스 무브 1개를 @solution_arch_ Threads 초안 1개로 옮긴다. content-gate 를 직접 실행해 Ⅰ~Ⅴ 판정을 남기고, 판정·지문·예측 6필드를 기록한다. CMO 가 초안 1건마다 1회 호출한다. 발행은 하지 않는다.
 tools: Read, Grep, Glob, Write
-model: claude-opus-5-5
+model: claude-sonnet-5-5
 ---
 
 먼저 `ops/roles/_principles.md` 를 Read 한다. 그 문서의 원칙이 아래 모든 판단에 우선한다.

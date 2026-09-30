@@ -262,6 +262,15 @@ t('slug 없으면 brand_name 으로 대신', logoFor({ brand_name: 'Juttu' }).sl
   t('공개 화면이 reviewed_by 를 그리는 자리 0곳', draws.join(','), '')
 }
 
+// ── 9. 리포트 무브 줄 플레이트(B7-2) — 코퍼스 조회가 로고 2컬럼을 읽고, 없을 때 뺄 묶음이 따로 있다 ──
+{
+  const { STUDY_COLS, STUDY_COLS_BASE, STUDY_COLS_LOGO } = await import('../lib/cases/corpus-db.ts')
+  const cols = STUDY_COLS.split(',').map((c) => c.trim())
+  ok('STUDY_COLS 에 logo_url·brand_domain 이 있다', cols.includes('logo_url') && cols.includes('brand_domain'))
+  ok('재시도용 STUDY_COLS_BASE 에는 로고 컬럼이 없다', !/logo_url|brand_domain/.test(STUDY_COLS_BASE))
+  t('STUDY_COLS = BASE + LOGO', STUDY_COLS, `${STUDY_COLS_BASE}, ${STUDY_COLS_LOGO}`)
+}
+
 console.log(fail
   ? `실패 ${fail}건 / 통과 ${pass}건`
   : `통과 ${pass}건 — 무브 정렬(NULL 뒤) · 근거 그룹 배타 · displayGrade 미기재/D 구분 · 체크리스트(점수 없음) · 수치 타일 · 갈린 짝 · 관련 3장 · 로고 폴백 3단계`)

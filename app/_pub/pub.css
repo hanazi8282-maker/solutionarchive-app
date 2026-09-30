@@ -1461,3 +1461,57 @@ a.pub-index-row .pub-index-act { margin-top: 2px; line-height: 1.4; }
 .pub-signal-head .pub-chip { margin-left: auto; }
 /* 라벨이 신호 하나뿐이면 아래 칩 줄이 비는데, 빈 줄도 격자 간격을 먹는다 — 접는다. */
 .pub-card-body > .pub-chiprow:empty { display: none; }
+
+/* ============================================================
+   B7 매칭 리포트 (2026-09-30, reports/2026-09-30/design-direction-cases-report-addendum.md R1)
+   `/cases/report` 전용 클래스만 새로 정의한다 — 위 블록(기존·G1·G3·G2·G4)의 규칙은 바꾸지 않는다.
+   새 색·반경 없음(토큰만). 모션 없음(R1). 갈린 짝 면 배경은 R2 에서 --pub-plane-lilac 으로 한 줄 바꾼다.
+   ============================================================ */
+
+/* 질문 폼(B7-1·7) — 입력칸 44px · 글자 16px(iOS 포커스 확대 방지), <768 세로 쌓임 + 버튼 전폭. */
+.pub-report-ask { gap: var(--pub-gap-3); }
+.pub-report-ask-row { display: flex; flex-direction: column; gap: var(--pub-gap-2); min-width: 0; }
+.pub-report-ask .pub-field { height: var(--pub-h-lg); font-size: var(--pub-size-text); }
+.pub-report-ask .pub-btn { width: 100%; }
+@media (min-width: 768px) {
+  .pub-report-ask-row { flex-direction: row; align-items: stretch; }
+  .pub-report-ask .pub-btn { width: auto; }
+}
+
+/* 요약 띠·첫 화면 집계 — 375 에서도 3칸 한 줄. "해당 없음" 이 들어가도 칸이 넘치지 않게 값은 한 단 작게. */
+.pub-report-stats .pub-statrow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pub-report-stats .pub-stat { padding: var(--pub-gap-3) 0; }
+.pub-report-stats .pub-stat-value { font-size: var(--pub-size-head-sm); line-height: 1.25; overflow-wrap: anywhere; }
+.pub-report-stats .pub-stat-label { text-transform: none; }
+
+/* 무브 줄(B7-2) — 색인 줄 그대로에 claim 2줄. 겹친 낱말 캡션은 머리 줄 끝(줄 하나 ≤120px 수용기준). */
+a.pub-index-row .pub-index-s--2 { -webkit-line-clamp: 2; line-clamp: 2; }
+.pub-index-why { flex: 1 1 0; min-width: 0; font-size: var(--pub-size-caption); line-height: 1.4; color: var(--pub-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 나머지 N건 브랜드 칩 링크 — 칩은 라벨이라 hover 가 없다. 링크일 때만 선을 올린다. */
+.pub-report-rest a:hover .pub-chip { border-color: var(--pub-ink-faint); color: var(--pub-ink); }
+.pub-index-head .pub-chip,
+.pub-pair > .pub-chiprow .pub-chip { height: 22px; }
+
+/* 리포트 본문 — 섹션 사이 64 → 40(한 장 리포트라 읽는 호흡이 짧다). 실패 앵글 결과 문장은 2줄까지. */
+.pub-report-body > .pub-detail-body { gap: var(--pub-gap-10); }
+.pub-report-body .pub-angles { margin-top: 0; gap: var(--pub-gap-2); }
+.pub-report-body .pub-angles > li { padding: var(--pub-gap-2) var(--pub-gap-4); }
+.pub-angle-out { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pub-report-body .pub-angles .pub-caption { margin-top: 2px; }
+
+/* 갈린 짝 대조표(B7-4) — 면 위 2열, 테두리·그림자 없음. 판정색은 열 머리 밑 3px 선에만(글자는 잉크). */
+.pub-pair { display: grid; gap: var(--pub-gap-2); min-width: 0; padding: var(--pub-pad-card); border-radius: var(--pub-round-card); background: var(--pub-surface-2); }
+.pub-pair-cols { display: grid; gap: var(--pub-gap-4); min-width: 0; }
+.pub-pair-col { display: grid; align-content: start; gap: var(--pub-gap-2); min-width: 0; }
+.pub-root .pub-pair-h { margin: 0; padding-bottom: var(--pub-gap-1); font-size: var(--pub-size-text-sm); font-weight: var(--pub-weight-strong); line-height: 1.4; color: var(--pub-ink); box-shadow: inset 0 -3px 0 var(--pub-verdict-pos); }
+.pub-root .pub-pair-h--neg { box-shadow: inset 0 -3px 0 var(--pub-verdict-neg); }
+.pub-root .pub-pair-list { display: grid; gap: var(--pub-gap-1); margin: 0; padding: 0; list-style: none; }
+.pub-pair-item { min-width: 0; font-size: var(--pub-size-text-sm); overflow-wrap: anywhere; }
+.pub-pair-item .pub-index-s { margin-top: 0; line-height: 1.45; }
+.pub-root .pub-pair-who { font-weight: var(--pub-weight-strong); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--pub-edge); }
+.pub-root .pub-pair-who:hover { text-decoration-color: currentColor; }
+.pub-pair .pub-fold--inline .pub-fold-body,
+.pub-pair .pub-fold--inline > .pub-pair-list { margin-top: var(--pub-gap-2); }
+@media (min-width: 768px) {
+  .pub-pair-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--pub-gap-6); }
+}

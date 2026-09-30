@@ -225,7 +225,7 @@ if (!MUTATE) {
   say(n ? `idea-pmf-selftest: 실패 ${n}건 (${JSON.stringify(res)})` : 'idea-pmf-selftest: 통과 — input · hash · bottleneck · flow · questions · answers · scores · self · quadrant · limit · stale · prompt')
   process.exitCode = n ? 1 : 0
 } else {
-  const src = fs.readFileSync(SRC, 'utf8')
+  const src = fs.readFileSync(SRC, 'utf8').replace(/\r\n/g, '\n') // Windows CRLF 체크아웃에서도 치환 대상이 맞게
   const MUTANTS = [
     ['input', '입력 길이 검사 끄기', 'if (chars(s) > PMF_INPUT_MAX[k])', 'if (false)'],
     ['hash', '캐시 키에서 requested_by 빼기', 'return { requested_by: email, query_hash, input_hash }', 'return { query_hash, input_hash, requested_by: undefined }'],

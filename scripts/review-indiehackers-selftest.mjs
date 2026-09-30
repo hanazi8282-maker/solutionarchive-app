@@ -13,7 +13,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { indiehackersAdapter as A, HOST, __internal as I } from '../lib/review/adapters/indiehackers.ts'
+import { indiehackersAdapter as A, HOST, REVISIT_AFTER_RUNS, REVISIT_PER_RUN, REVISIT_WAIT_MAX, __internal as I } from '../lib/review/adapters/indiehackers.ts'
 import { decodeBoardCursor, encodeBoardCursor, BOARD_QUEUE_MAX } from '../lib/review/types.ts'
 import { parseRobots, robotsVerdict } from '../lib/review/robots.ts'
 import { runCollection, PRODUCT_TOKEN } from '../lib/review/runner.ts'
@@ -136,8 +136,8 @@ function harness(pages) {
       return typeof p === 'number' ? { status: p, body: 'blocked', finalUrl: url } : { status: 200, body: p, finalUrl: url.replace('/post/', '/post/tech/slug-') }
     },
     store: {
-      async loadSource() { return { key: 'indiehackers', enabled: true, minIntervalMs: 6000, dailyRequestCap: 40, requestsToday: 0 } },
-      async listDueTargets() { return [target({ cursor: log.cursor })] },
+      async loadSource() { return { key: 'indiehackers', enabled: true, minIntervalMs: 6000, dailyRequestCap: 40, requestsToday: log.requestsToday ?? 0 } },
+      async listDueTargets() { return [target({ cursor: log.cursor, lastReviewAt: log.lastReviewAt ?? null })] },
       async saveTargetProgress(p) { log.saves.push(p) },
       async recordFingerprint(fp) { if (seen.has(fp.identityKey)) return 'duplicate'; seen.add(fp.identityKey); return 'new' },
       async appendInput() { return 'in' },
@@ -159,6 +159,106 @@ function harness(pages) {
   const h = harness({ '/stories': 403 })
   const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
   t('403: 요청 1건 뒤 중단 + 고장 판정(review_sources 에는 안 씀)', `${r.requests}/${r.stats.blockedResponses}/${r.health?.disable}/${h.log.health}`, '1/1/true/null')
+}
+
+// ── 댓글 재방문(남헌 결정 2026-09-30) ──────────────────────────────
+const W = (c) => I.dec(c).w
+const cur = (o) => I.enc({ q: [], last: NEW, w: [], ...o })
+const [IA, IB, IC] = ['AAAAAAAAAAAAAAAAAAAA', 'BBBBBBBBBBBBBBBBBBBB', 'CCCCCCCCCCCCCCCCCCCC']
+t('재방문 상수: 14실행(하루 2회 ≈ 7일) · 실행당 1', `${REVISIT_AFTER_RUNS}/${REVISIT_PER_RUN}`, '14/1')
+{
+  // 처음 읽기 → 대기열 등록
+  t('첫 읽기: 대기열에 [id, 14]', JSON.stringify(W(A.parse(fx(FX_NEW), sctx(NEW)).nextCursor)), JSON.stringify([[NEW, REVISIT_AFTER_RUNS]]))
+  const again = A.parse(fx(FX_NEW), ctx(cur({ q: [`/post/${NEW}`], w: [[NEW, 3]] })))
+  t('첫 읽기: 이미 대기 중이면 다시 넣지 않는다', JSON.stringify(W(again.nextCursor)), JSON.stringify([[NEW, 3]]))
+  const nf = A.parse(fx(FX_NEW).replace('firestore-post--success-story-interview', ''), sctx(NEW))
+  t('첫 읽기: 편집 인터뷰가 아니면 등록하지 않는다', W(nf.nextCursor).length, 0)
+  t('첫 읽기: 파싱 실패면 등록하지 않는다', W(A.parse('<html></html>', sctx(NEW)).nextCursor).length, 0)
+  t('옛 커서(w 없음)도 읽는다', JSON.stringify(I.dec(encodeBoardCursor({ q: ['/post/x'], last: NEW }))), JSON.stringify({ q: ['/post/x'], last: NEW, w: [] }))
+  t('w 가 비면 커서 모양은 예전 그대로', I.enc({ q: [], last: NEW, w: [] }), encodeBoardCursor({ q: [], last: NEW }))
+  t('오염된 w 항목은 버린다', JSON.stringify(W(JSON.stringify({ q: [], last: null, w: [['../x', 1], [IA, 'x'], [IA, 2]] }))), JSON.stringify([[IA, 2]]))
+  const many = A.parse(fx(FX_NEW), ctx(cur({ q: [`/post/${NEW}`], w: Array.from({ length: REVISIT_WAIT_MAX }, (_, i) => [`${'D'.repeat(18)}${String(i).padStart(2, '0')}`, 5]) })))
+  t(`대기열 상한 ${REVISIT_WAIT_MAX}: 넘치면 가장 먼저 넣은 것부터 버린다`, `${W(many.nextCursor).length}/${W(many.nextCursor).at(-1)[0]}/${W(many.nextCursor)[0][0]}`, `${REVISIT_WAIT_MAX}/${NEW}/${'D'.repeat(18)}01`)
+}
+{
+  // 목록 → 대상 선택
+  const r = A.parse(fx('stories-list.html'), ctx(cur({ w: [[IA, 2], [IB, 1], [IC, 1]] })))
+  const c = I.dec(r.nextCursor)
+  t('목록: 기한 된 것 중 먼저 넣은 1건만 큐 맨 뒤에(#c)', c.q.join(','), `/post/${IB}#c`)
+  t('목록: 나머지는 1씩 줄고 꺼낸 것은 빠진다', JSON.stringify(c.w), JSON.stringify([[IA, 1], [IC, 0]]))
+  t('목록: 새 글 0 이어도 재방문이 있으면 이어 간다', r.pauseRun, false)
+  const full = I.dec(A.parse(fx('stories-list.html'), ctx(I.enc({ q: [], last: null, w: [[IA, 1]] }))).nextCursor)
+  t('목록: 새 글이 큐를 채우면(19) 재방문은 다음 실행으로', `${full.q.length}/${full.q.some((p) => p.endsWith('#c'))}/${JSON.stringify(full.w)}`, `${BOARD_QUEUE_MAX}/false/${JSON.stringify([[IA, 0]])}`)
+  const inc = I.dec(A.parse(fx('stories-list.html'), ctx(cur({ last: decodeBoardCursor(A.parse(fx('stories-list.html'), ctx()).nextCursor).q[2].slice(6), w: [[IA, 1]] }))).nextCursor)
+  t('목록: 새 글 2건 뒤에 재방문', inc.q.map((p) => p.endsWith('#c')).join(','), 'false,false,true')
+  const blank = A.parse('<html>Just a moment...</html>', ctx(cur({ w: [[IA, 1]] })))
+  t('목록 실패(링크 0): 대기열은 줄지도 꺼내지도 않는다', `${blank.parseFailures}/${JSON.stringify(W(blank.nextCursor))}/${I.dec(blank.nextCursor).q.length}`, `1/${JSON.stringify([[IA, 1]])}/0`)
+  // 14번째 목록 실행에서 처음 나온다
+  let cursor = A.parse(fx(FX_NEW), sctx(NEW)).nextCursor
+  let firstAt = 0
+  for (let run = 1; run <= 20 && !firstAt; run++) {
+    const q = I.dec(A.parse(fx('stories-list.html'), ctx(cursor)).nextCursor)
+    if (q.q.includes(`/post/${NEW}#c`)) firstAt = run
+    cursor = I.enc({ ...q, q: [] })
+  }
+  t('주기: 처음 읽은 뒤 14번째 실행에서 재방문', firstAt, REVISIT_AFTER_RUNS)
+  t('주기: 재방문은 한 번뿐(대기열에서 빠짐)', W(cursor).length, 0)
+}
+{
+  // 재방문 요청·파싱
+  t('next: 재방문도 같은 조립 URL(#c 는 안 보낸다)', A.nextRequest(target({ cursor: cur({ q: [`/post/${OLD}#c`] }) }))?.url, `${HOST}/post/${OLD}`)
+  t('next: 재방문 표식이 다르면 요청 0', A.nextRequest(target({ cursor: cur({ q: [`/post/${OLD}#x`] }) })), null)
+  const o = A.parse(fx(FX_OLD), ctx(cur({ q: [`/post/${OLD}#c`], w: [[IA, 3]] })))
+  t('재방문(가입 벽 글): 본문 없이 댓글 59만 · 실패 0', `${o.reviews.length}/${o.parseFailures}`, '59/0')
+  ok('재방문: 전부 댓글 id', o.reviews.every((r) => r.externalId.startsWith(`/post/${OLD}#`)))
+  t('재방문: 다시 대기열에 넣지 않는다(다른 항목은 그대로)', JSON.stringify(W(o.nextCursor)), JSON.stringify([[IA, 3]]))
+  t('재방문: 큐가 비면 pauseRun', o.pauseRun, true)
+  const n = A.parse(fx(FX_NEW), ctx(cur({ q: [`/post/${NEW}#c`] })))
+  t('재방문(댓글 0): 0건 · 실패 0', `${n.reviews.length}/${n.parseFailures}`, '0/0')
+  t('재방문: 다른 글 응답이면 실패 1', A.parse(fx(FX_NEW), ctx(cur({ q: [`/post/${OLD}#c`] }))).parseFailures, 1)
+}
+{
+  // 러너와 붙여서 — 첫 읽기 → 재방문: 댓글만 · 중복 미적재
+  const h = harness({ [`/post/${OLD}`]: fx(FX_OLD) })
+  h.log.cursor = encodeBoardCursor({ q: [`/post/${OLD}`], last: NEW })
+  await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
+  t('러너 첫 읽기: 커서에 재방문 대기 등록', JSON.stringify(W(h.log.saves.at(-1).cursor)), JSON.stringify([[OLD, REVISIT_AFTER_RUNS]]))
+  h.log.saves = []
+  h.log.urls = []
+  h.log.cursor = cur({ q: [`/post/${OLD}#c`] })
+  h.log.lastReviewAt = '2026-09-29' // 재방문 댓글은 기준선보다 오래됐다 → 러너 증분 종료가 걸려도 남는 큐가 없어야 한다
+  const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
+  t('러너 재방문: 요청 1 · 파싱 59(본문 제외) · 신규 0(이미 받은 댓글) · 실패 0', `${r.requests}/${r.stats.reviewsParsed}/${r.stats.newReviews}/${r.stats.parseFailures}`, '1/59/0/0')
+  t('러너 재방문: 큐 소진 · 대기열 비움', h.log.saves.at(-1).cursor, cur({}))
+  ok('러너 재방문: 요청 URL 에 #c 없음 · 조립 경로만', h.log.urls.every((u) => !u.includes('#') && /\/(robots\.txt|post\/[A-Za-z0-9]{20})$/.test(new URL(u).pathname)))
+}
+{
+  const h = harness({ [`/post/${OLD}`]: fx(FX_OLD) })
+  h.log.cursor = cur({ q: [`/post/${OLD}#c`] })
+  const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
+  t('러너 재방문(처음 보는 댓글): 신규 59 = 댓글만 새로 넣는다', `${r.requests}/${r.stats.newReviews}`, '1/59')
+}
+{
+  // 일일 상한: 남은 1요청이면 새 글 1건만 읽고 재방문은 커서에 남긴다
+  const h = harness({ [`/post/${NEW}`]: fx(FX_NEW), [`/post/${OLD}`]: fx(FX_OLD) })
+  h.log.requestsToday = 39
+  h.log.cursor = cur({ q: [`/post/${NEW}`, `/post/${OLD}#c`] })
+  const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
+  t('상한: 남은 1요청만 쓴다', r.requests, 1)
+  t('상한: 재방문은 커서 큐에 남는다', I.dec(h.log.saves.at(-1).cursor).q.join(','), `/post/${OLD}#c`)
+  const h2 = harness({})
+  h2.log.requestsToday = 40
+  h2.log.cursor = cur({ q: [`/post/${OLD}#c`] })
+  t('상한: 다 썼으면 요청 0', (await runCollection(A, { dryRun: false, targetLimit: 5 }, h2.ports)).requests, 0)
+}
+{
+  // 봇 방어 응답: 재방문 중 403 → 멈추고 사유·수치를 남긴다. 재방문은 소비하지 않는다(우회·재시도 없음).
+  const h = harness({ [`/post/${OLD}`]: 403 })
+  h.log.cursor = cur({ q: [`/post/${OLD}#c`] })
+  const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
+  t('재방문 403: 요청 1 · 차단 1 · 중단', `${r.requests}/${r.stats.blockedResponses}/${r.health?.disable}`, '1/1/true')
+  ok('재방문 403: 결과에 사유가 남는다', /차단 응답 403/.test(r.perTarget[0]?.outcome ?? ''))
+  t('재방문 403: 커서는 그대로(재방문 유지)', h.log.saves.at(-1).cursor, cur({ q: [`/post/${OLD}#c`] }))
 }
 
 console.log(`review-indiehackers-selftest: ${pass} pass, ${fail} fail`)

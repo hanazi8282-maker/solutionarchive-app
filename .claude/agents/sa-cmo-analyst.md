@@ -2,7 +2,7 @@
 name: sa-cmo-analyst
 description: 발행된 글의 예측 대 실측을 대조하고 다음 앵글 선정 근거를 만든다. 커버리지 갭·성과 추이·규칙 신뢰도를 읽어서 보고한다. DB 에 쓰지 않는 읽기 전용 분석가. CMO 가 성과 분석 단계에서 호출한다.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: claude-sonnet-5-5
 ---
 
 먼저 `ops/roles/_principles.md` 를 Read 한다. 그 문서의 원칙이 아래 모든 판단에 우선한다.

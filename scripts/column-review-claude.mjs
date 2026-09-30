@@ -37,6 +37,8 @@ const onlySlug = opt('slug')
 const limit = Number(opt('limit') ?? Infinity)
 const log = (m) => console.log(`[${new Date().toISOString()}] ${m}`)
 
+// 2026-09-30 칼럼 검수는 Sonnet 5.5 로 고정 — 안 정하면 CLI 기본값이라 계정·버전에 따라 바뀐다. 바꾸려면 CLAUDE_CLI_MODEL.
+process.env.CLAUDE_CLI_MODEL ||= 'claude-sonnet-5-5'
 const provider = resolveProvider()
 if (run && provider !== 'claude-cli') { console.error(`✗ LLM_PROVIDER=claude-cli 로 돌려라(지금 ${provider}). 남헌 결정: 크레딧 경로로만.`); process.exit(2) }
 const key = requiredKeyFor(provider)

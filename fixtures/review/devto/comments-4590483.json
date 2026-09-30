@@ -1,0 +1,116 @@
+[
+ {
+  "type_of": "comment",
+  "id_code": "3e8ed",
+  "created_at": "2026-09-06T21:35:15Z",
+  "ai_disclosure_level": "not_disclosed",
+  "ai_disclosure_label": "Not Disclosed",
+  "body_html": "<p>The mutation-testing point is the one to steal — \"test the tests\" generalizes way past prompt systems. One failure mode worth flagging in the fail-open design though: \"exit 0 on any unexpected exception\" protects you from the hook crashing and blocking work, but it can't distinguish \"checker ran and found zero errors\" from \"checker silently short-circuited before checking anything\" — e.g. a bug in the \"outside a managed folder\" path match that misfires and skips real files. Both look identical from outside: exit 0, no errors. I've started having checkers log a per-run count of files actually validated alongside pass/fail, specifically so a checker gone quiet because it's broken doesn't read the same as one that's quiet because everything's fine. Same shape as your fixture-count assertion for the broken cases, just applied to the live run instead of the test suite.</p>\n\n",
+  "user": {
+   "name": "(작성자)",
+   "username": "redacted",
+   "twitter_username": null,
+   "github_username": null,
+   "user_id": null,
+   "website_url": null,
+   "profile_image": null,
+   "profile_image_90": null
+  },
+  "children": []
+ },
+ {
+  "type_of": "comment",
+  "id_code": "3e8f0",
+  "created_at": "2026-09-06T23:07:32Z",
+  "ai_disclosure_level": "not_disclosed",
+  "ai_disclosure_label": "Not Disclosed",
+  "body_html": "<p>The standard library zero-dependency checker is the right call for write hooks. Once a pre-commit or post-write hook requires an activated virtualenv or external package, someone runs a task outside the environment, the hook fails to start, and the whole check gets commented out.</p>\n\n<p>The main trap I hit with exit code 2 self-correction loops is optimizer thrash on competing constraints. If an agent fails a schema check because the word count is over budget while also missing a required citation field, it will sometimes satisfy the checker on the second attempt by stripping out nuanced context or inserting generic filler URLs just to pass the regex. Capping the automatic correction budget to two attempts and dumping a quarantined artifact with the raw stderr diff when it fails keeps the agent from mutilating its own output to appease the linter.</p>\n\n",
+  "user": {
+   "name": "(작성자)",
+   "username": "redacted",
+   "twitter_username": null,
+   "github_username": null,
+   "user_id": null,
+   "website_url": null,
+   "profile_image": null,
+   "profile_image_90": null
+  },
+  "children": []
+ },
+ {
+  "type_of": "comment",
+  "id_code": "3e8fb",
+  "created_at": "2026-09-06T23:54:06Z",
+  "ai_disclosure_level": "not_disclosed",
+  "ai_disclosure_label": "Not Disclosed",
+  "body_html": "<p>The words are not the contract is the key insight here. Splitting testable layers — recompute the deterministic functions, validate shape, turn prose rules into countable checks — mirrors what schema-first agent pipelines do, but the stdlib-only checker on every file write is the part most people skip. A test that doesn't run everywhere is worse than no test.</p>\n\n",
+  "user": {
+   "name": "(작성자)",
+   "username": "redacted",
+   "twitter_username": null,
+   "github_username": null,
+   "user_id": null,
+   "website_url": null,
+   "profile_image": null,
+   "profile_image_90": null
+  },
+  "children": []
+ },
+ {
+  "type_of": "comment",
+  "id_code": "3e8fc",
+  "created_at": "2026-09-06T23:54:19Z",
+  "ai_disclosure_level": "not_disclosed",
+  "ai_disclosure_label": "Not Disclosed",
+  "body_html": "<p>The mutation-testing-the-assertions step is the part most people skip, and it's the one that matters: in a generated-output system your checker IS the spec, and an untested checker just shifts the silent failure one level down. The fail-open hook design (exit 0 on unexpected exception) is also the right call — a gate that blocks work gets uninstalled, a gate that pages you gets kept. We've found the same with schema contracts: make the LLM write structured output, validate deterministically, and let the prose be the only unasserted surface.</p>\n\n",
+  "user": {
+   "name": "(작성자)",
+   "username": "redacted",
+   "twitter_username": null,
+   "github_username": null,
+   "user_id": null,
+   "website_url": null,
+   "profile_image": null,
+   "profile_image_90": null
+  },
+  "children": []
+ },
+ {
+  "type_of": "comment",
+  "id_code": "3e8fi",
+  "created_at": "2026-09-07T00:10:35Z",
+  "ai_disclosure_level": "not_disclosed",
+  "ai_disclosure_label": "Not Disclosed",
+  "body_html": "<p>The exact-count fixtures are the part I would expect to erode, and it erodes in the direction you care about. A fixture pinned at 23 goes red the day you add a check, which is a change that made the checker better, so the maintenance move under time pressure is to bump it to 24 and carry on. That is the same \"stopped looking\" failure the fixtures exist to catch, arriving through the update path rather than the regression path, and the count on its own cannot tell you whether the extra error is a new real one or the same defect reported twice.</p>\n\n<p>Asserting the set of error codes each broken fixture should produce separates those two: a code appearing is an addition someone has to look at, a code disappearing is the alarm you actually wanted, and neither one is satisfied by editing a number.</p>\n\n",
+  "user": {
+   "name": "(작성자)",
+   "username": "redacted",
+   "twitter_username": null,
+   "github_username": null,
+   "user_id": null,
+   "website_url": null,
+   "profile_image": null,
+   "profile_image_90": null
+  },
+  "children": []
+ },
+ {
+  "type_of": "comment",
+  "id_code": "3eac1",
+  "created_at": "2026-09-08T00:39:02Z",
+  "ai_disclosure_level": "not_disclosed",
+  "ai_disclosure_label": "Not Disclosed",
+  "body_html": "<p>The missing test I see most often isn’t a golden output — it’s a frozen “inputs contract.” Before the first prompt I write four lines that must stay true: outcome, out of scope, done-when, and never invent X. If a later reply violates any line, the run fails even when the prose looks sharp.</p>\n\n<p>That turns “is the prompt system broken?” into a binary check you can do in under a minute, without waiting for production pain.</p>\n\n<p>Curious what your first failing test usually catches: hallucinated APIs, scope creep, or silent assumption drift?</p>\n\n",
+  "user": {
+   "name": "(작성자)",
+   "username": "redacted",
+   "twitter_username": null,
+   "github_username": null,
+   "user_id": null,
+   "website_url": null,
+   "profile_image": null,
+   "profile_image_90": null
+  },
+  "children": []
+ }
+]

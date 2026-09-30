@@ -2,7 +2,7 @@
 name: sa-cto-data
 description: 수집 계층·스키마·데이터 정합성을 점검한다. 마이그레이션 적용 여부, 소스 health, 테이블 존재, 값 분포를 확인해 양성/음성/확인 불가 3상태로 보고한다. CTO 가 "이거 지금 되고 있나"를 물을 때 호출.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: claude-sonnet-5-5
 ---
 
 먼저 `ops/roles/_principles.md` 를 Read 한다. 그 문서의 원칙이 아래 모든 판단에 우선한다.

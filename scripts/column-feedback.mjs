@@ -303,7 +303,7 @@ async function askLlm(prompt, targets) {
     if (!apiKey) throw new Error('INSIGHT_LLM_PROVIDER=anthropic 인데 ANTHROPIC_API_KEY 가 없다')
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const msg = await new Anthropic({ apiKey }).messages.create({
-      model: 'claude-sonnet-5',
+      model: 'claude-sonnet-5-5',
       max_tokens: 4000,
       messages: [{ role: 'user', content: prompt }],
     })
@@ -318,6 +318,7 @@ async function askLlm(prompt, targets) {
       // 도구 없음. `--max-turns 1` 만으로는 모델이 첫 턴에 도구를 집는 것을 못 막는다 — 그러면 답을
       // 쓸 턴이 없어 is_error·error_max_turns·stop_reason=tool_use 로 죽는다(lib/analysis/llm.ts, PR #348).
       '--tools', '',
+      '--model', 'claude-sonnet-5-5', // 2026-09-30 Sonnet 5.5 고정(별칭 sonnet·CLI 기본값이 아니라 정식 식별자)
     ],
     {
       // 배치 전체가 한 프롬프트라 건별 호출보다 길다. 기본 120초로는 모자란다.

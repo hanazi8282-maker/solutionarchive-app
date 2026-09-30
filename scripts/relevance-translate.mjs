@@ -52,7 +52,7 @@ const provider = resolveProvider()
 /** 로컬 확인용 — 이 머신에 로그인된 claude 를 그대로 쓴다(llm.ts 경로는 HOME 을 /tmp 로 돌려 로컬 로그인이 안 보인다). */
 function localCliCall(system, user) {
   const bin = process.env.CLAUDE_CLI_PATH || 'claude'
-  const model = process.env.CLAUDE_CLI_MODEL || 'sonnet'
+  const model = process.env.CLAUDE_CLI_MODEL || 'claude-sonnet-5-5'
   return new Promise((resolve, reject) => {
     const child = spawn(bin, ['-p', '--output-format', 'json', '--max-turns', '1', '--model', model], { stdio: ['pipe', 'pipe', 'pipe'] })
     let out = ''; let err = ''

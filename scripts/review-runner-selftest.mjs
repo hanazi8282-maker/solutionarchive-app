@@ -737,14 +737,15 @@ const runQuota = (h, over = {}) =>
   })
   const r = await run(h)
   t('정상 실행은 health ok', r.health.health, 'ok')
-  t('health 를 저장한다', h.log.health.length, 1)
+  t('건강도를 review_sources 에 쓰지 않는다(§10.1 — updateSourceHealth 제거, 2026-09-30)', h.log.health.length, 0)
 }
 {
   const many = Array.from({ length: 3 }, (_, i) => rv({ externalId: `a${i}` }))
   const h = makeHarness({ pages: { 1: page(many, null, 20) } })
   const r = await run(h)
   t('파싱 실패가 많으면 broken', r.health.health, 'broken')
-  t('broken 이면 소스를 끈다', r.health.disable, true)
+  t('broken 이면 사람이 꺼야 한다고 판정한다(disable=true, 자동으로 쓰지는 않는다)', r.health.disable, true)
+  t('broken 이어도 러너는 review_sources 에 쓰지 않는다', h.log.health.length, 0)
 }
 {
   // 지문을 못 만든 리뷰는 러너가 실패로 센다 — 어댑터가 놓쳐도 잡는다
@@ -1482,6 +1483,25 @@ for (const [file, keys] of [
   t('등록(disquiet): enabled=true 1행', (sql.match(/^\s*true,$/gm) || []).length, 1)
   ok('등록(disquiet): DDL 이 없다', !/\b(create|alter|drop)\s+table\b/i.test(sql))
   ok('등록(disquiet): ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+}
+
+// ── 같은 대조, 2026-09-30 강행 소스(devto · inflearn · yozm) — enabled=true 3행 ──
+// 남헌 2026-09-30 이 법적 조항과 무관하게 강행을 결정했다. 그 사실이 파일에서 사라지지 않게 문구도 고정한다.
+{
+  const sql = await fs.readFile(path.join(here, '..', 'supabase', 'migrations', '20260930000042_review_sources_devto_inflearn_yozm.sql'), 'utf8')
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  const mapBlock = collect.slice(collect.indexOf('const ADAPTERS ='), collect.indexOf('}', collect.indexOf('const ADAPTERS =')))
+  const mapKeys = new Set([...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]))
+  const sqlKeys = new Set([...sql.matchAll(/^\s*'([\w-]+)',$/gm)].map((m) => m[1]))
+  for (const key of ['devto', 'inflearn', 'yozm']) {
+    ok(`등록(0930): 마이그레이션 review_sources.key 에 '${key}' 가 있다`, sqlKeys.has(key))
+    ok(`등록(0930): ADAPTERS 맵 키가 '${key}' 와 철자까지 같다`, mapKeys.has(key))
+  }
+  t('등록(0930): enabled=true 3행', (sql.match(/^\s*true,$/gm) || []).length, 3)
+  ok('등록(0930): DDL 이 없다', !/\b(create|alter|drop)\s+table\b/i.test(sql))
+  ok('등록(0930): ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+  ok('승인근거(0930): 남헌 승인 하 강행 문구가 남아 있다', /남헌 승인 하 강행\(2026-09-30\)/.test(sql))
+  ok('승인근거(0930): dev.to 약관 인용이 남아 있다', /non-commercial transitory viewing only/.test(sql))
 }
 
 // ── 워크플로 선택지에 소스가 다 올라가 있는가 ─────────────────────

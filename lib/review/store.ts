@@ -12,7 +12,6 @@
 
 import type { createClient } from '../supabase/server.ts'
 import { CROSS_TARGET_MIN_TEXT_LEN } from './fingerprint.ts'
-import type { HealthVerdict } from './health.ts'
 import type { RunnerStore, SourceConfig, TargetProgress } from './runner.ts'
 import type { Fingerprint, TargetState } from './types.ts'
 
@@ -275,23 +274,8 @@ export function createReviewStore(supabase: Supa): RunnerStore {
       if (error) throw new Error(`지문 연결 실패: ${error.message}`)
     },
 
-    async updateSourceHealth(key: string, v: HealthVerdict): Promise<void> {
-      const patch: Record<string, unknown> = {
-        health: v.health,
-        health_detail: v.detail,
-        health_checked_at: new Date().toISOString(),
-      }
-
-      // broken 이면 그 자리에서 끈다. disabled_reason 은 DB CHECK 가
-      // 강제한다 — 이유 없는 비활성은 나중에 누가 근거 없이 다시 켠다.
-      if (v.disable) {
-        patch.enabled = false
-        patch.disabled_reason = v.detail
-        patch.disabled_at = new Date().toISOString()
-      }
-
-      const { error } = await supabase.from('review_sources').update(patch).eq('key', key)
-      if (error) throw new Error(`건강도 저장 실패: ${error.message}`)
-    },
+    // ⛔ review_sources 에는 쓰지 않는다(읽기만 — loadSource). 예전 updateSourceHealth 는 health*·enabled·
+    //    disabled_* 를 썼다 — CLAUDE.md §10.1 위반이라 없앴다(남헌 2026-09-30). 유일한 예외 daily_request_cap 은
+    //    scripts/review-request-cap.mjs 가 쓴다. 되살리면 scripts/review-source-health-selftest.mjs 가 실패한다.
   }
 }

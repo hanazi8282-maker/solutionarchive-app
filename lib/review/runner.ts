@@ -107,7 +107,10 @@ export interface RunnerStore {
     collectedAt: string
   }): Promise<string>
   linkFingerprint(sourceKey: string, identityKey: string, analysisInputId: string): Promise<void>
-  updateSourceHealth(key: string, v: HealthVerdict): Promise<void>
+  // ⛔ 건강도 저장(updateSourceHealth)은 없앴다(남헌 2026-09-30). 무인 러너가 review_sources 에 쓸 수 있는
+  //    컬럼은 CLAUDE.md §10.1 대로 daily_request_cap 하나다(scripts/review-request-cap.mjs). 판정은 RunResult.health 로
+  //    돌려주고, 기록은 review_collection_runs.health_after, 고장 보고는 scripts/review-source-health-report.mjs 가 한다.
+  //    되살리면 scripts/review-source-health-selftest.mjs 가 실패한다.
 }
 
 export interface RunnerPorts {
@@ -687,9 +690,8 @@ export async function runCollection(
     consecutiveEmptyBefore: 0,
   })
 
-  if (!opts.dryRun) {
-    await ports.store.updateSourceHealth(adapter.key, health)
-  }
+  // ⛔ 판정을 review_sources 에 쓰지 않는다 — 고장이어도 enabled 는 그대로다(RunnerStore 주석). 사람이 끌 때까지
+  //    다음 실행이 다시 돈다. 그 사실을 사람이 알게 하는 것이 review-collect.mjs → review-source-health-report.mjs 다.
 
   return {
     sourceKey: adapter.key,

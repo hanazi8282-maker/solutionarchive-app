@@ -435,6 +435,7 @@ async function main() {
         '--allowedTools', AGENT_TOOLS['sa-cmo-researcher'],
         '--permission-mode', 'acceptEdits',
         '--max-turns', '60',
+        '--model', 'claude-sonnet-5-5', // 2026-09-30 Sonnet 5.5 고정(CLI 기본값에 맡기지 않는다)
       ], { cwd: repoRoot, env: agentEnv, timeoutMs: 15 * 60_000, input: prompt })
 
       if (r.exitCode === 0) done++
@@ -620,6 +621,7 @@ async function main() {
         '--allowedTools', AGENT_TOOLS['sa-cmo-writer'],
         '--permission-mode', 'acceptEdits',
         '--max-turns', '40',
+        '--model', 'claude-sonnet-5-5', // 2026-09-30 Sonnet 5.5 고정(CLI 기본값에 맡기지 않는다)
       ], { cwd: repoRoot, env: agentEnv, timeoutMs: 12 * 60_000, input: writerPrompt(m, date, contentCode) })
       if (r.exitCode === 0) done++
       else failures.push(`${m.slug}/${m.lever}: exit ${r.exitCode}${r.timedOut ? '(timeout)' : ''}`)
@@ -700,6 +702,7 @@ async function main() {
       // 무해하고 세 호출의 플래그를 일치시킨다.
       '--permission-mode', 'acceptEdits',
       '--max-turns', '12',
+        '--model', 'claude-sonnet-5-5', // 2026-09-30 Sonnet 5.5 고정(CLI 기본값에 맡기지 않는다)
     ], { cwd: repoRoot, env: agentEnv, timeoutMs: 8 * 60_000, input: analystPrompt(raw, date) })
 
     if (r.exitCode !== 0) {

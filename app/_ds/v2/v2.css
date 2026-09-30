@@ -294,8 +294,7 @@
    sticky 툴바(진행 n/m · 단축키 <kbd>) · 카드 = 리뷰 1건(머리 / 원문·번역 2열 / 판정 줄) · 44px 라디오 타일 ·
    저장은 5초 뒤 전송(U 로 되돌리기) · 판정색은 아이콘에만. 키보드 액션은 html[data-kbd] 로 0ms. */
 .v2-kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: calc(var(--radius-md) * 0.6); background: var(--surface-card); font: 500 var(--fs-2xs)/1 var(--font-sans); color: var(--text-strong); }
-.v2-bar { position: sticky; top: 52px; z-index: 5; margin: -24px calc(-1 * clamp(16px, 4vw, 32px)) 0; padding: 10px clamp(16px, 4vw, 32px); background: var(--bg-app); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-@media (min-width: 1024px) { .v2-bar { top: 0; } }
+.v2-bar { position: sticky; top: 0; z-index: 5; margin: -24px calc(-1 * clamp(16px, 4vw, 32px)) 0; padding: 10px clamp(16px, 4vw, 32px); background: var(--bg-app); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
 .v2-bar h1 { margin: 0; font-size: var(--fs-h3); font-weight: 600; letter-spacing: var(--ls-tight); white-space: nowrap; color: var(--text-strong); }
 .v2-prog { display: flex; align-items: center; gap: 10px; font-weight: 500; }
 .v2-prog-n { font-size: var(--fs-h3); white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-strong); }

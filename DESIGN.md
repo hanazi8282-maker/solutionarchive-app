@@ -75,7 +75,7 @@
 ### 간격 · 높이 · 폭
 - `--sa-gap-1` 4 · `--sa-gap-2` 8 · `--sa-gap-3` 12 · `--sa-gap-4` 16 · `--sa-gap-5` 20 · `--sa-gap-6` 24 · `--sa-gap-8` 32 · `--sa-gap-10` 40 · `--sa-gap-16` 64
 - `--sa-h-sm` 32 · `--sa-h-md` 36 (작업대 기본) · `--sa-h-lg` 44 (터치 최소치, 공개 기본)
-- `--sa-measure` 68ch 본문 한 줄 · `--sa-frame` 1120px 공개 프레임 · `--sa-sidebar` 232px 운영 사이드바
+- `--sa-measure` 68ch 본문 한 줄 · `--sa-frame` 1120px 공개 프레임
 
 ### 밀도 프리셋
 - 기본(공개): `--sa-size-body` 16px · `--sa-leading` = body-pub · `--sa-pad-card` 24px · `--sa-h-control` = h-lg

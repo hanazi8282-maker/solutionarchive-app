@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import localFont from 'next/font/local'
 import { Inter } from 'next/font/google'
 import './_ds/styles.css'
-import { AppNav } from './_ds/components/AppNav'
+import './_pub/pub.css'
+import { PubNav } from './_pub/components/PubNav'
 import { getAuthVerdict } from '@/lib/auth/session'
 
 export const metadata = {
@@ -55,16 +56,21 @@ const inter = Inter({
 // 전에는 body 에 인라인 fontFamily(system-ui)를 박아 두어 디자인 시스템의 Pretendard 를
 // 덮었다. 이제 base.css 의 body 규칙(폰트·배경·글자색)이 전 라우트에 그대로 적용된다.
 //
-// 네비의 이메일은 표시용이다. 접근 차단은 proxy.ts 와 서버 액션 가드가 한다 — 여기서 판정이
+// nav 의 이메일은 표시용이다. 접근 차단은 proxy.ts 와 서버 액션 가드가 한다 — 여기서 판정이
 // 실패하면 이메일이 안 보일 뿐, 통과시키는 게 아니다.
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const verdict = await getAuthVerdict()
   return (
     <html lang="ko" className={`${pretendard.variable} ${inter.variable}`}>
       <body>
-        <AppNav email={verdict.kind === 'allowed' ? verdict.email : null} />
-        {/* .sa-main — ≥1024px 에서만 고정 사이드바 폭만큼 본문을 민다(styles.css). */}
-        <div className="sa-main">{children}</div>
+        {/* 모든 화면의 유일한 상단 nav(남헌 2026-09-30 IA 재편 — 좌측 사이드바 폐기).
+            `--pub-*` 토큰은 .pub-root 스코프에서만 정의되므로 라이트 스코프로 감싼다(pub.css 끝 IA 블록). */}
+        <div className="pub-root pub-topbar" data-pub-theme="light">
+          {/* 키보드 사용자가 매 화면 nav 링크 7~8개를 Tab 으로 지나지 않게. 포커스될 때만 보인다. */}
+          <a className="pub-skip" href="#main">본문으로 건너뛰기</a>
+          <PubNav email={verdict.kind === 'allowed' ? verdict.email : null} />
+        </div>
+        <div className="sa-main" id="main">{children}</div>
       </body>
     </html>
   )

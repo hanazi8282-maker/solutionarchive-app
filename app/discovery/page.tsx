@@ -10,7 +10,7 @@ import { MIN_VOC_HITS, MAX_VOC_HITS, inVocWindow } from '@/lib/discovery/candida
 import { ReviewForm } from './review-form'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: '발굴 후보 검증' }
+export const metadata = { title: '브랜드 후보 발굴' }
 
 // 이 파일은 읽기만 한다. 쓰기는 ./actions.ts(사람이 누르는 서버 액션) 하나다.
 //
@@ -191,7 +191,7 @@ export default async function DiscoveryPage({
   const sb = await createClient()
   const header = (
     <PageHeader
-      title="발굴 후보 검증"
+      title="브랜드 후보 발굴"
       subtitle="야간 발굴 루프가 고른 후보는 실측 VOC 건수(와 이식성 판정)를 통과하면 자동으로 반영된다. 사람은 이상한 것만 골라 사유와 함께 무효화한다."
     />
   )

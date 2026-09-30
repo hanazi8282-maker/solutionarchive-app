@@ -12,7 +12,7 @@ import { GradeKeys } from './grade-keys'
 import { IconChevronRight } from './icons'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: '관련성 채점' }
+export const metadata = { title: 'VOC 분석' }
 
 // 읽기만 한다. 쓰기는 ../actions.ts 의 gradeRelevance 하나. 표본 선택은 lib/relevance-feedback/sample.ts(순수, 셀프테스트).
 // 번역·제품 배경·스레드 제목은 캐시(000036)에서 읽기만 한다 — 만드는 것은 scripts/relevance-translate.mjs(야간 배치). 없으면 "준비 중".
@@ -25,7 +25,7 @@ const KEYS: [string, string][] = [['1', '관련'], ['2', '무관'], ['3', '모�
 function Bar({ done, total }: { done: number; total: number }) {
   return (
     <header className="v2-bar">
-      <h1>관련성 채점</h1>
+      <h1>VOC 분석</h1>
       <div className="v2-prog" aria-live="polite">
         <span className="v2-prog-n">{done}<small>/{total}</small></span>
         <progress className="v2-prog-track" value={done} max={Math.max(total, 1)} aria-label={`오늘 ${done}/${total}장 채점`} />

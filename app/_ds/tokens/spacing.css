@@ -31,7 +31,6 @@
   --shadow-focus: none;
 
   /* ---- Layout ---- */
-  --sidebar-w:      var(--sa-sidebar);
   --content-max:    1440px;
   --content-pad:    var(--space-8);
   --header-h:       64px;

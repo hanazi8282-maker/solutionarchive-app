@@ -37,6 +37,14 @@ t('cliFailure 가 봉투 result·subtype 을 메시지에 싣는다', /subtype=e
 t("callClaudeCli 가 --tools '' 로 도구를 끈다", /'--max-turns', '1',[\s\S]{0,400}'--tools', '',/.test(fs.readFileSync(new URL('../lib/analysis/llm.ts', import.meta.url), 'utf8')), true)
 t('insight 경로도 도구를 끈다', /'--max-turns',\s*'1',[\s\S]{0,300}'--tools',\s*'',/.test(fs.readFileSync(new URL('../lib/insight/llm.ts', import.meta.url), 'utf8')), true)
 
+// Sonnet 5.5 고정(2026-09-30) — 'claude-sonnet-5' 는 5.0 이라 다른 모델이다(실호출로 확인). 스레드·칼럼·인사이트 소넷 호출은 정식 식별자만 쓴다.
+for (const f of ['../lib/insight/llm.ts', '../scripts/column-feedback.mjs']) {
+  const src = fs.readFileSync(new URL(f, import.meta.url), 'utf8')
+  t(`${f} 에 5.0 식별자 없음`, /claude-sonnet-5(?!-5)/.test(src), false)
+  t(`${f} 가 claude-sonnet-5-5 를 쓴다`, src.includes('claude-sonnet-5-5'), true)
+}
+t('칼럼 검수는 CLAUDE_CLI_MODEL 을 Sonnet 5.5 로 기본 고정', /CLAUDE_CLI_MODEL ||= 'claude-sonnet-5-5'/.test(fs.readFileSync(new URL('../scripts/column-review-claude.mjs', import.meta.url), 'utf8')), true)
+
 // 하루 예산 — env 한 줄. 옛 BOOST/UNTIL(크레딧 기간 한시 상향)은 2026-09-29 에 뺐다: 있어도 무시돼야 한다.
 t('env 비면 5', dailyBudgetFor({}), 5)
 t('LLM_DAILY_BUDGET_USD 그대로', dailyBudgetFor({ LLM_DAILY_BUDGET_USD: '20' }), 20)

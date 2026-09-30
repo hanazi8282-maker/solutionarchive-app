@@ -23,13 +23,15 @@ export function FilterChip({ href, active, count, countTone, children }: {
   return (
     <Link
       href={href}
+      className="dgy-btnlink"
       aria-current={active ? 'page' : undefined}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px',
-        borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap',
-        border: `1px solid ${active ? 'var(--brand)' : 'var(--border)'}`,
-        background: active ? 'var(--brand)' : 'var(--surface-card)',
-        color: active ? 'var(--brand-fg)' : 'var(--text-body)',
+        borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: active ? 'var(--sa-weight-strong)' : 500, whiteSpace: 'nowrap',
+        border: `1px solid ${active ? 'var(--sa-selected-edge)' : 'var(--border)'}`,
+        boxShadow: active ? 'inset 0 0 0 1px var(--sa-selected-edge)' : undefined,
+        background: active ? 'var(--sa-selected-bg)' : 'var(--surface-card)',
+        color: active ? 'var(--sa-selected-ink)' : 'var(--text-body)',
       }}
     >
       {children}

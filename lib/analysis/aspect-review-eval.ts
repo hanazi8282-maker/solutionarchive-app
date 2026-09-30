@@ -103,7 +103,7 @@ export function normalizeJudgement(obj: unknown): Judgement | null {
 /**
  * 비교용 값. 점수는 aspect-verdict 의 경계(VERDICT_CUT)로 띠를 나눈다 — 소구점 판정(민다/기본기/버린다/지켜본다)이 바뀌는 선이
  * 곧 "검수에서 고쳐야 하는 차이" 다. 7 과 8 의 차이는 판정을 바꾸지 않는다.
- *   importance: HIGH(≥6) · LOW(<6) / satisfaction: LOW(≤4) · MID · HIGH(≥6).
+ *   importance: HIGH(≥6) · LOW(<6) / satisfaction: LOW(<3) · MID(3~4.x) · HIGH(≥5) — aspect-verdict 의 새 경계(2026-10-01, 만족도 < 3 슈퍼 니즈).
  * attribution 은 사람 값 null 을 NONE(칭찬 — 추출 정의)으로 읽는다. 다른 필드의 null 은 "값 없음" → 비교에서 뺀다.
  */
 export function bandOf(field: Field, v: unknown, { human = false } = {}): string | null {
@@ -112,7 +112,7 @@ export function bandOf(field: Field, v: unknown, { human = false } = {}): string
     const n = Number(v)
     if (!Number.isFinite(n)) return null
     if (field === 'importance') return n >= VERDICT_CUT.importanceHigh ? 'HIGH' : 'LOW'
-    return n <= VERDICT_CUT.satisfactionLow ? 'LOW' : n >= VERDICT_CUT.satisfactionHigh ? 'HIGH' : 'MID'
+    return n < VERDICT_CUT.satisfactionLow ? 'LOW' : n >= VERDICT_CUT.satisfactionHigh ? 'HIGH' : 'MID'
   }
   if (field === 'attribution' && human && (v === null || v === undefined)) return 'NONE'
   return typeof v === 'string' && v ? v : null

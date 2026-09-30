@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
+import { after } from 'next/server'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthVerdict } from '@/lib/auth/session'
 import { loadCaseCorpus } from '@/lib/cases/corpus-db'
@@ -7,6 +9,7 @@ import { DEFAULT_SEARCH_KIND, QUERY_MAX, parseSearchQuery, searchMoves } from '@
 import { toTerms } from '@/lib/cases/advisor'
 import { pairMoves, pairsForMoves } from '@/lib/cases/compare'
 import { cutReport } from '@/lib/cases/report-tier'
+import { logReportView } from '@/lib/cases/idea-angles-log'
 import { PubShell } from '../../_pub/components/PubShell'
 import { Hero } from '../../_pub/components/Hero'
 import { Section } from '../../_pub/components/Section'
@@ -41,6 +44,9 @@ import { AnglePanel } from './angle-panel'
 //   `PubShell` 공개 화면. 헤더·푸터가 생겨 익명 막다른길이 풀리고, 무브는 색인 줄 · 갈린 짝은 2열 대조표다.
 // ★ I4(2026-10-01): 로그인후에만 "앵글 검증" 섹션이 붙는다. **이 페이지 GET 은 여전히 LLM 0** — 클라이언트 섬
 //   `angle-panel.tsx` 가 POST /api/cases/report/angles 로 비동기 잡을 걸고 폴링한다(claude-cli, 본체 lib/cases/idea-angles-run.ts).
+// ★ 질의 기록(남헌 2026-10-01): 매칭을 실제로 돌린 요청마다 idea_query_log 1행(source='report_view', outcome='view').
+//   익명은 requested_by NULL(원문·해시·kind·시각만). after() 로 응답 뒤에 쓰고, 실패해도 리포트는 그대로 뜬다
+//   (본체 lib/cases/idea-angles-log.ts — 플러드 천장·콘솔 원문 0). 라우터 프리페치 요청은 세지 않는다.
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: '아이디어 매칭 리포트' }
@@ -84,7 +90,8 @@ export default async function IdeaReportPage({ searchParams }: {
   const sp = await searchParams
   // 로그인 여부는 **표시용**이다(app/library/[slug] 와 같은 방식). 허용 목록 밖 계정도 내부 화면에
   // 못 들어가므로 익명과 같이 체험판 화면을 본다.
-  const signedIn = (await getAuthVerdict()).kind === 'allowed'
+  const verdict = await getAuthVerdict()
+  const signedIn = verdict.kind === 'allowed'
   const { query, errors } = parseSearchQuery({ q: sp.q, kind: sp.kind })
   // 로그인전(I3-2): 필터는 SaaS만(기본) 하나. URL 로 kind=all 을 넣어도 서버가 되돌리고 그 사실을 말한다.
   if (!signedIn && query.kind !== DEFAULT_SEARCH_KIND) {
@@ -190,6 +197,13 @@ export default async function IdeaReportPage({ searchParams }: {
 
   const corpora = await loadCaseCorpus(sb, 'cases/report')
   const result = searchMoves(query, corpora)
+  // 매칭을 실제로 돌린 요청만 기록. 허용목록 밖 로그인 계정은 화면과 같이 익명 취급(이메일 안 남김).
+  // 프리페치(next-router-prefetch · Sec-Purpose)는 사람이 연 게 아니라 건너뛴다. 헤더는 판정에만 쓰고 저장하지 않는다.
+  const h = await headers()
+  if (!h.get('next-router-prefetch') && !/prefetch/i.test(h.get('sec-purpose') ?? h.get('purpose') ?? '')) {
+    const logged = { q: query.q, kind: query.kind, email: verdict.kind === 'allowed' ? verdict.email : null }
+    after(() => logReportView(sb, logged))
+  }
   // 짝은 매칭 무브 전체로 찾는다 — 요약 띠 건수는 로그인전·후 같다(I3-2, 자른 사실을 숨기지 않는다).
   const pairs = pairsForMoves(pairMoves(corpora.studies, corpora.moves), result.moves.cards, corpora.studies,
     { saasOnly: query.kind === 'saas' })

@@ -305,10 +305,81 @@ async function suite(mod) {
   return groups
 }
 
+// ── K. 매칭 리포트 질의 기록(report_view, 남헌 2026-10-01 — 익명 포함) ─────────────
+// lib/cases/idea-angles-log.ts 를 가짜 Supabase 로 돌린다. page.tsx 배선은 텍스트로 고정(after() 안 · 익명 NULL).
+const LOG_SRC = path.join(ROOT, 'lib/cases/idea-angles-log.ts')
+const PAGE_SRC = path.join(ROOT, 'app/cases/report/page.tsx')
+const LOG_KEYS = new Set(['id', 'created_at', 'run_id', 'query_text', 'query_hash', 'kind', 'requested_by', 'outcome', 'source'])
+
+async function logSuite(mod, pageSrc) {
+  const groups = {}
+  const g = (group, name, cond) => { groups[group] ??= 0; if (!cond) groups[group]++; if (!MUTATE) ok(`report_view/${group}: ${name}`, cond) }
+  const lines = []
+  const saved = [console.log, console.warn, console.error]
+  console.log = console.warn = console.error = (...a) => { lines.push(a.map(String).join(' ')) }
+  try {
+    const T0 = Date.parse('2026-10-01T03:00:00Z')
+    const bucket = () => mod.newLogBucket(T0)
+    // 익명: 식별자 없이 1행
+    {
+      const db = fakeDb(() => T0)
+      const r = await mod.logReportView(db.sb, { q: Q, kind: 'saas', email: null }, { bucket: bucket(), now: T0 })
+      const rows = db.tables.idea_query_log
+      g('anon', '익명 질의 → logged · 1행', r === 'logged' && rows.length === 1)
+      g('anon', 'requested_by NULL · source report_view · outcome view · run_id NULL · 원문·64자 해시', rows[0]?.requested_by === null && rows[0].source === 'report_view' && rows[0].outcome === 'view' && rows[0].run_id === null && rows[0].query_text === Q && /^[0-9a-f]{64}$/.test(rows[0].query_hash))
+      g('anon', '개인 필드 0(허용 컬럼 밖 키 없음 — IP·UA·쿠키·Referer·이메일 자리 없음)', rows.length === 1 && Object.keys(rows[0]).every((k) => LOG_KEYS.has(k)))
+    }
+    // 로그인: 이메일 포함 1행
+    {
+      const db = fakeDb(() => T0)
+      const r = await mod.logReportView(db.sb, { q: Q, kind: 'all', email: EMAIL }, { bucket: bucket(), now: T0 })
+      const rows = db.tables.idea_query_log
+      g('signed', '로그인 질의 → 1행 · requested_by 이메일 · kind all', r === 'logged' && rows.length === 1 && rows[0].requested_by === EMAIL && rows[0].kind === 'all')
+      g('signed', '해시는 앵글 API 와 같은 키(queryHash)', rows[0]?.query_hash === await queryHash(Q, 'all'))
+    }
+    // 기록 실패: 던지지 않는다(에러 반환 · from() 자체가 던짐 둘 다)
+    {
+      const leaky = { from: () => ({ insert: async () => ({ error: { code: '23514', message: `Failing row contains (${Q}, ${EMAIL})`, details: `(${Q}, ${EMAIL})` } }) }) }
+      const r1 = await mod.logReportView(leaky, { q: Q, kind: 'saas', email: EMAIL }, { bucket: bucket(), now: T0 }).catch(() => 'threw')
+      const throwing = { from: () => { throw new Error(`boom ${Q}`) } }
+      const r2 = await mod.logReportView(throwing, { q: Q, kind: 'saas', email: EMAIL }, { bucket: bucket(), now: T0 }).catch(() => 'threw')
+      g('fail', 'insert 에러 → failed(던지지 않음)', r1 === 'failed')
+      g('fail', 'from() 이 던져도 → failed(던지지 않음)', r2 === 'failed')
+      g('fail', '실패는 console 경고 1줄 이상 남긴다(조용히 삼키지 않음)', lines.some((l) => l.includes('insert failed code=23514')) && lines.some((l) => l.includes('insert threw')))
+    }
+    // 플러드 천장: 분당 N 초과분은 기록 0 + 버려진 건수 경고, 시간이 지나면 다시 기록하고 누계를 말한다
+    {
+      const db = fakeDb(() => T0)
+      const b = bucket()
+      const N = mod.REPORT_LOG_PER_MIN
+      const res = []
+      for (let i = 0; i < N + 1; i++) res.push(await mod.logReportView(db.sb, { q: Q, kind: 'saas', email: null }, { bucket: b, now: T0 }))
+      g('bucket', `같은 순간 ${N + 1}건 → ${N}건 기록 · 1건 dropped`, db.tables.idea_query_log.length === N && res.at(-1) === 'dropped')
+      g('bucket', '버림 경고에 건수(dropped=1)', lines.some((l) => /flood ceiling .*dropped=1\b/.test(l)))
+      for (let i = 0; i < 99; i++) await mod.logReportView(db.sb, { q: Q, kind: 'saas', email: null }, { bucket: b, now: T0 })
+      g('bucket', '버린 건은 기록 0 · 100건째 누계 경고', db.tables.idea_query_log.length === N && lines.some((l) => /dropped=100\b/.test(l)))
+      const back = await mod.logReportView(db.sb, { q: Q, kind: 'saas', email: null }, { bucket: b, now: T0 + 60_000 })
+      g('bucket', '1분 뒤 다시 기록 + 재개 경고에 누계 100', back === 'logged' && db.tables.idea_query_log.length === N + 1 && lines.some((l) => /resumed — 100 /.test(l)))
+    }
+    // 콘솔: 원문·이메일 0회(위 실패 경로에서 에러 문구에 섞여 들어와도)
+    g('console', `console ${lines.length}줄에 질의 원문 0회 · 이메일 0회`, lines.length > 0 && lines.every((l) => !l.includes(Q) && !l.includes(EMAIL)))
+    // page 배선(텍스트): after() 안에서만 부르고, 이메일은 allowed 일 때만
+    g('wire', 'page: logReportView 는 after() 안에서만(응답을 막지 않음)', /after\(\(\) => logReportView\(sb, logged\)\)/.test(pageSrc) && (pageSrc.match(/logReportView\(/g) ?? []).length === 1)
+    g('wire', "page: email 은 verdict.kind === 'allowed' 일 때만, 아니면 null", /email: verdict\.kind === 'allowed' \? verdict\.email : null/.test(pageSrc))
+    g('wire', 'page: 헤더(IP·UA·Referer)를 기록 행에 싣지 않는다', !/x-forwarded-for|user-agent|referer|cookie/i.test(pageSrc.slice(pageSrc.indexOf('const logged'), pageSrc.indexOf('after(() => logReportView'))))
+  } finally {
+    [console.log, console.warn, console.error] = saved
+  }
+  return groups
+}
+
 const real = await import(pathToFileURL(RUN_SRC).href)
+const realLog = await import(pathToFileURL(LOG_SRC).href)
+const pageSrc = fs.readFileSync(PAGE_SRC, 'utf8')
 if (!MUTATE) {
   await suite(real)
-  say(fail ? `idea-angles-selftest: 실패 ${fail}건 / 통과 ${pass}건` : `idea-angles-selftest: 통과 ${pass}건 — 순수 부품 · 잡 전체(가짜 CLI) · 상한 · 캐시 · 질의 로그 · 프로브 가리기`)
+  await logSuite(realLog, pageSrc)
+  say(fail ? `idea-angles-selftest: 실패 ${fail}건 / 통과 ${pass}건` : `idea-angles-selftest: 통과 ${pass}건 — 순수 부품 · 잡 전체(가짜 CLI) · 상한 · 캐시 · 질의 로그 · 프로브 가리기 · 리포트 질의 기록(익명·로그인·실패·천장·콘솔)`)
   process.exitCode = fail ? 1 : 0
 } else {
   // 뮤테이션: 원본을 문자열 치환한 사본을 같은 폴더에 잠깐 만들어(상대 import 유지) 불러오고 지운다.
@@ -332,6 +403,39 @@ if (!MUTATE) {
       fs.rmSync(tmp, { force: true })
     }
   }
-  say(fail ? `idea-angles-selftest --mutate: 실패 ${fail}건 / 통과 ${pass}건` : `idea-angles-selftest --mutate: 통과 ${pass}건 — 뮤테이션 ${MUTANTS.length}개 전부 잡힘`)
+  // 리포트 질의 기록 뮤테이션 — lib 사본(상대 import 유지)과 page 텍스트 치환.
+  const logSrc = fs.readFileSync(LOG_SRC, 'utf8')
+  const TAKE = 'if (!take(b, opts.now ?? Date.now())) {'
+  const LOG_MUTANTS = [
+    ['anon', '익명 기록 끄기', TAKE, 'if (row.email === null || !take(b, opts.now ?? Date.now())) {'],
+    ['anon', '익명에 식별자 넣기', 'requested_by: row.email,', "requested_by: row.email ?? 'anonymous-visitor',"],
+    ['bucket', '플러드 버킷 끄기', TAKE, 'if (false) {'],
+    ['fail', '기록 실패를 다시 던지기', "console.warn(`[query-log] report_view insert threw ${e instanceof Error ? e.name : typeof e}`)", 'throw e'],
+    ['console', '실패 경고에 에러 문구(원문 포함 가능) 싣기', "insert failed code=${error.code ?? '-'}`", "insert failed code=${error.code ?? '-'} ${error.message}`"],
+  ]
+  const PAGE_MUTANTS = [
+    ['wire', 'page: after() 없이 바로 기다리기', 'after(() => logReportView(sb, logged))', 'await logReportView(sb, logged)'],
+    ['wire', 'page: 허용목록 밖 로그인도 이메일 저장', "email: verdict.kind === 'allowed' ? verdict.email : null", "email: 'email' in verdict ? verdict.email : null"],
+  ]
+  const logBase = await logSuite(realLog, pageSrc)
+  ok('뮤테이션 전: 리포트 질의 기록 원본은 모든 그룹 통과', Object.values(logBase).every((n) => n === 0))
+  for (const [i, [group, name, from, to]] of LOG_MUTANTS.entries()) {
+    ok(`뮤테이션 대상 문자열이 원본에 있다: ${name}`, logSrc.includes(from))
+    const tmp = path.join(ROOT, 'lib/cases', `.mutant-idea-angles-log-${i}.ts`)
+    try {
+      fs.writeFileSync(tmp, logSrc.replace(from, to))
+      const res = await logSuite(await import(pathToFileURL(tmp).href), pageSrc)
+      ok(`뮤테이션 "${name}" → ${group} 그룹이 실패한다(실제 ${res[group] ?? 0}건)`, (res[group] ?? 0) > 0)
+    } finally {
+      fs.rmSync(tmp, { force: true })
+    }
+  }
+  for (const [group, name, from, to] of PAGE_MUTANTS) {
+    ok(`뮤테이션 대상 문자열이 원본에 있다: ${name}`, pageSrc.includes(from))
+    const res = await logSuite(realLog, pageSrc.replace(from, to))
+    ok(`뮤테이션 "${name}" → ${group} 그룹이 실패한다(실제 ${res[group] ?? 0}건)`, (res[group] ?? 0) > 0)
+  }
+  const total = MUTANTS.length + LOG_MUTANTS.length + PAGE_MUTANTS.length
+  say(fail ? `idea-angles-selftest --mutate: 실패 ${fail}건 / 통과 ${pass}건` : `idea-angles-selftest --mutate: 통과 ${pass}건 — 뮤테이션 ${total}개 전부 잡힘`)
   process.exitCode = fail ? 1 : 0
 }

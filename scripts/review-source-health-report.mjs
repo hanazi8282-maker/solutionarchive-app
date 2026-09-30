@@ -13,8 +13,12 @@
 //   · 실패(토큰 없음 포함)는 ok:false + 폴백 파일(ops/state/status-log-pending). 호출자가 빨간불로 끝낸다(§7.1·§11-3).
 //   · "N일째"는 review_collection_runs.health_after 에서 센다. 못 읽으면 "확인 불가"라고 적는다 — 지어내지 않는다.
 //   · `알림완료` 는 쓰지도 읽지도 않는다.
+//   · 이번 실행에 판정이 없는 소스(fatal·건너뜀 — 비활성 건너뜀은 제외)도 본다(남헌 2026-09-30 결정 (3)). 그 소스의
+//     "판정이 있었던 마지막 실행"이 broken 이면 확인 불가가 고장을 가리지 않게 같은 행에 올린다
+//     — "최근: 확인 불가(N연속) · 마지막 확인: broken(N일 전)". 계산은 lib/review/latest-health.ts 한 벌.
 
 import { upsertStatusLog } from './notion-status-log.mjs'
+import { healthSummary, latestHealthBySource } from '../lib/review/latest-health.ts'
 
 export const MARKER = 'source-health-report'
 /** N일째를 셀 때 거슬러 보는 최대 일수. 이걸 다 채우면 "N일 이상"이라고 적는다. */
@@ -44,6 +48,28 @@ export function brokenSources(sourceResults) {
 }
 
 /**
+ * 이번 실행에 판정이 없는 소스 → 이전 판정을 확인할 후보. 비활성으로 건너뛴 소스는 뺀다(꺼진 게 정상 — 남헌 수용).
+ * 입력은 brokenSources 와 같은 sourceResults.
+ */
+export function noVerdictSources(sourceResults) {
+  return (sourceResults ?? [])
+    .filter((s) => !s.health && !(s.skipped && /비활성/.test(String(s.skipReason ?? ''))))
+    .map((s) => ({ key: s.key, thisRun: s.fatal ? `실패 — ${s.fatal}` : `건너뜀 — ${s.skipReason ?? '사유 없음'}` }))
+}
+
+/**
+ * 판정 없는 소스 중 "마지막 확인이 broken" 인 것만 → 보고 줄 재료. rowsByKey 는 loadRuns 결과(소스별 최신순).
+ * 마지막 확인이 ok/degraded/없음이면 고장 보고 대상이 아니다(insight-loop 경보가 확인 불가를 따로 올린다).
+ */
+export function hiddenBroken(quiet, rowsByKey, now) {
+  return quiet.flatMap((q) => {
+    const h = latestHealthBySource([q.key], rowsByKey?.[q.key] ?? [])[0]
+    if (h.health !== 'unknown' || typeof h.lastChecked !== 'object' || h.lastChecked.health !== 'broken') return []
+    return [{ key: q.key, summary: healthSummary(h, now.getTime()), thisRun: q.thisRun }]
+  })
+}
+
+/**
  * 한 소스의 실행 기록(최신순) → { runs, days, capped }.
  *   runs = 최신부터 연속으로 health_after='broken' 인 실행 수(이번 실행 포함)
  *   days = 오늘(KST)부터 거꾸로, 날마다 broken 실행이 하나라도 있었던 연속 일수
@@ -61,7 +87,7 @@ export function streaks(rows, today) {
 }
 
 /** 고장 목록 → 일일 상태 로그 입력. 소스마다 한 줄, 판단에 필요한 수치를 전부 적는다. */
-export function buildBrokenEntry({ date, broken, history, now, runUrl }) {
+export function buildBrokenEntry({ date, broken, hidden = [], history, now, runUrl }) {
   const at = `${kstClock(now)} KST`
   const lines = broken.map((b) => {
     const s = history?.[b.key] ?? null
@@ -75,13 +101,23 @@ export function buildBrokenEntry({ date, broken, history, now, runUrl }) {
       runUrl ? `실행 ${runUrl}` : null,
     ].filter(Boolean).join(' · ')
   })
-  const keys = broken.map((b) => b.key).join(', ')
+  // 이번 실행엔 판정이 없지만 마지막 확인이 broken 인 소스 — 확인 불가가 고장을 덮지 않게 두 값을 따로 적는다.
+  for (const h of hidden) {
+    lines.push([
+      `[${at}] ${h.key}: ${h.summary}`,
+      `이번 실행 ${h.thisRun}`,
+      '고장이 풀렸는지 확인 못 함 — enabled 그대로',
+      runUrl ? `실행 ${runUrl}` : null,
+    ].filter(Boolean).join(' · '))
+  }
+  const keys = [...broken, ...hidden].map((b) => b.key).join(', ')
+  const hiddenNote = hidden.length ? ` · 판정 없음이지만 마지막 확인 고장 ${hidden.length}개(${hidden.map((h) => h.key).join(', ')})` : ''
   return {
     date,
     track: 'CTO',
-    done: `[${at}] 소스 건강 체크 — 고장 판정 ${broken.length}개(${keys}). 자동으로 끄지 않았다`,
+    done: `[${at}] 소스 건강 체크 — 고장 판정 ${broken.length}개(${broken.map((b) => b.key).join(', ') || '없음'})${hiddenNote}. 자동으로 끄지 않았다`,
     blocked: lines.join('\n'),
-    next: `[${at}] ${keys} 를 끌지 사람이 판단 — 끄기 전까지 매 수집 실행에서 재시도된다(차단은 실행당 1회 403/429 뒤 중단, 파싱 고장은 타깃 첫 페이지 뒤 중단)`,
+    next: `[${at}] ${keys} 를 끌지 사람이 판단 — 끄기 전까지 매 수집 실행에서 재시도된다(차단은 실행당 1회 403/429 뒤 중단, 파싱 고장은 드러난 페이지에서 중단)`,
     needsHuman: true,
     note: `${MARKER} · nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'}`,
   }
@@ -90,20 +126,26 @@ export function buildBrokenEntry({ date, broken, history, now, runUrl }) {
 /**
  * 판정 결과 → (고장 있으면) Notion 보고. 이 함수가 유일한 경로다.
  * @param loadRuns async (keys) => ({ [key]: rows 최신순 }) — 실패하면 throw 해도 된다(확인 불가로 적는다).
- * 반환 { ok, broken, record? }. ok:false 면 호출자가 실패로 끝낸다.
+ * 반환 { ok, broken, hidden, record? }. ok:false 면 호출자가 실패로 끝낸다.
  */
 export async function runSourceHealthReport({ sourceResults, loadRuns, now = new Date(), date, runUrl = null, token, dbId, pendingDir, upsert = upsertStatusLog }) {
   const broken = brokenSources(sourceResults)
-  if (!broken.length) return { ok: true, broken }
+  const quiet = noVerdictSources(sourceResults)
+  if (!broken.length && !quiet.length) return { ok: true, broken, hidden: [] }
 
   let history = null
+  let hidden = []
   try {
-    const rows = await loadRuns(broken.map((b) => b.key))
+    const rows = await loadRuns([...broken.map((b) => b.key), ...quiet.map((q) => q.key)])
     history = Object.fromEntries(broken.map((b) => [b.key, streaks(rows?.[b.key] ?? null, date)]).filter(([, v]) => v))
+    hidden = hiddenBroken(quiet, rows, now)
   } catch {
+    // ponytail: 기록을 못 읽으면 판정 없는 소스의 이전 broken 도 모른다 — 그 소스들은 fatal 이면 이미 잡 실패(빨간불)라
+    //   여기서 행을 따로 만들지 않는다. 고장(broken)이 있으면 그 행에 "확인 불가"가 실린다.
     history = null
   }
-  const entry = buildBrokenEntry({ date, broken, history, now, runUrl })
+  if (!broken.length && !hidden.length) return { ok: true, broken, hidden }
+  const entry = buildBrokenEntry({ date, broken, hidden, history, now, runUrl })
   const record = await upsert(entry, { marker: MARKER, token, dbId, pendingDir })
-  return { ok: record.ok === true, broken, record, entry }
+  return { ok: record.ok === true, broken, hidden, record, entry }
 }

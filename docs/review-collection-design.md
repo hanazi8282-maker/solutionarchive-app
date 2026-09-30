@@ -208,8 +208,14 @@ interface ParsedReview {
 | `key` | `'danawa'` (PK) |
 | `enabled` | **false 로 바꾸면 다음 실행부터 이 소스를 건드리지 않는다** |
 | `disabled_reason` | 왜 껐는지. 없으면 왜 꺼져 있는지 아무도 모른다 |
-| `health` | `ok` / `degraded` / `broken` — §5 가 갱신 |
+| `health` | `ok` / `degraded` / `broken` — ~~§5 가 갱신~~ **DEPRECATED**(아래) |
 | `min_interval_ms`, `daily_request_cap` | 코드 배포 없이 조일 수 있게 DB 에 둔다 |
+
+> **DEPRECATED — `health` · `health_detail` · `health_checked_at`.** 2026-09-30 #373 이후 무인 러너가 쓰지 않는다
+> — 출처는 `review_collection_runs.health_after`(`lib/review/latest-health.ts`), 정리는 다음 분기(남헌 2026-09-30).
+> 컬럼은 삭제하지 않는다(되돌리기 어려운 삭제 = CLAUDE.md §10.2 사람 판단 예외). 마이그 `20260930000045` 가 DB 주석만 단다.
+> 화면·경보는 소스마다 두 값을 따로 본다 — ① 최근 실행(판정 없으면 "확인 불가"와 몇 연속인지) ② 판정이 있었던
+> 마지막 실행(ok/degraded/broken·며칠 전). 확인 불가가 이전 broken 을 덮지 않는다.
 
 문제가 생기면 **대시보드에서 한 줄 UPDATE 로 그 소스만 멈춘다.** 코드 배포도
 워크플로 수정도 필요 없다. 이게 "즉시 중단 가능"의 실질이다.

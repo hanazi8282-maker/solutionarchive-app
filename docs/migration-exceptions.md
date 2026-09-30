@@ -439,3 +439,11 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 000041(analysis_projects 4행 + review_targets 4행 INSERT, 생산성 타깃 1행 재개)을 오케스트레이터가 호스티드 Supabase MCP 로 적용했다(PR #360 머지 뒤). 자체 판단 근거: DDL 0줄 · DELETE 없음 · 새 소스 아님(velog 는 기존 enabled) · 롤백 파일 있음 · 재실행 안전.
 - 적용 전 실측: velog enabled=true, 새 타깃 0건, board:productivity=exhausted. 적용은 예상 행 수(프로젝트 4·타깃 4·active 5)가 다르면 롤백되는 검증 블록과 한 트랜잭션.
 - 적용 후 양성: velog 타깃 active 5(전 exhausted 1), 새 4개 fresh·business_model SAAS. 음성: velog 밖 소스별 상태 집계가 적용 전과 동일.
+
+### 2026-09-30 — 000042/000043 dev.to·인프런·요즘IT 등록 (CEO-STAFF 세션, 남헌 명시 승인 하 적용)
+
+- 000042(review_sources 3행 INSERT: devto·inflearn·yozm, enabled, 간격 6000ms, 일 상한 60/40/40)와 000043(analysis_projects 3행 + review_targets 3행 INSERT)을 PR #371 머지 뒤 호스티드 Supabase MCP 로 한 트랜잭션에 적용했다. 승인: 남헌 2026-09-30 — 법적 조항 인지 상태에서 기술적으로 수집 가능한 소스는 진행(`docs/risk-log.md`). §10.2 예외 4번(새 법적 리스크)에 걸리는 건이라 세션 자체 판단이 아니라 남헌 결정에 근거한다.
+- 적용 전 실측: 세 소스·프로젝트·타깃 모두 0건. 예상 행 수(소스 enabled 3 · 프로젝트 3 · 타깃 active 3)가 다르면 롤백되는 검증 블록을 같은 트랜잭션에 넣었고 통과해 COMMIT 됐다.
+- 적용 후 양성: 새 소스 3개 enabled·ok, 새 타깃 3개 active·fresh. 음성: 기존 소스별 타깃 상태는 같은 시각 수집 실행분 외 변화 없음(review_sources 전체 22 → 25).
+- 같은 세션에서 velog `board:side-project` 타깃이 `failed`(수집 실행 중 요청 실패)로 나와 1행을 active 로 되돌렸다(다음 실행에서 원인 확인). 마이그레이션 파일 없음, 원인 미확인.
+- 기술 접근 불가로 등록하지 않은 4곳: Indie Hackers(사용자 글 404) · Hashnode(글 호스트 봇 방어 챌린지) · 아이보스(봇 방어 챌린지) · GeekNews(CloudFront 403). 승인 범위(약관·법적 조항)를 넘는 우회는 하지 않았다.

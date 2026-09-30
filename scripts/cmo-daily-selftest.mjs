@@ -1394,7 +1394,11 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   }
 
   const rcw = fs.readFileSync(path.join(process.cwd(), '.github/workflows/nightly-review-collect.yml'), 'utf-8')
-  eq('상태로그 — 리뷰 수집 워크플로는 NOTION_API_TOKEN 을 한 스텝에만 준다', (rcw.match(/NOTION_API_TOKEN:/g) ?? []).length, 1)
+  // Notion 에 쓰는 스텝에만 준다: Collect reviews(수집 상태·소스 고장) + Idea angle distribution check(앵글 분포 경보, 2026-10-01).
+  const rcwSteps = rcw.split(/\r?\n\s+- name: /).slice(1)
+  eq('상태로그 — 리뷰 수집 워크플로는 NOTION_API_TOKEN 을 Notion 에 쓰는 두 스텝에만 준다',
+    rcwSteps.filter((s) => s.includes('NOTION_API_TOKEN:')).map((s) => s.split(/\r?\n/)[0]).join(','), 'Collect reviews,Idea angle distribution check')
+  eq('상태로그 — 리뷰 수집 워크플로의 NOTION_API_TOKEN 은 두 곳뿐', (rcw.match(/NOTION_API_TOKEN:/g) ?? []).length, 2)
   check('상태로그 — 리뷰 수집 워크플로에 다른 Notion secret 이 없다', !/NOTION_DATABASE_ID|NOTION_API_KEY/.test(rcw))
   check('상태로그 — 리뷰 수집 워크플로 권한은 read 그대로', /permissions:\s*\n\s*contents: read/.test(rcw))
 

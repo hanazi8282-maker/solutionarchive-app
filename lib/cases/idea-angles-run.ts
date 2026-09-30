@@ -30,6 +30,7 @@ import {
   refForQuote, staleRunning,
   type IdeaAngle, type IdeaEvidenceRow, type IdeaRunStatus,
 } from './idea-angles.ts'
+import { PMF_ACTIVE } from './idea-pmf.ts'
 
 const PROVIDER = 'claude-cli' as const
 const RUN_COLS = 'id, status, angles, llm_calls, models, cost_usd, cache_read_tokens, error, created_at, started_at, finished_at'
@@ -131,12 +132,14 @@ export async function startAngles(deps: AngleDeps, input: { q: unknown; kind: un
   let reason: string | null
   try {
     const runs = () => sb.from('idea_angle_runs').select('id', { count: 'exact', head: true })
-    const [userToday, userActive, globalActive] = await Promise.all([
+    // 전역 동시 2 = 앵글 활성 + PMF 판정 활성의 합(구독 5시간 창을 지키는 숫자, idea-pmf-run.ts 와 대칭).
+    const [userToday, userActive, angleActive, pmfActive] = await Promise.all([
       countRuns(runs().eq('requested_by', input.email).in('status', [...IDEA_COUNTED]).gte('created_at', iso(now - 86_400_000))),
       countRuns(runs().eq('requested_by', input.email).in('status', [...IDEA_ACTIVE])),
       countRuns(runs().in('status', [...IDEA_ACTIVE])),
+      countRuns(sb.from('idea_pmf_runs').select('id', { count: 'exact', head: true }).in('status', [...PMF_ACTIVE])),
     ])
-    reason = limitReason({ userToday, userActive, globalActive })
+    reason = limitReason({ userToday, userActive, globalActive: angleActive + pmfActive })
   } catch (e) {
     console.error(`[idea-angles] limit count failed: ${e instanceof Error ? e.message : String(e)}`)
     return fail('상한을 확인하지 못해 시작하지 않았다')
@@ -155,7 +158,7 @@ export async function startAngles(deps: AngleDeps, input: { q: unknown; kind: un
 }
 
 /** 실제 호출 수·모델·명목 비용을 JSON 재요청까지 포함해 센다(호출 **전에** 올려 실패한 호출도 센다). */
-function meter(runId: string, raw: typeof callLlmWithModel) {
+export function meter(runId: string, raw: typeof callLlmWithModel) {
   const m = { calls: 0, models: [] as string[], cost: null as number | null, cacheRead: null as number | null }
   const counted: typeof callLlmWithModel = async (p, s, u, label) => {
     m.calls++

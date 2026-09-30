@@ -10,6 +10,7 @@
 - `scripts/cmo-daily.mjs`: `claude -p` 세 호출(researcher·writer·analyst)에 `--model claude-sonnet-5-5`. 에이전트 파일의 `model:` 은 이 러너에서 적용되지 않는다(러너가 프롬프트로 파일을 읽힐 뿐) — 실제 모델은 이 플래그다.
 - `lib/insight/llm.ts`·`scripts/column-feedback.mjs`·`scripts/column-review-claude.mjs`: #368. 워크플로 `CLAUDE_CLI_MODEL`: #369.
 - **리포트 앵글 검증(`/cases/report` 로그인후, I4, 2026-10-01)도 claude-cli Sonnet 5.5 고정, 폴백 0.** `lib/cases/idea-angles-run.ts` 가 프로바이더를 `'claude-cli'` 리터럴로 쓴다 — Vercel `LLM_PROVIDER` 가 gemini 여도 이 경로는 CLI 다. 토큰(`CLAUDE_CODE_OAUTH_TOKEN`)이 없으면 실행 행이 `failed('CLAUDE_CODE_OAUTH_TOKEN 미설정')` 으로 끝나고 Gemini 를 부르지 않는다. 한도(429·한도 문구)면 `limited` 로 멈추고 뒤 앵글을 돌리지 않는다. 실제 모델은 행의 `models`(봉투 model)와 `POST /api/cases/report/angles?probe=1` 응답으로 확인한다.
+- **PMF 판정 자가진단(`lib/cases/idea-pmf-run.ts`, `/api/cases/report/pmf`, 2026-10-01)도 claude-cli Sonnet 5.5 고정·폴백 0.** 실행 1건 = CLI 2~3회(병목 override 면 1 적음, +JSON 재요청). 상한은 `IDEA_LIMITS` 를 `idea_pmf_runs` 로 따로 세고(하루 10·사용자 동시 1) 전역 동시 2 는 `idea_angle_runs` 활성과의 합이다(두 run 파일 대칭).
 
 ## 남은 예외 — 남헌 확인 필요
 - **관련성 2차 판정은 Gemini다**(`nightly-relevance.yml`, `GEMINI_API_KEY`). `CLAUDE.md §10.1` 의 T2 자동 승인(`rr-v2`)은 **1차와 다른 계열의 독립 2차 판정**을 조건으로 건다. 이것까지 claude-cli 로 돌리면 독립성 조건이 깨진다 — "claude-cli만" 이 이 2차 판정을 포함하는지 결정이 필요하다(포함하면 rr-v2 예외 재설계).

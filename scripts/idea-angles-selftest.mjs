@@ -63,7 +63,7 @@ if (!MUTATE) {
 
 // ── 가짜 Supabase(쓰는 빌더 메서드만) ────────────────────────────
 function fakeDb(clock) {
-  const tables = { idea_angle_runs: [], idea_query_log: [], case_evidence: [] }
+  const tables = { idea_angle_runs: [], idea_pmf_runs: [], idea_query_log: [], case_evidence: [] }
   const updates = []
   const failSelect = new Set()
   let seq = 0
@@ -235,6 +235,10 @@ async function suite(mod) {
     for (const [id, who] of [['g1', 'p@x.io'], ['g2', 'q@x.io']]) w.db.tables.idea_angle_runs.push({ id, query_hash: id, kind: 'saas', status: 'queued', requested_by: who, created_at: new Date(Date.parse('2026-10-01T02:59:30Z')).toISOString(), started_at: null, angles: [], llm_calls: 0, models: [] })
     const r = await w.post()
     g('limit', '전역 동시 2 → 세 번째 사용자 limited', r.body.status === 'limited' && w.cli.calls.length === 0)
+    const w3 = world(mod)
+    w3.db.tables.idea_angle_runs.push({ id: 'ga', query_hash: 'ga', kind: 'saas', status: 'running', requested_by: 'p@x.io', created_at: new Date(Date.parse('2026-10-01T02:59:30Z')).toISOString(), started_at: null, angles: [], llm_calls: 0, models: [] })
+    w3.db.tables.idea_pmf_runs.push({ id: 'gp', status: 'scoring', requested_by: 'q@x.io' })
+    g('limit', '전역 동시 = 앵글 활성 1 + PMF 활성 1 → limited', (await w3.post()).body.status === 'limited' && w3.cli.calls.length === 0)
     w.tick(IDEA_STALE_MS + 1_000)
     const r2 = await w.post()
     g('job', 'POST 가 6분 넘은 queued·running 을 먼저 청소 → 상한 풀림', r2.body.status === 'queued' && w.db.tables.idea_angle_runs.filter((x) => x.id.startsWith('g')).every((x) => x.status === 'failed' && x.error === '시간 초과'))
@@ -385,7 +389,8 @@ if (!MUTATE) {
   // 뮤테이션: 원본을 문자열 치환한 사본을 같은 폴더에 잠깐 만들어(상대 import 유지) 불러오고 지운다.
   const src = fs.readFileSync(RUN_SRC, 'utf8')
   const MUTANTS = [
-    ['limit', '상한 판정 끄기', 'reason = limitReason({ userToday, userActive, globalActive })', 'reason = null'],
+    ['limit', '상한 판정 끄기', 'reason = limitReason({ userToday, userActive, globalActive: angleActive + pmfActive })', 'reason = null'],
+    ['limit', '전역 합산에서 PMF 빼기', 'globalActive: angleActive + pmfActive', 'globalActive: angleActive'],
     ['cache', '캐시 끄기', 'if (cached.data) {', 'if (false && cached.data) {'],
     ['log', '질의 로그 끄기', "const { error } = await sb.from('idea_query_log').insert(row)", 'const error = null as { code?: string; message: string } | null; void row'],
     ['probe', '프로브 가리기 끄기', 'redactSecrets(JSON.stringify(out), env)', 'JSON.stringify(out)'],

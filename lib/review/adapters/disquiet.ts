@@ -153,7 +153,7 @@ function parsePost(body: string, p: string | null): ParseResult {
   const listIdx = body.indexOf('id="comments_list"')
   if (listIdx < 0) {
     // 댓글 영역이 사라졌다. 이 사이트는 댓글 0건이어도 빈 컨테이너가 온다(실측 OGCwVp).
-    return { reviews, nextCursor: null, parseFailures: parseFailures + 1 }
+    return { reviews: reviews.map((r) => ({ ...r, sourceUrl: `${HOST}${p}` })), nextCursor: null, parseFailures: parseFailures + 1 }
   }
 
   const tail = body.slice(listIdx)
@@ -184,7 +184,8 @@ function parsePost(body: string, p: string | null): ParseResult {
     })
   }
 
-  return { reviews, nextCursor: null, parseFailures }
+  // 글·댓글 모두 글 주소로 간다(공개 VOC 카드의 "출처 보기").
+  return { reviews: reviews.map((r) => ({ ...r, sourceUrl: `${HOST}${p}` })), nextCursor: null, parseFailures }
 }
 
 export const disquietAdapter: ReviewSourceAdapter = {

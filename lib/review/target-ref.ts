@@ -40,9 +40,9 @@ import { parseProductRef as parseYoutubeRef } from './adapters/youtube.ts'
 import { BOARDS as DISQUIET_BOARDS, HOST as DISQUIET_HOST, parseProductRef as parseDisquietRef } from './adapters/disquiet.ts'
 import { parseProductRef as parseProducthuntRef } from './adapters/producthunt.ts'
 import { BOARDS as DEVTO_BOARDS } from './adapters/devto.ts'
-import { BOARDS as INFLEARN_BOARDS } from './adapters/inflearn.ts'
-import { BOARDS as YOZM_BOARDS } from './adapters/yozm.ts'
-import { BOARDS as INDIEHACKERS_BOARDS } from './adapters/indiehackers.ts'
+import { BOARDS as INFLEARN_BOARDS, HOST as INFLEARN_HOST } from './adapters/inflearn.ts'
+import { BOARDS as YOZM_BOARDS, HOST as YOZM_HOST } from './adapters/yozm.ts'
+import { BOARDS as INDIEHACKERS_BOARDS, HOST as INDIEHACKERS_HOST } from './adapters/indiehackers.ts'
 
 export type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
 
@@ -296,6 +296,58 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   inflearn: boardOnlyRef(INFLEARN_BOARDS),
   yozm: boardOnlyRef(YOZM_BOARDS),
   indiehackers: boardOnlyRef(INDIEHACKERS_BOARDS),
+}
+
+/**
+ * `url:` 글 하나 타깃의 호스트·파서. 위 빌더와 같은 쌍이다 — 공개 VOC 카드가 product_ref 에서 글 주소를 되살린다.
+ * (velog·disquiet 는 `board:` 도 받지만 여기는 `url:` 만 본다. 게시판 행은 본문 `[SRC:]` 머리말이 주소를 들고 온다.)
+ */
+const URL_REF_SOURCES: Record<string, [host: string, parse: (ref: string) => string | null]> = {
+  '82cook': [COOK82_HOST, parseCook82Ref],
+  bobaedream: [BOBAE_HOST, parseBobaeRef],
+  brunch: [BRUNCH_HOST, parseBrunchRef],
+  clien: [CLIEN_HOST, parseClienRef],
+  damoang: [DAMOANG_HOST, parseDamoangRef],
+  fmkorea: [FMKOREA_HOST, parseFmkoreaRef],
+  naver_blog_post: [NAVER_HOST, parseNaverRef],
+  okky: [OKKY_HOST, parseOkkyRef],
+  theqoo: [THEQOO_HOST, parseTheqooRef],
+  todayhumor: [TODAYHUMOR_HOST, parseTodayhumorRef],
+  tumblbug: [TUMBLBUG_HOST, parseTumblbugRef],
+  velog: [VELOG_HOST, parseVelogRef],
+  disquiet: [DISQUIET_HOST, parseDisquietRef],
+}
+
+/** `url:<경로>` product_ref → 그 글의 주소. 어댑터 파서를 통과하고 호스트가 어댑터 상수 그대로일 때만. 아니면 null. */
+export function postUrlOfRef(sourceKey: string | null, productRef: string | null): string | null {
+  const src = sourceKey ? URL_REF_SOURCES[sourceKey] : undefined
+  const ref = (productRef ?? '').trim()
+  if (!src || !/^url:/i.test(ref)) return null
+  const path = src[1](ref)
+  if (!path) return null
+  try {
+    const u = new URL(path, src[0])
+    return u.origin === new URL(src[0]).origin ? u.href : null
+  } catch {
+    return null
+  }
+}
+
+/** 본문 `[SRC:]` 머리말을 심는 게시판 순회 소스의 호스트(velog·disquiet 는 위 표에 있다). */
+const BOARD_HOSTS: Record<string, string> = { inflearn: INFLEARN_HOST, yozm: YOZM_HOST, indiehackers: INDIEHACKERS_HOST }
+
+/**
+ * 본문 머리말에서 읽은 주소가 그 소스의 호스트인가. 머리말은 본문 맨 앞이라 옛 행(머리말 도입 전)에서는
+ * 글쓴이가 제목에 적은 `[SRC: …]` 가 읽힐 수 있다 — 호스트가 다르면 링크로 만들지 않는다.
+ */
+export function isSourceHostUrl(sourceKey: string | null, url: string): boolean {
+  const host = sourceKey ? (URL_REF_SOURCES[sourceKey]?.[0] ?? BOARD_HOSTS[sourceKey]) : undefined
+  if (!host) return false
+  try {
+    return new URL(url).origin === new URL(host).origin
+  } catch {
+    return false
+  }
 }
 
 export function buildProductRef(sourceKey: string, raw: string): RefResult | null {

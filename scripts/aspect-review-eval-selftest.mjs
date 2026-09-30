@@ -76,7 +76,7 @@ ok(up.includes('원문 1 번 문장이 여기 있다') && !/PRODUCT_FAULT|POST_P
 const nj = normalizeJudgement({ aspect_layer: 'PRODUCT', importance: '7', satisfaction: 11, attribution: 'NONE', pain_timing: 'BOGUS', reason: 'r' })
 ok(nj.importance === 7 && nj.satisfaction === null && nj.attribution === 'NONE' && nj.pain_timing === null, '정규화: 범위·허용값 밖은 판정 불가(null)')
 ok(normalizeJudgement('x') === null && normalizeJudgement([1]) === null, '객체 아님 → null(호출 실패 취급)')
-ok(bandOf('importance', 6) === 'HIGH' && bandOf('importance', 5.5) === 'LOW' && bandOf('satisfaction', 4) === 'LOW' && bandOf('satisfaction', 5) === 'MID' && bandOf('satisfaction', 6) === 'HIGH', '띠 = VERDICT_CUT')
+ok(bandOf('importance', 6) === 'HIGH' && bandOf('importance', 5.5) === 'LOW' && bandOf('satisfaction', 2.9) === 'LOW' && bandOf('satisfaction', 3) === 'MID' && bandOf('satisfaction', 4) === 'MID' && bandOf('satisfaction', 5) === 'HIGH' && bandOf('satisfaction', 6) === 'HIGH', '띠 = VERDICT_CUT')
 ok(bandOf('attribution', null, { human: true }) === 'NONE' && bandOf('attribution', null) === null && bandOf('pain_timing', null, { human: true }) === null, '사람 attribution null = NONE, 판정자 null = 판정 불가')
 
 // ── Wilson(알려진 값) ──

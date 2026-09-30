@@ -99,7 +99,8 @@ function parseQuestion(body: string, id: string): ParseResult {
     const text = a.text.trim()
     if (text) reviews.push({ externalId: `${p}#${aid}`, text, rating: null, seller: null, authorMasked: null, writtenAt: kstDate(a.datePublished), storyId: p })
   }
-  return { reviews, nextCursor: null, parseFailures, filtered }
+  // 질문·답변 모두 질문 주소로 간다(공개 VOC 카드의 "출처 보기").
+  return { reviews: reviews.map((r) => ({ ...r, sourceUrl: `${HOST}${p}` })), nextCursor: null, parseFailures, filtered }
 }
 
 export const inflearnAdapter: ReviewSourceAdapter = {

@@ -31,6 +31,7 @@ import { spawnSync } from 'node:child_process'
 import { createClient } from '../lib/supabase/server.ts'
 import { callLlmJsonWithModel, callGeminiRotating, parseJsonObject, isQuotaFailure, describeFailure, CLAUDE_CLI_DEFAULT_MODEL } from '../lib/analysis/llm.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
+import { VERDICT_CUT } from '../lib/analysis/aspect-verdict.ts'
 import {
   FIELDS, MIN_INTERPRETABLE_N, REVIEW_SYSTEM_PROMPT, buildUserPrompt, loadTargets, normalizeJudgement, runJudgements, scoreAspectEval,
 } from '../lib/analysis/aspect-review-eval.ts'
@@ -141,7 +142,7 @@ fs.writeFileSync(mdPath, [
   '## 표본·방법',
   `- 대상: \`analysis_aspects.human_confirmed = true\` ${loaded.confirmed}건 → \`evidence_quotes\` 빈 것 ${loaded.noQuotes}건 제외 → ${targets.length}건.`,
   `- 1차 claude-cli \`${CLAUDE_CLI_DEFAULT_MODEL}\`${localClaude ? '(로컬 로그인)' : ''} · 2차 Gemini(geminiModelChain) — 같은 프롬프트(추출 단계 속성 정의 그대로 + UNTRUSTED_INPUT_NOTICE), 속성 이름·제품 설명·인용 원문만 준다. 사람값·상대 판정은 안 준다.`,
-  `- 필드: ${FIELDS.join(' · ')}(인지시점 = pain_timing). 점수는 VERDICT_CUT 띠(중요도 ≥6 HIGH / 만족도 ≤4 LOW · ≥6 HIGH)로 비교. 사람 attribution null = NONE(칭찬).`,
+  `- 필드: ${FIELDS.join(' · ')}(인지시점 = pain_timing). 점수는 VERDICT_CUT 띠(중요도 ≥${VERDICT_CUT.importanceHigh} HIGH / 만족도 <${VERDICT_CUT.satisfactionLow} LOW · ≥${VERDICT_CUT.satisfactionHigh} HIGH · 그 사이 MID)로 비교. 사람 attribution null = NONE(칭찬).`,
   '- 완전 동의 = 1·2차 값이 둘 다 있고 같다. 정밀도 = 완전 동의 중 사람값과 같음 · 재현율 = 사람값 있는 필드 전체 중 완전 동의∧사람값과 같음.',
   `- 이번 실행 호출 1차 ${loop.calls.first} · 2차 ${loop.calls.second}${loop.stopped.first || loop.stopped.second ? ` · **한도 중단**(1차 ${loop.stopped.first ?? '—'} / 2차 ${loop.stopped.second ?? '—'}) — --resume 으로 이어간다` : ''}.`,
   '',
@@ -157,7 +158,7 @@ fs.writeFileSync(mdPath, [
         line('사람이 고친 필드', result.by_edit.edited), line('안 고친 필드', result.by_edit.unedited), line('원값 없음(마이그 이전 추출)', result.by_edit.no_original)].join('\n'),
   '',
   `## 불일치 목록 ${bad.length}건 (1·2차·사람 셋이 같지 않은 필드)`,
-  ...bad.map((x) => `- \`${x.aspect_id}\` ${byId.get(x.aspect_id)?.name ?? ''} · **${x.field}** · 사람 ${x.human}(${x.human_raw ?? 'null'}) · 1차 ${x.first ?? '판정 불가'}(${x.first_raw ?? 'null'}) · 2차 ${x.second ?? '판정 불가'}(${x.second_raw ?? 'null'})${x.edit === 'edited' ? ` · AI 원값 ${x.llm_raw ?? 'null'}(사람이 고침)` : ''}\n  > ${(byId.get(x.aspect_id)?.quotes[0] ?? '').replace(/\s+/g, ' ').slice(0, 120)}`),
+  ...bad.map((x) => `- \`${x.aspect_id}\` ${byId.get(x.aspect_id)?.name ?? ''} · **${x.field}** · 사람 ${x.human}(${x.human_raw ?? 'null'}) · 1차 ${x.first ?? '판정 불가'}(${x.first_raw ?? 'null'}) · 2차 ${x.second ?? '판정 불가'}(${x.second_raw ?? 'null'})${x.edit === 'edited' ? ` · AI 원값 ${x.llm_raw ?? 'null'}(사람이 고침)` : ''}`),
   '',
   '## 한계',
   `- AI 원값: ${loaded.llmColumns === 'present' ? 'llm_* 컬럼 있음. 단 마이그 20260820000001 이전 추출 행은 원값이 null 이라 "원값 없음" 으로 따로 센다. 이름(name)·메모는 원값을 보존하지 않는다 — 판정자가 보는 이름은 사람이 고친 것일 수 있다.' : '컬럼 없음 — 고친/안 고친 분해 불가.'}`,

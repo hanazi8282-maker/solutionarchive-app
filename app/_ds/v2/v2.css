@@ -383,3 +383,9 @@
 .v2-toast button { background: transparent; border: 1px solid var(--sa-dark-line); color: inherit; font: inherit; font-weight: 500; height: 30px; padding: 0 10px; border-radius: var(--radius-md); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
 .v2-toast button:hover { border-color: var(--sa-dark-ink); }
 .v2-toast .v2-kbd { border-color: var(--sa-dark-line); background: transparent; color: inherit; }
+
+/* ── 선택 상태 한 패턴 (2026-10-01, DESIGN.md "선택 상태") — 옅은 면 + 액센트 테두리/링 + 잉크 + 굵기. 진한 채우기 없음.
+   .v2-quad-cell--on 은 이미 이 모양이다. 행 선택은 면 색만으로 말하지 않게 첫 칸 안쪽 액센트 띠를 붙인다. ── */
+.v2-step[aria-current="step"] { background: var(--sa-selected-bg); box-shadow: inset 0 0 0 1px var(--sa-selected-edge); font-weight: var(--sa-weight-strong); }
+.v2-trow--on { background: var(--sa-selected-bg); }
+.v2-trow--on > td:first-child { box-shadow: inset 3px 0 0 var(--sa-selected-edge); }

@@ -12,7 +12,7 @@ const KST = new Intl.DateTimeFormat('sv-SE', {
 export const judgedOn = (at: string) => `판정 ${KST.format(new Date(at))}`
 
 /**
- * 리뷰 1건 카드(신호 피드 · 3열 공용). 카드 전체가 페인 카드 상세(`/signals/card?id=`)로 가는 링크다 —
+ * 리뷰 1건 카드(VOC 피드 · 3열 공용). 카드 전체가 페인 카드 상세(`/voc/card?id=`)로 가는 링크다 —
  * 외부 출처 링크는 상세에만 둔다(링크 안에 링크를 넣지 않는다).
  *
  * 라벨이 NULL 이면 칩을 만들지 않는다(빈 태그 금지 · `impactFrequencyTags`). 그 대신
@@ -27,7 +27,7 @@ export function PubSignalCard({ item, showSignal = true }: { item: SignalItem; s
   const labeled = item.community_signal || tags.length > 0 || item.wtp_mentioned !== null
   const fav = faviconUrl(item.link)
   return (
-    <Link className="pub-card" href={`/signals/card?id=${item.input_id}`}>
+    <Link className="pub-card" href={`/voc/card?id=${item.input_id}`}>
       <div className="pub-card-body">
         <div className="pub-signal-head">
           <span className="pub-evid-fav" aria-hidden="true"><IconSignal />{fav ? <LogoImg src={fav} width={16} height={16} /> : null}</span>
@@ -39,7 +39,18 @@ export function PubSignalCard({ item, showSignal = true }: { item: SignalItem; s
           {item.wtp_mentioned === true ? <Chip>지불 의사 언급</Chip> : null}
           {labeled ? null : <Chip title="야간 판정이 새 행부터 라벨을 채운다">라벨 없음</Chip>}
         </div>
-        <p className="pub-text pub-signal-excerpt">{item.excerpt || '(발췌할 본문이 없다)'}</p>
+        {/* 2026-10-01 남헌: 판정 사유(review_relevance_verdicts.reason)를 크게 — 한눈에 무슨 불만·니즈인지. 2줄 넘으면 말줄임, 전문은 상세. */}
+        {item.reason ? (
+          <>
+            <p className="pub-card-title">{item.reason}</p>
+            <p className="pub-card-note pub-signal-excerpt">발췌 · {item.excerpt || '(발췌할 본문이 없다)'}</p>
+          </>
+        ) : (
+          <>
+            <p className="pub-card-note pub-card-note--empty">판정 사유 없음 — 발췌로 대체</p>
+            <p className="pub-text pub-signal-excerpt">{item.excerpt || '(발췌할 본문이 없다)'}</p>
+          </>
+        )}
         <div className="pub-card-meta">
           {item.project ? <span>대상 {item.project}</span> : null}
           <span>{judgedOn(item.judged_at)}</span>

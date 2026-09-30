@@ -4,9 +4,9 @@ import { PubButtonLink } from '../_pub/components/Button'
 import { IconArrowRight } from '../_pub/icons'
 
 /**
- * `/signals*` 세그먼트 전용 404. 루트 `app/not-found.tsx`(내부 `_ds`, 로그인 벽 CTA)와 갈라 둔다 —
- * 여기 오는 방문자는 대부분 익명이라서다(`lib/auth/policy.ts` PUBLIC_EXACT `/signals`·`/signals/card`).
- * `/signals/card` 가 `?id=` 없이/무효로 부르는 `notFound()`(app/signals/card/page.tsx)도 이걸로 잡힌다.
+ * `/voc*` 세그먼트 전용 404. 루트 `app/not-found.tsx`(내부 `_ds`, 로그인 벽 CTA)와 갈라 둔다 —
+ * 여기 오는 방문자는 대부분 익명이라서다(`lib/auth/policy.ts` PUBLIC_EXACT `/voc`·`/voc/card`).
+ * `/voc/card` 가 `?id=` 없이/무효로 부르는 `notFound()`(app/signals/card/page.tsx)도 이걸로 잡힌다.
  */
 export default function SignalsNotFound() {
   return (

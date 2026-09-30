@@ -3,7 +3,7 @@
 //
 // 왜: relevance-judge-auto.mjs 의 pendingFor() 는 이미 판정된 input_id 를 건너뛴다. 그래서
 //     라벨 도입 전 판정 행(2026-09-25 CEO-STAFF 실측 860행)은 영영 라벨이 안 붙고,
-//     공개 3열(/signals/community)·페인 카드(/signals/card)가 빈 화면으로 남는다.
+//     공개 3열(/voc/community)·페인 카드(/voc/card)가 빈 화면으로 남는다.
 //
 // 무엇을 하나
 //   1. review_relevance_verdicts 에서 라벨 4개(impact·frequency·community_signal·wtp_mentioned)가

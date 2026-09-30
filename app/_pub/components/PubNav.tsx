@@ -17,7 +17,7 @@ const LINKS: readonly { href: string; label: string; authed?: true }[] = [
   { href: '/library', label: '케이스 라이브러리' },
   { href: '/cases/report', label: '매칭 리포트' },
   { href: '/columns/read', label: '칼럼' },
-  { href: '/signals', label: '신호' },
+  { href: '/voc', label: 'VOC' },
   // 로그인후 전용(I1). authed 링크는 email 이 있을 때만 렌더한다 — 익명 HTML 에는 링크 자체가 없다.
   { href: '/insights', label: '인사이트', authed: true },
 ]

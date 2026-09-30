@@ -1,0 +1,122 @@
+{
+ "16674930-2201-4702-890a-deeac94b368a": {
+  "judgement": {
+   "aspect_layer": "OUTCOME",
+   "importance": 4,
+   "satisfaction": 4,
+   "attribution": "ENVIRONMENT",
+   "pain_timing": "PRE_PURCHASE",
+   "reason": "인용은 제품 자체가 아니라 애널리틱스 시장의 포화·유사 도구 난립에 대한 시장 수준 인식이며, 구매 전에도 알 수 있는 환경적 요인이다. 다만 사용 결과·정체성 층위인지는 불명확하고 만족도 신호도 약하다."
+  },
+  "model": "claude-cli-local:claude-sonnet-5-5",
+  "raw": "{\"aspect_layer\":\"OUTCOME\",\"importance\":4,\"satisfaction\":4,\"attribution\":\"ENVIRONMENT\",\"pain_timing\":\"PRE_PURCHASE\",\"reason\":\"인용은 제품 자체가 아니라 애널리틱스 시장의 포화·유사 도구 난립에 대한 시장 수준 인식이며, 구매 전에도 알 수 있는 환경적 요인이다. 다만 사용 결과·정체성 층위인지는 불명확하고 만족도 신호도 약하다.\"}"
+ },
+ "2b415451-51a2-4951-86cf-9edc7a291516": {
+  "judgement": {
+   "aspect_layer": "OUTCOME",
+   "importance": 7,
+   "satisfaction": 9,
+   "attribution": "NONE",
+   "pain_timing": null,
+   "reason": "세 인용 모두 히트맵·세션리플레이로 사용자 행동을 파악하는 것이 매우 유용하다는 칭찬이라 만족도가 높고 불만은 없다. 제품 기능 자체보다 그로부터 얻는 UX 인사이트라는 사용 결과를 말해 OUTCOME으로 봤다. 구매 전후 시점을 알 수 있는 서술은 없다."
+  },
+  "model": "claude-cli-local:claude-sonnet-5-5",
+  "raw": "{\"aspect_layer\":\"OUTCOME\",\"importance\":7,\"satisfaction\":9,\"attribution\":\"NONE\",\"pain_timing\":null,\"reason\":\"세 인용 모두 히트맵·세션리플레이로 사용자 행동을 파악하는 것이 매우 유용하다는 칭찬이라 만족도가 높고 불만은 없다. 제품 기능 자체보다 그로부터 얻는 UX 인사이트라는 사용 결과를 말해 OUTCOME으로 봤다. 구매 전후 시점을 알 수 있는 서술은 없다.\"}"
+ },
+ "366d775b-7155-44cb-b9ff-e325967235eb": {
+  "judgement": {
+   "aspect_layer": "OUTCOME",
+   "importance": 7,
+   "satisfaction": 2,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "PRE_PURCHASE",
+   "reason": "인용은 방문자 행동(클릭·스크롤·키입력)을 통째로 수집하는 제품 방식이 은밀하고 섬뜩하다는 불만이고, 이는 구매 전에도 알 수 있는 제품 작동 방식에 대한 것이다. 다만 세 인용 모두 제3자가 제품 방식을 평한 것이라 중요도는 중간 이상으로만 잡았다."
+  },
+  "model": "claude-cli-local:claude-sonnet-5-5",
+  "raw": "{\"aspect_layer\":\"OUTCOME\",\"importance\":7,\"satisfaction\":2,\"attribution\":\"PRODUCT_FAULT\",\"pain_timing\":\"PRE_PURCHASE\",\"reason\":\"인용은 방문자 행동(클릭·스크롤·키입력)을 통째로 수집하는 제품 방식이 은밀하고 섬뜩하다는 불만이고, 이는 구매 전에도 알 수 있는 제품 작동 방식에 대한 것이다. 다만 세 인용 모두 제3자가 제품 방식을 평한 것이라 중요도는 중간 이상으로만 잡았다.\"}"
+ },
+ "4aa7216b-af64-442d-bfe7-a674d291823b": {
+  "judgement": {
+   "aspect_layer": "PRODUCT",
+   "importance": 3,
+   "satisfaction": null,
+   "attribution": null,
+   "pain_timing": null,
+   "reason": "두 인용 모두 Hotjar 사용자의 불만이 아니라 제3자가 자신의 셀프호스팅 대안(usertrack.net)을 홍보하는 글이라, 만족도·귀책·시점은 인용만으로 판단할 수 없다. 셀프호스팅 대안이 존재하고 일부에서 수요가 있다는 제품 물성 수준의 신호만 읽힌다."
+  },
+  "model": "claude-cli-local:claude-sonnet-5-5",
+  "raw": "{\"aspect_layer\":\"PRODUCT\",\"importance\":3,\"satisfaction\":null,\"attribution\":null,\"pain_timing\":null,\"reason\":\"두 인용 모두 Hotjar 사용자의 불만이 아니라 제3자가 자신의 셀프호스팅 대안(usertrack.net)을 홍보하는 글이라, 만족도·귀책·시점은 인용만으로 판단할 수 없다. 셀프호스팅 대안이 존재하고 일부에서 수요가 있다는 제품 물성 수준의 신호만 읽힌다.\"}"
+ },
+ "613be254-3e33-4cd5-bf7b-6b2d2dcc70ef": {
+  "judgement": {
+   "aspect_layer": "PRODUCT",
+   "importance": 6,
+   "satisfaction": 3,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "POST_PURCHASE",
+   "reason": "인용 3개 모두 서드파티 스크립트(Hotjar 포함)가 외부 요청을 늘리고 Time to Interactive를 해치는 성능 문제를 서술하며, 이는 제품 물성이고 제품 탓의 불만이다. 다만 세 인용 중 Hotjar를 직접 지목한 것은 하나뿐이라 중요도는 중간으로 잡았고, 설치해서 써 봐야 알게 되는 문제라 구매 후 시점으로 봤다."
+  },
+  "model": "claude-cli-local:claude-sonnet-5-5",
+  "raw": "{\"aspect_layer\":\"PRODUCT\",\"importance\":6,\"satisfaction\":3,\"attribution\":\"PRODUCT_FAULT\",\"pain_timing\":\"POST_PURCHASE\",\"reason\":\"인용 3개 모두 서드파티 스크립트(Hotjar 포함)가 외부 요청을 늘리고 Time to Interactive를 해치는 성능 문제를 서술하며, 이는 제품 물성이고 제품 탓의 불만이다. 다만 세 인용 중 Hotjar를 직접 지목한 것은 하나뿐이라 중요도는 중간으로 잡았고, 설치해서 써 봐야 알게 되는 문제라 구매 후 시점으로 봤다.\"}"
+ },
+ "63096bef-67ad-409f-bdce-6e6b75da8abd": {
+  "judgement": {
+   "aspect_layer": "OUTCOME",
+   "importance": 6,
+   "satisfaction": 7,
+   "attribution": "NONE",
+   "pain_timing": "PRE_PURCHASE",
+   "reason": "인용은 Hotjar 대비 저렴한 대안의 가격 이점(월 $800+ 대비 일시불, 월 $500 이상 절감)을 긍정적으로 서술하는 칭찬이라 불만이 아니어서 attribution은 NONE이며, 가격은 구매 전에 알 수 있어 PRE_PURCHASE다. 다만 가격 자체는 제품 물성보다 구매 결과(비용 절감)에 가까워 OUTCOME으로 봤고, 인용이 3건뿐이고 세 번째는 가격 차이의 원인만 설명해 중요도는 중간으로 잡았다."
+  },
+  "model": "claude-cli-local:claude-sonnet-5-5",
+  "raw": "{\"aspect_layer\":\"OUTCOME\",\"importance\":6,\"satisfaction\":7,\"attribution\":\"NONE\",\"pain_timing\":\"PRE_PURCHASE\",\"reason\":\"인용은 Hotjar 대비 저렴한 대안의 가격 이점(월 $800+ 대비 일시불, 월 $500 이상 절감)을 긍정적으로 서술하는 칭찬이라 불만이 아니어서 attribution은 NONE이며, 가격은 구매 전에 알 수 있어 PRE_PURCHASE다. 다만 가격 자체는 제품 물성보다 구매 결과(비용 절감)에 가까워 OUTCOME으로 봤고, 인용이 3건뿐이고 세 번째는 가격 차이의 원인만 설명해 중요도는 중간으로 잡았다.\"}"
+ },
+ "7ee2aaf9-d97f-4061-b415-e55a31fa4a9e": {
+  "judgement": {
+   "aspect_layer": "PROCESS",
+   "importance": 8,
+   "satisfaction": 2,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "POST_PURCHASE",
+   "reason": "인용은 기본 설정에서 비밀번호·카드번호가 녹화되어 수동으로 마스킹해야 하고 GDPR상 건강정보 등이 보호 대상이라는 우려로, 제품의 기본 동작이 낳는 보안·규제 페인이며 사용 중에 알게 되는 문제다. 다만 '사용 프로세스'와 '제품 물성'의 경계가 모호해 layer는 PROCESS로 잡았다."
+  },
+  "model": "claude-cli-local:claude-sonnet-5-5",
+  "raw": "{\"aspect_layer\":\"PROCESS\",\"importance\":8,\"satisfaction\":2,\"attribution\":\"PRODUCT_FAULT\",\"pain_timing\":\"POST_PURCHASE\",\"reason\":\"인용은 기본 설정에서 비밀번호·카드번호가 녹화되어 수동으로 마스킹해야 하고 GDPR상 건강정보 등이 보호 대상이라는 우려로, 제품의 기본 동작이 낳는 보안·규제 페인이며 사용 중에 알게 되는 문제다. 다만 '사용 프로세스'와 '제품 물성'의 경계가 모호해 layer는 PROCESS로 잡았다.\"}"
+ },
+ "9c3f7bb2-a11c-4d32-92f0-64aa6f125963": {
+  "judgement": {
+   "aspect_layer": "PRODUCT",
+   "importance": 6,
+   "satisfaction": 2,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "POST_PURCHASE",
+   "reason": "행복도 슬라이더 UI 설계 때문에 부정 피드백이 덜 수집되고 텍스트 필드를 못 찾는다는 제품 물성(UX) 불만이며, 써보고 나서야 드러나는 문제다."
+  },
+  "model": "claude-cli-local:claude-sonnet-5-5",
+  "raw": "{\"aspect_layer\":\"PRODUCT\",\"importance\":6,\"satisfaction\":2,\"attribution\":\"PRODUCT_FAULT\",\"pain_timing\":\"POST_PURCHASE\",\"reason\":\"행복도 슬라이더 UI 설계 때문에 부정 피드백이 덜 수집되고 텍스트 필드를 못 찾는다는 제품 물성(UX) 불만이며, 써보고 나서야 드러나는 문제다.\"}"
+ },
+ "f0a5cf31-03a5-4fc3-b67b-4bf2cea74547": {
+  "judgement": {
+   "aspect_layer": "PROCESS",
+   "importance": 6,
+   "satisfaction": 3,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "POST_PURCHASE",
+   "reason": "세션 녹화가 너무 많아 일부만 보고도 압도된다는 사용 과정상 불만이며, 대량 세션 처리 문제는 사용해 봐야 드러난다."
+  },
+  "model": "claude-cli-local:claude-sonnet-5-5",
+  "raw": "{\"aspect_layer\":\"PROCESS\",\"importance\":6,\"satisfaction\":3,\"attribution\":\"PRODUCT_FAULT\",\"pain_timing\":\"POST_PURCHASE\",\"reason\":\"세션 녹화가 너무 많아 일부만 보고도 압도된다는 사용 과정상 불만이며, 대량 세션 처리 문제는 사용해 봐야 드러난다.\"}"
+ },
+ "f7157c2c-f034-49d8-8593-4d626b451d67": {
+  "judgement": {
+   "aspect_layer": "PRODUCT",
+   "importance": 6,
+   "satisfaction": 2,
+   "attribution": "PRODUCT_FAULT",
+   "pain_timing": "PRE_PURCHASE",
+   "reason": "인용은 Angular 미지원과 월 2,000건 녹화 제한이라는 제품 기능 한계를 불만으로 서술하며, 이는 구매 전 문서와 요금제로 확인 가능한 정보다."
+  },
+  "model": "claude-cli-local:claude-sonnet-5-5",
+  "raw": "{\"aspect_layer\":\"PRODUCT\",\"importance\":6,\"satisfaction\":2,\"attribution\":\"PRODUCT_FAULT\",\"pain_timing\":\"PRE_PURCHASE\",\"reason\":\"인용은 Angular 미지원과 월 2,000건 녹화 제한이라는 제품 기능 한계를 불만으로 서술하며, 이는 구매 전 문서와 요금제로 확인 가능한 정보다.\"}"
+ }
+}

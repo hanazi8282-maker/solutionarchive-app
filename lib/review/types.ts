@@ -87,6 +87,26 @@ export interface ParsedReview {
    * 타깃 1개라 이 개념이 없다(null).
    */
   storyId?: string | null
+  /**
+   * 이 리뷰를 사람이 열어 볼 수 있는 원문 주소(옵셔널, 2026-10-01). 호스트는 어댑터 상수에서만 만든다.
+   * 러너가 적재 본문 맨 앞에 `[SRC: <url>]` 한 줄로 심는다(`withSourceUrl`) — 공개 VOC 카드의 "출처 보기".
+   * 게시판 순회(`board:`) 행은 product_ref 가 게시판이라 글 주소를 되살릴 길이 이것뿐이다.
+   */
+  sourceUrl?: string | null
+}
+
+/**
+ * 원문 주소 머리말. analysis_inputs 에 글 단위 URL 컬럼이 없어서 HN `[HN: … · URL]` 과 같은 방식으로 본문 앞에 싣는다.
+ * ⚠️ 적재할 때만 붙인다 — 지문(content_hash)은 머리말 없는 본문으로 계산하므로 이미 본 글이 "수정됨"으로 세어지지 않는다.
+ * 원문 폐기(30일) 때 머리말도 같이 사라진다. 공개 피드도 폐기 전 행만 싣는다(lib/signals/feed.ts).
+ */
+export const withSourceUrl = (text: string, url: string | null | undefined): string =>
+  url && /^https:\/\/[^\s\]]+$/.test(url) ? `[SRC: ${url}]\n${text}` : text
+
+/** `withSourceUrl` 의 역. https 주소만 받는다(사람이 붙여넣은 본문의 우연한 대괄호를 링크로 만들지 않는다). */
+export function sourceUrlOf(text: string | null | undefined): string | null {
+  const m = /^\s*\[SRC: (https:\/\/[^\s\]]+)\]/.exec(text ?? '')
+  return m ? m[1] : null
 }
 
 export interface ParseResult {

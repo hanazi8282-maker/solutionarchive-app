@@ -84,6 +84,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":2})
 - ✅ `stage` 발행 대기 스테이징 ({"staged":2})
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":17})
+- ℹ️ Notion 푸시: dlee-vendor-dependency-3eb100b7ffb481c1b76ed43910bc8699 ✅ DISCOVERY-2026-09-29 → https://app.notion.com/p/DISCOVERY-2026-09-29-3eb100b7ffb4818da57bf02d4a448ea9 푸시 완료 — 초안 0건 · 신규케이스 1건 · 발굴 1건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-09-30-CMO 기록·재확인
 
 _실행 키 `cmo-2026-09-29-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

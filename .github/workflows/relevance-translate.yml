@@ -70,7 +70,7 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # 번역은 판단이 아니라 옮김이라 sonnet 이면 충분하다(속도·크레딧). 바꾸려면 리포 변수.
-          CLAUDE_CLI_MODEL: ${{ vars.TRANSLATE_CLI_MODEL || 'sonnet' }}
+          CLAUDE_CLI_MODEL: ${{ vars.TRANSLATE_CLI_MODEL || 'claude-sonnet-5-5' }}
           # 비용 상한은 lib/analysis/budget.ts 가 강제한다(프로세스 단위 = 이 실행 1회분). 건당 짧은 호출이라 요청 상한은 기본(0.5)으로 충분.
           LLM_DAILY_BUDGET_USD: ${{ vars.TRANSLATE_DAILY_BUDGET_USD || '3' }}
           LLM_USD_PER_MTOK_IN: '3'

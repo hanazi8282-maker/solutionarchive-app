@@ -108,11 +108,11 @@ const second = loadCache('second')
 // ── 4. 1차 ───────────────────────────────────────────────
 const localCall = async (system, user) => {
   // 운영 callClaudeCli 는 자식 env 를 격리해(CI 토큰 전제) 로컬 로그인을 못 본다 — 프롬프트·모델은 같게, 인증만 로컬로.
-  const r = spawnSync(process.env.CLAUDE_CLI_PATH, ['-p', '--output-format', 'json', '--max-turns', '1', '--model', 'sonnet'],
+  const r = spawnSync(process.env.CLAUDE_CLI_PATH, ['-p', '--output-format', 'json', '--max-turns', '1', '--model', 'claude-sonnet-5-5'],
     { input: `${system}\n\n---\n\n${user}`, encoding: 'utf8', timeout: 600_000, maxBuffer: 20_000_000 })
   const env = JSON.parse(r.stdout || '{}')
   if (r.status !== 0 || env.is_error) throw new Error(`claude 로컬 실패 exit=${r.status} ${String(env.result ?? r.stderr).slice(0, 200)}`)
-  return { text: env.result, model: `claude-cli-local:${Object.keys(env.modelUsage ?? {}).join('+') || 'sonnet'}` }
+  return { text: env.result, model: `claude-cli-local:${Object.keys(env.modelUsage ?? {}).join('+') || 'claude-sonnet-5-5'}` }
 }
 firstLoop: for (const pid of pids) {
   const todo = targets.filter((r) => r.project_id === pid && !first.has(r.input_id))

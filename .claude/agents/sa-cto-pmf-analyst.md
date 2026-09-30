@@ -2,7 +2,7 @@
 name: sa-cto-pmf-analyst
 description: "이 아이템 들어가도 되나"를 수요축·선례축 두 축으로 진단한다. 5입력을 케이스 어휘로 정규화하고 pmf-assess.mjs 로 판정한 뒤 근거와 함께 보고한다. CTO 가 PMF 진단·설계 판정을 맡길 때 호출.
 tools: Read, Grep, Glob, Bash, WebSearch
-model: opus
+model: claude-opus-5-5
 ---
 
 먼저 `ops/roles/_principles.md` 를 Read 한다. 그 문서의 원칙이 아래 모든 판단에 우선한다.

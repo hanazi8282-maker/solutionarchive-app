@@ -11,8 +11,14 @@ import type { FailedAngleRow, PrincipleRow } from './advisor'
 
 type Client = NonNullable<Awaited<ReturnType<typeof createClient>>>
 
-export const STUDY_COLS =
+export const STUDY_COLS_BASE =
   'id, slug, brand_name, bottleneck, reader_problem, business_model, buyer_type, price_band, outcome_status, review_status'
+/**
+ * 브랜드 로고 컬럼(마이그 20260930000001). 리포트 무브 줄의 플레이트가 쓴다(B7-2).
+ * 미적용 환경에서도 조회 전체가 죽지 않게 `selectStudies` 가 이 묶음만 빼고 1회 재시도한다 — 그러면 이니셜 플레이트다.
+ */
+export const STUDY_COLS_LOGO = 'logo_url, brand_domain'
+export const STUDY_COLS = `${STUDY_COLS_BASE}, ${STUDY_COLS_LOGO}` as const
 /**
  * ★ 뒤 5개(`transfer_note` 이후)가 "내일 할 행동"의 병목이었다 — 컬럼이 SELECT 에 없어서
  *   데이터가 DB 에 있는데도 화면까지 도달하지 못했다. 전부 20260915000001·20260906000001 로
@@ -73,6 +79,26 @@ export async function selectMoves(supabase: Client, where: string): Promise<Move
   return (retry.data ?? []) as MoveRow[]
 }
 
+/** 케이스 조회. 로고 컬럼이 없으면(42703/PGRST204) 그 묶음만 빼고 **1회** 다시 읽는다 — `selectMoves` 와 같은 방식. */
+export async function selectStudies(supabase: Client, where: string): Promise<StudyRow[] | null> {
+  const first = await supabase.from('case_studies').select(STUDY_COLS)
+  if (!first.error) return (first.data ?? []) as StudyRow[]
+  if (!isMissingColumn(first.error.code)) {
+    console.error(`[${where}] case_studies select error:`, first.error.code ?? '', first.error.message)
+    return null
+  }
+  console.warn(
+    `[${where}] case_studies ${first.error.code} — 마이그 20260930000001(브랜드 로고) 미적용으로 보인다. `
+    + `${STUDY_COLS_LOGO} 를 빼고 1회 재시도한다 — 플레이트가 이니셜로 폴백한다.`,
+  )
+  const retry = await supabase.from('case_studies').select(STUDY_COLS_BASE)
+  if (retry.error) {
+    console.error(`[${where}] case_studies retry error:`, retry.error.code ?? '', retry.error.message)
+    return null
+  }
+  return (retry.data ?? []) as StudyRow[]
+}
+
 /** loadCaseCorpus 캐시 태그. 승인·반려 액션이 이걸로 즉시 만료시킨다. */
 export const CASE_CORPUS_TAG = 'case-corpus'
 
@@ -90,7 +116,7 @@ class CorpusUnavailable extends Error {
 
 async function readCaseCorpus(supabase: Client, where: string): Promise<CaseCorpus> {
   const [rawStudies, rawMoves, failedAngles, deleted] = await Promise.all([
-    safeSelect<StudyRow>(supabase, 'case_studies', STUDY_COLS, where),
+    selectStudies(supabase, where),
     selectMoves(supabase, where),
     safeSelect<FailedAngleRow>(supabase, 'failed_angles', FAILED_ANGLE_COLS, where),
     loadDeletedCaseIds(supabase, where),

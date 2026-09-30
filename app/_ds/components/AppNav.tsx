@@ -98,9 +98,9 @@ export function AppNav({ email }: { email: string | null }) {
   // 신호 화면(`/signals*`, 공개 3화면 — 남헌 09-25 B항)도 `_pub` 이다. #264 가 pub.css 의
   // `body:has(.pub-root)` CSS 로 가리던 것을 여기로 옮겼다(그 임시 블록은 지웠다).
   if (path.startsWith('/signals')) return null
-  // 리포트 체험판(`/cases/report`, 남헌 09-25 결정 2)은 **익명일 때만** 숨긴다 — 들어갈 수 없는 내부
-  // 링크를 보여주지 않는다. 로그인한 검수자에게는 내부 화면이라 네비를 그대로 둔다.
-  if (path === '/cases/report' && !email) return null
+  // 리포트 체험판(`/cases/report`, 남헌 09-25 결정 2)은 B7(2026-09-30)부터 `PubShell` 공개 화면이다 —
+  // 로그인 여부와 무관하게 숨긴다(안 하면 로그인 상태에서 헤더가 둘). 검수자는 `PubNav` 의 대시보드 버튼으로 돌아간다.
+  if (path === '/cases/report') return null
 
   // match 가 겹칠 때(/cases 와 /cases/search) **가장 긴 것 하나만** 켠다 — 둘 다 켜지면 지금 어디인지 안 보인다.
   const best = [...NAV_GROUPS.flatMap((g) => g.links), PROFILE_LINK]

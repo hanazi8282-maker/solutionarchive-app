@@ -72,6 +72,9 @@ export interface StudyRow {
   price_band?: string | null
   outcome_status?: string | null
   review_status: string
+  /** 브랜드 로고(마이그 20260930000001). 미적용이면 undefined — 이니셜 플레이트로 폴백한다(lib/cases/logo.ts). */
+  logo_url?: string | null
+  brand_domain?: string | null
 }
 
 export interface MatchedMove extends MoveRow {

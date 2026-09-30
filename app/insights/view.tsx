@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { SUBSTANTIATION_VERDICTS, SUBSTANTIATION_VERDICT_LABELS } from '@/lib/analysis/types'
 import { PMF_QUADRANT_ADVICE, PMF_QUADRANT_LABELS } from '@/lib/cases/match'
 import {
-  PAGE_SIZE, PROJECT_CHIPS, QUADRANT_ORDER, insightHref,
+  INSIGHT_AXES, PAGE_SIZE, PROJECT_CHIPS, QUADRANT_ORDER, axisLabel, insightHref,
   type InsightFeed, type InsightQuery, type Loaded, type QuadrantKey,
 } from '@/lib/insights/feed'
 import type { InsightEvidence } from '@/lib/insights/evidence'
@@ -39,11 +39,21 @@ export function InsightsView({ query: q, errors, result, evidence }: {
   evidence?: Map<string, InsightEvidence>
 }) {
   const ok = result.status === 'ok' ? result : null
-  const filtered = Boolean(q.quadrant || q.project || q.gate !== 'pass')
+  // 문제 유형 컬럼이 없으면(마이그 미적용) 그 축은 로더가 거르지 않았다 — 활성 필터로 세지 않는다.
+  const problemKnown = ok ? ok.problemFilterKnown : true
+  const axes = INSIGHT_AXES.filter((a) => a.key !== 'problem' || problemKnown)
+  // 활성 필터 = 빈 결과에서 하나씩 뺄 수 있는 조건(사분면·프로젝트·4축). 판정(gate)은 넓히는 쪽이라 빼지 않는다.
+  const active = [
+    ...(q.quadrant ? [{ axis: '사분면', label: `사분면: ${QUADRANT_LABEL(q.quadrant)}`, href: insightHref(q, { quadrant: null }) }] : []),
+    ...(q.project && ok ? [{ axis: '프로젝트', label: `프로젝트: ${ok.projects.find((p) => p.id === q.project)?.label ?? q.project.slice(0, 8)}`, href: insightHref(q, { project: null }) }] : []),
+    ...axes.filter((a) => q[a.key]).map((a) => ({ axis: a.title, label: `${a.title}: ${axisLabel(a.key, q[a.key])}`, href: insightHref(q, { [a.key]: null }) })),
+  ]
+  const filtered = Boolean(active.length || q.gate !== 'pass')
   const note = ok
     ? `게이트 통과 ${ok.gated}건 · ${q.sort === 'verdict' ? '판정순' : '최신순'} (${[
       q.gate === 'pass' ? `근거 없음 ${ok.hiddenUnsubstantiated}건 숨김` : '근거 없음 포함',
       `미진단 ${ok.undiagnosed}건`,
+      ...(active.length ? [`필터 ${active.length}개`] : []),
     ].join(' · ')})`
     : undefined
   const lastPage = ok ? Math.max(1, Math.ceil(ok.total / PAGE_SIZE)) : 1
@@ -85,6 +95,28 @@ export function InsightsView({ query: q, errors, result, evidence }: {
             <PubFacetSep />
             <PubFacet href={insightHref(q, { sort: 'recent' })} active={q.sort === 'recent'}>최신순</PubFacet>
             <PubFacet href={insightHref(q, { sort: 'verdict' })} active={q.sort === 'verdict'}>판정순</PubFacet>
+            <PubFacetSep />
+            {/* 4축(B3): 기본 접힘, 고른 축만 서버가 open. 0건 어휘 칩은 만들지 않는다(고른 칩은 0건이어도 남긴다 — 풀 곳이 있어야 한다).
+                미지정은 필터 대상이 아니라 건수만 적는다. */}
+            {!problemKnown && <p className="pub-caption">문제 유형 필터 확인 불가 — 마이그 20260930000003 미적용</p>}
+            {axes.map((a) => {
+              const f = ok.facets[a.key]
+              const chips = a.options.filter((o) => (f.counts[o.value] ?? 0) > 0 || q[a.key] === o.value)
+              return (
+                <details key={a.key} className="pub-fold pub-fold--inline" open={q[a.key] ? true : undefined}>
+                  <summary><IconChevronRight />{a.title} · {axisLabel(a.key, q[a.key]) ?? '전체'}</summary>
+                  <div className="pub-fold-body">
+                    <PubFacet href={insightHref(q, { [a.key]: null })} active={!q[a.key]}>전체</PubFacet>
+                    {chips.map((o) => (
+                      <PubFacet key={o.value} href={insightHref(q, { [a.key]: q[a.key] === o.value ? null : o.value })} active={q[a.key] === o.value} count={f.counts[o.value] ?? 0}>
+                        {o.label}
+                      </PubFacet>
+                    ))}
+                    {f.unspecified > 0 && <p className="pub-caption">미지정 {f.unspecified}건</p>}
+                  </div>
+                </details>
+              )
+            })}
             {shownProjects.length > 0 && <PubFacetSep />}
             {shownProjects.map(projectFacet)}
             {moreProjects.length > 0 && (
@@ -124,8 +156,13 @@ export function InsightsView({ query: q, errors, result, evidence }: {
             }) : filtered ? (
               <PubEmpty
                 title="이 조건에 맞는 앵글이 없다"
-                description="조회는 정상이다. 지금 고른 사분면·프로젝트·판정 조건에 맞는 앵글이 없다는 뜻이고, 다른 것으로 채우지 않는다."
-                action={<PubButtonLink href="/insights" variant="ghost" size="sm">필터 없이 보기<IconArrowRight /></PubButtonLink>}
+                description={`조회는 정상이다. ${active.length ? `${active.map((f) => f.label).join(' · ')} 조건을 함께 만족하는` : '지금 고른 판정 조건에 맞는'} 앵글이 없다는 뜻이고, 다른 것으로 채우지 않는다.`}
+                action={<>
+                  {active.map((f) => (
+                    <PubButtonLink key={f.href} href={f.href} variant="ghost" size="sm">이 조건 빼기 · {f.axis}</PubButtonLink>
+                  ))}
+                  <PubButtonLink href="/insights" variant="ghost" size="sm">필터 없이 보기<IconArrowRight /></PubButtonLink>
+                </>}
               />
             ) : (
               <PubEmpty

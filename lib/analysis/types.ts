@@ -39,6 +39,12 @@ export const SOURCE_TYPE_LABELS: Record<AnalysisSourceType, string> = {
 // DB CHECK 제약(analysis_aspects)과 값이 반드시 일치해야 한다.
 export const ASPECT_LAYERS = ['PRODUCT', 'PROCESS', 'OUTCOME'] as const
 export type AspectLayer = (typeof ASPECT_LAYERS)[number]
+/** 속성 층 라벨 — 추출 프롬프트(extract-run.ts Stage1 aspect_layer) 문장과 같은 낱말. /insights 필터·카드가 쓴다. */
+export const ASPECT_LAYER_LABELS: Record<AspectLayer, string> = {
+  PRODUCT: '제품 물성',
+  PROCESS: '구매·사용 과정',
+  OUTCOME: '사용 결과·정체성',
+}
 
 export const ATTRIBUTIONS = ['PRODUCT_FAULT', 'USER_FAULT', 'ENVIRONMENT'] as const
 export type Attribution = (typeof ATTRIBUTIONS)[number]

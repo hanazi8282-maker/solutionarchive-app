@@ -3,7 +3,7 @@
 //   node scripts/insights-feed-selftest.mjs
 // 게이트 양성·음성·경계 + 뮤테이션(게이트 조건 하나를 끄면 음성 검사가 실패해야 한다 — 검사가 헛돌지 않는지).
 import {
-  INSIGHT_GATE, PAGE_SIZE, buildInsightFeed, gateReason, insightHref, latestAssessment, loadInsightFeed, parseInsightQuery,
+  INSIGHT_AXES, INSIGHT_GATE, PAGE_SIZE, buildInsightFeed, gateReason, insightHref, latestAssessment, loadInsightFeed, parseInsightQuery,
 } from '../lib/insights/feed.ts'
 import { ANALYSIS_PURPOSES, OUTPUT_TYPES, QUADRANTS, SUBSTANTIATION_VERDICTS } from '../lib/analysis/types.ts'
 
@@ -119,6 +119,121 @@ const truncSb = { from: (tb) => { const q = fakeSb().from(tb); if (tb !== 'analy
 console.error = () => {}
 t('앵글이 잘려 오면(받은 1 < count 5) error', (await loadInsightFeed(truncSb, q0)).status === 'error')
 console.error = quiet
+
+// ── 필터 4축(B-PR, reports/2026-10-01/design-direction-pmf-judgment.md B2·B3) ─────────────
+// 픽스처: 프로젝트 3곳 × 축 값이 다르다. p9 는 business_model·bottleneck·reader_problem 전부 NULL(미기재).
+const FX = {
+  projects: [
+    P('p1', 'angled', { reader_problem: 'PRICE_TOO_LOW', bottleneck: 'CONVERSION', business_model: 'SAAS' }),
+    P('p3', 'done', { reader_problem: 'NO_CHANNEL', bottleneck: 'TRUST', business_model: 'D2C' }),
+    P('p9', 'angled', { reader_problem: null, bottleneck: null, business_model: null }),
+  ],
+  aspects: [
+    { ...S('s1', 'p1'), aspect_layer: 'PROCESS' }, { ...S('s4', 'p1'), aspect_layer: 'PRODUCT' },
+    { ...S('s3', 'p3', 'TABLE_STAKES'), aspect_layer: 'PROCESS' }, { ...S('s9', 'p9'), aspect_layer: null },
+  ],
+  assessments: [], validated: new Set(),
+}
+const FX_ANGLES = [
+  A('f1', { project_id: 'p1', aspect_id: 's1' }), A('f2', { project_id: 'p1', aspect_id: 's4' }),
+  A('f3', { project_id: 'p3', aspect_id: 's3' }), A('f9', { project_id: 'p9', aspect_id: 's9' }),
+]
+const fxFeed = (over = {}, mod = { buildInsightFeed }, extra = {}) => mod.buildInsightFeed(Q(over), { ...FX, angles: FX_ANGLES, ...extra })
+const fxIds = (f) => f.groups.flatMap((g) => g.items.map((i) => i.id)).sort().join()
+
+// 파싱
+const pv = parseInsightQuery({ problem: ' price_too_low ', bottleneck: 'TRUST', model: 'saas', layer: 'Process' })
+t('4축 파싱: 대소문자·공백 정규화', pv.errors.length === 0 && pv.query.problem === 'PRICE_TOO_LOW' && pv.query.bottleneck === 'TRUST' && pv.query.model === 'SAAS' && pv.query.layer === 'PROCESS')
+const pb = parseInsightQuery({ problem: 'VIBES', bottleneck: 'X', model: 'kind', layer: 'ALL' })
+t('4축 어휘 밖 → null + 축마다 "어휘 밖" 사유(조용히 강제 안 함)', pb.errors.length === 4 && ['problem', 'bottleneck', 'model', 'layer'].every((k) => pb.query[k] === null && pb.errors.some((e) => e.startsWith(`${k} 어휘 밖`))))
+t('중복 파라미터 = 첫 값', parseInsightQuery({ layer: ['OUTCOME', 'PRODUCT'] }).query.layer === 'OUTCOME')
+t('빈 값(?problem=) = 전체, 사유 없음', (() => { const r = parseInsightQuery({ problem: '' }); return r.query.problem === null && r.errors.length === 0 })())
+t('기본 진입 URL 에 새 파라미터 0', insightHref(Q(), {}) === '/insights')
+const round = insightHref(Q(), { problem: 'PRICE_TOO_LOW', layer: 'PROCESS', quadrant: 'none' })
+t('insightHref ↔ parse 왕복(URL 인코딩 거쳐도 같은 질의)', (() => {
+  const back = parseInsightQuery(Object.fromEntries(new URLSearchParams(round.split('?')[1]))).query
+  return back.problem === 'PRICE_TOO_LOW' && back.layer === 'PROCESS' && back.quadrant === 'none' && back.bottleneck === null
+})())
+t('insightHref 가 page 를 1로 되돌리고 축 값만 뺀다', insightHref(Q({ problem: 'NO_CHANNEL', page: 3 }), { problem: null }) === '/insights')
+
+// 각 축이 실제로 좁힌다(양성·음성)
+const NARROW = [
+  ['problem', 'PRICE_TOO_LOW', 'f1,f2'], ['bottleneck', 'TRUST', 'f3'], ['model', 'D2C', 'f3'], ['layer', 'PROCESS', 'f1,f3'],
+]
+const narrowHolds = (mod) => NARROW.every(([k, v, want]) => fxIds(fxFeed({ [k]: v }, mod)) === want)
+for (const [k, v, want] of NARROW) t(`?${k}=${v} → ${want} 만(미지정 f9 음성)`, fxIds(fxFeed({ [k]: v })) === want)
+t('AND 조합: problem=PRICE_TOO_LOW & layer=PROCESS → f1', fxIds(fxFeed({ problem: 'PRICE_TOO_LOW', layer: 'PROCESS' })) === 'f1')
+const none0 = fxFeed({ model: 'SAAS', bottleneck: 'TRUST' })
+t('AND 조합 0건 → total 0 · 그룹 0(조회는 정상)', none0.total === 0 && none0.groups.length === 0 && none0.gated === 4)
+t('미기재 프로젝트(business_model NULL)는 ?model= 미선택이면 숨지 않는다', fxIds(fxFeed()) === 'f1,f2,f3,f9')
+
+// 패싯 건수(표준 패싯)
+const fc = fxFeed({ layer: 'PROCESS' })
+t('패싯: layer=PROCESS 에서 model 칩 = SAAS 1·D2C 1, 미지정 0(f9 는 layer 에서 빠짐)', fc.facets.model.counts.SAAS === 1 && fc.facets.model.counts.D2C === 1 && fc.facets.model.unspecified === 0)
+t('패싯: 자기 축은 빼고 센다 — layer 칩 PROCESS 2·PRODUCT 1·미지정 1', fc.facets.layer.counts.PROCESS === 2 && fc.facets.layer.counts.PRODUCT === 1 && fc.facets.layer.unspecified === 1)
+t('패싯: 0건 어휘는 키 자체가 없다(칩 미생성 근거)', !('OUTCOME' in fc.facets.layer.counts) && !('AWARENESS' in fc.facets.bottleneck.counts))
+t('패싯: 미기재 건수 = model 미지정 1(기본)', fxFeed().facets.model.unspecified === 1)
+const chipMatchesClick = (mod) => {
+  const base = { layer: 'PROCESS' }
+  const f = fxFeed(base, mod)
+  // 어휘 전부를 돈다 — 건수 표에 없는 값(0건 처리)도 클릭 결과가 0이어야 맞다.
+  return INSIGHT_AXES.every(({ key, options }) =>
+    options.every(({ value }) => fxFeed({ ...base, [key]: value }, mod).total === (f.facets[key].counts[value] ?? 0)))
+}
+t('패싯: 모든 칩 건수 = 그 칩을 눌렀을 때 total', chipMatchesClick())
+t('사분면 칩 건수도 4축 필터 반영', fxFeed({ model: 'D2C' }).quadrantCounts.none === 1)
+t('필터 뒤 그룹 count 합 = total(페이지 무관)', (() => { const f = fxFeed({ layer: 'PROCESS' }); return f.total === 2 && f.groups.reduce((n, g) => n + g.count, 0) === 2 })())
+t('카드 항목에 4축 값', (() => { const it = fxFeed({ problem: 'NO_CHANNEL' }).groups[0].items[0]; return it.problem === 'NO_CHANNEL' && it.bottleneck === 'TRUST' && it.model === 'D2C' && it.layer === 'PROCESS' })())
+
+// 컬럼 미적용(reader_problem 42703) → 1회 재시도 · problemFilterKnown=false · ?problem 은 거르지 않는다(0건으로 접지 않음)
+const colSb = (firstCode, retryCode) => ({
+  from(table) {
+    const rows = { analysis_angles: FX_ANGLES, analysis_projects: FX.projects.map(({ reader_problem, ...r }) => r), analysis_aspects: FX.aspects, pmf_assessments: [], validated_angles_corpus: [] }[table]
+    let res = { data: rows, error: null, count: rows.length }
+    const q = {
+      select: (cols) => {
+        if (table === 'analysis_projects' && /reader_problem/.test(cols ?? '')) res = { data: null, error: { code: firstCode, message: 'no column' }, count: null }
+        else if (table === 'analysis_projects' && retryCode) res = { data: null, error: { code: retryCode, message: 'boom' }, count: null }
+        return q
+      },
+      range: () => q, then: (ok, ko) => Promise.resolve(res).then(ok, ko),
+    }
+    return q
+  },
+})
+console.error = () => {}; console.warn = () => {}
+const miss = await loadInsightFeed(colSb('42703'), Q({ problem: 'PRICE_TOO_LOW' }))
+const missPgrst = await loadInsightFeed(colSb('PGRST204'), Q())
+const otherErr = await loadInsightFeed(colSb('500'), Q())
+const retryErr = await loadInsightFeed(colSb('42703', '500'), Q())
+const known = await loadInsightFeed(fakeSb(), Q())
+console.error = quiet; console.warn = warn
+t('42703 → ok + problemFilterKnown=false + ?problem 무시(4건 그대로)', miss.status === 'ok' && miss.problemFilterKnown === false && miss.total === 4)
+t('PGRST204 도 같은 재시도', missPgrst.status === 'ok' && missPgrst.problemFilterKnown === false)
+t('다른 오류(500)는 재시도 없이 확인 불가', otherErr.status === 'error' && /프로젝트/.test(otherErr.reason))
+t('재시도까지 실패 → 확인 불가', retryErr.status === 'error')
+t('정상 컬럼 → problemFilterKnown=true', known.status === 'ok' && known.problemFilterKnown === true)
+
+// ── 뮤테이션: feed.ts 사본을 한 군데 바꿔 불러오면 위 검사가 실패해야 한다(검사가 헛돌지 않는지) ──
+{
+  const { readFileSync, writeFileSync, rmSync } = await import('node:fs')
+  const SRC = new URL('../lib/insights/feed.ts', import.meta.url)
+  const src = readFileSync(SRC, 'utf8')
+  const FILTER_LINE = 'if (k !== except && q[k] && it[k] !== q[k]) return false'
+  const MUTANTS = [
+    ...['problem', 'bottleneck', 'model', 'layer'].map((k) => [`필터 무시(${k})`, FILTER_LINE, `if (k !== except && k !== '${k}' && q[k] && it[k] !== q[k]) return false`, (m) => narrowHolds(m)]),
+    ['kind 접기(미기재 model → 소비재 D2C)', "model: pick(project!.business_model, vocabOf('model'))", "model: pick(project!.business_model ?? 'D2C', vocabOf('model'))",
+      (m) => fxFeed({}, m).facets.model.unspecified === 1 && fxIds(fxFeed({ model: 'D2C' }, m)) === 'f3'],
+    ['카운트 오류(자기 축까지 적용)', 'if (!matches(it, q, key)) continue', 'if (!matches(it, q)) continue', (m) => chipMatchesClick(m)],
+  ]
+  let i = 0
+  for (const [name, from, to, holds] of MUTANTS) {
+    t(`뮤테이션 대상 문자열 존재: ${name}`, src.includes(from))
+    const tmp = new URL(`../lib/insights/.feed-mutant-${process.pid}-${i++}.ts`, import.meta.url)
+    writeFileSync(tmp, src.replace(from, to))
+    try { t(`뮤테이션 ${name} → 검사가 실패로 잡는다`, !holds(await import(tmp.href))) } finally { rmSync(tmp) }
+  }
+}
 
 console.log(`\ninsights-feed-selftest: ${pass} pass / ${fail} fail`)
 process.exit(fail ? 1 : 0)

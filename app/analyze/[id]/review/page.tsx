@@ -42,6 +42,8 @@ type AspectRow = {
   notes: string | null
   /** 원문 인용. 서버가 아직 안 보내면 undefined — "0건"과 다르다(§7.1). */
   evidence_quotes?: { text: string; source_type?: string | null }[] | null
+  /** evidence_quotes 와 같은 길이·순서의 한국어 번역. NULL·undefined = 번역 전(마이그 000047 전 포함). 원문이 정본. */
+  evidence_quotes_ko?: string[] | null
 }
 
 type ProjectRow = {
@@ -568,6 +570,10 @@ export default function AnalyzeReviewPage() {
               const verdict = aspectVerdict(selected.importance, selected.satisfaction)
               const bd = opportunityBreakdown(selected.importance, selected.satisfaction, selected.opportunity_score)
               const quotes = selected.evidence_quotes
+              // 번역은 원문과 길이가 같을 때만 쓴다 — 어긋나면 어느 번역이 어느 원문인지 모르니 "번역 전"으로 본다.
+              const quotesKo = quotes && Array.isArray(selected.evidence_quotes_ko) && selected.evidence_quotes_ko.length === quotes.length
+                ? selected.evidence_quotes_ko
+                : null
               // 인용의 세 상태를 문장으로 가른다 — 못 받았다 / 없었다 / 있다.
               const quoteMethod = quotes == null
                 ? '재분석하면 채워진다'
@@ -677,13 +683,29 @@ export default function AnalyzeReviewPage() {
                   {/* 원문 인용 — 점수의 출처다. 없으면 "없다"고 말하고 채우는 방법을 같이 준다. */}
                   <div className="v2-stack-tight">
                     <div className="v2-label">원문 인용</div>
+                    {/* 기본은 한국어 번역, 원문(정본)은 접어 둔다. 번역이 없거나 원문이 이미 한국어면 원문만. */}
                     {quotes && quotes.length > 0
-                      ? quotes.slice(0, 2).map((q, qi) => (
-                        <blockquote key={qi} className="v2-quote v2-quote--plain">
-                          “{q.text}”
-                          {q.source_type ? <span className="v2-note"> — {q.source_type}</span> : null}
-                        </blockquote>
-                      ))
+                      ? quotes.slice(0, 2).map((q, qi) => {
+                        const ko = quotesKo?.[qi]
+                        const source = q.source_type ? <span className="v2-note"> — {q.source_type}</span> : null
+                        if (ko && ko !== q.text) {
+                          return (
+                            <div key={qi}>
+                              <blockquote className="v2-quote v2-quote--plain">“{ko}”{source}</blockquote>
+                              <details className="dgy-details">
+                                <summary>원문 보기</summary>
+                                <blockquote className="v2-quote v2-quote--plain" lang="und">“{q.text}”</blockquote>
+                              </details>
+                            </div>
+                          )
+                        }
+                        return (
+                          <blockquote key={qi} className="v2-quote v2-quote--plain">
+                            “{q.text}”{source}
+                            {quotesKo ? null : <span className="v2-note"> · 번역 전</span>}
+                          </blockquote>
+                        )
+                      })
                       : null}
                     <EvidenceCaption
                       n={quotes == null ? null : Math.min(quotes.length, 2)}

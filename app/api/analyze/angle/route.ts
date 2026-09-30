@@ -18,12 +18,16 @@ import {
   callLlmJsonWithModel,
   describeFailure,
   requiredKeyFor,
-  resolveProvider,
   type LlmProvider,
 } from '@/lib/analysis/llm'
 import { withLlmBudget } from '@/lib/analysis/budget'
 import { judgeHeadline as judgeWith, pickEnum } from '@/lib/analysis/judge'
 import { UNTRUSTED_INPUT_NOTICE } from '@/lib/llm/untrusted-input'
+
+// 고객이 보는 카피(writer·rewrite)와 그 판정(judge·rejudge)은 **항상 claude-cli(Sonnet 5.5)** 다 — LLM_PROVIDER env 를
+// 보지 않는다(남헌 2026-10-01: Vercel 런타임의 그 값이 gemini 면 카피가 Gemini 로 돌았다). 토큰이 없으면 실패로 끝나고
+// Gemini 호출 0 · 폴백 0. /cases/report 앵글(lib/cases/idea-angles-run.ts PROVIDER)과 같은 규칙이다.
+const ANGLE_PROVIDER: LlmProvider = 'claude-cli'
 
 // 앵글 1건당 LLM 호출이 붙으므로 여유를 크게 잡는다.
 export const maxDuration = 300
@@ -408,12 +412,14 @@ export async function POST(req: Request) {
   const supabase = await createClient()
   if (!supabase) return NextResponse.json({ error: 'DB 연결 실패' }, { status: 500 })
 
-  const provider = resolveProvider()
-  // mock 은 키가 필요 없으므로 requiredKey 가 null 이다.
+  const provider = ANGLE_PROVIDER
   const requiredKey = requiredKeyFor(provider)
   if (requiredKey && !process.env[requiredKey]) {
-    console.error(`[analyze/angle] ${requiredKey} is not set (provider=${provider})`)
-    return NextResponse.json({ error: '분석 엔진이 설정되지 않았습니다.' }, { status: 500 })
+    console.error(`[analyze/angle] ${requiredKey} is not set (provider=${provider}) — no fallback`)
+    return NextResponse.json(
+      { status: 'failed', error: `앵글 생성 엔진(claude-cli)이 설정되지 않았습니다 — ${requiredKey} 미설정. 다른 엔진으로 대신 돌리지 않습니다.` },
+      { status: 500 },
+    )
   }
 
   const body = await req.json().catch(() => null)

@@ -61,6 +61,12 @@ for (const a of fs.readdirSync(new URL('../.claude/agents/', import.meta.url))) 
   t(`.claude/agents/${a} model 은 별칭이 아니다`, m == null || !['opus', 'sonnet', 'haiku'].includes(m), true)
 }
 
+// claude-cli 는 항상 Sonnet 5.5 를 명시한다(2026-09-30) — CLI 기본값에 맡기지 않는다. 5.0 식별자·별칭은 기본값이 될 수 없다.
+const llmSrcPin = fs.readFileSync(new URL('../lib/analysis/llm.ts', import.meta.url), 'utf8')
+t("CLAUDE_CLI_DEFAULT_MODEL 은 claude-sonnet-5-5", /export const CLAUDE_CLI_DEFAULT_MODEL = 'claude-sonnet-5-5'/.test(llmSrcPin), true)
+t('callClaudeCli 는 --model 을 항상 넘긴다(env 없으면 기본값)', /'--model', process.env.CLAUDE_CLI_MODEL || CLAUDE_CLI_DEFAULT_MODEL/.test(llmSrcPin), true)
+t('cmo-daily 의 claude -p 세 호출은 모두 --model claude-sonnet-5-5', (fs.readFileSync(new URL('./cmo-daily.mjs', import.meta.url), 'utf8').match(/'--model', 'claude-sonnet-5-5'/g) ?? []).length, 3)
+
 // 하루 예산 — env 한 줄. 옛 BOOST/UNTIL(크레딧 기간 한시 상향)은 2026-09-29 에 뺐다: 있어도 무시돼야 한다.
 t('env 비면 5', dailyBudgetFor({}), 5)
 t('LLM_DAILY_BUDGET_USD 그대로', dailyBudgetFor({ LLM_DAILY_BUDGET_USD: '20' }), 20)

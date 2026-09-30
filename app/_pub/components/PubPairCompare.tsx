@@ -16,8 +16,11 @@ const saasFirst = (sides: PairSide[]) =>
 function Item({ s }: { s: PairSide }) {
   return (
     <li className="pub-pair-item">
-      <Link className="pub-pair-who" href={`/library/${s.study.slug}`} translate="no">{s.study.brand_name}</Link>
-      <span className="pub-index-s">{s.move.claim}</span>
+      {/* 항목 전체가 링크다 — 브랜드명 한 줄(18px)만 링크면 375 터치타깃 44 에 못 미친다. */}
+      <Link className="pub-pair-link" href={`/library/${s.study.slug}`}>
+        <span className="pub-pair-who" translate="no">{s.study.brand_name}</span>
+        <span className="pub-index-s">{s.move.claim}</span>
+      </Link>
     </li>
   )
 }

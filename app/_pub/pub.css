@@ -1515,3 +1515,28 @@ a.pub-index-row .pub-index-s--2 { -webkit-line-clamp: 2; line-clamp: 2; }
 @media (min-width: 768px) {
   .pub-pair-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--pub-gap-6); }
 }
+
+/* ============================================================
+   B7-b 매칭 리포트 줄이기 (2026-09-30, /cases/report R1 후속)
+   실데이터 1280 문서 3,206px → ≤3,000: 무브 줄·실패 앵글을 상위 3건만 펴고 나머지는 <details> 로 접는다(page.tsx OPEN_ROWS).
+   375 터치타깃: 이 화면의 a·button·summary 를 높이 44(--pub-h-lg) 이상으로 — 글자 크기는 그대로, 높이·패딩만.
+   위 블록의 규칙은 바꾸지 않는다(같은 선택자를 더 뒤에서 덮는다). 새 색·반경·모션 없음. PubNav 소속 타깃은 내비 개편 몫.
+   ============================================================ */
+
+/* 접힘 머리 — 무브·실패 앵글·범례·짝 "N건 더" 전부. */
+.pub-report-body .pub-fold > summary { min-height: var(--pub-h-lg); }
+/* 접힌 실패 앵글 목록 — 위 B7 의 margin-top: 0 을 접힘 안에서만 되살린다. */
+.pub-report-body .pub-fold > .pub-angles { margin-top: var(--pub-gap-3); }
+
+/* 질문 폼 패싯 2개 · 목차 · 나머지 브랜드 칩 링크 · 작은 버튼(해당 없음 상태의 “소비재 포함해서 다시”). */
+.pub-report-ask .pub-facet { height: var(--pub-h-lg); }
+.pub-report-body > .pub-toc a { height: auto; min-height: var(--pub-h-lg); }
+.pub-report-rest a { display: inline-flex; align-items: center; min-height: var(--pub-h-lg); }
+.pub-report-body .pub-btn--sm { height: var(--pub-h-lg); }
+
+/* 갈린 짝 항목 — 브랜드명+claim 전체가 링크(PubPairCompare). 브랜드명 밑줄은 위 .pub-pair-who 그대로. */
+.pub-root .pub-pair-link { display: grid; align-content: start; gap: 2px; min-height: var(--pub-h-lg); }
+.pub-root .pub-pair-link:hover .pub-pair-who { text-decoration-color: currentColor; }
+
+/* 푸터 링크 — Footer 는 모든 공개 화면이 같이 쓰므로 이 화면(질문 폼이 있는 껍데기)에서만 올린다. */
+.pub-root:has(.pub-report-ask) .pub-footer-links a { display: inline-flex; align-items: center; min-height: var(--pub-h-lg); }

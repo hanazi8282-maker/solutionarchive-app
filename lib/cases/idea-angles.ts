@@ -80,16 +80,16 @@ export async function queryHash(q: string, kind: string): Promise<string> {
 }
 
 /** 상한 판정. null = 통과. 문장은 화면에 그대로 나간다. */
-export function limitReason(n: { userToday: number; userActive: number; globalActive: number }): string | null {
+export function limitReason(n: { userToday: number; userActive: number; globalActive: number }, what = '앵글 검증'): string | null {
   if (n.userToday >= IDEA_LIMITS.perUserDaily) return `오늘 한도 ${IDEA_LIMITS.perUserDaily}건을 다 썼다. 내일 다시 시도해 달라`
-  if (n.userActive >= IDEA_LIMITS.perUserConcurrent) return '내 다른 리포트의 앵글 검증이 도는 중이다. 끝난 뒤 다시 시도해 달라'
+  if (n.userActive >= IDEA_LIMITS.perUserConcurrent) return `내 다른 리포트의 ${what}이 도는 중이다. 끝난 뒤 다시 시도해 달라`
   if (n.globalActive >= IDEA_LIMITS.globalConcurrent) return '다른 리포트가 도는 중이다. 1~2분 뒤 다시 시도해 달라'
   return null
 }
 
 /** 게으른 청소 대상인가 — queued·running 인데 시작(없으면 생성) 뒤 IDEA_STALE_MS 가 지났다. */
-export function staleRunning(row: { status: string; started_at: string | null; created_at: string }, now: number): boolean {
-  if (!(IDEA_ACTIVE as readonly string[]).includes(row.status)) return false
+export function staleRunning(row: { status: string; started_at: string | null; created_at: string }, now: number, active: readonly string[] = IDEA_ACTIVE): boolean {
+  if (!active.includes(row.status)) return false
   const t = Date.parse(row.started_at ?? row.created_at)
   return Number.isFinite(t) && now - t > IDEA_STALE_MS
 }

@@ -447,3 +447,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 적용 후 양성: 새 소스 3개 enabled·ok, 새 타깃 3개 active·fresh. 음성: 기존 소스별 타깃 상태는 같은 시각 수집 실행분 외 변화 없음(review_sources 전체 22 → 25).
 - 같은 세션에서 velog `board:side-project` 타깃이 `failed`(수집 실행 중 요청 실패)로 나와 1행을 active 로 되돌렸다(다음 실행에서 원인 확인). 마이그레이션 파일 없음, 원인 미확인.
 - 기술 접근 불가로 등록하지 않은 4곳: Indie Hackers(사용자 글 404) · Hashnode(글 호스트 봇 방어 챌린지) · 아이보스(봇 방어 챌린지) · GeekNews(CloudFront 403). 승인 범위(약관·법적 조항)를 넘는 우회는 하지 않았다.
+
+### 2026-09-30 — 000044 Indie Hackers 편집 인터뷰 등록 (CEO-STAFF 세션, 남헌 명시 승인 하 적용)
+
+- 000044(review_sources `indiehackers` 1행 + analysis_projects 1행 + review_targets `board:stories` 1행 INSERT)를 PR #376 머지 뒤 호스티드 Supabase MCP 로 적용했다. 승인: 남헌 2026-09-30 — "Indie Hackers 는 편집팀 인터뷰만 등록한다"(사용자 글은 404 라 불가능). 법적 조항은 인지한 상태의 강행이다(`docs/risk-log.md`). 승인 범위는 약관·법적 조항까지이고, 봇 방어 우회는 포함하지 않는다(이 소스는 방어 응답 없이 정적 200).
+- 적용 전 실측: 소스·프로젝트·타깃 모두 0건. 트랜잭션 안에서 사전 상태(0/0/0)와 사후 행 수(소스 enabled 1 · 프로젝트 1 · 타깃 active 1)를 검사해 다르면 롤백되게 했고 통과해 COMMIT 됐다.
+- 적용 후 양성: `indiehackers` enabled·6000ms·일 상한 40, 타깃 `board:stories` active·fresh. 음성: devto·inflearn·yozm·velog 타깃 상태는 적용 전과 동일(velog 5·devto 1·inflearn 1·yozm 1 active), review_sources 25 → 26.
+- 한계(어댑터 보고): 인터뷰는 게시 직후 한 번만 읽어 본문은 전부 받지만 댓글은 거의 0개다. 댓글이 달릴 즈음에는 본문이 가입 벽 뒤로 간다.

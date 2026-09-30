@@ -144,7 +144,7 @@ export default async function Home() {
 
   // B4 캡션 — 랜딩 상단과 같은 로더 결과(불일치 0). 못 세면 캡션만 "집계 불가", 4타일은 그대로 뜬다.
   const captions: Pick<PubStepItem, 'caption' | 'href'>[] = [
-    { caption: `근거 ${n(counts.evidence, '건')} · ${vocTotal ? `리뷰 ${vocTotal}은` : `리뷰(${UNKNOWN})는`} 따로 신호 피드로 간다` },
+    { caption: `근거 ${n(counts.evidence, '건')} · ${vocTotal ? `리뷰 ${vocTotal}은` : `리뷰(${UNKNOWN})는`} 따로 VOC 피드로 간다` },
     { caption: '2축 × A~D', href: '/library/methodology' },
     { caption: `승인 케이스 ${n(counts.cases, '건')} · 무브 ${n(counts.moves, '개')} · ${thisWeek === null ? `이번 주 승인 ${UNKNOWN}` : `+${thisWeek} 이번 주`}` },
     { caption: `문제 유형 ${READER_PROBLEMS.length}가지`, href: '/onboarding/quiz' },

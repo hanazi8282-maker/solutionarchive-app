@@ -414,6 +414,18 @@ const runQuota = (h, over = {}) =>
   t('적재된 건 처음 본문이다', h.log.inputs[0].text, '원래 본문')
 }
 {
+  // 2026-10-01 원문 주소 머리말(types.ts withSourceUrl) — 적재 본문에만 붙고 지문은 머리말 없는 본문으로 잰다.
+  //   지문에 섞이면 이미 본 글이 전부 "수정됨"으로 세어진다.
+  const u = 'https://velog.io/@a/b'
+  const withUrl = makeHarness({ pages: { 1: page([rv({ externalId: 's1', text: '본문', sourceUrl: u })], null) } })
+  const without = makeHarness({ pages: { 1: page([rv({ externalId: 's1', text: '본문' })], null) } })
+  await run(withUrl)
+  await run(without)
+  t('sourceUrl 은 적재 본문 맨 앞 머리말로 간다', withUrl.log.inputs[0].text, `[SRC: ${u}]\n본문`)
+  t('sourceUrl 이 없으면 본문 그대로', without.log.inputs[0].text, '본문')
+  t('머리말은 지문(content_hash)에 안 들어간다', [...withUrl.seen.values()].join(), [...without.seen.values()].join())
+}
+{
   // 2차 방어(같은 글이 다른 타깃 경로로 들어옴)를 러너가 **따로 센다.**
   // "신규 0건"과 "중복만 받았다"가 같은 숫자로 보이면 안 된다(§7.1).
   const h = makeHarness({

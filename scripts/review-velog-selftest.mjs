@@ -152,6 +152,7 @@ ok('URL: /graphql 을 만들지 않는다 (POST 는 러너 계약 밖)', !velogA
 
   const [post] = r.reviews
   t('본문: externalId 는 글 경로', post.externalId, PATH)
+  t('본문·댓글: sourceUrl = 글 주소(공개 VOC 출처 보기)', r.reviews.map((x) => x.sourceUrl).join(), Array(r.reviews.length).fill('https://velog.io' + PATH).join())
   t('본문: storyId 는 null', post.storyId, null)
   t('본문: rating null', post.rating, null)
   t('본문: seller null', post.seller, null)

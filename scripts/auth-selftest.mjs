@@ -39,8 +39,8 @@ for (const p of [...cronRoutes, ...vercelCrons]) t(`공개(크론): ${p}`, isPub
 for (const p of ['/api/threads/match-posts', '/api/insight/kakao-webhook', '/login', '/auth/login', '/auth/callback', '/auth/logout',
   '/onboarding/quiz', '/api/onboarding/quiz', '/api/onboarding/quiz/share']) t(`공개: ${p}`, isPublicPath(p))
 
-// 2026-09-25 신호 화면 — PUBLIC_EXACT 정확일치로만 연다(접두사 아님).
-const SIGNAL_PAGES = ['/signals', '/signals/community', '/signals/card']
+// 2026-09-25 VOC 화면(옛 /signals, 2026-10-01 개명) — PUBLIC_EXACT 정확일치로만 연다(접두사 아님).
+const SIGNAL_PAGES = ['/voc', '/voc/community', '/voc/card']
 // 2b. 페이지는 /login·/onboarding 말고 전부 보호(새 화면은 기본 잠김)
 const pages = files.filter((f) => /(^|\/)page\.tsx$/.test(f)).map(routeOf)
 t(`페이지 추출 ≥8건 (실제 ${pages.length})`, pages.length >= 8)
@@ -100,12 +100,14 @@ const prefixBlock = readFileSync(`${ROOT}/lib/auth/policy.ts`, 'utf8').match(/co
 t('PUBLIC_PREFIXES 블록 추출(못 뽑았으면 아래 검사는 무의미하다)', prefixBlock.includes("'/login'"))
 t("PUBLIC_PREFIXES 에 '/' 단독 항목이 없다 — 랜딩은 정확일치 분기로만 연다", !/(^|[\s[])'\/'\s*,/.test(prefixBlock))
 
-// 2d. 신호 화면(남헌 2026-09-25 위임 B항) — 정확일치라 이웃·하위 경로는 닫혀 있어야 한다.
-for (const p of SIGNAL_PAGES) t(`공개(신호): ${p}`, isPublicPath(p))
-for (const p of ['/signalsx', '/signals/', '/signals/x', '/signals/community/x', '/signals/card/x', '/api/signals']) {
-  t(`보호(신호 공개가 이웃 경로로 번지지 않는다): ${p}`, !isPublicPath(p))
+// 2d. VOC 화면(남헌 2026-09-25 위임 B항) — 정확일치라 이웃·하위 경로는 닫혀 있어야 한다.
+for (const p of SIGNAL_PAGES) t(`공개(VOC): ${p}`, isPublicPath(p))
+for (const p of ['/vocx', '/voc/', '/voc/x', '/voc/community/x', '/voc/card/x', '/api/voc', '/api/signals',
+  // 2026-10-01 신호→VOC 개명: 옛 경로는 next.config 301 이 proxy 앞에서 처리한다 — 정책상 더는 공개가 아니다.
+  '/signals', '/signals/community', '/signals/card']) {
+  t(`보호(VOC 공개가 이웃 경로로 번지지 않는다): ${p}`, !isPublicPath(p))
 }
-t('PUBLIC_PREFIXES 에 /signals 가 없다 — 정확일치로만 연다', !prefixBlock.includes("'/signals"))
+t('PUBLIC_PREFIXES 에 /voc 가 없다 — 정확일치로만 연다', !prefixBlock.includes("'/voc"))
 // 유사 케이스 검색 API — 검수 화면 /cases/search 의 짝. 로그인 전용이다(CEO-STAFF 09-25 확인: 목록에 없었다).
 t('보호: /api/cases/search', !isPublicPath('/api/cases/search'))
 

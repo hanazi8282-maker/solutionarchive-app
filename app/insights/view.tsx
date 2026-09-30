@@ -21,9 +21,9 @@ const QUADRANT_ICON: Record<QuadrantKey, ReactNode> = {
   PROVEN_DEMAND: <IconApprove />, UNCHARTED_DEMAND: <IconSignal />, CROWDED_NO_DEMAND: <IconSplit />, PARK: <IconJudge />, none: <IconProblem />,
 }
 
-/** `/signals` 와의 경계. 두 화면 Hero 에 같은 뜻으로 적는다(I1-2). */
+/** `/voc` 와의 경계. 두 화면 Hero 에 같은 뜻으로 적는다(I1-2). */
 export const BOUNDARY =
-  '신호 피드는 남의 목소리(리뷰·댓글 발췌)이고, 여기는 그 목소리에서 우리가 만든 문구와 judge 판정이다. 리뷰 원문은 싣지 않는다.'
+  'VOC 피드는 남의 목소리(리뷰·댓글 발췌)이고, 여기는 그 목소리에서 우리가 만든 문구와 judge 판정이다. 리뷰 원문은 싣지 않는다.'
 
 /**
  * `/insights` 본문. 조회는 page.tsx 가 하고 여기는 결과만 그린다 — 오프라인 렌더 셀프테스트가

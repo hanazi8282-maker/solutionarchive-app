@@ -1,4 +1,4 @@
-// 공개 신호 화면(/signals · /signals/community · /signals/card) 의 읽기 한 벌.
+// 공개 VOC 화면(2026-10-01 `/signals` 에서 개명 — /voc · /voc/community · /voc/card) 의 읽기 한 벌.
 // 남헌 2026-09-25 위임 B항 — reports/2026-09-24/competitor-features-reestimate.md B1·B2·§F 7·8.
 //
 // 데이터: review_relevance_verdicts ⨝ analysis_inputs(⨝ review_sources · review_fingerprints) ⨝ analysis_projects.
@@ -16,8 +16,10 @@ import {
   COMMUNITY_SIGNALS, LABEL_LEVELS, type CommunitySignal, type LabelLevel,
 } from '../analysis/relevance-judge.ts'
 import { extractStoryIdFromText, hnThreadUrl } from '../review/adapters/hackernews.ts'
+import { sourceUrlOf } from '../review/types.ts'
+import { isSourceHostUrl, postUrlOfRef } from '../review/target-ref.ts'
 // 종류 축은 /library 와 한 벌이다(남헌 2026-09-23: SaaS 창업가 대상, 소비재는 숨기되 지우지 않는다).
-import { DEFAULT_SEARCH_KIND, SEARCH_KINDS, type SearchKind } from '../cases/search.ts'
+import { DEFAULT_SEARCH_KIND, type SearchKind } from '../cases/search.ts'
 import { productKindOf } from '../cases/advisor.ts'
 import { BUSINESS_MODEL } from '../cases/draft.ts'
 
@@ -74,9 +76,9 @@ export interface FeedFilters {
 
 // ── 순수 함수 (selftest 대상) ───────────────────────────────────
 
-const HN_HEADER = /^\s*\[HN:[^\]]*\]\s*/
+const HN_HEADER = /^\s*\[(?:HN|SRC):[^\]]*\]\s*/
 
-/** 수집기가 붙인 머리말(`[HN: 제목 · URL]`)을 떼고 한 줄로 눕혀 EXCERPT_MAX 자로 자른다. */
+/** 수집기가 붙인 머리말(`[HN: 제목 · URL]` · `[SRC: URL]`)을 떼고 한 줄로 눕혀 EXCERPT_MAX 자로 자른다. */
 export function excerptOf(text: string | null | undefined, max = EXCERPT_MAX): string {
   const flat = String(text ?? '').replace(HN_HEADER, '').replace(/\s+/g, ' ').trim()
   const chars = Array.from(flat) // 코드포인트 단위 — 이모지·한글 조합을 반으로 자르지 않는다
@@ -88,6 +90,9 @@ export function excerptOf(text: string | null | undefined, max = EXCERPT_MAX): s
  *  - hackernews: 본문 머리말의 스레드 URL(수집기가 심는다 — hackernews.ts hnThreadUrl)
  *  - youtube:    지문 product_ref `v:<영상ID>` → 영상
  *  - danawa:     지문 product_ref `<pcode>` → 상품 페이지
+ *  - 본문 `[SRC: URL]` 머리말(2026-10-01~, 러너가 심는다 — types.ts withSourceUrl): 그 소스 호스트일 때만.
+ *    게시판 순회(velog·disquiet·inflearn·yozm·indiehackers)의 글 주소는 이것뿐이다.
+ *  - 커뮤니티 `url:<경로>` 타깃: 지문 product_ref → 어댑터 호스트 + 경로(target-ref.ts postUrlOfRef).
  * 그 밖은 null. 목록 URL·검색 URL 로 채우지 않는다 — "이 글"의 출처가 아니기 때문이다.
  */
 export function sourceLinkOf(sourceKey: string | null, text: string | null, productRef: string | null): string | null {
@@ -101,7 +106,9 @@ export function sourceLinkOf(sourceKey: string | null, text: string | null, prod
     return m ? `https://www.youtube.com/watch?v=${m[1]}` : null
   }
   if (sourceKey === 'danawa') return /^\d+$/.test(ref) ? `https://prod.danawa.com/info/?pcode=${ref}` : null
-  return null
+  const tagged = sourceUrlOf(text)
+  if (tagged && isSourceHostUrl(sourceKey, tagged)) return tagged
+  return postUrlOfRef(sourceKey, ref)
 }
 
 const pick = <T extends string>(v: unknown, allowed: readonly T[]): T | null =>
@@ -111,15 +118,17 @@ const pick = <T extends string>(v: unknown, allowed: readonly T[]): T | null =>
 export function parseFeedQuery(sp: Record<string, string | string[] | undefined>): { filters: FeedFilters; errors: string[] } {
   const one = (k: string) => (Array.isArray(sp[k]) ? sp[k][0] : sp[k]) ?? ''
   const errors: string[] = []
-  // kind 어휘 밖이면 기본값으로 조용히 떨어지지 않는다 — /library(parseSearchQuery)와 같은 규칙.
+  // 2026-10-01 남헌: "소비재 포함" 필터 제거 — 공개 VOC 는 기본값(SaaS만) 하나다. 옛 링크의 ?kind=all 도
+  //   기본값으로 되돌리되 조용히 떨어지지 않고 사유를 남긴다(/library parseSearchQuery 와 같은 규칙).
+  //   다시 넣을 때는 여기서 SEARCH_KINDS 를 받으면 된다 — 조회부(kind 인자)는 그대로 두었다.
   const rawKind = one('kind').trim().toLowerCase()
-  const kind = (SEARCH_KINDS as readonly string[]).includes(rawKind) ? (rawKind as SearchKind) : DEFAULT_SEARCH_KIND
-  if (rawKind && kind !== rawKind) errors.push(`kind "${rawKind.slice(0, 20)}" 는 ${SEARCH_KINDS.join('·')} 가 아니다`)
+  const kind: SearchKind = DEFAULT_SEARCH_KIND
+  if (rawKind && rawKind !== kind) errors.push(`kind "${rawKind.slice(0, 20)}" 는 지금 지원하지 않는다(소비재 포함 보기 없음)`)
   const src = one('source').trim()
   const source = /^[a-z0-9_-]{1,40}$/.test(src) ? src : null
   if (src && !source) errors.push(`소스 "${src.slice(0, 40)}" 는 형식이 아니다`)
   const signal = pick(one('signal'), COMMUNITY_SIGNALS)
-  if (one('signal') && !signal) errors.push(`신호 "${one('signal').slice(0, 20)}" 는 pain·demand·objection 이 아니다`)
+  if (one('signal') && !signal) errors.push(`VOC 유형 "${one('signal').slice(0, 20)}" 는 pain·demand·objection 이 아니다`)
   const impact = pick(one('impact'), LABEL_LEVELS)
   if (one('impact') && !impact) errors.push(`영향 "${one('impact').slice(0, 20)}" 는 high·mid·low 가 아니다`)
   const p = Number(one('page') || 1)
@@ -138,7 +147,7 @@ export function feedHref(f: FeedFilters, patch: Partial<FeedFilters>): string {
   if (n.impact) p.set('impact', n.impact)
   if (n.page > 1) p.set('page', String(n.page))
   const s = p.toString()
-  return s ? `/signals?${s}` : '/signals'
+  return s ? `/voc?${s}` : '/voc'
 }
 
 /**

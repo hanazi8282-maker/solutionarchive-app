@@ -72,6 +72,7 @@ function parseArticle(body: string, id: string): ParseResult {
         authorMasked: null,
         writtenAt: kstDate(art.datePublished),
         storyId: p,
+        sourceUrl: `${HOST}${p}`,
       },
     ],
     nextCursor: null,

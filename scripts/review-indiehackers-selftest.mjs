@@ -88,6 +88,7 @@ t('next: 모르는 게시판은 요청 0', A.nextRequest(target({ productRef: 'b
   const r = A.parse(fx(FX_NEW), sctx(NEW))
   t('최신: 본문 1건 · 댓글 0 · 실패 0', `${r.reviews.length}/${r.parseFailures}`, '1/0')
   t('최신: externalId', r.reviews[0].externalId, `/post/${NEW}`)
+  t('최신: sourceUrl = 글 주소(공개 VOC 출처 보기)', r.reviews[0].sourceUrl, `https://www.indiehackers.com/post/${NEW}`)
   ok('최신: 제목으로 시작', r.reviews[0].text.startsWith('Hitting $60k MRR by building an SDK instead of an app'))
   ok('최신: 본문 끝까지(What\'s next 절)', r.reviews[0].text.includes('control surface for AI output'))
   ok('최신: 목차(nav)는 뺀다', !r.reviews[0].text.includes('Contents'))

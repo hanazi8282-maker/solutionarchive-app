@@ -74,6 +74,7 @@ t('next: 오염된 큐는 요청 0', A.nextRequest(target({ cursor: encodeBoardC
   const r = A.parse(fx('detail-3783.html'), qctx('3783'))
   t('기사: 1건 · 실패 0', `${r.reviews.length}/${r.parseFailures}`, '1/0')
   t('기사: externalId', r.reviews[0].externalId, '/magazine/detail/3783/')
+  t('기사: sourceUrl = 기사 주소(공개 VOC 출처 보기)', r.reviews[0].sourceUrl, 'https://yozm.wishket.com/magazine/detail/3783/')
   ok('기사: 제목 + 본문', r.reviews[0].text.startsWith('이제 AI에게 매번 설명하지 않아도 됩니다') && r.reviews[0].text.length > 7000)
   t('기사: 작성일(+09:00 원문 그대로 KST)', r.reviews[0].writtenAt, '2026-06-04')
   t('기사: 다른 기사가 오면 실패 1 · 0건', JSON.stringify(((x) => [x.reviews.length, x.parseFailures])(A.parse(fx('detail-3783.html'), qctx('378')))), '[0,1]')

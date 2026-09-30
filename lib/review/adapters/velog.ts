@@ -583,7 +583,9 @@ function parsePostPage(body: string, parts: RefParts): Omit<ParseResult, 'nextCu
     })
   }
 
-  return { reviews, parseFailures: unresolved, filtered }
+  // 글·댓글 모두 글 주소로 간다(댓글 uuid 앵커는 페이지에 없다). 공개 VOC 카드의 "출처 보기".
+  const sourceUrl = `${HOST}${parts.path}`
+  return { reviews: reviews.map((r) => ({ ...r, sourceUrl })), parseFailures: unresolved, filtered }
 }
 
 export const velogAdapter: ReviewSourceAdapter = {

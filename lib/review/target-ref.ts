@@ -42,6 +42,7 @@ import { parseProductRef as parseProducthuntRef } from './adapters/producthunt.t
 import { BOARDS as DEVTO_BOARDS } from './adapters/devto.ts'
 import { BOARDS as INFLEARN_BOARDS } from './adapters/inflearn.ts'
 import { BOARDS as YOZM_BOARDS } from './adapters/yozm.ts'
+import { BOARDS as INDIEHACKERS_BOARDS } from './adapters/indiehackers.ts'
 
 export type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
 
@@ -294,6 +295,7 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   devto: boardOnlyRef(DEVTO_BOARDS),
   inflearn: boardOnlyRef(INFLEARN_BOARDS),
   yozm: boardOnlyRef(YOZM_BOARDS),
+  indiehackers: boardOnlyRef(INDIEHACKERS_BOARDS),
 }
 
 export function buildProductRef(sourceKey: string, raw: string): RefResult | null {

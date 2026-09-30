@@ -1,0 +1,10 @@
+# http://www.robotstxt.org
+User-agent: *
+Disallow: 
+Sitemap: https://storage.googleapis.com/indie-hackers.appspot.com/sitemaps/ih-sitemap-index.xml
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /

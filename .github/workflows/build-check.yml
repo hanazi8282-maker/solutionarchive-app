@@ -176,6 +176,8 @@ jobs:
       - run: node scripts/review-devto-selftest.mjs
       - run: node scripts/review-inflearn-selftest.mjs
       - run: node scripts/review-yozm-selftest.mjs
+      #   indiehackers: 편집 인터뷰만(남헌 2026-09-30). 가입 벽에서 본문을 끊는지, 인터뷰 표식 없는 글을 거르는지.
+      - run: node scripts/review-indiehackers-selftest.mjs
       # 위 둘의 소스 키가 마이그레이션·ADAPTERS 맵·워크플로 선택지와 같은 집합인지.
       # 하나라도 빠지면 코드만 있고 수집은 0건인 상태가 로그도 없이 유지된다.
       #

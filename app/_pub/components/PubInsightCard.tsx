@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import {
-  ANGLE_TYPE_LABELS, MODE_LABELS, OUTPUT_TYPE_LABELS, QUADRANT_SHORT_LABELS, SUBSTANTIATION_VERDICT_LABELS,
+  ANGLE_TYPE_LABELS, ASPECT_LAYER_LABELS, MODE_LABELS, OUTPUT_TYPE_LABELS, QUADRANT_SHORT_LABELS, SUBSTANTIATION_VERDICT_LABELS,
 } from '@/lib/analysis/types'
 import { excerptOf } from '@/lib/signals/feed'
-import type { InsightItem } from '@/lib/insights/feed'
+import { axisLabel, type InsightItem } from '@/lib/insights/feed'
 import type { InsightEvidence } from '@/lib/insights/evidence'
 import { PubInsightEvidence } from './PubInsightEvidence'
 import { IconArrowRight, IconChevronRight } from '../icons'
@@ -42,8 +42,15 @@ export function PubInsightCard({ item, evidence }: {
         {item.evidence ? <blockquote className="pub-insight-quote">{item.evidence}</blockquote> : null}
         <div className="pub-card-meta pub-insight-meta">
           <span className="pub-card-brand">{excerptOf(item.project_pitch ?? '(설명 없음)', 40)}</span>
-          {item.aspect_name ? <span>{item.aspect_name}</span> : null}
+          {item.aspect_name || item.layer
+            ? <span>{[item.aspect_name, item.layer && `(${ASPECT_LAYER_LABELS[item.layer]})`].filter(Boolean).join(' ')}</span>
+            : null}
           <span>{QUADRANT_SHORT_LABELS[item.aspect_quadrant]}</span>
+          {/* 필터 4축 라벨은 값이 있을 때만 — "미지정" 을 카드마다 찍지 않는다(B3). */}
+          {(['problem', 'bottleneck', 'model'] as const).map((k) => {
+            const label = axisLabel(k, item[k])
+            return label ? <span key={k}>{label}</span> : null
+          })}
           {item.mode ? <span>{MODE_LABELS[item.mode]}</span> : null}
           {item.created_at ? <span>{KST.format(new Date(item.created_at))}</span> : null}
           <Link className="pub-card-go" href={`/analyze/${item.project_id}/angles`}>프로젝트에서 보기<IconArrowRight /></Link>

@@ -80,6 +80,14 @@ for (const mode of ['forward', 'reverse']) checkPrompt(`angle writer systemPromp
 const ia = await import('../lib/cases/idea-angles.ts')
 checkPrompt('idea-angles writer', ia.IDEA_WRITER_SYSTEM + '\n' + ia.buildIdeaWriterPrompt(DATA, [], []))
 checkPrompt('idea-angles rewrite', ia.IDEA_REWRITE_SYSTEM + '\n' + ia.buildIdeaRewritePrompt('h', 'r', 'corpus', DATA))
+// PMF 판정 자가진단 — 아이디어·구조화 입력·창업자 답변 원문이 데이터로 실린다.
+const ip = await import('../lib/cases/idea-pmf.ts')
+{
+  const inp = { core_feature: 'f', customer: 'c', price: null, alternative: DATA, bottleneck_override: null }
+  checkPrompt('idea-pmf bottleneck', ip.IDEA_PMF_BOTTLENECK_SYSTEM + '\n' + ip.buildBottleneckPrompt('q', inp))
+  checkPrompt('idea-pmf questions', ip.IDEA_PMF_QUESTION_SYSTEM + '\n' + ip.buildQuestionPrompt('q', inp, [], [], []))
+  checkPrompt('idea-pmf score', ip.IDEA_PMF_SCORE_SYSTEM + '\n' + ip.buildScorePrompt([{ id: 'q1', factor: 'f', question: 'q', anchor_move_id: null }], [{ id: 'q1', text: DATA }]))
+}
 // route.ts 는 next/server 를 import 해 node 로 못 연다 — 재작성 지시문 2개에 문구가 끼워졌는지만 정적으로 센다.
 {
   const src = fs.readFileSync(path.join(root, 'app/api/analyze/angle/route.ts'), 'utf8')

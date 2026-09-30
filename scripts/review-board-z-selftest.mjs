@@ -587,6 +587,142 @@ for (const [name, body] of [
   t('안전장치: 요청도 0건', urls.length, 0)
 }
 
+// ══ 삭제·없는 글이 큐 맨 앞을 막지 않는다 (2026-09-30) ═══════════════
+//
+// 실측: board:side-project 큐 맨 앞 `/@axfehlerlee/AIEXAMCOACH` 가 지워진 글이다. 로컬 GET 은 HTTP 200 +
+// `<title data-rh="true">404 - velog</title>`(soft-404, 픽스처 post-deleted-soft404.html), GitHub Actions
+// 실행 36633789150 로그는 `board:side-project — HTTP 404`. 전에는 HTTP 404 가 runner.ts 의 `>= 400 → failed`
+// 로 가서 커서를 안 옮긴 채 타깃을 닫았고, 사람이 되살려도 다음 실행이 같은 글에서 또 failed 였다.
+// (a) 그 글만 빼고 다음 글 처리 · (b) 파싱 성공/실패에 안 섞이고 수치로 남음 · (c) 연속 3건이면 중단
+// (d) 500/403/목록 404/url: 404 는 예전대로 · (e) 건너뜀을 끄면 (a) 가 깨진다.
+{
+  const DEAD = '/@axfehlerlee/AIEXAMCOACH'
+  const soft404 = fx('velog', 'post-deleted-soft404.html')
+  ok('soft404: 픽스처에 실측 마커가 있다', soft404.includes('<title data-rh="true">404 - velog</title>'))
+
+  const runBoard = async (adapter, { q, respond, productRef = 'board:side-project' }) => {
+    let clock = Date.parse('2026-09-30T20:00:00+09:00')
+    const urls = []
+    const row = { id: 't1', projectId: 'p1', sourceKey: 'velog', productRef, cursor: q ? cur(q, '2026-09-20T00:00:00.000Z') : null, lastReviewAt: null, consecutiveEmpty: 0 }
+    const ports = {
+      now: () => new Date(clock),
+      async sleep(ms) {
+        clock += ms
+      },
+      async fetchText(url) {
+        clock += 10
+        if (url.endsWith('/robots.txt')) return { status: 200, body: 'User-agent: *\n' }
+        urls.push(url)
+        const p = new URL(url).pathname
+        const got = respond(p)
+        if (got) return got
+        const [, handle, slug] = decodeURIComponent(p).split('/')
+        return { status: 200, body: blobPage({ username: handle.slice(1), slug, comments: [{ id: `${slug}-c1`, text: `${slug} 댓글` }] }) }
+      },
+      store: {
+        async loadSource() {
+          return { key: 'velog', enabled: true, minIntervalMs: 5000, dailyRequestCap: 100, requestsToday: 0 }
+        },
+        async listDueTargets() {
+          return [{ ...row }]
+        },
+        async saveTargetProgress(p) {
+          row.cursor = p.cursor
+          row.status = p.status
+        },
+        async recordFingerprint() {
+          return 'new'
+        },
+        async appendInput() {
+          return 'in'
+        },
+        async linkFingerprint() {},
+      },
+    }
+    const r = await runCollection(adapter, { dryRun: false, targetLimit: 1 }, ports)
+    return { r, row, urls, q: row.cursor ? decodeBoardCursor(row.cursor).q : null }
+  }
+  const soft = (p) => (p === DEAD ? { status: 200, body: soft404 } : null)
+  const hard = (p) => (p === DEAD ? { status: 404, body: soft404 } : null)
+
+  const caseA = async (adapter, respond, label) => {
+    const { r, row, urls, q } = await runBoard(adapter, { q: [DEAD, '/@b/next'], respond })
+    const fails = []
+    const chk = (name, cond) => {
+      if (!cond) fails.push(name)
+    }
+    chk('status 가 failed 가 아니다', row.status === 'active')
+    chk('다음 글을 요청했다', urls.includes(`${VELOG_HOST}/@b/next`))
+    chk('죽은 글이 큐에서 빠졌다', q && !q.includes(DEAD))
+    chk('다음 글 본문+댓글 2건 파싱', r.stats.reviewsParsed === 2)
+    chk('파싱 실패 0건(soft-404 는 파서 고장이 아니다)', r.stats.parseFailures === 0)
+    chk('건너뜀 1건이 결과에 남는다', r.missingSkipped === 1)
+    chk('outcome 에 건너뜀 수치·경로', r.perTarget[0].outcome.includes(`삭제·없는 글 1건 건너뜀(${DEAD})`))
+    chk('요청 2건(robots 제외)', r.requests === 2)
+    chk('health ok', r.health.health === 'ok')
+    return { fails, r }
+  }
+
+  for (const [label, respond] of [['HTTP 200 soft-404', soft], ['HTTP 404', hard]]) {
+    const { fails, r } = await caseA(velogAdapter, respond, label)
+    ok(`soft404(a·b) ${label}: 전부 통과${fails.length ? ` — 실패: ${fails.join(', ')} / ${r.perTarget[0]?.outcome}` : ''}`, fails.length === 0)
+  }
+
+  // 제목이 "404" 인 진짜 글은 건너뛰지 않는다(마커는 글을 못 찾았을 때만 본다).
+  {
+    const real = blobPage({ username: 'b', slug: 'x' }).replace('<html>', '<html><head><title data-rh="true">404 - velog</title></head>')
+    const res = velogAdapter.parse(real, { productRef: 'board:side-project', cursor: cur(['/@b/x']), lastReviewAt: null })
+    ok('soft404: 제목이 404 인 진짜 글은 적재한다', res.reviews.length === 1 && !res.missing)
+  }
+
+  // (c) 전부 404 처럼 보이면 연속 3건에서 멈춘다.
+  {
+    const all = ['/@d/1', '/@d/2', '/@d/3', '/@d/4']
+    const { r, row, urls, q } = await runBoard(velogAdapter, { q: all, respond: () => ({ status: 200, body: soft404 }) })
+    t('soft404(c): 글 요청 3건에서 멈춘다', urls.length, 3)
+    t('soft404(c): status active(failed·exhausted 아님)', row.status, 'active')
+    ok('soft404(c): outcome 에 연속 수치·기준·사유', r.perTarget[0].outcome.includes('삭제·없는 글 연속 3건(기준 3)') && r.perTarget[0].outcome.includes('구조 변경·차단 의심'))
+    t('soft404(c): 건너뛴 것은 2건(문턱 넘긴 3번째는 큐에 남김)', r.missingSkipped, 2)
+    t('soft404(c): 큐는 3번째부터 남는다', JSON.stringify(q), JSON.stringify(['/@d/3', '/@d/4']))
+    t('soft404(c): 파싱 실패 0건', r.stats.parseFailures, 0)
+  }
+
+  // (d) 진짜 서버 오류·차단은 예전대로.
+  {
+    const e500 = await runBoard(velogAdapter, { q: [DEAD, '/@b/next'], respond: () => ({ status: 500, body: 'oops' }) })
+    t('soft404(d): 500 → failed', e500.row.status, 'failed')
+    t('soft404(d): 500 → 큐 그대로', JSON.stringify(e500.q), JSON.stringify([DEAD, '/@b/next']))
+    t('soft404(d): 500 → 건너뜀 0', e500.r.missingSkipped, 0)
+    const e403 = await runBoard(velogAdapter, { q: [DEAD, '/@b/next'], respond: () => ({ status: 403, body: 'no' }) })
+    t('soft404(d): 403 → 차단 1건', e403.r.stats.blockedResponses, 1)
+    ok('soft404(d): 403 → 실행 중단', e403.r.perTarget[0].outcome.includes('차단 응답 403'))
+    t('soft404(d): 403 → 큐 그대로', JSON.stringify(e403.q), JSON.stringify([DEAD, '/@b/next']))
+    const list404 = await runBoard(velogAdapter, { q: null, respond: () => ({ status: 404, body: soft404 }) })
+    t('soft404(d): 목록 페이지 404 → failed', list404.row.status, 'failed')
+    const url404 = await runBoard(velogAdapter, { q: null, productRef: POST_REF, respond: () => ({ status: 404, body: soft404 }) })
+    t('soft404(d): url: 글 404 → failed', url404.row.status, 'failed')
+  }
+
+  // (e) 뮤테이션: 건너뜀 두 경로(soft-404 마커 · skipNotFound)를 끄면 (a) 가 깨진다.
+  {
+    const src = fs.readFileSync(path.join(here, '../lib/review/adapters/velog.ts'), 'utf8')
+    const m1 = src.replace('SOFT_404_RE.test(body)) return skipQueueHead(cur)', 'false) return skipQueueHead(cur)')
+    const mutated = m1.replace('return cur.q.length > 0 ? skipQueueHead(cur) : null', 'return null')
+    ok('soft404(e): 뮤테이션 지점 2곳을 찾았다', m1 !== src && mutated !== m1)
+    const mutantPath = path.join(here, `../lib/review/adapters/.velog-mutant-${process.pid}.ts`)
+    fs.writeFileSync(mutantPath, mutated)
+    try {
+      const mutant = await import(`../lib/review/adapters/.velog-mutant-${process.pid}.ts`)
+      const s = await caseA(mutant.velogAdapter, soft)
+      ok(`soft404(e): 끄면 200 soft-404 가 파싱 실패로 샌다(${s.fails.join(', ')})`, s.fails.length > 0 && s.r.stats.parseFailures === 1)
+      const h = await caseA(mutant.velogAdapter, hard)
+      ok(`soft404(e): 끄면 HTTP 404 가 다시 failed(${h.fails.join(', ')})`, h.fails.includes('status 가 failed 가 아니다'))
+    } finally {
+      fs.rmSync(mutantPath, { force: true })
+    }
+  }
+}
+
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {
   console.log('게시판 모드가 틀렸다.')

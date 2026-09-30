@@ -640,6 +640,8 @@ export const velogAdapter: ReviewSourceAdapter = {
           : // 큐 값이 화이트리스트를 통과하지 못한다 = 커서가 손상됐다. 스코프를
             // 모르는 채로 적재하지 않는다 — 남의 글이 이 타깃의 project_id 로 들어간다(SP-031).
             { reviews: [], parseFailures: 1, filtered: 0 }
+        // 삭제·없는 글(soft-404, HTTP 200). 글을 못 찾았을 때만 본다 — 제목이 "404" 인 진짜 글을 건너뛰지 않게.
+        if (parts && res.reviews.length === 0 && SOFT_404_RE.test(body)) return skipQueueHead(cur)
         return { ...res, nextCursor: encodeBoardCursor(rest), pauseRun: rest.q.length === 0 }
       }
       return parseBoardListPage(body, cur, ctx.lastReviewAt)
@@ -657,7 +659,34 @@ export const velogAdapter: ReviewSourceAdapter = {
     return { ...parsePostPage(body, parts), nextCursor: null }
   },
 
+  // 게시판 큐 맨 앞 글이 HTTP 404 면 그 글만 뺀다. 목록 페이지·url: 타깃의 404 는 예전대로 failed.
+  skipNotFound(ctx: ParseContext): ParseResult | null {
+    if (!boardList(ctx.productRef)) return null
+    const cur = decodeBoardCursor(ctx.cursor)
+    return cur.q.length > 0 ? skipQueueHead(cur) : null
+  },
+
   // quotaMarkers 를 선언하지 않는다 = 모든 403/429 를 차단으로 본다.
+}
+
+/**
+ * 삭제·없는 글 페이지. 실측 2026-09-30 `/@axfehlerlee/AIEXAMCOACH`: 같은 글이 로컬 GET 에서는
+ * **HTTP 200** + `<title data-rh="true">404 - velog</title>`(28KB, Apollo 블롭은 있고 Post 0건),
+ * GitHub Actions 실행(36633789150)에서는 **HTTP 404** 였다. 두 경로 모두 skipQueueHead 로 간다.
+ */
+const SOFT_404_RE = /<title[^>]*>\s*404 - velog\s*<\/title>/
+
+/** 큐 맨 앞 글을 "없는 글"로 빼고 나머지 큐를 잇는다. 파싱 실패로 세지 않는다(ParseResult.missing). */
+function skipQueueHead(cur: BoardCursor): ParseResult {
+  const rest: BoardCursor = { q: cur.q.slice(1), last: cur.last }
+  return {
+    reviews: [],
+    nextCursor: encodeBoardCursor(rest),
+    parseFailures: 0,
+    filtered: 0,
+    missing: [cur.q[0]],
+    pauseRun: rest.q.length === 0,
+  }
 }
 
 /**

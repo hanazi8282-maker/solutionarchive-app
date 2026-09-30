@@ -50,6 +50,15 @@ export const STALE_STREAK_TO_STOP = 5
 /** 한 타깃에서 한 실행에 가져올 최대 페이지. 폭주 방지용 안전판이다. */
 export const MAX_PAGES_PER_TARGET = 20
 
+/**
+ * 한 타깃에서 **연속으로** "삭제·없는 글"(ParseResult.missing)이 이만큼 나오면 이번 실행을 멈춘다(2026-09-30).
+ * 지워진 글 하나는 건너뛰지만, 줄줄이 없다고 나오면 글이 지워진 게 아니라 사이트 구조 변경·차단을 의심한다.
+ * 근거: 09-29 21:31Z 실행에서 velog 요청 57건 중 없는 글은 1건. 막 받은 목록의 글 3건이 연달아 지워질
+ * 확률은 무시할 만하고, 3 이면 오판해도 큐에서 잃는 글은 실행당 2건이다(3번째는 큐에 남긴다).
+ * 연속 0건 문턱(health.ts MAX_CONSECUTIVE_EMPTY=3)과 같은 크기다.
+ */
+export const MISSING_STREAK_TO_STOP = 3
+
 export interface SourceConfig {
   key: string
   enabled: boolean
@@ -147,6 +156,8 @@ export interface RunResult {
   /** 표식으로 통과한 호스트 → 못 읽은 이유(예: "HTTP 403"). */
   robotsBypassedHosts: Record<string, string>
   perTarget: Array<{ targetId: string; productRef: string; outcome: string }>
+  /** 삭제·없는 글이라 건너뛴 수(ParseResult.missing). 파싱 성공·실패 어느 쪽에도 안 센다. 요청 수에는 들어 있다. */
+  missingSkipped: number
 }
 
 const emptyStats = (): RunStats => ({
@@ -385,6 +396,7 @@ export async function runCollection(
   let robotsBypassed = 0
   const robotsBypassedHosts: Record<string, string> = {}
   let targetsVisited = 0
+  let missingSkipped = 0
 
   const source = await ports.store.loadSource(adapter.key)
   if (!source) {
@@ -401,6 +413,7 @@ export async function runCollection(
       robotsBypassed: 0,
       robotsBypassedHosts: {},
       perTarget,
+      missingSkipped: 0,
     }
   }
 
@@ -419,6 +432,7 @@ export async function runCollection(
       robotsBypassed: 0,
       robotsBypassedHosts: {},
       perTarget,
+      missingSkipped: 0,
     }
   }
 
@@ -459,6 +473,8 @@ export async function runCollection(
     let targetPages = 0
     let outcome = '진행'
     let status: TargetProgress['status'] = 'active'
+    const targetMissing: string[] = []
+    let missingStreak = 0
 
     for (let page = 0; page < MAX_PAGES_PER_TARGET; page++) {
       if (requests >= budget) {
@@ -533,7 +549,12 @@ export async function runCollection(
         break
       }
 
-      if (res.status === null || res.status >= 400) {
+      // 404 는 어댑터가 "그 글이 없다"로 받아 건너뛸 수 있으면 건너뛴다(게시판 큐의 지워진 글). 못 받으면 예전대로 failed.
+      const notFound =
+        res.status === 404
+          ? (adapter.skipNotFound?.({ productRef: target.productRef, cursor, lastReviewAt: baselineReviewAt }) ?? null)
+          : null
+      if (!notFound && (res.status === null || res.status >= 400)) {
         outcome = res.status === null ? `요청 실패 — ${res.error}` : `HTTP ${res.status}`
         status = 'failed'
         break
@@ -544,7 +565,7 @@ export async function runCollection(
       // ⚠️ 증분 기준선은 실행 시작 시점 값(baselineReviewAt)을 넘긴다. 진행 중에
       //    갱신되는 lastReviewAt 을 넘기면 파서가 방금 읽은 글보다 오래된 것을
       //    전부 "이미 본 것"으로 걸러 한 페이지만 읽고 멈춘다(위 baselineReviewAt 주석).
-      const parsed = adapter.parse(res.body, {
+      const parsed = notFound ?? adapter.parse(res.body, {
         productRef: target.productRef,
         cursor,
         lastReviewAt: baselineReviewAt,
@@ -573,7 +594,26 @@ export async function runCollection(
         lastReviewAt = pageResult.newestDate
       }
 
+      const pageCursor = cursor
       cursor = parsed.nextCursor
+
+      // 삭제·없는 글 건너뜀(ParseResult.missing). 조용한 성공이 아니다 — 세고, 연속이면 멈춘다(§7.2).
+      const missing = parsed.missing ?? []
+      missingSkipped += missing.length
+      targetMissing.push(...missing)
+      missingStreak = missing.length > 0 ? missingStreak + missing.length : 0
+      if (missingStreak >= MISSING_STREAK_TO_STOP) {
+        // 문턱을 넘긴 마지막 글은 큐에 남긴다 — 구조 변경이었으면 고친 뒤 다시 읽는다. 커서는 루프 뒤에서 저장된다.
+        cursor = pageCursor
+        targetMissing.pop()
+        missingSkipped--
+        outcome =
+          `삭제·없는 글 연속 ${missingStreak}건(기준 ${MISSING_STREAK_TO_STOP}) — 글 삭제가 아니라 사이트 구조 변경·차단 의심,` +
+          ` 같은 소스의 남은 요청도 멈춘다(마지막 ${missing[missing.length - 1].slice(0, 32)} 는 큐에 남김)`
+        status = 'active'
+        aborted = true
+        break
+      }
 
       // ⚠️ 페이지 하나마다 즉시 저장한다. 잡이 SIGKILL 로 죽어도 다음 실행이
       //    여기서 이어간다 — 재개를 위한 별도 복구 로직이 없는 이유다.
@@ -697,11 +737,14 @@ export async function runCollection(
     const capped = outcome === '진행'
     const label = capped ? `페이지 상한 ${MAX_PAGES_PER_TARGET} 도달 — 다음 실행에서 이어 읽는다` : outcome
     const newLabel = opts.dryRun ? '신규 —(dry-run 은 판정하지 않음)' : `신규 ${collected}건`
+    const missingLabel = targetMissing.length
+      ? ` · 삭제·없는 글 ${targetMissing.length}건 건너뜀(${targetMissing.map((p) => p.slice(0, 32)).join(', ')})`
+      : ''
 
     perTarget.push({
       targetId: target.id,
       productRef: target.productRef,
-      outcome: emptyClose ? `${label} · ${newLabel} · ${emptyClose}` : `${label} · ${newLabel}`,
+      outcome: (emptyClose ? `${label} · ${newLabel} · ${emptyClose}` : `${label} · ${newLabel}`) + missingLabel,
     })
   }
 
@@ -726,6 +769,7 @@ export async function runCollection(
     robotsBypassed,
     robotsBypassedHosts,
     perTarget,
+    missingSkipped,
   }
 }
 

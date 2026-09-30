@@ -28,7 +28,8 @@ import { IconChevronRight, IconSearch } from '../../_pub/icons'
 import { ShareLinkButton } from '../../library/[slug]/share-button'
 import { AnglePanel } from './angle-panel'
 
-// 아이디어 한 줄 → 매칭 리포트 한 장 (경쟁사 기능 11a, 남헌 2026-09-24 승인).
+// 아이디어 PMF 판정(구 매칭 리포트, 2026-10-01 남헌 v9 개명 — 라우트 /cases/report 는 그대로).
+// 아이디어 한 줄 → 리포트 한 장 (경쟁사 기능 11a, 남헌 2026-09-24 승인).
 //
 // 새 매칭기가 아니다. /cases/search 의 searchMoves(무브 + 실패 앵글)와 compare.pairMoves(갈린 짝)를
 // 그대로 돌려 **섹션 4개 한 장**으로 묶는다. 새 LLM 호출·마이그 없음.
@@ -49,7 +50,7 @@ import { AnglePanel } from './angle-panel'
 //   (본체 lib/cases/idea-angles-log.ts — 플러드 천장·콘솔 원문 0). 라우터 프리페치 요청은 세지 않는다.
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: '아이디어 매칭 리포트' }
+export const metadata = { title: '아이디어 PMF 판정' }
 
 /** 리포트는 한 장이다. 무브는 상위 N 만 싣고 나머지는 브랜드 칩으로 접는다(건수는 밝힌다). */
 const REPORT_MOVES = 5
@@ -61,7 +62,7 @@ const REPORT_MOVES = 5
  */
 const OPEN_ROWS = 3
 
-const LEAD = '아이디어 한 줄을 넣으면 승인된 케이스와 실패 원장에서 닮은 것만 모아 한 장으로 보여준다. 없는 것은 “해당 없음”으로 적는다.'
+const LEAD = '아이디어 한 줄을 넣으면 승인된 케이스와 실패 원장에서 닮은 것만 모아 한 장으로 보여준다. 로그인하면 앵글 검증과 사분면 판정(자가진단)까지 본다. 없는 것은 “해당 없음”으로 적는다.'
 const EXAMPLE = '프리랜서용 인보이스 자동 발송 SaaS'
 
 const TOC = [['moves', '닮은 성공 무브'], ['failed', '실패 경고 앵글'], ['pairs', '갈린 짝 비교'], ['next', '다음 행동']] as const
@@ -134,7 +135,7 @@ export default async function IdeaReportPage({ searchParams }: {
   // 모든 반환(입력 전·낱말 0·환경변수 없음·정상)이 이 껍데기 하나를 지난다.
   const shell = (body: ReactNode) => (
     <PubShell theme="light">
-      <Hero variant="index" title="아이디어 매칭 리포트" lead={LEAD} />
+      <Hero variant="index" title="아이디어 PMF 판정" lead={LEAD} />
       <div className="pub-section">
         {form}
         {errors.length > 0 && (
@@ -346,7 +347,7 @@ export default async function IdeaReportPage({ searchParams }: {
                   <PubButtonLink href="/voc" variant="ghost">VOC 피드 보기</PubButtonLink>
                 </div>
                 <p className="pub-text">경쟁사 분석·PMF 진단은 가입 후 쓸 수 있다. 가입은 10/12 개방 예정이다.</p>
-                <p className="pub-text">로그인하면 나머지 무브·실패 경고·짝 전부와 내 아이디어의 앵글 검증 수치를 본다.</p>
+                <p className="pub-text">로그인하면 나머지 무브·실패 경고·짝 전부와 내 아이디어의 앵글 검증 수치, 사분면 판정(자가진단)을 본다.</p>
               </>
             )}
           </Panel>

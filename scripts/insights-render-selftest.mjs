@@ -122,7 +122,65 @@ t('validated 만 실패: 카드는 나오고 "실전 채택 칩 확인 불가" �
 const anon = renderToStaticMarkup(h(PubNav, { email: null }))
 const authed = renderToStaticMarkup(h(PubNav, { email: 'someone@example.com' }))
 t('nav 익명: 인사이트 링크 0', !anon.includes('/insights') && !anon.includes('인사이트'))
-t('nav 로그인: 5번째 링크 인사이트', /href="\/voc"[^]*href="\/insights"[^>]*>인사이트</.test(authed))
+t('nav 로그인: 리소스 뒤 인사이트(현재 위치 aria-current)', /href="\/voc"[^]*href="\/insights"[^>]*aria-current="page"[^>]*>인사이트</.test(authed))
+// v9-2(2026-10-01): 아이디어 리소스 ▾(라이브러리·VOC·칼럼) · PMF 판정 · (로그인) 인사이트. 드롭다운은 닫힌 채 렌더.
+for (const [who, html] of [['익명', anon], ['로그인', authed]]) {
+  const res = html.match(/<button[^>]*aria-expanded="false"[^>]*aria-controls="([^"]+)"[^>]*>아이디어 리소스/)
+  t(`nav ${who}: "아이디어 리소스" 트리거(button·aria-expanded=false·aria-controls)`, !!res)
+  const panel = res && html.match(new RegExp(`<div id="${res[1]}"[^>]*hidden=""[^>]*>([^]*?)</div>`))
+  t(`nav ${who}: 리소스 패널 hidden + 라이브러리·VOC·칼럼 순서`, !!panel && /href="\/library"[^]*href="\/voc"[^]*href="\/columns\/read"/.test(panel[1]))
+  t(`nav ${who}: PMF 판정 → /cases/report, "매칭 리포트" 0`, /href="\/cases\/report"[^>]*>PMF 판정</.test(html) && !html.includes('매칭 리포트'))
+}
+t('nav 익명: 관리자 전환 없음·로그인 버튼', !anon.includes('관리자 전환') && anon.includes('href="/login"'))
+t('nav 로그인: 관리자 전환도 같은 드롭다운(button·aria-expanded=false)', /<button[^>]*aria-expanded="false"[^>]*aria-controls="[^"]+"[^>]*>관리자 전환/.test(authed))
+console.error = quiet
+
+// 4b) 필터 4축(B3) — 접힘·open·0건 칩·빈 결과 "이 조건 빼기"·어휘 밖 alert·컬럼 미적용
+const PID2 = '22222222-2222-4222-8222-222222222222'
+const FT = {
+  ...TABLES,
+  analysis_projects: [
+    { ...TABLES.analysis_projects[0], reader_problem: 'PRICE_TOO_LOW', bottleneck: 'CONVERSION', business_model: 'SAAS' },
+    { id: PID2, product_elevator_pitch: '미기재 프로젝트', mode: 'forward', status: 'angled', created_at: '2026-09-01T00:00:00Z', reader_problem: null, bottleneck: null, business_model: null },
+  ],
+  analysis_aspects: [{ ...TABLES.analysis_aspects[0], aspect_layer: 'PROCESS' }, { id: 's2', project_id: PID2, name: '둘째 속성', quadrant: 'DIFFERENTIATOR', aspect_layer: null }],
+  analysis_angles: [A('a1'), A('b1', { project_id: PID2, aspect_id: 's2' })],
+}
+console.error = () => {}; console.warn = () => {}
+const AXIS_DETAILS = /<details class="pub-fold pub-fold--inline"( open="")?><summary>(?:(?!<\/summary>).)*?(문제 유형|병목|사업 모델|속성 층) · /g
+const axisDetails = (html) => [...html.matchAll(AXIS_DETAILS)]
+const fDefault = await render({}, FT)
+t('4축 그룹 4개 · 기본 전부 접힘', axisDetails(fDefault).length === 4 && axisDetails(fDefault).every((m) => !m[1]))
+t('0건 어휘 칩 미생성(병목 AWARENESS 라벨 0) · 있는 값은 칩', !fDefault.includes('인지 — 아무도 모른다') && fDefault.includes('전환 — 결제를 안 한다'))
+t('미지정은 칩이 아니라 건수 캡션(미지정 1건)', fDefault.includes('미지정 1건') && !/href="[^"]*=NONE/.test(fDefault))
+t('미기재 프로젝트 카드도 기본 화면에 나온다', fDefault.includes('문구 b1') && count(fDefault, /<article/g) === 2)
+t('카드에 "미지정" 낱말 0회', [...fDefault.matchAll(/<article[^]*?<\/article>/g)].every((m) => !m[0].includes('미지정')))
+t('카드 메타에 값 있는 축 라벨(문제 유형·병목·모델·층)', fDefault.includes('값을 너무 싸게 받는다') && fDefault.includes('가짜 속성 (구매·사용 과정)'))
+const fSel = await render({ problem: 'price_too_low', layer: 'PROCESS' }, FT)
+t('선택한 축 2개만 open', axisDetails(fSel).filter((m) => m[1]).length === 2 && axisDetails(fSel).length === 4)
+t('선택 칩 aria-current + 요약에 라벨', fSel.includes('<a href="/insights?layer=PROCESS" class="pub-facet" aria-current="page">값을 너무 싸게 받는다') && fSel.includes('문제 유형 · 값을 너무 싸게 받는다</summary>'))
+t('필터 결과 = a1 만 + Hero "필터 2개"', fSel.includes('문구 a1') && !fSel.includes('문구 b1') && fSel.includes('필터 2개'))
+const fEmpty = await render({ model: 'D2C', layer: 'PROCESS', quadrant: 'PARK' }, FT)
+t('조합 0건 → 빈 상태 + "이 조건 빼기" 수 = 활성 필터 수(3)', fEmpty.includes('이 조건에 맞는 앵글이 없다') && count(fEmpty, /이 조건 빼기/g) === 3 && fEmpty.includes('필터 없이 보기'))
+t('빈 상태에 활성 필터 라벨 전부', ['사업 모델: 자사몰 D2C', '속성 층: 구매·사용 과정', '사분면: 둘 다 약함 — 보류'].every((l) => fEmpty.includes(l)))
+t('"이 조건 빼기" 링크가 그 축만 뺀다', fEmpty.includes('href="/insights?quadrant=PARK&amp;layer=PROCESS"') && fEmpty.includes('href="/insights?quadrant=PARK&amp;model=D2C"'))
+const fBad = await render({ problem: 'VIBES' }, FT)
+t('?problem=VIBES → alert "problem 어휘 밖" + 필터 없는 결과', fBad.includes('질의를 그대로 쓰지 못했다') && fBad.includes('problem 어휘 밖') && count(fBad, /<article/g) === 2)
+// reader_problem 컬럼 없음(42703): 재시도 뒤 문제 유형 그룹 대신 확인 불가 캡션
+const colMissingSb = { from(table) {
+  const rows = FT[table] ?? []
+  let res = { data: rows, error: null, count: rows.length }
+  const q = { select: (c) => { if (table === 'analysis_projects' && /reader_problem/.test(c ?? '')) res = { data: null, error: { code: '42703', message: 'x' }, count: null }; return q }, range: () => q, then: (ok, ko) => Promise.resolve(res).then(ok, ko) }
+  return q
+} }
+{
+  const { query, errors } = parseInsightQuery({ problem: 'PRICE_TOO_LOW' })
+  const result = await loadInsightFeed(colMissingSb, query)
+  const htm = renderToStaticMarkup(h(InsightsView, { query, errors, result }))
+  t('컬럼 미적용: "문제 유형 필터 확인 불가" 캡션 · 문제 유형 그룹 0 · 카드는 그대로 2', htm.includes('문제 유형 필터 확인 불가') && axisDetails(htm).length === 3 && count(htm, /<article/g) === 2)
+}
+const fFail = await render({ problem: 'PRICE_TOO_LOW' }, FT, { analysis_projects: '500' })
+t('필터 중 조회 실패 → 확인 불가(0건 문구 아님)', fFail.includes('확인 불가. 앵글 조회 실패') && !fFail.includes('이 조건에 맞는 앵글이 없다'))
 console.error = quiet
 
 // 5) 판정색 글자 금지(I1-4): 카드 파일에 color 라는 낱말 0

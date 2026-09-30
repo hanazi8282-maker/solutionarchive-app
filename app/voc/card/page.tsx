@@ -126,7 +126,7 @@ export default async function SignalCardPage({ searchParams }: {
                 ))}
               </ul>
               {report && similar.r.moves.cards.length > SIMILAR_MAX && (
-                <PubButtonLink href={report} variant="ghost" size="sm">매칭 리포트에서 {similar.r.moves.cards.length}건 전부 보기<IconArrowRight /></PubButtonLink>
+                <PubButtonLink href={report} variant="ghost" size="sm">PMF 판정에서 {similar.r.moves.cards.length}건 전부 보기<IconArrowRight /></PubButtonLink>
               )}
             </Section>
           ) : (

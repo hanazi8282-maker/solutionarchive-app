@@ -10,11 +10,12 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  ANGLE_TYPES, OUTPUT_TYPES, QUADRANTS as ASPECT_QUADRANTS, SUBSTANTIATION_VERDICTS,
-  type AnalysisMode, type AngleType, type OutputType, type Quadrant as AspectQuadrant, type SubstantiationVerdict,
+  ANGLE_TYPES, ASPECT_LAYERS, ASPECT_LAYER_LABELS, OUTPUT_TYPES, QUADRANTS as ASPECT_QUADRANTS, SUBSTANTIATION_VERDICTS,
+  type AnalysisMode, type AngleType, type AspectLayer, type OutputType, type Quadrant as AspectQuadrant, type SubstantiationVerdict,
 } from '../analysis/types.ts'
 import { QUADRANT as PMF_QUADRANTS, type Quadrant as PmfQuadrant } from '../cases/match.ts'
 import { safeSelect } from '../cases/corpus-db.ts'
+import { FACET_FIELDS, MIGRATION_20260930000003_KEYS, isMissingColumn, type FacetKey } from '../analysis/facets.ts'
 import { EXCERPT_MAX, PAGE_SIZE, UUID, excerptOf, type Loaded } from '../signals/feed.ts'
 
 export { EXCERPT_MAX, PAGE_SIZE }
@@ -57,8 +58,10 @@ export const MAX_PAGE = 40
 /** GET /api/analyze/angle(route.ts) 와 같은 12개 + project_id. */
 export const ANGLE_COLS =
   'id, project_id, aspect_id, angle_type, output_type, headline_draft, substantiation_verdict, substantiation_reason, substantiation_evidence, headline_original, gate_rewritten, adaptation_suggestion, created_at'
-export const PROJECT_COLS = 'id, product_elevator_pitch, mode, purpose, status, maturity_stage, created_at'
-export const ASPECT_COLS = 'id, project_id, name, quadrant, opportunity_score'
+/** reader_problem 은 마이그 20260930000003 — 미적용이면 이것만 빼고 1회 재시도한다(loadInsightFeed). */
+export const PROJECT_COLS_BASE = 'id, product_elevator_pitch, mode, purpose, status, maturity_stage, created_at, bottleneck, business_model'
+export const PROJECT_COLS = `${PROJECT_COLS_BASE}, reader_problem` as const
+export const ASPECT_COLS = 'id, project_id, name, quadrant, opportunity_score, aspect_layer'
 export const ASSESSMENT_COLS = 'target_project_id, quadrant, demand_axis, precedent_axis, match_status, created_at'
 
 export interface AngleRow {
@@ -84,8 +87,14 @@ export interface ProjectRow {
   status: string | null
   maturity_stage?: number | null
   created_at: string | null
+  reader_problem?: string | null
+  bottleneck?: string | null
+  business_model?: string | null
 }
-export interface AspectRow { id: string; project_id: string | null; name: string | null; quadrant: string | null; opportunity_score?: number | string | null }
+export interface AspectRow {
+  id: string; project_id: string | null; name: string | null; quadrant: string | null
+  opportunity_score?: number | string | null; aspect_layer?: string | null
+}
 export interface AssessmentRow {
   target_project_id: string | null
   quadrant: string | null
@@ -128,6 +137,11 @@ export interface InsightItem {
   pmf: QuadrantKey
   /** true = 실전 채택 기록 있음, false = 없음, null = 확인 불가. */
   validated: boolean | null
+  /** 필터 4축 값(B2). 어휘 밖·NULL 은 null(= 미지정 — 카드엔 낱말을 안 만든다). */
+  problem: string | null
+  bottleneck: string | null
+  model: string | null
+  layer: AspectLayer | null
 }
 
 export interface InsightQuery {
@@ -136,6 +150,31 @@ export interface InsightQuery {
   project: string | null
   sort: InsightSort
   page: number
+  /** 필터 4축(B2). null = 전체. 미지정만 골라 보는 예약어는 없다(B3). */
+  problem: string | null
+  bottleneck: string | null
+  model: string | null
+  layer: string | null
+}
+
+/**
+ * 필터 4축(reports/2026-10-01/design-direction-pmf-judgment.md B2). 전부 이미 있는 어휘 컬럼이다 — 자유 텍스트 0.
+ * 라벨은 표를 다시 적지 않고 FACET_FIELDS(프로필·진단 입력과 한 벌)에서 가져온다.
+ * `business_model` 을 `kind`(saas/physical)로 접지 않는다 — productKindOf(null)==='physical' 이라 미기재가 숨는다.
+ */
+export const INSIGHT_AXIS_KEYS = ['problem', 'bottleneck', 'model', 'layer'] as const
+export type InsightAxis = (typeof INSIGHT_AXIS_KEYS)[number]
+const optionsOf = (k: FacetKey) => FACET_FIELDS.find((f) => f.key === k)!.options.map(({ value, label }) => ({ value, label }))
+export const INSIGHT_AXES: readonly { key: InsightAxis; title: string; options: readonly { value: string; label: string }[] }[] = [
+  { key: 'problem', title: '문제 유형', options: optionsOf('reader_problem') },
+  { key: 'bottleneck', title: '병목', options: optionsOf('bottleneck') },
+  { key: 'model', title: '사업 모델', options: optionsOf('business_model') },
+  { key: 'layer', title: '속성 층', options: ASPECT_LAYERS.map((v) => ({ value: v, label: ASPECT_LAYER_LABELS[v] })) },
+]
+const vocabOf = (k: InsightAxis) => INSIGHT_AXES.find((a) => a.key === k)!.options.map((o) => o.value)
+/** 축 값 → 라벨. 어휘 밖이면 null. */
+export function axisLabel(k: InsightAxis, v: string | null | undefined): string | null {
+  return INSIGHT_AXES.find((a) => a.key === k)!.options.find((o) => o.value === v)?.label ?? null
 }
 
 // ── 순수 함수 (selftest 대상) ───────────────────────────────────
@@ -185,10 +224,20 @@ export function parseInsightQuery(sp: Record<string, string | string[] | undefin
   const rawS = one('sort')
   const sort = pick(rawS, SORTS) ?? 'recent'
   if (rawS && sort !== rawS) errors.push(`정렬 "${rawS.slice(0, 20)}" 는 recent·verdict 가 아니다`)
+  // 4축은 /library·/cases/search 의 parseSearchQuery pick 과 같은 꼴: 대문자로 맞추고, 어휘 밖은 errors 로 말하고 버린다.
+  const axis = (k: InsightAxis): string | null => {
+    const v = one(k).toUpperCase()
+    if (!v) return null
+    const vocab = vocabOf(k)
+    if (vocab.includes(v)) return v
+    errors.push(`${k} 어휘 밖: ${v.slice(0, 30)} (가능: ${vocab.join(', ')})`)
+    return null
+  }
+  const [problem, bottleneck, model, layer] = INSIGHT_AXIS_KEYS.map(axis)
   const p = Number(one('page') || 1)
   const page = Number.isInteger(p) && p >= 1 ? Math.min(p, MAX_PAGE) : 1
   if (one('page') && page !== p) errors.push(`페이지 번호는 1~${MAX_PAGE} 이다`)
-  return { query: { quadrant, gate, project, sort, page }, errors }
+  return { query: { quadrant, gate, project, sort, page, problem, bottleneck, model, layer }, errors }
 }
 
 /** 기본값은 URL 에 안 적는다 — 파라미터 없는 첫 진입과 같은 화면이 된다. */
@@ -199,6 +248,7 @@ export function insightHref(q: InsightQuery, patch: Partial<InsightQuery>): stri
   if (n.gate !== 'pass') p.set('gate', n.gate)
   if (n.project) p.set('project', n.project)
   if (n.sort !== 'recent') p.set('sort', n.sort)
+  for (const k of INSIGHT_AXIS_KEYS) { const v = n[k]; if (v) p.set(k, v) }
   if (n.page > 1) p.set('page', String(n.page))
   const s = p.toString()
   return s ? `/insights?${s}` : '/insights'
@@ -226,14 +276,48 @@ export interface InsightFeed {
   /** 게이트 통과 전체(필터 전). */
   gated: number
   validatedKnown: boolean
+  /** 4축 패싯 건수(표준 패싯: 그 축만 빼고 나머지 필터 전부 적용). */
+  facets: FacetCounts
+  /** false = reader_problem 컬럼이 없다(마이그 미적용) — 문제 유형 축은 거르지도 세지도 않는다. */
+  problemFilterKnown: boolean
+}
+
+export type FacetCounts = Record<InsightAxis, { counts: Record<string, number>; unspecified: number }>
+
+/** 4축 + 사분면 + 프로젝트 필터(AND). `except` 축은 보지 않는다(패싯 건수용). */
+function matches(it: InsightItem, q: InsightQuery, except?: InsightAxis | 'quadrant'): boolean {
+  if (q.project && it.project_id !== q.project) return false
+  if (except !== 'quadrant' && q.quadrant && it.pmf !== q.quadrant) return false
+  for (const k of INSIGHT_AXIS_KEYS) if (k !== except && q[k] && it[k] !== q[k]) return false
+  return true
+}
+
+/** 순수: 각 축 칩 건수 = 다른 필터를 모두 적용한 상태에서 그 칩을 골랐을 때의 결과 수(표준 패싯). */
+export function facetCounts(items: readonly InsightItem[], q: InsightQuery): FacetCounts {
+  const out = {} as FacetCounts
+  for (const key of INSIGHT_AXIS_KEYS) {
+    const counts: Record<string, number> = {}
+    let unspecified = 0
+    for (const it of items) {
+      if (!matches(it, q, key)) continue
+      const v = it[key]
+      if (v == null) unspecified++
+      else counts[v] = (counts[v] ?? 0) + 1
+    }
+    out[key] = { counts, unspecified }
+  }
+  return out
 }
 
 /** 순수: 조인 → 게이트 → 필터 → 정렬 → 페이지 → 그룹. corpora 의 핵심 4개가 모두 배열이어야 한다. */
 export function buildInsightFeed(
   q: InsightQuery,
-  c: { angles: AngleRow[]; projects: ProjectRow[]; aspects: AspectRow[]; assessments: AssessmentRow[]; validated: Set<string> | null },
+  c: { angles: AngleRow[]; projects: ProjectRow[]; aspects: AspectRow[]; assessments: AssessmentRow[]; validated: Set<string> | null; problemKnown?: boolean },
   gate: InsightGate = INSIGHT_GATE,
 ): InsightFeed {
+  const problemFilterKnown = c.problemKnown !== false
+  // 컬럼이 없으면 문제 유형으로 거르지 않는다 — 거르면 전부 NULL 이라 0건이 되고 그건 "없다"로 읽힌다(§7.1).
+  if (!problemFilterKnown) q = { ...q, problem: null }
   const projectById = new Map(c.projects.map((p) => [p.id, p]))
   const aspectById = new Map(c.aspects.map((a) => [a.id, a]))
   const byProject = new Map<string, AssessmentRow[]>()
@@ -277,6 +361,10 @@ export function buildInsightFeed(
       mode: project!.mode === 'forward' || project!.mode === 'reverse' ? project!.mode : null,
       pmf: pick(pmf, PMF_QUADRANTS) ?? 'none',
       validated: c.validated ? c.validated.has(a.id) : null,
+      problem: pick(project!.reader_problem, vocabOf('problem')),
+      bottleneck: pick(project!.bottleneck, vocabOf('bottleneck')),
+      model: pick(project!.business_model, vocabOf('model')),
+      layer: pick(aspect?.aspect_layer, ASPECT_LAYERS),
     })
   }
   gated.sort(newer)
@@ -290,11 +378,10 @@ export function buildInsightFeed(
   }
   const notRunProjects = projects.filter((p) => latestOf.get(p.id)?.match_status === 'not_run').length
 
-  const inProject = q.project ? gated.filter((it) => it.project_id === q.project) : gated
   const quadrantCounts = Object.fromEntries(QUADRANT_ORDER.map((k) => [k, 0])) as Record<QuadrantKey, number>
-  for (const it of inProject) quadrantCounts[it.pmf]++
+  for (const it of gated) if (matches(it, q, 'quadrant')) quadrantCounts[it.pmf]++
 
-  const filtered = q.quadrant ? inProject.filter((it) => it.pmf === q.quadrant) : inProject
+  const filtered = gated.filter((it) => matches(it, q))
   const sorted = q.sort === 'verdict'
     ? [...filtered].sort((a, b) => VERDICT_RANK[a.verdict] - VERDICT_RANK[b.verdict] || newer(a, b))
     : filtered
@@ -317,6 +404,8 @@ export function buildInsightFeed(
     projects,
     gated: gated.length,
     validatedKnown: c.validated !== null,
+    facets: facetCounts(gated, q),
+    problemFilterKnown,
   }
 }
 
@@ -334,7 +423,7 @@ export async function loadInsightFeed(sb: SupabaseClient, q: InsightQuery): Prom
   const where = 'insights'
   const [angles, projects, aspects, assessments, validated] = await Promise.all([
     sb.from('analysis_angles').select(ANGLE_COLS, { count: 'exact' }).range(0, ANGLE_CAP - 1),
-    safeSelect<ProjectRow>(sb, 'analysis_projects', PROJECT_COLS, where),
+    loadProjects(sb, where),
     safeSelect<AspectRow>(sb, 'analysis_aspects', ASPECT_COLS, where),
     safeSelect<AssessmentRow>(sb, 'pmf_assessments', ASSESSMENT_COLS, where),
     safeSelect<{ angle_id: string | null }>(sb, 'validated_angles_corpus', 'angle_id', where),
@@ -348,15 +437,33 @@ export async function loadInsightFeed(sb: SupabaseClient, q: InsightQuery): Prom
     console.error(`[${where}] analysis_angles truncated:`, rows.length, '/', angles.count)
     return { status: 'error', reason: `앵글 ${rows.length}건만 받았다(전체 ${angles.count ?? '모름'}) — 잘린 목록을 피드로 내지 않는다` }
   }
-  const missing = [['프로젝트', projects], ['속성', aspects], ['PMF 진단', assessments]].filter(([, v]) => v === null).map(([k]) => k)
+  const missing = [['프로젝트', projects?.rows ?? null], ['속성', aspects], ['PMF 진단', assessments]].filter(([, v]) => v === null).map(([k]) => k)
   if (missing.length) return { status: 'error', reason: `${missing.join('·')} 조회 실패` }
   if (validated === null) console.warn(`[${where}] validated_angles_corpus 확인 불가 — 실전 채택 칩을 뺀다`)
   const feed = buildInsightFeed(q, {
     angles: rows,
-    projects: projects!,
+    projects: projects!.rows,
+    problemKnown: projects!.problemKnown,
     aspects: aspects!,
     assessments: assessments!,
     validated: validated ? new Set(validated.map((v) => v.angle_id).filter((v): v is string => !!v)) : null,
   })
   return { status: 'ok', ...feed }
+}
+
+/**
+ * 프로젝트 조회. reader_problem 컬럼이 없으면(42703/PGRST204 — 마이그 20260930000003 미적용) 그 키만 빼고 **1회** 재시도하고
+ * problemKnown=false 로 돌린다 — 화면은 문제 유형 축 대신 "확인 불가" 캡션을 낸다(숨기지 않는다, §7.1·§7.2).
+ * 그 밖의 실패·재시도 실패는 null(= 화면 전체 확인 불가).
+ */
+async function loadProjects(sb: SupabaseClient, where: string): Promise<{ rows: ProjectRow[]; problemKnown: boolean } | null> {
+  const first = await sb.from('analysis_projects').select(PROJECT_COLS)
+  if (!first.error) return { rows: (first.data ?? []) as unknown as ProjectRow[], problemKnown: true }
+  if (!isMissingColumn(first.error.code)) {
+    console.error(`[${where}] analysis_projects select error:`, first.error.code ?? '', first.error.message)
+    return null
+  }
+  console.warn(`[${where}] analysis_projects ${first.error.code} — 마이그 20260930000003 미적용으로 보인다. ${MIGRATION_20260930000003_KEYS.join('·')} 빼고 1회 재시도`)
+  const rows = await safeSelect<ProjectRow>(sb, 'analysis_projects', PROJECT_COLS_BASE, where)
+  return rows ? { rows, problemKnown: false } : null
 }

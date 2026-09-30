@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
-import { IconChevronDown, IconExternal } from '../icons'
+import { IconExternal } from '../icons'
+import { NavDropdown } from './NavDropdown'
 
 /**
  * "관리자 전환" 드롭다운 — 로그인 상태에서 `PubNav` 오른쪽 끝(남헌 2026-09-30 IA 재편).
@@ -11,9 +11,7 @@ import { IconChevronDown, IconExternal } from '../icons'
  *
  * ⚠️ 화면 전환 UI 일 뿐 권한 분기가 아니다. 접근 차단은 `proxy.ts` 와 서버 액션 가드가 한다.
  *
- * 패턴은 disclosure(버튼 + 링크 목록)다 — role="menu" 가 아니다. 항목이 전부 일반 링크라
- * 스크린리더가 링크로 읽는 편이 맞다. 키보드: 클릭/Enter 로 열림 · 열리면 첫 링크로 포커스 ·
- * ↑↓ Home End 이동 · Tab 자연 순서(패널 밖으로 나가면 닫힘) · Esc 닫고 트리거로 복귀 · 바깥 클릭 닫힘.
+ * 열고 닫기·키보드·포커스는 `NavDropdown` 한 벌이다("아이디어 리소스"와 공용, 2026-10-01 남헌 v9-2).
  */
 type Item = { href: string; match: string; label: string }
 
@@ -61,93 +59,35 @@ function activeItem(path: string): Item | undefined {
 }
 
 export function AdminMenu({ email }: { email: string }) {
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const panelId = useId()
   const active = activeItem(usePathname() ?? '')
-
-  const focusables = () => [...(panelRef.current?.querySelectorAll<HTMLElement>('a[href], button') ?? [])]
-
-  useEffect(() => {
-    if (!open) return
-    focusables()[0]?.focus()
-    const onDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [open])
-
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (!open) return
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      setOpen(false)
-      triggerRef.current?.focus()
-      return
-    }
-    const list = focusables()
-    const i = list.indexOf(document.activeElement as HTMLElement)
-    const to =
-      e.key === 'ArrowDown' ? list[(i + 1) % list.length]
-      : e.key === 'ArrowUp' ? list[(i - 1 + list.length) % list.length]
-      : e.key === 'Home' ? list[0]
-      : e.key === 'End' ? list[list.length - 1]
-      : undefined
-    if (to) { e.preventDefault(); to.focus() }
-  }
-
-  const close = () => setOpen(false)
-
   return (
-    <div
-      ref={rootRef}
-      className="pub-admin"
-      onKeyDown={onKeyDown}
-      // Tab 으로 패널 밖에 나가면 닫는다 — 열린 패널이 다음 요소를 덮고 남지 않게.
-      onBlur={(e) => { if (open && !rootRef.current?.contains(e.relatedTarget as Node)) setOpen(false) }}
-    >
-      <button
-        ref={triggerRef}
-        type="button"
-        className="pub-btn pub-admin-trigger"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((v) => !v)}
-      >
-        관리자 전환
-        <IconChevronDown className="pub-admin-chev" />
-      </button>
-      <div ref={panelRef} id={panelId} className="pub-admin-panel" hidden={!open}>
-        {GROUPS.map((g) => (
-          <div key={g.label} className="pub-admin-group">
-            <p className="pub-admin-h" id={`${panelId}-${g.label}`}>{g.label}</p>
-            <ul aria-labelledby={`${panelId}-${g.label}`}>
-              {g.items.map((i) => (
-                <li key={i.href}>
-                  <Link className="pub-admin-link" href={i.href} aria-current={i === active ? 'page' : undefined} onClick={close}>
-                    {i.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-        <div className="pub-admin-account">
-          <p className="pub-admin-email" title={email} translate="no">{email}</p>
-          <Link className="pub-admin-link" href={PROFILE.href} aria-current={PROFILE === active ? 'page' : undefined} onClick={close}>
-            {PROFILE.label}
-          </Link>
-          <a className="pub-admin-link" href={MANUAL_URL} target="_blank" rel="noreferrer">
-            사용설명서 <IconExternal /><span className="pub-sr">(새 탭)</span>
-          </a>
-          <form action="/auth/logout" method="post">
-            <button type="submit" className="pub-admin-link">로그아웃</button>
-          </form>
+    <NavDropdown label="관리자 전환" triggerClassName="pub-btn">
+      {GROUPS.map((g, n) => (
+        <div key={g.label} className="pub-admin-group">
+          <p className="pub-admin-h" id={`admin-g${n}`}>{g.label}</p>
+          <ul aria-labelledby={`admin-g${n}`}>
+            {g.items.map((i) => (
+              <li key={i.href}>
+                <Link className="pub-admin-link" href={i.href} aria-current={i === active ? 'page' : undefined}>
+                  {i.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
+      ))}
+      <div className="pub-admin-account">
+        <p className="pub-admin-email" title={email} translate="no">{email}</p>
+        <Link className="pub-admin-link" href={PROFILE.href} aria-current={PROFILE === active ? 'page' : undefined}>
+          {PROFILE.label}
+        </Link>
+        <a className="pub-admin-link" href={MANUAL_URL} target="_blank" rel="noreferrer">
+          사용설명서 <IconExternal /><span className="pub-sr">(새 탭)</span>
+        </a>
+        <form action="/auth/logout" method="post">
+          <button type="submit" className="pub-admin-link">로그아웃</button>
+        </form>
       </div>
-    </div>
+    </NavDropdown>
   )
 }

@@ -15,6 +15,7 @@ import {
   buildLibrary, parseLibraryQuery, pickFirstMove, problemCounts, sortLibrary, groupByProblem,
   DEFAULT_SORT, LIBRARY_SORTS,
   kstWeekStart, kstDate, approvedThisWeek, pickTodayCase, buildSourceTiles, summarizeSourceTiles,
+  teaserLibrary, UNLABELED_KEY, isVerifying,
 } from '../lib/cases/library.ts'
 import { emptyStateText } from '../lib/cases/search.ts'
 
@@ -216,6 +217,50 @@ t('KST 날짜: UTC 15:00 은 다음 날', kstDate(new Date('2026-09-23T15:00:00Z
   const body = lib.slice(lib.indexOf('export async function loadSourceTiles'))
   ok('소스 타일: dedupe 만 제외(purge_reason IS DISTINCT FROM dedupe)', body.includes(".or('purge_reason.is.null,purge_reason.neq.dedupe')"))
   ok('소스 타일: purged_at IS NULL 로 세지 않는다(30일 보관분 아님)', !/.is('purged_at', null)/.test(body))
+}
+
+// 10. 로그인전 티어(I2) — 서버 절단. 픽스처는 문서의 09-30 분포(유형별 4/1/4/1/3/1/0 + 미지정 1 = 15).
+{
+  const { READER_PROBLEMS } = await import('../lib/cases/draft.ts')
+  const dist = [4, 1, 4, 1, 3, 1, 0]
+  const studies = []
+  READER_PROBLEMS.slice(0, 7).forEach((code, gi) => {
+    for (let i = 0; i < dist[gi]; i++) {
+      studies.push({ id: `t${gi}-${i}`, slug: `tier-${gi}-${i}`, brand_name: `B${gi}${i}`, reader_problem: code, business_model: 'SAAS', review_status: 'approved',
+        // 그룹 첫 줄(i=0)만 자동 승인·미검수(검증중) — 검증중은 노출하지 않고 다음 최신이 대신 나와야 한다.
+        auto_approval_rule: gi === 0 && i === 0 ? 'ca-v1' : null, reviewed_by: gi === 0 && i === 0 ? null : 'x',
+        reviewed_at: `2026-09-${String(10 + i).padStart(2, '0')}T00:00:00Z`, created_at: '2026-09-01T00:00:00Z' })
+    }
+  })
+  studies.push({ id: 'tu', slug: 'tier-unlabeled', brand_name: 'U', reader_problem: null, business_model: 'SAAS', review_status: 'approved', reviewed_by: 'x', reviewed_at: '2026-09-29T00:00:00Z', created_at: '2026-09-01T00:00:00Z' })
+  const full = buildLibrary(Q(), { studies, moves: [], evidence: [] })
+  t('티어: 로그인후 = 전체 15', full.cards.length, 15)
+  const tz = teaserLibrary(full)
+  t('티어: 로그인전 노출 = 유형별 1장 = 6', tz.cards.length, 6)
+  t('티어: 잠금 합 = 전체 − 노출 = 9', Object.values(tz.locked).reduce((a, b) => a + b, 0), 9)
+  t('티어: 유형별 잠금 = 헤딩 건수 − 1', JSON.stringify(READER_PROBLEMS.slice(0, 6).map((c) => tz.locked[c] ?? 0)), JSON.stringify([3, 0, 3, 0, 2, 0]))
+  t('티어: 미지정은 노출 없이 잠금 1', tz.locked[UNLABELED_KEY], 1)
+  ok('티어: 0건 유형은 잠금 키도 없다', !(READER_PROBLEMS[6] in tz.locked))
+  ok('티어: 유형마다 노출 최대 1장', new Set(tz.cards.map((c) => c.study.reader_problem)).size === tz.cards.length)
+  ok('티어: 검증중 카드는 노출하지 않는다', tz.cards.every((c) => !isVerifying(c)))
+  t('티어: 그룹0 은 최신 검증 카드(tier-0-3)가 대신 나온다', tz.cards.find((c) => c.study.reader_problem === READER_PROBLEMS[0])?.study.slug, 'tier-0-3')
+  // 음성: 잘린 슬러그는 반환값 어디에도 없다(건수만 남는다).
+  const shown = new Set(tz.cards.map((c) => c.study.slug))
+  const cut = full.cards.map((c) => c.study.slug).filter((s) => !shown.has(s))
+  t('티어(음성): 잘린 슬러그 9개', cut.length, 9)
+  const json = JSON.stringify(tz)
+  t('티어(음성): 잘린 슬러그가 반환값 직렬화에 0회', cut.filter((s) => json.includes(`"${s}"`)).length, 0)
+  // 문제 유형 하나를 고른 화면도 1줄 + 잠금
+  const one = teaserLibrary(buildLibrary(Q({ problem: READER_PROBLEMS[2] }), { studies, moves: [], evidence: [] }))
+  t('티어: 유형 필터 = 1줄', one.cards.length, 1)
+  t('티어: 유형 필터 잠금 3', one.locked[READER_PROBLEMS[2]], 3)
+  // 파싱: 로그인전은 kind·sort 를 서버가 강제하고 말한다
+  const anon = parseLibraryQuery({ kind: 'all', sort: 'grade' }, false)
+  t('티어 파싱: 로그인전 sort 강제 recent', anon.query.sort, 'recent')
+  t('티어 파싱: 로그인전 kind 강제 saas', anon.query.kind, 'saas')
+  ok('티어 파싱: 오류 문구 "정렬은 로그인 후"', anon.errors.includes('정렬은 로그인 후'))
+  t('티어 파싱: 로그인후는 그대로', parseLibraryQuery({ kind: 'all', sort: 'grade' }, true).query.sort, 'grade')
+  t('티어 파싱: 로그인전 기본 질의는 오류 0', parseLibraryQuery({}, false).errors.length, 0)
 }
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} library-selftest: ${pass} pass, ${fail} fail`)

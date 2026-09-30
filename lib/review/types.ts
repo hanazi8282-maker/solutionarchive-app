@@ -136,6 +136,14 @@ export interface ParseResult {
    *    커서를 내면 페이지 상한 20 에 걸릴 때까지 같은 목록을 훑는다.
    */
   pauseRun?: boolean
+  /**
+   * **삭제됐거나 없는 글이라 건너뛴 경로들**(옵셔널, 2026-09-30 velog soft-404).
+   *
+   * ⚠️ parseFailures 가 아니다 — 파서가 고장 난 게 아니라 글이 없다. reviews 에도 안 넣는다.
+   *    그래서 건강도 판정(파싱 성공률)에 들어가지 않는다. 러너가 RunResult.missingSkipped 와
+   *    타깃 outcome 에 수치로 남기고, 연속 MISSING_STREAK_TO_STOP 건이면 실행을 멈춘다(runner.ts).
+   */
+  missing?: string[]
 }
 
 /**
@@ -182,6 +190,15 @@ export interface ReviewSourceAdapter {
    * 소진이 403 으로 오기 때문이다.
    */
   quotaMarkers?: string[]
+
+  /**
+   * **HTTP 404 를 "그 글이 없다"로 받아 건너뛸 수 있으면** 건너뛴 결과를 낸다(옵셔널, 2026-09-30).
+   * null 이면(또는 이 메서드가 없으면) 404 는 예전대로 타깃 `failed` 다.
+   *
+   * 게시판 큐 맨 앞 글이 지워지면 404 가 큐를 영구히 막는다 — 그 글만 큐에서 빼는 자리다.
+   * 결과에는 `missing` 을 채운다(파싱 실패로 세지 않는다). 5xx·403·429 는 여기 오지 않는다.
+   */
+  skipNotFound?(ctx: ParseContext): ParseResult | null
 
   /**
    * **robots 확인 불가를 사람이 인지하고 진행을 승인한 호스트 목록**(hostname,

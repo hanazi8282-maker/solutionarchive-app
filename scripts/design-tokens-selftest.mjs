@@ -47,10 +47,10 @@ const COVERED = [
   { dir: join(ROOT, 'app', 'onboarding'), deep: true },
   { dir: join(ROOT, 'app', 'login'), deep: true },
 ]
-/** `.sa-v2` 스코프를 둘러야 하는 내부 page.tsx (ROOT/app 기준). */
+/** `.sa-v2` 스코프를 둘러야 하는 내부 page.tsx (ROOT/app 기준). `cases/report` 는 B7(2026-09-30)부터 `PubShell` 공개 화면이라 뺐다. */
 const M2_PAGES = ['agents', 'discovery', 'dashboard', 'columns', join('cases', 'grade'), 'analyze', join('analyze', 'new'),
   join('analyze', '[id]', 'angles'), join('analyze', '[id]', 'result'), join('analyze', '[id]', 'review'), 'cases',
-  join('cases', 'search'), join('cases', 'report'), join('settings', 'profile'), join('relevance', 'grade'), join('relevance', 'feedback')]
+  join('cases', 'search'), join('settings', 'profile'), join('relevance', 'grade'), join('relevance', 'feedback')]
 const M2_DIRS = ['agents', 'discovery', 'dashboard', 'cases', 'analyze', 'settings', 'relevance'].map((d) => join(ROOT, 'app', d))
 
 const EXCLUDE = /opengraph-image\.tsx$|[\\/]api[\\/].*route\.tsx$|[\\/]tokens[\\/]sa\.css$/

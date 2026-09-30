@@ -69,6 +69,21 @@
 내부 네비(`_ds/AppNav`)는 `/signals*` 에서 스스로 null 을 돌려준다(2026-09-25). #264 가 넣었던 `pub.css` 임시
 블록(`body:has(.pub-root) .sa-*`)은 지웠다. 새 공개 화면을 만들면 AppNav 숨김 목록에 한 줄 넣는다 — CSS 로 가리지 않는다.
 
+### 매칭 리포트에서 추가된 것 (B7 R1, 2026-09-30)
+
+| 컴포넌트 | 파일 | props | 비고 |
+|---|---|---|---|
+| `PubMatchRow` | `components/PubMatchRow.tsx` | `card: CaseMoveCard` · `study: LogoInput` · `moveCount: number` | 리포트 무브 한 줄. `.pub-index-row` 마크업 그대로 + claim 2줄(`.pub-index-s--2`) + 머리 줄 끝 겹친 낱말(`.pub-index-why`). 점수는 `title` 툴팁에만 |
+| `PubPairCompare` | `components/PubPairCompare.tsx` | `p: MovePair` · `max?: number`(기본 3) | 갈린 짝 한 묶음 = 면 위 됐다·안 됐다 2열. 한 열 `max` 건 펴고 나머지는 "N건 더" 접힘. 열 안은 SaaS 먼저 |
+
+## B7 가 정한 것 (2026-09-30, `/cases/report`)
+
+- `/cases/report` 는 `.sa-v2` 운영 껍데기가 아니라 `PubShell theme="light"` 공개 화면이다. `_ds/AppNav` 는 이 경로에서 **로그인 여부와 무관하게** null(헤더 하나).
+- 결과는 Hero(`variant="index"`) → 폼 → 요약 띠(`Stat` 3칸 + 매칭 낱말 칩 + 링크 복사) → `.pub-detail` + `PubTOC` 4섹션. 다크 면은 "다음 행동" 배너 하나.
+- 섹션 3상태: matched = 내용 · no_match = `PubEmpty compact`("해당 없음. …") · not_run = `Panel tone="alert"`("확인 불가"). lib 사유 원문은 화면에서만 em 대시·직선 따옴표를 푼다.
+- kind=saas 면 갈린 짝 양쪽 열도 SaaS 만(`pairsForMoves(…, { saasOnly })`). 0묶음이면 사유에 "소비재 포함 시 N묶음".
+- 클래스는 `pub.css` 끝 "B7" 블록에만: `.pub-report-ask*` · `.pub-report-stats` · `.pub-report-body` · `.pub-angle-out` · `.pub-index-s--2` · `.pub-index-why` · `.pub-pair*`. 갈린 짝 면 배경은 R2 에서 `--pub-plane-lilac` 한 줄.
+
 ## 토큰 (`tokens.css`) — v2, 레퍼런스 실측 재도출 (남헌 2026-09-24 확정)
 
 v1 은 컴포넌트만 새로 짜고 **값은 `_ds` 를 승계**했다(Pretendard 단일 서체 · Tailwind slate

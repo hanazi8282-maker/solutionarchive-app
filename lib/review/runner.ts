@@ -24,6 +24,8 @@ import {
   classifyBlockedResponse,
   MAX_CONSECUTIVE_EMPTY,
   BOARD_MAX_CONSECUTIVE_EMPTY,
+  PARSE_RATE_NUM,
+  PARSE_RATE_DEN,
   type HealthVerdict,
   type RunStats,
 } from './health.ts'
@@ -584,6 +586,25 @@ export async function runCollection(
           status: cursor === null ? endStatus : 'active',
           collectedDelta: pageResult.newCount,
         })
+      }
+
+      // 파싱 고장 브레이크(남헌 2026-09-30). 타깃의 첫 페이지를 읽은 뒤, 이번 실행 누적치가 이미
+      // broken(파싱 성공률 < 8/10, 표본 10 이상 — health.ts judgeHealth 그대로)이면 더 요청하지 않는다.
+      // 이전엔 파서가 깨져도 daily_request_cap 까지 두드렸다. 새 기준이 아니다: 여기서 걸리면 실행 끝의
+      // judgeHealth(같은 stats)도 반드시 broken 이고, 그게 review-source-health-report.mjs 로 올라간다.
+      // ⚠️ 정상 종료로 쓰지 않는다(§7.2) — outcome 에 수치를 남기고 aborted 로 같은 소스의 나머지 타깃도 멈춘다.
+      //    이 블록을 지우면 scripts/review-runner-selftest.mjs 의 '파싱 브레이크' 가 실패한다.
+      if (targetPages === 1) {
+        const early = judgeHealth({ stats, consecutiveEmptyBefore: 0 })
+        if (early.health === 'broken') {
+          const attempted = stats.reviewsParsed + stats.parseFailures
+          outcome =
+            `파싱 고장으로 첫 페이지 뒤 중단(${targetPages}페이지째 · 파싱 ${attempted}건 중 실패 ${stats.parseFailures}건` +
+            ` · 기준 ${PARSE_RATE_NUM}/${PARSE_RATE_DEN}) — 같은 소스의 남은 요청도 멈춘다`
+          status = 'active'
+          aborted = true
+          break
+        }
       }
 
       if (cursor === null) {

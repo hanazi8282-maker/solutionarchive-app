@@ -46,6 +46,8 @@ import { inflearnAdapter } from '../lib/review/adapters/inflearn.ts'
 import { yozmAdapter } from '../lib/review/adapters/yozm.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
+import { brokenSources, LOOKBACK_DAYS, runSourceHealthReport } from './review-source-health-report.mjs'
+import { PENDING_DIR } from './notion-status-log-flush.mjs'
 
 // ⚠️ 키는 review_sources.key 와 **철자까지 같아야 한다.** 다르면 loadSource 가
 //    행을 못 찾아 그 소스가 조용히 안 돈다(20260917000001 마이그레이션 참조).
@@ -322,7 +324,60 @@ for (const sourceKey of sourceKeys) {
     stats: result?.stats ?? null,
     alert: result && !result.skipped && result.health ? alertLine(result.sourceKey, result.health) : null,
     warnings: result?.health?.warnings ?? [],
+    // 소스 고장 보고(review-source-health-report.mjs)의 재료. 러너는 더 이상 review_sources 에 판정을 쓰지 않는다.
+    health: result?.health ?? null,
+    perTarget: result?.perTarget ?? [],
   })
+}
+
+// ── 소스 고장 보고 (남헌 2026-09-30) ─────────────────────────────────
+// 고장(health=broken)이어도 소스를 끄지 않는다(§10.1). 그 대신 여기서 Notion 일일 상태 로그 CTO 행(하루 1행,
+// 사람판단필요=true)에 올린다. 보고 실패·토큰 없음은 폴백 파일 + 종료 코드 1 — 고장이 묻히지 않게(§7.1).
+// dry-run 은 판정을 남기지 않는 실행이라 보고하지 않는다(아래 CTO 행과 같다) — 목록만 찍는다.
+{
+  const runUrlForReport = process.env.GITHUB_RUN_ID
+    ? `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+    : null
+  let rep
+  if (dryRun) {
+    rep = { ok: true, broken: brokenSources(sourceResults), dry: true }
+  } else {
+    try {
+      rep = await runSourceHealthReport({
+        sourceResults,
+        date: kstDate(),
+        runUrl: runUrlForReport,
+        pendingDir: PENDING_DIR,
+        // "N일째" 재료. 읽기만 한다. 실패하면 throw → 보고에 "확인 불가"로 적힌다.
+        async loadRuns(keys) {
+          const since = new Date(Date.now() - (LOOKBACK_DAYS + 1) * 86_400_000).toISOString()
+          const { data, error } = await supabase
+            .from('review_collection_runs')
+            .select('source_key, started_at, health_after')
+            .in('source_key', keys)
+            .eq('dry_run', false)
+            .gte('started_at', since)
+            .order('started_at', { ascending: false })
+          if (error) throw new Error(error.message)
+          return Object.fromEntries(keys.map((k) => [k, (data ?? []).filter((r) => r.source_key === k)]))
+        },
+      })
+    } catch (e) {
+      rep = { ok: false, broken: brokenSources(sourceResults), record: { stage: 'report', error: e instanceof Error ? e.message : String(e) } }
+    }
+  }
+  if (rep.broken.length > 0) {
+    say('')
+    say(`### 소스 고장 보고 — ${rep.broken.map((b) => b.key).join(', ')} (자동으로 끄지 않았다)`)
+    if (rep.dry) say('- dry-run — Notion 보고 생략')
+    else if (rep.ok) say(`- ✅ Notion 일일 상태 로그(CTO) ${rep.record.updated ? '같은 날 행 갱신' : '행 생성'}·재확인 — ${rep.record.title} (사람판단필요=true)`)
+    else {
+      const r = rep.record ?? {}
+      say(`- ❌ 소스 고장 보고 실패 — ${r.stage}: ${r.error}${r.pendingPath ? ` · 폴백 파일 ${r.pendingPath}` : ''}${r.pendingError ? ` · 폴백 파일도 실패: ${r.pendingError}` : ''}`)
+      console.log(`::error title=source-health-report::소스 고장 보고 실패 — ${r.stage}: ${r.error}`)
+      failures.push('source-health-report')
+    }
+  }
 }
 
 // ── 프로젝트별 누적 ───────────────────────────────────────────────

@@ -116,11 +116,13 @@ export interface HealthVerdict {
   /** 사람이 읽는 한 줄 근거. 야간 보고에 그대로 실린다. */
   detail: string
   /**
-   * review_sources.enabled 를 false 로 내려야 하는가.
+   * 사람이 이 소스를 꺼야 하는가(= 고장).
    *
-   * broken 이면 내린다. 데이터를 못 쓰는 상태에서 계속 요청하는 건
-   * 순수한 낭비이고, 차단(403/429)이 원인이라면 두드릴수록 영구 차단에
-   * 가까워진다. 되살리는 건 대시보드 UPDATE 한 줄이다.
+   * ⛔ 2026-09-30 부터 러너는 이 값으로 review_sources.enabled 를 **쓰지 않는다**(CLAUDE.md §10.1 —
+   *    무인 러너가 쓸 수 있는 컬럼은 daily_request_cap 하나). broken 은 Notion 일일 상태 로그에
+   *    사람판단필요로 올라가고(scripts/review-source-health-report.mjs), 사람이 끌 때까지 매 실행 재시도된다.
+   *    데이터를 못 쓰는 상태에서 계속 요청하는 건 낭비이고 차단(403/429)이면 영구 차단에 가까워진다 —
+   *    그래서 보고가 빠지면 안 된다.
    */
   disable: boolean
   /** 다음 실행에 넘길 연속 0건 횟수. */
@@ -261,6 +263,7 @@ export function judgeHealth(input: HealthInput): HealthVerdict {
 export function alertLine(sourceKey: string, v: HealthVerdict): string | null {
   if (v.health === 'ok') return null
   const icon = v.health === 'broken' ? '🚨' : '⚠️'
-  const suffix = v.disable ? ' · 소스를 중단했다' : ''
+  // 소스를 끄지 않는다(§10.1). "중단했다"라고 쓰면 사람이 이미 꺼진 줄 안다 — 실제로는 다음 실행이 다시 돈다.
+  const suffix = v.disable ? ' · 자동 중단 안 함(enabled 그대로) — 사람이 끌 때까지 재시도된다' : ''
   return `${icon} 소스 경보: ${sourceKey} = ${v.health} — ${v.detail}${suffix}`
 }

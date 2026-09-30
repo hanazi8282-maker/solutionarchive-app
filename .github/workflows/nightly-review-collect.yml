@@ -143,6 +143,9 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/review-request-cap.mjs
 
+      # 끝에 소스 고장 보고(scripts/review-source-health-report.mjs)도 한다 — 고장 소스는 자동으로 끄지 않고
+      # Notion CTO 행(하루 1행, 사람판단필요)에 올린다. 보고 실패·토큰 없음이면 이 스텝이 실패하고
+      # ops/state/status-log-pending/ 에 폴백 파일을 남긴다 → 아래 push-pending 잡이 main 에 올린다.
       - name: Collect reviews
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -175,3 +178,79 @@ jobs:
         run: |
           node scripts/review-purge.mjs \
             ${{ ((github.event_name == 'workflow_dispatch' && inputs.purge_apply) || vars.REVIEW_PURGE_APPLY == 'true') && '--apply' || '' }}
+
+      # 소스 고장 보고가 Notion 에 못 썼으면 폴백 파일이 여기 남는다(CLAUDE.md §11-3). 이번 실행이 만든 것 =
+      # **추적 안 되는(untracked) 파일**만 넘긴다 — main 에 이미 있던 밀린 파일을 다시 올리면 중복 행이 된다.
+      # 이 잡은 contents: read 라 직접 커밋하지 않고 아티팩트로 넘긴다.
+      - name: Detect pending status log
+        id: pending
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/pending"
+          git ls-files --others --exclude-standard -- 'ops/state/status-log-pending/*.md' | while read -r f; do cp "$f" "$RUNNER_TEMP/pending/"; done
+          if ls "$RUNNER_TEMP"/pending/*.md >/dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            ls "$RUNNER_TEMP/pending"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload pending status log
+        if: always() && steps.pending.outputs.found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: status-log-pending
+          path: ${{ runner.temp }}/pending/
+          retention-days: 7
+
+    outputs:
+      pending: ${{ steps.pending.outputs.found }}
+
+  # 폴백 파일을 main 에 올린다 → notion-status-log-flush.yml 이 push 트리거로 Notion 에 다시 쓴다.
+  # ⛔ 수집 잡과 따로 둔다 — 수집기에는 쓰기 권한을 주지 않는다(맨 위 주석). 여기서 쓰는 것은 봇 토큰뿐이고
+  #    워크플로 permissions(contents: read)는 넓히지 않는다. 이 잡은 폴백 파일이 있을 때만 돈다.
+  push-pending:
+    needs: collect
+    if: always() && needs.collect.outputs.pending == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # 무인 push 용 전용 GitHub App 설치 토큰(남헌 2026-09-25 B안). 기본 GITHUB_TOKEN 은 main 룰셋 bypass 주체가 될 수 없다(GH013).
+      # notion-status-log-flush.yml 과 같은 블록. 이 워크플로는 contents: read 라 github.token 폴백으로는 push 가
+      # 실패한다 — 그러면 이 잡이 빨간불로 끝나고 파일은 위 아티팩트에 남는다.
+      - name: Mint bot token
+        id: bot
+        continue-on-error: true
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.bot.outputs.token || github.token }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: status-log-pending
+          path: ${{ runner.temp }}/pending
+
+      - name: Commit pending status log
+        run: |
+          # main 에 아직 안 올라간 같은 이름 파일이 있으면 덮어쓰지 않는다(flush 가 계속 실패하는 날 앞 실행분이 사라진다).
+          mkdir -p ops/state/status-log-pending
+          for f in "$RUNNER_TEMP"/pending/*.md; do
+            t="ops/state/status-log-pending/$(basename "$f")"
+            [ -e "$t" ] && t="ops/state/status-log-pending/$(basename "$f" .md)-r${GITHUB_RUN_ID}.md"
+            mv "$f" "$t"
+          done
+          git add -- ops/state/status-log-pending
+          if git diff --cached --quiet; then
+            echo "올릴 파일 없음"
+            exit 1
+          fi
+          git config user.name  "review-collect-bot"
+          git config user.email "noreply@anthropic.com"
+          git commit -m "chore(notion): 소스 고장 보고 폴백 — $(date -u +%F)"
+          git push

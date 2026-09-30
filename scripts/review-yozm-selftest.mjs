@@ -119,7 +119,7 @@ function harness(pages, minIntervalMs) {
 {
   const h = harness({ '/magazine/': 403 }, 6000)
   const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
-  t('403: 요청 1건 뒤 중단 + 소스 끔', `${r.requests}/${r.stats.blockedResponses}/${h.log.health?.disable}`, '1/1/true')
+  t('403: 요청 1건 뒤 중단 + 고장 판정(review_sources 에는 안 씀)', `${r.requests}/${r.stats.blockedResponses}/${r.health?.disable}/${h.log.health}`, '1/1/true/null')
 }
 
 console.log(`review-yozm-selftest: ${pass} pass, ${fail} fail`)

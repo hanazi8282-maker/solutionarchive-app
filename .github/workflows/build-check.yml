@@ -200,6 +200,11 @@ jobs:
       # '유지' 로 나와 아무 일도 안 일어나고 로그도 정상으로 보인다.
       # 실제 nightly-review-collect.yml 을 읽어 하루 실행 횟수를 대조한다(하드코딩 금지).
       - run: node scripts/review-request-cap-selftest.mjs
+      # 소스 고장 보고(남헌 2026-09-30) — 고장이어도 review_sources 에 daily_request_cap 외 쓰기 0회
+      # (실제 store 로 본다), 대신 Notion 일일 상태 로그 CTO 행(하루 1행·사람판단필요)으로 간다.
+      # 보고 실패·토큰 없음은 폴백 파일 + 실패. 자동 비활성을 되살리면 여기서 깨진다.
+      - run: node scripts/review-source-health-selftest.mjs
+      - run: node scripts/notion-status-log-selftest.mjs
       # ── 2026-09-19 배선 (코드 감사 2-1) ─────────────────────────────────
       # 아래 31개는 리포에 있었지만 어떤 워크플로도 돌리지 않아 깨져도 초록불이었다.
       # 전부 픽스처만 쓰고(네트워크·DB·env 없음) 각 1초 안에 끝난다 — 09-19 에 env 없이 실측.

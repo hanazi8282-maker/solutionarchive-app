@@ -499,6 +499,14 @@ nextRequest(target) →
 **403/429 를 받으면 그 소스를 그 자리에서 끈다.** 재시도하지 않는다.
 차단당한 뒤 계속 두드리는 게 영구 차단으로 가는 가장 흔한 길이다.
 
+> **2026-09-30 변경(남헌 지시) — 자동 비활성 제거.** 러너는 더 이상 `review_sources` 에
+> 판정을 쓰지 않는다(`enabled`·`disabled_*`·`health*` 전부). 무인 러너가 쓸 수 있는 컬럼은
+> CLAUDE.md §10.1 대로 `daily_request_cap` 하나다. 판정 기준(위 표)은 그대로이고, `broken` 이면
+> 그 실행만 중단(403/429)한 뒤 **Notion 일일 상태 로그 CTO 행(하루 1행, 사람판단필요=true)** 에
+> 소스·사유·연속 횟수·N일째·마지막 에러를 올린다(`scripts/review-source-health-report.mjs`).
+> 끄는 것은 사람이 한다 — 끄기 전까지 매 실행 재시도된다. 판정 기록은 `review_collection_runs.health_after`.
+> 회귀: `scripts/review-source-health-selftest.mjs`.
+
 ### 보고 — 최상단으로 올린다
 
 `scripts/insight-loop.mjs` 의 요약 맨 위에 소스 경보 줄을 넣는다.

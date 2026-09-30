@@ -191,10 +191,10 @@ function harness({ pages, cap = 50 }) {
   const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
   t('403: 요청 1건 뒤 중단', r.requests, 1)
   t('403: 차단으로 센다', r.stats.blockedResponses, 1)
-  t('403: 소스를 끈다(enabled=false 경로)', h.log.health?.disable, true)
+  t('403: 고장 판정 — review_sources 에는 안 쓴다(§10.1)', `${r.health?.disable}/${h.log.health}`, 'true/null')
   const h2 = harness({ pages: { '/': 429 } })
   const r2 = await runCollection(A, { dryRun: false, targetLimit: 5 }, h2.ports)
-  t('429: 요청 1건 뒤 중단 + 끈다', `${r2.requests}/${h2.log.health?.disable}`, '1/true')
+  t('429: 요청 1건 뒤 중단 + 고장 판정', `${r2.requests}/${r2.health?.disable}/${h2.log.health}`, '1/true/null')
 }
 {
   // 일일 상한 — cap 2 면 목록 1 + 글 1 만

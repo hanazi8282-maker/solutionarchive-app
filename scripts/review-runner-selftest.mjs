@@ -748,7 +748,7 @@ const runQuota = (h, over = {}) =>
   t('broken 이어도 러너는 review_sources 에 쓰지 않는다', h.log.health.length, 0)
 }
 
-// ── 파싱 브레이크 — 첫 페이지가 파싱 고장이면 더 요청하지 않는다(남헌 2026-09-30) ──────
+// ── 파싱 브레이크 — 매 페이지 뒤 파싱 고장이면 더 요청하지 않는다(남헌 2026-09-30, 첫 페이지 → 매 페이지 확장) ──────
 // 이전엔 파서가 깨져도 daily_request_cap 까지 두드렸다. 기준은 health.ts judgeHealth 그대로다.
 {
   const twoTargets = ['p1', 'p2'].map((ref, i) => ({
@@ -777,14 +777,14 @@ const runQuota = (h, over = {}) =>
 
   // (c) 사유가 수치와 함께 남고 broken 판정 → 고장 보고(Notion) 페이로드까지 이어진다
   const o = ra.perTarget[0]?.outcome ?? ''
-  ok(`파싱 브레이크(c): 정상 종료로 위장하지 않는다 — "${o}"`, o.includes('파싱 고장으로 첫 페이지 뒤 중단'))
+  ok(`파싱 브레이크(c): 정상 종료로 위장하지 않는다 — "${o}"`, o.includes('파싱 고장으로 1페이지째에서 중단'))
   ok('파싱 브레이크(c): 몇 페이지째·몇 건 중 실패 몇 건을 남긴다', o.includes('1페이지째') && o.includes('파싱 20건 중 실패 18건'))
   t('파싱 브레이크(c): 판정은 broken', ra.health.health, 'broken')
   const { brokenSources, buildBrokenEntry } = await import('./review-source-health-report.mjs')
   const broken = brokenSources([{ key: 'fake', health: ra.health, perTarget: ra.perTarget, stats: ra.stats }])
   t('파싱 브레이크(c): 고장 보고 대상에 오른다', broken.length, 1)
   const entry = buildBrokenEntry({ date: '2026-09-30', broken, history: null, now: new Date(), runUrl: null })
-  ok('파싱 브레이크(c): 보고 본문에 중단 사유(마지막 에러)가 실린다', entry.blocked.includes('파싱 고장으로 첫 페이지 뒤 중단'))
+  ok('파싱 브레이크(c): 보고 본문에 중단 사유(마지막 에러)가 실린다', entry.blocked.includes('파싱 고장으로 1페이지째에서 중단'))
   t('파싱 브레이크(c): 사람판단필요', entry.needsHuman, true)
 
   // (b) 정상 소스는 그대로 여러 페이지 계속 읽는다
@@ -797,9 +797,42 @@ const runQuota = (h, over = {}) =>
   const hs = makeHarness({ pages: { 1: page([rv({ externalId: 's1' })], '1', 3), 2: page(tenGood, null) } })
   t("파싱 브레이크(b'): 표본 4건 첫 페이지는 멈추지 않는다", (await run(hs)).requests, 2)
 
+  // (e) 매 페이지 판정 — 1·2페이지 정상, 3페이지째에 파서가 깨진다 → 3페이지에서 멈추고 4페이지 이상은 요청하지 않는다
+  const good = (p) => Array.from({ length: 10 }, (_, i) => rv({ externalId: `p${p}g${i}` }))
+  const page3Broken = () => ({
+    1: page(good(1), '1'),
+    2: page(good(2), '2'),
+    3: page([rv({ externalId: 'p3ok' })], '3', 20), // 누적 21/41 < 8/10
+    4: page(good(4), '4'),
+    5: page(good(5), null),
+  })
+  const page3Case = async (runFn) => {
+    const h = makeHarness({ pages: page3Broken() })
+    return { h, r: await runFn(fakeAdapter, { dryRun: false, targetLimit: 5 }, h.ports) }
+  }
+  const { h: he, r: re } = await page3Case(runCollection)
+  t('파싱 브레이크(e): 3페이지에서 멈춘다(요청 3건)', re.requests, 3)
+  ok('파싱 브레이크(e): 4페이지 이상은 요청하지 않는다', !he.log.fetched.some((u) => /page=[4-9]/.test(u)))
+  const oe = re.perTarget[0]?.outcome ?? ''
+  ok(`파싱 브레이크(e): 3페이지째·누적/이 페이지 수치를 남긴다 — "${oe}"`,
+    oe.includes('파싱 고장으로 3페이지째에서 중단') && oe.includes('누적 파싱 41건 중 실패 20건') && oe.includes('이 페이지 21건 중 실패 20건'))
+  t('파싱 브레이크(e): 판정은 broken → Notion 고장 보고로 이어진다',
+    brokenSources([{ key: 'fake', health: re.health, perTarget: re.perTarget, stats: re.stats }]).length, 1)
+
+  // (f) 표본 부족 페이지는 판정 보류 — 1·2페이지(표본 4·8)는 실패율 75% 여도 지나가고, 표본이 10 에 닿는 3페이지에서 멈춘다
+  const hf = makeHarness({ pages: {
+    1: page([rv({ externalId: 'f1' })], '1', 3),
+    2: page([rv({ externalId: 'f2' })], '2', 3),
+    3: page([rv({ externalId: 'f3' })], '3', 1),
+    4: page(good(4), null),
+  } })
+  const rf = await run(hf)
+  t('파싱 브레이크(f): 표본 10 미만 페이지는 보류, 10 이 되는 3페이지에서 중단', rf.requests, 3)
+  ok('파싱 브레이크(f): 사유에 3페이지째', (rf.perTarget[0]?.outcome ?? '').includes('3페이지째에서 중단'))
+
   // (d) 뮤테이션: 브레이크를 끈 러너 사본으로 (a) 를 돌리면 실패해야 한다 — 이 테스트가 브레이크를 실제로 본다는 증거
   const src = await fs.readFile(path.join(here, '../lib/review/runner.ts'), 'utf8')
-  const mutated = src.replace('if (targetPages === 1) {', 'if (false) {')
+  const mutated = src.replace("if (early.health === 'broken') {", 'if (false) {')
   ok('파싱 브레이크(d): 뮤테이션 지점을 찾았다', mutated !== src)
   const mutantPath = path.join(here, `../lib/review/.runner-mutant-${process.pid}.ts`)
   await fs.writeFile(mutantPath, mutated)
@@ -807,6 +840,9 @@ const runQuota = (h, over = {}) =>
     const mutant = await import(`../lib/review/.runner-mutant-${process.pid}.ts`)
     const { h: hm, r: rm } = await brakeCase(mutant.runCollection)
     ok(`파싱 브레이크(d): 브레이크를 끄면 (a) 가 깨진다(요청 ${rm.requests}건)`, rm.requests > 1 && pageFetches(hm) > 1)
+    const { h: hm3, r: rm3 } = await page3Case(mutant.runCollection)
+    ok(`파싱 브레이크(d): 브레이크를 끄면 (e) 가 깨진다(요청 ${rm3.requests}건 · 4페이지 이상 요청됨)`,
+      rm3.requests > 3 && hm3.log.fetched.some((u) => /page=[4-9]/.test(u)))
   } finally {
     await fs.rm(mutantPath, { force: true })
   }

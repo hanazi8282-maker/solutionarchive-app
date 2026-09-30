@@ -42,6 +42,12 @@ export const metadata = { title: '아이디어 매칭 리포트' }
 
 /** 리포트는 한 장이다. 무브는 상위 N 만 싣고 나머지는 브랜드 칩으로 접는다(건수는 밝힌다). */
 const REPORT_MOVES = 5
+/**
+ * 처음에 펴 두는 건수(무브 줄·실패 앵글 둘 다). 나머지는 `<details>` 로 접는다 — DOM 에는 그대로 있다.
+ * 3 = 갈린 짝 대조표의 "한 열 3건 + N건 더"(B7-4)와 같은 문턱. 실데이터(2026-09-30, 닮은 무브 15·경고 5·짝 2)에서
+ * 5건씩 펴면 1280 문서가 3,206px 로 기준(≤3,000)을 넘었다. 요약 띠가 전체 건수를 먼저 말하므로 상위 3건이면 방향은 보인다.
+ */
+const OPEN_ROWS = 3
 
 const LEAD = '아이디어 한 줄을 넣으면 승인된 케이스와 실패 원장에서 닮은 것만 모아 한 장으로 보여준다. 없는 것은 “해당 없음”으로 적는다.'
 const EXAMPLE = '프리랜서용 인보이스 자동 발송 SaaS'
@@ -181,6 +187,23 @@ export default async function IdeaReportPage({ searchParams }: {
     .filter((c) => !shown.has(c.case_study_id))
     .map((c) => [c.case_study_id, c] as const)).values()]
   const restCount = moveCards.length - REPORT_MOVES
+  const row = (c: (typeof moveCards)[number]) => (
+    <PubMatchRow key={c.case_move_id} card={c}
+      study={studyById.get(c.case_study_id) ?? { brand_name: c.brand_name, slug: c.slug }}
+      moveCount={c.siblings.length} />
+  )
+  const angle = (c: (typeof result.failed_angles.cards)[number]) => (
+    <li key={c.case_key}>
+      <b>{c.claimed_angle}</b>
+      <span className="pub-angle-out">{c.outcome}</span>
+      <span className="pub-caption">
+        {c.product_category} · {c.source_tier}{c.is_estimate ? ' · 추정' : ''} · 겹친 낱말 {c.matched_terms.map((t) => `“${t}”`).join(', ')}
+        {c.low_confidence ? ' · 신뢰도 낮음' : ''}
+      </span>
+    </li>
+  )
+  const foldedRows = moveCards.slice(OPEN_ROWS, REPORT_MOVES)
+  const foldedAngles = result.failed_angles.cards.slice(OPEN_ROWS)
 
   return shell(<>
     <div className="pub-section">
@@ -208,20 +231,15 @@ export default async function IdeaReportPage({ searchParams }: {
               ? <PubButtonLink href={href('all')} variant="ghost" size="sm">소비재 포함해서 다시</PubButtonLink>
               : undefined} />
           {moveCards.length > 0 && <>
-            <ul className="pub-index">
-              {moveCards.slice(0, REPORT_MOVES).map((c) => (
-                <PubMatchRow key={c.case_move_id} card={c}
-                  study={studyById.get(c.case_study_id) ?? { brand_name: c.brand_name, slug: c.slug }}
-                  moveCount={c.siblings.length} />
-              ))}
-            </ul>
-            {restCount > 0 && restCases.length === 0 && !signedIn && (
-              <p className="pub-caption">나머지 {restCount}건은 위 브랜드의 다른 무브다.</p>
-            )}
-            {restCount > 0 && (restCases.length > 0 || signedIn) && (
+            <ul className="pub-index">{moveCards.slice(0, OPEN_ROWS).map(row)}</ul>
+            {moveCards.length > OPEN_ROWS && (
               <details className="pub-fold">
-                <summary><IconChevronRight />나머지 {restCount}건{restCases.length > 0 ? ` (브랜드 ${restCases.length}곳)` : ''}</summary>
+                <summary><IconChevronRight />나머지 {moveCards.length - OPEN_ROWS}건{restCases.length > 0 ? ` (브랜드 ${restCases.length}곳 더)` : ''}</summary>
                 <div className="pub-fold-body">
+                  {foldedRows.length > 0 && <ul className="pub-index">{foldedRows.map(row)}</ul>}
+                  {restCount > 0 && restCases.length === 0 && !signedIn && (
+                    <p className="pub-caption">그 밖 {restCount}건은 위 브랜드의 다른 무브다.</p>
+                  )}
                   {restCases.length > 0 && (
                     <div className="pub-chiprow pub-report-rest">
                       {restCases.map((c) => (
@@ -229,7 +247,7 @@ export default async function IdeaReportPage({ searchParams }: {
                       ))}
                     </div>
                   )}
-                  {signedIn && (
+                  {signedIn && restCount > 0 && (
                     <p className="pub-caption"><Link className="pub-link" href={withParams('/cases/search', query.kind)}>검색 화면</Link>에서 전부 본다.</p>
                   )}
                 </div>
@@ -242,18 +260,13 @@ export default async function IdeaReportPage({ searchParams }: {
         <Section id="failed" title="실패 경고 앵글" lead="아이디어 낱말과 겹치는 실패 원장 행. 같은 소구점으로 망한 적이 있나.">
           <SectionState status={result.failed_angles.status} reason={result.failed_angles.reason} none="겹치는 실패 사례 0건" />
           {result.failed_angles.cards.length > 0 && (
-            <ul className="pub-angles">
-              {result.failed_angles.cards.map((c) => (
-                <li key={c.case_key}>
-                  <b>{c.claimed_angle}</b>
-                  <span className="pub-angle-out">{c.outcome}</span>
-                  <span className="pub-caption">
-                    {c.product_category} · {c.source_tier}{c.is_estimate ? ' · 추정' : ''} · 겹친 낱말 {c.matched_terms.map((t) => `“${t}”`).join(', ')}
-                    {c.low_confidence ? ' · 신뢰도 낮음' : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ul className="pub-angles">{result.failed_angles.cards.slice(0, OPEN_ROWS).map(angle)}</ul>
+          )}
+          {foldedAngles.length > 0 && (
+            <details className="pub-fold">
+              <summary><IconChevronRight />나머지 {foldedAngles.length}건</summary>
+              <ul className="pub-angles">{foldedAngles.map(angle)}</ul>
+            </details>
           )}
         </Section>
 

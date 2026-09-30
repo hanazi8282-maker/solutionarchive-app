@@ -44,6 +44,8 @@ export function requiredKeyFor(
 const ANTHROPIC_MODEL = 'claude-opus-5-5'
 /** claude -p 는 모델을 CLI 기본값으로 쓴다. 추적용 라벨이라 실제 모델명이 아니다 — 응답 봉투의 model 을 우선 쓴다. */
 const CLAUDE_CLI_LABEL = 'claude-cli'
+/** 2026-09-30 남헌 결정: claude-cli 는 Sonnet 5.5 로 고정한다(정식 식별자). 'claude-sonnet-5' 는 5.0 이라 다른 모델이다. env CLAUDE_CLI_MODEL 로만 덮어쓴다. */
+export const CLAUDE_CLI_DEFAULT_MODEL = 'claude-sonnet-5-5'
 /**
  * callWithRetry 의 budgetChars 에 넣으면 달러 예산(budget.ts)을 타지 않는다.
  * claude-cli 는 구독 OAuth 라 청구액이 없다(2026-09-26 정정: $250 크레딧과도 무관). 추정 단가로 세는 "$5 하루 상한"은
@@ -172,8 +174,8 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
       // 도구 없음. `--max-turns 1` 만으로는 모델이 첫 턴에 도구를 집는 것을 못 막는다 — 그러면 답을 쓸 턴이 없어
       // is_error·error_max_turns·stop_reason=tool_use 로 죽는다(2026-09-29 run 36511286722, 입력 746건). `--tools ""` 는 2.1.0+.
       '--tools', '',
-      // 모델은 CLI 기본값. 속도가 필요하면 env 로(예: sonnet). 비워 두면 인자를 안 넘긴다.
-      ...(process.env.CLAUDE_CLI_MODEL ? ['--model', process.env.CLAUDE_CLI_MODEL] : []),
+      // 모델은 항상 명시한다(기본 CLAUDE_CLI_DEFAULT_MODEL = Sonnet 5.5). CLI 기본값에 맡기면 계정·버전에 따라 바뀐다.
+      '--model', process.env.CLAUDE_CLI_MODEL || CLAUDE_CLI_DEFAULT_MODEL,
     ],
     // 판정(짧은 출력)은 3분이면 넉넉하지만 6천 자 고쳐쓰기는 몇 분 걸린다 — 호출부가 env 로 늘린다(column-review.yml 900s).
     { timeoutMs: Number(process.env.LLM_CLAUDE_CLI_TIMEOUT_MS) > 0 ? Number(process.env.LLM_CLAUDE_CLI_TIMEOUT_MS) : 180_000, input: `${systemPrompt}\n\n---\n\n${userPrompt}` },

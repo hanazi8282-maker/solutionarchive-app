@@ -355,7 +355,7 @@ for (const sourceKey of sourceKeys) {
           const since = new Date(Date.now() - (LOOKBACK_DAYS + 1) * 86_400_000).toISOString()
           const { data, error } = await supabase
             .from('review_collection_runs')
-            .select('source_key, started_at, health_after')
+            .select('source_key, started_at, finished_at, status, dry_run, health_after')
             .in('source_key', keys)
             .eq('dry_run', false)
             .gte('started_at', since)
@@ -368,9 +368,11 @@ for (const sourceKey of sourceKeys) {
       rep = { ok: false, broken: brokenSources(sourceResults), record: { stage: 'report', error: e instanceof Error ? e.message : String(e) } }
     }
   }
-  if (rep.broken.length > 0) {
+  // hidden = 이번 실행엔 판정이 없지만 마지막 확인이 broken 인 소스(확인 불가가 고장을 가리지 않게, 남헌 2026-09-30).
+  const reported = [...rep.broken, ...(rep.hidden ?? [])]
+  if (reported.length > 0 || !rep.ok) {
     say('')
-    say(`### 소스 고장 보고 — ${rep.broken.map((b) => b.key).join(', ')} (자동으로 끄지 않았다)`)
+    say(`### 소스 고장 보고 — ${reported.map((b) => b.key).join(', ') || '대상 확인 전 실패'} (자동으로 끄지 않았다)`)
     if (rep.dry) say('- dry-run — Notion 보고 생략')
     else if (rep.ok) say(`- ✅ Notion 일일 상태 로그(CTO) ${rep.record.updated ? '같은 날 행 갱신' : '행 생성'}·재확인 — ${rep.record.title} (사람판단필요=true)`)
     else {

@@ -277,5 +277,8 @@ export function createReviewStore(supabase: Supa): RunnerStore {
     // ⛔ review_sources 에는 쓰지 않는다(읽기만 — loadSource). 예전 updateSourceHealth 는 health*·enabled·
     //    disabled_* 를 썼다 — CLAUDE.md §10.1 위반이라 없앴다(남헌 2026-09-30). 유일한 예외 daily_request_cap 은
     //    scripts/review-request-cap.mjs 가 쓴다. 되살리면 scripts/review-source-health-selftest.mjs 가 실패한다.
+    // DEPRECATED review_sources.health·health_detail·health_checked_at — 2026-09-30 #373 이후 무인 러너가 쓰지 않는다
+    //    — 출처는 review_collection_runs.health_after(lib/review/latest-health.ts), 정리는 다음 분기(남헌 2026-09-30).
+    //    컬럼은 삭제하지 않았다(되돌리기 어려운 삭제 = §10.2 사람 판단 예외). 마이그 20260930000045 가 DB 주석만 단다.
   }
 }

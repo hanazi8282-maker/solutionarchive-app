@@ -28,14 +28,27 @@
 //   ⚠️ 글 URL 은 목록 href 를 그대로 쓰지 않고 **20자 영숫자 id 로 조립**한다(types.ts 규약 4).
 //   ⚠️ 페이지에 `firestore-post--success-story-interview` 표식이 없으면 편집 인터뷰가 아니다 — 받지 않고
 //      filtered 로 센다(범위 밖 글이 목록에 섞여도 적재하지 않는다).
-//   ponytail: 새 인터뷰를 게시 직후 한 번만 읽는다. 그때는 본문이 전부 열려 있지만 댓글이 거의 없다.
-//     댓글은 나중에 붙고 그때쯤엔 본문이 가입 벽 뒤로 간다. 댓글이 필요하면 목록 N번째(지연) 인터뷰를
-//     한 번 더 담는 재방문을 붙여라(요청 2배).
+//
+// 댓글 재방문(남헌 결정 2026-09-30 — 요청 2배 감수):
+//   새 인터뷰는 게시 직후라 본문은 전부 열려 있지만 댓글이 거의 없다. 댓글은 나중에 붙고, 그때쯤엔 본문이
+//   가입 벽 뒤로 간다(댓글은 전부 공개). 그래서 처음 읽은 인터뷰를 **한 번 더** 읽어 **댓글만** 넣는다.
+//   · 상태는 커서 JSON 의 `w` = [[id, 남은 목록 실행 수], …] 다(스키마 변경 없음). 처음 읽을 때
+//     REVISIT_AFTER_RUNS 로 넣고 목록을 읽을 때마다(= 실행마다) 1씩 줄인다. 하루 2회 실행이라 14 ≈ 7일.
+//     날짜가 아니라 실행 수인 이유: 어댑터에는 시계가 없다(ParseContext 에 now 가 없다).
+//   · 0 이 된 것 중 **먼저 넣은 것**부터 실행당 REVISIT_PER_RUN 건을 큐 **맨 뒤**에 `/post/<id>#c` 로 담고
+//     `w` 에서 뺀다(= 재방문은 한 번뿐). 새 글이 큐를 채우면(19) 재방문은 다음 실행으로 밀린다 —
+//     실행당 요청은 여전히 목록 1 + 글 ≤19 다(MAX_PAGES_PER_TARGET 20).
+//   · 맨 뒤·실행당 1건인 이유: 재방문 댓글은 대개 러너의 증분 기준선(lastReviewAt)보다 오래돼서 5개를 넘으면
+//     러너가 "이미 본 구간"으로 그 페이지 뒤에서 끊는다. 맨 뒤 1건이면 끊겨도 남는 큐가 없다.
+//   · 재방문 응답에서는 본문(첫 항목)을 버리고 댓글만 낸다. 이미 받은 댓글은 지문
+//     (`/post/<id>#<commentId>`)이 duplicate 로 막는다. 가입 벽 뒤(pw-cta)는 원래 안 읽는다.
+//   · 목록 파싱이 실패하면(링크 0개) `w` 를 줄이지도 꺼내지도 않는다.
+//   · ⚠️ 이 코드 이전에 읽은 인터뷰는 `w` 에 없어 재방문되지 않는다.
 //
 // 작성자는 저장하지 않는다(authorMasked=null).
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewSourceAdapter, TargetState } from '../types.ts'
-import { BOARD_QUEUE_MAX, decodeBoardCursor, encodeBoardCursor, parseBoardRef } from '../types.ts'
+import { BOARD_QUEUE_MAX, decodeBoardCursor, parseBoardRef } from '../types.ts'
 import { htmlStrip } from './hackernews.ts'
 import { kstDate } from './velog.ts'
 
@@ -43,23 +56,60 @@ export const HOST = 'https://www.indiehackers.com'
 
 export const BOARDS: Record<string, string> = { stories: '/stories' }
 
-const POST_RE = /^\/post\/([A-Za-z0-9]{20})$/
+// 뒤의 `#c` = 재방문(댓글만). 요청 URL 에는 붙이지 않는다.
+const POST_RE = /^\/post\/([A-Za-z0-9]{20})(#c)?$/
+const ID_RE = /^[A-Za-z0-9]{20}$/
+
+/** 처음 읽은 뒤 재방문까지 기다릴 목록 실행 수(하루 2회 → ≈7일). */
+export const REVISIT_AFTER_RUNS = 14
+/** 실행당 재방문 상한. 머리말 "맨 뒤·실행당 1건" 참고. */
+export const REVISIT_PER_RUN = 1
+/** 대기열 상한 — 넘으면 가장 먼저 넣은 것부터 버린다. ponytail: 평소 수 건이라 닿지 않는다. */
+export const REVISIT_WAIT_MAX = 60
+
+type Wait = [string, number]
+interface Cursor {
+  q: string[]
+  last: string | null
+  w: Wait[]
+}
+
+/** 게시판 커서 + 재방문 대기열 `w`. 옛 커서(`w` 없음)도 그대로 읽는다. */
+function dec(cursor: string | null): Cursor {
+  const { q, last } = decodeBoardCursor(cursor)
+  let w: Wait[] = []
+  try {
+    const raw: unknown = cursor ? JSON.parse(cursor)?.w : null
+    if (Array.isArray(raw)) {
+      w = raw.filter((e): e is Wait => Array.isArray(e) && typeof e[0] === 'string' && ID_RE.test(e[0]) && Number.isInteger(e[1]))
+    }
+  } catch {
+    /* decodeBoardCursor 와 같이 빈 상태로 */
+  }
+  return { q, last, w }
+}
+const enc = (c: Cursor): string => JSON.stringify(c.w.length ? { q: c.q, last: c.last, w: c.w } : { q: c.q, last: c.last })
 const LIST_ANCHOR_RE = /<a href="\/post\/([A-Za-z0-9]{20})" class="slick-story database__story"/g
 const LD_RE = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-function parseList(body: string, prev: { q: string[]; last: string | null }): ParseResult {
+function parseList(body: string, prev: Cursor): ParseResult {
   const ids: string[] = []
   LIST_ANCHOR_RE.lastIndex = 0
   for (let m = LIST_ANCHOR_RE.exec(body); m; m = LIST_ANCHOR_RE.exec(body)) if (!ids.includes(m[1])) ids.push(m[1])
   const at = prev.last ? ids.indexOf(prev.last) : -1
   const fresh = at >= 0 ? ids.slice(0, at) : ids
   const q = fresh.slice(0, BOARD_QUEUE_MAX).map((id) => `/post/${id}`)
-  // 링크 0개 = 마크업 변경·챌린지·CSR 전환. "새 인터뷰 없음"이 아니다(§7.1).
+  // 링크 0개 = 마크업 변경·챌린지·CSR 전환. "새 인터뷰 없음"이 아니다(§7.1). 재방문 대기열도 그대로 둔다.
+  if (ids.length === 0) return { reviews: [], nextCursor: enc({ q, last: prev.last, w: prev.w }), parseFailures: 1, pauseRun: true }
+  const w: Wait[] = prev.w.map(([id, n]) => [id, n - 1])
+  const room = Math.max(0, Math.min(REVISIT_PER_RUN, BOARD_QUEUE_MAX - q.length))
+  const due = w.filter(([, n]) => n <= 0).slice(0, room).map(([id]) => id)
+  for (const id of due) q.push(`/post/${id}#c`)
   return {
     reviews: [],
-    nextCursor: encodeBoardCursor({ q, last: ids[0] ?? prev.last }),
-    parseFailures: ids.length === 0 ? 1 : 0,
+    nextCursor: enc({ q, last: ids[0], w: w.filter(([id]) => !due.includes(id)) }),
+    parseFailures: 0,
     pauseRun: q.length === 0,
   }
 }
@@ -129,17 +179,24 @@ export const indiehackersAdapter: ReviewSourceAdapter = {
     if (!slug || !(slug in BOARDS)) return null
     const cur = decodeBoardCursor(target.cursor)
     if (cur.q.length === 0) return { url: `${HOST}${BOARDS[slug]}` }
-    return POST_RE.test(cur.q[0]) ? { url: `${HOST}${cur.q[0]}` } : null
+    const m = POST_RE.exec(cur.q[0])
+    return m ? { url: `${HOST}/post/${m[1]}` } : null
   },
 
   parse(body: string, ctx: ParseContext): ParseResult {
-    const cur = decodeBoardCursor(ctx.cursor)
+    const cur = dec(ctx.cursor)
     if (cur.q.length === 0) return parseList(body, cur)
-    const rest = { q: cur.q.slice(1), last: cur.last }
+    const rest: Cursor = { q: cur.q.slice(1), last: cur.last, w: cur.w }
     const m = POST_RE.exec(cur.q[0])
-    const res = m ? parseStory(body, m[1]) : { reviews: [], nextCursor: null, parseFailures: 1 }
-    return { ...res, nextCursor: encodeBoardCursor(rest), pauseRun: rest.q.length === 0 }
+    const res: ParseResult = m ? parseStory(body, m[1]) : { reviews: [], nextCursor: null, parseFailures: 1 }
+    if (m?.[2]) {
+      // 재방문: 본문(첫 항목)은 버리고 댓글만. 인터뷰 아님(filtered)·파싱 실패는 그대로 센다.
+      if (res.reviews[0]?.externalId === `/post/${m[1]}`) res.reviews = res.reviews.slice(1)
+    } else if (m && res.reviews.length > 0 && !rest.w.some(([id]) => id === m[1])) {
+      rest.w = [...rest.w, [m[1], REVISIT_AFTER_RUNS] as Wait].slice(-REVISIT_WAIT_MAX)
+    }
+    return { ...res, nextCursor: enc(rest), pauseRun: rest.q.length === 0 }
   },
 }
 
-export const __internal = { parseList, parseStory, commentDate }
+export const __internal = { parseList, parseStory, commentDate, dec, enc }

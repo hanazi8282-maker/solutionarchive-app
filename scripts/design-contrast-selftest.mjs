@@ -28,6 +28,8 @@ const PAIRS = [
   // G3: 상세 신원 칩(surface-2 면 위 라벨·값) · 근거 종류 칩(surface 위 뮤트)
   ['ink', 'surface-2', 4.5], ['muted', 'surface-2', 4.5],
   ['ink', 'surface', 4.5], ['muted', 'surface', 4.5], ['accent', 'accent-ink', 3], ['flash', 'ink', 3],
+  // B7: 리포트 갈린 짝 대조표(surface-2 면) — 열 머리 밑 판정 선(글자는 잉크, 위 ink·muted on surface-2 가 맡는다)
+  ['verdict-pos', 'surface-2', 3], ['verdict-neg', 'surface-2', 3],
 ]
 // 다크 배너(G1): 그라데이션 밝은 끝 = dark-canvas 에 액센트 N% 혼합, 그 위 흑백 노이즈 최대 불투명도 → 최악은 흰색 op 합성.
 // 두 숫자를 pub.css 에서 읽는다 — 못 읽으면 통과가 아니라 실패(§7.1).

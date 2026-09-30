@@ -5,7 +5,7 @@ import { applyGate } from '@/lib/cases/remedy-gate'
 
 // 문제 해결 제안 — 조회 전용. GET /api/analyze/remedy?project_id=<uuid>
 //
-// 페인 속성(판정 "여기를 민다"·"지켜본다")마다 보완 선례·실패 사례·원칙을 조립한다.
+// 페인 속성(판정 PUSH·WATCH — 라벨은 lib/analysis/aspect-verdict.ts VERDICT_LABEL)마다 보완 선례·실패 사례·원칙을 조립한다.
 // 조립은 lib/cases/remedy.ts(순수), 조회는 lib/cases/remedy-db.ts, 거르기는 lib/cases/remedy-gate.ts 다.
 //
 // ★ 여기서 LLM 을 부르지 않는다. 판정은 extract 직후·`POST /api/analyze/remedy/judge` 가 미리 돌려

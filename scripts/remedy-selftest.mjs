@@ -39,7 +39,7 @@ const aspects = [
   { id: 'a1', name: '가려움', notes: '두피 가려움 불만이 반복된다', importance: 9, satisfaction: 2 },  // PUSH
   { id: 'a2', name: '향', notes: '향 호불호', importance: 8, satisfaction: 8 },                        // TABLE_STAKES
   { id: 'a3', name: '용량', notes: '용량 언급', importance: 3, satisfaction: 2 },                       // DROP
-  { id: 'a4', name: '거품', notes: '거품 반반', importance: 7, satisfaction: 5 },                       // WATCH
+  { id: 'a4', name: '거품', notes: '거품 반반', importance: 7, satisfaction: 4 },                       // WATCH
 ]
 
 // ── 1. 대상 선별 ─────────────────────────────────────────────

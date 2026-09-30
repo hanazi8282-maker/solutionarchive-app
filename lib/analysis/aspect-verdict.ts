@@ -23,26 +23,31 @@ export interface AspectVerdict {
 
 /**
  * 판정 배지 문구 한 벌. 검수 화면의 속성 카드와 앵글 화면의 그룹 헤더가 같은 낱말을 써야
- * "차별화" 와 "여기를 민다" 가 같은 뜻인지 사용자가 매번 다시 배우지 않는다.
+ * "차별화" 와 "슈퍼 니즈" 가 같은 뜻인지 사용자가 매번 다시 배우지 않는다.
+ * 2026-10-01 남헌: 여기를 민다→슈퍼 니즈, 지켜본다→니즈 포인트, 기본기 — 안 밀어도 된다→기본기.
  */
 export const VERDICT_LABEL: Record<AspectVerdictCode, string> = {
-  PUSH: '여기를 민다',
-  TABLE_STAKES: '기본기 — 안 밀어도 된다',
+  PUSH: '슈퍼 니즈',
+  TABLE_STAKES: '기본기',
   DROP: '버린다',
-  WATCH: '지켜본다',
+  WATCH: '니즈 포인트',
   UNKNOWN: '판정 없음',
 }
 
-/** 경계값. 10점 척도(analysis_aspects 실측 3~9 / 1~10). 바꾸면 selftest 가 잡는다. */
-export const VERDICT_CUT = { importanceHigh: 6, satisfactionLow: 4, satisfactionHigh: 6 } as const
+/**
+ * 경계값. 10점 척도(analysis_aspects 실측 3~9 / 1~10). 바꾸면 selftest 가 잡는다.
+ * 2026-10-01 남헌: 만족도 4·6 → 3·5. 비교는 S < satisfactionLow(**미만**), S >= satisfactionHigh(이상) —
+ * 만족도 3 은 니즈 포인트다(이하로 비교하면 슈퍼 니즈로 샌다).
+ */
+export const VERDICT_CUT = { importanceHigh: 6, satisfactionLow: 3, satisfactionHigh: 5 } as const
 
 /**
- * (I, S) → 판정.
- *   I≥6 ∧ S≤4 → PUSH        "여기를 민다"        — 중요한데 못 채워준다. 소구점 1순위.
- *   I≥6 ∧ S≥6 → TABLE_STAKES "기본기, 안 밀어도 된다" — 중요하고 이미 만족. 빠지면 감점, 밀어도 가점 없음.
- *   I<6       → DROP        "버린다"            — 덜 중요하다. 만족도와 무관하게 소구점이 아니다.
- *   I≥6 ∧ 4<S<6 → WATCH     "지켜본다"          — 중요한데 만족이 반반. 리뷰를 더 모아야 판정이 선다.
- *   null 하나라도 → UNKNOWN "판정 없음"         — 값이 없다. 0 으로 접지 않는다(§7.1).
+ * (I, S) → 판정. (숫자는 VERDICT_CUT 기준 — 바꾸면 여기 주석도 같이)
+ *   I<6          → DROP         "버린다"      — 덜 중요하다. 만족도와 무관하게 소구점이 아니다.
+ *   I≥6 ∧ S<3    → PUSH         "슈퍼 니즈"   — 중요한데 못 채워준다. 소구점 1순위.
+ *   I≥6 ∧ 3≤S<5  → WATCH        "니즈 포인트" — 중요한데 만족이 반반. 리뷰를 더 모아야 판정이 선다.
+ *   I≥6 ∧ S≥5    → TABLE_STAKES "기본기"      — 중요하고 이미 만족. 빠지면 감점, 밀어도 가점 없음.
+ *   null 하나라도 → UNKNOWN     "판정 없음"   — 값이 없다. 0 으로 접지 않는다(§7.1).
  */
 // 인자는 number 와 문자열 숫자를 둘 다 받는다 — PostgREST 가 numeric 컬럼을 문자열로 돌려주는 자리가 있다.
 // num() 이 이미 그렇게 동작하고 셀프테스트도 문자열을 넣는다. 타입만 좁아서 호출부가 캐스팅하고 있었다.
@@ -52,10 +57,10 @@ export function aspectVerdict(importance: number | string | null | undefined, sa
     return { code: 'UNKNOWN', label: VERDICT_LABEL.UNKNOWN, reading: `중요도 ${I ?? '—'} · 만족도 ${S ?? '—'} — 값이 비어 판정하지 않는다` }
   }
   const { importanceHigh: IH, satisfactionLow: SL, satisfactionHigh: SH } = VERDICT_CUT
-  if (I < IH) return { code: 'DROP', label: VERDICT_LABEL.DROP, reading: `중요도 ${I} — 리뷰가 크게 신경 쓰지 않는 속성이다. 소구점으로 밀 이유가 없다` }
-  if (S <= SL) return { code: 'PUSH', label: VERDICT_LABEL.PUSH, reading: `중요도 ${I} · 만족도 ${S} — 중요한데 못 채워주고 있다. 소구점 1순위` }
-  if (S >= SH) return { code: 'TABLE_STAKES', label: VERDICT_LABEL.TABLE_STAKES, reading: `중요도 ${I} · 만족도 ${S} — 중요하고 이미 만족한다. 빠지면 감점, 밀어도 가점은 없다` }
-  return { code: 'WATCH', label: VERDICT_LABEL.WATCH, reading: `중요도 ${I} · 만족도 ${S} — 중요한데 만족이 반반이다. 리뷰를 더 모아야 판정이 선다` }
+  if (I < IH) return { code: 'DROP', label: VERDICT_LABEL.DROP, reading: `중요도 ${I}(${IH} 미만) — 리뷰가 크게 신경 쓰지 않는 속성이다. 소구점으로 밀 이유가 없다` }
+  if (S < SL) return { code: 'PUSH', label: VERDICT_LABEL.PUSH, reading: `중요도 ${I} · 만족도 ${S}(${SL} 미만) — 중요한데 못 채워주고 있다. 소구점 1순위` }
+  if (S >= SH) return { code: 'TABLE_STAKES', label: VERDICT_LABEL.TABLE_STAKES, reading: `중요도 ${I} · 만족도 ${S}(${SH} 이상) — 중요하고 이미 만족한다. 빠지면 감점, 밀어도 가점은 없다` }
+  return { code: 'WATCH', label: VERDICT_LABEL.WATCH, reading: `중요도 ${I} · 만족도 ${S}(${SL} 이상 ${SH} 미만) — 중요한데 만족이 반반이다. 리뷰를 더 모아야 판정이 선다` }
 }
 
 export interface OpportunityBreakdown {

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { healthLabel, loadLatestHealth } from '@/lib/review/latest-health'
 import { Card } from '../_ds/components/Card'
 import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
@@ -127,12 +128,17 @@ async function loadReview(sb: Supa, now: number): Promise<LoopCard> {
   const rows = res.data!
   const r = rows[0]
   const status = r.finished_at ? r.status : 'running'
-  const src = await sb.from('review_sources').select('key,enabled,health,disabled_reason')
+  // 건강도는 review_sources.health 가 아니라 소스별 최근 비-dry-run 실행의 health_after 다(#373 이후 옛 컬럼은 안 갱신된다).
+  // 실행 기록이 없거나 못 읽으면 '확인 불가' — ok 로 접지 않는다(§7.1). 사유 문구는 runs 에 없어 싣지 않는다.
+  const src = await sb.from('review_sources').select('key,enabled')
   const srcCls = classify({ error: src.error, rows: src.data })
-  const srcLine = srcCls.state === 'OK'
-    ? (src.data ?? []).map((s: { key: string; enabled: boolean; health: string }) =>
-        `${s.key}${s.enabled ? '' : '(비활성)'}:${s.health}`).join(' · ')
-    : `소스 ${UNAVAILABLE_TEXT[srcCls.reason ?? 'query_failed']}`
+  let srcLine = `소스 ${UNAVAILABLE_TEXT[srcCls.reason ?? 'query_failed']}`
+  if (srcCls.state === 'OK') {
+    const list = (src.data ?? []) as { key: string; enabled: boolean }[]
+    const hs = await loadLatestHealth(sb, list.map((s) => s.key))
+    srcLine = '건강도(최근 실행 기준) ' + list.map((s, i) =>
+      `${s.key}${s.enabled ? '' : '(비활성)'}:${healthLabel(hs[i].health)}`).join(' · ')
+  }
 
   return {
     def: d, cls,

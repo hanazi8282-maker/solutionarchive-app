@@ -81,7 +81,7 @@ export function buildBrokenEntry({ date, broken, history, now, runUrl }) {
     track: 'CTO',
     done: `[${at}] 소스 건강 체크 — 고장 판정 ${broken.length}개(${keys}). 자동으로 끄지 않았다`,
     blocked: lines.join('\n'),
-    next: `[${at}] ${keys} 를 끌지 사람이 판단 — 끄기 전까지 매 수집 실행에서 재시도된다(차단은 실행당 1회 403/429 뒤 중단, 파싱 고장은 일일 상한까지 요청)`,
+    next: `[${at}] ${keys} 를 끌지 사람이 판단 — 끄기 전까지 매 수집 실행에서 재시도된다(차단은 실행당 1회 403/429 뒤 중단, 파싱 고장은 타깃 첫 페이지 뒤 중단)`,
     needsHuman: true,
     note: `${MARKER} · nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'}`,
   }

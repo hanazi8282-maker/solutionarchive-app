@@ -250,4 +250,66 @@ ok('워크플로: 수집 잡 permissions 는 contents: read 그대로', /^permis
 ok('워크플로: 폴백 파일 push 잡은 봇 토큰 블록을 쓴다', /push-pending:[\s\S]*create-github-app-token[\s\S]*git push/.test(wf))
 ok('워크플로: concurrency 유지', /concurrency:\s*\n\s+group: review-collect/.test(wf))
 
+// ── 7) 건강도 읽는 자리 — review_collection_runs.health_after(소스별 최근 비-dry-run 실행) ──────
+//    #373 뒤 review_sources.health* 는 안 갱신된다. /agents · insight-loop · /api/analyze/targets 가 여기서 읽는다.
+{
+  const { latestHealthBySource, loadLatestHealth, sourceAlertLines } = await import('../lib/review/latest-health.ts')
+  const run = (key, started_at, health_after, over = {}) => ({ source_key: key, started_at, finished_at: started_at, status: 'ok', dry_run: false, health_after, ...over })
+  const runs = [
+    run('a', '2026-09-29T05:00:00Z', 'ok'),
+    run('a', '2026-09-30T05:00:00Z', 'broken'),                           // 최신 = broken
+    run('b', '2026-09-30T05:00:00Z', 'ok'),
+    run('b', '2026-09-30T06:00:00Z', 'broken', { dry_run: true }),         // dry-run 은 무시
+    run('d', '2026-09-30T05:00:00Z', null, { status: 'failed' }),          // 판정 없음
+  ]
+  const [a, b, c, d] = latestHealthBySource(['a', 'b', 'c', 'd'], runs)
+  ok('7 양성: 최근 실행 broken → broken', a.health === 'broken' && a.at === '2026-09-30T05:00:00Z')
+  ok('7 음성: 최근 실행 ok → ok (더 늦은 dry-run broken 은 무시)', b.health === 'ok')
+  ok('7 기록 없음 → 확인 불가', c.health === 'unknown' && c.reason === '실행 기록 없음')
+  ok('7 최근 실행에 판정 없음 → 확인 불가(ok 로 접지 않는다)', d.health === 'unknown' && /실행 실패/.test(d.reason))
+  ok('7 조회 실패 → 전부 확인 불가', latestHealthBySource(['a'], null, 'boom')[0].health === 'unknown')
+
+  const lines = sourceAlertLines(
+    [{ key: 'a', enabled: true }, { key: 'b', enabled: true }, { key: 'c', enabled: true }, { key: 'x', enabled: false }],
+    [a, b, c, { key: 'x', health: 'unknown', at: null, reason: '실행 기록 없음' }],
+  )
+  ok('7 경보: broken 소스는 경보 줄', lines.some((l) => l.startsWith('🚨') && l.includes('a = broken')))
+  ok('7 경보: ok 소스는 줄 없음', !lines.some((l) => l.includes(' b = ')))
+  ok('7 경보: 켜진 소스의 확인 불가는 경보(ok 로 접지 않는다)', lines.some((l) => l.includes('c = 확인 불가') && l.includes('실행 기록 없음')))
+  ok('7 경보: 꺼진 소스의 확인 불가는 올리지 않는다(판정이 안 생기는 게 정상)', !lines.some((l) => l.includes(' x = ')))
+  ok('7 경보: 빈 칸·undefined·null 이 안 새어 나온다', lines.every((l) => !/undefined|null/.test(l)))
+
+  // 로더 — dry_run=false 로 거르고, 소스별 최근 1건, 에러는 그 소스만 확인 불가
+  const calls = []
+  const fakeSb = {
+    from(table) {
+      const q = { table, eqs: {}, order: null }
+      calls.push(q)
+      const api = {
+        select() { return api },
+        eq(c, v) { q.eqs[c] = v; return api },
+        order(c, o) { q.order = [c, o.ascending]; return api },
+        async limit() {
+          if (q.eqs.source_key === 'err') return { data: null, error: { message: 'PGRST205' } }
+          return { data: runs.filter((r) => r.source_key === q.eqs.source_key && r.dry_run === q.eqs.dry_run).sort((x, y) => y.started_at.localeCompare(x.started_at)).slice(0, 1), error: null }
+        },
+      }
+      return api
+    },
+  }
+  const loaded = await loadLatestHealth(fakeSb, ['a', 'b', 'err'])
+  ok('7 로더: review_collection_runs 를 dry_run=false·최신순으로 읽는다', calls.every((q) => q.table === 'review_collection_runs' && q.eqs.dry_run === false && q.order?.[0] === 'started_at' && q.order[1] === false))
+  ok('7 로더: a=broken · b=ok · 조회 실패=확인 불가', loaded.map((h) => h.health).join(',') === 'broken,ok,unknown' && /PGRST205/.test(loaded[2].reason))
+
+  // 배선 — 사용자에게 보이는 두 자리가 옛 컬럼을 읽지 않고 이 로더를 쓴다
+  const agents = fs.readFileSync(path.join(here, '..', 'app', 'agents', 'page.tsx'), 'utf-8')
+  const loop = fs.readFileSync(path.join(here, 'insight-loop.mjs'), 'utf-8')
+  const targets = fs.readFileSync(path.join(here, '..', 'app', 'api', 'analyze', 'targets', 'route.ts'), 'utf-8')
+  for (const [name, txt] of [['/agents', agents], ['insight-loop', loop], ['/api/analyze/targets', targets]]) {
+    ok(`7 배선: ${name} 가 loadLatestHealth 를 쓴다`, /loadLatestHealth\(/.test(txt))
+  }
+  ok('7 배선: /agents 는 review_sources 에서 health 를 읽지 않는다', !/from\('review_sources'\)\.select\('[^']*health/.test(agents))
+  ok('7 배선: insight-loop 는 review_sources.health* 를 읽지 않는다', !/health_detail|health_checked_at|neq\('health'/.test(loop))
+}
+
 console.log(`review-source-health-selftest: ${pass} passed`)

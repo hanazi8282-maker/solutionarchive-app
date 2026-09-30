@@ -289,9 +289,9 @@ ok('워크플로: concurrency 유지', /concurrency:\s*\n\s+group: review-collec
         select() { return api },
         eq(c, v) { q.eqs[c] = v; return api },
         order(c, o) { q.order = [c, o.ascending]; return api },
-        async limit() {
+        async limit(n) {
           if (q.eqs.source_key === 'err') return { data: null, error: { message: 'PGRST205' } }
-          return { data: runs.filter((r) => r.source_key === q.eqs.source_key && r.dry_run === q.eqs.dry_run).sort((x, y) => y.started_at.localeCompare(x.started_at)).slice(0, 1), error: null }
+          return { data: runs.filter((r) => r.source_key === q.eqs.source_key && r.dry_run === q.eqs.dry_run).sort((x, y) => y.started_at.localeCompare(x.started_at)).slice(0, n), error: null }
         },
       }
       return api
@@ -310,6 +310,92 @@ ok('워크플로: concurrency 유지', /concurrency:\s*\n\s+group: review-collec
   }
   ok('7 배선: /agents 는 review_sources 에서 health 를 읽지 않는다', !/from\('review_sources'\)\.select\('[^']*health/.test(agents))
   ok('7 배선: insight-loop 는 review_sources.health* 를 읽지 않는다', !/health_detail|health_checked_at|neq\('health'/.test(loop))
+}
+
+// ── 8) 두 값 분리 — "최근 실행"과 "판정이 있었던 마지막 실행"(남헌 2026-09-30 결정 (3)) ──────
+//    health_after=null 실행이 이전 broken 을 가리지 않는다. 확인 불가를 ok 로 접지 않는다. 지어내지 않는다.
+{
+  const LH = await import('../lib/review/latest-health.ts')
+  const now = Date.parse('2026-09-30T06:00:00Z')
+  const run = (key, started_at, health_after, over = {}) => ({ source_key: key, started_at, finished_at: started_at, status: 'ok', dry_run: false, health_after, ...over })
+  const runs = [
+    run('p', '2026-09-30T05:00:00Z', 'broken'),
+    run('n', '2026-09-30T05:00:00Z', 'ok'),
+    // h: 2일 전 broken → 뒤로 판정 없는 실행 3연속(실패·건너뜀·실패). 더 늦은 dry-run ok 는 무시.
+    run('h', '2026-09-28T05:00:00Z', 'broken'),
+    run('h', '2026-09-29T05:00:00Z', null, { status: 'failed' }),
+    run('h', '2026-09-29T17:00:00Z', null),
+    run('h', '2026-09-30T05:00:00Z', null, { status: 'failed' }),
+    run('h', '2026-09-30T05:30:00Z', 'ok', { dry_run: true }),
+    // u: 전부 판정 없음
+    run('u', '2026-09-29T05:00:00Z', null, { status: 'failed' }),
+    run('u', '2026-09-30T05:00:00Z', null, { status: 'failed' }),
+  ]
+  const [p, n, h, u] = LH.latestHealthBySource(['p', 'n', 'h', 'u'], runs)
+  ok('8 양성: 최근 broken → 최근=broken, 마지막 확인=broken', p.health === 'broken' && p.unknownRuns === 0 && p.lastChecked.health === 'broken')
+  ok('8 음성: 최근 ok → 최근=ok, 연속 0', n.health === 'ok' && n.unknownRuns === 0 && LH.healthSummary(n, now) === '최근: ok(오늘)')
+  ok('8 가림 방지: 최근 확인 불가 3연속 + 마지막 확인 broken(dry-run 무시)',
+    h.health === 'unknown' && h.unknownRuns === 3 && h.lastChecked.health === 'broken' && h.lastChecked.at === '2026-09-28T05:00:00Z')
+  const hs = LH.healthSummary(h, now)
+  ok(`8 문구에 둘 다: "${hs}"`, hs === '최근: 확인 불가(3연속) · 마지막 확인: broken(2일 전)')
+  ok('8 전부 확인 불가 → 마지막 확인: 없음(판정을 지어내지 않는다)',
+    u.lastChecked === 'none' && LH.healthSummary(u, now) === '최근: 확인 불가(2연속) · 마지막 확인: 없음')
+  // 창이 꽉 찼는데 판정이 없으면 "없음"이라고 단정하지 않는다 — 그 너머는 모른다
+  const full = Array.from({ length: LH.RUN_WINDOW }, (_, i) => run('w', new Date(now - i * 3600_000).toISOString(), null))
+  const [w] = LH.latestHealthBySource(['w'], full, null, LH.RUN_WINDOW)
+  ok('8 창 꽉 참 + 판정 없음 → 마지막 확인: 확인 불가(없음이라 단정 안 함)', w.lastChecked === 'unknown' && LH.healthSummary(w, now).includes(`마지막 확인: 확인 불가(최근 ${LH.RUN_WINDOW}회 안에 판정 없음)`))
+  ok('8 조회 실패 → 마지막 확인도 확인 불가', LH.latestHealthBySource(['x'], null, 'boom')[0].lastChecked === 'unknown')
+
+  // insight-loop 경보 — 켜진 소스는 확인 불가 뒤의 broken 을 🚨 로 유지, 꺼진 소스의 확인 불가는 뺀다
+  const lines = LH.sourceAlertLines(
+    [{ key: 'h', enabled: true }, { key: 'u', enabled: true }, { key: 'hOff', enabled: false }, { key: 'n', enabled: true }],
+    [h, u, { ...h, key: 'hOff' }, n], now,
+  )
+  const hl = lines.find((l) => l.includes(' h = ')) ?? ''
+  ok(`8 경보 유지: 최근 확인 불가+마지막 broken → 🚨 · 두 값 다 — "${hl}"`, hl.startsWith('🚨') && hl.includes('최근: 확인 불가(3연속)') && hl.includes('마지막 확인: broken(2일 전)'))
+  ok('8 경보: 켜진 소스 전부 확인 불가 → ⚠️ + 마지막 확인: 없음', lines.some((l) => l.startsWith('⚠️') && l.includes(' u = ') && l.includes('마지막 확인: 없음')))
+  ok('8 경보: 꺼진 소스의 확인 불가는 올리지 않는다(마지막 확인이 broken 이어도)', !lines.some((l) => l.includes('hOff')))
+  ok('8 경보: ok 소스는 줄 없음', !lines.some((l) => l.includes(' n = ')))
+
+  // /agents 배선 — 두 값을 함께 쓰는 healthSummary 를 쓴다
+  const agents = fs.readFileSync(path.join(here, '..', 'app', 'agents', 'page.tsx'), 'utf-8')
+  ok('8 배선: /agents 가 healthSummary 로 두 값을 보인다', /healthSummary\(hs\[i\], now\)/.test(agents))
+
+  // Notion 보고 — 이번 실행 판정 없음(fatal) + 마지막 확인 broken → 보고 행에 두 값. 비활성 건너뜀·마지막 ok 는 제외
+  const upserts = []
+  const fakeUpsert = async (entry) => { upserts.push(entry); return { ok: true, title: 't' } }
+  const rowsByKey = { h: runs.filter((r) => r.source_key === 'h' && !r.dry_run).reverse(), n: runs.filter((r) => r.source_key === 'n'), off: runs.filter((r) => r.source_key === 'h').reverse() }
+  const rep = await runSourceHealthReport({
+    sourceResults: [
+      { key: 'h', fatal: '타임아웃', health: null },
+      { key: 'n', fatal: '타임아웃', health: null },
+      { key: 'off', skipped: true, skipReason: '소스가 비활성 상태다(review_sources.enabled=false)', health: null },
+    ],
+    loadRuns: async (keys) => { ok('8 보고: 비활성 건너뜀은 조회 대상도 아니다', !keys.includes('off')); return rowsByKey },
+    now: new Date(now), date: '2026-09-30', upsert: fakeUpsert,
+  })
+  ok('8 보고: 가려진 고장 1개만 올린다(h)', rep.ok && rep.hidden.map((x) => x.key).join() === 'h' && upserts.length === 1)
+  ok(`8 보고 문구에 두 값 — "${upserts[0]?.blocked}"`, upserts[0]?.blocked.includes('h: 최근: 확인 불가(3연속) · 마지막 확인: broken(2일 전)') && upserts[0].needsHuman === true)
+  const rep2 = await runSourceHealthReport({
+    sourceResults: [{ key: 'n', fatal: '타임아웃', health: null }],
+    loadRuns: async () => rowsByKey, now: new Date(now), date: '2026-09-30', upsert: fakeUpsert,
+  })
+  ok('8 보고 음성: 마지막 확인 ok 인 판정 없음은 Notion 호출 0회', rep2.ok && rep2.hidden.length === 0 && upserts.length === 1)
+
+  // 뮤테이션: "마지막 확인"을 최근 실행에서만 찾게 되돌린 사본은 가림 방지 검사를 통과하지 못해야 한다
+  const src = fs.readFileSync(path.join(here, '..', 'lib', 'review', 'latest-health.ts'), 'utf-8')
+  const mutated = src.replace('const idx = mine.findIndex(isVerdict)', 'const idx = isVerdict(latest) ? 0 : -1')
+  ok('8 뮤테이션: 지점을 찾았다', mutated !== src)
+  const mutantPath = path.join(here, '..', 'lib', 'review', `.latest-health-mutant-${process.pid}.ts`)
+  fs.writeFileSync(mutantPath, mutated)
+  try {
+    const M = await import(`../lib/review/.latest-health-mutant-${process.pid}.ts`)
+    const [mh] = M.latestHealthBySource(['h'], runs)
+    const mutantPasses = mh.lastChecked?.health === 'broken' && M.healthSummary(mh, now) === hs
+    ok(`8 뮤테이션: 되돌린 사본은 가림 방지가 깨진다(마지막 확인=${JSON.stringify(mh.lastChecked)})`, !mutantPasses)
+  } finally {
+    fs.rmSync(mutantPath, { force: true })
+  }
 }
 
 console.log(`review-source-health-selftest: ${pass} passed`)

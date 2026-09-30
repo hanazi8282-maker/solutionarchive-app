@@ -180,6 +180,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: '수집 대상 조회에 실패했습니다.' }, { status: 500 })
   }
 
+  // DEPRECATED review_sources.health(·health_detail·health_checked_at) — 2026-09-30 #373 이후 무인 러너가 쓰지 않는다
+  //   — 출처는 review_collection_runs.health_after, 정리는 다음 분기(남헌 2026-09-30). 아래 타입의 health 는 그 옛 칸 자리다.
   // 응답 모양은 그대로(review_sources.health) 두고 값만 최근 비-dry-run 실행의 health_after 로 바꾼다 —
   // 옛 컬럼은 #373 이후 안 갱신된다. 확인 불가는 null(ok 로 접지 않는다, §7.1).
   const rows = (data ?? []) as unknown as Array<{ source_key: string; review_sources: { health: string | null } | null }>

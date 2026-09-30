@@ -1540,3 +1540,15 @@ a.pub-index-row .pub-index-s--2 { -webkit-line-clamp: 2; line-clamp: 2; }
 
 /* 푸터 링크 — Footer 는 모든 공개 화면이 같이 쓰므로 이 화면(질문 폼이 있는 껍데기)에서만 올린다. */
 .pub-root:has(.pub-report-ask) .pub-footer-links a { display: inline-flex; align-items: center; min-height: var(--pub-h-lg); }
+
+/* ============================================================
+   I2 라이브러리 로그인전 잠금 줄 (2026-09-30, reports/2026-09-30/design-direction-ia-insights-report.md I0·I2)
+   `PubLockRow` 전용. 새 색·반경 없음(토큰만), 테두리·그림자 없음. 모션 없음(B6 "라이브러리는 가만히").
+   ============================================================ */
+.pub-index > li.pub-index-lock {
+  display: flex; align-items: center; gap: var(--pub-gap-3);
+  margin-top: var(--pub-gap-2); padding: var(--pub-gap-2) var(--pub-gap-3) var(--pub-gap-2) 0;
+  border-bottom: 0; border-radius: var(--pub-round-control); background: var(--pub-plane-lilac);
+}
+.pub-index-lock-t { flex: 1 1 0; min-width: 0; font-size: var(--pub-size-text-sm); line-height: 1.45; color: var(--pub-ink); overflow-wrap: anywhere; }
+.pub-index-lock .pub-btn { flex: none; }

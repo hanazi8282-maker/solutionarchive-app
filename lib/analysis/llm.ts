@@ -195,6 +195,12 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
   if (env) {
     if (typeof env.result === 'string') text = env.result
     if (typeof env.model === 'string' && env.model) model = env.model
+    // 2026-10-01: `claude -p --output-format json` 봉투에는 최상위 model 이 없고 실제 모델은 modelUsage 의 키에 있다(실측 — 'claude-sonnet-5-5').
+    // 이걸 안 읽으면 기록이 라벨 'claude-cli' 로만 남아 어떤 모델로 돌았는지 증명할 수 없다. 키가 여럿이면 '+' 로 잇는다.
+    if (model === CLAUDE_CLI_LABEL && env.modelUsage && typeof env.modelUsage === 'object') {
+      const used = Object.keys(env.modelUsage as Record<string, unknown>).filter(Boolean)
+      if (used.length > 0) model = used.join('+')
+    }
     // API 환산 명목값(청구액 아님). 슬롯 상한 재산정용으로 agent_run_steps.detail.cost_usd 에 남는다(설계 §3.4).
     if (typeof env.total_cost_usd === 'number' && Number.isFinite(env.total_cost_usd)) costUsd = env.total_cost_usd
     // 실측 비용·토큰. budget.ts 의 추정치와 별개다 — 보고에는 이 줄의 숫자를 쓴다(2026-09-26 정정).

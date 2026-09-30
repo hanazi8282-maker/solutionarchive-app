@@ -90,6 +90,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":2})
 - ✅ `stage` 발행 대기 스테이징 ({"staged":2})
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":17})
+- ℹ️ Notion 푸시: ion.com/p/DISCOVERY-2026-09-30-3eb100b7ffb4811c888fe835a96fb225 푸시 완료 — 초안 3건 · 신규케이스 1건 · 발굴 1건 · 스킵 1건 ⏭️ CS-20260929-02 — 결정문서(drafts/threads/2026-09-30-juttu-nice-to-have-pricing-collapse.md) 못 찾음
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-10-01-CMO 기록·재확인
 
 _실행 키 `cmo-2026-09-30-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

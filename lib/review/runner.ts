@@ -31,7 +31,7 @@ import {
   type RunStats,
 } from './health.ts'
 import type { Fingerprint, ParsedReview, ReviewRequest, ReviewSourceAdapter, TargetState } from './types.ts'
-import { parseBoardRef } from './types.ts'
+import { parseBoardRef, withSourceUrl } from './types.ts'
 
 /** robots.txt 와 대조할 제품 토큰(RFC 9309 §2.2.1). UA 문자열 전체가 아니다. */
 export const PRODUCT_TOKEN = 'solutionarchive-review-collector'
@@ -859,7 +859,8 @@ async function ingestPage(
     const inputId = await ports.store.appendInput({
       projectId: ctx.target.projectId,
       sourceKey: ctx.sourceKey,
-      text: review.text,
+      // 원문 주소 머리말은 여기서만 붙인다 — 지문은 위에서 머리말 없는 본문으로 이미 계산됐다(types.ts withSourceUrl).
+      text: withSourceUrl(review.text, review.sourceUrl),
       collectedAt: ports.now().toISOString(),
     })
     await ports.store.linkFingerprint(ctx.sourceKey, fp.identityKey, inputId)

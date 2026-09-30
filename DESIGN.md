@@ -61,7 +61,10 @@
 - `--sa-verdict-pos-bg` #e9ffd2 · `--sa-verdict-neg-bg` #fff1ec · `--sa-verdict-mix-bg` #fff7e0 — 기존 배지의 연한 바탕. 새 화면은 쓰지 않는다
 - 다크 면(공개 전용, 랜딩 배너·CTA 배너): `--sa-dark-canvas` #060a2e(딥인디고) · `--sa-dark-ink` #fafafa · `--sa-dark-muted` rgba(250,250,250,.62) ·
   `--sa-dark-line` rgba(250,250,250,.14) · `--sa-dark-focus` #9d9dff
-- 대비: 글자 4.5:1 · 선·아이콘·포커스 3:1 을 `scripts/design-contrast-selftest.mjs` 가 sa.css 값으로 CI 에서 센다(32조합). 금지 조합: 뮤트 글자를 flash 위에, faint 를 본문으로, 판정색 글자를 면 위 본문으로
+- 선택 상태(필터·칩·토글·탭, 2026-10-01): **진한 채우기 금지.** 옅은 면 + 액센트 테두리 + 잉크 글자, 색 외 단서로 안쪽 1px 링(테두리 2px로 보임) + 굵기 `--sa-weight-strong`.
+  새 색 없이 기존 토큰을 가리킨다 — `--sa-selected-bg` = plane-accent · `--sa-selected-edge` = accent · `--sa-selected-ink` = ink.
+  다크 면: `--sa-dark-selected-bg` = dark-line · `--sa-dark-selected-edge` = dark-focus · 글자 dark-ink. hover 는 테두리만 accent-hover, 포커스 링은 기존 outline 그대로(선택+포커스도 같은 링)
+- 대비: 글자 4.5:1 · 선·아이콘·포커스 3:1 을 `scripts/design-contrast-selftest.mjs` 가 sa.css 값으로 CI 에서 센다(72조합, 선택 상태 포함). 금지 조합: 뮤트 글자를 flash 위에, faint 를 본문으로, 판정색 글자를 면 위 본문으로
 
 ### 반경 · 그림자 · 포커스
 - `--sa-round-control` 10px · `--sa-round-card` 16px · `--sa-round-banner` 24px · `--sa-round-pill` 100px

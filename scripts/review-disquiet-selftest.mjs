@@ -103,6 +103,7 @@ const postCtx = (slug) => ({ productRef: `url:/posts/${slug}`, cursor: null, las
   t('글+대댓글: 본문 externalId', r.reviews[0].externalId, '/posts/D1CXy9')
   t('글+대댓글: 댓글 externalId', r.reviews[1].externalId, '/posts/D1CXy9#64333')
   t('글+대댓글: 대댓글 externalId', r.reviews[2].externalId, '/posts/D1CXy9#64348')
+  t('글+대댓글: 댓글도 sourceUrl = 글 주소', r.reviews.map((x) => x.sourceUrl).join(), Array(r.reviews.length).fill('https://disquiet.io/posts/D1CXy9').join())
   ok('글+대댓글: 댓글 본문이 제 것(부모 본문에 대댓글이 섞이지 않는다)', !r.reviews[1].text.includes('감사드립니다'))
   // 2026-09-26T07:49:48Z → KST 2026-09-26 16:49 · 2026-09-27T04:35:30Z → KST 2026-09-27
   t('글: 작성일 KST', r.reviews[0].writtenAt, '2026-09-26')

@@ -23,12 +23,12 @@ export function PubButtonLink({ href, children, variant = 'primary', size = 'md'
   children: ReactNode
   variant?: Variant
   size?: Size
-  /** 새 탭으로 여는 외부 링크. next/link 대신 <a> 로 나간다. */
+  /** 새 탭으로 여는 외부 링크. next/link 대신 <a> 로 나간다. 남의 글(수집 출처)로 가므로 nofollow. */
   external?: boolean
 }) {
   if (external) {
     return (
-      <a className={cls(variant, size)} href={href} target="_blank" rel="noreferrer">
+      <a className={cls(variant, size)} href={href} target="_blank" rel="noopener noreferrer nofollow">
         {children}
       </a>
     )

@@ -35,7 +35,7 @@ import { AnglePanel } from './angle-panel'
 //
 // ★ 비로그인 체험판(남헌 2026-09-25 결정 2, §10.2 예외 3 승인). lib/auth/policy.ts PUBLIC_EXACT **정확일치**로만
 //   연다 — PUBLIC_PREFIXES 에 넣지 않는다(검수 /cases/* 가 같이 열린다). 익명이면 내부 화면 링크(검색·분석)를
-//   숨기고 공개 화면(/library·/signals)으로 보낸다. 아이디어는 GET ?q= 로 남는다 — 공유 링크가 되는 대신
+//   숨기고 공개 화면(/library·/voc)으로 보낸다. 아이디어는 GET ?q= 로 남는다 — 공유 링크가 되는 대신
 //   URL·접근 로그에 원문이 남고, 그것도 승인됐다(화면에 한 줄로 밝힌다).
 // ★ §7.1: 섹션마다 0건이면 "해당 없음"을 그대로 그리고, 조회 실패(not_run)는 "확인 불가"로 따로 말한다.
 //   /cases/search 와 달리 **조건 없는 둘러보기를 하지 않는다** — 아이디어와 무관한 상위 N건을
@@ -343,7 +343,7 @@ export default async function IdeaReportPage({ searchParams }: {
               <>
                 <div className="pub-actions">
                   <PubButtonLink href="/library" variant="primary">케이스 라이브러리 보기</PubButtonLink>
-                  <PubButtonLink href="/signals" variant="ghost">신호 피드 보기</PubButtonLink>
+                  <PubButtonLink href="/voc" variant="ghost">VOC 피드 보기</PubButtonLink>
                 </div>
                 <p className="pub-text">경쟁사 분석·PMF 진단은 가입 후 쓸 수 있다. 가입은 10/12 개방 예정이다.</p>
                 <p className="pub-text">로그인하면 나머지 무브·실패 경고·짝 전부와 내 아이디어의 앵글 검증 수치를 본다.</p>

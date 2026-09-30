@@ -78,6 +78,7 @@ t('next: 모르는 게시판은 요청 0', A.nextRequest(target({ productRef: 'b
   const r = A.parse(fx('question-1876492.html'), qctx('1876492'))
   t('글: 질문 1건 · AI 답변 제외 · 실패 0', `${r.reviews.length}/${r.parseFailures}/${r.filtered}`, '1/0/1')
   t('글: externalId', r.reviews[0].externalId, '/community/questions/1876492')
+  t('글: sourceUrl = 질문 주소(공개 VOC 출처 보기)', r.reviews[0].sourceUrl, 'https://www.inflearn.com/community/questions/1876492')
   ok('글: 제목 + 본문', r.reviews[0].text.startsWith('claude는 프로젝트 안에서') && r.reviews[0].text.includes('권한을 취소해야'))
   // 2026-09-29T13:53:52Z → KST 2026-09-29 22:53
   t('글: 작성일 KST', r.reviews[0].writtenAt, '2026-09-29')

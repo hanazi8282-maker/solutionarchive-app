@@ -74,6 +74,10 @@ const jp = await import('../lib/analysis/judge-prompt.ts')
 checkPrompt('angle judge JUDGE_SYSTEM_PROMPT', jp.JUDGE_SYSTEM_PROMPT, { hasData: false })
 const aa = await import('../lib/analysis/angle-adaptation.ts')
 for (const mode of ['forward', 'reverse']) checkPrompt(`angle writer systemPromptFor(${mode})`, aa.systemPromptFor(mode), { hasData: false })
+// 리포트 앵글 검증(I4) — 아이디어 원문(사용자 입력)과 선례 문장이 데이터로 실린다.
+const ia = await import('../lib/cases/idea-angles.ts')
+checkPrompt('idea-angles writer', ia.IDEA_WRITER_SYSTEM + '\n' + ia.buildIdeaWriterPrompt(DATA, [], []))
+checkPrompt('idea-angles rewrite', ia.IDEA_REWRITE_SYSTEM + '\n' + ia.buildIdeaRewritePrompt('h', 'r', 'corpus', DATA))
 // route.ts 는 next/server 를 import 해 node 로 못 연다 — 재작성 지시문 2개에 문구가 끼워졌는지만 정적으로 센다.
 {
   const src = fs.readFileSync(path.join(root, 'app/api/analyze/angle/route.ts'), 'utf8')

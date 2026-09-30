@@ -1682,3 +1682,22 @@ a.pub-index-row .pub-index-s--2 { -webkit-line-clamp: 2; line-clamp: 2; }
   overflow-wrap: anywhere;
 }
 .pub-insight-meta > span { min-width: 0; overflow-wrap: anywhere; }
+
+/* ============================================================
+   I4 리포트 앵글 검증 패널 (2026-10-01, reports/2026-09-30/design-direction-ia-insights-report.md I4-5)
+   `app/cases/report/angle-panel.tsx` 전용. 목록·칩·접힘·스켈레톤은 .pub-angles·.pub-chiprow·.pub-fold·.pub-skel 재사용.
+   판정 색은 칩 **테두리만** — 이 패널 안에서는 판정 칩의 면·글자 색을 뺀다. 새 색·반경 없음(토큰만). 모션 없음.
+   ============================================================ */
+.pub-angle-panel { display: grid; gap: var(--pub-gap-3); min-width: 0; }
+.pub-angle-panel .pub-angles { margin-top: 0; }
+.pub-angle-panel .pub-angles .pub-chiprow { margin-top: var(--pub-gap-1); }
+.pub-angle-panel .pub-chip--pos,
+.pub-angle-panel .pub-chip--neg,
+.pub-angle-panel .pub-chip--mix { background: var(--pub-surface); color: var(--pub-ink); }
+.pub-angle-stat { min-width: 0; }
+.pub-angle-stat .pub-stat-value { font-variant-numeric: tabular-nums; }
+.pub-angle-quote {
+  display: block; margin-top: var(--pub-gap-2); padding-left: var(--pub-gap-3); border-left: 2px solid var(--pub-edge);
+  color: var(--pub-ink); overflow-wrap: anywhere;
+}
+.pub-angle-skel { height: 56px; }

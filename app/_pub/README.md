@@ -99,6 +99,14 @@
 - 3상태: 핵심 4테이블 중 하나라도 못 읽으면 `Panel tone="alert"` "확인 불가"(사분면을 미진단으로 접지 않는다) / 0건 `PubEmpty` / 있음.
 - 클래스는 `pub.css` 끝 "I1" 블록 두 개뿐: `.pub-insight-quote`(왼쪽 2px `--pub-edge` 선) · `.pub-insight-meta`.
 
+## I4 가 정한 것 (2026-10-01, `/cases/report` 앵글 검증)
+
+- 로그인후에만 `Section id="angles"`(목차 5항목, 갈린 짝과 다음 행동 사이). 페이지 GET 은 LLM 0 — 클라이언트 섬 `app/cases/report/angle-panel.tsx` 가 `POST /api/cases/report/angles` 로 잡을 걸고 4초 폴링(5분 상한). 선례 무브 0건이면 패널 대신 `PubEmpty` "해당 없음".
+- 3상태: 대기·생성중 = `.pub-skel` + 캡션(보통 1~2분) + 부분 결과 / 완료 = `Stat` 3칸(판정별 N/총수) + `.pub-angles` 목록 / 확인 불가(failed·limited) = `Panel tone="alert"` + "다시 시도"(`.pub-btn` 직접, onClick 이 필요해서). **종합 점수 없음.**
+- 판정 라벨은 화면 전용 `IDEA_VERDICT_LABELS`("선례 근거 있음 / 체험 기반 / 선례 근거 없음 · 순화됨", `lib/cases/idea-angles.ts`) — 원 파이프라인 라벨을 덮지 않는다. 판정 기준 캡션(`IDEA_VERDICT_CAPTION`)을 **항상** 붙인다.
+- 판정 색은 칩 테두리만: 패널 안에서 `.pub-chip--pos/--neg/--mix` 의 면·글자 색을 `--pub-surface`·`--pub-ink` 로 되돌린다. 인용은 `.pub-angle-quote`(왼쪽 2px 선) + `/library/[slug]` 링크.
+- 클래스는 `pub.css` 끝 "I4" 블록뿐: `.pub-angle-panel` · `.pub-angle-stat` · `.pub-angle-quote` · `.pub-angle-skel`. 새 색·반경·모션 없음.
+
 ## 토큰 (`tokens.css`) — v2, 레퍼런스 실측 재도출 (남헌 2026-09-24 확정)
 
 v1 은 컴포넌트만 새로 짜고 **값은 `_ds` 를 승계**했다(Pretendard 단일 서체 · Tailwind slate

@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import {
   ANGLE_TYPES,
-  SUBSTANTIATION_VERDICTS,
   type AngleType,
   type AnalysisMode,
   type OutputType,
@@ -11,10 +10,7 @@ import {
 import { extractAdaptationSuggestion, systemPromptFor } from '@/lib/analysis/angle-adaptation'
 import { CLAIMED_STATUS, RELEASE_STATUS, lockVerdict } from '@/lib/analysis/angle-lock'
 import {
-  JUDGE_SYSTEM_PROMPT,
   buildEvidenceCorpus,
-  buildJudgePrompt,
-  normalizeWhitespace,
   type EvidenceCorpus,
   type EvidenceInputRow,
 } from '@/lib/analysis/judge-prompt'
@@ -26,6 +22,7 @@ import {
   type LlmProvider,
 } from '@/lib/analysis/llm'
 import { withLlmBudget } from '@/lib/analysis/budget'
+import { judgeHeadline as judgeWith, pickEnum } from '@/lib/analysis/judge'
 import { UNTRUSTED_INPUT_NOTICE } from '@/lib/llm/untrusted-input'
 
 // 앵글 1건당 LLM 호출이 붙으므로 여유를 크게 잡는다.
@@ -282,60 +279,11 @@ type GeneratedAngle = {
   models: string[]
 }
 
-type JudgeResult = {
-  verdict: SubstantiationVerdict
-  reason: string
-  evidenceQuote: string | null
-  /** 이 판정을 낸 실제 모델명 */
-  model: string
-}
-
-function pickEnum<T extends string>(v: unknown, allowed: readonly T[]): T | null {
-  return typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : null
-}
-
-/**
- * 실증 판정 1회. 프롬프트만으로는 막히지 않는 두 가지를 코드로 막는다.
- *  (A) 인용 환각 — SUBSTANTIATED 인데 인용이 없거나 원문에 없으면 UNSUBSTANTIATED 로 강등
- *  (B) fail-close — 파싱이 어긋나면 통과(EXPERIENTIAL)가 아니라 UNSUBSTANTIATED
- */
-async function judgeHeadline(
-  provider: LlmProvider,
-  headline: string,
-  aspects: AspectRow[],
-  outputType: OutputType,
-  evidence: EvidenceCorpus,
-  label: 'angle:judge' | 'angle:rejudge',
-): Promise<JudgeResult> {
-  const { data: parsed, model } = await callLlmJsonWithModel(
-    provider,
-    JUDGE_SYSTEM_PROMPT,
-    buildJudgePrompt(headline, aspects, outputType, evidence),
-    label,
-  )
-
-  let verdict =
-    pickEnum<SubstantiationVerdict>(parsed.verdict, SUBSTANTIATION_VERDICTS) ?? 'UNSUBSTANTIATED'
-  let reason = typeof parsed.reason === 'string' ? parsed.reason.trim() : ''
-  let quote =
-    typeof parsed.evidence_quote === 'string' && parsed.evidence_quote.trim()
-      ? parsed.evidence_quote.trim()
-      : null
-
-  if (verdict === 'SUBSTANTIATED') {
-    const needle = normalizeWhitespace(quote ?? '')
-    if (!needle || !evidence.normalized.includes(needle)) {
-      console.warn(
-        `[analyze/angle] ${label}: SUBSTANTIATED 강등 — ${needle ? '인용이 원문에 없음' : '인용 없음'} quote=${JSON.stringify((quote ?? '').slice(0, 120))}`,
-      )
-      verdict = 'UNSUBSTANTIATED'
-      reason = `${reason || '(사유 없음)'} / 코드검증: 원문 인용이 확인되지 않아 강등`
-      quote = null
-    }
-  }
-
-  return { verdict, reason, evidenceQuote: verdict === 'SUBSTANTIATED' ? quote : null, model }
-}
+// judgeHeadline 은 lib/analysis/judge.ts 로 옮겼다(2026-10-01 I4-9 1번 — 리포트 앵글 검증과 한 벌). 동작 변경 0:
+// 여기는 provider 를 호출 함수로 바꿔 넘기는 한 줄이다.
+const judgeHeadline = (provider: LlmProvider, headline: string, aspects: AspectRow[], outputType: OutputType,
+  evidence: EvidenceCorpus, label: 'angle:judge' | 'angle:rejudge') =>
+  judgeWith((s, u, l) => callLlmJsonWithModel(provider, s, u, l), headline, aspects, outputType, evidence, label)
 
 async function generateAngle(
   provider: LlmProvider,

@@ -114,6 +114,7 @@ export const ALLOWLIST = {
   'lib/insight/claude-cli.ts': 'claude CLI 래퍼 — 프롬프트는 호출하는 쪽이 만든다',
   'scripts/column-review-claude.mjs': '우리 칼럼 초안(content_columns.body)만 싣는다 — 외부 원문 없음',
   'scripts/column-feedback.mjs': '남헌의 검수 메모(review_note)만 싣는다 — 내부 텍스트',
+  'scripts/aspect-quotes-ko-backfill.mjs': '로컬 CLI 호출 래퍼 — 프롬프트는 lib/analysis/quote-translate.ts 가 만들고 거기에 UNTRUSTED_INPUT_NOTICE 가 들어 있다(이 파일은 전달만)',
   'scripts/run-eval.mjs': '리포 안의 평가 문항(evals/)만 싣는다 — 내부 텍스트',
 }
 

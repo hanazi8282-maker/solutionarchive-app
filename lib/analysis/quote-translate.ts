@@ -125,7 +125,7 @@ export async function translateProjectQuotes(
     let translated: string[] | null = null
     if (plan.flat.length > 0) {
       const key = requiredKeyFor(QUOTE_TRANSLATE_PROVIDER)
-      if (key && !env[key]) {
+      if (key && !env[key] && !env.CLAUDE_CLI_PATH) { // 로컬은 CLI 로그인 세션(CLAUDE_CLI_PATH)도 허용 — 칼럼 검수 스크립트와 같은 규칙
         outcome.reason = `${key} 미설정 — 번역 호출 안 함(폴백 없음)`
       } else {
         outcome.calls = 1

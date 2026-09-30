@@ -25,6 +25,7 @@ import {
   IconAction, IconApprove, IconArrowRight, IconCheck, IconChevronRight, IconEvidence, IconExternal, IconJudge, IconMinus, IconX,
 } from '../../_pub/icons'
 import { isSaved } from '@/lib/cases/saves'
+import { columnsForCase, type CaseColumnsView } from '@/lib/columns/for-case'
 import { FeedbackForm } from './feedback-form'
 import { SaveButton } from './save-button'
 import { ShareLinkButton } from './share-button'
@@ -159,7 +160,7 @@ function MoveCard({ move, index }: { move: DetailMoveRow; index: number }) {
 /** 저장 상태 — 서버가 읽어 초기값으로 내려 준다. `unavailable` 은 "저장 안 됨"이 아니다(§7.1). */
 type SaveView = { saved: boolean; unavailable: string | null }
 
-function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save: SaveView }) {
+function Detail({ d, signedIn, save, columns }: { d: CaseDetail; signedIn: boolean; save: SaveView; columns: CaseColumnsView }) {
   const s = d.study
   const lead = pickLeadMove(d.moves)
   const leadEvidence = lead ? (d.evidence_by_move.get(lead.id) ?? []) : []
@@ -353,6 +354,25 @@ function Detail({ d, signedIn, save }: { d: CaseDetail; signedIn: boolean; save:
           <p className="pub-caption"><Link className="pub-link" href="/library">케이스 라이브러리로</Link></p>
         </Sec>
 
+        {/* ── 더 알아보기: 이 케이스를 근거로 쓴 공개(승인) 칼럼. 없으면 섹션 자체가 없다. ── */}
+        {columns.kind === 'some' && (
+          <Sec id="columns" title="더 알아보기" lead="이 케이스를 근거로 쓴 칼럼.">
+            <p className="pub-text">{columns.lead.title}</p>
+            <div className="pub-actions">
+              <PubButtonLink href={`/columns/read/${columns.lead.slug}`} variant="primary">더 알아보기<IconArrowRight /></PubButtonLink>
+            </div>
+            {columns.more.length > 0 && (
+              <ul className="pub-caption">
+                {columns.more.map((c) => (
+                  <li key={c.slug}><Link className="pub-link" href={`/columns/read/${c.slug}`}>{c.title}</Link></li>
+                ))}
+              </ul>
+            )}
+          </Sec>
+        )}
+        {/* 조회 실패는 "칼럼 없음"과 다르다(§7.1). 버튼이 없는 게 "없음"으로 읽히지 않게 한 줄 남긴다. */}
+        {columns.kind === 'error' && <p className="pub-caption">관련 칼럼을 불러오지 못했다. 칼럼이 없다는 뜻은 아니다. 잠시 뒤 새로고침해 보라.</p>}
+
         {/* ── 의견 ── */}
         <Sec id="feedback" title="의견 남기기" lead="로그인 없이, 케이스 1건당 하루 1번. 집계는 화면에 내지 않는다." last>
           <FeedbackForm caseStudyId={s.id} />
@@ -412,9 +432,12 @@ export default async function LibraryCasePage({ params }: { params: Promise<{ sl
     unavailable: saveState?.state === 'unavailable' ? saveState.reason : null,
   }
 
+  const columns = await columnsForCase(sb, res.detail.study.slug)
+  if (columns.kind === 'error') console.warn(`[library/${slug}] 관련 칼럼 조회 실패 — ${columns.reason}`)
+
   return (
     <PubShell theme="light">
-      <Detail d={res.detail} signedIn={verdict.kind === 'allowed'} save={save} />
+      <Detail d={res.detail} signedIn={verdict.kind === 'allowed'} save={save} columns={columns} />
     </PubShell>
   )
 }

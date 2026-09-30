@@ -96,6 +96,20 @@ export function buildRow(mdPath) {
   }
 }
 
+/** `case_slug:` 가 실제 case_studies.slug 인지 확인한다. 아니거나 확인이 안 되면 필드를 뺀다 —
+ *  없는 slug 를 실어 /library/<slug> 깨진 링크를 만들지 않는다. 필드를 NULL 로 덮지 않고 **빼는** 이유:
+ *  재적재가 사람이 넣어 둔 기존 값을 지우지 않게(신규 행은 컬럼 기본값 NULL).
+ *  반환: { row, warn } — warn 이 있으면 호출부가 출력한다. */
+export async function resolveCaseSlug(sb, row) {
+  if (!row.case_study_slug) return { row, warn: null }
+  const { data, error } = await sb.from('case_studies').select('slug').eq('slug', row.case_study_slug).maybeSingle()
+  if (data && !error) return { row, warn: null }
+  const rest = { ...row }
+  delete rest.case_study_slug
+  const why = error ? `확인 불가(${error.message})` : 'case_studies 에 없는 slug'
+  return { row: rest, warn: `⚠️ ${row.slug}: case_slug '${row.case_study_slug}' — ${why}. 케이스 링크 없이 적재` }
+}
+
 async function stageAll(targets) {
   const { createClient } = await import('../lib/supabase/server.ts')
   const supabase = await createClient()
@@ -115,7 +129,9 @@ async function stageAll(targets) {
     }
     // ON CONFLICT DO UPDATE 이지만 review_status 등 사람 결정 컬럼은 SET 절에 없다 —
     // 즉 갱신되지 않고 기존 값이 그대로 남는다(신규 행이면 DEFAULT 'draft'가 적용된다).
-    const payload = { ...built.row, staged_at: new Date().toISOString() }
+    const resolved = await resolveCaseSlug(supabase, built.row)
+    if (resolved.warn) console.warn(resolved.warn)
+    const payload = { ...resolved.row, staged_at: new Date().toISOString() }
     const upsert = (row) => supabase.from('content_columns').upsert(row, { onConflict: 'slug', ignoreDuplicates: false })
     let { error } = await upsert(payload)
     // 20260929000003 미적용 DB 에는 case_study_slug 컬럼이 없다 — 그 한 줄만 빼고 다시 올린다.
@@ -184,8 +200,12 @@ function selfTest() {
   console.log('self-test ok')
 }
 
-const args = process.argv.slice(2)
-if (args[0] === '--self-test') {
+// import 될 때(case-column-link-selftest)는 아무것도 실행하지 않는다 — column-check.mjs 의 isMain 과 같은 이유.
+const isMain = Boolean(process.argv[1]) && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))
+const args = isMain ? process.argv.slice(2) : ['--imported']
+if (args[0] === '--imported') {
+  // import 됨 — 적재하지 않는다
+} else if (args[0] === '--self-test') {
   selfTest()
 } else if (args[0] === '--help') {
   console.log('usage: node scripts/column-stage.mjs [파일...] | --self-test')

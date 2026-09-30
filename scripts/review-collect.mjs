@@ -44,6 +44,7 @@ import { producthuntAdapter } from '../lib/review/adapters/producthunt.ts'
 import { devtoAdapter } from '../lib/review/adapters/devto.ts'
 import { inflearnAdapter } from '../lib/review/adapters/inflearn.ts'
 import { yozmAdapter } from '../lib/review/adapters/yozm.ts'
+import { indiehackersAdapter } from '../lib/review/adapters/indiehackers.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 import { brokenSources, LOOKBACK_DAYS, runSourceHealthReport } from './review-source-health-report.mjs'
@@ -74,6 +75,7 @@ const ADAPTERS = {
   devto: devtoAdapter,
   inflearn: inflearnAdapter,
   yozm: yozmAdapter,
+  indiehackers: indiehackersAdapter,
 }
 
 const args = process.argv.slice(2)

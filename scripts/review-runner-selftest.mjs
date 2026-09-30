@@ -1504,6 +1504,24 @@ for (const [file, keys] of [
   ok('승인근거(0930): dev.to 약관 인용이 남아 있다', /non-commercial transitory viewing only/.test(sql))
 }
 
+// ── 같은 대조, Indie Hackers 편집 인터뷰(000044) — 소스 1행 enabled=true + 범위 문구 ──
+{
+  const sql = await fs.readFile(path.join(here, '..', 'supabase', 'migrations', '20260930000044_indiehackers_interviews.sql'), 'utf8')
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  const mapBlock = collect.slice(collect.indexOf('const ADAPTERS ='), collect.indexOf('}', collect.indexOf('const ADAPTERS =')))
+  const mapKeys = new Set([...mapBlock.matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]))
+  const sqlKeys = new Set([...sql.matchAll(/^\s*'([\w-]+)',\r?$/gm)].map((m) => m[1]))
+  ok("등록(000044): 마이그레이션 review_sources.key 에 'indiehackers' 가 있다", sqlKeys.has('indiehackers'))
+  ok("등록(000044): ADAPTERS 맵 키가 'indiehackers' 와 철자까지 같다", mapKeys.has('indiehackers'))
+  t('등록(000044): enabled=true 1행', (sql.match(/^\s*true,\r?$/gm) || []).length, 1)
+  ok('등록(000044): DDL 이 없다', !/\b(create|alter|drop)\s+table\b/i.test(sql))
+  ok('등록(000044): ON CONFLICT DO NOTHING 이 있다', /ON CONFLICT \(key\) DO NOTHING/i.test(sql))
+  ok('등록(000044): 타깃 전에 enabled 검사 DO 블록이 있다', sql.indexOf('RAISE EXCEPTION') < sql.indexOf('INSERT INTO public.review_targets'))
+  ok('승인근거(000044): 남헌 승인 하 강행 문구가 남아 있다', /남헌 승인 하 강행\(2026-09-30\)/.test(sql))
+  ok('승인근거(000044): 약관 인용이 남아 있다', /without the prior consent of the owner of that Content/.test(sql))
+  ok('범위(000044): 편집 인터뷰만 문구가 남아 있다', /편집팀 인터뷰만/.test(sql))
+}
+
 // ── 워크플로 선택지에 소스가 다 올라가 있는가 ─────────────────────
 //
 // ⚠️ 어댑터를 만들고 ADAPTERS 에 꽂아도 **워크플로 options 에 없으면 스케줄로는

@@ -75,6 +75,9 @@ on:
           - youtube
           - disquiet
           - producthunt
+          - devto
+          - inflearn
+          - yozm
         default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수'

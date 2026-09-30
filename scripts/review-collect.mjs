@@ -41,6 +41,9 @@ import { velogAdapter } from '../lib/review/adapters/velog.ts'
 import { youtubeAdapter } from '../lib/review/adapters/youtube.ts'
 import { disquietAdapter } from '../lib/review/adapters/disquiet.ts'
 import { producthuntAdapter } from '../lib/review/adapters/producthunt.ts'
+import { devtoAdapter } from '../lib/review/adapters/devto.ts'
+import { inflearnAdapter } from '../lib/review/adapters/inflearn.ts'
+import { yozmAdapter } from '../lib/review/adapters/yozm.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 
@@ -66,6 +69,9 @@ const ADAPTERS = {
   youtube: youtubeAdapter,
   disquiet: disquietAdapter,
   producthunt: producthuntAdapter,
+  devto: devtoAdapter,
+  inflearn: inflearnAdapter,
+  yozm: yozmAdapter,
 }
 
 const args = process.argv.slice(2)

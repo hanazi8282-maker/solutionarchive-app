@@ -39,6 +39,9 @@ import { BOARDS as VELOG_BOARDS, HOST as VELOG_HOST, parseProductRef as parseVel
 import { parseProductRef as parseYoutubeRef } from './adapters/youtube.ts'
 import { BOARDS as DISQUIET_BOARDS, HOST as DISQUIET_HOST, parseProductRef as parseDisquietRef } from './adapters/disquiet.ts'
 import { parseProductRef as parseProducthuntRef } from './adapters/producthunt.ts'
+import { BOARDS as DEVTO_BOARDS } from './adapters/devto.ts'
+import { BOARDS as INFLEARN_BOARDS } from './adapters/inflearn.ts'
+import { BOARDS as YOZM_BOARDS } from './adapters/yozm.ts'
 
 export type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
 
@@ -244,6 +247,19 @@ function disquietRef(raw: string): RefResult {
 }
 
 /**
+ * 게시판 순회만 받는 소스(devto · inflearn · yozm — 2026-09-30). 글 1건(`url:`) 형태는 어댑터에 없다.
+ * slug 은 어댑터 BOARDS 표에 있는 것만 받는다(없는 slug 은 0요청 타깃이 된다).
+ */
+const boardOnlyRef =
+  (boards: Record<string, string>) =>
+  (raw: string): RefResult => {
+    const slug = parseBoardRef((raw ?? '').trim())
+    return slug && slug in boards
+      ? { ok: true, productRef: `board:${slug}` }
+      : { ok: false, error: `이 소스는 게시판 순회만 받습니다. (가능: ${Object.keys(boards).map((k) => `board:${k}`).join(', ')})` }
+  }
+
+/**
  * 소스 키 → 빌더. **키는 review_sources.key 와 철자까지 같아야 한다.**
  * (`scripts/review-collect.mjs` 의 ADAPTERS 와 같은 집합이어야 한다.)
  */
@@ -275,6 +291,9 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   youtube: youtubeRef,
   disquiet: disquietRef,
   producthunt: producthuntRef,
+  devto: boardOnlyRef(DEVTO_BOARDS),
+  inflearn: boardOnlyRef(INFLEARN_BOARDS),
+  yozm: boardOnlyRef(YOZM_BOARDS),
 }
 
 export function buildProductRef(sourceKey: string, raw: string): RefResult | null {

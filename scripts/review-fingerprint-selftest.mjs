@@ -368,6 +368,11 @@ const AUDIT = {
   'velog.ts': false,
   // `/posts/<slug>` · `/posts/<slug>#<댓글 숫자 id>` — slug 는 사이트 전역 글 식별자다.
   'disquiet.ts': false,
+  // 인프런 `/community/questions/<id>`(+ `#<답변 id>`) · 요즘IT `/magazine/detail/<id>/` — 사이트 전역 글 경로.
+  'inflearn.ts': false,
+  'yozm.ts': false,
+  // dev.to `article:<Forem 전역 글 id>`(+ `#<댓글 id_code>`) — 사이트 전역 유일.
+  'devto.ts': false,
   // `blogId:logNo` — 네이버 전역에서 글 1개를 가리킨다.
   'naver-blog.ts': false,
   // 플랫폼 전역 id. HN objectID · YouTube 댓글 id · 텀블벅 후기 id(`tbr:<id>`).

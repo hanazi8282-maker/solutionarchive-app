@@ -7,14 +7,14 @@
 //   advise() 는 "이 프로젝트와 겹치는 근거" 를 뭉쳐서 돌려준다. 셀러가 실제로 물어보는 건 그게 아니라
 //   **"이 속성 문제를 어떻게 푸나"** 다. 그래서 질의어를 속성 단위로 좁혀 속성마다 한 장을 만든다.
 //
-// ★ 어느 속성에 처방을 붙일지는 (중요도, 만족도)만으로 정한다 — aspectVerdict() 가 PUSH(여기를 민다)
-//   라고 한 속성이 1순위, WATCH(지켜본다)가 2순위다. 선례가 많다고 처방 대상이 되지 않는다:
+// ★ 어느 속성에 처방을 붙일지는 (중요도, 만족도)만으로 정한다 — aspectVerdict() 가 PUSH(VERDICT_LABEL.PUSH)
+//   라고 한 속성이 1순위, WATCH(VERDICT_LABEL.WATCH)가 2순위다. 선례가 많다고 처방 대상이 되지 않는다:
 //   두 축은 출처가 다르고 틀리는 방식도 다르다(lib/cases/match.ts 헤더).
 //
 // ★ 3상태를 속성마다 유지한다. "관련 사례 없음(no_match)" 과 "조회를 못 했다(not_run)" 를 같은 빈
 //   배열로 돌려주면 억지로 끼워 맞추지 않겠다는 약속이 화면에서 사라진다(§7.1).
 
-import { aspectVerdict, type AspectVerdict } from '../analysis/aspect-verdict.ts'
+import { VERDICT_LABEL, aspectVerdict, type AspectVerdict } from '../analysis/aspect-verdict.ts'
 import {
   advise,
   type AdvisorStatus, type CaseMoveCard, type FailedAngleCard, type PrincipleCard,
@@ -121,7 +121,7 @@ export function buildRemedies(input: {
   if (targets.length === 0) {
     return {
       status: 'no_match',
-      reason: `조회는 정상인데 판정이 "여기를 민다"·"지켜본다" 인 속성이 0건이다 — 처방할 페인이 없다 (속성 ${aspects.length}건)`,
+      reason: `조회는 정상인데 판정이 "${VERDICT_LABEL.PUSH}"·"${VERDICT_LABEL.WATCH}" 인 속성이 0건이다 — 처방할 페인이 없다 (속성 ${aspects.length}건)`,
       cards: [],
     }
   }

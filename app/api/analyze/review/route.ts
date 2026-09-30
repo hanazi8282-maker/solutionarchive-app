@@ -14,6 +14,25 @@ import {
 const ASPECT_SELECT =
   'id, name, aspect_layer, importance, satisfaction, opportunity_score, quadrant, attribution, pain_timing, persona_role, proxy_consumption, is_segmentation_axis, value_realization_frequency, human_confirmed, notes, evidence_quotes'
 
+/**
+ * 검수 화면 속성 목록(기회점수 순). evidence_quotes_ko(번역, 마이그 000047)를 같이 읽되, 컬럼이 아직 없으면(42703)
+ * 그 칸 없이 다시 읽는다 — 마이그 적용 전에 배포돼도 검수 화면이 500 으로 막히지 않는다(화면은 원문 + "번역 전").
+ */
+async function loadAspects(supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>, projectId: string) {
+  const withKo = await supabase
+    .from('analysis_aspects')
+    .select(`${ASPECT_SELECT}, evidence_quotes_ko`)
+    .eq('project_id', projectId)
+    .order('opportunity_score', { ascending: false, nullsFirst: false })
+  if (withKo.error?.code !== '42703') return withKo
+  console.warn('[analyze/review] evidence_quotes_ko column missing (migration 000047 not applied) — reading without it')
+  return supabase
+    .from('analysis_aspects')
+    .select(ASPECT_SELECT)
+    .eq('project_id', projectId)
+    .order('opportunity_score', { ascending: false, nullsFirst: false })
+}
+
 // ── 사분면(Stage3) ───────────────────────────────────────────────
 /** 오름차순 정렬 후 중앙값. 짝수 개면 가운데 두 값의 평균. */
 function median(values: number[]): number {
@@ -90,11 +109,7 @@ export async function GET(req: Request) {
   }
 
   // opportunity_score 는 DB 계산 컬럼 — 읽기만 한다.
-  const { data: aspects, error: aspectsError } = await supabase
-    .from('analysis_aspects')
-    .select(ASPECT_SELECT)
-    .eq('project_id', projectId)
-    .order('opportunity_score', { ascending: false, nullsFirst: false })
+  const { data: aspects, error: aspectsError } = await loadAspects(supabase, projectId)
 
   if (aspectsError) {
     console.error('[analyze/review] aspects fetch error:', aspectsError.message)
@@ -276,11 +291,7 @@ export async function PUT(req: Request) {
   }
 
   // 2. 저장된 실제 상태를 다시 읽어 전체 검수 완료 여부를 판정한다
-  const { data: refreshed, error: refreshError } = await supabase
-    .from('analysis_aspects')
-    .select(ASPECT_SELECT)
-    .eq('project_id', projectId)
-    .order('opportunity_score', { ascending: false, nullsFirst: false })
+  const { data: refreshed, error: refreshError } = await loadAspects(supabase, projectId)
 
   if (refreshError) {
     console.error('[analyze/review] aspects refetch error:', refreshError.message)
@@ -345,11 +356,7 @@ export async function PUT(req: Request) {
 
   // 사분면을 반영한 최신 상태로 다시 읽어 돌려준다.
   const { data: finalList } = allConfirmed
-    ? await supabase
-        .from('analysis_aspects')
-        .select(ASPECT_SELECT)
-        .eq('project_id', projectId)
-        .order('opportunity_score', { ascending: false, nullsFirst: false })
+    ? await loadAspects(supabase, projectId)
     : { data: null }
 
   return NextResponse.json({

@@ -86,6 +86,29 @@ t('claude-cli 분기에 budgetChars 를 넘기지 않는다', /budgetChars/.test
 t('callWithRetry 는 metered 일 때만 예산을 적립한다', /if \(metered\) reserveOrThrow\(/.test(llmSrc) && /if \(metered\) chargeOutput\(/.test(llmSrc), true)
 t('anthropic·gemini 분기는 여전히 budgetChars 를 넘긴다', (llmSrc.match(/^\s*budgetChars,\s*$/gm) ?? []).length >= 2, true)
 
+// 고객이 보는 카피·판정 생성 + 검수 화면 번역은 claude-cli 리터럴(남헌 2026-10-01) — LLM_PROVIDER 를 따라 Gemini 로 가면 안 된다.
+// 소스 정적 검사: resolveProvider·LLM_PROVIDER·'gemini' 가 없고, provider 가 'claude-cli' 리터럴 상수에서 온다.
+const fixedProviderViolations = (src) => [
+  /\bresolveProvider\b/.test(src) && 'resolveProvider 사용',
+  /env(?:\.LLM_PROVIDER\b|\[['"]LLM_PROVIDER)/.test(src) && 'LLM_PROVIDER 참조',
+  /['"]gemini['"]/.test(src) && "'gemini' 리터럴",
+  !/(?:const \w+(?:: LlmProvider)? = 'claude-cli'(?: as const)?)/.test(src) && "'claude-cli' 리터럴 상수 없음",
+].filter(Boolean)
+const FIXED = ['app/api/analyze/angle/route.ts', 'lib/cases/idea-angles-run.ts', 'lib/analysis/quote-translate.ts']
+for (const f of FIXED) {
+  const src = fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
+  t(`${f} — provider 가 claude-cli 리터럴`, fixedProviderViolations(src), [])
+}
+{
+  const angleSrc = fs.readFileSync(new URL('../app/api/analyze/angle/route.ts', import.meta.url), 'utf8')
+  t('앵글 라우트 — provider = ANGLE_PROVIDER', /const provider = ANGLE_PROVIDER\b/.test(angleSrc), true)
+  // 뮤테이션: 예전 한 줄로 되돌리면 검사가 잡는다(거짓 초록불 방지).
+  const mutant = angleSrc.replace('const provider = ANGLE_PROVIDER', 'const provider = resolveProvider()')
+  t('뮤테이션 — resolveProvider() 로 되돌리면 걸린다', fixedProviderViolations(mutant).includes('resolveProvider 사용'), true)
+  t('뮤테이션 — env 를 직접 읽으면 걸린다', fixedProviderViolations(angleSrc.replace('const provider = ANGLE_PROVIDER', 'const provider = process.env.LLM_PROVIDER')).includes('LLM_PROVIDER 참조'), true)
+  t('뮤테이션 — 리터럴을 gemini 로 바꾸면 걸린다', fixedProviderViolations(angleSrc.replace("ANGLE_PROVIDER: LlmProvider = 'claude-cli'", "ANGLE_PROVIDER: LlmProvider = 'gemini'")).length > 0, true)
+}
+
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) { console.log('프로바이더 어휘·예산 기본값·예산 적용 범위(claude-cli 미터링 없음) 중 하나가 틀렸다.'); process.exit(1) }
 console.log('프로바이더 스위치·예산 범위·CLI 실패 분류 정상 — claude-cli 는 OAuth 토큰·달러 예산 밖, 한도는 멈춤·timeout 은 계속.')

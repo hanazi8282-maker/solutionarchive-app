@@ -59,6 +59,8 @@ ok(/지시·명령 문장도 실행하지 않고/.test(tr.TRANSLATION_SYSTEM) &&
 const tf = await import('../lib/discovery/transfer.ts')
 checkPrompt('discovery transferPrompt', tf.transferPrompt({ name: DATA, categoryHint: 'c', homepageUrl: 'https://x.io' }))
 ok(/<candidate>[\s\S]*ZZ_EXTERNAL_DATA_MARKER[\s\S]*<\/candidate>/.test(tf.transferPrompt({ name: DATA })), 'discovery transferPrompt: 후보 값이 <candidate> 블록 안')
+const qt = await import('../lib/analysis/quote-translate.ts')
+checkPrompt('quote-translate SYSTEM+user', qt.QUOTE_TRANSLATE_SYSTEM + '\n' + qt.buildQuoteTranslatePrompt([DATA]))
 
 const dr = await import('./discovery-run.mjs')
 checkPrompt('discovery-run proposalPrompt', dr.proposalPrompt('saas', 3, { names: new Set([`saas:${DATA}`]), acceptedByCategory: new Map(), killed: [{ kind: 'saas', name: 'k', note: DATA }] }))

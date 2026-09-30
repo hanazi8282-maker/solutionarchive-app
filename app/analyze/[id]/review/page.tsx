@@ -15,6 +15,7 @@ import {
 import { canStart } from '@/lib/analysis/extract-gate'
 import { aspectVerdict, opportunityBreakdown, type AspectVerdictCode } from '@/lib/analysis/aspect-verdict'
 import { extractStatsLabel, type ExtractStats } from '@/lib/analysis/extract-stats'
+import { quoteLines } from '@/lib/analysis/quote-display'
 import { Card } from '../../../_ds/components/Card'
 import { Badge, type Tone } from '../../../_ds/components/Badge'
 import { Button, ButtonLink } from '../../../_ds/components/Button'
@@ -570,10 +571,8 @@ export default function AnalyzeReviewPage() {
               const verdict = aspectVerdict(selected.importance, selected.satisfaction)
               const bd = opportunityBreakdown(selected.importance, selected.satisfaction, selected.opportunity_score)
               const quotes = selected.evidence_quotes
-              // 번역은 원문과 길이가 같을 때만 쓴다 — 어긋나면 어느 번역이 어느 원문인지 모르니 "번역 전"으로 본다.
-              const quotesKo = quotes && Array.isArray(selected.evidence_quotes_ko) && selected.evidence_quotes_ko.length === quotes.length
-                ? selected.evidence_quotes_ko
-                : null
+              // 번역은 원문과 길이가 같을 때만 쓴다 — 규칙은 lib/analysis/quote-display.ts 한 곳(/insights 와 공용).
+              const lines = quoteLines(quotes, selected.evidence_quotes_ko)
               // 인용의 세 상태를 문장으로 가른다 — 못 받았다 / 없었다 / 있다.
               const quoteMethod = quotes == null
                 ? '재분석하면 채워진다'
@@ -684,11 +683,11 @@ export default function AnalyzeReviewPage() {
                   <div className="v2-stack-tight">
                     <div className="v2-label">원문 인용</div>
                     {/* 기본은 한국어 번역, 원문(정본)은 접어 둔다. 번역이 없거나 원문이 이미 한국어면 원문만. */}
-                    {quotes && quotes.length > 0
-                      ? quotes.slice(0, 2).map((q, qi) => {
-                        const ko = quotesKo?.[qi]
+                    {lines.length > 0
+                      ? lines.slice(0, 2).map((q, qi) => {
+                        const ko = q.ko
                         const source = q.source_type ? <span className="v2-note"> — {q.source_type}</span> : null
-                        if (ko && ko !== q.text) {
+                        if (ko) {
                           return (
                             <div key={qi}>
                               <blockquote className="v2-quote v2-quote--plain">“{ko}”{source}</blockquote>
@@ -702,7 +701,7 @@ export default function AnalyzeReviewPage() {
                         return (
                           <blockquote key={qi} className="v2-quote v2-quote--plain">
                             “{q.text}”{source}
-                            {quotesKo ? null : <span className="v2-note"> · 번역 전</span>}
+                            {q.untranslated ? <span className="v2-note"> · 번역 전</span> : null}
                           </blockquote>
                         )
                       })

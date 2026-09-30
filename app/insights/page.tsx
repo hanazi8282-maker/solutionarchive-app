@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthVerdict } from '@/lib/auth/session'
 import { loadInsightFeed, parseInsightQuery } from '@/lib/insights/feed'
+import { loadInsightEvidence } from '@/lib/insights/evidence'
 import { InsightsView } from './view'
 
 /**
@@ -29,5 +30,8 @@ export default async function InsightsPage({ searchParams }: {
   const result = sb
     ? await loadInsightFeed(sb, query)
     : { status: 'error' as const, reason: 'Supabase 환경변수 미설정' }
-  return <InsightsView query={query} errors={errors} result={result} />
+  // 이 페이지 카드들의 인용·처방 — 카드 수와 무관한 고정 횟수 조회(lib/insights/evidence.ts). LLM 0.
+  const items = result.status === 'ok' ? result.groups.flatMap((g) => g.items) : []
+  const evidence = sb && items.length > 0 ? await loadInsightEvidence(sb, items) : undefined
+  return <InsightsView query={query} errors={errors} result={result} evidence={evidence} />
 }

@@ -1,0 +1,17 @@
+{
+  "case_slug": "everpix-vc-track-fixed-cost-collapse",
+  "move_id": "fd195adf-b052-41f3-9368-aee586b9412a",
+  "content_code": "CS-20260930-01",
+  "body_path": "drafts/threads/2026-09-30-everpix-vc-track-fixed-cost-collapse.body.txt",
+  "reply_path": "drafts/threads/2026-09-30-everpix-vc-track-fixed-cost-collapse.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-09-30-everpix-vc-track-fixed-cost-collapse.md",
+  "title": "매출보다 먼저 늘린 인건비",
+  "twist_line": "구독료 하나로 버티는 회사가 분야마다 전담 직원을 뒀고, 그 인건비는 매출이 모자란 달에도 그대로 나갔다",
+  "hook_type": "사실 제시형(구독료 하나 vs 분야별 전담 직원) + 자문 질문",
+  "closing_type": "행동지시형(이번 주 매출 나누기 고정 인건비)",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-4 첫 문장 반례 약함 경고, G-0 예외통과. CG-1 대상(등급 C): 본문 '회사가 밝힌' 1회 + 자기답글 '자사 공시' 명시. 본문 글자수는 Bash 부재로 기계 계수 못 함(약 370자 추정), 오케스트레이터 column-check 재확인 필요.",
+  "bp1_exclusive_numbers": false,
+  "bp2_transferable": true,
+  "applied_patterns": ["edit-question-to-statement"]
+}

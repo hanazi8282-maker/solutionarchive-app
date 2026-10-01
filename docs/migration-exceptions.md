@@ -467,3 +467,12 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - **개인정보:** 이 테이블에는 아이디어 원문 텍스트와 요청자 이메일이 영구 보관된다(삭제·TTL 없음). 고지 문구 초안은 `docs/privacy-notice-draft-idea-queries.md`(적용 안 됨, 삭제 창구·기한·Anthropic 보관 조건은 남헌 결정 빈칸).
 - 적용 후 프로덕션 실주행 확인은 `docs/risk-log.md` 옆 보고 참조: 실질의 1건 done(LLM 6호출·앵글 3·캐시 읽기 49,848토큰), 캐시 히트 2건은 같은 run_id·호출 증가 0, 로그 3행(new 1 + cache_hit 2).
 - 같은 PR 묶음에서 `build-check.yml` 에 `idea-angles-selftest` 한 줄을 추가했다(§10.2 워크플로 조건: 드라이런=로컬 53건 통과, 되돌리기=revert, 무중단=PR 검사에만 쓰임, 이 기록).
+
+### 2026-10-01 — 000051·000052·000053 PMF 정책 v10 (CEO-STAFF 세션, 남헌 명시 승인 하 적용)
+
+- **000051** `review_sources` inflearn 비활성(`enabled=false`·사유·시각). 승인: 남헌 2026-10-01. 사유 실측: 09-30 등록 뒤 2회 실행 모두 `reviews_parsed=0`(parse_failures 19·9) — "9일 연속"이 아니라 그 2회가 근거. 적용 전 다른 소스 18/25 enabled → 적용 후 같음. 행 수 가드(정확히 1행).
+- **000052** `idea_pmf_runs`·`idea_pmf_answers` 본인 SELECT 정책 2개(`TO authenticated`, JWT email = `requested_by`) + 답변 FK CASCADE→NO ACTION. 승인: 남헌 2026-10-01(PMF 답변 영구보관·본인만 조회, v10), 남헌이 v12 에서 적용 재지시. **CLAUDE.md §5-1 "CREATE POLICY 0건"의 의도된 예외 — 두 테이블 한정.** 첫 시도는 자동 모드 분류기가 거부([Protected-Scope IaC Apply]) → 남헌이 허용 규칙을 추가한 뒤 적용.
+  - 적용 전: 정책 0 · 답변 FK `c` · 실행 1·답변 4 · RLS on. 적용 후: 정책 2 · FK `a` · 실행 1·답변 4(불변).
+  - 확인(롤백 트랜잭션): 답변 있는 run DELETE → 23503, 본인 JWT 는 자기 행만(타인 행 0), 답변도 본인 것만, anon 0행. 테스트 행 잔존 0.
+- **000053** `idea_query_log.pmf_run_id` FK ON DELETE SET NULL→NO ACTION(컬럼은 000050 이 만듦). 적용 후 FK `a` 확인. 기존 값 불변.
+- 셋 다 비파괴(삭제·타입 축소·대량 UPDATE 없음), 롤백 파일 있음, PR #409(머지 e65976d).

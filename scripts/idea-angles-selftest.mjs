@@ -225,6 +225,18 @@ async function suite(mod) {
     g('limit', '다른 사용자는 통과(사용자별 상한)', other.body.status === 'queued' || other.body.status === 'done')
   }
   {
+    // 독립 카운트(남헌 v10: 앵글 10 + PMF 10 = 합 20). PMF 10건 소진 + 질의 로그 30행이어도 앵글은 idea_angle_runs 만 센다.
+    const w = world(mod)
+    const t = new Date(Date.parse('2026-10-01T02:00:00Z')).toISOString()
+    for (let i = 0; i < 10; i++) w.db.tables.idea_pmf_runs.push({ id: `p${i}`, status: 'done', requested_by: EMAIL, created_at: t })
+    for (let i = 0; i < 30; i++) w.db.tables.idea_query_log.push({ id: `l${i}`, source: 'pmf_api', outcome: 'new', requested_by: EMAIL, created_at: t })
+    for (let i = 0; i < IDEA_LIMITS.perUserDaily - 1; i++) w.db.tables.idea_angle_runs.push({ id: `d${i}`, query_hash: `h${i}`, kind: 'saas', status: 'done', requested_by: EMAIL, created_at: t, angles: [], llm_calls: 6, models: [] })
+    const r = await w.post()
+    g('limit', '독립 상한: PMF 10건 소진 + 로그 30행 + 앵글 9건 → 앵글 10번째 통과', r.body.status === 'queued' || r.body.status === 'done')
+    const r2 = await w.post(`${Q} 다른 질의`)
+    g('limit', '독립 상한: 앵글 11번째는 limited', r2.body.status === 'limited')
+  }
+  {
     const w = world(mod)
     w.db.tables.idea_angle_runs.push({ id: 'r1', query_hash: 'hx', kind: 'saas', status: 'running', requested_by: EMAIL, created_at: new Date(Date.parse('2026-10-01T02:59:00Z')).toISOString(), started_at: null, angles: [], llm_calls: 1, models: [] })
     const r = await w.post()

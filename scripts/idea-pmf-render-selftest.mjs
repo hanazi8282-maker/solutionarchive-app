@@ -75,7 +75,7 @@ register('data:text/javascript,' + encodeURIComponent(HOOKS), pathToFileURL('./'
 const { createElement: h } = await import('react')
 const { renderToStaticMarkup } = await import('react-dom/server')
 const { PmfSection, PMF_LOCK } = await import(ROOT + 'app/cases/report/pmf-section.tsx')
-const { PmfDone, PmfNoMatch, PmfFailure, BottleneckBadge } = await import(ROOT + 'app/cases/report/pmf-panel.tsx')
+const { PmfDone, PmfNoMatch, PmfFailure, BottleneckBadge, PMF_AI_BADGE, PMF_AI_NOTE } = await import(ROOT + 'app/cases/report/pmf-panel.tsx')
 const { PMF_DEMAND_LABEL, PMF_CAPTION } = await import(ROOT + 'lib/cases/idea-pmf.ts')
 const { PMF_QUADRANT_LABELS, PMF_QUADRANT_ADVICE, quadrantOf } = await import(ROOT + 'lib/cases/match.ts')
 
@@ -168,12 +168,15 @@ t('해당 없음: 다른 병목 선택', nm.includes('name="bottleneck_change"')
 
 // ── 7. 병목 배지: 출처·확신 ──
 const low = html(h(BottleneckBadge, { run: RUN({ bottleneck_confidence: 'low' }) }))
-t('배지: AI 가 읽음 · 확신 낮음', low.includes('AI 가 읽음 · 확신 낮음') && low.includes('확신 낮음. 병목을 직접 골라'))
-t('배지: 내가 고름', html(h(BottleneckBadge, { run: RUN({ bottleneck_source: 'user', bottleneck_confidence: null }) })).includes('내가 고름'))
+t('배지: 병목 AI 판독 · 확신 낮음', low.includes(`${PMF_AI_BADGE} · 확신 낮음`) && low.includes('확신 낮음. 병목을 직접 골라'))
+t('배지: AI 판독 안내 한 줄(v10)', low.includes(PMF_AI_NOTE) && PMF_AI_BADGE === '병목 AI 판독')
+const mine = html(h(BottleneckBadge, { run: RUN({ bottleneck_source: 'user', bottleneck_confidence: null }) }))
+t('배지: 내가 고름 · AI 판독 표시 0', mine.includes('내가 고름') && !mine.includes(PMF_AI_BADGE) && !mine.includes(PMF_AI_NOTE))
 
 // ── 8. 페이지 배선(정적): 섹션·목차·앵커는 로그인후만 ──
 const page = readFileSync(fileURLToPath(ROOT + 'app/cases/report/page.tsx'), 'utf8')
 t('페이지: <PmfSection 1회', count(page, '<PmfSection') === 1)
+t('페이지: 익명 TOC 에도 pmf(잠금 줄 자리, v10)', /const TOC = \[[^\n]*\['pmf', 'PMF 사분면'\]/.test(page))
 t('페이지: TOC_MEMBER 에 pmf', /TOC_MEMBER = \[[^\n]*\['pmf', 'PMF 사분면'\]/.test(page))
 t('페이지: 앵커는 if (signedIn) 안에서만 채운다', /if \(signedIn\) \{\s*for \(const m of corpora\.moves/.test(page) && page.includes('anchors={signedIn ? pmfAnchors : undefined}'))
 const panelSrc = readFileSync(fileURLToPath(ROOT + 'app/cases/report/pmf-panel.tsx'), 'utf8')

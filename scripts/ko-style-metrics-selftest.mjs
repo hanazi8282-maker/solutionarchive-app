@@ -213,6 +213,20 @@ async function suite(m) {
     ok('latin', 'Glossier → 글로시에 fail', failsOnly(BASE, BASE.replace('Glossier', '글로시에'), 'latin'))
     ok('latin', '대소문자 바뀜 fail', failsOnly('SaaS 회사였다.', 'Saas 회사였다.', 'latin'))
     ok('latin', '동일 → pass', check(BASE, BASE, 'latin').status === 'pass')
+    // knownProper — 생략된 주어 복원만 허용, 나머지는 그대로 엄격
+    const kp = { knownProper: ['Glossier'] }
+    const restoreB = 'Glossier는 컸다. 이후 매장을 열었다.'
+    const restoreA = 'Glossier는 컸다. 이후 Glossier는 매장을 열었다.'
+    ok('latin', 'knownProper 주어 복원(Glossier 1→2) → pass', check(restoreB, restoreA, 'latin', kp).status === 'pass')
+    ok('latin', 'knownProper 없이 같은 복원 → fail(기본값은 엄격)', failsOnly(restoreB, restoreA, 'latin'))
+    ok('latin', 'knownProper 밖 토큰(Nike)이 늘면 fail', check('Glossier는 컸다.', 'Glossier는 Nike처럼 컸다.', 'latin', kp).status === 'fail')
+    ok('latin', 'knownProper 라도 줄어들면 fail', check('Glossier는 컸다. Glossier는 열었다.', 'Glossier는 컸다. 그 회사는 열었다.', 'latin', kp).status === 'fail')
+    ok('latin', '다른 토큰을 knownProper 로 바꿔치기(Nike→Glossier) fail', check('Glossier는 Nike와 컸다.', 'Glossier는 Glossier와 컸다.', 'latin', kp).status === 'fail')
+    ok('latin', 'knownProper 복원 + 목록 밖 추가가 섞이면 fail', check('Glossier는 컸다.', 'Glossier는 컸다. Glossier는 SaaS였다.', 'latin', kp).status === 'fail')
+    ok('latin', 'knownProper 는 숫자 검사를 풀지 않는다', check('Glossier는 3배 컸다.', 'Glossier는 4배 컸다. Glossier.', 'numbers', kp).status === 'fail')
+    const longB = 'Glossier는 2014년에 첫 제품을 냈고 고객 후기를 모아 다음 제품을 정했다. 이후 오프라인 매장을 열어 체험 공간으로 썼다.'
+    const longA = longB.replace('이후 오프라인', '이후 Glossier는 오프라인')
+    ok('latin', 'gate 도 knownProper 를 받는다(받으면 통과·안 받으면 실패)', m.gate(longB, longA, kp).passed && !m.gate(longB, longA).passed)
   })
   guard('proper', () => {
     ok('proper', '직함 앞 이름 김민수 → 김영희 fail', failsOnly(BASE, BASE.replace('김민수', '김영희'), 'proper-hangul'))
@@ -242,6 +256,12 @@ async function suite(m) {
     ok('negation', '"없었을" → "컸을" fail', failsOnly(BASE, BASE.replace('없었을', '컸을'), 'negation'))
     ok('negation', '"하지 않았다" ↔ "안 했다" 바꿔 쓰기는 pass', check('그는 사지 않았다.', '그는 안 샀다.', 'negation').status === 'pass')
     ok('negation', '"뿐만 아니라" 삭제는 부정 변화가 아니다', check('가격뿐만 아니라 품질도 좋았다.', '가격도 품질도 좋았다.', 'negation').status === 'pass')
+    // 파생 부사 '~없이'는 부정이 아니다(PR #411 거짓 실패: 무관하게→상관없이)
+    ok('negation', '"무관하게" → "상관없이" pass', check('가격과 무관하게 팔렸다.', '가격과 상관없이 팔렸다.', 'negation').status === 'pass')
+    ok('negation', '"틀림없이"·"끊임없이"·"쉴 새 없이" 추가는 pass', check('그는 왔다. 매출은 늘었다. 일했다.', '그는 틀림없이 왔다. 매출은 끊임없이 늘었다. 쉴 새 없이 일했다.', 'negation').status === 'pass')
+    ok('negation', '"상관없다" → "상관있다" 는 뒤집힘이라 fail', failsOnly('가격과 상관없다.', '가격과 상관있다.', 'negation'))
+    ok('negation', '"광고 없이는" 삭제 fail', failsOnly('광고 없이는 팔리지 않는다고 봤다.', '광고로 팔리지 않는다고 봤다.', 'negation'))
+    ok('negation', '"광고 없이"(일반 없이) 삭제 fail', failsOnly('광고 없이 컸다.', '광고로 컸다.', 'negation'))
   })
   guard('conditional', () => {
     ok('conditional', '가정 "않았다면" → "않았기에" fail', failsOnly(BASE, BASE.replace('않았다면', '않았기에'), 'conditional'))
@@ -324,12 +344,19 @@ if (!MUTATE) {
     ['patterns', '"할 수 있다" ㄹ 받침 필터 끄기', '.filter((m) => jong(m[1]) === 8).length', '.length'],
     ['patterns', '3개 나열을 4개부터', '(?:[^\\s,.!?]+,\\s+){2,}', '(?:[^\\s,.!?]+,\\s+){3,}'],
     ['numbers', '숫자 검사가 after 를 안 봄', "multisetCheck('numbers', '숫자(단위 포함)', numbers(before), numbers(after))", "multisetCheck('numbers', '숫자(단위 포함)', numbers(before), numbers(before))"],
-    ['latin', '영문 검사가 after 를 안 봄', "latinTokens(before), latinTokens(after))", "latinTokens(before), latinTokens(before))"],
+    // (#411 의 latin 뮤턴트 — knownProper 로 latinCheck 로 옮겨져 대상 문자열만 바꿨다)
+    ['latin', '영문 검사가 after 를 안 봄', 'const a = latinTokens(after)', 'const a = latinTokens(before)'],
+    ['latin', 'knownProper 무시(복원도 실패)', 'const restored = added.filter((x) => known.has(x))', 'const restored: string[] = []'],
+    ['latin', 'knownProper 가 목록 밖 추가도 허용', 'const restored = added.filter((x) => known.has(x))', 'const restored = added'],
+    ['latin', 'knownProper 가 줄어든 토큰도 허용', 'if (missing.length || added.length > restored.length', 'if (added.length > restored.length'],
     ['proper', '한글 고유명사 누락을 안 봄', 'const lost = cands.filter((w) => !after.includes(w))', 'const lost: string[] = []'],
     ['urls', 'URL 검사가 after 를 안 봄', "multisetCheck('urls', 'URL', urls(before), urls(after))", "multisetCheck('urls', 'URL', urls(before), urls(before))"],
     ['quotes', '인용 검사가 after 를 안 봄', "quotes(before), quotes(after))", "quotes(before), quotes(before))"],
     ['qualifiers', "'약' 패턴 무력화", "{ doc: '약', re: /(?<![가-힣])약(?=\\s)/g }", "{ doc: '약', re: /$^/g }"],
     ['negation', "'않' 을 부정에서 뺌", "  ['않', /않/g],\n", ''],
+    ['negation', '파생 부사 ~없이 제외를 되돌림', '|(?<!(?:상관|관계|틀림|끊임|어김|하염|거침|여지|빠짐|영락|스스럼|난데|두말|가차|다름|쉴\\s?새)\\s?)없(?=이(?!는))/g]', '|없(?=이(?!는))/g]'],
+    ['negation', '~없이 전체를 부정에서 뺌(없이는·일반 없이도 놓침)', '|(?<!(?:상관|관계|틀림|끊임|어김|하염|거침|여지|빠짐|영락|스스럼|난데|두말|가차|다름|쉴\\s?새)\\s?)없(?=이(?!는))/g]', '/g]'],
+    ['negation', '"상관없다"까지 제외(뒤집힘 놓침)', '없(?!이(?!는))|', '(?<!상관)없(?!이(?!는))|'],
     ['conditional', '~면 을 가정에서 뺌', '.filter((m) => !MYEON_NOUN.test(m[0])).length', '.filter(() => false).length'],
     ['length', '길이비 상한 검사 끄기', 'ratio >= lo && ratio <= hi', 'ratio >= lo'],
     ['change', '변경률 상한 검사 끄기', 'checks.push(rate <= GATE.changeMax', 'checks.push(true'],

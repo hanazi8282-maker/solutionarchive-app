@@ -97,7 +97,10 @@ export const QUALIFIERS: { doc: string; re: RegExp }[] = [
 const NEGATION: [string, RegExp][] = [
   ['않', /않/g],
   ['못', /(?<![가-힣])못(?=\s|하|했|한|할|해)/g],
-  ['없', /없/g],
+  // 파생 부사 '~없이'(상관없이·틀림없이·끊임없이…)의 '없'은 부정이 아니다 — "무관하게→상관없이"가 거짓 실패였다(PR #411).
+  // 그 밖의 '없'(없다·없는·없이는·상관없다·목록 밖 ~없이)은 그대로 센다. "상관없다↔상관있다"는 뒤집힘이라 계속 잡아야 한다.
+  // ponytail: 부사 어근 목록은 고정 — 목록 밖 파생 부사가 거짓 실패를 내면 여기 추가한다.
+  ['없', /없(?!이(?!는))|(?<!(?:상관|관계|틀림|끊임|어김|하염|거침|여지|빠짐|영락|스스럼|난데|두말|가차|다름|쉴\s?새)\s?)없(?=이(?!는))/g],
   // "뿐만 아니라"는 부정이 아니라 첨가(B 패턴)라 뺀다
   ['아니', /(?<!뿐만?\s?)아니/g],
   ['안(부사)', /(?<![가-힣])안\s(?=[가-힣])/g],
@@ -342,13 +345,26 @@ export function editDistance(x: string, y: string, limit = EDIT_CELL_LIMIT): num
 
 export const GATE = { lengthRatio: [0.7, 1.3] as const, changeMax: 0.5, changeWarn: 0.3 }
 
-export function invariants(before: unknown, after: unknown, opts: { editCellLimit?: number } = {}): Check[] {
+// knownProper: 이 글의 확인된 고유명사(예: brand_name). 윤문이 생략된 주어를 복원해 이 토큰이 **늘어난** 것만 허용한다.
+// 줄어든 토큰·목록 밖 토큰이 늘어난 것은 여전히 실패다. 숫자·한정어 검사는 이 옵션의 영향을 받지 않는다.
+export type InvariantOpts = { editCellLimit?: number; knownProper?: string[] }
+function latinCheck(before: string, after: string, knownProper: string[] = []): Check {
+  const b = latinTokens(before)
+  const a = latinTokens(after)
+  const { missing, added } = multisetDiff(b, a)
+  const known = new Set(knownProper.flatMap((p) => latinTokens(p)))
+  const restored = added.filter((x) => known.has(x))
+  if (missing.length || added.length > restored.length || !restored.length) return multisetCheck('latin', '영문 토큰(약어·브랜드)', b, a)
+  return { id: 'latin', status: 'pass', reason: `영문 토큰 ${b.length}개가 그대로 남았고, 알려진 고유명사 복원 ${restored.join(', ')} 만 늘었다`, before: b, after: a }
+}
+
+export function invariants(before: unknown, after: unknown, opts: InvariantOpts = {}): Check[] {
   const ids = ['numbers', 'latin', 'proper-hangul', 'urls', 'quotes', 'qualifiers', 'negation', 'conditional', 'length-ratio', 'change-rate', 'voice']
   if (typeof before !== 'string' || typeof after !== 'string') return ids.map((id) => ({ id, status: 'unknown', reason: '입력이 문자열이 아니라 비교하지 못했다' }))
   if (!before.trim()) return ids.map((id) => ({ id, status: 'unknown', reason: '원문(before)이 비어 있어 보존 여부를 판단할 기준이 없다' }))
   const checks: Check[] = [
     multisetCheck('numbers', '숫자(단위 포함)', numbers(before), numbers(after)),
-    multisetCheck('latin', '영문 토큰(약어·브랜드)', latinTokens(before), latinTokens(after)),
+    latinCheck(before, after, opts.knownProper),
   ]
   const cands = hangulProperCandidates(before)
   const lost = cands.filter((w) => !after.includes(w))
@@ -396,7 +412,7 @@ export function invariants(before: unknown, after: unknown, opts: { editCellLimi
 }
 
 export type GateResult = { passed: boolean; warn: boolean; reasons: string[]; checks: Check[] }
-export function gate(before: unknown, after: unknown, opts: { editCellLimit?: number } = {}): GateResult {
+export function gate(before: unknown, after: unknown, opts: InvariantOpts = {}): GateResult {
   const checks = invariants(before, after, opts)
   const reasons: string[] = []
   for (const c of checks) {

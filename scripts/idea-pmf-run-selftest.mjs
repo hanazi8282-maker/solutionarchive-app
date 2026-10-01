@@ -347,6 +347,13 @@ async function suite(run) {
     const r = await w.post()
     g('limit', '11번째(24h) → limited · LLM 0 · 로그 limited', r.body.status === 'limited' && /10건/.test(r.body.error ?? '') && w.cli.calls.length === 0
       && w.db.tables.idea_query_log.at(-1)?.outcome === 'limited')
+    // 독립 카운트(남헌 v10: 앵글 10 + PMF 10 = 합 20). 앵글 10건을 다 써도 PMF 10번째까지 통과, 질의 로그 행 수와도 무관.
+    const wi = world(run)
+    for (let i = 0; i < 10; i++) wi.db.tables.idea_angle_runs.push({ id: `a${i}`, status: 'done', requested_by: EMAIL, created_at: at(T0 - 3_600_000) })
+    for (let i = 0; i < 9; i++) wi.db.tables.idea_pmf_runs.push({ id: `p${i}`, query_hash: `h${i}`, input_hash: 'x', kind: 'saas', status: 'done', requested_by: EMAIL, created_at: at(T0 - 3_600_000) })
+    for (let i = 0; i < 30; i++) wi.db.tables.idea_query_log.push({ id: `l${i}`, source: i % 2 ? 'angle_api' : 'pmf_api', outcome: 'new', requested_by: EMAIL, created_at: at(T0 - 3_600_000) })
+    g('limit', '독립 상한: 앵글 10건 소진 + PMF 9건 + 로그 30행 → PMF 10번째는 queued', (await wi.post()).body.status === 'queued')
+    g('limit', '독립 상한: 그다음(PMF 11번째)은 limited', (await wi.post({ fresh: true, q: `${Q} 2` })).body.status === 'limited')
     const w2 = world(run)
     w2.db.tables.idea_pmf_runs.push({ id: 'aw', query_hash: 'h', input_hash: 'x', kind: 'saas', status: 'awaiting_answers', requested_by: EMAIL, created_at: at(T0 - 3 * 86_400_000) })
     g('limit', 'awaiting_answers 는 동시 상한에 안 든다', (await w2.post()).body.status === 'queued')

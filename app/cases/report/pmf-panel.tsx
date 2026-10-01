@@ -56,16 +56,23 @@ const store = {
 
 // ── 조각(렌더 셀프테스트가 따로 그린다) ─────────────────────────────
 
+/** 남헌 v10(2026-10-01): AI 가 분류한 병목임을 배지와 한 줄로 밝힌다. */
+export const PMF_AI_BADGE = '병목 AI 판독'
+export const PMF_AI_NOTE = '이 아이디어의 병목은 AI 가 자동으로 분류한 것이다.'
+
 /** 병목 배지 + 이유 + "다른 병목으로 다시". 바꾸면 새 실행(fresh)이다. */
 export function BottleneckBadge({ run, onChange }: { run: Run; onChange?: (v: string) => void }) {
-  const src = run.bottleneck_source === 'user' ? '내가 고름'
-    : `AI 가 읽음 · 확신 ${run.bottleneck_confidence === 'high' ? '높음' : run.bottleneck_confidence === 'low' ? '낮음' : '기록 없음'}`
+  const ai = run.bottleneck_source !== 'user'
+  const src = ai
+    ? `${PMF_AI_BADGE} · 확신 ${run.bottleneck_confidence === 'high' ? '높음' : run.bottleneck_confidence === 'low' ? '낮음' : '기록 없음'}`
+    : '내가 고름'
   return (
     <div className="pub-pmf-badge">
       <span className="pub-chiprow">
         <Chip>병목 · {bnLabel(run.bottleneck)}</Chip>
         <Chip>{src}</Chip>
       </span>
+      {ai ? <p className="pub-caption">{PMF_AI_NOTE}</p> : null}
       {run.bottleneck_reason ? <p className="pub-caption">{tidy(run.bottleneck_reason)}</p> : null}
       {run.bottleneck_source === 'llm' && run.bottleneck_confidence === 'low'
         ? <p className="pub-caption">확신 낮음. 병목을 직접 골라 다시 돌려 보라.</p> : null}

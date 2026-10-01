@@ -100,7 +100,8 @@ export function pmfCacheKey(email: string, query_hash: string, input_hash: strin
 }
 
 /**
- * 상한(A7). 하루 10건·사용자 동시 1 은 idea_pmf_runs 로 따로 세고(앵글 10 과 별개 — 확인 질문 4 잠정),
+ * 상한(A7). 하루 10건·사용자 동시 1 은 idea_pmf_runs 로 따로 세고(앵글 10 과 별개, 합 20 — 남헌 2026-10-01 v10 확정.
+ * 앵글은 idea_angle_runs 만 센다. idea_query_log 는 세지 않는다 — 캐시 히트·limited 행까지 있어 상한 근거로 쓰면 안 된다),
  * 전역 동시 2 는 **PMF 활성 + 앵글 활성의 합**이다(구독 5시간 창을 지키는 숫자).
  */
 export function pmfLimitReason(n: { userToday: number; userActive: number; pmfActive: number; angleActive: number }): string | null {

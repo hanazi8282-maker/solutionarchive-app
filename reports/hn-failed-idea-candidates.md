@@ -135,3 +135,27 @@
 - 작성일: 2026-09-29
 
 > > They try to make a counter to their fears by teaching models how to exploit vulnerabilities. The frustrating part is that they should have been leaders in sandboxing and monitoring, and instead they aggressively encouraged no sandboxing and no monitoring. If there was anything we were rehearsing for in computer security, it was a wayward program with something resembling human intelligence. Looks like we failed right out of the gate, both spiritually and materially.
+
+## HN 49918925
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=49918925
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-01 UTC)
+- 스레드: Tennessee inmate still alive after being administered two lethal injections
+- 작성자: IntrepidPig
+- 작성일: 2026-10-01
+
+> Did you read to the part of the article where they mentioned the trauma she had gone through since being a toddler was “almost impossible to grasp”? It’s easy for me to think that if you pick a model citizen today, go back in time and put them through the same struggles, they would not fare much better in society than Christa. And yes I know going through a hardship doesn’t justify cruelty to others, but again she was, by all reasonable measures, a child at the time. The world she experienced th…
+
+## HN 49914473
+
+- 판정: (미검토)
+- 매칭: `pivoted away from`
+- 원본: https://news.ycombinator.com/item?id=49914473
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-01 UTC)
+- 스레드: Reddit will stop supporting RSS feeds on November 13th
+- 작성자: rdmuser
+- 작성일: 2026-09-30
+
+> Anyone have any recommendations for generalist discussion forums? I know some great topic focused ones and enjoy tildes and metafilter for generalist discussions but I'd love to know if there are some other solid ones out there. RSS is how I follow stuff so this is the last straw for me though I'm been reducing my reddit use for a while now due to discussion quality issues caused by their social media style "modernization". They've pivoted away from being a set of forums to being mostly just ano…

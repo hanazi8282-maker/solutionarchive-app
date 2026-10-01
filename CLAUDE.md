@@ -126,7 +126,11 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   RLS 는 앱 사용자 권한이 아니라 "브라우저 anon 키로 직접 PostgREST 를 때리는 것"을
   막는 용도로만 켜져 있다(정책 0개 = service_role 전용, `20260915000002`, PR #97).
 - `super_admin` / `admin` / `member` / `brand_access[]` 는 **코드·스키마 어디에도 없다.**
-  `CREATE POLICY` 도 마이그레이션 전체에 0건이다.
+  `CREATE POLICY` 는 `seller_profiles`·`wtp_signals`(20260927000001)와 아래 예외 한 곳뿐이다.
+- **예외(의도된) — `idea_pmf_runs`·`idea_pmf_answers` 두 테이블 한정, 본인 SELECT 정책 허용(남헌 승인 2026-10-01).**
+  `20261001000052` 가 표마다 SELECT 정책 1개(`TO authenticated`, JWT email = `requested_by`)를 만들고 답변 FK 를
+  CASCADE→NO ACTION 으로 바꿨다(PMF 답변 영구보관·본인만 조회 결정, v10). 쓰기 정책은 없다(service_role 전용 그대로).
+  앱은 여전히 service_role 이라 이 정책을 우회한다 — 직접 PostgREST 접근의 천장이다. 다른 테이블로 넓히지 않는다.
 - **케이스 숨김(soft delete, `/cases` 숨김·복원) 권한 = 허용목록 전원(남헌 2026-09-28 결정 A).** 되돌릴 수 있고
   사유가 필수라 낮은 리스크로 판단해 관리자 역할(B안) 구축은 보류했다. **"일단"의 결정이다 — 허용목록 구성이
   바뀌면(예: 외부 베타유저 추가) 이 권한을 먼저 재검토한다.** 허용목록을 넓히는 변경은 §10.2 예외 3번(인증 경계)이기도 하다.

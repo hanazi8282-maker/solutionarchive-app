@@ -1,0 +1,17 @@
+{
+  "case_slug": "shyp-flat-fee-unit-economics-collapse",
+  "move_id": "20f59c19-92a6-425a-b6c0-26b6c1ba1f51",
+  "content_code": "CS-20261002-01",
+  "body_path": "drafts/threads/2026-10-02-shyp-flat-fee-unit-economics-collapse.body.txt",
+  "reply_path": "drafts/threads/2026-10-02-shyp-flat-fee-unit-economics-collapse.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-10-02-shyp-flat-fee-unit-economics-collapse.md",
+  "title": "맞는 방향, 못 끈 적자",
+  "twist_line": "소상공인 건당 매출을 150% 늘린 회사가, 적자인 소비자 사업부를 같이 끌고 가다 시간과 돈이 끝나 문을 닫았다",
+  "hook_type": "반례형(성과를 내고도 폐업)",
+  "closing_type": "행동지시형(남는 고객군을 찾았다면 밑지는 라인 하나를 내일 끈다)",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-0 예외통과. CG-1 대상(등급 C): 본문 'Shyp가 밝힌 바로는' 1회 + 자기답글 '자사 공시' 명시. 본문 글자수는 Bash 부재로 기계 계수 못 함(약 440자 추정), 오케스트레이터 column-check 재확인 필요. 한계: 2016년경·2018년 3월 폐업은 move:1 evidence snippet 에 직접 없고 claim·조사 초안에서 옴, 150%의 세그먼트 한정 여부는 원문만으로 가를 수 없어 claim 을 따름.",
+  "bp1_exclusive_numbers": false,
+  "bp2_transferable": true,
+  "applied_patterns": ["edit-question-to-statement"]
+}

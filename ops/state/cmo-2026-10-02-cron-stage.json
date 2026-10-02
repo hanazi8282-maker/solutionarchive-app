@@ -1,0 +1,40 @@
+[
+  {
+    "case_slug": "shyp-flat-fee-unit-economics-collapse",
+    "move_id": "20f59c19-92a6-425a-b6c0-26b6c1ba1f51",
+    "content_code": "CS-20261002-01",
+    "body_path": "drafts/threads/2026-10-02-shyp-flat-fee-unit-economics-collapse.body.txt",
+    "reply_path": "drafts/threads/2026-10-02-shyp-flat-fee-unit-economics-collapse.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-10-02-shyp-flat-fee-unit-economics-collapse.md",
+    "title": "맞는 방향, 못 끈 적자",
+    "twist_line": "소상공인 건당 매출을 150% 늘린 회사가, 적자인 소비자 사업부를 같이 끌고 가다 시간과 돈이 끝나 문을 닫았다",
+    "hook_type": "반례형(성과를 내고도 폐업)",
+    "closing_type": "행동지시형(남는 고객군을 찾았다면 밑지는 라인 하나를 내일 끈다)",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-0 예외통과. CG-1 대상(등급 C): 본문 'Shyp가 밝힌 바로는' 1회 + 자기답글 '자사 공시' 명시. 본문 글자수는 Bash 부재로 기계 계수 못 함(약 440자 추정), 오케스트레이터 column-check 재확인 필요. 한계: 2016년경·2018년 3월 폐업은 move:1 evidence snippet 에 직접 없고 claim·조사 초안에서 옴, 150%의 세그먼트 한정 여부는 원문만으로 가를 수 없어 claim 을 따름.",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": [
+      "edit-question-to-statement"
+    ]
+  },
+  {
+    "case_slug": "testimonial-to-solo-saas-channel-bootstrap",
+    "move_id": "d455b8e8-4851-4437-a8a0-d89cc0b01778",
+    "content_code": "CS-20261002-02",
+    "body_path": "drafts/threads/2026-10-02-testimonial-to-solo-saas-channel-bootstrap.body.txt",
+    "reply_path": "drafts/threads/2026-10-02-testimonial-to-solo-saas-channel-bootstrap.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-10-02-testimonial-to-solo-saas-channel-bootstrap.md",
+    "title": "팔로워 70명의 1위 채널",
+    "twist_line": "팔로워 70명에서 실제 숫자를 공개하기 시작한 트위터가, 이 서비스의 첫 유료 고객이 온 곳이자 9개월 시점 1위 고객 채널이 됐다",
+    "hook_type": "관찰 사실형(첫 유료 고객의 출처)",
+    "closing_type": "행동지시형(이번 주부터 주 1회 실제 숫자를 공개한다, 팔로워 0명이어도 된다)",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-0 예외통과. CG-1 대상(등급 C): 본문 'Testimonial.to가 밝힌 바로는' 1회 + 자기답글 '자사 공시' 명시. 본문 글자수는 Bash 부재로 기계 계수 못 함(약 400자 추정), 오케스트레이터 column-check 재확인 필요. 한계: 70명은 AMA 의 '작년 말 1,000명 미만' 회고와 어긋나는 대략치(자기답글에 병기), 1년쯤·광고 부재는 evidence 직접 근거 없어 광고 부재는 본문에서 뺌.",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": [
+      "edit-question-to-statement"
+    ]
+  }
+]

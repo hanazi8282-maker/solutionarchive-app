@@ -101,6 +101,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":2,"manifests":2})
 - ✅ `stage` 발행 대기 스테이징 ({"staged":2})
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":17})
+- ℹ️ Notion 푸시:  2건 ⏭️ CS-20261001-01 — 결정문서(drafts/threads/2026-10-02-munchery-precook-overproduction-collapse.md) 못 찾음 ⏭️ CS-20261001-02 — 결정문서(drafts/threads/2026-10-02-seed-ds01-clinical-strain-probiotic.md) 못 찾음
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-10-03-CMO 기록·재확인
 
 _실행 키 `cmo-2026-10-02-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

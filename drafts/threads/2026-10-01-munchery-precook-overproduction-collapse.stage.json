@@ -1,0 +1,17 @@
+{
+  "case_slug": "munchery-precook-overproduction-collapse",
+  "move_id": "f8958676-5514-421d-b715-2c31eb4c8c41",
+  "content_code": "CS-20261001-01",
+  "body_path": "drafts/threads/2026-10-01-munchery-precook-overproduction-collapse.body.txt",
+  "reply_path": "drafts/threads/2026-10-01-munchery-precook-overproduction-collapse.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-10-01-munchery-precook-overproduction-collapse.md",
+  "title": "넓힌 뒤 한 도시로 줄다",
+  "twist_line": "서부 전역까지 넓힌 회사가 3개 도시에서 철수하고 인력 30%를 내보냈지만, 남은 건 샌프란시스코 한 곳이었다",
+  "hook_type": "사실 제시형(적자를 못 푼 채 지역 확장)",
+  "closing_type": "행동지시형(확장 전 한 곳의 팔 때 남는 돈 확인)",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-4 첫 문장 반례 약함 경고, G-0 예외통과. CG-1 대상(등급 C): 본문 '회사가 밝힌' 1회 + 자기답글 '자사 공시' 명시. 본문 글자수는 Bash 부재로 기계 계수 못 함(약 400자 추정), 오케스트레이터 column-check 재확인 필요.",
+  "bp1_exclusive_numbers": false,
+  "bp2_transferable": true,
+  "applied_patterns": ["edit-question-to-statement"]
+}

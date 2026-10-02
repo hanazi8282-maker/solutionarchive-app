@@ -1,0 +1,180 @@
+{
+  "slug": "roam-research-premium-price-feature-copied-collapse",
+  "brand_name": "Roam Research",
+  "market": "SaaS · 개인 노트·지식관리(PKM) 소프트웨어",
+  "geo": "US",
+  "business_model": "SAAS",
+  "buyer_type": "B2C",
+  "purchase_frequency": "CONTRACT",
+  "price_band": "MID",
+  "bottleneck": "RETENTION",
+  "reader_problem": "MAKE_BUT_NO_MONEY",
+  "outcome_status": "unknown",
+  "period_start": "2020-05-01",
+  "period_end": "2023-08-31",
+  "summary": "양방향 링크라는 기능 하나로 '비싼 것부터' 팔기 시작해 2020년 9월 시드 $9M(기업가치 $200M)까지 간 노트 앱. 이후 같은 기능을 가진 무료·저가 앱(Obsidian·Logseq)이 아래 가격대를 채웠고, 2022년·2023년 외부 비평은 개발 속도 정체와 모바일 부재를 짚었다. 지금 운영 여부·실적은 확인하지 못했다.",
+  "tags": ["saas", "pkm", "note-taking", "failure", "feature-moat", "premium-pricing"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "PRICING",
+      "claim": "Roam 은 2020년 6월 유료 전환 때 월 $15 구독과 5년치 선결제 $500(Believer) 두 가지만 두고 무료 등급 없이 시작했다. 창업자는 2020년 5월 인터뷰에서 '스포츠카를 먼저 팔고 그 돈으로 더 싼 차를 만든다'는 테슬라식 순서를 말했고, 첫 고객은 비싼 값을 감수할 파워유저라고 했다. 이 순서에서 '더 싼 제품'이 이후 나왔는지는 확인하지 못했다. HN 사용자 댓글에는 Logseq 이 무료·오픈소스이고 Obsidian 이 로컬 저장 중심의 대안이라는 말이 나와, 사용자는 Roam 의 가격 아래에서 대안을 찾고 있었다(수치는 확인 못 함). 비싼 값으로 초기 현금은 모았지만(창업자가 2020년 9월 매체에 말한 연매출 약 $1M — 감사 안 된 자기보고), 가격 아래가 비어 있던 것이 이후 이탈 이야기의 배경이다.",
+      "transfer_note": "내일 한 시간: 내 제품이 돈 받는 이유를 한 문장으로 적고, 그 한 문장을 이미 무료나 더 싼 값에 주는 도구를 검색해 3개 찾아 내 가격 옆에 적어 본다. 3개가 나오면 '비싼 값을 받는 다른 이유'가 있는지 먼저 정한다.",
+      "preconditions": "받아 줄 유료 고객이 이미 있어야 비싼 값부터 시작할 수 있다(Roam 은 베타 때 기업·연구자 계약으로 버텼다고 창업자가 말했다 — 자기보고). 같은 기능을 베끼기 쉬운지(코드가 공개된 오픈소스 경쟁자가 가능한지)를 먼저 확인해야 한다.",
+      "outcome_direction": "negative",
+      "metric_name": "Roam 월 구독료(Pro)",
+      "metric_before": null,
+      "metric_after": 15,
+      "metric_unit": "USD/월",
+      "observed_period_start": "2020-06-01",
+      "observed_period_end": null,
+      "voc_inputs": [
+        "b6f7dddd-b71f-4f77-9e44-2cdbcb434862",
+        "df044352-2723-4f40-b5be-cbdd3a3a9f79",
+        "252cf9ed-c944-4755-a0a2-755e307272e9"
+      ]
+    },
+    {
+      "lever": "PRODUCT_FEATURE",
+      "claim": "Roam 의 유료 이유는 사실상 '양방향 링크로 메모를 자동 연결한다'는 기능 하나였다. 2022년 2월 Every 의 Dan Shipper 는 이 기능이 처음엔 '이 메모를 어디에 둘까' 불안을 덜어 줬지만, 사람들이 메모를 다시 열어 보지 않는다는 걸 알게 되자 그 불안이 돌아왔고, 검색은 맥락 없이 결과만 나열하는 '답답한 혼잡'이라고 썼다. 같은 달 Hacker News 토론에서는 Logseq 을 'Roam 을 공학적으로 앞질렀다'고 하고, 로컬 파일 저장을 장점으로 꼽는 댓글이 나왔다. 기능이 같아지면 남는 이유가 없다는 가설이 이 사례의 핵심이다 — 다만 이탈 규모를 잰 수치는 찾지 못했다.",
+      "transfer_note": "내일 한 시간: 지금 내 제품을 쓰는 사람 3명에게 '이걸 안 쓰면 뭘 쓰겠어요?'를 묻고, 답에 무료 도구가 나오면 그 도구에 없는 것을 한 줄로 적는다. 한 줄이 안 나오면 기능이 아니라 다른 이유(데이터 보관, 연동, 지원)를 찾아야 한다.",
+      "preconditions": "이미 쓰는 사람 3명을 만날 수 있어야 한다(없으면 이 무브 전에 첫 고객 확보가 먼저). 이 사례의 인과(기능이 복제돼서 떠났다)는 비평가 의견이며, 이탈 수치는 확인하지 못했다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": "2022-02-01",
+      "observed_period_end": "2022-02-28",
+      "voc_inputs": [
+        "252cf9ed-c944-4755-a0a2-755e307272e9",
+        "d1cf054b-c34e-42e7-a03c-5cb06897b109",
+        "4d34514a-131b-4a32-b6ba-7f67bbf2a512"
+      ]
+    },
+    {
+      "lever": "OPERATIONS",
+      "claim": "Roam 은 2020년 9월 시드 $9M(기업가치 약 $2억, The Information 보도)을 받았다. 이후 2022년 2월 Shipper 는 '느린 제품 개발 속도'와 모바일 부재, 커뮤니티 문제를 지적했고, 같은 달 HN 댓글에는 2년 전 불만이 그대로라는 말이 있었다. 2023년 8월 Casey Newton(2021년 Roam 을 칭찬한 $500 Believer 가입자)은 'Roam 의 개발이 거의 멈췄다'고 썼다(2차 요약으로만 확인, 원문 미확인). 자금과 속도의 인과는 확인하지 못했다 — 비평가들이 속도 정체를 반복해 적었다는 사실까지만 적는다.",
+      "transfer_note": "내일 한 시간: 유료 고객이 한 번이라도 말한 불만을 목록으로 적고, 가장 오래된 것 하나에 '언제까지'를 붙여 고객에게 답장한다. 목록이 비어 있으면 불만을 아직 수집하지 않고 있다는 뜻이다.",
+      "preconditions": "고객 불만을 받는 창구(이메일·커뮤니티)가 하나 있어야 한다. 이 사례에서 팀 규모·속도 정체의 원인은 확인하지 못했다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": "2022-02-01",
+      "observed_period_end": "2023-08-31",
+      "voc_inputs": []
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://20vc.substack.com/p/20vc-how-roam-research-analyse-product-265",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2020-05-08",
+      "snippet": "20VC 인터뷰(창업자 Conor White-Sullivan): 제목에 'Applying Tesla Go-To-Market To Roam'. 내용은 deciphr.ai 요약본으로 확인(원 팟캐스트 음성은 못 들음).",
+      "observation_key": "roam-20vc-2020-05-tesla-gtm",
+      "supports_claim": "창업자가 비싼 것 먼저·싼 것 나중 순서(테슬라식)를 말했다는 것"
+    },
+    {
+      "move": 0,
+      "url": "https://www.deciphr.ai/podcast/20vc-how-roam-research-analyse-product-design-teambuilding-the-future-of-collaboration-tools--applying-tesla-gotomarket-to-roam-with-conor-whitesullivan-founder--ceo--roam-research",
+      "source_tier": "tertiary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2020-05-08",
+      "snippet": "AI 요약: 스포츠카를 만들어 번 돈으로 더 싼 차를 만든다는 비유, 초기 사용자는 기업 라이선스·연구자였다고 정리.",
+      "observation_key": "roam-20vc-2020-05-tesla-gtm",
+      "supports_claim": "테슬라식 순서와 초기 고객이 기업·연구자였다는 창업자 발언"
+    },
+    {
+      "move": 0,
+      "url": "https://soulscrape.com/ben/roam-research",
+      "source_tier": "tertiary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": null,
+      "snippet": "개인 위키형 모음 페이지: 2020-06 Pro 월 $15·Believer $500(5년) 출시, 2020-09 창업자의 연매출 약 $1M·흑자 발언(감사 안 됨).",
+      "observation_key": "roam-pricing-2020-06-and-arr-claim-2020-09",
+      "supports_claim": "월 $15 와 $500 5년 요금제, 연매출 $1M 자기보고"
+    },
+    {
+      "move": 0,
+      "url": "https://news.ycombinator.com/item?id=44023423",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": null,
+      "snippet": "HN 토론(The Fall of Roam 2022 재게시): 여러 댓글이 Logseq 무료·로컬, Obsidian 을 대안으로 말함.",
+      "observation_key": "roam-hn-commenters-free-alternatives",
+      "supports_claim": "무료·로컬 대안(Logseq·Obsidian)이 실제 비교 대상으로 언급됐다는 것"
+    },
+    {
+      "move": 1,
+      "url": "https://every.to/superorganizers/the-fall-of-roam",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2022-02-11",
+      "snippet": "Dan Shipper(Superorganizers): 검색이 맥락 없는 혼잡, 양방향 링크가 풀어 준 '어디에 둘까' 불안이 돌아옴, 자동화 부재, 느린 개발 속도.",
+      "observation_key": "roam-shipper-2022-02-fall-of-roam",
+      "supports_claim": "기능 하나에 기댄 가치가 재방문 부족·검색 문제로 약해졌다는 비평"
+    },
+    {
+      "move": 1,
+      "url": "https://news.ycombinator.com/item?id=30320977",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2022-02-14",
+      "snippet": "HN 토론: Logseq 이 Roam 을 앞질렀다는 댓글, 로컬 저장 선호, SaaS 의존 우려, 대안으로 Obsidian 등이 거론됨.",
+      "observation_key": "roam-hn-commenters-free-alternatives",
+      "supports_claim": "무료·로컬 대안이 같은 기능을 제공한다는 사용자 의견"
+    },
+    {
+      "move": 2,
+      "url": "https://www.theinformation.com/articles/a-200-million-seed-valuation-for-roam-shows-investor-frenzy-for-note-taking-apps",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2020-09-11",
+      "snippet": "The Information(Kate Clark) 제목: Roam 의 시드 $200M 기업가치. 본문은 유료벽이라 못 읽음 — 제목·기업가치만 확인.",
+      "observation_key": "roam-information-2020-09-seed-valuation",
+      "supports_claim": "2020년 9월 시드 기업가치 $2억 보도"
+    },
+    {
+      "move": 2,
+      "url": "https://every.to/superorganizers/the-fall-of-roam",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2022-02-11",
+      "snippet": "느린 제품 개발 속도, 모바일 경험 부재, 커뮤니티 문제를 정체 요인으로 언급.",
+      "observation_key": "roam-shipper-2022-02-fall-of-roam",
+      "supports_claim": "2022년 2월 시점의 개발 속도·모바일 부재 지적"
+    },
+    {
+      "move": 2,
+      "url": "https://soulscrape.com/ben/roam-research",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2023-08-25",
+      "snippet": "개인 위키형 모음 페이지가 Casey Newton 2023-08 Verge 칼럼의 'Roam's development slowed to a crawl' 을 요약 인용(원문 미확인).",
+      "observation_key": "roam-newton-2023-08-verge",
+      "supports_claim": "2023년 8월 Newton 칼럼이 개발 정체를 말했다는 2차 요약"
+    }
+  ]
+}

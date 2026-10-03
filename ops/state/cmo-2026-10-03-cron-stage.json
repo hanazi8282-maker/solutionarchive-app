@@ -1,0 +1,40 @@
+[
+  {
+    "case_slug": "content-goblin-low-tier-pricing-support-collapse",
+    "move_id": "23b2a430-18b4-42bb-9307-ce8b8077c9e7",
+    "content_code": "CS-20261003-02",
+    "body_path": "drafts/threads/2026-10-03-content-goblin-low-tier-pricing-support-collapse.body.txt",
+    "reply_path": "drafts/threads/2026-10-03-content-goblin-low-tier-pricing-support-collapse.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-10-03-content-goblin-low-tier-pricing-support-collapse.md",
+    "title": "가장 싼 고객이 제일 비쌌다",
+    "twist_line": "싼 요금제는 손이 덜 갈 거라는 통념과 달리, 가장 적게 내는 고객이 가장 응대하기 어려웠다고 창업자가 폐업 회고에 적었다",
+    "hook_type": "반례형(가장 싼 요금제 고객이 가장 응대하기 어려웠다는 말을 남기고 폐업)",
+    "closing_type": "행동지시형(가장 싼 요금제 고객의 문의·환불 건수를 세고, 응대 시간이 내는 돈보다 비싸면 그 요금제를 없애거나 최소 결제 금액을 올린다)",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-0 예외통과. 등급 인사이트 C·사실확인 D: 본문 숫자 0(CG-2). CG-1 대상 등급 불분명이라 자기답글 첫 줄에 '자사 공시에 해당하는 본인 기록, 제3자 검증 없음' 표기(창업자 본인 회고라 사실에 가깝지만 증권 공시는 아님 — 게이트가 의미까지 보면 사람 판단 필요). 한계: claim 의 '1센트 초저가 요금제'는 근거상 가격이 아니라 창업자 원가(미사용), '지원 비용이 마진을 갉아먹었다' 인과는 근거에 없어 본문은 '가장 싼 고객이 응대하기 가장 어려웠다'만 단정하고 인과는 독자 검증으로 돌림. 유튜버 성장·폐업 서술은 move:null evidence, 핀터레스트용 표기는 케이스 market/summary 필드에서 가져옴. 본문 글자수는 Bash 부재로 기계 계수 못 함(약 380자 추정), 오케스트레이터 column-check 재확인 필요.",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": [
+      "edit-question-to-statement"
+    ]
+  },
+  {
+    "case_slug": "zume-pizza-mobile-oven-production-collapse",
+    "move_id": "a1437247-0985-451b-bfe3-a13ebd68f833",
+    "content_code": "CS-20261003-01",
+    "body_path": "drafts/threads/2026-10-03-zume-pizza-mobile-oven-production-collapse.body.txt",
+    "reply_path": "drafts/threads/2026-10-03-zume-pizza-mobile-oven-production-collapse.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-10-03-zume-pizza-mobile-oven-production-collapse.md",
+    "title": "시제품이라던 피자 회사",
+    "twist_line": "피자는 시제품일 뿐 어디에나 통한다고 말하던 회사가, 밴 안에서 굽는 핵심 공정이 안정됐다는 확인 없이 투자 규모만 키우다 문을 닫았다",
+    "hook_type": "반례형(시제품이라 부르며 투자를 모았는데 폐업)",
+    "closing_type": "행동지시형(이제 된다고 믿는 작업을 같은 조건으로 5번 연속 돌려 실패 횟수를 센다)",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-0 예외통과. CG-1 대상(등급 C): 본문 '제3자 검증을 받지 않은 보도 집계로는' 1회 + 자기답글에 보도 링크 2건과 제3자 검증 미비 표기. 수치가 자사 공시가 아니라 언론 집계라 자기답글에 '자사 공시'는 적지 않았다(사실이 아님) — 게이트가 그 문자열만 본다면 막힐 수 있어 사람 판단 필요. 한계: '치즈가 흘러내리고 로봇·오븐이 자주 고장 난다'는 문장은 move:0 evidence 4건에 직접 근거가 없고 claim 에서만 옴(발행 전 출처 확인 필요, 없으면 삭제해도 글은 성립). 4억 2300만 달러는 NRN 추정 집계. 본문 글자수는 Bash 부재로 기계 계수 못 함(약 460자 추정), 오케스트레이터 column-check 재확인 필요.",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": [
+      "edit-question-to-statement"
+    ]
+  }
+]

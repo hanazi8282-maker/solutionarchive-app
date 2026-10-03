@@ -1,0 +1,6 @@
+출처는 창업자 존 워드가 직접 쓴 폐업 회고다. 자사 공시에 해당하는 본인 기록이고 제3자 검증은 없다.
+https://johnathanward.com/im-shutting-down-content-goblin-a-post-mortem/
+
+원문은 영어다. "The lowest paying users were the most difficult to support."
+
+회고는 가장 싼 고객이 응대하기 가장 어려웠다는 데까지만 적었다. 그 응대에 비용이 얼마나 들었는지는 밝히지 않았다. 그래서 본문 마지막 문단은 결론이 아니라, 각자 장부로 직접 확인하는 방법이다.

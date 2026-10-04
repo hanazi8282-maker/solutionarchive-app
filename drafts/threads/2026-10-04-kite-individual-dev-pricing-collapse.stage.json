@@ -1,0 +1,17 @@
+{
+  "case_slug": "kite-individual-dev-pricing-collapse",
+  "move_id": "ba7ecc6b-84a5-4689-94b3-045d1519316a",
+  "content_code": "CS-20261004-02",
+  "body_path": "drafts/threads/2026-10-04-kite-individual-dev-pricing-collapse.body.txt",
+  "reply_path": "drafts/threads/2026-10-04-kite-individual-dev-pricing-collapse.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-10-04-kite-individual-dev-pricing-collapse.md",
+  "title": "값은 만든 뒤에 묻는 게 아니다",
+  "twist_line": "제품을 키우는 데 몇 해를 다 쓰고 유료 요금제는 확신이 선 다음 해에야 냈다. 창업자는 돈이 안 된다는 걸 알아채는 데 너무 오래 걸렸다고 적었다",
+  "hook_type": "사실 반례형(확신이 선 뒤에야 처음 값을 매긴 회사, 실명 Kite)",
+  "closing_type": "행동지시형(이번 주 돈 낼 만한 사람 한 명에게 가격을 말하고 사겠다는 대답이 나오는지 보기)",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-4 경고, G-0 예외통과. 등급 인사이트 C·사실확인 D(프롬프트 값, 재확인 불가): CG-2 대상이라 본문 숫자 0개(연도·기간도 '몇 해'·'그다음 해'로 풀어 뺌), 자기답글에도 숫자 없음. 자기답글에 'Kite 자사 발표'·'제3자 검증을 받지 않은 자체 기록' 표기(CG-1 대상은 아니나 방어적으로 남김). 확인 불가: drafts/cases/kite-individual-dev-pricing-collapse.json 이 작업 트리에 없어 evidence·transfer_note·preconditions·원문 링크를 못 읽음 — 사실은 프롬프트 claim 에서만 가져왔고 근거 대조는 미실시(스테이징 전 확인 필요). 마무리 행동은 claim 논리에서 도출한 것이라 transfer_note 와 다를 수 있고 자기답글 한계 문장은 preconditions 를 못 읽은 채 짐작한 것. column-check.mjs 는 이 세션에서 권한 승인이 없어 실행 못 함(오케스트레이터가 돌릴 것). 본문 361자(wc -m, 개행 포함), 자기답글 186자. 같은 회사 PRICING 무브 초안(2026-09-30, 각이 다름: 쓰는 사람 대 돈 내는 사람)과 발행 간격 확인 필요.",
+  "bp1_exclusive_numbers": false,
+  "bp2_transferable": true,
+  "applied_patterns": ["edit-question-to-statement"]
+}

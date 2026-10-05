@@ -1,0 +1,2752 @@
+{
+  "area": "07-ecommerce-ops",
+  "area_ko": "이커머스 운영 도구",
+  "scope": "온라인 셀러가 스토어를 운영할 때 쓰는 SaaS: 멀티채널 주문·재고 통합, 리뷰 수집/관리, 스토어용 이메일·SMS·CRM 마케팅, 구독, 배송·추적, 로열티·업셀, 스토어/마켓플레이스 분석·리서치. 고객상담 채팅(②, 예: Gorgias·채널톡)과 쇼핑몰 구축 플랫폼 자체(Shopify·카페24), 범용 ERP·재고앱(이카운트·박스히어로 등)은 제외.",
+  "researched_at": "2026-10-05",
+  "kr_search_queries": [
+    "쇼핑몰 통합관리 솔루션 비교 사방넷 플레이오토 이지어드민 샵링커 셀메이트",
+    "카페24 리뷰 앱 크리마 알파리뷰 브이리뷰 스냅리뷰 비교",
+    "스마트스토어 셀러 분석 도구 아이템스카우트 판다랭크 셀러라이프 헬프스토어",
+    "쇼핑몰 CRM 마케팅 자동화 솔루션 스냅푸시 빅인 데이터라이즈 카카오 알림톡",
+    "온라인 셀러 재고관리 앱 박스히어로 셀러허브 이셀러스 셀로 비교",
+    "쇼핑몰 택배 송장 출력 연동 솔루션 굿스플로 배송추적 셀러",
+    "쿠팡 셀러 매출 정산 분석 툴 셀러봇캐시 셀록홈즈 추천",
+    "자사몰 정기구독 솔루션 카페24 앱 구독 결제",
+    "셀러허브 셀피아 샵마인 쇼핑몰 통합관리 프로그램 무료",
+    "이지어드민 셀메이트 재고관리 솔루션 셀러",
+    "[iTunes kr] 사방넷 플레이오토 이지어드민 샵링커 셀메이트 이셀러스 스윕 셀로 셀러박스 크리마 알파리뷰 브이리뷰 스냅리뷰 아이템스카우트 판다랭크 셀록홈즈 헬프스토어 셀러봇캐시 굿스플로 스냅푸시 빅인 데이터라이즈 빅셀 장사왕 대시판다 셀러허브 샵마인 이지스마티",
+    "[iTunes kr] sabangnet ezadmin shoplinker \"crema review\" vreview goodsflow datarize sellerbot sellochomes 셀러라이프 sellerking 스윕OMS",
+    "[Play kr] 사방넷 플레이오토 이지어드민 샵링커 셀메이트 이셀러스 스윕OMS 셀로쇼핑몰 셀러박스 크리마리뷰 알파리뷰 브이리뷰 스냅리뷰 아이템스카우트 판다랭크 셀록홈즈 헬프스토어 셀러봇캐시 굿스플로 스냅푸시 빅인 데이터라이즈 빅셀 장사왕 대시판다 셀러허브 샵마인 샵모아",
+    "[Shopify autocomplete] crema sabangnet playauto ezadmin shoplinker sellmate esellers sweep sello sellerbox \"alpha review\" vreview snapreview itemscout pandarank sellochomes helpstore sellerbot goodsflow snappush bigin datarize bigcell sellerking dashpanda sellerhub shopmine shopmoa"
+  ],
+  "products": [
+    {
+      "slug": "klaviyo",
+      "name": "Klaviyo",
+      "name_ko": "클라비요",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.klaviyo.com/",
+      "summary_ko": "이커머스 스토어용 이메일·SMS 마케팅 자동화와 고객 데이터 플랫폼",
+      "selection_basis": "Capterra 리뷰 526건(4.6), Shopify 앱스토어 대표 이메일·SMS 앱 https://www.capterra.com/p/156699/Klaviyo/",
+      "sources": {
+        "googleplay": {
+          "key": "klaviyo:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Klaviyo' — 컨퍼런스 이벤트 앱(com.swapcard.apps.android.klaviyo, K:LDN)과 SDK 테스트앱만, 제품 앱 아님"
+        },
+        "appstore": {
+          "key": "klaviyo:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'Klaviyo' — Klaviyo, Inc.의 'Klaviyo - K:LDN'(id6449848756)은 컨퍼런스 티켓·네트워킹 앱이라 제외"
+        },
+        "capterra": {
+          "key": "klaviyo:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/156699/Klaviyo/reviews/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "klaviyo:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/klaviyo/reviews/all",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "klaviyo:shopify_apps",
+          "status": "확인",
+          "id": "klaviyo-email-marketing",
+          "url": "https://apps.shopify.com/klaviyo-email-marketing",
+          "evidence": "페이지 직접 열어 200 확인 (Klaviyo: Email Marketing & SMS)"
+        },
+        "daum_search": {
+          "key": "klaviyo:daum_search",
+          "status": "검색어",
+          "query": "클라비요 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.klaviyo.com/",
+        "https://www.capterra.com/p/156699/Klaviyo/reviews/",
+        "https://www.trustradius.com/products/klaviyo/reviews/all",
+        "https://apps.shopify.com/klaviyo-email-marketing"
+      ]
+    },
+    {
+      "slug": "omnisend",
+      "name": "Omnisend",
+      "name_ko": "옴니센드",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.omnisend.com/",
+      "summary_ko": "이커머스용 이메일·SMS·팝업 마케팅 자동화",
+      "selection_basis": "Capterra 리뷰 836건(4.7), Shopify 이메일 마케팅 상위 앱 https://www.capterra.com/p/153508/Omnisend/",
+      "sources": {
+        "googleplay": {
+          "key": "omnisend:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Omnisend) 상위 결과 중 이 회사 앱 없음"
+        },
+        "appstore": {
+          "key": "omnisend:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=us, term='Omnisend') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "omnisend:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/153508/Omnisend/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "omnisend:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/omnisend/pricing",
+          "evidence": "검색 결과 URL (제품 pricing·competitors 페이지)"
+        },
+        "shopify_apps": {
+          "key": "omnisend:shopify_apps",
+          "status": "확인",
+          "id": "omnisend",
+          "url": "https://apps.shopify.com/omnisend",
+          "evidence": "페이지 직접 열어 200 확인"
+        },
+        "daum_search": {
+          "key": "omnisend:daum_search",
+          "status": "검색어",
+          "query": "옴니센드 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.omnisend.com/",
+        "https://www.capterra.com/p/153508/Omnisend/",
+        "https://www.trustradius.com/products/omnisend/pricing",
+        "https://apps.shopify.com/omnisend"
+      ]
+    },
+    {
+      "slug": "yotpo",
+      "name": "Yotpo",
+      "name_ko": "욧포",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.yotpo.com/",
+      "summary_ko": "이커머스 리뷰·UGC·로열티 플랫폼",
+      "selection_basis": "Capterra·TrustRadius 리뷰 다수, Shopify 리뷰 앱 대표 https://www.capterra.com/p/144389/Yotpo/",
+      "sources": {
+        "googleplay": {
+          "key": "yotpo:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Yotpo) 상위 결과 중 이 회사 앱 없음"
+        },
+        "appstore": {
+          "key": "yotpo:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=us, term='Yotpo') 결과 중 이 회사 앱 없음 / 'Yotpo reviews'도 동일"
+        },
+        "capterra": {
+          "key": "yotpo:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/144389/Yotpo/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "yotpo:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/yotpo/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "yotpo:shopify_apps",
+          "status": "확인",
+          "id": "yotpo-social-reviews",
+          "url": "https://apps.shopify.com/yotpo-social-reviews",
+          "evidence": "페이지 직접 열어 200 확인 (Yotpo: Product Reviews App)"
+        },
+        "daum_search": {
+          "key": "yotpo:daum_search",
+          "status": "검색어",
+          "query": "욧포 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.yotpo.com/",
+        "https://www.capterra.com/p/144389/Yotpo/",
+        "https://www.trustradius.com/products/yotpo/reviews",
+        "https://apps.shopify.com/yotpo-social-reviews"
+      ]
+    },
+    {
+      "slug": "judge-me",
+      "name": "Judge.me",
+      "name_ko": "저지미",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://judge.me/",
+      "summary_ko": "Shopify 중심 상품 리뷰 수집·표시 앱",
+      "selection_basis": "Shopify 리뷰 앱 상위, Capterra 등재 https://www.capterra.com/p/215990/Judge-me/",
+      "sources": {
+        "googleplay": {
+          "key": "judge-me:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Judge.me reviews' — 'Judge Me' 이름 앱은 Nokta Studio·ORACHA 등 무관 개발사"
+        },
+        "appstore": {
+          "key": "judge-me:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'Judge.me' — 'Judge Me App'(ORACHA (UK) LIMITED) 등 무관 개발사만"
+        },
+        "capterra": {
+          "key": "judge-me:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/215990/Judge-me/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "judge-me:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/judge-me/competitors",
+          "evidence": "검색 결과 URL (제품 competitors 페이지)"
+        },
+        "shopify_apps": {
+          "key": "judge-me:shopify_apps",
+          "status": "확인",
+          "id": "judgeme",
+          "url": "https://apps.shopify.com/judgeme",
+          "evidence": "페이지 직접 열어 200 확인"
+        },
+        "daum_search": {
+          "key": "judge-me:daum_search",
+          "status": "검색어",
+          "query": "저지미 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://judge.me/",
+        "https://www.capterra.com/p/215990/Judge-me/",
+        "https://www.trustradius.com/products/judge-me/competitors",
+        "https://apps.shopify.com/judgeme"
+      ]
+    },
+    {
+      "slug": "loox",
+      "name": "Loox",
+      "name_ko": "룩스",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://loox.app/",
+      "summary_ko": "사진·영상 리뷰 중심 Shopify 리뷰·추천 앱",
+      "selection_basis": "Shopify 리뷰 앱 상위(10만+ 머천트 자칭), Capterra 등재 https://www.capterra.com/p/200494/Loox/",
+      "sources": {
+        "googleplay": {
+          "key": "loox:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Loox reviews' — com.looxapp 는 Faceplay의 얼굴형 테스트 앱, 무관"
+        },
+        "appstore": {
+          "key": "loox:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=us, term='Loox') 결과 중 이 회사 앱 없음 (Loox Labs 등 무관)"
+        },
+        "capterra": {
+          "key": "loox:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/200494/Loox/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "loox:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch(allowed_domains capterra/trustradius) 'Loox product reviews app reviews' 결과에 없음, trustradius 단독 검색에서도 없음"
+        },
+        "shopify_apps": {
+          "key": "loox:shopify_apps",
+          "status": "확인",
+          "id": "loox",
+          "url": "https://apps.shopify.com/loox",
+          "evidence": "페이지 직접 열어 200 확인"
+        },
+        "daum_search": {
+          "key": "loox:daum_search",
+          "status": "검색어",
+          "query": "룩스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://loox.app/",
+        "https://www.capterra.com/p/200494/Loox/",
+        "https://apps.shopify.com/loox"
+      ]
+    },
+    {
+      "slug": "okendo",
+      "name": "Okendo",
+      "name_ko": "오켄도",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://okendo.io/",
+      "summary_ko": "Shopify 리뷰·로열티·추천·퀴즈 고객 마케팅 플랫폼",
+      "selection_basis": "Capterra 리뷰 229건+, Shopify 리뷰 앱 상위 https://www.capterra.com/p/176189/Okendo/",
+      "sources": {
+        "googleplay": {
+          "key": "okendo:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Okendo) 상위 결과 중 이 회사 앱 없음"
+        },
+        "appstore": {
+          "key": "okendo:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=us, term='Okendo') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "okendo:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/176189/Okendo/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "okendo:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch(allowed_domains capterra/trustradius) 'Okendo reviews' 결과에 없음, trustradius 단독 검색에서도 없음"
+        },
+        "shopify_apps": {
+          "key": "okendo:shopify_apps",
+          "status": "확인",
+          "id": "okendo-reviews",
+          "url": "https://apps.shopify.com/okendo-reviews",
+          "evidence": "페이지 직접 열어 200 확인"
+        },
+        "daum_search": {
+          "key": "okendo:daum_search",
+          "status": "검색어",
+          "query": "오켄도 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://okendo.io/",
+        "https://www.capterra.com/p/176189/Okendo/",
+        "https://apps.shopify.com/okendo-reviews"
+      ]
+    },
+    {
+      "slug": "recharge",
+      "name": "Recharge",
+      "name_ko": "리차지",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://getrecharge.com/",
+      "summary_ko": "Shopify 스토어용 정기구독 결제·관리 플랫폼",
+      "selection_basis": "Shopify 구독 앱 대표, Capterra·TrustRadius 등재 https://www.capterra.com/p/206617/ReCharge-Payments/",
+      "sources": {
+        "googleplay": {
+          "key": "recharge:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Recharge subscriptions merchant' — com.recharge.app.prod 는 Recharge.com(선불 충전) 앱, 다른 회사"
+        },
+        "appstore": {
+          "key": "recharge:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'Recharge' — Recharge.com(Top Up BV) 등 동명 무관 앱만"
+        },
+        "capterra": {
+          "key": "recharge:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/206617/ReCharge-Payments/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "recharge:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/recharge/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "recharge:shopify_apps",
+          "status": "확인",
+          "id": "subscription-payments",
+          "url": "https://apps.shopify.com/subscription-payments",
+          "evidence": "페이지 직접 열어 200 확인 (Recharge Subscriptions App)"
+        },
+        "daum_search": {
+          "key": "recharge:daum_search",
+          "status": "검색어",
+          "query": "리차지 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://getrecharge.com/",
+        "https://www.capterra.com/p/206617/ReCharge-Payments/",
+        "https://www.trustradius.com/products/recharge/reviews",
+        "https://apps.shopify.com/subscription-payments"
+      ]
+    },
+    {
+      "slug": "shipstation",
+      "name": "ShipStation",
+      "name_ko": "쉽스테이션",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.shipstation.com/",
+      "summary_ko": "멀티채널 주문 배송 라벨·풀필먼트 자동화",
+      "selection_basis": "Capterra 리뷰 960건, TrustRadius 95건 https://www.capterra.com/p/155621/ShipStation/",
+      "sources": {
+        "googleplay": {
+          "key": "shipstation:googleplay",
+          "status": "확인",
+          "id": "com.shipstation.app",
+          "url": "https://play.google.com/store/apps/details?id=com.shipstation.app",
+          "evidence": "상세 페이지 확인: ShipStation Mobile, 개발사 Auctane(ShipStation 모회사)"
+        },
+        "appstore": {
+          "key": "shipstation:appstore",
+          "status": "확인",
+          "id": "972151811",
+          "url": "https://apps.apple.com/app/id972151811",
+          "evidence": "iTunes Search API: ShipStation Mobile, Auctane LLC"
+        },
+        "capterra": {
+          "key": "shipstation:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/155621/ShipStation/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "shipstation:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/shipstation/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "shipstation:shopify_apps",
+          "status": "확인",
+          "id": "shipstation",
+          "url": "https://apps.shopify.com/shipstation",
+          "evidence": "페이지 직접 열어 200 확인"
+        },
+        "daum_search": {
+          "key": "shipstation:daum_search",
+          "status": "검색어",
+          "query": "쉽스테이션 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.shipstation.com/",
+        "https://play.google.com/store/apps/details?id=com.shipstation.app",
+        "https://apps.apple.com/app/id972151811",
+        "https://www.capterra.com/p/155621/ShipStation/",
+        "https://www.trustradius.com/products/shipstation/reviews",
+        "https://apps.shopify.com/shipstation"
+      ]
+    },
+    {
+      "slug": "aftership",
+      "name": "AfterShip",
+      "name_ko": "애프터쉽",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.aftership.com/",
+      "summary_ko": "이커머스 주문 배송추적·반품·배송 알림 플랫폼",
+      "selection_basis": "Capterra 리뷰 473건(4.9), Shopify 배송추적 앱 대표 https://www.capterra.com/p/178663/AfterShip/",
+      "sources": {
+        "googleplay": {
+          "key": "aftership:googleplay",
+          "status": "확인",
+          "id": "com.aftership.AfterShip",
+          "url": "https://play.google.com/store/apps/details?id=com.aftership.AfterShip",
+          "evidence": "상세 페이지 확인: AfterShip Package Tracker, 개발사 AFTERSHIP MOBILE PTE. LTD. (소비자용 택배조회 앱이라 셀러 리뷰와 성격 다름)"
+        },
+        "appstore": {
+          "key": "aftership:appstore",
+          "status": "확인",
+          "id": "507014023",
+          "url": "https://apps.apple.com/app/id507014023",
+          "evidence": "iTunes Search API: AfterShip Package Tracker, AfterShip Limited (소비자용 택배조회 앱)"
+        },
+        "capterra": {
+          "key": "aftership:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/178663/AfterShip/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "aftership:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch(allowed_domains capterra/trustradius) 'AfterShip reviews' 결과에 없음, trustradius 단독 'ShipStation AfterShip reviews'에서도 없음"
+        },
+        "shopify_apps": {
+          "key": "aftership:shopify_apps",
+          "status": "확인",
+          "id": "aftership",
+          "url": "https://apps.shopify.com/aftership",
+          "evidence": "페이지 직접 열어 200 확인 (AfterShip Order Tracking)"
+        },
+        "daum_search": {
+          "key": "aftership:daum_search",
+          "status": "검색어",
+          "query": "애프터쉽 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.aftership.com/",
+        "https://play.google.com/store/apps/details?id=com.aftership.AfterShip",
+        "https://apps.apple.com/app/id507014023",
+        "https://www.capterra.com/p/178663/AfterShip/",
+        "https://apps.shopify.com/aftership"
+      ]
+    },
+    {
+      "slug": "linnworks",
+      "name": "Linnworks",
+      "name_ko": "린웍스",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.linnworks.com/",
+      "summary_ko": "멀티채널 재고·주문 통합관리",
+      "selection_basis": "Capterra 등재(46건), 멀티채널 재고관리 대표 https://www.capterra.com/p/116088/Linnworks/",
+      "sources": {
+        "googleplay": {
+          "key": "linnworks:googleplay",
+          "status": "확인",
+          "id": "mobile.linnworks.net",
+          "url": "https://play.google.com/store/apps/details?id=mobile.linnworks.net",
+          "evidence": "상세 페이지 확인: Linnworks, 개발사 Linnworks"
+        },
+        "appstore": {
+          "key": "linnworks:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'Linnworks' — HyperStock/HyperLook for Linnworks 는 RISHVI LTD 서드파티, Linnworks 자체 앱 없음"
+        },
+        "capterra": {
+          "key": "linnworks:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/116088/Linnworks/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "linnworks:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/linnworks/pricing",
+          "evidence": "검색 결과 URL (제품 pricing 페이지)"
+        },
+        "shopify_apps": {
+          "key": "linnworks:shopify_apps",
+          "status": "확인",
+          "id": "linnworks",
+          "url": "https://apps.shopify.com/linnworks",
+          "evidence": "페이지 직접 열어 200 확인"
+        },
+        "daum_search": {
+          "key": "linnworks:daum_search",
+          "status": "검색어",
+          "query": "린웍스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.linnworks.com/",
+        "https://play.google.com/store/apps/details?id=mobile.linnworks.net",
+        "https://www.capterra.com/p/116088/Linnworks/",
+        "https://www.trustradius.com/products/linnworks/pricing",
+        "https://apps.shopify.com/linnworks"
+      ]
+    },
+    {
+      "slug": "sellbrite",
+      "name": "Sellbrite",
+      "name_ko": "셀브라이트",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.sellbrite.com/",
+      "summary_ko": "Amazon·eBay·Etsy·Walmart 멀티채널 리스팅·재고 동기화",
+      "selection_basis": "Capterra 리뷰 77건, 멀티채널 리스팅 도구 대표 https://www.capterra.com/p/149384/Sellbrite/",
+      "sources": {
+        "googleplay": {
+          "key": "sellbrite:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Sellbrite) 상위 결과 중 이 회사 앱 없음"
+        },
+        "appstore": {
+          "key": "sellbrite:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=us, term='Sellbrite') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "sellbrite:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/149384/Sellbrite/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "sellbrite:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/sellbrite/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "sellbrite:shopify_apps",
+          "status": "확인",
+          "id": "sellbrite",
+          "url": "https://apps.shopify.com/sellbrite",
+          "evidence": "페이지 직접 열어 200 확인"
+        },
+        "daum_search": {
+          "key": "sellbrite:daum_search",
+          "status": "검색어",
+          "query": "셀브라이트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.sellbrite.com/",
+        "https://www.capterra.com/p/149384/Sellbrite/",
+        "https://www.trustradius.com/products/sellbrite/reviews",
+        "https://apps.shopify.com/sellbrite"
+      ]
+    },
+    {
+      "slug": "helium-10",
+      "name": "Helium 10",
+      "name_ko": "헬리움10",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.helium10.com/",
+      "summary_ko": "Amazon·Walmart·TikTok Shop 셀러용 상품·키워드 리서치와 운영 도구",
+      "selection_basis": "Capterra 리뷰 107건, 대표 Amazon 셀러 리서치 도구 https://www.capterra.com/p/193503/Helium10/",
+      "sources": {
+        "googleplay": {
+          "key": "helium-10:googleplay",
+          "status": "확인",
+          "id": "com.helium10.app",
+          "url": "https://play.google.com/store/apps/details?id=com.helium10.app",
+          "evidence": "상세 페이지 확인: Helium 10, 개발사 Helium10"
+        },
+        "appstore": {
+          "key": "helium-10:appstore",
+          "status": "확인",
+          "id": "6756245851",
+          "url": "https://apps.apple.com/app/id6756245851",
+          "evidence": "iTunes Search API: 'Helium 10', 개발사 표기 Pacvue Helium10 / Pacvue Corporation"
+        },
+        "capterra": {
+          "key": "helium-10:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/193503/Helium10/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "helium-10:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/helium-10/competitors",
+          "evidence": "검색 결과 URL (제품 competitors 페이지)"
+        },
+        "shopify_apps": {
+          "key": "helium-10:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "핸들 helium-10 404, autocomplete 'helium 10'은 Helium AI 등 무관 앱만, site:apps.shopify.com 검색에도 없음"
+        },
+        "daum_search": {
+          "key": "helium-10:daum_search",
+          "status": "검색어",
+          "query": "헬리움10 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.helium10.com/",
+        "https://play.google.com/store/apps/details?id=com.helium10.app",
+        "https://apps.apple.com/app/id6756245851",
+        "https://www.capterra.com/p/193503/Helium10/",
+        "https://www.trustradius.com/products/helium-10/competitors"
+      ]
+    },
+    {
+      "slug": "jungle-scout",
+      "name": "Jungle Scout",
+      "name_ko": "정글스카우트",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.junglescout.com/",
+      "summary_ko": "Amazon 셀러용 상품 리서치·판매 데이터 분석 도구",
+      "selection_basis": "Capterra 등재, Helium 10과 함께 대표 Amazon 리서치 도구 https://www.capterra.com/p/249574/Jungle-Scout/",
+      "sources": {
+        "googleplay": {
+          "key": "jungle-scout:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Jungle Scout) 상위 결과 중 이 회사 앱 없음 ('Jungle Scout Cobalt'로도 없음)"
+        },
+        "appstore": {
+          "key": "jungle-scout:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'Jungle Scout' — 같은 회사(JS Operating Company)의 엔터프라이즈 라인 'Jungle Scout Cobalt'(id6798426173)만 있음, 셀러용 Jungle Scout 앱 아님"
+        },
+        "capterra": {
+          "key": "jungle-scout:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/249574/Jungle-Scout/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "jungle-scout:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/jungle-scout/pricing",
+          "evidence": "검색 결과 URL (제품 pricing 페이지)"
+        },
+        "shopify_apps": {
+          "key": "jungle-scout:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "핸들 jungle-scout 404, autocomplete·site:apps.shopify.com 검색에 없음"
+        },
+        "daum_search": {
+          "key": "jungle-scout:daum_search",
+          "status": "검색어",
+          "query": "정글스카우트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.junglescout.com/",
+        "https://www.capterra.com/p/249574/Jungle-Scout/",
+        "https://www.trustradius.com/products/jungle-scout/pricing"
+      ]
+    },
+    {
+      "slug": "triple-whale",
+      "name": "Triple Whale",
+      "name_ko": "트리플웨일",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.triplewhale.com/",
+      "summary_ko": "Shopify 브랜드용 매출·광고 어트리뷰션 분석 대시보드",
+      "selection_basis": "Shopify 분석 앱 대표(리뷰 95건), Capterra 등재 https://apps.shopify.com/triplewhale-1",
+      "sources": {
+        "googleplay": {
+          "key": "triple-whale:googleplay",
+          "status": "확인",
+          "id": "com.triplewhale.android.v2",
+          "url": "https://play.google.com/store/apps/details?id=com.triplewhale.android.v2",
+          "evidence": "상세 페이지 확인: Triple Whale, 개발사 Triple Whale Inc"
+        },
+        "appstore": {
+          "key": "triple-whale:appstore",
+          "status": "확인",
+          "id": "1511861727",
+          "url": "https://apps.apple.com/app/id1511861727",
+          "evidence": "iTunes Search API: TripleWhale, Triple Whale Inc"
+        },
+        "capterra": {
+          "key": "triple-whale:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10006854/Triple-Whale/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "triple-whale:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/compare-products/triple-whale-vs-twilio-segment",
+          "evidence": "검색 결과 URL (비교 페이지들만 검색됨, 단독 리뷰 페이지 URL은 미확인)"
+        },
+        "shopify_apps": {
+          "key": "triple-whale:shopify_apps",
+          "status": "확인",
+          "id": "triplewhale-1",
+          "url": "https://apps.shopify.com/triplewhale-1",
+          "evidence": "검색 결과 URL (site:apps.shopify.com), 개발사 Triple Whale"
+        },
+        "daum_search": {
+          "key": "triple-whale:daum_search",
+          "status": "검색어",
+          "query": "트리플웨일 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.triplewhale.com/",
+        "https://play.google.com/store/apps/details?id=com.triplewhale.android.v2",
+        "https://apps.apple.com/app/id1511861727",
+        "https://www.capterra.com/p/10006854/Triple-Whale/",
+        "https://www.trustradius.com/compare-products/triple-whale-vs-twilio-segment",
+        "https://apps.shopify.com/triplewhale-1"
+      ]
+    },
+    {
+      "slug": "rebuy",
+      "name": "Rebuy",
+      "name_ko": "리바이",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.rebuyengine.com/",
+      "summary_ko": "Shopify용 AI 상품추천·업셀·크로스셀 개인화 엔진",
+      "selection_basis": "Shopify 업셀 앱 대표, TrustRadius 등재 https://www.trustradius.com/products/rebuy-engine/reviews",
+      "sources": {
+        "googleplay": {
+          "key": "rebuy:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Rebuy personalization) 상위 결과 중 이 회사 앱 없음"
+        },
+        "appstore": {
+          "key": "rebuy:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=us, term='Rebuy') 결과 중 이 회사 앱 없음 / 'Rebuy engine'도 동일"
+        },
+        "capterra": {
+          "key": "rebuy:capterra",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch(allowed capterra) 'Rebuy Engine' — 무관 결과만"
+        },
+        "trustradius": {
+          "key": "rebuy:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/rebuy-engine/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "rebuy:shopify_apps",
+          "status": "확인",
+          "id": "rebuy",
+          "url": "https://apps.shopify.com/rebuy",
+          "evidence": "페이지 직접 열어 200 확인 (Rebuy Personalization Engine)"
+        },
+        "daum_search": {
+          "key": "rebuy:daum_search",
+          "status": "검색어",
+          "query": "리바이 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.rebuyengine.com/",
+        "https://www.trustradius.com/products/rebuy-engine/reviews",
+        "https://apps.shopify.com/rebuy"
+      ]
+    },
+    {
+      "slug": "smile-io",
+      "name": "Smile.io",
+      "name_ko": "스마일",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://smile.io/",
+      "summary_ko": "Shopify 스토어용 포인트·리워드·VIP 로열티 프로그램",
+      "selection_basis": "Shopify 로열티 앱 대표, Capterra 리뷰 67건(4.9) https://www.capterra.com/p/169446/Smile-io/",
+      "sources": {
+        "googleplay": {
+          "key": "smile-io:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Smile.io loyalty) 상위 결과 중 이 회사 앱 없음"
+        },
+        "appstore": {
+          "key": "smile-io:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=us, term='Smile.io') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "smile-io:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/169446/Smile-io/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "smile-io:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/smile-io/pricing",
+          "evidence": "검색 결과 URL (제품 pricing 페이지)"
+        },
+        "shopify_apps": {
+          "key": "smile-io:shopify_apps",
+          "status": "확인",
+          "id": "smile-io",
+          "url": "https://apps.shopify.com/smile-io",
+          "evidence": "페이지 직접 열어 200 확인 (Smile: Loyalty Program Rewards)"
+        },
+        "daum_search": {
+          "key": "smile-io:daum_search",
+          "status": "검색어",
+          "query": "스마일 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://smile.io/",
+        "https://www.capterra.com/p/169446/Smile-io/",
+        "https://www.trustradius.com/products/smile-io/pricing",
+        "https://apps.shopify.com/smile-io"
+      ]
+    },
+    {
+      "slug": "postscript",
+      "name": "Postscript",
+      "name_ko": "포스트스크립트",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://postscript.io/",
+      "summary_ko": "Shopify 브랜드용 SMS 마케팅 플랫폼",
+      "selection_basis": "Shopify SMS 마케팅 대표 앱, Capterra·TrustRadius 등재 https://www.capterra.com/p/199013/Postscript/",
+      "sources": {
+        "googleplay": {
+          "key": "postscript:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Postscript SMS) 상위 결과 중 이 회사 앱 없음"
+        },
+        "appstore": {
+          "key": "postscript:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=us, term='Postscript') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "postscript:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/199013/Postscript/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "postscript:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/postscript/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "postscript:shopify_apps",
+          "status": "확인",
+          "id": "postscript-sms-marketing",
+          "url": "https://apps.shopify.com/postscript-sms-marketing",
+          "evidence": "페이지 직접 열어 200 확인"
+        },
+        "daum_search": {
+          "key": "postscript:daum_search",
+          "status": "검색어",
+          "query": "포스트스크립트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://postscript.io/",
+        "https://www.capterra.com/p/199013/Postscript/",
+        "https://www.trustradius.com/products/postscript/reviews",
+        "https://apps.shopify.com/postscript-sms-marketing"
+      ]
+    },
+    {
+      "slug": "inventory-planner",
+      "name": "Inventory Planner",
+      "name_ko": "인벤토리 플래너",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.inventory-planner.com/",
+      "summary_ko": "이커머스 재고 수요예측·발주 계획 (Sage 소유)",
+      "selection_basis": "Shopify 재고예측 앱 대표, Capterra 등재 https://www.capterra.com/p/151776/Inventory-Planner/",
+      "sources": {
+        "googleplay": {
+          "key": "inventory-planner:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Inventory Planner Sage) 상위 결과 중 이 회사 앱 없음"
+        },
+        "appstore": {
+          "key": "inventory-planner:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=us, term='Inventory Planner') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "inventory-planner:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/151776/Inventory-Planner/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "inventory-planner:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/compare-products/inventory-planner-by-sage-vs-thrive",
+          "evidence": "검색 결과 URL (비교 페이지만 검색됨)"
+        },
+        "shopify_apps": {
+          "key": "inventory-planner:shopify_apps",
+          "status": "확인",
+          "id": "inventory-planner",
+          "url": "https://apps.shopify.com/inventory-planner",
+          "evidence": "페이지 직접 열어 200 확인 (Inventory Planner by Sage)"
+        },
+        "daum_search": {
+          "key": "inventory-planner:daum_search",
+          "status": "검색어",
+          "query": "인벤토리 플래너 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.inventory-planner.com/",
+        "https://www.capterra.com/p/151776/Inventory-Planner/",
+        "https://www.trustradius.com/compare-products/inventory-planner-by-sage-vs-thrive",
+        "https://apps.shopify.com/inventory-planner"
+      ]
+    },
+    {
+      "slug": "privy",
+      "name": "Privy",
+      "name_ko": "프리비",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.privy.com/",
+      "summary_ko": "이커머스용 팝업·이메일·SMS 리스트 성장 도구",
+      "selection_basis": "Shopify 팝업·이메일 앱 대표, Capterra·TrustRadius 등재 https://www.capterra.com/p/146537/List-growth-tools/",
+      "sources": {
+        "googleplay": {
+          "key": "privy:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Privy email popups) 상위 결과 중 이 회사 앱 없음"
+        },
+        "appstore": {
+          "key": "privy:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'Privy' — PT Privy Identitas Digital 등 동명 무관 앱만"
+        },
+        "capterra": {
+          "key": "privy:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/146537/List-growth-tools/",
+          "evidence": "검색 결과 URL (제목 Privy Reviews)"
+        },
+        "trustradius": {
+          "key": "privy:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/privy/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "privy:shopify_apps",
+          "status": "확인",
+          "id": "privy",
+          "url": "https://apps.shopify.com/privy",
+          "evidence": "페이지 직접 열어 200 확인"
+        },
+        "daum_search": {
+          "key": "privy:daum_search",
+          "status": "검색어",
+          "query": "프리비 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.privy.com/",
+        "https://www.capterra.com/p/146537/List-growth-tools/",
+        "https://www.trustradius.com/products/privy/reviews",
+        "https://apps.shopify.com/privy"
+      ]
+    },
+    {
+      "slug": "attentive",
+      "name": "Attentive",
+      "name_ko": "어텐티브",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.attentive.com/",
+      "summary_ko": "이커머스 브랜드용 AI SMS·이메일 마케팅",
+      "selection_basis": "SMS 마케팅 대표, Capterra 4.8·TrustRadius 등재 https://www.capterra.com/p/179576/Attentive/",
+      "sources": {
+        "googleplay": {
+          "key": "attentive:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=Attentive SMS) 상위 결과 중 이 회사 앱 없음"
+        },
+        "appstore": {
+          "key": "attentive:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'Attentive' / 'Attentive mobile' — 동명 무관 앱만"
+        },
+        "capterra": {
+          "key": "attentive:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/179576/Attentive/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "attentive:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/attentive-mobile/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "attentive:shopify_apps",
+          "status": "확인",
+          "id": "attentive",
+          "url": "https://apps.shopify.com/attentive",
+          "evidence": "페이지 직접 열어 200 확인"
+        },
+        "daum_search": {
+          "key": "attentive:daum_search",
+          "status": "검색어",
+          "query": "어텐티브 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.attentive.com/",
+        "https://www.capterra.com/p/179576/Attentive/",
+        "https://www.trustradius.com/products/attentive-mobile/reviews",
+        "https://apps.shopify.com/attentive"
+      ]
+    },
+    {
+      "slug": "sabangnet",
+      "name": "Sabangnet",
+      "name_ko": "사방넷",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.sabangnet.co.kr/",
+      "summary_ko": "쇼핑몰 통합관리(주문·상품·재고)부터 창고관리까지 1위 솔루션",
+      "selection_basis": "쇼핑몰 통합관리 TOP5 비교 기사 다수에서 1위 https://blog.shoplinker.co.kr/e-commerce-integration-solution-comparison-guide-2026",
+      "sources": {
+        "googleplay": {
+          "key": "sabangnet:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=사방넷) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "sabangnet:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='사방넷' / 'sabangnet') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "sabangnet:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "sabangnet:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "sabangnet:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=sabangnet 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "sabangnet:daum_search",
+          "status": "검색어",
+          "query": "사방넷 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.sabangnet.co.kr/",
+        "https://blog.bati.ai/commerce-solution-kr/"
+      ]
+    },
+    {
+      "slug": "playauto",
+      "name": "PlayAuto",
+      "name_ko": "플레이오토",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.plto.com/",
+      "summary_ko": "오픈마켓 상품등록·주문·재고 통합관리 (playauto.co.kr → plto.com 리다이렉트)",
+      "selection_basis": "쇼핑몰 통합관리 빅3 https://blog.bati.ai/commerce-solution-kr/",
+      "sources": {
+        "googleplay": {
+          "key": "playauto:googleplay",
+          "status": "확인",
+          "id": "com.gmpmobile",
+          "url": "https://play.google.com/store/apps/details?id=com.gmpmobile",
+          "evidence": "상세 페이지 확인: '플레이오토 2.0 - 쉽고 빠른 온라인 판매 관리', 개발사 표기 다나와(현 커넥트웨이브)"
+        },
+        "appstore": {
+          "key": "playauto:appstore",
+          "status": "확인",
+          "id": "6743103087",
+          "url": "https://apps.apple.com/app/id6743103087",
+          "evidence": "iTunes Search API(kr): '플레이오토 2.0', Connectwave Co.,Ltd."
+        },
+        "capterra": {
+          "key": "playauto:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "playauto:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "playauto:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=playauto 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "playauto:daum_search",
+          "status": "검색어",
+          "query": "플레이오토 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.plto.com/",
+        "https://play.google.com/store/apps/details?id=com.gmpmobile",
+        "https://apps.apple.com/app/id6743103087"
+      ]
+    },
+    {
+      "slug": "ezadmin",
+      "name": "EZADMIN",
+      "name_ko": "이지어드민",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.ezadmin.co.kr/",
+      "summary_ko": "주문처리 특화 쇼핑몰 통합관리 솔루션 (2004년~)",
+      "selection_basis": "쇼핑몰 통합관리 빅3 https://blog.bati.ai/commerce-solution-kr/",
+      "sources": {
+        "googleplay": {
+          "key": "ezadmin:googleplay",
+          "status": "확인",
+          "id": "kr.co.ezadmin.ezapps.ezsmarty.v3",
+          "url": "https://play.google.com/store/apps/details?id=kr.co.ezadmin.ezapps.ezsmarty.v3",
+          "evidence": "상세 페이지 확인: '이지스마티 v3', 개발사 PIMZ. ezadmin.co.kr 본문에 이지스마티·PIMZ 표기 있음 (모바일 동반 앱)"
+        },
+        "appstore": {
+          "key": "ezadmin:appstore",
+          "status": "확인",
+          "id": "1137948440",
+          "url": "https://apps.apple.com/app/id1137948440",
+          "evidence": "iTunes Search API(kr): '이지스마티', 개발사 pimz (모바일 동반 앱)"
+        },
+        "capterra": {
+          "key": "ezadmin:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "ezadmin:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "ezadmin:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=ezadmin 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "ezadmin:daum_search",
+          "status": "검색어",
+          "query": "이지어드민 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.ezadmin.co.kr/",
+        "https://play.google.com/store/apps/details?id=kr.co.ezadmin.ezapps.ezsmarty.v3",
+        "https://apps.apple.com/app/id1137948440"
+      ]
+    },
+    {
+      "slug": "shoplinker",
+      "name": "Shoplinker",
+      "name_ko": "샵링커",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.shoplinker.co.kr/",
+      "summary_ko": "국내외 400+ 쇼핑몰 연동 AI 기반 통합관리, 월 100건 무료 요금제",
+      "selection_basis": "쇼핑몰 통합관리 TOP5 https://blog.shoplinker.co.kr/e-commerce-integration-solution-comparison-guide-2026",
+      "sources": {
+        "googleplay": {
+          "key": "shoplinker:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=샵링커) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "shoplinker:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='샵링커' / 'shoplinker') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "shoplinker:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "shoplinker:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "shoplinker:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=shoplinker — ShopLink·Shoplinky 등 무관 앱만"
+        },
+        "daum_search": {
+          "key": "shoplinker:daum_search",
+          "status": "검색어",
+          "query": "샵링커 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.shoplinker.co.kr/"
+      ]
+    },
+    {
+      "slug": "sellmate",
+      "name": "Sellmate",
+      "name_ko": "셀메이트",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://sellmate.io/",
+      "summary_ko": "재고관리 중심 쇼핑몰 통합관리(주문·송장·바코드·WMS)",
+      "selection_basis": "쇼핑몰 통합관리 대표, 카페24 스토어 등재 https://store.cafe24.com/kr/apps/628",
+      "sources": {
+        "googleplay": {
+          "key": "sellmate:googleplay",
+          "status": "확인",
+          "id": "kr.co.sellmate.mobile.x",
+          "url": "https://play.google.com/store/apps/details?id=kr.co.sellmate.mobile.x",
+          "evidence": "상세 페이지 확인: '셀메이트Pro', 개발사 SELLMATE, Inc (Lite 판 kr.co.sellmatemobile 도 있음)"
+        },
+        "appstore": {
+          "key": "sellmate:appstore",
+          "status": "확인",
+          "id": "6468972461",
+          "url": "https://apps.apple.com/app/id6468972461",
+          "evidence": "iTunes Search API(kr): '셀메이트Pro', SELLMATE, Inc"
+        },
+        "capterra": {
+          "key": "sellmate:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "sellmate:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "sellmate:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=sellmate — Velora AI Sellmate 등 무관 앱만"
+        },
+        "daum_search": {
+          "key": "sellmate:daum_search",
+          "status": "검색어",
+          "query": "셀메이트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://sellmate.io/",
+        "https://store.cafe24.com/kr/apps/628",
+        "https://play.google.com/store/apps/details?id=kr.co.sellmate.mobile.x",
+        "https://apps.apple.com/app/id6468972461"
+      ]
+    },
+    {
+      "slug": "esellers",
+      "name": "eSellers",
+      "name_ko": "이셀러스",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.esellers.co.kr/",
+      "summary_ko": "가성비형 쇼핑몰 통합관리 솔루션",
+      "selection_basis": "쇼핑몰 통합관리 TOP5 https://blog.shoplinker.co.kr/e-commerce-integration-solution-comparison-guide-2026",
+      "sources": {
+        "googleplay": {
+          "key": "esellers:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=이셀러스) 상위 결과 중 이 회사 앱 없음 (hl=ko; 상위 com.dmonster.sellers 등은 개발사 미검증이라 제외)"
+        },
+        "appstore": {
+          "key": "esellers:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='이셀러스') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "esellers:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "esellers:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "esellers:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=esellers — 무관 앱만"
+        },
+        "daum_search": {
+          "key": "esellers:daum_search",
+          "status": "검색어",
+          "query": "이셀러스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.esellers.co.kr/"
+      ]
+    },
+    {
+      "slug": "sweep",
+      "name": "Sweep",
+      "name_ko": "스윕",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.sweepingoms.com/",
+      "summary_ko": "온라인 주문 발주 자동화·대행 서비스(OMS)",
+      "selection_basis": "셀러 재고관리 TOP5 글 게재 https://www.sweepingoms.com/blog/inventory-management-solutions-top5",
+      "sources": {
+        "googleplay": {
+          "key": "sweep:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=스윕OMS) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "sweep:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='스윕' / '스윕OMS') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "sweep:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "sweep:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "sweep:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=sweep 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "sweep:daum_search",
+          "status": "검색어",
+          "query": "스윕 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.sweepingoms.com/"
+      ]
+    },
+    {
+      "slug": "sello",
+      "name": "Sello",
+      "name_ko": "셀로",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.sello.co.kr/",
+      "summary_ko": "오픈마켓 판매자용 여러 쇼핑몰 주문 통합 확인 모바일 앱 (무료)",
+      "selection_basis": "쇼핑몰 통합관리 앱 검색 상위 https://apps.apple.com/us/app/id1490985557",
+      "sources": {
+        "googleplay": {
+          "key": "sello:googleplay",
+          "status": "확인",
+          "id": "kr.co.sello.app",
+          "url": "https://play.google.com/store/apps/details?id=kr.co.sello.app",
+          "evidence": "상세 페이지 확인: '셀로 - 쇼핑몰 통합관리', 개발사 셀로"
+        },
+        "appstore": {
+          "key": "sello:appstore",
+          "status": "확인",
+          "id": "1490985557",
+          "url": "https://apps.apple.com/app/id1490985557",
+          "evidence": "iTunes Search API(kr): '셀로 - 쇼핑몰 통합관리', Sello Co.,Ltd."
+        },
+        "capterra": {
+          "key": "sello:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "sello:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "sello:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=sello — Selloship 등 무관 앱만"
+        },
+        "daum_search": {
+          "key": "sello:daum_search",
+          "status": "검색어",
+          "query": "셀로 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.sello.co.kr/",
+        "https://play.google.com/store/apps/details?id=kr.co.sello.app",
+        "https://apps.apple.com/app/id1490985557"
+      ]
+    },
+    {
+      "slug": "sellerbox",
+      "name": "Sellerbox",
+      "name_ko": "셀러박스",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "확인 불가",
+      "summary_ko": "온라인 판매자 마켓 데이터(매출·정산) 통합 관리 앱",
+      "selection_basis": "판매자 데이터 통합 앱 검색 상위 https://apps.apple.com/kr/app/id1590729784",
+      "sources": {
+        "googleplay": {
+          "key": "sellerbox:googleplay",
+          "status": "확인",
+          "id": "com.circleplatform.sellerbox",
+          "url": "https://play.google.com/store/apps/details?id=com.circleplatform.sellerbox",
+          "evidence": "상세 페이지 확인: '셀러박스 - 온라인 판매자 마켓 데이터 통합 관리 앱', 개발사 CirclePlatform Inc."
+        },
+        "appstore": {
+          "key": "sellerbox:appstore",
+          "status": "확인",
+          "id": "1590729784",
+          "url": "https://apps.apple.com/app/id1590729784",
+          "evidence": "iTunes Search API(kr): '셀러박스', CirclePlatform Inc."
+        },
+        "capterra": {
+          "key": "sellerbox:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "sellerbox:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "sellerbox:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=sellerbox — Sellerboard 등 무관 앱만"
+        },
+        "daum_search": {
+          "key": "sellerbox:daum_search",
+          "status": "검색어",
+          "query": "셀러박스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://play.google.com/store/apps/details?id=com.circleplatform.sellerbox",
+        "https://apps.apple.com/app/id1590729784"
+      ]
+    },
+    {
+      "slug": "shopmoa",
+      "name": "Shopmoa",
+      "name_ko": "샵모아",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.shopmoa.kr/",
+      "summary_ko": "오픈마켓 판매자용 쇼핑몰 통합관리·모바일 주문관리 앱",
+      "selection_basis": "앱스토어 쇼핑몰 통합관리 검색에서 발견 https://www.shopmoa.kr/",
+      "sources": {
+        "googleplay": {
+          "key": "shopmoa:googleplay",
+          "status": "확인",
+          "id": "kr.shopmoa.sell",
+          "url": "https://play.google.com/store/apps/details?id=kr.shopmoa.sell",
+          "evidence": "상세 페이지 확인: '샵모아 -오픈마켓 판매자를 위한 쇼핑몰 통합 관리', 개발사 샵모아"
+        },
+        "appstore": {
+          "key": "shopmoa:appstore",
+          "status": "확인",
+          "id": "1514139596",
+          "url": "https://apps.apple.com/app/id1514139596",
+          "evidence": "iTunes Search API(kr): '샵모아-오픈마켓 쇼핑몰 통합 관리 / 주문관리', 개발사 개인명(jiwon kang) — 제품명 일치"
+        },
+        "capterra": {
+          "key": "shopmoa:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "shopmoa:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "shopmoa:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=shopmoa 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "shopmoa:daum_search",
+          "status": "검색어",
+          "query": "샵모아 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.shopmoa.kr/",
+        "https://play.google.com/store/apps/details?id=kr.shopmoa.sell",
+        "https://apps.apple.com/app/id1514139596"
+      ]
+    },
+    {
+      "slug": "sellerhub",
+      "name": "Sellerhub",
+      "name_ko": "셀러허브",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.sellerhub.co.kr/",
+      "summary_ko": "입점형 쇼핑몰 통합관리(20여 판매채널, 상품등록~정산)",
+      "selection_basis": "쇼핑몰 통합관리 검색 상위 https://www.sellerhub.co.kr/",
+      "sources": {
+        "googleplay": {
+          "key": "sellerhub:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=셀러허브) 상위 결과 중 이 회사 앱 없음 (com.sellerhubapp 는 Danube Home LLC, 무관)"
+        },
+        "appstore": {
+          "key": "sellerhub:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='셀러허브') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "sellerhub:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "sellerhub:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "sellerhub:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=sellerhub 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "sellerhub:daum_search",
+          "status": "검색어",
+          "query": "셀러허브 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.sellerhub.co.kr/"
+      ]
+    },
+    {
+      "slug": "shopmine",
+      "name": "Shopmine",
+      "name_ko": "샵마인",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.shopmine.co.kr/sm/",
+      "summary_ko": "여러 쇼핑몰 주문·클레임·문의 통합관리 (월 2.2만원)",
+      "selection_basis": "쇼핑몰 통합관리 검색 상위 https://www.metacity9.com/entry/%EC%87%BC%ED%95%91%EB%AA%B0-%ED%86%B5%ED%95%A9%EA%B4%80%EB%A6%AC-%EB%8F%84%EA%B5%AC-%EC%83%B5%EB%A7%88%EC%9D%B8",
+      "sources": {
+        "googleplay": {
+          "key": "shopmine:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=샵마인) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "shopmine:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='샵마인') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "shopmine:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "shopmine:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "shopmine:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=shopmine 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "shopmine:daum_search",
+          "status": "검색어",
+          "query": "샵마인 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.shopmine.co.kr/sm/"
+      ]
+    },
+    {
+      "slug": "crema",
+      "name": "CREMA",
+      "name_ko": "크리마",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.cre.ma/",
+      "summary_ko": "자사몰 리뷰 수집·마케팅 솔루션(타 플랫폼 리뷰 연동, AI 분석)",
+      "selection_basis": "카페24 리뷰 앱 1위로 언급 https://ppcle.com/blog/crema",
+      "sources": {
+        "googleplay": {
+          "key": "crema:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=크리마리뷰) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "crema:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(kr) '크리마' / 'crema review' — 예스24 '크레마' 전자책 등 무관 앱만"
+        },
+        "capterra": {
+          "key": "crema:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "crema:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "crema:shopify_apps",
+          "status": "확인",
+          "id": "crema-review",
+          "url": "https://apps.shopify.com/crema-review",
+          "evidence": "autocomplete 결과 + 페이지 확인: 'CREMA: Product Reviews & UGC', 파트너 crema3, 본문에 cre.ma 링크"
+        },
+        "daum_search": {
+          "key": "crema:daum_search",
+          "status": "검색어",
+          "query": "크리마 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.cre.ma/",
+        "https://apps.shopify.com/crema-review"
+      ]
+    },
+    {
+      "slug": "alpha-review",
+      "name": "Alpha Review",
+      "name_ko": "알파리뷰",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://alph.kr/",
+      "summary_ko": "샐러드랩(알파앱스)의 쇼핑몰 리뷰 앱 — 텍스트·사진·Q&A 리뷰, 리뷰 데이터 분석",
+      "selection_basis": "카페24 리뷰 앱 비교에 크리마와 함께 언급 https://store.cafe24.com/us/story/3298",
+      "sources": {
+        "googleplay": {
+          "key": "alpha-review:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '알파리뷰' — com.cafe24.ec.plusalphareviewmall('알파리뷰', 개발사 cafe24 PRO 2)는 alphareviewmall.cafe24.com 쇼핑몰 앱으로 보여 제외"
+        },
+        "appstore": {
+          "key": "alpha-review:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='알파리뷰') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "alpha-review:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "alpha-review:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "alpha-review:shopify_apps",
+          "status": "확인",
+          "id": "alphareview",
+          "url": "https://apps.shopify.com/alphareview",
+          "evidence": "autocomplete 결과 + 페이지 확인: 'Alpha+: Reviews and Design', 파트너 salad-lab, alph.kr(알파리뷰·샐러드랩 표기)과 일치"
+        },
+        "daum_search": {
+          "key": "alpha-review:daum_search",
+          "status": "검색어",
+          "query": "알파리뷰 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://alph.kr/",
+        "https://apps.shopify.com/alphareview"
+      ]
+    },
+    {
+      "slug": "vreview",
+      "name": "VREVIEW",
+      "name_ko": "브이리뷰",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://vreview.tv/",
+      "summary_ko": "AI 리뷰 마케팅 솔루션 — 카카오톡 동영상 리뷰 수집",
+      "selection_basis": "카페24 리뷰 앱 비교 상위 https://store.cafe24.com/kr/apps/998",
+      "sources": {
+        "googleplay": {
+          "key": "vreview:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=브이리뷰) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "vreview:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='브이리뷰' / 'vreview') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "vreview:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "vreview:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "vreview:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=vreview 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "vreview:daum_search",
+          "status": "검색어",
+          "query": "브이리뷰 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://vreview.tv/",
+        "https://store.cafe24.com/kr/apps/998"
+      ]
+    },
+    {
+      "slug": "snapreview",
+      "name": "SnapReview",
+      "name_ko": "스냅리뷰",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://snapcompany.net/solution/snapreview/",
+      "summary_ko": "스냅컴퍼니의 AI 리뷰 분류·분석 리뷰 마케팅 솔루션",
+      "selection_basis": "카페24 리뷰 앱 비교 상위 https://store.cafe24.com/kr/apps/5518",
+      "sources": {
+        "googleplay": {
+          "key": "snapreview:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=스냅리뷰) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "snapreview:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='스냅리뷰') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "snapreview:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "snapreview:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "snapreview:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=snapreview — 'SnapReview: CSV Importer'는 파트너 kentralpark, 다른 회사"
+        },
+        "daum_search": {
+          "key": "snapreview:daum_search",
+          "status": "검색어",
+          "query": "스냅리뷰 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://snapcompany.net/solution/snapreview/",
+        "https://store.cafe24.com/kr/apps/5518"
+      ]
+    },
+    {
+      "slug": "itemscout",
+      "name": "Itemscout",
+      "name_ko": "아이템스카우트",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://itemscout.io/",
+      "summary_ko": "스마트스토어·이커머스 셀러 키워드·상품 분석",
+      "selection_basis": "셀러 키워드 분석 툴 3대장으로 언급 https://blog.refundy.co/%EA%B5%AC%EB%A7%A4%EB%8C%80%ED%96%89-%EC%85%80%EB%9F%AC%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%95%84%EC%88%98-%ED%82%A4%EC%9B%8C%EB%93%9C-%EB%B6%84%EC%84%9D-%ED%88%B4-3%EA%B0%80%EC%A7%80-%ED%8C%90%EB%8B%A4%EB%9E%AD%ED%81%AC-%EC%85%80%EB%A1%9D%ED%99%88%EC%A6%88-%EC%95%84%EC%9D%B4%ED%85%9C%EC%8A%A4%EC%B9%B4%EC%9A%B0%ED%8A%B8-44500",
+      "sources": {
+        "googleplay": {
+          "key": "itemscout:googleplay",
+          "status": "확인",
+          "id": "io.itemscout.app",
+          "url": "https://play.google.com/store/apps/details?id=io.itemscout.app",
+          "evidence": "상세 페이지 확인: 아이템스카우트, 개발사 아이템스카우트"
+        },
+        "appstore": {
+          "key": "itemscout:appstore",
+          "status": "확인",
+          "id": "1617064886",
+          "url": "https://apps.apple.com/app/id1617064886",
+          "evidence": "iTunes Search API(kr): '아이템스카우트', MoonRiver Co., Ltd."
+        },
+        "capterra": {
+          "key": "itemscout:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "itemscout:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "itemscout:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=itemscout 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "itemscout:daum_search",
+          "status": "검색어",
+          "query": "아이템스카우트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://itemscout.io/",
+        "https://play.google.com/store/apps/details?id=io.itemscout.app",
+        "https://apps.apple.com/app/id1617064886"
+      ]
+    },
+    {
+      "slug": "pandarank",
+      "name": "Pandarank",
+      "name_ko": "판다랭크",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://pandarank.net/",
+      "summary_ko": "스마트스토어·쿠팡 키워드·시장 분석 (현재 사이트는 블로그·스마트스토어·SNS 채널 성장·수익화 플랫폼으로 소개, 운영사 선데이띵커)",
+      "selection_basis": "셀러 키워드 분석 툴 3대장으로 언급 https://chromewebstore.google.com/detail/gklilelpemfocehaklnbninplkkokgdn",
+      "sources": {
+        "googleplay": {
+          "key": "pandarank:googleplay",
+          "status": "확인",
+          "id": "net.pandarank.webview",
+          "url": "https://play.google.com/store/apps/details?id=net.pandarank.webview",
+          "evidence": "상세 페이지 확인: 판다랭크, 개발사 선데이띵커 (pandarank.net 에 선데이띵커 표기)"
+        },
+        "appstore": {
+          "key": "pandarank:appstore",
+          "status": "확인",
+          "id": "6736634116",
+          "url": "https://apps.apple.com/app/id6736634116",
+          "evidence": "iTunes Search API(kr): '판다랭크', Sunday thinker Corp."
+        },
+        "capterra": {
+          "key": "pandarank:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "pandarank:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "pandarank:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=pandarank 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "pandarank:daum_search",
+          "status": "검색어",
+          "query": "판다랭크 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://pandarank.net/",
+        "https://play.google.com/store/apps/details?id=net.pandarank.webview",
+        "https://apps.apple.com/app/id6736634116"
+      ]
+    },
+    {
+      "slug": "sellochomes",
+      "name": "Sellochomes",
+      "name_ko": "셀록홈즈",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://sellochomes.co.kr/",
+      "summary_ko": "상품 소싱·키워드 분석·쿠팡 매출 추정 (구 셀러라이프에서 명칭 변경)",
+      "selection_basis": "구매대행 셀러 키워드 툴 3대장으로 언급 https://sellochomes.co.kr/sellerlife/",
+      "sources": {
+        "googleplay": {
+          "key": "sellochomes:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=셀록홈즈) 상위 결과 중 이 회사 앱 없음 (com.newclear.seorokholmes 는 추리 게임, 무관)"
+        },
+        "appstore": {
+          "key": "sellochomes:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='셀록홈즈' / '셀러라이프' / 'sellochomes') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "sellochomes:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "sellochomes:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "sellochomes:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=sellochomes 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "sellochomes:daum_search",
+          "status": "검색어",
+          "query": "셀록홈즈 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://sellochomes.co.kr/",
+        "https://myip.co.kr/board/read.php?id=1513&table=tip"
+      ]
+    },
+    {
+      "slug": "helpstore",
+      "name": "Helpstore",
+      "name_ko": "헬프스토어",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://helpstore.shop/",
+      "summary_ko": "스마트스토어·쿠팡 셀러 키워드·광고 경쟁·순위 추적 데이터 도구",
+      "selection_basis": "스마트스토어 분석 도구 검색 상위 https://helpstore.shop/",
+      "sources": {
+        "googleplay": {
+          "key": "helpstore:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=헬프스토어) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "helpstore:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='헬프스토어') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "helpstore:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "helpstore:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "helpstore:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=helpstore 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "helpstore:daum_search",
+          "status": "검색어",
+          "query": "헬프스토어 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://helpstore.shop/"
+      ]
+    },
+    {
+      "slug": "sellerbot-cash",
+      "name": "Sellerbot Cash",
+      "name_ko": "셀러봇캐시",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.sellerbot.co.kr/",
+      "summary_ko": "여러 판매몰 정산 예정금·일별 정산 통합 조회",
+      "selection_basis": "셀러 정산 관리 도구, 카페24 스토어 등재 https://store.cafe24.com/kr/apps/4565",
+      "sources": {
+        "googleplay": {
+          "key": "sellerbot-cash:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=셀러봇캐시) 상위 결과 중 이 회사 앱 없음 (org.sellbot.app 은 CurrencyWiki의 Shopify 챗봇, 무관)"
+        },
+        "appstore": {
+          "key": "sellerbot-cash:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='셀러봇캐시') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "sellerbot-cash:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "sellerbot-cash:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "sellerbot-cash:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=sellerbot 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "sellerbot-cash:daum_search",
+          "status": "검색어",
+          "query": "셀러봇캐시 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.sellerbot.co.kr/",
+        "https://store.cafe24.com/kr/apps/4565"
+      ]
+    },
+    {
+      "slug": "goodsflow",
+      "name": "Goodsflow",
+      "name_ko": "굿스플로",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.goodsflow.com/",
+      "summary_ko": "쇼핑몰 송장출력·배송추적·반품자동화 물류정보 서비스",
+      "selection_basis": "스마트스토어 등 국내 플랫폼 송장출력 표준 https://www.goodsflow.com/invoice",
+      "sources": {
+        "googleplay": {
+          "key": "goodsflow:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '굿스플로' — 상위 com.goodsflow.ptk 는 '홈픽'(개발사 핌즈, 소비자 택배 픽업 앱)이라 셀러 제품 아님"
+        },
+        "appstore": {
+          "key": "goodsflow:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='굿스플로' / 'goodsflow') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "goodsflow:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "goodsflow:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "goodsflow:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=goodsflow 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "goodsflow:daum_search",
+          "status": "검색어",
+          "query": "굿스플로 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.goodsflow.com/",
+        "https://goodsflow.io/"
+      ]
+    },
+    {
+      "slug": "snappush",
+      "name": "SnapPush",
+      "name_ko": "스냅푸시",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://snappush.snapcompany.net/",
+      "summary_ko": "쇼핑몰 CRM — 카카오톡·문자·이메일 자동 메시지와 광고 성과 분석",
+      "selection_basis": "국내 쇼핑몰 CRM 자동화 비교에 언급 https://snapcompany.net/solution/snappush/",
+      "sources": {
+        "googleplay": {
+          "key": "snappush:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=스냅푸시) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "snappush:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='스냅푸시') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "snappush:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "snappush:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "snappush:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=snappush 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "snappush:daum_search",
+          "status": "검색어",
+          "query": "스냅푸시 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://snappush.snapcompany.net/"
+      ]
+    },
+    {
+      "slug": "bigin",
+      "name": "Bigin",
+      "name_ko": "빅인",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://bigin.io/",
+      "summary_ko": "이커머스 CRM 마케팅 자동화(온사이트 팝업·메시지·광고 통합)",
+      "selection_basis": "한국 CRM 마케팅 Top5 비교 https://blog.notifly.tech/crm-marketing-top5/",
+      "sources": {
+        "googleplay": {
+          "key": "bigin:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=빅인) 상위 결과 중 이 회사 앱 없음 (com.zoho.bigin 은 Zoho Bigin, 다른 제품)"
+        },
+        "appstore": {
+          "key": "bigin:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='빅인') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "bigin:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "bigin:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "bigin:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=bigin 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "bigin:daum_search",
+          "status": "검색어",
+          "query": "빅인 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://bigin.io/"
+      ]
+    },
+    {
+      "slug": "datarize",
+      "name": "Datarize",
+      "name_ko": "데이터라이즈",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.datarize.ai/",
+      "summary_ko": "이커머스 데이터 기반 AI CRM 마케팅 자동화",
+      "selection_basis": "국내 쇼핑몰 CRM 자동화 비교에 언급 https://www.datarize.ai/ko/",
+      "sources": {
+        "googleplay": {
+          "key": "datarize:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=데이터라이즈) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "datarize:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='데이터라이즈' / 'datarize') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "datarize:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "datarize:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "datarize:shopify_apps",
+          "status": "확인",
+          "id": "datarize-public",
+          "url": "https://apps.shopify.com/datarize-public",
+          "evidence": "autocomplete 결과 + 페이지 확인: 'Datarize : CRM made so easy', 파트너 datarize11, 본문에 datarize.ai 링크"
+        },
+        "daum_search": {
+          "key": "datarize:daum_search",
+          "status": "검색어",
+          "query": "데이터라이즈 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.datarize.ai/",
+        "https://apps.shopify.com/datarize-public"
+      ]
+    },
+    {
+      "slug": "bigcell",
+      "name": "BigCell",
+      "name_ko": "빅셀",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://bigcell.co.kr/",
+      "summary_ko": "쿠팡 셀러용 매출·광고 분석, 키워드·노출순위 통합 관리",
+      "selection_basis": "쿠팡 셀러 툴 비교 https://www.dashpanda.io/blog/coupang-seller-tool-comparison-checklist",
+      "sources": {
+        "googleplay": {
+          "key": "bigcell:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=빅셀) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "bigcell:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='빅셀') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "bigcell:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "bigcell:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "bigcell:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=bigcell 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "bigcell:daum_search",
+          "status": "검색어",
+          "query": "빅셀 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://bigcell.co.kr/"
+      ]
+    },
+    {
+      "slug": "sellerking",
+      "name": "Sellerking",
+      "name_ko": "장사왕",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.sellerking.io/",
+      "summary_ko": "쿠팡 셀러 순이익·마진 정산 분석",
+      "selection_basis": "쿠팡 셀러 툴 비교 https://www.dashpanda.io/blog/coupang-seller-tool-comparison-checklist",
+      "sources": {
+        "googleplay": {
+          "key": "sellerking:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=장사왕) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "sellerking:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='장사왕' / 'sellerking') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "sellerking:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "sellerking:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "sellerking:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=sellerking 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "sellerking:daum_search",
+          "status": "검색어",
+          "query": "장사왕 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.sellerking.io/"
+      ]
+    },
+    {
+      "slug": "dashpanda",
+      "name": "DashPanda",
+      "name_ko": "대시판다",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.dashpanda.io/",
+      "summary_ko": "쿠팡 셀러 정산·광고 보고서 연결 분석",
+      "selection_basis": "쿠팡 셀러 툴 비교 https://www.dashpanda.io/blog/coupang-seller-tool-comparison-checklist",
+      "sources": {
+        "googleplay": {
+          "key": "dashpanda:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 스토어 검색(play.google.com/store/search?q=대시판다) 상위 결과 중 이 회사 앱 없음 (hl=ko, gl=kr)"
+        },
+        "appstore": {
+          "key": "dashpanda:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(country=kr, term='대시판다') 결과 중 이 회사 앱 없음"
+        },
+        "capterra": {
+          "key": "dashpanda:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, capterra.com 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "dashpanda:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 WebSearch 한도(200회) 소진으로 검색 불가, trustradius.com 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "dashpanda:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/search/autocomplete?q=dashpanda 결과 없음 또는 무관 앱만"
+        },
+        "daum_search": {
+          "key": "dashpanda:daum_search",
+          "status": "검색어",
+          "query": "대시판다 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.dashpanda.io/"
+      ]
+    }
+  ]
+}

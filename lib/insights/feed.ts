@@ -119,7 +119,11 @@ export interface InsightItem {
   project_id: string
   headline: string
   verdict: SubstantiationVerdict
-  /** SUBSTANTIATED 일 때만 — EXCERPT_MAX 자 발췌. 그 밖은 null(줄을 안 만든다). */
+  /**
+   * SUBSTANTIATED 일 때만 — 판정 인용 원문(substantiation_evidence, 공백만 다듬음·자르지 않음). 그 밖은 null.
+   * **이 값을 그대로 그리지 않는다** — 화면은 loadInsightEvidence 가 정책·원문 대조로 거른 judged[id] 만 낸다(설계 v22 §3-2).
+   * 140자로 자르던 것을 그만뒀다: 잘린 문장은 원문 발췌가 아니고, 상한 초과는 자르지 말고 거부한다(v22 #3).
+   */
   evidence: string | null
   reason: string | null
   headline_original: string | null
@@ -346,7 +350,7 @@ export function buildInsightFeed(
       project_id: project!.id,
       headline: a.headline_draft!.trim(),
       verdict,
-      evidence: verdict === 'SUBSTANTIATED' && a.substantiation_evidence?.trim() ? excerptOf(a.substantiation_evidence, EXCERPT_MAX) : null,
+      evidence: verdict === 'SUBSTANTIATED' && a.substantiation_evidence?.trim() ? a.substantiation_evidence.trim() : null,
       reason: a.substantiation_reason,
       headline_original: a.headline_original,
       gate_rewritten: a.gate_rewritten === true,

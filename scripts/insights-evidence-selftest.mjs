@@ -20,7 +20,13 @@ const MUTATIONS = {
   // 조회 실패를 "사례 없음" 으로 접는다.
   'fold-unknown': ['lib/insights/evidence.ts', "if (c.projects === null) return { state: 'unknown', reason: '프로젝트 조회 실패' }", "if (c.projects === null) return { state: 'not_run', reason: '프로젝트 조회 실패', verdictLabel: '' }"],
   // 카드마다 조회한다(N+1).
-  'n-plus-1': ['lib/insights/evidence.ts', 'return buildInsightEvidence(aspectIds, { aspects, projects, corpora, verdicts })', 'for (const id of aspectIds) await loadAspects(sb, [id], where)\n  return buildInsightEvidence(aspectIds, { aspects, projects, corpora, verdicts })'],
+  'n-plus-1': ['lib/insights/evidence.ts', 'return buildInsightEvidence(aspectIds, { aspects, projects, corpora, verdicts }, { policies, sources }, angles)', 'for (const id of aspectIds) await loadAspects(sb, [id], where)\n  return buildInsightEvidence(aspectIds, { aspects, projects, corpora, verdicts }, { policies, sources }, angles)'],
+  // 인용 게이트를 끊는다: 정책·원문 대조 없이 저장된 인용을 그대로 낸다.
+  'gate-off': ['lib/insights/evidence.ts', "const pub = publicLines(a.evidence_quotes, g.policies,", "const pub = { hidden: 0, lines: (a.evidence_quotes ?? []).map((q, index) => ({ kind: 'quote', text: q.text, source_type: q.source_type, index })) } ?? publicLines(a.evidence_quotes, g.policies,"],
+  // 판정 인용을 원본 그대로 그린다(놓치기 쉬운 경로).
+  'judged-raw': ['app/_pub/components/PubInsightCard.tsx', "const judged = item.evidence ? evidence?.judged[item.id] : undefined", "const judged = item.evidence ? { state: 'ok' as const, text: item.evidence } : undefined"],
+  // 요약을 인용 모양으로 그린다(허위 표시).
+  'summary-as-quote': ['app/_pub/components/PubInsightEvidence.tsx', "if (l.kind === 'quote') return <QuoteItem q={l} />", "if (l.kind === 'quote' || true) return <QuoteItem q={{ ko: null, untranslated: false, source_type: null, ...l }} />"],
 }
 
 if (process.argv.includes('--mutate')) {
@@ -62,6 +68,8 @@ export async function load(url, ctx, next) {
   if (url === 'stub:css') return { format: 'module', shortCircuit: true, source: '' }
   if (/\\.tsx?$/.test(url) && url.startsWith(ROOT)) {
     let src = (await readFile(fileURLToPath(url), 'utf8')).replace(/\\r\\n/g, '\\n')
+    // 인용 정책 스위치를 켠 상태(컬럼 적용 뒤)를 흉내 낸다 — 꺼진 상태는 quote-wiring-selftest 가 본다.
+    if (url === ROOT + 'lib/signals/feed.ts') src = src.replace('export const QUOTE_POLICY_COLUMN_READY = false', 'export const QUOTE_POLICY_COLUMN_READY = true')
     if (MUT && url === ROOT + MUT[0]) {
       if (!src.includes(MUT[1])) throw new Error('mutation anchor missing: ' + MUT[1])
       src = src.replace(MUT[1], MUT[2])
@@ -95,7 +103,8 @@ const fakeSb = (tables, { fail: failT = {}, missingKo = false, ignoreIn = false 
     let cols = ''
     const q = {
       select: (c) => { cols = c; return q },
-      range: () => q, eq: () => q, order: () => q, maybeSingle: () => q,
+      // or(ilike 후보 검색)·limit 은 거르지 않는다 — 후보가 더 와도 원문 일치는 checkQuote 가 다시 본다.
+      range: () => q, eq: () => q, order: () => q, maybeSingle: () => q, or: () => q, limit: () => q,
       in: (col, vals) => { if (!ignoreIn) rows = rows.filter((r) => vals.includes(r[col])); return q },
       then: (ok, ko) => {
         const res = failT[table] ? { data: null, error: { code: failT[table], message: 'boom' }, count: null }
@@ -116,7 +125,8 @@ const project = { id: P, product_elevator_pitch: '두피 진정 샴푸', market:
 const P2 = '22222222-2222-4222-8222-222222222222'
 const project2 = { ...project, id: P2, product_elevator_pitch: '택배 박스', market: null }
 const asp = (id, name, I, S, notes, quotes, ko, pid = P) => ({ id, project_id: pid, name, quadrant: 'DIFFERENTIATOR', notes, importance: I, satisfaction: S, evidence_quotes: quotes, evidence_quotes_ko: ko })
-const Q = (text) => ({ text, source_type: 'review' })
+// 인용은 source_key 가 붙은 새 인용(2026-10-05~)이고, 그 소스(danawa)는 정책 full, 원문은 analysis_inputs 에 있다.
+const Q = (text) => ({ text, source_type: 'review', source_key: 'danawa' })
 const ASPECTS = [
   // PUSH — 코퍼스와 겹친다 → matched. 번역 3건(길이 일치), 3건이라 1건은 접힌다.
   asp('s1', '가려움', 9, 2, '두피 가려움 불만이 반복된다', [Q('My scalp itches all day'), Q('Itchy after one wash'), Q('Still itchy, refunded')], ['하루 종일 두피가 가렵다', '한 번 감고 나서 가렵다', '여전히 가려워서 환불했다']),
@@ -157,6 +167,11 @@ const TABLES = {
   validated_angles_corpus: [],
   case_studies: studies, case_moves: moves, strategy_principles: principles, failed_angles: failedAngles,
   remedy_verdicts: VERDICTS,
+  review_sources: [{ key: 'danawa', quote_policy: 'full' }],
+  analysis_inputs: [
+    { project_id: P, source_key: 'danawa', raw_text: 'My scalp itches all day.\nItchy after one wash. Still itchy, refunded!\nSmells lovely. Nice scent. OTHER-ASPECT-QUOTE' },
+    { project_id: P2, source_key: 'danawa', raw_text: 'Shipping took two weeks and the Box arrived crushed' },
+  ],
 }
 
 const quietErr = console.error; const quietWarn = console.warn
@@ -196,7 +211,8 @@ t('같은 속성 카드 두 장(a1·a4)은 같은 근거', cards.a4.includes('hr
 t('번역 있음: 한국어가 기본 표시', m.includes('“하루 종일 두피가 가렵다”'))
 t('번역 있음: 원문은 <details> "원문 보기" 안', /<details[^>]*><summary>.*?원문 보기<\/summary><blockquote[^>]*lang="und">“My scalp itches all day”/.test(m))
 t('번역 있음: "번역 전" 없음', !m.includes('번역 전'))
-t('상위 2건만 펴고 1건은 접힘', m.includes('인용 1건 더') && /인용 1건 더<\/summary><div class="pub-fold-body">.*여전히 가려워서 환불했다/.test(m))
+// 접힘 글자는 '{n}건 더' — 접힌 줄에 요약이 섞일 수 있어 '인용' 이라 부르지 않는다(v23 5-b).
+t('상위 2건만 펴고 1건은 접힘', m.includes('>1건 더<') && /1건 더<\/summary><div class="pub-fold-body">.*여전히 가려워서 환불했다/.test(m))
 t('번역 NULL: 원문 + "번역 전"', nm.includes('“Shipping took two weeks”') && nm.includes('번역 전') && !nm.includes('원문 보기'))
 t('번역 길이 불일치: 원문 + "번역 전"(번역 버림)', nr.includes('“Smells lovely”') && nr.includes('번역 전') && !nr.includes('향이 좋다'))
 t('인용은 카드 속성의 것만(s1 인용이 s2 카드에 없음)', !nm.includes('Itchy') && !nr.includes('Itchy') && !m.includes('Shipping'))
@@ -243,6 +259,42 @@ t('remedyStatusLine not_run 문장 불변', remedyStatusLine({ status: 'not_run'
 // ── 6) 순수 빌더: 요청한 id 만 ────────────────────────────────
 const map = buildInsightEvidence(['s2'], { aspects: ASPECTS, projects: [project], corpora, verdicts: [] })
 t('buildInsightEvidence: 요청한 aspect_id 만 키', [...map.keys()].join() === 's2')
+
+// ── 7) 인용 게이트 경계(v23 5-b) — 정책 맵·원문 대조·옛 인용·요약·판정 인용 ──────────
+const PENDING = '인용 정리 중'
+const polFail = await render({ fail: { review_sources: '500' } })
+t('정책 맵 못 읽음: 인용 0건(원문·번역 어디에도 없음)', !/My scalp|하루 종일|Shipping|Smells/.test(polFail.html))
+t('정책 맵 못 읽음: 빈칸 대신 "정리 중"', polFail.cards.a1.includes(PENDING) && polFail.cards.a2.includes(PENDING))
+t('정책 맵 못 읽음: 처방은 그대로', polFail.cards.a1.includes('href="/library/acme"'))
+const polNone = await render({}, { ...TABLES, review_sources: [{ key: 'danawa', quote_policy: 'none' }] })
+t('정책 none: 인용 0건 + 정리 중', !/My scalp|Shipping/.test(polNone.html) && polNone.cards.a1.includes(PENDING))
+const polUnknown = await render({}, { ...TABLES, review_sources: [{ key: 'danawa', quote_policy: 'weird' }] })
+t('정책 모르는 값: none 으로(인용 0건)', !/My scalp|Shipping/.test(polUnknown.html))
+const polShort = await render({}, { ...TABLES, review_sources: [{ key: 'danawa', quote_policy: 'short_only' }] })
+t('정책 short_only: 인용은 나오고 소스 키(danawa)는 HTML 에 없다', polShort.cards.a1.includes('하루 종일 두피가 가렵다') && !polShort.html.includes('danawa'))
+t('정책 full 도 소스 키는 HTML 에 없다(D안)', !html.includes('danawa'))
+const noRaw = await render({}, { ...TABLES, analysis_inputs: [] })
+t('원문 없음(폐기·미일치): 인용 0건 + 정리 중', !/My scalp|Shipping/.test(noRaw.html) && noRaw.cards.a1.includes(PENDING))
+const rawFail = await render({ fail: { analysis_inputs: '500' } })
+t('원문 조회 실패: 인용 0건 + 정리 중', !/My scalp|Shipping/.test(rawFail.html) && rawFail.cards.a1.includes(PENDING))
+const tooLong = 'x'.repeat(300)
+const longT = { ...TABLES, analysis_aspects: ASPECTS.map((a) => (a.id === 's3' ? { ...a, evidence_quotes: [Q(tooLong), Q('Smells lovely')], evidence_quotes_ko: null } : a)), analysis_inputs: [...TABLES.analysis_inputs, { project_id: P, source_key: 'danawa', raw_text: tooLong }] }
+const longR = await render({}, longT)
+t('글자 상한(영어 240) 초과: 그 인용만 빠지고 나머지는 나온다', !longR.cards.a3.includes(tooLong) && longR.cards.a3.includes('“Smells lovely”') && longR.cards.a3.includes('1건은 인용 정리 중'))
+const legacyT = { ...TABLES, analysis_aspects: ASPECTS.map((a) => (a.id === 's3' ? { ...a, evidence_quotes: [{ text: 'Smells lovely', source_type: 'review' }, { text: 'Nice scent', source_type: 'review', summary: '향이 좋다는 평이 많다' }] } : a)) }
+const legacy = await render({}, legacyT)
+t('옛 인용(source_key 없음): 원문이 있어도 인용으로 안 낸다', !legacy.cards.a3.includes('Smells lovely') && !legacy.cards.a3.includes('Nice scent'))
+t('옛 인용 + 요약: 요약은 "요약" 칩, 따옴표·인용 블록 없음', /<span class="pub-chip">요약<\/span> 향이 좋다는 평이 많다/.test(legacy.cards.a3) && !legacy.cards.a3.includes('“향이 좋다는') && !/<blockquote[^>]*>[^<]*향이 좋다는/.test(legacy.cards.a3))
+t('옛 인용: 가린 1건은 "정리 중" 으로 센다', legacy.cards.a3.includes('1건은 인용 정리 중'))
+const judgedT = { ...TABLES, analysis_angles: [
+  A('a1', 's1', { substantiation_verdict: 'SUBSTANTIATED', substantiation_evidence: 'Itchy after one wash' }),
+  A('a4', 's1', { substantiation_verdict: 'SUBSTANTIATED', substantiation_evidence: 'Invented sentence never in any review' }),
+] }
+const judged = await render({}, judgedT)
+t('판정 인용: 속성 인용과 겹치고 원문 일치 → blockquote', /<blockquote class="pub-insight-quote">Itchy after one wash<\/blockquote>/.test(judged.cards.a1))
+t('판정 인용: 출처 모름(겹치는 인용 없음) → 숨김 + 정리 중', !judged.html.includes('Invented sentence') && /<p class="pub-caption">인용 정리 중/.test(judged.cards.a4))
+const judgedFail = await render({ fail: { review_sources: '500' } }, judgedT)
+t('판정 인용: 정책 맵 못 읽음 → 숨김', !judgedFail.cards.a1.includes('<blockquote class="pub-insight-quote">Itchy'))
 
 console.error = quietErr; console.warn = quietWarn
 if (process.argv.includes('--print')) console.log((html.match(/<article(?:(?!<article)[\s\S])*?문구 a1[\s\S]*?<\/article>/) ?? [''])[0])

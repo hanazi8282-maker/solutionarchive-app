@@ -10,6 +10,7 @@
 
 import { aspectVerdict, opportunityBreakdown } from '../analysis/aspect-verdict.ts'
 import { maturityStageOf } from '../analysis/types.ts'
+import { QUOTE_PENDING_NOTE, SUMMARY_LABEL, publicLines, type EvidenceQuote } from '../analysis/evidence-quotes.ts'
 import { PMF_QUADRANT_ADVICE, PMF_QUADRANT_LABELS, noQuadrantAdvice, type Quadrant } from './match.ts'
 import { failureLine, fixLine, type RemedyResult } from './remedy.ts'
 
@@ -18,7 +19,7 @@ export interface SummaryAspect {
   importance: number | string | null
   satisfaction: number | string | null
   opportunity_score: number | string | null
-  evidence_quotes?: { text?: string | null }[] | null
+  evidence_quotes?: EvidenceQuote[] | null
   human_confirmed?: boolean | null
 }
 
@@ -61,6 +62,11 @@ export function buildSummaryMarkdown(input: {
   pmfLookupFailed?: boolean
   remedies?: RemedyResult | null
   angles?: { headline_draft?: string | null; angle_type?: string | null }[] | null
+  /**
+   * 인용 게이트 재료 — 소스 정책 맵(null = 못 읽음)과 소스 키 → 원문 후보(lib/analysis/quote-policy-db.ts).
+   * 안 주면 정책 미확인으로 보고 인용을 내지 않는다(요약만, §7.1). 요약본은 화면 밖으로 나가므로 화면과 같은 규칙이다.
+   */
+  quotes?: { policies: ReadonlyMap<string, unknown> | null; sourcesOf: (sourceKey: string) => readonly string[] | null }
 }): string {
   const { project, aspects, pmf, remedies, angles } = input
   const L: string[] = []
@@ -116,8 +122,12 @@ export function buildSummaryMarkdown(input: {
       const b = opportunityBreakdown(a.importance, a.satisfaction, a.opportunity_score)
       L.push(`${i + 1}. ${a.name} — ${v.label} (기회점수 ${b.stored ?? b.computed ?? '—'} · ${b.reading})`)
       L.push(`   - 읽기: ${v.reading}`)
-      const quote = (a.evidence_quotes ?? []).map((q) => q?.text).filter(Boolean)[0]
-      L.push(`   - 원문 인용: ${quote ? `"${quote}"` : '인용 없음 — 재분석하면 채워진다'}`)
+      // 고객 화면과 같은 규칙(v23 5-b): 정책·원문 대조를 통과한 인용만 따옴표, 요약은 따옴표 없이 표시, 가린 건 "정리 중".
+      const pub = publicLines(a.evidence_quotes, input.quotes?.policies ?? null, input.quotes?.sourcesOf ?? (() => null))
+      const first = pub.lines[0]
+      L.push(first?.kind === 'quote' ? `   - 원문 인용: "${first.text}"`
+        : first ? `   - ${SUMMARY_LABEL}(원문을 줄여 쓴 문장, 인용 아님): ${first.text}`
+          : `   - 원문 인용: ${pub.hidden > 0 ? QUOTE_PENDING_NOTE : '인용 없음 — 재분석하면 채워진다'}`)
       L.push(`   - 사람 확인: ${a.human_confirmed ? '완료' : '아직'}`)
     })
   }

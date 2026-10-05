@@ -20,7 +20,7 @@
 import fs from 'node:fs/promises'
 import { createClient } from '../lib/supabase/server.ts'
 import { USER_AGENT } from '../lib/review/runner.ts'
-import { collectWithRamp } from '../lib/review/ramp.ts'
+import { collectWithRamp, stepPctRamps } from '../lib/review/ramp.ts'
 import { createReviewStore } from '../lib/review/store.ts'
 import { alertLine } from '../lib/review/health.ts'
 import { finishRunRow } from '../lib/review/run-log.ts'
@@ -155,6 +155,20 @@ const failures = []
 const sourceResults = []
 // finishRunRow 의 "이 컬럼 묶음은 없다" 기억 — 이 실행 동안 소스마다 실패 요청을 반복하지 않게(lib/review/run-log.ts).
 const runLogMemo = {}
+
+// 퍼센트 램프 하루 판정(남헌 v24·v25, lib/review/ramp.ts stepPctRamps) — 어제(UTC)가 아직 판정 안 된 행만, 소스 실행 전에.
+// 그날 첫 슬롯이 하고 둘째 슬롯은 날짜 잠금으로 건너뛴다. 퍼센트 램프 행이 없으면 줄도 없다(지금과 같다).
+// 판정이 죽어도 수집은 돈다 — 예외는 ⚠️ 로 남긴다(§7.1).
+try {
+  const pctNotes = await stepPctRamps(supabase, new Date(), dryRun)
+  if (pctNotes.length > 0) {
+    say('')
+    say('### 퍼센트 램프 판정')
+    for (const n of pctNotes) say(`- ${n}`)
+  }
+} catch (e) {
+  say(`- ⚠️ 퍼센트 램프 판정 예외 — ${e instanceof Error ? e.message : String(e)} (수집은 계속)`)
+}
 
 for (const sourceKey of sourceKeys) {
   const adapter = ADAPTERS[sourceKey]

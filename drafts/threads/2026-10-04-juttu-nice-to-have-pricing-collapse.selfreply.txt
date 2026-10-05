@@ -1,0 +1,6 @@
+출처는 창업자 니코 놀이 직접 쓴 폐업 회고다. 자사 공시에 해당하는 본인 기록이고 제3자 검증은 없다.
+https://www.nikonoll.com/p/post-mortem-lessons-from-a-15-year
+
+원문은 영어다. "After building an API integration for months, we got shut down by a change in Calendly's open api usage terms of service."
+
+회고는 연동을 몇 달 만들었고 Calendly의 약관 변경에 막혔다는 데까지만 적었다. 어떤 조항이 문제였는지는 밝히지 않았다. 그래서 본문 마지막 문단은 결론이 아니라, 각자 쓰는 서비스의 약관에서 같은 조항을 직접 찾는 방법이다.

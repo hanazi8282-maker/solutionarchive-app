@@ -159,3 +159,15 @@
 - 작성일: 2026-09-30
 
 > Anyone have any recommendations for generalist discussion forums? I know some great topic focused ones and enjoy tildes and metafilter for generalist discussions but I'd love to know if there are some other solid ones out there. RSS is how I follow stuff so this is the last straw for me though I'm been reducing my reddit use for a while now due to discussion quality issues caused by their social media style "modernization". They've pivoted away from being a set of forums to being mostly just ano…
+
+## HN 49954749
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=49954749
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-04 UTC)
+- 스레드: US Forces Exit Iraq
+- 작성자: Haven880
+- 작성일: 2026-10-04
+
+> It was red herring. None of the villains on those planes are Afghanis or even Taleban. And the entire 20 years saga fighting there not even against the OBL but more of Taleban and bringing freedom that supposely Brits and Soviet cant. OBL troops morphed into Syria where infamously Obama crossed it with his "red lines" without boots on the ground but tons of CIAs operatives running around. We now know it has nothing to do with 911 but more of diverting the "real villains" attention far away in ne…

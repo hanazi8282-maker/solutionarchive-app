@@ -1,0 +1,40 @@
+[
+  {
+    "case_slug": "juttu-nice-to-have-pricing-collapse",
+    "move_id": "350494df-b943-4e3b-a58f-02d07066017b",
+    "content_code": "CS-20261004-01",
+    "body_path": "drafts/threads/2026-10-04-juttu-nice-to-have-pricing-collapse.body.txt",
+    "reply_path": "drafts/threads/2026-10-04-juttu-nice-to-have-pricing-collapse.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-10-04-juttu-nice-to-have-pricing-collapse.md",
+    "title": "몇 달 만든 연동이 막혔다",
+    "twist_line": "남의 기능을 가져다 쓰는 영리한 선택이었는데, 몇 달 만든 그 연동이 Calendly 이용약관 변경으로 막혔다고 창업자가 회고에 적었다",
+    "hook_type": "실명 사실형(Juttu가 일정 기능을 직접 만들지 않고 남의 서비스에 연결해 시작) + 통념 반전",
+    "closing_type": "행동지시형(핵심 기능이 기대는 서비스의 이용약관에서 재판매·끼워 넣기·상업적 이용 제한 조항을 찾고, 있으면 대체 방법을 한 줄 적는다)",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-0 예외통과. 등급 인사이트 C·사실확인 D: 본문 숫자 0(CG-2). CG-1 대상 등급 불분명이라 자기답글 첫 줄에 '자사 공시에 해당하는 본인 기록, 제3자 검증 없음' 표기(창업자 본인 회고라 사실에 가깝지만 증권 공시는 아님 — 게이트가 의미까지 보면 사람 판단 필요). 한계: claim 의 '자체 엔진 대신 … 영리하게 가려 한 선택'은 근거 snippet 에 없음(본문은 연동으로 시작했다는 사실만), '통째로 막혔다'의 범위 불명이라 '그 기능이 막혔다'로 축소, 문제된 약관 조항은 근거에 없어 마지막 문단은 transfer_note 의 독자 쪽 번역이며 Calendly 가 그 조항으로 막았다고 단정하지 않음, 폐업 직접 원인이 이 막힘이라고도 쓰지 않음. 제품 설명(채용·일정관리 자동화)은 케이스 market/summary 필드에서 가져옴. 본문 글자수는 Bash 부재로 기계 계수 못 함(약 340자 추정), 오케스트레이터 column-check 재확인 필요.",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": [
+      "edit-question-to-statement"
+    ]
+  },
+  {
+    "case_slug": "kite-individual-dev-pricing-collapse",
+    "move_id": "ba7ecc6b-84a5-4689-94b3-045d1519316a",
+    "content_code": "CS-20261004-02",
+    "body_path": "drafts/threads/2026-10-04-kite-individual-dev-pricing-collapse.body.txt",
+    "reply_path": "drafts/threads/2026-10-04-kite-individual-dev-pricing-collapse.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-10-04-kite-individual-dev-pricing-collapse.md",
+    "title": "값은 만든 뒤에 묻는 게 아니다",
+    "twist_line": "제품을 키우는 데 몇 해를 다 쓰고 유료 요금제는 확신이 선 다음 해에야 냈다. 창업자는 돈이 안 된다는 걸 알아채는 데 너무 오래 걸렸다고 적었다",
+    "hook_type": "사실 반례형(확신이 선 뒤에야 처음 값을 매긴 회사, 실명 Kite)",
+    "closing_type": "행동지시형(이번 주 돈 낼 만한 사람 한 명에게 가격을 말하고 사겠다는 대답이 나오는지 보기)",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-4 경고, G-0 예외통과. 등급 인사이트 C·사실확인 D(프롬프트 값, 재확인 불가): CG-2 대상이라 본문 숫자 0개(연도·기간도 '몇 해'·'그다음 해'로 풀어 뺌), 자기답글에도 숫자 없음. 자기답글에 'Kite 자사 발표'·'제3자 검증을 받지 않은 자체 기록' 표기(CG-1 대상은 아니나 방어적으로 남김). 확인 불가: drafts/cases/kite-individual-dev-pricing-collapse.json 이 작업 트리에 없어 evidence·transfer_note·preconditions·원문 링크를 못 읽음 — 사실은 프롬프트 claim 에서만 가져왔고 근거 대조는 미실시(스테이징 전 확인 필요). 마무리 행동은 claim 논리에서 도출한 것이라 transfer_note 와 다를 수 있고 자기답글 한계 문장은 preconditions 를 못 읽은 채 짐작한 것. column-check.mjs 는 이 세션에서 권한 승인이 없어 실행 못 함(오케스트레이터가 돌릴 것). 본문 361자(wc -m, 개행 포함), 자기답글 186자. 같은 회사 PRICING 무브 초안(2026-09-30, 각이 다름: 쓰는 사람 대 돈 내는 사람)과 발행 간격 확인 필요.",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": [
+      "edit-question-to-statement"
+    ]
+  }
+]

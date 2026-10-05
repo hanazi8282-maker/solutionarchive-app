@@ -163,7 +163,7 @@ export interface RunnerStore {
 export interface RunnerPorts {
   now(): Date
   sleep(ms: number): Promise<void>
-  /** `init` 은 POST API 어댑터만 쓴다(types.ts ReviewRequest). robots.txt 조회는 항상 GET 이다. */
+  /** `init` 은 POST API·헤더 인증 GET API 어댑터만 쓴다(types.ts ReviewRequest). robots.txt 조회는 항상 init 없는 GET 이다. */
   fetchText(url: string, init?: ReviewRequest['init']): Promise<FetchOutcome>
   store: RunnerStore
 }
@@ -598,7 +598,9 @@ export async function runCollection(
       // 표지를 못 읽으면 차단으로 본다(안전한 쪽). 근거는 health.ts.
       // AWS WAF 사람 확인 화면(202·405)도 차단이다 — 파서로 넘기면 "파싱 실패 → 구조 변경"으로 잘못 보고된다(health.ts isWafChallenge).
       const waf = res.status !== null && isWafChallenge(res.status, res.body)
-      if (res.status === 403 || res.status === 429 || waf || strictBlock) {
+      // 어댑터가 더 정한 차단 상태(카카오 400·401 — types.ts blockStatuses). 표지 검사 없이 차단으로 센다.
+      const listed = res.status !== null && (adapter.blockStatuses ?? []).includes(res.status)
+      if (res.status === 403 || res.status === 429 || waf || strictBlock || listed) {
         const kind = waf || strictBlock ? 'blocked' : classifyBlockedResponse(res.body, adapter.quotaMarkers)
         if (kind === 'quota') {
           stats.quotaExhaustedResponses++

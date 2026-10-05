@@ -89,6 +89,7 @@ export function createReviewStore(supabase: Supa): RunnerStore {
         dailyRequestCap: data.daily_request_cap,
         requestsToday,
         robotsOwnerOverride: data.override === OWNER_ROBOTS_OVERRIDE && data.robots_status === 'disallowed',
+        overrideValue: data.override ?? null,
       }
     },
 

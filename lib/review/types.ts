@@ -93,6 +93,11 @@ export interface ParsedReview {
    * 게시판 순회(`board:`) 행은 product_ref 가 게시판이라 글 주소를 되살릴 길이 이것뿐이다.
    */
   sourceUrl?: string | null
+  /**
+   * 리뷰 언어(옵셔널, 2026-10-05). **요청에 언어를 지정해 받은 소스만** 채운다(googleplay `hl`).
+   * 본문을 보고 추정하지 않는다 — 모르면 비운다. analysis_inputs.lang 으로 간다(마이그 20261005000001).
+   */
+  lang?: string | null
 }
 
 /**

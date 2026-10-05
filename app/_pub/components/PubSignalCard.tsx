@@ -1,15 +1,15 @@
 import Link from 'next/link'
 import { impactFrequencyTags } from '@/lib/analysis/relevance-judge'
 import { SIGNAL_LABEL, type SignalItem } from '@/lib/signals/feed'
-import { faviconUrl } from '@/lib/cases/logo'
-import { LogoImg } from '../../_ds/components/LogoImg'
 import { IconSignal } from '../icons'
 import { Chip } from './Chip'
 
 const KST = new Intl.DateTimeFormat('sv-SE', {
   timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
 })
-export const judgedOn = (at: string) => `판정 ${KST.format(new Date(at))}`
+/** 발췌가 빈 이유 — 본문이 없어서가 아니라 출처 정책(quote_allowed)이라서다. 둘을 같은 글자로 쓰지 않는다. */
+export const NO_QUOTE = '(원문 인용 비공개 — 출처 정책상 직접 인용하지 않는다)'
+export const judgedOn =(at: string) => `판정 ${KST.format(new Date(at))}`
 
 /**
  * 리뷰 1건 카드(VOC 피드 · 3열 공용). 카드 전체가 페인 카드 상세(`/voc/card?id=`)로 가는 링크다 —
@@ -25,13 +25,12 @@ export const judgedOn = (at: string) => `판정 ${KST.format(new Date(at))}`
 export function PubSignalCard({ item, showSignal = true }: { item: SignalItem; showSignal?: boolean }) {
   const tags = impactFrequencyTags(item)
   const labeled = item.community_signal || tags.length > 0 || item.wtp_mentioned !== null
-  const fav = faviconUrl(item.link)
   return (
     <Link className="pub-card" href={`/voc/card?id=${item.input_id}`}>
       <div className="pub-card-body">
         <div className="pub-signal-head">
-          <span className="pub-evid-fav" aria-hidden="true"><IconSignal />{fav ? <LogoImg src={fav} width={16} height={16} /> : null}</span>
-          <span className="pub-card-brand">{item.source_name ?? '소스 미기재'}</span>
+          {/* D안(2026-10-05): 소스 이름·파비콘(링크 도메인)은 고객 화면에 내지 않는다. */}
+          <span className="pub-evid-fav" aria-hidden="true"><IconSignal /></span>
           {showSignal && item.community_signal ? <Chip tone="solid">{SIGNAL_LABEL[item.community_signal]}</Chip> : null}
         </div>
         <div className="pub-chiprow">
@@ -43,12 +42,12 @@ export function PubSignalCard({ item, showSignal = true }: { item: SignalItem; s
         {item.reason ? (
           <>
             <p className="pub-card-title">{item.reason}</p>
-            <p className="pub-card-note pub-signal-excerpt">발췌 · {item.excerpt || '(발췌할 본문이 없다)'}</p>
+            {item.excerpt ? <p className="pub-card-note pub-signal-excerpt">발췌 · {item.excerpt}</p> : null}
           </>
         ) : (
           <>
             <p className="pub-card-note pub-card-note--empty">판정 사유 없음 — 발췌로 대체</p>
-            <p className="pub-text pub-signal-excerpt">{item.excerpt || '(발췌할 본문이 없다)'}</p>
+            <p className="pub-text pub-signal-excerpt">{item.excerpt || NO_QUOTE}</p>
           </>
         )}
         <div className="pub-card-meta">

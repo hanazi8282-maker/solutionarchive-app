@@ -274,7 +274,7 @@ export async function runExtraction(
 
   const { data: inputs, error: inputsError } = await supabase
     .from('analysis_inputs')
-    .select('id, source_type, raw_text, created_at, collected_at')
+    .select('id, source_type, source_key, raw_text, created_at, collected_at')
     .eq('project_id', projectId)
     // 폐기된 원문(raw_text=null)은 선별에도 인용 대조에도 쓸 게 없다.
     .is('purged_at', null)

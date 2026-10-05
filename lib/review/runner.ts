@@ -117,6 +117,10 @@ export interface RunnerStore {
     sourceKey: string
     text: string
     collectedAt: string
+    /** 아래 셋은 analysis_inputs 새 컬럼(마이그 20261005000001). 컬럼이 없으면 store 가 빼고 넣는다. */
+    rating?: number | null
+    lang?: string | null
+    sourceUrl?: string | null
   }): Promise<string>
   linkFingerprint(sourceKey: string, identityKey: string, analysisInputId: string): Promise<void>
   // ⛔ 건강도 저장(updateSourceHealth)은 없앴다(남헌 2026-09-30). 무인 러너가 review_sources 에 쓸 수 있는
@@ -862,6 +866,9 @@ async function ingestPage(
       // 원문 주소 머리말은 여기서만 붙인다 — 지문은 위에서 머리말 없는 본문으로 이미 계산됐다(types.ts withSourceUrl).
       text: withSourceUrl(review.text, review.sourceUrl),
       collectedAt: ports.now().toISOString(),
+      rating: review.rating,
+      lang: review.lang ?? null,
+      sourceUrl: review.sourceUrl ?? null,
     })
     await ports.store.linkFingerprint(ctx.sourceKey, fp.identityKey, inputId)
 

@@ -13,8 +13,8 @@ import { Panel } from '../../_pub/components/Panel'
 import { Chip } from '../../_pub/components/Chip'
 import { PubButtonLink } from '../../_pub/components/Button'
 import { PubMatchRow } from '../../_pub/components/PubMatchRow'
-import { judgedOn } from '../../_pub/components/PubSignalCard'
-import { IconArrowRight, IconExternal } from '../../_pub/icons'
+import { NO_QUOTE, judgedOn } from '../../_pub/components/PubSignalCard'
+import { IconArrowRight } from '../../_pub/icons'
 
 /**
  * VOC 1건 상세(페인 카드, BigIdeasDB 레퍼런스 — competitor-feature-analysis.md:87 · §F 7).
@@ -22,8 +22,8 @@ import { IconArrowRight, IconExternal } from '../../_pub/icons'
  * id 는 경로가 아니라 질의(`?id=`)다. 경로에 두면 `/voc/*` 접두사 공개가 필요해지고, 그러면 그 아래 새 화면이 전부 자동으로 열린다.
  *
  * 2026-10-01 재설계(남헌): **판정 사유 전문 → 발췌 → 라벨 → 유사 사례 → 출처.**
- *   원문 전체는 싣지도 새로 저장하지도 않는다 — 발췌 EXCERPT_MAX 자는 그대로다(스크래핑 콘텐츠 재게시 회피).
- *   전문이 필요하면 출처 링크로 보낸다. 주소를 되살릴 수 없는 소스는 출처 이름만 적는다(lib/signals/feed.ts sourceLinkOf).
+ *   원문 전체는 싣지도 새로 저장하지도 않는다(스크래핑 콘텐츠 재게시 회피).
+ *   2026-10-05 D안: 발췌는 quote_allowed=true 소스만 한 문장, 출처 이름·링크는 모든 소스 비표시(lib/signals/feed.ts quoteOf).
  *   유사 사례 = 판정 사유를 `/cases/report` 와 같은 낱말 매칭(searchMoves, LLM 0)에 넣은 승인 SaaS 무브.
  *   리뷰를 케이스에 잇는 키는 여전히 없다 — 그래서 "같은 문제"가 아니라 "낱말이 겹친 사례"로 말하고, 익명 상한(REPORT_TIER.anon)만큼만 싣는다.
  *
@@ -76,7 +76,6 @@ export default async function SignalCardPage({ searchParams }: {
           <div className="pub-chiprow">
             {tags.map((t) => <Chip key={t}>{t}</Chip>)}
             {it.wtp_mentioned === true ? <Chip>지불 의사 언급</Chip> : null}
-            <Chip>{it.source_name ?? '소스 미기재'}</Chip>
           </div>
         ) : undefined}
         actions={<PubButtonLink href="/voc" variant="ghost" size="sm">VOC 피드로<IconArrowRight /></PubButtonLink>}
@@ -100,8 +99,8 @@ export default async function SignalCardPage({ searchParams }: {
             <p className="pub-caption">판정 모델이 이 리뷰를 관련으로 본 근거 한 줄이다(사람 검수 전). {judgedOn(it.judged_at)}{it.project ? ` · 분석 대상 ${it.project}` : ''}</p>
           </Section>
 
-          <Section title="발췌" lead={`원문은 옮겨 싣지 않는다 — ${EXCERPT_MAX}자까지만. 전체는 출처에서 본다.`}>
-            <div className="pub-quote"><p className="pub-text pub-signal-excerpt">{it.excerpt || '(발췌할 본문이 없다)'}</p></div>
+          <Section title="발췌" lead={`원문은 옮겨 싣지 않는다 — 인용이 허용된 출처만 한 문장(${EXCERPT_MAX}자 이내).`}>
+            <div className="pub-quote"><p className="pub-text pub-signal-excerpt">{it.excerpt || NO_QUOTE}</p></div>
           </Section>
 
           <Section title="라벨">
@@ -137,13 +136,7 @@ export default async function SignalCardPage({ searchParams }: {
             </p>
           )}
 
-          <Section title="출처">
-            {it.link ? (
-              <PubButtonLink href={it.link} variant="ghost" size="sm" external>출처 보기 — {it.source_name ?? '출처'}<IconExternal /></PubButtonLink>
-            ) : (
-              <p className="pub-text">원문 링크 없음 — 출처: {it.source_name ?? '소스 미기재'} 본문. 이 행에는 글 주소가 저장되지 않았다(게시판 순회로 모은 옛 행 등).</p>
-            )}
-          </Section>
+          {/* D안(2026-10-05): 출처 이름·원문 링크는 모든 소스 공통으로 고객 화면에 내지 않는다(내부 DB 에는 보존). */}
         </>
       )}
     </PubShell>

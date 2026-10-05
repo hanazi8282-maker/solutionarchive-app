@@ -21,11 +21,38 @@ export const QUOTE_PREFIX_CHARS = 20
 export interface EvidenceQuote {
   text: string
   source_type: string
+  /**
+   * 인용이 실제로 들어 있던 입력의 review_sources.key(2026-10-05~). 고객 화면이 quote_allowed 로 거를 때 쓴다(D안).
+   * 이 날 이전에 저장된 인용에는 없다 — 없으면 "허용 확인 불가"로 보고 고객 화면에 내지 않는다(publicQuotes).
+   */
+  source_key?: string
 }
 
 export interface QuoteSource {
   source_type?: string | null
+  source_key?: string | null
   raw_text?: string | null
+}
+
+/** 고객 화면 직접 인용 상한 — 한 문장(D안 2026-10-05). */
+export function firstSentence(text: string, max = 140): string {
+  const flat = String(text ?? '').replace(/\s+/g, ' ').trim()
+  const m = /^.*?[.!?。！？](?=\s|$)/.exec(flat)
+  const s = m ? m[0] : flat
+  const chars = Array.from(s)
+  return chars.length <= max ? s : `${chars.slice(0, max - 1).join('').trimEnd()}…`
+}
+
+/**
+ * 저장된 인용 → 고객 화면에 낼 인용. quote_allowed=true 로 **확인된** 소스의 것만, 각 한 문장.
+ * source_key 가 없거나(옛 인용) 허용 목록을 못 읽었으면(allowed=null) 아무것도 내지 않는다 — 확인 불가를 허용으로 접지 않는다(§7.1).
+ * 내부 화면(검수 등)은 이 함수를 쓰지 않는다 — 원문은 DB 에 그대로 있다.
+ */
+export function publicQuotes(quotes: EvidenceQuote[] | null | undefined, allowed: ReadonlySet<string> | null): EvidenceQuote[] {
+  if (!allowed || !Array.isArray(quotes)) return []
+  return quotes
+    .filter((q) => typeof q?.source_key === 'string' && allowed.has(q.source_key))
+    .map((q) => ({ ...q, text: firstSentence(q.text) }))
 }
 
 /** 공백 차이로 멀쩡한 인용이 떨어지지 않게 한다. 글자 자체는 바꾸지 않는다. */
@@ -45,6 +72,7 @@ export function normalizeEvidenceQuotes(raw: unknown, inputs: QuoteSource[] | nu
   if (!Array.isArray(raw)) return []
   const haystacks = (inputs ?? []).map((i) => ({
     source_type: typeof i?.source_type === 'string' && i.source_type ? i.source_type : 'review',
+    source_key: typeof i?.source_key === 'string' && i.source_key ? i.source_key : null,
     text: squash(String(i?.raw_text ?? '')),
   }))
 
@@ -62,7 +90,7 @@ export function normalizeEvidenceQuotes(raw: unknown, inputs: QuoteSource[] | nu
     if (!hit) continue // 원문에 없는 인용 — 지어낸 것으로 보고 버린다
 
     seen.add(text)
-    out.push({ text, source_type: hit.source_type })
+    out.push(hit.source_key ? { text, source_type: hit.source_type, source_key: hit.source_key } : { text, source_type: hit.source_type })
     if (out.length >= QUOTE_MAX_COUNT) break
   }
   return out

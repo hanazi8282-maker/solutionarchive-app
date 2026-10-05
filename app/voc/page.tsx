@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { COMMUNITY_SIGNALS, LABEL_LEVELS } from '@/lib/analysis/relevance-judge'
 import {
-  EXCERPT_MAX, LEVEL_LABEL, MAX_PAGE, PAGE_SIZE, SIGNAL_LABEL, feedHref, loadFeed, parseFeedQuery, sourceChips,
+  EXCERPT_MAX, LEVEL_LABEL, MAX_PAGE, PAGE_SIZE, SIGNAL_LABEL, feedHref, loadFeed, parseFeedQuery,
 } from '@/lib/signals/feed'
 import { PubShell } from '../_pub/components/PubShell'
 import { Hero } from '../_pub/components/Hero'
@@ -17,7 +17,7 @@ import { IconArrowRight } from '../_pub/icons'
  * 남헌 2026-09-25 위임 B항(reports/2026-09-24/competitor-features-reestimate.md B1).
  *
  * **익명으로 열린다**(`lib/auth/policy.ts` PUBLIC_EXACT `/voc`). 읽기 전용이고 LLM 호출 0.
- * 원문은 발췌 EXCERPT_MAX 자만 싣는다 — 출처 링크는 카드 상세에 있다(lib/signals/feed.ts 머리말).
+ * 원문은 인용 허용 소스만 한 문장(EXCERPT_MAX 자 이내) — 소스 이름·출처 링크는 싣지 않는다(D안 2026-10-05, lib/signals/feed.ts 머리말).
  *
  * 종류: SaaS만(2026-10-01 남헌 — "소비재 포함" 필터 제거. 옛 `?kind=all` 은 기본값으로 되돌리고 사유 패널을 띄운다).
  * 카드는 판정 사유(review_relevance_verdicts.reason)를 크게, 발췌는 그 아래 작게(PubSignalCard).
@@ -28,7 +28,7 @@ import { IconArrowRight } from '../_pub/icons'
 export const dynamic = 'force-dynamic'
 export const metadata = {
   title: 'VOC 라이브 피드',
-  description: '수집한 리뷰·댓글 중 관련 판정을 받은 것만 최신순으로. 판정 사유 한 줄과 짧은 발췌, 주소가 남은 소스는 출처 링크.',
+  description: '수집한 리뷰·댓글 중 관련 판정을 받은 것만 최신순으로. 판정 사유 한 줄과, 인용이 허용된 출처는 한 문장 발췌.',
 }
 
 export default async function SignalsPage({ searchParams }: {
@@ -42,13 +42,7 @@ export default async function SignalsPage({ searchParams }: {
   const facets = result?.status === 'ok' ? (
     <PubFacetBar label="VOC 필터">
       <PubFacet href={feedHref(f, { source: null, signal: null, impact: null })} active={!f.source && !labelFilter}>전체</PubFacet>
-      <PubFacetSep />
-      {/* 관련 판정 1건 이상인 소스만 + 건수(현재 kind 기준). 못 셌으면 전부 내고 숫자 자리를 비운다. */}
-      {sourceChips(result.sources ?? [], result.sourceCounts, f.source).map((s) => (
-        <PubFacet key={s.key} href={feedHref(f, { source: f.source === s.key ? null : s.key })} active={f.source === s.key} count={s.count}>
-          {s.name}
-        </PubFacet>
-      ))}
+      {/* D안(2026-10-05): 소스 이름 칩은 고객 화면에 내지 않는다. ?source= 질의는 조회부에 남아 있다(lib/signals/feed.ts). */}
       <PubFacetSep />
       {COMMUNITY_SIGNALS.map((s) => (
         <PubFacet key={s} href={feedHref(f, { signal: f.signal === s ? null : s })} active={f.signal === s}>
@@ -77,7 +71,7 @@ export default async function SignalsPage({ searchParams }: {
         eyebrow="VOC FEED"
         title="VOC 라이브 피드"
         lead="수집한 리뷰·댓글 중 관련 판정을 받은 것만, 판정 시각 최신순으로 싣는다. 판정은 야간 배치가 한다."
-        note={`원문은 옮겨 싣지 않는다 — 카드에는 판정 사유 한 줄과 ${EXCERPT_MAX}자 발췌만. 카드를 누르면 판정 사유 전문이 나오고, 글 주소가 남은 소스는 “출처 보기” 링크가, 주소가 없는 소스는 출처 이름이 나온다. 여기는 남의 목소리이고, 그 목소리에서 우리가 만든 문구와 판정은 로그인 후 인사이트 화면에 있다.`}
+        note={`원문은 옮겨 싣지 않는다 — 카드에는 판정 사유 한 줄과, 인용이 허용된 출처만 한 문장(${EXCERPT_MAX}자 이내) 발췌. 카드를 누르면 판정 사유 전문이 나온다. 출처 이름·링크는 싣지 않는다. 여기는 남의 목소리이고, 그 목소리에서 우리가 만든 문구와 판정은 로그인 후 인사이트 화면에 있다.`}
         actions={<PubButtonLink href="/voc/community" variant="ghost" size="sm">겪는 문제 · 원하는 것 · 안 쓰는 이유 3열로 보기<IconArrowRight /></PubButtonLink>}
       />
 
@@ -107,8 +101,6 @@ export default async function SignalsPage({ searchParams }: {
               {' · SaaS만'}
               {hiddenNote && result.items.length > 0 ? ` · ${hiddenNote}` : ''}
             </p>
-            {result.sources === null && <p className="pub-caption">소스 목록을 읽지 못해 소스 칩을 뺐다(소스가 없다는 뜻이 아니다).</p>}
-            {result.sources !== null && result.sourceCounts === null && <p className="pub-caption">소스별 건수 집계 불가 — 소스 칩을 건수 없이 전부 냈다(0건 소스가 섞여 있을 수 있다).</p>}
 
             {result.items.length > 0 ? (
               <div className="pub-cardgrid">

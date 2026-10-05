@@ -20,11 +20,36 @@ type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
 /** Postgres UNIQUE 위반. 지문 삽입에서 "이미 본 리뷰"를 뜻한다. */
 const UNIQUE_VIOLATION = '23505'
 
+const META_COLUMNS = ['rating', 'lang', 'source_url'] as const
+
+/**
+ * analysis_inputs 새 3컬럼(마이그 20261005000001) 값. DB CHECK 와 같은 경계를 여기서 먼저 건다 —
+ * 걸리면 행 전체가 실패해 리뷰를 잃으므로, 경계 밖 값은 NULL 로 떨어뜨리고 행은 넣는다.
+ * ponytail: rating 은 smallint 라 반올림한다(다나와 4.5 → 5). 반 별점이 필요해지면 numeric(2,1) 로 넓힌다.
+ */
+export function reviewMetaColumns(i: { rating?: number | null; lang?: string | null; sourceUrl?: string | null }) {
+  const r = typeof i.rating === 'number' && Number.isFinite(i.rating) ? Math.round(i.rating) : null
+  const lang = typeof i.lang === 'string' && /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i.test(i.lang) ? i.lang.toLowerCase() : null
+  const url = typeof i.sourceUrl === 'string' && /^https:\/\/\S+$/.test(i.sourceUrl) ? i.sourceUrl : null
+  return { rating: r !== null && r >= 0 && r <= 5 ? r : null, lang, source_url: url }
+}
+
+/**
+ * 컬럼 부재 오류인가. PostgREST 스키마 캐시에 없으면 PGRST204, Postgres 까지 가면 42703.
+ * ⚠️ 메시지에 우리 컬럼 이름이 있어야만 true — 다른 컬럼 부재(예: source_key)를 메타 폴백으로 삼키지 않는다.
+ */
+export function isMissingMetaColumn(e: { code?: string; message?: string } | null): boolean {
+  if (!e || (e.code !== 'PGRST204' && e.code !== '42703')) return false
+  return META_COLUMNS.some((c) => (e.message ?? '').includes(`'${c}'`) || (e.message ?? '').includes(`"${c}"`))
+}
+
 export function createReviewStore(supabase: Supa): RunnerStore {
   // 타깃별 누적 수집량. Supabase JS 로는 `col = col + n` 을 못 쓰므로
   // 시작 시점 값을 들고 있다가 더해서 절대값으로 쓴다. 동시 실행은
   // 워크플로의 concurrency 그룹이 막는다.
   const totals = new Map<string, number>()
+  /** analysis_inputs 메타 3컬럼이 없다고 한 번 확인되면 true. 실행 단위로만 기억한다(다음 실행은 다시 시도). */
+  let metaMissing = false
 
   return {
     async loadSource(key: string): Promise<SourceConfig | null> {
@@ -248,18 +273,26 @@ export function createReviewStore(supabase: Supa): RunnerStore {
     },
 
     async appendInput(input): Promise<string> {
-      const { data, error } = await supabase
-        .from('analysis_inputs')
-        .insert({
-          project_id: input.projectId,
-          source_type: 'review',
-          raw_text: input.text,
-          source_key: input.sourceKey,
-          collected_at: input.collectedAt,
-        })
-        .select('id')
-        .single()
+      const base = {
+        project_id: input.projectId,
+        source_type: 'review',
+        raw_text: input.text,
+        source_key: input.sourceKey,
+        collected_at: input.collectedAt,
+      }
+      const insert = (row: Record<string, unknown>) =>
+        supabase.from('analysis_inputs').insert(row).select('id').single()
 
+      if (!metaMissing) {
+        const { data, error } = await insert({ ...base, ...reviewMetaColumns(input) })
+        if (!error) return data.id
+        if (!isMissingMetaColumn(error)) throw new Error(`원문 적재 실패: ${error.message}`)
+        // 마이그 20261005000001 미적용 환경. 이 실행 동안은 옛 형태로만 넣는다(행마다 실패 왕복을 하지 않는다).
+        metaMissing = true
+        console.warn('[review/store] analysis_inputs rating/lang/source_url missing (migration 20261005000001 not applied) — inserting without them')
+      }
+
+      const { data, error } = await insert(base)
       if (error) throw new Error(`원문 적재 실패: ${error.message}`)
       return data.id
     },

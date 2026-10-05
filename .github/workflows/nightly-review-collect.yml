@@ -162,7 +162,6 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           # Product Hunt GraphQL v2 (남헌 등록). 소스는 enabled=false 로 출하 — 켜기 전까지는 읽히지 않는다.
           PRODUCT_HUNT_API_TOKEN: ${{ secrets.PRODUCT_HUNT_API_TOKEN }}
-          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
         run: |
           node scripts/review-collect.mjs \
             --source=${{ inputs.source || 'all' }} \

@@ -1630,6 +1630,7 @@ for (const [file, keys] of [
   ['20260919000001_review_sources_brunch_clien_fmkorea.sql', ['brunch', 'clien', 'fmkorea']],
   ['20260926000001_review_sources_youtube.sql', ['youtube']],
   ['20260930000025_review_sources_producthunt.sql', ['producthunt']],
+  ['20261006000003_review_sources_kakao.sql', ['kakao_blog', 'kakao_cafe']],
 ]) {
   const sql = await fs.readFile(path.join(here, '..', 'supabase', 'migrations', file), 'utf8')
   const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')

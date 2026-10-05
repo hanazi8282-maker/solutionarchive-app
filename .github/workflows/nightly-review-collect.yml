@@ -80,6 +80,8 @@ on:
           - yozm
           - indiehackers
           - googleplay
+          - kakao_blog
+          - kakao_cafe
         default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수(비우면 소스별 램프 단계, 램프 없으면 10)'

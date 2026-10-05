@@ -96,6 +96,7 @@ export interface ParsedReview {
   /**
    * 리뷰 언어(옵셔널, 2026-10-05). **요청에 언어를 지정해 받은 소스만** 채운다(googleplay `hl`).
    * 본문을 보고 추정하지 않는다 — 모르면 비운다. analysis_inputs.lang 으로 간다(마이그 20261005000001).
+   * 예외: kakao_blog·kakao_cafe 는 요청에 언어 지정이 없지만 남헌 지시(2026-10-06)로 'ko' 를 채운다(한국어 검색 서비스).
    */
   lang?: string | null
 }
@@ -181,7 +182,10 @@ export interface ParseResult {
  */
 export interface ReviewRequest {
   url: string
-  init?: { method: 'POST'; headers: Record<string, string>; body: string }
+  /** GET + 헤더는 키를 헤더로 받는 공식 API(카카오 검색, 2026-10-06)용 — body 없음. */
+  init?:
+    | { method: 'POST'; headers: Record<string, string>; body: string }
+    | { method: 'GET'; headers: Record<string, string>; body?: undefined }
 }
 
 export interface ReviewSourceAdapter {
@@ -254,6 +258,14 @@ export interface ReviewSourceAdapter {
    * 약관이 자동 접근을 금지하는 소스(googleplay, 남헌 2026-10-05)용 — 우회하지 않고 즉시 멈추는 것이 조건이다.
    */
   abortOnChallenge?: boolean
+
+  /**
+   * 403·429 말고도 **차단으로 보고 실행을 끊을** HTTP 상태(옵셔널, 2026-10-06 카카오 검색).
+   * 카카오는 쿼터 초과(-10)를 **400**, 키 무효(-401)를 **401** 로 준다 — 기본 러너는 둘 다 타깃 failed 로 찍고
+   * 다음 타깃으로 넘어가 같은 오류를 타깃 수만큼 반복한다. 여기 적으면 첫 응답에서 멈춘다(우회 없음).
+   * 다른 소스에는 켜지 마라 — HN 은 페이지 상한 초과를 400 으로 준다(그건 차단이 아니다).
+   */
+  blockStatuses?: number[]
 
   /**
    * 이 소스가 돌기 위해 반드시 있어야 하는 환경변수 이름들(공식 API 키 등).

@@ -132,6 +132,11 @@ jobs:
       # 렌더 검사는 가짜 로더로 있음·0건·조회 실패 세 상태의 HTML 과 익명 nav(인사이트 링크 0)를 본다.
       - run: node scripts/insights-feed-selftest.mjs
       - run: node scripts/insights-render-selftest.mjs
+      # 고객 화면 인용 배선(v23 5-b): 정책 맵 못 읽음→인용 0건·정책별 글자 경계·옛 인용 숨김·요약 라벨·판정 인용 경로.
+      # 여기가 접히면 인용 정책 none 소스의 원문이나 지어낸 문장이 따옴표를 달고 고객 화면에 앉는다.
+      - run: node scripts/quote-wiring-selftest.mjs
+      - run: node scripts/insights-evidence-selftest.mjs
+      - run: node scripts/insights-evidence-selftest.mjs --mutate
       # 익명 피드백 하루 1회 제한(로그인 가드 없는 쓰기의 유일한 방어선) + 읽는 쪽 집계(/cases·다이제스트).
       - run: node scripts/case-feedback-selftest.mjs
       # 성공/실패 짝(같은 병목·레버, 방향 반대, 케이스 다름, 양쪽 승인). 조건 한 줄이 느슨해지면

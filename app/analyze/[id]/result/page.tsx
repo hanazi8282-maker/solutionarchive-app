@@ -6,6 +6,8 @@ import {
   type Quadrant as PmfQuadrant,
 } from '@/lib/cases/match'
 import { DRAFT_NOTICE, topAspects } from '@/lib/cases/summary'
+import { QUOTE_PENDING_NOTE, SUMMARY_LABEL, publicLines, type EvidenceQuote } from '@/lib/analysis/evidence-quotes'
+import { loadQuotePolicies, loadQuoteSources, sourceGroupKey } from '@/lib/analysis/quote-policy-db'
 import { Badge, type Tone } from '../../../_ds/components/Badge'
 import { ButtonLink } from '../../../_ds/components/Button'
 import { Card } from '../../../_ds/components/Card'
@@ -42,7 +44,7 @@ type AspectRow = {
   importance: number | string | null
   satisfaction: number | string | null
   opportunity_score: number | string | null
-  evidence_quotes: { text?: string | null; source_type?: string | null }[] | null
+  evidence_quotes: EvidenceQuote[] | null
   human_confirmed: boolean | null
 }
 
@@ -228,6 +230,9 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
     purchase_frequency: project.purchase_frequency ?? null,
   }
   const top3 = aspects === null ? [] : topAspects(aspects, 3) as AspectRow[]
+  // 고객 노출 인용 게이트(설계 v22 §3-2) — 소스 정책 맵 + 원문 대조. 못 읽으면 인용 0건(요약만, §7.1).
+  const policies = await loadQuotePolicies(supabase, 'analyze/result')
+  const quoteSources = await loadQuoteSources(supabase, top3.map((a) => ({ project_id: id, quotes: a.evidence_quotes })), policies, 'analyze/result')
   const reviewHref = `/analyze/${id}/review`
 
   // 기준 캡션 — 무엇을 몇 건 중에서 셌나. 못 센 조각은 빼고 적는다.
@@ -363,7 +368,9 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
               // 검수 화면의 같은 속성으로. 앵커 규칙은 review/page.tsx aspectAnchor() 와 같다.
               const href = `${reviewHref}#aspect-${a.id}`
               const quoteList = a.evidence_quotes
-              const quotes = (quoteList ?? []).map((q) => q?.text).filter(Boolean).slice(0, 2)
+              const pub = publicLines(quoteList, policies, (k) => quoteSources?.get(sourceGroupKey(id, k)) ?? null)
+              const shown = pub.lines.slice(0, 2)
+              const quoteCount = shown.filter((l) => l.kind === 'quote').length
               return (
                 <div key={a.id} id={`aspect-${a.id}`} className="v2-box v2-box--edge">
                   <div className="v2-chiprow">
@@ -381,17 +388,24 @@ export default async function PmfResultPage({ params }: { params: Promise<{ id: 
                   </p>
                   <p className="v2-body">{v.reading}</p>
                   {/* 인용 3상태: 있음 / 셌는데 0건 / 아예 못 읽음. 셋을 같은 문장으로 내지 않는다(§7.1). */}
-                  {quotes.length > 0 ? (
+                  {/* 고객 화면 규칙: 정책·원문 대조를 통과한 인용만 따옴표, 요약은 따옴표 없이 '요약' 배지, 가린 건은 "정리 중"(v23 5-b). */}
+                  {shown.length > 0 ? (
                     <>
                       <ul className="v2-olist">
-                        {quotes.map((q, i) => (
-                          <li key={i} className="v2-body v2-muted">“{q}”</li>
+                        {shown.map((l) => (
+                          l.kind === 'quote'
+                            ? <li key={l.index} className="v2-body v2-muted">“{l.text}”</li>
+                            : <li key={l.index} className="v2-body v2-muted"><Badge tone="neutral" size="sm">{SUMMARY_LABEL}</Badge> {l.text}</li>
                         ))}
                       </ul>
-                      <EvidenceCaption n={quotes.length} total={quoteList?.length ?? null} method="리뷰 원문 인용" />
+                      {quoteCount > 0 && <EvidenceCaption n={quoteCount} total={quoteList?.length ?? null} method="리뷰 원문 인용" />}
+                      {quoteCount < shown.length && <p className="v2-note">{SUMMARY_LABEL} — 원문을 줄여 쓴 문장이다. 인용이 아니다.</p>}
+                      {pub.hidden > 0 && <p className="v2-note">{QUOTE_PENDING_NOTE}</p>}
                     </>
                   ) : quoteList == null ? (
                     <EvidenceCaption n={null} total={null} method="리뷰 원문 인용" />
+                  ) : pub.hidden > 0 ? (
+                    <p className="v2-note">{QUOTE_PENDING_NOTE}</p>
                   ) : (
                     <p className="v2-note">인용 없음 — 재분석하면 채워진다.</p>
                   )}

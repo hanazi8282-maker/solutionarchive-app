@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { buildSummaryMarkdown, type SummaryAspect, type SummaryPmf } from '@/lib/cases/summary'
+import { buildSummaryMarkdown, topAspects, type SummaryAspect, type SummaryPmf } from '@/lib/cases/summary'
+import { loadQuotePolicies, loadQuoteSources, sourceGroupKey } from '@/lib/analysis/quote-policy-db'
 import { buildRemedies, type RemedyAspectRow } from '@/lib/cases/remedy'
 import { loadCorpora, loadVerdicts } from '@/lib/cases/remedy-db'
 import { applyGate } from '@/lib/cases/remedy-gate'
@@ -64,9 +65,16 @@ export async function GET(req: Request) {
   // 판정 캐시 조회 실패는 빈 배열 = 전부 미검증이라 카드가 사라지지 않는다(§7.1).
   const verdicts = await loadVerdicts(supabase, 'analyze/summary', remedies.cards.map((c) => c.aspect_id))
 
+  // 인용 게이트(설계 v22 §3-2) — 요약본은 화면 밖으로 나가므로 고객 화면과 같은 규칙. 못 읽으면 인용 0건(요약만).
+  const summaryAspects = aspectsError ? null : ((aspects ?? []) as SummaryAspect[])
+  const policies = await loadQuotePolicies(supabase, 'analyze/summary')
+  const quoteSources = await loadQuoteSources(supabase,
+    topAspects(summaryAspects ?? [], 3).map((a) => ({ project_id: projectId, quotes: a.evidence_quotes })), policies, 'analyze/summary')
+
   const markdown = buildSummaryMarkdown({
+    quotes: { policies, sourcesOf: (k) => quoteSources?.get(sourceGroupKey(projectId, k)) ?? null },
     project,
-    aspects: aspectsError ? null : ((aspects ?? []) as SummaryAspect[]),
+    aspects: summaryAspects,
     pmf: pmfError ? null : ((pmfRows?.[0] ?? null) as SummaryPmf | null),
     pmfLookupFailed: Boolean(pmfError),
     remedies: applyGate(remedies, verdicts ?? []),

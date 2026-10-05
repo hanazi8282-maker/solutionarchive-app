@@ -9,6 +9,7 @@
 //   5) 램프 읽기 3상태 — 행 없음(none)과 못 읽음(unavailable)을 가른다
 //   6) review-collect.mjs 가 실제로 finishRunRow 를 탄다(경계면 — 부품만 통과하는 것 방지)
 //   7) 램프 배선 통합 — 실제 러너·어댑터·램프 로직, 네트워크·DB 만 가짜(단계별 타깃 수·폴백·차단 되돌리기)
+//   8) robots 예외 기록(마이그 20261006000001) — 실제 러너 소유자 예외 경로 → finishRunRow → 가짜 DB, 컬럼 있음·없음 각각
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -36,19 +37,56 @@ const updMock = (responses) => {
 const row = { status: 'ok', requests: 3 }
 const counts = { blockedResponses: 2, quotaExhaustedResponses: 1 }
 
+const ov = { robotsOwnerOverride: 4, robotsBypassed: 1, overrideValue: 'owner_2026-10-05' }
+const ovCols = { robots_owner_override: 4, robots_bypassed: 1, override_value: 'owner_2026-10-05' }
 // 1) 정상
 {
   const m = updMock([{ error: null }])
-  t('정상 → saved', await finishRunRow(m, 'r1', row, counts), { state: 'saved' })
-  t('정상 → 카운트 함께 씀', m.calls[0], { status: 'ok', requests: 3, blocked_responses: 2, quota_responses: 1 })
+  t('정상 → saved', await finishRunRow(m, 'r1', row, counts, ov), { state: 'saved' })
+  t('정상 → 카운트·override 함께 씀', m.calls[0], { status: 'ok', requests: 3, blocked_responses: 2, quota_responses: 1, ...ovCols })
+  const m0 = updMock([{ error: null }])
+  await finishRunRow(m0, 'r1', row, counts)
+  t('override 인자 생략 → 0·0·NULL', [m0.calls[0].robots_owner_override, m0.calls[0].robots_bypassed, m0.calls[0].override_value], [0, 0, null])
 }
-// 2) 컬럼 없음 → 두 필드만 빼고 재시도
+// 2) 컬럼 없음, 메시지에 override 컬럼 이름 없음 → 000033 동작 그대로: 차단·쿼터 두 필드만 뺀다
 for (const code of ['42703', 'PGRST204']) {
   const m = updMock([{ error: { code, message: 'x' } }, { error: null }])
-  const r = await finishRunRow(m, 'r1', row, counts)
+  const r = await finishRunRow(m, 'r1', row, counts, ov)
   t(`${code} → saved_without_counts`, r.state, 'saved_without_counts')
   t(`${code} → 경고에 마이그 이름`, /20260930000033/.test(r.warning), true)
-  t(`${code} → 재시도 payload 는 원래 행 그대로`, m.calls[1], row)
+  t(`${code} → 재시도 payload 는 카운트만 빠짐`, m.calls[1], { ...row, ...ovCols })
+}
+// 2b) 메시지에 override 컬럼 이름 → override 3필드만 빼고 재시도, memo 에 기억
+for (const [code, message] of [
+  ['PGRST204', "Could not find the 'robots_bypassed' column of 'review_collection_runs' in the schema cache"],
+  ['42703', 'column "override_value" of relation "review_collection_runs" does not exist'],
+]) {
+  const memo = {}
+  const m = updMock([{ error: { code, message } }, { error: null }])
+  const r = await finishRunRow(m, 'r1', row, counts, ov, memo)
+  t(`${code} override 없음 → missing=[override]`, [r.state, r.missing], ['saved_without_counts', ['override']])
+  t(`${code} override 없음 → 경고에 000001 마이그·값`, /20261006000001/.test(r.warning) && r.warning.includes('owner_2026-10-05'), true)
+  t(`${code} override 없음 → 재시도는 카운트 유지`, m.calls[1], { ...row, blocked_responses: 2, quota_responses: 1 })
+  t(`${code} → memo 기억`, memo, { overrideMissing: true })
+  // 같은 실행의 다음 소스: 처음부터 빼고 1번만 보낸다(경고는 계속 — 그 행도 못 남겼으니)
+  const m2 = updMock([{ error: null }])
+  const r2 = await finishRunRow(m2, 'r2', row, counts, ov, memo)
+  t(`${code} 다음 소스 → 1회 호출·override 없는 payload`, [m2.calls.length, m2.calls[0]], [1, { ...row, blocked_responses: 2, quota_responses: 1 }])
+  t(`${code} 다음 소스 → 경고 유지`, r2.missing, ['override'])
+}
+// 2c) 두 마이그 다 미적용 → override 먼저(이름 있음), 그다음 카운트 → 원래 행만
+{
+  const memo = {}
+  const m = updMock([
+    { error: { code: 'PGRST204', message: "Could not find the 'override_value' column" } },
+    { error: { code: 'PGRST204', message: "Could not find the 'blocked_responses' column" } },
+    { error: null },
+  ])
+  const r = await finishRunRow(m, 'r1', row, counts, ov, memo)
+  t('둘 다 없음 → 3회·마지막은 원래 행', [m.calls.length, m.calls[2]], [3, row])
+  t('둘 다 없음 → missing 2개·경고에 마이그 둘', [r.missing, /20260930000033/.test(r.warning) && /20261006000001/.test(r.warning)], [['counts', 'override'], true])
+  const m3 = updMock([{ error: { code: '42703', message: 'x' } }, { error: { code: '42703', message: 'y' } }])
+  t('더 뺄 게 없는데도 컬럼 없음 → failed', (await finishRunRow(m3, 'r1', row, counts, ov, { overrideMissing: true })).state, 'failed')
 }
 // 3) 실패
 {
@@ -198,6 +236,73 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
   t('review-collect.mjs 가 램프 줄을 요약에 찍는다', /for \(const n of rampNotes\) say/.test(collect), true)
   const wf = fs.readFileSync(path.join(root, '.github', 'workflows', 'nightly-review-collect.yml'), 'utf8')
   t('워크플로가 스케줄에 --targets 를 고정하지 않는다', /--targets=\$\{\{ inputs\.targets \|\| '10' \}\}/.test(wf), false)
+
+  // 8) override 기록 통합 경계 — 실제 러너(소유자 예외 경로) → RunResult → finishRunRow → 가짜 DB(컬럼 스키마 흉내).
+  //    review-collect.mjs 와 같은 인자 매핑으로 부른다(아래 배선 검사가 스크립트 쪽 매핑을 고정한다).
+  {
+    const baseCols = ['finished_at', 'status', 'requests', 'blocked_responses', 'quota_responses']
+    // PostgREST 처럼: 모르는 컬럼이 하나라도 있으면 그 이름을 담아 PGRST204, 아니면 저장.
+    const schemaDb = (cols) => {
+      const saved = []
+      let calls = 0
+      return {
+        saved, get calls() { return calls },
+        from: () => ({ update: (p) => ({ eq: () => {
+          calls++
+          const bad = Object.keys(p).find((k) => !cols.includes(k))
+          if (bad) return Promise.resolve({ error: { code: 'PGRST204', message: `Could not find the '${bad}' column of 'review_collection_runs' in the schema cache` } })
+          saved.push(p); return Promise.resolve({ error: null })
+        } }) }),
+      }
+    }
+    const ownerHarness = () => {
+      const h = harness()
+      const fetch0 = h.ports.fetchText
+      h.ports.fetchText = async (url) => (url.endsWith('/robots.txt') ? { status: 200, body: 'User-agent: *\nDisallow: /\n' } : fetch0(url))
+      h.ports.store.loadSource = async () => ({
+        key: 'fmkorea', enabled: true, minIntervalMs: 3000, dailyRequestCap: 1000, requestsToday: 0,
+        robotsOwnerOverride: true, overrideValue: 'owner_2026-10-05',
+      })
+      return h
+    }
+    const finish = (db, result, memo) => finishRunRow(db, 'run1',
+      { finished_at: 'x', status: 'ok', requests: result.requests },
+      { blockedResponses: result.stats.blockedResponses, quotaExhaustedResponses: result.stats.quotaExhaustedResponses },
+      { robotsOwnerOverride: result.robotsOwnerOverride ?? 0, robotsBypassed: result.robotsBypassed ?? 0, overrideValue: result.overrideValue ?? null },
+      memo)
+
+    const { result } = await go(fakeSb({ rampRow: row(0, 10) }), ownerHarness(), { explicitTargets: 2 })
+    t('통합 override: 러너가 금지 robots 를 예외로 통과(사용 = 요청 수 > 0)', [result.robotsOwnerOverride > 0, result.robotsOwnerOverride === result.requests], [true, true])
+    t('통합 override: RunResult 에 스냅샷 값', result.overrideValue, 'owner_2026-10-05')
+
+    // 컬럼 있음 → 한 번에 저장, 세 값이 그대로
+    const withCols = schemaDb([...baseCols, 'robots_owner_override', 'robots_bypassed', 'override_value'])
+    const r1 = await finish(withCols, result, {})
+    t('통합 override 컬럼 있음 → saved·1회', [r1.state, withCols.calls], ['saved', 1])
+    t('통합 override 컬럼 있음 → 저장값', [withCols.saved[0].robots_owner_override, withCols.saved[0].robots_bypassed, withCols.saved[0].override_value],
+      [result.robotsOwnerOverride, 0, 'owner_2026-10-05'])
+
+    // 컬럼 없음 → override 만 빼고 저장(카운트·실행 행은 남는다), 다음 소스는 1회로
+    const noCols = schemaDb(baseCols)
+    const memo = {}
+    const r2 = await finish(noCols, result, memo)
+    t('통합 override 컬럼 없음 → 행 저장·경고', [r2.state, r2.missing, noCols.saved.length], ['saved_without_counts', ['override'], 1])
+    t('통합 override 컬럼 없음 → 카운트는 저장', [noCols.saved[0].blocked_responses, 'override_value' in noCols.saved[0]], [0, false])
+    await finish(noCols, result, memo)
+    t('통합 override 컬럼 없음 → 다음 소스는 재시도 없이 1회(총 3회)', noCols.calls, 3)
+
+    // 예외 없는 소스 → override_value NULL·사용 0
+    const { result: plain } = await go(fakeSb({ rampRow: row(0, 10) }), harness(), { explicitTargets: 1 })
+    const plainDb = schemaDb([...baseCols, 'robots_owner_override', 'robots_bypassed', 'override_value'])
+    await finish(plainDb, plain, {})
+    t('통합 override: 예외 없는 소스 → 0·NULL', [plainDb.saved[0].robots_owner_override, plainDb.saved[0].override_value], [0, null])
+
+    // 스크립트 배선 — review-collect.mjs 가 같은 세 값과 memo 를 넘긴다
+    t('review-collect.mjs 가 robotsOwnerOverride 를 finishRunRow 에 넘긴다', /robotsOwnerOverride: result\?\.robotsOwnerOverride \?\? 0,\s*robotsBypassed: result\?\.robotsBypassed \?\? 0,\s*overrideValue: result\?\.overrideValue \?\? null,\s*\},\s*runLogMemo,/.test(collect), true)
+    t('review-collect.mjs 가 실행당 memo 하나', /const runLogMemo = \{\}/.test(collect), true)
+    const store = fs.readFileSync(path.join(root, 'lib', 'review', 'store.ts'), 'utf8')
+    t('store.loadSource 가 override 원값을 넘긴다', /overrideValue: data\.override \?\? null/.test(store), true)
+  }
 }
 
 console.log(`review-ramp-selftest: ${pass} pass, ${fail} fail`)

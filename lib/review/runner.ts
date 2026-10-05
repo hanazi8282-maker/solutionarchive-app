@@ -72,6 +72,8 @@ export interface SourceConfig {
    * true 여도 robots **disallowed** 판정만 통과한다. 확인 불가(unverified)·5xx 는 그대로 막힌다.
    */
   robotsOwnerOverride?: boolean
+  /** review_sources.override 원값(NULL = 예외 없음). 판정에는 안 쓰고 실행 행 스냅샷(override_value)으로만 넘긴다. */
+  overrideValue?: string | null
 }
 
 /**
@@ -191,6 +193,8 @@ export interface RunResult {
   robotsBypassedHosts: Record<string, string>
   /** robots 가 **금지**인데 소유자 예외(OWNER_ROBOTS_OVERRIDES)로만 보낸 요청 수. 0 이 아니면 요약·경고에 남긴다. */
   robotsOwnerOverride?: number
+  /** 이 실행 시점 review_sources.override 스냅샷(SourceConfig.overrideValue). 건너뛴 실행은 없음. */
+  overrideValue?: string | null
   perTarget: Array<{ targetId: string; productRef: string; outcome: string }>
   /** 삭제·없는 글이라 건너뛴 수(ParseResult.missing). 파싱 성공·실패 어느 쪽에도 안 센다. 요청 수에는 들어 있다. */
   missingSkipped: number
@@ -827,6 +831,7 @@ export async function runCollection(
     robotsBypassed,
     robotsBypassedHosts,
     robotsOwnerOverride,
+    overrideValue: source.overrideValue ?? null,
     perTarget,
     missingSkipped,
   }

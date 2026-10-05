@@ -19,7 +19,8 @@
 
 import fs from 'node:fs/promises'
 import { createClient } from '../lib/supabase/server.ts'
-import { runCollection, USER_AGENT } from '../lib/review/runner.ts'
+import { USER_AGENT } from '../lib/review/runner.ts'
+import { collectWithRamp } from '../lib/review/ramp.ts'
 import { createReviewStore } from '../lib/review/store.ts'
 import { alertLine } from '../lib/review/health.ts'
 import { finishRunRow } from '../lib/review/run-log.ts'
@@ -116,7 +117,14 @@ if (unknown.length > 0) {
 
 // 같은 소스를 두 번 적으면 커서를 서로 덮어쓴다.
 const sourceKeys = [...new Set(requested)]
-const targetLimit = Number(arg('targets', '10'))
+// --targets 가 없으면(스케줄 기본) 소스별 램프 단계의 1회 타깃 수를 쓴다(lib/review/ramp.ts collectWithRamp).
+// 있으면 수동 지정 — 램프를 무시한다. 램프 행 없음·확인 불가는 RAMP_STEPS[0]=10.
+const targetsArg = arg('targets', '')
+const explicitTargets = targetsArg.trim() === '' ? null : Number(targetsArg)
+if (explicitTargets !== null && !(Number.isInteger(explicitTargets) && explicitTargets > 0)) {
+  console.error(`❌ --targets 는 양의 정수여야 한다: ${targetsArg}`)
+  process.exit(1)
+}
 
 const supabase = await createClient()
 if (!supabase) {
@@ -199,43 +207,41 @@ for (const sourceKey of sourceKeys) {
   }
 
   const started = Date.now()
-  let result = null
-  let fatal = null
 
-  try {
-    result = await runCollection(
-      adapter,
-      { dryRun, targetLimit },
-      {
-        now: () => new Date(),
-        sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-        async fetchText(url, init) {
-          try {
-            const res = await fetch(url, {
-              // init = POST API 어댑터(producthunt)만. 헤더를 합쳐도 User-Agent 는 우리 것으로 고정한다.
-              method: init?.method ?? 'GET',
-              body: init?.body,
-              headers: { Accept: '*/*', ...(init?.headers ?? {}), 'User-Agent': USER_AGENT },
-              redirect: 'follow',
-              signal: AbortSignal.timeout(20_000),
-            })
-            // ⚠️ finalUrl 은 robots 캐시가 쓴다. 빠지면 리다이렉트로 남의 호스트
-            //    robots 를 읽고도 요청한 호스트의 규칙으로 판정한다(runner.ts).
-            return { status: res.status, body: await res.text(), finalUrl: res.url }
-          } catch (e) {
-            return { status: null, body: '', error: e instanceof Error ? e.message : String(e) }
-          }
-        },
-        store: createReviewStore(supabase),
+  const { result, fatal, notes: rampNotes } = await collectWithRamp({
+    sb: supabase,
+    adapter,
+    dryRun,
+    explicitTargets,
+    ports: {
+      now: () => new Date(),
+      sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+      async fetchText(url, init) {
+        try {
+          const res = await fetch(url, {
+            // init = POST API 어댑터(producthunt)만. 헤더를 합쳐도 User-Agent 는 우리 것으로 고정한다.
+            method: init?.method ?? 'GET',
+            body: init?.body,
+            headers: { Accept: '*/*', ...(init?.headers ?? {}), 'User-Agent': USER_AGENT },
+            redirect: 'follow',
+            signal: AbortSignal.timeout(20_000),
+          })
+          // ⚠️ finalUrl 은 robots 캐시가 쓴다. 빠지면 리다이렉트로 남의 호스트
+          //    robots 를 읽고도 요청한 호스트의 규칙으로 판정한다(runner.ts).
+          return { status: res.status, body: await res.text(), finalUrl: res.url }
+        } catch (e) {
+          return { status: null, body: '', error: e instanceof Error ? e.message : String(e) }
+        }
       },
-    )
-  } catch (e) {
-    fatal = e instanceof Error ? e.message : String(e)
-  }
+      store: createReviewStore(supabase),
+    },
+  })
 
   // ── 소스별 보고 ────────────────────────────────────────────────
   say('')
   say(`### \`${sourceKey}\``)
+  // 램프 줄은 fatal·skip 이어도 찍는다 — 확인 불가 폴백(⚠️)과 되돌리기 결과가 묻히지 않게(§7.1).
+  for (const n of rampNotes) say(`- 램프: ${n}`)
 
   if (fatal) {
     say(`- ❌ 실행이 통째로 실패했다: ${fatal}`)
@@ -272,6 +278,8 @@ for (const sourceKey of sourceKeys) {
       .map(([h, c]) => `${h}: ${c}`)
       .join(', ')
     say(`- robots 예외 통과 ${result.robotsBypassed ?? 0}건${bypassHosts ? `(${bypassHosts})` : ''}`)
+    // 소유자 예외(OWNER_ROBOTS_OVERRIDE, §7.1)로 robots 금지를 통과한 요청. 0 이어도 찍는다(위 줄과 같은 이유).
+    say(`- 소유자 예외 사용 ${result.robotsOwnerOverride ?? 0}건`)
     // ⚠️ 0 이어도 찍는다. "신규 0건"과 "중복만 받았다"는 다른 사건이고, 이 줄이
     //    없으면 둘이 똑같이 보인다(§7.1). 같은 글이 `url:`·`board:` 두 타깃으로
     //    들어오는 것을 2차 방어(content_hash)가 걸러낸 수다.
@@ -333,6 +341,7 @@ for (const sourceKey of sourceKeys) {
     // 소스 고장 보고(review-source-health-report.mjs)의 재료. 러너는 더 이상 review_sources 에 판정을 쓰지 않는다.
     health: result?.health ?? null,
     perTarget: result?.perTarget ?? [],
+    robotsOwnerOverride: result?.robotsOwnerOverride ?? 0,
   })
 }
 

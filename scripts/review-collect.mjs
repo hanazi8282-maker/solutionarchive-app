@@ -278,6 +278,8 @@ for (const sourceKey of sourceKeys) {
       .map(([h, c]) => `${h}: ${c}`)
       .join(', ')
     say(`- robots 예외 통과 ${result.robotsBypassed ?? 0}건${bypassHosts ? `(${bypassHosts})` : ''}`)
+    // 소유자 예외(OWNER_ROBOTS_OVERRIDE, §7.1)로 robots 금지를 통과한 요청. 0 이어도 찍는다(위 줄과 같은 이유).
+    say(`- 소유자 예외 사용 ${result.robotsOwnerOverride ?? 0}건`)
     // ⚠️ 0 이어도 찍는다. "신규 0건"과 "중복만 받았다"는 다른 사건이고, 이 줄이
     //    없으면 둘이 똑같이 보인다(§7.1). 같은 글이 `url:`·`board:` 두 타깃으로
     //    들어오는 것을 2차 방어(content_hash)가 걸러낸 수다.
@@ -339,6 +341,7 @@ for (const sourceKey of sourceKeys) {
     // 소스 고장 보고(review-source-health-report.mjs)의 재료. 러너는 더 이상 review_sources 에 판정을 쓰지 않는다.
     health: result?.health ?? null,
     perTarget: result?.perTarget ?? [],
+    robotsOwnerOverride: result?.robotsOwnerOverride ?? 0,
   })
 }
 

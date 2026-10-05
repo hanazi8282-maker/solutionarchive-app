@@ -4,7 +4,7 @@
 import { EXCERPT_MAX, MAX_PAGE, QUOTE_POLICY_COLUMN_READY, quoteOf, SAAS_BUSINESS_MODELS, countBySource, excerptOf, feedHref, parseFeedQuery, sourceChips, sourceLinkOf } from '../lib/signals/feed.ts'
 import { productKindOf } from '../lib/cases/advisor.ts'
 import { sourceUrlOf, withSourceUrl } from '../lib/review/types.ts'
-import { QUOTE_MAX_EN, QUOTE_MAX_KO, QUOTE_TARGET_CHARS, checkQuote, checkSummary, isVerbatimExcerpt, publicQuotes, normalizeEvidenceQuotes, policyQuote, quoteCheckSummary, quoteLang, quotePolicyOf } from '../lib/analysis/evidence-quotes.ts'
+import { QUOTE_BACKFILL_TAG, QUOTE_MAX_EN, QUOTE_MAX_KO, QUOTE_TARGET_CHARS, checkQuote, isBackfillVerified, checkSummary, isVerbatimExcerpt, publicQuotes, normalizeEvidenceQuotes, policyQuote, quoteCheckSummary, quoteLang, quotePolicyOf } from '../lib/analysis/evidence-quotes.ts'
 
 let pass = 0
 let fail = 0
@@ -183,6 +183,14 @@ t('log: 0건이면 null(찍지 않는다)', quoteCheckSummary('t', []) === null)
   t('publicQuotes: 원문을 안 주면 0건(전문 대조 불가)', publicQuotes(q, pol, null).length === 0)
   t('publicQuotes: 옛 인용(source_key 없음)은 내지 않는다', publicQuotes(legacy, pol, sources).length === 0)
   t('publicQuotes: 정책 맵을 못 읽었으면(null) 0건', publicQuotes(q, null, sources).length === 0)
+}
+{
+  const ok = { text: 'x', verified: 'full', backfill: QUOTE_BACKFILL_TAG, source_key: 'danawa' }
+  t('isBackfillVerified: full ∧ qb-v1 ∧ source_key 만 참', isBackfillVerified(ok))
+  t('isBackfillVerified: prefix·purged·none·없음 → 거짓', ['prefix', 'purged', 'none', undefined].every((v) => !isBackfillVerified({ ...ok, verified: v })))
+  t('isBackfillVerified: 표식 없음·다른 표식 → 거짓', !isBackfillVerified({ ...ok, backfill: undefined }) && !isBackfillVerified({ ...ok, backfill: 'qb-v0' }))
+  t('isBackfillVerified: source_key 없음·빈 문자열 → 거짓', !isBackfillVerified({ ...ok, source_key: undefined }) && !isBackfillVerified({ ...ok, source_key: '' }))
+  t('isBackfillVerified: null·문자열 → 거짓', !isBackfillVerified(null) && !isBackfillVerified('full'))
 }
 
 if (fail) { console.log(`실패 ${fail}건 / 통과 ${pass}건`); process.exit(1) }

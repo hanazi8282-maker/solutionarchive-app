@@ -15,9 +15,10 @@
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다(scripts/quote-backfill.mjs). `@/` 별칭·enum 을 쓰지 않는다.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { isVerbatimExcerpt, squash, QUOTE_PREFIX_CHARS } from './evidence-quotes.ts'
+import { isVerbatimExcerpt, squash, QUOTE_PREFIX_CHARS, QUOTE_BACKFILL_TAG } from './evidence-quotes.ts'
 
-export const BACKFILL_TAG = 'qb-v1'
+/** 고객 화면(publicLines)이 verified='full' ∧ 이 표식을 원문 대조 대신 믿는다(isBackfillVerified) — 값을 바꾸면 그 신뢰가 끊긴다. */
+export const BACKFILL_TAG = QUOTE_BACKFILL_TAG
 export type Verified = 'full' | 'prefix' | 'none' | 'purged'
 
 export interface BackfillInput { source_key?: string | null; source_type?: string | null; raw_text?: string | null }

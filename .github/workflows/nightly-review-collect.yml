@@ -82,9 +82,9 @@ on:
           - googleplay
         default: all
       targets:
-        description: '이번 실행에서 훑을 최대 타깃 수'
+        description: '이번 실행에서 훑을 최대 타깃 수(비우면 소스별 램프 단계, 램프 없으면 10)'
         type: string
-        default: '10'
+        default: ''
       purge_apply:
         description: '원문 폐기를 실제로 실행한다(끄면 대상만 센다). 되돌릴 수 없다'
         type: boolean
@@ -163,7 +163,7 @@ jobs:
         run: |
           node scripts/review-collect.mjs \
             --source=${{ inputs.source || 'all' }} \
-            --targets=${{ inputs.targets || '10' }} \
+            ${{ inputs.targets && format('--targets={0}', inputs.targets) || '' }} \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
 
       # 원문 보존 기간(설계 §9) 집행. 수집이 실패해도 돌아야 한다 —

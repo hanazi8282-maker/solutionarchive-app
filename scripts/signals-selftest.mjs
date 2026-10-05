@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // 공개 신호 화면(lib/signals/feed.ts) 순수 함수 셀프테스트 — 네트워크·DB 없음.
 //   node scripts/signals-selftest.mjs
-import { EXCERPT_MAX, MAX_PAGE, SAAS_BUSINESS_MODELS, countBySource, excerptOf, feedHref, parseFeedQuery, sourceChips, sourceLinkOf } from '../lib/signals/feed.ts'
+import { EXCERPT_MAX, MAX_PAGE, QUOTE_POLICY_COLUMN_READY, quoteOf, SAAS_BUSINESS_MODELS, countBySource, excerptOf, feedHref, parseFeedQuery, sourceChips, sourceLinkOf } from '../lib/signals/feed.ts'
 import { productKindOf } from '../lib/cases/advisor.ts'
 import { sourceUrlOf, withSourceUrl } from '../lib/review/types.ts'
+import { firstSentence, publicQuotes, normalizeEvidenceQuotes, policyQuote, quotePolicyOf, SHORT_QUOTE_MAX_CHARS, QUOTE_MAX_CHARS } from '../lib/analysis/evidence-quotes.ts'
 
 let pass = 0
 let fail = 0
@@ -85,6 +86,47 @@ t('0건 소스는 숨기고 건수를 붙인다', chips.length === 2 && chips[0]
 t('고른 소스는 0건이어도 남긴다(해제 손잡이)', sourceChips(srcs, { hackernews: 2 }, 'danawa').some((c) => c.key === 'danawa' && c.count === 0))
 const unk = sourceChips(srcs, null, null)
 t('못 셌으면 전부 내고 count 없음(0 과 섞지 않는다)', unk.length === 3 && unk.every((c) => c.count === undefined))
+
+// D안(2026-10-05) + 남헌 v19 A — 고객 화면 직접 인용은 소스 quote_policy 3단계(full · short_only · none)
+t('quote: full 이면 첫 문장', quoteOf('[SRC: https://a.b/c]\n알림이 늦어요. 그래서 해지했어요.', 'full') === '알림이 늦어요.')
+t('quote: short_only 도 첫 문장만', quoteOf('알림이 늦어요. 그래서 해지했어요.', 'short_only') === '알림이 늦어요.')
+t('quote: none 이면 빈 문자열', quoteOf('알림이 늦어요.', 'none') === '')
+t('quote: 정책 모름(null·undefined·옛 boolean·오타) 이면 빈 문자열 — 확인 불가 ≠ 허용',
+  [null, undefined, true, 'FULL', 'short'].every((v) => quoteOf('알림이 늦어요.', v) === ''))
+t('quote: 마침표 없는 긴 글은 상한으로 자른다', Array.from(quoteOf('가'.repeat(500), 'full')).length === EXCERPT_MAX)
+// 20261005000003 적용 확인 전까지 false. v19 전에는 quote_allowed(000001, 적용됨)를 가리켜 true 였는데,
+// 읽는 컬럼이 quote_policy(미적용)로 바뀌어 다시 false 가 맞다 — true 로 두면 /voc 조회가 42703 으로 죽는다.
+t('quote: 컬럼 미적용 플래그는 기본 false(미적용 DB 에서 /voc 가 죽지 않게)', QUOTE_POLICY_COLUMN_READY === false)
+// 정책별 경계(policyQuote)
+t('policy: quotePolicyOf 모르는 값 → none', quotePolicyOf('x') === 'none' && quotePolicyOf(null) === 'none' && quotePolicyOf('short_only') === 'short_only')
+t('policy: none → 빈 문자열', policyQuote('짧다.', 'none') === '')
+t('policy: 한 문장 초과 → 첫 문장만(이어붙이기 없음) full', policyQuote('하나. 둘. 셋.', 'full') === '하나.')
+t('policy: 한 문장 초과 → 첫 문장만 short_only', policyQuote('하나! 둘? 셋.', 'short_only') === '하나!')
+t('policy: short_only 상한 초과 → 상한 이내', Array.from(policyQuote('나'.repeat(300) + '.', 'short_only')).length === SHORT_QUOTE_MAX_CHARS)
+t('policy: short_only 상한 정확히 → 그대로', policyQuote('다'.repeat(SHORT_QUOTE_MAX_CHARS - 1) + '.', 'short_only') === '다'.repeat(SHORT_QUOTE_MAX_CHARS - 1) + '.')
+t('policy: full 은 short 상한보다 길게(QUOTE_MAX_CHARS)', Array.from(policyQuote('라'.repeat(200) + '.', 'full')).length === 201 && Array.from(policyQuote('라'.repeat(500), 'full')).length === QUOTE_MAX_CHARS)
+t('firstSentence: 물음표', firstSentence('왜 안 돼요? 다시 해봐도') === '왜 안 돼요?')
+t('firstSentence: 소수점은 문장 끝 아님', firstSentence('버전 6.1 에서 깨짐. 끝') === '버전 6.1 에서 깨짐.')
+{
+  const q = normalizeEvidenceQuotes(['알림이 늦게 와서 불편합니다 정말로'], [{ source_type: 'review', source_key: 'googleplay', raw_text: '알림이 늦게 와서 불편합니다 정말로 그래요' }])
+  t('evidence: 저장 시 source_key 를 단다', q.length === 1 && q[0].source_key === 'googleplay')
+  const legacy = normalizeEvidenceQuotes(['알림이 늦게 와서 불편합니다'], [{ source_type: 'review', raw_text: '알림이 늦게 와서 불편합니다' }])
+  t('evidence: source_key 없는 입력이면 키를 만들지 않는다(옛 모양 유지)', legacy.length === 1 && !('source_key' in legacy[0]))
+  const pol = new Map([['googleplay', 'short_only'], ['danawa', 'full'], ['appstore', 'none'], ['x', 'weird']])
+  const mixed = [
+    ...q,
+    { text: 'a. b.', source_type: 'review', source_key: 'danawa' },
+    { text: 'x.', source_type: 'review', source_key: 'appstore' },
+    { text: 'y.', source_type: 'review', source_key: 'x' },
+    { text: 'z.', source_type: 'review', source_key: 'nomap' },
+  ]
+  const pub = publicQuotes(mixed, pol)
+  t('publicQuotes: none·모르는 값·맵에 없는 소스는 뺀다', pub.length === 2)
+  t('publicQuotes: short_only 는 소스 키를 떼고 낸다(출처 비표시)', !('source_key' in pub[0]) && pub[0].text === '알림이 늦게 와서 불편합니다 정말로')
+  t('publicQuotes: full 은 첫 문장만·키 유지', pub[1].text === 'a.' && pub[1].source_key === 'danawa')
+  t('publicQuotes: 옛 인용(source_key 없음)은 내지 않는다', publicQuotes(legacy, pol).length === 0)
+  t('publicQuotes: 정책 맵을 못 읽었으면(null) 0건', publicQuotes(q, null).length === 0)
+}
 
 if (fail) { console.log(`실패 ${fail}건 / 통과 ${pass}건`); process.exit(1) }
 console.log(`통과 ${pass}건 — 발췌 상한 · 출처 링크(HN·YouTube·다나와·[SRC:] 머리말·url: 타깃) · 질의 파서 · 종류(kind) · 링크 · 소스 칩 건수`)

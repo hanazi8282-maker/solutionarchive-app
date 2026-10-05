@@ -6,6 +6,7 @@
 // (lib/analysis/relevance-judge.ts). 라벨이 NULL 이면 "모름"이다 — 'mid'·false 로 접지 않는다(§7.1).
 //
 // ★ 원문 재게시 원칙: 공개 화면에 원문을 통째로 싣지 않는다. 발췌 EXCERPT_MAX 자 + 출처 링크뿐이다.
+//   → 2026-10-05 D안으로 더 좁혔다: 발췌는 소스 quote_policy(full·short_only)에 따라 한 문장, none·모름은 빈 칸. 소스 이름·링크는 모든 소스 비표시(quoteOf).
 //   `/library/[slug]` 블록 7(VOC 인용)을 비워 둔 것과 같은 원칙이다(그 파일 30-34행).
 // ★ 3상태: 조회 실패('error')와 0건('ok' + 빈 배열)을 가른다. 화면은 둘을 다른 모양으로 그린다.
 //
@@ -22,6 +23,15 @@ import { isSourceHostUrl, postUrlOfRef } from '../review/target-ref.ts'
 import { DEFAULT_SEARCH_KIND, type SearchKind } from '../cases/search.ts'
 import { productKindOf } from '../cases/advisor.ts'
 import { BUSINESS_MODEL } from '../cases/draft.ts'
+import { policyQuote, quotePolicyOf } from '../analysis/evidence-quotes.ts'
+
+/**
+ * review_sources.quote_policy 컬럼(마이그 20261005000003, 남헌 v19 A)이 적용됐나. 적용 확인(information_schema) 뒤에 true 로 바꾼다.
+ * (2026-10-05 v19 전에는 quote_allowed(000001)를 가리켰고 그 적용 뒤 true 였다. 읽는 컬럼이 quote_policy 로 바뀌어 다시 false 에서 시작한다.)
+ * false 인 동안은 어느 소스도 허용으로 확인할 수 없으므로 **발췌를 전부 비운다**(fail-closed, D안 2026-10-05).
+ * 미적용 상태에서 true 로 두면 /voc 조회 전체가 42703 으로 죽는다(POSTS_PILLAR_COLUMN_READY 와 같은 패턴).
+ */
+export const QUOTE_POLICY_COLUMN_READY = false
 
 /** 발췌 상한(글자). 원문 재게시가 되지 않을 만큼 짧게 — 보고에 가정으로 적은 값이다. */
 export const EXCERPT_MAX = 140
@@ -48,12 +58,14 @@ export interface SignalItem {
   community_signal: CommunitySignal | null
   wtp_mentioned: boolean | null
   source_key: string | null
-  source_name: string | null
   /** 분석 대상 제품(analysis_projects.product_elevator_pitch). */
   project: string | null
+  /**
+   * 원문 직접 인용 — 소스 quote_policy 가 full·short_only 로 **확인된** 경우만 한 문장(EXCERPT_MAX 자 이내). none·모름은 빈 문자열.
+   * 소스 이름·원문 링크는 고객 화면에 싣지 않는다(D안 2026-10-05, 모든 소스 공통) — 필드 자체를 없앴다.
+   * 내부 보존은 DB(analysis_inputs.source_key·source_url·raw_text 머리말)에 그대로다.
+   */
   excerpt: string
-  /** 원문을 볼 수 있는 곳. 만들 수 없으면 null — 지어내지 않는다. */
-  link: string | null
 }
 
 export type Loaded<T> = { status: 'error'; reason: string } | ({ status: 'ok' } & T)
@@ -75,6 +87,15 @@ export interface FeedFilters {
 }
 
 // ── 순수 함수 (selftest 대상) ───────────────────────────────────
+
+/**
+ * 고객 화면 발췌. quote_policy 3단계(evidence-quotes.ts policyQuote) — 어느 정책이든 첫 문장만, EXCERPT_MAX 자 이내.
+ * none·NULL·모르는 값은 빈 문자열(§7.1). 출처 이름·링크는 정책과 무관하게 이 화면에 싣지 않는다(D안).
+ */
+export function quoteOf(text: string | null | undefined, quotePolicy: unknown): string {
+  const q = policyQuote(excerptOf(text, Number.MAX_SAFE_INTEGER), quotePolicyOf(quotePolicy))
+  return Array.from(q).length <= EXCERPT_MAX ? q : excerptOf(q, EXCERPT_MAX)
+}
 
 const HN_HEADER = /^\s*\[(?:HN|SRC):[^\]]*\]\s*/
 
@@ -192,7 +213,8 @@ const SELECT = [
   'input_id, judged_at, reason, impact, frequency, community_signal, wtp_mentioned',
   // !inner — kind 필터가 임베드 컬럼(business_model)에 걸려야 행이 걸러진다(아니면 임베드만 null 이 된다).
   'analysis_projects!inner(product_elevator_pitch, business_model)',
-  'analysis_inputs!inner(source_key, raw_text, purged_at, review_sources(display_name), review_fingerprints(product_ref))',
+  // 소스 이름·지문(product_ref, 링크 재료)은 더 읽지 않는다 — 고객 화면에 안 내므로(D안). 미적용이면 key 만 임베드한다.
+  `analysis_inputs!inner(source_key, raw_text, purged_at, review_sources(${QUOTE_POLICY_COLUMN_READY ? 'quote_policy' : 'key'}))`,
 ].join(', ')
 
 type Raw = {
@@ -207,8 +229,7 @@ type Raw = {
   analysis_inputs: {
     source_key: string | null
     raw_text: string | null
-    review_sources: { display_name: string | null } | null
-    review_fingerprints: { product_ref: string | null }[] | null
+    review_sources: { quote_policy?: string | null } | null
   }
 }
 
@@ -223,10 +244,8 @@ function toItem(r: Raw): SignalItem {
     community_signal: pick(r.community_signal, COMMUNITY_SIGNALS),
     wtp_mentioned: typeof r.wtp_mentioned === 'boolean' ? r.wtp_mentioned : null,
     source_key: inp.source_key,
-    source_name: inp.review_sources?.display_name ?? inp.source_key,
     project: r.analysis_projects?.product_elevator_pitch ?? null,
-    excerpt: excerptOf(inp.raw_text),
-    link: sourceLinkOf(inp.source_key, inp.raw_text, inp.review_fingerprints?.[0]?.product_ref ?? null),
+    excerpt: quoteOf(inp.raw_text, inp.review_sources?.quote_policy),
   }
 }
 

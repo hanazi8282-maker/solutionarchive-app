@@ -93,6 +93,11 @@ export interface ParsedReview {
    * 게시판 순회(`board:`) 행은 product_ref 가 게시판이라 글 주소를 되살릴 길이 이것뿐이다.
    */
   sourceUrl?: string | null
+  /**
+   * 리뷰 언어(옵셔널, 2026-10-05). **요청에 언어를 지정해 받은 소스만** 채운다(googleplay `hl`).
+   * 본문을 보고 추정하지 않는다 — 모르면 비운다. analysis_inputs.lang 으로 간다(마이그 20261005000001).
+   */
+  lang?: string | null
 }
 
 /**
@@ -243,6 +248,12 @@ export interface ReviewSourceAdapter {
    *     생긴 것을 확인했으면 지운다.
    */
   proceedWhenRobotsUnverified?: string[]
+
+  /**
+   * true 면 러너가 2xx 빈 응답·캡차 화면·구글 `/sorry/` 리다이렉트도 **차단**으로 보고 실행을 끊는다(runner.ts isStrictBlock).
+   * 약관이 자동 접근을 금지하는 소스(googleplay, 남헌 2026-10-05)용 — 우회하지 않고 즉시 멈추는 것이 조건이다.
+   */
+  abortOnChallenge?: boolean
 
   /**
    * 이 소스가 돌기 위해 반드시 있어야 하는 환경변수 이름들(공식 API 키 등).

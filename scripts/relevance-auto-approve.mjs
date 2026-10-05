@@ -70,7 +70,7 @@ if (!gate.on) {
       done: 'T2 자동 승인 킬스위치 작동 — 오늘 자동 승인 0건',
       blocked: gate.reason,
       next: '자동 승인된 행 감사 표본을 채점(relevance-grading-sample.mjs --audit)하고, 원인(모델·기준·소스 변화)을 확인한 뒤 다시 켤지 판단',
-      needsHuman: true,
+      needsHuman: true, // v19 §10.2 예외 8번: 다시 여는 감사 채점은 남헌만 줄 수 있는 입력
       note: `relevance-auto-approve · rule ${AUTO_APPROVAL_RULE}`,
     })
     log(w.ok ? `Notion 기록: ${w.title}` : `Notion 기록 실패 — ${w.stage}: ${w.error}`)

@@ -9,7 +9,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-const { lastSlot, judgeRuns, nextSlotAfter, scheduledWorkflows, runWatchdog, workflowLandedAt, pushWithoutBotToken, GRACE_MS } = await import('./cron-watchdog.mjs')
+const { lastSlot, judgeRuns, nextSlotAfter, scheduledWorkflows, runWatchdog, workflowLandedAt, pushWithoutBotToken, GRACE_MS, GRACE_OVERRIDE_MS, graceFor } = await import('./cron-watchdog.mjs')
 const { tokenExpiryAlert } = await import('../lib/threads/token.ts')
 
 let passed = 0
@@ -62,6 +62,38 @@ ok('판정 — 24h 지난 실행은 다음 슬롯 것 = 이 슬롯은 미발화'
   const s3run = run({ created_at: '2026-09-15T10:40:00Z' })
   ok('다중 슬롯 — s2 미발화를 s3 실행이 메우지 않는다', judgeRuns('nightly-extract.yml', s2, [s3run], nextSlotAfter(ex, s2))?.missing === true)
   ok('다중 슬롯 — s2 지연 실행(2h)은 s2 를 채운다', judgeRuns('nightly-extract.yml', s2, [run({ created_at: '2026-09-15T05:40:00Z' })], nextSlotAfter(ex, s2)) === null)
+}
+
+// nightly-extract 유예 10시간 + 순서 짝짓기 (2026-10-01·02 실측: 4~7시간 늦게 떠서 성공).
+ok('유예 — nightly-extract 만 10시간', graceFor('nightly-extract.yml') === 10 * 3600_000 && graceFor('daily-cmo-loop.yml') === GRACE_MS, JSON.stringify(GRACE_OVERRIDE_MS))
+ok('유예 — 문구에 파일별 시간', judgeRuns('nightly-extract.yml', slot, [], undefined, { grace: graceFor('nightly-extract.yml') })?.line.includes('10시간 넘게 지연'))
+{
+  const ex = "on:\n  schedule:\n    - cron: '33 18 * * *'\n    - cron: '33 3 * * *'\n    - cron: '33 9 * * *'\n"
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'watchdog-ex-'))
+  fs.writeFileSync(path.join(dir, 'nightly-extract.yml'), ex)
+  const NOW_EX = new Date('2026-10-02T21:53:00Z')
+  const G = graceFor('nightly-extract.yml')
+  ok('유예 10h — 21:53 감시는 어제 18:33 · 오늘 03:33 · 오늘 09:33 을 본다',
+    ['33 18 * * *', '33 3 * * *', '33 9 * * *'].map((c) => iso(lastSlot(c, NOW_EX, G))).join() === '2026-10-01T18:33:00.000Z,2026-10-02T03:33:00.000Z,2026-10-02T09:33:00.000Z')
+  const r = (id, at) => ({ id, created_at: at, status: 'completed', conclusion: 'success', html_url: `https://gh/run/${id}` })
+  // 10-01 22:51 (s1 +4h18m) · 10-02 10:00 (s2 +6h27m — 다음 슬롯 09:33 을 넘었다) · 10-02 15:56 (s3 +6h23m)
+  const real = [r(1, '2026-10-01T22:51:13Z'), r(2, '2026-10-02T10:00:56Z'), r(3, '2026-10-02T15:56:22Z')]
+  const run = (runs) => runWatchdog({
+    now: NOW_EX, env: { GITHUB_REPOSITORY: 'o/r', GITHUB_TOKEN: 'gh', NEXT_PUBLIC_SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k' },
+    workflowsDir: dir, dry: true, log: () => {}, git: (a) => (a.includes('--is-shallow-repository') ? 'false' : '2026-01-01T00:00:00+00:00'),
+    fetchImpl: async (url) => new Response(JSON.stringify(String(url).includes('api.github.com')
+      ? { workflow_runs: runs.filter((x) => x.created_at >= decodeURIComponent(String(url).split('created=')[1]).slice(2)) }
+      : [{ expires_at: iso(NOW_EX.getTime() + 30 * DAY), user_id: 'u1' }]), { status: 200 }),
+  })
+  let e = await run(real)
+  ok('extract 실측 지연(4~7h) — 경보 없음', e.code === 0, JSON.stringify(e.problems))
+  e = await run([real[0], real[2]])
+  ok('extract s2 미발화 — s3 실행이 메우지 못하고 정확히 1건', e.problems.length === 1 && e.problems[0].includes('미발화 또는 10시간'), JSON.stringify(e.problems))
+  e = await run([real[0], r(4, '2026-10-02T09:40:00Z')])
+  ok('extract s2 미발화 + s3 정시 — 건수 모자람은 반드시 1건으로 뜬다', e.problems.length === 1, JSON.stringify(e.problems))
+  e = await run([real[0], r(2, '2026-10-02T13:34:00Z'), real[2]])
+  ok('extract s2 10h 넘게 지연 — 경보', e.problems.some((p) => p.includes('2026-10-02 03:33')), JSON.stringify(e.problems))
+  fs.rmSync(dir, { recursive: true, force: true })
 }
 
 // ── 3) 워크플로 파일 읽기 ────────────────────────────────────────
@@ -144,6 +176,7 @@ ok('통합 토큰 행 없음 — 재인증', s.code === 1 && s.records[0]?.block
 
 s = await scenario({ runs: [] })
 ok('통합 미발화 — 막힌것에 워크플로 이름', s.code === 1 && s.records[0]?.blocked.includes('a.yml') && s.records[0]?.blocked.includes('미발화'))
+ok('통합 미발화만 — 사람판단필요 false(v17: 막힘 사실)', s.records[0]?.needsHuman === false)
 
 s = await scenario({ runs: [runA({ conclusion: 'failure' })], tokenRows: [tok(3)] })
 ok('통합 두 가지 동시 — 둘 다 올라감', s.problems.length === 2 && s.records[0]?.blocked.split('\n').length === 2)

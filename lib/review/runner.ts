@@ -67,15 +67,25 @@ export interface SourceConfig {
   dailyRequestCap: number
   requestsToday: number
   /**
-   * 소유자 robots 예외(남헌 2026-10-05, CLAUDE.md §7.1). review_sources.override === OWNER_ROBOTS_OVERRIDE **이고**
-   * robots_status === 'disallowed' 일 때만 true — store 가 DB 에서 읽는다. 못 읽으면 loadSource 가 던진다(막힌다).
+   * 소유자 robots 예외(남헌 2026-10-05·10-06, CLAUDE.md §7.1). review_sources.override ∈ OWNER_ROBOTS_OVERRIDES **이고**
+   * robots_status === 'disallowed' 일 때만 true(isOwnerRobotsOverride) — store 가 DB 에서 읽는다. 못 읽으면 loadSource 가 던진다(막힌다).
    * true 여도 robots **disallowed** 판정만 통과한다. 확인 불가(unverified)·5xx 는 그대로 막힌다.
    */
   robotsOwnerOverride?: boolean
+  /** review_sources.override 원값(NULL = 예외 없음). 판정에는 안 쓰고 실행 행 스냅샷(override_value)으로만 넘긴다. */
+  overrideValue?: string | null
 }
 
-/** 소유자 robots 예외를 여는 유일한 override 값. 다른 값(오타·다른 날짜)은 예외가 아니다. */
-export const OWNER_ROBOTS_OVERRIDE = 'owner_2026-10-05'
+/**
+ * 소유자 robots 예외를 여는 override 값 — 이 집합 밖의 값(오타·다른 날짜)은 예외가 아니다.
+ *   owner_2026-10-05: 앱스토어 RSS(남헌 명시 예외) · owner_2026-10-06: 구글 플레이(남헌 결정, robots·약관 금지를 알고 켬)
+ */
+export const OWNER_ROBOTS_OVERRIDES: ReadonlySet<string> = new Set(['owner_2026-10-05', 'owner_2026-10-06'])
+
+/** DB 행 → 소유자 예외 여부. robots_status 가 'disallowed' 로 기록된 행만 연다 — 'unverified' 로 적힌 행은 열지 않는다. */
+export function isOwnerRobotsOverride(override: unknown, robotsStatus: unknown): boolean {
+  return typeof override === 'string' && OWNER_ROBOTS_OVERRIDES.has(override) && robotsStatus === 'disallowed'
+}
 
 /** 사람 확인(캡차) 화면 표지. 엄격 모드(소유자 예외 요청·`abortOnChallenge` 어댑터)에서만 본다 — 다른 소스 본문 오탐 방지. */
 const CHALLENGE_RE = /recaptcha|g-recaptcha|unusual traffic|captcha/i
@@ -181,8 +191,10 @@ export interface RunResult {
   robotsBypassed: number
   /** 표식으로 통과한 호스트 → 못 읽은 이유(예: "HTTP 403"). */
   robotsBypassedHosts: Record<string, string>
-  /** robots 가 **금지**인데 소유자 예외(OWNER_ROBOTS_OVERRIDE)로만 보낸 요청 수. 0 이 아니면 요약·경고에 남긴다. */
+  /** robots 가 **금지**인데 소유자 예외(OWNER_ROBOTS_OVERRIDES)로만 보낸 요청 수. 0 이 아니면 요약·경고에 남긴다. */
   robotsOwnerOverride?: number
+  /** 이 실행 시점 review_sources.override 스냅샷(SourceConfig.overrideValue). 건너뛴 실행은 없음. */
+  overrideValue?: string | null
   perTarget: Array<{ targetId: string; productRef: string; outcome: string }>
   /** 삭제·없는 글이라 건너뛴 수(ParseResult.missing). 파싱 성공·실패 어느 쪽에도 안 센다. 요청 수에는 들어 있다. */
   missingSkipped: number
@@ -538,7 +550,7 @@ export async function runCollection(
       // 확인 불가(unverified)는 여기서 열리지 않는다 — 금지인 줄 알고 연 것과 못 읽은 것은 다른 사건이다(§7.1).
       const ownerOverride = decided.state === 'disallowed' && source.robotsOwnerOverride === true
       const verdict = ownerOverride
-        ? { ...decided, state: 'allowed' as const, reason: `robots 금지(${decided.reason}) — 소유자 예외 ${OWNER_ROBOTS_OVERRIDE} 로 진행` }
+        ? { ...decided, state: 'allowed' as const, reason: `robots 금지(${decided.reason}) — 소유자 예외(review_sources.override)로 진행` }
         : decided
       if (verdict.state !== 'allowed') {
         // ⛔ 요청 자체를 보내지 않는다. "차단됐다"가 아니라 "규칙상 안 간다"다.
@@ -819,6 +831,7 @@ export async function runCollection(
     robotsBypassed,
     robotsBypassedHosts,
     robotsOwnerOverride,
+    overrideValue: source.overrideValue ?? null,
     perTarget,
     missingSkipped,
   }

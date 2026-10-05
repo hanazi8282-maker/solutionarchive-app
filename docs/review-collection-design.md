@@ -787,6 +787,9 @@ content_items (status='proposed')
 - 사람이 붙여넣은 행(`source_key IS NULL`)은 **건드리지 않는다.** 다시 구할 수
   없는 데이터다.
 - 지문은 `review_fingerprints` 에 남아 중복 판정이 계속 산다.
+- **폐기 해제(남헌 v16, 2026-10-05):** `collected_at >= 2026-10-05T00:00+09:00` 수집분은 나이와 무관하게
+  폐기하지 않는다(`lib/review/purge.ts` `RETENTION_EXEMPT_FROM`). 위 30일 규칙은 그 전 수집분에만 남는다.
+  `REVIEW_PURGE_APPLY` 스위치·워크플로 스텝은 그대로다. 되돌리기 = 해당 커밋 revert(스키마 변경 없음).
 
 ## 10. 하지 않는 것
 

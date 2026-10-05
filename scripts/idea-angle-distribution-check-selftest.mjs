@@ -117,7 +117,7 @@ async function suite(m) {
     ok(`6 90.0% 는 경보 (${r6.status}: ${r6.message})`, r6.ok && r6.status === 'alert')
     ok('6 행 1개', f.pages.length === 1)
     const p = f.pages[0]
-    ok('6 사람판단필요=true', p.properties.사람판단필요.checkbox === true)
+    ok('6 사람판단필요=false(v17: 분포 경보는 사실 보고)', p.properties.사람판단필요.checkbox === false)
     ok('6 트랙 CTO · 제목 YYYY-MM-DD-CTO(KST)', p.properties.트랙.select.name === 'CTO' && f.txt(p, '제목') === `${date(now6)}-CTO`)
     const blocked = f.txt(p, '막힌것')
     ok('6 분포 수치', blocked.includes('체험 기반 135(90.0%)') && blocked.includes('선례 근거 있음 15(10.0%)') && blocked.includes('기타 0(0.0%)'))
@@ -147,7 +147,7 @@ async function suite(m) {
     const r9 = await m.runCheck({ ...base, loadRuns: all, now: at(T0 + DAY) })
     ok('9 쓰기 실패는 ok:false', r9.ok === false && r9.status === 'alert')
     ok(`9 폴백 파일 (${r9.record?.pendingPath})`, !!r9.record?.pendingPath && fs.existsSync(r9.record.pendingPath))
-    ok('9 폴백 파일에 사람판단필요·분포', !!r9.record?.pendingPath && /사람판단필요: true/.test(fs.readFileSync(r9.record.pendingPath, 'utf-8')) && fs.readFileSync(r9.record.pendingPath, 'utf-8').includes('체험 기반 150(100.0%)'))
+    ok('9 폴백 파일에 사람판단필요·분포', !!r9.record?.pendingPath && /사람판단필요: false/.test(fs.readFileSync(r9.record.pendingPath, 'utf-8')) && fs.readFileSync(r9.record.pendingPath, 'utf-8').includes('체험 기반 150(100.0%)'))
 
     // 9b) 토큰 없음 → 호출 0 · 실패 · 폴백
     let called = 0
@@ -165,7 +165,7 @@ async function suite(m) {
     // 11) --dry → 경보 계산은 하되 Notion 호출 0
     f = fakeNotion(); globalThis.fetch = f
     const r11 = await m.runCheck({ ...base, dry: true, loadRuns: all, now: at(T0 + DAY) })
-    ok('11 dry 는 페이로드만', r11.ok && r11.status === 'dry' && r11.entry?.needsHuman === true && f.calls.length === 0)
+    ok('11 dry 는 페이로드만', r11.ok && r11.status === 'dry' && r11.entry?.needsHuman === false /* v17 */ && f.calls.length === 0)
 
     // 12) 설정 한 곳 — env 로 덮는다, 이상한 값은 기본값
     const c = m.config({ IDEA_DIST_RUNS: '30', IDEA_DIST_ALERT: '0.93', IDEA_DIST_DAYS: 'x' })

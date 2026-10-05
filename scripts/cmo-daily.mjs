@@ -1731,8 +1731,9 @@ export async function writeDigest({ reportDir, date, runKey, dryRun, log = [], s
  * partialFailures() 를 그대로 쓴다 — 판정을 두 벌 만들지 않는다.
  *
  * 사람판단필요 = 막힌것(실패·막힘·부분 실패·큐 미해소·Notion 푸시 실패·preflight 중단)이 있거나
- *   사람 대기(검토대기 초안 신규·승인 대기 케이스 신규·승인 무브 0건·미연결 발행글 N건 또는 확인 불가)가
- *   하나라도 있으면 true.
+ *   미연결 발행글을 확인 불가(§7.1)일 때만 true.
+ *   일상 할 일(검토대기 초안·승인 대기 케이스·승인 무브 0건·미연결 발행글 N건 연결)은 다음할일에만 싣고
+ *   플래그를 켜지 않는다 — 초안·케이스가 매일 생기므로 그걸로 켜면 CMO 행이 매일 true 가 된다(2026-10-05 정정).
  * 행의 날짜·제목은 **행을 쓰는 시점의 KST 날짜**다(kstDate — §11, 전 트랙 통일). 크론은 20:17 UTC
  * 예정이지만 실제로 KST 07시대에 돌아서, run date(UTC)로 쓰면 "KST 09-14 아침에 한 일"이 09-13 행이 된다.
  * run date(`date` 인자 — content_code·run_key·reports/<날짜> 기준)는 비고에 남긴다.
@@ -1788,7 +1789,7 @@ export function buildCmoStatusEntry({ date, runKey, runUrl = null, state = {}, l
     done: done.join('\n'),
     blocked: blocked.length ? blocked.join('\n') : '없음',
     next: next.length ? next.join('\n') : '사람 할 일 없음 — 다음 크론이 이어서 돈다',
-    needsHuman: blocked.length > 0 || human.length > 0,
+    needsHuman: blocked.length > 0 || (typeof unlinkedLine === 'string' && unlinkedLine.includes('확인 불가')),
     note,
   }
 }

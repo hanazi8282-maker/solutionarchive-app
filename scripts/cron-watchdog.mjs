@@ -40,6 +40,14 @@ import { tokenExpiryAlert } from '../lib/threads/token.ts'
 // 창으로만 실행을 귀속시키므로, 어제 슬롯을 볼 때 오늘 실행이 그 자리를 메우지 못한다.
 export const GRACE_MS = 4 * 60 * 60 * 1000
 const DAY_MS = 24 * 60 * 60 * 1000
+
+// 파일별 예외 — 전역 GRACE 를 올리면 lastSlot 이 거의 모든 크론을 하루 늦게 판정하게 되므로 여기만 따로 준다.
+// nightly-extract 는 슬롯마다 4~7시간 늦게 뜨고 성공한다(2026-10-01·02 실측: 03:33Z 슬롯 → 10:00~10:25Z,
+// 09:33Z 슬롯 → 15:56~16:39Z). 슬롯 간격(6h)보다 지연이 길어서 "다음 슬롯까지" 창으로는 s2 가 매일 미발화로 뜬다.
+// 그래서 이 파일은 창을 slot+유예로 잡고, 실행을 슬롯 순서대로 하나씩 짝짓는다(judgeRuns claimed) —
+// 겹치는 창에서 s3 실행이 s2 미발화를 메우지 못하게(건수가 모자라면 반드시 한 슬롯이 미발화로 뜬다).
+export const GRACE_OVERRIDE_MS = { 'nightly-extract.yml': 10 * 60 * 60 * 1000 }
+export const graceFor = (file) => GRACE_OVERRIDE_MS[file] ?? GRACE_MS
 const SELF = 'cron-watchdog.yml'
 
 /** 워크플로 폴더 → [{ file, crons }]. schedule 이 있는 것만(주석 처리된 cron 은 제외), 감시 자신은 뺀다. */
@@ -70,10 +78,10 @@ export function pushWithoutBotToken(dir) {
 }
 
 /** now - GRACE 이전의 가장 최근 예정 시각. 일일 크론만 이해한다 — 그 밖은 null(확인 불가). */
-export function lastSlot(cron, now) {
+export function lastSlot(cron, now, grace = GRACE_MS) {
   const m = /^(\d{1,2}) (\d{1,2}) \* \* \*$/.exec(cron.trim())
   if (!m) return null
-  const t = new Date(now.getTime() - GRACE_MS)
+  const t = new Date(now.getTime() - grace)
   const slot = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), Number(m[2]), Number(m[1])))
   if (slot > t) slot.setUTCDate(slot.getUTCDate() - 1)
   return slot
@@ -83,14 +91,18 @@ export function lastSlot(cron, now) {
  * 예정 시각과 schedule 실행 목록(GitHub API workflow_runs) → `{ missing, line }`, 정상이면 null.
  * 실행은 그 슬롯 이후 **24시간 안**의 것만 센다. 이 상한이 없으면 어제 슬롯을 판정할 때
  * 오늘 실행이 어제 자리를 메워 미발화가 영영 초록불이 된다(GRACE 완화의 함정).
+ * `claimed`(Set)를 주면 아직 안 짝지은 실행 중 **가장 이른 것**을 이 슬롯 몫으로 가져가고 표시한다
+ * (GRACE_OVERRIDE_MS 파일 전용 — 슬롯을 오름차순으로 불러야 한다).
  */
-export function judgeRuns(file, slot, runs, until = slot.getTime() + DAY_MS) {
+export function judgeRuns(file, slot, runs, until = slot.getTime() + DAY_MS, { grace = GRACE_MS, claimed = null } = {}) {
   const hhmm = `${slot.toISOString().slice(0, 16).replace('T', ' ')} UTC`
   const after = runs
     .filter((r) => Date.parse(r.created_at) >= slot.getTime() - 60_000 && Date.parse(r.created_at) < until)
-    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
-  if (!after.length) return { missing: true, line: `${file}: ${hhmm} 예정 실행이 없다 — 미발화 또는 ${GRACE_MS / 3600000}시간 넘게 지연` }
+    .filter((r) => !claimed?.has(r.id))
+    .sort((a, b) => (claimed ? -1 : 1) * (Date.parse(b.created_at) - Date.parse(a.created_at)))
+  if (!after.length) return { missing: true, line: `${file}: ${hhmm} 예정 실행이 없다 — 미발화 또는 ${grace / 3600000}시간 넘게 지연` }
   const r = after[0]
+  claimed?.add(r.id)
   if (r.status !== 'completed') return { missing: false, line: `${file}: ${hhmm} 실행이 아직 안 끝났다(${r.status}) ${r.html_url ?? ''}`.trim() }
   if (r.conclusion !== 'success') return { missing: false, line: `${file}: ${hhmm} 실행 ${r.conclusion} ${r.html_url ?? ''}`.trim() }
   return null
@@ -145,8 +157,12 @@ export async function runWatchdog({
   const repo = env.GITHUB_REPOSITORY
 
   for (const { file, crons } of scheduledWorkflows(workflowsDir)) {
-    for (const cron of crons) {
-      const slot = lastSlot(cron, now)
+    const grace = graceFor(file)
+    const claimed = file in GRACE_OVERRIDE_MS ? new Set() : null
+    // claimed 짝짓기는 슬롯 오름차순이어야 한다. 판정 불가(null) 크론은 순서와 무관하다.
+    const ordered = crons.map((cron) => ({ cron, slot: lastSlot(cron, now, grace) }))
+      .sort((a, b) => (a.slot?.getTime() ?? 0) - (b.slot?.getTime() ?? 0))
+    for (const { cron, slot } of ordered) {
       if (!slot) { problems.push(`${file}: 일일 크론이 아닌 '${cron}' — 감시 확인 불가`); continue }
       log(`· ${file} ${cron} → 판정 슬롯 ${slot.toISOString().slice(0, 16).replace('T', ' ')} UTC`)
       if (!repo || !env.GITHUB_TOKEN) { problems.push(`${file}: 실행 이력 확인 불가 — GITHUB_REPOSITORY/GITHUB_TOKEN 없음`); continue }
@@ -156,7 +172,8 @@ export async function runWatchdog({
         const res = await fetchImpl(url, { headers: { authorization: `Bearer ${env.GITHUB_TOKEN}`, accept: 'application/vnd.github+json' } })
         const body = await res.json().catch(() => null)
         if (!res.ok || !Array.isArray(body?.workflow_runs)) { problems.push(`${file}: 실행 이력 조회 실패(HTTP ${res.status}) — 확인 불가`); continue }
-        const j = judgeRuns(file, slot, body.workflow_runs, nextSlotAfter(crons, slot))
+        const until = claimed ? slot.getTime() + grace : nextSlotAfter(crons, slot)
+        const j = judgeRuns(file, slot, body.workflow_runs, until, { grace, claimed })
         if (!j) continue
         if (!j.missing) { problems.push(j.line); continue }
         // 미발화로 보일 때만 도입 시각을 본다 — 실행이 있으면 물어볼 것도 없다.

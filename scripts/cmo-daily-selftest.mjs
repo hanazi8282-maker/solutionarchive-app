@@ -1244,8 +1244,8 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   const col = unlinkedDigestLine(row('ok', counts({ unlinked: 0, column_episode: 1 }), { oldest_timestamp: '2026-09-13T19:00:00Z' }), now)
   check('미연결 — 칼럼 편도 경고 대상(건수에 포함)', /^⚠️ .*게시물 1건\(/.test(col), col)
   check('미연결 — 칼럼 편은 스테이징 안내를 붙인다', /칼럼 연재 편 1건은 posts 스테이징 먼저/.test(col), col)
-  check('미연결 — 칼럼 편이 있으면 사람판단 필요',
-    buildCmoStatusEntry({ date: '2026-09-13', runKey: 'x', state: { blocked: 0, failed: 0, counts: {}, steps: [] }, log: [], runStatus: 'ok', unlinkedLine: col }).needsHuman === true, col)
+  check('미연결 — 칼럼 편은 일상 할 일(사람판단 아님, 다음할일에만)',
+    buildCmoStatusEntry({ date: '2026-09-13', runKey: 'x', state: { blocked: 0, failed: 0, counts: {}, steps: [] }, log: [], runStatus: 'ok', unlinkedLine: col }).needsHuman === false, col)
 
   // 분류 이전 버전의 매처가 남긴 행: 없는 칸을 "0건"으로 읽히게 두지 않는다(§7.1)
   const legacy = unlinkedDigestLine(row('ok', { unlinked: 0 }), now)
@@ -1308,7 +1308,11 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   check('상태로그 — 한일에 시도 대비 적립·스테이징 수', busy.done.includes('적립 1건(시도 2건)') && busy.done.includes('스테이징 2건'), busy.done)
   check('상태로그 — 막힌것에 blocker 원문(백틱 제거)', busy.blocked.includes('CG-1 미통과') && !busy.blocked.includes('`'), busy.blocked)
   check('상태로그 — 다음할일에 검토대기 초안·승인 대기 케이스', busy.next.includes('발행 대기 초안 2건') && busy.next.includes('케이스 1건'), busy.next)
-  eq('상태로그 — 할 일이 있으면 사람판단필요 true', busy.needsHuman, true)
+  eq('상태로그 — 막힘이 있으면 사람판단필요 true', busy.needsHuman, true)
+  // ★ 2026-10-05 정정: 초안 검토·케이스 승인 대기만 있는 날은 일상 할 일 — false, 다음할일에는 남는다
+  const routine = buildCmoStatusEntry({ ...base, runStatus: 'ok', unlinkedLine: ZERO, state: { blocked: 0, failed: 0, counts: { new_drafts: 2, commit_attempted: 1, committed: 1, drafted: 2, staged: 2 }, steps: [S('preflight', 'ok')] }, log: [] })
+  eq('상태로그 — 검토대기 초안·승인 대기 케이스만 → false', routine.needsHuman, false)
+  check('상태로그 — 일상 할 일은 다음할일에 남는다', routine.next.includes('발행 대기 초안 2건') && routine.next.includes('케이스 1건'), routine.next)
   check('상태로그 — 비고에 run_key·run URL', busy.note.includes('cmo-2026-09-13-cron') && busy.note.includes('actions/runs/1'))
   within5('할 일 있는 날', busy)
 
@@ -1318,12 +1322,13 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   eq('상태로그 — 조용한 날 막힌것 없음', calm.blocked, '없음')
   check('상태로그 — 조용한 날 다음할일은 "사람 할 일 없음"', calm.next.startsWith('사람 할 일 없음'), calm.next)
 
-  // (3) 개별 트리거 — 하나씩만 켜도 true
+  // (3) 개별 트리거 — 막힘·확인 불가는 하나씩만 켜도 true, 일상 할 일은 false
   const one = (over) => buildCmoStatusEntry({ ...base, runStatus: 'ok', unlinkedLine: ZERO, state: { blocked: 0, failed: 0, counts: {}, steps: [] }, log: [], ...over })
   eq('상태로그 — 미연결 발행글 확인 불가 → true', one({ unlinkedLine: '발행됐는데 연결 안 된 Threads 게시물: 확인 불가(매처 기록 없음) — /dashboard 에서 직접 확인' }).needsHuman, true)
-  eq('상태로그 — 미연결 발행글 N건 → true', one({ unlinkedLine: '⚠️ 발행됐는데 연결 안 된 Threads 게시물 2건(가장 오래된 것 5시간 경과) — /dashboard 에서 연결' }).needsHuman, true)
+  const nUnlinked = one({ unlinkedLine: '⚠️ 발행됐는데 연결 안 된 Threads 게시물 2건(가장 오래된 것 5시간 경과) — /dashboard 에서 연결' })
+  check('상태로그 — 미연결 발행글 N건 → false(연결은 일상 할 일) + 다음할일', nUnlinked.needsHuman === false && nUnlinked.next.includes('게시물 2건'), nUnlinked.next)
   const noAppr = one({ log: ['- ⏭️ `angle` 앵글 선정 — 쓸 수 있는 승인 무브가 0건 (승인은 사람이 한다 — 루프의 실패가 아니다)'] })
-  check('상태로그 — 승인 무브 0건 → true + 다음할일', noAppr.needsHuman === true && noAppr.next.includes('승인된 무브 0건'), noAppr.next)
+  check('상태로그 — 승인 무브 0건 → false(승인 대기) + 다음할일', noAppr.needsHuman === false && noAppr.next.includes('승인된 무브 0건'), noAppr.next)
   const push = one({ notionPushError: 'exit 2 — posts 조회 실패' })
   check('상태로그 — Notion 푸시 실패 → 막힌것 + true', push.needsHuman === true && push.blocked.includes('posts 조회 실패'), push.blocked)
   eq('상태로그 — 큐 미해소 → true', one({ state: { blocked: 0, failed: 0, counts: { queue_unresolved: 1 }, steps: [] } }).needsHuman, true)

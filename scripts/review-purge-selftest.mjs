@@ -11,6 +11,7 @@ import {
   withoutReason,
   purgeLine,
   RETENTION_DAYS,
+  RETENTION_EXEMPT_FROM,
 } from '../lib/review/purge.ts'
 
 let pass = 0
@@ -153,6 +154,16 @@ t('할 일 없으면 줄 없음', purgeLine({ purge: [], keep: 5, unjudgeable: [
 }
 
 t('보존 기간 상수 30일', RETENTION_DAYS, 30)
+
+// ── 폐기 해제(v16, 2026-10-05): 컷오프 이후 수집분은 나이와 무관하게 보존 ──
+{
+  const cut = Date.parse(RETENTION_EXEMPT_FROM)
+  const later = new Date(cut + 400 * 86_400_000) // 컷오프 400일 뒤의 '지금'
+  t('컷오프 정각 수집분은 보존', decidePurge(row({ collected_at: new Date(cut).toISOString() }), later).action, 'keep')
+  t('컷오프 이후 수집분은 1년 넘어도 보존', decidePurge(row({ collected_at: new Date(cut + 86_400_000).toISOString() }), later).action, 'keep')
+  t('컷오프 1초 전 수집분은 기존 30일 규칙대로 폐기', decidePurge(row({ collected_at: new Date(cut - 1000).toISOString() }), later).action, 'purge')
+  t('컷오프 = 2026-10-05 KST 0시', new Date(cut).toISOString(), '2026-10-04T15:00:00.000Z')
+}
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {

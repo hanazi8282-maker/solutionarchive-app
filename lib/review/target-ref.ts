@@ -39,6 +39,7 @@ import { BOARDS as VELOG_BOARDS, HOST as VELOG_HOST, parseProductRef as parseVel
 import { parseProductRef as parseYoutubeRef } from './adapters/youtube.ts'
 import { BOARDS as DISQUIET_BOARDS, HOST as DISQUIET_HOST, parseProductRef as parseDisquietRef } from './adapters/disquiet.ts'
 import { parseProductRef as parseProducthuntRef } from './adapters/producthunt.ts'
+import { parseProductRef as parseGoogleplayRef } from './adapters/googleplay.ts'
 import { BOARDS as DEVTO_BOARDS } from './adapters/devto.ts'
 import { BOARDS as INFLEARN_BOARDS, HOST as INFLEARN_HOST } from './adapters/inflearn.ts'
 import { BOARDS as YOZM_BOARDS, HOST as YOZM_HOST } from './adapters/yozm.ts'
@@ -84,6 +85,14 @@ function hackernewsRef(raw: string): RefResult {
  * ⚠️ 댓글이 꺼진 영상인지는 여기서 알 수 없다 — 그건 등록하는 사람이 눈으로 확인한다
  *    (어댑터 주석: 댓글 비활성 403 은 차단으로 분류돼 소스가 통째로 꺼진다).
  */
+/** Google Play: `<gl>:<hl>:<패키지명>` 또는 패키지명(= kr:ko). 판정은 어댑터 parseProductRef 한 벌. */
+function googleplayRef(raw: string): RefResult {
+  const p = parseGoogleplayRef((raw ?? '').trim())
+  return p
+    ? { ok: true, productRef: `${p.gl}:${p.hl}:${p.pkg}` }
+    : { ok: false, error: 'Google Play 패키지명을 입력해주세요. (예: com.Slack 또는 us:en:com.notion.id)' }
+}
+
 function youtubeRef(raw: string): RefResult {
   const s = raw.trim()
   const hint = '(예: https://www.youtube.com/watch?v=dQw4w9WgXcQ 또는 영상 ID 11자)'
@@ -296,6 +305,7 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   inflearn: boardOnlyRef(INFLEARN_BOARDS),
   yozm: boardOnlyRef(YOZM_BOARDS),
   indiehackers: boardOnlyRef(INDIEHACKERS_BOARDS),
+  googleplay: googleplayRef,
 }
 
 /**

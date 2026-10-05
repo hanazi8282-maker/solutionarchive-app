@@ -241,7 +241,9 @@ t('정보 마이그: nullable boolean 3개 ADD COLUMN IF NOT EXISTS, 백필·CHE
 t('정보 마이그 롤백 파일', read('supabase/migrations/20260930000031_relevance_product_informative_rollback.sql').includes('DROP COLUMN IF EXISTS human_product_informative'))
 
 t('extract 가 dropIrrelevant 를 쓴다', run.includes('dropIrrelevant(') && run.includes("from './relevance-judge.ts'"))
-t('extract 가 입력 id 를 조회한다(제외 키)', run.includes("select('id, source_type, raw_text"))
+// 2026-10-05: 입력 조회에 source_key 가 끼었다(인용에 소스 키를 붙여 고객 화면 인용 정책을 거는 데 쓴다 — evidence-quotes.ts publicQuotes).
+// 이 검사의 대상(id 를 첫 열로 조회)은 그대로고, source_key·raw_text 도 같이 확인한다.
+t('extract 가 입력 id 를 조회한다(제외 키)', run.includes("select('id, source_type, source_key, raw_text"))
 t('extract 가 조회 실패를 null 로 넘긴다(제외 없음)', run.includes('relevanceError ? null :'))
 t('extract 가 droppedIrrelevant 를 로그·반환에 남긴다',
   run.includes('irrelevant=${droppedIrrelevant}') && /droppedIrrelevant,?\s/.test(run) && /return \{[\s\S]{0,200}droppedInputs,/.test(run))

@@ -17,6 +17,7 @@ import {
   STALE_STREAK_TO_STOP,
   MAX_PAGES_PER_TARGET,
   PRODUCT_TOKEN,
+  isStrictBlock,
 } from '../lib/review/runner.ts'
 import { MAX_CONSECUTIVE_EMPTY, isWafChallenge } from '../lib/review/health.ts'
 import { computeFingerprint, normalizeText } from '../lib/review/fingerprint.ts'
@@ -226,6 +227,42 @@ const run = (h, over = {}) =>
   t('robots 금지면 robotsSkips 로 센다', r.robotsSkips, 1)
   t('robots 금지면 요청을 보내지 않는다', r.requests, 0)
   ok('robots.txt 말고는 아무것도 안 받았다', h.log.fetched.every((u) => u.endsWith('/robots.txt')))
+}
+// 소유자 robots 예외(남헌 2026-10-05) — DB 가 확인해 준 소스의 **금지** 판정만 연다.
+{
+  const h = makeHarness({ robots: 'User-agent: *\nDisallow: /\n', sourceOver: { robotsOwnerOverride: true }, pages: { 1: page([], null) } })
+  const r = await run(h)
+  t('소유자 예외: robots 금지여도 요청한다', r.requests, 1)
+  t('소유자 예외: robotsSkips 0', r.robotsSkips, 0)
+  t('소유자 예외: 사용 건수를 센다', r.robotsOwnerOverride, 1)
+}
+{
+  const h = makeHarness({ robotsStatus: 404, robotsBody: '<html>', sourceOver: { robotsOwnerOverride: true } })
+  const r = await run(h)
+  t('소유자 예외: 확인 불가(unverified)는 열지 않는다', r.requests, 0)
+  t('소유자 예외: 확인 불가면 사용 0', r.robotsOwnerOverride, 0)
+}
+{
+  const h = makeHarness({ robots: 'User-agent: *\nDisallow: /\n', sourceOver: { robotsOwnerOverride: false } })
+  t('소유자 예외 false 면 금지 그대로', (await run(h)).requests, 0)
+}
+{
+  const h = makeHarness({ robots: 'User-agent: *\nDisallow: /\n', sourceOver: { robotsOwnerOverride: true }, pageStatus: { 1: { status: 200, body: '  ' } } })
+  const r = await run(h)
+  t('소유자 예외 요청이 빈 응답이면 차단으로 센다', r.stats.blockedResponses, 1)
+  ok('소유자 예외 빈 응답 → 실행 중단 문구', r.perTarget[0].outcome.includes('빈 응답·캡차'))
+}
+{
+  const h = makeHarness({ pageStatus: { 1: { status: 200, body: '<div class="g-recaptcha"></div>' } } })
+  const r = await runCollection({ ...fakeAdapter, abortOnChallenge: true }, { dryRun: false, targetLimit: 5 }, h.ports)
+  t('abortOnChallenge: 캡차 화면은 차단', r.stats.blockedResponses, 1)
+  const h2 = makeHarness({ pages: { 1: page([], null) } })
+  t('abortOnChallenge 없는 어댑터는 빈 본문을 차단으로 보지 않는다', (await run(h2)).stats.blockedResponses, 0)
+}
+{
+  t('isStrictBlock: /sorry/ 리다이렉트', isStrictBlock({ status: 200, body: 'x', finalUrl: 'https://www.google.com/sorry/index' }), true)
+  t('isStrictBlock: 정상 본문', isStrictBlock({ status: 200, body: ")]}'\n[]" }), false)
+  t('isStrictBlock: 4xx 는 여기 소관 아님', isStrictBlock({ status: 404, body: '' }), false)
 }
 {
   const h = makeHarness({ robotsStatus: 503 })

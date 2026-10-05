@@ -21,11 +21,69 @@ export const QUOTE_PREFIX_CHARS = 20
 export interface EvidenceQuote {
   text: string
   source_type: string
+  /**
+   * 인용이 실제로 들어 있던 입력의 review_sources.key(2026-10-05~). 고객 화면이 quote_allowed 로 거를 때 쓴다(D안).
+   * 이 날 이전에 저장된 인용에는 없다 — 없으면 "허용 확인 불가"로 보고 고객 화면에 내지 않는다(publicQuotes).
+   */
+  source_key?: string
 }
 
 export interface QuoteSource {
   source_type?: string | null
+  source_key?: string | null
   raw_text?: string | null
+}
+
+/** 고객 화면 직접 인용 상한 — 한 문장(D안 2026-10-05). */
+export function firstSentence(text: string, max = 140): string {
+  const flat = String(text ?? '').replace(/\s+/g, ' ').trim()
+  const m = /^.*?[.!?。！？](?=\s|$)/.exec(flat)
+  const s = m ? m[0] : flat
+  const chars = Array.from(s)
+  return chars.length <= max ? s : `${chars.slice(0, max - 1).join('').trimEnd()}…`
+}
+
+/**
+ * review_sources.quote_policy(마이그 20261005000003, 남헌 v19 A).
+ *  - full       : 한 문장 이내(v17 G), 글자 상한 QUOTE_MAX_CHARS.
+ *  - short_only : 한 문장 이내 + SHORT_QUOTE_MAX_CHARS 자, 여러 문장 이어붙이기 금지, 고객 화면에 소스 이름·링크·작성자 비표시.
+ *  - none       : 인용 불가.
+ * 내부 DB 는 정책과 무관하게 출처·원문 주소를 보존한다(analysis_inputs.source_key·source_url·raw_text).
+ */
+export type QuotePolicy = 'full' | 'short_only' | 'none'
+export const SHORT_QUOTE_MAX_CHARS = 140
+
+/** DB 값 → 정책. 모르는 값·NULL·못 읽음은 'none'(§7.1 — 확인 불가를 허용으로 접지 않는다). */
+export function quotePolicyOf(v: unknown): QuotePolicy {
+  return v === 'full' || v === 'short_only' ? v : 'none'
+}
+
+/** 정책을 적용한 인용 한 개. none 이면 빈 문자열. 어느 정책이든 첫 문장만 — 문장을 이어붙이지 않는다. */
+export function policyQuote(text: string | null | undefined, policy: QuotePolicy): string {
+  if (policy === 'none') return ''
+  return firstSentence(String(text ?? ''), policy === 'short_only' ? SHORT_QUOTE_MAX_CHARS : QUOTE_MAX_CHARS)
+}
+
+/**
+ * 저장된 인용 → 고객 화면에 낼 인용. 소스 키 → 정책 맵으로 거른다(맵에 없는 키는 none).
+ * source_key 가 없거나(옛 인용) 정책 맵을 못 읽었으면(policies=null) 아무것도 내지 않는다(§7.1).
+ * short_only 소스의 인용은 source_key 를 떼고 낸다 — 고객 화면에 소스 이름을 싣지 않는다.
+ * 내부 화면(검수 등)은 이 함수를 쓰지 않는다 — 원문은 DB 에 그대로 있다.
+ */
+export function publicQuotes(
+  quotes: EvidenceQuote[] | null | undefined,
+  policies: ReadonlyMap<string, unknown> | null,
+): EvidenceQuote[] {
+  if (!policies || !Array.isArray(quotes)) return []
+  const out: EvidenceQuote[] = []
+  for (const q of quotes) {
+    if (typeof q?.source_key !== 'string') continue
+    const policy = quotePolicyOf(policies.get(q.source_key))
+    const text = policyQuote(q.text, policy)
+    if (!text) continue
+    out.push(policy === 'short_only' ? { text, source_type: q.source_type } : { ...q, text })
+  }
+  return out
 }
 
 /** 공백 차이로 멀쩡한 인용이 떨어지지 않게 한다. 글자 자체는 바꾸지 않는다. */
@@ -45,6 +103,7 @@ export function normalizeEvidenceQuotes(raw: unknown, inputs: QuoteSource[] | nu
   if (!Array.isArray(raw)) return []
   const haystacks = (inputs ?? []).map((i) => ({
     source_type: typeof i?.source_type === 'string' && i.source_type ? i.source_type : 'review',
+    source_key: typeof i?.source_key === 'string' && i.source_key ? i.source_key : null,
     text: squash(String(i?.raw_text ?? '')),
   }))
 
@@ -62,7 +121,7 @@ export function normalizeEvidenceQuotes(raw: unknown, inputs: QuoteSource[] | nu
     if (!hit) continue // 원문에 없는 인용 — 지어낸 것으로 보고 버린다
 
     seen.add(text)
-    out.push({ text, source_type: hit.source_type })
+    out.push(hit.source_key ? { text, source_type: hit.source_type, source_key: hit.source_key } : { text, source_type: hit.source_type })
     if (out.length >= QUOTE_MAX_COUNT) break
   }
   return out

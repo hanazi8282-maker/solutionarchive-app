@@ -45,6 +45,7 @@ import { devtoAdapter } from '../lib/review/adapters/devto.ts'
 import { inflearnAdapter } from '../lib/review/adapters/inflearn.ts'
 import { yozmAdapter } from '../lib/review/adapters/yozm.ts'
 import { indiehackersAdapter } from '../lib/review/adapters/indiehackers.ts'
+import { googleplayAdapter } from '../lib/review/adapters/googleplay.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 import { brokenSources, LOOKBACK_DAYS, runSourceHealthReport } from './review-source-health-report.mjs'
@@ -76,6 +77,9 @@ const ADAPTERS = {
   inflearn: inflearnAdapter,
   yozm: yozmAdapter,
   indiehackers: indiehackersAdapter,
+  // 약관이 자동 접근을 금지하는 걸 알고 남헌이 연 소스(2026-10-05, 마이그 20261005000005). 우회 없음 —
+  // 403·429·빈 응답·캡차면 즉시 중단(어댑터 abortOnChallenge). robots 는 러너가 매 실행 판정한다.
+  googleplay: googleplayAdapter,
 }
 
 const args = process.argv.slice(2)

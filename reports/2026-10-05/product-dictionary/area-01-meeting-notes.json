@@ -1,0 +1,1776 @@
+{
+  "area": "01-meeting-notes",
+  "area_ko": "AI 회의록·통화 요약",
+  "scope": "회의·통화를 녹음·전사하고 AI로 요약·회의록을 만드는 도구(앱·웹·녹음기 하드웨어 동반 앱 포함)를 넣는다. 영업 대화 분석·코칭이 주력인 도구(Gong 등)는 ③에, 범용 음성 받아쓰기만 하고 요약이 없는 앱은 뺀다. 통신사 전화 앱(에이닷 전화·익시오)은 통화 녹음·요약 기능 때문에 경계 사례로 넣고 summary_ko 에 적었다. Avoma 는 영업 코칭 기능도 있지만 AI 회의 노트가 주력이라 여기에만 둔다(slug 중복 방지).",
+  "researched_at": "2026-10-05",
+  "kr_search_queries": [
+    "Google Play 검색(ko-KR): AI 회의록",
+    "Google Play 검색(ko-KR): 통화 요약",
+    "Google Play 검색(ko-KR): 음성 기록 요약",
+    "Google Play 검색(ko-KR): 회의 녹음 요약",
+    "Google Play 검색(ko-KR): 콜라보",
+    "Google Play 검색(ko-KR): 명함 관리 리멤버",
+    "Google Play 검색(ko-KR): 다글로 / 에이닷 / 세일즈 AI 영업 비서",
+    "iTunes Search API(kr): 클로바노트 / 다글로 / 티로 / 비토 통화녹음 / Return Zero / AZENSOFT 콜록",
+    "WebSearch: 0회 — 세션 한도(200회) 소진으로 첫 호출부터 거부됨"
+  ],
+  "products": [
+    {
+      "slug": "otter-ai",
+      "name": "Otter.ai",
+      "name_ko": "오터",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://otter.ai/",
+      "summary_ko": "회의에 참여해 전사·요약·인사이트를 만드는 AI 미팅 에이전트·노트테이커(홈페이지 제목 \"Otter Meeting Agent\").",
+      "selection_basis": "App Store(us) 평가 83172건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "otter-ai:googleplay",
+          "status": "확인",
+          "id": "com.aisense.otter",
+          "url": "https://play.google.com/store/apps/details?id=com.aisense.otter",
+          "evidence": "Play 상세 페이지 200 — 'OtterAI Transcribe Voice Notes' (개발사 Otter.ai, 다운로드 500만+)"
+        },
+        "appstore": {
+          "key": "otter-ai:appstore",
+          "status": "확인",
+          "id": "1276437113",
+          "url": "https://apps.apple.com/us/app/otter-transcribe-voice-notes/id1276437113",
+          "evidence": "iTunes Lookup API(us) — 'Otter Transcribe Voice Notes' 판매자 Otter.ai, Inc., 평가 83172건"
+        },
+        "capterra": {
+          "key": "otter-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "otter-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "otter-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Otter.ai' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "otter-ai:daum_search",
+          "status": "검색어",
+          "query": "오터 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://otter.ai/",
+        "https://play.google.com/store/apps/details?id=com.aisense.otter",
+        "https://apps.apple.com/us/app/otter-transcribe-voice-notes/id1276437113"
+      ]
+    },
+    {
+      "slug": "fireflies-ai",
+      "name": "Fireflies.ai",
+      "name_ko": "파이어플라이즈",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://fireflies.ai/",
+      "summary_ko": "회의·이메일·채팅·CRM 을 잇는 AI 회의 기록·요약 도구.",
+      "selection_basis": "App Store(us) 평가 5198건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "fireflies-ai:googleplay",
+          "status": "확인",
+          "id": "ai.fireflies.mobile",
+          "url": "https://play.google.com/store/apps/details?id=ai.fireflies.mobile",
+          "evidence": "Play 상세 페이지 200 — 'Fireflies: AI notetaker' (개발사 Fireflies.ai, 다운로드 50만+)"
+        },
+        "appstore": {
+          "key": "fireflies-ai:appstore",
+          "status": "확인",
+          "id": "6463164203",
+          "url": "https://apps.apple.com/us/app/fireflies-ai-notetaker/id6463164203",
+          "evidence": "iTunes Lookup API(us) — 'Fireflies: AI notetaker' 판매자 FIREFLIES.AI CORP., 평가 5198건"
+        },
+        "capterra": {
+          "key": "fireflies-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "fireflies-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "fireflies-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Fireflies.ai' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "fireflies-ai:daum_search",
+          "status": "검색어",
+          "query": "파이어플라이즈 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://fireflies.ai/",
+        "https://play.google.com/store/apps/details?id=ai.fireflies.mobile",
+        "https://apps.apple.com/us/app/fireflies-ai-notetaker/id6463164203"
+      ]
+    },
+    {
+      "slug": "fathom",
+      "name": "Fathom",
+      "name_ko": "패덤",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.fathom.ai/",
+      "summary_ko": "화상회의 녹화·요약 AI 노트테이커.",
+      "selection_basis": "App Store(us) 평가 2건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "fathom:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Fathom AI Notetaker' — 'Fathom AI: Notetaker Advice'(Junaedi MDev)는 제3자 가이드 앱, 나머지는 Otter·Fireflies 등 다른 제품"
+        },
+        "appstore": {
+          "key": "fathom:appstore",
+          "status": "확인",
+          "id": "6751613402",
+          "url": "https://apps.apple.com/us/app/fathom-ai-notetaker/id6751613402",
+          "evidence": "iTunes Lookup API(us) — 'Fathom AI Notetaker' 판매자 Fathom Video Inc., 평가 2건. 판매자 Fathom Video Inc."
+        },
+        "capterra": {
+          "key": "fathom:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "fathom:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "fathom:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Fathom AI Notetaker' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "fathom:daum_search",
+          "status": "검색어",
+          "query": "패덤 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.fathom.ai/",
+        "https://apps.apple.com/us/app/fathom-ai-notetaker/id6751613402"
+      ]
+    },
+    {
+      "slug": "tldv",
+      "name": "tl;dv",
+      "name_ko": "티엘디브이",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://tldv.io/",
+      "summary_ko": "Zoom·Google Meet·Teams 회의 녹화·AI 요약 노트테이커.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "tldv:googleplay",
+          "status": "확인",
+          "id": "com.tldv.tldvlite",
+          "url": "https://play.google.com/store/apps/details?id=com.tldv.tldvlite",
+          "evidence": "Play 상세 페이지 200 — 'tl;dv Mobile: AI Notetaker' (개발사 tldv, 다운로드 1만+)"
+        },
+        "appstore": {
+          "key": "tldv:appstore",
+          "status": "확인",
+          "id": "6753818538",
+          "url": "https://apps.apple.com/us/app/tl-dv-mobile-ai-notetaker/id6753818538",
+          "evidence": "iTunes Lookup API(us) — 'tl;dv Mobile: AI Notetaker' 판매자 tldx Solutions GmbH, 평가 0건. 판매자 tldx Solutions GmbH — tldv.io 구조화 데이터의 legalName 과 같음"
+        },
+        "capterra": {
+          "key": "tldv:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "tldv:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "tldv:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'tl;dv' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "tldv:daum_search",
+          "status": "검색어",
+          "query": "티엘디브이 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://tldv.io/",
+        "https://play.google.com/store/apps/details?id=com.tldv.tldvlite",
+        "https://apps.apple.com/us/app/tl-dv-mobile-ai-notetaker/id6753818538"
+      ]
+    },
+    {
+      "slug": "krisp",
+      "name": "Krisp",
+      "name_ko": "크리스프",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://krisp.ai/",
+      "summary_ko": "회의용 소음 제거 + AI 노트테이커.",
+      "selection_basis": "App Store(us) 평가 266건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "krisp:googleplay",
+          "status": "확인",
+          "id": "ai.krisp.krispMobile",
+          "url": "https://play.google.com/store/apps/details?id=ai.krisp.krispMobile",
+          "evidence": "Play 상세 페이지 200 — 'Krisp AI Meeting Note Taker' (개발사 Krisp Technologies, Inc., 다운로드 10만+)"
+        },
+        "appstore": {
+          "key": "krisp:appstore",
+          "status": "확인",
+          "id": "6740535865",
+          "url": "https://apps.apple.com/us/app/krisp-ai-meeting-note-taker/id6740535865",
+          "evidence": "iTunes Lookup API(us) — 'Krisp AI Meeting Note Taker' 판매자 Krisp Technologies, Inc., 평가 266건"
+        },
+        "capterra": {
+          "key": "krisp:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "krisp:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "krisp:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Krisp AI' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "krisp:daum_search",
+          "status": "검색어",
+          "query": "크리스프 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://krisp.ai/",
+        "https://play.google.com/store/apps/details?id=ai.krisp.krispMobile",
+        "https://apps.apple.com/us/app/krisp-ai-meeting-note-taker/id6740535865"
+      ]
+    },
+    {
+      "slug": "read-ai",
+      "name": "Read AI",
+      "name_ko": "리드 AI",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.read.ai/",
+      "summary_ko": "회의 요약·전사·AI 노트테이커와 업무 검색.",
+      "selection_basis": "App Store(us) 평가 967건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "read-ai:googleplay",
+          "status": "확인",
+          "id": "com.read.ai",
+          "url": "https://play.google.com/store/apps/details?id=com.read.ai",
+          "evidence": "Play 상세 페이지 200 — 'Read AI: Meeting Notes' (개발사 Read AI, 다운로드 5만+)"
+        },
+        "appstore": {
+          "key": "read-ai:appstore",
+          "status": "확인",
+          "id": "6575345796",
+          "url": "https://apps.apple.com/us/app/read-ai-transcripts-and-notes/id6575345796",
+          "evidence": "iTunes Lookup API(us) — 'Read AI: Transcripts and Notes' 판매자 Read AI, Inc., 평가 967건. 공식 홈페이지가 이 앱 ID 로 링크"
+        },
+        "capterra": {
+          "key": "read-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "read-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "read-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Read AI' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "read-ai:daum_search",
+          "status": "검색어",
+          "query": "리드 AI AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.read.ai/",
+        "https://play.google.com/store/apps/details?id=com.read.ai",
+        "https://apps.apple.com/us/app/read-ai-transcripts-and-notes/id6575345796"
+      ]
+    },
+    {
+      "slug": "granola",
+      "name": "Granola",
+      "name_ko": "그래놀라",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.granola.ai/",
+      "summary_ko": "연속 회의용 AI 노트패드.",
+      "selection_basis": "App Store(us) 평가 14090건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "granola:googleplay",
+          "status": "확인",
+          "id": "ai.granola",
+          "url": "https://play.google.com/store/apps/details?id=ai.granola",
+          "evidence": "Play 상세 페이지 200 — 'Granola - AI Meeting Notes' (개발사 Granola Inc, 다운로드 10만+)"
+        },
+        "appstore": {
+          "key": "granola:appstore",
+          "status": "확인",
+          "id": "6739429409",
+          "url": "https://apps.apple.com/us/app/granola-ai-meeting-notes/id6739429409",
+          "evidence": "iTunes Lookup API(us) — 'Granola - AI Meeting Notes' 판매자 Granola inc, 평가 14090건"
+        },
+        "capterra": {
+          "key": "granola:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "granola:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "granola:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Granola AI notepad' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "granola:daum_search",
+          "status": "검색어",
+          "query": "그래놀라 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.granola.ai/",
+        "https://play.google.com/store/apps/details?id=ai.granola",
+        "https://apps.apple.com/us/app/granola-ai-meeting-notes/id6739429409"
+      ]
+    },
+    {
+      "slug": "avoma",
+      "name": "Avoma",
+      "name_ko": "아보마",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.avoma.com/",
+      "summary_ko": "AI 회의 노트·일정 조율·코칭 플랫폼.",
+      "selection_basis": "App Store(us) 평가 16건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "avoma:googleplay",
+          "status": "확인",
+          "id": "com.avoma.android",
+          "url": "https://play.google.com/store/apps/details?id=com.avoma.android",
+          "evidence": "Play 상세 페이지 200 — 'Avoma' (개발사 Avoma, 다운로드 1천+)"
+        },
+        "appstore": {
+          "key": "avoma:appstore",
+          "status": "확인",
+          "id": "1541170153",
+          "url": "https://apps.apple.com/us/app/avoma/id1541170153",
+          "evidence": "iTunes Lookup API(us) — 'Avoma' 판매자 Avoma Inc, 평가 16건"
+        },
+        "capterra": {
+          "key": "avoma:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "avoma:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "avoma:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Avoma' — 제품 앱 아님: Avolship, Avonix 관세 및 추가 요금"
+        },
+        "daum_search": {
+          "key": "avoma:daum_search",
+          "status": "검색어",
+          "query": "아보마 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.avoma.com/",
+        "https://play.google.com/store/apps/details?id=com.avoma.android",
+        "https://apps.apple.com/us/app/avoma/id1541170153"
+      ]
+    },
+    {
+      "slug": "fellow",
+      "name": "Fellow",
+      "name_ko": "펠로우",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://fellow.ai/",
+      "summary_ko": "엔터프라이즈·규제 산업용 보안 AI 회의 비서. fellow.app 은 fellow.ai 로 리다이렉트(2026-10-05 실측).",
+      "selection_basis": "App Store(us) 평가 24건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "fellow:googleplay",
+          "status": "확인",
+          "id": "co.fellow.app",
+          "url": "https://play.google.com/store/apps/details?id=co.fellow.app",
+          "evidence": "Play 상세 페이지 200 — 'Fellow - AI Meeting Assistant' (개발사 Fellow Insights Inc., 다운로드 1만+)"
+        },
+        "appstore": {
+          "key": "fellow:appstore",
+          "status": "확인",
+          "id": "1477264742",
+          "url": "https://apps.apple.com/us/app/fellow-ai-meeting-assistant/id1477264742",
+          "evidence": "iTunes Lookup API(us) — 'Fellow - AI Meeting Assistant' 판매자 Fellow Insights, Inc., 평가 24건"
+        },
+        "capterra": {
+          "key": "fellow:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "fellow:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "fellow:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Fellow meeting notes' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "fellow:daum_search",
+          "status": "검색어",
+          "query": "펠로우 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://fellow.ai/",
+        "https://play.google.com/store/apps/details?id=co.fellow.app",
+        "https://apps.apple.com/us/app/fellow-ai-meeting-assistant/id1477264742"
+      ]
+    },
+    {
+      "slug": "meetgeek",
+      "name": "MeetGeek",
+      "name_ko": "밋긱",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://meetgeek.ai/",
+      "summary_ko": "AI 회의 노트테이커·자동화 플랫폼.",
+      "selection_basis": "App Store(us) 평가 166건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "meetgeek:googleplay",
+          "status": "확인",
+          "id": "com.meetgeek.assistant",
+          "url": "https://play.google.com/store/apps/details?id=com.meetgeek.assistant",
+          "evidence": "Play 상세 페이지 200 — '텍스트 음성 변환. 메모 앱 - MeetGeek' (개발사 MeetGeek: AI Note Taker. Transcribe Speech to Text, 다운로드 10만+)"
+        },
+        "appstore": {
+          "key": "meetgeek:appstore",
+          "status": "확인",
+          "id": "6476133984",
+          "url": "https://apps.apple.com/us/app/smart-ai-note-taker-meetgeek/id6476133984",
+          "evidence": "iTunes Lookup API(us) — 'Smart AI Note Taker - MeetGeek' 판매자 Aivision Products S.R.L., 평가 166건. 판매자 AIVISION PRODUCTS SRL — meetgeek.ai 개인정보처리방침의 EU 법인명과 같음"
+        },
+        "capterra": {
+          "key": "meetgeek:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "meetgeek:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "meetgeek:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'MeetGeek' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "meetgeek:daum_search",
+          "status": "검색어",
+          "query": "밋긱 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://meetgeek.ai/",
+        "https://play.google.com/store/apps/details?id=com.meetgeek.assistant",
+        "https://apps.apple.com/us/app/smart-ai-note-taker-meetgeek/id6476133984"
+      ]
+    },
+    {
+      "slug": "sembly-ai",
+      "name": "Sembly AI",
+      "name_ko": "셈블리",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.sembly.ai/",
+      "summary_ko": "회의 노트·할 일 정리 AI. 홈페이지는 현재 \"전문서비스용 에이전틱 AI\" 로 소개.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "sembly-ai:googleplay",
+          "status": "확인",
+          "id": "com.semblyai.android",
+          "url": "https://play.google.com/store/apps/details?id=com.semblyai.android",
+          "evidence": "Play 상세 페이지 200 — 'Sembly: AI Meeting Notes' (개발사 Sembly AI, 다운로드 1만+)"
+        },
+        "appstore": {
+          "key": "sembly-ai:appstore",
+          "status": "확인",
+          "id": "1618211441",
+          "url": "https://apps.apple.com/us/app/sembly-ai-meeting-notes-todos/id1618211441",
+          "evidence": "iTunes Lookup API(us) — 'Sembly AI Meeting Notes, Todos' 판매자 Sembly AI, Inc., 평가 0건"
+        },
+        "capterra": {
+          "key": "sembly-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "sembly-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "sembly-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Sembly AI' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "sembly-ai:daum_search",
+          "status": "검색어",
+          "query": "셈블리 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.sembly.ai/",
+        "https://play.google.com/store/apps/details?id=com.semblyai.android",
+        "https://apps.apple.com/us/app/sembly-ai-meeting-notes-todos/id1618211441"
+      ]
+    },
+    {
+      "slug": "notta",
+      "name": "Notta",
+      "name_ko": "노타",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.notta.ai/",
+      "summary_ko": "AI 노트테이커·음성 텍스트 변환. 한국어 사이트(notta.ai/ko)가 있다.",
+      "selection_basis": "App Store(us) 평가 1437건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "notta:googleplay",
+          "status": "확인",
+          "id": "com.langogo.transcribe",
+          "url": "https://play.google.com/store/apps/details?id=com.langogo.transcribe",
+          "evidence": "Play 상세 페이지 200 — 'Notta-음성을 텍스트로 변환, 음성 메모 및 녹음' (개발사 NOTTA PTE. LTD., 다운로드 100만+)"
+        },
+        "appstore": {
+          "key": "notta:appstore",
+          "status": "확인",
+          "id": "1480649572",
+          "url": "https://apps.apple.com/us/app/notta-transcribe-voice-to-text/id1480649572",
+          "evidence": "iTunes Lookup API(us) — 'Notta Transcribe Voice to Text' 판매자 Mind Cruiser Limited, 평가 1437건. 판매자 Mind Cruiser Limited — 공식 홈페이지(notta.ai/en)가 이 앱 ID 로 링크"
+        },
+        "capterra": {
+          "key": "notta:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "notta:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "notta:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Notta' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "notta:daum_search",
+          "status": "검색어",
+          "query": "노타 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.notta.ai/",
+        "https://play.google.com/store/apps/details?id=com.langogo.transcribe",
+        "https://apps.apple.com/us/app/notta-transcribe-voice-to-text/id1480649572"
+      ]
+    },
+    {
+      "slug": "supernormal",
+      "name": "Supernormal",
+      "name_ko": "슈퍼노멀",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.supernormal.com/",
+      "summary_ko": "AI 회의 노트 도구로 알려졌으나 현재 홈페이지 제목은 \"AI agent for agencies\" — 포지션이 바뀐 경계 사례.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "supernormal:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Supernormal AI notes' 상위 4개에 제품 회사 앱 없음: Smart Noter - AI 노트 필기(Deep Flow Apps), Summary - AI Note Taker(Labhouse Mobile), Supernormal Pets(Supernormal Pets), HiNoter - AI 노트 테이커(Nieruo Team)"
+        },
+        "appstore": {
+          "key": "supernormal:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Supernormal AI notes' 상위 결과에 제품 회사 앱 없음 — us: Claude by Anthropic(Anthropic PBC), Google Gemini(Google LLC), Kimi - Kimi K3 is Live(Beijing Moonshot Technology Co., Ltd)"
+        },
+        "capterra": {
+          "key": "supernormal:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "supernormal:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "supernormal:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Supernormal AI notes' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "supernormal:daum_search",
+          "status": "검색어",
+          "query": "슈퍼노멀 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.supernormal.com/"
+      ]
+    },
+    {
+      "slug": "tactiq",
+      "name": "Tactiq",
+      "name_ko": "택틱",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://tactiq.io/",
+      "summary_ko": "Google Meet·Zoom·Teams 용 AI 노트테이커.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "tactiq:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Tactiq' — 'Tactiq'(LIV TECH LTD) 앱이 있으나 tactiq.io 약관·개인정보 페이지에 그 회사명이 없어 제외. 'Tactiq Club'은 축구 앱"
+        },
+        "appstore": {
+          "key": "tactiq:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Tactiq' 상위 결과에 제품 회사 앱 없음 — us: Tactiq: Practice Planner(COLBY M HEGARTY), Tactiq(Murat Can Umit), TactiQ: Football Scores & AI(GROWING PRO PTE. LTD.)"
+        },
+        "capterra": {
+          "key": "tactiq:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "tactiq:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "tactiq:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Tactiq' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "tactiq:daum_search",
+          "status": "검색어",
+          "query": "택틱 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://tactiq.io/"
+      ]
+    },
+    {
+      "slug": "bluedot",
+      "name": "Bluedot",
+      "name_ko": "블루닷",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.bluedothq.com/",
+      "summary_ko": "회의 봇 없이 기록하는 개인정보 우선 AI 노트테이커(홈페이지 제목 \"Bot-Free & Privacy-First\").",
+      "selection_basis": "App Store(us) 평가 242건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "bluedot:googleplay",
+          "status": "확인",
+          "id": "bluedot.ai.notetaker",
+          "url": "https://play.google.com/store/apps/details?id=bluedot.ai.notetaker",
+          "evidence": "Play 상세 페이지 200 — 'Bluedot Al Note Taker' (개발사 Twiso Inc., 다운로드 1만+). 개발사 Twiso Inc. — 공식 홈페이지가 이 패키지로 링크"
+        },
+        "appstore": {
+          "key": "bluedot:appstore",
+          "status": "확인",
+          "id": "6754837598",
+          "url": "https://apps.apple.com/us/app/bluedot-ai-note-taker/id6754837598",
+          "evidence": "iTunes Lookup API(us) — 'Bluedot AI Note Taker' 판매자 Twiso Inc., 평가 242건. 공식 홈페이지가 이 앱 ID 로 링크"
+        },
+        "capterra": {
+          "key": "bluedot:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "bluedot:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "bluedot:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Bluedot AI notetaker' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "bluedot:daum_search",
+          "status": "검색어",
+          "query": "블루닷 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.bluedothq.com/",
+        "https://play.google.com/store/apps/details?id=bluedot.ai.notetaker",
+        "https://apps.apple.com/us/app/bluedot-ai-note-taker/id6754837598"
+      ]
+    },
+    {
+      "slug": "jamie",
+      "name": "Jamie",
+      "name_ko": "제이미",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.meetjamie.ai/",
+      "summary_ko": "회의 인텔리전스 AI 노트테이커(독일).",
+      "selection_basis": "App Store(us) 평가 243건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "jamie:googleplay",
+          "status": "확인",
+          "id": "ai.meetjamie.expoapp",
+          "url": "https://play.google.com/store/apps/details?id=ai.meetjamie.expoapp",
+          "evidence": "Play 상세 페이지 200 — 'Jamie - AI Meeting Note Taker' (개발사 Jamie AI, 다운로드 1천+)"
+        },
+        "appstore": {
+          "key": "jamie:appstore",
+          "status": "확인",
+          "id": "6747801435",
+          "url": "https://apps.apple.com/us/app/ai-meeting-note-taker-jamie/id6747801435",
+          "evidence": "iTunes Lookup API(us) — 'AI Meeting Note Taker - Jamie' 판매자 wespond UG (haftungsbeschraenkt), 평가 243건. 판매자 wespond UG — meetjamie.ai 임프린트의 회사명과 같음"
+        },
+        "capterra": {
+          "key": "jamie:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "jamie:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "jamie:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Jamie AI meeting notes' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "jamie:daum_search",
+          "status": "검색어",
+          "query": "제이미 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.meetjamie.ai/",
+        "https://play.google.com/store/apps/details?id=ai.meetjamie.expoapp",
+        "https://apps.apple.com/us/app/ai-meeting-note-taker-jamie/id6747801435"
+      ]
+    },
+    {
+      "slug": "plaud",
+      "name": "Plaud",
+      "name_ko": "플라우드",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.plaud.ai/",
+      "summary_ko": "AI 녹음기 하드웨어와 노트테이커 앱. \"세계 1위 AI 노트 브랜드\" 는 자사 주장이다.",
+      "selection_basis": "App Store(us) 평가 23175건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "plaud:googleplay",
+          "status": "확인",
+          "id": "ai.plaud.android.plaud",
+          "url": "https://play.google.com/store/apps/details?id=ai.plaud.android.plaud",
+          "evidence": "Play 상세 페이지 200 — 'Plaud: AI Note Taker' (개발사 PLAUD LLC, 다운로드 50만+)"
+        },
+        "appstore": {
+          "key": "plaud:appstore",
+          "status": "확인",
+          "id": "6450364080",
+          "url": "https://apps.apple.com/us/app/plaud-ai-note-taker/id6450364080",
+          "evidence": "iTunes Lookup API(us) — 'Plaud: AI Note Taker' 판매자 PLAUD LLC, 평가 23175건"
+        },
+        "capterra": {
+          "key": "plaud:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "plaud:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "plaud:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'PLAUD AI' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "plaud:daum_search",
+          "status": "검색어",
+          "query": "플라우드 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.plaud.ai/",
+        "https://play.google.com/store/apps/details?id=ai.plaud.android.plaud",
+        "https://apps.apple.com/us/app/plaud-ai-note-taker/id6450364080"
+      ]
+    },
+    {
+      "slug": "circleback",
+      "name": "Circleback",
+      "name_ko": "서클백",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://circleback.ai/",
+      "summary_ko": "AI 회의 노트.",
+      "selection_basis": "App Store(us) 평가 255건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "circleback:googleplay",
+          "status": "확인",
+          "id": "ai.circleback.app",
+          "url": "https://play.google.com/store/apps/details?id=ai.circleback.app",
+          "evidence": "Play 상세 페이지 200 — 'Circleback - AI Meeting Notes' (개발사 Circleback AI, Inc., 다운로드 5천+)"
+        },
+        "appstore": {
+          "key": "circleback:appstore",
+          "status": "확인",
+          "id": "6738971048",
+          "url": "https://apps.apple.com/us/app/circleback-ai-meeting-notes/id6738971048",
+          "evidence": "iTunes Lookup API(us) — 'Circleback - AI Meeting Notes' 판매자 Circleback AI, Inc., 평가 255건"
+        },
+        "capterra": {
+          "key": "circleback:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "circleback:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "circleback:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Circleback AI' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "circleback:daum_search",
+          "status": "검색어",
+          "query": "서클백 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://circleback.ai/",
+        "https://play.google.com/store/apps/details?id=ai.circleback.app",
+        "https://apps.apple.com/us/app/circleback-ai-meeting-notes/id6738971048"
+      ]
+    },
+    {
+      "slug": "rev",
+      "name": "Rev",
+      "name_ko": "레브",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.rev.com/",
+      "summary_ko": "녹음·전사 서비스. 현재 홈페이지는 조사·법률용 전사 플랫폼으로 소개 — 회의록 전용은 아닌 경계 사례.",
+      "selection_basis": "App Store(us) 평가 4309건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "rev:googleplay",
+          "status": "확인",
+          "id": "com.rev.revcorder",
+          "url": "https://play.google.com/store/apps/details?id=com.rev.revcorder",
+          "evidence": "Play 상세 페이지 200 — 'Rev: Transcription & Analysis' (개발사 Rev.com, 다운로드 50만+)"
+        },
+        "appstore": {
+          "key": "rev:appstore",
+          "status": "확인",
+          "id": "598332111",
+          "url": "https://apps.apple.com/us/app/rev-record-transcribe/id598332111",
+          "evidence": "iTunes Lookup API(us) — 'Rev: Record & Transcribe' 판매자 Rev.com, Inc., 평가 4309건"
+        },
+        "capterra": {
+          "key": "rev:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "rev:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "rev:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Rev transcription' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "rev:daum_search",
+          "status": "검색어",
+          "query": "레브 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.rev.com/",
+        "https://play.google.com/store/apps/details?id=com.rev.revcorder",
+        "https://apps.apple.com/us/app/rev-record-transcribe/id598332111"
+      ]
+    },
+    {
+      "slug": "grain",
+      "name": "Grain",
+      "name_ko": "그레인",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://grain.com/",
+      "summary_ko": "성장 단계 팀용 AI 노트테이커.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "grain:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Grain AI meeting' 상위 4개에 제품 회사 앱 없음: OtterAI Transcribe Voice Notes(Otter.ai), Grain.AI(MD FORHATH KHONDOKAR), MeetingNote: AI 메모 작성자(Feynman EinsteinAI Note Taker OU), Summary - AI Note Taker(Labhouse Mobile)"
+        },
+        "appstore": {
+          "key": "grain:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Grain AI meeting' 상위 결과에 제품 회사 앱 없음 — us: Genspark AI Workspace(genspark inc), Kimi - Kimi K3 is Live(Beijing Moonshot Technology Co., Ltd), Chat AI 5: AI Agent & Video(Alzor Labs Company Limited)"
+        },
+        "capterra": {
+          "key": "grain:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "grain:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "grain:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Grain AI meeting' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "grain:daum_search",
+          "status": "검색어",
+          "query": "그레인 AI 회의록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://grain.com/"
+      ]
+    },
+    {
+      "slug": "clova-note",
+      "name": "CLOVA Note",
+      "name_ko": "클로바노트",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://clovanote.naver.com/",
+      "summary_ko": "네이버의 음성 기록·AI 요약 서비스. 네이버웍스용 별도 앱(정부 네이버웍스 클로바노트, NAVER Cloud)은 같은 계열이라 따로 넣지 않았다.",
+      "selection_basis": "Play 검색 'AI 회의록'·'통화 요약' 1위 · Play 다운로드 100만+ · App Store(kr) 평가 124367건. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "clova-note:googleplay",
+          "status": "확인",
+          "id": "com.naver.clova.minute",
+          "url": "https://play.google.com/store/apps/details?id=com.naver.clova.minute",
+          "evidence": "Play 상세 페이지 200 — '클로바노트 - 음성 그 이상의 기록' (개발사 NAVER Corp., 다운로드 100만+)"
+        },
+        "appstore": {
+          "key": "clova-note:appstore",
+          "status": "확인",
+          "id": "1530010245",
+          "url": "https://apps.apple.com/kr/app/%ED%81%B4%EB%A1%9C%EB%B0%94%EB%85%B8%ED%8A%B8-%EC%9D%8C%EC%84%B1-%EA%B7%B8-%EC%9D%B4%EC%83%81%EC%9D%98-%EA%B8%B0%EB%A1%9D/id1530010245",
+          "evidence": "iTunes Lookup API(kr) — '클로바노트 - 음성 그 이상의 기록' 판매자 NAVER Corp., 평가 124367건"
+        },
+        "capterra": {
+          "key": "clova-note:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "clova-note:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "clova-note:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '클로바노트' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "clova-note:daum_search",
+          "status": "검색어",
+          "query": "클로바노트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://clovanote.naver.com/",
+        "https://play.google.com/store/apps/details?id=com.naver.clova.minute",
+        "https://apps.apple.com/kr/app/%ED%81%B4%EB%A1%9C%EB%B0%94%EB%85%B8%ED%8A%B8-%EC%9D%8C%EC%84%B1-%EA%B7%B8-%EC%9D%B4%EC%83%81%EC%9D%98-%EA%B8%B0%EB%A1%9D/id1530010245"
+      ]
+    },
+    {
+      "slug": "daglo",
+      "name": "daglo",
+      "name_ko": "다글로",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://daglo.ai/",
+      "summary_ko": "액션파워(ActionPower)의 AI 노트테이커·음성 인텔리전스 워크스페이스.",
+      "selection_basis": "Play 다운로드 100만+ · App Store(kr) 평가 16345건. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "daglo:googleplay",
+          "status": "확인",
+          "id": "ai.daglo.mobile",
+          "url": "https://play.google.com/store/apps/details?id=ai.daglo.mobile",
+          "evidence": "Play 상세 페이지 200 — 'daglo: All-in-one AI Notetaker' (개발사 ActionPower, 다운로드 100만+)"
+        },
+        "appstore": {
+          "key": "daglo:appstore",
+          "status": "확인",
+          "id": "1632867925",
+          "url": "https://apps.apple.com/kr/app/daglo-all-in-one-ai-notetaker/id1632867925",
+          "evidence": "iTunes Lookup API(kr) — 'daglo: All-in-one AI Notetaker' 판매자 ActionPower Corp., 평가 16345건"
+        },
+        "capterra": {
+          "key": "daglo:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "daglo:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "daglo:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '다글로' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "daglo:daum_search",
+          "status": "검색어",
+          "query": "다글로 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://daglo.ai/",
+        "https://play.google.com/store/apps/details?id=ai.daglo.mobile",
+        "https://apps.apple.com/kr/app/daglo-all-in-one-ai-notetaker/id1632867925"
+      ]
+    },
+    {
+      "slug": "tiro",
+      "name": "Tiro",
+      "name_ko": "티로",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://tiro.ooo/",
+      "summary_ko": "더플라토(The Plato)의 AI 회의록.",
+      "selection_basis": "Play 다운로드 10만+ · App Store(kr) 평가 836건. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "tiro:googleplay",
+          "status": "확인",
+          "id": "io.plato.tiro",
+          "url": "https://play.google.com/store/apps/details?id=io.plato.tiro",
+          "evidence": "Play 상세 페이지 200 — '티로 Tiro - 가장 정확한 AI 회의록' (개발사 The Plato, 다운로드 10만+)"
+        },
+        "appstore": {
+          "key": "tiro:appstore",
+          "status": "확인",
+          "id": "6503079839",
+          "url": "https://apps.apple.com/kr/app/%ED%8B%B0%EB%A1%9C-tiro-%EA%B0%80%EC%9E%A5-%EC%A0%95%ED%99%95%ED%95%9C-ai-%ED%9A%8C%EC%9D%98%EB%A1%9D/id6503079839",
+          "evidence": "iTunes Lookup API(kr) — '티로 Tiro - 가장 정확한 AI 회의록' 판매자 ThePlato Inc., 평가 836건"
+        },
+        "capterra": {
+          "key": "tiro:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "tiro:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "tiro:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '티로 Tiro' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "tiro:daum_search",
+          "status": "검색어",
+          "query": "티로 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://tiro.ooo/",
+        "https://play.google.com/store/apps/details?id=io.plato.tiro",
+        "https://apps.apple.com/kr/app/%ED%8B%B0%EB%A1%9C-tiro-%EA%B0%80%EC%9E%A5-%EC%A0%95%ED%99%95%ED%95%9C-ai-%ED%9A%8C%EC%9D%98%EB%A1%9D/id6503079839"
+      ]
+    },
+    {
+      "slug": "vito",
+      "name": "VITO",
+      "name_ko": "비토",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.vito.ai/",
+      "summary_ko": "리턴제로(returnzero)의 통화녹음 자동 문자변환·요약 앱.",
+      "selection_basis": "Play 다운로드 50만+. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "vito:googleplay",
+          "status": "확인",
+          "id": "ai.rtzr.vito",
+          "url": "https://play.google.com/store/apps/details?id=ai.rtzr.vito",
+          "evidence": "Play 상세 페이지 200 — '통화녹음 자동문자변환, 깔끔한 요약 - 비토/VITO' (개발사 returnzero, 다운로드 50만+)"
+        },
+        "appstore": {
+          "key": "vito:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(kr) '비토 통화녹음'·'Return Zero' — Return Zero, Inc. 판매자 앱은 콜라보 하나뿐"
+        },
+        "capterra": {
+          "key": "vito:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "vito:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "vito:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '비토 VITO' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "vito:daum_search",
+          "status": "검색어",
+          "query": "비토 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.vito.ai/",
+        "https://play.google.com/store/apps/details?id=ai.rtzr.vito"
+      ]
+    },
+    {
+      "slug": "callabo",
+      "name": "Callabo",
+      "name_ko": "콜라보",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://callabo.ai/",
+      "summary_ko": "리턴제로의 개인·기업용 AI 회의록·미팅 녹음기. 후보 목록의 \"콜라보\"가 이 제품이다(Play 검색 '콜라보' 1위, 개발사 returnzero).",
+      "selection_basis": "Play 다운로드 1천+ · App Store(kr) 평가 44건. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "callabo:googleplay",
+          "status": "확인",
+          "id": "ai.rtzr.callabo",
+          "url": "https://play.google.com/store/apps/details?id=ai.rtzr.callabo",
+          "evidence": "Play 상세 페이지 200 — '콜라보 Callabo - AI 회의록 & 미팅 녹음기' (개발사 returnzero, 다운로드 1천+)"
+        },
+        "appstore": {
+          "key": "callabo:appstore",
+          "status": "확인",
+          "id": "6445909567",
+          "url": "https://apps.apple.com/kr/app/%EC%BD%9C%EB%9D%BC%EB%B3%B4-callabo-ai-%ED%9A%8C%EC%9D%98%EB%A1%9D-%EB%AF%B8%ED%8C%85-%EB%85%B9%EC%9D%8C%EA%B8%B0/id6445909567",
+          "evidence": "iTunes Lookup API(kr) — '콜라보 Callabo - AI 회의록 & 미팅 녹음기' 판매자 Return Zero, Inc., 평가 44건"
+        },
+        "capterra": {
+          "key": "callabo:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "callabo:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "callabo:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '콜라보 Callabo' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "callabo:daum_search",
+          "status": "검색어",
+          "query": "콜라보 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://callabo.ai/",
+        "https://play.google.com/store/apps/details?id=ai.rtzr.callabo",
+        "https://apps.apple.com/kr/app/%EC%BD%9C%EB%9D%BC%EB%B3%B4-callabo-ai-%ED%9A%8C%EC%9D%98%EB%A1%9D-%EB%AF%B8%ED%8C%85-%EB%85%B9%EC%9D%8C%EA%B8%B0/id6445909567"
+      ]
+    },
+    {
+      "slug": "adot",
+      "name": "A. (에이닷)",
+      "name_ko": "에이닷",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://adot.ai/",
+      "summary_ko": "SK텔레콤의 AI 비서 브랜드. 통화 녹음·요약은 \"에이닷 전화\" 앱(Play 설명 \"통화녹음과 요약\")에 있어 그 앱을 소스로 잡았다. 비서 앱은 com.skt.nugu.apollo / App Store 1615345993.",
+      "selection_basis": "Play 다운로드 1억+ · App Store(kr) 평가 53783건. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "adot:googleplay",
+          "status": "확인",
+          "id": "com.skt.prod.dialer",
+          "url": "https://play.google.com/store/apps/details?id=com.skt.prod.dialer",
+          "evidence": "Play 상세 페이지 200 — '에이닷 전화' (개발사 SKTelecom, 다운로드 1억+)"
+        },
+        "appstore": {
+          "key": "adot:appstore",
+          "status": "확인",
+          "id": "1150947951",
+          "url": "https://apps.apple.com/kr/app/%EC%97%90%EC%9D%B4%EB%8B%B7-%EC%A0%84%ED%99%94/id1150947951",
+          "evidence": "iTunes Lookup API(kr) — '에이닷 전화' 판매자 SK Telecom, 평가 53783건"
+        },
+        "capterra": {
+          "key": "adot:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "adot:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "adot:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '에이닷' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "adot:daum_search",
+          "status": "검색어",
+          "query": "에이닷 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://adot.ai/",
+        "https://play.google.com/store/apps/details?id=com.skt.prod.dialer",
+        "https://apps.apple.com/kr/app/%EC%97%90%EC%9D%B4%EB%8B%B7-%EC%A0%84%ED%99%94/id1150947951"
+      ]
+    },
+    {
+      "slug": "ixio",
+      "name": "ixi-O",
+      "name_ko": "익시오",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://ixi-o.com/",
+      "summary_ko": "LG유플러스의 AI 통화 앱. Play '통화 요약' 검색에 노출되지만 요약 기능의 세부는 이 조사에서 확인하지 못했다(경계 사례). 통화녹음 별도 앱 com.lguplus.callrecorder 도 있다.",
+      "selection_basis": "Play 다운로드 500만+ · App Store(kr) 평가 384건. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "ixio:googleplay",
+          "status": "확인",
+          "id": "com.lguplus.aicallagent",
+          "url": "https://play.google.com/store/apps/details?id=com.lguplus.aicallagent",
+          "evidence": "Play 상세 페이지 200 — '익시오(ixi-O)' (개발사 LG유플러스(LG Uplus Corporation), 다운로드 500만+)"
+        },
+        "appstore": {
+          "key": "ixio:appstore",
+          "status": "확인",
+          "id": "6503931858",
+          "url": "https://apps.apple.com/kr/app/%EC%9D%B5%EC%8B%9C%EC%98%A4-ixi-o/id6503931858",
+          "evidence": "iTunes Lookup API(kr) — '익시오(ixi-O)' 판매자 LG Uplus, 평가 384건"
+        },
+        "capterra": {
+          "key": "ixio:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "ixio:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "ixio:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '익시오' — 제품 앱 아님: UR:블로그 읽기 시간 추정기"
+        },
+        "daum_search": {
+          "key": "ixio:daum_search",
+          "status": "검색어",
+          "query": "익시오 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://ixi-o.com/",
+        "https://play.google.com/store/apps/details?id=com.lguplus.aicallagent",
+        "https://apps.apple.com/kr/app/%EC%9D%B5%EC%8B%9C%EC%98%A4-ixi-o/id6503931858"
+      ]
+    },
+    {
+      "slug": "remember-note",
+      "name": "Remember Note",
+      "name_ko": "리멤버 노트",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://note.rememberapp.co.kr/",
+      "summary_ko": "리멤버앤컴퍼니의 비즈니스 AI 회의록·미팅 노트(녹음→요약·회의록). 후보 목록의 \"리멤버\"는 본 앱(명함·경력채용)이 아니라 이 제품으로 배치했다.",
+      "selection_basis": "Play 다운로드 1천+ · App Store(kr) 평가 16건. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "remember-note:googleplay",
+          "status": "확인",
+          "id": "com.rememberapp.note",
+          "url": "https://play.google.com/store/apps/details?id=com.rememberapp.note",
+          "evidence": "Play 상세 페이지 200 — '리멤버 노트 - 일 잘하는 AI 녹음기' (개발사 Remember & Company, 다운로드 1천+)"
+        },
+        "appstore": {
+          "key": "remember-note:appstore",
+          "status": "확인",
+          "id": "6761751664",
+          "url": "https://apps.apple.com/kr/app/%EB%A6%AC%EB%A9%A4%EB%B2%84-%EB%85%B8%ED%8A%B8-%EC%9D%BC-%EC%9E%98%ED%95%98%EB%8A%94-ai-%EB%85%B9%EC%9D%8C%EA%B8%B0/id6761751664",
+          "evidence": "iTunes Lookup API(kr) — '리멤버 노트 - 일 잘하는 AI 녹음기' 판매자 Remember & Company Co., Ltd, 평가 16건"
+        },
+        "capterra": {
+          "key": "remember-note:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "remember-note:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "remember-note:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '리멤버 노트' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "remember-note:daum_search",
+          "status": "검색어",
+          "query": "리멤버 노트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://note.rememberapp.co.kr/",
+        "https://play.google.com/store/apps/details?id=com.rememberapp.note",
+        "https://apps.apple.com/kr/app/%EB%A6%AC%EB%A9%A4%EB%B2%84-%EB%85%B8%ED%8A%B8-%EC%9D%BC-%EC%9E%98%ED%95%98%EB%8A%94-ai-%EB%85%B9%EC%9D%8C%EA%B8%B0/id6761751664"
+      ]
+    },
+    {
+      "slug": "hoirock",
+      "name": "Hoirock",
+      "name_ko": "회의록(Hoirock)",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://hoirock.com/",
+      "summary_ko": "Weraser Corporation 의 실시간 AI 회의 비서. Play 개발자 정보에 국내 사업자·통신판매업 번호(충남 천안)가 있다.",
+      "selection_basis": "Play 다운로드 1천+ · App Store(kr) 평가 2건. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "hoirock:googleplay",
+          "status": "확인",
+          "id": "com.hoirock.app",
+          "url": "https://play.google.com/store/apps/details?id=com.hoirock.app",
+          "evidence": "Play 상세 페이지 200 — '회의록(Hoirock) - 실시간 AI 회의 비서' (개발사 Weraser Corporation, 다운로드 1천+)"
+        },
+        "appstore": {
+          "key": "hoirock:appstore",
+          "status": "확인",
+          "id": "6760815604",
+          "url": "https://apps.apple.com/kr/app/%ED%9A%8C%EC%9D%98%EB%A1%9D-hoirock-%EC%8B%A4%EC%8B%9C%EA%B0%84-ai-%ED%9A%8C%EC%9D%98-%EB%B9%84%EC%84%9C/id6760815604",
+          "evidence": "iTunes Lookup API(kr) — '회의록(Hoirock) - 실시간 AI 회의 비서' 판매자 Weraser Corporation, 평가 2건"
+        },
+        "capterra": {
+          "key": "hoirock:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "hoirock:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "hoirock:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '회의록 Hoirock' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "hoirock:daum_search",
+          "status": "검색어",
+          "query": "회의록(Hoirock) 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://hoirock.com/",
+        "https://play.google.com/store/apps/details?id=com.hoirock.app",
+        "https://apps.apple.com/kr/app/%ED%9A%8C%EC%9D%98%EB%A1%9D-hoirock-%EC%8B%A4%EC%8B%9C%EA%B0%84-ai-%ED%9A%8C%EC%9D%98-%EB%B9%84%EC%84%9C/id6760815604"
+      ]
+    },
+    {
+      "slug": "meeting-os",
+      "name": "Meeting OS",
+      "name_ko": "AI 회의록 Meeting OS",
+      "name_ko_basis": "공식(앱 이름)",
+      "region": "kr",
+      "official_url": "https://ai-meeting-os-jry3.vercel.app/",
+      "summary_ko": "상상연구소의 AI 회의록 앱. 독립 도메인 없이 vercel.app 주소만 있다. Play 개발자 정보에 국내 사업자·통신판매업 번호(경남 진주)가 있다.",
+      "selection_basis": "Play 다운로드 10+. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "meeting-os:googleplay",
+          "status": "확인",
+          "id": "com.aimeetingos.meetingos",
+          "url": "https://play.google.com/store/apps/details?id=com.aimeetingos.meetingos",
+          "evidence": "Play 상세 페이지 200 — 'AI 회의록 · Meeting OS' (개발사 상상연구소, 다운로드 10+)"
+        },
+        "appstore": {
+          "key": "meeting-os:appstore",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'AI 회의록 Meeting OS'(id6809749319) 판매자가 개인(Hyunbin Shon)이라 Play 개발사 상상연구소와 같은 주체인지 확인 못 함"
+        },
+        "capterra": {
+          "key": "meeting-os:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "meeting-os:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "meeting-os:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'AI 회의록 Meeting OS' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "meeting-os:daum_search",
+          "status": "검색어",
+          "query": "AI 회의록 Meeting OS 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://ai-meeting-os-jry3.vercel.app/",
+        "https://play.google.com/store/apps/details?id=com.aimeetingos.meetingos"
+      ]
+    },
+    {
+      "slug": "callog",
+      "name": "Callog",
+      "name_ko": "콜록",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://callog.azensoft.kr/",
+      "summary_ko": "아젠소프트(AZENSOFT)의 AI 통화 요약·통화 메모 앱. Play 개발자 정보에 국내 사업자 번호(세종)가 있다.",
+      "selection_basis": "Play 다운로드 100+. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "callog:googleplay",
+          "status": "확인",
+          "id": "com.callog.app",
+          "url": "https://play.google.com/store/apps/details?id=com.callog.app",
+          "evidence": "Play 상세 페이지 200 — '콜록 Callog - AI 통화 요약·통화 녹음 메모' (개발사 AZENSOFT, 다운로드 100+)"
+        },
+        "appstore": {
+          "key": "callog:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(kr) '콜록 통화 요약'·'AZENSOFT 콜록' 결과 0건"
+        },
+        "capterra": {
+          "key": "callog:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "callog:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "callog:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '콜록 Callog' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "callog:daum_search",
+          "status": "검색어",
+          "query": "콜록 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://callog.azensoft.kr/",
+        "https://play.google.com/store/apps/details?id=com.callog.app"
+      ]
+    }
+  ]
+}

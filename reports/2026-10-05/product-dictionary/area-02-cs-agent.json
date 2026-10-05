@@ -1,0 +1,1474 @@
+{
+  "area": "02-cs-agent",
+  "area_ko": "AI 고객상담 에이전트",
+  "scope": "고객 문의를 AI 가 직접 응대·해결하거나 상담원을 보조하는 고객상담 AI 에이전트·챗봇·헬프데스크(AI 기능 포함)와 AI 전화 응대를 넣는다. 감정·심리상담 AI 챗봇, 원격지원 도구(헬프유 등), 범용 메신저는 뺀다. 상담 채널 인프라(카카오 상담톡)도 AI 에이전트가 아니라 뺐다.",
+  "researched_at": "2026-10-05",
+  "kr_search_queries": [
+    "Google Play 검색(ko-KR): 고객 상담 채팅 챗봇",
+    "Google Play 검색(ko-KR): AI 상담원",
+    "Google Play 검색(ko-KR): AI 챗봇 상담 솔루션 채널톡",
+    "Google Play 검색(ko-KR): 채널톡 / 해피톡 / AI통화비서 / 와이즈넛 / 스켈터랩스 / 단비 챗봇",
+    "공식 사이트 직접 확인: channel.io, happytalk.io, wisenut.com, skelterlabs.com, danbee.ai, maum.ai(로봇 Physical AI 로 전환돼 제외), allganize.ai/ko(404, 고객상담 제품 확인 못 해 제외), sendbird.com(한국 기업 여부를 페이지에서 확인 못 해 제외)",
+    "WebSearch: 0회 — 세션 한도(200회) 소진"
+  ],
+  "products": [
+    {
+      "slug": "intercom-fin",
+      "name": "Intercom Fin",
+      "name_ko": "인터콤 핀",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://fin.ai/",
+      "summary_ko": "Intercom 의 AI 고객상담 에이전트 Fin. 모바일 앱은 Intercom 상담함 앱(Fin 단독 앱 아님).",
+      "selection_basis": "App Store(us) 평가 172건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "intercom-fin:googleplay",
+          "status": "확인",
+          "id": "io.intercom.android",
+          "url": "https://play.google.com/store/apps/details?id=io.intercom.android",
+          "evidence": "Play 상세 페이지 200 — 'Intercom Conversations' (개발사 Intercom, Inc, 다운로드 10만+)"
+        },
+        "appstore": {
+          "key": "intercom-fin:appstore",
+          "status": "확인",
+          "id": "739927601",
+          "url": "https://apps.apple.com/us/app/intercom-conversations/id739927601",
+          "evidence": "iTunes Lookup API(us) — 'Intercom Conversations' 판매자 Intercom, Incorporated, 평가 172건"
+        },
+        "capterra": {
+          "key": "intercom-fin:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "intercom-fin:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "intercom-fin:shopify_apps",
+          "status": "확인",
+          "id": "fin",
+          "url": "https://apps.shopify.com/fin",
+          "evidence": "앱 페이지 200 — '완벽한 고객 경험을 제공하도록 구축된 AI입니다.'. 개발사 Intercom(partners/developer-baa1ce2b87749071) — \"Fin AI Agent & Intercom\""
+        },
+        "daum_search": {
+          "key": "intercom-fin:daum_search",
+          "status": "검색어",
+          "query": "인터콤 핀 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://fin.ai/",
+        "https://play.google.com/store/apps/details?id=io.intercom.android",
+        "https://apps.apple.com/us/app/intercom-conversations/id739927601",
+        "https://apps.shopify.com/fin"
+      ]
+    },
+    {
+      "slug": "zendesk-ai",
+      "name": "Zendesk",
+      "name_ko": "젠데스크",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.zendesk.com/",
+      "summary_ko": "AI 기반 고객서비스 플랫폼(헬프데스크 + AI 에이전트). 국내 접속 시 zendesk.kr 로 리다이렉트된다.",
+      "selection_basis": "App Store(us) 평가 4216건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "zendesk-ai:googleplay",
+          "status": "확인",
+          "id": "com.zendesk.android",
+          "url": "https://play.google.com/store/apps/details?id=com.zendesk.android",
+          "evidence": "Play 상세 페이지 200 — 'Zendesk Support' (개발사 Zendesk Mobile, 다운로드 50만+)"
+        },
+        "appstore": {
+          "key": "zendesk-ai:appstore",
+          "status": "확인",
+          "id": "1174276185",
+          "url": "https://apps.apple.com/us/app/zendesk-support/id1174276185",
+          "evidence": "iTunes Lookup API(us) — 'Zendesk Support' 판매자 Zendesk, Inc., 평가 4216건"
+        },
+        "capterra": {
+          "key": "zendesk-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "zendesk-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "zendesk-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Zendesk' — Stylo·Setloop 등 제3자 연동 앱만"
+        },
+        "daum_search": {
+          "key": "zendesk-ai:daum_search",
+          "status": "검색어",
+          "query": "젠데스크 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.zendesk.com/",
+        "https://play.google.com/store/apps/details?id=com.zendesk.android",
+        "https://apps.apple.com/us/app/zendesk-support/id1174276185"
+      ]
+    },
+    {
+      "slug": "ada",
+      "name": "Ada",
+      "name_ko": "에이다",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.ada.cx/",
+      "summary_ko": "메시징·음성·이메일에서 문의를 해결하는 엔터프라이즈 AI 고객상담 에이전트 플랫폼. curl 은 403(Cloudflare), WebFetch 로 제목 \"AI Customer Service Agents for Enterprise CX | Ada\" 확인.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "ada:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Ada customer service AI' 상위 4개에 제품 회사 앱 없음: AcadAI(AcadAI), AI 챗봇 - Nova(ScaleUp), Chatbot App - AI 어시스턴트(TapSuite), ChatOn - 지능적인 AI 챗봇 한글버전(AIBY Inc.)"
+        },
+        "appstore": {
+          "key": "ada:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Ada customer service AI' 상위 결과에 제품 회사 앱 없음 — us: NextGen AI Chat Assistant(Belair Mobile, Inc.), Yobi: AI Teammates(YiB Inc), Beside (M1): AI Receptionist(Interface, Inc.)"
+        },
+        "capterra": {
+          "key": "ada:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "ada:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "ada:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Ada customer service AI' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "ada:daum_search",
+          "status": "검색어",
+          "query": "에이다 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.ada.cx/"
+      ]
+    },
+    {
+      "slug": "sierra",
+      "name": "Sierra",
+      "name_ko": "시에라",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://sierra.ai/",
+      "summary_ko": "기업 고객경험용 AI 에이전트.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "sierra:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Sierra AI agent' 상위 4개에 제품 회사 앱 없음: AgentBoard: AI Agent Analytics(Morobo Apps), zerotap: AI Agent Assistant(INSCODE), OpenAlly: AI Agents for Work(Matterward Labs Private Limited), Agentlock: AI Agent Security(Arctyne)"
+        },
+        "appstore": {
+          "key": "sierra:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Sierra AI agent' 상위 결과에 제품 회사 앱 없음 — us: Kimi - Kimi K3 is Live(Beijing Moonshot Technology Co., Ltd), Manus - AI Agent & Automation(BUTTERFLY EFFECT PTE. LTD.), Chat AI 5: AI Agent & Video(Alzor Labs Company Limited)"
+        },
+        "capterra": {
+          "key": "sierra:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "sierra:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "sierra:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Sierra AI agent' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "sierra:daum_search",
+          "status": "검색어",
+          "query": "시에라 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://sierra.ai/"
+      ]
+    },
+    {
+      "slug": "decagon",
+      "name": "Decagon",
+      "name_ko": "데카곤",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://decagon.ai/",
+      "summary_ko": "고객 응대용 AI 컨시어지(AI 고객상담 에이전트).",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "decagon:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Decagon AI' 상위 4개에 제품 회사 앱 없음: DECA Inc.(Guidebook Inc), Airgap: Private AI Chat(Ellist Labs.), DUNGEON AI DRAGON(Quantum AI Solution), Aion — AI Assistant & Memory(Axiom Labs Studio)"
+        },
+        "appstore": {
+          "key": "decagon:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Decagon AI' 상위 결과에 제품 회사 앱 없음 — us: Claude by Anthropic(Anthropic PBC), DeepSeek - AI Assistant(Hangzhou DeepSeek Artificial Intelligence Co., Ltd), AI Dungeon: RPG & Story Maker(Latitude Inc.)"
+        },
+        "capterra": {
+          "key": "decagon:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "decagon:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "decagon:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Decagon AI' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "decagon:daum_search",
+          "status": "검색어",
+          "query": "데카곤 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://decagon.ai/"
+      ]
+    },
+    {
+      "slug": "forethought",
+      "name": "Forethought",
+      "name_ko": "포어소트",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://forethought.ai/",
+      "summary_ko": "고객지원팀용 고객서비스 AI 플랫폼.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "forethought:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Forethought AI' 상위 4개에 제품 회사 앱 없음: Fig - AI Agents & Automation(Fig Technology Inc.), TokForge Local AI Offline Chat(Defcon-One), Foro de IA(Josue_Navarro), IFTTT - Automate work and home(IFTTT, Inc)"
+        },
+        "appstore": {
+          "key": "forethought:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Forethought AI' 상위 결과에 제품 회사 앱 없음 — us: Claude by Anthropic(Anthropic PBC), Kindroid: Your Personal AI(Beautifully Incorporated), ChatApp – AI Assistant(Apollo Technology Global LLC)"
+        },
+        "capterra": {
+          "key": "forethought:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "forethought:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "forethought:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Forethought AI' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "forethought:daum_search",
+          "status": "검색어",
+          "query": "포어소트 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://forethought.ai/"
+      ]
+    },
+    {
+      "slug": "freshdesk",
+      "name": "Freshdesk",
+      "name_ko": "프레시데스크",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.freshworks.com/freshdesk/",
+      "summary_ko": "Freshworks 의 AI 기반 고객서비스 소프트웨어(헬프데스크).",
+      "selection_basis": "App Store(us) 평가 2990건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "freshdesk:googleplay",
+          "status": "확인",
+          "id": "com.freshdesk.helpdesk",
+          "url": "https://play.google.com/store/apps/details?id=com.freshdesk.helpdesk",
+          "evidence": "Play 상세 페이지 200 — 'Freshdesk' (개발사 Freshworks Inc, 다운로드 50만+)"
+        },
+        "appstore": {
+          "key": "freshdesk:appstore",
+          "status": "확인",
+          "id": "849713306",
+          "url": "https://apps.apple.com/us/app/freshdesk/id849713306",
+          "evidence": "iTunes Lookup API(us) — 'Freshdesk' 판매자 FRESHWORKS TECHNOLOGIES PRIVATE LIMITED, 평가 2990건"
+        },
+        "capterra": {
+          "key": "freshdesk:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "freshdesk:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "freshdesk:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Freshdesk' 결과 없음"
+        },
+        "daum_search": {
+          "key": "freshdesk:daum_search",
+          "status": "검색어",
+          "query": "프레시데스크 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.freshworks.com/freshdesk/",
+        "https://play.google.com/store/apps/details?id=com.freshdesk.helpdesk",
+        "https://apps.apple.com/us/app/freshdesk/id849713306"
+      ]
+    },
+    {
+      "slug": "kore-ai",
+      "name": "Kore.ai",
+      "name_ko": "코어닷에이아이",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.kore.ai/",
+      "summary_ko": "엔터프라이즈 에이전틱 AI 플랫폼(고객서비스 자동화 포함 범용 — 경계 사례).",
+      "selection_basis": "App Store(us) 평가 1건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "kore-ai:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Kore.ai' 상위 4개에 제품 회사 앱 없음: KORE - 급할 때 깨끗한 한국 화장실 찾기(Findshim), Korean Ai - Learn Korean Fast(HelloTalk Limited), Kore - The Fitness App(SoftSmart Solutions), koko AI - 한국어 회화 학습(koko-ai)"
+        },
+        "appstore": {
+          "key": "kore-ai:appstore",
+          "status": "확인",
+          "id": "1035117318",
+          "url": "https://apps.apple.com/us/app/kore-ai-messaging-and-bots/id1035117318",
+          "evidence": "iTunes Lookup API(us) — 'Kore.ai - Messaging and Bots' 판매자 Kore.ai, Inc., 평가 1건. 판매자 Kore.ai, Inc. — \"Kore.ai - Messaging and Bots\", 평가 1건이라 리뷰 수집 가치는 낮음"
+        },
+        "capterra": {
+          "key": "kore-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "kore-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "kore-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Kore.ai' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "kore-ai:daum_search",
+          "status": "검색어",
+          "query": "코어닷에이아이 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.kore.ai/",
+        "https://apps.apple.com/us/app/kore-ai-messaging-and-bots/id1035117318"
+      ]
+    },
+    {
+      "slug": "yellow-ai",
+      "name": "Yellow.ai",
+      "name_ko": "옐로우닷에이아이",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://yellow.ai/",
+      "summary_ko": "CX·EX 자동화 AI 에이전트 플랫폼.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "yellow-ai:googleplay",
+          "status": "확인",
+          "id": "ai.yellow.supportagent",
+          "url": "https://play.google.com/store/apps/details?id=ai.yellow.supportagent",
+          "evidence": "Play 상세 페이지 200 — 'YellowAI Partner' (개발사 Yellow Messenger Platform, 다운로드 1만+). \"YellowAI Partner\"(개발사 Yellow Messenger Platform) — 상담원용 앱"
+        },
+        "appstore": {
+          "key": "yellow-ai:appstore",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'Yellow.ai' — 'YellowAI Partner'(id1612610646)가 있으나 판매자가 개인(Priyank Upadhyay)이라 회사 앱인지 확인 못 함"
+        },
+        "capterra": {
+          "key": "yellow-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "yellow-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "yellow-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Yellow.ai' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "yellow-ai:daum_search",
+          "status": "검색어",
+          "query": "옐로우닷에이아이 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://yellow.ai/",
+        "https://play.google.com/store/apps/details?id=ai.yellow.supportagent"
+      ]
+    },
+    {
+      "slug": "tidio",
+      "name": "Tidio",
+      "name_ko": "티디오",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.tidio.com/",
+      "summary_ko": "AI 고객서비스·라이브챗.",
+      "selection_basis": "App Store(us) 평가 4769건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "tidio:googleplay",
+          "status": "확인",
+          "id": "com.tidiochat.app",
+          "url": "https://play.google.com/store/apps/details?id=com.tidiochat.app",
+          "evidence": "Play 상세 페이지 200 — 'Tidio' (개발사 Tidio Poland sp. z o.o., 다운로드 50만+)"
+        },
+        "appstore": {
+          "key": "tidio:appstore",
+          "status": "확인",
+          "id": "916822567",
+          "url": "https://apps.apple.com/us/app/tidio/id916822567",
+          "evidence": "iTunes Lookup API(us) — 'Tidio' 판매자 TIDIO POLAND SP Z O O, 평가 4769건"
+        },
+        "capterra": {
+          "key": "tidio:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "tidio:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "tidio:shopify_apps",
+          "status": "확인",
+          "id": "tidio-chat",
+          "url": "https://apps.shopify.com/tidio-chat",
+          "evidence": "앱 페이지 200 — '판매 및 고객 지원을 위한 AI 에이전트. 라이브 채팅, 이메일,...'. 개발사 partners/tidio"
+        },
+        "daum_search": {
+          "key": "tidio:daum_search",
+          "status": "검색어",
+          "query": "티디오 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.tidio.com/",
+        "https://play.google.com/store/apps/details?id=com.tidiochat.app",
+        "https://apps.apple.com/us/app/tidio/id916822567",
+        "https://apps.shopify.com/tidio-chat"
+      ]
+    },
+    {
+      "slug": "gorgias",
+      "name": "Gorgias",
+      "name_ko": "고르지아스",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.gorgias.com/",
+      "summary_ko": "이커머스용 대화형 AI·헬프데스크.",
+      "selection_basis": "App Store(us) 평가 77건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "gorgias:googleplay",
+          "status": "확인",
+          "id": "com.gorgias.main",
+          "url": "https://play.google.com/store/apps/details?id=com.gorgias.main",
+          "evidence": "Play 상세 페이지 200 — 'Gorgias' (개발사 Gorgias Inc., 다운로드 1만+)"
+        },
+        "appstore": {
+          "key": "gorgias:appstore",
+          "status": "확인",
+          "id": "1397660619",
+          "url": "https://apps.apple.com/us/app/gorgias-helpdesk/id1397660619",
+          "evidence": "iTunes Lookup API(us) — 'Gorgias Helpdesk' 판매자 Gorgias Inc., 평가 77건"
+        },
+        "capterra": {
+          "key": "gorgias:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "gorgias:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "gorgias:shopify_apps",
+          "status": "확인",
+          "id": "helpdesk",
+          "url": "https://apps.shopify.com/helpdesk",
+          "evidence": "앱 페이지 200 — '지원 문의를 즉각적으로 해결하고 비즈니스를 성장시키십시오.'. 개발사 partners/gorgias — \"Gorgias: AI, Helpdesk & Chat\""
+        },
+        "daum_search": {
+          "key": "gorgias:daum_search",
+          "status": "검색어",
+          "query": "고르지아스 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.gorgias.com/",
+        "https://play.google.com/store/apps/details?id=com.gorgias.main",
+        "https://apps.apple.com/us/app/gorgias-helpdesk/id1397660619",
+        "https://apps.shopify.com/helpdesk"
+      ]
+    },
+    {
+      "slug": "liveperson",
+      "name": "LivePerson",
+      "name_ko": "라이브퍼슨",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.liveperson.com/",
+      "summary_ko": "기업용 대화형 AI 플랫폼(Conversational Cloud).",
+      "selection_basis": "App Store(us) 평가 7건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "liveperson:googleplay",
+          "status": "확인",
+          "id": "com.liveperson.LiveEngageMessaging",
+          "url": "https://play.google.com/store/apps/details?id=com.liveperson.LiveEngageMessaging",
+          "evidence": "Play 상세 페이지 200 — 'Conversational Cloud' (개발사 LivePerson, Inc., 다운로드 1만+)"
+        },
+        "appstore": {
+          "key": "liveperson:appstore",
+          "status": "확인",
+          "id": "1533849048",
+          "url": "https://apps.apple.com/us/app/conversational-cloud/id1533849048",
+          "evidence": "iTunes Lookup API(us) — 'Conversational Cloud' 판매자 Liveperson Inc., 평가 7건"
+        },
+        "capterra": {
+          "key": "liveperson:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "liveperson:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "liveperson:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'LivePerson' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "liveperson:daum_search",
+          "status": "검색어",
+          "query": "라이브퍼슨 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.liveperson.com/",
+        "https://play.google.com/store/apps/details?id=com.liveperson.LiveEngageMessaging",
+        "https://apps.apple.com/us/app/conversational-cloud/id1533849048"
+      ]
+    },
+    {
+      "slug": "netomi",
+      "name": "Netomi",
+      "name_ko": "네토미",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.netomi.com/",
+      "summary_ko": "고객서비스용 에이전틱 AI.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "netomi:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Netomi' 상위 4개에 제품 회사 앱 없음: Ndomi(Ndomi Innovation Technologies), NetRoom - Tìm Phòng Nhanh(CÔNG TY TNHH NET PARTNERS), NYOMI-Expense & Budget Tracker(Navigate Your Own Money Intelligently), Noemi AI(Polar Lights LLC)"
+        },
+        "appstore": {
+          "key": "netomi:appstore",
+          "status": "확인",
+          "id": "6739532077",
+          "url": "https://apps.apple.com/us/app/netomi-agentic-ai/id6739532077",
+          "evidence": "iTunes Lookup API(us) — 'Netomi Agentic AI' 판매자 Netomi, Inc., 평가 0건"
+        },
+        "capterra": {
+          "key": "netomi:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "netomi:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "netomi:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Netomi' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "netomi:daum_search",
+          "status": "검색어",
+          "query": "네토미 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.netomi.com/",
+        "https://apps.apple.com/us/app/netomi-agentic-ai/id6739532077"
+      ]
+    },
+    {
+      "slug": "cognigy",
+      "name": "Cognigy",
+      "name_ko": "코그니지",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.cognigy.com/",
+      "summary_ko": "엔터프라이즈 고객서비스 AI·AI 에이전트(NiCE Cognigy).",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "cognigy:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Cognigy' 상위 4개에 제품 회사 앱 없음: CogniGym(Megalabs Global), Cognify: 두뇌 트레이닝 게임(Kartik Sharma...), Thinky: Brain Training(PlayMe Studio), Ngie: Gaming AI Assistant(Baltroid)"
+        },
+        "appstore": {
+          "key": "cognigy:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Cognigy' 상위 결과에 제품 회사 앱 없음 — us: Nexus Cognigy Summit(NICE Ltd), BeFreed: Get Smarter Daily!(beFreed, Inc), CogniFit - Brain Training(CogniFit)"
+        },
+        "capterra": {
+          "key": "cognigy:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "cognigy:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "cognigy:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Cognigy' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "cognigy:daum_search",
+          "status": "검색어",
+          "query": "코그니지 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.cognigy.com/"
+      ]
+    },
+    {
+      "slug": "zowie",
+      "name": "Zowie",
+      "name_ko": "조위",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://getzowie.com/",
+      "summary_ko": "엔터프라이즈 고객서비스 AI 에이전트 플랫폼.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "zowie:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Zowie' 상위 4개에 제품 회사 앱 없음: ZOWIE Sync(BenQ Corp.), ZowieX(Zowietek Electronics, Ltd.), 퍼즐 오브 Z(BLANCOZONE NETWORK CO., LIMITED), EZ언어(EduU Learning, Inc.)"
+        },
+        "appstore": {
+          "key": "zowie:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Zowie' 상위 결과에 제품 회사 앱 없음 — us: ZOWIE Sync(BenQ Corporation), ZowieX(ZOWIETEK ELECTRONICS, LTD.), Zombie Trailer Park(Ninja Kiwi Limited)"
+        },
+        "capterra": {
+          "key": "zowie:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "zowie:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "zowie:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Zowie' — 제품 앱 아님: zoww Product kit, Zoww bulk & shipping discount"
+        },
+        "daum_search": {
+          "key": "zowie:daum_search",
+          "status": "검색어",
+          "query": "조위 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://getzowie.com/"
+      ]
+    },
+    {
+      "slug": "gladly",
+      "name": "Gladly",
+      "name_ko": "글래들리",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.gladly.ai/",
+      "summary_ko": "브랜드용 고객지원·에이전틱 커머스 플랫폼. gladly.com 은 gladly.ai 로 리다이렉트(2026-10-05 실측).",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "gladly:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Gladly' 상위 4개에 제품 회사 앱 없음: Gladly: Real People(WRK.house), Gladly: Gratitude journal app(dnz.apps), Justly: AI 일기와 테라피(Canopas Software LLP), Goodly: AI Chat, Journal, Vent(DRAMOTAL LIMITED)"
+        },
+        "appstore": {
+          "key": "gladly:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'Gladly' — 'Gladly: Real People'(WRK.house)·'App for a Cause'(Gladly, Inc.)는 고객지원 제품 앱이 아님"
+        },
+        "capterra": {
+          "key": "gladly:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "gladly:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "gladly:shopify_apps",
+          "status": "확인",
+          "id": "gladly",
+          "url": "https://apps.shopify.com/gladly",
+          "evidence": "앱 페이지 200 — '이메일, 라이브 채팅 등에서 연중무휴 24시간 맞춤형 지원을 제공합니다.'. 개발사 Gladly Inc — \"Gladly: AI Customer Support\""
+        },
+        "daum_search": {
+          "key": "gladly:daum_search",
+          "status": "검색어",
+          "query": "글래들리 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.gladly.ai/",
+        "https://apps.shopify.com/gladly"
+      ]
+    },
+    {
+      "slug": "kustomer",
+      "name": "Kustomer",
+      "name_ko": "커스터머",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.kustomer.com/",
+      "summary_ko": "AI 고객서비스 플랫폼·CRM.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "kustomer:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Kustomer' 상위 4개에 제품 회사 앱 없음: Pocket CRM - 고객 및 리드(VividSphere LLP), ​Zendesk Sell - CRM(Zendesk Mobile), Revolut — Banking & Beyond(Revolut Ltd), 슈퍼마켓 매장 시뮬레이터(Game District LLC)"
+        },
+        "appstore": {
+          "key": "kustomer:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Kustomer' 상위 결과에 제품 회사 앱 없음 — us: Bubble Merge : Custom Suika(RYNYUL), Pinstriping & Kustom Graphics(Magzter Inc.), Yari KonKan - KonKan & domino(Top Information Technology HK Limited)"
+        },
+        "capterra": {
+          "key": "kustomer:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "kustomer:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "kustomer:shopify_apps",
+          "status": "확인",
+          "id": "kustomer",
+          "url": "https://apps.shopify.com/kustomer",
+          "evidence": "앱 페이지 200 — 'AI 기반 지원: 원활한 연동 및 인사이트'. 개발사 partners/kustomer"
+        },
+        "daum_search": {
+          "key": "kustomer:daum_search",
+          "status": "검색어",
+          "query": "커스터머 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.kustomer.com/",
+        "https://apps.shopify.com/kustomer"
+      ]
+    },
+    {
+      "slug": "help-scout",
+      "name": "Help Scout",
+      "name_ko": "헬프스카우트",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.helpscout.com/",
+      "summary_ko": "AI 기반 고객지원 플랫폼.",
+      "selection_basis": "App Store(us) 평가 319건(iTunes Lookup, 2026-10-05). 랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "help-scout:googleplay",
+          "status": "확인",
+          "id": "net.helpscout.android",
+          "url": "https://play.google.com/store/apps/details?id=net.helpscout.android",
+          "evidence": "Play 상세 페이지 200 — 'Help Scout' (개발사 Help Scout, 다운로드 1만+)"
+        },
+        "appstore": {
+          "key": "help-scout:appstore",
+          "status": "확인",
+          "id": "966327660",
+          "url": "https://apps.apple.com/us/app/help-scout/id966327660",
+          "evidence": "iTunes Lookup API(us) — 'Help Scout' 판매자 Help Scout PBC, 평가 319건"
+        },
+        "capterra": {
+          "key": "help-scout:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "help-scout:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "help-scout:shopify_apps",
+          "status": "확인",
+          "id": "help-scout",
+          "url": "https://apps.shopify.com/help-scout",
+          "evidence": "앱 페이지 200 — '성장하는 기업을 위한 올인원 고객 지원 플랫폼'. 개발사 Help Scout(partners/brightwurks)"
+        },
+        "daum_search": {
+          "key": "help-scout:daum_search",
+          "status": "검색어",
+          "query": "헬프스카우트 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.helpscout.com/",
+        "https://play.google.com/store/apps/details?id=net.helpscout.android",
+        "https://apps.apple.com/us/app/help-scout/id966327660",
+        "https://apps.shopify.com/help-scout"
+      ]
+    },
+    {
+      "slug": "chatbase",
+      "name": "Chatbase",
+      "name_ko": "챗베이스",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.chatbase.co/",
+      "summary_ko": "고객경험·지원용 AI 에이전트 빌더.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "chatbase:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Chatbase' 상위 4개에 제품 회사 앱 없음: Base Chat(Base Enterprise Inc), Claude by Anthropic(Anthropic PBC), Perplexity (퍼플렉시티) 무엇이든 물어보세요(PerplexityAI), ChatBoost: AI 에이전트(Muggle Studio)"
+        },
+        "appstore": {
+          "key": "chatbase:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Chatbase' 상위 결과에 제품 회사 앱 없음 — us: Tidio(TIDIO POLAND SP Z O O), ChatPDF - AI Chat with any PDF(Joseph Works Limited), Google Chat(Google LLC)"
+        },
+        "capterra": {
+          "key": "chatbase:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "chatbase:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "chatbase:shopify_apps",
+          "status": "확인",
+          "id": "chatbase",
+          "url": "https://apps.shopify.com/chatbase",
+          "evidence": "앱 페이지 200 — '지원 및 판매용 AI 에이전트'. 개발사 partners/chatbase"
+        },
+        "daum_search": {
+          "key": "chatbase:daum_search",
+          "status": "검색어",
+          "query": "챗베이스 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.chatbase.co/",
+        "https://apps.shopify.com/chatbase"
+      ]
+    },
+    {
+      "slug": "salesforce-agentforce",
+      "name": "Salesforce Agentforce",
+      "name_ko": "세일즈포스 에이전트포스",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.salesforce.com/agentforce/",
+      "summary_ko": "Salesforce 의 AI 에이전트 플랫폼.",
+      "selection_basis": "랭킹 근거 미확인 — WebSearch 한도 소진으로 랭킹 기사 조회 못 함. 공식 사이트 200 응답으로 제품 존재만 확인",
+      "sources": {
+        "googleplay": {
+          "key": "salesforce-agentforce:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Salesforce Agentforce' — Salesforce 범용 앱(com.salesforce.chatter)만 있고 Agentforce 단독 앱 없음. 'Agentforce Prep'(n-o)은 제3자 시험 대비 앱"
+        },
+        "appstore": {
+          "key": "salesforce-agentforce:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'Salesforce Agentforce' — Salesforce 범용 앱(id404249815)만, 'Agentforce Prep'(Monynith Sovann)은 제3자 앱"
+        },
+        "capterra": {
+          "key": "salesforce-agentforce:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "salesforce-agentforce:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "salesforce-agentforce:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'Salesforce Agentforce' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "salesforce-agentforce:daum_search",
+          "status": "검색어",
+          "query": "세일즈포스 에이전트포스 AI 상담 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.salesforce.com/agentforce/"
+      ]
+    },
+    {
+      "slug": "channel-talk",
+      "name": "Channel Talk",
+      "name_ko": "채널톡",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://channel.io/kr",
+      "summary_ko": "채널코퍼레이션의 고객상담 솔루션. 같은 회사의 업무툴 \"채널웍스\"와 별도 브랜드다(홈페이지 제목 \"상담은 채널톡, 업무는 채널웍스\").",
+      "selection_basis": "공식 사이트 200 확인 — Play·App Store 에서 앱을 못 찾음. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "channel-talk:googleplay",
+          "status": "확인 불가",
+          "id": "com.zoyi.channel.desk.android",
+          "url": "https://play.google.com/store/apps/details?id=com.zoyi.channel.desk.android",
+          "evidence": "공식 사이트가 이 패키지로 링크하지만 Play 앱 이름은 '채널웍스', 설명은 '채널웍스 관리자를 위한 어플리케이션' — 채널톡 상담 앱인지 업무툴 앱인지 확인 못 함"
+        },
+        "appstore": {
+          "key": "channel-talk:appstore",
+          "status": "확인 불가",
+          "id": "1088828788",
+          "url": "https://apps.apple.com/app/id1088828788",
+          "evidence": "iTunes '채널톡' — Channel Corp. 의 '채널웍스/Channel Works' 앱만 있음. Play 와 같은 사정으로 채널톡 앱인지 확인 못 함"
+        },
+        "capterra": {
+          "key": "channel-talk:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "channel-talk:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "channel-talk:shopify_apps",
+          "status": "확인",
+          "id": "channel-talk",
+          "url": "https://apps.shopify.com/channel-talk",
+          "evidence": "앱 페이지 200 — '올인원 AI 메신저 - 채팅상담, 전화, 챗봇, 통계, CRM 마케팅에...'. 개발사 Channel Corp.(partners/3771)"
+        },
+        "daum_search": {
+          "key": "channel-talk:daum_search",
+          "status": "검색어",
+          "query": "채널톡 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://channel.io/kr",
+        "https://apps.shopify.com/channel-talk"
+      ]
+    },
+    {
+      "slug": "happytalk",
+      "name": "Happytalk",
+      "name_ko": "해피톡",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.happytalk.io/",
+      "summary_ko": "블룸에이아이(Blumn AI corp.)의 AI 에이전트·채팅상담 연결 솔루션. Play 개발자 정보에 국내 사업자 번호(서울 중구)가 있다.",
+      "selection_basis": "Play 다운로드 5천+ · App Store(kr) 평가 13건. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "happytalk:googleplay",
+          "status": "확인",
+          "id": "com.mbi.happytalkconsultant",
+          "url": "https://play.google.com/store/apps/details?id=com.mbi.happytalkconsultant",
+          "evidence": "Play 상세 페이지 200 — '해피톡 : 고객상담을 더 잘하게' (개발사 Blumn AI corp., 다운로드 5천+)"
+        },
+        "appstore": {
+          "key": "happytalk:appstore",
+          "status": "확인",
+          "id": "1184789384",
+          "url": "https://apps.apple.com/kr/app/%ED%95%B4%ED%94%BC%ED%86%A1-%EA%B3%A0%EA%B0%9D%EC%83%81%EB%8B%B4%EC%9D%84-%EB%8D%94-%EC%9E%98%ED%95%98%EA%B2%8C/id1184789384",
+          "evidence": "iTunes Lookup API(kr) — '해피톡 : 고객상담을 더 잘하게' 판매자 Blumn AI corp., 평가 13건"
+        },
+        "capterra": {
+          "key": "happytalk:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "happytalk:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "happytalk:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '해피톡' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "happytalk:daum_search",
+          "status": "검색어",
+          "query": "해피톡 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.happytalk.io/",
+        "https://play.google.com/store/apps/details?id=com.mbi.happytalkconsultant",
+        "https://apps.apple.com/kr/app/%ED%95%B4%ED%94%BC%ED%86%A1-%EA%B3%A0%EA%B0%9D%EC%83%81%EB%8B%B4%EC%9D%84-%EB%8D%94-%EC%9E%98%ED%95%98%EA%B2%8C/id1184789384"
+      ]
+    },
+    {
+      "slug": "kt-ai-call-assistant",
+      "name": "KT AI 통화비서",
+      "name_ko": "KT AI 통화비서",
+      "name_ko_basis": "공식(앱 이름)",
+      "region": "kr",
+      "official_url": "확인 불가",
+      "summary_ko": "소상공인 유선전화에 AI 가 인사말로 응대하고 용건을 메모하는 부가서비스(Lite 앱 Play 설명). 공식 상품 페이지가 \"상품종료\"로 떠 현재 판매 상태는 확인 못 함. Lite 앱 com.kt.aicalite / App Store 1640406058 도 있다. 공식 URL 확인 불가 사유: Play 개발자 링크 product.kt.com/wDic/productDetail.do?ItemCode=1453 이 \"상품종료\" 페이지를 반환(2026-10-05).",
+      "selection_basis": "Play 다운로드 5만+ · App Store(kr) 평가 84건. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "kt-ai-call-assistant:googleplay",
+          "status": "확인",
+          "id": "com.ktaica",
+          "url": "https://play.google.com/store/apps/details?id=com.ktaica",
+          "evidence": "Play 상세 페이지 200 — 'KT AI 통화비서' (개발사 KT Corporation, 다운로드 5만+)"
+        },
+        "appstore": {
+          "key": "kt-ai-call-assistant:appstore",
+          "status": "확인",
+          "id": "1582781811",
+          "url": "https://apps.apple.com/kr/app/kt-ai-%ED%86%B5%ED%99%94%EB%B9%84%EC%84%9C/id1582781811",
+          "evidence": "iTunes Lookup API(kr) — 'KT AI 통화비서' 판매자 KT, 평가 84건"
+        },
+        "capterra": {
+          "key": "kt-ai-call-assistant:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "kt-ai-call-assistant:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "kt-ai-call-assistant:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 'AI통화비서' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "kt-ai-call-assistant:daum_search",
+          "status": "검색어",
+          "query": "KT AI 통화비서 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://play.google.com/store/apps/details?id=com.ktaica",
+        "https://apps.apple.com/kr/app/kt-ai-%ED%86%B5%ED%99%94%EB%B9%84%EC%84%9C/id1582781811"
+      ]
+    },
+    {
+      "slug": "wisenut",
+      "name": "WISEnut",
+      "name_ko": "와이즈넛",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.wisenut.com/",
+      "summary_ko": "AI 챗봇·AI 에이전트 기업. 홈페이지에 공공 민원상담 어시스턴트(화성시) 사례가 있다 — B2B 구축형이라 앱 리뷰 소스는 약하다.",
+      "selection_basis": "공식 사이트 200 확인 — Play·App Store 에서 앱을 못 찾음. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "wisenut:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '와이즈넛' 상위 4개에 제품 회사 앱 없음: 와이스 - 피규어ㆍTCGㆍ포켓몬카드ㆍ레고ㆍ스포츠카드(Volla Inc.), 넛지EAP - 팀 성장을 위한 건강 동기부여(Dain. Co. Ltd.), 와이낫 : 습관 형성 + 공부 타이머 + 시간 관리(LIOS_studio), 위닛 - AI이미지&영상생성(LumanLab)"
+        },
+        "appstore": {
+          "key": "wisenut:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API '와이즈넛' 상위 결과에 제품 회사 앱 없음 — us: 결과 없음 / kr: 결과 없음"
+        },
+        "capterra": {
+          "key": "wisenut:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "wisenut:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "wisenut:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '와이즈넛' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "wisenut:daum_search",
+          "status": "검색어",
+          "query": "와이즈넛 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.wisenut.com/"
+      ]
+    },
+    {
+      "slug": "skelterlabs",
+      "name": "Skelter Labs",
+      "name_ko": "스켈터랩스",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.skelterlabs.com/",
+      "summary_ko": "AI 챗봇과 AI 컨택센터용 실시간 STT·TTS 를 제공하는 국내 AI 기업(구축형).",
+      "selection_basis": "공식 사이트 200 확인 — Play·App Store 에서 앱을 못 찾음. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "skelterlabs:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '스켈터랩스' 상위 4개에 제품 회사 앱 없음: 트랩 - 헬스장 이용은 더 편리하게, 운동은 더 즐겁게(QNOSS), 몇개야 – AI 알약 카운터·개수 세기(Enso Soft), 새티니크 AI 스캘프 & 헤어 솔루션(amwaykorea), 젠트릭스 - AI 안전진단 솔루션(홈체크)"
+        },
+        "appstore": {
+          "key": "skelterlabs:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API '스켈터랩스' 상위 결과에 제품 회사 앱 없음 — us: 결과 없음 / kr: 결과 없음"
+        },
+        "capterra": {
+          "key": "skelterlabs:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "skelterlabs:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "skelterlabs:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '스켈터랩스' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "skelterlabs:daum_search",
+          "status": "검색어",
+          "query": "스켈터랩스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.skelterlabs.com/"
+      ]
+    },
+    {
+      "slug": "danbee-ai",
+      "name": "danbee.ai",
+      "name_ko": "단비",
+      "name_ko_basis": "공식(홈페이지 문구 \"챗봇, 단비로\")",
+      "region": "kr",
+      "official_url": "https://danbee.ai/",
+      "summary_ko": "챗봇 빌더. 홈페이지에 공공 고객센터 챗봇·영업사원 챗봇 사례가 있다.",
+      "selection_basis": "공식 사이트 200 확인 — Play·App Store 에서 앱을 못 찾음. 한국 제품은 영역에 맞으면 전부 넣는다는 기준으로 포함",
+      "sources": {
+        "googleplay": {
+          "key": "danbee-ai:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '단비 챗봇' — '단비챗'(NettY)은 BL AI 채팅 앱으로 다른 서비스"
+        },
+        "appstore": {
+          "key": "danbee-ai:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(kr) '단비 챗봇' — '단비챗'(Netty Co., Ltd.)만, 다른 서비스"
+        },
+        "capterra": {
+          "key": "danbee-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "danbee-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 한도(200회)가 이 작업 시작 시점에 이미 소진돼 첫 호출부터 거부됨 + capterra.com·trustradius.com 직접 접속 403(Cloudflare, 2026-10-05 curl·WebFetch 실측) + DuckDuckGo HTML 검색은 봇 확인(CAPTCHA) 페이지 — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "danbee-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 '단비 챗봇' — 결과 없음"
+        },
+        "daum_search": {
+          "key": "danbee-ai:daum_search",
+          "status": "검색어",
+          "query": "단비 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://danbee.ai/"
+      ]
+    }
+  ]
+}

@@ -160,12 +160,28 @@ const sourceResults = []
 // finishRunRow 의 "이 컬럼 묶음은 없다" 기억 — 이 실행 동안 소스마다 실패 요청을 반복하지 않게(lib/review/run-log.ts).
 const runLogMemo = {}
 
+// 꺼진 소스(enabled=false)는 키가 없어도 실패로 세지 않는다 — 러너가 어차피 건너뛴다. 키 줄을 워크플로 env 에 아직
+// 안 넣은 신규 소스(kakao_*)가 --source=all 에서 매일 밤 잡을 빨갛게 만들던 결함(2026-10-06 독립 검토).
+// 못 읽으면(오류) 엄격하게 둔다: 켜져 있는 것으로 보고 기존처럼 키를 검사한다(§7.1, 확인 불가를 정상으로 접지 않는다).
+const enabledByKey = new Map()
+{
+  const { data, error } = await supabase.from('review_sources').select('key, enabled').in('key', sourceKeys)
+  if (!error) for (const r of data ?? []) enabledByKey.set(r.key, r.enabled)
+}
+
 for (const sourceKey of sourceKeys) {
   const adapter = ADAPTERS[sourceKey]
 
   // 공식 API 소스는 키가 없으면 돌리지 않는다. 키 없이 받은 401/403 은 러너가 "차단"으로
   // 기록해 소스를 끈다 — 우리 설정 문제가 상대 차단으로 남는다(types.ts requiredEnv).
   const missingEnv = (adapter.requiredEnv ?? []).filter((k) => !process.env[k])
+  if (missingEnv.length > 0 && enabledByKey.get(sourceKey) === false) {
+    say('')
+    say(`### \`${sourceKey}\``)
+    say(`- 소스가 꺼져 있어(enabled=false) 키 검사를 생략하고 건너뛴다(필요 환경변수: ${missingEnv.join(', ')})`)
+    sourceResults.push({ key: sourceKey, skipped: true, skipReason: '소스 꺼짐(enabled=false) — 키 검사 생략' })
+    continue
+  }
   if (missingEnv.length > 0) {
     failures.push(sourceKey)
     say('')

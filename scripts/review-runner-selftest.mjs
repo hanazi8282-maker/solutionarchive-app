@@ -264,6 +264,9 @@ t('override: unverified 행은 막힌다', isOwnerRobotsOverride('owner_2026-10-
 {
   const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
   ok('소유자 예외: 수집 요약 줄이 있다', collect.includes('say(`- 소유자 예외 사용 ${result.robotsOwnerOverride ?? 0}건`)'))
+  // 꺼진 소스는 필수 키가 없어도 --source=all 을 빨갛게 만들지 않는다(키 줄이 워크플로에 없는 신규 소스, 2026-10-06 독립 검토). 못 읽으면 엄격.
+  ok('꺼진 소스는 키 검사를 생략한다(enabled=false)', collect.includes('enabledByKey.get(sourceKey) === false') && collect.includes("select('key, enabled')"))
+  ok('못 읽으면 기존처럼 키를 검사한다(엄격)', collect.includes('if (!error) for (const r of data ?? []) enabledByKey.set'))
   ok('소유자 예외: sourceResults 필드가 있다', collect.includes('robotsOwnerOverride: result?.robotsOwnerOverride ?? 0,'))
 }
 {

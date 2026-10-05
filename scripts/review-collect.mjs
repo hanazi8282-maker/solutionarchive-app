@@ -153,6 +153,8 @@ say(`대상 소스: ${sourceKeys.join(', ')}`)
 const failures = []
 // Notion 일일 상태 로그(CTO 행) 재료. 보고 줄(say)을 다시 파싱하지 않으려고 값으로 모은다.
 const sourceResults = []
+// finishRunRow 의 "이 컬럼 묶음은 없다" 기억 — 이 실행 동안 소스마다 실패 요청을 반복하지 않게(lib/review/run-log.ts).
+const runLogMemo = {}
 
 for (const sourceKey of sourceKeys) {
   const adapter = ADAPTERS[sourceKey]
@@ -278,7 +280,7 @@ for (const sourceKey of sourceKeys) {
       .map(([h, c]) => `${h}: ${c}`)
       .join(', ')
     say(`- robots 예외 통과 ${result.robotsBypassed ?? 0}건${bypassHosts ? `(${bypassHosts})` : ''}`)
-    // 소유자 예외(OWNER_ROBOTS_OVERRIDE, §7.1)로 robots 금지를 통과한 요청. 0 이어도 찍는다(위 줄과 같은 이유).
+    // 소유자 예외(OWNER_ROBOTS_OVERRIDES, §7.1)로 robots 금지를 통과한 요청. 0 이어도 찍는다(위 줄과 같은 이유).
     say(`- 소유자 예외 사용 ${result.robotsOwnerOverride ?? 0}건`)
     // ⚠️ 0 이어도 찍는다. "신규 0건"과 "중복만 받았다"는 다른 사건이고, 이 줄이
     //    없으면 둘이 똑같이 보인다(§7.1). 같은 글이 `url:`·`board:` 두 타깃으로
@@ -312,12 +314,18 @@ for (const sourceKey of sourceKeys) {
         parse_failures: s?.parseFailures ?? 0,
         new_reviews: s?.newReviews ?? 0,
         robots_skips: result?.robotsSkips ?? 0,
-        // robotsBypassed 는 저장하지 않는다 — 이 테이블엔 json 칸이 없고 새 컬럼은 마이그가 필요하다.
-        // 지금은 실행 요약(GITHUB_STEP_SUMMARY)의 "robots 예외 통과" 줄에만 남는다.
         health_after: result?.health?.health ?? null,
         error: fatal,
       },
       { blockedResponses: s?.blockedResponses ?? 0, quotaExhaustedResponses: s?.quotaExhaustedResponses ?? 0 },
+      // robots 예외 사용 기록(마이그 20261006000001). 행 = 소스 1개라 override 값도 1개 — 다값 방침은 run-log.ts 주석.
+      // 호스트별 이유(robotsBypassedHosts)는 요약 줄에만 남긴다(json 칸 없음).
+      {
+        robotsOwnerOverride: result?.robotsOwnerOverride ?? 0,
+        robotsBypassed: result?.robotsBypassed ?? 0,
+        overrideValue: result?.overrideValue ?? null,
+      },
+      runLogMemo,
     )
     if (saved.state === 'saved_without_counts') {
       console.warn(`⚠️ [${sourceKey}] ${saved.warning}`)

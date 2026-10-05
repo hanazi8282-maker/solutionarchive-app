@@ -77,6 +77,7 @@ jobs:
       - run: node scripts/remedy-selftest.mjs
       # 요약 마크다운 — 화면 밖으로 나가는 유일한 산출물이라 "없음"과 "확인 불가"가 섞이면 안 된다.
       - run: node scripts/summary-selftest.mjs
+      - run: node scripts/quote-backfill-selftest.mjs
       # 처방 카드 관련성 게이트 — 무관(0)만 빼고 "미검증"은 남기는지. 여기가 한 칸만 접히면
       # 판정 못 받은 카드가 조용히 사라지고, 그게 화면에서는 "관련 사례 없음"으로 보인다(§7.1).
       - run: node scripts/remedy-gate-selftest.mjs

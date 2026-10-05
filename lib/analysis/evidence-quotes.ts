@@ -186,7 +186,7 @@ export function publicQuotes(
 }
 
 /** 공백 차이로 멀쩡한 인용이 떨어지지 않게 한다. 글자 자체는 바꾸지 않는다. */
-function squash(s: string): string {
+export function squash(s: string): string {
   return s.replace(/\s+/g, ' ').trim()
 }
 

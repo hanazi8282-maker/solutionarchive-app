@@ -14,7 +14,10 @@
 // 소스 가드(DB review_sources 행 기준, 하나라도 걸리면 그 소스 전체를 건너뛴다):
 //   - 행 없음(예: googleplay 마이그 미적용) → source_missing
 //   - enabled=false → source_disabled
-//   - robots_status IS NULL ∧ override IS NULL → robots_unrecorded (읽지 못한 규칙을 허용으로 보지 않는다, §7.1)
+//   - robots_status 'allowed'·'not_applicable' 만 그대로 통과. 그 밖은 robots_unrecorded(NULL)·robots_unverified·
+//     robots_disallowed 로 막는다(읽지 못한 규칙을 허용으로 보지 않는다, §7.1 — 마이그 20261005000001).
+//     예외: robots_status='disallowed' ∧ override === OWNER_ROBOTS_OVERRIDE(runner.ts) — 러너·store 와 같은 판정.
+//     소유자 예외는 robots **금지**만 통과시킨다. unverified·NULL 은 override 가 있어도 막힌다.
 //   - --offline(DB 안 읽음) → source_unknown. 계획 수치만 내고 아무것도 넣지 않는다.
 // product_ref 는 lib/review/target-ref.ts 빌더(= 어댑터 parseProductRef)로 정규화하고, 어댑터
 //   nextRequest 가 첫 요청을 만들 수 있는지까지 본다. 못 만들면 invalid_ref — 넣으면 매일 밤 요청 0건 타깃이 된다.
@@ -25,7 +28,9 @@
 // 투입 단위(--unit, 설계 §1-6 Q1-4):
 //   product (기본) — 제품당 프로젝트 1개. 설계 권고 C안("A 를 영역 하나부터")의 단위. 영역 범위는 --areas 가 정한다.
 //   area           — 영역당 프로젝트 1개, 제품은 타깃 label 로만 구분(B안).
-// 프로젝트는 넣을 타깃이 1개 이상일 때만 만든다(빈 프로젝트를 남기지 않는다).
+// 프로젝트는 넣을 타깃이 1개 이상일 때만 만든다. 단 insertProject 성공 뒤 insertTarget 이 23505 아닌 오류로 던지면
+//   빈 프로젝트가 남고 실행이 거기서 멈춘다(그때까지의 applied 집계는 stderr 에 찍는다). 다시 돌리면 같은 pitch 의
+//   프로젝트를 재사용해 흡수한다(apply 주석).
 //
 // 사용법:
 //   node scripts/dictionary-targets.mjs                       # 드라이런(기본) — DB 읽기만, 쓰기 0건
@@ -42,6 +47,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { googleplayAdapter } from '../lib/review/adapters/googleplay.ts'
 import { buildProductRef } from '../lib/review/target-ref.ts'
+import { OWNER_ROBOTS_OVERRIDE } from '../lib/review/runner.ts'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 export const DICT_DIR = path.join(repoRoot, 'reports', '2026-10-05', 'product-dictionary')
@@ -68,8 +74,9 @@ function sourceGuard(row, offline) {
   if (offline) return 'source_unknown'
   if (!row) return 'source_missing'
   if (row.enabled !== true) return 'source_disabled'
-  if (row.robots_status == null && !row.override) return 'robots_unrecorded'
-  return null
+  if (row.robots_status === 'allowed' || row.robots_status === 'not_applicable') return null
+  if (row.robots_status === 'disallowed' && row.override === OWNER_ROBOTS_OVERRIDE) return null
+  return row.robots_status == null ? 'robots_unrecorded' : `robots_${row.robots_status}`
 }
 
 const productPitch = (p) => `${p.name}${p.name_ko && p.name_ko !== p.name ? ` (${p.name_ko})` : ''} — ${p.summary_ko}`
@@ -154,33 +161,40 @@ export async function apply(items, db) {
   const ids = await db.findProjectsByPitch(pitches)
   const result = { projectsCreated: 0, projectsReused: 0, inserted: 0, exists: 0 }
   const reused = new Set()
-  for (const it of todo) {
-    let id = ids.get(it.pitch)
-    if (!id) {
-      id = await db.insertProject({
-        competitor_url: it.competitorUrl,
-        product_elevator_pitch: it.pitch,
-        purpose: 'product_fit',
-        status: 'collecting', // §10.1: collecting 신규 INSERT 만
-        mode: 'forward',
-        business_model: 'SAAS',
+  let done = false
+  try {
+    for (const it of todo) {
+      let id = ids.get(it.pitch)
+      if (!id) {
+        id = await db.insertProject({
+          competitor_url: it.competitorUrl,
+          product_elevator_pitch: it.pitch,
+          purpose: 'product_fit',
+          status: 'collecting', // §10.1: collecting 신규 INSERT 만
+          mode: 'forward',
+          business_model: 'SAAS',
+        })
+        ids.set(it.pitch, id)
+        reused.add(it.pitch)
+        result.projectsCreated++
+      } else if (!reused.has(it.pitch)) {
+        reused.add(it.pitch)
+        result.projectsReused++
+      }
+      const r = await db.insertTarget({
+        project_id: id,
+        source_key: it.source,
+        product_ref: it.ref,
+        label: it.label,
+        status: 'active',
+        cursor: null,
       })
-      ids.set(it.pitch, id)
-      reused.add(it.pitch)
-      result.projectsCreated++
-    } else if (!reused.has(it.pitch)) {
-      reused.add(it.pitch)
-      result.projectsReused++
+      result[r]++
     }
-    const r = await db.insertTarget({
-      project_id: id,
-      source_key: it.source,
-      product_ref: it.ref,
-      label: it.label,
-      status: 'active',
-      cursor: null,
-    })
-    result[r]++
+    done = true
+  } finally {
+    // 중간에 던지면(23505 아닌 오류) 이미 쓴 것을 알아야 되돌리기·재실행 판단이 된다.
+    if (!done) console.error(`⚠️ 투입 중단 — 그때까지 실제 ${JSON.stringify(result)}`)
   }
   return result
 }

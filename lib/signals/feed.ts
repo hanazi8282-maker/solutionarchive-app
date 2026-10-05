@@ -30,7 +30,7 @@ import { firstSentence } from '../analysis/evidence-quotes.ts'
  * false 인 동안은 어느 소스도 허용으로 확인할 수 없으므로 **발췌를 전부 비운다**(fail-closed, D안 2026-10-05).
  * 미적용 상태에서 true 로 두면 /voc 조회 전체가 42703 으로 죽는다(POSTS_PILLAR_COLUMN_READY 와 같은 패턴).
  */
-export const QUOTE_POLICY_COLUMN_READY = false
+export const QUOTE_POLICY_COLUMN_READY = true
 
 /** 발췌 상한(글자). 원문 재게시가 되지 않을 만큼 짧게 — 보고에 가정으로 적은 값이다. */
 export const EXCERPT_MAX = 140

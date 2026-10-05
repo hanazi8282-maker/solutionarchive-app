@@ -476,3 +476,9 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   - 확인(롤백 트랜잭션): 답변 있는 run DELETE → 23503, 본인 JWT 는 자기 행만(타인 행 0), 답변도 본인 것만, anon 0행. 테스트 행 잔존 0.
 - **000053** `idea_query_log.pmf_run_id` FK ON DELETE SET NULL→NO ACTION(컬럼은 000050 이 만듦). 적용 후 FK `a` 확인. 기존 값 불변.
 - 셋 다 비파괴(삭제·타입 축소·대량 UPDATE 없음), 롤백 파일 있음, PR #409(머지 e65976d).
+
+## 2026-10-05 — 리뷰 메타·소스 정책 컬럼 (CEO-STAFF 자체 판단, §10.2)
+- **20261005000001** `review_meta_and_source_policy` — analysis_inputs 에 rating·lang·source_url, review_sources 에 정책 7컬럼 추가(ADD COLUMN IF NOT EXISTS, CHECK 5개). 기존 행 UPDATE 0.
+  - 승인: 남헌 v16 B·v18(2026-10-05) 지시. 예외 5개 비해당(삭제·대량 UPDATE·키·법적·사업방향 아님). 롤백 파일 있음(DROP COLUMN — 롤백 실행은 사람 판단).
+  - 적용 전: 컬럼 0. 적용 후 양성: 컬럼 10개, 기존 소스 26행 전부 quote_allowed=true·robots_status NULL. 음성(롤백 트랜잭션): 제약 3건 모두 23514.
+- **20261005000002**(앱스토어 enabled)는 미적용 — 러너가 robots disallowed 를 통과시키는 경로가 없어 켜도 0건. 남헌 예외 경로 구현 뒤 적용.

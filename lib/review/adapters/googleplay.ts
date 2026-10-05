@@ -1,17 +1,18 @@
 // Google Play 리뷰 어댑터 — 나라(gl)·언어(hl)별, 별점·언어·원문 주소까지.
 //
-// ⚠️ 약관 금지를 알고 소유자가 연 소스다(남헌 v19 B, 2026-10-05). Google Play 이용약관 3.3조가 "자동화된 수단으로
-//    접근 금지 + robots.txt 준수"를 원문으로 적는다(docs/strategy-principles.md SP-020, A등급). 등록은 마이그
-//    20261005000005(tos_status='forbids_automation' · override='owner_2026-10-05' · quote_policy='short_only') —
-//    **파일만 있고 오케스트레이터가 실측 1회 뒤 적용한다.** 행이 없으면 러너 loadSource 가 null → 한 건도 안 돈다.
-//    robots 는 소유자 예외 대상이 아니다(robots_status 를 'disallowed' 로 기록하지 않았다) — 러너가 매 실행 판정한다.
+// ⚠️ robots·약관 금지를 알고 남헌이 켠 소스다(남헌 결정 2026-10-06). Google Play 이용약관 3.3조가 "자동화된 수단으로
+//    접근 금지 + robots.txt 준수"를 원문으로 적는다(docs/strategy-principles.md SP-020, A등급). robots 는 `User-agent: *`
+//    에 `Disallow: /_` 라 이 어댑터 경로가 금지다(실측). 등록은 마이그 20261005000005(robots_status='disallowed' ·
+//    tos_status='forbids_automation' · override='owner_2026-10-06' · quote_policy='short_only') — 적용 전이면 행이 없어
+//    러너 loadSource 가 null → 한 건도 안 돈다. 러너는 매 실행 robots 를 읽고, 금지 판정만 소유자 예외로 통과한다
+//    (runner.ts OWNER_ROBOTS_OVERRIDES). 확인 불가·5xx 는 그대로 멈춘다.
 //    고객 화면 인용은 short_only(한국어 130자·영어 240자·원문 그대로·출처 비표시, v22 #3 lib/analysis/evidence-quotes.ts).
 //
 // 경로: `POST https://play.google.com/_/PlayStoreUi/data/batchexecute?hl=<hl>&gl=<gl>` (rpcid UsvDTd, 최신순).
 //   상세 페이지(`/store/apps/details`)의 AF_initDataCallback 블롭에도 리뷰가 있지만(2026-09-02 실측,
 //   docs/review-source-findings.md) 첫 몇 건뿐이고 다음 페이지가 없다. batchexecute 는 토큰으로 이어진다.
-//   ⚠️ 이 경로의 robots 판정은 **실측하지 않았다**(외부 호출 금지 작업). 러너가 매 실행 robots 를 읽고
-//      금지·확인 불가면 요청하지 않는다(fail-closed) — 어댑터는 proceedWhenRobotsUnverified 를 선언하지 않는다.
+//   ⚠️ 이 경로는 robots 금지(`Disallow: /_`, 2026-10-06 실측)다. 소유자 예외 행이 없으면 요청하지 않고, 확인 불가면
+//      예외가 있어도 요청하지 않는다(fail-closed) — 어댑터는 proceedWhenRobotsUnverified 를 선언하지 않는다.
 //   ⚠️ 응답 구조는 구글 내부 직렬화라 문서가 없다. 필드 위치는 공개 라이브러리 google-play-scraper 의
 //      ElementSpecs.Review 를 따랐고, 픽스처(fixtures/googleplay/)도 **그 구조로 만든 합성본**이다 — 실제 응답을
 //      받아 저장한 게 아니다. 켜기 전에 1회 실측해 픽스처를 실응답으로 바꿔야 한다(§7.1 "검사 방법이 주장과 같은지").

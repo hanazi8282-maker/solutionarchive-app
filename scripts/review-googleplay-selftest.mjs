@@ -12,7 +12,7 @@
 //   3) store.appendInput — 새 컬럼에 쓰고, 컬럼 부재(PGRST204/42703)면 옛 형태로 다시 넣는다
 
 import { googleplayAdapter, parseProductRef, buildBody, reviewUrl, BATCH_URL, RPC_ID } from '../lib/review/adapters/googleplay.ts'
-import { runCollection, USER_AGENT } from '../lib/review/runner.ts'
+import { runCollection, USER_AGENT, isOwnerRobotsOverride } from '../lib/review/runner.ts'
 import { createReviewStore, reviewMetaColumns, isMissingMetaColumn } from '../lib/review/store.ts'
 
 let pass = 0
@@ -99,7 +99,7 @@ t('다른 RPC 프레임만 = 실패', googleplayAdapter.parse(`)]}'\n\n[["wrb.fr
 }
 
 // ── 2) 실제 어댑터 + 실제 러너 ─────────────────────────────────────
-function harness({ robots = 'User-agent: *\nAllow: /\n', robotsStatus = 200, byToken = {}, status = {} } = {}) {
+function harness({ robots = 'User-agent: *\nAllow: /\n', robotsStatus = 200, byToken = {}, status = {}, loadSource } = {}) {
   const log = { fetched: [], inits: [], inputs: [], saves: [] }
   let clock = 1_000_000
   const ports = {
@@ -114,7 +114,7 @@ function harness({ robots = 'User-agent: *\nAllow: /\n', robotsStatus = 200, byT
       return { status: 200, body: byToken[tok] ?? '' }
     },
     store: {
-      async loadSource() { return { key: 'googleplay', enabled: true, minIntervalMs: 4000, dailyRequestCap: 200, requestsToday: 0 } },
+      loadSource: loadSource ?? (async () => ({ key: 'googleplay', enabled: true, minIntervalMs: 4000, dailyRequestCap: 200, requestsToday: 0 })),
       async listDueTargets() { return [{ id: 'g1', projectId: 'p1', sourceKey: 'googleplay', productRef: 'kr:ko:com.Slack', cursor: null, lastReviewAt: null, consecutiveEmpty: 0 }] },
       async saveTargetProgress(p) { log.saves.push(p) },
       async recordFingerprint() { return 'new' },
@@ -143,6 +143,47 @@ const run = (h) => runCollection(googleplayAdapter, { dryRun: false, targetLimit
   const r = await run(h)
   t('robots 금지: 요청 0', h.log.inits.length, 0)
   t('robots 금지: robotsSkips 1', r.robotsSkips, 1)
+}
+// 소유자 예외(남헌 2026-10-06) — DB 행 → **실제 store.loadSource** → 실제 러너 → 실제 어댑터. 가짜는 supabase·네트워크뿐.
+// robots 는 실측 그대로(`User-agent: *` 에 `Disallow: /_`, batchexecute 가 /_/PlayStoreUi/… 라 금지).
+const PLAY_ROBOTS = 'User-agent: *\nDisallow: /_\n'
+function sourceRowSupa(row) {
+  return {
+    from(table) {
+      if (table === 'review_sources') return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: row, error: null }) }) }) }
+      return { select: () => ({ eq: () => ({ gte: async () => ({ data: [], error: null }) }) }) }
+    },
+  }
+}
+const ownerRun = async (override, robotsStatus = 'disallowed', robots = PLAY_ROBOTS, robotsHttp = 200) => {
+  const row = { key: 'googleplay', enabled: true, min_interval_ms: 8000, daily_request_cap: 40, override, robots_status: robotsStatus }
+  const store = createReviewStore(sourceRowSupa(row))
+  const h = harness({ robots, robotsStatus: robotsHttp, byToken: { first: page1, TOKEN_P2: page2 }, loadSource: (k) => store.loadSource(k) })
+  return { h, r: await run(h) }
+}
+{
+  const { h, r } = await ownerRun('owner_2026-10-06')
+  t('소유자 예외 10-06: robots /_ 금지를 통과해 요청한다', h.log.inits.length, 2)
+  t('소유자 예외 10-06: 사용 건수 = 요청 수', r.robotsOwnerOverride, 2)
+  t('소유자 예외 10-06: robotsSkips 0', r.robotsSkips, 0)
+  t('소유자 예외 10-06: 적재 4건', r.stats.newReviews, 4)
+}
+{
+  const { h, r } = await ownerRun('owner_2026-10-07')
+  t('잘못된 override 값: 요청 0', h.log.inits.length, 0)
+  t('잘못된 override 값: robots 금지로 센다', r.robotsSkips, 1)
+}
+{
+  const { h } = await ownerRun('owner_2026-10-06', 'unverified')
+  t('override 맞아도 행이 unverified 면 요청 0', h.log.inits.length, 0)
+}
+{
+  const { h } = await ownerRun('owner_2026-10-06', 'disallowed', PLAY_ROBOTS, 404)
+  t('소유자 예외여도 robots 확인 불가(404)는 요청 0', h.log.inits.length, 0)
+}
+{
+  const { h } = await ownerRun('owner_2026-10-06', 'disallowed', PLAY_ROBOTS, 503)
+  t('소유자 예외여도 robots 5xx 는 요청 0', h.log.inits.length, 0)
 }
 {
   const h = harness({ robotsStatus: null, byToken: { first: page1 } })
@@ -191,7 +232,11 @@ t('어댑터: robots 우회 표식 없음', googleplayAdapter.proceedWhenRobotsU
   const collect = await fsm.readFile(new URL('./review-collect.mjs', import.meta.url), 'utf8')
   t('등록(000005): ADAPTERS 에 googleplay', /^\s*googleplay: googleplayAdapter,/m.test(collect), true)
   t('등록(000005): key googleplay', sql.includes("'googleplay'"), true)
-  t('등록(000005): short_only · forbids_automation · owner override', ["'short_only'", "'forbids_automation'", "'owner_2026-10-05'"].every((s) => sql.includes(s)), true)
+  const insert = sql.slice(sql.indexOf('INSERT INTO'), sql.indexOf('ON CONFLICT (key) DO NOTHING;'))
+  t('등록(000005): short_only · forbids_automation · disallowed · owner_2026-10-06', ["'short_only'", "'forbids_automation'", "'disallowed'", "'owner_2026-10-06'"].every((s) => insert.includes(s)), true)
+  t('등록(000005): 옛 값(owner_2026-10-05 · unverified) 없음', ["'owner_2026-10-05'", "'unverified'"].some((s) => insert.includes(s)), false)
+  t('등록(000005): 행 값이 러너 소유자 예외를 연다', isOwnerRobotsOverride('owner_2026-10-06', 'disallowed'), true)
+  t('등록(000005): 보수적 시드 8000 · 40', /'ok',\s*8000,\s*40,/.test(insert), true)
   t('등록(000005): ON CONFLICT DO NOTHING', /ON CONFLICT \(key\) DO NOTHING/.test(sql), true)
 }
 t('UA 는 우리 것(위장 없음)', USER_AGENT.startsWith('solutionarchive-review-collector/'), true)
@@ -252,4 +297,4 @@ const input = { projectId: 'p', sourceKey: 'googleplay', text: 'x', collectedAt:
 
 console.log(`${pass} passed, ${fail} failed`)
 if (fail > 0) process.exit(1)
-console.log('⚠️ 합성 픽스처 기준 통과 — 실제 Play 응답 구조·robots 는 실측 전이다(켜기 전 1회 실측 필수).')
+console.log('⚠️ 합성 픽스처 기준 통과 — 실제 Play 응답 구조는 실측 전이다(robots 는 2026-10-06 실측 `Disallow: /_` 을 하네스에 반영).')

@@ -13,7 +13,7 @@
 import type { createClient } from '../supabase/server.ts'
 import { CROSS_TARGET_MIN_TEXT_LEN } from './fingerprint.ts'
 import type { RunnerStore, SourceConfig, TargetProgress } from './runner.ts'
-import { OWNER_ROBOTS_OVERRIDE } from './runner.ts'
+import { isOwnerRobotsOverride } from './runner.ts'
 import type { Fingerprint, TargetState } from './types.ts'
 
 type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
@@ -88,7 +88,7 @@ export function createReviewStore(supabase: Supa): RunnerStore {
         minIntervalMs: data.min_interval_ms,
         dailyRequestCap: data.daily_request_cap,
         requestsToday,
-        robotsOwnerOverride: data.override === OWNER_ROBOTS_OVERRIDE && data.robots_status === 'disallowed',
+        robotsOwnerOverride: isOwnerRobotsOverride(data.override, data.robots_status),
       }
     },
 

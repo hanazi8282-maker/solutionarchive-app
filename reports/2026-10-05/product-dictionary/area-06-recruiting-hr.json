@@ -1,0 +1,3506 @@
+{
+  "area": "06-recruiting-hr",
+  "area_ko": "채용·HR",
+  "scope": "기업이 쓰는 채용관리(ATS)·AI 채용/면접/역량검사/평판조회, HRIS·급여·근태, 성과관리·인게이지먼트 SaaS를 포함한다. 구직 포털·구직자 앱 자체와 ERP·그룹웨어·전자계약 범용 도구는 제외하되, 포털 회사가 기업용 채용관리 도구를 별도 판매하면(리버스·인크루트웍스·잡다) 포함한다.",
+  "researched_at": "2026-10-05",
+  "kr_search_queries": [
+    "WebSearch: 국내 ATS 채용관리 솔루션 비교 그리팅 나인하이어",
+    "WebSearch: HR SaaS 국내 스타트업 인사관리 근태관리 급여 플렉스 시프티 비교",
+    "WebSearch: 성과관리 솔루션 국내 레몬베이스 클랩 OKR 1on1 HR 툴",
+    "WebSearch: AI 면접 솔루션 기업용 국내 뷰인터HR 잡다 인에이치알 비교",
+    "WebSearch: 근태관리 앱 출퇴근 기록 알밤 샵플 시프티 직원관리 앱 비교",
+    "WebSearch: 평판조회 레퍼런스체크 솔루션 국내 스펙터 체커 HR테크",
+    "WebSearch: 채용관리 솔루션 ATS 국내 기업 목록 2026 잡다 ATS 원티드 리멤버 사람인 기업용",
+    "WebSearch: 국내 HR테크 기업 지도 인사관리 급여 SaaS 클라우드 HRIS 스타트업 목록",
+    "WebFetch 목록 페이지: impactflow.kr/products/hr/ats, impactflow.kr/products/hr/human-resource-management-software, reviewinsight.blog HR 12종/근태급여/성과평가 비교, supercoder.co 국내 AI 면접 7개 비교",
+    "스토어 검색(Play·iTunes kr): 그리팅, greetinghr, greetinghr 채용, 그리팅 채용, 나인하이어, 리버스 사람인 채용관리, 리버스 채용, 인크루트웍스, 인크루트, 인크루트 View, 커리어온, 라운드HR, 스테드 채용, 자버, 캔디데이트, wiselection, 씨인플러스, 메타잡, 잡다, 뷰인터, 뷰인터HR, 에이치닷, 인에이치알, 텔타, Telta, 클라썸, 하이버프, 하이버프 인터뷰, 스펙터, 스펙터 평판조회, 스펙터 레퍼런스체크, specter, Specter Inc, 테오 면접, 테오 면접 기록, 무하유, 무하유 몬스터, 몬스터 AI, 슈퍼코더, 플렉스 flex HR, flex 플렉스, flex corp, 시프티, shiftee, 원티드스페이스, 다우오피스, 다우오피스 HR, 다우오피스 HR 근태, 에버타임, 유스트라, U.STRA, U.STRA HR, SINGLEX HR, 넥스트HR, 워크업 HR, 알밤, 샤플, 핀앳, 타임인아웃, 휴램, 타임키퍼, 오늘도출근, 뉴플로이, 페이존, 티트리 근태, 에버인, 레몬베이스, 클랩, 클랩 성과관리, CLAP, CLAP 디웨일, CLAP 성과관리, 클랩 1on1 피드백"
+  ],
+  "products": [
+    {
+      "slug": "greenhouse",
+      "name": "Greenhouse",
+      "name_ko": "그린하우스",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.greenhouse.com/",
+      "summary_ko": "구조화 면접·스코어카드 중심의 ATS(채용관리) 플랫폼",
+      "selection_basis": "G2 ATS 카테고리 상위(Grid Leader), Capterra 리뷰 다수 — https://www.g2.com/categories/applicant-tracking-systems-ats",
+      "sources": {
+        "googleplay": {
+          "key": "greenhouse:googleplay",
+          "status": "확인",
+          "id": "io.greenhouse.recruiting",
+          "url": "https://play.google.com/store/apps/details?id=io.greenhouse.recruiting",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Greenhouse Software Inc'"
+        },
+        "appstore": {
+          "key": "greenhouse:appstore",
+          "status": "확인",
+          "id": "1112028249",
+          "url": "https://apps.apple.com/app/id1112028249",
+          "evidence": "iTunes Search API 결과, 판매자 'Greenhouse Software Inc'"
+        },
+        "capterra": {
+          "key": "greenhouse:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/133100/Greenhouse/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "greenhouse:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/greenhouse/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "greenhouse:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Greenhouse Recruiting' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "greenhouse:daum_search",
+          "status": "검색어",
+          "query": "Greenhouse ATS 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.greenhouse.com/",
+        "https://www.g2.com/categories/applicant-tracking-systems-ats",
+        "https://play.google.com/store/apps/details?id=io.greenhouse.recruiting",
+        "https://apps.apple.com/app/id1112028249",
+        "https://www.capterra.com/p/133100/Greenhouse/",
+        "https://www.trustradius.com/products/greenhouse/reviews"
+      ]
+    },
+    {
+      "slug": "lever",
+      "name": "Lever",
+      "name_ko": "레버",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.lever.co/",
+      "summary_ko": "ATS와 CRM(인재 관계 관리)을 합친 채용 소프트웨어",
+      "selection_basis": "Capterra ATS 상위·리뷰 다수, Greenhouse와 함께 대표 ATS로 비교됨 — https://www.selectsoftwarereviews.com/blog/lever-vs-greenhouse",
+      "sources": {
+        "googleplay": {
+          "key": "lever:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Lever'/'Lever recruiting'/'LeverTRM' 에 Lever 개발사 앱 없음, 리뷰 기사들도 네이티브 앱 없음 언급(https://www.selectsoftwarereviews.com/blog/lever-vs-greenhouse)"
+        },
+        "appstore": {
+          "key": "lever:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 'Lever'/'Lever recruiting'/'LeverTRM' 에 Lever 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "lever:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/142452/Lever/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "lever:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/lever/reviews/all",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "lever:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Lever' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "lever:daum_search",
+          "status": "검색어",
+          "query": "Lever ATS 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.lever.co/",
+        "https://www.selectsoftwarereviews.com/blog/lever-vs-greenhouse",
+        "https://www.capterra.com/p/142452/Lever/",
+        "https://www.trustradius.com/products/lever/reviews/all"
+      ]
+    },
+    {
+      "slug": "workable",
+      "name": "Workable",
+      "name_ko": "워커블",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.workable.com/",
+      "summary_ko": "공고 배포·AI 소싱을 갖춘 중소·중견기업용 ATS/HR 소프트웨어",
+      "selection_basis": "Capterra ATS 상위·리뷰 다수 — https://www.capterra.com/p/130175/Workable/",
+      "sources": {
+        "googleplay": {
+          "key": "workable:googleplay",
+          "status": "확인",
+          "id": "com.workable.ats",
+          "url": "https://play.google.com/store/apps/details?id=com.workable.ats",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Workable Software Limited'"
+        },
+        "appstore": {
+          "key": "workable:appstore",
+          "status": "확인",
+          "id": "1164841670",
+          "url": "https://apps.apple.com/app/id1164841670",
+          "evidence": "iTunes Search API 결과, 판매자 'Workable Software Limited'"
+        },
+        "capterra": {
+          "key": "workable:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/130175/Workable/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "workable:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/workable/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "workable:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Workable' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "workable:daum_search",
+          "status": "검색어",
+          "query": "Workable 채용 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.workable.com/",
+        "https://play.google.com/store/apps/details?id=com.workable.ats",
+        "https://apps.apple.com/app/id1164841670",
+        "https://www.capterra.com/p/130175/Workable/",
+        "https://www.trustradius.com/products/workable/reviews"
+      ]
+    },
+    {
+      "slug": "ashby",
+      "name": "Ashby",
+      "name_ko": "애시비",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.ashbyhq.com/",
+      "summary_ko": "ATS·분석·일정조율·CRM 통합 채용 소프트웨어(스타트업·스케일업 중심)",
+      "selection_basis": "Capterra·TrustRadius 등재, 리포팅 강점으로 신흥 ATS 대표 — https://www.capterra.com/p/10004338/Ashby/",
+      "sources": {
+        "googleplay": {
+          "key": "ashby:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Ashby recruiting / Ashby' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "ashby:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 'Ashby recruiting / Ashby' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "ashby:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10004338/Ashby/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "ashby:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/ashby/competitors",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정) — 제품 슬러그 하위 경쟁사 페이지만 확인, /reviews URL 은 미확인"
+        },
+        "shopify_apps": {
+          "key": "ashby:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Ashby' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "ashby:daum_search",
+          "status": "검색어",
+          "query": "Ashby ATS 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.ashbyhq.com/",
+        "https://www.capterra.com/p/10004338/Ashby/",
+        "https://www.trustradius.com/products/ashby/competitors"
+      ]
+    },
+    {
+      "slug": "bamboohr",
+      "name": "BambooHR",
+      "name_ko": "뱀부HR",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.bamboohr.com/",
+      "summary_ko": "중소기업용 HRIS(인사정보·휴가·급여·채용)",
+      "selection_basis": "G2 Core HR·ATS 카테고리 상위, Capterra 리뷰 3천건대 — https://www.g2.com/categories/core-hr",
+      "sources": {
+        "googleplay": {
+          "key": "bamboohr:googleplay",
+          "status": "확인",
+          "id": "com.mokinetworks.bamboohr",
+          "url": "https://play.google.com/store/apps/details?id=com.mokinetworks.bamboohr",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'BambooHR LLC'"
+        },
+        "appstore": {
+          "key": "bamboohr:appstore",
+          "status": "확인",
+          "id": "587244049",
+          "url": "https://apps.apple.com/app/id587244049",
+          "evidence": "iTunes Search API 결과, 판매자 'Bamboo HR LLC'"
+        },
+        "capterra": {
+          "key": "bamboohr:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/110968/BambooHR/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "bamboohr:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/reviews/bamboohr-2024-05-15-10-29-48",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정) — 개별 리뷰 페이지 URL"
+        },
+        "shopify_apps": {
+          "key": "bamboohr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'BambooHR' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "bamboohr:daum_search",
+          "status": "검색어",
+          "query": "BambooHR 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.bamboohr.com/",
+        "https://www.g2.com/categories/core-hr",
+        "https://play.google.com/store/apps/details?id=com.mokinetworks.bamboohr",
+        "https://apps.apple.com/app/id587244049",
+        "https://www.capterra.com/p/110968/BambooHR/",
+        "https://www.trustradius.com/reviews/bamboohr-2024-05-15-10-29-48"
+      ]
+    },
+    {
+      "slug": "rippling",
+      "name": "Rippling",
+      "name_ko": "리플링",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.rippling.com/",
+      "summary_ko": "HR·급여·IT·재무를 한 데이터로 묶은 통합 인력관리 플랫폼",
+      "selection_basis": "G2 Core HR 1위권(4.8), Capterra 리뷰 4천건대 — https://www.g2.com/categories/core-hr",
+      "sources": {
+        "googleplay": {
+          "key": "rippling:googleplay",
+          "status": "확인",
+          "id": "com.people.rippling",
+          "url": "https://play.google.com/store/apps/details?id=com.people.rippling",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'People Center Inc.'"
+        },
+        "appstore": {
+          "key": "rippling:appstore",
+          "status": "확인",
+          "id": "1231325957",
+          "url": "https://apps.apple.com/app/id1231325957",
+          "evidence": "iTunes Search API 결과, 판매자 'PEOPLE CENTER, INC'"
+        },
+        "capterra": {
+          "key": "rippling:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/172127/Rippling/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "rippling:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/rippling/reviews?qs=product-usage",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "rippling:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Rippling' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "rippling:daum_search",
+          "status": "검색어",
+          "query": "Rippling 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.rippling.com/",
+        "https://www.g2.com/categories/core-hr",
+        "https://play.google.com/store/apps/details?id=com.people.rippling",
+        "https://apps.apple.com/app/id1231325957",
+        "https://www.capterra.com/p/172127/Rippling/",
+        "https://www.trustradius.com/products/rippling/reviews?qs=product-usage"
+      ]
+    },
+    {
+      "slug": "gusto",
+      "name": "Gusto",
+      "name_ko": "거스토",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://gusto.com/",
+      "summary_ko": "미국 중소기업용 급여·복리후생·HR 플랫폼",
+      "selection_basis": "G2 Core HR 상위(4.6), Capterra 리뷰 4천건대 — https://www.g2.com/categories/core-hr",
+      "sources": {
+        "googleplay": {
+          "key": "gusto:googleplay",
+          "status": "확인",
+          "id": "com.gusto.money",
+          "url": "https://play.google.com/store/apps/details?id=com.gusto.money",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Gusto, Inc.'"
+        },
+        "appstore": {
+          "key": "gusto:appstore",
+          "status": "확인",
+          "id": "1478804271",
+          "url": "https://apps.apple.com/app/id1478804271",
+          "evidence": "iTunes Search API 결과, 판매자 'Gusto, inc.'"
+        },
+        "capterra": {
+          "key": "gusto:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/131882/Gusto/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "gusto:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/gusto/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "gusto:shopify_apps",
+          "status": "확인",
+          "id": null,
+          "url": "https://apps.shopify.com/gusto",
+          "evidence": "apps.shopify.com/search/autocomplete JSON 결과"
+        },
+        "daum_search": {
+          "key": "gusto:daum_search",
+          "status": "검색어",
+          "query": "Gusto 급여 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://gusto.com/",
+        "https://www.g2.com/categories/core-hr",
+        "https://play.google.com/store/apps/details?id=com.gusto.money",
+        "https://apps.apple.com/app/id1478804271",
+        "https://www.capterra.com/p/131882/Gusto/",
+        "https://www.trustradius.com/products/gusto/reviews",
+        "https://apps.shopify.com/gusto"
+      ]
+    },
+    {
+      "slug": "hibob",
+      "name": "HiBob",
+      "name_ko": "하이밥",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.hibob.com/",
+      "summary_ko": "중견기업용 HRIS \"Bob\"(인사·휴가·성과·급여)",
+      "selection_basis": "G2 Core HR·성과관리 상위 — https://www.g2.com/categories/core-hr",
+      "sources": {
+        "googleplay": {
+          "key": "hibob:googleplay",
+          "status": "확인",
+          "id": "com.hibob",
+          "url": "https://play.google.com/store/apps/details?id=com.hibob",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'HiBob'"
+        },
+        "appstore": {
+          "key": "hibob:appstore",
+          "status": "확인",
+          "id": "1297148884",
+          "url": "https://apps.apple.com/app/id1297148884",
+          "evidence": "iTunes Search API 결과, 판매자 'Hi Bob Ltd'"
+        },
+        "capterra": {
+          "key": "hibob:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/156106/Hibob/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "hibob:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 'HiBob Bob HR reviews' (capterra.com·trustradius.com 한정) 결과에 TrustRadius 제품 페이지 없음"
+        },
+        "shopify_apps": {
+          "key": "hibob:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'HiBob' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "hibob:daum_search",
+          "status": "검색어",
+          "query": "HiBob 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.hibob.com/",
+        "https://www.g2.com/categories/core-hr",
+        "https://learn.g2.com/best-performance-management-software",
+        "https://play.google.com/store/apps/details?id=com.hibob",
+        "https://apps.apple.com/app/id1297148884",
+        "https://www.capterra.com/p/156106/Hibob/"
+      ]
+    },
+    {
+      "slug": "deel",
+      "name": "Deel",
+      "name_ko": "딜",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.deel.com/",
+      "summary_ko": "법인 없이 해외 인력 고용(EOR)·글로벌 급여·HRIS",
+      "selection_basis": "G2 Core HR·ATS 상위(4.8), Capterra 리뷰 다수 — https://www.g2.com/categories/core-hr",
+      "sources": {
+        "googleplay": {
+          "key": "deel:googleplay",
+          "status": "확인",
+          "id": "com.deel.app",
+          "url": "https://play.google.com/store/apps/details?id=com.deel.app",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Deel inc'"
+        },
+        "appstore": {
+          "key": "deel:appstore",
+          "status": "확인",
+          "id": "6478083155",
+          "url": "https://apps.apple.com/app/id6478083155",
+          "evidence": "iTunes Search API 결과, 판매자 'Deel, Inc (USA)'"
+        },
+        "capterra": {
+          "key": "deel:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/205015/Deel/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "deel:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/deel/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "deel:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Deel' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "deel:daum_search",
+          "status": "검색어",
+          "query": "Deel 해외채용 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.deel.com/",
+        "https://www.g2.com/categories/core-hr",
+        "https://www.deel.com/ko-kr/blog/top-hris-solutions/",
+        "https://play.google.com/store/apps/details?id=com.deel.app",
+        "https://apps.apple.com/app/id6478083155",
+        "https://www.capterra.com/p/205015/Deel/",
+        "https://www.trustradius.com/products/deel/reviews"
+      ]
+    },
+    {
+      "slug": "personio",
+      "name": "Personio",
+      "name_ko": "퍼소니오",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.personio.com/",
+      "summary_ko": "유럽 중소·중견기업용 올인원 HR(인사·채용·급여 준비)",
+      "selection_basis": "Capterra 리뷰 300건대, 유럽 대표 HRIS — https://www.trustradius.com/compare-products/ashby-vs-personio",
+      "sources": {
+        "googleplay": {
+          "key": "personio:googleplay",
+          "status": "확인",
+          "id": "com.personio",
+          "url": "https://play.google.com/store/apps/details?id=com.personio",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Personio SE & Co KG'"
+        },
+        "appstore": {
+          "key": "personio:appstore",
+          "status": "확인",
+          "id": "1470197212",
+          "url": "https://apps.apple.com/app/id1470197212",
+          "evidence": "iTunes Search API 결과, 판매자 'Personio GmbH'"
+        },
+        "capterra": {
+          "key": "personio:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/158622/Personio/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "personio:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 'Personio HR software reviews' (capterra.com·trustradius.com 한정) 결과에 TrustRadius 제품 페이지 없음 (TrustRadius 비교 페이지 compare-products/ashby-vs-personio 는 존재)"
+        },
+        "shopify_apps": {
+          "key": "personio:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Personio' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "personio:daum_search",
+          "status": "검색어",
+          "query": "Personio 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.personio.com/",
+        "https://www.trustradius.com/compare-products/ashby-vs-personio",
+        "https://play.google.com/store/apps/details?id=com.personio",
+        "https://apps.apple.com/app/id1470197212",
+        "https://www.capterra.com/p/158622/Personio/"
+      ]
+    },
+    {
+      "slug": "lattice",
+      "name": "Lattice",
+      "name_ko": "래티스",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://lattice.com/",
+      "summary_ko": "성과리뷰·1on1·목표·인게이지먼트 서베이 중심 피플 플랫폼",
+      "selection_basis": "G2 성과관리 상위 선정 — https://learn.g2.com/best-performance-management-software",
+      "sources": {
+        "googleplay": {
+          "key": "lattice:googleplay",
+          "status": "확인",
+          "id": "com.lattice",
+          "url": "https://play.google.com/store/apps/details?id=com.lattice",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Lattice'"
+        },
+        "appstore": {
+          "key": "lattice:appstore",
+          "status": "확인",
+          "id": "1409785530",
+          "url": "https://apps.apple.com/app/id1409785530",
+          "evidence": "iTunes Search API 결과, 판매자 'Degree Inc. (Lattice 법인명)'"
+        },
+        "capterra": {
+          "key": "lattice:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/151676/Lattice/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "lattice:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/lattice/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "lattice:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Lattice performance / Lattice HR' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "lattice:daum_search",
+          "status": "검색어",
+          "query": "Lattice 성과관리 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://lattice.com/",
+        "https://learn.g2.com/best-performance-management-software",
+        "https://play.google.com/store/apps/details?id=com.lattice",
+        "https://apps.apple.com/app/id1409785530",
+        "https://www.capterra.com/p/151676/Lattice/",
+        "https://www.trustradius.com/products/lattice/reviews"
+      ]
+    },
+    {
+      "slug": "culture-amp",
+      "name": "Culture Amp",
+      "name_ko": "컬처앰프",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.cultureamp.com/",
+      "summary_ko": "인게이지먼트 서베이·성과관리 기반 직원경험 플랫폼",
+      "selection_basis": "Capterra·TrustRadius 다수 리뷰, 인게이지먼트 대표 제품 — https://www.capterra.com/p/154170/Employee-Effectiveness/",
+      "sources": {
+        "googleplay": {
+          "key": "culture-amp:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'Culture Amp'/'CultureAmp' + 패키지 추정(com.cultureamp*) 조회 Not Found"
+        },
+        "appstore": {
+          "key": "culture-amp:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 'Culture Amp / CultureAmp (us, au)' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "culture-amp:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/154170/Employee-Effectiveness/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "culture-amp:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/culture-amp/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "culture-amp:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Culture Amp' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "culture-amp:daum_search",
+          "status": "검색어",
+          "query": "Culture Amp 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.cultureamp.com/",
+        "https://www.capterra.com/p/154170/Employee-Effectiveness/",
+        "https://www.trustradius.com/products/culture-amp/reviews"
+      ]
+    },
+    {
+      "slug": "15five",
+      "name": "15Five",
+      "name_ko": "피프틴파이브",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.15five.com/",
+      "summary_ko": "주간 체크인·1on1·성과리뷰 중심 지속 성과관리",
+      "selection_basis": "Capterra·TrustRadius 다수 리뷰, Lattice와 비교되는 성과관리 대표 — https://www.capterra.com/p/140437/15Five/",
+      "sources": {
+        "googleplay": {
+          "key": "15five:googleplay",
+          "status": "확인",
+          "id": "com.fifteenfive.fifteenfiveapp",
+          "url": "https://play.google.com/store/apps/details?id=com.fifteenfive.fifteenfiveapp",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 '15Five Inc'"
+        },
+        "appstore": {
+          "key": "15five:appstore",
+          "status": "확인",
+          "id": "1020253220",
+          "url": "https://apps.apple.com/app/id1020253220",
+          "evidence": "iTunes Search API 결과, 판매자 '15Five Inc'"
+        },
+        "capterra": {
+          "key": "15five:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/140437/15Five/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "15five:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/15five/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "15five:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '15Five' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "15five:daum_search",
+          "status": "검색어",
+          "query": "15Five 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.15five.com/",
+        "https://play.google.com/store/apps/details?id=com.fifteenfive.fifteenfiveapp",
+        "https://apps.apple.com/app/id1020253220",
+        "https://www.capterra.com/p/140437/15Five/",
+        "https://www.trustradius.com/products/15five/reviews"
+      ]
+    },
+    {
+      "slug": "paradox",
+      "name": "Paradox",
+      "name_ko": "패러독스",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.paradox.ai/",
+      "summary_ko": "AI 채용 비서 Olivia로 지원자 응대·면접 일정 자동화(대화형 ATS)",
+      "selection_basis": "AI 채용 대표(대량 시급직 채용), Capterra·TrustRadius 등재 — https://www.capterra.com/p/191056/Olivia/",
+      "sources": {
+        "googleplay": {
+          "key": "paradox:googleplay",
+          "status": "확인",
+          "id": "ai.paradox.olivia",
+          "url": "https://play.google.com/store/apps/details?id=ai.paradox.olivia",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Paradox Ai'"
+        },
+        "appstore": {
+          "key": "paradox:appstore",
+          "status": "확인",
+          "id": "1330936756",
+          "url": "https://apps.apple.com/app/id1330936756",
+          "evidence": "iTunes Search API 결과, 판매자 'Paradox, Inc'"
+        },
+        "capterra": {
+          "key": "paradox:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/191056/Olivia/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "paradox:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/paradox-olivia/pricing",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "paradox:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Paradox Olivia hiring' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "paradox:daum_search",
+          "status": "검색어",
+          "query": "Paradox Olivia AI 채용 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.paradox.ai/",
+        "https://play.google.com/store/apps/details?id=ai.paradox.olivia",
+        "https://apps.apple.com/app/id1330936756",
+        "https://www.capterra.com/p/191056/Olivia/",
+        "https://www.trustradius.com/products/paradox-olivia/pricing"
+      ]
+    },
+    {
+      "slug": "hirevue",
+      "name": "HireVue",
+      "name_ko": "하이어뷰",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.hirevue.com/",
+      "summary_ko": "AI 스크리닝·역량평가·비디오 면접 플랫폼",
+      "selection_basis": "AI 면접 대표 제품, Capterra·TrustRadius 다수 리뷰 — https://www.capterra.com/p/132193/Team-Build/",
+      "sources": {
+        "googleplay": {
+          "key": "hirevue:googleplay",
+          "status": "확인",
+          "id": "com.hirevue.manager",
+          "url": "https://play.google.com/store/apps/details?id=com.hirevue.manager",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'HireVue, Inc.'"
+        },
+        "appstore": {
+          "key": "hirevue:appstore",
+          "status": "확인",
+          "id": "641790762",
+          "url": "https://apps.apple.com/app/id641790762",
+          "evidence": "iTunes Search API 결과, 판매자 'Hirevue Inc.'"
+        },
+        "capterra": {
+          "key": "hirevue:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/132193/Team-Build/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "hirevue:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/hirevue/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "hirevue:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'HireVue' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "hirevue:daum_search",
+          "status": "검색어",
+          "query": "HireVue AI면접 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.hirevue.com/",
+        "https://play.google.com/store/apps/details?id=com.hirevue.manager",
+        "https://apps.apple.com/app/id641790762",
+        "https://www.capterra.com/p/132193/Team-Build/",
+        "https://www.trustradius.com/products/hirevue/reviews"
+      ]
+    },
+    {
+      "slug": "teamtailor",
+      "name": "Teamtailor",
+      "name_ko": "팀테일러",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.teamtailor.com/",
+      "summary_ko": "채용 브랜딩(커리어 사이트)+ATS",
+      "selection_basis": "Capterra ATS 비교 다수 등장, 유럽 대표 ATS — https://www.capterra.com/p/144801/Teamtailor/",
+      "sources": {
+        "googleplay": {
+          "key": "teamtailor:googleplay",
+          "status": "확인",
+          "id": "com.teamtailor.app",
+          "url": "https://play.google.com/store/apps/details?id=com.teamtailor.app",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Teamtailor'"
+        },
+        "appstore": {
+          "key": "teamtailor:appstore",
+          "status": "확인",
+          "id": "1377551207",
+          "url": "https://apps.apple.com/app/id1377551207",
+          "evidence": "iTunes Search API 결과, 판매자 'Teamtailor AB'"
+        },
+        "capterra": {
+          "key": "teamtailor:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/144801/Teamtailor/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "teamtailor:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/teamtailor/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "teamtailor:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Teamtailor' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "teamtailor:daum_search",
+          "status": "검색어",
+          "query": "Teamtailor 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.teamtailor.com/",
+        "https://play.google.com/store/apps/details?id=com.teamtailor.app",
+        "https://apps.apple.com/app/id1377551207",
+        "https://www.capterra.com/p/144801/Teamtailor/",
+        "https://www.trustradius.com/products/teamtailor/reviews"
+      ]
+    },
+    {
+      "slug": "breezy-hr",
+      "name": "Breezy HR",
+      "name_ko": "브리지HR",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://breezy.hr/",
+      "summary_ko": "중소기업용 ATS",
+      "selection_basis": "Capterra ATS 카테고리 비교 다수, 리뷰 다수 — https://www.capterra.com/p/141702/Breezy-HR/",
+      "sources": {
+        "googleplay": {
+          "key": "breezy-hr:googleplay",
+          "status": "확인",
+          "id": "com.breezyhr.breezy",
+          "url": "https://play.google.com/store/apps/details?id=com.breezyhr.breezy",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Breezy HR, Inc'"
+        },
+        "appstore": {
+          "key": "breezy-hr:appstore",
+          "status": "확인",
+          "id": "985998474",
+          "url": "https://apps.apple.com/app/id985998474",
+          "evidence": "iTunes Search API 결과, 판매자 'Breezy HR Inc.'"
+        },
+        "capterra": {
+          "key": "breezy-hr:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/141702/Breezy-HR/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "breezy-hr:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/breezy/reviews?qs=product-usage",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "breezy-hr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Breezy HR / Breezy' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "breezy-hr:daum_search",
+          "status": "검색어",
+          "query": "Breezy HR 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://breezy.hr/",
+        "https://play.google.com/store/apps/details?id=com.breezyhr.breezy",
+        "https://apps.apple.com/app/id985998474",
+        "https://www.capterra.com/p/141702/Breezy-HR/",
+        "https://www.trustradius.com/products/breezy/reviews?qs=product-usage"
+      ]
+    },
+    {
+      "slug": "jazzhr",
+      "name": "JazzHR",
+      "name_ko": "재즈HR",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.jazzhr.com/",
+      "summary_ko": "중소기업용 저가 ATS",
+      "selection_basis": "Capterra 리뷰 490건대 — https://www.capterra.com/p/87750/JazzHR/",
+      "sources": {
+        "googleplay": {
+          "key": "jazzhr:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'JazzHR' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "jazzhr:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 'JazzHR' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "jazzhr:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/87750/JazzHR/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "jazzhr:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/jazz-hr/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "jazzhr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'JazzHR' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "jazzhr:daum_search",
+          "status": "검색어",
+          "query": "JazzHR 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.jazzhr.com/",
+        "https://www.capterra.com/p/87750/JazzHR/",
+        "https://www.trustradius.com/products/jazz-hr/reviews"
+      ]
+    },
+    {
+      "slug": "recruitee",
+      "name": "Tellent Recruitee",
+      "name_ko": "리크루티",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://recruitee.com/",
+      "summary_ko": "협업형 ATS(현 Tellent 소속)",
+      "selection_basis": "Capterra 리뷰 190건대, 유럽 ATS — https://www.capterra.com/p/140650/Recruitee/",
+      "sources": {
+        "googleplay": {
+          "key": "recruitee:googleplay",
+          "status": "확인",
+          "id": "com.recruitee.app",
+          "url": "https://play.google.com/store/apps/details?id=com.recruitee.app",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Tellent'"
+        },
+        "appstore": {
+          "key": "recruitee:appstore",
+          "status": "확인",
+          "id": "1231934627",
+          "url": "https://apps.apple.com/app/id1231934627",
+          "evidence": "iTunes Search API 결과, 판매자 'Recruitee BV'"
+        },
+        "capterra": {
+          "key": "recruitee:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/140650/Recruitee/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "recruitee:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/recruitee/reviews/all",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "recruitee:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Recruitee' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "recruitee:daum_search",
+          "status": "검색어",
+          "query": "Recruitee 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://recruitee.com/",
+        "https://play.google.com/store/apps/details?id=com.recruitee.app",
+        "https://apps.apple.com/app/id1231934627",
+        "https://www.capterra.com/p/140650/Recruitee/",
+        "https://www.trustradius.com/products/recruitee/reviews/all"
+      ]
+    },
+    {
+      "slug": "workday",
+      "name": "Workday HCM",
+      "name_ko": "워크데이",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.workday.com/",
+      "summary_ko": "대기업용 클라우드 HCM(인사·급여·채용·탤런트)",
+      "selection_basis": "대기업 HCM 표준, Capterra 리뷰 1,700건대, 국내 비교 기사에도 등장 — https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+      "sources": {
+        "googleplay": {
+          "key": "workday:googleplay",
+          "status": "확인",
+          "id": "com.workday.workdroidapp",
+          "url": "https://play.google.com/store/apps/details?id=com.workday.workdroidapp",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Workday, Inc.'"
+        },
+        "appstore": {
+          "key": "workday:appstore",
+          "status": "확인",
+          "id": "316800034",
+          "url": "https://apps.apple.com/app/id316800034",
+          "evidence": "iTunes Search API 결과, 판매자 'Workday, Inc'"
+        },
+        "capterra": {
+          "key": "workday:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/66908/Workday-HCM/",
+          "evidence": "검색 결과 URL (WebSearch, capterra.com 도메인 한정)"
+        },
+        "trustradius": {
+          "key": "workday:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/workday-hcm/reviews",
+          "evidence": "검색 결과 URL (WebSearch, trustradius.com 도메인 한정)"
+        },
+        "shopify_apps": {
+          "key": "workday:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'Workday / Workday HR' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "workday:daum_search",
+          "status": "검색어",
+          "query": "워크데이 HR 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.workday.com/",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://play.google.com/store/apps/details?id=com.workday.workdroidapp",
+        "https://apps.apple.com/app/id316800034",
+        "https://www.capterra.com/p/66908/Workday-HCM/",
+        "https://www.trustradius.com/products/workday-hcm/reviews"
+      ]
+    },
+    {
+      "slug": "greeting-hr",
+      "name": "Greeting",
+      "name_ko": "그리팅",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.greetinghr.com/",
+      "summary_ko": "두들린의 채용관리(ATS) 솔루션",
+      "selection_basis": "국내 ATS 비교 기사·목록 다수 등재 — https://impactflow.kr/products/hr/ats",
+      "sources": {
+        "googleplay": {
+          "key": "greeting-hr:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '그리팅'/'greetinghr 채용' — '그리팅' 앱은 (주)현대그린푸드 건강식 앱(다른 회사)"
+        },
+        "appstore": {
+          "key": "greeting-hr:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes 'greetinghr'/'그리팅 채용'/'그리팅' — Hyundai Green Food 앱만 나옴(다른 회사)"
+        },
+        "capterra": {
+          "key": "greeting-hr:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "greeting-hr:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "greeting-hr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '그리팅' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "greeting-hr:daum_search",
+          "status": "검색어",
+          "query": "그리팅 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.greetinghr.com/",
+        "https://impactflow.kr/products/hr/ats",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://www.nextunicorn.kr/finder/theme/hrtech"
+      ]
+    },
+    {
+      "slug": "ninehire",
+      "name": "NineHire",
+      "name_ko": "나인하이어",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.ninehire.com/",
+      "summary_ko": "채용 워크플로 자동화 ATS (앱 개발사 표기 웍스피어/WORXPHERE)",
+      "selection_basis": "국내 ATS 비교 기사·목록 등재 — https://impactflow.kr/products/hr/ats",
+      "sources": {
+        "googleplay": {
+          "key": "ninehire:googleplay",
+          "status": "확인",
+          "id": "com.ninehire.mobile",
+          "url": "https://play.google.com/store/apps/details?id=com.ninehire.mobile",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 '웍스피어 (개발자 웹사이트 ninehire.com)'"
+        },
+        "appstore": {
+          "key": "ninehire:appstore",
+          "status": "확인",
+          "id": "1643445392",
+          "url": "https://apps.apple.com/app/id1643445392",
+          "evidence": "iTunes Search API 결과, 판매자 'WORXPHERE LLC.'"
+        },
+        "capterra": {
+          "key": "ninehire:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "ninehire:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "ninehire:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '나인하이어' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "ninehire:daum_search",
+          "status": "검색어",
+          "query": "나인하이어 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.ninehire.com/",
+        "https://impactflow.kr/products/hr/ats",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://www.ninehire.com/why-ninehire",
+        "https://play.google.com/store/apps/details?id=com.ninehire.mobile",
+        "https://apps.apple.com/app/id1643445392"
+      ]
+    },
+    {
+      "slug": "rivers",
+      "name": "Rivers",
+      "name_ko": "리버스",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.rivers.saramin.co.kr/",
+      "summary_ko": "사람인이 제공하는 기업용 채용관리 솔루션(ATS)",
+      "selection_basis": "impactflow 채용관리 목록 등재 — https://impactflow.kr/products/hr/ats",
+      "sources": {
+        "googleplay": {
+          "key": "rivers:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '리버스 사람인 채용관리' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "rivers:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '리버스 채용' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "rivers:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "rivers:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "rivers:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '리버스 사람인 채용관리' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "rivers:daum_search",
+          "status": "검색어",
+          "query": "리버스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.rivers.saramin.co.kr/",
+        "https://impactflow.kr/products/hr/ats"
+      ]
+    },
+    {
+      "slug": "incruit-works",
+      "name": "Incruit Works",
+      "name_ko": "인크루트웍스",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://works.incruit.com/home/",
+      "summary_ko": "인크루트의 기업용 채용솔루션 묶음(비대면 면접 View 포함, view.incruit.com→works.incruit.com 리다이렉트)",
+      "selection_basis": "평판조회·채용솔루션 관련 기사 언급 — https://www.m-i.kr/news/articleView.html?idxno=1113344",
+      "sources": {
+        "googleplay": {
+          "key": "incruit-works:googleplay",
+          "status": "확인",
+          "id": "com.incruit.incruitview",
+          "url": "https://play.google.com/store/apps/details?id=com.incruit.incruitview",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 '인크루트 — 앱명 \"인크루트 View - 비대면 면접을 위한 디지털 채용솔루션\"'"
+        },
+        "appstore": {
+          "key": "incruit-works:appstore",
+          "status": "확인",
+          "id": "1546823465",
+          "url": "https://apps.apple.com/app/id1546823465",
+          "evidence": "iTunes Search API 결과, 판매자 'Incruit Co., Ltd. — 앱명 \"인크루트 View\"'"
+        },
+        "capterra": {
+          "key": "incruit-works:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "incruit-works:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "incruit-works:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '인크루트웍스' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "incruit-works:daum_search",
+          "status": "검색어",
+          "query": "인크루트웍스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://works.incruit.com/home/",
+        "https://www.m-i.kr/news/articleView.html?idxno=1113344",
+        "https://play.google.com/store/apps/details?id=com.incruit.incruitview",
+        "https://apps.apple.com/app/id1546823465"
+      ]
+    },
+    {
+      "slug": "careeron",
+      "name": "CareerOn",
+      "name_ko": "커리어온",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.careeron.co.kr/",
+      "summary_ko": "공공기관·공기업용 채용관리(ATS)·AI 채용 도구",
+      "selection_basis": "국내 ATS 검색 결과 등장(공공 특화) — https://keea.careeron.co.kr/ats/",
+      "sources": {
+        "googleplay": {
+          "key": "careeron:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '커리어온' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "careeron:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '커리어온' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "careeron:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "careeron:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "careeron:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '커리어온' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "careeron:daum_search",
+          "status": "검색어",
+          "query": "커리어온 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.careeron.co.kr/",
+        "https://keea.careeron.co.kr/ats/"
+      ]
+    },
+    {
+      "slug": "roundhr",
+      "name": "RoundHR",
+      "name_ko": "라운드HR",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://roundhr.com/",
+      "summary_ko": "지원자 관리(ATS)+다이렉트 소싱(TRM) 올인원 채용 솔루션",
+      "selection_basis": "그리팅·나인하이어와 비교 글, impactflow 목록 — https://roundhr.com/post/article/ats-comparison",
+      "sources": {
+        "googleplay": {
+          "key": "roundhr:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '라운드HR' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "roundhr:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '라운드HR' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "roundhr:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "roundhr:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "roundhr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '라운드HR' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "roundhr:daum_search",
+          "status": "검색어",
+          "query": "라운드HR 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://roundhr.com/",
+        "https://roundhr.com/post/article/ats-comparison",
+        "https://impactflow.kr/product/roundhr"
+      ]
+    },
+    {
+      "slug": "stead",
+      "name": "Stead",
+      "name_ko": "스테드",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "확인 불가",
+      "summary_ko": "채용 관리 솔루션(넥스트유니콘: 풀랩 운영). 공식 도메인 확인 못 함(stead.im 502)",
+      "selection_basis": "impactflow 채용관리 목록·넥스트유니콘 HR테크 목록 — https://impactflow.kr/products/hr/ats",
+      "sources": {
+        "googleplay": {
+          "key": "stead:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '스테드 채용' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "stead:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '스테드' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "stead:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "stead:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "stead:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '스테드 채용' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "stead:daum_search",
+          "status": "검색어",
+          "query": "스테드 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://impactflow.kr/products/hr/ats",
+        "https://www.nextunicorn.kr/finder/theme/hrtech"
+      ]
+    },
+    {
+      "slug": "candidate",
+      "name": "Candidate Biz",
+      "name_ko": "캔디데이트",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.candidate.im/",
+      "summary_ko": "카카오톡 기반 채용 연락 자동화(Candidate Biz), (주)캔디데이트",
+      "selection_basis": "impactflow 채용관리 목록 — https://impactflow.kr/products/hr/ats",
+      "sources": {
+        "googleplay": {
+          "key": "candidate:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '캔디데이트' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "candidate:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '캔디데이트' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "candidate:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "candidate:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "candidate:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '캔디데이트' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "candidate:daum_search",
+          "status": "검색어",
+          "query": "캔디데이트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.candidate.im/",
+        "https://impactflow.kr/products/hr/ats"
+      ]
+    },
+    {
+      "slug": "wiselection",
+      "name": "wiselection",
+      "name_ko": "wiselection",
+      "name_ko_basis": "확인 불가",
+      "region": "kr",
+      "official_url": "확인 불가",
+      "summary_ko": "채용 공고·지원자 관리·AI 평가 채용 관리 솔루션(impactflow 설명). 공식 도메인 접속 실패",
+      "selection_basis": "impactflow 채용관리 목록 — https://impactflow.kr/products/hr/ats",
+      "sources": {
+        "googleplay": {
+          "key": "wiselection:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'wiselection' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "wiselection:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 'wiselection' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "wiselection:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "wiselection:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "wiselection:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 'wiselection' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "wiselection:daum_search",
+          "status": "검색어",
+          "query": "wiselection 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://impactflow.kr/products/hr/ats",
+        "https://impactflow.kr/product/wiselection"
+      ]
+    },
+    {
+      "slug": "metajob",
+      "name": "MetaJob",
+      "name_ko": "메타잡",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "확인 불가",
+      "summary_ko": "채용관리 솔루션(impactflow 설명). 공식 도메인 확인 못 함",
+      "selection_basis": "impactflow 채용관리 목록 — https://impactflow.kr/products/hr/ats",
+      "sources": {
+        "googleplay": {
+          "key": "metajob:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '메타잡' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "metajob:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '메타잡' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "metajob:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "metajob:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "metajob:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '메타잡' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "metajob:daum_search",
+          "status": "검색어",
+          "query": "메타잡 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://impactflow.kr/products/hr/ats",
+        "https://impactflow.kr/product/metajob"
+      ]
+    },
+    {
+      "slug": "jobda",
+      "name": "JOBDA",
+      "name_ko": "잡다",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.jobda.im/",
+      "summary_ko": "(주)자인원의 역량검사 기반 매칭 플랫폼 겸 기업용 채용 올인원 솔루션. 앱은 구직자(역량검사 응시자)용",
+      "selection_basis": "impactflow 채용관리 목록·국내 HR 솔루션 비교 기사 — https://impactflow.kr/products/hr/ats",
+      "sources": {
+        "googleplay": {
+          "key": "jobda:googleplay",
+          "status": "확인",
+          "id": "io.ionic.jobda",
+          "url": "https://play.google.com/store/apps/details?id=io.ionic.jobda",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'JOBDA (구직자용 앱, 개발자 웹사이트 jobda.im)'"
+        },
+        "appstore": {
+          "key": "jobda:appstore",
+          "status": "확인",
+          "id": "1637297178",
+          "url": "https://apps.apple.com/app/id1637297178",
+          "evidence": "iTunes Search API 결과, 판매자 'JAINWON Co., Ltd (구직자용 앱)'"
+        },
+        "capterra": {
+          "key": "jobda:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "jobda:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "jobda:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '잡다' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "jobda:daum_search",
+          "status": "검색어",
+          "query": "잡다 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.jobda.im/",
+        "https://impactflow.kr/products/hr/ats",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://play.google.com/store/apps/details?id=io.ionic.jobda",
+        "https://apps.apple.com/app/id1637297178"
+      ]
+    },
+    {
+      "slug": "h-place",
+      "name": "h.place",
+      "name_ko": "에이치닷",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://h.place/",
+      "summary_ko": "(주)자인원의 기업용 HR 솔루션(채용·역량검사·개발자검사·온보딩·인사평가)",
+      "selection_basis": "국내 AI 면접/역량검사 비교 기사(잡다·에이치닷 역량검사) — https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive",
+      "sources": {
+        "googleplay": {
+          "key": "h-place:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '에이치닷' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "h-place:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '에이치닷' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "h-place:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "h-place:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "h-place:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '에이치닷' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "h-place:daum_search",
+          "status": "검색어",
+          "query": "에이치닷 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://h.place/",
+        "https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive"
+      ]
+    },
+    {
+      "slug": "viewinter-hr",
+      "name": "ViewinterHR",
+      "name_ko": "뷰인터HR",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://viewinterhr.com/",
+      "summary_ko": "제네시스랩의 AI 영상면접(AI 면접관) 솔루션",
+      "selection_basis": "국내 AI 면접 비교 기사 다수 — https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive",
+      "sources": {
+        "googleplay": {
+          "key": "viewinter-hr:googleplay",
+          "status": "확인",
+          "id": "ai.genesislab.viewinterhr.renewal",
+          "url": "https://play.google.com/store/apps/details?id=ai.genesislab.viewinterhr.renewal",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Genesis Lab Inc, (구버전 ai.genesislab.viewinter.hr 도 존재)'"
+        },
+        "appstore": {
+          "key": "viewinter-hr:appstore",
+          "status": "확인",
+          "id": "6449353886",
+          "url": "https://apps.apple.com/app/id6449353886",
+          "evidence": "iTunes Search API 결과, 판매자 'Genesis Lab Inc. (구버전 1483017354 도 존재)'"
+        },
+        "capterra": {
+          "key": "viewinter-hr:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "viewinter-hr:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "viewinter-hr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '뷰인터' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "viewinter-hr:daum_search",
+          "status": "검색어",
+          "query": "뷰인터HR 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://viewinterhr.com/",
+        "https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive",
+        "https://zdnet.co.kr/view/?no=20230914181042",
+        "https://play.google.com/store/apps/details?id=ai.genesislab.viewinterhr.renewal",
+        "https://apps.apple.com/app/id6449353886"
+      ]
+    },
+    {
+      "slug": "telta-interview-pro",
+      "name": "Telta Interview Pro",
+      "name_ko": "텔타 인터뷰 프로",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.telta.ai/interview-pro",
+      "summary_ko": "클라썸의 AI 면접 도구",
+      "selection_basis": "국내 AI 면접 서비스 7개 비교 기사 — https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive",
+      "sources": {
+        "googleplay": {
+          "key": "telta-interview-pro:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '텔타' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "telta-interview-pro:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '텔타 / Telta' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "telta-interview-pro:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "telta-interview-pro:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "telta-interview-pro:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '텔타' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "telta-interview-pro:daum_search",
+          "status": "검색어",
+          "query": "텔타 인터뷰 프로 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.telta.ai/interview-pro",
+        "https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive"
+      ]
+    },
+    {
+      "slug": "highbuff-interview",
+      "name": "Highbuff Interview",
+      "name_ko": "하이버프 인터뷰",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://highbuff.com/",
+      "summary_ko": "블루바이저시스템즈의 AI 면접·코칭",
+      "selection_basis": "국내 AI 면접 서비스 7개 비교 기사 — https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive",
+      "sources": {
+        "googleplay": {
+          "key": "highbuff-interview:googleplay",
+          "status": "확인",
+          "id": "com.highbuff.iss",
+          "url": "https://play.google.com/store/apps/details?id=com.highbuff.iss",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Bluevisor Inc.'"
+        },
+        "appstore": {
+          "key": "highbuff-interview:appstore",
+          "status": "확인",
+          "id": "1533379878",
+          "url": "https://apps.apple.com/app/id1533379878",
+          "evidence": "iTunes Search API 결과, 판매자 'Bluevisor Inc'"
+        },
+        "capterra": {
+          "key": "highbuff-interview:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "highbuff-interview:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "highbuff-interview:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '하이버프' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "highbuff-interview:daum_search",
+          "status": "검색어",
+          "query": "하이버프 인터뷰 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://highbuff.com/",
+        "https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive",
+        "https://play.google.com/store/apps/details?id=com.highbuff.iss",
+        "https://apps.apple.com/app/id1533379878"
+      ]
+    },
+    {
+      "slug": "specter",
+      "name": "Specter",
+      "name_ko": "스펙터",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.specter.co.kr/",
+      "summary_ko": "온라인 평판조회(레퍼런스체크)·인재검증 플랫폼",
+      "selection_basis": "평판조회 기사·국내 HR테크 목록 — https://www.m-i.kr/news/articleView.html?idxno=1113344",
+      "sources": {
+        "googleplay": {
+          "key": "specter:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '스펙터 / 스펙터 레퍼런스체크' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "specter:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '스펙터 평판조회 / specter' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "specter:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "specter:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "specter:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '스펙터' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "specter:daum_search",
+          "status": "검색어",
+          "query": "스펙터 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.specter.co.kr/",
+        "https://www.m-i.kr/news/articleView.html?idxno=1113344",
+        "https://www.nextunicorn.kr/finder/theme/hrtech"
+      ]
+    },
+    {
+      "slug": "teo",
+      "name": "TEO",
+      "name_ko": "테오",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://teo.specter.co.kr/",
+      "summary_ko": "스펙터의 면접 자동기록·분석·요약 도구",
+      "selection_basis": "스펙터 계열 AI 면접 도구(App Store 판매자 Specter Inc.) — https://teo.specter.co.kr/",
+      "sources": {
+        "googleplay": {
+          "key": "teo:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '테오 면접 기록 / 테오 TEO 면접 자동기록' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "teo:appstore",
+          "status": "확인",
+          "id": "6741404929",
+          "url": "https://apps.apple.com/app/id6741404929",
+          "evidence": "iTunes Search API 결과, 판매자 'Specter Inc.'"
+        },
+        "capterra": {
+          "key": "teo:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "teo:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "teo:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '테오 TEO 면접 자동기록' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "teo:daum_search",
+          "status": "검색어",
+          "query": "테오 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://teo.specter.co.kr/",
+        "https://apps.apple.com/app/id6741404929"
+      ]
+    },
+    {
+      "slug": "muhayu-monster",
+      "name": "Monster",
+      "name_ko": "몬스터",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.muhayu.com/recruitment",
+      "summary_ko": "무하유의 AI 서류평가·면접 HR 서비스",
+      "selection_basis": "국내 AI 면접 비교 기사 — https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive",
+      "sources": {
+        "googleplay": {
+          "key": "muhayu-monster:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '무하유' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "muhayu-monster:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '무하유 / 무하유 몬스터' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "muhayu-monster:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "muhayu-monster:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "muhayu-monster:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '무하유' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "muhayu-monster:daum_search",
+          "status": "검색어",
+          "query": "몬스터 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.muhayu.com/recruitment",
+        "https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive",
+        "https://www.specter.co.kr/blog/221772"
+      ]
+    },
+    {
+      "slug": "supercoder-ai-interview",
+      "name": "Supercoder AI Interview",
+      "name_ko": "슈퍼코더 AI면접",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.supercoder.co/",
+      "summary_ko": "세컨드팀의 AI 면접·채용 검증 솔루션",
+      "selection_basis": "국내 AI 면접 서비스 비교 기사(자사 블로그) — https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive",
+      "sources": {
+        "googleplay": {
+          "key": "supercoder-ai-interview:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '슈퍼코더' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "supercoder-ai-interview:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '슈퍼코더' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "supercoder-ai-interview:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "supercoder-ai-interview:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "supercoder-ai-interview:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '슈퍼코더' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "supercoder-ai-interview:daum_search",
+          "status": "검색어",
+          "query": "슈퍼코더 AI면접 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.supercoder.co/",
+        "https://www.supercoder.co/blog/korean-ai-interview-services-deep-dive"
+      ]
+    },
+    {
+      "slug": "flex",
+      "name": "flex",
+      "name_ko": "플렉스",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://flex.team/",
+      "summary_ko": "근태·급여·전자계약·성과관리 올인원 HR 플랫폼",
+      "selection_basis": "국내 HR SaaS 비교 기사 다수 — https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+      "sources": {
+        "googleplay": {
+          "key": "flex:googleplay",
+          "status": "확인",
+          "id": "team.flex.app",
+          "url": "https://play.google.com/store/apps/details?id=team.flex.app",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Flex Corp. (개발자 웹사이트 flex.team)'"
+        },
+        "appstore": {
+          "key": "flex:appstore",
+          "status": "확인",
+          "id": "1535757707",
+          "url": "https://apps.apple.com/app/id1535757707",
+          "evidence": "iTunes Search API 결과, 판매자 'Flex Corporation'"
+        },
+        "capterra": {
+          "key": "flex:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "flex:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "flex:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '플렉스 flex HR' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "flex:daum_search",
+          "status": "검색어",
+          "query": "플렉스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://flex.team/",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://reviewinsight.blog/2023/11/08/hr-%EA%B7%BC%ED%83%9C-%EA%B8%89%EC%97%AC%EA%B4%80%EB%A6%AC-%EC%8B%9C%EC%8A%A4%ED%85%9C-6%EC%A2%85-%EB%B9%84%EA%B5%90/",
+        "https://reviewinsight.blog/2026/04/17/%EC%84%B1%EA%B3%BC%ED%8F%89%EA%B0%80-%EC%86%94%EB%A3%A8%EC%85%98-%EB%B9%84%EA%B5%90-%EB%A6%AC%ED%8F%AC%ED%8A%B8-%EC%A0%9C%EA%B3%B5-%EB%B0%8F-%EB%8F%84%EC%9E%85-%EC%A0%84%EC%97%90-%ED%99%95%EC%9D%B8",
+        "https://play.google.com/store/apps/details?id=team.flex.app",
+        "https://apps.apple.com/app/id1535757707"
+      ]
+    },
+    {
+      "slug": "shiftee",
+      "name": "Shiftee",
+      "name_ko": "시프티",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://shiftee.io/",
+      "summary_ko": "근태·스케줄·휴가·급여 통합 인력관리",
+      "selection_basis": "국내 HR SaaS·근태 비교 기사 다수 — https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+      "sources": {
+        "googleplay": {
+          "key": "shiftee:googleplay",
+          "status": "확인",
+          "id": "io.shiftee.app",
+          "url": "https://play.google.com/store/apps/details?id=io.shiftee.app",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Shiftee Inc.'"
+        },
+        "appstore": {
+          "key": "shiftee:appstore",
+          "status": "확인",
+          "id": "1170002741",
+          "url": "https://apps.apple.com/app/id1170002741",
+          "evidence": "iTunes Search API 결과, 판매자 'Shiftee Inc.'"
+        },
+        "capterra": {
+          "key": "shiftee:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "shiftee:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "shiftee:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '시프티' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "shiftee:daum_search",
+          "status": "검색어",
+          "query": "시프티 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://shiftee.io/",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://reviewinsight.blog/2023/11/08/hr-%EA%B7%BC%ED%83%9C-%EA%B8%89%EC%97%AC%EA%B4%80%EB%A6%AC-%EC%8B%9C%EC%8A%A4%ED%85%9C-6%EC%A2%85-%EB%B9%84%EA%B5%90/",
+        "https://www.nextunicorn.kr/finder/theme/hrtech",
+        "https://play.google.com/store/apps/details?id=io.shiftee.app",
+        "https://apps.apple.com/app/id1170002741"
+      ]
+    },
+    {
+      "slug": "wanted-space",
+      "name": "Wanted Space",
+      "name_ko": "원티드스페이스",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.handyspace.ai/",
+      "summary_ko": "근태·급여·전자결재·전자계약 통합 인사관리. wantedspace.ai→handyspace.ai 리다이렉트, 앱 개발사 표기 Polaris AI Handy Corp.(두 회사의 관계는 확인 불가)",
+      "selection_basis": "국내 HR 솔루션 비교 기사 — https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+      "sources": {
+        "googleplay": {
+          "key": "wanted-space:googleplay",
+          "status": "확인",
+          "id": "io.eighthours",
+          "url": "https://play.google.com/store/apps/details?id=io.eighthours",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Polaris AI Handy Corp. (앱명 원티드스페이스)'"
+        },
+        "appstore": {
+          "key": "wanted-space:appstore",
+          "status": "확인",
+          "id": "1472331759",
+          "url": "https://apps.apple.com/app/id1472331759",
+          "evidence": "iTunes Search API 결과, 판매자 'Polaris AI Handy Corp.'"
+        },
+        "capterra": {
+          "key": "wanted-space:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "wanted-space:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "wanted-space:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '원티드스페이스' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "wanted-space:daum_search",
+          "status": "검색어",
+          "query": "원티드스페이스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.handyspace.ai/",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://reviewinsight.blog/2023/11/08/hr-%EA%B7%BC%ED%83%9C-%EA%B8%89%EC%97%AC%EA%B4%80%EB%A6%AC-%EC%8B%9C%EC%8A%A4%ED%85%9C-6%EC%A2%85-%EB%B9%84%EA%B5%90/",
+        "https://impactflow.kr/products/hr/human-resource-management-software",
+        "https://play.google.com/store/apps/details?id=io.eighthours",
+        "https://apps.apple.com/app/id1472331759"
+      ]
+    },
+    {
+      "slug": "daouoffice-hr",
+      "name": "DaouOffice HR",
+      "name_ko": "다우오피스HR",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://hr.daouoffice.com/",
+      "summary_ko": "다우기술의 근태·휴가·인사관리 HR 솔루션",
+      "selection_basis": "국내 HR 솔루션 비교 기사 — https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+      "sources": {
+        "googleplay": {
+          "key": "daouoffice-hr:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '다우오피스'/'다우오피스 HR 근태' — 그룹웨어 '다우오피스' 앱(com.daou.dop_mobile)만 있고 HR 전용 앱 없음"
+        },
+        "appstore": {
+          "key": "daouoffice-hr:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes '다우오피스 HR' — 그룹웨어 '다우오피스'(6504329757)만 있고 HR 전용 앱 없음"
+        },
+        "capterra": {
+          "key": "daouoffice-hr:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "daouoffice-hr:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "daouoffice-hr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '다우오피스' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "daouoffice-hr:daum_search",
+          "status": "검색어",
+          "query": "다우오피스HR 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://hr.daouoffice.com/",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://hr.daouoffice.com/blog/free-attendance-management"
+      ]
+    },
+    {
+      "slug": "evertime",
+      "name": "EverTime",
+      "name_ko": "에버타임",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.evertime.co.kr/",
+      "summary_ko": "영림원소프트랩의 근태·급여관리 시스템",
+      "selection_basis": "국내 근태·급여 비교 기사 — https://reviewinsight.blog/2023/11/08/hr-%EA%B7%BC%ED%83%9C-%EA%B8%89%EC%97%AC%EA%B4%80%EB%A6%AC-%EC%8B%9C%EC%8A%A4%ED%85%9C-6%EC%A2%85-%EB%B9%84%EA%B5%90/",
+      "sources": {
+        "googleplay": {
+          "key": "evertime:googleplay",
+          "status": "확인",
+          "id": "kr.co.ksystem.everwork",
+          "url": "https://play.google.com/store/apps/details?id=kr.co.ksystem.everwork",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'YOUNGLIMWON SOFT LAB Co., Ltd.'"
+        },
+        "appstore": {
+          "key": "evertime:appstore",
+          "status": "확인",
+          "id": "6480490751",
+          "url": "https://apps.apple.com/app/id6480490751",
+          "evidence": "iTunes Search API 결과, 판매자 'Younglimwon Softlab Co.,Ltd (앱명 '에버타임Basic'; 앱명 '에버타임' 1574250406 은 판매자 'O Lim Kwon' 이라 제외)'"
+        },
+        "capterra": {
+          "key": "evertime:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "evertime:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "evertime:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '에버타임' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "evertime:daum_search",
+          "status": "검색어",
+          "query": "에버타임 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.evertime.co.kr/",
+        "https://reviewinsight.blog/2023/11/08/hr-%EA%B7%BC%ED%83%9C-%EA%B8%89%EC%97%AC%EA%B4%80%EB%A6%AC-%EC%8B%9C%EC%8A%A4%ED%85%9C-6%EC%A2%85-%EB%B9%84%EA%B5%90/",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://play.google.com/store/apps/details?id=kr.co.ksystem.everwork",
+        "https://apps.apple.com/app/id6480490751"
+      ]
+    },
+    {
+      "slug": "everin",
+      "name": "EverIn",
+      "name_ko": "에버인",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.everin.co.kr/",
+      "summary_ko": "영림원소프트랩의 클라우드 HR 플랫폼",
+      "selection_basis": "impactflow 인사관리 목록 — https://impactflow.kr/products/hr/ats",
+      "sources": {
+        "googleplay": {
+          "key": "everin:googleplay",
+          "status": "확인",
+          "id": "com.flextudio.everin",
+          "url": "https://play.google.com/store/apps/details?id=com.flextudio.everin",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'YOUNGLIMWON SOFT LAB Co., Ltd.'"
+        },
+        "appstore": {
+          "key": "everin:appstore",
+          "status": "확인",
+          "id": "6742470098",
+          "url": "https://apps.apple.com/app/id6742470098",
+          "evidence": "iTunes Search API 결과, 판매자 'Younglimwon Softlab Co.,Ltd'"
+        },
+        "capterra": {
+          "key": "everin:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "everin:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "everin:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '에버인' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "everin:daum_search",
+          "status": "검색어",
+          "query": "에버인 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.everin.co.kr/",
+        "https://impactflow.kr/products/hr/ats",
+        "https://play.google.com/store/apps/details?id=com.flextudio.everin",
+        "https://apps.apple.com/app/id6742470098"
+      ]
+    },
+    {
+      "slug": "ustra-hr",
+      "name": "U.STRA HR",
+      "name_ko": "유스트라 HR",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.ustracloud.com/",
+      "summary_ko": "GSITM의 통합 HR·성과관리 클라우드",
+      "selection_basis": "국내 HR·성과평가 비교 기사 — https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+      "sources": {
+        "googleplay": {
+          "key": "ustra-hr:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '유스트라 / U.STRA HR' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "ustra-hr:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '유스트라 / U.STRA' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "ustra-hr:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "ustra-hr:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "ustra-hr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '유스트라' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "ustra-hr:daum_search",
+          "status": "검색어",
+          "query": "유스트라 HR 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.ustracloud.com/",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://reviewinsight.blog/2026/04/17/%EC%84%B1%EA%B3%BC%ED%8F%89%EA%B0%80-%EC%86%94%EB%A3%A8%EC%85%98-%EB%B9%84%EA%B5%90-%EB%A6%AC%ED%8F%AC%ED%8A%B8-%EC%A0%9C%EA%B3%B5-%EB%B0%8F-%EB%8F%84%EC%9E%85-%EC%A0%84%EC%97%90-%ED%99%95%EC%9D%B8",
+        "https://reviewinsight.blog/2023/11/08/hr-%EA%B7%BC%ED%83%9C-%EA%B8%89%EC%97%AC%EA%B4%80%EB%A6%AC-%EC%8B%9C%EC%8A%A4%ED%85%9C-6%EC%A2%85-%EB%B9%84%EA%B5%90/"
+      ]
+    },
+    {
+      "slug": "next-hr",
+      "name": "Next HR (SINGLEX HR)",
+      "name_ko": "넥스트HR",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.singlex.com/",
+      "summary_ko": "SINGLEX 플랫폼의 HR 전주기 관리 솔루션(비교 기사 기준; SINGLEX 사이트 내 제품명은 확인 못 함)",
+      "selection_basis": "국내 HR·성과평가 비교 기사 — https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+      "sources": {
+        "googleplay": {
+          "key": "next-hr:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 'SINGLEX HR / 넥스트HR' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "next-hr:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '넥스트HR' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "next-hr:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "next-hr:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "next-hr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '넥스트HR' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "next-hr:daum_search",
+          "status": "검색어",
+          "query": "넥스트HR 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.singlex.com/",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://reviewinsight.blog/2026/04/17/%EC%84%B1%EA%B3%BC%ED%8F%89%EA%B0%80-%EC%86%94%EB%A3%A8%EC%85%98-%EB%B9%84%EA%B5%90-%EB%A6%AC%ED%8F%AC%ED%8A%B8-%EC%A0%9C%EA%B3%B5-%EB%B0%8F-%EB%8F%84%EC%9E%85-%EC%A0%84%EC%97%90-%ED%99%95%EC%9D%B8"
+      ]
+    },
+    {
+      "slug": "workup",
+      "name": "WORKUP",
+      "name_ko": "워크업",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.workup.plus/",
+      "summary_ko": "이수시스템의 클라우드 HR(인사·급여·근태·평가·채용)",
+      "selection_basis": "국내 HR·근태·성과 비교 기사 — https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+      "sources": {
+        "googleplay": {
+          "key": "workup:googleplay",
+          "status": "확인",
+          "id": "com.isusys.hmp.workup",
+          "url": "https://play.google.com/store/apps/details?id=com.isusys.hmp.workup",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 '이수시스템'"
+        },
+        "appstore": {
+          "key": "workup:appstore",
+          "status": "확인",
+          "id": "1615869833",
+          "url": "https://apps.apple.com/app/id1615869833",
+          "evidence": "iTunes Search API 결과, 판매자 'ISUSYSTEMS'"
+        },
+        "capterra": {
+          "key": "workup:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "workup:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "workup:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '워크업 HR' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "workup:daum_search",
+          "status": "검색어",
+          "query": "워크업 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.workup.plus/",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://reviewinsight.blog/2023/11/08/hr-%EA%B7%BC%ED%83%9C-%EA%B8%89%EC%97%AC%EA%B4%80%EB%A6%AC-%EC%8B%9C%EC%8A%A4%ED%85%9C-6%EC%A2%85-%EB%B9%84%EA%B5%90/",
+        "https://reviewinsight.blog/2026/04/17/%EC%84%B1%EA%B3%BC%ED%8F%89%EA%B0%80-%EC%86%94%EB%A3%A8%EC%85%98-%EB%B9%84%EA%B5%90-%EB%A6%AC%ED%8F%AC%ED%8A%B8-%EC%A0%9C%EA%B3%B5-%EB%B0%8F-%EB%8F%84%EC%9E%85-%EC%A0%84%EC%97%90-%ED%99%95%EC%9D%B8",
+        "https://play.google.com/store/apps/details?id=com.isusys.hmp.workup",
+        "https://apps.apple.com/app/id1615869833"
+      ]
+    },
+    {
+      "slug": "shopl",
+      "name": "Shopl",
+      "name_ko": "샤플",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.shoplworks.com/",
+      "summary_ko": "현장직 근태·인력·업무 관리",
+      "selection_basis": "impactflow 인사관리 목록 — https://impactflow.kr/products/hr/human-resource-management-software",
+      "sources": {
+        "googleplay": {
+          "key": "shopl:googleplay",
+          "status": "확인",
+          "id": "me.planetory.io",
+          "url": "https://play.google.com/store/apps/details?id=me.planetory.io",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'SHOPL&COMPANY, Inc.'"
+        },
+        "appstore": {
+          "key": "shopl:appstore",
+          "status": "확인",
+          "id": "1284466280",
+          "url": "https://apps.apple.com/app/id1284466280",
+          "evidence": "iTunes Search API 결과, 판매자 'SHOPL & COMPANY, Inc.'"
+        },
+        "capterra": {
+          "key": "shopl:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "shopl:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "shopl:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '샤플' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "shopl:daum_search",
+          "status": "검색어",
+          "query": "샤플 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.shoplworks.com/",
+        "https://impactflow.kr/products/hr/human-resource-management-software",
+        "https://play.google.com/store/apps/details?id=me.planetory.io",
+        "https://apps.apple.com/app/id1284466280"
+      ]
+    },
+    {
+      "slug": "pinat",
+      "name": "Pinat",
+      "name_ko": "핀앳",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://pinat.co.kr/",
+      "summary_ko": "메타넷 계열 출퇴근·근태관리 앱 (도메인은 Play 개발자 웹사이트 기준, 직접 접속은 타임아웃)",
+      "selection_basis": "근태관리 앱 검색 결과 — https://apps.apple.com/kr/app/id1573571881",
+      "sources": {
+        "googleplay": {
+          "key": "pinat:googleplay",
+          "status": "확인",
+          "id": "kr.co.pinat",
+          "url": "https://play.google.com/store/apps/details?id=kr.co.pinat",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Metanet SaaS Co., Ltd.'"
+        },
+        "appstore": {
+          "key": "pinat:appstore",
+          "status": "확인",
+          "id": "1573571881",
+          "url": "https://apps.apple.com/app/id1573571881",
+          "evidence": "iTunes Search API 결과, 판매자 'Metanet Global Co., Ltd.'"
+        },
+        "capterra": {
+          "key": "pinat:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "pinat:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "pinat:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '핀앳' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "pinat:daum_search",
+          "status": "검색어",
+          "query": "핀앳 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://pinat.co.kr/",
+        "https://apps.apple.com/kr/app/id1573571881",
+        "https://play.google.com/store/apps/details?id=kr.co.pinat",
+        "https://apps.apple.com/app/id1573571881"
+      ]
+    },
+    {
+      "slug": "timeinout",
+      "name": "TimeInOut",
+      "name_ko": "타임인아웃",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.timeinout.kr/",
+      "summary_ko": "모바일 출퇴근 체크·근태·결재·급여 관리",
+      "selection_basis": "impactflow 인사관리 목록 — https://impactflow.kr/products/hr/human-resource-management-software",
+      "sources": {
+        "googleplay": {
+          "key": "timeinout:googleplay",
+          "status": "확인",
+          "id": "kr.timehub.timeinout.android",
+          "url": "https://play.google.com/store/apps/details?id=kr.timehub.timeinout.android",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'TIMEINOUT'"
+        },
+        "appstore": {
+          "key": "timeinout:appstore",
+          "status": "확인",
+          "id": "1273194196",
+          "url": "https://apps.apple.com/app/id1273194196",
+          "evidence": "iTunes Search API 결과, 판매자 'Timehub Inc.,'"
+        },
+        "capterra": {
+          "key": "timeinout:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "timeinout:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "timeinout:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '타임인아웃' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "timeinout:daum_search",
+          "status": "검색어",
+          "query": "타임인아웃 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.timeinout.kr/",
+        "https://impactflow.kr/products/hr/human-resource-management-software",
+        "https://play.google.com/store/apps/details?id=kr.timehub.timeinout.android",
+        "https://apps.apple.com/app/id1273194196"
+      ]
+    },
+    {
+      "slug": "hulam",
+      "name": "Hulam",
+      "name_ko": "휴램",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.hulam.co.kr/",
+      "summary_ko": "노무사가 만든 전자근로계약·근태·급여 인사관리",
+      "selection_basis": "impactflow 인사관리 목록 — https://impactflow.kr/products/hr/human-resource-management-software",
+      "sources": {
+        "googleplay": {
+          "key": "hulam:googleplay",
+          "status": "확인",
+          "id": "com.hulampro.hulampro",
+          "url": "https://play.google.com/store/apps/details?id=com.hulampro.hulampro",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 '(주)휴램프로'"
+        },
+        "appstore": {
+          "key": "hulam:appstore",
+          "status": "확인",
+          "id": "1546078299",
+          "url": "https://apps.apple.com/app/id1546078299",
+          "evidence": "iTunes Search API 결과, 판매자 'HULAM PRO'"
+        },
+        "capterra": {
+          "key": "hulam:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "hulam:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "hulam:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '휴램' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "hulam:daum_search",
+          "status": "검색어",
+          "query": "휴램 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.hulam.co.kr/",
+        "https://impactflow.kr/products/hr/human-resource-management-software",
+        "https://play.google.com/store/apps/details?id=com.hulampro.hulampro",
+        "https://apps.apple.com/app/id1546078299"
+      ]
+    },
+    {
+      "slug": "timekeeper",
+      "name": "TimeKeeper",
+      "name_ko": "타임키퍼",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://novusmay.com/",
+      "summary_ko": "노버스메이의 출퇴근·근무시간 관리",
+      "selection_basis": "impactflow 인사관리 목록 — https://impactflow.kr/products/hr/human-resource-management-software",
+      "sources": {
+        "googleplay": {
+          "key": "timekeeper:googleplay",
+          "status": "확인",
+          "id": "com.novusmay.timekeeper.v2",
+          "url": "https://play.google.com/store/apps/details?id=com.novusmay.timekeeper.v2",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Novusmay lnc. (앱명 타임키퍼 프로(N))'"
+        },
+        "appstore": {
+          "key": "timekeeper:appstore",
+          "status": "확인",
+          "id": "6739558511",
+          "url": "https://apps.apple.com/app/id6739558511",
+          "evidence": "iTunes Search API 결과, 판매자 'NOVUSMAY CO.,Ltd. (앱명 타임키퍼 프로(new))'"
+        },
+        "capterra": {
+          "key": "timekeeper:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "timekeeper:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "timekeeper:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '타임키퍼' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "timekeeper:daum_search",
+          "status": "검색어",
+          "query": "타임키퍼 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://novusmay.com/",
+        "https://impactflow.kr/products/hr/human-resource-management-software",
+        "https://play.google.com/store/apps/details?id=com.novusmay.timekeeper.v2",
+        "https://apps.apple.com/app/id6739558511"
+      ]
+    },
+    {
+      "slug": "ochul",
+      "name": "Ochul",
+      "name_ko": "오늘도출근",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://ochul.com/wmhp/",
+      "summary_ko": "정성네트웍스의 일용직 근로계약·출역·안전일지 관리",
+      "selection_basis": "impactflow 인사관리 목록 — https://impactflow.kr/products/hr/human-resource-management-software",
+      "sources": {
+        "googleplay": {
+          "key": "ochul:googleplay",
+          "status": "확인",
+          "id": "com.mobileaos.packaging_beacon",
+          "url": "https://play.google.com/store/apps/details?id=com.mobileaos.packaging_beacon",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 '주식회사 정성네트웍스 (개발자 웹사이트 ochul.com)'"
+        },
+        "appstore": {
+          "key": "ochul:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes '오늘도출근' — '오늘도 출근!'(6445838264)은 판매자 IN SUNG PARK 로 개발사 불일치"
+        },
+        "capterra": {
+          "key": "ochul:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "ochul:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "ochul:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '오늘도출근' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "ochul:daum_search",
+          "status": "검색어",
+          "query": "오늘도출근 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://ochul.com/wmhp/",
+        "https://impactflow.kr/products/hr/human-resource-management-software",
+        "https://play.google.com/store/apps/details?id=com.mobileaos.packaging_beacon"
+      ]
+    },
+    {
+      "slug": "newploy",
+      "name": "Newploy",
+      "name_ko": "뉴플로이",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.newploy.net/",
+      "summary_ko": "급여 자동계산·이체·근태·전자계약 자동화 (구 알밤: albam.net→newploy.net 리다이렉트)",
+      "selection_basis": "impactflow 인사관리 목록 — https://impactflow.kr/products/hr/human-resource-management-software",
+      "sources": {
+        "googleplay": {
+          "key": "newploy:googleplay",
+          "status": "확인",
+          "id": "com.sidea.hanchon",
+          "url": "https://play.google.com/store/apps/details?id=com.sidea.hanchon",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Newploy Co. Ltd.'"
+        },
+        "appstore": {
+          "key": "newploy:appstore",
+          "status": "확인",
+          "id": "950277801",
+          "url": "https://apps.apple.com/app/id950277801",
+          "evidence": "iTunes Search API 결과, 판매자 'Newploy Co. Ltd.'"
+        },
+        "capterra": {
+          "key": "newploy:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "newploy:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "newploy:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '뉴플로이' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "newploy:daum_search",
+          "status": "검색어",
+          "query": "뉴플로이 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.newploy.net/",
+        "https://impactflow.kr/products/hr/human-resource-management-software",
+        "https://play.google.com/store/apps/details?id=com.sidea.hanchon",
+        "https://apps.apple.com/app/id950277801"
+      ]
+    },
+    {
+      "slug": "payzon",
+      "name": "Payzon",
+      "name_ko": "페이존",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.payzon.co.kr/",
+      "summary_ko": "급여계산·명세서·4대보험 급여관리 자동화",
+      "selection_basis": "impactflow 인사관리 목록 — https://impactflow.kr/products/hr/human-resource-management-software",
+      "sources": {
+        "googleplay": {
+          "key": "payzon:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play '페이존' — '페이존 쇼츠몰'(DINOSTUDIO)만 있어 무관"
+        },
+        "appstore": {
+          "key": "payzon:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '페이존' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "payzon:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "payzon:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "payzon:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '페이존' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "payzon:daum_search",
+          "status": "검색어",
+          "query": "페이존 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.payzon.co.kr/",
+        "https://impactflow.kr/products/hr/human-resource-management-software"
+      ]
+    },
+    {
+      "slug": "ttree",
+      "name": "TTREE",
+      "name_ko": "티트리",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://goodinvent.com/",
+      "summary_ko": "굿인벤트의 근무시간·유연근무·교대 근태관리",
+      "selection_basis": "impactflow 인사관리 목록 — https://impactflow.kr/products/hr/human-resource-management-software",
+      "sources": {
+        "googleplay": {
+          "key": "ttree:googleplay",
+          "status": "확인",
+          "id": "com.goodinvent.v2.ttree",
+          "url": "https://play.google.com/store/apps/details?id=com.goodinvent.v2.ttree",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 '굿인벤트 (v1 com.goodinvent.ttree 도 존재)'"
+        },
+        "appstore": {
+          "key": "ttree:appstore",
+          "status": "확인",
+          "id": "6792602687",
+          "url": "https://apps.apple.com/app/id6792602687",
+          "evidence": "iTunes Search API 결과, 판매자 'goodinvent Inc (v1 1485545252 도 존재)'"
+        },
+        "capterra": {
+          "key": "ttree:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "ttree:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "ttree:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '티트리 근태' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "ttree:daum_search",
+          "status": "검색어",
+          "query": "티트리 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://goodinvent.com/",
+        "https://impactflow.kr/products/hr/human-resource-management-software",
+        "https://play.google.com/store/apps/details?id=com.goodinvent.v2.ttree",
+        "https://apps.apple.com/app/id6792602687"
+      ]
+    },
+    {
+      "slug": "cinplus",
+      "name": "CinPlus",
+      "name_ko": "씨인플러스",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.cinplus.co.kr/",
+      "summary_ko": "클라우드 인사·급여·재무계획 인사시스템",
+      "selection_basis": "impactflow 채용관리 목록 — https://impactflow.kr/products/hr/ats",
+      "sources": {
+        "googleplay": {
+          "key": "cinplus:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '씨인플러스' 상위 6개 + 상세 조회에 해당 개발사 앱 없음"
+        },
+        "appstore": {
+          "key": "cinplus:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API 검색 '씨인플러스' 에 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "cinplus:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "cinplus:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "cinplus:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '씨인플러스' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "cinplus:daum_search",
+          "status": "검색어",
+          "query": "씨인플러스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.cinplus.co.kr/",
+        "https://impactflow.kr/products/hr/ats"
+      ]
+    },
+    {
+      "slug": "lemonbase",
+      "name": "Lemonbase",
+      "name_ko": "레몬베이스",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://lemonbase.com/",
+      "summary_ko": "목표·다면평가·1on1·피드백 성과관리",
+      "selection_basis": "국내 성과관리 비교 기사 다수 — https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+      "sources": {
+        "googleplay": {
+          "key": "lemonbase:googleplay",
+          "status": "확인",
+          "id": "com.lemonbase.mobile",
+          "url": "https://play.google.com/store/apps/details?id=com.lemonbase.mobile",
+          "evidence": "Play 상세 페이지 직접 조회, 개발자 'Lemonbase Corp.'"
+        },
+        "appstore": {
+          "key": "lemonbase:appstore",
+          "status": "확인",
+          "id": "1617227937",
+          "url": "https://apps.apple.com/app/id1617227937",
+          "evidence": "iTunes Search API 결과, 판매자 'Lemonbase Corp.'"
+        },
+        "capterra": {
+          "key": "lemonbase:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "lemonbase:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "lemonbase:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '레몬베이스' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "lemonbase:daum_search",
+          "status": "검색어",
+          "query": "레몬베이스 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://lemonbase.com/",
+        "https://reviewinsight.blog/2025/05/15/%EC%9D%B8%EC%82%AC-%EB%8B%B4%EB%8B%B9%EC%9E%90%EB%A5%BC-%EC%9C%84%ED%95%9C-hr-%EC%9D%B8%EC%82%AC%EA%B4%80%EB%A6%AC-%EC%86%94%EB%A3%A8%EC%85%98-12%EC%A2%85-%EC%84%A0%ED%83%9D-%EA%B0%80%EC%9D%B4/",
+        "https://reviewinsight.blog/2026/04/17/%EC%84%B1%EA%B3%BC%ED%8F%89%EA%B0%80-%EC%86%94%EB%A3%A8%EC%85%98-%EB%B9%84%EA%B5%90-%EB%A6%AC%ED%8F%AC%ED%8A%B8-%EC%A0%9C%EA%B3%B5-%EB%B0%8F-%EB%8F%84%EC%9E%85-%EC%A0%84%EC%97%90-%ED%99%95%EC%9D%B8",
+        "https://play.google.com/store/apps/details?id=com.lemonbase.mobile",
+        "https://apps.apple.com/app/id1617227937"
+      ]
+    },
+    {
+      "slug": "clap",
+      "name": "CLAP",
+      "name_ko": "클랩",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://welcome.clap.company/",
+      "summary_ko": "디웨일의 AI 커스터마이징 성과관리(목표·평가·1on1·피드백)",
+      "selection_basis": "성과관리 기사·국내 HR테크 목록 — https://www.hansbiz.co.kr/news/articleView.html?idxno=744821",
+      "sources": {
+        "googleplay": {
+          "key": "clap:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play '클랩 성과관리'/'CLAP 디웨일'/'클랩 1on1 피드백' — '클랩 CLAB'(Impact Business Association)은 다른 서비스"
+        },
+        "appstore": {
+          "key": "clap:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes '클랩'/'CLAP'/'CLAP 성과관리' — 해당 개발사 앱 없음"
+        },
+        "capterra": {
+          "key": "clap:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "trustradius": {
+          "key": "clap:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch 세션 예산(200회) 소진으로 사이트 검색 불가 + capterra.com/trustradius.com 직접 접속은 403(Cloudflare) — 조회 자체를 못 함"
+        },
+        "shopify_apps": {
+          "key": "clap:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com 자동완성 검색 '클랩 성과관리' 에 해당 앱 없음"
+        },
+        "daum_search": {
+          "key": "clap:daum_search",
+          "status": "검색어",
+          "query": "클랩 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://welcome.clap.company/",
+        "https://www.hansbiz.co.kr/news/articleView.html?idxno=744821",
+        "https://www.nextunicorn.kr/finder/theme/hrtech"
+      ]
+    }
+  ]
+}

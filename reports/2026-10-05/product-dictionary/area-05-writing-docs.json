@@ -1,0 +1,1893 @@
+{
+  "area": "05-writing-docs",
+  "area_ko": "글쓰기·문서",
+  "scope": "AI 글쓰기 보조, 문법·맞춤법 교정, 패러프레이즈, 표절·AI작성 검사, 문서·지식 편집기의 AI 기능, 문서·프레젠테이션 생성 도구를 포함한다. 회의록·통화 요약(①)과 마케팅 카피·광고 소재 전용 도구(④), 디자인 플랫폼(미리캔버스 등)은 제외한다.",
+  "researched_at": "2026-10-05",
+  "kr_search_queries": [
+    "WebSearch: 국내 AI 글쓰기 도구 맞춤법 검사기 추천 2026",
+    "WebSearch: 한국어 AI 문서 작성 도구 한컴 어시스턴트 폴라리스오피스 AI 뤼튼",
+    "WebSearch: 클로바X 서비스 종료 클로바 for Writing",
+    "WebSearch: \"클로바 for Writing\" 네이버",
+    "WebSearch: 한국 스타트업 AI 글쓰기 교정 서비스 센텐시파이 엔그램 워드바이스 문법.com",
+    "WebSearch: AI PPT 자동 생성 국내 서비스 한국 스타트업 프레젠테이션 생성",
+    "WebSearch: 다음 맞춤법 검사기 서비스 종료",
+    "WebSearch: 폴라리스오피스 AI 문서 작성 기능 PolarisOffice AI",
+    "WebSearch: 바른한글 앱 부산대 맞춤법 검사기 나라인포테크",
+    "WebSearch: 카피킬러 무하유 표절검사 GPT킬러 앱",
+    "WebSearch: 한국어 문장 교정 AI 앱 국내 개발 띄어쓰기 맞춤법 앱 출시",
+    "WebSearch(한도 소진으로 미실행): 국내 AI 글쓰기 플랫폼 스타트업 투자 유치 글쓰기 보조 서비스",
+    "WebSearch(한도 소진으로 미실행): 한컴독스 AI 기능 한컴오피스 AI 문서",
+    "DuckDuckGo(202 차단으로 결과 없음): 국내 AI 글쓰기 서비스 스타트업 / 한국어 AI 문장 교정 서비스 출시 / AI 문서 작성 솔루션 국내 기업 출시 / AI PPT 생성 국내 스타트업 출시",
+    "Play(KR) 검색: 뤼튼, 바른한글 맞춤법, 카피킬러, 폴라리스 오피스, 센텐시파이, 엔그램, 워드바이스, 한컴어시스턴트, CLOVA X, 바른AI, 문법닷컴",
+    "iTunes(KR) 검색: 뤼튼, CLOVA X, 클로바X, 바른한글, 카피킬러, Copykiller, 한컴어시스턴트, 한컴독스, 폴라리스 오피스, 센텐시파이, 엔그램, 워드바이스, Wordvice, 바른AI, 네이버 클로바, 맞춤법 검사기"
+  ],
+  "products": [
+    {
+      "slug": "grammarly",
+      "name": "Grammarly",
+      "name_ko": "그래머리",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.grammarly.com/",
+      "summary_ko": "영문 문법·맞춤법·톤 교정과 생성형 AI 글쓰기 보조. 2025-10 회사명이 Superhuman 으로 바뀌었고 제품명 Grammarly 는 유지",
+      "selection_basis": "Capterra 리뷰 7,000건 이상의 교정 카테고리 대표 제품 https://www.capterra.com/p/170306/Grammarly-Business/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "grammarly:googleplay",
+          "status": "확인",
+          "id": "com.grammarly.android.keyboard",
+          "url": "https://play.google.com/store/apps/details?id=com.grammarly.android.keyboard",
+          "evidence": "Play 상세 페이지 직접 조회 200, 개발자 'Grammarly, Inc.'"
+        },
+        "appstore": {
+          "key": "grammarly:appstore",
+          "status": "확인",
+          "id": "1158877342",
+          "url": "https://apps.apple.com/app/id1158877342",
+          "evidence": "iTunes search API, 앱명 'Grammarly: AI Keyboard & Voice', 판매자 'Superhuman Platform Inc'(Grammarly 의 2025-10 리브랜딩 사명)"
+        },
+        "capterra": {
+          "key": "grammarly:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/170306/Grammarly-Business/",
+          "evidence": "검색 결과 URL (Capterra 상 표기는 Grammarly Business)"
+        },
+        "trustradius": {
+          "key": "grammarly:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/grammarly/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "grammarly:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/grammarly 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "grammarly:daum_search",
+          "status": "검색어",
+          "query": "그래머리 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.reworked.co/collaboration-productivity/grammarly-rebrands-as-superhuman-introduces-unified-ai-suite/",
+        "https://play.google.com/store/apps/details?id=com.grammarly.android.keyboard",
+        "https://apps.apple.com/app/id1158877342",
+        "https://www.capterra.com/p/170306/Grammarly-Business/",
+        "https://www.trustradius.com/products/grammarly/reviews"
+      ]
+    },
+    {
+      "slug": "quillbot",
+      "name": "QuillBot",
+      "name_ko": "퀼봇",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://quillbot.com/",
+      "summary_ko": "AI 패러프레이즈·문법 검사·요약 도구 (Learneo 소속)",
+      "selection_basis": "Capterra 교정·AI 글쓰기 비교 페이지에서 Grammarly·ProWritingAid 와 함께 비교되는 대표 제품 https://www.capterra.com/p/233952/QuillBot/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "quillbot:googleplay",
+          "status": "확인",
+          "id": "com.quillbot.mobile",
+          "url": "https://play.google.com/store/apps/details?id=com.quillbot.mobile",
+          "evidence": "Play 상세 페이지 직접 조회 200, 개발자 'QuillBot'"
+        },
+        "appstore": {
+          "key": "quillbot:appstore",
+          "status": "확인",
+          "id": "6463116243",
+          "url": "https://apps.apple.com/app/id6463116243",
+          "evidence": "iTunes lookup/search API 조회, 판매자 'QuillBot, a Learneo Inc. business'"
+        },
+        "capterra": {
+          "key": "quillbot:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/233952/QuillBot/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "quillbot:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/quillbot/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "quillbot:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/quillbot 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "quillbot:daum_search",
+          "status": "검색어",
+          "query": "퀼봇 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://play.google.com/store/apps/details?id=com.quillbot.mobile",
+        "https://apps.apple.com/app/id6463116243",
+        "https://www.capterra.com/p/233952/QuillBot/",
+        "https://www.trustradius.com/products/quillbot/reviews"
+      ]
+    },
+    {
+      "slug": "wordtune",
+      "name": "Wordtune",
+      "name_ko": "워드튠",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.wordtune.com/",
+      "summary_ko": "AI21 Labs 의 문장 재작성·톤 변환 글쓰기 보조",
+      "selection_basis": "Capterra 리뷰 82건, TrustRadius 등재, QuillBot 비교 대상 https://www.capterra.com/p/217137/Wordtune/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "wordtune:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(US) 검색 'wordtune', 'Wordtune AI21 Labs' 결과에 AI21 Labs 패키지 없음, com.ai21.wordtune 404"
+        },
+        "appstore": {
+          "key": "wordtune:appstore",
+          "status": "확인",
+          "id": "1628773284",
+          "url": "https://apps.apple.com/app/id1628773284",
+          "evidence": "iTunes lookup/search API 조회, 판매자 'AI21 Labs, Inc.'"
+        },
+        "capterra": {
+          "key": "wordtune:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/217137/Wordtune/",
+          "evidence": "검색 결과 URL (2022년 구 페이지 /p/251276/ 도 검색됨)"
+        },
+        "trustradius": {
+          "key": "wordtune:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/ai21labs-wordtune/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "wordtune:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/wordtune 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "wordtune:daum_search",
+          "status": "검색어",
+          "query": "워드튠 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://en.wikipedia.org/wiki/Wordtune",
+        "https://apps.apple.com/app/id1628773284",
+        "https://www.capterra.com/p/217137/Wordtune/",
+        "https://www.trustradius.com/products/ai21labs-wordtune/reviews"
+      ]
+    },
+    {
+      "slug": "prowritingaid",
+      "name": "ProWritingAid",
+      "name_ko": "프로라이팅에이드",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://prowritingaid.com/",
+      "summary_ko": "문법·문체 분석과 소설가용 원고 리포트를 주는 글쓰기 교정 도구",
+      "selection_basis": "Capterra 리뷰 497건 https://www.capterra.com/p/170745/ProWritingAid/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "prowritingaid:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(US) 검색 'prowritingaid' 결과에 공식 패키지 없음"
+        },
+        "appstore": {
+          "key": "prowritingaid:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes search 'prowritingaid', 'prowritingaid app' 결과에 공식 앱 없음 (유사명 'Pro Writing Aid - Storivo' 는 개인 개발자 Ayla YILDIZ 로 무관)"
+        },
+        "capterra": {
+          "key": "prowritingaid:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/170745/ProWritingAid/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "prowritingaid:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://omar.trustradius.com/products/prowritingaid/pricing",
+          "evidence": "검색 결과 URL (products/prowritingaid 가격 페이지, 리뷰 https://www.trustradius.com/reviews/prowritingaid-2021-11-27-01-03-30 도 검색됨)"
+        },
+        "shopify_apps": {
+          "key": "prowritingaid:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/prowritingaid 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "prowritingaid:daum_search",
+          "status": "검색어",
+          "query": "프로라이팅에이드 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.capterra.com/p/170745/ProWritingAid/",
+        "https://omar.trustradius.com/products/prowritingaid/pricing"
+      ]
+    },
+    {
+      "slug": "hemingway-editor",
+      "name": "Hemingway Editor",
+      "name_ko": "헤밍웨이 에디터",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://hemingwayapp.com/",
+      "summary_ko": "가독성 등급과 긴 문장·수동태를 강조 표시하는 문체 편집기 (AI 수정 기능 포함 Plus 요금제)",
+      "selection_basis": "Capterra 교정 소프트웨어 카테고리 등재, Wordtune·ProWritingAid 비교 대상 https://www.capterra.com/p/233308/Hemingway-Editor/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "hemingway-editor:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(US) 검색 'hemingway editor', 'hemingway' 결과에 공식 패키지 없음 (com.stratadigital.hemingway 등 무관)"
+        },
+        "appstore": {
+          "key": "hemingway-editor:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes search 'hemingway editor', 'hemingway app' 결과에 공식 앱 없음 (Concise·Prose 등 제3자 유사앱만)"
+        },
+        "capterra": {
+          "key": "hemingway-editor:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/233308/Hemingway-Editor/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "hemingway-editor:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch(allowed: trustradius.com) 'Hemingway Editor' — 제품 페이지 없음"
+        },
+        "shopify_apps": {
+          "key": "hemingway-editor:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/hemingway 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "hemingway-editor:daum_search",
+          "status": "검색어",
+          "query": "헤밍웨이 에디터 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.capterra.com/p/233308/Hemingway-Editor/"
+      ]
+    },
+    {
+      "slug": "languagetool",
+      "name": "LanguageTool",
+      "name_ko": "랭귀지툴",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://languagetool.org/",
+      "summary_ko": "30개 이상 언어를 지원하는 오픈소스 기반 문법·맞춤법 검사기",
+      "selection_basis": "Capterra 리뷰 50건, Grammarly·QuillBot 비교 대상 https://www.capterra.com/p/179761/LanguageTool/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "languagetool:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(US) 검색 'languagetool' 결과에 공식 패키지 없음, 공식 안드로이드 앱 없음(제3자 LangTool·Softcatalà 앱만) — https://forum.languagetool.org/t/is-languagetool-proofreader-the-official-android-app/3657"
+        },
+        "appstore": {
+          "key": "languagetool:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes search 'languagetool', 'languagetool grammar' 결과에 LanguageTool GmbH 앱 없음"
+        },
+        "capterra": {
+          "key": "languagetool:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/179761/LanguageTool/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "languagetool:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/languagetool/pricing",
+          "evidence": "검색 결과 URL (제품 가격·경쟁사 페이지)"
+        },
+        "shopify_apps": {
+          "key": "languagetool:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/languagetool 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "languagetool:daum_search",
+          "status": "검색어",
+          "query": "랭귀지툴 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://forum.languagetool.org/t/languagetool-on-android/11647",
+        "https://www.capterra.com/p/179761/LanguageTool/",
+        "https://www.trustradius.com/products/languagetool/pricing"
+      ]
+    },
+    {
+      "slug": "deepl-write",
+      "name": "DeepL Write",
+      "name_ko": "딥엘 라이트",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.deepl.com/write",
+      "summary_ko": "DeepL 의 AI 문장 다듬기·작문 도우미 (DeepL 통합 앱·DeepL Pro 의 기능)",
+      "selection_basis": "DeepL Pro 의 핵심 차별 기능으로 Capterra 리뷰 요약에 언급 https://www.capterra.com/p/219412/DeepL-Pro/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "deepl-write:googleplay",
+          "status": "확인",
+          "id": "com.deepl.mobiletranslator",
+          "url": "https://play.google.com/store/apps/details?id=com.deepl.mobiletranslator",
+          "evidence": "Play 상세 200, 개발자 'DeepL SE' — DeepL 통합 앱(번역+Write), Write 단독 앱 아님"
+        },
+        "appstore": {
+          "key": "deepl-write:appstore",
+          "status": "확인",
+          "id": "1552407475",
+          "url": "https://apps.apple.com/app/id1552407475",
+          "evidence": "iTunes lookup, 'DeepL Translate' 판매자 'DeepL SE', 설명에 'DeepL Write: get intelligent writing suggestions' 명시 — 통합 앱"
+        },
+        "capterra": {
+          "key": "deepl-write:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/219412/DeepL-Pro/",
+          "evidence": "검색 결과 URL (DeepL Pro 통합 등재, Write 단독 페이지는 없음)"
+        },
+        "trustradius": {
+          "key": "deepl-write:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/deepl/reviews?qs=product-usage",
+          "evidence": "검색 결과 URL (DeepL 통합 등재)"
+        },
+        "shopify_apps": {
+          "key": "deepl-write:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/deepl, deepl-translate 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "deepl-write:daum_search",
+          "status": "검색어",
+          "query": "딥엘 라이트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.deepl.com/ko/write",
+        "https://play.google.com/store/apps/details?id=com.deepl.mobiletranslator",
+        "https://apps.apple.com/app/id1552407475",
+        "https://www.capterra.com/p/219412/DeepL-Pro/",
+        "https://www.trustradius.com/products/deepl/reviews?qs=product-usage"
+      ]
+    },
+    {
+      "slug": "notion-ai",
+      "name": "Notion AI",
+      "name_ko": "노션 AI",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.notion.com/product/ai",
+      "summary_ko": "노션 문서·위키 안에서 초안 작성·요약·검색을 하는 AI 기능",
+      "selection_basis": "Capterra 에 Notion AI 별도 페이지 존재, 문서·지식 편집기 AI 대표 https://www.capterra.com/p/10014637/Notion-AI/",
+      "sources": {
+        "googleplay": {
+          "key": "notion-ai:googleplay",
+          "status": "확인",
+          "id": "notion.id",
+          "url": "https://play.google.com/store/apps/details?id=notion.id",
+          "evidence": "Play 상세 페이지 직접 조회 200, 개발자 'Notion Labs, Inc.'"
+        },
+        "appstore": {
+          "key": "notion-ai:appstore",
+          "status": "확인",
+          "id": "1232780281",
+          "url": "https://apps.apple.com/app/id1232780281",
+          "evidence": "iTunes lookup/search API 조회, 판매자 'Notion Labs, Incorporated'"
+        },
+        "capterra": {
+          "key": "notion-ai:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10014637/Notion-AI/",
+          "evidence": "검색 결과 URL (본체 https://www.capterra.com/p/186596/Notion/reviews/ 도 있음)"
+        },
+        "trustradius": {
+          "key": "notion-ai:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/notion/reviews",
+          "evidence": "검색 결과 URL (Notion 본체)"
+        },
+        "shopify_apps": {
+          "key": "notion-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/notion 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "notion-ai:daum_search",
+          "status": "검색어",
+          "query": "노션 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://play.google.com/store/apps/details?id=notion.id",
+        "https://apps.apple.com/app/id1232780281",
+        "https://www.capterra.com/p/10014637/Notion-AI/",
+        "https://www.trustradius.com/products/notion/reviews"
+      ]
+    },
+    {
+      "slug": "coda-ai",
+      "name": "Coda AI (Superhuman Docs)",
+      "name_ko": "코다 AI",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://superhuman.com/docs",
+      "summary_ko": "문서+표+자동화 올인원 문서 도구의 AI 기능. 2026-07-08 Coda 가 Superhuman Docs 로 리브랜딩",
+      "selection_basis": "Capterra·TrustRadius 모두 등재된 문서 협업 도구 https://www.capterra.com/p/193164/Coda/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "coda-ai:googleplay",
+          "status": "확인",
+          "id": "io.coda.codaapp",
+          "url": "https://play.google.com/store/apps/details?id=io.coda.codaapp",
+          "evidence": "Play 상세 페이지 직접 조회 200, 개발자 'Coda Project, Inc.'"
+        },
+        "appstore": {
+          "key": "coda-ai:appstore",
+          "status": "확인",
+          "id": "1397968110",
+          "url": "https://apps.apple.com/app/id1397968110",
+          "evidence": "iTunes lookup, 앱명 'Superhuman Docs'(formerly Coda), 판매자 'Coda Project, Inc'"
+        },
+        "capterra": {
+          "key": "coda-ai:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/193164/Coda/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "coda-ai:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/coda-io/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "coda-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/coda 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "coda-ai:daum_search",
+          "status": "검색어",
+          "query": "코다 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://help.superhuman.com/hc/en-us/articles/46210093285773-What-s-changing-Coda-becomes-Superhuman-Docs",
+        "https://blog.superhuman.com/introducing-superhuman-docs/",
+        "https://play.google.com/store/apps/details?id=io.coda.codaapp",
+        "https://apps.apple.com/app/id1397968110",
+        "https://www.capterra.com/p/193164/Coda/",
+        "https://www.trustradius.com/products/coda-io/reviews"
+      ]
+    },
+    {
+      "slug": "craft-docs",
+      "name": "Craft",
+      "name_ko": "크래프트",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.craft.do/",
+      "summary_ko": "AI 어시스턴트를 내장한 문서·노트 편집기 (Craft Docs Limited)",
+      "selection_basis": "TrustRadius Craft.do 등재, Mac/iOS 문서 편집기 대표 https://www.trustradius.com/products/craft-do/reviews",
+      "sources": {
+        "googleplay": {
+          "key": "craft-docs:googleplay",
+          "status": "확인",
+          "id": "com.craft.docs",
+          "url": "https://play.google.com/store/apps/details?id=com.craft.docs",
+          "evidence": "Play 상세 페이지 직접 조회 200, 개발자 'Craft Docs'"
+        },
+        "appstore": {
+          "key": "craft-docs:appstore",
+          "status": "확인",
+          "id": "1487937127",
+          "url": "https://apps.apple.com/app/id1487937127",
+          "evidence": "iTunes lookup/search API 조회, 판매자 'Craft Docs Limited'"
+        },
+        "capterra": {
+          "key": "craft-docs:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "검색 결과에 https://www.capterra.com/p/10011183/Craft/ 이 떴으나 Craft Docs 와 같은 제품인지 페이지(403)로 확인 못 함. /p/161664/ 은 Craft CMS, /p/151111/ 은 Craft.io 로 별개"
+        },
+        "trustradius": {
+          "key": "craft-docs:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/craft-do/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "craft-docs:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/craft 는 200 이지만 Craft Checkout Rules(체크아웃 규칙 앱)로 무관 제품"
+        },
+        "daum_search": {
+          "key": "craft-docs:daum_search",
+          "status": "검색어",
+          "query": "크래프트 문서앱 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://play.google.com/store/apps/details?id=com.craft.docs",
+        "https://apps.apple.com/app/id1487937127",
+        "https://www.capterra.com/p/10011183/Craft/",
+        "https://www.trustradius.com/products/craft-do/reviews"
+      ]
+    },
+    {
+      "slug": "microsoft-word-copilot",
+      "name": "Microsoft Word (Copilot)",
+      "name_ko": "마이크로소프트 워드 코파일럿",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.microsoft.com/microsoft-365/word",
+      "summary_ko": "Word 안에서 초안 작성·재작성·요약을 하는 Microsoft 365 Copilot 기능",
+      "selection_basis": "Capterra 리뷰 2,862건의 문서 편집기 표준 https://www.capterra.com/p/227146/Microsoft-Word/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "microsoft-word-copilot:googleplay",
+          "status": "확인",
+          "id": "com.microsoft.office.word",
+          "url": "https://play.google.com/store/apps/details?id=com.microsoft.office.word",
+          "evidence": "Play 상세 페이지 직접 조회 200, 개발자 'Microsoft Corporation'"
+        },
+        "appstore": {
+          "key": "microsoft-word-copilot:appstore",
+          "status": "확인",
+          "id": "586447913",
+          "url": "https://apps.apple.com/app/id586447913",
+          "evidence": "iTunes lookup/search API 조회, 판매자 'Microsoft Corporation'"
+        },
+        "capterra": {
+          "key": "microsoft-word-copilot:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/227146/Microsoft-Word/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "microsoft-word-copilot:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch(allowed: trustradius.com) 'Microsoft Word reviews' 등 2회 — Word 단독 페이지 없음, Microsoft 365 묶음(https://www.trustradius.com/products/microsoft-365/reviews)만 있음"
+        },
+        "shopify_apps": {
+          "key": "microsoft-word-copilot:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/microsoft-word 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "microsoft-word-copilot:daum_search",
+          "status": "검색어",
+          "query": "워드 코파일럿 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://play.google.com/store/apps/details?id=com.microsoft.office.word",
+        "https://apps.apple.com/app/id586447913",
+        "https://www.capterra.com/p/227146/Microsoft-Word/"
+      ]
+    },
+    {
+      "slug": "sudowrite",
+      "name": "Sudowrite",
+      "name_ko": "수도라이트",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.sudowrite.com/",
+      "summary_ko": "소설·창작 글쓰기 특화 AI (Human Plus Plus, Inc.)",
+      "selection_basis": "Capterra AI Creative Writing 상위·TrustRadius 등재 https://www.capterra.com/p/10016204/Sudowrite/",
+      "sources": {
+        "googleplay": {
+          "key": "sudowrite:googleplay",
+          "status": "확인",
+          "id": "com.humanplusplus.sudowrite",
+          "url": "https://play.google.com/store/apps/details?id=com.humanplusplus.sudowrite",
+          "evidence": "Play 상세 페이지 직접 조회 200, 개발자 'Sudowrite'"
+        },
+        "appstore": {
+          "key": "sudowrite:appstore",
+          "status": "확인",
+          "id": "6740884542",
+          "url": "https://apps.apple.com/app/id6740884542",
+          "evidence": "iTunes lookup/search API 조회, 판매자 'Human Plus Plus, Inc.'"
+        },
+        "capterra": {
+          "key": "sudowrite:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10016204/Sudowrite/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "sudowrite:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/sudowrite/pricing",
+          "evidence": "검색 결과 URL (제품 가격 페이지)"
+        },
+        "shopify_apps": {
+          "key": "sudowrite:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/sudowrite 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "sudowrite:daum_search",
+          "status": "검색어",
+          "query": "수도라이트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://play.google.com/store/apps/details?id=com.humanplusplus.sudowrite",
+        "https://apps.apple.com/app/id6740884542",
+        "https://www.capterra.com/p/10016204/Sudowrite/",
+        "https://www.trustradius.com/products/sudowrite/pricing"
+      ]
+    },
+    {
+      "slug": "lex",
+      "name": "Lex",
+      "name_ko": "렉스",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "http://lex.page",
+      "summary_ko": "AI 내장 워드프로세서 (Lex, Inc.)",
+      "selection_basis": "Capterra AI 글쓰기 보조로 등재(평점 4.6) https://www.capterra.com/p/10015132/Lex/",
+      "sources": {
+        "googleplay": {
+          "key": "lex:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(US) 검색 'lex writer' 결과에 Lex, Inc. 패키지 없음 (com.lexai 등 무관, com.lex.writer 404)"
+        },
+        "appstore": {
+          "key": "lex:appstore",
+          "status": "확인",
+          "id": "6468129663",
+          "url": "https://apps.apple.com/app/id6468129663",
+          "evidence": "iTunes lookup, 'Lex Writer' 판매자 'Lex, Inc', sellerUrl lex.page"
+        },
+        "capterra": {
+          "key": "lex:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10015132/Lex/",
+          "evidence": "검색 결과 URL (AI 글쓰기 보조 설명 확인)"
+        },
+        "trustradius": {
+          "key": "lex:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch(allowed: trustradius.com) 'Lex AI word processor lex.page' — Amazon Lex 등 동명 제품만"
+        },
+        "shopify_apps": {
+          "key": "lex:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/lex 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "lex:daum_search",
+          "status": "검색어",
+          "query": "렉스 AI 글쓰기 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://apps.apple.com/app/id6468129663",
+        "https://www.capterra.com/p/10015132/Lex/"
+      ]
+    },
+    {
+      "slug": "jenni-ai",
+      "name": "Jenni AI",
+      "name_ko": "제니 AI",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://jenni.ai/",
+      "summary_ko": "논문·학술 글쓰기 특화 AI 자동완성·인용 도구",
+      "selection_basis": "Capterra 등재 학술 AI 글쓰기 도구 https://www.capterra.com/p/10016181/Jenni-AI/",
+      "sources": {
+        "googleplay": {
+          "key": "jenni-ai:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(US) 검색 'jenni ai', 'Jenni AI writing' 결과에 공식 패키지 없음"
+        },
+        "appstore": {
+          "key": "jenni-ai:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes search 'jenni ai', 'jenni' 결과에 공식 앱 없음 (동명 'Jenni' 는 사우디 TAQANIYAT 사 무관 앱)"
+        },
+        "capterra": {
+          "key": "jenni-ai:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10016181/Jenni-AI/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "jenni-ai:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch(allowed: trustradius.com) 'Jenni AI academic writing' — 제품 페이지 없음"
+        },
+        "shopify_apps": {
+          "key": "jenni-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/jenni 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "jenni-ai:daum_search",
+          "status": "검색어",
+          "query": "제니 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.capterra.com/p/10016181/Jenni-AI/"
+      ]
+    },
+    {
+      "slug": "rytr",
+      "name": "Rytr",
+      "name_ko": "라이터",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://rytr.me/",
+      "summary_ko": "이메일·블로그·SNS 등 범용 AI 글쓰기 도우미",
+      "selection_basis": "Capterra·TrustRadius 리뷰 다수, Grammarly·ProWritingAid 비교 대상 https://www.capterra.com/p/10004456/Rytr/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "rytr:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(US) 검색 'rytr' 결과에 공식 패키지 없음"
+        },
+        "appstore": {
+          "key": "rytr:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes search 'rytr', 'rytr me' 결과에 공식 앱 없음 ('Rytr AI Text & Email Writer' 는 개인 개발자 Roee Attias 로 공식 여부 미확인)"
+        },
+        "capterra": {
+          "key": "rytr:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10004456/Rytr/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "rytr:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/rytre-me/pricing",
+          "evidence": "검색 결과 URL (slug rytre-me)"
+        },
+        "shopify_apps": {
+          "key": "rytr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/rytr 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "rytr:daum_search",
+          "status": "검색어",
+          "query": "라이터 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.capterra.com/p/10004456/Rytr/",
+        "https://www.trustradius.com/products/rytre-me/pricing"
+      ]
+    },
+    {
+      "slug": "gamma",
+      "name": "Gamma",
+      "name_ko": "감마",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://gamma.app",
+      "summary_ko": "프롬프트로 프레젠테이션·문서·웹페이지를 생성하는 AI 도구 (Gamma Tech, Inc.)",
+      "selection_basis": "AI 프레젠테이션 생성 대표, Capterra·TrustRadius 등재 https://www.capterra.com/p/10015023/Gamma/",
+      "sources": {
+        "googleplay": {
+          "key": "gamma:googleplay",
+          "status": "확인",
+          "id": "app.gamma.mobile",
+          "url": "https://play.google.com/store/apps/details?id=app.gamma.mobile",
+          "evidence": "Play 상세 페이지 직접 조회 200, 개발자 'Gamma App'"
+        },
+        "appstore": {
+          "key": "gamma:appstore",
+          "status": "확인",
+          "id": "6768404578",
+          "url": "https://apps.apple.com/app/id6768404578",
+          "evidence": "iTunes lookup, 판매자 'Gamma Tech, Inc.', sellerUrl gamma.app"
+        },
+        "capterra": {
+          "key": "gamma:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10015023/Gamma/",
+          "evidence": "검색 결과 URL ('Gamma AI'; /p/160341/·/p/203863/ 은 동명 타 제품)"
+        },
+        "trustradius": {
+          "key": "gamma:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/gamma/pricing",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "gamma:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/gamma 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "gamma:daum_search",
+          "status": "검색어",
+          "query": "감마 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://play.google.com/store/apps/details?id=app.gamma.mobile",
+        "https://apps.apple.com/app/id6768404578",
+        "https://www.capterra.com/p/10015023/Gamma/",
+        "https://www.trustradius.com/products/gamma/pricing"
+      ]
+    },
+    {
+      "slug": "tome",
+      "name": "Tome",
+      "name_ko": "톰",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://tome.app/",
+      "summary_ko": "서비스 종료(https://deckary.com/blog/tome-review) — AI 프레젠테이션 생성기, 2025-04-30 종료 후 팀은 Lightfield(CRM)로 피벗",
+      "selection_basis": "사용자 2,500만의 대표 AI 프레젠테이션 도구였음(종료) https://getscuttlebutt.substack.com/p/none-of-us-like-the-product-lightfield",
+      "sources": {
+        "googleplay": {
+          "key": "tome:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(US) 검색 'tome ai', 'tome presentation' 결과에 공식 패키지 없음"
+        },
+        "appstore": {
+          "key": "tome:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes search 'tome ai' — 'Tome Ai'(Love Power Up, LLC)는 제3자 앱으로 무관"
+        },
+        "capterra": {
+          "key": "tome:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10014717/Tome/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "tome:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/tome/competitors",
+          "evidence": "검색 결과 URL (제품 경쟁사 페이지)"
+        },
+        "shopify_apps": {
+          "key": "tome:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/tome 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "tome:daum_search",
+          "status": "검색어",
+          "query": "톰 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.capterra.com/p/10014717/Tome/",
+        "https://www.trustradius.com/products/tome/competitors"
+      ]
+    },
+    {
+      "slug": "beautiful-ai",
+      "name": "Beautiful.ai",
+      "name_ko": "뷰티풀AI",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.beautiful.ai/",
+      "summary_ko": "AI 자동 레이아웃 프레젠테이션 생성 도구",
+      "selection_basis": "Capterra 리뷰 85건, TrustRadius 프레젠테이션 카테고리 등재 https://www.capterra.com/p/171959/Beautiful-AI/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "beautiful-ai:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(US) 검색 'beautiful.ai' 결과에 공식 패키지 없음"
+        },
+        "appstore": {
+          "key": "beautiful-ai:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes search 'beautiful.ai' — 'Beautiful AI Slide Generator'(Noa Azran)·'Beautiful AI'(Ivan Gonzalez) 등 개인 개발자 앱뿐"
+        },
+        "capterra": {
+          "key": "beautiful-ai:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/171959/Beautiful-AI/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "beautiful-ai:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/beautiful-ai/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "beautiful-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/beautiful-ai 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "beautiful-ai:daum_search",
+          "status": "검색어",
+          "query": "뷰티풀AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.trustradius.com/categories/presentation-software",
+        "https://www.capterra.com/p/171959/Beautiful-AI/",
+        "https://www.trustradius.com/products/beautiful-ai/reviews"
+      ]
+    },
+    {
+      "slug": "paperpal",
+      "name": "Paperpal",
+      "name_ko": "페이퍼팔",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://paperpal.com/",
+      "summary_ko": "Cactus Communications 의 학술 논문 교정·AI 글쓰기 도구",
+      "selection_basis": "사용자 300만 명 학술 AI 글쓰기 도구, Capterra 등재 https://cactusglobal.com/media-center/paperpal-crosses-3-million-users-strengthening-global-footprint-as-a-trusted-ai-academic-writing-and-research-assistant/",
+      "sources": {
+        "googleplay": {
+          "key": "paperpal:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(US) 검색 'paperpal' — com.paperpal.techlead 는 개발자 'Intellara Labs' 로 Cactus 아님"
+        },
+        "appstore": {
+          "key": "paperpal:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes search 'paperpal', 'paperpal cactus' — Cactus 앱 없음 ('Paperpal - Cute Drawing Pad' 는 무관)"
+        },
+        "capterra": {
+          "key": "paperpal:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10003076/Paperpal/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "paperpal:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "WebSearch(allowed: trustradius.com) 'Paperpal academic writing' — Paper Rater 만 나오고 Paperpal 페이지 없음"
+        },
+        "shopify_apps": {
+          "key": "paperpal:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/paperpal 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "paperpal:daum_search",
+          "status": "검색어",
+          "query": "페이퍼팔 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.capterra.com/p/10003076/Paperpal/"
+      ]
+    },
+    {
+      "slug": "ginger",
+      "name": "Ginger",
+      "name_ko": "진저",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.gingersoftware.com/",
+      "summary_ko": "Ginger Software 의 문법 교정·재작성 도구와 키보드",
+      "selection_basis": "Capterra 교정 카테고리 등재·TrustRadius Ginger Business 등재 https://www.capterra.com/p/151872/Ginger-Page/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "ginger:googleplay",
+          "status": "확인",
+          "id": "com.gingersoftware.android.keyboard",
+          "url": "https://play.google.com/store/apps/details?id=com.gingersoftware.android.keyboard",
+          "evidence": "Play 상세 200, 개발자 'GingerSoftware Inc.' (같은 개발자의 com.gingersoftware.writer 도 존재)"
+        },
+        "appstore": {
+          "key": "ginger:appstore",
+          "status": "확인",
+          "id": "822797943",
+          "url": "https://apps.apple.com/app/id822797943",
+          "evidence": "iTunes lookup/search API 조회, 판매자 'Ginger Software Inc.'"
+        },
+        "capterra": {
+          "key": "ginger:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/151872/Ginger-Page/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "ginger:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://trustradius.com/products/ginger/competitors",
+          "evidence": "검색 결과 URL (Ginger Business)"
+        },
+        "shopify_apps": {
+          "key": "ginger:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/ginger 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "ginger:daum_search",
+          "status": "검색어",
+          "query": "진저 소프트웨어 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://play.google.com/store/apps/details?id=com.gingersoftware.android.keyboard",
+        "https://apps.apple.com/app/id822797943",
+        "https://www.capterra.com/p/151872/Ginger-Page/",
+        "https://trustradius.com/products/ginger/competitors"
+      ]
+    },
+    {
+      "slug": "wrtn",
+      "name": "Wrtn",
+      "name_ko": "뤼튼",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://wrtn.ai/",
+      "summary_ko": "뤼튼테크놀로지스의 AI 글쓰기·검색·과제 도구 통합 서비스",
+      "selection_basis": "국내 대표 AI 글쓰기 서비스, 앱스토어 설명 \"500만 명이 사용한 한국 1등 AI\" https://apps.apple.com/app/id6448556170",
+      "sources": {
+        "googleplay": {
+          "key": "wrtn:googleplay",
+          "status": "확인",
+          "id": "com.wrtn.app",
+          "url": "https://play.google.com/store/apps/details?id=com.wrtn.app",
+          "evidence": "Play 상세 페이지 직접 조회 200, 개발자 'wrtn'"
+        },
+        "appstore": {
+          "key": "wrtn:appstore",
+          "status": "확인",
+          "id": "6448556170",
+          "url": "https://apps.apple.com/app/id6448556170",
+          "evidence": "iTunes lookup/search API 조회, 판매자 'wrtn technologies Inc.'"
+        },
+        "capterra": {
+          "key": "wrtn:capterra",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "DuckDuckGo 'wrtn capterra' — capterra 제품 페이지 없음 (capterra 홈만)"
+        },
+        "trustradius": {
+          "key": "wrtn:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "wrtn:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/wrtn 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "wrtn:daum_search",
+          "status": "검색어",
+          "query": "뤼튼 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://play.google.com/store/apps/details?id=com.wrtn.app",
+        "https://apps.apple.com/app/id6448556170"
+      ]
+    },
+    {
+      "slug": "clova-x",
+      "name": "CLOVA X",
+      "name_ko": "클로바X",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "확인 불가",
+      "summary_ko": "서비스 종료(https://www.etnews.com/20260224000227) — 네이버 하이퍼클로바X 기반 대화형 AI, 2026-04-09 종료",
+      "selection_basis": "네이버의 대화형 AI 글쓰기·질의 서비스(종료) https://www.seoulfn.com/news/articleView.html?idxno=626187",
+      "sources": {
+        "googleplay": {
+          "key": "clova-x:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(KR) 검색 'CLOVA X' — NAVER Corp. 의 CLOVA·클로바노트·파파고만, 클로바X 앱 없음"
+        },
+        "appstore": {
+          "key": "clova-x:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(KR) search 'CLOVA X', '클로바X' — 네이버 클로바(1234216092, AI 스피커 앱)·클로바노트만, 클로바X 앱 없음"
+        },
+        "capterra": {
+          "key": "clova-x:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "clova-x:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "clova-x:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/clova, naver-clova 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "clova-x:daum_search",
+          "status": "검색어",
+          "query": "클로바X 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.busan.com/view/busan/view.php?code=2026040918172472289"
+      ]
+    },
+    {
+      "slug": "clova-for-writing",
+      "name": "CLOVA for Writing",
+      "name_ko": "클로바 포 라이팅",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "확인 불가",
+      "summary_ko": "네이버 스마트에디터에 하이퍼클로바X 를 붙인 블로그 초안·요약·태그 생성 기능",
+      "selection_basis": "네이버 블로그 창작자용 AI 글쓰기 기능 https://www.sedaily.com/article/13772619",
+      "sources": {
+        "googleplay": {
+          "key": "clova-for-writing:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "별도 앱 없음: 스마트에디터 내장 기능(서울경제). Play(KR) 'CLOVA X' 검색에도 해당 앱 없음"
+        },
+        "appstore": {
+          "key": "clova-for-writing:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "별도 앱 없음: 스마트에디터 내장 기능. iTunes(KR) '클로바X' 검색에도 해당 앱 없음"
+        },
+        "capterra": {
+          "key": "clova-for-writing:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "clova-for-writing:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "clova-for-writing:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/clova 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "clova-for-writing:daum_search",
+          "status": "검색어",
+          "query": "클로바 포 라이팅 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.techm.kr/news/articleView.html?idxno=115536"
+      ]
+    },
+    {
+      "slug": "bareun-hangul",
+      "name": "Bareun Hangul (PNU Korean Spell Checker)",
+      "name_ko": "바른한글",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://nara-speller.co.kr/",
+      "summary_ko": "구 부산대 한국어 맞춤법/문법 검사기, 현재 ㈜나라인포테크 운영",
+      "selection_basis": "월 검사량 2,000만 건 규모의 국내 대표 맞춤법 검사기 https://nara-speller.co.kr/about/",
+      "sources": {
+        "googleplay": {
+          "key": "bareun-hangul:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(KR) 검색 '바른한글 맞춤법' — 나라인포테크 패키지 없음 (제3자 맞춤법 앱만)"
+        },
+        "appstore": {
+          "key": "bareun-hangul:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(KR) search '바른한글' — 공식 앱 없음"
+        },
+        "capterra": {
+          "key": "bareun-hangul:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "bareun-hangul:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "bareun-hangul:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/bareun, nara-speller 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "bareun-hangul:daum_search",
+          "status": "검색어",
+          "query": "바른한글 맞춤법 검사기 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://channelpnu.pusan.ac.kr/news/articleView.html?idxno=37377"
+      ]
+    },
+    {
+      "slug": "copykiller",
+      "name": "CopyKiller",
+      "name_ko": "카피킬러",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.copykiller.com/",
+      "summary_ko": "무하유의 문서 표절 검사 서비스, 생성형 AI 작성 판별(GPT킬러) 포함",
+      "selection_basis": "국내 대학 96% 사용 표절 검사 서비스 https://www.muhayu.com/pr/?idx=157142499&bmode=view",
+      "sources": {
+        "googleplay": {
+          "key": "copykiller:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(KR) 검색 '카피킬러' — 무하유 패키지 없음"
+        },
+        "appstore": {
+          "key": "copykiller:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(KR) search 'Copykiller' 결과 0건 ('카피킬러' 검색은 API 응답 실패)"
+        },
+        "capterra": {
+          "key": "copykiller:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "copykiller:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "copykiller:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/copykiller 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "copykiller:daum_search",
+          "status": "검색어",
+          "query": "카피킬러 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.hellot.net/news/article.html?no=103347"
+      ]
+    },
+    {
+      "slug": "hancom-assistant",
+      "name": "Hancom Assistant",
+      "name_ko": "한컴어시스턴트",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.hancomassistant.com/",
+      "summary_ko": "한컴오피스(한글·한셀)용 AI 문서 초안·요약·교정 도구, 2025-06 개인용 출시",
+      "selection_basis": "한글과컴퓨터의 AI 문서 작성 도구 https://zdnet.co.kr/view/?no=20250624150304",
+      "sources": {
+        "googleplay": {
+          "key": "hancom-assistant:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(KR) 검색 '한컴어시스턴트' — 한컴독스(com.hancom.docs.suite) 등 다른 한컴 앱만, 한컴어시스턴트 단독 앱 없음"
+        },
+        "appstore": {
+          "key": "hancom-assistant:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(KR) search '한컴어시스턴트' — 한컴 앱 없음"
+        },
+        "capterra": {
+          "key": "hancom-assistant:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "hancom-assistant:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "hancom-assistant:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/hancom 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "hancom-assistant:daum_search",
+          "status": "검색어",
+          "query": "한컴어시스턴트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.hancom.com/ai/assistant"
+      ]
+    },
+    {
+      "slug": "polaris-office-ai",
+      "name": "Polaris Office AI",
+      "name_ko": "폴라리스 오피스 AI",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.polarisoffice.com/ko",
+      "summary_ko": "폴라리스오피스의 AI 문서 초안·PPT 생성·문서 질의(AI NOVA) 기능",
+      "selection_basis": "국산 오피스 앱의 생성형 AI 문서 기능 https://www.aitimes.com/news/articleView.html?idxno=153275",
+      "sources": {
+        "googleplay": {
+          "key": "polaris-office-ai:googleplay",
+          "status": "확인",
+          "id": "com.infraware.office.link",
+          "url": "https://play.google.com/store/apps/details?id=com.infraware.office.link",
+          "evidence": "Play 상세 200, 개발자 'Polaris Office Corp.', 앱명 '폴라리스 오피스 - HWP, MS문서, PDF, GPT'"
+        },
+        "appstore": {
+          "key": "polaris-office-ai:appstore",
+          "status": "확인",
+          "id": "698070860",
+          "url": "https://apps.apple.com/app/id698070860",
+          "evidence": "iTunes lookup/search API 조회, 판매자 'Polaris Office Corp.'"
+        },
+        "capterra": {
+          "key": "polaris-office-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "polaris-office-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403 (trustradius.com/products/polaris-office/reviews WebFetch 403)"
+        },
+        "shopify_apps": {
+          "key": "polaris-office-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/polaris-office, polarisoffice 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "polaris-office-ai:daum_search",
+          "status": "검색어",
+          "query": "폴라리스 오피스 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.polarisoffice.com/business-blog/how-to-use-ai-nova",
+        "https://play.google.com/store/apps/details?id=com.infraware.office.link",
+        "https://apps.apple.com/app/id698070860"
+      ]
+    },
+    {
+      "slug": "sentencify",
+      "name": "SENTENCIFY",
+      "name_ko": "센텐시파이",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://sentencify.ai/ko",
+      "summary_ko": "한국어 특화 다국어 AI 문장 교정·다듬기 (BOOKEND INC., Windows/Mac/크롬·웨일 확장)",
+      "selection_basis": "국내 AI 한국어 교정 서비스로 소개되는 제품 https://sentencify.ai/ko",
+      "sources": {
+        "googleplay": {
+          "key": "sentencify:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(KR) 검색 '센텐시파이' — sentencify 패키지 없음"
+        },
+        "appstore": {
+          "key": "sentencify:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(KR) search '센텐시파이' — 해당 앱 없음"
+        },
+        "capterra": {
+          "key": "sentencify:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "sentencify:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "sentencify:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/sentencify 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "sentencify:daum_search",
+          "status": "검색어",
+          "query": "센텐시파이 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://sentencify.ai/ko"
+      ]
+    },
+    {
+      "slug": "engram",
+      "name": "Engram",
+      "name_ko": "엔그램",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.engram.us/",
+      "summary_ko": "주식회사 데이터비의 AI 문맥 맞춤법 검사·문장 다듬기(한/영)",
+      "selection_basis": "국내 AI 맞춤법 검사기로 소개되는 제품, 운영사 서울 강남 https://www.engram.us/ko/spell-check",
+      "sources": {
+        "googleplay": {
+          "key": "engram:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(KR) 검색 '엔그램' — com.littlefort.engram(Little Fort Software)은 무관, 데이터비 패키지 없음"
+        },
+        "appstore": {
+          "key": "engram:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(KR) search '엔그램' — 해당 앱 없음"
+        },
+        "capterra": {
+          "key": "engram:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "engram:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "engram:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/engram 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "engram:daum_search",
+          "status": "검색어",
+          "query": "엔그램 맞춤법 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.engram.us/",
+        "https://www.engram.us/ko/spell-check"
+      ]
+    },
+    {
+      "slug": "wordvice-ai",
+      "name": "Wordvice AI",
+      "name_ko": "워드바이스 AI",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://wordvice.ai/ko",
+      "summary_ko": "워드바이스(서울 강남)의 AI 영문 교정·패러프레이즈·요약·표절 검사",
+      "selection_basis": "국내 영문 교정 기업의 AI 교정 서비스 https://www.ksvalley.com/news/article.html?no=9016",
+      "sources": {
+        "googleplay": {
+          "key": "wordvice-ai:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 '워드바이스' — wordvice 패키지 없음"
+        },
+        "appstore": {
+          "key": "wordvice-ai:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(KR) search 'Wordvice' 결과 0건"
+        },
+        "capterra": {
+          "key": "wordvice-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "wordvice-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "wordvice-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/wordvice, wordvice-ai 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "wordvice-ai:daum_search",
+          "status": "검색어",
+          "query": "워드바이스 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://wordvice.ai/ko",
+        "https://www.ksvalley.com/news/article.html?no=9016"
+      ]
+    },
+    {
+      "slug": "bareun-ai",
+      "name": "Bareun AI",
+      "name_ko": "바른AI",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://bareun.ai/",
+      "summary_ko": "(주)바이칼에이아이의 AI 한국어 맞춤법·띄어쓰기 실시간 교정",
+      "selection_basis": "국내 AI 맞춤법 검사기로 소개되는 제품 https://bareun.ai/correct",
+      "sources": {
+        "googleplay": {
+          "key": "bareun-ai:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play(KR) 검색 '바른AI' — bareun 패키지 없음"
+        },
+        "appstore": {
+          "key": "bareun-ai:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(KR) search '바른AI' — 해당 앱 없음"
+        },
+        "capterra": {
+          "key": "bareun-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "bareun-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "bareun-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/bareun 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "bareun-ai:daum_search",
+          "status": "검색어",
+          "query": "바른AI 맞춤법 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://bareun.ai/",
+        "https://bareun.ai/correct"
+      ]
+    },
+    {
+      "slug": "naver-spell-checker",
+      "name": "NAVER Spell Checker",
+      "name_ko": "네이버 맞춤법 검사기",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://search.naver.com/search.naver?query=%EB%A7%9E%EC%B6%A4%EB%B2%95%EA%B2%80%EC%82%AC%EA%B8%B0",
+      "summary_ko": "네이버 검색 결과 안에서 제공하는 무료 맞춤법 검사 (단독 서비스 아님)",
+      "selection_basis": "짧은 글용으로 가장 많이 쓰이는 검사기로 언급 https://www.how-toai.com/blog/ai-grammar-proofread-free-tools-2026",
+      "sources": {
+        "googleplay": {
+          "key": "naver-spell-checker:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "단독 앱 없음 (네이버 검색 기능). Play(KR) '바른한글 맞춤법' 검색에 네이버 맞춤법 앱 없음"
+        },
+        "appstore": {
+          "key": "naver-spell-checker:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(KR) search '맞춤법 검사기' — 네이버 앱(393499958)·네이버 스마트보드(1297816298)만, 맞춤법 검사기 단독 앱 없음"
+        },
+        "capterra": {
+          "key": "naver-spell-checker:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "naver-spell-checker:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "naver-spell-checker:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/naver 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "naver-spell-checker:daum_search",
+          "status": "검색어",
+          "query": "네이버 맞춤법 검사기 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://search.naver.com/search.naver?query=%EB%A7%9E%EC%B6%A4%EB%B2%95%EA%B2%80%EC%82%AC%EA%B8%B0",
+        "https://www.how-toai.com/blog/ai-grammar-proofread-free-tools-2026"
+      ]
+    },
+    {
+      "slug": "daum-spell-checker",
+      "name": "Daum Spell Checker",
+      "name_ko": "다음 맞춤법검사기",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://dic.daum.net/grammar_checker.do",
+      "summary_ko": "다음 어학사전의 무료 맞춤법·띄어쓰기 검사 (1회 1,000자)",
+      "selection_basis": "포털 제공 대표 맞춤법 검사기 https://namu.wiki/w/%EB%8B%A4%EC%9D%8C%20%EB%A7%9E%EC%B6%A4%EB%B2%95%20%EA%B2%80%EC%82%AC%EA%B8%B0",
+      "sources": {
+        "googleplay": {
+          "key": "daum-spell-checker:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "단독 앱 없음 (다음 어학사전 웹 기능). Play(KR) 맞춤법 검색에 카카오 패키지 없음"
+        },
+        "appstore": {
+          "key": "daum-spell-checker:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes(KR) search '맞춤법 검사기' — 카카오 앱 없음"
+        },
+        "capterra": {
+          "key": "daum-spell-checker:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "trustradius": {
+          "key": "daum-spell-checker:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "확인 불가: WebSearch 세션 한도(200회) 소진 후 조사. DuckDuckGo(HTTP 202 차단)·Bing(무관 결과) 대체 검색 실패, capterra/trustradius 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "daum-spell-checker:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/daum, kakao 직접 조회 404 (검색 페이지는 JS 렌더링이라 결과 미노출)"
+        },
+        "daum_search": {
+          "key": "daum-spell-checker:daum_search",
+          "status": "검색어",
+          "query": "다음 맞춤법 검사기 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://dic.daum.net/grammar_checker.do",
+        "https://namu.wiki/w/%EB%8B%A4%EC%9D%8C%20%EB%A7%9E%EC%B6%A4%EB%B2%95%20%EA%B2%80%EC%82%AC%EA%B8%B0"
+      ]
+    }
+  ]
+}

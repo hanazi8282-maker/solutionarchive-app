@@ -1,0 +1,1975 @@
+{
+  "area": "04-marketing-content",
+  "area_ko": "마케팅 콘텐츠·광고 소재",
+  "scope": "마케팅 카피, 광고 크리에이티브(이미지·영상·UGC 아바타 광고), SNS 게시물을 생성하거나 광고 소재를 수집·분석(스와이프 파일, 크리에이티브 분석)하는 도구를 넣는다. 범용 글쓰기(⑤), 이커머스 상세페이지·상품사진 운영 도구(⑦), 영업·CRM 자동화(③)는 뺀다. 디자인 툴(Canva·미리캔버스·망고보드)과 범용 생성 AI(뤼튼·캐럿)는 마케팅 소재 제작 용도가 주력이라 경계 사례로 넣고 summary_ko 에 적었다. 뤼튼(wrtn)은 범용 AI 어시스턴트 비중이 커 ⑤글쓰기·문서 사전에만 둔다(slug 중복 방지).",
+  "researched_at": "2026-10-05",
+  "kr_search_queries": [
+    "AI 광고 소재 생성 서비스 국내 스타트업",
+    "AI 마케팅 카피 생성 서비스 한국",
+    "AI 광고 영상 자동 생성 솔루션 국내 브이캣 경쟁사",
+    "AI SNS 콘텐츠 자동 생성 마케팅 툴 국내 출시",
+    "AI 상세페이지 광고 배너 자동 생성 서비스 출시",
+    "AI 카드뉴스 자동 생성 서비스 마케터",
+    "AI 숏폼 광고 영상 제작 플랫폼 국내 스타트업 투자 유치",
+    "레티나 AI SNS 광고 이미지 자동 생성",
+    "데라블 디자인스태프 AI 커머스 마케팅 콘텐츠",
+    "시그마인 sigmine AI 마케팅 콘텐츠",
+    "\"AdGen AI\" 애드젠 마케터 광고 솔루션 회사",
+    "creatives.gmp.ai AI 소재 자동 생성 GMP",
+    "AI 광고 카피 생성기 한국어 서비스 스타트업 출시",
+    "AI UGC 광고 영상 AI 모델 생성 국내 서비스",
+    "캐럿 carat.im AI 제품 영상 회사",
+    "아스타 ASTAR AI 콘텐츠 마케터 서비스"
+  ],
+  "products": [
+    {
+      "slug": "jasper",
+      "name": "Jasper",
+      "name_ko": "재스퍼",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.jasper.ai/",
+      "summary_ko": "마케팅팀용 AI 콘텐츠·카피 생성 플랫폼(브랜드 보이스, 캠페인 자산, 마케팅 에이전트).",
+      "selection_basis": "Capterra 리뷰 1,855건으로 AI 마케팅 카피 분야 최대 규모 중 하나. https://www.capterra.com/p/217242/Jasper/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "jasper:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Jasper AI' (play.google.com). 뜬 앱(com.nexbot.app 등)은 모두 제3자 개발사 유사명 앱"
+        },
+        "appstore": {
+          "key": "jasper:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Jasper AI' (apps.apple.com) + iTunes Search API 'jasper ai'. 결과는 Bich Van Tran Dang·Muhammad Tahir 등 제3자 앱뿐"
+        },
+        "capterra": {
+          "key": "jasper:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/217242/Jasper/",
+          "evidence": "검색 결과 URL (https://www.capterra.com/p/217242/Jasper/reviews/)"
+        },
+        "trustradius": {
+          "key": "jasper:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/jasper-ai/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "jasper:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Jasper AI shopify app' (apps.shopify.com). JasperX PIM Connector 는 다른 회사(JasperX, Calgary) 제품"
+        },
+        "daum_search": {
+          "key": "jasper:daum_search",
+          "status": "검색어",
+          "query": "재스퍼 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.jasper.ai/",
+        "https://www.capterra.com/p/217242/Jasper/reviews/",
+        "https://www.trustradius.com/products/jasper-ai/reviews",
+        "https://apps.shopify.com/jasper-pim-final"
+      ]
+    },
+    {
+      "slug": "copy-ai",
+      "name": "Copy.ai",
+      "name_ko": "카피에이아이",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.copy.ai/",
+      "summary_ko": "AI 마케팅 카피 생성기로 시작해 현재는 GTM(시장진출) AI 워크플로 플랫폼으로 포지셔닝.",
+      "selection_basis": "AI 카피라이팅 대표 제품, Capterra 등록·비교 페이지 다수. https://www.capterra.com/p/236813/CopyAI/",
+      "sources": {
+        "googleplay": {
+          "key": "copy-ai:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Copy.ai' (play.google.com). com.sagamill.copyai 등 제3자 유사명 앱뿐"
+        },
+        "appstore": {
+          "key": "copy-ai:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Copy.ai' (apps.apple.com). 'ai.copy - ai writer & chatbot'(id6450441881)는 판매자 CHASE NC LIMITED 로 CopyAI 아님(페이지 직접 확인)"
+        },
+        "capterra": {
+          "key": "copy-ai:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/236813/CopyAI/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "copy-ai:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/copy.ai/competitors",
+          "evidence": "검색 결과 URL (제품 경로 /products/copy.ai 의 competitors 페이지)"
+        },
+        "shopify_apps": {
+          "key": "copy-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Copy.ai' (apps.shopify.com). copy-ai-2 는 'Copy products & Import - EA' 로 다른 앱"
+        },
+        "daum_search": {
+          "key": "copy-ai:daum_search",
+          "status": "검색어",
+          "query": "카피에이아이 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.copy.ai/",
+        "https://www.capterra.com/p/236813/CopyAI/",
+        "https://www.trustradius.com/products/copy.ai/competitors",
+        "https://apps.apple.com/us/app/ai-copy-ai-writer-chatbot/id6450441881"
+      ]
+    },
+    {
+      "slug": "adcreative-ai",
+      "name": "AdCreative.ai",
+      "name_ko": "애드크리에이티브AI",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.adcreative.ai/",
+      "summary_ko": "광고 배너·영상·제품사진 크리에이티브를 AI로 생성하고 성과 예측 점수를 매기는 도구.",
+      "selection_basis": "AI 광고 크리에이티브 생성기 순위 기사 다수에 상위 노출(G2 4.3, 리뷰 약 800건 언급). https://resources.rework.com/tools/ai-tools/best-ai-ad-creative-tools-2026",
+      "sources": {
+        "googleplay": {
+          "key": "adcreative-ai:googleplay",
+          "status": "확인",
+          "id": "ai.adcreative.m",
+          "url": "https://play.google.com/store/apps/details?id=ai.adcreative.m",
+          "evidence": "Play 상세 페이지 직접 조회: 제목 'AdCreative.ai: Generate Ads', 개발사 'AdCreative.ai'"
+        },
+        "appstore": {
+          "key": "adcreative-ai:appstore",
+          "status": "확인",
+          "id": "6740659906",
+          "url": "https://apps.apple.com/us/app/adcreative-ai-official-ai-ads/id6740659906",
+          "evidence": "검색 결과 URL 'AdCreative.ai Official: AI Ads', 개발사 ADYOUNEED(AdCreative.ai 운영사, 파리)"
+        },
+        "capterra": {
+          "key": "adcreative-ai:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/253052/AdCreativeai/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "adcreative-ai:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/adcreative-ai/pricing",
+          "evidence": "검색 결과 URL (제품 경로 /products/adcreative-ai)"
+        },
+        "shopify_apps": {
+          "key": "adcreative-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'AdCreative.ai shopify app'. 파트너 페이지 https://apps.shopify.com/partners/adcreative-ai 는 열어보니 '0 apps'"
+        },
+        "daum_search": {
+          "key": "adcreative-ai:daum_search",
+          "status": "검색어",
+          "query": "애드크리에이티브 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.adcreative.ai/",
+        "https://play.google.com/store/apps/details?id=ai.adcreative.m",
+        "https://apps.apple.com/us/app/adcreative-ai-official-ai-ads/id6740659906",
+        "https://www.capterra.com/p/253052/AdCreativeai/",
+        "https://www.trustradius.com/products/adcreative-ai/pricing",
+        "https://apps.shopify.com/partners/adcreative-ai"
+      ]
+    },
+    {
+      "slug": "anyword",
+      "name": "Anyword",
+      "name_ko": "애니워드",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.anyword.com/",
+      "summary_ko": "성과 예측 점수를 붙여 광고·이메일·랜딩 카피를 생성하는 AI 카피라이팅 플랫폼.",
+      "selection_basis": "Capterra 리뷰 391건·평점 4.8. https://www.capterra.com/p/229878/Anyword/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "anyword:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Anyword AI copywriting' (play.google.com). 관련 없는 앱만 나옴"
+        },
+        "appstore": {
+          "key": "anyword:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Anyword AI copywriting' (apps.apple.com). 관련 없는 앱만 나옴"
+        },
+        "capterra": {
+          "key": "anyword:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/229878/Anyword/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "anyword:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Anyword reviews', 'AdCreative.ai Anyword' (trustradius.com). Anyword 페이지 안 나옴. 직접 접속은 403"
+        },
+        "shopify_apps": {
+          "key": "anyword:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Anyword AI copywriting', 'AdCreative.ai Jasper Writesonic Anyword' (apps.shopify.com)"
+        },
+        "daum_search": {
+          "key": "anyword:daum_search",
+          "status": "검색어",
+          "query": "애니워드 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.anyword.com/",
+        "https://www.capterra.com/p/229878/Anyword/reviews/"
+      ]
+    },
+    {
+      "slug": "writesonic",
+      "name": "Writesonic",
+      "name_ko": "라이트소닉",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://writesonic.com/",
+      "summary_ko": "AI 마케팅 글·광고 카피 생성기로 출발, 현재 공식 사이트는 'AI 검색 성장 엔진'(GEO/SEO)으로 포지셔닝.",
+      "selection_basis": "Capterra 검증 리뷰 2,102건·평점 4.8. https://www.capterra.com/p/219972/Writesonic/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "writesonic:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Writesonic', 'Chatsonic Writesonic app'. 공식 Chatsonic(com.writesonic.chatsonic)은 Play 상세 조회 시 Not Found(내려감), 개발사 페이지 developer?id=Writesonic 에 앱 없음, com.writesonic.appaiconten 은 개발사 BPSK(제3자)"
+        },
+        "appstore": {
+          "key": "writesonic:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Chatsonic Writesonic app'. id6449736342 는 현재 'AI Sonic - Chat & Write Bot', 판매자 EASTGATE (KENT) LTD 로 Writesonic 아님(페이지 직접 확인)"
+        },
+        "capterra": {
+          "key": "writesonic:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/219972/Writesonic/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "writesonic:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/compare-products/grammarly-vs-writesonic",
+          "evidence": "검색 결과 URL. 제품 단독 페이지 URL은 못 봤고 비교 페이지 다수가 뜸(등록 제품으로 판단)"
+        },
+        "shopify_apps": {
+          "key": "writesonic:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Writesonic' (apps.shopify.com 포함 검색)"
+        },
+        "daum_search": {
+          "key": "writesonic:daum_search",
+          "status": "검색어",
+          "query": "라이트소닉 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://writesonic.com/",
+        "https://www.capterra.com/p/219972/Writesonic/reviews/",
+        "https://www.trustradius.com/compare-products/grammarly-vs-writesonic",
+        "https://apps.apple.com/us/app/chatsonic-ai-writer/id6449736342"
+      ]
+    },
+    {
+      "slug": "predis-ai",
+      "name": "Predis.ai",
+      "name_ko": "프레디스AI",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://predis.ai/",
+      "summary_ko": "제품·브랜드 정보로 광고 이미지·UGC 영상·SNS 게시물을 생성하고 자동 게시까지 하는 도구.",
+      "selection_basis": "SMB 대상 AI 광고 생성기 추천 기사 상위, Capterra 리뷰 186건. https://www.capterra.com/p/231932/Predisai/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "predis-ai:googleplay",
+          "status": "확인",
+          "id": "com.predis.app",
+          "url": "https://play.google.com/store/apps/details?id=com.predis.app",
+          "evidence": "Play 상세 페이지 직접 조회: 'Predis AI Video Ad Maker | UGC', 개발사 'Predis.ai'"
+        },
+        "appstore": {
+          "key": "predis-ai:appstore",
+          "status": "확인",
+          "id": "6450264767",
+          "url": "https://apps.apple.com/us/app/social-media-posts-predis-ai/id6450264767",
+          "evidence": "검색 결과 URL 'Predis AI Video Ad Maker'"
+        },
+        "capterra": {
+          "key": "predis-ai:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/231932/Predisai/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "predis-ai:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Predis.ai reviews', 'Writesonic Predis' (trustradius.com)"
+        },
+        "shopify_apps": {
+          "key": "predis-ai:shopify_apps",
+          "status": "확인",
+          "id": null,
+          "url": "https://apps.shopify.com/predisai",
+          "evidence": "검색 결과 URL + curl 직접 조회 200 'Predis‑ AI Ads & Product Video'"
+        },
+        "daum_search": {
+          "key": "predis-ai:daum_search",
+          "status": "검색어",
+          "query": "프레디스 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://predis.ai/",
+        "https://play.google.com/store/apps/details?id=com.predis.app",
+        "https://apps.apple.com/us/app/social-media-posts-predis-ai/id6450264767",
+        "https://www.capterra.com/p/231932/Predisai/",
+        "https://apps.shopify.com/predisai"
+      ]
+    },
+    {
+      "slug": "pencil",
+      "name": "Pencil",
+      "name_ko": "펜슬",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://trypencil.com/",
+      "summary_ko": "생성형 AI로 광고 소재를 만들고 성과를 추적하는 광고 크리에이티브 플랫폼(현재 'AI Operating System for Marketing'로 소개).",
+      "selection_basis": "사용자 예시 후보. Capterra 에 광고 생성 플랫폼으로 등록(리뷰 1건). https://www.capterra.com/p/252119/Pencil/ — 랭킹 기사 상위 근거는 직접 확인 못함",
+      "sources": {
+        "googleplay": {
+          "key": "pencil:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Pencil generative AI ads trypencil app' (play.google.com). 스케치 앱 등 무관 결과뿐"
+        },
+        "appstore": {
+          "key": "pencil:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Pencil generative AI ads trypencil app' (apps.apple.com) + iTunes API 'pencil ads'"
+        },
+        "capterra": {
+          "key": "pencil:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/252119/Pencil/",
+          "evidence": "검색 결과 URL (설명: 오디오·영상·이미지로 광고 자동 생성)"
+        },
+        "trustradius": {
+          "key": "pencil:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Pencil trypencil Brandtech reviews trustradius'. Pencil Project(다른 제품)만 나옴"
+        },
+        "shopify_apps": {
+          "key": "pencil:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Pencil generative AI ads trypencil app' (apps.shopify.com 포함)"
+        },
+        "daum_search": {
+          "key": "pencil:daum_search",
+          "status": "검색어",
+          "query": "펜슬 AI 광고 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://trypencil.com/",
+        "https://www.capterra.com/p/252119/Pencil/"
+      ]
+    },
+    {
+      "slug": "ocoya",
+      "name": "Ocoya",
+      "name_ko": "오코야",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.ocoya.com/",
+      "summary_ko": "AI로 SNS 카피·그래픽을 만들고 예약 게시·분석까지 하는 소셜 미디어 콘텐츠 도구.",
+      "selection_basis": "Capterra 검증 리뷰 367건. https://www.capterra.com/p/232714/Ocoya/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "ocoya:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Ocoya social media'. com.ocoya.app.workflow 는 MY IMPERIUM 의 비공식 가이드 앱(appbrain 기준 현재 내려감)"
+        },
+        "appstore": {
+          "key": "ocoya:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Ocoya social media' (apps.apple.com)"
+        },
+        "capterra": {
+          "key": "ocoya:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/232714/Ocoya/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "ocoya:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/ocoya/competitors",
+          "evidence": "검색 결과 URL (제품 경로 /products/ocoya)"
+        },
+        "shopify_apps": {
+          "key": "ocoya:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색 결과의 파트너 페이지 https://apps.shopify.com/partners/premium-lifestyle-watches ('Apps by Ocoya')를 열어보니 0 apps"
+        },
+        "daum_search": {
+          "key": "ocoya:daum_search",
+          "status": "검색어",
+          "query": "오코야 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.ocoya.com/",
+        "https://www.capterra.com/p/232714/Ocoya/",
+        "https://www.trustradius.com/products/ocoya/competitors",
+        "https://apps.shopify.com/partners/premium-lifestyle-watches",
+        "https://www.appbrain.com/app/ocoyaa-app-workflow/com.ocoya.app.workflow"
+      ]
+    },
+    {
+      "slug": "simplified",
+      "name": "Simplified",
+      "name_ko": "심플리파이드",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://simplified.com/",
+      "summary_ko": "AI 카피·디자인·영상 제작과 SNS 게시를 한곳에서 하는 마케팅 콘텐츠 올인원 도구.",
+      "selection_basis": "Capterra AI 마케팅 도구 카테고리 노출, 리뷰 다수(평점 4.7). https://www.capterra.com/p/237334/Simplified/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "simplified:googleplay",
+          "status": "확인",
+          "id": "co.simplified.main",
+          "url": "https://play.google.com/store/apps/details?id=co.simplified.main",
+          "evidence": "Play 상세 페이지 직접 조회: 'Simplified AI', 개발사 'Simplified.com'"
+        },
+        "appstore": {
+          "key": "simplified:appstore",
+          "status": "확인",
+          "id": "1610971740",
+          "url": "https://apps.apple.com/us/app/simplified-ai/id1610971740",
+          "evidence": "검색 결과 URL 'Simplified AI'"
+        },
+        "capterra": {
+          "key": "simplified:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/237334/Simplified/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "simplified:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/simplified/reviews",
+          "evidence": "검색 결과 URL (?qs=product-usage 변형)"
+        },
+        "shopify_apps": {
+          "key": "simplified:shopify_apps",
+          "status": "확인",
+          "id": null,
+          "url": "https://apps.shopify.com/simplified-1",
+          "evidence": "검색 결과 URL 'Simplified Social Marketing'"
+        },
+        "daum_search": {
+          "key": "simplified:daum_search",
+          "status": "검색어",
+          "query": "심플리파이드 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://simplified.com/",
+        "https://play.google.com/store/apps/details?id=co.simplified.main",
+        "https://apps.apple.com/us/app/simplified-ai/id1610971740",
+        "https://www.capterra.com/p/237334/Simplified/",
+        "https://www.trustradius.com/products/simplified/reviews?qs=product-usage",
+        "https://apps.shopify.com/simplified-1"
+      ]
+    },
+    {
+      "slug": "canva",
+      "name": "Canva (Magic Studio)",
+      "name_ko": "캔바",
+      "name_ko_basis": "공식",
+      "region": "global",
+      "official_url": "https://www.canva.com/",
+      "summary_ko": "디자인 플랫폼. Magic Studio AI로 광고 소재·SNS 이미지·영상을 생성(범용 디자인 툴이라 경계 사례).",
+      "selection_basis": "AI 광고 생성기 기사에서 AdCreative.ai 와 함께 정적·캐러셀 광고 제작 선두로 언급. https://resources.rework.com/tools/ai-tools/best-ai-ad-creative-tools-2026",
+      "sources": {
+        "googleplay": {
+          "key": "canva:googleplay",
+          "status": "확인",
+          "id": "com.canva.editor",
+          "url": "https://play.google.com/store/apps/details?id=com.canva.editor",
+          "evidence": "Play 상세 페이지 직접 조회: 개발사 'Canva'"
+        },
+        "appstore": {
+          "key": "canva:appstore",
+          "status": "확인",
+          "id": "897446215",
+          "url": "https://apps.apple.com/us/app/canva-ai-photo-video-editor/id897446215",
+          "evidence": "검색 결과 URL + iTunes API(kr) 판매자 'Canva Pty Ltd'"
+        },
+        "capterra": {
+          "key": "canva:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/168956/Canva/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "canva:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/canva/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "canva:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Canva' (apps.shopify.com). canva-connect 는 열어보니 개발사 Seguno, canvify·canva-add-pages 도 제3자 연동 앱"
+        },
+        "daum_search": {
+          "key": "canva:daum_search",
+          "status": "검색어",
+          "query": "캔바 매직스튜디오 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.canva.com/",
+        "https://play.google.com/store/apps/details?id=com.canva.editor",
+        "https://apps.apple.com/us/app/canva-ai-photo-video-editor/id897446215",
+        "https://www.capterra.com/p/168956/Canva/",
+        "https://www.trustradius.com/products/canva/reviews",
+        "https://apps.shopify.com/canva-connect"
+      ]
+    },
+    {
+      "slug": "foreplay",
+      "name": "Foreplay",
+      "name_ko": "포플레이",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.foreplay.co/",
+      "summary_ko": "광고 라이브러리에서 경쟁사 광고를 저장·분류하는 스와이프 파일과 AI 브리프 도구.",
+      "selection_basis": "사용자 예시 후보(광고 소재 스와이프 파일 대표). 공식 모바일 앱 양대 스토어 등록 확인 — 랭킹 기사 근거는 직접 확인 못함",
+      "sources": {
+        "googleplay": {
+          "key": "foreplay:googleplay",
+          "status": "확인",
+          "id": "co.foreplay.ForeplayMobile",
+          "url": "https://play.google.com/store/apps/details?id=co.foreplay.ForeplayMobile",
+          "evidence": "Play 상세 페이지 직접 조회: 'Foreplay Ad Swipe File', 개발사 'Foreplay'"
+        },
+        "appstore": {
+          "key": "foreplay:appstore",
+          "status": "확인",
+          "id": "6466097243",
+          "url": "https://apps.apple.com/us/app/foreplay-ad-swipe-file/id6466097243",
+          "evidence": "페이지 직접 확인: 판매자 Zachary Murray(창업자 개인명), 개발자 웹사이트 foreplay.co"
+        },
+        "capterra": {
+          "key": "foreplay:capterra",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Foreplay swipe file ads reviews', 'Foreplay.co ad library creative' (capterra.com)"
+        },
+        "trustradius": {
+          "key": "foreplay:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Foreplay swipe file ads reviews', 'Foreplay.co ad library creative' (trustradius.com)"
+        },
+        "shopify_apps": {
+          "key": "foreplay:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Foreplay ad swipe file' (apps.shopify.com 포함)"
+        },
+        "daum_search": {
+          "key": "foreplay:daum_search",
+          "status": "검색어",
+          "query": "포플레이 광고 스와이프 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.foreplay.co/",
+        "https://play.google.com/store/apps/details?id=co.foreplay.ForeplayMobile",
+        "https://apps.apple.com/us/app/foreplay-ad-swipe-file/id6466097243"
+      ]
+    },
+    {
+      "slug": "motion-creative",
+      "name": "Motion",
+      "name_ko": "모션",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://motionapp.com/",
+      "summary_ko": "메타·틱톡 광고 소재 성과를 시각화·분석하고 영감 광고를 모으는 크리에이티브 분석 도구.",
+      "selection_basis": "사용자 예시 후보(광고 소재 분석 대표). 공식 iOS 앱 확인 — 랭킹 기사 근거는 직접 확인 못함",
+      "sources": {
+        "googleplay": {
+          "key": "motion-creative:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Motion app creative analytics google play motionapp'. cloud.motion.app 은 상세 조회 결과 Motion, Inc.(Motion.cloud 산업 알람 앱)로 다른 회사, com.usemotion.motion 은 일정관리 Motion"
+        },
+        "appstore": {
+          "key": "motion-creative:appstore",
+          "status": "확인",
+          "id": "6738098343",
+          "url": "https://apps.apple.com/us/app/motion-creative-strategy/id6738098343",
+          "evidence": "페이지 직접 확인: 'Motion (Creative Strategy)', 판매자 Motion Creative Cloud Inc."
+        },
+        "capterra": {
+          "key": "motion-creative:capterra",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Motion creative analytics motionapp reviews'. capterra.com/p/214264/Motion 은 일정·업무관리 Motion(다른 제품)"
+        },
+        "trustradius": {
+          "key": "motion-creative:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Motion creative analytics motionapp.com trustradius'"
+        },
+        "shopify_apps": {
+          "key": "motion-creative:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Motion creative analytics for Meta ads' (apps.shopify.com). 다른 회사 앱만 나옴"
+        },
+        "daum_search": {
+          "key": "motion-creative:daum_search",
+          "status": "검색어",
+          "query": "모션 광고 크리에이티브 분석 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://motionapp.com/",
+        "https://apps.apple.com/us/app/motion-creative-strategy/id6738098343",
+        "https://www.capterra.com/p/214264/Motion/"
+      ]
+    },
+    {
+      "slug": "creatify",
+      "name": "Creatify",
+      "name_ko": "크리에이티파이",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://creatify.ai/",
+      "summary_ko": "제품 URL로 AI 아바타 UGC 스타일 영상 광고를 생성하는 도구.",
+      "selection_basis": "AI 광고 크리에이티브 기사에서 G2 4.8·리뷰 1,500건 이상 최고 평점으로 언급. https://resources.rework.com/tools/ai-tools/best-ai-ad-creative-tools-2026",
+      "sources": {
+        "googleplay": {
+          "key": "creatify:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Creatify AI video ad maker'. com.app.singakencana 는 비공식 가이드 앱"
+        },
+        "appstore": {
+          "key": "creatify:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Creatify AI video ad maker' + iTunes API 'creatify'. id6755723951 은 판매자 PEPR AI Limited 로 Creatify Labs 아님(페이지 직접 확인), 나머지도 제3자"
+        },
+        "capterra": {
+          "key": "creatify:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10020139/Creatify/",
+          "evidence": "검색 결과 URL (리뷰 0건)"
+        },
+        "trustradius": {
+          "key": "creatify:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Creatify AI trustradius'. 검색 요약엔 리스팅 언급이 있었으나 제품 URL은 결과에 안 뜸"
+        },
+        "shopify_apps": {
+          "key": "creatify:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Creatify' (apps.shopify.com). 'Creatify‑Trust Badges & Labels'(ad-creative-generator)는 개발사 Comhra 로 다른 제품"
+        },
+        "daum_search": {
+          "key": "creatify:daum_search",
+          "status": "검색어",
+          "query": "크리에이티파이 AI 광고 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://creatify.ai/",
+        "https://www.capterra.com/p/10020139/Creatify/",
+        "https://apps.apple.com/us/app/creatify-ai-ugc-video-ad-maker/id6755723951",
+        "https://apps.shopify.com/ad-creative-generator"
+      ]
+    },
+    {
+      "slug": "arcads",
+      "name": "Arcads",
+      "name_ko": "아케이즈",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.arcads.ai/",
+      "summary_ko": "AI 배우(아바타)가 대본을 읽는 UGC 스타일 영상 광고 생성 도구.",
+      "selection_basis": "사용자 예시 후보. 공식 사이트만 확인, 리뷰 사이트·스토어 등록은 못 찾음 — 랭킹 근거 미확인",
+      "sources": {
+        "googleplay": {
+          "key": "arcads:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Arcads AI actors video ads app' (play.google.com). 다른 UGC 광고 앱만 나옴"
+        },
+        "appstore": {
+          "key": "arcads:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Arcads AI actors video ads app' (apps.apple.com). iTunes API 'arcads' 는 응답 오류(레이트리밋 추정)"
+        },
+        "capterra": {
+          "key": "arcads:capterra",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Arcads AI UGC ads reviews' (capterra.com)"
+        },
+        "trustradius": {
+          "key": "arcads:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Arcads AI UGC ads reviews', 'Arcads AI actors video ads app' (trustradius.com)"
+        },
+        "shopify_apps": {
+          "key": "arcads:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Arcads AI actors video ads app' (apps.shopify.com)"
+        },
+        "daum_search": {
+          "key": "arcads:daum_search",
+          "status": "검색어",
+          "query": "아케이즈 AI 광고 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.arcads.ai/"
+      ]
+    },
+    {
+      "slug": "hootsuite-owlywriter",
+      "name": "Hootsuite (OwlyWriter AI)",
+      "name_ko": "훗스위트",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.hootsuite.com/",
+      "summary_ko": "소셜 미디어 관리 플랫폼. 내장 OwlyWriter AI 로 SNS 캡션·게시물을 생성(소스는 Hootsuite 본체 기준).",
+      "selection_basis": "AI SNS 마케팅 도구 TOP5 기사에 Predis.ai 와 함께 선정. https://ai.tasko.kr/ai-social-media-tools-2025/",
+      "sources": {
+        "googleplay": {
+          "key": "hootsuite-owlywriter:googleplay",
+          "status": "확인",
+          "id": "com.hootsuite.droid.full",
+          "url": "https://play.google.com/store/apps/details?id=com.hootsuite.droid.full",
+          "evidence": "Play 상세 페이지 직접 조회: 개발사 'Hootsuite'"
+        },
+        "appstore": {
+          "key": "hootsuite-owlywriter:appstore",
+          "status": "확인",
+          "id": "341249709",
+          "url": "https://apps.apple.com/us/app/hootsuite-social-media-tools/id341249709",
+          "evidence": "검색 결과 URL, 개발자 페이지 Hootsuite Media Inc.(id341249712)"
+        },
+        "capterra": {
+          "key": "hootsuite-owlywriter:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/121701/HootSuite/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "hootsuite-owlywriter:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/hootsuite/reviews",
+          "evidence": "검색 결과 URL"
+        },
+        "shopify_apps": {
+          "key": "hootsuite-owlywriter:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Hootsuite social media management app'. Shopview(apps.shopify.com/shopview)는 열어보니 개발사 Synaptive 로 Hootsuite 연동 제3자 앱"
+        },
+        "daum_search": {
+          "key": "hootsuite-owlywriter:daum_search",
+          "status": "검색어",
+          "query": "훗스위트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.hootsuite.com/",
+        "https://play.google.com/store/apps/details?id=com.hootsuite.droid.full",
+        "https://apps.apple.com/us/app/hootsuite-social-media-tools/id341249709",
+        "https://www.capterra.com/p/121701/HootSuite/",
+        "https://www.trustradius.com/products/hootsuite/reviews",
+        "https://apps.shopify.com/shopview"
+      ]
+    },
+    {
+      "slug": "lately",
+      "name": "Lately",
+      "name_ko": "레이틀리",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.lately.ai/",
+      "summary_ko": "블로그·영상 등 롱폼 콘텐츠를 브랜드 보이스로 SNS 게시물 여러 개로 쪼개 주는 AI.",
+      "selection_basis": "Capterra 등록(리뷰 7건·4.9), 롱폼→소셜 재가공 분야 대표. https://www.capterra.com/p/169764/Lately/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "lately:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Lately AI social content ...' (play.google.com). com.joel.lately 는 뉴스 공유 앱(다른 제품)"
+        },
+        "appstore": {
+          "key": "lately:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "'Lately: Social Reimagined'(id6740776415)는 판매자 Let's Bild LLC 의 다른 앱(페이지 직접 확인)"
+        },
+        "capterra": {
+          "key": "lately:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/169764/Lately/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "lately:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Lately AI social media reviews', 'Lately AI trustradius'"
+        },
+        "shopify_apps": {
+          "key": "lately:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Lately AI social content Typeface Persado' (apps.shopify.com 포함)"
+        },
+        "daum_search": {
+          "key": "lately:daum_search",
+          "status": "검색어",
+          "query": "레이틀리 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.lately.ai/",
+        "https://www.capterra.com/p/169764/Lately/",
+        "https://apps.apple.com/us/app/lately-social-reimagined/id6740776415"
+      ]
+    },
+    {
+      "slug": "typeface",
+      "name": "Typeface",
+      "name_ko": "타입페이스",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.typeface.ai/",
+      "summary_ko": "브랜드에 맞춘 마케팅 콘텐츠(카피·이미지)를 생성하는 엔터프라이즈 생성형 AI 플랫폼.",
+      "selection_basis": "엔터프라이즈 마케팅 생성 AI 대표, Capterra·TrustRadius 등록. https://www.trustradius.com/products/typeface-ai/competitors",
+      "sources": {
+        "googleplay": {
+          "key": "typeface:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Typeface AI app' (play.google.com). 폰트 식별 앱만 나옴"
+        },
+        "appstore": {
+          "key": "typeface:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Typeface AI app' + iTunes API 'typeface ai'. 폰트 식별 앱만 나옴"
+        },
+        "capterra": {
+          "key": "typeface:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10019507/Typeface/",
+          "evidence": "검색 결과 URL (/alternatives/ 페이지)"
+        },
+        "trustradius": {
+          "key": "typeface:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/typeface-ai/competitors",
+          "evidence": "검색 결과 URL (제품 경로 /products/typeface-ai)"
+        },
+        "shopify_apps": {
+          "key": "typeface:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Typeface AI app' (apps.shopify.com 포함)"
+        },
+        "daum_search": {
+          "key": "typeface:daum_search",
+          "status": "검색어",
+          "query": "타입페이스 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.typeface.ai/",
+        "https://www.capterra.com/p/10019507/Typeface/alternatives/",
+        "https://www.trustradius.com/products/typeface-ai/competitors"
+      ]
+    },
+    {
+      "slug": "persado",
+      "name": "Persado",
+      "name_ko": "퍼사도",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.persado.com/",
+      "summary_ko": "감정·언어 데이터로 이메일 제목·광고 문구 등 마케팅 메시지를 생성·최적화하는 엔터프라이즈 AI.",
+      "selection_basis": "마케팅 언어 생성 AI 원조급, Capterra·TrustRadius 등록. https://www.trustradius.com/products/persado/reviews?qs=product-usage",
+      "sources": {
+        "googleplay": {
+          "key": "persado:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Persado app' (play.google.com). Perseo 등 무관 앱"
+        },
+        "appstore": {
+          "key": "persado:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Persado app' (apps.apple.com)"
+        },
+        "capterra": {
+          "key": "persado:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/167627/Persado/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "persado:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/persado/reviews",
+          "evidence": "검색 결과 URL (?qs=product-usage 변형)"
+        },
+        "shopify_apps": {
+          "key": "persado:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Persado app' (apps.shopify.com 포함)"
+        },
+        "daum_search": {
+          "key": "persado:daum_search",
+          "status": "검색어",
+          "query": "퍼사도 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.persado.com/",
+        "https://www.capterra.com/p/167627/Persado/",
+        "https://www.trustradius.com/products/persado/reviews?qs=product-usage"
+      ]
+    },
+    {
+      "slug": "omneky",
+      "name": "Omneky",
+      "name_ko": "옴네키",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://www.omneky.com/",
+      "summary_ko": "성과 데이터 기반으로 메타·구글·틱톡용 이미지·영상·UGC 광고를 생성하는 AI 광고 플랫폼.",
+      "selection_basis": "Capterra 크리에이티브 관리 카테고리 등록(리뷰 3건). https://www.capterra.com/p/10039324/Omneky/ — 랭킹 기사 근거는 직접 확인 못함",
+      "sources": {
+        "googleplay": {
+          "key": "omneky:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Omneky' (play.google.com). 유사 철자 무관 앱만"
+        },
+        "appstore": {
+          "key": "omneky:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Omneky' (apps.apple.com)"
+        },
+        "capterra": {
+          "key": "omneky:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/10039324/Omneky/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "omneky:trustradius",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Omneky reviews trustradius', 'Omneky Pictory trustradius reviews'"
+        },
+        "shopify_apps": {
+          "key": "omneky:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Omneky' (apps.shopify.com 포함)"
+        },
+        "daum_search": {
+          "key": "omneky:daum_search",
+          "status": "검색어",
+          "query": "옴네키 AI 광고 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.omneky.com/",
+        "https://www.capterra.com/p/10039324/Omneky/"
+      ]
+    },
+    {
+      "slug": "pictory",
+      "name": "Pictory",
+      "name_ko": "픽토리",
+      "name_ko_basis": "음차(비공식)",
+      "region": "global",
+      "official_url": "https://pictory.ai/",
+      "summary_ko": "스크립트·블로그 글을 마케팅용 숏폼 영상으로 바꿔 주는 AI 영상 제작 도구.",
+      "selection_basis": "Capterra 검증 리뷰 162건·4.8, 마케터 대상 AI 영상 도구. https://www.capterra.com/p/229347/Pictory/reviews/",
+      "sources": {
+        "googleplay": {
+          "key": "pictory:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Pictory AI video editor app'. com.pictoryai.videogenerator·com.elhosapp.pictoryai.guide.app 등은 비공식 가이드/유사명 앱"
+        },
+        "appstore": {
+          "key": "pictory:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Pictory AI video editor app'. id6760819725 는 판매자 VG MERAJ HOUSING 으로 공식 아님(페이지 직접 확인), 나머지도 유사명 앱"
+        },
+        "capterra": {
+          "key": "pictory:capterra",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.capterra.com/p/229347/Pictory/",
+          "evidence": "검색 결과 URL"
+        },
+        "trustradius": {
+          "key": "pictory:trustradius",
+          "status": "확인",
+          "id": null,
+          "url": "https://www.trustradius.com/products/pictory/pricing",
+          "evidence": "검색 결과 URL (제품 경로 /products/pictory, 리뷰 1건)"
+        },
+        "shopify_apps": {
+          "key": "pictory:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "검색어: 'Pictory AI video editor app' (apps.shopify.com 포함)"
+        },
+        "daum_search": {
+          "key": "pictory:daum_search",
+          "status": "검색어",
+          "query": "픽토리 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://pictory.ai/",
+        "https://www.capterra.com/p/229347/Pictory/",
+        "https://www.trustradius.com/products/pictory/pricing",
+        "https://apps.apple.com/us/app/ai-video-creator-with-pictory/id6760819725"
+      ]
+    },
+    {
+      "slug": "vcat-ai",
+      "name": "VCAT.AI",
+      "name_ko": "브이캣",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://vcat.ai/",
+      "summary_ko": "파이온코퍼레이션의 상품 URL 기반 광고 영상·배너 자동 제작 SaaS(AI 카피라이터 포함).",
+      "selection_basis": "국내 AI 광고 소재 자동 제작 대표(G마켓·SSG 등 도입). https://zdnet.co.kr/view/?no=20250605143249",
+      "sources": {
+        "googleplay": {
+          "key": "vcat-ai:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 페이지 curl 'vcat ai' 결과에 브이캣 앱 없음"
+        },
+        "appstore": {
+          "key": "vcat-ai:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) '브이캣'·'VCAT.AI'·'vcat' 결과에 해당 앱 없음"
+        },
+        "capterra": {
+          "key": "vcat-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도(200회) 소진으로 검색 불가, 직접 접속은 Cloudflare 403"
+        },
+        "trustradius": {
+          "key": "vcat-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "vcat-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/vcat, /vcat-ai, /vcatai 직접 조회 모두 404"
+        },
+        "daum_search": {
+          "key": "vcat-ai:daum_search",
+          "status": "검색어",
+          "query": "브이캣 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://vcat.ai/",
+        "https://zdnet.co.kr/view/?no=20250605143249",
+        "https://www.aitimes.com/news/articleView.html?idxno=151861",
+        "https://vcat.ai/help/ko/articles/9531005-ai-%EC%B9%B4%ED%94%BC%EB%9D%BC%EC%9D%B4%ED%84%B0-%EA%B8%B0%EB%8A%A5-%EC%86%8C%EA%B0%9C"
+      ]
+    },
+    {
+      "slug": "draph-art",
+      "name": "Draph Art",
+      "name_ko": "드랩아트",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://draph.art/",
+      "summary_ko": "드랩의 상품 이미지 기반 광고 이미지·문구·가상 모델 생성 도구. 제일기획 배너 변형 솔루션 '베리에이드'도 드랩 기술.",
+      "selection_basis": "국내 AI 광고 소재 생성 스타트업으로 언급, 제일기획 도입 보도. https://www.seoul.co.kr/news/economy/industry/2026/04/08/20260408800007",
+      "sources": {
+        "googleplay": {
+          "key": "draph-art:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 페이지 curl 'draph' 결과에 해당 앱 없음"
+        },
+        "appstore": {
+          "key": "draph-art:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) '드랩아트'·'Draph' 결과 0건"
+        },
+        "capterra": {
+          "key": "draph-art:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "draph-art:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "draph-art:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/draph, /draph-art, /draphart 직접 조회 모두 404"
+        },
+        "daum_search": {
+          "key": "draph-art:daum_search",
+          "status": "검색어",
+          "query": "드랩아트 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://draph.art/",
+        "https://draph.art/blog/news/advertising_ai_draph_art_practical_design_tool_for_marketers",
+        "https://www.seoul.co.kr/news/economy/industry/2026/04/08/20260408800007"
+      ]
+    },
+    {
+      "slug": "adgen-ai",
+      "name": "AdGen AI",
+      "name_ko": "애드젠 AI",
+      "name_ko_basis": "음차(비공식)",
+      "region": "kr",
+      "official_url": "https://www.adgenai.com/",
+      "summary_ko": "아드리엘의 광고 소재(텍스트·이미지) 생성·매체 규격 변환·게재 자동화 솔루션.",
+      "selection_basis": "한국 스타트업 아드리엘(시리즈B 150억) 제품, 한국어 사이트 운영. https://www.adgenai.com/",
+      "sources": {
+        "googleplay": {
+          "key": "adgen-ai:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 페이지 curl 'adgen ai adriel' 결과에 해당 앱 없음"
+        },
+        "appstore": {
+          "key": "adgen-ai:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) 'AdGen AI' 결과는 YOUNESS HARNAFI·AdGenics LLC 등 다른 개발사, '아드리엘'·'adriel' 무관"
+        },
+        "capterra": {
+          "key": "adgen-ai:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "adgen-ai:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "adgen-ai:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/adgen-ai, /adgenai, /adriel 직접 조회 모두 404"
+        },
+        "daum_search": {
+          "key": "adgen-ai:daum_search",
+          "status": "검색어",
+          "query": "아드리엘 애드젠 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.adgenai.com/",
+        "http://www.businessreport.kr/news/articleView.html?idxno=45286",
+        "https://kr.linkedin.com/company/%EC%95%84%EB%93%9C%EB%A6%AC%EC%97%98"
+      ]
+    },
+    {
+      "slug": "gmp-creatives",
+      "name": "GMP Creatives",
+      "name_ko": "GMP 크리에이티브",
+      "name_ko_basis": "음차(비공식)",
+      "region": "kr",
+      "official_url": "https://creatives.gmp.ai/",
+      "summary_ko": "브랜드 정보·제품 이미지로 피드·스토리·배너 규격 광고 소재와 카피를 함께 생성하는 SaaS(GMP.ai/비즈스프링 생태계).",
+      "selection_basis": "한국어 'AI 소재 자동 생성' 서비스, GMP.ai(BizSpring) 계열. https://creatives.gmp.ai/",
+      "sources": {
+        "googleplay": {
+          "key": "gmp-creatives:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 페이지 curl 'gmp creatives' 결과는 IPO GMP 앱 등 무관"
+        },
+        "appstore": {
+          "key": "gmp-creatives:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) 'GMP creatives' 결과 0건"
+        },
+        "capterra": {
+          "key": "gmp-creatives:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "gmp-creatives:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "gmp-creatives:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/gmp, /gmp-creatives, /gmp-ai 직접 조회 모두 404"
+        },
+        "daum_search": {
+          "key": "gmp-creatives:daum_search",
+          "status": "검색어",
+          "query": "GMP 크리에이티브 AI 소재 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://creatives.gmp.ai/",
+        "https://gmp.ai/",
+        "https://daas.gmp.ai/"
+      ]
+    },
+    {
+      "slug": "sigmine",
+      "name": "Sigmine",
+      "name_ko": "시그마인",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://sigmine.ai/",
+      "summary_ko": "SNS 콘텐츠 기획·생성·발행·성과 분석을 자동화하는 AI 마케터 서비스.",
+      "selection_basis": "공식 사이트 타이틀 '대한민국 No.1 AI 마케터 | SNS 콘텐츠 자동화', 한국어 마케팅 카피 도구로 언급. https://sigmine.ai/",
+      "sources": {
+        "googleplay": {
+          "key": "sigmine:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 페이지 curl 'sigmine' 결과에 해당 앱 없음"
+        },
+        "appstore": {
+          "key": "sigmine:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) 'sigmine' 결과 0건"
+        },
+        "capterra": {
+          "key": "sigmine:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "sigmine:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "sigmine:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/sigmine 직접 조회 404"
+        },
+        "daum_search": {
+          "key": "sigmine:daum_search",
+          "status": "검색어",
+          "query": "시그마인 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://sigmine.ai/",
+        "https://maily.so/sigmine/about"
+      ]
+    },
+    {
+      "slug": "mirr",
+      "name": "Mirr",
+      "name_ko": "미르",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.mirra.my/ko",
+      "summary_ko": "한 번 입력으로 카드뉴스·숏폼·블로그·스레드 게시물을 만들고 발행·성과까지 관리하는 SNS 콘텐츠 마케팅 AI(도메인 mirra.my).",
+      "selection_basis": "AI 카드뉴스 자동 생성 검색 상위, 공식 사이트 사업자정보(764-53-00982) 한국 확인. https://www.mirra.my/ko",
+      "sources": {
+        "googleplay": {
+          "key": "mirr:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 curl 'Mirra 카드뉴스'·'mirr'. app.mirra 는 상세 조회 결과 개발사 Ensure Technologies 의 스킨케어 앱(다른 제품)"
+        },
+        "appstore": {
+          "key": "mirr:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) 'Mirra 미라'·'mirr' 결과는 스킨케어·미러링 등 다른 개발사 앱"
+        },
+        "capterra": {
+          "key": "mirr:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "mirr:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "mirr:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/mirr 직접 조회 404"
+        },
+        "daum_search": {
+          "key": "mirr:daum_search",
+          "status": "검색어",
+          "query": "미르 카드뉴스 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.mirra.my/ko",
+        "https://www.mirra.my/ko/cardnews-generator"
+      ]
+    },
+    {
+      "slug": "astarmize",
+      "name": "ASTARMIZE (AVICA)",
+      "name_ko": "아스타마이즈(아비카)",
+      "name_ko_basis": "음차(비공식)",
+      "region": "kr",
+      "official_url": "확인 불가",
+      "summary_ko": "아스타의 기업 맞춤형 마케팅 카피·이미지 자동 생성 B2B SaaS(AVICA 엔진, 'AI 콘텐츠 마케터').",
+      "selection_basis": "SNS 마케팅 콘텐츠 생성 AI로 WIS2024 출품·투자 보도. https://wowtale.net/2025/05/30/241774/",
+      "sources": {
+        "googleplay": {
+          "key": "astarmize:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 curl 'astarmize' 결과 없음"
+        },
+        "appstore": {
+          "key": "astarmize:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) '아스타마이즈' 결과 0건 (영문 'astarmize'는 응답 오류)"
+        },
+        "capterra": {
+          "key": "astarmize:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "astarmize:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "astarmize:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/astarmize, /avica 직접 조회 404"
+        },
+        "daum_search": {
+          "key": "astarmize:daum_search",
+          "status": "검색어",
+          "query": "아스타 아비카 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://kidd.co.kr/news/236442",
+        "https://wowtale.net/2025/05/30/241774/",
+        "https://magazine.hankyung.com/job-joy/article/202501184701d"
+      ]
+    },
+    {
+      "slug": "aisac",
+      "name": "AiSAC",
+      "name_ko": "아이작",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://aisac.kobaco.co.kr/",
+      "summary_ko": "한국방송광고진흥공사(코바코)의 광고 아카이브·트렌드 분석·AI 카피라이팅·스토리보드 지원 공공 플랫폼.",
+      "selection_basis": "국내 AI 광고 카피 생성 서비스로 언론 반복 언급. https://www.banronbodo.com/news/articleView.html?idxno=23539",
+      "sources": {
+        "googleplay": {
+          "key": "aisac:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 curl 'aisac'·'kobaco' 결과에 해당 앱 없음"
+        },
+        "appstore": {
+          "key": "aisac:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) '아이작 AiSAC'·'aisac' 결과 0건"
+        },
+        "capterra": {
+          "key": "aisac:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "aisac:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "aisac:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/aisac 직접 조회 404 (공공 플랫폼이라 해당 가능성 낮음)"
+        },
+        "daum_search": {
+          "key": "aisac:daum_search",
+          "status": "검색어",
+          "query": "코바코 아이작 AI 카피 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://aisac.kobaco.co.kr/",
+        "https://www.banronbodo.com/news/articleView.html?idxno=23539",
+        "https://gogumafarm.kr/%EB%A7%88%EC%BC%80%ED%84%B0%EB%A5%BC-%EC%9C%84%ED%95%9C-%ED%95%84%EC%88%98-ai-%EC%84%9C%EB%B9%84%EC%8A%A4-%EB%AA%A8%EC%9D%8C-ai-%EC%9E%90%EB%A3%8C%EC%A1%B0%EC%82%AC-ai-%EC%B9%B4%ED%94%BC-ai/"
+      ]
+    },
+    {
+      "slug": "copykle",
+      "name": "Copykle",
+      "name_ko": "카피클",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://copykle.ai/",
+      "summary_ko": "블로그·인스타그램·광고 카피·상세페이지 문구를 만드는 한국어 AI 카피라이터.",
+      "selection_basis": "'AI 광고 카피 생성기 한국어' 검색 결과 노출, 공식 사이트 '사람 감성 AI 카피라이터'. https://copykle.ai/",
+      "sources": {
+        "googleplay": {
+          "key": "copykle:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 curl 'copykle' 결과 없음"
+        },
+        "appstore": {
+          "key": "copykle:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) 'copykle' 0건, '카피클' 무관 결과"
+        },
+        "capterra": {
+          "key": "copykle:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "copykle:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "copykle:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/copykle 직접 조회 404"
+        },
+        "daum_search": {
+          "key": "copykle:daum_search",
+          "status": "검색어",
+          "query": "카피클 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://copykle.ai/"
+      ]
+    },
+    {
+      "slug": "mangoboard",
+      "name": "Mangoboard (AI Designer)",
+      "name_ko": "망고보드",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.mangoboard.net/",
+      "summary_ko": "디자인·동영상 템플릿 플랫폼. AI 디자이너로 카드뉴스·상세페이지 등 마케팅 디자인 자동 생성(디자인 툴 경계 사례).",
+      "selection_basis": "'AI 카드뉴스 자동 생성' 검색 상위. https://www.mangoboard.net/AIDesigner/Cardnews",
+      "sources": {
+        "googleplay": {
+          "key": "mangoboard:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 curl 'mangoboard' 결과에 해당 앱 없음"
+        },
+        "appstore": {
+          "key": "mangoboard:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) 'mangoboard' 0건, '망고보드' 무관 결과"
+        },
+        "capterra": {
+          "key": "mangoboard:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "mangoboard:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "mangoboard:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/mangoboard 직접 조회 404"
+        },
+        "daum_search": {
+          "key": "mangoboard:daum_search",
+          "status": "검색어",
+          "query": "망고보드 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.mangoboard.net/",
+        "https://www.mangoboard.net/AIDesigner/Cardnews"
+      ]
+    },
+    {
+      "slug": "miricanvas",
+      "name": "MiriCanvas",
+      "name_ko": "미리캔버스",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://www.miricanvas.com/",
+      "summary_ko": "미리디의 템플릿 디자인 툴. AI 기능으로 SNS·광고 디자인 제작(Canva 와 같은 디자인 툴 경계 사례).",
+      "selection_basis": "국내 대표 템플릿 디자인 툴로 Canva(Magic Studio) 대응 제품. https://www.miricanvas.com/",
+      "sources": {
+        "googleplay": {
+          "key": "miricanvas:googleplay",
+          "status": "확인",
+          "id": "com.miridih.miricanvas",
+          "url": "https://play.google.com/store/apps/details?id=com.miridih.miricanvas",
+          "evidence": "Play 상세 페이지 직접 조회: 'MiriCanvas: Poster, PPT design', 개발사 '주식회사 미리디'"
+        },
+        "appstore": {
+          "key": "miricanvas:appstore",
+          "status": "확인",
+          "id": "6474231719",
+          "url": "https://apps.apple.com/kr/app/id6474231719",
+          "evidence": "iTunes Search API(kr) 'miricanvas': '미리캔버스: 디자인을 간편하게', 판매자 MIRI D.I.H"
+        },
+        "capterra": {
+          "key": "miricanvas:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "miricanvas:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "miricanvas:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/miricanvas 직접 조회 404"
+        },
+        "daum_search": {
+          "key": "miricanvas:daum_search",
+          "status": "검색어",
+          "query": "미리캔버스 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.miricanvas.com/",
+        "https://play.google.com/store/apps/details?id=com.miridih.miricanvas",
+        "https://apps.apple.com/kr/app/id6474231719"
+      ]
+    },
+    {
+      "slug": "carat",
+      "name": "Carat",
+      "name_ko": "캐럿",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://carat.im/",
+      "summary_ko": "패러닷의 대화형 AI 영상·이미지·음악 생성 플랫폼. 제품 사진으로 광고 영상 제작 용도로 소개(범용 생성 AI 경계 사례).",
+      "selection_basis": "국내 AI 광고 소재 생성 스타트업 목록에 '제품 사진 한 장으로 광고 영상' 서비스로 언급. https://carat.im/blog/product-photo-ai-video-creation",
+      "sources": {
+        "googleplay": {
+          "key": "carat:googleplay",
+          "status": "확인",
+          "id": "com.carat.camera",
+          "url": "https://play.google.com/store/apps/details?id=com.carat.camera",
+          "evidence": "Play 상세 페이지 직접 조회: 'Carat: Create Anything', 개발사 'Paradot'"
+        },
+        "appstore": {
+          "key": "carat:appstore",
+          "status": "확인",
+          "id": "1600191019",
+          "url": "https://apps.apple.com/kr/app/id1600191019",
+          "evidence": "iTunes lookup: '캐럿 - AI와 무엇이든 만드세요', 판매자 Paradot Corp., bundleId com.carat.camera"
+        },
+        "capterra": {
+          "key": "carat:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "carat:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "carat:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/carat, /carat-ai 직접 조회 404"
+        },
+        "daum_search": {
+          "key": "carat:daum_search",
+          "status": "검색어",
+          "query": "캐럿 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://carat.im/",
+        "https://carat.im/docs/ko/getting-started/carat-ai",
+        "https://play.google.com/store/apps/details?id=com.carat.camera",
+        "https://apps.apple.com/kr/app/id1600191019"
+      ]
+    },
+    {
+      "slug": "designstaff",
+      "name": "DesignStaff",
+      "name_ko": "디자인스태프",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "확인 불가",
+      "summary_ko": "데라블의 커머스·마케팅 콘텐츠 일괄 생성 AI 서비스.",
+      "selection_basis": "국내 AI 광고 소재 생성 스타트업 목록에 언급, 넥스트유니콘 기업정보. https://www.nextunicorn.kr/company/f4fa2b348977bb0a?tab=team",
+      "sources": {
+        "googleplay": {
+          "key": "designstaff:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 curl 'designstaff' 결과에 해당 앱 없음"
+        },
+        "appstore": {
+          "key": "designstaff:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) '디자인스태프' 결과 무관"
+        },
+        "capterra": {
+          "key": "designstaff:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "designstaff:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "designstaff:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/designstaff, /design-staff 직접 조회 404"
+        },
+        "daum_search": {
+          "key": "designstaff:daum_search",
+          "status": "검색어",
+          "query": "디자인스태프 AI 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://www.nextunicorn.kr/company/f4fa2b348977bb0a?tab=team",
+        "https://www.nextunicorn.kr/finder/theme/generative-AI"
+      ]
+    },
+    {
+      "slug": "q2cut",
+      "name": "Q2Cut",
+      "name_ko": "큐투컷",
+      "name_ko_basis": "공식",
+      "region": "kr",
+      "official_url": "https://q2cut.com/",
+      "summary_ko": "틱톡·릴스·쇼츠에서 성과가 검증된 숏폼을 분석해 제작 전 효과를 예측하는 숏폼 광고 소재 분석 AI.",
+      "selection_basis": "숏폼 소재 분석 AI 시드투자 보도. https://www.unicornfactory.co.kr/article/2026012209510786676",
+      "sources": {
+        "googleplay": {
+          "key": "q2cut:googleplay",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "Play 검색 curl 'q2cut' 결과는 QCut 등 다른 앱"
+        },
+        "appstore": {
+          "key": "q2cut:appstore",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "iTunes Search API(kr) '큐투컷' 결과 무관 (영문 'q2cut'은 응답 오류)"
+        },
+        "capterra": {
+          "key": "q2cut:capterra",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "trustradius": {
+          "key": "q2cut:trustradius",
+          "status": "확인 불가",
+          "id": null,
+          "url": null,
+          "evidence": "세션 웹검색 한도 소진으로 검색 불가, 직접 접속 403"
+        },
+        "shopify_apps": {
+          "key": "q2cut:shopify_apps",
+          "status": "미발견",
+          "id": null,
+          "url": null,
+          "evidence": "apps.shopify.com/q2cut 직접 조회 404"
+        },
+        "daum_search": {
+          "key": "q2cut:daum_search",
+          "status": "검색어",
+          "query": "큐투컷 후기"
+        }
+      },
+      "evidence_urls": [
+        "https://q2cut.com/",
+        "https://www.unicornfactory.co.kr/article/2026012209510786676"
+      ]
+    }
+  ]
+}

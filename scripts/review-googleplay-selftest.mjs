@@ -168,10 +168,31 @@ const run = (h) => runCollection(googleplayAdapter, { dryRun: false, targetLimit
   t('403: 적재 0', r.stats.newReviews, 0)
 }
 {
+  // 2026-10-05 v19 B: 빈 응답은 "파싱 실패 후 그 타깃만 끝"이 아니라 **차단 → 실행 즉시 중단·실패 기록**이다(abortOnChallenge).
+  // 예전 기대(parseFailures 1)보다 강하다 — 차단은 review-collect.mjs 가 실패로 세고, 같은 소스의 다른 타깃도 멈춘다.
   const h = harness({ byToken: { first: '' } })
   const r = await run(h)
-  t('빈 응답: 파싱 실패 1로 남는다(0건 정상 아님)', r.stats.parseFailures, 1)
+  t('빈 응답: 차단으로 센다(0건 정상 아님)', r.stats.blockedResponses, 1)
   t('빈 응답: 더 요청하지 않는다', h.log.inits.length, 1)
+  t('빈 응답: 적재 0', r.stats.newReviews, 0)
+}
+{
+  const h = harness({ byToken: { first: '<html><div class="g-recaptcha"></div>Our systems have detected unusual traffic</html>' } })
+  const r = await run(h)
+  t('캡차: 차단으로 센다', r.stats.blockedResponses, 1)
+  t('캡차: 더 요청하지 않는다', h.log.inits.length, 1)
+}
+t('어댑터: abortOnChallenge 선언', googleplayAdapter.abortOnChallenge, true)
+t('어댑터: robots 우회 표식 없음', googleplayAdapter.proceedWhenRobotsUnverified, undefined)
+{
+  // 등록 대조 — 마이그 000005 의 key·ADAPTERS 맵 키·정책 값(우회 없음 · short_only · forbids_automation)
+  const fsm = await import('node:fs/promises')
+  const sql = await fsm.readFile(new URL('../supabase/migrations/20261005000005_review_sources_googleplay.sql', import.meta.url), 'utf8')
+  const collect = await fsm.readFile(new URL('./review-collect.mjs', import.meta.url), 'utf8')
+  t('등록(000005): ADAPTERS 에 googleplay', /^\s*googleplay: googleplayAdapter,/m.test(collect), true)
+  t('등록(000005): key googleplay', sql.includes("'googleplay'"), true)
+  t('등록(000005): short_only · forbids_automation · owner override', ["'short_only'", "'forbids_automation'", "'owner_2026-10-05'"].every((s) => sql.includes(s)), true)
+  t('등록(000005): ON CONFLICT DO NOTHING', /ON CONFLICT \(key\) DO NOTHING/.test(sql), true)
 }
 t('UA 는 우리 것(위장 없음)', USER_AGENT.startsWith('solutionarchive-review-collector/'), true)
 

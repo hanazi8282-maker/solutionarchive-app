@@ -1,11 +1,11 @@
 // Google Play 리뷰 어댑터 — 나라(gl)·언어(hl)별, 별점·언어·원문 주소까지.
 //
-// ⛔ 출하만 하고 돌리지 않는다. review_sources 에 'googleplay' 행이 **없다**(등록 마이그 안 만듦).
-//    행이 없으면 러너 loadSource 가 null → 타깃을 못 만들고 한 건도 안 돈다. 그게 지금의 안전장치다.
-//    이유: Google Play 이용약관 3.3조가 "자동화된 수단으로 접근 금지 + robots.txt 준수"를 원문으로 적는다
-//    (docs/strategy-principles.md SP-020, A등급 — 약관 원문 직접 확인). §7.1 로 보면 약관은 "확인 불가"가 아니라
-//    **음성(금지)** 이다. 등록은 §10.2 예외 4(새 법적 리스크) — 사람 판단 큐(ops/state/source-review-queue.md)로 간다.
-//    등록한다면 tos_status='prohibited' 라 quote_allowed=false 가 DB CHECK 로 강제된다(20261005000001).
+// ⚠️ 약관 금지를 알고 소유자가 연 소스다(남헌 v19 B, 2026-10-05). Google Play 이용약관 3.3조가 "자동화된 수단으로
+//    접근 금지 + robots.txt 준수"를 원문으로 적는다(docs/strategy-principles.md SP-020, A등급). 등록은 마이그
+//    20261005000005(tos_status='forbids_automation' · override='owner_2026-10-05' · quote_policy='short_only') —
+//    **파일만 있고 오케스트레이터가 실측 1회 뒤 적용한다.** 행이 없으면 러너 loadSource 가 null → 한 건도 안 돈다.
+//    robots 는 소유자 예외 대상이 아니다(robots_status 를 'disallowed' 로 기록하지 않았다) — 러너가 매 실행 판정한다.
+//    고객 화면 인용은 short_only(한 문장·140자·출처 비표시, lib/analysis/evidence-quotes.ts).
 //
 // 경로: `POST https://play.google.com/_/PlayStoreUi/data/batchexecute?hl=<hl>&gl=<gl>` (rpcid UsvDTd, 최신순).
 //   상세 페이지(`/store/apps/details`)의 AF_initDataCallback 블롭에도 리뷰가 있지만(2026-09-02 실측,
@@ -102,6 +102,9 @@ export const googleplayAdapter: ReviewSourceAdapter = {
    * 실측하지 않았다 — 켜기 전 실측 항목에 넣는다.
    */
   productScopedExternalId: false,
+
+  /** 약관이 자동 접근을 금지하는 소스 — 2xx 빈 응답·캡차·`/sorry/` 도 차단으로 보고 즉시 멈춘다(우회 없음, 러너 isStrictBlock). */
+  abortOnChallenge: true,
 
   nextRequest(target: TargetState): ReviewRequest | null {
     const ref = parseProductRef(target.productRef)

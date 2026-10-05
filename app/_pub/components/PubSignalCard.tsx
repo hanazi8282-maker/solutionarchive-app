@@ -7,7 +7,7 @@ import { Chip } from './Chip'
 const KST = new Intl.DateTimeFormat('sv-SE', {
   timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
 })
-/** 발췌가 빈 이유 — 본문이 없어서가 아니라 출처 정책(quote_allowed)이라서다. 둘을 같은 글자로 쓰지 않는다. */
+/** 발췌가 빈 이유 — 본문이 없어서가 아니라 출처 인용 정책(review_sources.quote_policy none·모름)이라서다. 둘을 같은 글자로 쓰지 않는다. */
 export const NO_QUOTE = '(원문 인용 비공개 — 출처 정책상 직접 인용하지 않는다)'
 export const judgedOn =(at: string) => `판정 ${KST.format(new Date(at))}`
 

@@ -219,6 +219,7 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 - **읽지 못한 규칙을 허용으로 해석하지 마라.** robots.txt 를 못 받았으면
   "허용"이 아니라 "판단 불가"이고, 그때는 가지 않는다.
   - 예외: 토큰 인증 공식 API 호스트 `api.producthunt.com`(Product Hunt)은 robots 확인 불가(403)여도 진행한다 — 어댑터 `proceedWhenRobotsUnverified` 등재, 5xx·타임아웃은 여전히 멈춤 (남헌 2026-09-29).
+  - 2026-10-05 남헌 명시 예외: 앱스토어 RSS·구글 플레이(robots/약관 금지 알고 결정) — `review_sources.override='owner_2026-10-05'` 행만, robots **금지**만 통과(확인 불가는 그대로 멈춤), 우회 수단 없음, 403·429·빈 응답·캡차 즉시 중단(`lib/review/runner.ts` OWNER_ROBOTS_OVERRIDE).
 
 ### 7.2 안전장치가 걸린 것을 정상으로 읽지 마라
 

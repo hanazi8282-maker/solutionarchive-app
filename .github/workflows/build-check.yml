@@ -264,6 +264,8 @@ jobs:
       # 리뷰 소스 파서 13종 — 구조 소실을 0건과 가르는 검사(§7.1)가 각 파일에 있다.
       - run: node scripts/review-82cook-selftest.mjs
       - run: node scripts/review-appstore-selftest.mjs
+      # googleplay(약관 금지를 알고 연 소스, 2026-10-05): 빈 응답·캡차·403·429 즉시 중단, robots 우회 표식 없음, 등록 마이그 대조.
+      - run: node scripts/review-googleplay-selftest.mjs
       - run: node scripts/review-bobaedream-selftest.mjs
       - run: node scripts/review-brunch-selftest.mjs
       - run: node scripts/review-clien-selftest.mjs

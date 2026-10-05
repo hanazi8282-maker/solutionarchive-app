@@ -250,6 +250,12 @@ export interface ReviewSourceAdapter {
   proceedWhenRobotsUnverified?: string[]
 
   /**
+   * true 면 러너가 2xx 빈 응답·캡차 화면·구글 `/sorry/` 리다이렉트도 **차단**으로 보고 실행을 끊는다(runner.ts isStrictBlock).
+   * 약관이 자동 접근을 금지하는 소스(googleplay, 남헌 2026-10-05)용 — 우회하지 않고 즉시 멈추는 것이 조건이다.
+   */
+  abortOnChallenge?: boolean
+
+  /**
    * 이 소스가 돌기 위해 반드시 있어야 하는 환경변수 이름들(공식 API 키 등).
    *
    * 실행기(scripts/review-collect.mjs)가 **러너를 부르기 전에** 검사하고, 없으면 그 소스만

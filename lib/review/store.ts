@@ -13,6 +13,7 @@
 import type { createClient } from '../supabase/server.ts'
 import { CROSS_TARGET_MIN_TEXT_LEN } from './fingerprint.ts'
 import type { RunnerStore, SourceConfig, TargetProgress } from './runner.ts'
+import { OWNER_ROBOTS_OVERRIDE } from './runner.ts'
 import type { Fingerprint, TargetState } from './types.ts'
 
 type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
@@ -55,7 +56,8 @@ export function createReviewStore(supabase: Supa): RunnerStore {
     async loadSource(key: string): Promise<SourceConfig | null> {
       const { data, error } = await supabase
         .from('review_sources')
-        .select('key, enabled, min_interval_ms, daily_request_cap')
+        // override·robots_status 는 소유자 robots 예외 판정용(마이그 20261005000001). 못 읽으면 던진다 — 예외를 모르는 채로 돌지 않는다(§7.1).
+        .select('key, enabled, min_interval_ms, daily_request_cap, override, robots_status')
         .eq('key', key)
         .maybeSingle()
 
@@ -86,6 +88,7 @@ export function createReviewStore(supabase: Supa): RunnerStore {
         minIntervalMs: data.min_interval_ms,
         dailyRequestCap: data.daily_request_cap,
         requestsToday,
+        robotsOwnerOverride: data.override === OWNER_ROBOTS_OVERRIDE && data.robots_status === 'disallowed',
       }
     },
 

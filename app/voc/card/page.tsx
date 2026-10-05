@@ -23,7 +23,7 @@ import { IconArrowRight } from '../../_pub/icons'
  *
  * 2026-10-01 재설계(남헌): **판정 사유 전문 → 발췌 → 라벨 → 유사 사례 → 출처.**
  *   원문 전체는 싣지도 새로 저장하지도 않는다(스크래핑 콘텐츠 재게시 회피).
- *   2026-10-05 D안: 발췌는 quote_allowed=true 소스만 한 문장, 출처 이름·링크는 모든 소스 비표시(lib/signals/feed.ts quoteOf).
+ *   2026-10-05 D안·v19: 발췌는 quote_policy full·short_only 소스만 한 문장, 출처 이름·링크는 모든 소스 비표시(lib/signals/feed.ts quoteOf).
  *   유사 사례 = 판정 사유를 `/cases/report` 와 같은 낱말 매칭(searchMoves, LLM 0)에 넣은 승인 SaaS 무브.
  *   리뷰를 케이스에 잇는 키는 여전히 없다 — 그래서 "같은 문제"가 아니라 "낱말이 겹친 사례"로 말하고, 익명 상한(REPORT_TIER.anon)만큼만 싣는다.
  *

@@ -66,6 +66,27 @@ export interface SourceConfig {
   minIntervalMs: number
   dailyRequestCap: number
   requestsToday: number
+  /**
+   * 소유자 robots 예외(남헌 2026-10-05, CLAUDE.md §7.1). review_sources.override === OWNER_ROBOTS_OVERRIDE **이고**
+   * robots_status === 'disallowed' 일 때만 true — store 가 DB 에서 읽는다. 못 읽으면 loadSource 가 던진다(막힌다).
+   * true 여도 robots **disallowed** 판정만 통과한다. 확인 불가(unverified)·5xx 는 그대로 막힌다.
+   */
+  robotsOwnerOverride?: boolean
+}
+
+/** 소유자 robots 예외를 여는 유일한 override 값. 다른 값(오타·다른 날짜)은 예외가 아니다. */
+export const OWNER_ROBOTS_OVERRIDE = 'owner_2026-10-05'
+
+/** 사람 확인(캡차) 화면 표지. 엄격 모드(소유자 예외 요청·`abortOnChallenge` 어댑터)에서만 본다 — 다른 소스 본문 오탐 방지. */
+const CHALLENGE_RE = /recaptcha|g-recaptcha|unusual traffic|captcha/i
+
+/**
+ * 엄격 모드 응답 검사: 2xx 인데 빈 본문·캡차 화면·구글 `/sorry/` 리다이렉트면 true(= 차단으로 보고 실행 중단).
+ * 우회하지 않는다 — 멈추고 기록할 뿐이다.
+ */
+export function isStrictBlock(res: FetchOutcome): boolean {
+  if (res.status === null || res.status < 200 || res.status >= 300) return false
+  return !res.body.trim() || CHALLENGE_RE.test(res.body) || /\/sorry\//.test(res.finalUrl ?? '')
 }
 
 export interface TargetProgress {
@@ -160,6 +181,8 @@ export interface RunResult {
   robotsBypassed: number
   /** 표식으로 통과한 호스트 → 못 읽은 이유(예: "HTTP 403"). */
   robotsBypassedHosts: Record<string, string>
+  /** robots 가 **금지**인데 소유자 예외(OWNER_ROBOTS_OVERRIDE)로만 보낸 요청 수. 0 이 아니면 요약·경고에 남긴다. */
+  robotsOwnerOverride?: number
   perTarget: Array<{ targetId: string; productRef: string; outcome: string }>
   /** 삭제·없는 글이라 건너뛴 수(ParseResult.missing). 파싱 성공·실패 어느 쪽에도 안 센다. 요청 수에는 들어 있다. */
   missingSkipped: number
@@ -401,6 +424,7 @@ export async function runCollection(
   let pagesFetched = 0
   let robotsSkips = 0
   let robotsBypassed = 0
+  let robotsOwnerOverride = 0
   const robotsBypassedHosts: Record<string, string> = {}
   let targetsVisited = 0
   let missingSkipped = 0
@@ -509,7 +533,13 @@ export async function runCollection(
         break
       }
 
-      const verdict = await robots.decide(req.url)
+      const decided = await robots.decide(req.url)
+      // 소유자 예외: robots 가 **금지**라고 읽힌 경우만, DB 가 예외를 확인해 준 소스만(SourceConfig.robotsOwnerOverride).
+      // 확인 불가(unverified)는 여기서 열리지 않는다 — 금지인 줄 알고 연 것과 못 읽은 것은 다른 사건이다(§7.1).
+      const ownerOverride = decided.state === 'disallowed' && source.robotsOwnerOverride === true
+      const verdict = ownerOverride
+        ? { ...decided, state: 'allowed' as const, reason: `robots 금지(${decided.reason}) — 소유자 예외 ${OWNER_ROBOTS_OVERRIDE} 로 진행` }
+        : decided
       if (verdict.state !== 'allowed') {
         // ⛔ 요청 자체를 보내지 않는다. "차단됐다"가 아니라 "규칙상 안 간다"다.
         //
@@ -531,9 +561,13 @@ export async function runCollection(
         robotsBypassed++
         robotsBypassedHosts[new URL(req.url).hostname] = verdict.unreadCause ?? '이유 미상'
       }
+      if (ownerOverride) robotsOwnerOverride++
       await pacer.wait(verdict.crawlDelayMs)
       const res = await ports.fetchText(req.url, req.init)
       requests++
+
+      // 엄격 모드(소유자 예외 요청 · abortOnChallenge 어댑터): 2xx 빈 응답·캡차도 차단으로 보고 실행을 끊는다.
+      const strictBlock = (ownerOverride || adapter.abortOnChallenge === true) && isStrictBlock(res)
 
       // 403/429 는 두 사건이 겹쳐 있다 — 차단과 쿼터 소진.
       //
@@ -542,14 +576,15 @@ export async function runCollection(
       // 표지를 못 읽으면 차단으로 본다(안전한 쪽). 근거는 health.ts.
       // AWS WAF 사람 확인 화면(202·405)도 차단이다 — 파서로 넘기면 "파싱 실패 → 구조 변경"으로 잘못 보고된다(health.ts isWafChallenge).
       const waf = res.status !== null && isWafChallenge(res.status, res.body)
-      if (res.status === 403 || res.status === 429 || waf) {
-        const kind = waf ? 'blocked' : classifyBlockedResponse(res.body, adapter.quotaMarkers)
+      if (res.status === 403 || res.status === 429 || waf || strictBlock) {
+        const kind = waf || strictBlock ? 'blocked' : classifyBlockedResponse(res.body, adapter.quotaMarkers)
         if (kind === 'quota') {
           stats.quotaExhaustedResponses++
           outcome = `쿼터 소진 ${res.status} — 오늘 몫을 다 썼다. 소스는 유지한다`
         } else {
           stats.blockedResponses++
-          outcome = `차단 응답 ${res.status}${waf ? ' (AWS WAF 사람 확인 화면 — 우회하지 않는다)' : ''} — 실행을 중단한다`
+          const why = waf ? ' (AWS WAF 사람 확인 화면 — 우회하지 않는다)' : strictBlock ? ' (빈 응답·캡차 — 우회하지 않는다)' : ''
+          outcome = `차단 응답 ${res.status}${why} — 실행을 중단한다`
         }
         // 어느 쪽이든 더 두드리지 않는다. 차단이면 영구 차단에 가까워지고,
         // 쿼터면 어차피 오늘은 더 못 받는다.
@@ -783,6 +818,7 @@ export async function runCollection(
     robotsSkips,
     robotsBypassed,
     robotsBypassedHosts,
+    robotsOwnerOverride,
     perTarget,
     missingSkipped,
   }

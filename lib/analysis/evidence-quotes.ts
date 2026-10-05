@@ -28,6 +28,11 @@ export interface EvidenceQuote {
    * 이 날 이전에 저장된 인용에는 없다 — 없으면 "허용 확인 불가"로 보고 고객 화면에 내지 않는다(publicQuotes).
    */
   source_key?: string
+  /**
+   * 원문을 줄여 쓴 문장(설계 v22 §3-3 b — 만드는 단계는 아직 없다, PR-Q4). 고객 화면은 인용을 못 낼 때 이걸
+   * 따옴표 없이 '요약' 표시로 낸다(publicLines). 원문이 아니므로 인용 모양으로 그리지 않는다.
+   */
+  summary?: string
 }
 
 export interface QuoteSource {
@@ -181,6 +186,67 @@ export function publicQuotes(
     const text = policyQuote(q.text, policy, sources)
     if (!text) continue
     out.push(policy === 'short_only' ? { text, source_type: q.source_type } : { ...q, text })
+  }
+  return out
+}
+
+/**
+ * 고객 화면 한 줄 — kind 로 그리는 법이 갈린다(호출부 렌더 규약).
+ *  - quote   : 따옴표로 감싸 낸다. checkQuote 를 통과한 원문 발췌만 이 kind 가 된다.
+ *  - summary : 따옴표·인용 블록을 쓰지 않고 '요약' 라벨을 붙인다(인용처럼 보이면 허위 표시).
+ * 출처 키·이름·링크·작성자는 싣지 않는다(D안 — 어느 정책이든). source_type('review' 등)은 출처명이 아니라 둔다.
+ * index = 원래 evidence_quotes 배열 위치(번역 evidence_quotes_ko 를 같은 인덱스로 짝짓는 데 쓴다).
+ */
+/** 가린 인용 자리에 두는 중립 문구 — 빈칸이 "버그"로 읽히지 않게. 결과·인사이트·요약 복사가 같은 글자를 쓴다. */
+export const QUOTE_PENDING_NOTE = '인용 정리 중 — 출처 확인을 마친 인용만 보여 준다.'
+/** 요약 줄 표시. 따옴표 없이 이 라벨을 붙인다(인용처럼 보이면 허위 표시). */
+export const SUMMARY_LABEL = '요약'
+
+export type PublicLine =
+  | { kind: 'quote'; text: string; source_type: string | null; index: number }
+  | { kind: 'summary'; text: string; index: number }
+
+/**
+ * 저장된 인용 → 고객 화면 줄 + 가린 건수. 4곳(결과·요약 복사·인사이트 근거·판정 인용)이 이 한 벌을 쓴다.
+ *  - 정책 확인됨(맵 있음 ∧ source_key 있음): checkQuote(정책·130/240·원문 전문 대조) 통과 → quote.
+ *  - 인용으로 못 냈고 요약이 있으면 → summary(글자 상한만). 단 정책 none 은 요약도 안 낸다(설계 Q3-2 A — none 은 근거로도 안 쓴다).
+ *  - 정책 미확인(맵 못 읽음 = policies null, 옛 인용 = source_key 없음): 인용 0건, 요약만(2026-10-06 지시 — §7.1 fail-closed).
+ *  - 나머지는 hidden 으로 센다 — 화면은 빈칸 대신 "정리 중" 문구를 낸다(빈 화면 ≠ 버그).
+ * sourcesOf(key) = 그 소스 키에서 나온 입력 원문들. null = 못 읽음 → 대조 불가라 인용 불가.
+ */
+export function publicLines(
+  quotes: readonly (EvidenceQuote | null | undefined)[] | null | undefined,
+  policies: ReadonlyMap<string, unknown> | null,
+  sourcesOf: (sourceKey: string) => Sources,
+): { lines: PublicLine[]; hidden: number } {
+  const lines: PublicLine[] = []
+  let hidden = 0
+  if (!Array.isArray(quotes)) return { lines, hidden }
+  quotes.forEach((q, index) => {
+    const key = typeof q?.source_key === 'string' && q.source_key ? q.source_key : null
+    const policy: QuotePolicy | null = policies && key ? quotePolicyOf(policies.get(key)) : null
+    if (policy && key) {
+      const c = checkQuote(q?.text, policy, sourcesOf(key))
+      if (c.ok) { lines.push({ kind: 'quote', text: c.text, source_type: q?.source_type ?? null, index }); return }
+    }
+    // 요약 상한 검사는 full·short_only 가 같다 — 미확인은 그 상한만 건다('full' 은 상한용 자리값일 뿐 허용 판정이 아니다).
+    const s = policy === 'none' ? null : checkSummary(q?.summary, policy ?? 'full')
+    if (s?.ok) lines.push({ kind: 'summary', text: s.text, index })
+    else hidden++
+  })
+  return { lines, hidden }
+}
+
+/** 원문 조회용 검색 조각 — 발췌 앞머리(첫 '…' 앞, QUOTE_PREFIX_CHARS 자 안팎)를 공백으로 나눈 낱말들. 원문 줄바꿈과 무관하게 찾게 한다. */
+export function quoteProbeTokens(text: unknown): string[] {
+  const head = typeof text === 'string' ? squash(text).split('…').map((p) => p.trim()).find(Boolean) ?? '' : ''
+  const out: string[] = []
+  let n = 0
+  for (const w of head.split(' ')) {
+    if (!w) continue
+    out.push(w)
+    n += Array.from(w).length
+    if (n >= QUOTE_PREFIX_CHARS) break
   }
   return out
 }

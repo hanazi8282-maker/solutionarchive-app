@@ -6,6 +6,7 @@
 
 import { buildSummaryMarkdown, topAspects, DRAFT_NOTICE } from '../lib/cases/summary.ts'
 import { buildRemedies } from '../lib/cases/remedy.ts'
+import { QUOTE_PENDING_NOTE } from '../lib/analysis/evidence-quotes.ts'
 
 let pass = 0, fail = 0
 const t = (name, got, want) => { if (Object.is(got, want)) pass++; else { fail++; console.log(`FAIL  ${name}\n      got=${JSON.stringify(got)} want=${JSON.stringify(want)}`) } }
@@ -41,7 +42,18 @@ t('선례 근거(제외 건수 포함)', md.includes('미승인 1'), true)
 t('사분면 처방', md.includes('선례 무브를 그대로 옮겨 붙이는 게 가장 싸다'), true)
 t('상위 소구점 3개만', (md.match(/^\d\. /gm) ?? []).length >= 3, true)
 t('판정 동사', md.includes('슈퍼 니즈'), true)
-t('인용 있으면 그대로', md.includes('"두피가 계속 가렵다"'), true)
+// v23 5-b: 요약본도 고객 화면과 같은 인용 게이트. 게이트 재료를 안 주면(정책 미확인) 인용 0건 + "정리 중".
+t('게이트 없으면 인용을 내지 않는다(정책 미확인)', md.includes('"두피가 계속 가렵다"'), false)
+t('게이트 없으면 "정리 중" 문구', md.includes(QUOTE_PENDING_NOTE), true)
+const gated = (pol, src = ['아침부터 두피가 계속 가렵다 정말로']) => buildSummaryMarkdown({
+  project, pmf, aspects: [{ ...aspects[0], evidence_quotes: [{ text: '두피가 계속 가렵다', source_type: 'review', source_key: 'danawa' }] }],
+  quotes: { policies: new Map([['danawa', pol]]), sourcesOf: (k) => (k === 'danawa' ? src : null) },
+})
+t('정책 full + 원문 일치 → 따옴표 인용', gated('full').includes('원문 인용: "두피가 계속 가렵다"'), true)
+t('정책 none → 인용 없음(정리 중)', gated('none').includes('"두피가 계속 가렵다"'), false)
+t('원문 불일치 → 인용 없음', gated('full', ['전혀 다른 리뷰']).includes('"두피가 계속 가렵다"'), false)
+const sumMd = buildSummaryMarkdown({ project, pmf, aspects: [{ ...aspects[0], evidence_quotes: [{ text: '옛 인용', source_type: 'review', summary: '두피 가려움이 오래 간다는 말' }] }] })
+t('요약은 따옴표 없이 "요약" 표시', sumMd.includes('요약(원문을 줄여 쓴 문장, 인용 아님): 두피 가려움이 오래 간다는 말') && !sumMd.includes('"두피 가려움'), true)
 t('인용 없으면 이유를 적는다', md.includes('인용 없음 — 재분석하면 채워진다'), true)
 t('사람 확인 여부', md.includes('사람 확인: 완료'), true)
 t('앵글 3', md.includes('가려움 잡는 3주'), true)

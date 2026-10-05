@@ -55,7 +55,8 @@ const pass1 = feed([A('a1'), A('n1', { substantiation_verdict: 'UNSUBSTANTIATED'
 t('숨긴 근거 없음 건수 = 판정 하나로만 걸린 것(1)', pass1.hiddenUnsubstantiated === 1)
 t('gate=all 에서 숨김 0', all.hiddenUnsubstantiated === 0)
 t('SUBSTANTIATED 만 인용 줄', pass1.groups[0].items[0].evidence === '원문 근거 문장')
-t('인용 140자 절단', Array.from(feed([A('q', { substantiation_evidence: '가'.repeat(400) })]).groups[0].items[0].evidence).length === 140)
+// v23 5-b: 판정 인용은 자르지 않는다 — 잘린 문장은 원문 발췌가 아니다. 상한·정책은 화면 앞 게이트(evidence.ts judged)가 건다.
+t('판정 인용은 자르지 않는다(원본 그대로, 게이트는 화면 앞에서)', Array.from(feed([A('q', { substantiation_evidence: '가'.repeat(400) })]).groups[0].items[0].evidence).length === 400)
 
 // ── 뮤테이션: 조건 하나를 어휘 전체로 넓히면(=끄면) 그 조건의 음성 검사가 실패해야 한다 ──
 const FULL = { verdicts: SUBSTANTIATION_VERDICTS, outputTypes: OUTPUT_TYPES, aspectQuadrants: QUADRANTS, projectStatuses: ['collecting', 'claimed', 'reviewed', 'angled', 'done'] }

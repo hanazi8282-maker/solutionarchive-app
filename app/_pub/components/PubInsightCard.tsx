@@ -5,6 +5,7 @@ import {
 import { excerptOf } from '@/lib/signals/feed'
 import { axisLabel, type InsightItem } from '@/lib/insights/feed'
 import type { InsightEvidence } from '@/lib/insights/evidence'
+import { QUOTE_PENDING_NOTE } from '@/lib/analysis/evidence-quotes'
 import { PubInsightEvidence } from './PubInsightEvidence'
 import { IconArrowRight, IconChevronRight } from '../icons'
 import { Chip } from './Chip'
@@ -27,6 +28,7 @@ export function PubInsightCard({ item, evidence }: {
     : item.verdict === 'EXPERIENTIAL'
       ? <Chip>{SUBSTANTIATION_VERDICT_LABELS.EXPERIENTIAL}</Chip>
       : <Chip tone="negative">근거 없음</Chip>
+  const judged = item.evidence ? evidence?.judged[item.id] : undefined
   const hasFold = Boolean(item.reason || (item.gate_rewritten && item.headline_original) || item.adaptation)
   return (
     <article className="pub-card">
@@ -39,7 +41,10 @@ export function PubInsightCard({ item, evidence }: {
           <Chip>{OUTPUT_TYPE_LABELS[item.output_type]}</Chip>
           {item.validated ? <Chip tone="solid">실전 채택</Chip> : null}
         </div>
-        {item.evidence ? <blockquote className="pub-insight-quote">{item.evidence}</blockquote> : null}
+        {/* 판정 인용은 item.evidence(원본)가 아니라 정책·원문 대조를 거친 judged 만 그린다(설계 v22 §3-2). 근거를 못 받았으면 줄 없음. */}
+        {judged?.state === 'ok'
+          ? <blockquote className="pub-insight-quote">{judged.text}</blockquote>
+          : judged?.state === 'hidden' ? <p className="pub-caption">{QUOTE_PENDING_NOTE}</p> : null}
         <div className="pub-card-meta pub-insight-meta">
           <span className="pub-card-brand">{excerptOf(item.project_pitch ?? '(설명 없음)', 40)}</span>
           {item.aspect_name || item.layer

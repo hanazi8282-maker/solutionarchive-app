@@ -18,6 +18,7 @@ import {
   MAX_PAGES_PER_TARGET,
   PRODUCT_TOKEN,
   isStrictBlock,
+  isOwnerRobotsOverride,
 } from '../lib/review/runner.ts'
 import { MAX_CONSECUTIVE_EMPTY, isWafChallenge } from '../lib/review/health.ts'
 import { computeFingerprint, normalizeText } from '../lib/review/fingerprint.ts'
@@ -228,7 +229,14 @@ const run = (h, over = {}) =>
   t('robots 금지면 요청을 보내지 않는다', r.requests, 0)
   ok('robots.txt 말고는 아무것도 안 받았다', h.log.fetched.every((u) => u.endsWith('/robots.txt')))
 }
-// 소유자 robots 예외(남헌 2026-10-05) — DB 가 확인해 준 소스의 **금지** 판정만 연다.
+// 소유자 robots 예외(남헌 2026-10-05 앱스토어 · 2026-10-06 구글 플레이) — DB 가 확인해 준 소스의 **금지** 판정만 연다.
+// override 허용 집합: 두 값만. 그 밖의 값·robots_status 가 disallowed 가 아닌 행은 막힌다.
+t('override: owner_2026-10-05 + disallowed 연다', isOwnerRobotsOverride('owner_2026-10-05', 'disallowed'), true)
+t('override: owner_2026-10-06 + disallowed 연다', isOwnerRobotsOverride('owner_2026-10-06', 'disallowed'), true)
+t('override: 다른 날짜는 막힌다', isOwnerRobotsOverride('owner_2026-10-07', 'disallowed'), false)
+t('override: 공백 섞이면 막힌다', isOwnerRobotsOverride('owner_2026-10-06 ', 'disallowed'), false)
+t('override: NULL 은 막힌다', isOwnerRobotsOverride(null, 'disallowed'), false)
+t('override: unverified 행은 막힌다', isOwnerRobotsOverride('owner_2026-10-06', 'unverified'), false)
 {
   const h = makeHarness({ robots: 'User-agent: *\nDisallow: /\n', sourceOver: { robotsOwnerOverride: true }, pages: { 1: page([], null) } })
   const r = await run(h)

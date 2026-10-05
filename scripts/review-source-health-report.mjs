@@ -118,7 +118,7 @@ export function buildBrokenEntry({ date, broken, hidden = [], history, now, runU
     done: `[${at}] 소스 건강 체크 — 고장 판정 ${broken.length}개(${broken.map((b) => b.key).join(', ') || '없음'})${hiddenNote}. 자동으로 끄지 않았다`,
     blocked: lines.join('\n'),
     next: `[${at}] ${keys} 를 끌지 CTO 세션이 판단 — 끄기 전까지 매 수집 실행에서 재시도된다(차단은 실행당 1회 403/429 뒤 중단, 파싱 고장은 드러난 페이지에서 중단)`,
-    needsHuman: false, // 고장 사실 — 끄기는 되돌릴 수 있는 세션 판단(v17). 남헌 지시 소스(danawa)를 끄려면 그때 따로 올린다
+    needsHuman: false, // 고장 사실 — 끄기는 되돌릴 수 있는 세션 판단(v17). 남헌 지시 소스(danawa)를 끄려면 §10.2 예외 6번(명시 지시 충돌)으로 따로 올린다
     note: `${MARKER} · nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'}`,
   }
 }

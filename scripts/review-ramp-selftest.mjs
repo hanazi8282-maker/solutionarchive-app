@@ -479,8 +479,8 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
     // 상한 200, 50% → 목표 100, 공급 부족 문턱 80.
     const db = memDb({ ramp: [pctRow()], sources: [{ key: 'fmkorea', enabled: true, min_interval_ms: 3000, daily_request_cap: 400 }], targets: [{ source_key: 'fmkorea', status: 'active' }] })
     const R = () => db.T.review_source_ramp[0]
-    await stepPctRamps(db, at('2026-10-06T06:00:00Z'), false)
-    t('첫 판정 = 시작(어제는 세지 않음)', [db.T.review_source_ramp_log.at(-1).event, R().last_evaluated_date, R().consecutive_ok_days, R().daily_request_target], ['start', '2026-10-05', 0, 100])
+    await stepPctRamps(db, at('2026-10-05T18:00:00Z'), false)
+    t('첫 판정 = 시작(시작일 오늘은 세지 않음)', [db.T.review_source_ramp_log.at(-1).event, R().last_evaluated_date, R().consecutive_ok_days, R().daily_request_target], ['start', '2026-10-05', 0, 100])
     db.T.review_collection_runs.push(run('2026-10-06'))
     await stepPctRamps(db, at('2026-10-07T06:00:00Z'), false)
     t('정상 1일 → 50% 유지·연속 1', [R().pct_step, R().consecutive_ok_days, R().supply_state], [50, 1, 'met'])

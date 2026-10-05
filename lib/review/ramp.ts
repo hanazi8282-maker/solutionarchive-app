@@ -306,7 +306,7 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
     let reason: string
     let supply: SupplyState | null = p.supplyState
     if (p.lastEvaluatedDate === null) {
-      // 첫 판정 = 시작. 어제는 램프 밖에서 돈 날이라 세지 않는다.
+      // 첫 판정 = 시작. 램프 밖에서 돈 날(시작일 포함)은 세지 않는다 — last_evaluated_date 를 오늘(UTC)로 써 오늘은 건너뛰고 내일부터 센다.
       next = { pctStep: p.pctStep, consecutiveOkDays: 0, rose: false }
       event = 'start'
       reason = `퍼센트 램프 시작 ${p.pctStep}% (상한 ${p.capBase})`
@@ -354,7 +354,7 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
       .update({
         pct_step: next.pctStep,
         consecutive_ok_days: next.consecutiveOkDays,
-        last_evaluated_date: yDate,
+        last_evaluated_date: event === 'start' ? isoDate(now) : yDate, // 시작일은 오늘(UTC): 오늘 일부는 램프 밖에서 돌았을 수 있어 세지 않는다(독립 검토 2026-10-06)
         daily_request_target: target,
         supply_state: supply,
         ...(next.rose ? { blocks_at_step: 0, changed_at: now.toISOString(), reason } : {}),

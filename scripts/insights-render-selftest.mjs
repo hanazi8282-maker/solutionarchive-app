@@ -90,7 +90,9 @@ const withData = { ...TABLES, analysis_angles: [
 const html = await render({}, withData)
 t('있음: 카드 2장(article)', count(html, /<article class="pub-card"/g) === 2)
 t('있음: 근거 없음·내부 메모 문구가 HTML 에 0', !html.includes('문구 u1') && !html.includes('문구 i1'))
-t('있음: blockquote 는 SUBSTANTIATED 1장에만', count(html, /<blockquote class="pub-insight-quote">/g) === 1 && html.includes('인용 a1') && !html.includes('인용 a2'))
+// v23 5-b: 판정 인용은 게이트(loadInsightEvidence → judged)를 거친 것만 그린다. 근거를 안 넘기면(여기) 줄 자체가 없다 — fail-closed.
+// 게이트를 거친 표시는 insights-evidence-selftest · quote-wiring-selftest 가 본다.
+t('있음: 근거 게이트 없이는 판정 인용을 그리지 않는다', count(html, /<blockquote class="pub-insight-quote">/g) === 0 && !html.includes('인용 a1') && !html.includes('인용 a2'))
 t('있음: 판정 칩 근거 있음(pos) · 체험 기반 · 순화됨(mix)', html.includes('pub-chip pub-chip--pos">근거 있음') && html.includes('>체험 기반<') && html.includes('pub-chip--mix'))
 t('있음: 실전 채택 칩은 a1 에만', count(html, /실전 채택</g) === 1)
 t('있음: 사분면 그룹 헤딩 = PMF 라벨 + 건수', html.includes('수요·선례 둘 다 있음') && /pub-libgroup-n">2건</.test(html))

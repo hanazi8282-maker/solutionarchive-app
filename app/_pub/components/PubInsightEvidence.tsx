@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import type { QuoteLine } from '@/lib/analysis/quote-display'
 import { failureLine, fixLine, gateCaption, principleLine, remedyStatusLine } from '@/lib/cases/remedy'
-import { QUOTES_OPEN, type InsightEvidence, type InsightQuotes, type InsightRemedy } from '@/lib/insights/evidence'
+import { QUOTE_PENDING_NOTE, SUMMARY_LABEL } from '@/lib/analysis/evidence-quotes'
+import { QUOTES_OPEN, type InsightEvidence, type InsightLine, type InsightQuotes, type InsightRemedy } from '@/lib/insights/evidence'
 import { IconChevronRight } from '../icons'
 import { Chip } from './Chip'
 
@@ -16,6 +17,8 @@ import { Chip } from './Chip'
  * 보완 사례 줄이 `/library/[slug]` 로 이어지는 것뿐이다.
  *
  * 인용은 검수 화면과 같은 규칙(lib/analysis/quote-display.ts): 한국어 번역이 기본, 원문은 네이티브 `<details>`.
+ * 단 고객 화면이라 소스 인용 정책·원문 대조(publicLines)를 통과한 줄만 온다. 요약 줄은 따옴표 없이 '요약' 칩,
+ * 가린 인용은 빈칸 대신 QUOTE_PENDING_NOTE 로 알린다(v23 5-b).
  */
 export function PubInsightEvidence({ evidence }: { evidence: InsightEvidence | undefined }) {
   if (!evidence) return null
@@ -24,6 +27,14 @@ export function PubInsightEvidence({ evidence }: { evidence: InsightEvidence | u
       <Quotes quotes={evidence.quotes} aspect={evidence.aspect_name} />
       <Remedy remedy={evidence.remedy} />
     </>
+  )
+}
+
+function LineItem({ l }: { l: InsightLine }) {
+  if (l.kind === 'quote') return <QuoteItem q={l} />
+  // 요약은 원문이 아니다 — 따옴표·인용 블록 없이 '요약' 칩을 붙인다.
+  return (
+    <p className="pub-text"><Chip>{SUMMARY_LABEL}</Chip> {l.text}<span className="pub-caption"> · 원문을 줄여 쓴 문장</span></p>
   )
 }
 
@@ -54,19 +65,19 @@ function Quotes({ quotes, aspect }: { quotes: InsightQuotes; aspect: string | nu
     : quotes.state === 'missing'
       ? <p className="pub-caption">인용을 아직 받지 못한 속성이다 — 재분석하면 채워진다.</p>
       : quotes.lines.length === 0
-        ? <p className="pub-caption">추출이 인용을 남기지 않았다.</p>
+        ? <p className="pub-caption">{quotes.hidden > 0 ? QUOTE_PENDING_NOTE : '추출이 인용을 남기지 않았다.'}</p>
         : (
           <>
-            {quotes.lines.slice(0, QUOTES_OPEN).map((q, i) => <QuoteItem key={i} q={q} />)}
+            {quotes.lines.slice(0, QUOTES_OPEN).map((l, i) => <LineItem key={i} l={l} />)}
             {quotes.lines.length > QUOTES_OPEN && (
               <details className="pub-fold pub-fold--inline">
-                <summary><IconChevronRight />인용 {quotes.lines.length - QUOTES_OPEN}건 더</summary>
+                <summary><IconChevronRight />{quotes.lines.length - QUOTES_OPEN}건 더</summary>
                 <div className="pub-fold-body">
-                  {quotes.lines.slice(QUOTES_OPEN).map((q, i) => <QuoteItem key={i} q={q} />)}
+                  {quotes.lines.slice(QUOTES_OPEN).map((l, i) => <LineItem key={i} l={l} />)}
                 </div>
               </details>
             )}
-            <p className="pub-caption">속성 ‘{aspect}’ 의 리뷰 원문 인용 {quotes.lines.length}건 (analysis_aspects.evidence_quotes)</p>
+            <p className="pub-caption">{countCaption(aspect, quotes.lines, quotes.hidden)}</p>
           </>
         )
   return (
@@ -75,6 +86,17 @@ function Quotes({ quotes, aspect }: { quotes: InsightQuotes; aspect: string | nu
       {body}
     </section>
   )
+}
+
+/** "속성 ‘x’ 의 리뷰 원문 인용 2건 · 요약 1건 · 1건은 인용 정리 중" — 없는 조각은 뺀다. */
+function countCaption(aspect: string | null, lines: InsightLine[], hidden: number): string {
+  const q = lines.filter((l) => l.kind === 'quote').length
+  const s = lines.length - q
+  return [
+    `속성 ‘${aspect}’ 의 리뷰 원문 인용 ${q}건`,
+    s > 0 ? `${SUMMARY_LABEL} ${s}건` : null,
+    hidden > 0 ? `${hidden}건은 인용 정리 중` : null,
+  ].filter(Boolean).join(' · ')
 }
 
 // 클래스 이름을 문자열로 조립하지 않는다 — pub.css 에 있는지 셀 수 있게 전체 이름으로 둔다.

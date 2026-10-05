@@ -28,7 +28,9 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { VERDICT_LABEL, aspectVerdict } from '../analysis/aspect-verdict.ts'
-import { quoteLines, type QuoteLine, type QuoteRow } from '../analysis/quote-display.ts'
+import { quoteLines, type QuoteLine } from '../analysis/quote-display.ts'
+import { isVerbatimExcerpt, publicLines, type EvidenceQuote, type PublicLine } from '../analysis/evidence-quotes.ts'
+import { loadQuotePolicies, loadQuoteSources, sourceGroupKey } from '../analysis/quote-policy-db.ts'
 import { REMEDY_VERDICTS, buildRemedies, type RemedyProject } from '../cases/remedy.ts'
 import { applyGate, type GatedRemedyCard, type VerdictRow } from '../cases/remedy-gate.ts'
 import { loadCorpora, loadVerdicts, type RemedyCorpora } from '../cases/remedy-db.ts'
@@ -46,14 +48,18 @@ export interface EvidenceAspectRow {
   notes?: string | null
   importance: number | string | null
   satisfaction: number | string | null
-  evidence_quotes?: QuoteRow[] | null
+  evidence_quotes?: EvidenceQuote[] | null
   /** 마이그 000047. undefined = 칸 없음(미적용) · null = 번역 전. */
   evidence_quotes_ko?: unknown
 }
 export interface EvidenceProjectRow extends RemedyProject { id: string }
 
+/** 고객 화면 한 줄. quote = 원문 발췌(번역 짝 포함, 따옴표로 그린다) · summary = 줄여 쓴 문장(따옴표 없이 '요약'). */
+export type InsightLine = ({ kind: 'quote' } & QuoteLine) | { kind: 'summary'; text: string }
+
 export type InsightQuotes =
-  | { state: 'ok'; lines: QuoteLine[] }
+  /** hidden = 정책·원문 대조를 못 통과해 가린 건수(출처 확인 전 옛 인용 포함). 화면은 "정리 중" 으로 알린다. */
+  | { state: 'ok'; lines: InsightLine[]; hidden: number }
   /** evidence_quotes NULL — 추출이 인용을 남기기 전 행. 재분석하면 채워진다. */
   | { state: 'missing' }
   | { state: 'unknown'; reason: string }
@@ -63,12 +69,45 @@ export type InsightRemedy =
   | { state: 'not_run'; reason: string; verdictLabel: string }
   | { state: 'unknown'; reason: string }
 
-export interface InsightEvidence { aspect_name: string | null; quotes: InsightQuotes; remedy: InsightRemedy }
+/**
+ * 카드 판정 인용(analysis_angles.substantiation_evidence, judge 가 뽑은 원문 문장) — 리뷰 인용과 같은 규칙을 거친 결과.
+ * 앵글 id 별. 키가 없으면 그 카드엔 판정 인용이 없다(SUBSTANTIATED 아님). hidden = 가렸다 → 화면은 "정리 중".
+ */
+export type JudgedQuote = { state: 'ok'; text: string } | { state: 'hidden' }
+
+export interface InsightEvidence {
+  aspect_name: string | null
+  quotes: InsightQuotes
+  remedy: InsightRemedy
+  judged: Record<string, JudgedQuote>
+}
+
+/** 정책 맵(null = 못 읽음)·원문 후보(null = 못 읽음). 둘 중 하나라도 null 이면 인용 0건(요약만). */
+export interface QuoteGate { policies: ReadonlyMap<string, unknown> | null; sources: ReadonlyMap<string, string[]> | null }
+const CLOSED: QuoteGate = { policies: null, sources: null }
+type AngleEvidence = { id: string; aspect_id: string; evidence: string | null }
+
+/** 판정 인용과 겹치는(한쪽이 다른 쪽의 발췌인) 속성 인용 — 판정 인용의 출처를 이걸로 정한다. 없으면 출처 모름. */
+function judgedSource(text: string, quotes: readonly EvidenceQuote[] | null | undefined): EvidenceQuote | undefined {
+  return (quotes ?? []).find((q) => typeof q?.source_key === 'string' && typeof q.text === 'string'
+    && (isVerbatimExcerpt(text, q.text) || isVerbatimExcerpt(q.text, text)))
+}
+
+/** 판정 인용 → 출처 소스 정책·원문 대조(설계 §3-2, Q3-3 A — 리뷰 인용과 같은 규칙). 출처를 모르면 가린다. */
+export function judgedQuoteOf(text: string, quotes: readonly EvidenceQuote[] | null | undefined, projectId: string | null, g: QuoteGate): JudgedQuote {
+  const hit = judgedSource(text, quotes)
+  if (!hit || !projectId) return { state: 'hidden' }
+  const line = publicLines([{ text, source_type: hit.source_type, source_key: hit.source_key }], g.policies,
+    (k) => g.sources?.get(sourceGroupKey(projectId, k)) ?? null).lines[0]
+  return line?.kind === 'quote' ? { state: 'ok', text: line.text } : { state: 'hidden' }
+}
 
 /** 순수: 조회 결과 → aspect_id 별 인용·처방. null 인 입력 = 그 조회 실패(0행과 다르다). */
 export function buildInsightEvidence(
   aspectIds: readonly string[],
   c: { aspects: EvidenceAspectRow[] | null; projects: EvidenceProjectRow[] | null; corpora: RemedyCorpora; verdicts: VerdictRow[] | null },
+  gate: QuoteGate = CLOSED,
+  angles: readonly AngleEvidence[] = [],
 ): Map<string, InsightEvidence> {
   const out = new Map<string, InsightEvidence>()
   const aspectById = new Map((c.aspects ?? []).map((a) => [a.id, a]))
@@ -77,15 +116,30 @@ export function buildInsightEvidence(
     const a = aspectById.get(id)
     if (!a) {
       const reason = c.aspects === null ? '속성 조회 실패' : '속성 행을 찾지 못했다'
-      out.set(id, { aspect_name: null, quotes: { state: 'unknown', reason }, remedy: { state: 'unknown', reason } })
+      // 속성을 못 읽었으면 판정 인용의 출처도 못 정한다 — 가린다.
+      const judged = Object.fromEntries(angles.filter((g) => g.aspect_id === id && g.evidence).map((g) => [g.id, { state: 'hidden' } as const]))
+      out.set(id, { aspect_name: null, quotes: { state: 'unknown', reason }, remedy: { state: 'unknown', reason }, judged })
       continue
     }
     const quotes: InsightQuotes = Array.isArray(a.evidence_quotes)
-      ? { state: 'ok', lines: quoteLines(a.evidence_quotes, a.evidence_quotes_ko) }
+      ? { state: 'ok', ...insightLines(a, gate) }
       : { state: 'missing' }
-    out.set(id, { aspect_name: a.name, quotes, remedy: remedyOf(a, c) })
+    const judged: Record<string, JudgedQuote> = {}
+    for (const g of angles) if (g.aspect_id === id && g.evidence) judged[g.id] = judgedQuoteOf(g.evidence, a.evidence_quotes, a.project_id, gate)
+    out.set(id, { aspect_name: a.name, quotes, remedy: remedyOf(a, c), judged })
   }
   return out
+}
+
+/** 정책·원문 대조를 통과한 줄만. 번역(evidence_quotes_ko)은 원래 인덱스로 짝지어 통과한 인용에만 붙인다(설계 §3-3). */
+function insightLines(a: EvidenceAspectRow, g: QuoteGate): { lines: InsightLine[]; hidden: number } {
+  const pid = a.project_id
+  const pub = publicLines(a.evidence_quotes, g.policies, (k) => (pid ? g.sources?.get(sourceGroupKey(pid, k)) ?? null : null))
+  const ko = quoteLines(a.evidence_quotes, a.evidence_quotes_ko)
+  const lines = pub.lines.map((l: PublicLine): InsightLine => l.kind === 'summary'
+    ? { kind: 'summary', text: l.text }
+    : { kind: 'quote', text: l.text, source_type: l.source_type, ko: ko[l.index]?.ko ?? null, untranslated: ko[l.index]?.untranslated ?? true })
+  return { lines, hidden: pub.hidden }
 }
 
 function remedyOf(
@@ -143,20 +197,37 @@ async function loadProjects(sb: SupabaseClient, ids: string[], where: string): P
   return r.data ?? []
 }
 
-/** 한 페이지 카드들의 인용·처방. 조회 횟수는 카드 수와 무관하다(헤더). */
+/**
+ * 한 페이지 카드들의 인용·처방. 조회 횟수는 카드 수와 무관하다(헤더) — 인용 게이트가 더하는 것은 정책 1 + 원문 후보
+ * ⌈인용 수/20⌉(병렬, 상한 = 카드 50 × 4)다. items 에 id·evidence(판정 인용)를 주면 그것도 같은 규칙으로 거른다.
+ */
 export async function loadInsightEvidence(
   sb: SupabaseClient,
-  items: readonly { aspect_id: string; project_id: string }[],
+  items: readonly { aspect_id: string; project_id: string; id?: string; evidence?: string | null }[],
 ): Promise<Map<string, InsightEvidence>> {
   const where = 'insights/evidence'
   const aspectIds = [...new Set(items.map((i) => i.aspect_id))]
   if (aspectIds.length === 0) return new Map()
   const projectIds = [...new Set(items.map((i) => i.project_id))]
-  const [aspects, projects, corpora, verdicts] = await Promise.all([
+  const [aspects, projects, corpora, verdicts, policies] = await Promise.all([
     loadAspects(sb, aspectIds, where),
     loadProjects(sb, projectIds, where),
     loadCorpora(sb, where),
     loadVerdicts(sb, where, aspectIds),
+    loadQuotePolicies(sb, where),
   ])
-  return buildInsightEvidence(aspectIds, { aspects, projects, corpora, verdicts })
+  const angles: AngleEvidence[] = items.flatMap((i) => (i.id ? [{ id: i.id, aspect_id: i.aspect_id, evidence: i.evidence ?? null }] : []))
+  // 원문 후보 검색 — 속성 인용 + 판정 인용(출처는 겹치는 속성 인용의 소스 키).
+  const probe = (aspects ?? []).flatMap((a) => (a.project_id ? [{
+    project_id: a.project_id,
+    quotes: [
+      ...(a.evidence_quotes ?? []),
+      ...angles.flatMap((g) => {
+        const hit = g.aspect_id === a.id && g.evidence ? judgedSource(g.evidence, a.evidence_quotes) : undefined
+        return hit ? [{ text: g.evidence, source_key: hit.source_key }] : []
+      }),
+    ],
+  }] : []))
+  const sources = await loadQuoteSources(sb, probe, policies, where)
+  return buildInsightEvidence(aspectIds, { aspects, projects, corpora, verdicts }, { policies, sources }, angles)
 }

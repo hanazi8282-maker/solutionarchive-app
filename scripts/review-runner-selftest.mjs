@@ -252,6 +252,12 @@ const run = (h, over = {}) =>
   t('소유자 예외 요청이 빈 응답이면 차단으로 센다', r.stats.blockedResponses, 1)
   ok('소유자 예외 빈 응답 → 실행 중단 문구', r.perTarget[0].outcome.includes('빈 응답·캡차'))
 }
+// 러너가 센 소유자 예외 수가 review-collect.mjs 요약·sourceResults 로 나간다(v22). 0 이어도 찍힌다.
+{
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  ok('소유자 예외: 수집 요약 줄이 있다', collect.includes('say(`- 소유자 예외 사용 ${result.robotsOwnerOverride ?? 0}건`)'))
+  ok('소유자 예외: sourceResults 필드가 있다', collect.includes('robotsOwnerOverride: result?.robotsOwnerOverride ?? 0,'))
+}
 {
   const h = makeHarness({ pageStatus: { 1: { status: 200, body: '<div class="g-recaptcha"></div>' } } })
   const r = await runCollection({ ...fakeAdapter, abortOnChallenge: true }, { dryRun: false, targetLimit: 5 }, h.ports)

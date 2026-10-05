@@ -226,9 +226,10 @@ async function supabasePort() {
     },
     async findProjectsByPitch(pitches) {
       const m = new Map()
-      for (let i = 0; i < pitches.length; i += 50) {
+      // 한글 pitch 는 URL 인코딩 후 길다 — 50개 묶음은 GET 쿼리스트링이 길어 fetch failed(2026-10-05 실측). 5개씩.
+      for (let i = 0; i < pitches.length; i += 5) {
         const rows = must(
-          await sb.from('analysis_projects').select('id, product_elevator_pitch').in('product_elevator_pitch', pitches.slice(i, i + 50)),
+          await sb.from('analysis_projects').select('id, product_elevator_pitch').in('product_elevator_pitch', pitches.slice(i, i + 5)),
           'analysis_projects 조회',
         )
         for (const r of rows) if (!m.has(r.product_elevator_pitch)) m.set(r.product_elevator_pitch, r.id)

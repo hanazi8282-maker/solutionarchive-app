@@ -13,6 +13,7 @@
 //
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다. `@/` 별칭·enum 을 쓰지 않는다.
 
+/** **저장** 상한(내부 정본 evidence_quotes). 고객 화면 상한이 아니다 — 그건 checkQuote(QUOTE_MAX_KO·EN). */
 export const QUOTE_MAX_CHARS = 300
 export const QUOTE_MAX_COUNT = 3
 /** 원문 대조에 쓰는 앞머리 길이. 짧은 인용은 전체를 본다. */
@@ -34,34 +35,84 @@ export interface QuoteSource {
   raw_text?: string | null
 }
 
-/** 고객 화면 직접 인용 상한 — 한 문장(D안 2026-10-05). */
-export function firstSentence(text: string, max = 140): string {
-  const flat = String(text ?? '').replace(/\s+/g, ' ').trim()
-  const m = /^.*?[.!?。！？](?=\s|$)/.exec(flat)
-  const s = m ? m[0] : flat
-  const chars = Array.from(s)
-  return chars.length <= max ? s : `${chars.slice(0, max - 1).join('').trimEnd()}…`
-}
-
 /**
  * review_sources.quote_policy(마이그 20261005000003, 남헌 v19 A).
- *  - full       : 한 문장 이내(v17 G), 글자 상한 QUOTE_MAX_CHARS.
- *  - short_only : 한 문장 이내 + SHORT_QUOTE_MAX_CHARS 자, 여러 문장 이어붙이기 금지, 고객 화면에 소스 이름·링크·작성자 비표시.
+ *  - full       : 고객 화면 인용 가능. 출처 이름·링크는 D안대로 어차피 비표시.
+ *  - short_only : 고객 화면 인용 가능 + 소스 이름·링크·작성자 비표시(publicQuotes 가 source_key 를 뗀다).
  *  - none       : 인용 불가.
+ * 길이·문장 상한은 v20 #5 부터 full·short_only 공통이다(checkQuote) — 옛 full 300자·short_only 140자는 없앴다.
  * 내부 DB 는 정책과 무관하게 출처·원문 주소를 보존한다(analysis_inputs.source_key·source_url·raw_text).
  */
 export type QuotePolicy = 'full' | 'short_only' | 'none'
-export const SHORT_QUOTE_MAX_CHARS = 140
 
 /** DB 값 → 정책. 모르는 값·NULL·못 읽음은 'none'(§7.1 — 확인 불가를 허용으로 접지 않는다). */
 export function quotePolicyOf(v: unknown): QuotePolicy {
   return v === 'full' || v === 'short_only' ? v : 'none'
 }
 
-/** 정책을 적용한 인용 한 개. none 이면 빈 문자열. 어느 정책이든 첫 문장만 — 문장을 이어붙이지 않는다. */
+/**
+ * 고객 화면 인용 상한(남헌 v20 #5, 2026-10-05) — full·short_only 공통. **한 문장 이내 ∧ 글자 상한 이내, 둘 다.**
+ * 넘으면 인용으로 쓰지 않는다(빈 값 → 호출부가 요약·통계로 대체). 문장 중간을 잘라 붙이지 않는다
+ * (옛 동작 "첫 문장을 N자에서 자르기"는 v20 에서 없앴다 — 잘린 문장은 원문이 아니다).
+ * 글자 수는 코드포인트(Array.from) 기준, 공백은 한 칸으로 눕힌 뒤 센다.
+ */
+export const QUOTE_MAX_KO = 100
+export const QUOTE_MAX_EN = 200
+
+/**
+ * 언어 판정 — 글자(한글 음절·자모 + 라틴 문자) 중 한글 비중. 결정적이고 사전·모델이 없다.
+ *  - 한글 ≥ 10% → 'ko'. 한국어 리뷰는 영어 제품명이 섞여도("AirPods 배터리가 금방 닳아요") 한글 비중이 훨씬 높다.
+ *    10% 미만은 영어 문장에 한글 낱말 하나가 낀 정도라 'en'.
+ *  - 글자가 하나도 없음(숫자·이모지·한자·가나뿐) → 'unknown' → 더 엄격한 100자를 쓴다.
+ */
+export function quoteLang(text: string): 'ko' | 'en' | 'unknown' {
+  const ko = (text.match(/[ᄀ-ᇿ㄰-㆏가-힣]/g) ?? []).length
+  const en = (text.match(/[A-Za-z]/g) ?? []).length
+  if (ko + en === 0) return 'unknown'
+  return ko / (ko + en) >= 0.1 ? 'ko' : 'en'
+}
+
+/**
+ * 한 문장인가. 줄바꿈이 있거나, 문장부호(. ! ? … 。！？) 뒤에 공백·한글이 오고 그 뒤에 글이 더 있으면 두 문장 이상이다.
+ * 끝에 붙은 부호("정말요?!", "...")는 괜찮다. "좋다.그런데"처럼 한국어 종결 뒤에 띄어쓰기 없이 이어 쓴 것도 잡는다
+ * (부호 뒤 한글). 6.1 같은 소수점·a.b.com 같은 주소는 부호 뒤가 숫자·라틴이라 경계로 보지 않는다.
+ * ponytail: 알려진 한계 — 약어("e.g. this", "Mr. Kim")·말줄임("음... 좋아요")·인용 속 마침표는 경계로 보여
+ *   두 문장으로 거부된다. 안전한 쪽(인용을 덜 낸다)이라 그대로 둔다. 부호 없이 이어진 한국어 두 문장
+ *   ("좋아요 근데 비싸요")은 못 가른다 — 형태소 분석 없이 어미만으로는 오탐이 더 많다.
+ */
+export function isOneSentence(text: string): boolean {
+  const t = text.trim()
+  if (/[\r\n]/.test(t)) return false
+  return !/[.!?…。！？]+(?:\s+|(?=[가-힣]))\S/.test(t) && !/[。！？][^。！？\s]/.test(t)
+}
+
+export type QuoteReason = 'ok' | 'policy_none' | 'empty' | 'multi_sentence' | 'too_long'
+export interface QuoteCheck { quote: string; ok: boolean; reason: QuoteReason }
+
+/** 고객 노출 인용 검사 한 벌. ok=false 면 quote 는 빈 문자열이다 — 그대로 화면에 꽂아도 원문이 새지 않는다. */
+export function checkQuote(text: string | null | undefined, policy: QuotePolicy): QuoteCheck {
+  if (policy === 'none') return { quote: '', ok: false, reason: 'policy_none' }
+  const raw = String(text ?? '').trim()
+  if (!raw) return { quote: '', ok: false, reason: 'empty' }
+  if (!isOneSentence(raw)) return { quote: '', ok: false, reason: 'multi_sentence' }
+  const flat = raw.replace(/\s+/g, ' ')
+  const max = quoteLang(flat) === 'en' ? QUOTE_MAX_EN : QUOTE_MAX_KO
+  if (Array.from(flat).length > max) return { quote: '', ok: false, reason: 'too_long' }
+  return { quote: flat, ok: true, reason: 'ok' }
+}
+
+/** 정책을 적용한 인용 한 개. 통과 못 하면 빈 문자열(checkQuote 의 quote). */
 export function policyQuote(text: string | null | undefined, policy: QuotePolicy): string {
-  if (policy === 'none') return ''
-  return firstSentence(String(text ?? ''), policy === 'short_only' ? SHORT_QUOTE_MAX_CHARS : QUOTE_MAX_CHARS)
+  return checkQuote(text, policy).quote
+}
+
+/** 검사 결과 묶음 → 로그 한 줄. 0건이면 null(찍지 않는다). */
+export function quoteCheckSummary(where: string, checks: readonly QuoteCheck[]): string | null {
+  if (checks.length === 0) return null
+  const n: Record<QuoteReason, number> = { ok: 0, policy_none: 0, empty: 0, multi_sentence: 0, too_long: 0 }
+  for (const c of checks) n[c.reason]++
+  return `[${where}] quote-cap checked=${checks.length} ok=${n.ok} rejected=${n.multi_sentence + n.too_long}` +
+    ` (multi_sentence=${n.multi_sentence} too_long=${n.too_long}) policy_none=${n.policy_none} empty=${n.empty}`
 }
 
 /**

@@ -32,7 +32,7 @@ import { REANALYZABLE, canStart } from './extract-gate.ts'
 import { MAX_CHARS_PER_INPUT, MAX_CHARS_TOTAL, selectInputs } from './extract-select.ts'
 import { dropIrrelevant, type RelevanceRow } from './relevance-judge.ts'
 import { judgeProjectRemedies } from '../cases/remedy-db.ts'
-import { normalizeEvidenceQuotes } from './evidence-quotes.ts'
+import { checkQuote, normalizeEvidenceQuotes, quoteCheckSummary } from './evidence-quotes.ts'
 import { generateCompetitorProfile, type ProfileOutcome } from './competitor-profile-db.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 import { translateProjectQuotes } from './quote-translate.ts'
@@ -534,6 +534,9 @@ export async function runExtraction(
     `[analyze/extract] project=${projectId} extracted aspects=${aspectRows.length} inputs=${parts.length}/${inputs.length}` +
       ` dropped=${droppedInputs} irrelevant=${droppedIrrelevant} chars=${selection.usedChars}`,
   )
+  // 저장한 인용 중 고객 화면 상한(한 문장·한 100/영 200자, v20 #5)을 못 넘는 수. 정책(none)은 여기서 모른다 — 모양만 본다.
+  const quoteCap = quoteCheckSummary(`analyze/extract project=${projectId}`, aspectRows.flatMap((a) => a.evidence_quotes.map((q) => checkQuote(q.text, 'full'))))
+  if (quoteCap) console.log(quoteCap)
   return {
     ok: true,
     aspects: freshRows.length,

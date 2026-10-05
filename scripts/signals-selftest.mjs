@@ -4,7 +4,7 @@
 import { EXCERPT_MAX, MAX_PAGE, QUOTE_POLICY_COLUMN_READY, quoteOf, SAAS_BUSINESS_MODELS, countBySource, excerptOf, feedHref, parseFeedQuery, sourceChips, sourceLinkOf } from '../lib/signals/feed.ts'
 import { productKindOf } from '../lib/cases/advisor.ts'
 import { sourceUrlOf, withSourceUrl } from '../lib/review/types.ts'
-import { firstSentence, publicQuotes, normalizeEvidenceQuotes, policyQuote, quotePolicyOf, SHORT_QUOTE_MAX_CHARS, QUOTE_MAX_CHARS } from '../lib/analysis/evidence-quotes.ts'
+import { checkQuote, publicQuotes, normalizeEvidenceQuotes, policyQuote, quoteCheckSummary, quoteLang, quotePolicyOf } from '../lib/analysis/evidence-quotes.ts'
 
 let pass = 0
 let fail = 0
@@ -88,25 +88,54 @@ const unk = sourceChips(srcs, null, null)
 t('못 셌으면 전부 내고 count 없음(0 과 섞지 않는다)', unk.length === 3 && unk.every((c) => c.count === undefined))
 
 // D안(2026-10-05) + 남헌 v19 A — 고객 화면 직접 인용은 소스 quote_policy 3단계(full · short_only · none)
-t('quote: full 이면 첫 문장', quoteOf('[SRC: https://a.b/c]\n알림이 늦어요. 그래서 해지했어요.', 'full') === '알림이 늦어요.')
-t('quote: short_only 도 첫 문장만', quoteOf('알림이 늦어요. 그래서 해지했어요.', 'short_only') === '알림이 늦어요.')
+// + v20 #5 — 한 문장 ∧ 한국어 100자·영어 200자 이내, 둘 다. 넘으면 빈 값(자르지 않는다).
+t('quote: full 한 문장 + 머리말은 뗀다', quoteOf('[SRC: https://a.b/c]\n알림이 늦어요.', 'full') === '알림이 늦어요.')
+t('quote: short_only 한 문장', quoteOf('알림이 늦어요.', 'short_only') === '알림이 늦어요.')
+t('quote: 두 문장이면 첫 문장도 내지 않는다(v20 — 옛 "첫 문장만" 제거)', quoteOf('알림이 늦어요. 그래서 해지했어요.', 'full') === '' && quoteOf('알림이 늦어요. 그래서 해지했어요.', 'short_only') === '')
+t('quote: 머리말 뒤 줄바꿈 본문은 두 문장', quoteOf('[HN: t · news.ycombinator.com/item?id=1]\n하나\n둘', 'full') === '')
 t('quote: none 이면 빈 문자열', quoteOf('알림이 늦어요.', 'none') === '')
 t('quote: 정책 모름(null·undefined·옛 boolean·오타) 이면 빈 문자열 — 확인 불가 ≠ 허용',
   [null, undefined, true, 'FULL', 'short'].every((v) => quoteOf('알림이 늦어요.', v) === ''))
-t('quote: 마침표 없는 긴 글은 상한으로 자른다', Array.from(quoteOf('가'.repeat(500), 'full')).length === EXCERPT_MAX)
+t('quote: 마침표 없는 긴 글은 자르지 않고 비운다', quoteOf('가'.repeat(500), 'full') === '')
 // 20261005000003 적용 확인 전까지 false. v19 전에는 quote_allowed(000001, 적용됨)를 가리켜 true 였는데,
 // 읽는 컬럼이 quote_policy(미적용)로 바뀌어 다시 false 가 맞다 — true 로 두면 /voc 조회가 42703 으로 죽는다.
 t('quote: 컬럼 미적용 플래그는 기본 false(미적용 DB 에서 /voc 가 죽지 않게)', QUOTE_POLICY_COLUMN_READY === false)
-// 정책별 경계(policyQuote)
 t('policy: quotePolicyOf 모르는 값 → none', quotePolicyOf('x') === 'none' && quotePolicyOf(null) === 'none' && quotePolicyOf('short_only') === 'short_only')
-t('policy: none → 빈 문자열', policyQuote('짧다.', 'none') === '')
-t('policy: 한 문장 초과 → 첫 문장만(이어붙이기 없음) full', policyQuote('하나. 둘. 셋.', 'full') === '하나.')
-t('policy: 한 문장 초과 → 첫 문장만 short_only', policyQuote('하나! 둘? 셋.', 'short_only') === '하나!')
-t('policy: short_only 상한 초과 → 상한 이내', Array.from(policyQuote('나'.repeat(300) + '.', 'short_only')).length === SHORT_QUOTE_MAX_CHARS)
-t('policy: short_only 상한 정확히 → 그대로', policyQuote('다'.repeat(SHORT_QUOTE_MAX_CHARS - 1) + '.', 'short_only') === '다'.repeat(SHORT_QUOTE_MAX_CHARS - 1) + '.')
-t('policy: full 은 short 상한보다 길게(QUOTE_MAX_CHARS)', Array.from(policyQuote('라'.repeat(200) + '.', 'full')).length === 201 && Array.from(policyQuote('라'.repeat(500), 'full')).length === QUOTE_MAX_CHARS)
-t('firstSentence: 물음표', firstSentence('왜 안 돼요? 다시 해봐도') === '왜 안 돼요?')
-t('firstSentence: 소수점은 문장 끝 아님', firstSentence('버전 6.1 에서 깨짐. 끝') === '버전 6.1 에서 깨짐.')
+// 길이 경계 — 한국어 100 / 영어 200, 정책(full·short_only) 무관
+for (const pol of ['full', 'short_only']) {
+  t(`cap(${pol}): 한국어 100자 통과`, checkQuote('가'.repeat(99) + '.', pol).ok && policyQuote('가'.repeat(99) + '.', pol) === '가'.repeat(99) + '.')
+  t(`cap(${pol}): 한국어 101자 거부(too_long)`, checkQuote('가'.repeat(100) + '.', pol).reason === 'too_long' && policyQuote('가'.repeat(100) + '.', pol) === '')
+  t(`cap(${pol}): 영어 200자 통과`, checkQuote('a'.repeat(199) + '.', pol).ok)
+  t(`cap(${pol}): 영어 201자 거부`, checkQuote('a'.repeat(200) + '.', pol).reason === 'too_long')
+}
+t('cap: 공백은 한 칸으로 눕혀 센다', checkQuote(`${'가'.repeat(49)}   \t${'가'.repeat(49)}.`, 'full').quote === `${'가'.repeat(49)} ${'가'.repeat(49)}.`)
+t('cap: 이모지는 코드포인트 1자', checkQuote('😀'.repeat(100), 'full').ok && !checkQuote('😀'.repeat(101), 'full').ok)
+// 혼합 언어 — 한글 비중 10% 이상이면 한국어(100), 미만이면 영어(200), 글자 없으면 모름(100)
+t('lang: 한국어 문장 속 영어 제품명은 ko', quoteLang('AirPods Pro 배터리가 금방 닳아요') === 'ko')
+t('lang: 영어 문장 속 한글 한 낱말은 en', quoteLang(`${'word '.repeat(30)}김치`) === 'en')
+t('lang: 글자 없음 → unknown', quoteLang('1234 😀') === 'unknown')
+t('mixed: 한글 비중 10%+ 는 100자 상한(150자 거부)', checkQuote('a'.repeat(135) + '가'.repeat(15), 'full').reason === 'too_long')
+t('mixed: 한글 비중 10% 미만은 200자 상한(151자 통과)', checkQuote('a'.repeat(150) + '가', 'full').ok)
+t('unknown: 더 엄격한 100자(101 거부·100 통과)', !checkQuote('1'.repeat(101), 'full').ok && checkQuote('1'.repeat(100), 'full').ok)
+// 문장 분리
+t('sentence: 줄바꿈은 두 문장', checkQuote('알림이 늦어요\n해지했어요', 'full').reason === 'multi_sentence')
+t('sentence: "다." 뒤 띄어쓰기 없이 한글이면 두 문장', checkQuote('좋다.그런데 비싸다', 'full').reason === 'multi_sentence')
+t('sentence: 물음표·느낌표 뒤 글이 있으면 두 문장', checkQuote('왜 안 돼요? 다시 해봐도', 'full').reason === 'multi_sentence' && checkQuote('최고! 또 살게요', 'full').reason === 'multi_sentence')
+t('sentence: 전각 부호(。！？) 뒤 글이면 두 문장', checkQuote('いい。また買う', 'full').reason === 'multi_sentence')
+t('sentence: 소수점은 경계 아님', checkQuote('버전 6.1 에서 깨짐.', 'full').ok)
+t('sentence: 끝에 붙은 부호 묶음은 한 문장', checkQuote('정말요?!', 'full').ok && checkQuote('글쎄요...', 'full').ok)
+t('sentence: 약어는 알려진 한계 — 두 문장으로 보고 거부(안전한 쪽)', checkQuote('e.g. this works', 'full').reason === 'multi_sentence')
+// 빈 값 · 절단 금지 · 정책
+t('empty: 빈 값·공백·null → empty', ['', '   ', null, undefined].every((v) => checkQuote(v, 'full').reason === 'empty'))
+t('none: 정책 none 이면 내용과 무관하게 policy_none', checkQuote('짧다.', 'none').reason === 'policy_none' && policyQuote('짧다.', 'none') === '')
+{
+  const samples = ['가'.repeat(300), '하나. 둘.', 'a'.repeat(500) + '.', '짧다.', 'x\ny', '왜? 응', '😀'.repeat(150)]
+  const cut = samples.some((s) => { const c = checkQuote(s, 'full'); return c.ok ? c.quote !== s.replace(/\s+/g, ' ').trim() : c.quote !== '' })
+  t('절단 금지: 통과면 원문 그대로, 거부면 빈 값 — 중간은 없다(말줄임 없음)', !cut && samples.every((s) => !checkQuote(s, 'full').quote.endsWith('…')))
+}
+t('summary: 거부 사유별 한 줄', quoteCheckSummary('t', [checkQuote('짧다.', 'full'), checkQuote('a. b.', 'full'), checkQuote('가'.repeat(200), 'full'), checkQuote('x', 'none')])
+  === '[t] quote-cap checked=4 ok=1 rejected=2 (multi_sentence=1 too_long=1) policy_none=1 empty=0')
+t('summary: 0건이면 null(찍지 않는다)', quoteCheckSummary('t', []) === null)
 {
   const q = normalizeEvidenceQuotes(['알림이 늦게 와서 불편합니다 정말로'], [{ source_type: 'review', source_key: 'googleplay', raw_text: '알림이 늦게 와서 불편합니다 정말로 그래요' }])
   t('evidence: 저장 시 source_key 를 단다', q.length === 1 && q[0].source_key === 'googleplay')
@@ -116,17 +145,18 @@ t('firstSentence: 소수점은 문장 끝 아님', firstSentence('버전 6.1 에
   const mixed = [
     ...q,
     { text: 'a. b.', source_type: 'review', source_key: 'danawa' },
+    { text: '배송이 빨라요.', source_type: 'review', source_key: 'danawa' },
     { text: 'x.', source_type: 'review', source_key: 'appstore' },
     { text: 'y.', source_type: 'review', source_key: 'x' },
     { text: 'z.', source_type: 'review', source_key: 'nomap' },
   ]
   const pub = publicQuotes(mixed, pol)
-  t('publicQuotes: none·모르는 값·맵에 없는 소스는 뺀다', pub.length === 2)
+  t('publicQuotes: none·모르는 값·맵에 없는 소스·두 문장은 뺀다', pub.length === 2)
   t('publicQuotes: short_only 는 소스 키를 떼고 낸다(출처 비표시)', !('source_key' in pub[0]) && pub[0].text === '알림이 늦게 와서 불편합니다 정말로')
-  t('publicQuotes: full 은 첫 문장만·키 유지', pub[1].text === 'a.' && pub[1].source_key === 'danawa')
+  t('publicQuotes: full 한 문장은 키 유지', pub[1].text === '배송이 빨라요.' && pub[1].source_key === 'danawa')
   t('publicQuotes: 옛 인용(source_key 없음)은 내지 않는다', publicQuotes(legacy, pol).length === 0)
   t('publicQuotes: 정책 맵을 못 읽었으면(null) 0건', publicQuotes(q, null).length === 0)
 }
 
 if (fail) { console.log(`실패 ${fail}건 / 통과 ${pass}건`); process.exit(1) }
-console.log(`통과 ${pass}건 — 발췌 상한 · 출처 링크(HN·YouTube·다나와·[SRC:] 머리말·url: 타깃) · 질의 파서 · 종류(kind) · 링크 · 소스 칩 건수`)
+console.log(`통과 ${pass}건 — 발췌 상한 · 출처 링크(HN·YouTube·다나와·[SRC:] 머리말·url: 타깃) · 질의 파서 · 종류(kind) · 링크 · 소스 칩 건수 · 고객 인용 상한(v20)`)

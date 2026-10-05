@@ -7,6 +7,7 @@
 //
 // ★ 원문 재게시 원칙: 공개 화면에 원문을 통째로 싣지 않는다. 발췌 EXCERPT_MAX 자 + 출처 링크뿐이다.
 //   → 2026-10-05 D안으로 더 좁혔다: 발췌는 소스 quote_policy(full·short_only)에 따라 한 문장, none·모름은 빈 칸. 소스 이름·링크는 모든 소스 비표시(quoteOf).
+//   → v20 #5(2026-10-05): 한 문장 ∧ 한국어 100자·영어 200자 이내가 아니면 발췌를 아예 비운다(자르지 않는다, checkQuote).
 //   `/library/[slug]` 블록 7(VOC 인용)을 비워 둔 것과 같은 원칙이다(그 파일 30-34행).
 // ★ 3상태: 조회 실패('error')와 0건('ok' + 빈 배열)을 가른다. 화면은 둘을 다른 모양으로 그린다.
 //
@@ -23,7 +24,7 @@ import { isSourceHostUrl, postUrlOfRef } from '../review/target-ref.ts'
 import { DEFAULT_SEARCH_KIND, type SearchKind } from '../cases/search.ts'
 import { productKindOf } from '../cases/advisor.ts'
 import { BUSINESS_MODEL } from '../cases/draft.ts'
-import { policyQuote, quotePolicyOf } from '../analysis/evidence-quotes.ts'
+import { checkQuote, quoteCheckSummary, quotePolicyOf, type QuoteCheck } from '../analysis/evidence-quotes.ts'
 
 /**
  * review_sources.quote_policy 컬럼(마이그 20261005000003, 남헌 v19 A)이 적용됐나. 적용 확인(information_schema) 뒤에 true 로 바꾼다.
@@ -33,7 +34,7 @@ import { policyQuote, quotePolicyOf } from '../analysis/evidence-quotes.ts'
  */
 export const QUOTE_POLICY_COLUMN_READY = false
 
-/** 발췌 상한(글자). 원문 재게시가 되지 않을 만큼 짧게 — 보고에 가정으로 적은 값이다. */
+/** 발췌 상한(글자) — excerptOf 기본값(원문 인용이 아닌 문구용). 고객 화면 원문 인용은 이 값이 아니라 checkQuote 상한을 쓴다. */
 export const EXCERPT_MAX = 140
 /** 피드 한 페이지. */
 export const PAGE_SIZE = 50
@@ -61,7 +62,7 @@ export interface SignalItem {
   /** 분석 대상 제품(analysis_projects.product_elevator_pitch). */
   project: string | null
   /**
-   * 원문 직접 인용 — 소스 quote_policy 가 full·short_only 로 **확인된** 경우만 한 문장(EXCERPT_MAX 자 이내). none·모름은 빈 문자열.
+   * 원문 직접 인용 — 소스 quote_policy 가 full·short_only 로 **확인된** 경우만, 한 문장 ∧ 한국어 100자·영어 200자 이내일 때만(checkQuote). 그 밖은 빈 문자열.
    * 소스 이름·원문 링크는 고객 화면에 싣지 않는다(D안 2026-10-05, 모든 소스 공통) — 필드 자체를 없앴다.
    * 내부 보존은 DB(analysis_inputs.source_key·source_url·raw_text 머리말)에 그대로다.
    */
@@ -89,12 +90,14 @@ export interface FeedFilters {
 // ── 순수 함수 (selftest 대상) ───────────────────────────────────
 
 /**
- * 고객 화면 발췌. quote_policy 3단계(evidence-quotes.ts policyQuote) — 어느 정책이든 첫 문장만, EXCERPT_MAX 자 이내.
- * none·NULL·모르는 값은 빈 문자열(§7.1). 출처 이름·링크는 정책과 무관하게 이 화면에 싣지 않는다(D안).
+ * 고객 화면 발췌 검사. 수집기 머리말만 떼고(줄바꿈은 남긴다 — 문장 경계다) checkQuote 에 넘긴다.
+ * none·NULL·모르는 값·두 문장 이상·상한 초과는 빈 문자열(§7.1). 출처 이름·링크는 정책과 무관하게 이 화면에 싣지 않는다(D안).
  */
+export function quoteCheckOf(text: string | null | undefined, quotePolicy: unknown): QuoteCheck {
+  return checkQuote(String(text ?? '').replace(HN_HEADER, ''), quotePolicyOf(quotePolicy))
+}
 export function quoteOf(text: string | null | undefined, quotePolicy: unknown): string {
-  const q = policyQuote(excerptOf(text, Number.MAX_SAFE_INTEGER), quotePolicyOf(quotePolicy))
-  return Array.from(q).length <= EXCERPT_MAX ? q : excerptOf(q, EXCERPT_MAX)
+  return quoteCheckOf(text, quotePolicy).quote
 }
 
 const HN_HEADER = /^\s*\[(?:HN|SRC):[^\]]*\]\s*/
@@ -233,7 +236,15 @@ type Raw = {
   }
 }
 
-function toItem(r: Raw): SignalItem {
+/** 행 → 카드. 발췌 검사 결과를 한 줄로 남긴다(거부 건수 집계, 스키마 무관). */
+function toItems(rows: Raw[], where: string): SignalItem[] {
+  const checks = rows.map((r) => quoteCheckOf(r.analysis_inputs.raw_text, r.analysis_inputs.review_sources?.quote_policy))
+  const line = quoteCheckSummary(where, checks)
+  if (line) console.log(line)
+  return rows.map((r, i) => toItem(r, checks[i].quote))
+}
+
+function toItem(r: Raw, excerpt: string): SignalItem {
   const inp = r.analysis_inputs
   return {
     input_id: r.input_id,
@@ -245,7 +256,7 @@ function toItem(r: Raw): SignalItem {
     wtp_mentioned: typeof r.wtp_mentioned === 'boolean' ? r.wtp_mentioned : null,
     source_key: inp.source_key,
     project: r.analysis_projects?.product_elevator_pitch ?? null,
-    excerpt: quoteOf(inp.raw_text, inp.review_sources?.quote_policy),
+    excerpt,
   }
 }
 
@@ -320,7 +331,7 @@ export async function loadFeed(
   if (!bysrc.error && !sourceCounts) console.error('[signals] source count truncated:', bysrc.data?.length, '/', bysrc.count)
   return {
     status: 'ok',
-    items: ((data ?? []) as unknown as Raw[]).map(toItem),
+    items: toItems((data ?? []) as unknown as Raw[], 'voc/feed'),
     total: count ?? null,
     hiddenConsumer: f.kind === 'saas' ? hiddenOf(all, count ?? null) : 0,
     // 소스 목록을 못 읽으면 칩을 안 낸다(null). 빈 배열(= 소스 0곳)과 다르다.
@@ -356,7 +367,7 @@ export async function loadColumns(
     status: 'ok',
     columns: COMMUNITY_SIGNALS.map((signal, i) => ({
       signal,
-      items: ((cols[i].data ?? []) as unknown as Raw[]).map(toItem),
+      items: toItems((cols[i].data ?? []) as unknown as Raw[], `voc/community:${signal}`),
       count: cols[i].count as number,
     })),
     relevantTotal: all.error ? null : (all.count ?? null),
@@ -371,5 +382,5 @@ export async function loadCard(sb: SupabaseClient, id: string): Promise<Loaded<{
     console.error('[signals] card query failed:', error.code, error.message)
     return { status: 'error', reason: why(error) }
   }
-  return { status: 'ok', item: data ? toItem(data as unknown as Raw) : null }
+  return { status: 'ok', item: data ? toItems([data as unknown as Raw], 'voc/card')[0] : null }
 }

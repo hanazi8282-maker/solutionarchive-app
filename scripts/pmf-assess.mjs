@@ -76,7 +76,7 @@ export function normalizeFacets(input) {
 /**
  * 진단 1건 → Notion "일일 상태 로그" CTO 행 입력 (CLAUDE.md §11).
  * 두 축 값과 각 축의 근거 문장을 같이 싣는다(CTO 헌장 산출물 규격). 단일 점수를 만들지 않는다.
- * 사람판단필요는 항상 true — 진단은 사람의 진입 판단 입력이다.
+ * 사람판단필요는 항상 true — 진단은 사람의 진입 판단 입력이다(v17 기준 "돈 드는 결정").
  * 날짜는 KST 오늘 — 수동 CLI 라 예정 크론이 없다(§11 제목 규칙).
  */
 export function buildPmfEntry({ input = {}, match = null, demand = null, precedent = null, quad = null, savedId = null, errors = [], inputPath = null, now = new Date() }) {

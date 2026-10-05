@@ -2,7 +2,8 @@
 // review-collect.mjs 는 import 되는 순간 수집을 돌리는 스크립트라, 테스트할 수 있게
 // 순수 함수만 여기로 뺐다. 의존성 0 (notion-status-log-selftest.mjs 가 네트워크 없이 검사).
 //
-// 사람판단필요 규칙: 실패 소스 · 차단 응답(403/429) · 건강도 경보 · 경고가 하나라도 있으면 true.
+// 사람판단필요: 항상 false (남헌 v17, 2026-10-05 — CLAUDE.md §11). 실패 소스·차단 응답·건강도 경보·경고는
+//   막힘 사실이라 막힌것 칸에만 싣는다.
 //   extract 실행 판단은 매일 서 있는 판단이라 플래그에 넣지 않는다(매일 true 가 되면 아무도 안 본다).
 
 const MAX_LINES = 5
@@ -47,7 +48,7 @@ export function buildReviewCollectEntry({ date, sources = [], failures = [], top
     done: done.join('\n'),
     blocked: blockedLines.length ? blockedLines.join('\n') : '없음',
     next: (next.length ? next : ['사람 할 일 없음 — 다음 크론이 이어서 돈다']).join('\n'),
-    needsHuman: blockedLines.length > 0 || failures.length > 0,
+    needsHuman: false,
     note: `nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'} · 날짜는 KST(행을 쓰는 시점) · 원문 폐기(purge) 결과는 이 행에 없다`,
   }
 }

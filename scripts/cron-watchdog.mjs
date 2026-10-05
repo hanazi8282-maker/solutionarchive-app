@@ -13,7 +13,8 @@
 //   - 단, 그 슬롯 시점에 워크플로 파일이 기본 브랜치에 없었으면 "미발화"가 아니라 "해당 없음"이다
 //     (workflowLandedAt). 히스토리를 못 읽으면 해당 없음이 아니라 "확인 불가"로 올린다.
 //   - api_tokens 의 threads 행이 없거나·만료됐거나·만료 임박(lib/threads/token.ts tokenExpiryAlert)이면 이상.
-// 이상이 있으면 CTO 행 1개(사람판단필요=true) + exit 1(Actions 실패 메일). 없으면 행을 쓰지 않는다.
+// 이상이 있으면 CTO 행 1개 + exit 1(Actions 실패 메일). 없으면 행을 쓰지 않는다.
+// 사람판단필요는 Threads 재인증 필요일 때만 true(v17 — 남헌만 줄 수 있는 입력). 미발화·실패는 false.
 //
 // ⛔ access_token 은 읽지 않는다. 만료 시각만 본다 (CLAUDE.md §10 — 무인 루프에 발행 자격증명 없음).
 // ponytail: 감시 자신이 미발화하면 여전히 조용하다. 필요해지면 두 번째 스케줄(같은 날 중복 행 방지 포함)을 붙인다.
@@ -224,7 +225,8 @@ export async function runWatchdog({
     done: `크론 감시 — 이상 ${problems.length}건 발견`,
     blocked: problems.join('\n'),
     next: '미발화·실패 크론은 Actions 탭에서 원인 확인 후 필요하면 수동 실행 · Threads 토큰 만료/임박이면 재인증',
-    needsHuman: true,
+    // v17: 미발화·실패는 막힘 사실. Threads 재인증만 남헌만 줄 수 있는 입력(OAuth)이라 true.
+    needsHuman: problems.some((p) => p.includes('재인증 필요')),
     note: `cron-watchdog · ${runUrl}`,
   })
   log(w.ok ? `✅ Notion 기록·재확인: ${w.title}` : `❌ Notion 기록 실패 — ${w.stage}: ${w.error}`)

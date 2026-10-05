@@ -1730,10 +1730,11 @@ export async function writeDigest({ reportDir, date, runKey, dryRun, log = [], s
  * 재료는 DIGEST 와 같다(state·log). 병목은 DIGEST 와 같은 `- ▲ / - ❌` 로그 줄과
  * partialFailures() 를 그대로 쓴다 — 판정을 두 벌 만들지 않는다.
  *
- * 사람판단필요 = 막힌것(실패·막힘·부분 실패·큐 미해소·Notion 푸시 실패·preflight 중단)이 있거나
- *   미연결 발행글을 확인 불가(§7.1)일 때만 true.
- *   일상 할 일(검토대기 초안·승인 대기 케이스·승인 무브 0건·미연결 발행글 N건 연결)은 다음할일에만 싣고
- *   플래그를 켜지 않는다 — 초안·케이스가 매일 생기므로 그걸로 켜면 CMO 행이 매일 true 가 된다(2026-10-05 정정).
+ * 사람판단필요 = 항상 false (남헌 v17, 2026-10-05 — CLAUDE.md §11 여섯 기준).
+ *   CMO 루프가 내는 신호(실패·막힘·부분 실패·큐 미해소·Notion 푸시 실패·preflight 중단·미연결 확인 불가,
+ *   검토대기 초안·승인 대기 케이스·승인 무브 0건)는 전부 "막힘 사실·단순 대기"라 막힌것·다음할일에만 싣는다.
+ *   여섯 기준(되돌리기 어려운 삭제·키 노출·새 법적 리스크·남헌 지시 충돌·돈 드는 결정·남헌만 줄 입력)에
+ *   해당하는 신호가 생기면 그때 여기서 켠다.
  * 행의 날짜·제목은 **행을 쓰는 시점의 KST 날짜**다(kstDate — §11, 전 트랙 통일). 크론은 20:17 UTC
  * 예정이지만 실제로 KST 07시대에 돌아서, run date(UTC)로 쓰면 "KST 09-14 아침에 한 일"이 09-13 행이 된다.
  * run date(`date` 인자 — content_code·run_key·reports/<날짜> 기준)는 비고에 남긴다.
@@ -1756,7 +1757,7 @@ export function buildCmoStatusEntry({ date, runKey, runUrl = null, state = {}, l
       done: `사전 점검(${stopped})에서 멈췄다 — 조사·적립·초안 단계를 돌지 않았다. 오늘 CMO 산출물 0건`,
       blocked: cap(stuck.length ? stuck : [`${stopped} 실패 — 사유가 로그에 없다(${digestRef})`]).join('\n'),
       next: 'Supabase 자격증명·DB 도달 확인 후 워크플로 수동 재실행 (dry_run 끄기)',
-      needsHuman: true, note,
+      needsHuman: false, note, // 막힘 사실(v17)
     }
   }
 
@@ -1789,7 +1790,7 @@ export function buildCmoStatusEntry({ date, runKey, runUrl = null, state = {}, l
     done: done.join('\n'),
     blocked: blocked.length ? blocked.join('\n') : '없음',
     next: next.length ? next.join('\n') : '사람 할 일 없음 — 다음 크론이 이어서 돈다',
-    needsHuman: blocked.length > 0 || (typeof unlinkedLine === 'string' && unlinkedLine.includes('확인 불가')),
+    needsHuman: false, // v17 — 위 주석
     note,
   }
 }

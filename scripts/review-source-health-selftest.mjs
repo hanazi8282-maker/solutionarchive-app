@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 소스 고장 보고 회귀 — "고장 감지 시 enabled 는 안 바뀌고 사람판단필요 플래그만 켜진다" (남헌 2026-09-30).
+// 소스 고장 보고 회귀 — "고장 감지 시 enabled 는 안 바뀌고 Notion 보고만 남는다" (남헌 2026-09-30; 플래그는 v17 2026-10-05 부터 false).
 // 네트워크·DB·토큰 없음. Supabase 는 쓰기 호출을 전부 기록하는 가짜 클라이언트, Notion 은 가짜 fetch.
 //
 //   node scripts/review-source-health-selftest.mjs
@@ -8,7 +8,7 @@
 //   1) 러너 + **실제 store(createReviewStore)** 로 고장을 일으켜도 review_sources 쓰기 중
 //      daily_request_cap 외 컬럼(enabled 포함)이 0회다. 가짜 store 가 아니라 실제 store 를 쓰는 이유:
 //      예전 자동 비활성(updateSourceHealth)을 store·러너 어느 쪽에 되살려도 여기서 잡히게(§7.1 5번 사례).
-//   2) 그 판정이 Notion 보고 페이로드로 이어진다 — 사람판단필요=true · 소스 키 · 사유 · 횟수 · 마지막 에러.
+//   2) 그 판정이 Notion 보고 페이로드로 이어진다 — 사람판단필요=false(v17) · 소스 키 · 사유 · 횟수 · 마지막 에러.
 //   3) 같은 날 두 번 돌려도 행은 하나(두 번째는 갱신).
 //   4) 고장 0개면 Notion 호출 0회.
 //   5) Notion 쓰기 실패 → 폴백 파일 + ok:false(→ review-collect 종료 코드 1).
@@ -172,7 +172,7 @@ try {
   ok('2 행 1개 생성', f.pages.length === 1)
   const row = f.pages[0].properties
   const blockedTxt = f.txt(f.pages[0], '막힌것')
-  ok('2 사람판단필요=true', row.사람판단필요.checkbox === true)
+  ok('2 사람판단필요=false(v17: 고장은 막힘 사실)', row.사람판단필요.checkbox === false)
   ok('2 트랙 CTO · 제목 YYYY-MM-DD-CTO', row.트랙.select.name === 'CTO' && row.제목.title[0].text.content === `${today}-CTO`)
   ok('2 소스 키', blockedTxt.includes('fake:'))
   ok('2 사유(health.detail)', blockedTxt.includes(blocked.health.detail))
@@ -189,7 +189,7 @@ try {
   ok('3 같은 날 두 번 돌려도 행은 1개', f.pages.length === 1)
   const both = f.txt(f.pages[0], '막힌것')
   ok('3 두 실행 내용이 다 남는다(새 것이 앞)', both.indexOf('02:40 KST') < both.indexOf('14:40 KST') && both.includes('파싱 성공 2/20'))
-  ok('3 사람판단필요 유지', f.pages[0].properties.사람판단필요.checkbox === true)
+  ok('3 사람판단필요 false 유지', f.pages[0].properties.사람판단필요.checkbox === false)
   ok('3 폴백 파일 없음(성공 경로)', fs.readdirSync(tmp).length === 0)
 
   // 3b) 다른 날이면 새 행
@@ -217,7 +217,7 @@ try {
   ok('5 쓰기 실패는 ok:false', r5.ok === false)
   ok(`5 폴백 파일이 남는다 (${r5.record.pendingPath})`, r5.record.pendingPath && fs.existsSync(r5.record.pendingPath))
   const md = fs.readFileSync(r5.record.pendingPath, 'utf-8')
-  ok('5 폴백 파일에 사람판단필요·소스·사유', md.includes('사람판단필요: true') && md.includes('fake:') && md.includes(blocked.health.detail))
+  ok('5 폴백 파일에 사람판단필요·소스·사유', md.includes('사람판단필요: false') && md.includes('fake:') && md.includes(blocked.health.detail))
 
   // 5b) 같은 날 행 조회가 실패해도 새로 만들지 않고 실패로 남긴다
   const qf = fakeNotion()
@@ -375,7 +375,7 @@ ok('워크플로: concurrency 유지', /concurrency:\s*\n\s+group: review-collec
     now: new Date(now), date: '2026-09-30', upsert: fakeUpsert,
   })
   ok('8 보고: 가려진 고장 1개만 올린다(h)', rep.ok && rep.hidden.map((x) => x.key).join() === 'h' && upserts.length === 1)
-  ok(`8 보고 문구에 두 값 — "${upserts[0]?.blocked}"`, upserts[0]?.blocked.includes('h: 최근: 확인 불가(3연속) · 마지막 확인: broken(2일 전)') && upserts[0].needsHuman === true)
+  ok(`8 보고 문구에 두 값 — "${upserts[0]?.blocked}"`, upserts[0]?.blocked.includes('h: 최근: 확인 불가(3연속) · 마지막 확인: broken(2일 전)') && upserts[0].needsHuman === false) // v17: 고장은 막힘 사실
   const rep2 = await runSourceHealthReport({
     sourceResults: [{ key: 'n', fatal: '타임아웃', health: null }],
     loadRuns: async () => rowsByKey, now: new Date(now), date: '2026-09-30', upsert: fakeUpsert,

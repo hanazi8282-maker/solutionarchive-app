@@ -102,7 +102,7 @@ if (!gate.on) {
       next: revert
         ? `되돌린 무브 id: ${revert.moves.slice(0, 20).join(', ') || '없음'} — 하류 초안 확인 · /library 캐시(CASE_CORPUS_TAG) 만료 필요 · 원인 기록(reports/<날짜>/case-approval-kill-<n>.md)`
         : '원인(연결 테이블·rr-v1·감사 부족)을 확인하고 단계를 유지할지 판단',
-      needsHuman: true,
+      needsHuman: true, // v17: 다시 여는 감사 채점은 사람만 줄 수 있는 입력
       note: `case-auto-approve · rule ${RULE} · stage ${stage}`,
     })
     log(w.ok ? `Notion 기록: ${w.title}` : `Notion 기록 실패 — ${w.stage}: ${w.error}`)

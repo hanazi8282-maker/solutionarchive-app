@@ -176,6 +176,7 @@ ok('통합 토큰 행 없음 — 재인증', s.code === 1 && s.records[0]?.block
 
 s = await scenario({ runs: [] })
 ok('통합 미발화 — 막힌것에 워크플로 이름', s.code === 1 && s.records[0]?.blocked.includes('a.yml') && s.records[0]?.blocked.includes('미발화'))
+ok('통합 미발화만 — 사람판단필요 false(v17: 막힘 사실)', s.records[0]?.needsHuman === false)
 
 s = await scenario({ runs: [runA({ conclusion: 'failure' })], tokenRows: [tok(3)] })
 ok('통합 두 가지 동시 — 둘 다 올라감', s.problems.length === 2 && s.records[0]?.blocked.split('\n').length === 2)

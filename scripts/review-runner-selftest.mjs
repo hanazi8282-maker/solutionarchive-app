@@ -816,7 +816,7 @@ const runQuota = (h, over = {}) =>
   t('파싱 브레이크(c): 고장 보고 대상에 오른다', broken.length, 1)
   const entry = buildBrokenEntry({ date: '2026-09-30', broken, history: null, now: new Date(), runUrl: null })
   ok('파싱 브레이크(c): 보고 본문에 중단 사유(마지막 에러)가 실린다', entry.blocked.includes('파싱 고장으로 1페이지째에서 중단'))
-  t('파싱 브레이크(c): 사람판단필요', entry.needsHuman, true)
+  t('파싱 브레이크(c): 사람판단필요 false(v17: 고장은 막힘 사실)', entry.needsHuman, false)
 
   // (b) 정상 소스는 그대로 여러 페이지 계속 읽는다
   const hb = makeHarness({ pages: { 1: page(tenGood.slice(0, 5), '1'), 2: page(tenGood.slice(5), '2'), 3: page([rv({ externalId: 'z' })], null) } })

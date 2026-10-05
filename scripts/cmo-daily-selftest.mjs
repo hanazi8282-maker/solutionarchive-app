@@ -1308,7 +1308,7 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   check('상태로그 — 한일에 시도 대비 적립·스테이징 수', busy.done.includes('적립 1건(시도 2건)') && busy.done.includes('스테이징 2건'), busy.done)
   check('상태로그 — 막힌것에 blocker 원문(백틱 제거)', busy.blocked.includes('CG-1 미통과') && !busy.blocked.includes('`'), busy.blocked)
   check('상태로그 — 다음할일에 검토대기 초안·승인 대기 케이스', busy.next.includes('발행 대기 초안 2건') && busy.next.includes('케이스 1건'), busy.next)
-  eq('상태로그 — 막힘이 있으면 사람판단필요 true', busy.needsHuman, true)
+  eq('상태로그 — 막힘이 있어도 사람판단필요 false(v17: 막힘 사실)', busy.needsHuman, false)
   // ★ 2026-10-05 정정: 초안 검토·케이스 승인 대기만 있는 날은 일상 할 일 — false, 다음할일에는 남는다
   const routine = buildCmoStatusEntry({ ...base, runStatus: 'ok', unlinkedLine: ZERO, state: { blocked: 0, failed: 0, counts: { new_drafts: 2, commit_attempted: 1, committed: 1, drafted: 2, staged: 2 }, steps: [S('preflight', 'ok')] }, log: [] })
   eq('상태로그 — 검토대기 초안·승인 대기 케이스만 → false', routine.needsHuman, false)
@@ -1324,16 +1324,16 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
 
   // (3) 개별 트리거 — 막힘·확인 불가는 하나씩만 켜도 true, 일상 할 일은 false
   const one = (over) => buildCmoStatusEntry({ ...base, runStatus: 'ok', unlinkedLine: ZERO, state: { blocked: 0, failed: 0, counts: {}, steps: [] }, log: [], ...over })
-  eq('상태로그 — 미연결 발행글 확인 불가 → true', one({ unlinkedLine: '발행됐는데 연결 안 된 Threads 게시물: 확인 불가(매처 기록 없음) — /dashboard 에서 직접 확인' }).needsHuman, true)
+  eq('상태로그 — 미연결 발행글 확인 불가 → false(v17)', one({ unlinkedLine: '발행됐는데 연결 안 된 Threads 게시물: 확인 불가(매처 기록 없음) — /dashboard 에서 직접 확인' }).needsHuman, false)
   const nUnlinked = one({ unlinkedLine: '⚠️ 발행됐는데 연결 안 된 Threads 게시물 2건(가장 오래된 것 5시간 경과) — /dashboard 에서 연결' })
   check('상태로그 — 미연결 발행글 N건 → false(연결은 일상 할 일) + 다음할일', nUnlinked.needsHuman === false && nUnlinked.next.includes('게시물 2건'), nUnlinked.next)
   const noAppr = one({ log: ['- ⏭️ `angle` 앵글 선정 — 쓸 수 있는 승인 무브가 0건 (승인은 사람이 한다 — 루프의 실패가 아니다)'] })
   check('상태로그 — 승인 무브 0건 → false(승인 대기) + 다음할일', noAppr.needsHuman === false && noAppr.next.includes('승인된 무브 0건'), noAppr.next)
   const push = one({ notionPushError: 'exit 2 — posts 조회 실패' })
-  check('상태로그 — Notion 푸시 실패 → 막힌것 + true', push.needsHuman === true && push.blocked.includes('posts 조회 실패'), push.blocked)
-  eq('상태로그 — 큐 미해소 → true', one({ state: { blocked: 0, failed: 0, counts: { queue_unresolved: 1 }, steps: [] } }).needsHuman, true)
+  check('상태로그 — Notion 푸시 실패 → 막힌것 + false(v17)', push.needsHuman === false && push.blocked.includes('posts 조회 실패'), push.blocked)
+  eq('상태로그 — 큐 미해소 → false(v17)', one({ state: { blocked: 0, failed: 0, counts: { queue_unresolved: 1 }, steps: [] } }).needsHuman, false)
   const partial = one({ state: { blocked: 0, failed: 0, counts: {}, steps: [S('draft', 'ok', { partial_failed: 1, errors: ['x: exit 1'] })] } })
-  check('상태로그 — 부분 실패 → 막힌것 + true', partial.needsHuman === true && partial.blocked.includes('부분 실패 draft'), partial.blocked)
+  check('상태로그 — 부분 실패 → 막힌것 + false(v17)', partial.needsHuman === false && partial.blocked.includes('부분 실패 draft'), partial.blocked)
 
   // (4) 막힌것 5줄 상한 — 넘치면 "외 N건"
   const many = one({ log: Array.from({ length: 8 }, (_, i) => `- ❌ \`s${i}\` 단계 — e${i}`) })
@@ -1342,7 +1342,7 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
 
   // (5) preflight 에서 멈춘 날 — 행은 반드시 남고, true
   const pf = buildCmoStatusEntry({ ...base, stopped: 'preflight', runStatus: 'failed', state: { blocked: 0, failed: 1, counts: {}, steps: [S('preflight', 'failed')] }, log: ['- ❌ `preflight` 사전 점검 — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 미설정 — 확인 불가'] })
-  eq('상태로그 — preflight 중단 → true', pf.needsHuman, true)
+  eq('상태로그 — preflight 중단 → false(v17)', pf.needsHuman, false)
   check('상태로그 — preflight 사유가 막힌것에', pf.blocked.includes('SUPABASE_SERVICE_ROLE_KEY 미설정'), pf.blocked)
   check('상태로그 — preflight 한일은 "멈췄다"(0건 처리로 접지 않는다)', pf.done.includes('멈췄다'), pf.done)
   check('상태로그 — 사유 로그가 없어도 막힌것을 비우지 않는다',

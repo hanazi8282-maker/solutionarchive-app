@@ -122,8 +122,8 @@ export function buildAlertEntry({ date, w, dist, cfg, now, runUrl }) {
     track: 'CTO',
     done: `[${at}] 앵글 판정 분포 체크 — 체험 기반 ${pct(dist.experientialRate)} ≥ 임계 ${pct(cfg.alert)} (앵글 ${dist.angles}개 · done ${dist.runs}건)`,
     blocked: `[${at}] ${describe(w, dist)}${runUrl ? ` · 실행 ${runUrl}` : ''}`,
-    next: `[${at}] 프롬프트를 손볼지 사람이 판단 — 지금 판정 대부분이 "체험 기반"이라 선례 근거 판정이 거의 나오지 않는다(남헌 2026-10-01: 근거 없이 있는 척 만들지 않는다)`,
-    needsHuman: true,
+    next: `[${at}] 프롬프트를 손볼지 CTO 세션이 판단 — 지금 판정 대부분이 "체험 기반"이라 선례 근거 판정이 거의 나오지 않는다(남헌 2026-10-01: 근거 없이 있는 척 만들지 않는다)`,
+    needsHuman: false, // 분포 경보는 사실 보고(v17)
     note: `${windowMarker(w)} · 임계 ${cfg.alert} · 최소 표본 ${cfg.minRuns} · ${runUrl ?? '로컬 실행(run URL 없음)'}`,
   }
 }

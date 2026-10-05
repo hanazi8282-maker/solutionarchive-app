@@ -168,7 +168,7 @@ try {
   assert.ok(busy.done.startsWith('리뷰 수집 3개 소스 — 신규 3건 · 파싱 10건(실패 1)'), busy.done)
   assert.ok(busy.blocked.includes('appstore: timeout'))
   assert.ok(busy.next.includes('appstore') && busy.next.includes('p1 40건'))
-  assert.equal(busy.needsHuman, true)
+  assert.equal(busy.needsHuman, false) // v17: 실패 소스는 막힘 사실
   assert.ok(busy.note.includes('actions/runs/1'))
   for (const k of ['done', 'blocked', 'next']) assert.ok(lines(busy[k]) <= 5, k)
   buildStatusLogProperties(busy)
@@ -181,7 +181,7 @@ try {
   const noisy = buildReviewCollectEntry({ date: '2026-09-14', sources: [{ key: 'danawa', stats: {}, warnings: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7'] }] })
   assert.equal(lines(noisy.blocked), 5)
   assert.match(noisy.blocked.split('\n')[4], /^외 3건/)
-  assert.equal(noisy.needsHuman, true)
+  assert.equal(noisy.needsHuman, false) // v17
 }
 
 // 9) 폴백 파일 왕복 — renderPending → parsePending (flush 가 올리는 입력). 빈 칸·CRLF·본문 안 '#' 도 살아남는다.

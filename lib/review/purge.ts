@@ -15,6 +15,13 @@
 /** 보존 기간. 설계 §9 — extract 가 소비하고 나면 원본 가치가 급락한다. */
 export const RETENTION_DAYS = 30
 
+/**
+ * 이 시각 이후 수집분은 retention 폐기 대상이 아니다(남헌 v16, 2026-10-05 — 앞으로 쌓이는 수집 데이터 영구 보존).
+ * 그 전 수집분만 기존 30일 규칙을 탄다. 되돌리기 = 이 상수와 decidePurge 의 분기 하나를 지우는 revert.
+ * ponytail: 단일 컷오프 상수. 소스별 보존 정책이 필요해지면 그때 review_sources 컬럼으로 옮긴다.
+ */
+export const RETENTION_EXEMPT_FROM = '2026-10-05T00:00:00+09:00'
+
 export interface PurgeCandidate {
   id: string
   /** null = 사람이 붙여넣은 원문. 폐기 대상이 아니다. */
@@ -61,6 +68,11 @@ export function decidePurge(row: PurgeCandidate, now: Date): PurgeDecision {
   // 미래 시각이면 시계가 어긋났거나 데이터가 오염된 것이다. 지우지 않는다.
   if (collected.getTime() > now.getTime()) {
     return { action: 'unjudgeable', reason: `collected_at 이 미래다: ${row.collected_at}` }
+  }
+
+  // 폐기 해제 컷오프 이후 수집분은 나이와 무관하게 보존한다(v16).
+  if (collected.getTime() >= Date.parse(RETENTION_EXEMPT_FROM)) {
+    return { action: 'keep', reason: `폐기 해제 수집분(${RETENTION_EXEMPT_FROM} 이후)` }
   }
 
   const ageDays = (now.getTime() - collected.getTime()) / 86_400_000

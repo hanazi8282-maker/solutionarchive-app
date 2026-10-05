@@ -387,6 +387,8 @@ const AUDIT = {
   'producthunt.ts': false,
   // Play 리뷰 id 는 UUID 형식 — 전역 유일을 의도한 값. 같은 리뷰가 국가 타깃 둘에 걸릴 수 있다. 형식 판단이고 실측 전.
   'googleplay.ts': false,
+  // 카카오 검색 — externalId = 글 URL 그 자체(블로그·카페 글 주소) → 구성상 전역 유일. 같은 글이 두 검색어에 걸려도 한 행이다.
+  'kakao.ts': false,
   // 판매처 리뷰 seq 가 몰마다 다른 id 공간에서 온다(9자리 vs 11자리 0패딩, 2026-08-29 실측).
   'danawa.ts': true,
   // RSS 리뷰 id 의 전역 유일성을 실측하지 않았다. 한 리뷰는 한 앱에만 달리므로

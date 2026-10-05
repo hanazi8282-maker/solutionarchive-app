@@ -196,6 +196,9 @@ jobs:
       - run: node scripts/review-yozm-selftest.mjs
       #   indiehackers: 편집 인터뷰만(남헌 2026-09-30). 가입 벽에서 본문을 끊는지, 인터뷰 표식 없는 글을 거르는지.
       - run: node scripts/review-indiehackers-selftest.mjs
+      #   kakao_blog·kakao_cafe: 공식 검색 API(남헌 승인 2026-10-06). 헤더 인증 GET 이 러너를 거쳐 가는지, 키 없음은 실행 실패,
+      #             쿼터 초과(400)·키 무효(401)·403·429 는 첫 응답에서 멈추는지, https 아닌 URL·HTML 태그를 거르는지.
+      - run: node scripts/review-kakao-selftest.mjs
       # 위 둘의 소스 키가 마이그레이션·ADAPTERS 맵·워크플로 선택지와 같은 집합인지.
       # 하나라도 빠지면 코드만 있고 수집은 0건인 상태가 로그도 없이 유지된다.
       #

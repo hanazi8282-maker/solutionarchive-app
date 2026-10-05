@@ -1,0 +1,44 @@
+{
+  "documents": [
+    {
+      "title": "<b>무선이어폰</b> 3개월 사용 &quot;후기&quot;",
+      "contents": "노이즈캔슬링은 좋은데 <b>배터리</b>가 6시간이면 바닥나요. 케이스 힌지도 &amp; 헐거워짐",
+      "url": "https://blog.example-kakao.test/alpha/101",
+      "blogname": "알파의 리뷰 블로그",
+      "thumbnail": "https://search1.kakaocdn.test/thumb/a.jpg",
+      "datetime": "2026-10-05T23:30:00.000+09:00"
+    },
+    {
+      "title": "출퇴근용 <b>무선이어폰</b> 비교",
+      "contents": "통화 품질이 지하철에서 많이 끊깁니다",
+      "url": "http://beta.tistory-example.test/55",
+      "blogname": "베타",
+      "thumbnail": "",
+      "datetime": "2026-10-04T15:10:00.000+09:00"
+    },
+    {
+      "title": "url 이 빠진 문서",
+      "contents": "필드 누락 — 파싱 실패로 센다",
+      "blogname": "감마",
+      "thumbnail": "",
+      "datetime": "2026-10-04T10:00:00.000+09:00"
+    },
+    {
+      "title": "",
+      "contents": "",
+      "url": "https://blog.example-kakao.test/empty/1",
+      "blogname": "델타",
+      "thumbnail": "",
+      "datetime": "2026-10-03T10:00:00.000+09:00"
+    },
+    {
+      "title": "스킴이 이상한 글",
+      "contents": "javascript 링크",
+      "url": "javascript:alert(1)",
+      "blogname": "엡실론",
+      "thumbnail": "",
+      "datetime": "2026-10-03T09:00:00.000+09:00"
+    }
+  ],
+  "meta": { "total_count": 1234, "pageable_count": 800, "is_end": false }
+}

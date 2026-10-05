@@ -306,6 +306,9 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   yozm: boardOnlyRef(YOZM_BOARDS),
   indiehackers: boardOnlyRef(INDIEHACKERS_BOARDS),
   googleplay: googleplayRef,
+  // 카카오(다음) 검색 — HN 과 같은 `q:<검색어>` 형식·길이 제약(2026-10-06). 어댑터 parseProductRef 가 같은 값을 읽는다.
+  kakao_blog: hackernewsRef,
+  kakao_cafe: hackernewsRef,
 }
 
 /**

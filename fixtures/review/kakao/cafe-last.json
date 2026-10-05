@@ -1,0 +1,13 @@
+{
+  "documents": [
+    {
+      "title": "<b>무선이어폰</b> 한쪽만 들려요",
+      "contents": "AS 맡겼더니 2주 걸린다네요",
+      "url": "https://cafe.example-kakao.test/club/9001",
+      "cafename": "이어폰 동호회",
+      "thumbnail": "",
+      "datetime": "2026-10-01T00:10:00.000+09:00"
+    }
+  ],
+  "meta": { "total_count": 1, "pageable_count": 1, "is_end": true }
+}

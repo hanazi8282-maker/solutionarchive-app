@@ -6,8 +6,8 @@
 // (lib/analysis/relevance-judge.ts). 라벨이 NULL 이면 "모름"이다 — 'mid'·false 로 접지 않는다(§7.1).
 //
 // ★ 원문 재게시 원칙: 공개 화면에 원문을 통째로 싣지 않는다. 발췌 EXCERPT_MAX 자 + 출처 링크뿐이다.
-//   → 2026-10-05 D안으로 더 좁혔다: 발췌는 소스 quote_policy(full·short_only)에 따라 한 문장, none·모름은 빈 칸. 소스 이름·링크는 모든 소스 비표시(quoteOf).
-//   → v20 #5(2026-10-05): 한 문장 ∧ 한국어 100자·영어 200자 이내가 아니면 발췌를 아예 비운다(자르지 않는다, checkQuote).
+//   → 2026-10-05 D안으로 더 좁혔다: 발췌는 소스 quote_policy 가 full·short_only 일 때만, none·모름은 빈 칸. 소스 이름·링크는 모든 소스 비표시(quoteOf).
+//   → v22 #3(2026-10-05 밤, v20 #5 대체): 한국어 130자·영어 240자 이내가 아니면 발췌를 아예 비운다(문장 수 무관, 자르지 않는다, checkQuote).
 //   `/library/[slug]` 블록 7(VOC 인용)을 비워 둔 것과 같은 원칙이다(그 파일 30-34행).
 // ★ 3상태: 조회 실패('error')와 0건('ok' + 빈 배열)을 가른다. 화면은 둘을 다른 모양으로 그린다.
 //
@@ -62,7 +62,7 @@ export interface SignalItem {
   /** 분석 대상 제품(analysis_projects.product_elevator_pitch). */
   project: string | null
   /**
-   * 원문 직접 인용 — 소스 quote_policy 가 full·short_only 로 **확인된** 경우만, 한 문장 ∧ 한국어 100자·영어 200자 이내일 때만(checkQuote). 그 밖은 빈 문자열.
+   * 원문 직접 인용 — 소스 quote_policy 가 full·short_only 로 **확인된** 경우만, 한국어 130자·영어 240자 이내일 때만(checkQuote, v22 #3). 그 밖은 빈 문자열.
    * 소스 이름·원문 링크는 고객 화면에 싣지 않는다(D안 2026-10-05, 모든 소스 공통) — 필드 자체를 없앴다.
    * 내부 보존은 DB(analysis_inputs.source_key·source_url·raw_text 머리말)에 그대로다.
    */
@@ -90,14 +90,16 @@ export interface FeedFilters {
 // ── 순수 함수 (selftest 대상) ───────────────────────────────────
 
 /**
- * 고객 화면 발췌 검사. 수집기 머리말만 떼고(줄바꿈은 남긴다 — 문장 경계다) checkQuote 에 넘긴다.
- * none·NULL·모르는 값·두 문장 이상·상한 초과는 빈 문자열(§7.1). 출처 이름·링크는 정책과 무관하게 이 화면에 싣지 않는다(D안).
+ * 고객 화면 발췌 검사(kind='quote'). 수집기 머리말만 떼고 checkQuote 에 넘긴다 — 발췌 = 그 원문 전체라 원문 대조는
+ * 자기 자신(raw_text)과 한다(항상 그대로 있음). 그래서 실제로 거르는 건 정책·빈 값·글자 상한(한 130·영 240)이다.
+ * none·NULL·모르는 값·상한 초과는 빈 문자열(§7.1). 출처 이름·링크는 정책과 무관하게 이 화면에 싣지 않는다(D안).
  */
 export function quoteCheckOf(text: string | null | undefined, quotePolicy: unknown): QuoteCheck {
-  return checkQuote(String(text ?? '').replace(HN_HEADER, ''), quotePolicyOf(quotePolicy))
+  const body = String(text ?? '').replace(HN_HEADER, '')
+  return checkQuote(body, quotePolicyOf(quotePolicy), body)
 }
 export function quoteOf(text: string | null | undefined, quotePolicy: unknown): string {
-  return quoteCheckOf(text, quotePolicy).quote
+  return quoteCheckOf(text, quotePolicy).text
 }
 
 const HN_HEADER = /^\s*\[(?:HN|SRC):[^\]]*\]\s*/
@@ -241,7 +243,7 @@ function toItems(rows: Raw[], where: string): SignalItem[] {
   const checks = rows.map((r) => quoteCheckOf(r.analysis_inputs.raw_text, r.analysis_inputs.review_sources?.quote_policy))
   const line = quoteCheckSummary(where, checks)
   if (line) console.log(line)
-  return rows.map((r, i) => toItem(r, checks[i].quote))
+  return rows.map((r, i) => toItem(r, checks[i].text))
 }
 
 function toItem(r: Raw, excerpt: string): SignalItem {

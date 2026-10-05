@@ -534,8 +534,8 @@ export async function runExtraction(
     `[analyze/extract] project=${projectId} extracted aspects=${aspectRows.length} inputs=${parts.length}/${inputs.length}` +
       ` dropped=${droppedInputs} irrelevant=${droppedIrrelevant} chars=${selection.usedChars}`,
   )
-  // 저장한 인용 중 고객 화면 상한(한 문장·한 100/영 200자, v20 #5)을 못 넘는 수. 정책(none)은 여기서 모른다 — 모양만 본다.
-  const quoteCap = quoteCheckSummary(`analyze/extract project=${projectId}`, aspectRows.flatMap((a) => a.evidence_quotes.map((q) => checkQuote(q.text, 'full'))))
+  // 저장한 인용 중 고객 화면 인용 기준(한 130/영 240자 + 수집 원문 전문 대조, v22 #3)을 못 넘는 수. 정책(none)은 여기서 모른다 — 모양만 본다.
+  const quoteCap = quoteCheckSummary(`analyze/extract project=${projectId}`, aspectRows.flatMap((a) => a.evidence_quotes.map((q) => checkQuote(q.text, 'full', inputs.map((i) => i.raw_text)))))
   if (quoteCap) console.log(quoteCap)
   return {
     ok: true,

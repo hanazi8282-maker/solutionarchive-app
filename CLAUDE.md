@@ -374,6 +374,7 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   (로그 없이 바꾸지 않는다), 차단 이력 소스(todayhumor 등)와 남헌이 속도를 정해 둔 소스(danawa, 09-27 최소화)는 대상이 아니다,
   근거 수치는 `review_collection_runs.blocked_responses`·`quota_responses`(000033 이후 행만 측정값)다. 정책은
   `reports/2026-09-28/cowork-four-orders.md` §2-2. `review_sources` 자체는 여전히 건드리지 않는다.
+  퍼센트 램프(남헌 v24·v25 2026-10-06, 마이그 `20261006000002`)도 같은 권한이다 — 같은 행의 `pct_step`·`daily_request_target`·`consecutive_ok_days`·`last_evaluated_date`·`supply_state`·`blocks_at_step`·`block_line(_at)` 을 쓰고, `cap_base` 는 차단선 재정의로 **내리기만** 한다(처음 넣기·올리기는 사람). 러너 예산은 `min(daily_request_cap, daily_request_target) − 오늘 쓴 요청`이라 `daily_request_cap` 은 건드리지 않는다(`lib/review/ramp.ts`).
 - **reports/ 파일** — `reports/` · `drafts/cases/` · `drafts/threads/` · `ops/state/`
   4개 프리픽스에만 커밋한다. 그 밖의 경로가 스테이징에 있으면 커밋하지 않고 실패한다.
 

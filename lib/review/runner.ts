@@ -172,6 +172,11 @@ export interface RunOptions {
   dryRun: boolean
   /** 이 실행에서 훑을 최대 타깃 수. */
   targetLimit: number
+  /**
+   * 퍼센트 램프의 오늘 목표 요청 수(lib/review/ramp.ts, 남헌 v24·v25). 예산 = min(daily_request_cap, 이 값) − 오늘 쓴 요청.
+   * 없으면(램프 행 없음·cap_base 미입력·마이그 미적용·제외 소스) 지금과 같이 daily_request_cap 만 본다.
+   */
+  dailyRequestTarget?: number | null
 }
 
 export interface RunResult {
@@ -195,6 +200,8 @@ export interface RunResult {
   robotsOwnerOverride?: number
   /** 이 실행 시점 review_sources.override 스냅샷(SourceConfig.overrideValue). 건너뛴 실행은 없음. */
   overrideValue?: string | null
+  /** 이 실행 시작 전 오늘(UTC) 이미 쓴 요청 수. 퍼센트 램프 차단선(block_line = 이 값 + requests)의 재료. 건너뛴 실행은 없음. */
+  requestsTodayBefore?: number
   perTarget: Array<{ targetId: string; productRef: string; outcome: string }>
   /** 삭제·없는 글이라 건너뛴 수(ParseResult.missing). 파싱 성공·실패 어느 쪽에도 안 센다. 요청 수에는 들어 있다. */
   missingSkipped: number
@@ -481,7 +488,10 @@ export async function runCollection(
 
   const robots = new RobotsCache(ports, adapter.proceedWhenRobotsUnverified ?? [])
   const pacer = new Pacer(ports, source.minIntervalMs)
-  const budget = source.dailyRequestCap - source.requestsToday
+  // 퍼센트 램프 목표가 있으면 cap 과 둘 중 작은 쪽(cap 은 여전히 하드 상한). 목표로 멈춘 것은 문구를 갈라 둔다(§7.2).
+  const rampBound = opts.dailyRequestTarget != null && opts.dailyRequestTarget < source.dailyRequestCap
+  const budget = (rampBound ? (opts.dailyRequestTarget as number) : source.dailyRequestCap) - source.requestsToday
+  const capOutcome = rampBound ? '오늘 램프 목표 도달' : '일일 상한 도달'
 
   let aborted = false
 
@@ -494,7 +504,7 @@ export async function runCollection(
   for (const target of targets) {
     if (aborted) break
     if (requests >= budget) {
-      perTarget.push({ targetId: target.id, productRef: target.productRef, outcome: '일일 상한 도달' })
+      perTarget.push({ targetId: target.id, productRef: target.productRef, outcome: capOutcome })
       continue
     }
 
@@ -521,7 +531,7 @@ export async function runCollection(
 
     for (let page = 0; page < MAX_PAGES_PER_TARGET; page++) {
       if (requests >= budget) {
-        outcome = '일일 상한 도달'
+        outcome = capOutcome
         break
       }
 
@@ -834,6 +844,7 @@ export async function runCollection(
     robotsBypassedHosts,
     robotsOwnerOverride,
     overrideValue: source.overrideValue ?? null,
+    requestsTodayBefore: source.requestsToday,
     perTarget,
     missingSkipped,
   }

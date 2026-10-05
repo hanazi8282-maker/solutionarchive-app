@@ -16,7 +16,7 @@
 //   - enabled=false → source_disabled
 //   - robots_status 'allowed'·'not_applicable' 만 그대로 통과. 그 밖은 robots_unrecorded(NULL)·robots_unverified·
 //     robots_disallowed 로 막는다(읽지 못한 규칙을 허용으로 보지 않는다, §7.1 — 마이그 20261005000001).
-//     예외: robots_status='disallowed' ∧ override === OWNER_ROBOTS_OVERRIDE(runner.ts) — 러너·store 와 같은 판정.
+//     예외: robots_status='disallowed' ∧ isOwnerRobotsOverride(runner.ts, 허용 집합) — 러너·store 와 같은 판정.
 //     소유자 예외는 robots **금지**만 통과시킨다. unverified·NULL 은 override 가 있어도 막힌다.
 //   - --offline(DB 안 읽음) → source_unknown. 계획 수치만 내고 아무것도 넣지 않는다.
 // product_ref 는 lib/review/target-ref.ts 빌더(= 어댑터 parseProductRef)로 정규화하고, 어댑터
@@ -47,7 +47,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { googleplayAdapter } from '../lib/review/adapters/googleplay.ts'
 import { buildProductRef } from '../lib/review/target-ref.ts'
-import { OWNER_ROBOTS_OVERRIDE } from '../lib/review/runner.ts'
+import { isOwnerRobotsOverride } from '../lib/review/runner.ts'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 export const DICT_DIR = path.join(repoRoot, 'reports', '2026-10-05', 'product-dictionary')
@@ -75,7 +75,7 @@ function sourceGuard(row, offline) {
   if (!row) return 'source_missing'
   if (row.enabled !== true) return 'source_disabled'
   if (row.robots_status === 'allowed' || row.robots_status === 'not_applicable') return null
-  if (row.robots_status === 'disallowed' && row.override === OWNER_ROBOTS_OVERRIDE) return null
+  if (isOwnerRobotsOverride(row.override, row.robots_status)) return null
   return row.robots_status == null ? 'robots_unrecorded' : `robots_${row.robots_status}`
 }
 

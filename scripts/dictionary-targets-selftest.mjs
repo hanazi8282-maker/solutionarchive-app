@@ -81,7 +81,8 @@ t('소스 행 없음(googleplay 미등록) 건너뜀', plan([AREA], { ...base, s
   t('unverified ∧ 허용 override 도 금지', guard('unverified', 'owner_2026-10-05'), 'robots_unverified')
   t('disallowed ∧ override NULL 금지', guard('disallowed', null), 'robots_disallowed')
   t('disallowed ∧ 허용 override 통과', guard('disallowed', 'owner_2026-10-05'), 'pass')
-  t('disallowed ∧ 허용 집합 밖 override 금지', guard('disallowed', 'owner_2026-10-06'), 'robots_disallowed')
+  t('disallowed ∧ 구글 플레이 override(owner_2026-10-06)도 통과', guard('disallowed', 'owner_2026-10-06'), 'pass')
+  t('disallowed ∧ 허용 집합 밖 override 금지', guard('disallowed', 'owner_2026-10-07'), 'robots_disallowed')
   t('allowed 통과(override 무관)', guard('allowed', null), 'pass')
   t('not_applicable 통과', guard('not_applicable', null), 'pass')
   // 사유 코드는 소스별로 갈라 센다(summarize).

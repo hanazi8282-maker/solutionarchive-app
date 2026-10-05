@@ -5,7 +5,7 @@
 //    20261005000005(tos_status='forbids_automation' · override='owner_2026-10-05' · quote_policy='short_only') —
 //    **파일만 있고 오케스트레이터가 실측 1회 뒤 적용한다.** 행이 없으면 러너 loadSource 가 null → 한 건도 안 돈다.
 //    robots 는 소유자 예외 대상이 아니다(robots_status 를 'disallowed' 로 기록하지 않았다) — 러너가 매 실행 판정한다.
-//    고객 화면 인용은 short_only(한 문장·140자·출처 비표시, lib/analysis/evidence-quotes.ts).
+//    고객 화면 인용은 short_only(한국어 130자·영어 240자·원문 그대로·출처 비표시, v22 #3 lib/analysis/evidence-quotes.ts).
 //
 // 경로: `POST https://play.google.com/_/PlayStoreUi/data/batchexecute?hl=<hl>&gl=<gl>` (rpcid UsvDTd, 최신순).
 //   상세 페이지(`/store/apps/details`)의 AF_initDataCallback 블롭에도 리뷰가 있지만(2026-09-02 실측,

@@ -166,7 +166,7 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
     const sb = fakeSb()
     t('제외 소스 → 되돌리기 null', await rollbackOnBlock(sb, 'danawa', { state: 'ramp', ramp: { level: 2 } }, 3, new Date(0), false), null)
   }
-  // 차단(403) → 러너가 즉시 중단 + 직전 단계로 되돌리고 14일 동결, 로그 먼저
+  // 차단(403) → 러너가 즉시 중단 + 직전 단계로 되돌리고 3일 동결(2026-10-05 남헌 v22, 이전 14일), 로그 먼저
   {
     const h = harness(403); const sb = fakeSb({ rampRow: row(2, 22) })
     const r = await go(sb, h)
@@ -174,7 +174,10 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
     t('통합: 403 → 로그 1행 level 2→1', sb.w.logs.map((l) => [l.prev_level, l.new_level, l.applied_by]), [[2, 1, 'review-collect']])
     const u = sb.w.updates[0]
     t('통합: 403 → ramp level 1·타깃 15', [u?.level, u?.targets_per_run], [1, RAMP_STEPS[1]])
-    t('통합: 403 → 동결 14일', Date.parse(u.frozen_until) - Date.parse(u.changed_at), RAMP_FREEZE_DAYS * 86_400_000)
+    t('통합: 403 → 동결 3일', Date.parse(u.frozen_until) - Date.parse(u.changed_at), RAMP_FREEZE_DAYS * 86_400_000)
+    // 상수를 상수로만 대조하면 값이 바뀌어도 통과한다 — 리터럴로 고정(v22: 3일)
+    t('동결 기간 = 3일(v22)', RAMP_FREEZE_DAYS, 3)
+    t('되돌리기 사유에 3일 동결', sb.w.logs[0]?.reason?.includes('3일 동결'), true)
   }
   // 로그 실패 → 단계를 바꾸지 않는다
   {

@@ -2,7 +2,7 @@
 //
 // 근거: reports/2026-09-28/cowork-four-orders.md §2-2 (남헌 2026-09-28 확정). 테이블은 마이그 20260930000034.
 // 러너 배선(2026-10-05): scripts/review-collect.mjs → collectWithRamp — 현재 단계의 1회 타깃 수로 돌리고,
-// 차단 응답이 나오면 직전 단계로 내리고 14일 동결한다(CLAUDE.md §10.1 '수집 램프 단계 자동 기록').
+// 차단 응답이 나오면 직전 단계로 내리고 RAMP_FREEZE_DAYS(3일, 2026-10-05 남헌 v22) 동결한다(CLAUDE.md §10.1 '수집 램프 단계 자동 기록').
 // **올리는 엔진은 아직 없다** — 단계를 올리는 코드는 이 리포에 없다(값을 올리는 건 사람·역할 세션).
 
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -59,8 +59,8 @@ export async function loadSourceRamp(
 
 /** 램프 대상이 아닌 소스(§10.1): 차단 이력(todayhumor) · 남헌이 속도를 정해 둔 소스(danawa, 09-27 최소화). 기본 타깃 수로만 돈다. */
 export const RAMP_EXCLUDED: ReadonlySet<string> = new Set(['danawa', 'todayhumor'])
-/** 되돌리기 뒤 동결 기간(cowork-four-orders §2-2). */
-export const RAMP_FREEZE_DAYS = 14
+/** 되돌리기 뒤 동결 기간. cowork-four-orders §2-2 의 14일을 2026-10-05 남헌 v22 로 3일로 줄였다(정책 문서는 그대로). */
+export const RAMP_FREEZE_DAYS = 3
 
 type Loaded = Awaited<ReturnType<typeof loadSourceRamp>>
 
@@ -79,7 +79,7 @@ export function resolveTargetLimit(sourceKey: string, loaded: Loaded, explicit: 
 }
 
 /**
- * 안전 되돌리기: 차단 응답 ≥1 이면 직전 단계로 내리고 14일 동결. 로그 행을 **먼저** 쓰고, 로그가 실패하면
+ * 안전 되돌리기: 차단 응답 ≥1 이면 직전 단계로 내리고 RAMP_FREEZE_DAYS(3일) 동결. 로그 행을 **먼저** 쓰고, 로그가 실패하면
  * 단계를 바꾸지 않는다(§10.1 — 로그 없이 바꾸지 않는다). 대상이 아니면 null.
  */
 export async function rollbackOnBlock(

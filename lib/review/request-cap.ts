@@ -12,6 +12,8 @@
 //      2) 상한 2배 이내 — 권장값이 현재값의 2배를 넘으면 반영하지 않고 보고만 한다(`hold`).
 //      3) 감사 로그 필수 — `review_source_cap_log` 에 행이 남지 않는 변경은 없다.
 //         로그 테이블이 미적용이면 반영 자체를 하지 않는다(scripts/review-request-cap.mjs).
+//      +) 소유자 예외 소스(`review_sources.override` 있음)는 대상 밖 — 상한을 사람이 정했다
+//         (남헌 2026-10-06). override 를 못 읽으면 전부 대상 밖으로 본다(verdict 'fixed').
 //    같은 문장이 CLAUDE.md §10.1 허용 목록에 한 줄로 있다. 두 곳이 갈라지면 CLAUDE.md 가 정본이다.
 //
 // ⚠️ 이 파일에는 DB·파일·시계가 없다. 전부 스크립트가 주입한 숫자로만 판단한다 —
@@ -40,6 +42,11 @@ export type CapVerdict =
   | 'hold'
   /** 권장값이 현재값 이하 — 내리지 않는다(아래 planSourceCap 주석). */
   | 'keep'
+  /**
+   * 소유자 예외 소스(`review_sources.override` 있음) 또는 override 를 못 읽은 소스 —
+   * 상한은 남헌/오케스트레이터가 정한 값이라 자동으로 올리지 않는다(남헌 2026-10-06).
+   */
+  | 'fixed'
 
 export type TargetKind = 'board' | 'post'
 
@@ -51,6 +58,11 @@ export interface SourceCapInput {
   boardTargets: number
   /** 지금 DB 에 들어 있는 daily_request_cap. */
   currentCap: number
+  /**
+   * `review_sources.override IS NOT NULL` 인가. `null` = 컬럼을 못 읽었다(확인 불가).
+   * ⚠️ **명시적 `false` 일 때만 자동 상향 대상이다** — true·null·누락은 전부 `fixed`(§7.1).
+   */
+  ownerOverride?: boolean | null
 }
 
 export interface CapPlan extends SourceCapInput {
@@ -145,6 +157,22 @@ export function planSourceCap(input: SourceCapInput, runsPerDay: number): CapPla
   const recommended = Math.ceil(need * CAP_BUFFER)
   const ceiling = input.currentCap * 2
 
+  // 소유자 예외 소스는 계산만 하고 절대 올리지 않는다(appstore·googleplay — 남헌이 robots·약관 금지를
+  // 알고 켠 소스라 상한도 사람이 정했다, 2026-10-06). override 를 못 읽었으면 예외인지 모르므로 같은 쪽(§7.1).
+  if (input.ownerOverride !== false) {
+    return {
+      ...input,
+      runsPerDay,
+      need,
+      recommended,
+      verdict: 'fixed',
+      reason:
+        input.ownerOverride === true
+          ? `소유자 예외 소스(override) — 상한 ${input.currentCap} 고정, 자동 상향하지 않는다`
+          : `override 를 확인할 수 없다 — 예외 소스일 수 있어 상향하지 않는다(§7.1)`,
+    }
+  }
+
   // 판정 순서가 중요하다. keep 을 먼저 본다 — 내리는 변경은 이 기능의 범위가 아니다.
   //
   // ⚠️ **상한을 내리지 않는다.** 타깃이 일시적으로 exhausted 로 닫혔다가 되살아나는
@@ -192,6 +220,21 @@ const VERDICT_LABEL: Record<CapVerdict, string> = {
   apply: '반영',
   hold: '보류(사람)',
   keep: '유지',
+  fixed: '고정(예외)',
+}
+
+/** `fixed` 판정 요약 한 줄. 없으면 null. 로그에서 "왜 이 소스는 안 올랐나"를 바로 읽게 한다. */
+export function formatFixedSummary(plans: CapPlan[]): string | null {
+  const owner = plans.filter((p) => p.verdict === 'fixed' && p.ownerOverride === true)
+  const unknown = plans.filter((p) => p.verdict === 'fixed' && p.ownerOverride !== true)
+  const parts: string[] = []
+  if (owner.length > 0) {
+    parts.push(`소유자 예외 소스 ${owner.length}곳 제외(상한 고정): ${owner.map((p) => p.sourceKey).join(', ')}`)
+  }
+  if (unknown.length > 0) {
+    parts.push(`override 확인 불가 ${unknown.length}곳 상향 안 함(§7.1): ${unknown.map((p) => p.sourceKey).join(', ')}`)
+  }
+  return parts.length > 0 ? parts.join(' · ') : null
 }
 
 /** 판정 표. 사람이 로그에서 바로 읽는 형태다 — 수치를 다 남긴다(§7.2). */

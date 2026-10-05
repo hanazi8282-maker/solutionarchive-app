@@ -133,6 +133,11 @@ jobs:
       # 렌더 검사는 가짜 로더로 있음·0건·조회 실패 세 상태의 HTML 과 익명 nav(인사이트 링크 0)를 본다.
       - run: node scripts/insights-feed-selftest.mjs
       - run: node scripts/insights-render-selftest.mjs
+      # 고객 화면 인용 배선(v23 5-b): 정책 맵 못 읽음→인용 0건·정책별 글자 경계·옛 인용 숨김·요약 라벨·판정 인용 경로.
+      # 여기가 접히면 인용 정책 none 소스의 원문이나 지어낸 문장이 따옴표를 달고 고객 화면에 앉는다.
+      - run: node scripts/quote-wiring-selftest.mjs
+      - run: node scripts/insights-evidence-selftest.mjs
+      - run: node scripts/insights-evidence-selftest.mjs --mutate
       # 익명 피드백 하루 1회 제한(로그인 가드 없는 쓰기의 유일한 방어선) + 읽는 쪽 집계(/cases·다이제스트).
       - run: node scripts/case-feedback-selftest.mjs
       # 성공/실패 짝(같은 병목·레버, 방향 반대, 케이스 다름, 양쪽 승인). 조건 한 줄이 느슨해지면
@@ -231,6 +236,8 @@ jobs:
       # 발행 게이트 CG-1/CG-2 의 유일한 테스트(case-pipeline)가 여기 처음 들어간다.
       # 발굴 게이트(감사 2-2) — 전에는 nightly-discovery 에서만 돌아 회귀가 머지 뒤 첫 밤에야 드러났다.
       - run: node scripts/discovery-selftest.mjs
+      # 제품 사전 → review_targets 투입(v23 2) — 가짜 DB 로 멱등·소스 가드·잘못된 ref·사전 ①⑦ 계획 수치.
+      - run: node scripts/dictionary-targets-selftest.mjs
       - run: node scripts/discovery-transfer-selftest.mjs
       - run: node scripts/case-pipeline-selftest.mjs
       # 리서처 VOC 입력 경로(P1): 선택 규칙(사람 판정 우선·purge 제외)·초안 voc_inputs 검증·프롬프트 배선·

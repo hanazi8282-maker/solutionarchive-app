@@ -24,6 +24,7 @@ import {
   REQUESTS_PER_BOARD_RUN,
   classifyTargetRef,
   countCronSchedules,
+  formatFixedSummary,
   formatPlanTable,
   planSourceCap,
 } from '../lib/review/request-cap.ts'
@@ -43,7 +44,7 @@ const t = (name, got, want) => {
 const ok = (name, cond) => t(name, Boolean(cond), true)
 
 const plan = (over, runs = 2) =>
-  planSourceCap({ sourceKey: 's', postTargets: 0, boardTargets: 0, currentCap: 200, ...over }, runs)
+  planSourceCap({ sourceKey: 's', postTargets: 0, boardTargets: 0, currentCap: 200, ownerOverride: false, ...over }, runs)
 
 // ── 1) 글 단위 타깃만 — 1타깃 = 1요청 ────────────────────────────
 {
@@ -152,6 +153,41 @@ jobs:
   ok('확인불가: runsPerDay=null 이면 계산하지 않고 던진다', threw(null))
   ok('확인불가: runsPerDay=0 도 던진다(수요 0 으로 접히면 조용한 무동작이다)', threw(0))
   ok('확인불가: 소수점도 던진다', threw(1.5))
+}
+
+// ── 9) 소유자 예외 소스 — 자동 상향하지 않는다 (남헌 2026-10-06) ──────────
+//   googleplay 40/일·appstore 200/일은 사람이 정한 값이다. 수요가 아무리 커도 apply 로 나오면 안 된다.
+{
+  // 일반 소스면 apply 가 나올 조건(권장 156 ≤ 2배 160)
+  const normal = plan({ sourceKey: 'clien', boardTargets: 3, currentCap: 80 })
+  t('예외: 일반 소스는 기존대로 2배 이내 상향', normal.verdict, 'apply')
+  ok('예외: 일반 소스 상향폭은 2배 이내', normal.recommended <= 80 * 2 && normal.recommended > 80)
+
+  const gp = plan({ sourceKey: 'googleplay', boardTargets: 3, currentCap: 80, ownerOverride: true })
+  t('예외: override 있는 소스는 같은 수요여도 고정', gp.verdict, 'fixed')
+  t('예외: 권장값은 계산해 보고한다', gp.recommended, 156)
+  const gpKeep = plan({ sourceKey: 'googleplay', postTargets: 1, currentCap: 40, ownerOverride: true })
+  t('예외: 수요가 작아도 고정(keep 아님)', gpKeep.verdict, 'fixed')
+  const gpHold = plan({ sourceKey: 'appstore', boardTargets: 50, currentCap: 200, ownerOverride: true })
+  t('예외: 2배 초과 수요여도 고정(hold 로 로그에 안 섞임)', gpHold.verdict, 'fixed')
+
+  // override 읽기 실패 = null. "예외 없음" 으로 접으면 googleplay 가 오른다.
+  const unknown = [
+    plan({ sourceKey: 'clien', boardTargets: 3, currentCap: 80, ownerOverride: null }),
+    plan({ sourceKey: 'googleplay', boardTargets: 3, currentCap: 80, ownerOverride: null }),
+  ]
+  t('확인불가: override 못 읽으면 상향 0건', unknown.filter((p) => p.verdict === 'apply').length, 0)
+  ok('확인불가: 전부 fixed', unknown.every((p) => p.verdict === 'fixed'))
+  const missing = planSourceCap({ sourceKey: 'x', postTargets: 0, boardTargets: 3, currentCap: 80 }, 2)
+  t('확인불가: ownerOverride 누락도 fixed(명시 false 만 상향)', missing.verdict, 'fixed')
+
+  const line = formatFixedSummary([normal, gp, gpHold])
+  ok('요약: 소유자 예외 소스 N곳 제외 문구', line?.includes('소유자 예외 소스 2곳 제외(상한 고정)'))
+  ok('요약: 소스 이름이 찍힌다', line?.includes('googleplay') && line?.includes('appstore'))
+  ok('요약: 일반 소스는 안 찍힌다', !line?.includes('clien'))
+  ok('요약: 확인 불가는 따로 찍는다', formatFixedSummary(unknown)?.includes('override 확인 불가 2곳'))
+  t('요약: 고정이 없으면 null', formatFixedSummary([normal]), null)
+  ok('표: 고정 라벨', formatPlanTable([gp]).includes('고정'))
 }
 
 // ── 부속: ref 분류 · 표 출력 ────────────────────────────────────

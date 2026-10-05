@@ -17,6 +17,7 @@
 //      2) 상한 2배 이내 — `apply` 판정만 반영한다(request-cap.ts). 반영 직전에 한 번 더 단정한다.
 //      3) 감사 로그 필수 — `review_source_cap_log` 가 없으면 **한 건도 반영하지 않는다.**
 //         로그 없는 변경을 만들지 않는 것이 이 예외의 조건이다.
+//      +) 소유자 예외 소스(override 있음)는 `fixed` — 계산만 하고 올리지 않는다(남헌 2026-10-06).
 //    `hold` 는 DB 를 건드리지 않고 `ops/state/request-cap/YYYY-MM-DD.md` + 로그 행으로 남긴다.
 //
 // ⚠️ 상한을 **내리지 않는다**(request-cap.ts planSourceCap 주석). 올리는 쪽만 자동이다.
@@ -35,6 +36,7 @@ import { createClient } from '../lib/supabase/server.ts'
 import {
   classifyTargetRef,
   countCronSchedules,
+  formatFixedSummary,
   formatPlanTable,
   planCaps,
 } from '../lib/review/request-cap.ts'
@@ -88,11 +90,23 @@ if (!supabase) {
   fail('NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없다. DB 집계를 할 수 없다.')
 }
 
-const { data: sourceRows, error: srcErr } = await supabase
+// override = 소유자 예외 표지(마이그 20261005000001). 있는 소스는 자동 상향 대상이 아니다(남헌 2026-10-06).
+// ⚠️ override 를 못 읽으면(42703 등) 멈추지도, "예외 없음" 으로 접지도 않는다 — override 없이 다시 읽고
+//    전 소스를 ownerOverride=null(확인 불가)로 넘긴다. request-cap.ts 가 그걸 'fixed'(상향 0)로 판정한다(§7.1).
+let { data: sourceRows, error: srcErr } = await supabase
   .from('review_sources')
-  .select('key, enabled, daily_request_cap')
+  .select('key, enabled, daily_request_cap, override')
   .order('key')
-if (srcErr) fail(`소스 조회 실패: ${srcErr.message}`)
+let overrideReadable = true
+if (srcErr) {
+  console.log(`⚠️ override 컬럼 조회 실패(${srcErr.message}, code=${srcErr.code ?? '없음'}) — 전 소스 상향 안 함으로 계속한다(§7.1).`)
+  overrideReadable = false
+  ;({ data: sourceRows, error: srcErr } = await supabase
+    .from('review_sources')
+    .select('key, enabled, daily_request_cap')
+    .order('key'))
+  if (srcErr) fail(`소스 조회 실패: ${srcErr.message}`)
+}
 
 // 꺼진 소스는 요청을 한 건도 안 쓴다(runner.ts: enabled=false 면 즉시 skip). 수요가 0 인
 // 것과 "계산 대상이 아닌 것"을 섞지 않으려고 아예 제외하고, 몇 개를 뺐는지 적는다.
@@ -147,6 +161,7 @@ const plans = planCaps(
     postTargets: counts.get(s.key).post,
     boardTargets: counts.get(s.key).board,
     currentCap: s.daily_request_cap,
+    ownerOverride: overrideReadable ? s.override != null : null,
   })),
   runsPerDay,
 )
@@ -155,7 +170,13 @@ console.log(`\n${formatPlanTable(plans)}\n`)
 
 const applies = plans.filter((p) => p.verdict === 'apply')
 const holds = plans.filter((p) => p.verdict === 'hold')
-console.log(`판정: 반영 ${applies.length}건 · 보류 ${holds.length}건 · 유지 ${plans.length - applies.length - holds.length}건`)
+const fixed = plans.filter((p) => p.verdict === 'fixed')
+console.log(
+  `판정: 반영 ${applies.length}건 · 보류 ${holds.length}건 · 고정 ${fixed.length}건 · ` +
+    `유지 ${plans.length - applies.length - holds.length - fixed.length}건`,
+)
+const fixedLine = formatFixedSummary(plans)
+if (fixedLine) console.log(`  · ${fixedLine}`)
 for (const p of [...applies, ...holds]) console.log(`  · ${p.sourceKey}: ${p.reason}`)
 
 // ── 3) 보류 건은 파일로 (사유·권장값) ──────────────────────────
@@ -239,8 +260,9 @@ for (const p of holds) {
 let done = 0
 for (const p of applies) {
   // 방어 단정. 판정 로직이 바뀌어도 2배 초과가 UPDATE 로 새지 않게 여기서 한 번 더 막는다.
-  if (p.recommended > p.currentCap * 2 || p.recommended <= p.currentCap) {
-    console.error(`⚠️ ${p.sourceKey}: 반영 범위를 벗어난 판정이라 건너뛴다(권장 ${p.recommended}, 현재 ${p.currentCap}).`)
+  // 소유자 예외(또는 override 확인 불가) 소스도 여기서 한 번 더 막는다.
+  if (p.recommended > p.currentCap * 2 || p.recommended <= p.currentCap || p.ownerOverride !== false) {
+    console.error(`⚠️ ${p.sourceKey}: 반영 범위를 벗어난 판정이라 건너뛴다(권장 ${p.recommended}, 현재 ${p.currentCap}, override=${String(p.ownerOverride)}).`)
     continue
   }
 

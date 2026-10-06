@@ -27,6 +27,10 @@ export const MIN_PARSE_SAMPLE = 10
 export const PARSE_RATE_NUM = 8
 export const PARSE_RATE_DEN = 10
 
+/** 파싱 실패율 "주의" 문턱 2/10 = 20%(v27 제안). broken(성공률 < 8/10, 표본 10 이상)에 안 걸린 나머지에만 쓴다. */
+export const PARSE_CAUTION_NUM = 2
+export const PARSE_CAUTION_DEN = 10
+
 /** 연속 신규 0건이 이 횟수에 도달하면 degraded. */
 export const MAX_CONSECUTIVE_EMPTY = 3
 
@@ -214,6 +218,21 @@ export function judgeHealth(input: HealthInput): HealthVerdict {
       detail: `파싱 성공 ${stats.reviewsParsed}/${attempted} (기준 ${PARSE_RATE_NUM}/${PARSE_RATE_DEN}) — 구조가 바뀐 것으로 보인다. 파서 교체 필요`,
       disable: true,
       consecutiveEmptyAfter: consecutiveEmptyBefore,
+      warnings,
+    }
+  }
+
+  // ── 2b) 파싱 "주의"(v27 제안) ──────────────────────────────
+  // 실패율 ≥ 20% 인데 위 broken 에 안 걸린 경우 — 정확히 20%(2/10)이거나 표본 10 미만(예: 2/8).
+  // 예전엔 ok(+경고 한 줄)였다. degraded 로 올려 /agents·insight-loop 경보(⚠️)에 뜨게 한다.
+  // 중단하지 않는다(러너 브레이크·soft-skip·램프는 broken 만 본다) — "주의"이지 "고장"이 아니다.
+  if (stats.parseFailures > 0 && stats.parseFailures * PARSE_CAUTION_DEN >= attempted * PARSE_CAUTION_NUM) {
+    return {
+      health: 'degraded',
+      detail: `파싱 주의 — 실패 ${stats.parseFailures}/${attempted}(≥ ${PARSE_CAUTION_NUM}/${PARSE_CAUTION_DEN})${attempted < MIN_PARSE_SAMPLE ? ` · 표본 ${MIN_PARSE_SAMPLE} 미만` : ''}`,
+      disable: false,
+      // 연속 0건 카운터는 아래 3)·4) 와 같은 규칙(쿼터면 그대로, 신규 0건이면 +1).
+      consecutiveEmptyAfter: stats.quotaExhaustedResponses > 0 ? consecutiveEmptyBefore : stats.newReviews === 0 ? consecutiveEmptyBefore + 1 : 0,
       warnings,
     }
   }

@@ -24,6 +24,7 @@ import { collectWithRamp, stepPctRamps } from '../lib/review/ramp.ts'
 import { createReviewStore } from '../lib/review/store.ts'
 import { alertLine } from '../lib/review/health.ts'
 import { finishRunRow } from '../lib/review/run-log.ts'
+import { loadSoftSkip } from '../lib/review/latest-health.ts'
 import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
 import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { hackernewsAdapter } from '../lib/review/adapters/hackernews.ts'
@@ -119,6 +120,9 @@ if (unknown.length > 0) {
   process.exit(1)
 }
 
+// 소스 이름을 직접 적은 실행(--source=okky 등)은 soft-skip 하지 않는다. 스케줄은 --source=all 이다.
+const explicitSources = rawSource.trim() !== 'all'
+
 // 같은 소스를 두 번 적으면 커서를 서로 덮어쓴다.
 const sourceKeys = [...new Set(requested)]
 // --targets 가 없으면(스케줄 기본) 소스별 램프 단계의 1회 타깃 수를 쓴다(lib/review/ramp.ts collectWithRamp).
@@ -203,6 +207,20 @@ for (const sourceKey of sourceKeys) {
     say(`- ❌ 환경변수 미설정으로 건너뛴다: ${missingEnv.join(', ')} (차단이 아니라 우리 설정이다)`)
     sourceResults.push({ key: sourceKey, fatal: `환경변수 미설정 — ${missingEnv.join(', ')}` })
     continue
+  }
+
+  // soft-skip(v27) — 최근 3회 연속 파싱 고장(차단 아님)이면 이번 실행에서 건너뛴다. DB 쓰기 없음(실행 행도 안 만든다).
+  // --source=<키> 로 이름을 직접 적은 실행은 건너뛰지 않는다(고친 뒤 확인하는 경로). 확인 불가면 지금처럼 돈다(§7.1).
+  if (!explicitSources && !dryRun) {
+    const ss = await loadSoftSkip(supabase, sourceKey)
+    if (ss.state === 'skip') {
+      say('')
+      say(`### \`${sourceKey}\``)
+      say(`- ⏭️ soft-skip: ${ss.reason}`)
+      sourceResults.push({ key: sourceKey, skipped: true, skipReason: `soft-skip — ${ss.reason}` })
+      continue
+    }
+    if (ss.state === 'unknown') console.log(`ℹ️ [${sourceKey}] soft-skip 확인 불가 — ${ss.reason}`)
   }
 
   // 이전 실행 정리 — running 으로 남은 행은 잡이 죽은 것이다.

@@ -311,6 +311,16 @@ export interface ReviewSourceAdapter {
   incrementalOnly?: boolean
 
   /**
+   * 이 소스의 타깃당 실행 1회 페이지 상한. 러너는 `min(MAX_PAGES_PER_TARGET, maxPagesPerRun)` 을 쓴다.
+   * 없으면 러너 상한(20) 그대로. 지금은 googleplay(2) 만 선언한다(v27 — 토큰을 고치면서 요청이 1→20 으로
+   * 튀지 않게, 타깃당 요청 1회만 늘린다).
+   *
+   * ⚠️ `incrementalOnly` 와 함께 선언한 소스는 이 상한에 걸려 끝나면 **커서를 버린다**(다음 실행은 최신부터).
+   *    커서를 들고 가면 다음 실행이 더 오래된 페이지부터 읽어, 새 리뷰를 영영 못 본다(runner.ts pageCap).
+   */
+  maxPagesPerRun?: number
+
+  /**
    * **이 소스의 `externalId` 는 타깃(상품) 안에서만 유일하다 — 사이트 전역이 아니다.**
    *
    * 기본값 `false`(= 사이트 전역 유일)에서 지문의 `identity_key` 는

@@ -1097,12 +1097,14 @@ const GRADE_RANK = { A: 3, B: 2, C: 1, D: 0 }
 /**
  * 영역 허용목록(남헌 v27, 2026-10-07). 5영역 밖(소비재·채용 등) 케이스를 앵글로 고르지 않는다.
  *
+ * 파일은 **케이스** slug → 영역 맵이다. `data/area-map-v26.json`(#443, 제품사전 slug → 1..5|hold|out)과는 다른 파일·형식이다.
+ *   내용(어느 케이스가 어느 영역인지)은 남헌 판단 대기 — 그 전까지 파일이 없어 확인 불가 폴백으로 돈다.
  * 계약: `{ "allowed_areas": ["<영역>", ...], "slug_area": { "<case slug>": "<영역>" } }`.
  *   slug_area 에 없는 케이스는 "영역 모름"이라 고르지 않는다(§7.1 — 모르는 것을 허용으로 접지 않는다).
  * 파일이 없거나 계약과 다르면 **확인 불가** — 필터 없이 기존 동작으로 가되 매 실행 보고에 경고를 남긴다.
  *   그 경우 null 을 돌려주고 사유는 reason 에 담는다.
  */
-export const AREA_MAP_FILE = 'data/area-map-v26.json'
+export const AREA_MAP_FILE = 'data/case-area-map.json'
 export function loadAreaAllowlist(repoRoot) {
   const file = path.join(repoRoot, AREA_MAP_FILE)
   if (!fs.existsSync(file)) return { allowed: null, reason: `${AREA_MAP_FILE} 없음` }

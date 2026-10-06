@@ -39,11 +39,11 @@ const fakeSb = (tables, failT = {}, log = []) => ({
 })
 
 // ── 1) 정책 맵 로더 ────────────────────────────────────────────
-t('스위치(QUOTE_POLICY_COLUMN_READY)는 이 PR 에서 그대로 false', QUOTE_POLICY_COLUMN_READY === false)
+t('스위치(QUOTE_POLICY_COLUMN_READY)는 켜져 있다(v27 — 실DB 57014 해소 확인 뒤)', QUOTE_POLICY_COLUMN_READY === true)
 {
   const log = []
-  t('스위치 꺼짐 → null(읽지도 않는다)', (await loadQuotePolicies(fakeSb({}, {}, log), 'test')) === null && log.length === 0)
-  t('기본값은 스위치를 따른다', (await loadQuotePolicies(fakeSb({ review_sources: [{ key: 'a', quote_policy: 'full' }] }), 'test')) === null)
+  t('스위치 꺼짐 → null(읽지도 않는다)', (await loadQuotePolicies(fakeSb({}, {}, log), 'test', false)) === null && log.length === 0)
+  t('기본값은 스위치를 따른다(켜짐 → 읽는다)', (await loadQuotePolicies(fakeSb({ review_sources: [{ key: 'a', quote_policy: 'full' }] }), 'test'))?.get('a') === 'full')
   t('컬럼 없음(42703) → null', (await loadQuotePolicies(fakeSb({}, { review_sources: '42703' }), 'test', true)) === null)
   t('조회 실패(500) → null', (await loadQuotePolicies(fakeSb({}, { review_sources: '500' }), 'test', true)) === null)
   const m = await loadQuotePolicies(fakeSb({ review_sources: [{ key: 'a', quote_policy: 'full' }, { key: 'b', quote_policy: null }] }), 'test', true)

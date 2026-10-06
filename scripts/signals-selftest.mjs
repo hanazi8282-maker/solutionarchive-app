@@ -100,7 +100,7 @@ t('quote: 정책 모름(null·undefined·옛 boolean·오타) 이면 빈 문자�
 t('quote: 상한 넘는 긴 글은 자르지 않고 비운다', quoteOf('가'.repeat(500), 'full') === '')
 // 20261005000003 적용 확인 전까지 false. v19 전에는 quote_allowed(000001, 적용됨)를 가리켜 true 였는데,
 // 읽는 컬럼이 quote_policy(미적용)로 바뀌어 다시 false 가 맞다 — true 로 두면 /voc 조회가 42703 으로 죽는다.
-t('quote: 컬럼 미적용 플래그는 기본 false(미적용 DB 에서 /voc 가 죽지 않게)', QUOTE_POLICY_COLUMN_READY === false)
+t('quote: 컬럼 적용 플래그는 true(quote_policy 컬럼 적용 확인 뒤, v27)', QUOTE_POLICY_COLUMN_READY === true)
 t('policy: quotePolicyOf 모르는 값 → none', quotePolicyOf('x') === 'none' && quotePolicyOf(null) === 'none' && quotePolicyOf('short_only') === 'short_only')
 t('target: 목표 약 100자는 권고 상수(하드 상한보다 작다)', QUOTE_TARGET_CHARS === 100 && QUOTE_TARGET_CHARS < QUOTE_MAX_KO && QUOTE_MAX_KO === 130 && QUOTE_MAX_EN === 240)
 // 길이 경계 — 한국어 130 / 영어 240, 정책(full·short_only) 무관. 원문 = 발췌 자신(자기 대조).

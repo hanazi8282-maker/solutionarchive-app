@@ -5,7 +5,7 @@
 // (reports/2026-09-23/data-velocity-plan.md §1 Q5 · §2 T2).
 //
 // 무엇을 하나
-//   1. status='collecting' 프로젝트에서 T1 선별(selectInputs)을 통과한 상위 N건(기본 200)을 고른다.
+//   1. 야간 extract 후보 상태(extract-gate AUTO_EXTRACT_STATUSES — collecting·extracted·failed) 프로젝트에서 T1 선별(selectInputs)을 통과한 상위 N건(기본 200)을 고른다.
 //   2. 그중 **아직 판정이 없는 것**만, 프로젝트당 1회 돈다(리뷰 20건씩 묶어 호출).
 //   3. 최근 사람 채점(human_verdict) 최대 10건을 few-shot 으로 프롬프트에 넣는다(그 프로젝트 우선).
 //   4. 결과를 review_relevance_verdicts 에 UPSERT. **human_verdict 는 payload 에 없다** —
@@ -28,6 +28,10 @@ import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/bud
 import { selectInputs } from '../lib/analysis/extract-select.ts'
 // 대상 순서는 야간 extract 와 같은 규칙을 쓴다(SaaS 우선 → 많은 순 → projectId).
 import { compareAutoPriority } from '../lib/analysis/extract-auto.ts'
+// 대상 상태도 야간 extract 와 한 벌(v27 옵션 A). collecting 만 보던 동안 extracted 프로젝트에 새로 들어온 수집분은
+// 판정되지 않아 T2(자동 승인·extract 선별)를 못 넘었다. 2차(relevance-second-judge-auto)는 프로젝트 상태로 거르지 않고
+// 1차 판정 행을 따라가므로 같은 집합을 자동으로 쓴다. 하루 상한(RELEVANCE_MAX_PROJECTS)은 그대로다.
+import { AUTO_EXTRACT_STATUSES } from '../lib/analysis/extract-gate.ts'
 import {
   BATCH_SIZE,
   MAX_EXAMPLES,
@@ -94,7 +98,7 @@ const projectQuery = (cols) =>
     .from('analysis_projects')
     // business_model 은 순서를 가른다 — SaaS 가 먼저다(compareAutoPriority, 남헌 2026-09-23).
     .select(cols)
-    .eq('status', 'collecting')
+    .in('status', AUTO_EXTRACT_STATUSES)
     .order('created_at', { ascending: true })
 
 let readerProblemColumn = 'unknown' // 'present' | 'absent' | 'unknown'
@@ -224,7 +228,7 @@ const targets = ready.slice(0, maxProjects)
 const remaining = ready.length - targets.length
 
 log(
-  `collecting ${(projects ?? []).length}건 → 판정 대상 프로젝트 ${ready.length}건` +
+  `후보(${AUTO_EXTRACT_STATUSES.join('·')}) ${(projects ?? []).length}건 → 판정 대상 프로젝트 ${ready.length}건` +
     (remaining > 0 ? ` 중 ${targets.length}건 실행 (상한 ${maxProjects}건 도달, 남은 ${remaining}건은 다음 실행)` : ' 전부 실행') +
     ' (순서: SaaS 우선 → 미판정 많은 순)',
 )

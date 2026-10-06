@@ -248,6 +248,17 @@ t('extract 가 조회 실패를 null 로 넘긴다(제외 없음)', run.includes
 t('extract 가 droppedIrrelevant 를 로그·반환에 남긴다',
   run.includes('irrelevant=${droppedIrrelevant}') && /droppedIrrelevant,?\s/.test(run) && /return \{[\s\S]{0,200}droppedInputs,/.test(run))
 t('배치가 T1 선별을 재사용한다', auto.includes('selectInputs('))
+// v27 옵션 A — 판정 대상 상태 = 야간 extract 후보 상태(한 벌). 리터럴 'collecting' 로 되돌리면 실패한다.
+{
+  const gate = await import('../lib/analysis/extract-gate.ts')
+  t('대상 상태: extract-gate AUTO_EXTRACT_STATUSES 를 import 한다', /import \{ AUTO_EXTRACT_STATUSES \} from '\.\.\/lib\/analysis\/extract-gate\.ts'/.test(auto))
+  t("대상 상태: .in('status', AUTO_EXTRACT_STATUSES) 로 조회한다", auto.includes(".in('status', AUTO_EXTRACT_STATUSES)"))
+  t("대상 상태: 리터럴 .eq('status', 'collecting') 가 없다", !auto.includes(".eq('status', 'collecting')"))
+  t('대상 상태: collecting·extracted 를 포함한다', gate.AUTO_EXTRACT_STATUSES.includes('collecting') && gate.AUTO_EXTRACT_STATUSES.includes('extracted'))
+  t('대상 상태: 하루 프로젝트 상한은 그대로(RELEVANCE_MAX_PROJECTS 기본 5)', auto.includes('num(process.env.RELEVANCE_MAX_PROJECTS, 5)'))
+  const second = read('scripts/relevance-second-judge-auto.mjs')
+  t('2차는 프로젝트 상태로 거르지 않는다(1차 판정 행을 따라간다 = 같은 집합)', !/analysis_projects[\s\S]{0,200}\.(eq|in)\('status'/.test(second))
+}
 t('배치가 판정 있는 입력을 건너뛴다', auto.includes('done.has(s.input.id)'))
 t('배치가 사람 채점을 덮지 않는다', auto.includes('human_verdict·human_graded_at 은 payload 에 없다') && !auto.includes('human_verdict: '))
 t('배치가 few-shot 을 주입한다', auto.includes('examplesFor('))

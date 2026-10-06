@@ -32,7 +32,7 @@ import { checkQuote, quoteCheckSummary, quotePolicyOf, type QuoteCheck } from '.
  * false 인 동안은 어느 소스도 허용으로 확인할 수 없으므로 **발췌를 전부 비운다**(fail-closed, D안 2026-10-05).
  * 미적용 상태에서 true 로 두면 /voc 조회 전체가 42703 으로 죽는다(POSTS_PILLAR_COLUMN_READY 와 같은 패턴).
  */
-export const QUOTE_POLICY_COLUMN_READY = false
+export const QUOTE_POLICY_COLUMN_READY = true
 
 /** 발췌 상한(글자) — excerptOf 기본값(원문 인용이 아닌 문구용). 고객 화면 원문 인용은 이 값이 아니라 checkQuote 상한을 쓴다. */
 export const EXCERPT_MAX = 140

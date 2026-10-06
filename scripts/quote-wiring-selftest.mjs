@@ -6,7 +6,8 @@
 //   정책 맵 로더(스위치·실패) → 원문 후보 로더(조회 생략·실패·검색 패턴) → publicLines(정책별 경계·옛 인용·요약) → 요약 마크다운.
 // 인사이트 화면 렌더 경계(판정 인용 포함)는 insights-evidence-selftest 가 본다.
 
-import { QUOTE_PENDING_NOTE, QUOTE_MAX_EN, QUOTE_MAX_KO, publicLines, quoteProbeTokens } from '../lib/analysis/evidence-quotes.ts'
+import { QUOTE_BACKFILL_TAG, QUOTE_PENDING_NOTE, QUOTE_MAX_EN, QUOTE_MAX_KO, publicLines, quoteProbeTokens } from '../lib/analysis/evidence-quotes.ts'
+import { planQuotes, prepareInputs } from '../lib/analysis/quote-backfill.ts'
 import { loadQuotePolicies, loadQuoteSources, sourceGroupKey } from '../lib/analysis/quote-policy-db.ts'
 import { QUOTE_POLICY_COLUMN_READY } from '../lib/signals/feed.ts'
 import { buildSummaryMarkdown } from '../lib/cases/summary.ts'
@@ -24,7 +25,10 @@ const fakeSb = (tables, failT = {}, log = []) => ({
     const q = new Proxy({}, {
       get(_, k) {
         if (k === 'then') {
-          const res = failT[table] ? { data: null, error: { code: failT[table], message: 'boom' } } : { data: tables[table] ?? [], error: null }
+          // failT[table]·tables[table] 가 함수면 호출(call)마다 다르게 — 묶음별 부분 실패를 흉내 낸다.
+          const code = typeof failT[table] === 'function' ? failT[table](call) : failT[table]
+          const rows = typeof tables[table] === 'function' ? tables[table](call) : tables[table]
+          const res = code ? { data: null, error: { code, message: 'boom' } } : { data: rows ?? [], error: null }
           return (ok, ko) => Promise.resolve(res).then(ok, ko)
         }
         return (...args) => { call.ops.push([k, ...args]); return q }
@@ -63,12 +67,13 @@ const P = 'p1'
   const orArg = log3[0].ops.find((o) => o[0] === 'or')?.[1] ?? ''
   t('검색 패턴: 쉼표·괄호는 큰따옴표 안, 따옴표는 이스케이프', orArg === 'raw_text.ilike."%배송이%\\"빨라\\"%(정말),%좋아요%"')
   t('검색 범위: 프로젝트·소스 키로 좁힌다', log3[0].ops.some((o) => o[0] === 'in' && o[1] === 'project_id' && o[2].join() === P) && log3[0].ops.some((o) => o[0] === 'in' && o[1] === 'source_key' && o[2].join() === 'full_src'))
-  t('조회 실패 → null(일부만 읽은 원문으로 대조하지 않는다)', (await loadQuoteSources(fakeSb({}, { analysis_inputs: '500' }), [{ project_id: P, quotes: [{ text: '좋아요', source_key: 'full_src' }] }], POL, 'test')) === null)
+  t('조회가 전부 실패 → null', (await loadQuoteSources(fakeSb({}, { analysis_inputs: '57014' }), [{ project_id: P, quotes: [{ text: '좋아요', source_key: 'full_src' }] }], POL, 'test')) === null)
   const many = Array.from({ length: 45 }, (_, i) => ({ text: `리뷰 문장 번호 ${i}`, source_key: 'full_src' }))
   const log4 = []
   await loadQuoteSources(fakeSb({ analysis_inputs: [] }, {}, log4), [{ project_id: P, quotes: many }], POL, 'test')
   t('패턴 20개씩 나눠 조회(45 → 3회)', log4.length === 3)
 }
+
 t('검색 조각: 첫 … 앞, 공백으로 나눈 앞머리', quoteProbeTokens('  배송이\n빨라요 … 포장도 좋고').join('|') === '배송이|빨라요')
 t('검색 조각: 문자열 아님 → 없음', quoteProbeTokens(null).length === 0)
 
@@ -104,6 +109,66 @@ t('옛 인용 + 요약 → 요약(kind=summary)', run([{ ...legacy[0], summary: 
 t('요약도 글자 상한(131자 거부)', run([{ ...legacy[0], summary: ko131 }]).lines.length === 0)
 t('인용 통과면 요약보다 인용이 먼저', run([{ text: ko130, source_key: 'full_src', summary: '줄인 말' }]).lines[0]?.kind === 'quote')
 t('입력이 배열 아님 → 0건', publicLines(null, POL, src(raw)).lines.length === 0)
+
+// ── 2b) 백필 검증(verified=full ∧ qb-v1) — 원문 조회 없이 정책만 (2026-10-06 57014 대응) ──
+{
+  const BF = { verified: 'full', backfill: QUOTE_BACKFILL_TAG }
+  const log = []
+  await loadQuoteSources(fakeSb({}, {}, log), [{ project_id: P, quotes: [{ text: '좋아요 정말', source_key: 'full_src', ...BF }] }], POL, 'test')
+  t('백필 full 뿐 → 원문 조회 0회', log.length === 0)
+  const others = [
+    { text: '앞머리만 맞음', source_key: 'full_src', verified: 'prefix', backfill: QUOTE_BACKFILL_TAG },
+    { text: '폐기된 원문', source_key: 'full_src', verified: 'purged', backfill: QUOTE_BACKFILL_TAG },
+    { text: '어디에도 없음', source_key: 'full_src', verified: 'none', backfill: QUOTE_BACKFILL_TAG },
+    { text: '새로 저장된 인용', source_key: 'full_src' },
+    { text: '표식 없는 full', source_key: 'full_src', verified: 'full' },
+    { text: '좋아요 정말', source_key: 'full_src', ...BF },
+  ]
+  const log2 = []
+  await loadQuoteSources(fakeSb({}, {}, log2), [{ project_id: P, quotes: others }], POL, 'test')
+  const orArg = log2[0]?.ops.find((o) => o[0] === 'or')?.[1] ?? ''
+  t('prefix·purged·none·verified 없음·표식 없는 full → 조회 대상, 백필 full 은 빠진다',
+    log2.length === 1 && orArg.split(',').length === 5 && !orArg.includes('좋아요'))
+
+  // publicLines: 백필 full 은 sourcesOf 를 부르지 않는다.
+  let calls = 0
+  const counting = () => { calls++; return null }
+  const r = publicLines([{ text: ko130, source_type: 'review', source_key: 'full_src', ...BF }], POL, counting)
+  t('백필 full → 원문 조회 0회로 quote', r.lines[0]?.kind === 'quote' && r.lines[0].text === ko130 && calls === 0)
+  t('백필 full + short_only → quote', publicLines([{ text: ko130, source_key: 'short_src', ...BF }], POL, counting).lines[0]?.kind === 'quote')
+  t('백필 full 이어도 정책 none → 가림', publicLines([{ text: ko130, source_key: 'none_src', ...BF }], POL, counting).hidden === 1)
+  t('백필 full 이어도 맵에 없는 소스 → 가림', publicLines([{ text: ko130, source_key: 'ghost', ...BF }], POL, counting).hidden === 1)
+  t('백필 full 이어도 정책 맵 못 읽음 → 가림', publicLines([{ text: ko130, source_key: 'full_src', ...BF }], null, counting).hidden === 1)
+  t('백필 full 이어도 source_key 없음 → 가림', publicLines([{ text: ko130, ...BF }], POL, counting).hidden === 1)
+  t('백필 full 이어도 한국어 131자 → 거부(too_long)', publicLines([{ text: ko131, source_key: 'full_src', ...BF }], POL, counting).hidden === 1)
+  t('백필 full 이어도 영어 241자 → 거부', publicLines([{ text: en241, source_key: 'full_src', ...BF }], POL, counting).hidden === 1)
+  t('위 거부들도 원문 조회 0회', calls === 0)
+  for (const v of ['prefix', 'purged', 'none', undefined]) {
+    const q = { text: ko130, source_key: 'full_src', backfill: QUOTE_BACKFILL_TAG, ...(v ? { verified: v } : {}) }
+    t(`verified=${v ?? '없음'} → 원문 못 읽으면 가림`, publicLines([q], POL, () => null).hidden === 1)
+    t(`verified=${v ?? '없음'} → 원문 대조 통과하면 quote(조회 경로)`, publicLines([q], POL, src(raw)).lines[0]?.kind === 'quote')
+  }
+  t('verified=full 인데 표식 없음 → 신뢰 안 함(원문 못 읽으면 가림)', publicLines([{ text: ko130, source_key: 'full_src', verified: 'full' }], POL, () => null).hidden === 1)
+  t('표식이 다른 값(qb-v0) → 신뢰 안 함', publicLines([{ text: ko130, source_key: 'full_src', verified: 'full', backfill: 'qb-v0' }], POL, () => null).hidden === 1)
+
+  // 경계면: 백필(planQuotes)이 실제로 만든 항목을 그대로 publicLines 에 넣는다.
+  const planned = planQuotes([{ text: '배터리가 금방 닳아요.', source_type: 'review' }],
+    prepareInputs([{ source_key: 'full_src', source_type: 'review', raw_text: '이 제품은 배터리가 금방 닳아요. 아쉽다' }])).next
+  t('백필 산출물 → 원문 조회 없이 quote', publicLines(planned, POL, () => { throw new Error('sourcesOf called') }).lines[0]?.text === '배터리가 금방 닳아요.')
+
+  // 부분 실패: 25개 → 2묶음, 첫 묶음만 실패. 실패 묶음 인용은 가리고 나머지는 낸다.
+  const qs = Array.from({ length: 25 }, (_, i) => ({ text: `문장${i}번 끝`, source_key: 'full_src' }))
+  let n = 0
+  const sb = fakeSb(
+    { analysis_inputs: () => qs.slice(20).map((q) => ({ project_id: P, source_key: 'full_src', raw_text: `원문 ${q.text}` })) },
+    { analysis_inputs: () => (n++ === 0 ? '57014' : null) },
+  )
+  const part = await loadQuoteSources(sb, [{ project_id: P, quotes: qs }], POL, 'test')
+  const pl = publicLines(qs, POL, (k) => part?.get(sourceGroupKey(P, k)) ?? null)
+  t('부분 실패 → 맵은 null 이 아니다', part instanceof Map)
+  t('부분 실패 → 실패 묶음(0~19)은 가리고 성공 묶음(20~24)은 낸다',
+    pl.hidden === 20 && pl.lines.length === 5 && pl.lines.every((l) => l.index >= 20))
+}
 
 // ── 5) 요약 마크다운(화면 밖 산출물) 붙인 자리 ──────────────────
 const md = (aspectQuotes, quotes) => buildSummaryMarkdown({ project: null, pmf: null, aspects: [{ name: 'x', importance: 9, satisfaction: 2, opportunity_score: 16, evidence_quotes: aspectQuotes }], quotes })

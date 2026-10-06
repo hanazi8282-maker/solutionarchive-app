@@ -4,7 +4,7 @@
 //          '확인' 외 상태 미투입 · --max · --unit=area · --unit 을 바꿔도 같은 앱을 두 번 넣지 않음 ·
 //          실제 사전 ①·⑦ 의 계획 수치(보고서 표와 같은 값)와 invalid_ref 0.
 
-import { main, plan, loadAreas, summarize } from './dictionary-targets.mjs'
+import { main, plan, loadAreas, loadAreaMap, summarize } from './dictionary-targets.mjs'
 
 let pass = 0
 let fail = 0
@@ -54,7 +54,8 @@ const AREA = {
     { slug: 'd', name: 'D', region: 'kr', summary_ko: 'd', sources: { appstore: cell('확인', '111'), googleplay: cell('검색어', null) } }, // a 와 같은 앱 ID
   ],
 }
-const base = { sources: ['appstore', 'googleplay'], unit: 'product', globalUs: false, max: 100, offline: false, existing: new Set() }
+// 합성 사전은 실제 영역 지도에 없다 — 영역 1 로 둔다(영역 필터 검사는 아래 '영역 지도' 블록).
+const base = { sources: ['appstore', 'googleplay'], unit: 'product', globalUs: false, max: 100, offline: false, existing: new Set(), areaMap: { a: '1', b: '1', c: '1', d: '1' } }
 const skipsOf = (items) => items.map((i) => `${i.slug}/${i.source}/${i.skip ?? 'insert'}`)
 
 // 가드·상태·ref
@@ -67,7 +68,7 @@ const skipsOf = (items) => items.map((i) => `${i.slug}/${i.source}/${i.skip ?? '
     'd/appstore/dup_in_plan', 'd/googleplay/status:검색어',
   ])
   t('ref 정규화(kr 기본)', items.filter((i) => !i.skip).map((i) => i.ref), ['kr:111', 'kr:ko:com.a.app'])
-  t('label = <area>:<slug>', items[0].label, '99-test:a')
+  t('label = <새 영역>:<slug>(v27)', items[0].label, '1:a')
 }
 t('꺼진 소스 투입 금지', plan([AREA], { ...base, sourceRows: { appstore: { ...ON, enabled: false }, googleplay: ON } })[0].skip, 'source_disabled')
 t('소스 행 없음(googleplay 미등록) 건너뜀', plan([AREA], { ...base, sourceRows: { appstore: ON } })[1].skip, 'source_missing')
@@ -104,25 +105,27 @@ t('--max', plan([AREA], { ...base, max: 1, sourceRows: { appstore: ON, googlepla
   const dry = await main(['--max=1000'], { port: db.port })
   t('드라이런 쓰기 0', db.writes, 0)
   t('드라이런 applied=null', dry.out.applied, null)
-  t('①·⑦ 계획 = 확인 칸 수(app 25+12, play 27+13)', dry.out.insert, 77)
-  t('①·⑦ 영역×소스', Object.fromEntries(Object.entries(dry.out.by).map(([a, v]) => [a, [v.appstore.insert, v.googleplay.insert]])), { '01-meeting-notes': [25, 27], '07-ecommerce-ops': [12, 13] })
+  // v27 영역 지도: ⑦ 은 3·5·null 로 남은 19개 중 확인 칸이 app 1 · play 1 뿐이다(나머지 29개는 out).
+  t('①·⑦ 계획 = 확인 칸 수(app 25+1, play 27+1)', dry.out.insert, 54)
+  t('①·⑦ 영역×소스', Object.fromEntries(Object.entries(dry.out.by).map(([a, v]) => [a, [v.appstore.insert, v.googleplay.insert]])), { '01-meeting-notes': [25, 27], '07-ecommerce-ops': [1, 1] })
 
   const r1 = await main(['--run', '--max=1000'], { port: db.port })
-  t('run 1회: 타깃 77', r1.out.applied.inserted, 77)
+  t('run 1회: 타깃 54', r1.out.applied.inserted, 54)
   t('run 1회: 제품당 프로젝트 = 계획 프로젝트 수', r1.out.applied.projectsCreated, dry.out.projects)
   t('프로젝트는 collecting·SAAS INSERT', db.projects.every((p) => p.status === 'collecting' && p.business_model === 'SAAS' && p.purpose === 'product_fit'), true)
   const w = db.writes
   const r2 = await main(['--run', '--max=1000'], { port: db.port })
   t('재실행 멱등: 투입 0 · 쓰기 0', [r2.out.insert, db.writes - w], [0, 0])
-  t('재실행 건너뜀 사유 = exists', r2.out.by['07-ecommerce-ops'].appstore.skipped.exists, 12)
+  t('재실행 건너뜀 사유 = exists', r2.out.by['07-ecommerce-ops'].appstore.skipped.exists, 1)
   const r3 = await main(['--run', '--unit=area', '--max=1000'], { port: db.port })
-  t('--unit 을 바꿔도 같은 앱을 다시 넣지 않음', [r3.out.insert, db.targets.length], [0, 77])
+  t('--unit 을 바꿔도 같은 앱을 다시 넣지 않음', [r3.out.insert, db.targets.length], [0, 54])
 }
 {
   const db = fakeDb({ appstore: ON, googleplay: ON })
   const r = await main(['--run', '--unit=area', '--max=1000'], { port: db.port })
-  t('--unit=area: 영역당 프로젝트 1개', [db.projects.length, r.out.applied.inserted], [2, 77])
-  t('--unit=area: 타깃 label 은 제품을 담는다', db.targets.every((x) => /^\d\d-[a-z-]+:[a-z0-9-]+$/.test(x.label)), true)
+  t('--unit=area: 영역당 프로젝트 1개', [db.projects.length, r.out.applied.inserted], [2, 54])
+  // v27: label 접두 = 새 영역(1~5), 영역 미배정(null)은 접두 없이 slug 만.
+  t('--unit=area: 타깃 label 은 제품을 담는다', db.targets.every((x) => /^([1-5]:)?[a-z0-9-]+$/.test(x.label)), true)
 }
 {
   const db = fakeDb({ appstore: ON, googleplay: ON })
@@ -135,11 +138,11 @@ t('--max', plan([AREA], { ...base, max: 1, sourceRows: { appstore: ON, googlepla
 {
   const db = fakeDb({ appstore: ON }) // googleplay 행 없음
   const r = await main(['--run', '--max=1000'], { port: db.port })
-  t('googleplay 행 없으면 appstore 만', [r.out.applied.inserted, db.targets.every((x) => x.source_key === 'appstore')], [37, true])
+  t('googleplay 행 없으면 appstore 만', [r.out.applied.inserted, db.targets.every((x) => x.source_key === 'appstore')], [26, true])
 }
 {
   const r = await main(['--global-us', '--max=1000'], { port: fakeDb({ appstore: ON, googleplay: ON }).port })
-  t('--global-us: ①·⑦ 77 + global 42 = 119', r.out.insert, 119)
+  t('--global-us: ①·⑦ 54 + global 35 = 89', r.out.insert, 89)
 }
 {
   const r = await main(['--offline'], {})
@@ -166,8 +169,43 @@ t('--max', plan([AREA], { ...base, max: 1, sourceRows: { appstore: ON, googlepla
   db.port.insertTarget = ok
   const r = await main(['--run', '--max=1000'], { port: db.port })
   t('재실행: 남은 프로젝트 재사용으로 흡수(빈 프로젝트 0)', db.projects.every((p) => db.targets.some((x) => x.project_id === p.id)), true)
-  t('재실행: 합계 77', [db.targets.length, r.out.applied.projectsReused >= 1], [77, true])
+  t('재실행: 합계 54', [db.targets.length, r.out.applied.projectsReused >= 1], [54, true])
 }
+// ── 영역 지도(v27, data/area-map-v26.json) — 완전성·중복·값 범위·남헌 확정 매핑 ──────────────
+{
+  const fsm = await import('node:fs')
+  const rawText = fsm.readFileSync(new URL('../data/area-map-v26.json', import.meta.url), 'utf8')
+  const raw = JSON.parse(rawText)
+  const map = loadAreaMap()
+  const all = loadAreas(['01', '02', '03', '04', '05', '06', '07'])
+  const slugs = all.flatMap((a) => a.products.map((p) => p.slug))
+  t('사전 slug 중복 없음(영역을 가로질러)', slugs.length, new Set(slugs).size)
+  t('완전성: 사전의 모든 slug 가 맵에 있다', slugs.filter((s) => !Object.prototype.hasOwnProperty.call(map, s)), [])
+  t('완전성: 맵에 사전 밖 slug 가 없다', Object.keys(map).filter((k) => !slugs.includes(k)), [])
+  t('JSON 키 중복 없음(파싱이 조용히 덮어쓰지 않았다)', (rawText.match(/^\s*"[^"]+":/gm) ?? []).filter((l) => !/"_/.test(l) && !/^\s{4,}/.test(l)).length, Object.keys(map).length)
+  t('값 범위: 1~5 · hold · out · null 만', Object.values(map).filter((v) => !(v === null || ['1', '2', '3', '4', '5', 'hold', 'out'].includes(v))), [])
+  const count = (pred) => Object.values(map).filter(pred).length
+  t('영역별 개수(1:31 · 2:22 · 3:42 · 4:32 · 5:8 · hold:59 · out:57 · null:3 = 254)',
+    ['1', '2', '3', '4', '5', 'hold', 'out'].map((v) => count((x) => x === v)).concat(count((x) => x === null), slugs.length), [31, 22, 42, 32, 8, 59, 57, 3, 254])
+  const byArea = (code, v) => all.find((a) => a.area.startsWith(code)).products.every((p) => map[p.slug] === v)
+  t('01→1 · 03→2 · 04→3 · 02·05→hold', [byArea('01', '1'), byArea('03', '2'), byArea('04', '3'), byArea('02', 'hold'), byArea('05', 'hold')], [true, true, true, true, true])
+  const a06 = all.find((a) => a.area.startsWith('06')).products
+  t('06 채용·AI면접 28 → out, HR 32 → 4', [a06.filter((p) => map[p.slug] === 'out').length, a06.filter((p) => map[p.slug] === '4').length], [28, 32])
+  t('07 표본(klaviyo 3 · yotpo 5 · bigin null · sabangnet out)', [map.klaviyo, map.yotpo, map.bigin, map.sabangnet], ['3', '5', null, 'out'])
+  t('h-place → 4 + 채용 제외 주석', [map['h-place'], /채용 쪽 제외/.test(raw._notes?.['h-place'] ?? '')], ['4', true])
+  t('메타 키(_)는 맵에서 빠진다', Object.keys(map).some((k) => k.startsWith('_')), false)
+
+  // plan 배선: hold·out → area_excluded, null → 투입(접두 없음), 맵에 없음 → area_unmapped
+  const SYN = { area: '99-test', area_ko: 't', file: 'x.json', products: ['h', 'o', 'n', 'u', 'k'].map((s, i) => ({ slug: s, name: s, region: 'kr', summary_ko: s, sources: { appstore: cell('확인', String(100 + i)) } })) }
+  const items = plan([SYN], { ...base, sources: ['appstore'], sourceRows: { appstore: ON }, areaMap: { h: 'hold', o: 'out', n: null, k: '4' } })
+  t('plan: hold·out=area_excluded · null=투입 · 맵 없음=area_unmapped · 4=투입', skipsOf(items), ['h/appstore/area_excluded', 'o/appstore/area_excluded', 'n/appstore/insert', 'u/appstore/area_unmapped', 'k/appstore/insert'])
+  t('plan: label 접두(null 은 slug 만)', items.filter((i) => !i.skip).map((i) => i.label), ['n', '4:k'])
+  // 실제 지도로 7영역 전부 — 채용·운영 out 이 계획에 하나도 안 들어간다
+  const real = plan(all, { ...base, areaMap: undefined, offline: true, globalUs: true })
+  t('실제 지도: out·hold 칸은 전부 area_excluded', real.filter((i) => ['out', 'hold'].includes(map[i.slug]) && i.skip !== 'area_excluded').length, 0)
+  t('실제 지도: area_unmapped 0', real.filter((i) => i.skip === 'area_unmapped').length, 0)
+}
+
 let threw = false
 try { await main(['--run', '--offline']) } catch { threw = true }
 t('--run 과 --offline 동시 금지', threw, true)

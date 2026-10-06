@@ -12,7 +12,7 @@
 //   · 사유 문구(옛 health_detail)는 runs 에 없다(남헌 결정 — 당장 따라오지 않는 것을 감수). reason 은 판정이 없을 때의
 //     이유만 담는다. 판정 사유는 그 실행의 Actions 요약에 있다.
 
-import type { Health } from './health.ts'
+import { MIN_PARSE_SAMPLE, PARSE_RATE_DEN, PARSE_RATE_NUM, type Health } from './health.ts'
 
 export type LatestHealth = Health | 'unknown'
 
@@ -125,6 +125,75 @@ export function sourceAlertLines(sources: { key: string; enabled: boolean }[], h
     const why = h.health === 'unknown' ? `${h.reason} — ${healthSummary(h, now)}` : '사유 문구는 실행 기록에 없다 — 그 실행의 Actions 요약 참조'
     return [`${icon} 소스 경보: ${s.key} = ${healthLabel(h.health)} — ${why}${stopped}${when}`]
   })
+}
+
+// ── soft-skip(v27): 파싱 고장이 연속이면 그 소스를 이번 실행에서 건너뛴다 ─────────────────────────
+//
+// DB 에 쓰지 않는다 — 건너뛰면 실행 행이 안 생기고 review_sources 도 그대로다. 그래서 경보(마지막 확인 broken)는
+// 계속 뜬다(sourceAlertLines). 차단(blocked_responses>0)은 대상이 아니다 — 그건 이미 러너가 첫 응답에서 끊는다.
+// 확인 불가(조회 실패·컬럼 없음·옛 행)는 건너뛰지 않고 지금처럼 실행한다(§7.1 — 모르는 것을 고장으로 접지 않는다).
+
+/** 이 수만큼 연속(최신부터) 파싱 고장이면 건너뛴다. */
+export const SOFT_SKIP_STREAK = 3
+/** 마지막 고장 실행이 이보다 오래됐으면 한 번 다시 돌린다 — 파서를 고친 뒤 영영 안 도는 함정을 막는다. */
+export const SOFT_SKIP_RETRY_DAYS = 3
+
+export interface SoftSkipRow extends RunRow {
+  reviews_parsed?: number | null
+  parse_failures?: number | null
+  blocked_responses?: number | null
+}
+
+export type SoftSkip = { state: 'skip' | 'run' | 'unknown'; reason: string }
+
+/** 실행 1행이 "파싱 고장(차단 아님)"인가. 판단 재료가 없으면 null(확인 불가). health.ts judgeHealth 2번과 같은 기준. */
+function isParseBroken(r: SoftSkipRow): boolean | null {
+  if (r.health_after !== 'broken') return false
+  if (r.blocked_responses == null || r.reviews_parsed == null || r.parse_failures == null) return null
+  if (r.blocked_responses > 0) return false
+  const attempted = r.reviews_parsed + r.parse_failures
+  return attempted >= MIN_PARSE_SAMPLE && r.reviews_parsed * PARSE_RATE_DEN < attempted * PARSE_RATE_NUM
+}
+
+/** 순수 함수. runs = 그 소스의 비-dry-run 실행(순서 무관). */
+export function softSkipDecision(runs: SoftSkipRow[] | null, readError: string | null, now: number): SoftSkip {
+  if (readError || !runs) return { state: 'unknown', reason: `실행 기록 조회 실패${readError ? ` — ${readError}` : ''} — 지금처럼 실행` }
+  const recent = runs
+    .filter((r) => r.dry_run !== true)
+    .sort((a, b) => b.started_at.localeCompare(a.started_at))
+    .slice(0, SOFT_SKIP_STREAK)
+  if (recent.length < SOFT_SKIP_STREAK) return { state: 'run', reason: `실행 기록 ${recent.length}건(<${SOFT_SKIP_STREAK})` }
+  const verdicts = recent.map(isParseBroken)
+  if (verdicts.some((v) => v === false)) return { state: 'run', reason: '최근 연속 파싱 고장 아님' }
+  if (verdicts.some((v) => v === null)) return { state: 'unknown', reason: '최근 실행에 차단·파싱 수치가 없어 고장 사유를 가를 수 없다 — 지금처럼 실행' }
+  const ageDays = (now - Date.parse(recent[0].started_at)) / 86_400_000
+  if (ageDays >= SOFT_SKIP_RETRY_DAYS) return { state: 'run', reason: `연속 ${SOFT_SKIP_STREAK}회 파싱 고장이지만 마지막이 ${Math.floor(ageDays)}일 전 — 재시도` }
+  return {
+    state: 'skip',
+    reason: `최근 ${SOFT_SKIP_STREAK}회 연속 파싱 고장(차단 아님, 마지막 ${recent[0].started_at.slice(0, 16).replace('T', ' ')}) — 이번 실행 건너뜀(${SOFT_SKIP_RETRY_DAYS}일 뒤 재시도, --source=<키> 로 직접 돌리면 건너뛰지 않음)`,
+  }
+}
+
+type SoftSkipQuery = {
+  select(cols: string): SoftSkipQuery
+  eq(col: string, v: unknown): SoftSkipQuery
+  order(col: string, o: { ascending: boolean }): SoftSkipQuery
+  limit(n: number): PromiseLike<{ data: SoftSkipRow[] | null; error: { message: string } | null }>
+}
+
+/** 소스별 최근 실행 SOFT_SKIP_STREAK 건을 읽어 판정한다. 읽기만 한다. throw 하지 않는다. */
+export async function loadSoftSkip(sb: RunsReader, key: string, now = Date.now()): Promise<SoftSkip> {
+  try {
+    const { data, error } = await (sb.from('review_collection_runs') as SoftSkipQuery)
+      .select('source_key, started_at, finished_at, status, dry_run, health_after, reviews_parsed, parse_failures, blocked_responses')
+      .eq('source_key', key)
+      .eq('dry_run', false)
+      .order('started_at', { ascending: false })
+      .limit(SOFT_SKIP_STREAK)
+    return softSkipDecision(data, error ? error.message : null, now)
+  } catch (e) {
+    return softSkipDecision(null, e instanceof Error ? e.message : String(e), now)
+  }
 }
 
 type RunsQuery = {

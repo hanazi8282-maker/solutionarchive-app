@@ -1567,7 +1567,7 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
 // content_items 를 어떻게 읽어 usedSlugs / usedMoveIds 로 가르는지가 이 버그의 자리다.
 {
   // PostgREST 응답 흉내. `.select()` 결과는 그대로 await 되기도 하고 `.eq()` 를 더 타기도 한다.
-  const res = (r) => ({ ...r, eq: () => res(r), then: (ok, no) => Promise.resolve(r).then(ok, no) })
+  const res = (r) => ({ ...r, eq: () => res(r), in: () => res(r), then: (ok, no) => Promise.resolve(r).then(ok, no) })
   const NO_COL = { data: null, error: { code: '42703', message: 'column case_moves.transferability does not exist' } }
   const emptyRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'angle-'))
 
@@ -1577,11 +1577,12 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
     { id: 'duo-product', lever: 'PRODUCT_FEATURE', claim: 'x', evidence_grade: 'A', outcome_direction: 'positive', review_status: 'approved', transferability: null, case_studies: duoStudy },
     { id: 'duo-community', lever: 'COMMUNITY', claim: 'x', evidence_grade: 'A', outcome_direction: 'positive', review_status: 'approved', transferability: null, case_studies: duoStudy },
   ]
-  const sb = (items, { axis = true } = {}) => ({
+  const sb = (items, { axis = true, posts = [], postsError = null, moves = duoMoves } = {}) => ({
     from: (t) => ({
       select: (cols) => {
-        if (t === 'case_moves') return res(axis || !/transferability/.test(cols) ? { data: duoMoves, error: null } : NO_COL)
+        if (t === 'case_moves') return res(axis || !/transferability/.test(cols) ? { data: moves, error: null } : NO_COL)
         if (t === 'content_items') return res(axis || !/source_move/.test(cols) ? { data: items, error: null } : NO_COL)
+        if (t === 'posts') return res(postsError ? { data: null, error: postsError } : { data: posts, error: null })
         return res({ data: [], error: null })
       },
     }),
@@ -1610,9 +1611,47 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   fs.mkdirSync(path.join(manifestRepo, "drafts", "threads"), { recursive: true })
   fs.writeFileSync(path.join(manifestRepo, "drafts", "threads", "2026-09-11-duolingo-streak.stage.json"),
     JSON.stringify({ content_code: "CS-20260911-01", case_slug: DUO, move_id: "duo-product" }))
-  const withManifest = await pickAngles(sb([]), 2, manifestRepo)
-  eq("AC-8 — stage.json 에 move_id 가 있으면 그 무브만 빠진다", withManifest.moves.length, 1)
+  // v27: 형제 무브가 다시 후보가 되는 것은 앞 초안이 **닫힌(발행·폐기) 뒤**뿐이다.
+  const withManifest = await pickAngles(sb([], { posts: [{ content_code: "CS-20260911-01", status: "published" }] }), 2, manifestRepo)
+  eq("AC-8 — stage.json 에 move_id 가 있으면 그 무브만 빠진다(앞 초안 발행됨)", withManifest.moves.length, 1)
   eq("AC-8 — 매니페스트 경로에서도 남는 것은 형제 무브다", withManifest.moves[0]?.id, "duo-community")
+
+  // ── v27 열린 초안 가드 ──────────────────────────────────────────────────
+  for (const st of ["draft", "pending_review"]) {
+    const open = await pickAngles(sb([], { posts: [{ content_code: "CS-20260911-01", status: st }] }), 2, manifestRepo)
+    eq(`v27 — 앞 초안이 ${st} 면 형제 무브도 안 고른다`, open.moves.length, 0)
+    check(`v27 — ${st} 차단은 보고에 남는다`, (open.notices ?? []).some((x) => x.includes("열린 초안") && x.includes(DUO)), JSON.stringify(open.notices))
+  }
+  eq("v27 — posts 행이 없으면(스테이징 실패) 열린 초안으로 본다", (await pickAngles(sb([]), 2, manifestRepo)).moves.length, 0)
+  eq("v27 — 폐기(discarded)면 형제가 다시 후보", (await pickAngles(sb([], { posts: [{ content_code: "CS-20260911-01", status: "discarded" }] }), 2, manifestRepo)).moves.length, 1)
+  const postsFail = await pickAngles(sb([], { postsError: { code: "500", message: "boom" } }), 2, manifestRepo)
+  check("v27 — posts 조회 실패는 error(확인 불가)로 올리고 고르지 않는다", !!postsFail.error && postsFail.moves.length === 0, String(postsFail.error))
+  eq("v27 — 매니페스트가 없으면 posts 를 조회하지 않고 종전대로", (await pickAngles(sb([], { postsError: { code: "500", message: "boom" } }), 2, emptyRepo)).moves.length, 1)
+
+  // ── v27 영역 필터 ───────────────────────────────────────────────────────
+  {
+    const other = { slug: "seed-probiotic", brand_name: "Seed", bottleneck: "PRICING", review_status: "approved" }
+    const mixed = [...duoMoves, { ...duoMoves[0], id: "seed-1", case_studies: other }]
+    const noMap = await pickAngles(sb([], { moves: mixed }), 3, emptyRepo)
+    eq("v27 영역 — 지도 파일이 없으면 기존 동작(전부 후보)", noMap.moves.length, 2)
+    check("v27 영역 — 없으면 '확인 불가' 경고", (noMap.notices ?? []).some((x) => x.includes("영역 허용목록 확인 불가")), JSON.stringify(noMap.notices))
+    const areaRepo = fs.mkdtempSync(path.join(os.tmpdir(), "angle-area-"))
+    fs.mkdirSync(path.join(areaRepo, "data"), { recursive: true })
+    const writeMap = (obj) => fs.writeFileSync(path.join(areaRepo, "data", "area-map-v26.json"), typeof obj === "string" ? obj : JSON.stringify(obj))
+    writeMap({ allowed_areas: ["writing-docs"], slug_area: { [DUO]: "writing-docs", "seed-probiotic": "consumer" } })
+    const filtered = await pickAngles(sb([], { moves: mixed }), 3, areaRepo)
+    check("v27 영역 — 영역 밖 케이스는 안 고른다", filtered.moves.every((m) => m.slug === DUO) && filtered.moves.length === 1, JSON.stringify(filtered.moves.map((m) => m.slug)))
+    check("v27 영역 — 거른 케이스가 보고에 남는다", (filtered.notices ?? []).some((x) => x.includes("seed-probiotic")), JSON.stringify(filtered.notices))
+    writeMap({ allowed_areas: ["writing-docs"], slug_area: { [DUO]: "writing-docs" } })
+    eq("v27 영역 — 지도에 없는 케이스(영역 모름)는 안 고른다", (await pickAngles(sb([], { moves: mixed }), 3, areaRepo)).moves.every((m) => m.slug === DUO), true)
+    writeMap({ areas: ["x"] })
+    const bad = await pickAngles(sb([], { moves: mixed }), 3, areaRepo)
+    check("v27 영역 — 계약과 다른 형식은 확인 불가 + 기존 동작", bad.moves.length === 2 && bad.notices.some((x) => x.includes("형식이 계약")), JSON.stringify(bad.notices))
+    writeMap("{not json")
+    const broken = await pickAngles(sb([], { moves: mixed }), 3, areaRepo)
+    check("v27 영역 — 깨진 JSON 도 확인 불가 + 기존 동작", broken.moves.length === 2 && broken.notices.some((x) => x.includes("읽기 실패")), JSON.stringify(broken.notices))
+    fs.rmSync(areaRepo, { recursive: true, force: true })
+  }
 
   // move_id 가 없는 옛 매니페스트는 종전대로 슬러그를 통째로 뺀다(§7.1).
   const oldManifestRepo = fs.mkdtempSync(path.join(os.tmpdir(), "angle-oldman-"))
@@ -1627,11 +1666,13 @@ const readFix = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), 'utf-8'))
   const pendingMig = await pickAngles(sb([{ source_case: 'other-case' }], { axis: false }), 2, emptyRepo)
   check('AC-15 — 마이그 미적용에서도 죽지 않는다', !pendingMig.error, String(pendingMig.error))
   eq('AC-15 — 그래도 후보는 정상으로 뽑힌다', pendingMig.moves.length, 1)
-  eq('AC-15 — 미적용 통지가 2건(무브 축 · source_move) 나온다', (pendingMig.notices ?? []).length, 2)
+  // v27 부터 영역 지도 없음 통지가 함께 온다 — 마이그 통지만 골라 본다.
+  const migNotices = (pendingMig.notices ?? []).filter((x) => !x.startsWith('영역 허용목록'))
+  eq('AC-15 — 미적용 통지가 2건(무브 축 · source_move) 나온다', migNotices.length, 2)
   check('AC-15 — 보고에 "이식성 축 미적용" 이 반드시 나온다',
-    pendingMig.notices.every((x) => x.includes('이식성 축 미적용')), JSON.stringify(pendingMig.notices))
+    migNotices.every((x) => x.includes('이식성 축 미적용')), JSON.stringify(pendingMig.notices))
   check('AC-15 — 마이그 번호를 같이 찍는다 (어느 파일을 적용해야 하는지)',
-    pendingMig.notices.every((x) => x.includes('20260915000001')), JSON.stringify(pendingMig.notices))
+    migNotices.every((x) => x.includes('20260915000001')), JSON.stringify(pendingMig.notices))
   check('AC-15 — cmo-daily 는 dry-run 에서도 그 문구를 로그에 올린다',
     /const picked = await pickAngles\(supabase, DRAFT_TARGET, repoRoot\)[\s\S]{0,200}for \(const note of notices\) say/
       .test(fs.readFileSync(path.join(process.cwd(), 'scripts/cmo-daily.mjs'), 'utf-8')))

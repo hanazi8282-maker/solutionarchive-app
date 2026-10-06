@@ -1095,6 +1095,39 @@ export function queueResolutions({ claimed = [], producedByItem = new Map(), com
 const GRADE_RANK = { A: 3, B: 2, C: 1, D: 0 }
 
 /**
+ * 영역 허용목록(남헌 v27, 2026-10-07). 5영역 밖(소비재·채용 등) 케이스를 앵글로 고르지 않는다.
+ *
+ * 계약: `{ "allowed_areas": ["<영역>", ...], "slug_area": { "<case slug>": "<영역>" } }`.
+ *   slug_area 에 없는 케이스는 "영역 모름"이라 고르지 않는다(§7.1 — 모르는 것을 허용으로 접지 않는다).
+ * 파일이 없거나 계약과 다르면 **확인 불가** — 필터 없이 기존 동작으로 가되 매 실행 보고에 경고를 남긴다.
+ *   그 경우 null 을 돌려주고 사유는 reason 에 담는다.
+ */
+export const AREA_MAP_FILE = 'data/area-map-v26.json'
+export function loadAreaAllowlist(repoRoot) {
+  const file = path.join(repoRoot, AREA_MAP_FILE)
+  if (!fs.existsSync(file)) return { allowed: null, reason: `${AREA_MAP_FILE} 없음` }
+  try {
+    const j = JSON.parse(fs.readFileSync(file, 'utf-8'))
+    const areas = new Set(Array.isArray(j?.allowed_areas) ? j.allowed_areas.map(String) : [])
+    const map = j?.slug_area && typeof j.slug_area === 'object' ? j.slug_area : null
+    if (!areas.size || !map) return { allowed: null, reason: `${AREA_MAP_FILE} 형식이 계약(allowed_areas[] · slug_area{})과 다르다` }
+    return { allowed: new Set(Object.keys(map).filter((s) => areas.has(String(map[s])))), reason: null }
+  } catch (e) {
+    return { allowed: null, reason: `${AREA_MAP_FILE} 읽기 실패 — ${e.message}` }
+  }
+}
+
+/** 열린(아직 발행·폐기 안 된) 초안 판정. posts 행이 없으면(스테이징 실패) 열린 것으로 본다 — 파일은 있다. */
+const CLOSED_POST_STATUS = new Set(['published', 'discarded'])
+export function openDraftSlugsOf(stageBySlug, postStatusByCode) {
+  const open = new Set()
+  for (const [slug, codes] of stageBySlug) {
+    if (codes.some((c) => !CLOSED_POST_STATUS.has(postStatusByCode.get(c)))) open.add(slug)
+  }
+  return open
+}
+
+/**
  * 이식성 판정 순위. **NULL(미판정)은 LOW 위다.**
  *
  * "아직 사람이 안 봤다"를 "낮다"로 접으면 §7.1 위반이고, 실무적으로도 미판정
@@ -1296,11 +1329,13 @@ export async function pickAngles(supabase, n, repoRoot = process.cwd()) {
   // 동작(=이 버그)으로 조용히 되돌아간다. 못 읽었으면 그대로 error 로 올린다(§7.1).
   const threadsDir = path.join(repoRoot, 'drafts', 'threads')
   const stagedSlugs = new Set()
+  const stageBySlug = new Map() // case_slug → [content_code] (v27 열린 초안 가드)
   let draftFileNames = []
   try {
     draftFileNames = fs.existsSync(threadsDir) ? fs.readdirSync(threadsDir) : []
     for (const f of draftFileNames.filter((f) => f.endsWith('.stage.json'))) {
       const j = JSON.parse(fs.readFileSync(path.join(threadsDir, f), 'utf-8'))
+      if (j?.case_slug) stageBySlug.set(j.case_slug, [...(stageBySlug.get(j.case_slug) ?? []), j.content_code ?? null])
       // ★ content_items 와 **같은 규칙**이다. 매니페스트에 무브가 적혀 있으면 그
       //   무브만 뺀다. 여기만 슬러그 단위로 두면 content_items 를 고쳐도 형제
       //   무브가 이 신호에 걸려 그대로 유실된다(2026-09-14 실측: 백필 17건을
@@ -1312,7 +1347,37 @@ export async function pickAngles(supabase, n, repoRoot = process.cwd()) {
     return { error: `drafts/threads 매니페스트 확인 불가 — ${e.message}. 이 신호 없이 고르면 이미 초안이 나간 무브를 다시 고른다`, moves: [], notices }
   }
 
-  return { ...selectAngles({ moves: liveMoves, usedSlugs, usedMoveIds, stagedSlugs, draftFileNames, n }), notices }
+  // ── 열린 초안 가드 (남헌 v27, 2026-10-07) ─────────────────────────────────
+  //   무브 단위 제외(D1)만으로는 같은 케이스의 **형제 무브**가 며칠 뒤 다시 뽑혔다 — 앞 초안이 발행도
+  //   안 됐는데 같은 케이스 글이 또 쌓인다(juttu 09-29·10-04, seed 10-01·10-05 — 전부 move_id 가 달랐다).
+  //   그래서 그 케이스의 초안이 하나라도 **열려 있으면**(posts 가 draft·pending_review 이거나 posts 행이 없음)
+  //   케이스를 통째로 거른다. 발행(published)·폐기(discarded)되면 형제 무브가 다시 후보가 된다.
+  //   posts 를 못 읽으면 고르지 않는다 — 가드 없이 고르면 이 중복으로 조용히 되돌아간다(§7.1).
+  const codes = [...stageBySlug.values()].flat().filter(Boolean)
+  const postStatusByCode = new Map()
+  if (codes.length) {
+    // ponytail: .in() 한 번 — 매니페스트가 수백 개를 넘으면 URL 길이로 실패한다(#431 과 같은 꼴). 그때 묶음으로 나눈다.
+    const p = await supabase.from('posts').select('content_code,status').in('content_code', codes)
+    if (p.error) return { error: `posts 조회 실패 — ${p.error.code ?? ''} ${p.error.message}. 열린 초안을 가려낼 수 없어 앵글을 고르지 않았다`, moves: [], notices }
+    for (const r of p.data ?? []) postStatusByCode.set(r.content_code, r.status)
+  }
+  const openDraft = openDraftSlugsOf(stageBySlug, postStatusByCode)
+  const openHit = [...new Set(liveMoves.map((m) => m.case_studies?.slug))].filter((s) => openDraft.has(s))
+  if (openHit.length) notices.push(`열린 초안(미발행)이 있는 케이스 ${openHit.length}곳은 형제 무브도 고르지 않았다: ${openHit.slice(0, 10).join(', ')}`)
+  for (const s of openDraft) stagedSlugs.add(s)
+
+  // ── 영역 필터 (남헌 v27) ──────────────────────────────────────────────────
+  const area = loadAreaAllowlist(repoRoot)
+  let areaMoves = liveMoves
+  if (!area.allowed) {
+    notices.push(`영역 허용목록 확인 불가(${area.reason}) — 영역 필터 없이 기존 동작으로 골랐다. 5영역 밖 케이스가 뽑힐 수 있다`)
+  } else {
+    areaMoves = liveMoves.filter((m) => area.allowed.has(m.case_studies?.slug))
+    const out = [...new Set(liveMoves.filter((m) => !area.allowed.has(m.case_studies?.slug)).map((m) => m.case_studies?.slug))]
+    if (out.length) notices.push(`영역 밖·영역 모름으로 거른 케이스 ${out.length}곳: ${out.slice(0, 10).join(', ')}`)
+  }
+
+  return { ...selectAngles({ moves: areaMoves, usedSlugs, usedMoveIds, stagedSlugs, draftFileNames, n }), notices }
 }
 
 /**

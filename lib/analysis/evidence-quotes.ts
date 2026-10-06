@@ -33,6 +33,27 @@ export interface EvidenceQuote {
    * 따옴표 없이 '요약' 표시로 낸다(publicLines). 원문이 아니므로 인용 모양으로 그리지 않는다.
    */
   summary?: string
+  /** 옛 인용 백필(quote-backfill.ts, #426)이 단 원문 대조 판정 — 'full'|'prefix'|'purged'|'none'. 새 인용에는 없다. */
+  verified?: string
+  /** 백필 표식(QUOTE_BACKFILL_TAG). verified 가 백필에서 왔다는 표지 — 둘이 같이 있어야 믿는다(isBackfillVerified). */
+  backfill?: string
+}
+
+/** 옛 인용 백필 표식(quote-backfill.ts BACKFILL_TAG 의 정본 — 순환 import 를 피해 여기 둔다). */
+export const QUOTE_BACKFILL_TAG = 'qb-v1'
+
+/**
+ * 백필이 원문 **전문 일치**(isVerbatimExcerpt)를 이미 확인한 인용인가 — verified='full' ∧ backfill=qb-v1 ∧ source_key 있음.
+ * 참이면 고객 화면은 원문을 다시 조회하지 않고 이 판정을 믿는다(publicLines·loadQuoteSources). 정책·글자 상한은 그대로 건다.
+ * ⚠️ 믿는 근거는 "백필 이후 text 가 안 바뀌었다"는 가정뿐이다(항목 해시·서명 없음). 깨지는 경로:
+ *   - 누가 evidence_quotes 의 text 를 손으로·다른 스크립트로 고치면서 verified/backfill 키를 그대로 두는 경우
+ *   - 다른 경로가 옛 항목의 키를 복사해 새 text 와 섞는 경우
+ *   재추출(extract-run)은 배열을 새로 만들어 세 키가 사라지므로 해당 없다. text 를 고치는 코드는 세 키를 같이 떼야 한다.
+ * ponytail: 표식만 믿는다. 변조가 실제로 의심되면 백필 때 squash(text) 해시를 같이 남기고 여기서 대조한다.
+ */
+export function isBackfillVerified(q: unknown): boolean {
+  const o = q as { verified?: unknown; backfill?: unknown; source_key?: unknown } | null | undefined
+  return o?.verified === 'full' && o.backfill === QUOTE_BACKFILL_TAG && typeof o.source_key === 'string' && o.source_key !== ''
 }
 
 export interface QuoteSource {
@@ -209,6 +230,8 @@ export type PublicLine =
 /**
  * 저장된 인용 → 고객 화면 줄 + 가린 건수. 4곳(결과·요약 복사·인사이트 근거·판정 인용)이 이 한 벌을 쓴다.
  *  - 정책 확인됨(맵 있음 ∧ source_key 있음): checkQuote(정책·130/240·원문 전문 대조) 통과 → quote.
+ *    단 백필이 전문 일치를 확인한 항목(isBackfillVerified)은 원문 대조를 백필 판정으로 대신한다 — sourcesOf 를 부르지 않는다.
+ *    정책·글자 상한은 똑같이 건다(백필 표식이 있어도 131자는 거부). prefix·purged·none·verified 없음은 원문 대조 그대로.
  *  - 인용으로 못 냈고 요약이 있으면 → summary(글자 상한만). 단 정책 none 은 요약도 안 낸다(설계 Q3-2 A — none 은 근거로도 안 쓴다).
  *  - 정책 미확인(맵 못 읽음 = policies null, 옛 인용 = source_key 없음): 인용 0건, 요약만(2026-10-06 지시 — §7.1 fail-closed).
  *  - 나머지는 hidden 으로 센다 — 화면은 빈칸 대신 "정리 중" 문구를 낸다(빈 화면 ≠ 버그).
@@ -226,7 +249,8 @@ export function publicLines(
     const key = typeof q?.source_key === 'string' && q.source_key ? q.source_key : null
     const policy: QuotePolicy | null = policies && key ? quotePolicyOf(policies.get(key)) : null
     if (policy && key) {
-      const c = checkQuote(q?.text, policy, sourcesOf(key))
+      // 백필 검증 항목: 글 자신을 원문으로 준다 → 원문 대조는 자명 통과, 정책·상한 검사는 checkQuote 그대로(한 벌 유지).
+      const c = checkQuote(q?.text, policy, isBackfillVerified(q) ? q?.text : sourcesOf(key))
       if (c.ok) { lines.push({ kind: 'quote', text: c.text, source_type: q?.source_type ?? null, index }); return }
     }
     // 요약 상한 검사는 full·short_only 가 같다 — 미확인은 그 상한만 건다('full' 은 상한용 자리값일 뿐 허용 판정이 아니다).

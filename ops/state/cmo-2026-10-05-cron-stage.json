@@ -1,0 +1,40 @@
+[
+  {
+    "case_slug": "hoka-specialty-retail-awareness-engine",
+    "move_id": "0745667f-45ea-42d2-8800-ddd070bac6d2",
+    "content_code": "CS-20261005-02",
+    "body_path": "drafts/threads/2026-10-05-hoka-specialty-retail-awareness-engine.body.txt",
+    "reply_path": "drafts/threads/2026-10-05-hoka-specialty-retail-awareness-engine.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-10-05-hoka-specialty-retail-awareness-engine.md",
+    "title": "광고 전에 설명할 사람",
+    "twist_line": "HOKA는 낯선 두꺼운 밑창 신발의 인지도를 광고가 아니라 러닝 전문점 직원의 설명에 맡기고, 물량을 수요보다 적게 풀어 도매 매출을 7년간 12배로 키웠다",
+    "hook_type": "대비 사실형(낯선 제품을 설명해 줄 사람에게 맡긴 선택)",
+    "closing_type": "행동지시형(설명해 줄 사람이 모인 곳 한 군데를 골라 4주간 세고, 반응 전에는 두 번째를 늘리지 않는다)",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-0 예외통과. 등급 A라 CG-1 비대상(본문에 등급 미표기). 본문 글자수는 Bash 부재로 기계 계수 못 함(약 440자 추정, 500자 이내), 오케스트레이터 column-check 재확인 필요. 한계: 12.1배는 도매 부문 정의로 이은 값이라 브랜드 전체 매출과 섞지 않음(자기답글 병기). 케이스 evidence에 HOKA의 디지털 광고·인플루언서 집행 문구가 있어 '광고를 쓰지 않았다'는 주장은 본문에서 뺌('설명에 기대어'로 한정, 자기답글에 병기). 2017년 HOKA 도매가 Deckers 전체의 5.2%였다는 점은 선행조건으로 자기답글에 병기.",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": [
+      "edit-question-to-statement"
+    ]
+  },
+  {
+    "case_slug": "seed-ds01-clinical-strain-probiotic",
+    "move_id": "1dba795c-8e57-409e-a789-e730a0e2fcc6",
+    "content_code": "CS-20261005-01",
+    "body_path": "drafts/threads/2026-10-05-seed-ds01-clinical-strain-probiotic.body.txt",
+    "reply_path": "drafts/threads/2026-10-05-seed-ds01-clinical-strain-probiotic.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-10-05-seed-ds01-clinical-strain-probiotic.md",
+    "title": "값 대신 단위를 바꿨다",
+    "twist_line": "값을 내린 게 아니라 같은 한 달 값을 한 달의 날수로 나눠 하루 값으로 말했다",
+    "hook_type": "반례형(깎는 대신 말하는 단위를 바꿈)",
+    "closing_type": "조건단정형(하루 값이 비싼 이유가 없으면 쪼개도 비싸 보인다)",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-0 예외통과. 사실확인 D 라 CG-2 대상: 본문·자기답글 수치 0. CG-1 대상 아님. 효과 측정 수치가 없는 서술 무브라 효과를 단정하지 않고 자기답글에 고지. 글자수·column-check 는 Bash 부재로 기계 계수 못 함(본문 약 400자 추정), 오케스트레이터 재확인 필요.",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": [
+      "edit-question-to-statement"
+    ]
+  }
+]

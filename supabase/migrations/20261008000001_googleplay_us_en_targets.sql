@@ -3,7 +3,7 @@
 --
 -- 구글 플레이 영어(us:en) 타깃 추가 — v45 확정안(남헌 v43·v44 §2-c, 2026-10-08).
 -- 설계 대상은 17개(meeting-os 포함)지만 **이 마이그가 INSERT 하는 것은 첫 8개뿐**이다. 나머지 9개는 2차용으로
--- 파일 하단 주석 블록에 남겼다(실행 안 됨). 램프 50% 에서 시작, 우선순위 낮음. 소스 레벨 램프는 건드리지 않는다.
+-- 파일 하단 주석 블록에 남겼다(실행 안 됨). 우선순위 낮음. 소스 램프는 바꾸지 않는다 — 저우선순위는 last_run_at=now() 로만 구현했고, 일일 요청 예산은 기존 daily_request_cap·램프 안에서 나눠 쓰므로 요청 총량은 늘지 않는다.
 --
 -- 1차 8개(kr:ko:<pkg> 기준): 01-meeting-notes: com.tldv.tldvlite · com.read.ai · ai.granola · com.aimeetingos.meetingos /
 --   07-ecommerce-ops: mobile.linnworks.net · com.shipstation.app · com.helium10.app / 2:gong: io.gong.mobileapp.
@@ -27,7 +27,7 @@
 --    동결선은 자동 공급·되살리기(gateHeadroom)의 상한일 뿐 DB 제약이 아니라 직접 INSERT 는 막히지 않는다. 1차 적용 후 활성 88,
 --    2차까지 가면 97. 그 뒤 자동 공급은 gateHeadroom=0 으로 googleplay 에 0건이다. 이 예외를 17개 밖으로 넓히지 않는다.
 --
--- 🔴 비상 정지: 롤백 파일 A — `status='failed'`(planRevive 가 failed 는 되살리지 않으므로 **자동 부활 안 됨**).
+-- 🔴 비상 정지: 롤백 SQL A — `status='failed'`(planRevive 가 failed 는 되살리지 않으므로 **자동 부활 안 됨**).
 --    식별자: source_key='googleplay' ∧ product_ref LIKE 'us:en:%' ∧ label LIKE '%us-en|%'.
 --
 -- 멱등: UNIQUE(project_id, source_key, product_ref)(review_targets_project_source_product_key, 20260829000003) 위에
@@ -35,7 +35,7 @@
 --   active·last_run_at not null·카운터 0 ④kr:ko 행 불변 ⑤product_ref 형식 ⑥label 이 '<영역>:us-en|…' 형식 을 확인하고
 --   어긋나면 RAISE → 트랜잭션 롤백.
 -- 선행: 없음(review_targets 는 20260829000003). 같은 PR 의 코드 변경 0.
--- 롤백: 20261008000001_googleplay_us_en_targets_rollback.sql
+-- 롤백: reports/2026-10-08/20261008000001_googleplay_us_en_targets_rollback.sql (남헌 지시 — reports/ 에만 두고 커밋하지 않는다)
 --
 -- ⚠️ 미적용 — 서브에이전트가 만든 파일이다(CLAUDE.md §10.2). 적용은 CEO-STAFF(Opus 사전검토 뒤). 절차:
 --   1) solutionarchive `qmgrfqjfxqhxuufrnkwf` 확인 2) 아래 '적용 전' 쿼리 3) 실행 4) 하단 확인 쿼리 5) docs/migration-exceptions.md 기입

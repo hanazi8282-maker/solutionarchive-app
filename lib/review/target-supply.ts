@@ -65,6 +65,8 @@ export type TargetRow = {
   product_ref: string
   label?: string | null
   consecutive_empty: number
+  /** 비증분형 재방문 간격 판정용. 없으면(옛 픽스처·미기록) 비증분형은 revisit_unknown. */
+  last_run_at?: string | null
 }
 export type RunRow = {
   source_key: string
@@ -379,15 +381,36 @@ export function idSetHash(ids: string[]): string {
 export type RevivePlan = {
   revive: Array<{ id: string; source_key: string; product_ref: string; prev_status: string; prev_consecutive_empty: number }>
   /** 소스별 { candidates, revive, skipped: {사유: 건수} } */
-  bySource: Record<string, { candidates: number; revive: number; skipped: Record<string, number> }>
+  /** next_due = 재방문 간격 미경과로 건너뛴 행 중 가장 이른 자격 시각(ISO). 없으면 키 없음. */
+  bySource: Record<string, { candidates: number; revive: number; skipped: Record<string, number>; next_due?: string }>
 }
 
 /**
- * 대상 = exhausted ∧ consecutive_empty=0 ∧ enabled 소스 ∧ SUPPLY_EXCLUDED 아님(producthunt·danawa·todayhumor).
+ * 비증분형 소스 — 어댑터에 `incrementalOnly` 가 없어 러너가 "끝까지 읽음"(cursor null)에서 exhausted 로 닫는다
+ * (lib/review/runner.ts `endStatus = adapter.incrementalOnly ? 'active' : 'exhausted'`). 이 소스의
+ * `exhausted ∧ consecutive_empty=0` 은 옛 로직 흔적이 아니라 **정상 종료**다 — 피드 전체를 다시 읽으므로 되살리면 중복만 나온다.
+ * 대상(2026-10-08 실측, scripts/review-collect.mjs 어댑터 표 기준): appstore(RSS 최대 500건) · youtube · danawa · producthunt · naver_blog_post.
+ * 셀프테스트가 어댑터의 incrementalOnly 와 이 집합을 대조한다.
+ */
+export const NON_INCREMENTAL_SOURCES: ReadonlySet<string> = new Set(['appstore', 'youtube', 'danawa', 'producthunt', 'naver_blog_post'])
+/** 비증분형 재방문 최소 간격(일). 설계 v 의 앱스토어 1/7 과 같은 값 — v 가 더 느슨해도(게시판 2 등) 전체 재읽기는 주 1회보다 자주 하지 않는다. */
+export const NON_INCREMENTAL_MIN_REVISIT_DAYS = 7
+
+/** 비증분형 타깃의 재방문 간격(일) = max(1/v, 7). 증분형은 null(간격 규칙 없음). */
+export function revisitDays(sourceKey: string): number | null {
+  if (!NON_INCREMENTAL_SOURCES.has(sourceKey)) return null
+  return Math.max(1 / revisitTarget(sourceKey).v, NON_INCREMENTAL_MIN_REVISIT_DAYS)
+}
+
+/**
+ * 대상 = exhausted ∧ consecutive_empty=0 ∧ enabled 소스 ∧ SUPPLY_EXCLUDED 아님(producthunt·danawa·todayhumor)
+ *        ∧ (비증분형이면 last_run_at + 재방문 간격 경과 — 아니면 revisit_not_due, last_run_at 없으면 revisit_unknown).
  * 소스별 상한 = min(gap(N − active), 게이트 여유). unverified 소스는 0(모르는 결손을 채우지 않는다). board: 먼저.
  * 법적 게이트로 빼지 않는다 — 남헌 2026-10-07: devto·disquiet·indiehackers·tumblbug·youtube 는 enabled 유지, 현행 enabled 만 본다.
+ * 기준 시각 = report.generated_at.
  */
 export function planRevive(targets: TargetRow[], report: SupplyReport): RevivePlan {
+  const now = Date.parse(report.generated_at)
   const supplyBy = new Map(report.sources.map((s) => [s.source_key, s]))
   const bySource: RevivePlan['bySource'] = {}
   const revive: RevivePlan['revive'] = []
@@ -404,7 +427,21 @@ export function planRevive(targets: TargetRow[], report: SupplyReport): RevivePl
     else if (s.state === 'excluded') skip = 'source_excluded'
     else if (s.state === 'unverified' || s.gap === null) skip = 'supply_unverified'
     else if (!t.id || !UUID.test(t.id)) skip = 'bad_id'
-    else if ((used.get(t.source_key) ?? 0) >= Math.min(Math.max(0, s.gap), s.gate_headroom)) skip = s.gap <= 0 ? 'no_gap' : 'over_headroom'
+    else if (revisitDays(t.source_key) !== null) {
+      const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
+      if (!Number.isFinite(last)) skip = 'revisit_unknown'
+      else {
+        const due = last + revisitDays(t.source_key)! * 86_400_000
+        if (due > now) {
+          skip = 'revisit_not_due'
+          const iso = new Date(due).toISOString()
+          if (!b.next_due || iso < b.next_due) b.next_due = iso
+        }
+      }
+    }
+    if (!skip && s && s.gap !== null && (used.get(t.source_key) ?? 0) >= Math.min(Math.max(0, s.gap), s.gate_headroom)) {
+      skip = s.gap <= 0 ? 'no_gap' : 'over_headroom'
+    }
     if (skip) {
       b.skipped[skip] = (b.skipped[skip] ?? 0) + 1
       continue

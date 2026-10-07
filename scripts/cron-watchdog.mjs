@@ -52,6 +52,9 @@ export const GRACE_OVERRIDE_MS = { 'nightly-extract.yml': 10 * 60 * 60 * 1000 }
 // 실측 2h45m(위 GRACE 주석)·평소 1~3h 지연에서 오탐 미발화가 나고, 늦은 17:37 실행이 20:47 창으로 잡힌다. extract 와 같은 짝짓기로.
 // 같은 객체 리터럴 줄을 다른 PR(#448 nightly-relevance)도 고치므로 충돌을 피하려고 별도 줄로 더한다.
 GRACE_OVERRIDE_MS['nightly-review-collect.yml'] = 10 * 60 * 60 * 1000
+// nightly-relevance 도 같다(v30 §5 재시도 크론 r1 02:03Z · r2 06:03Z 추가): 슬롯 간격이 4~7시간이라 "다음 슬롯까지" 창이면
+// r1 이 4시간 넘게 늦게 뜨는 날 r1 미발화 + r2 창에 r1 실행이 끼는 오경보가 난다. 정규 실행 실측 지연은 2.7~4.7시간.
+GRACE_OVERRIDE_MS['nightly-relevance.yml'] = 10 * 60 * 60 * 1000
 export const graceFor = (file) => GRACE_OVERRIDE_MS[file] ?? GRACE_MS
 const SELF = 'cron-watchdog.yml'
 

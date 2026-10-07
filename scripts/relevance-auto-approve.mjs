@@ -19,6 +19,7 @@ import { createClient } from '../lib/supabase/server.ts'
 import { AUTO_APPROVAL_RULE, autoApprovalGate, isFullAgreement } from '../lib/analysis/auto-approval.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate, recordStatusLog } from './notion-status-log.mjs'
+import { relevanceRunSuffixFromEnv } from '../lib/analysis/session-guard.ts'
 
 const dry = process.argv.includes('--dry')
 const log = (m) => console.log(`[${new Date().toISOString()}] ${m}`)
@@ -52,7 +53,8 @@ const gate = autoApprovalGate({ enabled: process.env.AUTO_APPROVAL_ENABLED, sinc
 log(`게이트: ${gate.on ? '열림' : '닫힘'} — ${gate.reason}`)
 
 const tracker = dry ? null : await createTracker({
-  runKey: `relevance-auto-approve-${kstDate()}`,
+  // 재시도(-r1/-r2)·수동(-m<run_id>) 실행이 같은 날 정규 행(감사 흔적)을 덮지 않게 판정 스텝과 같은 접미사(v30 §5).
+  runKey: `relevance-auto-approve-${kstDate()}${relevanceRunSuffixFromEnv()}`,
   dept: 'cto',
   trigger: process.env.GITHUB_EVENT_NAME === 'schedule' ? 'cron' : process.env.GITHUB_ACTIONS ? 'manual' : 'local',
   gitSha: process.env.GITHUB_SHA ?? null,

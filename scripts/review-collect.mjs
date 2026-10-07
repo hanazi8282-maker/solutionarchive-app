@@ -24,6 +24,7 @@ import { LEGACY_SLOTS, collectWithRamp, plannedSourcesForSlot, slotIndexOf, step
 import { createReviewStore } from '../lib/review/store.ts'
 import { alertLine } from '../lib/review/health.ts'
 import { finishRunRow } from '../lib/review/run-log.ts'
+import { withTiming } from '../lib/review/timing.ts'
 import { loadSoftSkip } from '../lib/review/latest-health.ts'
 import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
 import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
@@ -290,34 +291,37 @@ for (const sourceKey of sourceKeys) {
 
   const started = Date.now()
 
+  // 시간 분해 계측(v32 §7, 로그 전용) — 포트·어댑터를 감싸기만 한다. 러너 동작은 같다(lib/review/timing.ts).
+  const timing = withTiming(adapter, {
+    now: () => new Date(),
+    sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+    async fetchText(url, init) {
+      try {
+        const res = await fetch(url, {
+          // init = POST API(producthunt·googleplay)·헤더 인증 GET(kakao)만. 헤더를 합쳐도 User-Agent 는 우리 것으로 고정한다.
+          method: init?.method ?? 'GET',
+          body: init?.body,
+          headers: { Accept: '*/*', ...(init?.headers ?? {}), 'User-Agent': USER_AGENT },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(20_000),
+        })
+        // ⚠️ finalUrl 은 robots 캐시가 쓴다. 빠지면 리다이렉트로 남의 호스트
+        //    robots 를 읽고도 요청한 호스트의 규칙으로 판정한다(runner.ts).
+        return { status: res.status, body: await res.text(), finalUrl: res.url }
+      } catch (e) {
+        return { status: null, body: '', error: e instanceof Error ? e.message : String(e) }
+      }
+    },
+    store: createReviewStore(supabase),
+  })
+
   const { result, fatal, notes: rampNotes } = await collectWithRamp({
     sb: supabase,
-    adapter,
+    adapter: timing.adapter,
     dryRun,
     explicitTargets,
     slot,
-    ports: {
-      now: () => new Date(),
-      sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-      async fetchText(url, init) {
-        try {
-          const res = await fetch(url, {
-            // init = POST API(producthunt·googleplay)·헤더 인증 GET(kakao)만. 헤더를 합쳐도 User-Agent 는 우리 것으로 고정한다.
-            method: init?.method ?? 'GET',
-            body: init?.body,
-            headers: { Accept: '*/*', ...(init?.headers ?? {}), 'User-Agent': USER_AGENT },
-            redirect: 'follow',
-            signal: AbortSignal.timeout(20_000),
-          })
-          // ⚠️ finalUrl 은 robots 캐시가 쓴다. 빠지면 리다이렉트로 남의 호스트
-          //    robots 를 읽고도 요청한 호스트의 규칙으로 판정한다(runner.ts).
-          return { status: res.status, body: await res.text(), finalUrl: res.url }
-        } catch (e) {
-          return { status: null, body: '', error: e instanceof Error ? e.message : String(e) }
-        }
-      },
-      store: createReviewStore(supabase),
-    },
+    ports: timing.ports,
   })
 
   // ── 소스별 보고 ────────────────────────────────────────────────
@@ -328,6 +332,7 @@ for (const sourceKey of sourceKeys) {
 
   if (fatal) {
     say(`- ❌ 실행이 통째로 실패했다: ${fatal}`)
+    say(`- ${timing.line(Date.now() - started)}`)
   } else if (result.skipped) {
     say(`- ⏭️ 건너뜀 — ${result.skipReason}`)
   } else {
@@ -342,6 +347,7 @@ for (const sourceKey of sourceKeys) {
     say(
       `- ${((Date.now() - started) / 1000).toFixed(1)}초 · 타깃 ${result.targetsVisited}개 · 요청 ${result.requests}건`,
     )
+    say(`- ${timing.line(Date.now() - started)}`)
     // ⚠️ dry-run 의 "신규 0건" 은 0 이 아니라 **측정 안 함**이다.
     //    lib/review/runner.ts 가 `if (opts.dryRun) continue` 를 newCount++ 앞에서
     //    한다 — 지문을 쓰지 않으므로 중복 판정 자체를 못 한다. 구조상 항상 0이다.

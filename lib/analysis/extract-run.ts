@@ -11,6 +11,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   callLlmWithModel,
+  CliHardCapError,
   describeFailure,
   isQuotaFailure,
   parseJsonObject,
@@ -234,7 +235,8 @@ export type ExtractionOutcome =
       profile: ProfileOutcome | null
     }
   // quotaExhausted = 오늘 다시 불러도 같은 결과(한도·예산 소진). 배치 호출부는 여기서 멈춘다.
-  | { ok: false; error: string; quotaExhausted: boolean }
+  // hardCap = 야간 배치의 세션 하드 캡(llm.ts CliHardCapError, v32)에 걸려 시작 전에 막혔다. 역시 멈춘다.
+  | { ok: false; error: string; quotaExhausted: boolean; hardCap?: boolean }
 
 export async function runExtraction(
   supabase: SupabaseClient,
@@ -243,14 +245,18 @@ export async function runExtraction(
   // claimExtraction 의 restore. 재추출(force) 실패가 멀쩡한 extracted 프로젝트를 failed 로 떨어뜨리던 것을 막는다
   // (2026-09-27 d62f3caa: 503 한 번에 extracted→failed, 속성 5개는 그대로 남아 있었다).
   restore: ExtractRestore | null = null,
+  // claimExtraction 이 올린 뒤의 extract_attempts. 주면 한도·하드 캡 실패에서 1 을 되돌린다(v32 — 그 프로젝트의 잘못이 아니다).
+  // 안 주면(라우트·CLI) 기존 동작 그대로다.
+  attemptsAtClaim: number | null = null,
 ): Promise<ExtractionOutcome> {
   const startedAt = Date.now()
   // 기존 속성을 지운 뒤의 실패는 되돌리지 않는다 — 그때 extracted 로 돌리면 속성이 비어 있는데 "끝났다"가 된다.
   let aspectsDeleted = false
 
-  const fail = async (message: string, quotaExhausted = false): Promise<ExtractionOutcome> => {
+  const fail = async (message: string, quotaExhausted = false, hardCap = false): Promise<ExtractionOutcome> => {
     const back = restore && !aspectsDeleted ? restore : null
-    console.error(`[analyze/extract] project=${projectId} failed${back ? ` (재추출 실패 — ${back.status} 로 되돌림)` : ''}: ${message}`)
+    const unburn = (quotaExhausted || hardCap) && attemptsAtClaim != null && attemptsAtClaim > 0
+    console.error(`[analyze/extract] project=${projectId} failed${back ? ` (재추출 실패 — ${back.status} 로 되돌림)` : ''}${unburn ? ' (한도·하드 캡 — 시도 수 되돌림)' : ''}: ${message}`)
     await supabase
       .from('analysis_projects')
       .update({
@@ -258,9 +264,10 @@ export async function runExtraction(
         extract_error: message.slice(0, 1000),
         // 되돌릴 때는 직전 완료 시각을 복원한다 — 실패 시각을 찍으면 "마지막 추출 이후 신규" 기준이 밀린다.
         extract_finished_at: back ? back.finishedAt : new Date().toISOString(),
+        ...(unburn ? { extract_attempts: (attemptsAtClaim as number) - 1 } : {}),
       })
       .eq('id', projectId)
-    return { ok: false, error: message, quotaExhausted }
+    return { ok: false, error: message, quotaExhausted, ...(hardCap ? { hardCap } : {}) }
   }
 
   // 1. 프롬프트 재료 조회
@@ -347,7 +354,7 @@ export async function runExtraction(
     )
   } catch (e) {
     // 한도·예산 소진이면 오늘 다시 불러도 같다 — 야간 배치가 다음 프로젝트로 넘어가지 않게 알린다.
-    return fail(describeFailure(e), isQuotaFailure(e))
+    return fail(describeFailure(e), isQuotaFailure(e), e instanceof CliHardCapError)
   }
 
   // 4. JSON 파싱
@@ -449,21 +456,6 @@ export async function runExtraction(
   const normName = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase() : '')
   const keptNames = new Set((keptRows ?? []).map(r => normName(r.name)).filter(Boolean))
 
-  const { error: deleteError } = await supabase
-    .from('analysis_aspects')
-    .delete()
-    .eq('project_id', projectId)
-    .eq('human_confirmed', false)
-
-  if (deleteError) {
-    return fail(
-      deleteError.code === '23503'
-        ? '이미 소구 앵글이 생성된 속성이 있어 재분석할 수 없습니다. 앵글을 먼저 삭제해주세요.'
-        : `기존 속성 삭제에 실패했습니다: ${deleteError.message}`,
-    )
-  }
-  aspectsDeleted = true
-
   const freshRows = aspectRows.filter(r => !keptNames.has(normName(r.name)))
   if (freshRows.length !== aspectRows.length) {
     console.log(
@@ -472,10 +464,43 @@ export async function runExtraction(
     )
   }
 
+  // 교체 순서(v32 원자성): **새 행을 먼저 넣고 → 옛 행(새 id 제외)을 지운다.** PostgREST 는 요청 사이에 트랜잭션이 없어서
+  // 예전 순서(지우고 → 넣기)는 그 사이 실패 하나로 프로젝트의 LLM 속성이 0개인 채 남았다. 지금은:
+  //   · 넣기 실패 → 아무것도 안 지웠다 → 재추출은 이전 상태로 되돌린다(restore).
+  //   · 지우기 실패 → 방금 넣은 새 행을 지워 되돌리고(보상) 이전 상태로 되돌린다. 보상마저 실패하면 중복이 남고 그 사실을 오류에 적는다.
+  //   · 그 뒤 실패(프로젝트 갱신) → 속성은 새 한 벌로 온전하다. 상태만 failed 다.
+  // 남는 구멍: 넣기~지우기 사이 몇백 ms 동안 읽는 쪽이 두 벌을 볼 수 있다. 진짜 트랜잭션은 Postgres 함수(마이그) 1개로 올린다.
+  let newIds: string[] = []
   if (freshRows.length > 0) {
-    const { error: aspectError } = await supabase.from('analysis_aspects').insert(freshRows)
+    const { data: inserted, error: aspectError } = await supabase.from('analysis_aspects').insert(freshRows).select('id')
     if (aspectError) return fail(`속성 저장에 실패했습니다: ${aspectError.message}`)
+    newIds = (inserted ?? []).map((r: { id: string }) => r.id).filter(Boolean)
+    // 돌려받은 id 가 넣은 수와 다르면 "새 id 제외" delete 가 방금 넣은 행까지 지운다(빈 배열이면 human_confirmed=false 전부).
+    // 지우기 전에 멈추고, 받은 id 가 있으면 그것만 걷어 낸다. 받지 못한 행은 확인 불가 — 오류에 남긴다(§7.1).
+    if (newIds.length !== freshRows.length) {
+      const undo = newIds.length > 0 ? (await supabase.from('analysis_aspects').delete().in('id', newIds)).error : null
+      aspectsDeleted = true // 응답에 없는 행이 들어갔을 수 있어 이전 상태라고 장담 못 한다 — extracted 로 되돌리지 않고 failed
+      return fail(`속성 저장 응답이 넣은 수와 다르다(넣음 ${freshRows.length} · 돌려받은 id ${newIds.length}) — 옛 속성은 지우지 않았다. 응답에 없는 새 행이 남았을 수 있다(확인 불가)${undo ? ` · 받은 id 되돌리기도 실패: ${undo.message}` : ''}`)
+    }
   }
+
+  let del = supabase
+    .from('analysis_aspects')
+    .delete()
+    .eq('project_id', projectId)
+    .eq('human_confirmed', false)
+  if (newIds.length > 0) del = del.not('id', 'in', `(${newIds.join(',')})`)
+  const { error: deleteError } = await del
+
+  if (deleteError) {
+    const undo = newIds.length > 0 ? (await supabase.from('analysis_aspects').delete().in('id', newIds)).error : null
+    const why = deleteError.code === '23503'
+      ? '이미 소구 앵글이 생성된 속성이 있어 재분석할 수 없습니다. 앵글을 먼저 삭제해주세요.'
+      : `기존 속성 삭제에 실패했습니다: ${deleteError.message}`
+    if (undo) aspectsDeleted = true // 새 행을 못 걷었다 — 이전 상태가 아니니 extracted 로 되돌리지 않는다
+    return fail(undo ? `${why} (새 속성 ${newIds.length}개 되돌리기도 실패 — 중복 남음: ${undo.message})` : why)
+  }
+  aspectsDeleted = true
 
   // 7. Stage2 결과 + 완료 상태 기록
   const { error: updateError } = await supabase

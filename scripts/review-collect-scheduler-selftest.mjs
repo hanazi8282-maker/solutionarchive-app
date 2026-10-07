@@ -281,6 +281,47 @@ const last = (r) => r.notes.at(-1)
   t('어제 계획 → 무시(요청 5 = 퍼센트 목표) + ⚠️', [r.result.requests, last(r).startsWith('⚠️ 예산: 스케줄 계획 무시')], [5, true])
 }
 
+// ── 5-2) 시작일 다음 날(v32) — 'start' 계획이 S+1 에 버려지지 않는다 ───────────
+{
+  // validPlan 순수: (plan.date, last_evaluated_date, 오늘)
+  const v = (date, last, today) => validPlan(plan({ date }), today, last) !== null
+  t('v32 시작일 S 당일: plan=S·last=S → 유효', v('2026-10-08', '2026-10-08', '2026-10-08'), true)
+  t('v32 S+1: plan=S·last=S(어제) → 유효(시작일 계획 하루 연장)', v('2026-10-08', '2026-10-08', '2026-10-09'), true)
+  t('v32 S+2 갱신 없음: plan=S·last=S → 무효(이틀 묵음)', v('2026-10-08', '2026-10-08', '2026-10-10'), false)
+  t('v32 평소 날 D: plan=D·last=D-1 → 유효(불변)', v('2026-10-09', '2026-10-08', '2026-10-09'), true)
+  t('v32 평소 날 판정 실패 다음 날: plan=D·last=D-1, 오늘 D+1 → 무효(불변)', v('2026-10-09', '2026-10-08', '2026-10-10'), false)
+  t('v32 last 없음(null)·plan=어제 → 무효', v('2026-10-08', null, '2026-10-09'), false)
+
+  // 수명 주기 — 같은 가짜 DB 로 S, S+1, S+2 를 실제 stepPctRamps·plannedSourcesForSlot·collectWithRamp 로 넘긴다.
+  const db = memDb({
+    ramp: [rampRow({ last_evaluated_date: null, daily_request_target: null })],
+    sources: [{ key: 'fmkorea', enabled: true, min_interval_ms: 3000, daily_request_cap: 400 }],
+    targets: [{ source_key: 'fmkorea', status: 'active' }, { source_key: 'fmkorea', status: 'active' }],
+    runs: [{ source_key: 'fmkorea', dry_run: false, started_at: '2026-10-07T05:40:00.000Z', requests: 30, targets_visited: 3, status: 'ok' }],
+  })
+  const R = () => db.T.review_source_ramp[0]
+  const S = new Date('2026-10-08T01:50:00Z'), S1 = new Date('2026-10-09T01:50:00Z'), S2 = new Date('2026-10-10T01:50:00Z')
+  await stepPctRamps(db, S, false)
+  t('v32 S: start → last=S·plan.date=S', [R().last_evaluated_date, R().schedule_plan?.date], ['2026-10-08', '2026-10-08'])
+  const nLog = db.T.review_source_ramp_log.length
+  await stepPctRamps(db, S1, false)
+  t('v32 S+1: 판정 건너뜀(시작일 세지 않음 — 의도, 로그·계획 그대로)', [db.T.review_source_ramp_log.length, R().schedule_plan.date], [nLog, '2026-10-08'])
+  const p1 = await plannedSourcesForSlot(db, 0, S1)
+  t('v32 S+1: 추가 슬롯이 시작일 계획을 쓴다(소스 목록 비어 있지 않음)', p1.keys, ['fmkorea'])
+  // 러너 경로: harness 시계는 2026-10-08T01:50 이라 S+1 에 맞춘 사본으로 본다
+  const s1db = memDb({ ramp: [{ ...R() }] })
+  const h = harness()
+  const r1 = await collectWithRamp({ sb: s1db, adapter: fmkoreaAdapter, dryRun: false, explicitTargets: null, slot: '43 1 * * *', ports: { ...h.ports, now: () => new Date(S1) } })
+  t('v32 S+1: 러너도 계획 적용(경고 아님)', /^예산: 스케줄 계획 적용\(2026-10-08\)/.test(last(r1)), true)
+  db.T.review_collection_runs.push({ source_key: 'fmkorea', dry_run: false, started_at: '2026-10-09T05:40:00.000Z', requests: 10, targets_visited: 1, status: 'ok', blocked_responses: 0, quota_responses: 0, health_after: 'ok' })
+  await stepPctRamps(db, S2, false)
+  t('v32 S+2: 첫 판정으로 정상 갱신(last=S+1·plan=S+2)', [R().last_evaluated_date, R().schedule_plan.date], ['2026-10-09', '2026-10-10'])
+  t('v32 S+2: 추가 슬롯 유효', (await plannedSourcesForSlot(db, 0, S2)).keys, ['fmkorea'])
+  // 안전: S+2 에 판정이 안 돌았다면(갱신 실패) 시작일 계획은 무효
+  const stale = memDb({ ramp: [rampRow({ last_evaluated_date: '2026-10-08', schedule_plan: plan({ date: '2026-10-08' }) })] })
+  t('v32 S+2 판정 실패 → 시작일 계획 무효(소스 0)', (await plannedSourcesForSlot(stale, 0, S2)).keys, [])
+}
+
 // ── 6) 배선 · 워크플로 · 마이그 ───────────────────────────────────
 {
   const collect = fs.readFileSync(path.join(root, 'scripts', 'review-collect.mjs'), 'utf8')

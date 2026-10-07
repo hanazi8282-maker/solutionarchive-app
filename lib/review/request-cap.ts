@@ -100,8 +100,11 @@ export function classifyTargetRef(productRef: string): TargetKind {
  * ponytail: YAML 파서를 안 쓴다(의존성 0). 대신 셀프테스트가 **실제
  * nightly-review-collect.yml 을 읽어** 개수를 대조한다 — 파싱이 틀리면 거기서 깨진다.
  * 이 방식이 모자라지면 그때 js-yaml 을 넣는다.
+ *
+ * `keep`: 셀 cron 을 고른다. v30 §2 로 추가된 4슬롯은 스케줄 계획이 있는 소스만 돌고, 상한 자동 반영은 계획 없는
+ * 소스가 도는 기존 슬롯 기준이라 scripts/review-request-cap.mjs 는 LEGACY_SLOTS 만 센다(lib/review/ramp.ts).
  */
-export function countCronSchedules(yamlText: string): number | null {
+export function countCronSchedules(yamlText: string, keep: (cron: string) => boolean = () => true): number | null {
   const lines = (yamlText ?? '').split(/\r?\n/)
   let sawSchedule = false
   let inSchedule = false
@@ -131,7 +134,8 @@ export function countCronSchedules(yamlText: string): number | null {
       inSchedule = false
       continue
     }
-    if (/^-\s*cron\s*:/.test(trimmed)) count++
+    const m = /^-\s*cron\s*:\s*['"]?([^'"#]+?)['"]?\s*(#.*)?$/.exec(trimmed)
+    if (m && keep(m[1].trim())) count++
   }
 
   if (!sawSchedule || count === 0) return null

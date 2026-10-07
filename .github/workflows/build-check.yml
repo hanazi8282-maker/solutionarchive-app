@@ -272,6 +272,8 @@ jobs:
       - run: node scripts/review-purge-selftest.mjs
       # 수집 램프 전제 — 차단·쿼터 건수 저장(컬럼 없음 폴백 3상태)·계단 상수·램프 읽기 3상태.
       - run: node scripts/review-ramp-selftest.mjs
+      # 수집 스케줄러(v30 §2) — R=ceil(B/P)≤6 · 슬롯 누적 허용 · cap_base 없음 = 기존 예산 · 워크플로 cron = COLLECT_SLOTS.
+      - run: node scripts/review-collect-scheduler-selftest.mjs
       # 리뷰 소스 파서 13종 — 구조 소실을 0건과 가르는 검사(§7.1)가 각 파일에 있다.
       - run: node scripts/review-82cook-selftest.mjs
       - run: node scripts/review-appstore-selftest.mjs

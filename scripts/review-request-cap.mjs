@@ -41,6 +41,7 @@ import {
   planCaps,
 } from '../lib/review/request-cap.ts'
 import { kstDate } from './notion-status-log.mjs'
+import { LEGACY_SLOTS } from '../lib/review/ramp.ts'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const repo = path.join(here, '..')
@@ -71,7 +72,8 @@ const fail = (msg) => {
 // ── 1) 하루 실행 횟수 — 못 읽으면 여기서 멈춘다(§7.1) ──────────────
 let runsPerDay = null
 try {
-  runsPerDay = countCronSchedules(fs.readFileSync(WORKFLOW, 'utf8'))
+  // 기존 슬롯만 센다 — v30 §2 추가 4슬롯은 스케줄 계획 있는 소스만 돌아, 상한 수요(계획 없는 소스)에 넣으면 3배로 부푼다.
+  runsPerDay = countCronSchedules(fs.readFileSync(WORKFLOW, 'utf8'), (c) => LEGACY_SLOTS.has(c))
 } catch (e) {
   fail(`워크플로 파일을 읽지 못했다(${WORKFLOW}): ${e.message}. 하루 실행 횟수를 확인할 수 없어 계산하지 않는다.`)
 }

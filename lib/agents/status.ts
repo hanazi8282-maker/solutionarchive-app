@@ -42,7 +42,8 @@ export const LOOPS: readonly LoopDef[] = [
   { key: 'cmo', label: 'CMO 데일리 루프', table: 'agent_runs', cronExpr: '17 20 * * *', scheduleActive: true, deptFilter: 'cmo', workflow: 'daily-cmo-loop.yml' },
   { key: 'insight', label: '나이틀리 인사이트 루프', table: 'insight_loop_runs', cronExpr: '41 18 * * *', scheduleActive: true, workflow: 'nightly-insight-loop.yml' },
   // 수집만 하루 2회다(남헌 2026-09-23 Q2(a)). extract·relevance 는 1회 그대로다.
-  { key: 'review', label: '나이틀리 리뷰 수집', table: 'review_collection_runs', cronExpr: '37 17 * * *', extraCronExprs: ['37 5 * * *'], scheduleActive: true, workflow: 'nightly-review-collect.yml' },
+  // v30 §2: 뒤 4개는 스케줄 계획(cap_base) 있는 소스만 도는 추가 슬롯 — 계획 없으면 실행 행 없이 끝난다(lib/review/ramp.ts COLLECT_SLOTS).
+  { key: 'review', label: '나이틀리 리뷰 수집', table: 'review_collection_runs', cronExpr: '37 17 * * *', extraCronExprs: ['37 5 * * *', '43 1 * * *', '29 9 * * *', '19 13 * * *', '47 20 * * *'], scheduleActive: true, workflow: 'nightly-review-collect.yml' },
   { key: 'notion', label: '나이틀리 노션 피드백', table: 'notion_sync_log', cronExpr: '7 12 * * *', scheduleActive: true, workflow: 'nightly-notion-feedback.yml' },
 ] as const
 

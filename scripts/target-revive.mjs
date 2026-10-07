@@ -7,7 +7,9 @@
 //    무엇을 몇 건 되살렸는지·롤백 파일 경로는 Notion 일일 상태 로그에 남긴다(§10.2 4조건).
 //
 // 대상 = exhausted ∧ consecutive_empty=0 ∧ enabled 소스 ∧ producthunt·danawa·todayhumor 아님.
-//   consecutive_empty=0 인데 닫힌 것은 "더 볼 게 없어서"가 아니라 옛 로직이 "끝까지 읽어서" 닫은 것(20260930000006 와 같은 판단).
+//   consecutive_empty=0 인데 닫힌 것은 증분형 소스에서는 옛 로직이 "끝까지 읽어서" 닫은 것(20260930000006 와 같은 판단).
+//   ⚠️ 비증분형(appstore·youtube 등, NON_INCREMENTAL_SOURCES)은 그게 정상 종료다 — 피드 전체를 다시 읽어 중복만 나온다(v37, 2026-10-08 실측).
+//      그래서 last_run_at + max(1/v, 7)일이 지난 것만 되살린다. 덜 지났으면 revisit_not_due, last_run_at 이 없으면 revisit_unknown.
 //   연속 0건으로 닫힌 `url:` 글(댓글이 더 안 붙는 글)은 두고, 그 소스는 board: 등록 처방으로 간다(target-supply remedies).
 //   소스별 상한 = min(gap, 30% 게이트 여유, googleplay 80 동결). 순서 board: → 그 밖 → url: — lib/review/target-supply.ts planRevive.
 //   법적 게이트로 빼지 않는다(남헌 2026-10-07: devto·disquiet·indiehackers·tumblbug·youtube enabled 유지 — 현행 enabled 만 본다).
@@ -23,7 +25,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-import { computeSupply, idSetHash, planRevive, rollbackSql } from '../lib/review/target-supply.ts'
+import { computeSupply, idSetHash, planRevive, revisitDays, rollbackSql } from '../lib/review/target-supply.ts'
 import { loadSupplyInputs, openDb } from './target-supply.mjs'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -60,6 +62,9 @@ export async function main(argv, { db, now = new Date() } = {}) {
   for (const [k, b] of Object.entries(plan.bySource).sort()) {
     const sk = Object.entries(b.skipped).map(([r, c]) => `${r} ${c}`).join(', ')
     log(`  ${k}: 후보 ${b.candidates} → 되살림 ${b.revive}${sk ? ` (건너뜀: ${sk})` : ''}`)
+    if (b.skipped.revisit_not_due) {
+      log(`    재방문 간격 미경과로 건너뜀 ${b.skipped.revisit_not_due}건 · 다음 자격 ${b.next_due} (last_run_at + ${revisitDays(k)}일)`)
+    }
   }
 
   if (!run) {

@@ -11,7 +11,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
-  computeSupply, discoveryCount, gateHeadroom, idSetHash, planRevive, rollbackSql, shareHeadroom, supplyLine,
+  NON_INCREMENTAL_SOURCES, computeSupply, discoveryCount, gateHeadroom, idSetHash, planRevive, revisitDays, rollbackSql, shareHeadroom, supplyLine,
 } from '../lib/review/target-supply.ts'
 import { main as supplyMain } from './target-supply.mjs'
 import { main as reviveMain } from './target-revive.mjs'
@@ -267,6 +267,45 @@ const DB = () => ({ review_sources: SOURCES, review_source_ramp: RAMPS.map((r) =
   const planBody = fs.readFileSync(path.join(tmp, 'rb-partial-plan.sql'), 'utf8')
   t('revive 부분 갱신: 7건 · 롤백에서 안 바뀐 id 제외 · 계획 파일은 8 그대로',
     [ran.r.applied.updated, body.includes(first), (body.match(/::uuid/g) ?? []).length, planBody.includes(first), (planBody.match(/::uuid/g) ?? []).length], [7, false, 7, true, 8])
+}
+
+// ── 비증분형 재방문 간격(v37) ─────────────────────────────────────
+{
+  // 사실 대조: scripts/review-collect.mjs 의 어댑터 표(키 → 어댑터)를 읽어 incrementalOnly 가 없는 소스 = NON_INCREMENTAL_SOURCES.
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+  const rc = fs.readFileSync(path.join(root, 'scripts', 'review-collect.mjs'), 'utf8')
+  const modOf = {}
+  for (const m of rc.matchAll(/^import \{ ([^}]+) \} from '\.\.\/lib\/review\/adapters\/([\w-]+)\.ts'/gm)) for (const n of m[1].split(',')) modOf[n.trim()] = m[2]
+  const table = rc.match(/const ADAPTERS = \{([\s\S]*?)\n\}/)?.[1] ?? ''
+  const entries = [...table.matchAll(/^\s*'?([\w]+)'?: (\w+),/gm)].map((m) => [m[1], m[2]])
+  const nonInc = []
+  for (const [key, name] of entries) {
+    const mod = await import(`../lib/review/adapters/${modOf[name]}.ts`)
+    if (mod[name]?.incrementalOnly !== true) nonInc.push(key)
+  }
+  t('어댑터 표를 읽었다(25개 이상)', entries.length >= 25, true)
+  t('비증분형 집합 = 어댑터에 incrementalOnly 가 없는 소스(runner endStatus=exhausted)', nonInc.sort(), [...NON_INCREMENTAL_SOURCES].sort())
+  t('재방문 간격: appstore 7 · youtube max(1/2, 7)=7 · 증분형 null', [revisitDays('appstore'), revisitDays('youtube'), revisitDays('clien'), revisitDays('googleplay')], [7, 7, null, null])
+
+  const ago = (h) => new Date(NOW.getTime() - h * 3600_000).toISOString()
+  seq = 500
+  const ts = [
+    ...tg('appstore', 1, 'kr:1', 'exhausted', 0).map((x) => ({ ...x, last_run_at: ago(7 * 24 + 1) })), // 7일 1시간 전 → 대상
+    ...tg('appstore', 2, (i) => `kr:${i}`, 'exhausted', 0).map((x, i) => ({ ...x, last_run_at: ago(24 + i) })), // 어제 → 건너뜀
+    ...tg('appstore', 1, 'kr:9', 'exhausted', 0).map((x) => ({ ...x, last_run_at: null })), // 기록 없음 → revisit_unknown
+    ...tg('youtube', 1, 'v:aaaaaaaaaaa', 'exhausted', 0).map((x) => ({ ...x, last_run_at: ago(8 * 24) })),
+    ...tg('youtube', 1, 'v:bbbbbbbbbbb', 'exhausted', 0).map((x) => ({ ...x, last_run_at: ago(24) })),
+    ...tg('clien', 2, (i) => `url:/service/board/park/${i}`, 'exhausted', 0).map((x) => ({ ...x, last_run_at: ago(1) })), // 증분형 — 1시간 전이어도 대상
+  ]
+  const row = (source_key) => ({ source_key, state: 'short', gap: 10, gate_headroom: 10 })
+  const p = planRevive(ts, { generated_at: NOW.toISOString(), sources: ['appstore', 'youtube', 'clien'].map(row) })
+  t('appstore: 7일 지난 1건만 대상 · 어제 2건 revisit_not_due · 기록 없음 revisit_unknown',
+    [p.bySource.appstore.revive, p.bySource.appstore.skipped], [1, { revisit_not_due: 2, revisit_unknown: 1 }])
+  t('appstore: 다음 자격 = 가장 이른 last_run_at + 7일', p.bySource.appstore.next_due, new Date(Date.parse(ago(25)) + 7 * 86_400_000).toISOString())
+  t('youtube: 8일 전 대상 · 어제 건너뜀', [p.bySource.youtube.revive, p.bySource.youtube.skipped], [1, { revisit_not_due: 1 }])
+  t('증분형(clien): 간격 규칙 영향 없음', [p.bySource.clien.revive, p.bySource.clien.skipped, p.bySource.clien.next_due], [2, {}, undefined])
+  t('간격 미경과 행은 상한을 소모하지 않는다(gap 1 이어도 7일 지난 행이 들어간다)',
+    planRevive(ts, { generated_at: NOW.toISOString(), sources: [{ source_key: 'appstore', state: 'short', gap: 1, gate_headroom: 9 }] }).revive.map((r) => r.product_ref), ['kr:1'])
 }
 
 // ── discovery-run --supply — 실제 자식 프로세스(DB·LLM·네트워크 없음) ─────────────

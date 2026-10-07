@@ -16,6 +16,7 @@
 // 사용:
 //   node scripts/extract-auto.mjs --dry      # 대상 선정만. LLM·DB 쓰기 없음
 //   node scripts/extract-auto.mjs            # 실제 추출 (LLM 비용 발생)
+//   EXTRACT_PROJECT_IDS='<uuid>,<uuid>' ...  # 수동(slot=m)만: 그 프로젝트로 한정, min_new 미적용(남헌 v40 §4)
 //
 // 적응형 슬롯(남헌 2026-09-28, reports/2026-09-28/extract-adaptive-frequency-design.md): 하루 3슬롯이 각각 먼저
 //   백로그(Bw)·하루 상한·한도 쿨다운을 보고(decideSlot) 쉴지 정한다. 쉼도 agent_runs 에 gate 스텝 skipped 로 남긴다.
@@ -53,16 +54,18 @@ import {
   extractRunKey,
   needsForce,
   newInputsSince,
+  parseProjectIds,
   parseQuotaResetAt,
   pickAutoTargets,
   resolveSlot,
+  scopeProjects,
   slotStateOf,
 } from '../lib/analysis/extract-auto.ts'
 import {
   AUTOTUNE, autotuneLine, autotuneOn, capBindingOf, carriedD, decideAutotune, isScheduledKey, slotMaxOf, weeklySafety,
 } from '../lib/analysis/extract-autotune.ts'
 // 어느 상태가 후보인지는 extract-gate 가 정본이다(claimExtraction 이 같은 canStart 를 본다).
-import { AUTO_EXTRACT_STATUSES } from '../lib/analysis/extract-gate.ts'
+import { AUTO_EXTRACT_STATUSES, AUTO_RETRY_MAX_ATTEMPTS } from '../lib/analysis/extract-gate.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate, upsertStatusLog } from './notion-status-log.mjs'
 
@@ -90,6 +93,20 @@ try {
   process.exit(2)
 }
 
+// 수동 측정용 대상 지정(남헌 v40 §4, 입력 project_ids). 비면 평소 선별 그대로(이 블록 밖 코드가 기존과 같은 값을 받는다).
+// 지정하면 min_new 문턱만 빼고 상태·force·하루 상한·쿨다운·캡·재시도 큐는 그대로다. 스케줄 슬롯에서는 받지 않는다.
+const { ids: projectIds, invalid: badIds } = parseProjectIds(process.env.EXTRACT_PROJECT_IDS)
+if (badIds.length) {
+  console.error(`✗ project_ids 형식 오류 ${badIds.length}건(uuid 아님): ${badIds.map((v) => `'${v}'`).join(', ')} — 아무것도 하지 않고 멈춘다`)
+  process.exit(2)
+}
+const scoped = projectIds.length > 0
+if (scoped && slot !== 'm') {
+  console.error(`✗ project_ids 는 수동 실행(slot=m)에서만 쓴다 — 지금 슬롯 ${slot}. 아무것도 하지 않고 멈춘다`)
+  process.exit(2)
+}
+const pickMinNew = scoped ? 0 : minNew // 명시 지정은 문턱을 적용하지 않는다
+
 const log = (m) => console.log(`[${new Date().toISOString()}] ${m}`)
 const warn = (m) => {
   // GitHub 이 제공하는 세 번째 상태. 빨간 X(실패)도 초록(정상)도 아닌 것을 그대로 표시한다.
@@ -112,7 +129,7 @@ if (!supabase) {
 
 // claude-cli 는 달러 예산 밖이다(llm.ts UNMETERED) — 상한은 슬롯·하루 건수, 실측 명목값은 봉투 cost_usd 로만 본다.
 const budgetNote = provider === 'claude-cli' ? '달러 예산 미적용(구독)' : `일 예산 $${DAILY_BUDGET_USD}`
-log(`야간 자동 extract ${dry ? '(--dry: 대상 선정·게이트 판정만)' : ''} — run_key=${runKey} · 슬롯 ${slot} · provider=${provider} · 신규 기준 ${minNew}건 · 슬롯 상한 ${max}건 · 하루 상한 ${dailyMax}건 · ${budgetNote}`)
+log(`야간 자동 extract ${dry ? '(--dry: 대상 선정·게이트 판정만)' : ''} — run_key=${runKey} · 슬롯 ${slot} · provider=${provider} · 신규 기준 ${scoped ? `미적용(project_ids ${projectIds.length}건 지정)` : `${minNew}건`} · 슬롯 상한 ${max}건 · 하루 상한 ${dailyMax}건 · ${budgetNote}`)
 
 // ── 1. 후보 = status='collecting' + 재추출 가능 상태(extracted) ──
 // 남헌 2026-09-23 Q4(a). extracted 도 후보다 — 마지막 추출 이후 신규 ≥ minNew 면 force 로 다시 돈다.
@@ -121,16 +138,30 @@ log(`야간 자동 extract ${dry ? '(--dry: 대상 선정·게이트 판정만)'
 // failed 도 후보다(2026-09-27) — 단 extract_attempts < AUTO_RETRY_MAX_ATTEMPTS 인 것만(pickAutoTargets).
 // 전에는 뺐는데, Gemini 503 한 번이 프로젝트를 영구 제외시키는 경로가 실제로 돌았다. 첫 추출 취급(force 없음).
 // 검수 이후(reviewed/angled/done)는 AUTO_EXTRACT_STATUSES 에 없으므로 여기서도 빠진다.
-const { data: projects, error: projectsError } = await supabase
+const projectsQuery = supabase
   .from('analysis_projects')
   // business_model 은 대상 **순서**를 가른다 — SaaS 가 먼저다(pickAutoTargets, 남헌 2026-09-23).
   // status 도 순서를 가른다 — 첫 추출이 재추출보다 먼저다.
   .select('id, status, extract_finished_at, extract_attempts, product_elevator_pitch, business_model')
-  .in('status', AUTO_EXTRACT_STATUSES)
+// 지정 모드는 id 로만 읽는다(상태 필터 없이) — "없음"과 "상태로 거부"를 갈라 보고하려고. 상태 규칙은 scopeProjects 가 그대로 건다.
+const { data: projectRows, error: projectsError } = await (scoped
+  ? projectsQuery.in('id', projectIds)
+  : projectsQuery.in('status', AUTO_EXTRACT_STATUSES))
 
 if (projectsError) {
   console.error(`✗ 프로젝트 조회 실패: ${projectsError.message}`)
   process.exit(2)
+}
+
+let projects = projectRows
+let scope = null
+if (scoped) {
+  scope = scopeProjects(projectRows ?? [], projectIds)
+  projects = scope.kept
+  log(`project_ids 지정 ${projectIds.length}건 → 후보 ${scope.kept.length}건 · 거부 ${scope.rejected.length}건 · 없음 ${scope.missing.length}건 (min_new 문턱 미적용, 나머지 안전 규칙은 그대로)`)
+  for (const p of scope.kept) log(`  · 지정 대상 ${p.id} [${p.status}] ${needsForce(p) ? '재추출(force)' : '첫 추출'} — ${p.product_elevator_pitch ?? '(소개 없음)'}`)
+  for (const r of scope.rejected) warn(`project_ids 제외 ${r.id} — ${r.reason}`)
+  for (const id of scope.missing) warn(`project_ids 없음 ${id} — analysis_projects 에 이 id 가 없다`)
 }
 
 // ── 2. 프로젝트별 "마지막 추출 이후 신규 입력" 수 ────────────────
@@ -157,7 +188,7 @@ for (const p of projects ?? []) {
 
 // ── 3. 슬롯 게이트 (설계 §3·§4, 남헌 2026-09-28 D1~D8) ────────────
 // 백로그 = 상한 없이 고른 eligible 전체. 상태 = agent_runs(extract-auto-* 만 — D8: 다른 잡의 한도 정지는 안 본다).
-const full = pickAutoTargets(candidates, { minNew, max: Infinity })
+const full = pickAutoTargets(candidates, { minNew: pickMinNew, max: Infinity })
 const backlog = backlogOf(full)
 let state = null
 let extractRows = null // 재시도 큐(summary.retry_queue)도 이 행들에서 읽는다
@@ -231,6 +262,8 @@ const gateFields = {
   quota_cooldown_until: state?.cooldownUntil ?? null,
   prior_blocked_streak: state?.consecutiveBlocked ?? null,
   unknown: full.unknown,
+  // 지정 모드만 남긴다 — 비면 키 자체가 없어 기존 행 모양 그대로다.
+  ...(scope ? { project_ids: { requested: projectIds, kept: scope.kept.map((p) => p.id), rejected: scope.rejected, missing: scope.missing } } : {}),
 }
 const gateLine =
   `슬롯 ${slot} ${gate.run ? '실행' : '쉼'} — ${gate.reason} · B ${backlog.B}(SaaS ${backlog.S}) · Bw ${backlog.Bw} · ` +
@@ -282,10 +315,20 @@ if (!extractRows) warn('실행 이력을 못 읽어 재시도 큐도 확인 불�
 const ordered = orderWithQueue(full.targets, retryQueue, new Date())
 const pick = { ...full, targets: ordered.slice(0, Math.max(0, gate.max)), remaining: Math.max(0, ordered.length - gate.max) }
 const queuedIds = new Set(retryQueue.map((e) => e.project_id))
-log(`후보 ${candidates.length}건(${AUTO_EXTRACT_STATUSES.join('/')}) →${describePick(pick, minNew, gate.max)} (순서: 재시도 큐 → SaaS 우선 → 첫 추출 우선 → 신규 많은 순)`)
+log(`후보 ${candidates.length}건(${AUTO_EXTRACT_STATUSES.join('/')}) →${describePick(pick, pickMinNew, gate.max)} (순서: 재시도 큐 → SaaS 우선 → 첫 추출 우선 → 신규 많은 순)`)
 if (retryQueue.length) log(`재시도 큐 ${retryQueue.length}건: ${retryQueue.map((e) => `${e.project_id}(재시도 ${e.retries}회 소진·~${e.due_at})`).join(', ')}`)
 for (const t of pick.targets) {
   log(`  · ${t.projectId} [${t.businessModel ?? '미기재'}] ${needsForce(t) ? '재추출(force)' : '첫 추출'}${queuedIds.has(t.projectId) ? ' · 한도 재시도' : ''} · 신규 ${t.newInputs}건 — ${t.label ?? '(소개 없음)'}`)
+}
+// 지정했는데 이번에 안 도는 것도 이유를 남긴다 — 지정 id 가 말없이 사라지지 않게(§7.1).
+for (const p of scope?.kept ?? []) {
+  if (pick.targets.some((x) => x.projectId === p.id)) continue
+  const c = candidates.find((x) => x.projectId === p.id)
+  const why = c?.newInputs == null ? '신규 입력 수 확인 불가'
+    : !full.targets.some((x) => x.projectId === p.id) ? `failed 자동 재시도 상한(${AUTO_RETRY_MAX_ATTEMPTS}회) 도달`
+      : !ordered.some((x) => x.projectId === p.id) ? '한도 재시도 큐 대기(때가 안 됨)'
+        : `실행 상한 밖(이번 ${gate.max}건) — 다음 실행`
+  warn(`project_ids ${p.id} 이번 실행 대상 아님 — ${why}`)
 }
 if (pick.unknown > 0) warn(`신규 입력 수를 세지 못한 프로젝트 ${pick.unknown}건 — 대상 판정에서 빠졌다(0건이라는 뜻이 아니다)`)
 

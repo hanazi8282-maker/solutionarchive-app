@@ -26,7 +26,7 @@
 import { productKindOf } from '../cases/advisor.ts'
 // 어느 상태가 재추출 가능한지는 extract-gate 가 정본이다. 여기서 문자열을 다시 적지 않는다 —
 // 두 벌이 되면 후보에는 들어오는데 claimExtraction 이 거부하는 상태가 생긴다.
-import { AUTO_RETRY_MAX_ATTEMPTS, REANALYZABLE } from './extract-gate.ts'
+import { AUTO_EXTRACT_STATUSES, AUTO_RETRY_MAX_ATTEMPTS, REANALYZABLE } from './extract-gate.ts'
 
 const num = (v: string | undefined, fallback: number) => {
   const n = Number(v)
@@ -405,6 +405,44 @@ export function extractRunKey(
   // 수동 실행은 입력 slot 과 무관하게 m<run_id> — 게이트 시험(dry_run·slot=s2)이 진짜 s2 행을 덮지 않게.
   if (env.eventName === 'schedule') return `extract-auto-${date}-${resolveSlot(env)}`
   return `extract-auto-${date}-${env.runId ? `m${env.runId}` : 'local'}`
+}
+
+// ── 수동 측정용 대상 지정(남헌 v40 §4) — workflow_dispatch 입력 project_ids → env EXTRACT_PROJECT_IDS ──
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * 쉼표·공백 구분 → 소문자 uuid(중복 제거, 입력 순서 유지). 형식이 틀린 토큰은 invalid 로 따로 돌려준다 —
+ * 호출부는 하나라도 있으면 exit 2 로 멈춘다(조용히 버리지 않는다, §7.1). 빈 값 = ids [] = 지정 없음(평소 선별).
+ */
+export function parseProjectIds(raw: string | null | undefined): { ids: string[]; invalid: string[] } {
+  const tokens = (raw ?? '').split(/[\s,]+/).filter(Boolean)
+  return {
+    ids: [...new Set(tokens.filter(t => UUID_RE.test(t)).map(t => t.toLowerCase()))],
+    invalid: tokens.filter(t => !UUID_RE.test(t)),
+  }
+}
+
+/**
+ * 지정 id 로 조회한 행(상태 필터 없이) → 후보로 남길 것 · DB 에 없는 id · 상태로 거부한 id.
+ * 상태 규칙은 평소와 같다(AUTO_EXTRACT_STATUSES) — 지정했다고 검수 이후(reviewed/angled/done) 프로젝트를 다시 태우지 않는다.
+ */
+export function scopeProjects<R extends { id: string; status?: string | null }>(
+  rows: readonly R[],
+  ids: readonly string[],
+): { kept: R[]; missing: string[]; rejected: { id: string; status: string; reason: string }[] } {
+  const byId = new Map(rows.map(r => [r.id.toLowerCase(), r]))
+  const kept: R[] = []
+  const missing: string[] = []
+  const rejected: { id: string; status: string; reason: string }[] = []
+  for (const id of ids) {
+    const r = byId.get(id)
+    if (!r) { missing.push(id); continue }
+    const status = (r.status ?? '').trim()
+    if (AUTO_EXTRACT_STATUSES.includes(status)) kept.push(r)
+    else rejected.push({ id, status, reason: `status=${status || '(없음)'} — 자동 추출 후보(${AUTO_EXTRACT_STATUSES.join('/')})가 아니다` })
+  }
+  return { kept, missing, rejected }
 }
 
 /** 로그 한 줄 — "대상 0"과 "상한 도달, 남은 k건"을 말로 구분한다(§7.2). */

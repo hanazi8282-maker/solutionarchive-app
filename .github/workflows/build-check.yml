@@ -238,6 +238,8 @@ jobs:
       - run: node scripts/discovery-selftest.mjs
       # 제품 사전 → review_targets 투입(v23 2) — 가짜 DB 로 멱등·소스 가드·잘못된 ref·사전 ①⑦ 계획 수치.
       - run: node scripts/dictionary-targets-selftest.mjs
+      # 타깃 공급(v32 §5) — N=min(B÷(r×v), R×tpr÷v)·3상태·30% 게이트·googleplay 80 동결·발굴 건수·되살리기 dry/run·롤백 SQL.
+      - run: node scripts/target-supply-selftest.mjs
       - run: node scripts/discovery-transfer-selftest.mjs
       - run: node scripts/case-pipeline-selftest.mjs
       # 리서처 VOC 입력 경로(P1): 선택 규칙(사람 판정 우선·purge 제외)·초안 voc_inputs 검증·프롬프트 배선·

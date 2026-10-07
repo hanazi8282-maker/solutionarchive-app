@@ -41,6 +41,16 @@
 //   옵션: --areas=01,07(기본) · --sources=appstore,googleplay(기본) · --unit=product|area
 //         --global-us  해외(region=global) 제품에 us 타깃(appstore us:<id>, googleplay us:en:<pkg>)을 추가
 //         --max=N      이번 실행 INSERT 할 타깃 상한(기본 100). 넘는 칸은 over_max 로 남는다.
+//
+// 카카오 `q:` 검색어(남헌 v32 §5 D5, 2026-10-07): --sources=kakao_blog,kakao_cafe --areas=07
+//   사전 칸 = `sources.daum_search`(status '검색어', query) → buildProductRef(kakao_*, query) = `q:<검색어>`
+//   (target-ref.ts 가 kakao_blog·kakao_cafe 를 hackernewsRef 로 받는다 — raw 는 검색어 그대로, `q:` 를 붙여 넣지 않는다).
+//   영역 ⑤ 8개 중 KAKAO_FIRST_WAVE 4개만 넣는다. KAKAO_HELD 4개는 kakao_held 로 건너뛴다(남헌 결정 전 투입 금지).
+//   kakao 어댑터 nextRequest 는 KAKAO_REST_API_KEY 가 없으면 던지므로, ref 검증은 어댑터 parseProductRef 로 한다(같은 규칙 한 벌).
+//   소유자 예외 소스(override owner_2026-10-06)라 검색어가 늘면 캐시 범위도 는다(운영정책 20호) — 그래서 웨이브를 코드로 묶는다.
+//
+// 공급 게이트(남헌 v32 §5 D3·D4): 소스별 신규 상한 = lib/review/target-supply.ts gateHeadroom
+//   (한 소스가 enabled 소스 활성 타깃의 30% 를 넘지 않게 · googleplay 는 활성 80 동결). 넘는 칸은 share_gate 로 건너뛴다.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -50,19 +60,36 @@ import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { googleplayAdapter } from '../lib/review/adapters/googleplay.ts'
 import { buildProductRef } from '../lib/review/target-ref.ts'
 import { isOwnerRobotsOverride } from '../lib/review/runner.ts'
+import { kakaoBlogAdapter, kakaoCafeAdapter, parseProductRef as parseKakaoRef } from '../lib/review/adapters/kakao.ts'
+import { gateHeadroom } from '../lib/review/target-supply.ts'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 export const DICT_DIR = path.join(repoRoot, 'reports', '2026-10-05', 'product-dictionary')
 const DICT_URL = 'https://github.com/hanazi8282-maker/solutionarchive-app/blob/main/reports/2026-10-05/product-dictionary/'
 
 /** 사전 소스 키 → 어댑터. 사전의 나머지 넷(capterra·trustradius·shopify_apps·daum_search)은 어댑터가 없다. */
-export const ADAPTERS = { appstore: appstoreAdapter, googleplay: googleplayAdapter }
+export const ADAPTERS = { appstore: appstoreAdapter, googleplay: googleplayAdapter, kakao_blog: kakaoBlogAdapter, kakao_cafe: kakaoCafeAdapter }
 
-/** 사전 칸 → 어댑터가 읽는 raw ref. 시장 kr 은 모든 제품, us 는 --global-us ∧ region=global 만. */
+const KAKAO = new Set(['kakao_blog', 'kakao_cafe'])
+/** D5: 영역 ⑤ 검색어 8개 중 먼저 넣는 4개(설계 §1 나열 순서 앞 4개) · 보류 4개. 보류를 풀려면 남헌 결정 뒤 이 두 줄을 고친다. */
+export const KAKAO_FIRST_WAVE = ['yotpo', 'judge-me', 'loox', 'okendo']
+export const KAKAO_HELD = ['crema', 'alpha-review', 'vreview', 'snapreview']
+
+/** 사전 칸 → 어댑터가 읽는 raw ref. 시장 kr 은 모든 제품, us 는 --global-us ∧ region=global 만. kakao 는 검색어 그대로(시장 없음). */
 const RAW_REF = {
-  appstore: (id, m) => `${m}:${id}`,
-  googleplay: (id, m) => (m === 'kr' ? `kr:ko:${id}` : `us:en:${id}`),
+  appstore: (c, m) => `${m}:${c.id}`,
+  googleplay: (c, m) => (m === 'kr' ? `kr:ko:${c.id}` : `us:en:${c.id}`),
+  kakao_blog: (c) => String(c.query ?? ''),
+  kakao_cafe: (c) => String(c.query ?? ''),
 }
+/** 소스 → 사전 칸·투입 상태. kakao 는 daum_search 의 '검색어' 칸. */
+const cellOf = (p, source) => (KAKAO.has(source) ? p.sources?.daum_search : p.sources?.[source])
+const wantStatus = (source) => (KAKAO.has(source) ? '검색어' : '확인')
+/** 첫 요청을 만들 수 있는 ref 인가. kakao 는 키 없이 nextRequest 가 던지므로 같은 어댑터의 parseProductRef 로 본다. */
+const refUsable = (adapter, source, ref) =>
+  KAKAO.has(source)
+    ? parseKakaoRef(ref) !== null
+    : !!adapter.nextRequest({ id: '', projectId: '', sourceKey: source, productRef: ref, cursor: null, lastReviewAt: null })
 
 export function loadAreas(codes, dir = DICT_DIR) {
   return codes.map((code) => {
@@ -100,14 +127,15 @@ const areaPitch = (a) => `제품 사전 영역 ${a.area} ${a.area_ko}`
  * sourceRows: key → review_sources 행(없으면 undefined) / existing: Set<`${source}|${ref}`>
  * 반환 items[] — 칸 하나(제품×소스×시장)마다 { area, slug, source, ref, label, projectKey, skip }
  */
-export function plan(areas, { sources, unit, globalUs, max, sourceRows, existing, offline, areaMap = loadAreaMap() }) {
+export function plan(areas, { sources, unit, globalUs, max, sourceRows, existing, offline, areaMap = loadAreaMap(), headroom }) {
   const items = []
   const seen = new Set()
   let accepted = 0
+  const perSource = {}
   for (const a of areas) {
     for (const p of a.products) {
       for (const source of sources) {
-        const cell = p.sources?.[source]
+        const cell = cellOf(p, source)
         // v26 5영역(data/area-map-v26.json). 맵에 없는 slug 는 "모름"이라 넣지 않는다(§7.1 — 모르는 걸 투입으로 접지 않는다).
         const tag = Object.prototype.hasOwnProperty.call(areaMap, p.slug) ? areaMap[p.slug] : undefined
         const base = { area: a.area, slug: p.slug, source, areaTag: tag ?? null, label: tag ? `${tag}:${p.slug}` : p.slug }
@@ -120,7 +148,7 @@ export function plan(areas, { sources, unit, globalUs, max, sourceRows, existing
           items.push({ ...base, ref: null, skip: 'area_excluded' })
           continue
         }
-        if (!cell || cell.status !== '확인') {
+        if (!cell || cell.status !== wantStatus(source)) {
           items.push({ ...base, ref: null, skip: `status:${cell?.status ?? '없음'}` })
           continue
         }
@@ -129,24 +157,32 @@ export function plan(areas, { sources, unit, globalUs, max, sourceRows, existing
           items.push({ ...base, ref: null, skip: 'no_adapter' })
           continue
         }
-        const markets = globalUs && p.region === 'global' ? ['kr', 'us'] : ['kr']
+        if (KAKAO.has(source) && !KAKAO_FIRST_WAVE.includes(p.slug)) {
+          items.push({ ...base, ref: null, skip: KAKAO_HELD.includes(p.slug) ? 'kakao_held' : 'kakao_not_in_wave' })
+          continue
+        }
+        const markets = !KAKAO.has(source) && globalUs && p.region === 'global' ? ['kr', 'us'] : ['kr']
         for (const m of markets) {
-          const built = buildProductRef(source, RAW_REF[source](String(cell.id ?? ''), m))
+          const built = buildProductRef(source, RAW_REF[source](cell, m))
           const ref = built?.ok ? built.productRef : null
           const item = {
             ...base,
-            ref: ref ?? `${m}:${cell.id}`,
+            ref: ref ?? (KAKAO.has(source) ? `q:${cell.query ?? ''}` : `${m}:${cell.id}`),
             projectKey: unit === 'area' ? a.area : base.label,
             pitch: unit === 'area' ? areaPitch(a) : productPitch(p),
             competitorUrl: unit === 'area' ? DICT_URL + a.file : (p.official_url ?? cell.url),
           }
           const guard = sourceGuard(sourceRows?.[source], offline)
-          if (!ref || !adapter.nextRequest({ id: '', projectId: '', sourceKey: source, productRef: ref, cursor: null, lastReviewAt: null })) item.skip = 'invalid_ref'
+          if (!ref || !refUsable(adapter, source, ref)) item.skip = 'invalid_ref'
           else if (guard) item.skip = guard
           else if (existing?.has(`${source}|${ref}`)) item.skip = 'exists'
           else if (seen.has(`${source}|${ref}`)) item.skip = 'dup_in_plan'
+          else if (headroom && (perSource[source] ?? 0) >= (headroom[source] ?? 0)) item.skip = 'share_gate'
           else if (accepted >= max) item.skip = 'over_max'
-          else accepted++
+          else {
+            accepted++
+            perSource[source] = (perSource[source] ?? 0) + 1
+          }
           if (ref) seen.add(`${source}|${ref}`)
           items.push(item)
         }
@@ -237,6 +273,19 @@ async function supabasePort() {
       const rows = must(await sb.from('review_sources').select('key, enabled, robots_status, override').in('key', keys), 'review_sources 조회')
       return Object.fromEntries(rows.map((r) => [r.key, r]))
     },
+    /** 30% 게이트 입력: enabled 소스별 활성 타깃 수. */
+    async loadActiveCounts() {
+      const on = new Set(must(await sb.from('review_sources').select('key').eq('enabled', true), 'review_sources(enabled) 조회').map((r) => r.key))
+      const by = {}
+      for (let from = 0; ; from += 1000) {
+        const rows = must(
+          await sb.from('review_targets').select('source_key').eq('status', 'active').order('id').range(from, from + 999),
+          'review_targets(active) 조회',
+        )
+        for (const r of rows) if (on.has(r.source_key)) by[r.source_key] = (by[r.source_key] ?? 0) + 1
+        if (rows.length < 1000) return by
+      }
+    },
     async loadExisting(keys) {
       const out = new Set()
       for (let from = 0; ; from += 1000) {
@@ -293,10 +342,18 @@ export async function main(argv, { port } = {}) {
   const db = meta.offline ? null : (port ?? (await supabasePort()))
   const sourceRows = db ? await db.loadSources(meta.sources) : null
   const existing = db ? await db.loadExisting(meta.sources) : null
-  const items = plan(areas, { ...meta, sourceRows, existing })
+  // 공급 게이트(D3·D4). 못 읽으면 던진다 — 게이트 없이 넣지 않는다(§7.1).
+  let headroom = null
+  if (db) {
+    if (typeof db.loadActiveCounts !== 'function') throw new Error('DB 포트에 loadActiveCounts 없음 — 공급 게이트를 못 읽어 투입하지 않는다')
+    const active = await db.loadActiveCounts()
+    const total = Object.values(active).reduce((a, b) => a + b, 0)
+    headroom = Object.fromEntries(meta.sources.map((s) => [s, gateHeadroom(s, active[s] ?? 0, total)]))
+  }
+  const items = plan(areas, { ...meta, sourceRows, existing, headroom })
   const s = summarize(items, meta)
   const applied = meta.run ? await apply(items, db) : null
-  const out = { ...meta, by: s.by, insert: s.insert, projects: s.projects, applied, items }
+  const out = { ...meta, headroom, by: s.by, insert: s.insert, projects: s.projects, applied, items }
   return { out, line: applied ? `${s.line} → 실제 ${JSON.stringify(applied)}` : s.line }
 }
 

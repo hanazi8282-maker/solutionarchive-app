@@ -77,6 +77,17 @@ jobs:
         run: |
           node scripts/discovery-selftest.mjs
           node scripts/discovery-transfer-selftest.mjs
+          node scripts/target-supply-selftest.mjs
+
+      # 타깃 공급 신호(남헌 v32 §5 D1 A안 — DB 에 쓰지 않는다). 읽기 전용 SELECT → $RUNNER_TEMP/supply.json + job summary.
+      # 실패해도 발굴은 돈다(continue-on-error): 파일이 없으면 discovery-run 이 고정 DISCOVERY_TARGET 으로 폴백하고 ⚠️ 를 찍는다.
+      # 새 시크릿 없음 — 아래 Run discovery 와 같은 두 값. permissions 는 contents: read 그대로(커밋 없음).
+      - name: Target supply
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/target-supply.mjs --out="$RUNNER_TEMP/supply.json" --summary
 
       - name: Run discovery
         env:
@@ -96,5 +107,5 @@ jobs:
           # 이식성 게이트(on|shadow). 비면 lib/discovery/transfer.ts DEFAULT_GATE_MODE. 폴백 숫자처럼 여기 기본값을 적지 않는다.
           DISCOVERY_TRANSFER_GATE: ${{ vars.DISCOVERY_TRANSFER_GATE }}
         run: |
-          node scripts/discovery-run.mjs \
+          node scripts/discovery-run.mjs --supply="$RUNNER_TEMP/supply.json" \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

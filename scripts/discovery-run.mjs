@@ -23,6 +23,9 @@
 //   node scripts/discovery-run.mjs                    # 적재까지
 //   node scripts/discovery-run.mjs --dry --names=a,b  # LLM 건너뛰고 후보를 직접 준다
 //                                                     # (프로브 경로만 볼 때. --kind 로 축 지정)
+//   --supply=<파일>  scripts/target-supply.mjs 출력. 후보 수를 그 축 소스의 gap 에 맞춘다(남헌 v32 §5 D6,
+//                    lib/review/target-supply.ts discoveryCount — short 일 때만 ≤5, 추정 r 이면 1, met·over 면 0 = 건너뜀).
+//                    파일이 없거나 못 읽으면 DISCOVERY_TARGET 그대로(⚠️ 로그). gap 모델 밖 소스(danawa excluded)도 그대로.
 //
 // env:
 //   DISCOVERY_TARGET        하루 후보 수 (기본 2) — 비용 가드는 이 횟수다
@@ -34,6 +37,7 @@
 //                           on=fail·확인불가는 적재 안 함 / shadow=판정만 기록하고 오늘처럼 적재
 
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
@@ -51,6 +55,7 @@ import {
 import { DANAWA_CRAWL_DELAY_MS, probePhysical, probeSaas } from '../lib/discovery/probe.ts'
 import { applyTransfer, gateMode, transferFromRun, transferPrompt } from '../lib/discovery/transfer.ts'
 import { RobotsCache } from '../lib/review/runner.ts'
+import { discoveryCount } from '../lib/review/target-supply.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -519,13 +524,40 @@ async function main() {
   //    schedule 실행에는 inputs 가 없어 **빈 문자열**이 들어온다. `??` 는 null/undefined 만
   //    폴백하므로 `''` 이 그대로 통과해 "이번에 뽑을 수 없는 축이다: " 로 매번 죽는다
   //    (2026-09-17 실측 — 첫 크론 실행 전에 dry-run 으로 잡았다). 빈 값 = 미지정이다.
-  const kind = arg('kind', process.env.DISCOVERY_KIND) || nextKind(known.recentKinds)
+  const fixedKind = arg('kind', process.env.DISCOVERY_KIND)
+  let kind = fixedKind || nextKind(known.recentKinds)
   if (!ACTIVE_KINDS.includes(kind)) {
     throw new Error(`이번에 뽑을 수 없는 축이다: ${kind} (가능: ${ACTIVE_KINDS.join(', ')})`)
   }
   log(`축: ${kind} (최근 이력 ${known.recentKinds.slice(0, 6).join(',') || '없음'})`)
 
-  const candidates = await propose(kind, TARGET, known)
+  // D6: 후보 수 = 그 축 소스의 공급 gap. supply 파일은 앞 스텝(target-supply.mjs)이 만든다 — 실패했으면 없다.
+  const supplyPath = arg('supply', '')
+  let supply = null
+  if (supplyPath) {
+    try {
+      supply = JSON.parse(fs.readFileSync(supplyPath, 'utf8'))
+    } catch (e) {
+      log(`⚠️ --supply 를 못 읽었다(${e.message}) — 고정 ${TARGET}건으로 돈다`)
+    }
+  }
+  let want = discoveryCount(supply, PROBE_SOURCE[kind], TARGET)
+  // 축이 고정이 아니면(이력 교대) 0건 축 대신 다른 축을 본다 — 0건이면 이력이 안 쌓여 교대가 그 축에 영영 멈춘다.
+  if (want.count === 0 && !fixedKind) {
+    const other = ACTIVE_KINDS.find((k) => k !== kind && discoveryCount(supply, PROBE_SOURCE[k], TARGET).count > 0)
+    if (other) {
+      log(`축 ${kind}: ${want.note} → ${other} 로 바꾼다`)
+      kind = other
+      want = discoveryCount(supply, PROBE_SOURCE[kind], TARGET)
+    }
+  }
+  log(`후보 수: ${want.note}`)
+  if (want.count === 0) {
+    log('공급 결손 없음 — 이번 실행은 후보를 받지 않는다(LLM·프로브 0회).')
+    return
+  }
+
+  const candidates = await propose(kind, want.count, known)
   log(`후보 ${candidates.length}건: ${candidates.map((c) => c.name).join(' / ')}`)
 
   const results = []

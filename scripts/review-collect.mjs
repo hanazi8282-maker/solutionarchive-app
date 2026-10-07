@@ -20,7 +20,7 @@
 import fs from 'node:fs/promises'
 import { createClient } from '../lib/supabase/server.ts'
 import { USER_AGENT } from '../lib/review/runner.ts'
-import { collectWithRamp, stepPctRamps } from '../lib/review/ramp.ts'
+import { LEGACY_SLOTS, collectWithRamp, plannedSourcesForSlot, slotIndexOf, stepPctRamps } from '../lib/review/ramp.ts'
 import { createReviewStore } from '../lib/review/store.ts'
 import { alertLine } from '../lib/review/health.ts'
 import { finishRunRow } from '../lib/review/run-log.ts'
@@ -124,7 +124,7 @@ if (unknown.length > 0) {
 const explicitSources = rawSource.trim() !== 'all'
 
 // 같은 소스를 두 번 적으면 커서를 서로 덮어쓴다.
-const sourceKeys = [...new Set(requested)]
+let sourceKeys = [...new Set(requested)]
 // --targets 가 없으면(스케줄 기본) 소스별 램프 단계의 1회 타깃 수를 쓴다(lib/review/ramp.ts collectWithRamp).
 // 있으면 수동 지정 — 램프를 무시한다. 램프 행 없음·확인 불가는 RAMP_STEPS[0]=10.
 const targetsArg = arg('targets', '')
@@ -176,6 +176,34 @@ try {
   }
 } catch (e) {
   say(`- ⚠️ 퍼센트 램프 판정 예외 — ${e instanceof Error ? e.message : String(e)} (수집은 계속)`)
+}
+
+// 수집 스케줄러(남헌 v30 §2, lib/review/ramp.ts). 워크플로가 COLLECT_SLOT = github.event.schedule(크론 문자열)을 넘긴다.
+// 기존 2슬롯·수동 실행 = 지금과 같이 전 소스. 추가 4슬롯 = 스케줄 계획(schedule_plan)이 있고 그 슬롯이 자기 차례인 소스만.
+// 판정은 위 stepPctRamps 다음이어야 한다 — 그날 첫 슬롯이 그날 계획을 쓴다.
+const slot = process.env.COLLECT_SLOT?.trim() || null
+const slotIdx = slotIndexOf(slot)
+const extraSlot = slotIdx !== null && !LEGACY_SLOTS.has(slot)
+if (slot && slotIdx === null) say(`- ⚠️ 알 수 없는 슬롯 '${slot}' — 기존 슬롯처럼 전 소스를 돈다(ramp.ts COLLECT_SLOTS 와 워크플로 cron 대조 필요)`)
+if (extraSlot) {
+  let planned
+  try {
+    planned = await plannedSourcesForSlot(supabase, slotIdx)
+  } catch (e) {
+    planned = { state: 'unavailable', keys: [], note: `⚠️ 추가 슬롯 계획 확인 예외(${e instanceof Error ? e.message : String(e)}) → 추가 슬롯 미동작(기존 2슬롯만)` }
+  }
+  say('')
+  say(`### 추가 슬롯 #${slotIdx}(${slot})`)
+  say(`- ${planned.note}`)
+  // 확인 불가(칸 없음 등)는 초록으로 묻지 않는다(§7.1) — Actions 경고 주석 + 요약. 수집은 안 하는 쪽이 안전해 종료코드는 0.
+  if (planned.state === 'unavailable') console.log(`::warning title=collect-slot::${planned.note}`)
+  sourceKeys = sourceKeys.filter((k) => planned.keys.includes(k))
+  say(`- 이 슬롯에서 돌 소스 ${sourceKeys.length}개${sourceKeys.length ? `: ${sourceKeys.join(', ')}` : ''}`)
+  if (sourceKeys.length === 0) {
+    say(planned.state === 'unavailable' ? '- 종료 — 확인 불가라 수집 안 함(위 ⚠️)' : '- 종료 — 돌 소스 없음(cap_base 없는 소스는 기존 2슬롯에서만 돈다)')
+    if (process.env.GITHUB_STEP_SUMMARY) await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n')
+    process.exit(0)
+  }
 }
 
 // 꺼진 소스(enabled=false)는 키가 없어도 실패로 세지 않는다 — 러너가 어차피 건너뛴다. 키 줄을 워크플로 env 에 아직
@@ -267,6 +295,7 @@ for (const sourceKey of sourceKeys) {
     adapter,
     dryRun,
     explicitTargets,
+    slot,
     ports: {
       now: () => new Date(),
       sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
@@ -498,7 +527,11 @@ if (failures.length > 0) {
 // 아침 브리핑이 이 행을 읽는다. 기록 실패가 수집 종료코드를 바꾸지 않지만 조용히 넘기지도
 // 않는다: 실행 요약에 ❌ 줄 + Actions 경고 주석. dry-run 은 쓰지 않는다(반영 없는 실행).
 // 이 워크플로는 contents: read 라 폴백 파일을 커밋할 수 없다 — 파일 폴백을 두지 않는다.
-if (!dryRun) {
+// 추가 슬롯(v30 §2)은 쓰지 않는다 — recordStatusLog 는 실행마다 -2, -3 새 행을 만든다. 행은 기존 2슬롯 몫 그대로.
+if (extraSlot) {
+  say('')
+  say('- Notion 일일 상태 로그: 추가 슬롯이라 생략(기존 2슬롯이 쓴다)')
+} else if (!dryRun) {
   const runUrl = process.env.GITHUB_RUN_ID
     ? `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
     : null

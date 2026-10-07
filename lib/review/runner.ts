@@ -177,6 +177,8 @@ export interface RunOptions {
    * 없으면(램프 행 없음·cap_base 미입력·마이그 미적용·제외 소스) 지금과 같이 daily_request_cap 만 본다.
    */
   dailyRequestTarget?: number | null
+  /** 회당 하드 상한(v30 §2 스케줄 계획의 perRunCap = min(시간 몫, P_safe)). 없으면 하루 예산만 본다(지금과 같다). */
+  maxRequestsThisRun?: number | null
 }
 
 export interface RunResult {
@@ -490,8 +492,10 @@ export async function runCollection(
   const pacer = new Pacer(ports, source.minIntervalMs)
   // 퍼센트 램프 목표가 있으면 cap 과 둘 중 작은 쪽(cap 은 여전히 하드 상한). 목표로 멈춘 것은 문구를 갈라 둔다(§7.2).
   const rampBound = opts.dailyRequestTarget != null && opts.dailyRequestTarget < source.dailyRequestCap
-  const budget = (rampBound ? (opts.dailyRequestTarget as number) : source.dailyRequestCap) - source.requestsToday
-  const capOutcome = rampBound ? '오늘 램프 목표 도달' : '일일 상한 도달'
+  const dayBudget = (rampBound ? (opts.dailyRequestTarget as number) : source.dailyRequestCap) - source.requestsToday
+  const runBound = opts.maxRequestsThisRun != null && opts.maxRequestsThisRun < dayBudget
+  const budget = runBound ? (opts.maxRequestsThisRun as number) : dayBudget
+  const capOutcome = runBound ? '이번 실행 몫 도달' : rampBound ? '오늘 램프 목표 도달' : '일일 상한 도달'
 
   let aborted = false
 

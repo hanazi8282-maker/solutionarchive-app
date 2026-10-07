@@ -10,5 +10,7 @@
   "_usd_per_weekly_pct": "임시값(남헌 v40 §2, 2026-10-08) — 첫 수동 측정 뒤 남헌이 재조정한다. 주간 1% ≥ $1.29 라는 하한: 10-07 T2 $0.20 + extract $1.09 = $1.29 를 썼는데 claude.ai 주간 %가 10→10 으로 안 움직였다(주간 100% 는 명목 $129 이상). 실제 계수는 이보다 클 수 있으므로 $1.29 로 나누면 주간 사용률을 크게(=보수적으로) 잡는다. weekly_stop_pct 는 null 그대로라 주간 중단 스위치(weeklyGate)는 계속 비활성이다 — 이 값은 지금 자동 조정 주간 안전선만 쓴다.",
   "usd_per_weekly_pct": 1.29,
   "_autotune_weekly_safe": "임시값(남헌 v40 §2, 2026-10-08) — 첫 수동 측정 뒤 남헌이 재조정한다. extract 하루 건수 자동 조정(남헌 v36 §2, EXTRACT_AUTOTUNE=on 일 때만)의 주간 안전선 %. 7일 가드 대상(extract·T2·번역) 합 ÷ usd_per_weekly_pct 가 이 값을 넘으면 D −20%(예: $60 → 46.51% 정상, $100 → 77.52% 내리기). 대화형 세션·다른 claude-cli 루프 사용은 합에 안 들어간다(docs/session-limit-guard.md). null 로 되돌리면 비활성('disabled'), usd_per_weekly_pct 만 null 이면 확인 불가 → 올리지 않음.",
-  "autotune_weekly_safe_pct": 75
+  "autotune_weekly_safe_pct": 75,
+  "_autotune_up_below": "남헌 v42 §1(2026-10-08): 8 → 10. extract 자동 조정 올리기 임계 % — 직전 3회 평균 세션 사용률이 이 값 '미만'일 때만 +20%(10.0% 정확히는 안 올림). 나머지 조건(윈도에 cap_binding slot/daily run ≥1·대기 프로젝트 > 0)과 안전장치(soft $6.45·hard $12.9·주간 안전선 75%)는 그대로. 키가 없거나 수치가 아니거나 0 이하면 코드 폴백 8(옛 값 = 덜 올리는 쪽). 읽는 곳 lib/analysis/extract-autotune.ts decideAutotune.",
+  "autotune_up_below_pct": 10
 }

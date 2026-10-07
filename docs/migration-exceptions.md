@@ -492,3 +492,7 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   - `quote_allowed`: devto·indiehackers·youtube = `false`, disquiet·tumblbug = `true`.
   - 이 항목은 기록만이다. 마이그레이션·코드·DB 값 변경 없음.
 - **20261007000030** `review_source_ramp_schedule_plan` — review_source_ramp 에 `schedule_plan jsonb` ADD COLUMN(nullable, 기본값 없음). 적용 2026-10-07 UTC 09:5x. 승인: 남헌 v32 §8 허락, 적용 CEO-STAFF. 양성: 칸 타입 jsonb·nullable·기본값 없음. 음성(롤백 트랜잭션): jsonb 칸에 `'x'` 대입 → 22P02. 롤백 파일 있음(DROP COLUMN — 파생값이라 잃는 데이터 없음, 롤백 실행은 사람 판단).
+- **20261007000012** `disable_producthunt` — review_sources.key='producthunt' 1행 UPDATE(enabled=false, disabled_reason 입력, disabled_at=now()). 적용 2026-10-07 UTC 약 10:0x, PR #447 머지 d224626. 승인: 남헌 v32 §8 허락, 적용 CEO-STAFF, 사전점검 Opus.
+  - 적용 전 스냅샷: enabled=true·disabled_at NULL·health=ok·review_targets 34건·review_source_ramp 0행.
+  - 양성: enabled=false·사유·시각 채워짐·health 불변·타깃 34건 불변·비활성 목록은 기존 7개+producthunt. 음성: 영향 행 수 가드 DO 블록 — 행이 1이 아니면 예외.
+  - 롤백 파일 `20261007000012_disable_producthunt_rollback.sql`(disabled_at 이 NULL 이었으므로 이전 상태와 동일).

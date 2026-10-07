@@ -538,7 +538,8 @@ async function main() {
     try {
       supply = JSON.parse(fs.readFileSync(supplyPath, 'utf8'))
     } catch (e) {
-      log(`⚠️ --supply 를 못 읽었다(${e.message}) — 고정 ${TARGET}건으로 돈다`)
+      // §7.1: 못 읽은 것을 조용히 넘기지 않는다 — Actions 어노테이션으로 띄운다.
+      console.log(`::warning title=discovery-supply::⚠️ --supply 를 못 읽었다(${e.message}) — 고정 ${TARGET}건으로 돈다`)
     }
   }
   let want = discoveryCount(supply, PROBE_SOURCE[kind], TARGET)
@@ -553,7 +554,12 @@ async function main() {
   }
   log(`후보 수: ${want.note}`)
   if (want.count === 0) {
-    log('공급 결손 없음 — 이번 실행은 후보를 받지 않는다(LLM·프로브 0회).')
+    // §7.2: 게이트가 막아 0건으로 끝난 것은 성공이 아니라 확인 대상 — 초록 종료에 묻히지 않게 어노테이션·summary 로 남긴다.
+    const s = supply?.sources?.find((x) => x.source_key === PROBE_SOURCE[kind])
+    const line = `공급 ${s?.state ?? '?'} 때문에 오늘 발굴 0건 — 소스=${PROBE_SOURCE[kind]} 필요 N ${s?.N ?? '?'}·활성 ${s?.active ?? '?'}`
+    console.log(`::warning title=discovery-supply::${line}`)
+    if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n- ⚠️ ${line} (LLM·프로브 0회)\n`)
+    log(`${line} — 이번 실행은 후보를 받지 않는다(LLM·프로브 0회).`)
     return
   }
 

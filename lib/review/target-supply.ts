@@ -12,6 +12,8 @@
 // ⚠️ 이 모듈은 아무것도 쓰지 않는다. 결과는 신호다. review_source_ramp.supply_state(어제 실측)와 뜻이 달라 그 칸에 덮지 않는다.
 // ⚠️ 3상태(§7.1): B 나 r 을 못 읽으면 `unverified` — `short` 로 접지 않는다.
 
+import { createHash } from 'node:crypto'
+
 import { REQUESTS_PER_BOARD_RUN, REQUESTS_PER_POST_RUN } from './request-cap.ts'
 import { RAMP_EXCLUDED, RAMP_STEPS, pctTarget, validPlan, type SchedulePlan } from './ramp.ts'
 
@@ -53,6 +55,7 @@ export type RampRow = {
   targets_per_run?: number | null
   cap_base?: number | null
   pct_step?: number | null
+  last_evaluated_date?: string | null
   schedule_plan?: unknown
 }
 export type TargetRow = {
@@ -226,7 +229,7 @@ export function computeSupply(input: {
     } else capBasis = 'unverified'
     if (input.ramps === null && capBasis !== 'unverified') capBasis += '·⚠️ramp_unavailable'
 
-    const plan: SchedulePlan | null = validPlan(ramp?.schedule_plan, today)
+    const plan: SchedulePlan | null = validPlan(ramp?.schedule_plan, today, ramp?.last_evaluated_date ?? null)
     const runsPerDay = plan?.runsPerDay ?? LEGACY_RUNS_PER_DAY
     const tpr = plan?.targetsPerRun ?? (typeof ramp?.targets_per_run === 'number' ? ramp.targets_per_run : RAMP_STEPS[0])
     const { r, basis: rBasis } = requestsPerVisit(rBy.get(s.key) ?? [], active.map((t) => t.product_ref))
@@ -361,6 +364,18 @@ export function discoveryCount(report: Pick<SupplyReport, 'sources'> | null, sou
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+/**
+ * 되살리기 순서: board: → 그 밖(q:·앱 id 등) → url: 맨 뒤.
+ * url: 글은 새 댓글이 없으면 연속 0건 3회(약 1.5일)로 다시 닫힌다 — 앞에 두면 gap 을 잠깐 메워 met 으로 보이게 하고
+ * board_register 처방을 가린다(독립 검토 d).
+ */
+const reviveRank = (ref: string) => (isBoard(ref) ? 0 : /^url:/i.test(ref ?? '') ? 2 : 1)
+
+/** 되살리기 대상 id 집합의 지문(정렬 뒤 sha256 앞 16자리). 드라이런이 출력하고 --run 이 --expect-hash 로 대조한다. */
+export function idSetHash(ids: string[]): string {
+  return createHash('sha256').update([...ids].sort().join('\n')).digest('hex').slice(0, 16)
+}
+
 export type RevivePlan = {
   revive: Array<{ id: string; source_key: string; product_ref: string; prev_status: string; prev_consecutive_empty: number }>
   /** 소스별 { candidates, revive, skipped: {사유: 건수} } */
@@ -378,7 +393,7 @@ export function planRevive(targets: TargetRow[], report: SupplyReport): RevivePl
   const revive: RevivePlan['revive'] = []
   const cands = targets
     .filter((t) => t.status === 'exhausted' && t.consecutive_empty === 0)
-    .sort((a, b) => Number(isBoard(b.product_ref)) - Number(isBoard(a.product_ref)) || String(a.id).localeCompare(String(b.id)))
+    .sort((a, b) => reviveRank(a.product_ref) - reviveRank(b.product_ref) || String(a.id).localeCompare(String(b.id)))
   const used = new Map<string, number>()
   for (const t of cands) {
     const b = (bySource[t.source_key] ??= { candidates: 0, revive: 0, skipped: {} })

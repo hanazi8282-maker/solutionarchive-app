@@ -40,13 +40,22 @@ export async function loadSupplyInputs(sb, now = new Date()) {
   )
   // ramp: 퍼센트·계획 칸이 없으면(마이그 미적용) 옛 칸만, 테이블도 없으면 null(= unavailable, 폴백은 표기된다).
   let ramps = null
-  for (const cols of ['source_key, targets_per_run, cap_base, pct_step, schedule_plan', 'source_key, targets_per_run, cap_base, pct_step', 'source_key, targets_per_run']) {
+  // ⚠️ 오류는 여기서 삼키고 ramps=null(ramp_read='unavailable')로 표기한다 — B 가 daily_request_cap 폴백으로 계산된다.
+  //    신호(JSON)에는 표기로 충분하지만, 쓰기가 따르는 target-revive 는 unavailable 이면 거부한다(§7.1).
+  const rampErrors = []
+  for (const cols of [
+    'source_key, targets_per_run, cap_base, pct_step, last_evaluated_date, schedule_plan',
+    'source_key, targets_per_run, cap_base, pct_step, last_evaluated_date',
+    'source_key, targets_per_run',
+  ]) {
     const { data, error } = await sb.from('review_source_ramp').select(cols)
     if (!error) {
       ramps = data
       break
     }
+    rampErrors.push(error.message)
   }
+  if (ramps === null) console.error(`⚠️ review_source_ramp 확인 불가 — ${rampErrors.join(' / ')}`)
   const targets = await readAll(
     () => sb.from('review_targets').select('id, source_key, status, product_ref, label, consecutive_empty').order('id'),
     'review_targets',

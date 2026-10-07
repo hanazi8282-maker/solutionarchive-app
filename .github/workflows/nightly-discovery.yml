@@ -36,9 +36,10 @@ on:
           - saas
         default: ''
       target:
-        description: '이번 실행에서 받을 후보 수'
+        # 비우면 타깃 공급 gap 이 후보 수를 정한다(--supply). 숫자를 넣으면 supply 를 빼고 그 수로 돈다(프로브 경로 수동 검증용).
+        description: '이번 실행에서 받을 후보 수 (비우면 공급 gap 연동)'
         type: string
-        default: '2'
+        default: ''
 
 # 두 실행이 겹치면 같은 후보를 두 번 적재하려다 UNIQUE 로 한쪽이 죽는다.
 concurrency:
@@ -106,6 +107,13 @@ jobs:
           DISCOVERY_KIND: ${{ inputs.kind || vars.DISCOVERY_KIND }}
           # 이식성 게이트(on|shadow). 비면 lib/discovery/transfer.ts DEFAULT_GATE_MODE. 폴백 숫자처럼 여기 기본값을 적지 않는다.
           DISCOVERY_TRANSFER_GATE: ${{ vars.DISCOVERY_TRANSFER_GATE }}
+          # 수동 실행에서 target 을 직접 넣었으면 그 수를 존중한다 — supply 를 넘기지 않는다(스케줄에는 inputs 가 없어 빈 값).
+          MANUAL_TARGET: ${{ inputs.target }}
         run: |
-          node scripts/discovery-run.mjs --supply="$RUNNER_TEMP/supply.json" \
+          SUPPLY_ARG="--supply=$RUNNER_TEMP/supply.json"
+          if [ -n "$MANUAL_TARGET" ]; then
+            SUPPLY_ARG=""
+            echo "::notice title=discovery-supply::수동 target=$MANUAL_TARGET — 공급 gap 연동을 끈다"
+          fi
+          node scripts/discovery-run.mjs $SUPPLY_ARG \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

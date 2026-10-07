@@ -94,8 +94,10 @@ export interface ParsedReview {
    */
   sourceUrl?: string | null
   /**
-   * 리뷰 언어(옵셔널, 2026-10-05). **요청에 언어를 지정해 받은 소스만** 채운다(googleplay `hl`).
-   * 본문을 보고 추정하지 않는다 — 모르면 비운다. analysis_inputs.lang 으로 간다(마이그 20261005000001).
+   * 리뷰 언어(옵셔널, 2026-10-05). analysis_inputs.lang 으로 간다(마이그 20261005000001).
+   * 구글 플레이(2026-10-08 개정)는 요청 hl 을 믿지 않고 본문 한글 비율 휴리스틱으로 정한다(lib/review/lang.ts):
+   * ko / en / und-latn(한국어 아님·언어 불명) / und(글자 없음·비라틴). 그 외 소스는 요청에 언어를 지정해 받은 경우만 채우고
+   * 본문을 보고 추정하지 않는다 — 모르면 비운다.
    * 예외: kakao_blog·kakao_cafe 는 요청에 언어 지정이 없지만 남헌 지시(2026-10-06)로 'ko' 를 채운다(한국어 검색 서비스).
    */
   lang?: string | null

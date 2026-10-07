@@ -14,6 +14,7 @@
 import { googleplayAdapter, parseProductRef, buildBody, reviewUrl, BATCH_URL, RPC_ID } from '../lib/review/adapters/googleplay.ts'
 import { runCollection, USER_AGENT, isOwnerRobotsOverride } from '../lib/review/runner.ts'
 import fs from 'node:fs'
+import { detectReviewLang as D } from '../lib/review/lang.ts'
 import { createReviewStore, reviewMetaColumns, isMissingMetaColumn } from '../lib/review/store.ts'
 
 let pass = 0
@@ -97,6 +98,51 @@ t('다른 RPC 프레임만 = 실패', googleplayAdapter.parse(`)]}'\n\n[["wrb.fr
   const r = googleplayAdapter.parse(broken, ctx())
   t('필드 누락: 정상 1건', r.reviews.length, 1)
   t('필드 누락: 본문 없음·id 없음 = 실패 2', r.parseFailures, 2)
+}
+
+// ── 1c) 언어 판정(한글 비율 휴리스틱, v43 §2-a) ──────────────────────
+{
+  t('lang: 순수 한국어', D('알림이 늦게 와요', 'ko'), 'ko')
+  t('lang: 한국어+영어 단어+이모지', D('앱 UI 너무 좋아요 good 👍👍', 'ko'), 'ko')
+  t('lang: 영어, hl=ko 면 und-latn(요청 언어를 믿지 않는다)', D('The notifications are always late', 'ko'), 'und-latn')
+  t('lang: 같은 영어, hl=en 이면 en', D('The notifications are always late', 'en'), 'en')
+  t('lang: hl=en-US 도 en', D('The notifications are always late', 'en-US'), 'en')
+  t('lang: 스페인어(확장 라틴)는 und-latn — en 으로 단정 안 함', D('La aplicación no funciona después de la actualización', 'ko'), 'und-latn')
+  t('lang: 이모지만', D('👍👍👍', 'ko'), 'und')
+  t('lang: 숫자만', D('12345', 'ko'), 'und')
+  t('lang: 일본어', D('通知が遅いです。とても不便', 'ko'), 'und')
+  t('lang: 아랍어', D('التطبيق لا يعمل بشكل جيد', 'ko'), 'und')
+  t('lang: 키릴', D('Приложение не работает', 'ko'), 'und')
+  t('lang: 빈 문자열', D('', 'ko'), 'und')
+  t('lang: null hl 도 안 터진다', D('hello world', null), 'und-latn')
+  // 경계: 글자 100개 중 한글 29 → 비율 0.29(ko 아님), 30 → 0.30(ko)
+  t('lang: 경계 0.29 → und-latn', D('가'.repeat(29) + 'a'.repeat(71), 'ko'), 'und-latn')
+  t('lang: 경계 0.30 → ko', D('가'.repeat(30) + 'a'.repeat(70), 'ko'), 'ko')
+  // 짧은 리뷰: 한글만이면 비율 1.0 이라 ko. 한글이 아닌 1~2글자는 und(근거 모자람)
+  t("lang: '굿' → ko(한글 한 글자 리뷰는 한국어다)", D('굿', 'ko'), 'ko')
+  t("lang: 'ㅋㅋ' → ko(자모)", D('ㅋㅋ', 'ko'), 'ko')
+  t("lang: 'ok' → und(글자 2 < 최소 3)", D('ok', 'ko'), 'und')
+  t("lang: 'ok!' hl=en → und(글자 2)", D('ok!', 'en'), 'und')
+  t("lang: 'bad' hl=en → en(글자 3)", D('bad', 'en'), 'en')
+  // 알려진 한계(거짓 양/음성)
+  t('lang: 한자 병기 한국어는 한글 비율로 ko', D('배터리 電池 소모가 심해요', 'ko'), 'ko')
+  t('lang: 긴 영문 리뷰의 한글 인사 한마디는 ko 가 아니다(한계: 영어로 읽는다)', D('안녕하세요 ' + 'This app crashes every time I open it. '.repeat(3), 'ko'), 'und-latn')
+  t('lang: 구두점·기호는 분모에서 빠진다', D('!!! ??? ... 좋아요 ~~~ ♥', 'ko'), 'ko')
+}
+// toReview 가 실제로 이 함수를 쓰는가 — 실응답 픽스처 파서 통과 후 라벨 분포 + hl 을 바꿔 라벨이 따라 움직이지 않는지
+{
+  const r = googleplayAdapter.parse(fs.readFileSync(new URL('../fixtures/review/googleplay/page1-real.txt', import.meta.url), 'utf8'), ctx())
+  const dist = {}
+  for (const x of r.reviews) dist[x.lang] = (dist[x.lang] ?? 0) + 1
+  console.log('ℹ️ 실응답 p1 라벨 분포(hl=ko):', JSON.stringify(dist))
+  const body = (x) => x.text.replace(/^\(v[^)]*\) /, '')
+  t('통합: toReview 라벨 = detectReviewLang(본문, hl) — 어댑터가 함수를 실제로 쓴다', r.reviews.every((x) => x.lang === D(body(x), 'ko')), true)
+  // 버전 머리말 '(v1.2) ' 가 판정에 섞이면 'v' 까지 라틴 3글자가 되어 und → und-latn 으로 바뀐다(뮤테이션으로 확인)
+  t('통합: 버전 머리말은 판정에서 빠진다(본문 ok + 버전 1.2 → und)', googleplayAdapter.parse(rpc([[entry('v1', 'ok', 4, '1.2')], null, null]), ctx()).reviews[0].lang, 'und')
+  const mixed = rpc([[entry('m1', '알림이 늦게 와요'), entry('m2', 'Notifications are always late'), entry('m3', 'Las notificaciones llegan tarde'), entry('m4', '👍')], null, null])
+  const labels = (hl) => googleplayAdapter.parse(mixed, ctx({ productRef: `kr:${hl}:com.Slack` })).reviews.map((x) => x.lang).join(',')
+  t('통합: hl=ko 라도 한글 없는 본문은 ko 가 아니다', labels('ko'), 'ko,und-latn,und-latn,und')
+  t('통합: hl=en 이면 라틴 본문이 en 이 된다(한계: hl=en 요청에 섞인 스페인어도 en — 거짓 양성)', labels('en'), 'ko,en,en,und')
 }
 
 // ── 1b) 실응답 축약본(2026-10-07, kr:ko:com.Slack 2페이지) — v27 토큰 경로 ─────────

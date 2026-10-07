@@ -17,6 +17,7 @@ import {
 } from '../lib/analysis/extract-autotune.ts'
 import { backlogOf, decideSlot, EXTRACT_SLOTS, pickAutoTargets, slotStateOf } from '../lib/analysis/extract-auto.ts'
 import { kstDate } from './notion-status-log.mjs'
+import { loadGuardConfig } from '../lib/analysis/session-guard.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 let pass = 0
@@ -66,6 +67,15 @@ t('N null = disabled(평가 안 함, 확인 불가로 접지 않음)', weeklySaf
 t('N 설정·계수 없음 = unknown', weeklySafety(50, null, 10).state === 'unknown')
 t('N 설정·이력 없음 = unknown', weeklySafety(50, 1.3, null).state === 'unknown')
 t('주간 초과 = over', weeklySafety(50, 1, 60).state === 'over' && weeklySafety(50, 1, 50).state === 'ok')
+// 남헌 v40 §2 임시값(리포 설정 파일 그대로): N 75% · 주간 1% = $1.29 — 7일 가드 대상 합 ÷ 1.29 가 75 를 넘으면 over
+const GCFG = loadGuardConfig(path.join(ROOT, 'config', 'session-guard.json')).cfg
+const wk = (usd) => weeklySafety(GCFG.autotuneWeeklySafePct, GCFG.usdPerWeeklyPct, usd)
+t('[v40 §2] 설정값 N 75 · $1.29/%', GCFG.autotuneWeeklySafePct === 75 && GCFG.usdPerWeeklyPct === 1.29)
+t('[v40 §2] 7일 $60 → 46.51% → 정상(ok)', wk(60).state === 'ok' && wk(60).pct === 46.51 && wk(60).safe_pct === 75)
+t('[v40 §2] 7일 $100 → 77.52% → over(내리기)', wk(100).state === 'over' && wk(100).pct === 77.52)
+t('[v40 §2] 경계: $96.75 = 75% 정확히 → ok(> 만 over) · $96.76 → over', wk(96.75).state === 'ok' && wk(96.75).pct === 75 && wk(96.76).state === 'over')
+t('[v40 §2] 7일 이력 못 읽음 → unknown(올리지 않음)', wk(null).state === 'unknown')
+t('[v40 §2] 둘 중 하나 null → disabled/unknown', weeklySafety(null, 1.29, 60).state === 'disabled' && weeklySafety(75, null, 60).state === 'unknown')
 
 // ── 6. decideAutotune ─────────────────────────────────────────
 const NOW = new Date('2026-10-10T00:00:00Z') // KST 2026-10-10 09:00
@@ -87,6 +97,34 @@ const dec = (rows, o = {}) => decideAutotune({ rows, runKey: 'extract-auto-2026-
   t('올리기: 평균 2.33% < 8% · slot×3 · 대기 3 → 48→58', d.action === 'up' && d.next === 58 && d.d === 58 && d.slot_max === 20 && d.evaluated === true)
   t('근거가 남는다(윈도 run_key·사용률·cap_binding·대기·주간)', d.window.length === 3 && d.window[0].run_key === 'extract-auto-2026-10-09-s3' && d.window[0].used_pct === 2.33 && d.avg_pct === 2.33 && d.pending === 3 && d.weekly.state === 'disabled')
   t('cap_binding daily/none 도 올리기 허용', dec([run('2026-10-09-s3', 20, { cap_binding: 'daily' }), run('2026-10-09-s2', 26, { cap_binding: 'none' }), run('2026-10-09-s1', 33)]).action === 'up')
+}
+// ── 6a. 올리기 조건 B(남헌 v40 §1): 윈도에 slot·daily 종료가 1건 이상 있어야 올린다 ──
+{
+  const B = (a, b, c, o) => dec([run('2026-10-09-s3', 20, a), run('2026-10-09-s2', 26, b), run('2026-10-09-s1', 33, c)], o)
+  const N = { cap_binding: 'none' }
+  const COST = { cap_binding: 'cost', stop_reason: 'session_cap', session: sess(1) }
+  const none3 = B(N, N, N)
+  t('[B] none×3 → hold(평가는 함, D 그대로)', none3.action === 'hold' && none3.evaluated === true && none3.d === 48 && none3.window.length === 3)
+  t('[B] none×3 사유 = D 가 막은 증거 없음(0건 · none/none/none)', none3.reason.includes('D 가 막은 증거 없음(윈도 3건 중 slot·daily 종료 0건 — none/none/none)'))
+  const s1n2 = B(N, { cap_binding: 'slot' }, N)
+  t('[B] slot 1건 + none 2건 → 올림 48→58', s1n2.action === 'up' && s1n2.next === 58 && !/증거 없음/.test(s1n2.reason))
+  const d1n2 = B(N, N, { cap_binding: 'daily' })
+  t('[B] daily 1건(가장 오래된 자리) + none 2건 → 올림', d1n2.action === 'up' && d1n2.next === 58)
+  // cost 섞임: 기존대로 hold — cap_binding 사유가 남고, slot·daily 가 없으면 증거 없음 사유도 함께 남는다
+  const cn2 = dec([run('2026-10-09-s3', 20, COST, 'blocked'), run('2026-10-09-s2', 26, N), run('2026-10-09-s1', 33, N)])
+  t('[B] cost + none 2건 → hold(cap_binding·증거 없음 두 사유), 내리기 아님', cn2.action === 'hold' && /cap_binding extract-auto-2026-10-09-s3=cost/.test(cn2.reason) && /증거 없음/.test(cn2.reason) && cn2.down_signals.length === 0)
+  const cs = dec([run('2026-10-09-s3', 20, COST, 'blocked'), run('2026-10-09-s2', 26, { cap_binding: 'slot' }), run('2026-10-09-s1', 33, N)])
+  t('[B] cost + slot + none → 증거는 있어도 cost 때문에 hold(기존 규칙)', cs.action === 'hold' && /=cost/.test(cs.reason) && !/증거 없음/.test(cs.reason))
+  const hn = dec([run('2026-10-09-s3', 20, { cap_binding: 'hard', stop_reason: 'hard_cap' }, 'blocked'), run('2026-10-09-s2', 26, N), run('2026-10-09-s1', 33, N)])
+  t('[B] hard 섞임 → 기존대로 내리기 48→38(조건 B 와 무관)', hn.action === 'down' && hn.next === 38)
+  // 경계: 증거가 윈도(최근 3건) 밖에만 있으면 세지 않는다
+  const outside = dec([run('2026-10-09-s3', 20, N), run('2026-10-09-s2', 26, N), run('2026-10-09-s1', 33, N), run('2026-10-08-s3', 44, { cap_binding: 'slot' })])
+  t('[B] 경계: slot 이 4번째(윈도 밖)에만 있으면 hold', outside.action === 'hold' && outside.window.length === 3 && /증거 없음/.test(outside.reason))
+  // 경계: 증거가 있어도 다른 조건(평균 ≥ 8%)이 안 맞으면 hold — 조건 B 는 추가 조건이지 대체가 아니다
+  const hi = B({ session: sess(5) }, { session: sess(5) }, { session: sess(1) })
+  t('[B] 경계: slot×3 이어도 평균 ≥ 8% 면 hold(증거 사유는 없음)', hi.action === 'hold' && /평균/.test(hi.reason) && !/증거 없음/.test(hi.reason))
+  const n3p0 = B(N, N, N, { pending: 0 })
+  t('[B] 경계: none×3 · 대기 0 → hold, 두 사유 다 남는다', n3p0.action === 'hold' && /처리 대기 0건/.test(n3p0.reason) && /증거 없음/.test(n3p0.reason))
 }
 t('평균 ≥ 8% 면 무변경', dec([run('2026-10-09-s3', 20, { session: sess(5) }), run('2026-10-09-s2', 26, { session: sess(5) }), run('2026-10-09-s1', 33, { session: sess(1) })]).action === 'hold')
 t('평균 8% 정확히 = 무변경(< 8 만 올림)', dec([run('2026-10-09-s3', 20, { session: sess(3.44) }), run('2026-10-09-s2', 26, { session: sess(3.44) }), run('2026-10-09-s1', 33, { session: sess(3.44) })]).action === 'hold')
@@ -338,7 +376,8 @@ try {
     t('[통합 on] 종료코드 0(Notion 실패는 경고뿐)', exitOk(r))
     t('[통합 on] 올리기 48→58 기록', s.autotune?.action === 'up' && s.autotune?.prev === 48 && s.autotune?.next === 58 && s.autotune?.evaluated === true)
     t('[통합 on] 이번 run 이 유효 D 를 쓴다: 하루 58 · 슬롯 20', s.daily_max === 58 && s.slot_max === 20 && s.max_this_run === 20 && s.autotune?.d === 58)
-    t('[통합 on] 근거: 윈도 3 run_key · 대기 1 · 주간 disabled', s.autotune?.window?.length === 3 && s.autotune?.pending === 1 && s.autotune?.weekly?.state === 'disabled')
+    // v40 §2 로 리포 설정에 N 75 · $1.29/% 가 들어가 주간은 disabled 가 아니라 평가된다: 이력 7일 합 $2.9 ÷ 1.29 = 2.25% < 75 → ok
+    t('[통합 on] 근거: 윈도 3 run_key · 대기 1 · 주간 ok(7일 $2.9 → 2.25% < 75%)', s.autotune?.window?.length === 3 && s.autotune?.pending === 1 && s.autotune?.weekly?.state === 'ok' && s.autotune?.weekly?.pct === 2.25 && s.autotune?.weekly?.safe_pct === 75)
     t('[통합 on] cap_binding 기록', s.cap_binding === 'none')
     t('[통합 on] Notion 토큰 없음 → 경고로만 남는다(조정은 진행)', /자동 조정 Notion 기록 실패.*env/.test(r.out))
     t('[통합 on] 예상 밖 요청 0', db.unexpected.length === 0)

@@ -7,7 +7,8 @@
   "_unit_cost_fallback": "비용을 못 읽은 호출(timeout·출력 상한·봉투 없음)을 셀 근거(이번 실행에서 읽은 호출)가 없을 때만 쓰는 1회 호출 상한 추정. 10-07 run 37581317529: 본 호출 최대 $0.197 · 프로젝트당 전 호출 평균 $0.22 · 입력 90건 프로젝트 최대 ~$0.45 → 보수적으로 $0.67.",
   "unit_cost_fallback_usd": 0.67,
   "weekly_stop_pct": null,
-  "usd_per_weekly_pct": null,
-  "_autotune_weekly_safe": "extract 하루 건수 자동 조정(남헌 v36 §2, EXTRACT_AUTOTUNE=on 일 때만)의 주간 안전선 %. 7일 가드 대상 합 ÷ usd_per_weekly_pct 가 이 값을 넘으면 D −20%. null = 비활성(남헌이 N 을 정할 때까지 — 'disabled' 로 기록). 넣을 때 usd_per_weekly_pct 도 넣어야 한다(없으면 확인 불가 → 올리지 않음).",
-  "autotune_weekly_safe_pct": null
+  "_usd_per_weekly_pct": "임시값(남헌 v40 §2, 2026-10-08) — 첫 수동 측정 뒤 남헌이 재조정한다. 주간 1% ≥ $1.29 라는 하한: 10-07 T2 $0.20 + extract $1.09 = $1.29 를 썼는데 claude.ai 주간 %가 10→10 으로 안 움직였다(주간 100% 는 명목 $129 이상). 실제 계수는 이보다 클 수 있으므로 $1.29 로 나누면 주간 사용률을 크게(=보수적으로) 잡는다. weekly_stop_pct 는 null 그대로라 주간 중단 스위치(weeklyGate)는 계속 비활성이다 — 이 값은 지금 자동 조정 주간 안전선만 쓴다.",
+  "usd_per_weekly_pct": 1.29,
+  "_autotune_weekly_safe": "임시값(남헌 v40 §2, 2026-10-08) — 첫 수동 측정 뒤 남헌이 재조정한다. extract 하루 건수 자동 조정(남헌 v36 §2, EXTRACT_AUTOTUNE=on 일 때만)의 주간 안전선 %. 7일 가드 대상(extract·T2·번역) 합 ÷ usd_per_weekly_pct 가 이 값을 넘으면 D −20%(예: $60 → 46.51% 정상, $100 → 77.52% 내리기). 대화형 세션·다른 claude-cli 루프 사용은 합에 안 들어간다(docs/session-limit-guard.md). null 로 되돌리면 비활성('disabled'), usd_per_weekly_pct 만 null 이면 확인 불가 → 올리지 않음.",
+  "autotune_weekly_safe_pct": 75
 }

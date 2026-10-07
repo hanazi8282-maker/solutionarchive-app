@@ -5,7 +5,7 @@
 // (reports/2026-09-23/data-velocity-plan.md §1 Q5 · §2 T2).
 //
 // 무엇을 하나
-//   1. 야간 extract 후보 상태(extract-gate AUTO_EXTRACT_STATUSES — collecting·extracted·failed) 프로젝트에서 T1 선별(selectInputs)을 통과한 상위 N건(기본 200)을 고른다.
+//   1. 야간 extract 후보 상태(extract-gate AUTO_EXTRACT_STATUSES — collecting·extracted·failed, 단 재추출 1회 뒤에도 failed 면 제외 — v28 #10) 프로젝트에서 T1 선별(selectInputs)을 통과한 상위 N건(기본 200)을 고른다.
 //   2. 그중 **아직 판정이 없는 것**만, 프로젝트당 1회 돈다(리뷰 20건씩 묶어 호출).
 //   3. 최근 사람 채점(human_verdict) 최대 10건을 few-shot 으로 프롬프트에 넣는다(그 프로젝트 우선).
 //   4. 결과를 review_relevance_verdicts 에 UPSERT. **human_verdict 는 payload 에 없다** —
@@ -31,7 +31,7 @@ import { compareAutoPriority } from '../lib/analysis/extract-auto.ts'
 // 대상 상태도 야간 extract 와 한 벌(v27 옵션 A). collecting 만 보던 동안 extracted 프로젝트에 새로 들어온 수집분은
 // 판정되지 않아 T2(자동 승인·extract 선별)를 못 넘었다. 2차(relevance-second-judge-auto)는 프로젝트 상태로 거르지 않고
 // 1차 판정 행을 따라가므로 같은 집합을 자동으로 쓴다. 하루 상한(RELEVANCE_MAX_PROJECTS)은 그대로다.
-import { AUTO_EXTRACT_STATUSES } from '../lib/analysis/extract-gate.ts'
+import { AUTO_EXTRACT_STATUSES, relevanceFailedState } from '../lib/analysis/extract-gate.ts'
 import {
   BATCH_SIZE,
   MAX_EXAMPLES,
@@ -92,7 +92,7 @@ log(`야간 관련성 판정 ${dry ? '(--dry: 대상 선정만)' : ''} — provi
 //      · 없다   → 42703 확인 후 컬럼 없이 다시 조회하고, **경고를 남긴다.** 조용히 넘어가면
 //                 "왜 아직 제품 이름으로 판정하나"를 아무도 모른다.
 //      · 그 외 오류 → 조회 실패다. 컬럼 없음으로 접지 않고 여기서 멈춘다.
-const PROJECT_COLS = 'id, product_elevator_pitch, purpose, business_model'
+const PROJECT_COLS = 'id, status, extract_attempts, product_elevator_pitch, purpose, business_model'
 const projectQuery = (cols) =>
   supabase
     .from('analysis_projects')
@@ -203,8 +203,18 @@ async function examplesFor(projectId) {
     .filter((e) => e.text)
 }
 
+// v28 #10 — 재추출 1회 뒤에도 failed 면 판정에서 뺀다(relevanceFailedState). 첫 실패는 extract-auto 의 재추출을 기다리므로 남긴다.
+const failedBy = { retry: 0, excluded: 0, unknown: 0 }
+for (const p of projects ?? []) {
+  const s = relevanceFailedState(p.status, p.extract_attempts)
+  if (s !== 'n/a') failedBy[s] += 1
+}
+log(`failed 프로젝트: 재추출 대상(첫 실패, 판정 유지) ${failedBy.retry}건 · 재추출 후에도 failed → 제외 ${failedBy.excluded}건 · 시도 수 확인 불가 ${failedBy.unknown}건`)
+if (failedBy.unknown > 0) warn(`extract_attempts 를 읽지 못한 failed 프로젝트 ${failedBy.unknown}건 — 판정에서 빠졌다(제외 판정이 아니라 확인 불가다)`)
+
 const candidates = []
 for (const p of projects ?? []) {
+  if (!['n/a', 'retry'].includes(relevanceFailedState(p.status, p.extract_attempts))) continue
   const pending = await pendingFor(p)
   if (pending === null) {
     candidates.push({ project: p, pending: null })
@@ -258,7 +268,10 @@ await tracker.step({
   stepKey: 'select',
   label: '대상 선정',
   status: 'ok',
-  counts: { projects: (projects ?? []).length, targets: targets.length, remaining, unknown: unknownCount },
+  counts: {
+    projects: (projects ?? []).length, targets: targets.length, remaining, unknown: unknownCount,
+    failed_retry: failedBy.retry, failed_excluded: failedBy.excluded, failed_unknown: failedBy.unknown,
+  },
   detail: { sample: sampleSize, max_projects: maxProjects, batch: BATCH_SIZE },
 })
 

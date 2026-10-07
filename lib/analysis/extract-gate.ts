@@ -30,6 +30,18 @@ export const AUTO_EXTRACT_STATUSES = ['collecting', ...REANALYZABLE, 'failed']
  */
 export const AUTO_RETRY_MAX_ATTEMPTS = 3
 
+/**
+ * 1차 관련성 판정(scripts/relevance-judge-auto.mjs)이 failed 프로젝트를 어떻게 다루나 — 남헌 v28 #10.
+ * 첫 실패(extract_attempts=1)는 야간 extract 의 자동 재추출을 기다리는 중이라 판정한다('retry').
+ * 재추출을 1회 이상 하고도 failed(attempts ≥ 2)면 판정에서 뺀다('excluded').
+ * attempts 를 못 읽으면 'unknown' — 제외로도 판정으로도 접지 않는다(§7.1). failed 가 아니면 'n/a'.
+ */
+export function relevanceFailedState(status: string, attempts: unknown): 'n/a' | 'retry' | 'excluded' | 'unknown' {
+  if (status !== 'failed') return 'n/a'
+  if (typeof attempts !== 'number' || !Number.isFinite(attempts)) return 'unknown'
+  return attempts >= 2 ? 'excluded' : 'retry'
+}
+
 export type StartVerdict = { ok: true } | { ok: false; reason: string }
 
 /**

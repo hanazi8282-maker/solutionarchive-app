@@ -251,7 +251,16 @@ t('배치가 T1 선별을 재사용한다', auto.includes('selectInputs('))
 // v27 옵션 A — 판정 대상 상태 = 야간 extract 후보 상태(한 벌). 리터럴 'collecting' 로 되돌리면 실패한다.
 {
   const gate = await import('../lib/analysis/extract-gate.ts')
-  t('대상 상태: extract-gate AUTO_EXTRACT_STATUSES 를 import 한다', /import \{ AUTO_EXTRACT_STATUSES \} from '\.\.\/lib\/analysis\/extract-gate\.ts'/.test(auto))
+  t('대상 상태: extract-gate AUTO_EXTRACT_STATUSES 를 import 한다', /import \{ AUTO_EXTRACT_STATUSES, relevanceFailedState \} from '\.\.\/lib\/analysis\/extract-gate\.ts'/.test(auto))
+  // v28 #10 — 재추출 1회 뒤에도 failed 면 제외. 첫 실패는 재추출 대기라 판정 유지. 시도 수 못 읽으면 확인 불가(제외 0건과 다르다).
+  const fs = gate.relevanceFailedState
+  t('failed 제외: failed 가 아니면 n/a', fs('collecting', 0) === 'n/a' && fs('extracted', 5) === 'n/a')
+  t('failed 제외: 첫 실패(attempts=1)는 재추출 대상 — 판정 유지', fs('failed', 1) === 'retry' && fs('failed', 0) === 'retry')
+  t('failed 제외: 재추출 뒤에도 failed(attempts≥2)면 제외', fs('failed', 2) === 'excluded' && fs('failed', 3) === 'excluded')
+  t('failed 제외: attempts 를 못 읽으면 unknown(제외로 접지 않는다)', fs('failed', null) === 'unknown' && fs('failed', undefined) === 'unknown' && fs('failed', '2') === 'unknown')
+  t('failed 제외: 배치가 extract_attempts 를 조회하고 n/a·retry 만 판정한다',
+    auto.includes('extract_attempts') && auto.includes("['n/a', 'retry'].includes(relevanceFailedState(p.status, p.extract_attempts))"))
+  t('failed 제외: 재추출 대상·제외·확인 불가 수를 로그에 남긴다', auto.includes('재추출 대상(첫 실패, 판정 유지) ${failedBy.retry}건') && auto.includes('확인 불가 ${failedBy.unknown}건'))
   t("대상 상태: .in('status', AUTO_EXTRACT_STATUSES) 로 조회한다", auto.includes(".in('status', AUTO_EXTRACT_STATUSES)"))
   t("대상 상태: 리터럴 .eq('status', 'collecting') 가 없다", !auto.includes(".eq('status', 'collecting')"))
   t('대상 상태: collecting·extracted 를 포함한다', gate.AUTO_EXTRACT_STATUSES.includes('collecting') && gate.AUTO_EXTRACT_STATUSES.includes('extracted'))

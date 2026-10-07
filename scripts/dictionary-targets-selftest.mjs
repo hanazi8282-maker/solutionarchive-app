@@ -20,9 +20,11 @@ const ON = { enabled: true, robots_status: 'disallowed', override: 'owner_2026-1
 
 /** 메모리 DB. 쓰기 횟수를 센다. UNIQUE (project_id, source_key, product_ref) 는 23505 → 'exists'. */
 function fakeDb(sources) {
-  const db = { projects: [], targets: [], writes: 0 }
+  const db = { projects: [], targets: [], writes: 0, activeCounts: { other: 100000 } }
   db.port = {
     loadSources: async (keys) => Object.fromEntries(keys.filter((k) => sources[k]).map((k) => [k, sources[k]])),
+    // 30% 게이트가 이 표본을 막지 않게 다른 소스 활성 타깃을 크게 둔다(게이트 자체는 아래 '공급 게이트' 블록).
+    loadActiveCounts: async () => ({ ...db.activeCounts }),
     loadExisting: async (keys) => new Set(db.targets.filter((r) => keys.includes(r.source_key)).map((r) => `${r.source_key}|${r.product_ref}`)),
     findProjectsByPitch: async (pitches) => new Map(db.projects.filter((p) => pitches.includes(p.product_elevator_pitch)).map((p) => [p.product_elevator_pitch, p.id])),
     insertProject: async (row) => {
@@ -204,6 +206,46 @@ t('--max', plan([AREA], { ...base, max: 1, sourceRows: { appstore: ON, googlepla
   const real = plan(all, { ...base, areaMap: undefined, offline: true, globalUs: true })
   t('실제 지도: out·hold 칸은 전부 area_excluded', real.filter((i) => ['out', 'hold'].includes(map[i.slug]) && i.skip !== 'area_excluded').length, 0)
   t('실제 지도: area_unmapped 0', real.filter((i) => i.skip === 'area_unmapped').length, 0)
+}
+
+// ── 카카오 q: 첫 웨이브(남헌 v32 §5 D5) — 실제 사전 ⑦ 의 영역 ⑤ 검색어, 키(KAKAO_REST_API_KEY) 없이 ──────────────
+{
+  const KAKAO_ON = { enabled: true, robots_status: 'not_applicable', override: 'owner_2026-10-06' }
+  const saved = process.env.KAKAO_REST_API_KEY
+  delete process.env.KAKAO_REST_API_KEY
+  const db = fakeDb({ kakao_blog: KAKAO_ON, kakao_cafe: KAKAO_ON })
+  const dry = await main(['--sources=kakao_blog,kakao_cafe', '--areas=07', '--max=1000'], { port: db.port })
+  const ins = dry.out.items.filter((i) => !i.skip)
+  t('kakao: 4검색어 × 2소스 = 8', ins.length, 8)
+  t('kakao: 첫 웨이브 = yotpo·judge-me·loox·okendo', [...new Set(ins.map((i) => i.slug))], ['yotpo', 'judge-me', 'loox', 'okendo'])
+  t('kakao: ref = q:<검색어>(q: 이중 접두 없음)', ins.filter((i) => i.source === 'kakao_blog').map((i) => i.ref), ['q:욧포 후기', 'q:저지미 후기', 'q:룩스 후기', 'q:오켄도 후기'])
+  t('kakao: label 영역 5 접두', ins.every((i) => i.label === `5:${i.slug}`), true)
+  t('kakao: 보류 4개 × 2소스 = kakao_held 8', dry.out.items.filter((i) => i.skip === 'kakao_held').length, 8)
+  t('kakao: 그 밖 ⑦ 검색어는 투입 안 함', dry.out.items.filter((i) => i.skip === 'kakao_not_in_wave').length > 0, true)
+  t('kakao: 키 없이도 드라이런이 돈다(쓰기 0)', db.writes, 0)
+  const r = await main(['--run', '--sources=kakao_blog,kakao_cafe', '--areas=07', '--max=1000'], { port: db.port })
+  t('kakao --run: 8 INSERT · 재실행 0', [r.out.applied.inserted, (await main(['--run', '--sources=kakao_blog,kakao_cafe', '--areas=07'], { port: db.port })).out.insert], [8, 0])
+  const off = await main(['--sources=kakao_blog', '--areas=07', '--offline'], {})
+  t('kakao --offline: 투입 0(source_unknown)', [off.out.insert, off.out.items.filter((i) => i.skip === 'source_unknown').length], [0, 4])
+  if (saved !== undefined) process.env.KAKAO_REST_API_KEY = saved
+}
+
+// ── 공급 게이트(D3 30% · D4 googleplay 80 동결) ──────────────
+{
+  const db = fakeDb({ appstore: ON, googleplay: ON })
+  db.activeCounts = { googleplay: 80, appstore: 46, hackernews: 49 } // 175, googleplay 45.7%
+  const r = await main(['--max=1000'], { port: db.port })
+  t('게이트: googleplay 80 동결 → 여유 0', r.out.headroom.googleplay, 0)
+  t('게이트: appstore 여유 = floor((0.3×175−46)/0.7) = 9', r.out.headroom.appstore, 9)
+  const by = r.out.by['01-meeting-notes']
+  t('게이트: googleplay 전부 share_gate · appstore 9건만', [by.googleplay.insert, by.googleplay.skipped.share_gate, r.out.items.filter((i) => i.source === 'appstore' && !i.skip).length], [0, 27, 9])
+  db.activeCounts = { googleplay: 70, other: 1000 }
+  t('게이트: googleplay 70 이면 80 까지 10', (await main([], { port: db.port })).out.headroom.googleplay, 10)
+  const noCounts = fakeDb({ appstore: ON })
+  delete noCounts.port.loadActiveCounts
+  let e = null
+  try { await main([], { port: noCounts.port }) } catch (x) { e = x.message }
+  t('게이트: 활성 수를 못 읽으면 투입하지 않고 던진다', /loadActiveCounts/.test(e ?? ''), true)
 }
 
 let threw = false

@@ -14,6 +14,8 @@
 //
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다. `@/` 별칭·enum 을 쓰지 않는다.
 
+import { stripSourceHeader } from '../review/types.ts'
+
 /** **저장** 상한(내부 정본 evidence_quotes). 고객 화면 상한이 아니다 — 그건 checkQuote·checkSummary(QUOTE_MAX_KO·EN). */
 export const QUOTE_MAX_CHARS = 300
 export const QUOTE_MAX_COUNT = 3
@@ -133,8 +135,9 @@ export function isVerbatimExcerpt(excerpt: string, source: string): boolean {
  * checkQuote 는 문자열만 받으며(객체가 오면 거부) 원문 대조를 통과해야만 ok 를 낸다 — 줄여 쓴 문장은 원문에 없으니 떨어진다.
  */
 export type QuoteKind = 'quote' | 'summary'
-export type QuoteReason = 'ok' | 'policy_none' | 'empty' | 'too_long' | 'not_verbatim'
-export type SummaryReason = Exclude<QuoteReason, 'not_verbatim'>
+/** src_header = 수집기 머리말(`[SRC: URL]` 첫 줄)을 걸쳐야만 원문에서 찾히는 발췌 — 본문이 아니라 주소·리뷰 id 다(v44 §2-b). */
+export type QuoteReason = 'ok' | 'policy_none' | 'empty' | 'too_long' | 'not_verbatim' | 'src_header'
+export type SummaryReason = Exclude<QuoteReason, 'not_verbatim' | 'src_header'>
 /** ok=false 면 text 는 빈 문자열이다 — 그대로 화면에 꽂아도 원문이 새지 않는다. */
 export interface QuoteCheck { kind: 'quote'; text: string; ok: boolean; reason: QuoteReason }
 export interface SummaryCheck { kind: 'summary'; text: string; ok: boolean; reason: SummaryReason }
@@ -161,7 +164,11 @@ export function checkQuote(text: string | null | undefined, policy: QuotePolicy,
   const c = capCheck(text, policy)
   if ('reason' in c) return { kind: 'quote', text: '', ok: false, reason: c.reason }
   const srcs = (typeof source === 'string' ? [source] : source ?? []).filter((s): s is string => typeof s === 'string')
-  if (!srcs.some((s) => isVerbatimExcerpt(c.flat, s))) return { kind: 'quote', text: '', ok: false, reason: 'not_verbatim' }
+  // 대조는 머리말을 뗀 본문과 한다 — 머리말을 걸친 발췌는 raw_text 부분문자열이어도 거부(v44 §2-b, feed.ts quoteCheckOf 와 같은 규칙).
+  if (!srcs.some((s) => isVerbatimExcerpt(c.flat, stripSourceHeader(s)))) {
+    const reason = srcs.some((s) => isVerbatimExcerpt(c.flat, s)) ? 'src_header' : 'not_verbatim'
+    return { kind: 'quote', text: '', ok: false, reason }
+  }
   return { kind: 'quote', text: c.flat, ok: true, reason: 'ok' }
 }
 
@@ -180,10 +187,12 @@ export function policyQuote(text: string | null | undefined, policy: QuotePolicy
 /** 검사 결과 묶음 → 로그 한 줄. 0건이면 null(찍지 않는다). */
 export function quoteCheckSummary(where: string, checks: readonly QuoteCheck[]): string | null {
   if (checks.length === 0) return null
-  const n: Record<QuoteReason, number> = { ok: 0, policy_none: 0, empty: 0, too_long: 0, not_verbatim: 0 }
+  const n: Record<QuoteReason, number> = { ok: 0, policy_none: 0, empty: 0, too_long: 0, not_verbatim: 0, src_header: 0 }
   for (const c of checks) n[c.reason]++
-  return `[${where}] quote-cap checked=${checks.length} ok=${n.ok} rejected=${n.too_long + n.not_verbatim}` +
-    ` (too_long=${n.too_long} not_verbatim=${n.not_verbatim}) policy_none=${n.policy_none} empty=${n.empty}`
+  // src_header 는 0 이 아닐 때만 붙인다 — 기존 로그 한 줄 모양을 바꾸지 않는다.
+  return `[${where}] quote-cap checked=${checks.length} ok=${n.ok} rejected=${n.too_long + n.not_verbatim + n.src_header}` +
+    ` (too_long=${n.too_long} not_verbatim=${n.not_verbatim}${n.src_header ? ` src_header=${n.src_header}` : ''})` +
+    ` policy_none=${n.policy_none} empty=${n.empty}`
 }
 
 /**
@@ -287,13 +296,20 @@ export function squash(s: string): string {
  * - 각 300자 상한, 최대 3건.
  * - 앞 20자가 입력 원문 어디에도 없으면 **버린다**.
  * - source_type 은 그 인용이 실제로 들어 있던 입력의 것을 쓴다(없으면 'review').
+ * - 대조는 머리말(`[SRC: URL]` 첫 줄)을 뗀 본문과 한다 — 머리말에서만 찾히는 인용은 버리고 drops.src_header 로 센다(v44 §2-b).
+ *   맨 앞 구글 플레이 버전 표기 `(v1.2.3) ` 는 떼고 저장한다(본문이 아니다).
  */
-export function normalizeEvidenceQuotes(raw: unknown, inputs: QuoteSource[] | null | undefined): EvidenceQuote[] {
+export function normalizeEvidenceQuotes(
+  raw: unknown,
+  inputs: QuoteSource[] | null | undefined,
+  drops?: { src_header: number },
+): EvidenceQuote[] {
   if (!Array.isArray(raw)) return []
   const haystacks = (inputs ?? []).map((i) => ({
     source_type: typeof i?.source_type === 'string' && i.source_type ? i.source_type : 'review',
     source_key: typeof i?.source_key === 'string' && i.source_key ? i.source_key : null,
-    text: squash(String(i?.raw_text ?? '')),
+    text: squash(stripSourceHeader(i?.raw_text)),
+    raw: squash(String(i?.raw_text ?? '')),
   }))
 
   const out: EvidenceQuote[] = []
@@ -302,12 +318,16 @@ export function normalizeEvidenceQuotes(raw: unknown, inputs: QuoteSource[] | nu
     const rawText = typeof item === 'string'
       ? item
       : typeof (item as { text?: unknown })?.text === 'string' ? (item as { text: string }).text : ''
-    const text = squash(rawText).slice(0, QUOTE_MAX_CHARS)
+    const text = squash(rawText).replace(/^\(v\d[^()\s]{0,39}\) /, '').slice(0, QUOTE_MAX_CHARS)
     if (text.length < 2 || seen.has(text)) continue
 
     const probe = text.slice(0, QUOTE_PREFIX_CHARS)
     const hit = haystacks.find((h) => h.text.includes(probe))
-    if (!hit) continue // 원문에 없는 인용 — 지어낸 것으로 보고 버린다
+    if (!hit) {
+      // 머리말을 걸쳐야만 찾힌다 = 주소·리뷰 id 를 인용으로 옮긴 것. 지어낸 것과 갈라 센다(§7.2 — 거부 사유를 남긴다).
+      if (drops && haystacks.some((h) => h.raw.includes(probe))) drops.src_header++
+      continue // 원문에 없는 인용 — 지어낸 것으로 보고 버린다
+    }
 
     seen.add(text)
     out.push(hit.source_key ? { text, source_type: hit.source_type, source_key: hit.source_key } : { text, source_type: hit.source_type })

@@ -141,6 +141,9 @@ t('extract-run 이 selectInputs 를 쓴다', /from '\.\/extract-select\.ts'/.tes
 t('extract-run 에 오래된 순 자르기가 남아 있지 않다', !/truncatedInputs/.test(run))
 t('extract-run 이 droppedInputs 를 돌려준다', /droppedInputs,? model/.test(run) || /droppedInputs,/.test(run))
 t('extract-run 이 폐기 원문을 제외한다', /\.is\('purged_at', null\)/.test(run))
+// v44 §2-b: 프롬프트에는 머리말을 뗀 본문만 싣는다(선별은 raw_text 그대로 — 위 selectInputs 결과가 안 바뀐다).
+t('extract-run 프롬프트가 머리말을 뗀다', /\$\{stripSourceHeader\(s\.text, \{ appVersion: true \}\)\}/.test(run) && !/\\n\$\{s\.text\}`/.test(run))
+t('extract-run 이 머리말 인용 거부 수를 남긴다', /normalizeEvidenceQuotes\(a\.evidence_quotes, inputs, quoteDrops\)/.test(run) && /src_header=\$\{quoteDrops\.src_header\}/.test(run))
 t('야간 배치가 pickAutoTargets 를 쓴다', /pickAutoTargets\(/.test(auto))
 // 2026-09-23 이전: 야간 배치는 force 를 아예 안 썼다. 그게 검수값 보호의 전부였고,
 // 대가는 프로젝트당 평생 1회 추출이었다(SaaS 3건이 +602·+401 건을 받고도 다시 안 돌았다).

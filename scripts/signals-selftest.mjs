@@ -3,8 +3,9 @@
 //   node scripts/signals-selftest.mjs
 import { EXCERPT_MAX, MAX_PAGE, QUOTE_POLICY_COLUMN_READY, quoteOf, SAAS_BUSINESS_MODELS, countBySource, excerptOf, feedHref, parseFeedQuery, sourceChips, sourceLinkOf } from '../lib/signals/feed.ts'
 import { productKindOf } from '../lib/cases/advisor.ts'
-import { sourceUrlOf, withSourceUrl } from '../lib/review/types.ts'
-import { QUOTE_BACKFILL_TAG, QUOTE_MAX_EN, QUOTE_MAX_KO, QUOTE_TARGET_CHARS, checkQuote, isBackfillVerified, checkSummary, isVerbatimExcerpt, publicQuotes, normalizeEvidenceQuotes, policyQuote, quoteCheckSummary, quoteLang, quotePolicyOf } from '../lib/analysis/evidence-quotes.ts'
+import { sourceUrlOf, stripSourceHeader, withSourceUrl } from '../lib/review/types.ts'
+import { QUOTE_BACKFILL_TAG, QUOTE_MAX_EN, QUOTE_MAX_KO, QUOTE_TARGET_CHARS, checkQuote, isBackfillVerified, checkSummary, isVerbatimExcerpt, publicLines, publicQuotes, normalizeEvidenceQuotes, policyQuote, quoteCheckSummary, quoteLang, quotePolicyOf } from '../lib/analysis/evidence-quotes.ts'
+import { classifyQuote, prepareInputs } from '../lib/analysis/quote-backfill.ts'
 
 let pass = 0
 let fail = 0
@@ -191,6 +192,45 @@ t('log: 0건이면 null(찍지 않는다)', quoteCheckSummary('t', []) === null)
   t('isBackfillVerified: 표식 없음·다른 표식 → 거짓', !isBackfillVerified({ ...ok, backfill: undefined }) && !isBackfillVerified({ ...ok, backfill: 'qb-v0' }))
   t('isBackfillVerified: source_key 없음·빈 문자열 → 거짓', !isBackfillVerified({ ...ok, source_key: undefined }) && !isBackfillVerified({ ...ok, source_key: '' }))
   t('isBackfillVerified: null·문자열 → 거짓', !isBackfillVerified(null) && !isBackfillVerified('full'))
+}
+// v44 §2-b 머리말 인용 누출 — 합성 구글 플레이 raw_text(googleplay.ts toReview + runner withSourceUrl 와 같은 모양)
+{
+  const gpUrl = 'https://play.google.com/store/apps/details?id=com.example.app&hl=en&gl=us&reviewId=abc-123'
+  const gpBody = 'The app crashes every time I open the camera tab after the update.'
+  const gpRaw = withSourceUrl(`(v1.2.3) ${gpBody}`, gpUrl)
+  const header = `[SRC: ${gpUrl}]`
+  const inp = [{ source_type: 'review', source_key: 'googleplay', raw_text: gpRaw }]
+  t('strip: 머리말 한 줄만 뗀다(버전은 기본 유지)', stripSourceHeader(gpRaw) === `(v1.2.3) ${gpBody}`)
+  t('strip: appVersion 이면 구글 플레이 버전 표기도 뗀다', stripSourceHeader(gpRaw, { appVersion: true }) === gpBody)
+  t('strip: 플레이 아닌 소스의 (v2) 는 appVersion 이어도 둔다', stripSourceHeader(withSourceUrl('(v2) 후기', 'https://velog.io/@a/b'), { appVersion: true }) === '(v2) 후기')
+  t('strip: 머리말 없으면 그대로(버전도)', stripSourceHeader('(v1.2.3) body', { appVersion: true }) === '(v1.2.3) body' && stripSourceHeader(null) === '')
+  const mid = `앞 문장. [SRC: https://evil.example/x] 뒤 문장.`
+  t('strip: 본문 중간 [SRC:] 는 지우지 않는다(첫 줄 앵커)', stripSourceHeader(mid) === mid && stripSourceHeader(withSourceUrl(mid, 'https://velog.io/@a/b')) === mid)
+  // 저장 검사
+  const drops = { src_header: 0 }
+  const stored = normalizeEvidenceQuotes([header, `${header} (v1.2.3) The app crashes`, 'reviewId=abc-123] (v1.2.3) The app', gpBody], inp, drops)
+  t('저장: 머리말·머리말 걸친 인용은 버리고 본문 인용만 남긴다', stored.length === 1 && stored[0].text === gpBody && stored[0].source_key === 'googleplay')
+  t('저장: 머리말 거부를 src_header 로 센다(지어낸 것과 구분)', drops.src_header === 3)
+  const d2 = { src_header: 0 }
+  normalizeEvidenceQuotes(['완전히 지어낸 문장입니다 정말로요'], inp, d2)
+  t('저장: 지어낸 인용은 src_header 로 세지 않는다', d2.src_header === 0)
+  const v = normalizeEvidenceQuotes([`(v1.2.3) ${gpBody}`], inp)
+  t('저장: (v1.2.3) 로 시작하는 인용은 버전 표기를 떼고 본문으로 저장', v.length === 1 && v[0].text === gpBody)
+  const midRaw = withSourceUrl(mid, 'https://velog.io/@a/b')
+  t('저장: 본문 중간 [SRC:] 인용은 정상 통과', normalizeEvidenceQuotes(['[SRC: https://evil.example/x] 뒤 문장.'], [{ source_type: 'review', raw_text: midRaw }]).length === 1)
+  // 표시 검사
+  t('표시: 머리말 인용은 거부 src_header(raw_text 부분문자열이어도)', checkQuote(header, 'full', gpRaw).reason === 'src_header' && checkQuote(`${header} (v1.2.3) The app crashes`, 'full', gpRaw).reason === 'src_header')
+  t('표시: 본문 인용은 통과', checkQuote(gpBody, 'full', gpRaw).ok)
+  t('표시: (v1.2.3) 로 시작하는 본문 인용은 원문 그대로라 통과', checkQuote(`(v1.2.3) ${gpBody}`, 'full', gpRaw).ok)
+  t('표시: 본문 중간 [SRC:] 인용은 통과', checkQuote('[SRC: https://evil.example/x] 뒤 문장.', 'full', midRaw).ok)
+  t('표시: 지어낸 인용은 여전히 not_verbatim', checkQuote('totally made up words', 'full', gpRaw).reason === 'not_verbatim')
+  t('log: src_header 가 있으면 사유별로 붙인다', quoteCheckSummary('t', [checkQuote(header, 'full', gpRaw)]) === '[t] quote-cap checked=1 ok=0 rejected=1 (too_long=0 not_verbatim=0 src_header=1) policy_none=0 empty=0')
+  // 고객 화면 경로(publicLines — 결과·요약·인사이트 근거가 이 한 벌) : 이미 저장된 머리말 인용이 있어도 quote 로 안 나간다
+  const pl = publicLines([{ text: header, source_type: 'review', source_key: 'googleplay' }, { text: gpBody, source_type: 'review', source_key: 'googleplay' }], new Map([['googleplay', 'full']]), () => [gpRaw])
+  t('publicLines: 머리말 인용은 가리고(hidden) 본문 인용만 quote', pl.hidden === 1 && pl.lines.length === 1 && pl.lines[0].text === gpBody && pl.lines[0].index === 1)
+  // 옛 인용 백필: 머리말 인용이 'full' 로 찍혀 고객 화면 대조를 건너뛰지 않는다
+  const prep = prepareInputs(inp)
+  t('backfill: 머리말 인용은 full 이 아니다', classifyQuote(header, prep).verified !== 'full' && classifyQuote(gpBody, prep).verified === 'full')
 }
 
 if (fail) { console.log(`실패 ${fail}건 / 통과 ${pass}건`); process.exit(1) }

@@ -80,8 +80,11 @@
 - on: 하루 D(시작 48 · 24~72) · 스케줄 슬롯 상한 ceil(D÷3)(≤24 → `timeout-minutes` 180). 수동 실행은 하루 상한만 D, 슬롯 상한은 입력값.
 - 하루 1회(KST 첫 스케줄 run, 쉼 run 포함)만 평가. 한 스텝 = round(D×20%), 최소 1.
   - 내리기: 지난 평가 이후(첫 평가면 24시간) hard 캡·구독 한도 오류(수동 run 포함) 또는 주간 > 안전선. 소프트 한도(cost)로 멈춘 run 은 근거가 아니다.
-  - 올리기: 마지막 조정 이후·7일 이내 스케줄 run(decision=run·`cap_binding` 기록 있음·비용 전부 읽힘) 최근 3회의 평균 사용률 < 8% ∧ 전부 slot/daily/none ∧ 대기(min_new 기준 B) > 0 ∧ 조정 전 D 로 이 슬롯이 쉬지 않는다.
-  - 사용률 = `session.spent_usd`(전 호출 누적기) ÷ `usd_per_session_pct`. 비용 모름 호출이 있는 run 은 윈도에서 뺀다.
+  - 올리기: 마지막 조정 이후·7일 이내 스케줄 run(decision=run·**스위치 on 으로 돈 run**(`summary.autotune` 있음)·`cap_binding` 기록 있음·비용 전부 읽힘·claude 호출 ≥1) 최근 3회의 평균 사용률 < 8% ∧ 전부 slot/daily/none ∧ 대기(min_new 기준 B) > 0 ∧ 조정 전 D 로 이 슬롯이 쉬지 않는다 ∧ 직전 스케줄 run 3개 중 `running`(timeout 으로 죽음)이 없다.
+  - 켠 직후: D 는 변수가 아니라 코드 상수 48(슬롯 16)로 바로 바뀐다. off 시절 run 은 올리기 근거가 아니라 첫 며칠은 "윈도 부족" 무변경이 정상이다.
+  - 사용률 = `session.spent_usd`(전 호출 누적기) ÷ `usd_per_session_pct`. 비용 모름 호출이 있거나 호출 0회인 run 은 윈도에서 뺀다.
+  - 이력을 못 읽어 하한 24 로 돈 run(`source='unreadable'`)의 d 는 다음 run 이 잇지 않는다.
+  - 알려진 한계: timeout 으로 죽은 run 은 `running` 으로 남아 사용률·내리기 근거 어디에도 안 잡힌다(올리기만 보류).
 - 기록: 모든 run 의 `summary.autotune`(유효 `d`·`slot_max`·`evaluated`·`action`·`prev`/`next`·`reason`·`window`·`avg_pct`·`pending`·`slot_runs`·`down_signals`·`weekly`). 다음 run 이 가장 최근 `d` 를 잇는다. 이력을 못 읽으면 하한 24 로 돌고 평가하지 않는다.
 - `summary.cap_binding`(slot/daily/cost/hard/none, 다섯 밖 정지는 null)은 스위치와 무관하게 매 run 남는다.
 - 주간 안전선 `autotune_weekly_safe_pct`(config) 는 null = 비활성(`weekly.state='disabled'`). 넣으면 `usd_per_weekly_pct` 도 필요하다(없으면 unknown → 올리지 않음).

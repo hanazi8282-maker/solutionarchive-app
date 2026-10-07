@@ -72,17 +72,25 @@ const ran = (r: Row) => r.status !== 'running' && r.summary?.decision === 'run'
 const isCostStop = (r: Row) => r.summary?.cap_binding === 'cost' || ['session_cap', 'cost_unknown'].includes(String(r.summary?.stop_reason ?? ''))
 const isHard = (r: Row) => r.summary?.cap_binding === 'hard' || r.summary?.stop_reason === 'hard_cap'
 
-/** 한 run 의 세션 사용률(%). session 블록이 없거나 비용 못 읽은 호출이 있으면 null — 0 으로 접지 않는다(§7.1). */
+/**
+ * 한 run 의 세션 사용률(%). null(윈도 제외) = session 블록 없음 · 비용 못 읽은 호출 있음 · claude 호출 0회.
+ * 호출 0회(대상 전부 claim 건너뜀 등)는 "적게 썼다"가 아니라 "안 썼다"다 — 0% 로 평균을 끌어내리지 않는다(§7.1).
+ */
 export function runUsedPct(r: Row, usdPerPct: number | null): number | null {
   const s = (r.summary?.session ?? null) as Record<string, unknown> | null
   if (!s || !usdPerPct) return null
   if (typeof s.cost_unknown_calls !== 'number' || s.cost_unknown_calls !== 0) return null
+  if (typeof s.claude_calls !== 'number' || s.claude_calls <= 0) return null
   return typeof s.spent_usd === 'number' && Number.isFinite(s.spent_usd) ? Number((s.spent_usd / usdPerPct).toFixed(2)) : null
 }
 
-/** 직전 기록된 유효 D. 없으면 시작값 48(최초). 행은 시각 내림차순이 아니어도 된다. */
+/**
+ * 직전 기록된 유효 D. 없으면 시작값 48(최초). 행은 시각 내림차순이 아니어도 된다.
+ * source='unreadable' 행(이력을 못 읽어 하한 24 로 돈 run)의 d 는 잇지 않는다 — 한 번의 조회 실패가 근거 없는 −조정으로 굳지 않게.
+ */
 export function carriedD(rows: readonly Row[]): { d: number; source: 'chain' | 'initial'; from: string | null } {
-  const hit = [...rows].sort((a, b) => at(b) - at(a)).find(r => typeof tuneOf(r)?.d === 'number' && Number.isFinite(tuneOf(r)?.d))
+  const hit = [...rows].sort((a, b) => at(b) - at(a))
+    .find(r => typeof tuneOf(r)?.d === 'number' && Number.isFinite(tuneOf(r)?.d) && tuneOf(r)?.source !== 'unreadable')
   return hit ? { d: clampD(tuneOf(hit)?.d as number), source: 'chain', from: hit.run_key } : { d: AUTOTUNE.start, source: 'initial', from: null }
 }
 
@@ -166,10 +174,17 @@ export function decideAutotune(i: {
   }
   if (downWhy.length) return move('down', `내리기 — ${downWhy.join(' · ')}`, { down_signals: signals.map(r => r.run_key) })
 
-  // ── 올리기: 마지막 조정 이후 · 7일 이내 · 스케줄 · decision=run · cap_binding 기록 있음 · 비용 전부 읽힘 — 최근 3회.
+  // ── 올리기: 마지막 조정 이후 · 7일 이내 · 스케줄 · decision=run · 스위치 on 으로 돈 run(summary.autotune 있음)
+  //    · cap_binding 기록 있음 · 비용 전부 읽힘 · claude 호출 ≥1 — 최근 3회.
+  //    off 시절 run 은 다른 상한(변수값)으로 돈 것이라 근거가 아니다 — 켠 직후 첫 평가는 윈도 부족 무변경이 정상이다.
   const upSince = Math.max(weekAgo, lastAdj ? at(lastAdj) : -Infinity)
+  // 180분 timeout 등으로 죽은 run 은 'running' 으로 남아 윈도에서 빠진다 — 직전 스케줄 run 3개 중 하나라도 그러면 올리지 않는다.
+  const stale = rows
+    .filter(r => isScheduledKey(r.run_key) && at(r) >= upSince && r.summary?.decision !== 'skip')
+    .slice(0, AUTOTUNE.window)
+    .filter(r => r.status === 'running')
   const window = rows
-    .filter(r => ran(r) && isScheduledKey(r.run_key) && at(r) >= upSince && r.summary && 'cap_binding' in r.summary)
+    .filter(r => ran(r) && isScheduledKey(r.run_key) && at(r) >= upSince && tuneOf(r) && r.summary && 'cap_binding' in r.summary)
     .map(r => ({ run_key: r.run_key, used_pct: runUsedPct(r, i.usdPerPct), cap_binding: r.summary?.cap_binding }))
     .filter(w => w.used_pct != null)
     .slice(0, AUTOTUNE.window)
@@ -184,6 +199,7 @@ export function decideAutotune(i: {
     bound.length ? `cap_binding ${bound.map(w => `${w.run_key}=${w.cap_binding}`).join(',')}` : null,
     i.pending <= 0 ? '처리 대기 0건' : null,
     i.pending > 0 && !i.slotRuns ? '이 슬롯이 쉰다(백로그가 문턱 미만)' : null,
+    stale.length ? `끝나지 않은(running) 스케줄 run ${stale.map(r => r.run_key).join(',')} — timeout 으로 죽었을 수 있다` : null,
   ].filter(Boolean)
   if (misses.length) return keep(cur.d, cur.source, true, 'hold', `무변경 — ${misses.join(' · ')}`, extra)
   return move('up', `올리기 — 평균 ${avg}% < ${AUTOTUNE.upBelowPct}% · cap_binding ${window.map(w => w.cap_binding).join('/')} · 대기 ${i.pending}건`, extra)

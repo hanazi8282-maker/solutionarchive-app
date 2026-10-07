@@ -55,7 +55,7 @@ t('쿨다운·확인 불가로 쉼 = null', capBindingOf({ decision: 'skip', ski
 }
 
 // ── 4. 사용률 ─────────────────────────────────────────────────
-const sess = (usd, unknown = 0) => ({ spent_usd: usd, cost_unknown_calls: unknown })
+const sess = (usd, unknown = 0, calls = 5) => ({ spent_usd: usd, cost_unknown_calls: unknown, claude_calls: calls })
 t('사용률 = spent_usd ÷ 0.43(분모는 세션 100%)', runUsedPct({ run_key: 'x', status: 'ok', summary: { session: sess(2.15) } }, 0.43) === 5)
 t('비용 못 읽은 호출이 있으면 null(0 으로 접지 않음)', runUsedPct({ run_key: 'x', status: 'ok', summary: { session: sess(1, 1) } }, 0.43) === null)
 t('session 블록 없음 = null', runUsedPct({ run_key: 'x', status: 'ok', summary: { cost_usd: 1 } }, 0.43) === null)
@@ -75,7 +75,7 @@ const iso = (hAgo) => new Date(NOW.getTime() - hAgo * H).toISOString()
 let seq = 0
 const run = (key, hAgo, s = {}, status = 'ok') => ({
   run_key: `extract-auto-${key}`, status, started_at: iso(hAgo),
-  summary: { decision: 'run', cap_binding: 'slot', session: sess(1.0), ...s }, _seq: seq++,
+  summary: { decision: 'run', cap_binding: 'slot', session: sess(1.0), autotune: { evaluated: false }, ...s }, _seq: seq++,
 })
 const good3 = () => [run('2026-10-09-s3', 20), run('2026-10-09-s2', 26), run('2026-10-09-s1', 33)] // 1.0/0.43 = 2.33%
 const WD = weeklySafety(null, null, null)
@@ -83,7 +83,7 @@ const dec = (rows, o = {}) => decideAutotune({ rows, runKey: 'extract-auto-2026-
 
 {
   const d = dec(good3())
-  t('최초(summary.autotune 없음) = 시작 48 에서 평가', d.source === 'initial' && d.prev === 48)
+  t('d 기록 없는 on 시절 run 뿐이면 시작 48 에서 평가', d.source === 'initial' && d.prev === 48)
   t('올리기: 평균 2.33% < 8% · slot×3 · 대기 3 → 48→58', d.action === 'up' && d.next === 58 && d.d === 58 && d.slot_max === 20 && d.evaluated === true)
   t('근거가 남는다(윈도 run_key·사용률·cap_binding·대기·주간)', d.window.length === 3 && d.window[0].run_key === 'extract-auto-2026-10-09-s3' && d.window[0].used_pct === 2.33 && d.avg_pct === 2.33 && d.pending === 3 && d.weekly.state === 'disabled')
   t('cap_binding daily/none 도 올리기 허용', dec([run('2026-10-09-s3', 20, { cap_binding: 'daily' }), run('2026-10-09-s2', 26, { cap_binding: 'none' }), run('2026-10-09-s1', 33)]).action === 'up')
@@ -133,7 +133,7 @@ t('대기 0 이면 올리지 않는다', dec(good3(), { pending: 0 }).action ===
 t('수동 m* 는 윈도 제외 → 부족', dec([run('2026-10-09-m777', 2), ...good3().slice(1)]).window.length === 2)
 t('쉼 행(decision=skip)은 윈도 제외', dec([run('2026-10-09-s3', 20, { decision: 'skip' }), ...good3().slice(1)]).window.length === 2)
 t('진행 중(running) 행은 윈도 제외', dec([run('2026-10-09-s3', 20, {}, 'running'), ...good3().slice(1)]).window.length === 2)
-t('cap_binding 없는 옛 행은 윈도 제외(모르는 것을 통과로 접지 않음)', dec([{ ...run('2026-10-09-s3', 20), summary: { decision: 'run', session: sess(1) } }, ...good3().slice(1)]).window.length === 2)
+t('cap_binding 없는 옛 행은 윈도 제외(모르는 것을 통과로 접지 않음)', dec([{ ...run('2026-10-09-s3', 20), summary: { decision: 'run', session: sess(1), autotune: { d: 48 } } }, ...good3().slice(1)]).window.length === 2)
 t('7일 넘은 run 은 윈도 제외', dec([...good3().slice(0, 2), run('2026-10-02-s1', 8 * 24)]).window.length === 2)
 {
   // 마지막 조정 이후만: 조정 run(그 run 은 새 D 로 돌았으니 포함) 이전 run 은 빠진다
@@ -185,6 +185,43 @@ t('7일 넘은 run 은 윈도 제외', dec([...good3().slice(0, 2), run('2026-10
   t('지난 평가 이전의 한도 오류는 다시 세지 않는다', d.action !== 'down' && d.prev === 38)
 }
 
+// ── 6b. 독립 검토(PR #457) 반영 ─────────────────────────────────
+{
+  // 1) 이력 조회 실패 1회가 D 를 24 로 굳히지 않는다
+  const r72 = run('2026-10-08-s1', 60, { autotune: { d: 72, evaluated: true, action: 'up', source: 'chain' } })
+  const unread = { run_key: 'extract-auto-2026-10-09-s1', status: 'ok', started_at: iso(33), summary: { decision: 'run', cap_binding: 'none', session: sess(1), autotune: { d: 24, evaluated: false, action: null, source: 'unreadable' } } }
+  t('72 → unreadable 1회 → 다음 run 도 72 를 잇는다(carriedD)', carriedD([unread, r72]).d === 72)
+  const d = dec([unread, r72])
+  t('72 → unreadable 1회 → 다음 평가의 prev 도 72', d.prev === 72 && d.d >= 72 - stepOf(72))
+  t('unreadable 행 자체는 평가 기록이 아니다(evaluated=false)', dec(null).evaluated === false && dec(null).source === 'unreadable')
+}
+{
+  // 2) off 시절 run(summary.autotune 없음)은 올리기 근거가 아니다 — 켠 직후 첫 평가는 윈도 부족 무변경
+  const offEra = good3().map(r => { const { autotune, ...rest } = r.summary; return { ...r, summary: rest } })
+  const d = dec(offEra)
+  t('켠 직후 첫 평가: off 시절 run 3건만 있으면 윈도 0 → 무변경', d.action === 'hold' && d.window.length === 0 && /윈도 부족 0\/3/.test(d.reason))
+  t('켠 직후 D 는 코드 상수 48(변수 EXTRACT_AUTO_DAILY_MAX 아님) · 슬롯 16', d.d === 48 && d.slot_max === 16 && d.source === 'initial')
+  const mixed = dec([...good3().slice(0, 2), ...offEra.slice(2)])
+  t('on 시절 2건 + off 시절 1건 → 2건(부족)', mixed.window.length === 2 && mixed.action === 'hold')
+  const offHard = dec([{ ...offEra[0], status: 'blocked', summary: { ...offEra[0].summary, cap_binding: 'hard', stop_reason: 'hard_cap' } }], { now: new Date(NOW.getTime() - 4 * H) })
+  t('내리기 근거는 off 시절 run 도 센다(지난 평가 이후 사건)', offHard.action === 'down')
+}
+{
+  // 3) claude 호출 0회 run 은 윈도에서 빠진다
+  t('호출 0회 run 의 사용률 = null', runUsedPct({ run_key: 'x', status: 'ok', summary: { session: sess(0, 0, 0) } }, 0.43) === null)
+  t('claude_calls 없는 옛 session 블록 = null', runUsedPct({ run_key: 'x', status: 'ok', summary: { session: { spent_usd: 1, cost_unknown_calls: 0 } } }, 0.43) === null)
+  const d = dec([run('2026-10-09-s3', 18, { session: sess(0, 0, 0) }), ...good3().slice(1)])
+  t('호출 0회 run 이 끼면 윈도 2건 → 무변경(0% 로 평균을 끌어내리지 않음)', d.window.length === 2 && d.action === 'hold')
+}
+{
+  // 4) timeout 으로 'running' 에 남은 스케줄 run 이 직전 3개 안에 있으면 올리지 않는다
+  const dead = { run_key: 'extract-auto-2026-10-09-s3', status: 'running', started_at: iso(10), summary: null }
+  const d = dec([dead, run('2026-10-09-s2', 20), run('2026-10-09-s1', 26), run('2026-10-08-s3', 44)])
+  t('직전 스케줄 3개 중 running → 올리기 보류', d.action === 'hold' && /running/.test(d.reason) && d.window.length === 3)
+  const old = { ...dead, run_key: 'extract-auto-2026-10-08-s1', started_at: iso(60) }
+  t('running 이 직전 3개 밖이면 막지 않는다', dec([...good3(), old]).action === 'up')
+}
+
 // ── 7. 배선(소스 대조): off 면 상한 변수를 건드리는 줄이 전부 스위치 블록 안 ──
 const src = fs.readFileSync(path.join(ROOT, 'scripts', 'extract-auto.mjs'), 'utf8').replace(/\r\n/g, '\n')
 {
@@ -216,9 +253,9 @@ const kAgo = (h) => new Date(realNow - h * H)
 const keyAt = (h, s) => `extract-auto-${kstDate(kAgo(h))}-${s}`
 // 오늘(KST) 행이 생기지 않게 26시간 이상 전으로 둔다
 const history = [
-  { run_key: keyAt(26, 's3'), status: 'ok', started_at: kAgo(26).toISOString(), finished_at: kAgo(25).toISOString(), summary: { decision: 'run', cap_binding: 'slot', done: 10, failed: 0, session: sess(1.2) } },
-  { run_key: keyAt(32, 's2'), status: 'ok', started_at: kAgo(32).toISOString(), finished_at: kAgo(31).toISOString(), summary: { decision: 'run', cap_binding: 'slot', done: 10, failed: 0, session: sess(0.9) } },
-  { run_key: keyAt(41, 's1'), status: 'ok', started_at: kAgo(41).toISOString(), finished_at: kAgo(40).toISOString(), summary: { decision: 'run', cap_binding: 'none', done: 4, failed: 0, session: sess(0.8) } },
+  { run_key: keyAt(26, 's3'), status: 'ok', started_at: kAgo(26).toISOString(), finished_at: kAgo(25).toISOString(), summary: { decision: 'run', cap_binding: 'slot', done: 10, failed: 0, session: sess(1.2), autotune: { d: 48, evaluated: false, action: null, source: 'chain' } } },
+  { run_key: keyAt(32, 's2'), status: 'ok', started_at: kAgo(32).toISOString(), finished_at: kAgo(31).toISOString(), summary: { decision: 'run', cap_binding: 'slot', done: 10, failed: 0, session: sess(0.9), autotune: { d: 48, evaluated: false, action: null, source: 'chain' } } },
+  { run_key: keyAt(41, 's1'), status: 'ok', started_at: kAgo(41).toISOString(), finished_at: kAgo(40).toISOString(), summary: { decision: 'run', cap_binding: 'none', done: 4, failed: 0, session: sess(0.8), autotune: { d: 48, evaluated: false, action: null, source: 'chain' } } },
 ]
 const projects = [{ id: 'p-saas', status: 'collecting', extract_finished_at: null, extract_attempts: 0, product_elevator_pitch: 'fake', business_model: 'SAAS' }]
 const NEW_INPUTS = 150

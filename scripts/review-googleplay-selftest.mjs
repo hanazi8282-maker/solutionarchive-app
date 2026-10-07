@@ -13,6 +13,7 @@
 
 import { googleplayAdapter, parseProductRef, buildBody, reviewUrl, BATCH_URL, RPC_ID } from '../lib/review/adapters/googleplay.ts'
 import { runCollection, USER_AGENT, isOwnerRobotsOverride } from '../lib/review/runner.ts'
+import fs from 'node:fs'
 import { createReviewStore, reviewMetaColumns, isMissingMetaColumn } from '../lib/review/store.ts'
 
 let pass = 0
@@ -98,6 +99,44 @@ t('다른 RPC 프레임만 = 실패', googleplayAdapter.parse(`)]}'\n\n[["wrb.fr
   t('필드 누락: 본문 없음·id 없음 = 실패 2', r.parseFailures, 2)
 }
 
+// ── 1b) 실응답 축약본(2026-10-07, kr:ko:com.Slack 2페이지) — v27 토큰 경로 ─────────
+// 작성자·본문은 비식별 치환, 배열 구조·id·날짜·버전·토큰은 실응답 그대로(fixtures/review/googleplay/page{1,2}-real.txt).
+const real1 = fs.readFileSync(new URL('../fixtures/review/googleplay/page1-real.txt', import.meta.url), 'utf8')
+const real2 = fs.readFileSync(new URL('../fixtures/review/googleplay/page2-real.txt', import.meta.url), 'utf8')
+const realInner = (b) => JSON.parse(JSON.parse(b.slice(b.indexOf('\n'))).find((f) => f[0] === 'wrb.fr')[2])
+{
+  const r = googleplayAdapter.parse(real1, ctx())
+  t('실응답 p1: 3건', r.reviews.length, 3)
+  t('실응답 p1: 실패 0', r.parseFailures, 0)
+  t('실응답 p1: 다음 커서 = inner[1][1] 토큰(v27 수정 전엔 null)', r.nextCursor, realInner(real1)[1][1])
+  t('실응답 p1: 커서가 비어 있지 않다', typeof r.nextCursor === 'string' && r.nextCursor.length > 20, true)
+  t('실응답 p1: id', r.reviews[0].externalId, '627fdda8-19f1-43df-92c9-bad40aed2426')
+  t('실응답 p1: 별점', r.reviews[0].rating, 1)
+  t('실응답 p1: 버전 머리말', r.reviews[0].text.startsWith('(v26.09.41.0) '), true)
+  t('실응답 p1: 날짜(KST)', r.reviews[0].writtenAt, '2026-09-28')
+  t('실응답 형태: inner 는 두 칸', realInner(real1).length, 2)
+  t('옛 경로 at(inner,-2,-1) 은 실응답에서 문자열이 아니다(회귀 근거)', typeof realInner(real1)[0].at(-1), 'object')
+  const r2 = googleplayAdapter.parse(real2, ctx({ cursor: r.nextCursor }))
+  t('실응답 p2: 3건 · 다른 리뷰', r2.reviews.length === 3 && r2.reviews[0].externalId !== r.reviews[0].externalId, true)
+  t('실응답 p2: 다음 토큰도 읽힌다', typeof r2.nextCursor === 'string' && r2.nextCursor !== r.nextCursor, true)
+}
+{
+  // 끝 vs 못 읽음(§7.1)
+  const list = [entry('u1', '하나')]
+  t('토큰 칸 null = 끝(실패 0)', googleplayAdapter.parse(rpc([list, null]), ctx()).parseFailures, 0)
+  t('토큰 칸 [null] = 끝(실패 0)', googleplayAdapter.parse(rpc([list, [null]]), ctx()).parseFailures, 0)
+  t('토큰 칸 없음 = 끝(실패 0)', googleplayAdapter.parse(rpc([list]), ctx()).parseFailures, 0)
+  const bad = googleplayAdapter.parse(rpc([list, [null, 123]]), ctx())
+  t('토큰 자리에 숫자 = 못 읽음(실패 1)', bad.parseFailures, 1)
+  t('토큰 자리에 숫자 = 다음 커서 없음', bad.nextCursor, null)
+  t('쓸 수 없는 토큰(따옴표) = 못 읽음(실패 1)', googleplayAdapter.parse(rpc([list, [null, 'a"b']]), ctx()).parseFailures, 1)
+  // 이미 본 구간: 기준일(2025-10-06)보다 오래된 리뷰(2025-10-05)가 있으면 더 내려가지 않는다
+  t('이미 본 구간 도달 = 다음 커서 없음', googleplayAdapter.parse(page1, ctx({ lastReviewAt: '2025-10-06' })).nextCursor, null)
+  t('기준일보다 새 것뿐 = 계속', googleplayAdapter.parse(page1, ctx({ lastReviewAt: '2025-10-01' })).nextCursor, 'TOKEN_P2')
+}
+t('어댑터: incrementalOnly(v27)', googleplayAdapter.incrementalOnly, true)
+t('어댑터: maxPagesPerRun 2(v27)', googleplayAdapter.maxPagesPerRun, 2)
+
 // ── 2) 실제 어댑터 + 실제 러너 ─────────────────────────────────────
 function harness({ robots = 'User-agent: *\nAllow: /\n', robotsStatus = 200, byToken = {}, status = {}, loadSource } = {}) {
   const log = { fetched: [], inits: [], inputs: [], saves: [] }
@@ -136,7 +175,33 @@ const run = (h) => runCollection(googleplayAdapter, { dryRun: false, targetLimit
   t('경계: lang 이 appendInput 까지', h.log.inputs[0].lang, 'ko')
   t('경계: sourceUrl 이 appendInput 까지', h.log.inputs[0].sourceUrl, reviewUrl('com.Slack', 'ko', 'kr', 'uuid-1'))
   t('경계: 본문 머리말도 그대로([SRC:])', h.log.inputs[0].text.startsWith('[SRC: https://play.google.com/'), true)
-  t('경계: 끝까지 읽으면 exhausted', h.log.saves.at(-1).status, 'exhausted')
+  t('경계: 끝까지 읽어도 닫지 않는다(incrementalOnly, v27)', h.log.saves.at(-1).status, 'active')
+}
+{
+  // v27: 토큰이 계속 이어져도 실행 1회 2페이지에서 멈추고, 증분형이라 커서를 버린다(다음 실행은 최신부터).
+  const page2more = rpc([[entry('uuid-7', '두 번째', 3, null, SEC - 86400)], [null, 'TOKEN_P3'], null])
+  const h = harness({ byToken: { first: page1, TOKEN_P2: page2more, TOKEN_P3: page2 } })
+  const r = await run(h)
+  t('상한: 요청 2회에서 멈춘다(TOKEN_P3 요청 안 함)', h.log.inits.length, 2)
+  t('상한: 마지막 저장 커서 null(최신부터 다시)', h.log.saves.at(-1).cursor, null)
+  t('상한: 마지막 저장 active', h.log.saves.at(-1).status, 'active')
+  t('상한: 걸린 사실이 결과 문구에 남는다(§7.2)', r.perTarget[0].outcome.includes('페이지 상한 2'), true)
+}
+{
+  // 실응답 축약본 2페이지를 실제 러너로 — 커서가 p1 토큰 → p2 로 실제 전진하는지
+  const tok1 = realInner(real1)[1][1]
+  const h = harness({})
+  const inits = []
+  h.ports.fetchText = async (url, init) => {
+    if (url.endsWith('/robots.txt')) return { status: 200, body: 'User-agent: *\nAllow: /\n', finalUrl: url }
+    inits.push(init)
+    return { status: 200, body: decodeURIComponent(init.body).includes(tok1) ? real2 : real1 }
+  }
+  const r = await run(h)
+  t('실응답 경계: 2요청', inits.length, 2)
+  t('실응답 경계: 두 번째 요청 본문에 p1 토큰', decodeURIComponent(inits[1].body).includes(tok1), true)
+  t('실응답 경계: 신규 6건', r.stats.newReviews, 6)
+  t('실응답 경계: 파싱 실패 0', r.stats.parseFailures, 0)
 }
 {
   const h = harness({ robots: 'User-agent: *\nDisallow: /_/\n', byToken: { first: page1 } })
@@ -297,4 +362,4 @@ const input = { projectId: 'p', sourceKey: 'googleplay', text: 'x', collectedAt:
 
 console.log(`${pass} passed, ${fail} failed`)
 if (fail > 0) process.exit(1)
-console.log('⚠️ 합성 픽스처 기준 통과 — 실제 Play 응답 구조는 실측 전이다(robots 는 2026-10-06 실측 `Disallow: /_` 을 하네스에 반영).')
+console.log('ℹ️ 리뷰·토큰 위치는 2026-10-07 실응답 축약본으로 확인. 마지막 페이지 모양은 실측 전(null·[null] 둘 다 끝으로 받음).')

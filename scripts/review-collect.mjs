@@ -190,13 +190,17 @@ if (extraSlot) {
   try {
     planned = await plannedSourcesForSlot(supabase, slotIdx)
   } catch (e) {
-    planned = { keys: [], note: `⚠️ 추가 슬롯 계획 확인 예외(${e instanceof Error ? e.message : String(e)}) → 이 슬롯은 수집 안 함(기존 2슬롯만)` }
+    planned = { state: 'unavailable', keys: [], note: `⚠️ 추가 슬롯 계획 확인 예외(${e instanceof Error ? e.message : String(e)}) → 추가 슬롯 미동작(기존 2슬롯만)` }
   }
-  if (planned.note) say(`- ${planned.note}`)
+  say('')
+  say(`### 추가 슬롯 #${slotIdx}(${slot})`)
+  say(`- ${planned.note}`)
+  // 확인 불가(칸 없음 등)는 초록으로 묻지 않는다(§7.1) — Actions 경고 주석 + 요약. 수집은 안 하는 쪽이 안전해 종료코드는 0.
+  if (planned.state === 'unavailable') console.log(`::warning title=collect-slot::${planned.note}`)
   sourceKeys = sourceKeys.filter((k) => planned.keys.includes(k))
-  say(`- 추가 슬롯 #${slotIdx}(${slot}) — 계획 있는 소스 ${sourceKeys.length}개${sourceKeys.length ? `: ${sourceKeys.join(', ')}` : ''}`)
+  say(`- 이 슬롯에서 돌 소스 ${sourceKeys.length}개${sourceKeys.length ? `: ${sourceKeys.join(', ')}` : ''}`)
   if (sourceKeys.length === 0) {
-    say('- 돌 소스 없음 → 종료(cap_base 없는 소스는 기존 2슬롯에서만 돈다)')
+    say(planned.state === 'unavailable' ? '- 종료 — 확인 불가라 수집 안 함(위 ⚠️)' : '- 종료 — 돌 소스 없음(cap_base 없는 소스는 기존 2슬롯에서만 돈다)')
     if (process.env.GITHUB_STEP_SUMMARY) await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n')
     process.exit(0)
   }

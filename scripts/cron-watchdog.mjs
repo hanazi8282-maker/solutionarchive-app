@@ -48,6 +48,10 @@ const DAY_MS = 24 * 60 * 60 * 1000
 // 그래서 이 파일은 창을 slot+유예로 잡고, 실행을 슬롯 순서대로 하나씩 짝짓는다(judgeRuns claimed) —
 // 겹치는 창에서 s3 실행이 s2 미발화를 메우지 못하게(건수가 모자라면 반드시 한 슬롯이 미발화로 뜬다).
 export const GRACE_OVERRIDE_MS = { 'nightly-extract.yml': 10 * 60 * 60 * 1000 }
+// nightly-review-collect(v30 §2): cron 이 6줄(간격 3~4시간)이 되면 "다음 슬롯까지" 창이 17:37 슬롯 기준 12h → 3h10m 로 줄어
+// 실측 2h45m(위 GRACE 주석)·평소 1~3h 지연에서 오탐 미발화가 나고, 늦은 17:37 실행이 20:47 창으로 잡힌다. extract 와 같은 짝짓기로.
+// 같은 객체 리터럴 줄을 다른 PR(#448 nightly-relevance)도 고치므로 충돌을 피하려고 별도 줄로 더한다.
+GRACE_OVERRIDE_MS['nightly-review-collect.yml'] = 10 * 60 * 60 * 1000
 export const graceFor = (file) => GRACE_OVERRIDE_MS[file] ?? GRACE_MS
 const SELF = 'cron-watchdog.yml'
 

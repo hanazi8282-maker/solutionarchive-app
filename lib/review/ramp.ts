@@ -52,14 +52,31 @@ export const COLLECT_SLOTS = ['43 1 * * *', '37 5 * * *', '29 9 * * *', '19 13 *
 /** 기존 슬롯 — 모든 소스가 지금처럼 돈다. 나머지(추가 슬롯)는 계획이 있는 소스만. */
 export const LEGACY_SLOTS: ReadonlySet<string> = new Set(['37 5 * * *', '37 17 * * *'])
 /**
- * P_safe — 회당 안전 요청 수(소스별). 값은 [Fable] reports/2026-10-07/source-safe-caps-v30.md §1 의 "→ P_safe" 그대로
- * (min(P_time, P_policy, 2 × 14일 회당 최대); 실측 부족은 구조값 잠정). 바뀌면 이 맵의 값만 고친다.
- * 맵에 없는 소스(kakao_blog·kakao_cafe = 실측 0 "확인 불가", producthunt = 비활성 예정, danawa = 램프 제외)는 기본값.
- * ponytail: 기본값 10 = 문서의 가장 작은 구조값(10타깃 × 1요청) — 확인 불가를 넉넉한 값으로 접지 않는다(§7.1). 첫 수집 뒤 문서가 값을 내면 맵에 넣는다.
+ * P_safe — 회당 안전 요청 수(소스별). 산정 규칙(2026-10-07 [Fable] 분석, 리포 미수록):
+ *   min(시간 몫, 공식 한도 ÷ 6, 2 × 14일 회당 최대 요청(차단·쿼터 0 기간)). 실측이 구조값보다 작으면 구조값(10타깃 × 페이지 상한) 잠정.
+ * 회당 최대 실측은 2026-10-07 review_collection_runs 14일 스냅샷. 바뀌면 이 맵의 값만 고친다.
+ * 맵에 없는 소스(kakao_blog·kakao_cafe 실측 0, producthunt 비활성 예정, danawa 램프 제외)는 기본값.
+ * ponytail: 기본값 10 = 가장 작은 구조값(10타깃 × 1요청) — 확인 불가를 넉넉한 값으로 접지 않는다(§7.1). 첫 수집 뒤 값을 넣는다.
  */
 export const P_SAFE: Readonly<Record<string, number>> = {
-  appstore: 100, hackernews: 324, googleplay: 20, youtube: 200, devto: 40, indiehackers: 40, disquiet: 40, tumblbug: 200, yozm: 20,
-  '82cook': 94, bobaedream: 86, clien: 96, velog: 114, okky: 40, damoang: 10, fmkorea: 10, theqoo: 10, brunch: 14,
+  appstore: 100, // 구조값 10타깃 × 페이지 상한 10(실측 회당 최대 32)
+  hackernews: 324, // 2 × 실측 162
+  googleplay: 20, // 10타깃 × maxPagesPerRun 2(실측 10)
+  youtube: 200, // 구조값 10타깃 × 20페이지(실측 1) · 공식 쿼터 10,000 units/일
+  devto: 40, // 2 × 실측 20
+  indiehackers: 40, // 2 × 실측 20
+  disquiet: 40, // 2 × 실측 20
+  tumblbug: 200, // 구조값(실측 1)
+  yozm: 20, // 구조값 목록 1 + 글 ≤19(실측 0) · robots Crawl-delay 5
+  '82cook': 94, // 2 × 실측 47
+  bobaedream: 86, // 2 × 실측 43
+  clien: 96, // 2 × 실측 48
+  velog: 114, // 2 × 실측 57
+  okky: 40, // 2 × 실측 20
+  damoang: 10, // 구조값 10타깃 × 1(실측 3)
+  fmkorea: 10, // 구조값(실측 5)
+  theqoo: 10, // 구조값(실측 4)
+  brunch: 14, // 2 × 실측 7 · robots Crawl-delay 5
 }
 export const P_SAFE_DEFAULT = 10
 export const pSafeOf = (sourceKey: string): number => P_SAFE[sourceKey] ?? P_SAFE_DEFAULT
@@ -90,7 +107,8 @@ export function planSchedule(a: {
   avgReqPerTarget: number | null
 }): Omit<SchedulePlan, 'date'> {
   const targets = a.activeTargets === 0 ? 0 : a.avgReqPerTarget === null ? null : Math.floor(a.activeTargets * a.avgReqPerTarget)
-  const perRunCap = Math.max(0, Math.min(a.timeCap, a.safeCap))
+  // 1 이상: water-fill floor 로 0 이 나와도 기존 슬롯에서 소스가 완전히 멈추지 않게(독립 검토 b).
+  const perRunCap = Math.max(1, Math.min(a.timeCap, a.safeCap))
   const p = targets === null ? perRunCap : Math.min(perRunCap, targets)
   const need = a.budget <= 0 ? 1 : p <= 0 ? Infinity : Math.ceil(a.budget / p)
   const runsPerDay = p <= 0 ? 1 : Math.min(MAX_RUNS_PER_DAY, Math.max(1, need))
@@ -105,6 +123,22 @@ export function planSchedule(a: {
     budget: a.budget, runsPerDay, perRun, perRunCap, targetsPerRun, bottleneck,
     terms: { time: a.timeCap, safe: a.safeCap, targets, activeTargets: a.activeTargets, avgReqPerTarget: a.avgReqPerTarget },
   }
+}
+
+const isInt = (v: unknown, min: number, max = Infinity): v is number => Number.isInteger(v) && (v as number) >= min && (v as number) <= max
+
+/**
+ * DB 에서 읽은 계획(jsonb)을 믿을 수 있을 때만 돌려준다 — 아니면 null(= 기존 예산·기존 2슬롯).
+ * 모양이 깨졌거나(runsPerDay NaN → 모든 추가 슬롯에서 돌고 daily_request_cap 까지 소비) 회당 상한이 0 이거나(소스 정지)
+ * 오늘(UTC) 계획이 아니면(stepPctRamps 가 그 소스를 건너뛴 날) 쓰지 않는다(독립 검토 a·b·c). 모두 '덜 요청' 쪽으로 접는다.
+ */
+export function validPlan(raw: unknown, today: string): SchedulePlan | null {
+  if (!raw || typeof raw !== 'object') return null
+  const p = raw as SchedulePlan
+  if (p.date !== today) return null
+  if (!isInt(p.runsPerDay, 1, MAX_RUNS_PER_DAY) || !isInt(p.perRunCap, 1) || !isInt(p.budget, 0) || !isInt(p.perRun, 0)) return null
+  if (p.targetsPerRun !== null && !isInt(p.targetsPerRun, 1)) return null
+  return p
 }
 
 /** 크론 문자열 → 슬롯 번호. 스케줄 실행이 아니면(수동) null. */
@@ -151,19 +185,32 @@ async function avgRequestsPerTarget(sb: Sb, sourceKey: string, now: Date): Promi
 }
 
 /**
- * 추가 슬롯 i 에서 돌 소스 = cap_base·계획이 있고 제외 소스가 아니고 slotRuns 인 것. 못 읽으면(칸 없음 포함) 빈 목록 + ⚠️ —
- * 추가 슬롯은 안 도는 쪽으로 접는다(기존 2슬롯 동작 그대로).
+ * 추가 슬롯 i 에서 돌 소스 = cap_base·유효한 오늘 계획이 있고 제외 소스가 아니고 slotRuns 인 것.
+ * 3상태(§7.1): ok(목록, 0개면 note 에 "계획 없음 — 정상") / unavailable(칸 없음·테이블 없음·조회 실패 → 빈 목록 + ⚠️).
+ * unavailable 이어도 추가 슬롯은 안 도는 쪽으로 접는다(기존 2슬롯 동작 그대로) — 대신 호출자가 경고로 드러낸다.
  */
-export async function plannedSourcesForSlot(sb: Sb, i: number): Promise<{ keys: string[]; note: string | null }> {
+export async function plannedSourcesForSlot(
+  sb: Sb,
+  i: number,
+  now: Date = new Date(),
+): Promise<{ state: 'ok' | 'unavailable'; keys: string[]; note: string }> {
   const { data, error } = await sb.from('review_source_ramp').select('source_key, cap_base, schedule_plan').not('cap_base', 'is', null)
   if (error) {
-    const why = isMissingColumn(error.code) ? `칸 없음 — 마이그 ${SCHEDULE_MIGRATION} 미적용` : isMissingTableError(error.code, error.message) ? '테이블 없음' : error.message
-    return { keys: [], note: `⚠️ 추가 슬롯 계획 확인 불가(${why}) → 이 슬롯은 수집 안 함(기존 2슬롯만)` }
+    const why = isMissingColumn(error.code)
+      ? `schedule_plan 칸 없음 — 마이그 ${SCHEDULE_MIGRATION} 적용 필요`
+      : isMissingTableError(error.code, error.message) ? '테이블 없음' : `조회 실패 — ${error.message}`
+    return { state: 'unavailable', keys: [], note: `⚠️ 추가 슬롯 계획 확인 불가(${why}) → 추가 슬롯 미동작(기존 2슬롯만)` }
   }
-  const keys = ((data ?? []) as Array<{ source_key: string; schedule_plan: SchedulePlan | null }>)
-    .filter((r) => !RAMP_EXCLUDED.has(r.source_key) && r.schedule_plan && slotRuns(r.schedule_plan.runsPerDay, i))
-    .map((r) => r.source_key)
-  return { keys, note: null }
+  const rows = (data ?? []) as Array<{ source_key: string; schedule_plan: unknown }>
+  const today = isoDate(now)
+  const valid = rows.filter((r) => !RAMP_EXCLUDED.has(r.source_key)).map((r) => ({ key: r.source_key, plan: validPlan(r.schedule_plan, today) }))
+  const keys = valid.filter((v) => v.plan && slotRuns(v.plan.runsPerDay, i)).map((v) => v.key)
+  const stale = valid.filter((v) => !v.plan).length
+  const note =
+    rows.length === 0
+      ? '계획 없음(cap_base 행 0개 — 정상)'
+      : `cap_base 행 ${rows.length}개 · 오늘 유효 계획 ${valid.length - stale}개${stale ? ` · 계획 없음/지난 날짜/모양 깨짐 ${stale}개(기존 슬롯만)` : ''}`
+  return { state: 'ok', keys, note }
 }
 
 export const SCHEDULE_MIGRATION = '20261007000030_review_source_ramp_schedule_plan'
@@ -651,7 +698,7 @@ export async function collectWithRamp(args: {
   let dailyRequestTarget = pct ? effectiveTarget(pct) : null
   let maxRequestsThisRun: number | null = null
   let budgetNote: string
-  const plan = pct?.plan ?? null
+  const plan = pct ? validPlan(pct.plan, isoDate(ports.now())) : null
   if (plan) {
     const i = slotIndexOf(args.slot)
     if (i !== null) dailyRequestTarget = slotAllowance(dailyRequestTarget as number, plan.runsPerDay, i)
@@ -661,7 +708,9 @@ export async function collectWithRamp(args: {
       `예산: 스케줄 계획 적용(${plan.date}) — ${planLine(plan)} · 이번 슬롯 ${i === null ? '수동(슬롯 나눔 없음)' : `#${i}`} 누적 허용 ${dailyRequestTarget}` +
       (explicitTargets === null && plan.targetsPerRun !== null ? ` · 1회 타깃 ${limit}개(자동 산정)` : '')
   } else if (pct) {
-    budgetNote = '예산: 스케줄 계획 없음 → 퍼센트 목표만(기존 2슬롯)'
+    budgetNote = pct.plan
+      ? '⚠️ 예산: 스케줄 계획 무시(오늘 날짜 아님·모양 깨짐) → 퍼센트 목표만(기존 2슬롯)'
+      : '예산: 스케줄 계획 없음 → 퍼센트 목표만(기존 2슬롯)'
   } else if (RAMP_EXCLUDED.has(adapter.key)) {
     budgetNote = '예산: 램프 제외 소스 → 기존 예산(daily_request_cap)'
   } else if (loaded.state === 'unavailable') {

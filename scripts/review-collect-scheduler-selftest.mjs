@@ -15,8 +15,11 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   COLLECT_SLOTS, LEGACY_SLOTS, MAX_RUNS_PER_DAY, P_SAFE, P_SAFE_DEFAULT, RUN_TIME_SEC, collectWithRamp, loadSourceRamp, pSafeOf, planSchedule,
-  plannedSourcesForSlot, slotAllowance, slotIndexOf, slotRuns, stepPctRamps,
+  plannedSourcesForSlot, slotAllowance, slotIndexOf, slotRuns, stepPctRamps, validPlan,
 } from '../lib/review/ramp.ts'
+import http from 'node:http'
+import os from 'node:os'
+import { spawn } from 'node:child_process'
 import { fmkoreaAdapter } from '../lib/review/adapters/fmkorea.ts'
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -244,17 +247,38 @@ const last = (r) => r.notes.at(-1)
   t('판정: 꺼진 소스(재료 없음) → 계획 null', off.T.review_source_ramp[0].schedule_plan, null)
 }
 {
+  const NOW = new Date('2026-10-08T01:50:00Z')
   const db = memDb({ ramp: [
     rampRow({ source_key: 'a', schedule_plan: plan({ runsPerDay: 1 }) }),
     rampRow({ source_key: 'b', schedule_plan: plan({ runsPerDay: 6 }) }),
     rampRow({ source_key: 'danawa', schedule_plan: plan({ runsPerDay: 6 }) }),
     rampRow({ source_key: 'c', schedule_plan: null }),
     rampRow({ source_key: 'd', cap_base: null, schedule_plan: plan({ runsPerDay: 6 }) }),
+    rampRow({ source_key: 'e', schedule_plan: plan({ runsPerDay: 6, date: '2026-10-07' }) }), // 어제 계획
+    rampRow({ source_key: 'f', schedule_plan: plan({ runsPerDay: 'x' }) }), // 모양 깨짐 → NaN 이면 모든 슬롯 true 였다
   ] })
-  t('추가 슬롯 0 → R1·R6 (제외·계획 없음·cap_base 없음 빠짐)', (await plannedSourcesForSlot(db, 0)).keys, ['a', 'b'])
-  t('추가 슬롯 2 → R6 만', (await plannedSourcesForSlot(db, 2)).keys, ['b'])
-  const bad = await plannedSourcesForSlot(memDb({ planCol: false }), 2)
-  t('칸 없음 → 빈 목록 + ⚠️(안 도는 쪽)', [bad.keys, /^⚠️.*20261007000030/.test(bad.note)], [[], true])
+  const s0 = await plannedSourcesForSlot(db, 0, NOW)
+  t('추가 슬롯 0 → R1·R6 (제외·계획 없음·cap_base 없음·어제·깨짐 빠짐)', [s0.state, s0.keys], ['ok', ['a', 'b']])
+  t('추가 슬롯 0 → note 에 무효 계획 수', /오늘 유효 계획 2개 · 계획 없음\/지난 날짜\/모양 깨짐 3개/.test(s0.note), true)
+  t('추가 슬롯 2 → R6 만', (await plannedSourcesForSlot(db, 2, NOW)).keys, ['b'])
+  const none = await plannedSourcesForSlot(memDb(), 2, NOW)
+  t('행 0개 → ok · "계획 없음(정상)"', [none.state, none.keys, none.note], ['ok', [], '계획 없음(cap_base 행 0개 — 정상)'])
+  const bad = await plannedSourcesForSlot(memDb({ planCol: false }), 2, NOW)
+  t('칸 없음 → unavailable · 빈 목록 · ⚠️ 마이그 적용 필요', [bad.state, bad.keys, /^⚠️.*schedule_plan 칸 없음.*20261007000030\S* 적용 필요/.test(bad.note)], ['unavailable', [], true])
+}
+{
+  // validPlan — DB jsonb 를 믿지 않는다(독립 검토 a·b·c). 전부 '덜 요청' 쪽(null = 기존 예산).
+  const d = '2026-10-08'
+  t('validPlan: 정상', validPlan(plan(), d)?.runsPerDay, 4)
+  t('validPlan: runsPerDay 0·7·문자·NaN → null', [0, 7, 'x', NaN].map((v) => validPlan(plan({ runsPerDay: v }), d)), [null, null, null, null])
+  t('validPlan: perRunCap 0 → null(소스 정지 방지)', validPlan(plan({ perRunCap: 0 }), d), null)
+  t('validPlan: 어제 날짜 → null', validPlan(plan(), '2026-10-09'), null)
+  t('validPlan: targetsPerRun 0 → null, null 은 허용', [validPlan(plan({ targetsPerRun: 0 }), d), validPlan(plan({ targetsPerRun: null }), d)?.targetsPerRun], [null, null])
+  t('validPlan: null·문자열 → null', [validPlan(null, d), validPlan('x', d)], [null, null])
+  t('planSchedule: 시간 몫 0(water-fill floor) → 회당 상한 1(0 아님)', planSchedule({ budget: 100, timeCap: 0, safeCap: 10, activeTargets: 5, avgReqPerTarget: 1 }).perRunCap, 1)
+  // 실제 러너: 어제 계획 → 무시하고 퍼센트 목표(5)만, 경고 줄
+  const r = await go(memDb({ ramp: [rampRow({ daily_request_target: 5, schedule_plan: plan({ date: '2026-10-07', perRunCap: 1 }) })] }), harness(), { slot: '43 1 * * *' })
+  t('어제 계획 → 무시(요청 5 = 퍼센트 목표) + ⚠️', [r.result.requests, last(r).startsWith('⚠️ 예산: 스케줄 계획 무시')], [5, true])
 }
 
 // ── 6) 배선 · 워크플로 · 마이그 ───────────────────────────────────
@@ -284,6 +308,47 @@ const last = (r) => r.notes.at(-1)
   const mig = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261007000030_review_source_ramp_schedule_plan.sql'), 'utf8')
   t('마이그: ADD COLUMN 만(DROP·UPDATE·INSERT·DELETE 없음)', /\b(DROP|UPDATE|INSERT INTO|DELETE)\b/.test(mig.replace(/^--.*$/gm, '')), false)
   t('마이그: 롤백 파일 있음', fs.existsSync(path.join(root, 'supabase', 'migrations', '20261007000030_review_source_ramp_schedule_plan_rollback.sql')), true)
+}
+
+// ── 7) 실행 — 추가 슬롯 exit 경로를 정규식이 아니라 실제 프로세스로 ─────────────
+// scripts/review-collect.mjs 를 자식 프로세스로 띄우고, Supabase 는 로컬 가짜 PostgREST(http)로 바꾼다. 실제 DB·키 없음.
+{
+  const runCollect = async (mode) => {
+    const seen = []
+    const server = http.createServer((req, res) => {
+      seen.push(`${req.method} ${req.url}`)
+      const u = new URL(req.url, 'http://x')
+      res.setHeader('content-type', 'application/json')
+      if (mode === 'missing' && u.pathname.endsWith('/review_source_ramp') && /schedule_plan/.test(u.searchParams.get('select') ?? '')) {
+        res.statusCode = 400
+        return res.end(JSON.stringify({ code: '42703', message: 'column review_source_ramp.schedule_plan does not exist' }))
+      }
+      res.end('[]')
+    })
+    await new Promise((r) => server.listen(0, '127.0.0.1', r))
+    const summary = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'rc-sum-')), 'summary.md')
+    const child = spawn(process.execPath, [path.join(root, 'scripts', 'review-collect.mjs'), '--source=all', '--dry'], {
+      env: {
+        PATH: process.env.PATH, SystemRoot: process.env.SystemRoot,
+        NEXT_PUBLIC_SUPABASE_URL: `http://127.0.0.1:${server.address().port}`, SUPABASE_SERVICE_ROLE_KEY: 'selftest',
+        COLLECT_SLOT: '43 1 * * *', GITHUB_STEP_SUMMARY: summary,
+      },
+    })
+    let out = ''
+    child.stdout.on('data', (d) => (out += d))
+    child.stderr.on('data', (d) => (out += d))
+    const code = await new Promise((r) => child.on('close', r))
+    server.close()
+    return { code, out, seen, summary: fs.existsSync(summary) ? fs.readFileSync(summary, 'utf8') : '' }
+  }
+  const m = await runCollect('missing')
+  t('실행: 칸 없음 → exit 0', m.code, 0)
+  t('실행: 칸 없음 → ::warning 주석 + 마이그 적용 필요', /::warning title=collect-slot::⚠️ 추가 슬롯 계획 확인 불가\(schedule_plan 칸 없음 — 마이그 20261007000030_review_source_ramp_schedule_plan 적용 필요\)/.test(m.out), true)
+  t('실행: 칸 없음 → STEP_SUMMARY 에도 ⚠️ 와 종료 사유', /schedule_plan 칸 없음[\s\S]*종료 — 확인 불가라 수집 안 함/.test(m.summary), true)
+  t('실행: 쓰기 요청 0 · 소스 조회 없음(review_sources·runs 안 건드림)', m.seen.filter((s) => !s.startsWith('GET') || /review_sources|review_collection_runs|review_targets/.test(s)), [])
+  const n = await runCollect('rows0')
+  t('실행: 행 0개 → exit 0 · "계획 없음(정상)" · 경고 없음', [n.code, /계획 없음\(cap_base 행 0개 — 정상\)/.test(n.summary), /::warning/.test(n.out)], [0, true, false])
+  if (m.code !== 0 || n.code !== 0) console.log(m.out.slice(-1500), n.out.slice(-1500))
 }
 
 console.log(`review-collect-scheduler-selftest: ${pass} pass, ${fail} fail`)

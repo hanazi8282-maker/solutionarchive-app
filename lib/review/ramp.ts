@@ -27,8 +27,142 @@ export const PCT_RISE_OK_DAYS = 2
 export const PCT_ESCALATED_FREEZE_DAYS = 14
 /** 차단선 재정의 계수 — cap_base := floor(block_line × 0.9), 내리는 쪽만(percent-ramp-table §6). */
 export const BLOCK_LINE_FACTOR = 0.9
-/** 배분 B 의 하루 시간 예산 = 슬롯 2 × timeout 90분(nightly-review-collect.yml). 슬롯·타임아웃이 바뀌면 여기만 고친다. */
+/**
+ * 배분 B 의 하루 시간 예산 = 기존 슬롯 2 × timeout 90분(nightly-review-collect.yml). 슬롯·타임아웃이 바뀌면 여기만 고친다.
+ * v30 §2 로 슬롯이 6개가 됐지만 이 값은 그대로 둔다 — 추가 4슬롯은 퍼센트 램프 계획이 있는 소스만 돌고, 남헌이 승인한
+ * 배분 B 를 넓히는 것은 별개 결정이다(PR 본문 결정거리). 회당 시간 제한은 아래 RUN_TIME_SEC.
+ */
 export const DAILY_TIME_BUDGET_SEC = 2 * 90 * 60
+
+// ── 수집 스케줄러(남헌 v30 §2) ─────────────────────────────────────
+// 하루 예산 B(퍼센트 목표) → 회당 처리 가능량 P = min(시간 몫, P_safe, 활성 타깃 × 타깃당 평균 요청) → R = ceil(B/P) ≤ 6.
+// 계획은 stepPctRamps 가 하루 1번 review_source_ramp.schedule_plan(마이그 20261007000030)에 쓰고, 실행마다 collectWithRamp 가 읽는다.
+// cap_base 없음·계획 없음·칸 없음이면 아무것도 바뀌지 않는다(기존 2슬롯·기존 예산).
+
+/** 하루 최대 run 수(v30 §2). */
+export const MAX_RUNS_PER_DAY = 6
+/** 회당 시간 제한 = nightly-review-collect.yml collect 잡 `timeout-minutes: 90`. 스크립트엔 실행 전체 상한이 없다(요청당 20초뿐). */
+export const RUN_TIME_SEC = 90 * 60
+/**
+ * 수집 크론 슬롯(UTC, 시각 순, 인덱스 = 슬롯 번호). 워크플로 cron 줄과 1:1 — scripts/review-collect-scheduler-selftest.mjs 가 대조.
+ * 기존 2개(37 5 · 37 17)는 그대로 두고 그 사이에 4개를 끼웠다. 분은 서로 다르게(정각·30분 피함, 같은 시각 집중 금지).
+ * 마지막 슬롯을 20:47 로 둔 것은 1~3시간 지연(실측)이 나도 UTC 자정을 넘지 않게 — 넘으면 다음 날 예산을 먼저 쓴다.
+ */
+export const COLLECT_SLOTS = ['43 1 * * *', '37 5 * * *', '29 9 * * *', '19 13 * * *', '37 17 * * *', '47 20 * * *'] as const
+/** 기존 슬롯 — 모든 소스가 지금처럼 돈다. 나머지(추가 슬롯)는 계획이 있는 소스만. */
+export const LEGACY_SLOTS: ReadonlySet<string> = new Set(['37 5 * * *', '37 17 * * *'])
+/**
+ * P_safe — 회당 안전 요청 수(소스별). 비어 있으면 기본값.
+ * ponytail: 잠정값. 162 = 2026-10-07 스냅샷 14일 중 차단 0 인 실행의 회당 최대 요청(hackernews). 소스별 정본은 [Fable]
+ * reports/2026-10-07/source-safe-caps-v30.md 가 낸다 — 나오면 이 맵에 값만 넣는다. cap_base 가 없는 지금은 쓰이지 않는다.
+ */
+export const P_SAFE: Readonly<Record<string, number>> = {}
+export const P_SAFE_DEFAULT = 162
+export const pSafeOf = (sourceKey: string): number => P_SAFE[sourceKey] ?? P_SAFE_DEFAULT
+
+/** B 가 R=6 으로도 안 채워질 때 묶인 항. 'targets' = 타깃 부족 — 공급 자동화(v30 §3)가 읽는 신호. */
+export type Bottleneck = 'targets' | 'time' | 'safe'
+export type SchedulePlan = {
+  /** 계획을 세운 UTC 날. */
+  date: string
+  budget: number
+  runsPerDay: number
+  /** 회당 몫 = ceil(B / R). */
+  perRun: number
+  /** 회당 하드 상한 = min(시간 몫, P_safe). 러너가 이걸 넘겨 보내지 않는다. */
+  perRunCap: number
+  /** 1회 타깃 수(자동 산정). null = 타깃당 평균 요청 측정 없음 → 계단(targets_per_run) 그대로. */
+  targetsPerRun: number | null
+  bottleneck: Bottleneck | null
+  terms: { time: number; safe: number; targets: number | null; activeTargets: number; avgReqPerTarget: number | null }
+}
+
+/** 순수 계산. 타깃당 평균 요청이 없으면(측정 없음) 타깃 항을 빼고 계산한다 — 0 으로 접지 않는다(§7.1). */
+export function planSchedule(a: {
+  budget: number
+  timeCap: number
+  safeCap: number
+  activeTargets: number
+  avgReqPerTarget: number | null
+}): Omit<SchedulePlan, 'date'> {
+  const targets = a.activeTargets === 0 ? 0 : a.avgReqPerTarget === null ? null : Math.floor(a.activeTargets * a.avgReqPerTarget)
+  const perRunCap = Math.max(0, Math.min(a.timeCap, a.safeCap))
+  const p = targets === null ? perRunCap : Math.min(perRunCap, targets)
+  const need = a.budget <= 0 ? 1 : p <= 0 ? Infinity : Math.ceil(a.budget / p)
+  const runsPerDay = p <= 0 ? 1 : Math.min(MAX_RUNS_PER_DAY, Math.max(1, need))
+  const bottleneck: Bottleneck | null =
+    need <= MAX_RUNS_PER_DAY ? null : targets !== null && targets <= perRunCap ? 'targets' : a.timeCap <= a.safeCap ? 'time' : 'safe'
+  const perRun = Math.ceil(Math.max(0, a.budget) / runsPerDay)
+  const targetsPerRun =
+    a.activeTargets > 0 && a.avgReqPerTarget !== null && a.avgReqPerTarget > 0
+      ? Math.min(a.activeTargets, Math.max(1, Math.ceil(Math.min(perRun, perRunCap) / a.avgReqPerTarget)))
+      : null
+  return {
+    budget: a.budget, runsPerDay, perRun, perRunCap, targetsPerRun, bottleneck,
+    terms: { time: a.timeCap, safe: a.safeCap, targets, activeTargets: a.activeTargets, avgReqPerTarget: a.avgReqPerTarget },
+  }
+}
+
+/** 크론 문자열 → 슬롯 번호. 스케줄 실행이 아니면(수동) null. */
+export function slotIndexOf(cron: string | null | undefined): number | null {
+  const i = (COLLECT_SLOTS as readonly string[]).indexOf((cron ?? '').trim())
+  return i < 0 ? null : i
+}
+
+/** R 회 소스의 몇 번째 창인가(슬롯 i). 하루를 R 개 창으로 나눈다. */
+const windowOf = (runsPerDay: number, i: number) => Math.floor((i * runsPerDay) / COLLECT_SLOTS.length)
+
+/** 추가 슬롯 i 에서 이 소스가 도는가 — 자기 창의 첫 슬롯만. 기존 슬롯은 따로(모두 돈다). */
+export function slotRuns(runsPerDay: number, i: number): boolean {
+  return i === 0 || windowOf(runsPerDay, i) !== windowOf(runsPerDay, i - 1)
+}
+
+/**
+ * 슬롯 i 까지의 누적 허용 요청 = ceil(B × (창+1) / R). 러너 예산 = min(cap, 이 값) − 오늘 쓴 요청 이라
+ * 앞 슬롯이 건너뛰어지거나 늦으면 다음 슬롯이 따라잡고(최대 B), 이미 쓴 만큼은 다시 안 쓴다. R=1 이면 어느 슬롯이든 B.
+ */
+export function slotAllowance(budget: number, runsPerDay: number, i: number): number {
+  return Math.min(budget, Math.ceil((budget * (windowOf(runsPerDay, i) + 1)) / runsPerDay))
+}
+
+/** 요약 한 줄. */
+export function planLine(p: Omit<SchedulePlan, 'date'>): string {
+  const tg = p.terms.targets === null ? '측정 없음' : `${p.terms.targets}(${p.terms.activeTargets}×${p.terms.avgReqPerTarget?.toFixed(1) ?? 0})`
+  const bn = p.bottleneck ? ` · ⚠️ 병목 ${({ targets: '타깃 부족', time: '시간', safe: 'P_safe' } as const)[p.bottleneck]}(R=${MAX_RUNS_PER_DAY} 로도 B 미충족)` : ''
+  return `스케줄 B ${p.budget} · P=min(시간 ${p.terms.time}, 안전 ${p.terms.safe}, 타깃 ${tg}) · R ${p.runsPerDay}/일 · 회당 ${p.perRun}(상한 ${p.perRunCap}) · 1회 타깃 ${p.targetsPerRun ?? '계단 그대로'}${bn}`
+}
+
+/** 타깃당 평균 요청 = 최근 14일 실수집의 요청 합 ÷ 방문 타깃 합. 방문 0 이면 null(측정 없음). */
+async function avgRequestsPerTarget(sb: Sb, sourceKey: string, now: Date): Promise<{ value: number | null; error?: string }> {
+  const { data, error } = await sb
+    .from('review_collection_runs')
+    .select('requests, targets_visited')
+    .eq('source_key', sourceKey)
+    .eq('dry_run', false)
+    .gte('started_at', new Date(now.getTime() - 14 * 86_400_000).toISOString())
+  if (error) return { value: null, error: error.message }
+  const rows = (data ?? []) as Array<{ requests: number | null; targets_visited: number | null }>
+  const visited = rows.reduce((s, r) => s + (r.targets_visited ?? 0), 0)
+  return { value: visited > 0 ? rows.reduce((s, r) => s + (r.requests ?? 0), 0) / visited : null }
+}
+
+/**
+ * 추가 슬롯 i 에서 돌 소스 = cap_base·계획이 있고 제외 소스가 아니고 slotRuns 인 것. 못 읽으면(칸 없음 포함) 빈 목록 + ⚠️ —
+ * 추가 슬롯은 안 도는 쪽으로 접는다(기존 2슬롯 동작 그대로).
+ */
+export async function plannedSourcesForSlot(sb: Sb, i: number): Promise<{ keys: string[]; note: string | null }> {
+  const { data, error } = await sb.from('review_source_ramp').select('source_key, cap_base, schedule_plan').not('cap_base', 'is', null)
+  if (error) {
+    const why = isMissingColumn(error.code) ? `칸 없음 — 마이그 ${SCHEDULE_MIGRATION} 미적용` : isMissingTableError(error.code, error.message) ? '테이블 없음' : error.message
+    return { keys: [], note: `⚠️ 추가 슬롯 계획 확인 불가(${why}) → 이 슬롯은 수집 안 함(기존 2슬롯만)` }
+  }
+  const keys = ((data ?? []) as Array<{ source_key: string; schedule_plan: SchedulePlan | null }>)
+    .filter((r) => !RAMP_EXCLUDED.has(r.source_key) && r.schedule_plan && slotRuns(r.schedule_plan.runsPerDay, i))
+    .map((r) => r.source_key)
+  return { keys, note: null }
+}
+
+export const SCHEDULE_MIGRATION = '20261007000030_review_source_ramp_schedule_plan'
 
 type Sb = Pick<SupabaseClient, 'from'>
 
@@ -42,6 +176,8 @@ export type PctRamp = {
   blockLine: number | null
   blocksAtStep: number
   supplyState: SupplyState | null
+  /** v30 §2 스케줄 계획. null = 칸 없음(마이그 000030 미적용)·아직 계획 전 — 기존 예산·기존 2슬롯. */
+  plan: SchedulePlan | null
 }
 export type SupplyState = 'met' | 'short' | 'none'
 
@@ -64,6 +200,7 @@ type RampRow = {
   source_key: string; level: number; targets_per_run: number; frozen_until: string | null; changed_at: string; reason: string
   pct_step?: number; cap_base?: number | null; daily_request_target?: number | null; consecutive_ok_days?: number
   last_evaluated_date?: string | null; block_line?: number | null; blocks_at_step?: number; supply_state?: SupplyState | null
+  schedule_plan?: SchedulePlan | null
 }
 
 function toRamp(data: RampRow, pctReady: boolean): SourceRamp {
@@ -86,6 +223,7 @@ function toRamp(data: RampRow, pctReady: boolean): SourceRamp {
             blockLine: data.block_line ?? null,
             blocksAtStep: data.blocks_at_step ?? 0,
             supplyState: data.supply_state ?? null,
+            plan: data.schedule_plan ?? null,
           }
         : null,
   }
@@ -101,7 +239,11 @@ export async function loadSourceRamp(
   sourceKey: string,
 ): Promise<{ state: 'ramp'; ramp: SourceRamp } | { state: 'none' } | { state: 'unavailable'; reason: string }> {
   let pctReady = true
-  let { data, error } = await sb.from('review_source_ramp').select(`${BASE_COLS}, ${PCT_COLS}`).eq('source_key', sourceKey).maybeSingle()
+  let { data, error } = await sb.from('review_source_ramp').select(`${BASE_COLS}, ${PCT_COLS}, schedule_plan`).eq('source_key', sourceKey).maybeSingle()
+  // schedule_plan 만 없으면(마이그 000030 미적용) 퍼센트 칸까지는 읽는다 — 계획 없이 지금처럼.
+  if (error && isMissingColumn(error.code) && /schedule_plan/.test(error.message ?? '')) {
+    ;({ data, error } = await sb.from('review_source_ramp').select(`${BASE_COLS}, ${PCT_COLS}`).eq('source_key', sourceKey).maybeSingle())
+  }
   if (error && isMissingColumn(error.code)) {
     pctReady = false
     ;({ data, error } = await sb.from('review_source_ramp').select(BASE_COLS).eq('source_key', sourceKey).maybeSingle())
@@ -283,6 +425,10 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
 
   // 배분 B 재료 — 켜진 소스의 간격·상한과 active 타깃 수. 못 읽으면 배분 없이(몫 null) 가고 ⚠️.
   let shares = new Map<string, number>()
+  // 스케줄러(v30 §2) 재료 — 같은 조회에서 얻는다. 못 읽으면 계획 없음(null) → 기존 예산·기존 2슬롯.
+  let runShares: Map<string, number> | null = null
+  const activeOf = new Map<string, number>()
+  const intervalOf = new Map<string, number>()
   try {
     const src = await sb.from('review_sources').select('key, min_interval_ms, daily_request_cap').eq('enabled', true)
     if (src.error) throw new Error(src.error.message)
@@ -291,11 +437,15 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
     for (const s of src.data ?? []) {
       const c = await sb.from('review_targets').select('id', { count: 'exact', head: true }).eq('source_key', s.key).eq('status', 'active')
       if (c.error) throw new Error(c.error.message)
+      activeOf.set(s.key, c.count ?? 0)
+      intervalOf.set(s.key, s.min_interval_ms)
       if ((c.count ?? 0) > 0) items.push({ key: s.key, requests: capBaseOf.get(s.key) ?? s.daily_request_cap, intervalMs: s.min_interval_ms })
     }
     shares = allocateShares(items)
+    // 회당 시간 몫: 한 잡(90분)을 타깃 있는 소스가 순서대로 나눠 쓴다 — 같은 water-fill 을 회당 예산으로.
+    runShares = allocateShares(items, RUN_TIME_SEC)
   } catch (e) {
-    notes.push(`⚠️ 퍼센트 램프 배분 재료 조회 실패(${e instanceof Error ? e.message : String(e)}) — 오늘은 배분 없이 목표 계산`)
+    notes.push(`⚠️ 퍼센트 램프 배분 재료 조회 실패(${e instanceof Error ? e.message : String(e)}) — 오늘은 배분 없이 목표 계산, 스케줄 계획 없음(기존 2슬롯)`)
   }
 
   for (const r of ramps) {
@@ -337,9 +487,27 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
       reason = `${yDate} ${j.verdict} (요청 ${j.requests}/목표 ${dayTarget}) — ${next.rose ? `정상 ${PCT_RISE_OK_DAYS}일 연속, ${p.pctStep}%→${next.pctStep}%` : `${next.pctStep}% 유지, 연속정상 ${next.consecutiveOkDays}일`}`
     }
     const target = pctTarget(p.capBase, next.pctStep, share)
+    // 스케줄 계획(v30 §2). 꺼진 소스·재료 없음이면 null.
+    let plan: SchedulePlan | null = null
+    const iv = intervalOf.get(r.sourceKey)
+    if (runShares && iv !== undefined) {
+      const avg = await avgRequestsPerTarget(sb, r.sourceKey, now)
+      if (avg.error) notes.push(`⚠️ ${r.sourceKey}: 타깃당 평균 요청 조회 실패(${avg.error}) — 타깃 항 없이 계획`)
+      plan = {
+        date: isoDate(now),
+        ...planSchedule({
+          budget: target,
+          timeCap: runShares.get(r.sourceKey) ?? Math.floor((RUN_TIME_SEC * 1000) / Math.max(1, iv)),
+          safeCap: pSafeOf(r.sourceKey),
+          activeTargets: activeOf.get(r.sourceKey) ?? 0,
+          avgReqPerTarget: avg.value,
+        }),
+      }
+    }
     const line = `${r.sourceKey}: ${reason} · 오늘목표 ${target}${share !== null ? `(배분 몫 ${share})` : ''} / 상한 ${p.capBase}${next.pctStep >= 90 ? ' · 안정' : ''}`
+    const planNote = `${r.sourceKey}: ${plan ? planLine(plan) : '스케줄 계획 없음(재료 조회 실패·꺼진 소스) → 기존 2슬롯'}`
     if (dryRun) {
-      notes.push(`dry-run — ${line}`)
+      notes.push(`dry-run — ${line}`, `dry-run — ${planNote}`)
       continue
     }
     const log = await sb.from('review_source_ramp_log').insert({
@@ -349,18 +517,21 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
       notes.push(`❌ ${r.sourceKey}: 퍼센트 램프 판정 보류 — 로그 기록 실패(${log.error.message}), 상태 그대로`)
       continue
     }
-    const upd = await sb
-      .from('review_source_ramp')
-      .update({
-        pct_step: next.pctStep,
-        consecutive_ok_days: next.consecutiveOkDays,
-        last_evaluated_date: event === 'start' ? isoDate(now) : yDate, // 시작일은 오늘(UTC): 오늘 일부는 램프 밖에서 돌았을 수 있어 세지 않는다(독립 검토 2026-10-06)
-        daily_request_target: target,
-        supply_state: supply,
-        ...(next.rose ? { blocks_at_step: 0, changed_at: now.toISOString(), reason } : {}),
-      })
-      .eq('source_key', r.sourceKey)
-    notes.push(upd.error ? `❌ ${r.sourceKey}: 로그는 남았고 상태 갱신 실패(${upd.error.message})` : line)
+    const payload = {
+      pct_step: next.pctStep,
+      consecutive_ok_days: next.consecutiveOkDays,
+      last_evaluated_date: event === 'start' ? isoDate(now) : yDate, // 시작일은 오늘(UTC): 오늘 일부는 램프 밖에서 돌았을 수 있어 세지 않는다(독립 검토 2026-10-06)
+      daily_request_target: target,
+      supply_state: supply,
+      ...(next.rose ? { blocks_at_step: 0, changed_at: now.toISOString(), reason } : {}),
+    }
+    let upd = await sb.from('review_source_ramp').update({ ...payload, schedule_plan: plan }).eq('source_key', r.sourceKey)
+    // schedule_plan 칸이 없으면(마이그 000030 미적용) 그 칸만 빼고 다시 — 퍼센트 램프는 지금처럼 돈다.
+    if (upd.error && isMissingColumn(upd.error.code)) {
+      upd = await sb.from('review_source_ramp').update(payload).eq('source_key', r.sourceKey)
+      if (!upd.error) notes.push(`⚠️ ${r.sourceKey}: schedule_plan 칸 없음 — 마이그 ${SCHEDULE_MIGRATION} 미적용, 계획 미기록(기존 2슬롯)`)
+    }
+    notes.push(...(upd.error ? [`❌ ${r.sourceKey}: 로그는 남았고 상태 갱신 실패(${upd.error.message})`] : [line, planNote]))
   }
   return notes
 }
@@ -457,6 +628,8 @@ export async function collectWithRamp(args: {
   dryRun: boolean
   explicitTargets: number | null
   ports: RunnerPorts
+  /** 이번 실행의 크론 문자열(github.event.schedule). 수동 실행·없음 = null → 슬롯 나눔 없이 하루 목표 전체. */
+  slot?: string | null
 }): Promise<{ result: RunResult | null; fatal: string | null; targetLimit: number; notes: string[] }> {
   const { sb, adapter, dryRun, explicitTargets, ports } = args
   let loaded: Loaded
@@ -465,14 +638,39 @@ export async function collectWithRamp(args: {
   } catch (e) {
     loaded = { state: 'unavailable', reason: `조회 예외 — ${e instanceof Error ? e.message : String(e)}` }
   }
-  const { limit, note } = resolveTargetLimit(adapter.key, loaded, explicitTargets)
-  const notes = [note]
+  const resolved = resolveTargetLimit(adapter.key, loaded, explicitTargets)
+  let limit = resolved.limit
+  const notes = [resolved.note]
   const pct = activePct(adapter.key, loaded)
   if (pct) notes.push(pctSummary(pct))
+  // 예산 3상태(v30 §2): 계획 적용 / cap_base·계획 없음 → 기존 예산 / 확인 불가 → 기존 예산(⚠️).
+  let dailyRequestTarget = pct ? effectiveTarget(pct) : null
+  let maxRequestsThisRun: number | null = null
+  let budgetNote: string
+  const plan = pct?.plan ?? null
+  if (plan) {
+    const i = slotIndexOf(args.slot)
+    if (i !== null) dailyRequestTarget = slotAllowance(dailyRequestTarget as number, plan.runsPerDay, i)
+    maxRequestsThisRun = plan.perRunCap
+    if (explicitTargets === null && plan.targetsPerRun !== null) limit = plan.targetsPerRun
+    budgetNote =
+      `예산: 스케줄 계획 적용(${plan.date}) — ${planLine(plan)} · 이번 슬롯 ${i === null ? '수동(슬롯 나눔 없음)' : `#${i}`} 누적 허용 ${dailyRequestTarget}` +
+      (explicitTargets === null && plan.targetsPerRun !== null ? ` · 1회 타깃 ${limit}개(자동 산정)` : '')
+  } else if (pct) {
+    budgetNote = '예산: 스케줄 계획 없음 → 퍼센트 목표만(기존 2슬롯)'
+  } else if (RAMP_EXCLUDED.has(adapter.key)) {
+    budgetNote = '예산: 램프 제외 소스 → 기존 예산(daily_request_cap)'
+  } else if (loaded.state === 'unavailable') {
+    budgetNote = `⚠️ 예산: 램프 확인 불가 → 기존 예산(daily_request_cap)`
+  } else if (loaded.state === 'none') {
+    budgetNote = '예산: 램프 행 없음 → 기존 예산(daily_request_cap)'
+  } else {
+    budgetNote = loaded.ramp.pctReady ? '예산: cap_base 없음 → 기존 예산(daily_request_cap)' : `⚠️ 예산: 퍼센트 칸 없음(마이그 ${PCT_RAMP_MIGRATION} 미적용) → 기존 예산(daily_request_cap)`
+  }
   let result: RunResult | null = null
   let fatal: string | null = null
   try {
-    result = await runCollection(adapter, { dryRun, targetLimit: limit, dailyRequestTarget: pct ? effectiveTarget(pct) : null }, ports)
+    result = await runCollection(adapter, { dryRun, targetLimit: limit, dailyRequestTarget, maxRequestsThisRun }, ports)
   } catch (e) {
     fatal = e instanceof Error ? e.message : String(e)
   }
@@ -481,5 +679,6 @@ export async function collectWithRamp(args: {
     (result?.requestsTodayBefore ?? 0) + (result?.requests ?? 0),
   )
   if (rb) notes.push(rb)
+  notes.push(budgetNote)
   return { result, fatal, targetLimit: limit, notes }
 }

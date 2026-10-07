@@ -63,6 +63,20 @@ export function capReached(spentUsd: number, maxUnitUsd: number, capUsd: number)
   return spentUsd >= capUsd || (maxUnitUsd > 0 && spentUsd + maxUnitUsd > capUsd)
 }
 
+/**
+ * 상한 판정에 쓸 지출($). 비용을 못 읽은 호출(timeout SIGKILL·2MB 초과 출력·봉투 없음)을 0 으로 접지 않는다(§7.1):
+ *   · unknown 이 없으면 읽은 합 그대로
+ *   · unknown 이 있고 읽은 호출이 하나라도 있으면 unknown × 지금까지 본 호출 1회 최대 비용을 더한다(보수적 추정)
+ *   · unknown 이 있는데 비교할 호출이 하나도 없으면 null = 확인 불가 → 호출부는 멈춘다
+ * 왜 "unknown>0 이면 무조건 멈춤"이 아닌가: timeout 은 입력이 큰 프로젝트 하나의 문제라(llm.ts isCliLimitError) 한 건마다
+ * 슬롯 전체를 세우면 남은 프로젝트가 매번 밀린다. 근거(본 호출의 최대값)가 있을 때는 추정하고, 근거가 없을 때만 멈춘다.
+ * ponytail: timeout 호출은 600초를 다 쓴 것이라 실제로는 최대값보다 클 수 있다 — 넘침이 보이면 계수를 2배로 올린다.
+ */
+export function spendForCap(t: { usd: number; unknown: number; maxCallUsd: number }): number | null {
+  if (t.unknown === 0) return t.usd
+  return t.maxCallUsd > 0 ? t.usd + t.unknown * t.maxCallUsd : null
+}
+
 // ── 사용량 합산(agent_runs) ───────────────────────────────────────
 
 /** 구독 토큰을 쓰는 실행의 run_key 접두. 수집 run 은 토큰을 안 써서 없다. relevance-translate 는 기록만(상한 없음 — 남헌 결정 전). */
@@ -139,6 +153,8 @@ export function sessionBlock(i: {
   spentUsd: number
   calls: number
   costUnknownCalls: number
+  /** spendForCap 결과 — 비용 모름 호출을 추정해 더한 상한 판정용 지출. null = 확인 불가. 안 주면 spentUsd. */
+  spentForCapUsd?: number | null
   /** 이 실행 전, 지난 5시간에 끝난 다른 가드 대상 실행 합(조회 실패면 null). */
   window5h: { usd: number; runs: number; unknownRuns: number } | null
   weekUsd: number | null
@@ -149,6 +165,7 @@ export function sessionBlock(i: {
   return {
     job: i.job,
     spent_usd: Number(i.spentUsd.toFixed(4)),
+    spent_for_cap_usd: i.spentForCapUsd === undefined ? Number(i.spentUsd.toFixed(4)) : i.spentForCapUsd == null ? null : Number(i.spentForCapUsd.toFixed(4)),
     used_pct: pctOf(i.spentUsd, i.cfg.usdPerPct),
     cap_usd: capUsd == null ? null : Number(capUsd.toFixed(4)),
     cap_pct: i.job === 'translate' ? null : i.cfg.capPct,
@@ -169,7 +186,8 @@ export function sessionBlock(i: {
 export function sessionLine(b: ReturnType<typeof sessionBlock>): string {
   const cap = b.cap_usd == null ? '상한 없음(기록만)' : `상한 $${b.cap_usd.toFixed(2)}(${b.cap_pct}%)`
   const win = b.window5h_usd == null ? '5시간 창 합산 확인 불가' : `5시간 창 합산 $${b.window5h_usd.toFixed(2)}(≈${b.window5h_pct ?? '?'}%p, 다른 실행 ${b.window5h_other_runs}건${b.window5h_unknown_runs ? ` · 비용 모름 ${b.window5h_unknown_runs}건` : ''})`
-  return `세션 사용(${b.job}) $${b.spent_usd.toFixed(3)} ≈${b.used_pct ?? '?'}%p / ${cap}${b.capped ? ' — 상한 도달로 멈춤' : ''} · claude 호출 ${b.claude_calls}회(비용 못 읽음 ${b.cost_unknown_calls}) · ${win}`
+  const est = b.cost_unknown_calls ? ` (비용 모름 포함 판정값 ${b.spent_for_cap_usd == null ? '확인 불가' : `$${b.spent_for_cap_usd.toFixed(3)}`})` : ''
+  return `세션 사용(${b.job}) $${b.spent_usd.toFixed(3)}${est} ≈${b.used_pct ?? '?'}%p / ${cap}${b.capped ? ' — 상한 도달로 멈춤' : ''} · claude 호출 ${b.claude_calls}회(비용 못 읽음 ${b.cost_unknown_calls}) · ${win}`
 }
 
 // ── T2 재시도 슬롯 ──────────────────────────────────────────────
@@ -185,7 +203,7 @@ export const RELEVANCE_SLOTS: Readonly<Record<string, string>> = { '3 19 * * *':
 export function relevanceRetryDecision(
   rows: readonly RunRow[],
   o: { today: string; now: Date; cooldownMs: number; maxRetries: number },
-): { run: boolean; reason: string; retriesDone: number } {
+): { run: boolean; reason: string; retriesDone: number; quotaPending: boolean } {
   const base = `relevance-judge-${o.today}`
   const mine = rows
     .filter(r => r.run_key === base || (r.run_key.startsWith(base) && /^-r\d+$/.test(r.run_key.slice(base.length))))
@@ -193,13 +211,34 @@ export function relevanceRetryDecision(
     .sort((a, b) => Date.parse(b.started_at ?? '') - Date.parse(a.started_at ?? ''))
   const retriesDone = mine.filter(r => r.run_key !== base).length
   const last = mine[0]
-  if (!last) return { run: false, reason: '오늘 정규 T2 실행 기록 없음 — 재시도할 것이 없다', retriesDone }
-  if (!isQuotaBlocked(last)) return { run: false, reason: `최근 실행(${last.run_key})이 한도 정지가 아니다(${last.status}) — 재시도 불필요`, retriesDone }
-  if (retriesDone >= o.maxRetries) return { run: false, reason: `재시도 ${retriesDone}/${o.maxRetries}회 소진 — 오늘은 더 안 돈다`, retriesDone }
+  // quotaPending = 마지막 기록이 한도 정지로 남아 있다 — r2(그날 마지막 재시도 자리)가 이 상태로 쉬면 경보한다.
+  const out = (run: boolean, reason: string, quotaPending: boolean) => ({ run, reason, retriesDone, quotaPending })
+  if (!last) return out(false, '오늘 정규 T2 실행 기록 없음 — 재시도할 것이 없다', false)
+  if (!isQuotaBlocked(last)) return out(false, `최근 실행(${last.run_key})이 한도 정지가 아니다(${last.status}) — 재시도 불필요`, false)
+  if (retriesDone >= o.maxRetries) return out(false, `재시도 ${retriesDone}/${o.maxRetries}회 소진 — 오늘은 더 안 돈다`, true)
   const reset = Date.parse(String(last.summary?.quota_reset_at ?? ''))
   const stopped = Date.parse(last.finished_at ?? last.started_at ?? '')
   const due = Number.isFinite(reset) ? reset : Number.isFinite(stopped) ? stopped + o.cooldownMs : NaN
-  if (!Number.isFinite(due)) return { run: false, reason: '정지 시각 확인 불가 — 재시도하지 않는다', retriesDone }
-  if (o.now.getTime() < due) return { run: false, reason: `아직 이르다 — ${new Date(due).toISOString()} 이후(${Number.isFinite(reset) ? 'CLI 리셋 시각' : `정지 + ${o.cooldownMs / 3_600_000}시간`})`, retriesDone }
-  return { run: true, reason: `한도 정지 뒤 재시도 ${retriesDone + 1}/${o.maxRetries}`, retriesDone }
+  if (!Number.isFinite(due)) return out(false, '정지 시각 확인 불가 — 재시도하지 않는다', true)
+  if (o.now.getTime() < due) return out(false, `아직 이르다 — ${new Date(due).toISOString()} 이후(${Number.isFinite(reset) ? 'CLI 리셋 시각' : `정지 + ${o.cooldownMs / 3_600_000}시간`})`, true)
+  return out(true, `한도 정지 뒤 재시도 ${retriesDone + 1}/${o.maxRetries}`, true)
 }
+
+/**
+ * nightly-relevance 한 실행의 run_key 접미사 — 판정(relevance-judge)과 뒤 스텝(2차·자동 승인·ca-v1)이 한 벌로 쓴다.
+ * 정규 '' · 재시도 '-r1'/'-r2' · 수동 '-m<run_id>' · 로컬 '-local'. 재시도·수동이 같은 날 정규 행을 덮지 않게 한다(createTracker 는 run_key upsert).
+ * 표에 없는 크론은 throw — yml 과 코드가 갈라진 것을 조용히 정규로 접지 않는다.
+ */
+export function relevanceRunSuffix(env: { eventName?: string; slotCron?: string; runId?: string; actions?: string }): string {
+  if (env.eventName === 'schedule') {
+    const slot = RELEVANCE_SLOTS[(env.slotCron ?? '').trim()]
+    if (!slot) throw new Error(`슬롯 표에 없는 크론 '${env.slotCron ?? ''}' — nightly-relevance.yml 과 RELEVANCE_SLOTS 를 맞춰라`)
+    return slot === 'main' ? '' : `-${slot}`
+  }
+  return env.actions ? `-m${env.runId ?? ''}` : '-local'
+}
+
+/** 위 접미사를 process.env 에서 — 스크립트 3곳(2차·자동 승인·ca-v1)이 한 줄로 쓴다. */
+export const relevanceRunSuffixFromEnv = () => relevanceRunSuffix({
+  eventName: process.env.GITHUB_EVENT_NAME, slotCron: process.env.RELEVANCE_SLOT_CRON, runId: process.env.GITHUB_RUN_ID, actions: process.env.GITHUB_ACTIONS,
+})

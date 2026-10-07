@@ -65,7 +65,7 @@ ok('판정 — 24h 지난 실행은 다음 슬롯 것 = 이 슬롯은 미발화'
 }
 
 // nightly-extract 유예 10시간 + 순서 짝짓기 (2026-10-01·02 실측: 4~7시간 늦게 떠서 성공).
-ok('유예 — nightly-extract 만 10시간', graceFor('nightly-extract.yml') === 10 * 3600_000 && graceFor('daily-cmo-loop.yml') === GRACE_MS, JSON.stringify(GRACE_OVERRIDE_MS))
+ok('유예 — nightly-extract·nightly-relevance 만 10시간', graceFor('nightly-extract.yml') === 10 * 3600_000 && graceFor('nightly-relevance.yml') === 10 * 3600_000 && graceFor('daily-cmo-loop.yml') === GRACE_MS && Object.keys(GRACE_OVERRIDE_MS).length === 2, JSON.stringify(GRACE_OVERRIDE_MS))
 ok('유예 — 문구에 파일별 시간', judgeRuns('nightly-extract.yml', slot, [], undefined, { grace: graceFor('nightly-extract.yml') })?.line.includes('10시간 넘게 지연'))
 {
   const ex = "on:\n  schedule:\n    - cron: '33 18 * * *'\n    - cron: '33 3 * * *'\n    - cron: '33 9 * * *'\n"
@@ -93,6 +93,30 @@ ok('유예 — 문구에 파일별 시간', judgeRuns('nightly-extract.yml', slo
   ok('extract s2 미발화 + s3 정시 — 건수 모자람은 반드시 1건으로 뜬다', e.problems.length === 1, JSON.stringify(e.problems))
   e = await run([real[0], r(2, '2026-10-02T13:34:00Z'), real[2]])
   ok('extract s2 10h 넘게 지연 — 경보', e.problems.some((p) => p.includes('2026-10-02 03:33')), JSON.stringify(e.problems))
+  fs.rmSync(dir, { recursive: true, force: true })
+}
+// nightly-relevance — v30 §5 재시도 크론(r1 02:03Z · r2 06:03Z). 정규 19:03Z 실측 지연 2.7~4.7h, r1 이 4시간 넘게 늦어도 오경보 없이.
+{
+  const rel = "on:\n  schedule:\n    - cron: '3 19 * * *'\n    - cron: '3 2 * * *'\n    - cron: '3 6 * * *'\n"
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'watchdog-rel-'))
+  fs.writeFileSync(path.join(dir, 'nightly-relevance.yml'), rel)
+  const NOW_R = new Date('2026-10-08T21:53:00Z')
+  const r = (id, at) => ({ id, created_at: at, status: 'completed', conclusion: 'success', html_url: `https://gh/run/${id}` })
+  const run = (runs) => runWatchdog({
+    now: NOW_R, env: { GITHUB_REPOSITORY: 'o/r', GITHUB_TOKEN: 'gh', NEXT_PUBLIC_SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k' },
+    workflowsDir: dir, dry: true, log: () => {}, git: (a) => (a.includes('--is-shallow-repository') ? 'false' : '2026-01-01T00:00:00+00:00'),
+    fetchImpl: async (url) => new Response(JSON.stringify(String(url).includes('api.github.com')
+      ? { workflow_runs: runs.filter((x) => x.created_at >= decodeURIComponent(String(url).split('created=')[1]).slice(2)) }
+      : [{ expires_at: iso(NOW_R.getTime() + 30 * DAY), user_id: 'u1' }]), { status: 200 }),
+  })
+  // 정규 +4h43m · r1 +5h(r2 예정 06:03 을 넘었다) · r2 +3h
+  const lag = [r(1, '2026-10-07T23:46:00Z'), r(2, '2026-10-08T07:03:00Z'), r(3, '2026-10-08T09:03:00Z')]
+  let e = await run(lag)
+  ok('relevance r1 이 4시간 넘게 지연(r2 예정 뒤) — 경보 없음', e.code === 0, JSON.stringify(e.problems))
+  e = await run([lag[0], lag[2]])
+  ok('relevance r1 미발화 — r2 실행이 메우지 못하고 정확히 1건', e.problems.length === 1, JSON.stringify(e.problems))
+  e = await run([lag[0], lag[1], { ...lag[2], conclusion: 'failure' }])
+  ok('relevance r2 exit 1(한도 미해소 경보) — 실패로 뜬다(→ Notion)', e.problems.length === 1 && e.problems[0].includes('failure'), JSON.stringify(e.problems))
   fs.rmSync(dir, { recursive: true, force: true })
 }
 

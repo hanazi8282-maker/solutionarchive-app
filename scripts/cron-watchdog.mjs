@@ -47,7 +47,9 @@ const DAY_MS = 24 * 60 * 60 * 1000
 // 09:33Z 슬롯 → 15:56~16:39Z). 슬롯 간격(6h)보다 지연이 길어서 "다음 슬롯까지" 창으로는 s2 가 매일 미발화로 뜬다.
 // 그래서 이 파일은 창을 slot+유예로 잡고, 실행을 슬롯 순서대로 하나씩 짝짓는다(judgeRuns claimed) —
 // 겹치는 창에서 s3 실행이 s2 미발화를 메우지 못하게(건수가 모자라면 반드시 한 슬롯이 미발화로 뜬다).
-export const GRACE_OVERRIDE_MS = { 'nightly-extract.yml': 10 * 60 * 60 * 1000 }
+// nightly-relevance 도 같다(v30 §5 재시도 크론 r1 02:03Z · r2 06:03Z 추가): 슬롯 간격이 4~7시간이라 "다음 슬롯까지" 창이면
+// r1 이 4시간 넘게 늦게 뜨는 날 r1 미발화 + r2 창에 r1 실행이 끼는 오경보가 난다. 정규 실행 실측 지연은 2.7~4.7시간.
+export const GRACE_OVERRIDE_MS = { 'nightly-extract.yml': 10 * 60 * 60 * 1000, 'nightly-relevance.yml': 10 * 60 * 60 * 1000 }
 export const graceFor = (file) => GRACE_OVERRIDE_MS[file] ?? GRACE_MS
 const SELF = 'cron-watchdog.yml'
 

@@ -7,15 +7,38 @@ import os from 'node:os'
 import path from 'node:path'
 import {
   GUARDED_RUN_PREFIXES, RELEVANCE_SLOTS, capReached, capUsdOf, loadGuardConfig, parseGuardConfig, pctOf,
-  relevanceRetryDecision, runCostUsd, sessionBlock, sessionLine, usageSince, weeklyGate,
+  relevanceRetryDecision, relevanceRunSuffix, runCostUsd, sessionBlock, sessionLine, spendForCap, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, decideSlot, isQuotaBlocked, slotStateOf } from '../lib/analysis/extract-auto.ts'
-import { cliSpent, tallyCli } from '../lib/analysis/llm.ts'
+import { ClaudeCliError, callLlmWithModel, cliSpent, tallyCli } from '../lib/analysis/llm.ts'
 
 let pass = 0
 let fail = 0
 const t = (name, ok) => { if (ok) pass += 1; else { fail += 1; console.log(`✗ ${name}`) } }
 const read = (p) => fs.readFileSync(path.join(process.cwd(), p), 'utf8')
+
+// ── 비용 못 읽은 호출 — callClaudeCli 실제 경로(가짜 바이너리 = node 자신) ──
+// 독립 검토 차단 1: timeout SIGKILL·봉투 없음이 상한 판정에서 $0 이 되던 구멍. tallyCli 직접 호출이 아니라 llm.ts 를 통과시킨다.
+{
+  t('누적기는 0 에서 시작', cliSpent().calls === 0)
+  const saved = { path: process.env.CLAUDE_CLI_PATH, to: process.env.LLM_CLAUDE_CLI_TIMEOUT_MS }
+  process.env.CLAUDE_CLI_PATH = process.execPath // node 는 claude 인자(-p --output-format …)를 못 알아듣고 봉투 없이 죽는다
+  let e1 = null
+  try { await callLlmWithModel('claude-cli', 'sys', 'user', 'selftest-noenv') } catch (e) { e1 = e }
+  t('봉투 없음 → ClaudeCliError 로 실패', e1 instanceof ClaudeCliError && !e1.timedOut)
+  t('봉투 없음 → 비용 모름 1건으로 센다($0 아님)', cliSpent().unknown === 1 && cliSpent().usd === 0)
+  t('비교할 호출이 없으면 상한 판정 지출 = null(확인 불가 → 멈춤)', spendForCap(cliSpent()) === null)
+  process.env.LLM_CLAUDE_CLI_TIMEOUT_MS = '1' // 시작하자마자 SIGKILL
+  let e2 = null
+  try { await callLlmWithModel('claude-cli', 'sys', 'user', 'selftest-timeout') } catch (e) { e2 = e }
+  t('timeout → timedOut ClaudeCliError', e2 instanceof ClaudeCliError && e2.timedOut === true)
+  t('timeout 도 비용 모름으로 센다', cliSpent().unknown === 2 && cliSpent().calls === 2)
+  for (const [k, v] of [['CLAUDE_CLI_PATH', saved.path], ['LLM_CLAUDE_CLI_TIMEOUT_MS', saved.to]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v }
+  tallyCli({ total_cost_usd: 0.3 }) // 읽은 호출 1건이 생기면 그 최대값으로 모르는 호출을 추정한다
+  t('비용 모름 2건 × 본 호출 최대 $0.3 을 더한다', Math.abs(spendForCap(cliSpent()) - 0.9) < 1e-9 && cliSpent().maxCallUsd === 0.3)
+  t('추정 지출로 상한 판정 — $4.2 + 모름 1건×$0.31 은 $4.5 를 넘겨 멈춘다', capReached(spendForCap({ usd: 4.2, unknown: 1, maxCallUsd: 0.31 }), 0, 4.5) === true)
+  t('비용 모름이 없으면 읽은 합 그대로', spendForCap({ usd: 1.5, unknown: 0, maxCallUsd: 0 }) === 1.5)
+}
 
 // ── 설정 ──
 const real = loadGuardConfig()
@@ -122,6 +145,20 @@ t('쿨다운 폴백 4시간', QUOTA_COOLDOWN_MS === 4 * H)
   t('어제 행은 안 본다', relevanceRetryDecision([{ ...main('blocked', { stop_reason: 'quota' }, 5), run_key: 'relevance-judge-2026-10-07' }], o).run === false)
 }
 
+// ── r2 경보 근거(quotaPending) · run_key 접미사 ──
+{
+  const today = '2026-10-08'
+  const o = { today, now: NOW, cooldownMs: QUOTA_COOLDOWN_MS, maxRetries: 2 }
+  const blocked = { run_key: `relevance-judge-${today}`, status: 'blocked', summary: { stop_reason: 'quota' }, started_at: iso(NOW - 3 * H), finished_at: iso(NOW - 2 * H) }
+  t('한도 정지가 남은 채 쉬면 quotaPending=true(r2 면 경보)', (() => { const r = relevanceRetryDecision([blocked], o); return !r.run && r.quotaPending === true })())
+  t('정규가 ok 면 quotaPending=false(경보 없음)', relevanceRetryDecision([{ ...blocked, status: 'ok', summary: {} }], o).quotaPending === false)
+  t('기록 없음도 quotaPending=false', relevanceRetryDecision([], o).quotaPending === false)
+  t('접미사: 정규 ""', relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 19 * * *' }) === '')
+  t('접미사: 재시도 -r1/-r2', relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 2 * * *' }) === '-r1' && relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 6 * * *' }) === '-r2')
+  t('접미사: 수동 -m<run_id>, 로컬 -local', relevanceRunSuffix({ eventName: 'workflow_dispatch', runId: '42', actions: 'true' }) === '-m42' && relevanceRunSuffix({}) === '-local')
+  t('접미사: 표에 없는 크론은 throw', (() => { try { relevanceRunSuffix({ eventName: 'schedule', slotCron: '0 0 * * *' }); return false } catch { return true } })())
+}
+
 // ── 배선(정적) ──
 const wf = read('.github/workflows/nightly-relevance.yml')
 const crons = [...wf.matchAll(/^\s*-\s*cron:\s*'([^']+)'/gm)].map(m => m[1])
@@ -137,6 +174,13 @@ const rj = read('scripts/relevance-judge-auto.mjs')
 t('T2: 묶음마다 상한 확인', /capReached\(before, maxBatchUsd, capUsd\)/.test(rj))
 t('T2: 마지막 재시도 한도면 exit 1(watchdog → Notion)', /retriesExhausted \? 1 : 0/.test(rj))
 t('번역: 기록만(capReached 없음)', !/capReached/.test(read('scripts/relevance-translate.mjs')) && /job: 'translate'/.test(read('scripts/relevance-translate.mjs')))
+t('extract·T2 상한 판정이 spendForCap(비용 모름 추정)을 쓴다', /spendForCap\(cliSpent\(\)\)/.test(ex) && /spendForCap\(cliSpent\(\)\)/.test(rj) && !/cliSpent\(\)\.usd\s*\n?\s*if \(.*capReached/.test(ex))
+t('T2: r2 가 한도 정지인 채 쉬면 exit 1', /slot === 'r2' && retry\.quotaPending !== false/.test(rj))
+for (const [f, k] of [['scripts/relevance-second-judge-auto.mjs', 'relevance-second-'], ['scripts/relevance-auto-approve.mjs', 'relevance-auto-approve-'], ['scripts/case-auto-approve.mjs', 'case-auto-approve-'], ['scripts/relevance-judge-auto.mjs', 'relevance-judge-']]) {
+  t(`${f}: run_key 에 슬롯 접미사(정규 행 보존)`, read(f).includes(`runKey: \`${k}\${kstDate()}\${relevanceRunSuffixFromEnv()}\``) || (k === 'relevance-judge-' && /relevanceRunSuffixFromEnv\(\)/.test(read(f)) && read(f).includes('`relevance-judge-${today}${suffix}`')))
+}
+t('RELEVANCE_SLOT_CRON 은 job env(모든 스텝이 같은 접미사)', /^    env:\r?\n(?:      #.*\r?\n)*      RELEVANCE_SLOT_CRON: \$\{\{ github\.event\.schedule \}\}/m.test(wf))
+t('build-check 가 이 셀프테스트를 돈다', /- run: node scripts\/session-guard-selftest\.mjs/.test(read('.github/workflows/build-check.yml')))
 t('측정 절차 문서가 있다(로컬 claude -p 금지 명시)', /workflow_dispatch/.test(read('docs/session-limit-guard.md')) && /로컬 `claude -p`/.test(read('docs/session-limit-guard.md')))
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} 세션 한도 가드 셀프테스트: ${pass} pass / ${fail} fail`)

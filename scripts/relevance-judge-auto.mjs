@@ -30,7 +30,7 @@ import fs from 'node:fs'
 import { createClient } from '../lib/supabase/server.ts'
 import { cliSpent, requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
 import {
-  RELEVANCE_SLOTS, capReached, capUsdOf, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
+  RELEVANCE_SLOTS, capReached, relevanceRunSuffixFromEnv, spendForCap, capUsdOf, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
@@ -88,15 +88,15 @@ if (!supabase) {
 // 수동은 -m<run_id> 로 따로 센다(같은 날 정규 행을 덮지 않게, 재시도 횟수에도 안 들어간다).
 const today = kstDate()
 const setOutput = (k, v) => { if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${v}\n`) }
-let slot
-if (process.env.GITHUB_EVENT_NAME === 'schedule') {
-  slot = RELEVANCE_SLOTS[(process.env.RELEVANCE_SLOT_CRON ?? '').trim()]
-  if (!slot) {
-    console.error(`✗ 슬롯 표에 없는 크론 '${process.env.RELEVANCE_SLOT_CRON ?? ''}' — nightly-relevance.yml 과 RELEVANCE_SLOTS 를 맞춰라`)
-    process.exit(2)
-  }
-} else slot = process.env.GITHUB_ACTIONS ? 'm' : 'local'
-const runKey = slot === 'main' ? `relevance-judge-${today}` : slot === 'm' ? `relevance-judge-${today}-m${process.env.GITHUB_RUN_ID ?? ''}` : `relevance-judge-${today}-${slot}`
+let suffix
+try {
+  suffix = relevanceRunSuffixFromEnv() // 뒤 스텝(2차·자동 승인·ca-v1)도 같은 접미사를 쓴다
+} catch (e) {
+  console.error(`✗ ${e.message}`)
+  process.exit(2)
+}
+const slot = process.env.GITHUB_EVENT_NAME === 'schedule' ? RELEVANCE_SLOTS[(process.env.RELEVANCE_SLOT_CRON ?? '').trim()] : process.env.GITHUB_ACTIONS ? 'm' : 'local'
+const runKey = `relevance-judge-${today}${suffix}`
 const MAX_RETRIES = BLOCKED_ALARM_STREAK - 1
 
 const guardNow = new Date()
@@ -106,10 +106,18 @@ let retry = null
 if (slot === 'r1' || slot === 'r2') {
   retry = recentRuns
     ? relevanceRetryDecision(recentRuns, { today, now: guardNow, cooldownMs: QUOTA_COOLDOWN_MS, maxRetries: MAX_RETRIES })
-    : { run: false, reason: '실행 이력 확인 불가 — 모른 채 재시도하지 않는다', retriesDone: null }
+    : { run: false, reason: '실행 이력 확인 불가 — 모른 채 재시도하지 않는다', retriesDone: null, quotaPending: null }
   log(`재시도 슬롯 ${slot} ${retry.run ? '실행' : '쉼'} — ${retry.reason}`)
   if (!retry.run) {
     setOutput('ran', 'false')
+    // r2 는 그날 마지막 재시도 자리다. 마지막 기록이 아직 한도 정지(또는 이력 확인 불가)인 채로 쉬면 묻히지 않게 경보한다
+    // — exit 1 을 cron-watchdog 가 Notion 일일 상태 로그로 올린다.
+    if (slot === 'r2' && retry.quotaPending !== false) {
+      const m = `T2 가 한도 정지 상태로 오늘 마지막 재시도(r2)를 못 돌았다 — ${retry.reason}. 남은 판정은 내일 정규 실행. 사람이 볼 것`
+      if (process.env.GITHUB_ACTIONS) console.log(`::error::${m}`)
+      console.error(`✗ ${m}`)
+      process.exit(1)
+    }
     process.exit(0)
   }
 }
@@ -365,14 +373,18 @@ for (const { project, pending } of targets) {
   // 지갑은 프로젝트 1건 단위다 — 요청당 상한(기본 $0.5)을 프로젝트 전체가 아니라 한 프로젝트가 쓴다.
   await withLlmBudget(async () => {
     for (const batch of batches) {
-      const before = cliSpent().usd
-      if (guarded && capReached(before, maxBatchUsd, capUsd)) {
-        stopReason = 'session_cap'
-        stopped = `세션 상한 도달 — 묶음 ${batchesPlanned}개 중 ${batchesDone}개 처리 뒤 정지 · 사용 $${before.toFixed(3)} / 상한 $${capUsd.toFixed(2)} (묶음 최대 $${maxBatchUsd.toFixed(3)})`
+      // 비용 못 읽은 호출은 spendForCap 이 추정해 더한다. 비교할 호출이 없어 추정도 못 하면 null — 확인 불가라 멈춘다(§7.1).
+      const before = spendForCap(cliSpent())
+      if (guarded && (before == null || capReached(before, maxBatchUsd, capUsd))) {
+        stopReason = before == null ? 'cost_unknown' : 'session_cap'
+        stopped = before == null
+          ? `세션 사용액 확인 불가 — 비용을 못 읽은 호출 ${cliSpent().unknown}건(timeout·출력 상한·봉투 없음), 추정 근거 없음 · 묶음 ${batchesPlanned}개 중 ${batchesDone}개 처리 뒤 정지`
+          : `세션 상한 도달 — 묶음 ${batchesPlanned}개 중 ${batchesDone}개 처리 뒤 정지 · 사용 $${before.toFixed(3)} / 상한 $${capUsd.toFixed(2)} (묶음 최대 $${maxBatchUsd.toFixed(3)})`
         break
       }
       const out = await judgeRelevanceBatch(project, batch, examples)
-      maxBatchUsd = Math.max(maxBatchUsd, cliSpent().usd - before)
+      const after = spendForCap(cliSpent())
+      if (after != null && before != null) maxBatchUsd = Math.max(maxBatchUsd, after - before)
       model = out.model
       if (out.quotaExhausted) {
         stopped = out.error ?? '한도/예산 소진'
@@ -452,7 +464,7 @@ for (const { project, pending } of targets) {
 const spent = dailySpent()
 const status = blocker ? 'blocked' : saveFailed > 0 ? 'partial' : 'ok'
 const cli = cliSpent()
-const session = sessionBlock({ job: 't2', cfg: guard.cfg, spentUsd: cli.usd, calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' })
+const session = sessionBlock({ job: 't2', cfg: guard.cfg, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' })
 log(sessionLine(session))
 await tracker.finish({
   status,

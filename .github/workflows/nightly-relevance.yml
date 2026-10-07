@@ -58,6 +58,10 @@ jobs:
     # (2026-09-22 실측: 프로젝트당 약 11분). 남헌 2026-09-23 Q1(a) → 90분.
     # 스크립트 쪽 실행 시간 상한은 없다 — 멈추는 것은 예산(budget.ts)과 429 뿐이다.
     timeout-minutes: 90
+    env:
+      # 발화한 크론 → 슬롯(main·r1·r2). 판정 스텝의 재시도 판정과, 모든 스텝(판정·2차·자동 승인·ca-v1)의
+      # run_key 접미사를 정한다(session-guard.ts relevanceRunSuffix) — 재시도·수동이 같은 날 정규 행을 덮지 않게.
+      RELEVANCE_SLOT_CRON: ${{ github.event.schedule }}
 
     steps:
       - uses: actions/checkout@v4
@@ -96,8 +100,6 @@ jobs:
           RELEVANCE_SAMPLE: ${{ inputs.sample || vars.RELEVANCE_SAMPLE || '200' }}
           RELEVANCE_MAX_PROJECTS: ${{ inputs.max_projects || vars.RELEVANCE_MAX_PROJECTS || '5' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
-          # 발화한 크론 → 슬롯(main·r1·r2). run_key 접미사와 재시도 판정을 정한다.
-          RELEVANCE_SLOT_CRON: ${{ github.event.schedule }}
         run: |
           node scripts/relevance-judge-auto.mjs \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

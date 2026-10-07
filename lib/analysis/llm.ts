@@ -218,15 +218,18 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
  * 이 프로세스가 claude -p 에 쓴 명목 비용 누적(실패 호출 포함). 세션 한도 가드(session-guard.ts, 남헌 v30 §5)가
  * 단위마다 읽는다. 봉투에서 total_cost_usd 를 못 읽은 호출은 0 달러로 접지 않고 unknown 으로 센다(§7.1).
  */
-const cliTally = { usd: 0, calls: 0, unknown: 0 }
-export function cliSpent(): { usd: number; calls: number; unknown: number } {
+const cliTally = { usd: 0, calls: 0, unknown: 0, maxCallUsd: 0 }
+/** usd = 읽은 비용 합 · unknown = 비용을 못 읽은 호출 수(timeout SIGKILL·출력 상한 초과·봉투 없음) · maxCallUsd = 읽은 호출 1회 최대. */
+export function cliSpent(): { usd: number; calls: number; unknown: number; maxCallUsd: number } {
   return { ...cliTally }
 }
 export function tallyCli(env: Record<string, unknown> | null): void {
   cliTally.calls += 1
   const c = env?.total_cost_usd
-  if (typeof c === 'number' && Number.isFinite(c)) cliTally.usd += c
-  else cliTally.unknown += 1
+  if (typeof c === 'number' && Number.isFinite(c)) {
+    cliTally.usd += c
+    cliTally.maxCallUsd = Math.max(cliTally.maxCallUsd, c)
+  } else cliTally.unknown += 1
 }
 
 /**

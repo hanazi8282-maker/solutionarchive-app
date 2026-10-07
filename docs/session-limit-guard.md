@@ -19,7 +19,9 @@
 
 ## 매 run 남기는 것 (`agent_runs.summary`)
 
-- `stop_reason`: `null`(끝까지) · `session_cap`(이 실행 상한) · `quota`(구독 한도 오류) · `weekly_stop` · `guard_config`(설정 못 읽음) · `save_failed`(T2)
+- `stop_reason`: `null`(끝까지) · `session_cap`(이 실행 상한) · `cost_unknown`(비용 못 읽은 호출이 있는데 추정 근거가 없음) · `quota`(구독 한도 오류) · `weekly_stop` · `guard_config`(설정 못 읽음) · `save_failed`(T2)
+- 비용을 못 읽은 호출(timeout SIGKILL·2MB 초과 출력·봉투 없음)은 $0 이 아니다: 상한 판정 지출 = 읽은 합 + 모름 수 × 지금까지 본 호출 1회 최대(`spendForCap`), 본 호출이 하나도 없으면 확인 불가로 멈춘다. `session.spent_for_cap_usd` 에 남는다.
+- run_key: nightly-relevance 의 네 스크립트(판정·2차·자동 승인·ca-v1)는 정규 `<접두>-<날짜>`, 재시도 `-r1`/`-r2`, 수동 `-m<run_id>` — 재시도·수동이 정규 감사 행을 덮지 않는다.
 - extract: `processed`(실제로 돈 프로젝트 수) · `not_started`(골랐는데 못 돈 수). T2: `batches_done`/`batches_planned`.
 - `session`: `spent_usd` · `used_pct` · `cap_usd` · `cap_pct` · `usd_per_pct` · `capped` · `claude_calls` · `cost_unknown_calls`
   · `window5h_usd`/`window5h_pct`(5시간 슬라이딩 창 합산, 이 실행 포함 — 상한이 아니라 눈에 보이게 하는 장치) · `week_usd_lower_bound`
@@ -31,7 +33,8 @@
 - extract: 기존 슬롯 쿨다운(PR #330)을 그대로 쓴다. 리셋 시각을 못 읽으면 쿨다운 **4시간**(v30 §5, 전 5시간).
   원래 1회 + 재시도 2회가 연속 한도면 `::error::` + exit 1 → cron-watchdog 가 Notion 일일 상태 로그에 올린다. 그 뒤로 s2·s3 는 쉬고 s1 만 하루 1번 확인한다.
 - T2: `nightly-relevance.yml` 에 재시도 크론 r1(02:03Z)·r2(06:03Z)가 있다. 오늘 정규 실행이 한도로 멈췄고 4시간(또는 CLI 리셋 시각)이 지났을 때만 돈다.
-  아니면 기록 없이 exit 0 + `ran=false` 로 끝나고 2차 판정·자동 승인 스텝도 건너뛴다. 마지막 재시도까지 한도면 exit 1 → cron-watchdog → Notion.
+  아니면 기록 없이 exit 0 + `ran=false` 로 끝나고 2차 판정·자동 승인 스텝도 건너뛴다. 마지막 재시도까지 한도이거나, r2 가 한도 정지가 남은 채 쉬면(아직 이르다·이력 확인 불가) exit 1 → cron-watchdog → Notion.
+  cron-watchdog 는 이 파일에 nightly-extract 와 같은 10시간 유예·슬롯 순서 짝짓기를 쓴다(r1 이 4시간 넘게 늦어도 오경보 없음).
 - 한계: Actions 스케줄은 1~3시간(extract 는 4~7시간) 늦게 뜬다. "정확히 4시간 뒤"가 아니라 "4시간 뒤 첫 슬롯"이다.
 
 ## 주간 중단 스위치

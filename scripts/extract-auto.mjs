@@ -31,7 +31,7 @@
 
 import { createClient } from '../lib/supabase/server.ts'
 import { cliSpent, requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
-import { capReached, capUsdOf, loadGuardConfig, loadRecentRuns, sessionBlock, sessionLine, usageSince, weeklyGate } from '../lib/analysis/session-guard.ts'
+import { capReached, capUsdOf, loadGuardConfig, loadRecentRuns, sessionBlock, sessionLine, spendForCap, usageSince, weeklyGate } from '../lib/analysis/session-guard.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 import { claimExtraction, runExtraction } from '../lib/analysis/extract-run.ts'
 import {
@@ -282,12 +282,15 @@ let processed = 0
 for (const target of pick.targets) {
   seq += 1
   // 상한 확인은 claim **전**에 한다 — 건너뛴 프로젝트는 잠그지도 extract_attempts 를 태우지도 않는다(한도 정지와 같은 방식).
-  const spentNow = cliSpent().usd
-  if (capReached(spentNow, maxUnitUsd, capUsd)) {
-    stopReason = 'session_cap'
-    blocker = `세션 상한 도달 — 대상 ${pick.targets.length}건 중 ${processed}건 처리 뒤 정지 · 사용 $${spentNow.toFixed(3)} / 상한 $${capUsd.toFixed(2)} (1건 최대 $${maxUnitUsd.toFixed(3)})`
+  // 비용 못 읽은 호출(timeout·출력 상한·봉투 없음)은 spendForCap 이 추정해 더한다. 추정 근거가 없으면 null — 확인 불가라 멈춘다(§7.1).
+  const spentNow = spendForCap(cliSpent())
+  if (spentNow == null || capReached(spentNow, maxUnitUsd, capUsd)) {
+    stopReason = spentNow == null ? 'cost_unknown' : 'session_cap'
+    blocker = spentNow == null
+      ? `세션 사용액 확인 불가 — 비용을 못 읽은 호출 ${cliSpent().unknown}건(timeout·출력 상한·봉투 없음), 추정 근거 없음 · 대상 ${pick.targets.length}건 중 ${processed}건 처리 뒤 정지`
+      : `세션 상한 도달 — 대상 ${pick.targets.length}건 중 ${processed}건 처리 뒤 정지 · 사용 $${spentNow.toFixed(3)} / 상한 $${capUsd.toFixed(2)} (1건 최대 $${maxUnitUsd.toFixed(3)})`
     warn(`${blocker}. 남은 ${pick.targets.length - processed}건은 다음 슬롯에서 돈다(정상 종료가 아니다 — §7.2 확인 대상).`)
-    await tracker.step({ stepKey: 'session-cap', label: '세션 상한', status: 'blocked', seq, blocker, detail: { processed, of: pick.targets.length, spent_usd: Number(spentNow.toFixed(4)), cap_usd: capUsd, max_unit_usd: Number(maxUnitUsd.toFixed(4)) } })
+    await tracker.step({ stepKey: 'session-cap', label: '세션 상한', status: 'blocked', seq, blocker, detail: { processed, of: pick.targets.length, spent_usd: spentNow == null ? null : Number(spentNow.toFixed(4)), cost_unknown_calls: cliSpent().unknown, cap_usd: capUsd, max_unit_usd: Number(maxUnitUsd.toFixed(4)) } })
     break
   }
   // 재추출은 force 가 필요하다. force 여도 실행 중(fresh processing)은 extract-gate 가 막는다.
@@ -305,7 +308,8 @@ for (const target of pick.targets) {
   const out = await withLlmBudget(() => runExtraction(supabase, target.projectId, provider, claim.restore))
   const secs = Math.round((Date.now() - t0) / 1000)
   processed += 1
-  maxUnitUsd = Math.max(maxUnitUsd, cliSpent().usd - spentNow)
+  const spentAfter = spendForCap(cliSpent())
+  if (spentAfter != null) maxUnitUsd = Math.max(maxUnitUsd, spentAfter - spentNow)
 
   if (out.ok) {
     done += 1
@@ -353,7 +357,7 @@ for (const target of pick.targets) {
 const spent = dailySpent()
 const status = blocker ? 'blocked' : failed > 0 ? (done > 0 ? 'partial' : 'failed') : 'ok'
 const cli = cliSpent()
-const session = sessionBlock({ job: 'extract', cfg: guard.cfg, spentUsd: cli.usd, calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' })
+const session = sessionBlock({ job: 'extract', cfg: guard.cfg, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' })
 log(sessionLine(session))
 await tracker.finish({
   status,
@@ -372,6 +376,6 @@ const spentNote = provider === 'claude-cli' ? `실측 명목 $${costKnown > 0 ? 
 log(`끝 — 추출 ${done}건 · 실패 ${failed}건 · 남은 대상 ${pick.remaining}건 · 이번 실행 ${spentNote} · 상태 ${status}`)
 if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 — ops/state 폴백. 이 실행의 기록은 "DB 확인 불가"다')
 
-// 세션 상한 정지는 한도 오류가 아니다 — 연속 blocked 경보에 넣지 않는다(blocked 상태·::warning:: 로는 남는다).
-const alarm = raiseAlarm(stopReason === 'session_cap' ? 'capped' : status)
+// 세션 상한·비용 확인 불가 정지는 한도 오류가 아니다 — 연속 blocked 경보에 넣지 않는다(blocked 상태·::warning:: 로는 남는다).
+const alarm = raiseAlarm(stopReason === 'session_cap' || stopReason === 'cost_unknown' ? 'capped' : status)
 process.exit(failed > 0 ? 3 : alarm ? 1 : 0)

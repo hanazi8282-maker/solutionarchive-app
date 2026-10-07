@@ -17,7 +17,7 @@ import {
 } from '../lib/analysis/extract-autotune.ts'
 import { backlogOf, decideSlot, EXTRACT_SLOTS, pickAutoTargets, slotStateOf } from '../lib/analysis/extract-auto.ts'
 import { kstDate } from './notion-status-log.mjs'
-import { loadGuardConfig } from '../lib/analysis/session-guard.ts'
+import { loadGuardConfig, parseGuardConfig } from '../lib/analysis/session-guard.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 let pass = 0
@@ -89,12 +89,12 @@ const run = (key, hAgo, s = {}, status = 'ok') => ({
 })
 const good3 = () => [run('2026-10-09-s3', 20), run('2026-10-09-s2', 26), run('2026-10-09-s1', 33)] // 1.0/0.43 = 2.33%
 const WD = weeklySafety(null, null, null)
-const dec = (rows, o = {}) => decideAutotune({ rows, runKey: 'extract-auto-2026-10-10-s1', today: TODAY, now: NOW, pending: 3, slotRuns: true, usdPerPct: 0.43, weekly: WD, ...o })
+const dec = (rows, o = {}) => decideAutotune({ rows, runKey: 'extract-auto-2026-10-10-s1', today: TODAY, now: NOW, pending: 3, slotRuns: true, usdPerPct: 0.43, weekly: WD, upBelowPct: GCFG.autotuneUpBelowPct, ...o })
 
 {
   const d = dec(good3())
   t('d 기록 없는 on 시절 run 뿐이면 시작 48 에서 평가', d.source === 'initial' && d.prev === 48)
-  t('올리기: 평균 2.33% < 8% · slot×3 · 대기 3 → 48→58', d.action === 'up' && d.next === 58 && d.d === 58 && d.slot_max === 20 && d.evaluated === true)
+  t('올리기: 평균 2.33% < 10% · slot×3 · 대기 3 → 48→58', d.action === 'up' && d.next === 58 && d.d === 58 && d.slot_max === 20 && d.evaluated === true)
   t('근거가 남는다(윈도 run_key·사용률·cap_binding·대기·주간)', d.window.length === 3 && d.window[0].run_key === 'extract-auto-2026-10-09-s3' && d.window[0].used_pct === 2.33 && d.avg_pct === 2.33 && d.pending === 3 && d.weekly.state === 'disabled')
   t('cap_binding daily/none 도 올리기 허용', dec([run('2026-10-09-s3', 20, { cap_binding: 'daily' }), run('2026-10-09-s2', 26, { cap_binding: 'none' }), run('2026-10-09-s1', 33)]).action === 'up')
 }
@@ -120,14 +120,43 @@ const dec = (rows, o = {}) => decideAutotune({ rows, runKey: 'extract-auto-2026-
   // 경계: 증거가 윈도(최근 3건) 밖에만 있으면 세지 않는다
   const outside = dec([run('2026-10-09-s3', 20, N), run('2026-10-09-s2', 26, N), run('2026-10-09-s1', 33, N), run('2026-10-08-s3', 44, { cap_binding: 'slot' })])
   t('[B] 경계: slot 이 4번째(윈도 밖)에만 있으면 hold', outside.action === 'hold' && outside.window.length === 3 && /증거 없음/.test(outside.reason))
-  // 경계: 증거가 있어도 다른 조건(평균 ≥ 8%)이 안 맞으면 hold — 조건 B 는 추가 조건이지 대체가 아니다
-  const hi = B({ session: sess(5) }, { session: sess(5) }, { session: sess(1) })
-  t('[B] 경계: slot×3 이어도 평균 ≥ 8% 면 hold(증거 사유는 없음)', hi.action === 'hold' && /평균/.test(hi.reason) && !/증거 없음/.test(hi.reason))
+  // 경계: 증거가 있어도 다른 조건(평균 ≥ 10%)이 안 맞으면 hold — 조건 B 는 추가 조건이지 대체가 아니다
+  // (v42: 옛 입력 5/5/1 = 평균 8.53% 는 이제 올림 대상이라 5/5/5 = 11.63% 로 바꿔 같은 의도를 지킨다)
+  const hi = B({ session: sess(5) }, { session: sess(5) }, { session: sess(5) })
+  t('[B] 경계: slot×3 이어도 평균 ≥ 10% 면 hold(증거 사유는 없음)', hi.action === 'hold' && /평균/.test(hi.reason) && !/증거 없음/.test(hi.reason))
   const n3p0 = B(N, N, N, { pending: 0 })
   t('[B] 경계: none×3 · 대기 0 → hold, 두 사유 다 남는다', n3p0.action === 'hold' && /처리 대기 0건/.test(n3p0.reason) && /증거 없음/.test(n3p0.reason))
 }
-t('평균 ≥ 8% 면 무변경', dec([run('2026-10-09-s3', 20, { session: sess(5) }), run('2026-10-09-s2', 26, { session: sess(5) }), run('2026-10-09-s1', 33, { session: sess(1) })]).action === 'hold')
-t('평균 8% 정확히 = 무변경(< 8 만 올림)', dec([run('2026-10-09-s3', 20, { session: sess(3.44) }), run('2026-10-09-s2', 26, { session: sess(3.44) }), run('2026-10-09-s1', 33, { session: sess(3.44) })]).action === 'hold')
+// ── 6b. 올리기 임계(남헌 v42 §1: config autotune_up_below_pct 8 → 10, 경계는 '미만') ──
+t('[v42] 설정값 autotune_up_below_pct = 10', GCFG.autotuneUpBelowPct === 10)
+{
+  const avgOf = (usd) => dec([run('2026-10-09-s3', 20, { session: sess(usd) }), run('2026-10-09-s2', 26, { session: sess(usd) }), run('2026-10-09-s1', 33, { session: sess(usd) })])
+  // 평균 사용률 = spent ÷ 0.43. 4.257 → 9.9% · 4.3 → 10.0% · 3.44 → 8.0% · 3.87 → 9.0%
+  const a99 = avgOf(4.257), a100 = avgOf(4.3), a80 = avgOf(3.44), a90 = avgOf(3.87)
+  t('[v42] 평균 9.9% → 올림(< 10)', a99.avg_pct === 9.9 && a99.action === 'up' && a99.next === 58 && a99.up_below_pct === 10 && /< 10%/.test(a99.reason))
+  t('[v42] 평균 10.0% 정확히 → hold(< 10 만 올림)', a100.avg_pct === 10 && a100.action === 'hold' && /평균 10% ≥ 10%/.test(a100.reason))
+  t('[v42] 새 구간: 평균 8.0% → 올림(옛 임계 8 에선 hold 였음)', a80.avg_pct === 8 && a80.action === 'up')
+  t('[v42] 새 구간: 평균 9.0% → 올림', a90.avg_pct === 9 && a90.action === 'up')
+  t('[v42] 폴백 대조: 같은 8.0% 를 임계 미지정(폴백 8)으로 → hold', dec([run('2026-10-09-s3', 20, { session: sess(3.44) }), run('2026-10-09-s2', 26, { session: sess(3.44) }), run('2026-10-09-s1', 33, { session: sess(3.44) })], { upBelowPct: null }).action === 'hold' && dec([run('2026-10-09-s3', 20, { session: sess(3.44) }), run('2026-10-09-s2', 26, { session: sess(3.44) }), run('2026-10-09-s1', 33, { session: sess(3.44) })], { upBelowPct: undefined }).up_below_pct === 8)
+  // 나머지 조건은 그대로: 평균 9% 여도 조건 B(slot·daily ≥1)·대기 > 0 이 없으면 hold
+  const nB = dec([run('2026-10-09-s3', 20, { cap_binding: 'none', session: sess(3.87) }), run('2026-10-09-s2', 26, { cap_binding: 'none', session: sess(3.87) }), run('2026-10-09-s1', 33, { cap_binding: 'none', session: sess(3.87) })])
+  t('[v42] 평균 9% · none×3 → hold(조건 B 그대로)', nB.action === 'hold' && /증거 없음/.test(nB.reason) && !/평균/.test(nB.reason))
+  const p0 = dec([run('2026-10-09-s3', 20, { session: sess(3.87) }), run('2026-10-09-s2', 26, { session: sess(3.87) }), run('2026-10-09-s1', 33, { session: sess(3.87) })], { pending: 0 })
+  t('[v42] 평균 9% · 대기 0 → hold(대기 조건 그대로)', p0.action === 'hold' && /처리 대기 0건/.test(p0.reason))
+  // 오늘 측정 run 37655106276 형태: 7건 $3.852 → 8.96%. 같은 run 3회면 10% 기준에서 올린다(8% 기준에선 hold)
+  const m = dec([run('2026-10-09-s3', 20, { session: sess(3.852) }), run('2026-10-09-s2', 26, { session: sess(3.852) }), run('2026-10-09-s1', 33, { session: sess(3.852) })])
+  t('[v42] 실측형 8.96%×3 → 올림(옛 8% 에선 hold)', m.avg_pct === 8.96 && m.action === 'up' && dec([run('2026-10-09-s3', 20, { session: sess(3.852) }), run('2026-10-09-s2', 26, { session: sess(3.852) }), run('2026-10-09-s1', 33, { session: sess(3.852) })], { upBelowPct: 8 }).action === 'hold')
+}
+// 설정 키 파싱: 없음·비수치·음수·0·NaN → null(= 폴백 8). 문자열 "10" 도 수치가 아니라 null.
+{
+  const P = (v) => parseGuardConfig(v === 'absent' ? {} : { autotune_up_below_pct: v }).autotuneUpBelowPct
+  t('[v42] 키 없음 → null', P('absent') === null && parseGuardConfig(null).autotuneUpBelowPct === null)
+  for (const v of ['10', null, -5, 0, NaN, Infinity, true, [10]]) t(`[v42] 깨진 값 ${JSON.stringify(v)} → null`, P(v) === null)
+  t('[v42] 12.5 → 12.5', P(12.5) === 12.5)
+  t('[v42] 깨진 키는 폴백 8 로 평가(8.0% → hold)', dec([run('2026-10-09-s3', 20, { session: sess(3.44) }), run('2026-10-09-s2', 26, { session: sess(3.44) }), run('2026-10-09-s1', 33, { session: sess(3.44) })], { upBelowPct: P(-5) }).action === 'hold' && dec(good3(), { upBelowPct: P('x') }).up_below_pct === 8)
+}
+// 평균이 임계 이상이면 무변경(v42: 옛 5/5/1 = 8.53% 는 이제 올림 대상이라 5/5/5 = 11.63% 로 바꿈)
+t('평균 ≥ 10% 면 무변경', dec([run('2026-10-09-s3', 20, { session: sess(5) }), run('2026-10-09-s2', 26, { session: sess(5) }), run('2026-10-09-s1', 33, { session: sess(5) })]).action === 'hold')
 t('대기 0 이면 올리지 않는다', dec(good3(), { pending: 0 }).action === 'hold')
 {
   const d = dec(good3(), { slotRuns: false })

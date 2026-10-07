@@ -7,7 +7,8 @@
 // 하루 1회(KST 그날 첫 스케줄 run)만 평가한다. 근거(윈도 run_key·사용률·cap_binding·대기 수)를 같은 블록에 남긴다.
 //
 // 규칙(남헌 v36 원문 요지):
-//   올리기 +20%: 직전 3회(스케줄 s1~s3 · decision=run · 비용 전부 읽힘 · 마지막 조정 이후 · 7일 이내) 평균 사용률 < 8%
+//   올리기 +20%: 직전 3회(스케줄 s1~s3 · decision=run · 비용 전부 읽힘 · 마지막 조정 이후 · 7일 이내) 평균 사용률 < 임계
+//               (config/session-guard.json autotune_up_below_pct — 남헌 v42 §1 로 8→10. 키 없음·깨짐이면 폴백 8 = 덜 올리는 쪽)
 //               ∧ 각 run 의 cap_binding ∈ slot/daily/none ∧ 처리 대기 프로젝트 > 0(이 슬롯이 쉬지 않는다).
 //               ∧ (남헌 v40 §1 조건 B) 윈도에 slot·daily 로 끝난 run 이 1건 이상 — D 가 처리량을 막은 증거. none 만이면 올리지 않는다.
 //   내리기 −20%: hard 캡 도달 · 세션 한도 오류(quota) · 주간 사용률 > 안전선. soft 한도(cost)로 멈춘 run 은 근거에서 뺀다.
@@ -23,6 +24,7 @@ export const AUTOTUNE = {
   max: 72,
   slotCeil: 24,
   stepPct: 0.2,
+  /** 올리기 임계 폴백 — 설정 키 autotune_up_below_pct 가 없거나 깨졌을 때만 쓴다. 옛 값 8 = 새 값 10 보다 덜 올리는 쪽(보수). */
   upBelowPct: 8,
   window: 3,
   windowDays: 7,
@@ -125,6 +127,8 @@ export type AutotuneDecision = {
   slot_runs: boolean
   down_signals: string[]
   weekly: WeeklySafety
+  /** 이번 평가가 쓴 올리기 임계 %(설정값 또는 폴백 8). */
+  up_below_pct: number
 }
 
 /**
@@ -141,8 +145,11 @@ export function decideAutotune(i: {
   slotRuns: boolean
   usdPerPct: number | null
   weekly: WeeklySafety
+  /** 올리기 임계 %(config autotune_up_below_pct). null·미지정 = 폴백 AUTOTUNE.upBelowPct(8). */
+  upBelowPct?: number | null
 }): AutotuneDecision {
-  const base = { window: [] as AutotuneDecision['window'], avg_pct: null, pending: i.pending, slot_runs: i.slotRuns, down_signals: [] as string[], weekly: i.weekly }
+  const upBelow = i.upBelowPct ?? AUTOTUNE.upBelowPct
+  const base = { window: [] as AutotuneDecision['window'], avg_pct: null, pending: i.pending, slot_runs: i.slotRuns, down_signals: [] as string[], weekly: i.weekly, up_below_pct: upBelow }
   const keep = (d: number, source: AutotuneDecision['source'], evaluated: boolean, action: AutotuneDecision['action'], reason: string, extra: Partial<AutotuneDecision> = {}): AutotuneDecision =>
     ({ ...base, d, slot_max: slotMaxOf(d), evaluated, action, prev: d, next: d, reason, source, ...extra })
 
@@ -198,7 +205,7 @@ export function decideAutotune(i: {
   // 조건 B(남헌 v40 §1): none(대기 소진 종료)은 D 가 막지 않았다는 뜻 — slot·daily 종료가 1건은 있어야 D 를 올릴 근거가 된다.
   const dBound = window.filter(w => ['slot', 'daily'].includes(String(w.cap_binding)))
   const misses = [
-    (avg as number) >= AUTOTUNE.upBelowPct ? `평균 ${avg}% ≥ ${AUTOTUNE.upBelowPct}%` : null,
+    (avg as number) >= upBelow ? `평균 ${avg}% ≥ ${upBelow}%` : null,
     bound.length ? `cap_binding ${bound.map(w => `${w.run_key}=${w.cap_binding}`).join(',')}` : null,
     dBound.length === 0 ? `D 가 막은 증거 없음(윈도 ${window.length}건 중 slot·daily 종료 0건 — ${window.map(w => w.cap_binding).join('/')})` : null,
     i.pending <= 0 ? '처리 대기 0건' : null,
@@ -206,7 +213,7 @@ export function decideAutotune(i: {
     stale.length ? `끝나지 않은(running) 스케줄 run ${stale.map(r => r.run_key).join(',')} — timeout 으로 죽었을 수 있다` : null,
   ].filter(Boolean)
   if (misses.length) return keep(cur.d, cur.source, true, 'hold', `무변경 — ${misses.join(' · ')}`, extra)
-  return move('up', `올리기 — 평균 ${avg}% < ${AUTOTUNE.upBelowPct}% · cap_binding ${window.map(w => w.cap_binding).join('/')} · 대기 ${i.pending}건`, extra)
+  return move('up', `올리기 — 평균 ${avg}% < ${upBelow}% · cap_binding ${window.map(w => w.cap_binding).join('/')} · 대기 ${i.pending}건`, extra)
 }
 
 /** 로그·Notion 한 줄. */

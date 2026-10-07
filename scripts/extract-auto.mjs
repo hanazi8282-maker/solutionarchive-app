@@ -227,6 +227,7 @@ if (tuneOn) {
   tune = decideAutotune({
     rows, runKey, today, now, pending: backlog.B, slotRuns: pre.run, usdPerPct: guard.cfg.usdPerPct,
     weekly: weeklySafety(guard.cfg.autotuneWeeklySafePct, guard.cfg.usdPerWeeklyPct, weekUsd),
+    upBelowPct: guard.cfg.autotuneUpBelowPct,
   })
   dailyMax = tune.d
   if (scheduled) max = tune.slot_max

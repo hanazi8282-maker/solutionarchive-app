@@ -166,6 +166,13 @@ export function describeFailure(e: unknown): string {
  * (사용량 한도를 4번 두드리지 않는다).
  */
 async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<{ text: string; model: string; costUsd: number | null; cacheReadTokens: number | null }> {
+  // 하드 캡은 **호출 시작 전에만** 본다 — 돌고 있는 호출을 죽이지 않는다. 추정 불가(null)는 여기서 막지 않는다(소프트 캡이 단위 경계에서 막는다).
+  if (cliHardCapUsd != null) {
+    const spent = spendForCap(cliTally, cliFallbackUsd)
+    if (spent != null && spent >= cliHardCapUsd) {
+      throw new CliHardCapError(`세션 하드 캡 도달 — 이번 실행 사용 $${spent.toFixed(3)} ≥ 하드 캡 $${cliHardCapUsd.toFixed(2)}. claude -p 를 시작하지 않는다`)
+    }
+  }
   const bin = await resolveClaudeBinary()
   const res = await runClaude(
     bin.path,
@@ -187,6 +194,7 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
   } catch {
     // 봉투가 아니면 본문이 그대로 온 것이다.
   }
+  tallyCli(env)
   if (res.exitCode !== 0 || env?.is_error === true) throw cliFailure(res, env)
   let text = res.stdout
   let model = CLAUDE_CLI_LABEL
@@ -211,6 +219,49 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
     console.log(`[analysis/llm] claude-cli 실측 total_cost_usd=${String(env.total_cost_usd ?? 'n/a')} in=${String(u.input_tokens ?? '?')} out=${String(u.output_tokens ?? '?')} cache_read=${String(u.cache_read_input_tokens ?? '?')} cache_write=${String(u.cache_creation_input_tokens ?? '?')} result_chars=${typeof env.result === 'string' ? env.result.length : '?'} duration_api_ms=${String(env.duration_api_ms ?? '?')} model=${model}`)
   }
   return { text: text.trim(), model, costUsd, cacheReadTokens }
+}
+
+/**
+ * 이 프로세스가 claude -p 에 쓴 명목 비용 누적(실패 호출 포함). 세션 한도 가드(session-guard.ts, 남헌 v30 §5)가
+ * 단위마다 읽는다. 봉투에서 total_cost_usd 를 못 읽은 호출은 0 달러로 접지 않고 unknown 으로 센다(§7.1).
+ */
+/**
+ * 상한 판정에 쓸 지출($). 비용을 못 읽은 호출(timeout SIGKILL·2MB 초과 출력·봉투 없음)을 0 으로 접지 않는다(§7.1):
+ *   · unknown 이 없으면 읽은 합 그대로
+ *   · unknown 이 있고 읽은 호출이 하나라도 있으면 unknown × 지금까지 본 호출 1회 최대 비용을 더한다(보수적 추정)
+ *   · unknown 이 있는데 비교할 호출이 하나도 없으면 fallbackUsd(설정 unit_cost_fallback_usd, 실측 1회 호출 상한 추정)로 센다
+ *     — 첫 프로젝트 본 호출이 timeout 이라고 슬롯 전체가 서지 않게. 폴백도 없으면 null = 확인 불가 → 새 단위를 시작하지 않는다
+ * ponytail: timeout 호출은 600초를 다 쓴 것이라 실제로는 최대값보다 클 수 있다 — 넘침이 보이면 계수를 2배로 올린다.
+ */
+export function spendForCap(t: { usd: number; unknown: number; maxCallUsd: number }, fallbackUsd: number | null = null): number | null {
+  if (t.unknown === 0) return t.usd
+  // 근거(본 호출 최대값)가 없을 때만 설정의 1회 호출 상한 추정(unit_cost_fallback_usd)으로 센다 — 그것도 없으면 확인 불가(null).
+  const per = t.maxCallUsd > 0 ? t.maxCallUsd : fallbackUsd != null && fallbackUsd > 0 ? fallbackUsd : null
+  return per != null ? t.usd + t.unknown * per : null
+}
+
+/** 세션 하드 캡(남헌 v32: 진행 중 작업의 절대 상한 30%)에 닿아 claude -p 를 시작하지 않았다. 한도 오류(quota)가 아니다. */
+export class CliHardCapError extends Error {}
+let cliHardCapUsd: number | null = null
+let cliFallbackUsd: number | null = null
+/** 야간 배치가 켠다(scripts/extract-auto.mjs). null = 끔(앱·다른 스크립트 기본값). fallbackUsd = 비용 모름 호출 추정 폴백(spendForCap). */
+export function setCliHardCap(usd: number | null, fallbackUsd: number | null = null): void {
+  cliHardCapUsd = usd
+  cliFallbackUsd = fallbackUsd
+}
+
+const cliTally = { usd: 0, calls: 0, unknown: 0, maxCallUsd: 0 }
+/** usd = 읽은 비용 합 · unknown = 비용을 못 읽은 호출 수(timeout SIGKILL·출력 상한 초과·봉투 없음) · maxCallUsd = 읽은 호출 1회 최대. */
+export function cliSpent(): { usd: number; calls: number; unknown: number; maxCallUsd: number } {
+  return { ...cliTally }
+}
+export function tallyCli(env: Record<string, unknown> | null): void {
+  cliTally.calls += 1
+  const c = env?.total_cost_usd
+  if (typeof c === 'number' && Number.isFinite(c)) {
+    cliTally.usd += c
+    cliTally.maxCallUsd = Math.max(cliTally.maxCallUsd, c)
+  } else cliTally.unknown += 1
 }
 
 /**

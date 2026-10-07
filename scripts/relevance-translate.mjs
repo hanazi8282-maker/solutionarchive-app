@@ -23,7 +23,10 @@
 
 import { spawn } from 'node:child_process'
 import { createClient } from '../lib/supabase/server.ts'
-import { callLlmWithModel, requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
+import { callLlmWithModel, cliSpent, requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
+import { loadGuardConfig, sessionBlock, sessionLine } from '../lib/analysis/session-guard.ts'
+import { createTracker } from './agent-status.mjs'
+import { kstDate as kstToday } from './notion-status-log.mjs'
 import { loadAllVerdicts, isMissingRelation } from '../lib/relevance-feedback/db.ts'
 import { pickBatch, kstDate } from '../lib/relevance-feedback/sample.ts'
 import {
@@ -193,5 +196,21 @@ for (const it of todo) {
 }
 
 log(`끝 — ok ${n.ok} · failed ${n.failed} · skipped ${n.skipped} · 제목 재사용 ${n.titleReuse} · 저장 실패 ${n.saveErr}`)
+
+// 세션 사용 기록(남헌 v30 §5 목록 밖 구독 소모자 — 남헌 결정 전이라 상한은 없고 기록만). 5시간 창·주간 합산이 이 행을 센다.
+{
+  const g = loadGuardConfig()
+  const c = cliSpent()
+  const session = sessionBlock({ job: 'translate', cfg: g.cfg, spentUsd: c.usd, calls: c.calls, costUnknownCalls: c.unknown, window5h: null, weekUsd: null, capped: false })
+  log(sessionLine(session))
+  const ev = process.env.GITHUB_EVENT_NAME
+  const t = await createTracker({
+    runKey: `relevance-translate-${kstToday()}${ev === 'schedule' ? '' : ev ? `-m${process.env.GITHUB_RUN_ID ?? ''}` : '-local'}`,
+    dept: 'cto', trigger: ev === 'schedule' ? 'cron' : process.env.GITHUB_ACTIONS ? 'manual' : 'local',
+    gitSha: process.env.GITHUB_SHA ?? null, quiet: true,
+  })
+  await t.finish({ status: n.saveErr > 0 || n.failed > 0 ? 'partial' : 'ok', summary: { ...n, session } })
+  if (!t.dbOk) warn(`세션 사용 기록을 agent_runs 에 남기지 못했다 — ${t.fallbackReason}`)
+}
 if (n.failed > 0) warn(`사후검사·호출 실패 ${n.failed}건 — 화면에는 "번역 실패"로 뜬다. --retry-failed 로 재시도.`)
 process.exit(n.saveErr > 0 ? 3 : 0)

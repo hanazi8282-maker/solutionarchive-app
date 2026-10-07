@@ -171,10 +171,25 @@ export const SLOT_THRESHOLDS: Readonly<Record<string, { on: number; off: number 
   s2: { on: 5, off: 2 },
   s3: { on: 12, off: 6 },
 }
-/** 한도 정지 뒤 리셋 시각을 못 읽었을 때 쉬는 시간(D6 폴백). */
-export const QUOTA_COOLDOWN_MS = 5 * 60 * 60 * 1000
-/** 실제로 돈 실행이 이만큼 연속 blocked 면 ::error:: + exit 1(§4.1). */
+/**
+ * 한도 정지 뒤 리셋 시각을 못 읽었을 때 쉬는 시간(D6 폴백). 남헌 v30 §5(2026-10-07): 5시간 → **4시간**.
+ * T2 재시도 슬롯(session-guard.ts relevanceRetryDecision)도 같은 값을 쓴다.
+ */
+export const QUOTA_COOLDOWN_MS = 4 * 60 * 60 * 1000
+/**
+ * 실제로 돈 실행이 이만큼 연속 **한도** blocked 면 ::error:: + exit 1(§4.1) — 원래 1회 + 재시도 2회(남헌 v30 §5 "최대 2회").
+ * exit 1 은 cron-watchdog 가 다음 감시에서 Notion 일일 상태 로그로 올린다(새 시크릿 없이 기존 경로 재사용).
+ * 이 수에 닿은 뒤로 추가 슬롯(s2·s3)은 쉬고, s1(하루 1회)·수동만 한도가 풀렸는지 확인한다(decideSlot).
+ */
 export const BLOCKED_ALARM_STREAK = 3
+
+/**
+ * 이 run 이 구독 한도 소진(quota)으로 멈췄나. 세션 상한(session_cap)·주간 스위치(weekly_stop)로 멈춘 blocked 는 아니다 —
+ * 그건 쿨다운·연속 경보를 걸지 않는다. stop_reason 이 없는 옛 blocked 행은 한도로 본다(그때는 그것뿐이었다).
+ */
+export function isQuotaBlocked(r: { status: string; summary?: Record<string, unknown> | null }): boolean {
+  return r.status === 'blocked' && (r.summary?.stop_reason ?? 'quota') === 'quota'
+}
 
 /** 하루(KST) 처리 상한 — done + failed 합(D4). 3일 실측 뒤 리포 변수로 조정. */
 export const autoDailyMax = () => num(process.env.EXTRACT_AUTO_DAILY_MAX, 24)
@@ -252,7 +267,7 @@ export function slotStateOf(rows: readonly AgentRunRow[], opts: { today: string;
 
   let cooldownUntil: string | null = null
   let cooldownFromReset = false
-  const lastBlocked = desc.find(r => r.status === 'blocked')
+  const lastBlocked = desc.find(isQuotaBlocked)
   if (lastBlocked) {
     const reset = lastBlocked.summary?.quota_reset_at
     const resetMs = typeof reset === 'string' ? Date.parse(reset) : NaN
@@ -269,7 +284,7 @@ export function slotStateOf(rows: readonly AgentRunRow[], opts: { today: string;
 
   let consecutiveBlocked = 0
   for (const r of desc.filter(ranRow)) {
-    if (r.status !== 'blocked') break
+    if (!isQuotaBlocked(r)) break
     consecutiveBlocked += 1
   }
   return { prevRan, doneToday, cooldownUntil, cooldownFromReset, consecutiveBlocked }
@@ -310,6 +325,10 @@ export function decideSlot(i: {
       const src = state.cooldownFromReset ? 'CLI 리셋 시각' : `blocked 뒤 ${QUOTA_COOLDOWN_MS / 3600000}시간`
       return skip(`한도 쿨다운 — ${Number.isFinite(until) ? `~${state.cooldownUntil} 까지(${src})` : 'blocked 시각 확인 불가'}`, true)
     }
+  }
+  // v30 §5 "재시도 최대 2회": 원래 1회 + 재시도 2회가 전부 한도면 추가 슬롯은 쉰다. s1·수동만 하루 1번 풀렸는지 본다.
+  if (extra && (state?.consecutiveBlocked ?? 0) >= BLOCKED_ALARM_STREAK) {
+    return skip(`한도 재시도 ${BLOCKED_ALARM_STREAK - 1}회 소진(연속 blocked ${state?.consecutiveBlocked}) — 추가 슬롯 ${slot} 은 쉰다, s1 이 하루 1번 확인`, true)
   }
 
   let max = i.slotMax

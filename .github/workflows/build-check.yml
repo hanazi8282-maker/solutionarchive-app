@@ -60,6 +60,9 @@ jobs:
       # 야간 extract 대상 선정 — 재추출(force) 후보·순서·검수값 보존 배선. 여기가 틀리면
       # "대상 3건 · 실행 0건" 이 되면서도 종료코드는 0 이고, 최악은 재추출이 검수 결과를 지운다.
       - run: node scripts/analyze-extract-auto-selftest.mjs
+      # 구독 세션 한도 가드(남헌 v30 §5) — 상한 판정·비용 모름 호출 추정/정지·T2 재시도 슬롯·run_key 접미사.
+      # 여기가 접히면 timeout 호출이 $0 으로 세여 상한을 넘기거나, 재시도가 정규 감사 행을 덮는다.
+      - run: node scripts/session-guard-selftest.mjs
       # 경쟁사 프로필(남헌 2026-09-29) — 근거는 코드가 단다: 모르는 원문 번호는 버리고 근거 없는 주장은 센다.
       # 여기가 접히면 지어낸 문장이 원문 링크를 달고 화면에 앉는다. 3상태(ok/unverified/failed)·배선·외부 텍스트 고지도 본다.
       - run: node scripts/competitor-profile-selftest.mjs

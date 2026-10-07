@@ -360,9 +360,13 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 - **초안 staging** — `content_items`(`status='proposed'`) / `posts`
   (`status IN ('draft','pending_review')`, **`published_at` 은 항상 NULL**).
 - **조사 큐·실행 상태** — `research_queue` / `agent_runs` / `agent_run_steps`.
-- **발굴 적재** — `discovery_candidates` 전체 / `analysis_projects`(`status='collecting'` 신규 INSERT 한정, UPDATE·DELETE 금지) / `review_targets`(`review_sources.enabled=true` 인 소스 한정). 무인 루프는 `review_sources` 에 INSERT/UPDATE 하지 않는다. **새 소스는 대화형·역할 세션이 스스로 찾아 마이그레이션으로 등록한다**(남헌 2026-09-30 — 사람이 하나씩 고르던 병목 제거, 09-20 자율 승인과 같은 취지):
-  법적 점검(`docs/review-collection-design.md` §1.2 — robots 3상태 · 약관 자동수집 조항 인용 · 로그인/유료벽 · 개인정보 비중)을 **전부 깨끗하게 통과한 무료 소스만** 바로 등록한다.
-  하나라도 걸리거나 **확인 불가**면 등록하지 않고 `ops/state/source-review-queue.md`(사람 판단 큐)에 올린다 — §10.2 예외 4번(새 법적 리스크)이 이 큐다.
+- **발굴 적재** — `discovery_candidates` 전체 / `analysis_projects`(`status='collecting'` 신규 INSERT 한정, UPDATE·DELETE 금지) / `review_targets`(`review_sources.enabled=true` 인 소스 한정). 무인 루프는 `review_sources` 에 INSERT/UPDATE 하지 않는다. **새 소스는 대화형·역할 세션이 스스로 찾아 마이그레이션으로 등록한다**(남헌 2026-09-30 — 사람이 하나씩 고르던 병목 제거, 09-20 자율 승인과 같은 취지. 갈래는 남헌 v27 D5 C안):
+  - **깨끗한 소스 → 세션이 바로 등록.** 소스 탐색 에이전트가 낸 후보 중 법적 점검(`docs/review-collection-design.md` §1.2 — robots 3상태 중 **허용** · 약관에 자동수집·복제·상업 이용 **금지 조항 없음** · 로그인/유료벽 없는 **무료·공개** · 개인정보 비중)을 **전부 깨끗하게 통과한 소스**는
+    세션이 마이그레이션으로 바로 등록한다. **낮은 한도로 시작한다** — 아래 "퍼센트 램프"의 50% 단계에서 출발한다(첫 `cap_base` 도 이 세션이 넣는다 — 아래 "cap_base 첫 입력"). 등록 사실과 점검 근거(robots 판정·약관 인용)는 그 세션의 보고서(`reports/<날짜>/`)와 Notion 일일 상태 로그에 남긴다.
+    탐색 에이전트는 3일에 1번 돈다(안정화 뒤 주 1회 — 전환은 남헌 결정).
+  - **막히거나 불확실한 소스 → 큐, 남헌 승인 뒤에만 켠다.** 약관이 막거나, 하나라도 **확인 불가**거나, 소유자 예외(`override`)가 있어야 켤 수 있는 소스는 등록하지 않고
+    `ops/state/source-review-queue.md`(사람 판단 큐)에 올린다 — §10.2 예외 4번(새 법적 리스크)이 이 큐다.
+  - **모든 경우 유지:** 캡차 풀이·로그인·IP 우회·UA 위장 금지. 소유자 예외로 켠 소스도 예외가 아니다.
   등록한 소스의 수집분도 T1~T4 게이트를 그대로 거친다(우회 경로 없음).
   (남헌 2026-09-17 승인 — 자율 VOC 발굴 엔진. 사람이 `review_targets` 를 하나씩
   등록하던 병목을 없애려고 이 한 줄을 열었다. 근거는 `docs/discovery-design.md`.
@@ -374,7 +378,10 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   (로그 없이 바꾸지 않는다), 차단 이력 소스(todayhumor 등)와 남헌이 속도를 정해 둔 소스(danawa, 09-27 최소화)는 대상이 아니다,
   근거 수치는 `review_collection_runs.blocked_responses`·`quota_responses`(000033 이후 행만 측정값)다. 정책은
   `reports/2026-09-28/cowork-four-orders.md` §2-2. `review_sources` 자체는 여전히 건드리지 않는다.
-  퍼센트 램프(남헌 v24·v25 2026-10-06, 마이그 `20261006000002`)도 같은 권한이다 — 같은 행의 `pct_step`·`daily_request_target`·`consecutive_ok_days`·`last_evaluated_date`·`supply_state`·`blocks_at_step`·`block_line(_at)` 을 쓰고, `cap_base` 는 차단선 재정의로 **내리기만** 한다(처음 넣기·올리기는 사람). 러너 예산은 `min(daily_request_cap, daily_request_target) − 오늘 쓴 요청`이라 `daily_request_cap` 은 건드리지 않는다(`lib/review/ramp.ts`).
+  퍼센트 램프(남헌 v24·v25 2026-10-06, 마이그 `20261006000002`)도 같은 권한이다 — 같은 행의 `pct_step`·`daily_request_target`·`consecutive_ok_days`·`last_evaluated_date`·`supply_state`·`blocks_at_step`·`block_line(_at)` 을 쓰고, `cap_base` 는 차단선 재정의로 **내리기만** 한다(올리기는 사람, 처음 넣기는 바로 아래 규칙 — 무인 루프는 처음 넣지 않는다). 러너 예산은 `min(daily_request_cap, daily_request_target) − 오늘 쓴 요청`이라 `daily_request_cap` 은 건드리지 않는다(`lib/review/ramp.ts`).
+  **`cap_base` 첫 입력**(남헌 v28 #1, 2026-10-07) — 대화형·역할 세션(CC)이 넣고 **사전 승인**을 받는다: 소스별 제안값 표(현재 18행)를 Notion 일일 상태 로그에 먼저 첨부하고,
+  남헌이 승인한 뒤에 `review_source_ramp` 에 반영한다. 예외는 새 소스의 첫 값 하나다 — 위 "발굴 적재"의 **깨끗한 소스**(robots 허용·약관 금지 없음·무료)만 CC 가 승인 없이
+  50% 램프 단계로 넣고 판정 근거를 로그에 남긴다. 약관이 막거나 불확실한 소스는 남헌 승인 뒤에만 넣는다.
 - **reports/ 파일** — `reports/` · `drafts/cases/` · `drafts/threads/` · `ops/state/`
   4개 프리픽스에만 커밋한다. 그 밖의 경로가 스테이징에 있으면 커밋하지 않고 실패한다.
 
@@ -397,6 +404,9 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 **서브에이전트는 DB 를 아예 못 만진다.** LLM 이 조종하는 자식 프로세스에는
 `SUPABASE_SERVICE_ROLE_KEY` 를 넘기지 않는다(env 화이트리스트). DB 를 만지는 일은
 전부 오케스트레이터가 하며, 그 경로가 한 파일에 모여 있어 사람이 검토할 수 있다.
+
+**모델 배정**(남헌 v28) — 태그가 없으면 Sonnet. `[Opus]` 코드·PR 독립검토·마이그 SQL/롤백 적용 전 점검·원인 진단·인용 검사기·약관 해석 요약·고객 화면 최종 다듬기 /
+`[Sonnet]` 로그·집계·Notion·드라이런·조사 1차·분류 초안 / `[Fable]` 애매한 기준 설계·수치 판단·소스 탐색 설계안 — Fable 은 명시적으로 지정할 때만.
 
 ### 10.2 마이그레이션 적용 · PR 머지를 누가 결정하나 (2026-09-20 개정)
 
@@ -426,7 +436,7 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 1. 되돌리기 어려운 삭제 — `DROP TABLE` · `DROP COLUMN` · 데이터 DELETE · 컬럼 타입 축소
 2. 프로덕션 데이터 손상 위험 — 백필·대량 UPDATE·제약 변경으로 기존 행이 깨질 수 있는 것
 3. 보안 키·크리덴셜 노출 — env·시크릿·인증 경계(`lib/auth/*`·`proxy.ts`·cron-auth)를 넓히는 변경
-4. 새로운 법적 리스크 — 약관 위반 소지 있는 스크래핑 소스 **신규 추가**, 자동 발행 API
+4. 새로운 법적 리스크 — 약관 위반 소지 있는 스크래핑 소스 **신규 추가**, 자동 발행 API (법적 점검을 깨끗하게 통과한 소스는 해당하지 않는다 — §10.1 "발굴 적재"의 바로 등록 갈래)
 5. 사업 방향 결정 — 가격 정책·브랜딩·타깃 독자 정의 변경
 6. 남헌의 명시 지시와 충돌 — 이미 지시해 둔 것을 되돌리거나 축소·중단해야 하는 판단(아래 "한 방향" 문단)
 7. 돈이 드는 결정 — 유료 플랜·API 비용 증액·외부 결제 등 새 지출, 사업 진입 판단 입력(`pmf-assess`)

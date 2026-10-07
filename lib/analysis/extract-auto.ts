@@ -298,6 +298,8 @@ export type SlotDecision = {
   threshold: number | null
   /** true 면 ::warning::(쿨다운·확인 불가), false 면 ::notice::(평범한 쉼). */
   warn: boolean
+  /** 하루 상한으로 쉬었으면 'daily' — summary.cap_binding 용(extract-autotune.ts capBindingOf). 결정에는 안 쓴다. */
+  cap?: 'daily'
 }
 
 /**
@@ -334,7 +336,7 @@ export function decideSlot(i: {
   let max = i.slotMax
   if (state) {
     const left = i.dailyMax - state.doneToday
-    if (left <= 0) return skip(`하루 상한 도달 — 오늘 처리 ${state.doneToday}/${i.dailyMax}`)
+    if (left <= 0) return { ...skip(`하루 상한 도달 — 오늘 처리 ${state.doneToday}/${i.dailyMax}`), cap: 'daily' }
     max = Math.min(max, left)
   }
 

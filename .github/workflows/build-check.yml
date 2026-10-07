@@ -63,6 +63,9 @@ jobs:
       # 구독 세션 한도 가드(남헌 v30 §5) — 상한 판정·비용 모름 호출 추정/정지·T2 재시도 슬롯·run_key 접미사.
       # 여기가 접히면 timeout 호출이 $0 으로 세여 상한을 넘기거나, 재시도가 정규 감사 행을 덮는다.
       - run: node scripts/session-guard-selftest.mjs
+      # extract 하루 건수 자동 조정(남헌 v36 §2) — 스위치 off ≡ 기존 결정 · 올리기/내리기/경계 · cost 정지 제외 · 쉬는 날 안 올림.
+      # 가짜 PostgREST 에 extract-auto.mjs 를 자식 프로세스로 실제로 붙여 본다. 여기가 접히면 소프트 한도 run 으로 처리량을 깎는다.
+      - run: node scripts/extract-autotune-selftest.mjs
       # 경쟁사 프로필(남헌 2026-09-29) — 근거는 코드가 단다: 모르는 원문 번호는 버리고 근거 없는 주장은 센다.
       # 여기가 접히면 지어낸 문장이 원문 링크를 달고 화면에 앉는다. 3상태(ok/unverified/failed)·배선·외부 텍스트 고지도 본다.
       - run: node scripts/competitor-profile-selftest.mjs

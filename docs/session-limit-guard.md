@@ -72,6 +72,21 @@
 
 실측 기록(남헌 v32 채택): run 37576816430(T2 50건 $0.20) + run 37581317529(extract 5건 $1.091) = $1.29 → +3%p → 약 $0.43/%p(범위 $0.3~0.65).
 
+## extract 하루 건수 자동 조정 (남헌 v36 §2)
+
+코드 `lib/analysis/extract-autotune.ts`, 셀프테스트 `scripts/extract-autotune-selftest.mjs`(CI build-check 등록).
+
+- 스위치 리포 변수 `EXTRACT_AUTOTUNE`(기본 off). off 면 슬롯·하루 상한은 `EXTRACT_AUTO_MAX_PROJECTS`·`EXTRACT_AUTO_DAILY_MAX` 그대로다.
+- on: 하루 D(시작 48 · 24~72) · 스케줄 슬롯 상한 ceil(D÷3)(≤24 → `timeout-minutes` 180). 수동 실행은 하루 상한만 D, 슬롯 상한은 입력값.
+- 하루 1회(KST 첫 스케줄 run, 쉼 run 포함)만 평가. 한 스텝 = round(D×20%), 최소 1.
+  - 내리기: 지난 평가 이후(첫 평가면 24시간) hard 캡·구독 한도 오류(수동 run 포함) 또는 주간 > 안전선. 소프트 한도(cost)로 멈춘 run 은 근거가 아니다.
+  - 올리기: 마지막 조정 이후·7일 이내 스케줄 run(decision=run·`cap_binding` 기록 있음·비용 전부 읽힘) 최근 3회의 평균 사용률 < 8% ∧ 전부 slot/daily/none ∧ 대기(min_new 기준 B) > 0 ∧ 조정 전 D 로 이 슬롯이 쉬지 않는다.
+  - 사용률 = `session.spent_usd`(전 호출 누적기) ÷ `usd_per_session_pct`. 비용 모름 호출이 있는 run 은 윈도에서 뺀다.
+- 기록: 모든 run 의 `summary.autotune`(유효 `d`·`slot_max`·`evaluated`·`action`·`prev`/`next`·`reason`·`window`·`avg_pct`·`pending`·`slot_runs`·`down_signals`·`weekly`). 다음 run 이 가장 최근 `d` 를 잇는다. 이력을 못 읽으면 하한 24 로 돌고 평가하지 않는다.
+- `summary.cap_binding`(slot/daily/cost/hard/none, 다섯 밖 정지는 null)은 스위치와 무관하게 매 run 남는다.
+- 주간 안전선 `autotune_weekly_safe_pct`(config) 는 null = 비활성(`weekly.state='disabled'`). 넣으면 `usd_per_weekly_pct` 도 필요하다(없으면 unknown → 올리지 않음).
+- Notion: 조정(up/down) 이 있고 agent_runs 에 남은 run 만 `upsertStatusLog`(marker `extract-autotune`, 트랙 CTO)로 미러한다. 실패는 경고만. nightly-extract 의 env 에 `NOTION_API_TOKEN` 이 없으면 미러는 'env' 로 실패한다 — 정본은 agent_runs.
+
 ## 이 가드가 보장하지 않는 것
 
 - 작업 단위별 캡이라 같은 5시간 창에 두 작업이 들어가면 창 합산은 소프트 30% 근처(하드로는 60%)까지 갈 수 있다(합산 상한 없음 — 남헌 결정). `window5h_pct` 로 보일 뿐 막지는 않는다.

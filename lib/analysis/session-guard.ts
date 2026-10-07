@@ -27,6 +27,8 @@ export type GuardConfig = {
   unitCostFallbackUsd: number | null
   weeklyStopPct: number | null
   usdPerWeeklyPct: number | null
+  /** extract 자동 조정의 주간 안전선 %(남헌 v36 §2). null = 비활성 — 남헌이 N 을 정할 때까지(extract-autotune.ts weeklySafety). */
+  autotuneWeeklySafePct: number | null
 }
 
 const pos = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null)
@@ -40,6 +42,7 @@ export function parseGuardConfig(raw: Record<string, unknown> | null | undefined
     usdPerPct: pos(r.usd_per_session_pct),
     weeklyStopPct: pos(r.weekly_stop_pct),
     usdPerWeeklyPct: pos(r.usd_per_weekly_pct),
+    autotuneWeeklySafePct: pos(r.autotune_weekly_safe_pct),
   }
 }
 

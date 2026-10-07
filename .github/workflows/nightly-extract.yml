@@ -70,7 +70,7 @@ jobs:
     # extract 1건 Gemini 실측 40~110초(2026-09-27). Sonnet(claude-cli)은 입력 ~12만 자에 최대 ~5분으로 잡는다 —
     # vars.EXTRACT_AUTO_MAX_PROJECTS=10 × 5분 + 설치 여유.
     # 2026-09-29 남헌 결정: extract 뒤 경쟁사 프로필 단계(프로젝트당 1~2분 × 최대 10건) 추가로 75→120.
-    timeout-minutes: 120
+    timeout-minutes: 180 # 남헌 v36 §2: 자동 조정 슬롯 상한 24건(= D 72 ÷ 3) — 120 은 슬롯 10건 기준이었다
 
     steps:
       - uses: actions/checkout@v4
@@ -104,6 +104,7 @@ jobs:
           EXTRACT_AUTO_MAX_PROJECTS: ${{ inputs.max_projects || vars.EXTRACT_AUTO_MAX_PROJECTS || '3' }}
           # 하루(KST) 처리 상한 = done+failed 합(D4). 3일 실측 뒤 리포 변수로 조정한다.
           EXTRACT_AUTO_DAILY_MAX: ${{ vars.EXTRACT_AUTO_DAILY_MAX || '24' }}
+          EXTRACT_AUTOTUNE: ${{ vars.EXTRACT_AUTOTUNE || 'off' }} # 남헌 v36 §2 하루 건수 자동 조정 스위치(on 일 때만, lib/analysis/extract-autotune.ts)
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           # 발화한 크론 문자열 → 슬롯(s1/s2/s3) — run_key 접미사(F3)와 게이트 문턱을 정한다.
           EXTRACT_SLOT_CRON: ${{ github.event.schedule }}

@@ -58,16 +58,20 @@ import {
   resolveSlot,
   slotStateOf,
 } from '../lib/analysis/extract-auto.ts'
+import {
+  AUTOTUNE, autotuneLine, autotuneOn, capBindingOf, carriedD, decideAutotune, isScheduledKey, slotMaxOf, weeklySafety,
+} from '../lib/analysis/extract-autotune.ts'
 // 어느 상태가 후보인지는 extract-gate 가 정본이다(claimExtraction 이 같은 canStart 를 본다).
 import { AUTO_EXTRACT_STATUSES } from '../lib/analysis/extract-gate.ts'
 import { createTracker } from './agent-status.mjs'
-import { kstDate } from './notion-status-log.mjs'
+import { kstDate, upsertStatusLog } from './notion-status-log.mjs'
 
 const args = process.argv.slice(2)
 const dry = args.includes('--dry')
 const minNew = autoMinNew()
-const max = autoMaxProjects()
-const dailyMax = autoDailyMax()
+// 자동 조정(EXTRACT_AUTOTUNE=on)이면 3.1 에서 유효 D 로 바뀐다. off 면 변수값 그대로(기존 동작).
+let max = autoMaxProjects()
+let dailyMax = autoDailyMax()
 const today = kstDate()
 // 하루 3슬롯(KST 03:33 · 12:33 · 18:33)이 같은 KST 날짜라 run_key 에 슬롯을 붙인다(설계 F3). 표에 없는 크론이면 exit 2.
 let runKey
@@ -173,6 +177,43 @@ let extractRows = null // 재시도 큐(summary.retry_queue)도 이 행들에서
     state = slotStateOf(extractRows, { today, slot })
   }
 }
+// ── 3.1 하루 건수 자동 조정(남헌 v36 §2, lib/analysis/extract-autotune.ts) — EXTRACT_AUTOTUNE=on 일 때만 ──
+// off 면 이 블록을 통째로 건너뛰고 슬롯·하루 상한은 변수값 그대로다(셀프테스트가 같은 결정을 단언한다).
+// on: 하루 D(시작 48 · 24~72) · 스케줄 슬롯 상한 ceil(D÷3)(≤24). 수동 실행은 하루 상한만 D 를 따르고 슬롯 상한은 입력값.
+const tuneOn = autotuneOn()
+const guard = loadGuardConfig()
+let recentRuns = null // 최근 7일 가드 대상 실행 — on 이면 여기서(윈도·주간 합), off 면 기존 자리(3.5)에서 읽는다
+let tune = null
+if (tuneOn) {
+  const now = new Date()
+  recentRuns = await loadRecentRuns(supabase, now)
+  const rows = recentRuns ? recentRuns.filter((r) => r.run_key.startsWith('extract-auto-')) : null
+  const scheduled = isScheduledKey(runKey)
+  // "쉬는 날은 올리지 않는다": 조정 전 D 로 이 슬롯 게이트가 돌지 먼저 본다(백로그 0 이면 어느 슬롯도 안 돈다).
+  const curD = rows ? carriedD(rows).d : AUTOTUNE.min
+  const pre = decideSlot({ slot, backlog, state, dailyMax: curD, slotMax: scheduled ? slotMaxOf(curD) : max, now })
+  const weekUsd = recentRuns ? usageSince(recentRuns, now.getTime() - 7 * 86_400_000).usd : null
+  tune = decideAutotune({
+    rows, runKey, today, now, pending: backlog.B, slotRuns: pre.run, usdPerPct: guard.cfg.usdPerPct,
+    weekly: weeklySafety(guard.cfg.autotuneWeeklySafePct, guard.cfg.usdPerWeeklyPct, weekUsd),
+  })
+  dailyMax = tune.d
+  if (scheduled) max = tune.slot_max
+  const line = autotuneLine(tune)
+  if (tune.source === 'unreadable' || tune.action === 'down') warn(line)
+  else log(line)
+}
+const tuneFields = () => (tune ? { autotune: tune } : {})
+// 조정이 있던 run 만 Notion 일일 상태 로그에 한 줄 미러한다. 정본은 agent_runs — 거기 못 남겼으면 미러도 안 한다.
+// Notion 실패는 경고만(조정은 진행). 이 워크플로 env 에 NOTION_API_TOKEN 이 없으면 'env' 단계로 실패한다(PR 본문 남헌 결정).
+const mirrorTune = async (t) => {
+  if (!tune || !['up', 'down'].includes(tune.action)) return
+  if (!t.dbOk) { warn('자동 조정을 agent_runs 에 남기지 못했다 — 다음 run 이 이전 D 로 다시 평가한다(Notion 미러 생략)'); return }
+  const r = await upsertStatusLog({ date: today, track: 'CTO', done: autotuneLine(tune), blocked: '', next: '', needsHuman: false, note: `run_key ${runKey}` }, { marker: 'extract-autotune' })
+  if (r.ok) log(`자동 조정 Notion 기록 — ${r.title}`)
+  else warn(`자동 조정 Notion 기록 실패(조정은 진행 — 정본은 agent_runs.summary.autotune): ${r.stage} ${r.error}`)
+}
+
 const gate = decideSlot({ slot, backlog, state, dailyMax, slotMax: max, now: new Date() })
 const gateFields = {
   decision: gate.run ? 'run' : 'skip',
@@ -185,6 +226,7 @@ const gateFields = {
   prev_ran: state?.prevRan ?? null,
   done_today: state?.doneToday ?? null,
   daily_max: dailyMax,
+  slot_max: max,
   max_this_run: gate.max,
   quota_cooldown_until: state?.cooldownUntil ?? null,
   prior_blocked_streak: state?.consecutiveBlocked ?? null,
@@ -228,8 +270,9 @@ if (!gate.run) {
   // 쉼도 기록한다(§4.2) — 안 남기면 "어젯밤 왜 아무것도 안 바뀌었나"에 답을 못 한다.
   const t = await createTracker(trackerOpts)
   await t.step({ stepKey: 'gate', label: '슬롯 게이트', status: 'skipped', counts: { B: backlog.B, S: backlog.S }, detail: gateFields })
-  await t.finish({ status: 'ok', summary: { ...gateFields, targets: 0, done: 0, failed: 0 } })
+  await t.finish({ status: 'ok', summary: { ...gateFields, targets: 0, done: 0, failed: 0, cap_binding: capBindingOf({ decision: 'skip', skipCap: gate.cap, skipWarn: gate.warn }), ...tuneFields() } })
   if (!t.dbOk) warn('쉼 기록을 agent_runs 에 남기지 못했다 — ops/state 폴백')
+  await mirrorTune(t)
   process.exit(raiseAlarm('skip') ? 1 : 0)
 }
 
@@ -247,13 +290,12 @@ for (const t of pick.targets) {
 if (pick.unknown > 0) warn(`신규 입력 수를 세지 못한 프로젝트 ${pick.unknown}건 — 대상 판정에서 빠졌다(0건이라는 뜻이 아니다)`)
 
 // ── 3.5 세션 한도 가드(남헌 v30 §5) — 이 슬롯 1회의 상한($) · 주간 중단 스위치 · 5시간 창 합산(기록만) ──
-const guard = loadGuardConfig()
 const capUsd = capUsdOf(guard.cfg)
 const hardCapUsd = hardCapUsdOf(guard.cfg)
 // 하드 캡(v32 30%)은 llm.ts 가 매 claude -p 시작 전에 본다 — 진행 중 프로젝트의 중간 호출도 여기서만 막힌다.
 setCliHardCap(hardCapUsd, guard.cfg.unitCostFallbackUsd)
 const guardNow = new Date()
-const recentRuns = await loadRecentRuns(supabase, guardNow)
+if (!tuneOn) recentRuns = await loadRecentRuns(supabase, guardNow)
 if (!recentRuns) warn('가드 대상 실행 이력(agent_runs) 조회 실패 — 5시간 창·주간 합산 확인 불가')
 const window5h = recentRuns ? usageSince(recentRuns, guardNow.getTime() - 5 * 3_600_000) : null
 const weekUsd = recentRuns ? usageSince(recentRuns, guardNow.getTime() - 7 * 86_400_000).usd : null
@@ -275,7 +317,8 @@ if (capUsd == null || weekly.stop) {
   const why = capUsd == null ? `세션 상한 설정 확인 불가 — ${guard.error ?? 'config/session-guard.json 의 session_cap_pct·usd_per_session_pct 가 없다'}` : weekly.reason
   warn(`${why} — 추출 0건으로 멈춘다(대상 ${pick.targets.length}건은 다음 실행)`)
   await tracker.step({ stepKey: 'guard', label: '세션 한도 가드', status: 'blocked', blocker: why, detail: { stop_reason: stopReason, weekly_pct: weekly.pct, cap_usd: capUsd } })
-  await tracker.finish({ status: 'blocked', summary: { ...gateFields, targets: pick.targets.length, done: 0, failed: 0, remaining: pick.eligible, blocker: why, stop_reason: stopReason } })
+  await tracker.finish({ status: 'blocked', summary: { ...gateFields, targets: pick.targets.length, done: 0, failed: 0, remaining: pick.eligible, blocker: why, stop_reason: stopReason, cap_binding: capBindingOf({ decision: 'run', stopReason }), ...tuneFields() } })
+  await mirrorTune(tracker)
   process.exit(capUsd == null ? 2 : 0)
 }
 
@@ -403,6 +446,8 @@ for (const target of pick.targets) {
 const spent = dailySpent()
 const status = blocker ? 'blocked' : failed > 0 ? (done > 0 ? 'partial' : 'failed') : 'ok'
 const cli = cliSpent()
+// 이 run 이 왜 멈췄나(§7.2) — 스위치와 무관하게 매 run 남긴다. 자동 조정 윈도는 이 값을 읽는다.
+const capBinding = capBindingOf({ decision: 'run', stopReason, remaining: pick.remaining, gateMax: gate.max, slotMax: max })
 const session = sessionBlock({ job: 'extract', cfg: guard.cfg, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli, guard.cfg.unitCostFallbackUsd), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' || stopReason === 'hard_cap' })
 log(sessionLine(session))
 // 재시도 큐 갱신(v32 #4). 큐를 못 읽었으면(extractRows null) 이전 큐를 모르니 이번 결과만으로 만든다.
@@ -419,16 +464,18 @@ await tracker.finish({
     ...gateFields,
     targets: pick.targets.length, done, failed, remaining: pick.remaining, blocker, quota_reset_at: quotaResetAt,
     // 상한·한도로 멈췄으면 몇 건째였는지(§7.2). remaining 은 슬롯 상한 밖 수, not_started 는 이번 실행이 고르고도 못 돈 수.
-    stop_reason: stopReason, processed, not_started: pick.targets.length - processed, session,
+    stop_reason: stopReason, processed, not_started: pick.targets.length - processed, session, cap_binding: capBinding,
     retry_queue: rq.queue, retry_given_up: rq.giveUp,
     est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls,
     // 성공 건 중 봉투에서 비용을 읽은 것만 합한다. 0건이면 null(0 달러로 접지 않는다).
     cost_usd: costKnown > 0 ? Number(costUsd.toFixed(4)) : null, cost_known: costKnown,
+    ...tuneFields(),
   },
 })
+await mirrorTune(tracker)
 
 const spentNote = provider === 'claude-cli' ? `실측 명목 $${costKnown > 0 ? costUsd.toFixed(3) : '확인 불가'}(${costKnown}/${done}건)` : `추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD})`
-log(`끝 — 추출 ${done}건 · 실패 ${failed}건 · 남은 대상 ${pick.remaining}건 · 이번 실행 ${spentNote} · 상태 ${status}`)
+log(`끝 — 추출 ${done}건 · 실패 ${failed}건 · 남은 대상 ${pick.remaining}건 · 이번 실행 ${spentNote} · 상태 ${status} · cap_binding ${capBinding ?? '-'}`)
 if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 — ops/state 폴백. 이 실행의 기록은 "DB 확인 불가"다')
 
 // 세션 상한·비용 확인 불가 정지는 한도 오류가 아니다 — 연속 blocked 경보에 넣지 않는다(blocked 상태·::warning:: 로는 남는다).

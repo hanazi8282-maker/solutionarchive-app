@@ -474,7 +474,14 @@ export async function runExtraction(
   if (freshRows.length > 0) {
     const { data: inserted, error: aspectError } = await supabase.from('analysis_aspects').insert(freshRows).select('id')
     if (aspectError) return fail(`속성 저장에 실패했습니다: ${aspectError.message}`)
-    newIds = (inserted ?? []).map((r: { id: string }) => r.id)
+    newIds = (inserted ?? []).map((r: { id: string }) => r.id).filter(Boolean)
+    // 돌려받은 id 가 넣은 수와 다르면 "새 id 제외" delete 가 방금 넣은 행까지 지운다(빈 배열이면 human_confirmed=false 전부).
+    // 지우기 전에 멈추고, 받은 id 가 있으면 그것만 걷어 낸다. 받지 못한 행은 확인 불가 — 오류에 남긴다(§7.1).
+    if (newIds.length !== freshRows.length) {
+      const undo = newIds.length > 0 ? (await supabase.from('analysis_aspects').delete().in('id', newIds)).error : null
+      aspectsDeleted = true // 응답에 없는 행이 들어갔을 수 있어 이전 상태라고 장담 못 한다 — extracted 로 되돌리지 않고 failed
+      return fail(`속성 저장 응답이 넣은 수와 다르다(넣음 ${freshRows.length} · 돌려받은 id ${newIds.length}) — 옛 속성은 지우지 않았다. 응답에 없는 새 행이 남았을 수 있다(확인 불가)${undo ? ` · 받은 id 되돌리기도 실패: ${undo.message}` : ''}`)
+    }
   }
 
   let del = supabase

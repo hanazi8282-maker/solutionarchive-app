@@ -21,8 +21,8 @@
 //   백로그(Bw)·하루 상한·한도 쿨다운을 보고(decideSlot) 쉴지 정한다. 쉼도 agent_runs 에 gate 스텝 skipped 로 남긴다.
 //   --dry 는 게이트 판정까지 찍는다(agent_runs 읽기만). 수동 실행은 EXTRACT_SLOT_INPUT=s1|s2|s3 로 그 슬롯 문턱을 시험한다.
 //
-// 세션 한도 가드(남헌 v30 §5, lib/analysis/session-guard.ts): 한 실행이 쓰는 claude-cli 명목 비용이 상한
-//   (config/session-guard.json, 시작 15% × $0.3/%p = $4.5)에 닿기 전에 멈추고 남은 프로젝트는 다음 슬롯으로 넘긴다 —
+// 세션 한도 가드(남헌 v30 §5 → v32, lib/analysis/session-guard.ts): 한 실행이 쓰는 claude-cli 명목 비용이 소프트 캡
+//   (config/session-guard.json, 15% × $0.43/%p = $6.45)에 닿으면 새 프로젝트를 시작하지 않고 남은 프로젝트는 다음 슬롯으로 넘긴다 —
 //   status='blocked' · summary.stop_reason='session_cap' · processed/not_started · session(사용 $·%p·5시간 창 합산).
 //
 // v32: 소프트 캡(15%)은 프로젝트 경계에서 새 시작만 막고 진행 중 프로젝트는 마친다. 하드 캡(30%)은 llm.ts 가 매 호출 시작 전에 본다.
@@ -251,7 +251,7 @@ const guard = loadGuardConfig()
 const capUsd = capUsdOf(guard.cfg)
 const hardCapUsd = hardCapUsdOf(guard.cfg)
 // 하드 캡(v32 30%)은 llm.ts 가 매 claude -p 시작 전에 본다 — 진행 중 프로젝트의 중간 호출도 여기서만 막힌다.
-setCliHardCap(hardCapUsd)
+setCliHardCap(hardCapUsd, guard.cfg.unitCostFallbackUsd)
 const guardNow = new Date()
 const recentRuns = await loadRecentRuns(supabase, guardNow)
 if (!recentRuns) warn('가드 대상 실행 이력(agent_runs) 조회 실패 — 5시간 창·주간 합산 확인 불가')
@@ -296,7 +296,7 @@ let costUsd = 0
 let costKnown = 0
 let seq = 1
 // 세션 가드: 'quota'(구독 한도 오류) | 'session_cap'(소프트 캡 — 새 프로젝트 시작 안 함) | 'hard_cap'(하드 캡 — 진행 중 호출 차단)
-//   | 'cost_unknown'(비용 모름 호출이 있는데 추정 근거 없음) | null
+//   | 'cost_unknown'(비용 모름 호출이 있는데 추정 근거·폴백(unit_cost_fallback_usd) 없음) | null
 let stopReason = null
 let processed = 0
 const touched = [] // 이번에 잠그고 돌린 프로젝트(재시도 큐 갱신용)
@@ -307,11 +307,11 @@ for (const target of pick.targets) {
   // 소프트 캡(v32): 프로젝트 **경계에서만** 본다 — 닿았으면 새 프로젝트를 시작하지 않는다. 진행 중 프로젝트는 끝까지 마치고 저장한다.
   // 확인은 claim **전**이라 건너뛴 프로젝트는 잠그지도 extract_attempts 를 태우지도 않는다.
   // 비용 못 읽은 호출(timeout·출력 상한·봉투 없음)은 spendForCap 이 추정해 더한다. 추정 근거가 없으면 null — 새 시작을 막는다(§7.1).
-  const spentNow = spendForCap(cliSpent())
+  const spentNow = spendForCap(cliSpent(), guard.cfg.unitCostFallbackUsd)
   if (spentNow == null || capReached(spentNow, capUsd)) {
     stopReason = spentNow == null ? 'cost_unknown' : 'session_cap'
     blocker = spentNow == null
-      ? `세션 사용액 확인 불가 — 비용을 못 읽은 호출 ${cliSpent().unknown}건(timeout·출력 상한·봉투 없음), 추정 근거 없음 · 대상 ${pick.targets.length}건 중 ${processed}건 처리 뒤 새 시작 중지`
+      ? `세션 사용액 확인 불가 — 비용을 못 읽은 호출 ${cliSpent().unknown}건(timeout·출력 상한·봉투 없음), 추정 근거·폴백(unit_cost_fallback_usd) 없음 · 대상 ${pick.targets.length}건 중 ${processed}건 처리 뒤 새 시작 중지`
       : `소프트 캡 도달 — 대상 ${pick.targets.length}건 중 ${processed}건 처리 뒤 새 시작 중지 · 사용 $${spentNow.toFixed(3)} / 소프트 캡 $${capUsd.toFixed(2)}`
     warn(`${blocker}. 남은 ${pick.targets.length - processed}건은 다음 슬롯에서 돈다(정상 종료가 아니다 — §7.2 확인 대상).`)
     await tracker.step({ stepKey: 'session-cap', label: '세션 소프트 캡', status: 'blocked', seq, blocker, detail: { processed, of: pick.targets.length, spent_usd: spentNow == null ? null : Number(spentNow.toFixed(4)), cost_unknown_calls: cliSpent().unknown, cap_usd: capUsd, hard_cap_usd: hardCapUsd } })
@@ -333,11 +333,12 @@ for (const target of pick.targets) {
   const out = await withLlmBudget(() => runExtraction(supabase, target.projectId, provider, claim.restore, claim.attempts))
   const secs = Math.round((Date.now() - t0) / 1000)
   processed += 1
-  touched.push(target.projectId)
+  // 하드 캡이 본 호출 전에 막은 프로젝트는 실제로 돌지 않았다 — 재시도 큐 항목이면 우선순위를 그대로 남긴다(touched 에 넣지 않는다).
+  if (!(out.ok === false && out.hardCap)) touched.push(target.projectId)
   // 하드 캡(v32 30%): 진행 중 프로젝트의 다음 claude -p 가 막혔으면(llm.ts CliHardCapError) 여기서 실행 전체를 멈춘다.
   // 저장(속성 교체·상태 갱신) 사이에는 LLM 호출이 없어 하드 캡이 저장을 가르지 않는다 — 막히는 것은 저장 전 본 호출(→ 이전 상태 보존)
   // 또는 저장 뒤 보강 단계(인용 번역·처방 판정·경쟁사 프로필 → 그 단계만 미완료)다.
-  const spentAfter = spendForCap(cliSpent())
+  const spentAfter = spendForCap(cliSpent(), guard.cfg.unitCostFallbackUsd)
   const hardHit = out.ok === false ? out.hardCap === true : hardCapUsd != null && spentAfter != null && spentAfter >= hardCapUsd
 
   if (out.ok) {
@@ -402,7 +403,7 @@ for (const target of pick.targets) {
 const spent = dailySpent()
 const status = blocker ? 'blocked' : failed > 0 ? (done > 0 ? 'partial' : 'failed') : 'ok'
 const cli = cliSpent()
-const session = sessionBlock({ job: 'extract', cfg: guard.cfg, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' || stopReason === 'hard_cap' })
+const session = sessionBlock({ job: 'extract', cfg: guard.cfg, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli, guard.cfg.unitCostFallbackUsd), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' || stopReason === 'hard_cap' })
 log(sessionLine(session))
 // 재시도 큐 갱신(v32 #4). 큐를 못 읽었으면(extractRows null) 이전 큐를 모르니 이번 결과만으로 만든다.
 const rq = nextRetryQueue(retryQueue, { touched, quota: quotaProject, resetAt: quotaResetAt, now: new Date(), cooldownMs: QUOTA_COOLDOWN_MS, maxRetries: BLOCKED_ALARM_STREAK - 1 })

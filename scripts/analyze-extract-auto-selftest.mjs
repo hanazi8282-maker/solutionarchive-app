@@ -131,7 +131,8 @@ t('상한은 failed 에만 — extracted 는 시도 수와 무관', pickAutoTarg
   t('claim 이 재분석일 때 복원값을 돌려준다', /restore: isReanalysis \? \{ status: project\.status, finishedAt: project\.extract_finished_at \?\? null \} : null/.test(run))
   t('fail() 은 삭제 전일 때만 복원한다', /const back = restore && !aspectsDeleted \? restore : null/.test(run))
   t('복원 시 status·완료 시각을 되돌린다', /status: back \? back\.status : 'failed'/.test(run) && /extract_finished_at: back \? back\.finishedAt :/.test(run))
-  t('삭제 실패 분기 뒤에서 표시한다', run.indexOf('aspectsDeleted = true') > run.indexOf('기존 속성 삭제에 실패했습니다'))
+  // v32 이후 insert 응답 불일치 가드도 aspectsDeleted 를 켠다(이전 상태라 장담 못 함) — 정상 경로의 표시는 마지막 것이다.
+  t('삭제 실패 분기 뒤에서 표시한다', run.lastIndexOf('aspectsDeleted = true') > run.indexOf('기존 속성 삭제에 실패했습니다'))
 }
 
 // ── 4. 호출부 배선 — 함수가 옳아도 안 쓰면 소용없다 ─────────────

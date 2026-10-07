@@ -20,9 +20,10 @@
 //   node scripts/relevance-judge-auto.mjs --dry   # 대상 선정만. LLM·DB 쓰기 없음
 //   node --env-file=.env.local scripts/relevance-judge-auto.mjs
 //
-// 세션 한도 가드(남헌 v30 §5, lib/analysis/session-guard.ts): 한 실행의 claude-cli 명목 비용이 상한(config/session-guard.json)에
-//   닿기 전에 묶음 사이에서 멈춘다(stop_reason='session_cap'). 한도 오류(quota)로 멈추면 재시도 슬롯 r1·r2 가
-//   4시간(또는 CLI 리셋 시각) 뒤 최대 2회 다시 돈다.
+// 세션 한도 가드(남헌 v30 §5 → v32, lib/analysis/session-guard.ts): 한 실행의 claude-cli 명목 비용이 소프트 캡
+//   (config/session-guard.json, 15% × $0.43/%p = $6.45)에 닿으면 **프로젝트 경계에서** 새 프로젝트를 시작하지 않는다(stop_reason='session_cap'),
+//   하드 캡($12.9)에 닿으면 진행 중 프로젝트라도 다음 묶음을 시작하지 않는다(stop_reason='hard_cap').
+//   한도 오류(quota)로 멈추면 재시도 슬롯 r1·r2 가 4시간(또는 CLI 리셋 시각) 뒤 그 프로젝트부터 최대 2회 다시 돈다.
 //
 // 종료코드: 0 정상(대상 0건·한도·세션 상한 도달·재시도 쉼 포함) · 1 마지막 재시도까지 한도 · 2 설정/조회 실패 · 3 저장 실패 1건 이상
 
@@ -373,11 +374,11 @@ for (const { project, pending } of targets) {
   // 소프트 캡(v32): 프로젝트 **경계에서만** 본다 — 닿았으면 새 프로젝트를 시작하지 않는다. 진행 중 프로젝트는 묶음을 끝까지 돈다.
   // 비용 못 읽은 호출은 spendForCap 이 추정해 더한다. 추정 근거가 없으면 null — 새 시작을 막는다(§7.1).
   if (guarded) {
-    const spentNow = spendForCap(cliSpent())
+    const spentNow = spendForCap(cliSpent(), guard.cfg.unitCostFallbackUsd)
     if (spentNow == null || capReached(spentNow, capUsd)) {
       stopReason = spentNow == null ? 'cost_unknown' : 'session_cap'
       blocker = spentNow == null
-        ? `세션 사용액 확인 불가 — 비용을 못 읽은 호출 ${cliSpent().unknown}건(timeout·출력 상한·봉투 없음), 추정 근거 없음 · 프로젝트 ${targets.length}건 중 ${projectsStarted}건 · 묶음 ${batchesDone}/${batchesPlanned}개 뒤 새 시작 중지`
+        ? `세션 사용액 확인 불가 — 비용을 못 읽은 호출 ${cliSpent().unknown}건(timeout·출력 상한·봉투 없음), 추정 근거·폴백(unit_cost_fallback_usd) 없음 · 프로젝트 ${targets.length}건 중 ${projectsStarted}건 · 묶음 ${batchesDone}/${batchesPlanned}개 뒤 새 시작 중지`
         : `소프트 캡 도달 — 프로젝트 ${targets.length}건 중 ${projectsStarted}건 · 묶음 ${batchesDone}/${batchesPlanned}개 뒤 새 시작 중지 · 사용 $${spentNow.toFixed(3)} / 소프트 캡 $${capUsd.toFixed(2)}`
       warn(`${blocker}. 남은 판정은 다음 실행(정상 종료가 아니다 — §7.2 확인 대상).`)
       await tracker.step({ stepKey: 'session-cap', label: '세션 소프트 캡', status: 'blocked', seq: seq + 1, blocker, detail: { projects_started: projectsStarted, of: targets.length, batches_done: batchesDone, batches_planned: batchesPlanned, spent_usd: spentNow == null ? null : Number(spentNow.toFixed(4)), cap_usd: capUsd, hard_cap_usd: hardCapUsd } })
@@ -398,7 +399,7 @@ for (const { project, pending } of targets) {
     for (const batch of batches) {
       // 하드 캡(v32 30%): 진행 중 프로젝트라도 다음 묶음(= claude -p 1회)을 시작하지 않는다. 묶음마다 저장되므로 끊어도 저장이 갈리지 않는다.
       // llm.ts 하드 캡(setCliHardCap)은 여기 안 건다 — judgeRelevanceBatch 가 호출 오류를 '확인불가' 판정으로 저장하기 때문이다.
-      const before = spendForCap(cliSpent())
+      const before = spendForCap(cliSpent(), guard.cfg.unitCostFallbackUsd)
       if (guarded && hardCapUsd != null && before != null && before >= hardCapUsd) {
         stopReason = 'hard_cap'
         stopped = `하드 캡 도달 — 묶음 ${batchesPlanned}개 중 ${batchesDone}개 처리 뒤 즉시 정지 · 사용 $${before.toFixed(3)} / 하드 캡 $${hardCapUsd.toFixed(2)}`
@@ -413,7 +414,6 @@ for (const { project, pending } of targets) {
         quotaResetAt = parseQuotaResetAt(stopped, new Date())
         break
       }
-      batchesDone += 1
       for (const v of out.verdicts) counts[v.verdict] += 1
 
       const rows = out.verdicts.map((v) => ({
@@ -460,6 +460,7 @@ for (const { project, pending } of targets) {
         labeledTotal += out.verdicts.filter((v) => LABEL_KEYS.some((k) => v[k] !== null)).length
       }
       doneBatches += 1
+      batchesDone += 1 // 저장 성공 뒤에만 센다 — 저장 실패 묶음을 "처리"로 세지 않는다
     }
   })
 
@@ -485,7 +486,7 @@ for (const { project, pending } of targets) {
 const spent = dailySpent()
 const status = blocker ? 'blocked' : saveFailed > 0 ? 'partial' : 'ok'
 const cli = cliSpent()
-const session = sessionBlock({ job: 't2', cfg: guard.cfg, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' || stopReason === 'hard_cap' })
+const session = sessionBlock({ job: 't2', cfg: guard.cfg, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli, guard.cfg.unitCostFallbackUsd), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' || stopReason === 'hard_cap' })
 log(sessionLine(session))
 await tracker.finish({
   status,

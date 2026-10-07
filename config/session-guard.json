@@ -4,6 +4,8 @@
   "session_cap_pct": 15,
   "hard_cap_pct": 30,
   "usd_per_session_pct": 0.43,
+  "_unit_cost_fallback": "비용을 못 읽은 호출(timeout·출력 상한·봉투 없음)을 셀 근거(이번 실행에서 읽은 호출)가 없을 때만 쓰는 1회 호출 상한 추정. 10-07 run 37581317529: 본 호출 최대 $0.197 · 프로젝트당 전 호출 평균 $0.22 · 입력 90건 프로젝트 최대 ~$0.45 → 보수적으로 $0.67.",
+  "unit_cost_fallback_usd": 0.67,
   "weekly_stop_pct": null,
   "usd_per_weekly_pct": null
 }

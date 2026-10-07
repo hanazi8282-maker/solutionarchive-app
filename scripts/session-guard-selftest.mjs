@@ -39,6 +39,11 @@ const read = (p) => fs.readFileSync(path.join(process.cwd(), p), 'utf8')
   t('비용 모름 2건 × 본 호출 최대 $0.3 을 더한다', Math.abs(spendForCap(cliSpent()) - 0.9) < 1e-9 && cliSpent().maxCallUsd === 0.3)
   t('추정 지출로 소프트 캡 판정 — $6.2 + 모름 1건×$0.31 은 $6.45 에 닿아 새 시작 중지', capReached(spendForCap({ usd: 6.2, unknown: 1, maxCallUsd: 0.31 }), 6.45) === true)
   t('비용 모름이 없으면 읽은 합 그대로', spendForCap({ usd: 1.5, unknown: 0, maxCallUsd: 0 }) === 1.5)
+  // 재검토 [권고] 3: 첫 본 호출이 timeout 이라 근거가 없을 때만 설정 폴백($0.67)으로 센다 — 0 으로 접지 않고, 슬롯 전체를 세우지도 않는다.
+  t('근거 없음 + 폴백 $0.67 → 모름 1건 = $0.67', spendForCap({ usd: 0, unknown: 1, maxCallUsd: 0 }, 0.67) === 0.67)
+  t('근거가 있으면 폴백보다 본 호출 최대값 우선', spendForCap({ usd: 1, unknown: 2, maxCallUsd: 0.2 }, 0.67) === 1.4)
+  t('근거·폴백 둘 다 없으면 null(확인 불가)', spendForCap({ usd: 0, unknown: 1, maxCallUsd: 0 }, null) === null)
+  t('폴백으로 첫 timeout 뒤에도 소프트 캡 아래면 다음 프로젝트 시작', capReached(spendForCap({ usd: 0, unknown: 1, maxCallUsd: 0 }, 0.67), 6.45) === false)
 
   // 하드 캡(v32 30%) — llm.ts 가 claude -p 를 **시작하기 전에** 막는다(바이너리를 부르지도 않는다). 한도 오류(quota)로 읽지 않는다.
   process.env.CLAUDE_CLI_PATH = path.join(os.tmpdir(), 'no-such-claude-binary') // 막히지 않고 넘어가면 "파일 없음" 오류로 갈린다
@@ -57,6 +62,7 @@ const read = (p) => fs.readFileSync(path.join(process.cwd(), p), 'utf8')
 const real = loadGuardConfig()
 t('리포 설정 파일을 읽는다', real.error === null)
 t('v32: 소프트 15% × $0.43/%p = $6.45', real.cfg.capPct === 15 && real.cfg.usdPerPct === 0.43 && Math.abs(capUsdOf(real.cfg) - 6.45) < 1e-9)
+t('폴백 설정값 $0.67', real.cfg.unitCostFallbackUsd === 0.67)
 t('v32: 하드 30% × $0.43/%p = $12.9', real.cfg.hardCapPct === 30 && Math.abs(hardCapUsdOf(real.cfg) - 12.9) < 1e-9)
 t('하드 캡 % 가 없으면 하드 캡 null', hardCapUsdOf(parseGuardConfig({ session_cap_pct: 15, usd_per_session_pct: 0.43 })) === null)
 t('주간 스위치는 기본 비활성(null)', real.cfg.weeklyStopPct === null)
@@ -202,7 +208,7 @@ t('쿨다운 폴백 4시간', QUOTA_COOLDOWN_MS === 4 * H)
 // ── 프로젝트 저장 원자성(v32 #3) — runExtraction 실경로를 가짜 Supabase 로 ──
 // 교체 순서: 새 행 insert → 옛 행(새 id 제외) delete → 프로젝트 update. delete 가 실패하면 새 행을 걷어 이전 상태로 되돌린다.
 {
-  const makeDb = ({ failDelete = null, failInsert = null, failUndo = null } = {}) => {
+  const makeDb = ({ failDelete = null, failInsert = null, failUndo = null, insertReturn } = {}) => {
     const ops = []
     const db = {
       ops,
@@ -222,7 +228,11 @@ t('쿨다운 폴백 4시간', QUOTA_COOLDOWN_MS === 4 * H)
     const answer = (st) => {
       if (st.table === 'analysis_projects' && st.op === 'select') return { data: { id: 'p1', competitor_url: null, product_elevator_pitch: '노트앱', purpose: 'x', seller_own_guess: null }, error: null }
       if (st.table === 'analysis_inputs') return { data: [{ id: 'i1', source_type: 'review', source_key: 'appstore', raw_text: '동기화가 자주 끊겨서 불편하다. 가격은 괜찮다.', created_at: '2026-10-01T00:00:00Z', collected_at: null }], error: null }
-      if (st.table === 'analysis_aspects' && st.op === 'insert') return failInsert ? { data: null, error: failInsert } : { data: st.payload.map((_, i) => ({ id: `new${i}` })), error: null }
+      if (st.table === 'analysis_aspects' && st.op === 'insert') {
+        if (failInsert) return { data: null, error: failInsert }
+        if (insertReturn !== undefined) return { data: typeof insertReturn === 'function' ? insertReturn(st.payload) : insertReturn, error: null }
+        return { data: st.payload.map((_, i) => ({ id: `new${i}` })), error: null }
+      }
       if (st.table === 'analysis_aspects' && st.op === 'delete') {
         const undo = st.filters.some((f) => f[0] === 'in')
         if (undo) return { error: failUndo }
@@ -256,6 +266,23 @@ t('쿨다운 폴백 4시간', QUOTA_COOLDOWN_MS === 4 * H)
   const bothDb = makeDb({ failDelete: { code: 'X', message: 'del boom' }, failUndo: { message: 'undo boom' } })
   const both = await quiet(() => runExtraction(bothDb, 'p1', 'mock', restore, 3))
   t('보상까지 실패 → extracted 로 되돌리지 않고 failed + 오류에 "중복 남음"', both.ok === false && /중복 남음/.test(both.error) && bothDb.ops.filter((x) => x.op === 'update').at(-1)?.payload.status === 'failed')
+
+  // 재검토 [꼭] 1: insert 가 성공 응답인데 id 를 돌려주지 않으면(null·빈 배열·일부만) "새 id 제외" 없이 delete 하면 방금 넣은 행까지 지운다.
+  for (const [label, ret] of [['null', null], ['빈 배열', []], ['일부만', (p) => p.slice(0, Math.max(0, p.length - 1)).map((_, i) => ({ id: `new${i}` }))]]) {
+    const db = makeDb({ insertReturn: ret })
+    const r = await quiet(() => runExtraction(db, 'p1', 'mock', restore, 3))
+    const delOld = db.ops.some((x) => x.table === 'analysis_aspects' && x.op === 'delete' && x.filters.some((f) => f[0] === 'eq' && f[1] === 'human_confirmed'))
+    const last = db.ops.filter((x) => x.op === 'update').at(-1)
+    t(`insert 응답 id ${label} → 옛 속성 delete 안 함 · failed(이전 상태라 장담 못 함)`, r.ok === false && !delOld && last?.payload.status === 'failed' && /돌려받은 id/.test(r.error))
+  }
+  {
+    const db = makeDb({ insertReturn: (p) => p.slice(0, Math.max(0, p.length - 1)).map((_, i) => ({ id: `new${i}` })) })
+    await quiet(() => runExtraction(db, 'p1', 'mock', restore, 3))
+    const undoIds = db.ops.find((x) => x.table === 'analysis_aspects' && x.op === 'delete' && x.filters.some((f) => f[0] === 'in'))
+    const insertedCount = db.ops.find((x) => x.op === 'insert')?.payload.length ?? 0
+    const undone = undoIds?.filters.find((f) => f[0] === 'in')?.[2] ?? []
+    t(`insert 응답 일부만(넣음 ${insertedCount} · 받음 ${insertedCount - 1}) → 받은 id 만 걷어 낸다`, insertedCount >= 2 && undone.length === insertedCount - 1)
+  }
 
   // 하드 캡이 본 호출 전에 걸리면: 속성 쓰기 0건 · 이전 상태 · 시도 수 되돌림(claim 이 올린 3 → 2)
   const hcDb = makeDb()
@@ -306,12 +333,15 @@ t('extract: 상한 확인이 claimExtraction 보다 앞(건너뛴 건 extract_at
 t('extract: summary 에 stop_reason·processed·session', /stop_reason: stopReason, processed, not_started/.test(ex))
 const rj = read('scripts/relevance-judge-auto.mjs')
 t('T2: 소프트 캡은 프로젝트 경계(묶음 루프 밖), 하드 캡은 묶음마다', rj.indexOf('capReached(spentNow, capUsd)') > 0 && rj.indexOf('capReached(spentNow, capUsd)') < rj.indexOf('for (const batch of batches)') && /before >= hardCapUsd/.test(rj))
-t('extract: 소프트 캡은 경계에서만(진행 중 프로젝트 안에서는 안 봄), 하드 캡은 llm.ts 에 건다', /setCliHardCap\(hardCapUsd\)/.test(ex) && (ex.match(/capReached\(/g) ?? []).length === 1)
+t('extract: 소프트 캡은 경계에서만(진행 중 프로젝트 안에서는 안 봄), 하드 캡은 llm.ts 에 건다', /setCliHardCap\(hardCapUsd, /.test(ex) && (ex.match(/capReached\(/g) ?? []).length === 1)
 t('extract: 한도·하드 캡 실패에서 시도 수를 되돌리게 claim.attempts 를 넘긴다', /runExtraction\(supabase, target\.projectId, provider, claim\.restore, claim\.attempts\)/.test(ex))
+t('extract: 하드 캡에 막힌(안 돈) 프로젝트는 touched 에 안 넣는다 — 큐 우선순위 유지', /if \(!\(out\.ok === false && out\.hardCap\)\) touched\.push/.test(ex) && !/\n  touched\.push\(target\.projectId\)/.test(ex))
+t('extract·T2: 모든 spendForCap 호출이 폴백 설정을 넘긴다', !/spendForCap\(cli(Spent\(\))?\)/.test(ex) && !/spendForCap\(cli(Spent\(\))?\)/.test(rj) && /setCliHardCap\(hardCapUsd, guard\.cfg\.unitCostFallbackUsd\)/.test(ex))
+t('T2: batchesDone 은 저장 성공 뒤에 센다', rj.indexOf('batchesDone += 1') > rj.indexOf('judgedTotal += rows.length'))
 t('extract: 재시도 큐를 summary 에 남기고 소진이면 exit 1', /retry_queue: rq\.queue/.test(ex) && /alarm \|\| rq\.giveUp \? 1 : 0/.test(ex))
 t('T2: 마지막 재시도 한도면 exit 1(watchdog → Notion)', /retriesExhausted \? 1 : 0/.test(rj))
 t('번역: 기록만(capReached 없음)', !/capReached/.test(read('scripts/relevance-translate.mjs')) && /job: 'translate'/.test(read('scripts/relevance-translate.mjs')))
-t('extract·T2 상한 판정이 spendForCap(비용 모름 추정)을 쓴다', /spendForCap\(cliSpent\(\)\)/.test(ex) && /spendForCap\(cliSpent\(\)\)/.test(rj) && !/cliSpent\(\)\.usd\s*\n?\s*if \(.*capReached/.test(ex))
+t('extract·T2 상한 판정이 spendForCap(비용 모름 추정)을 쓴다', /spendForCap\(cliSpent\(\), /.test(ex) && /spendForCap\(cliSpent\(\), /.test(rj) && !/cliSpent\(\)\.usd\s*\n?\s*if \(.*capReached/.test(ex))
 t('T2: r2 가 한도 정지인 채 쉬면 exit 1', /slot === 'r2' && retry\.quotaPending !== false/.test(rj))
 for (const [f, k] of [['scripts/relevance-second-judge-auto.mjs', 'relevance-second-'], ['scripts/relevance-auto-approve.mjs', 'relevance-auto-approve-'], ['scripts/case-auto-approve.mjs', 'case-auto-approve-'], ['scripts/relevance-judge-auto.mjs', 'relevance-judge-']]) {
   t(`${f}: run_key 에 슬롯 접미사(정규 행 보존)`, read(f).includes(`runKey: \`${k}\${kstDate()}\${relevanceRunSuffixFromEnv()}\``) || (k === 'relevance-judge-' && /relevanceRunSuffixFromEnv\(\)/.test(read(f)) && read(f).includes('`relevance-judge-${today}${suffix}`')))

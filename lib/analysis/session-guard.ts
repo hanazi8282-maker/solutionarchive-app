@@ -23,6 +23,8 @@ export type GuardConfig = {
   /** 하드 캡 %(v32: 30). 진행 중 작업의 절대 상한 — 닿으면 다음 claude -p 를 시작하지 않는다(extract). */
   hardCapPct: number | null
   usdPerPct: number | null
+  /** 비용 모름 호출을 셀 근거(본 호출)가 없을 때 쓰는 1회 호출 상한 추정($). 없으면 그때는 확인 불가. */
+  unitCostFallbackUsd: number | null
   weeklyStopPct: number | null
   usdPerWeeklyPct: number | null
 }
@@ -34,6 +36,7 @@ export function parseGuardConfig(raw: Record<string, unknown> | null | undefined
   return {
     capPct: pos(r.session_cap_pct),
     hardCapPct: pos(r.hard_cap_pct),
+    unitCostFallbackUsd: pos(r.unit_cost_fallback_usd),
     usdPerPct: pos(r.usd_per_session_pct),
     weeklyStopPct: pos(r.weekly_stop_pct),
     usdPerWeeklyPct: pos(r.usd_per_weekly_pct),

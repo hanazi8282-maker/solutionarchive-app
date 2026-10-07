@@ -24,6 +24,7 @@
 // parseFailures 1 + nextCursor null 로 그 타깃을 끝낸다(0건 정상으로 접지 않는다).
 
 import type { ParseContext, ParseResult, ParsedReview, ReviewRequest, ReviewSourceAdapter, TargetState } from '../types.ts'
+import { detectReviewLang } from '../lang.ts'
 
 export const BATCH_URL = 'https://play.google.com/_/PlayStoreUi/data/batchexecute'
 export const RPC_ID = 'UsvDTd'
@@ -89,7 +90,8 @@ function toReview(e: unknown, ref: { gl: string; hl: string; pkg: string }): Par
     authorMasked: null,
     writtenAt: kstDate(at(e, 5, 0)),
     sourceUrl: reviewUrl(ref.pkg, ref.hl, ref.gl, id),
-    lang: ref.hl,
+    // 요청 hl 을 그대로 붙이면 한글 없는 본문(53/781)도 ko 가 된다 — 본문 한글 비율로 판정한다(lib/review/lang.ts, 2026-10-08).
+    lang: detectReviewLang(text, ref.hl),
   }
 }
 

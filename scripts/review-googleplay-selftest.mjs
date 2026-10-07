@@ -360,6 +360,115 @@ const input = { projectId: 'p', sourceKey: 'googleplay', text: 'x', collectedAt:
   t('미적용 환경: 두 번째 행도 들어간다', sb.rows.length, 2)
 }
 
+// ── 4) 방문 순서(남헌 v40 §3-②) — 실제 store.listDueTargets + 실제 순수함수. 가짜는 supabase 뿐 ──
+// 가짜 supabase: 쿼리 체인을 기록하고, 끝에서 resolve(calls) 로 응답을 만든다.
+function chainSupa(resolve) {
+  const queries = []
+  return {
+    queries,
+    from(table) {
+      const calls = [['from', table]]
+      queries.push(calls)
+      const q = new Proxy({}, {
+        get(_, k) {
+          if (k === 'then') return (ok, ko) => Promise.resolve().then(() => resolve(calls)).then(ok, ko)
+          return (...a) => { calls.push([k, ...a]); return q }
+        },
+      })
+      return q
+    },
+  }
+}
+const arg = (calls, k, i = 0) => calls.filter((c) => c[0] === k).map((c) => c[1 + i])
+// 미방문 3종 + 방문 2개. DB 기본 순서(last_run_at NULLS FIRST, created_at)대로 늘어놓는다.
+const gpRow = (id, pid, lastRun, total = 0) => ({ id, project_id: pid, source_key: 'googleplay', product_ref: `kr:ko:com.${id}.app`, cursor: null, last_review_at: null, consecutive_empty: 0, total_collected: total, last_run_at: lastRun })
+const GP_ROWS = [
+  gpRow('none', 'pNone', null), // 앱스토어 타깃 없음
+  gpRow('active', 'pActive', null), // 앱스토어 활성
+  gpRow('exh', 'pExh', null), // 앱스토어 exhausted
+  gpRow('vBig', 'pExh2', '2026-10-01T00:00:00Z', 40), // 방문 ∧ 앱스토어 exhausted(30건) → 합계 70
+  gpRow('vSmall', 'pExh3', '2026-10-02T00:00:00Z', 5), // 방문 ∧ 앱스토어 exhausted(10건) → 합계 15
+]
+const AS_ROWS = [
+  { project_id: 'pActive', status: 'active', total_collected: 10 },
+  { project_id: 'pExh', status: 'exhausted', total_collected: 50 },
+  { project_id: 'pExh2', status: 'exhausted', total_collected: 30 },
+  { project_id: 'pExh3', status: 'exhausted', total_collected: 10 },
+]
+const gpSupa = (asResp = { data: AS_ROWS, error: null }, gpRows = GP_ROWS) =>
+  chainSupa((calls) => (arg(calls, 'eq', 1)[0] === 'appstore' ? (typeof asResp === 'function' ? asResp() : asResp) : { data: gpRows, error: null }))
+const ids = (ts) => ts.map((x) => x.id).join(',')
+{
+  const sb = gpSupa()
+  const got = await createReviewStore(sb).listDueTargets('googleplay', 10)
+  t('순서: 미방문 exhausted → 미방문 나머지(기존 순서) → 방문(기존 순서)', ids(got), 'exh,none,active,vBig,vSmall')
+  t('조회: 정확히 2번(N+1 없음)', sb.queries.length, 2)
+  t('조회: 앱스토어는 프로젝트 in 한 번', JSON.stringify(arg(sb.queries[1], 'in', 1)[0]), JSON.stringify(['pNone', 'pActive', 'pExh', 'pExh2', 'pExh3']))
+  t('조회: googleplay 는 last_run_at NULLS FIRST, created_at 순', JSON.stringify(arg(sb.queries[0], 'order')), '["last_run_at","created_at"]')
+  t('limit 은 정렬 뒤 자른다', ids(await createReviewStore(gpSupa()).listDueTargets('googleplay', 2)), 'exh,none')
+  t('반환 모양은 TargetState 그대로', JSON.stringify(Object.keys(got[0]).sort()), JSON.stringify(['consecutiveEmpty', 'cursor', 'id', 'lastReviewAt', 'productRef', 'projectId', 'sourceKey']))
+}
+{
+  // 기본(GP_PRIORITY_REPEAT=false): 방문 이력 있는 타깃은 기존 순서 그대로
+  const { orderGooglePlayTargets, summarizeAppStore, GP_PRIORITY_REPEAT } = await import('../lib/review/runner.ts')
+  t('확장 상수 기본값 false(사양대로, 남헌 승인 전)', GP_PRIORITY_REPEAT, false)
+  const rows = GP_ROWS.map((r) => ({ id: r.id, projectId: r.project_id, lastRunAt: r.last_run_at, totalCollected: r.total_collected }))
+  const as = summarizeAppStore(AS_ROWS)
+  t('기본: 방문 타깃 순서 불변', ids(orderGooglePlayTargets(rows, as).filter((r) => r.lastRunAt)), 'vBig,vSmall')
+  // 확장 true: 방문 중 exhausted ∧ 앱스토어<100 을 앞으로, 합계 수집 적은 순(vSmall 15 < vBig 70). 미방문이 여전히 먼저.
+  t('확장 true: 수집 적은 순', ids(orderGooglePlayTargets(rows, as, true)), 'exh,none,active,vSmall,vBig')
+  const asBig = summarizeAppStore([...AS_ROWS.filter((r) => r.project_id !== 'pExh3'), { project_id: 'pExh3', status: 'exhausted', total_collected: 100 }])
+  t('확장 true: 앱스토어 100건 이상이면 우선 아님', ids(orderGooglePlayTargets(rows, asBig, true)), 'exh,none,active,vBig,vSmall')
+  const asMixed = summarizeAppStore([...AS_ROWS, { project_id: 'pExh', status: 'active', total_collected: 0 }])
+  t('앱스토어 타깃 중 하나라도 active 면 exhausted 아님', ids(orderGooglePlayTargets(rows, asMixed)), 'none,active,exh,vBig,vSmall')
+  t('조회 실패(null)면 입력 순서 그대로', ids(orderGooglePlayTargets(rows, null, true)), 'none,active,exh,vBig,vSmall')
+}
+for (const [label, asResp] of [
+  ['오류 응답', { data: null, error: { message: 'boom' } }],
+  ['예외', () => { throw new Error('network down') }],
+]) {
+  const warns = []
+  const origWarn = console.warn
+  console.warn = (m) => warns.push(String(m))
+  const got = await createReviewStore(gpSupa(asResp)).listDueTargets('googleplay', 10)
+  console.warn = origWarn
+  t(`조회 실패(${label}): 기존 순서로 돈다`, ids(got), 'none,active,exh,vBig,vSmall')
+  t(`조회 실패(${label}): ⚠️ 한 줄`, warns.length === 1 && warns[0].startsWith('⚠️'), true)
+}
+{
+  // 다른 소스 불변: v40 이전 쿼리 체인과 바이트 단위로 같다(쿼리 1번, 정렬 1단, DB limit).
+  const before = (key, n) => JSON.stringify([
+    ['from', 'review_targets'],
+    ['select', 'id, project_id, source_key, product_ref, cursor, last_review_at, consecutive_empty, total_collected'],
+    ['eq', 'source_key', key], ['eq', 'status', 'active'],
+    ['order', 'last_run_at', { ascending: true, nullsFirst: true }],
+    ['limit', n],
+  ])
+  for (const key of ['appstore', 'danawa', 'hackernews', 'kakao', 'youtube']) {
+    const rows = [gpRow('b', 'p2', null), gpRow('a', 'p1', '2026-10-01T00:00:00Z')].map((r) => ({ ...r, source_key: key }))
+    const sb = chainSupa(() => ({ data: rows, error: null }))
+    const got = await createReviewStore(sb).listDueTargets(key, 7)
+    t(`다른 소스 불변(${key}): 쿼리 체인`, JSON.stringify(sb.queries[0]), before(key, 7))
+    t(`다른 소스 불변(${key}): 쿼리 1번`, sb.queries.length, 1)
+    t(`다른 소스 불변(${key}): DB 순서 그대로`, ids(got), 'b,a')
+  }
+}
+{
+  // 러너 통합: 실제 store(가짜 supabase 10타깃) → 실제 러너 → 실제 어댑터. targetLimit 3 이면 우선 대상 3개가 먼저 선택된다.
+  const rows = [
+    ...Array.from({ length: 6 }, (_, i) => gpRow(`n${i}`, `pn${i}`, null)), // 앱스토어 없음
+    ...Array.from({ length: 3 }, (_, i) => gpRow(`x${i}`, `px${i}`, null)), // 앱스토어 exhausted — DB 순서상 뒤쪽
+    gpRow('v0', 'pv0', '2026-10-01T00:00:00Z'),
+  ]
+  const as = [0, 1, 2].map((i) => ({ project_id: `px${i}`, status: 'exhausted', total_collected: 20 }))
+  const real = createReviewStore(gpSupa({ data: as, error: null }, rows))
+  const h = harness({ byToken: { first: pageEmpty } })
+  h.ports.store.listDueTargets = (k, n) => real.listDueTargets(k, n)
+  const r = await runCollection(googleplayAdapter, { dryRun: false, targetLimit: 3 }, h.ports)
+  t('러너 통합: 방문 3개', r.targetsVisited, 3)
+  t('러너 통합: 앱스토어 exhausted 대상이 먼저 선택', [...new Set(h.log.saves.map((s) => s.targetId))].join(','), 'x0,x1,x2')
+}
+
 console.log(`${pass} passed, ${fail} failed`)
 if (fail > 0) process.exit(1)
 console.log('ℹ️ 리뷰·토큰 위치는 2026-10-07 실응답 축약본으로 확인. 마지막 페이지 모양은 실측 전(null·[null] 둘 다 끝으로 받음).')

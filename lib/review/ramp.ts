@@ -52,12 +52,16 @@ export const COLLECT_SLOTS = ['43 1 * * *', '37 5 * * *', '29 9 * * *', '19 13 *
 /** 기존 슬롯 — 모든 소스가 지금처럼 돈다. 나머지(추가 슬롯)는 계획이 있는 소스만. */
 export const LEGACY_SLOTS: ReadonlySet<string> = new Set(['37 5 * * *', '37 17 * * *'])
 /**
- * P_safe — 회당 안전 요청 수(소스별). 비어 있으면 기본값.
- * ponytail: 잠정값. 162 = 2026-10-07 스냅샷 14일 중 차단 0 인 실행의 회당 최대 요청(hackernews). 소스별 정본은 [Fable]
- * reports/2026-10-07/source-safe-caps-v30.md 가 낸다 — 나오면 이 맵에 값만 넣는다. cap_base 가 없는 지금은 쓰이지 않는다.
+ * P_safe — 회당 안전 요청 수(소스별). 값은 [Fable] reports/2026-10-07/source-safe-caps-v30.md §1 의 "→ P_safe" 그대로
+ * (min(P_time, P_policy, 2 × 14일 회당 최대); 실측 부족은 구조값 잠정). 바뀌면 이 맵의 값만 고친다.
+ * 맵에 없는 소스(kakao_blog·kakao_cafe = 실측 0 "확인 불가", producthunt = 비활성 예정, danawa = 램프 제외)는 기본값.
+ * ponytail: 기본값 10 = 문서의 가장 작은 구조값(10타깃 × 1요청) — 확인 불가를 넉넉한 값으로 접지 않는다(§7.1). 첫 수집 뒤 문서가 값을 내면 맵에 넣는다.
  */
-export const P_SAFE: Readonly<Record<string, number>> = {}
-export const P_SAFE_DEFAULT = 162
+export const P_SAFE: Readonly<Record<string, number>> = {
+  appstore: 100, hackernews: 324, googleplay: 20, youtube: 200, devto: 40, indiehackers: 40, disquiet: 40, tumblbug: 200, yozm: 20,
+  '82cook': 94, bobaedream: 86, clien: 96, velog: 114, okky: 40, damoang: 10, fmkorea: 10, theqoo: 10, brunch: 14,
+}
+export const P_SAFE_DEFAULT = 10
 export const pSafeOf = (sourceKey: string): number => P_SAFE[sourceKey] ?? P_SAFE_DEFAULT
 
 /** B 가 R=6 으로도 안 채워질 때 묶인 항. 'targets' = 타깃 부족 — 공급 자동화(v30 §3)가 읽는 신호. */

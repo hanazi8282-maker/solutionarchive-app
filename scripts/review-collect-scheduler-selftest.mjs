@@ -14,7 +14,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  COLLECT_SLOTS, LEGACY_SLOTS, MAX_RUNS_PER_DAY, P_SAFE_DEFAULT, RUN_TIME_SEC, collectWithRamp, loadSourceRamp, planSchedule,
+  COLLECT_SLOTS, LEGACY_SLOTS, MAX_RUNS_PER_DAY, P_SAFE, P_SAFE_DEFAULT, RUN_TIME_SEC, collectWithRamp, loadSourceRamp, pSafeOf, planSchedule,
   plannedSourcesForSlot, slotAllowance, slotIndexOf, slotRuns, stepPctRamps,
 } from '../lib/review/ramp.ts'
 import { fmkoreaAdapter } from '../lib/review/adapters/fmkorea.ts'
@@ -49,7 +49,10 @@ t('정확히 6회면 병목 아님', P({ budget: 162 * 6, activeTargets: 1000 })
 }
 t('1회 타깃: B 150·평균 4 → P 148 · R 2 · 회당 75 → ceil(75/4)=19', [P({ budget: 150, avgReqPerTarget: 4 }).runsPerDay, P({ budget: 150, avgReqPerTarget: 4 }).targetsPerRun], [2, 19])
 t('1회 타깃: 평균 45·회당 150 → 4', P().targetsPerRun, 4)
-t('P_safe 잠정 기본값 162(스냅샷 근거)', P_SAFE_DEFAULT, 162)
+// reports/2026-10-07/source-safe-caps-v30.md §1 값. 맵에 없는(확인 불가) 소스는 가장 작은 구조값 10.
+t('P_safe: 문서 값(hackernews 324 · googleplay 20 · fmkorea 10 · clien 96)', ['hackernews', 'googleplay', 'fmkorea', 'clien'].map(pSafeOf), [324, 20, 10, 96])
+t('P_safe: 맵에 없는 소스(kakao_blog) → 보수 기본값 10', [pSafeOf('kakao_blog'), P_SAFE_DEFAULT], [10, 10])
+t('P_safe: 제외·비활성 예정 소스는 맵에 없다', ['danawa', 'producthunt', 'todayhumor'].some((k) => k in P_SAFE), false)
 
 // ── 2) 슬롯 ──────────────────────────────────────────────────────
 t('슬롯 6개 = 하루 최대 run', COLLECT_SLOTS.length, MAX_RUNS_PER_DAY)
@@ -222,9 +225,10 @@ const last = (r) => r.notes.at(-1)
   const db = mk(2)
   const notes = await stepPctRamps(db, now, false)
   const sp = db.T.review_source_ramp[0].schedule_plan
-  // B=100(200×50%) · 시간 몫 5400s/3s=1800(200×3s=600s 라 안 깎임) · 안전 162 · 타깃 2×10=20 → P 20 → R 5 · 회당 20 · 타깃 2
-  t('판정: 계획 기록', [sp.date, sp.budget, sp.runsPerDay, sp.perRun, sp.perRunCap, sp.targetsPerRun, sp.bottleneck, sp.terms.time, sp.terms.targets], ['2026-10-08', 100, 5, 20, 162, 2, null, RUN_TIME_SEC * 1000 / 3000, 20])
-  t('판정: 요약 줄', notes.some((n) => /fmkorea: 스케줄 B 100 .* R 5\/일/.test(n)), true)
+  // B=100(200×50%) · 시간 몫 5400s/3s=1800(200×3s=600s 라 안 깎임) · 안전 10(fmkorea 문서값) · 타깃 2×10=20 → P 10 → need 10 → R 6 ·
+  // 병목 safe · 회당 17 · 회당 상한 10 · 1회 타깃 = min(2, ceil(10/10)) = 1
+  t('판정: 계획 기록', [sp.date, sp.budget, sp.runsPerDay, sp.perRun, sp.perRunCap, sp.targetsPerRun, sp.bottleneck, sp.terms.time, sp.terms.targets], ['2026-10-08', 100, 6, 17, 10, 1, 'safe', RUN_TIME_SEC * 1000 / 3000, 20])
+  t('판정: 요약 줄', notes.some((n) => /fmkorea: 스케줄 B 100 .* R 6\/일 .*병목 P_safe/.test(n)), true)
   const short = mk(1)
   await stepPctRamps(short, now, false)
   t('판정: 타깃 1개 × 10 → R 6 · 병목 targets(공급 자동화 신호)', [short.T.review_source_ramp[0].schedule_plan.runsPerDay, short.T.review_source_ramp[0].schedule_plan.bottleneck], [6, 'targets'])

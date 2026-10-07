@@ -135,8 +135,10 @@ t('다른 RPC 프레임만 = 실패', googleplayAdapter.parse(`)]}'\n\n[["wrb.fr
   const dist = {}
   for (const x of r.reviews) dist[x.lang] = (dist[x.lang] ?? 0) + 1
   console.log('ℹ️ 실응답 p1 라벨 분포(hl=ko):', JSON.stringify(dist))
-  const body = (x) => x.text.replace(/^(v[^)]*) /, '')
+  const body = (x) => x.text.replace(/^\(v[^)]*\) /, '')
   t('통합: toReview 라벨 = detectReviewLang(본문, hl) — 어댑터가 함수를 실제로 쓴다', r.reviews.every((x) => x.lang === D(body(x), 'ko')), true)
+  // 버전 머리말 '(v1.2) ' 가 판정에 섞이면 'v' 까지 라틴 3글자가 되어 und → und-latn 으로 바뀐다(뮤테이션으로 확인)
+  t('통합: 버전 머리말은 판정에서 빠진다(본문 ok + 버전 1.2 → und)', googleplayAdapter.parse(rpc([[entry('v1', 'ok', 4, '1.2')], null, null]), ctx()).reviews[0].lang, 'und')
   const mixed = rpc([[entry('m1', '알림이 늦게 와요'), entry('m2', 'Notifications are always late'), entry('m3', 'Las notificaciones llegan tarde'), entry('m4', '👍')], null, null])
   const labels = (hl) => googleplayAdapter.parse(mixed, ctx({ productRef: `kr:${hl}:com.Slack` })).reviews.map((x) => x.lang).join(',')
   t('통합: hl=ko 라도 한글 없는 본문은 ko 가 아니다', labels('ko'), 'ko,und-latn,und-latn,und')

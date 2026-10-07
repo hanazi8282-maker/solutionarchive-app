@@ -327,7 +327,7 @@ const history = [
 const projects = [{ id: 'p-saas', status: 'collecting', extract_finished_at: null, extract_attempts: 0, product_elevator_pitch: 'fake', business_model: 'SAAS' }]
 const NEW_INPUTS = 150
 
-function fakeDb() {
+function fakeDb(hist = history) {
   const patches = []
   const unexpected = []
   const server = http.createServer((req, res) => {
@@ -343,7 +343,7 @@ function fakeDb() {
         return json(200, projects)
       }
       if (table === 'analysis_inputs' && req.method === 'HEAD') { res.writeHead(200, { 'content-range': `*/${NEW_INPUTS}`, connection: 'close' }); return res.end() }
-      if (table === 'agent_runs' && req.method === 'GET') return json(200, history)
+      if (table === 'agent_runs' && req.method === 'GET') return json(200, hist)
       if (table === 'agent_runs' && req.method === 'POST') return json(201, { id: 'run-fake' })
       if (table === 'agent_run_steps' && req.method === 'POST') return json(201)
       if (table === 'agent_runs' && req.method === 'PATCH') { patches.push(JSON.parse(body)); return json(204) }
@@ -411,6 +411,17 @@ try {
     t('[통합 on] Notion 토큰 없음 → 경고로만 남는다(조정은 진행)', /자동 조정 Notion 기록 실패.*env/.test(r.out))
     t('[통합 on] 예상 밖 요청 0', db.unexpected.length === 0)
     if (!exitOk(r) || db.unexpected.length) console.log(r.out, db.unexpected)
+  }
+  // (b2) on, s1 — 평균 9%(8 폴백이면 hold, 10 이면 올림) 이력: 설정값 10 이 자식 프로세스까지 실제로 닿는지
+  {
+    const mk = (h, sl, cb) => ({ run_key: keyAt(h, sl), status: 'ok', started_at: kAgo(h).toISOString(), finished_at: kAgo(h - 1).toISOString(), summary: { decision: 'run', cap_binding: cb, done: 10, failed: 0, session: sess(GCFG.usdPerPct * 9), autotune: { d: 48, evaluated: false, action: null, source: 'chain' } } })
+    const db = await fakeDb([mk(26, 's3', 'slot'), mk(32, 's2', 'slot'), mk(41, 's1', 'none')])
+    const r = await runChild({ ...baseEnv(db.url, 's1'), EXTRACT_AUTOTUNE: 'on' }, tmp)
+    db.server.close()
+    const s = db.patches.at(-1)?.summary ?? {}
+    t('[통합 on·9%] 평균 9% 도 올린다(임계 10 · 8 폴백이면 hold)', exitOk(r) && s.autotune?.action === 'up' && s.autotune?.avg_pct === 9 && s.autotune?.up_below_pct === 10)
+    t('[통합 on·9%] 설정이 멀쩡하면 폴백 경고 없음', !/폴백 8%/.test(r.out))
+    if (!exitOk(r)) console.log(r.out)
   }
   // (c) on, s3 — 백로그 Bw 2 < OFF 6(직전 s3 실행함)으로 슬롯이 쉬는 날: 평가는 하되 올리지 않는다(대기 1건이 있어도)
   {

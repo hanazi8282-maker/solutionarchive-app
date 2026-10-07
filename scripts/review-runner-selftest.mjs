@@ -2053,20 +2053,21 @@ const runMarked = (h, over = {}) =>
   const mods = await Promise.all(
     [
       '82cook', 'bobaedream', 'brunch', 'clien', 'damoang', 'fmkorea', 'hackernews',
-      'okky', 'theqoo', 'todayhumor', 'tumblbug', 'velog',
+      'okky', 'theqoo', 'todayhumor', 'tumblbug', 'velog', 'googleplay',
       'danawa', 'appstore', 'youtube', 'naver-blog',
     ].map((f) => import('../lib/review/adapters/' + f + '.ts')),
   )
   const adapters = mods.flatMap((m) => Object.values(m).filter((v) => v && typeof v === 'object' && 'key' in v && 'nextRequest' in v))
   const byKey = new Map(adapters.map((a) => [a.key, a]))
 
-  const ON = ['82cook', 'bobaedream', 'brunch', 'clien', 'damoang', 'fmkorea', 'hackernews', 'okky', 'theqoo', 'todayhumor', 'tumblbug', 'velog']
+  const ON = ['82cook', 'bobaedream', 'brunch', 'clien', 'damoang', 'fmkorea', 'hackernews', 'okky', 'theqoo', 'todayhumor', 'tumblbug', 'velog', 'googleplay']
   // 대상이 고정된 문서(상품 pcode·앱 id·영상 id·블로그 글)라 진짜로 끝이 있다. 켜면 매일 다시 긁는다.
   const OFF = ['danawa', 'appstore', 'youtube', 'naver_blog_post']
 
   for (const k of ON) t(`incrementalOnly 켜짐: ${k}`, byKey.get(k)?.incrementalOnly, true)
   for (const k of OFF) ok(`incrementalOnly 꺼짐: ${k}`, byKey.has(k) && !byKey.get(k).incrementalOnly)
-  t('켜진 소스가 정확히 12개다(커뮤니티 11 + hackernews)', adapters.filter((a) => a.incrementalOnly).length, 12)
+  // googleplay 는 v27(남헌 확정) — 앱 리뷰는 끝없이 붙고, maxPagesPerRun 2 + 이미 본 구간 멈춤이라 매일 다시 긁지 않는다.
+  t('켜진 소스가 정확히 13개다(커뮤니티 11 + hackernews + googleplay)', adapters.filter((a) => a.incrementalOnly).length, 13)
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

@@ -117,6 +117,16 @@ export const HOST = 'https://okky.kr'
  */
 export const DELETED_COMMENT_TOLERANCE = 1
 
+/**
+ * 글 페이지가 JSON-LD(와 HTML note id)에 싣는 댓글 수 상한 — 첫 페이지분.
+ * 실측 2026-10-07: 1564954 commentCount 31 → comment[] 평탄화 20 · HTML note id 20,
+ *                  1564955 commentCount 56 → 평탄화 20 · note id 20(대댓글 31개 중 7개만),
+ *                  1564214 commentCount 8 → 평탄화 8(20 미만은 그대로 다 온다).
+ * ponytail: 21번째 이후 댓글은 수집하지 않는다(다음 댓글 페이지 경로를 실측하지 않았다 — /api/ 는 robots 금지).
+ *   필요해지면 robots 허용 경로부터 실측한다.
+ */
+export const NOTE_PAGE_SIZE = 20
+
 /** 글 경로. 쿼리 없는 경로형이라 SP-026(러너가 쿼리를 안 본다)과 무관하다. */
 const REF_RE = /^\/articles\/\d{1,10}$/
 
@@ -439,7 +449,11 @@ function parsePost(body: string, postPath: string): { reviews: ParsedReview[]; p
   // ── 마커 대조 ─────────────────────────────────────────────────
   // `commentCount` 가 유일한 개수 마커다(렌더 DOM 은 비어 있다). 부족분에서
   // 삭제 허용치를 뺀 만큼만 실패로 센다 — 근거는 파일 머리의 실측 17건.
-  if (ld.commentCount !== null && ld.commentCount > flat.length) {
+  //
+  // ⚠️ 단, 평탄화 건수가 NOTE_PAGE_SIZE 에 닿았으면 부족분은 실패가 아니다 — 사이트가 정적 HTML 에
+  //    댓글 첫 페이지만 싣는다(아래 NOTE_PAGE_SIZE 실측). 그 너머 댓글은 이 경로로는 원래 못 받는다.
+  //    이걸 실패로 세서 10-05·10-06 실행이 broken(파싱 21/31·34/43)으로 찍혔다(v27 진단).
+  if (ld.commentCount !== null && ld.commentCount > flat.length && flat.length < NOTE_PAGE_SIZE) {
     parseFailures += Math.max(0, ld.commentCount - flat.length - DELETED_COMMENT_TOLERANCE)
   }
 

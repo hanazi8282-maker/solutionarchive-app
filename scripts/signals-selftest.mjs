@@ -4,7 +4,7 @@
 import { EXCERPT_MAX, MAX_PAGE, QUOTE_POLICY_COLUMN_READY, quoteOf, SAAS_BUSINESS_MODELS, countBySource, excerptOf, feedHref, parseFeedQuery, sourceChips, sourceLinkOf } from '../lib/signals/feed.ts'
 import { productKindOf } from '../lib/cases/advisor.ts'
 import { sourceUrlOf, withSourceUrl } from '../lib/review/types.ts'
-import { QUOTE_MAX_EN, QUOTE_MAX_KO, QUOTE_TARGET_CHARS, checkQuote, checkSummary, isVerbatimExcerpt, publicQuotes, normalizeEvidenceQuotes, policyQuote, quoteCheckSummary, quoteLang, quotePolicyOf } from '../lib/analysis/evidence-quotes.ts'
+import { QUOTE_BACKFILL_TAG, QUOTE_MAX_EN, QUOTE_MAX_KO, QUOTE_TARGET_CHARS, checkQuote, isBackfillVerified, checkSummary, isVerbatimExcerpt, publicQuotes, normalizeEvidenceQuotes, policyQuote, quoteCheckSummary, quoteLang, quotePolicyOf } from '../lib/analysis/evidence-quotes.ts'
 
 let pass = 0
 let fail = 0
@@ -100,7 +100,7 @@ t('quote: 정책 모름(null·undefined·옛 boolean·오타) 이면 빈 문자�
 t('quote: 상한 넘는 긴 글은 자르지 않고 비운다', quoteOf('가'.repeat(500), 'full') === '')
 // 20261005000003 적용 확인 전까지 false. v19 전에는 quote_allowed(000001, 적용됨)를 가리켜 true 였는데,
 // 읽는 컬럼이 quote_policy(미적용)로 바뀌어 다시 false 가 맞다 — true 로 두면 /voc 조회가 42703 으로 죽는다.
-t('quote: 컬럼 미적용 플래그는 기본 false(미적용 DB 에서 /voc 가 죽지 않게)', QUOTE_POLICY_COLUMN_READY === false)
+t('quote: 컬럼 적용 플래그는 true(quote_policy 컬럼 적용 확인 뒤, v27)', QUOTE_POLICY_COLUMN_READY === true)
 t('policy: quotePolicyOf 모르는 값 → none', quotePolicyOf('x') === 'none' && quotePolicyOf(null) === 'none' && quotePolicyOf('short_only') === 'short_only')
 t('target: 목표 약 100자는 권고 상수(하드 상한보다 작다)', QUOTE_TARGET_CHARS === 100 && QUOTE_TARGET_CHARS < QUOTE_MAX_KO && QUOTE_MAX_KO === 130 && QUOTE_MAX_EN === 240)
 // 길이 경계 — 한국어 130 / 영어 240, 정책(full·short_only) 무관. 원문 = 발췌 자신(자기 대조).
@@ -183,6 +183,14 @@ t('log: 0건이면 null(찍지 않는다)', quoteCheckSummary('t', []) === null)
   t('publicQuotes: 원문을 안 주면 0건(전문 대조 불가)', publicQuotes(q, pol, null).length === 0)
   t('publicQuotes: 옛 인용(source_key 없음)은 내지 않는다', publicQuotes(legacy, pol, sources).length === 0)
   t('publicQuotes: 정책 맵을 못 읽었으면(null) 0건', publicQuotes(q, null, sources).length === 0)
+}
+{
+  const ok = { text: 'x', verified: 'full', backfill: QUOTE_BACKFILL_TAG, source_key: 'danawa' }
+  t('isBackfillVerified: full ∧ qb-v1 ∧ source_key 만 참', isBackfillVerified(ok))
+  t('isBackfillVerified: prefix·purged·none·없음 → 거짓', ['prefix', 'purged', 'none', undefined].every((v) => !isBackfillVerified({ ...ok, verified: v })))
+  t('isBackfillVerified: 표식 없음·다른 표식 → 거짓', !isBackfillVerified({ ...ok, backfill: undefined }) && !isBackfillVerified({ ...ok, backfill: 'qb-v0' }))
+  t('isBackfillVerified: source_key 없음·빈 문자열 → 거짓', !isBackfillVerified({ ...ok, source_key: undefined }) && !isBackfillVerified({ ...ok, source_key: '' }))
+  t('isBackfillVerified: null·문자열 → 거짓', !isBackfillVerified(null) && !isBackfillVerified('full'))
 }
 
 if (fail) { console.log(`실패 ${fail}건 / 통과 ${pass}건`); process.exit(1) }

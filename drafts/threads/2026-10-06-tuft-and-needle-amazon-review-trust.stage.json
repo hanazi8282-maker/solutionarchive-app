@@ -1,0 +1,17 @@
+{
+  "case_slug": "tuft-and-needle-amazon-review-trust",
+  "move_id": "3e2fc6dc-4588-428b-9b88-d18b6fb53687",
+  "content_code": "CS-20261006-02",
+  "body_path": "drafts/threads/2026-10-06-tuft-and-needle-amazon-review-trust.body.txt",
+  "reply_path": "drafts/threads/2026-10-06-tuft-and-needle-amazon-review-trust.selfreply.txt",
+  "decision_doc": "drafts/threads/2026-10-06-tuft-and-needle-amazon-review-trust.md",
+  "title": "값을 비교하게 하라",
+  "twist_line": "값을 비교할 수 없게 만드는 업계에서, 모델 하나와 가격 하나로 값을 비교할 수 있게 만든 것 자체가 신뢰 장치였다",
+  "hook_type": "사실 반례형(같은 제품에 매장마다 다른 모델명을 붙인 업계, 실명 타프트앤니들·JT 마리노)",
+  "closing_type": "행동지시형(가격표를 한 화면에 적고 옵션을 줄이고 가격을 숫자 하나로 맨 위에 적기, 문의 주세요·기간 한정 할인 문구 지우기)",
+  "topic_tag": "case-study",
+  "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-4 경고, G-0 예외통과. 등급 인사이트 C·사실확인 D(프롬프트 값): CG-2 대상이라 본문 숫자 0개(옵션 임계값·다른 무브 수치 전부 뺌), 자기답글에도 숫자 0개. CG-1 대응으로 자기답글에 '자사 공시'·'제3자 검증은 받지 않았다' 표기. 사실은 drafts/cases/tuft-and-needle-amazon-review-trust.json moves[3]·evidence(tn-marino-mixergy-hate-list)와 대조 완료. 수치 없는 서술 무브라 단일 가격의 전환 효과는 쓰지 않았고 자기답글에 근거 없음을 밝혔다. 근거(tn-site-live)상 현재 사이트는 모델이 여럿이라 본문은 창업 시점 과거형, 자기답글에 현재 상태를 한 줄로 밝힘. 이 세션은 Bash 승인이 없어 column-check.mjs·wc -m 을 실행하지 못했다: 본문 글자수는 손 추정 약 370자, SC-1~SC-5 는 눈으로 판정했으니 오케스트레이터가 column-check 를 돌릴 것. 같은 케이스 다른 무브(아마존 리뷰·환불·NPS)와 연달아 발행되지 않게 간격 확인 필요(각은 다름).",
+  "bp1_exclusive_numbers": "false",
+  "bp2_transferable": "true",
+  "applied_patterns": ["edit-question-to-statement"]
+}

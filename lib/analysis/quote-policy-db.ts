@@ -9,7 +9,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { QUOTE_POLICY_COLUMN_READY } from '../signals/feed.ts'
-import { quoteProbeTokens, type EvidenceQuote } from './evidence-quotes.ts'
+import { isBackfillVerified, quoteProbeTokens, type EvidenceQuote } from './evidence-quotes.ts'
 
 /** review_sources.key → quote_policy 원값. null = 못 읽음(플래그 꺼짐·컬럼 없음·조회 실패). 행은 수십 개라 캐시 없이 요청당 1회. */
 export async function loadQuotePolicies(
@@ -38,7 +38,11 @@ const ROWS_PER_QUERY = 1000
  * 인용들의 원문 후보를 읽는다 → sourceGroupKey(project, source) → raw_text[].
  * 인용 앞머리 낱말로 ilike 검색해 후보만 받는다(프로젝트 원문 전체를 받지 않는다). 후보가 많이 걸려도 괜찮다 —
  * 원문 일치 판정은 checkQuote 가 JS 에서 다시 한다. 정책 맵이 없거나 대조할 인용이 없으면 조회하지 않는다.
- * null = 조회 실패(한 묶음이라도) — 일부만 읽은 원문으로 대조하지 않는다.
+ * 백필이 전문 일치를 확인한 인용(isBackfillVerified)은 조회 대상에서 뺀다 — publicLines 가 원문 없이 판정한다.
+ *   2026-10-06 실측: 옛 인용까지 다 넣으면 4.3만 행 위 ilike 가 57014(statement timeout)로 죽어 맵이 통째로 null 이 됐다.
+ * 부분 실패 허용: 한 묶음 조회가 실패해도 나머지 묶음 결과는 쓴다. 실패한 묶음의 인용은 원문 후보가 없거나 모자라
+ *   대조에 떨어져 가려진다(fail-closed). 읽은 행은 실제 원문이라 그걸로 통과한 인용은 거짓 통과가 아니다.
+ *   null = 정책 맵은 있는데 조회한 묶음이 전부 실패.
  */
 export async function loadQuoteSources(
   sb: SupabaseClient,
@@ -56,6 +60,7 @@ export async function loadQuoteSources(
       const key = typeof q?.source_key === 'string' ? q.source_key : null
       // 정책이 none·모름인 소스는 어차피 인용을 못 낸다 — 원문을 읽지 않는다.
       if (!key || !['full', 'short_only'].includes(String(policies.get(key)))) continue
+      if (isBackfillVerified(q)) continue // 백필이 전문 일치를 확인했다 — 원문을 다시 읽지 않는다.
       const tokens = quoteProbeTokens(q?.text)
       if (tokens.length === 0) continue
       probes.add(`%${tokens.join('%')}%`)
@@ -74,10 +79,12 @@ export async function loadQuoteSources(
     .in('source_key', [...keys])
     .or(c.map((p) => `raw_text.ilike."${p.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`).join(','))
     .limit(ROWS_PER_QUERY)))
+  let failed = 0
   for (const r of results) {
     if (r.error) {
-      console.error(`[${where}] analysis_inputs quote-source select error:`, r.error.code ?? '', r.error.message)
-      return null
+      failed++
+      console.error(`[${where}] analysis_inputs quote-source select error (chunk ${failed}/${results.length}, its quotes stay hidden):`, r.error.code ?? '', r.error.message)
+      continue
     }
     const rows = (r.data ?? []) as { project_id: string; source_key: string | null; raw_text: string | null }[]
     if (rows.length >= ROWS_PER_QUERY) console.warn(`[${where}] quote-source rows hit cap ${ROWS_PER_QUERY} — some quotes may fail verbatim check`)
@@ -87,5 +94,5 @@ export async function loadQuoteSources(
       out.set(k, [...(out.get(k) ?? []), row.raw_text])
     }
   }
-  return out
+  return failed === results.length ? null : out
 }

@@ -64,7 +64,9 @@ export function noVerdictSources(sourceResults) {
 export function hiddenBroken(quiet, rowsByKey, now) {
   return quiet.flatMap((q) => {
     const h = latestHealthBySource([q.key], rowsByKey?.[q.key] ?? [])[0]
-    if (h.health !== 'unknown' || typeof h.lastChecked !== 'object' || h.lastChecked.health !== 'broken') return []
+    // 최근 판정이 그대로 broken 인 경우도 올린다 — soft-skip(v27)은 실행 행을 안 만들어 최근 행이 옛 broken 으로 남는다.
+    const lastBroken = h.health === 'broken' || (h.health === 'unknown' && typeof h.lastChecked === 'object' && h.lastChecked.health === 'broken')
+    if (!lastBroken) return []
     return [{ key: q.key, summary: healthSummary(h, now.getTime()), thisRun: q.thisRun }]
   })
 }

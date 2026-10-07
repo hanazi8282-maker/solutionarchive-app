@@ -498,6 +498,8 @@ export async function runCollection(
   // 증분형 소스(hackernews q:)는 "끝까지 읽음"이 끝이 아니다 — 커서가 null 이어도
   // active 로 두고 다음 실행이 page 0 부터 새 댓글만 읽는다(types.ts incrementalOnly).
   const endStatus: TargetProgress['status'] = adapter.incrementalOnly ? 'active' : 'exhausted'
+  // 어댑터별 페이지 상한(types.ts maxPagesPerRun). 러너 상한보다 크게는 못 연다.
+  const pageCap = Math.min(MAX_PAGES_PER_TARGET, Math.max(1, adapter.maxPagesPerRun ?? MAX_PAGES_PER_TARGET))
 
   const targets = await ports.store.listDueTargets(adapter.key, opts.targetLimit)
 
@@ -529,7 +531,7 @@ export async function runCollection(
     const targetMissing: string[] = []
     let missingStreak = 0
 
-    for (let page = 0; page < MAX_PAGES_PER_TARGET; page++) {
+    for (let page = 0; page < pageCap; page++) {
       if (requests >= budget) {
         outcome = capOutcome
         break
@@ -751,6 +753,11 @@ export async function runCollection(
       }
     }
 
+    // 어댑터 상한(maxPagesPerRun)에 걸린 증분형 타깃은 커서를 버린다 — 들고 가면 다음 실행이 더 오래된
+    // 페이지부터 읽어 새 리뷰를 못 본다(types.ts maxPagesPerRun). 상한에 걸린 사실은 아래 label 에 남는다(§7.2).
+    const resetAtCap = outcome === '진행' && adapter.incrementalOnly === true && adapter.maxPagesPerRun != null
+    if (resetAtCap) cursor = null
+
     const consecutiveEmpty = collected === 0 ? target.consecutiveEmpty + 1 : 0
 
     // ── 증분형 타깃의 종료 조건 ────────────────────────────────────
@@ -809,7 +816,11 @@ export async function runCollection(
     //    완주했다는 뜻이다 = 상한에 걸려 잘렸다. 그 사실이 이름에 안 드러나면
     //    "정상 진행"으로 읽힌다. 안전장치가 걸린 것을 정상으로 읽지 마라(§7.2).
     const capped = outcome === '진행'
-    const label = capped ? `페이지 상한 ${MAX_PAGES_PER_TARGET} 도달 — 다음 실행에서 이어 읽는다` : outcome
+    const label = !capped
+      ? outcome
+      : resetAtCap
+        ? `페이지 상한 ${pageCap} 도달(어댑터 상한) — 증분형이라 커서를 버리고 다음 실행은 최신부터`
+        : `페이지 상한 ${pageCap} 도달 — 다음 실행에서 이어 읽는다`
     const newLabel = opts.dryRun ? '신규 —(dry-run 은 판정하지 않음)' : `신규 ${collected}건`
     const missingLabel = targetMissing.length
       ? ` · 삭제·없는 글 ${targetMissing.length}건 건너뜀(${targetMissing.map((p) => p.slice(0, 32)).join(', ')})`

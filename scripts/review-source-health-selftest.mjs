@@ -398,4 +398,46 @@ ok('워크플로: concurrency 유지', /concurrency:\s*\n\s+group: review-collec
   }
 }
 
+// ── 9) soft-skip(v27) — 최근 3회 연속 파싱 고장(차단 아님)이면 건너뛴다. DB 쓰기 없음 ─────────────
+{
+  const L = await import('../lib/review/latest-health.ts')
+  const now = Date.parse('2026-10-07T00:00:00Z')
+  const at = (h) => new Date(now - h * 3600_000).toISOString()
+  // 파싱 고장 행: 21/31(실측 10-06 okky) · 차단 0
+  const pb = (h, over = {}) => ({ source_key: 'okky', started_at: at(h), finished_at: at(h), status: 'ok', dry_run: false, health_after: 'broken', reviews_parsed: 21, parse_failures: 10, blocked_responses: 0, ...over })
+  const three = [pb(1), pb(13), pb(25)]
+  ok('9 3연속 파싱 고장 → skip', L.softSkipDecision(three, null, now).state === 'skip')
+  ok('9 skip 사유에 직접 실행 경로가 있다', L.softSkipDecision(three, null, now).reason.includes('--source='))
+  ok('9 2회뿐 → run', L.softSkipDecision(three.slice(0, 2), null, now).state === 'run')
+  ok('9 중간에 ok 하나 → run', L.softSkipDecision([pb(1), pb(13, { health_after: 'ok' }), pb(25)], null, now).state === 'run')
+  ok('9 차단으로 broken → run(차단은 대상 아님)', L.softSkipDecision([pb(1, { blocked_responses: 1 }), pb(13), pb(25)], null, now).state === 'run')
+  ok('9 파싱률 정상인데 broken(다른 사유) → run', L.softSkipDecision([pb(1, { reviews_parsed: 30, parse_failures: 1 }), pb(13), pb(25)], null, now).state === 'run')
+  ok('9 옛 행(차단 수치 없음) → 확인 불가(지금처럼 실행)', L.softSkipDecision([pb(1, { blocked_responses: null }), pb(13), pb(25)], null, now).state === 'unknown')
+  ok('9 조회 실패 → 확인 불가', L.softSkipDecision(null, 'column blocked_responses does not exist', now).state === 'unknown')
+  ok('9 마지막 고장이 3일 이상 전 → 재시도(run)', L.softSkipDecision([pb(80), pb(92), pb(104)], null, now).state === 'run')
+  ok('9 dry-run 행은 세지 않는다', L.softSkipDecision([pb(1), pb(2, { dry_run: true }), pb(13)], null, now).state === 'run')
+  // 로더: 읽기만 한다(select·eq·order·limit 외 호출 없음), 예외도 확인 불가로
+  const calls = []
+  const q = { select: (c) => (calls.push(['select', c]), q), eq: (...a) => (calls.push(['eq', ...a]), q), order: () => q, limit: async (n) => (calls.push(['limit', n]), { data: three, error: null }) }
+  const r = await L.loadSoftSkip({ from: () => q }, 'okky', now)
+  ok('9 로더: skip', r.state === 'skip')
+  ok('9 로더: 차단 수치를 함께 읽는다', calls.some(([k, c]) => k === 'select' && c.includes('blocked_responses')))
+  ok('9 로더: dry-run 제외 + 3건', calls.some(([k, c, v]) => k === 'eq' && c === 'dry_run' && v === false) && calls.some(([k, n]) => k === 'limit' && n === L.SOFT_SKIP_STREAK))
+  const boom = await L.loadSoftSkip({ from: () => { throw new Error('net') } }, 'okky', now)
+  ok('9 로더: 예외 → 확인 불가(throw 안 함)', boom.state === 'unknown')
+
+  // 배선: 스케줄(--source=all)만 건너뛰고, 이름을 적은 실행은 건너뛰지 않는다. 건너뛴 소스는 고장 보고에 남는다.
+  const collect = fs.readFileSync(path.join(here, 'review-collect.mjs'), 'utf-8')
+  ok('9 배선: explicitSources = --source 가 all 이 아닐 때', /const explicitSources = rawSource\.trim\(\) !== 'all'/.test(collect))
+  ok('9 배선: 명시 실행·dry-run 은 soft-skip 판정 안 함', /if \(!explicitSources && !dryRun\) \{\s*const ss = await loadSoftSkip\(supabase, sourceKey\)/.test(collect))
+  ok('9 배선: soft-skip 은 실행 행 생성(insert)보다 먼저다', collect.indexOf('loadSoftSkip(supabase') > 0 && collect.indexOf('loadSoftSkip(supabase') < collect.search(/\.from\('review_collection_runs'\)\s*\.insert/))
+  const upserts = []
+  const rowsByKey = { okky: three }
+  const rep = await runSourceHealthReport({
+    sourceResults: [{ key: 'okky', skipped: true, skipReason: 'soft-skip — 최근 3회 연속 파싱 고장', health: null }],
+    loadRuns: async () => rowsByKey, now: new Date(now), date: '2026-10-07', upsert: async (e) => { upserts.push(e); return { ok: true, title: 't' } },
+  })
+  ok('9 보고: soft-skip 된 고장 소스도 Notion 고장 보고에 남는다(최근 행이 broken 그대로)', rep.ok && rep.hidden.map((x) => x.key).join() === 'okky' && upserts.length === 1)
+}
+
 console.log(`review-source-health-selftest: ${pass} passed`)

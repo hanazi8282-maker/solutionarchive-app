@@ -117,6 +117,9 @@ export function sourceUrlOf(text: string | null | undefined): string | null {
   return m ? m[1] : null
 }
 
+/** 구글 플레이 어댑터가 본문 앞에 붙이는 `(v버전) ` — 추출 저장(normalizeEvidenceQuotes)과 머리말 제거(stripSourceHeader)가 같이 쓰는 한 벌. */
+export const APP_VERSION_PREFIX_RE = /^\(v\d[^()\s]{0,39}\) /
+
 /**
  * `withSourceUrl` 머리말을 뗀 본문(v44 §2-b). **첫 줄 앵커만** 뗀다 — 본문 중간에 우연히 든 `[SRC: …]` 는 그대로 둔다.
  * appVersion=true 면 구글 플레이 어댑터가 본문 앞에 붙인 `(v버전) ` 도 뗀다(googleplay.ts toReview) —
@@ -128,7 +131,7 @@ export function stripSourceHeader(text: string | null | undefined, opts: { appVe
   const m = /^\s*\[SRC: (https:\/\/[^\s\]]+)\][^\S\n]*\n?/.exec(s)
   if (!m) return s
   const body = s.slice(m[0].length)
-  return opts.appVersion && m[1].startsWith('https://play.google.com/') ? body.replace(/^\(v[^()\s]{1,40}\) /, '') : body
+  return opts.appVersion && m[1].startsWith('https://play.google.com/') ? body.replace(APP_VERSION_PREFIX_RE, '') : body
 }
 
 export interface ParseResult {

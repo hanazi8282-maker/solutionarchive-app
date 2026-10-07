@@ -157,5 +157,10 @@ t('야간 배치가 한도면 멈춘다', /quotaExhausted/.test(auto) && /break/
 t('워크플로가 스케줄로 돈다', /cron: '33 18 \* \* \*'/.test(wf) && /scripts\/extract-auto\.mjs/.test(wf))
 t('워크플로에 dry-run 스위치가 있다', /dry_run/.test(wf) && /'--dry'/.test(wf))
 
+{
+  const hdr = '[SRC: https://play.google.com/store/apps/details?id=a&reviewId=x]\n'
+  const r = selectInputs([{ raw_text: hdr }, { raw_text: hdr + '(v1.0) ' }, { raw_text: hdr + '(v1.0) 진짜 본문 후기입니다' }])
+  t('v45: 머리말 제거 후 본문이 빈 입력은 선택에서 제외', r.selected.length === 1 && r.droppedInputs === 2)
+}
 console.log(`\n${fail === 0 ? '✅' : '❌'} 추출 선별·자동 실행 셀프테스트: ${pass} pass / ${fail} fail`)
 process.exit(fail === 0 ? 0 : 1)

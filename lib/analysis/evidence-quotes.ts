@@ -14,7 +14,7 @@
 //
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다. `@/` 별칭·enum 을 쓰지 않는다.
 
-import { stripSourceHeader } from '../review/types.ts'
+import { APP_VERSION_PREFIX_RE, stripSourceHeader } from '../review/types.ts'
 
 /** **저장** 상한(내부 정본 evidence_quotes). 고객 화면 상한이 아니다 — 그건 checkQuote·checkSummary(QUOTE_MAX_KO·EN). */
 export const QUOTE_MAX_CHARS = 300
@@ -136,8 +136,9 @@ export function isVerbatimExcerpt(excerpt: string, source: string): boolean {
  */
 export type QuoteKind = 'quote' | 'summary'
 /** src_header = 수집기 머리말(`[SRC: URL]` 첫 줄)을 걸쳐야만 원문에서 찾히는 발췌 — 본문이 아니라 주소·리뷰 id 다(v44 §2-b). */
-export type QuoteReason = 'ok' | 'policy_none' | 'empty' | 'too_long' | 'not_verbatim' | 'src_header'
-export type SummaryReason = Exclude<QuoteReason, 'not_verbatim' | 'src_header'>
+export type QuoteReason = 'ok' | 'policy_none' | 'empty' | 'too_long' | 'not_verbatim' | 'src_header' | 'src_header_mix'
+export type SummaryReason = Exclude<QuoteReason, 'not_verbatim' | 'src_header' | 'src_header_mix'>
+/** src_header_mix = 말줄임(…)으로 이어 붙인 인용에 머리말 조각이 섞여 순서·본문 대조가 깨진 경우(지어낸 것과 구분). */
 /** ok=false 면 text 는 빈 문자열이다 — 그대로 화면에 꽂아도 원문이 새지 않는다. */
 export interface QuoteCheck { kind: 'quote'; text: string; ok: boolean; reason: QuoteReason }
 export interface SummaryCheck { kind: 'summary'; text: string; ok: boolean; reason: SummaryReason }
@@ -150,6 +151,12 @@ function capCheck(text: unknown, policy: QuotePolicy): { flat: string } | { reas
   const max = quoteLang(flat) === 'en' ? QUOTE_MAX_EN : QUOTE_MAX_KO
   if (Array.from(flat).length > max) return { reason: 'too_long' }
   return { flat }
+}
+
+/** 말줄임 조각 중 하나가 원문 머리말(첫 줄 `[SRC: …]`)에서 나온 것인가. 너무 짧은 조각(4자 미만)은 우연 일치라 제외. */
+function hasHeaderFragment(flat: string, source: string): boolean {
+  const header = squash(source.slice(0, source.length - stripSourceHeader(source).length))
+  return header !== '' && flat.split('…').map((p) => p.trim()).some((p) => p.length >= 4 && header.includes(p))
 }
 
 type Sources = string | readonly (string | null | undefined)[] | null | undefined
@@ -166,7 +173,8 @@ export function checkQuote(text: string | null | undefined, policy: QuotePolicy,
   const srcs = (typeof source === 'string' ? [source] : source ?? []).filter((s): s is string => typeof s === 'string')
   // 대조는 머리말을 뗀 본문과 한다 — 머리말을 걸친 발췌는 raw_text 부분문자열이어도 거부(v44 §2-b, feed.ts quoteCheckOf 와 같은 규칙).
   if (!srcs.some((s) => isVerbatimExcerpt(c.flat, stripSourceHeader(s)))) {
-    const reason = srcs.some((s) => isVerbatimExcerpt(c.flat, s)) ? 'src_header' : 'not_verbatim'
+    const reason: QuoteReason = srcs.some((s) => isVerbatimExcerpt(c.flat, s)) ? 'src_header'
+      : srcs.some((s) => hasHeaderFragment(c.flat, s)) ? 'src_header_mix' : 'not_verbatim'
     return { kind: 'quote', text: '', ok: false, reason }
   }
   return { kind: 'quote', text: c.flat, ok: true, reason: 'ok' }
@@ -187,11 +195,11 @@ export function policyQuote(text: string | null | undefined, policy: QuotePolicy
 /** 검사 결과 묶음 → 로그 한 줄. 0건이면 null(찍지 않는다). */
 export function quoteCheckSummary(where: string, checks: readonly QuoteCheck[]): string | null {
   if (checks.length === 0) return null
-  const n: Record<QuoteReason, number> = { ok: 0, policy_none: 0, empty: 0, too_long: 0, not_verbatim: 0, src_header: 0 }
+  const n: Record<QuoteReason, number> = { ok: 0, policy_none: 0, empty: 0, too_long: 0, not_verbatim: 0, src_header: 0, src_header_mix: 0 }
   for (const c of checks) n[c.reason]++
   // src_header 는 0 이 아닐 때만 붙인다 — 기존 로그 한 줄 모양을 바꾸지 않는다.
-  return `[${where}] quote-cap checked=${checks.length} ok=${n.ok} rejected=${n.too_long + n.not_verbatim + n.src_header}` +
-    ` (too_long=${n.too_long} not_verbatim=${n.not_verbatim}${n.src_header ? ` src_header=${n.src_header}` : ''})` +
+  return `[${where}] quote-cap checked=${checks.length} ok=${n.ok} rejected=${n.too_long + n.not_verbatim + n.src_header + n.src_header_mix}` +
+    ` (too_long=${n.too_long} not_verbatim=${n.not_verbatim}${n.src_header ? ` src_header=${n.src_header}` : ''}${n.src_header_mix ? ` src_header_mix=${n.src_header_mix}` : ''})` +
     ` policy_none=${n.policy_none} empty=${n.empty}`
 }
 
@@ -318,7 +326,7 @@ export function normalizeEvidenceQuotes(
     const rawText = typeof item === 'string'
       ? item
       : typeof (item as { text?: unknown })?.text === 'string' ? (item as { text: string }).text : ''
-    const text = squash(rawText).replace(/^\(v\d[^()\s]{0,39}\) /, '').slice(0, QUOTE_MAX_CHARS)
+    const text = squash(rawText).replace(APP_VERSION_PREFIX_RE, '').slice(0, QUOTE_MAX_CHARS)
     if (text.length < 2 || seen.has(text)) continue
 
     const probe = text.slice(0, QUOTE_PREFIX_CHARS)

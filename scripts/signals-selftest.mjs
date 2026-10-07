@@ -206,6 +206,11 @@ t('log: 0건이면 null(찍지 않는다)', quoteCheckSummary('t', []) === null)
   t('strip: 머리말 없으면 그대로(버전도)', stripSourceHeader('(v1.2.3) body', { appVersion: true }) === '(v1.2.3) body' && stripSourceHeader(null) === '')
   const mid = `앞 문장. [SRC: https://evil.example/x] 뒤 문장.`
   t('strip: 본문 중간 [SRC:] 는 지우지 않는다(첫 줄 앵커)', stripSourceHeader(mid) === mid && stripSourceHeader(withSourceUrl(mid, 'https://velog.io/@a/b')) === mid)
+  t('strip: CRLF 머리말 줄바꿈도 뗀다', stripSourceHeader(`[SRC: ${gpUrl}]\r\n(v1.2.3) ${gpBody}`, { appVersion: true }) === gpBody)
+  t('strip: BOM 이 머리말 앞에 있어도 \s 가 삼켜 머리말을 뗀다', stripSourceHeader(`﻿${gpRaw}`) === `(v1.2.3) ${gpBody}`)
+  t('strip: 머리말만 있고 본문 없으면 빈 문자열', stripSourceHeader(withSourceUrl('', gpUrl)) === '')
+  t('표시: 말줄임 인용에 머리말 조각이 섞이면 src_header_mix(지어낸 것과 구분)', checkQuote('The app crashes … reviewId=abc-123', 'full', gpRaw).reason === 'src_header_mix')
+  t('log: src_header_mix 사유를 따로 센다', quoteCheckSummary('t', [checkQuote('The app crashes … reviewId=abc-123', 'full', gpRaw)]) === '[t] quote-cap checked=1 ok=0 rejected=1 (too_long=0 not_verbatim=0 src_header_mix=1) policy_none=0 empty=0')
   // 저장 검사
   const drops = { src_header: 0 }
   const stored = normalizeEvidenceQuotes([header, `${header} (v1.2.3) The app crashes`, 'reviewId=abc-123] (v1.2.3) The app', gpBody], inp, drops)

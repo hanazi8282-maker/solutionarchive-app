@@ -28,6 +28,8 @@
 -- ============================================================
 
 -- ── 적용 전 확인(information_schema·직접 SELECT, PostgREST head:true 금지 — §7.1) ──
+--   SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='review_source_ramp'
+--      AND column_name IN ('pct_step','cap_base','daily_request_target','schedule_plan');   -- 기대: 4 (선행 마이그 000002·000030 적용 확인)
 --   SELECT count(*) FROM public.review_source_ramp;                       -- 기대: 0 (2026-10-07 CEO-STAFF 실측)
 --   SELECT key, daily_request_cap FROM public.review_sources
 --    WHERE key IN ('appstore','hackernews','82cook','damoang','theqoo','bobaedream','clien','fmkorea','okky','velog',
@@ -75,7 +77,7 @@ BEGIN
      AND (r.cap_base <> s.daily_request_cap OR r.daily_request_target <> (r.cap_base * 50) / 100 OR r.pct_step <> 50 OR r.targets_per_run <> 10);
   IF bad <> 0 THEN RAISE EXCEPTION 'cap_base/상한 불일치 % 행 — 승인표와 현재 daily_request_cap 대조 필요', bad; END IF;
   SELECT daily_request_cap INTO gp FROM public.review_sources WHERE key = 'googleplay';
-  IF gp <> 60 THEN RAISE EXCEPTION 'googleplay daily_request_cap=%(기대 60)', gp; END IF;
+  IF gp IS DISTINCT FROM 60 THEN RAISE EXCEPTION 'googleplay daily_request_cap=%(기대 60)', gp; END IF;
 END $$;
 
 COMMIT;

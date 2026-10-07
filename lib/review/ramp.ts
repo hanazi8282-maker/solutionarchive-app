@@ -131,11 +131,18 @@ const isInt = (v: unknown, min: number, max = Infinity): v is number => Number.i
  * DB 에서 읽은 계획(jsonb)을 믿을 수 있을 때만 돌려준다 — 아니면 null(= 기존 예산·기존 2슬롯).
  * 모양이 깨졌거나(runsPerDay NaN → 모든 추가 슬롯에서 돌고 daily_request_cap 까지 소비) 회당 상한이 0 이거나(소스 정지)
  * 오늘(UTC) 계획이 아니면(stepPctRamps 가 그 소스를 건너뛴 날) 쓰지 않는다(독립 검토 a·b·c). 모두 '덜 요청' 쪽으로 접는다.
+ *
+ * 예외 하나 — 시작일 계획(v32): 시작일 S 의 'start' 판정은 last_evaluated_date=S·plan.date=S 를 쓰고, S+1 에는 판정 필터
+ * (last < 어제)가 S < S 로 거짓이라 계획이 갱신되지 않는다(시작일을 세지 않는 것은 의도). 그래서
+ * `plan.date == lastEvaluatedDate == 어제` 이면 S+1 하루만 유효로 받는다. 평소 날은 last=D-1·plan=D 라 이 모양이 안 나오고,
+ * 판정이 실패해 묵은 계획(last=D-1·plan=D, 오늘 D+1)은 last≠plan 이라 여전히 무효다. 이틀 이상 묵은 계획도 무효.
  */
-export function validPlan(raw: unknown, today: string): SchedulePlan | null {
+export function validPlan(raw: unknown, today: string, lastEvaluatedDate: string | null = null): SchedulePlan | null {
   if (!raw || typeof raw !== 'object') return null
   const p = raw as SchedulePlan
-  if (p.date !== today) return null
+  const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
+  const startDayCarry = p.date === yesterday && lastEvaluatedDate === p.date
+  if (p.date !== today && !startDayCarry) return null
   if (!isInt(p.runsPerDay, 1, MAX_RUNS_PER_DAY) || !isInt(p.perRunCap, 1) || !isInt(p.budget, 0) || !isInt(p.perRun, 0)) return null
   if (p.targetsPerRun !== null && !isInt(p.targetsPerRun, 1)) return null
   return p
@@ -194,16 +201,18 @@ export async function plannedSourcesForSlot(
   i: number,
   now: Date = new Date(),
 ): Promise<{ state: 'ok' | 'unavailable'; keys: string[]; note: string }> {
-  const { data, error } = await sb.from('review_source_ramp').select('source_key, cap_base, schedule_plan').not('cap_base', 'is', null)
+  const { data, error } = await sb.from('review_source_ramp').select('source_key, cap_base, last_evaluated_date, schedule_plan').not('cap_base', 'is', null)
   if (error) {
     const why = isMissingColumn(error.code)
       ? `schedule_plan 칸 없음 — 마이그 ${SCHEDULE_MIGRATION} 적용 필요`
       : isMissingTableError(error.code, error.message) ? '테이블 없음' : `조회 실패 — ${error.message}`
     return { state: 'unavailable', keys: [], note: `⚠️ 추가 슬롯 계획 확인 불가(${why}) → 추가 슬롯 미동작(기존 2슬롯만)` }
   }
-  const rows = (data ?? []) as Array<{ source_key: string; schedule_plan: unknown }>
+  const rows = (data ?? []) as Array<{ source_key: string; schedule_plan: unknown; last_evaluated_date?: string | null }>
   const today = isoDate(now)
-  const valid = rows.filter((r) => !RAMP_EXCLUDED.has(r.source_key)).map((r) => ({ key: r.source_key, plan: validPlan(r.schedule_plan, today) }))
+  const valid = rows
+    .filter((r) => !RAMP_EXCLUDED.has(r.source_key))
+    .map((r) => ({ key: r.source_key, plan: validPlan(r.schedule_plan, today, r.last_evaluated_date ?? null) }))
   const keys = valid.filter((v) => v.plan && slotRuns(v.plan.runsPerDay, i)).map((v) => v.key)
   const stale = valid.filter((v) => !v.plan).length
   const note =
@@ -698,7 +707,7 @@ export async function collectWithRamp(args: {
   let dailyRequestTarget = pct ? effectiveTarget(pct) : null
   let maxRequestsThisRun: number | null = null
   let budgetNote: string
-  const plan = pct ? validPlan(pct.plan, isoDate(ports.now())) : null
+  const plan = pct ? validPlan(pct.plan, isoDate(ports.now()), pct.lastEvaluatedDate) : null
   if (plan) {
     const i = slotIndexOf(args.slot)
     if (i !== null) dailyRequestTarget = slotAllowance(dailyRequestTarget as number, plan.runsPerDay, i)

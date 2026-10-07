@@ -23,10 +23,11 @@
 --       로그를 먼저 쓴다(엔진 관례). log 는 source_key FK 없음·NOT NULL: source_key,new_level,reason,applied_by.
 --
 -- 건드리지 않는 칸: level(0) · last_evaluated_date · supply_state · blocks_at_step · block_line · frozen_until · targets_per_run.
---   last_evaluated_date 를 그대로 두면 다음 판정(10-09)에서 오늘(10-08)이 첫 정상일로 셀 수 있다(오늘 일부는 옛 값으로 돌았을 수 있음).
+--   last_evaluated_date 를 그대로 두면 다음 판정(10-09)이 10-08 을 셀 수 있지만 이론상일 뿐이다(첫 정상일이 되려면 하루 40 요청 이상이어야 하는데 구조상 최대 40). 실제로는 10-08 이 'short'(보류)로 버려지고 10-09 부터 램프가 센다.
 --
 -- 🟡 비파괴(UPDATE 2행 + INSERT 1행, 삭제 없음). 상한을 올리는 변경이므로 사람 마이그(소유자 예외 소스는 야간 자동 상향 없음).
 --    끝의 DO 블록이 값이 어긋나면 RAISE → 트랜잭션 롤백(현재값 가드로 0행이 된 경우도 여기서 잡힌다).
+-- 적용 순서: 수집 잡(nightly-review-collect)이 in_progress 가 아닌 때, 슬롯 UTC 01:43·05:37·09:29·13:19·17:37·20:47(실측 1~3시간 지연)을 피해서 적용한다.
 -- 선행: 20260930000034 · 20261006000002 · 20261007000030 · 20261007000040 적용.
 -- 롤백: 20261007000050_googleplay_cap100_rollback.sql
 --
@@ -44,6 +45,8 @@
 --   SELECT level, pct_step, cap_base, daily_request_target, consecutive_ok_days, last_evaluated_date, supply_state,
 --          blocks_at_step, block_line, frozen_until, schedule_plan, reason
 --     FROM public.review_source_ramp WHERE source_key='googleplay';
+--   SELECT count(*) FROM public.review_source_ramp_log WHERE source_key='googleplay' AND event='block' AND prev_pct=50;
+--      -- 1 이상이면: 이미 50% 단계 차단 이력이 있어 cap 100 아래 첫 차단이 곧바로 14일 동결이 된다(blocks_at_step 2 이상 규칙). 알고 진행한다.
 --   (cap_base 가 60 이 아니면 멈춘다 — 가드에 안 걸려 로그·램프가 0행이 되고 DO 블록이 RAISE 한다.)
 
 BEGIN;
@@ -69,7 +72,7 @@ BEGIN
   IF r.cap_base IS DISTINCT FROM 100 OR r.daily_request_target IS DISTINCT FROM 50 OR r.pct_step IS DISTINCT FROM 50 OR r.schedule_plan IS NOT NULL THEN
     RAISE EXCEPTION 'googleplay 램프 cap_base=% target=% pct_step=% plan_null=%(기대 100/50/50/true)', r.cap_base, r.daily_request_target, r.pct_step, (r.schedule_plan IS NULL);
   END IF;
-  SELECT count(*) INTO l FROM public.review_source_ramp_log WHERE source_key = 'googleplay' AND applied_by = 'human-migration 20261007000050';
+  SELECT count(*) INTO l FROM public.review_source_ramp_log WHERE source_key = 'googleplay' AND applied_by = 'human-migration 20261007000050' AND created_at = now();
   IF l <> 1 THEN RAISE EXCEPTION '로그 행 % 개(기대 1)', l; END IF;
 END $$;
 

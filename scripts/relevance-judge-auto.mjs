@@ -30,7 +30,7 @@ import fs from 'node:fs'
 import { createClient } from '../lib/supabase/server.ts'
 import { cliSpent, requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
 import {
-  RELEVANCE_SLOTS, capReached, relevanceRunSuffixFromEnv, spendForCap, capUsdOf, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
+  RELEVANCE_SLOTS, capReached, hardCapUsdOf, relevanceRunSuffixFromEnv, spendForCap, capUsdOf, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
@@ -106,7 +106,7 @@ let retry = null
 if (slot === 'r1' || slot === 'r2') {
   retry = recentRuns
     ? relevanceRetryDecision(recentRuns, { today, now: guardNow, cooldownMs: QUOTA_COOLDOWN_MS, maxRetries: MAX_RETRIES })
-    : { run: false, reason: '실행 이력 확인 불가 — 모른 채 재시도하지 않는다', retriesDone: null, quotaPending: null }
+    : { run: false, reason: '실행 이력 확인 불가 — 모른 채 재시도하지 않는다', retriesDone: null, quotaPending: null, quotaProject: null }
   log(`재시도 슬롯 ${slot} ${retry.run ? '실행' : '쉼'} — ${retry.reason}`)
   if (!retry.run) {
     setOutput('ran', 'false')
@@ -291,6 +291,11 @@ const ready = candidates
       { projectId: b.project.id, newInputs: b.pending.reviews.length, businessModel: b.project.business_model },
     ),
   )
+// 재시도 슬롯(v32 #4): 한도로 멈춘 **그 프로젝트**를 맨 앞으로. 판정은 묶음마다 저장돼 이미 판정된 리뷰는 다시 안 탄다(pendingFor).
+if (retry?.quotaProject) {
+  const i = ready.findIndex((c) => c.project.id === retry.quotaProject)
+  if (i > 0) ready.unshift(...ready.splice(i, 1))
+}
 const targets = ready.slice(0, maxProjects)
 const remaining = ready.length - targets.length
 
@@ -354,14 +359,32 @@ let infoColumn = 'unknown'
 let informativeTotal = 0
 let blocker = null
 let seq = 1
-// 세션 가드: 'quota'(구독 한도 오류) | 'session_cap'(이 실행 상한 도달) | 'save_failed' | null
+// 세션 가드: 'quota'(구독 한도 오류) | 'session_cap'(소프트 캡 — 새 프로젝트 시작 안 함) | 'hard_cap'(하드 캡 — 다음 묶음 안 함)
+//   | 'cost_unknown' | 'save_failed' | null
 let stopReason = null
 let quotaResetAt = null
-let maxBatchUsd = 0 // 지금까지 본 판정 묶음 1개의 최대 비용 — 다음 묶음이 상한을 넘길지 가늠한다
+let quotaProjectId = null
 let batchesDone = 0
 const batchesPlanned = targets.reduce((s, t) => s + chunkReviews(t.pending.reviews, BATCH_SIZE).length, 0)
+const hardCapUsd = hardCapUsdOf(guard.cfg)
+let projectsStarted = 0
 
 for (const { project, pending } of targets) {
+  // 소프트 캡(v32): 프로젝트 **경계에서만** 본다 — 닿았으면 새 프로젝트를 시작하지 않는다. 진행 중 프로젝트는 묶음을 끝까지 돈다.
+  // 비용 못 읽은 호출은 spendForCap 이 추정해 더한다. 추정 근거가 없으면 null — 새 시작을 막는다(§7.1).
+  if (guarded) {
+    const spentNow = spendForCap(cliSpent())
+    if (spentNow == null || capReached(spentNow, capUsd)) {
+      stopReason = spentNow == null ? 'cost_unknown' : 'session_cap'
+      blocker = spentNow == null
+        ? `세션 사용액 확인 불가 — 비용을 못 읽은 호출 ${cliSpent().unknown}건(timeout·출력 상한·봉투 없음), 추정 근거 없음 · 프로젝트 ${targets.length}건 중 ${projectsStarted}건 · 묶음 ${batchesDone}/${batchesPlanned}개 뒤 새 시작 중지`
+        : `소프트 캡 도달 — 프로젝트 ${targets.length}건 중 ${projectsStarted}건 · 묶음 ${batchesDone}/${batchesPlanned}개 뒤 새 시작 중지 · 사용 $${spentNow.toFixed(3)} / 소프트 캡 $${capUsd.toFixed(2)}`
+      warn(`${blocker}. 남은 판정은 다음 실행(정상 종료가 아니다 — §7.2 확인 대상).`)
+      await tracker.step({ stepKey: 'session-cap', label: '세션 소프트 캡', status: 'blocked', seq: seq + 1, blocker, detail: { projects_started: projectsStarted, of: targets.length, batches_done: batchesDone, batches_planned: batchesPlanned, spent_usd: spentNow == null ? null : Number(spentNow.toFixed(4)), cap_usd: capUsd, hard_cap_usd: hardCapUsd } })
+      break
+    }
+  }
+  projectsStarted += 1
   seq += 1
   const examples = await examplesFor(project.id)
   const batches = chunkReviews(pending.reviews, BATCH_SIZE)
@@ -373,22 +396,20 @@ for (const { project, pending } of targets) {
   // 지갑은 프로젝트 1건 단위다 — 요청당 상한(기본 $0.5)을 프로젝트 전체가 아니라 한 프로젝트가 쓴다.
   await withLlmBudget(async () => {
     for (const batch of batches) {
-      // 비용 못 읽은 호출은 spendForCap 이 추정해 더한다. 비교할 호출이 없어 추정도 못 하면 null — 확인 불가라 멈춘다(§7.1).
+      // 하드 캡(v32 30%): 진행 중 프로젝트라도 다음 묶음(= claude -p 1회)을 시작하지 않는다. 묶음마다 저장되므로 끊어도 저장이 갈리지 않는다.
+      // llm.ts 하드 캡(setCliHardCap)은 여기 안 건다 — judgeRelevanceBatch 가 호출 오류를 '확인불가' 판정으로 저장하기 때문이다.
       const before = spendForCap(cliSpent())
-      if (guarded && (before == null || capReached(before, maxBatchUsd, capUsd))) {
-        stopReason = before == null ? 'cost_unknown' : 'session_cap'
-        stopped = before == null
-          ? `세션 사용액 확인 불가 — 비용을 못 읽은 호출 ${cliSpent().unknown}건(timeout·출력 상한·봉투 없음), 추정 근거 없음 · 묶음 ${batchesPlanned}개 중 ${batchesDone}개 처리 뒤 정지`
-          : `세션 상한 도달 — 묶음 ${batchesPlanned}개 중 ${batchesDone}개 처리 뒤 정지 · 사용 $${before.toFixed(3)} / 상한 $${capUsd.toFixed(2)} (묶음 최대 $${maxBatchUsd.toFixed(3)})`
+      if (guarded && hardCapUsd != null && before != null && before >= hardCapUsd) {
+        stopReason = 'hard_cap'
+        stopped = `하드 캡 도달 — 묶음 ${batchesPlanned}개 중 ${batchesDone}개 처리 뒤 즉시 정지 · 사용 $${before.toFixed(3)} / 하드 캡 $${hardCapUsd.toFixed(2)}`
         break
       }
       const out = await judgeRelevanceBatch(project, batch, examples)
-      const after = spendForCap(cliSpent())
-      if (after != null && before != null) maxBatchUsd = Math.max(maxBatchUsd, after - before)
       model = out.model
       if (out.quotaExhausted) {
         stopped = out.error ?? '한도/예산 소진'
         stopReason = 'quota'
+        quotaProjectId = project.id // 재시도 슬롯이 이 프로젝트부터 다시 돈다
         quotaResetAt = parseQuotaResetAt(stopped, new Date())
         break
       }
@@ -464,14 +485,14 @@ for (const { project, pending } of targets) {
 const spent = dailySpent()
 const status = blocker ? 'blocked' : saveFailed > 0 ? 'partial' : 'ok'
 const cli = cliSpent()
-const session = sessionBlock({ job: 't2', cfg: guard.cfg, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' })
+const session = sessionBlock({ job: 't2', cfg: guard.cfg, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' || stopReason === 'hard_cap' })
 log(sessionLine(session))
 await tracker.finish({
   status,
   summary: {
     projects: targets.length, judged: judgedTotal, remaining, blocker,
     // 상한·한도로 멈췄으면 몇 개째였는지(§7.2). quota_reset_at 은 재시도 슬롯(r1·r2)이 읽는다.
-    stop_reason: stopReason, quota_reset_at: quotaResetAt, batches_done: batchesDone, batches_planned: batchesPlanned, slot, session,
+    stop_reason: stopReason, quota_reset_at: quotaResetAt, quota_project: quotaProjectId, batches_done: batchesDone, batches_planned: batchesPlanned, slot, session,
     label_columns: labelColumns, labeled: labelColumns === 'present' ? labeledTotal : null,
     info_column: infoColumn, informative_answered: infoColumn === 'present' ? informativeTotal : null,
     est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls,

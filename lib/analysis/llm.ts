@@ -166,6 +166,13 @@ export function describeFailure(e: unknown): string {
  * (사용량 한도를 4번 두드리지 않는다).
  */
 async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<{ text: string; model: string; costUsd: number | null; cacheReadTokens: number | null }> {
+  // 하드 캡은 **호출 시작 전에만** 본다 — 돌고 있는 호출을 죽이지 않는다. 추정 불가(null)는 여기서 막지 않는다(소프트 캡이 단위 경계에서 막는다).
+  if (cliHardCapUsd != null) {
+    const spent = spendForCap(cliTally)
+    if (spent != null && spent >= cliHardCapUsd) {
+      throw new CliHardCapError(`세션 하드 캡 도달 — 이번 실행 사용 $${spent.toFixed(3)} ≥ 하드 캡 $${cliHardCapUsd.toFixed(2)}. claude -p 를 시작하지 않는다`)
+    }
+  }
   const bin = await resolveClaudeBinary()
   const res = await runClaude(
     bin.path,
@@ -218,6 +225,26 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
  * 이 프로세스가 claude -p 에 쓴 명목 비용 누적(실패 호출 포함). 세션 한도 가드(session-guard.ts, 남헌 v30 §5)가
  * 단위마다 읽는다. 봉투에서 total_cost_usd 를 못 읽은 호출은 0 달러로 접지 않고 unknown 으로 센다(§7.1).
  */
+/**
+ * 상한 판정에 쓸 지출($). 비용을 못 읽은 호출(timeout SIGKILL·2MB 초과 출력·봉투 없음)을 0 으로 접지 않는다(§7.1):
+ *   · unknown 이 없으면 읽은 합 그대로
+ *   · unknown 이 있고 읽은 호출이 하나라도 있으면 unknown × 지금까지 본 호출 1회 최대 비용을 더한다(보수적 추정)
+ *   · unknown 이 있는데 비교할 호출이 하나도 없으면 null = 확인 불가 → 호출부는 새 단위를 시작하지 않는다
+ * ponytail: timeout 호출은 600초를 다 쓴 것이라 실제로는 최대값보다 클 수 있다 — 넘침이 보이면 계수를 2배로 올린다.
+ */
+export function spendForCap(t: { usd: number; unknown: number; maxCallUsd: number }): number | null {
+  if (t.unknown === 0) return t.usd
+  return t.maxCallUsd > 0 ? t.usd + t.unknown * t.maxCallUsd : null
+}
+
+/** 세션 하드 캡(남헌 v32: 진행 중 작업의 절대 상한 30%)에 닿아 claude -p 를 시작하지 않았다. 한도 오류(quota)가 아니다. */
+export class CliHardCapError extends Error {}
+let cliHardCapUsd: number | null = null
+/** 야간 배치가 켠다(scripts/extract-auto.mjs). null = 끔(앱·다른 스크립트 기본값). */
+export function setCliHardCap(usd: number | null): void {
+  cliHardCapUsd = usd
+}
+
 const cliTally = { usd: 0, calls: 0, unknown: 0, maxCallUsd: 0 }
 /** usd = 읽은 비용 합 · unknown = 비용을 못 읽은 호출 수(timeout SIGKILL·출력 상한 초과·봉투 없음) · maxCallUsd = 읽은 호출 1회 최대. */
 export function cliSpent(): { usd: number; calls: number; unknown: number; maxCallUsd: number } {

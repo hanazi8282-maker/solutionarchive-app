@@ -139,7 +139,7 @@ const auto = readFileSync(new URL('extract-auto.mjs', import.meta.url), 'utf8')
 t('후보 쿼리가 extract-gate 의 AUTO_EXTRACT_STATUSES 를 쓴다', /\.in\('status', AUTO_EXTRACT_STATUSES\)/.test(auto))
 t('신규 기준 시각은 newInputsSince 가 정한다', /const since = newInputsSince\(p\)/.test(auto))
 t('후보에 extract_attempts 를 실어 보낸다', /attempts: p\.extract_attempts/.test(auto))
-t('재추출 실패 복원값을 runExtraction 에 넘긴다', /runExtraction\(supabase, target\.projectId, provider, claim\.restore\)/.test(auto))
+t('재추출 실패 복원값을 runExtraction 에 넘긴다', /runExtraction\(supabase, target\.projectId, provider, claim\.restore(, claim\.attempts)?\)/.test(auto))
 t('후보 쿼리가 status 를 select 한다', /\.select\('id, status,/.test(auto))
 t('후보에 status 를 실어 보낸다', /status: p\.status/.test(auto))
 t('claimExtraction 에 force 를 넘긴다', /claimExtraction\(supabase, target\.projectId, force\)/.test(auto))
@@ -318,14 +318,15 @@ t('과거 epoch 는 버린다(지금 리셋됨으로 읽지 않는다)', parseQu
 t('모르는 시간대는 null', parseQuotaResetAt('resets 3pm (Mars/Olympus)', PNOW) === null)
 
 // 호출부 배선 — 게이트가 실제로 실행을 가른다
-t('게이트 결과 max 로 대상을 고른다', /pickAutoTargets\(candidates, \{ minNew, max: gate\.max \}\)/.test(auto))
+// v32: 재시도 큐 순서(orderWithQueue)를 먼저 적용한 뒤 게이트 max 로 자른다.
+t('게이트 결과 max 로 대상을 고른다', /ordered\.slice\(0, Math\.max\(0, gate\.max\)\)/.test(auto) && /orderWithQueue\(full\.targets, retryQueue/.test(auto))
 t('백로그는 상한 없이 잰다', /pickAutoTargets\(candidates, \{ minNew, max: Infinity \}\)/.test(auto))
 t('상태는 extract-auto-* 행만 본다(D8)', /\.like\('run_key', 'extract-auto-%'\)/.test(auto))
 t('쉼은 gate 스텝 skipped 로 남긴다(§4.2)', /stepKey: 'gate'[^\n]*status: 'skipped'/.test(auto))
 t('쉼 summary 에 decision 필드', /decision: gate\.run \? 'run' : 'skip'/.test(auto))
 t('blocked 면 리셋 시각을 뽑아 summary 에 남긴다', /quotaResetAt = parseQuotaResetAt\(out\.error/.test(auto) && /quota_reset_at: quotaResetAt/.test(auto))
 t('성공 스텝에 cost_usd 를 남긴다(§6-4)', /cost_usd: out\.costUsd/.test(auto))
-t('연속 blocked 면 exit 1', /alarm \? 1 : 0/.test(auto) && /raiseAlarm\('skip'\) \? 1 : 0/.test(auto))
+t('연속 blocked 면 exit 1', /alarm( \|\| rq\.giveUp)? \? 1 : 0/.test(auto) &&/raiseAlarm\('skip'\) \? 1 : 0/.test(auto))
 t('게이트 판정이 --dry 종료보다 앞선다', auto.indexOf('const gate = decideSlot(') < auto.indexOf("--dry: 여기서 끝낸다"))
 {
   const llm = readFileSync(new URL('../lib/analysis/llm.ts', import.meta.url), 'utf8')

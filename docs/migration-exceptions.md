@@ -496,3 +496,11 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   - 적용 전 스냅샷: enabled=true·disabled_at NULL·health=ok·review_targets 34건·review_source_ramp 0행.
   - 양성: enabled=false·사유·시각 채워짐·health 불변·타깃 34건 불변·비활성 목록은 기존 7개+producthunt. 음성: 영향 행 수 가드 DO 블록 — 행이 1이 아니면 예외.
   - 롤백 파일 `20261007000012_disable_producthunt_rollback.sql`(disabled_at 이 NULL 이었으므로 이전 상태와 동일).
+
+## 2026-10-08 — 구글 플레이 영어(us:en) 타깃 추가 (남헌 v43·v44 §2-c)
+- **20261008000001** `googleplay_us_en_targets` — 한국어 리뷰 0건인 영어권 해외 앱의 kr:ko 구글 플레이 타깃마다 같은 project_id 로 `us:en:<패키지>` review_targets 행 INSERT(기본 16개, meeting-os 포함 17개 후보 — 토글 한 줄). label 접두 `us-en|`, status=active, last_run_at=now(). **미적용**(PR 단계) — 적용 시각·검증 결과는 적용 후 기입.
+  - 남헌 결정: v43·v44 — 해외 앱 영어 리뷰를 칼럼·고객 리포트 용도로 수집, 영어 타깃 한 번에 추가, 램프 50% 시작, 우선순위 낮음.
+  - 적용 중단 기준(남헌): 추가 요청이 기존 일일 예산 +30% 초과 · 추가 토큰 비용이 중간 가정에서 하루 소프트 캡 1회분 초과 · 시험 b 실패 — 하나라도 넘으면 적용 중단.
+  - 위험 감수 범위: 약관상 자동화 금지인 소유자 예외 소스(구글 플레이, override=owner_2026-10-06)에서 요청 대상 타깃을 16개 더 늘린다. 소스 설정(review_sources·review_source_ramp)은 변경하지 않는다.
+  - 비파괴: INSERT 만, 기존 행 변경·삭제 없음(kr:ko 행은 읽기만, DO 블록이 불변 확인). 멱등(ON CONFLICT DO NOTHING). 롤백 파일 `20261008000001_googleplay_us_en_targets_rollback.sql`(A 한 번에 비활성 `label LIKE 'us-en|%'` · 되살리기 · B 완전 삭제). 사본 `reports/2026-10-08/` 는 커밋하지 않는다.
+  - 사전검토 Opus, 적용 CEO-STAFF. 적용 시각·적용 전 실측·양성/음성 검증: (적용 후 기입)

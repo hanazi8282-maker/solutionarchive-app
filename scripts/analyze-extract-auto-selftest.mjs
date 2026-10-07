@@ -167,7 +167,8 @@ t('수집 워크플로에 KST 14:37 슬롯이 있다', /cron: '37 5 \* \* \*'/.t
 t('수집 워크플로가 KST 02:37 슬롯을 유지한다', /cron: '37 17 \* \* \*'/.test(collectYml))
 t('관련성 워크플로 timeout 90분', /timeout-minutes: 90/.test(relevanceYml))
 // relevance 는 1회 유지다 — LLM 무료 티어를 더 태우지 않기로 한 결정(Q2(a)). extract 는 아래 6번 끝.
-t('관련성 워크플로는 cron 이 1개다', (relevanceYml.match(/- cron:/g) ?? []).length === 1)
+// v30 §5: 정규 1개(19:03Z) + 한도 정지 뒤에만 일하는 재시도 2개(r1·r2). 정규 판정 횟수는 그대로 하루 1회다.
+t('관련성 워크플로는 정규 cron 1개 + 재시도 전용 2개', (relevanceYml.match(/- cron:/g) ?? []).length === 3 && /cron: '3 19 \* \* \*'/.test(relevanceYml) && /재시도/.test(relevanceYml))
 const extractYml = readFileSync(new URL('../.github/workflows/nightly-extract.yml', import.meta.url), 'utf8')
 // extract 는 2026-09-28 남헌 D1·D3 으로 3슬롯(s1 기존 · s2 KST 12:33 · s3 KST 18:33). 크론 줄 = EXTRACT_SLOTS 키, 1:1.
 const extractCrons = [...extractYml.matchAll(/- cron: '([^']+)'/g)].map(m => m[1])
@@ -288,11 +289,11 @@ t('옛 슬롯 없는 run_key 도 오늘 처리에 센다', slotStateOf([{ run_ke
     { run_key: 'extract-auto-2026-09-28-s1', status: 'ok', summary: { decision: 'run' }, started_at: '2026-09-27T18:40:00Z' },
   ]
   const bs = slotStateOf(blocked, { today: '2026-09-29', slot: 's3' })
-  t('쿨다운 = 마지막 blocked 종료 + 5시간', bs.cooldownUntil === '2026-09-29T01:00:00.000Z' && bs.cooldownFromReset === false)
+  t('쿨다운 = 마지막 blocked 종료 + 4시간(v30 §5)', bs.cooldownUntil === '2026-09-29T00:00:00.000Z' && bs.cooldownFromReset === false)
   t('연속 blocked 는 쉼 행을 건너뛰고 센다', bs.consecutiveBlocked === 3)
   const withReset = blocked.map((r, i) => (i === 1 ? { ...r, summary: { ...r.summary, quota_reset_at: '2026-09-29T06:00:00Z' } } : r))
   const rs = slotStateOf(withReset, { today: '2026-09-29', slot: 's3' })
-  t('D6: 리셋 시각이 있으면 5시간보다 우선', rs.cooldownUntil === '2026-09-29T06:00:00.000Z' && rs.cooldownFromReset === true)
+  t('D6: 리셋 시각이 있으면 4시간보다 우선', rs.cooldownUntil === '2026-09-29T06:00:00.000Z' && rs.cooldownFromReset === true)
   t('리셋 시각 우선 쿨다운 안이면 쉰다', d('s3', B(50), rs).run === false)
   t('진행 중(running) 행은 연속 blocked 를 끊지도 세지도 않는다',
     slotStateOf([{ run_key: 'extract-auto-2026-09-29-s2', status: 'running', summary: {}, started_at: '2026-09-29T03:40:00Z' }, ...blocked.slice(1)], { today: '2026-09-29', slot: 's3' }).consecutiveBlocked === 3)

@@ -20,10 +20,19 @@
 //   node scripts/relevance-judge-auto.mjs --dry   # 대상 선정만. LLM·DB 쓰기 없음
 //   node --env-file=.env.local scripts/relevance-judge-auto.mjs
 //
-// 종료코드: 0 정상(대상 0건·한도 도달 포함) · 2 설정/조회 실패 · 3 저장 실패 1건 이상
+// 세션 한도 가드(남헌 v30 §5, lib/analysis/session-guard.ts): 한 실행의 claude-cli 명목 비용이 상한(config/session-guard.json)에
+//   닿기 전에 묶음 사이에서 멈춘다(stop_reason='session_cap'). 한도 오류(quota)로 멈추면 재시도 슬롯 r1·r2 가
+//   4시간(또는 CLI 리셋 시각) 뒤 최대 2회 다시 돈다.
+//
+// 종료코드: 0 정상(대상 0건·한도·세션 상한 도달·재시도 쉼 포함) · 1 마지막 재시도까지 한도 · 2 설정/조회 실패 · 3 저장 실패 1건 이상
 
+import fs from 'node:fs'
 import { createClient } from '../lib/supabase/server.ts'
-import { requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
+import { cliSpent, requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
+import {
+  RELEVANCE_SLOTS, capReached, capUsdOf, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
+} from '../lib/analysis/session-guard.ts'
+import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 import { selectInputs } from '../lib/analysis/extract-select.ts'
 // 대상 순서는 야간 extract 와 같은 규칙을 쓴다(SaaS 우선 → 많은 순 → projectId).
@@ -73,6 +82,46 @@ if (!supabase) {
   console.error('✗ DB 연결 실패 — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 확인')
   process.exit(2)
 }
+
+// ── 0. 슬롯 · 세션 한도 가드(남헌 v30 §5, lib/analysis/session-guard.ts) ──────────
+// main = 정규 1회(KST 04:03 예정). r1·r2 = 한도 정지 뒤 재시도 전용 — 할 일이 없으면 기록 없이 끝나고 뒤 스텝도 건너뛴다(ran=false).
+// 수동은 -m<run_id> 로 따로 센다(같은 날 정규 행을 덮지 않게, 재시도 횟수에도 안 들어간다).
+const today = kstDate()
+const setOutput = (k, v) => { if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${v}\n`) }
+let slot
+if (process.env.GITHUB_EVENT_NAME === 'schedule') {
+  slot = RELEVANCE_SLOTS[(process.env.RELEVANCE_SLOT_CRON ?? '').trim()]
+  if (!slot) {
+    console.error(`✗ 슬롯 표에 없는 크론 '${process.env.RELEVANCE_SLOT_CRON ?? ''}' — nightly-relevance.yml 과 RELEVANCE_SLOTS 를 맞춰라`)
+    process.exit(2)
+  }
+} else slot = process.env.GITHUB_ACTIONS ? 'm' : 'local'
+const runKey = slot === 'main' ? `relevance-judge-${today}` : slot === 'm' ? `relevance-judge-${today}-m${process.env.GITHUB_RUN_ID ?? ''}` : `relevance-judge-${today}-${slot}`
+const MAX_RETRIES = BLOCKED_ALARM_STREAK - 1
+
+const guardNow = new Date()
+const recentRuns = await loadRecentRuns(supabase, guardNow)
+if (!recentRuns) warn('가드 대상 실행 이력(agent_runs) 조회 실패 — 재시도 판정·5시간 창·주간 합산 확인 불가')
+let retry = null
+if (slot === 'r1' || slot === 'r2') {
+  retry = recentRuns
+    ? relevanceRetryDecision(recentRuns, { today, now: guardNow, cooldownMs: QUOTA_COOLDOWN_MS, maxRetries: MAX_RETRIES })
+    : { run: false, reason: '실행 이력 확인 불가 — 모른 채 재시도하지 않는다', retriesDone: null }
+  log(`재시도 슬롯 ${slot} ${retry.run ? '실행' : '쉼'} — ${retry.reason}`)
+  if (!retry.run) {
+    setOutput('ran', 'false')
+    process.exit(0)
+  }
+}
+setOutput('ran', 'true')
+const guard = loadGuardConfig()
+const capUsd = capUsdOf(guard.cfg)
+const window5h = recentRuns ? usageSince(recentRuns, guardNow.getTime() - 5 * 3_600_000) : null
+const weekUsd = recentRuns ? usageSince(recentRuns, guardNow.getTime() - 7 * 86_400_000).usd : null
+const weekly = weeklyGate(guard.cfg, weekUsd)
+log(`세션 가드 — run_key=${runKey} · 이번 실행 상한 ${capUsd == null ? `확인 불가(${guard.error ?? 'session_cap_pct·usd_per_session_pct 없음'})` : `$${capUsd.toFixed(2)}(${guard.cfg.capPct}% × $${guard.cfg.usdPerPct}/%p)`} · ${weekly.reason} · 직전 5시간 다른 실행 ${window5h ? `$${window5h.usd.toFixed(2)}(${window5h.runs}건)` : '확인 불가'}`)
+// 상한이 걸리는 건 구독 경로(claude-cli)뿐이다 — gemini 로 되돌리면 budget.ts 가 달러 예산을 지킨다.
+const guarded = provider === 'claude-cli'
 
 log(`야간 관련성 판정 ${dry ? '(--dry: 대상 선정만)' : ''} — provider=${provider} · 표본 ${sampleSize}건/프로젝트 · 프로젝트 상한 ${maxProjects}건 · 일 예산 $${DAILY_BUDGET_USD}`)
 
@@ -254,7 +303,7 @@ if (dry) {
 
 // ── 2. 실행 상태 기록 (기존 헬퍼 재사용) ─────────────────────────
 const tracker = await createTracker({
-  runKey: `relevance-judge-${kstDate()}`,
+  runKey,
   dept: 'cto',
   trigger: process.env.GITHUB_EVENT_NAME === 'schedule' ? 'cron' : process.env.GITHUB_ACTIONS ? 'manual' : 'local',
   dryRun: false,
@@ -272,8 +321,18 @@ await tracker.step({
     projects: (projects ?? []).length, targets: targets.length, remaining, unknown: unknownCount,
     failed_retry: failedBy.retry, failed_excluded: failedBy.excluded, failed_unknown: failedBy.unknown,
   },
-  detail: { sample: sampleSize, max_projects: maxProjects, batch: BATCH_SIZE },
+  detail: { sample: sampleSize, max_projects: maxProjects, batch: BATCH_SIZE, slot, retry: retry ? { reason: retry.reason, retries_done: retry.retriesDone } : null },
 })
+
+// 상한을 모르면(설정 깨짐) 돌지 않는다(§7.1). 주간 스위치도 여기서 멈춘다. 둘 다 stop_reason ≠ quota 라 재시도 슬롯이 다시 깨우지 않는다.
+if (guarded && (capUsd == null || weekly.stop)) {
+  const stopReason = capUsd == null ? 'guard_config' : 'weekly_stop'
+  const why = capUsd == null ? `세션 상한 설정 확인 불가 — ${guard.error ?? 'config/session-guard.json 의 session_cap_pct·usd_per_session_pct 가 없다'}` : weekly.reason
+  warn(`${why} — 판정 0건으로 멈춘다(대상 ${targets.length}건은 다음 실행)`)
+  await tracker.step({ stepKey: 'guard', label: '세션 한도 가드', status: 'blocked', blocker: why, detail: { stop_reason: stopReason, weekly_pct: weekly.pct, cap_usd: capUsd } })
+  await tracker.finish({ status: 'blocked', summary: { projects: 0, judged: 0, remaining: ready.length, blocker: why, stop_reason: stopReason, slot } })
+  process.exit(capUsd == null ? 2 : 0)
+}
 
 // ── 3. 프로젝트별 판정 ───────────────────────────────────────────
 let judgedTotal = 0
@@ -287,6 +346,12 @@ let infoColumn = 'unknown'
 let informativeTotal = 0
 let blocker = null
 let seq = 1
+// 세션 가드: 'quota'(구독 한도 오류) | 'session_cap'(이 실행 상한 도달) | 'save_failed' | null
+let stopReason = null
+let quotaResetAt = null
+let maxBatchUsd = 0 // 지금까지 본 판정 묶음 1개의 최대 비용 — 다음 묶음이 상한을 넘길지 가늠한다
+let batchesDone = 0
+const batchesPlanned = targets.reduce((s, t) => s + chunkReviews(t.pending.reviews, BATCH_SIZE).length, 0)
 
 for (const { project, pending } of targets) {
   seq += 1
@@ -300,12 +365,22 @@ for (const { project, pending } of targets) {
   // 지갑은 프로젝트 1건 단위다 — 요청당 상한(기본 $0.5)을 프로젝트 전체가 아니라 한 프로젝트가 쓴다.
   await withLlmBudget(async () => {
     for (const batch of batches) {
+      const before = cliSpent().usd
+      if (guarded && capReached(before, maxBatchUsd, capUsd)) {
+        stopReason = 'session_cap'
+        stopped = `세션 상한 도달 — 묶음 ${batchesPlanned}개 중 ${batchesDone}개 처리 뒤 정지 · 사용 $${before.toFixed(3)} / 상한 $${capUsd.toFixed(2)} (묶음 최대 $${maxBatchUsd.toFixed(3)})`
+        break
+      }
       const out = await judgeRelevanceBatch(project, batch, examples)
+      maxBatchUsd = Math.max(maxBatchUsd, cliSpent().usd - before)
       model = out.model
       if (out.quotaExhausted) {
         stopped = out.error ?? '한도/예산 소진'
+        stopReason = 'quota'
+        quotaResetAt = parseQuotaResetAt(stopped, new Date())
         break
       }
+      batchesDone += 1
       for (const v of out.verdicts) counts[v.verdict] += 1
 
       const rows = out.verdicts.map((v) => ({
@@ -339,6 +414,7 @@ for (const { project, pending } of targets) {
         saveFailed += 1
         console.error(`✗ ${project.id} 판정 저장 실패(${doneBatches + 1}번째 묶음): ${error.code ?? ''} ${error.message}`)
         stopped = `저장 실패: ${error.message}`
+        stopReason = 'save_failed'
         break
       }
       judgedTotal += rows.length
@@ -375,10 +451,15 @@ for (const { project, pending } of targets) {
 
 const spent = dailySpent()
 const status = blocker ? 'blocked' : saveFailed > 0 ? 'partial' : 'ok'
+const cli = cliSpent()
+const session = sessionBlock({ job: 't2', cfg: guard.cfg, spentUsd: cli.usd, calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' })
+log(sessionLine(session))
 await tracker.finish({
   status,
   summary: {
     projects: targets.length, judged: judgedTotal, remaining, blocker,
+    // 상한·한도로 멈췄으면 몇 개째였는지(§7.2). quota_reset_at 은 재시도 슬롯(r1·r2)이 읽는다.
+    stop_reason: stopReason, quota_reset_at: quotaResetAt, batches_done: batchesDone, batches_planned: batchesPlanned, slot, session,
     label_columns: labelColumns, labeled: labelColumns === 'present' ? labeledTotal : null,
     info_column: infoColumn, informative_answered: infoColumn === 'present' ? informativeTotal : null,
     est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls,
@@ -388,4 +469,12 @@ await tracker.finish({
 log(`끝 — 판정 ${judgedTotal}건 · 라벨 ${labelColumns === 'present' ? `${labeledTotal}건` : labelColumns === 'absent' ? '미기록(마이그 미적용)' : '확인 불가(저장 0회)'} · 정보 판정 ${infoColumn === 'present' ? `${informativeTotal}건` : infoColumn === 'absent' ? '미기록(마이그 000031 미적용)' : '확인 불가(저장 0회)'} · 남은 프로젝트 ${remaining}건 · 이번 실행 추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD}) · 상태 ${status}`)
 if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 — ops/state 폴백. 이 실행의 기록은 "DB 확인 불가"다')
 
-process.exit(saveFailed > 0 ? 3 : 0)
+// v30 §5: 마지막 재시도까지 한도면 exit 1 — cron-watchdog 가 그 슬롯 실패를 Notion 일일 상태 로그로 올린다(기존 경로, 새 시크릿 없음).
+// r2 는 그날 마지막 재시도 자리라, 앞 재시도가 "아직 이르다"로 쉬었어도 여기서 한도면 경보한다.
+const retriesExhausted = stopReason === 'quota' && retry != null && ((retry.retriesDone ?? 0) + 1 >= MAX_RETRIES || slot === 'r2')
+if (retriesExhausted) {
+  const m = `T2 가 한도 정지 뒤 오늘 마지막 재시도(${slot}, ${(retry.retriesDone ?? 0) + 1}/${MAX_RETRIES})도 한도로 멈췄다 — 묶음 ${batchesDone}/${batchesPlanned}개. 남은 판정은 내일 정규 실행. 사람이 볼 것`
+  if (process.env.GITHUB_ACTIONS) console.log(`::error::${m}`)
+  console.error(`✗ ${m}`)
+}
+process.exit(saveFailed > 0 ? 3 : retriesExhausted ? 1 : 0)

@@ -1,0 +1,8 @@
+{
+  "_doc": "구독 세션 한도 가드(남헌 v30 §5 A안). 읽는 곳 lib/analysis/session-guard.ts. 측정·보정 절차 docs/session-limit-guard.md. 값 바꾸기 = 이 파일 PR.",
+  "_source": "2026-10-07 workflow_dispatch 실측: T2 50건 $0.20 + extract 5건 $1.09(run 37581317529 로그 호출 20개 전체 — 추출 본 호출 $0.67 + remedy-judge·프로필 $0.42) = $1.29 → 5시간 세션 +3%p(±1%p) → 약 $0.43/%p(범위 $0.3~0.65). usd_per_session_pct 는 남헌 지시 시작값 $4.5(=15% × 0.3)를 유지하려고 범위 하단 0.3 으로 둔다. 실측 중앙값 0.43 으로 바꾸면 상한은 $6.45.",
+  "session_cap_pct": 15,
+  "usd_per_session_pct": 0.3,
+  "weekly_stop_pct": null,
+  "usd_per_weekly_pct": null
+}

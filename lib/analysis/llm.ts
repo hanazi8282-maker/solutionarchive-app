@@ -187,6 +187,7 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
   } catch {
     // 봉투가 아니면 본문이 그대로 온 것이다.
   }
+  tallyCli(env)
   if (res.exitCode !== 0 || env?.is_error === true) throw cliFailure(res, env)
   let text = res.stdout
   let model = CLAUDE_CLI_LABEL
@@ -211,6 +212,21 @@ async function callClaudeCli(systemPrompt: string, userPrompt: string): Promise<
     console.log(`[analysis/llm] claude-cli 실측 total_cost_usd=${String(env.total_cost_usd ?? 'n/a')} in=${String(u.input_tokens ?? '?')} out=${String(u.output_tokens ?? '?')} cache_read=${String(u.cache_read_input_tokens ?? '?')} cache_write=${String(u.cache_creation_input_tokens ?? '?')} result_chars=${typeof env.result === 'string' ? env.result.length : '?'} duration_api_ms=${String(env.duration_api_ms ?? '?')} model=${model}`)
   }
   return { text: text.trim(), model, costUsd, cacheReadTokens }
+}
+
+/**
+ * 이 프로세스가 claude -p 에 쓴 명목 비용 누적(실패 호출 포함). 세션 한도 가드(session-guard.ts, 남헌 v30 §5)가
+ * 단위마다 읽는다. 봉투에서 total_cost_usd 를 못 읽은 호출은 0 달러로 접지 않고 unknown 으로 센다(§7.1).
+ */
+const cliTally = { usd: 0, calls: 0, unknown: 0 }
+export function cliSpent(): { usd: number; calls: number; unknown: number } {
+  return { ...cliTally }
+}
+export function tallyCli(env: Record<string, unknown> | null): void {
+  cliTally.calls += 1
+  const c = env?.total_cost_usd
+  if (typeof c === 'number' && Number.isFinite(c)) cliTally.usd += c
+  else cliTally.unknown += 1
 }
 
 /**

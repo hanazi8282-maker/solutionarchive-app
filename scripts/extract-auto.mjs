@@ -21,12 +21,17 @@
 //   백로그(Bw)·하루 상한·한도 쿨다운을 보고(decideSlot) 쉴지 정한다. 쉼도 agent_runs 에 gate 스텝 skipped 로 남긴다.
 //   --dry 는 게이트 판정까지 찍는다(agent_runs 읽기만). 수동 실행은 EXTRACT_SLOT_INPUT=s1|s2|s3 로 그 슬롯 문턱을 시험한다.
 //
-// 종료코드: 0 정상(대상 0건·쉼·한도 도달 포함) · 1 한도 blocked 가 연속 3슬롯(사람이 볼 것) · 2 설정/조회 실패 · 3 추출 실패 1건 이상
+// 세션 한도 가드(남헌 v30 §5, lib/analysis/session-guard.ts): 한 실행이 쓰는 claude-cli 명목 비용이 상한
+//   (config/session-guard.json, 시작 15% × $0.3/%p = $4.5)에 닿기 전에 멈추고 남은 프로젝트는 다음 슬롯으로 넘긴다 —
+//   status='blocked' · summary.stop_reason='session_cap' · processed/not_started · session(사용 $·%p·5시간 창 합산).
+//
+// 종료코드: 0 정상(대상 0건·쉼·한도·세션 상한·주간 스위치 도달 포함) · 1 한도 blocked 가 연속 3슬롯(사람이 볼 것) · 2 설정/조회 실패(가드 설정 포함) · 3 추출 실패 1건 이상
 //   한도(429/예산)로 멈춘 것은 실패가 아니라 **확인 대상**이라 0 으로 끝내되
 //   `::warning::` 애노테이션과 agent_runs.status='blocked' 로 남긴다(CLAUDE.md §7.2).
 
 import { createClient } from '../lib/supabase/server.ts'
-import { requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
+import { cliSpent, requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
+import { capReached, capUsdOf, loadGuardConfig, loadRecentRuns, sessionBlock, sessionLine, usageSince, weeklyGate } from '../lib/analysis/session-guard.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 import { claimExtraction, runExtraction } from '../lib/analysis/extract-run.ts'
 import {
@@ -223,6 +228,17 @@ for (const t of pick.targets) {
 }
 if (pick.unknown > 0) warn(`신규 입력 수를 세지 못한 프로젝트 ${pick.unknown}건 — 대상 판정에서 빠졌다(0건이라는 뜻이 아니다)`)
 
+// ── 3.5 세션 한도 가드(남헌 v30 §5) — 이 슬롯 1회의 상한($) · 주간 중단 스위치 · 5시간 창 합산(기록만) ──
+const guard = loadGuardConfig()
+const capUsd = capUsdOf(guard.cfg)
+const guardNow = new Date()
+const recentRuns = await loadRecentRuns(supabase, guardNow)
+if (!recentRuns) warn('가드 대상 실행 이력(agent_runs) 조회 실패 — 5시간 창·주간 합산 확인 불가')
+const window5h = recentRuns ? usageSince(recentRuns, guardNow.getTime() - 5 * 3_600_000) : null
+const weekUsd = recentRuns ? usageSince(recentRuns, guardNow.getTime() - 7 * 86_400_000).usd : null
+const weekly = weeklyGate(guard.cfg, weekUsd)
+log(`세션 가드 — 이번 실행 상한 ${capUsd == null ? `확인 불가(${guard.error ?? 'session_cap_pct·usd_per_session_pct 없음'})` : `$${capUsd.toFixed(2)}(${guard.cfg.capPct}% × $${guard.cfg.usdPerPct}/%p)`} · ${weekly.reason} · 직전 5시간 다른 실행 ${window5h ? `$${window5h.usd.toFixed(2)}(${window5h.runs}건)` : '확인 불가'}`)
+
 if (dry) {
   log('--dry: 여기서 끝낸다. 잠금·LLM 호출·DB 쓰기 없음.')
   process.exit(0)
@@ -230,6 +246,17 @@ if (dry) {
 
 // ── 4. 실행 상태 기록 (기존 헬퍼 재사용: agent_runs / agent_run_steps) ──
 const tracker = await createTracker(trackerOpts)
+
+// 상한을 모르면(설정 깨짐) 돌지 않는다 — 가드 없이 도는 것을 "정상"으로 접지 않는다(§7.1). 주간 스위치도 여기서 멈춘다.
+// 둘 다 stop_reason 이 quota 가 아니라 쿨다운·연속 경보를 걸지 않는다(extract-auto.ts isQuotaBlocked).
+if (capUsd == null || weekly.stop) {
+  const stopReason = capUsd == null ? 'guard_config' : 'weekly_stop'
+  const why = capUsd == null ? `세션 상한 설정 확인 불가 — ${guard.error ?? 'config/session-guard.json 의 session_cap_pct·usd_per_session_pct 가 없다'}` : weekly.reason
+  warn(`${why} — 추출 0건으로 멈춘다(대상 ${pick.targets.length}건은 다음 실행)`)
+  await tracker.step({ stepKey: 'guard', label: '세션 한도 가드', status: 'blocked', blocker: why, detail: { stop_reason: stopReason, weekly_pct: weekly.pct, cap_usd: capUsd } })
+  await tracker.finish({ status: 'blocked', summary: { ...gateFields, targets: pick.targets.length, done: 0, failed: 0, remaining: pick.eligible, blocker: why, stop_reason: stopReason } })
+  process.exit(capUsd == null ? 2 : 0)
+}
 
 await tracker.step({
   stepKey: 'select',
@@ -247,9 +274,22 @@ let quotaResetAt = null
 let costUsd = 0
 let costKnown = 0
 let seq = 1
+// 세션 가드: 'quota'(구독 한도 오류) | 'session_cap'(이 실행 상한 도달) | null
+let stopReason = null
+let maxUnitUsd = 0 // 지금까지 본 프로젝트 1건(추출+프로필)의 최대 비용 — 다음 1건이 상한을 넘길지 가늠한다
+let processed = 0
 
 for (const target of pick.targets) {
   seq += 1
+  // 상한 확인은 claim **전**에 한다 — 건너뛴 프로젝트는 잠그지도 extract_attempts 를 태우지도 않는다(한도 정지와 같은 방식).
+  const spentNow = cliSpent().usd
+  if (capReached(spentNow, maxUnitUsd, capUsd)) {
+    stopReason = 'session_cap'
+    blocker = `세션 상한 도달 — 대상 ${pick.targets.length}건 중 ${processed}건 처리 뒤 정지 · 사용 $${spentNow.toFixed(3)} / 상한 $${capUsd.toFixed(2)} (1건 최대 $${maxUnitUsd.toFixed(3)})`
+    warn(`${blocker}. 남은 ${pick.targets.length - processed}건은 다음 슬롯에서 돈다(정상 종료가 아니다 — §7.2 확인 대상).`)
+    await tracker.step({ stepKey: 'session-cap', label: '세션 상한', status: 'blocked', seq, blocker, detail: { processed, of: pick.targets.length, spent_usd: Number(spentNow.toFixed(4)), cap_usd: capUsd, max_unit_usd: Number(maxUnitUsd.toFixed(4)) } })
+    break
+  }
   // 재추출은 force 가 필요하다. force 여도 실행 중(fresh processing)은 extract-gate 가 막는다.
   const force = needsForce(target)
   const claim = await claimExtraction(supabase, target.projectId, force)
@@ -264,6 +304,8 @@ for (const target of pick.targets) {
   // 재추출 실패면 claim.restore 로 extracted 를 되돌린다 — 503 한 번이 멀쩡한 프로젝트를 failed 로 떨어뜨리지 않게.
   const out = await withLlmBudget(() => runExtraction(supabase, target.projectId, provider, claim.restore))
   const secs = Math.round((Date.now() - t0) / 1000)
+  processed += 1
+  maxUnitUsd = Math.max(maxUnitUsd, cliSpent().usd - spentNow)
 
   if (out.ok) {
     done += 1
@@ -285,6 +327,7 @@ for (const target of pick.targets) {
     if (p?.quotaExhausted) {
       // 추출은 끝났고 프로필에서 한도에 걸렸다 — 다음 프로젝트의 추출도 같은 한도에 걸리므로 여기서 멈춘다(extract_attempts 를 태우지 않게).
       blocker = `LLM 한도/예산 소진(프로필 단계) — ${p.reason}`
+      stopReason = 'quota'
       quotaResetAt = parseQuotaResetAt(p.reason ?? '', new Date())
       warn(`${target.projectId} 프로필 단계에서 한도에 걸려 이번 실행을 멈춘다. 남은 대상 ${pick.targets.length - seq + 1}건은 쿨다운 뒤 슬롯에서 돈다.`)
       break
@@ -294,9 +337,10 @@ for (const target of pick.targets) {
 
   if (out.quotaExhausted) {
     blocker = `LLM 한도/예산 소진 — ${out.error}`
-    // D6: CLI 문구에서 리셋 시각을 뽑으면 다음 슬롯 쿨다운이 그걸 쓴다. 못 뽑으면 null → 5시간 폴백.
+    stopReason = 'quota'
+    // D6: CLI 문구에서 리셋 시각을 뽑으면 다음 슬롯 쿨다운이 그걸 쓴다. 못 뽑으면 null → 4시간 폴백(v30 §5).
     quotaResetAt = parseQuotaResetAt(out.error, new Date())
-    warn(`${target.projectId} 에서 한도에 걸려 이번 실행을 멈춘다. 남은 대상 ${pick.targets.length - seq + 1}건은 쿨다운(${quotaResetAt ? `리셋 ${quotaResetAt}` : '5시간'}) 뒤 슬롯에서 돈다. (${out.error})`)
+    warn(`${target.projectId} 에서 한도에 걸려 이번 실행을 멈춘다. 남은 대상 ${pick.targets.length - seq + 1}건은 쿨다운(${quotaResetAt ? `리셋 ${quotaResetAt}` : '4시간'}) 뒤 슬롯에서 돈다. (${out.error})`)
     await tracker.step({ stepKey: `extract-${target.projectId}`, label: `추출 ${target.projectId}`, status: 'blocked', seq, blocker, detail: { seconds: secs, quota_reset_at: quotaResetAt } })
     break
   }
@@ -308,11 +352,16 @@ for (const target of pick.targets) {
 
 const spent = dailySpent()
 const status = blocker ? 'blocked' : failed > 0 ? (done > 0 ? 'partial' : 'failed') : 'ok'
+const cli = cliSpent()
+const session = sessionBlock({ job: 'extract', cfg: guard.cfg, spentUsd: cli.usd, calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' })
+log(sessionLine(session))
 await tracker.finish({
   status,
   summary: {
     ...gateFields,
     targets: pick.targets.length, done, failed, remaining: pick.remaining, blocker, quota_reset_at: quotaResetAt,
+    // 상한·한도로 멈췄으면 몇 건째였는지(§7.2). remaining 은 슬롯 상한 밖 수, not_started 는 이번 실행이 고르고도 못 돈 수.
+    stop_reason: stopReason, processed, not_started: pick.targets.length - processed, session,
     est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls,
     // 성공 건 중 봉투에서 비용을 읽은 것만 합한다. 0건이면 null(0 달러로 접지 않는다).
     cost_usd: costKnown > 0 ? Number(costUsd.toFixed(4)) : null, cost_known: costKnown,
@@ -323,5 +372,6 @@ const spentNote = provider === 'claude-cli' ? `실측 명목 $${costKnown > 0 ? 
 log(`끝 — 추출 ${done}건 · 실패 ${failed}건 · 남은 대상 ${pick.remaining}건 · 이번 실행 ${spentNote} · 상태 ${status}`)
 if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 — ops/state 폴백. 이 실행의 기록은 "DB 확인 불가"다')
 
-const alarm = raiseAlarm(status)
+// 세션 상한 정지는 한도 오류가 아니다 — 연속 blocked 경보에 넣지 않는다(blocked 상태·::warning:: 로는 남는다).
+const alarm = raiseAlarm(stopReason === 'session_cap' ? 'capped' : status)
 process.exit(failed > 0 ? 3 : alarm ? 1 : 0)

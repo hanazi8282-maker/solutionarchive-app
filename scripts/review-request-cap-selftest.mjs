@@ -19,6 +19,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { MAX_PAGES_PER_TARGET } from '../lib/review/runner.ts'
+import { LEGACY_SLOTS } from '../lib/review/ramp.ts'
 import {
   CAP_BUFFER,
   REQUESTS_PER_BOARD_RUN,
@@ -100,8 +101,11 @@ const plan = (over, runs = 2) =>
 // ── 7) runsPerDay 파싱 ─────────────────────────────────────────
 {
   // 실제 워크플로. 남헌 2026-09-23 지시로 하루 2회다(17:37 · 05:37 UTC).
-  const real = countCronSchedules(fs.readFileSync(WORKFLOW, 'utf8'))
-  t('파싱: 실제 nightly-review-collect.yml 은 하루 2회', real, 2)
+  // v30 §2 로 cron 이 6줄이 됐지만 추가 4슬롯은 스케줄 계획 있는 소스만 돈다 — 상한 수요는 기존 2슬롯 기준(스크립트가 LEGACY_SLOTS 로 거른다).
+  const realText = fs.readFileSync(WORKFLOW, 'utf8')
+  t('파싱: 실제 nightly-review-collect.yml 은 기존 슬롯 하루 2회', countCronSchedules(realText, (c) => LEGACY_SLOTS.has(c)), 2)
+  t('파싱: 실제 nightly-review-collect.yml cron 전체 6줄', countCronSchedules(realText), 6)
+  t('스크립트가 기존 슬롯만 센다', /countCronSchedules\([^)]*\), \(c\) => LEGACY_SLOTS\.has\(c\)\)/.test(fs.readFileSync(path.join(path.dirname(WORKFLOW), '..', '..', 'scripts', 'review-request-cap.mjs'), 'utf8')), true)
 
   const three = `on:
   schedule:

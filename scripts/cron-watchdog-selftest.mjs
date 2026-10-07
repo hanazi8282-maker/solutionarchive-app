@@ -65,7 +65,7 @@ ok('판정 — 24h 지난 실행은 다음 슬롯 것 = 이 슬롯은 미발화'
 }
 
 // nightly-extract 유예 10시간 + 순서 짝짓기 (2026-10-01·02 실측: 4~7시간 늦게 떠서 성공).
-ok('유예 — nightly-extract·nightly-relevance 만 10시간', graceFor('nightly-extract.yml') === 10 * 3600_000 && graceFor('nightly-relevance.yml') === 10 * 3600_000 && graceFor('daily-cmo-loop.yml') === GRACE_MS && Object.keys(GRACE_OVERRIDE_MS).length === 2, JSON.stringify(GRACE_OVERRIDE_MS))
+ok('유예 — nightly-extract·nightly-review-collect·nightly-relevance 만 10시간', graceFor('nightly-extract.yml') === 10 * 3600_000 && graceFor('nightly-relevance.yml') === 10 * 3600_000 && graceFor('daily-cmo-loop.yml') === GRACE_MS && Object.keys(GRACE_OVERRIDE_MS).length === 3, JSON.stringify(GRACE_OVERRIDE_MS))
 ok('유예 — 문구에 파일별 시간', judgeRuns('nightly-extract.yml', slot, [], undefined, { grace: graceFor('nightly-extract.yml') })?.line.includes('10시간 넘게 지연'))
 {
   const ex = "on:\n  schedule:\n    - cron: '33 18 * * *'\n    - cron: '33 3 * * *'\n    - cron: '33 9 * * *'\n"
@@ -284,6 +284,36 @@ fs.rmSync(tmp2, { recursive: true, force: true })
 }
 
 fs.rmSync(tmp, { recursive: true, force: true })
+
+// nightly-review-collect — v30 §2 로 cron 6줄(실제 파일 그대로 복사). 17:37 슬롯 실측 2h45m 지연(2026-09-16)이 오탐·엉뚱한 슬롯 귀속을 내지 않게.
+{
+  const real = fs.readFileSync(path.join(import.meta.dirname, '..', '.github', 'workflows', 'nightly-review-collect.yml'), 'utf-8')
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'watchdog-rc-'))
+  fs.writeFileSync(path.join(dir, 'nightly-review-collect.yml'), real)
+  const NOW_RC = new Date('2026-10-08T21:53:00Z')
+  ok('review-collect — 유예 10시간·짝짓기 대상', graceFor('nightly-review-collect.yml') === 10 * 3600_000 && 'nightly-review-collect.yml' in GRACE_OVERRIDE_MS)
+  ok('review-collect — 실제 파일 cron 6줄', scheduledWorkflows(dir)[0]?.crons.length === 6, JSON.stringify(scheduledWorkflows(dir)))
+  const r = (id, at) => ({ id, created_at: at, status: 'completed', conclusion: 'success', html_url: `https://gh/run/${id}` })
+  const run = (runs) => runWatchdog({
+    now: NOW_RC, env: { GITHUB_REPOSITORY: 'o/r', GITHUB_TOKEN: 'gh', NEXT_PUBLIC_SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k' },
+    workflowsDir: dir, dry: true, log: () => {}, git: (a) => (a.includes('--is-shallow-repository') ? 'false' : '2026-01-01T00:00:00+00:00'),
+    fetchImpl: async (url) => new Response(JSON.stringify(String(url).includes('api.github.com')
+      ? { workflow_runs: runs.filter((x) => x.created_at >= decodeURIComponent(String(url).split('created=')[1]).slice(2)) }
+      : [{ expires_at: iso(NOW_RC.getTime() + 30 * DAY), user_id: 'u1' }]), { status: 200 }),
+  })
+  // 판정 슬롯: 10-07 13:19 · 17:37 · 20:47 · 10-08 01:43 · 05:37 · 09:29. 17:37 실행이 20:22(+2h45m) — 20:47 예정보다 늦게 뜬 것까진 아니어도
+  // 옛 창 [17:36, 20:47) 경계에 붙는다. 20:47 실행은 23:40(+2h53m, 다음 슬롯 01:43 직전).
+  const lag = [r(1, '2026-10-07T14:30:00Z'), r(2, '2026-10-07T20:22:48Z'), r(3, '2026-10-07T23:40:00Z'),
+    r(4, '2026-10-08T03:10:00Z'), r(5, '2026-10-08T07:00:00Z'), r(6, '2026-10-08T10:15:00Z')]
+  let e = await run(lag)
+  ok('review-collect 6줄 + 늦은 17:37(+2h45m)·20:47(+2h53m) — 경보 없음', e.code === 0, JSON.stringify(e.problems))
+  // 17:37 이 20:47 예정보다도 늦게(21:30) 떴다 — 옛 창이면 17:37 미발화 + 20:47 이 그 실행을 가져갔다.
+  e = await run([lag[0], r(2, '2026-10-07T21:30:00Z'), ...lag.slice(2)])
+  ok('review-collect 17:37 이 다음 슬롯 시각을 넘겨 떠도 — 경보 없음', e.code === 0, JSON.stringify(e.problems))
+  e = await run(lag.filter((x) => x.id !== 6))
+  ok('review-collect 추가 슬롯(09:29) 미발화 — 정확히 1건, 그 슬롯', e.problems.length === 1 && e.problems[0].includes('2026-10-08 09:29'), JSON.stringify(e.problems))
+  fs.rmSync(dir, { recursive: true, force: true })
+}
 
 if (failures.length) {
   console.error(`FAIL ${failures.length} / PASS ${passed}`)

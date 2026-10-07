@@ -41,6 +41,15 @@ on:
     #    아니다 — 그 실행은 그 UTC 날짜의 두 번째가 되어 남은 몫만 쓴다. 상한에 걸린
     #    소스는 '일일 상한 도달'로 건너뛴다(runner.ts). 정상이지만 확인 대상이다(§7.2).
     - cron: '37 5 * * *'
+    # ── 추가 4슬롯(남헌 v30 §2 수집 스케줄러) ── 순서·값은 lib/review/ramp.ts COLLECT_SLOTS 와 1:1(셀프테스트 대조).
+    # 이 슬롯들은 **스케줄 계획(review_source_ramp.schedule_plan)이 있는 소스만** 돈다 — cap_base 가 없는 소스(2026-10-07 전부)는
+    # 위 기존 2슬롯에서만 지금처럼 돈다. 계획이 없으면 수집 스크립트가 바로 끝나고(exit 0) 아래 상한 자동 반영·원문 폐기·앵글 체크는
+    # 건너뛴다(LEGACY_SLOT). 한 슬롯이 지연·누락돼도 다음 슬롯이 누적 허용량으로 따라잡는다(ramp.ts slotAllowance).
+    # 분은 슬롯마다 다르게, 마지막은 20:47 — 1~3시간 지연이 나도 UTC 자정(일일 몫 경계)을 넘지 않게.
+    - cron: '43 1 * * *'
+    - cron: '29 9 * * *'
+    - cron: '19 13 * * *'
+    - cron: '47 20 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -108,6 +117,12 @@ jobs:
     # review-collect.mjs 의 유일한 시간 제한은 요청당 AbortSignal.timeout(20초)이고,
     # 실행 전체를 끊는 것은 이 값뿐이다. 그래서 여기만 늘리면 실제로 늘어난다.
     timeout-minutes: 90
+    env:
+      # 이번 실행의 크론 문자열(수동 실행이면 빈 값). review-collect.mjs 가 슬롯 번호·회당 몫을 정한다(v30 §2).
+      COLLECT_SLOT: ${{ github.event.schedule }}
+      # 기존 2슬롯·수동 실행 = 'true'. 추가 4슬롯에서는 하루 1~2회 전제인 스텝(상한 2배 자동 반영·원문 폐기·앵글 체크)을 건너뛴다 —
+      # 상한 자동 반영이 6번 돌면 하루에 2배가 여러 번 겹친다.
+      LEGACY_SLOT: ${{ github.event_name != 'schedule' || github.event.schedule == '37 5 * * *' || github.event.schedule == '37 17 * * *' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -141,6 +156,7 @@ jobs:
       # 안전한 쪽이고(모자라면 '일일 상한 도달'로 잘릴 뿐이다), 여기서 잡을 세우면
       # 계산 버그 하나가 그날 밤 수집을 0건으로 만든다.
       - name: Autocalc request cap
+        if: env.LEGACY_SLOT == 'true'
         continue-on-error: true
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -177,7 +193,7 @@ jobs:
       #    명시적으로 켜야 실제로 지운다. 며칠 dry-run 으로 대상 건수를 눈으로
       #    보고 나서 켜는 것을 권한다.
       - name: Purge expired raw text
-        if: always()
+        if: always() && env.LEGACY_SLOT == 'true'
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -189,7 +205,7 @@ jobs:
       # done 50건 또는 7일마다 "체험 기반" 비율을 재고, 90% 이상이면 Notion CTO 행(사람판단필요)을 남긴다. 정상이면 행 없음.
       # 수집과 무관하게 돈다(if: always()). 실패(확인 불가·Notion 기록 실패)면 이 스텝이 빨간불이고 폴백 파일은 아래가 올린다.
       - name: Idea angle distribution check
-        if: always()
+        if: always() && env.LEGACY_SLOT == 'true'
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

@@ -419,7 +419,8 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
     const base = (await go(memDb(), harness())).result.requests
     const noCols = memDb({ ramp: [pctRow({ cap_base: 10 })], pctCols: false })
     const rc = await go(noCols, harness())
-    t('칸 없음 → 옛 칸 재조회·예산 그대로', [rc.result.requests, rc.notes.length, noCols.ops.filter(([tb, op]) => tb === 'review_source_ramp' && op === 'select').length], [base, 1, 2])
+    // notes 2줄 = 타깃 수 줄 + 예산 3상태 줄(v30 §2 — '퍼센트 칸 없음 → 기존 예산'). 퍼센트 요약 줄은 없다.
+    t('칸 없음 → 옛 칸 재조회·예산 그대로', [rc.result.requests, rc.notes.length, /기존 예산/.test(rc.notes[1]), noCols.ops.filter(([tb, op]) => tb === 'review_source_ramp' && op === 'select').length], [base, 2, true, 2])
     t('cap_base NULL → 예산 그대로·요약 줄 없음', [(await go(memDb({ ramp: [pctRow({ cap_base: null })] }), harness())).result.requests], [base])
     t('행 없음 기준선 = 10 타깃 전부', base, 10)
     const ex = await collectWithRamp({ sb: memDb({ ramp: [pctRow({ source_key: 'danawa', cap_base: 4 })] }), adapter: { ...fmkoreaAdapter, key: 'danawa' }, dryRun: false, explicitTargets: null, ports: harness().ports })

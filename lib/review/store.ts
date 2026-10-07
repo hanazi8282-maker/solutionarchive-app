@@ -12,8 +12,8 @@
 
 import type { createClient } from '../supabase/server.ts'
 import { CROSS_TARGET_MIN_TEXT_LEN } from './fingerprint.ts'
-import type { RunnerStore, SourceConfig, TargetProgress } from './runner.ts'
-import { isOwnerRobotsOverride } from './runner.ts'
+import type { AppStoreSummary, RunnerStore, SourceConfig, TargetProgress } from './runner.ts'
+import { GP_PRIORITY_APPSTORE_SOURCE, GP_PRIORITY_SOURCE, isOwnerRobotsOverride, orderGooglePlayTargets, summarizeAppStore } from './runner.ts'
 import type { Fingerprint, TargetState } from './types.ts'
 
 type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
@@ -51,6 +51,57 @@ export function createReviewStore(supabase: Supa): RunnerStore {
   const totals = new Map<string, number>()
   /** analysis_inputs 메타 3컬럼이 없다고 한 번 확인되면 true. 실행 단위로만 기억한다(다음 실행은 다시 시도). */
   let metaMissing = false
+
+  const TARGET_COLUMNS = 'id, project_id, source_key, product_ref, cursor, last_review_at, consecutive_empty, total_collected'
+
+  /** 다른 소스 경로 — v40 이전과 같은 쿼리 그대로(회귀 단언: scripts/review-googleplay-selftest.mjs). */
+  const due = async (sourceKey: string, limit: number) => {
+    // 오래 안 돈 것부터. NULLS FIRST 라 한 번도 안 돈 타깃이 먼저다.
+    const { data, error } = await supabase
+      .from('review_targets')
+      .select(TARGET_COLUMNS)
+      .eq('source_key', sourceKey)
+      .eq('status', 'active')
+      .order('last_run_at', { ascending: true, nullsFirst: true })
+      .limit(limit)
+
+    if (error) throw new Error(`타깃 조회 실패: ${error.message}`)
+    return data ?? []
+  }
+
+  /**
+   * 구글 플레이(v40 §3-②) — 활성 타깃 전부(80개 규모)를 기존 순서로 읽고, 앱스토어 상태를 **한 번** 읽어
+   * 러너의 순수함수(orderGooglePlayTargets)로 정렬한 뒤 limit 만큼 자른다.
+   * 앱스토어 조회가 실패하면 우선순위 없이 기존 순서로 돈다(§7.1: '해당 없음'으로 접고 ⚠️ 한 줄, 수집은 막지 않는다).
+   * ponytail: limit 없이 전부 읽는다 — 활성 타깃이 PostgREST max-rows(기본 1000)에 가까워지면 상한을 걸고 페이지로 읽는다.
+   */
+  const googlePlayDue = async (limit: number) => {
+    const { data, error } = await supabase
+      .from('review_targets')
+      .select(`${TARGET_COLUMNS}, last_run_at`)
+      .eq('source_key', GP_PRIORITY_SOURCE)
+      .eq('status', 'active')
+      .order('last_run_at', { ascending: true, nullsFirst: true })
+      .order('created_at', { ascending: true })
+
+    if (error) throw new Error(`타깃 조회 실패: ${error.message}`)
+    const rows = (data ?? []).map((r) => ({ ...r, projectId: r.project_id, lastRunAt: r.last_run_at, totalCollected: r.total_collected ?? 0 }))
+
+    let appStore: Map<string, AppStoreSummary> | null = null
+    try {
+      const { data: as, error: asErr } = await supabase
+        .from('review_targets')
+        .select('project_id, status, total_collected')
+        .eq('source_key', GP_PRIORITY_APPSTORE_SOURCE)
+        .in('project_id', [...new Set(rows.map((r) => r.projectId))])
+      if (asErr) throw new Error(asErr.message)
+      appStore = summarizeAppStore(as ?? [])
+    } catch (e) {
+      console.warn(`⚠️ [review/store] googleplay visit order: appstore status unreadable (${(e as Error).message}) — priority not applied, default order`)
+    }
+
+    return orderGooglePlayTargets(rows, appStore).slice(0, limit)
+  }
 
   return {
     async loadSource(key: string): Promise<SourceConfig | null> {
@@ -94,18 +145,9 @@ export function createReviewStore(supabase: Supa): RunnerStore {
     },
 
     async listDueTargets(sourceKey: string, limit: number): Promise<TargetState[]> {
-      // 오래 안 돈 것부터. NULLS FIRST 라 한 번도 안 돈 타깃이 먼저다.
-      const { data, error } = await supabase
-        .from('review_targets')
-        .select('id, project_id, source_key, product_ref, cursor, last_review_at, consecutive_empty, total_collected')
-        .eq('source_key', sourceKey)
-        .eq('status', 'active')
-        .order('last_run_at', { ascending: true, nullsFirst: true })
-        .limit(limit)
+      const rows = sourceKey === GP_PRIORITY_SOURCE ? await googlePlayDue(limit) : await due(sourceKey, limit)
 
-      if (error) throw new Error(`타깃 조회 실패: ${error.message}`)
-
-      return (data ?? []).map((r) => {
+      return rows.map((r) => {
         totals.set(r.id, r.total_collected ?? 0)
         return {
           id: r.id,

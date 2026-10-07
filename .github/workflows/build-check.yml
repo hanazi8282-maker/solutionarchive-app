@@ -66,6 +66,9 @@ jobs:
       # extract 하루 건수 자동 조정(남헌 v36 §2) — 스위치 off ≡ 기존 결정 · 올리기/내리기/경계 · cost 정지 제외 · 쉬는 날 안 올림.
       # 가짜 PostgREST 에 extract-auto.mjs 를 자식 프로세스로 실제로 붙여 본다. 여기가 접히면 소프트 한도 run 으로 처리량을 깎는다.
       - run: node scripts/extract-autotune-selftest.mjs
+      # extract 수동 측정용 대상 지정(남헌 v40 §4, 입력 project_ids) — 형식 오류 exit 2 · 검수 이후 거부 · 없는 id 보고 · 문턱만 미적용 ·
+      # 빈 입력 = 기존 선별(요청·기록 동일). 가짜 PostgREST 자식 프로세스. 여기가 접히면 잘못 친 id 를 버리고 나머지만 돈다.
+      - run: node scripts/extract-project-ids-selftest.mjs
       # 경쟁사 프로필(남헌 2026-09-29) — 근거는 코드가 단다: 모르는 원문 번호는 버리고 근거 없는 주장은 센다.
       # 여기가 접히면 지어낸 문장이 원문 링크를 달고 화면에 앉는다. 3상태(ok/unverified/failed)·배선·외부 텍스트 고지도 본다.
       - run: node scripts/competitor-profile-selftest.mjs

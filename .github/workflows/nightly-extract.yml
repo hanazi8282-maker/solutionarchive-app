@@ -55,6 +55,10 @@ on:
         type: choice
         options: [m, s1, s2, s3]
         default: m
+      project_ids:
+        description: '쉼표로 구분한 analysis_projects.id (uuid). 비우면 평소 선별. 지정하면 그 프로젝트만 대상(수동 측정용)'
+        type: string
+        default: ''
 
 # 두 실행이 겹치면 같은 프로젝트의 aspects 를 서로 delete→insert 한다.
 concurrency:
@@ -109,6 +113,7 @@ jobs:
           # 발화한 크론 문자열 → 슬롯(s1/s2/s3) — run_key 접미사(F3)와 게이트 문턱을 정한다.
           EXTRACT_SLOT_CRON: ${{ github.event.schedule }}
           EXTRACT_SLOT_INPUT: ${{ inputs.slot }}
+          EXTRACT_PROJECT_IDS: ${{ inputs.project_ids }}
         run: |
           node scripts/extract-auto.mjs \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

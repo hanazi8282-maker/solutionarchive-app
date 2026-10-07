@@ -87,6 +87,60 @@ export function isOwnerRobotsOverride(override: unknown, robotsStatus: unknown):
   return typeof override === 'string' && OWNER_ROBOTS_OVERRIDES.has(override) && robotsStatus === 'disallowed'
 }
 
+// ── 구글 플레이 방문 순서(남헌 v40 §3-②) ─────────────────────────────
+//
+// 앱스토어는 비증분형이라 피드를 한 번 읽고 exhausted 가 된다. 그런 프로젝트는 100건 도달을
+// 구글 플레이 방문에 기댄다 — 그래서 **미방문** 구글 플레이 타깃 중 그 프로젝트의 것을 먼저 돈다.
+// 판단은 여기(순수함수), 조회는 store.ts listDueTargets 가 한다. 다른 소스는 이 경로를 타지 않는다.
+
+/** 이 순서를 적용하는 소스. */
+export const GP_PRIORITY_SOURCE = 'googleplay'
+/** 앱스토어 타깃의 소스 키. */
+export const GP_PRIORITY_APPSTORE_SOURCE = 'appstore'
+/**
+ * 확장 훅: 이미 방문한 타깃에도 같은 우선순위를 건다(앱스토어 exhausted ∧ 앱스토어 수집 < GP_REPEAT_BELOW,
+ * 프로젝트 합계 수집 적은 순). ⚠️ 기본 false(사양대로) — 켜는 것은 남헌 승인 뒤 이 한 줄만 true 로 바꾼다.
+ * ponytail: 켜면 대상 44개가 하루 방문 몫을 먼저 다 쓰므로 나머지 방문 타깃은 대상이 미방문으로 줄 때까지 밀린다.
+ */
+export const GP_PRIORITY_REPEAT = false
+export const GP_REPEAT_BELOW = 100
+
+/** 프로젝트별 앱스토어 요약. exhausted = 앱스토어 타깃이 있고 전부 exhausted. collected = 앱스토어 total_collected 합. */
+export interface AppStoreSummary { exhausted: boolean; collected: number }
+
+export function summarizeAppStore(
+  rows: { project_id: string; status: string; total_collected: number | null }[],
+): Map<string, AppStoreSummary> {
+  const m = new Map<string, AppStoreSummary>()
+  for (const r of rows) {
+    const s = m.get(r.project_id) ?? { exhausted: true, collected: 0 }
+    s.exhausted &&= r.status === 'exhausted'
+    s.collected += r.total_collected ?? 0
+    m.set(r.project_id, s)
+  }
+  return m
+}
+
+/**
+ * 입력은 기존 순서(last_run_at ASC NULLS FIRST, created_at ASC)로 정렬돼 있다고 본다. 안정 정렬이라 같은 등급 안은 그 순서 그대로.
+ *   0 미방문 ∧ 앱스토어 exhausted · 1 그 밖의 미방문 · 2 (repeat 일 때만) 방문 ∧ exhausted ∧ 앱스토어 < 100, 합계 수집 적은 순 · 3 나머지
+ * appStore 가 null(조회 실패)이면 입력 순서 그대로 돌려준다.
+ */
+export function orderGooglePlayTargets<T extends { projectId: string; lastRunAt: string | null; totalCollected: number }>(
+  rows: T[],
+  appStore: Map<string, AppStoreSummary> | null,
+  repeat: boolean = GP_PRIORITY_REPEAT,
+): T[] {
+  if (!appStore) return rows
+  const rank = (r: T) => {
+    const a = appStore.get(r.projectId)
+    if (r.lastRunAt === null) return a?.exhausted ? 0 : 1
+    return repeat && a?.exhausted && a.collected < GP_REPEAT_BELOW ? 2 : 3
+  }
+  const owed = (r: T) => (rank(r) === 2 ? appStore.get(r.projectId)!.collected + r.totalCollected : 0)
+  return [...rows].sort((x, y) => rank(x) - rank(y) || owed(x) - owed(y))
+}
+
 /** 사람 확인(캡차) 화면 표지. 엄격 모드(소유자 예외 요청·`abortOnChallenge` 어댑터)에서만 본다 — 다른 소스 본문 오탐 방지. */
 const CHALLENGE_RE = /recaptcha|g-recaptcha|unusual traffic|captcha/i
 

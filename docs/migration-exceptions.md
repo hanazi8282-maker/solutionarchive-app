@@ -484,3 +484,11 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - **20261005000003** `review_sources_quote_policy` — review_sources.quote_policy(full/short_only/none) 추가 + CHECK, tos_status CHECK 에 forbids_automation 추가, 정합 제약 2개. 적용 2026-10-05T13:14:46Z (남헌 허용 규칙 v20). 적용 전 컬럼 없음(42703), 적용 후 26행 전부 기본 full. 롤백 파일 있음(DROP COLUMN — 롤백 실행은 사람 판단).
 - **20261005000004** `review_sources_policy_backfill` — 소스 키 명시 21행의 robots_status·tos_status·quote_policy 기록(약관 prohibited 4행은 quote_allowed=false 도 기록). 적용 2026-10-05T13:15:03Z, 정확히 21행(가드 통과: robots_status 채움 21/26, 미변경 appstore·naver_blog·naver_cafe·naver_kin·reddit). 약관 금지 7곳(devto·disquiet·indiehackers·naver_blog_post·producthunt·tumblbug·youtube) short_only. 롤백 파일 있음. 음성 검사(supabase/tests/review_sources_constraints_negative.sql, 2026-10-05T16:00Z) 5건 전부 막힘·데이터 불변.
 - **20261005000002** `review_sources_appstore_owner_override` — appstore 1행 enabled=true·robots_status=disallowed·override=owner_2026-10-05·quote_policy=short_only. 적용 2026-10-05T16:09:38Z, 정확히 1행. 승인: 남헌 명시 예외(v18 §3, robots 금지 알고 결정), 선행 #419 머지(소유자 예외 러너 경로) 확인 뒤 적용. 롤백 파일 있음. ⚠️ 앱스토어 review_targets 0건 — 타깃 투입 전에는 수집 0.
+
+## 2026-10-07 — 약관 표기 불일치 5곳 유지 결정 · 스케줄 계획 칸 적용 기록
+- **devto·disquiet·indiehackers·tumblbug·youtube — enabled=true 유지, 변경 없음.** 남헌 결정 2026-10-07, 법적 위험 감수, 수집·분류·통계 용도 한정, 고객 노출 short_only.
+  - DB 실측값(CEO-STAFF, 2026-10-07): 5곳 모두 `quote_policy='short_only'`, override 없음.
+  - `tos_status`: devto·indiehackers·youtube = `prohibited`, disquiet·tumblbug = `forbids_automation`.
+  - `quote_allowed`: devto·indiehackers·youtube = `false`, disquiet·tumblbug = `true`.
+  - 이 항목은 기록만이다. 마이그레이션·코드·DB 값 변경 없음.
+- **20261007000030** `review_source_ramp_schedule_plan` — review_source_ramp 에 `schedule_plan jsonb` ADD COLUMN(nullable, 기본값 없음). 적용 2026-10-07 UTC 09:5x. 승인: 남헌 v32 §8 허락, 적용 CEO-STAFF. 양성: 칸 타입 jsonb·nullable·기본값 없음. 음성(롤백 트랜잭션): jsonb 칸에 `'x'` 대입 → 22P02. 롤백 파일 있음(DROP COLUMN — 파생값이라 잃는 데이터 없음, 롤백 실행은 사람 판단).

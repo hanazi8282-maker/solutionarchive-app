@@ -9,6 +9,8 @@
 //      - review_targets: INSERT 만, 그리고 아래 소스 가드를 통과한 소스만.
 //      - review_sources: 읽기만.
 //
+// 영역(v27): data/area-map-v26.json 의 slug → 5영역. hold·out 은 area_excluded, 맵에 없는 slug 는 area_unmapped 로
+//   건너뛴다. 타깃 label 접두는 새 영역("3:klaviyo"), 영역 미배정(null)은 접두 없이 slug 만.
 // 투입하는 칸 = 사전 `sources.<소스>.status === '확인'` ∧ 그 소스에 어댑터가 있다(ADAPTERS).
 //   '확인 불가'·'미발견'·'검색어' 는 투입하지 않는다(3상태 원칙 — 확인 불가를 확인으로 접지 않는다).
 // 소스 가드(DB review_sources 행 기준, 하나라도 걸리면 그 소스 전체를 건너뛴다):
@@ -70,6 +72,17 @@ export function loadAreas(codes, dir = DICT_DIR) {
   })
 }
 
+/**
+ * v26 5영역 지도(남헌 확정 v27). slug → "1"~"5" | "hold" | "out" | null. `_` 로 시작하는 키는 메타데이터(주석·_notes).
+ * 사전 JSON 은 원본 그대로 두고 영역은 이 파일 한 곳에서만 정한다. DB 행은 바꾸지 않는다.
+ *   hold·out → skip='area_excluded'(신규 투입 안 함 — 기존 데이터 삭제 아님) · null → 투입하되 label 에 영역 접두 없음.
+ */
+export const AREA_MAP_PATH = path.join(repoRoot, 'data', 'area-map-v26.json')
+export function loadAreaMap(file = AREA_MAP_PATH) {
+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'))
+  return Object.fromEntries(Object.entries(raw).filter(([k]) => !k.startsWith('_')))
+}
+
 function sourceGuard(row, offline) {
   if (offline) return 'source_unknown'
   if (!row) return 'source_missing'
@@ -87,7 +100,7 @@ const areaPitch = (a) => `제품 사전 영역 ${a.area} ${a.area_ko}`
  * sourceRows: key → review_sources 행(없으면 undefined) / existing: Set<`${source}|${ref}`>
  * 반환 items[] — 칸 하나(제품×소스×시장)마다 { area, slug, source, ref, label, projectKey, skip }
  */
-export function plan(areas, { sources, unit, globalUs, max, sourceRows, existing, offline }) {
+export function plan(areas, { sources, unit, globalUs, max, sourceRows, existing, offline, areaMap = loadAreaMap() }) {
   const items = []
   const seen = new Set()
   let accepted = 0
@@ -95,7 +108,18 @@ export function plan(areas, { sources, unit, globalUs, max, sourceRows, existing
     for (const p of a.products) {
       for (const source of sources) {
         const cell = p.sources?.[source]
-        const base = { area: a.area, slug: p.slug, source, label: `${a.area}:${p.slug}` }
+        // v26 5영역(data/area-map-v26.json). 맵에 없는 slug 는 "모름"이라 넣지 않는다(§7.1 — 모르는 걸 투입으로 접지 않는다).
+        const tag = Object.prototype.hasOwnProperty.call(areaMap, p.slug) ? areaMap[p.slug] : undefined
+        const base = { area: a.area, slug: p.slug, source, areaTag: tag ?? null, label: tag ? `${tag}:${p.slug}` : p.slug }
+        if (tag === undefined) {
+          items.push({ ...base, ref: null, skip: 'area_unmapped' })
+          continue
+        }
+        if (tag === 'hold' || tag === 'out') {
+          // hold = 영역 보류(02·05), out = 신규 수집 중단(채용·이커머스 운영). 기존 타깃·데이터는 건드리지 않는다.
+          items.push({ ...base, ref: null, skip: 'area_excluded' })
+          continue
+        }
         if (!cell || cell.status !== '확인') {
           items.push({ ...base, ref: null, skip: `status:${cell?.status ?? '없음'}` })
           continue

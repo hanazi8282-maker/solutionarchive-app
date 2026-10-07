@@ -28,7 +28,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { okkyAdapter, parseProductRef, HOST, DELETED_COMMENT_TOLERANCE, __internal } from '../lib/review/adapters/okky.ts'
+import { okkyAdapter, parseProductRef, HOST, DELETED_COMMENT_TOLERANCE, NOTE_PAGE_SIZE, __internal } from '../lib/review/adapters/okky.ts'
 import { runCollection, MAX_PAGES_PER_TARGET } from '../lib/review/runner.ts'
 import { buildProductRef } from '../lib/review/target-ref.ts'
 
@@ -195,6 +195,25 @@ ok('URL: /api/ 를 만들지 않는다 (robots 금지)', !okkyAdapter.nextReques
   const r = okkyAdapter.parse(fx('article-with-comments.html').replace('"commentCount":6', '"commentCount":2'), ctx())
   t('마커과소: 실패로 세지 않는다', r.parseFailures, 0)
   t('마커과소: 6건 다 받는다', r.reviews.length, 7)
+}
+
+// ── 댓글 첫 페이지 상한(v27, 실측 2026-10-07 1564954 축약본) ─────────────
+// 사이트가 JSON-LD 에 댓글 20건(첫 페이지)만 싣는다. commentCount 31 과의 부족분 11 은 파서 고장이 아니다.
+// 이걸 실패로 세서 10-06 실행이 "파싱 성공 21/31 → broken" 으로 찍혔다.
+{
+  const P = '/articles/1564954'
+  const html = fx('article-notes-truncated.html')
+  const node = __internal.readJsonLd(html)
+  t('첫페이지: 마커 31', node.commentCount, 31)
+  t('첫페이지: 평탄화 20 = NOTE_PAGE_SIZE', __internal.flattenComments(node.comment).length, NOTE_PAGE_SIZE)
+  const r = okkyAdapter.parse(html, { productRef: `url:${P}`, cursor: null })
+  t('첫페이지: 부족분을 실패로 세지 않는다(수정 전 10)', r.parseFailures, 0)
+  t('첫페이지: 본문 1 + 댓글 20', r.reviews.length, 21)
+  t('NOTE_PAGE_SIZE 를 20 으로 고정한다(실측값 — 바꾸려면 다시 잰다)', NOTE_PAGE_SIZE, 20)
+  // 음성: 평탄화가 상한보다 적은데 마커가 크면 여전히 실패다(상한이 탐지를 끄지 않는다).
+  const cut = JSON.stringify({ ...node, comment: node.comment.slice(0, 2) })
+  const r2 = okkyAdapter.parse(`<script type="application/ld+json">${cut}</script>`, { productRef: `url:${P}`, cursor: null })
+  ok('첫페이지 음성: 상한 미만 + 큰 부족분은 실패로 센다', r2.parseFailures > 0)
 }
 
 // ── 사고 2: 남의 글 댓글이 섞이면 버린다 (지문 중복 방지) ─────────

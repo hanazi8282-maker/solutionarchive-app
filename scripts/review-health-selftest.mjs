@@ -70,13 +70,19 @@ t(
 
 // ── 2) 파싱 성공률 — 경계 ─────────────────────────────────────────
 // 문턱은 8/10. "미만"이 broken 이므로 정확히 0.8 은 통과해야 한다.
-t('정확히 8/10 은 broken 이 아니다', run({ reviewsParsed: 8, parseFailures: 2 }).health, 'ok')
+// v27 "주의": 실패율 ≥ 20% 는 broken 이 아니면 degraded(경보 ⚠️, 중단 없음).
+t('정확히 8/10 은 broken 이 아니다(주의 = degraded)', run({ reviewsParsed: 8, parseFailures: 2 }).health, 'degraded')
+t('정확히 8/10 은 중단하지 않는다', run({ reviewsParsed: 8, parseFailures: 2 }).disable, false)
+t('9/10(실패 10%)은 ok', run({ reviewsParsed: 9, parseFailures: 1 }).health, 'ok')
+t('주의 사유 문구', run({ reviewsParsed: 8, parseFailures: 2 }).detail.startsWith('파싱 주의 — 실패 2/10'), true)
 t('7/10 은 broken', run({ reviewsParsed: 7, parseFailures: 3 }).health, 'broken')
 t('7/10 은 소스를 중단한다', run({ reviewsParsed: 7, parseFailures: 3 }).disable, true)
 t('0/10 은 broken', run({ reviewsParsed: 0, parseFailures: 10 }).health, 'broken')
 
 // 표본 가드 — 시도가 10 미만이면 판정하지 않는다.
-t('9건 중 0건 파싱이어도 표본 부족이라 broken 아님', run({ reviewsParsed: 0, parseFailures: 9 }).health, 'ok')
+t('9건 중 0건 파싱이어도 표본 부족이라 broken 아님(주의 = degraded)', run({ reviewsParsed: 0, parseFailures: 9 }).health, 'degraded')
+t('표본 부족 주의는 문구에 표본 미만을 적는다', run({ reviewsParsed: 6, parseFailures: 2 }).detail.includes('표본 10 미만'), true)
+t('표본 부족 + 실패율 < 20% 는 ok', run({ reviewsParsed: 8, parseFailures: 1 }).health, 'ok')
 t(
   '표본 부족은 조용히 넘기지 않고 경고로 남긴다',
   run({ reviewsParsed: 0, parseFailures: 9 }).warnings.length,

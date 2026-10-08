@@ -7,7 +7,7 @@
 //   2) 평점 전부 null(HN·카카오·커뮤니티) → 기존 slice(0, n) 과 같은 순서. 여기가 접히면 평점 없는 소스가 밀린다.
 //   3) 한쪽이 모자라면 다른 쪽으로 채운다(관련 후보를 버리지 않는다).
 //   4) 비율 0·1 경계, env 파서, 결정적 순서.
-//   5) 호출부 배선 — 함수만 맞고 relevance-judge-auto 가 안 부르면 효과가 정확히 0 이다.
+//   5) 호출부 배선 존재(문자열 검사만) — 함수만 맞고 relevance-judge-auto 가 안 부르면 효과가 정확히 0 이다.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -84,6 +84,11 @@ const pick = (items, n, share = DEFAULT_HIGH_RATING_SHARE) => pickSampleByRating
   const s1short = pick([...mk('L', 300, 2), ...mk('H', 30, 5)], 200, 1).stats
   t('share 1 + 고 부족: 저로 채움', s1short.high === 30 && s1short.low === 170)
   t('ceil: n=7·0.2 → 상한 2', pick(items, 7).stats.high_cap === 2 && pick(items, 7).stats.high === 2)
+  t('ceil: n=200·0.2 → 상한 40', pick(items, 200).stats.high_cap === 40)
+  t('부동소수: n=100·0.07 → 상한 7(8 아님)', pick(items, 100, 0.07).stats.high_cap === 7 && pick(items, 100, 0.07).stats.high === 7)
+  t('부동소수: n=100·0.29 → 상한 29', pick(items, 100, 0.29).stats.high_cap === 29)
+  t('부동소수: n=10·0.3 → 상한 3', pick(items, 10, 0.3).stats.high_cap === 3)
+  t('ceil 유지: n=10·0.21 → 상한 3', pick(items, 10, 0.21).stats.high_cap === 3)
 }
 
 // 7) 결정적 — 같은 입력이면 같은 출력, 입력을 바꾸지 않는다
@@ -104,15 +109,15 @@ t('env: 0.35', parseHighRatingShare('0.35') === 0.35)
 t('env: 범위 밖·문자 → null', parseHighRatingShare('1.5') === null && parseHighRatingShare('-0.1') === null && parseHighRatingShare('abc') === null)
 t('기본 비율 0.2', DEFAULT_HIGH_RATING_SHARE === 0.2)
 
-// 9) 호출부 배선
+// 9) 호출부 배선 존재(문자열 검사) — 소스에 호출이 있는지만 본다. 실행 경로 검증이 아니다(DB 필요).
 {
   const src = readFileSync(`${ROOT}scripts/relevance-judge-auto.mjs`, 'utf8')
-  t('배선: SELECT 에 rating', /\.select\('id, raw_text, created_at, collected_at, rating'\)/.test(src))
-  t('배선: selectInputs 결과를 pickSampleByRating 으로 자른다', /pickSampleByRating\(selectInputs\(inputs\)\.selected, sampleSize, highRatingShare/.test(src))
-  t('배선: 옛 slice(0, sampleSize) 가 남지 않았다', !src.includes('.slice(0, sampleSize)'))
-  t('배선: env RELEVANCE_HIGH_RATING_SHARE', src.includes('process.env.RELEVANCE_HIGH_RATING_SHARE'))
-  t('배선: tracker detail 에 high_rating_share·rating_mix', src.includes('high_rating_share: highRatingShare') && src.includes('rating_mix'))
-  t('배선: 프로젝트 줄 로그에 저·고·상한·없음', /평점 저 .* · 고 .*\/상한 .* · 없음/.test(src))
+  t('배선 존재(문자열 검사): SELECT 에 rating', /\.select\('id, raw_text, created_at, collected_at, rating'\)/.test(src))
+  t('배선 존재(문자열 검사): selectInputs 결과를 pickSampleByRating 으로 자른다', /pickSampleByRating\(selectInputs\(inputs\)\.selected, sampleSize, highRatingShare/.test(src))
+  t('배선 존재(문자열 검사): 옛 slice(0, sampleSize) 가 남지 않았다', !src.includes('.slice(0, sampleSize)'))
+  t('배선 존재(문자열 검사): env RELEVANCE_HIGH_RATING_SHARE', src.includes('process.env.RELEVANCE_HIGH_RATING_SHARE'))
+  t('배선 존재(문자열 검사): tracker detail 에 high_rating_share·rating_mix', src.includes('high_rating_share: highRatingShare') && src.includes('rating_mix'))
+  t('배선 존재(문자열 검사): 프로젝트 줄 로그에 저·고·상한·없음', /평점 저 .* · 고 .*\/상한 .* · 없음/.test(src))
 }
 
 console.log(`relevance-rating-sample-selftest: ${pass} pass, ${fail} fail`)

@@ -442,7 +442,8 @@ export function pickSampleByRating<T>(
     if (r != null && r >= 4) high.push(it)
     else low.push(it)
   }
-  const highCap = Math.ceil(size * share)
+  // 100 × 0.07 = 7.000000000000001 → ceil 8 이 되지 않게 소수 6자리에서 반올림한 뒤 올린다.
+  const highCap = Math.ceil(Math.round(size * share * 1e6) / 1e6)
   const lowTake = Math.min(low.length, size - Math.min(highCap, high.length))
   const sample = [...low.slice(0, lowTake), ...high.slice(0, size - lowTake)]
   const none = sample.filter((it) => ratingOf(it) == null).length

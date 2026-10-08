@@ -171,3 +171,15 @@
 - 작성일: 2026-10-04
 
 > It was red herring. None of the villains on those planes are Afghanis or even Taleban. And the entire 20 years saga fighting there not even against the OBL but more of Taleban and bringing freedom that supposely Brits and Soviet cant. OBL troops morphed into Syria where infamously Obama crossed it with his "red lines" without boots on the ground but tons of CIAs operatives running around. We now know it has nothing to do with 911 but more of diverting the "real villains" attention far away in ne…
+
+## HN 50008512
+
+- 판정: (미검토)
+- 매칭: `we shut down`
+- 원본: https://news.ycombinator.com/item?id=50008512
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-08 UTC)
+- 스레드: Trump administration is suspending Microsoft from a green card program
+- 작성자: MaxHoppersGhost
+- 작성일: 2026-10-08
+
+> As a percent of the population we have as many foreign born residents as we did in the 1800s and more than we ever did in the 1900s. In fact, some stats even show we have more foreign born residents as a percent than we’ve ever had and it could be even higher than reported given how many folks are here illegally. People forget that we shut down immigration for a few decades in the 1900s to let people assimilate. We’ve overdone it, we need to slow the influx again.

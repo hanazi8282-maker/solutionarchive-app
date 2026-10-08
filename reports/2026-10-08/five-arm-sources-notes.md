@@ -1,5 +1,20 @@
 # 영역 ⑤ 3갈래 시험 — 소스 2개 등록 메모 (v37 작업 4)
 
+## 적용 체크리스트 (오케스트레이터)
+
+1. **코드 먼저 머지** — `feat/v37-five-sources` 가 main 에 있어야 한다(ADAPTERS·빌더·soft-skip 멈춤·램프 상한). 마이그만 먼저 들어가면
+   타깃은 생기는데 코드가 없어 조용히 안 돈다.
+2. 대상 프로젝트 `qmgrfqjfxqhxuufrnkwf` 확인.
+3. 적용 전 확인 쿼리 6개(information_schema·직접 SELECT — PostgREST head 금지). ⚠️ 검토자 원문을 받지 못해 이 세션이 다시 적은 것이다 — 다르면 검토자 것이 우선.
+   - ① 정책 칸 7개: `SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='review_sources' AND column_name IN ('robots_status','tos_status','override','quote_policy','citation_allowed','quote_allowed','privacy_check');` → 7
+   - ② 램프 칸: `SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='review_source_ramp' AND column_name IN ('pct_step','cap_base','daily_request_target','frozen_until');` → 4
+   - ③ 소스 행 없음: `SELECT key FROM public.review_sources WHERE key IN ('wordpress_org','shopify_apps');` → 0행
+   - ④ 램프 행 없음: `SELECT source_key FROM public.review_source_ramp WHERE source_key IN ('wordpress_org','shopify_apps');` → 0행
+   - ⑤ 타깃 없음: `SELECT source_key, product_ref FROM public.review_targets WHERE source_key IN ('wordpress_org','shopify_apps');` → 0행
+   - ⑥ 재사용될 프로젝트(참고): `SELECT id, product_elevator_pitch, created_at FROM public.analysis_projects WHERE product_elevator_pitch LIKE ANY (ARRAY['Judge.me (저지미)%','Loox (룩스)%','Yotpo (욧포)%','Okendo (오켄도)%','CREMA (크리마)%','Alpha Review (알파리뷰)%']) ORDER BY 2, 3;` → 같은 pitch 가 둘 이상이면 가장 오래된 것에 붙는다
+4. 실행 → 마이그 하단 양성·음성 쿼리 → `docs/migration-exceptions.md` 한 줄.
+5. 첫 실행 뒤: 아래 "정렬 확인 절차"와 `blocked_responses` 확인.
+
 - 대상: `wordpress_org`(wordpress.org 플러그인 리뷰) · `shopify_apps`(Shopify 앱스토어 리뷰)
 - 산출물: 어댑터 `lib/review/adapters/wordpress.ts` · `lib/review/adapters/shopify.ts`, 셀프테스트 `scripts/review-five-arm-selftest.mjs`,
   마이그 `supabase/migrations/20261008000040_five_arm_sources.sql`(+`_rollback.sql`). **마이그는 미적용**(서브에이전트, §10.1·§10.2).
@@ -28,7 +43,9 @@
 - 약관: Shopify Terms of Service, Last updated 2026-08-01, `https://www.shopify.com/legal/terms`
   - 1조 9항 원문: "You agree not to access the Services or monitor any material or information from the Services using any robot, spider, scraper, or other automated means."
   - 1조 7항 원문(일부): "You agree not to reproduce, duplicate, copy, sell, resell or exploit any portion of the Service, use of the Services, or access to the Services without the express written permission by Shopify."
-  - 앱스토어 전용 약관 `shopify.com/legal/app-store-terms` 404. API Terms 2조 14호도 자동 수집 금지(우리는 API 를 쓰지 않는다).
+  - 앱스토어 전용 약관 `shopify.com/legal/app-store-terms` 404. 우리는 API 를 쓰지 않지만 API Terms(Last updated 2026-10-07) 2조도 같은 취지다:
+    - 8호: "... copy, scrape, mine, or create derivative works of the Shopify API, Merchant Data, any Merchant Store, the Services ..."
+    - 14호: "not use the Shopify API to conduct any systematic or automated data collection activities (including scraping, data mining, data extraction and data harvesting) or to build any commerce or product index"
 - **남헌 예외 기록 문구(DB·문서 공통)**:
   > Shopify ToS 1조 9항(자동 수단 접근 금지)·7항(무단 복제 금지)을 알고, 영역 ⑤ 3갈래 시험을 위해 소유자 예외로 켠다 — 남헌 승인 2026-10-08(v37 사전 승인).
   → `review_sources.override='owner_2026-10-08'` · `tos_status='prohibited'` · `quote_allowed=false`(CHECK 강제) · `quote_policy='none'` · `citation_allowed=true`.
@@ -69,13 +86,40 @@
 - Shopify URL 은 어댑터가 조립한 `?sort_by=newest&page=<정수>` 하나뿐 — `q=`·`shpxid=`·`auth=` 가 섞이면 `isAllowedReviewUrl` 이 null(0요청).
   러너 robots 판정은 pathname 만 보므로(SP-026) 쿼리 규칙은 어댑터가 지킨다.
 - UA 는 러너 고정(`solutionarchive-review-collector/0.1`). 쿠키·프록시·IP 회전·헤더 위장·캡차 풀이 없음.
-- 첫 실행 뒤 확인: `review_collection_runs` 의 `blocked_responses` 가 0 이 아니면 우회하지 말고 롤백 파일로 소스를 끈다.
+- Shopify 는 리뷰 표지(`<title>Reviews:`) 없는 200(로그인 리다이렉트·Access denied)도 차단이다 — 1요청에서 멈춘다. 리뷰 표지가 있어도 챌린지 마크업
+  (g-recaptcha·h-captcha·cf-chl·challenge-platform)이 붙으면 차단. 본문 낱말 "captcha" 는 차단이 아니다.
+- 구조 변경 감지: Shopify 블록 0개인데 리뷰 흔적(`rel="next"`·`data-review-content-id`·JSON-LD 리뷰 수 ≥1)이 있으면 파싱 실패 · WP item 0개인데
+  `<item`·`<entry`·`<guid` 흔적이 있으면 파싱 실패. "0건 ok" 로 접지 않는다.
+- **차단 뒤 멈춤(Shopify)** — 무인 루프는 `review_sources.enabled` 를 못 바꾼다(§10.1). 대신 읽기 전용 soft-skip(`lib/review/latest-health.ts`
+  `HALT_ON_BLOCK_SOURCES`)이 최근 실행의 `blocked_responses>0` 을 보고 다음 스케줄 실행부터 건너뛴다. 재시도 기한 없음 — 사람이
+  `--source=shopify_apps` 로 직접 돌려야 재개된다. 보고 경로(기존 것 그대로): 그 실행의 `health_after='broken'` → insight-loop 소스 경보 🚨 ·
+  Notion 일일 상태 로그 '막힌것'(차단 응답 N건)·'한일'(건너뜀 — soft-skip …). 차단 수치를 못 읽으면 확인 불가로 지금처럼 돈다.
+  ramp 의 `frozen_until` 은 **수집을 멈추지 않는다**(상승만 막는다) — 그래서 멈춤 수단으로 쓰지 않았다.
+- 첫 실행 뒤 확인: `review_collection_runs` 의 `blocked_responses` 가 0 이 아니면 우회하지 말고, 계속 끄려면 롤백 파일로 소스를 끈다.
 
 ## 한도 (기존 램프 규칙 — 50% 출발)
 
 - wordpress_org: `min_interval_ms` 5000 · `daily_request_cap` 40 · 램프 cap_base 40 → 첫날 목표 20요청. 타깃 9 × 피드 1요청.
-- shopify_apps: `min_interval_ms` 8000(요구 ≥5초) · `daily_request_cap` 30 · 램프 cap_base 30 → 첫날 목표 15요청. 타깃 10 × 최대 2쪽.
-  소유자 예외 소스라 cap 자동 상향 없음. `P_SAFE` 맵에 없음 → 회당 기본 10(ramp.ts, 첫 수집 뒤 값 넣기).
+- shopify_apps: `min_interval_ms` 8000(요구 ≥5초) · `daily_request_cap` 30 · 램프 cap_base 30 → 하루 목표 15요청. 타깃 10 × 최대 2쪽.
+  소유자 예외 소스라 cap 자동 상향 없음 · 퍼센트 램프 자동 상승도 없음(`ramp.ts PCT_CEILING.shopify_apps=50`, 올리는 것은 사람). `P_SAFE` 맵에 없음 → 회당 기본 10.
+- 타깃 공급(`target-supply.ts`): 두 소스 모두 앱스토어형(`APP_SOURCES`, 재방문 v=1/7 — 설계 v32 의 앱스토어 값).
+
+## Shopify 에 쌓이는 것 — 사실대로
+
+- 과거 리뷰는 쌓이지 않는다. 어댑터가 증분형(`incrementalOnly`)이고 실행당 2쪽 상한(`maxPagesPerRun: 2`)이라, 2쪽에서 끝나면 러너가 커서를 버린다
+  (`runner.ts resetAtCap`). 매 실행 1쪽부터 다시 읽는다 → **첫 실행의 최신 최대 20건 + 그 뒤 새로 달리는 리뷰**만 쌓인다. `MAX_PAGE=50` 은 안전판일 뿐 닿지 않는다.
+- 과거까지 훑으려면 구조를 바꿔야 한다(이번 범위 밖).
+
+## 정렬 확인 절차 (`sort_by=newest` — 첫 실행 뒤 1회)
+
+1. 첫 실행 뒤 `SELECT t.product_ref, a.created_at, substring(a.raw_text, 1, 60) FROM public.analysis_inputs a JOIN public.review_targets t ON t.project_id = a.project_id
+   WHERE a.source_key = 'shopify_apps' AND t.source_key = 'shopify_apps' ORDER BY t.product_ref, a.created_at;` 로 타깃별 적재 순서를 본다
+   (같은 실행 안에서는 페이지 순서대로 들어간다).
+2. 날짜는 원문에만 있다(`analysis_inputs` 에 작성일 칸이 없다) — 대신 `review_targets.last_review_at`(이번 실행에서 본 가장 최신 리뷰 날짜)을 본다:
+   `SELECT product_ref, last_review_at FROM public.review_targets WHERE source_key='shopify_apps' ORDER BY 2 DESC;` — 실행일 기준 며칠 안쪽이어야 한다
+   (judgeme·loox 처럼 리뷰가 많은 앱이 몇 달 전이면 최신순이 아니다).
+3. 사람 눈으로 1회: 브라우저에서 `https://apps.shopify.com/judgeme/reviews?sort_by=newest&page=1` 첫 리뷰 날짜와 2번 값을 대조한다.
+4. 최신순이 아니면: 증분 종료가 늦어질 뿐 중복은 지문이 막는다. 정렬 파라미터를 바꾸는 것은 robots 재판정 뒤에.
 
 ## 타깃 후보와 근거 URL (2026-10-08~09 확인)
 
@@ -115,8 +159,10 @@
 
 ## 확인 못 한 것 (§7.1 — 확인 불가)
 
-- Shopify `sort_by=newest` 가 실제로 최신순인지(1회 요청은 기본 정렬 2쪽이었다). 아니면 증분 종료가 늦어질 뿐 중복은 지문이 막는다.
-- Shopify 리뷰별 고유 주소(`/reviews/<id>` 공유 링크) — 그래서 `sourceUrl` 은 비운다. `data-review-content-id` 의 전역 유일성 — 그래서 `productScopedExternalId=true`.
+- Shopify `sort_by=newest` 가 실제로 최신순인지(1회 요청은 기본 정렬 2쪽이었다) — 위 "정렬 확인 절차".
+- Shopify 리뷰별 고유 주소 — 블록에 `data-review-share-link="/reviews/<id>"` 가 있지만 상대 경로의 기준(앱 경로 아래인지 루트인지)과 그 주소가 실제로
+  열리는지 실측하지 않았다. 확인 안 한 주소를 `[SRC:]` 로 심지 않으려고 `sourceUrl` 은 비웠다(검토 권고 '채울 수 있으면' — 지금은 못 채움).
+  `data-review-content-id` 의 전역 유일성도 미확인 — 그래서 `productScopedExternalId=true`(지문 범위는 바꾸지 않는다).
 - 폐쇄된 Judge.me WP 플러그인의 리뷰 피드가 아직 열리는지. 404 면 그 타깃만 `failed`.
 - crema-review·alphareview 의 현재 리뷰 수.
 - WP 저볼륨 플러그인(reviews-feed 37건 등)은 증분형 연속 0건 안전장치(MAX_CONSECUTIVE_EMPTY=3)에 걸려 며칠 안에 `exhausted` 로 닫힐 수 있다 — 고장이 아니라 설계된 종료다. 되살리기는 `scripts/target-revive.mjs`.

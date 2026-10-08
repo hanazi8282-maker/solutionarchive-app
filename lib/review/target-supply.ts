@@ -29,7 +29,8 @@ export const CAP_FALLBACK_PCT = 50
 export const LEGACY_RUNS_PER_DAY = 2
 
 /** v 분류(D2). 앱스토어형 1/7 · 검색형 1 · 나머지(게시판·글·영상) 2. */
-export const APP_SOURCES: ReadonlySet<string> = new Set(['appstore', 'googleplay'])
+// wordpress_org·shopify_apps(2026-10-09): 앱·플러그인 리뷰 페이지 = 제품 1개 = 타깃 1개, 새 리뷰가 드물다 → 앱스토어형.
+export const APP_SOURCES: ReadonlySet<string> = new Set(['appstore', 'googleplay', 'wordpress_org', 'shopify_apps'])
 export const SEARCH_SOURCES: ReadonlySet<string> = new Set(['hackernews', 'kakao_blog', 'kakao_cafe'])
 /** `board:` ref 를 받는 어댑터(lib/review/adapters 에서 parseBoardRef·board: 를 쓰는 12곳). board_register 처방 대상. */
 export const BOARD_SOURCES: ReadonlySet<string> = new Set([

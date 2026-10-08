@@ -117,7 +117,9 @@ export const wordpressAdapter: ReviewSourceAdapter = {
     const xml = body ?? ''
     // RSS 가 아니면(HTML 오류·로그인 화면) 0건이 아니라 못 읽음이다.
     if (!/<rss[\s>]/i.test(xml) || !/<channel>/i.test(xml)) return FAIL
-    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].map((m) => m[1])
+    const items = [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].map((m) => m[1])
+    // item 은 0개인데 항목 흔적(<item·<entry·<guid)이 있으면 구조가 바뀐 것 — 0건 정상이 아니라 못 읽음(§7.1 사례 1).
+    if (items.length === 0 && /<(item|entry|guid)\b/i.test(xml)) return FAIL
     const reviews: ParsedReview[] = []
     let parseFailures = 0
     for (const it of items) {

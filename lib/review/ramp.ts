@@ -408,12 +408,22 @@ export function judgePctDay(args: {
   return v('ok')
 }
 
-/** 하루 판정 → 다음 상태. 정상 2일 연속이면 한 단계(90 에서 유지), 차단이면 연속 0, 나머지는 그대로. */
-export function nextPctState(p: Pick<PctRamp, 'pctStep' | 'consecutiveOkDays'>, verdict: DayVerdict): { pctStep: number; consecutiveOkDays: number; rose: boolean } {
+/**
+ * 자동 상승 상한(소스별). 여기 적힌 단계 위로는 엔진이 올리지 않는다 — 올리는 것은 사람(마이그). 판정·차단 하강은 그대로 돈다.
+ * shopify_apps: 약관 금지를 알고 켠 소스라 낮은 요청 속도(50%)에 고정(v37 독립 검토 2026-10-09).
+ */
+export const PCT_CEILING: Readonly<Record<string, number>> = { shopify_apps: 50 }
+
+/** 하루 판정 → 다음 상태. 정상 2일 연속이면 한 단계(90 또는 소스 상한에서 유지), 차단이면 연속 0, 나머지는 그대로. */
+export function nextPctState(
+  p: Pick<PctRamp, 'pctStep' | 'consecutiveOkDays'>,
+  verdict: DayVerdict,
+  ceiling: number = PCT_STEPS[PCT_STEPS.length - 1],
+): { pctStep: number; consecutiveOkDays: number; rose: boolean } {
   if (verdict === 'blocked') return { pctStep: p.pctStep, consecutiveOkDays: 0, rose: false }
   if (verdict !== 'ok') return { pctStep: p.pctStep, consecutiveOkDays: p.consecutiveOkDays, rose: false }
   const days = p.consecutiveOkDays + 1
-  if (days >= PCT_RISE_OK_DAYS && p.pctStep < PCT_STEPS[PCT_STEPS.length - 1]) return { pctStep: p.pctStep + 10, consecutiveOkDays: 0, rose: true }
+  if (days >= PCT_RISE_OK_DAYS && p.pctStep < Math.min(ceiling, PCT_STEPS[PCT_STEPS.length - 1])) return { pctStep: p.pctStep + 10, consecutiveOkDays: 0, rose: true }
   return { pctStep: p.pctStep, consecutiveOkDays: days, rose: false }
 }
 
@@ -542,7 +552,7 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
         allocLimited: dayTarget < unallocated,
       })
       supply = j.supply
-      next = nextPctState(p, j.verdict)
+      next = nextPctState(p, j.verdict, PCT_CEILING[r.sourceKey])
       event = next.rose ? 'rise' : 'day'
       reason = `${yDate} ${j.verdict} (요청 ${j.requests}/목표 ${dayTarget}) — ${next.rose ? `정상 ${PCT_RISE_OK_DAYS}일 연속, ${p.pctStep}%→${next.pctStep}%` : `${next.pctStep}% 유지, 연속정상 ${next.consecutiveOkDays}일`}`
     }

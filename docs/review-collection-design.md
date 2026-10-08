@@ -147,7 +147,10 @@ ADAPTERS 맵을 `scripts/review-runner-selftest.mjs` 가 대조한다.
 - 소유자 결정: 남헌이 위 두 조항을 알고 켠다(`override='owner_2026-10-08'`, `tos_status='prohibited'`, `quote_policy='none'`, `quote_allowed=false`).
   이 override 는 약관 예외 기록이다 — 러너 `OWNER_ROBOTS_OVERRIDES`(robots 금지 예외)에는 넣지 않았다. robots 가 금지로 바뀌면 멈춘다.
 - 지키는 것: 정직한 UA, 우회 없음, 403·429·빈 응답·캡차 즉시 중단(`abortOnChallenge`), URL 은 `/<앱>/reviews?sort_by=newest&page=N` 만
-  (`q=`·`shpxid=`·`auth=` 금지 — 어댑터 `isAllowedReviewUrl`), 8000ms · 30요청/일 · 램프 50% 출발, 상점명·국가 미저장.
+  (`q=`·`shpxid=`·`auth=` 금지 — 어댑터 `isAllowedReviewUrl`), 8000ms · 30요청/일 · 램프 50% 고정(`ramp.ts PCT_CEILING`, 자동 상승 없음), 상점명·국가 미저장.
+  리뷰 표지 없는 200(로그인·Access denied)도 차단. 한 번 차단되면 다음 스케줄 실행부터 건너뛴다 — 사람이 `--source=shopify_apps` 로 직접 돌려야 재개
+  (`latest-health.ts HALT_ON_BLOCK_SOURCES`, review_sources 를 쓰지 않는 읽기 전용 soft-skip — §10.1 안).
+- 같은 취지의 API Terms(2026-10-07) 2조 8호 "... copy, scrape, mine, or create derivative works of the Shopify API, Merchant Data, any Merchant Store, the Services ..." — API 는 쓰지 않는다.
 - 되돌림: 롤백 `20261008000040_five_arm_sources_rollback.sql`(두 소스 비활성화 + override 회수). 근거 메모 `reports/2026-10-08/five-arm-sources-notes.md`.
 
 ## 2. 가장 중요한 구조 결정 — 원문 테이블을 새로 만들지 않는다

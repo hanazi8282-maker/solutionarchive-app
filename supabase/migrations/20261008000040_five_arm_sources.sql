@@ -37,7 +37,11 @@
 --     → `/<앱>/reviews?sort_by=newest&page=N` allowed → robots_status='allowed'. 쿼리 규칙은 어댑터 isAllowedReviewUrl 이 지킨다.
 --   중단: 403·429·빈 응답·캡차 즉시 중단(abortOnChallenge), 리뷰 표지 없는 200 = 파싱 실패. 우회(UA 위장·쿠키·프록시) 없음.
 --   시드: min_interval_ms 8000(요구 ≥5초) · daily_request_cap 30 · 램프 cap_base 30 → 50% = 하루 15요청. 타깃 10개 × 최대 2페이지.
---     소유자 예외 소스라 야간 cap 자동 상향 대상이 아니다(request-cap 'fixed').
+--     소유자 예외 소스라 야간 cap 자동 상향 대상이 아니다(request-cap 'fixed'). 퍼센트 램프도 50% 에서 자동 상승하지 않는다
+--     (lib/review/ramp.ts PCT_CEILING). 차단이 한 번 나면 다음 실행부터 사람이 직접 돌리기 전까지 건너뛴다
+--     (lib/review/latest-health.ts HALT_ON_BLOCK_SOURCES — review_sources 를 건드리지 않는 읽기 전용 soft-skip).
+--   API Terms(2026-10-07) 2조 8호: "... copy, scrape, mine, or create derivative works of the Shopify API, Merchant Data, any Merchant Store,
+--     the Services ..." — 우리는 API 를 쓰지 않지만 같은 취지라 함께 적는다.
 --
 -- ── 타깃 ─────────────────────────────────────────────────────
 --   라벨 `5:wp|<플러그인 slug>` · `5:shopify|<앱 slug>` — 영역 판독 정규식 `^([1-5]):`(target-supply areaOf) 호환.

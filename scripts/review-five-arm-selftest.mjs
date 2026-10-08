@@ -16,6 +16,9 @@ import { runCollection, isStrictBlock, isOwnerRobotsOverride, OWNER_ROBOTS_OVERR
 import { buildProductRef, REF_BUILDERS } from '../lib/review/target-ref.ts'
 import { computeSupply } from '../lib/review/target-supply.ts'
 import { checkQuote, quotePolicyOf } from '../lib/analysis/evidence-quotes.ts'
+import { softSkipDecision, HALT_ON_BLOCK_SOURCES } from '../lib/review/latest-health.ts'
+import { nextPctState, PCT_CEILING } from '../lib/review/ramp.ts'
+import { revisitTarget } from '../lib/review/target-supply.ts'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(here, '..')
@@ -128,6 +131,20 @@ const sctx = (cursor = null, lastReviewAt = null) => ({ productRef: 'app:example
   t('sh: 리뷰 페이지 아님(200 로그인) = 못 읽음 1', shopifyAdapter.parse(shNot, sctx()).parseFailures, 1)
   t('sh: 이미 본 구간 → 커서 null', shopifyAdapter.parse(shPage, sctx(null, '2026-09-01')).nextCursor, null)
   t('sh: 날짜 해석', [parseShopifyDate('August 9, 2026'), parseShopifyDate('Edited 9 Aug')], ['2026-08-09', null])
+
+  // 반례(v37 독립 검토 차단 1건): 블록 속성이 바뀐 10건 페이지는 0건 ok 가 아니라 못 읽음.
+  const changed = shopifyAdapter.parse(shPage.replaceAll('data-merchant-review=""', 'data-merchant-review="1"'), sctx())
+  t('sh 반례: 블록 속성 변경(리뷰 id·다음 쪽 흔적 있음) = 못 읽음 1', [changed.reviews.length, changed.parseFailures, changed.nextCursor], [0, 1, null])
+  const onlyCount = '<html><head><title>Reviews: X | Shopify App Store</title></head><body><script type="application/ld+json">{"aggregateRating":{"reviewCount":"12"}}</script></body></html>'
+  t('sh 반례: 블록 0 + 리뷰 수 ≥1 = 못 읽음 1', shopifyAdapter.parse(onlyCount, sctx()).parseFailures, 1)
+  const zero = '<html><head><title>Reviews: New App | Shopify App Store</title></head><body><p>No reviews yet</p><script type="application/ld+json">{"aggregateRating":{"reviewCount":0}}</script></body></html>'
+  t('sh: 리뷰 0건 정상 페이지 = 0건 · 실패 0', [shopifyAdapter.parse(zero, sctx()).reviews.length, shopifyAdapter.parse(zero, sctx()).parseFailures], [0, 0])
+  t('sh: 리뷰 표지 + 챌린지 마크업 = 파서도 못 읽음', shopifyAdapter.parse(shPage.replace('</body>', '<script src="/cdn-cgi/challenge-platform/x.js"></script></body>'), sctx()).parseFailures, 1)
+}
+{
+  // WP 반례: 채널은 있는데 item 이 다른 모양(<item attr>·<entry>)이면 0건 ok 가 아니다.
+  t('wp: <item 속성> 도 읽는다', wordpressAdapter.parse(wpFeed.replaceAll('<item>', '<item rdf:about="x">'), wctx()).reviews.length, 2)
+  t('wp 반례: item 0 + <entry> 흔적 = 못 읽음 1', wordpressAdapter.parse(wpFeed.replaceAll('<item>', '<entry>').replaceAll('</item>', '</entry>'), wctx()).parseFailures, 1)
 }
 
 // ── 캡차 판정(어댑터 isChallenge → runner isStrictBlock) ──
@@ -139,7 +156,9 @@ const sctx = (cursor = null, lastReviewAt = null) => ({ productRef: 'app:example
   t('wp: 빈 200 = 차단', S(wordpressAdapter, '   '), true)
   t('sh: 정상 페이지(본문에 captcha 낱말) 차단 아님', S(shopifyAdapter, shPage.replace('Easy setup', 'The captcha widget, easy setup')), false)
   t('sh: 캡차 화면 = 차단', S(shopifyAdapter, '<html><title>Just a moment</title><div class="g-recaptcha"></div></html>'), true)
-  t('sh: 표지 없는 로그인 200 은 차단 아님(parse 가 실패로 센다)', S(shopifyAdapter, shNot), false)
+  t('sh: 표지 없는 로그인 200 = 차단(모양이 다르면 멈춘다)', S(shopifyAdapter, shNot), true)
+  t('sh: Access denied 200 = 차단', S(shopifyAdapter, '<html><title>Access denied</title></html>'), true)
+  t('sh: 리뷰 표지 + 챌린지 마크업 = 차단', S(shopifyAdapter, shPage.replace('</body>', '<div class="g-recaptcha"></div></body>')), true)
   t('기본 표지는 그대로(어댑터 판정 없으면 captcha 부분일치)', isStrictBlock({ status: 200, body: 'captcha' }), true)
 }
 
@@ -215,6 +234,7 @@ for (const [adapter, T, robots, resp, why] of [
   [shopifyAdapter, SH_T, { status: 200, body: SH_ROBOTS }, { status: 429, body: 'Too Many' }, '429'],
   [shopifyAdapter, SH_T, { status: 200, body: SH_ROBOTS }, { status: 200, body: '' }, '빈 200'],
   [shopifyAdapter, SH_T, { status: 200, body: SH_ROBOTS }, { status: 200, body: '<title>Just a moment</title> cf-chl captcha' }, '캡차'],
+  [shopifyAdapter, SH_T, { status: 200, body: SH_ROBOTS }, { status: 200, body: shNot }, '로그인 벽 200'],
 ]) {
   const h = harness({ adapter, robots, api: () => resp, targets: T })
   const r = await run(h, adapter)
@@ -248,6 +268,29 @@ for (const [adapter, T, robots, resp, why] of [
   t('target-supply: 약관 예외 기록 → tos_flag 꺼짐 · silent 도 꺼짐 · 기록 없는 금지는 켜짐', [S('shopify_apps').tos_flag, S('wordpress_org').tos_flag, S('x_no_override').tos_flag], [false, false, true])
   const capScript = await fs.readFile(path.join(here, 'review-request-cap.mjs'), 'utf8')
   ok('request-cap: override 있는 소스는 자동 상향 대상 밖(override != null)', capScript.includes('ownerOverride: overrideReadable ? s.override != null : null'))
+}
+
+// ── 차단 뒤 멈춤(soft-skip, review_sources 쓰기 없음) · 램프 상한 · 공급 분류 ──
+{
+  const NOW = Date.parse('2026-10-10T00:00:00Z')
+  const row = (blocked, at = '2026-10-09T05:37:00Z') => ({ source_key: 'k', started_at: at, dry_run: false, status: 'ok', health_after: blocked > 0 ? 'broken' : 'ok', reviews_parsed: 10, parse_failures: 0, blocked_responses: blocked })
+  ok('멈춤 대상 = shopify_apps 만', HALT_ON_BLOCK_SOURCES.has('shopify_apps') && !HALT_ON_BLOCK_SOURCES.has('wordpress_org') && !HALT_ON_BLOCK_SOURCES.has('googleplay'))
+  t('멈춤: 최근 실행 차단 → skip', softSkipDecision([row(1)], null, NOW, 'shopify_apps').state, 'skip')
+  t('멈춤: 30일 지나도 재시도 없음', softSkipDecision([row(2, '2026-09-01T00:00:00Z')], null, NOW, 'shopify_apps').state, 'skip')
+  t('멈춤: 사람이 직접 돌려 정상이 최신이면 재개', softSkipDecision([row(0, '2026-10-09T09:00:00Z'), row(1)], null, NOW, 'shopify_apps').state, 'run')
+  t('멈춤: 차단 수치 없음 = 확인 불가(지금처럼 실행)', softSkipDecision([{ ...row(0), blocked_responses: null }], null, NOW, 'shopify_apps').state, 'unknown')
+  t('멈춤: 다른 소스는 차단 1회로 멈추지 않는다', softSkipDecision([row(1)], null, NOW, 'wordpress_org').state, 'run')
+  const collect = await fs.readFile(path.join(here, 'review-collect.mjs'), 'utf8')
+  ok('멈춤: 스케줄 실행만 soft-skip(--source 직접 지정은 건너뛰지 않음)', collect.includes('if (!explicitSources && !dryRun) {') && collect.includes('loadSoftSkip(supabase, sourceKey)'))
+
+  t('램프: shopify 자동 상승 상한 50', PCT_CEILING.shopify_apps, 50)
+  t('램프: shopify 정상 2일 연속이어도 50 유지', nextPctState({ pctStep: 50, consecutiveOkDays: 1 }, 'ok', PCT_CEILING.shopify_apps).pctStep, 50)
+  t('램프: wordpress 는 현행(50→60)', nextPctState({ pctStep: 50, consecutiveOkDays: 1 }, 'ok', PCT_CEILING.wordpress_org).pctStep, 60)
+  t('램프: 상한이 차단 하강을 막지 않는다(연속 0)', nextPctState({ pctStep: 50, consecutiveOkDays: 1 }, 'blocked', 50).consecutiveOkDays, 0)
+  const ramp = await fs.readFile(path.join(root, 'lib', 'review', 'ramp.ts'), 'utf8')
+  ok('램프: 집행(stepPctRamps)이 상한을 넘긴다', ramp.includes('nextPctState(p, j.verdict, PCT_CEILING[r.sourceKey])'))
+
+  t('공급: 두 소스 앱스토어형 v', [revisitTarget('wordpress_org').basis, revisitTarget('shopify_apps').basis], ['design_v32:app(1/7)', 'design_v32:app(1/7)'])
 }
 
 // ── 인용 정책: wordpress short_only(130/240자) · shopify none ──
@@ -289,7 +332,8 @@ for (const [adapter, T, robots, resp, why] of [
   ok('마이그: DELETE·DROP·UPDATE 없음(본 파일 — 임시 표의 ON COMMIT DROP 제외)', !/\b(DELETE|DROP|UPDATE)\b/i.test(code.replace(/ON COMMIT DROP/g, '')))
   ok('마이그: 멱등(ON CONFLICT·NOT EXISTS)', /ON CONFLICT \(key\) DO NOTHING/.test(code) && /ON CONFLICT \(source_key\) DO NOTHING/.test(code) && (code.match(/NOT EXISTS/g) || []).length >= 2)
   ok('마이그: 하단 확인 쿼리(양성·음성)', /양성:/.test(sql) && /음성\(롤백되는 형태/.test(sql))
-  ok('롤백: 행 삭제 없이 비활성화 + override 회수', /SET enabled = false/.test(rb) && /override = CASE WHEN key = 'shopify_apps' THEN NULL/.test(rb) && !/DELETE FROM public\.review_sources/.test(rb))
+  ok('롤백: 행 삭제 없이 비활성화 + override 회수', /SET enabled = false/.test(rb) && /override = CASE WHEN key = 'shopify_apps' THEN NULL/.test(rb))
+  ok('롤백: DELETE 없음(램프는 cap_base NULL·동결)', !/\bDELETE\b/i.test(rb.replace(/^\s*--.*$/gm, '')) && /SET cap_base = NULL/.test(rb))
 }
 
 console.log(fail ? `review-five-arm-selftest: 실패 ${fail}건 / 통과 ${pass}건` : `review-five-arm-selftest: 통과 ${pass}건`)

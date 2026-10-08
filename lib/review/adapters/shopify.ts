@@ -13,7 +13,9 @@
 //
 // 중단 조건(우회 없음 — UA 러너 고정, 쿠키·프록시·헤더 위장·캡차 풀이 없음):
 //   403·429 → 러너 차단(quotaMarkers 미선언). 2xx 빈 응답·캡차 → abortOnChallenge(runner isStrictBlock). 실행 전체가 멈춘다.
-//   리뷰 페이지 표지(<title>Reviews:)가 없는 200(로그인 벽·다른 화면) → parseFailures 1 + 그 타깃 종료 → 누적되면 러너 파싱 브레이크.
+//   리뷰 페이지 표지(<title>Reviews:)가 없는 200(로그인 벽·Access denied) → 차단(isChallenge), 1요청에서 멈춘다.
+//   표지는 있는데 블록을 못 찾고 리뷰 흔적(rel="next"·리뷰 id·리뷰 수)이 있으면 → parseFailures 1(구조 변경, 0건 ok 아님).
+//   한 번 차단되면 다음 실행부터 사람이 --source=shopify_apps 로 직접 돌리기 전까지 건너뛴다(latest-health.ts HALT_ON_BLOCK_SOURCES).
 //
 // 블록 구조(2026-10-08 loox ?page=2 실측 1회, 리뷰 10개 · rel="next" 있음 · 캡차 표지 0):
 //   <div data-merchant-review="" data-review-content-id="2316238"> … aria-label="5 out of 5 stars" … <div> August 9, 2026 </div>
@@ -28,7 +30,12 @@ import type { ParseContext, ParseResult, ParsedReview, ReviewRequest, ReviewSour
 export const HOST = 'https://apps.shopify.com'
 /** 앱 slug — 소문자·숫자·하이픈. 경로에 그대로 들어가므로 이것만 받는다(점·슬래시·쿼리 불가). */
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,99}$/
-/** 페이지 상한 — 폭주 방지. 첫 수집도 실행당 maxPagesPerRun(2) 이라 여기까지 가려면 여러 날이 걸린다. */
+/**
+ * 페이지 상한 — 커서가 이상한 값으로 남았을 때의 안전판일 뿐, 실제로는 닿지 않는다.
+ * ⚠️ 과거 리뷰는 쌓이지 않는다: incrementalOnly + maxPagesPerRun 2 라 러너가 2쪽 상한에서 커서를 버린다(runner.ts resetAtCap).
+ *    매 실행 1~2쪽(최신 최대 20건)만 읽고 다음 실행은 다시 1쪽부터 — 결과는 "첫 실행의 최신 20건 + 그 뒤 새 리뷰"다.
+ *    과거를 훑으려면 구조를 바꿔야 한다(이번 범위 밖, v37 독립 검토).
+ */
 export const MAX_PAGE = 50
 
 /** product_ref = `app:<slug>`. 아니면 null. */
@@ -111,6 +118,17 @@ function toReview(block: string): ParsedReview | null {
 
 const FAIL: ParseResult = { reviews: [], nextCursor: null, parseFailures: 1 }
 
+/** 챌린지 마크업(낱말 "captcha" 가 아니라 위젯·스크립트 흔적). */
+export const CHALLENGE_MARKUP_RE = /g-recaptcha|h-captcha|cf-chl|challenge-platform|\/cdn-cgi\/challenge/i
+
+/**
+ * 블록을 하나도 못 찾았는데 리뷰가 있다는 흔적이 있으면 "0건"이 아니라 "못 읽음"이다(§7.1 사례 1 — 블록 속성이 바뀌면
+ * 10건 페이지를 0건 ok 로 찍는다). 흔적 = 다음 쪽 링크 · 리뷰 id 속성 · JSON-LD 리뷰 수 ≥1.
+ * ponytail: 리뷰 수 표지는 페이지 전체 기준이라, 마지막 쪽 너머(0건)를 요청하면 FAIL 로 셀 수 있다 — rel="next" 를 따라가므로 실제로는 안 간다.
+ */
+export const hasReviewTrace = (html: string) =>
+  /rel="next"/.test(html) || /data-review-content-id=/.test(html) || /"reviewCount"\s*:\s*"?[1-9]/.test(html)
+
 export const shopifyAdapter: ReviewSourceAdapter = {
   key: 'shopify_apps',
   displayName: 'Shopify 앱스토어 리뷰',
@@ -120,12 +138,12 @@ export const shopifyAdapter: ReviewSourceAdapter = {
   /** 약관 금지 소스 — 2xx 빈 응답·캡차도 차단으로 보고 즉시 멈춘다(우회 없음, runner isStrictBlock). */
   abortOnChallenge: true,
   /**
-   * 캡차 판정 = 리뷰 페이지 표지(<title>Reviews:) **없이** 사람 확인 표지(captcha·challenge·Cloudflare)가 보인다.
-   * 리뷰 본문의 "captcha" 낱말(리뷰 앱 후기에 흔하다)로 정상 페이지를 차단 처리하지 않게(types.ts isChallenge).
-   * 표지 없는 다른 200 화면은 parse 가 실패로 센다(그 타깃만 끝).
+   * 차단 판정(types.ts isChallenge — "모양이 기대와 다르면 true"):
+   *   · 리뷰 페이지 표지(<title>Reviews:)가 없는 200 = 차단(로그인 리다이렉트·Access denied·챌린지) — 1요청에서 멈춘다.
+   *   · 표지가 있어도 챌린지 **마크업**(g-recaptcha·h-captcha·cf-chl·challenge-platform·/cdn-cgi/challenge)이 붙으면 차단.
+   *   · 리뷰 본문의 "captcha" 낱말(리뷰 앱 후기에 흔하다)은 차단이 아니다 — 그래서 낱말이 아니라 마크업만 본다.
    */
-  isChallenge: (body: string) =>
-    !/<title>\s*Reviews:/i.test(body ?? '') && /captcha|cf-chl|challenge-platform|unusual traffic|are you a robot/i.test(body ?? ''),
+  isChallenge: (body: string) => !/<title>\s*Reviews:/i.test(body ?? '') || CHALLENGE_MARKUP_RE.test(body ?? ''),
   /** 앱 리뷰는 계속 붙는다 — 끝까지 읽어도 닫지 않고 매 실행 최신부터(googleplay 와 같은 형태). */
   incrementalOnly: true,
   /** 타깃당 실행 1회 2페이지(20건). 요청 간격 8초(review_sources.min_interval_ms)와 함께 낮게 시작한다. */
@@ -146,7 +164,10 @@ export const shopifyAdapter: ReviewSourceAdapter = {
     const html = body ?? ''
     // 리뷰 페이지 표지가 없으면(로그인 벽·오류 화면·다른 페이지) 0건이 아니라 못 읽음이다(§7.1 사례 2).
     if (!/<title>\s*Reviews:/i.test(html)) return FAIL
+    // 챌린지 마크업이 붙은 리뷰 페이지는 읽지 않는다(러너 isChallenge 가 먼저 끊지만, 파서 단독 호출에도 같은 답).
+    if (CHALLENGE_MARKUP_RE.test(html)) return FAIL
     const blocks = html.split(/data-merchant-review=""/).slice(1)
+    if (blocks.length === 0 && hasReviewTrace(html)) return FAIL
     const reviews: ParsedReview[] = []
     let parseFailures = 0
     for (const b of blocks) {

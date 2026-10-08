@@ -14,6 +14,7 @@
 
 import { createHash } from 'node:crypto'
 
+import type { AbandonCriteria, AreaDef, AreasConfig } from '../analysis/areas-config.ts'
 import { REQUESTS_PER_BOARD_RUN, REQUESTS_PER_POST_RUN } from './request-cap.ts'
 import { RAMP_EXCLUDED, RAMP_STEPS, pctTarget, validPlan, type SchedulePlan } from './ramp.ts'
 
@@ -483,4 +484,156 @@ export function rollbackSql(rows: RevivePlan['revive'], stamp: string): string {
         ].join('\n'),
     '',
   ].join('\n')
+}
+
+// ── 영역 T2 커버리지 열(v37 작업 7 U3, 설계 v31 §3·§4) ─────────────────
+// 입력 = 뷰 v_area_t2_coverage(마이그 20261009000040) 행. 못 읽으면(뷰 없음 PGRST205·권한·네트워크) rows=null → 열 전체 '확인 불가'(0 아님, §7.1).
+// 상태는 포기·교체 기준 **제안값**(config/areas.json abandon, 남헌 확정 전)으로 계산하는 신호다. '미달'이어도 코드는 영역을 끄거나 바꾸지 않는다 —
+// 대시보드에 '남헌 판단 항목'으로 올릴 뿐이다(영역을 끄는 길은 설정 값을 바꾸는 PR 하나, 사람 몫).
+
+export type AreaCoverageRow = {
+  area_code: string
+  projects: number
+  inputs: number
+  rated_inputs: number
+  unrated_inputs: number
+  unrated_input_pct: number | null
+  judged: number
+  relevant: number
+  irrelevant: number
+  unknown: number
+  rated_judged: number
+  low_rated_judged: number
+  projects_100plus: number
+  median_inputs: number | null
+  pending_est: number
+}
+export type AreaHealthState = '정상' | '주의' | '미달' | '확인 불가' | '대상 아님'
+export type AreaCoverage = {
+  code: string
+  name: string
+  floor: number | null
+  judged: number | null
+  /** judged / floor (%). */
+  coverage_pct: number | null
+  /** 평점 ≤3 판정 / 평점 있는 판정 (%). 평점 있는 판정 0 이면 null. */
+  low_rated_pct: number | null
+  /** relevant / (relevant + irrelevant) (%). unknown 이 상한을 넘으면 null(확인 불가). */
+  relevant_pct: number | null
+  relevant_n: number | null
+  unknown_pct: number | null
+  /** 평점 없는 입력 비중(%). 입력 0 이면 null. */
+  unrated_pct: number | null
+  /** 판정 대기량 추정(상한 — 뷰 주석). */
+  pending: number | null
+  projects: number | null
+  projects_100plus: number | null
+  median_inputs: number | null
+  state: AreaHealthState
+  reasons: string[]
+  /** '미달' = 남헌 판단 항목. 코드는 아무것도 바꾸지 않는다. */
+  needs_human: boolean
+}
+export type AreaCoverageReport = { read: 'ok' | 'unavailable'; error: string | null; criteria: string | null; areas: AreaCoverage[] }
+
+const r1 = (n: number) => Math.round(n * 10) / 10
+const num = (v: unknown): number => Number(v ?? 0) || 0
+
+/** 뷰 한 행 → 숫자 열(순수). row 가 undefined = 뷰는 읽었는데 그 영역 프로젝트가 없다(0 — 확인 불가가 아니다). */
+function areaNumbers(row: AreaCoverageRow | undefined, code: string, name: string, floor: number | null, maxUnknownPct: number): AreaCoverage {
+  const judged = num(row?.judged)
+  const relN = num(row?.relevant) + num(row?.irrelevant)
+  const ratedJudged = num(row?.rated_judged)
+  const inputs = num(row?.inputs)
+  const unknownPct = judged > 0 ? r1((num(row?.unknown) / judged) * 100) : null
+  const med = row?.median_inputs
+  return {
+    code, name, floor, judged,
+    coverage_pct: floor ? r1((judged / floor) * 100) : null,
+    low_rated_pct: ratedJudged > 0 ? r1((num(row?.low_rated_judged) / ratedJudged) * 100) : null,
+    relevant_pct: relN > 0 && !(unknownPct !== null && unknownPct > maxUnknownPct) ? r1((num(row?.relevant) / relN) * 100) : null,
+    relevant_n: relN,
+    unknown_pct: unknownPct,
+    unrated_pct: inputs > 0 ? r1(((inputs - num(row?.rated_inputs)) / inputs) * 100) : null,
+    pending: num(row?.pending_est),
+    projects: num(row?.projects),
+    projects_100plus: num(row?.projects_100plus),
+    median_inputs: med === null || med === undefined || !Number.isFinite(Number(med)) ? null : Number(med),
+    state: '정상', reasons: [], needs_human: false,
+  }
+}
+
+/** 영역 한 줄의 열·상태(순수). 설계 v31 §3.2 세 기준 + 즉시 교체 예외를 config 제안값으로 잰다. */
+export function areaHealth(row: AreaCoverageRow | undefined, area: Pick<AreaDef, 'code' | 'name' | 'kind' | 'active'>, floor: number, ab: AbandonCriteria): AreaCoverage {
+  const base = areaNumbers(row, area.code, area.name, floor, ab.maxUnknownPct)
+  if (area.kind !== 'area' || !area.active) return { ...base, state: '대상 아님' }
+
+  const judged = base.judged as number
+  const relN = base.relevant_n as number
+  const short: string[] = []
+  const unverified: string[] = []
+  const watch: string[] = []
+  if (judged < floor) watch.push(`최소량 미충족 ${judged}/${floor}`)
+  if (judged === 0) watch.push('판정 0 — 관련 비율 아직 없음')
+  else if ((base.unknown_pct as number) > ab.maxUnknownPct) unverified.push(`unknown ${base.unknown_pct}% > ${ab.maxUnknownPct}% — 관련 비율 확인 불가`)
+  else if (relN < ab.relevantMinN) watch.push(`관련 비율 분모 ${relN} < ${ab.relevantMinN} — 아직 못 잰다`)
+  else {
+    const p = base.relevant_pct as number
+    if (judged >= floor && p < ab.immediateSwapRelevantPct) short.push(`즉시 소스 교체 예외: 최소량 충족인데 관련 ${p}% < ${ab.immediateSwapRelevantPct}%`)
+    else if (p < ab.grayBandPct[0]) short.push(`(b) 관련 ${p}% < ${ab.grayBandPct[0]}%`)
+    else if (p < ab.grayBandPct[1]) watch.push(`(b) 관련 ${p}% 회색 띠 ${ab.grayBandPct[0]}~${ab.grayBandPct[1]}% — 한 사이클 더`)
+  }
+  if ((base.projects_100plus as number) < ab.minProjects) short.push(`(a) 입력 ${ab.projectInputMin}↑ 프로젝트 ${base.projects_100plus}/${ab.minProjects}`)
+  if (base.median_inputs === null) unverified.push('(c) 프로젝트 없음 — 중앙값 없음')
+  else if (base.median_inputs < ab.minMedianInputs) short.push(`(c) 입력 중앙값 ${base.median_inputs} < ${ab.minMedianInputs}`)
+
+  const state: AreaHealthState = short.length ? '미달' : unverified.length ? '확인 불가' : watch.length ? '주의' : '정상'
+  return { ...base, state, reasons: [...short, ...unverified, ...watch], needs_human: state === '미달' }
+}
+
+/**
+ * 영역 커버리지 표(순수). 설정 순서대로 영역마다 한 줄 + 뷰에만 있는 코드('(미부여)' 등)는 뒤에 '대상 아님'으로.
+ * rows=null(뷰 못 읽음) → 모든 열 null · state '확인 불가'. cfg=null(설정 못 읽음) → 뷰 숫자는 보이되 상태는 '확인 불가'.
+ */
+export function areaCoverage(input: { rows: AreaCoverageRow[] | null; error: string | null }, cfg: AreasConfig | null): AreaCoverageReport {
+  if (input.rows === null) {
+    const why = `영역 커버리지 뷰 확인 불가 — ${input.error ?? '사유 없음'}`
+    const blank = (a: { code: string; name: string }): AreaCoverage => ({
+      code: a.code, name: a.name, floor: cfg?.floor ?? null, judged: null, coverage_pct: null, low_rated_pct: null, relevant_pct: null, relevant_n: null,
+      unknown_pct: null, unrated_pct: null, pending: null, projects: null, projects_100plus: null, median_inputs: null, state: '확인 불가', reasons: [why], needs_human: false,
+    })
+    return { read: 'unavailable', error: input.error, criteria: cfg?.abandon.status ?? null, areas: (cfg?.areas ?? [{ code: '*', name: '영역 전체' }]).map(blank) }
+  }
+  const byCode = new Map(input.rows.map((r) => [String(r.area_code), r]))
+  if (!cfg) {
+    const why = '영역 설정(config/areas.json) 확인 불가 — 최소량·기준 모름'
+    return {
+      read: 'ok', error: null, criteria: null,
+      areas: [...byCode.keys()].sort().map((c) => ({ ...areaNumbers(byCode.get(c), c, c, null, 100), state: '확인 불가' as const, reasons: [why] })),
+    }
+  }
+  const known = new Set(cfg.areas.map((a) => a.code))
+  const extra = [...byCode.keys()].filter((c) => !known.has(c)).sort()
+  return {
+    read: 'ok', error: null, criteria: cfg.abandon.status,
+    areas: [
+      ...cfg.areas.map((a) => areaHealth(byCode.get(a.code), a, cfg.floor, cfg.abandon)),
+      ...extra.map((c) => areaHealth(byCode.get(c), { code: c, name: c, kind: 'out', active: false }, cfg.floor, cfg.abandon)),
+    ],
+  }
+}
+
+/** 사람용 한 줄(job summary). 못 읽은 칸은 '확인 불가'로 찍는다 — 0 으로 찍지 않는다. */
+export function areaCoverageLine(c: AreaCoverage): string {
+  if (c.judged === null) {
+    return `${c.name} · 판정 커버리지 확인 불가 · 저평점 판정 확인 불가 · 관련 확인 불가 · 평점 없는 입력 확인 불가 · 대기 확인 불가 · 상태 ${c.state}(${c.reasons.join('; ')})`
+  }
+  const rel = c.relevant_pct !== null ? `${c.relevant_pct}%(n=${c.relevant_n})` : c.judged === 0 ? '판정 없음' : `확인 불가(n=${c.relevant_n}, unknown ${c.unknown_pct}%)`
+  return (
+    `${c.name} · 판정 ${c.judged}/${c.floor ?? '확인 불가'}(${c.coverage_pct === null ? '확인 불가' : `${c.coverage_pct}%`})` +
+    ` · 저평점 판정 ${c.low_rated_pct === null ? '평점 판정 없음' : `${c.low_rated_pct}%`} · 관련 ${rel}` +
+    ` · 평점 없는 입력 ${c.unrated_pct === null ? '입력 없음' : `${c.unrated_pct}%`} · 대기 ~${c.pending}` +
+    ` · 프로젝트 ${c.projects}(100↑ ${c.projects_100plus}, 중앙값 ${c.median_inputs ?? '-'})` +
+    ` · 상태 ${c.state}${c.reasons.length ? `(${c.reasons.join('; ')})` : ''}${c.needs_human ? ' → 남헌 판단 항목(제안 기준 · 코드는 영역을 끄지 않는다)' : ''}`
+  )
 }

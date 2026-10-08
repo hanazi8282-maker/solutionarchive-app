@@ -10,6 +10,7 @@ import path from 'node:path'
 import { AREA_CODES, loadAreasConfig, parseAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
 import { areaFloorLine, areaRank, loadAreaContext, orderByAreaDeficit } from '../lib/analysis/area-priority.ts'
 import { compareAutoPriority } from '../lib/analysis/extract-auto.ts'
+import { AUTO_EXTRACT_STATUSES } from '../lib/analysis/extract-gate.ts'
 
 let pass = 0
 let fail = 0
@@ -55,6 +56,14 @@ const clone = () => JSON.parse(JSON.stringify(RAW))
   t('DB CHECK 어휘 = AREA_CODES = 설정 코드', [vocab, [...AREA_CODES]], [RAW.areas.map((a) => a.code), RAW.areas.map((a) => a.code)])
   const founder = /coalesce\(source_key IN \(([^)]*)\), false\)/.exec(mig)
   t('소급 v37-1 founder 목록 = 설정', founder ? [...founder[1].matchAll(/'([^']+)'/g)].map((m) => m[1]) : null, RAW.founder_sources)
+
+  // 커버리지 뷰(U3)가 SQL 에 품은 값 = 설정·코드 값. 한쪽만 바꾸면 여기서 잡힌다.
+  const view = fs.readFileSync(path.join(process.cwd(), 'supabase', 'migrations', '20261009000040_area_t2_coverage_view.sql'), 'utf8')
+  t('뷰 projects_100plus 문턱 = abandon.project_input_min', Number(/FILTER \(WHERE inputs >= (\d+)\)\)::int\s+AS projects_100plus/.exec(view)?.[1]), RAW.abandon.project_input_min)
+  const st = /FILTER \(WHERE status IN \(([^)]*)\)\)/.exec(view)
+  t('뷰 대기량 상태 = AUTO_EXTRACT_STATUSES', st ? [...st[1].matchAll(/'([^']+)'/g)].map((m) => m[1]) : null, AUTO_EXTRACT_STATUSES)
+  const judge = fs.readFileSync(path.join(process.cwd(), 'scripts', 'relevance-judge-auto.mjs'), 'utf8')
+  t('뷰 표본 천장 = RELEVANCE_SAMPLE 기본', Number(/least\(inputs, (\d+)\)/.exec(view)?.[1]), Number(/num\(process\.env\.RELEVANCE_SAMPLE, (\d+)\)/.exec(judge)?.[1]))
 }
 
 // ── env 최소량 ───────────────────────────────────────────────────

@@ -26,6 +26,8 @@
 -- ⚠️ 미적용 — 서브에이전트가 만든 파일이다(CLAUDE.md §10.2). 적용은 남헌 승인 뒤 오케스트레이터.
 --   §10.2 예외 2번(대량 UPDATE) 해당 여부: 58행 label 한 열·원본 보존·롤백 동반 — 4조건(드라이런·롤백·무중단·Notion) 기록 필요.
 --   절차: 1) solutionarchive `qmgrfqjfxqhxuufrnkwf` 확인 2) 아래 '적용 전' 쿼리 3) 실행 4) 하단 확인 쿼리 5) docs/migration-exceptions.md 기입
+--   야간 수집(nightly-review-collect) 시간대를 피해 적용한다 — ALTER 가 ACCESS EXCLUSIVE 를 잡는다(lock_timeout 5s 로 오래 줄세우지 않음).
+--   실행 순서: T0(이 파일) → v44 us:en 2차 블록. 2차가 먼저 들어가면 옛 형식 us-en 행이 생기고, 아래 DO ④(옛 형식 정확히 26)가 RAISE 한다.
 -- ============================================================
 
 -- ── 적용 전 확인(information_schema·직접 SELECT — PostgREST head:true 금지, §7.1) ──
@@ -40,6 +42,7 @@
 --      AND label !~ '^0[17]-' GROUP BY 1;                                                             -- 참고(0행 기대 — 있으면 드라이런 §3 에 적고 진행 여부 판단)
 
 BEGIN;
+SET LOCAL lock_timeout = '5s';
 
 ALTER TABLE public.review_targets ADD COLUMN IF NOT EXISTS label_original text NULL;
 COMMENT ON COLUMN public.review_targets.label_original IS
@@ -125,7 +128,7 @@ INSERT INTO _t0_done SELECT id FROM upd;
 DO $$
 DECLARE
   expected CONSTANT int := 58;
-  cand int; done_n int; ok_n int; bad_fmt int; clash int;
+  cand int; done_n int; ok_n int; bad_fmt int; clash int; legacy int;
 BEGIN
   SELECT count(*) INTO cand FROM _t0_map;
   IF cand <> expected THEN RAISE EXCEPTION '대상 %행(기대 %)', cand, expected; END IF;
@@ -148,6 +151,10 @@ BEGIN
      GROUP BY 1, 2 HAVING count(*) > 1
   ) d;
   IF clash <> 0 THEN RAISE EXCEPTION '변경 후 (source_key, label) 중복 %쌍 — 드라이런 기대 0', clash; END IF;
+
+  -- ④ 사후: 옛 형식이 남은 행은 보류(out) 26행뿐이어야 한다. v44 2차가 T0 보다 먼저 들어가 옛 형식이 조용히 남는 경우를 잡는다.
+  SELECT count(*) INTO legacy FROM public.review_targets WHERE label ~ '^0[1-7]-';
+  IF legacy <> 26 THEN RAISE EXCEPTION '옛 형식(^0[1-7]-) 라벨 %행(기대 26 = 보류 out) — 순서는 T0 → v44 2차', legacy; END IF;
 
   SELECT count(*) INTO done_n FROM _t0_done;
   RAISE NOTICE 'T0 라벨 정규화: 대상 % · 이번 실행 갱신 % · 최종 확인 %', cand, done_n, ok_n;

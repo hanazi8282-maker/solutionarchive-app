@@ -8,9 +8,11 @@
 --   그 뒤 누가 label 을 또 바꿨으면 덮어쓰지 않고 NOTICE 로 알린다(stray).
 -- 재실행 안전: 이미 복원된 행은 label_original IS NULL 이라 WHERE 에 안 걸린다.
 -- ⚠️ 미적용 — 서브에이전트가 만든 파일이다.
+-- 야간 수집(nightly-review-collect) 시간대를 피해 적용한다(lock_timeout 5s).
 -- ============================================================
 
 BEGIN;
+SET LOCAL lock_timeout = '5s';
 
 CREATE TEMP TABLE _t0_map (id uuid PRIMARY KEY, source_key text NOT NULL, old_label text NOT NULL, new_label text NOT NULL) ON COMMIT DROP;
 

@@ -3,6 +3,8 @@
 > 서브에이전트 산출물이다. **DB 에 아무것도 쓰지 않았다**(서비스키 없음·DB 접근 없음). 적용은 남헌 승인 뒤 오케스트레이터.
 > 입력: 오케스트레이터가 뽑은 `review_targets` 84행(id·project_id·source_key·label·status) + `data/area-map-v26.json`.
 > 설계: `english-expansion-design-v31.md` §1-5·§T0. 마이그: `supabase/migrations/20261008000010_review_targets_label_normalize.sql`(+`_rollback.sql`).
+> 오케스트레이터 적용 전 실측(2026-10-08): label_original 열 없음, 옛 형식 56/28/84, us:en 8행 존재, 영향 41개 프로젝트에 다른 라벨 혼재 0.
+> **실행 순서: T0(이 마이그) → v44 us:en 2차 블록.** 야간 수집(nightly-review-collect) 시간대를 피해 적용.
 
 ## 결론
 
@@ -46,6 +48,8 @@
 - 발굴 `scripts/discovery-run.mjs:499` — 영향 없음. label 에 `row.name` 을 쓰기만 하고 읽지 않는다(접두 없는 unmapped, 이번 범위 밖).
 - 수동 등록 API `app/api/analyze/targets/route.ts:116` — 영향 없음. 요청 body 의 label 을 그대로 저장·표시.
 - v44 us:en 마이그 2차 블록(origin/feat/v44-googleplay-us-en-targets, 하단 주석·미실행) — **개선**. 새 label 을 `split_part(k.label, ':', 1)`(kr:ko 원본 접두)로 만든다. 정규화 뒤 원본이 `1:krisp`·`3:triple-whale` 이 되므로 2차는 손대지 않아도 `1:us-en|krisp`·`3:us-en|triple-whale` 로 나온다(설계 T0 "라벨 식을 영역번호로" 요구가 저절로 충족). DO ⑥ 정규식 `^([^:|]+:)?us-en\|.+$` 도 그대로 통과.
+  - 실행 순서는 **T0 → v44 2차**다. 2차가 먼저 들어가면 `01-meeting-notes:us-en|krisp` 같은 옛 형식 행이 생기고, T0 의 DO ④(적용 후 `^0[1-7]-` 정확히 26)가 RAISE 해 전부 롤백한다 — 조용히 남지 않는다. (v44 브랜치 자체의 주석은 이 브랜치에서 고치지 않았다 — 2차를 켜는 세션이 이 줄을 따른다.)
+- `reports/2026-10-06/dictionary-targets-rollback.sql:11` 의 정규식은 옛 형식 label 로 행을 찾으므로 정규화 뒤 58행을 놓친다. 다시 쓸 일이 있으면 `coalesce(label_original, label)` 로 고칠 것(그 파일은 기록물이라 이번에 수정하지 않음).
 - v44 롤백 식별자 `label LIKE '%us-en|%'`(reports/2026-10-08/20261008000001_googleplay_us_en_targets_rollback.sql:24) — 영향 없음. `1:us-en|granola` 도 걸린다.
 - `analysis_projects.product_elevator_pitch` — 영향 없음. 이 마이그는 analysis_projects 를 건드리지 않고, pitch 는 label 로 만들지 않는다.
 
@@ -59,12 +63,13 @@
 ## 5. 마이그레이션 요약
 
 - `ALTER TABLE … ADD COLUMN IF NOT EXISTS label_original text NULL` → 58행만 `label_original = label`, `label = 새 값`. WHERE = id ∧ source_key ∧ 현재 label = 옛 값 ∧ label_original IS NULL. 한 트랜잭션.
-- DO 블록: ① 58행 최종 상태(새 label ∧ 원본 보존) ② 새 label `^[1-5]:` ③ (source_key, label) 중복 0. 하나라도 틀리면 RAISE.
+- `BEGIN` 바로 뒤 `SET LOCAL lock_timeout = '5s'`(정방향·롤백 둘 다) — ALTER 의 ACCESS EXCLUSIVE 대기 중 SELECT 가 줄서지 않게.
+- DO 블록: ① 58행 최종 상태(새 label ∧ 원본 보존) ② 새 label `^[1-5]:` ③ (source_key, label) 중복 0 ④ 적용 후 옛 형식 `^0[1-7]-` 정확히 26(보류 행). 하나라도 틀리면 RAISE.
 - 재실행 멱등(이미 바뀐 행은 0행 갱신, 최종 상태만 다시 확인). 그 사이 누가 label 을 고쳤으면 RAISE.
 - 롤백: 58개 id ∧ label = 새 값 ∧ label_original = 옛 값 인 행만 `label = label_original, label_original = NULL`. 열은 남긴다. 그 뒤 손댄 행은 덮어쓰지 않고 NOTICE.
 - §10.2 판단 재료: 58행 label 한 열 UPDATE(원본 보존·롤백 동반) — 예외 2번 "대량 UPDATE" 4조건(드라이런=이 문서·롤백=파일·무중단=제약/인덱스 무관·Notion 기록) 대상.
 
-## 6. 셀프테스트 (PGlite = WASM Postgres, 리포 밖 일회성 하네스)
+## 6. 셀프테스트 (PGlite = WASM Postgres, 리포 밖 일회성 하네스, 13항목)
 
 입력 84행 + 무관한 행 5개(`2:us-en|gong`·`3:klaviyo`·NULL·`Baremetrics`·`1:supernormal`)를 넣고 실제 마이그·롤백 파일을 그대로 실행:
 
@@ -79,6 +84,7 @@ PASS 재실행 멱등: 여전히 58
 PASS 롤백: 84 옛 라벨 복원·전체 해시 원상
 PASS 롤백: label_original 전부 NULL·열은 남음
 PASS 롤백 재실행 무해
+PASS 옛 형식 잔존(v44 2차 선행): RAISE + 전부 롤백
 PASS 드리프트: RAISE + 전부 롤백
 PASS 충돌: (source_key,label) 중복이면 RAISE
 ALL PASS

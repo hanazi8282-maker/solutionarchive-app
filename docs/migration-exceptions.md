@@ -496,3 +496,11 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   - 적용 전 스냅샷: enabled=true·disabled_at NULL·health=ok·review_targets 34건·review_source_ramp 0행.
   - 양성: enabled=false·사유·시각 채워짐·health 불변·타깃 34건 불변·비활성 목록은 기존 7개+producthunt. 음성: 영향 행 수 가드 DO 블록 — 행이 1이 아니면 예외.
   - 롤백 파일 `20261007000012_disable_producthunt_rollback.sql`(disabled_at 이 NULL 이었으므로 이전 상태와 동일).
+- **20261008000020** `english_targets_v37` — review_targets 에 영어 스토어 타깃 INSERT 52(구글 플레이 22 · 앱스토어 30) + 구글 플레이 kr:ko 수집 0건·방문함 22행 `active→exhausted`(status 한 열, 삭제 없음) + ⑤ 글쓰기 시험 프로젝트 analysis_projects 10건 `collecting` INSERT. 적용 2026-10-09 UTC 약 00:3x, PR #470 머지 c46ba85. 승인: 남헌 v31 §1 '영어 확대 적극 추진'·v37 §5 '한도 예외 금지, 수집 0건 한국어 타깃과 1:1 맞바꾸기', 적용 CEO-STAFF(§10.2 대량 UPDATE 4조건: 드라이런·롤백·무중단·Notion).
+  - 적용 전(체크리스트 C1~C10 직접 실행): 구글 플레이 활성 88 · #464 us:en 정확히 8행 활성/그 밖 0 · 맞바꾸기 22 id 조건 충족 · 신규 52쌍 0 · 소스 enabled · 앵커 이상 0 · 수집 running 0 · 앱스토어 30% 게이트 여유 · T0 미적용(옛 라벨 84).
+  - 양성: 신규 52(구글 플레이 22·앱스토어 30)·신규 프로젝트 10·라벨 `^[1-5]:` 위반 0·구글 플레이 활성 88→88(us:en 활성 28 = 기존 8 + 신규 20)·맞바꾼 22행 exhausted. 음성: 소스·ramp·cap 값 불변(구글 플레이 cap 60/목표 30, 앱스토어 cap 200/목표 100)·옛 형식 라벨 84 불변.
+  - 롤백 파일 `20261008000020_english_targets_v37_rollback.sql`(정확한 52쌍만 failed, 22 id 만 active 복귀). #464 롤백 파일의 `LIKE '%us-en|%'` 식별자는 v37 20행까지 잡으므로 쓰지 말 것.
+- **20261008000040** `five_arm_sources` — review_sources 에 `wordpress_org`(깨끗한 소스: robots 허용·약관 문서 없음, 인용 short_only, 하루 상한 40, 램프 50% 목표 20) · `shopify_apps`(ToS 1조 9항 스크래퍼 금지 → 남헌 owner 예외 `owner_2026-10-08`, 인용 none·quote_allowed=false, 간격 8s, 하루 상한 30, 램프 50% 고정 목표 15) INSERT + review_source_ramp 2행 INSERT + review_targets 19(WP 9·Shopify 10, 라벨 `5:wp|…`·`5:shopify|…`) + 필요 프로젝트 INSERT. 적용 2026-10-09 UTC, PR #471 머지 92763f4(코드 머지 → 마이그 순서). 승인: 남헌 v37 작업 4(Shopify 약관 금지가 실제 있으면 남헌 예외 승인 2026-10-08을 owner override 로 기록), 적용 CEO-STAFF.
+  - 적용 전: 두 소스·램프 행 없음 · 필요 제약 4개 존재 · 수집 running 0 · 중복 pitch 프로젝트 0.
+  - 양성: 두 소스 enabled·값 계획대로, 타깃 19 전부 active·`^5:` 위반 0. 음성: 총 타깃 431→450 외 불변(옛 라벨 84·구글 플레이 활성 88).
+  - 롤백 파일 `20261008000040_five_arm_sources_rollback.sql`(두 소스 끄고 Shopify override 비움, 램프는 NULL/동결, 타깃·프로젝트는 유지 — 삭제 없음). Shopify 는 차단 응답이 나오면 다음 스케줄부터 건너뜀(사람이 `--source=shopify_apps` 로 재개). 이 예외는 약관을 알고 켠 것이다.

@@ -2,8 +2,9 @@
 -- 20261009000010_googleplay_slot_a
 --
 -- v37/v38 작업 5 · 남헌 승인 '슬롯 A' — 구글 플레이 ⑦ 이커머스 운영(지도 out) 보류 라벨의 active 14행을 **일시 정지**하고,
--- 그 14자리를 영어(us:en) 타깃 14개와 **1:1 맞바꾼다.** 한도 예외 없음 — 구글 플레이 활성 수는 늘지 않는다(88 → 88).
--- 드라이런·근거: reports/2026-10-09/slot-a-dryrun.md (정지 14행 수치 · 신규 14쌍 스토어 실사 · 활성 수 전후 · 적용 전 체크리스트).
+-- 그중 동결선 안 11자리(kr:ko 11)를 영어(us:en) 타깃 11개와 **1:1 맞바꾼다.** #464 일회성 예외 3행(us:en)은 자리를 반납한다.
+-- 한도 예외 없음(남헌 v38 결정 1) — 구글 플레이 활성 88 → 85, 예외 제외 활성 80 → 80.
+-- 드라이런·근거: reports/2026-10-09/slot-a-dryrun.md (정지 14행 수치 · 신규 11쌍 스토어 실사 · 활성 수 전후 · 적용 전 체크리스트).
 -- 이 항목은 v33 '보류도 수집 유지' 문구보다 우선한다(남헌 v37/v38 승인). 정지 대상 중 itemscout·sellerbox·sello·shopmoa 는
 -- 각각 80건을 모은 타깃이다 — 남헌이 이를 알고 승인했다.
 --
@@ -19,23 +20,24 @@
 --      - 무인 루프에 되살리기 배선 없음(scripts/target-revive.mjs:4 — 사람·역할 세션 전용, .github 에 호출 0). 발굴 화면도 자동 복원 없음(app/discovery/actions.ts:96-97).
 --      - 사전 투입기는 (source, ref) 가 어느 상태로든 있으면 exists 로 건너뛴다(scripts/dictionary-targets.mjs:26-28·182) + 지도 out 은 area_excluded(:150-152).
 --      → PR #464 롤백 A 의 "failed 는 자동 부활 안 됨" 은 맞다. 같은 선례: v37 롤백(새 타깃 → failed).
---   3) review_targets 14행 INSERT — googleplay us:en, status='active', last_run_at=NULL(미방문 = 다음 실행 앞순위, runner orderGooglePlayTargets),
+--   3) review_targets 11행 INSERT — googleplay us:en, status='active', last_run_at=NULL(미방문 = 다음 실행 앞순위, runner orderGooglePlayTargets),
 --      프로젝트 = 같은 패키지의 기존 kr:ko 타깃 프로젝트(앵커). 라벨은 처음부터 `N:us-en|<slug>`(N = data/area-map-v26.json 값).
---      v44 2차 9개(krisp·avoma·fellow·meetgeek·sembly-ai·jamie·circleback·rev·triple-whale) + ④ 인사 5개(rippling·gusto·bamboohr·hibob·personio).
+--      v44 2차 중 6개(krisp·fellow·meetgeek·circleback·rev·triple-whale) + ④ 인사 운영 5개(rippling·gusto·bamboohr·hibob·personio).
+--      v44 2차 나머지 3개(avoma·jamie·sembly-ai — 미국 평가 표시 없음·45)는 보류 후보(자리 3칸 생기면 우선 복귀, 드라이런 §2).
 --
--- 선행(필수): T0 라벨 정규화 20261008000010(feat/v37-t0-label-normalize). 사전 검사 DO 가 T0 적용을 확인한다 —
---   label_original 열 존재 · 옛 형식 `^0[1-7]-` 라벨이 정확히 보류(out) 26행뿐 · v44 2차 앵커 9행 label 이 새 형식(`1:<slug>`·`3:triple-whale`).
---   T0 미적용이면 RAISE(2차 9개의 영역 번호가 옛 형식 앵커와 어긋난다). 선행 v37 20261008000020(적용됨 2026-10-09).
+-- 선행(필수): T0 라벨 정규화 20261008000010(PR #473, 적용됨). 사전 검사 DO 가 T0 적용을 다시 확인한다 —
+--   label_original 열 존재 · 옛 형식 `^0[1-7]-` 라벨이 정확히 보류(out) 26행뿐 · v44 2차 앵커 6행 label 이 새 형식(`1:<slug>`·`3:triple-whale`).
+--   T0 미적용이면 RAISE(2차의 영역 번호가 옛 형식 앵커와 어긋난다). 선행 v37 20261008000020(적용됨 2026-10-09).
 --
--- 가드레일(남헌 v37 — 예외 없음): 요청 예산·ramp·cap 불변(review_sources·review_source_ramp 를 읽지도 쓰지도 않는다 — enabled 확인만).
---   구글 플레이 활성: 적용 전 88(= 동결선 80 + PR #464 일회성 예외 8) → 적용 후 88(14 정지 − 14 신규).
---   #464 고정 8 ref 중 3행(helium-10·linnworks·shipstation us:en)이 정지돼 예외 active 는 8 → 5. 그 3자리는 1:1 맞바꾸기로 신규가 쓴다 —
---   그래서 동결 판정은 "예외분 제외 ≤ 80" 이 아니라 "전체 ≤ 88 ∧ 적용 전보다 늘지 않음" 으로 단언한다(예외분이 줄어든 만큼 신규가 이어받음).
+-- 가드레일(남헌 v37·v38 — 한도 예외 금지): 요청 예산·ramp·cap 불변(review_sources·review_source_ramp 를 읽지도 쓰지도 않는다 — enabled 확인만).
+--   구글 플레이 활성: 적용 전 88(= 동결선 80 + PR #464 일회성 예외 8) → 적용 후 85(14 정지 − 11 신규).
+--   #464 고정 8 ref 중 3행(helium-10·linnworks·shipstation us:en)이 정지돼 예외 active 8 → 5 — 그 3자리는 반납(신규가 이어받지 않는다).
+--   단언: 예외 제외 활성(전체 − #464 고정 ref active) ≤ 80 ∧ 전체 ≤ 85(처음 적용) · 적용 전보다 늘지 않음.
 --
--- 상태 기계(멱등): A = 처음(기록 0 · 신규 쌍 0) → 쓰기. B = 이미 적용(기록 14 미복원 · 신규 쌍 14) → 쓰기 0, 검사만.
+-- 상태 기계(멱등): A = 처음(기록 0 · 신규 쌍 0) → 쓰기. B = 이미 적용(기록 14 미복원 · 신규 쌍 11) → 쓰기 0, 검사만.
 --   그 밖(일부만 있음 · 롤백 뒤 재적용 · 누가 신규 쌍을 먼저 넣음)은 RAISE → 드라이런 재생성.
 --   INSERT 는 ON CONFLICT (project_id, source_key, product_ref) DO NOTHING + (source, ref) NOT EXISTS, UPDATE 는 status='active' 인 행만.
--- 롤백: 20261009000010_googleplay_slot_a_rollback.sql (정지 14행만 기록의 이전 status 로 · 신규 14쌍 → failed).
+-- 롤백: 20261009000010_googleplay_slot_a_rollback.sql (정지 14행만 기록의 이전 status 로 · 신규 11쌍 → failed).
 --
 -- ⚠️ 미적용 — 서브에이전트가 만든 파일이다(CLAUDE.md §10.2). 적용은 오케스트레이터(Opus 사전검토 뒤).
 --   §10.2 예외 2번(대량 UPDATE) — 14행 status 한 열 · 롤백 동반 · 4조건(드라이런·롤백·무중단·Notion) 기록.
@@ -65,22 +67,19 @@ INSERT INTO _sa_pause (id, product_ref, label, expect_collected) VALUES
   ('0454be9c-029b-488d-872d-6d75368860ae', 'us:en:mobile.linnworks.net', '07-ecommerce-ops:us-en|linnworks', 0),
   ('1b465428-95b1-41c7-89ca-1fea40fb50b8', 'us:en:com.shipstation.app', '07-ecommerce-ops:us-en|shipstation', 0);
 
--- 신규 14쌍(드라이런 §2). anchor_label = T0 적용 뒤 앵커(kr:ko) label — T0 확인에 쓴다.
+-- 신규 11쌍(드라이런 §2). anchor_label = T0 적용 뒤 앵커(kr:ko) label — T0 확인에 쓴다.
 CREATE TEMP TABLE _sa_new (
   area text NOT NULL, slug text NOT NULL, pkg text PRIMARY KEY, anchor_label text NOT NULL, project_id uuid
 ) ON COMMIT DROP;
 INSERT INTO _sa_new (area, slug, pkg, anchor_label) VALUES
-  -- v44 2차 9(① 회의록 8 · ③ 마케팅 1)
+  -- v44 2차 6(① 회의록 5 · ③ 마케팅 1). avoma·jamie·sembly-ai 는 보류 후보.
   ('1', 'krisp', 'ai.krisp.krispMobile', '1:krisp'),
-  ('1', 'avoma', 'com.avoma.android', '1:avoma'),
   ('1', 'fellow', 'co.fellow.app', '1:fellow'),
   ('1', 'meetgeek', 'com.meetgeek.assistant', '1:meetgeek'),
-  ('1', 'sembly-ai', 'com.semblyai.android', '1:sembly-ai'),
-  ('1', 'jamie', 'ai.meetjamie.expoapp', '1:jamie'),
   ('1', 'circleback', 'ai.circleback.app', '1:circleback'),
   ('1', 'rev', 'com.rev.revcorder', '1:rev'),
   ('3', 'triple-whale', 'com.triplewhale.android.v2', '3:triple-whale'),
-  -- ④ 인사 5
+  -- ④ 인사 운영 5
   ('4', 'rippling', 'com.people.rippling', '4:rippling'),
   ('4', 'gusto', 'com.gusto.money', '4:gusto'),
   ('4', 'bamboohr', 'com.mokinetworks.bamboohr', '4:bamboohr'),
@@ -157,7 +156,7 @@ BEGIN
   SELECT count(*) INTO new_exist FROM _sa_new n
    WHERE EXISTS (SELECT 1 FROM public.review_targets t WHERE t.source_key = 'googleplay' AND t.product_ref = 'us:en:' || n.pkg);
   IF logged = 0 AND new_exist = 0 THEN st := 'A';
-  ELSIF logged = 14 AND logged_open = 14 AND new_exist = 14 THEN st := 'B';
+  ELSIF logged = 14 AND logged_open = 14 AND new_exist = 11 THEN st := 'B';
   ELSE
     RAISE EXCEPTION '상태가 처음(A)도 적용됨(B)도 아니다 — 기록 %(미복원 %) · 신규 쌍 존재 %. 롤백 뒤 재적용이거나 누가 신규 쌍을 먼저 넣었다. 드라이런 재생성', logged, logged_open, new_exist;
   END IF;
@@ -168,6 +167,8 @@ BEGIN
     IF gp_before <> 88 THEN RAISE EXCEPTION '구글 플레이 활성 %(기대 88) — 드라이런 이후 상태가 바뀌었다. 드라이런 재생성', gp_before; END IF;
     SELECT count(*) INTO pr464 FROM public.review_targets t JOIN _sa_pr464 p USING (product_ref)
      WHERE t.source_key = 'googleplay' AND t.status = 'active';
+    -- 예외 제외 활성(전체 − #464 고정 ref active)이 이미 동결선 80 을 넘었으면 멈춘다(한도 예외 금지)
+    IF gp_before - pr464 > 80 THEN RAISE EXCEPTION '예외 제외 활성 %(> 80) — 동결선 초과 상태. 드라이런 재생성', gp_before - pr464; END IF;
     IF pr464 <> 8 THEN RAISE EXCEPTION '#464 고정 8 ref active %행(기대 8)', pr464; END IF;
     -- 정지 14행이 드라이런 그대로(googleplay · active · ref · label · 수집 수). 그 사이 수집됐으면 멈춘다.
     SELECT count(*) INTO pause_ok FROM public.review_targets t JOIN _sa_pause p ON p.id = t.id
@@ -199,7 +200,9 @@ END $$;
 -- ── 3. 기록 → 정지 → 신규 ─────────────────────────────────────
 INSERT INTO public.review_targets_paused_20261009 (target_id, prev_status, prev_label, total_collected_at_pause, reason)
 SELECT t.id, t.status, t.label, t.total_collected,
-       'v37/v38 작업 5 슬롯 A(남헌 승인): ⑦ 이커머스 운영 지도 out 보류 — 일시 정지, 자리는 영어 타깃 1:1 맞바꾸기'
+       CASE WHEN t.product_ref LIKE 'us:en:%'
+            THEN 'v37/v38 작업 5 슬롯 A(남헌 승인): ⑦ 이커머스 운영 지도 out 보류 — 일시 정지, #464 예외 자리 반납(신규 없음)'
+            ELSE 'v37/v38 작업 5 슬롯 A(남헌 승인): ⑦ 이커머스 운영 지도 out 보류 — 일시 정지, 자리는 영어 타깃 1:1 맞바꾸기' END
   FROM public.review_targets t JOIN _sa_pause p ON p.id = t.id
  WHERE t.status = 'active' AND (SELECT state FROM _sa_state) = 'A'
 ON CONFLICT (target_id) DO NOTHING;
@@ -236,7 +239,7 @@ BEGIN
   SELECT state INTO st FROM _sa_state;
   SELECT count(*) INTO n_pause FROM _sa_pause;
   SELECT count(*) INTO n_new FROM _sa_new;
-  IF n_pause <> 14 OR n_new <> 14 THEN RAISE EXCEPTION '입력 정지 % · 신규 %(기대 14 · 14)', n_pause, n_new; END IF;
+  IF n_pause <> 14 OR n_new <> 11 THEN RAISE EXCEPTION '입력 정지 % · 신규 %(기대 14 · 11)', n_pause, n_new; END IF;
 
   -- ① 정지 14행: 기록 14(이전 status = active) · 전부 failed
   SELECT count(*) INTO logged FROM public.review_targets_paused_20261009 l JOIN _sa_pause p ON p.id = l.target_id
@@ -245,10 +248,10 @@ BEGIN
   SELECT count(*) INTO down FROM public.review_targets t JOIN _sa_pause p ON p.id = t.id WHERE t.status = 'failed' AND t.label = p.label;
   IF down <> 14 THEN RAISE EXCEPTION '정지(failed) %행(기대 14) — label 은 바뀌면 안 된다', down; END IF;
 
-  -- ② 신규 14쌍: 정해진 프로젝트·라벨로 존재. 이번에 들어간 행은 active · 미방문 · 카운터 0 · cursor NULL
+  -- ② 신규 11쌍: 정해진 프로젝트·라벨로 존재. 이번에 들어간 행은 active · 미방문 · 카운터 0 · cursor NULL
   SELECT count(*) INTO have_new FROM _sa_new n JOIN public.review_targets t
       ON t.source_key = 'googleplay' AND t.product_ref = 'us:en:' || n.pkg AND t.project_id = n.project_id AND t.label = n.area || ':us-en|' || n.slug;
-  IF have_new <> 14 THEN RAISE EXCEPTION '신규 쌍 %행(기대 14)', have_new; END IF;
+  IF have_new <> 11 THEN RAISE EXCEPTION '신규 쌍 %행(기대 11)', have_new; END IF;
   SELECT count(*) INTO bad_new FROM public.review_targets t JOIN _sa_ins i ON i.id = t.id
    WHERE t.status <> 'active' OR t.last_run_at IS NOT NULL OR t.consecutive_empty <> 0 OR t.total_collected <> 0
       OR t.cursor IS NOT NULL OR t.last_review_at IS NOT NULL;
@@ -259,19 +262,20 @@ BEGIN
   SELECT count(*) INTO bad_label FROM _sa_new WHERE (area || ':us-en|' || slug) !~ '^[1-5]:us-en\|[a-z0-9-]+$' OR split_part(anchor_label, ':', 1) <> area;
   IF bad_ref <> 0 OR bad_label <> 0 THEN RAISE EXCEPTION 'ref 형식 % · label 형식/영역 불일치 %', bad_ref, bad_label; END IF;
 
-  -- ④ 1:1 · 활성 수(한도 예외 금지): 이번 정지 수 = 이번 신규 수, 적용 후 ≤ 적용 전 ∧ ≤ 88
+  -- ④ 활성 수(한도 예외 금지, 남헌 v38): 동결선 안 정지(kr:ko 11) = 신규 11 (1:1), 예외 3자리는 반납.
+  --    적용 후 예외 제외 활성 ≤ 80 ∧ 전체 ≤ 85 ∧ ≤ 적용 전.
   SELECT count(*) INTO paused_now FROM _sa_paused_now;
   SELECT count(*) INTO ins_now FROM _sa_ins;
-  IF paused_now <> ins_now THEN RAISE EXCEPTION '이번 정지 % ≠ 이번 신규 % (1:1 아님)', paused_now, ins_now; END IF;
-  IF st = 'A' AND paused_now <> 14 THEN RAISE EXCEPTION '처음 적용인데 정지 %행(기대 14)', paused_now; END IF;
-  IF st = 'B' AND paused_now <> 0 THEN RAISE EXCEPTION '재실행인데 쓰기 %행(기대 0)', paused_now; END IF;
+  IF st = 'A' AND (paused_now <> 14 OR ins_now <> 11) THEN RAISE EXCEPTION '처음 적용인데 정지 % · 신규 %(기대 14 · 11)', paused_now, ins_now; END IF;
+  IF st = 'B' AND (paused_now <> 0 OR ins_now <> 0) THEN RAISE EXCEPTION '재실행인데 쓰기 정지 % · 신규 %(기대 0)', paused_now, ins_now; END IF;
   SELECT n INTO gp_before FROM _sa_gp_before;
   SELECT count(*) INTO gp_after FROM public.review_targets WHERE source_key = 'googleplay' AND status = 'active';
-  IF gp_after > gp_before OR gp_after > 88 THEN RAISE EXCEPTION '구글 플레이 활성 % → %(늘면 안 되고 88 이하)', gp_before, gp_after; END IF;
-  IF st = 'A' AND gp_after <> gp_before THEN RAISE EXCEPTION '구글 플레이 활성 % → %(맞바꾸기 순변화 0)', gp_before, gp_after; END IF;
-  -- #464 예외분: 고정 8 중 정지된 3을 뺀 5가 active(3자리는 신규가 1:1 로 이어받음)
   SELECT count(*) INTO pr464 FROM public.review_targets t JOIN _sa_pr464 p USING (product_ref)
    WHERE t.source_key = 'googleplay' AND t.status = 'active';
+  IF gp_after - pr464 > 80 THEN RAISE EXCEPTION '예외 제외 활성 %(> 80 동결선)', gp_after - pr464; END IF;
+  IF gp_after > 85 OR gp_after > gp_before THEN RAISE EXCEPTION '구글 플레이 활성 % → %(85 이하·늘면 안 됨)', gp_before, gp_after; END IF;
+  IF st = 'A' AND gp_after <> gp_before - 3 THEN RAISE EXCEPTION '구글 플레이 활성 % → %(기대 −3: 정지 14 − 신규 11)', gp_before, gp_after; END IF;
+  -- #464 예외분: 고정 8 중 정지된 3을 뺀 5가 active(3자리는 반납)
   IF st = 'A' AND pr464 <> 5 THEN RAISE EXCEPTION '#464 예외 active %행(기대 5 = 8 − 정지 3)', pr464; END IF;
 
   -- ⑤ 정지 14행 밖의 구글 플레이 기존 행 불변
@@ -287,24 +291,29 @@ BEGIN
   SELECT count(*) INTO legacy FROM public.review_targets WHERE label ~ '^0[1-7]-';
   IF legacy <> 26 THEN RAISE EXCEPTION '옛 형식 라벨 %행(기대 26 — label 불변)', legacy; END IF;
 
-  RAISE NOTICE '슬롯 A[%]: 이번 정지 % · 이번 신규 % · googleplay 활성 %→% · #464 예외 active % · 정지 기록 %',
-    st, paused_now, ins_now, gp_before, gp_after, pr464, logged;
+  RAISE NOTICE '슬롯 A[%]: 이번 정지 % · 이번 신규 % · googleplay 활성 %→% · #464 예외 active % · 예외 제외 % · 정지 기록 %',
+    st, paused_now, ins_now, gp_before, gp_after, pr464, gp_after - pr464, logged;
 END $$;
 
 COMMIT;
 
 -- ── 적용 후 확인 ──────────────────────────────────────────────
 -- 양성:
--- SELECT count(*) FROM public.review_targets WHERE source_key='googleplay' AND status='active';                       -- 기대 88(적용 전과 같음)
+-- SELECT count(*) AS all_active,
+--        count(*) FILTER (WHERE product_ref IN ('us:en:com.tldv.tldvlite','us:en:com.read.ai','us:en:ai.granola','us:en:com.aimeetingos.meetingos',
+--          'us:en:mobile.linnworks.net','us:en:com.shipstation.app','us:en:com.helium10.app','us:en:io.gong.mobileapp')) AS pr464_active
+--   FROM public.review_targets WHERE source_key='googleplay' AND status='active';                                   -- 기대 85 · 5 (예외 제외 80)
 -- SELECT t.status, count(*), sum(t.total_collected) FROM public.review_targets t
 --   JOIN public.review_targets_paused_20261009 l ON l.target_id = t.id WHERE l.resumed_at IS NULL GROUP BY 1;       -- 기대 failed 14 · 394
 -- SELECT count(*) FROM public.review_targets WHERE source_key='googleplay' AND status='active' AND label LIKE '07-ecommerce-ops:%';  -- 기대 0
 -- SELECT split_part(label, ':', 1) AS area, count(*), count(*) FILTER (WHERE status='active' AND last_run_at IS NULL) AS fresh
 --   FROM public.review_targets WHERE source_key='googleplay' AND product_ref IN (
---   'us:en:ai.krisp.krispMobile','us:en:com.avoma.android','us:en:co.fellow.app','us:en:com.meetgeek.assistant','us:en:com.semblyai.android',
---   'us:en:ai.meetjamie.expoapp','us:en:ai.circleback.app','us:en:com.rev.revcorder','us:en:com.triplewhale.android.v2',
+--   'us:en:ai.krisp.krispMobile','us:en:co.fellow.app','us:en:com.meetgeek.assistant',
+--   'us:en:ai.circleback.app','us:en:com.rev.revcorder','us:en:com.triplewhale.android.v2',
 --   'us:en:com.people.rippling','us:en:com.gusto.money','us:en:com.mokinetworks.bamboohr','us:en:com.hibob','us:en:com.personio')
---  GROUP BY 1 ORDER BY 1;                                                                                             -- 기대 1=8 · 3=1 · 4=5 (적용 직후 fresh 도 같음)
+--  GROUP BY 1 ORDER BY 1;                                                                                             -- 기대 1=5 · 3=1 · 4=5 (적용 직후 fresh 도 같음)
+-- SELECT count(*) FROM public.review_targets WHERE source_key='googleplay'
+--    AND product_ref IN ('us:en:com.avoma.android','us:en:ai.meetjamie.expoapp','us:en:com.semblyai.android');     -- 기대 0(보류 후보 — 안 넣음)
 -- SELECT cap_base, daily_request_target, pct_step FROM public.review_source_ramp WHERE source_key='googleplay';     -- 기대 적용 전(S7)과 같음
 -- SELECT daily_request_cap FROM public.review_sources WHERE key='googleplay';                                        -- 기대 적용 전(S7)과 같음
 -- 음성(롤백되는 형태 — 데이터 남기지 않음):

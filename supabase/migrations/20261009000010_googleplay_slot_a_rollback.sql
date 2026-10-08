@@ -1,9 +1,9 @@
 -- ============================================================
 -- 20261009000010_googleplay_slot_a — 롤백
 --
--- 정확히 정지 14행만 기록(review_targets_paused_20261009)의 이전 status 로 되돌리고, 신규 14쌍을 failed 로 내린다(자동 부활 안 됨).
--- 데이터를 지우지 않는다 — 기록 테이블은 남기고 resumed_at 만 채운다. 신규 14쌍이 그동안 모은 analysis_inputs·cursor 는 그대로.
--- 활성 수: 14 복귀 − 14 내림 → 구글 플레이 활성 순변화 0(롤백 뒤에도 늘지 않는다).
+-- 정확히 정지 14행만 기록(review_targets_paused_20261009)의 이전 status 로 되돌리고, 신규 11쌍을 failed 로 내린다(자동 부활 안 됨).
+-- 데이터를 지우지 않는다 — 기록 테이블은 남기고 resumed_at 만 채운다. 신규 11쌍이 그동안 모은 analysis_inputs·cursor 는 그대로.
+-- 활성 수: 14 복귀 − 11 내림 → 85 → 88(적용 전 상태 = 동결선 80 + #464 예외 8 그대로). 단언: 예외 제외 ≤ 80 ∧ 전체 ≤ 88.
 -- 멱등: 재실행하면 0행 갱신, 끝의 DO 가 최종 상태를 다시 확인한다.
 -- 롤백 뒤 정방향을 다시 돌리면 상태 기계가 RAISE 한다(기록 resumed · 신규 쌍 존재) — 그때는 드라이런 재생성.
 -- ⚠️ 미적용 — 서브에이전트가 만든 파일이다. 적용은 오케스트레이터.
@@ -22,9 +22,8 @@ INSERT INTO _sar_pause (id) VALUES
 
 CREATE TEMP TABLE _sar_new (product_ref text PRIMARY KEY, label text NOT NULL) ON COMMIT DROP;
 INSERT INTO _sar_new (product_ref, label) VALUES
-  ('us:en:ai.krisp.krispMobile', '1:us-en|krisp'), ('us:en:com.avoma.android', '1:us-en|avoma'), ('us:en:co.fellow.app', '1:us-en|fellow'),
-  ('us:en:com.meetgeek.assistant', '1:us-en|meetgeek'), ('us:en:com.semblyai.android', '1:us-en|sembly-ai'), ('us:en:ai.meetjamie.expoapp', '1:us-en|jamie'),
-  ('us:en:ai.circleback.app', '1:us-en|circleback'), ('us:en:com.rev.revcorder', '1:us-en|rev'), ('us:en:com.triplewhale.android.v2', '3:us-en|triple-whale'),
+  ('us:en:ai.krisp.krispMobile', '1:us-en|krisp'), ('us:en:co.fellow.app', '1:us-en|fellow'),
+  ('us:en:com.meetgeek.assistant', '1:us-en|meetgeek'), ('us:en:ai.circleback.app', '1:us-en|circleback'), ('us:en:com.rev.revcorder', '1:us-en|rev'), ('us:en:com.triplewhale.android.v2', '3:us-en|triple-whale'),
   ('us:en:com.people.rippling', '4:us-en|rippling'), ('us:en:com.gusto.money', '4:us-en|gusto'), ('us:en:com.mokinetworks.bamboohr', '4:us-en|bamboohr'),
   ('us:en:com.hibob', '4:us-en|hibob'), ('us:en:com.personio', '4:us-en|personio');
 
@@ -40,7 +39,7 @@ END $$;
 CREATE TEMP TABLE _sar_gp_before ON COMMIT DROP AS
 SELECT count(*)::int AS n FROM public.review_targets WHERE source_key = 'googleplay' AND status = 'active';
 
--- 1) 신규 14쌍 → failed (이 마이그가 넣은 라벨인 행만)
+-- 1) 신규 11쌍 → failed (이 마이그가 넣은 라벨인 행만)
 UPDATE public.review_targets t SET status = 'failed'
   FROM _sar_new v
  WHERE t.source_key = 'googleplay' AND t.product_ref = v.product_ref AND t.label = v.label AND t.status <> 'failed';
@@ -54,22 +53,28 @@ UPDATE public.review_targets_paused_20261009 SET resumed_at = now()
  WHERE target_id IN (SELECT id FROM _sar_pause) AND resumed_at IS NULL;
 
 DO $$
-DECLARE restored int; new_down int; gp_before int; gp_after int;
+DECLARE restored int; new_down int; gp_before int; gp_after int; pr464 int;
 BEGIN
   SELECT count(*) INTO restored FROM public.review_targets t JOIN public.review_targets_paused_20261009 l ON l.target_id = t.id
    WHERE t.id IN (SELECT id FROM _sar_pause) AND t.status = l.prev_status AND l.resumed_at IS NOT NULL;
   IF restored <> 14 THEN RAISE EXCEPTION '복원 %행(기대 14)', restored; END IF;
   SELECT count(*) INTO new_down FROM public.review_targets t JOIN _sar_new v ON v.product_ref = t.product_ref AND v.label = t.label
    WHERE t.source_key = 'googleplay' AND t.status = 'failed';
-  IF new_down <> 14 THEN RAISE EXCEPTION '신규 쌍 failed %행(기대 14)', new_down; END IF;
+  IF new_down <> 11 THEN RAISE EXCEPTION '신규 쌍 failed %행(기대 11)', new_down; END IF;
   SELECT n INTO gp_before FROM _sar_gp_before;
   SELECT count(*) INTO gp_after FROM public.review_targets WHERE source_key = 'googleplay' AND status = 'active';
-  IF gp_after > gp_before OR gp_after > 88 THEN RAISE EXCEPTION '롤백이 활성 수를 늘렸다 % → %', gp_before, gp_after; END IF;
-  RAISE NOTICE '슬롯 A 롤백: 복원 14 · 신규 failed 14 · googleplay 활성 %→%', gp_before, gp_after;
+  SELECT count(*) INTO pr464 FROM public.review_targets WHERE source_key = 'googleplay' AND status = 'active' AND product_ref IN (
+    'us:en:com.tldv.tldvlite', 'us:en:com.read.ai', 'us:en:ai.granola', 'us:en:com.aimeetingos.meetingos',
+    'us:en:mobile.linnworks.net', 'us:en:com.shipstation.app', 'us:en:com.helium10.app', 'us:en:io.gong.mobileapp');
+  -- 적용 전 상태로: 전체 ≤ 88 ∧ 예외 제외 ≤ 80 (예외 3행이 돌아오며 #464 예외 8 복원)
+  IF gp_after > 88 OR gp_after - pr464 > 80 THEN
+    RAISE EXCEPTION '롤백 뒤 활성 %(예외 제외 %) — 88 · 80 이하여야 한다', gp_after, gp_after - pr464;
+  END IF;
+  RAISE NOTICE '슬롯 A 롤백: 복원 14 · 신규 failed 11 · googleplay 활성 %→% · 예외 제외 %', gp_before, gp_after, gp_after - pr464;
 END $$;
 
 COMMIT;
 
 -- 확인
 -- SELECT status, count(*) FROM public.review_targets WHERE id IN (SELECT target_id FROM public.review_targets_paused_20261009) GROUP BY 1;  -- 기대 active 14
--- SELECT count(*) FROM public.review_targets WHERE source_key='googleplay' AND status='active';                                         -- 기대 88
+-- SELECT count(*) FROM public.review_targets WHERE source_key='googleplay' AND status='active';                                         -- 기대 88(적용 전과 같음)

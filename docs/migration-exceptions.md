@@ -524,3 +524,9 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   - 정지 14행 중 itemscout·sellerbox·sello·shopmoa 4곳은 각 80건을 모은 곳(합 320)으로 남헌이 알고 승인. failed 는 수집 고장이 아니라 일시 정지(`review_targets_paused_20261009` 와 짝지어 읽을 것).
   - 적용 후 필수 확인: 다음 구글 플레이 수집 슬롯이 지난 뒤 드라이런 P1 쿼리로 '미복원 행 status 가 failed 14뿐'을 재확인.
   - 롤백 파일 `20261009000030_googleplay_slot_a_rollback.sql`(정확한 14 id 만 이전 상태 복원, 신규 11 failed, 삭제 없음).
+- **20261009000040** `area_t2_coverage_view` — 읽기 뷰 `public.v_area_t2_coverage` 하나 CREATE(영역별 입력·판정·관련 비율·평점 없음 비중·판정 대기량(거친 추정)·저평점 판정 수). 데이터 변경 없음. 적용 2026-10-09 UTC, PR #478 머지 b70eabb(영역 정본 config·영역 결손 순위·대시보드 열과 함께). 승인: 남헌 v37 작업 7(영역별 최소 판정량·T2 균형 배정·대시보드 열), 적용 CEO-STAFF(§10.2 예외 해당 없음 — 읽기 뷰이고 권한을 좁히는 변경).
+  - 적용 전: 선행 열 3개(analysis_projects.area_code · analysis_inputs.rating/purged_at)·verdict 열 2개 존재 · 뷰 없음 · 프로젝트 상태 어휘가 뷰의 후보 상태 목록과 일치.
+  - 양성: 뷰 1 · `security_invoker=true` · service_role 읽기 true / anon·authenticated false · 입력 합 57,247 = 살아 있는 입력(purged 제외) · 판정 합 4,680 = 전체 판정 · 프로젝트 합 199 = 전체. 음성(작성자 PGlite): anon 접근 거부.
+  - 확인(dispatch dry_run): `nightly-relevance` `--dry` 실행에서 '영역 판정/최소량' 줄 `1 54/200 · 2 0/200 · 3 0/200 · 4 0/200 · 5 200/200 · design 400/200` 과 영역 결손 순위(④ → ③ → ① → ② → design)가 찍힘.
+  - 롤백 파일 `20261009000040_area_t2_coverage_view_rollback.sql`(DROP VIEW). 순위만 되돌리려면 config/areas.json 을 없애면 기존 순서로 후퇴한다.
+  - 영향: 야간 T2 판정 프로젝트 순서가 'SaaS 우선'에서 '영역 결손 우선'으로 바뀐다. 창업가 불만(out-founder) 56개 프로젝트가 영역 외로 뒤로 내려간다(§10.2 6번 소지, 남헌 v37·v38 '영역 외는 표시만' 방향; 되돌리기 = config 순서 한 줄).

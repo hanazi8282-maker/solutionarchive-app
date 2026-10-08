@@ -212,6 +212,9 @@ jobs:
       #   kakao_blog·kakao_cafe: 공식 검색 API(남헌 승인 2026-10-06). 헤더 인증 GET 이 러너를 거쳐 가는지, 키 없음은 실행 실패,
       #             쿼터 초과(400)·키 무효(401)·403·429 는 첫 응답에서 멈추는지, https 아닌 URL·HTML 태그를 거르는지.
       - run: node scripts/review-kakao-selftest.mjs
+      #   wordpress_org·shopify_apps: 영역 ⑤ 3갈래 시험(v37 작업 4). RSS/HTML 파싱, robots 금지·확인 불가 0요청, 403·429·빈 응답·캡차
+      #             즉시 중단, 작성자 미저장, Shopify q=·shpxid= URL 금지, 약관 예외(owner_2026-10-08)가 robots 예외 집합에 없는지, 등록 마이그 대조.
+      - run: node scripts/review-five-arm-selftest.mjs
       # 위 둘의 소스 키가 마이그레이션·ADAPTERS 맵·워크플로 선택지와 같은 집합인지.
       # 하나라도 빠지면 코드만 있고 수집은 0건인 상태가 로그도 없이 유지된다.
       #

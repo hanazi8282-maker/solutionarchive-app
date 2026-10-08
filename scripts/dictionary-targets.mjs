@@ -67,7 +67,11 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 export const DICT_DIR = path.join(repoRoot, 'reports', '2026-10-05', 'product-dictionary')
 const DICT_URL = 'https://github.com/hanazi8282-maker/solutionarchive-app/blob/main/reports/2026-10-05/product-dictionary/'
 
-/** 사전 소스 키 → 어댑터. 사전의 나머지 넷(capterra·trustradius·shopify_apps·daum_search)은 어댑터가 없다. */
+/**
+ * 사전 소스 키 → 어댑터. 사전의 나머지 넷: capterra·trustradius 는 어댑터가 없다 · daum_search 는 위 kakao_* 칸으로 간다 ·
+ * shopify_apps 는 어댑터가 있지만(lib/review/adapters/shopify.ts, 2026-10-08) 약관 예외 소스라 이 투입기에 넣지 않았다 —
+ * 타깃은 마이그 20261008000040 이 직접 등록한다(사전 칸 id 는 앱 slug 라 넣으려면 RAW_REF 에 `app:${c.id}` 한 줄).
+ */
 export const ADAPTERS = { appstore: appstoreAdapter, googleplay: googleplayAdapter, kakao_blog: kakaoBlogAdapter, kakao_cafe: kakaoCafeAdapter }
 
 const KAKAO = new Set(['kakao_blog', 'kakao_cafe'])

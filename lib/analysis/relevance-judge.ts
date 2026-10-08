@@ -355,7 +355,7 @@ export interface GradingCandidate {
 }
 
 /** 재현 가능한 난수(mulberry32) — remedy-grading-sample.mjs 와 같은 것. seed 가 같으면 같은 표다. */
-function rng(seed: number): () => number {
+export function rng(seed: number): () => number {
   let a = seed >>> 0
   return () => {
     a = (a + 0x6d2b79f5) >>> 0
@@ -365,7 +365,7 @@ function rng(seed: number): () => number {
   }
 }
 
-function shuffle<T>(items: readonly T[], random: () => number): T[] {
+export function shuffle<T>(items: readonly T[], random: () => number): T[] {
   const out = items.slice()
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1))

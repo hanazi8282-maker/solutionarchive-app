@@ -8,6 +8,8 @@
 //   1. 야간 extract 후보 상태(extract-gate AUTO_EXTRACT_STATUSES — collecting·extracted·failed, 단 재추출 1회 뒤에도 failed 면 제외 — v28 #10) 프로젝트에서 T1 선별(selectInputs)을 통과한 상위 N건(기본 200)을 고른다.
 //   2. 그중 **아직 판정이 없는 것**만, 프로젝트당 1회 돈다(리뷰 20건씩 묶어 호출).
 //   3. 최근 사람 채점(human_verdict) 최대 10건을 few-shot 으로 프롬프트에 넣는다(그 프로젝트 우선).
+//   1-1. 사전필터(v31 항목 5, lib/analysis/prefilter.ts) — T1 뒤 · T2 전. 기본 shadow = 걸렸을 후보를 select 스텝 detail 에
+//        표시만 하고 판정은 그대로. enforce 는 사람이 오탈락률 측정 뒤 켠다(docs/prefilter-shadow.md).
 //   4. 결과를 review_relevance_verdicts 에 UPSERT. **human_verdict 는 payload 에 없다** —
 //      재판정이 사람 채점을 덮지 않는다.
 //
@@ -35,7 +37,6 @@ import {
 } from '../lib/analysis/session-guard.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
-import { selectInputs } from '../lib/analysis/extract-select.ts'
 // 대상 순서는 야간 extract 와 같은 규칙을 쓴다(SaaS 우선 → 많은 순 → projectId).
 import { compareAutoPriority } from '../lib/analysis/extract-auto.ts'
 // 대상 상태도 야간 extract 와 한 벌(v27 옵션 A). collecting 만 보던 동안 extracted 프로젝트에 새로 들어온 수집분은
@@ -45,13 +46,13 @@ import { AUTO_EXTRACT_STATUSES, relevanceFailedState } from '../lib/analysis/ext
 import {
   BATCH_SIZE,
   MAX_EXAMPLES,
-  MAX_REVIEW_CHARS,
   chunkReviews,
   judgeRelevanceBatch,
   DEFAULT_HIGH_RATING_SHARE,
   parseHighRatingShare,
-  pickSampleByRating,
 } from '../lib/analysis/relevance-judge.ts'
+import { loadPrefilterConfig } from '../lib/analysis/prefilter.ts'
+import { createPendingFor } from '../lib/analysis/relevance-pending.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate } from './notion-status-log.mjs'
 
@@ -197,42 +198,16 @@ if (readerProblemColumn === 'present') {
   else log(`  · reader_problem 값이 있는 후보 ${filled}/${(projects ?? []).length}건`)
 }
 
-/** 이 프로젝트에서 판정할 리뷰 목록. 실패는 null 로 올려 "0건" 과 가른다(§7.1). */
-async function pendingFor(project) {
-  const { data: inputs, error } = await supabase
-    .from('analysis_inputs')
-    .select('id, raw_text, created_at, collected_at, rating')
-    .eq('project_id', project.id)
-    .is('purged_at', null)
-  if (error) {
-    console.error(`⚠️ 원문 조회 실패 project=${project.id}: ${error.message}`)
-    return null
-  }
-  if (!inputs || inputs.length === 0) return { total: 0, reviews: [], rating: null }
-
-  // T1 과 같은 선별기를 쓴다 — 판정 표본과 extract 가 보는 집합이 갈라지면 판정이 헛돈다.
-  // 자르기는 평점 우선(v31 §2.3): 1~3점 먼저, 4~5점은 표본의 highRatingShare 만. 평점 없는 입력은 기존 순서 그대로.
-  const { sample: selected, stats: rating } = pickSampleByRating(selectInputs(inputs).selected, sampleSize, highRatingShare, (s) => s.input.rating)
-
-  const { data: judged, error: judgedError } = await supabase
-    .from('review_relevance_verdicts')
-    .select('input_id')
-    .eq('project_id', project.id)
-  if (judgedError) {
-    // 판정 캐시를 못 읽었는데 그대로 돌리면 이미 판정한 것을 다시 태운다. 건너뛴다.
-    console.error(`⚠️ 판정 캐시 조회 실패 project=${project.id}: ${judgedError.message}`)
-    return null
-  }
-  const done = new Set((judged ?? []).map((r) => r.input_id))
-
-  return {
-    total: selected.length,
-    rating,
-    reviews: selected
-      .filter((s) => !done.has(s.input.id))
-      .map((s) => ({ input_id: s.input.id, text: s.text.slice(0, MAX_REVIEW_CHARS) })),
-  }
-}
+// ── 사전필터(v31 항목 5) — T1 선별 뒤 · T2 호출 전. 기본 shadow(표시만). lib/analysis/prefilter.ts · docs/prefilter-shadow.md ──
+// 설정을 못 읽으면 필터를 끈다(아무것도 표시·제외 안 함) — 모르는 규칙으로 원문을 버리지 않는다(§7.1).
+const prefilterLoad = loadPrefilterConfig()
+const prefilterCfg = prefilterLoad.cfg
+if (!prefilterCfg) warn(`사전필터 설정 확인 불가 — 필터 꺼짐(전부 통과): ${prefilterLoad.error}`)
+for (const w of prefilterLoad.warnings) warn(`사전필터 설정: ${w}`)
+log(`사전필터 — ${prefilterCfg ? `mode=${prefilterCfg.mode} · 소스 ${prefilterCfg.applySources === '*' ? '전부' : prefilterCfg.applySources.join(',') || '(없음)'}` : '꺼짐(설정 확인 불가)'}`)
+// 대상 조회(평점 컬럼 42703 폴백) → T1 → 평점 우선 자르기 → 판정 캐시 제외 → 사전필터. 연결부는 lib/analysis/relevance-pending.ts
+// (모의 supabase 로 scripts/prefilter-selftest.mjs 가 실행 검사한다). 모든 반환에 rating 이 있다(아래 대상 로그가 읽는다).
+const { pendingFor, prefilterByProject, currentPrefilter } = createPendingFor({ supabase, sampleSize, highRatingShare, prefilterCfg, log, warn })
 
 /** few-shot — 사람 채점 최근 N건. 이 프로젝트 것 우선, 모자라면 다른 프로젝트에서 채운다. */
 async function examplesFor(projectId) {
@@ -348,7 +323,12 @@ await tracker.step({
   detail: {
     sample: sampleSize, high_rating_share: highRatingShare,
     rating_mix: Object.fromEntries(targets.map((t) => [t.project.id, t.pending.rating])),
-    max_projects: maxProjects, batch: BATCH_SIZE, slot, retry: retry ? { reason: retry.reason, retries_done: retry.retriesDone } : null },
+    max_projects: maxProjects, batch: BATCH_SIZE, slot, retry: retry ? { reason: retry.reason, retries_done: retry.retriesDone } : null,
+    // 사전필터 입력 단위 기록(v31 항목 5): 이번에 도는 프로젝트만. null = 설정 확인 불가·실행 중 예외로 꺼짐.
+    prefilter: prefilterCfg
+      ? { mode: prefilterCfg.mode, disabled_by_error: currentPrefilter() === null, by_project: Object.fromEntries(targets.filter((t) => prefilterByProject[t.project.id]).map((t) => [t.project.id, prefilterByProject[t.project.id]])) }
+      : null,
+  },
 })
 
 // 상한을 모르면(설정 깨짐) 돌지 않는다(§7.1). 주간 스위치도 여기서 멈춘다. 둘 다 stop_reason ≠ quota 라 재시도 슬롯이 다시 깨우지 않는다.

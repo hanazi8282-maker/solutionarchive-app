@@ -279,6 +279,15 @@ export interface ReviewSourceAdapter {
   abortOnChallenge?: boolean
 
   /**
+   * 엄격 모드의 **캡차·사람 확인 화면 판정을 이 소스 것으로 바꾼다**(옵셔널, 2026-10-08 wordpress_org·shopify_apps).
+   * 없으면 러너 기본 표지(CHALLENGE_RE: recaptcha·captcha·unusual traffic 부분일치)를 쓴다. 빈 본문·`/sorry/` 판정은 그대로다.
+   * 왜: 리뷰 관리 플러그인·앱 리뷰는 본문에 "captcha" 가 흔하다(스팸 방지 기능 후기) — 기본 표지로는 정상 피드 하나가 소스 전체를
+   * 매일 "차단"으로 멈춘다. 그래서 응답 모양으로 가른다(WP: RSS 가 아니면 차단 · Shopify: 리뷰 페이지 표지 없이 캡차 표지).
+   * ⚠️ 덜 멈추는 쪽으로 쓰지 마라 — 모양이 기대와 다르면 true(차단)가 기본이어야 한다.
+   */
+  isChallenge?(body: string): boolean
+
+  /**
    * 403·429 말고도 **차단으로 보고 실행을 끊을** HTTP 상태(옵셔널, 2026-10-06 카카오 검색).
    * 카카오는 쿼터 초과(-10)를 **400**, 키 무효(-401)를 **401** 로 준다 — 기본 러너는 둘 다 타깃 failed 로 찍고
    * 다음 타깃으로 넘어가 같은 오류를 타깃 수만큼 반복한다. 여기 적으면 첫 응답에서 멈춘다(우회 없음).

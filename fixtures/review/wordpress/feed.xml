@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+	<rss version="2.0"
+		xmlns:content="http://purl.org/rss/1.0/modules/content/"
+		xmlns:dc="http://purl.org/dc/elements/1.1/"
+		xmlns:atom="http://www.w3.org/2005/Atom"
+			>
+	<!-- 합성본: 2026-10-08 wordpress.org/support/plugin/site-reviews/reviews/feed/ 1회 실측 구조 그대로, 본문·사용자명·주소는 지어낸 값 -->
+	<channel>
+		<title>WordPress.org Forums &#187; [Example Plugin] Reviews</title>
+		<link>https://wordpress.org/support/plugin/example-plugin/reviews/feed/</link>
+		<language>en-US</language>
+				<item>
+					<guid>https://wordpress.org/support/topic/solid-and-reliable-example/</guid>
+					<title>Solid and reliable (5 stars)</title>
+					<link>https://wordpress.org/support/topic/solid-and-reliable-example/</link>
+					<pubDate>Tue, 29 Sep 2026 19:34:12 +0000</pubDate>
+					<dc:creator>example_user_a</dc:creator>
+					<description>
+						<![CDATA[
+						<p>
+							Replies: 1						</p>
+						<p>Rating: 5 stars</p>
+<p class="wp-block-paragraph">Works on three client sites, updates never broke anything &amp; support answered in a day.</p>
+
+<p class="wp-block-paragraph">I&#8217;d use it again.</p>
+						]]>
+					</description>
+				</item>
+				<item>
+					<guid>https://wordpress.org/support/topic/import-from-google-stopped-example/</guid>
+					<title>Import stopped after update (2 stars)</title>
+					<link>https://wordpress.org/support/topic/import-from-google-stopped-example/</link>
+					<pubDate>Mon, 28 Sep 2026 16:05:00 +0000</pubDate>
+					<dc:creator>example_user_b</dc:creator>
+					<description>
+						<![CDATA[
+						<p>Replies: 0</p>
+						<p>Rating: 2 stars</p>
+<p>After the last update the Google import silently stopped and the widget shows old reviews.</p>
+						]]>
+					</description>
+				</item>
+				<item>
+					<guid>https://example.com/not-a-wordpress-topic/</guid>
+					<title>Foreign guid (4 stars)</title>
+					<pubDate>Sun, 27 Sep 2026 10:00:00 +0000</pubDate>
+					<description><![CDATA[<p>Rating: 4 stars</p><p>Should be rejected: guid is not a wordpress.org topic.</p>]]></description>
+				</item>
+				<item>
+					<guid>https://wordpress.org/support/topic/empty-body-example/</guid>
+					<title>Empty body (3 stars)</title>
+					<pubDate>Sat, 26 Sep 2026 10:00:00 +0000</pubDate>
+					<description><![CDATA[<p>Replies: 0</p><p>Rating: 3 stars</p>]]></description>
+				</item>
+	</channel>
+	</rss>

@@ -1,5 +1,5 @@
 -- ============================================================
--- 20261009000010_googleplay_slot_a
+-- 20261009000030_googleplay_slot_a
 --
 -- v37/v38 작업 5 · 남헌 승인 '슬롯 A' — 구글 플레이 ⑦ 이커머스 운영(지도 out) 보류 라벨의 active 14행을 **일시 정지**하고,
 -- 그중 동결선 안 11자리(kr:ko 11)를 영어(us:en) 타깃 11개와 **1:1 맞바꾼다.** #464 일회성 예외 3행(us:en)은 자리를 반납한다.
@@ -37,7 +37,7 @@
 -- 상태 기계(멱등): A = 처음(기록 0 · 신규 쌍 0) → 쓰기. B = 이미 적용(기록 14 미복원 · 신규 쌍 11) → 쓰기 0, 검사만.
 --   그 밖(일부만 있음 · 롤백 뒤 재적용 · 누가 신규 쌍을 먼저 넣음)은 RAISE → 드라이런 재생성.
 --   INSERT 는 ON CONFLICT (project_id, source_key, product_ref) DO NOTHING + (source, ref) NOT EXISTS, UPDATE 는 status='active' 인 행만.
--- 롤백: 20261009000010_googleplay_slot_a_rollback.sql (정지 14행만 기록의 이전 status 로 · 신규 11쌍 → failed).
+-- 롤백: 20261009000030_googleplay_slot_a_rollback.sql (정지 14행만 기록의 이전 status 로 · 신규 11쌍 → failed).
 --
 -- ⚠️ 미적용 — 서브에이전트가 만든 파일이다(CLAUDE.md §10.2). 적용은 오케스트레이터(Opus 사전검토 뒤).
 --   §10.2 예외 2번(대량 UPDATE) — 14행 status 한 열 · 롤백 동반 · 4조건(드라이런·롤백·무중단·Notion) 기록.
@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS public.review_targets_paused_20261009 (
 -- 앱은 service_role 로만 읽는다(CLAUDE.md §5-1). 정책 0개 = anon 직접 접근 불가.
 ALTER TABLE public.review_targets_paused_20261009 ENABLE ROW LEVEL SECURITY;
 COMMENT ON TABLE public.review_targets_paused_20261009 IS
-  '20261009000010 슬롯 A 가 일시 정지(active→failed)한 구글 플레이 ⑦ 보류 타깃과 이전 상태. 롤백이 읽고 resumed_at 을 채운다. 삭제하지 않는다.';
+  '20261009000030 슬롯 A 가 일시 정지(active→failed)한 구글 플레이 ⑦ 보류 타깃과 이전 상태. 롤백이 읽고 resumed_at 을 채운다. 삭제하지 않는다.';
 
 CREATE TEMP TABLE _sa_gp_before ON COMMIT DROP AS
 SELECT count(*)::int AS n FROM public.review_targets WHERE source_key = 'googleplay' AND status = 'active';

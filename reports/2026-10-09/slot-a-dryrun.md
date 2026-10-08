@@ -1,7 +1,7 @@
 # v37/v38 작업 5 — 구글 플레이 슬롯 A 드라이런 (2026-10-09)
 
 > 준비물만이다. DB 접근 0 · 마이그 미적용. 적용은 오케스트레이터가 독립 점검 뒤에 한다.
-> 짝 파일: `supabase/migrations/20261009000010_googleplay_slot_a.sql`(+`_rollback.sql`).
+> 짝 파일: `supabase/migrations/20261009000030_googleplay_slot_a.sql`(+`_rollback.sql`).
 > 입력: 오케스트레이터 실측 `review-targets-stores.json`(164행, 2026-10-08) · v37 000020 적용 기록(docs/migration-exceptions.md) ·
 > T0 `20261008000010`(PR #473 머지 f13cbac · 오케스트레이터 적용·검증 완료) · v44 2차 9개(feat/v44-googleplay-us-en-targets 하단 주석) · 제품 사전 `reports/2026-10-05/product-dictionary/` · `data/area-map-v26.json`.
 > 개정(같은 날): 남헌 v38 결정 1 반영 — 신규 14 → **11**(#464 예외 3자리 반납), 결정 2 — ④ 정의 '인사 운영(근태·급여·평가 포함, 채용 제외)'.

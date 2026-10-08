@@ -10,11 +10,11 @@
 
 1. **⑦ 보류 라벨(`07-ecommerce-ops:*`) 구글 플레이 active 14행을 `failed` 로 일시 정지**한다(status 한 열, label·데이터 그대로, 삭제 0). 이전 상태·사유·시각·수집 수는 새 기록 테이블 `review_targets_paused_20261009` 에 남고, 롤백이 그 14행만 되돌린다.
 2. **동결선 안 11자리(kr:ko 11)에만 영어(us:en) 타깃 11개를 1:1로 넣는다** — v44 2차 6개(① 5 · ③ 1) + ④ 인사 운영 5개. #464 일회성 예외 3행(us:en)은 자리를 반납한다. 구글 플레이 활성 **88 → 85**, 예외 제외 **80 → 80**. 요청 예산·ramp·cap 은 건드리지 않는다.
-3. **T0 라벨 정규화가 먼저 적용돼 있어야 한다**(적용됨 — 마이그가 다시 확인, 안 돼 있으면 RAISE). PGlite 셀프테스트 32/32 통과 — §5.
+3. **T0 라벨 정규화가 먼저 적용돼 있어야 한다**(적용됨 — 마이그가 다시 확인, 안 돼 있으면 RAISE). PGlite 셀프테스트 33/33 통과 — §5. 적용 후 다음 수집 슬롯 뒤 P1(정지 14 = failed 유지) 재확인 필수.
 
-## 적용 전 체크리스트 (S1~S9 — 전부 읽기 전용, 전부 기대값일 때만 적용)
+## 적용 전 체크리스트 (S1~S10 — 전부 읽기 전용, 전부 기대값일 때만 적용) + 적용 후 P1
 
-마이그 사전 검사 DO 가 S1·S2·S3·S4·S5·S6 을 트랜잭션 안에서 다시 확인한다. S7·S8 은 적용하는 쪽이 직접 본다.
+마이그 사전 검사 DO 가 S1·S2·S3·S4·S5·S6·S8 을 트랜잭션 안에서 다시 확인한다. S7·S9·S10 은 적용하는 쪽이 직접 본다.
 
 ```sql
 -- S1 구글 플레이 활성 = 88 (동결선 80 + #464 예외 8). 다르면 멈추고 드라이런 재생성
@@ -61,13 +61,29 @@ SELECT v.pkg,
 SELECT s.key, s.enabled, s.daily_request_cap, r.cap_base, r.pct_step, r.daily_request_target
   FROM public.review_sources s LEFT JOIN public.review_source_ramp r ON r.source_key = s.key WHERE s.key='googleplay';  -- 기대 enabled=true · 나머지 기록
 
--- S8 지금 도는 구글 플레이 수집 0
-SELECT started_at FROM public.review_collection_runs
- WHERE status='running' AND started_at > now() - interval '6 hours' AND source_key='googleplay';             -- 기대 0행
+-- S8 지금 도는 구글 플레이 수집 0 — 기간 제한 없이(오래된 running 도 막는다. 마이그 사전 DO 가 같은 조건으로 RAISE)
+--    이유: 러너 saveTargetProgress 는 id 만 보고 status 를 덮어쓴다(lib/review/store.ts:164-179) → 실행 중 정지하면 풀릴 수 있다.
+SELECT started_at FROM public.review_collection_runs WHERE status='running' AND source_key='googleplay';           -- 기대 0행
 
 -- S9 기록 테이블 아직 없음(처음 적용)
 SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='review_targets_paused_20261009';  -- 기대 0
+
+-- S10 v44 2차 블록이 따로 적용되지 않았다(9개 us:en 중 하나라도 있으면 멈춘다)
+SELECT product_ref, status, label FROM public.review_targets WHERE source_key='googleplay' AND product_ref IN (
+  'us:en:ai.krisp.krispMobile','us:en:com.avoma.android','us:en:co.fellow.app','us:en:com.meetgeek.assistant','us:en:com.semblyai.android',
+  'us:en:ai.meetjamie.expoapp','us:en:ai.circleback.app','us:en:com.rev.revcorder','us:en:com.triplewhale.android.v2');  -- 기대 0행
 ```
+
+**적용 후 — 다음 googleplay 수집 슬롯이 지난 뒤 재확인(필수).** 정지가 러너에 덮이지 않았는지 본다:
+
+```sql
+-- P1 기록 테이블 JOIN: 미복원(resumed_at IS NULL) 행의 status 분포
+SELECT t.status, count(*) FROM public.review_targets t
+  JOIN public.review_targets_paused_20261009 l ON l.target_id = t.id
+ WHERE l.resumed_at IS NULL GROUP BY 1;                                                                           -- 기대 failed 14 한 줄뿐
+```
+
+`failed` 해석 주의: 이 14행의 failed 는 수집 고장이 아니라 **슬롯 A 일시 정지**다. 러너도 HTTP 오류 때 failed 를 쓰므로(`lib/review/runner.ts:690`) 반드시 `review_targets_paused_20261009` 와 짝지어 읽는다.
 
 ## 1. 정지 14행 (`active → failed`, label 그대로)
 
@@ -102,7 +118,8 @@ v37(000020)이 이미 내린 helium-10 kr(`325be79c…`)·triple-whale kr(`7460d
 v44 2차 중 6개(T0 뒤 영역 번호):
 - `1:us-en|krisp` · `us:en:ai.krisp.krispMobile` · "Krisp AI Meeting Note Taker" · 평가 382 · 앵커 `c66f3f63…`
 - `1:us-en|fellow` · `us:en:co.fellow.app` · "Fellow - AI Meeting Assistant" · 평가 69 · 앵커 `b56092b8…`
-- `1:us-en|meetgeek` · `us:en:com.meetgeek.assistant` · 제목 "AI Transcribe. Speech to Text"(본문 앱명 "MeetGeek: AI Note Taker…", meetgeek.ai) · 평가 1,325 · 앵커 `be04065f…`
+- `1:us-en|meetgeek` · `us:en:com.meetgeek.assistant` · 스토어 제목 "AI Transcribe. Speech to Text" · 평가 1,325 · 앵커 `be04065f…`
+  - 정체 확인(2026-10-09, 상세 페이지 1회 재요청 · 본문 저장 안 함): 개발자 연락처 웹사이트 `http://meetgeek.ai` · 지원 메일 `support@meetgeek.ai` · 개발자 페이지 `/store/apps/dev?id=4791744790423350424` · 본문 앱명 "MeetGeek: AI Note Taker. Transcribe Speech to Text" → MeetGeek(meetgeek.ai) 앱으로 판정, 유지. 개발자 표시명 문자열 자체는 추출하지 못했다(근거는 개발자 연락처 도메인).
 - `1:us-en|circleback` · `us:en:ai.circleback.app` · "Circleback - AI Meeting Notes" · 평가 108 · 앵커 `bea4dea8…`
 - `1:us-en|rev` · `us:en:com.rev.revcorder` · "Rev: Transcription & Analysis" · 평가 3,158 · 앵커 `07a34412…`
 - `3:us-en|triple-whale` · `us:en:com.triplewhale.android.v2` · "Triple Whale" · 평가 30 · 앵커 `7460dec5…`
@@ -125,6 +142,7 @@ v44 2차 중 6개(T0 뒤 영역 번호):
 - ③ 마케팅: 남은 영어 후보는 canva(평가 2,730만)·hootsuite(10만) 둘뿐이고, 설계 v31 이 "리뷰가 제품 전체 이야기라 AI 소재 기능 노이즈 큼"으로 낮춰 둔 것이다. triple-whale(2차)로 ③ 은 4 → 5.
 - ④ 인사 운영: 남헌 정본 정의 **'④ 인사 운영(근태·급여·평가 포함, 채용 제외)'** 에 맞춰 골랐다 — rippling·gusto(급여)·bamboohr·hibob·personio(인사정보·근태·휴가)는 모두 급여·근태·인사정보가 핵심인 HR 운영 도구이고 채용 전용 도구가 아니다. 사전 ④ 9개 중 lattice·15five(평가)만 들어가 있었고, rippling·gusto·hibob·personio 는 kr:ko 0건이라 v37 이 내린 자리 — 영어로만 데이터가 나온다. bamboohr 는 kr 1건.
 - 제외(확인했지만 안 넣음): deel(평가 13,785 — 해외 계약자·급여 플랫폼이라 리뷰 작성자가 주로 급여 받는 계약자 쪽), workday(26만 — 대기업 직원 셀프서비스 포털 리뷰 위주), canva·hootsuite(위 노이즈). 둘 다 채용 전용 도구는 아니다 — 리뷰 작성자가 HR 운영 담당자가 아니라서 뺐다.
+- ⚠️ **수집 품질 위험(일관성 단서):** 신규 ④ 5개도 모바일 앱은 직원용 셀프서비스 성격이 섞여 있다(예 "Gusto Mobile"·"Bob HR"·"Personio: HR Tasks on the Go" — 급여명세·휴가 신청 쪽 리뷰가 많을 수 있다). deel·workday 제외 이유(리뷰 작성자가 HR 운영 담당자가 아님)와 완전히 일관되지는 않다. 남헌이 승인한 목록이라 유지한다. 대신 **첫 수집 뒤 이 5개의 T2 relevant 비율을 확인하고, 낮으면 보류 후보(avoma·jamie·sembly-ai) 복귀를 검토**한다(같은 1:1 맞바꾸기 경로).
 - 확인 못 한 패키지는 없다(18/18 통과). 사전 `미발견` 제품(culture-amp·jasper·copy-ai 등)은 후보에서 뺐다.
 
 ## 3. 활성 수 전후 (구글 플레이)
@@ -145,9 +163,10 @@ v44 2차 중 6개(T0 뒤 영역 번호):
 - 러너는 active 만 집는다(`lib/review/store.ts:64`·`:83`) — failed·exhausted 를 다시 여는 코드가 러너에 없다. status 를 쓰는 곳은 집은 타깃의 `saveTargetProgress`(`store.ts:163-179`)뿐이다.
 - 되살리기 스크립트는 사람·역할 세션 전용이고 워크플로 배선 0(`scripts/target-revive.mjs:4`, `.github/` 에 호출 없음). 발굴 화면도 자동 복원 없음(`app/discovery/actions.ts:96-97`).
 - 사전 투입기는 (source, ref) 가 어느 상태로든 있으면 `exists`(`scripts/dictionary-targets.mjs:26-28`·`:182`)이고 지도 `out` 은 `area_excluded`(`:150-152`) — 다시 넣지 않는다.
+- 러너는 실행 중에 집은 타깃의 status 를 id 만 보고 덮어쓴다(`store.ts:164-179`, 실행 행은 목록 읽기 전에 running — `scripts/review-collect.mjs:276`). 그래서 사전 DO 가 googleplay `running` 실행 행이 하나라도 있으면 RAISE 하고, 적용 후 다음 슬롯 뒤 P1 로 다시 본다.
 - 결론: #464 롤백 A 의 "failed 는 자동 부활 안 됨" 은 맞다. 대가: `failed` 의 원뜻은 "수집이 깨짐"이라(`app/discovery/actions.ts:72-73`) target-supply 출력의 `inactive.failed` 가 14 늘어 보인다 — 정지인지는 기록 테이블로 구분한다.
 
-기록 방법: 새 테이블 `review_targets_paused_20261009`(target_id PK·FK CASCADE · prev_status · prev_label · total_collected_at_pause · reason · paused_at · resumed_at, RLS on·정책 0). 선례 `20261007000011` 의 스냅샷 테이블과 같은 꼴. review_targets 에 열을 더하지 않은 이유: 수집 핫 테이블에 ALTER(ACCESS EXCLUSIVE)를 걸지 않는 가장 작은 변경이고, 롤백이 읽을 자리는 이 테이블 하나로 충분하다.
+기록 방법: 새 테이블 `review_targets_paused_20261009`(target_id PK·FK CASCADE · prev_status · prev_label · total_collected_at_pause · reason · paused_at · resumed_at, RLS on·정책 0). 선례 `20261007000011` 의 스냅샷 테이블과 같은 꼴. review_targets 에 열을 더하지 않은 이유: 수집 핫 테이블에 ALTER(ACCESS EXCLUSIVE)를 걸지 않는 가장 작은 변경이고, 롤백이 읽을 자리는 이 테이블 하나로 충분하다. 단 잠금이 없지는 않다 — 첫 적용 때 `CREATE TABLE … REFERENCES review_targets` 가 review_targets 에 SHARE ROW EXCLUSIVE 를 잡아 커밋까지 쥔다(읽기는 통과, 쓰기는 대기). 트랜잭션이 짧고 lock_timeout 5s 라 줄이 오래 서지 않는다.
 
 ## 5. 셀프테스트 (PGlite, 리포 밖 일회성)
 
@@ -182,11 +201,12 @@ PASS 롤백 재실행: 쓰기 0
 PASS 롤백 뒤 정방향 재적용 → RAISE(드라이런 재생성)
 PASS 음성: 구글 플레이 활성 89 → RAISE · 쓰기 0
 PASS 음성: 예외 제외 활성 81(> 80) → RAISE · 쓰기 0 — 예외 제외 활성 81(> 80) — 동결선 초과 상태. 드라이런 재생성
+PASS 음성: googleplay running 1행(오래된 것 포함) → RAISE · 쓰기 0 — googleplay 수집 실행 중(running started_at: …) — 슬롯 사이에 다시 적용하라
 PASS 음성: 정지 후보(sellerbox) 그 사이 수집 → RAISE · 쓰기 0 — 07-ecommerce-ops:sellerbox active 120(기대 80)
 PASS 음성: 신규 후보(hibob us:en)가 이미 있고 수집됨 → RAISE · 쓰기 0
 PASS 음성: 조건이 목록보다 넓음(되살아난 07 행) → RAISE
 PASS 음성: 정방향 전 롤백 → RAISE
-전부 통과 (32/32)
+전부 통과 (33/33)
 ```
 
 PGlite 는 슈퍼유저로 돈다 — RLS·권한·lock_timeout 대기는 실DB 에서만 확인된다.

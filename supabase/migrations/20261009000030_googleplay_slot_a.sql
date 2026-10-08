@@ -11,7 +11,9 @@
 -- 무엇을(INSERT 와 status 한 열 UPDATE 뿐 — DELETE·DROP·타입 변경 없음, label 은 안 바꾼다):
 --   1) 기록 테이블 review_targets_paused_20261009 생성(IF NOT EXISTS) + 정지 14행의 이전 status·label·수집 수·사유·시각 INSERT.
 --      선례: 20261007000011 의 review_targets_reactivated_20261007(스냅샷 테이블 → 롤백이 읽는다). review_targets 에 열을 추가하지 않는다
---      (ALTER 의 ACCESS EXCLUSIVE 를 수집 핫 테이블에 걸지 않는 가장 작은 변경).
+--      (ALTER 의 ACCESS EXCLUSIVE 를 수집 핫 테이블에 걸지 않는 가장 작은 변경). 단 잠금이 0 은 아니다 — 첫 적용 때
+--      CREATE TABLE … REFERENCES review_targets 가 review_targets 에 SHARE ROW EXCLUSIVE 를 잡아 커밋까지 쥔다(쓰기만 막고 읽기는 통과,
+--      트랜잭션이 짧아 순간적). 이어지는 UPDATE·INSERT 의 행 잠금도 커밋까지. lock_timeout 5s 로 오래 줄세우지 않는다.
 --   2) 정지 14행 status 'active' → 'failed'. 정지 값으로 failed 를 쓰는 근거(자동 부활 경로 전수):
 --      - planRevive 는 `status='exhausted' ∧ consecutive_empty=0` 만 되살린다(lib/review/target-supply.ts:419).
 --        정지 14행은 전부 consecutive_empty=0 이다 → exhausted 로 두면 14행 모두 되살리기 후보가 된다(googleplay 활성이 동결선 80 아래로
@@ -20,6 +22,10 @@
 --      - 무인 루프에 되살리기 배선 없음(scripts/target-revive.mjs:4 — 사람·역할 세션 전용, .github 에 호출 0). 발굴 화면도 자동 복원 없음(app/discovery/actions.ts:96-97).
 --      - 사전 투입기는 (source, ref) 가 어느 상태로든 있으면 exists 로 건너뛴다(scripts/dictionary-targets.mjs:26-28·182) + 지도 out 은 area_excluded(:150-152).
 --      → PR #464 롤백 A 의 "failed 는 자동 부활 안 됨" 은 맞다. 같은 선례: v37 롤백(새 타깃 → failed).
+--      ⚠️ 이 14행의 failed 는 수집 고장이 아니라 슬롯 A 일시 정지다 — 러너도 HTTP 오류 때 failed 를 쓰므로(lib/review/runner.ts:690)
+--         반드시 review_targets_paused_20261009 와 짝지어 읽는다(기록에 있고 resumed_at IS NULL 이면 정지).
+--      ⚠️ 수집 실행 중 적용 금지: 러너 saveTargetProgress 는 id 만 보고 status 를 덮어쓴다(store.ts:164-179). 실행 행은 목록을 읽기 전에
+--         running 으로 들어간다(scripts/review-collect.mjs:276) → 사전 검사가 googleplay running 1행이라도 있으면 RAISE.
 --   3) review_targets 11행 INSERT — googleplay us:en, status='active', last_run_at=NULL(미방문 = 다음 실행 앞순위, runner orderGooglePlayTargets),
 --      프로젝트 = 같은 패키지의 기존 kr:ko 타깃 프로젝트(앵커). 라벨은 처음부터 `N:us-en|<slug>`(N = data/area-map-v26.json 값).
 --      v44 2차 중 6개(krisp·fellow·meetgeek·circleback·rev·triple-whale) + ④ 인사 운영 5개(rippling·gusto·bamboohr·hibob·personio).
@@ -41,7 +47,7 @@
 --
 -- ⚠️ 미적용 — 서브에이전트가 만든 파일이다(CLAUDE.md §10.2). 적용은 오케스트레이터(Opus 사전검토 뒤).
 --   §10.2 예외 2번(대량 UPDATE) — 14행 status 한 열 · 롤백 동반 · 4조건(드라이런·롤백·무중단·Notion) 기록.
---   절차: 1) solutionarchive `qmgrfqjfxqhxuufrnkwf` 확인 2) 드라이런 문서의 체크리스트 S1~S9 3) 실행 4) 하단 확인 쿼리 5) docs/migration-exceptions.md 기입.
+--   절차: 1) solutionarchive `qmgrfqjfxqhxuufrnkwf` 확인 2) 드라이런 문서의 체크리스트 S1~S10(적용 후 다음 슬롯 뒤 P1) 3) 실행 4) 하단 확인 쿼리 5) docs/migration-exceptions.md 기입.
 --   야간 수집 슬롯(UTC 01:43·05:37·09:29·13:19·17:37·20:47) 사이에 적용한다 — 정지 후보가 그 사이 수집되면 사전 검사가 RAISE 한다.
 -- ============================================================
 
@@ -127,7 +133,7 @@ DECLARE
   has_t0 int; legacy int; legacy_bad int; anchor_bad int; no_proj int;
   logged int; logged_open int; new_exist int; new_foreign int;
   gp_before int; pr464 int; pause_ok int; drift text; cond_extra int; cond_missing int; src_off int;
-  st text;
+  running_at text; st text;
 BEGIN
   -- (T0) 라벨 정규화가 먼저 들어가 있어야 한다
   SELECT count(*) INTO has_t0 FROM information_schema.columns
@@ -149,6 +155,13 @@ BEGIN
   SELECT count(*) INTO src_off FROM (VALUES ('googleplay')) v(k)
    WHERE NOT EXISTS (SELECT 1 FROM public.review_sources s WHERE s.key = v.k AND s.enabled);
   IF src_off <> 0 THEN RAISE EXCEPTION 'googleplay 소스가 꺼져 있거나 없다'; END IF;
+
+  -- 수집 실행 중이면 멈춘다(러너가 정지 행의 status 를 덮어쓸 수 있다). 오래된 running(중단된 실행)도 막는다 — 사람이 보고 정리한 뒤 적용.
+  SELECT string_agg(started_at::text, ', ' ORDER BY started_at) INTO running_at
+    FROM public.review_collection_runs WHERE source_key = 'googleplay' AND status = 'running';
+  IF running_at IS NOT NULL THEN
+    RAISE EXCEPTION 'googleplay 수집 실행 중(running started_at: %) — 슬롯 사이에 다시 적용하라', running_at;
+  END IF;
 
   -- 상태 판정
   SELECT count(*), count(*) FILTER (WHERE resumed_at IS NULL) INTO logged, logged_open
@@ -316,6 +329,9 @@ COMMIT;
 --    AND product_ref IN ('us:en:com.avoma.android','us:en:ai.meetjamie.expoapp','us:en:com.semblyai.android');     -- 기대 0(보류 후보 — 안 넣음)
 -- SELECT cap_base, daily_request_target, pct_step FROM public.review_source_ramp WHERE source_key='googleplay';     -- 기대 적용 전(S7)과 같음
 -- SELECT daily_request_cap FROM public.review_sources WHERE key='googleplay';                                        -- 기대 적용 전(S7)과 같음
+-- 다음 googleplay 수집 슬롯이 지난 뒤 재확인(정지가 러너에 덮이지 않았나):
+-- SELECT t.status, count(*) FROM public.review_targets t JOIN public.review_targets_paused_20261009 l ON l.target_id = t.id
+--  WHERE l.resumed_at IS NULL GROUP BY 1;                                                                            -- 기대 failed 14 한 줄뿐
 -- 음성(롤백되는 형태 — 데이터 남기지 않음):
 -- BEGIN; UPDATE public.review_targets SET status='paused' WHERE id='a6862741-952c-4659-802a-09ab8a2a4aa5'; ROLLBACK; -- 기대 23514 review_targets_status_check
 -- BEGIN; INSERT INTO public.review_targets (project_id, source_key, product_ref, status)

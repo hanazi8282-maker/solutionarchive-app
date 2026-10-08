@@ -111,9 +111,11 @@ t('기본 비율 0.2', DEFAULT_HIGH_RATING_SHARE === 0.2)
 
 // 9) 호출부 배선 존재(문자열 검사) — 소스에 호출이 있는지만 본다. 실행 경로 검증이 아니다(DB 필요).
 {
-  const src = readFileSync(`${ROOT}scripts/relevance-judge-auto.mjs`, 'utf8')
-  t('배선 존재(문자열 검사): SELECT 에 rating', /\.select\('id, raw_text, created_at, collected_at, rating'\)/.test(src))
-  t('배선 존재(문자열 검사): selectInputs 결과를 pickSampleByRating 으로 자른다', /pickSampleByRating\(selectInputs\(inputs\)\.selected, sampleSize, highRatingShare/.test(src))
+  // pendingFor 는 v31 항목 5 에서 lib/analysis/relevance-pending.ts 로 떼어 냈다(실행 검사는 prefilter-selftest §12).
+  const src = readFileSync(`${ROOT}scripts/relevance-judge-auto.mjs`, 'utf8') + '\n' + readFileSync(`${ROOT}lib/analysis/relevance-pending.ts`, 'utf8')
+  t('배선 존재(문자열 검사): 호출부가 createPendingFor 를 쓴다', src.includes('createPendingFor({ supabase, sampleSize, highRatingShare'))
+  t('배선 존재(문자열 검사): SELECT 에 rating', /BASE_COLS = 'id, raw_text, created_at, collected_at[^']*'/.test(src) && src.includes('`${BASE_COLS}, rating`'))
+  t('배선 존재(문자열 검사): selectInputs 결과를 pickSampleByRating 으로 자른다', /pickSampleByRating\(selectInputs\(rows\)\.selected, sampleSize, highRatingShare/.test(src))
   t('배선 존재(문자열 검사): 옛 slice(0, sampleSize) 가 남지 않았다', !src.includes('.slice(0, sampleSize)'))
   t('배선 존재(문자열 검사): env RELEVANCE_HIGH_RATING_SHARE', src.includes('process.env.RELEVANCE_HIGH_RATING_SHARE'))
   t('배선 존재(문자열 검사): tracker detail 에 high_rating_share·rating_mix', src.includes('high_rating_share: highRatingShare') && src.includes('rating_mix'))

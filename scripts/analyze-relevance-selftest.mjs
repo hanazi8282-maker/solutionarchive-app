@@ -219,7 +219,9 @@ t('정보 열만 있는 표: 관련으로 오독하지 않는다', onlyInfo.mark
 // ── 8. 호출부 배선 ──────────────────────────────────────────────
 const read = (p) => readFileSync(`${ROOT}${p}`, 'utf8')
 const run = read('lib/analysis/extract-run.ts')
-const auto = read('scripts/relevance-judge-auto.mjs')
+// pendingFor 는 v31 항목 5 에서 lib/analysis/relevance-pending.ts 로 떼어 냈다 — 두 파일을 한 호출부로 읽는다.
+const auto = read('scripts/relevance-judge-auto.mjs') + '\n' + read('lib/analysis/relevance-pending.ts')
+t('배치가 pendingFor 를 relevance-pending 에서 만든다', auto.includes('createPendingFor({'))
 const wf = read('.github/workflows/nightly-relevance.yml')
 const mig = read('supabase/migrations/20260929000002_review_relevance_verdicts.sql')
 const labelMig = read('supabase/migrations/20260930000014_review_verdict_labels.sql')

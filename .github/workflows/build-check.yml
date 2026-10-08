@@ -79,6 +79,8 @@ jobs:
       - run: node scripts/relevance-rating-sample-selftest.mjs
       # T2 앞 사전필터(v31 항목 5): 규칙 양성·보호 음성·shadow 무해성·카테고리 규칙 금지 소스·설정 완화·측정 seed 재현·pendingFor 연결부.
       - run: node scripts/prefilter-selftest.mjs
+      # 영역 정본 config/areas.json(어휘 = DB CHECK) · T2 영역 결손 순위(결손 > 충족 > 영역 외 > hold, 열 부재 라벨 폴백) · 커버리지 뷰 SQL 값 대조(v37 작업 7).
+      - run: node scripts/areas-selftest.mjs
       - run: node scripts/aspect-verdict-selftest.mjs
       # 지불의사(WTP) 답 검증기 = wtp_signals 의 CHECK. 갈라지면 사람이 답을 다 채우고
       # 버튼을 누른 뒤에야 23514 로 죽는다. 가격을 내는 코드가 아니다 — 재료만 담는다.

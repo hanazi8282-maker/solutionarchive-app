@@ -1,5 +1,7 @@
+-- ★ 마이그로 승격됨(2026-10-09 오케스트레이터 포함 결정) → supabase/migrations/20261009000011_tos_quote_allowed_align.sql
+--   (+ _rollback.sql). 적용은 그 파일로 한다 — 이 파일은 검토 이력으로만 남긴다(돌리지 않는다).
 -- ============================================================
--- 선택안 Q — disquiet · tumblbug 의 quote_allowed true → false (6곳 모두 "quote_allowed=false · short_only" 로 맞춤)
+-- 선택안 Q —disquiet · tumblbug 의 quote_allowed true → false (6곳 모두 "quote_allowed=false · short_only" 로 맞춤)
 --
 -- ⛔ 미적용 · 마이그 폴더 밖에 둔 선택안. 노트 reports/2026-10-09/tos-override-notes.md §3 참고.
 --   제외 안 = 20261009000010 만 적용(이 파일 안 돌림). 포함 안 = 20261009000010 적용 뒤 이 파일을 돌린다.

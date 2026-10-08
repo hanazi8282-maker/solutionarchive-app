@@ -11,8 +11,8 @@
 --
 -- 바꾸는 것: review_sources.override 한 컬럼, 6행, NULL → 'owner_2026-10-08'. 그 밖의 컬럼·행은 안 바꾼다.
 --   - enabled 안 건드림(producthunt=false 그대로 — 아래 가드가 확인). DELETE 없음(producthunt 입력 1,128건 그대로).
---   - quote_allowed 안 건드림(disquiet·tumblbug=true 그대로). 맞추는 것은 별도 선택안 —
---     reports/2026-10-09/tos-override-quote-allowed-option.sql (노트 §3).
+--   - quote_allowed 안 건드림(disquiet·tumblbug=true 그대로). 맞추는 것은 다음 마이그
+--     20261009000011_tos_quote_allowed_align.sql(이 파일 선행 필수, 노트 §3).
 --
 -- ⚠️ 이 override 는 **약관 예외 기록**이다. 러너 OWNER_ROBOTS_OVERRIDES(lib/review/runner.ts:83 = 10-05·10-06 두 값)에
 --    'owner_2026-10-08' 은 없다 — 6곳 모두 robots 가 allowed/not_applicable 이라 robots 예외가 필요 없고,
@@ -112,7 +112,7 @@ COMMIT;
 --   SELECT key, enabled, robots_status, tos_status, override, quote_allowed, quote_policy FROM public.review_sources
 --    WHERE key IN ('devto','disquiet','indiehackers','tumblbug','youtube','producthunt') ORDER BY key;
 --   기대: 6행 override='owner_2026-10-08' · producthunt enabled=false · 나머지 칸은 위 "적용 전 상태" 표 그대로
---   (disquiet·tumblbug quote_allowed=true 그대로 — 선택안 미적용일 때).
+--   (disquiet·tumblbug quote_allowed=true 그대로 — 20261009000011 적용 전).
 -- 양성: owner_2026-10-08 은 shopify_apps + 6곳뿐
 --   SELECT count(*) FROM public.review_sources WHERE override = 'owner_2026-10-08';                        -- 기대: 7
 --   SELECT count(*) FROM public.review_sources WHERE override = 'owner_2026-10-08'

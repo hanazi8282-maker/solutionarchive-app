@@ -3,9 +3,19 @@
 - 작성: 2026-10-09 서브에이전트(DB 접근 없음, 파일만). **미적용.**
 - 남헌 결정(v38 재확인): devto · disquiet · indiehackers · tumblbug · youtube · producthunt 6곳을 owner override 로 공식 기록.
   "quote_allowed=false · short_only 확인 후 보고. producthunt 는 enabled=false 유지, 기존 입력 1,128건 삭제 금지."
-- 산출물
-  - `supabase/migrations/20261009000010_tos_owner_override.sql` (+ `_rollback.sql`) — override 6행만
-  - `reports/2026-10-09/tos-override-quote-allowed-option.sql` — 선택안 Q(disquiet·tumblbug quote_allowed true→false, 되돌림 포함)
+- 산출물(적용 순서대로, 롤백은 역순)
+  1. `supabase/migrations/20261009000010_tos_owner_override.sql` (+ `_rollback.sql`) — override 6행
+  2. `supabase/migrations/20261009000011_tos_quote_allowed_align.sql` (+ `_rollback.sql`) — disquiet·tumblbug quote_allowed true→false 2행.
+     000010 선행 필수(사전 검사가 override='owner_2026-10-08' 을 본다, 없으면 RAISE).
+  - `reports/2026-10-09/tos-override-quote-allowed-option.sql` — 2번의 검토 이력(머리에 "마이그로 승격됨" 표시, 돌리지 않는다).
+- **2026-10-09 갱신**: 오케스트레이터 DB 실측 반영(§0) · quote_allowed 정렬 **포함 결정**(§3-3) · 확인 불가 해소 표시(§6) · 최근 실행 관찰(§7).
+
+## 0. 오케스트레이터 DB 실측(2026-10-09, 서브에이전트는 DB 접근 없음 — 받은 값 그대로 옮김)
+
+- 켜진 5곳 램프 cap_base: devto 60 · disquiet 52 · tumblbug 100 · youtube 200 — 있음. **indiehackers 는 cap_base=1 · 목표 0**(이번 작업 범위 밖).
+- `pg_proc`·`information_schema.views` 에서 quote_allowed·override 를 읽는 객체 **0**.
+- 기존 override 5개: appstore `owner_2026-10-05` · googleplay·kakao_blog·kakao_cafe `owner_2026-10-06` · shopify_apps `owner_2026-10-08` — 마이그 머리말의 리포 기준 예상과 일치.
+- 결정: quote_allowed 정렬을 **포함**한다(남헌 v38 목표 상태 "quote_allowed=false · short_only").
 
 ## 1. 값 형식
 
@@ -39,7 +49,9 @@
   → 5곳을 'fixed' 로 바꿔도 **수집량 변화 0** (hackernews 는 6곳 밖이라 원래부터 무관).
 - 수집량이 실제로 줄 수 있는 경우는 하나: 그 소스의 램프가 꺼진 상태(램프 행 없음·cap_base NULL·퍼센트 칸 못 읽음 → 예산 = `daily_request_cap`, `ramp.ts:734-740`)에서
   타깃이 늘어 수요가 cap 을 넘을 때. 그때도 지금까지 자동으로 오르던 것이 멈출 뿐 내려가지는 않는다.
-- ⚠️ 리포에는 20261007000040(cap_base 입력) 적용 기록이 `docs/migration-exceptions.md` 에 없다 → **적용 여부 확인 불가.** 오케스트레이터가 적용 전에 확인:
+- ✅ **해소(2026-10-09 오케스트레이터 실측, §0)**: devto·disquiet·tumblbug·youtube 4곳은 cap_base 있음 → 이 4곳의 'fixed' 전환은 수집량 변화 0 확정.
+  indiehackers 는 cap_base=1·목표 0 이라 예산이 이미 목표 0 으로 묶여 있다 — 'fixed' 와 무관하게 지금도 램프 예산이 0 이다(그 원인·처리는 이번 범위 밖).
+- (원래 기록) 리포에는 20261007000040(cap_base 입력) 적용 기록이 `docs/migration-exceptions.md` 에 없어 확인 불가였다. 확인 쿼리:
   `SELECT source_key, cap_base, pct_step, daily_request_target FROM public.review_source_ramp WHERE source_key IN ('devto','disquiet','indiehackers','tumblbug','youtube');`
   5행 모두 cap_base 가 있으면 위 결론(영향 0) 확정. 없는 행이 있으면 그 소스는 "cap 고정" 이 실효가 있다.
   참고 `SELECT source_key, previous_cap, new_cap, created_at FROM public.review_source_cap_log WHERE source_key IN (...) ORDER BY created_at DESC LIMIT 20;` — 최근 자동 상향 이력.
@@ -75,11 +87,13 @@
 ### 3-3. 두 안과 권고
 
 - 제외 안: 20261009000010 만 적용. disquiet·tumblbug quote_allowed=true 가 남는다 — 남헌 문구 "quote_allowed=false · short_only" 와 칸 값이 2곳 어긋난 채로 남는다(동작 영향은 0).
-- 포함 안: 20261009000010 적용 뒤 `reports/2026-10-09/tos-override-quote-allowed-option.sql` 실행(2행 가드·멱등·md5 불변·되돌림 블록 포함). 채택하면 `supabase/migrations/20261009000011_tos_quote_allowed_align.sql` 로 옮겨 이력에 남긴다.
+- 포함 안: 20261009000010 적용 뒤 `supabase/migrations/20261009000011_tos_quote_allowed_align.sql`(2행 가드·멱등·md5 불변·롤백 파일).
+- **결정(2026-10-09 오케스트레이터): 포함 안.** 옵션 SQL 은 000011 로 승격됐다. 아래는 결정 전 권고 근거 그대로.
 - **권고: 포함 안.** 지시 기본값은 "제외하고 보고"였지만 그 이유(인용 불가로 바뀌는 되돌리기 어려운 영향)가 실제로는 성립하지 않는다 — 읽는 코드가 없고 게이트는 quote_policy 만 본다(§3-2). 반면 남헌 문구는 6곳 모두의 목표 상태이고, 칸 값이 어긋나 있으면 나중에 누가 deprecated 칸을 다시 읽게 만들 때(또는 사람이 표를 볼 때) 혼선이 된다. 되돌림도 UPDATE 2행이다.
   단, 오케스트레이터가 리포 밖 DB 객체(뷰·함수)가 quote_allowed 를 읽지 않는지 한 번 확인한 뒤 적용:
   `SELECT n.nspname, p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosrc ILIKE '%quote_allowed%';`
   `SELECT table_name FROM information_schema.views WHERE table_schema='public' AND view_definition ILIKE '%quote_allowed%';` — 둘 다 0행 기대.
+  → ✅ 오케스트레이터 실측 2026-10-09: 0개(override 도 0개).
 
 ## 4. producthunt
 
@@ -91,15 +105,34 @@
 
 - 스키마: 실제 `20260829000003` 의 CREATE TABLE review_sources 원문을 정규식으로 떼어 실행 + 000001·000003 의 review_sources 컬럼·CHECK 7개를 같은 정의로.
 - 시드: 오케스트레이터 실측 6행 + shopify_apps·appstore·googleplay·hackernews·wordpress_org.
-- 결과: **통과 32 · 실패 0** — 적용(6행·다른 행 md5 불변·override 밖 칸 불변·producthunt false 유지·owner_2026-10-08 총 7행·lock_timeout 비누출) ·
-  재실행 0행 · 롤백(이전 상태와 완전 동일·shopify 유지·재실행 0행) · 음성 6종(producthunt 켜짐·다른 override 값·robots 금지·행 없음·인용 정책 다름·부분 적용 → 전부 RAISE·변경 0) ·
-  롤백 음성(사람이 바꾼 값 있으면 RAISE) · 선택안 Q(2행·6곳 false/short_only·재실행 0·되돌림) · CHECK 대조(prohibited 에 true → 23514).
+- 결과(2026-10-09 재실행, 000011 포함): **통과 39 · 실패 0**
+  - 000010: 적용(6행·다른 행 md5 불변·override 밖 칸 불변·producthunt false 유지·owner_2026-10-08 총 7행·lock_timeout 비누출) ·
+    재실행 0행 · 롤백(이전 상태와 완전 동일·shopify 유지·재실행 0행) · 음성 6종(producthunt 켜짐·다른 override 값·robots 금지·행 없음·인용 정책 다름·부분 적용 → 전부 RAISE·변경 0) ·
+    롤백 음성(사람이 바꾼 값 있으면 RAISE).
+  - 000011 순서 의존: 000010 없이 단독 실행 → RAISE("20261009000010 선행")·변경 0.
+  - 000011: 000010 뒤 2행 · 6곳 모두 owner_2026-10-08/false/short_only · 다른 행 md5 불변 · 재실행 0행 · 롤백 2행(true 복원)·재실행 0행 ·
+    역순 롤백(000011→000010) 뒤 처음 상태와 완전 동일 · 000011 적용 상태에서 000010 롤백만 먼저 돌려도 성공(quote_allowed 는 false 유지) ·
+    000011 롤백 음성(그 사이 약관이 prohibited 로 바뀌면 RAISE·변경 0) · CHECK 대조(prohibited 에 true → 23514).
 - 코드 대조(실제 lib 함수 import): `isOwnerRobotsOverride('owner_2026-10-08', allowed|not_applicable|disallowed)` = 6곳 모두 false ·
   `planSourceCap(..., ownerOverride:true).verdict` = 'fixed'.
 
 ## 6. 확인 불가 / 남은 것
 
-- 20261007000040(cap_base 입력) 적용 여부 — 리포 기록 없음. §2-2 쿼리로 확인해야 "수집량 영향 0" 이 확정된다.
-- 리포 밖 DB 객체(뷰·함수)의 override·quote_allowed 참조 — §3-3 쿼리.
-- 현재 다른 override 값 목록 — 마이그 머리말의 목록은 리포 마이그 기준 예상이다. 적용 전 쿼리 결과를 적어 두고 사후 음성 대조에 쓴다.
-- 문서 후속(이 브랜치 범위 밖): `ops/state/source-review-queue.md`·`docs/review-collection-design.md` §1.3 에 6곳 "남헌 owner override(2026-10-08)" 한 줄씩. CLAUDE.md §7.1 은 robots 예외 목록이라 해당 없음.
+- ✅ 해소 — 20261007000040(cap_base 입력) 적용 여부: 오케스트레이터 실측으로 4곳 cap_base 있음, indiehackers cap_base=1·목표 0(§0·§2-2).
+- ✅ 해소 — 리포 밖 DB 객체(뷰·함수)의 override·quote_allowed 참조: 0개(§0).
+- ✅ 해소 — 현재 다른 override 값 목록: 5개, 리포 기준 예상과 일치(§0).
+- ✅ 반영 — 문서: `ops/state/source-review-queue.md`(승인 줄 1개) · `docs/review-collection-design.md` §1.3(6곳 블록). CLAUDE.md §7.1 은 robots 예외 목록이라 해당 없음.
+- 남은 것(범위 밖): indiehackers cap_base=1·목표 0 의 원인·처리. 아래 §7 의 실행 관찰은 원인 미확인.
+
+## 7. 관찰 — 최근 3일 실행 실측(오케스트레이터 2026-10-09 제공, 원인 미확인)
+
+| 소스 | 요청 | 건수 |
+|---|---|---|
+| devto | 0 | — |
+| tumblbug | 0 | — |
+| disquiet | 43 | 42 |
+| indiehackers | 11 | 44 |
+| youtube | 14 | 16 |
+
+- 관찰만 적는다. 요청 0 인 두 곳의 원인, indiehackers 의 요청 수보다 많은 건수가 무엇을 뜻하는지는 이 노트에서 판단하지 않았다(확인 안 함).
+- 이 마이그(override·quote_allowed)는 위 수치에 영향을 주지 않는다 — override 는 robots 예외를 열지 않고(§2 #1), 램프 예산을 바꾸지 않으며(§2-2), quote_allowed 는 수집과 무관하다.

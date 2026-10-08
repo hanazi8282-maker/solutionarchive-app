@@ -24,7 +24,9 @@ export interface AreaDef {
 export interface AbandonCriteria {
   /** 'proposed' = 남헌 확정 전 제안값. */
   status: string
-  cyclesBeforeEval: [number, number]
+  /** 평가 시작 기준일(YYYY-MM-DD, UTC 자정). */
+  cycleStartedAt: string
+  cyclesBeforeEval: number
   cycleDays: number
   minProjects: number
   projectInputMin: number
@@ -51,6 +53,7 @@ export const DEFAULT_AREAS_PATH = path.join(process.cwd(), 'config', 'areas.json
 
 const KINDS: readonly string[] = ['area', 'hold', 'out']
 const isPosInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0
+const isIsoDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v))
 const isPct = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100
 
 /** env 문자열 → 양의 정수. 비었으면 null(설정 없음), 틀렸으면 NaN(경고 대상). */
@@ -117,7 +120,8 @@ export function parseAreasConfig(raw: unknown, env: Record<string, string | unde
   }
   const abandon: AbandonCriteria = {
     status: typeof a.status === 'string' ? a.status : 'proposed',
-    cyclesBeforeEval: pair('cycles_before_eval', isPosInt),
+    cycleStartedAt: need('cycle_started_at', isIsoDate),
+    cyclesBeforeEval: need('cycles_before_eval', isPosInt),
     cycleDays: need('cycle_days', isPosInt),
     minProjects: need('min_projects', isPosInt),
     projectInputMin: need('project_input_min', isPosInt),
@@ -150,6 +154,9 @@ export function loadAreasConfig(
     return { cfg: null, error: `${String(file)}: ${e instanceof Error ? e.message : String(e)}`, warnings: [] }
   }
 }
+
+/** 포기 기준 평가 시점(시작일 + 사이클 × 일수). 이 시각 전에는 (a)(b)(c) 미달을 '주의(평가 전)'로 낮춘다. */
+export const abandonEvalAt = (ab: AbandonCriteria): Date => new Date(Date.parse(ab.cycleStartedAt) + ab.cyclesBeforeEval * ab.cycleDays * 86_400_000)
 
 /** 최소량 대상 영역(kind=area ∧ active), 설정 순서. */
 export const scorableAreas = (cfg: AreasConfig): AreaDef[] => cfg.areas.filter((a) => a.kind === 'area' && a.active)

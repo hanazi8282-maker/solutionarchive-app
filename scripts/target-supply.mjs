@@ -133,7 +133,7 @@ export async function main(argv, { db, areasFile } = {}) {
   for (const w of areas.warnings) console.error(`⚠️ 영역 설정: ${w}`)
   const coverageIn = await loadAreaCoverage(sb)
   if (coverageIn.rows === null) console.error(`⚠️ 영역 커버리지 뷰 확인 불가(v_area_t2_coverage) — ${coverageIn.error}`)
-  report.area_coverage = areaCoverage(coverageIn, areas.cfg)
+  report.area_coverage = areaCoverage(coverageIn, areas.cfg, new Date(report.generated_at))
   const out = argv.find((a) => a.startsWith('--out='))?.slice(6)
   if (out) fs.writeFileSync(out, JSON.stringify(report, null, 2))
   if (argv.includes('--summary') && process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryMarkdown(report))

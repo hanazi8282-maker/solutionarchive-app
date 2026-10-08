@@ -7,7 +7,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { AREA_CODES, loadAreasConfig, parseAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
+import { AREA_CODES, abandonEvalAt, loadAreasConfig, parseAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
+import { revisitTarget } from '../lib/review/target-supply.ts'
 import { areaFloorLine, areaRank, loadAreaContext, orderByAreaDeficit, planAreaOrder } from '../lib/analysis/area-priority.ts'
 import { compareAutoPriority } from '../lib/analysis/extract-auto.ts'
 import { AUTO_EXTRACT_STATUSES } from '../lib/analysis/extract-gate.ts'
@@ -45,6 +46,8 @@ const clone = () => JSON.parse(JSON.stringify(RAW))
   t('실제 설정: founder 5곳 · devto 없음(남헌 판단 대기)', [cfg.founderSources, cfg.founderSources.includes('devto')], [['hackernews', 'indiehackers', 'producthunt', 'disquiet', 'okky'], false])
   t('실제 설정: 포기 기준은 제안값', [cfg.abandon.status, cfg.abandon.minProjects, cfg.abandon.projectInputMin, cfg.abandon.minRelevantPct, cfg.abandon.grayBandPct, cfg.abandon.maxUnknownPct, cfg.abandon.minMedianInputs, cfg.abandon.immediateSwapRelevantPct],
     ['proposed', 3, 100, 30, [25, 35], 20, 50, 10])
+  t('실제 설정: 평가 시점 = 2026-10-09 + 2 사이클 × 7일 = 2026-10-23', [cfg.abandon.cycleStartedAt, cfg.abandon.cyclesBeforeEval, abandonEvalAt(cfg.abandon).toISOString()], ['2026-10-09', 2, '2026-10-23T00:00:00.000Z'])
+  t('사이클 길이 = 앱 소스 재방문 1/7(target-supply revisitTarget)', cfg.abandon.cycleDays, Math.round(1 / revisitTarget('appstore').v))
   t('실제 설정: 표시명에 원문 범위 문구', [cfg.areas[2].name.includes('직접 도구만'), cfg.areas[3].name.includes('채용 제외')], [true, true])
 }
 
@@ -93,6 +96,8 @@ const clone = () => JSON.parse(JSON.stringify(RAW))
   throws('abandon 없음', () => parseAreasConfig(mut((r) => { delete r.abandon })), /abandon/)
   throws('관련 비율 101', () => parseAreasConfig(mut((r) => { r.abandon.min_relevant_pct = 101 })), /min_relevant_pct/)
   throws('회색 띠 뒤집힘', () => parseAreasConfig(mut((r) => { r.abandon.gray_band_pct = [35, 25] })), /gray_band_pct/)
+  throws('평가 시작일 형식 밖', () => parseAreasConfig(mut((r) => { r.abandon.cycle_started_at = '10/09/2026' })), /cycle_started_at/)
+  throws('평가 사이클 0', () => parseAreasConfig(mut((r) => { r.abandon.cycles_before_eval = 0 })), /cycles_before_eval/)
   throws('기준이 회색 띠 밖', () => parseAreasConfig(mut((r) => { r.abandon.min_relevant_pct = 40 })), /회색 띠/)
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'areas-cfg-'))

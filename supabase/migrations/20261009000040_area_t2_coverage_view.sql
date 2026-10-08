@@ -10,14 +10,20 @@
 --   projects            프로젝트 수
 --   inputs              입력 수(purged 제외)
 --   rated_inputs        그중 평점 있는 입력 · unrated_inputs 평점 없는 입력 · unrated_input_pct 평점 없는 비중(%, 입력 0 이면 NULL)
---   judged              review_relevance_verdicts 행 수(최소량 비교 대상)
---   relevant/irrelevant/unknown  coalesce(human_verdict, verdict) 기준(사람 채점이 이긴다)
---   rated_judged        평점 있는 입력의 판정 수 · low_rated_judged 그중 평점 ≤3
+--   judged              review_relevance_verdicts 행 수(최소량 비교 대상) — **purged 입력의 판정도 센다**(아래 '기준 차이')
+--   relevant/irrelevant/unknown  coalesce(human_verdict, verdict) 기준(사람 채점이 이긴다) — purged 입력 판정 포함
+--   rated_judged        평점 있는 입력의 판정 수 · low_rated_judged 그중 평점 ≤3 — purged 입력 판정 포함
 --   projects_100plus    입력(purged 제외) 100건↑ 프로젝트 수 — 포기 기준 (a). 100 은 config/areas.json abandon.project_input_min 과 같아야 한다
 --   median_inputs       프로젝트당 입력 중앙값 — 포기 기준 (c)
---   pending_est         판정 대기량 **추정(상한)**: T2 후보 상태(collecting·extracted·failed = extract-gate AUTO_EXTRACT_STATUSES) 프로젝트마다
---                       greatest(0, least(입력, 200) − 판정). 200 = RELEVANCE_SAMPLE 기본(프로젝트당 표본 천장). T1 선별·사전필터·
---                       재추출 뒤 failed 제외는 SQL 로 재현하지 않았다 → 실제 대기량은 이보다 작거나 같다.
+--   pending_est         판정 대기량 **거친 추정(방향 불확정)**: T2 후보 상태(collecting·extracted·failed = extract-gate AUTO_EXTRACT_STATUSES)
+--                       프로젝트마다 greatest(0, least(살아 있는 입력, 200) − 살아 있는 입력의 판정). 실제 대기량보다 클 수도 작을 수도 있다:
+--                       T1 선별·사전필터·재추출 뒤 failed 제외를 재현하지 않아 크게, 표본(T1 상위 200) 밖 입력의 판정도 빼서 작게 나올 수 있다.
+--                       ⚠️ 200 은 RELEVANCE_SAMPLE 기본값을 박은 것이다 — 리포 변수 RELEVANCE_SAMPLE 을 바꿔도 이 뷰는 따라가지 않는다.
+--
+-- 기준 차이(의도): inputs 는 지금 원문이 남은 입력(purged 제외) = 남은 공급이고, judged 계열은 **이미 한 판정** 전부다.
+--   purge 는 30일 뒤 원문만 지운다 — 그 입력의 판정은 여전히 유효한 근거라 최소량(floor)·관련 비율에서 빼지 않는다.
+--   T2 순서(lib/analysis/area-priority.ts loadAreaContext)도 판정 행 전부를 세므로 두 쪽의 최소량 비교가 같은 기준이다.
+--   그래서 judged > inputs 일 수 있다(오래된 프로젝트). 대기량만은 살아 있는 입력 기준으로 맞췄다(공급 − 그 공급의 판정).
 --
 -- 🟢 비파괴: 뷰 1개 생성뿐. 테이블·열·행 무변경. CREATE OR REPLACE — 재실행 무해. 같은 이름 뷰가 다른 열 모양으로 이미 있으면
 --   Postgres 가 오류로 멈춘다(바꾸지 않는다) — 그때는 롤백 파일로 지우고 다시 돌린다.
@@ -58,7 +64,8 @@ WITH inp AS (
          count(*) FILTER (WHERE coalesce(v.human_verdict, v.verdict) = 'irrelevant') AS irrelevant,
          count(*) FILTER (WHERE coalesce(v.human_verdict, v.verdict) = 'unknown')    AS unknown,
          count(*) FILTER (WHERE i.rating IS NOT NULL)                                AS rated_judged,
-         count(*) FILTER (WHERE i.rating <= 3)                                       AS low_rated_judged
+         count(*) FILTER (WHERE i.rating <= 3)                                       AS low_rated_judged,
+         count(*) FILTER (WHERE i.purged_at IS NULL)                                 AS judged_live
     FROM public.review_relevance_verdicts v
     JOIN public.analysis_inputs i ON i.id = v.input_id
    GROUP BY v.project_id
@@ -72,7 +79,8 @@ WITH inp AS (
          coalesce(ver.irrelevant, 0)       AS irrelevant,
          coalesce(ver.unknown, 0)          AS unknown,
          coalesce(ver.rated_judged, 0)     AS rated_judged,
-         coalesce(ver.low_rated_judged, 0) AS low_rated_judged
+         coalesce(ver.low_rated_judged, 0) AS low_rated_judged,
+         coalesce(ver.judged_live, 0)      AS judged_live
     FROM public.analysis_projects p
     LEFT JOIN inp ON inp.project_id = p.id
     LEFT JOIN ver ON ver.project_id = p.id
@@ -92,13 +100,13 @@ SELECT area_code,
        sum(low_rated_judged)::bigint                   AS low_rated_judged,
        (count(*) FILTER (WHERE inputs >= 100))::int    AS projects_100plus,
        percentile_cont(0.5) WITHIN GROUP (ORDER BY inputs) AS median_inputs,
-       coalesce(sum(greatest(0, least(inputs, 200) - judged))
+       coalesce(sum(greatest(0, least(inputs, 200) - judged_live))
                 FILTER (WHERE status IN ('collecting', 'extracted', 'failed')), 0)::bigint AS pending_est
   FROM per
  GROUP BY area_code;
 
 COMMENT ON VIEW public.v_area_t2_coverage IS
-  '영역별 T2 커버리지(읽기 전용, v37 U3). area_code = analysis_projects.area_code, NULL 은 (미부여). pending_est 는 상한 추정(T1·사전필터 미반영, 표본 천장 200). 소비자 scripts/target-supply.mjs.';
+  '영역별 T2 커버리지(읽기 전용, v37 U3). area_code = analysis_projects.area_code, NULL 은 (미부여). judged 계열은 purged 입력의 판정 포함(inputs 는 purged 제외). pending_est 는 거친 추정(방향 불확정 — T1·사전필터 미반영, 표본 천장 200 고정·RELEVANCE_SAMPLE 미추종). 소비자 scripts/target-supply.mjs.';
 REVOKE ALL ON public.v_area_t2_coverage FROM anon, authenticated;
 
 COMMIT;

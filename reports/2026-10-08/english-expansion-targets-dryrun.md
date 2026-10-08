@@ -4,6 +4,93 @@
 > 짝 파일: `supabase/migrations/20261008000020_english_targets_v37.sql`(+`_rollback.sql`) · `reports/2026-10-08/english-expansion-monitoring-v37.sql` · `data/area-map-v26.json`(10줄).
 > 입력: 오케스트레이터 실측 타깃 전수 164행(구글 플레이·앱스토어, 2026-10-08) · 제품 사전 `reports/2026-10-05/product-dictionary/` · 설계 `english-expansion-design-v31.md`·`area-quota-and-abandon-design-v31.md`.
 
+> ## ⚠️ 먼저 읽을 것 — PR #464 롤백 파일을 그대로 쓰지 마라
+> `reports/2026-10-08/20261008000001_googleplay_us_en_targets_rollback.sql`(A)의 식별자 `product_ref LIKE 'us:en:%' AND label LIKE '%us-en|%'` 는
+> **v37 이 넣는 구글 플레이 us:en 20행까지 같이 failed 로 만든다.** v37 적용 뒤 #464 만 멈추려면 그 파일 대신 #464 1차 고정 8 ref
+> (`us:en:` + com.tldv.tldvlite · com.read.ai · ai.granola · com.aimeetingos.meetingos · mobile.linnworks.net · com.shipstation.app · com.helium10.app · io.gong.mobileapp)로 좁힌다.
+> v37 롤백(`20261008000020_english_targets_v37_rollback.sql`)은 정확한 52쌍만 건드린다.
+
+## 적용 전 체크리스트 (C1~C10 — 전부 기대값일 때만 적용, 결과값은 Notion 기록에 붙인다)
+
+마이그 사전 검사 DO 가 C1·C2·C5(enabled)를 트랜잭션 안에서 한 번 더 본다. 나머지는 적용하는 쪽이 직접 돌린다. 전부 읽기 전용.
+
+```sql
+-- C1 구글 플레이 활성 = 88 (97 이면 #464 2차가 먼저 들어간 것 → 멈추고 드라이런 재생성)
+SELECT count(*) FROM public.review_targets WHERE source_key='googleplay' AND status='active';                          -- 기대 88
+
+-- C2 #464 1차 8 ref 가 정확히 8행 active, 그 밖 us:en active 0
+SELECT count(*) FILTER (WHERE product_ref IN ('us:en:com.tldv.tldvlite','us:en:com.read.ai','us:en:ai.granola','us:en:com.aimeetingos.meetingos',
+         'us:en:mobile.linnworks.net','us:en:com.shipstation.app','us:en:com.helium10.app','us:en:io.gong.mobileapp')) AS pr464_active,
+       count(*) FILTER (WHERE product_ref NOT IN ('us:en:com.tldv.tldvlite','us:en:com.read.ai','us:en:ai.granola','us:en:com.aimeetingos.meetingos',
+         'us:en:mobile.linnworks.net','us:en:com.shipstation.app','us:en:com.helium10.app','us:en:io.gong.mobileapp')) AS other_us_en_active
+  FROM public.review_targets WHERE source_key='googleplay' AND status='active' AND product_ref LIKE 'us:en:%';      -- 기대 8 · 0
+
+-- C3 맞바꾸기 22 id 가 아직 조건(active·수집 0·방문함·googleplay kr:ko)
+SELECT count(*) FROM public.review_targets t JOIN (VALUES
+  ('325be79c-21c3-46eb-abbf-333052878d66'),('7460dec5-43a3-4858-8378-0ed61bb41b90'),('a1381ea4-ed54-4a0c-b077-501abeb51e33'),('3b8f357e-fbb9-4248-8d36-0af3ff3c7e1b'),
+  ('c6f210b5-ce6e-4b73-b401-6003d79a01bf'),('1af25224-787b-453d-add7-487497c05984'),('b9099479-489a-42f1-8912-2e3a32e1030e'),('127cdff1-492a-4914-9b57-00462105abe2'),
+  ('f8b6d2f3-fff2-469b-800a-c24a030de10a'),('37907d10-b433-476e-a6a5-0903ddaa7274'),('34a2fddc-00d8-45f2-aee8-e3a2ff623070'),('e6df374f-7153-4993-8110-ee3fff2324fd'),
+  ('34031838-b921-4705-ac52-25165821c6d1'),('9e2ca9a0-1a48-48a7-bffd-72c91689bcc4'),('8953630a-7199-4bea-8fd1-5043f274cce6'),('b392c930-895f-439d-bdfa-639c28030eb6'),
+  ('fa534580-7ae3-4e5f-ab69-0556d3c27914'),('7216d264-0b80-4af3-9ece-1d59454566de'),('48ef8d40-2441-4f52-a94a-895da9ecdbb1'),('c66f3f63-2bc7-43b3-9271-cd51630c974b'),
+  ('d69b4673-7b7c-4927-8689-59d8b5b0775c'),('404123b9-3ba0-487f-8e48-15f7b175d215')) v(id) ON t.id = v.id::uuid
+ WHERE t.source_key='googleplay' AND t.product_ref LIKE 'kr:ko:%' AND t.status='active' AND t.total_collected=0 AND t.last_run_at IS NOT NULL;  -- 기대 22
+
+-- C4 신규 52쌍이 어느 프로젝트에도 아직 없다(재실행이면 52)
+SELECT count(*) FROM public.review_targets t JOIN (VALUES
+  ('googleplay','us:en:com.clari'),('googleplay','us:en:io.outreach.sales'),('googleplay','us:en:com.salesloftmobile'),('googleplay','us:en:com.zoominfo.enterprise'),
+  ('googleplay','us:en:com.highspot.Highspot'),('googleplay','us:en:ai.instantly.app'),('googleplay','us:en:com.hubspot.android'),('appstore','us:1289289459'),
+  ('appstore','us:977304452'),('appstore','us:1455032473'),('appstore','us:1493170277'),('appstore','us:1173751523'),
+  ('appstore','us:6474658497'),('appstore','us:1107711722'),('googleplay','us:en:ai.adcreative.m'),('googleplay','us:en:co.foreplay.ForeplayMobile'),
+  ('googleplay','us:en:co.simplified.main'),('googleplay','us:en:com.predis.app'),('appstore','us:6740659906'),('appstore','us:6466097243'),
+  ('appstore','us:6738098343'),('appstore','us:1610971740'),('appstore','us:6450264767'),('googleplay','us:en:com.fifteenfive.fifteenfiveapp'),
+  ('googleplay','us:en:com.lattice'),('appstore','us:1020253220'),('appstore','us:1409785530'),('googleplay','us:en:com.grammarly.android.keyboard'),
+  ('googleplay','us:en:com.quillbot.mobile'),('googleplay','us:en:notion.id'),('googleplay','us:en:com.craft.docs'),('googleplay','us:en:com.humanplusplus.sudowrite'),
+  ('googleplay','us:en:app.gamma.mobile'),('googleplay','us:en:com.gingersoftware.android.keyboard'),('googleplay','kr:ko:com.wrtn.app'),('googleplay','kr:ko:com.infraware.office.link'),
+  ('appstore','us:1158877342'),('appstore','us:6463116243'),('appstore','us:1628773284'),('appstore','us:1232780281'),
+  ('appstore','us:1487937127'),('appstore','us:6740884542'),('appstore','us:6768404578'),('appstore','us:822797943'),
+  ('appstore','kr:1158877342'),('appstore','kr:6463116243'),('appstore','kr:1232780281'),('appstore','kr:1487937127'),
+  ('appstore','kr:6768404578'),('appstore','kr:822797943'),('appstore','kr:6448556170'),('appstore','kr:698070860')) v(source_key, product_ref) USING (source_key, product_ref);   -- 기대 0
+
+-- C5 소스·예산 값 기록(적용 뒤 같은 쿼리 → 값이 그대로여야 한다)
+SELECT s.key, s.enabled, s.robots_status, s.override, s.daily_request_cap, r.cap_base, r.pct_step, r.daily_request_target
+  FROM public.review_sources s LEFT JOIN public.review_source_ramp r ON r.source_key = s.key
+ WHERE s.key IN ('googleplay','appstore');                                                                          -- 기대 enabled 둘 다 true · 나머지는 기록
+
+-- C6 앵커(기존 kr 타깃) 27쌍이 각각 정확히 1행 — 0행·2행 이상이 나오면 멈춘다
+SELECT v.source_key, v.product_ref, count(t.id) AS n FROM (VALUES
+  ('googleplay','kr:ko:com.clari'),('googleplay','kr:ko:io.outreach.sales'),('googleplay','kr:ko:com.salesloftmobile'),('googleplay','kr:ko:com.zoominfo.enterprise'),
+  ('googleplay','kr:ko:com.highspot.Highspot'),('googleplay','kr:ko:ai.instantly.app'),('googleplay','kr:ko:com.hubspot.android'),('appstore','kr:1289289459'),
+  ('appstore','kr:977304452'),('appstore','kr:1455032473'),('appstore','kr:1493170277'),('appstore','kr:1173751523'),
+  ('appstore','kr:6474658497'),('appstore','kr:1107711722'),('googleplay','kr:ko:ai.adcreative.m'),('googleplay','kr:ko:co.foreplay.ForeplayMobile'),
+  ('googleplay','kr:ko:co.simplified.main'),('googleplay','kr:ko:com.predis.app'),('appstore','kr:6740659906'),('appstore','kr:6466097243'),
+  ('appstore','kr:6738098343'),('appstore','kr:1610971740'),('appstore','kr:6450264767'),('googleplay','kr:ko:com.fifteenfive.fifteenfiveapp'),
+  ('googleplay','kr:ko:com.lattice'),('appstore','kr:1020253220'),('appstore','kr:1409785530')) v(source_key, product_ref)
+  LEFT JOIN public.review_targets t USING (source_key, product_ref)
+ GROUP BY 1, 2 HAVING count(t.id) <> 1;                                                                             -- 기대 0행
+
+-- C7 ⑤ 글쓰기 10제품이 다른 pitch 로 이미 프로젝트를 갖고 있나(있으면 v37 은 새 프로젝트를 만든다 — 붙일지 사람이 판단)
+SELECT id, status, left(product_elevator_pitch, 70) AS pitch FROM public.analysis_projects
+ WHERE product_elevator_pitch ~* '(grammarly|quillbot|wordtune|notion|craft|sudowrite|gamma|ginger|wrtn|뤼튼|polaris|폴라리스)'
+ ORDER BY 3;                                                                                                       -- 기대: v37 pitch 와 정확히 같은 행만(또는 0행)
+
+-- C8 지금 도는 수집 0(맞바꾸기 후보가 적용 중에 수집되지 않게)
+SELECT source_key, started_at FROM public.review_collection_runs
+ WHERE status='running' AND started_at > now() - interval '6 hours' AND source_key IN ('googleplay','appstore');  -- 기대 0행
+
+-- C9 앱스토어 30% 게이트 여유 — 신규 30 을 더해도 ≤ 30%
+SELECT count(*) FILTER (WHERE t.source_key='appstore') AS as_active, count(*) AS all_active,
+       (count(*) FILTER (WHERE t.source_key='appstore') + 30) <= 0.3 * (count(*) + 30) AS ok_after_30
+  FROM public.review_targets t JOIN public.review_sources s ON s.key=t.source_key AND s.enabled
+ WHERE t.status='active';                                                                                          -- 기대 ok_after_30 = true
+
+-- C10 T0 라벨 정규화(20261008000010) 적용 여부 기록 — 순서 무관이지만 맞바꾸기 표의 label 표기가 달라진다
+SELECT (SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='review_targets' AND column_name='label_original') AS t0_column,
+       (SELECT count(*) FROM public.review_targets WHERE label ~ '^[0-9]{2}-') AS old_format_labels;            -- 미적용 0 · 84 / 적용 1 · 26
+```
+
+- C6 은 점검자 목록의 "앵커 28쌍"과 1 다르다. 마이그 `_v37_new` 의 앵커가 있는 행을 세면 27(② 14 · ③ 9 · ④ 4)이고 중복 없음 — ⑤ 25행은 앵커 없이 pitch 프로젝트로 간다. 28 은 오기로 본다.
+- C1 이 97 이면 사전 검사 (a) 가, C2 가 7 이면 (b) 가, C5 enabled=false 면 (d) 가 마이그 안에서 RAISE 한다(PGlite 셀프테스트로 확인 — §8).
+
 ## 결론 3줄
 
 1. **신규 타깃 52개**(구글 플레이 22 · 앱스토어 30) + **⑤ 글쓰기 프로젝트 10개**. 구글 플레이 22개는 0건 kr:ko 타깃 **22개와 1:1 맞바꾼다**(status 한 열만 `active→exhausted`, 삭제 0).
@@ -66,7 +153,10 @@
 | appstore | `us:1020253220` | `4:us\|15five` | 평가 6,604 |
 | appstore | `us:1409785530` | `4:us\|lattice` | 평가 103 |
 
-- lemonbase 는 넣지 않았다: 한국 제품이고 미국 스토어 평가 0(앱스토어 us 0 · 구글 플레이 us 평가 표시 없음). 영어 타깃의 뜻이 없다. kr:ko·kr 타깃은 이미 있다.
+- **lemonbase 영어 타깃은 넣지 않았다 — 남헌 확인 요청.** 지시 (c) 는 "15five·lattice·lemonbase 등"이었지만 레몬베이스는 한국 제품이고
+  미국 스토어 평가가 0 이다(앱스토어 us 평가 0 · trackName "레몬베이스", 구글 플레이 us 페이지 평가 표시 없음 — 2026-10-08 실측).
+  영어 타깃을 넣어도 받을 리뷰가 없고, 구글 플레이 칸이면 맞바꾸기 자리 하나를 0건 타깃에 쓰는 셈이다. 한국어 타깃(앱스토어 kr · 구글 플레이 kr:ko)은 이미 있다.
+  넣어야 한다면 앱스토어 us 1행(`4:us|lemonbase`, `us:1617227937`)만 추가하면 된다(동결선 무관).
 - culture-amp·clap: 두 스토어 다 사전 `미발견`. 나머지 ④(bamboohr·rippling·gusto·hibob·deel·personio·workday)는 평가 도구가 아니라 HRIS·급여라 이번 범위 밖.
 
 ### ⑤ 글쓰기 시험 암 — 10제품 · 구글 플레이 9(us:en 7 + kr:ko 2) · 앱스토어 16(us 8 + kr 8)
@@ -99,7 +189,11 @@
 | appstore | `kr:6448556170` | `5:wrtn` | 평가 3,970 |
 | appstore | `kr:698070860` | `5:polaris-office-ai` | 평가 87,705 |
 
-- 한국어 칸 기준: 앱스토어 kr 평가 20 이상만(wordtune kr 4 · sudowrite kr 1 은 뺐다). 구글 플레이 kr:ko 는 한국 제품 2개(wrtn·polaris)만 — 구글 플레이 자리는 맞바꾸기로만 생기니 한국어 리뷰가 있을 법한 쪽에만 썼다.
+- **'영·한' 중 한국어 칸**: 앱스토어 kr 은 평가 20 이상인 8제품(wordtune kr 4 · sudowrite kr 1 은 뺐다).
+  **구글 플레이 kr:ko 는 2개(wrtn·polaris)뿐인 이유 = 맞바꾸기 자리.** 구글 플레이는 동결선 80 예외 금지라 새 칸 하나마다 0건 kr:ko 하나를 내려야 한다.
+  후보 풀이 32(연속빈값1 18 + 연속빈값0 kr:ko 14)이고 이번에 22를 썼다. 글로벌 글쓰기 8제품의 kr:ko 를 다 넣으면 30이 필요해 연속빈값0 후보까지 거의 다 쓰게 된다.
+  그래서 구글 플레이 한국어 칸은 한국 제품 2개에만 쓰고, 글로벌 제품의 한국어 리뷰는 동결선이 없는 앱스토어 kr 로 받는다.
+  늘리려면 예비 후보 10개 안에서 1:1 로 추가하면 된다(§2).
 - ⚠️ notion-ai·polaris-office-ai·gamma 는 리뷰가 앱 전체 이야기라 "AI 글쓰기" 관련 비율이 낮을 수 있다 — 그걸 재는 게 시험 지표 relevant 비율이다(설계 §2-1).
 
 ### 2-3. ⑤ 프로젝트 10개 (analysis_projects INSERT, 같은 pitch 가 이미 있으면 재사용)
@@ -153,8 +247,18 @@
 | 　　기존 kr:ko 활성 | 80 | 58 (−22 맞바꾸기) |
 | 　　v37 신규(us:en 20 + kr:ko 2) | 0 | 22 |
 
-- 80 이하 유지 증명: 마이그 DO ⑥(이번 INSERT 수 = 이번 UPDATE 수, 활성 순변화 0) · DO ⑦(us:en 중 v37 밖 행 = 예외분을 뺀 활성 ≤ 80). 어긋나면 RAISE.
-- #464 2차 9개가 먼저 들어가 활성이 97 이 돼도 DO ⑦ 은 97 − 17 = 80 으로 같은 판정을 낸다.
+- 80 이하 유지 증명: 사전 검사 (a) 적용 전 활성 = 88 · (b) 예외분 = #464 1차 **고정 8 ref** 가 정확히 8행 active · (c) 그 밖 us:en active 0,
+  사후 DO ⑥(이번 INSERT 수 = 이번 UPDATE 수, 활성 순변화 0) · DO ⑦(88 재확인 · 고정 8 을 뺀 활성 ≤ 80). 어긋나면 RAISE → 전체 롤백.
+- 예외분을 "v37 이 넣지 않은 us:en 전부"로 세지 않는다 — 그렇게 세면 #464 2차 9행이 끼어들 때 예외가 조용히 17로 넓어진다.
+  **#464 2차가 먼저 들어가 활성이 97 이면 사전 검사 (a) 에서 멈춘다**(셀프테스트로 확인). 그때는 드라이런을 다시 뽑는다.
+
+### 사람 판단 항목 — #464 us:en 3행이 영역 밖인데 구글 플레이 활성 자리를 차지한다
+
+- #464 1차 8행 중 3행(`us:en:com.helium10.app` · `us:en:com.shipstation.app` · `us:en:mobile.linnworks.net`)은 지도에서 **out**(helium-10·shipstation·linnworks = 신규 수집 중단)인 제품이다.
+- T0 라벨 정규화(20261008000010)는 07 접두 중 지도 값이 1~5 인 triple-whale 만 바꾸고 out 은 그대로 둔다 → 이 3행은 T0 뒤에도 `07-ecommerce-ops:us-en|…` 로 남아 **unmapped** 로 센다.
+- 그런데도 active 라 동결선 예외 8칸 중 3칸을 쓴다. v37 맞바꾸기는 이 3행을 건드리지 않았다(#464 는 건드리지 말라는 지시 + 후보 규칙이 kr:ko 한정).
+- 결정 필요(남헌): (1) 그대로 둔다 / (2) 3행을 exhausted 로 내리고 그 3칸을 ①~⑤ 영어 타깃에 쓴다 / (3) 내리기만 하고 활성을 85로 줄인다.
+  (2)(3)은 남헌이 지시한 #464 예외를 줄이는 것이라 §10.2 예외 6번 — 세션이 스스로 하지 않는다.
 - 앱스토어 활성 0 → 30. 30% 게이트(SHARE_GATE)는 DO ⑨ 가 확인한다 — 구글 플레이 88 만으로도 30/118 = 25.4% 라 운영 값에서는 걸리지 않는다.
 
 ## 4. 요청 예산 영향
@@ -203,23 +307,25 @@
 ## 8. 셀프테스트 (이 세션 실행)
 
 - `node scripts/dictionary-targets-selftest.mjs` → **74 pass / 0 fail**(지도 단언 수정 반영).
-- 마이그·롤백 SQL — PGlite(인메모리 Postgres, 운영 DB 아님)에 최소 스키마 + 오케스트레이터 164행 + 다른 소스 활성 30행을 심고 실행 → **21 pass / 0 fail**. 하네스는 scratchpad(`pgtest/run.mjs`, 커밋 안 함 — 리포에 pglite 의존성이 없다).
+- 마이그·롤백 SQL — PGlite(인메모리 Postgres, 운영 DB 아님)에 최소 스키마 + 오케스트레이터 164행 + 다른 소스 활성 30행을 심고 실행 → **26 pass / 0 fail**(독립 점검 반영 2차). 하네스는 scratchpad(`pgtest/run.mjs`, 커밋 안 함 — 리포에 pglite 의존성이 없다).
   - 적용: NOTICE `이번 INSERT 타깃 52(googleplay 22) · 내림 22 · googleplay 활성 88→88 (예외 제외 80) · appstore 활성 30/148 · 프로젝트 후보 10`.
   - 적용 후 신규 라벨 접두 분포 2:14 · 3:9 · 4:4 · 5:25 · 같은 제품 = 같은 프로젝트(clari 4타깃 1프로젝트, grammarly 3타깃 1프로젝트) · 신규 52행 전부 미방문.
   - 재실행: 쓰기 0(INSERT 0 · 내림 0) · 상태 동일.
   - 롤백 A: googleplay 활성 88 → 88 · 신규 52행 failed · 맞바꾼 22행 active 복귀 · #464 us:en 8행 active 유지 · 롤백 재실행 성공.
-  - 음성 4건 전부 RAISE·쓰기 0: 후보가 그사이 수집됨 / 신규 ref 가 다른 프로젝트에 이미 있음 / 앵커(kr 타깃) 없음 / 앱스토어 30% 게이트 초과.
+  - 음성 9건 전부 RAISE·쓰기 0: 후보가 그사이 수집됨 / 신규 ref 가 다른 프로젝트에 이미 있음 / 앵커(kr 타깃) 없음 / 앱스토어 30% 게이트 초과(`앱스토어 활성 106 / 전체 194 > 30%`) /
+    **#464 2차 선적용(활성 97)**(`구글 플레이 활성 97(기대 88)`) / #464 1차 7행만 active / **appstore enabled=false** / **googleplay enabled=false**(`소스가 꺼져 있거나 없다: …`).
+  - 적용 전 체크리스트 C1~C10 — 같은 픽스처(적용 전)에서 10개 문 전부 실행, 기대값: 88 · 8/0 · 22 · 0 · enabled true 2행 · 0행 · 0행 · 0행 · ok_after_30=true · T0 0/84.
   - 같은 pitch 프로젝트가 이미 있으면 재사용(새 프로젝트 9).
 - 모니터링 SQL — 같은 하네스(`pgtest/mon.mjs`)에서 9개 문 전부 실행 성공, 가짜 입력 4·판정 3·번역 인용 2(하나 131자)로 값 확인: M2a flag `재질문`(50%) · M4 writing `judged_of_100=3 · relevant_pct=100.0`(human_verdict 우선 반영) · M0 `active_ex_exception=80`.
 
 ## 9. 적용하는 쪽이 할 일 (순서)
 
 1. Opus 사전검토(마이그 SQL/롤백 — CLAUDE.md §10.1 모델 배정).
-2. 마이그 머리말 '적용 전' 쿼리 3개: 활성 88 · 후보 22행 조건 유지 · 글쓰기 기존 프로젝트 유무.
+2. 문서 상단 적용 전 체크리스트 C1~C10.
 3. 야간 수집 시간대를 피해 적용. NOTICE 가 위 §8 첫 줄과 같은지 본다.
 4. 하단 확인 쿼리(양성 4 · 음성 2) 직접 실행.
 5. `docs/migration-exceptions.md` 한 줄 · Notion 일일 상태 로그(대량 UPDATE 4조건: 드라이런=이 문서 · 롤백=_rollback.sql · 무중단=야간 수집 사이 · 기록).
-6. 3일간 모니터링 SQL M0·M1·M2a·M5 매일, 3일 뒤 M3·M4 로 ⑤ 비교표(설계 §2-3) 채움.
+6. 3일간 모니터링 SQL M0·M1·M2a·M5 매일, 3일 뒤 M3·M4 로 ⑤ 비교표(설계 §2-3) 채움. M2a 의 `params.since` 를 실제 적용 시각(KST)으로 바꿔서 돌린다. M1·M0 날짜는 KST 기준. M5·적용 후 확인 쿼리는 라벨 패턴이 아니라 정확한 52쌍 JOIN 이다.
 
 주의:
 - ⚠️ PR #464 롤백 파일(`reports/2026-10-08/20261008000001_…_rollback.sql` A)의 식별자 `product_ref LIKE 'us:en:%' AND label LIKE '%us-en|%'` 는 **v37 구글 플레이 us:en 20행도 잡는다.** #464 만 멈추려면 그 파일을 그대로 쓰지 말고 id 로 좁힌다. v37 롤백은 정확한 (source, ref) 52쌍만 쓴다.

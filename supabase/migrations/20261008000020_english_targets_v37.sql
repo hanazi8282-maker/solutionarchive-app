@@ -22,8 +22,9 @@
 --   ⑤ 글쓰기 암은 이 세 꼴만 쓴다. 리뷰관리 암(wordpress·shopify)은 '5:wp|<slug>'·'5:shopify|<slug>' 로 갈라 쓴다(드라이런 §5).
 --
 -- 가드레일(남헌 v37 — 예외 없음): 구글 플레이 하루 30요청 · 활성 80 동결. 이 마이그는 review_sources·review_source_ramp 를
---   건드리지 않는다(요청 예산 불변). 아래 DO 가 ①구글 플레이 활성 순변화 0 ②예외분 제외 활성 ≤ 80 ③앱스토어 활성 비중 ≤ 30%
---   (SHARE_GATE) 를 확인하고 어긋나면 RAISE → 전체 롤백.
+--   건드리지 않는다(요청 예산 불변). 사전 검사 DO 가 (a)구글 플레이 활성 = 88 (b)#464 1차 고정 8 ref 가 정확히 8행 active
+--   (c)그 밖 us:en active 0 (d)googleplay·appstore enabled 를, 사후 DO 가 ①활성 순변화 0 ②고정 예외 8 을 뺀 활성 ≤ 80
+--   ③앱스토어 활성 비중 ≤ 30%(SHARE_GATE) 를 확인하고 어긋나면 RAISE → 전체 롤백. #464 2차(활성 97)가 먼저면 (a) 에서 멈춘다.
 --
 -- 멱등: 프로젝트는 pitch NOT EXISTS, 타깃은 (source_key, product_ref) 가 어느 프로젝트에든 있으면 건너뜀(투입기 exists 와 같은 뜻)
 --   + ON CONFLICT (project_id, source_key, product_ref) DO NOTHING, 맞바꾸기는 status='active' 인 행만 바꾼다.
@@ -36,26 +37,12 @@
 --
 -- ⚠️ 미적용 — 서브에이전트가 만든 파일이다(CLAUDE.md §10.2). 적용은 오케스트레이터(Opus 사전검토 뒤).
 --   §10.2 예외 2번 해당 여부: 22행 status 한 열 UPDATE(롤백 동반) — 대량 UPDATE 4조건(드라이런·롤백·무중단·Notion) 기록 필요.
---   절차: 1) solutionarchive `qmgrfqjfxqhxuufrnkwf` 확인 2) 아래 '적용 전' 쿼리 3) 실행 4) 하단 확인 쿼리 5) docs/migration-exceptions.md 기입.
+--   절차: 1) solutionarchive `qmgrfqjfxqhxuufrnkwf` 확인 2) 드라이런 문서의 적용 전 체크리스트 C1~C10 3) 실행 4) 하단 확인 쿼리 5) docs/migration-exceptions.md 기입.
 --   야간 수집(nightly-review-collect) 실행 중에는 적용하지 않는다(맞바꾸기 후보가 그 사이 수집되면 DO ④ 가 RAISE 한다 — 그때는 드라이런 재생성).
 -- ============================================================
 
--- ── 적용 전 확인(직접 SELECT — PostgREST head:true 금지, §7.1) ──
---   SELECT count(*) FROM public.review_targets WHERE source_key='googleplay' AND status='active';               -- 기대: 88(2026-10-08 실측)
---   SELECT count(*) FROM public.review_targets t JOIN (VALUES
---     ('325be79c-21c3-46eb-abbf-333052878d66'),('7460dec5-43a3-4858-8378-0ed61bb41b90'),('a1381ea4-ed54-4a0c-b077-501abeb51e33'),
---     ('3b8f357e-fbb9-4248-8d36-0af3ff3c7e1b'),('c6f210b5-ce6e-4b73-b401-6003d79a01bf'),('1af25224-787b-453d-add7-487497c05984'),
---     ('b9099479-489a-42f1-8912-2e3a32e1030e'),('127cdff1-492a-4914-9b57-00462105abe2'),('f8b6d2f3-fff2-469b-800a-c24a030de10a'),
---     ('37907d10-b433-476e-a6a5-0903ddaa7274'),('34a2fddc-00d8-45f2-aee8-e3a2ff623070'),('e6df374f-7153-4993-8110-ee3fff2324fd'),
---     ('34031838-b921-4705-ac52-25165821c6d1'),('9e2ca9a0-1a48-48a7-bffd-72c91689bcc4'),('8953630a-7199-4bea-8fd1-5043f274cce6'),
---     ('b392c930-895f-439d-bdfa-639c28030eb6'),('fa534580-7ae3-4e5f-ab69-0556d3c27914'),('7216d264-0b80-4af3-9ece-1d59454566de'),
---     ('48ef8d40-2441-4f52-a94a-895da9ecdbb1'),('c66f3f63-2bc7-43b3-9271-cd51630c974b'),('d69b4673-7b7c-4927-8689-59d8b5b0775c'),
---     ('404123b9-3ba0-487f-8e48-15f7b175d215')) v(id) ON t.id = v.id::uuid
---    WHERE t.status='active' AND t.total_collected=0 AND t.last_run_at IS NOT NULL;                              -- 기대: 22
---   -- ⑤ 글쓰기 제품의 기존 프로젝트(다른 pitch 로 이미 있으면 이 마이그는 새 프로젝트를 만든다 — 정확 일치만 재사용, §7.1):
---   SELECT id, status, left(product_elevator_pitch, 60) FROM public.analysis_projects
---    WHERE product_elevator_pitch ~* '(grammarly|quillbot|wordtune|notion|craft|sudowrite|gamma|ginger|wrtn|뤼튼|polaris|폴라리스)';
---                                                                       -- 참고(있으면 드라이런 §2-3 에 적고 진행 여부 판단)
+-- ── 적용 전 확인: reports/2026-10-08/english-expansion-targets-dryrun.md 상단 "적용 전 체크리스트" 10개(C1~C10). 하나라도 기대와 다르면 적용하지 않는다.
+--   이 파일의 사전 검사 DO 가 그중 C1·C2·C5(enabled) 를 트랜잭션 안에서 다시 확인한다.
 
 BEGIN;
 SET LOCAL lock_timeout = '5s';
@@ -176,6 +163,35 @@ SELECT t.id, t.project_id, t.source_key, t.product_ref, t.label, t.cursor, t.las
 CREATE TEMP TABLE _v37_gp_before ON COMMIT DROP AS
 SELECT count(*)::int AS n FROM public.review_targets WHERE source_key = 'googleplay' AND status = 'active';
 
+-- PR #464 1차 8행(동결선 일회성 예외) — 고정 목록. 'v37 이 넣지 않은 us:en 전부'로 세지 않는다(2차 9행이 섞이면 예외가 몰래 넓어진다).
+CREATE TEMP TABLE _v37_pr464 (product_ref text PRIMARY KEY) ON COMMIT DROP;
+INSERT INTO _v37_pr464 (product_ref) VALUES
+  ('us:en:com.tldv.tldvlite'), ('us:en:com.read.ai'), ('us:en:ai.granola'), ('us:en:com.aimeetingos.meetingos'),
+  ('us:en:mobile.linnworks.net'), ('us:en:com.shipstation.app'), ('us:en:com.helium10.app'), ('us:en:io.gong.mobileapp');
+
+-- 사전 검사(쓰기 전): 기준 상태가 드라이런과 같을 때만 진행한다.
+DO $$
+DECLARE gp_before int; pr464_active int; us_en_other int; off_sources text;
+BEGIN
+  -- (a) 구글 플레이 활성 = 88(드라이런 기준). #464 2차 9행이 먼저 들어갔으면 97 → 여기서 멈춘다(동결선 판정 기준이 달라진다).
+  SELECT n INTO gp_before FROM _v37_gp_before;
+  IF gp_before <> 88 THEN RAISE EXCEPTION '구글 플레이 활성 %(기대 88) — 드라이런 이후 상태가 바뀌었다(#464 2차 등). 드라이런 재생성', gp_before; END IF;
+  -- (b) 예외분 = #464 1차 8 ref 가 정확히 8행 active
+  SELECT count(*) INTO pr464_active FROM public.review_targets t JOIN _v37_pr464 p ON p.product_ref = t.product_ref
+   WHERE t.source_key = 'googleplay' AND t.status = 'active';
+  IF pr464_active <> 8 THEN RAISE EXCEPTION '#464 1차 us:en active %행(기대 8)', pr464_active; END IF;
+  -- (c) 그 밖의 us:en active 는 0(아직 v37 미적용 상태에서). 재실행이면 v37 의 20행만 허용.
+  SELECT count(*) INTO us_en_other FROM public.review_targets t
+   WHERE t.source_key = 'googleplay' AND t.status = 'active' AND t.product_ref LIKE 'us:en:%'
+     AND t.product_ref NOT IN (SELECT product_ref FROM _v37_pr464)
+     AND t.product_ref NOT IN (SELECT product_ref FROM _v37_new WHERE source_key = 'googleplay');
+  IF us_en_other <> 0 THEN RAISE EXCEPTION '#464 1차·v37 밖의 us:en active %행 — 예외 범위가 다르다', us_en_other; END IF;
+  -- (d) INSERT 대상 소스가 켜져 있다(꺼진 소스에 행이 조용히 쌓이지 않게). 행이 없어도 멈춘다.
+  SELECT string_agg(k, ',') INTO off_sources FROM (VALUES ('googleplay'), ('appstore')) v(k)
+   WHERE NOT EXISTS (SELECT 1 FROM public.review_sources s WHERE s.key = v.k AND s.enabled);
+  IF off_sources IS NOT NULL THEN RAISE EXCEPTION '소스가 꺼져 있거나 없다: %', off_sources; END IF;
+END $$;
+
 -- ── 1. 프로젝트(⑤ 글쓰기, pitch 정확 일치로 재사용) ─────────────
 INSERT INTO public.analysis_projects (competitor_url, product_elevator_pitch, purpose, status, mode, business_model)
 SELECT p.url, p.pitch, 'product_fit', 'collecting', 'forward', 'SAAS'
@@ -281,10 +297,11 @@ BEGIN
   SELECT count(*) INTO gp_after FROM public.review_targets WHERE source_key = 'googleplay' AND status = 'active';
   IF gp_after <> gp_before THEN RAISE EXCEPTION '구글 플레이 활성 % → %(순변화 0 이어야 함)', gp_before, gp_after; END IF;
 
-  -- ⑦ 동결선 80: PR #464 일회성 예외(us:en 중 이 마이그가 넣지 않은 행)를 뺀 활성 ≤ 80
-  SELECT count(*) INTO gp_exc FROM public.review_targets t
-   WHERE t.source_key = 'googleplay' AND t.status = 'active' AND t.product_ref LIKE 'us:en:%'
-     AND NOT EXISTS (SELECT 1 FROM _v37_new n WHERE n.source_key = 'googleplay' AND n.product_ref = t.product_ref);
+  -- ⑦ 동결선 80: 적용 전 88 이었고(사전 검사 a), 예외분 = #464 1차 고정 8 ref 가 정확히 8행 active, 그걸 뺀 활성 ≤ 80
+  IF gp_before <> 88 THEN RAISE EXCEPTION '구글 플레이 적용 전 활성 %(기대 88)', gp_before; END IF;
+  SELECT count(*) INTO gp_exc FROM public.review_targets t JOIN _v37_pr464 p ON p.product_ref = t.product_ref
+   WHERE t.source_key = 'googleplay' AND t.status = 'active';
+  IF gp_exc <> 8 THEN RAISE EXCEPTION '#464 1차 예외 active %행(기대 8)', gp_exc; END IF;
   IF gp_after - gp_exc > 80 THEN RAISE EXCEPTION '구글 플레이 예외분 제외 활성 %(> 80)', gp_after - gp_exc; END IF;
 
   -- ⑧ 맞바꾸기 22행 밖의 기존 두 스토어 행 불변
@@ -310,10 +327,22 @@ COMMIT;
 
 -- ── 적용 후 확인 ──────────────────────────────────────────────
 -- 양성:
--- SELECT source_key, count(*), count(*) FILTER (WHERE status='active' AND last_run_at IS NULL) AS fresh FROM public.review_targets
---  WHERE label ~ '^[2-5]:(us-en|us)\|' AND label <> '2:us-en|gong'
---     OR label IN ('5:wrtn','5:polaris-office-ai','5:grammarly','5:quillbot','5:notion-ai','5:craft-docs','5:gamma','5:ginger')
---  GROUP BY 1;                                                                 -- 기대: appstore 30 · googleplay 22 (적용 직후 fresh 도 같음)
+-- WITH v37(source_key, product_ref) AS (VALUES
+--   ('googleplay','us:en:com.clari'),('googleplay','us:en:io.outreach.sales'),('googleplay','us:en:com.salesloftmobile'),('googleplay','us:en:com.zoominfo.enterprise'),
+--   ('googleplay','us:en:com.highspot.Highspot'),('googleplay','us:en:ai.instantly.app'),('googleplay','us:en:com.hubspot.android'),('appstore','us:1289289459'),
+--   ('appstore','us:977304452'),('appstore','us:1455032473'),('appstore','us:1493170277'),('appstore','us:1173751523'),
+--   ('appstore','us:6474658497'),('appstore','us:1107711722'),('googleplay','us:en:ai.adcreative.m'),('googleplay','us:en:co.foreplay.ForeplayMobile'),
+--   ('googleplay','us:en:co.simplified.main'),('googleplay','us:en:com.predis.app'),('appstore','us:6740659906'),('appstore','us:6466097243'),
+--   ('appstore','us:6738098343'),('appstore','us:1610971740'),('appstore','us:6450264767'),('googleplay','us:en:com.fifteenfive.fifteenfiveapp'),
+--   ('googleplay','us:en:com.lattice'),('appstore','us:1020253220'),('appstore','us:1409785530'),('googleplay','us:en:com.grammarly.android.keyboard'),
+--   ('googleplay','us:en:com.quillbot.mobile'),('googleplay','us:en:notion.id'),('googleplay','us:en:com.craft.docs'),('googleplay','us:en:com.humanplusplus.sudowrite'),
+--   ('googleplay','us:en:app.gamma.mobile'),('googleplay','us:en:com.gingersoftware.android.keyboard'),('googleplay','kr:ko:com.wrtn.app'),('googleplay','kr:ko:com.infraware.office.link'),
+--   ('appstore','us:1158877342'),('appstore','us:6463116243'),('appstore','us:1628773284'),('appstore','us:1232780281'),
+--   ('appstore','us:1487937127'),('appstore','us:6740884542'),('appstore','us:6768404578'),('appstore','us:822797943'),
+--   ('appstore','kr:1158877342'),('appstore','kr:6463116243'),('appstore','kr:1232780281'),('appstore','kr:1487937127'),
+--   ('appstore','kr:6768404578'),('appstore','kr:822797943'),('appstore','kr:6448556170'),('appstore','kr:698070860'))
+-- SELECT t.source_key, count(*), count(*) FILTER (WHERE t.status='active' AND t.last_run_at IS NULL) AS fresh
+--   FROM public.review_targets t JOIN v37 USING (source_key, product_ref) GROUP BY 1;   -- 기대: appstore 30 · googleplay 22 (적용 직후 fresh 도 같음)
 -- SELECT count(*) FROM public.review_targets WHERE source_key='googleplay' AND status='active';                 -- 기대: 88(적용 전과 같음)
 -- SELECT status, count(*) FROM public.review_targets WHERE id IN (
 --   '325be79c-21c3-46eb-abbf-333052878d66','7460dec5-43a3-4858-8378-0ed61bb41b90','a1381ea4-ed54-4a0c-b077-501abeb51e33',

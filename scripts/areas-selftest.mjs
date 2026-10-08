@@ -8,7 +8,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { AREA_CODES, loadAreasConfig, parseAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
-import { areaFloorLine, areaRank, loadAreaContext, orderByAreaDeficit } from '../lib/analysis/area-priority.ts'
+import { areaFloorLine, areaRank, loadAreaContext, orderByAreaDeficit, planAreaOrder } from '../lib/analysis/area-priority.ts'
 import { compareAutoPriority } from '../lib/analysis/extract-auto.ts'
 import { AUTO_EXTRACT_STATUSES } from '../lib/analysis/extract-gate.ts'
 
@@ -117,15 +117,78 @@ const clone = () => JSON.parse(JSON.stringify(RAW))
     const areas = { a1: '1', b2: '2', chold: 'hold', dfound: 'out-founder', e3: '3', fnone: 'unassigned', gdesign: 'design' }
     const judged = { 1: 54, 2: 400, 3: 0, design: 300 }
     const got = order([P('b2', 150, true), P('chold', 300, true), P('dfound', 80, true), P('a1', 100), P('e3', 50), P('fnone', 500), P('gdesign', 20)], areas, judged)
-    t('결손 큰 순 → 충족 → 영역 외 → hold', got, ['e3', 'a1', 'b2', 'gdesign', 'dfound', 'fnone', 'chold'])
+    // e3(결손 200·공급 50)·a1(결손 146·공급 100) 둘 다 공급 부족 결손 → 결손 큰 순. 충족 영역보다는 앞.
+    t('결손(공급 부족 칸끼리 결손 큰 순) → 충족 → 영역 외 → hold', got, ['e3', 'a1', 'b2', 'gdesign', 'dfound', 'fnone', 'chold'])
     t('결손 영역 소비재가 충족 영역 SaaS 보다 앞', got.indexOf('a1') < got.indexOf('b2'), true)
     t('hold 맨 뒤(SaaS·미판정 많아도)', got.at(-1), 'chold')
   }
   {
-    // 탐욕: 영역 1 의 첫 프로젝트가 최소량을 채우면 둘째는 충족 칸으로 내려가고, 결손이 남은 영역 4 가 먼저 온다.
+    // 탐욕: 영역 1 의 첫 프로젝트가 최소량을 채우면 둘째는 충족 칸으로 내려가고, 결손이 남은 영역 4(공급 부족)가 먼저 온다.
     const areas = { p1: '1', p2: '1', q4: '4' }
     t('탐욕: 고른 만큼 판정 수를 더해 다음 결손 영역으로', order([P('p1', 200), P('p2', 200), P('q4', 10)], areas, { 1: 0, 4: 100 }), ['p1', 'q4', 'p2'])
-    t('탐욕: 아직 결손이면 같은 영역이 이어진다', order([P('p1', 50), P('p2', 50), P('q4', 10)], areas, { 1: 0, 4: 100 }), ['p1', 'p2', 'q4'])
+    // 새 규칙: 영역 1(결손 200·공급 100)과 4(결손 100·공급 10) 모두 공급 부족 칸 → 결손 큰 순. p1 뒤에도 1 의 결손(150)이 4(100)보다 커서 이어진다.
+    t('탐욕: 공급 부족 칸끼리는 결손 큰 순 — 같은 영역이 이어질 수 있다', order([P('p1', 50), P('p2', 50), P('q4', 10)], areas, { 1: 0, 4: 100 }), ['p1', 'p2', 'q4'])
+    // 공급 충분한 결손(4: 결손 100·공급 150)이 공급 부족 결손(2: 결손 200·공급 2)보다 먼저 — 결손이 더 작아도.
+    t('공급 충분한 결손 > 공급 부족 결손(결손이 더 커도)', order([P('two', 2, true), P('four', 150)], { two: '2', four: '4' }, { 2: 0, 4: 100 }), ['four', 'two'])
+    // 결손 칸 안: 미판정 큰 프로젝트 먼저(SaaS 보다 앞) — 슬롯당 판정 수
+    t('결손 칸 안 미판정 큰 순(SaaS 보다 우선)', order([P('s', 40, true), P('big', 180)], { s: '1', big: '1' }, { 1: 0 }), ['big', 's'])
+  }
+  {
+    // 점검자 모의(판정 ① 150 · ② 0 · ③ 0 · ④ 100 · ⑤ 400 · design 0). 프로젝트 미판정 분포는 이 테스트가 정한 것.
+    const areas = { a: '1', b: '1', c: '2', d: '3', e: '3', f: '4', g: '4', h: '5', i: 'design' }
+    const cands = [P('a', 120), P('b', 90), P('c', 2), P('d', 30), P('e', 20), P('f', 150), P('g', 80), P('h', 200), P('i', 40)]
+    const judged = { 1: 150, 2: 0, 3: 0, 4: 100, 5: 400, design: 0 }
+    // 옛 규칙(개선 전 커밋 6133595): 결손 > 충족 > 영역 외 > hold, 결손끼리 결손 큰 순, 그다음 compareAutoPriority. 탐욕.
+    const oldOrder = () => {
+      const proj = { ...judged }
+      const left = [...cands]
+      const out = []
+      const rk = (c) => { const n = proj[areas[c.projectId]] ?? 0; return n < cfg.floor ? [0, cfg.floor - n] : [1, 0] }
+      while (left.length) {
+        left.sort((x, y) => rk(x)[0] - rk(y)[0] || rk(y)[1] - rk(x)[1] || compareAutoPriority(x, y))
+        const c = left.shift()
+        out.push(c)
+        proj[areas[c.projectId]] = (proj[areas[c.projectId]] ?? 0) + c.newInputs
+      }
+      return out
+    }
+    const fill = (picks) => {
+      const proj = { ...judged }
+      let total = 0, toDeficit = 0
+      for (const c of picks.slice(0, 5)) {
+        const a = areas[c.projectId]
+        total += c.newInputs
+        toDeficit += Math.max(0, Math.min(c.newInputs, cfg.floor - (proj[a] ?? 0)))
+        proj[a] = (proj[a] ?? 0) + c.newInputs
+      }
+      return { total, toDeficit, ids: picks.slice(0, 5).map((c) => c.projectId) }
+    }
+    const before = fill(oldOrder())
+    const after = fill(orderByAreaDeficit(cands, (id) => areas[id], judged, cfg))
+    t('모의 5슬롯: 옛 규칙', before, { total: 242, toDeficit: 192, ids: ['i', 'd', 'c', 'e', 'f'] })
+    t('모의 5슬롯: 새 규칙 — 공급 충분한 ④·① 먼저, ②(2건)는 맨 뒤', after, { total: 342, toDeficit: 222, ids: ['f', 'a', 'i', 'd', 'c'] })
+    t('모의: 판정 수·결손 채움 모두 개선', [after.total > before.total, after.toDeficit > before.toDeficit], [true, true])
+  }
+  {
+    // 실제 DB 값(오케스트레이터 2026-10-09): 판정 ①54 ②0 ③0 ④0 ⑤200 design400 out-consumer1,763 out-founder2,263 hold0.
+    // 미판정(후보 상태): ①1,822/13 ②2/1 ③580/1 ④1,038/14 ⑤2,921/3 design650/3 hold594/9 out-consumer15,320/12 out-founder29,583/52.
+    // 프로젝트별 분포는 리포에 없다 → 합계를 n 개로 n,n-1,…,1 비례 분할(가정). 판정 대기 = min(미판정, 표본 200).
+    const SPEC = { 1: [1822, 13], 2: [2, 1], 3: [580, 1], 4: [1038, 14], 5: [2921, 3], design: [650, 3], hold: [594, 9], 'out-consumer': [15320, 12], 'out-founder': [29583, 52] }
+    const areas = {}
+    const cands = []
+    for (const [a, [total, n]] of Object.entries(SPEC)) {
+      const wsum = (n * (n + 1)) / 2
+      for (let i = 0; i < n; i++) {
+        const id = `${a}#${String(i).padStart(2, '0')}`
+        areas[id] = a
+        cands.push(P(id, Math.min(200, Math.round((total * (n - i)) / wsum))))
+      }
+    }
+    const judged = { 1: 54, 2: 0, 3: 0, 4: 0, 5: 200, design: 400, 'out-consumer': 1763, 'out-founder': 2263, hold: 0 }
+    const got = orderByAreaDeficit(cands, (id) => areas[id], judged, cfg)
+    const top5 = got.slice(0, 5).map((c) => `${c.projectId}:${c.newInputs}`)
+    t('실 DB 하루 5슬롯: ③ 580건 프로젝트 → ④ 최대(138, ④ 결손 62 로 줄어듦) → ① 최대(결손 146) → ④ 다음(129) · ②(2건)는 맨 뒤', top5, ['3#00:200', '4#00:138', '1#00:200', '4#01:129', '2#00:2'])
+    t('실 DB: ② 는 ③·④·① 결손 프로젝트 뒤', got.findIndex((c) => c.projectId === '2#00') > got.findIndex((c) => c.projectId === '1#00'), true)
   }
   {
     // 같은 칸 동률 → 기존 규칙(compareAutoPriority): SaaS → 미판정 많은 순 → id
@@ -134,7 +197,29 @@ const clone = () => JSON.parse(JSON.stringify(RAW))
     const cands = [P('m', 3), P('k', 9, true), P('j', 9)]
     t('영역 정보가 전부 없으면 기존 정렬과 같다', order(cands, {}, {}), [...cands].sort(compareAutoPriority).map((c) => c.projectId))
   }
-  t('areaRank: hold 3 · out 2 · 미부여 2 · 결손 0 · 충족 1', [areaRank('hold', 0, cfg), areaRank('out-consumer', 0, cfg), areaRank('unassigned', 0, cfg), areaRank('3', 199, cfg), areaRank('3', 200, cfg)], [3, 2, 2, 0, 1])
+  t('areaRank: hold 4 · out 3 · 미부여 3 · 결손(공급 모름) 0 · 공급 충분 0 · 공급 부족 1 · 충족 2',
+    [areaRank('hold', 0, cfg), areaRank('out-consumer', 0, cfg), areaRank('unassigned', 0, cfg), areaRank('3', 199, cfg), areaRank('3', 150, cfg, 50), areaRank('3', 150, cfg, 49), areaRank('3', 200, cfg, 0)],
+    [4, 3, 3, 0, 0, 1, 2])
+
+  // 2) 안전: planAreaOrder — 예외·확인 불가면 축 끔 + 사유 + 기존 순서로 후퇴
+  {
+    const cands = [P('m', 3), P('k', 9, true), P('j', 9)]
+    const legacy = [...cands].sort(compareAutoPriority).map((c) => c.projectId)
+    const ws = []
+    const w = (m) => ws.push(m)
+    const okCtx = { column: 'present', byProject: new Map([['m', { code: '1', via: 'column' }]]), judged: {} }
+    const on = await planAreaOrder({ cfg, load: async () => okCtx, cands, warn: w })
+    t('plan: 정상 → 축 on · 결손 영역 m 먼저', [on.axis, on.reason, on.ordered[0].projectId], ['on', null, 'm'])
+    const thrown = await planAreaOrder({ cfg, load: async () => { throw new Error('socket hang up') }, cands, warn: w })
+    t('plan: 조회 예외 → off · 사유 · 기존 순서 · 경고', [thrown.axis, /socket hang up/.test(thrown.reason), thrown.ordered.map((c) => c.projectId), ws.length], ['off', true, legacy, 1])
+    const badCtx = { column: 'present', byProject: { get: () => { throw new Error('map broken') } }, judged: {} }
+    const sortThrow = await planAreaOrder({ cfg, load: async () => badCtx, cands, warn: w })
+    t('plan: 정렬 중 예외 → off · 기존 순서', [sortThrow.axis, /map broken/.test(sortThrow.reason), sortThrow.ordered.map((c) => c.projectId)], ['off', true, legacy])
+    const nul = await planAreaOrder({ cfg, load: async () => null, cands, warn: w })
+    t('plan: 맥락 확인 불가(null) → off', [nul.axis, nul.ordered.map((c) => c.projectId)], ['off', legacy])
+    const noCfg = await planAreaOrder({ cfg: null, load: async () => { throw new Error('불리면 안 됨') }, cands, warn: w })
+    t('plan: 설정 없음 → off · 조회 안 함', [noCfg.axis, noCfg.reason], ['off', '영역 설정 확인 불가'])
+  }
   t('floor 줄', areaFloorLine({ 1: 54, 2: 400 }, cfg), '1 54/200(결손) · 2 400/200 · 3 0/200(결손) · 4 0/200(결손) · 5 0/200(결손) · design 0/200(결손)')
 
   // loadAreaContext — 모의 supabase(체인: select·not·order·range). fail[테이블] = (cols) => error|null

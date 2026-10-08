@@ -1,0 +1,34 @@
+{
+  "_about": "영역 정본(남헌 v37 작업 7 — '정본 목록은 config 한 곳'). 읽는 곳: lib/analysis/areas-config.ts(로더) → T2 프로젝트 순서(scripts/relevance-judge-auto.mjs, lib/analysis/area-priority.ts) · 영역 대시보드(scripts/target-supply.mjs, lib/review/target-supply.ts). 영역 코드 어휘는 DB CHECK(analysis_projects_area_code_check, 마이그 20261009000020)와 같아야 한다 — 셀프테스트(scripts/areas-selftest.mjs)가 마이그 파일과 대조한다. 설계: reports/2026-10-08/area-quota-and-abandon-design-v31.md · 어휘: reports/2026-10-09/area-backfill-dryrun.md §1.",
+  "version": "v37-1",
+  "_areas": "순서 = 표시·판정 순서. kind: area(판정 최소량 대상) · hold(보류 — 삭제·신규 타깃 금지, 판정 우선순위 최하) · out(영역이 아니라 태그). active=false 인 영역은 최소량 대상이 아니다. 영역을 끄는 것(hold 로 옮기기)은 남헌 판단 — 코드는 이 파일을 쓰지 않는다.",
+  "areas": [
+    { "code": "1", "name": "① 회의·통화 기록", "kind": "area", "active": true },
+    { "code": "2", "name": "② 영업", "kind": "area", "active": true },
+    { "code": "3", "name": "③ 마케팅(직접 도구만)", "kind": "area", "active": true },
+    { "code": "4", "name": "④ 인사 운영(근태·급여·평가 포함, 채용 제외)", "kind": "area", "active": true },
+    { "code": "5", "name": "⑤ 시험(리뷰 관리·글쓰기)", "kind": "area", "active": true },
+    { "code": "design", "name": "디자인(임시)", "kind": "area", "active": true },
+    { "code": "hold", "name": "보류(⑥⑦)", "kind": "hold", "active": false },
+    { "code": "out-consumer", "name": "영역 외-소비재", "kind": "out", "active": false },
+    { "code": "out-founder", "name": "영역 외-창업가 불만", "kind": "out", "active": false }
+  ],
+  "_floor": "영역별 최소 판정량(review_relevance_verdicts 행 수). 제안 200 — 설계 §2.1: 표본 단위 하나(20건×10회), n=200 이면 관련 비율 95% 구간 ±6.9%p 로 30% 기준을 가를 수 있다(150 은 하한). 모든 kind=area·active 영역에 같은 값. env RELEVANCE_AREA_FLOOR(양의 정수)가 이 값을 이긴다.",
+  "floor": 200,
+  "_founder_sources": "영역 외 태그 규칙: 입력 출처가 전부 이 목록이면 out-founder, 하나라도 다르면 out-consumer(출처 NULL = 사람 붙여넣기 → 소비재 쪽). devto 는 넣지 않았다 — 남헌 판단 대기. 넣기로 하면 이 목록에 한 줄 더하면 된다. ⚠️ 이미 부여된 행(규칙 v37-1, 마이그 20261009000020)은 그 시점 목록을 SQL 에 품고 있다 — 목록을 바꾼 뒤 다시 매기려면 정방향을 새 버전(v37-2)으로 다시 생성한다(드라이런 문서 §7).",
+  "founder_sources": ["hackernews", "indiehackers", "producthunt", "disquiet", "okky"],
+  "_abandon": "영역 포기·교체 기준 — **제안값, 남헌 확정 전.** 코드는 영역을 스스로 끄지 않고 대시보드에 '남헌 판단 항목'으로 올리기만 한다(설계 §3.3). 평가 시점 = 수집 2~3 사이클(1 사이클 7일) 뒤 — 시점 판단은 사람. (a) 입력 project_input_min 건↑ 프로젝트 ≥ min_projects · (b) 관련 비율 ≥ min_relevant_pct%(분모 relevant+irrelevant, unknown 이 판정의 max_unknown_pct% 초과면 확인 불가, gray_band 안은 한 사이클 더 본다, 분모가 relevant_min_n 미만이면 아직 못 잰다) · (c) 프로젝트당 입력 중앙값 ≥ min_median_inputs · 예외: 최소량을 채웠는데 관련 비율 < immediate_swap_relevant_pct% 면 2 사이클을 기다리지 않고 즉시 소스 교체. project_input_min 은 뷰 v_area_t2_coverage(마이그 20261009000040)의 projects_100plus 와 같은 값이어야 한다 — 바꾸면 뷰도 고친다(셀프테스트가 대조).",
+  "abandon": {
+    "status": "proposed",
+    "cycles_before_eval": [2, 3],
+    "cycle_days": 7,
+    "min_projects": 3,
+    "project_input_min": 100,
+    "min_relevant_pct": 30,
+    "gray_band_pct": [25, 35],
+    "max_unknown_pct": 20,
+    "relevant_min_n": 150,
+    "min_median_inputs": 50,
+    "immediate_swap_relevant_pct": 10
+  }
+}

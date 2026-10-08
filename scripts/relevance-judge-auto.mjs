@@ -37,8 +37,7 @@ import {
 } from '../lib/analysis/session-guard.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
-// 대상 순서는 야간 extract 와 같은 규칙을 쓴다(SaaS 우선 → 많은 순 → projectId).
-import { compareAutoPriority } from '../lib/analysis/extract-auto.ts'
+// 대상 순서는 야간 extract 와 같은 규칙(compareAutoPriority: SaaS 우선 → 많은 순 → projectId)을 영역 결손 축이 감싼다 — lib/analysis/area-priority.ts planAreaOrder(v37 U1).
 // 대상 상태도 야간 extract 와 한 벌(v27 옵션 A). collecting 만 보던 동안 extracted 프로젝트에 새로 들어온 수집분은
 // 판정되지 않아 T2(자동 승인·extract 선별)를 못 넘었다. 2차(relevance-second-judge-auto)는 프로젝트 상태로 거르지 않고
 // 1차 판정 행을 따라가므로 같은 집합을 자동으로 쓴다. 하루 상한(RELEVANCE_MAX_PROJECTS)은 그대로다.
@@ -52,6 +51,9 @@ import {
   parseHighRatingShare,
 } from '../lib/analysis/relevance-judge.ts'
 import { loadPrefilterConfig } from '../lib/analysis/prefilter.ts'
+// 영역 결손 축(v37 작업 7 U1) — 정본 config/areas.json. 못 읽으면 영역 축을 끄고 기존 순서(compareAutoPriority) 그대로.
+import { loadAreasConfig } from '../lib/analysis/areas-config.ts'
+import { areaFloorLine, loadAreaContext, planAreaOrder } from '../lib/analysis/area-priority.ts'
 import { createPendingFor } from '../lib/analysis/relevance-pending.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate } from './notion-status-log.mjs'
@@ -268,15 +270,26 @@ for (const p of projects ?? []) {
 }
 
 const unknownCount = candidates.filter((c) => c.pending === null).length
-// SaaS 우선 → 미판정 많은 순 → projectId. extract 와 같은 헬퍼를 쓴다.
-const ready = candidates
-  .filter((c) => c.pending !== null)
-  .sort((a, b) =>
-    compareAutoPriority(
-      { projectId: a.project.id, newInputs: a.pending.reviews.length, businessModel: a.project.business_model },
-      { projectId: b.project.id, newInputs: b.pending.reviews.length, businessModel: b.project.business_model },
-    ),
-  )
+
+// 영역 결손 축(v37 작업 7 U1): 결손 영역 → 충족 영역 → 영역 외 → hold, 같은 칸 안은 아래 기존 규칙.
+// 설정·판정 수 중 하나라도 확인 불가면 축을 끈다 — 모르는 결손으로 순서를 바꾸지 않는다(§7.1).
+const areasLoad = loadAreasConfig()
+for (const w of areasLoad.warnings) warn(`영역 설정: ${w}`)
+if (!areasLoad.cfg) warn(`영역 설정 확인 불가 — 영역 축 끔(기존 순서): ${areasLoad.error}`)
+// 같은 칸 안 기존 규칙: SaaS 우선 → 미판정 많은 순 → projectId(extract 와 같은 헬퍼). 조회·정렬 예외도 축 끔 + 기존 순서(planAreaOrder).
+const autoKey = (c) => ({ projectId: c.project.id, newInputs: c.pending.reviews.length, businessModel: c.project.business_model, c })
+const areaPlan = await planAreaOrder({
+  cfg: areasLoad.cfg,
+  load: () => loadAreaContext(supabase, warn),
+  cands: candidates.filter((c) => c.pending !== null).map(autoKey),
+  warn,
+})
+const areaAxis = areaPlan.axis
+const areaCtx = areaPlan.ctx
+if (areaAxis === 'on') {
+  log(`영역 판정/최소량(${areasLoad.cfg.floorSource === 'env' ? 'env RELEVANCE_AREA_FLOOR' : 'config/areas.json'}): ${areaFloorLine(areaCtx.judged, areasLoad.cfg)} · 영역 열 ${areaCtx.column === 'present' ? '있음(NULL 은 라벨 폴백)' : '없음 → 라벨 폴백'}`)
+} else warn(`영역 축 꺼짐 — ${areaPlan.reason}. 기존 순서(SaaS 우선 → 미판정 많은 순)`)
+const ready = areaPlan.ordered.map((k) => k.c)
 // 재시도 슬롯(v32 #4): 한도로 멈춘 **그 프로젝트**를 맨 앞으로. 판정은 묶음마다 저장돼 이미 판정된 리뷰는 다시 안 탄다(pendingFor).
 if (retry?.quotaProject) {
   const i = ready.findIndex((c) => c.project.id === retry.quotaProject)
@@ -288,10 +301,15 @@ const remaining = ready.length - targets.length
 log(
   `후보(${AUTO_EXTRACT_STATUSES.join('·')}) ${(projects ?? []).length}건 → 판정 대상 프로젝트 ${ready.length}건` +
     (remaining > 0 ? ` 중 ${targets.length}건 실행 (상한 ${maxProjects}건 도달, 남은 ${remaining}건은 다음 실행)` : ' 전부 실행') +
-    ' (순서: SaaS 우선 → 미판정 많은 순)',
+    (areaAxis === 'on' ? ' (순서: 공급 충분한 결손 영역 → 공급 부족 결손 영역 → 충족 영역 → 영역 외 → 보류, 결손 칸은 미판정 큰 순)' : ' (순서: SaaS 우선 → 미판정 많은 순 — 영역 축 꺼짐)'),
 )
+const areaTag = (id) => {
+  if (areaAxis !== 'on') return ''
+  const a = areaCtx.byProject.get(id)
+  return ` 영역 ${a?.code ?? 'unassigned'}(${a?.via ?? 'none'})`
+}
 for (const t of targets) {
-  log(`  · ${t.project.id} [${t.project.business_model ?? '미기재'}] 미판정 ${t.pending.reviews.length}건 / 표본 ${t.pending.total}건(평점 저 ${t.pending.rating.low} · 고 ${t.pending.rating.high}/상한 ${t.pending.rating.high_cap} · 없음 ${t.pending.rating.none}) —${t.project.product_elevator_pitch ?? '(소개 없음)'}`)
+  log(`  ·${areaTag(t.project.id)} ${t.project.id} [${t.project.business_model ?? '미기재'}] 미판정 ${t.pending.reviews.length}건 / 표본 ${t.pending.total}건(평점 저 ${t.pending.rating.low} · 고 ${t.pending.rating.high}/상한 ${t.pending.rating.high_cap} · 없음 ${t.pending.rating.none}) —${t.project.product_elevator_pitch ?? '(소개 없음)'}`)
 }
 if (unknownCount > 0) warn(`원문·판정 캐시를 읽지 못한 프로젝트 ${unknownCount}건 — 대상 판정에서 빠졌다(판정할 게 없다는 뜻이 아니다)`)
 
@@ -323,6 +341,9 @@ await tracker.step({
   detail: {
     sample: sampleSize, high_rating_share: highRatingShare,
     rating_mix: Object.fromEntries(targets.map((t) => [t.project.id, t.pending.rating])),
+    // 영역 결손 축(v37 U1): off = 설정·판정 수 확인 불가로 기존 순서. area_judged 는 이번 실행 전 판정 수.
+    area_axis: areaAxis, area_axis_reason: areaPlan.reason, area_floor: areasLoad.cfg?.floor ?? null, area_judged: areaCtx?.judged ?? null, area_column: areaCtx?.column ?? null,
+    area_of: areaAxis === 'on' ? Object.fromEntries(targets.map((t) => [t.project.id, areaCtx.byProject.get(t.project.id) ?? null])) : null,
     max_projects: maxProjects, batch: BATCH_SIZE, slot, retry: retry ? { reason: retry.reason, retries_done: retry.retriesDone } : null,
     // 사전필터 입력 단위 기록(v31 항목 5): 이번에 도는 프로젝트만. null = 설정 확인 불가·실행 중 예외로 꺼짐.
     prefilter: prefilterCfg

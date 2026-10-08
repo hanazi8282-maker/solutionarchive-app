@@ -30,7 +30,6 @@ export interface AreaContext {
 type Warn = (m: string) => void
 const PAGE = 1000
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function readAll(build: (from: number, to: number) => any): Promise<{ rows: any[]; error: { code?: string; message: string } | null }> {
   const rows = []
   for (let from = 0; ; from += PAGE) {
@@ -45,7 +44,6 @@ async function readAll(build: (from: number, to: number) => any): Promise<{ rows
  * 프로젝트 영역·영역별 판정 수를 읽는다(SELECT 만). 실패는 null — "판정 0"으로 접지 않는다.
  * 라벨 조회만 실패하면 그 프로젝트들은 via='unknown'(영역 외 칸)으로 두고 경고한다 — 열로 아는 영역까지 끄지 않는다.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function loadAreaContext(supabase: any, warn: Warn): Promise<AreaContext | null> {
   let column: AreaContext['column'] = 'present'
   let proj = await readAll((a, b) => supabase.from('analysis_projects').select('id, area_code').order('id').range(a, b))

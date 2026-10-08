@@ -8,6 +8,8 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { AREA_CODES, loadAreasConfig, parseAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
+import { areaFloorLine, areaRank, loadAreaContext, orderByAreaDeficit } from '../lib/analysis/area-priority.ts'
+import { compareAutoPriority } from '../lib/analysis/extract-auto.ts'
 
 let pass = 0
 let fail = 0
@@ -93,6 +95,95 @@ const clone = () => JSON.parse(JSON.stringify(RAW))
   fs.writeFileSync(path.join(tmp, 'mut.json'), JSON.stringify(mut((r) => { r.areas[0].code = '6' })))
   t('어휘 밖 파일 → cfg null', loadAreasConfig(path.join(tmp, 'mut.json'), {}).cfg, null)
   fs.rmSync(tmp, { recursive: true, force: true })
+}
+
+// ── U1: 영역 결손 순위(lib/analysis/area-priority.ts) ─────────────
+{
+  const { cfg } = loadAreasConfig(CFG_PATH, {})
+  const SAAS = 'SAAS'
+  const P = (projectId, newInputs, saas = false) => ({ projectId, newInputs, businessModel: saas ? SAAS : 'consumer' })
+  const order = (cands, areas, judged) => orderByAreaDeficit(cands, (id) => areas[id] ?? 'unassigned', judged, cfg).map((c) => c.projectId)
+
+  {
+    const areas = { a1: '1', b2: '2', chold: 'hold', dfound: 'out-founder', e3: '3', fnone: 'unassigned', gdesign: 'design' }
+    const judged = { 1: 54, 2: 400, 3: 0, design: 300 }
+    const got = order([P('b2', 150, true), P('chold', 300, true), P('dfound', 80, true), P('a1', 100), P('e3', 50), P('fnone', 500), P('gdesign', 20)], areas, judged)
+    t('결손 큰 순 → 충족 → 영역 외 → hold', got, ['e3', 'a1', 'b2', 'gdesign', 'dfound', 'fnone', 'chold'])
+    t('결손 영역 소비재가 충족 영역 SaaS 보다 앞', got.indexOf('a1') < got.indexOf('b2'), true)
+    t('hold 맨 뒤(SaaS·미판정 많아도)', got.at(-1), 'chold')
+  }
+  {
+    // 탐욕: 영역 1 의 첫 프로젝트가 최소량을 채우면 둘째는 충족 칸으로 내려가고, 결손이 남은 영역 4 가 먼저 온다.
+    const areas = { p1: '1', p2: '1', q4: '4' }
+    t('탐욕: 고른 만큼 판정 수를 더해 다음 결손 영역으로', order([P('p1', 200), P('p2', 200), P('q4', 10)], areas, { 1: 0, 4: 100 }), ['p1', 'q4', 'p2'])
+    t('탐욕: 아직 결손이면 같은 영역이 이어진다', order([P('p1', 50), P('p2', 50), P('q4', 10)], areas, { 1: 0, 4: 100 }), ['p1', 'p2', 'q4'])
+  }
+  {
+    // 같은 칸 동률 → 기존 규칙(compareAutoPriority): SaaS → 미판정 많은 순 → id
+    const areas = { x: '5', y: '5', z: '5', w: '5' }
+    t('동률: 기존 규칙 SaaS → 많은 순 → id', order([P('z', 10), P('y', 30), P('x', 30), P('w', 5, true)], areas, { 5: 1000 }), ['w', 'x', 'y', 'z'])
+    const cands = [P('m', 3), P('k', 9, true), P('j', 9)]
+    t('영역 정보가 전부 없으면 기존 정렬과 같다', order(cands, {}, {}), [...cands].sort(compareAutoPriority).map((c) => c.projectId))
+  }
+  t('areaRank: hold 3 · out 2 · 미부여 2 · 결손 0 · 충족 1', [areaRank('hold', 0, cfg), areaRank('out-consumer', 0, cfg), areaRank('unassigned', 0, cfg), areaRank('3', 199, cfg), areaRank('3', 200, cfg)], [3, 2, 2, 0, 1])
+  t('floor 줄', areaFloorLine({ 1: 54, 2: 400 }, cfg), '1 54/200(결손) · 2 400/200 · 3 0/200(결손) · 4 0/200(결손) · 5 0/200(결손) · design 0/200(결손)')
+
+  // loadAreaContext — 모의 supabase(체인: select·not·order·range). fail[테이블] = (cols) => error|null
+  const mockSb = (tables, fail = {}) => ({
+    from(name) {
+      let cols = ''
+      const filters = []
+      const q = {
+        select: (c) => ((cols = c), q),
+        order: () => q,
+        not: (c) => (filters.push((r) => r[c] != null), q),
+        range: async (a, b) => {
+          const err = fail[name]?.(cols)
+          if (err) return { data: null, error: err }
+          const keys = cols.split(',').map((s) => s.trim())
+          const rows = (tables[name] ?? []).filter((r) => filters.every((f) => f(r))).map((r) => Object.fromEntries(keys.map((k) => [k, r[k] ?? null])))
+          return { data: rows.slice(a, b + 1), error: null }
+        },
+      }
+      return q
+    },
+  })
+  const tables = () => ({
+    analysis_projects: [{ id: 'p1', area_code: '1' }, { id: 'p2', area_code: null }, { id: 'p3', area_code: null }, { id: 'p4', area_code: null }, { id: 'p5', area_code: 'hold' }],
+    review_targets: [
+      { id: 't1', project_id: 'p2', label: '2:gong' }, { id: 't2', project_id: 'p2', label: '2:us|gong' },
+      { id: 't3', project_id: 'p3', label: '1:otter-ai' }, { id: 't4', project_id: 'p3', label: '3:jasper' },
+      { id: 't5', project_id: 'p4', label: 'q:crm' }, { id: 't6', project_id: null, label: '4:flex' },
+      { id: 't7', project_id: 'p1', label: '3:wrong-but-column-wins' },
+    ],
+    review_relevance_verdicts: [
+      ...Array.from({ length: 3 }, (_, i) => ({ input_id: `a${i}`, project_id: 'p1' })),
+      ...Array.from({ length: 2 }, (_, i) => ({ input_id: `b${i}`, project_id: 'p2' })),
+      { input_id: 'c0', project_id: 'p3' }, { input_id: 'd0', project_id: 'p5' },
+    ],
+  })
+  const warns = []
+  const w = (m) => warns.push(m)
+  const ctx = await loadAreaContext(mockSb(tables()), w)
+  const view = (c) => Object.fromEntries([...c.byProject].map(([k, v]) => [k, `${v.code}/${v.via}`]))
+  t('열 있음: 열 우선 · NULL 은 라벨 폴백(us| 같은 영역) · 갈림=mixed · 접두 없음=none', [ctx.column, view(ctx)],
+    ['present', { p1: '1/column', p5: 'hold/column', p2: '2/label', p3: 'unassigned/mixed', p4: 'unassigned/none' }])
+  t('영역별 판정 수 = 프로젝트→영역 집계(미부여 제외)', ctx.judged, { 1: 3, hold: 1, 2: 2 })
+  t('열 있음: 경고 0', warns.length, 0)
+
+  warns.length = 0
+  const missingCol = { analysis_projects: (c) => (c.includes('area_code') ? { code: '42703', message: 'column analysis_projects.area_code does not exist' } : null) }
+  const ctx2 = await loadAreaContext(mockSb(tables(), missingCol), w)
+  t('열 부재(42703): 전부 라벨 폴백 + 경고', [ctx2.column, view(ctx2), warns.some((m) => m.includes('42703'))],
+    ['absent', { p1: '3/label', p2: '2/label', p3: 'unassigned/mixed', p4: 'unassigned/none', p5: 'unassigned/none' }, true])
+
+  warns.length = 0
+  t('판정 수 조회 실패 → null(영역 축 끔)', [await loadAreaContext(mockSb(tables(), { review_relevance_verdicts: () => ({ message: 'boom' }) }), w), warns.length], [null, 1])
+  warns.length = 0
+  t('프로젝트 조회 실패(42703 아님) → null', await loadAreaContext(mockSb(tables(), { analysis_projects: () => ({ code: '57014', message: 'timeout' }) }), w), null)
+  warns.length = 0
+  const ctx3 = await loadAreaContext(mockSb(tables(), { review_targets: () => ({ message: 'boom' }) }), w)
+  t('라벨 조회 실패 → 미부여 프로젝트는 unknown(영역 외 칸) · 열 영역은 유지', [view(ctx3).p1, view(ctx3).p2, warns.length], ['1/column', 'unassigned/unknown', 1])
 }
 
 console.log(`areas-selftest: ${pass} pass · ${fail} fail`)

@@ -173,7 +173,8 @@ export function requestsPerVisit(runs: RunRow[], activeRefs: string[]): { r: num
   return { r: fb, basis: board ? 'fallback_board' : 'fallback_post' }
 }
 
-function areaOf(label: string | null | undefined): string {
+/** 타깃 라벨 접두 `N:`(1~5) → 영역, 없으면 'unmapped'. T2 순서(lib/analysis/area-priority.ts)가 area_code NULL 프로젝트의 폴백으로 쓴다. */
+export function areaOf(label: string | null | undefined): string {
   const m = /^([1-5]):/.exec(label ?? '')
   return m ? m[1] : 'unmapped'
 }

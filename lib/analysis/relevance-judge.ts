@@ -403,6 +403,52 @@ export function pickGradingSample(
   return shuffle(picked, random)
 }
 
+/** T2 판정 표본에서 4~5점이 차지할 기본 비율(v31 §2.3). env `RELEVANCE_HIGH_RATING_SHARE` 로 바꾼다. */
+export const DEFAULT_HIGH_RATING_SHARE = 0.2
+
+/** env 값 → [0,1] 비율. 비었거나 범위 밖이면 null(호출부가 기본값으로 가고 경고한다). */
+export function parseHighRatingShare(v: string | undefined): number | null {
+  if (v == null || v.trim() === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : null
+}
+
+export interface RatingSampleStats {
+  /** 표본 안 1~3점(0 포함) 수 */ low: number
+  /** 표본 안 4~5점 수 */ high: number
+  /** 표본 안 평점 없음 수(HN·카카오·커뮤니티) */ none: number
+  /** 4~5점 상한 = ceil(n × share) */ high_cap: number
+  share: number
+}
+
+/**
+ * 판정 표본 자르기(v31 §2.3) — 평점 있는 입력은 1~3점을 먼저, 4~5점은 표본의 share(상한 ceil)만.
+ * 실측(2026-10-08): 앱스토어 1~3점 관련 98% vs 4~5점 62%, 구글플레이 78% vs 39%.
+ *  - 평점 없음(null)은 low 와 같은 줄이다 — 평점 없는 소스를 뒤로 밀지 않는다. 평점 0건이면 slice(0, n) 과 같다.
+ *  - 각 줄 안의 순서는 입력(T1 점수) 순 그대로. 결과는 low ++ high, 결정적.
+ *  - 한쪽이 모자라면 다른 쪽으로 채운다(low 부족 → 남은 high, high 부족 → 더 많은 low).
+ */
+export function pickSampleByRating<T>(
+  items: readonly T[],
+  n: number,
+  share: number,
+  ratingOf: (item: T) => number | null | undefined,
+): { sample: T[]; stats: RatingSampleStats } {
+  const size = Math.max(0, Math.floor(n))
+  const low: T[] = []
+  const high: T[] = []
+  for (const it of items) {
+    const r = ratingOf(it)
+    if (r != null && r >= 4) high.push(it)
+    else low.push(it)
+  }
+  const highCap = Math.ceil(size * share)
+  const lowTake = Math.min(low.length, size - Math.min(highCap, high.length))
+  const sample = [...low.slice(0, lowTake), ...high.slice(0, size - lowTake)]
+  const none = sample.filter((it) => ratingOf(it) == null).length
+  return { sample, stats: { low: lowTake - none, high: sample.length - lowTake, none, high_cap: highCap, share } }
+}
+
 export interface GradingMark {
   input_id: string
   /**

@@ -48,6 +48,9 @@ import {
   MAX_REVIEW_CHARS,
   chunkReviews,
   judgeRelevanceBatch,
+  DEFAULT_HIGH_RATING_SHARE,
+  parseHighRatingShare,
+  pickSampleByRating,
 } from '../lib/analysis/relevance-judge.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate } from './notion-status-log.mjs'
@@ -61,6 +64,10 @@ const num = (v, fallback) => {
 }
 /** 프로젝트당 판정할 표본 크기(T1 통과분 상위). */
 const sampleSize = num(process.env.RELEVANCE_SAMPLE, 200)
+/** 표본에서 4~5점 평점 입력의 비율 상한(v31 §2.3). 바꾸는 날은 env 값 + Notion 일일 상태 로그 한 줄이 근거다. */
+const highRatingShareEnv = process.env.RELEVANCE_HIGH_RATING_SHARE
+const parsedHighShare = parseHighRatingShare(highRatingShareEnv)
+const highRatingShare = parsedHighShare ?? DEFAULT_HIGH_RATING_SHARE
 /** 하루에 돌 최대 프로젝트 수. */
 const maxProjects = num(process.env.RELEVANCE_MAX_PROJECTS, 5)
 
@@ -132,7 +139,8 @@ log(`세션 가드 — run_key=${runKey} · 이번 실행 상한 ${capUsd == nul
 // 상한이 걸리는 건 구독 경로(claude-cli)뿐이다 — gemini 로 되돌리면 budget.ts 가 달러 예산을 지킨다.
 const guarded = provider === 'claude-cli'
 
-log(`야간 관련성 판정 ${dry ? '(--dry: 대상 선정만)' : ''} — provider=${provider} · 표본 ${sampleSize}건/프로젝트 · 프로젝트 상한 ${maxProjects}건 · 일 예산 $${DAILY_BUDGET_USD}`)
+if (parsedHighShare === null && (highRatingShareEnv ?? '').trim() !== '') warn(`RELEVANCE_HIGH_RATING_SHARE=${highRatingShareEnv} 은 0~1 밖이다 — 기본 ${DEFAULT_HIGH_RATING_SHARE} 로 간다`)
+log(`야간 관련성 판정 ${dry ? '(--dry: 대상 선정만)' : ''} — provider=${provider} · 표본 ${sampleSize}건/프로젝트(4~5점 상한 ${highRatingShare}${parsedHighShare === null ? ' 기본' : ' env'}) · 프로젝트 상한 ${maxProjects}건 · 일 예산 $${DAILY_BUDGET_USD}`)
 
 // ── 1. 후보 프로젝트 ─────────────────────────────────────────────
 //
@@ -193,17 +201,18 @@ if (readerProblemColumn === 'present') {
 async function pendingFor(project) {
   const { data: inputs, error } = await supabase
     .from('analysis_inputs')
-    .select('id, raw_text, created_at, collected_at')
+    .select('id, raw_text, created_at, collected_at, rating')
     .eq('project_id', project.id)
     .is('purged_at', null)
   if (error) {
     console.error(`⚠️ 원문 조회 실패 project=${project.id}: ${error.message}`)
     return null
   }
-  if (!inputs || inputs.length === 0) return { total: 0, reviews: [] }
+  if (!inputs || inputs.length === 0) return { total: 0, reviews: [], rating: null }
 
   // T1 과 같은 선별기를 쓴다 — 판정 표본과 extract 가 보는 집합이 갈라지면 판정이 헛돈다.
-  const selected = selectInputs(inputs).selected.slice(0, sampleSize)
+  // 자르기는 평점 우선(v31 §2.3): 1~3점 먼저, 4~5점은 표본의 highRatingShare 만. 평점 없는 입력은 기존 순서 그대로.
+  const { sample: selected, stats: rating } = pickSampleByRating(selectInputs(inputs).selected, sampleSize, highRatingShare, (s) => s.input.rating)
 
   const { data: judged, error: judgedError } = await supabase
     .from('review_relevance_verdicts')
@@ -218,6 +227,7 @@ async function pendingFor(project) {
 
   return {
     total: selected.length,
+    rating,
     reviews: selected
       .filter((s) => !done.has(s.input.id))
       .map((s) => ({ input_id: s.input.id, text: s.text.slice(0, MAX_REVIEW_CHARS) })),
@@ -306,7 +316,7 @@ log(
     ' (순서: SaaS 우선 → 미판정 많은 순)',
 )
 for (const t of targets) {
-  log(`  · ${t.project.id} [${t.project.business_model ?? '미기재'}] 미판정 ${t.pending.reviews.length}건 / 표본 ${t.pending.total}건 — ${t.project.product_elevator_pitch ?? '(소개 없음)'}`)
+  log(`  · ${t.project.id} [${t.project.business_model ?? '미기재'}] 미판정 ${t.pending.reviews.length}건 / 표본 ${t.pending.total}건(평점 저 ${t.pending.rating.low} · 고 ${t.pending.rating.high}/상한 ${t.pending.rating.high_cap} · 없음 ${t.pending.rating.none}) —${t.project.product_elevator_pitch ?? '(소개 없음)'}`)
 }
 if (unknownCount > 0) warn(`원문·판정 캐시를 읽지 못한 프로젝트 ${unknownCount}건 — 대상 판정에서 빠졌다(판정할 게 없다는 뜻이 아니다)`)
 
@@ -335,7 +345,10 @@ await tracker.step({
     projects: (projects ?? []).length, targets: targets.length, remaining, unknown: unknownCount,
     failed_retry: failedBy.retry, failed_excluded: failedBy.excluded, failed_unknown: failedBy.unknown,
   },
-  detail: { sample: sampleSize, max_projects: maxProjects, batch: BATCH_SIZE, slot, retry: retry ? { reason: retry.reason, retries_done: retry.retriesDone } : null },
+  detail: {
+    sample: sampleSize, high_rating_share: highRatingShare,
+    rating_mix: Object.fromEntries(targets.map((t) => [t.project.id, t.pending.rating])),
+    max_projects: maxProjects, batch: BATCH_SIZE, slot, retry: retry ? { reason: retry.reason, retries_done: retry.retriesDone } : null },
 })
 
 // 상한을 모르면(설정 깨짐) 돌지 않는다(§7.1). 주간 스위치도 여기서 멈춘다. 둘 다 stop_reason ≠ quota 라 재시도 슬롯이 다시 깨우지 않는다.

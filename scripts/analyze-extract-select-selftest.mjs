@@ -120,7 +120,10 @@ t('SaaS 끼리는 신규 많은 순', saasOnly.targets.map((x) => x.projectId).j
 t('business_model 을 안 주면 예전과 같은 순서(신규 순)', p1.targets.map((x) => x.projectId).join() === 'c,a')
 t('배치 둘이 같은 비교기를 쓴다',
   readFileSync(`${ROOT}scripts/extract-auto.mjs`, 'utf8').includes('business_model')
-  && readFileSync(`${ROOT}scripts/relevance-judge-auto.mjs`, 'utf8').includes('compareAutoPriority('))
+  // T2 는 영역 결손 축(v37 U1)이 감싼다: 스크립트 → planAreaOrder → 같은 칸 안·축 꺼짐 모두 compareAutoPriority.
+  && readFileSync(`${ROOT}scripts/relevance-judge-auto.mjs`, 'utf8').includes('planAreaOrder(')
+  && (readFileSync(`${ROOT}lib/analysis/area-priority.ts`, 'utf8').match(/compareAutoPriority\(/g) ?? []).length >= 1
+  && readFileSync(`${ROOT}lib/analysis/area-priority.ts`, 'utf8').includes('.sort(compareAutoPriority)'))
 
 // ── 8. "오늘은 다시 불러도 같다" 판정 ────────────────────────────
 t('429 는 멈춤', isQuotaFailure(new ProviderHttpError(429, 'x')) === true)

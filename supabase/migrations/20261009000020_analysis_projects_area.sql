@@ -1,5 +1,5 @@
 -- ============================================================
--- 20261009000010_analysis_projects_area
+-- 20261009000020_analysis_projects_area
 --
 -- v37 작업 1 · 소급 영역 부여(남헌 v38 승인). 드라이런: reports/2026-10-09/area-backfill-dryrun.md
 --
@@ -8,14 +8,14 @@
 --   review_targets.label(원라벨)·analysis_projects 기존 열·analysis_inputs 는 건드리지 않는다(끝의 DO 가 해시로 확인).
 --
 -- 영역 어휘(area_code CHECK):
---   '1' 회의·통화 기록 · '2' 영업 · '3' 마케팅(직접 도구) · '4' 인사 운영(근태·급여·평가, 채용 제외) · '5' 리뷰 관리
+--   '1' 회의·통화 기록 · '2' 영업 · '3' 마케팅(직접 도구) · '4' 인사 운영(근태·급여·평가, 채용 제외) · '5' ⑤ 시험(리뷰 관리·글쓰기 — 정본은 택1 뒤 하나, 재태깅 절차는 드라이런 문서 §7)
 --   'design' 디자인(임시 — Carat·Canva·MiriCanvas). 숫자를 쓰지 않는 이유: 라벨 판독 `^([1-5]):`(target-supply.ts areaOf)·
 --            옛 사전 파일 번호(01~07)·옛 ⑥⑦ 어느 것과도 겹치지 않고, 임시 영역이라 나중에 번호 체계를 건드리지 않고 접거나 옮길 수 있다.
 --   'hold' 보류(지도 hold·out = ⑥⑦ — 삭제·신규 타깃 금지는 그대로) · 'out-consumer' 영역 외-소비재 · 'out-founder' 영역 외-창업가 불만
 --
 -- 규칙 v37-1(프로젝트 단위, 위에서부터):
 --   1) 타깃 라벨 근거 — `^[1-5]:slug`(T0 뒤 새 형식, area_basis='label') 우선, 옛 `NN-영역파일:slug`·접두 없는 slug 는
---      data/area-map-v26.json 으로 해석(area_basis='slug'). `us-en|` 는 벗긴다. T0 전/후 어느 상태에서도 같은 코드가 나온다.
+--      data/area-map-v26.json 으로 해석(area_basis='slug'). `us-en|`·`us|` 는 벗긴다. T0 전/후 어느 상태에서도 같은 코드가 나온다.
 --   2) 타깃 근거가 없을 때만 소개문 제품명 근거(`<사전 name> —` / `<사전 name> (`, area_basis='name').
 --   3) 지도 hold·out → 'hold'. carat·canva·miricanvas → 'design'(지도 값 3 보다 먼저).
 --   4) 근거가 하나도 없으면 영역 외 태그(area_basis='source'): 입력 출처가 전부 hackernews·indiehackers·producthunt·disquiet·okky
@@ -25,12 +25,16 @@
 --
 -- 비파괴·멱등: ADD COLUMN IF NOT EXISTS · CHECK 는 DROP IF EXISTS 후 ADD(새 열 전용) · UPDATE 는 area_code IS NULL 인 행만.
 --   재실행하면 이미 부여된 행은 그대로, 그 사이 생긴 새 프로젝트만 채운다. DELETE·DROP COLUMN·타입 축소 없음.
--- 롤백: 20261009000010_analysis_projects_area_rollback.sql — area_rule_ver='v37-1' 인 행만 NULL 로, 뷰 DROP. 열은 남긴다.
+-- 롤백: 20261009000020_analysis_projects_area_rollback.sql — area_rule_ver='v37-1' ∧ area_basis<>'manual' 행만 NULL 로, 뷰 DROP. 열은 남긴다.
+--   규약: 사람이 영역을 고칠 때는 area_basis='manual' 로 쓴다(롤백이 그 행을 건드리지 않는다).
+-- 재실행(새 프로젝트 채우기)은 대화형 세션 전용 — 무인 루프(cron)에서 돌리면 §10.1 위반(analysis_projects UPDATE 금지).
+--   소비처는 area_code NULL 을 '미부여'로 다루고 '영역 외'로 접지 않는다. 새 프로젝트는 재실행 전까지 NULL.
 --
 -- ⚠️ 미적용 — 서브에이전트가 만든 파일이다(CLAUDE.md §10.2). 적용은 오케스트레이터가 독립 점검 뒤에.
 --   §10.2 예외 2번(대량 UPDATE) 4조건: 드라이런=위 문서 · 롤백=파일 · 무중단(새 열만, 기존 열·제약 무관, lock_timeout 5s) · Notion 기록.
 --   절차: 1) solutionarchive `qmgrfqjfxqhxuufrnkwf` 확인 2) 드라이런 문서 Q0~Q2 3) 실행 4) 문서 Q3~Q5 5) docs/migration-exceptions.md
---   야간 수집(nightly-review-collect) 시간대를 피한다 — ALTER 가 analysis_projects 에 ACCESS EXCLUSIVE 를 잠깐 잡는다.
+--   야간 수집(nightly-review-collect) 시간대를 피한다 — ALTER 가 analysis_projects 에 ACCESS EXCLUSIVE, review_targets 에 SHARE 를 트랜잭션 끝까지 잡는다.
+--   RAISE·lock_timeout 으로 멈추면 트랜잭션 전체가 롤백돼 쓰기 0 이다 — 원인(메시지)을 보고 그대로 재시도한다.
 -- ============================================================
 
 BEGIN;
@@ -54,10 +58,13 @@ ALTER TABLE public.analysis_projects ADD CONSTRAINT analysis_projects_area_trace
   CHECK (area_code IS NULL OR (area_basis IS NOT NULL AND area_rule_ver IS NOT NULL AND area_assigned_at IS NOT NULL));
 
 COMMENT ON COLUMN public.analysis_projects.area_code IS
-  '영역(v37 소급, 남헌 v38). 1 회의·통화 기록 · 2 영업 · 3 마케팅 · 4 인사 운영 · 5 리뷰 관리 · design 디자인(임시) · hold 보류(⑥⑦) · out-consumer/out-founder 영역 외 태그. NULL = 미부여(MULTI·CONFLICT 등).';
+  '영역(v37 소급, 남헌 v38). 1 회의·통화 기록 · 2 영업 · 3 마케팅 · 4 인사 운영 · 5 ⑤ 시험(리뷰 관리·글쓰기 — 택1 뒤 하나) · design 디자인(임시) · hold 보류(⑥⑦) · out-consumer/out-founder 영역 외 태그. NULL = 미부여(MULTI·CONFLICT 등).';
 COMMENT ON COLUMN public.analysis_projects.area_basis IS '부여 근거 종류: label(새 라벨 접두) · slug(옛·무접두 라벨을 지도로 해석) · name(소개문 제품명) · source(입력 출처로 영역 외 태그) · manual(사람).';
 COMMENT ON COLUMN public.analysis_projects.area_evidence IS '근거 상세: <basis>:<slug 목록> 또는 sources:<입력 출처 목록>.';
 COMMENT ON COLUMN public.analysis_projects.area_rule_ver IS '부여한 규칙 버전. 롤백은 이 값으로 범위를 좁힌다(v37-1).';
+
+-- 원라벨 해시를 같은 스냅숏으로 비교하려고 수집 러너의 review_targets 쓰기를 트랜잭션 끝까지 막는다(읽기는 된다).
+LOCK TABLE public.review_targets IN SHARE MODE;
 
 -- 불변 확인용 지문(새 열은 빼고 해시) — UPDATE 전에 뜬다.
 CREATE TEMP TABLE _area_before ON COMMIT DROP AS
@@ -326,13 +333,13 @@ dict(slug, name, v26) AS (VALUES
   ('sellerking', 'Sellerking', 'out'),
   ('dashpanda', 'DashPanda', 'out')
 ),
--- 근거 원천 두 갈래. ① 타깃 라벨: 새 형식 `N:slug`(T0 뒤) · 옛 형식 `NN-영역파일:slug`(T0 전) · 접두 없는 `slug`, 셋 다 `us-en|` 를 벗긴다.
+-- 근거 원천 두 갈래. ① 타깃 라벨: 새 형식 `N:slug`(T0 뒤) · 옛 형식 `NN-영역파일:slug`(T0 전) · 접두 없는 `slug`, 셋 다 `us-en|`·`us|` 를 벗긴다.
 --                ② 프로젝트 소개문: `<사전 name> —` 또는 `<사전 name> (` 로 시작(scripts/dictionary-targets.mjs productPitch 형식).
 raw AS (
   SELECT t.project_id,
          substring(t.label from '^([1-5]):') AS pfx,
          CASE WHEN t.label ~ '^[1-5]:' THEN 'label' ELSE 'slug' END AS basis,
-         regexp_replace(regexp_replace(t.label, '^([1-5]|[0-9]{2}-[a-z0-9-]+):', ''), '^us-en\|', '') AS slug
+         regexp_replace(regexp_replace(t.label, '^([1-5]|[0-9]{2}-[a-z0-9-]+):', ''), '^(us-en|us)\|', '') AS slug
     FROM public.review_targets t
    WHERE t.project_id IS NOT NULL AND t.label IS NOT NULL
   UNION ALL
@@ -400,6 +407,10 @@ plan AS (
 )
 SELECT project_id, inputs, status, code, basis, evidence FROM plan;
 
+-- 적용 전에 이미 값이 있던 행(재실행·사람 값). DO ④ 의 기대값 계산에 쓴다.
+CREATE TEMP TABLE _area_pre ON COMMIT DROP AS
+SELECT id AS project_id, area_code FROM public.analysis_projects WHERE area_code IS NOT NULL;
+
 CREATE TEMP TABLE _area_done (project_id uuid) ON COMMIT DROP;
 
 WITH upd AS (
@@ -424,12 +435,13 @@ SELECT i.id AS input_id,
        p.area_code,
        CASE p.area_code
          WHEN '1' THEN '① 회의·통화 기록' WHEN '2' THEN '② 영업' WHEN '3' THEN '③ 마케팅'
-         WHEN '4' THEN '④ 인사 운영' WHEN '5' THEN '⑤ 리뷰 관리' WHEN 'design' THEN '디자인(임시)'
+         WHEN '4' THEN '④ 인사 운영' WHEN '5' THEN '⑤ 시험(리뷰 관리·글쓰기)' WHEN 'design' THEN '디자인(임시)'
          WHEN 'hold' THEN '보류' WHEN 'out-consumer' THEN '영역 외-소비재' WHEN 'out-founder' THEN '영역 외-창업가 불만'
        END AS area_name,
        coalesce(p.area_code IN ('1', '2', '3', '4', '5', 'design'), false) AS in_scope,
        p.area_basis,
-       p.area_rule_ver
+       p.area_rule_ver,
+       i.purged_at
   FROM public.analysis_inputs i
   LEFT JOIN public.analysis_projects p ON p.id = i.project_id;
 COMMENT ON VIEW public.v_input_area IS '입력 단위 영역(읽기 전용). 영역 값은 analysis_projects.area_code 를 따른다. area_code NULL = 미부여·프로젝트 없음.';
@@ -440,7 +452,7 @@ DECLARE
   b record;
   v_vocab int; v_unfilled int; v_mismatch int; v_wrong int;
   v_proj_hash text; v_tgt_hash text;
-  v_total bigint; v_grouped bigint;
+  v_total bigint; v_grouped bigint; v_cells int;
   v_done int; r record;
 BEGIN
   SELECT * INTO b FROM _area_before;
@@ -467,7 +479,23 @@ BEGIN
   SELECT md5(coalesce(string_agg(to_jsonb(t)::text, '|' ORDER BY t.id), '')) INTO v_tgt_hash FROM public.review_targets t;
   IF v_tgt_hash <> b.targets_hash THEN RAISE EXCEPTION 'review_targets(원라벨)가 바뀌었다'; END IF;
 
-  -- ④ 입력 합계: 적용 순간의 analysis_inputs 전체 수 = 뷰의 영역 그룹 합(NULL 그룹 포함). 한 문장 = 한 스냅숏.
+  -- ④ 코드별 입력 수: 기대값(계획·적용 전 값에서 독립 계산 — _area_plan/_area_pre JOIN analysis_inputs)과
+  --    뷰의 코드별 그룹 합을 칸별로 비교한다. 뷰 행 수 = 입력 수 는 LEFT JOIN 구조상 항상 참이라 단독 검사로 쓰지 않는다(§7.1).
+  --    한 문장 = 한 스냅숏. 계획 뒤 생긴 프로젝트·프로젝트 없는 입력은 양쪽 다 NULL 칸에 들어간다.
+  WITH expected AS (
+    SELECT coalesce(pre.area_code, pl.code, '(null)') AS code, count(*) AS n
+      FROM public.analysis_inputs i
+      LEFT JOIN _area_pre pre ON pre.project_id = i.project_id
+      LEFT JOIN _area_plan pl ON pl.project_id = i.project_id
+     GROUP BY 1
+  ), actual AS (
+    SELECT coalesce(area_code, '(null)') AS code, count(*) AS n FROM public.v_input_area GROUP BY 1
+  )
+  SELECT count(*) INTO v_cells
+    FROM expected e FULL JOIN actual a ON a.code = e.code
+   WHERE e.n IS DISTINCT FROM a.n;
+  IF v_cells <> 0 THEN RAISE EXCEPTION '코드별 입력 수 불일치 %칸 — 뷰와 계획이 다르다', v_cells; END IF;
+  -- 보조: 전체 수 = 그룹 합
   SELECT (SELECT count(*) FROM public.analysis_inputs),
          (SELECT coalesce(sum(n), 0) FROM (SELECT count(*) AS n FROM public.v_input_area GROUP BY area_code) g)
     INTO v_total, v_grouped;

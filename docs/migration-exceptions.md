@@ -504,3 +504,23 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   - 적용 전: 두 소스·램프 행 없음 · 필요 제약 4개 존재 · 수집 running 0 · 중복 pitch 프로젝트 0.
   - 양성: 두 소스 enabled·값 계획대로, 타깃 19 전부 active·`^5:` 위반 0. 음성: 총 타깃 431→450 외 불변(옛 라벨 84·구글 플레이 활성 88).
   - 롤백 파일 `20261008000040_five_arm_sources_rollback.sql`(두 소스 끄고 Shopify override 비움, 램프는 NULL/동결, 타깃·프로젝트는 유지 — 삭제 없음). Shopify 는 차단 응답이 나오면 다음 스케줄부터 건너뜀(사람이 `--source=shopify_apps` 로 재개). 이 예외는 약관을 알고 켠 것이다.
+- **20261008000010** `review_targets_label_normalize` — review_targets 에 `label_original text NULL` ADD COLUMN + 라벨 58행 UPDATE(`01-meeting-notes:*` 56 → `1:*`, `07-ecommerce-ops:triple-whale` 2 → `3:*`, 원라벨은 label_original 에 보존, 삭제 없음). 보류 26행(지도 값 out)은 변경 없음. 적용 2026-10-08 UTC 16:3x, PR #473 머지 f13cbac. 승인: 남헌 v38 '2. T0 라벨 정규화: 승인', 적용 CEO-STAFF(§10.2 대량 UPDATE 4조건: 드라이런·롤백·무중단·Notion).
+  - 적용 전: label_original 열 없음 · 옛 형식 56/28/84 · 수집 running 0 · 활성 쿼리 0 · 영향 프로젝트에 다른 라벨 혼재 0.
+  - 양성: 열 추가·보존 58·새 형식 58·`^07-` 26(보류)·`^01-` 0·중복 (source_key,label) 0·총 타깃 450 불변·구글 플레이 활성 88 불변. 영역 집계 정상(① 56 · ② 31 · ③ 28 · ④ 51 · ⑤ 52 타깃).
+  - 롤백 파일 `20261008000010_review_targets_label_normalize_rollback.sql`(label_original 에서 정확히 복원, 열은 남김).
+- **20261009000010 / 20261009000011** `tos_owner_override` / `tos_quote_allowed_align` — review_sources 6행(devto·disquiet·indiehackers·tumblbug·youtube·producthunt) `override` NULL → `owner_2026-10-08`, disquiet·tumblbug 2행 `quote_allowed` true → false. 적용 2026-10-09 UTC, PR #474 머지 d632f93. 승인: 남헌 v38 '3. 약관 건: 확인(새 결정 아님) — 6곳 override 기록, quote_allowed=false · short_only 확인, producthunt enabled=false 유지·입력 삭제 금지', 적용 CEO-STAFF.
+  - 적용 전: review_sources 트리거 0 · producthunt 입력 1,128 · 6곳 밖 행 해시 기록 · 수집 running 0.
+  - 양성: 6곳 모두 override owner_2026-10-08·quote_allowed false·short_only, producthunt enabled=false·입력 1,128 불변, 기존 override 5개(appstore 10-05 · googleplay·kakao_blog·kakao_cafe 10-06 · shopify_apps 10-08) 불변. 음성: 6곳 밖 행 해시 불변.
+  - 수집량 영향 없음(5개 활성 소스 모두 cap_base 있음, request-cap 'fixed' 는 자동 상향만 멈춤). quote_allowed 는 실행 코드에서 읽히지 않고 인용 게이트는 quote_policy 만 읽는다.
+  - 롤백 파일 두 개(000011 → 000010 순).
+- **20261009000020** `analysis_projects_area` — analysis_projects 에 NULL 허용 열 5개(area_code·area_basis·area_evidence·area_rule_ver·area_assigned_at) ADD COLUMN + 규칙 v37-1 로 199개 프로젝트 중 195개 UPDATE(4개는 입력 0건이라 미부여) + 읽기 뷰 `v_input_area`(security_invoker). 원라벨(review_targets.label)과 기존 열 불변. 적용 2026-10-09 UTC, PR #475 머지 cd02d76. 승인: 남헌 v38 '1. 소급 영역 부여: 승인'(요약표·샘플 20건 검수 맞음 17·경계 3·틀림 0), 적용 CEO-STAFF(§10.2 대량 UPDATE 4조건).
+  - 적용 전(C1~C6): 영역 열·뷰 없음 · analysis_projects 트리거 0 · 옛 라벨 26 · 수집 running 0 · 활성 쿼리 0 · 입력 58,541(purged 1,294) · 프로젝트 199 · 원라벨 해시 기록.
+  - 양성: 입력 합 58,541 = 뷰 행 58,541 = 영역별 그룹 합. ① 28/1,876 · ② 8/2 · ③ 7/580 · ④ 24/1,038 · ⑤ 27/3,121 · design 3/1,050 · hold 12/594 · out-consumer 30/18,018 · out-founder 56/32,262 · 미부여 4. 뷰 security_invoker·service_role 만 읽기. 음성: review_targets 원라벨 해시 적용 전후 동일.
+  - 알려진 오분류 1건(devto 프로젝트, 입력 76, 영역 외-소비재 → 창업가 불만이어야 함) — 남헌 판단 대기(규칙 v37-2 또는 수동 정정). 새 프로젝트는 대화형 세션의 재실행 전까지 NULL.
+  - 롤백 파일 `20261009000020_analysis_projects_area_rollback.sql`(v37-1 비수동 행만 NULL, 열·CHECK 남김, 뷰 DROP).
+- **20261009000030** `googleplay_slot_a` — review_targets 구글 플레이 `07-ecommerce-ops:*` active 14행 `active → failed`(일시 정지, 삭제 없음; kr:ko 11 + #464 예외 us:en 3) + 기록 테이블 `review_targets_paused_20261009` CREATE(이전 상태·라벨·수집 수·사유·시각, RLS 켬·정책 0) + 영어 타깃 11 INSERT(`1:us-en|` krisp·fellow·meetgeek·circleback·rev, `3:us-en|triple-whale`, `4:us-en|` rippling·gusto·bamboohr·hibob·personio). 적용 2026-10-09 UTC, PR #476 머지 e679a74. 승인: 남헌 v38 '4. 구글 플레이 슬롯: A 승인'(v33 '보류도 수집 유지'보다 우선, 한도 예외 금지), 적용 CEO-STAFF.
+  - 적용 전(S1~S10): 구글 플레이 활성 88 · #464 예외 정확히 8행 · T0 적용(옛 라벨 26) · 정지 14행의 수집 수가 스냅샷과 일치(합 394) · 조건 재현 14행 · 신규 11쌍 없음·앵커 이상 없음 · 예산 값 기록 · 구글 플레이 수집 running 0 · 기록 테이블 없음 · v44 2차 블록 미적용.
+  - 양성: 구글 플레이 활성 88 → 85(예외 제외 80 → 80, #464 예외 active 8 → 5) · `07-ecommerce-ops` active 0/failed 14 · 기록 14행(수집 합 394) · 신규 11 전부 미방문 active·`^[1-5]:us-en|` · 총 타깃 450 → 461. 음성: 소스·예산(구글 플레이 cap 60/목표 30, 앱스토어 200/100) 불변 · 옛 라벨 26 불변.
+  - 정지 14행 중 itemscout·sellerbox·sello·shopmoa 4곳은 각 80건을 모은 곳(합 320)으로 남헌이 알고 승인. failed 는 수집 고장이 아니라 일시 정지(`review_targets_paused_20261009` 와 짝지어 읽을 것).
+  - 적용 후 필수 확인: 다음 구글 플레이 수집 슬롯이 지난 뒤 드라이런 P1 쿼리로 '미복원 행 status 가 failed 14뿐'을 재확인.
+  - 롤백 파일 `20261009000030_googleplay_slot_a_rollback.sql`(정확한 14 id 만 이전 상태 복원, 신규 11 failed, 삭제 없음).

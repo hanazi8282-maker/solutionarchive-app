@@ -272,6 +272,7 @@ const emptyStats = (): RunStats => ({
   newReviews: 0,
   fallbackKeys: 0,
   crossTargetDuplicates: 0,
+  seenDuplicates: 0,
   blockedResponses: 0,
   quotaExhaustedResponses: 0,
 })
@@ -991,6 +992,7 @@ async function ingestPage(
     if (verdict === 'duplicate' || verdict === 'revised') {
       // 수정된 리뷰도 재적재하지 않는다. 이미 분석에 반영된 의견인데
       // 수정본을 또 넣으면 같은 사람 의견이 두 번 세어진다(설계 §4.5).
+      stats.seenDuplicates = (stats.seenDuplicates ?? 0) + 1
       continue
     }
 

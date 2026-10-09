@@ -171,7 +171,8 @@ export async function GET(req: Request) {
   // 소스 표시명을 같이 읽는다 — 화면에서 'hackernews' 대신 사람이 읽는 이름을 쓴다.
   const { data, error } = await supabase
     .from('review_targets')
-    .select(`${TARGET_SELECT}, review_sources ( display_name, enabled, health )`)
+    // health 는 select 하지 않는다 — 옛 칸 값이 응답에 새어 나갈 길을 아예 없앤다. 값은 아래에서 health_after 로 채운다.
+    .select(`${TARGET_SELECT}, review_sources ( display_name, enabled )`)
     .eq('project_id', projectId)
     .order('created_at', { ascending: true })
 

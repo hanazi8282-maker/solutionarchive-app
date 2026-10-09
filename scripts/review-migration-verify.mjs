@@ -96,13 +96,14 @@ await check(
 await check('다나와 시드', async () => {
   const { data, error } = await supabase
     .from('review_sources')
-    .select('key, enabled, health, min_interval_ms, daily_request_cap')
+    // health 는 찍지 않는다 — #373(2026-09-30) 뒤 안 갱신되는 낡은 칸이다. 건강도는 review_collection_runs.health_after.
+    .select('key, enabled, min_interval_ms, daily_request_cap')
     .eq('key', 'danawa')
     .maybeSingle()
   if (error) throw new Error(error.message)
   if (!data) throw new Error('danawa 행이 없다 — INSERT 가 안 돌았다')
   if (data.min_interval_ms < 1000) throw new Error(`간격이 너무 짧다: ${data.min_interval_ms}ms`)
-  return `enabled=${data.enabled} health=${data.health} 간격=${data.min_interval_ms}ms 상한=${data.daily_request_cap}`
+  return `enabled=${data.enabled} 간격=${data.min_interval_ms}ms 상한=${data.daily_request_cap}`
 })
 
 console.log('\n## 004 — 소재은행 proposed (미뤄도 되는 마이그레이션)\n')

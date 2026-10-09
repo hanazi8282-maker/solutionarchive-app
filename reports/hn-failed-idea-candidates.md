@@ -183,3 +183,15 @@
 - 작성일: 2026-10-08
 
 > As a percent of the population we have as many foreign born residents as we did in the 1800s and more than we ever did in the 1900s. In fact, some stats even show we have more foreign born residents as a percent than we’ve ever had and it could be even higher than reported given how many folks are here illegally. People forget that we shut down immigration for a few decades in the 1900s to let people assimilate. We’ve overdone it, we need to slow the influx again.
+
+## HN 50024900
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50024900
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-09 UTC)
+- 스레드: Germany transforms former coal mines into Europe's largest lake landscape
+- 작성자: martin_a
+- 작성일: 2026-10-09
+
+> Yes, because we failed to invest in storage systems for the last... 25 years or so... If we would have, it would look much different now.

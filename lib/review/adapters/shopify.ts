@@ -93,12 +93,20 @@ export function parseShopifyDate(s: string): string | null {
   return `${m[3]}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
+/**
+ * 별점만 남긴 리뷰 — 블록·id·본문 칸은 그대로 있고 칸 안 `<p>` 가 비어 있다(2026-10-09 loox·judgeme 1쪽 실측: loox 7/10, judgeme 1/10).
+ * 구조 변경이 아니라 "본문 없음"이다. 실패로 세면 정상 페이지가 broken(파싱 성공 < 8/10)으로 찍힌다(10-09 05:39 15/20 · 07:38 2/10 경보).
+ */
+const EMPTY: unique symbol = Symbol('empty')
+
 /** 리뷰 블록 1개. 필수 = 리뷰 id 와 본문. 개발사 답글(data-merchant-review-reply) 이후는 보지 않는다. */
-function toReview(block: string): ParsedReview | null {
+function toReview(block: string): ParsedReview | typeof EMPTY | null {
   const id = /data-review-content-id="(\d{1,15})"/.exec(block)?.[1]
   const own = block.split('data-merchant-review-reply')[0]
   const copy = /data-truncate-content-copy[^>]*>([\s\S]*?)<\/div>/.exec(own)?.[1]
   const text = copy ? strip(copy) : ''
+  // 본문 칸 안이 실측한 모양 그대로 빈 `<p></p>` 하나 = 별점만 남긴 리뷰. 칸이 없거나 다른 모양으로 비면 여전히 못 읽음이다.
+  if (id && copy != null && /^\s*<p[^>]*>\s*<\/p>\s*$/.test(copy)) return EMPTY
   if (!id || !text) return null
   const stars = /aria-label="(\d) out of 5 stars"/.exec(own)?.[1]
   // 날짜는 별점 줄 바로 뒤 div 의 "Month D, YYYY". 본문 안의 날짜를 잡지 않게 본문 앞 구간에서만 찾는다.
@@ -170,11 +178,16 @@ export const shopifyAdapter: ReviewSourceAdapter = {
     if (blocks.length === 0 && hasReviewTrace(html)) return FAIL
     const reviews: ParsedReview[] = []
     let parseFailures = 0
+    let empty = 0
     for (const b of blocks) {
       const r = toReview(b)
-      if (r) reviews.push(r)
+      if (r === EMPTY) empty++
+      else if (r) reviews.push(r)
       else parseFailures++
     }
+    // 블록이 전부 "본문 없음"이면 본문이 다른 자리로 옮겨 간 구조 변경일 수 있다 — 0건 ok 로 접지 않고 1건 실패로 남긴다(§7.1).
+    // ponytail: 진짜로 한 쪽 전체가 별점만인 페이지도 1 실패로 센다. 쪽당 1이라 broken(표본 10 이상, 성공 < 8/10)까지는 잘 안 간다.
+    if (blocks.length > 0 && empty === blocks.length) parseFailures++
     const page = pageOf(ctx.cursor)
     let nextCursor: string | null = /rel="next"/.test(html) && blocks.length > 0 && page < MAX_PAGE ? String(page) : null
     // 이미 본 구간에 닿았으면 더 내려가지 않는다(최신순 전제 — 다음 실행은 1쪽부터, incrementalOnly).

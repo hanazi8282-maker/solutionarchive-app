@@ -1619,8 +1619,12 @@ for (const [name, mod, exportName, ref, robots, fixture, expectCount] of [
 
   // 다음 날 같은 두 타깃을 다시 돌리면 전부 duplicate 여야 한다.
   const before = inputs.length
-  await runCollection(tumblbugAdapter, { dryRun: false, targetLimit: 2 }, ports)
+  const r2 = await runCollection(tumblbugAdapter, { dryRun: false, targetLimit: 2 }, ports)
   t('타깃간중복: 재실행에서 새로 적재된 것 0건', inputs.length - before, 0)
+  // 파싱 > 0 · 신규 0 · 교차중복 0 을 "이미 본 글"로 갈라 센다(v45 §4-4 — kakao 10-09 실행이 이 모양이었다).
+  t('이미 본 글: 재실행도 파싱은 한다(0=0 공허 통과 방지)', r2.stats.reviewsParsed > 0, true)
+  t('이미 본 글: 재실행 파싱 수 = seenDuplicates', r2.stats.seenDuplicates, r2.stats.reviewsParsed)
+  t('이미 본 글: 교차중복과 섞지 않는다', r2.stats.crossTargetDuplicates, 0)
 }
 
 // ── ADAPTERS 맵 키가 마이그레이션의 review_sources.key 와 같은가 ──

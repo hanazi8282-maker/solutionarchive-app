@@ -1,0 +1,19 @@
+[
+  {
+    "case_slug": "zenefits-licensing-macro-trust-collapse",
+    "move_id": "b484f48f-f90b-4dc7-b53b-d4801f3bdefd",
+    "content_code": "CS-20261009-01",
+    "body_path": "drafts/threads/2026-10-09-zenefits-licensing-macro-trust-collapse.body.txt",
+    "reply_path": "drafts/threads/2026-10-09-zenefits-licensing-macro-trust-collapse.selfreply.txt",
+    "decision_doc": "drafts/threads/2026-10-09-zenefits-licensing-macro-trust-collapse.md",
+    "title": "자격보다 빨랐던 채용",
+    "twist_line": "사람을 빨리 뽑아 일손을 늘렸더니, 보험 계약 열 건 중 여덟 건 넘게를 판매 자격이 없는 직원이 처리하고 있었다",
+    "hook_type": "수치 반례형(83%가 자격 없는 직원)",
+    "closing_type": "세어 보기 질문형(새 인력 중 자격 전에 고객을 받은 사람 수)",
+    "topic_tag": "case-study",
+    "gate_note": "Ⅰ~Ⅲ 통과, U-3 확인 불가, G-0 예외통과. CG-1 대상(등급 C): 본문 'Zenefits가 밝힌 바로는' 1회 + 자기답글 '자사 공시' 명시. 한계: drafts/cases/zenefits-licensing-macro-trust-collapse.json 이 리포에 없어(DB에만 존재) 무브의 transfer_note·preconditions·evidence 출처 주체를 읽지 못했다. 본문 사실은 지시문 주장 한 문장(83%·2015년 8월·워싱턴주)뿐이며, 83%를 밝힌 주체가 Zenefits 인지 미확인이라 스테이징 전 evidence 대조 필요. 마무리 질문·자기답글 확인 방법은 작가가 주장에서 추론한 것. 본문 약 285자 손계산, Bash 부재로 기계 계수 못 함 — column-check 재확인 필요.",
+    "bp1_exclusive_numbers": false,
+    "bp2_transferable": true,
+    "applied_patterns": []
+  }
+]

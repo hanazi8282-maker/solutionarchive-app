@@ -17,7 +17,8 @@
 import fs from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
-import { computeSupply, supplyLine } from '../lib/review/target-supply.ts'
+import { areaCoverage, areaCoverageLine, computeSupply, supplyLine } from '../lib/review/target-supply.ts'
+import { loadAreasConfig } from '../lib/analysis/areas-config.ts'
 
 const DAY_MS = 86_400_000
 
@@ -73,6 +74,22 @@ export async function loadSupplyInputs(sb, now = new Date()) {
   return { now, sources, ramps, targets, runs }
 }
 
+/**
+ * 영역 T2 커버리지 뷰(마이그 20261009000040)를 GET 으로 읽는다 — HEAD 는 없는 테이블에도 204 를 준다(§7.1 3번).
+ * 뷰가 없으면 PostgREST 가 PGRST205 를 준다. 어떤 오류든 rows=null 로 올려 '확인 불가'로 찍는다(0 행으로 접지 않는다). 던지지 않는다 —
+ * 커버리지를 못 읽었다고 공급 신호(발굴 건수 입력) 전체를 죽이지 않는다.
+ */
+export async function loadAreaCoverage(sb) {
+  try {
+    const { data, error } = await sb.from('v_area_t2_coverage').select('*')
+    if (error) return { rows: null, error: `${error.code ?? ''} ${error.message ?? ''}`.trim() }
+    if (!Array.isArray(data)) return { rows: null, error: '응답이 배열이 아니다' }
+    return { rows: data, error: null }
+  } catch (e) {
+    return { rows: null, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
 export async function openDb() {
   const { createClient } = await import('../lib/supabase/server.ts')
   const sb = await createClient()
@@ -93,17 +110,38 @@ export function summaryMarkdown(report) {
     ...report.sources.map((s) => `- ${supplyLine(s)}`),
     '',
   ]
+  const cov = report.area_coverage
+  if (cov) {
+    lines.push(
+      `### 영역 T2 커버리지 (뷰 ${cov.read === 'ok' ? '읽음' : `확인 불가 — ${cov.error}`} · 상태 기준 = 포기·교체 ${cov.criteria === 'proposed' ? '제안값(남헌 확정 전)' : cov.criteria ?? '확인 불가'})`,
+      '',
+      ...cov.areas.map((c) => `- ${areaCoverageLine(c)}`),
+      '',
+    )
+    const human = cov.areas.filter((c) => c.needs_human)
+    if (human.length) lines.push(`- ⚠️ 남헌 판단 항목 ${human.length}건: ${human.map((c) => c.code).join(', ')} — 코드는 영역을 끄거나 바꾸지 않는다`, '')
+  }
   return lines.join('\n')
 }
 
-export async function main(argv, { db } = {}) {
+export async function main(argv, { db, areasFile } = {}) {
   const sb = db ?? (await openDb())
   const report = computeSupply(await loadSupplyInputs(sb))
+  // 영역 커버리지 열(v37 U3) — 정본 config/areas.json. 설정·뷰 어느 쪽을 못 읽어도 공급 계산은 그대로, 그 칸만 '확인 불가'.
+  const areas = areasFile ? loadAreasConfig(areasFile) : loadAreasConfig()
+  if (!areas.cfg) console.error(`⚠️ 영역 설정 확인 불가 — 커버리지 상태 칸 확인 불가: ${areas.error}`)
+  for (const w of areas.warnings) console.error(`⚠️ 영역 설정: ${w}`)
+  const coverageIn = await loadAreaCoverage(sb)
+  if (coverageIn.rows === null) console.error(`⚠️ 영역 커버리지 뷰 확인 불가(v_area_t2_coverage) — ${coverageIn.error}`)
+  report.area_coverage = areaCoverage(coverageIn, areas.cfg, new Date(report.generated_at))
   const out = argv.find((a) => a.startsWith('--out='))?.slice(6)
   if (out) fs.writeFileSync(out, JSON.stringify(report, null, 2))
   if (argv.includes('--summary') && process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryMarkdown(report))
   if (argv.includes('--json')) console.log(JSON.stringify(report, null, 2))
-  else for (const s of report.sources) console.log(supplyLine(s))
+  else {
+    for (const s of report.sources) console.log(supplyLine(s))
+    for (const c of report.area_coverage.areas) console.log(`영역 ${areaCoverageLine(c)}`)
+  }
   return report
 }
 

@@ -8,6 +8,8 @@
 //   1. 야간 extract 후보 상태(extract-gate AUTO_EXTRACT_STATUSES — collecting·extracted·failed, 단 재추출 1회 뒤에도 failed 면 제외 — v28 #10) 프로젝트에서 T1 선별(selectInputs)을 통과한 상위 N건(기본 200)을 고른다.
 //   2. 그중 **아직 판정이 없는 것**만, 프로젝트당 1회 돈다(리뷰 20건씩 묶어 호출).
 //   3. 최근 사람 채점(human_verdict) 최대 10건을 few-shot 으로 프롬프트에 넣는다(그 프로젝트 우선).
+//   1-1. 사전필터(v31 항목 5, lib/analysis/prefilter.ts) — T1 뒤 · T2 전. 기본 shadow = 걸렸을 후보를 select 스텝 detail 에
+//        표시만 하고 판정은 그대로. enforce 는 사람이 오탈락률 측정 뒤 켠다(docs/prefilter-shadow.md).
 //   4. 결과를 review_relevance_verdicts 에 UPSERT. **human_verdict 는 payload 에 없다** —
 //      재판정이 사람 채점을 덮지 않는다.
 //
@@ -35,9 +37,7 @@ import {
 } from '../lib/analysis/session-guard.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
-import { selectInputs } from '../lib/analysis/extract-select.ts'
-// 대상 순서는 야간 extract 와 같은 규칙을 쓴다(SaaS 우선 → 많은 순 → projectId).
-import { compareAutoPriority } from '../lib/analysis/extract-auto.ts'
+// 대상 순서는 야간 extract 와 같은 규칙(compareAutoPriority: SaaS 우선 → 많은 순 → projectId)을 영역 결손 축이 감싼다 — lib/analysis/area-priority.ts planAreaOrder(v37 U1).
 // 대상 상태도 야간 extract 와 한 벌(v27 옵션 A). collecting 만 보던 동안 extracted 프로젝트에 새로 들어온 수집분은
 // 판정되지 않아 T2(자동 승인·extract 선별)를 못 넘었다. 2차(relevance-second-judge-auto)는 프로젝트 상태로 거르지 않고
 // 1차 판정 행을 따라가므로 같은 집합을 자동으로 쓴다. 하루 상한(RELEVANCE_MAX_PROJECTS)은 그대로다.
@@ -45,10 +45,16 @@ import { AUTO_EXTRACT_STATUSES, relevanceFailedState } from '../lib/analysis/ext
 import {
   BATCH_SIZE,
   MAX_EXAMPLES,
-  MAX_REVIEW_CHARS,
   chunkReviews,
   judgeRelevanceBatch,
+  DEFAULT_HIGH_RATING_SHARE,
+  parseHighRatingShare,
 } from '../lib/analysis/relevance-judge.ts'
+import { loadPrefilterConfig } from '../lib/analysis/prefilter.ts'
+// 영역 결손 축(v37 작업 7 U1) — 정본 config/areas.json. 못 읽으면 영역 축을 끄고 기존 순서(compareAutoPriority) 그대로.
+import { loadAreasConfig } from '../lib/analysis/areas-config.ts'
+import { areaFloorLine, loadAreaContext, planAreaOrder } from '../lib/analysis/area-priority.ts'
+import { createPendingFor } from '../lib/analysis/relevance-pending.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate } from './notion-status-log.mjs'
 
@@ -61,6 +67,10 @@ const num = (v, fallback) => {
 }
 /** 프로젝트당 판정할 표본 크기(T1 통과분 상위). */
 const sampleSize = num(process.env.RELEVANCE_SAMPLE, 200)
+/** 표본에서 4~5점 평점 입력의 비율 상한(v31 §2.3). 바꾸는 날은 env 값 + Notion 일일 상태 로그 한 줄이 근거다. */
+const highRatingShareEnv = process.env.RELEVANCE_HIGH_RATING_SHARE
+const parsedHighShare = parseHighRatingShare(highRatingShareEnv)
+const highRatingShare = parsedHighShare ?? DEFAULT_HIGH_RATING_SHARE
 /** 하루에 돌 최대 프로젝트 수. */
 const maxProjects = num(process.env.RELEVANCE_MAX_PROJECTS, 5)
 
@@ -132,7 +142,8 @@ log(`세션 가드 — run_key=${runKey} · 이번 실행 상한 ${capUsd == nul
 // 상한이 걸리는 건 구독 경로(claude-cli)뿐이다 — gemini 로 되돌리면 budget.ts 가 달러 예산을 지킨다.
 const guarded = provider === 'claude-cli'
 
-log(`야간 관련성 판정 ${dry ? '(--dry: 대상 선정만)' : ''} — provider=${provider} · 표본 ${sampleSize}건/프로젝트 · 프로젝트 상한 ${maxProjects}건 · 일 예산 $${DAILY_BUDGET_USD}`)
+if (parsedHighShare === null && (highRatingShareEnv ?? '').trim() !== '') warn(`RELEVANCE_HIGH_RATING_SHARE=${highRatingShareEnv} 은 0~1 밖이다 — 기본 ${DEFAULT_HIGH_RATING_SHARE} 로 간다`)
+log(`야간 관련성 판정 ${dry ? '(--dry: 대상 선정만)' : ''} — provider=${provider} · 표본 ${sampleSize}건/프로젝트(4~5점 상한 ${highRatingShare}${parsedHighShare === null ? ' 기본' : ' env'}) · 프로젝트 상한 ${maxProjects}건 · 일 예산 $${DAILY_BUDGET_USD}`)
 
 // ── 1. 후보 프로젝트 ─────────────────────────────────────────────
 //
@@ -189,40 +200,16 @@ if (readerProblemColumn === 'present') {
   else log(`  · reader_problem 값이 있는 후보 ${filled}/${(projects ?? []).length}건`)
 }
 
-/** 이 프로젝트에서 판정할 리뷰 목록. 실패는 null 로 올려 "0건" 과 가른다(§7.1). */
-async function pendingFor(project) {
-  const { data: inputs, error } = await supabase
-    .from('analysis_inputs')
-    .select('id, raw_text, created_at, collected_at')
-    .eq('project_id', project.id)
-    .is('purged_at', null)
-  if (error) {
-    console.error(`⚠️ 원문 조회 실패 project=${project.id}: ${error.message}`)
-    return null
-  }
-  if (!inputs || inputs.length === 0) return { total: 0, reviews: [] }
-
-  // T1 과 같은 선별기를 쓴다 — 판정 표본과 extract 가 보는 집합이 갈라지면 판정이 헛돈다.
-  const selected = selectInputs(inputs).selected.slice(0, sampleSize)
-
-  const { data: judged, error: judgedError } = await supabase
-    .from('review_relevance_verdicts')
-    .select('input_id')
-    .eq('project_id', project.id)
-  if (judgedError) {
-    // 판정 캐시를 못 읽었는데 그대로 돌리면 이미 판정한 것을 다시 태운다. 건너뛴다.
-    console.error(`⚠️ 판정 캐시 조회 실패 project=${project.id}: ${judgedError.message}`)
-    return null
-  }
-  const done = new Set((judged ?? []).map((r) => r.input_id))
-
-  return {
-    total: selected.length,
-    reviews: selected
-      .filter((s) => !done.has(s.input.id))
-      .map((s) => ({ input_id: s.input.id, text: s.text.slice(0, MAX_REVIEW_CHARS) })),
-  }
-}
+// ── 사전필터(v31 항목 5) — T1 선별 뒤 · T2 호출 전. 기본 shadow(표시만). lib/analysis/prefilter.ts · docs/prefilter-shadow.md ──
+// 설정을 못 읽으면 필터를 끈다(아무것도 표시·제외 안 함) — 모르는 규칙으로 원문을 버리지 않는다(§7.1).
+const prefilterLoad = loadPrefilterConfig()
+const prefilterCfg = prefilterLoad.cfg
+if (!prefilterCfg) warn(`사전필터 설정 확인 불가 — 필터 꺼짐(전부 통과): ${prefilterLoad.error}`)
+for (const w of prefilterLoad.warnings) warn(`사전필터 설정: ${w}`)
+log(`사전필터 — ${prefilterCfg ? `mode=${prefilterCfg.mode} · 소스 ${prefilterCfg.applySources === '*' ? '전부' : prefilterCfg.applySources.join(',') || '(없음)'}` : '꺼짐(설정 확인 불가)'}`)
+// 대상 조회(평점 컬럼 42703 폴백) → T1 → 평점 우선 자르기 → 판정 캐시 제외 → 사전필터. 연결부는 lib/analysis/relevance-pending.ts
+// (모의 supabase 로 scripts/prefilter-selftest.mjs 가 실행 검사한다). 모든 반환에 rating 이 있다(아래 대상 로그가 읽는다).
+const { pendingFor, prefilterByProject, currentPrefilter } = createPendingFor({ supabase, sampleSize, highRatingShare, prefilterCfg, log, warn })
 
 /** few-shot — 사람 채점 최근 N건. 이 프로젝트 것 우선, 모자라면 다른 프로젝트에서 채운다. */
 async function examplesFor(projectId) {
@@ -283,15 +270,26 @@ for (const p of projects ?? []) {
 }
 
 const unknownCount = candidates.filter((c) => c.pending === null).length
-// SaaS 우선 → 미판정 많은 순 → projectId. extract 와 같은 헬퍼를 쓴다.
-const ready = candidates
-  .filter((c) => c.pending !== null)
-  .sort((a, b) =>
-    compareAutoPriority(
-      { projectId: a.project.id, newInputs: a.pending.reviews.length, businessModel: a.project.business_model },
-      { projectId: b.project.id, newInputs: b.pending.reviews.length, businessModel: b.project.business_model },
-    ),
-  )
+
+// 영역 결손 축(v37 작업 7 U1): 결손 영역 → 충족 영역 → 영역 외 → hold, 같은 칸 안은 아래 기존 규칙.
+// 설정·판정 수 중 하나라도 확인 불가면 축을 끈다 — 모르는 결손으로 순서를 바꾸지 않는다(§7.1).
+const areasLoad = loadAreasConfig()
+for (const w of areasLoad.warnings) warn(`영역 설정: ${w}`)
+if (!areasLoad.cfg) warn(`영역 설정 확인 불가 — 영역 축 끔(기존 순서): ${areasLoad.error}`)
+// 같은 칸 안 기존 규칙: SaaS 우선 → 미판정 많은 순 → projectId(extract 와 같은 헬퍼). 조회·정렬 예외도 축 끔 + 기존 순서(planAreaOrder).
+const autoKey = (c) => ({ projectId: c.project.id, newInputs: c.pending.reviews.length, businessModel: c.project.business_model, c })
+const areaPlan = await planAreaOrder({
+  cfg: areasLoad.cfg,
+  load: () => loadAreaContext(supabase, warn),
+  cands: candidates.filter((c) => c.pending !== null).map(autoKey),
+  warn,
+})
+const areaAxis = areaPlan.axis
+const areaCtx = areaPlan.ctx
+if (areaAxis === 'on') {
+  log(`영역 판정/최소량(${areasLoad.cfg.floorSource === 'env' ? 'env RELEVANCE_AREA_FLOOR' : 'config/areas.json'}): ${areaFloorLine(areaCtx.judged, areasLoad.cfg)} · 영역 열 ${areaCtx.column === 'present' ? '있음(NULL 은 라벨 폴백)' : '없음 → 라벨 폴백'}`)
+} else warn(`영역 축 꺼짐 — ${areaPlan.reason}. 기존 순서(SaaS 우선 → 미판정 많은 순)`)
+const ready = areaPlan.ordered.map((k) => k.c)
 // 재시도 슬롯(v32 #4): 한도로 멈춘 **그 프로젝트**를 맨 앞으로. 판정은 묶음마다 저장돼 이미 판정된 리뷰는 다시 안 탄다(pendingFor).
 if (retry?.quotaProject) {
   const i = ready.findIndex((c) => c.project.id === retry.quotaProject)
@@ -303,10 +301,15 @@ const remaining = ready.length - targets.length
 log(
   `후보(${AUTO_EXTRACT_STATUSES.join('·')}) ${(projects ?? []).length}건 → 판정 대상 프로젝트 ${ready.length}건` +
     (remaining > 0 ? ` 중 ${targets.length}건 실행 (상한 ${maxProjects}건 도달, 남은 ${remaining}건은 다음 실행)` : ' 전부 실행') +
-    ' (순서: SaaS 우선 → 미판정 많은 순)',
+    (areaAxis === 'on' ? ' (순서: 공급 충분한 결손 영역 → 공급 부족 결손 영역 → 충족 영역 → 영역 외 → 보류, 결손 칸은 미판정 큰 순)' : ' (순서: SaaS 우선 → 미판정 많은 순 — 영역 축 꺼짐)'),
 )
+const areaTag = (id) => {
+  if (areaAxis !== 'on') return ''
+  const a = areaCtx.byProject.get(id)
+  return ` 영역 ${a?.code ?? 'unassigned'}(${a?.via ?? 'none'})`
+}
 for (const t of targets) {
-  log(`  · ${t.project.id} [${t.project.business_model ?? '미기재'}] 미판정 ${t.pending.reviews.length}건 / 표본 ${t.pending.total}건 — ${t.project.product_elevator_pitch ?? '(소개 없음)'}`)
+  log(`  ·${areaTag(t.project.id)} ${t.project.id} [${t.project.business_model ?? '미기재'}] 미판정 ${t.pending.reviews.length}건 / 표본 ${t.pending.total}건(평점 저 ${t.pending.rating.low} · 고 ${t.pending.rating.high}/상한 ${t.pending.rating.high_cap} · 없음 ${t.pending.rating.none}) —${t.project.product_elevator_pitch ?? '(소개 없음)'}`)
 }
 if (unknownCount > 0) warn(`원문·판정 캐시를 읽지 못한 프로젝트 ${unknownCount}건 — 대상 판정에서 빠졌다(판정할 게 없다는 뜻이 아니다)`)
 
@@ -335,7 +338,18 @@ await tracker.step({
     projects: (projects ?? []).length, targets: targets.length, remaining, unknown: unknownCount,
     failed_retry: failedBy.retry, failed_excluded: failedBy.excluded, failed_unknown: failedBy.unknown,
   },
-  detail: { sample: sampleSize, max_projects: maxProjects, batch: BATCH_SIZE, slot, retry: retry ? { reason: retry.reason, retries_done: retry.retriesDone } : null },
+  detail: {
+    sample: sampleSize, high_rating_share: highRatingShare,
+    rating_mix: Object.fromEntries(targets.map((t) => [t.project.id, t.pending.rating])),
+    // 영역 결손 축(v37 U1): off = 설정·판정 수 확인 불가로 기존 순서. area_judged 는 이번 실행 전 판정 수.
+    area_axis: areaAxis, area_axis_reason: areaPlan.reason, area_floor: areasLoad.cfg?.floor ?? null, area_judged: areaCtx?.judged ?? null, area_column: areaCtx?.column ?? null,
+    area_of: areaAxis === 'on' ? Object.fromEntries(targets.map((t) => [t.project.id, areaCtx.byProject.get(t.project.id) ?? null])) : null,
+    max_projects: maxProjects, batch: BATCH_SIZE, slot, retry: retry ? { reason: retry.reason, retries_done: retry.retriesDone } : null,
+    // 사전필터 입력 단위 기록(v31 항목 5): 이번에 도는 프로젝트만. null = 설정 확인 불가·실행 중 예외로 꺼짐.
+    prefilter: prefilterCfg
+      ? { mode: prefilterCfg.mode, disabled_by_error: currentPrefilter() === null, by_project: Object.fromEntries(targets.filter((t) => prefilterByProject[t.project.id]).map((t) => [t.project.id, prefilterByProject[t.project.id]])) }
+      : null,
+  },
 })
 
 // 상한을 모르면(설정 깨짐) 돌지 않는다(§7.1). 주간 스위치도 여기서 멈춘다. 둘 다 stop_reason ≠ quota 라 재시도 슬롯이 다시 깨우지 않는다.

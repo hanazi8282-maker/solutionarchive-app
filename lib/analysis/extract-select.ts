@@ -11,6 +11,7 @@
 // 페인 낱말 사전은 처방 매칭과 같은 정본을 쓴다(config/pain-terms.json).
 // 여기서 따로 배열을 만들면 SaaS 낱말로 교체할 때 한쪽만 바뀌어 조용히 갈라진다.
 import { PAIN_TERMS } from '../cases/draft.ts'
+import { stripSourceHeader } from '../review/types.ts'
 
 // 컨텍스트 폭주 방지: 입력 1건당 / 전체 합계 상한
 export const MAX_CHARS_PER_INPUT = 8000
@@ -99,6 +100,8 @@ export function selectInputs<T extends SelectableInput>(
   const scored = rows
     // 폐기된 원문(purged_at 이 찍혀 raw_text 가 null)은 프롬프트에 실을 게 없다.
     .filter(r => r.text.length > 0)
+    // 머리말([SRC:]·플레이 버전)을 떼면 본문이 없는 입력은 프롬프트에 실을 게 없다(v45).
+    .filter(r => stripSourceHeader(r.text, { appVersion: true }).trim() !== '')
     .map(r => ({ ...r, score: scoreInput(r.text, r.ts, newest) }))
     .sort((a, b) => b.score - a.score || b.ts - a.ts || a.index - b.index)
 

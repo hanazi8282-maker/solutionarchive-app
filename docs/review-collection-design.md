@@ -138,6 +138,29 @@ ADAPTERS 맵을 `scripts/review-runner-selftest.mjs` 가 대조한다.
 - 지키는 것: 정직한 UA(러너 고정), 우회 없음(쿠키·프록시·IP 회전·캡차 풀이 없음), 403·429 는 차단으로 즉시 중단, 상한 1000ms·200요청/일 그대로.
 - 되돌림: 롤백 `20261007000003_review_sources_kakao_enable_rollback.sql`(두 행 비활성화). 한 소스만 끄려면 key 하나만.
 
+**Shopify 앱스토어 리뷰 — `shopify_apps`** (남헌 v37 사전 승인 2026-10-08, 등록 마이그 `20261008000040`)
+
+- 문서: Shopify Terms of Service `https://www.shopify.com/legal/terms` · Last updated **2026-08-01** · 1조(Account Terms).
+- 1조 9항 원문: "You agree not to access the Services or monitor any material or information from the Services using any robot, spider, scraper, or other automated means."
+- 1조 7항 원문(일부): "You agree not to reproduce, duplicate, copy, sell, resell or exploit any portion of the Service, use of the Services, or access to the Services without the express written permission by Shopify."
+- 해석(짧게): 리뷰 페이지를 자동으로 읽는 것 자체가 9항에 걸리고, 적재는 7항의 복제다. robots 는 리뷰 경로를 허용한다 — 충돌은 약관뿐이다.
+- 소유자 결정: 남헌이 위 두 조항을 알고 켠다(`override='owner_2026-10-08'`, `tos_status='prohibited'`, `quote_policy='none'`, `quote_allowed=false`).
+  이 override 는 약관 예외 기록이다 — 러너 `OWNER_ROBOTS_OVERRIDES`(robots 금지 예외)에는 넣지 않았다. robots 가 금지로 바뀌면 멈춘다.
+- 지키는 것: 정직한 UA, 우회 없음, 403·429·빈 응답·캡차 즉시 중단(`abortOnChallenge`), URL 은 `/<앱>/reviews?sort_by=newest&page=N` 만
+  (`q=`·`shpxid=`·`auth=` 금지 — 어댑터 `isAllowedReviewUrl`), 8000ms · 30요청/일 · 램프 50% 고정(`ramp.ts PCT_CEILING`, 자동 상승 없음), 상점명·국가 미저장.
+  리뷰 표지 없는 200(로그인·Access denied)도 차단. 한 번 차단되면 다음 스케줄 실행부터 건너뛴다 — 사람이 `--source=shopify_apps` 로 직접 돌려야 재개
+  (`latest-health.ts HALT_ON_BLOCK_SOURCES`, review_sources 를 쓰지 않는 읽기 전용 soft-skip — §10.1 안).
+- 같은 취지의 API Terms(2026-10-07) 2조 8호 "... copy, scrape, mine, or create derivative works of the Shopify API, Merchant Data, any Merchant Store, the Services ..." — API 는 쓰지 않는다.
+- 되돌림: 롤백 `20261008000040_five_arm_sources_rollback.sql`(두 소스 비활성화 + override 회수). 근거 메모 `reports/2026-10-08/five-arm-sources-notes.md`.
+
+**약관 금지 기존 소스 6곳 — devto · disquiet · indiehackers · tumblbug · youtube · producthunt** (남헌 10-08 결정, v38 재확인 · 마이그 `20261009000010`·`20261009000011`)
+
+- 소유자 결정: 이미 켜 둔(producthunt 는 꺼 둔) 소스의 약관 충돌을 남헌이 알고 공식 예외로 기록 — `override='owner_2026-10-08'`, 6곳 모두 `quote_allowed=false` · `quote_policy='short_only'`.
+  tos_status 는 그대로(devto·indiehackers·youtube·producthunt `prohibited`, disquiet·tumblbug `forbids_automation`). 약관 인용은 `ops/state/source-review-queue.md`(devto·indiehackers 줄)와 tos_status 를 쓴 등록·백필 마이그.
+- 약관 예외 기록이다 — 러너 `OWNER_ROBOTS_OVERRIDES` 에 넣지 않았다(6곳 robots 는 allowed·not_applicable). 읽히는 곳: target-supply `tos_flag` 꺼짐 · request-cap `'fixed'`(야간 상한 자동 상향 제외) ·
+  `review_collection_runs.override_value` 스냅샷. producthunt 는 `enabled=false` 유지, 기존 입력 삭제 없음.
+- 되돌림: 롤백 `20261009000011_…_rollback.sql` → `20261009000010_…_rollback.sql`(역순). 영향 조사 `reports/2026-10-09/tos-override-notes.md`.
+
 ## 2. 가장 중요한 구조 결정 — 원문 테이블을 새로 만들지 않는다
 
 리뷰 원문의 정착지는 **이미 있다**: `analysis_inputs (source_type='review', raw_text)`.

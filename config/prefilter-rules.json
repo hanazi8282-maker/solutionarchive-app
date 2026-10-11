@@ -1,0 +1,37 @@
+{
+  "_about": "T2(관련성 판정) 앞 '부드러운 규칙 필터' 설정(v31 항목 5, 남헌 확정). 원칙: 불만을 놓치는 것보다 쓰레기를 조금 더 통과시킨다 — 애매하면 통과. 코드: lib/analysis/prefilter.ts · 절차: docs/prefilter-shadow.md. 규칙을 완화하려면 이 파일만 고친다(목록에서 빼기·보호 낱말 추가·sources 줄이기).",
+  "_mode": "shadow = 표시만 하고 거르지 않음(기본) · enforce = T2 판정 대상에서 뺌. env PREFILTER_MODE 가 이 값을 이긴다. enforce 전환은 사람이 오탈락률 측정(docs/prefilter-shadow.md) 뒤에만 한다 — 코드는 스스로 바꾸지 않는다.",
+  "mode": "shadow",
+  "_apply_sources": "필터를 돌릴 source_key 목록. \"*\" = 전부. env PREFILTER_SOURCES(쉼표 구분)가 이 값을 이긴다. source_key 가 없는 입력(수동 입력)은 \"*\" 일 때만 대상.",
+  "apply_sources": "*",
+  "_complaint_words": "하나라도 들어 있으면 길이·중복·광고 규칙과 무관하게 절대 거르지 않는다. 공백 무시·소문자 부분 문자열 비교. 늘리는 쪽이 완화다.",
+  "complaint_words": [
+    "느려", "느림", "느리", "환불", "먹통", "별로", "해지", "탈퇴", "안됨", "안돼", "안되", "안 됨",
+    "오류", "에러", "버그", "튕", "꺼져", "꺼짐", "멈춤", "멈춰", "끊김", "끊겨", "렉", "불편", "짜증",
+    "최악", "실망", "후회", "고장", "불량", "반품", "교환", "답답", "비싸", "비쌈", "과금", "사기",
+    "못쓰", "못 쓰", "문제", "결제", "로그인", "삭제", "광고 너무", "광고가 너무",
+    "꺼지", "꺼집", "아쉬", "불만", "거절", "날림", "날렸", "비쌉", "안좋", "느립", "불친절", "귀찮", "손해", "망했",
+    "버벅", "끊기", "안 열", "안열",
+    "crash", "refund", "bug", "slow", "broken", "error", "cancel", "unsubscribe", "scam", "worst",
+    "terrible", "not working", "doesn't work", "does not work", "freeze", "frozen", "lag", "overpriced",
+    "charged", "useless", "disappoint"
+  ],
+  "_low_rating_max": "평점이 이 값 이하이고 본문이 있으면 길이 무관 통과(별점 0~5 정규화).",
+  "low_rating_max": 3,
+  "_english": "라틴 글자가 english_min_latin_letters 개 이상이고 전체 글자 중 비율이 english_min_ratio 이상이면 영어 글로 보고 통과(번역 가능).",
+  "english_min_latin_letters": 8,
+  "english_min_ratio": 0.5,
+  "_duplicate_min_chars": "같은 프로젝트(T2 실행에서는 조회된 최대 1,000행 — PostgREST 기본 상한) 안 동일 본문(공백·대소문자 무시) 중 두 번째부터 후보. 이 글자 수 미만의 짧은 본문은 다른 사람의 흔한 한 줄일 수 있어 중복 규칙을 적용하지 않는다(길이로 거르는 규칙이 아니라 중복 규칙의 적용 범위).",
+  "duplicate_min_chars": 20,
+  "_ad_patterns": "제품과 무관함이 확실한 스팸 광고 템플릿(정규식, 대소문자 무시·dotall). 확실한 것만 둔다 — 협찬·체험단 고지는 제품 관련 글이라 넣지 않는다. 도박은 '…사이트' 꼴만. 부업·대출·리딩방은 연락처(@아이디·링크·t.me·오픈채팅·가입/추천코드·문의 주세요)가 함께 있을 때만 — '대출 거절당했어요'·'텔레그램 @봇 연동 좋아요' 같은 실사용 글을 거르지 않게.",
+  "ad_patterns": [
+    "(카지노|바카라|토토|슬롯|홀덤)\\s*사이트",
+    "^(?=.*(고수익|재택\\s*(부업|알바)|부업|급전|무직자\\s*대출|신불자\\s*대출|저신용\\s*대출|리딩방|수익\\s*보장))(?=.*(@[a-z0-9_]{3,}|https?://|t\\.me/|open\\.kakao|오픈\\s*채팅|가입\\s*코드|추천\\s*코드|문의\\s*(주세요|환영|바람|ㄱ)))"
+  ],
+  "_category_rule": "제품명+카테고리어 동시 포함 규칙. 일반어 겹침이 확인된 소스(sources)에만 적용한다. appstore·googleplay·hackernews 는 여기 적어도 코드가 무시한다(남헌 금지). projects 에 project_id 별 낱말이 없는 프로젝트는 적용하지 않는다(애매하면 통과). require: both(둘 다 있어야 통과) | either(하나만 있어도 통과 — 완화).",
+  "category_rule": {
+    "sources": ["kakao_blog", "kakao_cafe"],
+    "require": "both",
+    "projects": {}
+  }
+}

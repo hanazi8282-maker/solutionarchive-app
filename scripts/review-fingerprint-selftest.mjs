@@ -389,6 +389,10 @@ const AUDIT = {
   'googleplay.ts': false,
   // 카카오 검색 — externalId = 글 URL 그 자체(블로그·카페 글 주소) → 구성상 전역 유일. 같은 글이 두 검색어에 걸려도 한 행이다.
   'kakao.ts': false,
+  // wordpress.org — externalId = 포럼 토픽 URL(`/support/topic/<slug>/`) 그 자체 → 사이트 전역 유일(2026-10-08 RSS guid 실측).
+  'wordpress.ts': false,
+  // Shopify 앱스토어 — data-review-content-id 의 전역 유일성 실측 안 함. 한 리뷰는 한 앱에만 달려 좁혀도 잃는 것이 없다(appstore 와 같은 판단).
+  'shopify.ts': true,
   // 판매처 리뷰 seq 가 몰마다 다른 id 공간에서 온다(9자리 vs 11자리 0패딩, 2026-08-29 실측).
   'danawa.ts': true,
   // RSS 리뷰 id 의 전역 유일성을 실측하지 않았다. 한 리뷰는 한 앱에만 달리므로

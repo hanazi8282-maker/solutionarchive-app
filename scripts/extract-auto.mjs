@@ -231,6 +231,7 @@ if (tuneOn) {
   })
   dailyMax = tune.d
   if (scheduled) max = tune.slot_max
+  if (guard.cfg.autotuneUpBelowPct == null) warn('autotune_up_below_pct 설정이 없거나 깨져 올리기 임계 폴백 8% 로 돈다(config/session-guard.json 확인)')
   const line = autotuneLine(tune)
   if (tune.source === 'unreadable' || tune.action === 'down') warn(line)
   else log(line)

@@ -187,10 +187,14 @@ t('--max', plan([AREA], { ...base, max: 1, sourceRows: { appstore: ON, googlepla
   t('JSON 키 중복 없음(파싱이 조용히 덮어쓰지 않았다)', (rawText.match(/^\s*"[^"]+":/gm) ?? []).filter((l) => !/"_/.test(l) && !/^\s{4,}/.test(l)).length, Object.keys(map).length)
   t('값 범위: 1~5 · hold · out · null 만', Object.values(map).filter((v) => !(v === null || ['1', '2', '3', '4', '5', 'hold', 'out'].includes(v))), [])
   const count = (pred) => Object.values(map).filter(pred).length
-  t('영역별 개수(1:31 · 2:22 · 3:42 · 4:32 · 5:8 · hold:59 · out:57 · null:3 = 254)',
-    ['1', '2', '3', '4', '5', 'hold', 'out'].map((v) => count((x) => x === v)).concat(count((x) => x === null), slugs.length), [31, 22, 42, 32, 8, 59, 57, 3, 254])
+  t('영역별 개수(1:31 · 2:22 · 3:42 · 4:32 · 5:18 · hold:49 · out:57 · null:3 = 254)',
+    ['1', '2', '3', '4', '5', 'hold', 'out'].map((v) => count((x) => x === v)).concat(count((x) => x === null), slugs.length), [31, 22, 42, 32, 18, 49, 57, 3, 254])
   const byArea = (code, v) => all.find((a) => a.area.startsWith(code)).products.every((p) => map[p.slug] === v)
-  t('01→1 · 03→2 · 04→3 · 02·05→hold', [byArea('01', '1'), byArea('03', '2'), byArea('04', '3'), byArea('02', 'hold'), byArea('05', 'hold')], [true, true, true, true, true])
+  t('01→1 · 03→2 · 04→3 · 02→hold', [byArea('01', '1'), byArea('03', '2'), byArea('04', '3'), byArea('02', 'hold')], [true, true, true, true])
+  // v37 작업 5: ⑤ 글쓰기 시험 암 10개만 5, 나머지 05 는 hold(20261008000020 마이그 라벨 5: 와 한 벌)
+  const TRIAL = ['grammarly', 'quillbot', 'wordtune', 'notion-ai', 'craft-docs', 'sudowrite', 'gamma', 'ginger', 'wrtn', 'polaris-office-ai']
+  const a05 = all.find((a) => a.area.startsWith('05')).products
+  t('05: 시험 10개 → 5 · 나머지 23개 → hold', [a05.filter((p) => map[p.slug] === '5').map((p) => p.slug).sort(), a05.filter((p) => map[p.slug] === 'hold').length], [[...TRIAL].sort(), 23])
   const a06 = all.find((a) => a.area.startsWith('06')).products
   t('06 채용·AI면접 28 → out, HR 32 → 4', [a06.filter((p) => map[p.slug] === 'out').length, a06.filter((p) => map[p.slug] === '4').length], [28, 32])
   t('07 표본(klaviyo 3 · yotpo 5 · bigin null · sabangnet out)', [map.klaviyo, map.yotpo, map.bigin, map.sabangnet], ['3', '5', null, 'out'])

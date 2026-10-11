@@ -117,6 +117,23 @@ export function sourceUrlOf(text: string | null | undefined): string | null {
   return m ? m[1] : null
 }
 
+/** 구글 플레이 어댑터가 본문 앞에 붙이는 `(v버전) ` — 추출 저장(normalizeEvidenceQuotes)과 머리말 제거(stripSourceHeader)가 같이 쓰는 한 벌. */
+export const APP_VERSION_PREFIX_RE = /^\(v\d[^()\s]{0,39}\) /
+
+/**
+ * `withSourceUrl` 머리말을 뗀 본문(v44 §2-b). **첫 줄 앵커만** 뗀다 — 본문 중간에 우연히 든 `[SRC: …]` 는 그대로 둔다.
+ * appVersion=true 면 구글 플레이 어댑터가 본문 앞에 붙인 `(v버전) ` 도 뗀다(googleplay.ts toReview) —
+ * 머리말 주소가 play.google.com 일 때만(다른 소스 본문이 우연히 `(v2)` 로 시작해도 건드리지 않는다).
+ * 쓰는 자리: 추출 프롬프트(모델이 머리말을 인용할 수 없게) · 인용 저장/표시 검사(머리말 안에서만 찾히는 인용 거부).
+ */
+export function stripSourceHeader(text: string | null | undefined, opts: { appVersion?: boolean } = {}): string {
+  const s = String(text ?? '')
+  const m = /^\s*\[SRC: (https:\/\/[^\s\]]+)\][^\S\n]*\n?/.exec(s)
+  if (!m) return s
+  const body = s.slice(m[0].length)
+  return opts.appVersion && m[1].startsWith('https://play.google.com/') ? body.replace(APP_VERSION_PREFIX_RE, '') : body
+}
+
 export interface ParseResult {
   reviews: ParsedReview[]
   /** null 이면 이 타깃은 여기서 끝이다. */
@@ -260,6 +277,15 @@ export interface ReviewSourceAdapter {
    * 약관이 자동 접근을 금지하는 소스(googleplay, 남헌 2026-10-05)용 — 우회하지 않고 즉시 멈추는 것이 조건이다.
    */
   abortOnChallenge?: boolean
+
+  /**
+   * 엄격 모드의 **캡차·사람 확인 화면 판정을 이 소스 것으로 바꾼다**(옵셔널, 2026-10-08 wordpress_org·shopify_apps).
+   * 없으면 러너 기본 표지(CHALLENGE_RE: recaptcha·captcha·unusual traffic 부분일치)를 쓴다. 빈 본문·`/sorry/` 판정은 그대로다.
+   * 왜: 리뷰 관리 플러그인·앱 리뷰는 본문에 "captcha" 가 흔하다(스팸 방지 기능 후기) — 기본 표지로는 정상 피드 하나가 소스 전체를
+   * 매일 "차단"으로 멈춘다. 그래서 응답 모양으로 가른다(WP: RSS 가 아니면 차단 · Shopify: 리뷰 페이지 표지 없이 캡차 표지).
+   * ⚠️ 덜 멈추는 쪽으로 쓰지 마라 — 모양이 기대와 다르면 true(차단)가 기본이어야 한다.
+   */
+  isChallenge?(body: string): boolean
 
   /**
    * 403·429 말고도 **차단으로 보고 실행을 끊을** HTTP 상태(옵셔널, 2026-10-06 카카오 검색).

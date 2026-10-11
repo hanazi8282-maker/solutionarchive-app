@@ -79,7 +79,7 @@
 - 스위치 리포 변수 `EXTRACT_AUTOTUNE`(기본 off). off 면 슬롯·하루 상한은 `EXTRACT_AUTO_MAX_PROJECTS`·`EXTRACT_AUTO_DAILY_MAX` 그대로다.
 - on: 하루 D(시작 48 · 24~72) · 스케줄 슬롯 상한 ceil(D÷3)(≤24 → `timeout-minutes` 180). 수동 실행은 하루 상한만 D, 슬롯 상한은 입력값.
 - 하루 1회(KST 첫 스케줄 run, 쉼 run 포함)만 평가. 한 스텝 = round(D×20%), 최소 1.
-  - 내리기: 지난 평가 이후(첫 평가면 24시간) hard 캡·구독 한도 오류(수동 run 포함) 또는 주간 > 안전선. 소프트 한도(cost)로 멈춘 run 은 근거가 아니다.
+  - 내리기: 지난 평가 이후(첫 평가면 24시간) hard 캡·구독 한도 오류(수동 run 포함) 또는 주간 > 안전선. 소프트 한도(cost)로 멈춘 run 이 올리기 윈도에 있으면 올리기는 보류(cap_binding 이 slot·daily·none 이 아니므로)하고, 내리기 근거에서만 제외한다.
   - 올리기: 마지막 조정 이후·7일 이내 스케줄 run(decision=run·**스위치 on 으로 돈 run**(`summary.autotune` 있음)·`cap_binding` 기록 있음·비용 전부 읽힘·claude 호출 ≥1) 최근 3회의 평균 사용률 < **10%**(config `autotune_up_below_pct`, 남헌 v42 §1 로 8→10 · 10.0% 정확히는 안 올림) ∧ 전부 slot/daily/none ∧ 대기(min_new 기준 B) > 0 ∧ 조정 전 D 로 이 슬롯이 쉬지 않는다 ∧ 직전 스케줄 run 3개 중 `running`(timeout 으로 죽음)이 없다
     ∧ **(조건 B, 남헌 v40 §1)** 그 3회 중 `cap_binding` 이 `slot` 또는 `daily` 인 run 이 1건 이상. `none`(대기를 다 처리하고 끝남)은 D 가 처리량을 막지 않았다는 뜻이라 none 만 3개인 윈도는 올리지 않는다(사유 "D 가 막은 증거 없음").
     - 임계 키가 없거나 수치가 아니거나 0 이하면 코드 폴백 8(옛 값 — 덜 올리는 쪽). 이번 평가가 쓴 값은 `summary.autotune.up_below_pct`.

@@ -148,9 +148,11 @@ const CHALLENGE_RE = /recaptcha|g-recaptcha|unusual traffic|captcha/i
  * 엄격 모드 응답 검사: 2xx 인데 빈 본문·캡차 화면·구글 `/sorry/` 리다이렉트면 true(= 차단으로 보고 실행 중단).
  * 우회하지 않는다 — 멈추고 기록할 뿐이다.
  */
-export function isStrictBlock(res: FetchOutcome): boolean {
+export function isStrictBlock(res: FetchOutcome, isChallenge?: (body: string) => boolean): boolean {
   if (res.status === null || res.status < 200 || res.status >= 300) return false
-  return !res.body.trim() || CHALLENGE_RE.test(res.body) || /\/sorry\//.test(res.finalUrl ?? '')
+  // 캡차 판정만 어댑터 것으로 바꿀 수 있다(types.ts isChallenge). 빈 본문·/sorry/ 는 언제나 차단이다.
+  const challenge = isChallenge ? isChallenge(res.body) : CHALLENGE_RE.test(res.body)
+  return !res.body.trim() || challenge || /\/sorry\//.test(res.finalUrl ?? '')
 }
 
 export interface TargetProgress {
@@ -270,6 +272,7 @@ const emptyStats = (): RunStats => ({
   newReviews: 0,
   fallbackKeys: 0,
   crossTargetDuplicates: 0,
+  seenDuplicates: 0,
   blockedResponses: 0,
   quotaExhaustedResponses: 0,
 })
@@ -649,7 +652,8 @@ export async function runCollection(
       requests++
 
       // 엄격 모드(소유자 예외 요청 · abortOnChallenge 어댑터): 2xx 빈 응답·캡차도 차단으로 보고 실행을 끊는다.
-      const strictBlock = (ownerOverride || adapter.abortOnChallenge === true) && isStrictBlock(res)
+      const strictBlock =
+        (ownerOverride || adapter.abortOnChallenge === true) && isStrictBlock(res, adapter.isChallenge?.bind(adapter))
 
       // 403/429 는 두 사건이 겹쳐 있다 — 차단과 쿼터 소진.
       //
@@ -988,6 +992,7 @@ async function ingestPage(
     if (verdict === 'duplicate' || verdict === 'revised') {
       // 수정된 리뷰도 재적재하지 않는다. 이미 분석에 반영된 의견인데
       // 수정본을 또 넣으면 같은 사람 의견이 두 번 세어진다(설계 §4.5).
+      stats.seenDuplicates = (stats.seenDuplicates ?? 0) + 1
       continue
     }
 

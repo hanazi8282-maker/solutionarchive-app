@@ -120,7 +120,10 @@ t('SaaS 끼리는 신규 많은 순', saasOnly.targets.map((x) => x.projectId).j
 t('business_model 을 안 주면 예전과 같은 순서(신규 순)', p1.targets.map((x) => x.projectId).join() === 'c,a')
 t('배치 둘이 같은 비교기를 쓴다',
   readFileSync(`${ROOT}scripts/extract-auto.mjs`, 'utf8').includes('business_model')
-  && readFileSync(`${ROOT}scripts/relevance-judge-auto.mjs`, 'utf8').includes('compareAutoPriority('))
+  // T2 는 영역 결손 축(v37 U1)이 감싼다: 스크립트 → planAreaOrder → 같은 칸 안·축 꺼짐 모두 compareAutoPriority.
+  && readFileSync(`${ROOT}scripts/relevance-judge-auto.mjs`, 'utf8').includes('planAreaOrder(')
+  && (readFileSync(`${ROOT}lib/analysis/area-priority.ts`, 'utf8').match(/compareAutoPriority\(/g) ?? []).length >= 1
+  && readFileSync(`${ROOT}lib/analysis/area-priority.ts`, 'utf8').includes('.sort(compareAutoPriority)'))
 
 // ── 8. "오늘은 다시 불러도 같다" 판정 ────────────────────────────
 t('429 는 멈춤', isQuotaFailure(new ProviderHttpError(429, 'x')) === true)
@@ -141,6 +144,9 @@ t('extract-run 이 selectInputs 를 쓴다', /from '\.\/extract-select\.ts'/.tes
 t('extract-run 에 오래된 순 자르기가 남아 있지 않다', !/truncatedInputs/.test(run))
 t('extract-run 이 droppedInputs 를 돌려준다', /droppedInputs,? model/.test(run) || /droppedInputs,/.test(run))
 t('extract-run 이 폐기 원문을 제외한다', /\.is\('purged_at', null\)/.test(run))
+// v44 §2-b: 프롬프트에는 머리말을 뗀 본문만 싣는다(선별은 raw_text 그대로 — 위 selectInputs 결과가 안 바뀐다).
+t('extract-run 프롬프트가 머리말을 뗀다', /\$\{stripSourceHeader\(s\.text, \{ appVersion: true \}\)\}/.test(run) && !/\\n\$\{s\.text\}`/.test(run))
+t('extract-run 이 머리말 인용 거부 수를 남긴다', /normalizeEvidenceQuotes\(a\.evidence_quotes, inputs, quoteDrops\)/.test(run) && /src_header=\$\{quoteDrops\.src_header\}/.test(run))
 t('야간 배치가 pickAutoTargets 를 쓴다', /pickAutoTargets\(/.test(auto))
 // 2026-09-23 이전: 야간 배치는 force 를 아예 안 썼다. 그게 검수값 보호의 전부였고,
 // 대가는 프로젝트당 평생 1회 추출이었다(SaaS 3건이 +602·+401 건을 받고도 다시 안 돌았다).
@@ -154,5 +160,10 @@ t('야간 배치가 한도면 멈춘다', /quotaExhausted/.test(auto) && /break/
 t('워크플로가 스케줄로 돈다', /cron: '33 18 \* \* \*'/.test(wf) && /scripts\/extract-auto\.mjs/.test(wf))
 t('워크플로에 dry-run 스위치가 있다', /dry_run/.test(wf) && /'--dry'/.test(wf))
 
+{
+  const hdr = '[SRC: https://play.google.com/store/apps/details?id=a&reviewId=x]\n'
+  const r = selectInputs([{ raw_text: hdr }, { raw_text: hdr + '(v1.0) ' }, { raw_text: hdr + '(v1.0) 진짜 본문 후기입니다' }])
+  t('v45: 머리말 제거 후 본문이 빈 입력은 선택에서 제외', r.selected.length === 1 && r.droppedInputs === 2)
+}
 console.log(`\n${fail === 0 ? '✅' : '❌'} 추출 선별·자동 실행 셀프테스트: ${pass} pass / ${fail} fail`)
 process.exit(fail === 0 ? 0 : 1)

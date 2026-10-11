@@ -32,6 +32,8 @@ export interface TargetState {
    */
   lastReviewAt: string | null
   consecutiveEmpty: number
+  /** 지금까지 이 타깃이 적재한 건수(review_targets.total_collected). 재점검 판정(runner.ts isRecheck)에만 쓴다. 없으면 0. */
+  totalCollected?: number
 }
 
 /** 파서에 넘기는 맥락. 파서는 이것 말고는 바깥을 모른다. */

@@ -452,7 +452,7 @@ const ids = (ts) => ts.map((x) => x.id).join(',')
   t('조회: 앱스토어는 프로젝트 in 한 번', JSON.stringify(arg(sb.queries[1], 'in', 1)[0]), JSON.stringify(['pNone', 'pActive', 'pExh', 'pExh2', 'pExh3']))
   t('조회: googleplay 는 last_run_at NULLS FIRST, created_at 순', JSON.stringify(arg(sb.queries[0], 'order')), '["last_run_at","created_at"]')
   t('limit 은 정렬 뒤 자른다', ids(await createReviewStore(gpSupa()).listDueTargets('googleplay', 2)), 'exh,none')
-  t('반환 모양은 TargetState 그대로', JSON.stringify(Object.keys(got[0]).sort()), JSON.stringify(['consecutiveEmpty', 'cursor', 'id', 'lastReviewAt', 'productRef', 'projectId', 'sourceKey']))
+  t('반환 모양은 TargetState 그대로', JSON.stringify(Object.keys(got[0]).sort()), JSON.stringify(['consecutiveEmpty', 'cursor', 'id', 'lastReviewAt', 'productRef', 'projectId', 'sourceKey', 'totalCollected'])) // totalCollected: v48 재점검 판정(runner isRecheck)
 }
 {
   // 기본(GP_PRIORITY_REPEAT=false): 방문 이력 있는 타깃은 기존 순서 그대로

@@ -382,6 +382,7 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   **`cap_base` 첫 입력**(남헌 v28 #1, 2026-10-07) — 대화형·역할 세션(CC)이 넣고 **사전 승인**을 받는다: 소스별 제안값 표(현재 18행)를 Notion 일일 상태 로그에 먼저 첨부하고,
   남헌이 승인한 뒤에 `review_source_ramp` 에 반영한다. 예외는 새 소스의 첫 값 하나다 — 위 "발굴 적재"의 **깨끗한 소스**(robots 허용·약관 금지 없음·무료)만 CC 가 승인 없이
   50% 램프 단계로 넣고 판정 근거를 로그에 남긴다. 약관이 막거나 불확실한 소스는 남헌 승인 뒤에만 넣는다.
+- **재방문 시계 되살리기**(남헌 v48, 2026-10-11) — 무인 루프(`nightly-review-collect` 수집 직전 pre-step `scripts/target-revive.mjs --auto`)는 `review_targets` 의 `status`·`consecutive_empty` 두 칸만, `exhausted`→`active` 방향으로만 쓴다(재방문 간격 3~14일·소스별 실행당 상한은 `lib/review/target-supply.ts` revisitDays·planRevive). 롤백 SQL 파일을 UPDATE 전에 쓰고 `reports/` 에 남긴다. 제외: 공급 제외 소스(`SUPPLY_EXCLUDED` — danawa 등 남헌이 속도를 정한 소스·todayhumor·producthunt)·robots 금지 확정 소스(소유자 예외 없는 `disallowed`)·`enabled=false` 소스.
 - **reports/ 파일** — `reports/` · `drafts/cases/` · `drafts/threads/` · `ops/state/`
   4개 프리픽스에만 커밋한다. 그 밖의 경로가 스테이징에 있으면 커밋하지 않고 실패한다.
 

@@ -157,6 +157,7 @@ export function createReviewStore(supabase: Supa): RunnerStore {
           cursor: r.cursor,
           lastReviewAt: r.last_review_at,
           consecutiveEmpty: r.consecutive_empty ?? 0,
+          totalCollected: r.total_collected ?? 0,
         }
       })
     },

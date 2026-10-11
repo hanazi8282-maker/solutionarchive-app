@@ -13,6 +13,8 @@
 //   - 단, 그 슬롯 시점에 워크플로 파일이 기본 브랜치에 없었으면 "미발화"가 아니라 "해당 없음"이다
 //     (workflowLandedAt). 히스토리를 못 읽으면 해당 없음이 아니라 "확인 불가"로 올린다.
 //   - api_tokens 의 threads 행이 없거나·만료됐거나·만료 임박(lib/threads/token.ts tokenExpiryAlert)이면 이상.
+//   - 최근 24h 요청 0 인 enabled 수집 소스에 사유 코드가 없으면 이상(lib/review/zero-request.ts, 남헌 v51 §1-10).
+//     사유가 있는 0 은 이상이 아니라 로그·job summary 한 줄.
 // 이상이 있으면 CTO 행 1개 + exit 1(Actions 실패 메일). 없으면 행을 쓰지 않는다.
 // 사람판단필요는 Threads 재인증 필요일 때만 true(v17/v19 — §10.2 예외 8번 남헌만 줄 수 있는 입력). 미발화·실패는 false.
 //
@@ -25,6 +27,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { kstDate, recordStatusLog } from './notion-status-log.mjs'
 import { tokenExpiryAlert } from '../lib/threads/token.ts'
+import { ZERO_WINDOW_MS, judgeZeroRequests, zeroRequestKeys, zeroRequestReport } from '../lib/review/zero-request.ts'
 
 // 예정 시각 뒤 이만큼은 실행이 아직 없어도 봐준다(Actions 지연). 90분이었는데 오탐을 냈다 —
 // 2026-09-16 nightly-review-collect(17:37Z 예정)이 20:22:48Z 에 돌았다(2시간 45분 지연).
@@ -156,6 +159,40 @@ export function workflowLandedAt(file, { git = gitLines } = {}) {
   }
 }
 
+/**
+ * 최근 24h 요청 0 인 enabled 수집 소스 → 사유 코드(lib/review/zero-request.ts). 읽기 전용 GET 만.
+ * 반환 { problems: 경보(사유 없는 0·확인 불가), lines: 요약(사유 있는 0) }. 못 읽은 것을 0 행으로 접지 않는다(§7.1).
+ */
+export async function checkZeroRequests({ sbUrl, sbKey, fetchImpl = fetch, now = new Date() }) {
+  const get = async (q) => {
+    const res = await fetchImpl(`${sbUrl}/rest/v1/${q}`, { headers: { apikey: sbKey, authorization: `Bearer ${sbKey}` } })
+    const rows = await res.json().catch(() => null)
+    if (!res.ok || !Array.isArray(rows)) throw new Error(`HTTP ${res.status}`)
+    return rows
+  }
+  const since = new Date(now.getTime() - ZERO_WINDOW_MS).toISOString()
+  let sources, runs
+  try {
+    sources = await get('review_sources?select=key,enabled,daily_request_cap,robots_status,override')
+    runs = await get(`review_collection_runs?select=source_key,started_at,requests,targets_visited,status,dry_run&dry_run=eq.false&started_at=gte.${encodeURIComponent(since)}&limit=1000`)
+  } catch (e) {
+    return { problems: [`요청 0 사유 검사: review_sources/review_collection_runs 조회 실패(${e.message}) — 확인 불가`], lines: [] }
+  }
+  // PostgREST 기본 상한이 1000 행이다. 꽉 찼으면 잘렸을 수 있다 — 빠진 행 때문에 요청 0 으로 오인할 수 있어 확인 불가로 올린다.
+  if (runs.length >= 1000) return { problems: ['요청 0 사유 검사: 24h 실행 행이 1000 이상(잘렸을 수 있음) — 확인 불가'], lines: [] }
+  const ramps = await get('review_source_ramp?select=source_key,frozen_until,daily_request_target,supply_state,cap_base').catch(() => null)
+  const activeTargets = {}
+  const lastRun = {}
+  for (const key of zeroRequestKeys(sources, runs, now)) {
+    const k = encodeURIComponent(key)
+    // ponytail: 요청 0 소스마다 2번 GET. 소스가 수십 개로 늘면 한 번에 묶는다.
+    try { activeTargets[key] = (await get(`review_targets?select=id&source_key=eq.${k}&status=eq.active&limit=1`)).length } catch { /* 키 없음 = 확인 불가 */ }
+    try { lastRun[key] = (await get(`review_collection_runs?select=started_at,status,blocked_responses,health_after&source_key=eq.${k}&dry_run=eq.false&order=started_at.desc&limit=1`))[0] ?? null } catch { /* 확인 불가 */ }
+  }
+  const { alerts, lines } = zeroRequestReport(judgeZeroRequests({ now, sources, ramps, runs, activeTargets, lastRun }))
+  return { problems: alerts, lines }
+}
+
 /** 전 검사. 네트워크·기록은 주입받는다(셀프테스트가 가짜로 바꾼다). 반환 { problems, code, record? } */
 export async function runWatchdog({
   now = new Date(), env = process.env, fetchImpl = fetch, record = recordStatusLog,
@@ -221,6 +258,14 @@ export async function runWatchdog({
     }
   }
 
+  // 요청 0 사유(v51 §1-10): 사유 없는 0 만 경보, 사유 있는 0 은 요약 한 줄. env 없음은 위 Threads 줄이 이미 올렸다.
+  if (sbUrl && sbKey) {
+    const z = await checkZeroRequests({ sbUrl, sbKey, fetchImpl, now })
+    problems.push(...z.problems)
+    for (const l of z.lines) log(`· ${l}`)
+    if (z.lines.length && env.GITHUB_STEP_SUMMARY) fs.appendFileSync(env.GITHUB_STEP_SUMMARY, `## 요청 0 사유\n\n${z.lines.map((l) => `- ${l}`).join('\n')}\n`)
+  }
+
   if (!problems.length) { log('✅ 크론 감시 — 이상 없음 (상태 로그 행을 쓰지 않는다)'); return { problems, code: 0 } }
   for (const p of problems) log(`❌ ${p}`)
   if (dry) return { problems, code: 1 }
@@ -231,7 +276,7 @@ export async function runWatchdog({
     track: 'CTO',
     done: `크론 감시 — 이상 ${problems.length}건 발견`,
     blocked: problems.join('\n'),
-    next: '미발화·실패 크론은 Actions 탭에서 원인 확인 후 필요하면 수동 실행 · Threads 토큰 만료/임박이면 재인증',
+    next: '미발화·실패 크론은 Actions 탭에서 원인 확인 후 필요하면 수동 실행 · Threads 토큰 만료/임박이면 재인증 · 사유 없는 요청 0 소스는 nightly-review-collect 요약에서 그 소스 줄 확인',
     // v17: 미발화·실패는 막힘 사실. Threads 재인증만 남헌만 줄 수 있는 입력(OAuth)이라 true.
     needsHuman: problems.some((p) => p.includes('재인증 필요')),
     note: `cron-watchdog · ${runUrl}`,

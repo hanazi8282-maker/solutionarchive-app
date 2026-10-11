@@ -310,6 +310,9 @@ ok('워크플로: concurrency 유지', /concurrency:\s*\n\s+group: review-collec
   }
   ok('7 배선: /agents 는 review_sources 에서 health 를 읽지 않는다', !/from\('review_sources'\)\.select\('[^']*health/.test(agents))
   ok('7 배선: insight-loop 는 review_sources.health* 를 읽지 않는다', !/health_detail|health_checked_at|neq\('health'/.test(loop))
+  ok('7 배선: /api/analyze/targets 는 review_sources 조인에서 health 를 select 하지 않는다', !/review_sources \([^)]*health/.test(targets))
+  const verify = fs.readFileSync(path.join(here, 'review-migration-verify.mjs'), 'utf-8')
+  ok('7 배선: review-migration-verify 는 health 값을 찍지 않는다', !/health=\$\{/.test(verify))
 }
 
 // ── 8) 두 값 분리 — "최근 실행"과 "판정이 있었던 마지막 실행"(남헌 2026-09-30 결정 (3)) ──────

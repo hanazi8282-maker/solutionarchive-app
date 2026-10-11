@@ -379,6 +379,7 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   근거 수치는 `review_collection_runs.blocked_responses`·`quota_responses`(000033 이후 행만 측정값)다. 정책은
   `reports/2026-09-28/cowork-four-orders.md` §2-2. `review_sources` 자체는 여전히 건드리지 않는다.
   퍼센트 램프(남헌 v24·v25 2026-10-06, 마이그 `20261006000002`)도 같은 권한이다 — 같은 행의 `pct_step`·`daily_request_target`·`consecutive_ok_days`·`last_evaluated_date`·`supply_state`·`blocks_at_step`·`block_line(_at)` 을 쓰고, `cap_base` 는 차단선 재정의로 **내리기만** 한다(올리기는 사람, 처음 넣기는 바로 아래 규칙 — 무인 루프는 처음 넣지 않는다). 러너 예산은 `min(daily_request_cap, daily_request_target) − 오늘 쓴 요청`이라 `daily_request_cap` 은 건드리지 않는다(`lib/review/ramp.ts`).
+  (남헌 v50 2026-10-12) 차단 후 자동 복구는 cap_base 를 원래 값(하한 25% 위로) 안에서만, 차단 신호 없이 연속 정상 3일마다 한 단계, ramp_log 에 행을 남긴다.
   **`cap_base` 첫 입력**(남헌 v28 #1, 2026-10-07) — 대화형·역할 세션(CC)이 넣고 **사전 승인**을 받는다: 소스별 제안값 표(현재 18행)를 Notion 일일 상태 로그에 먼저 첨부하고,
   남헌이 승인한 뒤에 `review_source_ramp` 에 반영한다. 예외는 새 소스의 첫 값 하나다 — 위 "발굴 적재"의 **깨끗한 소스**(robots 허용·약관 금지 없음·무료)만 CC 가 승인 없이
   50% 램프 단계로 넣고 판정 근거를 로그에 남긴다. 약관이 막거나 불확실한 소스는 남헌 승인 뒤에만 넣는다.

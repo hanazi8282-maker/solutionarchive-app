@@ -1,0 +1,57 @@
+{
+  "_about": "제품·회사 이름 후보 표(scripts/product-name-candidates.mjs, 남헌 v48 §2-B 단계 1)의 불용어·제외 목록·임계값. 코드는 이 파일을 읽기만 한다. 값은 2026-10-12 초기값이다 — 실데이터로 보정하지 않았다(첫 --run 결과를 보고 고친다).",
+  "rule_ver": "pnc-v1",
+
+  "_candidate": "후보 조건(표에 오르는 문턱): 서로 다른 글 min_posts 개 이상 또는 소스 min_sources 곳 이상. 근거 글이 min_evidence 건 미만이면 확인불가(hold).",
+  "candidate": { "min_posts": 5, "min_sources": 2, "min_evidence": 3 },
+
+  "_adopt": "채택 문턱은 소스 종류별로 따로 잰다. metric=posts(리뷰 건수 — 서로 다른 글 수) · mentions(언급 건수 — 글 안 반복 포함). 한 종류라도 넘으면 채택. 해커뉴스 기준을 한국 커뮤니티에 쓰지 않으려고 community_en 과 community_ko 를 나눴다. 목록에 없는 소스는 default_kind.",
+  "adopt": {
+    "store_review": { "metric": "posts", "min": 5, "sources": ["appstore", "googleplay", "shopify", "danawa"] },
+    "community_en": { "metric": "mentions", "min": 10, "sources": ["hackernews", "indiehackers", "producthunt", "devto", "reddit"] },
+    "community_ko": { "metric": "mentions", "min": 4, "sources": [] },
+    "manual": { "metric": "posts", "min": 3, "sources": ["(manual)"] }
+  },
+  "default_kind": "community_ko",
+
+  "_common_words": "추출 단계에서 조용히 버리는 일반 영단어·약어(정규화 키 기준, 대장에 안 남긴다). 문장 첫 단어는 코드가 따로 거른다.",
+  "common_words": [
+    "i", "im", "ive", "id", "the", "a", "an", "and", "or", "but", "if", "so", "it", "its", "this", "that", "these", "those", "they", "we", "you", "he", "she",
+    "my", "our", "your", "their", "me", "us", "is", "are", "was", "be", "to", "of", "in", "on", "for", "with", "at", "by", "from", "as", "not", "no", "yes",
+    "ok", "okay", "thanks", "thank", "please", "edit", "update", "also", "just", "very", "really", "great", "good", "bad", "best", "new", "free", "pro", "plus",
+    "premium", "app", "apps", "tool", "tools", "software", "product", "service", "company", "team", "user", "users", "customer", "customers", "feature",
+    "features", "version", "today", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "january", "february", "march", "april",
+    "may", "june", "july", "august", "september", "october", "november", "december", "ai", "api", "ui", "ux", "saas", "crm", "ceo", "cto", "faq", "pdf",
+    "usd", "kr", "en", "ios", "hn", "show", "ask", "tell", "launch", "beta", "startup", "founder", "founders", "lol", "imo", "tldr", "btw", "etc",
+    "앱", "어플", "프로그램", "서비스", "회사", "제품", "이거", "그거", "저거", "여기", "거기", "이것", "그것", "요즘", "지금", "예전", "처음", "정말", "진짜"
+  ],
+
+  "_stopwords": "초대형 범용 SaaS·OS·플랫폼·언어명. 후보 문턱을 넘으면 기각(stopword)으로 대장에 남긴다 — 새 제품 발굴 대상이 아니다.",
+  "stopwords": [
+    "google", "gmail", "youtube", "android", "chrome", "microsoft", "windows", "excel", "word", "outlook", "teams", "office", "powerpoint", "apple", "iphone",
+    "ipad", "mac", "macos", "safari", "icloud", "facebook", "instagram", "meta", "whatsapp", "twitter", "x", "linkedin", "tiktok", "reddit", "amazon", "aws",
+    "slack", "zoom", "dropbox", "github", "gitlab", "openai", "chatgpt", "gpt", "claude", "anthropic", "gemini", "copilot", "llm", "naver", "네이버", "kakao",
+    "카카오", "카카오톡", "kakaotalk", "coupang", "쿠팡", "samsung", "삼성", "galaxy", "갤럭시", "구글", "애플", "아이폰", "유튜브", "엑셀", "윈도우",
+    "hackernews", "ycombinator", "yc", "producthunt", "appstore", "playstore", "googleplay", "stripe", "paypal", "shopify", "wordpress", "web", "internet",
+    "english", "korean", "korea", "한국", "usa", "america", "europe", "china", "japan"
+  ],
+
+  "_stack": "개발 스택·라이브러리·언어·인프라. 제품 발굴 대상이 아니라 기각(stack).",
+  "stack": [
+    "react", "nextjs", "next", "vue", "angular", "svelte", "node", "nodejs", "deno", "bun", "typescript", "javascript", "python", "java", "kotlin", "swift",
+    "rust", "go", "golang", "ruby", "rails", "php", "laravel", "django", "flask", "fastapi", "spring", "postgres", "postgresql", "mysql", "sqlite", "mongodb",
+    "redis", "supabase", "firebase", "vercel", "netlify", "heroku", "docker", "kubernetes", "k8s", "terraform", "linux", "ubuntu", "nginx", "graphql", "rest",
+    "json", "html", "css", "tailwind", "tailwindcss", "webpack", "vite", "npm", "git", "sql", "cloudflare", "gcp", "azure", "langchain", "pytorch", "tensorflow",
+    "flutter", "reactnative", "electron", "unity", "jquery", "bootstrap", "elasticsearch", "kafka", "llama", "ollama", "huggingface"
+  ],
+
+  "_person_first_names": "흔한 영어 이름. 정규화 키가 이 목록이면 사람 이름(person_name)으로 기각. 한국어는 '님·씨' 접미 패턴으로 코드가 가른다.",
+  "person_first_names": [
+    "john", "james", "michael", "david", "paul", "peter", "mark", "chris", "daniel", "matt", "matthew", "tom", "thomas", "steve", "steven", "mike", "alex",
+    "sam", "ben", "jack", "joe", "kevin", "brian", "jason", "ryan", "andrew", "eric", "adam", "nick", "elon", "bill", "jeff", "tim", "patrick", "sarah",
+    "jessica", "emily", "anna", "maria", "laura", "lisa", "jennifer", "rachel", "kate", "amy", "linda", "susan", "karen", "paulgraham", "pg", "sama"
+  ],
+
+  "_josa": "한국어 비교 패턴에서 뽑은 토큰 끝의 조사. 한 번만 뗀다(남는 글자가 2자 미만이면 안 뗀다).",
+  "josa": ["으로", "에서", "이랑", "하고", "이나", "보다", "까지", "부터", "처럼", "에게", "을", "를", "이", "가", "은", "는", "로", "에", "와", "과", "도", "만", "의", "랑"]
+}

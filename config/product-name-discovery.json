@@ -1,9 +1,28 @@
 {
   "_about": "제품·회사 이름 후보 표(scripts/product-name-candidates.mjs, 남헌 v48 §2-B 단계 1)의 불용어·제외 목록·임계값. 코드는 이 파일을 읽기만 한다. 값은 2026-10-12 초기값이다 — 실데이터로 보정하지 않았다(첫 --run 결과를 보고 고친다).",
-  "rule_ver": "pnc-v1",
+  "rule_ver": "pnc-v2",
+  "_rule_ver_history": "pnc-v1(2026-10-12 초기) → pnc-v2(2026-10-12, 남헌 v52 §1-3: 첫 --run 채택 41건의 오탐을 exclude 6갈래로 분리 · 영역별 표 · 승인 시트).",
+
+  "_exclude": "채택 전에 기각하는 목록(정규화 키 기준, 대장에 사유와 함께 남는다). 키가 곧 기각 사유다. acronym 만 조건부 — acronym_rule.exempt_signals(앱 링크·도메인) 신호가 있으면 통과한다. 나머지 다섯은 무조건 기각. 2026-10-12 첫 --run 채택 41건에서 사람이 오탐으로 짚은 것 + 같은 결의 흔한 것.",
+  "exclude": {
+    "acronym": ["adhd", "mrr", "arr", "api", "apis", "crm", "crms", "pkm", "vps", "rss", "sso", "seo", "roi", "sdk", "sdks", "ldac", "nasa", "msl", "ktf", "stx", "kpi", "kpis", "okr", "okrs", "llm", "llms", "gdpr", "hipaa", "smb", "smbs", "erp", "cms", "ats", "hris", "ltv", "cac", "nps", "arpu", "mau", "dau", "usb", "nfc", "gps", "faq", "irs", "fda", "usps"],
+    "general_noun": ["spanish", "french", "german", "italian", "portuguese", "japanese", "chinese", "russian", "hindi", "arabic", "dutch", "canada", "india", "germany", "france", "brazil", "mexico", "australia", "uk", "eu", "london", "berlin", "academy", "tel", "blasting", "hi", "hello", "hey", "tiger", "dear", "sir", "mom", "dad"],
+    "site_ui": ["askhn", "showhn", "tellhn", "launchhn", "hnwhoishiring", "whoishiring"],
+    "tool_not_target": ["claudecode", "codex", "openaicodex", "cursor", "windsurf", "aider", "devin", "geminicli", "githubcopilot", "sonnet", "opus", "haiku", "gpt4", "gpt4o", "gpt5", "o1", "o3", "mistral", "deepseek", "perplexity", "midjourney"],
+    "hardware": ["applepencil", "applewatch", "airpods", "airpodspro", "airtag", "magickeyboard", "magicmouse", "magictrackpad", "macbook", "macbookpro", "macbookair", "imac", "ipadpro", "ipadair", "ipadmini", "visionpro", "kindle", "pixelwatch", "galaxywatch", "galaxybuds", "surfacepro", "raspberrypi", "steamdeck"],
+    "person_name": ["katherinetingley", "maciej", "auburnaffirmation"]
+  },
+  "_acronym_rule": "대문자 2~5자(+복수 s) 단일 토큰은 일반 약어로 보고 기본 기각(acronym). exempt_signals 신호가 하나라도 있으면(앱 링크·도메인) 예외로 통과. 1~2자 전부 대문자는 추출 단계에서 이미 버린다.",
+  "acronym_rule": { "pattern": "^[A-Z]{2,5}s?$", "exempt_signals": ["link", "domain"] },
+
+  "_area_table": "영역별 표: 후보마다 근거 글이 가장 많은 영역 1개를 대표 영역(+비율 = 그 영역 글 ÷ 전체 근거 글)으로. 출력 순서는 order, 각 영역 신호 강도 순 상위 per_area(--per-area N 으로 덮어씀). order 밖 영역(hold·unknown)은 끝에 붙인다.",
+  "area_table": { "order": ["1", "2", "3", "4", "5", "out-founder", "out-consumer", "design"], "per_area": 10 },
+
+  "_approval": "승인 시트(--approval-sheet): 영역별 채택 상위 daily_cap_per_area 개만 사람에게 제시. 오탐률 = 그날 시트에서 사람이 기각(N)한 수 ÷ 제시한 수. 이 값이 max_false_positive_rate 를 넘거나, 답이 빈 줄이 있거나, 제시가 0이면 그 영역은 승인 모드 강제(approval) — 측정 못 한 것을 '괜찮음'으로 접지 않는다(§7.1).",
+  "approval": { "daily_cap_per_area": 3, "max_false_positive_rate": 0.1, "quote_chars": 80 },
 
   "_candidate": "후보 조건(표에 오르는 문턱): 서로 다른 글 min_posts 개 이상 또는 소스 min_sources 곳 이상. 근거 글이 min_evidence 건 미만이면 확인불가(hold). common_lower_ratio: 같은 코퍼스에서 그 단어가 전부 소문자로 나온 비율이 이 값 이상이면 일반어(common_word)로 기각. midcap_ratio: 문장 중간 출현 중 대문자 시작 비율이 이 값 이상이면 제품 신호(midcap). 채택에는 제품 신호(link·domain·compare·quoted·midcap)가 하나 이상 필요하다.",
-  "candidate": { "min_posts": 5, "min_sources": 2, "min_evidence": 3, "common_lower_ratio": 0.3, "midcap_ratio": 0.8, "table_top": 100 },
+  "candidate": { "min_posts": 5, "min_sources": 2, "min_evidence": 3, "common_lower_ratio": 0.3, "midcap_ratio": 0.8 },
 
   "_adopt": "채택 문턱은 소스 종류별로 따로 잰다. metric=posts(리뷰 건수 — 서로 다른 글 수) · mentions(언급 건수 — 글 안 반복 포함). 한 종류라도 넘으면 채택. 해커뉴스 기준을 한국 커뮤니티에 쓰지 않으려고 community_en 과 community_ko 를 나눴다. 목록에 없는 소스는 default_kind.",
   "adopt": {
@@ -46,11 +65,12 @@
     "flutter", "reactnative", "electron", "unity", "jquery", "bootstrap", "elasticsearch", "kafka", "llama", "ollama", "huggingface"
   ],
 
-  "_person_first_names": "흔한 영어 이름. 정규화 키가 이 목록이면 사람 이름(person_name)으로 기각. 한국어는 '님·씨' 접미 패턴으로 코드가 가른다.",
+  "_person_first_names": "흔한 영어 이름. 정규화 키가 이 목록이면 사람 이름(person_name)으로 기각. 두 토큰 이름(성+이름 꼴, 둘 다 첫 글자만 대문자)의 첫 토큰이 이 목록이면 역시 person_name. 한국어는 '님·씨' 접미 패턴으로 코드가 가른다.",
   "person_first_names": [
     "john", "james", "michael", "david", "paul", "peter", "mark", "chris", "daniel", "matt", "matthew", "tom", "thomas", "steve", "steven", "mike", "alex",
     "sam", "ben", "jack", "joe", "kevin", "brian", "jason", "ryan", "andrew", "eric", "adam", "nick", "elon", "bill", "jeff", "tim", "patrick", "sarah",
-    "jessica", "emily", "anna", "maria", "laura", "lisa", "jennifer", "rachel", "kate", "amy", "linda", "susan", "karen", "paulgraham", "pg", "sama"
+    "jessica", "emily", "anna", "maria", "laura", "lisa", "jennifer", "rachel", "kate", "amy", "linda", "susan", "karen", "paulgraham", "pg", "sama",
+    "katherine", "catherine", "elizabeth", "margaret", "mary", "robert", "william", "richard", "charles", "joseph", "george", "edward", "henry", "maciej", "jan", "piotr"
   ],
 
   "_josa": "한국어 비교 패턴에서 뽑은 토큰 끝의 조사. 한 번만 뗀다(남는 글자가 2자 미만이면 안 뗀다).",

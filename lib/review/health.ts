@@ -70,6 +70,12 @@ export interface RunStats {
    *    **중복만 받았다**다. 둘을 같은 글자로 찍으면 안 된다(§7.1).
    */
   crossTargetDuplicates: number
+  /**
+   * 이미 본 리뷰(같은 identity — 지문 판정 duplicate·revised) 수. 적재하지 않는다. judgeHealth 는 보지 않는다.
+   * 이게 없으면 "파싱 N · 신규 0 · 교차중복 0" 이 왜 0 인지 로그로 못 가른다(2026-10-09 kakao_blog·cafe).
+   * 옵셔널: 이 필드 전에 만든 RunStats 리터럴(셀프테스트)을 깨지 않으려고. 러너는 항상 채운다.
+   */
+  seenDuplicates?: number
   /** 차단으로 판정된 403 / 429 횟수. 쿼터 소진은 여기 세지 않는다. */
   blockedResponses: number
   /**

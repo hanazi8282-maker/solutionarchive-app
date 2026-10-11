@@ -195,3 +195,27 @@
 - 작성일: 2026-10-09
 
 > Yes, because we failed to invest in storage systems for the last... 25 years or so... If we would have, it would look much different now.
+
+## HN 50045337
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50045337
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-11 UTC)
+- 스레드: Terence Tao: Math 2.0 [pdf]
+- 작성자: dekhn
+- 작성일: 2026-10-11
+
+> Medicine is highly regulated and validated, there are multiple levels of checks, with the final one being doctors seeing patients. I suppose if we closed all the loops and the entire end-to-end process was completely automated, it wouldn't be surprising if we failed to notice.
+
+## HN 50044636
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50044636
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-11 UTC)
+- 스레드: Talorys – A self-hosted personal AI agent on Cloudflare's free tier
+- 작성자: ttul
+- 작성일: 2026-10-11
+
+> Thanks for clarifying. Not sending a warning for a $34K bill is pretty terrible. My company runs a service that allows larger customers to run overages and all of our bad customer experiences have stemmed from surprise overages that we failed to warn them about. Over the years, we have learned to be less stupid about that! It appears that even very large companies like Cloudflare may need to brush up on customer experience from time to time.

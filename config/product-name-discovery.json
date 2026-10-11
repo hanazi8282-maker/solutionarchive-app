@@ -2,8 +2,8 @@
   "_about": "제품·회사 이름 후보 표(scripts/product-name-candidates.mjs, 남헌 v48 §2-B 단계 1)의 불용어·제외 목록·임계값. 코드는 이 파일을 읽기만 한다. 값은 2026-10-12 초기값이다 — 실데이터로 보정하지 않았다(첫 --run 결과를 보고 고친다).",
   "rule_ver": "pnc-v1",
 
-  "_candidate": "후보 조건(표에 오르는 문턱): 서로 다른 글 min_posts 개 이상 또는 소스 min_sources 곳 이상. 근거 글이 min_evidence 건 미만이면 확인불가(hold).",
-  "candidate": { "min_posts": 5, "min_sources": 2, "min_evidence": 3 },
+  "_candidate": "후보 조건(표에 오르는 문턱): 서로 다른 글 min_posts 개 이상 또는 소스 min_sources 곳 이상. 근거 글이 min_evidence 건 미만이면 확인불가(hold). common_lower_ratio: 같은 코퍼스에서 그 단어가 전부 소문자로 나온 비율이 이 값 이상이면 일반어(common_word)로 기각. midcap_ratio: 문장 중간 출현 중 대문자 시작 비율이 이 값 이상이면 제품 신호(midcap). 채택에는 제품 신호(link·domain·compare·quoted·midcap)가 하나 이상 필요하다.",
+  "candidate": { "min_posts": 5, "min_sources": 2, "min_evidence": 3, "common_lower_ratio": 0.3, "midcap_ratio": 0.8, "table_top": 100 },
 
   "_adopt": "채택 문턱은 소스 종류별로 따로 잰다. metric=posts(리뷰 건수 — 서로 다른 글 수) · mentions(언급 건수 — 글 안 반복 포함). 한 종류라도 넘으면 채택. 해커뉴스 기준을 한국 커뮤니티에 쓰지 않으려고 community_en 과 community_ko 를 나눴다. 목록에 없는 소스는 default_kind.",
   "adopt": {
@@ -23,6 +23,7 @@
     "features", "version", "today", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "january", "february", "march", "april",
     "may", "june", "july", "august", "september", "october", "november", "december", "ai", "api", "ui", "ux", "saas", "crm", "ceo", "cto", "faq", "pdf",
     "usd", "kr", "en", "ios", "hn", "show", "ask", "tell", "launch", "beta", "startup", "founder", "founders", "lol", "imo", "tldr", "btw", "etc",
+    "seo", "sms", "roi", "kpi", "mvp", "b2b", "b2c", "diy", "omg", "wtf", "fyi", "asap", "nyc", "sdk", "cli", "gui", "ssl", "url", "csv", "ocr", "dm", "pm", "hr", "qa", "it", "ad", "ads", "llc", "inc", "ltd",
     "앱", "어플", "프로그램", "서비스", "회사", "제품", "이거", "그거", "저거", "여기", "거기", "이것", "그것", "요즘", "지금", "예전", "처음", "정말", "진짜"
   ],
 

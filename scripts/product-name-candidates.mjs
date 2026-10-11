@@ -146,7 +146,8 @@ const RULES = {
   play: /play\.google\.com\/store\/apps\/details\?id=([A-Za-z0-9_.]+)/gi,
   url: /\bhttps?:\/\/([^\s/?#)"'<>\]]+)/gi,
   bareDomain: /(?<![\w@/.-])([A-Za-z0-9-]{2,})\.(?:co\.kr|com|io|ai|app|so|kr|net|dev)\b/g,
-  capitalized: /(?<![\w@#/.'’-])([A-Z][A-Za-z0-9]*(?:[.+-][A-Za-z0-9]+)*(?:\sAI\b)?)/g,
+  // 대문자 단어 최대 3개 묶음("Help Scout", "Product Hunt", "Lemon Squeezy"). 두 번째부터는 2자 이상(“Zentrova I” 방지).
+  capitalized: /(?<![\w@#/.'’-])([A-Z][A-Za-z0-9]*(?:[.+-][A-Za-z0-9]+)*(?:[ \t]+[A-Z][A-Za-z0-9]+(?:[.+-][A-Za-z0-9]+)*){0,2})/g,
   quoted: /[`"“「]([A-Za-z][\w .+-]{1,28})[`"”」]/g,
   koEn: /([가-힣]{2,12})\s*[(（]\s*([A-Za-z][\w .+-]{1,28}?)\s*[)）]/g,
   enKo: /([A-Za-z][\w.+-]{1,28})\s*[(（]\s*([가-힣]{2,12})\s*[)）]/g,
@@ -158,7 +159,42 @@ const RULES = {
   koUsedTo: new RegExp(`(${TOK}?)(?:을|를)?\\s*쓰다가`, 'g'),
 }
 
-const atSentenceStart = (text, i) => /(^|[.!?:;\n])\s*$/.test(text.slice(Math.max(0, i - 200), i))
+/** 문장 첫머리인가: 글 첫머리 또는 마지막 `. ! ? 줄바꿈` 뒤로 글자·숫자가 하나도 없다(따옴표·이모지·글머리표만 있어도 첫머리). */
+const atSentenceStart = (text, i) => !/[\p{L}\p{N}]/u.test(text.slice(Math.max(0, i - 200), i).split(/[.!?\n]/).pop())
+
+/** 수집기가 붙이는 글 머리 표식 `[YouTube 댓글 · <영상ID>]` 류를 지운다(ID·slug 가 이름으로 잡히던 오탐). 줄바꿈으로 바꿔 문장 경계로 둔다. */
+export const stripHeader = (text) => String(text ?? '').replace(/\[[^[\]\n]{1,60}·[^[\]\n]{0,160}\]/g, '\n')
+
+/**
+ * 코퍼스 단어 통계(사전 없이 일반어 판별). 소문자 키 → { total, lower(전부 소문자로 나온 수), mid(문장 중간), midCap(문장 중간 대문자 시작) }.
+ * 문장 = `. ! ? 줄바꿈` 으로 자른 조각, 그 첫 단어는 mid 에 안 넣는다.
+ */
+export function corpusStats(texts) {
+  const s = new Map()
+  for (const text of texts) {
+    for (const sentence of text.split(/[.!?\n]/)) {
+      let first = true
+      for (const m of sentence.matchAll(/[\p{L}\p{N}]+/gu)) {
+        const w = m[0]
+        const isFirst = first
+        first = false
+        if (!/^[A-Za-z][A-Za-z0-9]*$/.test(w)) continue
+        const lc = w.toLowerCase()
+        const e = s.get(lc) ?? s.set(lc, { total: 0, lower: 0, mid: 0, midCap: 0 }).get(lc)
+        e.total++
+        if (w === lc) e.lower++
+        if (!isFirst) {
+          e.mid++
+          if (w[0] !== lc[0]) e.midCap++
+        }
+      }
+    }
+  }
+  return s
+}
+
+/** 영상 ID·해시 꼴: 숫자가 섞였거나, 8~12자 단일 토큰에 대문자 3개 이상(“KsmCwnvWixA” — “DocuSign”·“SurveyMonkey” 는 2개). */
+export const idLike = (s) => /\d/.test(s) || (/^[A-Za-z0-9_-]{8,12}$/.test(s) && (s.match(/[A-Z]/g) ?? []).length >= 3 && /[a-z]/.test(s))
 
 function stripJosa(tok, josa) {
   if (!/[가-힣]$/.test(tok)) return tok
@@ -169,19 +205,19 @@ function stripJosa(tok, josa) {
 /**
  * 글 하나 → 언급 목록 + 별칭쌍. 언급 = { key, surface, start, compare, person, via }.
  * 같은 key·같은 시작 위치는 한 번만 센다(규칙이 겹쳐도 언급 수가 부풀지 않게), 겹치면 compare 는 OR.
- * ponytail: 대문자 토큰은 한 단어(+" AI")만 — 여러 단어 이름("Help Scout")·한글 자유문 고유명은 못 잡는다. 후속 Sonnet 보강 단계 몫.
+ * ponytail: 한글 자유문 고유명(패턴·병기 밖)은 못 잡는다. 후속 Sonnet 보강 단계 몫.
  */
 export function extractMentions(text, cfg) {
   const josa = cfg.josa ?? []
   const raw = []
   const aliases = []
-  const push = (surface, start, via, compare = false, keyOverride = null) => {
+  const push = (surface, start, via, compare = false, keyOverride = null, contraction = false) => {
     let s = String(surface).trim().replace(/[.,]+$/, '')
     const person = /[가-힣](님|씨)$/.test(s)
     if (/[가-힣]/.test(s)) s = stripJosa(s.replace(/(님|씨)$/, ''), josa)
     const key = keyOverride ?? normKey(s)
     if (!key || key.length < 2 || /^\d+$/.test(key)) return
-    raw.push({ key, surface: s, start, compare, person, via })
+    raw.push({ key, surface: s, start, compare, person, contraction, vias: new Set([via]) })
   }
   const each = (re, fn) => {
     re.lastIndex = 0
@@ -200,9 +236,18 @@ export function extractMentions(text, cfg) {
   })
   each(RULES.bareDomain, (m) => push(m[1], m.index, 'domain'))
   each(RULES.capitalized, (m) => {
-    if (atSentenceStart(text, m.index)) return // 문장 첫 단어는 고유명 신호가 아니다
-    if (/^[A-Z]{1,3}$/.test(m[1])) return // AI·API·UI 같은 짧은 약어
-    push(m[1], m.index, 'capitalized')
+    let s = m[1]
+    let start = m.index
+    if (atSentenceStart(text, start)) {
+      // 문장 첫 단어는 고유명 신호가 아니다 — 묶음이면 첫 단어만 떼고 나머지를 본다.
+      const rest = s.replace(/^\S+[ \t]+/, '')
+      if (rest === s) return
+      start += s.length - rest.length
+      s = rest
+    }
+    if (/^[A-Z]{1,2}$/.test(s)) return // AI·UI 같은 2자 약어. 3자(LUX 같은 제품명)는 남기고 흔한 약어는 config common_words 로 거른다.
+    const contraction = /^['’][a-z]/.test(text.slice(start + s.length, start + s.length + 2)) // Doesn't · Don't
+    push(s, start, 'capitalized', false, null, contraction)
   })
   each(RULES.quoted, (m) => {
     if (m[1].trim().split(/\s+/).length <= 3) push(m[1], m.index + 1, 'quoted')
@@ -232,6 +277,8 @@ export function extractMentions(text, cfg) {
     else {
       prev.compare ||= r.compare
       prev.person ||= r.person
+      prev.contraction ||= r.contraction
+      for (const v of r.vias) prev.vias.add(v)
     }
   }
   return { mentions: [...byPos.values()], aliases }
@@ -263,13 +310,15 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
   const stack = new Set(cfg.stack.map(normKey))
   const persons = new Set(cfg.person_first_names.map(normKey))
 
-  const extracted = inputs.map((inp) => ({ inp, ...extractMentions(inp.raw_text ?? '', cfg) }))
+  const texts = inputs.map((inp) => stripHeader(inp.raw_text))
+  const stats = corpusStats(texts)
+  const extracted = inputs.map((inp, i) => ({ inp, text: texts[i], ...extractMentions(texts[i], cfg) }))
   const alias = new Map()
   for (const e of extracted) for (const [from, to] of e.aliases) if (from && to && from !== to && !alias.has(from)) alias.set(from, to)
 
   const cands = new Map()
   let mentionsTotal = 0
-  for (const { inp, mentions } of extracted) {
+  for (const { inp, text, mentions } of extracted) {
     const seenHere = new Set()
     for (const m of mentions) {
       const key = alias.get(m.key) ?? m.key
@@ -277,21 +326,26 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       mentionsTotal++
       const c =
         cands.get(key) ??
-        cands.set(key, { key, surfaces: new Map(), posts: new Set(), sources: new Set(), byKind: {}, compareAll: true, personHits: 0, n: 0, evidence: [], areaVotes: new Map() }).get(key)
+        cands
+          .set(key, { key, surfaces: new Map(), posts: new Set(), sources: new Set(), byKind: {}, compareAll: true, compareN: 0, vias: new Set(), personHits: 0, contrHits: 0, n: 0, evidence: [], areaVotes: new Map() })
+          .get(key)
       const src = inp.source_key ?? '(manual)'
       const kind = kindOf(inp.source_key, cfg)
       const k = (c.byKind[kind] ??= { posts: new Set(), mentions: 0 })
       c.n++
       c.surfaces.set(m.surface, (c.surfaces.get(m.surface) ?? 0) + 1)
       c.compareAll &&= m.compare
+      if (m.compare) c.compareN++
+      for (const v of m.vias) c.vias.add(v)
       if (m.person) c.personHits++
+      if (m.contraction) c.contrHits++
       k.mentions++
       k.posts.add(inp.id)
       c.sources.add(src)
       if (!seenHere.has(key)) {
         seenHere.add(key)
         c.posts.add(inp.id)
-        c.evidence.push({ input_id: inp.id, source: src, quote: quoteAround(inp.raw_text, m.start) })
+        c.evidence.push({ input_id: inp.id, source: src, quote: quoteAround(text, m.start) })
         const a = projectArea(inp.project_id)
         const v = a ? `${a.code}|${a.via}${a.basis ? `:${a.basis}` : ''}` : 'unknown'
         c.areaVotes.set(v, (c.areaVotes.get(v) ?? 0) + 1)
@@ -321,11 +375,30 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
         const got = rule.metric === 'posts' ? v.posts.size : v.mentions
         return { kind, got, min: rule.min, metric: rule.metric, ok: got >= rule.min }
       })
+    // 코퍼스 통계는 이름의 단어별로 본다(여러 단어 이름은 일반어 판별 = 전 단어가 일반어, 중간 대문자 = 한 단어라도).
+    const words = name.split(/[ \t]+/).map((w) => w.toLowerCase().replace(/[^a-z0-9]/g, ''))
+    const st = words.map((w) => stats.get(w))
+    const lowerRatio = st.every(Boolean) ? Math.min(...st.map((e) => e.lower / e.total)) : 0
+    const midCapRatio = Math.max(0, ...st.filter((e) => e?.mid > 0).map((e) => e.midCap / e.mid))
+    const fromId = c.key.includes(':') || c.vias.has('domain')
+    // 제품 신호(채택 필수): 링크 · 도메인 · 비교 패턴 · 따옴표/백틱 · 문장 중간 대문자 비율 ≥ 0.8
+    const signals = [
+      (c.vias.has('appstore') || c.vias.has('googleplay')) && 'link',
+      c.vias.has('domain') && 'domain',
+      c.compareN > 0 && 'compare',
+      c.vias.has('quoted') && 'quoted',
+      midCapRatio >= C.midcap_ratio && 'midcap',
+    ].filter(Boolean)
+
     if (prior.has(c.key)) [status, reason] = ['rejected', `previously_rejected(${prior.get(c.key).date}:${prior.get(c.key).reason})`]
     else if (stop.has(c.key)) [status, reason] = ['rejected', 'stopword']
     else if (stack.has(c.key)) [status, reason] = ['rejected', 'stack']
     else if (persons.has(c.key) || c.personHits * 2 >= c.n) [status, reason] = ['rejected', 'person_name']
+    else if (c.contrHits * 2 >= c.n) [status, reason] = ['rejected', 'contraction']
+    else if (!fromId && idLike(name)) [status, reason] = ['rejected', 'id_like']
+    else if (!c.key.includes(':') && lowerRatio >= C.common_lower_ratio) [status, reason] = ['rejected', `common_word(lower=${lowerRatio.toFixed(2)})`]
     else if (c.posts.size < C.min_evidence) [status, reason] = ['hold', `insufficient_evidence(${c.posts.size}<${C.min_evidence})`]
+    else if (signals.length === 0) [status, reason] = ['hold', `no_product_signal(midcap=${midCapRatio.toFixed(2)})`]
     else if (!kindLine.some((x) => x.ok))
       [status, reason] = ['hold', `below_source_threshold(${kindLine.map((x) => `${x.kind}:${x.metric}=${x.got}/${x.min}`).join(',')})`]
 
@@ -349,12 +422,23 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       areaBasis: votes.map(([v, n]) => `${v}×${n}`).join(', '),
       evidence: ev,
       compareOnly: c.compareAll,
+      compareN: c.compareN,
+      signals,
       status,
       reason,
     })
   }
+  // 정렬: 상태 → 신호 강도(신호 종류 수 · 비교 패턴 언급 수 · 소스 수) → 글 수. 언급 수만으로 줄 세우지 않는다(일반어가 위로 온다).
   const order = { adopt: 0, hold: 1, rejected: 2 }
-  rows.sort((a, b) => order[a.status] - order[b.status] || b.posts - a.posts || b.mentions - a.mentions || a.key.localeCompare(b.key))
+  rows.sort(
+    (a, b) =>
+      order[a.status] - order[b.status] ||
+      b.signals.length - a.signals.length ||
+      b.compareN - a.compareN ||
+      b.sources - a.sources ||
+      b.posts - a.posts ||
+      a.key.localeCompare(b.key),
+  )
   return { rows, counts }
 }
 
@@ -362,31 +446,52 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
 const cell = (s) => oneLine(s).replace(/\|/g, '\\|')
 const STATUS_KO = { adopt: '채택', hold: '확인불가', rejected: '기각' }
 
-export function renderMarkdown(rows, meta) {
-  const head = [
-    `# 제품·회사 이름 후보 표 — ${meta.date}`,
-    '',
-    `규칙 ${meta.ruleVer} · 읽기 전용(SELECT 만) · LLM 0회. 입력 글 ${meta.counts.inputs}건 · 언급 ${meta.counts.mentions}건 · 키 ${meta.counts.keys}개 · 이미 등록 ${meta.counts.registered} · 후보 문턱 미달 ${meta.counts.below}.`,
-    `후보 문턱: 서로 다른 글 ≥${meta.cfg.candidate.min_posts} 또는 소스 ≥${meta.cfg.candidate.min_sources} · 근거 ≥${meta.cfg.candidate.min_evidence}건. 채택 문턱은 소스 종류별(config/product-name-discovery.json adopt).`,
-    `영역 열: ${meta.areaColumn}${meta.areaColumn === 'absent' ? ' (마이그 20261009000020 미적용 — 타깃 라벨 접두로 대신)' : ''}.`,
-    '',
-    '| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 영역 추정(근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |',
-    '|---|---|---|---|---|---|---|---|---|',
+/** 기각·확인불가 사유별 건수(괄호 안 세부값은 뗀다). */
+export function reasonSummary(rows) {
+  const by = {}
+  for (const r of rows) if (r.status !== 'adopt') by[r.reason.replace(/\(.*$/, '')] = (by[r.reason.replace(/\(.*$/, '')] ?? 0) + 1
+  return Object.entries(by).sort((a, b) => b[1] - a[1])
+}
+
+/** part: 'top'(본문 상위 table_top 행 + 요약) | 'rest'(나머지 행). */
+export function renderMarkdown(rows, meta, part = 'top') {
+  const top = meta.cfg.candidate.table_top
+  const shown = part === 'top' ? rows.slice(0, top) : rows.slice(top)
+  const by = { adopt: 0, hold: 0, rejected: 0 }
+  for (const r of rows) by[r.status]++
+  const head =
+    part === 'top'
+      ? [
+          `# 제품·회사 이름 후보 표 — ${meta.date}`,
+          '',
+          `규칙 ${meta.ruleVer} · 읽기 전용(SELECT 만) · LLM 0회. 입력 글 ${meta.counts.inputs}건 · 언급 ${meta.counts.mentions}건 · 키 ${meta.counts.keys}개 · 이미 등록 ${meta.counts.registered} · 후보 문턱 미달 ${meta.counts.below}.`,
+          `후보 문턱: 서로 다른 글 ≥${meta.cfg.candidate.min_posts} 또는 소스 ≥${meta.cfg.candidate.min_sources} · 근거 ≥${meta.cfg.candidate.min_evidence}건. 채택 = 소스 종류별 문턱(config adopt) ∧ 제품 신호 ≥1(link·domain·compare·quoted·midcap).`,
+          `영역 열: ${meta.areaColumn}${meta.areaColumn === 'absent' ? ' (마이그 20261009000020 미적용 — 타깃 라벨 접두로 대신)' : ''}.`,
+          '',
+          `**채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected}** — 기각·확인불가 사유별: ${reasonSummary(rows).map(([k, n]) => `${k} ${n}`).join(' · ') || '없음'}`,
+          `본문은 상위 ${Math.min(top, rows.length)}행(정렬: 상태 → 신호 종류 수 → 비교 패턴 언급 수 → 소스 수 → 글 수). 나머지 ${Math.max(0, rows.length - top)}행은 product-name-candidates-rest.md.`,
+          '',
+        ]
+      : [`# 제품·회사 이름 후보 표(나머지) — ${meta.date}`, '', `상위 ${top}행 뒤의 ${shown.length}행. 요약은 product-name-candidates.md.`, '']
+  const cols = [
+    '| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 영역 추정(근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |',
+    '|---|---|---|---|---|---|---|---|---|---|',
   ]
-  const body = rows.map((r) =>
+  const body = shown.map((r) =>
     [
       STATUS_KO[r.status],
       cell(r.name),
       `\`${cell(r.key)}\``,
       r.posts,
       `${r.sources} (${cell(r.sourceList.join(', '))})`,
+      r.signals.join(', ') || '-',
       `${r.area} (${cell(r.areaBasis)})`,
       r.evidence.map((e) => `${e.input_id} · ${cell(e.source)} · "${cell(e.quote)}"`).join('<br>'),
       r.compareOnly ? '예' : '아니오',
       cell(r.reason || '-'),
     ].join(' | '),
   )
-  return [...head, ...body.map((b) => `| ${b} |`), ''].join('\n')
+  return [...head, ...cols, ...body.map((b) => `| ${b} |`), ''].join('\n')
 }
 
 export function ledgerOf(rows, meta) {
@@ -394,6 +499,7 @@ export function ledgerOf(rows, meta) {
     generated_at: meta.now.toISOString(),
     date: meta.date,
     rule_ver: meta.ruleVer,
+    by_reason: Object.fromEntries(reasonSummary(rows)),
     entries: rows
       .filter((r) => r.status !== 'adopt')
       .map((r) => ({ key: r.key, name: r.name, status: r.status === 'hold' ? 'unverifiable' : 'rejected', reason: r.reason, posts: r.posts, sources: r.sourceList, evidence: r.evidence })),
@@ -508,16 +614,18 @@ export async function main(argv, { port, now = new Date(), reportsDir = REPORTS_
     `입력: relevant ${relevantIds.length} · 영역 프로젝트 ${areaProjects.length}개 · 합집합 글 ${inputs.length}(폐기 제외 ${purged}) · 등록 사전 키 ${registry.size} · 지난 기각 ${prior.size}`,
     `추출: 언급 ${counts.mentions} · 키 ${counts.keys} · 이미 등록 ${counts.registered} · 후보 문턱 미달 ${counts.below}`,
     `후보: 채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected}`,
-    ...rows.filter((r) => r.status === 'adopt').slice(0, 10).map((r) => `  - ${r.name} (${r.key}) 글 ${r.posts} · 소스 ${r.sources} · 영역 ${r.area}${r.compareOnly ? ' · 비교만' : ''}`),
+    `사유별: ${reasonSummary(rows).map(([k, n]) => `${k} ${n}`).join(' · ') || '없음'}`,
+    ...rows.filter((r) => r.status === 'adopt').slice(0, 10).map((r) => `  - ${r.name} (${r.key}) 신호 ${r.signals.join('+')} · 글 ${r.posts} · 소스 ${r.sources} · 영역 ${r.area}${r.compareOnly ? ' · 비교만' : ''}`),
   ]
   let files = null
   if (run) {
     const dir = path.join(reportsDir, date)
     fs.mkdirSync(dir, { recursive: true })
-    files = { md: path.join(dir, 'product-name-candidates.md'), ledger: path.join(dir, 'rejected-candidates.json') }
-    fs.writeFileSync(files.md, renderMarkdown(rows, meta))
+    files = { md: path.join(dir, 'product-name-candidates.md'), rest: path.join(dir, 'product-name-candidates-rest.md'), ledger: path.join(dir, 'rejected-candidates.json') }
+    fs.writeFileSync(files.md, renderMarkdown(rows, meta, 'top'))
+    fs.writeFileSync(files.rest, renderMarkdown(rows, meta, 'rest'))
     fs.writeFileSync(files.ledger, JSON.stringify(ledgerOf(rows, meta), null, 2) + '\n')
-    summary.push(`파일: ${files.md}`, `대장: ${files.ledger}`)
+    summary.push(`파일: ${files.md} (+ ${path.basename(files.rest)})`, `대장: ${files.ledger}`)
   }
   for (const l of summary) log(l)
   return { rows, counts, by, files }

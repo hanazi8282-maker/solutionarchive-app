@@ -3,7 +3,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { normKey, splitBilingual, domainName, extractMentions, buildRegistry, loadConfig, main } from './product-name-candidates.mjs'
+import { normKey, splitBilingual, domainName, extractMentions, buildRegistry, loadConfig, main, stripHeader, idLike, corpusStats, renderMarkdown, buildCandidates } from './product-name-candidates.mjs'
 
 let pass = 0
 let fail = 0
@@ -29,7 +29,7 @@ t('domainName: 못 읽으면 null', domainName('') === null && domainName('local
 const keys = (s) => extractMentions(s, cfg).mentions.map((m) => m.key)
 t('추출: 문장 첫 대문자는 안 잡는다', !keys('Glorp is slow. Brivio too.').includes('glorp') && !keys('Glorp is slow. Brivio too.').includes('brivio'))
 t('추출: 문장 중간 대문자는 잡는다', keys('we moved to Brivio today').includes('brivio'))
-t('추출: 짧은 약어(AI·API) 제외', !keys('we use the API and AI daily').some((k) => k === 'api' || k === 'ai'))
+t('추출: 2자 약어(AI·UI) 제외 · 3자 약어 API 는 common_words 담당', !keys('we use the UI and AI daily').some((k) => k === 'ui' || k === 'ai') && cfg.common_words.includes('api'))
 t('추출: 앱스토어 링크 → appstore:id 키', keys('see https://apps.apple.com/kr/app/zentrova/id1234567 now').includes('appstore:id1234567'))
 t('추출: 플레이 링크 → googleplay:pkg 키', keys('get play.google.com/store/apps/details?id=com.Kito.app ok').includes('googleplay:com.kito.app'))
 t('추출: 도메인 → 이름', keys('pricing at https://flowbase.io/pricing is steep').includes('flowbase'))
@@ -43,6 +43,19 @@ const bi = extractMentions('요즘 노션(Notion) 씁니다', cfg)
 t('추출: 한영 병기 → 별칭쌍', bi.aliases.some(([a, b]) => a === '노션' && b === 'notion'))
 t('추출: 같은 위치 겹침은 한 번만', extractMentions('see Otter.ai now', cfg).mentions.filter((m) => m.key === 'otter').length === 1)
 t('추출: "님" 접미 → 사람 표지', extractMentions('민수님 대신 영희님 의견', cfg).mentions.some((m) => m.person))
+
+t('머리 표식 제거', !stripHeader('[YouTube 댓글 · O9GBX6mbn7U] Love it').includes('O9GBX6mbn7U') && stripHeader('[Product Hunt 댓글 · foo-bar] hi').trim() === 'hi')
+t('idLike: 영상 ID 꼴 · 숫자 포함', idLike('O9GBX6mbn7U') && idLike('KsmCwnvWixA') && idLike('H1CD75ZKWTg'))
+t('idLike: 중간 대문자 제품명은 아님', !idLike('DocuSign') && !idLike('SurveyMonkey') && !idLike('Evernote') && !idLike('LUX'))
+const cs = corpusStats(['I love it. Love wins. we Love this'])
+t('corpusStats: 문장 첫 단어는 mid 아님 · 소문자 수', cs.get('love').total === 3 && cs.get('love').lower === 1 && cs.get('love').mid === 2 && cs.get('love').midCap === 1)
+t('추출: 3자 대문자 제품명(LUX)은 남기고 흔한 약어(SEO)는 거른다', (() => {
+  const r = buildCandidates({ inputs: [...Array(5)].map((_, i) => ({ id: `l${i}`, source_key: 'appstore', raw_text: 'we bought LUX and SEO tools' })), registry: new Map(), cfg }).rows
+  return r.find((x) => x.key === 'lux')?.status === 'adopt' && !r.some((x) => x.key === 'seo')
+})())
+t('추출: 대문자 묶음 → 한 이름', keys('we sell on Lemon Squeezy now').includes('lemonsqueezy'))
+t('추출: 문장 첫 묶음은 첫 단어만 뗀다', keys('Love Zentrova so much').includes('zentrova') && !keys('Love Zentrova so much').includes('lovezentrova'))
+t('추출: 이모지·글머리 뒤도 문장 첫머리', !keys('🔥 Love this').includes('love') && !keys('- Amazing app').includes('amazing'))
 
 // ── 대조 사전 ──
 const reg = buildRegistry({
@@ -77,6 +90,17 @@ const areaInputs = [
   inp(P2, 'okky', '모아노트 vs 에버노트 비교해보니 낫네요'),
   inp(P2, 'clien', 'flowbase.io 써봤는데 별로'),
   inp(P2, 'clien', 'flowbase.io 가격이 올랐네요'),
+  // ── 실데이터 오탐 재현(2026-10-12 첫 --run): 형용사·접속어·축약형 조각·영상 ID·"Product Hunt" 조각 ──
+  ...times(6, (i) => inp(P1, 'youtube', `[YouTube 댓글 · ${['O9GBX6mbn7U', 'KsmCwnvWixA', 'IFNXZlKYS80'][i % 3]}] 🔥 Love this app`)),
+  ...times(5, () => inp(P1, 'youtube', 'check clip KsmCwnvWixA again')),
+  ...times(6, () => inp(P1, 'appstore', 'Honestly Love it. I love the sync and love the price.')),
+  ...times(5, () => inp(P1, 'appstore', 'Wow!! Amazing app\nExcellent support. What a deal')),
+  ...times(5, () => inp(P1, 'googleplay', 'It just Doesn\'t work and Don\'t bother')),
+  ...times(5, () => inp(P1, 'producthunt', '[Product Hunt 댓글 · zentrova-2] found it on Product Hunt today')),
+  ...times(5, () => inp(P1, 'appstore', 'I moved from paper to DocuSign for contracts')),
+  ...times(4, () => inp(P1, 'appstore', 'Zorbix rocks. the Zorbix sync')),
+  inp(P2, 'clien', 'Zorbix rocks. the Zorbix sync'),
+  ...times(2, () => inp(P2, 'clien', 'the zorbix thing')),
 ]
 const relevantInputs = [
   ...times(5, () => inp(P3, 'hackernews', 'I pay for Otter.ai and it is fine.')),
@@ -151,13 +175,35 @@ t('근거 3건·120자·input_id·소스', row('appstore:id1234567').evidence.le
 t('근거는 소스를 섞어 고른다', new Set(row('appstore:id1234567').evidence.map((e) => e.source)).size === 2)
 t('폐기 원문 제외(입력 수)', res.counts.inputs === areaInputs.length + relevantInputs.length - 1)
 
+// 오탐 재현 → 채택 불가
+const adopted = new Set(res.rows.filter((r) => r.status === 'adopt').map((r) => r.key))
+t('오탐: Love·Hunt·Amazing·What·Excellent·Doesn·Don 채택 안 됨', ['love', 'hunt', 'amazing', 'what', 'excellent', 'doesn', 'don', 'wow'].every((k) => !adopted.has(k)))
+t('오탐: 영상 ID 는 행 자체가 없다(머리 표식 제거)', !res.rows.some((r) => /o9gbx6mbn7u|ifnxzlkys80|zentrova2/.test(r.key)))
+t('오탐: Love 는 common_word 로 기각', /^common_word/.test(row('love')?.reason ?? ''))
+t('오탐: 문장 첫 단어(줄바꿈·!! 뒤 포함)는 안 잡는다', !row('amazing') && !row('excellent') && !row('what'))
+t('오탐: 축약형 조각 기각', row('doesn')?.reason === 'contraction' && row('don')?.reason === 'contraction')
+t('오탐: "Product Hunt" 는 한 이름(불용어)으로, Hunt 조각 없음', !row('hunt') && row('producthunt')?.reason === 'stopword')
+t('진짜: DocuSign 채택(중간 대문자 신호)', row('docusign')?.status === 'adopt' && row('docusign').signals.includes('midcap'))
+t('신호 없음 → 확인불가(no_product_signal)', /^no_product_signal/.test(row('zorbix')?.reason ?? '') && row('zorbix').status === 'hold')
+const zi = res.rows.findIndex((r) => r.key === 'appstore:id1234567')
+t('정렬: 신호 2종(Zentrova) 이 1종(DocuSign) 보다 위', zi >= 0 && zi < res.rows.findIndex((r) => r.key === 'docusign'))
+t('정렬: 신호 종류 수가 비교 언급 수보다 먼저(Zentrova 2종 > 모아노트 1종·비교 4)', zi < res.rows.findIndex((r) => r.key === '모아노트'))
+t('오탐: 본문 속 영상 ID → id_like 기각', row('ksmcwnvwixa')?.reason === 'id_like')
+t('정렬: 같은 신호 수면 비교 언급 많은 쪽(모아노트) 위', res.rows.findIndex((r) => r.key === '모아노트') < res.rows.findIndex((r) => r.key === 'docusign'))
+
 const md = fs.readFileSync(res.files.md, 'utf8')
+t('표 상단: 사유별 건수 요약', /기각·확인불가 사유별: .*stopword \d+/.test(md) && /contraction \d+/.test(md))
+t('나머지 파일 생성', fs.existsSync(res.files.rest) && res.files.rest.endsWith('product-name-candidates-rest.md'))
+const small = { ...cfg, candidate: { ...cfg.candidate, table_top: 3 } }
+const rowLines = (s) => s.split('\n').filter((l) => /^\| (채택|확인불가|기각) \|/.test(l)).length
+const meta = { date: 'x', ruleVer: 'v', counts: res.counts, cfg: small, areaColumn: 'present' }
+t('상위 N 본문 · 나머지 별도', rowLines(renderMarkdown(res.rows, meta, 'top')) === 3 && rowLines(renderMarkdown(res.rows, meta, 'rest')) === res.rows.length - 3)
 const ledger = JSON.parse(fs.readFileSync(res.files.ledger, 'utf8'))
 t('파일 위치 reports/<KST 날짜>/', res.files.md === path.join(tmp, '2026-10-12', 'product-name-candidates.md') && res.files.ledger === path.join(tmp, '2026-10-12', 'rejected-candidates.json'))
-t('표 헤더 열', md.includes('| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 영역 추정(근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |'))
+t('표 헤더 열', md.includes('| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 영역 추정(근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |'))
 t('표: 채택 행', /\| 채택 \| Zentrova \| `appstore:id1234567` \| 5 \|/.test(md) && md.includes('| 채택 | 모아노트 |'))
 t('표: 기각·확인불가도 사유와 함께', /\| 기각 \| Excel \|.*\| stopword \|/.test(md) && /\| 확인불가 \| Brivio \|/.test(md))
-t('표: 행마다 열 9개(파이프 이스케이프)', md.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('|---')).every((l) => l.split(/(?<!\\)\|/).length === 11))
+t('표: 행마다 열 10개(파이프 이스케이프)', md.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('|---')).every((l) => l.split(/(?<!\\)\|/).length === 12))
 t('대장: 기각·확인불가 전부, 채택 0', ledger.entries.length === res.rows.filter((r) => r.status !== 'adopt').length && !ledger.entries.some((e) => e.key === 'moanote'))
 t('대장: 상태 어휘·사유', ledger.entries.find((e) => e.key === 'quillora')?.status === 'unverifiable' && ledger.entries.find((e) => e.key === 'excel')?.reason === 'stopword')
 
@@ -183,7 +229,10 @@ const src = fs.readFileSync(new URL('./product-name-candidates.mjs', import.meta
 t('정적: 쓰기 SQL·메서드 0', !writes(src))
 t('정적(뮤턴트): 검사기가 .insert( 를 잡는다', writes(src + "\nsb.from('x').insert({})") && writes(src + '\n// UPDATE public.x SET a=1'))
 t('정적: DB 접근은 .from(...).select 만', (src.match(/\.from\('/g) ?? []).length === (src.match(/\.from\('[a-z_]+'\)\.select\(/g) ?? []).length)
-t('정적: 파일 쓰기는 표·대장 두 곳뿐', (src.match(/writeFileSync\(/g) ?? []).length === 2 && /writeFileSync\(files\.md,/.test(src) && /writeFileSync\(files\.ledger,/.test(src))
+t(
+  '정적: 파일 쓰기는 표·나머지·대장 세 곳뿐',
+  (src.match(/writeFileSync\(/g) ?? []).length === 3 && ['md', 'rest', 'ledger'].every((k) => new RegExp(`writeFileSync\\(files\\.${k},`).test(src)),
+)
 t('정적: LLM 호출 없음', !/anthropic|gemini|claude-cli|llm-provider|messages\.create/i.test(src.replace(/^\s*\/\/.*$/gm, '')))
 
 fs.rmSync(tmp, { recursive: true, force: true })

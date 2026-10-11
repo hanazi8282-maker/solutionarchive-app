@@ -25,8 +25,31 @@ export const PCT_STEPS = [50, 60, 70, 80, 90] as const
 export const PCT_RISE_OK_DAYS = 2
 /** 같은 단계에서 2회째 차단이면 동결 기간(남헌 승인 2026-10-06). 1회째는 RAMP_FREEZE_DAYS. */
 export const PCT_ESCALATED_FREEZE_DAYS = 14
-/** 차단선 재정의 계수 — cap_base := floor(block_line × 0.9), 내리는 쪽만(percent-ramp-table §6). */
-export const BLOCK_LINE_FACTOR = 0.9
+/**
+ * 차단 반응(남헌 v50 2026-10-12). 옛 규칙 cap_base := floor(차단선 × 0.9) 는 차단선이 그날 요청 수라
+ * 요청 2건에서 난 차단 1건에 상한이 60→1 로 떨어졌다(googleplay 10-09). 이제 차단 1건 = 절반(하루 1회), 하한 = 원래 값의 25%.
+ * 원래 값 = review_source_ramp.cap_base_origin(마이그 20261012000010). 칸이 없거나 NULL 이면 차단 시점 cap_base 를 원래 값으로 본다.
+ */
+export const CAP_FLOOR_RATIO = 0.25
+/** 차단 신호 없이 연속 정상 며칠이면 cap_base 를 한 단계(×2, 원래 값까지) 복구하나. */
+export const CAP_RECOVER_OK_DAYS = 3
+/** 복구 로그 사유 표지 — 복구 간격(3일마다 한 단계) 판정이 ramp_log 에서 이 문자열을 찾는다. */
+export const CAP_RECOVER_MARK = '상한 복구'
+export const CAP_ORIGIN_MIGRATION = '20261012000010_review_source_ramp_cap_origin'
+
+/** 하한 = floor(원래 값 × 25%), 최소 1. */
+export const capFloor = (origin: number): number => Math.max(1, Math.floor(origin * CAP_FLOOR_RATIO))
+/** 절반 감소 — max(floor(cap/2), 하한). 이미 하한 아래면 그대로(차단으로 올리지는 않는다). */
+export const halveCap = (capBase: number, origin: number): number => Math.min(capBase, Math.max(Math.floor(capBase / 2), capFloor(origin)))
+/**
+ * 복구 한 단계(절반의 역순 ×2, 하한 아래였으면 하한까지, 원래 값 초과 금지). 조건: 원래 값을 알고, 그보다 낮고,
+ * 창 안에 차단·상한 변경이 없고, 창의 날이 CAP_RECOVER_OK_DAYS 개 전부 정상. 아니면 null.
+ */
+export function capRecovery(capBase: number, origin: number | null, cleanDays: boolean[], changedInWindow: boolean): number | null {
+  if (origin === null || capBase >= origin || changedInWindow) return null
+  if (cleanDays.length < CAP_RECOVER_OK_DAYS || !cleanDays.every(Boolean)) return null
+  return Math.min(origin, Math.max(capBase * 2, capFloor(origin)))
+}
 /**
  * 배분 B 의 하루 시간 예산 = 기존 슬롯 2 × timeout 90분(nightly-review-collect.yml). 슬롯·타임아웃이 바뀌면 여기만 고친다.
  * v30 §2 로 슬롯이 6개가 됐지만 이 값은 그대로 둔다 — 추가 4슬롯은 퍼센트 램프 계획이 있는 소스만 돌고, 남헌이 승인한
@@ -234,6 +257,12 @@ export type PctRamp = {
   consecutiveOkDays: number
   lastEvaluatedDate: string | null
   blockLine: number | null
+  /** 마지막 차단 시각 — 같은 UTC 날 두 번째 차단이면 절반을 다시 하지 않는다. */
+  blockLineAt: string | null
+  /** 원래 cap_base(하한·복구 상한의 기준). null = 기록 없음. */
+  capOrigin: number | null
+  /** cap_base_origin 칸을 읽었나(false = 마이그 000010 미적용 → 쓰지 않고, 복구 안 함). */
+  originReady: boolean
   blocksAtStep: number
   supplyState: SupplyState | null
   /** v30 §2 스케줄 계획. null = 칸 없음(마이그 000030 미적용)·아직 계획 전 — 기존 예산·기존 2슬롯. */
@@ -254,16 +283,37 @@ export type SourceRamp = {
 }
 
 const BASE_COLS = 'source_key, level, targets_per_run, frozen_until, changed_at, reason'
-const PCT_COLS = 'pct_step, cap_base, daily_request_target, consecutive_ok_days, last_evaluated_date, block_line, blocks_at_step, supply_state'
+const PCT_COLS = 'pct_step, cap_base, daily_request_target, consecutive_ok_days, last_evaluated_date, block_line, block_line_at, blocks_at_step, supply_state'
 
 type RampRow = {
   source_key: string; level: number; targets_per_run: number; frozen_until: string | null; changed_at: string; reason: string
   pct_step?: number; cap_base?: number | null; daily_request_target?: number | null; consecutive_ok_days?: number
-  last_evaluated_date?: string | null; block_line?: number | null; blocks_at_step?: number; supply_state?: SupplyState | null
-  schedule_plan?: SchedulePlan | null
+  last_evaluated_date?: string | null; block_line?: number | null; block_line_at?: string | null; blocks_at_step?: number; supply_state?: SupplyState | null
+  schedule_plan?: SchedulePlan | null; cap_base_origin?: number | null
 }
 
-function toRamp(data: RampRow, pctReady: boolean): SourceRamp {
+type PgErr = { code?: string; message?: string }
+/**
+ * 선택 칸(optional) 중 없는 칸이 있으면(42703/PGRST204, 메시지에 그 칸 이름) 그 칸만 빼고 다시 읽는다 — 나머지는 지금처럼.
+ * 메시지가 선택 칸을 안 짚는 오류는 그대로 돌려준다(호출자가 3상태로 처리).
+ */
+async function selectWithOptional(
+  run: (cols: string) => PromiseLike<{ data: unknown; error: PgErr | null }>,
+  base: string,
+  optional: string[],
+): Promise<{ data: unknown; error: PgErr | null; missing: string[] }> {
+  let cols = [...optional]
+  const missing: string[] = []
+  for (;;) {
+    const r = await run([base, ...cols].join(', '))
+    const miss = r.error && isMissingColumn(r.error.code) ? cols.find((c) => (r.error?.message ?? '').includes(c)) : undefined
+    if (!miss) return { data: r.data, error: r.error, missing }
+    cols = cols.filter((c) => c !== miss)
+    missing.push(miss)
+  }
+}
+
+function toRamp(data: RampRow, pctReady: boolean, originReady = false): SourceRamp {
   return {
     sourceKey: data.source_key,
     level: data.level,
@@ -281,6 +331,9 @@ function toRamp(data: RampRow, pctReady: boolean): SourceRamp {
             consecutiveOkDays: data.consecutive_ok_days ?? 0,
             lastEvaluatedDate: data.last_evaluated_date ?? null,
             blockLine: data.block_line ?? null,
+            blockLineAt: data.block_line_at ?? null,
+            capOrigin: originReady && typeof data.cap_base_origin === 'number' && data.cap_base_origin > 0 ? data.cap_base_origin : null,
+            originReady,
             blocksAtStep: data.blocks_at_step ?? 0,
             supplyState: data.supply_state ?? null,
             plan: data.schedule_plan ?? null,
@@ -299,15 +352,17 @@ export async function loadSourceRamp(
   sourceKey: string,
 ): Promise<{ state: 'ramp'; ramp: SourceRamp } | { state: 'none' } | { state: 'unavailable'; reason: string }> {
   let pctReady = true
-  let { data, error } = await sb.from('review_source_ramp').select(`${BASE_COLS}, ${PCT_COLS}, schedule_plan`).eq('source_key', sourceKey).maybeSingle()
-  // schedule_plan 만 없으면(마이그 000030 미적용) 퍼센트 칸까지는 읽는다 — 계획 없이 지금처럼.
-  if (error && isMissingColumn(error.code) && /schedule_plan/.test(error.message ?? '')) {
-    ;({ data, error } = await sb.from('review_source_ramp').select(`${BASE_COLS}, ${PCT_COLS}`).eq('source_key', sourceKey).maybeSingle())
-  }
-  if (error && isMissingColumn(error.code)) {
+  // schedule_plan(000030)·cap_base_origin(20261012000010) 이 없으면 그 칸만 빼고 퍼센트 칸까지는 읽는다 — 지금처럼.
+  let r = await selectWithOptional(
+    (cols) => sb.from('review_source_ramp').select(cols).eq('source_key', sourceKey).maybeSingle(),
+    `${BASE_COLS}, ${PCT_COLS}`,
+    ['schedule_plan', 'cap_base_origin'],
+  )
+  if (r.error && isMissingColumn(r.error.code)) {
     pctReady = false
-    ;({ data, error } = await sb.from('review_source_ramp').select(BASE_COLS).eq('source_key', sourceKey).maybeSingle())
+    r = { ...(await sb.from('review_source_ramp').select(BASE_COLS).eq('source_key', sourceKey).maybeSingle()), missing: [] }
   }
+  const { data, error } = r
   if (error) {
     return {
       state: 'unavailable',
@@ -315,7 +370,7 @@ export async function loadSourceRamp(
     }
   }
   if (!data) return { state: 'none' }
-  return { state: 'ramp', ramp: toRamp(data, pctReady) }
+  return { state: 'ramp', ramp: toRamp(data as RampRow, pctReady, pctReady && !r.missing.includes('cap_base_origin')) }
 }
 
 /** 램프 대상이 아닌 소스(§10.1): 차단 이력(todayhumor) · 남헌이 속도를 정해 둔 소스(danawa, 09-27 최소화). 기본 타깃 수로만 돈다. */
@@ -430,11 +485,17 @@ export function nextPctState(
 /**
  * 차단 → 즉시 한 단계 하강(50 이 바닥) + 연속 정상 0 + 동결(같은 단계 2회째면 14일).
  * priorBlocksAtStep = 이 단계에서 전에 난 차단 수(로그 집계). null = 못 셌다 → 2회째로 본다(더 긴 동결 쪽, §7.1).
- * 차단선 = 그날 요청 합. cap_base 는 floor(차단선 × 0.9) 로 **내리기만** 한다(1 미만이면 그대로 — 사람 몫).
+ * 차단선 = 그날 요청 합(기록만). cap_base 는 절반(하한 = 원래 값의 25%), 같은 UTC 날 두 번째 차단부터는 그대로(halvedToday).
+ * 원래 값 = max(cap_base_origin ?? cap_base, cap_base) — 사람이 그 뒤 cap_base 를 올렸으면 그 값을 원래 값으로 따라간다.
  */
-export function pctOnBlock(p: Pick<PctRamp, 'pctStep' | 'capBase'>, priorBlocksAtStep: number | null, requestsTodayTotal: number) {
+export function pctOnBlock(
+  p: Pick<PctRamp, 'pctStep' | 'capBase'> & { capOrigin?: number | null },
+  priorBlocksAtStep: number | null,
+  requestsTodayTotal: number,
+  halvedToday = false,
+) {
   const blocksAtStep = (priorBlocksAtStep ?? 1) + 1
-  const lowered = Math.floor(requestsTodayTotal * BLOCK_LINE_FACTOR)
+  const capOrigin = Math.max(p.capOrigin ?? p.capBase, p.capBase)
   return {
     pctStep: Math.max(PCT_STEPS[0], p.pctStep - 10),
     consecutiveOkDays: 0,
@@ -442,7 +503,8 @@ export function pctOnBlock(p: Pick<PctRamp, 'pctStep' | 'capBase'>, priorBlocksA
     escalated: blocksAtStep >= 2,
     freezeDays: blocksAtStep >= 2 ? PCT_ESCALATED_FREEZE_DAYS : RAMP_FREEZE_DAYS,
     blockLine: requestsTodayTotal,
-    capBase: lowered >= 1 && lowered < p.capBase ? lowered : p.capBase,
+    capOrigin,
+    capBase: halvedToday ? p.capBase : halveCap(p.capBase, capOrigin),
   }
 }
 
@@ -479,7 +541,14 @@ const isoDate = (d: Date) => d.toISOString().slice(0, 10)
  */
 export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<string[]> {
   const notes: string[] = []
-  const { data, error } = await sb.from('review_source_ramp').select(`${BASE_COLS}, ${PCT_COLS}`).not('cap_base', 'is', null)
+  const sel = await selectWithOptional(
+    (cols) => sb.from('review_source_ramp').select(cols).not('cap_base', 'is', null),
+    `${BASE_COLS}, ${PCT_COLS}`,
+    ['cap_base_origin'],
+  )
+  const { error } = sel
+  const data = sel.data as RampRow[] | null
+  const originReady = !sel.missing.includes('cap_base_origin')
   if (error) {
     if (isMissingColumn(error.code)) return [`⚠️ 퍼센트 램프 칸 없음 — 마이그 ${PCT_RAMP_MIGRATION} 미적용, 승강 판정 생략`]
     if (isMissingTableError(error.code, error.message)) return []
@@ -489,7 +558,7 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
   const yStart = new Date(today.getTime() - DAY_MS)
   const yDate = isoDate(yStart)
   const ramps = (data ?? [])
-    .map((d) => toRamp(d, true))
+    .map((d) => toRamp(d, true, originReady))
     .filter((r) => r.pct && !RAMP_EXCLUDED.has(r.sourceKey) && (r.pct.lastEvaluatedDate === null || r.pct.lastEvaluatedDate < yDate))
   if (ramps.length === 0) return notes
 
@@ -502,7 +571,7 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
   try {
     const src = await sb.from('review_sources').select('key, min_interval_ms, daily_request_cap').eq('enabled', true)
     if (src.error) throw new Error(src.error.message)
-    const capBaseOf = new Map((data ?? []).map((d) => [d.source_key as string, d.cap_base as number]))
+    const capBaseOf = new Map((data ?? []).map((d) => [d.source_key, d.cap_base as number]))
     const items: Array<{ key: string; requests: number; intervalMs: number }> = []
     for (const s of src.data ?? []) {
       const c = await sb.from('review_targets').select('id', { count: 'exact', head: true }).eq('source_key', s.key).eq('status', 'active')
@@ -525,27 +594,52 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
     let event: 'start' | 'day' | 'rise'
     let reason: string
     let supply: SupplyState | null = p.supplyState
+    let recovered: number | null = null
     if (p.lastEvaluatedDate === null) {
       // 첫 판정 = 시작. 램프 밖에서 돈 날(시작일 포함)은 세지 않는다 — last_evaluated_date 를 오늘(UTC)로 써 오늘은 건너뛰고 내일부터 센다.
       next = { pctStep: p.pctStep, consecutiveOkDays: 0, rose: false }
       event = 'start'
       reason = `퍼센트 램프 시작 ${p.pctStep}% (상한 ${p.capBase})`
     } else {
+      // 어제 판정 + cap 복구 창(어제까지 CAP_RECOVER_OK_DAYS 일)을 한 번에 읽는다.
+      const wStart = new Date(today.getTime() - CAP_RECOVER_OK_DAYS * DAY_MS)
       const runs = await sb
         .from('review_collection_runs')
-        .select('status, requests, blocked_responses, quota_responses, health_after')
+        .select('started_at, status, requests, blocked_responses, quota_responses, health_after')
         .eq('source_key', r.sourceKey)
         .eq('dry_run', false)
-        .gte('started_at', yStart.toISOString())
+        .gte('started_at', wStart.toISOString())
         .lt('started_at', today.toISOString())
       if (runs.error) {
         notes.push(`⚠️ ${r.sourceKey}: 어제 실행 조회 실패(${runs.error.message}) — 판정 보류(다음 슬롯에 다시)`)
         continue
       }
+      const all = (runs.data ?? []) as Array<DayRow & { started_at: string }>
+      const rowsOn = (start: Date) => all.filter((x) => Date.parse(x.started_at) >= start.getTime() && Date.parse(x.started_at) < start.getTime() + DAY_MS)
+      // cap 복구(남헌 v50): 창의 날마다 차단·쿼터·오류·측정 없음이 아니면 정상(공급·동결·배분은 보지 않는다 — 차단 신호만).
+      if (p.capOrigin !== null && p.capBase < p.capOrigin) {
+        const clean = Array.from({ length: CAP_RECOVER_OK_DAYS }, (_, k) =>
+          judgePctDay({ rows: rowsOn(new Date(wStart.getTime() + k * DAY_MS)), dayTarget: 0, pct: p.pctStep, frozen: false, allocLimited: false }).verdict === 'ok')
+        const blockedInWindow = p.blockLineAt !== null && Date.parse(p.blockLineAt) >= wStart.getTime()
+        const cand = capRecovery(p.capBase, p.capOrigin, clean, blockedInWindow)
+        if (cand !== null) {
+          // 복구 간격 — 창 안에 이미 복구가 있었으면 이번엔 안 한다(3일마다 한 단계). 못 세면 보류(§7.1).
+          const recent = await sb
+            .from('review_source_ramp_log')
+            .select('id', { count: 'exact', head: true })
+            .eq('source_key', r.sourceKey)
+            .gte('created_at', wStart.toISOString())
+            .like('reason', `%${CAP_RECOVER_MARK}%`)
+          if (recent.error) notes.push(`⚠️ ${r.sourceKey}: 최근 상한 복구 조회 실패(${recent.error.message}) — 복구 보류`)
+          else if ((recent.count ?? 0) === 0) recovered = cand
+        }
+      } else if (p.capOrigin === null && p.blockLine !== null) {
+        notes.push(`⚠️ ${r.sourceKey}: 원래 cap_base 기록 없음(${p.originReady ? 'cap_base_origin NULL' : `칸 없음 — 마이그 ${CAP_ORIGIN_MIGRATION} 미적용`}) — 상한 자동 복구 안 함`)
+      }
       const unallocated = pctTarget(p.capBase, p.pctStep)
       const dayTarget = p.dailyRequestTarget ?? unallocated
       const j = judgePctDay({
-        rows: (runs.data ?? []) as DayRow[],
+        rows: rowsOn(yStart),
         dayTarget,
         pct: p.pctStep,
         frozen: r.frozenUntil !== null && Date.parse(r.frozenUntil) > yStart.getTime(),
@@ -554,9 +648,11 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
       supply = j.supply
       next = nextPctState(p, j.verdict, PCT_CEILING[r.sourceKey])
       event = next.rose ? 'rise' : 'day'
-      reason = `${yDate} ${j.verdict} (요청 ${j.requests}/목표 ${dayTarget}) — ${next.rose ? `정상 ${PCT_RISE_OK_DAYS}일 연속, ${p.pctStep}%→${next.pctStep}%` : `${next.pctStep}% 유지, 연속정상 ${next.consecutiveOkDays}일`}`
+      reason = `${yDate} ${j.verdict} (요청 ${j.requests}/목표 ${dayTarget}) — ${next.rose ? `정상 ${PCT_RISE_OK_DAYS}일 연속, ${p.pctStep}%→${next.pctStep}%` : `${next.pctStep}% 유지, 연속정상 ${next.consecutiveOkDays}일`}` +
+        (recovered !== null ? ` · ${CAP_RECOVER_MARK} ${p.capBase}→${recovered}(차단 없이 연속 정상 ${CAP_RECOVER_OK_DAYS}일, 원래 ${p.capOrigin})` : '')
     }
-    const target = pctTarget(p.capBase, next.pctStep, share)
+    const capBase = recovered ?? p.capBase
+    const target = pctTarget(capBase, next.pctStep, share)
     // 스케줄 계획(v30 §2). 꺼진 소스·재료 없음이면 null.
     let plan: SchedulePlan | null = null
     const iv = intervalOf.get(r.sourceKey)
@@ -574,14 +670,14 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
         }),
       }
     }
-    const line = `${r.sourceKey}: ${reason} · 오늘목표 ${target}${share !== null ? `(배분 몫 ${share})` : ''} / 상한 ${p.capBase}${next.pctStep >= 90 ? ' · 안정' : ''}`
+    const line = `${r.sourceKey}: ${reason} · 오늘목표 ${target}${share !== null ? `(배분 몫 ${share})` : ''} / 상한 ${capBase}${next.pctStep >= 90 ? ' · 안정' : ''}`
     const planNote = `${r.sourceKey}: ${plan ? planLine(plan) : '스케줄 계획 없음(재료 조회 실패·꺼진 소스) → 기존 2슬롯'}`
     if (dryRun) {
       notes.push(`dry-run — ${line}`, `dry-run — ${planNote}`)
       continue
     }
     const log = await sb.from('review_source_ramp_log').insert({
-      source_key: r.sourceKey, prev_level: r.level, new_level: r.level, prev_pct: p.pctStep, new_pct: next.pctStep, event, reason, applied_by: 'review-collect',
+      source_key: r.sourceKey, prev_level: r.level, new_level: r.level, prev_pct: p.pctStep, new_pct: next.pctStep, event, reason, applied_by: 'review-collect', created_at: now.toISOString(),
     })
     if (log.error) {
       notes.push(`❌ ${r.sourceKey}: 퍼센트 램프 판정 보류 — 로그 기록 실패(${log.error.message}), 상태 그대로`)
@@ -592,6 +688,7 @@ export async function stepPctRamps(sb: Sb, now: Date, dryRun: boolean): Promise<
       consecutive_ok_days: next.consecutiveOkDays,
       last_evaluated_date: event === 'start' ? isoDate(now) : yDate, // 시작일은 오늘(UTC): 오늘 일부는 램프 밖에서 돌았을 수 있어 세지 않는다(독립 검토 2026-10-06)
       daily_request_target: target,
+      ...(recovered !== null ? { cap_base: recovered } : {}),
       supply_state: supply,
       ...(next.rose ? { blocks_at_step: 0, changed_at: now.toISOString(), reason } : {}),
     }
@@ -656,13 +753,18 @@ async function pctRollback(
     .eq('event', 'block')
     .eq('prev_pct', p.pctStep)
   const priorCount = prior.error ? null : (prior.count ?? 0)
-  const b = pctOnBlock(p, priorCount, requestsTodayTotal)
+  const halvedToday = p.blockLineAt !== null && isoDate(new Date(p.blockLineAt)) === isoDate(now)
+  const b = pctOnBlock(p, priorCount, requestsTodayTotal, halvedToday)
   const nextLevel = ramp.level > 0 ? ramp.level - 1 : 0
+  const capNote =
+    b.capBase !== p.capBase
+      ? `, 상한 ${p.capBase}→${b.capBase}(절반, 하한 ${capFloor(b.capOrigin)} = 원래 ${b.capOrigin}의 25%)`
+      : halvedToday ? `, 상한 ${p.capBase} 유지(오늘 이미 절반)` : `, 상한 ${p.capBase} 유지(하한 ${capFloor(b.capOrigin)})`
   const reason =
     `차단 응답 ${blocked}건 — 퍼센트 ${p.pctStep}%→${b.pctStep}%, 연속정상 0, ${b.freezeDays}일 동결` +
     (b.escalated ? ` (같은 단계 ${b.blocksAtStep}회째 차단${priorCount === null ? ' — 이전 차단 수 확인 불가라 2회째로 봄' : ''})` : '') +
     (nextLevel !== ramp.level ? `, level ${ramp.level}→${nextLevel}` : '') +
-    ` · 차단선 ${b.blockLine}${b.capBase !== p.capBase ? `, 상한 ${p.capBase}→${b.capBase}` : ''}`
+    ` · 차단선 ${b.blockLine}${capNote}`
   if (dryRun) return `dry-run — 실수집이면: ${reason}`
   const log = await sb.from('review_source_ramp_log').insert({
     source_key: sourceKey, prev_level: ramp.level, new_level: nextLevel, prev_pct: p.pctStep, new_pct: b.pctStep, event: 'block', reason, applied_by: 'review-collect',
@@ -681,6 +783,8 @@ async function pctRollback(
       block_line: b.blockLine,
       block_line_at: now.toISOString(),
       cap_base: b.capBase,
+      // 원래 값을 처음 아는 순간(칸 있고 NULL) 기록한다 — 하한·복구 상한의 기준. 칸이 없으면 쓰지 않는다.
+      ...(p.originReady ? { cap_base_origin: b.capOrigin } : {}),
       daily_request_target: pctTarget(b.capBase, b.pctStep),
     })
     .eq('source_key', sourceKey)

@@ -21,6 +21,7 @@ import { finishRunRow } from '../lib/review/run-log.ts'
 import {
   PCT_ESCALATED_FREEZE_DAYS, PCT_STEPS, RAMP_FREEZE_DAYS, RAMP_STEPS, allocateShares, collectWithRamp, judgePctDay, loadSourceRamp,
   nextPctState, pctOnBlock, pctTarget, resolveTargetLimit, rollbackOnBlock, stepPctRamps,
+  CAP_FLOOR_RATIO, CAP_RECOVER_OK_DAYS, capFloor, capRecovery, halveCap,
 } from '../lib/review/ramp.ts'
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -339,13 +340,26 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
   {
     const b1 = pctOnBlock({ pctStep: 70, capBase: 600 }, 0, 120)
     t('차단 1회째 → 한 단계 하강·3일·연속 0', [b1.pctStep, b1.freezeDays, b1.consecutiveOkDays, b1.blocksAtStep], [60, RAMP_FREEZE_DAYS, 0, 1])
-    t('차단선 120 → 상한 600→108(×0.9, 내리기만)', [b1.blockLine, b1.capBase], [120, 108])
+    t('v50: 차단 1건 → 상한 절반(차단선 120 은 기록만)', [b1.blockLine, b1.capBase, b1.capOrigin], [120, 300, 600])
     const b2 = pctOnBlock({ pctStep: 70, capBase: 600 }, 1, 900)
     t('같은 단계 2회째 → 14일', [b2.freezeDays, b2.escalated, PCT_ESCALATED_FREEZE_DAYS], [14, true, 14])
-    t('차단선이 상한보다 높으면 상한 그대로', b2.capBase, 600)
     t('이전 차단 수 확인 불가 → 2회째로(긴 동결)', pctOnBlock({ pctStep: 60, capBase: 100 }, null, 10).freezeDays, 14)
     t('50% 차단 → 50 바닥', pctOnBlock({ pctStep: 50, capBase: 100 }, 0, 10).pctStep, 50)
-    t('차단선 1 → 0.9 내림 0 은 못 쓴다(상한 그대로 — 사람 몫)', pctOnBlock({ pctStep: 50, capBase: 100 }, 0, 1).capBase, 100)
+    // googleplay 10-09 재현: 요청 2건 차단 1건 → 옛 규칙 60→1. 이제 60→30(1 이 아니다).
+    t('v50: googleplay 재현 — 차단선 2 에 60→30(1 아님)', pctOnBlock({ pctStep: 50, capBase: 60 }, 0, 2).capBase, 30)
+    t('v50: 같은 날 두 번째 차단 → 절반 안 함', pctOnBlock({ pctStep: 50, capBase: 30, capOrigin: 60 }, 1, 3, true).capBase, 30)
+    t('v50: 하한 = 원래 값의 25%(60→30→15→15)', [halveCap(60, 60), halveCap(30, 60), halveCap(15, 60), capFloor(60)], [30, 15, 15, 15])
+    t('v50: 이미 하한 아래(1) → 차단으로 올리지 않는다', pctOnBlock({ pctStep: 50, capBase: 1, capOrigin: 60 }, 0, 2).capBase, 1)
+    t('v50: 사람이 원래 값보다 올렸으면 그 값이 원래 값', pctOnBlock({ pctStep: 50, capBase: 100, capOrigin: 60 }, 0, 2).capOrigin, 100)
+    t('v50: 하한 최소 1', capFloor(3), 1)
+    // 복구: 원래 값 60, 하한 15. 3일 정상마다 ×2(하한 아래면 하한부터), 원래 값 초과 금지.
+    const ok3 = [true, true, true]
+    t('v50 복구: 15→30→60, 60 에서 멈춤', [capRecovery(15, 60, ok3, false), capRecovery(30, 60, ok3, false), capRecovery(60, 60, ok3, false)], [30, 60, null])
+    t('v50 복구: 원래 값 초과 금지(40→75 아님 75 상한)', capRecovery(40, 75, ok3, false), 75)
+    t('v50 복구: 하한 아래(1)면 하한까지 먼저', capRecovery(1, 60, ok3, false), 15)
+    t('v50 복구: 정상 2일 · 하루 비정상 · 창 안 차단 · 원래 값 모름 → 없음',
+      [capRecovery(15, 60, [true, true], false), capRecovery(15, 60, [true, false, true], false), capRecovery(15, 60, ok3, true), capRecovery(15, null, ok3, false)], [null, null, null, null])
+    t('v50 상수: 복구 3일 · 하한 25%', [CAP_RECOVER_OK_DAYS, CAP_FLOOR_RATIO], [3, 0.25])
   }
   {
     // 보고서 §3 숫자 그대로 — 18소스(상한·간격) 합 298분 > 180분이면 water-fill: 제값 8곳, 나머지 10곳은 각 794초.
@@ -362,14 +376,18 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
   }
 
   // 9-2) 상태 가진 가짜 DB — 테이블 5개, 필터 eq/not/gte/lt, 쓰기 순서 기록. PostgREST 처럼 칸 없음 42703, 테이블 없음 PGRST205.
-  const memDb = ({ ramp = [], sources = [], targets = [], runs = [], pctCols = true, rampTable = true, logError = null, countError = null } = {}) => {
+  const memDb = ({ ramp = [], sources = [], targets = [], runs = [], pctCols = true, originCol = true, rampTable = true, logError = null, countError = null } = {}) => {
     const T = { review_source_ramp: ramp, review_source_ramp_log: [], review_sources: sources, review_targets: targets, review_collection_runs: runs }
     const ops = []
-    const match = (r, f) => f.every(([op, c, v]) => (op === 'eq' ? r[c] === v : op === 'not' ? r[c] != null : op === 'gte' ? r[c] >= v : r[c] < v))
+    const like = (s, pat) => new RegExp(`^${pat.split('%').map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`).test(s ?? '')
+    const match = (r, f) => f.every(([op, c, v]) => (op === 'eq' ? r[c] === v : op === 'not' ? r[c] != null : op === 'gte' ? r[c] >= v : op === 'like' ? like(r[c], v) : r[c] < v))
     const resolve = ({ table, op, payload, opts, f, single }) => {
       ops.push([table, op])
       if (table === 'review_source_ramp' && !rampTable) return { data: null, error: { code: 'PGRST205', message: 'no table' } }
       if (table === 'review_source_ramp' && op === 'select' && !pctCols && /pct_step/.test(payload)) return { data: null, error: { code: '42703', message: 'column review_source_ramp.pct_step does not exist' } }
+      // 마이그 20261012000010 미적용 흉내 — 읽기 42703, 쓰기 PGRST204(둘 다 칸 이름을 메시지에 담는다).
+      if (table === 'review_source_ramp' && !originCol && op === 'select' && /cap_base_origin/.test(payload)) return { data: null, error: { code: '42703', message: 'column review_source_ramp.cap_base_origin does not exist' } }
+      if (table === 'review_source_ramp' && !originCol && op === 'update' && 'cap_base_origin' in payload) return { error: { code: 'PGRST204', message: "Could not find the 'cap_base_origin' column" } }
       if (op === 'insert') {
         if (logError) return { error: logError }
         T[table].push(payload); return { error: null }
@@ -387,7 +405,7 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
           const run = (single) => Promise.resolve(resolve({ table, op, payload, opts, f, single }))
           const b = {
             eq: (c, v) => (f.push(['eq', c, v]), b), not: (c) => (f.push(['not', c]), b),
-            gte: (c, v) => (f.push(['gte', c, v]), b), lt: (c, v) => (f.push(['lt', c, v]), b),
+            gte: (c, v) => (f.push(['gte', c, v]), b), lt: (c, v) => (f.push(['lt', c, v]), b), like: (c, v) => (f.push(['like', c, v]), b),
             maybeSingle: () => run(true), then: (res, rej) => run(false).then(res, rej),
           }
           return b
@@ -439,7 +457,7 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
     t('차단: 로그 1행 70→60·level 2→1·event block', [db.T.review_source_ramp_log.length, lg.prev_pct, lg.new_pct, lg.prev_level, lg.new_level, lg.event], [1, 70, 60, 2, 1, 'block'])
     const rr = db.T.review_source_ramp[0]
     t('차단: 60%·연속 0·level 1/15', [rr.pct_step, rr.consecutive_ok_days, rr.level, rr.targets_per_run], [60, 0, 1, 15])
-    t('차단: 차단선 = 오늘 앞서 쓴 199 + 이번 1 = 200 → 상한 180·목표 108', [rr.block_line, rr.cap_base, rr.daily_request_target], [200, 180, 108])
+    t('차단: 차단선 = 오늘 앞서 쓴 199 + 이번 1 = 200 기록 · 상한 600→300(절반) · 목표 180 · 원래 값 600 기록', [rr.block_line, rr.cap_base, rr.daily_request_target, rr.cap_base_origin], [200, 300, 180, 600])
     t('차단: 동결 3일', Date.parse(rr.frozen_until) - Date.parse(rr.changed_at), 3 * 86_400_000)
     t('차단: blocks_at_step 1', rr.blocks_at_step, 1)
     t('차단: 요약에 사유', r.notes.some((n) => n.includes('퍼센트 70%→60%')), true)
@@ -465,6 +483,26 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
     const dx = memDb({ ramp: [pctRow({ source_key: 'danawa', pct_step: 70 })] })
     await collectWithRamp({ sb: dx, adapter: { ...fmkoreaAdapter, key: 'danawa' }, dryRun: false, explicitTargets: null, ports: harness(403).ports })
     t('제외 소스 차단 → 쓰기 0', writes(dx), 0)
+  }
+  {
+    // v50: 같은 날 차단 2건 → 절반 1회. 실제 러너 403 두 번, 같은 UTC 날.
+    const db = memDb({ ramp: [pctRow({ cap_base: 60 })] })
+    await go(db, harness(403))
+    await go(db, harness(403))
+    const rr = db.T.review_source_ramp[0]
+    t('v50 통합: 같은 날 차단 2건 → 60→30 한 번(15 아님)·원래 값 60', [rr.cap_base, rr.cap_base_origin, db.T.review_source_ramp_log.length], [30, 60, 2])
+    t('v50 통합: 둘째 로그는 "오늘 이미 절반"', db.T.review_source_ramp_log[1].reason.includes('오늘 이미 절반'), true)
+    // 다음 날 차단 → 다시 절반(30→15), 그 다음은 하한 15 유지
+    const h2 = harness(403); const t0 = h2.ports.now
+    h2.ports.now = () => new Date(t0().getTime() + 86_400_000)
+    await go(db, h2)
+    const h3 = harness(403); h3.ports.now = () => new Date(t0().getTime() + 2 * 86_400_000)
+    await go(db, h3)
+    t('v50 통합: 날이 바뀌면 다시 절반, 하한 25%에서 멈춤(30→15→15)', db.T.review_source_ramp[0].cap_base, 15)
+    // 칸 없음(마이그 20261012000010 미적용): 퍼센트 램프는 그대로 돌고 cap_base_origin 은 안 쓴다
+    const dn = memDb({ ramp: [pctRow({ cap_base: 60 })], originCol: false })
+    const rn = await go(dn, harness(403))
+    t('v50 통합: 원래 값 칸 없음 → 그래도 절반·칸 안 씀', [dn.T.review_source_ramp[0].cap_base, 'cap_base_origin' in dn.T.review_source_ramp[0], rn.notes.some((n) => n.includes('상한 60→30'))], [30, false, true])
   }
 
   // 9-5) 하루 판정(stepPctRamps) — 날짜를 넘기며 같은 DB 로 돈다
@@ -540,6 +578,62 @@ t('review-collect.mjs 에 직접 .update({ finished_at 마감이 없다', /\.upd
     big.T.review_collection_runs.push({ source_key: 'fmkorea', dry_run: false, started_at: '2026-10-07T05:40:00.000Z', ...okRow, requests: 1415 })
     await stepPctRamps(big, new Date('2026-10-08T06:00:00Z'), false)
     t('배분 걸린 날 → alloc 보류(오르지 않음)', [big.T.review_source_ramp[0].pct_step, big.T.review_source_ramp_log.at(-1).reason.includes('alloc')], [50, true])
+  }
+  {
+    // v50 복구: 원래 60, 지금 15(하한). 차단 없이 정상 3일마다 한 단계 15→30→60, 60 초과 없음, 단계마다 ramp_log 에 사유.
+    const runOn = (day, o = {}) => ({ source_key: 'fmkorea', dry_run: false, started_at: `${day}T05:40:00.000Z`, ...okRow, requests: 7, ...o })
+    const db = memDb({
+      ramp: [pctRow({ cap_base: 15, cap_base_origin: 60, last_evaluated_date: '2026-10-09', block_line: 2, block_line_at: '2026-10-09T05:41:00.000Z', frozen_until: '2026-10-12T05:41:00.000Z' })],
+      runs: ['2026-10-10', '2026-10-11'].map((d) => runOn(d)),
+    })
+    const R = () => db.T.review_source_ramp[0]
+    const day = async (d, o) => { db.T.review_collection_runs.push(runOn(d, o)); const next = new Date(Date.parse(`${d}T00:00:00Z`) + 86_400_000 + 6 * 3_600_000); return stepPctRamps(db, next, false) }
+    // 10-11 판정: 창 10-08~10-10 — 10-09 에 차단(block_line_at) → 복구 없음
+    await stepPctRamps(db, new Date('2026-10-11T06:00:00Z'), false)
+    t('v50 복구: 창 안에 차단 → 그대로 15', R().cap_base, 15)
+    await day('2026-10-12')
+    t('v50 복구: 10-10~12 정상 3일 → 15→30·목표 재계산', [R().cap_base, R().daily_request_target], [30, 15])
+    t('v50 복구: ramp_log 사유에 표지', db.T.review_source_ramp_log.at(-1).reason.includes('상한 복구 15→30'), true)
+    // 복구는 10-13 판정 때 났다 → 10-13 은 일부가 옛 상한이라 세지 않고, 10-14~16 이 다음 창(10-17 판정).
+    await day('2026-10-13'); await day('2026-10-14'); await day('2026-10-15')
+    t('v50 복구: 복구 뒤 온전한 3일 전 → 다음 단계 없음', R().cap_base, 30)
+    await day('2026-10-16')
+    t('v50 복구: 다시 정상 3일 → 30→60', R().cap_base, 60)
+    for (const d of ['2026-10-17', '2026-10-18', '2026-10-19', '2026-10-20']) await day(d)
+    t('v50 복구: 원래 값 60 초과 금지', R().cap_base, 60)
+    t('v50 복구: 복구 로그 2행', db.T.review_source_ramp_log.filter((l) => l.reason.includes('상한 복구')).length, 2)
+    // 창 안에 차단 응답 행(차단 신호) → 복구 없음
+    const db2 = memDb({ ramp: [pctRow({ cap_base: 15, cap_base_origin: 60, last_evaluated_date: '2026-10-11' })], runs: [runOn('2026-10-10'), runOn('2026-10-11', { blocked_responses: 1 }), runOn('2026-10-12')] })
+    await stepPctRamps(db2, new Date('2026-10-13T06:00:00Z'), false)
+    t('v50 복구: 창 안 차단 응답 → 복구 없음', db2.T.review_source_ramp[0].cap_base, 15)
+    // 행 없는 날(측정 없음) → 정상이 아니다
+    const db3 = memDb({ ramp: [pctRow({ cap_base: 15, cap_base_origin: 60, last_evaluated_date: '2026-10-11' })], runs: [runOn('2026-10-10'), runOn('2026-10-12')] })
+    await stepPctRamps(db3, new Date('2026-10-13T06:00:00Z'), false)
+    t('v50 복구: 측정 없는 날 끼면 복구 없음', db3.T.review_source_ramp[0].cap_base, 15)
+    // 원래 값 모름 → 복구 없음 + ⚠️
+    const db4 = memDb({ ramp: [pctRow({ cap_base: 1, cap_base_origin: null, block_line: 2, last_evaluated_date: '2026-10-11' })], runs: ['2026-10-10', '2026-10-11', '2026-10-12'].map((d) => runOn(d)) })
+    const n4 = await stepPctRamps(db4, new Date('2026-10-13T06:00:00Z'), false)
+    t('v50 복구: 원래 값 NULL → 그대로 + ⚠️', [db4.T.review_source_ramp[0].cap_base, n4.some((n) => n.startsWith('⚠️') && n.includes('원래 cap_base'))], [1, true])
+    const db5 = memDb({ ramp: [pctRow({ cap_base: 1, block_line: 2, last_evaluated_date: '2026-10-11' })], runs: ['2026-10-10', '2026-10-11', '2026-10-12'].map((d) => runOn(d)), originCol: false })
+    const n5 = await stepPctRamps(db5, new Date('2026-10-13T06:00:00Z'), false)
+    t('v50 복구: 칸 없음 → 판정은 돌고 복구 없음 + 마이그 안내', [db5.T.review_source_ramp[0].cap_base, db5.T.review_source_ramp[0].last_evaluated_date, n5.some((n) => n.includes('20261012000010'))], [1, '2026-10-12', true])
+    // googleplay 현 상태(상한 1, 원래 60) → 하한 15 로 먼저
+    const db6 = memDb({ ramp: [pctRow({ source_key: 'googleplay', cap_base: 1, cap_base_origin: 60, last_evaluated_date: '2026-10-11' })], runs: ['2026-10-10', '2026-10-11', '2026-10-12'].map((d) => ({ ...runOn(d), source_key: 'googleplay' })) })
+    await stepPctRamps(db6, new Date('2026-10-13T06:00:00Z'), false)
+    t('v50 복구: googleplay 1 → 하한 15', db6.T.review_source_ramp[0].cap_base, 15)
+    // 제외 소스(todayhumor·danawa) → 복구 포함 쓰기 0
+    const dx = memDb({ ramp: ['todayhumor', 'danawa'].map((k) => pctRow({ source_key: k, cap_base: 1, cap_base_origin: 60, last_evaluated_date: '2026-10-11' })), runs: ['todayhumor', 'danawa'].flatMap((k) => ['2026-10-10', '2026-10-11', '2026-10-12'].map((d) => ({ ...runOn(d), source_key: k }))) })
+    await stepPctRamps(dx, new Date('2026-10-13T06:00:00Z'), false)
+    t('v50 복구: 제외 소스 → 쓰기 0·상한 그대로', [writes(dx), dx.T.review_source_ramp.map((r) => r.cap_base)], [0, [1, 1]])
+    // dry-run → 쓰기 0
+    const dd = memDb({ ramp: [pctRow({ cap_base: 15, cap_base_origin: 60, last_evaluated_date: '2026-10-11' })], runs: ['2026-10-10', '2026-10-11', '2026-10-12'].map((d) => runOn(d)) })
+    const nd = await stepPctRamps(dd, new Date('2026-10-13T06:00:00Z'), true)
+    t('v50 복구: dry-run → 쓰기 0 + 사유 미리보기', [writes(dd), nd.some((n) => n.includes('상한 복구 15→30'))], [0, true])
+  }
+  // CLAUDE.md §10.1 예외 한 줄과 코드가 같은 수치를 쓴다.
+  {
+    const md = fs.readFileSync(path.join(root, 'CLAUDE.md'), 'utf8')
+    t('CLAUDE.md §10.1 에 v50 자동 복구 예외 한 줄', /남헌 v50 2026-10-12\) 차단 후 자동 복구는 cap_base 를 원래 값\(하한 25% 위로\) 안에서만, 차단 신호 없이 연속 정상 3일마다 한 단계, ramp_log 에 행을 남긴다/.test(md), true)
   }
   t('review-collect.mjs 가 소스 실행 전에 stepPctRamps 를 탄다', collect.indexOf('await stepPctRamps(') > 0 && collect.indexOf('await stepPctRamps(') < collect.indexOf('await collectWithRamp('), true)
 }

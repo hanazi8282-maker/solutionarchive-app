@@ -1,0 +1,30 @@
+[
+  {
+    "name": "HubSpot CRM",
+    "norm_key": "hubspotcrm",
+    "area": "2",
+    "anchors": { "appstore_id": null, "appstore_country": null, "play_pkg": null, "domain": null },
+    "evidence_input_ids": []
+  },
+  {
+    "name": "Evernote",
+    "norm_key": "evernote",
+    "area": "notes",
+    "anchors": { "appstore_id": null, "appstore_country": null, "play_pkg": null, "domain": null },
+    "evidence_input_ids": []
+  },
+  {
+    "name": "Apple Notes",
+    "norm_key": "applenotes",
+    "area": "notes",
+    "anchors": { "appstore_id": null, "appstore_country": null, "play_pkg": null, "domain": null },
+    "evidence_input_ids": []
+  },
+  {
+    "name": "Bear",
+    "norm_key": "bear",
+    "area": "notes",
+    "anchors": { "appstore_id": null, "appstore_country": null, "play_pkg": null, "domain": null },
+    "evidence_input_ids": []
+  }
+]

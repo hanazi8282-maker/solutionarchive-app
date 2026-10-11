@@ -54,6 +54,9 @@ ops/state/voc-inputs/
 reports/*/product-name-candidates*.md
 reports/*/rejected-candidates.json
 reports/*/product-candidates-approval.md
+# 승인 시트 → approved.json 초안(candidate-register-draft.mjs --sheet) · notes 근거 측정(notes-evidence.mjs) — v53, 커밋하지 않는다.
+reports/*/approved-candidates.json
+reports/*/notes-evidence.md
 
 # 로컬 도구 상태 — 에이전트 워크트리·Serena·Impeccable 개인 설정·Claude Code 로컬 설정(hooks). 커밋하지 않는다(2026-09-29).
 .claude/worktrees/

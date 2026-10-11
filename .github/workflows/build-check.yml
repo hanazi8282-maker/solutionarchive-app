@@ -310,6 +310,8 @@ jobs:
       - run: node scripts/review-appstore-selftest.mjs
       # googleplay(약관 금지를 알고 연 소스, 2026-10-05): 빈 응답·캡차·403·429 즉시 중단, robots 우회 표식 없음, 등록 마이그 대조.
       - run: node scripts/review-googleplay-selftest.mjs
+      # 같은 소스 안 새 창문 프로브(v52): 어댑터 URL 재사용·요청 상한·차단 즉시 중단·not_in_store 구분·대장 재제안 방지·초안 중복 방지/롤백.
+      - run: node scripts/window-probe-selftest.mjs
       - run: node scripts/review-bobaedream-selftest.mjs
       - run: node scripts/review-brunch-selftest.mjs
       - run: node scripts/review-clien-selftest.mjs

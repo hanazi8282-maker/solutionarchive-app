@@ -3,7 +3,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { normKey, splitBilingual, domainName, extractMentions, buildRegistry, loadConfig, main, stripHeader, idLike, corpusStats, renderMarkdown, buildCandidates } from './product-name-candidates.mjs'
+import { normKey, splitBilingual, domainName, extractMentions, buildRegistry, loadConfig, main, stripHeader, idLike, corpusStats, renderMarkdown, buildCandidates, groupByArea, renderApprovalSheet, parseApprovalSheet, readAnswer, sheetStats, approvalMode } from './product-name-candidates.mjs'
 
 let pass = 0
 let fail = 0
@@ -49,9 +49,18 @@ t('idLike: 영상 ID 꼴 · 숫자 포함', idLike('O9GBX6mbn7U') && idLike('Ksm
 t('idLike: 중간 대문자 제품명은 아님', !idLike('DocuSign') && !idLike('SurveyMonkey') && !idLike('Evernote') && !idLike('LUX'))
 const cs = corpusStats(['I love it. Love wins. we Love this'])
 t('corpusStats: 문장 첫 단어는 mid 아님 · 소문자 수', cs.get('love').total === 3 && cs.get('love').lower === 1 && cs.get('love').mid === 2 && cs.get('love').midCap === 1)
-t('추출: 3자 대문자 제품명(LUX)은 남기고 흔한 약어(SEO)는 거른다', (() => {
+// v52: 대문자 2~5자 약어는 기본 기각(acronym), 앱 링크·도메인 신호가 있으면 예외. (pnc-v1 의 "LUX 는 남긴다"를 뒤집는다 — 도메인이 있어야 남는다.)
+t('약어: 링크·도메인 없는 LUX 는 acronym 기각 · SEO 는 common_words 로 행 없음', (() => {
   const r = buildCandidates({ inputs: [...Array(5)].map((_, i) => ({ id: `l${i}`, source_key: 'appstore', raw_text: 'we bought LUX and SEO tools' })), registry: new Map(), cfg }).rows
-  return r.find((x) => x.key === 'lux')?.status === 'adopt' && !r.some((x) => x.key === 'seo')
+  return r.find((x) => x.key === 'lux')?.reason === 'acronym' && !r.some((x) => x.key === 'seo')
+})())
+t('약어 예외: 도메인 신호가 있으면 LUX 채택', (() => {
+  const r = buildCandidates({ inputs: [...Array(5)].map((_, i) => ({ id: `d${i}`, source_key: 'appstore', raw_text: 'we bought LUX at lux.io today' })), registry: new Map(), cfg }).rows
+  return r.find((x) => x.key === 'lux')?.status === 'adopt' && r.find((x) => x.key === 'lux').refs.includes('lux.io')
+})())
+t('약어 예외: 목록 약어(LDAC)도 도메인 있으면 통과', (() => {
+  const r = buildCandidates({ inputs: [...Array(5)].map((_, i) => ({ id: `x${i}`, source_key: 'appstore', raw_text: 'we use LDAC daily, see ldac.io' })), registry: new Map(), cfg }).rows
+  return r.find((x) => x.key === 'ldac')?.status === 'adopt'
 })())
 t('추출: 대문자 묶음 → 한 이름', keys('we sell on Lemon Squeezy now').includes('lemonsqueezy'))
 t('추출: 문장 첫 묶음은 첫 단어만 뗀다', keys('Love Zentrova so much').includes('zentrova') && !keys('Love Zentrova so much').includes('lovezentrova'))
@@ -194,16 +203,23 @@ t('정렬: 같은 신호 수면 비교 언급 많은 쪽(모아노트) 위', res
 const md = fs.readFileSync(res.files.md, 'utf8')
 t('표 상단: 사유별 건수 요약', /기각·확인불가 사유별: .*stopword \d+/.test(md) && /contraction \d+/.test(md))
 t('나머지 파일 생성', fs.existsSync(res.files.rest) && res.files.rest.endsWith('product-name-candidates-rest.md'))
-const small = { ...cfg, candidate: { ...cfg.candidate, table_top: 3 } }
+const rest = fs.readFileSync(res.files.rest, 'utf8')
 const rowLines = (s) => s.split('\n').filter((l) => /^\| (채택|확인불가|기각) \|/.test(l)).length
-const meta = { date: 'x', ruleVer: 'v', counts: res.counts, cfg: small, areaColumn: 'present' }
-t('상위 N 본문 · 나머지 별도', rowLines(renderMarkdown(res.rows, meta, 'top')) === 3 && rowLines(renderMarkdown(res.rows, meta, 'rest')) === res.rows.length - 3)
+const meta1 = { date: 'x', ruleVer: 'v', counts: res.counts, cfg, areaColumn: 'present', perArea: 1 }
+const adoptN = res.rows.filter((r) => r.status === 'adopt').length
+const areasN = new Set(res.rows.filter((r) => r.status === 'adopt').map((r) => r.area)).size
+t('영역 표: 영역당 상위 N(--per-area 1) · 나머지 파일이 남은 전부', rowLines(renderMarkdown(res.rows, meta1, 'top')) === areasN && rowLines(renderMarkdown(res.rows, meta1, 'rest')) === res.rows.length - areasN && adoptN > areasN)
 const ledger = JSON.parse(fs.readFileSync(res.files.ledger, 'utf8'))
 t('파일 위치 reports/<KST 날짜>/', res.files.md === path.join(tmp, '2026-10-12', 'product-name-candidates.md') && res.files.ledger === path.join(tmp, '2026-10-12', 'rejected-candidates.json'))
-t('표 헤더 열', md.includes('| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 영역 추정(근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |'))
-t('표: 채택 행', /\| 채택 \| Zentrova \| `appstore:id1234567` \| 5 \|/.test(md) && md.includes('| 채택 | 모아노트 |'))
-t('표: 기각·확인불가도 사유와 함께', /\| 기각 \| Excel \|.*\| stopword \|/.test(md) && /\| 확인불가 \| Brivio \|/.test(md))
-t('표: 행마다 열 10개(파이프 이스케이프)', md.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('|---')).every((l) => l.split(/(?<!\\)\|/).length === 12))
+t('표 헤더 열', md.includes('| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 대표 영역(비율 · 근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |'))
+t('표: 채택 행(대표 영역 비율)', /\| 채택 \| Zentrova \| `appstore:id1234567` \| 5 \|.*\| 3 100% \(/.test(md) && md.includes('| 채택 | 모아노트 |'))
+t('본문은 채택만 · 기각·확인불가는 나머지 파일에 사유와 함께', !/\| (기각|확인불가) \|/.test(md) && /\| 기각 \| Excel \|.*\| stopword \|/.test(rest) && /\| 확인불가 \| Brivio \|/.test(rest))
+t('영역별 소제목(areas.json 이름) · 순서 ① → ③ · 채택 없는 영역은 소제목 없음', (() => {
+  const i = (s) => md.indexOf(`## ${s}`)
+  return i('① 회의·통화 기록') > 0 && i('① 회의·통화 기록') < i('③ 마케팅(직접 도구만)') && i('영역 외-창업가 불만') < 0
+})())
+t('대표 영역 = 최다 영역 + 비율(flowbase: out-founder 3/5)', row('flowbase')?.area === 'out-founder' && row('flowbase').areaShare === 0.6)
+t('표: 행마다 열 10개(파이프 이스케이프)', [md, rest].every((s) => s.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('|---')).every((l) => l.split(/(?<!\\)\|/).length === 12)))
 t('대장: 기각·확인불가 전부, 채택 0', ledger.entries.length === res.rows.filter((r) => r.status !== 'adopt').length && !ledger.entries.some((e) => e.key === 'moanote'))
 t('대장: 상태 어휘·사유', ledger.entries.find((e) => e.key === 'quillora')?.status === 'unverifiable' && ledger.entries.find((e) => e.key === 'excel')?.reason === 'stopword')
 
@@ -222,6 +238,81 @@ const empty = { ...fakePort(), loadRelevant: async () => [], loadInputsByProject
 t('입력 0건 → 던진다', await main([], { ...opts(), port: empty }).then(() => false, (e) => /입력 글 0건/.test(e.message)))
 t('--date 형식 검사', await main(['--date=2026/10/12'], opts()).then(() => false, () => true))
 
+// ── v52: 실데이터 첫 --run(채택 41건) 오탐 → 제외, 진짜 제품은 남는다 ──
+const FP_TEXT = [
+  'my ADHD makes it hard', 'our MRR grew', 'the APIs are slow', 'other CRMs cost more', 'like NASA said', 'my PKM setup', 'a cheap VPS works',
+  'the LDAC codec', 'an RSS feed', 'needs SSO login', 'the MSL thing', 'old KTF phone', 'the STX deal', 'learning Spanish daily', 'the ACADEMY plan',
+  'call Tel now', 'heavy Blasting noise', 'say Hi there', 'the Tiger mascot', 'as Katherine Tingley wrote', 'and Maciej said', 'the Auburn Affirmation text',
+  'posted on Ask HN', 'saw it on Show HN', 'using Claude Code', 'tried Codex too', 'with Apple Pencil', 'my Apple Watch buzzes', 'as Maria Lopez noted',
+].join('. ')
+const REAL_TEXT = 'we moved notes to Evernote today. contracts go through DocuSign now. our sales team lives in Hubspot CRM daily. i post on Mastodon instead. my newsletter runs on Substack now'
+const v52 = buildCandidates({
+  inputs: [...Array(5)].map((_, i) => ({ id: `v${i}`, project_id: 'pa', source_key: 'appstore', raw_text: `${FP_TEXT}. ${REAL_TEXT}` })),
+  registry: new Map(),
+  cfg,
+  projectArea: (id) => (id === 'pa' ? { code: '2', via: 'column', basis: null } : undefined),
+}).rows
+const vr = (k) => v52.find((r) => r.key === k)
+const FP_EXPECT = {
+  acronym: ['adhd', 'mrr', 'apis', 'crms', 'nasa', 'pkm', 'vps', 'ldac', 'rss', 'sso', 'msl', 'ktf', 'stx'],
+  general_noun: ['spanish', 'academy', 'tel', 'blasting', 'hi', 'tiger'],
+  site_ui: ['askhn', 'showhn'],
+  tool_not_target: ['claudecode', 'codex'],
+  hardware: ['applepencil', 'applewatch'],
+  person_name: ['katherinetingley', 'maciej', 'auburnaffirmation', 'marialopez'],
+}
+for (const [why, ks] of Object.entries(FP_EXPECT)) {
+  const bad = ks.filter((k) => vr(k)?.status !== 'rejected' || vr(k).reason !== why)
+  t(`v52 오탐 → ${why} 기각 (${bad.map((k) => `${k}=${vr(k)?.reason ?? '행 없음'}`).join(', ') || 'ok'})`, bad.length === 0)
+}
+const REAL = ['evernote', 'docusign', 'hubspotcrm', 'mastodon', 'substack']
+t(`v52 진짜 제품은 채택(${REAL.filter((k) => vr(k)?.status !== 'adopt').join(',') || 'ok'})`, REAL.every((k) => vr(k)?.status === 'adopt'))
+t('v52 채택은 진짜 제품 5개뿐(오탐 0)', v52.filter((r) => r.status === 'adopt').length === 5)
+t('v52 성+이름 패턴은 첫 토큰이 이름일 때만("Apple Notes" 류 통과)', (() => {
+  const r = buildCandidates({ inputs: [...Array(5)].map((_, i) => ({ id: `n${i}`, source_key: 'appstore', raw_text: 'i keep lists in Apple Notes now' })), registry: new Map(), cfg }).rows
+  return r.find((x) => x.key === 'applenotes')?.status === 'adopt'
+})())
+t('v52 제외 목록은 config 6갈래', JSON.stringify(Object.keys(cfg.exclude).sort()) === JSON.stringify(Object.keys(FP_EXPECT).sort()) && cfg.acronym_rule.pattern && cfg.approval.daily_cap_per_area === 3)
+
+// ── v52: 영역별 분리 · 승인 시트 상위 3 상한 ──
+const g = groupByArea(v52, cfg.area_table.order, 3)
+t('영역 묶음: 영역 2 하나 · 채택 5 중 상위 3', g.length === 1 && g[0].code === '2' && g[0].total === 5 && g[0].rows.length === 3)
+t('영역 묶음: 순서는 config order, order 밖은 끝', JSON.stringify(groupByArea([{ status: 'adopt', area: 'unknown' }, { status: 'adopt', area: 'out-founder' }, { status: 'adopt', area: '1' }, { status: 'hold', area: '2' }], cfg.area_table.order).map((x) => x.code)) === '["1","out-founder","unknown"]')
+const sheetMeta = { date: '2026-10-12', ruleVer: cfg.rule_ver, counts: {}, cfg, areaColumn: 'present', areaNames: { 2: '② 영업' }, priorSheet: null }
+const sheetMd = renderApprovalSheet(v52, sheetMeta)
+const parsed = parseApprovalSheet(sheetMd)
+t('승인 시트: 영역별 상위 3개만 · 번호 1..3 · 답 칸 기본 미답', parsed.length === 3 && parsed.map((e) => e.no).join() === '1,2,3' && parsed.every((e) => e.answer === 'unanswered' && e.area === '2'))
+t('승인 시트: 상단에 날짜·규칙 버전·오탐률 계산법', sheetMd.includes('2026-10-12') && sheetMd.includes(cfg.rule_ver) && sheetMd.includes('오탐률 = 사람이 기각(N)한 수 ÷ 제시한 수') && sheetMd.includes('## ② 영업'))
+t('승인 시트: 근거 원문 80자 이하 · 제안 칸', sheetMd.split('\n').filter((l) => /^\| \d/.test(l)).every((l) => [...l.matchAll(/"([^"]*)"/g)].every((m) => m[1].length <= 80) && l.includes('등록 후보:')))
+t('답 판독: Y/N/승인/기각/N: 사유 · 기본 문구는 미답', readAnswer('Y') === 'approved' && readAnswer(' 승인 ') === 'approved' && readAnswer('n') === 'rejected' && readAnswer('N: 약어') === 'rejected' && readAnswer('기각') === 'rejected' && readAnswer('승인 Y / 기각 N') === 'unanswered' && readAnswer('') === 'unanswered' && readAnswer('YN') === 'unanswered')
+
+// ── v52: 오탐률 → 승인 모드(순수 함수) ──
+const am = (s) => approvalMode('2', { 2: s }).mode
+t('approvalMode: 제시 0·통계 없음 → approval(no_data)', approvalMode('2', {}).reason === 'no_data' && approvalMode('2', undefined).mode === 'approval' && am({ shown: 0, approved: 0, rejected: 0, unanswered: 0 }) === 'approval')
+t('approvalMode: 미답 있으면 → approval(unanswered)', approvalMode('2', { 2: { shown: 3, approved: 3, rejected: 0, unanswered: 1 } }).reason === 'unanswered')
+t('approvalMode: 1/10 = 10% → auto(초과만 강제) · 1/9 → approval', am({ shown: 10, approved: 9, rejected: 1, unanswered: 0 }) === 'auto' && am({ shown: 9, approved: 8, rejected: 1, unanswered: 0 }) === 'approval')
+t('approvalMode: 영역별로 따로(다른 영역 오탐이 번지지 않음)', approvalMode('1', { 1: { shown: 3, approved: 3, rejected: 0, unanswered: 0 }, 2: { shown: 3, approved: 0, rejected: 3, unanswered: 0 } }).mode === 'auto')
+t('sheetStats: 영역별 제시·승인·기각·미답', JSON.stringify(sheetStats([{ area: '1', answer: 'approved' }, { area: '1', answer: 'rejected' }, { area: '2', answer: 'unanswered' }])) === JSON.stringify({ 1: { shown: 2, approved: 1, rejected: 1, unanswered: 0 }, 2: { shown: 1, approved: 0, rejected: 0, unanswered: 1 } }))
+
+// ── v52 경계: main --approval-sheet → 사람이 N → 다음 실행이 human_rejected 로 읽는다 ──
+const sres = await main(['--approval-sheet'], opts())
+t('시트 모드: 시트 파일만 쓴다(reports/<날짜>/product-candidates-approval.md)', sres.files.sheet === path.join(tmp, '2026-10-12', 'product-candidates-approval.md') && !sres.files.md)
+const sheetPath = sres.files.sheet
+const answeredMd = fs
+  .readFileSync(sheetPath, 'utf8')
+  .split('\n')
+  .map((l) => (/^\| \d/.test(l) ? l.replace(/승인 Y \/ 기각 N \|$/, l.includes('`docusign`') ? 'N: 테스트 |' : 'Y |') : l))
+  .join('\n')
+t('시트에 DocuSign 이 영역 3 으로 제시됨', /\| `docusign` \| 3 /.test(answeredMd))
+fs.writeFileSync(sheetPath, answeredMd)
+t('답 적힌 오늘 시트는 덮어쓰지 않는다', await main(['--approval-sheet'], opts()).then(() => false, (e) => /덮어쓰지 않는다/.test(e.message)))
+const after = await main(['--run', '--date=2026-10-14'], opts())
+t('다음 실행: 사람 기각 → previously_rejected(…:human_rejected)', after.rows.find((r) => r.key === 'docusign')?.reason === 'previously_rejected(2026-10-12:human_rejected)')
+const led2 = JSON.parse(fs.readFileSync(after.files.ledger, 'utf8'))
+const fp3 = led2.false_positive?.by_area?.['3']
+t('대장: human_rejected 목록 · 영역 3 오탐률 1/3 → approval', led2.human_rejected.some((e) => e.key === 'docusign' && e.sheet_date === '2026-10-12' && e.reason === 'human_rejected') && fp3?.rejected === 1 && fp3.shown === 3 && fp3.mode === 'approval' && led2.false_positive.sheet_date === '2026-10-12')
+t('--per-area 검사', await main(['--per-area', '0'], opts()).then(() => false, (e) => /--per-area/.test(e.message)) && (await main(['--per-area=2'], opts())).rows.length > 0)
+
 // ── 정적 검사: 쓰기 SQL·쓰기 메서드가 코드에 없다 ──
 const WRITE = [/\.(insert|update|upsert|delete|rpc)\s*\(/i, /\b(INSERT\s+INTO|UPDATE\s+[\w."]+\s+SET|DELETE\s+FROM|ALTER\s+TABLE|DROP\s+(TABLE|COLUMN|VIEW|INDEX)|TRUNCATE|CREATE\s+(TABLE|VIEW|INDEX|OR\s+REPLACE))\b/i]
 const writes = (s) => WRITE.some((re) => re.test(s))
@@ -230,8 +321,8 @@ t('정적: 쓰기 SQL·메서드 0', !writes(src))
 t('정적(뮤턴트): 검사기가 .insert( 를 잡는다', writes(src + "\nsb.from('x').insert({})") && writes(src + '\n// UPDATE public.x SET a=1'))
 t('정적: DB 접근은 .from(...).select 만', (src.match(/\.from\('/g) ?? []).length === (src.match(/\.from\('[a-z_]+'\)\.select\(/g) ?? []).length)
 t(
-  '정적: 파일 쓰기는 표·나머지·대장 세 곳뿐',
-  (src.match(/writeFileSync\(/g) ?? []).length === 3 && ['md', 'rest', 'ledger'].every((k) => new RegExp(`writeFileSync\\(files\\.${k},`).test(src)),
+  '정적: 파일 쓰기는 표·나머지·대장·승인 시트 네 곳뿐',
+  (src.match(/writeFileSync\(/g) ?? []).length === 4 && ['md', 'rest', 'ledger', 'sheet'].every((k) => new RegExp(`writeFileSync\\(files\\.${k},`).test(src)),
 )
 t('정적: LLM 호출 없음', !/anthropic|gemini|claude-cli|llm-provider|messages\.create/i.test(src.replace(/^\s*\/\/.*$/gm, '')))
 

@@ -18,8 +18,13 @@
 //
 // 사용법:
 //   node scripts/product-name-candidates.mjs          # --dry(기본): 건수만 콘솔에, 파일 안 씀
-//   node scripts/product-name-candidates.mjs --run    # 표·대장 파일 생성
-//   옵션: --date=YYYY-MM-DD(출력 폴더, 기본 오늘 KST)
+//   node scripts/product-name-candidates.mjs --run    # 영역별 표·나머지·대장 파일 생성
+//   node scripts/product-name-candidates.mjs --approval-sheet   # 승인 시트(영역별 상위 3) product-candidates-approval.md
+//   옵션: --date=YYYY-MM-DD(출력 폴더, 기본 오늘 KST) · --per-area N(영역 표 상위 N, 기본 config area_table.per_area)
+//
+// v52(2026-10-12, 남헌 v50 §3 / v52 §1-3): 제외 6갈래(config exclude — acronym·general_noun·site_ui·tool_not_target·hardware·person_name),
+//   대표 영역(+비율)별 표, 승인 시트. 시트에서 사람이 N 으로 답한 키는 다음 실행이 읽어 human_rejected 로 재제안을 막고,
+//   영역별 오탐률(기각 ÷ 제시)은 approvalMode 가 판정한다(10% 초과·미답·제시 0 → 승인 모드 강제).
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -211,13 +216,14 @@ export function extractMentions(text, cfg) {
   const josa = cfg.josa ?? []
   const raw = []
   const aliases = []
-  const push = (surface, start, via, compare = false, keyOverride = null, contraction = false) => {
+  // ref = 등록 제안에 쓸 앱 ID·호스트(승인 시트 "제안" 칸). 이름만 잡힌 언급은 null.
+  const push = (surface, start, via, compare = false, keyOverride = null, contraction = false, ref = null) => {
     let s = String(surface).trim().replace(/[.,]+$/, '')
     const person = /[가-힣](님|씨)$/.test(s)
     if (/[가-힣]/.test(s)) s = stripJosa(s.replace(/(님|씨)$/, ''), josa)
     const key = keyOverride ?? normKey(s)
     if (!key || key.length < 2 || /^\d+$/.test(key)) return
-    raw.push({ key, surface: s, start, compare, person, contraction, vias: new Set([via]) })
+    raw.push({ key, surface: s, start, compare, person, contraction, vias: new Set([via]), refs: new Set(ref ? [ref] : []) })
   }
   const each = (re, fn) => {
     re.lastIndex = 0
@@ -225,16 +231,16 @@ export function extractMentions(text, cfg) {
   }
   each(RULES.apple, (m) => {
     const key = `appstore:id${m[2]}`
-    push(m[1] ? decodeURIComponent(m[1]).replace(/-/g, ' ') : key, m.index, 'appstore', false, key)
+    push(m[1] ? decodeURIComponent(m[1]).replace(/-/g, ' ') : key, m.index, 'appstore', false, key, false, key)
     if (m[1]) aliases.push([normKey(decodeURIComponent(m[1])), key])
   })
-  each(RULES.play, (m) => push(m[1], m.index, 'googleplay', false, `googleplay:${m[1].toLowerCase()}`))
+  each(RULES.play, (m) => push(m[1], m.index, 'googleplay', false, `googleplay:${m[1].toLowerCase()}`, false, `googleplay:${m[1].toLowerCase()}`))
   each(RULES.url, (m) => {
     if (/apps\.apple\.com|play\.google\.com/i.test(m[1])) return
     const d = domainName(m[1])
-    if (d) push(d, m.index + m[0].indexOf(m[1]), 'domain')
+    if (d) push(d, m.index + m[0].indexOf(m[1]), 'domain', false, null, false, m[1].toLowerCase().replace(/^www\./, ''))
   })
-  each(RULES.bareDomain, (m) => push(m[1], m.index, 'domain'))
+  each(RULES.bareDomain, (m) => push(m[1], m.index, 'domain', false, null, false, m[0].toLowerCase()))
   each(RULES.capitalized, (m) => {
     let s = m[1]
     let start = m.index
@@ -279,6 +285,7 @@ export function extractMentions(text, cfg) {
       prev.person ||= r.person
       prev.contraction ||= r.contraction
       for (const v of r.vias) prev.vias.add(v)
+      for (const x of r.refs) prev.refs.add(x)
     }
   }
   return { mentions: [...byPos.values()], aliases }
@@ -309,6 +316,11 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
   const stop = new Set(cfg.stopwords.map(normKey))
   const stack = new Set(cfg.stack.map(normKey))
   const persons = new Set(cfg.person_first_names.map(normKey))
+  // exclude: 키 → 사유(목록 이름). acronym 만 조건부(아래 판정).
+  const excl = new Map()
+  for (const [why, list] of Object.entries(cfg.exclude ?? {})) for (const k of list) excl.set(normKey(k), why)
+  const acronymRe = new RegExp(cfg.acronym_rule?.pattern ?? '^$')
+  const acronymExempt = new Set(cfg.acronym_rule?.exempt_signals ?? [])
 
   const texts = inputs.map((inp) => stripHeader(inp.raw_text))
   const stats = corpusStats(texts)
@@ -327,7 +339,7 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       const c =
         cands.get(key) ??
         cands
-          .set(key, { key, surfaces: new Map(), posts: new Set(), sources: new Set(), byKind: {}, compareAll: true, compareN: 0, vias: new Set(), personHits: 0, contrHits: 0, n: 0, evidence: [], areaVotes: new Map() })
+          .set(key, { key, surfaces: new Map(), posts: new Set(), sources: new Set(), byKind: {}, compareAll: true, compareN: 0, vias: new Set(), refs: new Set(), personHits: 0, contrHits: 0, n: 0, evidence: [], areaVotes: new Map(), areaCodes: new Map() })
           .get(key)
       const src = inp.source_key ?? '(manual)'
       const kind = kindOf(inp.source_key, cfg)
@@ -337,6 +349,7 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       c.compareAll &&= m.compare
       if (m.compare) c.compareN++
       for (const v of m.vias) c.vias.add(v)
+      for (const x of m.refs) c.refs.add(x)
       if (m.person) c.personHits++
       if (m.contraction) c.contrHits++
       k.mentions++
@@ -349,6 +362,8 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
         const a = projectArea(inp.project_id)
         const v = a ? `${a.code}|${a.via}${a.basis ? `:${a.basis}` : ''}` : 'unknown'
         c.areaVotes.set(v, (c.areaVotes.get(v) ?? 0) + 1)
+        const code = a?.code ?? 'unknown'
+        c.areaCodes.set(code, (c.areaCodes.get(code) ?? 0) + 1)
       }
     }
   }
@@ -390,13 +405,22 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       midCapRatio >= C.midcap_ratio && 'midcap',
     ].filter(Boolean)
 
+    const ex = excl.get(c.key)
+    const toks = name.split(/[ \t]+/)
+    // 성+이름 꼴: 두 토큰 모두 첫 글자만 대문자 ∧ 첫 토큰이 흔한 이름("Katherine Tingley"). "Apple Notes" 는 첫 토큰이 이름이 아니라 통과.
+    const personPattern = toks.length === 2 && toks.every((w) => /^[A-Z][a-z]+$/.test(w)) && persons.has(normKey(toks[0]))
+    const acronym = (ex === 'acronym' || acronymRe.test(name)) && !signals.some((s) => acronymExempt.has(s))
+
     if (prior.has(c.key)) [status, reason] = ['rejected', `previously_rejected(${prior.get(c.key).date}:${prior.get(c.key).reason})`]
     else if (stop.has(c.key)) [status, reason] = ['rejected', 'stopword']
     else if (stack.has(c.key)) [status, reason] = ['rejected', 'stack']
-    else if (persons.has(c.key) || c.personHits * 2 >= c.n) [status, reason] = ['rejected', 'person_name']
+    else if (ex && ex !== 'acronym') [status, reason] = ['rejected', ex]
+    else if (persons.has(c.key) || personPattern || c.personHits * 2 >= c.n) [status, reason] = ['rejected', 'person_name']
     else if (c.contrHits * 2 >= c.n) [status, reason] = ['rejected', 'contraction']
+    else if (acronym) [status, reason] = ['rejected', 'acronym']
     else if (!fromId && idLike(name)) [status, reason] = ['rejected', 'id_like']
-    else if (!c.key.includes(':') && lowerRatio >= C.common_lower_ratio) [status, reason] = ['rejected', `common_word(lower=${lowerRatio.toFixed(2)})`]
+    // 도메인·앱 ID 로 잡힌 키는 소문자 비율로 거르지 않는다 — 도메인 표기("lux.io") 자체가 소문자라 비율이 스스로 오염된다.
+    else if (!fromId && lowerRatio >= C.common_lower_ratio) [status, reason] = ['rejected', `common_word(lower=${lowerRatio.toFixed(2)})`]
     else if (c.posts.size < C.min_evidence) [status, reason] = ['hold', `insufficient_evidence(${c.posts.size}<${C.min_evidence})`]
     else if (signals.length === 0) [status, reason] = ['hold', `no_product_signal(midcap=${midCapRatio.toFixed(2)})`]
     else if (!kindLine.some((x) => x.ok))
@@ -409,7 +433,8 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
     for (const e of c.evidence) if (ev.length < 3 && !ev.includes(e)) ev.push(e)
 
     const votes = [...c.areaVotes.entries()].sort((a, b) => b[1] - a[1])
-    const top = votes.find(([v]) => v !== 'unknown')
+    // 대표 영역 = 근거 글이 가장 많은 영역 코드(모름 제외, 동수면 코드순). 비율 분모는 모름 포함 전체 글.
+    const top = [...c.areaCodes.entries()].filter(([k]) => k !== 'unknown').sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]
     rows.push({
       name,
       key: c.key,
@@ -418,8 +443,10 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       sourceList: [...c.sources].sort(),
       mentions: c.n,
       kinds: kindLine,
-      area: top ? top[0].split('|')[0] : 'unknown',
+      area: top ? top[0] : 'unknown',
+      areaShare: top ? top[1] / c.posts.size : 0,
       areaBasis: votes.map(([v, n]) => `${v}×${n}`).join(', '),
+      refs: [...c.refs].sort(),
       evidence: ev,
       compareOnly: c.compareAll,
       compareN: c.compareN,
@@ -453,48 +480,143 @@ export function reasonSummary(rows) {
   return Object.entries(by).sort((a, b) => b[1] - a[1])
 }
 
-/** part: 'top'(본문 상위 table_top 행 + 요약) | 'rest'(나머지 행). */
+const pct = (x) => `${Math.round(x * 100)}%`
+const areaLabel = (code, names = {}) => names[code] ?? (code === 'unknown' ? '영역 모름' : code)
+
+/** 채택 행을 대표 영역별로 묶는다(행 순서 = 이미 신호 강도 순). 순서: cfg.area_table.order → 그 밖(hold·unknown 등) 코드순. 각 영역 상위 limit. */
+export function groupByArea(rows, order, limit = Infinity) {
+  const by = new Map()
+  for (const r of rows) if (r.status === 'adopt') (by.get(r.area) ?? by.set(r.area, []).get(r.area)).push(r)
+  const codes = [...order.filter((c) => by.has(c)), ...[...by.keys()].filter((c) => !order.includes(c)).sort()]
+  return codes.map((code) => ({ code, total: by.get(code).length, rows: by.get(code).slice(0, limit) }))
+}
+
+const COLS = [
+  '| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 대표 영역(비율 · 근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |',
+  '|---|---|---|---|---|---|---|---|---|---|',
+]
+const rowLine = (r) =>
+  `| ${[
+    STATUS_KO[r.status],
+    cell(r.name),
+    `\`${cell(r.key)}\``,
+    r.posts,
+    `${r.sources} (${cell(r.sourceList.join(', '))})`,
+    r.signals.join(', ') || '-',
+    `${r.area} ${pct(r.areaShare)} (${cell(r.areaBasis)})`,
+    r.evidence.map((e) => `${e.input_id} · ${cell(e.source)} · "${cell(e.quote)}"`).join('<br>'),
+    r.compareOnly ? '예' : '아니오',
+    cell(r.reason || '-'),
+  ].join(' | ')} |`
+
+/** part: 'top'(요약 + 영역별 채택 상위 perArea) | 'rest'(영역 표에 안 오른 나머지 전부 — 채택 초과분·확인불가·기각). */
 export function renderMarkdown(rows, meta, part = 'top') {
-  const top = meta.cfg.candidate.table_top
-  const shown = part === 'top' ? rows.slice(0, top) : rows.slice(top)
+  const perArea = meta.perArea ?? meta.cfg.area_table.per_area
+  const groups = groupByArea(rows, meta.cfg.area_table.order, perArea)
+  const shownKeys = new Set(groups.flatMap((g) => g.rows.map((r) => r.key)))
+  if (part === 'rest') {
+    const rest = rows.filter((r) => !shownKeys.has(r.key))
+    return [`# 제품·회사 이름 후보 표(나머지) — ${meta.date}`, '', `영역별 표에 안 오른 ${rest.length}행(영역당 상위 ${perArea} 초과 채택 · 확인불가 · 기각). 요약은 product-name-candidates.md.`, '', ...COLS, ...rest.map(rowLine), ''].join('\n')
+  }
   const by = { adopt: 0, hold: 0, rejected: 0 }
   for (const r of rows) by[r.status]++
-  const head =
-    part === 'top'
-      ? [
-          `# 제품·회사 이름 후보 표 — ${meta.date}`,
-          '',
-          `규칙 ${meta.ruleVer} · 읽기 전용(SELECT 만) · LLM 0회. 입력 글 ${meta.counts.inputs}건 · 언급 ${meta.counts.mentions}건 · 키 ${meta.counts.keys}개 · 이미 등록 ${meta.counts.registered} · 후보 문턱 미달 ${meta.counts.below}.`,
-          `후보 문턱: 서로 다른 글 ≥${meta.cfg.candidate.min_posts} 또는 소스 ≥${meta.cfg.candidate.min_sources} · 근거 ≥${meta.cfg.candidate.min_evidence}건. 채택 = 소스 종류별 문턱(config adopt) ∧ 제품 신호 ≥1(link·domain·compare·quoted·midcap).`,
-          `영역 열: ${meta.areaColumn}${meta.areaColumn === 'absent' ? ' (마이그 20261009000020 미적용 — 타깃 라벨 접두로 대신)' : ''}.`,
-          '',
-          `**채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected}** — 기각·확인불가 사유별: ${reasonSummary(rows).map(([k, n]) => `${k} ${n}`).join(' · ') || '없음'}`,
-          `본문은 상위 ${Math.min(top, rows.length)}행(정렬: 상태 → 신호 종류 수 → 비교 패턴 언급 수 → 소스 수 → 글 수). 나머지 ${Math.max(0, rows.length - top)}행은 product-name-candidates-rest.md.`,
-          '',
-        ]
-      : [`# 제품·회사 이름 후보 표(나머지) — ${meta.date}`, '', `상위 ${top}행 뒤의 ${shown.length}행. 요약은 product-name-candidates.md.`, '']
-  const cols = [
-    '| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 영역 추정(근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |',
-    '|---|---|---|---|---|---|---|---|---|---|',
+  const out = [
+    `# 제품·회사 이름 후보 표 — ${meta.date}`,
+    '',
+    `규칙 ${meta.ruleVer} · 읽기 전용(SELECT 만) · LLM 0회. 입력 글 ${meta.counts.inputs}건 · 언급 ${meta.counts.mentions}건 · 키 ${meta.counts.keys}개 · 이미 등록 ${meta.counts.registered} · 후보 문턱 미달 ${meta.counts.below}.`,
+    `후보 문턱: 서로 다른 글 ≥${meta.cfg.candidate.min_posts} 또는 소스 ≥${meta.cfg.candidate.min_sources} · 근거 ≥${meta.cfg.candidate.min_evidence}건. 채택 = 소스 종류별 문턱(config adopt) ∧ 제품 신호 ≥1(link·domain·compare·quoted·midcap) ∧ 제외 목록(config exclude) 밖.`,
+    `영역 열: ${meta.areaColumn}${meta.areaColumn === 'absent' ? ' (마이그 20261009000020 미적용 — 타깃 라벨 접두로 대신)' : ''}. 대표 영역 = 근거 글이 가장 많은 영역, 비율 = 그 영역 글 ÷ 전체 근거 글.`,
+    '',
+    `**채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected}** — 기각·확인불가 사유별: ${reasonSummary(rows).map(([k, n]) => `${k} ${n}`).join(' · ') || '없음'}`,
+    `영역별 채택 상위 ${perArea}(정렬: 신호 종류 수 → 비교 패턴 언급 수 → 소스 수 → 글 수). 나머지 ${rows.length - shownKeys.size}행은 product-name-candidates-rest.md.`,
+    '',
   ]
-  const body = shown.map((r) =>
-    [
-      STATUS_KO[r.status],
-      cell(r.name),
-      `\`${cell(r.key)}\``,
-      r.posts,
-      `${r.sources} (${cell(r.sourceList.join(', '))})`,
-      r.signals.join(', ') || '-',
-      `${r.area} (${cell(r.areaBasis)})`,
-      r.evidence.map((e) => `${e.input_id} · ${cell(e.source)} · "${cell(e.quote)}"`).join('<br>'),
-      r.compareOnly ? '예' : '아니오',
-      cell(r.reason || '-'),
-    ].join(' | '),
-  )
-  return [...head, ...cols, ...body.map((b) => `| ${b} |`), ''].join('\n')
+  if (groups.length === 0) out.push('채택 후보 없음.', '')
+  for (const g of groups) out.push(`## ${areaLabel(g.code, meta.areaNames)} — 채택 ${g.total}${g.total > g.rows.length ? ` (상위 ${g.rows.length})` : ''}`, '', ...COLS, ...g.rows.map(rowLine), '')
+  return out.join('\n')
+}
+
+// ── 승인 시트 · 오탐률 ───────────────────────────────────────────────────
+export const SHEET_FILE = 'product-candidates-approval.md'
+const ANSWER_BLANK = '승인 Y / 기각 N'
+
+/** 답 칸 판독: 정확히 Y/승인 → approved, N/기각(뒤에 ":" 사유 허용) → rejected, 그 밖(빈칸·기본 문구) → unanswered. */
+export function readAnswer(s) {
+  const a = String(s ?? '').trim()
+  if (/^(y|승인)$/i.test(a)) return 'approved'
+  if (/^(n|기각)(\s*[:：-].*)?$/i.test(a)) return 'rejected'
+  return 'unanswered'
+}
+
+export function renderApprovalSheet(rows, meta) {
+  const A = meta.cfg.approval
+  const groups = groupByArea(rows, meta.cfg.area_table.order, A.daily_cap_per_area)
+  const prev = meta.priorSheet
+  const out = [
+    `# 제품 이름 후보 승인 시트 — ${meta.date}`,
+    '',
+    `규칙 ${meta.ruleVer} · 영역별 채택 상위 ${A.daily_cap_per_area}개만(하루 영역별 상한, config approval.daily_cap_per_area). 읽기 전용 실행 결과다 — 여기서 Y 를 적어도 DB 에 아무것도 등록되지 않는다.`,
+    '',
+    '**답 쓰는 법:** 마지막 칸 `승인 Y / 기각 N` 을 지우고 `Y` 또는 `N` 한 글자만(기각 사유는 `N: 사유`). 다른 칸은 고치지 않는다 — 다음 실행이 `정규화키` 칸으로 읽는다.',
+    `**오탐률 = 사람이 기각(N)한 수 ÷ 제시한 수** (영역별·시트 하루 단위). ${pct(A.max_false_positive_rate)} 를 넘거나, 답이 빈 줄이 있거나, 제시가 0이면 그 영역은 승인 모드 강제(approval). N 으로 기각한 키는 다음 실행부터 후보에 다시 오르지 않는다(사유 human_rejected).`,
+    '',
+    prev
+      ? `지난 시트(${prev.date}) 영역별: ${Object.entries(prev.stats).map(([a, s]) => { const m = approvalMode(a, prev.stats, A.max_false_positive_rate); return `${a} 제시 ${s.shown}·기각 ${s.rejected}·미답 ${s.unanswered} → ${m.mode}(${m.reason})` }).join(' · ') || '제시 없음'}`
+      : '지난 시트 없음 — 모든 영역 승인 모드(측정 전).',
+    '',
+  ]
+  if (groups.length === 0) out.push('제시할 채택 후보 없음.', '')
+  let no = 0
+  for (const g of groups) {
+    out.push(`## ${areaLabel(g.code, meta.areaNames)} — 제시 ${g.rows.length} / 채택 ${g.total}`, '')
+    out.push('| 번호 | 후보명 | 정규화키 | 영역 | 근거 글 3건(원문 80자) | 신호 | 제안 | 답 |', '|---|---|---|---|---|---|---|---|')
+    for (const r of g.rows) {
+      const q = r.evidence.map((e) => `${cell(e.source)} · "${cell(e.quote.length > A.quote_chars ? e.quote.slice(0, A.quote_chars - 1) + '…' : e.quote)}"`).join('<br>')
+      const proposal = r.refs.length ? `등록 후보: ${cell(r.refs.join(', '))}` : '등록 후보: 이름만(앱 ID·도메인 없음 — 수동 확인)'
+      out.push(`| ${++no} | ${cell(r.name)} | \`${cell(r.key)}\` | ${r.area} ${pct(r.areaShare)} | ${q} | ${r.signals.join(', ')} | ${proposal} | ${ANSWER_BLANK} |`)
+    }
+    out.push('')
+  }
+  return out.join('\n')
+}
+
+/** 시트 마크다운 → [{ no, key, area, answer }]. 번호로 시작하는 표 줄만 읽는다. */
+export function parseApprovalSheet(md) {
+  const out = []
+  for (const l of String(md).split('\n')) {
+    if (!/^\|\s*\d+\s*\|/.test(l)) continue
+    const c = l.split(/(?<!\\)\|/).slice(1, -1).map((x) => x.trim())
+    if (c.length !== 8) continue
+    out.push({ no: Number(c[0]), name: c[1].replace(/\\\|/g, '|'), key: c[2].replace(/^`|`$/g, '').replace(/\\\|/g, '|'), area: c[3].split(/\s+/)[0], answer: readAnswer(c[7]) })
+  }
+  return out
+}
+
+/** 시트 항목 → 영역별 { shown, approved, rejected, unanswered }. */
+export function sheetStats(entries) {
+  const s = {}
+  for (const e of entries) {
+    const a = (s[e.area] ??= { shown: 0, approved: 0, rejected: 0, unanswered: 0 })
+    a.shown++
+    a[e.answer]++
+  }
+  return s
+}
+
+/**
+ * 순수 함수: 영역의 승인 모드. approval(사람 승인 강제) | auto(오탐률 문턱 이하).
+ * 측정 못 한 경우(제시 0·답 빈 줄)는 auto 로 접지 않는다(§7.1).
+ */
+export function approvalMode(area, stats, maxRate = 0.1) {
+  const s = stats?.[area]
+  if (!s || !s.shown) return { mode: 'approval', rate: null, reason: 'no_data' }
+  if (s.unanswered > 0) return { mode: 'approval', rate: null, reason: 'unanswered' }
+  const rate = s.rejected / s.shown
+  return rate > maxRate ? { mode: 'approval', rate, reason: 'fp_rate' } : { mode: 'auto', rate, reason: 'fp_rate_ok' }
 }
 
 export function ledgerOf(rows, meta) {
+  const prev = meta.priorSheet
   return {
     generated_at: meta.now.toISOString(),
     date: meta.date,
@@ -503,20 +625,42 @@ export function ledgerOf(rows, meta) {
     entries: rows
       .filter((r) => r.status !== 'adopt')
       .map((r) => ({ key: r.key, name: r.name, status: r.status === 'hold' ? 'unverifiable' : 'rejected', reason: r.reason, posts: r.posts, sources: r.sourceList, evidence: r.evidence })),
+    // 승인 시트에서 사람이 N 으로 기각한 키(지난 시트 전부). 시트 파일이 지워져도 재제안 방지가 남도록 대장에 옮겨 둔다.
+    human_rejected: [...(meta.humanRejected ?? new Map()).entries()].map(([key, v]) => ({ key, name: v.name, area: v.area, sheet_date: v.date, reason: 'human_rejected' })),
+    false_positive: prev
+      ? { sheet_date: prev.date, by_area: Object.fromEntries(Object.entries(prev.stats).map(([a, s]) => [a, { ...s, ...approvalMode(a, prev.stats, meta.cfg.approval.max_false_positive_rate) }])) }
+      : null,
   }
 }
 
-/** 지난 대장(오늘 폴더 제외)에서 rejected 였던 키. 확인불가(unverifiable)는 다시 잰다. 대장을 못 읽으면 던진다(§7.1 — 재제안 방지를 조용히 끄지 않는다). */
+/**
+ * 지난 실행(오늘 폴더 제외)의 기각 기록.
+ * - 대장 rejected-candidates.json: entries 의 rejected(확인불가는 다시 잰다) + human_rejected.
+ * - 승인 시트: N 답 → human_rejected. 가장 최근(오늘 이전) 시트의 영역별 통계는 latestSheet.
+ * 파일을 못 읽으면 던진다(§7.1 — 재제안 방지를 조용히 끄지 않는다).
+ */
 export function loadPriorRejected(reportsDir, today) {
   const prior = new Map()
-  if (!fs.existsSync(reportsDir)) return prior
+  const human = new Map()
+  let latestSheet = null
+  if (!fs.existsSync(reportsDir)) return { prior, human, latestSheet }
   for (const d of fs.readdirSync(reportsDir).sort()) {
     if (d === today) continue
     const f = path.join(reportsDir, d, 'rejected-candidates.json')
-    if (!fs.existsSync(f)) continue
-    for (const e of JSON.parse(fs.readFileSync(f, 'utf8')).entries ?? []) if (e.status === 'rejected' && !e.reason?.startsWith('previously_rejected')) prior.set(e.key, { date: d, reason: e.reason })
+    if (fs.existsSync(f)) {
+      const j = JSON.parse(fs.readFileSync(f, 'utf8'))
+      for (const e of j.entries ?? []) if (e.status === 'rejected' && !e.reason?.startsWith('previously_rejected')) prior.set(e.key, { date: d, reason: e.reason })
+      for (const e of j.human_rejected ?? []) human.set(e.key, { date: e.sheet_date ?? d, name: e.name, area: e.area })
+    }
+    const sf = path.join(reportsDir, d, SHEET_FILE)
+    if (fs.existsSync(sf)) {
+      const entries = parseApprovalSheet(fs.readFileSync(sf, 'utf8'))
+      for (const e of entries) if (e.answer === 'rejected') human.set(e.key, { date: d, name: e.name, area: e.area })
+      if (d < today) latestSheet = { date: d, stats: sheetStats(entries) }
+    }
   }
-  return prior
+  for (const [k, v] of human) prior.set(k, { date: v.date, reason: 'human_rejected' })
+  return { prior, human, latestSheet }
 }
 
 // ── DB 포트(SELECT 만) ──────────────────────────────────────────────────
@@ -565,11 +709,17 @@ async function supabasePort() {
 // ── 실행 ────────────────────────────────────────────────────────────────
 export async function main(argv, { port, now = new Date(), reportsDir = REPORTS_DIR, fileRegistry = loadFileRegistry(), cfg = loadConfig(), log = console.log } = {}) {
   const run = argv.includes('--run')
+  const sheet = argv.includes('--approval-sheet')
+  const pa = argv.findIndex((a) => a === '--per-area' || a.startsWith('--per-area='))
+  const perArea = pa < 0 ? cfg.area_table.per_area : Number(argv[pa].includes('=') ? argv[pa].split('=')[1] : argv[pa + 1])
+  if (!Number.isInteger(perArea) || perArea < 1) throw new Error(`--per-area 는 1 이상 정수: ${argv[pa]}`)
   const date = argv.find((a) => a.startsWith('--date='))?.slice(7) ?? kstDate(now)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`--date 형식 YYYY-MM-DD: ${date}`)
   const db = port ?? (await supabasePort())
 
-  const areaCodes = new Set(JSON.parse(fs.readFileSync(AREAS_PATH, 'utf8')).areas.filter((a) => a.kind === 'area').map((a) => a.code))
+  const areasCfg = JSON.parse(fs.readFileSync(AREAS_PATH, 'utf8')).areas
+  const areaCodes = new Set(areasCfg.filter((a) => a.kind === 'area').map((a) => a.code))
+  const areaNames = Object.fromEntries(areasCfg.map((a) => [a.code, a.name]))
   const [relevant, proj, targets, discovery] = await Promise.all([db.loadRelevant(), db.loadProjects(), db.loadTargets(), db.loadDiscovery()])
 
   // 프로젝트 영역: 열 값 → 없으면 타깃 라벨 접두(한 가지일 때만). 둘 다 없으면 모름.
@@ -603,29 +753,43 @@ export async function main(argv, { port, now = new Date(), reportsDir = REPORTS_
   if (inputs.length === 0) throw new Error(`입력 글 0건(relevant ${relevantIds.length}·영역 프로젝트 ${areaProjects.length}·폐기 ${purged}) — 표를 만들지 않는다`)
 
   const registry = buildRegistry({ ...fileRegistry, projects: proj.rows, targets, discovery })
-  const prior = loadPriorRejected(reportsDir, date)
+  const { prior, human, latestSheet } = loadPriorRejected(reportsDir, date)
   const { rows, counts } = buildCandidates({ inputs, registry, cfg, projectArea: (id) => areaById.get(id), prior })
   const by = { adopt: 0, hold: 0, rejected: 0 }
   for (const r of rows) by[r.status]++
 
-  const meta = { date, now, ruleVer: cfg.rule_ver, counts, cfg, areaColumn: proj.areaColumn }
+  const meta = { date, now, ruleVer: cfg.rule_ver, counts, cfg, areaColumn: proj.areaColumn, areaNames, perArea, priorSheet: latestSheet, humanRejected: human }
   const summary = [
-    `${run ? 'RUN' : 'DRY'} ${date} 규칙 ${cfg.rule_ver} · 영역 열 ${proj.areaColumn}`,
-    `입력: relevant ${relevantIds.length} · 영역 프로젝트 ${areaProjects.length}개 · 합집합 글 ${inputs.length}(폐기 제외 ${purged}) · 등록 사전 키 ${registry.size} · 지난 기각 ${prior.size}`,
+    `${run ? 'RUN' : sheet ? 'SHEET' : 'DRY'} ${date} 규칙 ${cfg.rule_ver} · 영역 열 ${proj.areaColumn}`,
+    `입력: relevant ${relevantIds.length} · 영역 프로젝트 ${areaProjects.length}개 · 합집합 글 ${inputs.length}(폐기 제외 ${purged}) · 등록 사전 키 ${registry.size} · 지난 기각 ${prior.size}(사람 기각 ${human.size}) · 지난 시트 ${latestSheet?.date ?? '없음'}`,
     `추출: 언급 ${counts.mentions} · 키 ${counts.keys} · 이미 등록 ${counts.registered} · 후보 문턱 미달 ${counts.below}`,
     `후보: 채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected}`,
     `사유별: ${reasonSummary(rows).map(([k, n]) => `${k} ${n}`).join(' · ') || '없음'}`,
-    ...rows.filter((r) => r.status === 'adopt').slice(0, 10).map((r) => `  - ${r.name} (${r.key}) 신호 ${r.signals.join('+')} · 글 ${r.posts} · 소스 ${r.sources} · 영역 ${r.area}${r.compareOnly ? ' · 비교만' : ''}`),
+    ...groupByArea(rows, cfg.area_table.order, 3).flatMap((g) => [
+      `[${areaNames[g.code] ?? g.code}] 채택 ${g.total} · 승인 모드 ${approvalMode(g.code, latestSheet?.stats, cfg.approval.max_false_positive_rate).mode}`,
+      ...g.rows.map((r) => `  - ${r.name} (${r.key}) 신호 ${r.signals.join('+')} · 글 ${r.posts} · 소스 ${r.sources} · 영역 ${r.area} ${pct(r.areaShare)}${r.compareOnly ? ' · 비교만' : ''}`),
+    ]),
   ]
   let files = null
-  if (run) {
-    const dir = path.join(reportsDir, date)
+  const dir = path.join(reportsDir, date)
+  if (run || sheet) {
     fs.mkdirSync(dir, { recursive: true })
-    files = { md: path.join(dir, 'product-name-candidates.md'), rest: path.join(dir, 'product-name-candidates-rest.md'), ledger: path.join(dir, 'rejected-candidates.json') }
+    files = {}
+  }
+  if (run) {
+    Object.assign(files, { md: path.join(dir, 'product-name-candidates.md'), rest: path.join(dir, 'product-name-candidates-rest.md'), ledger: path.join(dir, 'rejected-candidates.json') })
     fs.writeFileSync(files.md, renderMarkdown(rows, meta, 'top'))
     fs.writeFileSync(files.rest, renderMarkdown(rows, meta, 'rest'))
     fs.writeFileSync(files.ledger, JSON.stringify(ledgerOf(rows, meta), null, 2) + '\n')
     summary.push(`파일: ${files.md} (+ ${path.basename(files.rest)})`, `대장: ${files.ledger}`)
+  }
+  if (sheet) {
+    files.sheet = path.join(dir, SHEET_FILE)
+    // 사람이 이미 답을 적은 오늘 시트를 덮어쓰면 답이 사라진다 — 멈춘다.
+    const answered = fs.existsSync(files.sheet) ? parseApprovalSheet(fs.readFileSync(files.sheet, 'utf8')).filter((e) => e.answer !== 'unanswered').length : 0
+    if (answered > 0) throw new Error(`오늘 승인 시트에 답 ${answered}건이 있다 — 덮어쓰지 않는다: ${files.sheet}`)
+    fs.writeFileSync(files.sheet, renderApprovalSheet(rows, meta))
+    summary.push(`승인 시트: ${files.sheet}`)
   }
   for (const l of summary) log(l)
   return { rows, counts, by, files }

@@ -412,8 +412,12 @@ export const NON_INCREMENTAL_SOURCES: ReadonlySet<string> = new Set(['appstore',
 export const REVISIT_MIN_DAYS = 3
 /** 상한(일) — 조용한 타깃. 아무리 조용해도 2주에 한 번은 첫 페이지를 본다. */
 export const REVISIT_MAX_DAYS = 14
-/** K: 한 번 재점검할 때 기대하는 신규 건수. 앱스토어 RSS 한 페이지(최대 50건)의 1/5 — 요청 1건이 헛걸음이 되지 않을 만큼. */
-export const REVISIT_EXPECTED_NEW = 10
+/**
+ * K: 한 번 재점검할 때 기대하는 신규 건수 — 재방문 1회에 ≥3건은 받아야 요청 값어치가 있다.
+ * 10 이었을 때 실측(PR #486 드라이런, 2026-10-12): 앱스토어 최신 리뷰가 방문 시점보다 2~3.5일 전 → λ≈0.3~0.5/일 → 20~30일 → 106개 전부 상한 14에 붙었다.
+ * 3 이면 그런 타깃 약 6일, 최신 리뷰 <1일인 인기 타깃 3일, 더 조용한 곳 14일.
+ */
+export const REVISIT_EXPECTED_NEW = 3
 /** 무인 되살리기(--auto) 소스별 실행당 상한. 하루 수집 슬롯 6(ramp.ts COLLECT_SLOTS)에 나눠 106개 백로그를 약 3일(= 하한)에 흡수한다. */
 export const REVIVE_PER_RUN = 6
 
@@ -425,7 +429,7 @@ const DAY_MS = 86_400_000
  *   λ_hist  = total_collected ÷ max(1, (last_run_at − created_at) 일)      지금까지 이 타깃이 낸 신규 속도(건/일)
  *   λ_quiet = 1 ÷ ((last_run_at − last_review_at) 일)                       마지막 방문 때 최신 리뷰가 이미 그만큼 묵었다 → 그보다 빠를 수 없다(1일 이상일 때만)
  *   λ       = min(λ_hist, λ_quiet)
- *   days    = clamp(K ÷ λ × 2^consecutive_empty, 3, 14)                    K = 10 · λ = 0 → 14 · 빈 재점검마다 2배(조용한 곳은 상한으로)
+ *   days    = clamp(K ÷ λ × 2^consecutive_empty, 3, 14)                    K = 3 · λ = 0 → 14 · 빈 재점검마다 2배(조용한 곳은 상한으로)
  *
  * 속도를 못 재면(created_at·last_review_at 둘 다 없음) 상한 14 — 모르는 것을 인기로 접지 않는다(호스트에 안전한 쪽).
  * ponytail: 첫 통독(앱스토어 RSS 최대 500건)이 λ_hist 를 부풀린다 — 젊은 타깃은 실제보다 자주 간다. λ_quiet 와 빈 재점검 2배가

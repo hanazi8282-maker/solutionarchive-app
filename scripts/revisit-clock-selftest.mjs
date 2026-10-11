@@ -19,7 +19,7 @@ import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { RECHECK_SEEN_STREAK, isRecheck, runCollection } from '../lib/review/runner.ts'
 import { createReviewStore } from '../lib/review/store.ts'
 import {
-  REVIVE_PER_RUN, REVISIT_MAX_DAYS, REVISIT_MIN_DAYS, computeSupply, planRevive, revisitDays,
+  REVIVE_PER_RUN, REVISIT_EXPECTED_NEW, REVISIT_MAX_DAYS, REVISIT_MIN_DAYS, computeSupply, planRevive, revisitDays,
 } from '../lib/review/target-supply.ts'
 import { main as reviveMain } from './target-revive.mjs'
 
@@ -42,8 +42,13 @@ const u = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
   const L = Date.parse('2026-10-10T00:00:00Z')
   const d = (o) => revisitDays({ source_key: 'appstore', last_run_at: iso(L), created_at: iso(L - 30 * DAY), ...o })
   t('인기(600건/30일, 최신 리뷰 = 방문 시각) → 하한 3', d({ total_collected: 600, last_review_at: iso(L) }).days, REVISIT_MIN_DAYS)
-  t('중간(60건/30일 → λ 2/일) → 10÷2 = 5일', d({ total_collected: 60, last_review_at: iso(L) }).days, 5)
-  t('중간 + 빈 재점검 1회 → 10일 · 2회 → 상한 14', [d({ total_collected: 60, consecutive_empty: 1 }).days, d({ total_collected: 60, consecutive_empty: 2 }).days], [10, 14])
+  t('K = 3(재방문 1회 ≥3건)', REVISIT_EXPECTED_NEW, 3)
+  // PR #486 드라이런 실측 모양: 적재 많음 · 최신 리뷰가 방문보다 2일(wrtn·polaris)/3.5일(canva) 전 → λ_quiet 0.5/0.286
+  t('wrtn 류(최신 리뷰 2일 전) → 3÷0.5 = 6일', d({ total_collected: 600, last_review_at: iso(L - 2 * DAY) }).days, 6)
+  t('canva 류(최신 리뷰 3.5일 전) → 3÷(1/3.5) = 10.5일', d({ total_collected: 600, last_review_at: iso(L - 3.5 * DAY) }).days, 10.5)
+  t('최신 리뷰 <1일인 인기 타깃 → 하한 3', d({ total_collected: 600, last_review_at: iso(L - 0.5 * DAY) }).days, 3)
+  t('wrtn 류 + 빈 재점검 1회 → 12일 · 2회 → 상한 14',
+    [d({ total_collected: 600, last_review_at: iso(L - 2 * DAY), consecutive_empty: 1 }).days, d({ total_collected: 600, last_review_at: iso(L - 2 * DAY), consecutive_empty: 2 }).days], [12, 14])
   t('적재 많아도 최신 리뷰가 45일 묵었으면 λ ≤ 1/45 → 상한 14', d({ total_collected: 600, last_review_at: iso(L - 45 * DAY) }).days, REVISIT_MAX_DAYS)
   t('적재 0 → 14', d({ total_collected: 0 }).days, 14)
   t('속도 재료 없음(created_at·last_review_at 없음) → 14 · 근거 표기', revisitDays({ source_key: 'youtube', last_run_at: iso(L) }), { days: 14, basis: 'velocity_unknown→max' })

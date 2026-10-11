@@ -25,6 +25,13 @@
 // v52(2026-10-12, 남헌 v50 §3 / v52 §1-3): 제외 6갈래(config exclude — acronym·general_noun·site_ui·tool_not_target·hardware·person_name),
 //   대표 영역(+비율)별 표, 승인 시트. 시트에서 사람이 N 으로 답한 키는 다음 실행이 읽어 human_rejected 로 재제안을 막고,
 //   영역별 오탐률(기각 ÷ 제시)은 approvalMode 가 판정한다(10% 초과·미답·제시 0 → 승인 모드 강제).
+//
+// v53(2026-10-12, 남헌 v53 §1): 사람 기각 4건 영구 제외(human_rejected_v53) · 지표 용어(metric_term) · CDN·이미지 호스트(cdn_host) ·
+//   거대 기업·대형 서비스 단독 = 경쟁 기준점(status 'benchmark', 본문 밖 별도 소절, 승인 시트·기각 대장 밖) ·
+//   정렬 가중치(대안 맥락 언급 · 앱스토어 출시 ≤90일 — 출시일은 --release-dates=<json> 이 있을 때만, 없으면 '확인 불가') ·
+//   노트·지식관리 칸(config notes_area.products → 대표 영역 'notes', 소절 '영역 외-노트·지식관리').
+//   옵션: --release-dates=<json> — {"appstore:id123": "2026-09-01"} 꼴 또는 iTunes lookup 응답({results:[{trackId, releaseDate}]}) 그대로.
+//   등록(채택) 초안은 scripts/candidate-register-draft.mjs(승인 시트 → approved.json → 마이그 초안).
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -92,7 +99,8 @@ export function loadFileRegistry(dir = DICT_DIR, areaMapFile = AREA_MAP_PATH) {
   return { dictionary, areaMapSlugs }
 }
 
-const labelSlug = (label) => String(label ?? '').replace(/^([1-5]|\d{2}-[a-z0-9-]+):/, '').replace(/^(us-en|us)\|/, '')
+// 'notes:' = 노트·지식관리 타깃 라벨 접두(v53, candidate-register-draft.mjs).
+const labelSlug = (label) => String(label ?? '').replace(/^([1-5]|notes|\d{2}-[a-z0-9-]+):/, '').replace(/^(us-en|us)\|/, '')
 
 /** 키 → 처음 등록된 출처. 앱 ID 키는 `appstore:id<digits>` · `googleplay:<pkg>`. */
 export function buildRegistry({ dictionary = [], areaMapSlugs = [], projects = [], targets = [], discovery = [] }) {
@@ -156,10 +164,13 @@ const RULES = {
   quoted: /[`"“「]([A-Za-z][\w .+-]{1,28})[`"”」]/g,
   koEn: /([가-힣]{2,12})\s*[(（]\s*([A-Za-z][\w .+-]{1,28}?)\s*[)）]/g,
   enKo: /([A-Za-z][\w.+-]{1,28})\s*[(（]\s*([가-힣]{2,12})\s*[)）]/g,
-  // 비교 패턴 — 잡힌 이름은 compare=true
-  enCompare1: new RegExp(`\\b(?:alternatives?\\s+to|instead\\s+of|switched\\s+from|moved\\s+from|migrated\\s+from|replaced|compared\\s+to)\\s+(${EN_TOK})`, 'gi'),
+  // 비교 패턴 — 잡힌 이름은 compare=true. 그중 대안 맥락(갈아타기·대신·대안)은 alt=true 도(v53 정렬 가중).
+  enAlt: new RegExp(`\\b(?:alternatives?\\s+to|instead\\s+of|switched\\s+from|moved\\s+from|migrated\\s+from)\\s+(${EN_TOK})`, 'gi'),
+  enCompare1: new RegExp(`\\b(?:replaced|compared\\s+to)\\s+(${EN_TOK})`, 'gi'),
   vs: new RegExp(`(${TOK})\\s+(?:vs\\.?|versus)\\s+(${TOK})`, 'gi'),
   koInstead: new RegExp(`(${TOK})\\s*(?:대신(?:에)?|말고)\\s+(${TOK})`, 'g'),
+  // "Evernote 대안" · "에버노트의 대안". 한글 이름은 '의' 가 붙을 때만 — "좋은 대안" 의 형용사를 이름으로 잡지 않게.
+  koAlt: /([A-Za-z][\w.+-]{1,29})\s*(?:의\s*)?대안|([가-힣]{2,12})의\s*대안/g,
   koMove: new RegExp(`(${TOK}?)에서\\s+(${TOK}?)(?:으로|로)\\s*(?:갈아|넘어|옮|바꿨|바꾸)`, 'g'),
   koUsedTo: new RegExp(`(${TOK}?)(?:을|를)?\\s*쓰다가`, 'g'),
 }
@@ -212,18 +223,27 @@ function stripJosa(tok, josa) {
  * 같은 key·같은 시작 위치는 한 번만 센다(규칙이 겹쳐도 언급 수가 부풀지 않게), 겹치면 compare 는 OR.
  * ponytail: 한글 자유문 고유명(패턴·병기 밖)은 못 잡는다. 후속 Sonnet 보강 단계 몫.
  */
+/** CDN·이미지 호스트인가(config cdn_host): 첫 라벨이 접두 목록이거나 등록 도메인 라벨에 contains 문자열("velcdn"). */
+export function isCdnHost(host, cfg) {
+  const h = String(host ?? '').toLowerCase().replace(/^www\./, '')
+  const c = cfg.cdn_host ?? { prefixes: [], contains: [] }
+  const reg = domainName(h) ?? ''
+  return c.prefixes.includes(h.split('.')[0]) || c.contains.some((s) => reg.includes(s))
+}
+
 export function extractMentions(text, cfg) {
   const josa = cfg.josa ?? []
   const raw = []
   const aliases = []
   // ref = 등록 제안에 쓸 앱 ID·호스트(승인 시트 "제안" 칸). 이름만 잡힌 언급은 null.
+  // compare: false | true | 'alt'(대안 맥락 — 비교이기도 하다).
   const push = (surface, start, via, compare = false, keyOverride = null, contraction = false, ref = null) => {
     let s = String(surface).trim().replace(/[.,]+$/, '')
     const person = /[가-힣](님|씨)$/.test(s)
     if (/[가-힣]/.test(s)) s = stripJosa(s.replace(/(님|씨)$/, ''), josa)
     const key = keyOverride ?? normKey(s)
     if (!key || key.length < 2 || /^\d+$/.test(key)) return
-    raw.push({ key, surface: s, start, compare, person, contraction, vias: new Set([via]), refs: new Set(ref ? [ref] : []) })
+    raw.push({ key, surface: s, start, compare: !!compare, alt: compare === 'alt', person, contraction, vias: new Set([via]), refs: new Set(ref ? [ref] : []) })
   }
   const each = (re, fn) => {
     re.lastIndex = 0
@@ -238,9 +258,14 @@ export function extractMentions(text, cfg) {
   each(RULES.url, (m) => {
     if (/apps\.apple\.com|play\.google\.com/i.test(m[1])) return
     const d = domainName(m[1])
-    if (d) push(d, m.index + m[0].indexOf(m[1]), 'domain', false, null, false, m[1].toLowerCase().replace(/^www\./, ''))
+    if (!d) return
+    // CDN·이미지 호스트는 제품 도메인 신호가 아니다(v53 velcdn) — 언급은 남기되 via cdn_host, ref 없음.
+    if (isCdnHost(m[1], cfg)) push(d, m.index + m[0].indexOf(m[1]), 'cdn_host')
+    else push(d, m.index + m[0].indexOf(m[1]), 'domain', false, null, false, m[1].toLowerCase().replace(/^www\./, ''))
   })
-  each(RULES.bareDomain, (m) => push(m[1], m.index, 'domain', false, null, false, m[0].toLowerCase()))
+  each(RULES.bareDomain, (m) =>
+    isCdnHost(m[0], cfg) ? push(m[1], m.index, 'cdn_host') : push(m[1], m.index, 'domain', false, null, false, m[0].toLowerCase()),
+  )
   each(RULES.capitalized, (m) => {
     let s = m[1]
     let start = m.index
@@ -266,14 +291,16 @@ export function extractMentions(text, cfg) {
     push(m[1], m.index, 'bilingual')
     aliases.push([normKey(m[2]), normKey(m[1])])
   })
+  each(RULES.enAlt, (m) => push(m[1], m.index + m[0].lastIndexOf(m[1]), 'compare', 'alt'))
   each(RULES.enCompare1, (m) => push(m[1], m.index + m[0].lastIndexOf(m[1]), 'compare', true))
-  for (const re of [RULES.vs, RULES.koInstead, RULES.koMove]) {
+  for (const [re, kind] of [[RULES.vs, true], [RULES.koInstead, 'alt'], [RULES.koMove, 'alt']]) {
     each(re, (m) => {
-      push(m[1], m.index, 'compare', true)
-      push(m[2], m.index + m[0].indexOf(m[2], m[1].length), 'compare', true)
+      push(m[1], m.index, 'compare', kind)
+      push(m[2], m.index + m[0].indexOf(m[2], m[1].length), 'compare', kind)
     })
   }
-  each(RULES.koUsedTo, (m) => push(m[1], m.index, 'compare', true))
+  each(RULES.koAlt, (m) => push(m[1] ?? m[2], m.index, 'compare', 'alt'))
+  each(RULES.koUsedTo, (m) => push(m[1], m.index, 'compare', 'alt'))
 
   const byPos = new Map()
   for (const r of raw) {
@@ -282,6 +309,7 @@ export function extractMentions(text, cfg) {
     if (!prev) byPos.set(k, r)
     else {
       prev.compare ||= r.compare
+      prev.alt ||= r.alt
       prev.person ||= r.person
       prev.contraction ||= r.contraction
       for (const v of r.vias) prev.vias.add(v)
@@ -306,19 +334,54 @@ function quoteAround(text, start, max = 120) {
 }
 
 /**
+ * 출시일 파일(--release-dates) → Map<'appstore:id<digits>', Date>. 두 꼴을 받는다:
+ *   {"appstore:id123" | "id123" | "123": "2026-09-01"} · iTunes lookup 응답 {results:[{trackId, releaseDate}]}.
+ * 날짜를 못 읽는 항목은 던진다(조용히 빼면 '확인 불가'가 '오래됨'처럼 보인다).
+ */
+export function parseReleaseDates(json) {
+  const out = new Map()
+  const entries = Array.isArray(json?.results) ? json.results.map((r) => [String(r.trackId), r.releaseDate]) : Object.entries(json ?? {})
+  for (const [k, v] of entries) {
+    const id = /^(?:appstore:)?(?:id)?(\d{5,})$/.exec(String(k).trim())?.[1]
+    const d = new Date(v)
+    if (!id || Number.isNaN(d.getTime())) throw new Error(`--release-dates 항목을 못 읽음: ${k} = ${v}`)
+    out.set(`appstore:id${id}`, d)
+  }
+  return out
+}
+
+/**
+ * 순수 함수: 후보의 앱스토어 출시 신호. releaseDates=null(파일 없음)이면 확인 불가 — 가중하지 않는다.
+ * → { state: 'new'|'old'|'unverified', days, why }
+ */
+export function releaseOf(appIds, releaseDates, now, maxDays) {
+  if (!releaseDates) return { state: 'unverified', days: null, why: 'no_file' }
+  if (appIds.length === 0) return { state: 'unverified', days: null, why: 'no_app_id' }
+  const d = appIds.map((k) => releaseDates.get(k)).filter(Boolean).sort((a, b) => b - a)[0]
+  if (!d) return { state: 'unverified', days: null, why: 'not_listed' }
+  const days = Math.floor((now - d) / 86400000)
+  return { state: days >= 0 && days <= maxDays ? 'new' : 'old', days, why: null }
+}
+
+/**
  * 순수 함수 — 입력→후보 행·대장. DB·파일을 부르지 않는다.
  * inputs: [{ id, project_id, source_key, raw_text }]
  * projectArea: project_id → { code, via, basis } | undefined
  * prior: Map<key, { date, reason }> — 지난 대장에서 rejected 였던 키
+ * releaseDates: parseReleaseDates 결과 | null(파일 없음 → 출시 신호 확인 불가)
  */
-export function buildCandidates({ inputs, registry, cfg, projectArea = () => undefined, prior = new Map() }) {
+export function buildCandidates({ inputs, registry, cfg, projectArea = () => undefined, prior = new Map(), releaseDates = null, now = new Date() }) {
   const common = new Set(cfg.common_words.map(normKey))
   const stop = new Set(cfg.stopwords.map(normKey))
   const stack = new Set(cfg.stack.map(normKey))
   const persons = new Set(cfg.person_first_names.map(normKey))
-  // exclude: 키 → 사유(목록 이름). acronym 만 조건부(아래 판정).
+  const bench = new Map([...(cfg.benchmark?.companies ?? []).map((k) => [normKey(k), 'big_company']), ...(cfg.benchmark?.services ?? []).map((k) => [normKey(k), 'big_service'])])
+  const notes = new Set((cfg.notes_area?.products ?? []).map(normKey))
+  const W = cfg.weights ?? { alt_context: 0, new_release: 0, new_release_days: 90 }
+  const cdnContains = cfg.cdn_host?.contains ?? []
+  // exclude: 키 → 사유(목록 이름). 한 키가 여러 목록에 있으면 먼저 나온 목록이 이긴다(human_rejected_v53 이 맨 앞). acronym 만 조건부(아래 판정).
   const excl = new Map()
-  for (const [why, list] of Object.entries(cfg.exclude ?? {})) for (const k of list) excl.set(normKey(k), why)
+  for (const [why, list] of Object.entries(cfg.exclude ?? {})) for (const k of list) if (!excl.has(normKey(k))) excl.set(normKey(k), why)
   const acronymRe = new RegExp(cfg.acronym_rule?.pattern ?? '^$')
   const acronymExempt = new Set(cfg.acronym_rule?.exempt_signals ?? [])
 
@@ -339,7 +402,7 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       const c =
         cands.get(key) ??
         cands
-          .set(key, { key, surfaces: new Map(), posts: new Set(), sources: new Set(), byKind: {}, compareAll: true, compareN: 0, vias: new Set(), refs: new Set(), personHits: 0, contrHits: 0, n: 0, evidence: [], areaVotes: new Map(), areaCodes: new Map() })
+          .set(key, { key, surfaces: new Map(), posts: new Set(), sources: new Set(), byKind: {}, compareAll: true, compareN: 0, altN: 0, cdnHits: 0, vias: new Set(), refs: new Set(), personHits: 0, contrHits: 0, n: 0, evidence: [], areaVotes: new Map(), areaCodes: new Map() })
           .get(key)
       const src = inp.source_key ?? '(manual)'
       const kind = kindOf(inp.source_key, cfg)
@@ -348,6 +411,8 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       c.surfaces.set(m.surface, (c.surfaces.get(m.surface) ?? 0) + 1)
       c.compareAll &&= m.compare
       if (m.compare) c.compareN++
+      if (m.alt) c.altN++
+      if (m.vias.size === 1 && m.vias.has('cdn_host')) c.cdnHits++
       for (const v of m.vias) c.vias.add(v)
       for (const x of m.refs) c.refs.add(x)
       if (m.person) c.personHits++
@@ -411,12 +476,15 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
     const personPattern = toks.length === 2 && toks.every((w) => /^[A-Z][a-z]+$/.test(w)) && persons.has(normKey(toks[0]))
     const acronym = (ex === 'acronym' || acronymRe.test(name)) && !signals.some((s) => acronymExempt.has(s))
 
-    if (prior.has(c.key)) [status, reason] = ['rejected', `previously_rejected(${prior.get(c.key).date}:${prior.get(c.key).reason})`]
+    // 경쟁 기준점이 맨 앞: 거대 기업·대형 서비스 단독 키는 후보가 아니라 기준점(사람 기각·불용어여도 이 소절에 보인다 — 승인 시트엔 안 나온다).
+    if (bench.has(c.key)) [status, reason] = ['benchmark', bench.get(c.key)]
+    else if (prior.has(c.key)) [status, reason] = ['rejected', `previously_rejected(${prior.get(c.key).date}:${prior.get(c.key).reason})`]
     else if (stop.has(c.key)) [status, reason] = ['rejected', 'stopword']
     else if (stack.has(c.key)) [status, reason] = ['rejected', 'stack']
     else if (ex && ex !== 'acronym') [status, reason] = ['rejected', ex]
     else if (persons.has(c.key) || personPattern || c.personHits * 2 >= c.n) [status, reason] = ['rejected', 'person_name']
     else if (c.contrHits * 2 >= c.n) [status, reason] = ['rejected', 'contraction']
+    else if (c.cdnHits === c.n || cdnContains.some((s) => c.key.includes(s))) [status, reason] = ['rejected', 'cdn_host']
     else if (acronym) [status, reason] = ['rejected', 'acronym']
     else if (!fromId && idLike(name)) [status, reason] = ['rejected', 'id_like']
     // 도메인·앱 ID 로 잡힌 키는 소문자 비율로 거르지 않는다 — 도메인 표기("lux.io") 자체가 소문자라 비율이 스스로 오염된다.
@@ -435,6 +503,11 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
     const votes = [...c.areaVotes.entries()].sort((a, b) => b[1] - a[1])
     // 대표 영역 = 근거 글이 가장 많은 영역 코드(모름 제외, 동수면 코드순). 비율 분모는 모름 포함 전체 글.
     const top = [...c.areaCodes.entries()].filter(([k]) => k !== 'unknown').sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]
+    // 노트·지식관리 제품은 근거 글의 영역과 무관하게 'notes'(영역 ①~⑤ 로 억지로 넣지 않는다 — 남헌 v53). 비율 null = config 규칙.
+    const isNotes = notes.has(c.key) || [...c.surfaces.keys()].some((s) => notes.has(normKey(s)))
+    const refs = [...c.refs].sort()
+    const release = releaseOf([c.key, ...refs].filter((k) => /^appstore:id\d+$/.test(k)), releaseDates, now, W.new_release_days)
+    const score = signals.length + (c.altN > 0 ? W.alt_context : 0) + (release.state === 'new' ? W.new_release : 0)
     rows.push({
       name,
       key: c.key,
@@ -443,24 +516,27 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       sourceList: [...c.sources].sort(),
       mentions: c.n,
       kinds: kindLine,
-      area: top ? top[0] : 'unknown',
-      areaShare: top ? top[1] / c.posts.size : 0,
+      area: isNotes ? cfg.notes_area.code : top ? top[0] : 'unknown',
+      areaShare: isNotes ? null : top ? top[1] / c.posts.size : 0,
       areaBasis: votes.map(([v, n]) => `${v}×${n}`).join(', '),
-      refs: [...c.refs].sort(),
+      refs,
       evidence: ev,
       compareOnly: c.compareAll,
       compareN: c.compareN,
+      altN: c.altN,
+      release,
+      score,
       signals,
       status,
       reason,
     })
   }
-  // 정렬: 상태 → 신호 강도(신호 종류 수 · 비교 패턴 언급 수 · 소스 수) → 글 수. 언급 수만으로 줄 세우지 않는다(일반어가 위로 온다).
-  const order = { adopt: 0, hold: 1, rejected: 2 }
+  // 정렬: 상태 → 점수(신호 종류 수 + 대안 맥락 + 신규 출시) → 비교 패턴 언급 수 → 소스 수 → 글 수. 언급 수만으로 줄 세우지 않는다(일반어가 위로 온다).
+  const order = { adopt: 0, hold: 1, benchmark: 2, rejected: 3 }
   rows.sort(
     (a, b) =>
       order[a.status] - order[b.status] ||
-      b.signals.length - a.signals.length ||
+      b.score - a.score ||
       b.compareN - a.compareN ||
       b.sources - a.sources ||
       b.posts - a.posts ||
@@ -471,17 +547,21 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
 
 // ── 출력 ────────────────────────────────────────────────────────────────
 const cell = (s) => oneLine(s).replace(/\|/g, '\\|')
-const STATUS_KO = { adopt: '채택', hold: '확인불가', rejected: '기각' }
+const STATUS_KO = { adopt: '채택', hold: '확인불가', rejected: '기각', benchmark: '경쟁 기준점' }
 
-/** 기각·확인불가 사유별 건수(괄호 안 세부값은 뗀다). */
+/** 기각·확인불가 사유별 건수(괄호 안 세부값은 뗀다). 경쟁 기준점은 기각이 아니라 빼고 센다. */
 export function reasonSummary(rows) {
   const by = {}
-  for (const r of rows) if (r.status !== 'adopt') by[r.reason.replace(/\(.*$/, '')] = (by[r.reason.replace(/\(.*$/, '')] ?? 0) + 1
+  for (const r of rows) if (r.status === 'hold' || r.status === 'rejected') by[r.reason.replace(/\(.*$/, '')] = (by[r.reason.replace(/\(.*$/, '')] ?? 0) + 1
   return Object.entries(by).sort((a, b) => b[1] - a[1])
 }
 
-const pct = (x) => `${Math.round(x * 100)}%`
+// null = 비율이 아니라 config 규칙으로 정한 영역(notes).
+const pct = (x) => (x == null ? 'config' : `${Math.round(x * 100)}%`)
 const areaLabel = (code, names = {}) => names[code] ?? (code === 'unknown' ? '영역 모름' : code)
+const RELEASE_KO = { no_file: '확인 불가(출시일 파일 없음)', no_app_id: '확인 불가(앱 ID 없음)', not_listed: '확인 불가(파일에 없음)' }
+/** 가중 칸: "대안 n · 출시 …". */
+const weightCell = (r) => `대안 ${r.altN ?? 0} · ${r.release?.state === 'new' ? `신규 출시 ${r.release.days}일` : r.release?.state === 'old' ? `출시 ${r.release.days}일 전` : RELEASE_KO[r.release?.why] ?? '확인 불가'}`
 
 /** 채택 행을 대표 영역별로 묶는다(행 순서 = 이미 신호 강도 순). 순서: cfg.area_table.order → 그 밖(hold·unknown 등) 코드순. 각 영역 상위 limit. */
 export function groupByArea(rows, order, limit = Infinity) {
@@ -492,8 +572,8 @@ export function groupByArea(rows, order, limit = Infinity) {
 }
 
 const COLS = [
-  '| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 대표 영역(비율 · 근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |',
-  '|---|---|---|---|---|---|---|---|---|---|',
+  '| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 가중(대안 맥락 · 출시) | 대표 영역(비율 · 근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |',
+  '|---|---|---|---|---|---|---|---|---|---|---|',
 ]
 const rowLine = (r) =>
   `| ${[
@@ -503,6 +583,7 @@ const rowLine = (r) =>
     r.posts,
     `${r.sources} (${cell(r.sourceList.join(', '))})`,
     r.signals.join(', ') || '-',
+    weightCell(r),
     `${r.area} ${pct(r.areaShare)} (${cell(r.areaBasis)})`,
     r.evidence.map((e) => `${e.input_id} · ${cell(e.source)} · "${cell(e.quote)}"`).join('<br>'),
     r.compareOnly ? '예' : '아니오',
@@ -513,12 +594,13 @@ const rowLine = (r) =>
 export function renderMarkdown(rows, meta, part = 'top') {
   const perArea = meta.perArea ?? meta.cfg.area_table.per_area
   const groups = groupByArea(rows, meta.cfg.area_table.order, perArea)
-  const shownKeys = new Set(groups.flatMap((g) => g.rows.map((r) => r.key)))
+  const bench = rows.filter((r) => r.status === 'benchmark')
+  const shownKeys = new Set([...groups.flatMap((g) => g.rows.map((r) => r.key)), ...bench.map((r) => r.key)])
   if (part === 'rest') {
     const rest = rows.filter((r) => !shownKeys.has(r.key))
     return [`# 제품·회사 이름 후보 표(나머지) — ${meta.date}`, '', `영역별 표에 안 오른 ${rest.length}행(영역당 상위 ${perArea} 초과 채택 · 확인불가 · 기각). 요약은 product-name-candidates.md.`, '', ...COLS, ...rest.map(rowLine), ''].join('\n')
   }
-  const by = { adopt: 0, hold: 0, rejected: 0 }
+  const by = { adopt: 0, hold: 0, rejected: 0, benchmark: 0 }
   for (const r of rows) by[r.status]++
   const out = [
     `# 제품·회사 이름 후보 표 — ${meta.date}`,
@@ -527,12 +609,13 @@ export function renderMarkdown(rows, meta, part = 'top') {
     `후보 문턱: 서로 다른 글 ≥${meta.cfg.candidate.min_posts} 또는 소스 ≥${meta.cfg.candidate.min_sources} · 근거 ≥${meta.cfg.candidate.min_evidence}건. 채택 = 소스 종류별 문턱(config adopt) ∧ 제품 신호 ≥1(link·domain·compare·quoted·midcap) ∧ 제외 목록(config exclude) 밖.`,
     `영역 열: ${meta.areaColumn}${meta.areaColumn === 'absent' ? ' (마이그 20261009000020 미적용 — 타깃 라벨 접두로 대신)' : ''}. 대표 영역 = 근거 글이 가장 많은 영역, 비율 = 그 영역 글 ÷ 전체 근거 글.`,
     '',
-    `**채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected}** — 기각·확인불가 사유별: ${reasonSummary(rows).map(([k, n]) => `${k} ${n}`).join(' · ') || '없음'}`,
-    `영역별 채택 상위 ${perArea}(정렬: 신호 종류 수 → 비교 패턴 언급 수 → 소스 수 → 글 수). 나머지 ${rows.length - shownKeys.size}행은 product-name-candidates-rest.md.`,
+    `**채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected} · 경쟁 기준점 ${by.benchmark}** — 기각·확인불가 사유별: ${reasonSummary(rows).map(([k, n]) => `${k} ${n}`).join(' · ') || '없음'}`,
+    `영역별 채택 상위 ${perArea}(정렬: 점수 = 신호 종류 수 + 대안 맥락(${meta.cfg.weights?.alt_context ?? 0}) + 출시 ≤${meta.cfg.weights?.new_release_days ?? 90}일(${meta.cfg.weights?.new_release ?? 0}) → 비교 패턴 언급 수 → 소스 수 → 글 수). 출시일: ${meta.releaseFile ? `--release-dates ${meta.releaseFile}` : '파일 없음 → 전부 확인 불가(가중 0)'}. 나머지 ${rows.length - shownKeys.size}행은 product-name-candidates-rest.md.`,
     '',
   ]
   if (groups.length === 0) out.push('채택 후보 없음.', '')
   for (const g of groups) out.push(`## ${areaLabel(g.code, meta.areaNames)} — 채택 ${g.total}${g.total > g.rows.length ? ` (상위 ${g.rows.length})` : ''}`, '', ...COLS, ...g.rows.map(rowLine), '')
+  if (bench.length) out.push(`## 경쟁 기준점 — ${bench.length}(거대 기업·대형 서비스 단독, config benchmark — 후보 아님, 승인 시트에 안 나온다)`, '', ...COLS, ...bench.map(rowLine), '')
   return out.join('\n')
 }
 
@@ -587,7 +670,7 @@ export function parseApprovalSheet(md) {
     if (!/^\|\s*\d+\s*\|/.test(l)) continue
     const c = l.split(/(?<!\\)\|/).slice(1, -1).map((x) => x.trim())
     if (c.length !== 8) continue
-    out.push({ no: Number(c[0]), name: c[1].replace(/\\\|/g, '|'), key: c[2].replace(/^`|`$/g, '').replace(/\\\|/g, '|'), area: c[3].split(/\s+/)[0], answer: readAnswer(c[7]) })
+    out.push({ no: Number(c[0]), name: c[1].replace(/\\\|/g, '|'), key: c[2].replace(/^`|`$/g, '').replace(/\\\|/g, '|'), area: c[3].split(/\s+/)[0], proposal: c[6].replace(/\\\|/g, '|'), answer: readAnswer(c[7]) })
   }
   return out
 }
@@ -624,7 +707,8 @@ export function ledgerOf(rows, meta) {
     by_reason: Object.fromEntries(reasonSummary(rows)),
     entries: rows
       .filter((r) => r.status !== 'adopt')
-      .map((r) => ({ key: r.key, name: r.name, status: r.status === 'hold' ? 'unverifiable' : 'rejected', reason: r.reason, posts: r.posts, sources: r.sourceList, evidence: r.evidence })),
+      // benchmark 는 'rejected' 가 아니다 — 다음 실행이 previously_rejected 로 굳히지 않고 매번 다시 잰다.
+      .map((r) => ({ key: r.key, name: r.name, status: r.status === 'hold' ? 'unverifiable' : r.status, reason: r.reason, posts: r.posts, sources: r.sourceList, evidence: r.evidence })),
     // 승인 시트에서 사람이 N 으로 기각한 키(지난 시트 전부). 시트 파일이 지워져도 재제안 방지가 남도록 대장에 옮겨 둔다.
     human_rejected: [...(meta.humanRejected ?? new Map()).entries()].map(([key, v]) => ({ key, name: v.name, area: v.area, sheet_date: v.date, reason: 'human_rejected' })),
     false_positive: prev
@@ -715,11 +799,14 @@ export async function main(argv, { port, now = new Date(), reportsDir = REPORTS_
   if (!Number.isInteger(perArea) || perArea < 1) throw new Error(`--per-area 는 1 이상 정수: ${argv[pa]}`)
   const date = argv.find((a) => a.startsWith('--date='))?.slice(7) ?? kstDate(now)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`--date 형식 YYYY-MM-DD: ${date}`)
+  // 출시일 파일: 주면 반드시 읽혀야 한다(못 읽으면 던진다), 안 주면 null → 전부 '확인 불가'.
+  const releaseFile = argv.find((a) => a.startsWith('--release-dates='))?.slice(16) ?? null
+  const releaseDates = releaseFile ? parseReleaseDates(JSON.parse(fs.readFileSync(releaseFile, 'utf8'))) : null
   const db = port ?? (await supabasePort())
 
   const areasCfg = JSON.parse(fs.readFileSync(AREAS_PATH, 'utf8')).areas
   const areaCodes = new Set(areasCfg.filter((a) => a.kind === 'area').map((a) => a.code))
-  const areaNames = Object.fromEntries(areasCfg.map((a) => [a.code, a.name]))
+  const areaNames = { ...Object.fromEntries(areasCfg.map((a) => [a.code, a.name])), ...(cfg.notes_area ? { [cfg.notes_area.code]: cfg.notes_area.label } : {}) }
   const [relevant, proj, targets, discovery] = await Promise.all([db.loadRelevant(), db.loadProjects(), db.loadTargets(), db.loadDiscovery()])
 
   // 프로젝트 영역: 열 값 → 없으면 타깃 라벨 접두(한 가지일 때만). 둘 다 없으면 모름.
@@ -754,16 +841,16 @@ export async function main(argv, { port, now = new Date(), reportsDir = REPORTS_
 
   const registry = buildRegistry({ ...fileRegistry, projects: proj.rows, targets, discovery })
   const { prior, human, latestSheet } = loadPriorRejected(reportsDir, date)
-  const { rows, counts } = buildCandidates({ inputs, registry, cfg, projectArea: (id) => areaById.get(id), prior })
-  const by = { adopt: 0, hold: 0, rejected: 0 }
+  const { rows, counts } = buildCandidates({ inputs, registry, cfg, projectArea: (id) => areaById.get(id), prior, releaseDates, now })
+  const by = { adopt: 0, hold: 0, rejected: 0, benchmark: 0 }
   for (const r of rows) by[r.status]++
 
-  const meta = { date, now, ruleVer: cfg.rule_ver, counts, cfg, areaColumn: proj.areaColumn, areaNames, perArea, priorSheet: latestSheet, humanRejected: human }
+  const meta = { date, now, ruleVer: cfg.rule_ver, counts, cfg, areaColumn: proj.areaColumn, areaNames, perArea, priorSheet: latestSheet, humanRejected: human, releaseFile }
   const summary = [
     `${run ? 'RUN' : sheet ? 'SHEET' : 'DRY'} ${date} 규칙 ${cfg.rule_ver} · 영역 열 ${proj.areaColumn}`,
     `입력: relevant ${relevantIds.length} · 영역 프로젝트 ${areaProjects.length}개 · 합집합 글 ${inputs.length}(폐기 제외 ${purged}) · 등록 사전 키 ${registry.size} · 지난 기각 ${prior.size}(사람 기각 ${human.size}) · 지난 시트 ${latestSheet?.date ?? '없음'}`,
     `추출: 언급 ${counts.mentions} · 키 ${counts.keys} · 이미 등록 ${counts.registered} · 후보 문턱 미달 ${counts.below}`,
-    `후보: 채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected}`,
+    `후보: 채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected} · 경쟁 기준점 ${by.benchmark}(${rows.filter((r) => r.status === 'benchmark').map((r) => r.name).join(', ') || '-'}) · 출시일 ${releaseFile ? `${releaseDates.size}개 앱` : '파일 없음(확인 불가)'}`,
     `사유별: ${reasonSummary(rows).map(([k, n]) => `${k} ${n}`).join(' · ') || '없음'}`,
     ...groupByArea(rows, cfg.area_table.order, 3).flatMap((g) => [
       `[${areaNames[g.code] ?? g.code}] 채택 ${g.total} · 승인 모드 ${approvalMode(g.code, latestSheet?.stats, cfg.approval.max_false_positive_rate).mode}`,

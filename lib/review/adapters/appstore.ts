@@ -47,6 +47,14 @@ export function parseProductRef(productRef: string): { country: string; appId: s
   return { country, appId }
 }
 
+/**
+ * RSS 주소. 수집(nextRequest)은 늘 mostRecent 다 — mostHelpful 은 창문 프로브(scripts/window-probe.mjs)의 측정용으로만 쓴다.
+ * ⚠️ 정렬을 product_ref 에 넣어 별도 타깃으로 만들지 마라: productScopedExternalId=true 라 같은 리뷰가 두 키로 적재된다.
+ */
+export function feedUrl(country: string, appId: string, page: number, sort: 'mostRecent' | 'mostHelpful' = 'mostRecent'): string {
+  return `https://itunes.apple.com/${country}/rss/customerreviews/id=${appId}/sortBy=${sort}/page=${page}/json`
+}
+
 /** 첫 페이지는 1이다(0 이 아니다). 커서는 "방금 읽은 페이지 번호"를 담는다. */
 function nextPage(cursor: string | null): number {
   if (!cursor) return 1
@@ -123,11 +131,7 @@ export const appstoreAdapter: ReviewSourceAdapter = {
     // 애플이 11페이지부터 400 을 준다. 그 전에 우리가 멈춘다.
     if (page > MAX_PAGE) return null
 
-    return {
-      url:
-        `https://itunes.apple.com/${ref.country}/rss/customerreviews` +
-        `/id=${ref.appId}/sortBy=mostRecent/page=${page}/json`,
-    }
+    return { url: feedUrl(ref.country, ref.appId, page) }
   },
 
   parse(body: string, ctx: ParseContext): ParseResult {

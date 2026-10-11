@@ -1,0 +1,13 @@
+{
+  "_comment": "같은 소스 안 새 창문 후보(v52 §1-2). 영어권 우선. 구글 플레이 정렬은 어댑터가 최신순(SORT_NEWEST) 고정이고 별점 필터가 없어 'newest' 하나뿐이다. 앱스토어 mostHelpful 은 측정만 하고 마이그 초안에는 안 들어간다(appstore.ts feedUrl 주석).",
+  "adopt_min_new_per_request": 5,
+  "min_interval_ms_floor": 3000,
+  "appstore": {
+    "countries": ["us", "gb", "ca", "au", "in", "sg", "ie", "nz", "za"],
+    "sorts": ["mostRecent", "mostHelpful"]
+  },
+  "googleplay": {
+    "windows": ["us:en", "gb:en", "ca:en", "au:en", "in:en", "sg:en", "ie:en", "nz:en", "za:en"],
+    "sorts": ["newest"]
+  }
+}

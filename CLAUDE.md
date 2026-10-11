@@ -371,6 +371,8 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   (남헌 2026-09-17 승인 — 자율 VOC 발굴 엔진. 사람이 `review_targets` 를 하나씩
   등록하던 병목을 없애려고 이 한 줄을 열었다. 근거는 `docs/discovery-design.md`.
   **채택은 LLM 의 주장이 아니라 실측 hits 가 정한다** — 그게 이 권한을 준 조건이다.)
+  - **창문 자동 등재**(남헌 v53 2026-10-12, `nightly-window-discovery` → `scripts/window-discovery.mjs`) — `review_targets` INSERT 만, `enabled=true` ∧ 소유자 예외 소스, 소스당 하루 신규 ≤5, 기존 (source_key, product_ref) 중복 불가, 앵커(같은 앱 기존 타깃)가 있는 같은 앱 다른 국가·정렬 창문만, UPDATE·DELETE 0, 롤백 SQL 을 INSERT 전에 `reports/` 에 쓰고 push-pending 으로 커밋, googleplay 활성 80·appstore 30% 가드(어기면 등재 0 + 사유). 새 소스·새 제품은 이 경로로 못 만든다(후보 승인 경로).
+- **창문 강등**(남헌 v53 2026-10-12) — 위 경로가 등재한 행(`reports/window-adopted.json` 의 id)만, 등재 3일 뒤 신규 0(total_collected 증가 0)이면 `status`·`consecutive_empty` 두 칸만(active→exhausted, 사유 `demoted` 는 대장에), 롤백 SQL 을 UPDATE 전에 `reports/` 에 쓴다.
 - **요청 상한 자동 반영** — 위 "`review_sources` 에는 INSERT/UPDATE 하지 않는다" 의 **유일한 예외**(남헌 2026-09-24 지시): `review_sources.daily_request_cap` **한 컬럼**만, **현재값의 2배 이내**로만, `review_source_cap_log` 에 **감사 로그 행을 남긴 변경만**(로그 테이블 미적용이면 반영하지 않는다). 권장값이 2배를 넘으면 보류로 보고만 한다. 계산은 `lib/review/request-cap.ts`, 집행은 `scripts/review-request-cap.mjs`(nightly-review-collect pre-step). 상한을 **내리는 변경은 자동으로 하지 않는다.**
 - **수집 램프 단계 자동 기록**(남헌 2026-09-28 승인) — 무인 루프는 `review_source_ramp`(소스별 현재 단계·1회 타깃 수·동결 기한)와
   `review_source_ramp_log`(변경 이력)를 스스로 쓸 수 있다. 단계를 올리는 것과 **안전 되돌리기(직전 단계로 내리고 동결)** 둘 다

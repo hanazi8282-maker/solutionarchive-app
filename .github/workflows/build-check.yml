@@ -312,6 +312,8 @@ jobs:
       - run: node scripts/review-googleplay-selftest.mjs
       # 같은 소스 안 새 창문 프로브(v52): 어댑터 URL 재사용·요청 상한·차단 즉시 중단·not_in_store 구분·대장 재제안 방지·초안 중복 방지/롤백.
       - run: node scripts/window-probe-selftest.mjs
+      # 창문 자율 발굴(v53 §5 2-A): 소스당 5 상한·googleplay 80/appstore 30% 가드·중복·차단 즉시 중단·3일 강등·롤백 형태·워크플로 정적 검사.
+      - run: node scripts/window-discovery-selftest.mjs
       - run: node scripts/review-bobaedream-selftest.mjs
       - run: node scripts/review-brunch-selftest.mjs
       - run: node scripts/review-clien-selftest.mjs

@@ -1,0 +1,148 @@
+# 창문 자율 발굴 — 기존 소스(앱스토어·구글 플레이) 안에서 같은 앱의 다른 국가 창문을 매일 소량 프로브하고,
+# 실측으로 채택된 창문만 review_targets 에 등재한다(남헌 v53 §5 2-A, 2026-10-12). 3일 뒤 신규 0 이면 강등.
+#
+# 스크립트: scripts/window-discovery-inputs.mjs(SELECT 만) → scripts/window-discovery.mjs(프로브·초안·등재·강등·로그)
+# 권한 경계: CLAUDE.md §10.1 "발굴 적재"의 창문 자동 등재 줄 · "창문 강등" 줄. 새 소스·새 제품은 이 경로로 못 만든다.
+#
+# ⛔ permissions 는 contents: read. 커밋은 아래 push-reports 잡이 기존 봇 토큰(BOT_APP_*)으로만 한다 — nightly-review-collect.yml 과 같은 패턴.
+# ⛔ 새 secret 없음: NEXT_PUBLIC_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY · NOTION_API_TOKEN · BOT_APP_ID · BOT_APP_PRIVATE_KEY 는 전부 기존 값.
+# ⛔ review_collection_runs 에 행을 남기지 않는다 — 요청 0 감시(lib/review/zero-request.ts)가 이 잡을 소스 실행으로 세지 않는다.
+
+name: Nightly Window Discovery
+
+on:
+  schedule:
+    # 22:23 UTC = KST 07:23. 수집 슬롯(UTC 01:43·05:37·09:29·13:19·17:37·20:47) 중 가장 넓은 틈(20:47→01:43)의 앞쪽,
+    # 크론 감시(21:53) 뒤. 1~3시간 지연(실측)이 나도 01:43 슬롯 전에 끝난다. 정각·30분은 피한다(2026-09-01 미발화 실측).
+    - cron: '23 22 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '프로브까지만(요청은 간다) — DB 쓰기·Notion·커밋 0'
+        type: boolean
+        default: true
+      max_requests:
+        description: '오늘 요청 상한(비우면 80)'
+        type: string
+        default: ''
+
+# 수집과 같은 그룹 — 같은 호스트·같은 review_targets 를 만지므로 수집 실행과 겹치지 않게 줄 세운다(nightly-review-collect.yml 과 같은 규칙).
+concurrency:
+  group: review-collect
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    # 요청 ≤80 × 간격(min_interval_ms, 하한 3초) + 입력 추출. 여유 포함.
+    timeout-minutes: 30
+    env:
+      DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Selftest
+        run: |
+          node scripts/window-discovery-selftest.mjs
+          node scripts/window-probe-selftest.mjs
+
+      - name: Extract inputs (SELECT only)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/window-discovery-inputs.mjs --out-dir="$RUNNER_TEMP/wd-in"
+
+      # 종료 코드 3 = 차단 신호로 중단(확인 대상, §7.2) — 이 스텝이 빨간불이 되고 크론 감시가 다음 아침에 올린다. 파일은 아래가 넘긴다.
+      - name: Probe, draft, register, demote
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+          # 입력은 env 로만 넘긴다(셸 보간 금지). 스크립트가 양의 정수인지 검사한다.
+          MAX_REQ: ${{ inputs.max_requests }}
+        run: |
+          node scripts/window-discovery.mjs --in="$RUNNER_TEMP/wd-in" \
+            --max-requests="${MAX_REQ:-80}" \
+            ${{ env.DRY == 'true' && '--dry-run' || '' }}
+
+      # 이번 실행이 바꾼 reports/·폴백 파일만 넘긴다(롤백 SQL·초안·대장·로그 블록). 이 잡은 contents: read 라 push-reports 가 커밋한다.
+      - name: Collect changed report files
+        id: files
+        if: always() && env.DRY != 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/wd-out"
+          git status --porcelain --untracked-files=all -- reports ops/state/status-log-pending | sed 's/^...//' | while read -r f; do
+            mkdir -p "$RUNNER_TEMP/wd-out/$(dirname "$f")"; cp "$f" "$RUNNER_TEMP/wd-out/$f"
+          done
+          if find "$RUNNER_TEMP/wd-out" -type f | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            find "$RUNNER_TEMP/wd-out" -type f
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload report files
+        if: always() && steps.files.outputs.found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: window-discovery-reports
+          path: ${{ runner.temp }}/wd-out/
+          retention-days: 90
+
+    outputs:
+      files: ${{ steps.files.outputs.found }}
+
+  # nightly-review-collect.yml push-pending 과 같은 블록. 봇 토큰만 쓰고 permissions 는 넓히지 않는다.
+  push-reports:
+    needs: discover
+    if: always() && needs.discover.outputs.files == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Mint bot token
+        id: bot
+        continue-on-error: true
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.bot.outputs.token || github.token }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: window-discovery-reports
+          path: ${{ runner.temp }}/wd-out
+
+      - name: Commit report files
+        run: |
+          cp -R "$RUNNER_TEMP/wd-out/." .
+          git add -- reports ops/state/status-log-pending
+          if git diff --cached --quiet; then
+            echo "올릴 파일 없음"
+            exit 1
+          fi
+          # reports/ · ops/state/ 밖이 스테이징에 있으면 커밋하지 않는다(CLAUDE.md §10.1 reports/ 파일).
+          if git diff --cached --name-only | grep -vE '^(reports/|ops/state/)'; then
+            echo "허용 프리픽스 밖 파일 — 커밋하지 않는다"
+            exit 1
+          fi
+          git config user.name  "window-discovery-bot"
+          git config user.email "noreply@anthropic.com"
+          git commit -m "chore(review): 창문 자율 발굴 롤백·대장 — $(date -u +%FT%H%MZ)"
+          git pull --rebase origin main
+          git push

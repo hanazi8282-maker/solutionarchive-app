@@ -87,6 +87,60 @@ export function isOwnerRobotsOverride(override: unknown, robotsStatus: unknown):
   return typeof override === 'string' && OWNER_ROBOTS_OVERRIDES.has(override) && robotsStatus === 'disallowed'
 }
 
+// ── 구글 플레이 방문 순서(남헌 v40 §3-②) ─────────────────────────────
+//
+// 앱스토어는 비증분형이라 피드를 한 번 읽고 exhausted 가 된다. 그런 프로젝트는 100건 도달을
+// 구글 플레이 방문에 기댄다 — 그래서 **미방문** 구글 플레이 타깃 중 그 프로젝트의 것을 먼저 돈다.
+// 판단은 여기(순수함수), 조회는 store.ts listDueTargets 가 한다. 다른 소스는 이 경로를 타지 않는다.
+
+/** 이 순서를 적용하는 소스. */
+export const GP_PRIORITY_SOURCE = 'googleplay'
+/** 앱스토어 타깃의 소스 키. */
+export const GP_PRIORITY_APPSTORE_SOURCE = 'appstore'
+/**
+ * 확장 훅: 이미 방문한 타깃에도 같은 우선순위를 건다(앱스토어 exhausted ∧ 앱스토어 수집 < GP_REPEAT_BELOW,
+ * 프로젝트 합계 수집 적은 순). ⚠️ 기본 false(사양대로) — 켜는 것은 남헌 승인 뒤 이 한 줄만 true 로 바꾼다.
+ * ponytail: 켜면 대상 44개가 하루 방문 몫을 먼저 다 쓰므로 나머지 방문 타깃은 대상이 미방문으로 줄 때까지 밀린다.
+ */
+export const GP_PRIORITY_REPEAT = false
+export const GP_REPEAT_BELOW = 100
+
+/** 프로젝트별 앱스토어 요약. exhausted = 앱스토어 타깃이 있고 전부 exhausted. collected = 앱스토어 total_collected 합. */
+export interface AppStoreSummary { exhausted: boolean; collected: number }
+
+export function summarizeAppStore(
+  rows: { project_id: string; status: string; total_collected: number | null }[],
+): Map<string, AppStoreSummary> {
+  const m = new Map<string, AppStoreSummary>()
+  for (const r of rows) {
+    const s = m.get(r.project_id) ?? { exhausted: true, collected: 0 }
+    s.exhausted &&= r.status === 'exhausted'
+    s.collected += r.total_collected ?? 0
+    m.set(r.project_id, s)
+  }
+  return m
+}
+
+/**
+ * 입력은 기존 순서(last_run_at ASC NULLS FIRST, created_at ASC)로 정렬돼 있다고 본다. 안정 정렬이라 같은 등급 안은 그 순서 그대로.
+ *   0 미방문 ∧ 앱스토어 exhausted · 1 그 밖의 미방문 · 2 (repeat 일 때만) 방문 ∧ exhausted ∧ 앱스토어 < 100, 합계 수집 적은 순 · 3 나머지
+ * appStore 가 null(조회 실패)이면 입력 순서 그대로 돌려준다.
+ */
+export function orderGooglePlayTargets<T extends { projectId: string; lastRunAt: string | null; totalCollected: number }>(
+  rows: T[],
+  appStore: Map<string, AppStoreSummary> | null,
+  repeat: boolean = GP_PRIORITY_REPEAT,
+): T[] {
+  if (!appStore) return rows
+  const rank = (r: T) => {
+    const a = appStore.get(r.projectId)
+    if (r.lastRunAt === null) return a?.exhausted ? 0 : 1
+    return repeat && a?.exhausted && a.collected < GP_REPEAT_BELOW ? 2 : 3
+  }
+  const owed = (r: T) => (rank(r) === 2 ? appStore.get(r.projectId)!.collected + r.totalCollected : 0)
+  return [...rows].sort((x, y) => rank(x) - rank(y) || owed(x) - owed(y))
+}
+
 /** 사람 확인(캡차) 화면 표지. 엄격 모드(소유자 예외 요청·`abortOnChallenge` 어댑터)에서만 본다 — 다른 소스 본문 오탐 방지. */
 const CHALLENGE_RE = /recaptcha|g-recaptcha|unusual traffic|captcha/i
 
@@ -94,9 +148,11 @@ const CHALLENGE_RE = /recaptcha|g-recaptcha|unusual traffic|captcha/i
  * 엄격 모드 응답 검사: 2xx 인데 빈 본문·캡차 화면·구글 `/sorry/` 리다이렉트면 true(= 차단으로 보고 실행 중단).
  * 우회하지 않는다 — 멈추고 기록할 뿐이다.
  */
-export function isStrictBlock(res: FetchOutcome): boolean {
+export function isStrictBlock(res: FetchOutcome, isChallenge?: (body: string) => boolean): boolean {
   if (res.status === null || res.status < 200 || res.status >= 300) return false
-  return !res.body.trim() || CHALLENGE_RE.test(res.body) || /\/sorry\//.test(res.finalUrl ?? '')
+  // 캡차 판정만 어댑터 것으로 바꿀 수 있다(types.ts isChallenge). 빈 본문·/sorry/ 는 언제나 차단이다.
+  const challenge = isChallenge ? isChallenge(res.body) : CHALLENGE_RE.test(res.body)
+  return !res.body.trim() || challenge || /\/sorry\//.test(res.finalUrl ?? '')
 }
 
 export interface TargetProgress {
@@ -216,6 +272,7 @@ const emptyStats = (): RunStats => ({
   newReviews: 0,
   fallbackKeys: 0,
   crossTargetDuplicates: 0,
+  seenDuplicates: 0,
   blockedResponses: 0,
   quotaExhaustedResponses: 0,
 })
@@ -595,7 +652,8 @@ export async function runCollection(
       requests++
 
       // 엄격 모드(소유자 예외 요청 · abortOnChallenge 어댑터): 2xx 빈 응답·캡차도 차단으로 보고 실행을 끊는다.
-      const strictBlock = (ownerOverride || adapter.abortOnChallenge === true) && isStrictBlock(res)
+      const strictBlock =
+        (ownerOverride || adapter.abortOnChallenge === true) && isStrictBlock(res, adapter.isChallenge?.bind(adapter))
 
       // 403/429 는 두 사건이 겹쳐 있다 — 차단과 쿼터 소진.
       //
@@ -934,6 +992,7 @@ async function ingestPage(
     if (verdict === 'duplicate' || verdict === 'revised') {
       // 수정된 리뷰도 재적재하지 않는다. 이미 분석에 반영된 의견인데
       // 수정본을 또 넣으면 같은 사람 의견이 두 번 세어진다(설계 §4.5).
+      stats.seenDuplicates = (stats.seenDuplicates ?? 0) + 1
       continue
     }
 

@@ -37,6 +37,7 @@ import { checkQuote, normalizeEvidenceQuotes, quoteCheckSummary } from './eviden
 import { generateCompetitorProfile, type ProfileOutcome } from './competitor-profile-db.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 import { translateProjectQuotes } from './quote-translate.ts'
+import { stripSourceHeader } from '../review/types.ts'
 
 // 컨텍스트 폭주 방지 상한과 입력 선별(T1)은 lib/analysis/extract-select.ts 한 벌이다.
 export { MAX_CHARS_PER_INPUT, MAX_CHARS_TOTAL }
@@ -317,7 +318,9 @@ export async function runExtraction(
     maxCharsPerInput: MAX_CHARS_PER_INPUT,
   })
   const parts = selection.selected.map(
-    (s, i) => `### 입력 ${i + 1} (source_type: ${s.input.source_type})\n${s.text}`,
+    // 머리말([SRC: URL]·구글 플레이 (v버전))은 프롬프트에서만 뗀다 — 모델이 주소·리뷰 id 를 인용으로 옮기지 못하게(v44 §2-b).
+    // 선별(점수·길이·총량)은 위에서 raw_text 그대로 끝났다 — 여기서 떼므로 어느 입력이 실리는지는 바뀌지 않는다.
+    (s, i) => `### 입력 ${i + 1} (source_type: ${s.input.source_type})\n${stripSourceHeader(s.text, { appVersion: true })}`,
   )
   const droppedInputs = selection.droppedInputs
 
@@ -373,6 +376,7 @@ export async function runExtraction(
 
   // 5. aspects 정규화
   // opportunity_score 는 DB generated 컬럼이므로 절대 payload 에 넣지 않는다.
+  const quoteDrops = { src_header: 0 } // 머리말([SRC:])만 인용해 버린 수 — 아래 로그로 남긴다(§7.2)
   const aspectRows = rawAspects
     .map(item => {
       const a = (item ?? {}) as Record<string, unknown>
@@ -412,7 +416,7 @@ export async function runExtraction(
         // 원문 인용 — 저장 전에 **입력 원문에 실제로 있는지** 확인하고 통과한 것만 넣는다.
         // 대조 대상은 (프롬프트에 실린 잘린 본문이 아니라) 수집 원문 전체다 — 상한에 걸려 잘린
         // 뒤쪽에서 인용했더라도 그건 지어낸 게 아니다. lib/analysis/evidence-quotes.ts
-        evidence_quotes: normalizeEvidenceQuotes(a.evidence_quotes, inputs),
+        evidence_quotes: normalizeEvidenceQuotes(a.evidence_quotes, inputs, quoteDrops),
 
         // ── LLM 원본 스냅샷 ──────────────────────────────────────
         // 검수 PUT 은 이 컬럼들을 payload 에 넣지 않으므로, 사람이 위쪽 실제
@@ -562,6 +566,7 @@ export async function runExtraction(
   // 저장한 인용 중 고객 화면 인용 기준(한 130/영 240자 + 수집 원문 전문 대조, v22 #3)을 못 넘는 수. 정책(none)은 여기서 모른다 — 모양만 본다.
   const quoteCap = quoteCheckSummary(`analyze/extract project=${projectId}`, aspectRows.flatMap((a) => a.evidence_quotes.map((q) => checkQuote(q.text, 'full', inputs.map((i) => i.raw_text)))))
   if (quoteCap) console.log(quoteCap)
+  if (quoteDrops.src_header) console.warn(`[analyze/extract] project=${projectId} quote-store dropped src_header=${quoteDrops.src_header}`)
   return {
     ok: true,
     aspects: freshRows.length,

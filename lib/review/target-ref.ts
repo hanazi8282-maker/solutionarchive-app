@@ -44,6 +44,8 @@ import { BOARDS as DEVTO_BOARDS } from './adapters/devto.ts'
 import { BOARDS as INFLEARN_BOARDS, HOST as INFLEARN_HOST } from './adapters/inflearn.ts'
 import { BOARDS as YOZM_BOARDS, HOST as YOZM_HOST } from './adapters/yozm.ts'
 import { BOARDS as INDIEHACKERS_BOARDS, HOST as INDIEHACKERS_HOST } from './adapters/indiehackers.ts'
+import { HOST as WP_HOST, parseProductRef as parseWordpressRef } from './adapters/wordpress.ts'
+import { HOST as SHOPIFY_HOST, parseProductRef as parseShopifyRef } from './adapters/shopify.ts'
 
 export type RefResult = { ok: true; productRef: string } | { ok: false; error: string }
 
@@ -270,6 +272,28 @@ const boardOnlyRef =
   }
 
 /**
+ * 슬러그형 소스(wordpress_org `plugin:<slug>` · shopify_apps `app:<slug>`, 2026-10-08). 받는 입력: `<접두>:<slug>` · 맨 slug ·
+ * 그 소스 호스트의 페이지 URL(`/plugins/<slug>/`·`/support/plugin/<slug>/…` · `/<slug>`·`/<slug>/reviews`).
+ * 다른 호스트 URL 은 거부한다. 최종 판정은 어댑터 parseProductRef 한 벌.
+ */
+const slugRef =
+  (host: string, prefix: string, parse: (ref: string) => string | null, fromPath: (path: string) => string | null, example: string) =>
+  (raw: string): RefResult => {
+    const s = (raw ?? '').trim()
+    let slug: string | null = s.startsWith(`${prefix}:`) ? s.slice(prefix.length + 1) : s
+    if (/^https?:\/\//i.test(s)) {
+      try {
+        const u = new URL(s)
+        slug = u.origin === host ? fromPath(u.pathname) : null
+      } catch {
+        slug = null
+      }
+    }
+    const ok = slug ? parse(`${prefix}:${slug}`) : null
+    return ok ? { ok: true, productRef: `${prefix}:${ok}` } : { ok: false, error: `${host} 의 slug 를 읽지 못했습니다. (예: ${example})` }
+  }
+
+/**
  * 소스 키 → 빌더. **키는 review_sources.key 와 철자까지 같아야 한다.**
  * (`scripts/review-collect.mjs` 의 ADAPTERS 와 같은 집합이어야 한다.)
  */
@@ -309,6 +333,17 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   // 카카오(다음) 검색 — HN 과 같은 `q:<검색어>` 형식·길이 제약(2026-10-06). 어댑터 parseProductRef 가 같은 값을 읽는다.
   kakao_blog: hackernewsRef,
   kakao_cafe: hackernewsRef,
+  // 영역 ⑤ 3갈래 시험(v37 작업 4, 2026-10-08). 마이그 20261008000040.
+  wordpress_org: slugRef(
+    WP_HOST, 'plugin', parseWordpressRef,
+    (p) => /^\/(?:plugins|support\/plugin)\/([a-z0-9-]+)(?:\/|$)/.exec(p)?.[1] ?? null,
+    'plugin:site-reviews',
+  ),
+  shopify_apps: slugRef(
+    SHOPIFY_HOST, 'app', parseShopifyRef,
+    (p) => /^\/([a-z0-9-]+)(?:\/reviews)?\/?$/.exec(p)?.[1] ?? null,
+    'app:judgeme',
+  ),
 }
 
 /**

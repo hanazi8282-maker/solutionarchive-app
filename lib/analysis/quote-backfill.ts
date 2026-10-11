@@ -16,6 +16,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isVerbatimExcerpt, squash, QUOTE_PREFIX_CHARS, QUOTE_BACKFILL_TAG } from './evidence-quotes.ts'
+import { stripSourceHeader } from '../review/types.ts'
 
 /** 고객 화면(publicLines)이 verified='full' ∧ 이 표식을 원문 대조 대신 믿는다(isBackfillVerified) — 값을 바꾸면 그 신뢰가 끊긴다. */
 export const BACKFILL_TAG = QUOTE_BACKFILL_TAG
@@ -33,7 +34,8 @@ export const isLegacy = (q: unknown): q is Item =>
 /** 원문 목록을 한 번만 눕혀 둔다(인용마다 다시 squash 하지 않는다). raw_text NULL = 폐기된 원문. */
 export function prepareInputs(inputs: readonly BackfillInput[]) {
   const kept = inputs.filter((i) => typeof i.raw_text === 'string' && i.raw_text)
-    .map((i) => ({ input: i, flat: squash(i.raw_text as string) }))
+    // 머리말([SRC: URL] 첫 줄)은 뗀 본문과 대조한다 — 머리말 인용이 'full' 로 찍혀 고객 화면 대조를 건너뛰지 않게(v44 §2-b).
+    .map((i) => ({ input: i, flat: squash(stripSourceHeader(i.raw_text)) }))
   return { kept, hasPurged: inputs.some((i) => i.raw_text == null) }
 }
 export type Prepared = ReturnType<typeof prepareInputs>

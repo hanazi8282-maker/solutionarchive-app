@@ -50,6 +50,8 @@ import { yozmAdapter } from '../lib/review/adapters/yozm.ts'
 import { indiehackersAdapter } from '../lib/review/adapters/indiehackers.ts'
 import { googleplayAdapter } from '../lib/review/adapters/googleplay.ts'
 import { kakaoBlogAdapter, kakaoCafeAdapter } from '../lib/review/adapters/kakao.ts'
+import { wordpressAdapter } from '../lib/review/adapters/wordpress.ts'
+import { shopifyAdapter } from '../lib/review/adapters/shopify.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 import { brokenSources, LOOKBACK_DAYS, runSourceHealthReport } from './review-source-health-report.mjs'
@@ -87,6 +89,10 @@ const ADAPTERS = {
   // 카카오(다음) 블로그·카페 검색 공식 API(남헌 승인 2026-10-06, 마이그 20261006000003 enabled=false). 키 KAKAO_REST_API_KEY.
   kakao_blog: kakaoBlogAdapter,
   kakao_cafe: kakaoCafeAdapter,
+  // 영역 ⑤ 3갈래 시험(v37 작업 4, 마이그 20261008000040). wordpress_org = 깨끗한 소스(RSS) ·
+  // shopify_apps = 약관 금지를 알고 남헌이 켠 소스(override owner_2026-10-08). 둘 다 403·429·빈 응답·캡차 즉시 중단(abortOnChallenge).
+  wordpress_org: wordpressAdapter,
+  shopify_apps: shopifyAdapter,
 }
 
 const args = process.argv.slice(2)
@@ -373,6 +379,8 @@ for (const sourceKey of sourceKeys) {
     //    없으면 둘이 똑같이 보인다(§7.1). 같은 글이 `url:`·`board:` 두 타깃으로
     //    들어오는 것을 2차 방어(content_hash)가 걸러낸 수다.
     say(`- 중복(다른 타깃 경로): ${dryRun ? '—(dry-run 은 판정하지 않음)' : `${s.crossTargetDuplicates}건`}`)
+    // 같은 지문(이미 본 글·수정본). 위 줄과 다른 사건이다 — 이게 없으면 "파싱 N · 신규 0 · 중복 0" 이 설명되지 않는다.
+    say(`- 이미 본 글(같은 지문): ${dryRun ? '—(dry-run 은 판정하지 않음)' : `${s.seenDuplicates ?? 0}건`}`)
 
     for (const w of result.health.warnings) say(`- ⚠️ ${w}`)
 

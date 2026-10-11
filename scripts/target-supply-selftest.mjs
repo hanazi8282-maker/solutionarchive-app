@@ -13,7 +13,9 @@ import { fileURLToPath } from 'node:url'
 import {
   NON_INCREMENTAL_SOURCES, computeSupply, discoveryCount, gateHeadroom, idSetHash, planRevive, revisitDays, rollbackSql, shareHeadroom, supplyLine,
 } from '../lib/review/target-supply.ts'
-import { main as supplyMain } from './target-supply.mjs'
+import { main as supplyMain, summaryMarkdown } from './target-supply.mjs'
+import { areaCoverage, areaCoverageLine, areaHealth } from '../lib/review/target-supply.ts'
+import { loadAreasConfig } from '../lib/analysis/areas-config.ts'
 import { main as reviveMain } from './target-revive.mjs'
 
 let pass = 0
@@ -173,13 +175,15 @@ t('발굴: excluded(danawa) → 고정(줄이지 않음)', discoveryCount(rep, '
 }
 
 // ── 메모리 Supabase(체인 쿼리 최소 구현) ──────────────────────────
-function fakeSb(tables, { failRamp = false, dropUpdateId = null } = {}) {
+function fakeSb(tables, { failRamp = false, dropUpdateId = null, failView = false } = {}) {
   const sb = { updates: 0 }
   sb.from = (name) => {
     const filters = []
     let patch = null
     const exec = (a = 0, b = Infinity) => {
       if (name === 'review_source_ramp' && failRamp) return { data: null, error: { message: 'relation does not exist' } }
+      // 뷰 미적용: PostgREST 는 GET 에 PGRST205 를 준다(HEAD 는 204 — 그래서 GET 으로 읽는다)
+      if (name === 'v_area_t2_coverage' && failView) return { data: null, error: { code: 'PGRST205', message: "Could not find the table 'public.v_area_t2_coverage' in the schema cache" } }
       const rows = (tables[name] ?? []).filter((r) => filters.every((f) => f(r)))
       if (patch) {
         const hit = rows.filter((r) => r.id !== dropUpdateId)
@@ -343,6 +347,71 @@ const DB = () => ({ review_sources: SOURCES, review_source_ramp: RAMPS.map((r) =
   const d = await runDiscovery(['--kind=physical'], { sources: [row('danawa', { state: 'over', N: 5, active: 9, gap: -4, remedies: [] }), row('hackernews')] })
   t('discovery 실행: 축 고정이면 전환하지 않고 0건 종료', [d.code, /로 바꾼다/.test(d.out), /소스=danawa/.test(d.out)], [0, false, true])
   if (a.code !== 0 || d.code !== 0) console.log(a.out.slice(-1200), d.out.slice(-1200))
+}
+
+// ── 영역 T2 커버리지 열(v37 U3) — 순수 상태 함수 · 뷰 확인 불가(PGRST205) · main 경유 ──
+{
+  const { cfg } = loadAreasConfig(path.join(process.cwd(), 'config', 'areas.json'), {})
+  const ab = cfg.abandon
+  const A = (code) => cfg.areas.find((a) => a.code === code)
+  const row = (o = {}) => ({
+    area_code: '1', projects: 5, inputs: 1000, rated_inputs: 400, unrated_inputs: 600, unrated_input_pct: 60, judged: 250, relevant: 150, irrelevant: 50, unknown: 10,
+    rated_judged: 100, low_rated_judged: 70, projects_100plus: 4, median_inputs: 120, pending_est: 30, ...o,
+  })
+  const AFTER = new Date('2026-11-01T00:00:00Z') // 평가 시점(2026-10-09 + 2×7일 = 10-23) 뒤
+  const H = (o, code = '1', now = AFTER) => areaHealth(row(o), A(code), 200, ab, now)
+  const ok = H()
+  t('정상: 커버리지·저평점·관련·평점 없음·대기', [ok.state, ok.coverage_pct, ok.low_rated_pct, ok.relevant_pct, ok.unrated_pct, ok.pending, ok.needs_human], ['정상', 125, 70, 75, 60, 30, false])
+  t('주의: 최소량 미충족 + 분모 부족(아직 못 잰다)', [H({ judged: 54, relevant: 40, irrelevant: 10, unknown: 4 }).state, H({ judged: 54, relevant: 40, irrelevant: 10, unknown: 4 }).reasons.length], ['주의', 2])
+  t('주의: 회색 띠 30%', [H({ judged: 200, relevant: 60, irrelevant: 140, unknown: 0 }).state, H({ judged: 200, relevant: 60, irrelevant: 140, unknown: 0 }).relevant_pct], ['주의', 30])
+  t('미달: 관련 20% < 25', H({ judged: 200, relevant: 40, irrelevant: 160, unknown: 0 }).state, '미달')
+  const swap = H({ judged: 200, relevant: 0, irrelevant: 200, unknown: 0 })
+  t('미달: 즉시 소스 교체 예외(최소량 충족·관련 0%) · 남헌 판단 항목', [swap.state, /즉시 소스 교체/.test(swap.reasons[0]), swap.needs_human, /남헌 판단 항목/.test(areaCoverageLine(swap))], ['미달', true, true, true])
+  t('관련 <10% 라도 최소량 전이면 즉시 예외 아님(분모 부족 주의)', H({ judged: 120, relevant: 5, irrelevant: 115, unknown: 0 }).reasons.some((r) => /즉시/.test(r)), false)
+  const unk = H({ judged: 200, relevant: 100, irrelevant: 40, unknown: 60 })
+  t('확인 불가: unknown 30% > 20% → 관련 비율 null(무관으로 안 셈)', [unk.state, unk.relevant_pct, unk.unknown_pct], ['확인 불가', null, 30])
+  t('확인 불가: 전부 unknown', H({ judged: 200, relevant: 0, irrelevant: 0, unknown: 200 }).state, '확인 불가')
+  t('미달: (a) 100↑ 프로젝트 2/3', [H({ projects_100plus: 2 }).state, H({ projects_100plus: 2 }).reasons[0]], ['미달', '(a) 입력 100↑ 프로젝트 2/3'])
+  t('미달: (c) 중앙값 30 < 50', H({ median_inputs: 30 }).state, '미달')
+  t('미달 > 확인 불가 > 주의 우선순위', H({ judged: 200, relevant: 100, irrelevant: 40, unknown: 60, median_inputs: 10 }).state, '미달')
+  t('뷰에 행 없는 영역 = 프로젝트 0(0 이지 확인 불가 아님) → (a) 미달', [areaHealth(undefined, A('3'), 200, ab, AFTER).judged, areaHealth(undefined, A('3'), 200, ab, AFTER).state], [0, '미달'])
+  // 평가 시점 경계(config cycle_started_at 2026-10-09 + 2 × 7일 = 2026-10-23T00:00Z)
+  const BEFORE = new Date('2026-10-22T23:59:59Z')
+  const EVAL = new Date('2026-10-23T00:00:00Z')
+  const pre = H({ projects_100plus: 2, median_inputs: 30 }, '1', BEFORE)
+  t('평가 전: (a)(c) 미달 → 주의(평가 전) · 남헌 판단 아님', [pre.state, pre.needs_human, pre.reasons.every((r) => !/^\(a\)|^\(c\)/.test(r)), pre.reasons.filter((r) => r.startsWith('평가 전(2026-10-23부터 평가)')).length], ['주의', false, true, 2])
+  t('평가 시점 정각부터 미달', H({ projects_100plus: 2 }, '1', EVAL).state, '미달')
+  t('평가 전: (b) 관련 20% 도 주의', H({ judged: 200, relevant: 40, irrelevant: 160, unknown: 0 }, '1', BEFORE).state, '주의')
+  const preSwap = H({ judged: 200, relevant: 0, irrelevant: 200, unknown: 0 }, '1', BEFORE)
+  t('평가 전에도 즉시 교체 예외(최소량 충족·관련 <10%)는 미달 · 남헌 판단', [preSwap.state, preSwap.needs_human, /즉시 소스 교체/.test(preSwap.reasons[0])], ['미달', true, true])
+  t('평가 전: 최소량 전이면 관련 <10% 라도 즉시 예외 아님', H({ judged: 160, relevant: 5, irrelevant: 155, unknown: 0 }, '1', BEFORE).state, '주의')
+  t('평가 전: 확인 불가는 그대로 확인 불가', H({ judged: 200, relevant: 100, irrelevant: 40, unknown: 60, projects_100plus: 1 }, '1', BEFORE).state, '확인 불가')
+  t('areaCoverage now 기본값 없이 넘긴 시각을 쓴다', areaCoverage({ rows: [row({ projects_100plus: 0 })], error: null }, cfg, BEFORE).areas[0].state, '주의')
+  t('hold·영역 외 = 대상 아님(숫자만)', [H({}, 'hold').state, H({}, 'out-founder').state, H({}, 'hold').needs_human], ['대상 아님', '대상 아님', false])
+  t('저평점 판정 없음 → null(0% 아님)', H({ rated_judged: 0, low_rated_judged: 0 }).low_rated_pct, null)
+  t('입력 0 → 평점 없는 비중 null', H({ inputs: 0, rated_inputs: 0 }).unrated_pct, null)
+
+  const rows = [row({ area_code: '1' }), row({ area_code: '(미부여)', projects: 3 }), row({ area_code: 'hold' })]
+  const cov = areaCoverage({ rows, error: null }, cfg)
+  t('표: 설정 순서 9줄 + 뷰에만 있는 (미부여) 뒤에', cov.areas.map((c) => c.code), ['1', '2', '3', '4', '5', 'design', 'hold', 'out-consumer', 'out-founder', '(미부여)'])
+  t('표: (미부여) 는 대상 아님', cov.areas.at(-1).state, '대상 아님')
+  const gone = areaCoverage({ rows: null, error: 'PGRST205 Could not find the table' }, cfg)
+  t('뷰 없음(PGRST205): read unavailable · 모든 칸 null · 상태 확인 불가', [gone.read, gone.areas.every((c) => c.judged === null && c.pending === null && c.state === '확인 불가')], ['unavailable', true])
+  const goneLine = areaCoverageLine(gone.areas[0])
+  t('뷰 없음 줄: 확인 불가로 찍고 0 으로 안 찍는다', [/판정 커버리지 확인 불가/.test(goneLine), /대기 확인 불가/.test(goneLine), /\b0\/200|~0/.test(goneLine)], [true, true, false])
+  const noCfg = areaCoverage({ rows, error: null }, null)
+  t('설정 없음: 숫자는 보이되 상태 확인 불가', [noCfg.areas.every((c) => c.state === '확인 불가'), noCfg.areas.find((c) => c.code === '1').judged], [true, 250])
+
+  // main 경유 — 뷰를 GET 으로 읽는다. 없으면(PGRST205) 공급 계산은 그대로 · 커버리지는 확인 불가.
+  const db = { ...DB(), v_area_t2_coverage: rows }
+  const { r } = await quiet(() => supplyMain([], { db: fakeSb(db) }))
+  t('main: 뷰 읽음 → area_coverage ok · 1 영역 정상', [r.area_coverage.read, r.area_coverage.areas[0].state, r.sources.length > 0], ['ok', '정상', true])
+  const { r: r3 } = await quietErr(() => supplyMain([], { db: fakeSb(db, { failView: true }) }))
+  const md = summaryMarkdown(r3)
+  t('main: PGRST205 → 커버리지 확인 불가 · 공급 계산은 그대로', [r3.area_coverage.read, r3.area_coverage.error.startsWith('PGRST205'), r3.sources.length === r.sources.length], ['unavailable', true, true])
+  t('summary: 확인 불가 표기 · 제안값 표기 · 0/200 없음', [/뷰 확인 불가 — PGRST205/.test(md), /제안값\(남헌 확정 전\)/.test(md), /판정 0\/200/.test(md)], [true, true, false])
+  const { r: r4 } = await quietErr(() => supplyMain([], { db: fakeSb(db), areasFile: path.join(tmp, 'no-such-areas.json') }))
+  t('main: 영역 설정 없음 → 상태 확인 불가(영역 축을 지어내지 않는다)', r4.area_coverage.areas.every((c) => c.state === '확인 불가'), true)
 }
 fs.rmSync(tmp, { recursive: true, force: true })
 

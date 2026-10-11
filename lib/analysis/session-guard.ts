@@ -29,6 +29,8 @@ export type GuardConfig = {
   usdPerWeeklyPct: number | null
   /** extract 자동 조정의 주간 안전선 %(남헌 v36 §2). null = 비활성 — 남헌이 N 을 정할 때까지(extract-autotune.ts weeklySafety). */
   autotuneWeeklySafePct: number | null
+  /** extract 자동 조정 올리기 임계 %(남헌 v42 §1: 10) — 평균 사용률이 이 값 **미만**이어야 올린다. null(없음·비수치·0 이하) = 코드 폴백 8. */
+  autotuneUpBelowPct: number | null
 }
 
 const pos = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null)
@@ -43,6 +45,7 @@ export function parseGuardConfig(raw: Record<string, unknown> | null | undefined
     weeklyStopPct: pos(r.weekly_stop_pct),
     usdPerWeeklyPct: pos(r.usd_per_weekly_pct),
     autotuneWeeklySafePct: pos(r.autotune_weekly_safe_pct),
+    autotuneUpBelowPct: pos(r.autotune_up_below_pct),
   }
 }
 

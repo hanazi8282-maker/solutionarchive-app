@@ -321,7 +321,8 @@ t('모르는 시간대는 null', parseQuotaResetAt('resets 3pm (Mars/Olympus)', 
 // 호출부 배선 — 게이트가 실제로 실행을 가른다
 // v32: 재시도 큐 순서(orderWithQueue)를 먼저 적용한 뒤 게이트 max 로 자른다.
 t('게이트 결과 max 로 대상을 고른다', /ordered\.slice\(0, Math\.max\(0, gate\.max\)\)/.test(auto) && /orderWithQueue\(full\.targets, retryQueue/.test(auto))
-t('백로그는 상한 없이 잰다', /pickAutoTargets\(candidates, \{ minNew, max: Infinity \}\)/.test(auto))
+// v40 §4: 문턱은 pickMinNew(지정 없으면 minNew 그대로 — extract-project-ids-selftest 가 빈 입력 동일성을 실행으로 단언한다)
+t('백로그는 상한 없이 잰다', /pickAutoTargets\(candidates, \{ minNew: pickMinNew, max: Infinity \}\)/.test(auto) && /const pickMinNew = scoped \? 0 : minNew/.test(auto))
 t('상태는 extract-auto-* 행만 본다(D8)', /\.like\('run_key', 'extract-auto-%'\)/.test(auto))
 t('쉼은 gate 스텝 skipped 로 남긴다(§4.2)', /stepKey: 'gate'[^\n]*status: 'skipped'/.test(auto))
 t('쉼 summary 에 decision 필드', /decision: gate\.run \? 'run' : 'skip'/.test(auto))

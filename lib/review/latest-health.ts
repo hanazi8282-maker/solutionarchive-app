@@ -155,13 +155,33 @@ function isParseBroken(r: SoftSkipRow): boolean | null {
   return attempted >= MIN_PARSE_SAMPLE && r.reviews_parsed * PARSE_RATE_DEN < attempted * PARSE_RATE_NUM
 }
 
-/** 순수 함수. runs = 그 소스의 비-dry-run 실행(순서 무관). */
-export function softSkipDecision(runs: SoftSkipRow[] | null, readError: string | null, now: number): SoftSkip {
+/**
+ * 차단되면 **다음 실행부터 멈추는** 소스(v37 독립 검토 2026-10-09 — 남헌 조건 "차단 시 즉시 중단·보고").
+ * 무인 루프는 review_sources.enabled 를 못 바꾼다(CLAUDE.md §10.1). 그래서 끄는 대신 이 읽기 전용 soft-skip 으로 건너뛴다:
+ * 가장 최근 비-dry-run 실행에 blocked_responses>0 이면 skip. 재시도 기한이 없다 — 건너뛰면 새 실행 행이 안 생겨 그 차단 행이
+ * 계속 최신이다. 다시 돌리는 것은 사람이 `--source=shopify_apps` 로 직접 지정한 실행뿐이다(explicitSources 는 soft-skip 안 함).
+ * 보고: 그 차단 실행의 health_after='broken' 이 insight-loop 경보(sourceAlertLines 🚨)에 계속 뜨고, 매 실행 Notion 상태 로그
+ * '한일' 칸에 "건너뜀 — soft-skip …" 줄이 남는다. 차단 수치를 못 읽으면(null) 확인 불가로 지금처럼 돈다(§7.1).
+ */
+export const HALT_ON_BLOCK_SOURCES: ReadonlySet<string> = new Set(['shopify_apps'])
+
+/** 순수 함수. runs = 그 소스의 비-dry-run 실행(순서 무관). key 가 HALT_ON_BLOCK_SOURCES 면 최근 차단에서 멈춘다. */
+export function softSkipDecision(runs: SoftSkipRow[] | null, readError: string | null, now: number, key: string | null = null): SoftSkip {
   if (readError || !runs) return { state: 'unknown', reason: `실행 기록 조회 실패${readError ? ` — ${readError}` : ''} — 지금처럼 실행` }
   const recent = runs
     .filter((r) => r.dry_run !== true)
     .sort((a, b) => b.started_at.localeCompare(a.started_at))
     .slice(0, SOFT_SKIP_STREAK)
+  if (key && HALT_ON_BLOCK_SOURCES.has(key) && recent[0]) {
+    const b = recent[0].blocked_responses
+    if (b == null) return { state: 'unknown', reason: '최근 실행의 차단 수치가 없다 — 차단 멈춤 판정 불가, 지금처럼 실행' }
+    if (b > 0) {
+      return {
+        state: 'skip',
+        reason: `최근 실행(${recent[0].started_at.slice(0, 16).replace('T', ' ')})에 차단 응답 ${b}건 — 차단 멈춤 소스라 자동 재시도하지 않는다(사람이 --source=${key} 로 직접 실행해야 재개)`,
+      }
+    }
+  }
   if (recent.length < SOFT_SKIP_STREAK) return { state: 'run', reason: `실행 기록 ${recent.length}건(<${SOFT_SKIP_STREAK})` }
   const verdicts = recent.map(isParseBroken)
   if (verdicts.some((v) => v === false)) return { state: 'run', reason: '최근 연속 파싱 고장 아님' }
@@ -190,9 +210,9 @@ export async function loadSoftSkip(sb: RunsReader, key: string, now = Date.now()
       .eq('dry_run', false)
       .order('started_at', { ascending: false })
       .limit(SOFT_SKIP_STREAK)
-    return softSkipDecision(data, error ? error.message : null, now)
+    return softSkipDecision(data, error ? error.message : null, now, key)
   } catch (e) {
-    return softSkipDecision(null, e instanceof Error ? e.message : String(e), now)
+    return softSkipDecision(null, e instanceof Error ? e.message : String(e), now, key)
   }
 }
 

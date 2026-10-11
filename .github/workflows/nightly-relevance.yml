@@ -99,6 +99,8 @@ jobs:
           LLM_REQUEST_BUDGET_USD: '2'
           RELEVANCE_SAMPLE: ${{ inputs.sample || vars.RELEVANCE_SAMPLE || '200' }}
           RELEVANCE_MAX_PROJECTS: ${{ inputs.max_projects || vars.RELEVANCE_MAX_PROJECTS || '5' }}
+          # 영역 최소 판정량(v37 U1). 비면 config/areas.json floor(제안 200). 되돌리기 = 리포 변수 삭제.
+          RELEVANCE_AREA_FLOOR: ${{ vars.RELEVANCE_AREA_FLOOR || '' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           node scripts/relevance-judge-auto.mjs \

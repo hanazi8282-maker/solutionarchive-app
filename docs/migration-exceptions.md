@@ -497,6 +497,12 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   - 양성: enabled=false·사유·시각 채워짐·health 불변·타깃 34건 불변·비활성 목록은 기존 7개+producthunt. 음성: 영향 행 수 가드 DO 블록 — 행이 1이 아니면 예외.
   - 롤백 파일 `20261007000012_disable_producthunt_rollback.sql`(disabled_at 이 NULL 이었으므로 이전 상태와 동일).
 
+## 2026-10-08 — 구글 플레이 요청 상한 100 (남헌 v40 §3-①)
+- **20261007000050** `googleplay_cap100` — review_sources.googleplay `daily_request_cap` 60→100, review_source_ramp.googleplay `cap_base` 60→100·`daily_request_target` 50·`pct_step` 50·`consecutive_ok_days` 0·`schedule_plan` NULL, review_source_ramp_log 1행(event='start'). **미적용**(PR 단계) — 적용 시각·검증 결과는 적용 후 기입.
+  - 남헌 결정 2026-10-08 v40 §3-①: 구글 플레이 cap_base 60→100·daily_request_cap 100, 램프 50%에서 재시작해 90%까지 단계 상승.
+  - 위험 감수 범위: 약관(자동화 금지, 3.3조)·robots Disallow `/_` 인 소스가 소유자 예외(override=owner_2026-10-06)로 켜져 있고, 그 요청량을 늘리는 것. 차단 신호 시 램프 감속·동결(lib/review/ramp.ts, 기존 규칙). 법적 평가는 이 문서에 쓰지 않는다.
+  - 사전검토 Opus, 적용 CEO-STAFF. 롤백 파일 `20261007000050_googleplay_cap100_rollback.sql`(롤백 실행은 사람 판단).
+  - 적용 전 스냅샷(CEO-STAFF 실측 2026-10-07 UTC 15:5x): cap 60·override owner_2026-10-06·enabled / 램프 level 0·pct_step 50·cap_base 60·target 30·consecutive_ok_days 0·schedule_plan date 2026-10-07.
 ## 2026-10-08 — 구글 플레이 영어(us:en) 타깃 추가 (남헌 v43·v44 §2-c, v45 확정안)
 - **20261008000001** `googleplay_us_en_targets` — 영어권 해외 앱 17개를 설계 대상으로 하되 **이 마이그가 INSERT 하는 것은 1차 8개뿐**(tldv·read-ai·granola·meeting-os·linnworks·shipstation·helium-10·gong). 2차 9개(krisp·avoma·fellow·meetgeek·sembly-ai·jamie·circleback·rev·triple-whale)는 파일 하단 주석 블록(실행 안 됨). 기존 kr:ko 타깃마다 같은 project_id 로 `us:en:<패키지>` review_targets 행, label `<영역>:us-en|<이름>`, status=active, last_run_at=now(). **미적용**(PR 단계) — 적용 시각·검증 결과는 적용 후 기입.
   - 남헌 결정: v43·v44 — 해외 앱 영어 리뷰를 칼럼·고객 리포트 용도로 수집, 영어 타깃 추가, 우선순위 낮음(소스 램프는 바꾸지 않음; 저우선순위는 last_run_at=now() 로만 구현, 일일 요청 예산은 기존 daily_request_cap·램프 안에서 나눠 쓰므로 요청 총량은 늘지 않음). v45 — 1차 8개만 INSERT, 나머지 9개는 2차.

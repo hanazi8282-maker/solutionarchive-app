@@ -548,3 +548,6 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
   - 영향: 야간 T2 판정 프로젝트 순서가 'SaaS 우선'에서 '영역 결손 우선'으로 바뀐다. 창업가 불만(out-founder) 56개 프로젝트가 영역 외로 뒤로 내려간다(§10.2 6번 소지, 남헌 v37·v38 '영역 외는 표시만' 방향; 되돌리기 = config 순서 한 줄).
 
 - 2026-10-12 · `20261012000010_review_source_ramp_cap_origin` · 승인: 남헌 v50 지시(§10.2 자체 판단, 예외 항목 해당 없음) · 적용: CEO-STAFF 세션 · 검증: 양성(googleplay origin 60·cap 15·target 7, indiehackers origin 52·cap 13·target 6, 로그 2행) · 음성(origin=0 → check 위반) 통과 · 롤백 `_rollback.sql`. 후속: googleplay cap_base 30 은 동결 해제(10-12 08:18 UTC) 후 별도 입력.
+
+- 2026-10-12 · `20261012000020_window_targets_20261012` · 승인: 남헌 v52 §1-2(영역 ③ 투입, 약관 변경 없음 — 기존 appstore 소유자 예외 소스 안 창문) · 적용: CEO-STAFF 세션 · 내용: review_targets 10행 INSERT(canva 8개국·carat us·predis-ai gb, 프로브 요청당 새 글 50/16/6) · 검증: 양성(10행 active·last_run_at NULL·project 연결, appstore 활성 10/133=7.5
+- 2026-10-12 · `20261012000020_window_targets_20261012` · 승인: 남헌 v52 §1-2(영역 ③ 투입, 약관 변경 없음 — 기존 appstore 소유자 예외 소스 안 창문) · 적용: CEO-STAFF 세션 · 내용: review_targets 10행 INSERT(canva 8개국·carat us·predis-ai gb, 프로브 요청당 새 글 50/16/6) · 검증: 양성(10행 active·last_run_at NULL·project 연결, appstore 활성 10/133=7.5% < 30%) · 롤백 `_rollback.sql`.

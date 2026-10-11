@@ -17,6 +17,7 @@ import { createHash } from 'node:crypto'
 import { abandonEvalAt, type AbandonCriteria, type AreaDef, type AreasConfig } from '../analysis/areas-config.ts'
 import { REQUESTS_PER_BOARD_RUN, REQUESTS_PER_POST_RUN } from './request-cap.ts'
 import { RAMP_EXCLUDED, RAMP_STEPS, pctTarget, validPlan, type SchedulePlan } from './ramp.ts'
+import { isOwnerRobotsOverride } from './runner.ts'
 
 /** 신규 타깃 게이트: 한 소스가 enabled 소스 활성 타깃의 이 비중을 넘으면 그 소스에 새 타깃을 넣지 않는다(D3). 기존 타깃은 유지. */
 export const SHARE_GATE = 0.3
@@ -69,6 +70,10 @@ export type TargetRow = {
   consecutive_empty: number
   /** 비증분형 재방문 간격 판정용. 없으면(옛 픽스처·미기록) 비증분형은 revisit_unknown. */
   last_run_at?: string | null
+  /** 재방문 시계(v48) 속도 재료 — 기존 칸만 쓴다(review_targets). 없으면 속도 확인 불가 → 상한 간격. */
+  total_collected?: number | null
+  created_at?: string | null
+  last_review_at?: string | null
 }
 export type RunRow = {
   source_key: string
@@ -88,6 +93,8 @@ export type SourceSupply = {
   policy: 'ok' | 'excluded'
   /** 약관 금지·자동화 금지인데 override 가 없는 소스 — 표시만 한다(남헌 2026-10-07: 현행 enabled 유지, 게이트 아님). */
   tos_flag: boolean
+  /** robots 금지 확정(robots_status='disallowed') ∧ 소유자 예외 없음 — 되살리기 대상에서 뺀다(v48). */
+  robots_blocked?: boolean
   cap_base: number | null
   cap_basis: string
   pct_step: number | null
@@ -276,6 +283,7 @@ export function computeSupply(input: {
       source_key: s.key,
       policy: excluded ? 'excluded' : 'ok',
       tos_flag: (tos === 'prohibited' || tos === 'forbids_automation') && !s.override,
+      robots_blocked: s.robots_status === 'disallowed' && !isOwnerRobotsOverride(s.override, s.robots_status),
       cap_base: capBase,
       cap_basis: capBasis,
       pct_step: pctStep,
@@ -396,45 +404,96 @@ export type RevivePlan = {
  * 셀프테스트가 어댑터의 incrementalOnly 와 이 집합을 대조한다.
  */
 export const NON_INCREMENTAL_SOURCES: ReadonlySet<string> = new Set(['appstore', 'youtube', 'danawa', 'producthunt', 'naver_blog_post'])
-/** 비증분형 재방문 최소 간격(일). 설계 v 의 앱스토어 1/7 과 같은 값 — v 가 더 느슨해도(게시판 2 등) 전체 재읽기는 주 1회보다 자주 하지 않는다. */
-export const NON_INCREMENTAL_MIN_REVISIT_DAYS = 7
 
-/** 비증분형 타깃의 재방문 간격(일) = max(1/v, 7). 증분형은 null(간격 규칙 없음). */
-export function revisitDays(sourceKey: string): number | null {
-  if (!NON_INCREMENTAL_SOURCES.has(sourceKey)) return null
-  return Math.max(1 / revisitTarget(sourceKey).v, NON_INCREMENTAL_MIN_REVISIT_DAYS)
+// ── 재방문 시계(남헌 v48 §2-A, 2026-10-11) ─────────────────────────
+// 비증분형의 exhausted 는 영구 정지가 아니라 "다음 재점검까지 쉼"이다. 간격은 타깃이 실제로 낸 신규 속도에서 잰다.
+// 재료는 review_targets 의 기존 칸뿐이다(total_collected·created_at·last_run_at·last_review_at·consecutive_empty) — 새 칸 없음.
+/** 하한(일) — 인기 타깃. v37 의 7일에서 내렸다(v48). */
+export const REVISIT_MIN_DAYS = 3
+/** 상한(일) — 조용한 타깃. 아무리 조용해도 2주에 한 번은 첫 페이지를 본다. */
+export const REVISIT_MAX_DAYS = 14
+/** K: 한 번 재점검할 때 기대하는 신규 건수. 앱스토어 RSS 한 페이지(최대 50건)의 1/5 — 요청 1건이 헛걸음이 되지 않을 만큼. */
+export const REVISIT_EXPECTED_NEW = 10
+/** 무인 되살리기(--auto) 소스별 실행당 상한. 하루 수집 슬롯 6(ramp.ts COLLECT_SLOTS)에 나눠 106개 백로그를 약 3일(= 하한)에 흡수한다. */
+export const REVIVE_PER_RUN = 6
+
+const DAY_MS = 86_400_000
+
+/**
+ * 비증분형 타깃의 재방문 간격(일). 증분형은 null(간격 규칙 없음 — 연속 0건 규칙이 따로 닫는다).
+ *
+ *   λ_hist  = total_collected ÷ max(1, (last_run_at − created_at) 일)      지금까지 이 타깃이 낸 신규 속도(건/일)
+ *   λ_quiet = 1 ÷ ((last_run_at − last_review_at) 일)                       마지막 방문 때 최신 리뷰가 이미 그만큼 묵었다 → 그보다 빠를 수 없다(1일 이상일 때만)
+ *   λ       = min(λ_hist, λ_quiet)
+ *   days    = clamp(K ÷ λ × 2^consecutive_empty, 3, 14)                    K = 10 · λ = 0 → 14 · 빈 재점검마다 2배(조용한 곳은 상한으로)
+ *
+ * 속도를 못 재면(created_at·last_review_at 둘 다 없음) 상한 14 — 모르는 것을 인기로 접지 않는다(호스트에 안전한 쪽).
+ * ponytail: 첫 통독(앱스토어 RSS 최대 500건)이 λ_hist 를 부풀린다 — 젊은 타깃은 실제보다 자주 간다. λ_quiet 와 빈 재점검 2배가
+ *   이를 깎는다. 재점검별 신규 건수를 타깃 단위로 남기는 칸이 생기면 그걸로 바꾼다(지금은 없음 — 마이그 안 함).
+ */
+export function revisitDays(t: Pick<TargetRow, 'source_key'> & Partial<TargetRow>): { days: number; basis: string } | null {
+  if (!NON_INCREMENTAL_SOURCES.has(t.source_key)) return null
+  const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
+  const created = t.created_at ? Date.parse(t.created_at) : NaN
+  const newest = t.last_review_at ? Date.parse(t.last_review_at) : NaN
+  const rates: number[] = []
+  if (Number.isFinite(last) && Number.isFinite(created)) rates.push((t.total_collected ?? 0) / Math.max(1, (last - created) / DAY_MS))
+  if (Number.isFinite(last) && Number.isFinite(newest) && (last - newest) / DAY_MS >= 1) rates.push(1 / ((last - newest) / DAY_MS))
+  const ce = Math.max(0, t.consecutive_empty ?? 0)
+  if (rates.length === 0) return { days: REVISIT_MAX_DAYS, basis: 'velocity_unknown→max' }
+  const lambda = Math.min(...rates)
+  const raw = lambda > 0 ? (REVISIT_EXPECTED_NEW / lambda) * 2 ** ce : Infinity
+  const days = Math.min(REVISIT_MAX_DAYS, Math.max(REVISIT_MIN_DAYS, raw))
+  return { days: Math.round(days * 100) / 100, basis: `λ=${Math.round(lambda * 1000) / 1000}/일·ce=${ce}` }
+}
+
+export type ReviveOptions = {
+  /** 소스별 이번 실행 상한(무인 --auto 는 REVIVE_PER_RUN). 없으면 수동 경로 — 기존 min(gap, 게이트 여유)만. */
+  perRunCap?: number
+  /** true = 비증분형(재방문 시계)만. 증분형 exhausted 는 manual_only 로 건너뛴다(D8 수동 경로에 남긴다). */
+  clockOnly?: boolean
 }
 
 /**
- * 대상 = exhausted ∧ consecutive_empty=0 ∧ enabled 소스 ∧ SUPPLY_EXCLUDED 아님(producthunt·danawa·todayhumor)
- *        ∧ (비증분형이면 last_run_at + 재방문 간격 경과 — 아니면 revisit_not_due, last_run_at 없으면 revisit_unknown).
- * 소스별 상한 = min(gap(N − active), 게이트 여유). unverified 소스는 0(모르는 결손을 채우지 않는다). board: 먼저.
+ * 대상 = exhausted ∧ enabled 소스 ∧ SUPPLY_EXCLUDED 아님(producthunt·danawa·todayhumor) ∧ robots 금지 확정 아님
+ *        ∧ (증분형: consecutive_empty=0 — D8 그대로)
+ *        ∧ (비증분형: last_run_at + revisitDays 경과 — 아니면 revisit_not_due, last_run_at 없으면 revisit_unknown. consecutive_empty 는
+ *           간격을 늘리는 재료라 거르지 않는다 — 걸렀으면 빈 재점검 한 번에 시계가 영영 멈춘다).
+ * 소스별 상한 = min(gap(N − active), 게이트 여유[, perRunCap, 비증분형은 tpr − active]). unverified 소스는 0. board: 먼저, 같은 등급은 오래 안 간 순.
  * 법적 게이트로 빼지 않는다 — 남헌 2026-10-07: devto·disquiet·indiehackers·tumblbug·youtube 는 enabled 유지, 현행 enabled 만 본다.
  * 기준 시각 = report.generated_at.
  */
-export function planRevive(targets: TargetRow[], report: SupplyReport): RevivePlan {
+export function planRevive(targets: TargetRow[], report: SupplyReport, opts: ReviveOptions = {}): RevivePlan {
   const now = Date.parse(report.generated_at)
   const supplyBy = new Map(report.sources.map((s) => [s.source_key, s]))
   const bySource: RevivePlan['bySource'] = {}
   const revive: RevivePlan['revive'] = []
   const cands = targets
-    .filter((t) => t.status === 'exhausted' && t.consecutive_empty === 0)
-    .sort((a, b) => reviveRank(a.product_ref) - reviveRank(b.product_ref) || String(a.id).localeCompare(String(b.id)))
+    .filter((t) => t.status === 'exhausted' && (t.consecutive_empty === 0 || NON_INCREMENTAL_SOURCES.has(t.source_key)))
+    .sort(
+      (a, b) =>
+        reviveRank(a.product_ref) - reviveRank(b.product_ref) ||
+        String(a.last_run_at ?? '').localeCompare(String(b.last_run_at ?? '')) ||
+        String(a.id).localeCompare(String(b.id)),
+    )
   const used = new Map<string, number>()
   for (const t of cands) {
     const b = (bySource[t.source_key] ??= { candidates: 0, revive: 0, skipped: {} })
     b.candidates++
     const s = supplyBy.get(t.source_key)
+    const clock = NON_INCREMENTAL_SOURCES.has(t.source_key)
     let skip: string | null = null
     if (!s) skip = 'source_disabled_or_missing'
     else if (s.state === 'excluded') skip = 'source_excluded'
+    else if (s.robots_blocked) skip = 'robots_disallowed'
+    else if (opts.clockOnly && !clock) skip = 'manual_only'
     else if (s.state === 'unverified' || s.gap === null) skip = 'supply_unverified'
     else if (!t.id || !UUID.test(t.id)) skip = 'bad_id'
-    else if (revisitDays(t.source_key) !== null) {
+    else if (clock) {
       const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
       if (!Number.isFinite(last)) skip = 'revisit_unknown'
       else {
-        const due = last + revisitDays(t.source_key)! * 86_400_000
+        const due = last + revisitDays(t)!.days * DAY_MS
         if (due > now) {
           skip = 'revisit_not_due'
           const iso = new Date(due).toISOString()
@@ -442,8 +501,12 @@ export function planRevive(targets: TargetRow[], report: SupplyReport): RevivePl
         }
       }
     }
-    if (!skip && s && s.gap !== null && (used.get(t.source_key) ?? 0) >= Math.min(Math.max(0, s.gap), s.gate_headroom)) {
-      skip = s.gap <= 0 ? 'no_gap' : 'over_headroom'
+    if (!skip && s && s.gap !== null) {
+      const n = used.get(t.source_key) ?? 0
+      if (n >= Math.min(Math.max(0, s.gap), s.gate_headroom)) skip = s.gap <= 0 ? 'no_gap' : 'over_headroom'
+      else if (opts.perRunCap !== undefined && n >= opts.perRunCap) skip = 'run_cap'
+      // 한 실행이 소비할 수 있는 만큼만 연다 — 수집이 안 도는 슬롯에서 되살린 타깃이 쌓이지 않게(tpr = 회당 타깃 수).
+      else if (opts.perRunCap !== undefined && clock && n >= Math.max(0, s.tpr - s.active)) skip = 'queue_full'
     }
     if (skip) {
       b.skipped[skip] = (b.skipped[skip] ?? 0) + 1

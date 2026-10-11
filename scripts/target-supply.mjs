@@ -58,7 +58,12 @@ export async function loadSupplyInputs(sb, now = new Date()) {
   }
   if (ramps === null) console.error(`⚠️ review_source_ramp 확인 불가 — ${rampErrors.join(' / ')}`)
   const targets = await readAll(
-    () => sb.from('review_targets').select('id, source_key, status, product_ref, label, consecutive_empty, last_run_at').order('id'),
+    // total_collected·created_at·last_review_at = 재방문 시계 속도 재료(v48, 기존 칸).
+    () =>
+      sb
+        .from('review_targets')
+        .select('id, source_key, status, product_ref, label, consecutive_empty, last_run_at, total_collected, created_at, last_review_at')
+        .order('id'),
     'review_targets',
   )
   const since = new Date(now.getTime() - 14 * DAY_MS).toISOString()

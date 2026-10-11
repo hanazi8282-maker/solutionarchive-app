@@ -1,31 +1,33 @@
 #!/usr/bin/env node
-// 비활성 타깃 되살리기(남헌 v32 §5 D8) — `consecutive_empty=0` 인 exhausted 만 active 로.
+// 비활성 타깃 되살리기 — 두 갈래.
 //
-// ⚠️ 사람·역할 세션 전용(대량 UPDATE — §10.2 예외 2 / 09-24 4조건: 드라이런·롤백·무중단·Notion). 무인 루프에 배선하지 않는다.
-//    서브에이전트는 돌리지 않는다(DB 금지). 오케스트레이터가 --dry 로 건수·해시를 보고한 뒤 --run.
-// ⚠️ 수집 슬롯(UTC 01:43·05:37·09:29·13:19·17:37·20:47, lib/review/ramp.ts COLLECT_SLOTS)을 피해 슬롯 사이에 실행하고,
-//    무엇을 몇 건 되살렸는지·롤백 파일 경로는 Notion 일일 상태 로그에 남긴다(§10.2 4조건).
+// (1) 수동 D8(남헌 v32 §5) — `--run --expect=N --expect-hash=H`. 사람·역할 세션 전용(대량 UPDATE — §10.2 예외 2 / 09-24 4조건).
+//     서브에이전트는 돌리지 않는다(DB 금지). 오케스트레이터가 --dry 로 건수·해시를 보고한 뒤 --run.
+//     수집 슬롯(UTC 01:43·05:37·09:29·13:19·17:37·20:47, lib/review/ramp.ts COLLECT_SLOTS)을 피해 슬롯 사이에 실행하고,
+//     무엇을 몇 건 되살렸는지·롤백 파일 경로는 Notion 일일 상태 로그에 남긴다.
+// (2) 재방문 시계(남헌 v48 §2-A, 2026-10-11) — `--auto`. nightly-review-collect 의 수집 직전 pre-step 이 돌린다(CLAUDE.md §10.1 "재방문 시계 되살리기").
+//     비증분형(appstore·youtube·naver_blog_post)의 exhausted 중 재방문 간격(revisitDays: 3~14일, 속도 근거)이 지난 것만,
+//     소스별 실행당 REVIVE_PER_RUN(6)개 · 회당 타깃 수(tpr) − 현재 active 이내로 active 로 되돌린다. 쓰는 칸은 status 하나(롤백은 status·consecutive_empty).
+//     러너는 그 타깃을 "재점검"(첫 페이지부터, 이미 본 지문 5연속이면 다시 닫음)으로 읽는다 — lib/review/runner.ts RECHECK_SEEN_STREAK.
+//     롤백·계획 파일을 UPDATE 전에 reports/<KST 날짜>/ 에 쓴다(못 쓰면 UPDATE 안 함). 워크플로가 그 파일을 main 에 올린다.
 //
-// 대상 = exhausted ∧ consecutive_empty=0 ∧ enabled 소스 ∧ producthunt·danawa·todayhumor 아님.
-//   consecutive_empty=0 인데 닫힌 것은 증분형 소스에서는 옛 로직이 "끝까지 읽어서" 닫은 것(20260930000006 와 같은 판단).
-//   ⚠️ 비증분형(appstore·youtube 등, NON_INCREMENTAL_SOURCES)은 그게 정상 종료다 — 피드 전체를 다시 읽어 중복만 나온다(v37, 2026-10-08 실측).
-//      그래서 last_run_at + max(1/v, 7)일이 지난 것만 되살린다. 덜 지났으면 revisit_not_due, last_run_at 이 없으면 revisit_unknown.
-//   연속 0건으로 닫힌 `url:` 글(댓글이 더 안 붙는 글)은 두고, 그 소스는 board: 등록 처방으로 간다(target-supply remedies).
-//   소스별 상한 = min(gap, 30% 게이트 여유, googleplay 80 동결). 순서 board: → 그 밖 → url: — lib/review/target-supply.ts planRevive.
-//   법적 게이트로 빼지 않는다(남헌 2026-10-07: devto·disquiet·indiehackers·tumblbug·youtube enabled 유지 — 현행 enabled 만 본다).
+// 대상 공통 = exhausted ∧ enabled 소스 ∧ SUPPLY_EXCLUDED(producthunt·danawa·todayhumor) 아님 ∧ robots 금지 확정 아님.
+//   증분형은 consecutive_empty=0 만(D8 — 옛 로직이 "끝까지 읽어서" 닫은 것). 비증분형은 재방문 간격이 지난 것만.
+//   소스별 상한 = min(gap, 30% 게이트 여유, googleplay 80 동결). 순서 board: → 그 밖 → url:, 같은 등급은 오래 안 간 순 — lib/review/target-supply.ts planRevive.
 //   review_source_ramp 를 못 읽으면(ramp_read=unavailable) 상한 B 가 폴백값이 되므로 거부한다(§7.1).
 //
 // 사용법:
 //   node scripts/target-revive.mjs                                   # --dry(기본): 대상 건수·id 해시·소스별 분포·롤백 SQL. 쓰기 0건
 //   node scripts/target-revive.mjs --run --expect=N --expect-hash=H  # 드라이런의 N·H 와 같을 때만. 계획·롤백 파일을 먼저 쓰고 UPDATE
+//   node scripts/target-revive.mjs --auto [--dry]                    # 재방문 시계(무인). --dry 면 계획·요약만
 //   --rollback-out=<경로>  기본 reports/<KST 날짜>/target-revive-rollback-<시각>.sql (계획 전체는 같은 이름 -plan.sql 로 따로 남는다)
-// env: NEXT_PUBLIC_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY
+// env: NEXT_PUBLIC_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY · (선택) GITHUB_STEP_SUMMARY
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-import { computeSupply, idSetHash, planRevive, revisitDays, rollbackSql } from '../lib/review/target-supply.ts'
+import { computeSupply, idSetHash, planRevive, REVIVE_PER_RUN, rollbackSql } from '../lib/review/target-supply.ts'
 import { loadSupplyInputs, openDb } from './target-supply.mjs'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -37,8 +39,27 @@ function writeVerified(file, body) {
   if (fs.readFileSync(file, 'utf8') !== body) throw new Error(`파일 되읽기 불일치: ${file} — UPDATE 하지 않았다`)
 }
 
+/** 소스별 revived/skipped(사유 코드) 마크다운 — 실행 요약용. 요청 0 소스의 사유가 여기 남는다. */
+export function reviveSummary(plan, { mode, applied }) {
+  const rows = Object.entries(plan.bySource).sort()
+  const lines = [
+    `## 재방문 시계 되살리기 (${mode}${applied === null ? ' · 쓰기 없음' : ` · 실제 active ${applied}건`})`,
+    '',
+    ...(rows.length === 0 ? ['- exhausted 후보 없음'] : []),
+    ...rows.map(([k, b]) => {
+      const sk = Object.entries(b.skipped).map(([r, c]) => `${r} ${c}`).join(', ')
+      return `- ${k}: 후보 ${b.candidates} · revived ${b.revive}${sk ? ` · skipped(${sk})` : ''}${b.next_due ? ` · 다음 자격 ${b.next_due}` : ''}`
+    }),
+    '',
+  ]
+  return lines.join('\n')
+}
+
 export async function main(argv, { db, now = new Date() } = {}) {
+  const auto = argv.includes('--auto')
   const run = argv.includes('--run')
+  if (auto && run) throw new Error('--auto 와 --run 은 같이 쓰지 않는다')
+  const apply = run || (auto && !argv.includes('--dry'))
   const opt = (name) => argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3)
   const expectN = opt('expect')
   const expectHash = opt('expect-hash')
@@ -52,32 +73,33 @@ export async function main(argv, { db, now = new Date() } = {}) {
   const input = await loadSupplyInputs(sb, now)
   const report = computeSupply(input)
   if (report.ramp_read !== 'ok') throw new Error('review_source_ramp 확인 불가(ramp_read=unavailable) — 상한이 폴백값이라 되살리지 않는다')
-  const plan = planRevive(input.targets, report)
+  const plan = planRevive(input.targets, report, auto ? { perRunCap: REVIVE_PER_RUN, clockOnly: true } : {})
   const n = plan.revive.length
   const hash = idSetHash(plan.revive.map((r) => r.id))
   const sql = rollbackSql(plan.revive, stamp)
+  const mode = auto ? 'auto' : run ? 'run' : 'dry'
 
   const log = (s) => console.log(s)
-  log(`${run ? 'RUN' : 'DRY'} 되살리기 대상 ${n}건 · 해시 ${hash} (exhausted ∧ consecutive_empty=0 ∧ enabled ∧ 제외소스 아님 ∧ min(gap, 게이트 여유))`)
-  for (const [k, b] of Object.entries(plan.bySource).sort()) {
-    const sk = Object.entries(b.skipped).map(([r, c]) => `${r} ${c}`).join(', ')
-    log(`  ${k}: 후보 ${b.candidates} → 되살림 ${b.revive}${sk ? ` (건너뜀: ${sk})` : ''}`)
-    if (b.skipped.revisit_not_due) {
-      log(`    재방문 간격 미경과로 건너뜀 ${b.skipped.revisit_not_due}건 · 다음 자격 ${b.next_due} (last_run_at + ${revisitDays(k)}일)`)
-    }
+  const summarize = (applied) => {
+    const md = reviveSummary(plan, { mode, applied })
+    log(md)
+    if (auto && process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md)
   }
+  log(`${mode.toUpperCase()} 되살리기 대상 ${n}건 · 해시 ${hash}${auto ? ` (재방문 시계 · 소스별 실행당 ≤${REVIVE_PER_RUN})` : ' (exhausted ∧ enabled ∧ 제외소스 아님 ∧ min(gap, 게이트 여유))'}`)
 
-  if (!run) {
-    log(`\n실행: node scripts/target-revive.mjs --run --expect=${n} --expect-hash=${hash}`)
-    log(`\n-- 롤백 SQL(--run 때 ${path.relative(repoRoot, out)} 에 먼저 쓴다) --\n${sql}`)
+  if (!apply) {
+    summarize(null)
+    if (!auto) log(`\n실행: node scripts/target-revive.mjs --run --expect=${n} --expect-hash=${hash}`)
+    log(`\n-- 롤백 SQL(적용 때 ${path.relative(repoRoot, out)} 에 먼저 쓴다) --\n${sql}`)
     return { n, hash, plan, applied: null, out: null, planOut: null }
   }
 
-  if (Number(expectN) !== n || expectHash !== hash) {
+  if (run && (Number(expectN) !== n || expectHash !== hash)) {
     throw new Error(`--expect=${expectN}/${expectHash} 인데 지금 대상은 ${n}건/${hash} — 드라이런 뒤 DB 가 바뀌었다. 다시 드라이런하라`)
   }
   if (n === 0) {
     log('대상 0건 — 쓰지 않는다.')
+    summarize(0)
     return { n, hash, plan, applied: { updated: 0 }, out: null, planOut: null }
   }
 
@@ -86,20 +108,24 @@ export async function main(argv, { db, now = new Date() } = {}) {
   writeVerified(out, sql)
   log(`계획 파일: ${planOut}\n롤백 파일: ${out}`)
 
-  // 2) UPDATE — 조건을 다시 건다(그새 바뀐 행은 안 건드린다). 실제 바뀐 id 만 센다.
+  // 2) UPDATE — 조건을 다시 건다(그새 바뀐 행은 안 건드린다): status 가 아직 exhausted ∧ consecutive_empty 가 계획 때 값. 실제 바뀐 id 만 센다.
   const updated = []
   try {
-    for (let i = 0; i < n; i += 100) {
-      const ids = plan.revive.slice(i, i + 100).map((r) => r.id)
-      const { data, error } = await sb
-        .from('review_targets')
-        .update({ status: 'active' })
-        .in('id', ids)
-        .eq('status', 'exhausted')
-        .eq('consecutive_empty', 0)
-        .select('id')
-      if (error) throw new Error(`UPDATE 실패(${i}~): ${error.message}`)
-      updated.push(...data.map((r) => r.id))
+    const byCe = new Map()
+    for (const r of plan.revive) (byCe.get(r.prev_consecutive_empty) ?? byCe.set(r.prev_consecutive_empty, []).get(r.prev_consecutive_empty)).push(r.id)
+    for (const [ce, allIds] of byCe) {
+      for (let i = 0; i < allIds.length; i += 100) {
+        const ids = allIds.slice(i, i + 100)
+        const { data, error } = await sb
+          .from('review_targets')
+          .update({ status: 'active' })
+          .in('id', ids)
+          .eq('status', 'exhausted')
+          .eq('consecutive_empty', ce)
+          .select('id')
+        if (error) throw new Error(`UPDATE 실패(ce=${ce}, ${i}~): ${error.message}`)
+        updated.push(...data.map((r) => r.id))
+      }
     }
   } finally {
     // 3) 롤백 파일은 실제 바뀐 행만 — 계획엔 있었는데 안 바뀐 행을 롤백이 exhausted 로 되돌리지 않게. 계획 파일은 그대로 남는다.
@@ -110,6 +136,7 @@ export async function main(argv, { db, now = new Date() } = {}) {
     }
   }
   log(`UPDATE 완료: ${updated.length}건 active. 롤백: ${out}`)
+  summarize(updated.length)
   return { n, hash, plan, applied: { updated: updated.length }, out, planOut }
 }
 

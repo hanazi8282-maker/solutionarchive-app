@@ -155,7 +155,10 @@ t('발굴: excluded(danawa) → 고정(줄이지 않음)', discoveryCount(rep, '
   const ts = targets()
   const p = planRevive(ts, rep)
   t('되살리기: clien 은 gap 8 까지만', [p.bySource.clien.candidates, p.bySource.clien.revive, p.bySource.clien.skipped], [15, 8, { over_headroom: 7 }])
-  t('되살리기: ce>0 은 후보도 아님(appstore·clien 4건)', [p.bySource.appstore, p.revive.some((r) => r.prev_consecutive_empty !== 0)], [undefined, false])
+  // v48: 비증분형(appstore)은 ce>0 이어도 재방문 시계 후보 — 여기선 last_run_at 이 없어 revisit_unknown. 증분형(clien) ce>0 은 여전히 후보 아님.
+  t('되살리기: 증분형 ce>0 은 후보 아님 · 비증분형 ce>0 은 후보(last_run_at 없음 → revisit_unknown)',
+    [p.bySource.appstore, p.bySource.clien.candidates, p.revive.some((r) => r.prev_consecutive_empty !== 0)],
+    [{ candidates: 30, revive: 0, skipped: { revisit_unknown: 30 } }, 15, false])
   t('되살리기: over 소스(hackernews·googleplay)는 no_gap', [p.bySource.hackernews.skipped, p.bySource.googleplay.skipped], [{ no_gap: 5 }, { no_gap: 2 }])
   t('되살리기: producthunt·danawa excluded · 꺼진 todayhumor 제외', [p.bySource.producthunt.skipped, p.bySource.danawa.skipped, p.bySource.todayhumor.skipped],
     [{ source_excluded: 3 }, { source_excluded: 4 }, { source_disabled_or_missing: 2 }])
@@ -289,26 +292,30 @@ const DB = () => ({ review_sources: SOURCES, review_source_ramp: RAMPS.map((r) =
   }
   t('어댑터 표를 읽었다(25개 이상)', entries.length >= 25, true)
   t('비증분형 집합 = 어댑터에 incrementalOnly 가 없는 소스(runner endStatus=exhausted)', nonInc.sort(), [...NON_INCREMENTAL_SOURCES].sort())
-  t('재방문 간격: appstore 7 · youtube max(1/2, 7)=7 · 증분형 null', [revisitDays('appstore'), revisitDays('youtube'), revisitDays('clien'), revisitDays('googleplay')], [7, 7, null, null])
+  // v48: 간격은 속도에서(3~14일). 속도 재료가 없으면 상한 14 — 정밀 사례는 scripts/revisit-clock-selftest.mjs.
+  t('재방문 간격: 재료 없음 → 14 · 증분형 null',
+    [revisitDays({ source_key: 'appstore' }).days, revisitDays({ source_key: 'youtube' }).days, revisitDays({ source_key: 'clien' }), revisitDays({ source_key: 'googleplay' })], [14, 14, null, null])
 
   const ago = (h) => new Date(NOW.getTime() - h * 3600_000).toISOString()
+  // 인기 타깃 재료: 30일 전 등록 · 600건 적재 · 최신 리뷰 = 마지막 방문 시각 → λ 20/일 → 하한 3일
+  const hot = (x, lastH) => ({ ...x, last_run_at: ago(lastH), created_at: ago(lastH + 30 * 24), total_collected: 600, last_review_at: ago(lastH) })
   seq = 500
   const ts = [
-    ...tg('appstore', 1, 'kr:1', 'exhausted', 0).map((x) => ({ ...x, last_run_at: ago(7 * 24 + 1) })), // 7일 1시간 전 → 대상
-    ...tg('appstore', 2, (i) => `kr:${i}`, 'exhausted', 0).map((x, i) => ({ ...x, last_run_at: ago(24 + i) })), // 어제 → 건너뜀
+    ...tg('appstore', 1, 'kr:1', 'exhausted', 0).map((x) => hot(x, 3 * 24 + 1)), // 3일 1시간 전 → 대상
+    ...tg('appstore', 2, (i) => `kr:${i}`, 'exhausted', 0).map((x, i) => hot(x, 24 + i)), // 어제 → 건너뜀
     ...tg('appstore', 1, 'kr:9', 'exhausted', 0).map((x) => ({ ...x, last_run_at: null })), // 기록 없음 → revisit_unknown
-    ...tg('youtube', 1, 'v:aaaaaaaaaaa', 'exhausted', 0).map((x) => ({ ...x, last_run_at: ago(8 * 24) })),
-    ...tg('youtube', 1, 'v:bbbbbbbbbbb', 'exhausted', 0).map((x) => ({ ...x, last_run_at: ago(24) })),
+    ...tg('youtube', 1, 'v:aaaaaaaaaaa', 'exhausted', 0).map((x) => hot(x, 4 * 24)),
+    ...tg('youtube', 1, 'v:bbbbbbbbbbb', 'exhausted', 0).map((x) => hot(x, 24)),
     ...tg('clien', 2, (i) => `url:/service/board/park/${i}`, 'exhausted', 0).map((x) => ({ ...x, last_run_at: ago(1) })), // 증분형 — 1시간 전이어도 대상
   ]
   const row = (source_key) => ({ source_key, state: 'short', gap: 10, gate_headroom: 10 })
   const p = planRevive(ts, { generated_at: NOW.toISOString(), sources: ['appstore', 'youtube', 'clien'].map(row) })
-  t('appstore: 7일 지난 1건만 대상 · 어제 2건 revisit_not_due · 기록 없음 revisit_unknown',
-    [p.bySource.appstore.revive, p.bySource.appstore.skipped], [1, { revisit_not_due: 2, revisit_unknown: 1 }])
-  t('appstore: 다음 자격 = 가장 이른 last_run_at + 7일', p.bySource.appstore.next_due, new Date(Date.parse(ago(25)) + 7 * 86_400_000).toISOString())
-  t('youtube: 8일 전 대상 · 어제 건너뜀', [p.bySource.youtube.revive, p.bySource.youtube.skipped], [1, { revisit_not_due: 1 }])
+  t('appstore: 3일 지난 1건만 대상 · 어제 2건 revisit_not_due · 기록 없음 revisit_unknown',
+    [p.bySource.appstore.revive, p.bySource.appstore.skipped], [1, { revisit_unknown: 1, revisit_not_due: 2 }]) // 오래 안 간 순(null 먼저)
+  t('appstore: 다음 자격 = 가장 이른 last_run_at + 3일', p.bySource.appstore.next_due, new Date(Date.parse(ago(25)) + 3 * 86_400_000).toISOString())
+  t('youtube: 4일 전 대상 · 어제 건너뜀', [p.bySource.youtube.revive, p.bySource.youtube.skipped], [1, { revisit_not_due: 1 }])
   t('증분형(clien): 간격 규칙 영향 없음', [p.bySource.clien.revive, p.bySource.clien.skipped, p.bySource.clien.next_due], [2, {}, undefined])
-  t('간격 미경과 행은 상한을 소모하지 않는다(gap 1 이어도 7일 지난 행이 들어간다)',
+  t('간격 미경과 행은 상한을 소모하지 않는다(gap 1 이어도 간격 지난 행이 들어간다)',
     planRevive(ts, { generated_at: NOW.toISOString(), sources: [{ source_key: 'appstore', state: 'short', gap: 1, gate_headroom: 9 }] }).revive.map((r) => r.product_ref), ['kr:1'])
 }
 

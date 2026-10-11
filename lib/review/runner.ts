@@ -60,6 +60,21 @@ export const MAX_PAGES_PER_TARGET = 20
  */
 export const MISSING_STREAK_TO_STOP = 3
 
+/**
+ * 재점검 종료 조건(남헌 v48 §2-A) — 이미 본 지문(duplicate·revised·cross-target)이 **연속** 이만큼이면 아는 구간에 닿은 것.
+ * 증분 종료(STALE_STREAK_TO_STOP)와 같은 크기다 — 날짜가 없는 리뷰에도 걸리게 날짜 대신 지문으로 센다.
+ */
+export const RECHECK_SEEN_STREAK = 5
+
+/**
+ * 재점검인가 — 비증분형 타깃인데 커서가 비었고(처음부터 읽는다) 예전에 이미 읽은 흔적이 있다(last_review_at 또는 적재 > 0).
+ * 비증분형은 "끝까지 읽음"에서 커서를 비우고 exhausted 로 닫으므로, active 로 이 모양인 것은 재방문 시계(scripts/target-revive.mjs --auto)가
+ * 되살린 것이다(사람이 손으로 되살린 것도 같다). 피드 전체를 다시 읽지 않고 첫 페이지부터 아는 구간까지만 읽고 다시 닫는다.
+ */
+export function isRecheck(adapter: Pick<ReviewSourceAdapter, 'incrementalOnly'>, target: Pick<TargetState, 'cursor' | 'lastReviewAt' | 'totalCollected'>): boolean {
+  return !adapter.incrementalOnly && target.cursor == null && (target.lastReviewAt != null || (target.totalCollected ?? 0) > 0)
+}
+
 export interface SourceConfig {
   key: string
   enabled: boolean
@@ -591,6 +606,9 @@ export async function runCollection(
     let status: TargetProgress['status'] = 'active'
     const targetMissing: string[] = []
     let missingStreak = 0
+    // 재점검(v48): 이미 본 지문 연속 수. 페이지를 넘어 이어 센다.
+    const recheck = isRecheck(adapter, target)
+    const seen = { streak: 0, hit: false }
 
     for (let page = 0; page < pageCap; page++) {
       if (requests >= budget) {
@@ -717,6 +735,7 @@ export async function runCollection(
           lastReviewAt: baselineReviewAt,
           sourceKey: adapter.key,
           productScopedExternalId: adapter.productScopedExternalId === true,
+          seen,
         },
         opts,
         ports,
@@ -806,6 +825,19 @@ export async function runCollection(
       if (parsed.pauseRun) {
         outcome = `이번 실행 몫 종료(${page + 1}페이지째 · 커서 유지 — 다음 실행이 이어간다)`
         status = 'active'
+        break
+      }
+      // 재점검(v48): 아는 구간(지문 연속 5 또는 날짜 증분 종료)에 닿으면 커서를 비우고 다시 닫는다 — 다음 방문은 재방문 시계가 정한다.
+      // 이 페이지가 전부 새 것이면 다음 페이지로 간다(인기 타깃이 간격 사이에 한 페이지 넘게 쌓은 경우). dry-run 은 지문을 안 보니 첫 페이지만.
+      if (recheck && (seen.hit || staleStreak >= STALE_STREAK_TO_STOP || opts.dryRun)) {
+        const why = seen.hit
+          ? `이미 본 지문 연속 ${seen.streak}건`
+          : staleStreak >= STALE_STREAK_TO_STOP
+            ? `이미 본 구간 도달(연속 ${staleStreak}건)`
+            : 'dry-run 은 지문을 안 봐서 첫 페이지만'
+        outcome = `재점검 종료 — ${why} · ${page + 1}페이지째 → 다시 닫음(재방문 시계)`
+        status = endStatus
+        cursor = null
         break
       }
       if (staleStreak >= STALE_STREAK_TO_STOP) {
@@ -931,6 +963,8 @@ async function ingestPage(
     lastReviewAt: string | null
     sourceKey: string
     productScopedExternalId: boolean
+    /** 이미 본 지문 연속 수(재점검 종료 판정용, 페이지를 넘어 누적). 처음 보는 리뷰에서 0 으로. */
+    seen: { streak: number; hit: boolean }
   },
   opts: RunOptions,
   ports: RunnerPorts,
@@ -977,6 +1011,8 @@ async function ingestPage(
     if (opts.dryRun) continue
 
     const verdict = await ports.store.recordFingerprint(fp)
+    if (verdict === 'new') ctx.seen.streak = 0
+    else if (++ctx.seen.streak >= RECHECK_SEEN_STREAK) ctx.seen.hit = true
 
     // 2차 방어: 키는 달랐지만 **같은 소스에 같은 본문이 이미 적재돼 있다**.
     // 같은 글이 다른 타깃 경로(`url:` ↔ `board:`)로 들어와 옛 키 행을 못 만난

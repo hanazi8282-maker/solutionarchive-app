@@ -40,6 +40,7 @@ const wpEmpty = await fx('wordpress', 'feed-empty.xml')
 const shPage = await fx('shopify', 'reviews-page.html')
 const shLast = await fx('shopify', 'reviews-last.html')
 const shNot = await fx('shopify', 'not-reviews.html')
+const shRatingOnly = await fx('shopify', 'reviews-rating-only-2026-10-09.html')
 
 const WP_ROBOTS = 'User-agent: *\nDisallow: /wp-admin/\nDisallow: /search\nDisallow: /?s=\nDisallow: /plugins/search/\n'
 const SH_ROBOTS = 'User-agent: *\nDisallow: /internal/\nDisallow: /services/\nDisallow: *q=*\nDisallow: /*?*shpxid=*\nDisallow: /*?*auth=*\n'
@@ -140,6 +141,15 @@ const sctx = (cursor = null, lastReviewAt = null) => ({ productRef: 'app:example
   const zero = '<html><head><title>Reviews: New App | Shopify App Store</title></head><body><p>No reviews yet</p><script type="application/ld+json">{"aggregateRating":{"reviewCount":0}}</script></body></html>'
   t('sh: 리뷰 0건 정상 페이지 = 0건 · 실패 0', [shopifyAdapter.parse(zero, sctx()).reviews.length, shopifyAdapter.parse(zero, sctx()).parseFailures], [0, 0])
   t('sh: 리뷰 표지 + 챌린지 마크업 = 파서도 못 읽음', shopifyAdapter.parse(shPage.replace('</body>', '<script src="/cdn-cgi/challenge-platform/x.js"></script></body>'), sctx()).parseFailures, 1)
+
+  // 10-09 실측 고정 샘플(loox 1쪽에서 블록 4개): 별점만 남긴 리뷰(빈 <p></p>)는 실패가 아니라 건너뜀. 05:39 15/20 · 07:38 2/10 broken 의 원인.
+  const ro = shopifyAdapter.parse(shRatingOnly, sctx())
+  t('sh 실측: 본문 2건 · 별점만 2건 = 실패 0 · 다음 쪽', [ro.reviews.length, ro.parseFailures, ro.nextCursor], [2, 0, '1'])
+  t('sh 실측: id·별점·날짜', ro.reviews.map((r) => [r.externalId, r.rating, r.writtenAt]), [['2388901', 5, '2026-10-08'], ['2388611', 1, '2026-10-08']])
+  ok('sh 실측: 상점명 미저장', ro.reviews.every((r) => r.authorMasked === null && !r.text.includes('(shop)')))
+  // 반례: 쪽 전체가 빈 <p></p> 면 본문이 다른 자리로 옮겨 간 구조 변경일 수 있다 → 0건 ok 가 아니라 실패 1.
+  const allEmpty = shRatingOnly.replace(/(<p class="tw-break-words">)[^<]+(<\/p>)/g, '$1$2')
+  t('sh 반례: 블록 전부 빈 본문 = 0건 · 실패 1', [shopifyAdapter.parse(allEmpty, sctx()).reviews.length, shopifyAdapter.parse(allEmpty, sctx()).parseFailures], [0, 1])
 }
 {
   // WP 반례: 채널은 있는데 item 이 다른 모양(<item attr>·<entry>)이면 0건 ok 가 아니다.

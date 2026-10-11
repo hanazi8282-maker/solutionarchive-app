@@ -235,7 +235,7 @@ export function writeLedger(reportsDir, date, result, meta) {
   return f
 }
 
-async function realFetch(url, init) {
+export async function realFetch(url, init) {
   try {
     const r = await fetch(url, {
       ...init,

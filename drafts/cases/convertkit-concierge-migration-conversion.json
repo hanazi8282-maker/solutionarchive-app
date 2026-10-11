@@ -57,7 +57,7 @@
       "published_at": "2017-07-06",
       "retrieved_at": "2026-09-14",
       "snippet": "Basically on any account over $79/month (5,000 subscribers) we will move them...for free...the churn on accounts that go through a migration is around 1.5% rather than the more typical 5.5%.",
-      "supports_claim": "창업자 자사 블로그(Direct Sales for Bootstrapped SaaS Startups). $79/월·구독자 5,000명 기준 무료 마이그레이션 정책, 마이그레이션 고객 이탈률 1.5% vs 일반 5.5%. 창업자 자기보고 — 다른 원 관측으로 교차 확인된 수치는 아니다(등급 C 예상)."
+      "supports_claim": "창업자 자사 블로그(Direct Sales for Bootstrapped SaaS Startups). $79/월·구독자 5,000명 기준 무료 마이그레이션 정책, 마이그레이션 고객 이탈률 1.5% vs 일반 5.5%. 창업자 자기보고 — 다른 원 관측으로 교차 확인된 수치는 아니다(등급 C 예상). ★ 2026-09-18 독립 확인 시도 결과: **확인 불가 — 이 수치의 원출처는 이 글 하나뿐이다.** 찾아본 곳: 웹검색 1회(ConvertKit + 1.5%/5.5% + churn), Failory 뉴스레터(이미 이 파일에 3차로 들어와 있음), Indie Hackers 팟캐스트 008·Russell Brunson 쇼·Sacra 인터뷰 등 검색에 뜬 나단 배리 인터뷰 목록. 전부 **배리 본인의 말**이라 is_self_reported 를 벗어나는 경로가 없고, 코호트별(마이그레이션 경유 vs 전체) 이탈률을 외부에서 측정한 자료는 존재하지 않는다. ConvertKit 은 비상장이라 공시도 없다. 즉 이 무브는 근거를 더 찾아서 올릴 수 있는 종류가 아니라, 발행 시 CG-1 귀속 문구로 다루는 것이 맞다."
     },
     {
       "move": 0,
@@ -81,7 +81,7 @@
       "is_estimate": false,
       "is_regulatory_filing": false,
       "observation_key": "convertkit-nathanbarry-sales-post-2017",
-      "supports_metric": null,
+      "supports_metric": false,
       "published_at": "2017-07-06",
       "retrieved_at": "2026-09-14",
       "snippet": "The email is simple: I introduce myself, ask if anything frustrates them with [platform], and say I'd love to show them ConvertKit.",

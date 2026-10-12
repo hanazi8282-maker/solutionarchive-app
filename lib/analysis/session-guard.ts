@@ -357,7 +357,9 @@ export function relevanceRetryDecision(
  * 규칙: 가장 최근 relevance-judge 행(수동·재시도·재개 포함) 하나만 본다.
  *  · 실행 중(running): 3시간 안이면 쉼, 넘으면 죽은 실행이라 재개.
  *  · 한도(quota) 정지: CLI 리셋 시각(있으면) 또는 정지 + cooldownMs 가 지나면 재개, 아니면 쉼(다음 30분에 다시 본다).
- *  · 체인이 "이어 가라"(relaunch=true)를 남겼는데 20분 넘게 다음 실행이 없으면 체인이 끊긴 것 — 재개.
+ *  · 체인이 "이어 가라"(relaunch=true)를 남겼는데 20분~6시간 사이 다음 실행이 없으면 체인이 끊긴 것 — 재개(6시간 넘으면 옛 체인이라 쉼).
+ *  · 로컬 실행(-local) 행은 보지 않는다. 한도 정지는 CLI 리셋 시각이 있어도 정지 후 최소 30분은 쉰다.
+ *  · 사람이 Cancel 한 실행은 running 으로 남아 3시간 뒤 재개된다 — 멈추려면 RELEVANCE_CHAIN=off.
  *  · relaunch=false 이면 전부 쉼(오류율·하드 캡·설정 확인 불가·미판정 0건·연속 0건·hop 상한은 사람이 볼 대상 — hop 상한 뒤 자동 재개는 상한을 무력화한다, 독립 검토 2번).
  *  · 행이 없거나 위에 안 걸리면 쉼. 킬 스위치(RELEVANCE_CHAIN=off)·만료는 호출부가 본다.
  */
@@ -367,8 +369,9 @@ export function relevanceResumeDecision(
 ): { run: boolean; reason: string } {
   const stale = o.runningStaleMs ?? 3 * 3_600_000
   const grace = o.relaunchGraceMs ?? 20 * 60_000
+  // 로컬 실행(-local)이 남긴 행으로 Actions 체인을 되살리지 않는다.
   const last = rows
-    .filter(r => r.run_key.startsWith('relevance-judge-'))
+    .filter(r => r.run_key.startsWith('relevance-judge-') && !r.run_key.endsWith('-local'))
     .sort((a, b) => Date.parse(b.started_at ?? '') - Date.parse(a.started_at ?? ''))[0]
   if (!last) return { run: false, reason: '판정 실행 기록 없음 — 재개할 것이 없다' }
   const started = Date.parse(last.started_at ?? '')
@@ -382,7 +385,9 @@ export function relevanceResumeDecision(
   }
   if (isQuotaBlocked(last)) {
     const reset = Date.parse(String(last.summary?.quota_reset_at ?? ''))
-    const due = Number.isFinite(reset) ? reset : Number.isFinite(finished) ? finished + o.cooldownMs : NaN
+    // 리셋 시각이 있어도 정지 직후(최소 30분)에는 재개하지 않는다 — 파싱 오류로 과거 시각이 들어와도 한도 소진 상태에서 바로 부르지 않게(독립 검토 1번).
+    const minGap = 30 * 60_000
+    const due = Number.isFinite(reset) ? (Number.isFinite(finished) ? Math.max(reset, finished + minGap) : reset) : Number.isFinite(finished) ? finished + o.cooldownMs : NaN
     if (!Number.isFinite(due)) return { run: false, reason: '한도 정지 시각 확인 불가 — 재개하지 않는다' }
     return now >= due
       ? { run: true, reason: `한도 정지(${last.run_key}) 뒤 ${Number.isFinite(reset) ? 'CLI 리셋 시각' : `${o.cooldownMs / 3_600_000}시간`} 경과 — 재개` }
@@ -391,6 +396,8 @@ export function relevanceResumeDecision(
   const chain = (last.summary?.chain ?? null) as { relaunch?: unknown; reason?: unknown } | null
   if (chain?.relaunch === true) {
     if (!Number.isFinite(finished)) return { run: false, reason: '체인 이어 가기 표시는 있으나 종료 시각 확인 불가 — 재개하지 않는다' }
+    // chainCarryOf 의 이어받기 창(6시간)과 맞춘다 — 오래전에 멈춘 체인(예: 킬 스위치를 하루 켰다 푼 경우)을 hop 0 으로 되살리지 않는다.
+    if (now - finished > 6 * 3_600_000) return { run: false, reason: `${last.run_key} 의 이어 가기 표시가 6시간 넘게 지났다 — 옛 체인이라 재개하지 않는다` }
     return now - finished > grace
       ? { run: true, reason: `${last.run_key} 가 이어 가라고 남겼는데 ${Math.round((now - finished) / 60_000)}분째 다음 실행이 없다 — 체인이 끊겨 재개` }
       : { run: false, reason: '체인이 곧 다음 실행을 부른다' }

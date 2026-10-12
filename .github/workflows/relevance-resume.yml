@@ -2,9 +2,13 @@
 #   같은 파일에 30분 크론을 얹으면 cron-watchdog 가 일일 슬롯(main·r1·r2)을 이 실행에 가려 읽고, concurrency 대기열에서
 #   일일 크론을 밀어낸다(독립 검토 1·3번). 여기서는 판정을 직접 돌리지 않고 조건이 맞을 때만 nightly-relevance 를 **dry_run=false 로 명시**해 부른다
 #   (수동 dispatch 기본값이 dry_run=true 라 아무것도 기록되지 않던 문제 재발 방지).
-# 시작 조건(scripts/relevance-resume.mjs = relevanceResumeDecision): 구독 한도 정지 + 쿨다운(CLI 리셋 시각 또는 4시간) 경과 · 이어 가라 표시 뒤 20분 넘게 후속 없음(끊긴 체인)
-#   · 3시간 넘게 running(죽은 실행). 오류율·하드 캡·설정 확인 불가·미판정 0건·연속 0건·hop 상한은 사람이 볼 대상이라 재개하지 않는다.
-# 멈춤: 리포 변수 RELEVANCE_CHAIN=off · config relevance_cap_until 만료 · 실행 이력 조회 실패 · 이미 대기/실행 중인 판정 실행이 있음.
+# 시작 조건(scripts/relevance-resume.mjs = relevanceResumeDecision): 구독 한도 정지 + 쿨다운(CLI 리셋 시각 또는 4시간, 정지 후 최소 30분) 경과
+#   · 이어 가라 표시 뒤 20분~6시간 사이 후속 없음(끊긴 체인) · 3시간 넘게 running(죽은 실행).
+#   오류율·하드 캡·설정 확인 불가·미판정 0건·연속 0건·hop 상한은 사람이 볼 대상이라 재개하지 않는다.
+# 안전장치: 60분 안에 만든 dispatch 실행이 있거나 최근 3건이 연속 실패면 부르지 않는다(실행이 기록 행을 쓰기 전에 죽는 루프 방지) ·
+#   진행/대기 중인 판정 실행이 있으면 부르지 않는다 · main 브랜치에서만 돈다 · 비밀값은 필요한 스텝에만 준다.
+# ⚠️ 멈추는 법: **Cancel 로는 안 멈춘다**(취소된 실행은 running 으로 남아 3시간 뒤 죽은 실행으로 재개된다). 리포 변수 RELEVANCE_CHAIN=off 로 끈다
+#   (config relevance_cap_until 만료도 멈춘다).
 # ⚠️ 이 job 만 actions 쓰기 권한(workflow_dispatch 로 판정 실행을 만든다) — nightly-relevance.yml 의 relaunch job 과 같은 성격이다.
 #   되돌리기 = 이 파일 삭제(또는 RELEVANCE_CHAIN=off).
 name: Relevance Auto-Resume
@@ -23,16 +27,13 @@ permissions:
 
 jobs:
   resume:
+    # 다른 브랜치에서 수동 실행하면 그 브랜치 코드가 운영 시크릿으로 판정을 돌리게 되므로 main 만.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
       actions: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      RELEVANCE_CHAIN: ${{ vars.RELEVANCE_CHAIN || 'on' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,14 +43,31 @@ jobs:
       - run: npm ci
       - name: Decide
         id: decide
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RELEVANCE_CHAIN: ${{ vars.RELEVANCE_CHAIN || 'on' }}
         run: node scripts/relevance-resume.mjs
       - name: Start judge run (dry_run=false)
         if: steps.decide.outputs.resume == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HOP: ${{ steps.decide.outputs.hop }}
+          ZERO: ${{ steps.decide.outputs.zero }}
+          REASON: ${{ steps.decide.outputs.reason }}
         run: |
-          case "${{ steps.decide.outputs.hop }}${{ steps.decide.outputs.zero }}" in *[!0-9]*|'') echo "::error::hop/zero 가 숫자가 아니다 — 부르지 않는다"; exit 1;; esac
+          case "$HOP$ZERO" in *[!0-9]*|'') echo "::error::hop/zero 가 숫자가 아니다 — 부르지 않는다"; exit 1;; esac
           busy=$(gh run list -R "$GITHUB_REPOSITORY" --workflow nightly-relevance.yml --limit 20 --json status \
             --jq '[.[] | select(.status=="queued" or .status=="pending" or .status=="waiting" or .status=="requested" or .status=="in_progress")] | length')
           if [ "$busy" != "0" ]; then echo "판정 실행이 이미 ${busy}건 대기/진행 중 — 부르지 않음" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
-          gh workflow run nightly-relevance.yml -R "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" \
-            -f dry_run=false -f chain_hop="${{ steps.decide.outputs.hop }}" -f chain_zero="${{ steps.decide.outputs.zero }}"
-          echo "자동 재개: ${{ steps.decide.outputs.reason }}" | tee -a "$GITHUB_STEP_SUMMARY"
+          # 루프 방지: 최근 dispatch 가 60분 안이거나 최근 3건이 연속 실패면 부르지 않는다.
+          recent=$(gh run list -R "$GITHUB_REPOSITORY" --workflow nightly-relevance.yml --event workflow_dispatch --limit 3 --json createdAt \
+            --jq '[.[] | select((now - (.createdAt | fromdateiso8601)) < 3600)] | length')
+          fails=$(gh run list -R "$GITHUB_REPOSITORY" --workflow nightly-relevance.yml --event workflow_dispatch --limit 3 --json conclusion \
+            --jq '[.[] | select(.conclusion=="failure")] | length')
+          total=$(gh run list -R "$GITHUB_REPOSITORY" --workflow nightly-relevance.yml --event workflow_dispatch --limit 3 --json conclusion --jq 'length')
+          if [ "$recent" != "0" ]; then echo "60분 안에 만든 dispatch 실행이 있다 — 부르지 않음" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          if [ "$total" = "3" ] && [ "$fails" = "3" ]; then echo "::error::최근 dispatch 3건이 연속 실패 — 사람이 볼 것. 부르지 않음"; exit 1; fi
+          gh workflow run nightly-relevance.yml -R "$GITHUB_REPOSITORY" --ref main \
+            -f dry_run=false -f chain_hop="$HOP" -f chain_zero="$ZERO"
+          echo "자동 재개: $REASON" | tee -a "$GITHUB_STEP_SUMMARY"

@@ -133,7 +133,7 @@ ok('실제 리포 — daily-cmo-loop 포함', real.some((w) => w.file === 'daily
 ok('실제 리포 — nightly-review-collect 포함', real.some((w) => w.file === 'nightly-review-collect.yml'))
 ok('실제 리포 — 감시 자신 제외', !real.some((w) => w.file === 'cron-watchdog.yml'))
 ok('실제 리포 — 전부 감시 가능한 일일 크론(자주-도는 재개 크론은 감시에서 빠진다)', real.every((w) => w.crons.every((c) => FREQUENT_CRON.test(c.trim()) || lastSlot(c, NOW))), JSON.stringify(real))
-ok('자주-도는 크론 판별: 17,47 * * * * 만 해당, 일일 크론은 아님', FREQUENT_CRON.test('17,47 * * * *') && !FREQUENT_CRON.test('3 19 * * *') && !FREQUENT_CRON.test('*/5 * * * *'))
+ok('자주-도는 크론 판별: 17,47 * * * * 만 해당, 일일 크론은 아님', FREQUENT_CRON.test('17,47 * * * *') && !FREQUENT_CRON.test('3 19 * * *') && !FREQUENT_CRON.test('*/5 * * * *') && !FREQUENT_CRON.test('0 * * * *'))
 
 // ── 4) 토큰 판정 (정상 / 만료 / 만료 임박) ────────────────────────
 const tok = (days, over = {}) => ({ expires_at: iso(NOW.getTime() + days * DAY), user_id: 'u1', ...over })

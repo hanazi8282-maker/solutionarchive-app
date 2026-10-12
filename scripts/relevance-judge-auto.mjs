@@ -168,7 +168,7 @@ const guard = loadGuardConfig()
 // 판정 전용 캡(until 이전) 또는 기본 캡. extract·번역·백필은 capUsdOf 그대로라 영향 없다.
 const caps = relevanceCaps(guard.cfg, guardNow)
 const capUsd = caps.capUsd
-log(`판정 캡 — ${caps.boosted ? `판정 전용 ${caps.capPct}%(~${new Date(caps.untilMs).toISOString()})` : `기본 ${caps.capPct ?? '?'}%${caps.untilMs ? `(판정 전용 만료 ${new Date(caps.untilMs).toISOString()})` : ''}`} · 소프트 $${capUsd?.toFixed(2) ?? '?'} · 하드 $${caps.hardCapUsd?.toFixed(2) ?? '?'} · 체인 hop ${chainHop}/${chainMaxHops}(연속 0건 ${chainZero}) ${chainEnabled ? '' : '· RELEVANCE_CHAIN=off'}`)
+log(`판정 캡 — ${caps.relaxed ? `오늘 한정 완화 ${caps.capPct}%(~${new Date(caps.untilMs).toISOString()}, 사실상 무제한)` : caps.boosted ? `판정 전용 ${caps.capPct}%(~${new Date(caps.untilMs).toISOString()})` : `기본 ${caps.capPct ?? '?'}%${caps.untilMs ? `(판정 전용 만료 ${new Date(caps.untilMs).toISOString()})` : ''}`} · 소프트 $${capUsd?.toFixed(2) ?? '?'} · 하드 $${caps.hardCapUsd?.toFixed(2) ?? '?'} · 체인 hop ${chainHop}/${chainMaxHops}(연속 0건 ${chainZero}) ${chainEnabled ? '' : '· RELEVANCE_CHAIN=off'}`)
 log(`소스 — 제외 ${excludedSources.join(',') || '(없음)'} · 맨 뒤 ${lastSources.join(',') || '(없음)'} · 마감 ${deadlineMs / 60_000}분`)
 const window5h = recentRuns ? usageSince(recentRuns, guardNow.getTime() - 5 * 3_600_000) : null
 const weekUsd = recentRuns ? usageSince(recentRuns, guardNow.getTime() - 7 * 86_400_000).usd : null
@@ -588,6 +588,8 @@ const chain = decideRelaunch({
   weeklyPct: session.week_usd_lower_bound == null || guard.cfg.usdPerWeeklyPct == null ? null : Number((session.week_usd_lower_bound / guard.cfg.usdPerWeeklyPct).toFixed(2)),
   weeklyStopPct: guard.cfg.relevanceChainWeeklyStopPct,
   window5hPct: session.window5h_pct, window5hStopPct: guard.cfg.relevanceChainWindow5hStopPct,
+  // 오늘 한정 완화(남헌 v61) — relax_until 이 지나면 decideRelaunch 가 원래 동작(주간·5시간 창 확인 불가 정지·90분 휴식·hop 24)으로 돌아간다.
+  relaxUntilMs: guard.cfg.relevanceRelaxUntilMs,
 })
 log(`체인 ${chain.relaunch ? '이어감' : '멈춤'} — ${chain.reason} · 미판정 ${unjudgedBefore} → ${unjudgedAfter} · 시도 ${attemptedTotal} · 오류 ${errorTotal}${deadlineHit ? ' · 마감 도달' : ''}`)
 if (!chain.relaunch && unjudgedAfter > 0 && !/드라이런|RELEVANCE_CHAIN=off|만료|relevance_cap_until 없음/.test(chain.reason)) warn(`체인이 미판정 ${unjudgedAfter}건을 남기고 멈췄다 — ${chain.reason}. 다음 크론(KST 04:03)이 다시 시작한다`)
@@ -602,7 +604,7 @@ await tracker.finish({
     projects: targets.length, judged: judgedTotal, remaining, blocker,
     unjudged_before: unjudgedBefore, unjudged_after: unjudgedAfter, excluded_sources: excludedSources, excluded_inputs: excludedTotal,
     attempted: attemptedTotal, errors: errorTotal, prompt_version: RELEVANCE_CRITERIA_VERSION, prompt_version_column: promptVersionColumn,
-    caps: { boosted: caps.boosted, cap_usd: capUsd, hard_cap_usd: caps.hardCapUsd, until: caps.untilMs ? new Date(caps.untilMs).toISOString() : null },
+    caps: { boosted: caps.boosted, relaxed: caps.relaxed, cap_usd: capUsd, hard_cap_usd: caps.hardCapUsd, until: caps.untilMs ? new Date(caps.untilMs).toISOString() : null },
     chain: { hop: chainHop, relaunch: chain.relaunch, reason: chain.reason, next_hop: chain.nextHop, next_zero_streak: chain.nextZeroStreak, wait_min: chain.waitMin },
     // 상한·한도로 멈췄으면 몇 개째였는지(§7.2). quota_reset_at 은 재시도 슬롯(r1·r2)이 읽는다.
     stop_reason: stopReason, quota_reset_at: quotaResetAt, quota_project: quotaProjectId, batches_done: batchesDone, batches_planned: batchesPlanned, slot, session,

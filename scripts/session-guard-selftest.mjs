@@ -6,7 +6,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {
-  GUARDED_RUN_PREFIXES, RELEVANCE_SLOTS, capReached, capUsdOf, hardCapUsdOf, loadGuardConfig, nextRetryQueue, orderWithQueue, parseGuardConfig, pctOf, relevanceCaps,
+  GUARDED_RUN_PREFIXES, RELEVANCE_SLOTS, capReached, capUsdOf, hardCapUsdOf, loadGuardConfig, nextRetryQueue, orderWithQueue, parseGuardConfig, pctOf, relevanceCaps, relevanceRelaxLive,
   relevanceRetryDecision, relevanceRunSuffix, retryQueueOf, runCostUsd, sessionBlock, sessionLine, spendForCap, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, decideSlot, isQuotaBlocked, slotStateOf } from '../lib/analysis/extract-auto.ts'
@@ -84,6 +84,18 @@ t('v40 §2: 계수가 들어가도 주간 중단 스위치는 비활성 그대�
   t('until 없음 → 기본 캡', !relevanceCaps(parseGuardConfig(base), NOW_CFG).boosted)
   t('until 못 읽음 → 기본 캡(낮은 쪽으로 닫힘)', !relevanceCaps(parseGuardConfig({ ...base, relevance_cap_until: '내일' }), NOW_CFG).boosted)
   t('판정 전용 % 하나라도 없으면 기본 캡', !relevanceCaps(parseGuardConfig({ ...base, relevance_hard_cap_pct: null, relevance_cap_until: '2099-01-01T00:00:00Z' }), NOW_CFG).boosted)
+  // 오늘 한정 완화(남헌 v61) — relax_until 전엔 사실상 무제한, 지나면 판정 전용 20%/35% 로 자동 복귀. extract 는 무관.
+  const relaxUntil = real.cfg.relevanceRelaxUntilMs
+  t('리포 설정: 완화 만료 2026-10-13 00:00 KST · 완화 % · 주간 안전선 90', relaxUntil === Date.parse('2026-10-13T00:00:00+09:00') && real.cfg.relevanceRelaxCapPct >= 1000 && real.cfg.relevanceChainWeeklyStopPct === 90)
+  t('두 만료 시각이 맞다: 완화 만료 ≤ 판정 전용 만료', relaxUntil <= until)
+  const rx = relevanceCaps(real.cfg, new Date(relaxUntil - 60_000))
+  t('완화 중: 소프트·하드 = 완화 % × 계수(사실상 무제한)', rx.relaxed && rx.boosted && Math.abs(rx.capUsd - real.cfg.relevanceRelaxCapPct * 0.43) < 1e-6 && rx.hardCapUsd === rx.capUsd && relevanceRelaxLive(real.cfg, new Date(relaxUntil - 60_000)))
+  const ax = relevanceCaps(real.cfg, new Date(relaxUntil))
+  t('완화 만료 시각부터: 판정 전용 20%/35% 로 자동 복귀', !ax.relaxed && ax.boosted && ax.capPct === real.cfg.relevanceCapPct && !relevanceRelaxLive(real.cfg, new Date(relaxUntil)))
+  t('완화 중에도 extract 용 capUsdOf 는 $6.45', Math.abs(capUsdOf(real.cfg) - 6.45) < 1e-9)
+  const late = parseGuardConfig({ session_cap_pct: 15, hard_cap_pct: 30, usd_per_session_pct: 0.43, relevance_session_cap_pct: 20, relevance_hard_cap_pct: 35, relevance_cap_until: '2026-10-12T00:00:00Z', relevance_relax_until: '2026-10-20T00:00:00Z', relevance_relax_cap_pct: 10000 })
+  t('판정 전용 만료가 먼저 지나면 완화도 꺼진다(기본 15%)', !relevanceCaps(late, new Date('2026-10-13T00:00:00Z')).relaxed && relevanceCaps(late, new Date('2026-10-13T00:00:00Z')).capPct === 15)
+  t('완화 % 없으면 완화 중에도 판정 전용 캡', !relevanceCaps(parseGuardConfig({ ...base, relevance_cap_until: '2099-01-01T00:00:00Z', relevance_relax_until: '2099-01-01T00:00:00Z' }), NOW_CFG).relaxed)
   const sbBoost = sessionBlock({ job: 't2', cfg: real.cfg, caps: before, spentUsd: 1, calls: 1, costUnknownCalls: 0, window5h: null, weekUsd: null, capped: false })
   t('session 블록이 실제로 쓴 판정 캡을 남긴다', sbBoost.cap_pct === real.cfg.relevanceCapPct && Math.abs(sbBoost.cap_usd - before.capUsd) < 1e-4)
 }

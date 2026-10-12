@@ -160,6 +160,22 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
   t('5시간 창 안전선 이상 → 끊지 않고 90분 쉬고 이어감', d({ window5hPct: 55 }).relaunch && d({ window5hPct: 55 }).waitMin === 90)
   t('5시간 창 확인 불가 → 멈춤', !d({ window5hPct: null }).relaunch)
   t('드라이런·스위치 off → 멈춤', !d({ dry: true }).relaunch && !d({ enabled: false }).relaunch)
+
+  // 오늘 한정 완화(남헌 v61, ~2026-10-13 00:00 KST)
+  const relaxUntilMs = Date.parse('2026-10-13T00:00:00+09:00')
+  const inRelax = new Date(relaxUntilMs - 3_600_000)
+  const r = (o) => decideRelaunch({ ...ok, weeklyStopPct: 90, now: inRelax, relaxUntilMs, ...o })
+  t('완화 중: 주간 확인 불가여도 이어감', r({ weeklyPct: null }).relaunch)
+  t('완화 중: 주간 90% 이상 확인되면 멈춤', !r({ weeklyPct: 90 }).relaunch && r({ weeklyPct: 89.9 }).relaunch)
+  t('완화 중: 5시간 창 안전선·확인 불가 무시(휴식 0)', r({ window5hPct: 99 }).relaunch && r({ window5hPct: 99 }).waitMin === 0 && r({ window5hPct: null }).relaunch)
+  t('완화 중: 한도(quota)·오류율 5% 초과·연속 0건·스위치 off 는 그대로 멈춤', !r({ stopReason: 'quota' }).relaunch && !r({ errors: 51 }).relaunch && !r({ judged: 0, zeroStreak: 1 }).relaunch && !r({ enabled: false }).relaunch)
+  t('완화 중: hop 상한 60(체인당)', r({ hop: 59 }).relaunch && !r({ hop: 60 }).relaunch)
+  const afterRelax = new Date(relaxUntilMs)
+  const a = (o) => decideRelaunch({ ...ok, weeklyStopPct: 90, now: afterRelax, relaxUntilMs, ...o })
+  t('완화 만료 뒤: 주간 확인 불가 → 다시 멈춤(자동 복귀)', !a({ weeklyPct: null }).relaunch)
+  t('완화 만료 뒤: 5시간 창 50% 이상 → 90분 휴식, 확인 불가 → 멈춤', a({ window5hPct: 55 }).waitMin === 90 && !a({ window5hPct: null }).relaunch)
+  t('완화 만료 뒤: hop 상한 24 로 복귀', !a({ hop: 24 }).relaunch)
+  t('주간 안전선 설정 자체가 없으면 완화 중에도 멈춤', !r({ weeklyStopPct: null }).relaunch)
 }
 
 // ── 6. 체인 넘겨받기(대기 중이던 재시도 크론이 hop 을 잇는다) ──

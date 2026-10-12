@@ -141,6 +141,8 @@ export async function saveWithColumnFallback(
 export const CHAIN_STOP_REASONS = ['quota', 'weekly_stop', 'hard_cap', 'cost_unknown', 'guard_config', 'save_failed'] as const
 export const CHAIN_MAX_ERROR_RATE = 0.05
 export const CHAIN_DEFAULT_MAX_HOPS = 24
+/** 오늘 한정 완화 중 체인 하나당 hop 상한(남헌 v61). 실행 1회 ≈ 85분이라 60 hop ≈ 85시간 — 완화 하루 안에서는 사실상 hop 이 막지 않고, 끝은 미판정 0·한도·오류율이 정한다. */
+export const CHAIN_RELAX_MAX_HOPS = 60
 export const CHAIN_DEFAULT_ZERO_LIMIT = 2
 /** 5시간 창이 안전선 이상이면 끊지 않고 이만큼 쉬었다가 부른다(분). */
 export const CHAIN_WINDOW_WAIT_MIN = 90
@@ -172,6 +174,8 @@ export type RelaunchInput = {
   /** 이번 실행 포함 5시간 창 사용률% · 안전선. */
   window5hPct: number | null
   window5hStopPct: number | null
+  /** 오늘 한정 완화 만료(ms) — relevanceRelaxLive 와 같은 값을 넘긴다(relax_until 과 cap_until 중 이른 것). null = 완화 없음. */
+  relaxUntilMs?: number | null
 }
 
 export type RelaunchDecision = { relaunch: boolean; reason: string; nextHop: number; nextZeroStreak: number; waitMin: number }
@@ -213,14 +217,19 @@ export function decideRelaunch(i: RelaunchInput): RelaunchDecision {
   if (i.remaining == null) return stop('남은 미판정 확인 불가')
   if (i.remaining <= 0) return stop('미판정 0건 — 다 채웠다')
   if (nextZeroStreak >= i.zeroLimit) return stop(`연속 ${nextZeroStreak}회 처리 0건`)
-  if (nextHop > i.maxHops) return stop(`체인 하나당 hop 상한 ${i.maxHops} 도달`)
-  if (i.weeklyPct == null || i.weeklyStopPct == null) return stop('주간 사용률·안전선 확인 불가')
-  if (i.weeklyPct >= i.weeklyStopPct) return stop(`주간 사용률(하한) ${i.weeklyPct}% ≥ 안전선 ${i.weeklyStopPct}%`)
-  if (i.window5hPct == null || i.window5hStopPct == null) return stop('5시간 창 사용률·안전선 확인 불가')
-  const waitMin = i.window5hPct >= i.window5hStopPct ? CHAIN_WINDOW_WAIT_MIN : 0
+  // 오늘 한정 완화(남헌 v61): hop 상한을 CHAIN_RELAX_MAX_HOPS 로 올리고, 주간 '확인 불가'·5시간 창(안전선·휴식·확인 불가)을 정지 사유로 안 쓴다.
+  // 주간 90% 이상이 **확인되면** 완화 중에도 멈춘다. 완화 만료 뒤엔 아래 원래 동작 그대로.
+  const relax = i.relaxUntilMs != null && i.now.getTime() < i.relaxUntilMs
+  const maxHops = relax ? Math.max(i.maxHops, CHAIN_RELAX_MAX_HOPS) : i.maxHops
+  if (nextHop > maxHops) return stop(`체인 하나당 hop 상한 ${maxHops} 도달`)
+  if (i.weeklyStopPct == null) return stop('주간 안전선 설정 확인 불가')
+  if (i.weeklyPct == null && !relax) return stop('주간 사용률 확인 불가')
+  if (i.weeklyPct != null && i.weeklyPct >= i.weeklyStopPct) return stop(`주간 사용률(하한) ${i.weeklyPct}% ≥ 안전선 ${i.weeklyStopPct}%`)
+  if (!relax && (i.window5hPct == null || i.window5hStopPct == null)) return stop('5시간 창 사용률·안전선 확인 불가')
+  const waitMin = !relax && (i.window5hPct as number) >= (i.window5hStopPct as number) ? CHAIN_WINDOW_WAIT_MIN : 0
   return {
     relaunch: true,
-    reason: `남은 ${i.remaining}건 — hop ${nextHop}/${i.maxHops}${waitMin ? ` · 5시간 창 ${i.window5hPct}% ≥ ${i.window5hStopPct}% 라 ${waitMin}분 쉬고 부른다` : ''}`,
+    reason: `남은 ${i.remaining}건 — hop ${nextHop}/${maxHops}${relax ? ` · 오늘 한정 완화(~${new Date(i.relaxUntilMs as number).toISOString()}: 5시간 창·주간 확인 불가 무시)` : ''}${waitMin ? ` · 5시간 창 ${i.window5hPct}% ≥ ${i.window5hStopPct}% 라 ${waitMin}분 쉬고 부른다` : ''}`,
     nextHop,
     nextZeroStreak,
     waitMin,

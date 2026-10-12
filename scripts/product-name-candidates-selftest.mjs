@@ -3,7 +3,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { normKey, splitBilingual, domainName, extractMentions, buildRegistry, loadConfig, main, stripHeader, idLike, corpusStats, renderMarkdown, buildCandidates, groupByArea, renderApprovalSheet, parseApprovalSheet, readAnswer, sheetStats, approvalMode, isCdnHost, ledgerOf, parseReleaseDates, releaseOf } from './product-name-candidates.mjs'
+import { normKey, splitBilingual, domainName, extractMentions, buildRegistry, loadConfig, main, stripHeader, idLike, corpusStats, renderMarkdown, buildCandidates, groupByArea, renderApprovalSheet, parseApprovalSheet, readAnswer, sheetStats, approvalMode, isCdnHost, ledgerOf, parseReleaseDates, releaseOf, tierOf, tierStats, L4_UNDEFINED } from './product-name-candidates.mjs'
 
 let pass = 0
 let fail = 0
@@ -212,7 +212,7 @@ const areasN = new Set(res.rows.filter((r) => r.status === 'adopt').map((r) => r
 t('영역 표: 영역당 상위 N(--per-area 1) · 나머지 파일이 남은 전부', rowLines(renderMarkdown(res.rows, meta1, 'top')) === areasN && rowLines(renderMarkdown(res.rows, meta1, 'rest')) === res.rows.length - areasN && adoptN > areasN)
 const ledger = JSON.parse(fs.readFileSync(res.files.ledger, 'utf8'))
 t('파일 위치 reports/<KST 날짜>/', res.files.md === path.join(tmp, '2026-10-12', 'product-name-candidates.md') && res.files.ledger === path.join(tmp, '2026-10-12', 'rejected-candidates.json'))
-t('표 헤더 열', md.includes('| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 가중(대안 맥락 · 출시) | 대표 영역(비율 · 근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |'))
+t('표 헤더 열', md.includes('| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 가중(대안 맥락 · 1~3인 팀 · 저가 · 출시) | 대표 영역(비율 · 근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 | 부류 |'))
 t('표: 채택 행(대표 영역 비율)', /\| 채택 \| Zentrova \| `appstore:id1234567` \| 5 \|.*\| 3 100% \(/.test(md) && md.includes('| 채택 | 모아노트 |'))
 t('본문은 채택만 · 기각·확인불가는 나머지 파일에 사유와 함께', !/\| (기각|확인불가) \|/.test(md) && /\| 기각 \| Excel \|.*\| stopword \|/.test(rest) && /\| 확인불가 \| Brivio \|/.test(rest))
 t('영역별 소제목(areas.json 이름) · 순서 ① → ③ · 채택 없는 영역은 소제목 없음', (() => {
@@ -220,7 +220,7 @@ t('영역별 소제목(areas.json 이름) · 순서 ① → ③ · 채택 없는
   return i('① 회의·통화 기록') > 0 && i('① 회의·통화 기록') < i('③ 마케팅(직접 도구만)') && i('영역 외-창업가 불만') < 0
 })())
 t('대표 영역 = 최다 영역 + 비율(flowbase: out-founder 3/5)', row('flowbase')?.area === 'out-founder' && row('flowbase').areaShare === 0.6)
-t('표: 행마다 열 11개(파이프 이스케이프)', [md, rest].every((s) => s.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('|---')).every((l) => l.split(/(?<!\\)\|/).length === 13)))
+t('표: 후보 행마다 열 12개(파이프 이스케이프, 부류 집계 표 제외)', [md, rest].every((s) => s.split('\n').filter((l) => /^\| (상태|채택|확인불가|기각|경쟁 기준점) \|/.test(l)).every((l) => l.split(/(?<!\\)\|/).length === 14)))
 t('대장: 기각·확인불가 전부, 채택 0', ledger.entries.length === res.rows.filter((r) => r.status !== 'adopt').length && !ledger.entries.some((e) => e.key === 'moanote'))
 t('대장: 상태 어휘·사유', ledger.entries.find((e) => e.key === 'quillora')?.status === 'unverifiable' && ledger.entries.find((e) => e.key === 'excel')?.reason === 'stopword')
 
@@ -273,7 +273,7 @@ t('v52 성+이름 패턴은 첫 토큰이 이름일 때만("Apple Notes" 류 통
   const r = buildCandidates({ inputs: [...Array(5)].map((_, i) => ({ id: `n${i}`, source_key: 'appstore', raw_text: 'i keep lists in Apple Notes now' })), registry: new Map(), cfg }).rows
   return r.find((x) => x.key === 'applenotes')?.status === 'adopt'
 })())
-t('v52 제외 목록 6갈래 + v53 2갈래(human_rejected_v53 맨 앞 · metric_term)', JSON.stringify(Object.keys(cfg.exclude).sort()) === JSON.stringify([...Object.keys(FP_EXPECT), 'human_rejected_v53', 'metric_term'].sort()) && Object.keys(cfg.exclude)[0] === 'human_rejected_v53' && cfg.acronym_rule.pattern && cfg.approval.daily_cap_per_area === 3)
+t('v52 제외 목록 6갈래 + v53 2갈래(human_rejected_v53 맨 앞 · metric_term)', JSON.stringify(Object.keys(cfg.exclude).sort()) === JSON.stringify([...Object.keys(FP_EXPECT), 'human_rejected_v53', 'metric_term', 'company_only'].sort()) && Object.keys(cfg.exclude)[0] === 'human_rejected_v53' && cfg.acronym_rule.pattern && cfg.approval.daily_cap_per_area === 3)
 
 // ── v52: 영역별 분리 · 승인 시트 상위 3 상한 ──
 const g = groupByArea(v52, cfg.area_table.order, 3)
@@ -325,15 +325,40 @@ t('v53 지표 용어: ARR → metric_term(도메인 있어도 제품 아님)', w
 t('v53 CDN 호스트: velcdn → cdn_host 계열 기각, cdn.flowbase.io 는 도메인 신호·ref 를 안 준다', /^(cdn_host|human_rejected_v53)$/.test(w('velcdn')?.reason) && !(w('flowbase')?.signals ?? []).includes('domain') && !(w('flowbase')?.refs ?? []).length)
 t('v53 CDN: velcdn 이 사람 기각 목록에 없어도 cdn_host', v53Run('logo https://img.velcdn.com/x.png', { cfg: { ...cfg, exclude: { ...cfg.exclude, human_rejected_v53: [] } } }).find((r) => r.key === 'velcdn')?.reason === 'cdn_host')
 t('v53 isCdnHost: 접두·contains · 일반 호스트 아님', isCdnHost('img.foo.com', cfg) && isCdnHost('static.bar.io', cfg) && isCdnHost('velcdn.com', cfg) && !isCdnHost('flowbase.io', cfg) && !isCdnHost('app.notion.so', cfg))
-t('v53 경쟁 기준점: Adobe·Google(기업) · Hubspot·Zoom(서비스) 단독 → benchmark', ['adobe', 'google'].every((k) => w(k)?.status === 'benchmark' && w(k).reason === 'big_company') && ['hubspot', 'zoom'].every((k) => w(k)?.status === 'benchmark' && w(k).reason === 'big_service'))
+// pnc-v4: 단독 기업명은 기준점이 아니라 기각(Adobe=사람 기각 · Google=불용어 · 그 밖 company_only), 대형 서비스만 기준점.
+t('v4 경쟁 기준점: Hubspot·Zoom(서비스) 단독 → benchmark/anchor · Adobe·Google(기업)은 기각', ['adobe', 'google'].every((k) => w(k)?.status === 'rejected') && ['hubspot', 'zoom'].every((k) => w(k)?.status === 'benchmark' && w(k).reason === 'big_service' && w(k).tier === 'anchor'))
+t('v4 company_only: 사람 기각·불용어 밖 단독 기업명(Oracle)도 기각', v53Run('we moved off Oracle and Nvidia stuff').filter((r) => ['oracle', 'nvidia'].includes(r.key)).every((r) => r.status === 'rejected' && r.reason === 'company_only'))
 t('v53 제품명 붙은 Apple Notes 는 제품 후보(기준점 아님)', w('applenotes')?.status === 'adopt' && !w('apple'))
 t('v53 notes 칸: Apple Notes·Bear·Evernote → area notes(비율 config), 근거 영역 5 무시', ['applenotes', 'evernote'].every((k) => w(k)?.area === 'notes' && w(k).areaShare === null) && (!w('bear') || w('bear').area === 'notes'))
 const benchMd = renderMarkdown(v53, { date: 'x', ruleVer: cfg.rule_ver, counts: { inputs: 5 }, cfg, areaColumn: 'present', areaNames: { notes: cfg.notes_area.label } }, 'top')
-t('v53 표: 경쟁 기준점 별도 소절 · 노트 소절 라벨 · 본문(영역 표)에 기준점 없음', /## 경쟁 기준점 — 4/.test(benchMd) && benchMd.includes(`## ${cfg.notes_area.label}`) && benchMd.split('## 경쟁 기준점')[0].split('\n').every((l) => !l.startsWith('| 경쟁 기준점 |')))
+t('v53 표: 경쟁 기준점 별도 소절 · 노트 소절 라벨 · 본문(영역 표)에 기준점 없음', /## 경쟁 기준점\(anchor\) — 2/.test(benchMd) && benchMd.includes(`## ${cfg.notes_area.label}`) && benchMd.split('## 경쟁 기준점')[0].split('\n').every((l) => !l.startsWith('| 경쟁 기준점 |')))
 t('v53 표: 나머지 파일에 기준점 중복 없음', !renderMarkdown(v53, { date: 'x', ruleVer: 'v', counts: {}, cfg }, 'rest').includes('| 경쟁 기준점 |'))
 const ledV53 = ledgerOf(v53, { now: new Date(), date: 'x', ruleVer: 'v', cfg })
-t('v53 대장: benchmark 는 rejected 가 아니다(다음 실행이 다시 잰다)', ledV53.entries.find((e) => e.key === 'adobe')?.status === 'benchmark' && ledV53.entries.find((e) => e.key === 'indieweb')?.status === 'rejected')
-t('v53 승인 시트에 기준점 없음', !parseApprovalSheet(renderApprovalSheet(v53, { date: 'x', ruleVer: 'v', cfg, priorSheet: null })).some((e) => ['adobe', 'google', 'hubspot', 'zoom'].includes(e.key)))
+t('v53 대장: benchmark 는 rejected 가 아니다(다음 실행이 다시 잰다)', ledV53.entries.find((e) => e.key === 'hubspot')?.status === 'benchmark' && ledV53.entries.find((e) => e.key === 'indieweb')?.status === 'rejected')
+t('v4 대장: tier_stats · tier_rows(채택+기준점만)', ledV53.tier_stats.anchor.candidates === 2 && ledV53.tier_rows.every((r) => ['adopt', 'benchmark'].includes(r.status)) && ledV53.tier_rows.some((r) => r.key === 'zoom' && r.tier === 'anchor'))
+// pnc-v4: 기준점은 시트 별도 소절('N 기준점' 표식) — 기업명은 안 나온다, 오탐률 집계(sheetStats)에서 빠진다, 신규 회사 영역 상한과 따로.
+const v4Sheet = renderApprovalSheet(v53, { date: 'x', ruleVer: 'v', cfg, priorSheet: null })
+const v4Parsed = parseApprovalSheet(v4Sheet)
+t('v4 승인 시트: 기준점 별도 소절 · 서비스만 · anchor 표식', v4Sheet.includes('## 경쟁 기준점 후보(anchor)') && v4Parsed.filter((e) => e.anchor).map((e) => e.key).sort().join() === 'hubspot,zoom' && !v4Parsed.some((e) => ['adobe', 'google'].includes(e.key)))
+t('v4 승인 시트: 기준점 줄은 오탐률·승인 모드 집계에서 빠진다', (() => {
+  const st = sheetStats(v4Parsed.map((e) => ({ ...e, answer: e.anchor ? 'rejected' : 'approved' })))
+  return Object.values(st).every((s) => s.rejected === 0) && Object.values(st).reduce((n, s) => n + s.shown, 0) === v4Parsed.filter((e) => !e.anchor).length
+})())
+t('v4 승인 시트: 신규 회사 상위 3 상한은 그대로(기준점은 따로 셈)', groupByArea(v53, cfg.area_table.order, cfg.approval.daily_cap_per_area).every((g) => v4Parsed.filter((e) => !e.anchor && e.area === g.code).length === g.rows.length))
+t('v4 승인 시트: 사람이 N 한 기준점은 다시 안 올린다', !parseApprovalSheet(renderApprovalSheet(v53, { date: 'x', ruleVer: 'v', cfg, priorSheet: null, humanRejected: new Map([['zoom', {}]]) })).some((e) => e.key === 'zoom'))
+t('v4 승인 시트: 기준점 영역당 상한(sheet_cap_per_area)', parseApprovalSheet(renderApprovalSheet(v53, { date: 'x', ruleVer: 'v', cfg: { ...cfg, benchmark: { ...cfg.benchmark, sheet_cap_per_area: 1 } }, priorSheet: null })).filter((e) => e.anchor).length === 1)
+
+// pnc-v4 부류·가중: launch → new · indie·저가 → 가중 +1 · 출시일 확인 불가는 small
+const FILL = ' and then'.repeat(25) // 225자 — 창(160자) 밖으로 떨어뜨린다
+const tierRows = v53Run((i) => (i < 3 ? `Show HN: I built Krabbo, a solo founder app with a free plan.${FILL} we use Zentrix too` : 'we use Krabbo and Zentrix daily'))
+const krb = tierRows.find((r) => r.key === 'krabbo')
+const zx = tierRows.find((r) => r.key === 'zentrix')
+t('v4 부류: launch 표현 동반 → new · 없으면 small', krb?.tier === 'new' && krb.launchN === 3 && zx?.tier === 'small')
+t('v4 가중: 1~3인 팀 +1 · 저가 +1 (창 밖은 안 번진다)', krb.indieN === 3 && krb.priceN === 3 && krb.score === krb.signals.length + 2 && zx.indieN + zx.priceN === 0 && zx.score === zx.signals.length)
+t('v4 tierOf: 기준점 · 출시 new · 출시 old+launch 0 = small', tierOf('benchmark', null, 0) === 'anchor' && tierOf('adopt', { state: 'new' }, 0) === 'new' && tierOf('adopt', { state: 'old' }, 0) === 'small' && tierOf('hold', { state: 'unverified' }, 2) === 'new')
+const ts = tierStats(tierRows)
+t('v4 tierStats: 부류별 후보·글·채택률 · 기준점 채택률 없음 · L4 미확인', ts.new.candidates >= 1 && ts.small.posts >= 5 && ts.anchor.adopt_rate === null && ts.small.l4_rate === L4_UNDEFINED && typeof ts.new.adopt_rate === 'number')
+t('v4 표: 부류별 집계 소절', renderMarkdown(tierRows, { date: 'x', ruleVer: 'v', counts: {}, cfg }, 'top').includes('## 부류별 집계') && renderMarkdown(tierRows, { date: 'x', ruleVer: 'v', counts: {}, cfg }, 'top').includes('(c) 신규·신규 창업가용'))
 
 // 대안 맥락 언급
 const altKeys = (s) => extractMentions(s, cfg).mentions.filter((m) => m.alt).map((m) => m.key)
@@ -355,7 +380,7 @@ const linkText = 'get https://apps.apple.com/kr/app/zentrova/id1234567 now'
 const noFile = v53Run(linkText, { now: NOW }).find((r) => r.key === 'appstore:id1234567')
 const withFile = v53Run(linkText, { now: NOW, releaseDates: rd }).find((r) => r.key === 'appstore:id1234567')
 t('v53 출시 가중: 파일 없으면 가중 0·확인 불가 표기, 있으면 ≤90일 +1', noFile.release.state === 'unverified' && withFile.score === noFile.score + 1 && withFile.release.days === 41)
-t('v53 표 가중 칸: "확인 불가" · "신규 출시 41일"', renderMarkdown([noFile], { date: 'x', ruleVer: 'v', counts: {}, cfg }, 'top').includes('대안 0 · 확인 불가(출시일 파일 없음)') && renderMarkdown([withFile], { date: 'x', ruleVer: 'v', counts: {}, cfg }, 'top').includes('신규 출시 41일'))
+t('v53 표 가중 칸: "확인 불가" · "신규 출시 41일"', renderMarkdown([noFile], { date: 'x', ruleVer: 'v', counts: {}, cfg }, 'top').includes('대안 0 · 1~3인팀 0 · 저가 0 · 확인 불가(출시일 파일 없음)') && renderMarkdown([withFile], { date: 'x', ruleVer: 'v', counts: {}, cfg }, 'top').includes('신규 출시 41일'))
 const rdFile = path.join(tmp, 'rd.json')
 fs.writeFileSync(rdFile, JSON.stringify({ 'appstore:id1234567': '2026-09-01' }))
 const withRd = await main(['--date=2026-10-20', `--release-dates=${rdFile}`], opts())

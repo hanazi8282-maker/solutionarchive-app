@@ -74,6 +74,9 @@ t('사유: 그 밖은 null', consumerReasonOf('2', 'danawa') === null && consume
   let warned = ''
   const missing = await loadConsumerTagged(mockDb({}, { consumer_material_tags: { code: 'PGRST205', message: 'no table' } }), 'p1', { enabled: true, warn: (m) => { warned = m } })
   t('표 없음(마이그 미적용) → 빈 Set + 경고(원래 동작)', missing?.size === 0 && warned.includes('20261015000010'))
+  const throwing = { from: () => ({ select: () => ({ eq: () => ({ order: () => ({}) }) }) }) } // .range 없는 목(CI session-guard 사고)
+  t('던지는 클라이언트 → null(확인 불가, 죽지 않음)', (await loadConsumerTagged(throwing, 'p1', { enabled: true })) === null)
+  t('던지는 클라이언트 + 대기열 → 그 프로젝트 건너뜀(null, fail-closed)', (await createPendingFor({ supabase: { from: (tb) => (tb === 'consumer_material_tags' ? throwing.from() : mockDb({ analysis_inputs: [{ id: 'z', project_id: 'p1', purged_at: null, source_key: 'danawa' }] }).from(tb)) }, sampleSize: 1, highRatingShare: 1, prefilterCfg: null, log: () => {}, warn: () => {}, skipConsumer: true }).countFor({ id: 'p1' })) === null)
   t('그 밖 오류 → null(확인 불가)', (await loadConsumerTagged(mockDb({}, { consumer_material_tags: { code: '500', message: 'boom' } }), 'p1', { enabled: true })) === null)
 }
 

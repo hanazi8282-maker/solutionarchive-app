@@ -44,8 +44,16 @@ export async function loadConsumerTagged(
   o: { enabled?: boolean; warn?: (m: string) => void } = {},
 ): Promise<Set<string> | null> {
   if (!(o.enabled ?? consumerSkipEnabled())) return new Set()
-  const got = await fetchAllPages<{ input_id: string }>(() =>
-    supabase.from('consumer_material_tags').select('input_id').eq('project_id', projectId).order('input_id', { ascending: true }))
+  let got
+  try {
+    got = await fetchAllPages<{ input_id: string }>(() =>
+      supabase.from('consumer_material_tags').select('input_id').eq('project_id', projectId).order('input_id', { ascending: true }))
+  } catch (e) {
+    // 던지는 클라이언트(목·네트워크 예외)도 오류와 같이 '확인 불가'(null). 대기열은 null 이면 그 프로젝트를 건너뛴다(fail-closed 유지),
+    // extract·프로필은 태그 없이 원래대로 간다.
+    o.warn?.(`소비재 태그 조회 예외 project=${projectId}: ${e instanceof Error ? e.message : String(e)}`)
+    return null
+  }
   if (isMissingTable(got.error)) {
     o.warn?.('consumer_material_tags 표가 없다(마이그 20261015000010 미적용) — 소비재 태그 없이 원래대로 간다')
     return new Set()

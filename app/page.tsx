@@ -43,9 +43,9 @@ import { DEFAULT_SEARCH_KIND } from '@/lib/cases/search'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'SaaS 1인 창업가를 위한 사례 아카이브',
+  title: '한국 업무용 AI 소프트웨어 팀을 위한 경쟁 고객 글 결론서',
   description:
-    '내 문제와 비슷한 상황을 겪은 SaaS 사례가 그걸 어떻게 풀었는지, 근거 등급과 함께 본다.',
+    '경쟁 제품의 고객 글을 대조해 만드는 결론서. 회의·통화 기록, 영업, 마케팅, 인사 운영, 리뷰 관리 영역을 다룬다.',
 }
 
 const UNKNOWN = '집계 불가'
@@ -182,8 +182,8 @@ export default async function Home() {
     {
       icon: <IconSplit />, title: '안 된 쪽도 같이 본다',
       body: '같은 병목에서 반대로 간 케이스를 짝으로 붙이고, 같은 소구점으로 망한 기록도 옆에 둔다. 짝이 없으면 없다고 적는다.',
-      stat: '병목 7가지 전부에서 짝 비교 가능, 소비재 포함',
-      source: 'reports/2026-09-28/performance.md coverage 7/7 (소비재 포함, 2026-09-28. SaaS 만으로는 미확인)',
+      stat: '병목 7가지 전부에서 짝 비교 가능',
+      source: '병목 7가지 짝 비교 범위 점검 7/7 (2026-09-28 기준)',
     },
     {
       icon: <IconSignal />, title: '진짜 사용자 목소리에서 신호를 고른다',
@@ -198,7 +198,7 @@ export default async function Home() {
       <Hero
         animateTitle
         title="같은 문제에 막혔던 사례가, 그걸 어떻게 풀었는지."
-        lead="만들 줄은 아는데 돈으로 바꾸는 법을 모르는 1인 창업가를 위해 모은다. 사례마다 근거 등급과 내일 할 행동 한 줄이 붙는다."
+        lead="한국 업무용 AI 소프트웨어 팀을 위해, 경쟁 제품의 고객 글을 대조해 결론서를 만든다. 영역은 회의·통화 기록, 영업, 마케팅, 인사 운영, 리뷰 관리다. 사례마다 근거 등급과 내일 할 행동 한 줄이 붙는다."
         actions={
           <>
             <PillCta href="/library">케이스 둘러보기</PillCta>
@@ -232,7 +232,7 @@ export default async function Home() {
         lead={
           failed
             ? '지금 집계를 못 읽었다. 0건이라는 뜻이 아니라 확인에 실패한 것이다.'
-            : `숫자는 SaaS 기준이다.${hiddenConsumer > 0 ? ` 소비재 ${hiddenConsumer}건은 라이브러리 기본 화면과 같게 빼고 셌다.` : ''}`
+            : `숫자는 업무용 소프트웨어 케이스 기준이다.${hiddenConsumer > 0 ? ` 범위 밖 ${hiddenConsumer}건은 라이브러리 기본 화면과 같게 빼고 셌다.` : ''}`
         }
       >
         <Reveal className="pub-reveal--deep"><PubSteps steps={steps} /></Reveal>

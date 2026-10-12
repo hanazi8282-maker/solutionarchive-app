@@ -61,8 +61,8 @@ export default async function SignalsPage({ searchParams }: {
   const total = result?.status === 'ok' ? result.total : null
   const hidden = result?.status === 'ok' ? result.hiddenConsumer : null
   // 싣지 않는 소비재 문장 — 못 셌으면(null) 그렇다고 적는다. 0 이면 말하지 않는다. 되돌리는 손잡이는 없다(필터 제거).
-  const hiddenNote = hidden == null ? '제외한 소비재 건수 집계 불가.'
-    : hidden > 0 ? `소비재 ${hidden}건은 이 피드에 싣지 않는다.` : null
+  const hiddenNote = hidden == null ? '제외한 범위 밖 건수 집계 불가.'
+    : hidden > 0 ? `범위 밖 ${hidden}건은 이 피드에 싣지 않는다.` : null
   const lastPage = total == null ? null : Math.min(MAX_PAGE, Math.max(1, Math.ceil(total / PAGE_SIZE)))
 
   return (
@@ -98,7 +98,7 @@ export default async function SignalsPage({ searchParams }: {
             <p className="pub-caption">
               {total == null ? '전체 건수 집계 불가' : `조건에 맞는 관련 판정 ${total}건`}
               {result.items.length > 0 ? ` · 이 페이지 ${(f.page - 1) * PAGE_SIZE + 1}–${(f.page - 1) * PAGE_SIZE + result.items.length}` : ''}
-              {' · SaaS만'}
+              {' · 업무용 소프트웨어만'}
               {hiddenNote && result.items.length > 0 ? ` · ${hiddenNote}` : ''}
             </p>
 

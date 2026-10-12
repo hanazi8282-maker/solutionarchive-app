@@ -8,7 +8,7 @@ import { getAuthVerdict } from '@/lib/auth/session'
 
 export const metadata = {
   title: { default: 'SolutionArchive', template: '%s · SolutionArchive' },
-  description: '솔루션아카이브 내부 운영 도구 — 소구점 분석, 발행 연결 수리, 에이전트 상태',
+  description: '한국 업무용 AI 소프트웨어 팀을 위한, 경쟁 제품의 고객 글을 대조해 만드는 결론서',
 }
 
 /**

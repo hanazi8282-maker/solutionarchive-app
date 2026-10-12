@@ -351,7 +351,7 @@ t('뒤 스텝 4개 전부 ran=false 면 건너뜀', (wf.match(/steps\.judge\.out
 t('workflow permissions 는 contents: read 그대로', /^permissions:\s*\r?\n\s*contents: read\s*\r?\n/m.test(wf))
 // 전량 판정 체인: actions: write 는 relaunch job 한 곳에만(판정 job 은 GITHUB_TOKEN 쓰기 권한 없음).
 t('actions: write 는 relaunch job 에만 1번', (wf.match(/actions: write/g) ?? []).length === 1 && wf.indexOf('actions: write') > wf.indexOf('\n  relaunch:') && wf.indexOf('\n  relaunch:') > 0)
-t('relaunch 는 판정 스크립트의 relaunch=true 일 때만', /if: always\(\) && needs\.judge\.outputs\.relaunch == 'true'/.test(wf))
+t('relaunch 는 판정 스크립트의 relaunch=true 일 때만 · 사람이 Cancel 하면 건너뜀(!cancelled, always() 아님)', /if: \$\{\{ !cancelled\(\) && needs\.judge\.outputs\.relaunch == 'true' \}\}/.test(wf) && !/if: always\(\) && needs\.judge\.outputs\.relaunch/.test(wf))
 t('relaunch 는 대기 중 실행이 있으면 안 부른다(크론 대기 실행 취소 방지)', /select\(\.status=="queued"/.test(wf) && /dry_run=false -f chain_hop="\$NEXT_HOP"/.test(wf))
 t('수동 입력 기본값이 리포 변수를 가리지 않는다(sample·max_projects 기본값 빈 문자열)', /sample:[\s\S]*?default: ''/.test(wf) && /max_projects:[\s\S]*?default: ''/.test(wf))
 const ex = read('scripts/extract-auto.mjs')

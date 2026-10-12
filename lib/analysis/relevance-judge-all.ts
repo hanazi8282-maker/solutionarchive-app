@@ -40,7 +40,17 @@ export const DEFAULT_EXCLUDED_SOURCES = ['youtube']
 /** 맨 뒤로 미룰 소스(카카오 카페·블로그 — 잡글 비중이 커서 다른 소스를 먼저 채운다). env RELEVANCE_LAST_SOURCES. */
 export const DEFAULT_LAST_SOURCES = ['kakao_cafe', 'kakao_blog']
 
-/** undefined·빈 문자열 = 기본값, 'none' = 없음, 그 밖 = 쉼표 목록. (워크플로는 변수가 없으면 빈 문자열을 넘긴다.) */
+/**
+ * 제외 소스(fail-closed): 'none' 일 때만 전부 허용. 그 밖의 값은 기본 제외 목록에 **더한다**(합집합) —
+ * 오타·부분 값이 기본값을 대체해 유튜브가 열리는 일이 없게. 알 수 없는 이름 경고는 호출부가 실제 원문 소스와 대조해 낸다.
+ */
+export const parseExcludedSources = (raw: string | undefined, defaults: readonly string[] = DEFAULT_EXCLUDED_SOURCES): string[] => {
+  const v = (raw ?? '').trim()
+  if (v.toLowerCase() === 'none') return []
+  return [...new Set([...defaults, ...v.split(',').map((s) => s.trim()).filter(Boolean)])]
+}
+
+/** 뒤로 미룰 소스(순서만 바꾸므로 fail-open 위험 없음): undefined·빈 문자열 = 기본값, 'none' = 없음, 그 밖 = 쉼표 목록. */
 export const parseSourceList = (raw: string | undefined, fallback: readonly string[]): string[] => {
   const v = (raw ?? '').trim()
   if (v === '') return [...fallback]
@@ -86,6 +96,45 @@ export function orderForJudge<T>(
 export function saveVerdictsInsertOnly(supabase: any, rows: readonly Record<string, unknown>[]) {
   // select: 실제로 새로 들어간 행만 돌아온다(건너뛴 중복은 안 온다) — 호출부가 "덮지 않고 건너뜀" 건수를 센다.
   return supabase.from('review_relevance_verdicts').upsert(rows, { onConflict: 'input_id', ignoreDuplicates: true }).select('input_id')
+}
+
+export type ColState = 'unknown' | 'present' | 'absent'
+export type SaveCols = { promptVersion: ColState; info: ColState; labels: ColState }
+type SaveRes = { data?: unknown; error?: { code?: string; message?: string } | null }
+
+/**
+ * 컬럼 없음(PGRST204·42703) 폴백 저장 — 오류 메시지가 가리키는 컬럼을 하나씩 빼며 다시 저장한다. 순서 무관:
+ * prompt_version·product_informative 가 둘 다 없어도 각자 빠진다(예전엔 둘째 재시도가 라벨 분기로 새서 save_failed).
+ * 라벨은 메시지로 못 가르는 옛 동작 그대로 "알려진 둘이 아니면 라벨" 로 본다. 각 컬럼은 한 번만 뺀다 → 재시도 최대 3회.
+ * cols 를 제자리에서 바꾼다(호출부가 다음 묶음부터 그 필드를 안 싣는다).
+ */
+export async function saveWithColumnFallback(
+  save: (rows: Record<string, unknown>[]) => Promise<SaveRes>,
+  rows: readonly Record<string, unknown>[],
+  cols: SaveCols,
+  labelKeys: readonly string[],
+  warn: (m: string) => void,
+): Promise<SaveRes> {
+  const absent = () => [...(cols.promptVersion === 'absent' ? ['prompt_version'] : []), ...(cols.info === 'absent' ? ['product_informative'] : []), ...(cols.labels === 'absent' ? labelKeys : [])]
+  const without = () => rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !absent().includes(k))))
+  const missingCol = (e: SaveRes['error']) => !!e && (e.code === 'PGRST204' || e.code === '42703')
+  let res = await save(without())
+  while (missingCol(res.error)) {
+    const msg = res.error?.message ?? ''
+    const code = res.error?.code
+    if (cols.promptVersion !== 'absent' && /prompt_version/.test(msg)) {
+      cols.promptVersion = 'absent'
+      warn(`prompt_version 미기록(마이그 미적용) — 컬럼이 없다(${code}). 20261014000020 적용 전까지 이 필드만 빼고 저장한다(model 은 기록).`)
+    } else if (cols.info !== 'absent' && /product_informative/.test(msg)) {
+      cols.info = 'absent'
+      warn(`정보 판정 미기록(마이그 미적용) — product_informative 컬럼이 없다(${code}). 20260930000031 적용 전까지 이 필드만 빼고 저장한다. rr-v2 자동 승인 대상은 0건이 된다.`)
+    } else if (cols.labels !== 'absent') {
+      cols.labels = 'absent'
+      warn(`라벨 미기록(마이그 미적용) — review_relevance_verdicts 에 라벨 컬럼이 없다(${code}). 20260930000014 적용 전까지 verdict·reason 만 저장한다.`)
+    } else break // 더 뺄 것이 없다 — 오류 그대로 올린다
+    res = await save(without())
+  }
+  return res
 }
 
 /** 체인을 멈추는 정지 사유. session_cap·deadline·null(끝까지)은 다음 실행으로 잇는다. */
@@ -137,12 +186,14 @@ export function chainCarryOf(
   now: Date,
   maxAgeMs = 6 * 3_600_000,
 ): { hop: number; zero: number; from: string } | null {
+  // 가장 최근 행만 본다. 그게 running(취소·timeout 으로 죽은 행 포함)이면 잇지 않는다 — 사람이 Cancel 한 실행 앞의 "이어 가라"를 되살리지 않게.
   const last = rows
-    .filter((r) => r.run_key.startsWith('relevance-judge-') && r.status !== 'running')
+    .filter((r) => r.run_key.startsWith('relevance-judge-'))
     .sort((a, b) => Date.parse(b.started_at ?? '') - Date.parse(a.started_at ?? ''))[0]
-  const c = (last?.summary?.chain ?? null) as { relaunch?: unknown; next_hop?: unknown; next_zero_streak?: unknown } | null
-  const fin = Date.parse(last?.finished_at ?? '')
-  if (!last || !c || c.relaunch !== true || !Number.isFinite(fin) || now.getTime() - fin > maxAgeMs) return null
+  if (!last || last.status === 'running') return null
+  const c = (last.summary?.chain ?? null) as { relaunch?: unknown; next_hop?: unknown; next_zero_streak?: unknown } | null
+  const fin = Date.parse(last.finished_at ?? '')
+  if (!c || c.relaunch !== true || !Number.isFinite(fin) || now.getTime() - fin > maxAgeMs) return null
   if (typeof c.next_hop !== 'number' || typeof c.next_zero_streak !== 'number') return null
   return { hop: c.next_hop, zero: c.next_zero_streak, from: last.run_key }
 }
@@ -162,7 +213,7 @@ export function decideRelaunch(i: RelaunchInput): RelaunchDecision {
   if (i.remaining == null) return stop('남은 미판정 확인 불가')
   if (i.remaining <= 0) return stop('미판정 0건 — 다 채웠다')
   if (nextZeroStreak >= i.zeroLimit) return stop(`연속 ${nextZeroStreak}회 처리 0건`)
-  if (nextHop > i.maxHops) return stop(`hop 상한 ${i.maxHops} 도달`)
+  if (nextHop > i.maxHops) return stop(`체인 하나당 hop 상한 ${i.maxHops} 도달`)
   if (i.weeklyPct == null || i.weeklyStopPct == null) return stop('주간 사용률·안전선 확인 불가')
   if (i.weeklyPct >= i.weeklyStopPct) return stop(`주간 사용률(하한) ${i.weeklyPct}% ≥ 안전선 ${i.weeklyStopPct}%`)
   if (i.window5hPct == null || i.window5hStopPct == null) return stop('5시간 창 사용률·안전선 확인 불가')

@@ -39,6 +39,45 @@ export function createPendingFor(deps: {
   /** project_id → 사전필터 기록 — select 스텝 detail.prefilter 로 남는다(DB 스키마 변경 없음, §10.1 agent_run_steps). */
   const prefilterByProject: Record<string, unknown> = {}
 
+  /** 판정 캐시 input_id 전부(페이지). 못 읽거나 상한에 걸리면 null. */
+  async function judgedIdsOf(projectId: string): Promise<Set<string> | null> {
+    const got = await fetchAllPages<{ input_id: string }>(() =>
+      supabase.from('review_relevance_verdicts').select('input_id').eq('project_id', projectId).order('input_id', { ascending: true }))
+    if (got.error || got.truncated) {
+      // 판정 캐시를 (전부) 못 읽었는데 그대로 돌리면 이미 판정한 것을 다시 태운다. 건너뛴다(저장은 insert-only 라 덮지는 않는다).
+      console.error(`⚠️ 판정 캐시 조회 실패 project=${projectId}: ${got.error?.message ?? '상한 초과로 일부만 읽음'}`)
+      return null
+    }
+    return new Set((got.data ?? []).map((r) => r.input_id))
+  }
+
+  /**
+   * 미판정 수만 센다 — raw_text 를 읽지 않는다(id·source_key 만). 후보 전부의 순서·체인 "남았나" 산정용.
+   * 원문을 실제로 읽는 pendingFor 는 이번에 돌 프로젝트에만 부른다(hop 마다 6.7만 행 원문 전송 방지).
+   * 근사: 본문이 머리말뿐인 입력도 센다(pendingFor 가 거르는 것) → 상한 쪽 추정. 실패는 null(§7.1).
+   */
+  async function countFor(project: { id: string }): Promise<{ unjudged: number; excluded: number; sources: string[] } | null> {
+    const got = await fetchAllPages<{ id: string; source_key: string | null }>(() =>
+      supabase.from('analysis_inputs').select('id, source_key').eq('project_id', project.id).is('purged_at', null).order('id', { ascending: true }))
+    if (got.error || got.truncated) {
+      console.error(`⚠️ 원문 수 조회 실패 project=${project.id}: ${got.error?.message ?? '상한 초과'}`)
+      return null
+    }
+    if (!got.data?.length) return { unjudged: 0, excluded: 0, sources: [] }
+    const done = await judgedIdsOf(project.id)
+    if (!done) return null
+    let unjudged = 0
+    let excluded = 0
+    const sources = new Set<string>()
+    for (const r of got.data) {
+      sources.add(r.source_key ?? '(none)')
+      if (done.has(r.id)) continue
+      if (excludedSources.includes(r.source_key ?? '(none)')) excluded += 1
+      else unjudged += 1
+    }
+    return { unjudged, excluded, sources: [...sources] }
+  }
+
   /** 이 프로젝트에서 판정할 리뷰 목록. 실패는 null 로 올려 "0건" 과 가른다(§7.1). */
   async function pendingFor(project: { id: string }): Promise<PendingResult | null> {
     // 페이지로 전부 읽는다(PostgREST 기본 1,000행 상한 제거 — 전량 판정). id 로 정렬해야 페이지가 겹치거나 빠지지 않는다.
@@ -59,14 +98,8 @@ export function createPendingFor(deps: {
     const inputs = got.data
     if (!inputs || inputs.length === 0) return { total: 0, unjudged: 0, reviews: [], rating: null }
 
-    const judgedGot = await fetchAllPages<{ input_id: string }>(() =>
-      supabase.from('review_relevance_verdicts').select('input_id').eq('project_id', project.id).order('input_id', { ascending: true }))
-    if (judgedGot.error || judgedGot.truncated) {
-      // 판정 캐시를 (전부) 못 읽었는데 그대로 돌리면 이미 판정한 것을 다시 태운다. 건너뛴다(저장은 insert-only 라 덮지는 않는다).
-      console.error(`⚠️ 판정 캐시 조회 실패 project=${project.id}: ${judgedGot.error?.message ?? '상한 초과로 일부만 읽음'}`)
-      return null
-    }
-    const done = new Set((judgedGot.data ?? []).map((r) => r.input_id))
+    const done = await judgedIdsOf(project.id)
+    if (!done) return null
 
     // 판정 전용 경로: T1(selectInputs)의 빈 본문·머리말만 거르기는 그대로 쓰되 12만 자 상한은 풀고(maxCharsTotal 무한),
     // **판정된 것을 먼저 뺀 뒤** 자른다 — 예전엔 상위 N 을 자른 뒤 판정된 것을 빼서, 상위 N 이 다 판정되면 그 프로젝트는 영영 0건이었다.
@@ -112,5 +145,5 @@ export function createPendingFor(deps: {
 
   /** 필터가 실행 중 꺼졌는지(예외)까지 반영한 현재 설정. select 스텝 detail 이 읽는다. */
   const currentPrefilter = () => prefilterCfg
-  return { pendingFor, prefilterByProject, state, currentPrefilter }
+  return { pendingFor, countFor, prefilterByProject, state, currentPrefilter }
 }

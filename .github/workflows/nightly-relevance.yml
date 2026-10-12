@@ -116,7 +116,7 @@ jobs:
           RELEVANCE_SAMPLE: ${{ inputs.sample || vars.RELEVANCE_SAMPLE || '1000' }}
           RELEVANCE_MAX_PROJECTS: ${{ inputs.max_projects || vars.RELEVANCE_MAX_PROJECTS || '30' }}
           RELEVANCE_DEADLINE_MIN: ${{ vars.RELEVANCE_DEADLINE_MIN || '80' }}
-          # 소스 균등: 비면 기본(제외 youtube · 맨 뒤 kakao_cafe,kakao_blog), 'none' 이면 없음. 유튜브 제목 매핑이 생기면 RELEVANCE_EXCLUDE_SOURCES=none.
+          # 소스 균등: 제외는 fail-closed(값은 기본 youtube 에 더해짐, 'none' 만 전부 허용) · 맨 뒤 기본 kakao_cafe,kakao_blog('none' = 없음). 유튜브 제목 매핑이 생기면 RELEVANCE_EXCLUDE_SOURCES=none.
           RELEVANCE_EXCLUDE_SOURCES: ${{ vars.RELEVANCE_EXCLUDE_SOURCES || '' }}
           RELEVANCE_LAST_SOURCES: ${{ vars.RELEVANCE_LAST_SOURCES || '' }}
           # 자기 호출 체인. 끄기 = 리포 변수 RELEVANCE_CHAIN=off(다음 hop 부터 안 부른다). 만료는 config relevance_cap_until.
@@ -197,7 +197,7 @@ jobs:
   # 자기 호출 체인(전량 판정 — lib/analysis/relevance-judge-all.ts decideRelaunch).
   # 판정 스크립트가 relaunch=true 를 남겼을 때만 다음 workflow_dispatch 를 부른다. 세션·사람 없이 이어진다.
   # 종료 조건(스크립트가 정한다): 미판정 0 · relevance_cap_until 만료 · 한도/오류 정지(quota·weekly_stop·hard_cap·cost_unknown·guard_config·save_failed)
-  #   · 오류율 5% 초과 · 연속 2회 처리 0건 · hop 상한(RELEVANCE_CHAIN_MAX_HOPS, 기본 24) · 주간(하한)/5시간 창 안전선 확인 불가 · 주간 안전선 이상 · 드라이런 · RELEVANCE_CHAIN=off.
+  #   · 오류율 5% 초과 · 연속 2회 처리 0건 · 체인 하나당 hop 상한(RELEVANCE_CHAIN_MAX_HOPS, 기본 24 — 매일 정규 크론이 hop 0 으로 새 체인을 연다. 그래서 하루 총량 상한이 아니다) · 주간(하한)/5시간 창 안전선 확인 불가 · 주간 안전선 이상 · 드라이런 · RELEVANCE_CHAIN=off.
   #   5시간 창만 안전선 이상이면 끊지 않고 wait_min(90분) 쉬었다가 부른다.
   # concurrency(relevance-judge)는 실행 1개 + 대기 1개다. 이미 대기 중인 실행(크론 등)이 있으면 부르지 않는다 — 새 dispatch 가
   #   대기 중인 크론 실행을 밀어내(취소) watchdog 가 미발화로 읽지 않게. 그 대기 실행이 끝나며 다시 체인을 판단한다.
@@ -205,7 +205,8 @@ jobs:
   # 되돌리기 = 이 job 삭제(또는 리포 변수 RELEVANCE_CHAIN=off).
   relaunch:
     needs: judge
-    if: always() && needs.judge.outputs.relaunch == 'true'
+    # !cancelled(): 사람이 실행을 Cancel 하면 relaunch 도 건너뛴다(체인이 이어지지 않는다). always() 는 취소에도 돌아서 쓰지 않는다.
+    if: ${{ !cancelled() && needs.judge.outputs.relaunch == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 100
     permissions:

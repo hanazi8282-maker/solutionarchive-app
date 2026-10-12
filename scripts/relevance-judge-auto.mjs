@@ -44,7 +44,7 @@ import {
   RELEVANCE_SLOTS, capReached, relevanceCaps, relevanceRunSuffixFromEnv, spendForCap, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import {
-  CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_EXCLUDED_SOURCES, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseSourceList, saveVerdictsInsertOnly,
+  CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
 import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
@@ -83,8 +83,8 @@ const sampleSize = num(process.env.RELEVANCE_SAMPLE, 200)
 /** 새 묶음을 시작하지 않는 시각(실행 시작부터 분). job timeout 에 잘리면 agent_runs 가 running 으로 남고 체인도 끊긴다. */
 const deadlineMs = num(process.env.RELEVANCE_DEADLINE_MIN, 80) * 60_000
 const startedAt = Date.now()
-/** 판정에서 뺄 소스 · 맨 뒤로 미룰 소스(쉼표). 비면 기본(youtube / kakao_cafe,kakao_blog), 'none' 이면 없음. */
-const excludedSources = parseSourceList(process.env.RELEVANCE_EXCLUDE_SOURCES, DEFAULT_EXCLUDED_SOURCES)
+/** 판정에서 뺄 소스(fail-closed: 'none' 만 전부 허용, 그 밖 값은 기본 youtube 에 더함) · 맨 뒤로 미룰 소스(비면 kakao_cafe,kakao_blog, 'none' 이면 없음). */
+const excludedSources = parseExcludedSources(process.env.RELEVANCE_EXCLUDE_SOURCES) // none 만 전부 허용, 그 밖은 기본(youtube)에 합집합
 const lastSources = parseSourceList(process.env.RELEVANCE_LAST_SOURCES, DEFAULT_LAST_SOURCES)
 /** 자기 호출 체인 — 이번 hop·연속 0건 수는 앞 실행이 dispatch 입력으로 넘긴다(세션·DB 없이 이어진다). */
 let chainHop = Math.max(0, Math.floor(Number(process.env.RELEVANCE_CHAIN_HOP) || 0))
@@ -244,7 +244,7 @@ for (const w of prefilterLoad.warnings) warn(`사전필터 설정: ${w}`)
 log(`사전필터 — ${prefilterCfg ? `mode=${prefilterCfg.mode} · 소스 ${prefilterCfg.applySources === '*' ? '전부' : prefilterCfg.applySources.join(',') || '(없음)'}` : '꺼짐(설정 확인 불가)'}`)
 // 대상 조회(평점 컬럼 42703 폴백) → T1 → 평점 우선 자르기 → 판정 캐시 제외 → 사전필터. 연결부는 lib/analysis/relevance-pending.ts
 // (모의 supabase 로 scripts/prefilter-selftest.mjs 가 실행 검사한다). 모든 반환에 rating 이 있다(아래 대상 로그가 읽는다).
-const { pendingFor, prefilterByProject, currentPrefilter } = createPendingFor({ supabase, sampleSize, highRatingShare, prefilterCfg, log, warn, excludedSources, lastSources })
+const { pendingFor, countFor, prefilterByProject, currentPrefilter } = createPendingFor({ supabase, sampleSize, highRatingShare, prefilterCfg, log, warn, excludedSources, lastSources })
 
 /** few-shot — 사람 채점 최근 N건. 이 프로젝트 것 우선, 모자라면 다른 프로젝트에서 채운다. */
 async function examplesFor(projectId) {
@@ -292,19 +292,25 @@ for (const p of projects ?? []) {
 log(`failed 프로젝트: 재추출 대상(첫 실패, 판정 유지) ${failedBy.retry}건 · 재추출 후에도 failed → 제외 ${failedBy.excluded}건 · 시도 수 확인 불가 ${failedBy.unknown}건`)
 if (failedBy.unknown > 0) warn(`extract_attempts 를 읽지 못한 failed 프로젝트 ${failedBy.unknown}건 — 판정에서 빠졌다(제외 판정이 아니라 확인 불가다)`)
 
+// 후보 전부는 미판정 **수**만 센다(countFor — id·source_key 만, raw_text 안 읽음). 원문은 아래에서 이번에 돌 프로젝트만 읽는다.
 const candidates = []
+const seenSources = new Set()
 for (const p of projects ?? []) {
   if (!['n/a', 'retry'].includes(relevanceFailedState(p.status, p.extract_attempts))) continue
-  const pending = await pendingFor(p)
-  if (pending === null) {
-    candidates.push({ project: p, pending: null })
+  const count = await countFor(p)
+  if (count === null) {
+    candidates.push({ project: p, count: null })
     continue
   }
-  if (pending.reviews.length === 0) continue
-  candidates.push({ project: p, pending })
+  for (const s of count.sources) seenSources.add(s)
+  if (count.unjudged === 0) continue
+  candidates.push({ project: p, count })
 }
+// RELEVANCE_EXCLUDE_SOURCES 에 원문에 없는 이름이 있으면 오타일 수 있다 — 제외는 기본값에 더해지므로 유튜브는 그대로 닫혀 있다(fail-closed).
+const unknownExcluded = excludedSources.filter((s) => !seenSources.has(s) && s !== 'youtube')
+if (unknownExcluded.length > 0) warn(`RELEVANCE_EXCLUDE_SOURCES 의 ${unknownExcluded.join(',')} 는 후보 원문에 없는 소스 이름이다 — 오타인지 확인(기본 제외 youtube 는 유지)`)
 
-const unknownCount = candidates.filter((c) => c.pending === null).length
+let unknownCount = candidates.filter((c) => c.count === null).length
 
 // 영역 결손 축(v37 작업 7 U1): 결손 영역 → 충족 영역 → 영역 외 → hold, 같은 칸 안은 아래 기존 규칙.
 // 설정·판정 수 중 하나라도 확인 불가면 축을 끈다 — 모르는 결손으로 순서를 바꾸지 않는다(§7.1).
@@ -312,11 +318,12 @@ const areasLoad = loadAreasConfig()
 for (const w of areasLoad.warnings) warn(`영역 설정: ${w}`)
 if (!areasLoad.cfg) warn(`영역 설정 확인 불가 — 영역 축 끔(기존 순서): ${areasLoad.error}`)
 // 같은 칸 안 기존 규칙: SaaS 우선 → 미판정 많은 순 → projectId(extract 와 같은 헬퍼). 조회·정렬 예외도 축 끔 + 기존 순서(planAreaOrder).
-const autoKey = (c) => ({ projectId: c.project.id, newInputs: c.pending.reviews.length, businessModel: c.project.business_model, c })
+// newInputs = 이번 실행에 탈 수 있는 양(min(미판정, 상한)) — 예전 pending.reviews.length 와 같은 의미.
+const autoKey = (c) => ({ projectId: c.project.id, newInputs: Math.min(c.count.unjudged, sampleSize), businessModel: c.project.business_model, c })
 const areaPlan = await planAreaOrder({
   cfg: areasLoad.cfg,
   load: () => loadAreaContext(supabase, warn),
-  cands: candidates.filter((c) => c.pending !== null).map(autoKey),
+  cands: candidates.filter((c) => c.count !== null).map(autoKey),
   warn,
 })
 const areaAxis = areaPlan.axis
@@ -330,11 +337,21 @@ if (retry?.quotaProject) {
   const i = ready.findIndex((c) => c.project.id === retry.quotaProject)
   if (i > 0) ready.unshift(...ready.splice(i, 1))
 }
-const targets = ready.slice(0, maxProjects)
-const remaining = ready.length - targets.length
-// 전체 남은 미판정(이번 실행 상한과 무관). 원문을 못 읽은 프로젝트가 있으면 하한이다.
-const unjudgedBefore = ready.reduce((s, c) => s + (c.pending.unjudged ?? c.pending.reviews.length), 0)
-const excludedTotal = ready.reduce((s, c) => s + (c.pending.excluded ?? 0), 0)
+// 원문(raw_text)은 순서대로 이번에 돌 프로젝트(최대 maxProjects)만 읽는다 — pendingFor(라운드로빈·평점 자르기·사전필터).
+const targets = []
+let examined = 0
+for (const c of ready) {
+  if (targets.length >= maxProjects) break
+  examined += 1
+  const pending = await pendingFor(c.project)
+  if (pending === null) { unknownCount += 1; continue }
+  if (pending.reviews.length === 0) continue // 머리말뿐인 입력 등 — 수 세기(근사)엔 잡혔지만 판정할 본문이 없다
+  targets.push({ ...c, pending })
+}
+const remaining = ready.length - examined
+// 전체 남은 미판정(이번 실행 상한과 무관, countFor 근사). 수를 못 센 프로젝트가 있으면 하한이다.
+const unjudgedBefore = ready.reduce((s, c) => s + c.count.unjudged, 0)
+const excludedTotal = ready.reduce((s, c) => s + c.count.excluded, 0)
 log(`미판정 전체 ${unjudgedBefore}건(프로젝트 ${ready.length}개${unknownCount > 0 ? ` · 원문 못 읽은 프로젝트 ${unknownCount}개 제외 — 하한` : ''}) · 제외 소스로 뺀 ${excludedTotal}건`)
 
 log(
@@ -504,28 +521,11 @@ for (const { project, pending } of targets) {
       }))
       // human_verdict·human_graded_at 은 payload 에 없다(human_product_informative 도) — 재판정이 사람 채점을 덮지 않는다.
       // insert-only(ON CONFLICT DO NOTHING) — 이미 있는 판정(1차·2차·사람·자동 승인)은 절대 덮지 않는다. 돌려받은 행 = 실제로 새로 들어간 행.
-      const save = (payload) => saveVerdictsInsertOnly(supabase, payload)
-      const without = (keys) => rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !keys.includes(k))))
-      const absentKeys = () => [...(promptVersionColumn === 'absent' ? ['prompt_version'] : []), ...(infoColumn === 'absent' ? ['product_informative'] : []), ...(labelColumns === 'absent' ? LABEL_KEYS : [])]
-      let { data: insertedRows, error } = await save(rows)
-      // 컬럼이 없으면(PGRST204 스키마 캐시에 없음 · 42703) 판정은 그대로 저장하고 **그 필드만** 버린다. 어느 컬럼인지는 메시지로 가른다.
+      // 컬럼이 없으면(PGRST204 스키마 캐시에 없음 · 42703) 판정은 그대로 저장하고 **그 필드만** 버린다(saveWithColumnFallback — 순서 무관).
       // 조용히 넘기지 않는다 — "정보 판정 0건"·"라벨 0건"이 "모델이 못 달았다"로 읽히면 안 된다(§7.1).
-      const missingCol = (e) => e && (e.code === 'PGRST204' || e.code === '42703')
-      if (missingCol(error) && promptVersionColumn !== 'absent' && /prompt_version/.test(error.message ?? '')) {
-        promptVersionColumn = 'absent'
-        warn(`prompt_version 미기록(마이그 미적용) — 컬럼이 없다(${error.code}). 20261014000020 적용 전까지 이 필드만 빼고 저장한다(model 은 기록).`)
-        ;({ data: insertedRows, error } = await save(without(absentKeys())))
-      }
-      if (missingCol(error) && infoColumn !== 'absent' && /product_informative/.test(error.message ?? '')) {
-        infoColumn = 'absent'
-        warn(`정보 판정 미기록(마이그 미적용) — product_informative 컬럼이 없다(${error.code}). 20260930000031 적용 전까지 이 필드만 빼고 저장한다. rr-v2 자동 승인 대상은 0건이 된다.`)
-        ;({ data: insertedRows, error } = await save(without(absentKeys())))
-      }
-      if (missingCol(error) && labelColumns !== 'absent') {
-        labelColumns = 'absent'
-        warn(`라벨 미기록(마이그 미적용) — review_relevance_verdicts 에 라벨 컬럼이 없다(${error.code}). 20260930000014 적용 전까지 verdict·reason 만 저장한다.`)
-        ;({ data: insertedRows, error } = await save(without(absentKeys())))
-      }
+      const cols = { promptVersion: promptVersionColumn, info: infoColumn, labels: labelColumns }
+      const { data: insertedRows, error } = await saveWithColumnFallback((payload) => saveVerdictsInsertOnly(supabase, payload), rows, cols, LABEL_KEYS, warn)
+      ;({ promptVersion: promptVersionColumn, info: infoColumn, labels: labelColumns } = cols)
       if (error) {
         errorTotal += rows.length
         saveFailed += 1

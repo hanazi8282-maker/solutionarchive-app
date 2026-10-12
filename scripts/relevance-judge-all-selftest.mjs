@@ -4,7 +4,7 @@
 
 import fs from 'node:fs'
 import {
-  CHAIN_STOP_REASONS, chainCarryOf, decideRelaunch, fetchAllPages, orderForJudge, parseSourceList, saveVerdictsInsertOnly,
+  CHAIN_STOP_REASONS, chainCarryOf, decideRelaunch, fetchAllPages, orderForJudge, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
 import { createPendingFor } from '../lib/analysis/relevance-pending.ts'
 
@@ -21,7 +21,7 @@ function mockDb({ tables, failPage = null }) {
     from(table) {
       const st = { table, filters: [], range: null, op: 'select', payload: null, opts: null }
       const b = {
-        select() { return b }, eq(c, v) { st.filters.push([c, v]); return b }, is(c, v) { st.filters.push([c, v]); return b },
+        select(c) { if (st.op === 'select' && c) st.cols = c.split(',').map((x) => x.trim()); return b }, eq(c, v) { st.filters.push([c, v]); return b }, is(c, v) { st.filters.push([c, v]); return b },
         order(c) { st.order = c; return b }, range(a, z) { st.range = [a, z]; return b },
         upsert(p, o) { st.op = 'upsert'; st.payload = p; st.opts = o; return b },
         then(res, rej) {
@@ -40,7 +40,9 @@ function mockDb({ tables, failPage = null }) {
           if (st.order) rows = [...rows].sort((a, b2) => String(a[st.order]).localeCompare(String(b2[st.order])))
           const [a, z] = st.range ?? [0, 999]
           if (failPage != null && st.range && a / 1000 === failPage) return Promise.resolve({ data: null, error: { message: 'boom' } }).then(res, rej)
-          return Promise.resolve({ data: rows.slice(a, Math.min(z, a + 999) + 1), error: null }).then(res, rej)
+          const page = rows.slice(a, Math.min(z, a + 999) + 1).map((r) => (st.cols ? Object.fromEntries(st.cols.filter((k) => k in r).map((k) => [k, r[k]])) : r))
+          st.bytes = JSON.stringify(page).length
+          return Promise.resolve({ data: page, error: null }).then(res, rej)
         },
       }
       return b
@@ -173,6 +175,79 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
     row('relevance-judge-2026-10-12-m2', { relaunch: false, next_hop: 6, next_zero_streak: 0 }, 0.1),
   ], now) === null)
   t('진행 중 행은 건너뜀 · 다른 접두는 안 봄', chainCarryOf([row('extract-auto-2026-10-12-s1', { relaunch: true, next_hop: 1, next_zero_streak: 0 }, 0.1)], now) === null)
+}
+
+// ── 7. 수 세기(countFor) — raw_text 를 안 읽는다 · 전송량 ──
+{
+  const big = inputs.map((r) => ({ ...r, raw_text: `${r.raw_text} ${'가'.repeat(1000)}` })) // 실측 평균 ~1KB 가정
+  const db = mockDb({ tables: { analysis_inputs: big, review_relevance_verdicts: judged() } })
+  const pf = createPendingFor({ supabase: db, sampleSize: 1000, highRatingShare: 1, prefilterCfg: null, log: () => {}, warn: () => {} })
+  const c = await pf.countFor({ id: 'p1' })
+  const countCalls = db.calls.filter((x) => x.table === 'analysis_inputs')
+  t('countFor: 미판정 800 · 제외(youtube) 200 · 소스 목록', c.unjudged === 800 && c.excluded === 200 && c.sources.length === 5)
+  t('countFor: analysis_inputs 를 id·source_key 만 조회(raw_text 없음)', countCalls.every((x) => x.cols?.join() === 'id,source_key'))
+  const countBytes = countCalls.reduce((s, x) => s + (x.bytes ?? 0), 0)
+  db.calls.length = 0
+  await pf.pendingFor({ id: 'p1' })
+  const fullBytes = db.calls.filter((x) => x.table === 'analysis_inputs').reduce((s, x) => s + (x.bytes ?? 0), 0)
+  const ratio = countBytes / fullBytes
+  console.log(`  전송량(원문 1KB 가정, 2,500행): 수 세기 ${Math.round(countBytes / 1024)}KB vs 원문 읽기 ${Math.round(fullBytes / 1024)}KB (${(ratio * 100).toFixed(1)}%)`)
+  t('countFor 전송량 < 원문 읽기의 10%', ratio < 0.1)
+  const src = fs.readFileSync('scripts/relevance-judge-auto.mjs', 'utf8')
+  const loop = src.indexOf('for (const c of ready)')
+  t('스크립트: 후보 전부는 countFor, pendingFor 는 이번에 돌 프로젝트(maxProjects)만', /const count = await countFor\(p\)/.test(src) && (src.match(/await pendingFor\(/g) ?? []).length === 1
+    && src.indexOf('await pendingFor(') > loop && loop > 0 && /if \(targets\.length >= maxProjects\) break/.test(src))
+  t('countFor 실패 → null(확인 불가)', (await createPendingFor({ supabase: mockDb({ tables: { analysis_inputs: inputs }, failPage: 0 }), sampleSize: 1, highRatingShare: 1, prefilterCfg: null, log: () => {}, warn: () => {} }).countFor({ id: 'p1' })) === null)
+}
+
+// ── 8. 컬럼 없음 폴백 — prompt_version·product_informative 둘 다 없어도 save_failed 가 아니다 ──
+{
+  const LABELS = ['impact', 'frequency']
+  const fakeSave = (missing) => {
+    const tried = []
+    return { tried, save: async (rows) => {
+      tried.push(Object.keys(rows[0]).sort().join())
+      const m = missing.find((k) => k in rows[0])
+      return m ? { data: null, error: { code: 'PGRST204', message: `Could not find the '${m}' column of 'review_relevance_verdicts' in the schema cache` } } : { data: rows.map((r) => ({ input_id: r.input_id })), error: null }
+    } }
+  }
+  const row = { input_id: 'x', verdict: 'relevant', model: 'm', prompt_version: 'v', product_informative: true, impact: 1, frequency: 2 }
+  for (const order of [['product_informative', 'prompt_version'], ['prompt_version', 'product_informative']]) {
+    const f = fakeSave(order)
+    const cols = { promptVersion: 'unknown', info: 'unknown', labels: 'unknown' }
+    const r = await saveWithColumnFallback(f.save, [row], cols, LABELS, () => {})
+    t(`둘 다 없음(${order.join('→')}): 둘 다 빼고 저장 성공 · 라벨은 유지`, !r.error && r.data.length === 1 && cols.promptVersion === 'absent' && cols.info === 'absent' && cols.labels === 'unknown' && f.tried.length === 3)
+  }
+  const f3 = fakeSave(['product_informative', 'prompt_version', 'impact'])
+  const c3 = { promptVersion: 'unknown', info: 'unknown', labels: 'unknown' }
+  t('셋 다 없음 → 라벨까지 빼고 성공(재시도 3회)', !(await saveWithColumnFallback(f3.save, [row], c3, LABELS, () => {})).error && c3.labels === 'absent' && f3.tried.length === 4)
+  const f4 = fakeSave(['unknown_col'])
+  const r4 = await saveWithColumnFallback(f4.save, [{ ...row, unknown_col: 1 }], { promptVersion: 'unknown', info: 'unknown', labels: 'unknown' }, LABELS, () => {})
+  t('뺄 것이 없으면 오류 그대로(무한 반복 없음)', !!r4.error && f4.tried.length === 2)
+  const f5 = fakeSave([])
+  const c5 = { promptVersion: 'absent', info: 'unknown', labels: 'unknown' }
+  await saveWithColumnFallback(f5.save, [row], c5, LABELS, () => {})
+  t('이미 absent 인 필드는 첫 저장부터 뺀다', !f5.tried[0].includes('prompt_version'))
+}
+
+// ── 9. 제외 소스 fail-closed ──
+{
+  t("'none' 만 전부 허용", parseExcludedSources('none').length === 0 && parseExcludedSources(' NONE ').length === 0)
+  t('빈 값·없음 = 기본(youtube)', parseExcludedSources(undefined).join() === 'youtube' && parseExcludedSources('').join() === 'youtube')
+  t('오타·부분 값은 기본에 더해진다(youtube 닫힌 채)', parseExcludedSources('youtub').join() === 'youtube,youtub' && parseExcludedSources('danawa, kakao_blog').join() === 'youtube,danawa,kakao_blog')
+  t("'none,danawa' 같은 섞인 값은 none 으로 안 읽는다", parseExcludedSources('none,danawa').includes('youtube'))
+  const src = fs.readFileSync('scripts/relevance-judge-auto.mjs', 'utf8')
+  t('스크립트가 parseExcludedSources 를 쓰고, 원문에 없는 이름을 경고한다', /parseExcludedSources\(process\.env\.RELEVANCE_EXCLUDE_SOURCES\)/.test(src) && /후보 원문에 없는 소스 이름/.test(src))
+}
+
+// ── 10. Cancel 뒤 넘겨받기 금지 ──
+{
+  const now = new Date('2026-10-12T03:00:00Z')
+  const rows = [
+    { run_key: 'relevance-judge-2026-10-12-m1', status: 'ok', summary: { chain: { relaunch: true, next_hop: 3, next_zero_streak: 0 } }, started_at: '2026-10-12T00:00:00Z', finished_at: '2026-10-12T01:00:00Z' },
+    { run_key: 'relevance-judge-2026-10-12-m2', status: 'running', summary: {}, started_at: '2026-10-12T01:05:00Z' }, // 사람이 Cancel → running 으로 남음
+  ]
+  t('가장 최근 행이 running(취소·죽음)이면 앞 실행의 "이어 가라"를 잇지 않는다', chainCarryOf(rows, now) === null)
 }
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} 전량 판정 셀프테스트: ${pass} pass / ${fail} fail`)

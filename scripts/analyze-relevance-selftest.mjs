@@ -228,10 +228,12 @@ const labelMig = read('supabase/migrations/20260930000014_review_verdict_labels.
 const sampleScript = read('scripts/relevance-grading-sample.mjs')
 t('라벨 마이그: nullable ADD COLUMN + 허용값 CHECK', labelMig.includes('ADD COLUMN IF NOT EXISTS impact') && labelMig.includes("impact IN ('high','mid','low')") && labelMig.includes("community_signal IN ('pain','demand','objection')") && !/NOT NULL|UPDATE public|DROP /.test(labelMig.split('-- 확인 쿼리')[0].replace(/^--.*$/gm, '')))
 t('라벨 마이그: 미적용 표기·예외 5개 해당 없음', labelMig.includes('**미적용**') && labelMig.includes('해당 없음'))
-t('배치가 라벨을 저장하고, 컬럼 없으면 라벨만 버린다', auto.includes('LABEL_KEYS') && auto.includes("'PGRST204'") && auto.includes('라벨 미기록(마이그 미적용)'))
+// 컬럼 없음 폴백은 lib/analysis/relevance-judge-all.ts saveWithColumnFallback 으로 옮겼다(실행 검사는 relevance-judge-all-selftest §8).
+const judgeAll = read('lib/analysis/relevance-judge-all.ts')
+t('배치가 라벨을 저장하고, 컬럼 없으면 라벨만 버린다', auto.includes('LABEL_KEYS') && auto.includes('saveWithColumnFallback(') && judgeAll.includes("'PGRST204'") && judgeAll.includes('라벨 미기록(마이그 미적용)'))
 t('채점표가 라벨 컬럼 이름을 부르지 않고(*) 태그를 붙인다', sampleScript.includes(".select('*')") && sampleScript.includes('impactFrequencyTags('))
 
-t('배치가 product_informative 를 저장하고, 컬럼 없으면 그 필드만 뺀다', auto.includes('product_informative: v.product_informative') && auto.includes("infoColumn = 'absent'") && auto.includes('정보 판정 미기록(마이그 미적용)'))
+t('배치가 product_informative 를 저장하고, 컬럼 없으면 그 필드만 뺀다', auto.includes('product_informative: v.product_informative') && judgeAll.includes("cols.info = 'absent'") && judgeAll.includes('정보 판정 미기록(마이그 미적용)'))
 const gradeImport = read('scripts/relevance-grading-import.mjs')
 t('채점 import: 정보 열 → human_product_informative, 관련 칸 비면 human_verdict·human_graded_at 불변',
   gradeImport.includes('human_product_informative: m.product_informative') && gradeImport.includes('m.verdict !== null ? { human_verdict: m.verdict, human_graded_at: now }'))

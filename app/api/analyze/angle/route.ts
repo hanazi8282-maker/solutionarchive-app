@@ -21,6 +21,9 @@ import {
   type LlmProvider,
 } from '@/lib/analysis/llm'
 import { withLlmBudget } from '@/lib/analysis/budget'
+import type { EvidenceQuote } from '@/lib/analysis/evidence-quotes'
+import { loadQuotePolicies, loadQuoteSources } from '@/lib/analysis/quote-policy-db'
+import { judgedQuoteOf } from '@/lib/insights/evidence'
 import { judgeHeadline as judgeWith, pickEnum } from '@/lib/analysis/judge'
 import { UNTRUSTED_INPUT_NOTICE } from '@/lib/llm/untrusted-input'
 
@@ -701,12 +704,33 @@ export async function GET(req: Request) {
   }
   const aspectById = new Map((aspects ?? []).map(a => [a.id, a]))
 
+  // 판정 인용(substantiation_evidence)은 리뷰 원문 발췌다 — 인사이트 화면과 같은 관문(judgedQuoteOf: 출처 소스 정책 ·
+  // 한 130/영 240 · 원문 대조)을 거친 것만 낸다. 출처를 못 정하거나 정책·원문을 못 읽으면 가린다(fail-closed).
+  // 속성 인용(evidence_quotes)은 응답에 싣지 않으려고 따로 읽는다.
+  const withEvidence = (angles ?? []).filter(a => a.aspect_id && a.substantiation_evidence)
+  let gated = new Map<string, string | null>()
+  if (withEvidence.length > 0) {
+    const [policies, quoteRows] = await Promise.all([
+      loadQuotePolicies(supabase, 'analyze/angle'),
+      supabase.from('analysis_aspects').select('id, evidence_quotes').eq('project_id', projectId),
+    ])
+    const quotesOf = new Map(((quoteRows.data ?? []) as { id: string; evidence_quotes: EvidenceQuote[] | null }[]).map(r => [r.id, r.evidence_quotes]))
+    const sources = quoteRows.error ? null : await loadQuoteSources(supabase,
+      [{ project_id: projectId, quotes: [...quotesOf.values()].flatMap(q => q ?? []) }], policies, 'analyze/angle')
+    gated = new Map(withEvidence.map(a => {
+      const j = judgedQuoteOf(a.substantiation_evidence as string, quotesOf.get(a.aspect_id as string), projectId, { policies, sources })
+      return [a.id as string, j.state === 'ok' ? j.text : null]
+    }))
+  }
+
   return NextResponse.json({
     project,
     angles: (angles ?? []).map(a => {
       const aspect = a.aspect_id ? (aspectById.get(a.aspect_id) ?? null) : null
       return {
         ...a,
+        substantiation_evidence: a.substantiation_evidence ? (gated.get(a.id as string) ?? null) : null,
+        substantiation_evidence_hidden: !!a.substantiation_evidence && gated.get(a.id as string) == null,
         aspect_name: aspect?.name ?? null,
         aspect_quadrant: aspect?.quadrant ?? null,
         aspect_persona_role: aspect?.persona_role ?? null,

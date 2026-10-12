@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireAllowedUser } from '@/lib/auth/session'
+import { revertNote } from '@/lib/columns/revert'
 
 // ⛔ 사람 전용 쓰기 경로 (CLAUDE.md §10.1 — 승인·반려는 사람만 한다). /columns 화면의
 // 버튼으로만 부른다. API 라우트로 만들지 않는다 — /cases 의 actions.ts 와 같은 이유다.
@@ -64,6 +65,53 @@ export async function decideColumn(_prev: ReviewActionState, fd: FormData): Prom
 
   revalidatePath('/columns')
   return { ok: true, message: `${LABEL[decision]} 완료.` }
+}
+
+// ── 승인 취소(approved → draft) ─────────────────────────────────────────────
+// 승인하면 /columns/read 에 바로 공개되므로 잘못 누른 승인을 되돌릴 길이 있어야 한다. 로그인 확인 → 현재 상태 읽기 →
+// 낙관적 락(approved 일 때만) → select() 로 실제 갱신행 확인 — decideColumn 과 같은 방어. 흔적은 review_note 에 남긴다
+// (lib/columns/revert.ts: 누가·언제·왜 + 이전 메모 보존). 이미 외부에 게시한 글(Threads 등)을 내리지는 않는다 — 앱 안 공개만 거둔다.
+export async function revertColumn(_prev: ReviewActionState, fd: FormData): Promise<ReviewActionState> {
+  const auth = await requireAllowedUser()
+  if (!auth.ok) return { ok: false, message: auth.message }
+
+  const id = String(fd.get('id') ?? '').trim()
+  const reason = String(fd.get('note') ?? '').trim()
+  if (!id) return { ok: false, message: '대상 칼럼이 없습니다. 새로고침 후 다시 시도하세요.' }
+
+  const sb = await createClient()
+  if (!sb) return { ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다.' }
+
+  const { data: col, error: readErr } = await sb
+    .from('content_columns')
+    .select('id, review_status, review_note')
+    .eq('id', id)
+    .maybeSingle()
+  if (readErr) return { ok: false, message: `조회 실패 — 확인하지 못해 바꾸지 않았습니다: ${readErr.message}` }
+  if (!col) return { ok: false, message: '칼럼을 찾지 못했습니다. 새로고침 후 확인하세요.' }
+  if (col.review_status !== 'approved') {
+    return { ok: false, message: `승인 상태가 아닙니다(현재 ${col.review_status}). 새로고침 후 확인하세요.` }
+  }
+
+  const at = new Date().toISOString()
+  const { data, error: writeErr } = await sb
+    .from('content_columns')
+    .update({
+      review_status: 'draft',
+      review_note: revertNote({ by: auth.email, at, reason, prev: col.review_note }),
+      reviewed_by: auth.email,
+      reviewed_at: at,
+    })
+    .eq('id', id)
+    .eq('review_status', 'approved') // 낙관적 락 — 읽은 뒤 사이에 바뀌었으면 0행 갱신.
+    .select('id')
+
+  if (writeErr) return { ok: false, message: `저장 실패: ${writeErr.message}` }
+  if (!data || data.length === 0) return { ok: false, message: '방금 다른 곳에서 바뀌었습니다. 새로고침 후 확인하세요.' }
+
+  revalidatePath('/columns')
+  revalidatePath('/columns/read')
+  return { ok: true, message: '승인을 취소하고 초안으로 되돌렸습니다. 공개 목록에서 내려갑니다.' }
 }
 
 // ── 검수 피드백 제안 (column_review_patterns) ────────────────────────────────

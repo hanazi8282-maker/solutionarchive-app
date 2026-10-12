@@ -143,6 +143,21 @@ export type SummaryReason = Exclude<QuoteReason, 'not_verbatim' | 'src_header' |
 export interface QuoteCheck { kind: 'quote'; text: string; ok: boolean; reason: QuoteReason }
 export interface SummaryCheck { kind: 'summary'; text: string; ok: boolean; reason: SummaryReason }
 
+/** 수집기 머리말(`[HN: …]` · `[SRC: URL]` 첫 줄). 발췌에는 싣지 않는다. */
+const EXCERPT_HEADER = /^\s*\[(?:HN|SRC):[^\]]*\]\s*/
+
+/**
+ * 공개·로그인 화면에 리뷰·기사 글을 **글 그대로** 내는 모든 자리의 단일 관문(2026-10-12 앱 감사 A-2).
+ * 머리말을 떼고 checkQuote 를 건다: 정책 none·모름(약관 금지 소스) → 거부, 한국어 130자·영어 240자 초과 → 거부(자르지 않는다).
+ * 발췌 = 그 글 전체라 원문 대조는 자기 자신과 한다 — 실제로 거르는 건 정책·빈 값·글자 상한이다.
+ * policy: review_sources.quote_policy 원값. 소스 정책이 없는 글(웹 기사 case_evidence)은 'full' 을 명시해 길이 상한만 건다.
+ * ok=false 면 text 는 빈 문자열이다. 호출부는 reason 으로 "미기재"(empty)와 "가림"(그 밖)을 가른다.
+ */
+export function publicExcerpt(text: string | null | undefined, policy: unknown): QuoteCheck {
+  const body = String(text ?? '').replace(EXCERPT_HEADER, '')
+  return checkQuote(body, quotePolicyOf(policy), body)
+}
+
 /** 정책·빈 값·글자 상한 — 인용·요약 공통. 통과면 공백 눕힌 글, 아니면 거부 사유. */
 function capCheck(text: unknown, policy: QuotePolicy): { flat: string } | { reason: SummaryReason } {
   if (policy === 'none') return { reason: 'policy_none' }

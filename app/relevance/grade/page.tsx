@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { BATCH_SIZE, DEFAULT_QUOTA, STRATA, STRATUM_LABEL, kstDate, pickBatch, type Batch, type FeedbackRow } from '@/lib/relevance-feedback/sample'
 import { feedbackTableState, loadAllVerdicts, loadBackgrounds, loadTranslations } from '@/lib/relevance-feedback/db'
 import { TRANSLATIONS_MIGRATION, parseSourceContext } from '@/lib/relevance-feedback/translate'
+import { loadConsumerTagged } from '@/lib/analysis/consumer-material'
 import { ButtonLink } from '../../_ds/components/Button'
 import { Card } from '../../_ds/components/Card'
 import { EmptyState } from '../../_ds/components/EmptyState'
@@ -58,7 +59,9 @@ const KO: Record<string, string> = { relevant: '관련', irrelevant: '무관', u
 const ko = (v: string | null | undefined) => (v ? KO[v] ?? v : '판정 없음')
 const inf = (v: boolean | null | undefined) => (v === true ? '정보있음' : v === false ? '정보없음' : '판정 없음')
 
-export default async function RelevanceGradePage() {
+export default async function RelevanceGradePage({ searchParams }: { searchParams?: Promise<{ consumer?: string }> }) {
+  // 소비재 태그(남헌 v61) 입력은 기본으로 채점 묶음에서 뺀다. ?consumer=1 이면 포함해서 본다('소비재 포함 보기').
+  const includeConsumer = (await searchParams)?.consumer === '1'
   const sb = await createClient()
   if (!sb) return <Shell><Notice tone="danger" title="확인 불가. Supabase 환경변수 미설정">채점할 카드가 없다는 뜻이 아니다.</Notice></Shell>
 
@@ -68,9 +71,19 @@ export default async function RelevanceGradePage() {
   const today = kstDate(new Date().toISOString()) ?? ''
   // 원문이 폐기된 행(raw_text 없음)은 채점할 게 없다 — 빼고 다시 뽑는다. 세 번이면 충분하다(빈 원문은 드물다).
   const exclude = new Set<string>()
+  if (!includeConsumer) {
+    // 태그를 프로젝트별로 읽는다(loadConsumerTagged — relevance-pending 과 같은 패턴). null = 확인 불가 → 닫는다(fail-closed).
+    // 스위치 off·표 없음은 빈 Set(원래 동작).
+    const pids = [...new Set(loaded.rows.map((r) => r.project_id).filter((v): v is string => !!v))]
+    const tagged = await Promise.all(pids.map((p) => loadConsumerTagged(sb, p, { warn: (m) => console.warn(`[relevance/grade] ${m}`) })))
+    if (tagged.some((t) => t === null)) {
+      return <Shell><Notice tone="danger" title="확인 불가. 소비재 태그 조회 실패">소비재 글이 섞일 수 있어 묶음을 내지 않는다. 채점할 카드가 없다는 뜻이 아니다. <a href="/relevance/grade?consumer=1">소비재 포함 보기</a>로는 열린다.</Notice></Shell>
+    }
+    for (const t of tagged) t?.forEach((id) => exclude.add(id))
+  }
   const texts = new Map<string, string>()
   const sourceKeys = new Map<string, string | null>()
-  let batch: Batch = pickBatch(loaded.rows, { today })
+  let batch: Batch = pickBatch(loaded.rows, { today, exclude })
   for (let round = 0; round < 3; round++) {
     const ids = batch.items.map((i) => i.row.input_id).filter((id) => !texts.has(id))
     if (ids.length === 0) break
@@ -134,6 +147,10 @@ export default async function RelevanceGradePage() {
   return (
     <Shell done={done} total={items.length}>
       <GradeKeys />
+      <p className="v2-note">
+        {includeConsumer ? '소비재 태그 글을 포함해 보는 중.' : '소비재 태그 글은 뺐다.'}{' '}
+        <a href={includeConsumer ? '/relevance/grade' : '/relevance/grade?consumer=1'}>{includeConsumer ? '소비재 제외로 돌아가기' : '소비재 포함 보기'}</a>
+      </p>
       <div className="v2-batch">
         <p className="v2-text v2-text--muted">
           {today || '날짜 확인 불가'} 묶음 {BATCH_SIZE}장. 네 층(자동승인 통과 · 관련이지만 정보 없음 · 1차·2차 불일치 · 둘 다 무관)에서 섞어 뽑았다. 모델 판정과 층은 저장한 뒤에 보인다.

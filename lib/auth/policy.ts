@@ -64,8 +64,8 @@ const PUBLIC_PREFIXES = [
  *  - `/voc/community` 같은 행을 겪는 문제·원하는 것·안 쓰는 이유 3열로(읽기 전용). 같은 위임.
  *  - `/voc/card`   리뷰 1건 페인 카드. id 는 질의(?id=)라 경로 공개가 정확일치 하나로 끝난다. 같은 위임.
  *                       **접두사가 아니라 정확일치다** — `/voc/*` 아래 새 화면은 자동으로 열리지 않는다.
- *  - `/cases/report`   아이디어 매칭 리포트 체험판(아이디어는 ?q= 질의, 읽기 전용). 남헌 2026-09-25 결정 2
- *                       (§10.2 예외 3 승인). 익명 아이디어 원문이 URL·접근 로그에 남는 것도 인지·승인됨.
+ *  - `/cases/report`   아이디어 매칭 리포트 체험판(읽기 전용). 남헌 2026-09-25 결정 2 (§10.2 예외 3 승인).
+ *                       아이디어 원문은 2026-10-12 부터 URL 이 아니라 30분 쿠키로 온다(lib/cases/idea-handoff.ts).
  *                       정확일치라 검수 `/cases`·`/cases/search`·`/cases/<slug>` 는 계속 잠겨 있다.
  */
 const PUBLIC_EXACT = ['/', '/opengraph-image', '/voc', '/voc/community', '/voc/card', '/cases/report']

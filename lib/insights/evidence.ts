@@ -228,6 +228,7 @@ export async function loadInsightEvidence(
       }),
     ],
   }] : []))
-  const sources = await loadQuoteSources(sb, probe, policies, where)
+  // 소비재 태그 입력은 원문 후보에서 뺀다(공개 인사이트 — /voc 와 같은 기준, 남헌 v61). 태그 확인 불가면 인용을 가린다.
+  const sources = await loadQuoteSources(sb, probe, policies, where, { excludeConsumer: true })
   return buildInsightEvidence(aspectIds, { aspects, projects, corpora, verdicts }, { policies, sources }, angles)
 }

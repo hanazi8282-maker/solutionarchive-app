@@ -105,6 +105,8 @@ const fakeSb = (tables, { fail: failT = {}, missingKo = false, ignoreIn = false 
       select: (c) => { cols = c; return q },
       // or(ilike 후보 검색)·limit 은 거르지 않는다 — 후보가 더 와도 원문 일치는 checkQuote 가 다시 본다.
       range: () => q, eq: () => q, order: () => q, maybeSingle: () => q, or: () => q, limit: () => q,
+      // anti-join(소비재 태그): consumer_material_tags 가 null 인 행만 — 임베드가 채워진 행(태그됨)은 거른다.
+      is: (col, v) => { if (col === 'consumer_material_tags' && v === null) rows = rows.filter((r) => !r.consumer_material_tags); return q },
       in: (col, vals) => { if (!ignoreIn) rows = rows.filter((r) => vals.includes(r[col])); return q },
       then: (ok, ko) => {
         const res = failT[table] ? { data: null, error: { code: failT[table], message: 'boom' }, count: null }
@@ -295,6 +297,18 @@ t('판정 인용: 속성 인용과 겹치고 원문 일치 → blockquote', /<bl
 t('판정 인용: 출처 모름(겹치는 인용 없음) → 숨김 + 정리 중', !judged.html.includes('Invented sentence') && /<p class="pub-caption">인용 정리 중/.test(judged.cards.a4))
 const judgedFail = await render({ fail: { review_sources: '500' } }, judgedT)
 t('판정 인용: 정책 맵 못 읽음 → 숨김', !judgedFail.cards.a1.includes('<blockquote class="pub-insight-quote">Itchy'))
+
+// ── 소비재 태그(남헌 v61, 2026-10-12 감사 A-1): 태그된 입력은 인용 원문 후보에서 빠진다 ──
+const taggedT = { ...TABLES, consumer_material_tags: [{ input_id: 'i1' }], analysis_inputs: TABLES.analysis_inputs.map((r, i) => i === 0 ? { ...r, consumer_material_tags: { input_id: 'i1' } } : r) }
+const tagged = await render({}, taggedT)
+t('소비재 태그된 입력의 인용: 숨김 + 정리 중', !tagged.html.includes('My scalp itches') && tagged.cards.a1.includes(PENDING))
+t('태그 안 된 입력(P2)의 인용은 그대로', tagged.html.includes('Shipping took two weeks'))
+const noTags = await render({}, { ...TABLES, consumer_material_tags: [] })
+t('태그 표가 비어 있으면 인용은 그대로', noTags.html.includes('My scalp itches all day'))
+const tagFail = await render({ fail: { consumer_material_tags: '500' } })
+t('태그 표 조회 실패(fail-closed): 인용 0건 + 정리 중', !/My scalp|Shipping/.test(tagFail.html) && tagFail.cards.a1.includes(PENDING))
+const tagMissing = await render({ fail: { consumer_material_tags: 'PGRST205' } })
+t('태그 표 없음(미적용): 원래대로 인용이 보인다', tagMissing.html.includes('My scalp itches all day'))
 
 console.error = quietErr; console.warn = quietWarn
 if (process.argv.includes('--print')) console.log((html.match(/<article(?:(?!<article)[\s\S])*?문구 a1[\s\S]*?<\/article>/) ?? [''])[0])

@@ -9,6 +9,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { QUOTE_POLICY_COLUMN_READY } from '../signals/feed.ts'
+import { CONSUMER_EMBED, consumerFilterState, consumerIsNullPath } from './consumer-material.ts'
 import { isBackfillVerified, quoteProbeTokens, type EvidenceQuote } from './evidence-quotes.ts'
 
 /** review_sources.key → quote_policy 원값. null = 못 읽음(플래그 꺼짐·컬럼 없음·조회 실패). 행은 수십 개라 캐시 없이 요청당 1회. */
@@ -49,9 +50,16 @@ export async function loadQuoteSources(
   items: readonly { project_id: string; quotes: readonly (EvidenceQuote | { text?: string | null; source_key?: string | null } | null | undefined)[] | null | undefined }[],
   policies: ReadonlyMap<string, unknown> | null,
   where: string,
+  /** excludeConsumer: 소비재 태그가 붙은 입력은 원문 후보에서 뺀다 → 그 입력에서 나온 인용은 원문 대조에 떨어져 가려진다. 태그 확인 불가면 null(전부 가림, fail-closed). */
+  opts: { excludeConsumer?: boolean } = {},
 ): Promise<Map<string, string[]> | null> {
   const out = new Map<string, string[]>()
   if (!policies) return out
+  const gate = opts.excludeConsumer ? await consumerFilterState(sb, { warn: (m) => console.warn(`[${where}] ${m}`) }) : 'off'
+  if (gate === 'unknown') {
+    console.error(`[${where}] 소비재 태그 확인 불가 — 인용 원문 후보를 읽지 않는다(인용은 가려진다)`)
+    return null
+  }
   const probes = new Set<string>()
   const projectIds = new Set<string>()
   const keys = new Set<string>()
@@ -72,13 +80,16 @@ export async function loadQuoteSources(
   const all = [...probes]
   const chunks: string[][] = []
   for (let i = 0; i < all.length; i += PROBES_PER_QUERY) chunks.push(all.slice(i, i + PROBES_PER_QUERY))
-  const results = await Promise.all(chunks.map((c) => sb
-    .from('analysis_inputs')
-    .select('project_id, source_key, raw_text')
-    .in('project_id', [...projectIds])
-    .in('source_key', [...keys])
-    .or(c.map((p) => `raw_text.ilike."${p.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`).join(','))
-    .limit(ROWS_PER_QUERY)))
+  const results = await Promise.all(chunks.map((c) => {
+    let q = sb
+      .from('analysis_inputs')
+      .select(gate === 'on' ? `project_id, source_key, raw_text, ${CONSUMER_EMBED}` : 'project_id, source_key, raw_text')
+      .in('project_id', [...projectIds])
+      .in('source_key', [...keys])
+      .or(c.map((p) => `raw_text.ilike."${p.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`).join(','))
+    if (gate === 'on') q = q.is(consumerIsNullPath(''), null)
+    return q.limit(ROWS_PER_QUERY)
+  }))
   let failed = 0
   for (const r of results) {
     if (r.error) {
@@ -86,7 +97,7 @@ export async function loadQuoteSources(
       console.error(`[${where}] analysis_inputs quote-source select error (chunk ${failed}/${results.length}, its quotes stay hidden):`, r.error.code ?? '', r.error.message)
       continue
     }
-    const rows = (r.data ?? []) as { project_id: string; source_key: string | null; raw_text: string | null }[]
+    const rows = (r.data ?? []) as unknown as { project_id: string; source_key: string | null; raw_text: string | null }[]
     if (rows.length >= ROWS_PER_QUERY) console.warn(`[${where}] quote-source rows hit cap ${ROWS_PER_QUERY} — some quotes may fail verbatim check`)
     for (const row of rows) {
       if (!row.source_key || typeof row.raw_text !== 'string') continue

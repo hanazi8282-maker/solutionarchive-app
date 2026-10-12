@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ANGLE_TYPE_LABELS, type AngleType } from '@/lib/analysis/types'
+import { publicExcerpt } from '@/lib/analysis/evidence-quotes'
 import {
   IDEA_ANGLE_MAX, IDEA_VERDICT_CAPTION, IDEA_VERDICT_LABELS, summarizeVerdicts, type IdeaAngle,
 } from '@/lib/cases/idea-angles'
@@ -42,9 +43,9 @@ function AngleList({ angles }: { angles: IdeaAngle[] }) {
             {verdictChip(a)}
             {a.angle_type ? <Chip>{ANGLE_TYPE_LABELS[a.angle_type as AngleType] ?? a.angle_type}</Chip> : null}
           </span>
-          {a.evidence_quote ? (
+          {a.evidence_quote && publicExcerpt(a.evidence_quote, 'full').ok ? (
             <span className="pub-angle-quote">
-              “{a.evidence_quote}”
+              “{publicExcerpt(a.evidence_quote, 'full').text}”
               {a.evidence_ref ? <> · <Link className="pub-link" href={`/library/${a.evidence_ref.slug}`} translate="no">{a.evidence_ref.slug}</Link></> : null}
             </span>
           ) : null}

@@ -5,7 +5,7 @@ import { Badge, type Tone } from '../_ds/components/Badge'
 import { EmptyState } from '../_ds/components/EmptyState'
 import { FilterChip } from '../_ds/components/FilterChip'
 import { Notice, PageHeader, PageShell } from '../_ds/components/Shell'
-import { DecisionForm } from './decision-form'
+import { DecisionForm, RevertForm } from './decision-form'
 import { ColumnReviewGate } from './review-gate'
 import { RevisionForm } from './revision-form'
 import { PatternForm } from './pattern-form'
@@ -266,6 +266,7 @@ function ColumnCard({ c }: { c: ColumnRow }) {
               {c.reviewed_at ? ` · ${KST.format(new Date(c.reviewed_at))} KST` : ''}
               {c.review_note ? ` · ${c.review_note}` : ''}
             </p>
+            {c.review_status === 'approved' && <RevertForm id={c.id} />}
           </>
         )}
       </div>

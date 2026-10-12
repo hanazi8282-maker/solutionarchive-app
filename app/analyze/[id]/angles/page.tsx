@@ -11,6 +11,7 @@ import { EmptyState } from '../../../_ds/components/EmptyState'
 import { Field, Textarea } from '../../../_ds/components/Field'
 import { Notice, PageHeader, PageShell, StatGrid, StatTile } from '../../../_ds/components/Shell'
 import { VERDICT_LABEL } from '@/lib/analysis/aspect-verdict'
+import { QUOTE_PENDING_NOTE } from '@/lib/analysis/evidence-quotes'
 import { AdvisorLoader } from '../advisor-cards'
 import {
   ANGLE_READY_STATUSES,
@@ -40,6 +41,8 @@ type AngleRow = {
   substantiation_verdict: SubstantiationVerdict | null
   substantiation_reason: string | null
   substantiation_evidence: string | null
+  /** 서버 관문(인용 정책·130/240·원문 대조)이 가렸다 — 원문은 DB 에 있다. */
+  substantiation_evidence_hidden?: boolean
   headline_original: string | null
   gate_rewritten: boolean | null
   adaptation_suggestion: string | null
@@ -273,6 +276,7 @@ function AdvisorPanel({ a }: { a: AngleRow }) {
 }
 
 function EvidenceQuote({ a }: { a: AngleRow }) {
+  if (a.substantiation_evidence_hidden) return <p className="v2-note">{QUOTE_PENDING_NOTE}</p>
   if (!a.substantiation_evidence) return null
   return (
     <blockquote className="v2-quote">

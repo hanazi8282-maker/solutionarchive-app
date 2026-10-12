@@ -36,6 +36,8 @@ jobs:
       - run: node scripts/aspect-review-eval-selftest.mjs
       # 로그인 보호 경로·서버 액션 가드. 크론 라우트가 로그인에 막히면 여기서 실패한다.
       - run: node scripts/auth-selftest.mjs
+      # 앱 감사 A(2026-10-12): 소비재 태그 제외·인용 단일 관문·아이디어 URL 비노출·승인 취소.
+      - run: node scripts/app-audit-a-selftest.mjs
       # Threads 토큰 3상태·refresh-token 크론 응답(만료·임박을 200 으로 숨기지 않는다), 크론 감시 판정.
       - run: node scripts/threads-token-selftest.mjs
       - run: node scripts/cron-watchdog-selftest.mjs

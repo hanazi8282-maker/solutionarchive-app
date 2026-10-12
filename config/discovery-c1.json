@@ -1,0 +1,50 @@
+{
+  "_about": "자율 발굴 C-1(남헌 v56 §C-1 · v61) ②검색 기반 신규 제품 발견 · ④영역별 키워드·국가·정렬 조합 자동 생성(v53 §5 2-A 잔여)의 입력. 읽는 곳: lib/discovery/store-search.ts · scripts/store-search-discovery.mjs. 영역 코드는 config/areas.json 과 같다(셀프테스트가 대조).",
+  "rule_ver": "dc1-v1",
+
+  "_areas": "영역별 씨앗 키워드(한/영). 2026-10-12 초기값 — config/areas.json 영역 이름과 reports/2026-10-05/product-dictionary 의 kr_search_queries 에서 골랐다. 실측 보정 전이다.",
+  "areas": {
+    "1": { "ko": ["회의록", "통화 요약", "회의 녹음"], "en": ["meeting notes", "call transcription", "meeting recorder"] },
+    "2": { "ko": ["영업 관리", "고객 관리 CRM", "명함 관리"], "en": ["sales crm", "sales pipeline", "lead management"] },
+    "3": { "ko": ["마케팅 자동화", "광고 소재", "SNS 예약 발행"], "en": ["email marketing", "social media scheduler", "ad creative"] },
+    "4": { "ko": ["근태 관리", "급여 관리", "인사 평가"], "en": ["time tracking", "payroll", "performance review"] },
+    "5": { "ko": ["리뷰 관리", "글쓰기 도우미", "맞춤법 검사"], "en": ["review management", "writing assistant", "grammar checker"] },
+    "design": { "ko": ["디자인 툴", "목업"], "en": ["design tool", "mockup"] }
+  },
+
+  "_modifiers": "키워드 확장 = 씨앗 × 수식어. 빈 문자열 = 씨앗 그대로.",
+  "modifiers": { "ko": ["", "앱", "AI"], "en": ["", "app", "AI", "alternative"] },
+
+  "_countries": "국가 = 키워드 언어로 정한다. en 목록은 config/window-probe.json appstore.countries 의 앞쪽(영어권 우선)과 같은 값.",
+  "countries": { "ko": ["kr"], "en": ["us", "gb", "ca", "au", "in", "sg"] },
+
+  "_boards": "①하위 게시판 목록 발굴(scripts/board-discovery.mjs). directory = 그 소스의 공식 목록(네비게이션) 페이지 1장 — 거기 걸린 게시판 링크에서 slug_pattern(캡처 1개)으로 slug 를 뽑는다. 새 slug 는 어댑터 nextRequest 가 받아 주는 것만 실측(목록 1페이지)한다 — 어댑터 BOARDS 표가 고정인 소스(okky·velog·devto 등)는 '어댑터 미지원 → 제안만'. exclude = 주제가 VOC 와 무관한 게시판 · include(있으면) = 이 slug 만 본다(사람이 고른 값). 82cook·bobaedream 은 slug 를 아무거나 받는 어댑터지만 소비재 보류(v56)라 넣지 않았다 — 풀리면 아래에 한 줄씩 더한다(2026-10-12 실측: 82cook `enti\\.php\\?bn=(\\d{1,4})` 23개 · bobaedream `/list\\?code=([A-Za-z0-9_-]{1,40})` 27개가 디렉터리에서 잡힌다).",
+  "boards": {
+    "okky": { "directory": "https://okky.kr/", "slug_pattern": "href=\"/([a-z]{3,20})\"", "exclude": ["signup", "contact", "login", "logout", "settings", "camp", "events", "recruits"] },
+    "clien": { "directory": "https://www.clien.net/service/", "slug_pattern": "/service/board/([a-z0-9_]{1,40})[\"'/?]", "exclude": ["sold", "hongbo"], "include": ["cm_app", "cm_ai", "cm_venture", "cm_mac", "cm_andro", "cm_iphonien"], "_include": "2026-10-12 디렉터리 실측 147개 중 앱·AI·창업·OS 소모임만(경쟁 서비스 VOC 쪽). include 가 있으면 그 밖 slug 는 not_included 로 건너뛴다." }
+  },
+
+  "_stores":"공식 목록·검색 경로. search_url 자리표시: {q}(키워드) {country}(소문자) {COUNTRY}(대문자) {hl}(언어) {sort}. robots_rule = 2026-10-12 우리 UA 로 받은 robots.txt 원문 중 그 경로를 막는 줄(기록용 — 판정은 실행 때 RobotsCache 가 다시 한다). sorts 가 빈 배열이면 정렬 파라미터가 없는 경로다. shopify_apps 의 sort_by 값은 검색 페이지를 robots 때문에 열어 보지 못해 확인하지 않았다(제안 링크라 틀려도 무시될 뿐이다).",
+  "stores": {
+    "appstore": {
+      "source_key": "appstore", "langs": ["ko", "en"], "countries": true, "sorts": [],
+      "search_url": "https://itunes.apple.com/search?term={q}&country={country}&entity=software",
+      "robots_rule": "itunes.apple.com robots.txt `User-agent: *` · `Disallow: /search*` · `Disallow: /*/lookup?`"
+    },
+    "googleplay": {
+      "source_key": "googleplay", "langs": ["ko", "en"], "countries": true, "sorts": [],
+      "search_url": "https://play.google.com/store/search?q={q}&c=apps&gl={COUNTRY}&hl={hl}",
+      "robots_rule": "play.google.com robots.txt `User-Agent: *` · `Disallow: /store/search`"
+    },
+    "shopify_apps": {
+      "source_key": "shopify_apps", "langs": ["en"], "countries": false, "sorts": ["relevance", "newest"],
+      "search_url": "https://apps.shopify.com/search?q={q}&sort_by={sort}",
+      "robots_rule": "apps.shopify.com robots.txt `User-agent: *` · `Disallow: *q=*`"
+    },
+    "producthunt": {
+      "source_key": "producthunt", "langs": ["en"], "countries": false, "sorts": [],
+      "search_url": "https://www.producthunt.com/search?q={q}",
+      "robots_rule": "www.producthunt.com robots.txt `User-agent: *` · `Disallow: /search*`"
+    }
+  }
+}

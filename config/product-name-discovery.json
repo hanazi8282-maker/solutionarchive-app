@@ -1,7 +1,7 @@
 {
   "_about": "제품·회사 이름 후보 표(scripts/product-name-candidates.mjs, 남헌 v48 §2-B 단계 1)의 불용어·제외 목록·임계값. 코드는 이 파일을 읽기만 한다. 값은 2026-10-12 초기값이다 — 실데이터로 보정하지 않았다(첫 --run 결과를 보고 고친다).",
-  "rule_ver": "pnc-v3",
-  "_rule_ver_history": "pnc-v1(2026-10-12 초기) → pnc-v2(2026-10-12, 남헌 v52 §1-3: 첫 --run 채택 41건의 오탐을 exclude 6갈래로 분리 · 영역별 표 · 승인 시트) → pnc-v3(2026-10-12, 남헌 v53 §1: 사람 기각 4건 영구 제외 · 지표 용어 · CDN 호스트 · 거대 기업 단독=경쟁 기준점 · 대안 맥락/신규 출시 가중 · 노트·지식관리 칸).",
+  "rule_ver": "pnc-v4",
+  "_rule_ver_history": "pnc-v1(2026-10-12 초기) → pnc-v2(2026-10-12, 남헌 v52 §1-3: 첫 --run 채택 41건의 오탐을 exclude 6갈래로 분리 · 영역별 표 · 승인 시트) → pnc-v3(2026-10-12, 남헌 v53 §1: 사람 기각 4건 영구 제외 · 지표 용어 · CDN 호스트 · 거대 기업 단독=경쟁 기준점 · 대안 맥락/신규 출시 가중 · 노트·지식관리 칸) → pnc-v4(2026-10-12, 남헌 v56 §C-2: 대형 서비스는 빼지 않고 경쟁 기준점(anchor) 후보 — 승인 시트 별도 소절(하루 영역 상한·오탐률에 안 셈) · 제품이 불분명한 단독 기업명은 exclude.company_only 로 계속 기각 · 부류 3갈래 anchor/small/new · 1~3인 팀·저가 플랜 가중).",
 
   "_exclude": "채택 전에 기각하는 목록(정규화 키 기준, 대장에 사유와 함께 남는다). 키가 곧 기각 사유다. acronym 만 조건부 — acronym_rule.exempt_signals(앱 링크·도메인) 신호가 있으면 통과한다. 나머지는 무조건 기각. 2026-10-12 첫 --run 채택 41건에서 사람이 오탐으로 짚은 것 + 같은 결의 흔한 것. human_rejected_v53 = 남헌 v53 승인 시트에서 N 받은 4건(시트 파일이 지워져도 남도록 영구 등재). metric_term = 지표·일반 용어(MRR·ARR·ARPU 류) — 도메인 신호가 있어도 제품이 아니다.",
   "exclude": {
@@ -12,7 +12,8 @@
     "site_ui": ["askhn", "showhn", "tellhn", "launchhn", "hnwhoishiring", "whoishiring"],
     "tool_not_target": ["claudecode", "codex", "openaicodex", "cursor", "windsurf", "aider", "devin", "geminicli", "githubcopilot", "sonnet", "opus", "haiku", "gpt4", "gpt4o", "gpt5", "o1", "o3", "mistral", "deepseek", "perplexity", "midjourney"],
     "hardware": ["applepencil", "applewatch", "airpods", "airpodspro", "airtag", "magickeyboard", "magicmouse", "magictrackpad", "macbook", "macbookpro", "macbookair", "imac", "ipadpro", "ipadair", "ipadmini", "visionpro", "kindle", "pixelwatch", "galaxywatch", "galaxybuds", "surfacepro", "raspberrypi", "steamdeck"],
-    "person_name": ["katherinetingley", "maciej", "auburnaffirmation"]
+    "person_name": ["katherinetingley", "maciej", "auburnaffirmation"],
+    "company_only": ["adobe", "google", "apple", "microsoft", "amazon", "meta", "oracle", "ibm", "sap", "samsung", "naver", "kakao", "alphabet", "intel", "nvidia"]
   },
   "_acronym_rule": "대문자 2~5자(+복수 s) 단일 토큰은 일반 약어로 보고 기본 기각(acronym). exempt_signals 신호가 하나라도 있으면(앱 링크·도메인) 예외로 통과. 1~2자 전부 대문자는 추출 단계에서 이미 버린다.",
   "acronym_rule": { "pattern": "^[A-Z]{2,5}s?$", "exempt_signals": ["link", "domain"] },
@@ -21,13 +22,25 @@
   "cdn_host": { "prefixes": ["cdn", "img", "imgs", "static", "images", "image", "media", "assets"], "contains": ["cdn"] },
 
   "_benchmark": "경쟁 기준점(v53): 거대 기업명·대형 서비스 **단독**(정규화 키가 정확히 목록과 같을 때만). 후보 표 본문이 아니라 별도 소절 '경쟁 기준점'에 올린다 — 승인 시트에는 안 나온다, 기각 대장에도 rejected 로 안 남긴다(매번 다시 잰다). 'Apple Notes'(applenotes)·'HubSpot CRM'(hubspotcrm) 처럼 제품명이 붙으면 키가 달라 제품 후보로 남는다. stopwords 보다 먼저 본다.",
+  "_benchmark_v4": "pnc-v4(남헌 v56 §C-2): companies 는 exclude.company_only 로 옮겼다(제품이 불분명한 단독 기업명 = 오탐 계속 제외). services 만 경쟁 기준점(anchor) — 빼지 않고 승인 시트의 별도 소절 '경쟁 기준점 후보'에 sheet_cap_per_area 개까지 올린다(신규 회사 하루 영역 상한 daily_cap_per_area·오탐률 집계와 따로 센다). 사람이 N 한 기준점은 다음 시트부터 안 올린다. 이미 수집 중인 대형(제품 사전·타깃 등록)은 registry 에서 빠지므로 그대로 수집된다.",
   "benchmark": {
-    "companies": ["adobe", "google", "apple", "microsoft", "amazon", "meta", "oracle", "ibm", "sap", "samsung", "naver", "kakao", "alphabet", "intel", "nvidia"],
+    "sheet_cap_per_area": 2,
     "services": ["salesforce", "hubspot", "zendesk", "slack", "zoom", "dropbox", "atlassian"]
   },
 
   "_weights": "정렬 가중치(v53): 정렬 점수 = 제품 신호 종류 수 + alt_context(대안 맥락 언급 ≥1 — 'X 대신/X 말고/X 대안/switched from X/alternative to X/instead of X' 류) + new_release(앱스토어 출시 ≤ new_release_days 일). 출시일은 --release-dates=<json> 이 있을 때만 쓴다 — 없거나 그 앱이 목록에 없으면 '확인 불가'로 표기하고 가중하지 않는다(외부 호출 없음).",
-  "weights": { "alt_context": 1, "new_release": 1, "new_release_days": 90 },
+  "weights": { "alt_context": 1, "new_release": 1, "new_release_days": 90, "indie": 1, "low_price": 1 },
+
+  "_anchor_profile": "경쟁 기준점 프로파일·비교 한 장(scripts/competitor-anchor-compare.mjs, 남헌 v56 §C-2 4·5). 기준점 = 제품 사전 × 영역 지도(data/area-map-v26.json)에서 앱스토어 평가 수 상위 top_n(평가 수 미확인 제품은 순위 밖). areas = 기본 산출 영역(첫 산출 ①·②). compare_top = 영역별 비교 표에 올리는 소형·신규 채택 후보 수(점수순).",
+  "anchor_profile": { "top_n": 5, "areas": ["1", "2"], "compare_top": 10 },
+
+  "_tiers": "부류 3갈래(pnc-v4, 남헌 v56 §C-2) — (a) anchor = 경쟁 기준점(benchmark.services) · (c) new = 앱스토어 출시 ≤ weights.new_release_days(--release-dates 로 확인된 것) 또는 언급 앞뒤 window_chars 자 안에 launch 표현(Show HN·just launched·출시했·만들었) — 신규·신규 창업가용 서비스 · (b) small = 그 밖(소형 성숙). indie(1~3인 팀·독립 개발자)·low_price(낮은 가격 플랜) 표현은 부류가 아니라 정렬 가중치(weights.indie·low_price). 패턴은 대소문자 무시 정규식. 실데이터 보정 전 초기값.",
+  "tiers": {
+    "window_chars": 160,
+    "launch": ["\\bshow hn\\b", "\\bjust launched\\b", "\\bwe launched\\b", "\\bi launched\\b", "\\blaunched (?:today|this week|last week|yesterday)\\b", "\\bi built\\b", "\\bwe built\\b", "\\bmy (?:new )?(?:app|tool|side project|saas)\\b", "출시했", "런칭했", "만들었습니다", "만들어 봤", "오픈했"],
+    "indie": ["\\bsolo (?:founder|dev|developer|maker)\\b", "\\bindie ?hackers?\\b", "\\bindie (?:dev|developer|maker|app)\\b", "\\bone[- ](?:person|man|woman) (?:team|company|startup)\\b", "\\b(?:two|three|2|3)[- ]person team\\b", "\\bteam of (?:two|three|2|3)\\b", "\\bbootstrapped\\b", "\\bside project\\b", "1인 (?:개발|창업|기업|팀)", "혼자 (?:만든|개발)", "두 명이서", "세 명이서"],
+    "low_price": ["\\$\\s?(?:[1-9]|1[0-9])(?:\\.\\d{1,2})?\\s?(?:/|per\\s)(?:mo|month)\\b", "\\bfree (?:plan|tier|forever)\\b", "\\blifetime deal\\b", "\\bcheaper than\\b", "\\bmuch cheaper\\b", "무료 (?:플랜|요금제)", "월\\s?[1-9],?\\d{3}원", "월\\s?[1-9]만\\s?원", "더 저렴", "훨씬 싸"]
+  },
 
   "_notes_area": "노트·지식관리(v53 남헌): 영역 ①~⑤ 어디에도 넣지 않는다(⑤ 는 리뷰 관리라 무관). products 의 정규화 키는 대표 영역을 'notes' 로 덮고 집계 소절을 label 로 분리한다. 'notes' 는 DB area_code CHECK(20261009000020) 어휘가 아니다 — 등록 초안(candidate-register-draft.mjs)은 area_code NULL + area_evidence 'notes:' 접두로 쓴다.",
   "notes_area": {

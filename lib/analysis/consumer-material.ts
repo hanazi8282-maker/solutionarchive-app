@@ -62,6 +62,42 @@ export async function loadConsumerTagged(
   return new Set((got.data ?? []).map((r) => r.input_id))
 }
 
+// ── 파생 제외(태그 전 신규 글 — DB 쓰기 없이 대기열에서 뺀다) ──
+/** 파생 제외를 풀어 줄 input_id 목록(한 줄에 하나, # 주석). 파일 없음 = 빈 목록. env RELEVANCE_CONSUMER_ALLOW_FILE 로 바꾼다. */
+export const DEFAULT_ALLOW_FILE = 'config/consumer-allow-ids.txt'
+
+export function parseAllowIds(text: string): Set<string> {
+  return new Set(text.split(/\r?\n/).map((l) => l.replace(/#.*/, '').trim()).filter(Boolean))
+}
+
+/** 허용 목록 읽기. 파일 없음 → 빈 Set. 그 밖 읽기 오류는 던진다(모르는 채 열거나 닫지 않는다, §7.1). */
+export async function loadAllowIds(file: string = process.env.RELEVANCE_CONSUMER_ALLOW_FILE || DEFAULT_ALLOW_FILE): Promise<Set<string>> {
+  const fs = await import('node:fs')
+  try {
+    return parseAllowIds(fs.readFileSync(file, 'utf8'))
+  } catch (e) {
+    if ((e as { code?: string }).code === 'ENOENT') return new Set()
+    throw e
+  }
+}
+
+/** 프로젝트 area_code. 열 없음(42703) → null(파생 영역 규칙만 꺼짐). 그 밖 오류 → undefined(확인 불가). */
+export async function loadProjectArea(supabase: any, projectId: string, warn?: (m: string) => void): Promise<string | null | undefined> {
+  let res
+  try {
+    res = await supabase.from('analysis_projects').select('area_code').eq('id', projectId)
+  } catch {
+    return undefined
+  }
+  const { data, error } = res ?? {}
+  if (error?.code === '42703') {
+    warn?.('analysis_projects.area_code 열이 없다(42703) — 소비재 파생 제외는 유튜브 소스 규칙만 돈다')
+    return null
+  }
+  if (error) return undefined
+  return (data?.[0]?.area_code as string | null | undefined) ?? null
+}
+
 // ── 경계 사례 정의(읽기 전용 목록 — scripts/consumer-material-tag.mjs --boundary) ──
 // A: out-consumer 프로젝트 안의 SaaS 글 — 출처가 창업가 소스(config/areas.json founder_sources)거나 본문에 SaaS 신호.
 // B: SaaS 프로젝트(business_model='SAAS') 안의 소비재 글 — 출처가 CONSUMER_SOURCES 거나 본문에 소비재 신호.

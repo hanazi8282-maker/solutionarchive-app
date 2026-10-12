@@ -8,7 +8,7 @@ import { selectInputs, timestampOf } from './extract-select.ts'
 import { MAX_REVIEW_CHARS, pickSampleByRating, type RatingSampleStats } from './relevance-judge.ts'
 import { applyPrefilter, prefilterInputs, summarizePrefilter, type PrefilterConfig } from './prefilter.ts'
 import { DEFAULT_EXCLUDED_SOURCES, DEFAULT_LAST_SOURCES, fetchAllPages, orderForJudge } from './relevance-judge-all.ts'
-import { consumerSkipEnabled, loadConsumerTagged } from './consumer-material.ts'
+import { consumerReasonOf, consumerSkipEnabled, loadAllowIds, loadConsumerTagged, loadProjectArea } from './consumer-material.ts'
 
 export interface PendingResult {
   /** 이번 실행 표본 수(미판정 중 상한까지 고른 것, 사전필터 전). */
@@ -17,7 +17,7 @@ export interface PendingResult {
   unjudged?: number
   /** 제외 소스(기본 youtube)라 뺀 수. */
   excluded?: number
-  /** 소비재 태그(consumer_material_tags)라 뺀 미판정 수(남헌 v61). 이미 판정된 것은 세지 않는다. */
+  /** 소비재(태그 표 ∪ 파생 out-consumer·youtube)라 뺀 미판정 수(남헌 v61). 이미 판정된 것은 세지 않는다. */
   consumer?: number
   reviews: { input_id: string; text: string }[]
   /** 평점 표본 통계. 입력 0건이면 null(대상이 안 되므로 로그가 읽지 않는다). */
@@ -34,16 +34,35 @@ export function createPendingFor(deps: {
   excludedSources?: readonly string[]; lastSources?: readonly string[]
   /** 소비재 태그 입력을 대기열에서 뺄지(기본 env RELEVANCE_SKIP_CONSUMER — off 만 끈다, 재개 스위치). */
   skipConsumer?: boolean
+  /** 파생 제외를 풀 input_id(기본 config/consumer-allow-ids.txt · env RELEVANCE_CONSUMER_ALLOW_FILE). 태그 표 제외는 풀지 않는다. */
+  allowIds?: ReadonlySet<string>
 }) {
   const { supabase, sampleSize, highRatingShare, log, warn } = deps
   const excludedSources = deps.excludedSources ?? DEFAULT_EXCLUDED_SOURCES
   const lastSources = deps.lastSources ?? DEFAULT_LAST_SOURCES
   const skipConsumer = deps.skipConsumer ?? consumerSkipEnabled()
-  /** 태그 조회 실패는 null — 판정 캐시 실패와 같이 이 프로젝트를 건너뛴다(모르는 채 소비재를 태우지 않는다, §7.1). */
-  async function taggedOf(projectId: string): Promise<Set<string> | null> {
-    const t = await loadConsumerTagged(supabase, projectId, { enabled: skipConsumer, warn })
-    if (!t) console.error(`⚠️ 소비재 태그 조회 실패 project=${projectId} — 이번 실행은 건너뛴다`)
-    return t
+  let allowIds: ReadonlySet<string> | undefined = deps.allowIds
+  const areaCache = new Map<string, string | null>()
+  /**
+   * 소비재 판정(남헌 v61) = (1) 태그 표 ∪ (2) 파생 — 프로젝트 area_code='out-consumer' 또는 소스 youtube(DB 쓰기 없음, 태그 전 신규 글도 막는다).
+   * 파생은 허용 목록으로 풀리고, 제외 소스(RELEVANCE_EXCLUDE_SOURCES)에 이미 걸린 글은 그쪽 집계에 둔다. 스위치 off → 둘 다 꺼짐(항상 false).
+   * 조회 실패는 null — 판정 캐시 실패와 같이 이 프로젝트를 건너뛴다(모르는 채 소비재를 태우지 않는다, §7.1).
+   */
+  async function consumerOf(projectId: string): Promise<((id: string, src: string | null | undefined) => boolean) | null> {
+    if (!skipConsumer) return () => false
+    const tagged = await loadConsumerTagged(supabase, projectId, { enabled: true, warn })
+    let area = areaCache.get(projectId)
+    if (area === undefined) {
+      const a = await loadProjectArea(supabase, projectId, warn)
+      if (a !== undefined) areaCache.set(projectId, (area = a))
+    }
+    if (!tagged || area === undefined) {
+      console.error(`⚠️ 소비재 ${!tagged ? '태그' : '영역'} 조회 실패 project=${projectId} — 이번 실행은 건너뛴다`)
+      return null
+    }
+    allowIds ??= await loadAllowIds()
+    const allow = allowIds
+    return (id, src) => tagged.has(id) || (!allow.has(id) && !excludedSources.includes(src ?? '(none)') && consumerReasonOf(area, src) !== null)
   }
   let prefilterCfg = deps.prefilterCfg
   /** analysis_inputs.rating 컬럼(20261005000001) 존재 3상태. 'absent' 면 평점 우선 자르기·평점 규칙이 안 돈다. */
@@ -78,8 +97,8 @@ export function createPendingFor(deps: {
     if (!got.data?.length) return { unjudged: 0, excluded: 0, consumer: 0, sources: [] }
     const done = await judgedIdsOf(project.id)
     if (!done) return null
-    const tagged = await taggedOf(project.id)
-    if (!tagged) return null
+    const isConsumer = await consumerOf(project.id)
+    if (!isConsumer) return null
     let unjudged = 0
     let excluded = 0
     let consumer = 0
@@ -87,7 +106,7 @@ export function createPendingFor(deps: {
     for (const r of got.data) {
       sources.add(r.source_key ?? '(none)')
       if (done.has(r.id)) continue
-      if (tagged.has(r.id)) consumer += 1
+      if (isConsumer(r.id, r.source_key)) consumer += 1
       else if (excludedSources.includes(r.source_key ?? '(none)')) excluded += 1
       else unjudged += 1
     }
@@ -116,8 +135,8 @@ export function createPendingFor(deps: {
 
     const done = await judgedIdsOf(project.id)
     if (!done) return null
-    const tagged = await taggedOf(project.id)
-    if (!tagged) return null
+    const isConsumer = await consumerOf(project.id)
+    if (!isConsumer) return null
 
     // 판정 전용 경로: T1(selectInputs)의 빈 본문·머리말만 거르기는 그대로 쓰되 12만 자 상한은 풀고(maxCharsTotal 무한),
     // **판정된 것을 먼저 뺀 뒤** 자른다 — 예전엔 상위 N 을 자른 뒤 판정된 것을 빼서, 상위 N 이 다 판정되면 그 프로젝트는 영영 0건이었다.
@@ -125,10 +144,11 @@ export function createPendingFor(deps: {
     // 자르기는 평점 우선(v31 §2.3): 1~3점 먼저, 4~5점은 표본의 highRatingShare 만(모자라면 4~5점으로 채움 — 버리지 않고 다음 실행으로 미룬다).
     const rows = inputs as PendingInputRow[]
     const eligible = selectInputs(rows, { maxCharsTotal: Number.POSITIVE_INFINITY }).selected
-    // 소비재 태그(남헌 v61)는 미판정에서만 뺀다 — 이미 판정된 것(done)은 원래대로 빠지고 판정 행은 건드리지 않는다.
+    // 소비재(태그 ∪ 파생, 남헌 v61)는 미판정에서만 뺀다 — 이미 판정된 것(done)은 원래대로 빠지고 판정 행은 건드리지 않는다.
     const undone = eligible.filter((s) => !done.has(s.input.id))
-    const consumer = undone.filter((s) => tagged.has(s.input.id)).length
-    const ordered = orderForJudge(consumer ? undone.filter((s) => !tagged.has(s.input.id)) : undone, {
+    const isC = (s: (typeof undone)[number]) => isConsumer(s.input.id, s.input.source_key)
+    const consumer = undone.filter(isC).length
+    const ordered = orderForJudge(consumer ? undone.filter((s) => !isC(s)) : undone, {
       sourceOf: (s) => s.input.source_key, tsOf: (s) => timestampOf(s.input), excluded: excludedSources, last: lastSources,
     })
     const { sample: head, stats: rating } = pickSampleByRating(ordered.main, sampleSize, highRatingShare, (s) => s.input.rating)

@@ -9,14 +9,15 @@
 //   node --env-file=.env.local scripts/consumer-material-tag.mjs                 # 드라이런(기본) — 건수·소스별·절감 추정·대기열 잔여
 //   node --env-file=.env.local scripts/consumer-material-tag.mjs --apply         # 태그 쓰기
 //   node --env-file=.env.local scripts/consumer-material-tag.mjs --boundary      # 경계 사례 목록(읽기 전용, TSV)
-//   옵션: --exclude-ids=<파일>  한 줄에 input_id 하나 — 태그하지 않을 글(경계 사례 A 중 SaaS 로 남길 것)
+//   옵션: --exclude-ids=<파일>  한 줄에 input_id 하나 — 태그하지 않을 글(경계 사례 A 중 SaaS 로 남길 것).
+//         없으면 파생 제외 허용 목록(config/consumer-allow-ids.txt · env RELEVANCE_CONSUMER_ALLOW_FILE)을 쓴다.
 //
 // 종료코드: 0 정상 · 2 설정·조회 실패(표 없음 포함 — --apply 는 마이그 20261015000010 적용 뒤에만)
 
 import fs from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import {
-  CONSUMER_AREA, CONSUMER_RULE_VER, JUDGE_COST_PER_INPUT_USD, boundaryKindOf, consumerReasonOf, isMissingTable,
+  CONSUMER_AREA, CONSUMER_RULE_VER, JUDGE_COST_PER_INPUT_USD, boundaryKindOf, consumerReasonOf, isMissingTable, loadAllowIds, parseAllowIds,
 } from '../lib/analysis/consumer-material.ts'
 import { DEFAULT_EXCLUDED_SOURCES } from '../lib/analysis/relevance-judge-all.ts'
 import { AUTO_EXTRACT_STATUSES } from '../lib/analysis/extract-gate.ts'
@@ -126,7 +127,8 @@ export async function main(argv, { port, log = console.log } = {}) {
   const apply = argv.includes('--apply')
   const boundary = argv.includes('--boundary')
   const exFile = argv.find((a) => a.startsWith('--exclude-ids='))?.slice('--exclude-ids='.length)
-  const exclude = new Set(exFile ? fs.readFileSync(exFile, 'utf8').split(/\r?\n/).map((s) => s.trim()).filter(Boolean) : [])
+  // 기본 = 파생 제외 허용 목록(config/consumer-allow-ids.txt) — 대기열이 풀어 준 글은 태그도 하지 않는다(한 벌).
+  const exclude = exFile ? parseAllowIds(fs.readFileSync(exFile, 'utf8')) : await loadAllowIds()
   const db = port ?? (await supabasePort())
   const projects = await db.loadProjects()
 

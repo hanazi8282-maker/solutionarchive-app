@@ -325,6 +325,8 @@ jobs:
       - run: node scripts/window-probe-selftest.mjs
       # 창문 자율 발굴(v53 §5 2-A): 소스당 5 상한·googleplay 80/appstore 30% 가드·중복·차단 즉시 중단·3일 강등·롤백 형태·워크플로 정적 검사.
       - run: node scripts/window-discovery-selftest.mjs
+      # 자율 발굴 C-1 ②④(v56): 키워드·국가·정렬 조합·영역별 하루 3·게이트(약관·robots 쿼리 포함, 소유자 예외 안 넓힘)·검색 요청 0·쓰기 0.
+      - run: node scripts/store-search-discovery-selftest.mjs
       - run: node scripts/review-bobaedream-selftest.mjs
       - run: node scripts/review-brunch-selftest.mjs
       - run: node scripts/review-clien-selftest.mjs

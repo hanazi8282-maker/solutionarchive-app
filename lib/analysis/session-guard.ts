@@ -31,9 +31,29 @@ export type GuardConfig = {
   autotuneWeeklySafePct: number | null
   /** extract 자동 조정 올리기 임계 %(남헌 v42 §1: 10) — 평균 사용률이 이 값 **미만**이어야 올린다. null(없음·비수치·0 이하) = 코드 폴백 8. */
   autotuneUpBelowPct: number | null
+  /** T2 판정 전용 소프트/하드 캡 %(전량 판정 따라잡기). relevanceCapUntil 이전에만 쓴다 — extract·번역·백필은 안 본다. */
+  relevanceCapPct: number | null
+  relevanceHardCapPct: number | null
+  /** 판정 전용 캡·자기 호출 체인의 만료 시각(epoch ms). null(없음·못 읽음) = 판정도 기본 캡, 체인 꺼짐. */
+  relevanceCapUntilMs: number | null
+  /**
+   * 오늘 한정 완화 만료(epoch ms, 남헌 v61). 이 시각 전(∧ relevanceCapUntil 전)에는 판정 캡을 relevanceRelaxCapPct 로 크게 풀고,
+   * 체인의 5시간 창 안전선·90분 휴식·주간 '확인 불가' 정지를 끈다. 지나면 코드가 자동으로 원래 값으로 돌아간다. null = 완화 없음.
+   */
+  relevanceRelaxUntilMs: number | null
+  /** 완화 중 판정 소프트·하드 캡 %(사실상 무제한). 없으면 완화 중에도 판정 전용 캡 그대로. */
+  relevanceRelaxCapPct: number | null
+  /** 체인 다음 실행을 막는 주간 사용률(하한) %. null = 확인 불가 → 체인 멈춤. */
+  relevanceChainWeeklyStopPct: number | null
+  /** 체인 다음 실행을 막는 5시간 창 사용률 %. null = 확인 불가 → 체인 멈춤. */
+  relevanceChainWindow5hStopPct: number | null
 }
 
 const pos = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null)
+const isoMs = (v: unknown): number | null => {
+  const t = typeof v === 'string' ? Date.parse(v) : NaN
+  return Number.isFinite(t) ? t : null
+}
 
 export function parseGuardConfig(raw: Record<string, unknown> | null | undefined): GuardConfig {
   const r = raw ?? {}
@@ -46,7 +66,37 @@ export function parseGuardConfig(raw: Record<string, unknown> | null | undefined
     usdPerWeeklyPct: pos(r.usd_per_weekly_pct),
     autotuneWeeklySafePct: pos(r.autotune_weekly_safe_pct),
     autotuneUpBelowPct: pos(r.autotune_up_below_pct),
+    relevanceCapPct: pos(r.relevance_session_cap_pct),
+    relevanceHardCapPct: pos(r.relevance_hard_cap_pct),
+    relevanceCapUntilMs: isoMs(r.relevance_cap_until),
+    relevanceRelaxUntilMs: isoMs(r.relevance_relax_until),
+    relevanceRelaxCapPct: pos(r.relevance_relax_cap_pct),
+    relevanceChainWeeklyStopPct: pos(r.relevance_chain_weekly_stop_pct),
+    relevanceChainWindow5hStopPct: pos(r.relevance_chain_window5h_stop_pct),
   }
+}
+
+/**
+ * T2 판정이 쓸 캡. until 이전 ∧ 판정 전용 % 두 개가 다 있으면 그 값, 아니면 기본 capUsdOf/hardCapUsdOf(15%/30%).
+ * until 이 지나면 설정 파일을 안 고쳐도 코드가 기본값으로 돌아간다. 못 읽은 until 은 "만료"로 본다(낮은 쪽으로 닫힘).
+ */
+/** 오늘 한정 완화가 살아 있나 — 완화 만료 전 ∧ 판정 전용 만료(relevance_cap_until) 전. 둘 중 하나라도 못 읽으면 false(원래 동작). */
+export function relevanceRelaxLive(cfg: GuardConfig, now: Date): boolean {
+  const t = now.getTime()
+  return cfg.relevanceRelaxUntilMs != null && cfg.relevanceCapUntilMs != null && t < cfg.relevanceRelaxUntilMs && t < cfg.relevanceCapUntilMs
+}
+
+export function relevanceCaps(cfg: GuardConfig, now: Date): { capUsd: number | null; hardCapUsd: number | null; capPct: number | null; boosted: boolean; relaxed: boolean; untilMs: number | null } {
+  const live = cfg.relevanceCapUntilMs != null && now.getTime() < cfg.relevanceCapUntilMs
+  // 오늘 한정 완화(남헌 v61): 소프트·하드 둘 다 relax % 로 — 사실상 무제한. 만료되면 아래 판정 전용 캡(20%/35%)으로 자동 복귀.
+  if (relevanceRelaxLive(cfg, now) && cfg.relevanceRelaxCapPct != null && cfg.usdPerPct != null) {
+    const usd = cfg.relevanceRelaxCapPct * cfg.usdPerPct
+    return { capUsd: usd, hardCapUsd: usd, capPct: cfg.relevanceRelaxCapPct, boosted: true, relaxed: true, untilMs: cfg.relevanceRelaxUntilMs }
+  }
+  if (live && cfg.relevanceCapPct != null && cfg.relevanceHardCapPct != null && cfg.usdPerPct != null) {
+    return { capUsd: cfg.relevanceCapPct * cfg.usdPerPct, hardCapUsd: cfg.relevanceHardCapPct * cfg.usdPerPct, capPct: cfg.relevanceCapPct, boosted: true, relaxed: false, untilMs: cfg.relevanceCapUntilMs }
+  }
+  return { capUsd: capUsdOf(cfg), hardCapUsd: hardCapUsdOf(cfg), capPct: cfg.capPct, boosted: false, relaxed: false, untilMs: cfg.relevanceCapUntilMs }
 }
 
 /** 설정 파일을 읽는다. 못 읽으면 error 를 채우고 값은 전부 null — 호출부는 capUsd null 로 닫힌다(§7.1). */
@@ -213,8 +263,11 @@ export function sessionBlock(i: {
   window5h: { usd: number; runs: number; unknownRuns: number } | null
   weekUsd: number | null
   capped: boolean
+  /** T2 가 relevanceCaps 로 쓴 실제 캡. 없으면 기본 캡. */
+  caps?: { capUsd: number | null; hardCapUsd: number | null; capPct: number | null }
 }) {
-  const capUsd = i.job === 'translate' ? null : capUsdOf(i.cfg) // 번역은 기록만(남헌 결정 전 상한 없음)
+  const capUsd = i.job === 'translate' ? null : i.caps ? i.caps.capUsd : capUsdOf(i.cfg) // 번역은 기록만(남헌 결정 전 상한 없음)
+  const hardUsd = i.job === 'translate' ? null : i.caps ? i.caps.hardCapUsd : hardCapUsdOf(i.cfg)
   const winUsd = i.window5h ? Number((i.window5h.usd + i.spentUsd).toFixed(4)) : null
   return {
     job: i.job,
@@ -222,9 +275,9 @@ export function sessionBlock(i: {
     spent_for_cap_usd: i.spentForCapUsd === undefined ? Number(i.spentUsd.toFixed(4)) : i.spentForCapUsd == null ? null : Number(i.spentForCapUsd.toFixed(4)),
     used_pct: pctOf(i.spentUsd, i.cfg.usdPerPct),
     cap_usd: capUsd == null ? null : Number(capUsd.toFixed(4)),
-    cap_pct: i.job === 'translate' ? null : i.cfg.capPct,
+    cap_pct: i.job === 'translate' ? null : i.caps ? i.caps.capPct : i.cfg.capPct,
     // 하드 캡은 extract(llm.ts 호출 시작 전)·T2(묶음 시작 전)에 건다. 번역은 기록만.
-    hard_cap_usd: i.job !== 'translate' && hardCapUsdOf(i.cfg) != null ? Number((hardCapUsdOf(i.cfg) as number).toFixed(4)) : null,
+    hard_cap_usd: hardUsd == null ? null : Number(hardUsd.toFixed(4)),
     usd_per_pct: i.cfg.usdPerPct,
     capped: i.capped,
     claude_calls: i.calls,

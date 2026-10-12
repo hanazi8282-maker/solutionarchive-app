@@ -70,4 +70,38 @@ reports/*/idea-competitors.json
 .claude/settings.local.json
 
 # 미발행 초안 — 공개 리포에 올리지 않는다(2026-10-12). 이미 추적 중인 파일은 영향 없음.
-drafts/
+# drafts/ 는 무시하지 않는다(2026-10-13 되돌림): 일일 CMO 루프(scripts/cmo-daily.mjs:728)가 `git add -- drafts/…` 로 새 초안을 커밋하는데, 무시 규칙이 있으면 exit 1 로 거부된다.
+# 내부 초안을 공개 리포에서 빼는 일은 별도 비공개 리포 이동(chore/untrack-internal)과 함께 정한다.
+
+# 내부 자료 — 공개 리포에서 추적을 끊고 비공개 리포(hanazi8282-maker/solutionarchive-internal)로 옮겼다(2026-10-13, B안). 파일은 로컬 디스크에 남는다.
+# 이력(옛 커밋)에는 그대로 남아 있다 — 이력은 다시 쓰지 않는다. CI·Actions 가 읽는 파일은 아래에서 예외로 되살린다.
+/claude/
+# drafts: 옮긴 칼럼 초안·루트 md 만 무시. cases/threads/_review 와 CI 가 읽는 1개는 추적(CMO 루프가 새 파일을 add 한다).
+/drafts/*.md
+/drafts/columns/*
+!/drafts/columns/_review/
+!/drafts/columns/2026-09-15-beauty-of-joseon.threads.md
+/methodology/content/*
+!/methodology/content/solfa/
+!/methodology/content/pdp/
+!/methodology/content/cross-decisions.md
+/methodology/content/solfa/*
+!/methodology/content/solfa/04-decisions.md
+/methodology/content/pdp/*
+!/methodology/content/pdp/04-decisions.md
+# 위 3개는 score-predictions.mjs(cmo-daily 가 매일 실행)가 읽는다 — 추적 유지.
+/content/guides/seo-guide.md
+/content/guides/viral-patterns-linkedin.md
+/content/guides/롱폼-스레드-대시보드-관계.md
+/.claude/commands/gr-observe.md
+/.claude/commands/insight-review.md
+/.claude/commands/threads-draft.md
+# docs/: 셀프테스트·CI·공개 방법론 페이지·동기화 스크립트가 읽는 7개만 추적한다.
+/docs/*
+!/docs/evidence-rules.md
+!/docs/session-limit-guard.md
+!/docs/case-study-pipeline-design.md
+!/docs/review-collection-design.md
+!/docs/failed-angles.md
+!/docs/strategy-principles.md
+!/docs/migration-exceptions.md

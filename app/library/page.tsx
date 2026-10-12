@@ -82,10 +82,10 @@ export default async function LibraryPage({ searchParams }: {
       <PubFacetSep />
       {/* 종류 토글. 소비재 케이스는 지우지 않고 숨기기만 하므로(CLAUDE.md §10.2 예외 1)
           되돌리는 손잡이가 화면에 있어야 한다. */}
-      <PubFacet href={href({ kind: 'saas' })} active={query.kind === 'saas'}>SaaS만(기본)</PubFacet>
+      <PubFacet href={href({ kind: 'saas' })} active={query.kind === 'saas'}>업무용 소프트웨어만(기본)</PubFacet>
       {signedIn
-        ? <PubFacet href={href({ kind: 'all' })} active={query.kind === 'all'}>소비재 포함</PubFacet>
-        : <Chip title="로그인 후">소비재 포함 · 로그인 후</Chip>}
+        ? <PubFacet href={href({ kind: 'all' })} active={query.kind === 'all'}>전체 포함</PubFacet>
+        : <Chip title="로그인 후">전체 포함 · 로그인 후</Chip>}
     </PubFacetBar>
   )
 
@@ -99,7 +99,7 @@ export default async function LibraryPage({ searchParams }: {
           <IconSearch />
           <input
             className="pub-field pub-field--grow"
-            name="q" maxLength={200} aria-label="내 말로 검색 (아이디어 PMF 판정으로 이동)"
+            name="q" maxLength={200} aria-label="내 말로 검색 (결론서로 이동)"
             placeholder="내 말로 한 줄 (예: 무료로는 쓰는데 결제를 안 한다)…"
           />
         </span>
@@ -150,7 +150,7 @@ export default async function LibraryPage({ searchParams }: {
   // 로그인전 Hero note — 자른 사실을 문장으로 밝힌다(§7.1: 잘라 놓고 "15건" 이라 말하지 않는다).
   const teaserNote = teaser && result?.status === 'ok'
     ? `승인 케이스 ${result.cards.length}건 중 ${teaser.cards.length}건 공개 · ${LIBRARY_SORT_LABEL[DEFAULT_SORT]}`
-      + (result.hidden_consumer > 0 ? ` (소비재 ${result.hidden_consumer}건 숨김)` : '')
+      + (result.hidden_consumer > 0 ? ` (범위 밖 ${result.hidden_consumer}건 숨김)` : '')
     // 로그인전 빈 결과: "kind=all 로 보기" 는 로그인 후 손잡이라 뺀다.
     : teaser ? result?.reason.replace('(kind=all 로 보기)', '') : null
 
@@ -166,7 +166,7 @@ export default async function LibraryPage({ searchParams }: {
       {!signedIn && result && result.status !== 'error' && (
         <Panel tone="card" title="로그인하면 다 본다">
           <p className="pub-text">
-            승인 케이스 {result.counts.total}건 전부와 케이스마다 붙은 내일 할 행동 한 줄, 등급순·무브순 정렬, 소비재 포함 필터를 쓸 수 있다.
+            승인 케이스 {result.counts.total}건 전부와 케이스마다 붙은 내일 할 행동 한 줄, 등급순·무브순 정렬, 전체 포함 필터를 쓸 수 있다.
           </p>
           <div className="pub-actions">
             <PubButtonLink href="/login?next=%2Flibrary" variant="primary" size="sm">로그인</PubButtonLink>
@@ -221,11 +221,11 @@ export default async function LibraryPage({ searchParams }: {
                 title={result.empty_state}
                 description={
                   result.hidden_consumer > 0
-                    ? `조회는 정상이다. 지금 이 조건에 맞는 승인 SaaS 케이스가 없고, 없는 것을 소비재로 채우지 않는다. 숨긴 소비재 ${result.hidden_consumer}건은 ${signedIn ? '' : '로그인 후 '}“소비재 포함”으로 볼 수 있다.`
+                    ? `조회는 정상이다. 지금 이 조건에 맞는 승인 케이스가 없고, 없는 것을 범위 밖 케이스로 채우지 않는다. 숨긴 ${result.hidden_consumer}건은 ${signedIn ? '' : '로그인 후 '}“전체 포함”으로 볼 수 있다.`
                     : '조회는 정상이다. 지금 이 조건에 맞는 승인 케이스가 없다는 뜻이고, 없는 것을 비슷한 사례로 채우지 않는다.'
                 }
                 action={signedIn && result.hidden_consumer > 0
-                  ? <PubButtonLink href={href({ kind: 'all' })} variant="ghost" size="sm">소비재 포함해서 보기 {result.hidden_consumer}<IconArrowRight /></PubButtonLink>
+                  ? <PubButtonLink href={href({ kind: 'all' })} variant="ghost" size="sm">전체 포함해서 보기 {result.hidden_consumer}<IconArrowRight /></PubButtonLink>
                   : <PubButtonLink href={href({ problem: null })} variant="ghost" size="sm">문제 유형 전체 보기<IconArrowRight /></PubButtonLink>}
               />
             )}
@@ -233,7 +233,7 @@ export default async function LibraryPage({ searchParams }: {
             <footer className="pub-deflist">
               <PubBrandLogoNotice />
               {!signedIn && result.hidden_consumer > 0 && (
-                <p className="pub-caption">숨긴 소비재 케이스 {result.hidden_consumer}건은 로그인 후 소비재 포함 필터로 볼 수 있다.</p>
+                <p className="pub-caption">범위 밖 케이스 {result.hidden_consumer}건은 로그인 후 전체 포함 필터로 볼 수 있다.</p>
               )}
               {counts && counts.unlabeled > 0 && (
                 <p className="pub-caption">문제 유형이 아직 안 적힌 케이스 {counts.unlabeled}건. 위 칩 건수 합과 전체가 다른 이유다.</p>

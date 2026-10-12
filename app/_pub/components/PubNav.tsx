@@ -28,14 +28,14 @@ export function PubNav({ email }: { email: string | null }) {
     <nav className="pub-nav" aria-label="주요 화면">
       <Link className="pub-nav-brand" href="/" translate="no">SOLUTION ARCHIVE</Link>
       <div className="pub-nav-links">
-        <NavDropdown label="아이디어 리소스" className="pub-res" triggerClassName="pub-nav-link" current={RESOURCES.map((r) => r.href)}>
+        <NavDropdown label="조사 자료" className="pub-res" triggerClassName="pub-nav-link" current={RESOURCES.map((r) => r.href)}>
           <ul>
             {RESOURCES.map((r) => (
               <li key={r.href}><NavLink className="pub-admin-link" href={r.href}>{r.label}</NavLink></li>
             ))}
           </ul>
         </NavDropdown>
-        <NavLink className="pub-nav-link" href="/cases/report">PMF 판정</NavLink>
+        <NavLink className="pub-nav-link" href="/cases/report">결론서</NavLink>
         {/* 로그인후 전용(I1). email 이 있을 때만 렌더한다 — 익명 HTML 에는 링크 자체가 없다. */}
         {email && <NavLink className="pub-nav-link" href="/insights">인사이트</NavLink>}
       </div>

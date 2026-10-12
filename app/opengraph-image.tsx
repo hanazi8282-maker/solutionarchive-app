@@ -9,7 +9,7 @@ import { loadKoreanFont } from '@/lib/og/korean-font'
 
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
-export const alt = '솔루션아카이브 — SaaS 1인 창업가를 위한 사례 아카이브'
+export const alt = '솔루션아카이브 — 한국 업무용 AI 소프트웨어 팀을 위한 결론서'
 
 const BG = '#0b0f19'
 const FG = '#f8fafc'
@@ -17,8 +17,8 @@ const FG = '#f8fafc'
 const ACCENT = '#a78bfa'
 const MUTED = '#94a3b8'
 
-const HEADLINE = '내 문제와 비슷한 상황을 겪은\nSaaS 사례는 그걸 어떻게 풀었나'
-const SUB = '근거 등급 A/B/C/D 와 실패 사례를 함께 본다'
+const HEADLINE = '경쟁 제품의 고객 글을 대조해\n만드는 결론서'
+const SUB = '회의·통화 기록 · 영업 · 마케팅 · 인사 운영 · 리뷰 관리'
 const BRAND = 'SOLUTION ARCHIVE'
 
 export default async function OpengraphImage() {

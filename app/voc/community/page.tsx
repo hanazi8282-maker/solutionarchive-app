@@ -34,8 +34,8 @@ export default async function SignalColumnsPage({ searchParams }: {
   const result = sb ? await loadColumns(sb, kind) : null
   const labeled = result?.status === 'ok' ? result.columns.reduce((n, c) => n + c.count, 0) : null
   const hidden = result?.status === 'ok' ? result.hiddenConsumer : null
-  const hiddenNote = hidden == null ? '제외한 소비재 건수 집계 불가.'
-    : hidden > 0 ? `라벨이 붙은 소비재 ${hidden}건은 이 화면에 싣지 않는다.` : null
+  const hiddenNote = hidden == null ? '제외한 범위 밖 건수 집계 불가.'
+    : hidden > 0 ? `라벨이 붙은 범위 밖 ${hidden}건은 이 화면에 싣지 않는다.` : null
   const colHref = (signal: string) => `/voc?signal=${signal}`
 
   return (
@@ -50,7 +50,7 @@ export default async function SignalColumnsPage({ searchParams }: {
 
       {errors.length > 0 && (
         <Panel tone="alert" title="질의를 그대로 쓰지 못했다">
-          <p className="pub-text">{errors.join(' / ')} — 기본값(SaaS만)으로 보여줬다.</p>
+          <p className="pub-text">{errors.join(' / ')} — 기본값(업무용 소프트웨어만)으로 보여줬다.</p>
         </Panel>
       )}
       {!sb && (
@@ -70,7 +70,7 @@ export default async function SignalColumnsPage({ searchParams }: {
             {result.relevantTotal == null
               ? `VOC 유형 라벨이 붙은 관련 판정 ${labeled}건 (관련 판정 전체 수는 집계 불가)`
               : `관련 판정 ${result.relevantTotal}건 중 VOC 유형 라벨이 붙은 행 ${labeled}건`}
-            {' · SaaS만'}
+            {' · 업무용 소프트웨어만'}
             {hiddenNote ? ` · ${hiddenNote}` : ''}
           </p>
           {labeled === 0 ? (

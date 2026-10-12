@@ -100,6 +100,8 @@ t('v40 §2: 계수가 들어가도 주간 중단 스위치는 비활성 그대�
     t('주간 안전선: 10-12 은 90', chainWeeklyStopPct(c, new Date('2026-10-12T14:59:00Z')) === 90)
     t('주간 안전선: 10-13 은 98', chainWeeklyStopPct(c, new Date('2026-10-12T15:00:00Z')) === 98)
     t('주간 안전선: 10-14 00:00 KST 부터 90 자동 복귀', chainWeeklyStopPct(c, new Date('2026-10-13T15:00:00Z')) === 90)
+    t('주간 정지 off 면 무한대(안 멈춤)', chainWeeklyStopPct(parseGuardConfig({ ...base, relevance_chain_weekly_stop_pct: 90, relevance_chain_weekly_stop_off: true }), new Date()) === Infinity)
+    t('리포 설정: 주간 정지 off', real.cfg.relevanceChainWeeklyStopOff === true)
     t('day2 키 없으면 기본값', chainWeeklyStopPct(parseGuardConfig({ ...base, relevance_chain_weekly_stop_pct: 90 }), new Date()) === 90) }
   const sbBoost = sessionBlock({ job: 't2', cfg: real.cfg, caps: before, spentUsd: 1, calls: 1, costUnknownCalls: 0, window5h: null, weekUsd: null, capped: false })
   t('session 블록이 실제로 쓴 판정 캡을 남긴다', sbBoost.cap_pct === real.cfg.relevanceCapPct && Math.abs(sbBoost.cap_usd - before.capUsd) < 1e-4)

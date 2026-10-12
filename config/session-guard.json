@@ -23,6 +23,8 @@
   "_relevance_chain": "자기 호출 체인 안전선. 이번 실행 포함 7일 가드 대상 합 ÷ usd_per_weekly_pct(하한) 가 weekly_stop 이상이거나, 5시간 창 합 ÷ usd_per_session_pct 가 window5h_stop 이상이면 다음 실행을 부르지 않는다(5시간 창은 90분 쉬고 부름). 확인 불가면 멈춘다(오늘 한정 완화 중엔 주간·5시간 창 확인 불가로 멈추지 않음). 주간 60 → 90 은 남헌 v61.",
   "relevance_chain_weekly_stop_pct": 90,
   "_relevance_chain_day2": "남헌 v65(2026-10-12): 10-13 00:00 KST ~ 10-14 00:00 KST(완화 중) 에만 주간 안전선을 98 로 올린다. 10-14 00:00 부터는 위 90 으로 자동 복귀(완화 만료 = 주간 확인 불가·5시간 창 정지도 복귀). 98 도달 시 체인 정지. 읽는 곳 session-guard.ts chainWeeklyStopPct.",
+  "_relevance_chain_weekly_stop_off": "남헌 v65 후속(2026-10-12): true 면 주간 % 자동 정지(90/98 선)를 끈다 — 추정치 기반이라 실제와 달라서. 규칙은 지우지 않았다: false 로 바꾸면 되살아난다. 구독 5시간 한도·실제 주간 소진 거부·403/429·소프트/하드 캡·RELEVANCE_CHAIN=off 는 그대로.",
+  "relevance_chain_weekly_stop_off": true,
   "relevance_chain_weekly_stop_day2_pct": 98,
   "relevance_chain_weekly_stop_day2_from": "2026-10-13T00:00:00+09:00",
   "relevance_chain_window5h_stop_pct": 50

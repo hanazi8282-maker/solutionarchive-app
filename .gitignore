@@ -59,6 +59,9 @@ reports/*/approved-candidates.json
 reports/*/notes-evidence.md
 # 경쟁 기준점 비교 한 장(competitor-anchor-compare.mjs) — 리뷰 원문 인용이 들어간다. 커밋하지 않는다(v56 §C-2).
 reports/*/anchor-compare-*.md
+# 아이디어 → 경쟁 서비스 후보(idea-competitors.mjs) — 아이디어 원문이 들어간다(공개 리포). 커밋하지 않는다(v56 §C-2).
+reports/*/idea-competitors.md
+reports/*/idea-competitors.json
 
 # 로컬 도구 상태 — 에이전트 워크트리·Serena·Impeccable 개인 설정·Claude Code 로컬 설정(hooks). 커밋하지 않는다(2026-09-29).
 .claude/worktrees/

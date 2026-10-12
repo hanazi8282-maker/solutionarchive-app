@@ -121,6 +121,8 @@ jobs:
           RELEVANCE_LAST_SOURCES: ${{ vars.RELEVANCE_LAST_SOURCES || '' }}
           # 소비재 태그(남헌 v61, consumer_material_tags) 입력을 대기열에서 뺀다. 재개 = 리포 변수 RELEVANCE_SKIP_CONSUMER=off.
           RELEVANCE_SKIP_CONSUMER: ${{ vars.RELEVANCE_SKIP_CONSUMER || 'on' }}
+          # 판정 기준(남헌 v66): 기본 v2.1, 리포 변수 RELEVANCE_CRITERIA=old 로 옛 기준 복귀.
+          RELEVANCE_CRITERIA: ${{ vars.RELEVANCE_CRITERIA || 'v21' }}
           # 자기 호출 체인. 끄기 = 리포 변수 RELEVANCE_CHAIN=off(다음 hop 부터 안 부른다). 만료는 config relevance_cap_until.
           RELEVANCE_CHAIN: ${{ vars.RELEVANCE_CHAIN || 'on' }}
           RELEVANCE_CHAIN_MAX_HOPS: ${{ vars.RELEVANCE_CHAIN_MAX_HOPS || '24' }}

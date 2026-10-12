@@ -127,7 +127,13 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
   t('대조: 옛 upsert 는 덮어썼다(모의 DB 가 차이를 본다)', old.tables.review_relevance_verdicts.find((r) => r.input_id === existing.input_id).verdict === 'irrelevant')
   const src = fs.readFileSync('scripts/relevance-judge-auto.mjs', 'utf8')
   t('판정 스크립트에 직접 upsert 가 없다(저장은 saveVerdictsInsertOnly 한 곳)', !/\.upsert\(/.test(src) && /saveVerdictsInsertOnly\(supabase, payload\)/.test(src))
-  t('판정 행에 model·prompt_version 을 쓴다', /model: out\.model,/.test(src) && /prompt_version: RELEVANCE_CRITERIA_VERSION/.test(src))
+  t('판정 행에 model·prompt_version 을 쓴다', /model: out\.model,/.test(src) && /prompt_version: PROMPT_VERSION/.test(src))
+  t('기준 v2.1 스위치: 기본 v21, RELEVANCE_CRITERIA=old 로 복귀, prompt_version 이 기준을 가른다', src.includes("process.env.RELEVANCE_CRITERIA ?? 'v21'") && src.includes("!== 'old'") && src.includes("criteria: 'v21'") && src.includes('PROMPT_VERSION = criteriaV21 ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION'))
+  const { buildRelevancePrompt } = await import('../lib/analysis/relevance-judge.ts')
+  const crit = await import('../lib/analysis/relevance-criteria.ts')
+  const oldP = buildRelevancePrompt(null, [{ input_id: 'x', text: 't' }], [])
+  const newP = buildRelevancePrompt(null, [{ input_id: 'x', text: 't' }], [], { criteria: 'v21' })
+  t('v2.1 프롬프트: 기본 SYSTEM 은 옛 기준 그대로, v21 만 새 기준', oldP.system.includes(crit.RELEVANCE_CRITERIA) && !oldP.system.includes(crit.RELEVANCE_CRITERIA_V21) && newP.system.includes(crit.RELEVANCE_CRITERIA_V21) && !newP.system.includes(crit.RELEVANCE_CRITERIA) && newP.system.includes('"info":true') && newP.user === oldP.user)
   t('호출 오류 묶음은 저장하지 않는다(빈 칸으로 남김)', /if \(out\.error\) \{[\s\S]{0,200}continue/.test(src))
 }
 

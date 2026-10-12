@@ -140,3 +140,29 @@ export const RR39_NARROW_IRRELEVANT_INPUT_IDS: readonly string[] = [
   'dd4f20d8-df21-4dc0-a905-b07df4c8227c', // #36
   'f6901f91-c846-4454-93af-7d2574e23f72', // #37
 ]
+
+/**
+ * 운영 1차 판정 기준 v2.1(남헌 v66, 2026-10-12) — 질문이 "분석 재료가 되는가"에서 "우리 서비스(영역 ①~⑤) 기획에 쓸모가 있나"로 바뀐다.
+ * 위 RELEVANCE_CRITERIA(t2c)는 **바이트 그대로** 둔다(2차 판정·자동 승인이 이 상수와 버전에 묶여 있다). v2.1 은 1차 판정만 쓴다(relevance-judge.ts opts.criteria='v21').
+ * 출력 키는 그대로 rel = relevant(예) / unknown(애매) / irrelevant(아니오). 영역 밖 SaaS 는 irrelevant 이고 why 가 "영역 밖:" 로 시작한다.
+ */
+export const RELEVANCE_V21_VERSION = 'v21-2026-10-12'
+
+export const RELEVANCE_CRITERIA_V21 = [
+  `## 판정 기준 v2.1 (기준 버전 ${RELEVANCE_V21_VERSION})`,
+  '질문은 하나다: 이 글이 우리 서비스(한국 업무용 AI 소프트웨어 — 영역 ①회의·통화 기록 ②영업 ③마케팅 ④인사 운영 ⑤리뷰 관리) 기획에 쓸모가 있나.',
+  '답: relevant(예) · unknown(애매) · irrelevant(아니오).',
+  '',
+  '(1) 글에 이유나 구분 기준이 한 줄이라도 있으면 relevant. 사실 나열만이면 irrelevant.',
+  '(2) 추천 이유·제품명·선호가 분명하면 relevant 쪽으로 본다. 단 (5)의 소비재 제외가 우선한다.',
+  '(3) 어느 제품 얘기인지 불명이면 unknown, 제품이 특정되면 relevant 쪽, 제품 불명인데 정보도 없으면 irrelevant.',
+  '(4) 제품에 도움이 되는 정보가 없으면 irrelevant.',
+  '(5) 실물 소비재는 지금은 irrelevant. 소프트웨어·앱·SaaS 만 본다.',
+  '(6) YouTube 댓글은 영상 제목 없이는 무슨 얘기인지 모르는 경우가 많다 — 그럴 땐 unknown.',
+  '(7) 이유가 구체적이지 않아도 한 줄 있으면 relevant. 선호만 있고 자세하지 않으면 unknown.',
+  '(8) 수집 출처가 제품을 알려 주면(앱스토어·구글 플레이·쇼피파이 앱 리뷰) 제품이 특정된 것으로 본다.',
+  '(9) 제품 회사의 자사 홍보도 이유·구분 기준이 있으면 relevant 가 될 수 있다.',
+  '(10) SaaS 인데 영역 ①~⑤ 밖이면 irrelevant 로 두고 why 를 "영역 밖:" 로 시작한다(소비재와 다르다).',
+  '',
+  '[공통] 불만이 없다는 이유만으로 irrelevant 로 두지 않는다. irrelevant 는 확실할 때만 — 애매하면 unknown 이다. 신호 종류(pain/demand/objection)는 signal 라벨이 따로 가른다.',
+].join('\n')

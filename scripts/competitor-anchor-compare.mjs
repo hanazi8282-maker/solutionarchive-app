@@ -287,7 +287,8 @@ export async function main(argv, { port, now = new Date(), reportsDir = REPORTS_
     const anchorKeys = new Map(cfgBench)
     for (const a of picked.anchors) for (const n of [a.p.name, a.p.name_ko, a.p.slug]) if (n && normKey(n).length >= 2) anchorKeys.set(normKey(n), a.p.name)
     const rows = tierRows
-      .filter((r) => String(r.area) === area && r.status === 'adopt' && (r.tier === 'small' || r.tier === 'new'))
+      // idea_found = scripts/idea-competitors.mjs 결과(--ledger=<idea-competitors.json>) — 채택 전이지만 비교 대상으로 받는다.
+      .filter((r) => String(r.area) === area && (r.status === 'adopt' || r.status === 'idea_found') && (r.tier === 'small' || r.tier === 'new'))
       .sort((a, b) => b.score - a.score || a.key.localeCompare(b.key))
       .slice(0, AP.compare_top ?? 10)
     const compared = compareArea(rows, anchorKeys)

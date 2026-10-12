@@ -9,7 +9,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-const { lastSlot, judgeRuns, nextSlotAfter, scheduledWorkflows, runWatchdog, workflowLandedAt, pushWithoutBotToken, GRACE_MS, GRACE_OVERRIDE_MS, graceFor } = await import('./cron-watchdog.mjs')
+const { lastSlot, judgeRuns, nextSlotAfter, scheduledWorkflows, runWatchdog, workflowLandedAt, pushWithoutBotToken, GRACE_MS, GRACE_OVERRIDE_MS, graceFor, FREQUENT_CRON } = await import('./cron-watchdog.mjs')
 const { tokenExpiryAlert } = await import('../lib/threads/token.ts')
 
 let passed = 0
@@ -132,7 +132,8 @@ const real = scheduledWorkflows(path.join(import.meta.dirname, '..', '.github', 
 ok('실제 리포 — daily-cmo-loop 포함', real.some((w) => w.file === 'daily-cmo-loop.yml' && w.crons.includes('17 20 * * *')))
 ok('실제 리포 — nightly-review-collect 포함', real.some((w) => w.file === 'nightly-review-collect.yml'))
 ok('실제 리포 — 감시 자신 제외', !real.some((w) => w.file === 'cron-watchdog.yml'))
-ok('실제 리포 — 전부 감시 가능한 일일 크론', real.every((w) => w.crons.every((c) => lastSlot(c, NOW))), JSON.stringify(real))
+ok('실제 리포 — 전부 감시 가능한 일일 크론(자주-도는 재개 크론은 감시에서 빠진다)', real.every((w) => w.crons.every((c) => FREQUENT_CRON.test(c.trim()) || lastSlot(c, NOW))), JSON.stringify(real))
+ok('자주-도는 크론 판별: 17,47 * * * * 만 해당, 일일 크론은 아님', FREQUENT_CRON.test('17,47 * * * *') && !FREQUENT_CRON.test('3 19 * * *') && !FREQUENT_CRON.test('*/5 * * * *'))
 
 // ── 4) 토큰 판정 (정상 / 만료 / 만료 임박) ────────────────────────
 const tok = (days, over = {}) => ({ expires_at: iso(NOW.getTime() + days * DAY), user_id: 'u1', ...over })

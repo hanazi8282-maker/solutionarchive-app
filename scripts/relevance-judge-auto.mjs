@@ -41,7 +41,7 @@ import fs from 'node:fs'
 import { createClient } from '../lib/supabase/server.ts'
 import { cliSpent, requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
 import {
-  RELEVANCE_SLOTS, capReached, relevanceCaps, relevanceRunSuffixFromEnv, spendForCap, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
+  RELEVANCE_SLOTS, capReached, chainWeeklyStopPct, relevanceCaps, relevanceRunSuffixFromEnv, spendForCap, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import {
   CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
@@ -592,7 +592,7 @@ const chain = decideRelaunch({
   remaining: unjudgedAfter === 0 && unknownCount > 0 ? null : unjudgedAfter,
   hop: chainHop, maxHops: chainMaxHops, zeroStreak: chainZero, zeroLimit: CHAIN_DEFAULT_ZERO_LIMIT,
   weeklyPct: session.week_usd_lower_bound == null || guard.cfg.usdPerWeeklyPct == null ? null : Number((session.week_usd_lower_bound / guard.cfg.usdPerWeeklyPct).toFixed(2)),
-  weeklyStopPct: guard.cfg.relevanceChainWeeklyStopPct,
+  weeklyStopPct: chainWeeklyStopPct(guard.cfg, new Date()),
   window5hPct: session.window5h_pct, window5hStopPct: guard.cfg.relevanceChainWindow5hStopPct,
   // 오늘 한정 완화(남헌 v61) — relax_until 이 지나면 decideRelaunch 가 원래 동작(주간·5시간 창 확인 불가 정지·90분 휴식·hop 24)으로 돌아간다.
   relaxUntilMs: guard.cfg.relevanceRelaxUntilMs,

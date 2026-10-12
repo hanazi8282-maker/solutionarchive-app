@@ -65,6 +65,10 @@ jobs:
       # 구독 세션 한도 가드(남헌 v30 §5) — 상한 판정·비용 모름 호출 추정/정지·T2 재시도 슬롯·run_key 접미사.
       # 여기가 접히면 timeout 호출이 $0 으로 세여 상한을 넘기거나, 재시도가 정규 감사 행을 덮는다.
       - run: node scripts/session-guard-selftest.mjs
+      # T2 전량 판정 — 1,000행 상한 페이지네이션 · insert-only(기존 판정·사람 채점 덮어쓰기 금지) · 소스 균등 순서 · 자기 호출 체인 종료 조건.
+      - run: node scripts/relevance-judge-all-selftest.mjs
+      # 소비재 자료 태그(남헌 v61) — 대기열 제외 · 하위 사용처 '관련 없음' 읽기 · 재개 스위치 · 일괄 도구 드라이런/--apply
+      - run: node scripts/consumer-material-selftest.mjs
       # extract 하루 건수 자동 조정(남헌 v36 §2) — 스위치 off ≡ 기존 결정 · 올리기/내리기/경계 · cost 정지 제외 · 쉬는 날 안 올림.
       # 가짜 PostgREST 에 extract-auto.mjs 를 자식 프로세스로 실제로 붙여 본다. 여기가 접히면 소프트 한도 run 으로 처리량을 깎는다.
       - run: node scripts/extract-autotune-selftest.mjs
@@ -321,6 +325,8 @@ jobs:
       - run: node scripts/window-probe-selftest.mjs
       # 창문 자율 발굴(v53 §5 2-A): 소스당 5 상한·googleplay 80/appstore 30% 가드·중복·차단 즉시 중단·3일 강등·롤백 형태·워크플로 정적 검사.
       - run: node scripts/window-discovery-selftest.mjs
+      # 자율 발굴 C-1 ②④(v56): 키워드·국가·정렬 조합·영역별 하루 3·게이트(약관·robots 쿼리 포함, 소유자 예외 안 넓힘)·검색 요청 0·쓰기 0.
+      - run: node scripts/store-search-discovery-selftest.mjs
       - run: node scripts/review-bobaedream-selftest.mjs
       - run: node scripts/review-brunch-selftest.mjs
       - run: node scripts/review-clien-selftest.mjs

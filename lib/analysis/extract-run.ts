@@ -32,6 +32,7 @@ import {
 import { REANALYZABLE, canStart } from './extract-gate.ts'
 import { MAX_CHARS_PER_INPUT, MAX_CHARS_TOTAL, selectInputs } from './extract-select.ts'
 import { dropIrrelevant, type RelevanceRow } from './relevance-judge.ts'
+import { loadConsumerTagged } from './consumer-material.ts'
 import { judgeProjectRemedies } from '../cases/remedy-db.ts'
 import { checkQuote, normalizeEvidenceQuotes, quoteCheckSummary } from './evidence-quotes.ts'
 import { generateCompetitorProfile, type ProfileOutcome } from './competitor-profile-db.ts'
@@ -305,9 +306,13 @@ export async function runExtraction(
       relevanceError.message,
     )
   }
+  // 소비재 태그(남헌 v61)는 '관련 없음'으로 읽는다. 태그 조회 실패면 null → 태그 없이(빼지 않는 쪽) 간다.
+  const consumerTagged = await loadConsumerTagged(supabase, projectId, { warn: (m) => console.warn(`[analyze/extract] ${m}`) })
+  if (!consumerTagged) console.error(`[analyze/extract] project=${projectId} 소비재 태그 조회 실패 — 태그 없이 진행한다`)
   const relevance = dropIrrelevant(
     inputs,
     relevanceError ? null : ((relevanceRows ?? []) as RelevanceRow[]),
+    consumerTagged,
   )
   const droppedIrrelevant = relevance.droppedIrrelevant
 

@@ -342,35 +342,48 @@ export interface RelevanceRow {
 
 export interface DropResult<T> {
   kept: T[]
-  /** 무관 판정으로 뺀 건수. 0 과 구분해 로그에 남긴다(§7.1). */
+  /** 무관으로 뺀 건수(소비재 태그 포함). 0 과 구분해 로그에 남긴다(§7.1). */
   droppedIrrelevant: number
+  /** 그중 소비재 태그(consumer_material_tags)로 뺀 건수. */
+  droppedConsumer: number
 }
 
 /**
- * 무관(irrelevant) 판정을 받은 입력만 뺀다.
+ * 무관(irrelevant) 판정을 받은 입력만 뺀다. 소비재 태그(lib/analysis/consumer-material.ts)도 여기서 '관련 없음'으로 읽는다 — 한 곳.
  *
+ *   사람 채점 있음 → 그 값(태그보다 이긴다 — 건별 사람 판단이 일괄 태그보다 구체적이다)
+ *   소비재 태그 → 제외(LLM 판정이 relevant 여도. 판정 행은 그대로 남는다)
  *   irrelevant → 제외
  *   relevant · unknown · 판정 행 없음 → 그대로 둔다 (확인 불가를 버리지 않는다)
- *   rows === null (조회 실패·테이블 없음·첫날) → **아무것도 빼지 않는다**
+ *   rows === null (조회 실패·테이블 없음) → **아무것도 빼지 않는다** — 태그도 안 쓴다(사람 채점을 못 봤으니까)
  *
  * 판정 캐시를 못 읽었을 때 전부 빼거나 전부 남기는 것 중 하나를 골라야 한다면 남기는 쪽이다.
  * 잘못 남기면 프롬프트가 조금 탁해질 뿐이지만, 잘못 빼면 그 원문은 영영 안 읽힌다.
+ * consumerTagged 가 null(태그 조회 실패)·undefined 면 태그 없이 원래대로.
  */
 export function dropIrrelevant<T extends { id?: string | null }>(
   inputs: readonly T[],
   rows: readonly RelevanceRow[] | null | undefined,
+  consumerTagged?: ReadonlySet<string> | null,
 ): DropResult<T> {
-  if (!rows || rows.length === 0) return { kept: [...inputs], droppedIrrelevant: 0 }
+  if (!rows) return { kept: [...inputs], droppedIrrelevant: 0, droppedConsumer: 0 }
 
+  const human = new Map<string, string>()
   const irrelevant = new Set<string>()
   for (const r of rows) {
-    const human = r.human_verdict?.trim()
-    const verdict = human || r.verdict?.trim()
-    if (verdict === 'irrelevant' && r.input_id) irrelevant.add(r.input_id)
+    if (!r.input_id) continue
+    const h = r.human_verdict?.trim()
+    if (h) human.set(r.input_id, h)
+    if ((h || r.verdict?.trim()) === 'irrelevant') irrelevant.add(r.input_id)
   }
 
-  const kept = inputs.filter(i => !(i.id && irrelevant.has(i.id)))
-  return { kept, droppedIrrelevant: inputs.length - kept.length }
+  let droppedConsumer = 0
+  const kept = inputs.filter((i) => {
+    if (!i.id) return true
+    if (!human.has(i.id) && consumerTagged?.has(i.id)) return (droppedConsumer++, false)
+    return !irrelevant.has(i.id)
+  })
+  return { kept, droppedIrrelevant: inputs.length - kept.length, droppedConsumer }
 }
 
 // ── T3 사람 채점 표본 ───────────────────────────────────────────

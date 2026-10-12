@@ -1,0 +1,4 @@
+# 소비재 파생 제외 허용 목록(남헌 v61) — 한 줄에 input_id 하나. '#' 뒤는 주석.
+# 여기 적은 글은 out-consumer 영역·youtube 소스라도 판정 대기열에서 빠지지 않는다(태그 표에 있는 글은 해당 없음).
+# 일괄 태그 도구(scripts/consumer-material-tag.mjs)도 --exclude-ids 가 없으면 이 목록을 태그하지 않는다.
+# 후보 뽑기: node --env-file=.env.local scripts/consumer-material-tag.mjs --boundary  (A 줄의 2번째 칸)

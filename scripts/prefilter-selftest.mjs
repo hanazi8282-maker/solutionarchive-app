@@ -236,6 +236,9 @@ for (const s of ['자꾸 꺼집니다', '디자인이 아쉬워요', '불만 많
           select(c) { cols = c; calls.push(`${table}:${c}`); return b },
           eq() { return b },
           is() { return b },
+          // pendingFor 는 페이지로 읽는다(order + range). 모의 행은 1,000행 미만이라 첫 페이지에서 끝난다.
+          order() { return b },
+          range() { return b },
           then(res, rej) {
             let out
             if (table === 'analysis_inputs') {

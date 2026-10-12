@@ -13,6 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { callLlmWithModel, describeFailure, isQuotaFailure, type LlmProvider } from './llm.ts'
 import { selectInputs } from './extract-select.ts'
 import { dropIrrelevant, type RelevanceRow } from './relevance-judge.ts'
+import { loadConsumerTagged } from './consumer-material.ts'
 import {
   PROFILE_MAX_CHARS_PER_INPUT,
   PROFILE_MAX_CHARS_TOTAL,
@@ -98,7 +99,9 @@ export async function generateCompetitorProfile(
     .from('review_relevance_verdicts')
     .select('input_id, verdict, human_verdict')
     .eq('project_id', projectId)
-  const relevance = dropIrrelevant(inputs, relevanceError ? null : ((relevanceRows ?? []) as RelevanceRow[]))
+  // 소비재 태그(남헌 v61)도 '관련 없음'으로 읽는다 — extract 와 같은 헬퍼.
+  const consumerTagged = await loadConsumerTagged(supabase, projectId)
+  const relevance = dropIrrelevant(inputs, relevanceError ? null : ((relevanceRows ?? []) as RelevanceRow[]), consumerTagged)
 
   const selection = selectInputs(relevance.kept, { maxCharsTotal: PROFILE_MAX_CHARS_TOTAL, maxCharsPerInput: PROFILE_MAX_CHARS_PER_INPUT })
   if (selection.selected.length === 0) return done({ status: 'skipped', reason: '선별 뒤 원문 0건' })

@@ -25,6 +25,9 @@ import { READER_PROBLEM_LABEL } from '../cases/draft.ts'
 // "관련"의 정의는 2차 판정(second-opinion.ts)과 한 벌이다 — 여기서 고치지 말고 relevance-criteria.ts 를 고친다.
 import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, describeBusinessModel } from './relevance-criteria.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
+// YouTube 댓글 머리말 `[YouTube 댓글 · <id>]` 해석은 번역 쪽과 한 벌이다.
+import { parseSourceContext } from '../relevance-feedback/translate.ts'
+import { videoTitleLine } from '../review/youtube-videos.ts'
 
 export const RELEVANCE_VERDICTS = ['relevant', 'irrelevant', 'unknown'] as const
 export type Relevance = (typeof RELEVANCE_VERDICTS)[number]
@@ -119,6 +122,27 @@ const SYSTEM = [
   '설명·코드블록·다른 키를 붙이지 마라.',
 ].join('\n')
 
+/**
+ * 영상 제목 주입 옵션(기본 off — 2026-10-12, feat/youtube-video-titles).
+ * 켜면 YouTube 댓글 앞에 `영상 제목: …(채널: …)` 한 줄을 붙인다. **운영 판정(relevance-judge-auto)은 이 옵션을 넘기지 않는다**
+ * — 운영 프롬프트 변경은 남헌 결정 뒤다. 지금은 측정 도구(scripts/youtube-title-ab-measure.mjs)만 쓴다.
+ * 이 판정기에는 prompt_version 칸이 없다(기준 버전은 RELEVANCE_CRITERIA_VERSION — 그건 건드리지 않는다).
+ * 옵션을 켠 판정 결과를 어디에 남길 때는 아래 문자열로 구분한다.
+ */
+export const VIDEO_TITLE_PROMPT_VERSION = 'rj-vt1-2026-10-12'
+
+export interface RelevancePromptOptions {
+  /** video_id → 제목·채널(youtube_videos). 없거나 비면 프롬프트는 옵션 없을 때와 글자 하나 다르지 않다. */
+  videoTitles?: ReadonlyMap<string, { title: string | null; channel: string | null }> | null
+}
+
+/** 리뷰 한 줄 앞에 붙일 맥락. YouTube 댓글이고 제목을 알 때만. */
+function contextOf(text: string, opts: RelevancePromptOptions | undefined): string | null {
+  if (!opts?.videoTitles || opts.videoTitles.size === 0) return null
+  const id = parseSourceContext('youtube', text).threadKey
+  return id ? videoTitleLine(opts.videoTitles.get(id)) : null
+}
+
 /** 목적 한 줄. reader_problem 코드+라벨이 1순위, 없으면 한 줄 소개, 그것도 없으면 분석 목적. */
 export function describePurpose(purpose: RelevancePurpose | null | undefined): string {
   const code = purpose?.reader_problem?.trim()
@@ -145,6 +169,7 @@ export function buildRelevancePrompt(
   purpose: RelevancePurpose | null | undefined,
   reviews: RelevanceReview[],
   examples: RelevanceExample[] = [],
+  opts?: RelevancePromptOptions,
 ): { system: string; user: string; labels: string[] } {
   const labels = reviews.map((_, i) => `R${i + 1}`)
   const shots = examples.slice(0, MAX_EXAMPLES)
@@ -164,7 +189,10 @@ export function buildRelevancePrompt(
         ]
       : []),
     `## 리뷰 ${reviews.length}건`,
-    ...reviews.map((r, i) => `${labels[i]}. ${oneLine(r.text).slice(0, MAX_REVIEW_CHARS)}`),
+    ...reviews.map((r, i) => {
+      const ctx = contextOf(r.text, opts)
+      return `${labels[i]}. ${ctx ? `(${ctx}) ` : ''}${oneLine(r.text).slice(0, MAX_REVIEW_CHARS)}`
+    }),
     '',
     `위 ${reviews.length}건 전부에 대해 지정된 JSON 배열 하나만 출력해라.`,
   ].join('\n')
@@ -238,6 +266,7 @@ export async function judgeRelevanceBatch(
   reviews: RelevanceReview[],
   examples: RelevanceExample[] = [],
   call?: RelevanceCall,
+  opts?: RelevancePromptOptions,
 ): Promise<RelevanceOutcome> {
   const allUnknown = (model: string, error?: string, quotaExhausted = false): RelevanceOutcome => ({
     model,
@@ -252,7 +281,7 @@ export async function judgeRelevanceBatch(
   // mock 은 판정을 흉내내지 않는다. "판정 안 했다" 를 그대로 돌려준다.
   if (provider === 'mock') return allUnknown(MOCK_MODEL)
 
-  const { system, user, labels } = buildRelevancePrompt(purpose, reviews, examples)
+  const { system, user, labels } = buildRelevancePrompt(purpose, reviews, examples, opts)
   const run = call ?? ((s: string, u: string) => callLlmWithModel(provider, s, u, 'relevance-judge'))
 
   let text: string

@@ -6,7 +6,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {
-  GUARDED_RUN_PREFIXES, RELEVANCE_SLOTS, capReached, capUsdOf, hardCapUsdOf, loadGuardConfig, nextRetryQueue, orderWithQueue, parseGuardConfig, pctOf,
+  GUARDED_RUN_PREFIXES, RELEVANCE_SLOTS, capReached, capUsdOf, hardCapUsdOf, loadGuardConfig, nextRetryQueue, orderWithQueue, parseGuardConfig, pctOf, relevanceCaps,
   relevanceRetryDecision, relevanceRunSuffix, retryQueueOf, runCostUsd, sessionBlock, sessionLine, spendForCap, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, decideSlot, isQuotaBlocked, slotStateOf } from '../lib/analysis/extract-auto.ts'
@@ -59,6 +59,7 @@ const read = (p) => fs.readFileSync(path.join(process.cwd(), p), 'utf8')
 }
 
 // ── 설정 ──
+const NOW_CFG = new Date('2026-10-12T00:00:00Z')
 const real = loadGuardConfig()
 t('리포 설정 파일을 읽는다', real.error === null)
 t('v32: 소프트 15% × $0.43/%p = $6.45', real.cfg.capPct === 15 && real.cfg.usdPerPct === 0.43 && Math.abs(capUsdOf(real.cfg) - 6.45) < 1e-9)
@@ -69,6 +70,23 @@ t('주간 스위치는 기본 비활성(null)', real.cfg.weeklyStopPct === null)
 // v40 §2 임시값: 자동 조정 주간 안전선 75% · 주간 1% = $1.29. 계수가 들어가도 weekly_stop_pct 가 null 이라 주간 중단 스위치는 계속 꺼져 있다.
 t('v40 §2: autotune_weekly_safe_pct 75 · usd_per_weekly_pct 1.29', real.cfg.autotuneWeeklySafePct === 75 && real.cfg.usdPerWeeklyPct === 1.29)
 t('v40 §2: 계수가 들어가도 주간 중단 스위치는 비활성 그대로', weeklyGate(real.cfg, 1000).stop === false && /비활성/.test(weeklyGate(real.cfg, 1000).reason))
+// 판정 전용 캡(전량 판정) — until 이전만 판정 전용 %, 지나면 코드가 기본 15%/30%($6.45/$12.9)로 돌아간다. extract 용 capUsdOf 는 그대로.
+{
+  const until = real.cfg.relevanceCapUntilMs
+  t('리포 설정: 판정 전용 캡·until·체인 안전선이 읽힌다', real.cfg.relevanceCapPct != null && real.cfg.relevanceHardCapPct != null && until != null && real.cfg.relevanceChainWeeklyStopPct != null && real.cfg.relevanceChainWindow5hStopPct != null)
+  t('판정 전용 하드 ≥ 소프트', real.cfg.relevanceHardCapPct >= real.cfg.relevanceCapPct)
+  const before = relevanceCaps(real.cfg, new Date(until - 60_000))
+  t('until 이전: 판정 전용 % × 계수', before.boosted && Math.abs(before.capUsd - real.cfg.relevanceCapPct * 0.43) < 1e-9 && Math.abs(before.hardCapUsd - real.cfg.relevanceHardCapPct * 0.43) < 1e-9)
+  const after = relevanceCaps(real.cfg, new Date(until))
+  t('until 시각부터: 원래 값 $6.45/$12.9 로 자동 복귀', !after.boosted && Math.abs(after.capUsd - 6.45) < 1e-9 && Math.abs(after.hardCapUsd - 12.9) < 1e-9 && after.capPct === 15)
+  t('extract 용 capUsdOf/hardCapUsdOf 는 until 과 무관하게 15%/30%', Math.abs(capUsdOf(real.cfg) - 6.45) < 1e-9 && Math.abs(hardCapUsdOf(real.cfg) - 12.9) < 1e-9)
+  const base = { session_cap_pct: 15, hard_cap_pct: 30, usd_per_session_pct: 0.43, relevance_session_cap_pct: 40, relevance_hard_cap_pct: 60 }
+  t('until 없음 → 기본 캡', !relevanceCaps(parseGuardConfig(base), NOW_CFG).boosted)
+  t('until 못 읽음 → 기본 캡(낮은 쪽으로 닫힘)', !relevanceCaps(parseGuardConfig({ ...base, relevance_cap_until: '내일' }), NOW_CFG).boosted)
+  t('판정 전용 % 하나라도 없으면 기본 캡', !relevanceCaps(parseGuardConfig({ ...base, relevance_hard_cap_pct: null, relevance_cap_until: '2099-01-01T00:00:00Z' }), NOW_CFG).boosted)
+  const sbBoost = sessionBlock({ job: 't2', cfg: real.cfg, caps: before, spentUsd: 1, calls: 1, costUnknownCalls: 0, window5h: null, weekUsd: null, capped: false })
+  t('session 블록이 실제로 쓴 판정 캡을 남긴다', sbBoost.cap_pct === real.cfg.relevanceCapPct && Math.abs(sbBoost.cap_usd - before.capUsd) < 1e-4)
+}
 const missing = loadGuardConfig(path.join(os.tmpdir(), 'no-such-session-guard.json'))
 t('설정 파일이 없으면 error + 상한 null(가드 확인 불가 → 닫힘)', missing.error !== null && capUsdOf(missing.cfg) === null)
 t('0·음수·문자열은 값 없음으로', parseGuardConfig({ session_cap_pct: 0, usd_per_session_pct: '0.3' }).capPct === null && parseGuardConfig({ usd_per_session_pct: '0.3' }).usdPerPct === null)
@@ -330,7 +348,12 @@ t('nightly-relevance 크론 = RELEVANCE_SLOTS 키(1:1)', crons.length === 3 && c
 t('모든 크론이 일일 형식(cron-watchdog 가 감시 가능)', crons.every(c => /^\d{1,2} \d{1,2} \* \* \*$/.test(c)))
 t('판정 스텝 id=judge + 슬롯 크론 env', /id: judge/.test(wf) && /RELEVANCE_SLOT_CRON: \$\{\{ github\.event\.schedule \}\}/.test(wf))
 t('뒤 스텝 4개 전부 ran=false 면 건너뜀', (wf.match(/steps\.judge\.outputs\.ran != 'false'/g) ?? []).length === 4)
-t('workflow permissions 는 contents: read 그대로', /permissions:\s*\n\s*contents: read\s*\n/.test(wf) && !/actions: write/.test(wf))
+t('workflow permissions 는 contents: read 그대로', /^permissions:\s*\r?\n\s*contents: read\s*\r?\n/m.test(wf))
+// 전량 판정 체인: actions: write 는 relaunch job 한 곳에만(판정 job 은 GITHUB_TOKEN 쓰기 권한 없음).
+t('actions: write 는 relaunch job 에만 1번', (wf.match(/actions: write/g) ?? []).length === 1 && wf.indexOf('actions: write') > wf.indexOf('\n  relaunch:') && wf.indexOf('\n  relaunch:') > 0)
+t('relaunch 는 판정 스크립트의 relaunch=true 일 때만', /if: always\(\) && needs\.judge\.outputs\.relaunch == 'true'/.test(wf))
+t('relaunch 는 대기 중 실행이 있으면 안 부른다(크론 대기 실행 취소 방지)', /select\(\.status=="queued"/.test(wf) && /dry_run=false -f chain_hop="\$NEXT_HOP"/.test(wf))
+t('수동 입력 기본값이 리포 변수를 가리지 않는다(sample·max_projects 기본값 빈 문자열)', /sample:[\s\S]*?default: ''/.test(wf) && /max_projects:[\s\S]*?default: ''/.test(wf))
 const ex = read('scripts/extract-auto.mjs')
 t('extract: 상한 확인이 claimExtraction 보다 앞(건너뛴 건 extract_attempts 안 태움)', ex.indexOf('capReached(spentNow') > 0 && ex.indexOf('capReached(spentNow') < ex.indexOf('await claimExtraction('))
 t('extract: summary 에 stop_reason·processed·session', /stop_reason: stopReason, processed, not_started/.test(ex))
@@ -340,7 +363,9 @@ t('extract: 소프트 캡은 경계에서만(진행 중 프로젝트 안에서�
 t('extract: 한도·하드 캡 실패에서 시도 수를 되돌리게 claim.attempts 를 넘긴다', /runExtraction\(supabase, target\.projectId, provider, claim\.restore, claim\.attempts\)/.test(ex))
 t('extract: 하드 캡에 막힌(안 돈) 프로젝트는 touched 에 안 넣는다 — 큐 우선순위 유지', /if \(!\(out\.ok === false && out\.hardCap\)\) touched\.push/.test(ex) && !/\n  touched\.push\(target\.projectId\)/.test(ex))
 t('extract·T2: 모든 spendForCap 호출이 폴백 설정을 넘긴다', !/spendForCap\(cli(Spent\(\))?\)/.test(ex) && !/spendForCap\(cli(Spent\(\))?\)/.test(rj) && /setCliHardCap\(hardCapUsd, guard\.cfg\.unitCostFallbackUsd\)/.test(ex))
-t('T2: batchesDone 은 저장 성공 뒤에 센다', rj.indexOf('batchesDone += 1') > rj.indexOf('judgedTotal += rows.length'))
+t('T2: batchesDone 은 저장 성공 뒤에 센다', rj.indexOf('judgedTotal += inserted') > 0 && rj.indexOf('batchesDone += 1') > rj.indexOf('judgedTotal += inserted'))
+t('T2: 캡은 relevanceCaps(판정 전용, until 뒤 기본) — extract·번역·백필은 안 쓴다', /relevanceCaps\(guard\.cfg, guardNow\)/.test(rj) && !/capUsdOf\(guard\.cfg\)/.test(rj)
+  && ['scripts/extract-auto.mjs', 'scripts/relevance-translate.mjs', 'scripts/relevance-informative-backfill.mjs'].every((f) => !/relevanceCaps|relevance_session_cap_pct/.test(read(f))))
 t('extract: 재시도 큐를 summary 에 남기고 소진이면 exit 1', /retry_queue: rq\.queue/.test(ex) && /alarm \|\| rq\.giveUp \? 1 : 0/.test(ex))
 t('T2: 마지막 재시도 한도면 exit 1(watchdog → Notion)', /retriesExhausted \? 1 : 0/.test(rj))
 t('번역: 기록만(capReached 없음)', !/capReached/.test(read('scripts/relevance-translate.mjs')) && /job: 'translate'/.test(read('scripts/relevance-translate.mjs')))

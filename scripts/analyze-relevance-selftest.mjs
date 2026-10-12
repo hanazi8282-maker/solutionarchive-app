@@ -266,7 +266,8 @@ t('배치가 T1 선별을 재사용한다', auto.includes('selectInputs('))
   t("대상 상태: .in('status', AUTO_EXTRACT_STATUSES) 로 조회한다", auto.includes(".in('status', AUTO_EXTRACT_STATUSES)"))
   t("대상 상태: 리터럴 .eq('status', 'collecting') 가 없다", !auto.includes(".eq('status', 'collecting')"))
   t('대상 상태: collecting·extracted 를 포함한다', gate.AUTO_EXTRACT_STATUSES.includes('collecting') && gate.AUTO_EXTRACT_STATUSES.includes('extracted'))
-  t('대상 상태: 하루 프로젝트 상한은 그대로(RELEVANCE_MAX_PROJECTS 기본 5)', auto.includes('num(process.env.RELEVANCE_MAX_PROJECTS, 5)'))
+  // 전량 판정(남헌 결정)에서 5 → 30. 실제 멈춤은 캡·마감(RELEVANCE_DEADLINE_MIN)이 먼저 건다.
+  t('대상 상태: 실행당 프로젝트 상한(RELEVANCE_MAX_PROJECTS 기본 30)', auto.includes('num(process.env.RELEVANCE_MAX_PROJECTS, 30)'))
   const second = read('scripts/relevance-second-judge-auto.mjs')
   t('2차는 프로젝트 상태로 거르지 않는다(1차 판정 행을 따라간다 = 같은 집합)', !/analysis_projects[\s\S]{0,200}\.(eq|in)\('status'/.test(second))
 }

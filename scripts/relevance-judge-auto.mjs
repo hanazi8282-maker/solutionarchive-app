@@ -27,14 +27,26 @@
 //   하드 캡($12.9)에 닿으면 진행 중 프로젝트라도 다음 묶음을 시작하지 않는다(stop_reason='hard_cap').
 //   한도 오류(quota)로 멈추면 재시도 슬롯 r1·r2 가 4시간(또는 CLI 리셋 시각) 뒤 그 프로젝트부터 최대 2회 다시 돈다.
 //
+// 전량 판정(남헌 결정 — 원문 약 67,355건 + 하루 신규 약 6,300건, lib/analysis/relevance-judge-all.ts):
+//   · 원문·판정 캐시를 페이지로 전부 읽고(1,000행 상한 제거), 판정된 것을 뺀 뒤 프로젝트당 RELEVANCE_SAMPLE(워크플로 1000 · 코드 기본 200)건까지.
+//   · 저장은 insert-only(ON CONFLICT DO NOTHING) — 이미 있는 판정은 절대 덮지 않는다. 호출 오류 묶음은 저장하지 않고 빈 칸으로 남겨 다음 실행이 다시 채운다.
+//   · 모든 행에 model·prompt_version(= RELEVANCE_CRITERIA_VERSION). prompt_version 컬럼이 없으면(마이그 미적용) 그 필드만 빼고 저장.
+//   · 캡은 config relevance_cap_until 이전이면 판정 전용 %(relevanceCaps), 지나면 기본 15%/30%.
+//   · RELEVANCE_DEADLINE_MIN(기본 80분) 이 지나면 새 묶음을 시작하지 않는다(stop_reason='deadline' — job timeout 에 잘리지 않게).
+//   · 끝에 자기 호출 체인을 이어 갈지 정해 GITHUB_OUTPUT relaunch·wait_min·next_hop·next_zero 를 남긴다(decideRelaunch). 부르는 것은 워크플로 relaunch job.
+//
 // 종료코드: 0 정상(대상 0건·한도·세션 상한 도달·재시도 쉼 포함) · 1 마지막 재시도까지 한도 · 2 설정/조회 실패 · 3 저장 실패 1건 이상
 
 import fs from 'node:fs'
 import { createClient } from '../lib/supabase/server.ts'
 import { cliSpent, requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
 import {
-  RELEVANCE_SLOTS, capReached, hardCapUsdOf, relevanceRunSuffixFromEnv, spendForCap, capUsdOf, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
+  RELEVANCE_SLOTS, capReached, relevanceCaps, relevanceRunSuffixFromEnv, spendForCap, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
+import {
+  CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_EXCLUDED_SOURCES, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseSourceList, saveVerdictsInsertOnly,
+} from '../lib/analysis/relevance-judge-all.ts'
+import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 // 대상 순서는 야간 extract 와 같은 규칙(compareAutoPriority: SaaS 우선 → 많은 순 → projectId)을 영역 결손 축이 감싼다 — lib/analysis/area-priority.ts planAreaOrder(v37 U1).
@@ -65,14 +77,26 @@ const num = (v, fallback) => {
   const n = Number(v)
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback
 }
-/** 프로젝트당 판정할 표본 크기(T1 통과분 상위). */
+/** 프로젝트당 이번 실행에서 판정할 최대 건수(아직 판정 없는 것 중). 코드 기본은 200(커버리지 뷰 20261009000040 의 least(inputs, 200) 와 한 벌),
+ *  전량 판정 워크플로는 env 로 1000 을 넘긴다. */
 const sampleSize = num(process.env.RELEVANCE_SAMPLE, 200)
+/** 새 묶음을 시작하지 않는 시각(실행 시작부터 분). job timeout 에 잘리면 agent_runs 가 running 으로 남고 체인도 끊긴다. */
+const deadlineMs = num(process.env.RELEVANCE_DEADLINE_MIN, 80) * 60_000
+const startedAt = Date.now()
+/** 판정에서 뺄 소스 · 맨 뒤로 미룰 소스(쉼표). 비면 기본(youtube / kakao_cafe,kakao_blog), 'none' 이면 없음. */
+const excludedSources = parseSourceList(process.env.RELEVANCE_EXCLUDE_SOURCES, DEFAULT_EXCLUDED_SOURCES)
+const lastSources = parseSourceList(process.env.RELEVANCE_LAST_SOURCES, DEFAULT_LAST_SOURCES)
+/** 자기 호출 체인 — 이번 hop·연속 0건 수는 앞 실행이 dispatch 입력으로 넘긴다(세션·DB 없이 이어진다). */
+let chainHop = Math.max(0, Math.floor(Number(process.env.RELEVANCE_CHAIN_HOP) || 0))
+let chainZero = Math.max(0, Math.floor(Number(process.env.RELEVANCE_CHAIN_ZERO) || 0))
+const chainMaxHops = num(process.env.RELEVANCE_CHAIN_MAX_HOPS, CHAIN_DEFAULT_MAX_HOPS)
+const chainEnabled = (process.env.RELEVANCE_CHAIN ?? 'on').trim().toLowerCase() !== 'off'
 /** 표본에서 4~5점 평점 입력의 비율 상한(v31 §2.3). 바꾸는 날은 env 값 + Notion 일일 상태 로그 한 줄이 근거다. */
 const highRatingShareEnv = process.env.RELEVANCE_HIGH_RATING_SHARE
 const parsedHighShare = parseHighRatingShare(highRatingShareEnv)
 const highRatingShare = parsedHighShare ?? DEFAULT_HIGH_RATING_SHARE
-/** 하루에 돌 최대 프로젝트 수. */
-const maxProjects = num(process.env.RELEVANCE_MAX_PROJECTS, 5)
+/** 한 실행에서 돌 최대 프로젝트 수. 실제 멈춤은 캡·deadline 이 먼저 건다. */
+const maxProjects = num(process.env.RELEVANCE_MAX_PROJECTS, 30)
 
 const log = (m) => console.log(`[${new Date().toISOString()}] ${m}`)
 const warn = (m) => {
@@ -119,7 +143,13 @@ if (slot === 'r1' || slot === 'r2') {
     ? relevanceRetryDecision(recentRuns, { today, now: guardNow, cooldownMs: QUOTA_COOLDOWN_MS, maxRetries: MAX_RETRIES })
     : { run: false, reason: '실행 이력 확인 불가 — 모른 채 재시도하지 않는다', retriesDone: null, quotaPending: null, quotaProject: null }
   log(`재시도 슬롯 ${slot} ${retry.run ? '실행' : '쉼'} — ${retry.reason}`)
-  if (!retry.run) {
+  // 체인 넘겨받기: 직전 판정 실행이 "이어 가라"를 남겼는데 이 슬롯이 대기열에 있어서 relaunch 가 부르지 않았다 → 이 실행이 그 hop 을 잇는다.
+  const carry = !retry.run && recentRuns ? chainCarryOf(recentRuns, guardNow) : null
+  if (carry) {
+    chainHop = carry.hop
+    chainZero = carry.zero
+    log(`체인 넘겨받음 — ${carry.from} 의 hop ${carry.hop}(연속 0건 ${carry.zero})을 이 슬롯(${slot})이 잇는다`)
+  } else if (!retry.run) {
     setOutput('ran', 'false')
     // r2 는 그날 마지막 재시도 자리다. 마지막 기록이 아직 한도 정지(또는 이력 확인 불가)인 채로 쉬면 묻히지 않게 경보한다
     // — exit 1 을 cron-watchdog 가 Notion 일일 상태 로그로 올린다.
@@ -133,8 +163,13 @@ if (slot === 'r1' || slot === 'r2') {
   }
 }
 setOutput('ran', 'true')
+setOutput('relaunch', 'false') // 체인 기본값 — 끝까지 가서 decideRelaunch 가 true 로 바꿀 때만 다음 실행을 부른다
 const guard = loadGuardConfig()
-const capUsd = capUsdOf(guard.cfg)
+// 판정 전용 캡(until 이전) 또는 기본 캡. extract·번역·백필은 capUsdOf 그대로라 영향 없다.
+const caps = relevanceCaps(guard.cfg, guardNow)
+const capUsd = caps.capUsd
+log(`판정 캡 — ${caps.boosted ? `판정 전용 ${caps.capPct}%(~${new Date(caps.untilMs).toISOString()})` : `기본 ${caps.capPct ?? '?'}%${caps.untilMs ? `(판정 전용 만료 ${new Date(caps.untilMs).toISOString()})` : ''}`} · 소프트 $${capUsd?.toFixed(2) ?? '?'} · 하드 $${caps.hardCapUsd?.toFixed(2) ?? '?'} · 체인 hop ${chainHop}/${chainMaxHops}(연속 0건 ${chainZero}) ${chainEnabled ? '' : '· RELEVANCE_CHAIN=off'}`)
+log(`소스 — 제외 ${excludedSources.join(',') || '(없음)'} · 맨 뒤 ${lastSources.join(',') || '(없음)'} · 마감 ${deadlineMs / 60_000}분`)
 const window5h = recentRuns ? usageSince(recentRuns, guardNow.getTime() - 5 * 3_600_000) : null
 const weekUsd = recentRuns ? usageSince(recentRuns, guardNow.getTime() - 7 * 86_400_000).usd : null
 const weekly = weeklyGate(guard.cfg, weekUsd)
@@ -209,7 +244,7 @@ for (const w of prefilterLoad.warnings) warn(`사전필터 설정: ${w}`)
 log(`사전필터 — ${prefilterCfg ? `mode=${prefilterCfg.mode} · 소스 ${prefilterCfg.applySources === '*' ? '전부' : prefilterCfg.applySources.join(',') || '(없음)'}` : '꺼짐(설정 확인 불가)'}`)
 // 대상 조회(평점 컬럼 42703 폴백) → T1 → 평점 우선 자르기 → 판정 캐시 제외 → 사전필터. 연결부는 lib/analysis/relevance-pending.ts
 // (모의 supabase 로 scripts/prefilter-selftest.mjs 가 실행 검사한다). 모든 반환에 rating 이 있다(아래 대상 로그가 읽는다).
-const { pendingFor, prefilterByProject, currentPrefilter } = createPendingFor({ supabase, sampleSize, highRatingShare, prefilterCfg, log, warn })
+const { pendingFor, prefilterByProject, currentPrefilter } = createPendingFor({ supabase, sampleSize, highRatingShare, prefilterCfg, log, warn, excludedSources, lastSources })
 
 /** few-shot — 사람 채점 최근 N건. 이 프로젝트 것 우선, 모자라면 다른 프로젝트에서 채운다. */
 async function examplesFor(projectId) {
@@ -297,6 +332,10 @@ if (retry?.quotaProject) {
 }
 const targets = ready.slice(0, maxProjects)
 const remaining = ready.length - targets.length
+// 전체 남은 미판정(이번 실행 상한과 무관). 원문을 못 읽은 프로젝트가 있으면 하한이다.
+const unjudgedBefore = ready.reduce((s, c) => s + (c.pending.unjudged ?? c.pending.reviews.length), 0)
+const excludedTotal = ready.reduce((s, c) => s + (c.pending.excluded ?? 0), 0)
+log(`미판정 전체 ${unjudgedBefore}건(프로젝트 ${ready.length}개${unknownCount > 0 ? ` · 원문 못 읽은 프로젝트 ${unknownCount}개 제외 — 하한` : ''}) · 제외 소스로 뺀 ${excludedTotal}건`)
 
 log(
   `후보(${AUTO_EXTRACT_STATUSES.join('·')}) ${(projects ?? []).length}건 → 판정 대상 프로젝트 ${ready.length}건` +
@@ -381,8 +420,14 @@ let quotaResetAt = null
 let quotaProjectId = null
 let batchesDone = 0
 const batchesPlanned = targets.reduce((s, t) => s + chunkReviews(t.pending.reviews, BATCH_SIZE).length, 0)
-const hardCapUsd = hardCapUsdOf(guard.cfg)
+const hardCapUsd = caps.hardCapUsd
 let projectsStarted = 0
+// prompt_version 컬럼(20261014000020) 존재 3상태 — 'absent' 면 그 필드만 빼고 저장한다(model 은 원래 NOT NULL 로 늘 기록).
+let promptVersionColumn = 'unknown'
+// 체인 오류율 — 호출 오류로 저장하지 않은 건수(빈 칸으로 남아 다음 실행이 다시 채운다) + 저장 실패 건수. 분모는 시도 건수.
+let attemptedTotal = 0
+let errorTotal = 0
+let deadlineHit = false
 
 for (const { project, pending } of targets) {
   // 소프트 캡(v32): 프로젝트 **경계에서만** 본다 — 닿았으면 새 프로젝트를 시작하지 않는다. 진행 중 프로젝트는 묶음을 끝까지 돈다.
@@ -398,6 +443,13 @@ for (const { project, pending } of targets) {
       await tracker.step({ stepKey: 'session-cap', label: '세션 소프트 캡', status: 'blocked', seq: seq + 1, blocker, detail: { projects_started: projectsStarted, of: targets.length, batches_done: batchesDone, batches_planned: batchesPlanned, spent_usd: spentNow == null ? null : Number(spentNow.toFixed(4)), cap_usd: capUsd, hard_cap_usd: hardCapUsd } })
       break
     }
+  }
+  // 마감(RELEVANCE_DEADLINE_MIN): job timeout 에 잘리기 전에 새 프로젝트를 시작하지 않는다. 체인의 정상 경계라 blocker 가 아니다.
+  if (Date.now() - startedAt >= deadlineMs) {
+    deadlineHit = true
+    stopReason = 'deadline'
+    log(`마감 ${deadlineMs / 60_000}분 도달 — 프로젝트 ${targets.length}건 중 ${projectsStarted}건 · 묶음 ${batchesDone}/${batchesPlanned}개 뒤 새 시작 중지(남은 판정은 다음 실행)`)
+    break
   }
   projectsStarted += 1
   seq += 1
@@ -419,6 +471,7 @@ for (const { project, pending } of targets) {
         stopped = `하드 캡 도달 — 묶음 ${batchesPlanned}개 중 ${batchesDone}개 처리 뒤 즉시 정지 · 사용 $${before.toFixed(3)} / 하드 캡 $${hardCapUsd.toFixed(2)}`
         break
       }
+      if (Date.now() - startedAt >= deadlineMs) { deadlineHit = true; stopReason = 'deadline'; break }
       const out = await judgeRelevanceBatch(project, batch, examples)
       model = out.model
       if (out.quotaExhausted) {
@@ -428,6 +481,14 @@ for (const { project, pending } of targets) {
         quotaResetAt = parseQuotaResetAt(stopped, new Date())
         break
       }
+      attemptedTotal += batch.length
+      // 호출 오류(파싱 실패·CLI 실패)는 저장하지 않는다 — 'unknown' 으로 박으면 insert-only 라 다시는 안 채워진다. 빈 칸으로 남겨 다음 실행이 다시 판정한다.
+      // (mock·라벨 누락 같은 "판정은 돌았는데 모름"은 오류가 아니라 그대로 unknown 저장.)
+      if (out.error) {
+        errorTotal += batch.length
+        warn(`${project.id} 묶음 호출 오류 — ${batch.length}건 저장 안 함(다음 실행이 다시 판정): ${out.error}`)
+        continue
+      }
       for (const v of out.verdicts) counts[v.verdict] += 1
 
       const rows = out.verdicts.map((v) => ({
@@ -435,36 +496,49 @@ for (const { project, pending } of targets) {
         project_id: project.id,
         verdict: v.verdict,
         model: out.model,
+        ...(promptVersionColumn === 'absent' ? {} : { prompt_version: RELEVANCE_CRITERIA_VERSION }),
         judged_at: new Date().toISOString(),
         reason: v.reason,
         ...(infoColumn === 'absent' ? {} : { product_informative: v.product_informative }),
         ...(labelColumns === 'absent' ? {} : Object.fromEntries(LABEL_KEYS.map((k) => [k, v[k]]))),
       }))
       // human_verdict·human_graded_at 은 payload 에 없다(human_product_informative 도) — 재판정이 사람 채점을 덮지 않는다.
-      const save = (payload) => supabase.from('review_relevance_verdicts').upsert(payload, { onConflict: 'input_id' })
+      // insert-only(ON CONFLICT DO NOTHING) — 이미 있는 판정(1차·2차·사람·자동 승인)은 절대 덮지 않는다. 돌려받은 행 = 실제로 새로 들어간 행.
+      const save = (payload) => saveVerdictsInsertOnly(supabase, payload)
       const without = (keys) => rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !keys.includes(k))))
-      let { error } = await save(rows)
+      const absentKeys = () => [...(promptVersionColumn === 'absent' ? ['prompt_version'] : []), ...(infoColumn === 'absent' ? ['product_informative'] : []), ...(labelColumns === 'absent' ? LABEL_KEYS : [])]
+      let { data: insertedRows, error } = await save(rows)
       // 컬럼이 없으면(PGRST204 스키마 캐시에 없음 · 42703) 판정은 그대로 저장하고 **그 필드만** 버린다. 어느 컬럼인지는 메시지로 가른다.
       // 조용히 넘기지 않는다 — "정보 판정 0건"·"라벨 0건"이 "모델이 못 달았다"로 읽히면 안 된다(§7.1).
       const missingCol = (e) => e && (e.code === 'PGRST204' || e.code === '42703')
+      if (missingCol(error) && promptVersionColumn !== 'absent' && /prompt_version/.test(error.message ?? '')) {
+        promptVersionColumn = 'absent'
+        warn(`prompt_version 미기록(마이그 미적용) — 컬럼이 없다(${error.code}). 20261014000020 적용 전까지 이 필드만 빼고 저장한다(model 은 기록).`)
+        ;({ data: insertedRows, error } = await save(without(absentKeys())))
+      }
       if (missingCol(error) && infoColumn !== 'absent' && /product_informative/.test(error.message ?? '')) {
         infoColumn = 'absent'
         warn(`정보 판정 미기록(마이그 미적용) — product_informative 컬럼이 없다(${error.code}). 20260930000031 적용 전까지 이 필드만 빼고 저장한다. rr-v2 자동 승인 대상은 0건이 된다.`)
-        ;({ error } = await save(without(['product_informative', ...(labelColumns === 'absent' ? LABEL_KEYS : [])])))
+        ;({ data: insertedRows, error } = await save(without(absentKeys())))
       }
       if (missingCol(error) && labelColumns !== 'absent') {
         labelColumns = 'absent'
         warn(`라벨 미기록(마이그 미적용) — review_relevance_verdicts 에 라벨 컬럼이 없다(${error.code}). 20260930000014 적용 전까지 verdict·reason 만 저장한다.`)
-        ;({ error } = await save(without([...LABEL_KEYS, ...(infoColumn === 'absent' ? ['product_informative'] : [])])))
+        ;({ data: insertedRows, error } = await save(without(absentKeys())))
       }
       if (error) {
+        errorTotal += rows.length
         saveFailed += 1
         console.error(`✗ ${project.id} 판정 저장 실패(${doneBatches + 1}번째 묶음): ${error.code ?? ''} ${error.message}`)
         stopped = `저장 실패: ${error.message}`
         stopReason = 'save_failed'
         break
       }
-      judgedTotal += rows.length
+      // 실제로 들어간 행만 센다. 이미 판정이 있던 행은 DB 가 건너뛴다(덮지 않음) — 0 이 아니면 거르기(pendingFor)와 DB 가 어긋난 것.
+      const inserted = Array.isArray(insertedRows) ? insertedRows.length : rows.length
+      if (inserted < rows.length) warn(`${project.id} 이미 판정 있는 ${rows.length - inserted}건은 건너뜀(덮어쓰기 안 함)`)
+      if (promptVersionColumn === 'unknown') promptVersionColumn = 'present'
+      judgedTotal += inserted
       if (infoColumn !== 'absent') {
         infoColumn = 'present'
         informativeTotal += out.verdicts.filter((v) => v.product_informative !== null).length
@@ -500,12 +574,36 @@ for (const { project, pending } of targets) {
 const spent = dailySpent()
 const status = blocker ? 'blocked' : saveFailed > 0 ? 'partial' : 'ok'
 const cli = cliSpent()
-const session = sessionBlock({ job: 't2', cfg: guard.cfg, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli, guard.cfg.unitCostFallbackUsd), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' || stopReason === 'hard_cap' })
+const session = sessionBlock({ job: 't2', cfg: guard.cfg, caps, spentUsd: cli.usd, spentForCapUsd: spendForCap(cli, guard.cfg.unitCostFallbackUsd), calls: cli.calls, costUnknownCalls: cli.unknown, window5h, weekUsd, capped: stopReason === 'session_cap' || stopReason === 'hard_cap' })
 log(sessionLine(session))
+
+// ── 4. 자기 호출 체인(전량 판정) — 다음 실행을 부를지. 부르는 것은 워크플로 relaunch job(GITHUB_OUTPUT relaunch=true 일 때만) ──
+// 남은 미판정: 원문을 못 읽은 프로젝트가 있으면 이번에 본 쪽이 0 이어도 "다 채웠다"고 하지 않는다(확인 불가 → 멈춤, §7.1).
+const unjudgedAfter = Math.max(0, unjudgedBefore - judgedTotal)
+const chain = decideRelaunch({
+  dry: false, enabled: chainEnabled, now: new Date(), untilMs: guard.cfg.relevanceCapUntilMs, stopReason,
+  attempted: attemptedTotal, errors: errorTotal, judged: judgedTotal,
+  remaining: unjudgedAfter === 0 && unknownCount > 0 ? null : unjudgedAfter,
+  hop: chainHop, maxHops: chainMaxHops, zeroStreak: chainZero, zeroLimit: CHAIN_DEFAULT_ZERO_LIMIT,
+  weeklyPct: session.week_usd_lower_bound == null || guard.cfg.usdPerWeeklyPct == null ? null : Number((session.week_usd_lower_bound / guard.cfg.usdPerWeeklyPct).toFixed(2)),
+  weeklyStopPct: guard.cfg.relevanceChainWeeklyStopPct,
+  window5hPct: session.window5h_pct, window5hStopPct: guard.cfg.relevanceChainWindow5hStopPct,
+})
+log(`체인 ${chain.relaunch ? '이어감' : '멈춤'} — ${chain.reason} · 미판정 ${unjudgedBefore} → ${unjudgedAfter} · 시도 ${attemptedTotal} · 오류 ${errorTotal}${deadlineHit ? ' · 마감 도달' : ''}`)
+if (!chain.relaunch && unjudgedAfter > 0 && !/드라이런|RELEVANCE_CHAIN=off|만료|relevance_cap_until 없음/.test(chain.reason)) warn(`체인이 미판정 ${unjudgedAfter}건을 남기고 멈췄다 — ${chain.reason}. 다음 크론(KST 04:03)이 다시 시작한다`)
+setOutput('relaunch', chain.relaunch ? 'true' : 'false')
+setOutput('wait_min', String(chain.waitMin))
+setOutput('next_hop', String(chain.nextHop))
+setOutput('next_zero', String(chain.nextZeroStreak))
+
 await tracker.finish({
   status,
   summary: {
     projects: targets.length, judged: judgedTotal, remaining, blocker,
+    unjudged_before: unjudgedBefore, unjudged_after: unjudgedAfter, excluded_sources: excludedSources, excluded_inputs: excludedTotal,
+    attempted: attemptedTotal, errors: errorTotal, prompt_version: RELEVANCE_CRITERIA_VERSION, prompt_version_column: promptVersionColumn,
+    caps: { boosted: caps.boosted, cap_usd: capUsd, hard_cap_usd: caps.hardCapUsd, until: caps.untilMs ? new Date(caps.untilMs).toISOString() : null },
+    chain: { hop: chainHop, relaunch: chain.relaunch, reason: chain.reason, next_hop: chain.nextHop, next_zero_streak: chain.nextZeroStreak, wait_min: chain.waitMin },
     // 상한·한도로 멈췄으면 몇 개째였는지(§7.2). quota_reset_at 은 재시도 슬롯(r1·r2)이 읽는다.
     stop_reason: stopReason, quota_reset_at: quotaResetAt, quota_project: quotaProjectId, batches_done: batchesDone, batches_planned: batchesPlanned, slot, session,
     label_columns: labelColumns, labeled: labelColumns === 'present' ? labeledTotal : null,

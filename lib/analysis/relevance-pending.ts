@@ -4,12 +4,18 @@
 //
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다. `@/` 별칭·enum 을 쓰지 않는다.
 
-import { selectInputs } from './extract-select.ts'
+import { selectInputs, timestampOf } from './extract-select.ts'
 import { MAX_REVIEW_CHARS, pickSampleByRating, type RatingSampleStats } from './relevance-judge.ts'
 import { applyPrefilter, prefilterInputs, summarizePrefilter, type PrefilterConfig } from './prefilter.ts'
+import { DEFAULT_EXCLUDED_SOURCES, DEFAULT_LAST_SOURCES, fetchAllPages, orderForJudge } from './relevance-judge-all.ts'
 
 export interface PendingResult {
+  /** 이번 실행 표본 수(미판정 중 상한까지 고른 것, 사전필터 전). */
   total: number
+  /** 그중 아직 판정이 없는 수 — 이번 실행 상한(sampleSize)과 무관한 전체 남은 양. 체인이 "남았나"를 이걸로 본다. */
+  unjudged?: number
+  /** 제외 소스(기본 youtube)라 뺀 수. */
+  excluded?: number
   reviews: { input_id: string; text: string }[]
   /** 평점 표본 통계. 입력 0건이면 null(대상이 안 되므로 로그가 읽지 않는다). */
   rating: RatingSampleStats | null
@@ -18,9 +24,15 @@ export interface PendingResult {
 type Log = (m: string) => void
 type PendingInputRow = { id: string; raw_text: string | null; created_at: string | null; collected_at: string | null; source_key?: string | null; rating?: number | null }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createPendingFor(deps: { supabase: any; sampleSize: number; highRatingShare: number; prefilterCfg: PrefilterConfig | null; log: Log; warn: Log }) {
+export function createPendingFor(deps: {
+   
+  supabase: any; sampleSize: number; highRatingShare: number; prefilterCfg: PrefilterConfig | null; log: Log; warn: Log
+  /** 판정에서 뺄 소스(기본 youtube) · 맨 뒤로 미룰 소스(기본 카카오 카페·블로그). */
+  excludedSources?: readonly string[]; lastSources?: readonly string[]
+}) {
   const { supabase, sampleSize, highRatingShare, log, warn } = deps
+  const excludedSources = deps.excludedSources ?? DEFAULT_EXCLUDED_SOURCES
+  const lastSources = deps.lastSources ?? DEFAULT_LAST_SOURCES
   let prefilterCfg = deps.prefilterCfg
   /** analysis_inputs.rating 컬럼(20261005000001) 존재 3상태. 'absent' 면 평점 우선 자르기·평점 규칙이 안 돈다. */
   const state = { ratingColumn: 'unknown' as 'unknown' | 'present' | 'absent' }
@@ -29,39 +41,50 @@ export function createPendingFor(deps: { supabase: any; sampleSize: number; high
 
   /** 이 프로젝트에서 판정할 리뷰 목록. 실패는 null 로 올려 "0건" 과 가른다(§7.1). */
   async function pendingFor(project: { id: string }): Promise<PendingResult | null> {
-    // ⚠️ range 없음 — PostgREST 기본 상한(1,000행)까지만 온다. T1 선별·중복 규칙도 그 범위 안에서 돈다(docs/prefilter-shadow.md).
-    const inputsQuery = (cols: string) => supabase.from('analysis_inputs').select(cols).eq('project_id', project.id).is('purged_at', null)
+    // 페이지로 전부 읽는다(PostgREST 기본 1,000행 상한 제거 — 전량 판정). id 로 정렬해야 페이지가 겹치거나 빠지지 않는다.
+    const inputsQuery = (cols: string) => fetchAllPages<PendingInputRow>(() =>
+      supabase.from('analysis_inputs').select(cols).eq('project_id', project.id).is('purged_at', null).order('id', { ascending: true }))
     const BASE_COLS = 'id, raw_text, created_at, collected_at, source_key'
-    let { data: inputs, error } = await inputsQuery(state.ratingColumn === 'absent' ? BASE_COLS : `${BASE_COLS}, rating`)
-    if (error?.code === '42703' && state.ratingColumn !== 'absent') {
+    let got = await inputsQuery(state.ratingColumn === 'absent' ? BASE_COLS : `${BASE_COLS}, rating`)
+    if (got.error?.code === '42703' && state.ratingColumn !== 'absent') {
       state.ratingColumn = 'absent'
       warn('analysis_inputs.rating 컬럼이 없다(42703, 마이그 20261005000001 미적용) — 평점 우선 자르기·사전필터 평점 규칙이 안 돈다')
-      ;({ data: inputs, error } = await inputsQuery(BASE_COLS))
-    } else if (!error && state.ratingColumn === 'unknown') state.ratingColumn = 'present'
-    if (error) {
-      console.error(`⚠️ 원문 조회 실패 project=${project.id}: ${error.message}`)
+      got = await inputsQuery(BASE_COLS)
+    } else if (!got.error && state.ratingColumn === 'unknown') state.ratingColumn = 'present'
+    if (got.error) {
+      console.error(`⚠️ 원문 조회 실패 project=${project.id}: ${got.error.message}`)
       return null
     }
-    if (!inputs || inputs.length === 0) return { total: 0, reviews: [], rating: null }
+    if (got.truncated) warn(`원문 ${got.data?.length}행에서 읽기를 멈췄다(project=${project.id}, 상한) — 그 뒤 원문은 이번 실행에서 안 보인다`)
+    const inputs = got.data
+    if (!inputs || inputs.length === 0) return { total: 0, unjudged: 0, reviews: [], rating: null }
 
-    // T1 과 같은 선별기를 쓴다 — 판정 표본과 extract 가 보는 집합이 갈라지면 판정이 헛돈다.
-    // 자르기는 평점 우선(v31 §2.3): 1~3점 먼저, 4~5점은 표본의 highRatingShare 만. 평점 없는 입력은 기존 순서 그대로.
+    const judgedGot = await fetchAllPages<{ input_id: string }>(() =>
+      supabase.from('review_relevance_verdicts').select('input_id').eq('project_id', project.id).order('input_id', { ascending: true }))
+    if (judgedGot.error || judgedGot.truncated) {
+      // 판정 캐시를 (전부) 못 읽었는데 그대로 돌리면 이미 판정한 것을 다시 태운다. 건너뛴다(저장은 insert-only 라 덮지는 않는다).
+      console.error(`⚠️ 판정 캐시 조회 실패 project=${project.id}: ${judgedGot.error?.message ?? '상한 초과로 일부만 읽음'}`)
+      return null
+    }
+    const done = new Set((judgedGot.data ?? []).map((r) => r.input_id))
+
+    // 판정 전용 경로: T1(selectInputs)의 빈 본문·머리말만 거르기는 그대로 쓰되 12만 자 상한은 풀고(maxCharsTotal 무한),
+    // **판정된 것을 먼저 뺀 뒤** 자른다 — 예전엔 상위 N 을 자른 뒤 판정된 것을 빼서, 상위 N 이 다 판정되면 그 프로젝트는 영영 0건이었다.
+    // 순서(v·전량 판정): 소스 라운드로빈 · 소스 안은 최신 먼저 · 제외 소스(youtube) 빼고 · 카카오 카페·블로그는 맨 뒤.
+    // 자르기는 평점 우선(v31 §2.3): 1~3점 먼저, 4~5점은 표본의 highRatingShare 만(모자라면 4~5점으로 채움 — 버리지 않고 다음 실행으로 미룬다).
     const rows = inputs as PendingInputRow[]
-    const { sample: selected, stats: rating } = pickSampleByRating(selectInputs(rows).selected, sampleSize, highRatingShare, (s) => s.input.rating)
+    const eligible = selectInputs(rows, { maxCharsTotal: Number.POSITIVE_INFINITY }).selected
+    const ordered = orderForJudge(eligible.filter((s) => !done.has(s.input.id)), {
+      sourceOf: (s) => s.input.source_key, tsOf: (s) => timestampOf(s.input), excluded: excludedSources, last: lastSources,
+    })
+    const { sample: head, stats: rating } = pickSampleByRating(ordered.main, sampleSize, highRatingShare, (s) => s.input.rating)
+    const selected = [...head, ...ordered.last.slice(0, Math.max(0, sampleSize - head.length))]
+    const unjudged = ordered.main.length + ordered.last.length
+    const reviews = selected.map((s) => ({ input_id: s.input.id as string, text: s.text.slice(0, MAX_REVIEW_CHARS) }))
+    const base = { total: selected.length, unjudged, excluded: ordered.excludedCount }
+    if (!prefilterCfg) return { ...base, reviews, rating }
 
-    const { data: judged, error: judgedError } = await supabase.from('review_relevance_verdicts').select('input_id').eq('project_id', project.id)
-    if (judgedError) {
-      // 판정 캐시를 못 읽었는데 그대로 돌리면 이미 판정한 것을 다시 태운다. 건너뛴다.
-      console.error(`⚠️ 판정 캐시 조회 실패 project=${project.id}: ${judgedError.message}`)
-      return null
-    }
-    const done = new Set((judged ?? []).map((r: { input_id: string }) => r.input_id))
-    const reviews = selected
-      .filter((s) => !done.has(s.input.id))
-      .map((s) => ({ input_id: s.input.id as string, text: s.text.slice(0, MAX_REVIEW_CHARS) }))
-    if (!prefilterCfg) return { total: selected.length, reviews, rating }
-
-    // 사전필터(v31 항목 5) — T1 뒤 · T2 전. 중복은 조회된 입력 전체(최대 1,000행)에서 센다. 효과는 T2 대상(reviews)에만.
+    // 사전필터(v31 항목 5) — T1 뒤 · T2 전. 중복은 조회된 입력 전체에서 센다. 효과는 T2 대상(reviews)에만.
     // 필터가 던지면 shadow 든 enforce 든 T2 를 죽이지 않는다 — 경고하고 이번 실행은 필터를 끈다(전부 통과).
     let verdicts
     try {
@@ -69,7 +92,7 @@ export function createPendingFor(deps: { supabase: any; sampleSize: number; high
     } catch (e) {
       warn(`사전필터 예외 — 이번 실행은 필터 꺼짐(전부 통과): ${e instanceof Error ? e.message : String(e)}`)
       prefilterCfg = null
-      return { total: selected.length, reviews, rating }
+      return { ...base, reviews, rating }
     }
     const { kept, wouldDrop } = applyPrefilter(reviews, verdicts, prefilterCfg.mode)
     prefilterByProject[project.id] = {
@@ -84,7 +107,7 @@ export function createPendingFor(deps: { supabase: any; sampleSize: number; high
     if (wouldDrop.length > 0) {
       log(`  사전필터 ${project.id}: T2 대상 ${reviews.length}건 중 ${wouldDrop.length}건 걸림(${prefilterCfg.mode === 'shadow' ? '표시만 — 판정은 그대로' : 'enforce — 판정에서 뺌'})`)
     }
-    return { total: selected.length, reviews: kept, rating }
+    return { ...base, unjudged: unjudged - (reviews.length - kept.length), reviews: kept, rating }
   }
 
   /** 필터가 실행 중 꺼졌는지(예외)까지 반영한 현재 설정. select 스텝 detail 이 읽는다. */

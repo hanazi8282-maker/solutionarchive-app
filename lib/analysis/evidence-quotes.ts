@@ -153,9 +153,17 @@ const EXCERPT_HEADER = /^\s*\[(?:HN|SRC):[^\]]*\]\s*/
  * policy: review_sources.quote_policy 원값. 소스 정책이 없는 글(웹 기사 case_evidence)은 'full' 을 명시해 길이 상한만 건다.
  * ok=false 면 text 는 빈 문자열이다. 호출부는 reason 으로 "미기재"(empty)와 "가림"(그 밖)을 가른다.
  */
-export function publicExcerpt(text: string | null | undefined, policy: unknown): QuoteCheck {
+export function publicExcerpt(text: string | null | undefined, policy: unknown, o: { strict?: boolean } = {}): QuoteCheck {
   const body = String(text ?? '').replace(EXCERPT_HEADER, '')
-  return checkQuote(body, quotePolicyOf(policy), body)
+  const c = checkQuote(body, quotePolicyOf(policy), body)
+  // 길이 초과: 기본은 상한에서 '…' 로 자르고 내보낸다(기사 근거 스니펫의 절반 이상이 130자를 넘는다 — 통째로 가리면 화면이 빈다).
+  // 정책 none·모름은 길이와 무관하게 위에서 이미 거부된다. strict(/voc 발췌)는 v22 대로 자르지 않고 가린다.
+  if (c.reason === 'too_long' && !o.strict) {
+    const flat = squash(body)
+    const max = quoteLang(flat) === 'en' ? QUOTE_MAX_EN : QUOTE_MAX_KO
+    return { kind: 'quote', text: `${Array.from(flat).slice(0, max - 1).join('').trimEnd()}…`, ok: true, reason: 'ok' }
+  }
+  return c
 }
 
 /** 정책·빈 값·글자 상한 — 인용·요약 공통. 통과면 공백 눕힌 글, 아니면 거부 사유. */

@@ -19,6 +19,7 @@ import {
 import { judgeHeadline, pickEnum, type JsonCall } from '../analysis/judge.ts'
 import { buildEvidenceCorpus } from '../analysis/judge-prompt.ts'
 import { ANGLE_TYPES } from '../analysis/types.ts'
+import { publicExcerpt } from '../analysis/evidence-quotes.ts'
 import { resolveClaudeBinary, CLAUDE_CLI_VERSION } from '../insight/claude-cli.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 import { parseSearchQuery, searchMoves, type SearchCorpora } from './search.ts'
@@ -248,7 +249,8 @@ export async function runAngles(deps: AngleDeps, job: { runId: string; q: string
       angles.push({
         angle_type: pickEnum(p.angle_type, ANGLE_TYPES),
         headline, headline_before: headlineBefore, verdict: judged.verdict, reason: judged.reason,
-        evidence_quote: judged.evidenceQuote, evidence_ref: judged.evidenceQuote ? refForQuote(rows, judged.evidenceQuote) : null,
+        // 저장·응답에는 인용 상한(한 130·영 240, '…' 로 자름)만 싣는다 — 전문이 네트워크 페이로드에 나가지 않게. 출처 대조(evidence_ref)는 전문으로.
+        evidence_quote: judged.evidenceQuote ? publicExcerpt(judged.evidenceQuote, 'full').text || null : null, evidence_ref: judged.evidenceQuote ? refForQuote(rows, judged.evidenceQuote) : null,
         anchor: p.anchor_move_id ? refByMove.get(p.anchor_move_id) ?? null : null,
         rewritten: headlineBefore !== null, models,
       })

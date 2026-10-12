@@ -116,7 +116,7 @@ function GatedSnippet({ text }: { text: string }) {
   const s = publicExcerpt(text, 'full')
   return s.ok
     ? <blockquote className="v2-quote v2-quote--plain v2-mt-xs">{s.text}</blockquote>
-    : <p className="v2-note v2-mt-xs">발췌가 길어 가렸다({s.reason}) — 원문 링크에서 본다</p>
+    : <p className="v2-note v2-mt-xs">발췌를 낼 수 없다({s.reason}) — 원문 링크에서 본다</p>
 }
 
 function EvidenceList({ rows, total, label = '근거' }: { rows: EvidenceRow[]; total?: number; label?: string }) {

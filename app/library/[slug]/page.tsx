@@ -119,8 +119,8 @@ function EvidenceRow({ e }: { e: DetailEvidenceRow }) {
         {kind ? <Chip>{kind}</Chip> : null}
         <span>{day(e.published_at) ? `게시 ${day(e.published_at)}` : '게시일 확인 불가'}</span>
       </div>
-      {/* 인용 단일 관문(publicExcerpt): 한국어 130자·영어 240자 초과는 자르지 않고 가린다. 기사 근거라 소스 정책이 없어 'full'. */}
-      {snip.ok ? <blockquote>&ldquo;{snip.text}&rdquo;</blockquote> : <p className="pub-caption">{snip.reason === 'empty' ? '인용 미기재' : '인용이 길어 가렸다 — 원문 링크에서 본다'}</p>}
+      {/* 인용 단일 관문(publicExcerpt): 한국어 130자·영어 240자 초과는 '…' 로 자른다. 기사 근거라 소스 정책이 없어 'full'. */}
+      {snip.ok ? <blockquote>&ldquo;{snip.text}&rdquo;</blockquote> : <p className="pub-caption">{snip.reason === 'empty' ? '인용 미기재' : '인용을 낼 수 없다 — 원문 링크에서 본다'}</p>}
     </li>
   )
 }

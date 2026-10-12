@@ -67,7 +67,7 @@ const SNIPPET_PREVIEW = 160
 /** 인용 단일 관문(publicExcerpt) — 한 130·영 240 초과는 자르지 않고 가린다. */
 const gatedSnippet = (s: string | null) => {
   const c = publicExcerpt(s, 'full')
-  return c.ok ? clip(c.text, SNIPPET_PREVIEW) : '(발췌가 길어 가렸다 — 원문 링크에서 본다)'
+  return c.ok ? clip(c.text, SNIPPET_PREVIEW) : '(발췌를 낼 수 없다 — 원문 링크에서 본다)'
 }
 const clip = (s: string | null, n: number) => (s && s.length > n ? `${s.slice(0, n)}…` : (s ?? ''))
 

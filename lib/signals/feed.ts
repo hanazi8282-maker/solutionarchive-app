@@ -96,7 +96,7 @@ export interface FeedFilters {
  * none·NULL·모르는 값·상한 초과는 빈 문자열(§7.1). 출처 이름·링크는 정책과 무관하게 이 화면에 싣지 않는다(D안).
  */
 export function quoteCheckOf(text: string | null | undefined, quotePolicy: unknown): QuoteCheck {
-  return publicExcerpt(text, quotePolicy) // 단일 관문 — evidence-quotes.ts publicExcerpt
+  return publicExcerpt(text, quotePolicy, { strict: true }) // 단일 관문 — evidence-quotes.ts publicExcerpt
 }
 export function quoteOf(text: string | null | undefined, quotePolicy: unknown): string {
   return quoteCheckOf(text, quotePolicy).text

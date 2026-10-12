@@ -313,7 +313,7 @@ export default async function IdeaReportPage({ searchParams }: {
                     </div>
                   )}
                   {restCount > 0 && (
-                    <p className="pub-caption"><Link className="pub-link" href={withParams('/cases/search', query.kind)}>검색 화면</Link>에서 전부 본다.</p>
+                    <p className="pub-caption">아이디어 문장은 주소에 싣지 않아 검색 화면으로 넘기지 않는다. 케이스 전체는 <Link className="pub-link" href="/library">라이브러리</Link>에서 본다.</p>
                   )}
                 </div>
               </details>

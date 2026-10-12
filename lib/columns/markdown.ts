@@ -67,9 +67,12 @@ export function renderMarkdown(src: string): string {
  */
 export function columnReadable(body: string, summaryChars = 80): { summary: string; markdown: string } {
   const [head] = body.replace(/\r\n?/g, '\n').split(/\n---\n/)
-  const markdown = head
-    .split('\n')
-    .filter((l) => !/^(독자|판단 이유|독립|case_slug)\s*:/.test(l.trim()) && !/^#\s+/.test(l.trim()))
+  const lines = head.split('\n')
+  // `독립:` 은 첫머리 메타 블록(첫 빈 줄 앞)에서만 메타다 — 본문 중간의 "독립: …" 줄은 내용이라 남긴다.
+  const blank = lines.findIndex((l, i) => i > 0 && !l.trim() && lines.slice(0, i).some((x) => x.trim()))
+  const metaEnd = blank < 0 ? lines.length : blank
+  const markdown = lines
+    .filter((l, i) => !/^(독자|판단 이유|case_slug)\s*:/.test(l.trim()) && !(i < metaEnd && /^독립\s*:/.test(l.trim())) && !/^#\s+/.test(l.trim()))
     .join('\n')
     .trim()
 

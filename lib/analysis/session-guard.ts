@@ -45,6 +45,9 @@ export type GuardConfig = {
   relevanceRelaxCapPct: number | null
   /** 체인 다음 실행을 막는 주간 사용률(하한) %. null = 확인 불가 → 체인 멈춤. */
   relevanceChainWeeklyStopPct: number | null
+  /** 남헌 v65: 이 시각부터(∧ 완화 중에만) 주간 안전선을 이 값으로 올린다(예 98). 완화가 끝나면 위 기본값으로 자동 복귀. */
+  relevanceChainWeeklyStopDay2Pct: number | null
+  relevanceChainWeeklyStopDay2FromMs: number | null
   /** 체인 다음 실행을 막는 5시간 창 사용률 %. null = 확인 불가 → 체인 멈춤. */
   relevanceChainWindow5hStopPct: number | null
 }
@@ -72,6 +75,8 @@ export function parseGuardConfig(raw: Record<string, unknown> | null | undefined
     relevanceRelaxUntilMs: isoMs(r.relevance_relax_until),
     relevanceRelaxCapPct: pos(r.relevance_relax_cap_pct),
     relevanceChainWeeklyStopPct: pos(r.relevance_chain_weekly_stop_pct),
+    relevanceChainWeeklyStopDay2Pct: pos(r.relevance_chain_weekly_stop_day2_pct),
+    relevanceChainWeeklyStopDay2FromMs: isoMs(r.relevance_chain_weekly_stop_day2_from),
     relevanceChainWindow5hStopPct: pos(r.relevance_chain_window5h_stop_pct),
   }
 }
@@ -84,6 +89,14 @@ export function parseGuardConfig(raw: Record<string, unknown> | null | undefined
 export function relevanceRelaxLive(cfg: GuardConfig, now: Date): boolean {
   const t = now.getTime()
   return cfg.relevanceRelaxUntilMs != null && cfg.relevanceCapUntilMs != null && t < cfg.relevanceRelaxUntilMs && t < cfg.relevanceCapUntilMs
+}
+
+/** 체인 주간 안전선 %. 완화 중이고 day2 시각 이후면 day2 값(98), 아니면 기본값(90). 설정이 비정상이면 기본값(더 낮은 쪽). */
+export function chainWeeklyStopPct(cfg: GuardConfig, now: Date): number | null {
+  const base = cfg.relevanceChainWeeklyStopPct
+  const d = cfg.relevanceChainWeeklyStopDay2Pct
+  if (base == null || d == null || cfg.relevanceChainWeeklyStopDay2FromMs == null) return base
+  return relevanceRelaxLive(cfg, now) && now.getTime() >= cfg.relevanceChainWeeklyStopDay2FromMs && d > base ? d : base
 }
 
 export function relevanceCaps(cfg: GuardConfig, now: Date): { capUsd: number | null; hardCapUsd: number | null; capPct: number | null; boosted: boolean; relaxed: boolean; untilMs: number | null } {

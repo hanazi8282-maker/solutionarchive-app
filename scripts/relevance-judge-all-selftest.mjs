@@ -95,8 +95,11 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
   t('프로젝트당 상한(100)만큼만 · 전체 남은 양(unjudged)은 그대로 보고', capped.reviews.length === 100 && capped.unjudged === 800)
   t('상한 안에서 카카오는 안 들어온다(다른 소스가 먼저)', !capped.reviews.some((r) => srcOf(r) === 'kakao_blog'))
 
-  const noEx = await createPendingFor({ supabase: db, sampleSize: 5000, highRatingShare: 1, prefilterCfg: null, log: () => {}, warn: () => {}, excludedSources: [] }).pendingFor({ id: 'p1' })
-  t('제외 스위치 끄면 youtube 도 대상', noEx.unjudged === 1000)
+  // 소비재 파생 제외(남헌 v61): youtube 는 소비재라 제외 소스를 풀어도 RELEVANCE_SKIP_CONSUMER=off 전까지는 대상이 아니다.
+  const noEx = await createPendingFor({ supabase: db, sampleSize: 5000, highRatingShare: 1, prefilterCfg: null, log: () => {}, warn: () => {}, excludedSources: [], skipConsumer: false }).pendingFor({ id: 'p1' })
+  t('제외 스위치 + 소비재 스위치 끄면 youtube 도 대상', noEx.unjudged === 1000)
+  const noExC = await createPendingFor({ supabase: db, sampleSize: 5000, highRatingShare: 1, prefilterCfg: null, log: () => {}, warn: () => {}, excludedSources: [], skipConsumer: true, allowIds: new Set() }).pendingFor({ id: 'p1' })
+  t('제외 스위치만 끄면 youtube 는 소비재로 빠진다', noExC.unjudged === 800 && noExC.consumer === 200)
 
   const brokenCache = mockDb({ tables: { analysis_inputs: inputs, review_relevance_verdicts: judged() }, failPage: 1 })
   // 원문 2페이지째 실패도 같은 경로 — 둘 중 하나라도 실패면 null(0건이 아니라 확인 불가)

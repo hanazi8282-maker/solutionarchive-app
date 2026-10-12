@@ -67,6 +67,8 @@ jobs:
       - run: node scripts/session-guard-selftest.mjs
       # T2 전량 판정 — 1,000행 상한 페이지네이션 · insert-only(기존 판정·사람 채점 덮어쓰기 금지) · 소스 균등 순서 · 자기 호출 체인 종료 조건.
       - run: node scripts/relevance-judge-all-selftest.mjs
+      # 소비재 자료 태그(남헌 v61) — 대기열 제외 · 하위 사용처 '관련 없음' 읽기 · 재개 스위치 · 일괄 도구 드라이런/--apply
+      - run: node scripts/consumer-material-selftest.mjs
       # extract 하루 건수 자동 조정(남헌 v36 §2) — 스위치 off ≡ 기존 결정 · 올리기/내리기/경계 · cost 정지 제외 · 쉬는 날 안 올림.
       # 가짜 PostgREST 에 extract-auto.mjs 를 자식 프로세스로 실제로 붙여 본다. 여기가 접히면 소프트 한도 run 으로 처리량을 깎는다.
       - run: node scripts/extract-autotune-selftest.mjs

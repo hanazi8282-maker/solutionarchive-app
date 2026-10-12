@@ -67,6 +67,7 @@ import { loadPrefilterConfig } from '../lib/analysis/prefilter.ts'
 import { loadAreasConfig } from '../lib/analysis/areas-config.ts'
 import { areaFloorLine, loadAreaContext, planAreaOrder } from '../lib/analysis/area-priority.ts'
 import { createPendingFor } from '../lib/analysis/relevance-pending.ts'
+import { consumerSkipEnabled } from '../lib/analysis/consumer-material.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate } from './notion-status-log.mjs'
 
@@ -295,6 +296,7 @@ if (failedBy.unknown > 0) warn(`extract_attempts 를 읽지 못한 failed 프로
 // 후보 전부는 미판정 **수**만 센다(countFor — id·source_key 만, raw_text 안 읽음). 원문은 아래에서 이번에 돌 프로젝트만 읽는다.
 const candidates = []
 const seenSources = new Set()
+let consumerSkipped = 0 // 소비재 태그로 대기열에서 뺀 미판정(전부 태그된 프로젝트 포함)
 for (const p of projects ?? []) {
   if (!['n/a', 'retry'].includes(relevanceFailedState(p.status, p.extract_attempts))) continue
   const count = await countFor(p)
@@ -303,12 +305,16 @@ for (const p of projects ?? []) {
     continue
   }
   for (const s of count.sources) seenSources.add(s)
+  consumerSkipped += count.consumer
   if (count.unjudged === 0) continue
   candidates.push({ project: p, count })
 }
 // RELEVANCE_EXCLUDE_SOURCES 에 원문에 없는 이름이 있으면 오타일 수 있다 — 제외는 기본값에 더해지므로 유튜브는 그대로 닫혀 있다(fail-closed).
 const unknownExcluded = excludedSources.filter((s) => !seenSources.has(s) && s !== 'youtube')
 if (unknownExcluded.length > 0) warn(`RELEVANCE_EXCLUDE_SOURCES 의 ${unknownExcluded.join(',')} 는 후보 원문에 없는 소스 이름이다 — 오타인지 확인(기본 제외 youtube 는 유지)`)
+
+// 소비재 태그(남헌 v61) — 대기열에서 뺀 미판정 수. 재개 스위치 RELEVANCE_SKIP_CONSUMER=off 면 태그를 읽지 않는다(0).
+log(`소비재 태그 — ${consumerSkipEnabled() ? `대기열에서 뺌(후보 프로젝트의 미판정 ${consumerSkipped}건 보류)` : 'RELEVANCE_SKIP_CONSUMER=off — 태그 무시(원래 동작)'}`)
 
 let unknownCount = candidates.filter((c) => c.count === null).length
 

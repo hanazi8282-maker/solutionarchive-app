@@ -166,3 +166,21 @@ export const RELEVANCE_CRITERIA_V21 = [
   '',
   '[공통] 불만이 없다는 이유만으로 irrelevant 로 두지 않는다. irrelevant 는 확실할 때만 — 애매하면 unknown 이다. 신호 종류(pain/demand/objection)는 signal 라벨이 따로 가른다.',
 ].join('\n')
+
+/**
+ * 운영 판정 기준 v2.2(남헌 v67, 2026-10-13) = v2.1 규칙 (1)~(10) 전부 + 세트 3·4 대조에서 남헌이 확정한 경계 원칙 (11)~(15).
+ * 1차·2차 판정이 같은 상수를 쓴다(relevance-judge.ts opts.criteria='v22', second-opinion.ts SECOND_OPINION_INSTRUCTIONS_V22).
+ * 옛 상수(RELEVANCE_CRITERIA·V21)는 바이트 그대로 둔다.
+ */
+export const RELEVANCE_V22_VERSION = 'v22-2026-10-13'
+
+export const RELEVANCE_CRITERIA_V22 = [
+  RELEVANCE_CRITERIA_V21.replace(`기준 버전 ${RELEVANCE_V21_VERSION}`, `기준 버전 ${RELEVANCE_V22_VERSION}`).replace('## 판정 기준 v2.1', '## 판정 기준 v2.2'),
+  '',
+  '[v2.2 추가 — 경계 원칙]',
+  '(11) 이유가 한 줄이면 relevant. "쓰기 쉽다/어렵다", "느리다", "가격이 비싸다" 같은 짧은 이유도 이유로 인정한다((7)의 명확화).',
+  '(12) 이유 없는 감탄·평점 장난·별점 유도("5점 줄게요", "최고!")는 irrelevant.',
+  '(13) 불만이나 평가는 있는데 이유가 없으면 unknown. 예: "별로예요", "실망했어요" 단독.',
+  '(14) 해당 제품·영역과 무관한 홍보(다른 서비스 광고, 스팸성 링크)는 irrelevant. 자사 제품 홍보라도 기능·이유 설명이 있으면 (9)대로 relevant 가 될 수 있다.',
+  '(15) 가격 비교 서비스처럼 SaaS 이지만 영역 ①~⑤ 밖이면 irrelevant 로 두고 why 를 "영역 밖:" 로 시작한다((10) 재확인).',
+].join('\n')

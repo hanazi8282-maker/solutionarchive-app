@@ -7,7 +7,7 @@ import os from 'node:os'
 import path from 'node:path'
 import {
   GUARDED_RUN_PREFIXES, RELEVANCE_SLOTS, capReached, chainWeeklyStopPct, capUsdOf, hardCapUsdOf, loadGuardConfig, nextRetryQueue, orderWithQueue, parseGuardConfig, pctOf, relevanceCaps, relevanceRelaxLive,
-  relevanceRetryDecision, relevanceRunSuffix, retryQueueOf, runCostUsd, sessionBlock, sessionLine, spendForCap, usageSince, weeklyGate,
+  relevanceResumeDecision, relevanceRetryDecision, relevanceRunSuffix, retryQueueOf, runCostUsd, sessionBlock, sessionLine, spendForCap, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, decideSlot, isQuotaBlocked, slotStateOf } from '../lib/analysis/extract-auto.ts'
 import { ClaudeCliError, CliHardCapError, callLlmWithModel, cliSpent, isQuotaFailure, setCliHardCap, tallyCli } from '../lib/analysis/llm.ts'
@@ -216,6 +216,21 @@ t('쿨다운 폴백 4시간', QUOTA_COOLDOWN_MS === 4 * H)
   t('기록 없음도 quotaPending=false', relevanceRetryDecision([], o).quotaPending === false)
   t('접미사: 정규 ""', relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 19 * * *' }) === '')
   t('접미사: 재시도 -r1/-r2', relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 2 * * *' }) === '-r1' && relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 6 * * *' }) === '-r2')
+  {
+    const N = new Date('2026-10-13T00:00:00Z'), H = 3_600_000, ago = (ms) => new Date(N.getTime() - ms).toISOString()
+    const row = (key, status, over = {}) => ({ run_key: key, status, started_at: ago(5 * H), finished_at: ago(4.5 * H), summary: {}, ...over })
+    const D = (rows) => relevanceResumeDecision(rows, { now: N, cooldownMs: 4 * H })
+    t('재개 z: 접미사는 실행마다 달라 행이 안 겹친다', relevanceRunSuffix({ eventName: 'schedule', slotCron: '17,47 * * * *', runId: '99' }) === '-z99' && RELEVANCE_SLOTS['17,47 * * * *'] === 'z')
+    t('재개 z: 기록 없음 → 쉼', !D([]).run)
+    t('재개 z: 한도 정지 + 4시간 경과 → 재개', D([row('relevance-judge-2026-10-12-m1', 'blocked', { finished_at: ago(4.1 * H), summary: { stop_reason: 'quota' } })]).run)
+    t('재개 z: 한도 정지 + 4시간 전이면 쉼(30분 뒤 다시)', !D([row('relevance-judge-2026-10-12-m1', 'blocked', { finished_at: ago(3 * H), summary: { stop_reason: 'quota' } })]).run)
+    t('재개 z: CLI 리셋 시각이 지났으면 4시간 전이어도 재개', D([row('relevance-judge-x', 'blocked', { finished_at: ago(1 * H), summary: { stop_reason: 'quota', quota_reset_at: ago(10 * 60_000) } })]).run)
+    t('재개 z: 리셋 시각이 아직 미래면 쉼', !D([row('relevance-judge-x', 'blocked', { finished_at: ago(5 * H), summary: { stop_reason: 'quota', quota_reset_at: new Date(N.getTime() + H).toISOString() } })]).run)
+    t('재개 z: 실행 중(1시간)이면 쉼, 3시간 넘게 running 이면 죽은 실행으로 재개', !D([row('relevance-judge-x', 'running', { started_at: ago(1 * H), finished_at: null })]).run && D([row('relevance-judge-x', 'running', { started_at: ago(4 * H), finished_at: null })]).run)
+    t('재개 z: relaunch=true 인데 20분 넘게 후속 없으면 재개, 5분이면 쉼', D([row('relevance-judge-x', 'ok', { finished_at: ago(30 * 60_000), summary: { chain: { relaunch: true } } })]).run && !D([row('relevance-judge-x', 'ok', { finished_at: ago(5 * 60_000), summary: { chain: { relaunch: true } } })]).run)
+    t('재개 z: hop 상한은 재개, 오류율·하드 캡·미판정 0건은 쉼', D([row('relevance-judge-x', 'ok', { summary: { chain: { relaunch: false, reason: '체인 하나당 hop 상한 60 도달' } } })]).run && !D([row('relevance-judge-x', 'ok', { summary: { chain: { relaunch: false, reason: '오류율 7.0% > 5%' } } })]).run && !D([row('relevance-judge-x', 'ok', { summary: { chain: { relaunch: false, reason: '미판정 0건 — 다 채웠다' } } })]).run && !D([row('relevance-judge-x', 'blocked', { summary: { stop_reason: 'hard_cap', chain: { relaunch: false, reason: '한도·오류 정지(hard_cap)' } } })]).run)
+    t('재개 z: 가장 최근 행만 본다(옛 한도 정지 뒤에 정상 실행이 있으면 쉼)', !D([row('relevance-judge-old', 'blocked', { started_at: ago(9 * H), summary: { stop_reason: 'quota' } }), row('relevance-judge-new', 'ok', { started_at: ago(2 * H), finished_at: ago(1.5 * H), summary: { chain: { relaunch: false, reason: '미판정 0건 — 다 채웠다' } } })]).run)
+  }
   t('접미사: 수동 -m<run_id>, 로컬 -local', relevanceRunSuffix({ eventName: 'workflow_dispatch', runId: '42', actions: 'true' }) === '-m42' && relevanceRunSuffix({}) === '-local')
   t('접미사: 표에 없는 크론은 throw', (() => { try { relevanceRunSuffix({ eventName: 'schedule', slotCron: '0 0 * * *' }); return false } catch { return true } })())
 }
@@ -363,8 +378,8 @@ t('쿨다운 폴백 4시간', QUOTA_COOLDOWN_MS === 4 * H)
 // ── 배선(정적) ──
 const wf = read('.github/workflows/nightly-relevance.yml')
 const crons = [...wf.matchAll(/^\s*-\s*cron:\s*'([^']+)'/gm)].map(m => m[1])
-t('nightly-relevance 크론 = RELEVANCE_SLOTS 키(1:1)', crons.length === 3 && crons.every(c => c in RELEVANCE_SLOTS) && Object.keys(RELEVANCE_SLOTS).length === 3)
-t('모든 크론이 일일 형식(cron-watchdog 가 감시 가능)', crons.every(c => /^\d{1,2} \d{1,2} \* \* \*$/.test(c)))
+t('nightly-relevance 크론 = RELEVANCE_SLOTS 키(1:1)', crons.length === 4 && crons.every(c => c in RELEVANCE_SLOTS) && Object.keys(RELEVANCE_SLOTS).length === 4)
+t('크론은 일일 형식이거나 자동 재개 슬롯 z(30분마다, cron-watchdog 가 뺀다)', crons.every(c => /^\d{1,2} \d{1,2} \* \* \*$/.test(c) || (c === '17,47 * * * *' && RELEVANCE_SLOTS[c] === 'z')))
 t('판정 스텝 id=judge + 슬롯 크론 env', /id: judge/.test(wf) && /RELEVANCE_SLOT_CRON: \$\{\{ github\.event\.schedule \}\}/.test(wf))
 t('뒤 스텝 4개 전부 ran=false 면 건너뜀', (wf.match(/steps\.judge\.outputs\.ran != 'false'/g) ?? []).length === 4)
 t('workflow permissions 는 contents: read 그대로', /^permissions:\s*\r?\n\s*contents: read\s*\r?\n/m.test(wf))

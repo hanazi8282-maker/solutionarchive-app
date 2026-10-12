@@ -59,6 +59,8 @@ GRACE_OVERRIDE_MS['nightly-review-collect.yml'] = 10 * 60 * 60 * 1000
 // r1 이 4시간 넘게 늦게 뜨는 날 r1 미발화 + r2 창에 r1 실행이 끼는 오경보가 난다. 정규 실행 실측 지연은 2.7~4.7시간.
 GRACE_OVERRIDE_MS['nightly-relevance.yml'] = 10 * 60 * 60 * 1000
 export const graceFor = (file) => GRACE_OVERRIDE_MS[file] ?? GRACE_MS
+/** 시간 칸이 * 인 자주-도는 크론(분 칸은 숫자/쉼표). 슬롯 감시에서 뺀다. */
+export const FREQUENT_CRON = /^[\d,]+ \* \* \* \*$/
 const SELF = 'cron-watchdog.yml'
 
 /** 워크플로 폴더 → [{ file, crons }]. schedule 이 있는 것만(주석 처리된 cron 은 제외), 감시 자신은 뺀다. */
@@ -201,7 +203,10 @@ export async function runWatchdog({
   const problems = []
   const repo = env.GITHUB_REPOSITORY
 
-  for (const { file, crons } of scheduledWorkflows(workflowsDir)) {
+  for (const { file, crons: allCrons } of scheduledWorkflows(workflowsDir)) {
+    // 시간 칸이 * 인 자주-도는 크론(예: nightly-relevance '17,47 * * * *' 자동 재개 슬롯 z)은 매번 스스로 "할 일 없음"으로 끝나는 게 정상이라 슬롯 감시 대상이 아니다.
+    const crons = allCrons.filter((c) => !FREQUENT_CRON.test(c.trim()))
+    if (!crons.length) continue
     const grace = graceFor(file)
     const claimed = file in GRACE_OVERRIDE_MS ? new Set() : null
     // claimed 짝짓기는 슬롯 오름차순이어야 한다. 판정 불가(null) 크론은 순서와 무관하다.

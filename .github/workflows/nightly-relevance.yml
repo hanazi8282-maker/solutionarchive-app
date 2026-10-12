@@ -27,6 +27,10 @@ on:
     # 크론 줄은 lib/analysis/session-guard.ts RELEVANCE_SLOTS 와 1:1 — 여기만 바꾸면 스크립트가 exit 2 로 멈춘다.
     - cron: '3 2 * * *'
     - cron: '3 6 * * *'
+    # 자동 재개(남헌 v67 §2-1-5): 30분마다 "체인이 멈췄나"만 본다. 한도 정지 + 쿨다운 경과 · 끊긴 체인 · hop 상한일 때만 새 실행을 시작하고
+    # 아니면 기록 없이 ran=false 로 끝난다. 스케줄 실행은 항상 실제 실행(dry_run 은 수동 입력 전용). 킬 스위치 RELEVANCE_CHAIN=off.
+    # 크론 줄은 session-guard.ts RELEVANCE_SLOTS 와 1:1.
+    - cron: '17,47 * * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -121,8 +125,8 @@ jobs:
           RELEVANCE_LAST_SOURCES: ${{ vars.RELEVANCE_LAST_SOURCES || '' }}
           # 소비재 태그(남헌 v61, consumer_material_tags) 입력을 대기열에서 뺀다. 재개 = 리포 변수 RELEVANCE_SKIP_CONSUMER=off.
           RELEVANCE_SKIP_CONSUMER: ${{ vars.RELEVANCE_SKIP_CONSUMER || 'on' }}
-          # 판정 기준(남헌 v66): 기본 v2.1, 리포 변수 RELEVANCE_CRITERIA=old 로 옛 기준 복귀.
-          RELEVANCE_CRITERIA: ${{ vars.RELEVANCE_CRITERIA || 'v21' }}
+          # 판정 기준(남헌 v66·v67): 기본 v2.2, 리포 변수 RELEVANCE_CRITERIA=v21|old 로 되돌린다.
+          RELEVANCE_CRITERIA: ${{ vars.RELEVANCE_CRITERIA || 'v22' }}
           # 자기 호출 체인. 끄기 = 리포 변수 RELEVANCE_CHAIN=off(다음 hop 부터 안 부른다). 만료는 config relevance_cap_until.
           RELEVANCE_CHAIN: ${{ vars.RELEVANCE_CHAIN || 'on' }}
           RELEVANCE_CHAIN_MAX_HOPS: ${{ vars.RELEVANCE_CHAIN_MAX_HOPS || '24' }}
@@ -151,6 +155,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           AUTO_APPROVAL_SINCE: ${{ vars.AUTO_APPROVAL_SINCE || '' }}
           RELEVANCE_SECOND_MAX: ${{ vars.RELEVANCE_SECOND_MAX || '200' }}
+          # 2차 판정도 1차와 같은 기준(남헌 v67): 기본 v2.2, 리포 변수 RELEVANCE_CRITERIA=v21|old 로 되돌린다.
+          RELEVANCE_CRITERIA: ${{ vars.RELEVANCE_CRITERIA || 'v22' }}
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |

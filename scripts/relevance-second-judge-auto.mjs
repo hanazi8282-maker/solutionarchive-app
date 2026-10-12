@@ -21,7 +21,7 @@ import { parseSince } from '../lib/analysis/auto-approval.ts'
 import { chunkReviews } from '../lib/analysis/relevance-judge.ts'
 import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import {
-  SECOND_OPINION_INSTRUCTIONS, orderSecondTargets, recordSecondOpinion, secondJudgeTargetReason,
+  SECOND_OPINION_INSTRUCTIONS, SECOND_OPINION_INSTRUCTIONS_V22, orderSecondTargets, recordSecondOpinion, secondJudgeTargetReason,
   secondOpinionUserPrompt, toExportRow, validateOpinions,
 } from '../lib/analysis/second-opinion.ts'
 import { createTracker } from './agent-status.mjs'
@@ -45,6 +45,9 @@ if (!dry && !process.env.GEMINI_API_KEY) die('GEMINI_API_KEY 가 없다 — 2차
 const sb = await createClient()
 if (!sb) die('DB 연결 실패 — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
 
+// 2차 판정 기준(남헌 v67): 1차와 같은 RELEVANCE_CRITERIA 변수 — 기본 v22, v21|old 면 옛 지시문.
+const secondV22 = !['old', 'v21'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())
+const secondInstructions = secondV22 ? SECOND_OPINION_INSTRUCTIONS_V22 : SECOND_OPINION_INSTRUCTIONS
 log(`야간 2차 판정${dry ? ' (--dry: 대상 선정만)' : ''} — provider=gemini(고정) · 기준 ${RELEVANCE_CRITERIA_VERSION} · since ${since.toISOString()}${process.env.AUTO_APPROVAL_SINCE ? '' : '(AUTO_APPROVAL_SINCE 없음 → 오늘 KST)'} · 상한 ${MAX}건`)
 
 // ── 1. 후보 — DB 에서 조건으로 거르고, JS 에서 같은 조건 + 독립성을 한 번 더 ─────
@@ -118,7 +121,7 @@ let timeCapped = false
 for (const batch of batches) {
   if (Date.now() - startedAt > DEADLINE_MS) { timeCapped = true; warn(`시간 상한 ${DEADLINE_MS / 60_000}분 도달 — ${done}/${batches.length}번째 묶음에서 멈춤, 남은 건은 내일`); break }
   const rows = batch.map((r) => { const p = projects.get(r.project_id); return toExportRow({ input_id: r.input_id, project_id: r.project_id, raw_text: raw.get(r.input_id).raw_text, pitch: p.product_elevator_pitch, business_model: p.business_model }) })
-  const res = await callGeminiRotating(SECOND_OPINION_INSTRUCTIONS, secondOpinionUserPrompt(rows), 'relevance-second', { exhausted })
+  const res = await callGeminiRotating(secondInstructions, secondOpinionUserPrompt(rows), 'relevance-second', { exhausted })
   if (!res.ok) {
     if (res.stop) { blocker = res.reason; break }
     c.callFailed += batch.length

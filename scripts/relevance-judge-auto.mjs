@@ -41,12 +41,12 @@ import fs from 'node:fs'
 import { createClient } from '../lib/supabase/server.ts'
 import { cliSpent, requiredKeyFor, resolveProvider } from '../lib/analysis/llm.ts'
 import {
-  RELEVANCE_SLOTS, capReached, chainWeeklyStopPct, relevanceCaps, relevanceRunSuffixFromEnv, spendForCap, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
+  RELEVANCE_SLOTS, capReached, chainWeeklyStopPct, relevanceCaps, relevanceRunSuffixFromEnv, spendForCap, loadGuardConfig, loadRecentRuns, relevanceResumeDecision, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import {
   CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
-import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION } from '../lib/analysis/relevance-criteria.ts'
+import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 // 대상 순서는 야간 extract 와 같은 규칙(compareAutoPriority: SaaS 우선 → 많은 순 → projectId)을 영역 결손 축이 감싼다 — lib/analysis/area-priority.ts planAreaOrder(v37 U1).
@@ -91,9 +91,9 @@ const lastSources = parseSourceList(process.env.RELEVANCE_LAST_SOURCES, DEFAULT_
 let chainHop = Math.max(0, Math.floor(Number(process.env.RELEVANCE_CHAIN_HOP) || 0))
 let chainZero = Math.max(0, Math.floor(Number(process.env.RELEVANCE_CHAIN_ZERO) || 0))
 const chainMaxHops = num(process.env.RELEVANCE_CHAIN_MAX_HOPS, CHAIN_DEFAULT_MAX_HOPS)
-// 운영 판정 기준(남헌 v66): 기본 v2.1. 리포 변수 RELEVANCE_CRITERIA=old 로 옛 기준(t2c/t2d)으로 즉시 되돌린다. prompt_version 이 어느 기준 판정인지 가른다.
-const criteriaV21 = (process.env.RELEVANCE_CRITERIA ?? 'v21').trim().toLowerCase() !== 'old'
-const PROMPT_VERSION = criteriaV21 ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION
+// 운영 판정 기준(남헌 v66·v67): 기본 v22. 리포 변수 RELEVANCE_CRITERIA = old | v21 | v22 로 즉시 바꾼다. prompt_version 이 어느 기준 판정인지 가른다.
+const criteriaMode = (() => { const v = (process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase(); return v === 'old' || v === 'v21' ? v : 'v22' })()
+const PROMPT_VERSION = criteriaMode === 'v22' ? RELEVANCE_V22_VERSION : criteriaMode === 'v21' ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION
 const chainEnabled = (process.env.RELEVANCE_CHAIN ?? 'on').trim().toLowerCase() !== 'off'
 /** 표본에서 4~5점 평점 입력의 비율 상한(v31 §2.3). 바꾸는 날은 env 값 + Notion 일일 상태 로그 한 줄이 근거다. */
 const highRatingShareEnv = process.env.RELEVANCE_HIGH_RATING_SHARE
@@ -140,6 +140,16 @@ const MAX_RETRIES = BLOCKED_ALARM_STREAK - 1
 
 const guardNow = new Date()
 const recentRuns = await loadRecentRuns(supabase, guardNow)
+// 자동 재개 슬롯 z(30분마다, 남헌 v67): 체인이 멈춰 있고 이어 가도 안전할 때만 시작한다. 아니면 기록 없이 끝(ran=false). 킬 스위치·만료·이력 확인 불가면 쉰다.
+if (slot === 'z') {
+  const cfgUntil = loadGuardConfig().cfg.relevanceCapUntilMs
+  const rz = !chainEnabled ? { run: false, reason: '리포 변수 RELEVANCE_CHAIN=off' }
+    : cfgUntil == null || guardNow.getTime() >= cfgUntil ? { run: false, reason: 'relevance_cap_until 없음/만료 — 체인 꺼짐' }
+    : !recentRuns ? { run: false, reason: '실행 이력 확인 불가 — 모른 채 재개하지 않는다' }
+    : relevanceResumeDecision(recentRuns, { now: guardNow, cooldownMs: QUOTA_COOLDOWN_MS })
+  log(`재개 슬롯 z ${rz.run ? '시작' : '쉼'} — ${rz.reason}`)
+  if (!rz.run) { setOutput('ran', 'false'); process.exit(0) }
+}
 if (!recentRuns) warn('가드 대상 실행 이력(agent_runs) 조회 실패 — 재시도 판정·5시간 창·주간 합산 확인 불가')
 let retry = null
 if (slot === 'r1' || slot === 'r2') {
@@ -498,7 +508,7 @@ for (const { project, pending } of targets) {
         break
       }
       if (Date.now() - startedAt >= deadlineMs) { deadlineHit = true; stopReason = 'deadline'; break }
-      const out = await judgeRelevanceBatch(project, batch, examples, undefined, criteriaV21 ? { criteria: 'v21' } : undefined)
+      const out = await judgeRelevanceBatch(project, batch, examples, undefined, criteriaMode === 'old' ? undefined : { criteria: criteriaMode })
       model = out.model
       if (out.quotaExhausted) {
         stopped = out.error ?? '한도/예산 소진'

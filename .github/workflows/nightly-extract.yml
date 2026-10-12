@@ -114,6 +114,8 @@ jobs:
           EXTRACT_SLOT_CRON: ${{ github.event.schedule }}
           EXTRACT_SLOT_INPUT: ${{ inputs.slot }}
           EXTRACT_PROJECT_IDS: ${{ inputs.project_ids }}
+          # 소비재 태그(남헌 v61)를 '관련 없음'으로 읽는다. 재개 = 리포 변수 RELEVANCE_SKIP_CONSUMER=off.
+          RELEVANCE_SKIP_CONSUMER: ${{ vars.RELEVANCE_SKIP_CONSUMER || 'on' }}
         run: |
           node scripts/extract-auto.mjs \
             ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

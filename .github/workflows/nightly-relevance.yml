@@ -119,6 +119,8 @@ jobs:
           # 소스 균등: 제외는 fail-closed(값은 기본 youtube 에 더해짐, 'none' 만 전부 허용) · 맨 뒤 기본 kakao_cafe,kakao_blog('none' = 없음). 유튜브 제목 매핑이 생기면 RELEVANCE_EXCLUDE_SOURCES=none.
           RELEVANCE_EXCLUDE_SOURCES: ${{ vars.RELEVANCE_EXCLUDE_SOURCES || '' }}
           RELEVANCE_LAST_SOURCES: ${{ vars.RELEVANCE_LAST_SOURCES || '' }}
+          # 소비재 태그(남헌 v61, consumer_material_tags) 입력을 대기열에서 뺀다. 재개 = 리포 변수 RELEVANCE_SKIP_CONSUMER=off.
+          RELEVANCE_SKIP_CONSUMER: ${{ vars.RELEVANCE_SKIP_CONSUMER || 'on' }}
           # 자기 호출 체인. 끄기 = 리포 변수 RELEVANCE_CHAIN=off(다음 hop 부터 안 부른다). 만료는 config relevance_cap_until.
           RELEVANCE_CHAIN: ${{ vars.RELEVANCE_CHAIN || 'on' }}
           RELEVANCE_CHAIN_MAX_HOPS: ${{ vars.RELEVANCE_CHAIN_MAX_HOPS || '24' }}

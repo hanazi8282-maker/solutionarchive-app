@@ -32,6 +32,11 @@
 //   노트·지식관리 칸(config notes_area.products → 대표 영역 'notes', 소절 '영역 외-노트·지식관리').
 //   옵션: --release-dates=<json> — {"appstore:id123": "2026-09-01"} 꼴 또는 iTunes lookup 응답({results:[{trackId, releaseDate}]}) 그대로.
 //   등록(채택) 초안은 scripts/candidate-register-draft.mjs(승인 시트 → approved.json → 마이그 초안).
+//
+// pnc-v4(2026-10-12, 남헌 v56 §C-2): 대형 서비스는 빼지 않는다 — 경쟁 기준점(anchor) 후보로 승인 시트 별도 소절(영역 칸 'N 기준점',
+//   신규 회사 하루 영역 상한·오탐률과 따로 센다). 단독 기업명(Adobe·Google 류)은 exclude.company_only 로 계속 기각.
+//   부류 3갈래 tierOf(anchor·small·new) · 부류별 집계 tierStats(L4 는 정의 없음 → 미확인) · 가중 +1~3인 팀·+저가 플랜(config tiers).
+//   대장 rejected-candidates.json 에 tier_stats·tier_rows(채택·기준점 행)를 더한다 — 비교 산출 scripts/competitor-anchor-compare.mjs 입력.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -364,6 +369,34 @@ export function releaseOf(appIds, releaseDates, now, maxDays) {
 }
 
 /**
+ * 순수 함수(pnc-v4, 남헌 v56 §C-2): 부류 3갈래.
+ *   anchor = 경쟁 기준점(대형 서비스) · new = 출시 ≤N일 확인 또는 launch 표현 동반 · small = 그 밖(소형 성숙).
+ * 출시일 확인 불가는 small 로 둔다 — '신규 아님'이 확인된 게 아니라 신규 근거가 없다는 뜻이다(표 칸에 확인 불가가 그대로 보인다).
+ */
+export function tierOf(status, release, launchN) {
+  if (status === 'benchmark') return 'anchor'
+  return release?.state === 'new' || launchN > 0 ? 'new' : 'small'
+}
+export const TIER_KO = { anchor: '(a) 경쟁 기준점', small: '(b) 소형 성숙', new: '(c) 신규·신규 창업가용' }
+/** L4 는 리포에 정의가 없다(2026-10-12 grep: lib·scripts·docs·reports 0건) — 지어내지 않고 확인 불가로 둔다. 정의가 생기면 여기서 계산한다. */
+export const L4_UNDEFINED = '미확인(L4 정의 없음)'
+
+/**
+ * 순수 함수: 부류별 집계 — 후보 수 · 근거 글 수(수집 건수, 부류 안 중복 제거) · 채택 · 채택률(채택 ÷ 후보) · L4 비율.
+ * anchor 는 채택 판정 대상이 아니라(status benchmark) 채택률 null.
+ */
+export function tierStats(rows) {
+  const out = {}
+  for (const tier of ['anchor', 'small', 'new']) {
+    const rs = rows.filter((r) => r.tier === tier)
+    const posts = new Set(rs.flatMap((r) => r.postIds ?? r.evidence.map((e) => e.input_id)))
+    const adopt = rs.filter((r) => r.status === 'adopt').length
+    out[tier] = { candidates: rs.length, posts: posts.size, adopt, adopt_rate: tier === 'anchor' || rs.length === 0 ? null : adopt / rs.length, l4_rate: L4_UNDEFINED }
+  }
+  return out
+}
+
+/**
  * 순수 함수 — 입력→후보 행·대장. DB·파일을 부르지 않는다.
  * inputs: [{ id, project_id, source_key, raw_text }]
  * projectArea: project_id → { code, via, basis } | undefined
@@ -375,9 +408,13 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
   const stop = new Set(cfg.stopwords.map(normKey))
   const stack = new Set(cfg.stack.map(normKey))
   const persons = new Set(cfg.person_first_names.map(normKey))
-  const bench = new Map([...(cfg.benchmark?.companies ?? []).map((k) => [normKey(k), 'big_company']), ...(cfg.benchmark?.services ?? []).map((k) => [normKey(k), 'big_service'])])
+  // pnc-v4: 기준점은 대형 서비스만. 단독 기업명(companies)은 exclude.company_only 로 옮겨 기각한다(구 config 의 companies 는 무시).
+  const bench = new Map((cfg.benchmark?.services ?? []).map((k) => [normKey(k), 'big_service']))
   const notes = new Set((cfg.notes_area?.products ?? []).map(normKey))
-  const W = cfg.weights ?? { alt_context: 0, new_release: 0, new_release_days: 90 }
+  const W = { alt_context: 0, new_release: 0, new_release_days: 90, indie: 0, low_price: 0, ...cfg.weights }
+  const T = cfg.tiers ?? {}
+  const ctxRe = Object.fromEntries(['launch', 'indie', 'low_price'].map((k) => [k, (T[k] ?? []).map((p) => new RegExp(p, 'i'))]))
+  const ctxHas = (k, s) => ctxRe[k].some((re) => re.test(s))
   const cdnContains = cfg.cdn_host?.contains ?? []
   // exclude: 키 → 사유(목록 이름). 한 키가 여러 목록에 있으면 먼저 나온 목록이 이긴다(human_rejected_v53 이 맨 앞). acronym 만 조건부(아래 판정).
   const excl = new Map()
@@ -402,7 +439,7 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       const c =
         cands.get(key) ??
         cands
-          .set(key, { key, surfaces: new Map(), posts: new Set(), sources: new Set(), byKind: {}, compareAll: true, compareN: 0, altN: 0, cdnHits: 0, vias: new Set(), refs: new Set(), personHits: 0, contrHits: 0, n: 0, evidence: [], areaVotes: new Map(), areaCodes: new Map() })
+          .set(key, { key, surfaces: new Map(), posts: new Set(), sources: new Set(), byKind: {}, compareAll: true, compareN: 0, altN: 0, launchN: 0, indieN: 0, priceN: 0, cdnHits: 0, vias: new Set(), refs: new Set(), personHits: 0, contrHits: 0, n: 0, evidence: [], areaVotes: new Map(), areaCodes: new Map() })
           .get(key)
       const src = inp.source_key ?? '(manual)'
       const kind = kindOf(inp.source_key, cfg)
@@ -412,6 +449,12 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       c.compareAll &&= m.compare
       if (m.compare) c.compareN++
       if (m.alt) c.altN++
+      // pnc-v4 부류·가중 신호: 언급 앞뒤 window_chars 자 안의 표현(글 전체가 아니라 — 다른 제품 얘기가 섞인 긴 글에서 번지지 않게).
+      const win = T.window_chars ?? 160
+      const ctx = text.slice(Math.max(0, m.start - win), m.start + win)
+      if (ctxHas('launch', ctx)) c.launchN++
+      if (ctxHas('indie', ctx)) c.indieN++
+      if (ctxHas('low_price', ctx)) c.priceN++
       if (m.vias.size === 1 && m.vias.has('cdn_host')) c.cdnHits++
       for (const v of m.vias) c.vias.add(v)
       for (const x of m.refs) c.refs.add(x)
@@ -507,11 +550,13 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
     const isNotes = notes.has(c.key) || [...c.surfaces.keys()].some((s) => notes.has(normKey(s)))
     const refs = [...c.refs].sort()
     const release = releaseOf([c.key, ...refs].filter((k) => /^appstore:id\d+$/.test(k)), releaseDates, now, W.new_release_days)
-    const score = signals.length + (c.altN > 0 ? W.alt_context : 0) + (release.state === 'new' ? W.new_release : 0)
+    const score =
+      signals.length + (c.altN > 0 ? W.alt_context : 0) + (release.state === 'new' ? W.new_release : 0) + (c.indieN > 0 ? W.indie : 0) + (c.priceN > 0 ? W.low_price : 0)
     rows.push({
       name,
       key: c.key,
       posts: c.posts.size,
+      postIds: [...c.posts],
       sources: c.sources.size,
       sourceList: [...c.sources].sort(),
       mentions: c.n,
@@ -524,6 +569,10 @@ export function buildCandidates({ inputs, registry, cfg, projectArea = () => und
       compareOnly: c.compareAll,
       compareN: c.compareN,
       altN: c.altN,
+      launchN: c.launchN,
+      indieN: c.indieN,
+      priceN: c.priceN,
+      tier: tierOf(status, release, c.launchN),
       release,
       score,
       signals,
@@ -561,7 +610,7 @@ const pct = (x) => (x == null ? 'config' : `${Math.round(x * 100)}%`)
 const areaLabel = (code, names = {}) => names[code] ?? (code === 'unknown' ? '영역 모름' : code)
 const RELEASE_KO = { no_file: '확인 불가(출시일 파일 없음)', no_app_id: '확인 불가(앱 ID 없음)', not_listed: '확인 불가(파일에 없음)' }
 /** 가중 칸: "대안 n · 출시 …". */
-const weightCell = (r) => `대안 ${r.altN ?? 0} · ${r.release?.state === 'new' ? `신규 출시 ${r.release.days}일` : r.release?.state === 'old' ? `출시 ${r.release.days}일 전` : RELEASE_KO[r.release?.why] ?? '확인 불가'}`
+const weightCell = (r) => `대안 ${r.altN ?? 0} · 1~3인팀 ${r.indieN ?? 0} · 저가 ${r.priceN ?? 0} · ${r.release?.state === 'new' ? `신규 출시 ${r.release.days}일` : r.release?.state === 'old' ? `출시 ${r.release.days}일 전` : RELEASE_KO[r.release?.why] ?? '확인 불가'}`
 
 /** 채택 행을 대표 영역별로 묶는다(행 순서 = 이미 신호 강도 순). 순서: cfg.area_table.order → 그 밖(hold·unknown 등) 코드순. 각 영역 상위 limit. */
 export function groupByArea(rows, order, limit = Infinity) {
@@ -572,8 +621,8 @@ export function groupByArea(rows, order, limit = Infinity) {
 }
 
 const COLS = [
-  '| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 가중(대안 맥락 · 출시) | 대표 영역(비율 · 근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 |',
-  '|---|---|---|---|---|---|---|---|---|---|---|',
+  '| 상태 | 후보명 | 정규화키 | 언급 글 수 | 소스 수 | 제품 신호 | 가중(대안 맥락 · 1~3인 팀 · 저가 · 출시) | 대표 영역(비율 · 근거) | 근거 3건 | 비교대상만 | 기각·확인불가 사유 | 부류 |',
+  '|---|---|---|---|---|---|---|---|---|---|---|---|',
 ]
 const rowLine = (r) =>
   `| ${[
@@ -588,7 +637,24 @@ const rowLine = (r) =>
     r.evidence.map((e) => `${e.input_id} · ${cell(e.source)} · "${cell(e.quote)}"`).join('<br>'),
     r.compareOnly ? '예' : '아니오',
     cell(r.reason || '-'),
+    `${TIER_KO[r.tier] ?? '-'}${r.launchN ? ` (출시 표현 ${r.launchN})` : ''}`,
   ].join(' | ')} |`
+
+/** 부류별 집계 표(pnc-v4). */
+export function renderTierStats(rows) {
+  const s = tierStats(rows)
+  const rate = (x) => (x == null ? '-' : `${Math.round(x * 100)}%`)
+  return [
+    '## 부류별 집계 (a 경쟁 기준점 · b 소형 성숙 · c 신규·신규 창업가용)',
+    '',
+    '부류 판정: (a) config benchmark.services · (c) 출시 ≤90일 확인(--release-dates) 또는 언급 앞뒤 launch 표현(config tiers.launch) · (b) 그 밖. 수집 건수 = 그 부류 후보들의 근거 글(중복 제거). 채택률 = 채택 ÷ 후보(기준점은 채택 판정 대상 아님).',
+    '',
+    '| 부류 | 후보 수 | 수집 건수(근거 글) | 채택 | 채택률 | L4 비율 |',
+    '|---|---|---|---|---|---|',
+    ...Object.entries(s).map(([k, v]) => `| ${TIER_KO[k]} | ${v.candidates} | ${v.posts} | ${k === 'anchor' ? '-' : v.adopt} | ${rate(v.adopt_rate)} | ${v.l4_rate} |`),
+    '',
+  ]
+}
 
 /** part: 'top'(요약 + 영역별 채택 상위 perArea) | 'rest'(영역 표에 안 오른 나머지 전부 — 채택 초과분·확인불가·기각). */
 export function renderMarkdown(rows, meta, part = 'top') {
@@ -612,10 +678,11 @@ export function renderMarkdown(rows, meta, part = 'top') {
     `**채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected} · 경쟁 기준점 ${by.benchmark}** — 기각·확인불가 사유별: ${reasonSummary(rows).map(([k, n]) => `${k} ${n}`).join(' · ') || '없음'}`,
     `영역별 채택 상위 ${perArea}(정렬: 점수 = 신호 종류 수 + 대안 맥락(${meta.cfg.weights?.alt_context ?? 0}) + 출시 ≤${meta.cfg.weights?.new_release_days ?? 90}일(${meta.cfg.weights?.new_release ?? 0}) → 비교 패턴 언급 수 → 소스 수 → 글 수). 출시일: ${meta.releaseFile ? `--release-dates ${meta.releaseFile}` : '파일 없음 → 전부 확인 불가(가중 0)'}. 나머지 ${rows.length - shownKeys.size}행은 product-name-candidates-rest.md.`,
     '',
+    ...renderTierStats(rows),
   ]
   if (groups.length === 0) out.push('채택 후보 없음.', '')
   for (const g of groups) out.push(`## ${areaLabel(g.code, meta.areaNames)} — 채택 ${g.total}${g.total > g.rows.length ? ` (상위 ${g.rows.length})` : ''}`, '', ...COLS, ...g.rows.map(rowLine), '')
-  if (bench.length) out.push(`## 경쟁 기준점 — ${bench.length}(거대 기업·대형 서비스 단독, config benchmark — 후보 아님, 승인 시트에 안 나온다)`, '', ...COLS, ...bench.map(rowLine), '')
+  if (bench.length) out.push(`## 경쟁 기준점(anchor) — ${bench.length}(대형 서비스 단독, config benchmark.services — 제외하지 않는다. 승인 시트 별도 소절에 영역당 ${meta.cfg.benchmark?.sheet_cap_per_area ?? 0}개까지)`, '', ...COLS, ...bench.map(rowLine), '')
   return out.join('\n')
 }
 
@@ -650,14 +717,28 @@ export function renderApprovalSheet(rows, meta) {
   ]
   if (groups.length === 0) out.push('제시할 채택 후보 없음.', '')
   let no = 0
+  const HEAD = ['| 번호 | 후보명 | 정규화키 | 영역 | 근거 글 3건(원문 80자) | 신호 | 제안 | 답 |', '|---|---|---|---|---|---|---|---|']
+  const line = (r, areaCell) => {
+    const q = r.evidence.map((e) => `${cell(e.source)} · "${cell(e.quote.length > A.quote_chars ? e.quote.slice(0, A.quote_chars - 1) + '…' : e.quote)}"`).join('<br>')
+    const proposal = r.refs.length ? `등록 후보: ${cell(r.refs.join(', '))}` : '등록 후보: 이름만(앱 ID·도메인 없음 — 수동 확인)'
+    return `| ${++no} | ${cell(r.name)} | \`${cell(r.key)}\` | ${areaCell} | ${q} | ${r.signals.join(', ') || '-'} | ${proposal} | ${ANSWER_BLANK} |`
+  }
   for (const g of groups) {
-    out.push(`## ${areaLabel(g.code, meta.areaNames)} — 제시 ${g.rows.length} / 채택 ${g.total}`, '')
-    out.push('| 번호 | 후보명 | 정규화키 | 영역 | 근거 글 3건(원문 80자) | 신호 | 제안 | 답 |', '|---|---|---|---|---|---|---|---|')
-    for (const r of g.rows) {
-      const q = r.evidence.map((e) => `${cell(e.source)} · "${cell(e.quote.length > A.quote_chars ? e.quote.slice(0, A.quote_chars - 1) + '…' : e.quote)}"`).join('<br>')
-      const proposal = r.refs.length ? `등록 후보: ${cell(r.refs.join(', '))}` : '등록 후보: 이름만(앱 ID·도메인 없음 — 수동 확인)'
-      out.push(`| ${++no} | ${cell(r.name)} | \`${cell(r.key)}\` | ${r.area} ${pct(r.areaShare)} | ${q} | ${r.signals.join(', ')} | ${proposal} | ${ANSWER_BLANK} |`)
-    }
+    out.push(`## ${areaLabel(g.code, meta.areaNames)} — 제시 ${g.rows.length} / 채택 ${g.total}`, '', ...HEAD)
+    for (const r of g.rows) out.push(line(r, `${r.area} ${pct(r.areaShare)}`))
+    out.push('')
+  }
+  // pnc-v4: 경쟁 기준점 후보는 별도 소절. 영역 칸에 '기준점' 표식 → parseApprovalSheet 가 anchor 로 읽고 sheetStats(오탐률·승인 모드)에서 뺀다.
+  //   위 신규 회사 후보의 하루 영역 상한(daily_cap_per_area)과 따로 센다. 사람이 N 한 기준점은 다시 안 올린다.
+  const capA = meta.cfg.benchmark?.sheet_cap_per_area ?? 0
+  const anchors = groupByArea(
+    rows.filter((r) => r.status === 'benchmark' && !meta.humanRejected?.has(r.key)).map((r) => ({ ...r, status: 'adopt' })),
+    meta.cfg.area_table.order,
+    capA,
+  )
+  if (capA > 0 && anchors.length) {
+    out.push(`## 경쟁 기준점 후보(anchor) — 별도 표시 · 하루 영역 상한·오탐률에 안 셈 · 영역당 ${capA}개`, '', '승인(Y)하면 대형 서비스를 비교 기준점으로 등록·수집한다. 소형·신규 후보와 섞어 세지 않는다.', '', ...HEAD)
+    for (const g of anchors) for (const r of g.rows) out.push(line(r, `${r.area} 기준점`))
     out.push('')
   }
   return out.join('\n')
@@ -670,15 +751,16 @@ export function parseApprovalSheet(md) {
     if (!/^\|\s*\d+\s*\|/.test(l)) continue
     const c = l.split(/(?<!\\)\|/).slice(1, -1).map((x) => x.trim())
     if (c.length !== 8) continue
-    out.push({ no: Number(c[0]), name: c[1].replace(/\\\|/g, '|'), key: c[2].replace(/^`|`$/g, '').replace(/\\\|/g, '|'), area: c[3].split(/\s+/)[0], proposal: c[6].replace(/\\\|/g, '|'), answer: readAnswer(c[7]) })
+    out.push({ no: Number(c[0]), name: c[1].replace(/\\\|/g, '|'), key: c[2].replace(/^`|`$/g, '').replace(/\\\|/g, '|'), area: c[3].split(/\s+/)[0], anchor: /기준점/.test(c[3]), proposal: c[6].replace(/\\\|/g, '|'), answer: readAnswer(c[7]) })
   }
   return out
 }
 
-/** 시트 항목 → 영역별 { shown, approved, rejected, unanswered }. */
+/** 시트 항목 → 영역별 { shown, approved, rejected, unanswered }. 경쟁 기준점(anchor) 줄은 신규 회사 후보 오탐률에 섞지 않는다(pnc-v4). */
 export function sheetStats(entries) {
   const s = {}
   for (const e of entries) {
+    if (e.anchor) continue
     const a = (s[e.area] ??= { shown: 0, approved: 0, rejected: 0, unanswered: 0 })
     a.shown++
     a[e.answer]++
@@ -714,6 +796,11 @@ export function ledgerOf(rows, meta) {
     false_positive: prev
       ? { sheet_date: prev.date, by_area: Object.fromEntries(Object.entries(prev.stats).map(([a, s]) => [a, { ...s, ...approvalMode(a, prev.stats, meta.cfg.approval.max_false_positive_rate) }])) }
       : null,
+    // pnc-v4: 부류별 집계 + 채택·기준점 행(비교 산출 scripts/competitor-anchor-compare.mjs 가 읽는다). entries(재제안 방지)와 의미가 달라 따로 둔다.
+    tier_stats: tierStats(rows),
+    tier_rows: rows
+      .filter((r) => r.status === 'adopt' || r.status === 'benchmark')
+      .map((r) => ({ key: r.key, name: r.name, status: r.status, tier: r.tier, area: r.area, score: r.score, altN: r.altN, launchN: r.launchN, indieN: r.indieN, priceN: r.priceN, release: r.release, refs: r.refs, evidence: r.evidence })),
   }
 }
 
@@ -852,6 +939,7 @@ export async function main(argv, { port, now = new Date(), reportsDir = REPORTS_
     `추출: 언급 ${counts.mentions} · 키 ${counts.keys} · 이미 등록 ${counts.registered} · 후보 문턱 미달 ${counts.below}`,
     `후보: 채택 ${by.adopt} · 확인불가 ${by.hold} · 기각 ${by.rejected} · 경쟁 기준점 ${by.benchmark}(${rows.filter((r) => r.status === 'benchmark').map((r) => r.name).join(', ') || '-'}) · 출시일 ${releaseFile ? `${releaseDates.size}개 앱` : '파일 없음(확인 불가)'}`,
     `사유별: ${reasonSummary(rows).map(([k, n]) => `${k} ${n}`).join(' · ') || '없음'}`,
+    `부류별: ${Object.entries(tierStats(rows)).map(([k, v]) => `${TIER_KO[k]} 후보 ${v.candidates}·글 ${v.posts}·채택 ${k === 'anchor' ? '-' : v.adopt}`).join(' · ')} · L4 ${L4_UNDEFINED}`,
     ...groupByArea(rows, cfg.area_table.order, 3).flatMap((g) => [
       `[${areaNames[g.code] ?? g.code}] 채택 ${g.total} · 승인 모드 ${approvalMode(g.code, latestSheet?.stats, cfg.approval.max_false_positive_rate).mode}`,
       ...g.rows.map((r) => `  - ${r.name} (${r.key}) 신호 ${r.signals.join('+')} · 글 ${r.posts} · 소스 ${r.sources} · 영역 ${r.area} ${pct(r.areaShare)}${r.compareOnly ? ' · 비교만' : ''}`),

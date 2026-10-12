@@ -219,3 +219,15 @@
 - 작성일: 2026-10-11
 
 > Thanks for clarifying. Not sending a warning for a $34K bill is pretty terrible. My company runs a service that allows larger customers to run overages and all of our bad customer experiences have stemmed from surprise overages that we failed to warn them about. Over the years, we have learned to be less stupid about that! It appears that even very large companies like Cloudflare may need to brush up on customer experience from time to time.
+
+## HN 50063424
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50063424
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-12 UTC)
+- 스레드: EC users should be afraid of a US kill switch – not some new software
+- 작성자: avmich
+- 작성일: 2026-10-12
+
+> Last million years we failed, but hope is still not lost - we're getting better, at least sometimes.

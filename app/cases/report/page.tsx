@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { after } from 'next/server'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthVerdict } from '@/lib/auth/session'
 import { loadCaseCorpus } from '@/lib/cases/corpus-db'
@@ -26,6 +26,8 @@ import { PubPairCompare } from '../../_pub/components/PubPairCompare'
 import { PubLockRow } from '../../_pub/components/PubLockRow'
 import { IconChevronRight, IconSearch } from '../../_pub/icons'
 import { ShareLinkButton } from '../../library/[slug]/share-button'
+import { EXAMPLE_IDEA, IDEA_COOKIE, pickIdea } from '@/lib/cases/idea-handoff'
+import { IdeaForm } from './idea-form'
 import { AnglePanel } from './angle-panel'
 import { PmfSection } from './pmf-section'
 import type { PmfAnchors } from './pmf-panel'
@@ -38,8 +40,8 @@ import type { PmfAnchors } from './pmf-panel'
 //
 // ★ 비로그인 체험판(남헌 2026-09-25 결정 2, §10.2 예외 3 승인). lib/auth/policy.ts PUBLIC_EXACT **정확일치**로만
 //   연다 — PUBLIC_PREFIXES 에 넣지 않는다(검수 /cases/* 가 같이 열린다). 익명이면 내부 화면 링크(검색·분석)를
-//   숨기고 공개 화면(/library·/voc)으로 보낸다. 아이디어는 GET ?q= 로 남는다 — 공유 링크가 되는 대신
-//   URL·접근 로그에 원문이 남고, 그것도 승인됐다(화면에 한 줄로 밝힌다).
+//   숨기고 공개 화면(/library·/voc)으로 보낸다. 아이디어는 클라이언트 폼이 30분 쿠키에 얹어 인계한다(2026-10-12 감사 A-3,
+//   lib/cases/idea-handoff.ts) — URL·접근 로그에 원문이 남지 않는 대신 주소를 보내도 같은 리포트는 열리지 않는다(고정 예시만 ?q=).
 // ★ §7.1: 섹션마다 0건이면 "해당 없음"을 그대로 그리고, 조회 실패(not_run)는 "확인 불가"로 따로 말한다.
 //   /cases/search 와 달리 **조건 없는 둘러보기를 하지 않는다** — 아이디어와 무관한 상위 N건을
 //   리포트에 실으면 "내 아이디어에 매칭됐다"로 읽힌다.
@@ -67,7 +69,7 @@ const REPORT_MOVES = 5
 const OPEN_ROWS = 3
 
 const LEAD = '아이디어 한 줄을 넣으면 승인된 케이스와 실패 원장에서 닮은 것만 모아 한 장으로 보여준다. 로그인하면 앵글 검증과 사분면 판정(자가진단)까지 본다. 없는 것은 “해당 없음”으로 적는다.'
-const EXAMPLE = '프리랜서용 인보이스 자동 발송 SaaS'
+const EXAMPLE = EXAMPLE_IDEA
 
 const TOC_BASE = [['moves', '닮은 성공 무브'], ['failed', '실패 경고 앵글'], ['pairs', '갈린 짝 비교'], ['next', '다음 행동']] as const
 /** 로그인전 목차 — PMF 사분면은 잠금 줄로 자리만 있다(P4). */
@@ -99,7 +101,9 @@ export default async function IdeaReportPage({ searchParams }: {
   // 못 들어가므로 익명과 같이 체험판 화면을 본다.
   const verdict = await getAuthVerdict()
   const signedIn = verdict.kind === 'allowed'
-  const { query, errors } = parseSearchQuery({ q: sp.q, kind: sp.kind })
+  // 아이디어는 주소가 아니라 서버 액션이 얹은 쿠키로 온다(lib/cases/idea-handoff.ts). ?q= 는 고정 예시만 인정한다.
+  const idea = pickIdea((await cookies()).get(IDEA_COOKIE)?.value, sp.q)
+  const { query, errors } = parseSearchQuery({ q: idea.q, kind: sp.kind })
   // 로그인전(I3-2): 필터는 SaaS만(기본) 하나. URL 로 kind=all 을 넣어도 서버가 되돌리고 그 사실을 말한다.
   if (!signedIn && query.kind !== DEFAULT_SEARCH_KIND) {
     query.kind = DEFAULT_SEARCH_KIND
@@ -107,7 +111,9 @@ export default async function IdeaReportPage({ searchParams }: {
   }
   const terms = toTerms(query.q)
 
-  const withParams = (path: string, kind: string, q: string | null = query.q) => {
+  // 주소에는 고정 예시만 싣는다 — 사용자가 쓴 아이디어는 어떤 링크에도 넣지 않는다.
+  const urlQ = query.q === EXAMPLE_IDEA ? query.q : null
+  const withParams = (path: string, kind: string, q: string | null = urlQ) => {
     const p = new URLSearchParams()
     if (q) p.set('q', q)
     if (kind !== DEFAULT_SEARCH_KIND) p.set('kind', kind)
@@ -117,12 +123,11 @@ export default async function IdeaReportPage({ searchParams }: {
   const href = (kind: string) => withParams('/cases/report', kind)
 
   const form = (
-    <form method="get" className="pub-form pub-report-ask">
-      {query.kind !== DEFAULT_SEARCH_KIND && <input type="hidden" name="kind" value={query.kind} />}
+    <IdeaForm kind={query.kind} className="pub-form pub-report-ask">
       <div className="pub-report-ask-row">
         <span className="pub-field-wrap">
           <IconSearch />
-          <input name="q" defaultValue={query.q ?? ''} maxLength={QUERY_MAX} required autoComplete="off"
+          <input data-idea defaultValue={query.q ?? idea.legacy ?? ''} maxLength={QUERY_MAX} required autoComplete="off"
             placeholder={`내 아이디어 한 줄 (예: ${EXAMPLE})…`} aria-label="아이디어 한 줄"
             className="pub-field pub-field--grow" />
         </span>
@@ -134,8 +139,11 @@ export default async function IdeaReportPage({ searchParams }: {
           ? <PubFacet href={href('all')} active={query.kind === 'all'}>소비재 포함</PubFacet>
           : <Chip title="로그인 후">소비재 포함 · 로그인 후</Chip>}
       </div>
-      <p className="pub-caption">입력한 아이디어 원문은 주소(URL)에 그대로 남는다. 이 주소를 보내면 같은 리포트가 열린다.</p>
-    </form>
+      <p className="pub-caption">
+        아이디어 원문은 주소(URL)에 싣지 않는다. 이 브라우저에 30분 동안만 남고, 주소를 다른 사람에게 보내도 같은 리포트는 열리지 않는다.
+        {idea.legacy ? ' 주소에 담겨 온 아이디어는 쓰지 않았다. 입력창에 채워 두었으니 다시 만들어 달라.' : ''}
+      </p>
+    </IdeaForm>
   )
 
   // 모든 반환(입력 전·낱말 0·환경변수 없음·정상)이 이 껍데기 하나를 지난다.
@@ -272,7 +280,8 @@ export default async function IdeaReportPage({ searchParams }: {
       <div className="pub-chiprow">
         <span className="pub-caption">매칭 낱말</span>
         {terms.map((t) => <Chip key={t}>“{t}”</Chip>)}
-        <ShareLinkButton />
+        {/* 사용자 아이디어는 주소에 없다 — 주소를 복사해 봐야 빈 입구다. 고정 예시일 때만 공유 버튼을 둔다. */}
+        {urlQ ? <ShareLinkButton /> : null}
       </div>
     </div>
 
@@ -304,7 +313,7 @@ export default async function IdeaReportPage({ searchParams }: {
                     </div>
                   )}
                   {restCount > 0 && (
-                    <p className="pub-caption"><Link className="pub-link" href={withParams('/cases/search', query.kind)}>검색 화면</Link>에서 전부 본다.</p>
+                    <p className="pub-caption">아이디어 문장은 주소에 싣지 않아 검색 화면으로 넘기지 않는다. 케이스 전체는 <Link className="pub-link" href="/library">라이브러리</Link>에서 본다.</p>
                   )}
                 </div>
               </details>

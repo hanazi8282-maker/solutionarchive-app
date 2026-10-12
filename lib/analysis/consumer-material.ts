@@ -62,6 +62,35 @@ export async function loadConsumerTagged(
   return new Set((got.data ?? []).map((r) => r.input_id))
 }
 
+/**
+ * 화면(/voc · /insights 인용 · /relevance/grade)이 태그 표로 anti-join 을 걸 수 있나 — 표를 한 행 찔러 본다.
+ *   · 'off'     : 스위치 off(RELEVANCE_SKIP_CONSUMER=off) 또는 표 없음(마이그 미적용) → 걸지 않는다(원래 동작).
+ *   · 'on'      : 표 있음 → 호출부가 anti-join(`consumer_material_tags!left(input_id)` + `.is(…, null)`)을 건다.
+ *   · 'unknown' : 그 밖 오류·예외 → 호출부는 화면을 확인 불가로 닫는다(fail-closed, §7.1). 태그를 못 읽은 채 소비재를 내보내지 않는다.
+ */
+export async function consumerFilterState(
+  supabase: any,
+  o: { enabled?: boolean; warn?: (m: string) => void } = {},
+): Promise<'on' | 'off' | 'unknown'> {
+  if (!(o.enabled ?? consumerSkipEnabled())) return 'off'
+  let res
+  try {
+    res = await supabase.from('consumer_material_tags').select('input_id').limit(1)
+  } catch (e) {
+    o.warn?.(`소비재 태그 확인 예외: ${e instanceof Error ? e.message : String(e)}`)
+    return 'unknown'
+  }
+  if (isMissingTable(res?.error)) {
+    o.warn?.('consumer_material_tags 표가 없다(마이그 20261015000010 미적용) — 소비재 제외 없이 원래대로 간다')
+    return 'off'
+  }
+  return res?.error || !res ? 'unknown' : 'on'
+}
+
+/** anti-join 조각 — 임베드 select 한 토막과 `.is()` 에 넣는 경로. parent = 'analysis_inputs'(임베드로 들어간 경우) 또는 '' (analysis_inputs 직접). */
+export const CONSUMER_EMBED = 'consumer_material_tags!left(input_id)'
+export const consumerIsNullPath = (parent: string): string => (parent ? `${parent}.consumer_material_tags` : 'consumer_material_tags')
+
 // ── 파생 제외(태그 전 신규 글 — DB 쓰기 없이 대기열에서 뺀다) ──
 /** 파생 제외를 풀어 줄 input_id 목록(한 줄에 하나, # 주석). 파일 없음 = 빈 목록. env RELEVANCE_CONSUMER_ALLOW_FILE 로 바꾼다. */
 export const DEFAULT_ALLOW_FILE = 'config/consumer-allow-ids.txt'

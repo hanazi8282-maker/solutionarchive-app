@@ -60,16 +60,19 @@ export function renderMarkdown(src: string): string {
  * 적재된 원문(content_columns.body) → 공개 화면에 내보낼 부분만.
  *
  * 원문에는 공개하지 않는 것이 세 가지 섞여 있다(케이스-작성-가이드 규약):
- *   1. 첫머리 `독자:` / `판단 이유:` 메타 줄 — 편집용 분류
+ *   1. 첫머리 `독자:` / `판단 이유:` / `독립:` 메타 줄 — 편집용 분류
  *   2. `# 제목` 줄 — 화면이 title 컬럼으로 따로 그린다
  *   3. `---` 아래 `## 근거 메모` · `## 자체 점검` — 검수용 내부 메모
  * summary 는 첫 문단 앞부분(OG 이미지·목록 한 줄 요약용). 마크다운 기호는 털어 낸다.
  */
 export function columnReadable(body: string, summaryChars = 80): { summary: string; markdown: string } {
   const [head] = body.replace(/\r\n?/g, '\n').split(/\n---\n/)
-  const markdown = head
-    .split('\n')
-    .filter((l) => !/^(독자|판단 이유|case_slug)\s*:/.test(l.trim()) && !/^#\s+/.test(l.trim()))
+  const lines = head.split('\n')
+  // `독립:` 은 첫머리 메타 블록(첫 빈 줄 앞)에서만 메타다 — 본문 중간의 "독립: …" 줄은 내용이라 남긴다.
+  const blank = lines.findIndex((l, i) => i > 0 && !l.trim() && lines.slice(0, i).some((x) => x.trim()))
+  const metaEnd = blank < 0 ? lines.length : blank
+  const markdown = lines
+    .filter((l, i) => !/^(독자|판단 이유|case_slug)\s*:/.test(l.trim()) && !(i < metaEnd && /^독립\s*:/.test(l.trim())) && !/^#\s+/.test(l.trim()))
     .join('\n')
     .trim()
 

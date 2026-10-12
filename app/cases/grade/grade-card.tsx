@@ -7,6 +7,7 @@ import { caseApproveDefault } from '@/lib/cases/grade-queue'
 import { PMF_SIGNALS, TRANSFERABILITY_REASON_MAX } from '@/lib/cases/grade-queue'
 import { TRANSFERABILITY, TRANSFERABILITY_LABEL, TRANSFERABILITY_UNRATED_HINT, caseApprovalWarning, moveApprovalWarning } from '@/lib/cases/review'
 import { displayGradeLabel } from '@/lib/cases/grade-display'
+import { publicExcerpt } from '@/lib/analysis/evidence-quotes'
 import { Badge } from '../../_ds/components/Badge'
 import { Button } from '../../_ds/components/Button'
 import { Card } from '../../_ds/components/Card'
@@ -63,6 +64,11 @@ export type GradeCaseData = {
 
 /** 스니펫 미리보기 길이. 저장 상한은 300(case_evidence CHECK)이고, 카드에선 앞부분만 본다. */
 const SNIPPET_PREVIEW = 160
+/** 인용 단일 관문(publicExcerpt) — 한 130·영 240 초과는 자르지 않고 가린다. */
+const gatedSnippet = (s: string | null) => {
+  const c = publicExcerpt(s, 'full')
+  return c.ok ? clip(c.text, SNIPPET_PREVIEW) : '(발췌를 낼 수 없다 — 원문 링크에서 본다)'
+}
 const clip = (s: string | null, n: number) => (s && s.length > n ? `${s.slice(0, n)}…` : (s ?? ''))
 
 /**
@@ -137,7 +143,7 @@ function EvidenceLinks({ rows }: { rows: GradeEvidence[] }) {
           <ul className="v2-bullets v2-stack-tight v2-mt-sm">
             {snippets.map((e) => (
               <li key={e.id} className="v2-wrap">
-                <b>{e.domain ?? '출처 미기재'}</b> — {clip(e.snippet, SNIPPET_PREVIEW)}
+                <b>{e.domain ?? '출처 미기재'}</b> — {gatedSnippet(e.snippet)}
               </li>
             ))}
           </ul>

@@ -4,6 +4,8 @@ import {
   STRATA, STRATUM_LABEL, columnAvailability, dailyTrend, disagreements, kstDate, stratumStats, type Stratum, type StratumStats,
 } from '@/lib/relevance-feedback/sample'
 import { KILL } from '@/lib/analysis/auto-approval'
+import { publicExcerpt } from '@/lib/analysis/evidence-quotes'
+import { loadQuotePolicies } from '@/lib/analysis/quote-policy-db'
 import { FEEDBACK_MIGRATION, isMissingRelation, loadAllVerdicts } from '@/lib/relevance-feedback/db'
 import { ButtonLink } from '../../_ds/components/Button'
 import { Card } from '../../_ds/components/Card'
@@ -59,10 +61,17 @@ export default async function RelevanceFeedbackPage({ searchParams }: { searchPa
   const dis = disagreements(graded, avail)
   const shown = STRATA.flatMap((s) => dis.filter((d) => d.stratum === s).slice(0, PER_STRATUM))
   const ids = shown.map((d) => d.row.input_id)
-  const texts = new Map<string, string>()
+  const texts = new Map<string, string | null>() // null = 인용 관문이 가렸다
   if (ids.length) {
-    const { data } = await sb.from('analysis_inputs').select('id, raw_text').in('id', ids)
-    for (const r of data ?? []) texts.set(r.id, r.raw_text ?? '')
+    // 인용 단일 관문(publicExcerpt) — 소스 정책 none·모름·길이 초과는 글을 내지 않는다(정책 맵을 못 읽어도 닫힌다).
+    const [{ data }, policies] = await Promise.all([
+      sb.from('analysis_inputs').select('id, raw_text, source_key').in('id', ids),
+      loadQuotePolicies(sb, 'relevance/feedback'),
+    ])
+    for (const r of data ?? []) {
+      const c = publicExcerpt(r.raw_text, r.source_key && policies ? policies.get(r.source_key) : null)
+      texts.set(r.id, c.ok ? c.text : c.reason === 'empty' ? '' : null)
+    }
   }
 
   const memo = await sb.from('relevance_criteria_feedback').select('id, input_id, stratum, human_verdict, note, created_by, created_at').order('created_at', { ascending: false }).limit(50)
@@ -106,7 +115,7 @@ export default async function RelevanceFeedbackPage({ searchParams }: { searchPa
             {shown.map(({ row, stratum }) => (
               <li key={row.input_id} className="v2-wrap">
                 <b>{stratum}</b> · 사람 {ko(row.human_verdict)} · 1차 {ko(row.verdict)} · 2차 {ko(row.second_verdict)} · {kstDate(row.human_graded_at) ?? '시각 미기재'}
-                {' — '}{texts.has(row.input_id) ? clip(texts.get(row.input_id) || '(원문 없음)', 200) : '(원문 조회 실패)'}
+                {' — '}{!texts.has(row.input_id) ? '(원문 조회 실패)' : texts.get(row.input_id) === null ? '(인용 불가 — 소스 정책 또는 길이 상한, DB 에는 있다)' : clip(texts.get(row.input_id) || '(원문 없음)', 200)}
                 {memoByInput.has(row.input_id) && <><br /><span className="v2-muted">메모: {memoByInput.get(row.input_id)}</span></>}
               </li>
             ))}

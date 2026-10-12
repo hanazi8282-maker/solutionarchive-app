@@ -143,6 +143,29 @@ export type SummaryReason = Exclude<QuoteReason, 'not_verbatim' | 'src_header' |
 export interface QuoteCheck { kind: 'quote'; text: string; ok: boolean; reason: QuoteReason }
 export interface SummaryCheck { kind: 'summary'; text: string; ok: boolean; reason: SummaryReason }
 
+/** 수집기 머리말(`[HN: …]` · `[SRC: URL]` 첫 줄). 발췌에는 싣지 않는다. */
+const EXCERPT_HEADER = /^\s*\[(?:HN|SRC):[^\]]*\]\s*/
+
+/**
+ * 공개·로그인 화면에 리뷰·기사 글을 **글 그대로** 내는 모든 자리의 단일 관문(2026-10-12 앱 감사 A-2).
+ * 머리말을 떼고 checkQuote 를 건다: 정책 none·모름(약관 금지 소스) → 거부, 한국어 130자·영어 240자 초과 → 거부(자르지 않는다).
+ * 발췌 = 그 글 전체라 원문 대조는 자기 자신과 한다 — 실제로 거르는 건 정책·빈 값·글자 상한이다.
+ * policy: review_sources.quote_policy 원값. 소스 정책이 없는 글(웹 기사 case_evidence)은 'full' 을 명시해 길이 상한만 건다.
+ * ok=false 면 text 는 빈 문자열이다. 호출부는 reason 으로 "미기재"(empty)와 "가림"(그 밖)을 가른다.
+ */
+export function publicExcerpt(text: string | null | undefined, policy: unknown, o: { strict?: boolean } = {}): QuoteCheck {
+  const body = String(text ?? '').replace(EXCERPT_HEADER, '')
+  const c = checkQuote(body, quotePolicyOf(policy), body)
+  // 길이 초과: 기본은 상한에서 '…' 로 자르고 내보낸다(기사 근거 스니펫의 절반 이상이 130자를 넘는다 — 통째로 가리면 화면이 빈다).
+  // 정책 none·모름은 길이와 무관하게 위에서 이미 거부된다. strict(/voc 발췌)는 v22 대로 자르지 않고 가린다.
+  if (c.reason === 'too_long' && !o.strict) {
+    const flat = squash(body)
+    const max = quoteLang(flat) === 'en' ? QUOTE_MAX_EN : QUOTE_MAX_KO
+    return { kind: 'quote', text: `${Array.from(flat).slice(0, max - 1).join('').trimEnd()}…`, ok: true, reason: 'ok' }
+  }
+  return c
+}
+
 /** 정책·빈 값·글자 상한 — 인용·요약 공통. 통과면 공백 눕힌 글, 아니면 거부 사유. */
 function capCheck(text: unknown, policy: QuotePolicy): { flat: string } | { reason: SummaryReason } {
   if (policy === 'none') return { reason: 'policy_none' }

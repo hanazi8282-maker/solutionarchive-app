@@ -19,6 +19,7 @@ import { PubIconTile } from '../_pub/components/PubIconTile'
 import { PubLockRow } from '../_pub/components/PubLockRow'
 import { Chip } from '../_pub/components/Chip'
 import { IconArrowRight, IconChevronDown, IconProblem, IconSearch } from '../_pub/icons'
+import { IdeaForm } from '../cases/report/idea-form'
 
 /**
  * 공개 케이스 라이브러리 — 색인 줄 목록(남헌 2026-09-29 결정 b: 카드 격자 대신 색인 줄, DESIGN.md §4).
@@ -92,19 +93,18 @@ export default async function LibraryPage({ searchParams }: {
   const toolbar = (
     <div className="pub-toolbar">
       {/* 검색은 이 화면이 하지 않는다 — 자유 텍스트 매칭기는 searchMoves 한 벌이고 /cases/report 가 그 비로그인
-          입구다(로그인 벽 /cases/search 는 검수용으로 남긴다, MVP 9/30 §7.1). q 파라미터 이름은 그대로 통한다. */}
-      <form className="pub-inline pub-inline--grow" method="get" action="/cases/report">
-        {query.kind !== DEFAULT_SEARCH_KIND && <input type="hidden" name="kind" value={query.kind} />}
+          입구다(로그인 벽 /cases/search 는 검수용으로 남긴다, MVP 9/30 §7.1). 아이디어 원문은 주소에 싣지 않고 쿠키로 넘긴다(lib/cases/idea-handoff.ts). */}
+      <IdeaForm kind={query.kind} className="pub-inline pub-inline--grow">
         <span className="pub-field-wrap">
           <IconSearch />
           <input
             className="pub-field pub-field--grow"
-            name="q" maxLength={200} aria-label="내 말로 검색 (결론서로 이동)"
+            data-idea maxLength={200} aria-label="내 말로 검색 (결론서로 이동)"
             placeholder="내 말로 한 줄 (예: 무료로는 쓰는데 결제를 안 한다)…"
           />
         </span>
         <button className="pub-btn pub-btn--sm" type="submit">검색</button>
-      </form>
+      </IdeaForm>
 
       {/* 정렬 — JS 없이 GET 폼. select 만 두면 키보드로 바꿔도 적용이 안 되므로 버튼을 같이 둔다.
           로그인전에는 select 자체를 렌더하지 않는다(I2-2). */}

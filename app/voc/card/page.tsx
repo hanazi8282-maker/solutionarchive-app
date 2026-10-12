@@ -11,7 +11,8 @@ import { Hero } from '../../_pub/components/Hero'
 import { Section } from '../../_pub/components/Section'
 import { Panel } from '../../_pub/components/Panel'
 import { Chip } from '../../_pub/components/Chip'
-import { PubButtonLink } from '../../_pub/components/Button'
+import { PubButton, PubButtonLink } from '../../_pub/components/Button'
+import { IdeaForm } from '../../cases/report/idea-form'
 import { PubMatchRow } from '../../_pub/components/PubMatchRow'
 import { NO_QUOTE, judgedOn } from '../../_pub/components/PubSignalCard'
 import { IconArrowRight } from '../../_pub/icons'
@@ -64,7 +65,8 @@ export default async function SignalCardPage({ searchParams }: {
       return { r, studies: new Map((corpora.studies ?? []).map((s) => [s.id, s])) }
     })()
     : { none: 'Supabase 환경변수 미설정 — 확인 불가' }
-  const report = q ? `/cases/report?${new URLSearchParams({ q })}` : null
+  // 판정 사유에서 뽑은 문구 — 주소에 싣지 않고 쿠키로 넘긴다(아이디어 인계 규칙, lib/cases/idea-handoff.ts).
+  const report = q ?? null
 
   return (
     <PubShell theme="light">
@@ -125,7 +127,10 @@ export default async function SignalCardPage({ searchParams }: {
                 ))}
               </ul>
               {report && similar.r.moves.cards.length > SIMILAR_MAX && (
-                <PubButtonLink href={report} variant="ghost" size="sm">PMF 판정에서 {similar.r.moves.cards.length}건 전부 보기<IconArrowRight /></PubButtonLink>
+                <IdeaForm kind="saas">
+                  <input type="hidden" data-idea value={report} />
+                  <PubButton variant="ghost" size="sm">PMF 판정에서 {similar.r.moves.cards.length}건 전부 보기<IconArrowRight /></PubButton>
+                </IdeaForm>
               )}
             </Section>
           ) : (

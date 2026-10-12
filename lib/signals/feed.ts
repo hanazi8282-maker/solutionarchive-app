@@ -24,7 +24,8 @@ import { isSourceHostUrl, postUrlOfRef } from '../review/target-ref.ts'
 import { DEFAULT_SEARCH_KIND, type SearchKind } from '../cases/search.ts'
 import { productKindOf } from '../cases/advisor.ts'
 import { BUSINESS_MODEL } from '../cases/draft.ts'
-import { checkQuote, quoteCheckSummary, quotePolicyOf, type QuoteCheck } from '../analysis/evidence-quotes.ts'
+import { CONSUMER_EMBED, consumerFilterState, consumerIsNullPath } from '../analysis/consumer-material.ts'
+import { publicExcerpt, quoteCheckSummary, type QuoteCheck } from '../analysis/evidence-quotes.ts'
 
 /**
  * review_sources.quote_policy 컬럼(마이그 20261005000003, 남헌 v19 A)이 적용됐나. 적용 확인(information_schema) 뒤에 true 로 바꾼다.
@@ -95,8 +96,7 @@ export interface FeedFilters {
  * none·NULL·모르는 값·상한 초과는 빈 문자열(§7.1). 출처 이름·링크는 정책과 무관하게 이 화면에 싣지 않는다(D안).
  */
 export function quoteCheckOf(text: string | null | undefined, quotePolicy: unknown): QuoteCheck {
-  const body = String(text ?? '').replace(HN_HEADER, '')
-  return checkQuote(body, quotePolicyOf(quotePolicy), body)
+  return publicExcerpt(text, quotePolicy, { strict: true }) // 단일 관문 — evidence-quotes.ts publicExcerpt
 }
 export function quoteOf(text: string | null | undefined, quotePolicy: unknown): string {
   return quoteCheckOf(text, quotePolicy).text
@@ -266,12 +266,15 @@ function toItem(r: Raw, excerpt: string): SignalItem {
  * 공개 대상 행의 공통 조건: 사람 채점이 이기고(human_verdict), 없으면 LLM 판정이 relevant,
  * 원문이 아직 폐기되지 않은 것. count 를 원하면 exact 로 센다(HEAD 는 쓰지 않는다 — 없는 테이블도 204).
  */
-function base(sb: SupabaseClient, withCount: boolean, kind: SearchKind = 'all', select = SELECT) {
-  const q = sb
+function base(sb: SupabaseClient, withCount: boolean, kind: SearchKind = 'all', select = SELECT, noConsumer = false) {
+  // 소비재 태그(consumer_material_tags, 남헌 v61)가 붙은 입력은 공개 VOC 에서 뺀다 — anti-join(태그 행 없음만). consumerGate 가 켠다.
+  const sel = noConsumer ? select.replace('analysis_inputs!inner(', `analysis_inputs!inner(${CONSUMER_EMBED}, `) : select
+  let q = sb
     .from('review_relevance_verdicts')
-    .select(select, withCount ? { count: 'exact' } : undefined)
+    .select(sel, withCount ? { count: 'exact' } : undefined)
     .or('human_verdict.eq.relevant,and(human_verdict.is.null,verdict.eq.relevant)')
     .is('analysis_inputs.purged_at', null)
+  if (noConsumer) q = q.is(consumerIsNullPath('analysis_inputs'), null)
   return kind === 'saas' ? q.in('analysis_projects.business_model', [...SAAS_BUSINESS_MODELS]) : q
 }
 
@@ -283,12 +286,22 @@ const hiddenOf = (all: { count: number | null; error: unknown } | null, shown: n
 const COUNT_SELECT = 'input_id, analysis_projects!inner(business_model), analysis_inputs!inner(source_key, purged_at)'
 
 /** 소스 칩 건수 조회 — 목록과 같은 kind·신호·영향 조건, 소스 조건만 제외. 순수 조립이라 selftest 가 형태를 고정한다. */
-export function sourceCountQuery(sb: SupabaseClient, f: Pick<FeedFilters, 'kind' | 'signal' | 'impact'>, select = COUNT_SELECT) {
-  let q = base(sb, true, f.kind, select)
+export function sourceCountQuery(sb: SupabaseClient, f: Pick<FeedFilters, 'kind' | 'signal' | 'impact'>, select = COUNT_SELECT, noConsumer = false) {
+  let q = base(sb, true, f.kind, select, noConsumer)
   if (f.signal) q = q.eq('community_signal', f.signal)
   if (f.impact) q = q.eq('impact', f.impact)
   return q
 }
+
+/**
+ * 소비재 태그 제외 게이트. true → 제외를 건다 · false(스위치 off·표 없음) → 원래대로 · null(확인 불가) → 호출부가 화면을 닫는다(fail-closed).
+ * 태그를 못 읽은 채 소비재 글을 공개 화면에 내보내지 않는다.
+ */
+export async function consumerGate(sb: SupabaseClient): Promise<boolean | null> {
+  const st = await consumerFilterState(sb, { warn: (m) => console.warn(`[signals] ${m}`) })
+  return st === 'unknown' ? null : st === 'on'
+}
+const CONSUMER_UNKNOWN = '소비재 태그를 확인하지 못했다 — 소비재 글이 섞일 수 있어 목록을 내지 않는다'
 
 const why = (e: { code?: string; message: string }) =>
   e.code === '42703' || e.code === 'PGRST204'
@@ -303,8 +316,10 @@ export async function loadFeed(
   /** 현재 kind·신호·영향 필터 기준 소스별 관련 판정 건수(소스 필터만 무관). null = 못 셌다. */
   sourceCounts: Record<string, number> | null
 }>> {
+  const noConsumer = await consumerGate(sb)
+  if (noConsumer === null) return { status: 'error', reason: CONSUMER_UNKNOWN }
   const scoped = (kind: SearchKind) => {
-    let q = base(sb, true, kind)
+    let q = base(sb, true, kind, SELECT, noConsumer)
     if (f.source) q = q.eq('analysis_inputs.source_key', f.source)
     if (f.signal) q = q.eq('community_signal', f.signal)
     if (f.impact) q = q.eq('impact', f.impact)
@@ -318,7 +333,7 @@ export async function loadFeed(
     f.kind === 'saas' ? scoped('all').limit(1) : Promise.resolve(null),
     // 소스 칩 건수 — kind + 신호·영향 필터를 건다(남헌 2026-09-25 결정: 칩 숫자가 지금 보이는 목록과 맞아야 한다).
     //   소스 필터만 뺀다 — 칩은 소스를 고르는 손잡이라 다른 소스 칩이 0 으로 사라지면 안 된다. 한 번에 읽어 앱에서 센다.
-    sourceCountQuery(sb, f, COUNT_SELECT).range(0, SOURCE_COUNT_CAP - 1),
+    sourceCountQuery(sb, f, COUNT_SELECT, noConsumer).range(0, SOURCE_COUNT_CAP - 1),
   ])
   if (error) {
     console.error('[signals] feed query failed:', error.code, error.message)
@@ -351,12 +366,14 @@ export async function loadColumns(
   /** kind=saas 로 숨긴 **라벨 붙은** 소비재 행 수. null = 못 셌다. */
   hiddenConsumer: number | null
 }>> {
+  const noConsumer = await consumerGate(sb)
+  if (noConsumer === null) return { status: 'error', reason: CONSUMER_UNKNOWN }
   const [all, labeledAll, ...cols] = await Promise.all([
     // 관련 행 전체 수(현재 kind 기준) — "라벨 N / 관련 M" 을 사실로 적으려고. 한 행만 받는다.
-    base(sb, true, kind).limit(1),
-    kind === 'saas' ? base(sb, true, 'all').not('community_signal', 'is', null).limit(1) : Promise.resolve(null),
+    base(sb, true, kind, SELECT, noConsumer).limit(1),
+    kind === 'saas' ? base(sb, true, 'all', SELECT, noConsumer).not('community_signal', 'is', null).limit(1) : Promise.resolve(null),
     ...COMMUNITY_SIGNALS.map((s) =>
-      base(sb, true, kind).eq('community_signal', s).order('judged_at', { ascending: false }).order('input_id').limit(COLUMN_SIZE)),
+      base(sb, true, kind, SELECT, noConsumer).eq('community_signal', s).order('judged_at', { ascending: false }).order('input_id').limit(COLUMN_SIZE)),
   ])
   const failed = cols.find((c) => c.error)
   if (failed?.error) {
@@ -379,7 +396,9 @@ export async function loadColumns(
 
 /** 카드 한 건. 공개 대상이 아니면(무관·폐기·없음) 'ok' + null 이다 — 화면은 404 로 낸다. */
 export async function loadCard(sb: SupabaseClient, id: string): Promise<Loaded<{ item: SignalItem | null }>> {
-  const { data, error } = await base(sb, false).eq('input_id', id).maybeSingle()
+  const noConsumer = await consumerGate(sb)
+  if (noConsumer === null) return { status: 'error', reason: CONSUMER_UNKNOWN }
+  const { data, error } = await base(sb, false, 'all', SELECT, noConsumer).eq('input_id', id).maybeSingle()
   if (error) {
     console.error('[signals] card query failed:', error.code, error.message)
     return { status: 'error', reason: why(error) }

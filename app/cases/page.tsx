@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { productKindOf } from '@/lib/cases/advisor'
+import { publicExcerpt } from '@/lib/analysis/evidence-quotes'
 import { gradeMove, READER_PROBLEM_LABEL, type Evidence, type Move } from '@/lib/cases/draft'
 import { displayGrade, displayGradeLabel } from '@/lib/cases/grade-display'
 import { classifyFeedbackError, tallyFeedback, type FeedbackTally, type FeedbackVoteRow } from '@/lib/cases/feedback'
@@ -110,6 +111,14 @@ function ReviewBadge({ status }: { status: string }) {
  */
 // total 은 이 목록과 **같은 범위**의 분모일 때만 넘긴다(케이스 전체 근거 블록에 무브 근거까지 합친 수를 주면
 // "2/5건" 이 빠진 3건처럼 읽힌다 — 리뷰에서 잡힘). 모르면 생략해 "N건" 으로만 적는다.
+/** 근거 스니펫 — 인용 단일 관문(publicExcerpt, 한 130·영 240). 길면 자르지 않고 가린다. */
+function GatedSnippet({ text }: { text: string }) {
+  const s = publicExcerpt(text, 'full')
+  return s.ok
+    ? <blockquote className="v2-quote v2-quote--plain v2-mt-xs">{s.text}</blockquote>
+    : <p className="v2-note v2-mt-xs">발췌를 낼 수 없다({s.reason}) — 원문 링크에서 본다</p>
+}
+
 function EvidenceList({ rows, total, label = '근거' }: { rows: EvidenceRow[]; total?: number; label?: string }) {
   const primary = rows.filter((e) => e.source_tier === 'primary').length
   const selfReported = rows.filter((e) => e.is_self_reported).length
@@ -152,7 +161,7 @@ function EvidenceList({ rows, total, label = '근거' }: { rows: EvidenceRow[]; 
           <a href={e.url} target="_blank" rel="noopener noreferrer" className="v2-block-link">
             {e.domain ?? e.url}
           </a>
-          {e.snippet && <blockquote className="v2-quote v2-quote--plain v2-mt-xs">{e.snippet}</blockquote>}
+          {e.snippet && <GatedSnippet text={e.snippet} />}
           {e.supports_claim && <p className="v2-note v2-mt-xs">뒷받침: {e.supports_claim}</p>}
         </li>
       ))}

@@ -11,6 +11,7 @@ import readerProblemVocab from '../../config/reader-problems.json' with { type: 
 import painTermVocab from '../../config/pain-terms.json' with { type: 'json' }
 import openDashboards from '../../config/open-dashboards.json' with { type: 'json' }
 import { INSIGHT_GRADE_COLUMN_READY } from './grade-display.ts'
+import { QUOTE_MAX_KO, checkSummary } from '../analysis/evidence-quotes.ts'
 
 /**
  * 독자 문제 — 케이스 **선정의 1순위 축**이다.
@@ -48,7 +49,8 @@ export const SOURCE_TIER = ['primary', 'secondary', 'tertiary'] as const
 
 // 상한을 넘으면 경계만 줄이고 말줄임으로 표시한다 — 목록 한가운데 항목을
 // 지우는 식의 편집 판단은 금지. 근거·hoka 사례: docs/case-study-pipeline-design.md §2-4 (1)
-export const SNIPPET_MAX = 300
+// 스니펫 상한 = 고객 화면 인용 상한(한국어 130·영어 240, evidence-quotes.ts). 예전 300자는 /library 렌더에서 거부된다.
+export const SNIPPET_MAX = QUOTE_MAX_KO
 export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /**
@@ -480,8 +482,8 @@ export function validateDraft(draft: Draft, today = new Date()): Issue[] {
     if (e.is_regulatory_filing && e.source_tier !== 'primary') {
       err(w, `법정 공시인데 source_tier 가 '${e.source_tier ?? '미지정'}' 이다 — primary 여야 한다`)
     }
-    if (e.snippet != null && e.snippet.length > SNIPPET_MAX) {
-      err(w, `스니펫 ${e.snippet.length}자 — 상한 ${SNIPPET_MAX}자. 인용 분량이 실제 리스크다`)
+    if (e.snippet != null && checkSummary(e.snippet, 'full').reason === 'too_long') {
+      err(w, `스니펫 ${e.snippet.length}자 — 상한 한국어 ${SNIPPET_MAX}자·영어 240자. 인용 분량이 실제 리스크다`)
     }
     if (e.published_at != null) {
       if (!isoDate(e.published_at)) err(`${w}.published_at`, `YYYY-MM-DD 형식: ${e.published_at}`)

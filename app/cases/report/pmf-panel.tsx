@@ -422,7 +422,7 @@ export function PmfPanel({ q, kind, anchors }: { q: string; kind: string; anchor
           <button type="submit" className="pub-btn pub-btn--primary" disabled={busy}>{busy ? '시작하는 중…' : 'PMF 판정 시작'}</button>
         </div>
         {resumed ? <p className="pub-caption">지난번 입력을 채워 두었다. 그대로 시작하면 7일 안의 같은 판정을 이어 본다.</p> : null}
-        <p className="pub-caption">입력과 내 답변은 판정 기록으로 저장되고(본인만 열람), AI 처리를 위해 Anthropic 으로 전송된다(자세한 내용은 개인정보 고지).</p>
+        <p className="pub-caption">입력과 내 답변은 판정 기록으로 저장되고(본인만 열람), AI 처리를 위해 Anthropic 으로 전송된다. 이 내용을 따로 설명하는 개인정보 고지 페이지는 아직 없다.</p>
       </form>
     </div>
   )

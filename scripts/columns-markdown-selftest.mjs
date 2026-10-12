@@ -63,6 +63,11 @@ t('20. 소제목·본문은 남는다', readable.markdown.includes('## 첫 소�
 t('21. summary 는 첫 문단(소제목 아님)', readable.summary.startsWith('제품이 좋은데'), readable.summary)
 t('22. summary 는 길이 상한에서 잘린다', columnReadable(BODY, 10).summary === '제품이 좋은데 계약…', columnReadable(BODY, 10).summary)
 t('23. 본문 없으면 빈 summary (0건과 실패를 섞지 않게 빈 문자열)', columnReadable('독자: 셀러\n\n# 제목만').summary === '', JSON.stringify(columnReadable('독자: 셀러\n\n# 제목만')))
+const indep = columnReadable('독자: 셀러\n독립: 아니오\n판단 이유: x\n\n# 제목\n\n본문 첫 문단이다.\n독립적으로 판단한다.')
+t('24. 첫머리 `독립:` 메타 줄은 빠진다', !indep.markdown.includes('독립:') && !indep.markdown.includes('아니오'), indep.markdown)
+const mid = columnReadable('독자: 셀러\n\n# 제목\n\n첫 문단이다.\n\n독립: 이 줄은 본문이다.\n\n끝.')
+t('26. 본문 중간의 `독립: …` 줄은 남는다(첫머리 메타 블록만 거른다)', mid.markdown.includes('독립: 이 줄은 본문이다.'), mid.markdown)
+t('25. 본문 중 "독립적으로…" 문장은 남는다(콜론 메타 줄만 거른다)', indep.markdown.includes('독립적으로 판단한다.'), indep.markdown)
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 문법 8 · 이스케이프 9 · columnReadable 6`)
 process.exitCode = fail ? 1 : 0

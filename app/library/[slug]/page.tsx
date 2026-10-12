@@ -21,6 +21,7 @@ import { PubIconTile } from '../../_pub/components/PubIconTile'
 import { Chip } from '../../_pub/components/Chip'
 import { LogoImg } from '../../_ds/components/LogoImg'
 import { faviconUrl } from '@/lib/cases/logo'
+import { publicExcerpt } from '@/lib/analysis/evidence-quotes'
 import {
   IconAction, IconApprove, IconArrowRight, IconCheck, IconChevronRight, IconEvidence, IconExternal, IconJudge, IconMinus, IconX,
 } from '../../_pub/icons'
@@ -107,6 +108,7 @@ function CheckRow({ item }: { item: GradeCheckItem }) {
 function EvidenceRow({ e }: { e: DetailEvidenceRow }) {
   const kind = e.is_regulatory_filing ? '법정 공시' : e.is_estimate ? '추정치' : e.is_self_reported ? '당사자 자기보고' : null
   const fav = faviconUrl(e.domain ?? e.url)
+  const snip = publicExcerpt(e.snippet, 'full')
   return (
     <li>
       <div className="pub-evid-meta">
@@ -117,7 +119,8 @@ function EvidenceRow({ e }: { e: DetailEvidenceRow }) {
         {kind ? <Chip>{kind}</Chip> : null}
         <span>{day(e.published_at) ? `게시 ${day(e.published_at)}` : '게시일 확인 불가'}</span>
       </div>
-      {e.snippet ? <blockquote>&ldquo;{e.snippet}&rdquo;</blockquote> : <p className="pub-caption">인용 미기재</p>}
+      {/* 인용 단일 관문(publicExcerpt): 한국어 130자·영어 240자 초과는 '…' 로 자른다. 기사 근거라 소스 정책이 없어 'full'. */}
+      {snip.ok ? <blockquote>&ldquo;{snip.text}&rdquo;</blockquote> : <p className="pub-caption">{snip.reason === 'empty' ? '인용 미기재' : '인용을 낼 수 없다 — 원문 링크에서 본다'}</p>}
     </li>
   )
 }

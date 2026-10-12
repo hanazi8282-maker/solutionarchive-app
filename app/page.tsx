@@ -162,7 +162,7 @@ export default async function Home() {
     },
     {
       icon: <IconEvidence />, title: '근거가 링크로 붙어 있다',
-      body: `케이스마다 공시, 창업자 인터뷰, 기사 같은 원문 링크가${avg ? ` 평균 ${avg.label}개` : ''} 붙는다. 인용 300자와 게시일까지 같이 적어서 직접 확인할 수 있다.`,
+      body: `케이스마다 공시, 창업자 인터뷰, 기사 같은 원문 링크가${avg ? ` 평균 ${avg.label}개` : ''} 붙는다. 인용(한국어 130자·영어 240자 이내)과 게시일까지 같이 적어서 직접 확인할 수 있다.`,
       stat: avg ? `케이스당 근거 ${avg.label}개` : `케이스당 근거 ${UNKNOWN}`,
       source: avg ? `원 수치 ${avg.raw} (근거 ÷ 승인 케이스, 라이브 집계 lib/cases/library.ts loadLibrary)` : '라이브 집계 실패 (lib/cases/library.ts loadLibrary)',
     },

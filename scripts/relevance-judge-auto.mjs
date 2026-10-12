@@ -46,7 +46,7 @@ import {
 import {
   CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
-import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
+import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 // 대상 순서는 야간 extract 와 같은 규칙(compareAutoPriority: SaaS 우선 → 많은 순 → projectId)을 영역 결손 축이 감싼다 — lib/analysis/area-priority.ts planAreaOrder(v37 U1).
@@ -91,6 +91,9 @@ const lastSources = parseSourceList(process.env.RELEVANCE_LAST_SOURCES, DEFAULT_
 let chainHop = Math.max(0, Math.floor(Number(process.env.RELEVANCE_CHAIN_HOP) || 0))
 let chainZero = Math.max(0, Math.floor(Number(process.env.RELEVANCE_CHAIN_ZERO) || 0))
 const chainMaxHops = num(process.env.RELEVANCE_CHAIN_MAX_HOPS, CHAIN_DEFAULT_MAX_HOPS)
+// 운영 판정 기준(남헌 v66): 기본 v2.1. 리포 변수 RELEVANCE_CRITERIA=old 로 옛 기준(t2c/t2d)으로 즉시 되돌린다. prompt_version 이 어느 기준 판정인지 가른다.
+const criteriaV21 = (process.env.RELEVANCE_CRITERIA ?? 'v21').trim().toLowerCase() !== 'old'
+const PROMPT_VERSION = criteriaV21 ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION
 const chainEnabled = (process.env.RELEVANCE_CHAIN ?? 'on').trim().toLowerCase() !== 'off'
 /** 표본에서 4~5점 평점 입력의 비율 상한(v31 §2.3). 바꾸는 날은 env 값 + Notion 일일 상태 로그 한 줄이 근거다. */
 const highRatingShareEnv = process.env.RELEVANCE_HIGH_RATING_SHARE
@@ -495,7 +498,7 @@ for (const { project, pending } of targets) {
         break
       }
       if (Date.now() - startedAt >= deadlineMs) { deadlineHit = true; stopReason = 'deadline'; break }
-      const out = await judgeRelevanceBatch(project, batch, examples)
+      const out = await judgeRelevanceBatch(project, batch, examples, undefined, criteriaV21 ? { criteria: 'v21' } : undefined)
       model = out.model
       if (out.quotaExhausted) {
         stopped = out.error ?? '한도/예산 소진'
@@ -519,7 +522,7 @@ for (const { project, pending } of targets) {
         project_id: project.id,
         verdict: v.verdict,
         model: out.model,
-        ...(promptVersionColumn === 'absent' ? {} : { prompt_version: RELEVANCE_CRITERIA_VERSION }),
+        ...(promptVersionColumn === 'absent' ? {} : { prompt_version: PROMPT_VERSION }),
         judged_at: new Date().toISOString(),
         reason: v.reason,
         ...(infoColumn === 'absent' ? {} : { product_informative: v.product_informative }),
@@ -609,7 +612,7 @@ await tracker.finish({
   summary: {
     projects: targets.length, judged: judgedTotal, remaining, blocker,
     unjudged_before: unjudgedBefore, unjudged_after: unjudgedAfter, excluded_sources: excludedSources, excluded_inputs: excludedTotal,
-    attempted: attemptedTotal, errors: errorTotal, prompt_version: RELEVANCE_CRITERIA_VERSION, prompt_version_column: promptVersionColumn,
+    attempted: attemptedTotal, errors: errorTotal, prompt_version: PROMPT_VERSION, prompt_version_column: promptVersionColumn,
     caps: { boosted: caps.boosted, relaxed: caps.relaxed, cap_usd: capUsd, hard_cap_usd: caps.hardCapUsd, until: caps.untilMs ? new Date(caps.untilMs).toISOString() : null },
     chain: { hop: chainHop, relaunch: chain.relaunch, reason: chain.reason, next_hop: chain.nextHop, next_zero_streak: chain.nextZeroStreak, wait_min: chain.waitMin },
     // 상한·한도로 멈췄으면 몇 개째였는지(§7.2). quota_reset_at 은 재시도 슬롯(r1·r2)이 읽는다.

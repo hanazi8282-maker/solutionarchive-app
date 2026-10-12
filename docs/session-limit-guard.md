@@ -101,6 +101,25 @@
     계수를 보수적으로($1.29) 잡은 것은 분모 쪽 보정일 뿐, 빠진 사용을 메우지 않는다.
 - Notion: 조정(up/down) 이 있고 agent_runs 에 남은 run 만 `upsertStatusLog`(marker `extract-autotune`, 트랙 CTO)로 미러한다. 실패는 경고만. nightly-extract 의 env 에 `NOTION_API_TOKEN` 이 없으면 미러는 'env' 로 실패한다 — 정본은 agent_runs.
 
+## T2 전량 판정 — 판정 전용 캡 · 자기 호출 체인
+
+코드 `lib/analysis/relevance-judge-all.ts` · `session-guard.ts relevanceCaps`, 셀프테스트 `scripts/relevance-judge-all-selftest.mjs`(CI build-check 등록).
+
+- 판정 전용 캡: config `relevance_session_cap_pct`·`relevance_hard_cap_pct` 는 `relevance_cap_until`(ISO) **이전에만** T2 가 쓴다. 그 시각이 지나면 설정을 안 고쳐도 기본 15%/30%($6.45/$12.9)로 돌아간다. until 을 못 읽으면 기본값. extract·번역·백필은 이 키를 안 읽는다.
+- 저장은 insert-only(`ON CONFLICT (input_id) DO NOTHING`) — 이미 있는 판정·사람 채점은 덮지 않는다. 호출 오류 묶음은 저장하지 않고 빈 칸으로 남겨 다음 실행이 다시 채운다.
+- 원문·판정 캐시는 1,000행씩 페이지로 전부 읽는다. 순서: 소스 라운드로빈(소스 안 최신 먼저) · `RELEVANCE_EXCLUDE_SOURCES`(기본 youtube) 제외 · `RELEVANCE_LAST_SOURCES`(기본 kakao_cafe,kakao_blog) 맨 뒤. 제외 소스는 fail-closed — 'none' 일 때만 전부 허용, 그 밖의 값은 기본(youtube)에 더해진다(오타가 유튜브를 열지 않는다, 원문에 없는 이름은 경고). 맨 뒤 소스는 'none' = 없음.
+- 마감 `RELEVANCE_DEADLINE_MIN`(기본 80분) 뒤엔 새 묶음을 시작하지 않는다(`stop_reason='deadline'`, 정상 경계). job timeout 120분.
+- 체인: 실행이 끝나면 `decideRelaunch` 가 다음 `workflow_dispatch` 를 부를지 정하고 `relaunch` job(이 job 만 `actions: write`, `if: !cancelled()` — 사람이 Cancel 하면 안 부른다)이 부른다. 멈춤 = 미판정 0 · until 만료 · 정지 사유 quota/weekly_stop/hard_cap/cost_unknown/guard_config/save_failed · 오류율 5% 초과 · 연속 2회 0건 · 체인 하나당 hop 24 초과 · 주간(하한) ≥ `relevance_chain_weekly_stop_pct` 또는 확인 불가 · 5시간 창 확인 불가. 5시간 창만 `relevance_chain_window5h_stop_pct` 이상이면 90분 쉬고 부른다.
+- **오늘 한정 완화(남헌 v61)** — config `relevance_relax_until`(2026-10-13 00:00 KST) 전 ∧ `relevance_cap_until` 전: 판정 캡 `relevance_relax_cap_pct`(10000% ≈ $4,300, 사실상 무제한) · 5시간 창 안전선·90분 휴식·창 확인 불가 정지 꺼짐 · 주간 '확인 불가' 는 정지 사유 아님(주간 ≥ 90% 확인되면 정지) · hop 상한 체인당 60. 한도 오류(quota)·오류율 5%·연속 0건·insert-only·`RELEVANCE_CHAIN=off` 는 그대로. 그 시각이 지나면 코드가 자동으로 캡 20%/35%·5시간 창 50%(90분 휴식)·주간 확인 불가 정지·hop 24 로 돌아간다(설정 파일 원복 불필요). 주간 안전선은 v61 로 60 → 90%.
+- **hop 24 는 체인 하나당이다 — 하루 총량 상한이 아니다.** 매일 정규 크론(KST 04:03)이 hop 0 으로 새 체인을 연다. 체인을 실제로 멈추는 장치는 아래 넷이다:
+  - `relevance_cap_until`(config) — 지나면 체인·판정 전용 캡이 같이 꺼진다. 과거로 바꾸면 즉시.
+  - 주간 안전선 `relevance_chain_weekly_stop_pct`(90%, 하한 기준 — v61) — 넘거나 확인 불가면 다음 hop 을 안 부른다.
+  - 연속 2회 처리 0건 — 진전 없는 체인(머리말뿐인 원문만 남음·사전필터 enforce 로 전부 빠짐 등)을 끊는다.
+  - 리포 변수 `RELEVANCE_CHAIN=off` — 다음 hop 부터. Cancel 한 실행 뒤 재시도 크론이 이어받는 것까지 확실히 막으려면 이걸 쓴다.
+- 원문 읽기: 후보 프로젝트 전부는 미판정 **수**만 센다(`countFor` — `id, source_key` 만). `raw_text` 는 이번 실행에 돌 프로젝트(최대 `RELEVANCE_MAX_PROJECTS`)만 읽는다.
+- 대기열: concurrency 는 실행 1 + 대기 1 이다. 이미 대기 중인 실행이 있으면 부르지 않는다(대기 크론을 밀어내 취소시키면 watchdog 가 실패로 읽는다). 그 대기 실행이 재시도 크론(r1·r2)이고 할 일이 없으면, 직전 실행의 `summary.chain.relaunch=true`(6시간 이내)를 보고 그 hop 을 이어받는다(`chainCarryOf`).
+- 끄기: 리포 변수 `RELEVANCE_CHAIN=off`(다음 hop 부터) · until 을 과거로 · relaunch job 삭제.
+
 ## 이 가드가 보장하지 않는 것
 
 - 작업 단위별 캡이라 같은 5시간 창에 두 작업이 들어가면 창 합산은 소프트 30% 근처(하드로는 60%)까지 갈 수 있다(합산 상한 없음 — 남헌 결정). `window5h_pct` 로 보일 뿐 막지는 않는다.

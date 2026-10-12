@@ -228,10 +228,12 @@ const labelMig = read('supabase/migrations/20260930000014_review_verdict_labels.
 const sampleScript = read('scripts/relevance-grading-sample.mjs')
 t('라벨 마이그: nullable ADD COLUMN + 허용값 CHECK', labelMig.includes('ADD COLUMN IF NOT EXISTS impact') && labelMig.includes("impact IN ('high','mid','low')") && labelMig.includes("community_signal IN ('pain','demand','objection')") && !/NOT NULL|UPDATE public|DROP /.test(labelMig.split('-- 확인 쿼리')[0].replace(/^--.*$/gm, '')))
 t('라벨 마이그: 미적용 표기·예외 5개 해당 없음', labelMig.includes('**미적용**') && labelMig.includes('해당 없음'))
-t('배치가 라벨을 저장하고, 컬럼 없으면 라벨만 버린다', auto.includes('LABEL_KEYS') && auto.includes("'PGRST204'") && auto.includes('라벨 미기록(마이그 미적용)'))
+// 컬럼 없음 폴백은 lib/analysis/relevance-judge-all.ts saveWithColumnFallback 으로 옮겼다(실행 검사는 relevance-judge-all-selftest §8).
+const judgeAll = read('lib/analysis/relevance-judge-all.ts')
+t('배치가 라벨을 저장하고, 컬럼 없으면 라벨만 버린다', auto.includes('LABEL_KEYS') && auto.includes('saveWithColumnFallback(') && judgeAll.includes("'PGRST204'") && judgeAll.includes('라벨 미기록(마이그 미적용)'))
 t('채점표가 라벨 컬럼 이름을 부르지 않고(*) 태그를 붙인다', sampleScript.includes(".select('*')") && sampleScript.includes('impactFrequencyTags('))
 
-t('배치가 product_informative 를 저장하고, 컬럼 없으면 그 필드만 뺀다', auto.includes('product_informative: v.product_informative') && auto.includes("infoColumn = 'absent'") && auto.includes('정보 판정 미기록(마이그 미적용)'))
+t('배치가 product_informative 를 저장하고, 컬럼 없으면 그 필드만 뺀다', auto.includes('product_informative: v.product_informative') && judgeAll.includes("cols.info = 'absent'") && judgeAll.includes('정보 판정 미기록(마이그 미적용)'))
 const gradeImport = read('scripts/relevance-grading-import.mjs')
 t('채점 import: 정보 열 → human_product_informative, 관련 칸 비면 human_verdict·human_graded_at 불변',
   gradeImport.includes('human_product_informative: m.product_informative') && gradeImport.includes('m.verdict !== null ? { human_verdict: m.verdict, human_graded_at: now }'))
@@ -266,7 +268,8 @@ t('배치가 T1 선별을 재사용한다', auto.includes('selectInputs('))
   t("대상 상태: .in('status', AUTO_EXTRACT_STATUSES) 로 조회한다", auto.includes(".in('status', AUTO_EXTRACT_STATUSES)"))
   t("대상 상태: 리터럴 .eq('status', 'collecting') 가 없다", !auto.includes(".eq('status', 'collecting')"))
   t('대상 상태: collecting·extracted 를 포함한다', gate.AUTO_EXTRACT_STATUSES.includes('collecting') && gate.AUTO_EXTRACT_STATUSES.includes('extracted'))
-  t('대상 상태: 하루 프로젝트 상한은 그대로(RELEVANCE_MAX_PROJECTS 기본 5)', auto.includes('num(process.env.RELEVANCE_MAX_PROJECTS, 5)'))
+  // 전량 판정(남헌 결정)에서 5 → 30. 실제 멈춤은 캡·마감(RELEVANCE_DEADLINE_MIN)이 먼저 건다.
+  t('대상 상태: 실행당 프로젝트 상한(RELEVANCE_MAX_PROJECTS 기본 30)', auto.includes('num(process.env.RELEVANCE_MAX_PROJECTS, 30)'))
   const second = read('scripts/relevance-second-judge-auto.mjs')
   t('2차는 프로젝트 상태로 거르지 않는다(1차 판정 행을 따라간다 = 같은 집합)', !/analysis_projects[\s\S]{0,200}\.(eq|in)\('status'/.test(second))
 }

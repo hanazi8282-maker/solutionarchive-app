@@ -170,7 +170,7 @@ t('수집 워크플로가 KST 02:37 슬롯을 유지한다', /cron: '37 17 \* \*
 t('관련성 워크플로 timeout 120분 · 스크립트 마감 80분(마감 < timeout)', /timeout-minutes: 120/.test(relevanceYml) && /RELEVANCE_DEADLINE_MIN: \$\{\{ vars\.RELEVANCE_DEADLINE_MIN \|\| '80' \}\}/.test(relevanceYml))
 // relevance 는 1회 유지다 — LLM 무료 티어를 더 태우지 않기로 한 결정(Q2(a)). extract 는 아래 6번 끝.
 // v30 §5: 정규 1개(19:03Z) + 한도 정지 뒤에만 일하는 재시도 2개(r1·r2). 정규 판정 횟수는 그대로 하루 1회다.
-t('관련성 워크플로는 정규 cron 1개 + 재시도 전용 2개 + 자동 재개 슬롯 z 1개(남헌 v67, 정규 판정은 하루 1회 그대로)', (relevanceYml.match(/- cron:/g) ?? []).length === 4 && /cron: '3 19 \* \* \*'/.test(relevanceYml) && /cron: '17,47 \* \* \* \*'/.test(relevanceYml) && /재시도/.test(relevanceYml))
+t('관련성 워크플로는 정규 cron 1개 + 재시도 전용 2개', (relevanceYml.match(/- cron:/g) ?? []).length === 3 && /cron: '3 19 \* \* \*'/.test(relevanceYml) && /재시도/.test(relevanceYml))
 const extractYml = readFileSync(new URL('../.github/workflows/nightly-extract.yml', import.meta.url), 'utf8')
 // extract 는 2026-09-28 남헌 D1·D3 으로 3슬롯(s1 기존 · s2 KST 12:33 · s3 KST 18:33). 크론 줄 = EXTRACT_SLOTS 키, 1:1.
 const extractCrons = [...extractYml.matchAll(/- cron: '([^']+)'/g)].map(m => m[1])

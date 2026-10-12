@@ -319,7 +319,7 @@ export function sessionLine(b: ReturnType<typeof sessionBlock>): string {
 // ── T2 재시도 슬롯 ──────────────────────────────────────────────
 
 /** nightly-relevance.yml 크론 → 슬롯. main 은 정규 1회, r1·r2 는 한도 정지 뒤 재시도 전용(일이 없으면 기록 없이 끝난다). */
-export const RELEVANCE_SLOTS: Readonly<Record<string, string>> = { '3 19 * * *': 'main', '3 2 * * *': 'r1', '3 6 * * *': 'r2', '17,47 * * * *': 'z' }
+export const RELEVANCE_SLOTS: Readonly<Record<string, string>> = { '3 19 * * *': 'main', '3 2 * * *': 'r1', '3 6 * * *': 'r2' }
 
 /**
  * T2 재시도 슬롯이 일할 차례인가(순수함수). rows = 최근 relevance-judge 행.
@@ -353,57 +353,6 @@ export function relevanceRetryDecision(
 }
 
 /**
- * 자동 재개 슬롯 'z'(30분마다, 남헌 v67 §2-1-5) — 체인이 멈춰 있고 이어 가도 안전할 때만 새 실행을 시작한다(순수함수).
- * 규칙: 가장 최근 relevance-judge 행(수동·재시도·재개 포함) 하나만 본다.
- *  · 실행 중(running): 3시간 안이면 쉼, 넘으면 죽은 실행이라 재개.
- *  · 한도(quota) 정지: CLI 리셋 시각(있으면) 또는 정지 + cooldownMs 가 지나면 재개, 아니면 쉼(다음 30분에 다시 본다).
- *  · 체인이 "이어 가라"(relaunch=true)를 남겼는데 20분 넘게 다음 실행이 없으면 체인이 끊긴 것 — 재개.
- *  · relaunch=false 이면: 사유가 hop 상한이면 재개, 그 밖(오류율·하드 캡·설정 확인 불가·미판정 0건·연속 0건 등)은 사람이 볼 것이라 쉼.
- *  · 행이 없거나 위에 안 걸리면 쉼. 킬 스위치(RELEVANCE_CHAIN=off)·만료는 호출부가 본다.
- */
-export function relevanceResumeDecision(
-  rows: readonly RunRow[],
-  o: { now: Date; cooldownMs: number; runningStaleMs?: number; relaunchGraceMs?: number },
-): { run: boolean; reason: string } {
-  const stale = o.runningStaleMs ?? 3 * 3_600_000
-  const grace = o.relaunchGraceMs ?? 20 * 60_000
-  const last = rows
-    .filter(r => r.run_key.startsWith('relevance-judge-'))
-    .sort((a, b) => Date.parse(b.started_at ?? '') - Date.parse(a.started_at ?? ''))[0]
-  if (!last) return { run: false, reason: '판정 실행 기록 없음 — 재개할 것이 없다' }
-  const started = Date.parse(last.started_at ?? '')
-  const finished = Date.parse(last.finished_at ?? '')
-  const now = o.now.getTime()
-  if (last.status === 'running') {
-    if (!Number.isFinite(started)) return { run: false, reason: '실행 중 행의 시작 시각 확인 불가 — 재개하지 않는다' }
-    return now - started > stale
-      ? { run: true, reason: `최근 실행(${last.run_key})이 ${Math.round((now - started) / 60_000)}분째 running — 죽은 실행으로 보고 재개` }
-      : { run: false, reason: `최근 실행(${last.run_key})이 아직 돌고 있다` }
-  }
-  if (isQuotaBlocked(last)) {
-    const reset = Date.parse(String(last.summary?.quota_reset_at ?? ''))
-    const due = Number.isFinite(reset) ? reset : Number.isFinite(finished) ? finished + o.cooldownMs : NaN
-    if (!Number.isFinite(due)) return { run: false, reason: '한도 정지 시각 확인 불가 — 재개하지 않는다' }
-    return now >= due
-      ? { run: true, reason: `한도 정지(${last.run_key}) 뒤 ${Number.isFinite(reset) ? 'CLI 리셋 시각' : `${o.cooldownMs / 3_600_000}시간`} 경과 — 재개` }
-      : { run: false, reason: `한도 정지 중 — ${new Date(due).toISOString()} 이후에 본다` }
-  }
-  const chain = (last.summary?.chain ?? null) as { relaunch?: unknown; reason?: unknown } | null
-  if (chain?.relaunch === true) {
-    if (!Number.isFinite(finished)) return { run: false, reason: '체인 이어 가기 표시는 있으나 종료 시각 확인 불가 — 재개하지 않는다' }
-    return now - finished > grace
-      ? { run: true, reason: `${last.run_key} 가 이어 가라고 남겼는데 ${Math.round((now - finished) / 60_000)}분째 다음 실행이 없다 — 체인이 끊겨 재개` }
-      : { run: false, reason: '체인이 곧 다음 실행을 부른다' }
-  }
-  if (chain?.relaunch === false) {
-    const why = String(chain.reason ?? '')
-    if (/hop 상한/.test(why)) return { run: true, reason: `체인이 hop 상한으로 멈춤 — 재개 (${why})` }
-    return { run: false, reason: `체인 정지 사유가 사람 확인 대상이거나 끝이다 — 재개하지 않는다 (${why || '사유 없음'})` }
-  }
-  return { run: false, reason: `최근 실행(${last.run_key}, ${last.status})에 체인 정보 없음 — 재개하지 않는다` }
-}
-
-/**
  * nightly-relevance 한 실행의 run_key 접미사 — 판정(relevance-judge)과 뒤 스텝(2차·자동 승인·ca-v1)이 한 벌로 쓴다.
  * 정규 '' · 재시도 '-r1'/'-r2' · 수동 '-m<run_id>' · 로컬 '-local'. 재시도·수동이 같은 날 정규 행을 덮지 않게 한다(createTracker 는 run_key upsert).
  * 표에 없는 크론은 throw — yml 과 코드가 갈라진 것을 조용히 정규로 접지 않는다.
@@ -412,7 +361,7 @@ export function relevanceRunSuffix(env: { eventName?: string; slotCron?: string;
   if (env.eventName === 'schedule') {
     const slot = RELEVANCE_SLOTS[(env.slotCron ?? '').trim()]
     if (!slot) throw new Error(`슬롯 표에 없는 크론 '${env.slotCron ?? ''}' — nightly-relevance.yml 과 RELEVANCE_SLOTS 를 맞춰라`)
-    return slot === 'main' ? '' : slot === 'z' ? `-z${env.runId ?? ''}` : `-${slot}`
+    return slot === 'main' ? '' : `-${slot}`
   }
   return env.actions ? `-m${env.runId ?? ''}` : '-local'
 }

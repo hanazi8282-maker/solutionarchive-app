@@ -47,6 +47,7 @@ if (!sb) die('DB 연결 실패 — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_R
 
 // 2차 판정 기준(남헌 v67): 1차와 같은 RELEVANCE_CRITERIA 변수 — 기본 v22, v21|old 면 옛 지시문.
 const secondV22 = !['old', 'v21'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())
+if (!['old', 'v21', 'v22'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())) warn(`RELEVANCE_CRITERIA='${process.env.RELEVANCE_CRITERIA}' 는 old|v21|v22 가 아니다 — v22 로 처리한다`)
 const secondInstructions = secondV22 ? SECOND_OPINION_INSTRUCTIONS_V22 : SECOND_OPINION_INSTRUCTIONS
 log(`야간 2차 판정${dry ? ' (--dry: 대상 선정만)' : ''} — provider=gemini(고정) · 기준 ${RELEVANCE_CRITERIA_VERSION} · since ${since.toISOString()}${process.env.AUTO_APPROVAL_SINCE ? '' : '(AUTO_APPROVAL_SINCE 없음 → 오늘 KST)'} · 상한 ${MAX}건`)
 

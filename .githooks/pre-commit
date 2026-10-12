@@ -12,7 +12,7 @@ ROOT="$(git rev-parse --show-toplevel)"
 SYNC="$ROOT/scripts/sync-content-skill.sh"
 REFS="$ROOT/.claude/skills/content-gate/references"
 
-if [ -f "$SYNC" ] && ! bash "$SYNC" --check >/dev/null 2>&1; then
+if [ -f "$SYNC" ] && [ -f "$ROOT/methodology/content/MANIFEST.txt" ] && ! bash "$SYNC" --check >/dev/null 2>&1; then
   echo "[pre-commit] content-gate references 가 정본과 어긋났다. 동기화한다."
   if ! bash "$SYNC"; then
     echo "[pre-commit] 동기화 실패. 커밋을 중단한다." >&2
@@ -27,7 +27,10 @@ fi
 # 당연히 바뀐다. 막는 것은 사본 사고(solfa==pdp) / 구버전 되돌림(구조 카운트 감소)
 # / 누락 세 가지다. 셋 다 실제로 난 사고다.
 MANIFEST_SCRIPT="$ROOT/scripts/manifest-methodology.py"
-if [ -f "$MANIFEST_SCRIPT" ]; then
+# methodology/content 는 2026-10-13 부터 비공개 리포로 옮겨 추적하지 않는다(B안). 이 클론에 폴더가 없으면 둘 다 건너뛴다.
+if [ -f "$MANIFEST_SCRIPT" ] && [ ! -f "$ROOT/methodology/content/MANIFEST.txt" ]; then
+  echo "[pre-commit] MANIFEST 검사 건너뜀 — 비공개 리포 이동 후 이 클론에는 폴더가 없다"
+elif [ -f "$MANIFEST_SCRIPT" ]; then
   PY_BIN=""
   for c in py python3 python; do
     if command -v "$c" >/dev/null 2>&1; then PY_BIN="$c"; break; fi
@@ -43,5 +46,6 @@ if [ -f "$MANIFEST_SCRIPT" ]; then
     exit 1
   fi
   PYTHONIOENCODING=utf-8 "$PY_BIN" "$MANIFEST_SCRIPT" --write >/dev/null
-  git add -- "$ROOT/methodology/content/MANIFEST.txt"
+  # 무시된(미추적) 파일에 git add 하면 훅이 죽어 모든 커밋이 막힌다 — 무시 대상이면 건너뛴다.
+  git check-ignore -q -- "$ROOT/methodology/content/MANIFEST.txt" || git add -- "$ROOT/methodology/content/MANIFEST.txt"
 fi

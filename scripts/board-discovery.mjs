@@ -9,7 +9,7 @@
 // 쓰기: DB 0. --write 일 때만 파일 —
 //   reports/<KST>/board-targets-<stamp>.sql(+ -rollback.sql)  채택 게시판 INSERT 초안(⛔ 미적용, 적용은 오케스트레이터 §10.2)
 //   reports/<KST>/board-demote-<stamp>.sql(+ -rollback.sql)   등재 3일 뒤 신규 0 강등 UPDATE 초안(⛔ 미적용)
-//   reports/board-discovery.json                               대장(proposed | suggested=어댑터 미지원 — 재제안 방지 · 강등 평가 재료)
+//   reports/board-discovery.json                               대장(proposed | closed=타깃이 active 아님(강등 적용 등) | suggested=어댑터 미지원)
 // 이 경로는 review_targets 에 직접 쓰지 않는다 — §10.1 의 무인 등재 허용은 창문 경로(v53)에만 있다. 넓히려면 남헌 결정.
 
 import fs from 'node:fs'
@@ -146,6 +146,11 @@ export function boardDemotion(ledger, targets, now) {
     if (!t?.id || !t.created_at) continue // 아직 미적용
     e.id = t.id
     e.registered_at = t.created_at
+    // 강등 SQL 이 적용됐거나 사람이 닫은 타깃 = 종결. proposed 로 두면 매일 '확인 불가(이미 exhausted)' 소음이 된다.
+    if (t.status !== 'active') {
+      Object.assign(e, { status: 'closed', closed_reason: `target ${t.status}`, closed_at: now.toISOString() })
+      continue
+    }
     entries.push({ id: t.id, status: 'adopted', registered_at: t.created_at, baseline_total_collected: 0 })
   }
   return planDemotion(entries, targets, now)

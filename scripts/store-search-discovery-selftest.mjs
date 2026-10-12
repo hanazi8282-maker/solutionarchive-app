@@ -68,8 +68,21 @@ t('gate: silent + allowed = collect', storeGate({ ...ok, tos_status: 'silent' },
 t('gate: robots unverified = suggest', storeGate(ok, 'unverified').mode, 'suggest')
 t('gate: robots null = suggest', storeGate(ok, null).mode, 'suggest')
 t('gate: robots disallowed = suggest', storeGate(ok, 'disallowed').mode, 'suggest')
-// 소유자 예외는 검색 경로로 넓히지 않는다 — override 칸이 있어도 robots 금지면 suggest
-t('gate: owner override ignored', storeGate({ ...ok, override: 'owner_2026-10-05', robots_status: 'disallowed' }, 'disallowed').mode, 'suggest')
+// 소유자 예외는 검색 경로로 넓히지 않는다 — storeGate 가 override·robots_status 칸을 **읽지조차 않는다**는 것을 증명:
+// 두 칸에 접근하면 던지는 Proxy 를 넘긴다. 읽으면 예외가 나서 이 테스트가 깨진다.
+const touched = []
+const trap = new Proxy({ ...ok, override: 'owner_2026-10-05', robots_status: 'disallowed' }, {
+  get(o, k) {
+    if (k === 'override' || k === 'robots_status') { touched.push(k); throw new Error(`storeGate read ${String(k)}`) }
+    return o[k]
+  },
+})
+let gOver = null
+try { gOver = storeGate(trap, 'disallowed') } catch (e) { gOver = { mode: `threw: ${e.message}` } }
+t('gate: override never read', touched.join(), '')
+t('gate: override+robots disallowed → suggest', gOver.mode, 'suggest')
+// 같은 입력에서 override 유무가 결과를 바꾸지 않는다(허용 쪽 robots 에서도)
+t('gate: override irrelevant (allowed)', JSON.stringify(storeGate({ ...ok, override: 'owner_2026-10-06' }, 'allowed')), JSON.stringify(storeGate(ok, 'allowed')))
 
 // 계획: 영역별 상한
 const areaCodes = ['1', '2', '3', '4', '5']

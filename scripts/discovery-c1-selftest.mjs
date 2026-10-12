@@ -126,6 +126,12 @@ t('demote: 3일 뒤 신규 0 → 대상', dm.demote.map((d) => d.target.product_
 t('demote: 수집 있음 → 유지', dm.kept.length, 1)
 t('demote: 방문 없음 → 확인 불가', dm.unverified.length, 1)
 t('demote: ledger id filled', ledgerD.entries[0].id, id(7))
+// 강등 SQL 적용 뒤(타깃 exhausted) → 대장 종결, 다음 평가에 다시 안 나온다
+const tD2 = tD.map((x) => (x.product_ref === 'board:7' ? { ...x, status: 'exhausted' } : x))
+const dm2 = boardDemotion(ledgerD, tD2, NOW)
+t('demote: applied → ledger closed', `${ledgerD.entries[0].status}/${ledgerD.entries[0].closed_reason}`, 'closed/target exhausted')
+t('demote: closed not re-evaluated', [...dm2.demote, ...dm2.unverified].some((x) => (x.target ?? x.entry)?.id === id(7)), false)
+t('demote: closed not watched', watchList({ boardLedger: { entries: [{ ...ledgerD.entries[0], registered_at: NOW.toISOString() }] } }, NOW).length, 0)
 t('demote sql: status only + guards', /SET status = 'exhausted'\s+WHERE id IN \('[^']+'::uuid\) AND status = 'active' AND total_collected = 0/.test(renderDemoteSql(dm.demote, 'n')), true)
 
 // 초안

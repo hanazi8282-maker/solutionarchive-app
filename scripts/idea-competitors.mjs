@@ -161,9 +161,14 @@ export function classify(items, { registry, anchorKeys, maxDays, area = 'unknown
 }
 
 // ── 실행 ────────────────────────────────────────────────────────────────
+export const FETCH_TIMEOUT_MS = 20_000
+/** 검색 요청 사이 최소 간격. HN robots 는 404 라 Crawl-delay 선언이 없다 — 우리가 정한 값. */
+export const REQUEST_GAP_MS = 1_500
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
 async function rawFetchText(url) {
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT }, redirect: 'follow' })
+    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT }, redirect: 'follow', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
     return { status: res.status, body: await res.text(), finalUrl: res.url }
   } catch (e) {
     return { status: null, body: '', error: e.message }
@@ -197,7 +202,7 @@ export function renderReport({ date, idea, keywords, plan, rows, requests }) {
   return L.join('\n')
 }
 
-export async function main(argv, { fetchText = rawFetchText, now = new Date(), reportsDir = REPORTS_DIR, cfg = loadConfig(), fileRegistry, log = console.log } = {}) {
+export async function main(argv, { fetchText = rawFetchText, now = new Date(), reportsDir = REPORTS_DIR, cfg = loadConfig(), fileRegistry, log = console.log, wait = sleep } = {}) {
   const opt = (name) => argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? null
   const run = argv.includes('--run')
   const ideaFile = opt('idea-file')
@@ -210,10 +215,19 @@ export async function main(argv, { fetchText = rawFetchText, now = new Date(), r
   const area = opt('area') ?? 'unknown'
   const date = opt('date') ?? kstDate(now)
 
-  const gate = new RobotsCache({ fetchText }, SOURCES.flatMap((s) => s.proceedUnverified ?? []), PRODUCT_TOKEN)
+  // robots.txt 응답 상태를 origin 별로 기억한다. RobotsCache 는 4xx 전부를 '표식 있으면 통과 가능'으로 보지만(runner.ts),
+  // 기존 HN 예외의 실측 근거는 **404** 뿐이다 — 403·429 는 차단·속도 제한 신호라 예외를 열지 않고 멈춘다.
+  const robotsStatus = new Map()
+  const gateFetch = async (url) => {
+    const r = await fetchText(url)
+    if (url.endsWith('/robots.txt')) robotsStatus.set(new URL(url).origin, r.status)
+    return r
+  }
+  const gate = new RobotsCache({ fetchText: gateFetch }, SOURCES.flatMap((s) => s.proceedUnverified ?? []), PRODUCT_TOKEN)
   const plan = []
   const items = []
   let requests = 0
+  let lastAt = null
   for (const s of SOURCES) {
     const p = { key: s.key, name: s.name, tos: s.tos, tosNote: s.tosNote, robots: s.robotsNote, result: '', urls: keywords.map((kw) => s.url(kw)) }
     plan.push(p)
@@ -236,6 +250,16 @@ export async function main(argv, { fetchText = rawFetchText, now = new Date(), r
         got.push(`robots ${d.state} — ${d.reason}`)
         break
       }
+      const rs = robotsStatus.get(new URL(p.urls[i]).origin)
+      if (d.bypassed && rs !== 404) {
+        got.push(`robots.txt HTTP ${rs ?? '응답 없음'} — 확인 불가 예외는 404 일 때만 연다, 중단`)
+        break
+      }
+      if (lastAt !== null) {
+        const gap = Date.now() - lastAt
+        if (gap < REQUEST_GAP_MS) await wait(REQUEST_GAP_MS - gap)
+      }
+      lastAt = Date.now()
       requests++
       const res = await fetchText(p.urls[i])
       if (res.status !== 200) {

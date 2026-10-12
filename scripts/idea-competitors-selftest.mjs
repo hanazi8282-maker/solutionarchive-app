@@ -3,7 +3,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { ideaKeywords, showHnName, parseHnShow, classify, main, SOURCES } from './idea-competitors.mjs'
+import { ideaKeywords, showHnName, parseHnShow, classify, main, SOURCES, REQUEST_GAP_MS, FETCH_TIMEOUT_MS } from './idea-competitors.mjs'
 
 let pass = 0
 let fail = 0
@@ -47,7 +47,8 @@ const fakeFetch = (robots) => async (url) => {
   if (url.endsWith('/robots.txt')) return robots
   return { status: 200, body, finalUrl: url }
 }
-const base = { now: NOW, reportsDir: tmp, log: () => {}, fileRegistry: { dictionary: [], areaMapSlugs: [] } }
+const waits = []
+const base = { now: NOW, reportsDir: tmp, log: () => {}, fileRegistry: { dictionary: [], areaMapSlugs: [] }, wait: async (ms) => void waits.push(ms) }
 calls.length = 0
 const dry = await main(['--idea=AI meeting notes for small sales teams'], { ...base, fetchText: fakeFetch({ status: 404, body: '<html>', finalUrl: '' }) })
 t('드라이런: 네트워크 0 · 파일 0', calls.length === 0 && dry.files === null && dry.requests === 0)
@@ -56,6 +57,14 @@ calls.length = 0
 const run = await main(['--idea=AI meeting notes for small sales teams', '--run', '--max-requests=2', '--area=1'], { ...base, fetchText: fakeFetch({ status: 404, body: '<html>', finalUrl: 'https://hn.algolia.com/robots.txt' }) })
 t('run: 스토어 호스트에는 요청이 하나도 안 간다(robots 포함)', !calls.some((u) => /itunes|apple|play\.google|shopify/.test(u)))
 t('run: HN 은 robots 404 기존 예외로 진행 · 상한 2', run.requests === 2 && calls.filter((u) => u.includes('/api/v1/search')).length === 2 && /상한 2/.test(run.plan.find((p) => p.key === 'hn_show').result))
+t('run: 검색 요청 사이 간격 대기(첫 요청 앞은 없음)', waits.length === 1 && waits[0] > 0 && waits[0] <= REQUEST_GAP_MS)
+// 재현(독립 재검토 #503): robots.txt 가 403·429 면 RobotsCache 는 '표식 있으면 통과'로 보지만, 예외 근거는 404 뿐 → 검색 요청 0.
+for (const st of [403, 429]) {
+  calls.length = 0
+  const r = await main(['--idea=meeting notes', '--run'], { ...base, fetchText: fakeFetch({ status: st, body: '<html>blocked</html>', finalUrl: 'https://hn.algolia.com/robots.txt' }) })
+  t(`run: robots.txt HTTP ${st} → 검색 요청 0 · 중단 사유`, r.requests === 0 && !calls.some((u) => u.includes('/api/v1/search')) && new RegExp(`robots.txt HTTP ${st}`).test(r.plan.find((p) => p.key === 'hn_show').result))
+}
+t('rawFetch 타임아웃 20초 상수', FETCH_TIMEOUT_MS === 20_000 && /AbortSignal\.timeout\(FETCH_TIMEOUT_MS\)/.test(fs.readFileSync(new URL('./idea-competitors.mjs', import.meta.url), 'utf8')))
 t('run: 파일 2개(md·json tier_rows)', fs.existsSync(run.files.md) && Array.isArray(JSON.parse(fs.readFileSync(run.files.json, 'utf8')).tier_rows))
 calls.length = 0
 const blocked = await main(['--idea=meeting notes', '--run'], { ...base, fetchText: async (url) => (calls.push(url), url.endsWith('/robots.txt') ? { status: 200, body: 'User-agent: *\nDisallow: /api/\n', finalUrl: url } : { status: 200, body }) })

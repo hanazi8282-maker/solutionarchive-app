@@ -128,12 +128,16 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
   const src = fs.readFileSync('scripts/relevance-judge-auto.mjs', 'utf8')
   t('판정 스크립트에 직접 upsert 가 없다(저장은 saveVerdictsInsertOnly 한 곳)', !/\.upsert\(/.test(src) && /saveVerdictsInsertOnly\(supabase, payload\)/.test(src))
   t('판정 행에 model·prompt_version 을 쓴다', /model: out\.model,/.test(src) && /prompt_version: PROMPT_VERSION/.test(src))
-  t('기준 v2.1 스위치: 기본 v21, RELEVANCE_CRITERIA=old 로 복귀, prompt_version 이 기준을 가른다', src.includes("process.env.RELEVANCE_CRITERIA ?? 'v21'") && src.includes("!== 'old'") && src.includes("criteria: 'v21'") && src.includes('PROMPT_VERSION = criteriaV21 ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION'))
+  t('기준 스위치(v66·v67): 기본 v22, RELEVANCE_CRITERIA=v21|old 로 복귀, prompt_version 이 기준을 가른다', src.includes("process.env.RELEVANCE_CRITERIA ?? 'v22'") && src.includes("v === 'old' || v === 'v21'") && src.includes('{ criteria: criteriaMode }') && src.includes("criteriaMode === 'v22' ? RELEVANCE_V22_VERSION"))
   const { buildRelevancePrompt } = await import('../lib/analysis/relevance-judge.ts')
   const crit = await import('../lib/analysis/relevance-criteria.ts')
   const oldP = buildRelevancePrompt(null, [{ input_id: 'x', text: 't' }], [])
   const newP = buildRelevancePrompt(null, [{ input_id: 'x', text: 't' }], [], { criteria: 'v21' })
   t('v2.1 프롬프트: 기본 SYSTEM 은 옛 기준 그대로, v21 만 새 기준', oldP.system.includes(crit.RELEVANCE_CRITERIA) && !oldP.system.includes(crit.RELEVANCE_CRITERIA_V21) && newP.system.includes(crit.RELEVANCE_CRITERIA_V21) && !newP.system.includes(crit.RELEVANCE_CRITERIA) && newP.system.includes('"info":true') && newP.user === oldP.user)
+  const p22 = buildRelevancePrompt(null, [{ input_id: 'x', text: 't' }], [], { criteria: 'v22' })
+  t('v2.2 프롬프트: v2.1 규칙 전부 + 경계 원칙(11)~(15), 옛·v21 기준은 빠짐, 출력 키 유지', p22.system.includes(crit.RELEVANCE_CRITERIA_V22) && p22.system.includes('(10) SaaS') && p22.system.includes('(15) 가격 비교') && !p22.system.includes(crit.RELEVANCE_CRITERIA) && !p22.system.includes(crit.RELEVANCE_CRITERIA_V21) && p22.system.includes('"info":true') && p22.user === oldP.user)
+  const so = await import('../lib/analysis/second-opinion.ts')
+  t('2차 판정 v2.2: 같은 기준 상수(criteria_version 줄은 옛 t2d 그대로), 옛 지시문은 그대로', so.SECOND_OPINION_INSTRUCTIONS_V22.includes(crit.RELEVANCE_CRITERIA_V22) && so.SECOND_OPINION_INSTRUCTIONS_V22.includes(`criteria_version 은 "${crit.RELEVANCE_CRITERIA_VERSION}"`) && !so.SECOND_OPINION_INSTRUCTIONS_V22.includes(crit.RELEVANCE_CRITERIA) && so.SECOND_OPINION_INSTRUCTIONS.includes(crit.RELEVANCE_CRITERIA))
   t('호출 오류 묶음은 저장하지 않는다(빈 칸으로 남김)', /if \(out\.error\) \{[\s\S]{0,200}continue/.test(src))
 }
 

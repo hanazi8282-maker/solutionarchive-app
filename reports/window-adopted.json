@@ -1,0 +1,169 @@
+{
+  "_comment": "창문 자율 발굴 등재 대장(scripts/window-discovery.mjs). status adopted|demoted|pending. 새 DDL 없음.",
+  "entries": [
+    {
+      "id": "9c31447c-2816-43af-ab63-d8b31ae85f2f",
+      "source_key": "appstore",
+      "product_ref": "ca:1107711722",
+      "label": "2:ca|hubspot-sales-hub",
+      "anchor_ref": "kr:1107711722",
+      "project_id": "7859840f-aabd-4a6a-acbd-bda42b79fb52",
+      "registered_at": "2026-10-12T01:26:02.651Z",
+      "baseline_total_collected": 0,
+      "new_per_request": 50,
+      "status": "adopted",
+      "rollback": "reports/2026-10-12/window-discovery-rollback-20261012T012602.sql"
+    },
+    {
+      "id": "24cfbc32-4089-4bac-9442-794218997859",
+      "source_key": "appstore",
+      "product_ref": "gb:1107711722",
+      "label": "2:gb|hubspot-sales-hub",
+      "anchor_ref": "kr:1107711722",
+      "project_id": "7859840f-aabd-4a6a-acbd-bda42b79fb52",
+      "registered_at": "2026-10-12T01:26:02.651Z",
+      "baseline_total_collected": 0,
+      "new_per_request": 50,
+      "status": "adopted",
+      "rollback": "reports/2026-10-12/window-discovery-rollback-20261012T012602.sql"
+    },
+    {
+      "id": "69d93823-353f-4e21-87c9-f3a210a40d00",
+      "source_key": "appstore",
+      "product_ref": "au:1107711722",
+      "label": "2:au|hubspot-sales-hub",
+      "anchor_ref": "kr:1107711722",
+      "project_id": "7859840f-aabd-4a6a-acbd-bda42b79fb52",
+      "registered_at": "2026-10-12T01:26:02.651Z",
+      "baseline_total_collected": 0,
+      "new_per_request": 41,
+      "status": "adopted",
+      "rollback": "reports/2026-10-12/window-discovery-rollback-20261012T012602.sql"
+    },
+    {
+      "id": "7e087afc-3e16-437b-a9b1-7cc6de953133",
+      "source_key": "appstore",
+      "product_ref": "ca:1628773284",
+      "label": "5:ca|wordtune",
+      "anchor_ref": "us:1628773284",
+      "project_id": "730ec073-a2b5-4537-a5f0-3beabeffe058",
+      "registered_at": "2026-10-12T01:26:02.651Z",
+      "baseline_total_collected": 0,
+      "new_per_request": 22,
+      "status": "adopted",
+      "rollback": "reports/2026-10-12/window-discovery-rollback-20261012T012602.sql"
+    },
+    {
+      "id": "ac24f54c-699a-4d59-b11f-f3189548e145",
+      "source_key": "appstore",
+      "product_ref": "in:1628773284",
+      "label": "5:in|wordtune",
+      "anchor_ref": "us:1628773284",
+      "project_id": "730ec073-a2b5-4537-a5f0-3beabeffe058",
+      "registered_at": "2026-10-12T01:26:02.651Z",
+      "baseline_total_collected": 0,
+      "new_per_request": 22,
+      "status": "adopted",
+      "rollback": "reports/2026-10-12/window-discovery-rollback-20261012T012602.sql"
+    },
+    {
+      "source_key": "appstore",
+      "product_ref": "ca:1493170277",
+      "label": "2:ca|zoominfo",
+      "anchor_ref": "us:1493170277",
+      "sort": "mostRecent",
+      "new_per_request": 6,
+      "status": "pending",
+      "reason": "daily_cap",
+      "pending_since": "2026-10-12T01:26:02.651Z"
+    },
+    {
+      "source_key": "appstore",
+      "product_ref": "in:1107711722",
+      "label": "2:in|hubspot-sales-hub",
+      "anchor_ref": "kr:1107711722",
+      "sort": "mostRecent",
+      "new_per_request": 20,
+      "status": "pending",
+      "reason": "daily_cap",
+      "pending_since": "2026-10-12T01:26:02.651Z"
+    },
+    {
+      "source_key": "appstore",
+      "product_ref": "sg:1107711722",
+      "label": "2:sg|hubspot-sales-hub",
+      "anchor_ref": "kr:1107711722",
+      "sort": "mostRecent",
+      "new_per_request": 8,
+      "status": "pending",
+      "reason": "daily_cap",
+      "pending_since": "2026-10-12T01:26:02.651Z"
+    },
+    {
+      "source_key": "appstore",
+      "product_ref": "ie:1107711722",
+      "label": "2:ie|hubspot-sales-hub",
+      "anchor_ref": "kr:1107711722",
+      "sort": "mostRecent",
+      "new_per_request": 5,
+      "status": "pending",
+      "reason": "daily_cap",
+      "pending_since": "2026-10-12T01:26:02.651Z"
+    },
+    {
+      "source_key": "appstore",
+      "product_ref": "nz:1107711722",
+      "label": "2:nz|hubspot-sales-hub",
+      "anchor_ref": "kr:1107711722",
+      "sort": "mostRecent",
+      "new_per_request": 9,
+      "status": "pending",
+      "reason": "daily_cap",
+      "pending_since": "2026-10-12T01:26:02.651Z"
+    },
+    {
+      "source_key": "appstore",
+      "product_ref": "gb:977304452",
+      "label": "2:gb|clari",
+      "anchor_ref": "us:977304452",
+      "sort": "mostRecent",
+      "new_per_request": 6,
+      "status": "pending",
+      "reason": "daily_cap",
+      "pending_since": "2026-10-12T01:26:02.651Z"
+    },
+    {
+      "source_key": "appstore",
+      "product_ref": "ca:1289289459",
+      "label": "2:ca|gong",
+      "anchor_ref": "kr:1289289459",
+      "sort": "mostRecent",
+      "new_per_request": 7,
+      "status": "pending",
+      "reason": "daily_cap",
+      "pending_since": "2026-10-12T01:26:02.651Z"
+    },
+    {
+      "source_key": "appstore",
+      "product_ref": "ca:6474658497",
+      "label": "2:ca|instantly",
+      "anchor_ref": "us:6474658497",
+      "sort": "mostRecent",
+      "new_per_request": 5,
+      "status": "pending",
+      "reason": "daily_cap",
+      "pending_since": "2026-10-12T01:26:02.651Z"
+    },
+    {
+      "source_key": "appstore",
+      "product_ref": "gb:1628773284",
+      "label": "5:gb|wordtune",
+      "anchor_ref": "us:1628773284",
+      "sort": "mostRecent",
+      "new_per_request": 15,
+      "status": "pending",
+      "reason": "daily_cap",
+      "pending_since": "2026-10-12T01:26:02.651Z"
+    }
+  ]
+}

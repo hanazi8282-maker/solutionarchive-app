@@ -93,6 +93,7 @@ on:
           - kakao_cafe
           - wordpress_org
           - shopify_apps
+          - n8n_community
         default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수(비우면 소스별 램프 단계, 램프 없으면 10)'

@@ -63,12 +63,14 @@ export function clipText(s, max = TEXT_MAX) {
  * 정렬: impact high→mid→low→NULL, 그다음 collected_at 최신. 상한 cap.
  * 반환: Map<project_id, { items: [...], total }> — total 은 상한 전 건수(리서처가 "더 있다" 를 안다).
  */
-export function groupVoc(rows, { cap = PER_PROJECT_CAP, textMax = TEXT_MAX } = {}) {
+export function groupVoc(rows, { cap = PER_PROJECT_CAP, textMax = TEXT_MAX, blockedSources = new Set() } = {}) {
   const by = new Map()
   for (const r of rows ?? []) {
     if (effectiveVerdict(r) !== 'relevant') continue
     const inp = r.analysis_inputs
     if (!inp || !inp.raw_text) continue            // purge 됐거나 임베드 실패 — 재료 아님
+    // v70 Fable 검수 #6: 소스 정책이 'none'(인용 0) 인 소스의 원문은 리서처 파일에 싣지 않는다 — 리서처·칼럼 초안은 정책을 알 길이 없다.
+    if (inp.source_key && blockedSources.has(inp.source_key)) continue
     if (inp.source_type && inp.source_type !== 'review') continue
     if (!r.project_id || !r.input_id) continue
     const g = by.get(r.project_id) ?? { items: [], total: 0 }
@@ -132,7 +134,7 @@ const PAGE = 1000  // PostgREST 기본 상한. 넘기면 조용히 잘린다 —
 
 const BASE_COLS = 'input_id, project_id, verdict, human_verdict'
 const EXTRA_COLS = ', auto_approved_at, impact, frequency, community_signal, wtp_mentioned'
-const EMBED = ', analysis_inputs!inner(raw_text, source_type, collected_at)'
+const EMBED = ', analysis_inputs!inner(raw_text, source_type, collected_at, source_key)'
 
 /** relevant 판정 전량. `{ rows, labels }` 또는 `{ error }`. 라벨·자동승인 컬럼 미적용이면 그것 없이 다시 읽는다. */
 export async function fetchRelevantRows(sb) {
@@ -161,6 +163,14 @@ export async function fetchRelevantRows(sb) {
   return { rows: r.rows, labels }
 }
 
+/** quote_policy='none' 인 소스 키 집합. 못 읽으면 { error }. */
+export async function loadBlockedSources(sb) {
+  const { data, error } = await sb.from('review_sources').select('key, quote_policy')
+  if (error) return { error: `${error.code ?? ''} ${error.message}`.trim() }
+  if (!Array.isArray(data)) return { error: '응답이 배열이 아니다' }
+  return { blocked: new Set(data.filter((s) => s.quote_policy === 'none').map((s) => s.key)) }
+}
+
 async function main() {
   const dry = process.argv.includes('--dry')
   const { createClient } = await import('../lib/supabase/server.ts')
@@ -176,7 +186,10 @@ async function main() {
   const res = await fetchRelevantRows(sb)
   if (res.error) unavailable(MISSING_TABLE.test(res.error) ? `review_relevance_verdicts 없음(마이그 20260929000002 미적용) — ${res.error}` : res.error)
 
-  const grouped = groupVoc(res.rows)
+  // 소스 정책을 못 읽으면 확인 불가 — 정책을 모르는 채로 원문을 내보내지 않는다(§7.1, fail-closed).
+  const pol = await loadBlockedSources(sb)
+  if (pol.error) unavailable(`review_sources 정책 조회 실패 — ${pol.error}`)
+  const grouped = groupVoc(res.rows, { blockedSources: pol.blocked })
   const ids = [...grouped.keys()]
   let meta = new Map()
   if (ids.length) {

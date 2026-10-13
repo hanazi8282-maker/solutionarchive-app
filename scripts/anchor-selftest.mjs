@@ -35,6 +35,11 @@ t('anchored: 평가 수 하한 경계', verifyAnchor('Fera', [app('Fera', { user
 t('ambiguous: 판매자가 다른 동명 앱', verifyAnchor('Ivory', [app('Ivory', { trackId: 1, sellerName: 'A' }), app('Ivory', { trackId: 2, sellerName: 'B' })]).state, 'ambiguous')
 t('anchored: 같은 판매자의 iPhone/iPad 앱은 한 제품', verifyAnchor('Acme', [app('Acme', { trackId: 1 }), app('Acme HD', { trackId: 2, userRatingCount: 10 })]).state, 'anchored')
 t('anchored: 평가 수 많은 쪽을 고른다', verifyAnchor('Acme', [app('Acme', { trackId: 1, userRatingCount: 80 }), app('Acme App', { trackId: 2, userRatingCount: 900 })]).appId, 2)
+t('도메인: 일치하면 anchored', verifyAnchor('Acme', [app('Acme')], { expectedDomain: 'https://acme.com/pricing' }).state, 'anchored')
+t('도메인: 서브도메인 허용', verifyAnchor('Acme', [app('Acme', { sellerUrl: 'https://app.acme.com' })], { expectedDomain: 'acme.com' }).state, 'anchored')
+t('도메인: 다르면 동명 앱으로 보고 no_match', verifyAnchor('Acme', [app('Acme', { sellerUrl: 'https://other.io' })], { expectedDomain: 'acme.com' }).state, 'no_match')
+t('도메인: 판매자 URL 이 없으면 no_match(확인 못 하면 통과 아님)', verifyAnchor('Acme', [app('Acme', { sellerUrl: undefined })], { expectedDomain: 'acme.com' }).state, 'no_match')
+t('도메인 미지정이면 기존 동작', verifyAnchor('Acme', [app('Acme', { sellerUrl: 'https://other.io' })]).state, 'anchored')
 t('lookup_failed: 배열 아님', verifyAnchor('X Y Z', undefined).state, 'lookup_failed')
 t('no_match 와 lookup_failed 는 다르다(빈 배열 = 조회는 됐다)', verifyAnchor('Notion', []).state, 'no_match')
 {

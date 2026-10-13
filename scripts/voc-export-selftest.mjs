@@ -13,7 +13,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { effectiveVerdict, verdictBy, clipText, groupVoc, renderIndex, OUT_DIR, INDEX_FILE } from './voc-export.mjs'
+import { effectiveVerdict, verdictBy, clipText, groupVoc, renderIndex, loadBlockedSources, OUT_DIR, INDEX_FILE } from './voc-export.mjs'
 import { researchPrompt, VOC_INPUTS_INDEX } from './cmo-daily.mjs'
 import { validateDraft, toRows, UUID_RE } from '../lib/cases/draft.ts'
 
@@ -61,6 +61,19 @@ check('긴 본문은 잘리고 말줄임이 붙는다', clipText('x'.repeat(50),
   eq('verdict_by 가 항목에 실린다', p1.items.find((i) => i.input_id === U(2)).verdict_by, 'human')
   check('source_key 는 내보내지 않는다', !('source_key' in p1.items[0]), JSON.stringify(Object.keys(p1.items[0])))
   check('라벨 미적용이면 null (false 로 접지 않는다)', p1.items[0].labels.wtp_mentioned === null && p1.items[0].labels.impact === null)
+}
+
+// ── v70 Fable 검수 #6: 정책 none 소스는 내보내지 않는다 ──
+{
+  const inp = (key) => ({ raw_text: '본문', source_type: 'review', collected_at: null, source_key: key })
+  const g = groupVoc([row(1, { analysis_inputs: inp('n8n_community') }), row(2, { analysis_inputs: inp('clien') }), row(3, { analysis_inputs: { raw_text: '본문', source_type: 'review', collected_at: null } })], { blockedSources: new Set(['n8n_community']) })
+  eq('정책 none 소스(n8n_community)는 빠지고 나머지는 남는다', JSON.stringify(g.get('p1').items.map((i) => i.input_id).sort()), JSON.stringify([U(2), U(3)].sort()))
+  eq('blockedSources 기본값은 빈 집합(기존 동작 유지)', groupVoc([row(1, { analysis_inputs: inp('n8n_community') })]).get('p1').items.length, 1)
+  const fake = (data, error = null) => ({ from: () => ({ select: () => Promise.resolve({ data, error }) }) })
+  const ok = await loadBlockedSources(fake([{ key: 'a', quote_policy: 'none' }, { key: 'b', quote_policy: 'short_only' }, { key: 'c', quote_policy: 'full' }]))
+  eq('loadBlockedSources: none 만 모은다', [...ok.blocked].join(), 'a')
+  check('loadBlockedSources: 조회 실패는 error(확인 불가)', Boolean((await loadBlockedSources(fake(null, { code: 'X', message: 'down' }))).error))
+  check('loadBlockedSources: 배열이 아니면 error', Boolean((await loadBlockedSources(fake({}))).error))
 }
 
 // ── 정렬·상한 ──

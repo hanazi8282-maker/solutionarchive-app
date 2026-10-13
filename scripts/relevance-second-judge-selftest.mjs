@@ -38,6 +38,22 @@ const o2 = orderSecondTargets(rows, (p) => bm[p], 3)
 ok(o2.picked.length === 3 && o2.remaining === 3 && o2.picked[0].project_id === 'p2', '상한: 3건 고르고 남은 3건은 remaining')
 ok(orderSecondTargets([], () => null, 200).picked.length === 0, '대상 0')
 
+// v70 L-22: 승인 가능 행(1차 relevant ∧ 정보있음) 우선 + 나머지는 상한의 otherShare 만
+{
+  const mk = (n, ok2, pid = 'p1') => Array.from({ length: n }, (_, i) => ({ input_id: `${pid}${ok2 ? 'A' : 'O'}${i}`, project_id: pid, verdict: ok2 ? 'relevant' : 'irrelevant', product_informative: ok2 }))
+  const approvable = (r) => r.verdict === 'relevant' && r.product_informative === true
+  const big = [...mk(100, true), ...mk(100, false)]
+  const a = orderSecondTargets(big, (p) => bm[p], 20, { approvable, otherShare: 0.15 })
+  ok(a.picked.filter(approvable).length === 17 && a.picked.filter((r) => !approvable(r)).length === 3 && a.remaining === 180, `상한 20: 승인 가능 17 + 나머지 3(15%) (실제 ${a.picked.filter(approvable).length}/${a.picked.length}, 남은 ${a.remaining})`)
+  const few = orderSecondTargets([...mk(5, true), ...mk(100, false)], (p) => bm[p], 20, { approvable })
+  ok(few.picked.filter(approvable).length === 5 && few.picked.length === 20, '승인 가능 행이 모자라면 나머지로 채운다(상한은 다 쓴다)')
+  const none = orderSecondTargets(mk(10, true), (p) => bm[p], 20, { approvable })
+  ok(none.picked.length === 10 && none.remaining === 0, '나머지가 없으면 승인 가능 행만')
+  ok(orderSecondTargets(big, (p) => bm[p], 20).picked.length === 20, 'approvable 미지정이면 기존 동작')
+  const zero = orderSecondTargets(big, (p) => bm[p], 20, { approvable, otherShare: 0 })
+  ok(zero.picked.every(approvable), 'otherShare 0 → 승인 가능 행만')
+}
+
 // ── 어휘 검증(validateOpinions 재사용) ────────────────────────
 const v = validateOpinions({ rows: [
   { input_id: 'x1', verdict: 'relevant', product_informative: true },

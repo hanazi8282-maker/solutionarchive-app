@@ -1,0 +1,90 @@
+{
+ "id": 321096,
+ "title": "Sample topic about OAuth refresh tokens",
+ "posts_count": 7,
+ "created_at": "2026-10-13T10:51:26.774Z",
+ "slug": "sample-topic",
+ "category_id": 12,
+ "highest_post_number": 7,
+ "post_stream": {
+  "posts": [
+   {
+    "id": 599076,
+    "post_number": 1,
+    "post_type": 1,
+    "created_at": "2026-10-13T10:51:26.848Z",
+    "topic_id": 321096,
+    "hidden": false,
+    "deleted_at": null,
+    "user_deleted": false,
+    "cooked": "<p>Sample body 1: the workflow fails when the refresh token expires, and the pricing for executions is hard to justify.</p>"
+   },
+   {
+    "id": 599077,
+    "post_number": 2,
+    "post_type": 1,
+    "created_at": "2026-10-13T10:52:16.469Z",
+    "topic_id": 321096,
+    "hidden": false,
+    "deleted_at": null,
+    "user_deleted": false,
+    "cooked": "<p>Hey <a class=\"mention\" href=\"/u/opuser\">@opuser</a>, here is a sample reply with a pricing complaint and a feature wish.</p>"
+   },
+   {
+    "id": 599080,
+    "post_number": 3,
+    "post_type": 1,
+    "created_at": "2026-10-13T11:08:34.860Z",
+    "topic_id": 321096,
+    "hidden": false,
+    "deleted_at": null,
+    "user_deleted": false,
+    "cooked": "<p>Sample body 3: the workflow fails when the refresh token expires, and the pricing for executions is hard to justify.</p>"
+   },
+   {
+    "id": 599119,
+    "post_number": 4,
+    "post_type": 1,
+    "created_at": "2026-10-13T13:22:52.402Z",
+    "topic_id": 321096,
+    "hidden": false,
+    "deleted_at": null,
+    "user_deleted": false,
+    "cooked": "<p>Sample body 4: the workflow fails when the refresh token expires, and the pricing for executions is hard to justify.</p>"
+   },
+   {
+    "id": 599137,
+    "post_number": 5,
+    "post_type": 1,
+    "created_at": "2026-10-13T14:12:39.396Z",
+    "topic_id": 321096,
+    "hidden": false,
+    "deleted_at": null,
+    "user_deleted": false,
+    "cooked": "<p>Sample body 5: the workflow fails when the refresh token expires, and the pricing for executions is hard to justify.</p>"
+   },
+   {
+    "id": 599149,
+    "post_number": 6,
+    "post_type": 1,
+    "created_at": "2026-10-13T15:04:48.401Z",
+    "topic_id": 321096,
+    "hidden": false,
+    "deleted_at": null,
+    "user_deleted": false,
+    "cooked": "<p>Sample body 6: the workflow fails when the refresh token expires, and the pricing for executions is hard to justify.</p>"
+   },
+   {
+    "id": 599165,
+    "post_number": 7,
+    "post_type": 1,
+    "created_at": "2026-10-13T15:39:35.048Z",
+    "topic_id": 321096,
+    "hidden": false,
+    "deleted_at": null,
+    "user_deleted": false,
+    "cooked": "<p>Sample body 7: the workflow fails when the refresh token expires, and the pricing for executions is hard to justify.</p>"
+   }
+  ]
+ }
+}

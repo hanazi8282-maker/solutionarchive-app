@@ -1,0 +1,664 @@
+[
+ {
+  "label": "KR1-01 디시인사이드",
+  "host": "gall.dcinside.com",
+  "fetched_at": "2026-10-13T17:12:33.429Z",
+  "status": 200,
+  "final_url": "https://gall.dcinside.com/robots.txt",
+  "bytes": 4469,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "# ============================================\r\n# robots.txt for gall.dcinside.com (PC Web Gallery)\r\n# Version: 2.1.2\r\n# ============================================\r\n# ----- AI 학습 크롤러 차단 -----\r\nUser-agent: GPTBot\r\nDisallow: /\r\nUser-agent: ClaudeBot\r\nDisallow: /\r\nUser-agent: anthropic-ai\r\nDisallow: /\r\nUser-agent: Claude-Web\r\nDisallow: /\r\nUser-agent: Google-Extended\r\nDisallow: /\r\nUser-agent: Applebot-Extended\r\nDisallow: /\r\nUser-agent: CCBot\r\nDisallow: /\r\nUser-agent: Bytespider\r\nDisallow: /\r\nUser-agent: Amazonbot\r\nDisallow: /\r\nUser-agent: Meta-ExternalAgent\r\nDisallow: /\r\nUser-agent: cohere-ai\r\nDisallow: /\r\nUser-agent: PerplexityBot\r\nDisallow: /\r\n# 바이두 봇 차단\r\nUser-agent: Baiduspider\r\nDisallow: /\r\nUser-agent: Baiduspider-video\r\nDisallow: /\r\nUser-agent: Baiduspider-image\r\nDisallow: /\r\n# ----- 그 외 모든 봇 (검색봇 + AI 검색봇 포함) -----\r\nUser-agent: *\r\nAllow: /\r\n# 시스템 경로\r\nDisallow: /kcaptcha/image_v3/\r\n# ----- 갤러리 단위 차단 (lists + view + comment_view 통일) -----\r\n# 47\r\nDisallow: /board/lists/?id=47\r\nDisallow: /board/view/?id=47\r\nDisallow: /board/comment_view/?id=47\r\n# cat\r\nDisallow: /board/lists/?id=cat\r\nDisallow: /board/view/?id=cat\r\nDisallow: /board/comment_view/?id=cat\r\n# dog\r\nDisallow: /board/lists/?id=dog\r\nDisallow: /board/view/?id=dog\r\nDisallow: /board/comment_view/?id=dog\r\n# stock_new\r\nDisallow: /board/lists/?id=stock_new\r\nDisallow: /board/view/?id=stock_new\r\nDisallow: /board/comment_view/?id=stock_new\r\n# stock_new2\r\nDisallow: /board/lists/?id=stock_new2\r\nDisallow: /board/view/?id=stock_new2\r\nDisallow: /board/comment_view/?id=stock_new2\r\n# baseball_new8\r\nDisallow: /board/lists/?id=baseball_new8\r\nDisallow: /board/view/?id=baseball_new8\r\nDisallow: /board/comment_view/?id=baseball_new8\r\n# m_entertainer1\r\nDisallow: /board/lists/?id=m_entertainer1\r\nDisallow: /board/view/?id=m_entertainer1\r\nDisallow: /board/comment_view/?id=m_entertainer1\r\n# ib_new\r\nDisallow: /board/lists/?id=ib_new\r\nDisallow: /board/view/?id=ib_new\r\nDisallow: /board/comment_view/?id=ib_new\r\n# d_fighter_new1\r\nDisallow: /board/lists/?id=d_fighter_new1\r\nDisallow: /board/view/?id=d_fighter_new1\r\nDisallow: /board/comment_view/?id=d_fighter_new1\r\n# produce48\r\nDisallow: /board/lists/?id=produce48\r\nDisallow: /board/view/?id=produce48\r\nDisallow: /board/comment_view/?id=produce48\r\n# sportsseoul\r\nDisallow: /board/lists/?id=sportsseoul\r\nDisallow: /board/view/?id=sportsseoul\r\nDisallow: /board/comment_view/?id=sportsseoul\r\n# metakr\r\nDisallow: /board/lists/?id=metakr\r\nDisallow: /board/view/?id=metakr\r\nDisallow: /board/comment_view/?id=metakr\r\n# salgoonews\r\nDisallow: /board/lists/?id=salgoonews\r\nDisallow: /board/view/?id=salgoonews\r\nDisallow: /board/comment_view/?id=salgoonews\r\n# singo\r\nDisallow: /board/lists/?id=singo\r\n# rezero (마이너 갤러리)\r\nDisallow: /mgallery/board/lists/?id=rezero\r\n# ----- 개별 게시물 차단 -----\r\n# hajungwoo\r\nDisallow: /board/view/?id=hajungwoo&no=12995\r\nDisallow: /board/view/?id=hajungwoo&no=14441\r\nDisallow: /board/view/?id=hajungwoo&no=14508\r\nDisallow: /board/view/?id=hajungwoo&no=14977\r\n# dongbang\r\nDisallow: /board/view/?id=dongbang&no=43265\r\nDisallow: /board/view/?id=dongbang&no=48008\r\n# arbeit\r\nDisallow: /board/view/?id=arbeit&no=1781137\r\nDisallow: /board/view/?id=arbeit&no=1854264\r\nDisallow: /board/view/?id=arbeit&no=1902701\r\nDisallow: /board/comment_view/?id=arbeit&no=1827137\r\n# immovables\r\nDisallow: /board/view/?id=immovables&no=827440\r\nDisallow: /board/view/?id=immovables&no=1045608\r\n# government\r\nDisallow: /board/view/?id=government&no=3795641\r\nDisallow: /board/view/?id=government&no=3795657\r\nDisallow: /board/view/?id=government&no=3795663\r\nDisallow: /board/view/?id=government&no=3795664\r\nDisallow: /board/view/?id=government&no=3795665\r\nDisallow: /board/view/?id=government&no=3795671\r\n# etc.\r\nDisallow: /board/view/?id=starcraft&no=5179138\r\nDisallow: /board/view/?id=comedy_new&no=3182480\r\nDisallow: /board/view/?id=plastic_s&no=118703\r\nDisallow: /board/view/?id=aion&no=231406\r\nDisallow: /board/view/?id=aoa&no=455310\r\nDisallow: /board/view/?id=kimmyungmin&no=57241\r\nDisallow: /board/view/?id=etc_entertainment1&no=1462322\r\nDisallow: /board/view/?id=bigbang&no=107916\r\nDisallow: /board/view/?id=exam_new&no=3441270\r\nDisallow: /board/view/?id=theaterM&no=1062240\r\nDisallow: /board/view/?id=admission&no=1591805\r\n# Sitemap\r\nSitemap: https://gall.dcinside.com/_seo/main_gall.xml\r\nSitemap: https://gall.dcinside.com/_seo/mgall_gall1.xml\r\nSitemap: https://gall.dcinside.com/_seo/mgall_gall2.xml\r\nSitemap: https://gall.dcinside.com/_seo/migall_gall.xml\r\n"
+ },
+ {
+  "label": "KR1-02 블라인드",
+  "host": "www.teamblind.com",
+  "fetched_at": "2026-10-13T17:12:37.693Z",
+  "status": 200,
+  "final_url": "https://www.teamblind.com/robots.txt",
+  "bytes": 922,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nDisallow: /user/history\nDisallow: /kr/user/history\nDisallow: /search/\nDisallow: /kr/search/\nDisallow: /blog/ghost/\nDisallow: /blog/email/\nDisallow: /blog/members/api/comments/counts/\nDisallow: /blog/r/\nDisallow: /blog/webmentions/receive/\nDisallow: /blog/.ghost/analytics/api/\n\n# Allow user agents\nUser-agent: grapeshot\nDisallow:\n\nUser-agent: Mediapartners-Google\nDisallow:\n\n# Blocked user agents\nUser-agent: GPTBot\nDisallow: /\n\nUser-agent: CCBot\nDisallow: /\n\nUser-agent: ClaudeBot\nDisallow: /\nUser-agent: anthropic-ai\nDisallow: /\n\nUser-agent: Google-Extended\nDisallow: /\n\nUser-agent: Applebot-Extended\nDisallow: /\n\nUser-agent: Bytespider\nDisallow: /\n\nSitemap: https://www.teamblind.com/feedsitemap.xml\nSitemap: https://www.teamblind.com/sitemap_list.xml\nSitemap: https://www.teamblind.com/newssitemap.xml\nSitemap: https://www.teamblind.com/kr/sitemap.xml\nSitemap: https://www.teamblind.com/blog/sitemap.xml\n"
+ },
+ {
+  "label": "KR1-03 커리어리",
+  "host": "careerly.co.kr",
+  "fetched_at": "2026-10-13T17:12:41.870Z",
+  "status": 200,
+  "final_url": "https://careerly.co.kr/robots.txt",
+  "bytes": 798,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-Agent: GPTBot\nUser-Agent: ChatGPT-User\nUser-Agent: OAI-SearchBot\nUser-Agent: ClaudeBot\nUser-Agent: Claude-Web\nUser-Agent: anthropic-ai\nUser-Agent: CCBot\nUser-Agent: Google-Extended\nUser-Agent: Applebot-Extended\nUser-Agent: meta-externalagent\nUser-Agent: FacebookBot\nUser-Agent: Bytespider\nUser-Agent: PetalBot\nUser-Agent: Amazonbot\nUser-Agent: DataForSeoBot\nUser-Agent: SemrushBot\nUser-Agent: AhrefsBot\nUser-Agent: MJ12bot\nUser-Agent: DotBot\nDisallow: /\n\nUser-Agent: *\nAllow: /\nDisallow: /settings/\nDisallow: /bookmarks/\nDisallow: /history/\nDisallow: /chat/\nDisallow: /auth/\nDisallow: /forgot-password/\nDisallow: /community/new/\nDisallow: /community/edit/\nDisallow: /design-guide/\nDisallow: /widgets-demo/\nDisallow: /api/\nDisallow: /notifications/\n\nSitemap: https://careerly.co.kr/sitemap.xml\n"
+ },
+ {
+  "label": "KR1-04 퍼블리",
+  "host": "publy.co",
+  "fetched_at": "2026-10-13T17:12:46.003Z",
+  "status": 200,
+  "final_url": "https://publy.co/robots.txt",
+  "bytes": 742,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "# *\nUser-agent: *\nAllow: /\nAllow: *.css\nAllow: *.js\nDisallow: /500\nDisallow: /aal\nDisallow: /activity-stats\nDisallow: /api/**\nDisallow: /coupon/**\nDisallow: /example/**\nDisallow: /forgot-password\nDisallow: /forgot-password/**\nDisallow: /incompatible-browser\nDisallow: /library\nDisallow: /library/**\nDisallow: /membership\nDisallow: /membership/**\nDisallow: /optimize-test\nDisallow: /point-history\nDisallow: /qna\nDisallow: /qna/**\nDisallow: /settings\nDisallow: /settings/**\nDisallow: /signup\nDisallow: /signup/**\nDisallow: /volume/**\nDisallow: /voucher/**\nDisallow: /login\nDisallow: /*?redirect_to=*\nDisallow: /*?nc=*\n\n# Host\nHost: https://publy.co\n\n# Sitemaps\nSitemap: https://publy.co/sitemap.xml\nSitemap: https://publy.co/server-sitemap.xml\n"
+ },
+ {
+  "label": "KR1-05 티스토리",
+  "host": "www.tistory.com",
+  "fetched_at": "2026-10-13T17:12:50.102Z",
+  "status": 404,
+  "final_url": "https://www.tistory.com/robots.txt",
+  "bytes": 22650,
+  "state_root": {
+   "state": "unverified",
+   "reason": "status=404 markup=true final=https://www.tistory.com/robots.txt"
+  },
+  "body_head": "<!DOCTYPE html><html lang=\"ko\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/css/785e2830f3a22f19.css\" da"
+ },
+ {
+  "label": "KR1-06 크몽",
+  "host": "kmong.com",
+  "fetched_at": "2026-10-13T17:12:54.250Z",
+  "status": 200,
+  "final_url": "https://kmong.com/robots.txt",
+  "bytes": 1630,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nAllow: /\nDisallow: /search\nDisallow: /knowhow/category\nDisallow: /knowhow/gig\n\n#DaumWebMasterTool:ac9b33427d1d3d3ccd4f5aa440785e4bc887f618a9908a995924671a11b8c133:z4WS/pG6LL4AalzG6FeFNw==\n\nUser-agent: SemrushBot\nDisallow: /search\n\nUser-agent: ImagesiftBot\nDisallow: /\n\nUser-agent: ChatGPT-User\nDisallow: /search\n\nUser-agent: OAI-SearchBot\nDisallow: /search\n\nUser-agent: GPTBot\nDisallow: /\nAllow: /blog\nAllow: /article\n\nUser-agent: PerplexityBot\nDisallow: /search\n\nUser-agent: Perplexity-User\nDisallow: /search\n\nUser-agent: ClaudeBot\nDisallow: /\nAllow: /blog\nAllow: /article\n\nUser-agent: Claude-SearchBot\nDisallow: /search\n\nUser-agent: Claude-User\nDisallow: /search\n\nUser-agent: Google-Extended\nDisallow: /\nAllow: /blog\nAllow: /article\n\nUser-agent: Google-Agent\nDisallow: /search\n\nUser-agent: Baiduspider\nUser-agent: 360Spider\nUser-agent: Yisouspider\nUser-agent: PetalBot\nDisallow: /\n\nUser-agent: Bytespider\nDisallow: /\n\nUser-agent: Sogou web spider\nDisallow: /\n\nUser-agent: Sogou inst spider\nDisallow: /\n\nUser-agent: GoogleOther\nDisallow: /\n\nUser-agent: GeedoShopProductFinder\nDisallow: /\n\nSitemap: https://kmong.com/sitemap/image_sitemapindex.xml\nSitemap: https://kmong.com/sitemap/portfolio_image_sitemapindex.xml\nSitemap: https://kmong.com/sitemap/top_nav.xml\nSitemap: https://kmong.com/sitemap/gig_sitemapindex.xml\nSitemap: https://kmong.com/sitemap/category_sitemapindex.xml\nSitemap: https://kmong.com/sitemap/user_sitemapindex.xml\nSitemap: https://kmong.com/sitemap/search_sitemapindex.xml\nSitemap: https://kmong.com/sitemap/portfolio_sitemapindex.xml\nSitemap: https://kmong.com/sitemap/price_sitemapindex.xml\n"
+ },
+ {
+  "label": "KR1-07 잡플래닛",
+  "host": "www.jobplanet.co.kr",
+  "fetched_at": "2026-10-13T17:12:58.416Z",
+  "status": 200,
+  "final_url": "https://www.jobplanet.co.kr/robots.txt",
+  "bytes": 1291,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: Yeti\nAllow: /\n\nUser-agent: NaverBot\nAllow: /\n\nUser-agent: Daumoa\nAllow: /\n\nUser-agent: Screaming Frog SEO Spider\nAllow: /\n\nUser-agent: *\nDisallow: /apply\nDisallow: /info\nDisallow: /not_supported\nDisallow: /profile\nDisallow: /profile/salaries\nDisallow: /profile/interviews\nDisallow: /profile/drafts\nDisallow: /profile/settings\nDisallow: /profile/password\nDisallow: /profile/newsletter\nDisallow: /profile/company_follows\nDisallow: /profile/invites\nDisallow: /profile/invite_list\nDisallow: /users\nDisallow: /user-session/sign-in\nDisallow: /users/sign_out\nDisallow: /welcome/privacy\nDisallow: /welcome/guides\nDisallow: /welcome/notices\nDisallow: /welcome/teaser\nDisallow: /welcome/terms\nDisallow: /wizard/\nDisallow: /wizard/navigation\nDisallow: /remove_company_from_recent_search_history\nDisallow: /companies/*/salaries_of_job_rank/\nDisallow: /common\nDisallow: /partners/business_consulting\nDisallow: /search\nAllow: /contents/news/\nAllow: /contents/news-\n\n# https://mj12bot.com/\nUser-agent: MJ12bot\nDisallow: /\n\n# huawei\n# https://aspiegel.com/petalbot\nUser-agent: PetalBot\nDisallow: /\n\nSitemap: https://www.jobplanet.co.kr/sitemap.xml\n\n# Pin code for daum 'web master tool'\nDaumWebMasterTool:a916de5a948fdef52bebe07523b4f338e8b3b73f549991990a1b4e5ae6ba62c7:ut/tglt3TkJf/hRJtLX8bA==\n"
+ },
+ {
+  "label": "KR1-08 MLBPARK",
+  "host": "mlbpark.donga.com",
+  "fetched_at": "2026-10-13T17:13:02.628Z",
+  "status": 200,
+  "final_url": "https://mlbpark.donga.com/robots.txt",
+  "bytes": 447,
+  "state_root": {
+   "state": "disallowed",
+   "reason": "Disallow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nDisallow: /\n\nUser-agent: Googlebot\nAllow: /\nUser-agent: Googlebot-News\nAllow: /\nUser-agent: Googlebot-Image\nAllow: /\nUser-agent: Googlebot-Mobile\nAllow: /\nUser-agent: Mediapartners-Google\nAllow: /\nUser-agent: Bingbot\nAllow: /\nUser-agent: Naverbot\nAllow: /\nUser-agent: Yeti\nAllow: /\nUser-agent: Daumoa\nAllow: /\nUser-agent: Daum\nAllow: /\nUser-agent: facebookexternalhit\nAllow: /\nUser-agent: Facebot\nAllow: /\nUser-agent: KaBot\nAllow: /\n"
+ },
+ {
+  "label": "KR1-09 네이트판",
+  "host": "pann.nate.com",
+  "fetched_at": "2026-10-13T17:13:06.695Z",
+  "status": 200,
+  "final_url": "https://pann.nate.com/robots.txt",
+  "bytes": 590,
+  "state_root": {
+   "state": "disallowed",
+   "reason": "Disallow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nDisallow: /\n\nUser-agent: Twitterbot\nUser-agent: Googlebot\nUser-agent: Yeti\nUser-agent: bingbot\nUser-agent: Daum\nUser-agent: facebookexternalhit\nUser-agent: ZumBot\nUser-agent: HappyWing\nDisallow: /main\nDisallow: /*reply\nDisallow: /*Advertising\nDisallow: /*Popup\nDisallow: /*ThemeImage\nDisallow: /*themeImage\nDisallow: /info\nDisallow: /pann/poll\nDisallow: /attach\nDisallow: /cultwo\nDisallow: /api\nDisallow: /*bookmark\nDisallow: /video\nDisallow: /box/video\nDisallow: /my\nDisallow: /ptalk\n\nUser-agent: bingbot\nCrawl-delay: 30\n\nUser-agent: GPTBot\nUser-agent: ClaudeBot\nDisallow: /\n"
+ },
+ {
+  "label": "KR1-10 카페24",
+  "host": "apps.cafe24.com",
+  "fetched_at": "2026-10-13T17:13:10.762Z",
+  "error": "fetch failed",
+  "state_root": {
+   "state": "unverified",
+   "reason": "request failed"
+  }
+ },
+ {
+  "label": "KR1-11 메일리",
+  "host": "maily.so",
+  "fetched_at": "2026-10-13T17:13:25.423Z",
+  "status": 200,
+  "final_url": "https://maily.so/robots.txt",
+  "bytes": 178,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nDisallow: /*/subscriptions/*\nDisallow: /*/users\nDisallow: /backend\n\n# Meta AI 학습 크롤러 차단 (재귀 redirect_path 패턴으로 부하 유발 이력)\nUser-agent: meta-externalagent\nDisallow: /\n"
+ },
+ {
+  "label": "KR1-12 원티드",
+  "host": "www.wanted.co.kr",
+  "fetched_at": "2026-10-13T17:13:29.753Z",
+  "status": 403,
+  "final_url": "https://www.wanted.co.kr/robots.txt",
+  "bytes": 919,
+  "state_root": {
+   "state": "unverified",
+   "reason": "status=403 markup=true final=https://www.wanted.co.kr/robots.txt"
+  },
+  "body_head": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">\n<HTML><HEAD><META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=iso-8859-1\">\n<TITLE>ERROR"
+ },
+ {
+  "label": "KR1-13 인스티즈",
+  "host": "www.instiz.net",
+  "fetched_at": "2026-10-13T17:13:33.818Z",
+  "status": 200,
+  "final_url": "https://www.instiz.net/robots.txt",
+  "bytes": 1227,
+  "state_root": {
+   "state": "unverified",
+   "reason": "우리 UA 에 적용되는 User-agent 그룹이 없다"
+  },
+  "crawl_delay_sec": null,
+  "body": "# AI 학습/스크랩 봇 차단 (검색 색인용 크롤러는 차단하지 않음)\nUser-agent: GPTBot\nDisallow: /\n\nUser-agent: ChatGPT-User\nDisallow: /\n\nUser-agent: OAI-SearchBot\nDisallow: /\n\nUser-agent: CCBot\nDisallow: /\n\nUser-agent: anthropic-ai\nDisallow: /\n\nUser-agent: ClaudeBot\nDisallow: /\n\nUser-agent: Claude-Web\nDisallow: /\n\nUser-agent: Google-Extended\nDisallow: /\n\nUser-agent: Applebot-Extended\nDisallow: /\n\nUser-agent: Bytespider\nDisallow: /\n\nUser-agent: PerplexityBot\nDisallow: /\n\nUser-agent: Perplexity-User\nDisallow: /\n\nUser-agent: YouBot\nDisallow: /\n\nUser-agent: Diffbot\nDisallow: /\n\nUser-agent: ImagesiftBot\nDisallow: /\n\nUser-agent: Omgilibot\nDisallow: /\n\nUser-agent: Omgili\nDisallow: /\n\nUser-agent: FacebookBot\nDisallow: /\n\nUser-agent: Meta-ExternalAgent\nDisallow: /\n\nUser-agent: Meta-ExternalFetcher\nDisallow: /\n\nUser-agent: cohere-ai\nDisallow: /\n\nUser-agent: cohere-training-data-crawler\nDisallow: /\n\nUser-agent: Timpibot\nDisallow: /\n\nUser-agent: Ai2Bot\nDisallow: /\n\nUser-agent: Kangaroo Bot\nDisallow: /\n\nSitemap: https://www.instiz.net/sitemap_index.xml\nSitemap: https://www.instiz.net/sitemap_pt.xml\nSitemap: https://www.instiz.net/sitemap_name.xml\nSitemap: https://www.instiz.net/sitemap_name_enter.xml\nSitemap: https://www.instiz.net/sitemap_hot.xml\n"
+ },
+ {
+  "label": "KR1-14 SLR클럽",
+  "host": "www.slrclub.com",
+  "fetched_at": "2026-10-13T17:13:38.417Z",
+  "status": 200,
+  "final_url": "https://www.slrclub.com/robots.txt",
+  "bytes": 350,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /$"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: Googlebot\r\nDisallow:\r\n\r\nUser-agent: Mediapartners-Google\r\nDisallow:\r\n\r\nUser-agent: Google-Display-Ads-Bot\r\nDisallow:\r\n\r\nUser-agent: ZumBot\r\nDisallow:\r\n\r\nUser-agent: Yeti\r\nDisallow:\r\n\r\nUser-agent: daumoa\r\nDisallow:\r\n\r\nUser-agent: KaBot\r\nDisallow:\r\n\r\nUser-agent: Adagio\r\nDisallow:\r\n\r\nUser-agent: *\r\nAllow: /$\r\nAllow: /ads.txt\r\nDisallow: /\r\n"
+ },
+ {
+  "label": "KR1-15 사람인",
+  "host": "www.saramin.co.kr",
+  "fetched_at": "2026-10-13T17:13:42.481Z",
+  "status": 200,
+  "final_url": "https://www.saramin.co.kr/robots.txt",
+  "bytes": 2849,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "# robots.txt for https://www.saramin.co.kr/\nUser-agent: Mediapartners-Google\nDisallow:\n\nUser-agent: ia_archiver\nDisallow:\n\nUser-agent: AdsBot-Google\nDisallow:\n\nUser-agent: AdsBot-Google-Mobile\nDisallow:\n\nUser-agent: GPTBot\nDisallow: /\n\nUser-agent: Bytespider\nDisallow: /\n\nUser-agent: *\nDisallow: /feed.php\nDisallow: /zf_user/jobs/recent-contents/company\nDisallow: /ad\nDisallow: /zf_user/memcom/talent-pool/main\nDisallow: /zf_user/memcom/applicant/manage\nAllow:    /ads.txt\nDisallow: /zf_user/auth\nDisallow: /zf_user/mandb\nDisallow: /zf_user/mandb/view\nDisallow: /zf_user/talent\nDisallow: /zf_user/talent/search\nAllow:    /zf_user/talent/browse-resume\nDisallow: /zf_user/nonmember/apply\nDisallow: /zf_user/member/apply/\nDisallow: /zf_user/member/resume/\nDisallow: /zf_user/free-consulting-resume/\nDisallow: /zf_user/help/event-intro-consulting/\nAllow:    /zf_user/help/event-intro-consulting/main\nAllow:    /zf_user/help/event-intro-consulting/list\nDisallow: /zf_user/pds-resume/face-decorate/\nDisallow: /zf_user/pds-resume/resume-advice/\nDisallow: /zf_user/recruit/spec-qna\nDisallow: /zf_user/bbs-brand\nDisallow: /zf_user/exam-history\nDisallow: /zf_user/interview-history\nDisallow: /zf_user/job-worry-solve/\nDisallow: /zf_user/persons/\nDisallow: /zf_user/company/\nAllow:    /zf_user/company-info/\nDisallow: /zf_user/recruit/recruit-posting/\nDisallow: /zf_user/recruit/recruitPosting/\nDisallow: /zf_user/popup/areaPrint/\nDisallow: /zf_ad\nDisallow: /recruit/recruit_view.php\nDisallow: /recruit/recruit_view_blog.php\nDisallow: /zf_user/recruit-apply/\nDisallow: /zf_user/special-recruit/special-recruit/category/ \nDisallow: /zf_user/united-company/ \nDisallow: /helpdesk/\nDisallow: /inc\nDisallow: /zf_user/recruit-apply-form/update-company-apply-form-cnt/rec_idx/1021627/form_gb/company\nDisallow: /error/\nDisallow: /zf_user/event/dream/resume-manage-event-winner\nDisallow: /Click*\nDisallow: /zf_user/track-apply-form/\nDisallow: /zf_user/job-info-guide/jobinfo-redi\nDisallow: /zf_user/recruit/view/\nAllow   : /zf_user/jobs/view/popup\nAllow   : /zf_user/jobs/public/popup-view\nAllow   : /zf_user/jobs/public/popupView\nAllow   : /zf_user/jobs/relay/recruit-view\nAllow   : /zf_user/jobs/relay/recruitView\nDisallow: /zf_user/special-recruit/\nDisallow: /zf_user/special-company-recruit/\nDisallow: /zf_user/jobs/view/etc\nDisallow: /zf_user/headhunting/recruit-plan/recruit-view/\nDisallow: /zf_user/headhunting/recruit-plan/recruitView/\nDisallow: /zf_user/jobs/view*innerCampaign=headhuntingView\nDisallow: /zf_user/jobs/view*innerCampaign/headhuntingView\nDisallow: /61280259/\nDisallow: /zf_user/recruit-apply/apply-info-read/\nDisallow: /zf_user/public-recruit/coverletter-list\nDisallow: /zf_user/educe/spec-information\nDisallow: /zf_user/jobarchive/company-news/\n\nSitemap: https://www.saramin.co.kr/sitemap.xml\nSitemap: https://www.saramin.co.kr/sitemapindex.xml"
+ },
+ {
+  "label": "KR1-16 AI타임스",
+  "host": "www.aitimes.com",
+  "fetched_at": "2026-10-13T17:13:46.544Z",
+  "status": 200,
+  "final_url": "https://www.aitimes.com/robots.txt",
+  "bytes": 124,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\r\nDisallow: /admin/\r\n\r\nUser-agent: bingbot\r\nCrawl-delay: 30\r\n\r\n\r\n\r\nSitemap: https://www.aitimes.com/sitemap.xml"
+ },
+ {
+  "label": "EN2-01 Chrome Web Store",
+  "host": "chromewebstore.google.com",
+  "fetched_at": "2026-10-13T17:13:50.642Z",
+  "status": 200,
+  "final_url": "https://chromewebstore.google.com/robots.txt",
+  "bytes": 503,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\n\nDisallow: /detail/*/report\nDisallow: /detail/*/privacy\nDisallow: /detail/*/support\nDisallow: /detail/*/reviews\nDisallow: /detail/*/related\nDisallow: /detail/*/preview\nDisallow: /detail/*?*utm_source=*\nDisallow: /detail/*?*utm_medium=*\nDisallow: /detail/*?*utm_campaign=*\nDisallow: /detail/*?*authuser=*\nDisallow: /detail/*?*pli=*\nDisallow: /detail/*?*sid=*\nDisallow: /detail/*?*hubs_content=*\nDisallow: /detail/*?*q=*\nDisallow: /search\n\nSitemap: https://chromewebstore.google.com/sitemap\n"
+ },
+ {
+  "label": "EN2-02 Edge Add-ons",
+  "host": "microsoftedge.microsoft.com",
+  "fetched_at": "2026-10-13T17:13:55.328Z",
+  "status": 200,
+  "final_url": "https://microsoftedge.microsoft.com/robots.txt",
+  "bytes": 51288,
+  "state_root": {
+   "state": "unverified",
+   "reason": "status=200 markup=true final=https://microsoftedge.microsoft.com/robots.txt"
+  },
+  "body_head": "\r\n<!DOCTYPE html>\r\n<html lang=\"en-US\" xmlns=\"http://www.w3.org/1999/xhtml\">\r\n<head>\r\n    <meta charset=\"utf-8\" />\r\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n    <meta"
+ },
+ {
+  "label": "EN2-03 Firefox AMO",
+  "host": "addons.mozilla.org",
+  "fetched_at": "2026-10-13T17:13:59.597Z",
+  "status": 200,
+  "final_url": "https://addons.mozilla.org/robots.txt",
+  "bytes": 13735,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "# robots.txt file for Mozilla Add-ons, addons.mozilla.org\nUser-agent: *\nAllow: /\n\nDisallow: /firefox/downloads/\nDisallow: /android/downloads/\n\n\nAllow: /cs/firefox/collections/4757633/\nAllow: /cs/firefox/collections/mozilla/\nDisallow: /cs/firefox/collections/4757633/$\nDisallow: /cs/firefox/collections/mozilla/$\nDisallow: /cs/firefox/search/\nDisallow: /cs/firefox/collections/\nDisallow: /cs/android/search/\nDisallow: /cs/android/collections/\n\n\nAllow: /de/firefox/collections/4757633/\nAllow: /de/firefox/collections/mozilla/\nDisallow: /de/firefox/collections/4757633/$\nDisallow: /de/firefox/collections/mozilla/$\nDisallow: /de/firefox/search/\nDisallow: /de/firefox/collections/\nDisallow: /de/android/search/\nDisallow: /de/android/collections/\n\n\nAllow: /dsb/firefox/collections/4757633/\nAllow: /dsb/firefox/collections/mozilla/\nDisallow: /dsb/firefox/collections/4757633/$\nDisallow: /dsb/firefox/collections/mozilla/$\nDisallow: /dsb/firefox/search/\nDisallow: /dsb/firefox/collections/\nDisallow: /dsb/android/search/\nDisallow: /dsb/android/collections/\n\n\nAllow: /el/firefox/collections/4757633/\nAllow: /el/firefox/collections/mozilla/\nDisallow: /el/firefox/collections/4757633/$\nDisallow: /el/firefox/collections/mozilla/$\nDisallow: /el/firefox/search/\nDisallow: /el/firefox/collections/\nDisallow: /el/android/search/\nDisallow: /el/android/collections/\n\n\nAllow: /en-CA/firefox/collections/4757633/\nAllow: /en-CA/firefox/collections/mozilla/\nDisallow: /en-CA/firefox/collections/4757633/$\nDisallow: /en-CA/firefox/collections/mozilla/$\nDisallow: /en-CA/firefox/search/\nDisallow: /en-CA/firefox/collections/\nDisallow: /en-CA/android/search/\nDisallow: /en-CA/android/collections/\n\n\nAllow: /en-GB/firefox/collections/4757633/\nAllow: /en-GB/firefox/collections/mozilla/\nDisallow: /en-GB/firefox/collections/4757633/$\nDisallow: /en-GB/firefox/collections/mozilla/$\nDisallow: /en-GB/firefox/search/\nDisallow: /en-GB/firefox/collections/\nDisallow: /en-GB/android/search/\nDisallow: /en-GB/android/collections/\n\n\nAllow: /en-US/firefox/collections/4757633/\nAllow: /en-US/firefox/collections/mozilla/\nDisallow: /en-US/firefox/collections/4757633/$\nDisallow: /en-US/firefox/collections/mozilla/$\nDisallow: /en-US/firefox/search/\nDisallow: /en-US/firefox/collections/\nDisallow: /en-US/android/search/\nDisallow: /en-US/android/collections/\n\n\nAllow: /es-AR/firefox/collections/4757633/\nAllow: /es-AR/firefox/collections/mozilla/\nDisallow: /es-AR/firefox/collections/4757633/$\nDisallow: /es-AR/firefox/collections/mozilla/$\nDisallow: /es-AR/firefox/search/\nDisallow: /es-AR/firefox/collections/\nDisallow: /es-AR/android/search/\nDisallow: /es-AR/android/collections/\n\n\nAllow: /es-CL/firefox/collections/4757633/\nAllow: /es-CL/firefox/collections/mozilla/\nDisallow: /es-CL/firefox/collections/4757633/$\nDisallow: /es-CL/firefox/collections/mozilla/$\nDisallow: /es-CL/firefox/search/\nDisallow: /es-CL/firefox/collections/\nDisallow: /es-CL/android/search/\nDisallow: /es-CL/android/collections/\n\n\nAllow: /es-ES/firefox/collections/4757633/\nAllow: /es-ES/firefox/collections/mozilla/\nDisallow: /es-ES/firefox/collections/4757633/$\nDisallow: /es-ES/firefox/collections/mozilla/$\nDisallow: /es-ES/firefox/search/\nDisallow: /es-ES/firefox/collections/\nDisallow: /es-ES/android/search/\nDisallow: /es-ES/android/collections/\n\n\nAllow: /es-MX/firefox/collections/4757633/\nAllow: /es-MX/firefox/collections/mozilla/\nDisallow: /es-MX/firefox/collections/4757633/$\nDisallow: /es-MX/firefox/collections/mozilla/$\nDisallow: /es-MX/firefox/search/\nDisallow: /es-MX/firefox/collections/\nDisallow: /es-MX/android/search/\nDisallow: /es-MX/android/collections/\n\n\nAllow: /fa/firefox/collections/4757633/\nAllow: /fa/firefox/collections/mozilla/\nDisallow: /fa/firefox/collections/4757633/$\nDisallow: /fa/firefox/collections/mozilla/$\nDisallow: /fa/firefox/search/\nDisallow: /fa/firefox/collections/\nDisallow: /fa/android/search/\nDisallow: /fa/android/collections/\n\n\nAllow: /fi/firefox/collections/4757633/\nAllow: /fi/firefox/collections/mozilla/\nDisallow: /fi/firefox/collections/4757633/$\nDisallow: /fi/firefox/collections/mozilla/$\nDisallow: /fi/firefox/search/\nDisallow: /fi/firefox/collections/\nDisallow: /fi/android/search/\nDisallow: /fi/android/collections/\n\n\nAllow: /fr/firefox/collections/4757633/\nAllow: /fr/firefox/collections/mozilla/\nDisallow: /fr/firefox/collections/4757633/$\nDisallow: /fr/firefox/collections/mozilla/$\nDisallow: /fr/firefox/search/\nDisallow: /fr/firefox/collections/\nDisallow: /fr/android/search/\nDisallow: /fr/android/collections/\n\n\nAllow: /fur/firefox/collections/4757633/\nAllow: /fur/firefox/collections/mozilla/\nDisallow: /fur/firefox/collections/4757633/$\nDisallow: /fur/firefox/collections/mozilla/$\nDisallow: /fur/firefox/search/\nDisallow: /fur/firefox/collections/\nDisallow: /fur/android/search/\nDisallow: /fur/android/collections/\n\n\nAllow: /fy-NL/firefox/collections/4757633/\nAllow: /fy-NL/firefox/collections/mozilla/\nDisallow: /fy-NL/firefox/collections/4757633/$\nDisallow: /fy-NL/firefox/collections/mozilla/$\nDisallow: /fy-NL/firefox/search/\nDisallow: /fy-NL/firefox/collections/\nDisallow: /fy-NL/android/search/\nDisallow: /fy-NL/android/collections/\n\n\nAllow: /he/firefox/collections/4757633/\nAllow: /he/firefox/collections/mozilla/\nDisallow: /he/firefox/collections/4757633/$\nDisallow: /he/firefox/collections/mozilla/$\nDisallow: /he/firefox/search/\nDisallow: /he/firefox/collections/\nDisallow: /he/android/search/\nDisallow: /he/android/collections/\n\n\nAllow: /hr/firefox/collections/4757633/\nAllow: /hr/firefox/collections/mozilla/\nDisallow: /hr/firefox/collections/4757633/$\nDisallow: /hr/firefox/collections/mozilla/$\nDisallow: /hr/firefox/search/\nDisallow: /hr/firefox/collections/\nDisallow: /hr/android/search/\nDisallow: /hr/android/collections/\n\n\nAllow: /hsb/firefox/collections/4757633/\nAllow: /hsb/firefox/collections/mozilla/\nDisallow: /hsb/firefox/collections/4757633/$\nDisallow: /hsb/firefox/collections/mozilla/$\nDisallow: /hsb/firefox/search/\nDisallow: /hsb/firefox/collections/\nDisallow:"
+ },
+ {
+  "label": "EN2-04 Atlassian",
+  "host": "marketplace.atlassian.com",
+  "fetched_at": "2026-10-13T17:14:03.826Z",
+  "status": 200,
+  "final_url": "https://marketplace.atlassian.com/robots.txt",
+  "bytes": 303,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "Sitemap: https://marketplace.atlassian.com/sitemap.xml\n\nUser-Agent: *\nDisallow: /login\nDisallow: /server/\nDisallow: /rest/\nDisallow: /download/\nDisallow: /admin/\nDisallow: /manage/\nDisallow: /files/\nDisallow: /users/\n\nUser-Agent: MauiBot\nDisallow: /\n\nUser-Agent: atlassian-bot\nAllow: /apps/\nDisallow: /\n"
+ },
+ {
+  "label": "EN2-05 HubSpot Marketplace",
+  "host": "ecosystem.hubspot.com",
+  "fetched_at": "2026-10-13T17:14:08.131Z",
+  "status": 200,
+  "final_url": "https://ecosystem.hubspot.com/robots.txt",
+  "bytes": 4134,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "#\n#\n#                                         bbbbbbbb\n# HHHHHHHHH     HHHHHHHHH                 b::::::b               SSSSSSSSSSSSSSS                                              tttt\n# H:::::::H     H:::::::H                 b::::::b             SS:::::::::::::::S                                          ttt:::t\n# H:::::::H     H:::::::H                 b::::::b            S:::::SSSSSS::::::S                                          t:::::t\n# HH::::::H     H::::::HH                  b:::::b            S:::::S     SSSSSSS                                          t:::::t\n#   H:::::H     H:::::H  uuuuuu    uuuuuu  b:::::bbbbbbbbb    S:::::S           ppppp   ppppppppp      ooooooooooo   ttttttt:::::ttttttt\n#   H:::::H     H:::::H  u::::u    u::::u  b::::::::::::::bb  S:::::S           p::::ppp:::::::::p   oo:::::::::::oo t:::::::::::::::::t\n#   H::::::HHHHH::::::H  u::::u    u::::u  b::::::::::::::::b  S::::SSSS        p:::::::::::::::::p o:::::::::::::::ot:::::::::::::::::t\n#   H:::::::::::::::::H  u::::u    u::::u  b:::::bbbbb:::::::b  SS::::::SSSSS   pp::::::ppppp::::::po:::::ooooo:::::otttttt:::::::tttttt\n#   H:::::::::::::::::H  u::::u    u::::u  b:::::b    b::::::b    SSS::::::::SS  p:::::p     p:::::po::::o     o::::o      t:::::t\n#   H::::::HHHHH::::::H  u::::u    u::::u  b:::::b     b:::::b       SSSSSS::::S p:::::p     p:::::po::::o     o::::o      t:::::t\n#   H:::::H     H:::::H  u::::u    u::::u  b:::::b     b:::::b            S:::::Sp:::::p     p:::::po::::o     o::::o      t:::::t\n#   H:::::H     H:::::H  u:::::uuuu:::::u  b:::::b     b:::::b            S:::::Sp:::::p    p::::::po::::o     o::::o      t:::::t    tttttt\n# HH::::::H     H::::::HHu:::::::::::::::uub:::::bbbbbb::::::bSSSSSSS     S:::::Sp:::::ppppp:::::::po:::::ooooo:::::o      t::::::tttt:::::t\n# H:::::::H     H:::::::H u:::::::::::::::ub::::::::::::::::b S::::::SSSSSS:::::Sp::::::::::::::::p o:::::::::::::::o      tt::::::::::::::t\n# H:::::::H     H:::::::H  uu::::::::uu:::ub:::::::::::::::b  S:::::::::::::::SS p::::::::::::::pp   oo:::::::::::oo         tt:::::::::::tt\n# HHHHHHHHH     HHHHHHHHH    uuuuuuuu  uuuubbbbbbbbbbbbbbbb    SSSSSSSSSSSSSSS   p::::::pppppppp       ooooooooooo             ttttttttttt\n#                                                                                p:::::p\n#                                                                                p:::::p\n#                                                                               p:::::::p\n#                                                                               p:::::::p\n#                                                                               p:::::::p\n#                                                                               ppppppppp\n#\n# Software development at HubSpot isn't about process. It's about customers, culture, and code.\n# If that sounds like something you're passionate about, we'd love to get to know you.\n#\n# https://www.hubspot.com/careers/product-engineering\n\nUser-agent: *\nAllow: /\nDisallow: /de/marketplace/website\nDisallow: /es/marketplace/website\nDisallow: /fr/marketplace/website\nDisallow: /ja/marketplace/website\nDisallow: /pt/marketplace/website\nDisallow: *?portalId=\nDisallow: *?inpageEditorUI=\nDisallow: *?cssPath=\nDisallow: *?_health_check_=\nDisallow: *?_preview=\nDisallow: *?benderPackage=\nDisallow: *?preview_key=\nDisallow: *?staticVersion=\nDisallow: *?cacheBurst=\nDisallow: *?tc_deviceCategory=\nDisallow: *?isPreview=\nDisallow: *?preview_theme=\nDisallow: *?cos=\n\nUser-agent: AdsBot-Google\nAllow: /\n\nUser-agent: AdsBot-Google-Mobile\nAllow: /\n\nUser-agent: AdsBot-Google-Mobile-Apps\nAllow: /\n\nSitemap: https://ecosystem.hubspot.com/marketplace-index.xml\nSitemap: https://ecosystem.hubspot.com/marketplace-listings.xml\nSitemap: https://ecosystem.hubspot.com/marketplace-collections.xml\nSitemap: https://ecosystem.hubspot.com/marketplace-apps-categories.xml\nSitemap: https://ecosystem.hubspot.com/marketplace-agents-categories.xml\nSitemap: https://ecosystem.hubspot.com/marketplace-solutions-categories.xml\nSitemap: https://ecosystem.hubspot.com/marketplace-workflows-categories.xml\n"
+ },
+ {
+  "label": "EN2-06 Zapier",
+  "host": "zapier.com",
+  "fetched_at": "2026-10-13T17:14:12.523Z",
+  "status": 200,
+  "final_url": "https://zapier.com/robots.txt",
+  "bytes": 1840,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nAllow: /\nAllow: /shared/\nAllow: /app/login\nDisallow: /shared/*?wtime\nDisallow: /engine/hydrate/\nDisallow: /hooks/\nDisallow: /goto/\nDisallow: /developer/invite/\nDisallow: /developer/public-invite/\nDisallow: /editor/robots.txt\nDisallow: /app/\nDisallow: /engine/\nDisallow: /google-sso/\nDisallow: /home\nDisallow: /help-v1/\nDisallow: /help/search/\nDisallow: /apps/*/landing/\nDisallow: /apps/*/integrations/*/landing/\nDisallow: /apps/*/roles/*/\nDisallow: /app-directory/\nDisallow: /api/\nDisallow: /new-homepage/\nDisallow: /webintent/\nDisallow: /zapbook/\nDisallow: /sso/\nDisallow: */iframe/*\nDisallow: /*?\n\nSitemap: https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-two-service-sitemap.xml\nSitemap: https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-one-service-sitemap.xml\nSitemap: https://zapier.com/sitemaps/zap-templates/LZB2XiWzbJFggRYdnRGwcoAgEkTnHHEh\nSitemap: https://zapier.com/blog/sitemap.xml\nSitemap: https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-sitemap.xml\nSitemap: https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-static-sitemap.xml\nSitemap: https://zapier.com/agents/sitemap.xml\nSitemap: https://zapier.com/automation/sitemap.xml\nSitemap: https://zapier.com/marketing/sitemap.xml\nSitemap: https://zapier.com/sitemaps/templates/Xf3Lk9YbRzQnmgP2eCJtA5Wxv0NdMu6T\nSitemap: https://zapier.com/automations/sitemap-automations.xml\n\nAgentmap: https://zapier.com/.well-known/ai-catalog.json\n\nUser-agent: facebookexternalhit\nAllow: /engine/hydrate/\n\nUser-agent: Baiduspider\nDisallow: /api/\nDisallow: /engine/\nDisallow: /app/\n\nUser-agent: GPTBot\nUser-agent: OAI-SearchBot\nUser-agent: ChatGPT-User\nUser-agent: ClaudeBot\nUser-agent: Claude-User\nUser-agent: Claude-SearchBot\nUser-agent: Google-Extended\nUser-agent: PerplexityBot\nUser-agent: DuckAssistBot\nAllow: /\n\nContent-Signal: ai-train=yes, search=yes, ai-input=yes\n"
+ },
+ {
+  "label": "EN2-07 SourceForge",
+  "host": "sourceforge.net",
+  "fetched_at": "2026-10-13T17:14:17.242Z",
+  "status": 200,
+  "final_url": "https://sourceforge.net/robots.txt",
+  "bytes": 5837,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: Mediapartners-Google\nAllow: /\n\nUser-agent: AmazonAdBot\nAllow: /\n\nUser-agent: *\nAllow: /p/*/ci/master/tree/$\nAllow: /p/*/ci/main/tree/$\nAllow: /p/*/ci/default/tree/$\nAllow: /p/*/HEAD/tree/$\nAllow: /p/*/HEAD/tree/trunk/$\nAllow: /adobe/*/HEAD/tree/trunk/$\nAllow: /software/vendors/optimize-software-for-ai-search/\nDisallow: /p/*/code/\nDisallow: /p/*/git/\nDisallow: /p/*/svn/\nDisallow: /p/*/hg/\nDisallow: /p/*/search\nDisallow: /p/*/code-0/\nDisallow: /p/*/tree/\nDisallow: /adobe/*/tree/\nDisallow: /p/*/search_feed/\nDisallow: /p/*/search_help/\nDisallow: /p/*/wiki/*/edit\nDisallow: /p/*/wiki/browse_tags/\nDisallow: /p/*/discussion/create_topic/\nDisallow: /p/*/discussion/stats\nDisallow: /*/ci/\nDisallow: /*/commit_browser\nDisallow: /*/commit_browser_data\nDisallow: /*?barediff=\nDisallow: /*?diff=\nDisallow: /*/tarball\nDisallow: /code-snapshots/\nDisallow: /*/bugs/new/\nDisallow: /*/support-requests/new/\nDisallow: /*/patches/new/\nDisallow: /*/feature-requests/new/\nDisallow: /*/tickets/new/\nDisallow: /*/edit/\nDisallow: /*/attachment/\nDisallow: /*/_discuss/\nDisallow: /projects/*/files/*/stats/timeline\nDisallow: /projects/*/files/stats/timeline\nDisallow: /projects/*/files/*/stats/map\nDisallow: /projects/*/files/stats/map\nDisallow: /projects/*/files/*/stats/os\nDisallow: /projects/*/files/stats/os\nDisallow: /projects/*/files/stats/json\nDisallow: /projects/*/files/*/stats/json\nDisallow: /projects/*/files/latest/download\nDisallow: /projects/*/latest.json\nDisallow: /projects/*/report_inappropriate\nDisallow: /projects/*/reviews/new\nDisallow: /projects/*/rss\nDisallow: /projects/*/lists/*/unsubscribe\nDisallow: /projects/*/moderate_review\nDisallow: /projects/*/rate_review\nDisallow: /projects/*/best_release.html\nDisallow: /projects/*/postdownload\nDisallow: /projects/*/get_updates\nDisallow: /app/*/files/\nDisallow: /app/*/latest.json\nDisallow: /app/*/report_inappropriate\nDisallow: /app/*/reviews/\nDisallow: /app/*/rss\nDisallow: /app/*/moderate_review\nDisallow: /app/*/rate_review\nDisallow: /app/*/best_release.html\nDisallow: /app/*/postdownload\nDisallow: /app/*/get_updates\nDisallow: /*_escaped_fragment_\nDisallow: /auth/\nDisallow: /auth/do_login\nDisallow: /software/link?\nDisallow: /software/link$\nDisallow: /software/visit?\nDisallow: /software/visit$\nDisallow: /software/transfer_site\nDisallow: /software/compare/*-vs-*-vs-*-vs-\nDisallow: /software/compare/*/add-software\nDisallow: /software/product/*/reviews/new\nDisallow: /software/product/*/reviews/add\nDisallow: /software/product/*/claim\nDisallow: /software/vendors/new\nDisallow: /software/vendors/inquire\nDisallow: /software/vendors/ai-llm-optimization\nDisallow: /software/*?q=\nDisallow: /software/*&q=\nDisallow: /software/*?categories=\nDisallow: /software/*&categories=\nDisallow: /software/*?company_sizes=\nDisallow: /software/*&company_sizes=\nDisallow: /software/*?deployment=\nDisallow: /software/*&deployment=\nDisallow: /software/*?free_options=\nDisallow: /software/*&free_options=\nDisallow: /software/*?integrates_with=\nDisallow: /software/*&integrates_with=\nDisallow: /software/*?org_types=\nDisallow: /software/*&org_types=\nDisallow: /software/*?api=\nDisallow: /software/*&api=\nDisallow: /software/*?regions=\nDisallow: /software/*&regions=\nDisallow: /software/*?support=\nDisallow: /software/*&support=\nDisallow: /software/*?training=\nDisallow: /software/*&training=\nDisallow: /software/*?feature_\nDisallow: /software/*&feature_\nDisallow: /rest/\nAllow: /rest/*/activity\nDisallow: /user/registration\nDisallow: /user/verified\nDisallow: */bin_counts\nDisallow: */milestone_counts\nDisallow: */stats_data\nDisallow: *//users$\nDisallow: */users$\nDisallow: /u/*/link/\nDisallow: /p/*/link/\nDisallow: /p/*/donate\nDisallow: */feed.rss\nDisallow: */feed.atom\nDisallow: /p/*/news/feed\nDisallow: /p/*/news/*/history\nDisallow: /arris/*/feed$\nDisallow: */activity/feed\nDisallow: */activity/pjax\nDisallow: /p/*/admin/\nDisallow: /directory/release_feed\nDisallow: *?css-reload=\nDisallow: *&css-reload=\nDisallow: /settings/mirror_choices\nDisallow: /directory/os:windows/?q=\nDisallow: /directory/tp\nDisallow: /software/tp\nDisallow: /sd-jobs\nDisallow: /about/mirror-agreement\nDisallow: /t7\nDisallow: /p/*/wiki/*/history\nDisallow: /p/*/*/milestone/\nDisallow: /p/*/activity/\nDisallow: /u/*/wiki/*\nDisallow: /u/*/activity/\nAllow: /u/*/profile/$\nDisallow: /u/*/*/\nDisallow: /*/wp-login.php\nDisallow: /blog/tag/\nDisallow: /blog/category/\nDisallow: /articles/tag/\nDisallow: /articles/category/open-source/\nDisallow: /articles/category/developer-tools/\nDisallow: /articles/category/artificial-intelligence/\nDisallow: /articles/category/database/\nDisallow: /articles/category/mobile/\nDisallow: /articles/category/payroll/\nDisallow: /articles/category/telephony/\nDisallow: /articles/category/networking/\nDisallow: /articles/category/cloud/\nDisallow: /articles/category/general/\nDisallow: /articles/category/software/\nDisallow: /p/allura/chat/\nDisallow: /p/allura/tickets/\nDisallow: /about/maxnav\nDisallow: /hi\nAllow: /llms.txt\n\n# /directory param rules: permit ?q= and ?page= on their own, but no other params\n# longest match takes precedence.  listed in length order\nDisallow: /directory/*?\nAllow: /directory/*?q\nDisallow: /directory/*?q*&\nAllow: /directory/*?page=\n\n# mailman flags\nDisallow: *?style=flat\nDisallow: *&style=flat\nDisallow: *?style=threaded\nDisallow: *&style=threaded\nDisallow: *?viewmonth=\nDisallow: *&viewmonth=\nDisallow: *?viewmont=\nDisallow: *&viewmont=\nDisallow: *?viewday=\nDisallow: *&viewday=\n\nSitemap: https://sourceforge.net/sitemap.xml\nSitemap: https://sourceforge.net/allura_sitemap/sitemap.xml\nSitemap: https://sourceforge.net/directory_sitemap.xml\nSitemap: https://sourceforge.net/software_sitemap.xml\nSitemap: https://sourceforge.net/blog/sitemap_index.xml\nSitemap: https://sourceforge.net/articles/sitemap_index.xml\nSitemap: https://sourceforge.net/freeware_sitemap.xml\n"
+ },
+ {
+  "label": "EN2-08 AlternativeTo",
+  "host": "alternativeto.net",
+  "fetched_at": "2026-10-13T17:14:21.662Z",
+  "status": 200,
+  "final_url": "https://alternativeto.net/robots.txt",
+  "bytes": 1762,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "# Robots.txt\nUser-agent: Mediapartners-Google \nDisallow:\n\nUser-agent: *\n# AI preferences (contentsignals.org): no model training, but search and\n# AI answers may use and cite pages. Advisory only; nothing enforces it.\nContent-Signal: ai-train=no, search=yes, ai-input=yes\nDisallow: /outgoing/\nDisallow: /admin/\nDisallow: /share/\nDisallow: /user/\nDisallow: /tag/\nDisallow: /UserEdit.aspx\nDisallow: /Manage/\nDisallow: /manage-item/\nDisallow: /manage-add-alternative/\nDisallow: /manage/\nDisallow: /account/\nDisallow: /hello/\nDisallow: /hello\nDisallow: /discussions/\nDisallow: /list/EditCustomItemList/\nDisallow: /list/save/\nDisallow: /browse/search/\nDisallow: /auth/\nDisallow: /api/auth/\nDisallow: /api/\nDisallow: /cdn-cgi/\nDisallow: /_next/data/*.json*\nDisallow: /_next/static/chunks/modern-filter-bar*\nDisallow: /*?*mf=*\nDisallow: /*?*lw=*\nDisallow: /*?*nw=*\nDisallow: /*?*page=*\nDisallow: /*?*sort=*\n# Lists with apps hidden by the visitor (#1419); noindex too.\nDisallow: /*?*hide=*\n# Countries hidden from a list (#1458); noindex too.\nDisallow: /*?*hideorigin=*\n# A signed-in person's saved filters switched off (#1458); noindex too.\nDisallow: /*?*saved=*\n# News archive search (/news/all/?q=). The pages are noindex too, but noindex is\n# only seen after the fetch, and each fetch is a full scan of the article table.\n# `q` is not used anywhere else on the site.\nDisallow: /*?*q=*\nDisallow: /login/\n# Block if 'feature' has 2+ values (one comma)\nDisallow: /*feature=*,*\n# Block if 'platform' has 2+ values (one comma)\nDisallow: /*platform=*,*\n# Block if 'feature' has 2+ values (one commas)\nDisallow: /*feature=*%2C*\n# Block if 'platform' has 2+ values (one commas)\nDisallow: /*platform=*%2C*\n\n\nSitemap: https://alternativeto.net/sitemaps-ssl/sitemap-map.xml\n\n\n"
+ },
+ {
+  "label": "EN2-09 SaaSworthy",
+  "host": "www.saasworthy.com",
+  "fetched_at": "2026-10-13T17:14:25.918Z",
+  "status": 200,
+  "final_url": "https://www.saasworthy.com/robots.txt",
+  "bytes": 150,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nAllow : /\nDisallow: /comments/\nDisallow: /redir.php\nDisallow: /api/\nDisallow: /cdn-cgi/\nSitemap: https://www.saasworthy.com/sitemap.xml\n"
+ },
+ {
+  "label": "EN2-10 Slant",
+  "host": "www.slant.co",
+  "fetched_at": "2026-10-13T17:14:30.220Z",
+  "status": 526,
+  "final_url": "https://www.slant.co/robots.txt",
+  "bytes": 7694,
+  "state_root": {
+   "state": "unverified",
+   "reason": "status=526 markup=true final=https://www.slant.co/robots.txt"
+  },
+  "body_head": "<!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 8]>    <html class=\"no-"
+ },
+ {
+  "label": "EN2-11 SoftwareSuggest",
+  "host": "www.softwaresuggest.com",
+  "fetched_at": "2026-10-13T17:14:35.100Z",
+  "status": 200,
+  "final_url": "https://www.softwaresuggest.com/robots.txt",
+  "bytes": 862,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\r\nDisallow: /v2/\r\nDisallow: /v1/\r\nDisallow: /donotdo/\r\nDisallow: /v2_/\r\nDisallow: /v3/\r\nDisallow: /search.php\r\nDisallow: /newindex\r\nDisallow: /staging1\r\nDisallow: /staging2\r\nDisallow: /staging3\r\nDisallow: /adserver/\r\nDisallow: /woofu/\r\nDisallow: /woofubasic/\r\nDisallow: /?ilist=\r\nDisallow: /sdesign/\r\nDisallow: /cc/\r\nDisallow: /staging/\r\nDisallow: /newblog/\r\nDisallow: /sitespeed/\r\nDisallow: /wp-admin/\r\nDisallow: /itopsoftwares\r\nDisallow: /*/rating$\r\nDisallow: /?fp_ref=*\r\nDisallow: /leadermatrix/index?s=*\r\nDisallow: /blog/ebook_signup/?pdfurl=*\r\nDisallow: /cdn-cgi/\r\nDisallow: /blog/wp-admin/\r\nDisallow: /.well-known/\r\nDisallow: /sreviewall/\r\nDisallow: /*.php\r\nDisallow: /*/lquote\r\nDisallow: /*/landing\r\nDisallow: /*/et-cache\r\nDisallow: /profile/*\r\nDisallow: /softwareprofile/*\r\n\r\nSitemap: https://www.softwaresuggest.com/sitemaps/sitemap-all.xml"
+ },
+ {
+  "label": "EN2-12 Crozdesk",
+  "host": "crozdesk.com",
+  "fetched_at": "2026-10-13T17:14:39.740Z",
+  "status": 200,
+  "final_url": "https://crozdesk.com/robots.txt",
+  "bytes": 242,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "Sitemap: https://static.crozdesk.com/sitemaps/sitemap.xml.gz\nUser-agent: *\nDisallow: /*?*sort=*\nDisallow: /*?*query=*\nDisallow: /*?*utf8=*\nDisallow: /*?*sort_by=*\nDisallow: /saas-cloud-startup-report-2018.pdf\nDisallow: /*/*/quote-form/embed*\n"
+ },
+ {
+  "label": "EN2-13 FinancesOnline",
+  "host": "financesonline.com",
+  "fetched_at": "2026-10-13T17:14:44.112Z",
+  "status": 200,
+  "final_url": "https://financesonline.com/robots.txt",
+  "bytes": 23,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nAllow: /\n"
+ },
+ {
+  "label": "EN2-14 Sitejabber",
+  "host": "www.sitejabber.com",
+  "fetched_at": "2026-10-13T17:14:49.487Z",
+  "status": 200,
+  "final_url": "https://www.smartcustomer.com/robots.txt",
+  "bytes": 8136,
+  "state_root": {
+   "state": "unverified",
+   "reason": "status=200 markup=false final=https://www.smartcustomer.com/robots.txt"
+  },
+  "body_head": "User-agent: *\n\n#ad routes\nDisallow: /track-sitejabber-marketing-ads\nDisallow: /track-sitejabber-modal-ads\n\n#category routes\nDisallow: /suggest-categories\n\n#favorite routes\nDisallow: /block-follow-user"
+ },
+ {
+  "label": "EN2-15 GitHub Issues",
+  "host": "github.com",
+  "fetched_at": "2026-10-13T17:14:54.375Z",
+  "status": 200,
+  "final_url": "https://github.com/robots.txt",
+  "bytes": 16739,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": 1,
+  "body": "# If you would like to crawl GitHub contact us via https://support.github.com?tags=dotcom-robots\n# We also provide an extensive API: https://docs.github.com\nUser-agent: GPTBot\nUser-agent: OAI-SearchBot\nUser-agent: ClaudeBot\nUser-agent: anthropic-ai\nUser-agent: PerplexityBot\nCrawl-delay: 1\nAllow: /$\nAllow: /about\nAllow: /customer-stories\nAllow: /enterprise\nAllow: /features\nAllow: /marketplace\nAllow: /mcp\nAllow: /newsroom\nAllow: /pricing\nAllow: /resources\nAllow: /security\nAllow: /solutions\nAllow: /topics/download*\nAllow: /topics/comments*\nAllow: /marketplace/actions/download*\nDisallow: /*/*/pulse\nDisallow: /*/*/projects\nDisallow: /*/*/forks\nDisallow: /*/*/issues/new\nDisallow: /*/*/milestones/new\nDisallow: /*/*/issues/search\nDisallow: /*/*/commits/\nDisallow: /*/*/branches\nDisallow: /*/*/contributors\nDisallow: /*/*/tags\nDisallow: /*/*/stargazers\nDisallow: /*/*/watchers\nDisallow: /*/*/network\nDisallow: /*/*/graphs\nDisallow: /*/*/compare\nDisallow: /*/tree/\nDisallow: /gist/\nDisallow: /*/download\nDisallow: /*/revisions\nDisallow: /*/commits/*?author\nDisallow: /*/commits/*?path\nDisallow: /*/comments\nDisallow: /*/archive/\nDisallow: /*/blame/\nDisallow: /*/raw/\nDisallow: /*/cache/\nDisallow: /.git/\nDisallow: */.git/\nDisallow: /*.git$\nDisallow: /search/advanced\nDisallow: /search$\nDisallow: /*.atom$\nDisallow: /ekansa/Open-Context-Data\nDisallow: /ekansa/opencontext-*\nDisallow: */tarball/\nDisallow: */zipball/\nDisallow: /*commits?author=*\nDisallow: /*report-abuse?report=*\nDisallow: /account-login\nDisallow: /Explodingstuff/\nDisallow: /copilot/\nDisallow: /copilot/c/\nDisallow: /marketplace/*/*?tab=readme$\nDisallow: /marketplace/*?*?tab=readme$\nDisallow: /marketplace/actions?tab=readme$\nDisallow: /marketplace/free-trials?tab=readme$\nDisallow: /marketplace/manage?tab=readme$\nDisallow: /marketplace/models?tab=readme$\nDisallow: /marketplace/new?tab=readme$\nDisallow: /marketplace/publishers?tab=readme$\nDisallow: /marketplace/recently-added?tab=readme$\nDisallow: /marketplace/*/*?tab=transparency$\nDisallow: /marketplace/*?*?tab=transparency$\nDisallow: /marketplace/actions?tab=transparency$\nDisallow: /marketplace/free-trials?tab=transparency$\nDisallow: /marketplace/manage?tab=transparency$\nDisallow: /marketplace/models?tab=transparency$\nDisallow: /marketplace/new?tab=transparency$\nDisallow: /marketplace/publishers?tab=transparency$\nDisallow: /marketplace/recently-added?tab=transparency$\nDisallow: /*?source=*\nDisallow: /*&source=*\nDisallow: /*?ref_cta=*\nDisallow: /*&ref_cta=*\nDisallow: /*?plan=*\nDisallow: /*&plan=*\nDisallow: /*?return_to=*\nDisallow: /*&return_to=*\nDisallow: /*?ref_loc=*\nDisallow: /*&ref_loc=*\nDisallow: /*?setup_organization=*\nDisallow: /*&setup_organization=*\nDisallow: /*?source_repo=*\nDisallow: /*&source_repo=*\nDisallow: /*?ref_page=*\nDisallow: /*&ref_page=*\nDisallow: /*?referrer=*\nDisallow: /*&referrer=*\nDisallow: /*?report=*\nDisallow: /*&report=*\nDisallow: /*?author=*\nDisallow: /*&author=*\nDisallow: /*?since=*\nDisallow: /*&since=*\nDisallow: /*?until=*\nDisallow: /*&until=*\nDisallow: /*?tab=*\nDisallow: /*&tab=*\nDisallow: /*?q=*\nDisallow: /*&q=*\nDisallow: /topics/download*?source=*\nDisallow: /topics/download*&source=*\nDisallow: /topics/download*?ref_cta=*\nDisallow: /topics/download*&ref_cta=*\nDisallow: /topics/download*?plan=*\nDisallow: /topics/download*&plan=*\nDisallow: /topics/download*?return_to=*\nDisallow: /topics/download*&return_to=*\nDisallow: /topics/download*?ref_loc=*\nDisallow: /topics/download*&ref_loc=*\nDisallow: /topics/download*?setup_organization=*\nDisallow: /topics/download*&setup_organization=*\nDisallow: /topics/download*?source_repo=*\nDisallow: /topics/download*&source_repo=*\nDisallow: /topics/download*?ref_page=*\nDisallow: /topics/download*&ref_page=*\nDisallow: /topics/download*?referrer=*\nDisallow: /topics/download*&referrer=*\nDisallow: /topics/download*?report=*\nDisallow: /topics/download*&report=*\nDisallow: /topics/download*?author=*\nDisallow: /topics/download*&author=*\nDisallow: /topics/download*?since=*\nDisallow: /topics/download*&since=*\nDisallow: /topics/download*?until=*\nDisallow: /topics/download*&until=*\nDisallow: /topics/download*?tab=*\nDisallow: /topics/download*&tab=*\nDisallow: /topics/download*?q=*\nDisallow: /topics/download*&q=*\nDisallow: /topics/comments*?source=*\nDisallow: /topics/comments*&source=*\nDisallow: /topics/comments*?ref_cta=*\nDisallow: /topics/comments*&ref_cta=*\nDisallow: /topics/comments*?plan=*\nDisallow: /topics/comments*&plan=*\nDisallow: /topics/comments*?return_to=*\nDisallow: /topics/comments*&return_to=*\nDisallow: /topics/comments*?ref_loc=*\nDisallow: /topics/comments*&ref_loc=*\nDisallow: /topics/comments*?setup_organization=*\nDisallow: /topics/comments*&setup_organization=*\nDisallow: /topics/comments*?source_repo=*\nDisallow: /topics/comments*&source_repo=*\nDisallow: /topics/comments*?ref_page=*\nDisallow: /topics/comments*&ref_page=*\nDisallow: /topics/comments*?referrer=*\nDisallow: /topics/comments*&referrer=*\nDisallow: /topics/comments*?report=*\nDisallow: /topics/comments*&report=*\nDisallow: /topics/comments*?author=*\nDisallow: /topics/comments*&author=*\nDisallow: /topics/comments*?since=*\nDisallow: /topics/comments*&since=*\nDisallow: /topics/comments*?until=*\nDisallow: /topics/comments*&until=*\nDisallow: /topics/comments*?tab=*\nDisallow: /topics/comments*&tab=*\nDisallow: /topics/comments*?q=*\nDisallow: /topics/comments*&q=*\nDisallow: /marketplace/actions/download*?source=*\nDisallow: /marketplace/actions/download*&source=*\nDisallow: /marketplace/actions/download*?ref_cta=*\nDisallow: /marketplace/actions/download*&ref_cta=*\nDisallow: /marketplace/actions/download*?plan=*\nDisallow: /marketplace/actions/download*&plan=*\nDisallow: /marketplace/actions/download*?return_to=*\nDisallow: /marketplace/actions/download*&return_to=*\nDisallow: /marketplace/actions/download*?ref_loc=*\nDisallow: /marketplace/actions/download*&ref_loc=*\nDisallow: /marketplace/actions/download*?setup_organization=*\nDisallow: /marketplace/actions/download*&setup_organization=*\nDisall"
+ },
+ {
+  "label": "EN2-16 ProductReview.com.au",
+  "host": "www.productreview.com.au",
+  "fetched_at": "2026-10-13T17:14:58.612Z",
+  "status": 200,
+  "final_url": "https://www.productreview.com.au/robots.txt",
+  "bytes": 949,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-Agent: discobot\nUser-agent: Exabot\nUser-agent: AhrefsBot\nUser-agent: MJ12bot\nUser-agent: netseer\nUser-agent: proximic\nUser-agent: psbot\nUser-Agent: trendictionbot\nUser-agent: BLEXBot\nUser-agent: sogou spider\nUser-agent: Mail.RU_Bot/2.0\nUser-agent: Mail.RU\nUser-agent: Riddler\nUser-agent: dotbot\nUser-Agent: Superfeedr\nUser-agent: sentibot\nUser-agent: SentiBot\nUser-agent: BluechipBacklinks\nUser-agent: AppleBot\nDisallow: /\n\nUser-agent: bingbot\nAllow: /listings/\nDisallow: /listings/*?\nAllow: /c/\nDisallow: /c/*?\nAllow: /b/\nDisallow: /b/*?\nAllow: /articles\nDisallow: /articles*?*\nDisallow: /listings/*/write-review\nDisallow: /\n\nUser-agent: *\nDisallow: /api\nDisallow: /admin\nDisallow: /bm\nDisallow: /questions\nDisallow: /i/contact-us\nDisallow: /i/rating-calculator\nDisallow: /consumer-settings\nDisallow: /user-account-management\nDisallow: /write-review-confirm-email\nDisallow: /noop\nDisallow: /login?*\n# Google Ad / Analytics\nDisallow: /4027029/\n"
+ },
+ {
+  "label": "EN3-01 Mastodon(mastodon.social)",
+  "host": "mastodon.social",
+  "fetched_at": "2026-10-13T17:15:02.868Z",
+  "status": 200,
+  "final_url": "https://mastodon.social/robots.txt",
+  "bytes": 231,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "# See http://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file\n\nUser-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nDisallow: /media_proxy/\nDisallow: /interact/\nDisallow: /api/v1/instance/domain_blocks\n"
+ },
+ {
+  "label": "EN3-02 Bluesky",
+  "host": "bsky.app",
+  "fetched_at": "2026-10-13T17:15:07.343Z",
+  "status": 200,
+  "final_url": "https://bsky.app/robots.txt",
+  "bytes": 441,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /"
+  },
+  "crawl_delay_sec": null,
+  "body": "# Hello Friends!\n# If you are considering bulk or automated crawling, you may want to look in\n# to our protocol (API), including a firehose of updates. See: https://atproto.com/\n\n# By default, may crawl anything on this domain. HTTP 429 (\"backoff\") status\n# codes are used for rate-limiting. Up to a handful concurrent requests should\n# be ok.\nUser-Agent: *\nDisallow: /intent/compose\nAllow: /\n\nSitemap: https://bsky.app/sitemap/users.xml.gz\n"
+ },
+ {
+  "label": "EN3-03 Lemmy(lemmy.world)",
+  "host": "lemmy.world",
+  "fetched_at": "2026-10-13T17:15:12.064Z",
+  "status": 200,
+  "final_url": "https://lemmy.world/robots.txt",
+  "bytes": 315,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": 60,
+  "body": "User-Agent: *\n  Disallow: /login\n  Disallow: /login_reset\n  Disallow: /settings\n  Disallow: /create_community\n  Disallow: /create_post\n  Disallow: /create_private_message\n  Disallow: /inbox\n  Disallow: /setup\n  Disallow: /admin\n  Disallow: /password_change\n  Disallow: /search/\n  Disallow: /modlog\n  Crawl-delay: 60"
+ },
+ {
+  "label": "EN3-04 Slashdot",
+  "host": "slashdot.org",
+  "fetched_at": "2026-10-13T17:15:17.478Z",
+  "status": 200,
+  "final_url": "https://slashdot.org/robots.txt",
+  "bytes": 4113,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "# robots.txt for Slashdot.org\n\nUser-agent: *\nDisallow: /authors.pl\nDisallow: /index.pl\nDisallow: /index2.pl\nDisallow: /firehose.pl\nDisallow: /messages.pl\nDisallow: /metamod.pl\nDisallow: /users.pl\nDisallow: /users2.pl\nDisallow: /search.pl\nDisallow: /search\nDisallow: /submit.pl\nDisallow: /pollBooth.pl\nDisallow: /pubkey.pl\nDisallow: /topics.pl\nDisallow: /zoo.pl\nDisallow: /palm\nDisallow: /bookmark.pl\nDisallow: /%7E\nDisallow: /~*/friends\nDisallow: /~*/fans\nDisallow: /~*/foes\nDisallow: /~*/freaks\nDisallow: /~*/tags\nDisallow: /~*/achievements\nDisallow: /submission\nDisallow: /journal\nDisallow: /comments.pl\nDisallow: /slashdot-it.pl\nDisallow: /tag\nDisallow: /stories/\nDisallow: /interviews/\nDisallow: /?issue=\nDisallow: /software/link?\nDisallow: /software/link$\nDisallow: /software/visit?\nDisallow: /software/visit$\nDisallow: /software/tp/?\n# tracking pixels moved off /software/ (SF-12035)\nDisallow: /svc/\nDisallow: /software/comparison/*-vs-*-vs-*-vs-\nDisallow: /software/comparison/*/add-software\nDisallow: /software/p/*/reviews/new\nDisallow: /software/p/*/reviews/add\nDisallow: /software/*?q=\nDisallow: /software/*&q=\nDisallow: /software/*?categories=\nDisallow: /software/*&categories=\nDisallow: /software/*?company_sizes=\nDisallow: /software/*&company_sizes=\nDisallow: /software/*?deployment=\nDisallow: /software/*&deployment=\nDisallow: /software/*?free_options=\nDisallow: /software/*&free_options=\nDisallow: /software/*?integrates_with=\nDisallow: /software/*&integrates_with=\nDisallow: /software/*?org_types=\nDisallow: /software/*&org_types=\nDisallow: /software/*?api=\nDisallow: /software/*&api=\nDisallow: /software/*?regions=\nDisallow: /software/*&regions=\nDisallow: /software/*?support=\nDisallow: /software/*&support=\nDisallow: /software/*?training=\nDisallow: /software/*&training=\nDisallow: /software/*?feature_\nDisallow: /software/*&feature_\nDisallow: /software/*?deployment=\nDisallow: /software/*&deployment=\nDisallow: /software/transfer_site\nDisallow: /about/floating_sitewide\nDisallow: /about/review-guidelines\nDisallow: /jobs\nDisallow: /software/tp3\nDisallow: /directory/tp\nDisallow: /my/\nDisallow: /*/wp-login.php\nDisallow: /supporters.shtml\nDisallow: /topics.shtml\nDisallow: /awards.shtml\nDisallow: /login.pl\nDisallow: /api/v2/record_user_opt_out\nDisallow: /prefs\nDisallow: /content/category/\nDisallow: /content/tag/\nDisallow: /hi\nAllow: /llms.txt\n\nSitemap: https://slashdot.org/sitemap-slashdot-index.xml\nSitemap: https://apache.slashdot.org/sitemap-apache-index.xml\nSitemap: https://apple.slashdot.org/sitemap-apple-index.xml\nSitemap: https://askslashdot.slashdot.org/sitemap-askslashdot-index.xml\nSitemap: https://books.slashdot.org/sitemap-bookreview-index.xml\nSitemap: https://bsd.slashdot.org/sitemap-bsd-index.xml\nSitemap: https://build.slashdot.org/sitemap-build-index.xml\nSitemap: https://developers.slashdot.org/sitemap-developers-index.xml\nSitemap: https://devices.slashdot.org/sitemap-devices-index.xml\nSitemap: https://entertainment.slashdot.org/sitemap-entertainment-index.xml\nSitemap: https://features.slashdot.org/sitemap-features-index.xml\nSitemap: https://games.slashdot.org/sitemap-games-index.xml\nSitemap: https://hardware.slashdot.org/sitemap-hardware-index.xml\nSitemap: https://idle.slashdot.org/sitemap-idle-index.xml\nSitemap: https://interviews.slashdot.org/sitemap-interviews-index.xml\nSitemap: https://it.slashdot.org/sitemap-it-index.xml\nSitemap: https://linux.slashdot.org/sitemap-linux-index.xml\nSitemap: https://meta.slashdot.org/sitemap-meta-index.xml\nSitemap: https://mobile.slashdot.org/sitemap-mobile-index.xml\nSitemap: https://news.slashdot.org/sitemap-news-index.xml\nSitemap: https://politics.slashdot.org/sitemap-politics-index.xml\nSitemap: https://radio.slashdot.org/sitemap-radio-index.xml\nSitemap: https://science.slashdot.org/sitemap-science-index.xml\nSitemap: https://search.slashdot.org/sitemap-search-index.xml\nSitemap: https://technology.slashdot.org/sitemap-technology-index.xml\nSitemap: https://yro.slashdot.org/sitemap-yro-index.xml\n\nSitemap: https://slashdot.org/software/software_sitemap.xml\nSitemap: https://slashdot.org/content/sitemap_index.xml\n"
+ },
+ {
+  "label": "EN3-05 Quora",
+  "host": "www.quora.com",
+  "fetched_at": "2026-10-13T17:15:21.852Z",
+  "status": 200,
+  "final_url": "https://www.quora.com/robots.txt",
+  "bytes": 18962,
+  "state_root": {
+   "state": "allowed",
+   "reason": "Allow: /$"
+  },
+  "crawl_delay_sec": null,
+  "body": "# NOTICE: All crawlers and bots, regardless of whether or not they are\n# specified below, are strictly prohibited from using Quora platform content \n# for the purposes of training AI models or similar machine learning systems, \n# except where explicit prior permission has been granted by Quora through a\n# contractual licensing agreement. Any use of Quora platform content for such \n# purposes without our explicit contractual permission is a violation of our \n# terms of service and intellectual property rights.\n\n# If you operate a search engine and would like to crawl Quora,\n# you can email robotstxt@quora.com. Thanks.\n\nUser-agent: AASA-Bot\nDisallow: /ajax/\nDisallow: /*_POST$\nDisallow: /*_POST/\nDisallow: /@async\nDisallow: /*/@async\nDisallow: /log/\nDisallow: /*/log\nDisallow: /*/about\nDisallow: /*/action\nDisallow: /*/activity\nDisallow: /*/all_questions\nDisallow: /*/all_posts$\nDisallow: /*/all_posts/\nDisallow: /*/blogs$\nDisallow: /*/blogs/\nDisallow: /*/followers\nDisallow: /*/following\nDisallow: /*/link/\nDisallow: /*/manage\nDisallow: /*/mentions\nDisallow: /*/merged\nDisallow: /*/open_questions\nDisallow: /*/posts$\nDisallow: /*/posts/\nDisallow: /*/questions\nDisallow: /*/related\nDisallow: /*/reviews$\nDisallow: /*/reviews/\nDisallow: /*/share\nDisallow: /*/top_questions\nDisallow: /*/topic-bio\nDisallow: /*/topic_bio\nDisallow: /*/topics\nDisallow: /*/comment\nDisallow: /comment/\nDisallow: /*/comments\nDisallow: /*/all_comments\nDisallow: /*/answer_comments\nDisallow: /*/mobile_collapsed\nDisallow: /*/mobile_expanded_voter_list\nDisallow: /home/global_feed\nDisallow: /search?q=\nDisallow: /search/?q=\nDisallow: /digest/\nDisallow: /email_optout/\nDisallow: /qemail/\nDisallow: /invite/\nDisallow: /widgets/content_iframe/\nDisallow: /widgets/content_js/\nDisallow: /_/\nDisallow: /webnode2/\nDisallow: /anonymous/\nDisallow: /q/*/admin_log\nDisallow: /q/*/stats\nDisallow: /q/*/settings\nDisallow: /q/*/queue\nDisallow: /q/*/suggestions\nDisallow: /q/*/submissions\nDisallow: /q/*/quality\nDisallow: /q/*/earnings\nDisallow: /profile/*/Rss\nDisallow: /topic/*/Rss\n\nUser-agent: Amazonbot\nDisallow: /ajax/\nDisallow: /*_POST$\nDisallow: /*_POST/\nDisallow: /@async\nDisallow: /*/@async\nDisallow: /log/\nDisallow: /*/log\nDisallow: /*/about\nDisallow: /*/action\nDisallow: /*/activity\nDisallow: /*/all_questions\nDisallow: /*/all_posts$\nDisallow: /*/all_posts/\nDisallow: /*/blogs$\nDisallow: /*/blogs/\nDisallow: /*/followers\nDisallow: /*/following\nDisallow: /*/link/\nDisallow: /*/manage\nDisallow: /*/mentions\nDisallow: /*/merged\nDisallow: /*/open_questions\nDisallow: /*/posts$\nDisallow: /*/posts/\nDisallow: /*/questions\nDisallow: /*/related\nDisallow: /*/reviews$\nDisallow: /*/reviews/\nDisallow: /*/share\nDisallow: /*/top_questions\nDisallow: /*/topic-bio\nDisallow: /*/topic_bio\nDisallow: /*/topics\nDisallow: /*/comment\nDisallow: /comment/\nDisallow: /*/comments\nDisallow: /*/all_comments\nDisallow: /*/answer_comments\nDisallow: /*/mobile_collapsed\nDisallow: /*/mobile_expanded_voter_list\nDisallow: /home/global_feed\nDisallow: /search?q=\nDisallow: /search/?q=\nDisallow: /digest/\nDisallow: /email_optout/\nDisallow: /qemail/\nDisallow: /invite/\nDisallow: /widgets/content_iframe/\nDisallow: /widgets/content_js/\nDisallow: /_/\nDisallow: /webnode2/\nDisallow: /anonymous/\nDisallow: /q/*/admin_log\nDisallow: /q/*/stats\nDisallow: /q/*/settings\nDisallow: /q/*/queue\nDisallow: /q/*/suggestions\nDisallow: /q/*/submissions\nDisallow: /q/*/quality\nDisallow: /q/*/earnings\nDisallow: /profile/*/Rss\nDisallow: /topic/*/Rss\n\nUser-agent: Googlebot\nAllow: */answer/ix_/\nAllow: /sitemap/collections/answer/\nDisallow: /ajax/\nDisallow: /*_POST$\nDisallow: /*_POST/\nDisallow: /@async\nDisallow: /*/@async\nDisallow: /log/\nDisallow: /*/log\nDisallow: /*/about\nDisallow: /*/action\nDisallow: /*/activity\nDisallow: /*/all_questions\nDisallow: /*/all_posts$\nDisallow: /*/all_posts/\nDisallow: /*/blogs$\nDisallow: /*/blogs/\nDisallow: /*/followers\nDisallow: /*/following\nDisallow: /*/link/\nDisallow: /*/manage\nDisallow: /*/mentions\nDisallow: /*/merged\nDisallow: /*/open_questions\nDisallow: /*/posts$\nDisallow: /*/posts/\nDisallow: /*/questions\nDisallow: /*/related\nDisallow: /*/reviews$\nDisallow: /*/reviews/\nDisallow: /*/share\nDisallow: /*/top_questions\nDisallow: /*/topic-bio\nDisallow: /*/topic_bio\nDisallow: /*/topics\nDisallow: /*/comment\nDisallow: /comment/\nDisallow: /*/comments\nDisallow: /*/all_comments\nDisallow: /*/answer_comments\nDisallow: /*/mobile_collapsed\nDisallow: /*/mobile_expanded_voter_list\nDisallow: /home/global_feed\nDisallow: /search?q=\nDisallow: /search/?q=\nDisallow: /digest/\nDisallow: /email_optout/\nDisallow: /qemail/\nDisallow: /invite/\nDisallow: /widgets/content_iframe/\nDisallow: /widgets/content_js/\nDisallow: /_/\nDisallow: /webnode2/\nDisallow: /anonymous/\nDisallow: /q/*/admin_log\nDisallow: /q/*/stats\nDisallow: /q/*/settings\nDisallow: /q/*/queue\nDisallow: /q/*/suggestions\nDisallow: /q/*/submissions\nDisallow: /q/*/quality\nDisallow: /q/*/earnings\nDisallow: /profile/*/Rss\nDisallow: /topic/*/Rss\nDisallow: */unanswered/*\nDisallow: */answer/\nDisallow: */answers/\n\nUser-agent: Google-Extended\nDisallow: /ajax/\nDisallow: /*_POST$\nDisallow: /*_POST/\nDisallow: /@async\nDisallow: /*/@async\nDisallow: /log/\nDisallow: /*/log\nDisallow: /*/about\nDisallow: /*/action\nDisallow: /*/activity\nDisallow: /*/all_questions\nDisallow: /*/all_posts$\nDisallow: /*/all_posts/\nDisallow: /*/blogs$\nDisallow: /*/blogs/\nDisallow: /*/followers\nDisallow: /*/following\nDisallow: /*/link/\nDisallow: /*/manage\nDisallow: /*/mentions\nDisallow: /*/merged\nDisallow: /*/open_questions\nDisallow: /*/posts$\nDisallow: /*/posts/\nDisallow: /*/questions\nDisallow: /*/related\nDisallow: /*/reviews$\nDisallow: /*/reviews/\nDisallow: /*/share\nDisallow: /*/top_questions\nDisallow: /*/topic-bio\nDisallow: /*/topic_bio\nDisallow: /*/topics\nDisallow: /*/comment\nDisallow: /comment/\nDisallow: /*/comments\nDisallow: /*/all_comments\nDisallow: /*/answer_comments\nDisallow: /*/mobile_collapsed\nDisallow: /*/mobile_expanded_voter_list\nDisallow: /home/global_feed\nDisallow: /search?q=\nDisallow: /search/"
+ },
+ {
+  "label": "EN3-06 Medium",
+  "host": "medium.com",
+  "fetched_at": "2026-10-13T17:15:26.139Z",
+  "status": 200,
+  "final_url": "https://medium.com/robots.txt",
+  "bytes": 884,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-Agent: *\nDisallow: /m/\nDisallow: /me/\nDisallow: /@me$\nDisallow: /@me/\nDisallow: /*/edit$\nDisallow: /*/*/edit$\nDisallow: /media/\nDisallow: /p/*/share\nDisallow: /r/\nDisallow: /trending\nDisallow: /search?q$\nDisallow: /search?q=\nDisallow: /*/search?q=\nDisallow: /*/search/*?q=\nDisallow: /*/*source=\nAllow: /_/api/users/*/meta\nAllow: /_/api/users/*/profile/stream\nAllow: /_/api/posts/*/responses\nAllow: /_/api/posts/*/responsesStream\nAllow: /_/api/posts/*/related\nUser-Agent: Amazonbot\nUser-Agent: Applebot-Extended\nUser-Agent: Bytespider\nUser-Agent: ClaudeBot\nUser-Agent: FacebookBot\nUser-Agent: GoogleOther\nUser-Agent: GPTBot\nUser-Agent: meta-externalagent\nDisallow: /\nAllow: /about\nAllow: /business\nAllow: /earn\nAllow: /gift\nAllow: /membership\nAllow: /partner-program\nAllow: /verified-authors\nSitemap: https://medium.com/sitemap/sitemap.xml\nLicense: https://medium.com/license.xml\n"
+ },
+ {
+  "label": "EN3-07 Substack",
+  "host": "substack.com",
+  "fetched_at": "2026-10-13T17:15:30.260Z",
+  "status": 200,
+  "final_url": "https://substack.com/robots.txt",
+  "bytes": 585,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: BLEXBot\nDisallow: /\n\nUser-agent: Twitterbot\nDisallow:\n\n\n\nUser-agent: *\nDisallow: /action/\nDisallow: /publish\nDisallow: /sign-in\nDisallow: /channel-frame\nDisallow: /session-attribution-frame\nDisallow: /visited-surface-frame\nDisallow: /feed/private\nDisallow: /feed/podcast/*/private/*.rss\nDisallow: /subscribe\nDisallow: /lovestack/*\nDisallow: /p/*/comment/*\nDisallow: /inbox/post/*\nDisallow: /notes/post/*\nDisallow: /embed\n\nUser-agent: facebookexternalhit\nAllow: /\nAllow: /subscribe\n\n\nSITEMAP: https://substack.com/sitemap.xml\nSITEMAP: https://substack.com/news_sitemap.xml\n\n"
+ },
+ {
+  "label": "EN3-08 Tildes",
+  "host": "tildes.net",
+  "fetched_at": "2026-10-13T17:15:34.537Z",
+  "status": 200,
+  "final_url": "https://tildes.net/robots.txt",
+  "bytes": 1453,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "# In general, scrapers are welcome if they are collecting data for informational uses\n# (such as search engines) and maintain a reasonable rate of scraping.\n#\n# Scrapers from SEO/marketing-type services will be blocked. Tildes data is not a\n# resource to be mined and sold.\n\n# urls blocked for all scrapers\nUser-agent: *\nDisallow: /login\n\n# Specific, fully-blocked scrapers below\n\n# https://ahrefs.com/robot\nUser-agent: AhrefsBot\nDisallow: /\n\n# http://webmeup-crawler.com/\nUser-agent: BLEXBot\nDisallow: /\n\n# https://app.hypefactors.com/media-monitoring/about.html\nUser-agent: Buck\nDisallow: /\n\n# https://cloudfindhq.com/\nUser-agent: Cloudfind\nDisallow: /\n\n# https://moz.com/help/moz-procedures/crawlers/dotbot\nUser-agent: dotbot\nDisallow: /\n\n# https://platform.openai.com/docs/gptbot\nUser-agent: GPTBot\nDisallow: /\n\n# Unknown/suspicious scraper - UA only contains a gmail address\nUser-agent: MauiBot\nDisallow: /\n\n# https://megaindex.com/crawler\nUser-agent: MegaIndex\nDisallow: /\n\n# https://mj12bot.com/\n# Note: claims to be powering a search engine, actually sells SEO/marketing data\nUser-agent: MJ12bot\nDisallow: /\n\n# https://www.semrush.com/bot/\nUser-agent: SemrushBot\nDisallow: /\n\n# https://www.semrush.com/bot/\nUser-agent: SemrushBot-BA\nDisallow: /\n\n# https://www.seokicks.de/robot.html\nUser-agent: SEOkicks\nDisallow: /\n\n# https://serpstatbot.com/\nUser-agent: serpstatbot\nDisallow: /\n\n# https://www.zoominfo.com/\nUser-agent: ZoominfoBot\nDisallow: /\n"
+ },
+ {
+  "label": "EN3-09 HubSpot Community",
+  "host": "community.hubspot.com",
+  "fetched_at": "2026-10-13T17:15:39.401Z",
+  "status": 200,
+  "final_url": "https://community.hubspot.com/robots.txt",
+  "bytes": 1002,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "# See https://datatracker.ietf.org/doc/rfc9309 for documentation on how to use the robots.txt file\n# Google uses the same format as the standard above. More info at https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt\n\n#\nUser-agent: mauibot\nDisallow: /\n\n\nUser-agent: semrushbot\nDisallow: /\n\n\nUser-agent: ahrefsbot\nDisallow: /\n\n\nUser-agent: blexbot\nDisallow: /\n\n\nUser-agent: seo spider\nDisallow: /\n\n\nUser-agent: *\nDisallow: /admin/\nDisallow: /auth/\nDisallow: /assets/js/browser-update*.js\nDisallow: /email/\nDisallow: /session\nDisallow: /user-api-key\nDisallow: /*?api_key*\nDisallow: /*?*api_key*\nDisallow: /badges\nDisallow: /my\nDisallow: /search\nDisallow: /tag/*/l\nDisallow: /g\nDisallow: /t/*/*.rss\nDisallow: /c/*.rss\n\n\nUser-agent: Googlebot\nDisallow: /admin/\nDisallow: /auth/\nDisallow: /assets/js/browser-update*.js\nDisallow: /email/\nDisallow: /session\nDisallow: /user-api-key\nDisallow: /*?api_key*\nDisallow: /*?*api_key*\n\n\n\nSitemap: https://community.hubspot.com/sitemap.xml\n\n\n"
+ },
+ {
+  "label": "EN3-10 Zoom Community",
+  "host": "community.zoom.com",
+  "fetched_at": "2026-10-13T17:15:43.703Z",
+  "status": 200,
+  "final_url": "https://community.zoom.com/robots.txt",
+  "bytes": 1401,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nDisallow: */members/*\nDisallow: *?userid=*\nDisallow: *&userid=*\nDisallow: *?sort=*\nDisallow: *&sort=*\nDisallow: *?search_type=tag*\nDisallow: *&search_type=tag*\nDisallow: *search?q=*\nDisallow: *postid=*\n\n# Private/Internal Sections\nDisallow: /partners-33\nDisallow: /partner-forum-34\nDisallow: /zoomies-only-35\nDisallow: /zoomies-36\nDisallow: /internal-notes-37\nDisallow: /moderation-management-38\nDisallow: /moderation-archive-39\nDisallow: /moderation-management-40\nDisallow: /abuse-reports-41\nDisallow: /filter-42\nDisallow: /p/zoomemployeeguidelines\n\n# Feature Requests (section + all categories under it)\nDisallow: /feature-requests-43\nDisallow: /ai-companion-44\nDisallow: /huddles-45\nDisallow: /marketplace-apps-and-apis-46\nDisallow: /notes-47\nDisallow: /scheduler-48\nDisallow: /surveys-polls-49\nDisallow: /web-platform-50\nDisallow: /workforce-management-51\nDisallow: /workvivo-52\nDisallow: /docs-53\nDisallow: /node-54\nDisallow: /zoom-rooms-digital-signage-55\nDisallow: /contact-center-56\nDisallow: /mail-calendar-57\nDisallow: /meetings-58\nDisallow: /revenue-accelarator-59\nDisallow: /security-60\nDisallow: /team-chat-61\nDisallow: /whiteboard-62\nDisallow: /workspace-reservation-63\nDisallow: /clips-64\nDisallow: /events-webinars-65\nDisallow: /phone-66\nDisallow: /virtual-agent-67\nDisallow: /catch-all-68\nDisallow: /catch-all-archive-69\n\n\nSitemap: https://community.zoom.com/sitemap.xml"
+ },
+ {
+  "label": "EN3-11 n8n",
+  "host": "community.n8n.io",
+  "fetched_at": "2026-10-13T17:15:48.210Z",
+  "status": 200,
+  "final_url": "https://community.n8n.io/robots.txt",
+  "bytes": 997,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "# See https://datatracker.ietf.org/doc/rfc9309 for documentation on how to use the robots.txt file\n# Google uses the same format as the standard above. More info at https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt\n\n#\nUser-agent: mauibot\nDisallow: /\n\n\nUser-agent: semrushbot\nDisallow: /\n\n\nUser-agent: ahrefsbot\nDisallow: /\n\n\nUser-agent: blexbot\nDisallow: /\n\n\nUser-agent: seo spider\nDisallow: /\n\n\nUser-agent: *\nDisallow: /admin/\nDisallow: /auth/\nDisallow: /assets/js/browser-update*.js\nDisallow: /email/\nDisallow: /session\nDisallow: /user-api-key\nDisallow: /*?api_key*\nDisallow: /*?*api_key*\nDisallow: /badges\nDisallow: /my\nDisallow: /search\nDisallow: /tag/*/l\nDisallow: /g\nDisallow: /t/*/*.rss\nDisallow: /c/*.rss\n\n\nUser-agent: Googlebot\nDisallow: /admin/\nDisallow: /auth/\nDisallow: /assets/js/browser-update*.js\nDisallow: /email/\nDisallow: /session\nDisallow: /user-api-key\nDisallow: /*?api_key*\nDisallow: /*?*api_key*\n\n\n\nSitemap: https://community.n8n.io/sitemap.xml\n\n\n"
+ },
+ {
+  "label": "EN3-12 Make",
+  "host": "community.make.com",
+  "fetched_at": "2026-10-13T17:15:53.042Z",
+  "status": 200,
+  "final_url": "https://community.make.com/robots.txt",
+  "bytes": 999,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "# See https://datatracker.ietf.org/doc/rfc9309 for documentation on how to use the robots.txt file\n# Google uses the same format as the standard above. More info at https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt\n\n#\nUser-agent: mauibot\nDisallow: /\n\n\nUser-agent: semrushbot\nDisallow: /\n\n\nUser-agent: ahrefsbot\nDisallow: /\n\n\nUser-agent: blexbot\nDisallow: /\n\n\nUser-agent: seo spider\nDisallow: /\n\n\nUser-agent: *\nDisallow: /admin/\nDisallow: /auth/\nDisallow: /assets/js/browser-update*.js\nDisallow: /email/\nDisallow: /session\nDisallow: /user-api-key\nDisallow: /*?api_key*\nDisallow: /*?*api_key*\nDisallow: /badges\nDisallow: /my\nDisallow: /search\nDisallow: /tag/*/l\nDisallow: /g\nDisallow: /t/*/*.rss\nDisallow: /c/*.rss\n\n\nUser-agent: Googlebot\nDisallow: /admin/\nDisallow: /auth/\nDisallow: /assets/js/browser-update*.js\nDisallow: /email/\nDisallow: /session\nDisallow: /user-api-key\nDisallow: /*?api_key*\nDisallow: /*?*api_key*\n\n\n\nSitemap: https://community.make.com/sitemap.xml\n\n\n"
+ },
+ {
+  "label": "EN3-13 Airtable Community",
+  "host": "community.airtable.com",
+  "fetched_at": "2026-10-13T17:15:57.781Z",
+  "status": 200,
+  "final_url": "https://community.airtable.com/robots.txt",
+  "bytes": 268,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nDisallow: */members/*\nDisallow: *?userid=*\nDisallow: *&userid=*\nDisallow: *?sort=*\nDisallow: *&sort=*\nDisallow: *?search_type=tag*\nDisallow: *&search_type=tag*\nDisallow: *search?q=*\nDisallow: *postid=*\n\nSitemap: https://community.airtable.com/sitemap.xml"
+ },
+ {
+  "label": "EN3-14 GitHub Discussions",
+  "host": "github.com",
+  "fetched_at": "2026-10-13T17:16:02.261Z",
+  "status": 200,
+  "final_url": "https://github.com/robots.txt",
+  "bytes": 16739,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": 1,
+  "body": "# If you would like to crawl GitHub contact us via https://support.github.com?tags=dotcom-robots\n# We also provide an extensive API: https://docs.github.com\nUser-agent: GPTBot\nUser-agent: OAI-SearchBot\nUser-agent: ClaudeBot\nUser-agent: anthropic-ai\nUser-agent: PerplexityBot\nCrawl-delay: 1\nAllow: /$\nAllow: /about\nAllow: /customer-stories\nAllow: /enterprise\nAllow: /features\nAllow: /marketplace\nAllow: /mcp\nAllow: /newsroom\nAllow: /pricing\nAllow: /resources\nAllow: /security\nAllow: /solutions\nAllow: /topics/download*\nAllow: /topics/comments*\nAllow: /marketplace/actions/download*\nDisallow: /*/*/pulse\nDisallow: /*/*/projects\nDisallow: /*/*/forks\nDisallow: /*/*/issues/new\nDisallow: /*/*/milestones/new\nDisallow: /*/*/issues/search\nDisallow: /*/*/commits/\nDisallow: /*/*/branches\nDisallow: /*/*/contributors\nDisallow: /*/*/tags\nDisallow: /*/*/stargazers\nDisallow: /*/*/watchers\nDisallow: /*/*/network\nDisallow: /*/*/graphs\nDisallow: /*/*/compare\nDisallow: /*/tree/\nDisallow: /gist/\nDisallow: /*/download\nDisallow: /*/revisions\nDisallow: /*/commits/*?author\nDisallow: /*/commits/*?path\nDisallow: /*/comments\nDisallow: /*/archive/\nDisallow: /*/blame/\nDisallow: /*/raw/\nDisallow: /*/cache/\nDisallow: /.git/\nDisallow: */.git/\nDisallow: /*.git$\nDisallow: /search/advanced\nDisallow: /search$\nDisallow: /*.atom$\nDisallow: /ekansa/Open-Context-Data\nDisallow: /ekansa/opencontext-*\nDisallow: */tarball/\nDisallow: */zipball/\nDisallow: /*commits?author=*\nDisallow: /*report-abuse?report=*\nDisallow: /account-login\nDisallow: /Explodingstuff/\nDisallow: /copilot/\nDisallow: /copilot/c/\nDisallow: /marketplace/*/*?tab=readme$\nDisallow: /marketplace/*?*?tab=readme$\nDisallow: /marketplace/actions?tab=readme$\nDisallow: /marketplace/free-trials?tab=readme$\nDisallow: /marketplace/manage?tab=readme$\nDisallow: /marketplace/models?tab=readme$\nDisallow: /marketplace/new?tab=readme$\nDisallow: /marketplace/publishers?tab=readme$\nDisallow: /marketplace/recently-added?tab=readme$\nDisallow: /marketplace/*/*?tab=transparency$\nDisallow: /marketplace/*?*?tab=transparency$\nDisallow: /marketplace/actions?tab=transparency$\nDisallow: /marketplace/free-trials?tab=transparency$\nDisallow: /marketplace/manage?tab=transparency$\nDisallow: /marketplace/models?tab=transparency$\nDisallow: /marketplace/new?tab=transparency$\nDisallow: /marketplace/publishers?tab=transparency$\nDisallow: /marketplace/recently-added?tab=transparency$\nDisallow: /*?source=*\nDisallow: /*&source=*\nDisallow: /*?ref_cta=*\nDisallow: /*&ref_cta=*\nDisallow: /*?plan=*\nDisallow: /*&plan=*\nDisallow: /*?return_to=*\nDisallow: /*&return_to=*\nDisallow: /*?ref_loc=*\nDisallow: /*&ref_loc=*\nDisallow: /*?setup_organization=*\nDisallow: /*&setup_organization=*\nDisallow: /*?source_repo=*\nDisallow: /*&source_repo=*\nDisallow: /*?ref_page=*\nDisallow: /*&ref_page=*\nDisallow: /*?referrer=*\nDisallow: /*&referrer=*\nDisallow: /*?report=*\nDisallow: /*&report=*\nDisallow: /*?author=*\nDisallow: /*&author=*\nDisallow: /*?since=*\nDisallow: /*&since=*\nDisallow: /*?until=*\nDisallow: /*&until=*\nDisallow: /*?tab=*\nDisallow: /*&tab=*\nDisallow: /*?q=*\nDisallow: /*&q=*\nDisallow: /topics/download*?source=*\nDisallow: /topics/download*&source=*\nDisallow: /topics/download*?ref_cta=*\nDisallow: /topics/download*&ref_cta=*\nDisallow: /topics/download*?plan=*\nDisallow: /topics/download*&plan=*\nDisallow: /topics/download*?return_to=*\nDisallow: /topics/download*&return_to=*\nDisallow: /topics/download*?ref_loc=*\nDisallow: /topics/download*&ref_loc=*\nDisallow: /topics/download*?setup_organization=*\nDisallow: /topics/download*&setup_organization=*\nDisallow: /topics/download*?source_repo=*\nDisallow: /topics/download*&source_repo=*\nDisallow: /topics/download*?ref_page=*\nDisallow: /topics/download*&ref_page=*\nDisallow: /topics/download*?referrer=*\nDisallow: /topics/download*&referrer=*\nDisallow: /topics/download*?report=*\nDisallow: /topics/download*&report=*\nDisallow: /topics/download*?author=*\nDisallow: /topics/download*&author=*\nDisallow: /topics/download*?since=*\nDisallow: /topics/download*&since=*\nDisallow: /topics/download*?until=*\nDisallow: /topics/download*&until=*\nDisallow: /topics/download*?tab=*\nDisallow: /topics/download*&tab=*\nDisallow: /topics/download*?q=*\nDisallow: /topics/download*&q=*\nDisallow: /topics/comments*?source=*\nDisallow: /topics/comments*&source=*\nDisallow: /topics/comments*?ref_cta=*\nDisallow: /topics/comments*&ref_cta=*\nDisallow: /topics/comments*?plan=*\nDisallow: /topics/comments*&plan=*\nDisallow: /topics/comments*?return_to=*\nDisallow: /topics/comments*&return_to=*\nDisallow: /topics/comments*?ref_loc=*\nDisallow: /topics/comments*&ref_loc=*\nDisallow: /topics/comments*?setup_organization=*\nDisallow: /topics/comments*&setup_organization=*\nDisallow: /topics/comments*?source_repo=*\nDisallow: /topics/comments*&source_repo=*\nDisallow: /topics/comments*?ref_page=*\nDisallow: /topics/comments*&ref_page=*\nDisallow: /topics/comments*?referrer=*\nDisallow: /topics/comments*&referrer=*\nDisallow: /topics/comments*?report=*\nDisallow: /topics/comments*&report=*\nDisallow: /topics/comments*?author=*\nDisallow: /topics/comments*&author=*\nDisallow: /topics/comments*?since=*\nDisallow: /topics/comments*&since=*\nDisallow: /topics/comments*?until=*\nDisallow: /topics/comments*&until=*\nDisallow: /topics/comments*?tab=*\nDisallow: /topics/comments*&tab=*\nDisallow: /topics/comments*?q=*\nDisallow: /topics/comments*&q=*\nDisallow: /marketplace/actions/download*?source=*\nDisallow: /marketplace/actions/download*&source=*\nDisallow: /marketplace/actions/download*?ref_cta=*\nDisallow: /marketplace/actions/download*&ref_cta=*\nDisallow: /marketplace/actions/download*?plan=*\nDisallow: /marketplace/actions/download*&plan=*\nDisallow: /marketplace/actions/download*?return_to=*\nDisallow: /marketplace/actions/download*&return_to=*\nDisallow: /marketplace/actions/download*?ref_loc=*\nDisallow: /marketplace/actions/download*&ref_loc=*\nDisallow: /marketplace/actions/download*?setup_organization=*\nDisallow: /marketplace/actions/download*&setup_organization=*\nDisall"
+ },
+ {
+  "label": "EN3-15 Telegram",
+  "host": "t.me",
+  "fetched_at": "2026-10-13T17:16:06.319Z",
+  "status": 404,
+  "final_url": "https://t.me/robots.txt",
+  "bytes": 153,
+  "state_root": {
+   "state": "unverified",
+   "reason": "status=404 markup=true final=https://t.me/robots.txt"
+  },
+  "body_head": "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx/1.30.1</center>\r\n</body>\r\n</html>\r\n"
+ },
+ {
+  "label": "EN3-16 Canny",
+  "host": "canny.io",
+  "fetched_at": "2026-10-13T17:16:11.086Z",
+  "status": 200,
+  "final_url": "https://canny.io/robots.txt",
+  "bytes": 188,
+  "state_root": {
+   "state": "allowed",
+   "reason": "일치하는 규칙 없음"
+  },
+  "crawl_delay_sec": null,
+  "body": "User-agent: *\nDisallow:\nDisallow: /api/*\nDisallow: /files/*\nSitemap: https://canny.io/sitemap.xml\nSitemap: https://canny.io/blog/sitemap.xml\nUser-agent: Googlebot-Image\nDisallow: /images/*"
+ }
+]

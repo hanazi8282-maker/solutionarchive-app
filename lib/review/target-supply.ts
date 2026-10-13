@@ -36,7 +36,7 @@ export const APP_SOURCES: ReadonlySet<string> = new Set(['appstore', 'googleplay
 export const SEARCH_SOURCES: ReadonlySet<string> = new Set(['hackernews', 'kakao_blog', 'kakao_cafe'])
 /** `board:` ref 를 받는 어댑터(lib/review/adapters 에서 parseBoardRef·board: 를 쓰는 12곳). board_register 처방 대상. */
 export const BOARD_SOURCES: ReadonlySet<string> = new Set([
-  '82cook', 'bobaedream', 'clien', 'damoang', 'devto', 'disquiet', 'indiehackers', 'inflearn', 'n8n_community', 'okky', 'tumblbug', 'velog', 'yozm',
+  '82cook', 'bobaedream', 'clien', 'damoang', 'devto', 'disquiet', 'indiehackers', 'inflearn', 'n8n_community', 'make_community', 'bubble_forum', 'retool_community', 'glide_community', 'softr_community', 'okky', 'tumblbug', 'velog', 'yozm',
 ])
 /** 제품 사전(dictionary-targets.mjs)으로 공급할 수 있는 소스. */
 export const DICTIONARY_SOURCES: ReadonlySet<string> = new Set(['appstore', 'googleplay', 'kakao_blog', 'kakao_cafe'])

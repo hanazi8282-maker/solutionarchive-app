@@ -163,7 +163,12 @@ function isParseBroken(r: SoftSkipRow): boolean | null {
  * 보고: 그 차단 실행의 health_after='broken' 이 insight-loop 경보(sourceAlertLines 🚨)에 계속 뜨고, 매 실행 Notion 상태 로그
  * '한일' 칸에 "건너뜀 — soft-skip …" 줄이 남는다. 차단 수치를 못 읽으면(null) 확인 불가로 지금처럼 돈다(§7.1).
  */
-export const HALT_ON_BLOCK_SOURCES: ReadonlySet<string> = new Set(['shopify_apps'])
+// v70 개정 2(남헌 2026-10-14) §1-3: 403/429/캡차 등 기술 차단을 만나면 즉시 정지 — 새 v70 소스 6곳과, 정기 슬롯마다 403 을 반복하던 indiehackers(10-13 08:28Z·17:01Z 연속 실패)를 더한다.
+// enabled 는 건드리지 않는다(남헌 10-07 '켜 둔다' 결정 유지) — 읽기 전용 soft-skip 이라 사람이 --source= 로 직접 돌리면 재개된다.
+export const HALT_ON_BLOCK_SOURCES: ReadonlySet<string> = new Set([
+  'shopify_apps', 'indiehackers',
+  'n8n_community', 'make_community', 'bubble_forum', 'retool_community', 'glide_community', 'softr_community',
+])
 
 /** 순수 함수. runs = 그 소스의 비-dry-run 실행(순서 무관). key 가 HALT_ON_BLOCK_SOURCES 면 최근 차단에서 멈춘다. */
 export function softSkipDecision(runs: SoftSkipRow[] | null, readError: string | null, now: number, key: string | null = null): SoftSkip {

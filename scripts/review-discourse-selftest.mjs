@@ -5,7 +5,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { n8nCommunityAdapter as A, makeDiscourseAdapter, N8N_COMMUNITY_HOST as HOST } from '../lib/review/adapters/discourse.ts'
+import {
+  n8nCommunityAdapter as A, makeDiscourseAdapter, N8N_COMMUNITY_HOST as HOST,
+  makeCommunityAdapter, bubbleForumAdapter, retoolCommunityAdapter, glideCommunityAdapter, softrCommunityAdapter,
+} from '../lib/review/adapters/discourse.ts'
 import { decodeBoardCursor, encodeBoardCursor } from '../lib/review/types.ts'
 import { parseRobots, robotsVerdict } from '../lib/review/robots.ts'
 import { runCollection, PRODUCT_TOKEN } from '../lib/review/runner.ts'
@@ -47,6 +50,25 @@ t('next: 쿼리 붙은 토픽 경로 거부', A.nextRequest(target({ cursor: enc
 {
   const other = makeDiscourseAdapter({ key: 'other', displayName: 'o', host: 'https://forum.example.com', boards: { a: '/latest.json' } })
   t('팩토리: 호스트는 인자(상수)', other.nextRequest(target({ productRef: 'board:a' }))?.url, 'https://forum.example.com/latest.json')
+}
+
+// ── v70 D3: 같은 구조의 포럼 5곳 — 첫 요청 URL · 등록 경로 · 키 · 호스트
+for (const [ad, key, ref, url] of [
+  [makeCommunityAdapter, 'make_community', 'board:questions', 'https://community.make.com/c/questions/66.json?order=created'],
+  [makeCommunityAdapter, 'make_community', 'board:beginner-questions', 'https://community.make.com/c/beginner-questions/65.json?order=created'],
+  [bubbleForumAdapter, 'bubble_forum', 'board:idea', 'https://forum.bubble.io/c/idea/7.json?order=created'],
+  [bubbleForumAdapter, 'bubble_forum', 'board:help', 'https://forum.bubble.io/c/help/5.json?order=created'],
+  [retoolCommunityAdapter, 'retool_community', 'board:feature-requests', 'https://community.retool.com/c/feature-requests/7.json?order=created'],
+  [retoolCommunityAdapter, 'retool_community', 'board:app-building', 'https://community.retool.com/c/app-building/5.json?order=created'],
+  [glideCommunityAdapter, 'glide_community', 'board:feature-requests', 'https://community.glideapps.com/c/feature-requests/9.json?order=created'],
+  [glideCommunityAdapter, 'glide_community', 'board:help-how-to', 'https://community.glideapps.com/c/help-how-to/27.json?order=created'],
+  [softrCommunityAdapter, 'softr_community', 'board:feature-requests', 'https://community.softr.io/c/feature-requests/8.json?order=created'],
+  [softrCommunityAdapter, 'softr_community', 'board:ask-the-community', 'https://community.softr.io/c/ask-the-community/6.json?order=created'],
+]) {
+  t(`${key} ${ref}: 첫 요청`, ad.nextRequest(target({ sourceKey: key, productRef: ref }))?.url, url)
+  t(`${key} ${ref}: 등록 경로`, buildProductRef(key, ref)?.productRef, ref)
+  t(`${key}: 어댑터 key`, ad.key, key)
+  t(`${key}: 다른 포럼의 게시판은 거부`, ad.nextRequest(target({ sourceKey: key, productRef: 'board:nope' })), null)
 }
 
 // ── 목록

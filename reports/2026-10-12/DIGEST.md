@@ -96,6 +96,9 @@
 - ✅ `draft` 초안 작성 + 게이트 ({"drafted":1,"manifests":0})
 - ⏭️ `stage` 발행 대기 스테이징 — 스테이징 매니페스트 0건
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":9})
+- ℹ️ Notion 푸시: ✅ 대기함 설명서 동기화 1150자 ✅ DISCOVERY-2026-10-12 → https://app.notion.com/p/DISCOVERY-2026-10-12-3f8100b7ffb481239ddad41aa45605ba 푸시 완료 — 초안 0건 · 신규케이스 0건 · 발굴 1건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-10-13-CMO 기록·재확인
 
 _실행 키 `cmo-2026-10-12-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

@@ -54,7 +54,16 @@ let q = supabase
   // '*' — T2 라벨 컬럼(20260930000014)이 아직 없는 DB 에서도 죽지 않게 이름을 부르지 않는다.
   .select('*')
 q = recheck ? q.in('input_id', [...recheck.keys()]) : q.in('verdict', ['relevant', 'irrelevant']).is('human_verdict', null)
-const { data: verdicts, error } = await q
+// v70 장부 L-19: PostgREST 기본 상한 1000행에서 조용히 잘리던 것을 끝까지 읽는다 — 1,000행만 읽으면 자동 승인 행(1,063건)이 표본 모집단에 거의 못 들어와
+// "자동 승인 감사 0장" 이 나왔다(§7.1: 잘린 조회를 전체로 접지 않는다). 재확인 모드는 id 목록이라 한 번에 읽는다.
+const verdicts = []
+let error = null
+for (let from = 0; ; from += 1000) {
+  const page = await (recheck ? q : q.order('input_id').range(from, from + 999))
+  if (page.error) { error = page.error; break }
+  verdicts.push(...(page.data ?? []))
+  if (recheck || (page.data ?? []).length < 1000) break
+}
 if (error) { console.error(`✗ 판정 조회 실패: ${error.code ?? ''} ${error.message}`); process.exit(2) }
 if (recheck && (verdicts ?? []).length !== recheck.size) {
   const got = new Set((verdicts ?? []).map((v) => v.input_id))

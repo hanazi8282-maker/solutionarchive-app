@@ -45,6 +45,15 @@ export function buildReviewCollectEntry({ date, sources = [], failures = [], top
     topProject ? `extract 실행 여부 판단 — 누적 리뷰 최다 프로젝트 ${topProject.id} ${topProject.n}건` : null,
   ].filter(Boolean)
 
+  // v69 D7 + 남헌 10-14: [자율 공급] 비고 — 재고 이상·증분형 시계 관찰 + 건너뛴 소스 수(soft-skip·꺼짐)를 매일 적는다(0이어도 적는다 — 빠진 날과 0건인 날이 구분돼야 한다, §7.1).
+  const softSkips = sources.filter((x) => x.skipped && /soft-skip/.test(x.skipReason ?? ''))
+  const offSkips = sources.filter((x) => x.skipped && !/soft-skip/.test(x.skipReason ?? ''))
+  const supplyParts = [
+    supply && supply.abnormal.length ? `재고 이상 ${supply.abnormal.slice(0, 6).join('; ')}${supply.abnormal.length > 6 ? ` 외 ${supply.abnormal.length - 6}곳` : ''}` : null,
+    supply && supply.observe ? `증분형 시계 관찰 ${supply.observe.n}개(예상 신규 ${supply.observe.expected_new}건, 쓰기 0)` : null,
+    `건너뛴 소스 ${softSkips.length + offSkips.length}곳(soft-skip ${softSkips.length}${softSkips.length ? `: ${softSkips.map((x) => x.key).join(', ')}` : ''} · 꺼짐 ${offSkips.length})`,
+  ].filter(Boolean)
+  const supplyNote = supply === undefined && !sources.some((x) => x.skipped) ? '' : `[자율 공급] ${supplyParts.join(' · ')} · `
   return {
     date,
     track: 'CTO',
@@ -52,6 +61,6 @@ export function buildReviewCollectEntry({ date, sources = [], failures = [], top
     blocked: blockedLines.length ? blockedLines.join('\n') : '없음',
     next: (next.length ? next : ['사람 할 일 없음 — 다음 크론이 이어서 돈다']).join('\n'),
     needsHuman: false,
-    note: `${supply && (supply.abnormal.length || supply.observe) ? `[자율 공급] ${[supply.abnormal.length ? `재고 이상 ${supply.abnormal.slice(0, 6).join('; ')}${supply.abnormal.length > 6 ? ` 외 ${supply.abnormal.length - 6}곳` : ''}` : null, supply.observe ? `증분형 시계 관찰 ${supply.observe.n}개(예상 신규 ${supply.observe.expected_new}건, 쓰기 0)` : null].filter(Boolean).join(' · ')} · ` : ''}nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'} · 날짜는 KST(행을 쓰는 시점) · 원문 폐기(purge) 결과는 이 행에 없다`,
+    note: `${supplyNote}nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'} · 날짜는 KST(행을 쓰는 시점) · 원문 폐기(purge) 결과는 이 행에 없다`,
   }
 }

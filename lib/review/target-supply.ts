@@ -474,7 +474,7 @@ export type ReviveOptions = {
   clockAll?: boolean
   /** 기대 신규(λ × 마지막 방문 뒤 경과일)가 이 값 미만이면 건너뛴다. 없으면 검사 안 함. */
   minExpectedNew?: number
-  /** 한 실행 전체 상한. */
+  /** 한 실행 증분형 되살리기 전체 상한. 비증분형(앱스토어·유튜브)은 세지 않는다 — 14일 보장을 밀어내지 않게. */
   totalCap?: number
   /** 소스별 이번 실행 상한(무인 --auto 는 REVIVE_PER_RUN). 없으면 수동 경로 — 기존 min(gap, 게이트 여유)만. */
   perRunCap?: number
@@ -533,7 +533,7 @@ export function planRevive(targets: TargetRow[], report: SupplyReport, opts: Rev
         }
       }
     }
-    if (!skip && opts.totalCap !== undefined && revive.length >= opts.totalCap) skip = 'total_cap'
+    if (!skip && opts.totalCap !== undefined && !NON_INCREMENTAL_SOURCES.has(t.source_key) && revive.filter((r) => !NON_INCREMENTAL_SOURCES.has(r.source_key)).length >= opts.totalCap) skip = 'total_cap'
     if (!skip && s && s.gap !== null) {
       const n = used.get(t.source_key) ?? 0
       if (n >= Math.min(Math.max(0, s.gap), s.gate_headroom)) skip = s.gap <= 0 ? 'no_gap' : 'over_headroom'
@@ -595,10 +595,10 @@ export function inventoryGauge(report: SupplyReport, targets: TargetRow[], now: 
         if (!next || iso < next) next = iso
       }
     }
-    // 순환형: 활성 0 이면 긴급, 결손(short)이면 경고, 아니면 정상. 소비형: 14일/7일 문턱.
-    const level: GaugeLevel = cyclic
-      ? s.active === 0 ? 'urgent' : s.state === 'short' ? 'warn' : 'ok'
-      : immediate! < GAUGE_URGENT_DAYS ? 'urgent' : immediate! < GAUGE_WARN_DAYS ? 'warn' : 'ok'
+    // 활성(+소비형은 지금 되살릴 수 있는 예약)이 0 이면 긴급, 결손(short)이면 경고, 아니면 정상.
+    // 소비형 일수(immediate_days)는 참고값이다 — queue_full 이 active ≤ tpr 로 묶어 일수가 항상 작아, 문턱으로 쓰면 영구 긴급이 된다(독립 검토 1).
+    const available = s.active + (cyclic ? 0 : dueNow)
+    const level: GaugeLevel = available === 0 ? 'urgent' : s.state === 'short' ? 'warn' : 'ok'
     sources.push({ source_key: s.source_key, immediate_days: immediate, basis: cyclic ? 'cyclic' : 'consumed', active: s.active, reserved_due_now: dueNow, reserved_waiting: waiting, reserved_next_due: next, level })
   }
   const below14 = sources.filter((g) => g.level !== 'ok').length

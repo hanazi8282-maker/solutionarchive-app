@@ -108,7 +108,7 @@ export async function main(argv, { db, now = new Date() } = {}) {
   const gauge = inventoryGauge(report, input.targets, now)
   const obsOut = out.replace(/.sql$/i, '') + '-observe.sql'
   const writeObs = () => {
-    if (obs === null || argv.includes('--dry')) return
+    if (obs === null || obs.length === 0 || argv.includes('--dry')) return // 관찰 대상 0건이면 파일을 만들지 않는다 — 매 슬롯 빈 커밋 방지
     writeVerified(obsOut, [`-- target-revive 관찰 기록 ${stamp} — 증분형 시계가 켜졌다면 되살렸을 ${obs.length}개. DB 쓰기 0건(롤백 대상 아님).`, '-- 3일 뒤 각 id 의 total_collected 증가분 = 실제 신규. 기록 줄: OBS {json}', ...obs.map((o) => `-- OBS ${JSON.stringify(o)}`), ''].join('\n'))
     log(`관찰 기록: ${obsOut}`)
   }

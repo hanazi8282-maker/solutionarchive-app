@@ -99,10 +99,13 @@ const appTargets = () =>
   t('v69: clockAll 켜면 바쁜 보드는 되살리고, 거의 죽은 보드는 expected_low 로 건너뛴다', [on.revive.map((x) => x.id), on.bySource.clien.skipped], [[u(950)], { expected_low: 1 }])
   t('v69: 되살림 행에 total_collected 기록(관찰 대조용)', on.revive[0].total_collected, 120)
   t('v69: totalCap 1 이면 둘째는 total_cap', planRevive([inc(950), inc(952)], rep([S('clien')]), { ...incOpts, clockAll: true, totalCap: 1 }).bySource.clien.skipped, { total_cap: 1 })
+  // 독립 검토 2: 총 상한은 증분형만 센다 — 앱스토어는 상한에 안 밀린다
+  const mixCap = planRevive([...appTargets().slice(0, 1), inc(950), inc(952)], rep([S('appstore'), S('clien')]), { ...incOpts, clockAll: true, totalCap: 1 })
+  t('v69: totalCap 1 이어도 앱스토어 1건은 되살리고 증분형만 1건으로 막힌다', [mixCap.revive.filter((x) => x.source_key === 'appstore').length, mixCap.revive.filter((x) => x.source_key === 'clien').length], [1, 1])
   t('v69: 비증분형(앱스토어)은 조용해도 예측 검사로 안 막힌다(14일 보장)', planRevive(appTargets().slice(0, 1), rep([S('appstore')]), incOpts).revive.length, 1)
   const g = inventoryGauge({ sources: [S('appstore', { runs_per_day: 6, tpr: 1, active: 4 }), S('clien', { runs_per_day: 6, tpr: 2, active: 0 }), S('okky', { runs_per_day: 6, tpr: 1, active: 1, state: 'met' }), S('danawa', { state: 'excluded' })] }, [], new Date(NOW))
-  t('v69: 게이지 — 소비형은 일수(4÷6≈0.7 긴급) · 순환형은 활성 0 긴급/충족 정상 · 제외 소스 빠짐', g.sources.map((x) => [x.source_key, x.immediate_days, x.level]), [['appstore', 0.7, 'urgent'], ['clien', null, 'urgent'], ['okky', null, 'ok']])
-  t('v69: 연료계 한 줄 — 14일 미만 2/3개 · 긴급 2', [g.below14, g.urgent, g.fuel_line.includes('2/3개 (긴급 2)')], [2, 2, true])
+  t('v69: 게이지 — 소비형 일수는 참고(4÷6≈0.7)·활성>0 ∧ 결손=경고 · 활성 0=긴급 · 충족=정상 · 제외 소스 빠짐', g.sources.map((x) => [x.source_key, x.immediate_days, x.level]), [['appstore', 0.7, 'warn'], ['clien', null, 'urgent'], ['okky', null, 'ok']])
+  t('v69: 연료계 한 줄 — 경고 이하 2/3개 · 긴급 1', [g.below14, g.urgent, g.fuel_line.includes('2/3개 (긴급 1)')], [2, 1, true])
 
   // computeSupply 가 robots_blocked 를 만든다: disallowed ∧ 소유자 예외 없음만. appstore(owner_2026-10-05) 는 아님.
   const sup = computeSupply({

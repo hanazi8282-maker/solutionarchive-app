@@ -231,3 +231,15 @@
 - 작성일: 2026-10-12
 
 > Last million years we failed, but hope is still not lost - we're getting better, at least sometimes.
+
+## HN 50072339
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50072339
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-13 UTC)
+- 스레드: CFTC Staff Were Told to Retract Analysis of Suspicious Oil Trades
+- 작성자: Zigurd
+- 작성일: 2026-10-13
+
+> A big part of why we are at where we are is that January 6 was our Beer Hall Putsch. Like the Germans, we failed to put a stop to it.

@@ -187,6 +187,10 @@ try {
   assert.match(withSupply.note, /\[자율 공급\] 재고 이상 clien 긴급.*증분형 시계 관찰 4개\(예상 신규 113건, 쓰기 0\)/)
   assert.match(buildReviewCollectEntry({ date: '2026-10-14', sources: [], supply: null }).done.split('\n')[0], /^수집 연료계: 확인 불가/)
   assert.ok(!calm.done.includes('수집 연료계'), 'supply 인자가 없으면 기존 동작')
+  // 남헌 10-14: 건너뛴 소스 수를 매일 기록(soft-skip·꺼짐 구분, 0이어도 적는다)
+  const skipped = buildReviewCollectEntry({ date: '2026-10-14', sources: [{ key: 'indiehackers', skipped: true, skipReason: 'soft-skip — 최근 실행에 차단 응답 1건' }, { key: 'producthunt', skipped: true, skipReason: '소스가 비활성 상태다(review_sources.enabled=false)' }], supply: { fuel_line: 'x', abnormal: [], observe: null } })
+  assert.ok(skipped.note.includes('건너뛴 소스 2곳(soft-skip 1: indiehackers · 꺼짐 1)'))
+  assert.ok(withSupply.note.includes('건너뛴 소스 0곳(soft-skip 0 · 꺼짐 0)'))
 
   const noisy = buildReviewCollectEntry({ date: '2026-09-14', sources: [{ key: 'danawa', stats: {}, warnings: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7'] }] })
   assert.equal(lines(noisy.blocked), 5)

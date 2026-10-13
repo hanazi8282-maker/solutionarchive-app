@@ -390,7 +390,7 @@ export function idSetHash(ids: string[]): string {
 }
 
 export type RevivePlan = {
-  revive: Array<{ id: string; source_key: string; product_ref: string; prev_status: string; prev_consecutive_empty: number }>
+  revive: Array<{ id: string; source_key: string; product_ref: string; prev_status: string; prev_consecutive_empty: number; total_collected?: number }>
   /** 소스별 { candidates, revive, skipped: {사유: 건수} } */
   /** next_due = 재방문 간격 미경과로 건너뛴 행 중 가장 이른 자격 시각(ISO). 없으면 키 없음. */
   bySource: Record<string, { candidates: number; revive: number; skipped: Record<string, number>; next_due?: string }>
@@ -418,6 +418,10 @@ export const REVISIT_MAX_DAYS = 14
  * 3 이면 그런 타깃 약 6일, 최신 리뷰 <1일인 인기 타깃 3일, 더 조용한 곳 14일.
  */
 export const REVISIT_EXPECTED_NEW = 3
+/** v69 A레인: 한 번 재점검에서 기대 신규가 이 값 미만이면 되살리지 않는다(헛수고 방지). 속도를 모르면 걸지 않는다. */
+export const REVIVE_MIN_EXPECTED_NEW = 1
+/** v69 A레인: 한 실행 전체 되살리기 상한(소스별 상한과 별개). */
+export const REVIVE_TOTAL_PER_RUN = 40
 /** 무인 되살리기(--auto) 소스별 실행당 상한. 하루 수집 슬롯 6(ramp.ts COLLECT_SLOTS)에 나눠 106개 백로그를 약 3일(= 하한)에 흡수한다. */
 export const REVIVE_PER_RUN = 6
 
@@ -435,8 +439,11 @@ const DAY_MS = 86_400_000
  * ponytail: 첫 통독(앱스토어 RSS 최대 500건)이 λ_hist 를 부풀린다 — 젊은 타깃은 실제보다 자주 간다. λ_quiet 와 빈 재점검 2배가
  *   이를 깎는다. 재점검별 신규 건수를 타깃 단위로 남기는 칸이 생기면 그걸로 바꾼다(지금은 없음 — 마이그 안 함).
  */
-export function revisitDays(t: Pick<TargetRow, 'source_key'> & Partial<TargetRow>): { days: number; basis: string } | null {
-  if (!NON_INCREMENTAL_SOURCES.has(t.source_key)) return null
+export function revisitDays(
+  t: Pick<TargetRow, 'source_key'> & Partial<TargetRow>,
+  opts: { all?: boolean } = {},
+): { days: number; basis: string } | null {
+  if (!NON_INCREMENTAL_SOURCES.has(t.source_key) && !opts.all) return null
   const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
   const created = t.created_at ? Date.parse(t.created_at) : NaN
   const newest = t.last_review_at ? Date.parse(t.last_review_at) : NaN
@@ -451,7 +458,24 @@ export function revisitDays(t: Pick<TargetRow, 'source_key'> & Partial<TargetRow
   return { days: Math.round(days * 100) / 100, basis: `λ=${Math.round(lambda * 1000) / 1000}/일·ce=${ce}` }
 }
 
+/** 신규 속도 λ(건/일) — revisitDays 와 같은 재료·같은 min. 못 재면 null. */
+export function revisitRate(t: Partial<TargetRow>): number | null {
+  const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
+  const created = t.created_at ? Date.parse(t.created_at) : NaN
+  const newest = t.last_review_at ? Date.parse(t.last_review_at) : NaN
+  const rates: number[] = []
+  if (Number.isFinite(last) && Number.isFinite(created)) rates.push((t.total_collected ?? 0) / Math.max(1, (last - created) / DAY_MS))
+  if (Number.isFinite(last) && Number.isFinite(newest) && (last - newest) / DAY_MS >= 1) rates.push(1 / ((last - newest) / DAY_MS))
+  return rates.length ? Math.min(...rates) : null
+}
+
 export type ReviveOptions = {
+  /** v69 A레인: 증분형(게시판·검색 등)의 연속 0건 exhausted 도 재방문 시계로 되살린다. 기본 꺼짐 — 관찰 3일 뒤 켠다. */
+  clockAll?: boolean
+  /** 기대 신규(λ × 마지막 방문 뒤 경과일)가 이 값 미만이면 건너뛴다. 없으면 검사 안 함. */
+  minExpectedNew?: number
+  /** 한 실행 증분형 되살리기 전체 상한. 비증분형(앱스토어·유튜브)은 세지 않는다 — 14일 보장을 밀어내지 않게. */
+  totalCap?: number
   /** 소스별 이번 실행 상한(무인 --auto 는 REVIVE_PER_RUN). 없으면 수동 경로 — 기존 min(gap, 게이트 여유)만. */
   perRunCap?: number
   /** true = 비증분형(재방문 시계)만. 증분형 exhausted 는 manual_only 로 건너뛴다(D8 수동 경로에 남긴다). */
@@ -473,7 +497,7 @@ export function planRevive(targets: TargetRow[], report: SupplyReport, opts: Rev
   const bySource: RevivePlan['bySource'] = {}
   const revive: RevivePlan['revive'] = []
   const cands = targets
-    .filter((t) => t.status === 'exhausted' && (t.consecutive_empty === 0 || NON_INCREMENTAL_SOURCES.has(t.source_key)))
+    .filter((t) => t.status === 'exhausted' && (opts.clockAll || t.consecutive_empty === 0 || NON_INCREMENTAL_SOURCES.has(t.source_key)))
     .sort(
       (a, b) =>
         reviveRank(a.product_ref) - reviveRank(b.product_ref) ||
@@ -485,7 +509,7 @@ export function planRevive(targets: TargetRow[], report: SupplyReport, opts: Rev
     const b = (bySource[t.source_key] ??= { candidates: 0, revive: 0, skipped: {} })
     b.candidates++
     const s = supplyBy.get(t.source_key)
-    const clock = NON_INCREMENTAL_SOURCES.has(t.source_key)
+    const clock = NON_INCREMENTAL_SOURCES.has(t.source_key) || opts.clockAll === true
     let skip: string | null = null
     if (!s) skip = 'source_disabled_or_missing'
     else if (s.state === 'excluded') skip = 'source_excluded'
@@ -497,14 +521,19 @@ export function planRevive(targets: TargetRow[], report: SupplyReport, opts: Rev
       const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
       if (!Number.isFinite(last)) skip = 'revisit_unknown'
       else {
-        const due = last + revisitDays(t)!.days * DAY_MS
+        const due = last + revisitDays(t, { all: opts.clockAll })!.days * DAY_MS
         if (due > now) {
           skip = 'revisit_not_due'
           const iso = new Date(due).toISOString()
           if (!b.next_due || iso < b.next_due) b.next_due = iso
+        } else if (opts.minExpectedNew !== undefined && !NON_INCREMENTAL_SOURCES.has(t.source_key)) {
+          // 비증분형은 "조용해도 14일에 한 번은 첫 페이지를 본다"(REVISIT_MAX_DAYS) 보장을 지킨다 — 예측 검사는 새로 여는 증분형에만.
+          const lam = revisitRate(t)
+          if (lam !== null && lam * ((now - last) / DAY_MS) < opts.minExpectedNew) skip = 'expected_low'
         }
       }
     }
+    if (!skip && opts.totalCap !== undefined && !NON_INCREMENTAL_SOURCES.has(t.source_key) && revive.filter((r) => !NON_INCREMENTAL_SOURCES.has(r.source_key)).length >= opts.totalCap) skip = 'total_cap'
     if (!skip && s && s.gap !== null) {
       const n = used.get(t.source_key) ?? 0
       if (n >= Math.min(Math.max(0, s.gap), s.gate_headroom)) skip = s.gap <= 0 ? 'no_gap' : 'over_headroom'
@@ -518,9 +547,63 @@ export function planRevive(targets: TargetRow[], report: SupplyReport, opts: Rev
     }
     used.set(t.source_key, (used.get(t.source_key) ?? 0) + 1)
     b.revive++
-    revive.push({ id: t.id!, source_key: t.source_key, product_ref: t.product_ref, prev_status: t.status, prev_consecutive_empty: t.consecutive_empty })
+    revive.push({ id: t.id!, source_key: t.source_key, product_ref: t.product_ref, prev_status: t.status, prev_consecutive_empty: t.consecutive_empty, total_collected: t.total_collected ?? 0 })
   }
   return { revive, bySource }
+}
+
+// ── 재고 게이지(v69 A레인) ─────────────────────────────────────────
+export type GaugeLevel = 'ok' | 'warn' | 'urgent'
+export type SourceGauge = {
+  source_key: string
+  /** 즉시 재고: 소비형(방문하면 닫히는 비증분형)은 active ÷ 하루 방문 슬롯 = 버티는 일수. 순환형(증분형)은 소비되지 않아 null. */
+  immediate_days: number | null
+  basis: 'consumed' | 'cyclic'
+  active: number
+  /** 예약 재고: 재방문 간격이 이미 지나 되살릴 수 있는 exhausted 수 / 아직 간격 안 지난 수 / 가장 이른 자격 시각. */
+  reserved_due_now: number
+  reserved_waiting: number
+  reserved_next_due: string | null
+  level: GaugeLevel
+}
+export const GAUGE_WARN_DAYS = 14
+export const GAUGE_URGENT_DAYS = 7
+
+/**
+ * 소스별 재고 게이지. 소비형(방문하면 exhausted 로 닫히는 비증분형)만 일수로 센다. 증분형은 타깃이 되풀이되므로 일수가 정의되지 않는다 —
+ * 활성 0 = 긴급, 결손 = 경고로 본다. ponytail: 순환형 일수는 소스별 실측 소비율이 쌓이면 도입. 제외 소스는 빠진다.
+ */
+export function inventoryGauge(report: SupplyReport, targets: TargetRow[], now: Date): { sources: SourceGauge[]; below14: number; urgent: number; fuel_line: string } {
+  const sources: SourceGauge[] = []
+  for (const s of report.sources) {
+    if (s.state === 'excluded') continue
+    const perDay = Math.max(1, s.runs_per_day * s.tpr)
+    const cyclic = !NON_INCREMENTAL_SOURCES.has(s.source_key)
+    const immediate = cyclic ? null : Math.round((s.active / perDay) * 10) / 10
+    let dueNow = 0
+    let waiting = 0
+    let next: string | null = null
+    for (const t of targets) {
+      if (t.source_key !== s.source_key || t.status !== 'exhausted') continue
+      const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
+      if (!Number.isFinite(last)) { waiting++; continue }
+      const due = last + revisitDays(t, { all: true })!.days * DAY_MS
+      if (due <= now.getTime()) dueNow++
+      else {
+        waiting++
+        const iso = new Date(due).toISOString()
+        if (!next || iso < next) next = iso
+      }
+    }
+    // 활성(+소비형은 지금 되살릴 수 있는 예약)이 0 이면 긴급, 결손(short)이면 경고, 아니면 정상.
+    // 소비형 일수(immediate_days)는 참고값이다 — queue_full 이 active ≤ tpr 로 묶어 일수가 항상 작아, 문턱으로 쓰면 영구 긴급이 된다(독립 검토 1).
+    const available = s.active + (cyclic ? 0 : dueNow)
+    const level: GaugeLevel = available === 0 ? 'urgent' : s.state === 'short' ? 'warn' : 'ok'
+    sources.push({ source_key: s.source_key, immediate_days: immediate, basis: cyclic ? 'cyclic' : 'consumed', active: s.active, reserved_due_now: dueNow, reserved_waiting: waiting, reserved_next_due: next, level })
+  }
+  const below14 = sources.filter((g) => g.level !== 'ok').length
+  const urgent = sources.filter((g) => g.level === 'urgent').length
+  return { sources, below14, urgent, fuel_line: `수집 연료계: 재고 ${GAUGE_WARN_DAYS}일 미만 소스 ${below14}/${sources.length}개 (긴급 ${urgent}) · SLO 0개를 3일 연속` }
 }
 
 /** 되돌리기 SQL — 되살린 행 id 와 이전 status·consecutive_empty 를 담는다. 아직 active 인 행만 되돌린다(그새 다시 닫힌 행은 이미 이전 상태). */

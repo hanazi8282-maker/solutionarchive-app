@@ -176,6 +176,8 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # v69 A레인: 증분형 시계. 기본(미설정)=관찰 모드(쓰기 0, reports/ 에 관찰 기록만). 'on' 은 사람·역할 세션이 3일 대조 뒤 켠다.
+          TARGET_CLOCK_INCREMENTAL: ${{ vars.TARGET_CLOCK_INCREMENTAL }}
         run: node scripts/target-revive.mjs --auto ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
 
       # 끝에 소스 고장 보고(scripts/review-source-health-report.mjs)도 한다 — 고장 소스는 자동으로 끄지 않고

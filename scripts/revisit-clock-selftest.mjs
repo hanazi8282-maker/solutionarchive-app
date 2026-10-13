@@ -19,7 +19,7 @@ import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { RECHECK_SEEN_STREAK, isRecheck, runCollection } from '../lib/review/runner.ts'
 import { createReviewStore } from '../lib/review/store.ts'
 import {
-  REVIVE_PER_RUN, REVISIT_EXPECTED_NEW, REVISIT_MAX_DAYS, REVISIT_MIN_DAYS, computeSupply, planRevive, revisitDays,
+  REVIVE_PER_RUN, REVISIT_EXPECTED_NEW, REVISIT_MAX_DAYS, REVISIT_MIN_DAYS, computeSupply, inventoryGauge, planRevive, revisitDays,
 } from '../lib/review/target-supply.ts'
 import { main as reviveMain } from './target-revive.mjs'
 
@@ -89,6 +89,23 @@ const appTargets = () =>
   t('active 타깃은 후보가 아니다 · 되살림 = 간격 지난 appstore 2건', r.revive.map((x) => x.id), [u(1), u(2)])
   const gone = planRevive(mixed, rep([S('appstore')]), { perRunCap: REVIVE_PER_RUN, clockOnly: true })
   t('꺼진(=supply 에 없는) 소스는 source_disabled_or_missing', gone.bySource.youtube.skipped, { source_disabled_or_missing: 1 })
+
+  // v69 A레인 — 증분형 시계(clockAll)·예측 검사·총 상한·게이지
+  const inc = (n, o = {}) => ({ id: u(n), source_key: 'clien', status: 'exhausted', product_ref: `board:b${n}`, consecutive_empty: 3, last_run_at: iso(NOW - 30 * DAY), created_at: iso(NOW - 60 * DAY), total_collected: 120, last_review_at: iso(NOW - 31 * DAY), ...o })
+  const dead = inc(951, { total_collected: 1, last_review_at: iso(NOW - 90 * DAY) })
+  const incOpts = { perRunCap: REVIVE_PER_RUN, clockOnly: true, minExpectedNew: 1 }
+  t('v69: clockAll 끄면 연속0건(ce=3) 증분형은 후보도 아니다(기존 동작 유지)', planRevive([inc(950)], rep([S('clien')]), incOpts).bySource.clien, undefined)
+  const on = planRevive([inc(950), dead], rep([S('clien')]), { ...incOpts, clockAll: true })
+  t('v69: clockAll 켜면 바쁜 보드는 되살리고, 거의 죽은 보드는 expected_low 로 건너뛴다', [on.revive.map((x) => x.id), on.bySource.clien.skipped], [[u(950)], { expected_low: 1 }])
+  t('v69: 되살림 행에 total_collected 기록(관찰 대조용)', on.revive[0].total_collected, 120)
+  t('v69: totalCap 1 이면 둘째는 total_cap', planRevive([inc(950), inc(952)], rep([S('clien')]), { ...incOpts, clockAll: true, totalCap: 1 }).bySource.clien.skipped, { total_cap: 1 })
+  // 독립 검토 2: 총 상한은 증분형만 센다 — 앱스토어는 상한에 안 밀린다
+  const mixCap = planRevive([...appTargets().slice(0, 1), inc(950), inc(952)], rep([S('appstore'), S('clien')]), { ...incOpts, clockAll: true, totalCap: 1 })
+  t('v69: totalCap 1 이어도 앱스토어 1건은 되살리고 증분형만 1건으로 막힌다', [mixCap.revive.filter((x) => x.source_key === 'appstore').length, mixCap.revive.filter((x) => x.source_key === 'clien').length], [1, 1])
+  t('v69: 비증분형(앱스토어)은 조용해도 예측 검사로 안 막힌다(14일 보장)', planRevive(appTargets().slice(0, 1), rep([S('appstore')]), incOpts).revive.length, 1)
+  const g = inventoryGauge({ sources: [S('appstore', { runs_per_day: 6, tpr: 1, active: 4 }), S('clien', { runs_per_day: 6, tpr: 2, active: 0 }), S('okky', { runs_per_day: 6, tpr: 1, active: 1, state: 'met' }), S('danawa', { state: 'excluded' })] }, [], new Date(NOW))
+  t('v69: 게이지 — 소비형 일수는 참고(4÷6≈0.7)·활성>0 ∧ 결손=경고 · 활성 0=긴급 · 충족=정상 · 제외 소스 빠짐', g.sources.map((x) => [x.source_key, x.immediate_days, x.level]), [['appstore', 0.7, 'warn'], ['clien', null, 'urgent'], ['okky', null, 'ok']])
+  t('v69: 연료계 한 줄 — 경고 이하 2/3개 · 긴급 1', [g.below14, g.urgent, g.fuel_line.includes('2/3개 (긴급 1)')], [2, 1, true])
 
   // computeSupply 가 robots_blocked 를 만든다: disallowed ∧ 소유자 예외 없음만. appstore(owner_2026-10-05) 는 아님.
   const sup = computeSupply({

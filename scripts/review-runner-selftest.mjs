@@ -19,6 +19,7 @@ import {
   PRODUCT_TOKEN,
   isStrictBlock,
   isOwnerRobotsOverride,
+  isRobotsDisallowedSlow,
 } from '../lib/review/runner.ts'
 import { MAX_CONSECUTIVE_EMPTY, isWafChallenge } from '../lib/review/health.ts'
 import { computeFingerprint, normalizeText } from '../lib/review/fingerprint.ts'
@@ -395,6 +396,28 @@ const runQuota = (h, over = {}) =>
   await run(h)
   ok('연속 요청 사이에 잔다', h.log.slept.length > 0)
   ok('간격이 설정값 이상이다', h.log.slept.every((ms) => ms >= 0 && ms <= 4000))
+}
+
+// ── v70 개정 2: robots 금지 소스 저속(owner_2026-10-14) ───────────────
+t('v70: owner_2026-10-14 + disallowed 연다', isOwnerRobotsOverride('owner_2026-10-14', 'disallowed'), true)
+t('v70: 저속 판정 — 10-14 + 예외 열림', isRobotsDisallowedSlow({ robotsOwnerOverride: true, overrideValue: 'owner_2026-10-14' }), true)
+t('v70: 앱스토어·구글 플레이 예외는 저속 아님', [isRobotsDisallowedSlow({ robotsOwnerOverride: true, overrideValue: 'owner_2026-10-05' }), isRobotsDisallowedSlow({ robotsOwnerOverride: true, overrideValue: 'owner_2026-10-06' })].join(), 'false,false')
+t('v70: 예외가 안 열린 행(unverified 등)은 저속 대상 아님', isRobotsDisallowedSlow({ robotsOwnerOverride: false, overrideValue: 'owner_2026-10-14' }), false)
+{
+  const pages = { 1: page([rv({ externalId: 'a' })], '1'), 2: page([rv({ externalId: 'b' })], '2'), 3: page([], null) }
+  const robots = 'User-agent: *\nDisallow: /\n'
+  const base = makeHarness({ robots, pages, sourceOver: { robotsOwnerOverride: true, overrideValue: 'owner_2026-10-05' } })
+  await run(base)
+  const slow = makeHarness({ robots, pages, sourceOver: { robotsOwnerOverride: true, overrideValue: 'owner_2026-10-14' } })
+  await run(slow)
+  ok('v70 저속: 대기가 일반 예외 소스의 2배 이상', Math.max(...slow.log.slept) >= 2 * Math.max(...base.log.slept) - 50)
+  t('v70 저속: 대기 상한은 간격 2배(8000ms)', Math.max(...slow.log.slept) <= 8000, true)
+}
+{
+  const h = makeHarness({ robots: 'User-agent: *\nDisallow: /\n', pages: { 1: page([rv({ externalId: 'a' })], '1'), 2: page([rv({ externalId: 'b' })], '2'), 3: page([], null) },
+    sourceOver: { robotsOwnerOverride: true, overrideValue: 'owner_2026-10-14', dailyRequestCap: 2 } })
+  const r = await run(h)
+  t('v70 저속: 일일 상한 2 → 절반 1건만 요청', r.requests, 1)
 }
 
 // ── 일일 상한 ─────────────────────────────────────────────────────

@@ -284,6 +284,8 @@ jobs:
       # 타깃 공급(v32 §5) — N=min(B÷(r×v), R×tpr÷v)·3상태·30% 게이트·googleplay 80 동결·발굴 건수·되살리기 dry/run·롤백 SQL.
       - run: node scripts/target-supply-selftest.mjs
       - run: node scripts/revisit-clock-selftest.mjs
+      # B레인 ①(v69) — 임시 등록 선별: 규칙·꺼진 상태·DB 쓰기 경로 없음.
+      - run: node scripts/provisional-register-selftest.mjs
       - run: node scripts/discovery-transfer-selftest.mjs
       - run: node scripts/case-pipeline-selftest.mjs
       # 리서처 VOC 입력 경로(P1): 선택 규칙(사람 판정 우선·purge 제외)·초안 voc_inputs 검증·프롬프트 배선·

@@ -284,7 +284,10 @@ for (const [adapter, T, robots, resp, why] of [
 {
   const NOW = Date.parse('2026-10-10T00:00:00Z')
   const row = (blocked, at = '2026-10-09T05:37:00Z') => ({ source_key: 'k', started_at: at, dry_run: false, status: 'ok', health_after: blocked > 0 ? 'broken' : 'ok', reviews_parsed: 10, parse_failures: 0, blocked_responses: blocked })
-  ok('멈춤 대상 = shopify_apps 만', HALT_ON_BLOCK_SOURCES.has('shopify_apps') && !HALT_ON_BLOCK_SOURCES.has('wordpress_org') && !HALT_ON_BLOCK_SOURCES.has('googleplay'))
+  ok('멈춤 대상 = shopify_apps + v70 소스(indiehackers·Discourse 포럼 6곳). wordpress_org·googleplay 는 아니다', HALT_ON_BLOCK_SOURCES.has('shopify_apps') && HALT_ON_BLOCK_SOURCES.has('indiehackers') && HALT_ON_BLOCK_SOURCES.has('n8n_community') && !HALT_ON_BLOCK_SOURCES.has('wordpress_org') && !HALT_ON_BLOCK_SOURCES.has('googleplay'))
+  t('멈춤: indiehackers 최근 실행 차단 → skip', softSkipDecision([row(1)], null, NOW, 'indiehackers').state, 'skip')
+  t('멈춤: n8n_community 최근 실행 차단 → skip', softSkipDecision([row(1)], null, NOW, 'n8n_community').state, 'skip')
+  t('멈춤: n8n_community 차단 없으면 run', softSkipDecision([row(0)], null, NOW, 'n8n_community').state, 'run')
   t('멈춤: 최근 실행 차단 → skip', softSkipDecision([row(1)], null, NOW, 'shopify_apps').state, 'skip')
   t('멈춤: 30일 지나도 재시도 없음', softSkipDecision([row(2, '2026-09-01T00:00:00Z')], null, NOW, 'shopify_apps').state, 'skip')
   t('멈춤: 사람이 직접 돌려 정상이 최신이면 재개', softSkipDecision([row(0, '2026-10-09T09:00:00Z'), row(1)], null, NOW, 'shopify_apps').state, 'run')

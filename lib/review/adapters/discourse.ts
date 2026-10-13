@@ -103,6 +103,11 @@ export function makeDiscourseAdapter(cfg: DiscourseConfig): ReviewSourceAdapter 
     // 게시판 타깃은 큐를 비워도 닫지 않는다(devto·disquiet 와 같다).
     incrementalOnly: true,
 
+    // v70 Fable 검수 #3: 200 인데 JSON 이 아닌 응답(챌린지·점검 화면·로그인 HTML)이나 빈 응답은 "새 글 0건"이 아니라 차단이다 — 즉시 중단(우회 없음).
+    // 이 표지가 없으면 목록 파싱 실패가 degraded(비중단)로만 남아 매 실행 반복된다. Discourse 의 정상 응답은 항상 JSON 객체('{')다.
+    abortOnChallenge: true,
+    isChallenge: (body: string) => !body.trimStart().startsWith('{'),
+
     nextRequest(target: TargetState): { url: string } | null {
       const slug = parseBoardRef(target.productRef)
       if (!slug || !(slug in cfg.boards)) return null

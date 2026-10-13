@@ -37,6 +37,11 @@ const ctx = (cursor = null) => ({ productRef: 'board:feature-requests', cursor, 
   t('robots: /c/x.rss 금지 — 우리는 RSS 를 쓰지 않는다', robotsVerdict(g, '/c/feature-requests.rss', PRODUCT_TOKEN).state, 'disallowed')
 }
 
+// ── Fable #3: 200 인데 JSON 이 아니면 차단으로 즉시 중단
+t('abortOnChallenge: 켜져 있다', A.abortOnChallenge, true)
+t('isChallenge: HTML 은 챌린지', A.isChallenge('<html>Just a moment</html>'), true)
+t('isChallenge: JSON 객체는 정상', A.isChallenge(' {"topic_list":{}}'), false)
+
 // ── 등록 경로·nextRequest
 t('ref: board:feature-requests', buildProductRef('n8n_community', 'board:feature-requests')?.productRef, 'board:feature-requests')
 t('ref: 모르는 게시판 거부', buildProductRef('n8n_community', 'board:nope')?.ok, false)
@@ -151,6 +156,16 @@ function harness(pages, status = {}) {
   const h = harness({ '/c/feature-requests/5.json?order=created': 403 })
   const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
   t('403: 요청 1건 뒤 중단(우회 없음) + 고장 판정', `${r.requests}/${r.stats.blockedResponses}/${r.health?.disable}`, '1/1/true')
+}
+{
+  const h = harness({ '/c/feature-requests/5.json?order=created': '<html><title>Just a moment...</title></html>' })
+  const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
+  t('200 HTML(챌린지): 요청 1건 뒤 차단으로 중단', `${r.requests}/${r.stats.blockedResponses}`, '1/1')
+}
+{
+  const h = harness({ '/c/feature-requests/5.json?order=created': '' })
+  const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
+  t('200 빈 응답: 차단으로 중단', `${r.requests}/${r.stats.blockedResponses}`, '1/1')
 }
 {
   const h = harness({ '/c/feature-requests/5.json?order=created': fx('n8n-featurereq-list.json') })

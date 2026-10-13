@@ -73,7 +73,7 @@ export function domainOf(url: string | undefined): string | null {
  * iTunes Search `results` → 판정. `results` 가 배열이 아니면 lookup_failed.
  * 맞는 앱이 여럿이어도 **판매자가 같으면 한 제품**(같은 회사의 iPhone/iPad 앱)이고, 판매자가 다르면 ambiguous.
  */
-export function verifyAnchor(candidateName: string, results: unknown): AnchorVerdict {
+export function verifyAnchor(candidateName: string, results: unknown, opts: { expectedDomain?: string | null } = {}): AnchorVerdict {
   if (!Array.isArray(results)) return { state: 'lookup_failed', reason: '조회 결과가 배열이 아니다' }
   const apps = (results as AppResult[]).filter((r) => r && typeof r.trackName === 'string' && typeof r.trackId === 'number')
   const hits = apps.filter((a) => nameMatches(candidateName, a.trackName as string))
@@ -85,6 +85,13 @@ export function verifyAnchor(candidateName: string, results: unknown): AnchorVer
   const best = [...hits].sort((a, b) => (b.userRatingCount ?? 0) - (a.userRatingCount ?? 0))[0]
   const ratings = best.userRatingCount ?? 0
   if (ratings < ANCHOR_MIN_RATINGS) return { state: 'no_match', reason: `이름은 맞지만 평가 ${ratings}건 < ${ANCHOR_MIN_RATINGS}(실사용 근거 약함)` }
+  // v70 Fable 검수 #4: 후보의 공식 도메인을 알면 판매자 도메인과 맞아야 한다. 이름만 같은 무관한 앱(웹 전용 제품의 동명 앱)에 걸리는 것을 막는다.
+  const want = opts.expectedDomain ? domainOf(opts.expectedDomain.includes('://') ? opts.expectedDomain : `https://${opts.expectedDomain}`) : null
+  if (want) {
+    const got = domainOf(best.sellerUrl)
+    const same = got !== null && (got === want || got.endsWith(`.${want}`) || want.endsWith(`.${got}`))
+    if (!same) return { state: 'no_match', reason: `이름은 맞지만 판매자 도메인(${got ?? '없음'}) ≠ 후보 도메인(${want}) — 동명 앱 가능성` }
+  }
   return {
     state: 'anchored',
     appId: best.trackId as number,

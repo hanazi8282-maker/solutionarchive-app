@@ -58,6 +58,16 @@ export function reviveSummary(plan, { mode, applied }) {
   return lines.join('\n')
 }
 
+/** Notion 일일 상태 로그용 요약(순수 함수). 이상(경고·긴급)인 소스만 한 줄씩, 관찰 모드면 되살렸을 타깃 수. */
+export function supplyBlock(g, obs) {
+  const lv = { warn: '경고', urgent: '긴급' }
+  return {
+    fuel_line: g.fuel_line,
+    abnormal: g.sources.filter((x) => x.level !== 'ok').map((x) => `${x.source_key} ${lv[x.level]}(활성 ${x.active} · 예약 ${x.reserved_due_now}개 즉시/${x.reserved_waiting}개 대기)`),
+    observe: obs === null ? null : { n: obs.length, expected_new: Math.round(obs.reduce((n, o) => n + o.expected_new, 0)) },
+  }
+}
+
 /** [자율 공급] 블록 — 브리핑 맨 위 "수집 연료계" 한 줄(fuel_line)과 소스별 재고. 필드를 분리해 둔다(v69 §5). */
 export function gaugeMd(g, obs) {
   const lv = { ok: '정상', warn: '경고', urgent: '긴급' }
@@ -123,6 +133,8 @@ export async function main(argv, { db, now = new Date() } = {}) {
     log(md)
     log(`GAUGE_JSON ${JSON.stringify({ at: now.toISOString(), below14: gauge.below14, urgent: gauge.urgent, sources: gauge.sources.map((x) => [x.source_key, x.immediate_days, x.level]) })}`)
     if (auto && process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md)
+    // v69 D7: 같은 잡의 수집 스텝이 Notion 일일 상태 로그에 싣도록 게이지를 파일로 넘긴다(SUPPLY_BLOCK_FILE). dry-run 은 쓰지 않는다.
+    if (auto && !argv.includes('--dry') && process.env.SUPPLY_BLOCK_FILE) fs.writeFileSync(process.env.SUPPLY_BLOCK_FILE, JSON.stringify(supplyBlock(gauge, obs)))
   }
   log(`${mode.toUpperCase()} 되살리기 대상 ${n}건 · 해시 ${hash}${auto ? ` (재방문 시계 · 소스별 실행당 ≤${REVIVE_PER_RUN})` : ' (exhausted ∧ enabled ∧ 제외소스 아님 ∧ min(gap, 게이트 여유))'}`)
 

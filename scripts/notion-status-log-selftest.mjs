@@ -178,6 +178,16 @@ try {
   assert.equal(calm.blocked, '없음')
   assert.ok(calm.next.startsWith('사람 할 일 없음'))
 
+  // v69 D7: 수집 연료계 한 줄이 맨 앞 · 이상 소스와 관찰 모드는 비고에 · 게이지 파일을 못 읽으면 확인 불가 문구(정상으로 접지 않는다)
+  const withSupply = buildReviewCollectEntry({
+    date: '2026-10-14', sources: [{ key: 'danawa', stats: { newReviews: 1, reviewsParsed: 5, parseFailures: 0 } }],
+    supply: { fuel_line: '수집 연료계: 소비형 appstore 0.7일 (14일 미만 1/1개) · SLO 0개를 3일 연속', abnormal: ['clien 긴급(활성 0 · 예약 0개 즉시/9개 대기)'], observe: { n: 4, expected_new: 113 } },
+  })
+  assert.equal(withSupply.done.split('\n')[0], '수집 연료계: 소비형 appstore 0.7일 (14일 미만 1/1개) · SLO 0개를 3일 연속')
+  assert.match(withSupply.note, /\[자율 공급\] 재고 이상 clien 긴급.*증분형 시계 관찰 4개\(예상 신규 113건, 쓰기 0\)/)
+  assert.match(buildReviewCollectEntry({ date: '2026-10-14', sources: [], supply: null }).done.split('\n')[0], /^수집 연료계: 확인 불가/)
+  assert.ok(!calm.done.includes('수집 연료계'), 'supply 인자가 없으면 기존 동작')
+
   const noisy = buildReviewCollectEntry({ date: '2026-09-14', sources: [{ key: 'danawa', stats: {}, warnings: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7'] }] })
   assert.equal(lines(noisy.blocked), 5)
   assert.match(noisy.blocked.split('\n')[4], /^외 3건/)

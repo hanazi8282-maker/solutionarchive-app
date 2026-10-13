@@ -184,6 +184,8 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # v69 A레인: 증분형 시계. 기본(미설정)=관찰 모드(쓰기 0, reports/ 에 관찰 기록만). 'on' 은 사람·역할 세션이 3일 대조 뒤 켠다.
           TARGET_CLOCK_INCREMENTAL: ${{ vars.TARGET_CLOCK_INCREMENTAL }}
+          # v69 D7: 게이지를 같은 잡의 수집 스텝(Notion 일일 상태 로그)으로 넘기는 파일.
+          SUPPLY_BLOCK_FILE: ${{ runner.temp }}/supply-block.json
         run: node scripts/target-revive.mjs --auto ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
 
       # 끝에 소스 고장 보고(scripts/review-source-health-report.mjs)도 한다 — 고장 소스는 자동으로 끄지 않고
@@ -194,6 +196,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
+          # v69 D7: target-revive 스텝이 쓴 게이지 파일(수집 연료계·[자율 공급])을 Notion CTO 행에 싣는다.
+          SUPPLY_BLOCK_FILE: ${{ runner.temp }}/supply-block.json
           # 끝에 Notion "일일 상태 로그" CTO 행 1개를 쓴다(scripts/review-collect-status.mjs).
           # 이 스텝에만 준다 — purge 스텝은 Notion 을 안 쓴다. 기록 실패는 수집 결과를 막지 않는다.
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}

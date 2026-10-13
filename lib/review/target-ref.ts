@@ -44,7 +44,14 @@ import { BOARDS as DEVTO_BOARDS } from './adapters/devto.ts'
 import { BOARDS as INFLEARN_BOARDS, HOST as INFLEARN_HOST } from './adapters/inflearn.ts'
 import { BOARDS as YOZM_BOARDS, HOST as YOZM_HOST } from './adapters/yozm.ts'
 import { BOARDS as INDIEHACKERS_BOARDS, HOST as INDIEHACKERS_HOST } from './adapters/indiehackers.ts'
-import { N8N_COMMUNITY_BOARDS, N8N_COMMUNITY_HOST } from './adapters/discourse.ts'
+import {
+  N8N_COMMUNITY_BOARDS, N8N_COMMUNITY_HOST,
+  MAKE_COMMUNITY_BOARDS, MAKE_COMMUNITY_HOST,
+  BUBBLE_FORUM_BOARDS, BUBBLE_FORUM_HOST,
+  RETOOL_COMMUNITY_BOARDS, RETOOL_COMMUNITY_HOST,
+  GLIDE_COMMUNITY_BOARDS, GLIDE_COMMUNITY_HOST,
+  SOFTR_COMMUNITY_BOARDS, SOFTR_COMMUNITY_HOST,
+} from './adapters/discourse.ts'
 import { HOST as WP_HOST, parseProductRef as parseWordpressRef } from './adapters/wordpress.ts'
 import { HOST as SHOPIFY_HOST, parseProductRef as parseShopifyRef } from './adapters/shopify.ts'
 
@@ -331,6 +338,11 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   yozm: boardOnlyRef(YOZM_BOARDS),
   indiehackers: boardOnlyRef(INDIEHACKERS_BOARDS),
   n8n_community: boardOnlyRef(N8N_COMMUNITY_BOARDS),
+  make_community: boardOnlyRef(MAKE_COMMUNITY_BOARDS),
+  bubble_forum: boardOnlyRef(BUBBLE_FORUM_BOARDS),
+  retool_community: boardOnlyRef(RETOOL_COMMUNITY_BOARDS),
+  glide_community: boardOnlyRef(GLIDE_COMMUNITY_BOARDS),
+  softr_community: boardOnlyRef(SOFTR_COMMUNITY_BOARDS),
   googleplay: googleplayRef,
   // 카카오(다음) 검색 — HN 과 같은 `q:<검색어>` 형식·길이 제약(2026-10-06). 어댑터 parseProductRef 가 같은 값을 읽는다.
   kakao_blog: hackernewsRef,
@@ -384,7 +396,7 @@ export function postUrlOfRef(sourceKey: string | null, productRef: string | null
 }
 
 /** 본문 `[SRC:]` 머리말을 심는 게시판 순회 소스의 호스트(velog·disquiet 는 위 표에 있다). */
-const BOARD_HOSTS: Record<string, string> = { inflearn: INFLEARN_HOST, yozm: YOZM_HOST, indiehackers: INDIEHACKERS_HOST, n8n_community: N8N_COMMUNITY_HOST }
+const BOARD_HOSTS: Record<string, string> = { inflearn: INFLEARN_HOST, yozm: YOZM_HOST, indiehackers: INDIEHACKERS_HOST, n8n_community: N8N_COMMUNITY_HOST, make_community: MAKE_COMMUNITY_HOST, bubble_forum: BUBBLE_FORUM_HOST, retool_community: RETOOL_COMMUNITY_HOST, glide_community: GLIDE_COMMUNITY_HOST, softr_community: SOFTR_COMMUNITY_HOST }
 
 /**
  * 본문 머리말에서 읽은 주소가 그 소스의 호스트인가. 머리말은 본문 맨 앞이라 옛 행(머리말 도입 전)에서는

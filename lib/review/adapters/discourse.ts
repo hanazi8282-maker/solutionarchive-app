@@ -138,4 +138,42 @@ export const n8nCommunityAdapter = makeDiscourseAdapter({
   boards: N8N_COMMUNITY_BOARDS,
 })
 
+// ── v70 D3: 같은 구조의 SaaS·노코드 포럼 5곳(2026-10-14 실측: robots 허용 · /latest.json 200 · 카테고리 id 는 각 /categories.json) ──
+// 모두 약관에 자동 접근 금지 계열 문구가 있거나(Make·Retool·Softr: Discourse 기본 "You may not automate access to the forum…", Glide: "crawls, scrapes, or spiders")
+// 약관 본문을 못 읽었다(Bubble) → 소스 행 라벨(tos_status·quote_allowed=false)로 표시하고 남헌 v70 개정 2 결정(owner_2026-10-14)으로 수집한다. 판정은 어댑터가 아니라 소스 행이 가진다.
+export const MAKE_COMMUNITY_HOST = 'https://community.make.com'
+export const MAKE_COMMUNITY_BOARDS: Record<string, string> = {
+  questions: '/c/questions/66.json?order=created',
+  'beginner-questions': '/c/beginner-questions/65.json?order=created',
+}
+export const makeCommunityAdapter = makeDiscourseAdapter({ key: 'make_community', displayName: 'Make 커뮤니티(Discourse)', host: MAKE_COMMUNITY_HOST, boards: MAKE_COMMUNITY_BOARDS })
+
+export const BUBBLE_FORUM_HOST = 'https://forum.bubble.io'
+export const BUBBLE_FORUM_BOARDS: Record<string, string> = {
+  idea: '/c/idea/7.json?order=created',
+  help: '/c/help/5.json?order=created',
+}
+export const bubbleForumAdapter = makeDiscourseAdapter({ key: 'bubble_forum', displayName: 'Bubble 포럼(Discourse)', host: BUBBLE_FORUM_HOST, boards: BUBBLE_FORUM_BOARDS })
+
+export const RETOOL_COMMUNITY_HOST = 'https://community.retool.com'
+export const RETOOL_COMMUNITY_BOARDS: Record<string, string> = {
+  'feature-requests': '/c/feature-requests/7.json?order=created',
+  'app-building': '/c/app-building/5.json?order=created',
+}
+export const retoolCommunityAdapter = makeDiscourseAdapter({ key: 'retool_community', displayName: 'Retool 커뮤니티(Discourse)', host: RETOOL_COMMUNITY_HOST, boards: RETOOL_COMMUNITY_BOARDS })
+
+export const GLIDE_COMMUNITY_HOST = 'https://community.glideapps.com'
+export const GLIDE_COMMUNITY_BOARDS: Record<string, string> = {
+  'feature-requests': '/c/feature-requests/9.json?order=created',
+  'help-how-to': '/c/help-how-to/27.json?order=created',
+}
+export const glideCommunityAdapter = makeDiscourseAdapter({ key: 'glide_community', displayName: 'Glide 커뮤니티(Discourse)', host: GLIDE_COMMUNITY_HOST, boards: GLIDE_COMMUNITY_BOARDS })
+
+export const SOFTR_COMMUNITY_HOST = 'https://community.softr.io'
+export const SOFTR_COMMUNITY_BOARDS: Record<string, string> = {
+  'feature-requests': '/c/feature-requests/8.json?order=created',
+  'ask-the-community': '/c/ask-the-community/6.json?order=created',
+}
+export const softrCommunityAdapter = makeDiscourseAdapter({ key: 'softr_community', displayName: 'Softr 커뮤니티(Discourse)', host: SOFTR_COMMUNITY_HOST, boards: SOFTR_COMMUNITY_BOARDS })
+
 export const __internal = { parseList, parseTopic, TOPIC_RE }

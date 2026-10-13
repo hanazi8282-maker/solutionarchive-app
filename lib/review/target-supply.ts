@@ -603,7 +603,16 @@ export function inventoryGauge(report: SupplyReport, targets: TargetRow[], now: 
   }
   const below14 = sources.filter((g) => g.level !== 'ok').length
   const urgent = sources.filter((g) => g.level === 'urgent').length
-  return { sources, below14, urgent, fuel_line: `수집 연료계: 재고 ${GAUGE_WARN_DAYS}일 미만 소스 ${below14}/${sources.length}개 (긴급 ${urgent}) · SLO 0개를 3일 연속` }
+  // 남헌 v69 통합 답변 Q1=B: 재고 "일수"는 소비형(방문하면 닫히는 앱스토어·유튜브 류)에만 말이 된다 — (활성 + 지금 되살릴 수 있는 예약) ÷ 하루 방문 슬롯.
+  // 순환형(게시판 등)은 타깃이 되풀이돼 일수가 정의되지 않으므로 평소엔 한 줄에 싣지 않고, 이상(활성 0 = 긴급·결손 = 경고)일 때만 곳 수와 소스명을 붙인다.
+  const perDayOf = new Map(report.sources.map((s) => [s.source_key, Math.max(1, s.runs_per_day * s.tpr)]))
+  const consumed = sources.filter((g) => g.basis === 'consumed')
+  const days = (g: SourceGauge) => Math.round(((g.active + g.reserved_due_now) / (perDayOf.get(g.source_key) ?? 1)) * 10) / 10
+  const cyclicBad = sources.filter((g) => g.basis === 'cyclic' && g.level !== 'ok')
+  const consumedBelow = consumed.filter((g) => days(g) < GAUGE_WARN_DAYS).length
+  const consumedPart = consumed.length ? consumed.map((g) => `${g.source_key} ${days(g)}일`).join(' · ') : '소비형 소스 없음'
+  const cyclicPart = cyclicBad.length ? ` · 순환형 이상 ${cyclicBad.length}곳(${cyclicBad.slice(0, 5).map((g) => g.source_key).join(', ')}${cyclicBad.length > 5 ? ' 외' : ''})` : ''
+  return { sources, below14, urgent, fuel_line: `수집 연료계: 소비형 ${consumedPart} (${GAUGE_WARN_DAYS}일 미만 ${consumedBelow}/${consumed.length}개)${cyclicPart} · SLO 0개를 3일 연속` }
 }
 
 /** 되돌리기 SQL — 되살린 행 id 와 이전 status·consecutive_empty 를 담는다. 아직 active 인 행만 되돌린다(그새 다시 닫힌 행은 이미 이전 상태). */

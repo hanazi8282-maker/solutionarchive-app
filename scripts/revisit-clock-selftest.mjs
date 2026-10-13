@@ -105,7 +105,10 @@ const appTargets = () =>
   t('v69: 비증분형(앱스토어)은 조용해도 예측 검사로 안 막힌다(14일 보장)', planRevive(appTargets().slice(0, 1), rep([S('appstore')]), incOpts).revive.length, 1)
   const g = inventoryGauge({ sources: [S('appstore', { runs_per_day: 6, tpr: 1, active: 4 }), S('clien', { runs_per_day: 6, tpr: 2, active: 0 }), S('okky', { runs_per_day: 6, tpr: 1, active: 1, state: 'met' }), S('danawa', { state: 'excluded' })] }, [], new Date(NOW))
   t('v69: 게이지 — 소비형 일수는 참고(4÷6≈0.7)·활성>0 ∧ 결손=경고 · 활성 0=긴급 · 충족=정상 · 제외 소스 빠짐', g.sources.map((x) => [x.source_key, x.immediate_days, x.level]), [['appstore', 0.7, 'warn'], ['clien', null, 'urgent'], ['okky', null, 'ok']])
-  t('v69: 연료계 한 줄 — 경고 이하 2/3개 · 긴급 1', [g.below14, g.urgent, g.fuel_line.includes('2/3개 (긴급 1)')], [2, 1, true])
+  t('v69: 게이지 — 경고 이하 2/3개 · 긴급 1 (소스 단위 수치는 그대로)', [g.below14, g.urgent], [2, 1])
+  t('v69 Q1=B: 연료계 한 줄 — 소비형만 일수(appstore 4÷6≈0.7일, 14일 미만 1/1개) · 순환형은 이상(clien 활성 0)일 때만 곳 수·소스명', [g.fuel_line.includes('소비형 appstore 0.7일 (14일 미만 1/1개)'), g.fuel_line.includes('순환형 이상 1곳(clien)'), g.fuel_line.includes('okky')], [true, true, false])
+  const ok2 = inventoryGauge({ sources: [S('clien', { runs_per_day: 6, tpr: 2, active: 3, state: 'met' })] }, [], new Date(NOW))
+  t('v69 Q1=B: 순환형만 있고 정상이면 "소비형 소스 없음"만 · 순환형 문구 없음', [ok2.fuel_line.includes('소비형 소스 없음'), ok2.fuel_line.includes('순환형 이상')], [true, false])
 
   // computeSupply 가 robots_blocked 를 만든다: disallowed ∧ 소유자 예외 없음만. appstore(owner_2026-10-05) 는 아님.
   const sup = computeSupply({

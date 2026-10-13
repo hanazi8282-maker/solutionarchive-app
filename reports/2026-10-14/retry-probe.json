@@ -1,0 +1,98 @@
+[
+ {
+  "name": "커리어리",
+  "url": "https://careerly.co.kr/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 200,
+  "result": "ok",
+  "bytes": 36308
+ },
+ {
+  "name": "잡플래닛",
+  "url": "https://www.jobplanet.co.kr/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 403,
+  "result": "fail",
+  "bytes": 4551
+ },
+ {
+  "name": "MLBPARK",
+  "url": "https://mlbpark.donga.com/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 200,
+  "result": "ok",
+  "bytes": 64968
+ },
+ {
+  "name": "원티드",
+  "url": "https://www.wanted.co.kr/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 200,
+  "result": "ok",
+  "bytes": 185069
+ },
+ {
+  "name": "Edge Add-ons",
+  "url": "https://microsoftedge.microsoft.com/addons/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 200,
+  "result": "ok",
+  "bytes": 51282
+ },
+ {
+  "name": "SaaSworthy",
+  "url": "https://www.saasworthy.com/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 403,
+  "result": "fail",
+  "bytes": 5488
+ },
+ {
+  "name": "Slant",
+  "url": "https://www.slant.co/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 403,
+  "result": "fail",
+  "bytes": 4911
+ },
+ {
+  "name": "Crozdesk",
+  "url": "https://crozdesk.com/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 200,
+  "result": "ok",
+  "bytes": 164173
+ },
+ {
+  "name": "Bluesky(공식 API 경로)",
+  "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=saas&limit=1",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 403,
+  "result": "fail",
+  "bytes": 2334
+ },
+ {
+  "name": "Medium",
+  "url": "https://medium.com/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 403,
+  "result": "fail",
+  "bytes": 5380
+ },
+ {
+  "name": "HubSpot Community",
+  "url": "https://community.hubspot.com/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 403,
+  "result": "fail",
+  "bytes": 5678
+ },
+ {
+  "name": "Zoom Community",
+  "url": "https://community.zoom.com/",
+  "at": "2026-10-13T18:10:47.293Z",
+  "status": 200,
+  "result": "ok",
+  "bytes": 2681628
+ }
+]

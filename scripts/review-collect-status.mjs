@@ -19,11 +19,14 @@ export function capLines(lines, more) {
  * @param sources [{ key, fatal?, skipped?, skipReason?, stats?, alert?, warnings? }]
  * @param topProject { id, n } | null — 누적 리뷰 최다 프로젝트
  */
-export function buildReviewCollectEntry({ date, sources = [], failures = [], topProject = null, runUrl = null }) {
+export function buildReviewCollectEntry({ date, sources = [], failures = [], topProject = null, runUrl = null, supply = undefined }) {
   const sum = (k) => sources.reduce((a, s) => a + Number(s.stats?.[k] ?? 0), 0)
   const more = runUrl ? `Actions 실행 요약 ${runUrl}` : 'Actions 실행 요약'
 
+  // v69 D7: 수집 연료계 한 줄을 맨 앞에. supply === null 은 "게이지를 못 읽었다" — 정상으로 접지 않고 그대로 적는다(§7.1). undefined 는 호출부가 게이지를 안 쓰는 경우(기존 동작).
+  const fuel = supply === undefined ? null : supply === null ? '수집 연료계: 확인 불가(게이지 파일 없음 — target-revive 스텝 확인)' : supply.fuel_line
   const done = capLines([
+    fuel,
     `리뷰 수집 ${sources.length}개 소스 — 신규 ${sum('newReviews')}건 · 파싱 ${sum('reviewsParsed')}건(실패 ${sum('parseFailures')})`,
     ...sources.map((s) => s.fatal ? `${s.key}: 실패`
       : s.skipped ? `${s.key}: 건너뜀 — ${s.skipReason ?? '사유 미기록'}`
@@ -49,6 +52,6 @@ export function buildReviewCollectEntry({ date, sources = [], failures = [], top
     blocked: blockedLines.length ? blockedLines.join('\n') : '없음',
     next: (next.length ? next : ['사람 할 일 없음 — 다음 크론이 이어서 돈다']).join('\n'),
     needsHuman: false,
-    note: `nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'} · 날짜는 KST(행을 쓰는 시점) · 원문 폐기(purge) 결과는 이 행에 없다`,
+    note: `${supply && (supply.abnormal.length || supply.observe) ? `[자율 공급] ${[supply.abnormal.length ? `재고 이상 ${supply.abnormal.slice(0, 6).join('; ')}${supply.abnormal.length > 6 ? ` 외 ${supply.abnormal.length - 6}곳` : ''}` : null, supply.observe ? `증분형 시계 관찰 ${supply.observe.n}개(예상 신규 ${supply.observe.expected_new}건, 쓰기 0)` : null].filter(Boolean).join(' · ')} · ` : ''}nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'} · 날짜는 KST(행을 쓰는 시점) · 원문 폐기(purge) 결과는 이 행에 없다`,
   }
 }

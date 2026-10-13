@@ -558,8 +558,13 @@ if (extraSlot) {
     : null
   let r
   try {
+    // v69 D7: target-revive 가 넘긴 게이지(SUPPLY_BLOCK_FILE). 파일이 없거나 못 읽으면 null(확인 불가) — 변수가 아예 없으면(로컬 실행) undefined.
+    let supply
+    if (process.env.SUPPLY_BLOCK_FILE) {
+      try { supply = JSON.parse(await fs.readFile(process.env.SUPPLY_BLOCK_FILE, 'utf8')) } catch { supply = null }
+    }
     r = await recordStatusLog(buildReviewCollectEntry({
-      date: kstDate(), sources: sourceResults, failures, topProject, runUrl,
+      date: kstDate(), sources: sourceResults, failures, topProject, runUrl, supply,
     }))
   } catch (e) {
     r = { ok: false, stage: 'build', error: e instanceof Error ? e.message : String(e) }

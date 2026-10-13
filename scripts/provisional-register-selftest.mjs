@@ -30,6 +30,11 @@ const row = (key, o = {}) => ({ key, name: key.toUpperCase(), status: 'adopt', a
   t('채택만 · 기준점/짧은 키/영역 밖/비율 부족/차단/못 읽음을 건너뛴다', s.picked.map((r) => r.key), ['otterlike', 'edge1'])
   t('건너뜀 사유 건수', s.skipped, { platform: 0, lowercase_name: 0, not_adopt: 3, area_out: 2, area_share_low: 1, tier_anchor: 1, key_short: 1, blocked: 1, area_cap: 0, unreadable: 3 })
 }
+// 독립 검토(#515): notes 영역은 areaShare 가 의도적으로 null — '못 읽음'이 아니라 영역 밖으로 센다
+{
+  const s = selectProvisional([row('evernoteapp', { area: 'notes', areaShare: null, name: 'Evernote' }), row('nullshare', { areaShare: null })])
+  t('notes(areaShare null)는 area_out · 1~5 영역의 비율 null 만 unreadable', [s.skipped.area_out, s.skipped.unreadable, s.picked.length], [1, 1, 0])
+}
 // 실측 오탐(2026-10-14 드라이런): 플랫폼 이름·소문자 시작 일반 구
 {
   const s = selectProvisional([row('tistory', { name: 'tistory' }), row('brunch', { name: 'brunch' }), row('askai', { name: 'ask AI' }), row('theauburnaffirmation', { name: 'the Auburn Affirmation' }), row('invideoai', { name: 'InVideo AI' }), row('fera', { name: 'Fera' }), row('velog', { name: 'Velog' })])

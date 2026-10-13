@@ -61,7 +61,8 @@ export type Selection = {
 
 /**
  * 입력 순서를 유지한 채 고른다(호출자가 점수순으로 정렬해 넘긴다 — product-name-candidates 가 이미 그렇게 준다).
- * 건너뛰는 순서 = not_adopt → unreadable → tier_anchor → blocked → key_short → platform → lowercase_name → area_out → area_share_low → area_cap.
+ * 건너뛰는 순서 = not_adopt → unreadable(key·name·area·tier) → area_out → unreadable(areaShare) → tier_anchor → blocked → key_short → platform → lowercase_name → area_share_low → area_cap.
+ * ponytail: 소문자로 시작하는 이름(npm·dbt·n8n)은 이 줄로는 못 들어온다 — 보수 쪽 거짓 음성. 필요해지면 허용 목록을 더한다.
  * 경쟁 기준점(tier anchor)은 임시 등록하지 않는다 — 기준점은 별도 소절·별도 한도다(pnc-v4).
  */
 export function selectProvisional(rows: CandidateRow[], opts: SelectOpts = {}): Selection {
@@ -72,14 +73,16 @@ export function selectProvisional(rows: CandidateRow[], opts: SelectOpts = {}): 
   const seen = new Set<string>()
   for (const r of rows) {
     if (r.status !== 'adopt') { skipped.not_adopt++; continue }
-    if (!r.key || !r.name || r.area == null || typeof r.areaShare !== 'number' || !Number.isFinite(r.areaShare) || !r.tier) { skipped.unreadable++; continue }
+    if (!r.key || !r.name || r.area == null || !r.tier) { skipped.unreadable++; continue }
+    // 영역 판정을 비율 판독보다 먼저 — notes 영역 후보는 areaShare 가 의도적으로 null 이다(product-name-candidates). 영역 밖을 '못 읽음'으로 세지 않는다(§7.1).
+    if (!PROV_AREAS.has(r.area)) { skipped.area_out++; continue }
+    if (typeof r.areaShare !== 'number' || !Number.isFinite(r.areaShare)) { skipped.unreadable++; continue }
     if (r.tier === 'anchor') { skipped.tier_anchor++; continue }
     if (opts.blocked?.has(r.key) || seen.has(r.key)) { skipped.blocked++; continue }
     if (r.key.length < PROV_MIN_KEY_LEN) { skipped.key_short++; continue }
     if (PROV_PLATFORM_BLOCK.has(r.key)) { skipped.platform++; continue }
     // 라틴 문자로 시작하는 이름이 소문자로 시작하면 문장 속 일반 구("ask AI")·플랫폼 별칭일 가능성이 높다 — 제품명은 대개 대문자로 시작한다. 한글 등은 대상 아님.
     if (/^[a-z]/.test(r.name.trim())) { skipped.lowercase_name++; continue }
-    if (!PROV_AREAS.has(r.area)) { skipped.area_out++; continue }
     if (r.areaShare < PROV_MIN_AREA_SHARE) { skipped.area_share_low++; continue }
     const used = (opts.alreadyToday?.[r.area] ?? 0) + (byArea[r.area] ?? 0)
     if (used >= cap) { skipped.area_cap++; continue }

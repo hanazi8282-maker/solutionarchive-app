@@ -1,0 +1,6 @@
+-- target-revive 관찰 기록 20261013T195352 — 증분형 시계가 켜졌다면 되살렸을 4개. DB 쓰기 0건(롤백 대상 아님).
+-- 3일 뒤 각 id 의 total_collected 증가분 = 실제 신규. 기록 줄: OBS {json}
+-- OBS {"id":"686d7129-d0ff-462f-8742-4a314a3a0185","source_key":"82cook","product_ref":"board:31","total_collected":19,"expected_new":6.3}
+-- OBS {"id":"5eda3625-834b-4c94-b19e-87f5f0207fb4","source_key":"82cook","product_ref":"board:7","total_collected":27,"expected_new":1.7}
+-- OBS {"id":"28e72b40-0a88-4a2d-89dc-b876d24327ff","source_key":"hackernews","product_ref":"q:raised prices","total_collected":136,"expected_new":2.3}
+-- OBS {"id":"c6c1c231-ffbf-4cee-9b14-68a0b61a8166","source_key":"wordpress_org","product_ref":"plugin:customer-reviews-woocommerce","total_collected":30,"expected_new":105.7}

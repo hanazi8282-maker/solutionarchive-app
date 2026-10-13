@@ -147,17 +147,33 @@ export function orderSecondTargets<T extends { project_id: string }>(
   rows: readonly T[],
   businessModelOf: (projectId: string) => string | null | undefined,
   max: number,
+  opts: { approvable?: (r: T) => boolean; otherShare?: number } = {},
 ): { picked: T[]; remaining: number } {
-  const byProject = new Map<string, T[]>()
-  for (const r of rows) byProject.set(r.project_id, [...(byProject.get(r.project_id) ?? []), r])
-  const ordered = [...byProject.entries()]
-    .sort(([a, ra], [b, rb]) => compareAutoPriority(
-      { projectId: a, newInputs: ra.length, businessModel: businessModelOf(a) },
-      { projectId: b, newInputs: rb.length, businessModel: businessModelOf(b) },
-    ))
-    .flatMap(([, rs]) => rs)
+  const order = (xs: readonly T[]): T[] => {
+    const byProject = new Map<string, T[]>()
+    for (const r of xs) byProject.set(r.project_id, [...(byProject.get(r.project_id) ?? []), r])
+    return [...byProject.entries()]
+      .sort(([a, ra], [b, rb]) => compareAutoPriority(
+        { projectId: a, newInputs: ra.length, businessModel: businessModelOf(a) },
+        { projectId: b, newInputs: rb.length, businessModel: businessModelOf(b) },
+      ))
+      .flatMap(([, rs]) => rs)
+  }
   const n = Math.max(0, Math.floor(max))
-  return { picked: ordered.slice(0, n), remaining: Math.max(0, ordered.length - n) }
+  if (!opts.approvable) {
+    const ordered = order(rows)
+    return { picked: ordered.slice(0, n), remaining: Math.max(0, ordered.length - n) }
+  }
+  // v70 L-22(Fable 권고 1안): 1차가 relevant ∧ 정보있음 인 행만 자동 승인으로 이어질 수 있다(meetsRrV2). 그 행을 먼저 채우고, 나머지(무관·모름·정보없음)는
+  // 불일치·D층 표본(lib/relevance-feedback/sample.ts)의 재료로 상한의 otherShare(기본 15%)만 쓴다. 승인 대상 집합은 바뀌지 않아 승인 정밀도·킬스위치 창에 영향이 없다.
+  const approvable = order(rows.filter((r) => opts.approvable!(r)))
+  const other = order(rows.filter((r) => !opts.approvable!(r)))
+  const share = Math.min(1, Math.max(0, opts.otherShare ?? 0.15))
+  const otherSlots = Math.min(other.length, Math.floor(n * share))
+  const pickedA = approvable.slice(0, Math.max(0, n - otherSlots))
+  const pickedO = other.slice(0, Math.max(0, n - pickedA.length))
+  const picked = [...pickedA, ...pickedO]
+  return { picked, remaining: Math.max(0, approvable.length + other.length - picked.length) }
 }
 
 type DbErr ={ code?: string; message?: string } | null

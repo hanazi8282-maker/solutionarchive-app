@@ -55,7 +55,7 @@ log(`야간 2차 판정${dry ? ' (--dry: 대상 선정만)' : ''} — provider=g
 const cand = []
 for (let from = 0; ; from += 1000) {
   const { data, error } = await sb.from('review_relevance_verdicts')
-    .select('input_id, project_id, verdict, model, judged_at, human_verdict, second_verdict')
+    .select('input_id, project_id, verdict, model, judged_at, human_verdict, second_verdict, product_informative')
     .not('verdict', 'is', null).is('second_verdict', null).is('human_verdict', null)
     .gte('judged_at', since.toISOString())
     .order('input_id').range(from, from + 999)
@@ -93,7 +93,9 @@ if (unread) warn(`원문 행을 못 읽은 판정 ${unread}건 — 대상에서 
 const live = eligible.filter((r) => { const x = raw.get(r.input_id); return x && !x.purged_at && (x.raw_text ?? '').trim() })
 const purged = ids.length - unread - live.length
 
-const { picked, remaining } = orderSecondTargets(live, (pid) => projects.get(pid)?.business_model, MAX)
+// v70 L-22: 승인될 수 있는 행(1차 relevant ∧ 정보있음)을 먼저. product_informative 컬럼이 없으면(42703 은 위에서 이미 처리) 전부 undefined → 모두 '나머지'라 기존과 같은 순서가 된다.
+const OTHER_SHARE = Math.min(1, Math.max(0, Number(process.env.RELEVANCE_SECOND_OTHER_SHARE ?? 0.15)))
+const { picked, remaining } = orderSecondTargets(live, (pid) => projects.get(pid)?.business_model, MAX, { approvable: (r) => r.verdict === 'relevant' && r.product_informative === true, otherShare: Number.isFinite(OTHER_SHARE) ? OTHER_SHARE : 0.15 })
 log(`후보 ${cand.length} → 대상 ${live.length}건(원문 폐기 ${purged}) → 이번 ${picked.length}건${remaining ? ` (상한 ${MAX} 도달, 남은 ${remaining}건은 내일)` : ''} · 순서 SaaS 우선`)
 for (const pid of [...new Set(picked.map((r) => r.project_id))]) {
   const p = projects.get(pid)

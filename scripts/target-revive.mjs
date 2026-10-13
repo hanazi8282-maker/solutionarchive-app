@@ -27,7 +27,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-import { computeSupply, idSetHash, planRevive, REVIVE_PER_RUN, rollbackSql } from '../lib/review/target-supply.ts'
+import {
+  computeSupply, idSetHash, inventoryGauge, NON_INCREMENTAL_SOURCES, planRevive, REVIVE_MIN_EXPECTED_NEW, REVIVE_PER_RUN, REVIVE_TOTAL_PER_RUN,
+  revisitRate, rollbackSql,
+} from '../lib/review/target-supply.ts'
 import { loadSupplyInputs, openDb } from './target-supply.mjs'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -55,6 +58,19 @@ export function reviveSummary(plan, { mode, applied }) {
   return lines.join('\n')
 }
 
+/** [자율 공급] 블록 — 브리핑 맨 위 "수집 연료계" 한 줄(fuel_line)과 소스별 재고. 필드를 분리해 둔다(v69 §5). */
+export function gaugeMd(g, obs) {
+  const lv = { ok: '정상', warn: '경고', urgent: '긴급' }
+  return [
+    '## [자율 공급]',
+    '',
+    `- ${g.fuel_line}`,
+    ...g.sources.map((x) => `- ${x.source_key}: 즉시 재고 ${x.immediate_days === null ? '순환형(활성 ' + x.active + ')' : x.immediate_days + '일'} · 예약 ${x.reserved_due_now}개 즉시 가능/${x.reserved_waiting}개 대기${x.reserved_next_due ? ` (다음 ${x.reserved_next_due.slice(0, 16)}Z)` : ''} · ${lv[x.level]}`),
+    ...(obs === null ? [] : [`- 관찰 모드(증분형 시계, 쓰기 0): 되살렸을 타깃 ${obs.length}개 — 예상 신규 합 ${Math.round(obs.reduce((n, o) => n + o.expected_new, 0))}건. 3일 뒤 실제와 대조`]),
+    '',
+  ].join('\n')
+}
+
 export async function main(argv, { db, now = new Date() } = {}) {
   const auto = argv.includes('--auto')
   const run = argv.includes('--run')
@@ -73,7 +89,29 @@ export async function main(argv, { db, now = new Date() } = {}) {
   const input = await loadSupplyInputs(sb, now)
   const report = computeSupply(input)
   if (report.ramp_read !== 'ok') throw new Error('review_source_ramp 확인 불가(ramp_read=unavailable) — 상한이 폴백값이라 되살리지 않는다')
-  const plan = planRevive(input.targets, report, auto ? { perRunCap: REVIVE_PER_RUN, clockOnly: true } : {})
+  // v69 A레인 — 증분형 시계는 기본 관찰 모드(쓰기 0). TARGET_CLOCK_INCREMENTAL=on 일 때만 실제로 되살린다(남헌·역할 세션이 3일 대조 뒤 켠다).
+  const incOn = process.env.TARGET_CLOCK_INCREMENTAL === 'on'
+  const autoOpts = { perRunCap: REVIVE_PER_RUN, clockOnly: true, minExpectedNew: REVIVE_MIN_EXPECTED_NEW, totalCap: REVIVE_TOTAL_PER_RUN }
+  const plan = planRevive(input.targets, report, auto ? { ...autoOpts, clockAll: incOn } : {})
+  const observe = argv.includes('--observe') || (auto && !incOn)
+  const byId = new Map(input.targets.map((t) => [t.id, t]))
+  const obs = observe
+    ? planRevive(input.targets, report, { ...autoOpts, clockAll: true }).revive
+        .filter((r) => !NON_INCREMENTAL_SOURCES.has(r.source_key))
+        .map((r) => {
+          const t = byId.get(r.id)
+          const lam = revisitRate(t)
+          const days = (now.getTime() - Date.parse(t.last_run_at)) / 86_400_000
+          return { id: r.id, source_key: r.source_key, product_ref: r.product_ref, total_collected: t.total_collected ?? 0, expected_new: lam === null ? 0 : Math.round(lam * days * 10) / 10 }
+        })
+    : null
+  const gauge = inventoryGauge(report, input.targets, now)
+  const obsOut = out.replace(/.sql$/i, '') + '-observe.sql'
+  const writeObs = () => {
+    if (obs === null || argv.includes('--dry')) return
+    writeVerified(obsOut, [`-- target-revive 관찰 기록 ${stamp} — 증분형 시계가 켜졌다면 되살렸을 ${obs.length}개. DB 쓰기 0건(롤백 대상 아님).`, '-- 3일 뒤 각 id 의 total_collected 증가분 = 실제 신규. 기록 줄: OBS {json}', ...obs.map((o) => `-- OBS ${JSON.stringify(o)}`), ''].join('\n'))
+    log(`관찰 기록: ${obsOut}`)
+  }
   const n = plan.revive.length
   const hash = idSetHash(plan.revive.map((r) => r.id))
   const sql = rollbackSql(plan.revive, stamp)
@@ -81,13 +119,15 @@ export async function main(argv, { db, now = new Date() } = {}) {
 
   const log = (s) => console.log(s)
   const summarize = (applied) => {
-    const md = reviveSummary(plan, { mode, applied })
+    const md = reviveSummary(plan, { mode, applied }) + '\n' + gaugeMd(gauge, obs)
     log(md)
+    log(`GAUGE_JSON ${JSON.stringify({ at: now.toISOString(), below14: gauge.below14, urgent: gauge.urgent, sources: gauge.sources.map((x) => [x.source_key, x.immediate_days, x.level]) })}`)
     if (auto && process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md)
   }
   log(`${mode.toUpperCase()} 되살리기 대상 ${n}건 · 해시 ${hash}${auto ? ` (재방문 시계 · 소스별 실행당 ≤${REVIVE_PER_RUN})` : ' (exhausted ∧ enabled ∧ 제외소스 아님 ∧ min(gap, 게이트 여유))'}`)
 
   if (!apply) {
+    writeObs()
     summarize(null)
     if (!auto) log(`\n실행: node scripts/target-revive.mjs --run --expect=${n} --expect-hash=${hash}`)
     log(`\n-- 롤백 SQL(적용 때 ${path.relative(repoRoot, out)} 에 먼저 쓴다) --\n${sql}`)
@@ -99,6 +139,7 @@ export async function main(argv, { db, now = new Date() } = {}) {
   }
   if (n === 0) {
     log('대상 0건 — 쓰지 않는다.')
+    writeObs()
     summarize(0)
     return { n, hash, plan, applied: { updated: 0 }, out: null, planOut: null }
   }
@@ -136,6 +177,7 @@ export async function main(argv, { db, now = new Date() } = {}) {
     }
   }
   log(`UPDATE 완료: ${updated.length}건 active. 롤백: ${out}`)
+  writeObs()
   summarize(updated.length)
   return { n, hash, plan, applied: { updated: updated.length }, out, planOut }
 }

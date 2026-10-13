@@ -95,7 +95,20 @@ export interface SourceConfig {
  * 소유자 robots 예외를 여는 override 값 — 이 집합 밖의 값(오타·다른 날짜)은 예외가 아니다.
  *   owner_2026-10-05: 앱스토어 RSS(남헌 명시 예외) · owner_2026-10-06: 구글 플레이(남헌 결정, robots·약관 금지를 알고 켬)
  */
-export const OWNER_ROBOTS_OVERRIDES: ReadonlySet<string> = new Set(['owner_2026-10-05', 'owner_2026-10-06'])
+export const OWNER_ROBOTS_OVERRIDES: ReadonlySet<string> = new Set(['owner_2026-10-05', 'owner_2026-10-06', 'owner_2026-10-14'])
+
+/**
+ * v70 개정 2(남헌 2026-10-14): robots Disallow 소스는 약관 위험과 같은 취급으로 수집하되 **저속**이다 —
+ * 간격 2배, 일일 상한 절반(내림). 앱스토어·구글 플레이(10-05·10-06)는 남헌이 속도를 따로 정했으므로 이 집합에 없다.
+ * 라벨(robots_disallowed·quote_allowed=false)은 소스 행 속성이고 여기서는 속도만 강제한다.
+ */
+export const ROBOTS_DISALLOWED_SLOW_OVERRIDES: ReadonlySet<string> = new Set(['owner_2026-10-14'])
+export const ROBOTS_DISALLOWED_SLOW_FACTOR = 2
+
+/** 이 소스가 v70 저속 대상인가 — 예외가 실제로 열린 소스(robotsOwnerOverride)이고 값이 저속 집합일 때만. */
+export function isRobotsDisallowedSlow(source: { robotsOwnerOverride?: boolean; overrideValue?: string | null }): boolean {
+  return source.robotsOwnerOverride === true && typeof source.overrideValue === 'string' && ROBOTS_DISALLOWED_SLOW_OVERRIDES.has(source.overrideValue)
+}
 
 /** DB 행 → 소유자 예외 여부. robots_status 가 'disallowed' 로 기록된 행만 연다 — 'unverified' 로 적힌 행은 열지 않는다. */
 export function isOwnerRobotsOverride(override: unknown, robotsStatus: unknown): boolean {
@@ -489,14 +502,17 @@ class Pacer {
   private last = 0
   private readonly ports: RunnerPorts
   private readonly intervalMs: number
+  /** v70 저속 소스는 DB 값·robots Crawl-delay 중 큰 쪽에 이 배수를 곱한다. */
+  private readonly factor: number
 
-  constructor(ports: RunnerPorts, intervalMs: number) {
+  constructor(ports: RunnerPorts, intervalMs: number, factor = 1) {
     this.ports = ports
     this.intervalMs = intervalMs
+    this.factor = factor
   }
 
   async wait(robotsCrawlDelayMs = 0): Promise<void> {
-    const interval = Math.max(this.intervalMs, robotsCrawlDelayMs)
+    const interval = Math.max(this.intervalMs, robotsCrawlDelayMs) * this.factor
     const now = this.ports.now().getTime()
     const gap = now - this.last
     if (this.last > 0 && gap < interval) {
@@ -561,10 +577,13 @@ export async function runCollection(
   }
 
   const robots = new RobotsCache(ports, adapter.proceedWhenRobotsUnverified ?? [])
-  const pacer = new Pacer(ports, source.minIntervalMs)
+  const slow = isRobotsDisallowedSlow(source)
+  const pacer = new Pacer(ports, source.minIntervalMs, slow ? ROBOTS_DISALLOWED_SLOW_FACTOR : 1)
   // 퍼센트 램프 목표가 있으면 cap 과 둘 중 작은 쪽(cap 은 여전히 하드 상한). 목표로 멈춘 것은 문구를 갈라 둔다(§7.2).
-  const rampBound = opts.dailyRequestTarget != null && opts.dailyRequestTarget < source.dailyRequestCap
-  const dayBudget = (rampBound ? (opts.dailyRequestTarget as number) : source.dailyRequestCap) - source.requestsToday
+  // v70 저속 소스는 하드 상한 자체를 절반으로 깎는다(램프 목표가 더 작으면 그쪽).
+  const hardCap = slow ? Math.floor(source.dailyRequestCap / ROBOTS_DISALLOWED_SLOW_FACTOR) : source.dailyRequestCap
+  const rampBound = opts.dailyRequestTarget != null && opts.dailyRequestTarget < hardCap
+  const dayBudget = (rampBound ? (opts.dailyRequestTarget as number) : hardCap) - source.requestsToday
   const runBound = opts.maxRequestsThisRun != null && opts.maxRequestsThisRun < dayBudget
   const budget = runBound ? (opts.maxRequestsThisRun as number) : dayBudget
   const capOutcome = runBound ? '이번 실행 몫 도달' : rampBound ? '오늘 램프 목표 도달' : '일일 상한 도달'

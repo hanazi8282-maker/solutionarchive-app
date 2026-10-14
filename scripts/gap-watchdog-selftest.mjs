@@ -29,15 +29,15 @@ t('기본은 DRY(로그만) — GAP_WATCHDOG_DRY=false 를 설정해야 실제�
   assert.ok(y.includes("DRY: ${{ vars.GAP_WATCHDOG_DRY != 'false' }}") && y.includes('[DRY]'))
 })
 t('수집·판정 모두 dry_run=false 를 명시한다(기본 입력 dry_run=true 함정) + 수집은 source=all', () => {
-  assert.ok(y.includes('check nightly-review-collect.yml "$COLLECT_HOURS" -f dry_run=false -f source=all'))
-  assert.ok(y.includes('check nightly-relevance.yml "$JUDGE_HOURS" -f dry_run=false'))
+  assert.ok(y.includes('check nightly-review-collect.yml "$COLLECT_MIN" -f dry_run=false -f source=all'))
+  assert.ok(y.includes('check nightly-relevance.yml "$JUDGE_MIN" -f dry_run=false'))
 })
 t('건너뛰는 조건: 진행/대기 중 · 4시간 안 수동 실행 · 이력 못 읽음', () => {
   assert.ok(y.includes('in_progress') && y.includes('queued') && y.includes('< 14400'))
   assert.ok(y.includes('실행 이력을 못 읽었다'))
 })
-t('기준 시간은 숫자만 받고 수집 7 · 판정 14 가 기본이다(근거는 파일 머리말)', () => {
-  assert.ok(y.includes("vars.GAP_WATCHDOG_COLLECT_HOURS || '7'") && y.includes("vars.GAP_WATCHDOG_JUDGE_HOURS || '14'") && y.includes('*[!0-9]*'))
+t('기준은 분 단위 숫자만 받고 수집 330(5.5시간) · 판정 840(14시간)이 기본이다(근거는 파일 머리말)', () => {
+  assert.ok(y.includes("vars.GAP_WATCHDOG_COLLECT_MIN || '330'") && y.includes("vars.GAP_WATCHDOG_JUDGE_MIN || '840'") && y.includes('*[!0-9]*'))
 })
 t('보호 파일 nightly-review-collect.yml 은 이 PR 이 수정하지 않는다(대상으로만 부른다)', () => {
   assert.ok(!y.includes('git commit') && !y.includes('git push'))

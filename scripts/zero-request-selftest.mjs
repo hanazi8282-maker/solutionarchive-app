@@ -9,7 +9,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 const { judgeZeroRequests, zeroRequestKeys, zeroRequestReport } = await import('../lib/review/zero-request.ts')
-const { checkZeroRequests, runWatchdog } = await import('./cron-watchdog.mjs')
+const { checkZeroRequests, runWatchdog, foldZeroReport } = await import('./cron-watchdog.mjs')
 
 let passed = 0
 const failures = []
@@ -71,6 +71,24 @@ t('unknown: 활성 타깃·마지막 실행·램프 전부 확인 불가여도 �
   t('ok 실행(타깃 0·요청 0)인데 활성 타깃 있음 — unknown 경보', [u[0].reasons, zeroRequestReport(u).alerts.length], [['unknown'], 1])
 }
 
+
+// ── 4b) 경보 문구 3안·합치기 규칙(v71p) — 글만 바뀌고 경보/요약 분류는 그대로 ─────────────
+{
+  const idle = (key) => run(key, { targets_visited: 0 })
+  const v = judgeZeroRequests(base({
+    sources: [src('z1'), src('z2'), src('q'), src('u')],
+    runs: [idle('q'), run('q', { started_at: h(9) }), idle('u')],
+    activeTargets: { z1: 0, z2: 0, q: 2, u: 2 },
+    lastRun: { z1: null, z2: null, q: null, u: null },
+  }))
+  const r = foldZeroReport(v, { z1: 0, z2: 0, q: 2, u: 2 })
+  t('R2·R4: 활성 0 둘은 한 줄로', [r.lines.length, r.lines[0].includes('2곳') && r.lines[0].includes('z1, z2')], [1, true])
+  t('문구 3: ok 2회 이상 → 조용한 정상 경보', r.alerts.some((a) => a.startsWith('조용한 정상') && a.includes('q ')), true)
+  t('문구 3: ok 1회뿐이면 기존 unknown 문구', r.alerts.some((a) => a.includes('사유 코드 없음(unknown)') && a.includes('u:')), true)
+  t('경보 수는 그대로(unknown 2)', r.alerts.length, 2)
+  t('활성 0 + 다른 사유는 합치지 않는다', foldZeroReport(judgeZeroRequests(base({ sources: [src('a', { daily_request_cap: 0 })], runs: [], activeTargets: { a: 0 }, lastRun: { a: null } })), { a: 0 }).lines[0].includes('cap_exhausted'), true)
+}
+
 // ── 5) 경계면: PostgREST 행 → checkZeroRequests → runWatchdog → Notion 기록 입력 ─────────
 const SB = 'https://sb.test'
 function fakeDb(tables, { fail = [] } = {}) {
@@ -106,7 +124,7 @@ const TABLES = {
   const db = fakeDb(TABLES)
   const z = await checkZeroRequests({ sbUrl: SB, sbKey: 'k', fetchImpl: db, now: NOW })
   t('경계: ghost(활성 타깃 있음·24h 실행 없음) 만 경보', z.problems.map((p) => p.split(':')[0]), ['요청 0(24h) enabled 소스 ghost'])
-  t('경계: drained 는 요약 한 줄(no_active_targets)', z.lines.length === 1 && z.lines[0].includes('drained') && z.lines[0].includes('no_active_targets'), true)
+  t('경계: drained 는 요약 한 줄(no_active_targets)', z.lines.length === 1 && z.lines[0].includes('drained') && z.lines[0].includes('활성 타깃 0'), true)
   t('경계: 요청 >0 소스(busy)는 타깃·마지막 실행을 조회하지 않는다', db.urls.some((u) => u.includes('source_key=eq.busy')), false)
   t('경계: 실행은 dry_run=false·24h 창으로 읽는다', db.urls.some((u) => u.includes('review_collection_runs') && u.includes('dry_run=eq.false') && u.includes(`started_at=gte.${encodeURIComponent(h(24))}`)), true)
 
@@ -128,7 +146,7 @@ const TABLES = {
   })
   t('통합: unknown → exit 1 · CTO 행 1개 · 막힌것에 ghost · 사람판단필요 false',
     [w.code, records.length, records[0]?.track, records[0]?.blocked.includes('ghost'), records[0]?.needsHuman], [1, 1, 'CTO', true, false])
-  t('통합: 사유 있는 drained 는 막힌것에 없고 로그에만', [records[0]?.blocked.includes('drained'), logs.some((l) => l.includes('drained') && l.includes('no_active_targets'))], [false, true])
+  t('통합: 사유 있는 drained 는 막힌것에 없고 로그에만', [records[0]?.blocked.includes('drained'), logs.some((l) => l.includes('drained') && l.includes('활성 타깃 0'))], [false, true])
 
   const quiet = await runWatchdog({
     now: NOW, env: { GITHUB_REPOSITORY: 'o/r', GITHUB_TOKEN: 'gh', NEXT_PUBLIC_SUPABASE_URL: SB, SUPABASE_SERVICE_ROLE_KEY: 'k' },

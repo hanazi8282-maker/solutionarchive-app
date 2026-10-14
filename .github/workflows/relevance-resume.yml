@@ -3,6 +3,7 @@
 #   같은 파일에 30분 크론을 얹으면 cron-watchdog 가 일일 슬롯(main·r1·r2)을 이 실행에 가려 읽고, concurrency 대기열에서
 #   일일 크론을 밀어낸다(독립 검토 1·3번). 여기서는 판정을 직접 돌리지 않고 조건이 맞을 때만 nightly-relevance 를 **dry_run=false 로 명시**해 부른다
 #   (수동 dispatch 기본값이 dry_run=true 라 아무것도 기록되지 않던 문제 재발 방지).
+# CC(Claude Code)는 resume-approval 배포를 승인하지 않고 RELEVANCE_RESUME_ENABLED 를 설정·변경하지 않는다. 둘 다 남헌만 한다 (v71i 금지줄).
 # 시작 조건(scripts/relevance-resume.mjs = relevanceResumeDecision): 구독 한도 정지 + 쿨다운(CLI 리셋 시각 또는 4시간, 정지 후 최소 30분) 경과
 #   · 이어 가라 표시 뒤 20분~6시간 사이 후속 없음(끊긴 체인) · 3시간 넘게 running(죽은 실행).
 #   오류율·하드 캡·설정 확인 불가·미판정 0건·연속 0건·hop 상한은 사람이 볼 대상이라 재개하지 않는다.

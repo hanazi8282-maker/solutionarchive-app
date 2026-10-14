@@ -353,7 +353,7 @@ export function relevanceRetryDecision(
 }
 
 /**
- * 자동 재개(30분마다 relevance-resume.yml, 남헌 v67 §2-1-5) — 체인이 멈춰 있고 이어 가도 안전할 때만 새 실행을 시작한다(순수함수).
+ * 자동 재개(수동 전용 relevance-resume.yml, 남헌 v67 §2-1-5) — 체인이 멈춰 있고 이어 가도 안전할 때만 새 실행을 시작한다(순수함수).
  * 규칙: 가장 최근 relevance-judge 행(수동·재시도·재개 포함) 하나만 본다.
  *  · 실행 중(running): 3시간 안이면 쉼, 넘으면 죽은 실행이라 재개.
  *  · 한도(quota) 정지: CLI 리셋 시각(있으면) 또는 정지 + cooldownMs 가 지나면 재개, 아니면 쉼(다음 30분에 다시 본다).

@@ -11,7 +11,7 @@ export function EntryForm() {
   const r = state?.result
   return (
     <>
-      <form action={action} style={{ display: 'grid', gap: 16, maxWidth: 640 }}>
+      <form action={action} autoComplete="off" style={{ display: 'grid', gap: 16, maxWidth: 640 }}>
         <label>아이디어 한 문장 ({IDEA_MAX}자 이내)
           <textarea name="idea" required maxLength={IDEA_MAX} rows={3} style={box} />
         </label>
@@ -24,13 +24,13 @@ export function EntryForm() {
           ))}
         </fieldset>
         <label>누구를 위한 건가요 (선택)
-          <input name="audience" maxLength={AUDIENCE_MAX} style={box} />
+          <input name="audience" autoComplete="off" maxLength={AUDIENCE_MAX} style={box} />
         </label>
         <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'grid', gap: 12 }}>
           <legend>안내 질문 (모두 선택)</legend>
           {QUESTIONS.map((q, i) => (
             <label key={q}>{q}
-              <input name={`q${i}`} maxLength={ANSWER_MAX} style={box} />
+              <input name={`q${i}`} autoComplete="off" maxLength={ANSWER_MAX} style={box} />
             </label>
           ))}
         </fieldset>

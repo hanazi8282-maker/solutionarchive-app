@@ -1,0 +1,103 @@
+{
+  "slug": "teamometer-landing-page-signups-not-validation-zero-sales",
+  "brand_name": "Teamometer",
+  "market": "SaaS · 팀 진단(HR) 도구",
+  "geo": "BR",
+  "business_model": "SAAS",
+  "buyer_type": "B2B",
+  "purchase_frequency": "REPEAT",
+  "price_band": null,
+  "bottleneck": "CONVERSION",
+  "reader_problem": "NO_FIRST_CUSTOMER",
+  "outcome_status": "shutdown",
+  "period_start": null,
+  "period_end": null,
+  "summary": "브라질 창업자가 설문으로 팀의 강점·약점을 진단해 주는 SaaS 를 만들었다. 광고를 붙인 랜딩페이지에서 이메일 가입이 잘 나오자 '검증됐다'고 보고, 가입자에게 연락하지 않은 채 1년을 만들었다. 출시 뒤 무료 체험 100명 이상, 판매 0건으로 2년 만에 접었다. 창업자 본인 인터뷰(Failory, 2020)에 근거한다.",
+  "tags": ["failure", "saas", "validation", "free-trial", "solo-founder"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "OFFER",
+      "claim": "창업자는 '곧 나옵니다' 랜딩페이지에 구글 광고를 붙여 이메일 가입을 모았고, 가입 비율이 높게(본인 기억으로 약 20%) 나오자 아이디어가 검증됐다고 판단했다. 가입자에게 연락해 왜 관심이 있는지, 돈을 낼지는 묻지 않고 곧바로 약 1년간 제품을 만들었다. 출시하자 무료 체험 100건 이상이 들어왔지만 판매는 0건이었다. 창업자는 돌아보며 '검증됐다고 판단하고 만들 방법부터 찾았다. 큰 실수였다'고 말하고, 다음엔 '약속만으로 몇 건이라도 먼저 팔아 보겠다'고 한다.",
+      "transfer_note": "내일 할 일: 이미 이메일을 받아 둔 사람(대기자 명단·무료 체험 가입자) 5명에게 '왜 가입하셨는지 15분만 통화 가능할까요?'라는 메일을 보낸다. 제품 소개는 하지 않고 듣기만 한다.",
+      "preconditions": "이메일을 남긴 사람이 최소 5명은 있어야 한다. 아직 없다면 이 무브가 아니라 '첫 5명 찾기'부터다. 통화에서 제품을 파는 게 아니라 듣는 것이 목적이다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": [
+        "6da3a6c8-24fa-4a5d-bf28-541628228ce9",
+        "17b35a39-12fa-4f5c-97c2-0758ffd37f59"
+      ]
+    },
+    {
+      "lever": "CONTENT",
+      "claim": "검색 유입을 늘리려고 하루 2편(영어·포르투갈어 각 1편)씩 팀 빌딩 관련 글을 썼고, 많은 키워드에서 상위 5위권에 들었다. 하지만 글을 읽고 들어온 사람을 제품 구매로 이어 가지 못했다. 창업자는 이 트래픽이 '전환하지 못해 낭비됐다'고 말한다.",
+      "transfer_note": "내일 할 일: 지금 검색 순위가 가장 높은 글 1편 맨 아래에 질문 한 줄('팀에서 지금 가장 풀고 싶은 문제는?')과 답장용 이메일 칸을 붙이고, 글 한 편을 더 쓰기 전에 그 칸으로 며칠 간 몇 명이 답하는지 센다.",
+      "preconditions": "이미 검색으로 들어오는 글이 최소 1편 있어야 한다. 글이 아직 없으면 해당 없음.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    },
+    {
+      "lever": "PACKAGING",
+      "claim": "무료 체험(프리미엄 방식)으로 제품을 내놓았다. 창업자는 당시(2011년경) 브라질에는 B2B SaaS 를 월 구독으로 사는 관행이 자리 잡지 않아 이 방식이 '전혀 맞지 않았다'고 평가한다. 무료로 100건 이상이 쓰였지만 낸 사람은 0명이어서, 무료 사용이 '살 의향'의 증거가 되지 못했다. 창업자는 이 제품을 '없으면 불편한 것(필수)'이 아니라 '있으면 좋은 것'으로 돌아본다.",
+      "transfer_note": "내일 할 일: 무료 체험 신청 화면 옆에 가격이 적힌 '구매하기' 버튼을 달아 둔다(결제가 아직 없으면 '곧 열림' 화면으로 연결). 체험 가입자 수와 별개로 그 버튼을 누른 사람 수를 세기 시작한다.",
+      "preconditions": "가입 화면을 고칠 수 있어야 한다. 가격을 아직 못 정했다면 후보 가격 1개를 먼저 적는다. 이 버튼 아이디어는 창업자의 '약속만으로 먼저 팔아 보기' 반성에서 끌어낸 것이지, 창업자가 실제로 해 본 일은 아니다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.failory.com/interview/teamometer",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "teamometer-failory-interview-2020-03",
+      "published_at": "2020-03-19",
+      "snippet": "(요약) 광고 랜딩페이지 가입률 약 20%(기억). 가입자에게 연락 없이 1년 개발. 출시 후 체험 100+건, 판매 0건.",
+      "supports_claim": "랜딩 가입을 검증으로 보고 연락 없이 1년 개발, 판매 0건"
+    },
+    {
+      "move": 1,
+      "url": "https://www.failory.com/interview/teamometer",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "teamometer-failory-interview-2020-03",
+      "published_at": "2020-03-19",
+      "snippet": "(요약) 하루 2편(영·포) 글로 다수 키워드 상위 5위. 트래픽은 전환하지 못해 낭비됐다고 회고.",
+      "supports_claim": "상위 노출 트래픽을 구매로 못 이음"
+    },
+    {
+      "move": 2,
+      "url": "https://www.failory.com/interview/teamometer",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "teamometer-failory-interview-2020-03",
+      "published_at": "2020-03-19",
+      "snippet": "(요약) 프리미엄 방식이 브라질 2011년 B2B 시장에 '전혀 안 맞았다'. 체험 100+건, 판매 0건, 2년 매출 0.",
+      "supports_claim": "무료 체험이 구매 의향의 증거가 되지 못함"
+    }
+  ]
+}

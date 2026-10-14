@@ -182,5 +182,15 @@ const e503 = () => new ProviderHttpError(503, 'overloaded')
   ok(!r.ok && r.stop && s.seen.length === 1, '예산 초과 → 즉시 멈춤')
 }
 
+// v71p 3: 영역 밖·코드 없음 2차 제외 — 기본 on, off/false/0 이면 기존 동작, 필터는 그룹 3 만 뺀다(영역 안·design·hold 는 그대로).
+{
+  const src = (await import('node:fs')).readFileSync(new URL('./relevance-second-judge-auto.mjs', import.meta.url), 'utf8')
+  ok(src.includes("['off', 'false', '0'].includes(String(process.env.RELEVANCE_SECOND_SKIP_OUT_OF_AREA"), '제외는 기본 on, off·false·0 일 때만 꺼진다')
+  ok(src.includes('!== 3) : live') && src.includes('orderSecondTargets(queue,'), '필터는 그룹 3 만 빼고 대기열(queue)을 정렬에 넘긴다')
+  const area = { a: '2', b: 'design', c: 'hold', d: 'out-founder', e: null }
+  const kept = Object.keys(area).filter((k) => secondAreaGroup(area[k], true) !== 3)
+  ok(kept.join() === 'a,b,c', '영역 안·design·hold 는 남고 out-*·코드 없음은 빠진다')
+}
+
 console.log(`relevance-second-judge selftest: ${pass} pass · ${fail} fail`)
 process.exit(fail ? 1 : 0)

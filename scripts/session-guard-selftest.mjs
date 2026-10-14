@@ -215,7 +215,7 @@ t('쿨다운 폴백 4시간', QUOTA_COOLDOWN_MS === 4 * H)
   t('정규가 ok 면 quotaPending=false(경보 없음)', relevanceRetryDecision([{ ...blocked, status: 'ok', summary: {} }], o).quotaPending === false)
   t('기록 없음도 quotaPending=false', relevanceRetryDecision([], o).quotaPending === false)
   t('접미사: 정규 ""', relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 19 * * *' }) === '')
-  t('접미사: 재시도 -r1/-r2', relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 2 * * *' }) === '-r1' && relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 6 * * *' }) === '-r2')
+  t('접미사: 재시도 -r1 · 정규 2회차 -s2(v71o)', relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 2 * * *' }) === '-r1' && relevanceRunSuffix({ eventName: 'schedule', slotCron: '3 6 * * *' }) === '-s2')
   {
     const N = new Date('2026-10-13T00:00:00Z'), H = 3_600_000, ago = (ms) => new Date(N.getTime() - ms).toISOString()
     const row = (key, status, over = {}) => ({ run_key: key, status, started_at: ago(5 * H), finished_at: ago(4.5 * H), summary: {}, ...over })

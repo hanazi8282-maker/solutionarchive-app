@@ -318,8 +318,8 @@ export function sessionLine(b: ReturnType<typeof sessionBlock>): string {
 
 // ── T2 재시도 슬롯 ──────────────────────────────────────────────
 
-/** nightly-relevance.yml 크론 → 슬롯. main 은 정규 1회, r1·r2 는 한도 정지 뒤 재시도 전용(일이 없으면 기록 없이 끝난다). */
-export const RELEVANCE_SLOTS: Readonly<Record<string, string>> = { '3 19 * * *': 'main', '3 2 * * *': 'r1', '3 6 * * *': 'r2' }
+/** nightly-relevance.yml 크론 → 슬롯. main(19:03Z)·s2(06:03Z)는 정규 2회(v71o 2, 간격 11h·13h), r1(02:03Z)은 한도 정지 뒤 재시도 전용(일이 없으면 기록 없이 끝난다). */
+export const RELEVANCE_SLOTS: Readonly<Record<string, string>> = { '3 19 * * *': 'main', '3 2 * * *': 'r1', '3 6 * * *': 's2' }
 
 /**
  * T2 재시도 슬롯이 일할 차례인가(순수함수). rows = 최근 relevance-judge 행.
@@ -411,7 +411,7 @@ export function relevanceResumeDecision(
 
 /**
  * nightly-relevance 한 실행의 run_key 접미사 — 판정(relevance-judge)과 뒤 스텝(2차·자동 승인·ca-v1)이 한 벌로 쓴다.
- * 정규 '' · 재시도 '-r1'/'-r2' · 수동 '-m<run_id>' · 로컬 '-local'. 재시도·수동이 같은 날 정규 행을 덮지 않게 한다(createTracker 는 run_key upsert).
+ * 정규 '' · 정규 2회차 '-s2' · 재시도 '-r1' · 수동 '-m<run_id>' · 로컬 '-local'. 재시도·수동이 같은 날 정규 행을 덮지 않게 한다(createTracker 는 run_key upsert).
  * 표에 없는 크론은 throw — yml 과 코드가 갈라진 것을 조용히 정규로 접지 않는다.
  */
 export function relevanceRunSuffix(env: { eventName?: string; slotCron?: string; runId?: string; actions?: string }): string {

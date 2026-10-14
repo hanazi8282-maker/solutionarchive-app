@@ -18,6 +18,7 @@ import { dirname } from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
 import { impactFrequencyTags, pickGradingSample } from '../lib/analysis/relevance-judge.ts'
 import { AUDIT_DAILY } from '../lib/analysis/auto-approval.ts'
+import { loadScope } from '../lib/analysis/approval-scope.ts'
 import { RR39_NARROW_IRRELEVANT_INPUT_IDS } from '../lib/analysis/relevance-criteria.ts'
 
 const args = process.argv.slice(2)
@@ -27,7 +28,7 @@ const opt = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 && args[i +
 const n = Number(opt('n') ?? 10)
 // 자동 승인 감사 표본(CLAUDE.md §10.1 예외 조건 3) — 같은 표·같은 칸·같은 import 로 들어간다. 새 화면·새 테이블 없음.
 const audit = Number(opt('audit') ?? AUDIT_DAILY)
-if (!Number.isFinite(n) || n <= 0 || !Number.isFinite(audit) || audit < 0) { console.error('사용법: [--n 10] [--audit 5] [--seed 42] [--recheck <eval.json>] [--out <경로.md>] [--dry]'); process.exit(64) }
+if (!Number.isFinite(n) || n < 0 || !Number.isFinite(audit) || audit < 0) { console.error('사용법: [--n 10] [--audit 5] [--seed 42] [--recheck <eval.json>] [--out <경로.md>] [--dry]'); process.exit(64) }
 const seed = Number(opt('seed') ?? 42)
 
 const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date())
@@ -148,7 +149,13 @@ if (recheck) {
 const autoColumn = verdicts.some((v) => 'auto_approved_at' in v)
 // 신규 채점은 자동 승인되지 않은 행에서만 — 사람 시간은 기계가 못 정한 쪽에 쓴다. 감사는 자동 승인 행에서 따로.
 const mainPick = pickGradingSample(pool.filter((r) => !r.auto), { n, seed })
-const auditPick = audit > 0 ? pickGradingSample(pool.filter((r) => r.auto), { n: audit, seed: seed + 1 }) : []
+// L-20b(남헌 v71f): 감사 풀에서 영역 외(out-*)·소비재 태그 행을 뺀다(승인 표시는 그대로 — 표본에서만 제외). 못 읽으면 중단한다(§7.1).
+const autoPool = pool.filter((r) => r.auto)
+const scope = audit > 0 ? await loadScope(supabase, autoPool.map((r) => r.input_id)) : { ok: true, excluded: new Map() }
+if (!scope.ok) { console.error(`✗ 영역·소비재 태그 조회 실패 — 감사 표본을 뽑지 않는다: ${scope.error}`); process.exit(2) }
+const auditPool = autoPool.filter((r) => !scope.excluded.has(r.input_id))
+if (audit > 0) console.log(`자동 승인 행 ${autoPool.length}건 중 영역 외·소비재 태그 ${scope.excluded.size}건 제외 → 감사 풀 ${auditPool.length}건`)
+const auditPick = audit > 0 ? pickGradingSample(auditPool, { n: audit, seed: seed + 1 }) : []
 // 채점자가 어느 줄이 감사인지 모르게 섞는다(uuid 순 = 사실상 무작위, 재현 가능). 표에도 표시하지 않는다.
 const sample = [...mainPick, ...auditPick].sort((a, b) => a.input_id.localeCompare(b.input_id))
 console.log(`신규 채점 ${mainPick.length}장 · 자동 승인 감사 ${auditPick.length}장${autoColumn ? '' : ' (자동 승인 컬럼 없음 — 마이그 20260930000027 미적용)'}`)

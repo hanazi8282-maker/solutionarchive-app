@@ -225,6 +225,7 @@ jobs:
       - run: node scripts/source-purge-selftest.mjs
       - run: node scripts/provisional-plan-selftest.mjs
       - run: node scripts/shadow-rejudge-selftest.mjs
+      - run: node scripts/approval-scope-selftest.mjs
       - run: node scripts/review-inflearn-selftest.mjs
       - run: node scripts/review-yozm-selftest.mjs
       #   indiehackers: 편집 인터뷰만(남헌 2026-09-30). 가입 벽에서 본문을 끊는지, 인터뷰 표식 없는 글을 거르는지.

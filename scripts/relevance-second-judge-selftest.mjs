@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 야간 2차 판정 부품 셀프테스트 — 대상 선정·독립성 제외·어휘 검증·기록 조건(WHERE)·503 순환 헬퍼. 네트워크·DB 없음.
 //   node scripts/relevance-second-judge-selftest.mjs
-import { orderSecondTargets, recordSecondOpinion, secondJudgeTargetReason, validateOpinions, isGeminiModel, secondOpinionUserPrompt } from '../lib/analysis/second-opinion.ts'
+import { orderSecondTargets, secondAreaGroup, recordSecondOpinion, secondJudgeTargetReason, validateOpinions, isGeminiModel, secondOpinionUserPrompt } from '../lib/analysis/second-opinion.ts'
 import { callGeminiRotating, ProviderHttpError } from '../lib/analysis/llm.ts'
 import { LlmBudgetExceededError } from '../lib/analysis/budget.ts'
 import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
@@ -52,6 +52,26 @@ ok(orderSecondTargets([], () => null, 200).picked.length === 0, '대상 0')
   ok(orderSecondTargets(big, (p) => bm[p], 20).picked.length === 20, 'approvable 미지정이면 기존 동작')
   const zero = orderSecondTargets(big, (p) => bm[p], 20, { approvable, otherShare: 0 })
   ok(zero.picked.every(approvable), 'otherShare 0 → 승인 가능 행만')
+}
+
+// v71k 3-1: 영역 그룹 순서 — 0 영역 안·정보있음 → 1 영역 안 나머지 → 2 design·hold → 3 영역 밖·코드 없음. 버리지 않고, 그룹 안은 기존 순서(안정).
+{
+  ok(secondAreaGroup('3', true) === 0 && secondAreaGroup('3', false) === 1 && secondAreaGroup('5', null) === 1, '그룹: 영역 안은 정보있음이면 0, 아니면 1')
+  ok(secondAreaGroup('design', true) === 2 && secondAreaGroup('hold', false) === 2, '그룹: design·hold 는 2')
+  ok(secondAreaGroup('out-founder', true) === 3 && secondAreaGroup('out-consumer', true) === 3 && secondAreaGroup(null, true) === 3 && secondAreaGroup('', true) === 3 && secondAreaGroup('x9', true) === 3, '그룹: 영역 밖·코드 없음·모르는 코드는 맨 뒤(3)')
+  const area = { pa: '2', pb: '4', pc: 'design', pd: 'out-founder', pe: null }
+  const mk = (pid, n, info) => Array.from({ length: n }, (_, i) => ({ input_id: pid + i, project_id: pid, product_informative: info }))
+  const rowsG = [...mk('pd', 3, true), ...mk('pe', 2, true), ...mk('pc', 2, true), ...mk('pb', 2, false), ...mk('pa', 2, true)]
+  const gOf = (r) => secondAreaGroup(area[r.project_id], r.product_informative)
+  const g = orderSecondTargets(rowsG, () => 'SaaS', 100, { groupOf: gOf })
+  ok(g.picked.map(gOf).every((x, i, a) => i === 0 || a[i - 1] <= x), '그룹 순서: 비내림차순')
+  ok(g.picked.length === 11 && g.remaining === 0, '버리지 않는다(영역 밖도 모두 들어간다)')
+  ok(g.picked.slice(0, 2).every((r) => r.project_id === 'pa'), '맨 앞은 영역 안·정보있음')
+  const cut = orderSecondTargets(rowsG, () => 'SaaS', 4, { groupOf: gOf })
+  ok(cut.picked.map(gOf).join('') === '0011' && cut.remaining === 7, '상한 4: 그룹 0 두 건 + 그룹 1 두 건, 나머지 7건은 remaining')
+  const again = orderSecondTargets(rowsG.slice().reverse(), () => 'SaaS', 100, { groupOf: gOf })
+  ok(again.picked.map(gOf).join('') === g.picked.map(gOf).join(''), '입력 순서와 무관하게 그룹 순서는 같다')
+  ok(orderSecondTargets(rowsG, () => 'SaaS', 100, { groupOf: gOf, approvable: () => true, otherShare: 0 }).picked.length === 11, 'groupOf 가 있으면 otherShare 경로를 타지 않는다')
 }
 
 // ── 어휘 검증(validateOpinions 재사용) ────────────────────────

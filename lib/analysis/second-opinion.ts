@@ -140,6 +140,17 @@ export function secondJudgeTargetReason(r: SecondJudgeCandidate, since: Date): '
 }
 
 /**
+ * 2차 대기줄 영역 그룹(남헌 v71k 3-1): 0 영역 안(①~⑤) ∧ 1차 정보있음 · 1 영역 안 나머지 · 2 design·hold · 3 영역 밖(out-*)·영역 코드 없음.
+ * 영역 코드는 analysis_projects.area_code('1'~'5'|'design'|'hold'|'out-…'|null). 모르는 코드는 맨 뒤(3)로 보낸다 — 영역 안으로 접지 않는다(§7.1).
+ */
+export function secondAreaGroup(areaCode: string | null | undefined, productInformative: boolean | null | undefined): 0 | 1 | 2 | 3 {
+  const a = (areaCode ?? '').trim()
+  if (/^[1-5]$/.test(a)) return productInformative === true ? 0 : 1
+  if (a === 'design' || a === 'hold') return 2
+  return 3
+}
+
+/**
  * 상한까지 고르기 — 프로젝트 단위로 묶어 야간 extract·1차 판정과 같은 순서(compareAutoPriority: SaaS 우선 → 많은 순 → projectId)로
  * 펼친 뒤 max 건에서 자른다. remaining 은 상한에 걸려 내일로 미룬 건수다(§7.2 — "대상 0"과 "상한 도달"을 가른다).
  */
@@ -147,7 +158,7 @@ export function orderSecondTargets<T extends { project_id: string }>(
   rows: readonly T[],
   businessModelOf: (projectId: string) => string | null | undefined,
   max: number,
-  opts: { approvable?: (r: T) => boolean; otherShare?: number } = {},
+  opts: { approvable?: (r: T) => boolean; otherShare?: number; groupOf?: (r: T) => number } = {},
 ): { picked: T[]; remaining: number } {
   const order = (xs: readonly T[]): T[] => {
     const byProject = new Map<string, T[]>()
@@ -160,6 +171,17 @@ export function orderSecondTargets<T extends { project_id: string }>(
       .flatMap(([, rs]) => rs)
   }
   const n = Math.max(0, Math.floor(max))
+  // v71k 3-1(남헌): 영역 그룹 순서가 주어지면 그룹 번호 오름차순으로 채운다. 그룹 안은 기존 순서(order — SaaS 우선·많은 순·projectId). 버리지 않는다(맨 뒤 그룹도 남는 자리에서 처리).
+  // 이 경로는 otherShare 를 쓰지 않는다 — 그룹이 승인 가능 여부를 이미 앞세운다(secondAreaGroup).
+  if (opts.groupOf) {
+    const buckets = new Map<number, T[]>()
+    for (const r of rows) {
+      const g = opts.groupOf(r)
+      buckets.set(g, [...(buckets.get(g) ?? []), r])
+    }
+    const ordered = [...buckets.keys()].sort((a, b) => a - b).flatMap((g) => order(buckets.get(g) as T[]))
+    return { picked: ordered.slice(0, n), remaining: Math.max(0, ordered.length - n) }
+  }
   if (!opts.approvable) {
     const ordered = order(rows)
     return { picked: ordered.slice(0, n), remaining: Math.max(0, ordered.length - n) }

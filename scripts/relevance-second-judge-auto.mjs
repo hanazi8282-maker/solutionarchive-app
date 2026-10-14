@@ -21,7 +21,7 @@ import { parseSince } from '../lib/analysis/auto-approval.ts'
 import { chunkReviews } from '../lib/analysis/relevance-judge.ts'
 import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import {
-  SECOND_OPINION_INSTRUCTIONS, SECOND_OPINION_INSTRUCTIONS_V22, orderSecondTargets, recordSecondOpinion, secondJudgeTargetReason,
+  SECOND_OPINION_INSTRUCTIONS, SECOND_OPINION_INSTRUCTIONS_V22, orderSecondTargets, recordSecondOpinion, secondAreaGroup, secondJudgeTargetReason,
   secondOpinionUserPrompt, toExportRow, validateOpinions,
 } from '../lib/analysis/second-opinion.ts'
 import { createTracker } from './agent-status.mjs'
@@ -73,7 +73,7 @@ if (reasons['no-model']) warn(`1차 model 이 비어 제외 ${reasons['no-model'
 const pids = [...new Set(eligible.map((r) => r.project_id))]
 const projects = new Map()
 for (let i = 0; i < pids.length; i += 100) {
-  const { data, error } = await sb.from('analysis_projects').select('id, product_elevator_pitch, business_model').in('id', pids.slice(i, i + 100))
+  const { data, error } = await sb.from('analysis_projects').select('id, product_elevator_pitch, business_model, area_code').in('id', pids.slice(i, i + 100))
   if (error) die(`프로젝트 조회 실패: ${error.message}`)
   for (const p of data) projects.set(p.id, p)
 }
@@ -95,8 +95,17 @@ const purged = ids.length - unread - live.length
 
 // v70 L-22: 승인될 수 있는 행(1차 relevant ∧ 정보있음)을 먼저. product_informative 컬럼이 없으면(42703 은 위에서 이미 처리) 전부 undefined → 모두 '나머지'라 기존과 같은 순서가 된다.
 const OTHER_SHARE = Math.min(1, Math.max(0, Number(process.env.RELEVANCE_SECOND_OTHER_SHARE ?? 0.15)))
-const { picked, remaining } = orderSecondTargets(live, (pid) => projects.get(pid)?.business_model, MAX, { approvable: (r) => r.verdict === 'relevant' && r.product_informative === true, otherShare: Number.isFinite(OTHER_SHARE) ? OTHER_SHARE : 0.15 })
+// v71k 3-1: 영역 그룹 순서(영역 안·정보있음 → 영역 안 나머지 → design·hold → 영역 밖·코드 없음). RELEVANCE_SECOND_ORDER=legacy 면 v70 L-22 순서(승인 가능 우선 + 나머지 15%)로 되돌린다.
+const legacyOrder = String(process.env.RELEVANCE_SECOND_ORDER ?? '').trim().toLowerCase() === 'legacy'
+const { picked, remaining } = orderSecondTargets(live, (pid) => projects.get(pid)?.business_model, MAX, legacyOrder
+  ? { approvable: (r) => r.verdict === 'relevant' && r.product_informative === true, otherShare: Number.isFinite(OTHER_SHARE) ? OTHER_SHARE : 0.15 }
+  : { groupOf: (r) => secondAreaGroup(projects.get(r.project_id)?.area_code, r.product_informative) })
 log(`후보 ${cand.length} → 대상 ${live.length}건(원문 폐기 ${purged}) → 이번 ${picked.length}건${remaining ? ` (상한 ${MAX} 도달, 남은 ${remaining}건은 내일)` : ''} · 순서 SaaS 우선`)
+{
+  // 효과 측정(v71k): 이번 실행이 고른 행의 영역 그룹 구성과 대기 전체의 그룹 구성.
+  const cnt = (xs) => xs.reduce((m, r) => { const g = secondAreaGroup(projects.get(r.project_id)?.area_code, r.product_informative); m[g] = (m[g] ?? 0) + 1; return m }, { 0: 0, 1: 0, 2: 0, 3: 0 })
+  log(`영역 그룹(0 영역 안·정보있음 / 1 영역 안 나머지 / 2 design·hold / 3 영역 밖·코드 없음) — 이번 ${JSON.stringify(cnt(picked))} · 대기 전체 ${JSON.stringify(cnt(live))}${legacyOrder ? ' (legacy 순서 사용 중)' : ''}`)
+}
 for (const pid of [...new Set(picked.map((r) => r.project_id))]) {
   const p = projects.get(pid)
   log(`  · ${pid} [${p.business_model ?? '미기재'}] ${picked.filter((r) => r.project_id === pid).length}건 — ${p.product_elevator_pitch ?? '(소개 없음)'}`)

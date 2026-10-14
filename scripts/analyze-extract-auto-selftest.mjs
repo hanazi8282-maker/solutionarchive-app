@@ -168,9 +168,8 @@ t('수집 워크플로에 KST 14:37 슬롯이 있다', /cron: '37 5 \* \* \*'/.t
 t('수집 워크플로가 KST 02:37 슬롯을 유지한다', /cron: '37 17 \* \* \*'/.test(collectYml))
 // 전량 판정: 스크립트 마감(RELEVANCE_DEADLINE_MIN 80분)이 job timeout(120분)보다 먼저 와야 체인이 잘리지 않는다.
 t('관련성 워크플로 timeout 150분 · 스크립트 마감 80분 + 2차 마감 40분까지(마감 합 < timeout, v71k)', /timeout-minutes: 150/.test(relevanceYml) && /RELEVANCE_SECOND_DEADLINE_MIN: ${{ vars.RELEVANCE_SECOND_DEADLINE_MIN || '20' }}/.test(relevanceYml) && /RELEVANCE_DEADLINE_MIN: \$\{\{ vars\.RELEVANCE_DEADLINE_MIN \|\| '80' \}\}/.test(relevanceYml))
-// relevance 는 1회 유지다 — LLM 무료 티어를 더 태우지 않기로 한 결정(Q2(a)). extract 는 아래 6번 끝.
-// v30 §5: 정규 1개(19:03Z) + 한도 정지 뒤에만 일하는 재시도 2개(r1·r2). 정규 판정 횟수는 그대로 하루 1회다.
-t('관련성 워크플로는 정규 cron 1개 + 재시도 전용 2개', (relevanceYml.match(/- cron:/g) ?? []).length === 3 && /cron: '3 19 \* \* \*'/.test(relevanceYml) && /재시도/.test(relevanceYml))
+// v71o 2: 정규 2회(19:03Z main · 06:03Z s2) + 한도 정지 뒤에만 일하는 재시도 1개(r1 02:03Z). 이전 Q2(a) '1회 유지'는 적체 해소를 위해 남헌이 바꿨다.
+t('관련성 워크플로는 cron 3줄(정규 19:03Z·06:03Z + 재시도 02:03Z, v71o)', (relevanceYml.match(/- cron:/g) ?? []).length === 3 && /cron: '3 19 \* \* \*'/.test(relevanceYml) && /재시도/.test(relevanceYml))
 const extractYml = readFileSync(new URL('../.github/workflows/nightly-extract.yml', import.meta.url), 'utf8')
 // extract 는 2026-09-28 남헌 D1·D3 으로 3슬롯(s1 기존 · s2 KST 12:33 · s3 KST 18:33). 크론 줄 = EXTRACT_SLOTS 키, 1:1.
 const extractCrons = [...extractYml.matchAll(/- cron: '([^']+)'/g)].map(m => m[1])

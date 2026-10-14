@@ -167,6 +167,15 @@ if (slot === 'r1' || slot === 'r2') {
     process.exit(0)
   }
 }
+// v71o 2: s2(정규 2회차)도 앞 체인이 "이어 가라"를 남겼는데 대기열 탓에 못 불렀으면 그 hop 을 잇는다(안 그러면 hop 상한·연속 0건 정지가 하루 한 번 리셋된다).
+if (slot === 's2' && recentRuns) {
+  const carry = chainCarryOf(recentRuns, guardNow)
+  if (carry) {
+    chainHop = carry.hop
+    chainZero = carry.zero
+    log(`체인 넘겨받음 — ${carry.from} 의 hop ${carry.hop}(연속 0건 ${carry.zero})을 이 슬롯(${slot})이 잇는다`)
+  }
+}
 setOutput('ran', 'true')
 setOutput('relaunch', 'false') // 체인 기본값 — 끝까지 가서 decideRelaunch 가 true 로 바꿀 때만 다음 실행을 부른다
 const guard = loadGuardConfig()
@@ -629,9 +638,12 @@ if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 —
 
 // v30 §5: 마지막 재시도까지 한도면 exit 1 — cron-watchdog 가 그 슬롯 실패를 Notion 일일 상태 로그로 올린다(기존 경로, 새 시크릿 없음).
 // r2 는 그날 마지막 재시도 자리라, 앞 재시도가 "아직 이르다"로 쉬었어도 여기서 한도면 경보한다.
-const retriesExhausted = stopReason === 'quota' && retry != null && ((retry.retriesDone ?? 0) + 1 >= MAX_RETRIES || slot === 'r2')
+// v71o 2: s2(정규 2회차)가 한도로 멈추면 다음 기회는 19:03Z 정규뿐이라 같은 경로로 경보한다.
+const retriesExhausted = stopReason === 'quota' && ((retry != null && ((retry.retriesDone ?? 0) + 1 >= MAX_RETRIES || slot === 'r2')) || slot === 's2')
 if (retriesExhausted) {
-  const m = `T2 가 한도 정지 뒤 오늘 마지막 재시도(${slot}, ${(retry.retriesDone ?? 0) + 1}/${MAX_RETRIES})도 한도로 멈췄다 — 묶음 ${batchesDone}/${batchesPlanned}개. 남은 판정은 내일 정규 실행. 사람이 볼 것`
+  const m = slot === 's2'
+    ? `T2 정규 2회차(s2)가 한도로 멈췄다 — 묶음 ${batchesDone}/${batchesPlanned}개. 남은 판정은 19:03Z 정규 실행. 사람이 볼 것`
+    : `T2 가 한도 정지 뒤 오늘 마지막 재시도(${slot}, ${(retry.retriesDone ?? 0) + 1}/${MAX_RETRIES})도 한도로 멈췄다 — 묶음 ${batchesDone}/${batchesPlanned}개. 남은 판정은 내일 정규 실행. 사람이 볼 것`
   if (process.env.GITHUB_ACTIONS) console.log(`::error::${m}`)
   console.error(`✗ ${m}`)
 }

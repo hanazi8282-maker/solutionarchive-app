@@ -178,10 +178,10 @@ export function foldZeroReport(verdicts, activeTargets = {}) {
     const v = unknowns[i]
     const n = activeTargets[v?.key]
     return v && n >= 1 && v.idleOk >= QUIET_OK_MIN_RUNS
-      ? `조용한 정상(요청 0, 확인 필요): ${v.key} · 24h ok 실행 ${v.idleOk}회가 타깃 방문·요청 0 · 활성 타깃 ${n}개 · 사유 코드 없음 — 어댑터·러너 확인`
+      ? `조용한 정상(요청 0, 확인 필요): ${v.key} · 24h ok 실행 ${v.idleOk}회가 타깃 방문·요청 0 · 활성 타깃 ${n}개 · 사유 코드 없음${v.failed ? ` · ok 아닌 실행 ${v.failed}회` : ''}${v.notes.length ? ` · ${v.notes.join(' · ')}` : ''} — 어댑터·러너 확인`
       : a
   })
-  if (only0.length) lines.unshift(`활성 타깃 0(24h 요청 0) ${only0.length}곳: ${only0.map((v) => v.key).join(', ')} → 소스별 처방은 [자율 공급] 비고 참조`)
+  if (only0.length) lines.unshift(`활성 타깃 0(24h 요청 0) ${only0.length}곳: ${only0.map((v) => v.key).join(', ')} → 소스별 처방은 [자율 공급] 비고 참조${only0.some((v) => v.failed || v.notes.length) ? ` · 예외: ${only0.filter((v) => v.failed || v.notes.length).map((v) => `${v.key}(${[v.failed ? `ok 아닌 실행 ${v.failed}회` : '', ...v.notes].filter(Boolean).join(', ')})`).join('; ')}` : ''}`)
   return { alerts: out, lines }
 }
 

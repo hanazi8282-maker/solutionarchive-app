@@ -46,6 +46,7 @@ async function main() {
   const run = args.includes('--run')
   const log = (m) => console.log(`[${new Date().toISOString()}] ${m}`)
   const { createClient } = await import('../lib/supabase/server.ts')
+  const { loadScope } = await import('../lib/analysis/approval-scope.ts')
   const { rng, shuffle } = await import('../lib/analysis/relevance-judge.ts')
   const sb = await createClient()
   if (!sb) { console.error('✗ DB 연결 실패'); process.exit(2) }
@@ -150,7 +151,13 @@ async function main() {
     }
   }
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date())
-  const file = path.join('reports', today, `shadow-rejudge-v71c-${POP}.json`)
+  // L-20b 전후 비교용: 각 행이 새 제외 규칙(영역 외·소비재 태그)에 걸리는지 붙인다. 못 읽으면 null(걸림 여부를 모른다).
+  const sc = await loadScope(sb, [...out.keys()])
+  for (const r of out.values()) r.l20b_excluded = sc.ok ? (sc.excluded.get(r.input_id) ?? null) : undefined
+  if (!sc.ok) log(`⚠️ L-20b 제외 판정 조회 실패 — ${sc.error}`)
+  // --tag=<이름> 이면 파일 이름에 붙여 v71c 원본 결과를 덮어쓰지 않는다.
+  const TAG = opt('tag', '')
+  const file = path.join('reports', today, `shadow-rejudge-v71c-${POP}${TAG ? `-${TAG}` : ''}.json`)
   fs.mkdirSync(path.dirname(file), { recursive: true })
   const payload = { seed: SEED, n_requested: N, population: pop.length, since: since.toISOString(), criteria: RELEVANCE_V22_VERSION, elapsed_s: Math.round((Date.now() - t0) / 1000), stats, strata, rows: [...out.values()] }
   fs.writeFileSync(file, JSON.stringify(payload, null, 1))

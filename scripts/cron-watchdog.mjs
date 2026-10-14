@@ -161,6 +161,30 @@ export function workflowLandedAt(file, { git = gitLines } = {}) {
   }
 }
 
+/** 조용한 정상 문구(경보 문구 문서 3안 — Notion "[수집 경보 문구 3안 + 중복 합치기 규칙 2026-10-15]"): 활성 타깃 ≥1 인데 ok 실행이 이 횟수 이상 요청 0. */
+export const QUIET_OK_MIN_RUNS = 2
+
+/**
+ * zeroRequestReport 결과를 문서의 문구·R2·R4 로 다듬는다. 경보/요약 분류(alerts 가 비면 exit 0)는 그대로 — 글만 바꾼다. 판정은 lib/review/zero-request.ts 가 한다.
+ *  - 사유가 활성 타깃 0 뿐인 소스는 소스별 줄 대신 한 줄로 합친다(R2·R4: 상세는 [자율 공급]이 소유).
+ *  - 사유 없는 0 중 활성 타깃 ≥1 이고 ok 실행이 QUIET_OK_MIN_RUNS 번 이상이면 "조용한 정상" 문구(문구 3). 아직 경보다 — 실행은 됐는데 요청이 없다(§7.2).
+ */
+export function foldZeroReport(verdicts, activeTargets = {}) {
+  const only0 = verdicts.filter((v) => v.reasons.length === 1 && v.reasons[0] === 'no_active_targets')
+  const rest = verdicts.filter((v) => !only0.includes(v))
+  const { alerts, lines } = zeroRequestReport(rest)
+  const unknowns = rest.filter((v) => v.reasons[0] === 'unknown')
+  const out = alerts.map((a, i) => {
+    const v = unknowns[i]
+    const n = activeTargets[v?.key]
+    return v && n >= 1 && v.idleOk >= QUIET_OK_MIN_RUNS
+      ? `조용한 정상(요청 0, 확인 필요): ${v.key} · 24h ok 실행 ${v.idleOk}회가 타깃 방문·요청 0 · 활성 타깃 ${n}개 · 사유 코드 없음 — 어댑터·러너 확인`
+      : a
+  })
+  if (only0.length) lines.unshift(`활성 타깃 0(24h 요청 0) ${only0.length}곳: ${only0.map((v) => v.key).join(', ')} → 소스별 처방은 [자율 공급] 비고 참조`)
+  return { alerts: out, lines }
+}
+
 /**
  * 최근 24h 요청 0 인 enabled 수집 소스 → 사유 코드(lib/review/zero-request.ts). 읽기 전용 GET 만.
  * 반환 { problems: 경보(사유 없는 0·확인 불가), lines: 요약(사유 있는 0) }. 못 읽은 것을 0 행으로 접지 않는다(§7.1).
@@ -191,7 +215,7 @@ export async function checkZeroRequests({ sbUrl, sbKey, fetchImpl = fetch, now =
     try { activeTargets[key] = (await get(`review_targets?select=id&source_key=eq.${k}&status=eq.active&limit=1`)).length } catch { /* 키 없음 = 확인 불가 */ }
     try { lastRun[key] = (await get(`review_collection_runs?select=started_at,status,blocked_responses,health_after&source_key=eq.${k}&dry_run=eq.false&order=started_at.desc&limit=1`))[0] ?? null } catch { /* 확인 불가 */ }
   }
-  const { alerts, lines } = zeroRequestReport(judgeZeroRequests({ now, sources, ramps, runs, activeTargets, lastRun }))
+  const { alerts, lines } = foldZeroReport(judgeZeroRequests({ now, sources, ramps, runs, activeTargets, lastRun }), activeTargets)
   return { problems: alerts, lines }
 }
 

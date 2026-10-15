@@ -21,7 +21,7 @@ import { createReviewStore } from '../lib/review/store.ts'
 import {
   REVIVE_PER_RUN, REVISIT_EXPECTED_NEW, REVISIT_MAX_DAYS, REVISIT_MIN_DAYS, computeSupply, inventoryGauge, planRevive, revisitDays,
 } from '../lib/review/target-supply.ts'
-import { main as reviveMain } from './target-revive.mjs'
+import { incrementalCap, main as reviveMain } from './target-revive.mjs'
 
 let pass = 0
 let fail = 0
@@ -313,6 +313,61 @@ function fakePg(tables, hooks = {}) {
   void r1
 }
 
+// ── C2. v71u 6(A) 증분형 상한 TARGET_CLOCK_INCREMENTAL_MAX — 실제 target-revive --auto 를 가짜 DB 위에서 ──
+{
+  t('v71u: incrementalCap 미설정·빈값·쓰레기·0·음수 → 5 · 2 → 2 · 12 → 12 · 999 → 천장 40',
+    [undefined, '', 'abc', '0', '-3', '2', '12', '999'].map(incrementalCap), [5, 5, 5, 5, 5, 2, 12, 40])
+  const real = Date.now()
+  const mkDb = () => ({
+    review_sources: ['appstore', 'clien', 'okky', 'ppomppu'].map((key) => ({ key, enabled: true, min_interval_ms: 0, daily_request_cap: 500, robots_status: key === 'appstore' ? 'disallowed' : 'allowed', tos_status: null, override: key === 'appstore' ? 'owner_2026-10-05' : null })),
+    review_source_ramp: ['appstore', 'clien', 'okky', 'ppomppu'].map((source_key) => ({ source_key, targets_per_run: 10, cap_base: 500, pct_step: 50, last_evaluated_date: null, schedule_plan: null })),
+    review_targets: [
+      // 증분형 바쁜 보드 소스당 8개(소스별 실행당 6 → 상한 없으면 12개까지 열린다)
+      ...['clien', 'okky'].flatMap((sk, j) => Array.from({ length: 8 }, (_, i) => ({ id: u(8000 + j * 100 + i), project_id: 'p', source_key: sk, product_ref: `board:b${i}`, label: null, status: 'exhausted', cursor: null, consecutive_empty: 3, total_collected: 120, created_at: iso(real - 60 * DAY), last_run_at: iso(real - 30 * DAY), last_review_at: iso(real - 31 * DAY) }))),
+      // 비증분형 간격 지난 앱스토어 2개
+      ...[0, 1].map((i) => ({ id: u(8500 + i), project_id: 'p', source_key: 'appstore', product_ref: `kr:${500 + i}`, label: null, status: 'exhausted', cursor: null, consecutive_empty: 0, total_collected: 30, created_at: iso(real - 40 * DAY), last_run_at: iso(real - 20 * DAY), last_review_at: iso(real - 25 * DAY) })),
+      // 30% 게이트 분모
+      ...Array.from({ length: 60 }, (_, i) => ({ id: u(8600 + i), project_id: 'p', source_key: 'ppomppu', product_ref: `board:p${i}`, label: null, status: 'active', cursor: null, consecutive_empty: 0, total_collected: 0, created_at: iso(real - DAY), last_run_at: null, last_review_at: null })),
+    ],
+    review_collection_runs: [],
+  })
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'clock-cap-'))
+  const runWith = async (env, extra = []) => {
+    const saved = { a: process.env.TARGET_CLOCK_INCREMENTAL, b: process.env.TARGET_CLOCK_INCREMENTAL_MAX }
+    for (const [k, v] of Object.entries({ TARGET_CLOCK_INCREMENTAL: env.on, TARGET_CLOCK_INCREMENTAL_MAX: env.max })) if (v === undefined) delete process.env[k]; else process.env[k] = v
+    const db = mkDb()
+    const before = JSON.stringify(db.review_targets)
+    const o = console.log
+    const lines = []
+    console.log = (m) => lines.push(String(m))
+    const rb = path.join(tmp, `${Math.random().toString(36).slice(2)}.sql`)
+    try {
+      const r = await reviveMain(['--auto', `--rollback-out=${rb}`, ...extra], { db: fakePg(db), now: new Date(real) })
+      const active = (sk) => db.review_targets.filter((x) => x.status === 'active' && x.source_key === sk).length
+      return { r, lines, inc: active('clien') + active('okky'), app: active('appstore'), unchanged: JSON.stringify(db.review_targets) === before, rbExists: fs.existsSync(rb) }
+    } finally {
+      console.log = o
+      for (const [k, v] of Object.entries({ TARGET_CLOCK_INCREMENTAL: saved.a, TARGET_CLOCK_INCREMENTAL_MAX: saved.b })) if (v === undefined) delete process.env[k]; else process.env[k] = v
+    }
+  }
+  const def = await runWith({ on: 'on' })
+  t('v71u: on + MAX 미설정 → 증분형 되살림 ≤5(정확히 5) · 앱스토어 2 그대로 · 롤백 파일 있음', [def.inc, def.app, def.rbExists], [5, 2, true])
+  t('v71u: on 로그 한 줄 "증분형 상한 5, 대상 후보 16, 실제 되살림 5"', def.lines.includes('증분형 상한 5, 대상 후보 16, 실제 되살림 5'), true)
+  const two = await runWith({ on: 'on', max: '2' })
+  t('v71u: MAX=2 → 증분형 2 · 앱스토어 2', [two.inc, two.app], [2, 2])
+  const junk = await runWith({ on: 'on', max: 'lots' })
+  t('v71u: MAX=쓰레기 → 5', junk.inc, 5)
+  const big = await runWith({ on: 'on', max: '99' })
+  t('v71u: MAX=99 → 천장 40 이지만 소스별 실행당 6 이 먼저 → 12', [big.inc, big.lines.some((l) => l.startsWith('증분형 상한 40,'))], [12, true])
+  const obs = await runWith({ max: '2' })
+  t('v71u: 관찰 모드(on 아님) → 증분형 0 · 앱스토어 2 그대로 · 상한 로그 없음', [obs.inc, obs.app, obs.lines.some((l) => l.startsWith('증분형 상한'))], [0, 2, false])
+  const dry = await runWith({ on: 'on' }, ['--dry'])
+  t('v71u: on + --dry → 쓰기 0 · 롤백 파일 없음 · 로그는 계획 수 5', [dry.unchanged, dry.rbExists, dry.lines.includes('증분형 상한 5, 대상 후보 16, 실제 되살림 5')], [true, false, true])
+  const obsDry = await runWith({}, ['--dry'])
+  t('v71u: 관찰 모드 + --dry → DB 행 그대로(쓰기 0)', obsDry.unchanged, true)
+  fs.rmSync(tmp, { recursive: true, force: true })
+}
+
 // ── D. 배선(정적) ────────────────────────────────────────────────
 {
   const wf = fs.readFileSync(path.join(root, '.github', 'workflows', 'nightly-review-collect.yml'), 'utf8').replace(/\r\n/g, '\n')
@@ -320,6 +375,7 @@ function fakePg(tables, hooks = {}) {
   const collectStep = wf.indexOf('- name: Collect reviews')
   t('워크플로: --auto pre-step 이 수집 단계 앞', revive > 0 && revive < collectStep, true)
   const step = wf.slice(wf.lastIndexOf('- name:', revive), revive)
+  t('v71u: pre-step 이 리포 변수 TARGET_CLOCK_INCREMENTAL_MAX 를 넘긴다', /TARGET_CLOCK_INCREMENTAL_MAX: \$\{\{ vars\.TARGET_CLOCK_INCREMENTAL_MAX \}\}/.test(step), true)
   t('pre-step: continue-on-error(실패해도 수집은 돈다) · dry_run 수동 실행은 --dry', [/continue-on-error: true/.test(step), /inputs\.dry_run\) && '--dry'/.test(wf.slice(revive, revive + 200))], [true, true])
   const secrets = [...new Set([...wf.matchAll(/secrets\.([A-Z_]+)/g)].map((m) => m[1]))].sort()
   t('새 시크릿 없음(기존 목록 그대로)', secrets, [

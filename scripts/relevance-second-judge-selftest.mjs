@@ -190,6 +190,26 @@ const e503 = () => new ProviderHttpError(503, 'overloaded')
   const area = { a: '2', b: 'design', c: 'hold', d: 'out-founder', e: null }
   const kept = Object.keys(area).filter((k) => secondAreaGroup(area[k], true) !== 3)
   ok(kept.join() === 'a,b,c', '영역 안·design·hold 는 남고 out-*·코드 없음은 빠진다')
+
+  // 행동 대조(v71q 2): 스크립트의 실제 두 줄(skipOutOfArea·queue)을 그대로 떼어 돌린다 — 복사본이 아니라 원문이라 코드가 바뀌면 같이 깨진다.
+  const lines = src.split('\n').filter((l) => /^const (skipOutOfArea|queue) = /.test(l))
+  ok(lines.length === 2, '필터 두 줄을 원문에서 찾았다')
+  const runFilter = new Function('process', 'live', 'projects', 'secondAreaGroup', `${lines.join('\n')}\nreturn queue`)
+  const projs = new Map([['in0', { area_code: '1', business_model: 'SAAS' }], ['in1', { area_code: '3', business_model: null }], ['dz', { area_code: 'design', business_model: null }],
+    ['hd', { area_code: 'hold', business_model: 'SAAS' }], ['of', { area_code: 'out-founder', business_model: 'SAAS' }], ['oc', { area_code: 'out-consumer', business_model: null }], ['nu', { area_code: null, business_model: null }]])
+  const live = []
+  for (const [pid, n] of [['in0', 5], ['in1', 4], ['dz', 3], ['hd', 2], ['of', 6], ['oc', 3], ['nu', 2]]) for (let i = 0; i < n; i++) live.push({ input_id: `${pid}-${i}`, project_id: pid, product_informative: pid === 'in0' || i % 2 === 0 })
+  const q = (v) => runFilter({ env: v === undefined ? {} : { RELEVANCE_SECOND_SKIP_OUT_OF_AREA: v } }, live, projs, secondAreaGroup)
+  for (const v of ['off', 'false', '0', ' OFF ', 'False']) ok(q(v) === live, `off(${JSON.stringify(v)}) → 옛 대기열과 같은 배열·같은 행 수(${live.length})`)
+  for (const v of [undefined, '', 'on', 'true', '1']) ok(q(v).length === 14 && q(v).every((r) => !['of', 'oc', 'nu'].includes(r.project_id)), `on(${JSON.stringify(v)}) → 그룹 3(out-*·코드 없음 11건)만 빠지고 14건`)
+  // 영역 안 그룹 0~2 순서·처리량 불변 — 같은 상한에서 on 의 picked 는 off 의 picked 중 그룹 0~2 와 같은 순서·같은 행이다.
+  const bmOf = (pid) => projs.get(pid)?.business_model
+  const groupOf = (r) => secondAreaGroup(projs.get(r.project_id)?.area_code, r.product_informative)
+  for (const max of [3, 10, 14, 200]) {
+    const off = orderSecondTargets(q('off'), bmOf, max, { groupOf }).picked.filter((r) => groupOf(r) !== 3).map((r) => r.input_id).join()
+    const on = orderSecondTargets(q(undefined), bmOf, max, { groupOf }).picked.map((r) => r.input_id).join()
+    ok(on === off, `상한 ${max}: 영역 안·design·hold 의 선택 순서·건수는 on/off 같다`)
+  }
 }
 
 console.log(`relevance-second-judge selftest: ${pass} pass · ${fail} fail`)

@@ -18,6 +18,7 @@ import { createClient } from '../lib/supabase/server.ts'
 import { callGeminiRotating, parseJsonObject } from '../lib/analysis/llm.ts'
 import { dailySpent, DAILY_BUDGET_USD } from '../lib/analysis/budget.ts'
 import { parseSince } from '../lib/analysis/auto-approval.ts'
+import { outOfScopeReason } from '../lib/analysis/approval-scope.ts'
 import { chunkReviews } from '../lib/analysis/relevance-judge.ts'
 import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import {
@@ -97,10 +98,18 @@ const purged = ids.length - unread - live.length
 const OTHER_SHARE = Math.min(1, Math.max(0, Number(process.env.RELEVANCE_SECOND_OTHER_SHARE ?? 0.15)))
 // v71k 3-1: 영역 그룹 순서(영역 안·정보있음 → 영역 안 나머지 → design·hold → 영역 밖·코드 없음). RELEVANCE_SECOND_ORDER=legacy 면 v70 L-22 순서(승인 가능 우선 + 나머지 15%)로 되돌린다.
 const legacyOrder = String(process.env.RELEVANCE_SECOND_ORDER ?? '').trim().toLowerCase() === 'legacy'
-const { picked, remaining } = orderSecondTargets(live, (pid) => projects.get(pid)?.business_model, MAX, legacyOrder
+// v71p 3 → 남헌 A안(PR #539): 영역 밖(out-* 접두어) 행만 2차 대기열에서 뺀다 — 자동 승인·감사 표본이 이 행을 제외하므로(L-20b) 소비처가 없다.
+// 판정식 = lib/analysis/approval-scope.ts outOfScopeReason(#529)의 'out-area' 와 같다(OUT_AREA_PREFIX 'out-' 재사용). 차이는 입력을 trim·소문자로 맞추는 것뿐이라
+// 정본 소문자 코드에선 결과가 같고, ' OUT-x' 같은 표기 흔들림까지 잡는 쪽으로만 넓다. NULL·빈 값·모르는 코드는 빼지 않는다 — rr-v2 자동 승인은 그 행을
+// 제외하지 않고 2차 판정을 쓰기 때문이다(정렬에선 여전히 그룹 3 = 맨 뒤). 삭제·skipped 마킹이 아니라 필터라 RELEVANCE_SECOND_SKIP_OUT_OF_AREA=off(또는 false·0)면
+// 즉시 원복된다. RELEVANCE_SECOND_ORDER=legacy 는 순서만 되돌리고 이 제외는 그대로 둔다. 1차 판정은 건드리지 않는다.
+const skipOutOfArea = !['off', 'false', '0'].includes(String(process.env.RELEVANCE_SECOND_SKIP_OUT_OF_AREA ?? '').trim().toLowerCase())
+const queue = skipOutOfArea ? live.filter((r) => outOfScopeReason(String(projects.get(r.project_id)?.area_code ?? '').trim().toLowerCase(), false) !== 'out-area') : live
+if (skipOutOfArea) log(`영역 밖(out-*) ${live.length - queue.length}건은 2차 대기에서 제외(RELEVANCE_SECOND_SKIP_OUT_OF_AREA=off 로 원복) — 대기 ${queue.length}건`)
+const { picked, remaining } = orderSecondTargets(queue, (pid) => projects.get(pid)?.business_model, MAX, legacyOrder
   ? { approvable: (r) => r.verdict === 'relevant' && r.product_informative === true, otherShare: Number.isFinite(OTHER_SHARE) ? OTHER_SHARE : 0.15 }
   : { groupOf: (r) => secondAreaGroup(projects.get(r.project_id)?.area_code, r.product_informative) })
-log(`후보 ${cand.length} → 대상 ${live.length}건(원문 폐기 ${purged}) → 이번 ${picked.length}건${remaining ? ` (상한 ${MAX} 도달, 남은 ${remaining}건은 내일)` : ''} · 순서 SaaS 우선`)
+log(`후보 ${cand.length} → 대상 ${queue.length}건(원문 폐기 ${purged}) → 이번 ${picked.length}건${remaining ? ` (상한 ${MAX} 도달, 남은 ${remaining}건은 내일)` : ''} · 순서 SaaS 우선`)
 {
   // 효과 측정(v71k): 이번 실행이 고른 행의 영역 그룹 구성과 대기 전체의 그룹 구성.
   const cnt = (xs) => xs.reduce((m, r) => { const g = secondAreaGroup(projects.get(r.project_id)?.area_code, r.product_informative); m[g] = (m[g] ?? 0) + 1; return m }, { 0: 0, 1: 0, 2: 0, 3: 0 })
@@ -121,7 +130,7 @@ const tracker = await createTracker({
   gitSha: process.env.GITHUB_SHA ?? null,
   runUrl: process.env.GITHUB_RUN_ID ? `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` : null,
 })
-await tracker.step({ stepKey: 'select', label: '2차 대상 선정', status: 'ok', seq: 1, counts: { candidates: cand.length, targets: live.length, picked: picked.length, remaining, gemini_first: reasons['gemini-first'] ?? 0, purged } })
+await tracker.step({ stepKey: 'select', label: '2차 대상 선정', status: 'ok', seq: 1, counts: { candidates: cand.length, targets: queue.length, skipped_out_of_area: live.length - queue.length, picked: picked.length, remaining, gemini_first: reasons['gemini-first'] ?? 0, purged } })
 
 const c = { recorded: 0, skipped: 0, saveFailed: 0, callFailed: 0, parseFailed: 0, invalid: 0, relevant: 0, informative: 0 }
 let infoAbsent = false

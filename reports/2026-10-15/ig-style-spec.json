@@ -55,7 +55,7 @@
       "question_pct": { "mean": 4.2, "range": [0, 7] },
       "imperative_pct": { "range": [0, 4] },
       "emoji": false,
-      "first_person_opinion": "선택(3편 중 2편 소수 사용, 5·6·7편)",
+      "first_person_opinion": "선택(6·7편에서 관찰, 나머지 편은 관찰 안 됨)",
       "number_style": "아라비아 숫자+단위 붙임, 비율은 %, 장 번호 두 자리 제로패딩",
       "quote_marks": "작은따옴표로 핵심어 묶기가 기본, 큰따옴표는 인용·대사에 한정"
     },

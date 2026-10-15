@@ -157,7 +157,7 @@ jobs:
           # v71k: 마감(분)과 순서. 되돌리기 = 변수 삭제(20분) / RELEVANCE_SECOND_ORDER=legacy(v70 순서).
           RELEVANCE_SECOND_DEADLINE_MIN: ${{ vars.RELEVANCE_SECOND_DEADLINE_MIN || '20' }}
           RELEVANCE_SECOND_ORDER: ${{ vars.RELEVANCE_SECOND_ORDER || '' }}
-          # v71p 3: 영역 밖·코드 없음 2차 제외(기본 on). 되돌리기 = RELEVANCE_SECOND_SKIP_OUT_OF_AREA=off
+          # v71p 3(A안): 영역 밖(out-* 접두어)만 2차 제외(기본 on), NULL·모르는 코드는 계속 2차. 되돌리기 = RELEVANCE_SECOND_SKIP_OUT_OF_AREA=off
           RELEVANCE_SECOND_SKIP_OUT_OF_AREA: ${{ vars.RELEVANCE_SECOND_SKIP_OUT_OF_AREA || '' }}
           # 2차 판정도 1차와 같은 기준(남헌 v67): 기본 v2.2, 리포 변수 RELEVANCE_CRITERIA=v21|old 로 되돌린다.
           RELEVANCE_CRITERIA: ${{ vars.RELEVANCE_CRITERIA || 'v22' }}

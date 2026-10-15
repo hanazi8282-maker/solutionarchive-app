@@ -182,34 +182,43 @@ const e503 = () => new ProviderHttpError(503, 'overloaded')
   ok(!r.ok && r.stop && s.seen.length === 1, '예산 초과 → 즉시 멈춤')
 }
 
-// v71p 3: 영역 밖·코드 없음 2차 제외 — 기본 on, off/false/0 이면 기존 동작, 필터는 그룹 3 만 뺀다(영역 안·design·hold 는 그대로).
+// v71p 3 → A안(PR #539): out-* 접두어 행만 2차 제외 — 기본 on, off/false/0 이면 기존 동작. NULL·빈 값·모르는 코드는 남는다(rr-v2 자동 승인이 그 행의 2차를 쓴다).
 {
-  const src = (await import('node:fs')).readFileSync(new URL('./relevance-second-judge-auto.mjs', import.meta.url), 'utf8')
+  const src = (await import('node:fs')).readFileSync(new URL('./relevance-second-judge-auto.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+  const { outOfScopeReason } = await import('../lib/analysis/approval-scope.ts')
   ok(src.includes("['off', 'false', '0'].includes(String(process.env.RELEVANCE_SECOND_SKIP_OUT_OF_AREA"), '제외는 기본 on, off·false·0 일 때만 꺼진다')
-  ok(src.includes('!== 3) : live') && src.includes('orderSecondTargets(queue,'), '필터는 그룹 3 만 빼고 대기열(queue)을 정렬에 넘긴다')
-  const area = { a: '2', b: 'design', c: 'hold', d: 'out-founder', e: null }
-  const kept = Object.keys(area).filter((k) => secondAreaGroup(area[k], true) !== 3)
-  ok(kept.join() === 'a,b,c', '영역 안·design·hold 는 남고 out-*·코드 없음은 빠진다')
+  ok(src.includes("!== 'out-area') : live") && src.includes('orderSecondTargets(queue,'), '필터는 outOfScopeReason(#529)의 out-area 판정을 쓰고 대기열(queue)을 정렬에 넘긴다')
 
   // 행동 대조(v71q 2): 스크립트의 실제 두 줄(skipOutOfArea·queue)을 그대로 떼어 돌린다 — 복사본이 아니라 원문이라 코드가 바뀌면 같이 깨진다.
+  // 두 줄에 legacyOrder 가 없으므로 RELEVANCE_SECOND_ORDER=legacy 여도 제외는 그대로다.
   const lines = src.split('\n').filter((l) => /^const (skipOutOfArea|queue) = /.test(l))
-  ok(lines.length === 2, '필터 두 줄을 원문에서 찾았다')
-  const runFilter = new Function('process', 'live', 'projects', 'secondAreaGroup', `${lines.join('\n')}\nreturn queue`)
+  ok(lines.length === 2 && !lines.join().includes('legacy'), '필터 두 줄을 원문에서 찾았고 legacy 순서와 무관하다')
+  const runFilter = new Function('process', 'live', 'projects', 'outOfScopeReason', `${lines.join('\n')}\nreturn queue`)
   const projs = new Map([['in0', { area_code: '1', business_model: 'SAAS' }], ['in1', { area_code: '3', business_model: null }], ['dz', { area_code: 'design', business_model: null }],
-    ['hd', { area_code: 'hold', business_model: 'SAAS' }], ['of', { area_code: 'out-founder', business_model: 'SAAS' }], ['oc', { area_code: 'out-consumer', business_model: null }], ['nu', { area_code: null, business_model: null }]])
+    ['hd', { area_code: 'hold', business_model: 'SAAS' }], ['of', { area_code: 'out-founder', business_model: 'SAAS' }], ['oc', { area_code: ' OUT-consumer ', business_model: null }],
+    ['nu', { area_code: null, business_model: null }], ['em', { area_code: '  ', business_model: 'SAAS' }], ['uk', { area_code: 'zzz', business_model: null }], ['ou', { area_code: 'outdoor', business_model: null }]])
   const live = []
-  for (const [pid, n] of [['in0', 5], ['in1', 4], ['dz', 3], ['hd', 2], ['of', 6], ['oc', 3], ['nu', 2]]) for (let i = 0; i < n; i++) live.push({ input_id: `${pid}-${i}`, project_id: pid, product_informative: pid === 'in0' || i % 2 === 0 })
-  const q = (v) => runFilter({ env: v === undefined ? {} : { RELEVANCE_SECOND_SKIP_OUT_OF_AREA: v } }, live, projs, secondAreaGroup)
+  for (const [pid, n] of [['in0', 5], ['in1', 4], ['dz', 3], ['hd', 2], ['of', 6], ['oc', 3], ['nu', 2], ['em', 2], ['uk', 1], ['ou', 1]]) for (let i = 0; i < n; i++) live.push({ input_id: `${pid}-${i}`, project_id: pid, product_informative: pid === 'in0' || i % 2 === 0 })
+  const q = (v) => runFilter({ env: v === undefined ? {} : { RELEVANCE_SECOND_SKIP_OUT_OF_AREA: v } }, live, projs, outOfScopeReason)
   for (const v of ['off', 'false', '0', ' OFF ', 'False']) ok(q(v) === live, `off(${JSON.stringify(v)}) → 옛 대기열과 같은 배열·같은 행 수(${live.length})`)
-  for (const v of [undefined, '', 'on', 'true', '1']) ok(q(v).length === 14 && q(v).every((r) => !['of', 'oc', 'nu'].includes(r.project_id)), `on(${JSON.stringify(v)}) → 그룹 3(out-*·코드 없음 11건)만 빠지고 14건`)
-  // 영역 안 그룹 0~2 순서·처리량 불변 — 같은 상한에서 on 의 picked 는 off 의 picked 중 그룹 0~2 와 같은 순서·같은 행이다.
-  const bmOf = (pid) => projs.get(pid)?.business_model
+  const OUT = ['of', 'oc']
+  for (const v of [undefined, '', 'on', 'true', '1']) ok(q(v).length === live.length - 9 && q(v).every((r) => !OUT.includes(r.project_id)), `on(${JSON.stringify(v)}) → out-* 9건만 빠지고 ${live.length - 9}건`)
+  const kept = new Set(q(undefined).map((r) => r.project_id))
+  ok(['nu', 'em', 'uk', 'ou'].every((p) => kept.has(p)), 'NULL·빈 값·모르는 코드(outdoor 포함)는 남는다')
+  // #529 와 같은 기준: 정본 표기('oc' 의 공백·대문자 외)에선 outOfScopeReason(원값) 과 행 단위로 같은 판정.
+  ok(live.filter((r) => r.project_id !== 'oc').every((r) => kept.has(r.project_id) === (outOfScopeReason(projs.get(r.project_id).area_code, false) !== 'out-area')), 'outOfScopeReason(#529) 판정과 1:1(표기 흔들림만 더 넓게 잡음)')
+  // 남은 NULL·모르는 코드는 정렬에서 여전히 그룹 3(맨 뒤).
   const groupOf = (r) => secondAreaGroup(projs.get(r.project_id)?.area_code, r.product_informative)
+  ok(q(undefined).filter((r) => ['nu', 'em', 'uk', 'ou'].includes(r.project_id)).every((r) => groupOf(r) === 3), '남은 NULL·빈 값·모르는 코드는 그룹 3 으로 정렬된다')
+  // 영역 안 그룹 0~2 순서·처리량 불변 — 같은 상한에서 on/off 의 picked 중 그룹 0~2 가 같은 순서·같은 행이고, on 은 out-* 를 하나도 고르지 않는다.
+  const bmOf = (pid) => projs.get(pid)?.business_model
   for (const max of [3, 10, 14, 200]) {
-    const off = orderSecondTargets(q('off'), bmOf, max, { groupOf }).picked.filter((r) => groupOf(r) !== 3).map((r) => r.input_id).join()
-    const on = orderSecondTargets(q(undefined), bmOf, max, { groupOf }).picked.map((r) => r.input_id).join()
-    ok(on === off, `상한 ${max}: 영역 안·design·hold 의 선택 순서·건수는 on/off 같다`)
+    const pick = (v) => orderSecondTargets(q(v), bmOf, max, { groupOf }).picked
+    const g02 = (xs) => xs.filter((r) => groupOf(r) !== 3).map((r) => r.input_id).join()
+    ok(g02(pick(undefined)) === g02(pick('off')), `상한 ${max}: 영역 안·design·hold(그룹 0~2)의 선택 순서·건수는 on/off 같다`)
+    ok(pick(undefined).every((r) => !OUT.includes(r.project_id)), `상한 ${max}: on 은 out-* 를 고르지 않는다`)
   }
+  ok(orderSecondTargets(q(undefined), bmOf, 200, { groupOf }).picked.filter((r) => groupOf(r) !== 3).length === 14, '영역 안 처리량(그룹 0~2) 14건 그대로')
 }
 
 console.log(`relevance-second-judge selftest: ${pass} pass · ${fail} fail`)

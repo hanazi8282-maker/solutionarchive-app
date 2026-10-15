@@ -150,14 +150,28 @@ export function summarizeAppStore(
 }
 
 /**
+ * 결론서를 만드는 영역 순서(v71v 1) — 같은 등급 안에서만 이 순서로 앞에 둔다(① > ④ > ⑤ > 그 밖·미부여).
+ * 값은 analysis_projects.area_code. 등급·요청 수·예산은 바꾸지 않는다.
+ */
+export const GP_AREA_ORDER: readonly string[] = ['1', '4', '5']
+
+/** 한 줄 되돌리기: GP_AREA_PRIORITY 가 off/false/0 이면 영역 우선을 끈다(기본 on). */
+export function gpAreaPriorityOn(v: string | undefined = process.env.GP_AREA_PRIORITY): boolean {
+  return !/^(off|false|0)$/i.test((v ?? '').trim())
+}
+
+/**
  * 입력은 기존 순서(last_run_at ASC NULLS FIRST, created_at ASC)로 정렬돼 있다고 본다. 안정 정렬이라 같은 등급 안은 그 순서 그대로.
  *   0 미방문 ∧ 앱스토어 exhausted · 1 그 밖의 미방문 · 2 (repeat 일 때만) 방문 ∧ exhausted ∧ 앱스토어 < 100, 합계 수집 적은 순 · 3 나머지
  * appStore 가 null(조회 실패)이면 입력 순서 그대로 돌려준다.
+ * areas(프로젝트 → area_code)가 있으면 **같은 등급 안에서만** GP_AREA_ORDER 순으로 앞에 둔다. null 이면 영역 우선 없음(기존과 같은 배열).
  */
 export function orderGooglePlayTargets<T extends { projectId: string; lastRunAt: string | null; totalCollected: number }>(
   rows: T[],
   appStore: Map<string, AppStoreSummary> | null,
   repeat: boolean = GP_PRIORITY_REPEAT,
+  areas: Map<string, string | null> | null = null,
+  areaOrder: readonly string[] = GP_AREA_ORDER,
 ): T[] {
   if (!appStore) return rows
   const rank = (r: T) => {
@@ -165,8 +179,12 @@ export function orderGooglePlayTargets<T extends { projectId: string; lastRunAt:
     if (r.lastRunAt === null) return a?.exhausted ? 0 : 1
     return repeat && a?.exhausted && a.collected < GP_REPEAT_BELOW ? 2 : 3
   }
+  const area = (r: T) => {
+    const i = areas ? areaOrder.indexOf(areas.get(r.projectId) ?? '') : -1
+    return i === -1 ? areaOrder.length : i
+  }
   const owed = (r: T) => (rank(r) === 2 ? appStore.get(r.projectId)!.collected + r.totalCollected : 0)
-  return [...rows].sort((x, y) => rank(x) - rank(y) || owed(x) - owed(y))
+  return [...rows].sort((x, y) => rank(x) - rank(y) || area(x) - area(y) || owed(x) - owed(y))
 }
 
 /** 사람 확인(캡차) 화면 표지. 엄격 모드(소유자 예외 요청·`abortOnChallenge` 어댑터)에서만 본다 — 다른 소스 본문 오탐 방지. */

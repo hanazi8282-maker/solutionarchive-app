@@ -19,7 +19,23 @@ export function capLines(lines, more) {
  * @param sources [{ key, fatal?, skipped?, skipReason?, stats?, alert?, warnings? }]
  * @param topProject { id, n } | null — 누적 리뷰 최다 프로젝트
  */
-export function buildReviewCollectEntry({ date, sources = [], failures = [], topProject = null, runUrl = null, supply = undefined }) {
+/**
+ * "[꺼진 소스]" 칸(남헌 10-15, CLAUDE.md §10.1 차단 시 즉시 정지 조건 4) — 소스 / 꺼진 시각 / 사유 / 며칠째, 한 줄씩.
+ * rows = scripts/block-stop.mjs loadOffSources 결과(override='owner_2026-10-14' ∧ enabled=false). null = 못 읽음(확인 불가), [] = 없음.
+ */
+export function offSourcesBlock(rows, date) {
+  if (rows === null) return '[꺼진 소스] 확인 불가(review_sources 조회 실패)'
+  if (!rows.length) return '[꺼진 소스] 없음'
+  const day = (iso) => Date.parse(new Date(Date.parse(iso) + 9 * 3600_000).toISOString().slice(0, 10))
+  return ['[꺼진 소스]', ...rows.map((r) => {
+    const at = r.disabled_at ? new Date(Date.parse(r.disabled_at) + 9 * 3600_000).toISOString().slice(0, 16).replace('T', ' ') + ' KST' : '시각 미기록'
+    const n = r.disabled_at ? `${Math.round((Date.parse(date) - day(r.disabled_at)) / 86_400_000) + 1}일째` : '며칠째 확인 불가'
+    const why = String(r.disabled_reason ?? '사유 미기록')
+    return `- ${r.key} / ${at} / ${why.length > 160 ? `${why.slice(0, 159)}…` : why} / ${n}`
+  })].join('\n')
+}
+
+export function buildReviewCollectEntry({ date, sources = [], failures = [], topProject = null, runUrl = null, supply = undefined, offSources = undefined }) {
   const sum = (k) => sources.reduce((a, s) => a + Number(s.stats?.[k] ?? 0), 0)
   const more = runUrl ? `Actions 실행 요약 ${runUrl}` : 'Actions 실행 요약'
 
@@ -61,6 +77,6 @@ export function buildReviewCollectEntry({ date, sources = [], failures = [], top
     blocked: blockedLines.length ? blockedLines.join('\n') : '없음',
     next: (next.length ? next : ['사람 할 일 없음 — 다음 크론이 이어서 돈다']).join('\n'),
     needsHuman: false,
-    note: `${supplyNote}nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'} · 날짜는 KST(행을 쓰는 시점) · 원문 폐기(purge) 결과는 이 행에 없다`,
+    note: `${supplyNote}nightly-review-collect · ${runUrl ?? '로컬 실행(run URL 없음)'} · 날짜는 KST(행을 쓰는 시점) · 원문 폐기(purge) 결과는 이 행에 없다${offSources === undefined ? '' : `\n${offSourcesBlock(offSources, date)}`}`,
   }
 }

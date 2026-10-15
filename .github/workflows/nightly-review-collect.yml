@@ -184,6 +184,8 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # v69 A레인: 증분형 시계. 기본(미설정)=관찰 모드(쓰기 0, reports/ 에 관찰 기록만). 'on' 은 사람·역할 세션이 3일 대조 뒤 켠다.
           TARGET_CLOCK_INCREMENTAL: ${{ vars.TARGET_CLOCK_INCREMENTAL }}
+          # 남헌 v71u 6(A): on 일 때 한 실행에 되살리는 증분형 타깃 수 상한. 미설정·잘못된 값=5, 천장 40(REVIVE_TOTAL_PER_RUN).
+          TARGET_CLOCK_INCREMENTAL_MAX: ${{ vars.TARGET_CLOCK_INCREMENTAL_MAX }}
           # v69 D7: 게이지를 같은 잡의 수집 스텝(Notion 일일 상태 로그)으로 넘기는 파일.
           SUPPLY_BLOCK_FILE: ${{ runner.temp }}/supply-block.json
         run: node scripts/target-revive.mjs --auto ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

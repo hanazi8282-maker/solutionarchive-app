@@ -360,7 +360,8 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
 - **초안 staging** — `content_items`(`status='proposed'`) / `posts`
   (`status IN ('draft','pending_review')`, **`published_at` 은 항상 NULL**).
 - **조사 큐·실행 상태** — `research_queue` / `agent_runs` / `agent_run_steps`.
-- **발굴 적재** — `discovery_candidates` 전체 / `analysis_projects`(`status='collecting'` 신규 INSERT 한정, UPDATE·DELETE 금지) / `review_targets`(`review_sources.enabled=true` 인 소스 한정). 무인 루프는 `review_sources` 에 INSERT/UPDATE 하지 않는다. **새 소스는 대화형·역할 세션이 스스로 찾아 마이그레이션으로 등록한다**(남헌 2026-09-30 — 사람이 하나씩 고르던 병목 제거, 09-20 자율 승인과 같은 취지. 갈래는 남헌 v27 D5 C안):
+- **발굴 적재** — `discovery_candidates` 전체 / `analysis_projects`(`status='collecting'` 신규 INSERT 한정, UPDATE·DELETE 금지) / `review_targets`(`review_sources.enabled=true` 인 소스 한정). 무인 루프는 `review_sources` 에 INSERT/UPDATE 하지 않는다.
+  **새 소스는 대화형·역할 세션이 스스로 찾아 마이그레이션으로 등록한다**(남헌 2026-09-30 — 사람이 하나씩 고르던 병목 제거, 09-20 자율 승인과 같은 취지. 갈래는 남헌 v27 D5 C안):
   - **깨끗한 소스 → 세션이 바로 등록.** 소스 탐색 에이전트가 낸 후보 중 법적 점검(`docs/review-collection-design.md` §1.2 — robots 3상태 중 **허용** · 약관에 자동수집·복제·상업 이용 **금지 조항 없음** · 로그인/유료벽 없는 **무료·공개** · 개인정보 비중)을 **전부 깨끗하게 통과한 소스**는
     세션이 마이그레이션으로 바로 등록한다. **낮은 한도로 시작한다** — 아래 "퍼센트 램프"의 50% 단계에서 출발한다(첫 `cap_base` 도 이 세션이 넣는다 — 아래 "cap_base 첫 입력"). 등록 사실과 점검 근거(robots 판정·약관 인용)는 그 세션의 보고서(`reports/<날짜>/`)와 Notion 일일 상태 로그에 남긴다.
     탐색 에이전트는 3일에 1번 돈다(안정화 뒤 주 1회 — 전환은 남헌 결정).
@@ -373,7 +374,7 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   **채택은 LLM 의 주장이 아니라 실측 hits 가 정한다** — 그게 이 권한을 준 조건이다.)
   - **창문 자동 등재**(남헌 v53 2026-10-12, `nightly-window-discovery` → `scripts/window-discovery.mjs`) — `review_targets` INSERT 만, `enabled=true` ∧ 소유자 예외 소스, 소스당 하루 신규 ≤5, 기존 (source_key, product_ref) 중복 불가, 앵커(같은 앱 기존 타깃)가 있는 같은 앱 다른 국가·정렬 창문만, UPDATE·DELETE 0, 롤백 SQL 을 INSERT 전에 `reports/` 에 쓰고 push-pending 으로 커밋, googleplay 활성 80·appstore 30% 가드(어기면 등재 0 + 사유). 새 소스·새 제품은 이 경로로 못 만든다(후보 승인 경로).
 - **창문 강등**(남헌 v53 2026-10-12) — 위 경로가 등재한 행(`reports/window-adopted.json` 의 id)만, 등재 3일 뒤 신규 0(total_collected 증가 0)이면 `status`·`consecutive_empty` 두 칸만(active→exhausted, 사유 `demoted` 는 대장에), 롤백 SQL 을 UPDATE 전에 `reports/` 에 쓴다.
-- **요청 상한 자동 반영** — 위 "`review_sources` 에는 INSERT/UPDATE 하지 않는다" 의 **유일한 예외**(남헌 2026-09-24 지시): `review_sources.daily_request_cap` **한 컬럼**만, **현재값의 2배 이내**로만, `review_source_cap_log` 에 **감사 로그 행을 남긴 변경만**(로그 테이블 미적용이면 반영하지 않는다). 권장값이 2배를 넘으면 보류로 보고만 한다. 계산은 `lib/review/request-cap.ts`, 집행은 `scripts/review-request-cap.mjs`(nightly-review-collect pre-step). 상한을 **내리는 변경은 자동으로 하지 않는다.**
+- **요청 상한 자동 반영** — 위 "`review_sources` 에는 INSERT/UPDATE 하지 않는다" 의 **예외**(이 밖에 아래 "차단 시 즉시 정지" 한 방향 예외가 있다)(남헌 2026-09-24 지시): `review_sources.daily_request_cap` **한 컬럼**만, **현재값의 2배 이내**로만, `review_source_cap_log` 에 **감사 로그 행을 남긴 변경만**(로그 테이블 미적용이면 반영하지 않는다). 권장값이 2배를 넘으면 보류로 보고만 한다. 계산은 `lib/review/request-cap.ts`, 집행은 `scripts/review-request-cap.mjs`(nightly-review-collect pre-step). 상한을 **내리는 변경은 자동으로 하지 않는다.**
 - **수집 램프 단계 자동 기록**(남헌 2026-09-28 승인) — 무인 루프는 `review_source_ramp`(소스별 현재 단계·1회 타깃 수·동결 기한)와
   `review_source_ramp_log`(변경 이력)를 스스로 쓸 수 있다. 단계를 올리는 것과 **안전 되돌리기(직전 단계로 내리고 동결)** 둘 다
   허용한다 — 위 cap 의 "내리는 변경 금지"와 달리 이건 차단 신호에 대한 안전장치라서다. 조건: 모든 변경은 ramp_log 에 행을 남긴다
@@ -386,6 +387,13 @@ DB 에 넣었으면 그 순간 로그인한 전원이 열람할 수 있었다. �
   남헌이 승인한 뒤에 `review_source_ramp` 에 반영한다. 예외는 새 소스의 첫 값 하나다 — 위 "발굴 적재"의 **깨끗한 소스**(robots 허용·약관 금지 없음·무료)만 CC 가 승인 없이
   50% 램프 단계로 넣고 판정 근거를 로그에 남긴다. 약관이 막거나 불확실한 소스는 남헌 승인 뒤에만 넣는다.
 - **재방문 시계 되살리기**(남헌 v48, 2026-10-11) — 무인 루프(`nightly-review-collect` 수집 직전 pre-step `scripts/target-revive.mjs --auto`)는 `review_targets` 의 `status`·`consecutive_empty` 두 칸만, `exhausted`→`active` 방향으로만 쓴다(재방문 간격 3~14일·소스별 실행당 상한은 `lib/review/target-supply.ts` revisitDays·planRevive). 롤백 SQL 파일을 UPDATE 전에 쓰고 `reports/` 에 남긴다. 제외: 공급 제외 소스(`SUPPLY_EXCLUDED` — danawa 등 남헌이 속도를 정한 소스·todayhumor·producthunt)·robots 금지 확정 소스(소유자 예외 없는 `disallowed`)·`enabled=false` 소스.
+- **차단 시 즉시 정지**(남헌 2026-10-14, v70 §1-3, 2026-10-15 개정) — 무인 루프는 `review_sources.enabled` 한 칸만, **`true → false` 방향으로만**, 다음 조건이 **모두** 맞을 때 쓸 수 있다.
+  1. 대상은 `override='owner_2026-10-14'` 인 소스(v70 임시 소스)뿐이다. 그 밖의 소스(남헌이 속도·예외를 따로 정한 앱스토어·구글 플레이·다나와 등)는 대상이 아니다.
+  2. 사유가 기술 차단 신호다: 같은 소스가 차단 응답(`blocked_responses>0` — 403/429/캡차/빈 응답/`/sorry/`)을 낸 정기 실행 1회 뒤 **soft-skip 상태가 연속 3개 정기 슬롯 이상 유지**됨, 또는 사이트의 중지 요청·경고·법적 통지를 사람이 Notion 에 올린 경우. 일시적 5xx·타임아웃은 사유가 아니다.
+  3. 쓰기 전에 `disabled_reason` 에 사유와 실행 URL 을 적는다(`review_sources_disabled_needs_reason` CHECK 가 강제) — 같은 UPDATE 에서 `disabled_at` 도 쓴다.
+  4. 쓴 즉시 Notion 일일 상태 로그에 행을 올린다. `사람판단필요` 는 사유가 **중지 요청·경고·법적 통지**일 때만 `true`, 단순 차단 정지는 `false`(막힌것·다음할일과 브리핑 "꺼진 소스" 칸에 적는다). 켜는 것은 어느 쪽이든 사람만 한다. 켜기·`override` 변경·`health` 변경은 이 예외에 없다.
+  5. 되돌리기: 사람이 `enabled=true` 로 되돌린다. 기계는 다시 켜지 않는다(한 방향).
+  6. 구현은 `scripts/` 한 파일에 모으고 UPDATE 대상 칸을 코드로 제한한다(`enabled`·`disabled_reason`·`disabled_at`), 셀프테스트가 이 제한을 고정한다.
 - **reports/ 파일** — `reports/` · `drafts/cases/` · `drafts/threads/` · `ops/state/`
   4개 프리픽스에만 커밋한다. 그 밖의 경로가 스테이징에 있으면 커밋하지 않고 실패한다.
 

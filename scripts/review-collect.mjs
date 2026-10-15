@@ -57,6 +57,7 @@ import { recordStatusLog, kstDate } from './notion-status-log.mjs'
 import { buildReviewCollectEntry } from './review-collect-status.mjs'
 import { brokenSources, LOOKBACK_DAYS, runSourceHealthReport } from './review-source-health-report.mjs'
 import { PENDING_DIR } from './notion-status-log-flush.mjs'
+import { loadOffSources } from './block-stop.mjs'
 
 // ⚠️ 키는 review_sources.key 와 **철자까지 같아야 한다.** 다르면 loadSource 가
 //    행을 못 찾아 그 소스가 조용히 안 돈다(20260917000001 마이그레이션 참조).
@@ -563,8 +564,10 @@ if (extraSlot) {
     if (process.env.SUPPLY_BLOCK_FILE) {
       try { supply = JSON.parse(await fs.readFile(process.env.SUPPLY_BLOCK_FILE, 'utf8')) } catch { supply = null }
     }
+    // 남헌 10-15: 매일 "[꺼진 소스]" 칸(차단 시 즉시 정지). 못 읽으면 null → "확인 불가"로 적힌다.
+    const offSources = await loadOffSources(supabase)
     r = await recordStatusLog(buildReviewCollectEntry({
-      date: kstDate(), sources: sourceResults, failures, topProject, runUrl, supply,
+      date: kstDate(), sources: sourceResults, failures, topProject, runUrl, supply, offSources,
     }))
   } catch (e) {
     r = { ok: false, stage: 'build', error: e instanceof Error ? e.message : String(e) }

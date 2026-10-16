@@ -85,6 +85,8 @@ t('검증: 동명 다른 판매자 = ambiguous', verifyCandidate({ ...byKey.drif
 const ready = ['inkwell', '시프트잇'].map((k) => ({ ...J[k], verdict: verifyCandidate(byKey[k], { lookups, searched }), play_pkg: null, country: k === 'inkwell' ? 'us' : 'kr' }))
 const g = planGate(ready, { total_active: 10, appstore_active: 2, googleplay_active: 0 })
 t('게이트: 앱스토어 자리 1 → 1 등록·1 차단', [g.register.length, g.blocked.length, g.blocked[0].reason], [1, 1, 'appstore_30pct(구글 플레이 패키지 모름)'])
+const big = ready.map((r) => (r.key === '시프트잇' ? { ...r, verdict: { ...r.verdict, ratingCount: 5000 } } : r))
+t('v71aj 게이트 순서: 자리 1 이면 평가 수 많은 앱 먼저(점수보다 앞)', [planGate(big, { total_active: 10, appstore_active: 2, googleplay_active: 0 }).register[0].c.key, g.register[0].c.key], ['시프트잇', 'inkwell'])
 const g2 = planGate(ready.map((r) => ({ ...r, play_pkg: 'com.x' })), { total_active: 10, appstore_active: 3, googleplay_active: 0 })
 t('게이트: 앱스토어 30% 넘으면 구글 플레이 먼저', g2.register.map((r) => r.source_key), ['googleplay', 'googleplay'])
 const g3 = planGate(ready.map((r) => ({ ...r, play_pkg: 'com.x' })), { total_active: 400, appstore_active: 120, googleplay_active: 80 })

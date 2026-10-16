@@ -301,7 +301,9 @@ export function planGate(ready: Ready[], state: ReturnType<typeof gateState>) {
   let gp = gateHeadroom('googleplay', state.googleplay_active, state.total_active)
   const register: Array<{ c: Ready; source_key: 'appstore' | 'googleplay' }> = []
   const blocked: Array<{ c: Ready; reason: string }> = []
-  for (const c of [...ready].sort((x, y) => y.score - x.score || (x.key < y.key ? -1 : 1))) {
+  // v71aj D-48(E): ready = 영역 적합(≥0.9)·anchored 통과분. 그 안에서 앱 평가 수(iTunes userRatingCount, 리뷰 수 대리값) 많은 순 → 점수 → 키.
+  // 게이트(앱스토어 30%·구글 플레이 80)는 그대로 — 자리가 모자랄 때 큰 앱이 먼저 들어가게 순서만 바꾼다.
+  for (const c of [...ready].sort((x, y) => (y.verdict.ratingCount ?? 0) - (x.verdict.ratingCount ?? 0) || y.score - x.score || (x.key < y.key ? -1 : 1))) {
     if (as > 0) {
       as--
       register.push({ c, source_key: 'appstore' })

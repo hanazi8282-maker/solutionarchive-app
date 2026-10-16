@@ -1,5 +1,5 @@
 -- ============================================================
--- 20261017000010_window_targets_20261017 — ROLLBACK
+-- 20261017000020_window_targets_20261017 — ROLLBACK
 --
 -- ⛔ 미적용 초안. 삭제 없음: public.review_targets_window_batch_20261017 에 기록된 행(이 마이그가 넣은 행)만 status='failed'
 --   (planRevive 대상 아님 — 자동 부활 없음). 기록 표에 없는 행(나중에 nightly 가 같은 라벨로 넣은 행 포함)은 건드리지 않는다.

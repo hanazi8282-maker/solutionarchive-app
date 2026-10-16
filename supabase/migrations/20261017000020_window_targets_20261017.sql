@@ -1,22 +1,28 @@
 -- ============================================================
--- 20261017000010_window_targets_20261017
+-- 20261017000020_window_targets_20261017
 --
--- ⛔ 미적용 초안(v71ab C-2 재작업). 적용은 CEO-staff 판단(CLAUDE.md §10.2). 서브에이전트·무인 루프는 적용하지 않는다.
+-- ⛔ 미적용 초안(v71ab C-2 재작업 → v71ad §2 재배분). 적용은 CEO-staff 판단(CLAUDE.md §10.2). 서브에이전트·무인 루프는 적용하지 않는다.
+--
+-- ★ 적용 순서: 20261017000010_sales_appstore_targets_20261017(PR #559, ② 영업 앱) → 이 파일. 파일 번호도 그 순서다.
+--   이 파일의 N 은 적용 시점에 다시 세므로 #559 가 먼저 쓴 칸을 빼고 **남은 칸만** 쓴다 — 게이트를 못 넘는다.
+--   #559 를 적용하지 않기로 했으면 이 파일만 적용해도 된다(그 경우 NOTICE 한 줄).
 --
 -- 무엇을: reports/window-adopted.json pending 106건(앱스토어 mostRecent) 중 **30% 게이트가 허용하는 만큼만**,
+--   **영역 우선순위 ② > ⑤ > ④ > ③**(label 첫 ':' 앞, 그 밖 영역은 맨 뒤) 먼저, 같은 영역 안에서는
 --   요청당 새 글(new_per_request, 프로브 실측 기대수확) 높은 순으로 상위 N행을 review_targets 에 INSERT.
+--   (v71ab 원안은 기대수확 순만이라 ② 8행이 전부 밀려 0행이었다 — v71ad 남헌 ② 최우선 보강 지시로 바꿨다.)
 --   나머지는 넣지 않는다(대장에서 pending 그대로 — 다음 분할 때 같은 파일 형식으로 다시 만든다).
 --   N 은 이 파일 안에서 적용 시점 수치로 계산한다(하드코딩 없음):
 --     as = 앱스토어 활성, total = enabled 소스 활성 전체, 게이트 = 넣은 뒤 as' ≤ 0.3 × total'
 --     (as + N) ≤ 0.3 × (total + N)  ⇔  N ≤ (0.3 × total − as) / 0.7   → N = floor(그 값), 0 미만이면 0
 --     예: total 110 · as 0 → N = floor(33/0.7) = 47.
---   동률(같은 new_per_request)은 product_ref 순으로 끊는다(결정적).
+--   동률(같은 영역·같은 new_per_request)은 product_ref 순으로 끊는다(결정적).
 -- 넣은 행 id 는 public.review_targets_window_batch_20261017 에 남긴다 — 롤백은 이 표만 본다(같은 라벨을 나중에 nightly 가 넣어도 안 건드린다).
 --   ⚠️ 새 테이블 1개(기록용, RLS on·정책 0 = service_role 전용, 20260930000006 과 같은 방식). 롤백 후 지워도 된다.
 -- project_id 는 앵커(같은 source_key 의 기존 타깃 anchor_ref)에서 읽는다. 앵커 0행이면 RAISE, 2행 이상이면 21000.
 -- status='active' · last_run_at NULL(미방문 우선) · 카운터는 기본값. review_sources·review_source_ramp 는 손대지 않는다.
 -- 사후 가드(어긋나면 RAISE → 전체 롤백): 삽입 > N · 앱스토어 활성 > 0.3 × 전체 활성 · googleplay 활성 증가.
--- 롤백: 20261017000010_window_targets_20261017_rollback.sql
+-- 롤백: 20261017000020_window_targets_20261017_rollback.sql
 -- 확인 쿼리: reports/2026-10-17/window-batch-checks.sql
 -- ============================================================
 
@@ -151,6 +157,9 @@ BEGIN
   IF running_at IS NOT NULL THEN RAISE EXCEPTION '수집 실행 중(%) — 슬롯 사이에 다시 실행하라', running_at; END IF;
   SELECT string_agg(source_key || ':' || anchor_ref, ', ') INTO orphan FROM _wt_new WHERE project_id IS NULL;
   IF orphan IS NOT NULL THEN RAISE EXCEPTION '앵커 타깃 없음: %', orphan; END IF;
+  IF to_regclass('public.review_targets_sales_batch_20261017') IS NULL THEN
+    RAISE NOTICE '영업 마이그(20261017000010, PR #559) 미적용 — 그 마이그가 쓸 ② 칸까지 이 파일이 쓴다. 의도한 것이 아니면 ROLLBACK 하고 순서대로';
+  END IF;
 END $$;
 
 -- 게이트 허용 N(적용 시점 실측). 이미 있는 (source_key, product_ref) 는 순위에서 뺀다.
@@ -165,7 +174,9 @@ SELECT a.as_active, a.total_active, a.gp_active,
 
 CREATE TEMP TABLE _wt_pick ON COMMIT DROP AS
 SELECT n.* FROM (
-  SELECT n.*, row_number() OVER (ORDER BY n.new_per_request DESC, n.product_ref) AS rk
+  SELECT n.*, row_number() OVER (
+           ORDER BY CASE split_part(n.label, ':', 1) WHEN '2' THEN 1 WHEN '5' THEN 2 WHEN '4' THEN 3 WHEN '3' THEN 4 ELSE 5 END,
+                    n.new_per_request DESC, n.product_ref) AS rk
     FROM _wt_new n
    WHERE NOT EXISTS (SELECT 1 FROM public.review_targets t WHERE t.source_key = n.source_key AND t.product_ref = n.product_ref)
 ) n, _wt_gate g
@@ -178,7 +189,7 @@ CREATE TABLE IF NOT EXISTS public.review_targets_window_batch_20261017 (
 );
 ALTER TABLE public.review_targets_window_batch_20261017 ENABLE ROW LEVEL SECURITY;
 COMMENT ON TABLE public.review_targets_window_batch_20261017 IS
-  '20261017000010_window_targets_20261017 이 넣은 창문 타깃 목록(게이트 한도 상위 N). 롤백이 이걸 읽는다. 롤백 후에는 지워도 된다.';
+  '20261017000020_window_targets_20261017 이 넣은 창문 타깃 목록(게이트 한도 상위 N). 롤백이 이걸 읽는다. 롤백 후에는 지워도 된다.';
 
 WITH ins AS (
   INSERT INTO public.review_targets (project_id, source_key, product_ref, label, status, cursor, last_run_at)

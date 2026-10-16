@@ -1,5 +1,6 @@
--- v71ab C-2 확인 쿼리 — 20261017000010_window_targets_20261017 (앱스토어 창문 후보 106행 중 게이트 허용 상위 N). 전부 읽기 전용.
+-- v71ab C-2 확인 쿼리 — 20261017000020_window_targets_20261017 (앱스토어 창문 후보 106행 중 게이트 허용 상위 N). 전부 읽기 전용.
 -- 적용 전 1·2·3, 적용 후 4~8 을 돈다. 기대값은 각 쿼리 끝 주석.
+-- ★ 적용 순서: 20261017000010_sales_appstore_targets_20261017(PR #559) → 이 파일. 전 3 은 #559 적용 뒤에 돌린다(그래야 남은 칸이 나온다).
 
 -- [전 1] 앵커: 28개 앵커가 각각 정확히 1행이어야 한다(0 이면 마이그가 RAISE, 2 이상이면 21000).
 WITH v AS (SELECT DISTINCT anchor_ref FROM (VALUES
@@ -233,7 +234,8 @@ SELECT a.as_active, a.total_active, GREATEST(0, floor((0.3 * a.total_active - a.
 SELECT count(*) AS logged, count(*) FILTER (WHERE t.status = 'active' AND t.last_run_at IS NULL) AS active_unvisited
   FROM public.review_targets_window_batch_20261017 b JOIN public.review_targets t ON t.id = b.target_id;
 
--- [후 5 양성] 들어간 행이 기대수확 상위 순이다 — 들어간 최소 new_per_request ≥ 안 들어간(대장 pending) 최대값은 PR 본문 표와 대조.
+-- [후 5 양성] 영역 우선순위 ② > ⑤ > ④ > ③ 순으로 찼다 — 앞 영역(②)이 대장 8행을 다 채우지 않았는데 뒤 영역 행이 있으면 틀린 것.
+--   영역 안에서는 기대수확 순: 마지막으로 들어간 영역의 min_npr ≥ 그 영역에서 안 들어간 행의 최대값(PR 본문 표와 대조).
 SELECT split_part(label, ':', 1) AS area, count(*), min(new_per_request) AS min_npr, max(new_per_request) AS max_npr
   FROM public.review_targets_window_batch_20261017 GROUP BY 1 ORDER BY 1;
 
@@ -252,4 +254,5 @@ SELECT count(*) FILTER (WHERE t.source_key = 'appstore') AS as_active, count(*) 
 -- [후 8 음성] 기록 표 밖에서 새로 생긴 appstore 타깃 0(같은 시간대 nightly-window-discovery 행은 reports/window-adopted.json 과 대조).
 SELECT count(*) FROM public.review_targets t
  WHERE t.source_key = 'appstore' AND t.created_at >= now() - interval '1 hour'
-   AND NOT EXISTS (SELECT 1 FROM public.review_targets_window_batch_20261017 b WHERE b.target_id = t.id);   -- 기대: 0
+   AND NOT EXISTS (SELECT 1 FROM public.review_targets_window_batch_20261017 b WHERE b.target_id = t.id)
+   AND NOT EXISTS (SELECT 1 FROM public.review_targets_sales_batch_20261017 b WHERE b.target_id = t.id);   -- 기대: 0 (#559 미적용이면 이 줄을 빼고 돌린다 — 표가 없으면 42P01)

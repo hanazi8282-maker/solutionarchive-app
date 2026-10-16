@@ -3,9 +3,8 @@
 --
 -- ⛔ 미적용 초안(v71ab C-2 재작업 → v71ad §2 재배분). 적용은 CEO-staff 판단(CLAUDE.md §10.2). 서브에이전트·무인 루프는 적용하지 않는다.
 --
--- ★ 적용 순서: 20261017000010_sales_appstore_targets_20261017(PR #559, ② 영업 앱) → 이 파일. 파일 번호도 그 순서다.
---   이 파일의 N 은 적용 시점에 다시 세므로 #559 가 먼저 쓴 칸을 빼고 **남은 칸만** 쓴다 — 게이트를 못 넘는다.
---   #559 를 적용하지 않기로 했으면 이 파일만 적용해도 된다(그 경우 NOTICE 한 줄).
+-- ★ 순서: ② 영업 앱 등록 마이그(PR #559)는 2026-10-17 철회됐다(이름 검색 robots 금지 — 확인된 ID 0). 지금은 이 파일 단독 적용 가능(NOTICE 한 줄).
+--   영업 등록이 나중에 허용되면 그 마이그를 이 파일보다 앞 번호(000010)로 만들고 먼저 적용한다. N 은 적용 시점 동적이라 어느 순서든 게이트는 못 넘는다.
 --
 -- 무엇을: reports/window-adopted.json pending 106건(앱스토어 mostRecent) 중 **30% 게이트가 허용하는 만큼만**,
 --   **영역 우선순위 ② > ⑤ > ④ > ③**(label 첫 ':' 앞, 그 밖 영역은 맨 뒤) 먼저, 같은 영역 안에서는
@@ -158,7 +157,7 @@ BEGIN
   SELECT string_agg(source_key || ':' || anchor_ref, ', ') INTO orphan FROM _wt_new WHERE project_id IS NULL;
   IF orphan IS NOT NULL THEN RAISE EXCEPTION '앵커 타깃 없음: %', orphan; END IF;
   IF to_regclass('public.review_targets_sales_batch_20261017') IS NULL THEN
-    RAISE NOTICE '영업 마이그(20261017000010, PR #559) 미적용 — 그 마이그가 쓸 ② 칸까지 이 파일이 쓴다. 의도한 것이 아니면 ROLLBACK 하고 순서대로';
+    RAISE NOTICE '영업 앱 등록 마이그(20261017000010) 없음 — 2026-10-17 철회 상태면 정상. 등록이 허용돼 대기 중이면 ROLLBACK 하고 그쪽 먼저';
   END IF;
 END $$;
 

@@ -1,6 +1,6 @@
 -- v71ab C-2 확인 쿼리 — 20261017000020_window_targets_20261017 (앱스토어 창문 후보 106행 중 게이트 허용 상위 N). 전부 읽기 전용.
 -- 적용 전 1·2·3, 적용 후 4~8 을 돈다. 기대값은 각 쿼리 끝 주석.
--- ★ 적용 순서: 20261017000010_sales_appstore_targets_20261017(PR #559) → 이 파일. 전 3 은 #559 적용 뒤에 돌린다(그래야 남은 칸이 나온다).
+-- ★ ② 영업 등록 마이그(PR #559)는 2026-10-17 철회 — 이 파일 단독. 영업 등록이 나중에 먼저 적용되면 전 3 은 그 뒤에 돌린다.
 
 -- [전 1] 앵커: 28개 앵커가 각각 정확히 1행이어야 한다(0 이면 마이그가 RAISE, 2 이상이면 21000).
 WITH v AS (SELECT DISTINCT anchor_ref FROM (VALUES
@@ -255,4 +255,4 @@ SELECT count(*) FILTER (WHERE t.source_key = 'appstore') AS as_active, count(*) 
 SELECT count(*) FROM public.review_targets t
  WHERE t.source_key = 'appstore' AND t.created_at >= now() - interval '1 hour'
    AND NOT EXISTS (SELECT 1 FROM public.review_targets_window_batch_20261017 b WHERE b.target_id = t.id)
-   AND NOT EXISTS (SELECT 1 FROM public.review_targets_sales_batch_20261017 b WHERE b.target_id = t.id);   -- 기대: 0 (#559 미적용이면 이 줄을 빼고 돌린다 — 표가 없으면 42P01)
+   AND NOT EXISTS (SELECT 1 FROM public.review_targets_sales_batch_20261017 b WHERE b.target_id = t.id);   -- 기대: 0 (영업 기록 표가 없으면(지금 상태) 바로 위 줄을 빼고 돌린다 — 없으면 42P01)

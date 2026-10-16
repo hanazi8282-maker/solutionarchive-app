@@ -1,0 +1,1936 @@
+{
+ "_comment": "v71ad §2 ② 영업 앱스토어 후보 검증. iTunes search(이름당 1회) + lookup(kr·us 각 1회 일괄), 3초 간격, 공식 API 만. 판정은 lib/review/anchor.ts verifyAnchor(이름 일치·판매자 단일·평가 ≥50·판매자 도메인 = 공식 도메인) 그대로. DB 조회 없음 — 이미 등록 여부는 리포 파일(마이그·reports) 안 앱 ID 대조 + 마이그 SQL 의 NOT EXISTS(같은 앱 ID, 어느 국가든)가 다시 거른다.",
+ "checked_at": [
+  "2026-10-16T17:06:28.779Z",
+  "2026-10-16T17:07:29.961Z"
+ ],
+ "requests": 45,
+ "block_signals": 0,
+ "source_status": "새 소스 아님 — appstore(review_sources key=appstore, 이미 enabled·법적 점검 통과)에 새 타깃(review_targets)만 더한다.",
+ "kr_rule": "kr 행은 kr 스토어 평가 수 ≥ 50 일 때만(앵커 하한과 같은 값). 나머지는 us 만.",
+ "passed": 19,
+ "failed": 22,
+ "registration_rows": [
+  {
+   "slug": "salesforce",
+   "name": "Salesforce",
+   "pitch": "Salesforce — Salesforce 모바일 앱(Sales Cloud 등 영업 CRM 의 모바일 클라이언트) (v71ad ② 영업 보강, 앱스토어 404249815)",
+   "url": "https://salesforce.com/",
+   "app_id": "404249815",
+   "product_ref": "us:404249815",
+   "label": "2:us|salesforce",
+   "ratings": 353847
+  },
+  {
+   "slug": "linkedin-sales-navigator",
+   "name": "LinkedIn Sales Navigator",
+   "pitch": "LinkedIn Sales Navigator — LinkedIn 의 리드 발굴·영업 탐색 도구 (v71ad ② 영업 보강, 앱스토어 910768078)",
+   "url": "https://business.linkedin.com/",
+   "app_id": "910768078",
+   "product_ref": "us:910768078",
+   "label": "2:us|linkedin-sales-navigator",
+   "ratings": 51953
+  },
+  {
+   "slug": "salesforce",
+   "name": "Salesforce",
+   "pitch": "Salesforce — Salesforce 모바일 앱(Sales Cloud 등 영업 CRM 의 모바일 클라이언트) (v71ad ② 영업 보강, 앱스토어 404249815)",
+   "url": "https://salesforce.com/",
+   "app_id": "404249815",
+   "product_ref": "kr:404249815",
+   "label": "2:salesforce",
+   "ratings": 4270
+  },
+  {
+   "slug": "cloze",
+   "name": "Cloze",
+   "pitch": "Cloze — 영업·관계 관리 CRM(이메일·통화 자동 기록) (v71ad ② 영업 보강, 앱스토어 596927802)",
+   "url": "https://cloze.com/",
+   "app_id": "596927802",
+   "product_ref": "us:596927802",
+   "label": "2:us|cloze",
+   "ratings": 2835
+  },
+  {
+   "slug": "zoho-crm",
+   "name": "Zoho CRM",
+   "pitch": "Zoho CRM — Zoho 의 영업·마케팅 CRM (v71ad ② 영업 보강, 앱스토어 444908810)",
+   "url": "https://zoho.com/",
+   "app_id": "444908810",
+   "product_ref": "us:444908810",
+   "label": "2:us|zoho-crm",
+   "ratings": 2691
+  },
+  {
+   "slug": "keap",
+   "name": "Keap",
+   "pitch": "Keap — 소기업용 CRM·영업·마케팅 자동화 (v71ad ② 영업 보강, 앱스토어 1421097870)",
+   "url": "https://keap.com/",
+   "app_id": "1421097870",
+   "product_ref": "us:1421097870",
+   "label": "2:us|keap",
+   "ratings": 1827
+  },
+  {
+   "slug": "salesrabbit",
+   "name": "SalesRabbit",
+   "pitch": "SalesRabbit — 방문(현장) 영업팀용 영업 관리 앱 (v71ad ② 영업 보강, 앱스토어 879884387)",
+   "url": "https://salesrabbit.com/",
+   "app_id": "879884387",
+   "product_ref": "us:879884387",
+   "label": "2:us|salesrabbit",
+   "ratings": 1169
+  },
+  {
+   "slug": "badger-maps",
+   "name": "Badger Maps",
+   "pitch": "Badger Maps — 현장 영업 담당자용 방문 경로·고객 지도 앱 (v71ad ② 영업 보강, 앱스토어 789934914)",
+   "url": "https://badgermapping.com/",
+   "app_id": "789934914",
+   "product_ref": "us:789934914",
+   "label": "2:us|badger-maps",
+   "ratings": 1108
+  },
+  {
+   "slug": "bigin",
+   "name": "Bigin",
+   "pitch": "Bigin — Zoho 의 소기업·1인 사업자용 파이프라인 CRM(Bigin by Zoho CRM) (v71ad ② 영업 보강, 앱스토어 1454212098)",
+   "url": "https://zoho.com/",
+   "app_id": "1454212098",
+   "product_ref": "us:1454212098",
+   "label": "2:us|bigin",
+   "ratings": 962
+  },
+  {
+   "slug": "pipedrive",
+   "name": "Pipedrive",
+   "pitch": "Pipedrive — 중소 영업팀용 파이프라인 중심 영업 CRM (v71ad ② 영업 보강, 앱스토어 921456160)",
+   "url": "https://pipedrive.com/",
+   "app_id": "921456160",
+   "product_ref": "us:921456160",
+   "label": "2:us|pipedrive",
+   "ratings": 675
+  },
+  {
+   "slug": "salesmate",
+   "name": "Salesmate",
+   "pitch": "Salesmate — 중소 영업팀용 영업 CRM (v71ad ② 영업 보강, 앱스토어 1114709439)",
+   "url": "https://salesmate.io/",
+   "app_id": "1114709439",
+   "product_ref": "us:1114709439",
+   "label": "2:us|salesmate",
+   "ratings": 632
+  },
+  {
+   "slug": "nimble",
+   "name": "Nimble",
+   "pitch": "Nimble — 개인·소규모 팀용 관계 관리 영업 CRM (v71ad ② 영업 보강, 앱스토어 651636273)",
+   "url": "https://nimble.com/",
+   "app_id": "651636273",
+   "product_ref": "us:651636273",
+   "label": "2:us|nimble",
+   "ratings": 619
+  },
+  {
+   "slug": "freshsales",
+   "name": "Freshsales",
+   "pitch": "Freshsales — Freshworks 의 영업 CRM (v71ad ② 영업 보강, 앱스토어 1073125057)",
+   "url": "https://freshworks.com/",
+   "app_id": "1073125057",
+   "product_ref": "us:1073125057",
+   "label": "2:us|freshsales",
+   "ratings": 523
+  },
+  {
+   "slug": "copper",
+   "name": "Copper",
+   "pitch": "Copper — Google Workspace 연동 영업 CRM (v71ad ② 영업 보강, 앱스토어 941438829)",
+   "url": "https://copper.com/",
+   "app_id": "941438829",
+   "product_ref": "us:941438829",
+   "label": "2:us|copper",
+   "ratings": 446
+  },
+  {
+   "slug": "onepagecrm",
+   "name": "OnePageCRM",
+   "pitch": "OnePageCRM — 다음 행동 중심의 소기업용 영업 CRM (v71ad ② 영업 보강, 앱스토어 692777054)",
+   "url": "https://onepagecrm.com/",
+   "app_id": "692777054",
+   "product_ref": "us:692777054",
+   "label": "2:us|onepagecrm",
+   "ratings": 384
+  },
+  {
+   "slug": "insightly",
+   "name": "Insightly",
+   "pitch": "Insightly — 중소기업용 영업 CRM (v71ad ② 영업 보강, 앱스토어 563017797)",
+   "url": "https://insightly.com/",
+   "app_id": "563017797",
+   "product_ref": "us:563017797",
+   "label": "2:us|insightly",
+   "ratings": 293
+  },
+  {
+   "slug": "linkedin-sales-navigator",
+   "name": "LinkedIn Sales Navigator",
+   "pitch": "LinkedIn Sales Navigator — LinkedIn 의 리드 발굴·영업 탐색 도구 (v71ad ② 영업 보강, 앱스토어 910768078)",
+   "url": "https://business.linkedin.com/",
+   "app_id": "910768078",
+   "product_ref": "kr:910768078",
+   "label": "2:linkedin-sales-navigator",
+   "ratings": 244
+  },
+  {
+   "slug": "streak",
+   "name": "Streak",
+   "pitch": "Streak — Gmail 안에서 쓰는 영업 파이프라인 CRM (v71ad ② 영업 보강, 앱스토어 674067680)",
+   "url": "https://streak.com/",
+   "app_id": "674067680",
+   "product_ref": "us:674067680",
+   "label": "2:us|streak",
+   "ratings": 160
+  },
+  {
+   "slug": "nutshell",
+   "name": "Nutshell",
+   "pitch": "Nutshell — 소기업용 영업 CRM·영업 자동화 (v71ad ② 영업 보강, 앱스토어 337938121)",
+   "url": "https://nutshell.com/",
+   "app_id": "337938121",
+   "product_ref": "us:337938121",
+   "label": "2:us|nutshell",
+   "ratings": 85
+  },
+  {
+   "slug": "nocrm",
+   "name": "noCRM.io",
+   "pitch": "noCRM.io — 리드 관리 중심의 소규모 영업팀용 도구 (v71ad ② 영업 보강, 앱스토어 1079498089)",
+   "url": "https://nocrm.io/",
+   "app_id": "1079498089",
+   "product_ref": "us:1079498089",
+   "label": "2:us|nocrm",
+   "ratings": 59
+  },
+  {
+   "slug": "close",
+   "name": "Close",
+   "pitch": "Close — 소규모 영업팀용 통화·이메일 내장 영업 CRM (v71ad ② 영업 보강, 앱스토어 1668836284)",
+   "url": "https://close.com/",
+   "app_id": "1668836284",
+   "product_ref": "us:1668836284",
+   "label": "2:us|close",
+   "ratings": 52
+  }
+ ],
+ "apps": [
+  {
+   "slug": "pipedrive",
+   "search_term": "Pipedrive",
+   "search_country": "us",
+   "candidate_name_used": "Pipedrive",
+   "expected_domain": "pipedrive.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 921456160 \"Pipedrive – Sales CRM\" · 평가 675건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 921456160,
+     "name": "Pipedrive – Sales CRM",
+     "seller": "Pipedrive Inc",
+     "domain": "pipedrive.com",
+     "ratings": 675,
+     "genre": "Business"
+    },
+    {
+     "id": 1270125002,
+     "name": "Pipedrive CRM BizCard Scanner",
+     "seller": "Ruslan Savchyshyn",
+     "domain": "magneticonemobile.com",
+     "ratings": 34,
+     "genre": "Business"
+    },
+    {
+     "id": 949819440,
+     "name": "Piped",
+     "seller": "Cobalt Technologies Limited",
+     "domain": "excelpipelines.com",
+     "ratings": 0,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 921456160,
+   "track_name": "Pipedrive – Sales CRM",
+   "seller": "Pipedrive Inc",
+   "seller_domain": "pipedrive.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 675,
+    "kr": 5
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "zoho-crm",
+   "search_term": "Zoho CRM",
+   "search_country": "us",
+   "candidate_name_used": "Zoho CRM",
+   "expected_domain": "zoho.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 444908810 \"Zoho CRM - Sales & Marketing\" · 평가 2691건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    },
+    {
+     "id": 6748079751,
+     "name": "Zoho One",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 0,
+     "genre": "Business"
+    },
+    {
+     "id": 1454212098,
+     "name": "Bigin by Zoho CRM",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 962,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 444908810,
+   "track_name": "Zoho CRM - Sales & Marketing",
+   "seller": "Zoho Corporation",
+   "seller_domain": "zoho.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 2691,
+    "kr": 7
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "salesforce",
+   "search_term": "Salesforce",
+   "search_country": "us",
+   "candidate_name_used": "Salesforce",
+   "expected_domain": "salesforce.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 404249815 \"Salesforce\" · 평가 353847건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 404249815,
+     "name": "Salesforce",
+     "seller": "salesforce.com",
+     "domain": "salesforce.com",
+     "ratings": 353847,
+     "genre": "Business"
+    },
+    {
+     "id": 782057975,
+     "name": "Salesforce Authenticator",
+     "seller": "salesforce.com",
+     "domain": "salesforce.com",
+     "ratings": 4302,
+     "genre": "Business"
+    },
+    {
+     "id": 1163307568,
+     "name": "Salesforce Field Service",
+     "seller": "salesforce.com",
+     "domain": "salesforce.com",
+     "ratings": 20921,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 404249815,
+   "track_name": "Salesforce",
+   "seller": "salesforce.com",
+   "seller_domain": "salesforce.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 353847,
+    "kr": 4270
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "freshsales",
+   "search_term": "Freshsales",
+   "search_country": "us",
+   "candidate_name_used": "Freshsales",
+   "expected_domain": "freshworks.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 1073125057 \"Freshsales\" · 평가 523건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 1073125057,
+     "name": "Freshsales",
+     "seller": "FRESHWORKS TECHNOLOGIES PRIVATE LIMITED",
+     "domain": "freshworks.com",
+     "ratings": 523,
+     "genre": "Business"
+    },
+    {
+     "id": 1424866045,
+     "name": "Freshcaller",
+     "seller": "FRESHWORKS TECHNOLOGIES PRIVATE LIMITED",
+     "domain": "freshworks.com",
+     "ratings": 64,
+     "genre": "Business"
+    },
+    {
+     "id": 849713306,
+     "name": "Freshdesk",
+     "seller": "FRESHWORKS TECHNOLOGIES PRIVATE LIMITED",
+     "domain": "freshdesk.com",
+     "ratings": 2995,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 1073125057,
+   "track_name": "Freshsales",
+   "seller": "FRESHWORKS TECHNOLOGIES PRIVATE LIMITED",
+   "seller_domain": "freshworks.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 523,
+    "kr": 0
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "close",
+   "search_term": "Close CRM",
+   "search_country": "us",
+   "candidate_name_used": "Close CRM",
+   "expected_domain": "close.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 1668836284 \"Close CRM\" · 평가 52건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 1668836284,
+     "name": "Close CRM",
+     "seller": "Elastic Inc",
+     "domain": "close.com",
+     "ratings": 52,
+     "genre": "Business"
+    },
+    {
+     "id": 596927802,
+     "name": "Cloze Relationship Management",
+     "seller": "Cloze, Inc.",
+     "domain": "cloze.com",
+     "ratings": 2835,
+     "genre": "Productivity"
+    },
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 1668836284,
+   "track_name": "Close CRM",
+   "seller": "Elastic Inc",
+   "seller_domain": "close.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 52,
+    "kr": 0
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "apollo-io",
+   "search_term": "Apollo.io",
+   "search_country": "us",
+   "candidate_name_used": "Apollo.io",
+   "expected_domain": "apollo.io",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 7건)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1662834954,
+     "name": "Apollo IoT",
+     "seller": "ELKOM YAZILIM VE ENERJI TEKNOLOJILERI ANONIM SIRKETI",
+     "domain": null,
+     "ratings": 0,
+     "genre": "Business"
+    },
+    {
+     "id": 6477489729,
+     "name": "Google Gemini",
+     "seller": "Google LLC",
+     "domain": "gemini.google.com",
+     "ratings": 2343258,
+     "genre": "Productivity"
+    },
+    {
+     "id": 6670324846,
+     "name": "Grok AI",
+     "seller": "X Corp.",
+     "domain": "x.ai",
+     "ratings": 1510343,
+     "genre": "Productivity"
+    }
+   ]
+  },
+  {
+   "slug": "copper",
+   "search_term": "Copper CRM",
+   "search_country": "us",
+   "candidate_name_used": "Copper CRM",
+   "expected_domain": "copper.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 941438829 \"Copper CRM\" · 평가 446건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 941438829,
+     "name": "Copper CRM",
+     "seller": "Copper CRM, Inc.",
+     "domain": "copper.com",
+     "ratings": 446,
+     "genre": "Business"
+    },
+    {
+     "id": 1454212098,
+     "name": "Bigin by Zoho CRM",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 962,
+     "genre": "Business"
+    },
+    {
+     "id": 1486647561,
+     "name": "Copper: Play, Shop, Earn Cash",
+     "seller": "NEXT Financial Inc",
+     "domain": "getcopper.com",
+     "ratings": 96561,
+     "genre": "Lifestyle"
+    }
+   ],
+   "app_id": 941438829,
+   "track_name": "Copper CRM",
+   "seller": "Copper CRM, Inc.",
+   "seller_domain": "copper.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 446,
+    "kr": 1
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "streak",
+   "search_term": "Streak CRM",
+   "search_country": "us",
+   "candidate_name_used": "Streak",
+   "expected_domain": "streak.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 674067680 \"Streak - CRM for Gmail\" · 평가 160건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 674067680,
+     "name": "Streak - CRM for Gmail",
+     "seller": "Rewardly Inc.",
+     "domain": "streak.com",
+     "ratings": 160,
+     "genre": "Productivity"
+    },
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    },
+    {
+     "id": 596927802,
+     "name": "Cloze Relationship Management",
+     "seller": "Cloze, Inc.",
+     "domain": "cloze.com",
+     "ratings": 2835,
+     "genre": "Productivity"
+    }
+   ],
+   "app_id": 674067680,
+   "track_name": "Streak - CRM for Gmail",
+   "seller": "Rewardly Inc.",
+   "seller_domain": "streak.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 160,
+    "kr": 1
+   },
+   "genre": "Productivity",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "monday-sales-crm",
+   "search_term": "monday sales CRM",
+   "search_country": "us",
+   "candidate_name_used": "monday sales CRM",
+   "expected_domain": "monday.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 8건)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    },
+    {
+     "id": 6769366480,
+     "name": "monday CRM",
+     "seller": "monday.com Ltd.",
+     "domain": "monday.com",
+     "ratings": 0,
+     "genre": "Business"
+    },
+    {
+     "id": 1485578688,
+     "name": "Dynamics 365 Sales",
+     "seller": "Microsoft Corporation",
+     "domain": null,
+     "ratings": 854,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "zendesk-sell",
+   "search_term": "Zendesk Sell",
+   "search_country": "us",
+   "candidate_name_used": "Zendesk Sell",
+   "expected_domain": "zendesk.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 판매자 도메인(getbase.com) ≠ 후보 도메인(zendesk.com) — 동명 앱 가능성",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 488534576,
+     "name": "Zendesk Sell",
+     "seller": "Future Simple",
+     "domain": "getbase.com",
+     "ratings": 1567,
+     "genre": "Business"
+    },
+    {
+     "id": 1174276185,
+     "name": "Zendesk Support",
+     "seller": "Zendesk, Inc.",
+     "domain": "zendesk.com",
+     "ratings": 4217,
+     "genre": "Business"
+    },
+    {
+     "id": 549057844,
+     "name": "Zendesk Chat",
+     "seller": "Zendesk, Inc.",
+     "domain": "zendesk.com",
+     "ratings": 756,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "insightly",
+   "search_term": "Insightly",
+   "search_country": "us",
+   "candidate_name_used": "Insightly CRM",
+   "expected_domain": "insightly.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 563017797 \"Insightly CRM\" · 평가 293건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 563017797,
+     "name": "Insightly CRM",
+     "seller": "Insightly Inc",
+     "domain": "insightly.com",
+     "ratings": 293,
+     "genre": "Business"
+    },
+    {
+     "id": 1574241028,
+     "name": "Insightly Service",
+     "seller": "Insightly Inc",
+     "domain": "insightly.com",
+     "ratings": 0,
+     "genre": "Business"
+    },
+    {
+     "id": 6557147285,
+     "name": "Insightly | Social Insights",
+     "seller": "DEVPULSE",
+     "domain": "insta-detect.com",
+     "ratings": 0,
+     "genre": "Social Networking"
+    }
+   ],
+   "app_id": 563017797,
+   "track_name": "Insightly CRM",
+   "seller": "Insightly Inc",
+   "seller_domain": "insightly.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 293,
+    "kr": 0
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "less-annoying-crm",
+   "search_term": "Less Annoying CRM",
+   "search_country": "us",
+   "candidate_name_used": "Less Annoying CRM",
+   "expected_domain": "lessannoyingcrm.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 평가 5건 < 50(실사용 근거 약함)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 6747675343,
+     "name": "Less Annoying CRM",
+     "seller": "Less Annoying Software LLC",
+     "domain": "lessannoyingcrm.com",
+     "ratings": 5,
+     "genre": "Business"
+    },
+    {
+     "id": 692777054,
+     "name": "OnePageCRM - Simple CRM System",
+     "seller": "Novus Via Ltd",
+     "domain": "onepagecrm.com",
+     "ratings": 384,
+     "genre": "Business"
+    },
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "capsule-crm",
+   "search_term": "Capsule CRM",
+   "search_country": "us",
+   "candidate_name_used": "Capsule",
+   "expected_domain": "capsulecrm.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 8건) — 첫 변형(Capsule) 기준. 두 번째 변형(Capsule CRM)은 앱 660292932 평가 44 < 50 으로 역시 no_match",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 660292932,
+     "name": "Capsule CRM",
+     "seller": "Zestia Ltd",
+     "domain": "capsulecrm.com",
+     "ratings": 44,
+     "genre": "Business"
+    },
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    },
+    {
+     "id": 1485578688,
+     "name": "Dynamics 365 Sales",
+     "seller": "Microsoft Corporation",
+     "domain": null,
+     "ratings": 854,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "nutshell",
+   "search_term": "Nutshell CRM",
+   "search_country": "us",
+   "candidate_name_used": "Nutshell",
+   "expected_domain": "nutshell.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 337938121 \"Nutshell – Small Business CRM\" · 평가 85건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 337938121,
+     "name": "Nutshell – Small Business CRM",
+     "seller": "Nutshell, Inc.",
+     "domain": "nutshell.com",
+     "ratings": 85,
+     "genre": "Business"
+    },
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    },
+    {
+     "id": 941438829,
+     "name": "Copper CRM",
+     "seller": "Copper CRM, Inc.",
+     "domain": "copper.com",
+     "ratings": 446,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 337938121,
+   "track_name": "Nutshell – Small Business CRM",
+   "seller": "Nutshell, Inc.",
+   "seller_domain": "nutshell.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 85,
+    "kr": 0
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "bigin",
+   "search_term": "Bigin by Zoho CRM",
+   "search_country": "us",
+   "candidate_name_used": "Bigin by Zoho CRM",
+   "expected_domain": "zoho.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 1454212098 \"Bigin by Zoho CRM\" · 평가 962건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 1454212098,
+     "name": "Bigin by Zoho CRM",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 962,
+     "genre": "Business"
+    },
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    },
+    {
+     "id": 6748079751,
+     "name": "Zoho One",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 0,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 1454212098,
+   "track_name": "Bigin by Zoho CRM",
+   "seller": "Zoho Corporation",
+   "seller_domain": "zoho.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 962,
+    "kr": 2
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "salesmap",
+   "search_term": "세일즈맵",
+   "search_country": "kr",
+   "candidate_name_used": "세일즈맵",
+   "expected_domain": "salesmap.kr",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 평가 0건 < 50(실사용 근거 약함)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 6448311069,
+     "name": "ChatGPT",
+     "seller": "OpenAI OpCo, LLC",
+     "domain": "openai.com",
+     "ratings": 802881,
+     "genre": "Productivity"
+    },
+    {
+     "id": 389801252,
+     "name": "Instagram",
+     "seller": "Instagram, Inc.",
+     "domain": "instagram.com",
+     "ratings": 1889789,
+     "genre": "Photo & Video"
+    },
+    {
+     "id": 6819071445,
+     "name": "세일즈맵",
+     "seller": "KI JUNG CHOI",
+     "domain": null,
+     "ratings": 0,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "lemlist",
+   "search_term": "lemlist",
+   "search_country": "us",
+   "candidate_name_used": "lemlist",
+   "expected_domain": "lemlist.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 1건)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 6761980677,
+     "name": "LePlaTo",
+     "seller": "FIVENINES",
+     "domain": "grab.me.kr",
+     "ratings": 0,
+     "genre": "Social Networking"
+    }
+   ]
+  },
+  {
+   "slug": "reply-io",
+   "search_term": "Reply.io",
+   "search_country": "us",
+   "candidate_name_used": "Reply.io",
+   "expected_domain": "reply.io",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 8건)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1667772955,
+     "name": "respond.io - Inbox",
+     "seller": "Rocketbots Limited",
+     "domain": null,
+     "ratings": 16,
+     "genre": "Business"
+    },
+    {
+     "id": 6447023295,
+     "name": "Reply Assist AI",
+     "seller": "Arbor Apps LLC",
+     "domain": null,
+     "ratings": 42,
+     "genre": "Reference"
+    },
+    {
+     "id": 6479198536,
+     "name": "Reply AI - Your Chat Assistant",
+     "seller": "MXY Ventures Private Limited",
+     "domain": "mxyventures.com",
+     "ratings": 577,
+     "genre": "Social Networking"
+    }
+   ]
+  },
+  {
+   "slug": "attio",
+   "search_term": "Attio CRM",
+   "search_country": "us",
+   "candidate_name_used": "Attio",
+   "expected_domain": "attio.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 평가 29건 < 50(실사용 근거 약함)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1511545395,
+     "name": "Attio",
+     "seller": "Attio Limited",
+     "domain": "attio.com",
+     "ratings": 29,
+     "genre": "Productivity"
+    },
+    {
+     "id": 692777054,
+     "name": "OnePageCRM - Simple CRM System",
+     "seller": "Novus Via Ltd",
+     "domain": "onepagecrm.com",
+     "ratings": 384,
+     "genre": "Business"
+    },
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "folk",
+   "search_term": "folk CRM",
+   "search_country": "us",
+   "candidate_name_used": "folk",
+   "expected_domain": "folk.app",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 7건)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 6761423430,
+     "name": "Contacts by folk CRM",
+     "seller": "folk, inc",
+     "domain": "folk.app",
+     "ratings": 2,
+     "genre": "Business"
+    },
+    {
+     "id": 1107711722,
+     "name": "HubSpot",
+     "seller": "HubSpot",
+     "domain": "hubspot.com",
+     "ratings": 15747,
+     "genre": "Business"
+    },
+    {
+     "id": 1463073824,
+     "name": "Mesh: Contacts + CRM",
+     "seller": "Clay Software, Inc.",
+     "domain": "me.sh",
+     "ratings": 763,
+     "genre": "Productivity"
+    }
+   ]
+  },
+  {
+   "slug": "agile-crm",
+   "search_term": "Agile CRM",
+   "search_country": "us",
+   "candidate_name_used": "Agile CRM",
+   "expected_domain": "agilecrm.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 평가 33건 < 50(실사용 근거 약함)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1123540084,
+     "name": "Agile CRM",
+     "seller": "ClickDesk Inc",
+     "domain": null,
+     "ratings": 33,
+     "genre": "Productivity"
+    },
+    {
+     "id": 1107711722,
+     "name": "HubSpot",
+     "seller": "HubSpot",
+     "domain": "hubspot.com",
+     "ratings": 15747,
+     "genre": "Business"
+    },
+    {
+     "id": 563017797,
+     "name": "Insightly CRM",
+     "seller": "Insightly Inc",
+     "domain": "insightly.com",
+     "ratings": 293,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "keap",
+   "search_term": "Keap",
+   "search_country": "us",
+   "candidate_name_used": "Keap",
+   "expected_domain": "keap.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 1421097870 \"Keap Mobile\" · 평가 1827건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 1421097870,
+     "name": "Keap Mobile",
+     "seller": "Infusion Software, Inc.",
+     "domain": "keap.com",
+     "ratings": 1827,
+     "genre": "Business"
+    },
+    {
+     "id": 6466124404,
+     "name": "Keap Community",
+     "seller": "Infusion Software, Inc.",
+     "domain": "keap.community",
+     "ratings": 2,
+     "genre": "Social Networking"
+    },
+    {
+     "id": 1029207872,
+     "name": "Google Keep - Notes and lists",
+     "seller": "Google LLC",
+     "domain": "google.com",
+     "ratings": 29001,
+     "genre": "Productivity"
+    }
+   ],
+   "app_id": 1421097870,
+   "track_name": "Keap Mobile",
+   "seller": "Infusion Software, Inc.",
+   "seller_domain": "keap.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 1827,
+    "kr": 0
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "nimble",
+   "search_term": "Nimble CRM",
+   "search_country": "us",
+   "candidate_name_used": "Nimble",
+   "expected_domain": "nimble.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 651636273 \"Nimble\" · 평가 619건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 651636273,
+     "name": "Nimble",
+     "seller": "Nimble, Inc.",
+     "domain": "nimble.com",
+     "ratings": 619,
+     "genre": "Business"
+    },
+    {
+     "id": 692777054,
+     "name": "OnePageCRM - Simple CRM System",
+     "seller": "Novus Via Ltd",
+     "domain": "onepagecrm.com",
+     "ratings": 384,
+     "genre": "Business"
+    },
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 651636273,
+   "track_name": "Nimble",
+   "seller": "Nimble, Inc.",
+   "seller_domain": "nimble.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 619,
+    "kr": 2
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "salesflare",
+   "search_term": "Salesflare",
+   "search_country": "us",
+   "candidate_name_used": "Salesflare",
+   "expected_domain": "salesflare.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 평가 9건 < 50(실사용 근거 약함)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1061142976,
+     "name": "Salesflare",
+     "seller": "Salesflare BVBA",
+     "domain": "salesflare.com",
+     "ratings": 9,
+     "genre": "Business"
+    },
+    {
+     "id": 1564302502,
+     "name": "Lead Connector",
+     "seller": "LEADCONNECTOR LLC",
+     "domain": null,
+     "ratings": 4010,
+     "genre": "Productivity"
+    },
+    {
+     "id": 910768078,
+     "name": "LinkedIn Sales Navigator",
+     "seller": "LinkedIn Corporation",
+     "domain": "business.linkedin.com",
+     "ratings": 51953,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "badger-maps",
+   "search_term": "Badger Maps",
+   "search_country": "us",
+   "candidate_name_used": "Badger Maps",
+   "expected_domain": "badgermapping.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 789934914 \"Badger Maps: #1 Route Planner\" · 평가 1108건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 789934914,
+     "name": "Badger Maps: #1 Route Planner",
+     "seller": "Badger Maps, Inc.",
+     "domain": "badgermapping.com",
+     "ratings": 1108,
+     "genre": "Business"
+    },
+    {
+     "id": 959621658,
+     "name": "RoadWarrior Route Planner",
+     "seller": "MapQuest Holdings LLC",
+     "domain": "roadwarrior.app",
+     "ratings": 7520,
+     "genre": "Navigation"
+    },
+    {
+     "id": 388424049,
+     "name": "Avenza Maps: Offline Mapping",
+     "seller": "Avenza Systems Inc.",
+     "domain": "store.avenza.com",
+     "ratings": 128180,
+     "genre": "Navigation"
+    }
+   ],
+   "app_id": 789934914,
+   "track_name": "Badger Maps: #1 Route Planner",
+   "seller": "Badger Maps, Inc.",
+   "seller_domain": "badgermapping.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 1108,
+    "kr": 0
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "spotio",
+   "search_term": "SPOTIO",
+   "search_country": "us",
+   "candidate_name_used": "SPOTIO",
+   "expected_domain": "spotio.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 판매자 도메인(없음) ≠ 후보 도메인(spotio.com) — 동명 앱 가능성",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1321365455,
+     "name": "SPOTIO | #1 Field Sales App",
+     "seller": "Spotio Inc",
+     "domain": null,
+     "ratings": 324,
+     "genre": "Business"
+    },
+    {
+     "id": 879884387,
+     "name": "SalesRabbit",
+     "seller": "Sales Rabbit, Inc.",
+     "domain": "salesrabbit.com",
+     "ratings": 1169,
+     "genre": "Business"
+    },
+    {
+     "id": 1268256519,
+     "name": "Volumio",
+     "seller": "Volumio Srl",
+     "domain": "volumio.com",
+     "ratings": 123,
+     "genre": "Music"
+    }
+   ]
+  },
+  {
+   "slug": "lusha",
+   "search_term": "Lusha",
+   "search_country": "us",
+   "candidate_name_used": "Lusha",
+   "expected_domain": "lusha.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 5건)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1626295849,
+     "name": "ADHD: Chores & Emotions",
+     "seller": "Dygie",
+     "domain": "lusha.care",
+     "ratings": 19,
+     "genre": "Medical"
+    },
+    {
+     "id": 946403534,
+     "name": "Lush Fresh Handmade Cosmetics",
+     "seller": "Lush Ltd",
+     "domain": null,
+     "ratings": 10947,
+     "genre": "Shopping"
+    },
+    {
+     "id": 1532219973,
+     "name": "货源共享-进货批发采购货源批发网",
+     "seller": "璐莎 宋",
+     "domain": null,
+     "ratings": 0,
+     "genre": "Shopping"
+    }
+   ]
+  },
+  {
+   "slug": "seamless-ai",
+   "search_term": "Seamless.AI",
+   "search_country": "us",
+   "candidate_name_used": "Seamless.AI",
+   "expected_domain": "seamless.ai",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 8건)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1668000334,
+     "name": "Perplexity - AI Search & Chat",
+     "seller": "Perplexity AI Inc.",
+     "domain": "perplexity.ai",
+     "ratings": 515215,
+     "genre": "Productivity"
+    },
+    {
+     "id": 1664389041,
+     "name": "Seamless",
+     "seller": "Terrapinn Holdings Pty Ltd",
+     "domain": "terrapinn.com",
+     "ratings": 5,
+     "genre": "Business"
+    },
+    {
+     "id": 6737597349,
+     "name": "DeepSeek - AI Assistant",
+     "seller": "Hangzhou DeepSeek Artificial Intelligence Co., Ltd",
+     "domain": null,
+     "ratings": 12250,
+     "genre": "Productivity"
+    }
+   ]
+  },
+  {
+   "slug": "bitrix24",
+   "search_term": "Bitrix24",
+   "search_country": "us",
+   "candidate_name_used": "Bitrix24",
+   "expected_domain": "bitrix24.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 판매자 도메인(없음) ≠ 후보 도메인(bitrix24.com) — 동명 앱 가능성",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 561683423,
+     "name": "Bitrix24",
+     "seller": "Bitrix, Inc.",
+     "domain": null,
+     "ratings": 1292,
+     "genre": "Business"
+    },
+    {
+     "id": 929604673,
+     "name": "Bitrix24 OTP",
+     "seller": "Bitrix, Inc.",
+     "domain": null,
+     "ratings": 0,
+     "genre": "Business"
+    },
+    {
+     "id": 842849113,
+     "name": "Google Sheets",
+     "seller": "Google LLC",
+     "domain": "google.com",
+     "ratings": 1865557,
+     "genre": "Productivity"
+    }
+   ]
+  },
+  {
+   "slug": "sugarcrm",
+   "search_term": "SugarCRM",
+   "search_country": "us",
+   "candidate_name_used": "SugarCRM",
+   "expected_domain": "sugarcrm.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 판매자 도메인(sugarai.com) ≠ 후보 도메인(sugarcrm.com) — 동명 앱 가능성",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 599208633,
+     "name": "SugarCRM",
+     "seller": "SugarCRM",
+     "domain": "sugarai.com",
+     "ratings": 76,
+     "genre": "Business"
+    },
+    {
+     "id": 1451591993,
+     "name": "wMobile for SugarCRM",
+     "seller": "W-Systems Corp.",
+     "domain": null,
+     "ratings": 4,
+     "genre": "Business"
+    },
+    {
+     "id": 1267326349,
+     "name": "Biz Card Reader for SugarCRM",
+     "seller": "Ruslan Savchyshyn",
+     "domain": "magneticonemobile.com",
+     "ratings": 2,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "vtiger",
+   "search_term": "Vtiger CRM",
+   "search_country": "us",
+   "candidate_name_used": "Vtiger",
+   "expected_domain": "vtiger.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 7건)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1525512480,
+     "name": "Vtiger CRM Mobile",
+     "seller": "Vtiger Systems (India) Private Limited",
+     "domain": "vtiger.com",
+     "ratings": 2,
+     "genre": "Business"
+    },
+    {
+     "id": 1390518474,
+     "name": "Vibe for Vtiger CRM",
+     "seller": "Smackcoders Technologies Private Limited",
+     "domain": "smackcoders.com",
+     "ratings": 0,
+     "genre": "Business"
+    },
+    {
+     "id": 1113502000,
+     "name": "Vtiger 360",
+     "seller": "Vtiger Systems (India) Private Limited",
+     "domain": "vtiger.com",
+     "ratings": 9,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "engagebay",
+   "search_term": "EngageBay",
+   "search_country": "us",
+   "candidate_name_used": "EngageBay",
+   "expected_domain": "engagebay.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 평가 4건 < 50(실사용 근거 약함)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1497843957,
+     "name": "EngageBay",
+     "seller": "Govind Chunchula",
+     "domain": "engagebay.com",
+     "ratings": 4,
+     "genre": "Business"
+    },
+    {
+     "id": 289559439,
+     "name": "Viva Engage",
+     "seller": "Microsoft Corporation",
+     "domain": "about.yammer.com",
+     "ratings": 4092,
+     "genre": "Business"
+    },
+    {
+     "id": 1099748482,
+     "name": "Spaces: Follow Businesses",
+     "seller": "WIX.COM, INC.",
+     "domain": "wix.com",
+     "ratings": 45458,
+     "genre": "Productivity"
+    }
+   ]
+  },
+  {
+   "slug": "teamgate",
+   "search_term": "Teamgate CRM",
+   "search_country": "us",
+   "candidate_name_used": "Teamgate",
+   "expected_domain": "teamgate.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 8건)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    },
+    {
+     "id": 596927802,
+     "name": "Cloze Relationship Management",
+     "seller": "Cloze, Inc.",
+     "domain": "cloze.com",
+     "ratings": 2835,
+     "genre": "Productivity"
+    },
+    {
+     "id": 1107711722,
+     "name": "HubSpot",
+     "seller": "HubSpot",
+     "domain": "hubspot.com",
+     "ratings": 15747,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "dynamics-365-sales",
+   "search_term": "Dynamics 365 Sales",
+   "search_country": "us",
+   "candidate_name_used": "Dynamics 365 Sales",
+   "expected_domain": "microsoft.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름은 맞지만 판매자 도메인(없음) ≠ 후보 도메인(microsoft.com) — 동명 앱 가능성",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 1485578688,
+     "name": "Dynamics 365 Sales",
+     "seller": "Microsoft Corporation",
+     "domain": null,
+     "ratings": 854,
+     "genre": "Business"
+    },
+    {
+     "id": 1003997947,
+     "name": "Dynamics 365 for phones",
+     "seller": "Microsoft Corporation",
+     "domain": "dynamics.microsoft.com",
+     "ratings": 5697,
+     "genre": "Business"
+    },
+    {
+     "id": 1047318566,
+     "name": "Power Apps",
+     "seller": "Microsoft Corporation",
+     "domain": "powerapps.microsoft.com",
+     "ratings": 22903,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "salesrabbit",
+   "search_term": "SalesRabbit",
+   "search_country": "us",
+   "candidate_name_used": "SalesRabbit",
+   "expected_domain": "salesrabbit.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 879884387 \"SalesRabbit\" · 평가 1169건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 879884387,
+     "name": "SalesRabbit",
+     "seller": "Sales Rabbit, Inc.",
+     "domain": "salesrabbit.com",
+     "ratings": 1169,
+     "genre": "Business"
+    },
+    {
+     "id": 1632303164,
+     "name": "SalesRabbit+",
+     "seller": "Sales Rabbit, Inc.",
+     "domain": null,
+     "ratings": 345,
+     "genre": "Business"
+    },
+    {
+     "id": 6753874229,
+     "name": "SalesRabbit for Intune",
+     "seller": "Sales Rabbit, Inc.",
+     "domain": "salesrabbit.com",
+     "ratings": 5,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 879884387,
+   "track_name": "SalesRabbit",
+   "seller": "Sales Rabbit, Inc.",
+   "seller_domain": "salesrabbit.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 1169,
+    "kr": 0
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "onepagecrm",
+   "search_term": "OnePageCRM",
+   "search_country": "us",
+   "candidate_name_used": "OnePageCRM",
+   "expected_domain": "onepagecrm.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 692777054 \"OnePageCRM - Simple CRM System\" · 평가 384건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 692777054,
+     "name": "OnePageCRM - Simple CRM System",
+     "seller": "Novus Via Ltd",
+     "domain": "onepagecrm.com",
+     "ratings": 384,
+     "genre": "Business"
+    },
+    {
+     "id": 1625929628,
+     "name": "ONE Suite CRM",
+     "seller": "REALTY ONE GROUP, INC.",
+     "domain": null,
+     "ratings": 7,
+     "genre": "Productivity"
+    },
+    {
+     "id": 1538758877,
+     "name": "On the Road by OnePageCRM",
+     "seller": "Novus Via Ltd",
+     "domain": "onepagecrm.com",
+     "ratings": 17,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 692777054,
+   "track_name": "OnePageCRM - Simple CRM System",
+   "seller": "Novus Via Ltd",
+   "seller_domain": "onepagecrm.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 384,
+    "kr": 0
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "cloze",
+   "search_term": "Cloze",
+   "search_country": "us",
+   "candidate_name_used": "Cloze Relationship Management",
+   "expected_domain": "cloze.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 596927802 \"Cloze Relationship Management\" · 평가 2835건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 596927802,
+     "name": "Cloze Relationship Management",
+     "seller": "Cloze, Inc.",
+     "domain": "cloze.com",
+     "ratings": 2835,
+     "genre": "Productivity"
+    },
+    {
+     "id": 1149199075,
+     "name": "Clozemaster－Vocabulary Builder",
+     "seller": "Language Innovation LLC",
+     "domain": "clozemaster.com",
+     "ratings": 2067,
+     "genre": "Education"
+    },
+    {
+     "id": 6780951226,
+     "name": "Cloze - 图片挖空助手",
+     "seller": "龙飞 孔",
+     "domain": null,
+     "ratings": 0,
+     "genre": "Education"
+    }
+   ],
+   "app_id": 596927802,
+   "track_name": "Cloze Relationship Management",
+   "seller": "Cloze, Inc.",
+   "seller_domain": "cloze.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 2835,
+    "kr": 1
+   },
+   "genre": "Productivity",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "linkedin-sales-navigator",
+   "search_term": "LinkedIn Sales Navigator",
+   "search_country": "us",
+   "candidate_name_used": "LinkedIn Sales Navigator",
+   "expected_domain": "business.linkedin.com",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 910768078 \"LinkedIn Sales Navigator\" · 평가 51953건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 910768078,
+     "name": "LinkedIn Sales Navigator",
+     "seller": "LinkedIn Corporation",
+     "domain": "business.linkedin.com",
+     "ratings": 51953,
+     "genre": "Business"
+    },
+    {
+     "id": 288429040,
+     "name": "LinkedIn: Community & Network",
+     "seller": "LinkedIn Corporation",
+     "domain": "linkedin.com",
+     "ratings": 644897,
+     "genre": "Business"
+    },
+    {
+     "id": 712437486,
+     "name": "LinkedIn Recruiter",
+     "seller": "LinkedIn Corporation",
+     "domain": "lnkd.in",
+     "ratings": 9204,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 910768078,
+   "track_name": "LinkedIn Sales Navigator",
+   "seller": "LinkedIn Corporation",
+   "seller_domain": "business.linkedin.com",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 51953,
+    "kr": 244
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "salesmate",
+   "search_term": "Salesmate CRM",
+   "search_country": "us",
+   "candidate_name_used": "Salesmate",
+   "expected_domain": "salesmate.io",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 1114709439 \"Salesmate – Sales CRM\" · 평가 632건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 1114709439,
+     "name": "Salesmate – Sales CRM",
+     "seller": "RapidOps Inc.",
+     "domain": "salesmate.io",
+     "ratings": 632,
+     "genre": "Business"
+    },
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    },
+    {
+     "id": 1485578688,
+     "name": "Dynamics 365 Sales",
+     "seller": "Microsoft Corporation",
+     "domain": null,
+     "ratings": 854,
+     "genre": "Business"
+    }
+   ],
+   "app_id": 1114709439,
+   "track_name": "Salesmate – Sales CRM",
+   "seller": "RapidOps Inc.",
+   "seller_domain": "salesmate.io",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 632,
+    "kr": 1
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  },
+  {
+   "slug": "pipeline-crm",
+   "search_term": "Pipeline CRM",
+   "search_country": "us",
+   "candidate_name_used": "Pipeline CRM",
+   "expected_domain": "pipelinecrm.com",
+   "anchor_state": "no_match",
+   "anchor_reason": "이름이 맞는 앱 없음(조회 8건)",
+   "pass": false,
+   "top3_seen": [
+    {
+     "id": 639580181,
+     "name": "Pipeline - A Simple CRM",
+     "seller": "PipelineDeals LLC",
+     "domain": "pipelinecrm.com",
+     "ratings": 54,
+     "genre": "Business"
+    },
+    {
+     "id": 921456160,
+     "name": "Pipedrive – Sales CRM",
+     "seller": "Pipedrive Inc",
+     "domain": "pipedrive.com",
+     "ratings": 675,
+     "genre": "Business"
+    },
+    {
+     "id": 1107711722,
+     "name": "HubSpot",
+     "seller": "HubSpot",
+     "domain": "hubspot.com",
+     "ratings": 15747,
+     "genre": "Business"
+    }
+   ]
+  },
+  {
+   "slug": "nocrm",
+   "search_term": "noCRM.io",
+   "search_country": "us",
+   "candidate_name_used": "noCRM.io",
+   "expected_domain": "nocrm.io",
+   "anchor_state": "anchored",
+   "anchor_reason": "앱 1079498089 \"noCRM.io\" · 평가 59건",
+   "pass": true,
+   "top3_seen": [
+    {
+     "id": 1079498089,
+     "name": "noCRM.io",
+     "seller": "POSITIVE GROUP SALES SOLUTIONS",
+     "domain": "nocrm.io",
+     "ratings": 59,
+     "genre": "Business"
+    },
+    {
+     "id": 444908810,
+     "name": "Zoho CRM - Sales & Marketing",
+     "seller": "Zoho Corporation",
+     "domain": "zoho.com",
+     "ratings": 2691,
+     "genre": "Business"
+    },
+    {
+     "id": 596927802,
+     "name": "Cloze Relationship Management",
+     "seller": "Cloze, Inc.",
+     "domain": "cloze.com",
+     "ratings": 2835,
+     "genre": "Productivity"
+    }
+   ],
+   "app_id": 1079498089,
+   "track_name": "noCRM.io",
+   "seller": "POSITIVE GROUP SALES SOLUTIONS",
+   "seller_domain": "nocrm.io",
+   "already_registered_in_repo_files": false,
+   "ratings": {
+    "us": 59,
+    "kr": 0
+   },
+   "genre": "Business",
+   "register_countries": [
+    "us"
+   ]
+  }
+ ]
+}

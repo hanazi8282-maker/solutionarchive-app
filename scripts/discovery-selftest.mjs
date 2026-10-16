@@ -37,7 +37,7 @@ import {
 import { REF_BUILDERS, buildProductRef } from '../lib/review/target-ref.ts'
 // ⚠️ import 만으로 루프가 돌면 안 된다(남의 서버를 때린다). 아래 import 가
 //    조용히 통과하는 것 자체가 "직접 실행일 때만 돈다"의 검사다.
-import { ROBOTS_EXEMPT_HOSTS, gatedFetch, parseCandidates, proposalPrompt } from './discovery-run.mjs'
+import { ROBOTS_EXEMPT_HOSTS, ROTATION_AREAS, askCount, gatedFetch, knownInDb, likeExact, loadAreaAxis, parseCandidates, pickArea, proposalPrompt } from './discovery-run.mjs'
 import { RobotsCache } from '../lib/review/runner.ts'
 import { DANAWA_CRAWL_DELAY_MS } from '../lib/discovery/probe.ts'
 import { discoveryBlocks } from './notion-push-digest.mjs'
@@ -491,6 +491,50 @@ t('userinfo 는 거절', buildProductRef('damoang', 'url:/free/1@evil.example').
   ok('saas 는 이식성 규칙을 못박는다', p.includes('옮겨 쓸 교훈') && !p.includes('상한(500)'))
   ok('physical 에는 그 줄이 붙지 않는다', !proposalPrompt('physical', 2, k).includes('옮겨 쓸 교훈'))
   ok('아는 게 없으면 그 줄이 빠진다', !proposalPrompt('saas', 2, known()).includes('겹치지 마라'))
+}
+
+// ── 영역 회전·DB 이름 조회 (v71ab C-4b) ─────────────────────────────
+{
+  t('회전: 5일이면 ①~⑤ 를 한 번씩', [0, 1, 2, 3, 4].map((d) => pickArea(d)).join(''), '12345')
+  t('회전: 6일째는 다시 ①', pickArea(5), '1')
+  t('회전: DISCOVERY_AREA 고정', pickArea(0, '4'), '4')
+  t('회전: 목록 밖 고정값은 무시(design·hold 로 새지 않는다)', pickArea(1, 'design'), '2')
+  ok('영역 설정 1~5 전부 키워드·이름이 있다', ROTATION_AREAS.every((c) => loadAreaAxis(c).keywords.length > 0))
+  const area = loadAreaAxis('2')
+  const p = proposalPrompt('saas', 2, known(), area)
+  ok('saas 프롬프트에 영역 이름·키워드가 실린다', p.includes(area.name) && area.keywords.every((k) => p.includes(k)))
+  ok('physical 프롬프트에는 영역 줄이 없다', !proposalPrompt('physical', 2, known(), area).includes('이번 회차 영역'))
+  t('LLM 요청 수 = 프로브 몫 ×3', askCount(2), 6)
+  t('LLM 요청 수 상한 12', askCount(5), 12)
+  t('ilike 정확 일치: 와일드카드 이스케이프', likeExact('a_b%c'), 'a\\_b\\%c')
+  t('ilike 정확 일치: * 든 이름은 조회 불가', likeExact('A*B'), null)
+
+  // 가짜 DB: 조회 경로가 kind·이름으로 묻고, 오류는 known 이 아니라 error 로 돌아온다(확인 불가를 통과로 접지 않는다).
+  const fakeDb = (rows, failTable = null) => ({
+    from(table) {
+      const f = {}
+      const api = {
+        select() { return api },
+        eq(k, v) { f[k] = v; return api },
+        ilike(k, v) { f[k] = v; return api },
+        limit() {
+          if (table === failTable) return Promise.resolve({ data: null, error: { message: 'boom' } })
+          const hit = (rows[table] ?? []).filter((r) => Object.entries(f).every(([k, v]) => String(r[k]).toLowerCase() === String(v).toLowerCase()))
+          return Promise.resolve({ data: hit, error: null })
+        },
+      }
+      return api
+    },
+  })
+  const db = fakeDb({ discovery_candidates: [{ kind: 'saas', name: 'Gong' }], analysis_projects: [{ product_elevator_pitch: 'Calendly' }] })
+  t('DB 조회: 후보 이름(대소문자 무시)', (await knownInDb(db, 'saas', 'gong')).known, true)
+  t('DB 조회: 다른 축 이름은 아님', (await knownInDb(db, 'physical', 'Gong')).known, false)
+  t('DB 조회: 프로젝트 이름', (await knownInDb(db, 'saas', 'Calendly')).known, true)
+  t('DB 조회: 새 이름', (await knownInDb(db, 'saas', 'Fathom')).known, false)
+  ok('DB 조회 실패는 error(확인 불가)', typeof (await knownInDb(fakeDb({}, 'analysis_projects'), 'saas', 'X')).error === 'string')
+  const src = await fs.readFile(path.join(here, 'discovery-run.mjs'), 'utf8')
+  ok('루프가 DB 조회 실패를 unverified 로 기록한다', /k\.error\) blocked = \{ verdict: 'unverified'/.test(src))
+  ok('프로브 수는 want.count 로 끊는다', /if \(probed >= want\.count\) break/.test(src))
 }
 
 // ── 다이제스트 섹션 ──────────────────────────────────────────────

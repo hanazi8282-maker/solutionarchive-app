@@ -33,6 +33,7 @@
 //   DISCOVERY_MAX_VOC_HITS  과대 기준, 배타 — 이 값 이상이면 oversized (기본 MAX_VOC_HITS=50,000)
 //   빈 문자열은 "미지정"이다(워크플로가 vars 없을 때 넘긴다) — Number('') 가 0 이 되지 않게 `||` 로 받는다.
 //   DISCOVERY_KIND          축 고정(physical|saas). 안 주면 이력에서 고른다
+//   DISCOVERY_AREA          saas 축 영역 고정(1~5). 비우면 날짜로 ①~⑤ 를 돈다(v71ab C-4b, 키워드 = config/discovery-c1.json)
 //   DISCOVERY_TRANSFER_GATE 이식성 판정 모드(on|shadow). 비우면 lib/discovery/transfer.ts DEFAULT_GATE_MODE.
 //                           on=fail·확인불가는 적재 안 함 / shadow=판정만 기록하고 오늘처럼 적재
 
@@ -74,6 +75,48 @@ const GATE_MODE = gateMode(process.env.DISCOVERY_TRANSFER_GATE)
 
 /** 프로브가 쓰는 소스 키. review_sources.key 와 철자가 같아야 한다(FK). */
 const PROBE_SOURCE = { physical: 'danawa', saas: 'hackernews' }
+
+// ── 영역 회전(v71ab C-4b) ─────────────────────────────────────────
+// saas 축이 DISCOVERY_KIND=saas 로 고정된 뒤 LLM 이 매일 같은 결의 유명 SaaS 만 냈다. 축 안에서 영역 ①~⑤ 를 날마다 돌려
+// 제안 범위를 좁힌다. 키워드 정본은 config/discovery-c1.json(영역 코드는 config/areas.json 과 같다 — 그쪽 셀프테스트가 대조).
+export const ROTATION_AREAS = ['1', '2', '3', '4', '5']
+/** 오늘 영역. override 가 목록에 있으면 그것, 아니면 UTC 날짜 순번 % 5. */
+export function pickArea(dayIndex, override) {
+  const o = String(override ?? '').trim()
+  if (ROTATION_AREAS.includes(o)) return o
+  return ROTATION_AREAS[((dayIndex % ROTATION_AREAS.length) + ROTATION_AREAS.length) % ROTATION_AREAS.length]
+}
+/** 영역 코드 → { code, name, keywords }. 설정을 못 읽으면 던진다 — 영역 없이 조용히 넓게 돌지 않는다(§7.1). */
+export function loadAreaAxis(code, root = repoRoot) {
+  const kw = JSON.parse(fs.readFileSync(path.join(root, 'config', 'discovery-c1.json'), 'utf8')).areas?.[code]?.en
+  const name = JSON.parse(fs.readFileSync(path.join(root, 'config', 'areas.json'), 'utf8')).areas?.find((a) => a.code === code)?.name
+  if (!Array.isArray(kw) || !kw.length || !name) throw new Error(`영역 ${code} 의 키워드·이름을 설정에서 못 찾았다`)
+  return { code, name, keywords: kw }
+}
+
+// ── 이름 중복: DB 에 직접 묻는다(v71ab C-4b) ───────────────────────
+// 전에는 최근 500 후보·1,000 프로젝트를 메모리에 올리고, 프롬프트에는 그중 80개만 보여 줬다. 81번째 이후 이름을 LLM 이 다시
+// 내면 메모리에도 없을 수 있어(500 밖) 프로브까지 갔다. 이제 후보마다 discovery_candidates(kind, 이름 대소문자 무시 일치)와
+// analysis_projects(product_elevator_pitch)를 DB 에서 조회한다 — 목록 크기와 무관하다.
+/** ilike 정확 일치 패턴. PostgREST 는 '*' 를 와일드카드로 바꾸므로 '*' 가 든 이름은 정확 조회 불가 → null. */
+export function likeExact(name) {
+  const s = String(name ?? '').trim()
+  if (!s || s.includes('*')) return null
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`)
+}
+/** → { known: boolean } | { error: string }. 던지지 않는다 — 못 물었으면 호출자가 확인 불가로 처리한다. */
+export async function knownInDb(supabase, kind, name) {
+  const pat = likeExact(name)
+  if (pat === null) return { error: `정확 조회 불가 이름: ${name}` }
+  const a = await supabase.from('discovery_candidates').select('id').eq('kind', kind).ilike('name', pat).limit(1)
+  if (a.error) return { error: `discovery_candidates 조회 실패: ${a.error.message}` }
+  if ((a.data ?? []).length) return { known: true }
+  const b = await supabase.from('analysis_projects').select('id').ilike('product_elevator_pitch', pat).limit(1)
+  if (b.error) return { error: `analysis_projects 조회 실패: ${b.error.message}` }
+  return { known: (b.data ?? []).length > 0 }
+}
+/** LLM 에게 받는 후보 수 = 프로브 수 × 3(≤12). 아는 이름이 섞여도 프로브 몫을 채운다 — 프로브(외부 요청) 수는 그대로 count. */
+export const askCount = (count) => Math.min(12, Math.max(count, count * 3))
 
 const started = Date.now()
 const log = (msg) => console.log(`[${new Date().toISOString()}] ${msg}`)
@@ -213,7 +256,7 @@ async function loadKnown() {
 }
 
 // ── [2] 후보 제안 ────────────────────────────────────────────────
-export function proposalPrompt(kind, count, known) {
+export function proposalPrompt(kind, count, known, area = null) {
   const kindWord = kind === 'saas' ? '소프트웨어·SaaS 제품' : '한국에서 온라인으로 파는 실물 소비재'
   const source = kind === 'saas' ? 'Hacker News 댓글' : '다나와 상품 리뷰'
   const knownNames = [...known.names].map((k) => k.split(':').slice(1).join(':')).filter(Boolean)
@@ -224,6 +267,7 @@ export function proposalPrompt(kind, count, known) {
 
   return [
     `${kindWord} ${count}개를 후보로 제안하라. 고객 불만(VOC)을 분석할 대상을 찾는 중이다.`,
+    kind === 'saas' && area ? `이번 회차 영역은 ${area.name} 이다. 이 영역 제품만 내라 — 키워드: ${area.keywords.join(', ')}.` : null,
     // 아래 목록의 이름·메모는 웹에서 온 후보 이름과 사람 메모다 — 지시가 아니라 데이터로 읽게 한다.
     UNTRUSTED_INPUT_NOTICE,
     '',
@@ -280,7 +324,7 @@ export function parseCandidates(text) {
   }
 }
 
-async function propose(kind, count, known) {
+async function propose(kind, count, known, area = null) {
   const manual = arg('names', null)
   if (manual) {
     // LLM 을 건너뛰는 경로. 프로브·적재를 사람이 지정한 이름으로 확인할 때 쓴다.
@@ -300,7 +344,7 @@ async function propose(kind, count, known) {
   }
 
   const bin = (await resolveClaudeBinary()).path
-  const prompt = proposalPrompt(kind, count, known)
+  const prompt = proposalPrompt(kind, count, known, area)
   const childEnvKeys = ['CLAUDE_CODE_OAUTH_TOKEN']
 
   // ⚠️ `--output-format json` 을 쓴다. `text` 는 이 리포에서 이 호출만 쓰던 형식이고,
@@ -563,20 +607,31 @@ async function main() {
     return
   }
 
-  const candidates = await propose(kind, want.count, known)
-  log(`후보 ${candidates.length}건: ${candidates.map((c) => c.name).join(' / ')}`)
+  const area = kind === 'saas' ? loadAreaAxis(pickArea(Math.floor(Date.now() / 86_400_000), process.env.DISCOVERY_AREA)) : null
+  if (area) log(`영역: ${area.name} (키워드 ${area.keywords.join(', ')})`)
+  const candidates = await propose(kind, askCount(want.count), known, area)
+  log(`후보 ${candidates.length}건(프로브 몫 ${want.count}): ${candidates.map((c) => c.name).join(' / ')}`)
 
   const results = []
   let judgeBin = null
+  let probed = 0
   for (const cand of candidates) {
+    if (probed >= want.count) break
     log(`— ${cand.name} (${cand.categoryHint ?? '카테고리 미기재'})`)
 
-    const blocked = screen({ kind, name: cand.name, categoryHint: cand.categoryHint }, known)
+    let blocked = screen({ kind, name: cand.name, categoryHint: cand.categoryHint }, known)
+    // 메모리 목록(최근 500)을 통과해도 DB 에 이미 있으면 기각. 못 물었으면 확인 불가 — 프로브하지 않는다(§7.1).
+    if (!blocked && known.supabase) {
+      const k = await knownInDb(known.supabase, kind, cand.name)
+      if (k.error) blocked = { verdict: 'unverified', reason: `known_check_failed: ${k.error}` }
+      else if (k.known) blocked = { verdict: 'rejected', reason: 'already_known' }
+    }
     if (blocked) {
       log(`  게이트 기각: ${blocked.reason} — 프로브 안 함`)
       results.push({ ...cand, kind, probe: null, probeSourceKey: null, judgement: blocked })
       continue
     }
+    probed++
 
     const probe = kind === 'saas' ? await probeSaas(cand.name, fetchText) : await probePhysical(cand.name, fetchText)
     const vocJudgement = judge(probe, MIN_HITS, MAX_HITS)

@@ -346,6 +346,8 @@ jobs:
       - run: node scripts/store-search-discovery-selftest.mjs
       # 자율 발굴 C-1 ①③(v56): 게시판 소스당 하루 5·어댑터 미지원=제안만·robots 확인 불가면 요청 0·403 즉시 중단·3일 강등 초안·이상 반응·보고 블록·DB 쓰기 0.
       - run: node scripts/discovery-c1-selftest.mjs
+      # 후보 생성기 1단계(v71aa 1-4): 필터 순서·out-* 제외·robots 확인 불가 기각·하루 45·② 가중·등록 0·DB/네트워크 import 0.
+      - run: node scripts/candidate-generator-selftest.mjs
       - run: node scripts/review-bobaedream-selftest.mjs
       - run: node scripts/review-brunch-selftest.mjs
       - run: node scripts/review-clien-selftest.mjs

@@ -1,0 +1,98 @@
+{
+  "version": "v0",
+  "date": "2026-10-15",
+  "source": "인스타그램 레퍼런스 7편(총 76장) 직접 관찰. 문장·이미지·로고는 담지 않고 구조·규칙·수치·리듬만 뽑음. 수치는 공백 포함 근사(글자 ±5~8).",
+  "n_posts": 7,
+  "defaults": {
+    "deck": {
+      "slides": { "min": 9, "median": 11, "max": 13 },
+      "roles_order": ["표지훅", "문제", "근거", "사례", "요약", "마무리"],
+      "cta_slide": false,
+      "note": "표지 뒤 본문은 번호 01부터. 마지막 장은 CTA 없이 닫는 편이 7편 중 6편."
+    },
+    "canvas": { "ratio_choices": ["1:1 (1080x1080)", "4:5 (1080x1350)"], "default": "1:1", "one_ratio_per_deck": true },
+    "template_family": {
+      "default": "B",
+      "A": {
+        "name": "연재 명조형",
+        "font": "serif(명조 계열)",
+        "top_rule": { "y_pct": 10, "width_pct": 82 },
+        "icon": "좌상단 원형 재생/일시정지형 아이콘(지름 약 13%, x 7~20%)",
+        "headline_sentence_bold": true,
+        "body_start_y_pct": 31
+      },
+      "B": {
+        "name": "번호+세로선 고딕형",
+        "font": "sans(고딕 계열)",
+        "number_label": { "format": "01", "position": "좌상단", "x_pct": 10, "y_pct": 7, "face": "굵은 세리프 숫자" },
+        "vertical_bar": { "color": "#666666", "x_pct": 10, "thickness_px": 2, "length": "본문 높이와 동일" },
+        "body_start_y_pct": 12.8
+      }
+    },
+    "layout": {
+      "margin_pct": { "top": [6, 11], "left": [10, 14], "right": [6, 9], "bottom_with_image": [3, 8], "bottom_text_only": [15, 45] },
+      "text_align": "left",
+      "paragraph_blank_lines": 1,
+      "column": "single",
+      "line_height_x": { "A": [1.55, 1.7], "B": [1.75, 1.9] },
+      "cover_title": { "lines": 3, "size_x_body": [3.3, 8.5], "weight": "초굵음", "align": "center_or_full_width" }
+    },
+    "color": {
+      "background": "#FFFFFF",
+      "body": { "range": ["#111111", "#4A4A4A"], "default": "#333333" },
+      "cover_title": "#000000",
+      "vertical_bar": "#666666",
+      "accent": { "default": null, "allowed_in_chart_only": "#E04B4B", "single_point_color_variant": "#DA7756" },
+      "changes_per_slide": false
+    },
+    "emphasis": { "method": "bold_only", "unit": "문장/문단 통째", "position": "장 첫 문단 또는 끝 1~3줄", "per_slide_bold_blocks": [1, 2], "color_underline_highlight": false },
+    "voice": {
+      "register": "반말 서술체(~다)",
+      "ending_distribution_pct": { "~다": [80, 93], "~다_mean": 87.6, "명사형": [0, 12], "~요": [0, 3], "기타": [0, 12] },
+      "sentence_len_chars": { "min": 5, "median": 22, "median_range": [19, 28], "max": 60 },
+      "chars_per_slide": { "A": { "median_range": [100, 130] }, "B": { "median_range": [136, 220] }, "min": 10, "max": 300 },
+      "lines_per_slide": { "min": 2, "median": 8, "max": 13 },
+      "question_pct": { "mean": 4.2, "range": [0, 7] },
+      "imperative_pct": { "range": [0, 4] },
+      "emoji": false,
+      "first_person_opinion": "선택(6·7편에서 관찰, 나머지 편은 관찰 안 됨)",
+      "number_style": "아라비아 숫자+단위 붙임, 비율은 %, 장 번호 두 자리 제로패딩",
+      "quote_marks": "작은따옴표로 핵심어 묶기가 기본, 큰따옴표는 인용·대사에 한정"
+    },
+    "line_breaking": {
+      "rule": "의미 단위(구·절 끝)에서 수동 줄바꿈이 기본",
+      "chars_per_line": [14, 33],
+      "avoid": "조사/어절 중간에서 끊기는 줄바꿈(원본에는 있으나 따라 하지 않음)"
+    },
+    "photo": {
+      "by_deck_ratio_of_slides_with_image": { "min": 0.0, "typical": [0.2, 0.9] },
+      "placement": "본문 아래 하단 영역, 텍스트와 겹치지 않음",
+      "layouts": ["1장 중앙(폭 64~90%)", "2장 나란히(각 약 35%, 간격 4%)", "2x2 격자(폭 80%)", "3컷 가로 나열"],
+      "kinds": ["제품 컷아웃", "스크린샷", "인물", "일러스트/픽셀", "차트·수치 카드", "도서/포스터"],
+      "text_overlay": "사용하지 않음(딤·박스 없음)",
+      "cover": "초대형 제목 + 하단 일러스트 또는 제품 이미지"
+    },
+    "hook_patterns": ["단언형", "대비 대결형", "정의 단언형(A는 B다)", "질문형(물음표)", "도발형(명사구로 끊긴 제목)", "가벼운 반전 감상형"],
+    "closing_patterns": ["수미상관(표지 질문을 되받음)", "열린 가설", "수치를 건 결론 한 문장", "굵은 당위 문장", "출처 밝힘+도서 권유", "행사 예고+팔로우 권유(2편만)"],
+    "caption": { "status": "관찰 불가", "reason": "7편 모두 이미지에 캡션이 없다. 해시태그 수·위치도 관찰 불가.", "generator_default": "남헌 지정 전까지 첫 줄 한 문장+해시태그 5개 이내(관찰 근거 없음, 임시 기본값)" }
+  },
+  "variants": {
+    "post_1": { "canvas": "1:1", "family": "A", "slides": 11, "photo_slides": 2, "cta": false, "hook": "대비 대결형" },
+    "post_2": { "canvas": "4:5", "family": "B", "slides": 11, "photo_slides": 10, "cta": true, "hook": "단언형", "notes": "장당 글자 가장 많음(중앙값 약 199자)" },
+    "post_3": { "canvas": "4:5", "family": "B", "slides": 9, "photo_slides": 4, "cta": false, "hook": "정의 단언형", "closing": "출처+도서 권유" },
+    "post_4": { "canvas": "4:5", "family": "B", "slides": 12, "photo_slides": 8, "cta": false, "hook": "질문형", "closing": "수미상관", "question_pct": 7, "transition_end_line": "장 끝줄이 다음 장을 부르는 전환·질문형" },
+    "post_5": { "canvas": "1:1", "family": "B", "slides": 10, "photo_slides": 8, "cta": false, "hook": "가벼운 반전 감상형", "accent": "#DA7756", "closing": "열린 가설" },
+    "post_6": { "canvas": "1:1", "family": "A", "slides": 13, "photo_slides": 5, "cta": false, "hook": "도발형(명사구 끊김)", "charts": true, "accent": "#E04B4B", "closing": "수치를 건 결론" },
+    "post_7": { "canvas": "1:1", "family": "B", "slides": 10, "photo_slides": 0, "cta": false, "hook": "질문형", "closing": "굵은 당위 문장", "pure_text": true }
+  },
+  "unobservable": ["캡션 본문", "해시태그 수·위치", "정확한 서체명", "글자 수 정밀값", "게시 반응 수치", "원본 파일 해상도"],
+  "source_data_issues": ["1·2·4·5·7편은 파일 순서와 장 번호 라벨이 어긋나 있어 논리 순서(라벨 기준)로 읽음", "1편은 5·6번 장이 완전 중복", "2~6편 파일은 확장자가 .heic이지만 실제로는 JPEG였음"],
+  "override": {
+    "_note": "남헌이 자기 특징을 얹는 자리. 생성기는 이 블록 값이 있으면 항상 defaults 보다 우선한다.",
+    "canvas": null,
+    "template_family": null,
+    "voice": null,
+    "color": null,
+    "caption": null
+  }
+}

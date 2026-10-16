@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
 
 const JPEG_QUALITY = 90;
@@ -409,6 +409,9 @@ async function main() {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+// 실행 진입 판정은 실경로로 비교한다. 정션·심볼릭 링크 경로로 부르면 argv[1] 은 링크 경로, import.meta.url 은 실경로라
+// 문자열 비교가 어긋나 main() 을 건너뛰고 출력 없이 exit 0 으로 끝났다(ai-tone-lint 와 같은 버그, v71ab).
+const real = (p) => { try { return fs.realpathSync(p); } catch { return path.resolve(p); } };
+if (process.argv[1] && pathToFileURL(real(process.argv[1])).href === pathToFileURL(real(fileURLToPath(import.meta.url))).href) {
   main().catch((e) => { console.error(`[ig-card] 실패: ${e.message}`); process.exit(1); });
 }

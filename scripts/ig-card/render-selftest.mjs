@@ -3,6 +3,7 @@
 // 아래 카드 내용은 전부 [FIXTURE — 실제 데이터 아님] 이다. 수치·문장 모두 지어낸 것.
 // 스펙 입력은 PR #543(docs/v71s-ig-style-spec) 의 ig-style-spec.json 사본(fixture-style-spec.json).
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -116,6 +117,14 @@ try {
   assert.ok(!fs.existsSync(inRepo));
   assert.doesNotThrow(() => assertOutsideRepo(TMP));
   ok('리포 안 출력 폴더 거부(폴더 미생성), 임시 폴더 허용');
+
+  // CLI 를 링크 경로로 불러도 main() 이 돈다 — 인자 없이 부르면 사용법 + exit 2(조용한 exit 0 금지).
+  const link = path.join(TMP, 'link');
+  fs.symlinkSync(HERE, link, 'junction');
+  const r = spawnSync(process.execPath, [path.join(link, 'render.mjs')], { encoding: 'utf8' });
+  assert.equal(r.status, 2, `링크 경로 실행 exit ${r.status}`);
+  assert.match(r.stderr, /사용법/);
+  ok('링크 경로로 실행해도 CLI 가 돈다(인자 없음 → exit 2)');
 
   console.log(`render-selftest: ${passed} passed`);
 } finally {

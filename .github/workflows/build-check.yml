@@ -350,6 +350,8 @@ jobs:
       - run: node scripts/discovery-c1-selftest.mjs
       # 후보 생성기 1단계(v71aa 1-4): 필터 순서·out-* 제외·robots 확인 불가 기각·하루 45·② 가중·등록 0·DB/네트워크 import 0.
       - run: node scripts/candidate-generator-selftest.mjs
+      # 리뷰 속 언급 앱 루프(v71ad §1): 영·한 추출 규칙·오탐 5종·자기 이름 제외·검증 3상태·30% 게이트·등록 초안 경계·robots 먼저·DB 쓰기 0.
+      - run: node scripts/mention-loop-selftest.mjs
       - run: node scripts/review-bobaedream-selftest.mjs
       - run: node scripts/review-brunch-selftest.mjs
       - run: node scripts/review-clien-selftest.mjs

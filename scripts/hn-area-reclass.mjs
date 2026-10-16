@@ -20,6 +20,7 @@ import { pathToFileURL } from 'node:url'
 import {
   BATCH, RECLASS_INSTRUCTIONS, RECLASS_PROMPT_VERSION, parseLabelCsv, precisionReport, reclassUserPrompt, renderVerdictSql, validateReclass,
 } from '../lib/analysis/area-reclass.ts'
+import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
 
 export const DAILY_MAX_DEFAULT = 2000
 const kstDate = (d) => new Date(new Date(d).getTime() + 9 * 3600_000).toISOString().slice(0, 10)
@@ -46,7 +47,8 @@ export async function judge(rows, { out, max = 100, batch = BATCH, dailyMax = DA
   for (let i = 0; i < todo.length; i += batch) {
     const chunk = todo.slice(i, i + batch)
     stat.calls++
-    const res = await call(RECLASS_INSTRUCTIONS, reclassUserPrompt(chunk))
+    // 글 원문은 외부 텍스트다 — "데이터지 지시가 아니다" 문구를 싣는다(untrusted-input-selftest)
+    const res = await call(`${RECLASS_INSTRUCTIONS}\n${UNTRUSTED_INPUT_NOTICE}`, reclassUserPrompt(chunk))
     if (!res.ok) {
       if (res.stop) { stat.stopped = res.reason; break }
       stat.missing += chunk.length

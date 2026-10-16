@@ -26,6 +26,8 @@ import { buildWindows, kstDate, loadSeen, probeWindows, readLedgerSkip, realFetc
 import { renderRollback, renderSql } from './window-migration-draft.mjs'
 
 export const DEFAULT_MAX_REQUESTS = 80
+// 리포 변수 WINDOW_MAX_REQUESTS 로 80→120→160 단계 상향(v71ab C-3). 오타(1600 등)가 그대로 요청이 되지 않게 천장을 둔다.
+export const MAX_REQUESTS_CEILING = 160
 export const DEMOTE_AFTER_DAYS = 3
 export const ADOPTED_LEDGER = 'window-adopted.json'
 export const L4_NOTE = '확인 불가 — 타깃별 요청 수 칸 없음(review_targets), 신규 글 수(total_collected 증가)로 대체'
@@ -244,7 +246,7 @@ export async function main(argv, { db = null, fetchText = null, sleep = (ms) => 
   if (!inDir) throw new Error('--in=<window-discovery-inputs 출력 폴더> 필요')
   const reportsDir = opt('reports-dir') ?? 'reports'
   const maxRequests = Number(opt('max-requests') ?? DEFAULT_MAX_REQUESTS)
-  if (!Number.isInteger(maxRequests) || maxRequests < 1) throw new Error(`--max-requests 는 양의 정수여야 한다: ${opt('max-requests')}`)
+  if (!Number.isInteger(maxRequests) || maxRequests < 1 || maxRequests > MAX_REQUESTS_CEILING) throw new Error(`--max-requests 는 1~${MAX_REQUESTS_CEILING} 정수여야 한다: ${opt('max-requests')}`)
   const config = readJson(opt('config') ?? 'config/window-probe.json')
   const date = kstDate(now.getTime())
   const stamp = now.toISOString().replace(/[-:]/g, '').slice(0, 15)

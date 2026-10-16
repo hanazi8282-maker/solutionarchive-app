@@ -17,6 +17,8 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   const opt = (n) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3)
   try {
     if (!opt('targets') || !opt('out')) throw new Error('--targets=<json> --out=<json> 필요')
+    // /lookup 은 v71aj 정책 A(/search 제한 허용) 밖 — 판단 대기다(scripts/anchor-verify.mjs 머리 주석). 판단이 난 뒤 사람이 명시적으로 켠다.
+    if (!process.argv.includes('--allow-lookup')) throw new Error('/lookup 경로는 사람 판단 대기다 — 허용 결정 뒤 --allow-lookup 을 붙여 돌린다(0요청으로 중단)')
     const anchors = anchorsFrom(JSON.parse(fs.readFileSync(opt('targets'), 'utf8')))
     const fetchText = async (url) => {
       const r = await fetch(url, { headers: { 'user-agent': USER_AGENT }, signal: AbortSignal.timeout(20000) }).catch(() => null)

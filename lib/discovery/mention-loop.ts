@@ -415,6 +415,23 @@ export function verifyCandidate(a: Agg, { lookups = new Map<string, unknown>(), 
   return { state: 'lookup_failed', reason: `${why} — 이름 검색(itunes /search)은 robots 금지 경로라 사람 판단 대기` }
 }
 
+// ── 이름 → 앱 ID: anchor-verify.mjs(정책 A /search, 하루 100) 와 파일로 잇기 ───────────
+/** 확인 불가 후보(area_fit 먼저, 점수 순) → anchor-verify.mjs --input 꼴. 하루 상한을 넘겨 넣지 않는다. */
+export function anchorVerifyInput(judged: Judged[], verdicts: Map<string, AnchorVerdict>, cap = 100) {
+  const rank = (j: Judged) => (j.stage === 'area_fit' ? 0 : 1)
+  return judged
+    .filter((j) => (j.stage === 'area_fit' || j.stage === 'candidate') && verdicts.get(j.key)?.state === 'lookup_failed')
+    .sort((a, b) => rank(a) - rank(b) || b.score - a.score || (a.key < b.key ? -1 : 1))
+    .slice(0, cap)
+    .map((j) => ({ slug: j.key, name: j.name, expected_domain: null, country: countryOf(j) }))
+}
+/** anchor-verify.mjs --out 결과 → key → {verdict, country}. 그 판정은 이미 verifyAnchor 를 거친 것이다. */
+export function anchorVerdictMap(rows: Array<{ slug?: string; name?: string; country?: string; verdict?: AnchorVerdict }>) {
+  const m = new Map<string, { verdict: AnchorVerdict; country: string | null }>()
+  for (const r of rows) if (r?.verdict?.state) m.set(String(r.slug ?? normKey(r.name)), { verdict: r.verdict, country: r.country ?? null })
+  return m
+}
+
 // ── ⑦ 30% 게이트 ───────────────────────────────────────────────────────
 export function gateState(targets: TargetRow[]) {
   const act = targets.filter((t) => t.status === 'active' && t.source_enabled !== false)

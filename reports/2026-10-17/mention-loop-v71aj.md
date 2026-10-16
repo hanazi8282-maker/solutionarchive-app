@@ -16,6 +16,9 @@
 | (다) 같은 개발사 고리 | `--similar=<json>` · `scripts/appstore-same-developer.mjs` | 이름이 같은 언급 후보에 앱 ID 를 붙인다(링크 ID 와 같은 자리 → 검증을 탄다, **검증 없이 anchored 로 안 올림**). `--write` 면 `candidate-input.json`(언급 등록분 + 같은 개발사 후보)을 후보 생성기 입력으로 낸다 |
 | (라) HN 재분류 어댑터 | `--area-verdicts=<json\|jsonl>` | 재판정 결과로 글 영역을 덮는다(메모리 안). 우선순위는 §6-3 뷰와 같은 함수 한 벌 |
 | (마) 등록 모드 | `--register --review=<csv> [--migrations-dir]` | 채점 ≥30 ∧ 적합 ≥90% 일 때만 `mention-approved.json` → `candidate-register-draft` 로 마이그 초안+롤백. 사람이 N 준 키는 뺀다. DB 쓰기 없음 |
+| 이름 → 앱 ID | `--write` 가 `anchor-verify-input.json` · `--anchor-verdicts=<file>` | #568(정책 A, `/search` 하루 100)과 파일로 잇는다: 확인 불가 후보(area_fit 먼저, 상한 100)를 `anchor-verify.mjs --input` 꼴로 내고, 그 `--out` 을 다시 받아 **lookup_failed 만** 채운다. 무인 연결 없음 |
+
+같은 개발사 실행기(`scripts/appstore-same-developer.mjs`)는 `/lookup` 을 부른다 — #568 이 "`/lookup` 은 정책 A 밖(판단 대기)"이라 적었으므로 **`--allow-lookup` 없이는 0요청으로 멈춘다.**
 
 (나) 해석: "2글 + 서로 다른 소스 1곳 이상"을 **2글이 서로 다른 소스 2곳에서 나옴**(`2+2`)으로 읽었다 — 글 2개면 소스 1곳은 늘 참이라 기준이 안 된다.
 다르게 뜻했다면 `--criterion=2+1`(= 2글만)로 같은 표를 낸다.
@@ -104,8 +107,12 @@ select coalesce(json_agg(x), '[]'::json) from (
 node scripts/mention-loop.mjs --input=A.json --pool=wide --compare=3,2+2 --sample-out=<scratch>/sample.csv
 #   → sample.csv 의 human_ok 칸을 Y/N 으로 채운 뒤
 node scripts/mention-loop.mjs --input=A.json --pool=wide --compare=3,2+2 --sample-labels=<scratch>/sample.csv
-# (다) 같은 개발사(네트워크 — itunes 루트 lookup, robots 재확인, 최대 40요청)
-node scripts/appstore-same-developer.mjs --targets=D.json --out=<scratch>/similar.json
+# 이름 → 앱 ID(정책 A /search, 하루 100 — anchor-verify 가 상한·간격·로그·차단 중단을 강제)
+node scripts/mention-loop.mjs --input=A.json --write --reports-dir=<scratch>     # → <scratch>/<날짜>/anchor-verify-input.json
+node scripts/anchor-verify.mjs --input=<scratch>/<날짜>/anchor-verify-input.json --out=<scratch>/av.json
+node scripts/mention-loop.mjs --input=A.json --anchor-verdicts=<scratch>/av.json --write
+# (다) 같은 개발사(네트워크 — itunes 루트 /lookup, 판단 대기 경로라 --allow-lookup 필수, robots 재확인, 최대 40요청)
+node scripts/appstore-same-developer.mjs --targets=D.json --out=<scratch>/similar.json --allow-lookup
 node scripts/mention-loop.mjs --input=A.json --similar=<scratch>/similar.json --lookup --write
 # (마) 등록: 표본 30건 채점 → 통과일 때만 초안
 node scripts/mention-loop.mjs --input=A.json --sample-out=<scratch>/review.csv --sample-n=30
@@ -141,8 +148,9 @@ node scripts/mention-loop.mjs --input=A.json --similar=… --lookup --register -
 
 - (가) 풀: 1차 설계 표본에서 승인 ①~⑤ 9,370건 중 대안 표현 2.9%. HN 1차 relevant 9,412건을 더하고 대안 탐색 글을 더하면 대안 표현 글은 약 270 → **550~700글** [추정](HN 글은 대안 표현 비중이 더 높을 수 있다 — (B') 로 잰다).
 - 후보(3글): 1차 추정 0~5개 → 풀 확대로 **3~10개** [추정]. 2+2 기준은 소스 2곳 조건이 앱스토어 단독 이름을 많이 떨어뜨려 3글과 비슷하거나 적을 것 [추정].
-- 등록: 여전히 "이름 → 앱 ID" 에서 막힌다. (다) 같은 개발사 고리가 이름을 맞추는 경우만 ID 가 생긴다 — 앵커 20개 × 개발사 앱 1~3개 중 언급 이름과 겹침 **0~3개** [추정].
-  그 위에 30% 게이트. **등록 = 첫 실행 0~3, 그 뒤 주 0~1** [추정].
+- 등록: "이름 → 앱 ID" 는 #568 정책 A(`/search` 하루 100)로 풀렸다 — 후보 3~10개는 하루 한 번에 다 조회된다. anchored 비율은 이름 일치·판매자 단일·평가 ≥50 을 다 넘어야 해서 **40~60%** [추정].
+  (다) 같은 개발사 고리는 `/lookup` 판단 뒤에만 보탠다(겹침 0~3개 [추정]).
+  그 위에 30% 게이트(앱스토어 비중이 이미 30% 근처면 대부분 차단 — 지표 줄의 "30% 게이트 차단"으로 보인다). **등록 초안 = 첫 실행 1~5, 그 뒤 주 0~2** [추정], 게이트가 차면 0.
 - HN 재판정: 대상 ≈ 9,253글(9,412 − 자동승인 159 [추정 — 자동승인이 영역 안 프로젝트라 가정]). 20글/호출 → **≈ 463호출**, 하루 상한 2,000글이면 **5일**. 명목 비용
   호출당 ≈ 3.3k 입력 토큰 → 전체 ≈ $0.8(budget.ts 단가 기준, Gemini 무료 쿼터 안이면 실비 0) [추정]. ①~⑤ 로 올라올 글 = out-founder 대부분이 창업 일반론이라 **5~15%**(≈ 450~1,400글) [추정].
 
@@ -180,7 +188,7 @@ JS 쪽 같은 규칙: `lib/analysis/area-reclass.ts effectiveArea` — 언급 �
 ## 7. 사람 판단 필요
 
 1. (마) 무인 직접 INSERT 문구(§4 전/후) — 헌법 개정(남헌). 그 전에는 초안+CEO-staff 적용만.
-2. (다) 같은 개발사 실행기는 itunes 루트 `/lookup` 을 부른다 — 문자상 robots 허용이지만 국가 경로 lookup 금지의 취지와 가깝다는 기존 판단 항목(#565 보고) 그대로. 돌릴지 CEO-staff 결정.
+2. (다) 같은 개발사 실행기는 itunes 루트 `/lookup` 을 부른다 — #568 이 "정책 A 밖, 판단 대기"로 적은 경로다(#565 보고의 판단 항목과 같은 것). 판단 전에는 `--allow-lookup` 없이 0요청. 언급 루프의 기존 `--lookup`(#560)도 같은 경로다.
 3. (나) "서로 다른 소스 1곳 이상"의 뜻 — `2+2` 로 읽었다. 다르면 손잡이만 바꾼다.
 4. HN 재판정 표본 100건 사람 라벨(눈가림 시트) — 정밀도 게이트의 입력. 사람(또는 CEO-staff 가 지정한 채점자)만 줄 수 있다.
 5. 재판정 결과를 T2 순서·자동 승인 범위에 연결할지(§6-3 마지막 줄) — 정밀도 통과 뒤.

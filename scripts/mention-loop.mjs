@@ -10,6 +10,8 @@
 //                       이름이 같은 언급 후보에 앱 ID 를 붙여 검증 재료로 쓴다. 무인 연결 없음 — 파일로만 받는다
 //   --compare=3,2+2     (나) 기준별 후보 수·오탐률 비교표. --sample-out=<csv> [--sample-n=20] 이면 기준마다 표본을 뽑아 사람 채점 시트를 쓴다
 //                       (원문 조각 포함 — 리포에 커밋 금지). --sample-labels=<csv> 를 주면 오탐률을 채운다
+//   --anchor-verdicts=<json> anchor-verify.mjs --out 결과(이름 검색, 정책 A 하루 100). 링크·lookup 으로 못 정한 후보만 채운다.
+//                       --write 면 확인 불가 후보를 anchor-verify-input.json(상한 100)으로 낸다 — 사람이 anchor-verify.mjs 를 돌려 잇는다(무인 연결 없음)
 //   --register --review=<csv>  (마) 등록 모드: CEO-staff 가 채점한 표본(≥30, 적합 ≥90%)이 통과일 때만 mention-approved.json →
 //                       candidate-register-draft 로 마이그 초안+롤백을 만든다(--migrations-dir, 기본 supabase/migrations). DB 에 쓰지 않는다
 //   --ledger=<json>     지난 대장(기각 재제안 방지·등록 이력). 기본 reports/mention-ledger.json — 기본 경로가 없으면 빈 대장, 지정했는데 없으면 중단
@@ -28,7 +30,7 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import {
-  MIN_POSTS_DEFAULT, REGISTER_MIN_POSTS, aggregate, applyAreaVerdicts, compareCriteria, filterPool, mergeSimilar, parseCriterion, parseSampleLabels, pickSample, reviewGate, snippet, toGeneratorCandidates, altSeekEffect, countryOf, gateState, harvestPerApp, judge, metricsLine, planGate, renderLedgerSql, safetyAlerts, thresholdTable, toApproved, verifyCandidate,
+  MIN_POSTS_DEFAULT, REGISTER_MIN_POSTS, aggregate, applyAreaVerdicts, compareCriteria, filterPool, mergeSimilar, parseCriterion, parseSampleLabels, pickSample, reviewGate, snippet, toGeneratorCandidates, anchorVerdictMap, anchorVerifyInput, altSeekEffect, countryOf, gateState, harvestPerApp, judge, metricsLine, planGate, renderLedgerSql, safetyAlerts, thresholdTable, toApproved, verifyCandidate,
 } from '../lib/discovery/mention-loop.ts'
 import { normKey, loadConfig, loadFileRegistry } from './product-name-candidates.mjs'
 import { parseRobots, robotsVerdict } from '../lib/review/robots.ts'
@@ -123,6 +125,9 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
   }
   const verdicts = new Map()
   for (const j of judged) if (j.stage === 'area_fit' || j.stage === 'candidate') verdicts.set(j.key, verifyCandidate(j, { lookups, searched }))
+  // 이름 검색 판정(anchor-verify.mjs 정책 A 결과 파일) — 링크·lookup 으로 못 정한 것만 채운다
+  const anchorMap = opt('anchor-verdicts') ? anchorVerdictMap(readJson(opt('anchor-verdicts'))) : new Map()
+  for (const [k, a] of anchorMap) if (verdicts.get(k)?.state === 'lookup_failed') verdicts.set(k, a.verdict)
   // 등록 표본 채점(마): 사람이 N 이라 한 키는 등록에서 뺀다
   const review = opt('review') ? parseSampleLabels(fs.readFileSync(opt('review'), 'utf8')) : null
   const gateReview = review ? reviewGate(review) : null
@@ -130,7 +135,7 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
   const anchoredFit = fit.filter((j) => verdicts.get(j.key)?.state === 'anchored' && !humanNo.has(j.key))
   // 시험 기준(2글 등)으로만 통과한 것은 등록하지 않는다 — #561 CHECK·toApproved 하한 3 과 맞춘다
   const trialOnly = anchoredFit.filter((j) => j.posts.length < REGISTER_MIN_POSTS)
-  const ready = live.blocked ? [] : anchoredFit.filter((j) => j.posts.length >= REGISTER_MIN_POSTS).map((j) => ({ ...j, verdict: verdicts.get(j.key), play_pkg: null, country: countryOf(j) }))
+  const ready = live.blocked ? [] : anchoredFit.filter((j) => j.posts.length >= REGISTER_MIN_POSTS).map((j) => ({ ...j, verdict: verdicts.get(j.key), play_pkg: null, country: anchorMap.get(j.key)?.country ?? countryOf(j) }))
 
   // ⑦ 게이트 · ⑨ 지표
   const plan = planGate(ready, gateState(input.targets))
@@ -191,6 +196,8 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
     const dir = path.join(opt('reports-dir') ?? 'reports', date)
     fs.mkdirSync(dir, { recursive: true })
     fs.writeFileSync(path.join(dir, 'mention-loop.json'), JSON.stringify(out, null, 2) + '\n')
+    const avIn = anchorVerifyInput(judged, verdicts)
+    if (avIn.length) fs.writeFileSync(path.join(dir, 'anchor-verify-input.json'), JSON.stringify(avIn, null, 2) + '\n')
     if (approved.length) fs.writeFileSync(path.join(dir, 'mention-approved.json'), JSON.stringify(approved, null, 2) + '\n')
     const genInput = [...toGeneratorCandidates(plan), ...similar]
     if (genInput.length) fs.writeFileSync(path.join(dir, 'candidate-input.json'), JSON.stringify(genInput, null, 2) + '\n')

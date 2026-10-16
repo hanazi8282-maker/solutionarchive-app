@@ -135,7 +135,9 @@ t('경보: 조회 차단', safetyAlerts({ ...M, lookup_blocked: true }, [])[0].s
   fs.writeFileSync(ledger, JSON.stringify({ entries: {} }))
   const o = await main(args, quiet)
   t('CLI: 등록 1·차단 1(픽스처 게이트 자리 1)', [o.metrics.registered, o.metrics.gate_blocked], [1, 1])
-  t('CLI: 파일 4개(후보 생성기 입력 포함)', fs.readdirSync(path.join(tmp, 'r', '2026-10-17')).sort(), ['candidate-input.json', 'mention-approved.json', 'mention-ledger.sql', 'mention-loop.json'])
+  t('CLI: 파일 5개(후보 생성기 입력·이름 검색 입력 포함)', fs.readdirSync(path.join(tmp, 'r', '2026-10-17')).sort(), ['anchor-verify-input.json', 'candidate-input.json', 'mention-approved.json', 'mention-ledger.sql', 'mention-loop.json'])
+  const avIn = JSON.parse(fs.readFileSync(path.join(tmp, 'r', '2026-10-17', 'anchor-verify-input.json'), 'utf8'))
+  t('이름 검색 입력: 확인 불가 후보만·anchor-verify 꼴', avIn.map((r) => [r.slug, Object.keys(r).sort()]), [['driftly', ['country', 'expected_domain', 'name', 'slug']]])
   const sql = fs.readFileSync(path.join(tmp, 'r', '2026-10-17', 'mention-ledger.sql'), 'utf8')
   t('대장 SQL: HN 행 안 덮음·accepted 1', [/WHERE public\.discovery_candidates\.origin = 'mention'/.test(sql), (sql.match(/, 'accepted', /g) ?? []).length], [true, 1])
   // 경계면: 이 출력이 기존 등록 초안 생성기에 그대로 들어가는가(§7.1 — 부품 테스트를 통합 근거로 쓰지 않는다)
@@ -226,6 +228,16 @@ t('경보: 조회 차단', safetyAlerts({ ...M, lookup_blocked: true }, [])[0].s
   const files = fs.readdirSync(migDir).sort()
   t('등록 모드: 통과면 마이그 초안+롤백(DB 쓰기 없음)', [o3.mode, files.length, files.every((f) => /_candidate_register_20261017(_rollback)?\.sql$/.test(f))], ['register_draft', 2, true])
   t('등록 모드: 초안에 inkwell 타깃', fs.readFileSync(path.join(migDir, files.find((f) => !f.includes('rollback'))), 'utf8').includes('us:1111111111'), true)
+
+  // anchor-verify.mjs 결과 파일 → 확인 불가 후보 채움(이미 anchored 인 것은 덮지 않는다)
+  const avf = path.join(tmp, 'av.json')
+  fs.writeFileSync(avf, JSON.stringify([
+    { slug: 'driftly', name: 'Driftly', country: 'kr', verdict: { state: 'anchored', appId: 4444444444, trackName: 'Driftly', sellerName: 'D', domain: null, ratingCount: 120, reason: 'x' } },
+    { slug: 'inkwell', name: 'Inkwell', country: 'us', verdict: { state: 'no_match', reason: 'x' } },
+  ]))
+  const o4 = await main([...base, `--anchor-verdicts=${avf}`], quiet)
+  const st = Object.fromEntries(o4.rows.map((r) => [r.key, r.verify?.state]))
+  t('이름 검색 판정: lookup_failed 만 채우고 anchored 는 그대로', [st.driftly, st.inkwell], ['anchored', 'anchored'])
 }
 
 // ── live lookup: robots 먼저, 차단이면 즉시 중단 ──

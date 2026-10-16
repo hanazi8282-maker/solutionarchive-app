@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // 앵커 검증 셀프테스트 — 오프라인. 실측(2026-10-14 iTunes Search): Notion·Evernote 는 anchored, Ivory 는 판매자 4곳 ambiguous, "ask AI"·Fera 는 no_match.
-import { ANCHOR_MIN_RATINGS, domainOf, nameMatches, normName, verifyAnchor } from '../lib/review/anchor.ts'
-import { lookup } from './anchor-verify.mjs'
+import { ANCHOR_MIN_RATINGS, descriptionHasDomain, domainOf, nameMatches, normName, verifyAnchor } from '../lib/review/anchor.ts'
+import { lookup as rawLookup, makeGuard, SEARCH_DAILY_CAP, SEARCH_MIN_INTERVAL_MS } from './anchor-verify.mjs'
+const memGuard = (o = {}) => makeGuard({ logFile: null, intervalMs: 0, ...o })
+const lookup = (n, c, f, o = {}) => rawLookup(n, c, f, { guard: memGuard(), ...o })
 
 let pass = 0
 let fail = 0
@@ -51,6 +53,63 @@ t('no_match 와 lookup_failed 는 다르다(빈 배열 = 조회는 됐다)', ver
   t('lookup: 네트워크 오류 → lookup_failed', boom.state, 'lookup_failed')
   const junk = await lookup('Notion', 'us', async () => ({ status: 200, json: async () => ({ error: 'x' }) }))
   t('lookup: results 없는 JSON → lookup_failed', junk.state, 'lookup_failed')
+}
+
+// v71aj 설명 URL 보조 근거(opt-in)
+t('설명 도메인: URL 호스트 일치', descriptionHasDomain('Learn more at https://www.zendesk.com/sell.', 'zendesk.com'), true)
+t('설명 도메인: 하위 도메인 허용', descriptionHasDomain('see https://support.zendesk.com/x', 'zendesk.com'), true)
+t('설명 도메인: 글자만 같은 다른 호스트는 아님', descriptionHasDomain('https://notzendesk.com', 'zendesk.com'), false)
+t('설명 도메인: URL 아닌 언급은 아님', descriptionHasDomain('works with zendesk.com', 'zendesk.com'), false)
+{
+  const z = app('Zendesk Sell', { sellerUrl: 'https://getbase.com', description: 'Docs: https://www.zendesk.com/sell/' })
+  t('설명 도메인: 끄면 기존대로 no_match', verifyAnchor('Zendesk Sell', [z], { expectedDomain: 'zendesk.com' }).state, 'no_match')
+  const v = verifyAnchor('Zendesk Sell', [z], { expectedDomain: 'zendesk.com', descriptionDomain: true })
+  t('설명 도메인: 켜면 anchored + domainVia=description', v.state === 'anchored' && v.domainVia === 'description', true)
+  t('설명 도메인: 설명에 없으면 켜도 no_match', verifyAnchor('Zendesk Sell', [{ ...z, description: 'no link' }], { expectedDomain: 'zendesk.com', descriptionDomain: true }).state, 'no_match')
+  t('판매자 도메인 일치는 domainVia=seller', verifyAnchor('Acme', [app('Acme')], { expectedDomain: 'acme.com' }).domainVia, 'seller')
+}
+
+// v71aj 정책 A 강제: 상한·간격·UA·중단·로그
+t('정책 A: 하루 상한 ≤ 120', SEARCH_DAILY_CAP > 0 && SEARCH_DAILY_CAP <= 120, true)
+t('정책 A: 간격 ≥ 3초', SEARCH_MIN_INTERVAL_MS >= 3000, true)
+{
+  const ok200 = async () => ({ status: 200, json: async () => ({ results: [app('Notion: Notes', { trackId: 9 })] }) })
+  let ua = null
+  const g0 = memGuard()
+  await rawLookup('Notion', 'us', async (_u, init) => { ua = init.headers['user-agent']; return ok200() }, { guard: g0 })
+  t('정책 A: UA 는 우리 서비스 식별 UA', /^solutionarchive-review-collector\/.+github\.com/.test(ua ?? ''), true)
+  t('정책 A: 호출마다 로그 1줄', g0.used(), 1)
+
+  const g = memGuard({ cap: 2 })
+  let calls = 0
+  const counted = async () => { calls++; return ok200() }
+  await rawLookup('Notion', 'us', counted, { guard: g })
+  await rawLookup('Notion', 'us', counted, { guard: g })
+  const over = await rawLookup('Notion', 'us', counted, { guard: g })
+  t('정책 A: 상한 도달 → 호출 0·lookup_failed+stop', calls === 2 && over.state === 'lookup_failed' && over.stop === true, true)
+
+  for (const [label, res] of [
+    ['403', { status: 403, json: async () => ({}) }],
+    ['429', { status: 429, json: async () => ({}) }],
+    ['빈 본문', { status: 200, text: async () => '' }],
+    ['캡차 HTML', { status: 200, headers: { get: () => 'text/html' }, text: async () => '<html>captcha</html>' }],
+    ['results 0건', { status: 200, json: async () => ({ resultCount: 0, results: [] }) }],
+  ]) {
+    const gs = memGuard()
+    let n = 0
+    const f = async () => { n++; return res }
+    const a = await rawLookup('Notion', 'us', f, { guard: gs })
+    const b = await rawLookup('Notion', 'us', f, { guard: gs })
+    t(`정책 A: ${label} 1건 → 즉시 중단, 다음 호출 0`, a.stop === true && b.stop === true && n === 1, true)
+  }
+
+  const waits = []
+  let clock = 0
+  const gi = makeGuard({ logFile: null, intervalMs: 3000, now: () => clock, sleep: async (ms) => { waits.push(ms); clock += ms } })
+  await rawLookup('Notion', 'us', ok200, { guard: gi })
+  clock += 1000
+  await rawLookup('Notion', 'us', ok200, { guard: gi })
+  t('정책 A: 두 번째 호출 전 남은 간격만큼 기다린다', waits.join(','), '2000')
 }
 
 console.log(`anchor selftest: ${pass} pass / ${fail} fail`)

@@ -99,6 +99,8 @@ on:
           - retool_community
           - glide_community
           - softr_community
+          - github_issues
+          - stackexchange
         default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수(비우면 소스별 램프 단계, 램프 없으면 10)'
@@ -184,8 +186,14 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # v69 A레인: 증분형 시계. 기본(미설정)=관찰 모드(쓰기 0, reports/ 에 관찰 기록만). 'on' 은 사람·역할 세션이 3일 대조 뒤 켠다.
           TARGET_CLOCK_INCREMENTAL: ${{ vars.TARGET_CLOCK_INCREMENTAL }}
-          # 남헌 v71u 6(A): on 일 때 한 실행에 되살리는 증분형 타깃 수 상한. 미설정·잘못된 값=5, 천장 40(REVIVE_TOTAL_PER_RUN).
+          # 남헌 v71u 6(A): on 일 때 한 실행에 되살리는 증분형 타깃 수 상한. 미설정·잘못된 값=5, 천장 = TARGET_REVIVE_TOTAL_CEILING(기본 40).
           TARGET_CLOCK_INCREMENTAL_MAX: ${{ vars.TARGET_CLOCK_INCREMENTAL_MAX }}
+          # v71ad §5(a): 위 값의 천장(기본 40)·소스별 실행당 상한(기본 6). 비면 기본, 잘못된 값도 기본, 코드 하드 천장 200.
+          # 천장에 잘리면 로그·요약에 "⚠️ 되살리기 상한 경고" 한 줄. 롤백 = 변수 삭제.
+          TARGET_REVIVE_TOTAL_CEILING: ${{ vars.TARGET_REVIVE_TOTAL_CEILING }}
+          TARGET_REVIVE_PER_SOURCE: ${{ vars.TARGET_REVIVE_PER_SOURCE }}
+          # 소스별 재방문 간격 배율 JSON {"clien":0.5} — [0.25,1] 줄이기만, 하한 1일. 비면 배율 1.
+          TARGET_REVISIT_SCALE: ${{ vars.TARGET_REVISIT_SCALE }}
           # v69 D7: 게이지를 같은 잡의 수집 스텝(Notion 일일 상태 로그)으로 넘기는 파일.
           SUPPLY_BLOCK_FILE: ${{ runner.temp }}/supply-block.json
         run: node scripts/target-revive.mjs --auto ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

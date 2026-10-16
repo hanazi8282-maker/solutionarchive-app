@@ -167,7 +167,8 @@ export function endingOf(sentence: string): Ending {
   const s = sentence.trim()
   if (/^["“「『]/.test(s) && /["”」』][.!?]?$/.test(s)) return '인용'
   const t = trimEnd(s)
-  if (/(니다|니까|십시오)$/.test(t)) return '합쇼체'
+  // '~니다'는 앞 음절이 ㅂ 받침(합·입·습·됩)일 때만 합쇼체다. "아니다"는 평어체다(ai-tone-lint 가 존댓말로 잘못 셌다).
+  if (/(니까|십시오)$/.test(t) || (/니다$/.test(t) && jong(t.slice(-3, -2)) === 17)) return '합쇼체'
   if (/(요|죠)$/.test(t)) return '해요체'
   const last = t.slice(-1)
   const pen = t.slice(-2, -1)

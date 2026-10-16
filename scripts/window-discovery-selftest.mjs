@@ -248,6 +248,14 @@ const noRecord = async () => { throw new Error('dry-run 인데 Notion 호출') }
   t('quota: requests ≤ max', r.requests, 1)
   t('quota: reason', r.reasons.appstore, 'quota')
 }
+{
+  // 요청 상한 천장(v71ab C-3): 160 은 통과, 161 은 던진다(리포 변수 오타 방지)
+  let err = null
+  try { await main([`--in=${inDir}`, `--reports-dir=${path.join(tmp, 'r3c')}`, `--config=${cfgFile}`, '--dry-run', '--max-requests=161'], { fetchText: async () => ({ status: 200, body: AS_PAGE1 }), sleep: async () => {}, now: new Date('2026-10-13T00:00:00Z'), log: quiet, record: noRecord }) } catch (e) { err = e }
+  t('ceiling: 161 rejected', /1~160/.test(String(err?.message)), true)
+  const r = await main([`--in=${inDir}`, `--reports-dir=${path.join(tmp, 'r3d')}`, `--config=${cfgFile}`, '--dry-run', '--max-requests=160'], { fetchText: async () => ({ status: 200, body: AS_PAGE1 }), sleep: async () => {}, now: new Date('2026-10-13T00:00:00Z'), log: quiet, record: noRecord })
+  t('ceiling: 160 accepted', r.max_requests ?? 160, 160)
+}
 // ── 10b. 통합(실행): 롤백 파일이 INSERT 전에 있다 · 대장 기록 · 3일 뒤 강등 · Notion 못 쓰면 notion_unavailable ──
 {
   const rDir = path.join(tmp, 'r4')

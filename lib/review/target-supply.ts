@@ -436,6 +436,45 @@ export const REVIVE_MIN_EXPECTED_NEW = 1
 export const REVIVE_TOTAL_PER_RUN = 40
 /** 무인 되살리기(--auto) 소스별 실행당 상한. 하루 수집 슬롯 6(ramp.ts COLLECT_SLOTS)에 나눠 106개 백로그를 약 3일(= 하한)에 흡수한다. */
 export const REVIVE_PER_RUN = 6
+/**
+ * v71ad §5(a): 위 두 상한(40·6)을 리포 변수로 올릴 수 있게 한다 — 이 값 위로는 변수를 아무리 올려도 안 간다(코드 안 하드 천장).
+ * 변수 이름: TARGET_REVIVE_TOTAL_CEILING(기본 REVIVE_TOTAL_PER_RUN) · TARGET_REVIVE_PER_SOURCE(기본 REVIVE_PER_RUN).
+ */
+export const REVIVE_HARD_CEILING = 200
+
+/** env 정수 → 상한. 미설정·빈값·숫자 아님·0 이하 → 기본(잘못된 값에 넓어지지 않는다). 하드 천장 200 을 넘으면 잘라 clipped. */
+export function envCap(raw: string | undefined | null, def: number): { value: number; note: string | null } {
+  if (raw == null || String(raw).trim() === '') return { value: def, note: null }
+  const n = Math.floor(Number(raw))
+  if (!Number.isFinite(n) || n <= 0) return { value: def, note: `값 '${raw}' 이 양의 정수가 아니라 기본 ${def}` }
+  if (n > REVIVE_HARD_CEILING) return { value: REVIVE_HARD_CEILING, note: `${n} 이 하드 천장 ${REVIVE_HARD_CEILING} 을 넘어 ${REVIVE_HARD_CEILING}` }
+  return { value: n, note: null }
+}
+
+/**
+ * v71ad §5(a): 소스별 재방문 간격 배율 — 리포 변수 TARGET_REVISIT_SCALE = JSON {"<source_key>": 배율}. **줄이기만** 한다:
+ * 배율은 [0.25, 1], 범위 밖·숫자 아님은 그 항목만 버리고 note 에 남긴다. 결과 간격 하한은 1일.
+ * 왜 필요한가: 증분형 exhausted 는 연속 0건 3회(글)·30회(게시판)로 닫혀서 revisitDays 의 2^consecutive_empty 가 8배 이상 —
+ *   λ 가 1.7/일 미만이면 전부 상한 14일에 붙는다. 이 배율이 그 14일을 소스별로 깎는 유일한 손잡이다.
+ */
+export const REVISIT_SCALE_MIN = 0.25
+export function parseRevisitScale(raw: string | undefined | null): { scale: Record<string, number>; notes: string[] } {
+  if (raw == null || String(raw).trim() === '') return { scale: {}, notes: [] }
+  let obj: unknown
+  try {
+    obj = JSON.parse(String(raw))
+  } catch {
+    return { scale: {}, notes: [`TARGET_REVISIT_SCALE JSON 아님 — 무시(배율 1)`] }
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return { scale: {}, notes: ['TARGET_REVISIT_SCALE 가 객체가 아님 — 무시(배율 1)'] }
+  const scale: Record<string, number> = {}
+  const notes: string[] = []
+  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+    if (typeof v === 'number' && v >= REVISIT_SCALE_MIN && v <= 1) scale[k] = v
+    else notes.push(`TARGET_REVISIT_SCALE.${k}=${JSON.stringify(v)} 범위 [${REVISIT_SCALE_MIN}, 1] 밖 — 무시`)
+  }
+  return { scale, notes }
+}
 
 const DAY_MS = 86_400_000
 
@@ -453,9 +492,13 @@ const DAY_MS = 86_400_000
  */
 export function revisitDays(
   t: Pick<TargetRow, 'source_key'> & Partial<TargetRow>,
-  opts: { all?: boolean } = {},
+  opts: { all?: boolean; scale?: Record<string, number> } = {},
 ): { days: number; basis: string } | null {
   if (!NON_INCREMENTAL_SOURCES.has(t.source_key) && !opts.all) return null
+  const k = opts.scale?.[t.source_key]
+  const sc = typeof k === 'number' && k >= REVISIT_SCALE_MIN && k <= 1 ? k : 1
+  const scaled = (d: number) => (sc === 1 ? d : Math.max(1, d * sc))
+  const tag = sc === 1 ? '' : `·×${sc}`
   const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
   const created = t.created_at ? Date.parse(t.created_at) : NaN
   const newest = t.last_review_at ? Date.parse(t.last_review_at) : NaN
@@ -463,11 +506,11 @@ export function revisitDays(
   if (Number.isFinite(last) && Number.isFinite(created)) rates.push((t.total_collected ?? 0) / Math.max(1, (last - created) / DAY_MS))
   if (Number.isFinite(last) && Number.isFinite(newest) && (last - newest) / DAY_MS >= 1) rates.push(1 / ((last - newest) / DAY_MS))
   const ce = Math.max(0, t.consecutive_empty ?? 0)
-  if (rates.length === 0) return { days: REVISIT_MAX_DAYS, basis: 'velocity_unknown→max' }
+  if (rates.length === 0) return { days: scaled(REVISIT_MAX_DAYS), basis: `velocity_unknown→max${tag}` }
   const lambda = Math.min(...rates)
   const raw = lambda > 0 ? (REVISIT_EXPECTED_NEW / lambda) * 2 ** ce : Infinity
-  const days = Math.min(REVISIT_MAX_DAYS, Math.max(REVISIT_MIN_DAYS, raw))
-  return { days: Math.round(days * 100) / 100, basis: `λ=${Math.round(lambda * 1000) / 1000}/일·ce=${ce}` }
+  const days = scaled(Math.min(REVISIT_MAX_DAYS, Math.max(REVISIT_MIN_DAYS, raw)))
+  return { days: Math.round(days * 100) / 100, basis: `λ=${Math.round(lambda * 1000) / 1000}/일·ce=${ce}${tag}` }
 }
 
 /** 신규 속도 λ(건/일) — revisitDays 와 같은 재료·같은 min. 못 재면 null. */
@@ -492,6 +535,8 @@ export type ReviveOptions = {
   perRunCap?: number
   /** true = 비증분형(재방문 시계)만. 증분형 exhausted 는 manual_only 로 건너뛴다(D8 수동 경로에 남긴다). */
   clockOnly?: boolean
+  /** v71ad: 소스별 재방문 간격 배율(parseRevisitScale). 없으면 1. */
+  revisitScale?: Record<string, number>
 }
 
 /**
@@ -533,7 +578,7 @@ export function planRevive(targets: TargetRow[], report: SupplyReport, opts: Rev
       const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
       if (!Number.isFinite(last)) skip = 'revisit_unknown'
       else {
-        const due = last + revisitDays(t, { all: opts.clockAll })!.days * DAY_MS
+        const due = last + revisitDays(t, { all: opts.clockAll, scale: opts.revisitScale })!.days * DAY_MS
         if (due > now) {
           skip = 'revisit_not_due'
           const iso = new Date(due).toISOString()
@@ -585,7 +630,7 @@ export const GAUGE_URGENT_DAYS = 7
  * 소스별 재고 게이지. 소비형(방문하면 exhausted 로 닫히는 비증분형)만 일수로 센다. 증분형은 타깃이 되풀이되므로 일수가 정의되지 않는다 —
  * 활성 0 = 긴급, 결손 = 경고로 본다. ponytail: 순환형 일수는 소스별 실측 소비율이 쌓이면 도입. 제외 소스는 빠진다.
  */
-export function inventoryGauge(report: SupplyReport, targets: TargetRow[], now: Date): { sources: SourceGauge[]; below14: number; urgent: number; fuel_line: string } {
+export function inventoryGauge(report: SupplyReport, targets: TargetRow[], now: Date, scale?: Record<string, number>): { sources: SourceGauge[]; below14: number; urgent: number; fuel_line: string } {
   const sources: SourceGauge[] = []
   for (const s of report.sources) {
     if (s.state === 'excluded') continue
@@ -599,7 +644,7 @@ export function inventoryGauge(report: SupplyReport, targets: TargetRow[], now: 
       if (t.source_key !== s.source_key || t.status !== 'exhausted') continue
       const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
       if (!Number.isFinite(last)) { waiting++; continue }
-      const due = last + revisitDays(t, { all: true })!.days * DAY_MS
+      const due = last + revisitDays(t, { all: true, scale })!.days * DAY_MS
       if (due <= now.getTime()) dueNow++
       else {
         waiting++

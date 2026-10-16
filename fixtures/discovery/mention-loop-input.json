@@ -1,0 +1,310 @@
+{
+ "_about": "언급 루프 셀프테스트·dry-run 시연용 합성 픽스처. 실제 리뷰 원문·앱 이름 아님(공개 리포).",
+ "posts": [
+  {
+   "id": "00000000-0000-4000-8000-000000000001",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "I moved from Inkwell to Quillnote because the editor is way more flexible. https://apps.apple.com/us/app/inkwell/id1111111111"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000002",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "Switched from Inkwell last month and never looked back."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000003",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "googleplay",
+   "area_code": "5",
+   "raw_text": "[SRC: https://play.google.com/store/apps/details?id=com.fake.quill] Was looking for an alternative to Inkwell for ages, this is it."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000004",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "Honestly switching from pages to quillnote, export is cleaner."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000005",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "Way better than Evernote for my lists."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000006",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "Better than Driftnote by far."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000007",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "So much better than Driftnote on the iPad."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000008",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "wordpress_org",
+   "area_code": "5",
+   "raw_text": "Faster and better than Driftnote."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000009",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "I switched from Google to this and it is fine."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000010",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "Moved from Driftly, sync is better here. https://apps.apple.com/us/app/driftly/id3333333333"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000011",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "Migrated from Driftly after the price hike."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000012",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "Came over from Driftly, no regrets."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000013",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000002",
+   "source_key": "appstore",
+   "area_code": "4",
+   "raw_text": "시프트잇쓰다가 갈아탔는데 출근 기록이 훨씬 정확해요"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000014",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000002",
+   "source_key": "googleplay",
+   "area_code": "4",
+   "raw_text": "회사에서 시프트잇 유료쓰다가 이거 받아보고 갈아탔어요"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000015",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000002",
+   "source_key": "appstore",
+   "area_code": "4",
+   "raw_text": "시프트잇에서 근무툴로 넘어왔습니다. 갈아탈 만한 앱 찾다가 발견"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000016",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000002",
+   "source_key": "appstore",
+   "area_code": "4",
+   "raw_text": "웹 대신 사용하라고 하네요. 대신 아쉬운 점은 느린 속도"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000017",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000002",
+   "source_key": "googleplay",
+   "area_code": "4",
+   "raw_text": "[SRC: https://play.google.com/store/apps/details?id=com.fake.work] 근무툴로 갈아탐 만족"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000018",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000003",
+   "source_key": "appstore",
+   "area_code": "1",
+   "raw_text": "We moved from Tasklane for meeting notes."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000019",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000003",
+   "source_key": "appstore",
+   "area_code": "1",
+   "raw_text": "Switched from Tasklane, transcripts are better."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000020",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "area_code": "5",
+   "raw_text": "I moved from Tasklane to keep my notes."
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000021",
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000003",
+   "source_key": "appstore",
+   "area_code": "1",
+   "raw_text": "looking for an alternative app, tried over 10 different recorders"
+  }
+ ],
+ "projects": [
+  {
+   "id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "product_elevator_pitch": "Quillnote — 노트 앱",
+   "competitor_url": "https://quillnote.example",
+   "area_code": "5"
+  },
+  {
+   "id": "aaaaaaaa-0000-4000-8000-000000000002",
+   "product_elevator_pitch": "근무툴 — 근태 관리",
+   "competitor_url": "https://work.example",
+   "area_code": "4"
+  },
+  {
+   "id": "aaaaaaaa-0000-4000-8000-000000000003",
+   "product_elevator_pitch": "Echo Notes — 회의록",
+   "competitor_url": "https://echonotes.example",
+   "area_code": "1"
+  }
+ ],
+ "targets": [
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "product_ref": "us:9000000001",
+   "label": "5:us|quillnote",
+   "status": "active",
+   "total_collected": 0,
+   "source_enabled": true
+  },
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000002",
+   "source_key": "appstore",
+   "product_ref": "kr:9000000002",
+   "label": "4:근무툴",
+   "status": "active",
+   "total_collected": 0,
+   "source_enabled": true
+  },
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000003",
+   "source_key": "clien",
+   "product_ref": "board:x",
+   "label": "1:echo-notes",
+   "status": "active",
+   "total_collected": 0,
+   "source_enabled": true
+  },
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000003",
+   "source_key": "velog",
+   "product_ref": "board:y",
+   "label": "1:echo-notes",
+   "status": "active",
+   "total_collected": 0,
+   "source_enabled": true
+  },
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000002",
+   "source_key": "clien",
+   "product_ref": "board:z",
+   "label": "4:근무툴",
+   "status": "active",
+   "total_collected": 0,
+   "source_enabled": true
+  },
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "devto",
+   "product_ref": "board:a",
+   "label": "5:quillnote",
+   "status": "active",
+   "total_collected": 0,
+   "source_enabled": true
+  },
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "okky",
+   "product_ref": "board:b",
+   "label": "5:quillnote",
+   "status": "active",
+   "total_collected": 0,
+   "source_enabled": true
+  },
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000003",
+   "source_key": "yozm",
+   "product_ref": "board:c",
+   "label": "1:echo-notes",
+   "status": "active",
+   "total_collected": 0,
+   "source_enabled": true
+  },
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000002",
+   "source_key": "damoang",
+   "product_ref": "board:d",
+   "label": "4:근무툴",
+   "status": "active",
+   "total_collected": 0,
+   "source_enabled": true
+  },
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000003",
+   "source_key": "inflearn",
+   "product_ref": "board:e",
+   "label": "1:echo-notes",
+   "status": "active",
+   "total_collected": 0,
+   "source_enabled": true
+  },
+  {
+   "project_id": "aaaaaaaa-0000-4000-8000-000000000001",
+   "source_key": "appstore",
+   "product_ref": "us:9000000009",
+   "label": "5:us|old",
+   "status": "exhausted",
+   "total_collected": 40,
+   "source_enabled": true
+  }
+ ],
+ "discovery": [
+  {
+   "name": "Tasklane",
+   "homepage_url": null,
+   "verdict": "rejected",
+   "verdict_reason": "HN hits 2 < 5"
+  }
+ ],
+ "_lookups": {
+  "1111111111": [
+   {
+    "trackId": 1111111111,
+    "trackName": "Inkwell - Notes & Journal",
+    "sellerName": "Inkwell Labs",
+    "sellerUrl": "https://inkwell.example",
+    "userRatingCount": 820
+   }
+  ],
+  "3333333333": [
+   {
+    "trackId": 3333333333,
+    "trackName": "Drift Racing 3D",
+    "sellerName": "Fast Games",
+    "userRatingCount": 9000
+   }
+  ]
+ },
+ "_searched": {
+  "시프트잇": [
+   {
+    "trackId": 2222222222,
+    "trackName": "시프트잇",
+    "sellerName": "Shiftit Inc",
+    "userRatingCount": 300
+   }
+  ]
+ }
+}

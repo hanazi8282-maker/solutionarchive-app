@@ -153,7 +153,7 @@ ok('평문(빈 줄=문단)도 같은 판정', () => assert.deepEqual(ids(lint(BA
 ok('빈 입력 → 실패(판정 불가를 통과로 접지 않는다)', () => assert.ok(has(lint('', CFG), 'no_sentences', 'fail')))
 ok('사람용 요약은 항목당 한 줄', () => { const s = summary(run([...BASE_P, ...C])); assert.ok(s.split('\n').some((l) => l.startsWith('- [실패]') && l.includes('아니라'))) })
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-tone-'))
-const cli = (args) => spawnSync(process.execPath, [path.join(here, 'ai-tone-lint.mjs'), ...args], { encoding: 'utf8' })
+const cli = (args, script = path.join(here, 'ai-tone-lint.mjs')) => spawnSync(process.execPath, [script, ...args], { encoding: 'utf8' })
 fs.writeFileSync(path.join(tmp, 'good.json'), JSON.stringify(card(BASE_P)))
 fs.writeFileSync(path.join(tmp, 'bad.json'), JSON.stringify(card([...BASE_P, ...C])))
 fs.writeFileSync(path.join(tmp, 'spec.json'), JSON.stringify(spec))
@@ -161,6 +161,7 @@ ok('CLI 통과 → exit 0', () => assert.equal(cli([path.join(tmp, 'good.json')]
 ok('CLI 실패 → exit 1, --json 은 파싱되는 보고서', () => { const r = cli([path.join(tmp, 'bad.json'), '--json']); assert.equal(r.status, 1); assert.equal(JSON.parse(r.stdout).stats.contrast, 3) })
 ok('CLI 없는 파일 → exit 2', () => assert.equal(cli([path.join(tmp, 'none.json')]).status, 2))
 ok('CLI --spec 반영 → 질문 0~5 로 실패', () => { const r = cli([path.join(tmp, 'good.json'), '--spec', path.join(tmp, 'spec.json'), '--json']); assert.equal(r.status, 1); assert.match(JSON.parse(r.stdout).targets_from, /^스펙/) })
+ok('CLI 를 링크 경로로 불러도 실패 → exit 1(조용한 exit 0 금지)', () => { const link = path.join(tmp, 'link'); fs.symlinkSync(here, link, 'junction'); const r = cli([path.join(tmp, 'bad.json')], path.join(link, 'ai-tone-lint.mjs')); assert.equal(r.status, 1); assert.match(r.stdout, /실패/) })
 ok('loadConfig 기본 경로가 읽힌다', () => assert.ok(loadConfig().targets.contrast_max === 2))
 fs.rmSync(tmp, { recursive: true, force: true })
 

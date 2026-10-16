@@ -8,7 +8,7 @@
 // 모든 지표는 문장 단위로 센 값이다. 문장 분리·어미 분류는 lib/content/ko-style.ts 한 벌을 쓴다(산식 두 벌 금지).
 // 종료 코드: 0 = 실패 없음(경고는 있을 수 있음) / 1 = 실패 / 2 = 확인 불가(입력·설정 오류).
 // 한계: 전부 정규식·끝음절 휴리스틱이다. 명사구 단문은 "체언+마침표"를 보수적으로(덜 세는 쪽으로) 잡는다.
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, realpathSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { splitSentences, endingOf, PATTERNS } from '../lib/content/ko-style.ts'
@@ -195,7 +195,10 @@ export function summary(r) {
 }
 
 // ── CLI ─────────────────────────────────────────────────────────────────────
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// 실행 진입 판정은 실경로로 비교한다. 정션·심볼릭 링크 경로로 부르면 argv[1] 은 링크 경로, import.meta.url 은 실경로라
+// 문자열 비교가 어긋나 CLI 블록을 통째로 건너뛰고 출력 없이 exit 0 으로 끝났다(실패를 통과로 접는 버그, v71ab I-4).
+const real = (p) => { try { return realpathSync(p) } catch { return path.resolve(p) } }
+if (process.argv[1] && real(process.argv[1]) === real(fileURLToPath(import.meta.url))) {
   const argv = process.argv.slice(2)
   const opt = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : undefined }
   const file = argv.find((a, i) => !a.startsWith('--') && !['--config', '--spec'].includes(argv[i - 1]))

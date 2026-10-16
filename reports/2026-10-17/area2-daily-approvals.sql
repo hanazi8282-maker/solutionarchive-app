@@ -3,7 +3,7 @@
 -- 승인 = human_verdict='relevant' OR (human_verdict IS NULL AND auto_approved_at IS NOT NULL).
 -- 승인 시각 = 사람 승인은 human_graded_at(없으면 judged_at), 자동 승인은 auto_approved_at. 날짜는 KST.
 -- 영역 = 그 판정 행 project_id 의 analysis_projects.area_code(= v_input_area 와 같은 기준). 라벨 접두가 아니다.
--- ⚠️ #559 로 넣은 앱스토어 타깃은 수집(nightly) → extract → 1·2차 판정 → 자동 승인까지 하루 이상 걸린다. 첫 1~2일이 0 이어도 고장이 아니라 지연일 수 있다 —
+-- ⚠️ (영업 등록 마이그는 robots 판단 대기로 보류 — 등록되면) 새 앱스토어 타깃은 수집(nightly) → extract → 1·2차 판정 → 자동 승인까지 하루 이상 걸린다. 첫 1~2일이 0 이어도 고장이 아니라 지연일 수 있다 —
 --    아래 [3] 의 단계별 수(수집·판정·승인)를 같이 본다.
 
 -- [1] 날짜별(KST) ② 승인 수 — 최근 14일, 0 인 날도 찍는다.

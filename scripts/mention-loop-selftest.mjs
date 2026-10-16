@@ -9,6 +9,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import {
+  applyAreaVerdicts, compareCriteria, filterPool, mergeSimilar, parseCriterion, parseSampleLabels, pickSample, reviewGate, snippet, toGeneratorCandidates,
   aggregate, cleanText, extractMentions, isAltSeek, judge, metricsLine, nameRejectReason, planGate, safetyAlerts, thresholdTable, toApproved, verifyCandidate,
 } from '../lib/discovery/mention-loop.ts'
 import { liveLookups, main, unwrap } from './mention-loop.mjs'
@@ -134,7 +135,7 @@ t('경보: 조회 차단', safetyAlerts({ ...M, lookup_blocked: true }, [])[0].s
   fs.writeFileSync(ledger, JSON.stringify({ entries: {} }))
   const o = await main(args, quiet)
   t('CLI: 등록 1·차단 1(픽스처 게이트 자리 1)', [o.metrics.registered, o.metrics.gate_blocked], [1, 1])
-  t('CLI: 파일 3개', fs.readdirSync(path.join(tmp, 'r', '2026-10-17')).sort(), ['mention-approved.json', 'mention-ledger.sql', 'mention-loop.json'])
+  t('CLI: 파일 4개(후보 생성기 입력 포함)', fs.readdirSync(path.join(tmp, 'r', '2026-10-17')).sort(), ['candidate-input.json', 'mention-approved.json', 'mention-ledger.sql', 'mention-loop.json'])
   const sql = fs.readFileSync(path.join(tmp, 'r', '2026-10-17', 'mention-ledger.sql'), 'utf8')
   t('대장 SQL: HN 행 안 덮음·accepted 1', [/WHERE public\.discovery_candidates\.origin = 'mention'/.test(sql), (sql.match(/, 'accepted', /g) ?? []).length], [true, 1])
   // 경계면: 이 출력이 기존 등록 초안 생성기에 그대로 들어가는가(§7.1 — 부품 테스트를 통합 근거로 쓰지 않는다)
@@ -146,6 +147,85 @@ t('경보: 조회 차단', safetyAlerts({ ...M, lookup_blocked: true }, [])[0].s
   t('대장: 기각 사유 기록', [led.entries.pages.status, led.entries.pages.reason], ['rejected', 'builtin_generic'])
   const o2 = await main(args, quiet)
   t('재실행: 기각 이름은 지난 기각으로', o2.rows.find((r) => r.key === 'pages').stage, 'prior_rejected')
+}
+
+// ── v71aj (가)~(마) ──
+{
+  t('기준: 3', parseCriterion('3'), { id: '3글', minPosts: 3, minSources: 1 })
+  t('기준: 2+2', parseCriterion('2+2'), { id: '2글+2소스', minPosts: 2, minSources: 2 })
+  let bad = false
+  try { parseCriterion('2글') } catch { bad = true }
+  t('기준: 형식 밖이면 중단', bad, true)
+  t('기준: 소스 하한(inkwell 2소스)', [judge(byKey.inkwell, { minPosts: 2, minSources: 2 }).stage, judge(byKey.inkwell, { minPosts: 2, minSources: 3 }).reason], ['area_fit', 'below_min_sources(2/3)'])
+  const cmp = compareCriteria(rows, [parseCriterion('3'), parseCriterion('2+2')], { prior, labels: new Map([['inkwell', { ok: true, sampled_for: ['3글'] }], ['시프트잇', { ok: false, sampled_for: ['3글'] }]]) })
+  t('비교표: 기준별 후보 수가 나온다', cmp.map((c) => c.criterion), ['3글', '2글+2소스'])
+  t('비교표: 그 기준 표본으로만 오탐률', [cmp[0].labeled, cmp[0].false_pos, cmp[0].fp_rate, cmp[1].fp_rate], [2, 1, 0.5, null])
+
+  const P = (id, kind, area = '5') => ({ id, project_id: 'p', source_key: 's', area_code: area, raw_text: 'x', verdict_kind: kind })
+  const pool = [P('a', 'approved'), P('b', 'relevant'), P('c', 'alt_seek'), { ...P('d', null) }]
+  t('풀: approved', filterPool(pool, 'approved').map((p) => p.id), ['a', 'd'])
+  t('풀: relevant', filterPool(pool, 'relevant').map((p) => p.id), ['a', 'b', 'd'])
+  t('풀: wide', filterPool(pool, 'wide').length, 4)
+  let badPool = false
+  try { filterPool(pool, 'all') } catch { badPool = true }
+  t('풀: 모르는 값이면 중단', badPool, true)
+
+  const V = (id, area, fit, at = '2026-10-17T00:00:00Z') => ({ input_id: id, area_code: area, fit, judged_at: at })
+  const av = applyAreaVerdicts([P('h1', null, 'out-founder'), P('h2', null, null), P('h3', null, 'hold'), P('h4', null, '5'), P('h5', null, 'out-founder')],
+    [V('h1', '2', 0.8), V('h2', '1', 0.9), V('h3', '1', 0.9), V('h4', '1', 0.99), V('h5', '3', 0.6), V('h1', 'none', 0.9, '2026-10-01T00:00:00Z')])
+  t('영역 어댑터: out-founder·NULL 만 올리고 hold·프로젝트 영역·fit 미달은 그대로, 최신 판정', [av.posts.map((p) => p.area_code), av.lifted], [['2', '1', 'hold', '5', 'out-founder'], 2])
+
+  const sim = mergeSimilar(rows, [{ generator: 'similar_app', source_key: 'appstore', product_ref: 'kr:2222222222', label: '4:kr|시프트잇', expected_yield: 10 }, { generator: 'similar_app', source_key: 'appstore', product_ref: 'us:3', label: '5:us|nothing-here', expected_yield: 1 }])
+  const sk = sim.rows.find((r) => r.key === '시프트잇')
+  t('같은 개발사 고리: 이름 같은 언급 후보에 앱 ID 만 붙인다', [sim.matched, sk.app_ids, sk.similar_ref], [1, ['2222222222'], 'kr:2222222222'])
+  t('같은 개발사 고리: 검증 없이 anchored 로 안 올림', verifyCandidate(sk, {}).state, 'lookup_failed')
+  t('후보 생성기 입력(mention 갈래)', toGeneratorCandidates(g), [{ generator: 'mention', source_key: 'appstore', product_ref: 'us:1111111111', label: '5:us|inkwell', expected_yield: null, evidence: 'mention 3글·2소스' }])
+
+  const L = (n, ok) => new Map(Array.from({ length: n }, (_, i) => [`k${i}`, { ok: i < ok }]))
+  t('등록 문턱: 30건 중 27 적합 = pass', reviewGate(L(30, 27)).decision, 'pass')
+  t('등록 문턱: 30건 중 26 = stop', reviewGate(L(30, 26)).decision, 'stop')
+  t('등록 문턱: 10건뿐 = 확인 불가', reviewGate(L(10, 10)).decision, 'unverified')
+  t('표본 라벨 CSV', [...parseSampleLabels('key,human_ok,sampled_for\ninkwell,Y,3글|2글+2소스\nfoo,,3글\nbar,n,3글\n')], [['inkwell', { ok: true, sampled_for: ['3글', '2글+2소스'] }], ['bar', { ok: false, sampled_for: ['3글'] }]])
+  t('문맥 조각', snippet('blah I moved from Inkwell to X', 'Inkwell').includes('moved from Inkwell'), true)
+  t('표본은 결정적', pickSample(rows, 3).map((r) => r.key), pickSample([...rows].reverse(), 3).map((r) => r.key))
+}
+
+// ── v71aj CLI: 비교·표본·등록 모드 ──
+{
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ml2-'))
+  const lf = path.join(tmp, 'l.json')
+  const sf = path.join(tmp, 's.json')
+  fs.writeFileSync(lf, JSON.stringify(FIX._lookups))
+  fs.writeFileSync(sf, JSON.stringify(FIX._searched))
+  const ledger = path.join(tmp, 'ledger.json')
+  fs.writeFileSync(ledger, JSON.stringify({ entries: {} }))
+  const quiet = { log: () => {}, fileRegistry: REG, cfg: { exclude: EXCL } }
+  const base = ['--input=fixtures/discovery/mention-loop-input.json', `--lookups=${lf}`, `--searched=${sf}`, `--ledger=${ledger}`, `--reports-dir=${path.join(tmp, 'r')}`, '--date=2026-10-17']
+  const sample = path.join(tmp, 'sample.csv')
+  const o = await main([...base, '--compare=3,2+2', `--sample-out=${sample}`, '--sample-n=20'], quiet)
+  const csv = fs.readFileSync(sample, 'utf8').split('\n')
+  t('CLI 비교: 기준 2개·표본 시트 머리줄', [o.comparison.length, csv[0]], [2, 'key,human_ok,sampled_for,name,posts,sources,area,area_fit,verify,context1,context2,context3'])
+  t('CLI 비교: 표본 행은 human_ok 빈칸', csv.slice(1).filter(Boolean).every((l) => l.split(',')[1] === ''), true)
+  const o2 = await main([...base, '--criterion=2+2'], quiet)
+  t('CLI 시험 기준 2+2: 중단 없이 돌고 3글 미만은 등록에서 뺀다', [o2.criterion, o2.metrics.registered <= 1], ['2글+2소스', true])
+
+  const migDir = path.join(tmp, 'mig')
+  fs.mkdirSync(migDir)
+  let e1 = null
+  await main([...base, '--register'], quiet).catch((x) => (e1 = x))
+  t('등록 모드: 채점 CSV 없으면 중단', !!e1, true)
+  const rv = (n, ok) => {
+    const f = path.join(tmp, `rv-${n}-${ok}.csv`)
+    fs.writeFileSync(f, 'key,human_ok,sampled_for\n' + Array.from({ length: n }, (_, i) => `k${i},${i < ok ? 'Y' : 'N'},3글`).join('\n') + '\n')
+    return f
+  }
+  let e2 = null
+  await main([...base, '--register', `--review=${rv(30, 20)}`, `--migrations-dir=${migDir}`], quiet).catch((x) => (e2 = x))
+  t('등록 모드: 적합 <90% 면 초안 안 만듦', [!!e2, fs.readdirSync(migDir).length], [true, 0])
+  const o3 = await main([...base, '--register', `--review=${rv(30, 30)}`, `--migrations-dir=${migDir}`], quiet)
+  const files = fs.readdirSync(migDir).sort()
+  t('등록 모드: 통과면 마이그 초안+롤백(DB 쓰기 없음)', [o3.mode, files.length, files.every((f) => /_candidate_register_20261017(_rollback)?\.sql$/.test(f))], ['register_draft', 2, true])
+  t('등록 모드: 초안에 inkwell 타깃', fs.readFileSync(path.join(migDir, files.find((f) => !f.includes('rollback'))), 'utf8').includes('us:1111111111'), true)
 }
 
 // ── live lookup: robots 먼저, 차단이면 즉시 중단 ──

@@ -6,10 +6,14 @@
 //       ⑦ 30% 게이트(target-supply.ts gateHeadroom 재사용) ⑨ 일일 지표 한 줄 ⑩ 안전 경보.
 // 기존 product-name-candidates.mjs 의 넓은 추출(문장 중간 대문자 전부)과 달리 **전환·대안 문맥 안의 이름만** 잡는다 — 사람 승인 없이
 // 돌릴 경로라 정밀도를 우선한다. 정규화·등록 사전은 그 스크립트 것을 그대로 쓴다(키가 갈라지면 같은 앱이 두 번 오른다).
+// v71aj 발전 5안(설계 reports/2026-10-17/mention-loop-v71aj.md): (가) filterPool (나) parseCriterion·compareCriteria·표본 (다) mergeSimilar·toGeneratorCandidates
+//   (라) applyAreaVerdicts (마) reviewGate — 전부 순수 함수, 등록은 여전히 마이그 초안 경로뿐.
 
 import { buildRegistry as buildRegistryJs, normKey, stripHeader } from '../../scripts/product-name-candidates.mjs'
 import { verifyAnchor, type AnchorVerdict } from '../review/anchor.ts'
 import { gateHeadroom } from '../review/target-supply.ts'
+import { effectiveArea, latestByInput } from '../analysis/area-reclass.ts'
+import type { Candidate } from './candidate-generator.ts'
 
 // JS 기본값(= [])이 never[] 로 추론돼 타입이 막힌다 — 받는 꼴만 넓힌다.
 const buildRegistry = buildRegistryJs as (x: Record<string, unknown>) => Map<string, string>
@@ -146,7 +150,8 @@ export function nameRejectReason(surface: string, key: string, exclude: Exclude 
 }
 
 // ── ③ 후보 대장 ────────────────────────────────────────────────────────
-export type Post = { id: string; project_id: string; source_key: string | null; area_code: string | null; raw_text: string }
+/** verdict_kind(v71aj 가): approved(사람·자동 승인) · relevant(1차 relevant, 미승인) · alt_seek(판정 무관 대안 탐색 글). 없으면 legacy(옛 읽기 SQL). */
+export type Post = { id: string; project_id: string; source_key: string | null; area_code: string | null; raw_text: string; verdict_kind?: string | null }
 export type ProjectRow = { id: string; product_elevator_pitch?: string | null; competitor_url?: string | null; area_code?: string | null }
 export type TargetRow = { project_id: string; source_key: string; label: string | null; product_ref: string; status?: string | null; total_collected?: number | null; source_enabled?: boolean | null }
 export type DiscoveryRow = { name: string; homepage_url?: string | null; verdict: string; verdict_reason?: string | null }
@@ -164,6 +169,8 @@ export type Agg = {
   ko_posts: number
   app_ids: string[]
   reject: string | null
+  /** (다) 같은 개발사·비슷한 앱 고리에서 이름이 맞은 앱 ref(country:id). 검증 재료(링크 ID 와 같은 자리)일 뿐 등록 근거가 아니다. */
+  similar_ref?: string | null
 }
 
 /** 근거 글 과반이 한글이면 kr 스토어, 아니면 us. */
@@ -190,11 +197,15 @@ export function aggregate(posts: Post[], ctx: { projects: ProjectRow[]; targets:
   const by = new Map<string, Agg & { _surf: Map<string, number> }>()
   let withMention = 0
   let altSeekPosts = 0
+  const kinds: Record<string, { posts: number; with_mention: number }> = {}
   for (const p of posts) {
     const ms = extractMentions(p.raw_text)
     const seek = isAltSeek(p.raw_text)
     if (seek) altSeekPosts++
     if (ms.length) withMention++
+    const kk = (kinds[p.verdict_kind ?? 'legacy'] ??= { posts: 0, with_mention: 0 })
+    kk.posts++
+    if (ms.length) kk.with_mention++
     const ids = [...String(p.raw_text ?? '').matchAll(APPLE_LINK)].map((m) => m[1])
     const seenInPost = new Set<string>()
     for (const m of ms) {
@@ -225,7 +236,65 @@ export function aggregate(posts: Post[], ctx: { projects: ProjectRow[]; targets:
     }
   }
   const rows: Agg[] = [...by.values()].map(({ _surf, ...a }) => ({ ...a, name: [..._surf.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))[0][0], posts: [...a.posts].sort() }))
-  return { rows, counts: { posts: posts.length, posts_with_mention: withMention, alt_seek_posts: altSeekPosts, extracted: extracted.size, registered: registered.size, self: self.size } }
+  return { rows, counts: { posts: posts.length, posts_with_mention: withMention, alt_seek_posts: altSeekPosts, extracted: extracted.size, registered: registered.size, self: self.size, by_kind: kinds } }
+}
+
+// ── (가) 입력 풀 ──────────────────────────────────────────────────────
+/** approved ⊂ relevant ⊂ wide. legacy(판정 종류 없는 옛 입력)는 어느 풀에서나 남긴다 — 옛 SQL 은 이미 그 풀로 뽑힌 것이다. */
+export const POOLS: Readonly<Record<string, readonly string[]>> = {
+  approved: ['approved', 'legacy'],
+  relevant: ['approved', 'relevant', 'legacy'],
+  wide: ['approved', 'relevant', 'alt_seek', 'legacy'],
+}
+export function filterPool(posts: Post[], pool: string) {
+  const keep = POOLS[pool]
+  if (!keep) throw new Error(`--pool 은 ${Object.keys(POOLS).join('|')}: ${pool}`)
+  return posts.filter((p) => keep.includes(p.verdict_kind ?? 'legacy'))
+}
+
+// ── (라) 글 단위 영역 재판정 어댑터 ─────────────────────────────────────
+/**
+ * HN 재분류 결과(scripts/hn-area-reclass.mjs 출력 jsonl 또는 review_area_verdicts 읽기 결과) → 글 영역 덮어쓰기(메모리 안에서만).
+ * 우선순위는 v_input_area_effective 와 한 벌(lib/analysis/area-reclass.ts effectiveArea). 같은 글 여러 판정이면 최신 하나.
+ */
+export function applyAreaVerdicts(posts: Post[], verdicts: Array<{ input_id: string; area_code: string; fit: number; judged_at: string }>) {
+  const latest = latestByInput(verdicts)
+  let lifted = 0
+  const out = posts.map((p) => {
+    const e = effectiveArea(p.area_code, latest.get(p.id) as never)
+    if (e.via === 'input') lifted++
+    return e.area === p.area_code ? p : { ...p, area_code: e.area }
+  })
+  return { posts: out, lifted }
+}
+
+// ── (다) 비슷한 앱·같은 개발사 고리 ────────────────────────────────────
+/** candidate-generator Candidate 라벨 `N:cc|slug` → slug 의 normKey(하이픈 제거). appstore-same-developer.ts 의 slug 와 같은 꼴을 가정한다. */
+const similarKey = (c: Candidate) => normKey(String(c.label ?? '').replace(/^[^|]*\|/, '')) as string
+
+/**
+ * 같은 개발사 후보 파일(collectSameDeveloper 결과 candidates — 무인 연결 없이 파일로) → 이름이 같은 언급 후보에 앱 ID 를 붙인다.
+ * 붙은 ID 는 근거 글 링크 ID 와 같은 자리(app_ids)로 들어가 --lookup·--lookups 검증을 탄다. 검증 없이 anchored 로 올리지 않는다.
+ */
+export function mergeSimilar(rows: Agg[], similar: Candidate[]) {
+  const by = new Map<string, Candidate>()
+  for (const c of similar) if (c.source_key === 'appstore' && !by.has(similarKey(c))) by.set(similarKey(c), c)
+  let matched = 0
+  const out = rows.map((a) => {
+    const c = by.get(a.key)
+    if (!c) return a
+    matched++
+    const id = String(c.product_ref).split(':')[1]
+    return { ...a, similar_ref: c.product_ref, app_ids: a.app_ids.includes(id) ? a.app_ids : [...a.app_ids, id] }
+  })
+  return { rows: out, matched }
+}
+
+/** 등록 계획(앱스토어 갈래) → 후보 생성기 입력(Candidate[], generator 'mention'). 같은 개발사 후보와 한 파일로 합쳐 candidate-generator.mjs --candidates 로 넘긴다. */
+export function toGeneratorCandidates(plan: { register: Array<{ c: Ready; source_key: 'appstore' | 'googleplay' }> }): Candidate[] {
+  return plan.register
+    .filter((r) => r.source_key === 'appstore')
+    .map(({ c }) => ({ generator: 'mention' as const, source_key: 'appstore', product_ref: `${c.country}:${c.verdict.appId}`, label: `${c.area}:${c.country}|${c.key}`, expected_yield: null, evidence: `mention ${c.posts.length}글·${c.sources.length}소스` }))
 }
 
 // ── ④ 판정 ─────────────────────────────────────────────────────────────
@@ -245,13 +314,14 @@ export const scoreOf = (a: Agg, altSeekWeight = 1) => a.posts.length + 0.5 * (a.
  * 단계: rejected(이름 사유) · prior_rejected(지난 대장·발굴 대장에서 기각) · hold(비교만·글 수 미달) · candidate(글 수 통과, 영역 미달) · area_fit(영역 적합 통과).
  * 등록은 area_fit 중 ⑤ 검증(anchored)까지 간 것만.
  */
-export function judge(a: Agg, { minPosts = MIN_POSTS_DEFAULT, areaFitMin = AREA_FIT_MIN, prior = new Map<string, string>() } = {}): Judged {
+export function judge(a: Agg, { minPosts = MIN_POSTS_DEFAULT, minSources = 1, areaFitMin = AREA_FIT_MIN, prior = new Map<string, string>() } = {}): Judged {
   const { area, fit } = dominantArea(a.areas)
   const base = { ...a, area, area_fit: fit, score: scoreOf(a) }
   if (prior.has(a.key)) return { ...base, stage: 'prior_rejected', reason: prior.get(a.key)! }
   if (a.reject) return { ...base, stage: 'rejected', reason: a.reject }
   if (a.roles.from + a.roles.to + a.roles.alt === 0) return { ...base, stage: 'hold', reason: 'compare_only' }
   if (a.posts.length < minPosts) return { ...base, stage: 'hold', reason: `below_min_posts(${a.posts.length}/${minPosts})` }
+  if (a.sources.length < minSources) return { ...base, stage: 'hold', reason: `below_min_sources(${a.sources.length}/${minSources})` }
   if (!area || !AREAS.has(area) || fit < areaFitMin) return { ...base, stage: 'candidate', reason: `area_fit(${area ?? '-'} ${fit})` }
   return { ...base, stage: 'area_fit', reason: null }
 }
@@ -265,6 +335,67 @@ export function thresholdTable(rows: Agg[], verdicts: Map<string, AnchorVerdict[
     const checked = pass.length - st('unverified') - st('lookup_failed')
     return { k, candidates: pass.length, anchored: st('anchored'), no_match: st('no_match'), ambiguous: st('ambiguous'), unverified: st('unverified') + st('lookup_failed'), precision: checked ? Math.round((st('anchored') / checked) * 100) / 100 : null }
   })
+}
+
+// ── (나) 통과 기준 변형 · 오탐률 표본 ──────────────────────────────────
+export type Criterion = { id: string; minPosts: number; minSources: number }
+/** "3" → 3글 · "2+2" → 2글 ∧ 서로 다른 소스 2곳 이상. */
+export function parseCriterion(s: string): Criterion {
+  const m = /^(\d+)(?:\+(\d+))?$/.exec(String(s).trim())
+  if (!m || Number(m[1]) < 1) throw new Error(`기준 형식은 N 또는 N+S (예: 3, 2+2): ${s}`)
+  const minPosts = Number(m[1])
+  const minSources = Number(m[2] ?? 1)
+  return { id: m[2] ? `${minPosts}글+${minSources}소스` : `${minPosts}글`, minPosts, minSources }
+}
+/** 등록(마이그 초안·대장 accepted)에 쓸 수 있는 글 수 하한 — #561 CHECK·toApproved 와 같은 값. 시험 기준은 이보다 낮아도 보고만 한다. */
+export const REGISTER_MIN_POSTS = 3
+
+/** 기준별 후보 수 비교. 후보 = candidate ∪ area_fit. labels(key → ok) 가 있으면 그 기준 표본(sampled_for)으로 오탐률을 잰다. */
+export function compareCriteria(rows: Agg[], criteria: Criterion[], { prior = new Map<string, string>(), labels = new Map<string, { ok: boolean; sampled_for: string[] }>() } = {}) {
+  return criteria.map((c) => {
+    const js = rows.map((a) => judge(a, { minPosts: c.minPosts, minSources: c.minSources, prior }))
+    const live = js.filter((j) => j.stage === 'candidate' || j.stage === 'area_fit')
+    const lab = [...labels.entries()].filter(([k, v]) => v.sampled_for.includes(c.id) && live.some((j) => j.key === k))
+    const fp = lab.filter(([, v]) => !v.ok).length
+    return { criterion: c.id, candidates: live.length, area_fit: live.filter((j) => j.stage === 'area_fit').length, keys: live.map((j) => j.key), labeled: lab.length, false_pos: fp, fp_rate: lab.length ? Math.round((fp / lab.length) * 1000) / 1000 : null }
+  })
+}
+
+/** 결정적 표본(키 해시 순) — 같은 입력이면 같은 표본. 무작위 대신 해시라 재현된다. */
+const hash = (s: string) => [...s].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) >>> 0, 7)
+export function pickSample<T extends { key: string }>(rows: T[], n: number) {
+  return [...rows].sort((a, b) => hash(a.key) - hash(b.key) || (a.key < b.key ? -1 : 1)).slice(0, n)
+}
+
+/** 언급 주변 문맥(±80자). 원문 조각이 들어간다 — 표본 파일은 리포에 커밋하지 않는다. */
+export function snippet(raw: string, name: string) {
+  const t = cleanText(raw).replace(/\s+/g, ' ')
+  const i = t.toLowerCase().indexOf(name.toLowerCase())
+  return i < 0 ? t.slice(0, 160) : t.slice(Math.max(0, i - 80), i + name.length + 80)
+}
+
+/** 사람 판정 CSV(key,human_ok,sampled_for,…) → Map. human_ok 는 Y/N(빈칸 = 미채점). */
+export function parseSampleLabels(csv: string) {
+  const m = new Map<string, { ok: boolean; sampled_for: string[] }>()
+  for (const line of String(csv).split(/\r?\n/).slice(1)) {
+    const [key, ok, sf] = line.split(',').map((s) => s.trim().replace(/^"|"$/g, ''))
+    if (!key || !ok) continue
+    if (!/^[YN]$/i.test(ok)) throw new Error(`human_ok 는 Y/N: ${key} ${ok}`)
+    m.set(key, { ok: /^y$/i.test(ok), sampled_for: (sf ?? '').split('|').filter(Boolean) })
+  }
+  return m
+}
+
+/**
+ * (마) 등록 모드 문턱: CEO-staff 가 dry-run 후보 표본을 직접 읽은 결과. 채점 ≥ minN ∧ 적합 비율 ≥ minOk 일 때만 pass.
+ * 채점이 모자라면 unverified(통과 아님, §7.1).
+ */
+export function reviewGate(labels: Map<string, { ok: boolean }>, { minN = 30, minOk = 0.9 } = {}) {
+  const n = labels.size
+  const ok = [...labels.values()].filter((v) => v.ok).length
+  const rate = n ? Math.round((ok / n) * 1000) / 1000 : null
+  const decision = n < minN ? 'unverified' : (rate as number) < minOk ? 'stop' : 'pass'
+  return { n, ok, rate, decision, rejected_keys: [...labels.entries()].filter(([, v]) => !v.ok).map(([k]) => k) }
 }
 
 // ── ⑤ 검증 ─────────────────────────────────────────────────────────────

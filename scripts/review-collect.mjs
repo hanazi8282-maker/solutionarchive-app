@@ -50,6 +50,8 @@ import { yozmAdapter } from '../lib/review/adapters/yozm.ts'
 import { indiehackersAdapter } from '../lib/review/adapters/indiehackers.ts'
 import { n8nCommunityAdapter, makeCommunityAdapter, bubbleForumAdapter, retoolCommunityAdapter, glideCommunityAdapter, softrCommunityAdapter } from '../lib/review/adapters/discourse.ts'
 import { googleplayAdapter } from '../lib/review/adapters/googleplay.ts'
+import { githubAdapter } from '../lib/review/adapters/github.ts'
+import { stackexchangeAdapter } from '../lib/review/adapters/stackexchange.ts'
 import { kakaoBlogAdapter, kakaoCafeAdapter } from '../lib/review/adapters/kakao.ts'
 import { wordpressAdapter } from '../lib/review/adapters/wordpress.ts'
 import { shopifyAdapter } from '../lib/review/adapters/shopify.ts'
@@ -91,6 +93,9 @@ const ADAPTERS = {
   retool_community: retoolCommunityAdapter,
   glide_community: glideCommunityAdapter,
   softr_community: softrCommunityAdapter,
+  // v71ad §5(d) 공식 API 무토큰·무키(마이그 20261017000110 미적용 — 소스 행이 없으면 돌지 않는다).
+  github_issues: githubAdapter,
+  stackexchange: stackexchangeAdapter,
   // 약관이 자동 접근을 금지하는 걸 알고 남헌이 연 소스(2026-10-05, 마이그 20261005000005). 우회 없음 —
   // 403·429·빈 응답·캡차면 즉시 중단(어댑터 abortOnChallenge). robots 는 러너가 매 실행 판정한다.
   googleplay: googleplayAdapter,

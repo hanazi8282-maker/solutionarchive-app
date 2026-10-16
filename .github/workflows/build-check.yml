@@ -223,6 +223,8 @@ jobs:
       #             200 으로 와도 실패로 떨어지는지, 목록 403 이 러너 공용 가드로 멈추고 소스를 끄는지.
       - run: node scripts/review-devto-selftest.mjs
       - run: node scripts/review-discourse-selftest.mjs
+      #   github_issues·stackexchange(v71ad §5 d): 무토큰 공식 API. PR·봇·메인테이너 거름, 작성자 미저장, 403/429/400/HTML → 요청 1건 뒤 차단 중단.
+      - run: node scripts/review-official-api-selftest.mjs
       - run: node scripts/anchor-selftest.mjs
       - run: node scripts/source-purge-selftest.mjs
       - run: node scripts/provisional-plan-selftest.mjs

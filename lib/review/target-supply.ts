@@ -23,8 +23,20 @@ import { isOwnerRobotsOverride } from './runner.ts'
 export const SHARE_GATE = 0.3
 /** D4: googleplay 활성 타깃 동결선. 넘겨 넣지 않는다. 확대는 단계표·30% 게이트 둘 다 충족(expand_ready) 뒤 사람이 이 값을 올린다. */
 export const GOOGLEPLAY_FROZEN_ACTIVE = 80
-/** D6: 발굴 1회 소스당 상한. */
-export const DISCOVERY_TARGET_MAX = 5
+/**
+ * D6: 소스당 하루 발굴 상한 — 세 곳이 같은 값을 쓴다: window-discovery 등재(소스당 KST 하루, 대장 기준) ·
+ * board-discovery 프로브 후보(소스당 1회=하루) · discovery-run 후보 수 min(gap, 이 값, 게이트 여유).
+ * 남헌 v71aa(2026-10-16): 5 → 12, 영역 ①~⑤ 전체(영역 적합성 조건 유지). env DISCOVERY_TARGET_MAX 로 읽는다.
+ * 비었으면 12. 양의 정수가 아니면 옛 값 5(상한은 틀린 값에 넓어지지 않는다). 롤백 = 리포 변수 DISCOVERY_TARGET_MAX=5.
+ */
+export const DISCOVERY_TARGET_MAX_DEFAULT = 12
+export const DISCOVERY_TARGET_MAX_SAFE = 5
+export function discoveryTargetMax(raw: string | undefined): number {
+  if (raw === undefined || raw.trim() === '') return DISCOVERY_TARGET_MAX_DEFAULT
+  const n = Number(raw)
+  return Number.isInteger(n) && n >= 1 ? n : DISCOVERY_TARGET_MAX_SAFE
+}
+export const DISCOVERY_TARGET_MAX = discoveryTargetMax(typeof process === 'undefined' ? undefined : process.env.DISCOVERY_TARGET_MAX)
 /** cap_base 가 없을 때 B = daily_request_cap × 이 비율(퍼센트 램프 첫 단계 50% 와 같은 값). */
 export const CAP_FALLBACK_PCT = 50
 /** 기존 2슬롯(nightly-review-collect 05:37Z·17:37Z). 스케줄 계획이 없는 소스의 하루 실행 횟수. */
@@ -360,7 +372,7 @@ export function supplyLine(s: SourceSupply): string {
 
 /**
  * D6: 발굴 1회 후보 수. supply 가 없거나 그 소스가 gap 모델 밖(excluded·unverified·행 없음)이면 기존 고정값 — 줄이지도 늘리지도 않는다.
- * short ∧ 'discovery' 처방일 때만 min(gap, 5, 게이트 여유), 추정 r(fallback_*)이면 1. 그 밖(met·over)은 0.
+ * short ∧ 'discovery' 처방일 때만 min(gap, DISCOVERY_TARGET_MAX, 게이트 여유), 추정 r(fallback_*)이면 1. 그 밖(met·over)은 0.
  */
 export function discoveryCount(report: Pick<SupplyReport, 'sources'> | null, sourceKey: string, fallback: number): { count: number; note: string } {
   if (!report) return { count: fallback, note: `⚠️ supply 없음 — 고정 ${fallback}건(기존 동작)` }

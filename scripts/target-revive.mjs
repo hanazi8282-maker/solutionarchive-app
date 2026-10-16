@@ -28,7 +28,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import {
-  computeSupply, envCap, idSetHash, inventoryGauge, NON_INCREMENTAL_SOURCES, parseRevisitScale, planRevive, REVIVE_MIN_EXPECTED_NEW, REVIVE_PER_RUN,
+  CE_EXP_MAX_LIMIT, computeSupply, envCap, idSetHash, inventoryGauge, NON_INCREMENTAL_SOURCES, parsePerSourceInt, parseRevisitScale, planRevive, REVIVE_HARD_CEILING, REVIVE_MIN_EXPECTED_NEW, REVIVE_PER_RUN,
   REVIVE_TOTAL_PER_RUN, revisitRate, rollbackSql,
 } from '../lib/review/target-supply.ts'
 import { loadSupplyInputs, openDb } from './target-supply.mjs'
@@ -90,22 +90,27 @@ export function incrementalCap(raw, ceiling = REVIVE_TOTAL_PER_RUN) {
 /**
  * v71ad §5(a): 상한 변수 셋을 읽고, 조용히 잘리는 곳을 경고 문장으로 돌려준다(§7.2 — 안전장치가 걸린 것을 정상으로 읽지 않게).
  * TARGET_REVIVE_TOTAL_CEILING(기본 40) · TARGET_REVIVE_PER_SOURCE(기본 6) · 둘 다 하드 천장 200 · TARGET_REVISIT_SCALE(소스별 간격 배율, 줄이기만).
+ * v71aj: TARGET_REVIVE_CE_EXP_MAX(소스별 2^ce 지수 상한) · TARGET_REVIVE_QUEUE_SLACK(소스별 queue_full 여유) — 비면 현행.
  */
 export function reviveLimits(env, incOn) {
   const total = envCap(env.TARGET_REVIVE_TOTAL_CEILING, REVIVE_TOTAL_PER_RUN)
   const perSource = envCap(env.TARGET_REVIVE_PER_SOURCE, REVIVE_PER_RUN)
   const { scale, notes } = parseRevisitScale(env.TARGET_REVISIT_SCALE)
+  const exp = parsePerSourceInt(env.TARGET_REVIVE_CE_EXP_MAX, 'TARGET_REVIVE_CE_EXP_MAX', CE_EXP_MAX_LIMIT)
+  const slack = parsePerSourceInt(env.TARGET_REVIVE_QUEUE_SLACK, 'TARGET_REVIVE_QUEUE_SLACK', REVIVE_HARD_CEILING)
   const warns = [
     ...(total.note ? [`TARGET_REVIVE_TOTAL_CEILING: ${total.note}`] : []),
     ...(perSource.note ? [`TARGET_REVIVE_PER_SOURCE: ${perSource.note}`] : []),
     ...notes,
+    ...exp.notes,
+    ...slack.notes,
   ]
   const incCap = incOn ? incrementalCap(env.TARGET_CLOCK_INCREMENTAL_MAX, total.value) : null
   const asked = Math.floor(Number(env.TARGET_CLOCK_INCREMENTAL_MAX))
   if (incOn && Number.isFinite(asked) && asked > total.value) {
     warns.push(`TARGET_CLOCK_INCREMENTAL_MAX=${asked} 이 천장 ${total.value}(TARGET_REVIVE_TOTAL_CEILING)에 잘려 ${total.value} — 더 올리려면 천장 변수부터 올린다`)
   }
-  return { totalCap: total.value, perRunCap: perSource.value, scale, incCap, warns }
+  return { totalCap: total.value, perRunCap: perSource.value, scale, expCap: exp.map, queueSlack: slack.map, incCap, warns }
 }
 
 export async function main(argv, { db, now = new Date() } = {}) {
@@ -129,7 +134,7 @@ export async function main(argv, { db, now = new Date() } = {}) {
   // v69 A레인 — 증분형 시계는 기본 관찰 모드(쓰기 0). TARGET_CLOCK_INCREMENTAL=on 일 때만 실제로 되살린다(남헌·역할 세션이 3일 대조 뒤 켠다).
   const incOn = process.env.TARGET_CLOCK_INCREMENTAL === 'on'
   const lim = reviveLimits(process.env, incOn)
-  const autoOpts = { perRunCap: lim.perRunCap, clockOnly: true, minExpectedNew: REVIVE_MIN_EXPECTED_NEW, totalCap: lim.totalCap, revisitScale: lim.scale }
+  const autoOpts = { perRunCap: lim.perRunCap, clockOnly: true, minExpectedNew: REVIVE_MIN_EXPECTED_NEW, totalCap: lim.totalCap, revisitScale: lim.scale, revisitExpCap: lim.expCap, queueSlack: lim.queueSlack }
   // 남헌 v71u 6(A): on 일 때 한 번에 되살리는 증분형 타깃 수 = TARGET_CLOCK_INCREMENTAL_MAX(기본 5, 천장 TARGET_REVIVE_TOTAL_CEILING 기본 40). 관찰 모드는 기존 상한 그대로.
   const incCap = lim.incCap
   const plan = planRevive(input.targets, report, auto ? { ...autoOpts, clockAll: incOn, ...(incOn ? { totalCap: incCap } : {}) } : {})
@@ -145,7 +150,7 @@ export async function main(argv, { db, now = new Date() } = {}) {
           return { id: r.id, source_key: r.source_key, product_ref: r.product_ref, total_collected: t.total_collected ?? 0, expected_new: lam === null ? 0 : Math.round(lam * days * 10) / 10 }
         })
     : null
-  const gauge = inventoryGauge(report, input.targets, now, lim.scale)
+  const gauge = inventoryGauge(report, input.targets, now, lim.scale, lim.expCap)
   const obsOut = out.replace(/.sql$/i, '') + '-observe.sql'
   const writeObs = () => {
     if (obs === null || obs.length === 0 || argv.includes('--dry')) return // 관찰 대상 0건이면 파일을 만들지 않는다 — 매 슬롯 빈 커밋 방지

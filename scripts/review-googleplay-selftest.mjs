@@ -441,14 +441,19 @@ const AS_ROWS = [
   { project_id: 'pExh2', status: 'exhausted', total_collected: 30 },
   { project_id: 'pExh3', status: 'exhausted', total_collected: 10 },
 ]
-const gpSupa = (asResp = { data: AS_ROWS, error: null }, gpRows = GP_ROWS) =>
-  chainSupa((calls) => (arg(calls, 'eq', 1)[0] === 'appstore' ? (typeof asResp === 'function' ? asResp() : asResp) : { data: gpRows, error: null }))
+// v71v 1: analysis_projects(id, area_code) 조회는 apResp 로 답한다(기본 빈 배열 = 영역 미부여 → 기존 순서).
+const gpSupa = (asResp = { data: AS_ROWS, error: null }, gpRows = GP_ROWS, apResp = { data: [], error: null }) =>
+  chainSupa((calls) => {
+    const pick = (r) => (typeof r === 'function' ? r() : r)
+    if (calls[0][1] === 'analysis_projects') return pick(apResp)
+    return arg(calls, 'eq', 1)[0] === 'appstore' ? pick(asResp) : { data: gpRows, error: null }
+  })
 const ids = (ts) => ts.map((x) => x.id).join(',')
 {
   const sb = gpSupa()
   const got = await createReviewStore(sb).listDueTargets('googleplay', 10)
   t('순서: 미방문 exhausted → 미방문 나머지(기존 순서) → 방문(기존 순서)', ids(got), 'exh,none,active,vBig,vSmall')
-  t('조회: 정확히 2번(N+1 없음)', sb.queries.length, 2)
+  t('조회: 정확히 3번(N+1 없음 — v71v 1 영역 조회 1번 추가, off 면 2번은 아래)', sb.queries.length, 3)
   t('조회: 앱스토어는 프로젝트 in 한 번', JSON.stringify(arg(sb.queries[1], 'in', 1)[0]), JSON.stringify(['pNone', 'pActive', 'pExh', 'pExh2', 'pExh3']))
   t('조회: googleplay 는 last_run_at NULLS FIRST, created_at 순', JSON.stringify(arg(sb.queries[0], 'order')), '["last_run_at","created_at"]')
   t('limit 은 정렬 뒤 자른다', ids(await createReviewStore(gpSupa()).listDueTargets('googleplay', 2)), 'exh,none')
@@ -513,6 +518,101 @@ for (const [label, asResp] of [
   const r = await runCollection(googleplayAdapter, { dryRun: false, targetLimit: 3 }, h.ports)
   t('러너 통합: 방문 3개', r.targetsVisited, 3)
   t('러너 통합: 앱스토어 exhausted 대상이 먼저 선택', [...new Set(h.log.saves.map((s) => s.targetId))].join(','), 'x0,x1,x2')
+}
+
+// ── v71v 1: 같은 등급 안 영역 우선(① > ④ > ⑤ > 그 밖) ────────────────────
+{
+  const { orderGooglePlayTargets, summarizeAppStore, gpAreaPriorityOn, GP_AREA_ORDER } = await import('../lib/review/runner.ts')
+  t('영역 순서 상수 1,4,5', GP_AREA_ORDER.join(','), '1,4,5')
+  for (const [v, want] of [[undefined, true], ['', true], ['on', true], ['off', false], ['OFF', false], ['false', false], ['0', false], [' off ', false]]) {
+    t(`GP_AREA_PRIORITY=${JSON.stringify(v)} → ${want}`, gpAreaPriorityOn(v), want)
+  }
+  // 입력 = DB 기존 순서. e·d = 미방문 ∧ 앱스토어 exhausted(등급 0), a·c2·b·c = 그 밖 미방문(1), h·g·f = 방문(3).
+  const R = (id, lastRunAt) => ({ id, projectId: `p${id}`, lastRunAt, totalCollected: 0 })
+  const V = '2026-10-01T00:00:00Z'
+  const rows = [R('e', null), R('d', null), R('a', null), R('c2', null), R('b', null), R('c', null), R('h', V), R('g', V), R('f', V)]
+  const as = summarizeAppStore([{ project_id: 'pe', status: 'exhausted', total_collected: 0 }, { project_id: 'pd', status: 'exhausted', total_collected: 0 }])
+  const areas = new Map([['pd', '4'], ['pe', null], ['pa', '2'], ['pb', '5'], ['pc', '1'], ['pc2', '1'], ['pf', '1'], ['pg', '4'], ['ph', 'out-founder']])
+  const on = orderGooglePlayTargets(rows, as, undefined, areas)
+  t('영역 우선: 같은 등급 안에서만 ①>④>⑤>그 밖, 같은 영역은 기존 순서', ids(on), 'd,e,c2,c,b,a,f,g,h')
+  t('등급 경계 불변: 미방문(영역 그 밖 a)이 방문(영역 ① f)보다 앞', ids(on).indexOf('a') < ids(on).indexOf('f'), true)
+  t('등급 경계 불변: 등급 0(영역 그 밖 e)이 등급 1(영역 ① c2)보다 앞', ids(on).indexOf('e') < ids(on).indexOf('c2'), true)
+  const old = orderGooglePlayTargets(rows, as)
+  t('영역 맵 null: 기존 순서', ids(orderGooglePlayTargets(rows, as, undefined, null)), 'e,d,a,c2,b,c,h,g,f')
+  t('영역 맵 null: 옛 호출과 바이트 단위 동일', JSON.stringify(orderGooglePlayTargets(rows, as, undefined, null)), JSON.stringify(old))
+  t('타깃 수 불변', on.length, rows.length)
+  t('타깃 집합 불변', [...on].map((x) => x.id).sort().join(','), [...rows].map((x) => x.id).sort().join(','))
+  t('입력 배열 변경 없음', ids(rows), 'e,d,a,c2,b,c,h,g,f')
+  t('앱스토어 null 이면 영역 있어도 입력 순서 그대로', ids(orderGooglePlayTargets(rows, null, undefined, areas)), ids(rows))
+  // repeat 켜진 때: 등급 2 안에서도 영역 먼저, 같은 영역이면 합계 수집 적은 순(기존 규칙).
+  const rr = [R('v1', V), R('v2', V), R('v3', V)].map((r, i) => ({ ...r, totalCollected: [5, 50, 1][i] }))
+  const asR = summarizeAppStore(['pv1', 'pv2', 'pv3'].map((p) => ({ project_id: p, status: 'exhausted', total_collected: 0 })))
+  t('repeat: 등급 2 안 영역 먼저 → 수집 적은 순', ids(orderGooglePlayTargets(rr, asR, true, new Map([['pv1', '9'], ['pv2', '1'], ['pv3', '9']]))), 'v2,v3,v1')
+}
+{
+  // 스토어: on 이면 analysis_projects(id, area_code) 를 프로젝트 in 한 번, off 면 조회 0 + 옛 배열 그대로.
+  const AP = [{ id: 'pActive', area_code: '1' }, { id: 'pNone', area_code: '5' }, { id: 'pExh3', area_code: '4' }, { id: 'pExh2', area_code: null }]
+  const prev = process.env.GP_AREA_PRIORITY
+  delete process.env.GP_AREA_PRIORITY
+  const sb = gpSupa(undefined, undefined, { data: AP, error: null })
+  const got = await createReviewStore(sb).listDueTargets('googleplay', 10)
+  t('스토어 on: 등급 안 영역 우선(active ① > none ⑤, vSmall ④ > vBig)', ids(got), 'exh,active,none,vSmall,vBig')
+  t('스토어 on: 영역 조회 표', sb.queries[2][0][1], 'analysis_projects')
+  t('스토어 on: 영역 조회 열', arg(sb.queries[2], 'select')[0], 'id, area_code')
+  t('스토어 on: 영역 조회는 프로젝트 in 한 번', JSON.stringify(arg(sb.queries[2], 'in', 1)[0]), JSON.stringify(['pNone', 'pActive', 'pExh', 'pExh2', 'pExh3']))
+  t('스토어 on: limit 은 정렬 뒤 자른다', ids(await createReviewStore(gpSupa(undefined, undefined, { data: AP, error: null })).listDueTargets('googleplay', 2)), 'exh,active')
+
+  const offRuns = []
+  for (const v of ['off', 'false', '0']) {
+    process.env.GP_AREA_PRIORITY = v
+    const sbo = gpSupa(undefined, undefined, { data: AP, error: null })
+    const gotOff = await createReviewStore(sbo).listDueTargets('googleplay', 10)
+    t(`스토어 off(${v}): 조회 2번(영역 조회 안 함)`, sbo.queries.length, 2)
+    t(`스토어 off(${v}): 옛 순서`, ids(gotOff), 'exh,none,active,vBig,vSmall')
+    offRuns.push(JSON.stringify(gotOff))
+  }
+  // 옛 동작 기준: 영역 미부여(빈 맵) on 결과 = 영역 우선 없는 정렬. off 결과가 이것과 바이트 단위로 같아야 한다.
+  delete process.env.GP_AREA_PRIORITY
+  const base = JSON.stringify(await createReviewStore(gpSupa()).listDueTargets('googleplay', 10))
+  t('스토어 off: 옛 배열과 바이트 단위 동일', offRuns.every((s) => s === base), true)
+
+  for (const [label, apResp] of [
+    ['오류 응답', { data: null, error: { message: 'column analysis_projects.area_code does not exist' } }],
+    ['예외', () => { throw new Error('network down') }],
+  ]) {
+    const warns = []
+    const origWarn = console.warn
+    console.warn = (m) => warns.push(String(m))
+    const gotF = await createReviewStore(gpSupa(undefined, undefined, apResp)).listDueTargets('googleplay', 10)
+    console.warn = origWarn
+    t(`영역 조회 실패(${label}): 기존 순서로 돈다`, ids(gotF), 'exh,none,active,vBig,vSmall')
+    t(`영역 조회 실패(${label}): ⚠️ 한 줄`, warns.length === 1 && warns[0].startsWith('⚠️') && warns[0].includes('area'), true)
+  }
+  if (prev === undefined) delete process.env.GP_AREA_PRIORITY
+  else process.env.GP_AREA_PRIORITY = prev
+}
+{
+  // 러너 통합: 영역 우선은 "어느 타깃을 먼저"만 바꾼다 — 방문 수·요청 수는 on/off 같다.
+  const rows = [
+    ...Array.from({ length: 4 }, (_, i) => gpRow(`n${i}`, `pn${i}`, null)),
+    gpRow('v0', 'pv0', '2026-10-01T00:00:00Z'),
+  ]
+  const ap = { data: [{ id: 'pn3', area_code: '1' }, { id: 'pn2', area_code: '4' }], error: null }
+  const run = async (v) => {
+    process.env.GP_AREA_PRIORITY = v
+    const real = createReviewStore(gpSupa({ data: [], error: null }, rows, ap))
+    const h = harness({ byToken: { first: pageEmpty } })
+    h.ports.store.listDueTargets = (k, n) => real.listDueTargets(k, n)
+    const r = await runCollection(googleplayAdapter, { dryRun: false, targetLimit: 2 }, h.ports)
+    return { visited: r.targetsVisited, reqs: h.log.inits.length, picked: [...new Set(h.log.saves.map((s) => s.targetId))].join(',') }
+  }
+  const on = await run('on')
+  const off = await run('off')
+  delete process.env.GP_AREA_PRIORITY
+  t('러너 통합 on: 영역 ①·④ 타깃이 먼저 선택', on.picked, 'n3,n2')
+  t('러너 통합 off: 기존 순서', off.picked, 'n0,n1')
+  t('러너 통합: 방문 타깃 수 불변', on.visited, off.visited)
+  t('러너 통합: 요청 수 불변', on.reqs, off.reqs)
 }
 
 console.log(`${pass} passed, ${fail} failed`)

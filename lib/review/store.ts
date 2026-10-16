@@ -13,7 +13,7 @@
 import type { createClient } from '../supabase/server.ts'
 import { CROSS_TARGET_MIN_TEXT_LEN } from './fingerprint.ts'
 import type { AppStoreSummary, RunnerStore, SourceConfig, TargetProgress } from './runner.ts'
-import { GP_PRIORITY_APPSTORE_SOURCE, GP_PRIORITY_SOURCE, isOwnerRobotsOverride, orderGooglePlayTargets, summarizeAppStore } from './runner.ts'
+import { GP_PRIORITY_APPSTORE_SOURCE, GP_PRIORITY_SOURCE, gpAreaPriorityOn, isOwnerRobotsOverride, orderGooglePlayTargets, summarizeAppStore } from './runner.ts'
 import type { Fingerprint, TargetState } from './types.ts'
 
 type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
@@ -87,20 +87,36 @@ export function createReviewStore(supabase: Supa): RunnerStore {
     if (error) throw new Error(`타깃 조회 실패: ${error.message}`)
     const rows = (data ?? []).map((r) => ({ ...r, projectId: r.project_id, lastRunAt: r.last_run_at, totalCollected: r.total_collected ?? 0 }))
 
+    const projectIds = [...new Set(rows.map((r) => r.projectId))]
     let appStore: Map<string, AppStoreSummary> | null = null
     try {
       const { data: as, error: asErr } = await supabase
         .from('review_targets')
         .select('project_id, status, total_collected')
         .eq('source_key', GP_PRIORITY_APPSTORE_SOURCE)
-        .in('project_id', [...new Set(rows.map((r) => r.projectId))])
+        .in('project_id', projectIds)
       if (asErr) throw new Error(asErr.message)
       appStore = summarizeAppStore(as ?? [])
     } catch (e) {
       console.warn(`⚠️ [review/store] googleplay visit order: appstore status unreadable (${(e as Error).message}) — priority not applied, default order`)
     }
 
-    return orderGooglePlayTargets(rows, appStore).slice(0, limit)
+    // v71v 1: 같은 등급 안에서 결론서 영역(①>④>⑤) 먼저. 끄면(GP_AREA_PRIORITY=off) 조회도 안 한다. 못 읽으면 영역 우선 없이 기존 순서(§7.1).
+    let areas: Map<string, string | null> | null = null
+    if (gpAreaPriorityOn()) {
+      try {
+        const { data: ap, error: apErr } = await supabase
+          .from('analysis_projects')
+          .select('id, area_code')
+          .in('id', projectIds)
+        if (apErr) throw new Error(apErr.message)
+        areas = new Map((ap ?? []).map((p: { id: string; area_code: string | null }) => [p.id, p.area_code]))
+      } catch (e) {
+        console.warn(`⚠️ [review/store] googleplay area order: analysis_projects.area_code unreadable (${(e as Error).message}) — area priority not applied, default order`)
+      }
+    }
+
+    return orderGooglePlayTargets(rows, appStore, undefined, areas).slice(0, limit)
   }
 
   return {

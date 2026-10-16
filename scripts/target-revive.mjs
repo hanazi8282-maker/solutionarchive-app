@@ -81,6 +81,12 @@ export function gaugeMd(g, obs) {
   ].join('\n')
 }
 
+/** TARGET_CLOCK_INCREMENTAL_MAX → 증분형 총상한. 미설정·숫자 아님·0 이하 → 5(안전한 쪽), 천장 REVIVE_TOTAL_PER_RUN(40). */
+export function incrementalCap(raw) {
+  const n = Math.floor(Number(raw))
+  return raw == null || raw === '' || !Number.isFinite(n) || n <= 0 ? 5 : Math.min(n, REVIVE_TOTAL_PER_RUN)
+}
+
 export async function main(argv, { db, now = new Date() } = {}) {
   const auto = argv.includes('--auto')
   const run = argv.includes('--run')
@@ -102,7 +108,9 @@ export async function main(argv, { db, now = new Date() } = {}) {
   // v69 A레인 — 증분형 시계는 기본 관찰 모드(쓰기 0). TARGET_CLOCK_INCREMENTAL=on 일 때만 실제로 되살린다(남헌·역할 세션이 3일 대조 뒤 켠다).
   const incOn = process.env.TARGET_CLOCK_INCREMENTAL === 'on'
   const autoOpts = { perRunCap: REVIVE_PER_RUN, clockOnly: true, minExpectedNew: REVIVE_MIN_EXPECTED_NEW, totalCap: REVIVE_TOTAL_PER_RUN }
-  const plan = planRevive(input.targets, report, auto ? { ...autoOpts, clockAll: incOn } : {})
+  // 남헌 v71u 6(A): on 일 때 한 번에 되살리는 증분형 타깃 수 = TARGET_CLOCK_INCREMENTAL_MAX(기본 5, 천장 40). 관찰 모드는 기존 상한 그대로.
+  const incCap = incOn ? incrementalCap(process.env.TARGET_CLOCK_INCREMENTAL_MAX) : null
+  const plan = planRevive(input.targets, report, auto ? { ...autoOpts, clockAll: incOn, ...(incOn ? { totalCap: incCap } : {}) } : {})
   const observe = argv.includes('--observe') || (auto && !incOn)
   const byId = new Map(input.targets.map((t) => [t.id, t]))
   const obs = observe
@@ -137,8 +145,17 @@ export async function main(argv, { db, now = new Date() } = {}) {
     if (auto && !argv.includes('--dry') && process.env.SUPPLY_BLOCK_FILE) fs.writeFileSync(process.env.SUPPLY_BLOCK_FILE, JSON.stringify(supplyBlock(gauge, obs)))
   }
   log(`${mode.toUpperCase()} 되살리기 대상 ${n}건 · 해시 ${hash}${auto ? ` (재방문 시계 · 소스별 실행당 ≤${REVIVE_PER_RUN})` : ' (exhausted ∧ enabled ∧ 제외소스 아님 ∧ min(gap, 게이트 여유))'}`)
+  // on 일 때만 한 줄 — K 는 실제 UPDATE 된 증분형 수(쓰기 없는 실행이면 계획 수).
+  const incLog = (ids) => {
+    if (!auto || !incOn) return
+    const m = Object.entries(plan.bySource).filter(([k]) => !NON_INCREMENTAL_SOURCES.has(k)).reduce((s, [, b]) => s + b.candidates, 0)
+    const done = new Set(ids)
+    const k = plan.revive.filter((r) => !NON_INCREMENTAL_SOURCES.has(r.source_key) && done.has(r.id)).length
+    log(`증분형 상한 ${incCap}, 대상 후보 ${m}, 실제 되살림 ${k}`)
+  }
 
   if (!apply) {
+    incLog(plan.revive.map((r) => r.id))
     writeObs()
     summarize(null)
     if (!auto) log(`\n실행: node scripts/target-revive.mjs --run --expect=${n} --expect-hash=${hash}`)
@@ -151,6 +168,7 @@ export async function main(argv, { db, now = new Date() } = {}) {
   }
   if (n === 0) {
     log('대상 0건 — 쓰지 않는다.')
+    incLog([])
     writeObs()
     summarize(0)
     return { n, hash, plan, applied: { updated: 0 }, out: null, planOut: null }
@@ -189,6 +207,7 @@ export async function main(argv, { db, now = new Date() } = {}) {
     }
   }
   log(`UPDATE 완료: ${updated.length}건 active. 롤백: ${out}`)
+  incLog(updated)
   writeObs()
   summarize(updated.length)
   return { n, hash, plan, applied: { updated: updated.length }, out, planOut }

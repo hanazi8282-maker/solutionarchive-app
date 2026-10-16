@@ -184,6 +184,8 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # v69 A레인: 증분형 시계. 기본(미설정)=관찰 모드(쓰기 0, reports/ 에 관찰 기록만). 'on' 은 사람·역할 세션이 3일 대조 뒤 켠다.
           TARGET_CLOCK_INCREMENTAL: ${{ vars.TARGET_CLOCK_INCREMENTAL }}
+          # 남헌 v71u 6(A): on 일 때 한 실행에 되살리는 증분형 타깃 수 상한. 미설정·잘못된 값=5, 천장 40(REVIVE_TOTAL_PER_RUN).
+          TARGET_CLOCK_INCREMENTAL_MAX: ${{ vars.TARGET_CLOCK_INCREMENTAL_MAX }}
           # v69 D7: 게이지를 같은 잡의 수집 스텝(Notion 일일 상태 로그)으로 넘기는 파일.
           SUPPLY_BLOCK_FILE: ${{ runner.temp }}/supply-block.json
         run: node scripts/target-revive.mjs --auto ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
@@ -207,6 +209,8 @@ jobs:
           PRODUCT_HUNT_API_TOKEN: ${{ secrets.PRODUCT_HUNT_API_TOKEN }}
           # 카카오(다음) 블로그·카페 검색 REST API(남헌 v27 소유자 예외, 2026-10-06). 운영정책 제5조 20·30호 충돌을 알고 켬 — docs/review-collection-design.md §1.3.
           KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+          # v71v 1: 구글 플레이 같은 등급 안 영역(①>④>⑤) 우선. 미설정=on, 리포 변수 off/false/0 이면 옛 순서(한 줄 되돌리기).
+          GP_AREA_PRIORITY: ${{ vars.GP_AREA_PRIORITY }}
         run: |
           node scripts/review-collect.mjs \
             --source=${{ inputs.source || 'all' }} \

@@ -11,7 +11,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
-  NON_INCREMENTAL_SOURCES, computeSupply, discoveryCount, gateHeadroom, idSetHash, planRevive, revisitDays, rollbackSql, shareHeadroom, supplyLine,
+  DISCOVERY_TARGET_MAX, NON_INCREMENTAL_SOURCES, computeSupply, discoveryCount, discoveryTargetMax, gateHeadroom, idSetHash, planRevive, revisitDays, rollbackSql, shareHeadroom, supplyLine,
 } from '../lib/review/target-supply.ts'
 import { main as supplyMain, summaryMarkdown } from './target-supply.mjs'
 import { areaCoverage, areaCoverageLine, areaHealth } from '../lib/review/target-supply.ts'
@@ -137,12 +137,16 @@ t('googleplay 동결: 70 이면 80 까지 10, 30% 여유가 더 작으면 그것
 }
 
 // ── D6 발굴 건수 ─────────────────────────────────────────────────
+// v71aa: 상한은 env DISCOVERY_TARGET_MAX — 비면 12, 틀린 값이면 옛 5(넓어지지 않는다)
+t('상한 env: 미지정·빈 값 → 12', [discoveryTargetMax(undefined), discoveryTargetMax(''), discoveryTargetMax('  ')], [12, 12, 12])
+t('상한 env: 양의 정수 그대로(롤백 5)', [discoveryTargetMax('5'), discoveryTargetMax('20')], [5, 20])
+t('상한 env: 0·음수·소수·문자 → 5', ['0', '-3', '2.5', 'abc'].map(discoveryTargetMax), [5, 5, 5, 5])
 t('발굴: supply 없음 → 고정', discoveryCount(null, 'hackernews', 2).count, 2)
 t('발굴: over → 0', discoveryCount(rep, 'hackernews', 2).count, 0)
 t('발굴: excluded(danawa) → 고정(줄이지 않음)', discoveryCount(rep, 'danawa', 2).count, 2)
 {
   const mk = (over) => ({ sources: [{ source_key: 'hackernews', state: 'short', gap: 30, gate_headroom: 50, remedies: ['discovery'], r_basis: 'measured_14d', N: 60, active: 30, ...over }] })
-  t('발굴: short → min(gap, 5)', discoveryCount(mk({}), 'hackernews', 2).count, 5)
+  t('발굴: short → min(gap, MAX)', discoveryCount(mk({}), 'hackernews', 2).count, Math.min(30, DISCOVERY_TARGET_MAX))
   t('발굴: gap 3 → 3', discoveryCount(mk({ gap: 3 }), 'hackernews', 2).count, 3)
   t('발굴: 게이트 여유 2 → 2', discoveryCount(mk({ gate_headroom: 2 }), 'hackernews', 2).count, 2)
   t('발굴: 추정 r → 1', discoveryCount(mk({ r_basis: 'fallback_post' }), 'hackernews', 2).count, 1)

@@ -570,3 +570,10 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - **2026-10-17 사용량**: v71ad 세션 /search 41회 + /lookup 4회(남헌이 확인된 호출로 인정, 로그 첫 줄에 산입) + v71aj 세션 /search 26회 = /search 67/100. 차단 신호 0.
 - **롤백 = 이 호출 경로 비활성화**: env `ITUNES_SEARCH_DISABLED=1`(즉시) 또는 `SEARCH_DAILY_CAP=0` 커밋. 이미 등록된 타깃은 각 등록 마이그의 롤백 파일로 따로 되돌린다.
 - **승인**: 남헌 v71aj §4-1 · D-43 정책 A(제한 허용, 소유자 예외, robots 문구와의 긴장 명시). 기록 CTO 세션.
+
+## 2026-10-17 — 남헌 v71ak iTunes `/lookup`(루트, id 조회) 허용 (정책 A 와 같은 조건 · CEO-staff 위임)
+- **무엇**: `itunes.apple.com/lookup?id=<앱ID 또는 artistId>&country=<cc>`(루트 경로, 국가는 파라미터)를 앱 ID·개발사·앱 목록 확인 용도로 허용한다. 위 `/search` 항목이 "이 예외 밖"이라 적었던 것을 푼다. 마이그레이션·DB 변경 없음(기록 항목).
+- **근거**: `itunes.apple.com/robots.txt` 에서 루트 `/lookup?id=…` 는 "일치하는 규칙 없음 → allowed". `Disallow: /*/lookup?`(국가 경로 `/kr/lookup`)는 여전히 금지라 쓰지 않는다. `/search` 와 달리 robots 와 어긋나지 않는다.
+- **조건(코드가 강제)**: 호출 간격 ≥ 4초(`LOOKUP_INTERVAL_MS`, 정책 A 의 3초보다 보수적) · UA 는 `lib/review/runner.ts` `USER_AGENT`(위장 없음) · 403·429·5xx·네트워크 오류·JSON 아님·robots 확인 불가 1건이면 즉시 중단(우회·재시도 없음, `stopped` 에 사유) · 요청 상한 `LOOKUP_MAX_REQUESTS=40`(실행당) · 실행은 수동(`scripts/appstore-same-developer.mjs`, `scripts/mention-loop.mjs --lookup`)뿐이고 무인 스케줄에 넣지 않는다 · 실행 전 robots 를 다시 읽는다. 일 상한은 실행당 40 × 하루 실행 횟수(사람·CEO-staff 가 하루 2회 넘기지 않는다 → 일 ≤ 80).
+- **롤백**: 호출 경로 비활성화 = `--allow-lookup`/`--lookup` 플래그를 쓰지 않으면 0요청(코드 기본값). 이 항목을 지우면 다시 "정책 A 밖".
+- **승인**: 남헌 v71ak §4(위임 원칙: 정책 A 와 같은 조건이면 CC 가 허용). 기록 CEO-STAFF 세션.

@@ -3,6 +3,10 @@
 //
 //   node --env-file=.env.local scripts/relevance-grading-sample.mjs
 //   node --env-file=.env.local scripts/relevance-grading-sample.mjs --n 10 --seed 42 --dry
+//   node scripts/relevance-grading-sample.mjs --n 0 --audit 20 --every 3 --sheet audit-sheet   (nightly-relevance 끝 스텝)
+//     --every N: KST 날짜가 N일 주기의 생성일이 아니면 DB 를 열지 않고 exit 0(lib/analysis/audit-sheet.ts isSheetDay).
+//     --sheet <폴더>: 마크다운 대신 모델 판정을 가린 CSV 시트(번호·원문 일부·빈 human_verdict)와 대조표 CSV 를 쓴다.
+//       리포에 커밋하지 않는다 — 워크플로가 아티팩트로 올린다(남헌 v71al §2-2).
 //
 // 왜 있나: 게이트를 넣으면 "무관 비율" 의 측정자와 필터가 같은 모델이 된다. 그 숫자로 정밀도를
 // 주장할 수 없다(remedy-grading-sample.mjs 와 같은 이유). 그래서 모델이 관련/무관으로 판정한 것에서
@@ -20,6 +24,7 @@ import { impactFrequencyTags, pickGradingSample } from '../lib/analysis/relevanc
 import { AUDIT_DAILY } from '../lib/analysis/auto-approval.ts'
 import { loadScope } from '../lib/analysis/approval-scope.ts'
 import { RR39_NARROW_IRRELEVANT_INPUT_IDS } from '../lib/analysis/relevance-criteria.ts'
+import { buildAuditSheet, isSheetDay } from '../lib/analysis/audit-sheet.ts'
 
 const args = process.argv.slice(2)
 const dry = args.includes('--dry')
@@ -32,6 +37,11 @@ if (!Number.isFinite(n) || n < 0 || !Number.isFinite(audit) || audit < 0) { cons
 const seed = Number(opt('seed') ?? 42)
 
 const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date())
+const every = opt('every') === null ? 1 : Number(opt('every'))
+if (!Number.isInteger(every) || every < 1) { console.error('--every 는 1 이상 정수'); process.exit(64) }
+if (!isSheetDay(today, every)) { console.log(`${today} 는 ${every}일 주기 생성일이 아니다 — 건너뜀(실패 아님)`); process.exit(0) }
+const sheetDir = opt('sheet')
+
 const outPath = opt('out') ?? `reports/${today}/${opt('recheck') ? 'relevance-recheck' : 'relevance-grading-sample'}.md`
 
 // --recheck <eval.json>: t2-approval-eval.mjs 가 낸 재확인 목록으로 표를 만든다(모집단 표본 대신). 좁은 기준 8건은 항상 넣는다.
@@ -160,6 +170,15 @@ const auditPick = audit > 0 ? pickGradingSample(auditPool, { n: audit, seed: see
 const sample = [...mainPick, ...auditPick].sort((a, b) => a.input_id.localeCompare(b.input_id))
 console.log(`신규 채점 ${mainPick.length}장 · 자동 승인 감사 ${auditPick.length}장${autoColumn ? '' : ' (자동 승인 컬럼 없음 — 마이그 20260930000027 미적용)'}`)
 if (sample.length === 0) { console.log('모집단은 있으나 원문이 남은 것이 0건이다 — 채점할 것이 없다(실패가 아니다).'); process.exit(0) }
+
+if (sheetDir) {
+  const { sheet, key } = buildAuditSheet(sample)
+  mkdirSync(sheetDir, { recursive: true })
+  writeFileSync(`${sheetDir}/audit-sheet-${today}.csv`, sheet, 'utf8')
+  writeFileSync(`${sheetDir}/audit-key-${today}.csv`, key, 'utf8')
+  console.log(`감사 시트 ${sample.length}장 → ${sheetDir}/audit-sheet-${today}.csv (모델 판정은 audit-key 에만, 채점 뒤에 연다)`)
+  process.exit(0)
+}
 
 const lines = [
   `# 리뷰 목적 적합성 수기 채점 표본 — ${today}`,

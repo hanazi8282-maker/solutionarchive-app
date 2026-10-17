@@ -109,6 +109,8 @@ jobs:
           DISCOVERY_TRANSFER_GATE: ${{ vars.DISCOVERY_TRANSFER_GATE }}
           # 수동 실행에서 target 을 직접 넣었으면 그 수를 존중한다 — supply 를 넘기지 않는다(스케줄에는 inputs 가 없어 빈 값).
           MANUAL_TARGET: ${{ inputs.target }}
+          # 후보 수 min(gap, 이 값, 게이트 여유) 의 상한(v71aa). 비면 lib/review/target-supply.ts 기본 12. 롤백 = 리포 변수 5.
+          DISCOVERY_TARGET_MAX: ${{ vars.DISCOVERY_TARGET_MAX }}
         run: |
           SUPPLY_ARG="--supply=$RUNNER_TEMP/supply.json"
           if [ -n "$MANUAL_TARGET" ]; then

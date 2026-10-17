@@ -15,10 +15,11 @@ export type AppResult = {
   userRatingCount?: number
   primaryGenreName?: string
   trackViewUrl?: string
+  description?: string
 }
 
 export type AnchorVerdict =
-  | { state: 'anchored'; appId: number; trackName: string; sellerName: string | null; domain: string | null; ratingCount: number; reason: string }
+  | { state: 'anchored'; appId: number; trackName: string; sellerName: string | null; domain: string | null; ratingCount: number; reason: string; domainVia?: 'seller' | 'description' }
   | { state: 'no_match' | 'ambiguous' | 'lookup_failed'; reason: string }
 
 /** 평가 수 하한 — 이보다 적으면 '실제로 쓰이는 제품'이라는 근거가 약하다. */
@@ -73,7 +74,17 @@ export function domainOf(url: string | undefined): string | null {
  * iTunes Search `results` → 판정. `results` 가 배열이 아니면 lookup_failed.
  * 맞는 앱이 여럿이어도 **판매자가 같으면 한 제품**(같은 회사의 iPhone/iPad 앱)이고, 판매자가 다르면 ambiguous.
  */
-export function verifyAnchor(candidateName: string, results: unknown, opts: { expectedDomain?: string | null } = {}): AnchorVerdict {
+/** 앱 설명 안 http(s) URL 호스트 중 want(또는 그 하위 도메인)가 있는가. 판매자 URL 이 없거나 옛 회사 도메인일 때만 쓰는 보조 근거(v71aj). */
+export function descriptionHasDomain(description: string | undefined, want: string): boolean {
+  if (!description) return false
+  for (const m of description.matchAll(/https?:\/\/[^\s)"'<>]+/gi)) {
+    const d = domainOf(m[0])
+    if (d && (d === want || d.endsWith(`.${want}`))) return true
+  }
+  return false
+}
+
+export function verifyAnchor(candidateName: string, results: unknown, opts: { expectedDomain?: string | null; descriptionDomain?: boolean } = {}): AnchorVerdict {
   if (!Array.isArray(results)) return { state: 'lookup_failed', reason: '조회 결과가 배열이 아니다' }
   const apps = (results as AppResult[]).filter((r) => r && typeof r.trackName === 'string' && typeof r.trackId === 'number')
   const hits = apps.filter((a) => nameMatches(candidateName, a.trackName as string))
@@ -90,6 +101,14 @@ export function verifyAnchor(candidateName: string, results: unknown, opts: { ex
   if (want) {
     const got = domainOf(best.sellerUrl)
     const same = got !== null && (got === want || got.endsWith(`.${want}`) || want.endsWith(`.${got}`))
+    // v71aj: 판매자 도메인이 안 맞아도 앱 설명에 공식 도메인 URL 이 있으면 통과 — opt-in, 판정에 domainVia='description' 로 남긴다.
+    if (!same && opts.descriptionDomain && descriptionHasDomain(best.description, want)) {
+      return {
+        state: 'anchored', appId: best.trackId as number, trackName: best.trackName as string, sellerName: best.sellerName ?? null,
+        domain: want, ratingCount: ratings, domainVia: 'description',
+        reason: `앱 ${best.trackId} "${best.trackName}" · 평가 ${ratings}건 · 판매자 도메인(${got ?? '없음'}) 대신 설명 URL 로 ${want} 확인`,
+      }
+    }
     if (!same) return { state: 'no_match', reason: `이름은 맞지만 판매자 도메인(${got ?? '없음'}) ≠ 후보 도메인(${want}) — 동명 앱 가능성` }
   }
   return {
@@ -99,6 +118,7 @@ export function verifyAnchor(candidateName: string, results: unknown, opts: { ex
     sellerName: best.sellerName ?? null,
     domain: domainOf(best.sellerUrl),
     ratingCount: ratings,
+    ...(want ? { domainVia: 'seller' as const } : {}),
     reason: `앱 ${best.trackId} "${best.trackName}" · 평가 ${ratings}건`,
   }
 }

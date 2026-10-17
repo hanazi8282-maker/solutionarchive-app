@@ -9,6 +9,7 @@ import path from 'node:path'
 import { pushWithoutBotToken } from './cron-watchdog.mjs'
 import { COLLECT_SLOTS } from '../lib/review/ramp.ts'
 import { renderRollback, renderSql } from './window-migration-draft.mjs'
+import { DISCOVERY_TARGET_MAX } from '../lib/review/target-supply.ts'
 import {
   demoteRows, demotionRollbackSql, insertPayload, insertRows, logBlock, main, orderAnchors, planDemotion, planRegistration, stageGate,
 } from './window-discovery.mjs'
@@ -47,14 +48,16 @@ const cand = (country, npr = 7, src = 'appstore') =>
     : { source_key: 'googleplay', product_ref: `${country}:en:com.foo.app`, anchor_ref: 'kr:ko:com.foo.app', label: `3:${country}-en|foo`, sort: 'newest', draftable: true, new_per_request: npr }
 const SEVEN = ['us', 'gb', 'ca', 'au', 'in', 'sg', 'ie']
 
-// ── 1. 소스당 하루 5 상한 ──
+// ── 1. 소스당 하루 DISCOVERY_TARGET_MAX 상한(v71aa: env, 기본 12) ──
 {
-  const r = planRegistration(SEVEN.map((c, i) => cand(c, 10 + i)), { targets: [anchor], sources: SOURCES, state: state() })
-  t('cap 5 rows', r.rows.length, 5)
-  t('cap 5 skipped daily_cap', r.skipped.filter((s) => s.reason === 'daily_cap').length, 2)
-  t('cap picks highest new/request first', r.rows[0].product_ref, 'ie:123')
+  const MAX = DISCOVERY_TARGET_MAX
+  const many = Array.from({ length: MAX + 2 }, (_, i) => String.fromCharCode(97 + Math.floor(i / 26), 97 + (i % 26))) // 상한 + 2 개 후보(두 글자 국가 꼴)
+  const r = planRegistration(many.map((c, i) => cand(c, 10 + i)), { targets: [anchor], sources: SOURCES, state: state() })
+  t('cap MAX rows', r.rows.length, MAX)
+  t('cap MAX skipped daily_cap', r.skipped.filter((s) => s.reason === 'daily_cap').length, 2)
+  t('cap picks highest new/request first', r.rows[0]?.product_ref, `${many[MAX + 1]}:123`)
   t('project_id from anchor', r.rows[0].project_id, P)
-  const r2 = planRegistration(SEVEN.map((c) => cand(c)), { targets: [anchor], sources: SOURCES, state: state(), registeredToday: { appstore: 3 } })
+  const r2 = planRegistration(many.map((c) => cand(c)), { targets: [anchor], sources: SOURCES, state: state(), registeredToday: { appstore: MAX - 2 } })
   t('cap counts already registered today', r2.rows.length, 2)
 }
 
@@ -103,7 +106,8 @@ const SEVEN = ['us', 'gb', 'ca', 'au', 'in', 'sg', 'ie']
   t('blocked recent', g('googleplay', state({ blocked_72h: { appstore: 0, googleplay: 2 } })), 'blocked_recent')
   t('collect running', g('appstore', state({ running: ['appstore'] })), 'collect_running')
   t('headroom 0', g('googleplay', state({ sources: { appstore: { active: 1, gate_headroom: 5 }, googleplay: { active: 80, gate_headroom: 0 } } })), 'gate_blocked')
-  t('daily cap reached', g('appstore', state(), { registeredToday: 5 }), 'daily_cap')
+  t('daily cap reached', g('appstore', state(), { registeredToday: DISCOVERY_TARGET_MAX }), 'daily_cap')
+  t('daily cap MAX-1 still open', g('appstore', state(), { registeredToday: DISCOVERY_TARGET_MAX - 1 }), null)
 }
 
 // ── 5. 앵커 순서: 영역 결손 큰 순 → 마지막 프로브 오래된 순 ──

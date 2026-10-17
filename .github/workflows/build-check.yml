@@ -69,6 +69,8 @@ jobs:
       # 구독 세션 한도 가드(남헌 v30 §5) — 상한 판정·비용 모름 호출 추정/정지·T2 재시도 슬롯·run_key 접미사.
       # 여기가 접히면 timeout 호출이 $0 으로 세여 상한을 넘기거나, 재시도가 정규 감사 행을 덮는다.
       - run: node scripts/session-guard-selftest.mjs
+      # PMF 판정 B 입구(v71f L-18) — 파싱·영역 밖 안내·로그에 원문이 새지 않는지.
+      - run: node scripts/pmf-b-selftest.mjs
       # T2 전량 판정 — 1,000행 상한 페이지네이션 · insert-only(기존 판정·사람 채점 덮어쓰기 금지) · 소스 균등 순서 · 자기 호출 체인 종료 조건.
       - run: node scripts/relevance-judge-all-selftest.mjs
       # 소비재 자료 태그(남헌 v61) — 대기열 제외 · 하위 사용처 '관련 없음' 읽기 · 재개 스위치 · 일괄 도구 드라이런/--apply

@@ -1,5 +1,5 @@
 -- ============================================================
--- 20261017000020_discovery_candidates_mention
+-- 20261017000021_discovery_candidates_mention
 --
 -- 리뷰 속 언급 앱 루프(남헌 v71ad §1, D-36)의 후보 대장 칸. discovery_candidates 에 nullable 컬럼 10개 + CHECK 3개 + 부분 인덱스 1개.
 -- 설계: reports/2026-10-17/mention-loop-design.md §5. 행을 쓰는 것은 scripts/mention-loop.mjs 가 만든 mention-ledger.sql

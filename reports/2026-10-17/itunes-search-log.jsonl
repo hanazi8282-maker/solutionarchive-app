@@ -1,0 +1,28 @@
+{"at":"2026-10-16T17:07:29.961Z","path":"/search","n":41,"outcome":"prior","note":"v71ad §2 세션의 /search 41회(3초 간격·차단 신호 0) — 남헌 v71aj 결정으로 확인된 호출로 인정, 오늘 상한에 산입"}
+{"at":"2026-10-16T17:07:29.961Z","path":"/lookup","n":4,"outcome":"prior","note":"v71ad §2 세션의 /lookup?id= 4회 — 정책 A 밖(이후 호출 0), 기록만"}
+{"at":"2026-10-16T18:39:17.482Z","path":"/search","n":1,"term":"Zendesk Sell","country":"us","outcome":"no_match","results":7}
+{"at":"2026-10-16T18:39:20.376Z","path":"/search","n":1,"term":"Bitrix24","country":"us","outcome":"anchored","results":8}
+{"at":"2026-10-16T18:39:23.336Z","path":"/search","n":1,"term":"SPOTIO","country":"us","outcome":"no_match","results":7}
+{"at":"2026-10-16T18:39:26.343Z","path":"/search","n":1,"term":"Dynamics 365 Sales","country":"us","outcome":"anchored","results":8}
+{"at":"2026-10-16T18:39:29.434Z","path":"/search","n":1,"term":"SugarCRM","country":"us","outcome":"no_match","results":4}
+{"at":"2026-10-16T18:39:32.827Z","path":"/search","n":1,"term":"Kommo","country":"us","outcome":"no_match","results":8}
+{"at":"2026-10-16T18:39:35.790Z","path":"/search","n":1,"term":"Pipeliner CRM","country":"us","outcome":"no_match","results":5}
+{"at":"2026-10-16T18:39:38.700Z","path":"/search","n":1,"term":"Apptivo","country":"us","outcome":"no_match","results":1}
+{"at":"2026-10-16T18:39:41.841Z","path":"/search","n":1,"term":"Teamleader Focus","country":"us","outcome":"no_match","results":7}
+{"at":"2026-10-16T18:39:44.779Z","path":"/search","n":1,"term":"Daylite","country":"us","outcome":"no_match","results":3}
+{"at":"2026-10-16T18:39:47.894Z","path":"/search","n":1,"term":"리멤버","country":"kr","outcome":"anchored","results":7}
+{"at":"2026-10-16T18:39:51.311Z","path":"/search","n":1,"term":"CamCard","country":"us","outcome":"no_match","results":7}
+{"at":"2026-10-16T18:39:53.863Z","path":"/search","n":1,"term":"Covve","country":"us","outcome":"anchored","results":7}
+{"at":"2026-10-16T18:39:56.945Z","path":"/search","n":1,"term":"Map My Customers","country":"us","outcome":"anchored","results":8}
+{"at":"2026-10-16T18:39:59.923Z","path":"/search","n":1,"term":"Repsly","country":"us","outcome":"anchored","results":5}
+{"at":"2026-10-16T18:40:02.961Z","path":"/search","n":1,"term":"Aircall","country":"us","outcome":"anchored","results":6}
+{"at":"2026-10-16T18:40:06.004Z","path":"/search","n":1,"term":"JustCall","country":"us","outcome":"anchored","results":8}
+{"at":"2026-10-16T18:40:08.950Z","path":"/search","n":1,"term":"Vymo","country":"us","outcome":"no_match","results":7}
+{"at":"2026-10-16T18:40:12.064Z","path":"/search","n":1,"term":"Contacts+","country":"us","outcome":"ambiguous","results":7}
+{"at":"2026-10-16T18:40:14.962Z","path":"/search","n":1,"term":"Maximizer CRM","country":"us","outcome":"no_match","results":7}
+{"at":"2026-10-16T18:40:17.972Z","path":"/search","n":1,"term":"Agendor","country":"us","outcome":"no_match","results":7}
+{"at":"2026-10-16T18:40:21.021Z","path":"/search","n":1,"term":"RD Station CRM","country":"us","outcome":"no_match","results":8}
+{"at":"2026-10-16T18:40:23.871Z","path":"/search","n":1,"term":"Sellsy","country":"us","outcome":"no_match","results":2}
+{"at":"2026-10-16T18:40:26.963Z","path":"/search","n":1,"term":"LeadSquared","country":"us","outcome":"no_match","results":7}
+{"at":"2026-10-16T18:40:30.019Z","path":"/search","n":1,"term":"ActiveCampaign","country":"us","outcome":"anchored","results":7}
+{"at":"2026-10-16T18:40:33.005Z","path":"/search","n":1,"term":"Zoho SalesIQ","country":"us","outcome":"anchored","results":6}

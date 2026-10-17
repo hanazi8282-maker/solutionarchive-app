@@ -19,9 +19,9 @@ import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { RECHECK_SEEN_STREAK, isRecheck, runCollection } from '../lib/review/runner.ts'
 import { createReviewStore } from '../lib/review/store.ts'
 import {
-  REVIVE_PER_RUN, REVISIT_EXPECTED_NEW, REVISIT_MAX_DAYS, REVISIT_MIN_DAYS, computeSupply, inventoryGauge, planRevive, revisitDays,
+  REVIVE_PER_RUN, REVISIT_EXPECTED_NEW, REVISIT_MAX_DAYS, REVISIT_MIN_DAYS, computeSupply, envCap, inventoryGauge, parsePerSourceInt, parseRevisitScale, planRevive, revisitDays,
 } from '../lib/review/target-supply.ts'
-import { incrementalCap, main as reviveMain } from './target-revive.mjs'
+import { incrementalCap, main as reviveMain, reviveLimits } from './target-revive.mjs'
 
 let pass = 0
 let fail = 0
@@ -316,7 +316,7 @@ function fakePg(tables, hooks = {}) {
 // ── C2. v71u 6(A) 증분형 상한 TARGET_CLOCK_INCREMENTAL_MAX — 실제 target-revive --auto 를 가짜 DB 위에서 ──
 {
   t('v71u: incrementalCap 미설정·빈값·쓰레기·0·음수 → 5 · 2 → 2 · 12 → 12 · 999 → 천장 40',
-    [undefined, '', 'abc', '0', '-3', '2', '12', '999'].map(incrementalCap), [5, 5, 5, 5, 5, 2, 12, 40])
+    [undefined, '', 'abc', '0', '-3', '2', '12', '999'].map((r) => incrementalCap(r)), [5, 5, 5, 5, 5, 2, 12, 40])
   const real = Date.now()
   const mkDb = () => ({
     review_sources: ['appstore', 'clien', 'okky', 'ppomppu'].map((key) => ({ key, enabled: true, min_interval_ms: 0, daily_request_cap: 500, robots_status: key === 'appstore' ? 'disallowed' : 'allowed', tos_status: null, override: key === 'appstore' ? 'owner_2026-10-05' : null })),
@@ -333,8 +333,9 @@ function fakePg(tables, hooks = {}) {
   })
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'clock-cap-'))
   const runWith = async (env, extra = []) => {
-    const saved = { a: process.env.TARGET_CLOCK_INCREMENTAL, b: process.env.TARGET_CLOCK_INCREMENTAL_MAX }
-    for (const [k, v] of Object.entries({ TARGET_CLOCK_INCREMENTAL: env.on, TARGET_CLOCK_INCREMENTAL_MAX: env.max })) if (v === undefined) delete process.env[k]; else process.env[k] = v
+    const want = { TARGET_CLOCK_INCREMENTAL: env.on, TARGET_CLOCK_INCREMENTAL_MAX: env.max, TARGET_REVIVE_TOTAL_CEILING: env.ceil, TARGET_REVIVE_PER_SOURCE: env.per, TARGET_REVISIT_SCALE: env.scale }
+    const saved = Object.fromEntries(Object.keys(want).map((k) => [k, process.env[k]]))
+    for (const [k, v] of Object.entries(want)) if (v === undefined) delete process.env[k]; else process.env[k] = v
     const db = mkDb()
     const before = JSON.stringify(db.review_targets)
     const o = console.log
@@ -347,7 +348,7 @@ function fakePg(tables, hooks = {}) {
       return { r, lines, inc: active('clien') + active('okky'), app: active('appstore'), unchanged: JSON.stringify(db.review_targets) === before, rbExists: fs.existsSync(rb) }
     } finally {
       console.log = o
-      for (const [k, v] of Object.entries({ TARGET_CLOCK_INCREMENTAL: saved.a, TARGET_CLOCK_INCREMENTAL_MAX: saved.b })) if (v === undefined) delete process.env[k]; else process.env[k] = v
+      for (const [k, v] of Object.entries(saved)) if (v === undefined) delete process.env[k]; else process.env[k] = v
     }
   }
   const def = await runWith({ on: 'on' })
@@ -365,6 +366,79 @@ function fakePg(tables, hooks = {}) {
   t('v71u: on + --dry → 쓰기 0 · 롤백 파일 없음 · 로그는 계획 수 5', [dry.unchanged, dry.rbExists, dry.lines.includes('증분형 상한 5, 대상 후보 16, 실제 되살림 5')], [true, false, true])
   const obsDry = await runWith({}, ['--dry'])
   t('v71u: 관찰 모드 + --dry → DB 행 그대로(쓰기 0)', obsDry.unchanged, true)
+
+  // ── C3. v71ad §5(a) 천장 변수 ──
+  t('v71ad: envCap 미설정·빈값·쓰레기·0·음수 → 기본 · 60 → 60 · 500 → 하드 천장 200(note)',
+    [undefined, '', 'x', '0', '-1', '60', '500'].map((r) => envCap(r, 40).value), [40, 40, 40, 40, 40, 60, 200])
+  t('v71ad: envCap 500 은 note 를 남긴다 · 정상값은 note 없음', [envCap('500', 40).note !== null, envCap('60', 40).note], [true, null])
+  t('v71ad: incrementalCap 천장 인자 — 60 · 천장 40 → 40 · 천장 100 → 60', [incrementalCap('60'), incrementalCap('60', 100)], [40, 60])
+  const l60 = reviveLimits({ TARGET_CLOCK_INCREMENTAL_MAX: '60' }, true)
+  t('v71ad: MAX 60 · 천장 미설정 → 40 으로 잘리고 경고 한 줄(조용히 잘리지 않는다)', [l60.incCap, l60.warns.some((w) => /TARGET_CLOCK_INCREMENTAL_MAX=60 .*천장 40/.test(w))], [40, true])
+  const l60b = reviveLimits({ TARGET_CLOCK_INCREMENTAL_MAX: '60', TARGET_REVIVE_TOTAL_CEILING: '100', TARGET_REVIVE_PER_SOURCE: '20' }, true)
+  t('v71ad: 천장 100·소스별 20 → incCap 60 · 경고 없음', [l60b.incCap, l60b.totalCap, l60b.perRunCap, l60b.warns], [60, 100, 20, []])
+  t('v71ad: 관찰 모드면 incCap null · 천장 경고도 없음', [reviveLimits({ TARGET_CLOCK_INCREMENTAL_MAX: '60' }, false).incCap, reviveLimits({ TARGET_CLOCK_INCREMENTAL_MAX: '60' }, false).warns], [null, []])
+  t('v71ad: 기본값 현행 그대로(40·6)', [reviveLimits({}, true).totalCap, reviveLimits({}, true).perRunCap, reviveLimits({}, true).incCap], [40, 6, 5])
+  const per = await runWith({ on: 'on', max: '99', per: '8' })
+  t('v71ad: MAX 99 · 소스별 8 → 증분형 16(소스 2 × 8개 전부) · 천장 경고 로그', [per.inc, per.lines.some((l) => /⚠️ 되살리기 상한 경고: TARGET_CLOCK_INCREMENTAL_MAX=99/.test(l))], [16, true])
+  const tot = await runWith({ on: 'on', max: '99', per: '8', ceil: '10' })
+  t('v71ad: 천장 10 → 증분형 10', tot.inc, 10)
+  t('v71ad: 사유 로그 한 줄(무엇이 묶었나)', tot.lines.some((l) => /^증분형 건너뜀 사유: .*total_cap 6/.test(l)), true)
+  const badPer = await runWith({ on: 'on', max: '99', per: 'abc' })
+  t('v71ad: 소스별 잘못된 값 → 기본 6 → 12 · 경고', [badPer.inc, badPer.lines.some((l) => /TARGET_REVIVE_PER_SOURCE: 값 'abc'/.test(l))], [12, true])
+
+  // 재방문 배율 — 증분형 ce=3 은 2^3 배로 상한 14일에 붙는다. 배율 0.5 면 7일.
+  t('v71ad: parseRevisitScale 정상·범위 밖·JSON 아님', [parseRevisitScale('{"clien":0.5,"okky":0.1,"x":"a"}').scale, parseRevisitScale('{"clien":0.5,"okky":0.1}').notes.length, parseRevisitScale('nope').scale, parseRevisitScale('').notes], [{ clien: 0.5 }, 1, {}, []])
+  const L = Date.parse('2026-10-10T00:00:00Z')
+  const inc = { source_key: 'clien', last_run_at: iso(L), created_at: iso(L - 60 * DAY), total_collected: 120, last_review_at: iso(L - 31 * DAY), consecutive_empty: 3 }
+  t('v71ad: 증분형 ce=3 → 14일 · 배율 0.5 → 7일 · 배율 0.1(범위 밖) → 14 · 다른 소스 배율은 무관',
+    [revisitDays(inc, { all: true }).days, revisitDays(inc, { all: true, scale: { clien: 0.5 } }).days, revisitDays(inc, { all: true, scale: { clien: 0.1 } }).days, revisitDays(inc, { all: true, scale: { okky: 0.5 } }).days], [14, 7, 14, 14])
+  t('v71ad: 배율 하한 1일(3일 × 0.25 = 0.75 → 1)', revisitDays({ source_key: 'appstore', last_run_at: iso(L), created_at: iso(L - 30 * DAY), total_collected: 600, last_review_at: iso(L) }, { scale: { appstore: 0.25 } }).days, 1)
+  // planRevive 경계 — 10일 전에 간 증분형(ce=3 → 14일): 배율 없으면 revisit_not_due, clien 0.5(7일)면 되살림, 게이지 즉시 예약도 같이 바뀐다
+  {
+    const N = Date.parse('2026-10-12T05:00:00Z')
+    const tg = { id: u(9900), source_key: 'clien', status: 'exhausted', product_ref: 'board:z', consecutive_empty: 3, last_run_at: iso(N - 10 * DAY), created_at: iso(N - 60 * DAY), total_collected: 300, last_review_at: iso(N - 11 * DAY) }
+    const r = { generated_at: iso(N), sources: [{ source_key: 'clien', state: 'short', gap: 50, gate_headroom: 50, tpr: 10, active: 0, runs_per_day: 6 }] }
+    const o = { perRunCap: 6, clockOnly: true, clockAll: true, minExpectedNew: 1 }
+    t('v71ad: 배율 없음 → revisit_not_due · clien 0.5 → 되살림 · 게이지 즉시 예약 0 → 1',
+      [planRevive([tg], r, o).bySource.clien.skipped, planRevive([tg], r, { ...o, revisitScale: parseRevisitScale('{"clien":0.5}').scale }).revive.length,
+        inventoryGauge(r, [tg], new Date(N)).sources[0].reserved_due_now, inventoryGauge(r, [tg], new Date(N), { clien: 0.5 }).sources[0].reserved_due_now],
+      [{ revisit_not_due: 1 }, 1, 0, 1])
+  }
+  // ── C4. v71aj D-24 숨은 천장 둘 — 변수 없으면 현행, 있으면 소스별로만 풀린다 ──
+  t('v71aj: parsePerSourceInt 빈값·정상·범위 밖·소수·JSON 아님',
+    [parsePerSourceInt('', 'X', 10), parsePerSourceInt('{"clien":2,"*":3,"x":11,"y":1.5}', 'X', 10).map, parsePerSourceInt('{"x":11,"y":1.5}', 'X', 10).notes.length, parsePerSourceInt('nope', 'X', 10).map],
+    [{ map: {}, notes: [] }, { clien: 2, '*': 3 }, 2, {}])
+  {
+    // λ = 1/일(최신 리뷰가 방문 1일 전) · ce=3 → 3 × 2^3 = 24 → 14. 지수 상한 2 → 12 · 0 → 3 · "*" 도 같다 · 다른 소스 키는 무관
+    const inc1 = { source_key: 'clien', last_run_at: iso(L), created_at: iso(L - 60 * DAY), total_collected: 600, last_review_at: iso(L - DAY), consecutive_empty: 3 }
+    const dd = (expCap) => revisitDays(inc1, { all: true, expCap }).days
+    t('v71aj: 지수 상한 없음 14 · {} 14 · clien 2 → 12 · clien 0 → 3 · "*":2 → 12 · okky 2 → 14', [dd(undefined), dd({}), dd({ clien: 2 }), dd({ clien: 0 }), dd({ '*': 2 }), dd({ okky: 2 })], [14, 14, 12, 3, 12, 14])
+    t('v71aj: 지수 상한은 하한 3 아래로 못 내린다(clamp 유지)', revisitDays({ ...inc1, total_collected: 1e6, last_review_at: iso(L) }, { all: true, expCap: { clien: 0 } }).days, 3)
+    t('v71aj: 근거 표기 ce=3→2^2', revisitDays(inc1, { all: true, expCap: { clien: 2 } }).basis, 'λ=1/일·ce=3→2^2')
+    const N = Date.parse('2026-10-12T05:00:00Z')
+    const tg = { ...inc1, id: u(9950), status: 'exhausted', product_ref: 'board:q', last_run_at: iso(N - 13 * DAY), last_review_at: iso(N - 14 * DAY) }
+    const r = { generated_at: iso(N), sources: [{ source_key: 'clien', state: 'short', gap: 50, gate_headroom: 50, tpr: 10, active: 0, runs_per_day: 6 }] }
+    const o = { perRunCap: 6, clockOnly: true, clockAll: true, minExpectedNew: 1 }
+    t('v71aj: 13일 전 방문 · 기본 14일 → revisit_not_due · 지수 상한 2(12일) → 되살림 · 게이지 즉시 예약 0 → 1',
+      [planRevive([tg], r, o).bySource.clien.skipped, planRevive([tg], r, { ...o, revisitExpCap: { clien: 2 } }).revive.length,
+        inventoryGauge(r, [tg], new Date(N)).sources[0].reserved_due_now, inventoryGauge(r, [tg], new Date(N), undefined, { clien: 2 }).sources[0].reserved_due_now],
+      [{ revisit_not_due: 1 }, 1, 0, 1])
+  }
+  {
+    const o = { perRunCap: REVIVE_PER_RUN, clockOnly: true }
+    const q = (queueSlack) => planRevive(appTargets(), rep([S('appstore', { active: 7 })]), { ...o, queueSlack }).revive.length
+    t('v71aj: queue_full 여유 — 없음 3 · {} 3 · appstore 2 → 5 · "*":10 → 실행당 6 에서 멈춤 · 다른 소스 키 3', [q(undefined), q({}), q({ appstore: 2 }), q({ '*': 10 }), q({ clien: 10 })], [3, 3, 5, 6, 3])
+    const sk = planRevive(appTargets(), rep([S('appstore', { active: 7 })]), { ...o, queueSlack: { '*': 10 } }).bySource.appstore.skipped
+    t('v71aj: 여유를 줘도 소스별 실행당 상한(run_cap)은 그대로 묶는다', sk, { run_cap: 100 })
+  }
+  {
+    const d0 = reviveLimits({}, true)
+    t('v71aj: reviveLimits 기본 = 현행(지수 상한·여유 빈 객체)', [d0.expCap, d0.queueSlack, d0.warns], [{}, {}, []])
+    const d1 = reviveLimits({ TARGET_REVIVE_CE_EXP_MAX: '{"clien":2,"okky":99}', TARGET_REVIVE_QUEUE_SLACK: '{"*":3}' }, true)
+    t('v71aj: reviveLimits 파싱 · 범위 밖은 경고 한 줄', [d1.expCap, d1.queueSlack, d1.warns.length, /TARGET_REVIVE_CE_EXP_MAX\.okky=99/.test(d1.warns[0] ?? '')], [{ clien: 2 }, { '*': 3 }, 1, true])
+    const src = fs.readFileSync(path.join(root, 'scripts', 'target-revive.mjs'), 'utf8')
+    t('v71aj: --auto 옵션·게이지가 두 값을 받는다(배선)', [/revisitExpCap: lim\.expCap, queueSlack: lim\.queueSlack/.test(src), /inventoryGauge\(report, input\.targets, now, lim\.scale, lim\.expCap\)/.test(src)], [true, true])
+  }
   fs.rmSync(tmp, { recursive: true, force: true })
 }
 
@@ -376,6 +450,10 @@ function fakePg(tables, hooks = {}) {
   t('워크플로: --auto pre-step 이 수집 단계 앞', revive > 0 && revive < collectStep, true)
   const step = wf.slice(wf.lastIndexOf('- name:', revive), revive)
   t('v71u: pre-step 이 리포 변수 TARGET_CLOCK_INCREMENTAL_MAX 를 넘긴다', /TARGET_CLOCK_INCREMENTAL_MAX: \$\{\{ vars\.TARGET_CLOCK_INCREMENTAL_MAX \}\}/.test(step), true)
+  t('v71ad: pre-step 이 천장·소스별·배율 변수 3개를 vars. 로 넘긴다',
+    ['TARGET_REVIVE_TOTAL_CEILING', 'TARGET_REVIVE_PER_SOURCE', 'TARGET_REVISIT_SCALE'].map((k) => step.includes(`${k}: \${{ vars.${k} }}`)), [true, true, true])
+  t('v71aj: pre-step 이 지수 상한·queue 여유 변수 2개를 vars. 로 넘긴다',
+    ['TARGET_REVIVE_CE_EXP_MAX', 'TARGET_REVIVE_QUEUE_SLACK'].map((k) => step.includes(`${k}: \${{ vars.${k} }}`)), [true, true])
   t('pre-step: continue-on-error(실패해도 수집은 돈다) · dry_run 수동 실행은 --dry', [/continue-on-error: true/.test(step), /inputs\.dry_run\) && '--dry'/.test(wf.slice(revive, revive + 200))], [true, true])
   const secrets = [...new Set([...wf.matchAll(/secrets\.([A-Z_]+)/g)].map((m) => m[1]))].sort()
   t('새 시크릿 없음(기존 목록 그대로)', secrets, [

@@ -23,8 +23,20 @@ import { isOwnerRobotsOverride } from './runner.ts'
 export const SHARE_GATE = 0.3
 /** D4: googleplay 활성 타깃 동결선. 넘겨 넣지 않는다. 확대는 단계표·30% 게이트 둘 다 충족(expand_ready) 뒤 사람이 이 값을 올린다. */
 export const GOOGLEPLAY_FROZEN_ACTIVE = 80
-/** D6: 발굴 1회 소스당 상한. */
-export const DISCOVERY_TARGET_MAX = 5
+/**
+ * D6: 소스당 하루 발굴 상한 — 세 곳이 같은 값을 쓴다: window-discovery 등재(소스당 KST 하루, 대장 기준) ·
+ * board-discovery 프로브 후보(소스당 1회=하루) · discovery-run 후보 수 min(gap, 이 값, 게이트 여유).
+ * 남헌 v71aa(2026-10-16): 5 → 12, 영역 ①~⑤ 전체(영역 적합성 조건 유지). env DISCOVERY_TARGET_MAX 로 읽는다.
+ * 비었으면 12. 양의 정수가 아니면 옛 값 5(상한은 틀린 값에 넓어지지 않는다). 롤백 = 리포 변수 DISCOVERY_TARGET_MAX=5.
+ */
+export const DISCOVERY_TARGET_MAX_DEFAULT = 12
+export const DISCOVERY_TARGET_MAX_SAFE = 5
+export function discoveryTargetMax(raw: string | undefined): number {
+  if (raw === undefined || raw.trim() === '') return DISCOVERY_TARGET_MAX_DEFAULT
+  const n = Number(raw)
+  return Number.isInteger(n) && n >= 1 ? n : DISCOVERY_TARGET_MAX_SAFE
+}
+export const DISCOVERY_TARGET_MAX = discoveryTargetMax(typeof process === 'undefined' ? undefined : process.env.DISCOVERY_TARGET_MAX)
 /** cap_base 가 없을 때 B = daily_request_cap × 이 비율(퍼센트 램프 첫 단계 50% 와 같은 값). */
 export const CAP_FALLBACK_PCT = 50
 /** 기존 2슬롯(nightly-review-collect 05:37Z·17:37Z). 스케줄 계획이 없는 소스의 하루 실행 횟수. */
@@ -360,7 +372,7 @@ export function supplyLine(s: SourceSupply): string {
 
 /**
  * D6: 발굴 1회 후보 수. supply 가 없거나 그 소스가 gap 모델 밖(excluded·unverified·행 없음)이면 기존 고정값 — 줄이지도 늘리지도 않는다.
- * short ∧ 'discovery' 처방일 때만 min(gap, 5, 게이트 여유), 추정 r(fallback_*)이면 1. 그 밖(met·over)은 0.
+ * short ∧ 'discovery' 처방일 때만 min(gap, DISCOVERY_TARGET_MAX, 게이트 여유), 추정 r(fallback_*)이면 1. 그 밖(met·over)은 0.
  */
 export function discoveryCount(report: Pick<SupplyReport, 'sources'> | null, sourceKey: string, fallback: number): { count: number; note: string } {
   if (!report) return { count: fallback, note: `⚠️ supply 없음 — 고정 ${fallback}건(기존 동작)` }
@@ -424,6 +436,74 @@ export const REVIVE_MIN_EXPECTED_NEW = 1
 export const REVIVE_TOTAL_PER_RUN = 40
 /** 무인 되살리기(--auto) 소스별 실행당 상한. 하루 수집 슬롯 6(ramp.ts COLLECT_SLOTS)에 나눠 106개 백로그를 약 3일(= 하한)에 흡수한다. */
 export const REVIVE_PER_RUN = 6
+/**
+ * v71ad §5(a): 위 두 상한(40·6)을 리포 변수로 올릴 수 있게 한다 — 이 값 위로는 변수를 아무리 올려도 안 간다(코드 안 하드 천장).
+ * 변수 이름: TARGET_REVIVE_TOTAL_CEILING(기본 REVIVE_TOTAL_PER_RUN) · TARGET_REVIVE_PER_SOURCE(기본 REVIVE_PER_RUN).
+ */
+export const REVIVE_HARD_CEILING = 200
+
+/** env 정수 → 상한. 미설정·빈값·숫자 아님·0 이하 → 기본(잘못된 값에 넓어지지 않는다). 하드 천장 200 을 넘으면 잘라 clipped. */
+export function envCap(raw: string | undefined | null, def: number): { value: number; note: string | null } {
+  if (raw == null || String(raw).trim() === '') return { value: def, note: null }
+  const n = Math.floor(Number(raw))
+  if (!Number.isFinite(n) || n <= 0) return { value: def, note: `값 '${raw}' 이 양의 정수가 아니라 기본 ${def}` }
+  if (n > REVIVE_HARD_CEILING) return { value: REVIVE_HARD_CEILING, note: `${n} 이 하드 천장 ${REVIVE_HARD_CEILING} 을 넘어 ${REVIVE_HARD_CEILING}` }
+  return { value: n, note: null }
+}
+
+/**
+ * v71ad §5(a): 소스별 재방문 간격 배율 — 리포 변수 TARGET_REVISIT_SCALE = JSON {"<source_key>": 배율}. **줄이기만** 한다:
+ * 배율은 [0.25, 1], 범위 밖·숫자 아님은 그 항목만 버리고 note 에 남긴다. 결과 간격 하한은 1일.
+ * 왜 필요한가: 증분형 exhausted 는 연속 0건 3회(글)·30회(게시판)로 닫혀서 revisitDays 의 2^consecutive_empty 가 8배 이상 —
+ *   λ 가 1.7/일 미만이면 전부 상한 14일에 붙는다. 이 배율이 그 14일을 소스별로 깎는 유일한 손잡이다.
+ */
+export const REVISIT_SCALE_MIN = 0.25
+export function parseRevisitScale(raw: string | undefined | null): { scale: Record<string, number>; notes: string[] } {
+  if (raw == null || String(raw).trim() === '') return { scale: {}, notes: [] }
+  let obj: unknown
+  try {
+    obj = JSON.parse(String(raw))
+  } catch {
+    return { scale: {}, notes: [`TARGET_REVISIT_SCALE JSON 아님 — 무시(배율 1)`] }
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return { scale: {}, notes: ['TARGET_REVISIT_SCALE 가 객체가 아님 — 무시(배율 1)'] }
+  const scale: Record<string, number> = {}
+  const notes: string[] = []
+  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+    if (typeof v === 'number' && v >= REVISIT_SCALE_MIN && v <= 1) scale[k] = v
+    else notes.push(`TARGET_REVISIT_SCALE.${k}=${JSON.stringify(v)} 범위 [${REVISIT_SCALE_MIN}, 1] 밖 — 무시`)
+  }
+  return { scale, notes }
+}
+
+/**
+ * v71aj D-24 (가)(나): 숨은 천장 두 개를 소스별 리포 변수로 풀 수 있게 한다. **변수가 없으면 현행 그대로**(롤백 = 변수 삭제).
+ *   TARGET_REVIVE_CE_EXP_MAX  JSON {"<source_key>"|"*": k} — revisitDays 의 2^consecutive_empty 에서 지수를 k 로 자른다(정수 0~10).
+ *                             증분형은 연속 0건 3회(글)·30회(게시판)로 닫혀 2^3 이상 → λ<1.7/일이면 전부 14일. k=2 면 최대 ×4.
+ *                             간격은 여전히 clamp(3, 14) 안이다(§10.1 "3~14일" 문구 안).
+ *   TARGET_REVIVE_QUEUE_SLACK JSON {"<source_key>"|"*": k} — queue_full(소스별 n ≥ tpr − active)에 k 자리를 더 연다(정수 0~200).
+ *                             증분형은 active 가 tpr 보다 많아 tpr − active ≤ 0 → 시계가 켜져도 전부 queue_full. 소스별·전체 상한(6·40)은 그대로 묶는다.
+ * 소스 키가 우선, 없으면 "*". 범위 밖·정수 아님은 그 항목만 버리고 note.
+ */
+export const CE_EXP_MAX_LIMIT = 10
+export function parsePerSourceInt(raw: string | undefined | null, name: string, max: number): { map: Record<string, number>; notes: string[] } {
+  if (raw == null || String(raw).trim() === '') return { map: {}, notes: [] }
+  let obj: unknown
+  try {
+    obj = JSON.parse(String(raw))
+  } catch {
+    return { map: {}, notes: [`${name} JSON 아님 — 무시(현행)`] }
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return { map: {}, notes: [`${name} 가 객체가 아님 — 무시(현행)`] }
+  const map: Record<string, number> = {}
+  const notes: string[] = []
+  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+    if (Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max) map[k] = v as number
+    else notes.push(`${name}.${k}=${JSON.stringify(v)} 범위 [0, ${max}] 정수 아님 — 무시`)
+  }
+  return { map, notes }
+}
+const perSourceOf = (m: Record<string, number> | undefined, k: string): number | undefined => m?.[k] ?? m?.['*']
 
 const DAY_MS = 86_400_000
 
@@ -441,9 +521,13 @@ const DAY_MS = 86_400_000
  */
 export function revisitDays(
   t: Pick<TargetRow, 'source_key'> & Partial<TargetRow>,
-  opts: { all?: boolean } = {},
+  opts: { all?: boolean; scale?: Record<string, number>; expCap?: Record<string, number> } = {},
 ): { days: number; basis: string } | null {
   if (!NON_INCREMENTAL_SOURCES.has(t.source_key) && !opts.all) return null
+  const k = opts.scale?.[t.source_key]
+  const sc = typeof k === 'number' && k >= REVISIT_SCALE_MIN && k <= 1 ? k : 1
+  const scaled = (d: number) => (sc === 1 ? d : Math.max(1, d * sc))
+  const tag = sc === 1 ? '' : `·×${sc}`
   const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
   const created = t.created_at ? Date.parse(t.created_at) : NaN
   const newest = t.last_review_at ? Date.parse(t.last_review_at) : NaN
@@ -451,11 +535,13 @@ export function revisitDays(
   if (Number.isFinite(last) && Number.isFinite(created)) rates.push((t.total_collected ?? 0) / Math.max(1, (last - created) / DAY_MS))
   if (Number.isFinite(last) && Number.isFinite(newest) && (last - newest) / DAY_MS >= 1) rates.push(1 / ((last - newest) / DAY_MS))
   const ce = Math.max(0, t.consecutive_empty ?? 0)
-  if (rates.length === 0) return { days: REVISIT_MAX_DAYS, basis: 'velocity_unknown→max' }
+  if (rates.length === 0) return { days: scaled(REVISIT_MAX_DAYS), basis: `velocity_unknown→max${tag}` }
   const lambda = Math.min(...rates)
-  const raw = lambda > 0 ? (REVISIT_EXPECTED_NEW / lambda) * 2 ** ce : Infinity
-  const days = Math.min(REVISIT_MAX_DAYS, Math.max(REVISIT_MIN_DAYS, raw))
-  return { days: Math.round(days * 100) / 100, basis: `λ=${Math.round(lambda * 1000) / 1000}/일·ce=${ce}` }
+  const cap = perSourceOf(opts.expCap, t.source_key)
+  const exp = cap === undefined ? ce : Math.min(ce, cap)
+  const raw = lambda > 0 ? (REVISIT_EXPECTED_NEW / lambda) * 2 ** exp : Infinity
+  const days = scaled(Math.min(REVISIT_MAX_DAYS, Math.max(REVISIT_MIN_DAYS, raw)))
+  return { days: Math.round(days * 100) / 100, basis: `λ=${Math.round(lambda * 1000) / 1000}/일·ce=${ce}${exp < ce ? `→2^${exp}` : ''}${tag}` }
 }
 
 /** 신규 속도 λ(건/일) — revisitDays 와 같은 재료·같은 min. 못 재면 null. */
@@ -480,6 +566,12 @@ export type ReviveOptions = {
   perRunCap?: number
   /** true = 비증분형(재방문 시계)만. 증분형 exhausted 는 manual_only 로 건너뛴다(D8 수동 경로에 남긴다). */
   clockOnly?: boolean
+  /** v71ad: 소스별 재방문 간격 배율(parseRevisitScale). 없으면 1. */
+  revisitScale?: Record<string, number>
+  /** v71aj: 소스별 2^consecutive_empty 지수 상한(TARGET_REVIVE_CE_EXP_MAX). 없으면 자르지 않는다. */
+  revisitExpCap?: Record<string, number>
+  /** v71aj: 소스별 queue_full 여유 자리(TARGET_REVIVE_QUEUE_SLACK). 없으면 0. */
+  queueSlack?: Record<string, number>
 }
 
 /**
@@ -521,7 +613,7 @@ export function planRevive(targets: TargetRow[], report: SupplyReport, opts: Rev
       const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
       if (!Number.isFinite(last)) skip = 'revisit_unknown'
       else {
-        const due = last + revisitDays(t, { all: opts.clockAll })!.days * DAY_MS
+        const due = last + revisitDays(t, { all: opts.clockAll, scale: opts.revisitScale, expCap: opts.revisitExpCap })!.days * DAY_MS
         if (due > now) {
           skip = 'revisit_not_due'
           const iso = new Date(due).toISOString()
@@ -539,7 +631,7 @@ export function planRevive(targets: TargetRow[], report: SupplyReport, opts: Rev
       if (n >= Math.min(Math.max(0, s.gap), s.gate_headroom)) skip = s.gap <= 0 ? 'no_gap' : 'over_headroom'
       else if (opts.perRunCap !== undefined && n >= opts.perRunCap) skip = 'run_cap'
       // 한 실행이 소비할 수 있는 만큼만 연다 — 수집이 안 도는 슬롯에서 되살린 타깃이 쌓이지 않게(tpr = 회당 타깃 수).
-      else if (opts.perRunCap !== undefined && clock && n >= Math.max(0, s.tpr - s.active)) skip = 'queue_full'
+      else if (opts.perRunCap !== undefined && clock && n >= Math.max(0, s.tpr - s.active) + (perSourceOf(opts.queueSlack, t.source_key) ?? 0)) skip = 'queue_full'
     }
     if (skip) {
       b.skipped[skip] = (b.skipped[skip] ?? 0) + 1
@@ -573,7 +665,7 @@ export const GAUGE_URGENT_DAYS = 7
  * 소스별 재고 게이지. 소비형(방문하면 exhausted 로 닫히는 비증분형)만 일수로 센다. 증분형은 타깃이 되풀이되므로 일수가 정의되지 않는다 —
  * 활성 0 = 긴급, 결손 = 경고로 본다. ponytail: 순환형 일수는 소스별 실측 소비율이 쌓이면 도입. 제외 소스는 빠진다.
  */
-export function inventoryGauge(report: SupplyReport, targets: TargetRow[], now: Date): { sources: SourceGauge[]; below14: number; urgent: number; fuel_line: string } {
+export function inventoryGauge(report: SupplyReport, targets: TargetRow[], now: Date, scale?: Record<string, number>, expCap?: Record<string, number>): { sources: SourceGauge[]; below14: number; urgent: number; fuel_line: string } {
   const sources: SourceGauge[] = []
   for (const s of report.sources) {
     if (s.state === 'excluded') continue
@@ -587,7 +679,7 @@ export function inventoryGauge(report: SupplyReport, targets: TargetRow[], now: 
       if (t.source_key !== s.source_key || t.status !== 'exhausted') continue
       const last = t.last_run_at ? Date.parse(t.last_run_at) : NaN
       if (!Number.isFinite(last)) { waiting++; continue }
-      const due = last + revisitDays(t, { all: true })!.days * DAY_MS
+      const due = last + revisitDays(t, { all: true, scale, expCap })!.days * DAY_MS
       if (due <= now.getTime()) dueNow++
       else {
         waiting++

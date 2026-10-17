@@ -54,6 +54,8 @@ jobs:
       # 편 자족성 SC-1~SC-5 가 검사기에서 살아 있는지. 가이드 제목을 바꾸면 프롬프트가 조용히 비어 여기서 잡힌다.
       - run: node scripts/column-style-selftest.mjs
       - run: node scripts/column-check.mjs --self-test
+      # 카드뉴스·칼럼 AI 말투 린터(v71w): 지표 10종 양성·음성, 인용 130/131, 설정값·스펙 변경 시 판정 변화, CLI 종료 코드.
+      - run: node scripts/ai-tone-lint-selftest.mjs
       # 승인 버튼은 본문을 펼쳐 본 뒤에만 눌린다(2026-09-29) — 배선 3곳(review-gate·decision-form·actions)을 고정.
       - run: node scripts/columns-approve-gate-selftest.mjs
       # 추출 시작 게이트가 서버·화면 한 벌인지. 갈라지면 시작할 수 있는데 버튼이 없는 화면이 된다.
@@ -221,6 +223,8 @@ jobs:
       #             200 으로 와도 실패로 떨어지는지, 목록 403 이 러너 공용 가드로 멈추고 소스를 끄는지.
       - run: node scripts/review-devto-selftest.mjs
       - run: node scripts/review-discourse-selftest.mjs
+      #   github_issues·stackexchange(v71ad §5 d): 무토큰 공식 API. PR·봇·메인테이너 거름, 작성자 미저장, 403/429/400/HTML → 요청 1건 뒤 차단 중단.
+      - run: node scripts/review-official-api-selftest.mjs
       - run: node scripts/anchor-selftest.mjs
       - run: node scripts/source-purge-selftest.mjs
       - run: node scripts/provisional-plan-selftest.mjs
@@ -344,6 +348,14 @@ jobs:
       - run: node scripts/store-search-discovery-selftest.mjs
       # 자율 발굴 C-1 ①③(v56): 게시판 소스당 하루 5·어댑터 미지원=제안만·robots 확인 불가면 요청 0·403 즉시 중단·3일 강등 초안·이상 반응·보고 블록·DB 쓰기 0.
       - run: node scripts/discovery-c1-selftest.mjs
+      # 후보 생성기 1단계(v71aa 1-4): 필터 순서·out-* 제외·robots 확인 불가 기각·하루 45·② 가중·등록 0·DB/네트워크 import 0.
+      - run: node scripts/candidate-generator-selftest.mjs
+      # v71ad §5(e): 같은 개발사 앱(iTunes lookup 루트 경로) → 후보 생성기 입력. robots 재확인·차단 중단·filterCandidates 경계면.
+      - run: node scripts/appstore-same-developer-selftest.mjs
+      # 리뷰 속 언급 앱 루프(v71ad §1): 영·한 추출 규칙·오탐 5종·자기 이름 제외·검증 3상태·30% 게이트·등록 초안 경계·robots 먼저·DB 쓰기 0.
+      - run: node scripts/mention-loop-selftest.mjs
+      # v71aj §5-3: HN 글 단위 영역 재판정 — 응답 검증·뷰 우선순위·정밀도 60% 적용 중단·하루 상한·눈가림 시트·insert-only SQL·DB 접근 0.
+      - run: node scripts/hn-area-reclass-selftest.mjs
       - run: node scripts/review-bobaedream-selftest.mjs
       - run: node scripts/review-brunch-selftest.mjs
       - run: node scripts/review-clien-selftest.mjs

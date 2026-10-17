@@ -19,7 +19,7 @@ import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { RECHECK_SEEN_STREAK, isRecheck, runCollection } from '../lib/review/runner.ts'
 import { createReviewStore } from '../lib/review/store.ts'
 import {
-  REVIVE_PER_RUN, REVISIT_EXPECTED_NEW, REVISIT_MAX_DAYS, REVISIT_MIN_DAYS, computeSupply, envCap, inventoryGauge, parseRevisitScale, planRevive, revisitDays,
+  REVIVE_PER_RUN, REVISIT_EXPECTED_NEW, REVISIT_MAX_DAYS, REVISIT_MIN_DAYS, computeSupply, envCap, inventoryGauge, parsePerSourceInt, parseRevisitScale, planRevive, revisitDays,
 } from '../lib/review/target-supply.ts'
 import { incrementalCap, main as reviveMain, reviveLimits } from './target-revive.mjs'
 
@@ -404,6 +404,41 @@ function fakePg(tables, hooks = {}) {
         inventoryGauge(r, [tg], new Date(N)).sources[0].reserved_due_now, inventoryGauge(r, [tg], new Date(N), { clien: 0.5 }).sources[0].reserved_due_now],
       [{ revisit_not_due: 1 }, 1, 0, 1])
   }
+  // ── C4. v71aj D-24 숨은 천장 둘 — 변수 없으면 현행, 있으면 소스별로만 풀린다 ──
+  t('v71aj: parsePerSourceInt 빈값·정상·범위 밖·소수·JSON 아님',
+    [parsePerSourceInt('', 'X', 10), parsePerSourceInt('{"clien":2,"*":3,"x":11,"y":1.5}', 'X', 10).map, parsePerSourceInt('{"x":11,"y":1.5}', 'X', 10).notes.length, parsePerSourceInt('nope', 'X', 10).map],
+    [{ map: {}, notes: [] }, { clien: 2, '*': 3 }, 2, {}])
+  {
+    // λ = 1/일(최신 리뷰가 방문 1일 전) · ce=3 → 3 × 2^3 = 24 → 14. 지수 상한 2 → 12 · 0 → 3 · "*" 도 같다 · 다른 소스 키는 무관
+    const inc1 = { source_key: 'clien', last_run_at: iso(L), created_at: iso(L - 60 * DAY), total_collected: 600, last_review_at: iso(L - DAY), consecutive_empty: 3 }
+    const dd = (expCap) => revisitDays(inc1, { all: true, expCap }).days
+    t('v71aj: 지수 상한 없음 14 · {} 14 · clien 2 → 12 · clien 0 → 3 · "*":2 → 12 · okky 2 → 14', [dd(undefined), dd({}), dd({ clien: 2 }), dd({ clien: 0 }), dd({ '*': 2 }), dd({ okky: 2 })], [14, 14, 12, 3, 12, 14])
+    t('v71aj: 지수 상한은 하한 3 아래로 못 내린다(clamp 유지)', revisitDays({ ...inc1, total_collected: 1e6, last_review_at: iso(L) }, { all: true, expCap: { clien: 0 } }).days, 3)
+    t('v71aj: 근거 표기 ce=3→2^2', revisitDays(inc1, { all: true, expCap: { clien: 2 } }).basis, 'λ=1/일·ce=3→2^2')
+    const N = Date.parse('2026-10-12T05:00:00Z')
+    const tg = { ...inc1, id: u(9950), status: 'exhausted', product_ref: 'board:q', last_run_at: iso(N - 13 * DAY), last_review_at: iso(N - 14 * DAY) }
+    const r = { generated_at: iso(N), sources: [{ source_key: 'clien', state: 'short', gap: 50, gate_headroom: 50, tpr: 10, active: 0, runs_per_day: 6 }] }
+    const o = { perRunCap: 6, clockOnly: true, clockAll: true, minExpectedNew: 1 }
+    t('v71aj: 13일 전 방문 · 기본 14일 → revisit_not_due · 지수 상한 2(12일) → 되살림 · 게이지 즉시 예약 0 → 1',
+      [planRevive([tg], r, o).bySource.clien.skipped, planRevive([tg], r, { ...o, revisitExpCap: { clien: 2 } }).revive.length,
+        inventoryGauge(r, [tg], new Date(N)).sources[0].reserved_due_now, inventoryGauge(r, [tg], new Date(N), undefined, { clien: 2 }).sources[0].reserved_due_now],
+      [{ revisit_not_due: 1 }, 1, 0, 1])
+  }
+  {
+    const o = { perRunCap: REVIVE_PER_RUN, clockOnly: true }
+    const q = (queueSlack) => planRevive(appTargets(), rep([S('appstore', { active: 7 })]), { ...o, queueSlack }).revive.length
+    t('v71aj: queue_full 여유 — 없음 3 · {} 3 · appstore 2 → 5 · "*":10 → 실행당 6 에서 멈춤 · 다른 소스 키 3', [q(undefined), q({}), q({ appstore: 2 }), q({ '*': 10 }), q({ clien: 10 })], [3, 3, 5, 6, 3])
+    const sk = planRevive(appTargets(), rep([S('appstore', { active: 7 })]), { ...o, queueSlack: { '*': 10 } }).bySource.appstore.skipped
+    t('v71aj: 여유를 줘도 소스별 실행당 상한(run_cap)은 그대로 묶는다', sk, { run_cap: 100 })
+  }
+  {
+    const d0 = reviveLimits({}, true)
+    t('v71aj: reviveLimits 기본 = 현행(지수 상한·여유 빈 객체)', [d0.expCap, d0.queueSlack, d0.warns], [{}, {}, []])
+    const d1 = reviveLimits({ TARGET_REVIVE_CE_EXP_MAX: '{"clien":2,"okky":99}', TARGET_REVIVE_QUEUE_SLACK: '{"*":3}' }, true)
+    t('v71aj: reviveLimits 파싱 · 범위 밖은 경고 한 줄', [d1.expCap, d1.queueSlack, d1.warns.length, /TARGET_REVIVE_CE_EXP_MAX\.okky=99/.test(d1.warns[0] ?? '')], [{ clien: 2 }, { '*': 3 }, 1, true])
+    const src = fs.readFileSync(path.join(root, 'scripts', 'target-revive.mjs'), 'utf8')
+    t('v71aj: --auto 옵션·게이지가 두 값을 받는다(배선)', [/revisitExpCap: lim\.expCap, queueSlack: lim\.queueSlack/.test(src), /inventoryGauge\(report, input\.targets, now, lim\.scale, lim\.expCap\)/.test(src)], [true, true])
+  }
   fs.rmSync(tmp, { recursive: true, force: true })
 }
 
@@ -417,6 +452,8 @@ function fakePg(tables, hooks = {}) {
   t('v71u: pre-step 이 리포 변수 TARGET_CLOCK_INCREMENTAL_MAX 를 넘긴다', /TARGET_CLOCK_INCREMENTAL_MAX: \$\{\{ vars\.TARGET_CLOCK_INCREMENTAL_MAX \}\}/.test(step), true)
   t('v71ad: pre-step 이 천장·소스별·배율 변수 3개를 vars. 로 넘긴다',
     ['TARGET_REVIVE_TOTAL_CEILING', 'TARGET_REVIVE_PER_SOURCE', 'TARGET_REVISIT_SCALE'].map((k) => step.includes(`${k}: \${{ vars.${k} }}`)), [true, true, true])
+  t('v71aj: pre-step 이 지수 상한·queue 여유 변수 2개를 vars. 로 넘긴다',
+    ['TARGET_REVIVE_CE_EXP_MAX', 'TARGET_REVIVE_QUEUE_SLACK'].map((k) => step.includes(`${k}: \${{ vars.${k} }}`)), [true, true])
   t('pre-step: continue-on-error(실패해도 수집은 돈다) · dry_run 수동 실행은 --dry', [/continue-on-error: true/.test(step), /inputs\.dry_run\) && '--dry'/.test(wf.slice(revive, revive + 200))], [true, true])
   const secrets = [...new Set([...wf.matchAll(/secrets\.([A-Z_]+)/g)].map((m) => m[1]))].sort()
   t('새 시크릿 없음(기존 목록 그대로)', secrets, [

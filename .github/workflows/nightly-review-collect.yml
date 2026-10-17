@@ -99,6 +99,8 @@ on:
           - retool_community
           - glide_community
           - softr_community
+          - github_issues
+          - stackexchange
         default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수(비우면 소스별 램프 단계, 램프 없으면 10)'
@@ -192,6 +194,10 @@ jobs:
           TARGET_REVIVE_PER_SOURCE: ${{ vars.TARGET_REVIVE_PER_SOURCE }}
           # 소스별 재방문 간격 배율 JSON {"clien":0.5} — [0.25,1] 줄이기만, 하한 1일. 비면 배율 1.
           TARGET_REVISIT_SCALE: ${{ vars.TARGET_REVISIT_SCALE }}
+          # v71aj D-24: 숨은 천장 둘. 비면 현행(롤백 = 변수 삭제). JSON {"clien":2,"*":3} — 소스 키 우선, 없으면 "*".
+          # CE_EXP_MAX: 재방문 간격 2^consecutive_empty 의 지수 상한(0~10, 간격은 여전히 3~14일). QUEUE_SLACK: queue_full(tpr − active)에 더 여는 자리(0~200).
+          TARGET_REVIVE_CE_EXP_MAX: ${{ vars.TARGET_REVIVE_CE_EXP_MAX }}
+          TARGET_REVIVE_QUEUE_SLACK: ${{ vars.TARGET_REVIVE_QUEUE_SLACK }}
           # v69 D7: 게이지를 같은 잡의 수집 스텝(Notion 일일 상태 로그)으로 넘기는 파일.
           SUPPLY_BLOCK_FILE: ${{ runner.temp }}/supply-block.json
         run: node scripts/target-revive.mjs --auto ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}

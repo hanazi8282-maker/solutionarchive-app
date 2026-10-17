@@ -375,6 +375,10 @@ const AUDIT = {
   'devto.ts': false,
   // Discourse `topic:<토픽 id>#<게시글 id>` — 포럼(= source_key) 전역 유일. 소스마다 포럼 하나라 소스 간 충돌도 없다.
   'discourse.ts': false,
+  // GitHub `issue:<owner/repo 소문자>#<번호>` — 저장소 안 이슈 번호는 유일, 저장소를 키에 넣었으니 소스 전역 유일.
+  'github.ts': false,
+  // Stack Exchange `q:<site>:<question_id>` — 사이트 안 질문 id 유일, 사이트를 키에 넣었다.
+  'stackexchange.ts': false,
   // Indie Hackers `/post/<Firebase 20자 id>`(+ `#<댓글 20자 id>`) — 사이트 전역 글 id.
   'indiehackers.ts': false,
   // `blogId:logNo` — 네이버 전역에서 글 1개를 가리킨다.

@@ -9,6 +9,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { cook82Adapter } from '../lib/review/adapters/82cook.ts'
+import { DISCOVERY_TARGET_MAX } from '../lib/review/target-supply.ts'
 import { detect, evaluate, notionLine, watchList, SURGE_MIN } from './adoption-anomaly.mjs'
 import {
   boardDemotion, boardGate, discoverBoards, extractSlugs, judgeList, pickCandidates, renderBoardRollback, renderBoardSql, renderDemoteSql, writeOutputs,
@@ -51,12 +52,12 @@ t('pick: existing skipped', pk.skipped.existing, 1)
 t('pick: ledger skipped', pk.skipped.seen_before, 1)
 t('pick: excluded', pk.skipped.excluded, 1)
 t('pick: adapter_unsupported → suggest', pk.suggest.map((s) => s.slug).join(), 'abc')
-t('pick: cap 5 total', pk.probe.length + pk.suggest.length, 5)
+t('pick: cap total (8 slugs − 3 skipped, under MAX)', pk.probe.length + pk.suggest.length, Math.min(5, DISCOVERY_TARGET_MAX))
 t('pick: probe url from adapter', pk.probe[0].url, 'https://www.82cook.com/entiz/enti.php?bn=31')
-const pk2 = pickCandidates(['1', '2', '3', '4', '5', '6', '7'], { sourceKey: '82cook', adapter: cook82Adapter, existingRefs: new Set(), ledgerKeys: new Set() })
+const pk2 = pickCandidates(Array.from({ length: DISCOVERY_TARGET_MAX + 2 }, (_, i) => String(i + 1)), { sourceKey: '82cook', adapter: cook82Adapter, existingRefs: new Set(), ledgerKeys: new Set() })
 const pk3 = pickCandidates(['1', '2', '3'], { sourceKey: '82cook', adapter: cook82Adapter, existingRefs: new Set(), ledgerKeys: new Set(), include: ['2'] })
 t('pick: include filters', `${pk3.probe.map((p) => p.slug)}/${pk3.skipped.not_included}`, '2/2')
-t('pick: 7 slugs → 5 + daily_cap 2', `${pk2.probe.length}/${pk2.skipped.daily_cap}`, '5/2')
+t('pick: MAX+2 slugs → MAX + daily_cap 2', `${pk2.probe.length}/${pk2.skipped.daily_cap}`, `${DISCOVERY_TARGET_MAX}/2`)
 
 t('judge: fixture adopted', judgeList({ status: 200, body: LIST }, cook82Adapter, 'board:31').verdict, 'adopted')
 t('judge: fixture posts 6', judgeList({ status: 200, body: LIST }, cook82Adapter, 'board:31').posts, 6)
@@ -89,12 +90,14 @@ const sleeps = []
 const sleep = async (ms) => { sleeps.push(ms) }
 let ff = mkFetch()
 const r = await discoverBoards({ cfg: CFG, sources: SOURCES, targets: TARGETS, ledger: { entries: [] }, fetchText: ff.f, sleep })
-t('discover: adopted 5 (cap)', r.adopted.length, 5)
+// 디렉터리 새 slug 6개(9 − 기존 2 − 제외 1). 상한(DISCOVERY_TARGET_MAX)이 그보다 작으면 상한에서 끊긴다.
+const WANT = Math.min(6, DISCOVERY_TARGET_MAX)
+t('discover: adopted min(6, MAX)', r.adopted.length, WANT)
 t('discover: existing 31 not adopted', r.adopted.some((a) => a.product_ref === 'board:31'), false)
 t('discover: clien robots unverified → no clien request', ff.asked.filter((u) => u.includes('clien')).every((u) => u.endsWith('/robots.txt')), true)
 t('discover: clien status', r.sources.clien.status, '디렉터리 robots unverified')
 t('discover: robots fetched once per URL', ff.asked.filter((u) => u === 'https://www.82cook.com/robots.txt').length, 1)
-t('discover: requests = robots 2 + dir 1 + lists 5', r.requests, 8)
+t('discover: requests = robots 2 + dir 1 + lists WANT', r.requests, 3 + WANT)
 t('discover: interval ≥ 3000', sleeps.every((s) => s >= 3000), true)
 t('discover: label', r.adopted[0].label, '82cook 7 게시판 순회(자율 발굴)')
 ff = mkFetch({ 'https://www.82cook.com/entiz/enti.php?bn=2': { status: 403, body: 'no' } })
@@ -209,12 +212,12 @@ const cfg = { ...JSON.parse(fs.readFileSync('config/discovery-c1.json', 'utf8'))
   const dry = await main(['--from-db', `--reports-dir=${tmp}`], { db, cfg, fetchText: mkFetch().f, sleep, now: NOW, log: () => {}, record: async (...a) => (recs.push(a), { ok: true, title: 'x' }) })
   t('main dry: no files', fs.existsSync(path.join(tmp, '2026-10-12')), false)
   t('main dry: no notion', recs.length, 0)
-  t('main dry: adopted 5', dry.boards.adopted.length, 5)
+  t('main dry: adopted WANT', dry.boards.adopted.length, WANT)
   t('main dry: anomaly alert seen', dry.anomalies.filter((a) => a.state === 'alert').length, 1)
   t('main dry: block lines', dry.block.split('\n').length, 5 + 1)
   const wr = await main(['--from-db', '--write', `--reports-dir=${tmp}`], { db, cfg, fetchText: mkFetch().f, sleep, now: NOW, log: () => {}, record: async (...a) => (recs.push(a), { ok: true, title: 'x' }) })
   t('main write: sql + rollback', fs.readdirSync(path.join(tmp, '2026-10-12')).filter((f) => f.startsWith('board-targets-')).length, 2)
-  t('main write: ledger proposed 5', JSON.parse(fs.readFileSync(path.join(tmp, 'board-discovery.json'), 'utf8')).entries.filter((e) => e.status === 'proposed').length, 5)
+  t('main write: ledger proposed WANT', JSON.parse(fs.readFileSync(path.join(tmp, 'board-discovery.json'), 'utf8')).entries.filter((e) => e.status === 'proposed').length, WANT)
   t('main write: notion once, needsHuman false', recs.length === 1 && recs[0][0].needsHuman === false && recs[0][1].marker === 'adoption-anomaly', true)
   t('main write: block appended', fs.readFileSync(path.join(tmp, '2026-10-12', 'discovery-log-block.md'), 'utf8').includes('[자율 발굴 2026-10-12] C-1'), true)
   t('main write: proposals md', fs.existsSync(path.join(tmp, '2026-10-12', 'store-search-proposals.md')), true)

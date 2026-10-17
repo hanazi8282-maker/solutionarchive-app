@@ -577,3 +577,12 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - **조건(코드가 강제)**: 호출 간격 ≥ 4초(`LOOKUP_INTERVAL_MS`, 정책 A 의 3초보다 보수적) · UA 는 `lib/review/runner.ts` `USER_AGENT`(위장 없음) · 403·429·5xx·네트워크 오류·JSON 아님·robots 확인 불가 1건이면 즉시 중단(우회·재시도 없음, `stopped` 에 사유) · 요청 상한 `LOOKUP_MAX_REQUESTS=40`(실행당) · 실행은 수동(`scripts/appstore-same-developer.mjs`, `scripts/mention-loop.mjs --lookup`)뿐이고 무인 스케줄에 넣지 않는다 · 실행 전 robots 를 다시 읽는다. 일 상한은 실행당 40 × 하루 실행 횟수(사람·CEO-staff 가 하루 2회 넘기지 않는다 → 일 ≤ 80).
 - **롤백**: 호출 경로 비활성화 = `--allow-lookup`/`--lookup` 플래그를 쓰지 않으면 0요청(코드 기본값). 이 항목을 지우면 다시 "정책 A 밖".
 - **승인**: 남헌 v71ak §4(위임 원칙: 정책 A 와 같은 조건이면 CC 가 허용). 기록 CEO-STAFF 세션.
+
+## 2026-10-17 — v71ak/v71al CEO-STAFF DB 적용 기록 (남헌 v71ak §1 승인, 위임 원칙)
+- 적용 방식: `supabase db query --linked -f <파일>`(이력 표 schema_migrations 에는 기록되지 않음 — 10-13 이후 파일 전부 같다). 대상 프로젝트 `qmgrfqjfxqhxuufrnkwf`. 각 건 [전]/[후] 확인.
+- `20261017000010_sales_appstore_targets_20261017` (#569) · 영업 앱스토어 타깃 31행·프로젝트 29개 · 후: 앱스토어 활성 1→32/131 · 롤백 파일 있음
+- `20261017000020_window_targets_20261017` (#554) · 창문 타깃 10행 · 후: 42/141=29.8% · 롤백 파일 있음
+- `20261017000110_github_issues_source` · `20261017000120_stackexchange_source` (#564) · github_issues 켜짐·타깃 16, stackexchange 등록만(꺼짐) · 롤백 파일 있음
+- `20261017000021_discovery_candidates_mention` (#561, 번호 000020→000021 정리) · discovery_candidates 칼럼 10개(기존 행 NULL) · 롤백 파일 있음
+- `20261017000090_review_area_verdicts` (#571) · 새 표 review_area_verdicts(빈 표)·뷰 v_input_area_effective · 롤백 파일 있음
+- 데이터 UPDATE(마이그 아님): 러너 재프로브(run 39032104632)에서 entry>0 으로 확인된 앱스토어 거짓 0건 9곳을 exhausted→active · 후: 앱스토어 활성 45/160=28.1% · 롤백 `reports/2026-10-17/appstore-false-zero-revive-9-rollback.sql`

@@ -1,0 +1,148 @@
+# 병목 자동감시 — 하루 4회 읽기 전용 점검(v71au ⑮, v71am §2-3). 한도 대장·재고 게이지·한도 재평가·에이전트 상태판을 reports/<KST>/ 에 남긴다.
+#
+# 스크립트(전부 SELECT 만): bottleneck-report.mjs · inventory-gauge.mjs · limit-rollback-eval.mjs · agent-status-board.mjs
+# 권한 경계(CLAUDE.md §10.1): 이 워크플로는 변수·DB 를 바꾸지 않는다. 상향 가능·롤백 판정은 "제안/안내 파일"로만 남기고, 적용은 사람·역할 세션이 한다.
+#   (daily_request_cap 자동 반영은 기존 review-request-cap pre-step 몫, 요청 상한을 내리는 변경은 자동 금지.)
+# ⛔ permissions 는 contents: read. 커밋은 push-reports 잡이 기존 봇 토큰(BOT_APP_*)으로만 — nightly-window-discovery.yml 과 같은 패턴.
+# ⛔ 새 secret 없음: NEXT_PUBLIC_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY · BOT_APP_ID · BOT_APP_PRIVATE_KEY 는 전부 기존 값.
+# ⛔ review_collection_runs 에 행을 남기지 않는다 — 요청 0 감시가 이 잡을 소스 실행으로 세지 않는다.
+
+name: Bottleneck Watch
+
+on:
+  schedule:
+    # UTC 03:11 · 09:11 · 15:11 · 21:11 (KST 12:11 · 18:11 · 00:11 · 06:11). 수집 슬롯(UTC 01:43·05:37·09:29·13:19·17:37·20:47)·
+    # 창문 발굴(22:23)·크론 감시(21:53) 과 정각·30분을 피한다. 읽기 전용이라 겹쳐도 해가 없다.
+    - cron: '11 3 * * *'
+    - cron: '11 9 * * *'
+    - cron: '11 15 * * *'
+    - cron: '11 21 * * *'
+  workflow_dispatch:
+
+# 수집 그룹(review-collect)과 따로 둔다 — 읽기 전용이라 수집을 막거나 기다릴 이유가 없다.
+concurrency:
+  group: bottleneck-watch
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Selftest
+        run: |
+          node scripts/gauge-watch-selftest.mjs
+          node scripts/bottleneck-report-selftest.mjs
+
+      # 네 스크립트를 각각 돌리고 하나라도 실패하면 마지막에 빨간불(확인 실패를 정상으로 접지 않는다, §7.1). 실패한 칸은 파일에 '확인 불가'로 남는다.
+      - name: Watch
+        id: watch
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # 한도 대비 사용 추정 비율에 쓴다(nightly-relevance.yml 과 같은 변수·같은 폴백).
+          LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
+        run: |
+          set +e
+          D=$(TZ=Asia/Seoul date +%F)
+          T=$(date -u +%FT%H:%MZ)
+          mkdir -p "reports/$D"
+          L="reports/$D/limit-ledger.md"
+          [ -f "$L" ] || printf '# 한도 대장 일일 갱신 %s\n\n하루 4회 bottleneck-watch 가 덧붙인다. 읽기 전용 — 제안·판정만, 적용은 사람·역할 세션.\n\n' "$D" > "$L"
+          rc=0
+          add() { # add <제목> <명령...>
+            title="$1"; shift
+            out=$("$@" 2>&1); r=$?
+            if [ $r -ne 0 ]; then rc=1; out="$title 확인 불가 — 스크립트 실패(exit $r): $(echo "$out" | tail -3)"; fi
+            printf '\n<!-- %s -->\n%s\n' "$T" "$out" >> "$L"
+            echo "$out" >> "$GITHUB_STEP_SUMMARY"; echo >> "$GITHUB_STEP_SUMMARY"
+          }
+          add "병목" node scripts/bottleneck-report.mjs
+          add "재고 게이지" node scripts/inventory-gauge.mjs
+          add "한도 재평가" node scripts/limit-rollback-eval.mjs
+          out=$(node scripts/agent-status-board.mjs 2>&1); r=$?
+          [ $r -ne 0 ] && rc=1 && out="에이전트 상태판 확인 불가 — 스크립트 실패(exit $r): $(echo "$out" | tail -3)"
+          printf '%s\n' "$out" > "reports/$D/agent-status-board.md"
+          echo "$out" >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+
+      - name: Collect changed report files
+        id: files
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/bw-out"
+          git status --porcelain --untracked-files=all -- reports | sed 's/^...//' | while read -r f; do
+            mkdir -p "$RUNNER_TEMP/bw-out/$(dirname "$f")"; cp "$f" "$RUNNER_TEMP/bw-out/$f"
+          done
+          if find "$RUNNER_TEMP/bw-out" -type f | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload report files
+        if: always() && steps.files.outputs.found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bottleneck-watch-reports
+          path: ${{ runner.temp }}/bw-out/
+          retention-days: 30
+
+    outputs:
+      files: ${{ steps.files.outputs.found }}
+
+  # nightly-window-discovery.yml push-reports 와 같은 블록. 봇 토큰만 쓰고 permissions 는 넓히지 않는다.
+  push-reports:
+    needs: watch
+    if: always() && needs.watch.outputs.files == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Mint bot token
+        id: bot
+        continue-on-error: true
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.bot.outputs.token || github.token }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: bottleneck-watch-reports
+          path: ${{ runner.temp }}/bw-out
+
+      - name: Commit report files
+        run: |
+          cp -R "$RUNNER_TEMP/bw-out/." .
+          git add -- reports
+          if git diff --cached --quiet; then
+            echo "올릴 파일 없음"
+            exit 1
+          fi
+          # reports/ · ops/state/ 밖이 스테이징에 있으면 커밋하지 않는다(CLAUDE.md §10.1 reports/ 파일).
+          if git diff --cached --name-only | grep -vE '^(reports/|ops/state/)'; then
+            echo "허용 프리픽스 밖 파일 — 커밋하지 않는다"
+            exit 1
+          fi
+          git config user.name  "bottleneck-watch-bot"
+          git config user.email "noreply@anthropic.com"
+          git commit -m "chore(review): 병목 점검·한도 대장 갱신 — $(date -u +%FT%H%MZ)"
+          git pull --rebase origin main
+          git push

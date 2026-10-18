@@ -1,0 +1,294 @@
+{
+ "windows": [
+  {
+   "key": "appstore|us:507014023",
+   "source_key": "appstore",
+   "product_ref": "us:507014023",
+   "anchor_ref": "kr:507014023",
+   "label": "07-ecommerce-ops:us|aftership",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:972151811",
+   "source_key": "appstore",
+   "product_ref": "us:972151811",
+   "anchor_ref": "kr:972151811",
+   "label": "07-ecommerce-ops:us|shipstation",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:598332111",
+   "source_key": "appstore",
+   "product_ref": "us:598332111",
+   "anchor_ref": "kr:598332111",
+   "label": "1:us|rev",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:1480649572",
+   "source_key": "appstore",
+   "product_ref": "us:1480649572",
+   "anchor_ref": "kr:1480649572",
+   "label": "1:us|notta",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6754837598",
+   "source_key": "appstore",
+   "product_ref": "us:6754837598",
+   "anchor_ref": "kr:6754837598",
+   "label": "1:us|bluedot",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6738971048",
+   "source_key": "appstore",
+   "product_ref": "us:6738971048",
+   "anchor_ref": "kr:6738971048",
+   "label": "1:us|circleback",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6463164203",
+   "source_key": "appstore",
+   "product_ref": "us:6463164203",
+   "anchor_ref": "kr:6463164203",
+   "label": "1:us|fireflies-ai",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6739429409",
+   "source_key": "appstore",
+   "product_ref": "us:6739429409",
+   "anchor_ref": "kr:6739429409",
+   "label": "1:us|granola",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6747801435",
+   "source_key": "appstore",
+   "product_ref": "us:6747801435",
+   "anchor_ref": "kr:6747801435",
+   "label": "1:us|jamie",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6740535865",
+   "source_key": "appstore",
+   "product_ref": "us:6740535865",
+   "anchor_ref": "kr:6740535865",
+   "label": "1:us|krisp",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6476133984",
+   "source_key": "appstore",
+   "product_ref": "us:6476133984",
+   "anchor_ref": "kr:6476133984",
+   "label": "1:us|meetgeek",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6450364080",
+   "source_key": "appstore",
+   "product_ref": "us:6450364080",
+   "anchor_ref": "kr:6450364080",
+   "label": "1:us|plaud",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6575345796",
+   "source_key": "appstore",
+   "product_ref": "us:6575345796",
+   "anchor_ref": "kr:6575345796",
+   "label": "1:us|read-ai",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6474231719",
+   "source_key": "appstore",
+   "product_ref": "us:6474231719",
+   "anchor_ref": "kr:6474231719",
+   "label": "3:us|miricanvas",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:587244049",
+   "source_key": "appstore",
+   "product_ref": "us:587244049",
+   "anchor_ref": "kr:587244049",
+   "label": "4:us|bamboohr",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:1231325957",
+   "source_key": "appstore",
+   "product_ref": "us:1231325957",
+   "anchor_ref": "kr:1231325957",
+   "label": "4:us|rippling",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:1297148884",
+   "source_key": "appstore",
+   "product_ref": "us:1297148884",
+   "anchor_ref": "kr:1297148884",
+   "label": "4:us|hibob",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:1478804271",
+   "source_key": "appstore",
+   "product_ref": "us:1478804271",
+   "anchor_ref": "kr:1478804271",
+   "label": "4:us|gusto",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "appstore|us:6478083155",
+   "source_key": "appstore",
+   "product_ref": "us:6478083155",
+   "anchor_ref": "kr:6478083155",
+   "label": "4:us|deel",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 20
+  },
+  {
+   "key": "googleplay|us:en:com.aisense.otter",
+   "source_key": "googleplay",
+   "product_ref": "us:en:com.aisense.otter",
+   "anchor_ref": "kr:ko:com.aisense.otter",
+   "label": "1:us-en|otter-ai",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 5
+  },
+  {
+   "key": "googleplay|us:en:ai.fireflies.mobile",
+   "source_key": "googleplay",
+   "product_ref": "us:en:ai.fireflies.mobile",
+   "anchor_ref": "kr:ko:ai.fireflies.mobile",
+   "label": "1:us-en|fireflies-ai",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 5
+  },
+  {
+   "key": "googleplay|us:en:com.langogo.transcribe",
+   "source_key": "googleplay",
+   "product_ref": "us:en:com.langogo.transcribe",
+   "anchor_ref": "kr:ko:com.langogo.transcribe",
+   "label": "1:us-en|notta",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 5
+  },
+  {
+   "key": "googleplay|us:en:ai.plaud.android.plaud",
+   "source_key": "googleplay",
+   "product_ref": "us:en:ai.plaud.android.plaud",
+   "anchor_ref": "kr:ko:ai.plaud.android.plaud",
+   "label": "1:us-en|plaud",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 5
+  },
+  {
+   "key": "googleplay|us:en:bluedot.ai.notetaker",
+   "source_key": "googleplay",
+   "product_ref": "us:en:bluedot.ai.notetaker",
+   "anchor_ref": "kr:ko:bluedot.ai.notetaker",
+   "label": "1:us-en|bluedot",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 5
+  },
+  {
+   "key": "googleplay|us:en:ai.meetjamie.expoapp",
+   "source_key": "googleplay",
+   "product_ref": "us:en:ai.meetjamie.expoapp",
+   "anchor_ref": "kr:ko:ai.meetjamie.expoapp",
+   "label": "1:us-en|jamie",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 5
+  },
+  {
+   "key": "googleplay|us:en:com.avoma.android",
+   "source_key": "googleplay",
+   "product_ref": "us:en:com.avoma.android",
+   "anchor_ref": "kr:ko:com.avoma.android",
+   "label": "1:us-en|avoma",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 5
+  },
+  {
+   "key": "googleplay|us:en:com.deel.app",
+   "source_key": "googleplay",
+   "product_ref": "us:en:com.deel.app",
+   "anchor_ref": "kr:ko:com.deel.app",
+   "label": "4:us-en|deel",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 5
+  },
+  {
+   "key": "googleplay|us:en:com.workday.workdroidapp",
+   "source_key": "googleplay",
+   "product_ref": "us:en:com.workday.workdroidapp",
+   "anchor_ref": "kr:ko:com.workday.workdroidapp",
+   "label": "4:us-en|workday",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 5
+  },
+  {
+   "key": "googleplay|us:en:com.canva.editor",
+   "source_key": "googleplay",
+   "product_ref": "us:en:com.canva.editor",
+   "anchor_ref": "kr:ko:com.canva.editor",
+   "label": "3:us-en|canva",
+   "draftable": true,
+   "verdict": "adopted",
+   "new_per_request": 5
+  }
+ ]
+}

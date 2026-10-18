@@ -82,7 +82,7 @@ t('80자 미만 일반 글 통과', one(inp('배송 빠르고 포장 꼼꼼했�
   t('카카오 카페 — 둘 다 있음 → 통과', one(inp('오랄비 칫솔 써보니 손잡이가 무겁다', { source_key: 'kakao_cafe' }), withTerms) === null)
   t('카카오 블로그 — 제품명만 → 걸림(require both)', one(inp('오랄비 매장 다녀왔다', { source_key: 'kakao_blog' }), withTerms) === 'category_miss')
   for (const src of CATEGORY_RULE_FORBIDDEN) {
-    t(`카테고리 규칙이 ${src} 에 안 걸림`, one(inp('오늘 점심은 김치찌개 먹었다 맛있었다', { source_key: src }), withTerms) === null)
+    t(`카테고리 규칙이 ${src} 에 안 걸림`, one(inp('오늘 점심은 김치찌개 먹었다 맛있었다', { source_key: src }), withTerms) !== 'category_miss')
   }
   const forced = parsePrefilterConfig({ ...raw, category_rule: { sources: ['kakao_blog', 'appstore', 'googleplay', 'hackernews'], require: 'both', projects: { [P]: { product: ['오랄비'], category: ['칫솔'] } } } }, {})
   t('설정에 금지 소스를 적어도 무시 + 경고', CATEGORY_RULE_FORBIDDEN.every((s) => !forced.cfg.category.sources.includes(s)) && forced.warnings.some((w) => w.includes('금지 소스')))
@@ -287,6 +287,34 @@ for (const s of ['자꾸 꺼집니다', '디자인이 아쉬워요', '불만 많
 
   const empty = await createPendingFor({ ...base, supabase: mock({ inputs: [] }), prefilterCfg: cfg }).pendingFor({ id: 'pX' })
   t('연결 — 입력 0건은 대상 아님(reviews 0, rating null)', empty.reviews.length === 0 && empty.rating === null)
+}
+
+// ── v71ay C5: HN 가치 낮은 글 ──
+{
+  const hn = (text) => inp(text, { source_key: 'hackernews' })
+  const short = hn('Nice post, thanks for sharing this with everyone here.')
+  const shortKw = hn('Looking for a better alternative to this tool?')
+  const mid = hn('x'.repeat(500))
+  const long = hn('y'.repeat(2500))
+  const longKw = hn('y'.repeat(2500) + ' we switched away last year')
+  const other = inp('Nice post, thanks for sharing this with everyone here.', { source_key: 'danawa' })
+  t('HN 필터는 설정 기본 on', cfg.hn.mode === 'on')
+  t('HN: 짧고 키워드 없음 → hn_lowvalue (영어 보호보다 먼저)', rule([short])[0] === 'hn_lowvalue')
+  t('HN: 짧아도 키워드 있으면 통과', rule([shortKw])[0] === null)
+  t('HN: 중간 길이는 통과', rule([mid])[0] === null)
+  t('HN: 너무 길고 키워드 없음 → hn_lowvalue', rule([long])[0] === 'hn_lowvalue')
+  t('HN: 너무 길어도 키워드 있으면 통과', rule([longKw])[0] === null)
+  t('HN 아닌 소스는 건드리지 않는다', rule([other])[0] === null)
+  const off = parsePrefilterConfig(raw, { HN_PREFILTER: 'off' }).cfg
+  t('HN_PREFILTER=off → 통과', rule([short], off)[0] === null)
+  const typo = parsePrefilterConfig(raw, { HN_PREFILTER: 'onn' }).cfg
+  t('모르는 값은 off(오타로 글이 빠지지 않는다)', typo.hn.mode === 'off')
+  const shadow = parsePrefilterConfig(raw, { HN_PREFILTER: 'shadow' }).cfg
+  const rows = [short, shortKw]
+  const vs = prefilterInputs(rows, shadow, P)
+  const reviews = rows.map((r) => ({ input_id: r.id }))
+  t('shadow(모드 shadow, hn shadow)는 아무것도 안 뺀다', applyPrefilter(reviews, vs, 'shadow', []).kept.length === 2)
+  t('hn on 이면 shadow 모드에서도 hn_lowvalue 만 뺀다', applyPrefilter(reviews, prefilterInputs(rows, cfg, P), 'shadow', ['hn_lowvalue']).kept.length === 1)
 }
 
 console.log(`prefilter-selftest: ${pass} 통과 · ${fail} 실패`)

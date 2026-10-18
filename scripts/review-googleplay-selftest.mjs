@@ -181,7 +181,7 @@ const realInner = (b) => JSON.parse(JSON.parse(b.slice(b.indexOf('\n'))).find((f
   t('기준일보다 새 것뿐 = 계속', googleplayAdapter.parse(page1, ctx({ lastReviewAt: '2025-10-01' })).nextCursor, 'TOKEN_P2')
 }
 t('어댑터: incrementalOnly(v27)', googleplayAdapter.incrementalOnly, true)
-t('어댑터: maxPagesPerRun 2(v27)', googleplayAdapter.maxPagesPerRun, 2)
+t('어댑터: maxPagesPerRun 3(v71ay, 2→3)', googleplayAdapter.maxPagesPerRun, 3)
 
 // ── 2) 실제 어댑터 + 실제 러너 ─────────────────────────────────────
 function harness({ robots = 'User-agent: *\nAllow: /\n', robotsStatus = 200, byToken = {}, status = {}, loadSource } = {}) {
@@ -224,27 +224,30 @@ const run = (h) => runCollection(googleplayAdapter, { dryRun: false, targetLimit
   t('경계: 끝까지 읽어도 닫지 않는다(incrementalOnly, v27)', h.log.saves.at(-1).status, 'active')
 }
 {
-  // v27: 토큰이 계속 이어져도 실행 1회 2페이지에서 멈추고, 증분형이라 커서를 버린다(다음 실행은 최신부터).
+  // v27(v71ay 2→3): 토큰이 계속 이어져도 실행 1회 3페이지에서 멈추고, 증분형이라 커서를 버린다(다음 실행은 최신부터).
   const page2more = rpc([[entry('uuid-7', '두 번째', 3, null, SEC - 86400)], [null, 'TOKEN_P3'], null])
-  const h = harness({ byToken: { first: page1, TOKEN_P2: page2more, TOKEN_P3: page2 } })
+  const page3more = rpc([[entry('uuid-8', '세 번째', 3, null, SEC - 86400 * 2)], [null, 'TOKEN_P4'], null])
+  const h = harness({ byToken: { first: page1, TOKEN_P2: page2more, TOKEN_P3: page3more, TOKEN_P4: page2 } })
   const r = await run(h)
-  t('상한: 요청 2회에서 멈춘다(TOKEN_P3 요청 안 함)', h.log.inits.length, 2)
+  t('상한: 요청 3회에서 멈춘다(TOKEN_P4 요청 안 함)', h.log.inits.length, 3)
   t('상한: 마지막 저장 커서 null(최신부터 다시)', h.log.saves.at(-1).cursor, null)
   t('상한: 마지막 저장 active', h.log.saves.at(-1).status, 'active')
-  t('상한: 걸린 사실이 결과 문구에 남는다(§7.2)', r.perTarget[0].outcome.includes('페이지 상한 2'), true)
+  t('상한: 걸린 사실이 결과 문구에 남는다(§7.2)', r.perTarget[0].outcome.includes('페이지 상한 3'), true)
 }
 {
   // 실응답 축약본 2페이지를 실제 러너로 — 커서가 p1 토큰 → p2 로 실제 전진하는지
   const tok1 = realInner(real1)[1][1]
+  const tok2 = realInner(real2)[1]?.[1] ?? 'NO_TOK2'
   const h = harness({})
   const inits = []
   h.ports.fetchText = async (url, init) => {
     if (url.endsWith('/robots.txt')) return { status: 200, body: 'User-agent: *\nAllow: /\n', finalUrl: url }
     inits.push(init)
-    return { status: 200, body: decodeURIComponent(init.body).includes(tok1) ? real2 : real1 }
+    const b = decodeURIComponent(init.body)
+    return { status: 200, body: b.includes(tok1) ? real2 : b.includes(tok2) ? rpc([[], null, null]) : real1 }
   }
   const r = await run(h)
-  t('실응답 경계: 2요청', inits.length, 2)
+  t('실응답 경계: 3요청(v71ay: real2 에 이어지는 토큰 → 3번째는 끝 페이지)', inits.length, 3)
   t('실응답 경계: 두 번째 요청 본문에 p1 토큰', decodeURIComponent(inits[1].body).includes(tok1), true)
   t('실응답 경계: 신규 6건', r.stats.newReviews, 6)
   t('실응답 경계: 파싱 실패 0', r.stats.parseFailures, 0)

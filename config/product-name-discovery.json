@@ -5,6 +5,8 @@
 
   "_exclude": "채택 전에 기각하는 목록(정규화 키 기준, 대장에 사유와 함께 남는다). 키가 곧 기각 사유다. acronym 만 조건부 — acronym_rule.exempt_signals(앱 링크·도메인) 신호가 있으면 통과한다. 나머지는 무조건 기각. 2026-10-12 첫 --run 채택 41건에서 사람이 오탐으로 짚은 것 + 같은 결의 흔한 것. human_rejected_v53 = 남헌 v53 승인 시트에서 N 받은 4건(시트 파일이 지워져도 남도록 영구 등재). metric_term = 지표·일반 용어(MRR·ARR·ARPU 류) — 도메인 신호가 있어도 제품이 아니다.",
   "exclude": {
+    "web_infra": ["googleanalytics","googleanalytic","ga","gmail","mixpanel","producthunt","ph","googlereader","claudedesktop","jira","heroku","aws","confluence","noteforms","electron","hetzner","vscode","linux","xcode","agile","stripebilling","matomo","chrome","opensource","kanban","orgmode","selfhosting","proton","docker","kubernetes","postgres","mysql","nginx","cloudflare","github","gitlab","ubuntu","debian","windows","macos","android","ios","wordpress","shopify","stripe","paypal","excel","googlesheets","googledocs","googledrive","gcp","azure","vercel","netlify","firebase","supabase"],
+    "app_ui_ko": ["파일","다음","와이파이","통화","방식","다른거","로그인","되는거","다음페이지","매출","화면","설정","메뉴","알림","결제","가입","광고","업데이트","기능","버튼","비밀번호","계정"],
     "human_rejected_v53": ["indieweb", "mrr", "adobe", "velcdn"],
     "metric_term": ["mrr", "arr", "arpu", "arpa", "acv", "tcv", "ltv", "cac", "nrr", "grr", "nps", "mau", "dau", "wau", "gmv", "aov", "roas", "cpc", "cpm", "ctr", "cpa", "cmrr", "burnrate", "runway", "churn"],
     "acronym": ["adhd", "api", "apis", "crm", "crms", "pkm", "vps", "rss", "sso", "seo", "roi", "sdk", "sdks", "ldac", "nasa", "msl", "ktf", "stx", "kpi", "kpis", "okr", "okrs", "llm", "llms", "gdpr", "hipaa", "smb", "smbs", "erp", "cms", "ats", "hris", "usb", "nfc", "gps", "faq", "irs", "fda", "usps"],

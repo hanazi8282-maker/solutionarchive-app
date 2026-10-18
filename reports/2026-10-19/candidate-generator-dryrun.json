@@ -1,0 +1,134 @@
+{
+  "at": "2026-10-18T15:54:06.052Z",
+  "mode": "dry_run",
+  "generated": 37,
+  "passed": 12,
+  "picked": 12,
+  "registered": 0,
+  "avg_expected_yield": 163.7,
+  "yield_unknown": 0,
+  "by_generator": {
+    "mention": 0,
+    "similar_app": 37,
+    "forum_link": 0,
+    "keyword": 0,
+    "window": 0
+  },
+  "by_area": {
+    "1": {
+      "generated": 14,
+      "passed": 4,
+      "picked": 4
+    },
+    "2": {
+      "generated": 7,
+      "passed": 4,
+      "picked": 4
+    },
+    "3": {
+      "generated": 11,
+      "passed": 2,
+      "picked": 2
+    },
+    "4": {
+      "generated": 2,
+      "passed": 1,
+      "picked": 1
+    },
+    "5": {
+      "generated": 3,
+      "passed": 1,
+      "picked": 1
+    }
+  },
+  "rejected": {
+    "consumer_or_event": 19,
+    "out_genre": 6
+  },
+  "picked_rows": [
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1163307568",
+      "label": "2:us|salesforce-field-service",
+      "expected_yield": 500
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "ca:514643583",
+      "label": "3:ca|meta-business-suite",
+      "expected_yield": 500
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "ca:944921229",
+      "label": "3:ca|workplace-from-meta",
+      "expected_yield": 500
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:513188658",
+      "label": "5:kr|폴라리스-오피스-모바일-hwp-pdf-ms문서",
+      "expected_yield": 320
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:916982402",
+      "label": "2:us|crm-analytics",
+      "expected_yield": 64
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1234216092",
+      "label": "1:kr|네이버-클로바-naver-clova",
+      "expected_yield": 51
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1632303164",
+      "label": "2:us|salesrabbit",
+      "expected_yield": 17
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1571096278",
+      "label": "1:kr|u-우리가게패키지-매장-통신부터-상권",
+      "expected_yield": 5
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "ca:1006426053",
+      "label": "4:ca|peakon",
+      "expected_yield": 3
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:6503284354",
+      "label": "1:kr|ai비즈콜-by-ixi-기업용",
+      "expected_yield": 2
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1585182357",
+      "label": "2:us|consumer-goods-cloud",
+      "expected_yield": 1
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1150947831",
+      "label": "1:kr|u-0505모바일fax",
+      "expected_yield": 1
+    }
+  ]
+}

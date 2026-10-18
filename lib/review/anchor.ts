@@ -84,10 +84,23 @@ export function descriptionHasDomain(description: string | undefined, want: stri
   return false
 }
 
-export function verifyAnchor(candidateName: string, results: unknown, opts: { expectedDomain?: string | null; descriptionDomain?: boolean } = {}): AnchorVerdict {
+/** strict 모드에서 영역 ①~⑤ 와 무관한 앱 장르(동명이앱 오탐의 주된 원인 — 실측: Pocket → 핀테크 앱). */
+export const GENRE_DENY = new Set(['Games', 'Finance', 'Music', 'Entertainment', 'Travel', 'Food & Drink', 'Sports', 'Navigation', 'Shopping', 'News', 'Weather', 'Photo & Video', 'Stickers', 'Magazines & Newspapers'])
+
+/**
+ * strict(v71au ①-b): 동명이앱 방어. 접미 허용("PocketApp" ↔ "Pocket")만으로는 맞다고 보지 않는다 — 제목 첫 토막이 이름과 정확히 같거나,
+ * 판매자 이름에 후보 이름이 들어 있어야 하고, 장르가 GENRE_DENY 밖이어야 한다.
+ */
+function strictOk(candidate: string, a: AppResult): boolean {
+  const c = normName(candidate)
+  const exact = c === normName(headOf(a.trackName as string)) || c === normName(a.trackName as string)
+  return (exact || normName(a.sellerName ?? '').includes(c)) && !GENRE_DENY.has(a.primaryGenreName ?? '')
+}
+
+export function verifyAnchor(candidateName: string, results: unknown, opts: { expectedDomain?: string | null; descriptionDomain?: boolean; strict?: boolean } = {}): AnchorVerdict {
   if (!Array.isArray(results)) return { state: 'lookup_failed', reason: '조회 결과가 배열이 아니다' }
   const apps = (results as AppResult[]).filter((r) => r && typeof r.trackName === 'string' && typeof r.trackId === 'number')
-  const hits = apps.filter((a) => nameMatches(candidateName, a.trackName as string))
+  const hits = apps.filter((a) => nameMatches(candidateName, a.trackName as string) && (!opts.strict || strictOk(candidateName, a)))
   if (hits.length === 0) return { state: 'no_match', reason: `이름이 맞는 앱 없음(조회 ${apps.length}건)` }
 
   const sellers = new Set(hits.map((a) => normName(a.sellerName ?? String(a.trackId))))

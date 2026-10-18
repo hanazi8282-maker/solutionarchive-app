@@ -1,0 +1,75 @@
+# 언급 앱 루프 일일 드라이런 (v71au ① — 남헌 2026-10-19). 리뷰·글 속 언급 이름 → 후보 대장 SQL 초안. **DB 에 쓰지 않는다. 커밋하지 않는다.**
+#
+# 입력: scripts/mention-input-fetch.mjs (PostgREST SELECT 만) · 새 출시 입력: scripts/new-release-candidates.mjs (Product Hunt 공식 API + robots 허용 홈페이지만)
+# 출력: 아티팩트 mention-loop-<날짜> (mention-loop.json · mention-ledger.sql · anchor-verify-input.json · new-release-candidates.json) + 작업 요약에 단계별 건수 한 줄.
+# 적용: 대장 SQL(mention-ledger.sql)은 대화형·역할 세션이 아티팩트를 받아 적용한다(CLAUDE.md §10.1 발굴 적재 — discovery_candidates 전체 INSERT 는 허용 범위지만, 이 잡은 쓰기 권한을 쓰지 않는다).
+# 권한: contents: read. 새 secret 없음 — NEXT_PUBLIC_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY · PRODUCT_HUNT_API_TOKEN 은 전부 기존 값.
+# 되돌리기: 이 파일 삭제(또는 schedule 줄 제거). 수집 실행과 겹치지 않게 같은 concurrency 그룹을 쓴다.
+
+name: Mention Loop Nightly
+
+on:
+  schedule:
+    # 23:41 UTC = KST 08:41. 창문 발굴(22:23 UTC)·수집 슬롯 사이 틈. 정각·30분은 피한다(2026-09-01 미발화 실측).
+    - cron: '41 23 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: review-collect
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  mention:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Selftest
+        run: |
+          node scripts/mention-loop-selftest.mjs
+          node scripts/anchor-selftest.mjs
+          node scripts/new-release-candidates-selftest.mjs
+
+      - name: Extract inputs (SELECT only)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/mention-input-fetch.mjs --out="$RUNNER_TEMP/mention-input.json"
+
+      # 새 출시 입력은 실패해도 언급 루프를 막지 않는다(토큰 없음·차단은 '확인 불가'로 로그에 남고 0건으로 접히지 않는다).
+      - name: New releases (Product Hunt -> homepage store anchors)
+        continue-on-error: true
+        env:
+          PRODUCT_HUNT_API_TOKEN: ${{ secrets.PRODUCT_HUNT_API_TOKEN }}
+        run: |
+          D=$(TZ=Asia/Seoul date +%F)
+          node scripts/new-release-candidates.mjs --out="reports/$D/new-release-candidates.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Mention loop (dry-run, write report files only)
+        run: |
+          D=$(TZ=Asia/Seoul date +%F)
+          DICT=$(ls reports/*/appstore-chart-dictionary.json 2>/dev/null | tail -1); node scripts/mention-loop.mjs --input="$RUNNER_TEMP/mention-input.json" --pool=wide ${DICT:+--dictionary="$DICT"} --write --date="$D" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report files
+        uses: actions/upload-artifact@v4
+        with:
+          name: mention-loop-nightly
+          path: |
+            reports/*/mention-loop.json
+            reports/*/mention-ledger.sql
+            reports/*/anchor-verify-input.json
+            reports/*/new-release-candidates.json
+            reports/*/gate-rejects.jsonl
+          if-no-files-found: warn
+          retention-days: 14

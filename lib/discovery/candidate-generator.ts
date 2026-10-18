@@ -33,12 +33,25 @@ export type Candidate = {
 export type SourceRow = { key: string; enabled: boolean; robots_status?: string | null; tos_status?: string | null; override?: string | null }
 export type TargetRow = { source_key: string; product_ref: string }
 
-export type Reject = 'bad_generator' | 'out_area' | 'no_area' | 'duplicate' | 'blocked_source' | 'no_source' | 'disabled' | 'tos_blocked' | 'robots_unverified'
+export type Reject = 'bad_generator' | 'out_area' | 'no_area' | 'duplicate' | 'blocked_source' | 'no_source' | 'disabled' | 'tos_blocked' | 'robots_unverified' | 'out_genre' | 'consumer_or_event'
 
 /** 한 후보의 판정. null = 통과. 순서 = 영역 적합성 → 중복 → 차단 소스 → robots/약관(설계 §3). */
+/** 같은 개발사 갈래(similar_app) 적합성 — 2026-10-19 드라이런 37건을 직접 읽어 정한 규칙(v71au ⑧). 장르는 업무용(Business·Productivity)만, 슬러그가 소비자용 제작 앱·행사 앱·개인 메일/캘린더면 제외. */
+const SIMILAR_GENRE_OK = /^(Business|Productivity)$/
+const SIMILAR_SLUG_DENY = /(maker|designer|generator|authenticator|viewer|뷰어|events?|unbound|메일|캘린더|calendar|메모|memo|톡톡|스마트플레이스|workplace|폴라리스|클로바|clova|fax|\|u-|\|(meta-ai|muse-from-meta)$)/i
+export function similarAppReject(c: Candidate): Reject | null {
+  if (c.generator !== 'similar_app') return null
+  const genre = / of \S+ · ([^·]+) ·/.exec(c.evidence ?? '')?.[1] ?? ''
+  if (!SIMILAR_GENRE_OK.test(genre.trim())) return 'out_genre'
+  if (SIMILAR_SLUG_DENY.test((c.label ?? '').normalize('NFC'))) return 'consumer_or_event'
+  return null
+}
+
 export function rejectReason(c: Candidate, seen: Set<string>, sources: Map<string, SourceRow>): Reject | null {
   if (!(GENERATORS as readonly string[]).includes(c.generator)) return 'bad_generator'
   if (/^out-/i.test(c.label ?? '')) return 'out_area'
+  const sim = similarAppReject(c)
+  if (sim) return sim
   if (!ACTIVE_AREAS.has(areaOf(c.label))) return 'no_area'
   const k = `${c.source_key}|${c.product_ref}`
   if (seen.has(k)) return 'duplicate'

@@ -356,6 +356,8 @@ jobs:
       - run: node scripts/appstore-same-developer-selftest.mjs
       # 리뷰 속 언급 앱 루프(v71ad §1): 영·한 추출 규칙·오탐 5종·자기 이름 제외·검증 3상태·30% 게이트·등록 초안 경계·robots 먼저·DB 쓰기 0.
       - run: node scripts/mention-loop-selftest.mjs
+      - run: node scripts/provisional-review-selftest.mjs
+      - run: node scripts/new-release-candidates-selftest.mjs
       - run: node scripts/gate-reject-log-selftest.mjs
       # v71aj §5-3: HN 글 단위 영역 재판정 — 응답 검증·뷰 우선순위·정밀도 60% 적용 중단·하루 상한·눈가림 시트·insert-only SQL·DB 접근 0.
       - run: node scripts/hn-area-reclass-selftest.mjs

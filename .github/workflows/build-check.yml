@@ -41,6 +41,7 @@ jobs:
       # Threads 토큰 3상태·refresh-token 크론 응답(만료·임박을 200 으로 숨기지 않는다), 크론 감시 판정.
       - run: node scripts/threads-token-selftest.mjs
       - run: node scripts/cron-watchdog-selftest.mjs
+      - run: node scripts/gauge-watch-selftest.mjs
       # 요청 0 사유(v51 §1-10): enabled 소스 24h 요청 0 에 사유 코드가 없으면 감시 경보. 행 → 사유 → Notion 입력 경계까지.
       - run: node scripts/zero-request-selftest.mjs
       # 발행 매칭·미연결 분류. 후보 집합(초안 + 칼럼 연재 편)이 좁아지면 칼럼 발행본이
@@ -346,6 +347,9 @@ jobs:
       - run: node scripts/window-probe-selftest.mjs
       # 창문 자율 발굴(v53 §5 2-A): 소스당 5 상한·googleplay 80/appstore 30% 가드·중복·차단 즉시 중단·3일 강등·롤백 형태·워크플로 정적 검사.
       - run: node scripts/window-discovery-selftest.mjs
+      # 자율 발굴 ④⑤⑥(v71au): Discourse 서브보드·커뮤니티 후보 분류(약관 불명=큐)·429 즉시 중단·SQL 초안 멱등/롤백·DB 쓰기 0 / 차트 후보 lookup 묶음·search 경로 0.
+      - run: node scripts/community-discovery-selftest.mjs
+      - run: node scripts/new-product-candidates-selftest.mjs
       # 자율 발굴 C-1 ②④(v56): 키워드·국가·정렬 조합·영역별 하루 3·게이트(약관·robots 쿼리 포함, 소유자 예외 안 넓힘)·검색 요청 0·쓰기 0.
       - run: node scripts/store-search-discovery-selftest.mjs
       # 자율 발굴 C-1 ①③(v56): 게시판 소스당 하루 5·어댑터 미지원=제안만·robots 확인 불가면 요청 0·403 즉시 중단·3일 강등 초안·이상 반응·보고 블록·DB 쓰기 0.

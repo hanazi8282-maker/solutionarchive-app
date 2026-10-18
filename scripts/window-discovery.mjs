@@ -183,6 +183,7 @@ export function logBlock(r) {
   return [
     `[자율 발굴 ${r.date}]${r.dry ? ' (dry-run · DB 쓰기 0)' : ''}`,
     `후보 ${r.candidates} · 채택 ${r.adopted} · 등재 ${r.registered} · 강등 ${r.demoted} · 요청 ${r.requests}/${r.max_requests} · 차단 ${r.blocked ? 1 : 0} · 낭비 탐지 ${waste}${waste ? '(요청 대비 신규 0)' : ''}`,
+    `요청당 신규(L4) ${r.requests > 0 ? (r.new_total / r.requests).toFixed(1) : '확인 불가'} · 채택 창문 평균 ${r.adopted_npr == null ? '확인 불가' : r.adopted_npr.toFixed(1)} · 창문 후보→채택 ${r.candidates}→${r.adopted}`,
     `사유: ${reasons}`,
     ...(r.alerts.length ? [`경보: ${r.alerts.join(' / ')}`] : []),
     ...(r.files.length ? [`파일: ${r.files.join(', ')}`] : []),
@@ -382,6 +383,7 @@ export async function main(argv, { db = null, fetchText = null, sleep = (ms) => 
   const summary = {
     date, dry, candidates: all.length, adopted: adoptedToday.length, registered, demoted, requests, max_requests: maxRequests, blocked,
     new_total: probed.reduce((n, w) => n + (w.new_count ?? 0), 0), reasons, alerts, files,
+    adopted_npr: adoptedToday.length ? adoptedToday.reduce((n, w) => n + (w.new_per_request ?? 0), 0) / adoptedToday.length : null,
   }
   const block = logBlock(summary)
   log(block)

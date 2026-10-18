@@ -346,6 +346,9 @@ jobs:
       - run: node scripts/window-probe-selftest.mjs
       # 창문 자율 발굴(v53 §5 2-A): 소스당 5 상한·googleplay 80/appstore 30% 가드·중복·차단 즉시 중단·3일 강등·롤백 형태·워크플로 정적 검사.
       - run: node scripts/window-discovery-selftest.mjs
+      # 자율 발굴 ④⑤⑥(v71au): Discourse 서브보드·커뮤니티 후보 분류(약관 불명=큐)·429 즉시 중단·SQL 초안 멱등/롤백·DB 쓰기 0 / 차트 후보 lookup 묶음·search 경로 0.
+      - run: node scripts/community-discovery-selftest.mjs
+      - run: node scripts/new-product-candidates-selftest.mjs
       # 자율 발굴 C-1 ②④(v56): 키워드·국가·정렬 조합·영역별 하루 3·게이트(약관·robots 쿼리 포함, 소유자 예외 안 넓힘)·검색 요청 0·쓰기 0.
       - run: node scripts/store-search-discovery-selftest.mjs
       # 자율 발굴 C-1 ①③(v56): 게시판 소스당 하루 5·어댑터 미지원=제안만·robots 확인 불가면 요청 0·403 즉시 중단·3일 강등 초안·이상 반응·보고 블록·DB 쓰기 0.

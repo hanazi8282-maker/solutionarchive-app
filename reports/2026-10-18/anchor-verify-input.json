@@ -1,0 +1,164 @@
+[
+  {
+    "slug": "kanban",
+    "name": "Kanban",
+    "expected_domain": null,
+    "country": "kr"
+  },
+  {
+    "slug": "erpnext",
+    "name": "ERPNext",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "googleanalytics",
+    "name": "Google Analytics",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "gmail",
+    "name": "Gmail",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "mixpanel",
+    "name": "Mixpanel",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "producthunt",
+    "name": "Product Hunt",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "ga",
+    "name": "GA",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "googleanalytic",
+    "name": "Google Analytic",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "googlereader",
+    "name": "Google Reader",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "claudedesktop",
+    "name": "Claude Desktop",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "aws",
+    "name": "AWS",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "heroku",
+    "name": "Heroku",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "jira",
+    "name": "Jira",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "raindrop",
+    "name": "Raindrop",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "confluence",
+    "name": "Confluence",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "noteforms",
+    "name": "NoteForms",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "pocket",
+    "name": "Pocket",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "screenstudio",
+    "name": "Screen Studio",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "electron",
+    "name": "Electron",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "hetzner",
+    "name": "Hetzner",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "전동칫솔",
+    "name": "전동칫솔",
+    "expected_domain": null,
+    "country": "kr"
+  },
+  {
+    "slug": "barawave",
+    "name": "Barawave",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "bitwarden",
+    "name": "bitwarden",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "orgmode",
+    "name": "Org-mode",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "proton",
+    "name": "Proton",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "selfhosting",
+    "name": "self-hosting",
+    "expected_domain": null,
+    "country": "us"
+  },
+  {
+    "slug": "vscode",
+    "name": "VS Code",
+    "expected_domain": null,
+    "country": "us"
+  }
+]

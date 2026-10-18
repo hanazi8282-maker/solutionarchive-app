@@ -226,6 +226,8 @@ jobs:
       #   github_issues·stackexchange(v71ad §5 d): 무토큰 공식 API. PR·봇·메인테이너 거름, 작성자 미저장, 403/429/400/HTML → 요청 1건 뒤 차단 중단.
       - run: node scripts/review-official-api-selftest.mjs
       - run: node scripts/anchor-selftest.mjs
+      #   v71am §1-A: 차트 피드 이름→ID 사전. results 없음≠빈 배열, 429 한 번이면 즉시 중단, 5xx 는 재시도 1회 뒤 그 피드만 건너뜀.
+      - run: node scripts/appstore-chart-dictionary-selftest.mjs
       - run: node scripts/source-purge-selftest.mjs
       - run: node scripts/provisional-plan-selftest.mjs
       - run: node scripts/shadow-rejudge-selftest.mjs

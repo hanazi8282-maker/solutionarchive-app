@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 앵커 검증 셀프테스트 — 오프라인. 실측(2026-10-14 iTunes Search): Notion·Evernote 는 anchored, Ivory 는 판매자 4곳 ambiguous, "ask AI"·Fera 는 no_match.
 import { ANCHOR_MIN_RATINGS, descriptionHasDomain, domainOf, nameMatches, normName, verifyAnchor } from '../lib/review/anchor.ts'
-import { lookup as rawLookup, makeGuard, SEARCH_DAILY_CAP, SEARCH_MIN_INTERVAL_MS } from './anchor-verify.mjs'
+import { lookup as rawLookup, makeGuard, SEARCH_DAILY_CAP, SEARCH_MIN_INTERVAL_MS, SEARCH_RUN_MAX } from './anchor-verify.mjs'
 const memGuard = (o = {}) => makeGuard({ logFile: null, intervalMs: 0, ...o })
 const lookup = (n, c, f, o = {}) => rawLookup(n, c, f, { guard: memGuard(), ...o })
 
@@ -70,8 +70,16 @@ t('설명 도메인: URL 아닌 언급은 아님', descriptionHasDomain('works w
 }
 
 // v71aj 정책 A 강제: 상한·간격·UA·중단·로그
-t('정책 A: 하루 상한 ≤ 120', SEARCH_DAILY_CAP > 0 && SEARCH_DAILY_CAP <= 120, true)
-t('정책 A: 간격 ≥ 3초', SEARCH_MIN_INTERVAL_MS >= 3000, true)
+t('D-44: 하루 상한 ≤ 300(ITUNES_SEARCH_DAILY_MAX 기본)', SEARCH_DAILY_CAP > 0 && SEARCH_DAILY_CAP <= 300, true)
+t('D-44: 간격 ≥ 6초(분당 ≤10)', SEARCH_MIN_INTERVAL_MS >= 6000, true)
+t('D-44: 한 실행 상한 60', SEARCH_RUN_MAX, 60)
+{
+  const g = memGuard({ runMax: 2, cap: 99 })
+  const ok = async () => ({ status: 200, json: async () => ({ results: [app('Notion: Notes', { trackId: 9 })] }) })
+  await rawLookup('a', 'us', ok, { guard: g }); await rawLookup('b', 'us', ok, { guard: g })
+  const over = await rawLookup('c', 'us', ok, { guard: g })
+  t('D-44: 한 실행 상한 도달 → lookup_failed+stop', over.state === 'lookup_failed' && over.stop === true, true)
+}
 {
   const ok200 = async () => ({ status: 200, json: async () => ({ results: [app('Notion: Notes', { trackId: 9 })] }) })
   let ua = null

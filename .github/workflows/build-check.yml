@@ -362,6 +362,7 @@ jobs:
       - run: node scripts/mention-loop-selftest.mjs
       - run: node scripts/provisional-review-selftest.mjs
       - run: node scripts/new-release-candidates-selftest.mjs
+      - run: node scripts/new-release-selftest.mjs
       - run: node scripts/gate-reject-log-selftest.mjs
       # v71aj §5-3: HN 글 단위 영역 재판정 — 응답 검증·뷰 우선순위·정밀도 60% 적용 중단·하루 상한·눈가림 시트·insert-only SQL·DB 접근 0.
       - run: node scripts/hn-area-reclass-selftest.mjs

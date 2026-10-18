@@ -1,0 +1,96 @@
+{
+  "_comment": "v71ay C3 — 새 출시·차트 후보의 영역 힌트 보강 낱말(config/discovery-c1.json 위에 합쳐진다). 낱말이 이름+설명에 걸릴 때만 영역이 붙는다. 영역 정의는 areas-config 가 정본이고 여기는 입력 풀 거름용이다.",
+  "areas": {
+    "1": {
+      "en": [
+        "notetaker",
+        "note taker",
+        "voice recorder",
+        "transcribe",
+        "transcription",
+        "meeting assistant"
+      ],
+      "ko": [
+        "회의록",
+        "녹음",
+        "전사",
+        "받아쓰기"
+      ]
+    },
+    "2": {
+      "en": [
+        "crm",
+        "invoice",
+        "accounting",
+        "bookkeeping",
+        "inventory",
+        "point of sale",
+        "customer support",
+        "helpdesk",
+        "erp",
+        "quotation"
+      ],
+      "ko": [
+        "견적",
+        "청구서",
+        "세금계산서",
+        "장부",
+        "재고",
+        "고객 관리"
+      ]
+    },
+    "3": {
+      "en": [
+        "social media",
+        "scheduler",
+        "content calendar",
+        "email campaign",
+        "newsletter",
+        "landing page",
+        "ad creative"
+      ],
+      "ko": [
+        "인스타",
+        "카드뉴스",
+        "랜딩",
+        "설문"
+      ]
+    },
+    "4": {
+      "en": [
+        "timesheet",
+        "attendance",
+        "recruit",
+        "applicant",
+        "onboarding",
+        "project management",
+        "kanban"
+      ],
+      "ko": [
+        "근태",
+        "출퇴근",
+        "인사",
+        "채용",
+        "급여",
+        "업무 관리"
+      ]
+    },
+    "5": {
+      "en": [
+        "note-taking",
+        "notes app",
+        "notebook",
+        "document scanner",
+        "proofread",
+        "markdown",
+        "outliner",
+        "knowledge base"
+      ],
+      "ko": [
+        "메모",
+        "노트",
+        "맞춤법"
+      ]
+    }
+  }
+}

@@ -1,0 +1,95 @@
+# 새 출시·공식 목록 후보 일일 드라이런 (v71ay C1·C3 — 남헌 2026-10-19). 앱 ID 가 이미 붙은 후보 → discovery_candidates 대장 SQL 초안. **DB 에 쓰지 않는다. 커밋하지 않는다.**
+#
+# 입력(공식 경로만): Apple 국가별 차트 RSS(rss.marketingtools — 규칙 줄 0) · Shopify 앱스토어 카테고리(robots 허용) · Product Hunt 공식 API(토큰은 기존 시크릿)
+#   · iTunes lookup(D-45 허용, 150 ID 묶음, 6초 간격). 검색(/search)은 부르지 않는다. 애플 장르 RSS 는 robots(`Disallow: /*/rss/*`) 때문에 쓰지 않는다.
+# 출력: 아티팩트 new-release-nightly (new-release-ledger.sql · _rollback.sql · new-release-candidates.md/json · new-product-candidates.* · new-release-dictionary.json) + 작업 요약.
+# 적용: 대장 SQL 은 대화형·역할 세션이 아티팩트를 받아 적용한다(§10.1 발굴 적재 — discovery_candidates INSERT 는 허용 범위지만 이 잡은 쓰기 권한을 쓰지 않는다).
+# 권한: contents: read. 새 secret 없음 — NEXT_PUBLIC_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY(SELECT 만) · PRODUCT_HUNT_API_TOKEN 은 전부 기존 값.
+# 되돌리기: 이 파일 삭제(또는 schedule 줄 제거). 403/429/빈 응답이면 그 단계가 멈추고 작업 요약에 사유가 남는다(우회 없음).
+
+name: New Release Nightly
+
+on:
+  schedule:
+    # 00:17 UTC = KST 09:17. 창문 발굴(22:23)·커뮤니티(22:47)·언급 루프(23:41)·병목 감시(x:11) 와 겹치지 않는다. 정각·30분은 피한다(2026-09-01 미발화 실측).
+    - cron: '17 0 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: new-release-nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  new-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Selftest
+        run: |
+          node scripts/new-release-selftest.mjs
+          node scripts/new-product-candidates-selftest.mjs
+          node scripts/new-release-candidates-selftest.mjs
+
+      - name: Extract inputs (SELECT only)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/mention-input-fetch.mjs --out="$RUNNER_TEMP/mention-input.json"
+
+      # 입력 수집 단계는 각각 따로 실패해도 나머지를 막지 않는다(차단은 사유가 로그에 남고 0건으로 접히지 않는다).
+      - name: Apple chart dictionary (countries)
+        continue-on-error: true
+        run: |
+          D=$(TZ=Asia/Seoul date +%F)
+          node scripts/appstore-chart-dictionary.mjs --out="reports/$D/appstore-chart-dictionary.json" --countries=us,kr,gb,ca,au,in,sg,de | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Shopify app store categories
+        continue-on-error: true
+        run: |
+          D=$(TZ=Asia/Seoul date +%F)
+          node scripts/new-release-feeds.mjs --out="reports/$D/new-release-dictionary.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Product Hunt launches (store anchors)
+        continue-on-error: true
+        env:
+          PRODUCT_HUNT_API_TOKEN: ${{ secrets.PRODUCT_HUNT_API_TOKEN }}
+        run: |
+          D=$(TZ=Asia/Seoul date +%F)
+          node scripts/new-release-candidates.mjs --out="reports/$D/new-release-candidates.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Chart candidates (lookup, no search)
+        continue-on-error: true
+        run: |
+          D=$(TZ=Asia/Seoul date +%F)
+          node scripts/new-product-candidates.mjs --dictionary="reports/$D/appstore-chart-dictionary.json" --input="$RUNNER_TEMP/mention-input.json" --write | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Ledger SQL draft (write report files only)
+        run: |
+          D=$(TZ=Asia/Seoul date +%F)
+          node scripts/new-release-ledger.mjs --picked="reports/$D/new-product-candidates.json" --ph="reports/$D/new-release-candidates.json" --dictionary="reports/$D/new-release-dictionary.json" --input="$RUNNER_TEMP/mention-input.json" --date="$D" --write | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report files
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-release-nightly
+          path: |
+            reports/*/new-release-ledger.sql
+            reports/*/new-release-ledger_rollback.sql
+            reports/*/new-release-candidates.md
+            reports/*/new-release-candidates.json
+            reports/*/new-product-candidates.*
+            reports/*/new-release-dictionary.json
+          if-no-files-found: warn
+          retention-days: 14

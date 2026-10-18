@@ -3,12 +3,12 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { BATCH, DAILY_CAP, areaHint, lookupBatches, pickDaily, registeredIds, toCandidate, unregistered } from './new-product-candidates.mjs'
+import { BATCH, DAILY_CAP, areaHint, bestArea, lookupBatches, pickDaily, registeredIds, toCandidate, unregistered } from './new-product-candidates.mjs'
 
 let pass = 0, fail = 0
 const eq = (name, a, b) => { const ok = JSON.stringify(a) === JSON.stringify(b); ok ? pass++ : (fail++, console.log(`❌ ${name}\n   기대 ${JSON.stringify(b)}\n   실제 ${JSON.stringify(a)}`)) }
 
-const areas = { 1: { ko: ['회의록'], en: ['meeting notes'] }, 2: { ko: [], en: ['sales crm'] }, design: { ko: [], en: ['design tool'] } }
+const areas = { 1: { ko: ['회의록'], en: ['meeting notes', 'meeting recorder', 'call transcription'] }, 2: { ko: [], en: ['sales crm'] }, design: { ko: [], en: ['design tool'] } }
 eq('registeredIds 국가 접두 제거', [...registeredIds(['kr:123', 'us:123', '456', 'x:abc'])].sort(), ['123', '456'])
 eq('registeredIds 비배열', registeredIds(null).size, 0)
 
@@ -23,8 +23,12 @@ const e = { id: '9', name: 'N', artist: 'Dev', country: 'us' }
 eq('toCandidate 장르 밖 제외', toCandidate(e, { primaryGenreName: 'Games', userRatingCount: 99999 }, areas), null)
 eq('toCandidate 평점 부족 제외', toCandidate(e, { primaryGenreName: 'Business', userRatingCount: 10 }, areas), null)
 eq('toCandidate lookup 없음 제외(확인 불가를 통과로 접지 않는다)', toCandidate(e, undefined, areas), null)
-const c = toCandidate(e, { trackName: 'Notes', primaryGenreName: 'Productivity', userRatingCount: 800, sellerName: 'S', description: 'AI meeting notes' }, areas)
+const c = toCandidate(e, { trackName: 'Notes', primaryGenreName: 'Productivity', userRatingCount: 800, sellerName: 'S', description: 'AI meeting notes, meeting recorder and call transcription' }, areas)
 eq('toCandidate 정상', [c.area, c.appstore_id, c.rating_count, c.developer], ['1', '9', 800, 'S'])
+// v71ay C3: bestArea — 범용 앱(낱말 하나)은 영역을 못 받고, 이름 낱말 하나 또는 설명 낱말 3개면 받는다. 동점이면 null.
+eq('bestArea 설명 낱말 1개는 부족', bestArea('Notes', 'AI meeting notes', areas), null)
+eq('bestArea 이름 낱말 1개면 충분', bestArea('Meeting Recorder Pro', '', areas), '1')
+eq('bestArea 동점이면 null', bestArea('meeting recorder sales crm', '', areas), null)
 
 const many = Array.from({ length: 60 }, (_, i) => ({ appstore_id: String(i), rating_count: 1000 + i, area: '1' })).concat([{ appstore_id: 'z', rating_count: 9e9, area: null }])
 const pd = pickDaily(many)

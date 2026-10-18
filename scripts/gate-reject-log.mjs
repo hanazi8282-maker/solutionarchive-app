@@ -26,7 +26,7 @@ export function appendRejects(dayDir, lines) {
   return f
 }
 
-/** reports/*/gate-rejects.jsonl 전부(최근 days 일)를 읽는다. 깨진 줄은 센다(조용히 버리지 않는다). */
+/** reports/<날짜>/gate-rejects.jsonl 전부(최근 days 일)를 읽는다. 깨진 줄은 센다(조용히 버리지 않는다). */
 export function readRejects(dir, { days = 7, now = new Date() } = {}) {
   const lines = []
   let bad = 0

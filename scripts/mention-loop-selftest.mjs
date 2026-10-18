@@ -147,7 +147,7 @@ t('경보: 조회 차단', safetyAlerts({ ...M, lookup_blocked: true }, [])[0].s
   fs.writeFileSync(ledger, JSON.stringify({ entries: {} }))
   const o = await main(args, quiet)
   t('CLI: 등록 1·차단 1(픽스처 게이트 자리 1)', [o.metrics.registered, o.metrics.gate_blocked], [1, 1])
-  t('CLI: 파일 5개(후보 생성기 입력·이름 검색 입력 포함)', fs.readdirSync(path.join(tmp, 'r', '2026-10-17')).sort(), ['anchor-verify-input.json', 'candidate-input.json', 'mention-approved.json', 'mention-ledger.sql', 'mention-loop.json'])
+  t('CLI: 파일 5~6개(거절 로그는 게이트가 막은 날만)(후보 생성기 입력·이름 검색 입력 포함)', fs.readdirSync(path.join(tmp, 'r', '2026-10-17')).filter((f) => f !== 'gate-rejects.jsonl').sort(), ['anchor-verify-input.json', 'candidate-input.json', 'mention-approved.json', 'mention-ledger.sql', 'mention-loop.json'])
   const avIn = JSON.parse(fs.readFileSync(path.join(tmp, 'r', '2026-10-17', 'anchor-verify-input.json'), 'utf8'))
   t('이름 검색 입력: 확인 불가 후보만·anchor-verify 꼴', avIn.map((r) => [r.slug, Object.keys(r).sort()]), [['driftly', ['country', 'expected_domain', 'name', 'slug']]])
   const sql = fs.readFileSync(path.join(tmp, 'r', '2026-10-17', 'mention-ledger.sql'), 'utf8')

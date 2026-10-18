@@ -28,7 +28,7 @@ import { detectReviewLang } from '../lang.ts'
 
 export const BATCH_URL = 'https://play.google.com/_/PlayStoreUi/data/batchexecute'
 export const RPC_ID = 'UsvDTd'
-/** 한 요청 리뷰 수. maxPagesPerRun 2 × 40 = 타깃당 실행 1회 최대 80건. */
+/** 한 요청 리뷰 수. maxPagesPerRun 3 × 40 = 타깃당 실행 1회 최대 120건. */
 export const PAGE_SIZE = 40
 /** 정렬 2 = 최신순. 러너 증분 종료(연속 STALE)가 시간 역순을 전제한다. */
 const SORT_NEWEST = 2
@@ -118,8 +118,8 @@ export const googleplayAdapter: ReviewSourceAdapter = {
    */
   incrementalOnly: true,
 
-  /** 타깃당 실행 1회 2페이지(80건). 토큰 수정 전엔 사실상 1페이지였다 — 요청은 1회만 늘린다(v27). */
-  maxPagesPerRun: 2,
+  /** 타깃당 실행 1회 3페이지(120건; v71ay 2→3, 롤백=2). 토큰 수정 전엔 사실상 1페이지였다 — 요청은 1회만 늘린다(v27). */
+  maxPagesPerRun: 3,
 
   nextRequest(target: TargetState): ReviewRequest | null {
     const ref = parseProductRef(target.productRef)

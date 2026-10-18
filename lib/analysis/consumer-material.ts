@@ -13,6 +13,8 @@ import { fetchAllPages } from './relevance-judge-all.ts'
 /** 태그 대상 영역(analysis_projects.area_code) · 소스(유튜브 — 영상 19개 전부 소비재, 남헌 v61). */
 export const CONSUMER_AREA = 'out-consumer'
 export const CONSUMER_SOURCES: readonly string[] = ['youtube']
+/** 영역 ①~⑤·design 프로젝트의 CONSUMER_SOURCES 글은 소비재가 아니다(v71au ⑪ — SaaS 영상 댓글을 판정에 연결). 영역 없음·hold·out-* 는 종전대로 소스 규칙. */
+export const IN_SCOPE_AREAS: readonly string[] = ['1', '2', '3', '4', '5', 'design']
 /** 태그 규칙 버전 — 규칙을 바꾸면 올린다(행마다 남는다). */
 export const CONSUMER_RULE_VER = 'cm-v1'
 /** 판정 1건 출력 비용 추정(달러) — 절감액 = 미판정 태그 수 × 이 값. */
@@ -25,7 +27,7 @@ export const consumerSkipEnabled = (raw: string | undefined = process.env.RELEVA
 /** 태그 사유(정의 한 벌). 영역 우선, 그다음 소스. 해당 없으면 null. */
 export function consumerReasonOf(projectArea: string | null | undefined, sourceKey: string | null | undefined): string | null {
   if (projectArea === CONSUMER_AREA) return `area:${CONSUMER_AREA}`
-  if (sourceKey && CONSUMER_SOURCES.includes(sourceKey)) return `source:${sourceKey}`
+  if (sourceKey && CONSUMER_SOURCES.includes(sourceKey) && !IN_SCOPE_AREAS.includes(projectArea ?? '')) return `source:${sourceKey}`
   return null
 }
 

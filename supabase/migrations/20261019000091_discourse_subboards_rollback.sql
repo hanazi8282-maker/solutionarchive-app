@@ -1,0 +1,21 @@
+-- 20261019000091_discourse_subboards 롤백 — 수집 이력(total_collected>0) 있으면 exhausted 로만, 없으면 DELETE.
+BEGIN;
+UPDATE public.review_targets SET status = 'exhausted' WHERE source_key = 'n8n_community' AND product_ref IN ('board:help-me-build-my-workflow') AND COALESCE(total_collected, 0) > 0;
+DELETE FROM public.review_targets WHERE source_key = 'n8n_community' AND product_ref IN ('board:help-me-build-my-workflow') AND COALESCE(total_collected, 0) = 0;
+COMMIT;
+BEGIN;
+UPDATE public.review_targets SET status = 'exhausted' WHERE source_key = 'bubble_forum' AND product_ref IN ('board:questions', 'board:bugs') AND COALESCE(total_collected, 0) > 0;
+DELETE FROM public.review_targets WHERE source_key = 'bubble_forum' AND product_ref IN ('board:questions', 'board:bugs') AND COALESCE(total_collected, 0) = 0;
+COMMIT;
+BEGIN;
+UPDATE public.review_targets SET status = 'exhausted' WHERE source_key = 'retool_community' AND product_ref IN ('board:workflows', 'board:mobile') AND COALESCE(total_collected, 0) > 0;
+DELETE FROM public.review_targets WHERE source_key = 'retool_community' AND product_ref IN ('board:workflows', 'board:mobile') AND COALESCE(total_collected, 0) = 0;
+COMMIT;
+BEGIN;
+UPDATE public.review_targets SET status = 'exhausted' WHERE source_key = 'glide_community' AND product_ref IN ('board:bugs') AND COALESCE(total_collected, 0) > 0;
+DELETE FROM public.review_targets WHERE source_key = 'glide_community' AND product_ref IN ('board:bugs') AND COALESCE(total_collected, 0) = 0;
+COMMIT;
+BEGIN;
+UPDATE public.review_targets SET status = 'exhausted' WHERE source_key = 'softr_community' AND product_ref IN ('board:bug-reports') AND COALESCE(total_collected, 0) > 0;
+DELETE FROM public.review_targets WHERE source_key = 'softr_community' AND product_ref IN ('board:bug-reports') AND COALESCE(total_collected, 0) = 0;
+COMMIT;

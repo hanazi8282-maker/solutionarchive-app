@@ -132,6 +132,7 @@ export function makeDiscourseAdapter(cfg: DiscourseConfig): ReviewSourceAdapter 
 /** n8n 커뮤니티(Discourse). 게시판: feature-requests(5)=기능 요청 · questions(12)=질문 · latest=전체 최신. 실측 카테고리 id — fixtures/review/discourse/n8n-categories.json. */
 export const N8N_COMMUNITY_HOST = 'https://community.n8n.io'
 export const N8N_COMMUNITY_BOARDS: Record<string, string> = {
+  'help-me-build-my-workflow': '/c/help-me-build-my-workflow/36.json?order=created',
   'feature-requests': '/c/feature-requests/5.json?order=created',
   questions: '/c/questions/12.json?order=created',
   latest: '/latest.json?order=created',
@@ -155,6 +156,8 @@ export const makeCommunityAdapter = makeDiscourseAdapter({ key: 'make_community'
 
 export const BUBBLE_FORUM_HOST = 'https://forum.bubble.io'
 export const BUBBLE_FORUM_BOARDS: Record<string, string> = {
+  questions: '/c/questions/12.json?order=created',
+  bugs: '/c/bugs/8.json?order=created',
   idea: '/c/idea/7.json?order=created',
   help: '/c/help/5.json?order=created',
 }
@@ -162,6 +165,8 @@ export const bubbleForumAdapter = makeDiscourseAdapter({ key: 'bubble_forum', di
 
 export const RETOOL_COMMUNITY_HOST = 'https://community.retool.com'
 export const RETOOL_COMMUNITY_BOARDS: Record<string, string> = {
+  workflows: '/c/workflows/23.json?order=created',
+  mobile: '/c/mobile/22.json?order=created',
   'feature-requests': '/c/feature-requests/7.json?order=created',
   'app-building': '/c/app-building/5.json?order=created',
 }
@@ -169,6 +174,7 @@ export const retoolCommunityAdapter = makeDiscourseAdapter({ key: 'retool_commun
 
 export const GLIDE_COMMUNITY_HOST = 'https://community.glideapps.com'
 export const GLIDE_COMMUNITY_BOARDS: Record<string, string> = {
+  bugs: '/c/bugs/7.json?order=created',
   'feature-requests': '/c/feature-requests/9.json?order=created',
   'help-how-to': '/c/help-how-to/27.json?order=created',
 }
@@ -176,6 +182,7 @@ export const glideCommunityAdapter = makeDiscourseAdapter({ key: 'glide_communit
 
 export const SOFTR_COMMUNITY_HOST = 'https://community.softr.io'
 export const SOFTR_COMMUNITY_BOARDS: Record<string, string> = {
+  'bug-reports': '/c/bug-reports/2.json?order=created',
   'feature-requests': '/c/feature-requests/8.json?order=created',
   'ask-the-community': '/c/ask-the-community/6.json?order=created',
 }

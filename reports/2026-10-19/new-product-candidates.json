@@ -1,0 +1,348 @@
+{
+  "date": "2026-10-19",
+  "requests": 4,
+  "picked": [
+    {
+      "name": "Gmail: Google이 제공하는 이메일",
+      "appstore_id": "422689480",
+      "appstore_country": "kr",
+      "developer": "Google LLC",
+      "genre": "Productivity",
+      "rating_count": 35931,
+      "area": "5",
+      "source": "chart"
+    }
+  ],
+  "hold": [
+    {
+      "name": "Claude by Anthropic",
+      "appstore_id": "6473753684",
+      "appstore_country": "kr",
+      "developer": "Anthropic PBC",
+      "genre": "Productivity",
+      "rating_count": 21093,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "하나은행, 새로워진 하나원큐를 경험해 보세요",
+      "appstore_id": "6743190232",
+      "appstore_country": "kr",
+      "developer": "HANA BANK",
+      "genre": "Finance",
+      "rating_count": 20980,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Google Gemini",
+      "appstore_id": "6477489729",
+      "appstore_country": "kr",
+      "developer": "Google LLC",
+      "genre": "Productivity",
+      "rating_count": 423583,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "네이버페이",
+      "appstore_id": "1554807824",
+      "appstore_country": "kr",
+      "developer": "NAVER Financial Corporation",
+      "genre": "Finance",
+      "rating_count": 35344,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "TeraBox: 1TB 클라우드 저장소 & AI 공간",
+      "appstore_id": "1509453185",
+      "appstore_country": "kr",
+      "developer": "FLEXTECH INC.",
+      "genre": "Productivity",
+      "rating_count": 5038,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "ChatGPT",
+      "appstore_id": "6448311069",
+      "appstore_country": "kr",
+      "developer": "OpenAI OpCo, LLC",
+      "genre": "Productivity",
+      "rating_count": 807422,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "모바일티머니",
+      "appstore_id": "1470361790",
+      "appstore_country": "kr",
+      "developer": "Tmoney Co., Ltd",
+      "genre": "Finance",
+      "rating_count": 15266,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "신한 슈퍼SOL - 신한 유니버셜 금융 앱",
+      "appstore_id": "357484932",
+      "appstore_country": "kr",
+      "developer": "SHINHAN BANK CO. LTD",
+      "genre": "Finance",
+      "rating_count": 102079,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "카카오페이",
+      "appstore_id": "1464496236",
+      "appstore_country": "kr",
+      "developer": "Kakao Pay Co., Ltd.",
+      "genre": "Finance",
+      "rating_count": 30341,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "NH올원뱅크(농협은행 대표 플랫폼)",
+      "appstore_id": "1641628055",
+      "appstore_country": "kr",
+      "developer": "NongHyup Bank",
+      "genre": "Finance",
+      "rating_count": 1716,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "모니모(삼성금융통합앱) 생명 화재 카드 증권",
+      "appstore_id": "379577046",
+      "appstore_country": "kr",
+      "developer": "Samsungcard Co., Ltd.",
+      "genre": "Finance",
+      "rating_count": 69969,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "카카오뱅크",
+      "appstore_id": "1258016944",
+      "appstore_country": "kr",
+      "developer": "KakaoBank Corp.",
+      "genre": "Finance",
+      "rating_count": 15082,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "위플 가계부 Pro",
+      "appstore_id": "441683476",
+      "appstore_country": "kr",
+      "developer": "Park Hankyu",
+      "genre": "Finance",
+      "rating_count": 8739,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "편한가계부 (광고제거)",
+      "appstore_id": "564730202",
+      "appstore_country": "kr",
+      "developer": "Realbyte Inc.",
+      "genre": "Finance",
+      "rating_count": 17453,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "멤버십 위젯 Pro",
+      "appstore_id": "1079178243",
+      "appstore_country": "kr",
+      "developer": "jaejin lee",
+      "genre": "Finance",
+      "rating_count": 2570,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "CamScanner+",
+      "appstore_id": "388624839",
+      "appstore_country": "kr",
+      "developer": "Shanghai Linguan Data Co.,Ltd",
+      "genre": "Productivity",
+      "rating_count": 1218,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Muse from Meta",
+      "appstore_id": "6760173601",
+      "appstore_country": "us",
+      "developer": "Meta Platforms, Inc.",
+      "genre": "Productivity",
+      "rating_count": 283222,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Kalshi: Trade Football & more",
+      "appstore_id": "1632713844",
+      "appstore_country": "us",
+      "developer": "KALSHI INC.",
+      "genre": "Finance",
+      "rating_count": 611208,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Capital One Mobile",
+      "appstore_id": "407558537",
+      "appstore_country": "us",
+      "developer": "Capital One Services, LLC",
+      "genre": "Finance",
+      "rating_count": 11202447,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Cash App",
+      "appstore_id": "711923939",
+      "appstore_country": "us",
+      "developer": "Block, Inc.",
+      "genre": "Finance",
+      "rating_count": 8760720,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Grok AI",
+      "appstore_id": "6670324846",
+      "appstore_country": "us",
+      "developer": "X Corp.",
+      "genre": "Productivity",
+      "rating_count": 1519656,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Venmo",
+      "appstore_id": "351727428",
+      "appstore_country": "us",
+      "developer": "The Delancey Corporation, LLC",
+      "genre": "Finance",
+      "rating_count": 15472864,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "PayPal - Pay, Send, Save",
+      "appstore_id": "283646709",
+      "appstore_country": "us",
+      "developer": "PayPal, Inc.",
+      "genre": "Finance",
+      "rating_count": 6298976,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Indeed Job Search",
+      "appstore_id": "309735670",
+      "appstore_country": "us",
+      "developer": "Indeed Inc.",
+      "genre": "Business",
+      "rating_count": 4091036,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Grok Bot",
+      "appstore_id": "6794501026",
+      "appstore_country": "us",
+      "developer": "X Corp.",
+      "genre": "Productivity",
+      "rating_count": 11813,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Google Drive",
+      "appstore_id": "507874739",
+      "appstore_country": "us",
+      "developer": "Google LLC",
+      "genre": "Productivity",
+      "rating_count": 7869286,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "HotSchedules",
+      "appstore_id": "294934058",
+      "appstore_country": "us",
+      "developer": "HotSchedules",
+      "genre": "Business",
+      "rating_count": 67314,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "QuickBend: Conduit Bending",
+      "appstore_id": "1010311475",
+      "appstore_country": "us",
+      "developer": "Bret Hardman",
+      "genre": "Productivity",
+      "rating_count": 4005,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Goblin Tools",
+      "appstore_id": "6449003064",
+      "appstore_country": "us",
+      "developer": "Skyhook",
+      "genre": "Productivity",
+      "rating_count": 3037,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Things 3",
+      "appstore_id": "904237743",
+      "appstore_country": "us",
+      "developer": "Cultured Code GmbH & Co. KG",
+      "genre": "Productivity",
+      "rating_count": 28015,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Ugly's Electrical References",
+      "appstore_id": "1134770838",
+      "appstore_country": "us",
+      "developer": "Informed Publishing",
+      "genre": "Productivity",
+      "rating_count": 1508,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Scrivener",
+      "appstore_id": "972387337",
+      "appstore_country": "us",
+      "developer": "Literature & Latte Ltd",
+      "genre": "Productivity",
+      "rating_count": 2614,
+      "area": null,
+      "source": "chart"
+    },
+    {
+      "name": "Due - Reminders & Timers",
+      "appstore_id": "390017969",
+      "appstore_country": "us",
+      "developer": "Due Apps LLP",
+      "genre": "Productivity",
+      "rating_count": 2805,
+      "area": null,
+      "source": "chart"
+    }
+  ]
+}

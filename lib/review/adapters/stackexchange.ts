@@ -25,6 +25,7 @@ export const SITE_WEB: Record<string, string> = {
   superuser: 'https://superuser.com',
   webapps: 'https://webapps.stackexchange.com',
   softwarerecs: 'https://softwarerecs.stackexchange.com',
+  workplace: 'https://workplace.stackexchange.com',
 }
 /** slug → 사이트·태그. 영역 ①~⑤ 사용자 질문이 오는 곳만(stackoverflow 는 개발자 질문이라 뺐다). 실측 근거는 보고서 (d). */
 export const BOARDS: Record<string, { site: string; tag: string }> = {
@@ -35,6 +36,12 @@ export const BOARDS: Record<string, { site: string; tag: string }> = {
   'sr-crm': { site: 'softwarerecs', tag: 'crm' }, // ②
   'wa-mailchimp': { site: 'webapps', tag: 'mailchimp' }, // ③
   'sr-note-taking': { site: 'softwarerecs', tag: 'note-taking' }, // ⑤
+  // v71au: 2026-10-19 무키 API 최근 90일 질문 수 실측 — 40개 조합 합 21건. 아래는 1건 이상인 곳(괄호=90일 건수).
+  'su-word': { site: 'superuser', tag: 'microsoft-word' }, // ⑤ (5)
+  'su-outlook': { site: 'superuser', tag: 'microsoft-outlook' }, // ⑤ (5)
+  'su-onenote': { site: 'superuser', tag: 'microsoft-onenote' }, // ⑤ (2)
+  'wa-linkedin': { site: 'webapps', tag: 'linkedin' }, // ③ (1)
+  'wk-meetings': { site: 'workplace', tag: 'meetings' }, // ① (1)
 }
 export const PAGE_SIZE = 50
 

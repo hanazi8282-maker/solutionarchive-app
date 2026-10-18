@@ -1,0 +1,264 @@
+{
+  "_about": "④ 커뮤니티 발굴 씨앗(v71au, community-discovery.mjs). Discourse 공개 JSON 을 쓰는 영역 ①~⑤ 제품 포럼 후보. 호스트가 Discourse 가 아니면 프로브가 '아님'으로 반려한다(조용히 넘어가지 않는다). area 코드는 config/areas.json 과 같다. 한국어 Discourse 포럼은 거의 없어 ko 는 prelim 후보만 둔다 — 한국 커뮤니티는 board 어댑터(82cook·clien·okky 등) 쪽 ⑤가 맡는다.",
+  "seeds": [
+    {
+      "key": "community_fireflies",
+      "name": "Fireflies 커뮤니티",
+      "host": "https://community.fireflies.ai",
+      "area": "1",
+      "lang": "en"
+    },
+    {
+      "key": "community_otter",
+      "name": "Otter 커뮤니티",
+      "host": "https://community.otter.ai",
+      "area": "1",
+      "lang": "en"
+    },
+    {
+      "key": "community_krisp",
+      "name": "Krisp 커뮤니티",
+      "host": "https://community.krisp.ai",
+      "area": "1",
+      "lang": "en"
+    },
+    {
+      "key": "community_readai",
+      "name": "Read AI 커뮤니티",
+      "host": "https://community.read.ai",
+      "area": "1",
+      "lang": "en"
+    },
+    {
+      "key": "community_fathom",
+      "name": "Fathom 커뮤니티",
+      "host": "https://community.fathom.video",
+      "area": "1",
+      "lang": "en"
+    },
+    {
+      "key": "community_pipedrive",
+      "name": "Pipedrive 커뮤니티",
+      "host": "https://community.pipedrive.com",
+      "area": "2",
+      "lang": "en"
+    },
+    {
+      "key": "community_attio",
+      "name": "Attio 커뮤니티",
+      "host": "https://community.attio.com",
+      "area": "2",
+      "lang": "en"
+    },
+    {
+      "key": "community_folk",
+      "name": "folk 커뮤니티",
+      "host": "https://community.folk.app",
+      "area": "2",
+      "lang": "en"
+    },
+    {
+      "key": "community_closecrm",
+      "name": "Close 커뮤니티",
+      "host": "https://community.close.com",
+      "area": "2",
+      "lang": "en"
+    },
+    {
+      "key": "community_zohocrm",
+      "name": "Zoho 포럼",
+      "host": "https://help.zoho.com",
+      "area": "2",
+      "lang": "en"
+    },
+    {
+      "key": "community_beehiiv",
+      "name": "beehiiv 커뮤니티",
+      "host": "https://community.beehiiv.com",
+      "area": "3",
+      "lang": "en"
+    },
+    {
+      "key": "community_mailerlite",
+      "name": "MailerLite 커뮤니티",
+      "host": "https://community.mailerlite.com",
+      "area": "3",
+      "lang": "en"
+    },
+    {
+      "key": "community_klaviyo",
+      "name": "Klaviyo 커뮤니티",
+      "host": "https://community.klaviyo.com",
+      "area": "3",
+      "lang": "en"
+    },
+    {
+      "key": "community_buffer",
+      "name": "Buffer 커뮤니티",
+      "host": "https://community.buffer.com",
+      "area": "3",
+      "lang": "en"
+    },
+    {
+      "key": "community_canva",
+      "name": "Canva 커뮤니티",
+      "host": "https://community.canva.com",
+      "area": "3",
+      "lang": "en"
+    },
+    {
+      "key": "community_clockify",
+      "name": "Clockify 커뮤니티",
+      "host": "https://community.clockify.me",
+      "area": "4",
+      "lang": "en"
+    },
+    {
+      "key": "community_toggl",
+      "name": "Toggl 커뮤니티",
+      "host": "https://community.toggl.com",
+      "area": "4",
+      "lang": "en"
+    },
+    {
+      "key": "community_gusto",
+      "name": "Gusto 커뮤니티",
+      "host": "https://community.gusto.com",
+      "area": "4",
+      "lang": "en"
+    },
+    {
+      "key": "community_bamboohr",
+      "name": "BambooHR 커뮤니티",
+      "host": "https://community.bamboohr.com",
+      "area": "4",
+      "lang": "en"
+    },
+    {
+      "key": "community_languagetool",
+      "name": "LanguageTool 포럼",
+      "host": "https://forum.languagetool.org",
+      "area": "5",
+      "lang": "en"
+    },
+    {
+      "key": "community_grammarly",
+      "name": "Grammarly 커뮤니티",
+      "host": "https://community.grammarly.com",
+      "area": "5",
+      "lang": "en"
+    },
+    {
+      "key": "community_airtable",
+      "name": "Airtable 커뮤니티",
+      "host": "https://community.airtable.com",
+      "area": "2",
+      "lang": "en"
+    },
+    {
+      "key": "community_zapier",
+      "name": "Zapier 커뮤니티",
+      "host": "https://community.zapier.com",
+      "area": "3",
+      "lang": "en"
+    },
+    {
+      "key": "community_openai",
+      "name": "OpenAI 개발자 포럼",
+      "host": "https://community.openai.com",
+      "area": "5",
+      "lang": "en"
+    },
+    {
+      "key": "community_pytorchkr",
+      "name": "PyTorch 한국 사용자 모임",
+      "host": "https://discuss.pytorch.kr",
+      "area": "5",
+      "lang": "ko"
+    },
+    {
+      "key": "community_hubspot",
+      "name": "HubSpot 커뮤니티",
+      "host": "https://community.hubspot.com",
+      "area": "2",
+      "lang": "en"
+    },
+    {
+      "key": "community_notionkr",
+      "name": "Notion 한국 커뮤니티",
+      "host": "https://community.notion.so",
+      "area": "5",
+      "lang": "ko"
+    },
+    {
+      "key": "discuss_frappe",
+      "name": "Frappe/ERPNext 포럼",
+      "host": "https://discuss.frappe.io",
+      "area": "4",
+      "lang": "en"
+    },
+    {
+      "key": "forum_mautic",
+      "name": "Mautic 포럼",
+      "host": "https://forum.mautic.org",
+      "area": "3",
+      "lang": "en"
+    },
+    {
+      "key": "forum_matomo",
+      "name": "Matomo 포럼",
+      "host": "https://forum.matomo.org",
+      "area": "3",
+      "lang": "en"
+    },
+    {
+      "key": "community_nocodb",
+      "name": "NocoDB 커뮤니티",
+      "host": "https://community.nocodb.com",
+      "area": "2",
+      "lang": "en"
+    },
+    {
+      "key": "community_suitecrm",
+      "name": "SuiteCRM 커뮤니티",
+      "host": "https://community.suitecrm.com",
+      "area": "2",
+      "lang": "en"
+    },
+    {
+      "key": "forum_odoo_ce",
+      "name": "Odoo 커뮤니티 포럼",
+      "host": "https://www.odoo.com/forum",
+      "area": "4",
+      "lang": "en"
+    },
+    {
+      "key": "community_chatwoot",
+      "name": "Chatwoot 커뮤니티",
+      "host": "https://forum.chatwoot.com",
+      "area": "2",
+      "lang": "en"
+    },
+    {
+      "key": "community_rasa",
+      "name": "Rasa 포럼",
+      "host": "https://forum.rasa.com",
+      "area": "5",
+      "lang": "en"
+    },
+    {
+      "key": "forum_openproject",
+      "name": "OpenProject 포럼",
+      "host": "https://community.openproject.org",
+      "area": "4",
+      "lang": "en"
+    },
+    {
+      "key": "forum_mattermost",
+      "name": "Mattermost 포럼",
+      "host": "https://forum.mattermost.com",
+      "area": "4",
+      "lang": "en"
+    }
+  ]
+}

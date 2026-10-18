@@ -10,7 +10,9 @@ import { pathToFileURL } from 'node:url'
 import { normKey } from './product-name-candidates.mjs'
 import { USER_AGENT } from '../lib/review/runner.ts'
 
-const FEEDS = ['kr', 'us'].flatMap((cc) => ['top-free', 'top-paid'].map((kind) => ({ cc, kind })))
+// v71ay C3: 국가를 늘려 입력 풀을 넓힌다(국가마다 상위 100 이 다르다). 기본은 옛 값 kr·us. --countries=us,kr,gb,ca,au,in,sg,de
+export const DEFAULT_COUNTRIES = ['kr', 'us']
+const feedsOf = (countries) => countries.flatMap((cc) => ['top-free', 'top-paid'].map((kind) => ({ cc, kind })))
 
 /** 피드 JSON → 사전 항목. results 가 배열이 아니면 던진다(빈 배열과 못 읽은 것을 가른다 — §7.1). */
 export function parseFeed(json, cc) {
@@ -28,10 +30,10 @@ export function buildDictionary(entries) {
   return d
 }
 
-export async function collect({ fetchFn = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), limit = 100, log = console.log } = {}) {
+export async function collect({ fetchFn = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), limit = 100, countries = DEFAULT_COUNTRIES, log = console.log } = {}) {
   const entries = [], skipped = []
   let stopped = null
-  for (const { cc, kind } of FEEDS) {
+  for (const { cc, kind } of feedsOf(countries)) {
     if (stopped) break
     const url = `https://rss.marketingtools.apple.com/api/v2/${cc}/apps/${kind}/${limit}/apps.json`
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -51,7 +53,7 @@ export async function collect({ fetchFn = fetch, sleep = (ms) => new Promise((r)
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   const opt = (n) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3)
   const out = opt('out') ?? 'reports/2026-10-18/appstore-chart-dictionary.json'
-  const { entries, skipped, stopped } = await collect({ limit: Number(opt('limit') ?? 100) })
+  const { entries, skipped, stopped } = await collect({ limit: Number(opt('limit') ?? 100), countries: (opt('countries') ?? DEFAULT_COUNTRIES.join(',')).split(',').filter(Boolean) })
   fs.mkdirSync(path.dirname(out), { recursive: true })
   fs.writeFileSync(out, JSON.stringify({ at: new Date().toISOString(), skipped, stopped, names: Object.keys(buildDictionary(entries)).length, dictionary: buildDictionary(entries) }, null, 1) + '\n')
   console.log(`→ ${out}`)

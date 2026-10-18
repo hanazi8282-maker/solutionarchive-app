@@ -24,7 +24,18 @@ export const DAILY_CAP = 45
 export const MIN_RATINGS = 500
 export const BATCH = 150
 export const GAP_MS = 6000
-export const GENRES = new Set(['Business', 'Productivity', 'Finance'])
+// v71ay C3: 영역 ②~⑤ 제품은 교육·유틸리티·디자인 장르에도 있다(영역 힌트 낱말이 걸릴 때만 후보가 되므로 장르를 넓혀도 오탐은 늘지 않는다).
+export const GENRES = new Set(['Business', 'Productivity', 'Finance', 'Education', 'Utilities', 'Graphics & Design'])
+const normName = (s) => String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+
+/** config/discovery-c1.json 영역 씨앗 + config/new-release-areas.json 보강 낱말(있으면)을 합친다. */
+export function loadAreas(root = repoRoot) {
+  const base = JSON.parse(fs.readFileSync(path.join(root, 'config/discovery-c1.json'), 'utf8')).areas
+  const extraFile = path.join(root, 'config/new-release-areas.json')
+  if (!fs.existsSync(extraFile)) return base
+  const extra = JSON.parse(fs.readFileSync(extraFile, 'utf8')).areas ?? {}
+  return Object.fromEntries(Object.entries(base).map(([k, a]) => [k, { ko: [...(a.ko ?? []), ...(extra[k]?.ko ?? [])], en: [...(a.en ?? []), ...(extra[k]?.en ?? [])] }]))
+}
 const kstDate = (now = new Date()) => new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10)
 
 // ── 순수 ─────────────────────────────────────────────
@@ -54,6 +65,20 @@ export function areaHint(text, areas) {
   return null
 }
 
+/**
+ * v71ay C3: 영역 점수 — 이름에 걸린 낱말 3점, 설명에 걸린 서로 다른 낱말 1점씩. 합이 MIN_AREA_SCORE(3) 이상이고 1등이 하나일 때만 그 영역.
+ * 옛 areaHint 는 '첫 영역·낱말 하나'라 ChatGPT·VPN 같은 범용 앱이 영역 1·2 로 붙었다(10-19 실측). 동점이면 null(hold).
+ */
+export const MIN_AREA_SCORE = 3
+export function bestArea(name, description, areas) {
+  const n = String(name ?? '').toLowerCase(), d = String(description ?? '').toLowerCase().slice(0, 1500)
+  const scores = Object.entries(areas).filter(([code]) => code !== 'design').map(([code, a]) => {
+    const ks = [...new Set([...(a.en ?? []), ...(a.ko ?? [])].map((k) => String(k).toLowerCase().trim()).filter(Boolean))]
+    return [code, ks.reduce((s, k) => s + (n.includes(k) ? 3 : d.includes(k) ? 1 : 0), 0)]
+  }).sort((x, y) => y[1] - x[1])
+  return scores[0] && scores[0][1] >= MIN_AREA_SCORE && scores[0][1] > (scores[1]?.[1] ?? 0) ? scores[0][0] : null
+}
+
 /** lookup 결과 한 건 + 사전 항목 → 후보 행. 장르·평점 문턱을 못 넘으면 null. */
 export function toCandidate(entry, r, areas) {
   if (!r || !GENRES.has(r.primaryGenreName)) return null
@@ -61,7 +86,7 @@ export function toCandidate(entry, r, areas) {
   if (!(ratings >= MIN_RATINGS)) return null
   return {
     name: r.trackName ?? entry.name, appstore_id: String(entry.id), appstore_country: entry.country, developer: r.sellerName ?? entry.artist ?? null,
-    genre: r.primaryGenreName, rating_count: ratings, area: areaHint(`${r.trackName} ${r.description ?? ''}`.slice(0, 1500), areas), source: 'chart',
+    genre: r.primaryGenreName, rating_count: ratings, area: bestArea(r.trackName, r.description, areas), source: 'chart', released_at: r.releaseDate ?? null,
   }
 }
 
@@ -112,9 +137,17 @@ function arg(name, def) {
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const dictionary = JSON.parse(fs.readFileSync(arg('dictionary'), 'utf8')).dictionary
-    const regIds = registeredIds(JSON.parse(fs.readFileSync(arg('registered'), 'utf8')))
-    const areas = JSON.parse(fs.readFileSync(path.join(repoRoot, 'config/discovery-c1.json'), 'utf8')).areas
-    const todo = unregistered(dictionary, regIds)
+    // --registered=<json [product_ref…]> 또는 --input=<mention-input-fetch 출력>(targets 의 appstore 행 + discovery 이름으로 중복 제외)
+    let regRefs = [], knownNames = new Set()
+    if (arg('registered')) regRefs = JSON.parse(fs.readFileSync(arg('registered'), 'utf8'))
+    if (arg('input')) {
+      const inp = JSON.parse(fs.readFileSync(arg('input'), 'utf8'))
+      regRefs = regRefs.concat((inp.targets ?? []).filter((t) => t.source_key === 'appstore').map((t) => t.product_ref))
+      knownNames = new Set((inp.discovery ?? []).map((d) => normName(d.name)))
+    }
+    const regIds = registeredIds(regRefs)
+    const areas = loadAreas()
+    const todo = unregistered(dictionary, regIds).filter((e) => !knownNames.has(normName(e.name)))
     const { out, requests, stopped, blocked } = process.argv.includes('--no-network') ? { out: new Map(), requests: 0, stopped: '--no-network', blocked: false } : await lookupBatches(todo, { log: console.log })
     const cands = todo.map((e) => toCandidate(e, out.get(String(e.id)), areas)).filter(Boolean)
     const { picked, hold } = pickDaily(cands)

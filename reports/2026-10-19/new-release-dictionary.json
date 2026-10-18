@@ -1,0 +1,657 @@
+{
+ "at": "2026-10-18T17:44:24.799Z",
+ "shopify": [
+  {
+   "handle": "eu-widerrufsbutton",
+   "name": "EW: EU Withdrawal Button &Form",
+   "category": "store-management"
+  },
+  {
+   "handle": "blockify",
+   "name": "Blockify Fraud Filter, Blocker",
+   "category": "store-management"
+  },
+  {
+   "handle": "parkour-pixel",
+   "name": "Parkour: Facebook Pixel & Feed",
+   "category": "store-management"
+  },
+  {
+   "handle": "metafields-editor-2",
+   "name": "Metafields Guru",
+   "category": "store-management"
+  },
+  {
+   "handle": "mcafee-secure",
+   "name": "TrustedSite ‑ Trust Badges",
+   "category": "store-management"
+  },
+  {
+   "handle": "excel-export-import",
+   "name": "Matrixify: Data Export Import",
+   "category": "store-management"
+  },
+  {
+   "handle": "flowmail",
+   "name": "WorkflowMail Emails",
+   "category": "store-management"
+  },
+  {
+   "handle": "simple-invoice-order-printer",
+   "name": "Simple Invoice ‑ Order Printer",
+   "category": "store-management"
+  },
+  {
+   "handle": "eaze-chat-button",
+   "name": "EAZE Button",
+   "category": "store-management"
+  },
+  {
+   "handle": "trust-badge-by-giraffly",
+   "name": "SEOWILL ‑ Trust Badges & Icon",
+   "category": "store-management"
+  },
+  {
+   "handle": "carthike-recovery",
+   "name": "CK: Abandoned cart on WhatsApp",
+   "category": "store-management"
+  },
+  {
+   "handle": "lucky-orange",
+   "name": "Lucky Orange Heatmaps & Replay",
+   "category": "store-management"
+  },
+  {
+   "handle": "moose-whatsapp-chat-button",
+   "name": "Moose WhatsApp Chat Button",
+   "category": "store-management"
+  },
+  {
+   "handle": "helpdesk",
+   "name": "Gorgias: AI Helpdesk & Chat",
+   "category": "store-management"
+  },
+  {
+   "handle": "instachat",
+   "name": "IG Facebook & Instagram Shop",
+   "category": "store-management"
+  },
+  {
+   "handle": "tidio-chat",
+   "name": "Tidio: AI Chatbot & Live Chat",
+   "category": "store-management"
+  },
+  {
+   "handle": "redo",
+   "name": "Redo",
+   "category": "store-management"
+  },
+  {
+   "handle": "chaty",
+   "name": "Chaty Chat Buttons & WhatsApp",
+   "category": "store-management"
+  },
+  {
+   "handle": "inbox",
+   "name": "Shopify Inbox",
+   "category": "store-management"
+  },
+  {
+   "handle": "live-chat-and-cloud-api",
+   "name": "Pushdaddy Many Chat ,Cloud API",
+   "category": "store-management"
+  },
+  {
+   "handle": "tawk-to",
+   "name": "tawk.to Live Chat",
+   "category": "store-management"
+  },
+  {
+   "handle": "mida-session-recording-replay",
+   "name": "MIDA Replay, Heatmap & Insight",
+   "category": "store-management"
+  },
+  {
+   "handle": "session-recording-now",
+   "name": "Propel Replay, Survey, Heatmap",
+   "category": "store-management"
+  },
+  {
+   "handle": "index-gpt",
+   "name": "IndexGPT: AI SEO for ChatGPT",
+   "category": "store-management"
+  },
+  {
+   "handle": "microsoft-clarity",
+   "name": "Microsoft Clarity: AI Insights",
+   "category": "store-management"
+  },
+  {
+   "handle": "grapevine",
+   "name": "Grapevine Post Purchase Survey",
+   "category": "store-management"
+  },
+  {
+   "handle": "zigpoll",
+   "name": "Zigpoll Customer Surveys",
+   "category": "store-management"
+  },
+  {
+   "handle": "juicy",
+   "name": "Juicy Profit Analytics",
+   "category": "store-management"
+  },
+  {
+   "handle": "tixel",
+   "name": "TiXel: Meta Pixel TikTok Pixel",
+   "category": "store-management"
+  },
+  {
+   "handle": "customr",
+   "name": "Helium Customer Fields",
+   "category": "store-management"
+  },
+  {
+   "handle": "disputifier",
+   "name": "Disputifier: Smart Chargebacks",
+   "category": "store-management"
+  },
+  {
+   "handle": "terms-and-conditions-checkbox",
+   "name": "TN Term and Condition Checkbox",
+   "category": "store-management"
+  },
+  {
+   "handle": "eu-cookie-bar",
+   "name": "Nova: GDPR Cookie Consent",
+   "category": "store-management"
+  },
+  {
+   "handle": "terms-and-conditions-in-cart",
+   "name": "RT: Terms and Conditions Box",
+   "category": "store-management"
+  },
+  {
+   "handle": "synctrack",
+   "name": "Synctrack Paypal Chargebacks",
+   "category": "store-management"
+  },
+  {
+   "handle": "it-recht-agb-schnittstelle",
+   "name": "IT‑Recht AGB‑Schnittstelle",
+   "category": "store-management"
+  },
+  {
+   "handle": "backup",
+   "name": "Rewind Backups",
+   "category": "store-management"
+  },
+  {
+   "handle": "b2b-wholesale-lock-hide-price",
+   "name": "Sami B2B Lock,Password Protect",
+   "category": "store-management"
+  },
+  {
+   "handle": "sealapps-product-review",
+   "name": "CWILL(Trustoo) Product Reviews",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "back-in-stock-restock-alerts",
+   "name": "Preorder, Back In Stock ‑ STOQ",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "ig-fb-shoppable-comments",
+   "name": "MetaShop: Instagram & Facebook",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "bundle-deals",
+   "name": "Kaching Bundles App & Upsells",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "ecomsend",
+   "name": "CWILL Popup Email Marketing",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "bundler-product-bundles",
+   "name": "Bundler » Product Bundles App",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "essential-post-purchase-upsell",
+   "name": "Essential Upsell & Cross Sell",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "loox",
+   "name": "Loox ‑ Product Reviews App",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "seal-subscriptions",
+   "name": "Seal Subscriptions App",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "ecomposer",
+   "name": "EComposer Landing Page Builder",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "smile-io",
+   "name": "Smile: Loyalty Program Rewards",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "pop-convert",
+   "name": "Pop Convert ‑ Pop Ups, Banners",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "klaviyo-email-marketing",
+   "name": "Klaviyo: Email Marketing & SMS",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "shopify-forms",
+   "name": "Shopify Forms",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "flow",
+   "name": "Shopify Flow",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "pushowl",
+   "name": "Brevo PushOwl: Email,Push,SMS",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "omnisend",
+   "name": "Omnisend Email Marketing & SMS",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "pushup-notification-marketing",
+   "name": "Abandoned Cart Email Marketing",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "google",
+   "name": "Google & YouTube",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "shopify-audiences",
+   "name": "Shopify Audiences",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "collabs",
+   "name": "Shopify Collabs",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "tiktok",
+   "name": "TikTok",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "facebook",
+   "name": "Facebook & Instagram",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "goaffpro",
+   "name": "GOAFFPRO ‑ Affiliate Marketing",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "pinterest",
+   "name": "Pinterest",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "facebook-multi-pixels",
+   "name": "Omega Facebook Pixel, Meta Ads",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "gempages",
+   "name": "GemPages Landing Page Builder",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "essential-countdown-timer",
+   "name": "Essential Countdown Timer Bar",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "easy-order-form",
+   "name": "EasySell COD Form & Upsells",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "subscription-payments",
+   "name": "Recharge Subscriptions App",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "collective",
+   "name": "Shopify Collective",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "custom-options",
+   "name": "Infinite Options",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "simple-bundles",
+   "name": "Simple Bundles & Kits",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "globo-color-swatches",
+   "name": "GLO Color Swatch Variant Image",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "pagefly",
+   "name": "PageFly ✦ AI Page Builder",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "junip",
+   "name": "Junip Product Reviews App & AI",
+   "category": "marketing-and-conversion"
+  },
+  {
+   "handle": "form-builder-by-hulkapps",
+   "name": "Hulk Contact Form Builder ",
+   "category": "customer-support"
+  },
+  {
+   "handle": "chatty",
+   "name": "Chatty AI Chatbot & Live Chat",
+   "category": "customer-support"
+  },
+  {
+   "handle": "wava-abandoned-cart-recovery",
+   "name": "Wa: WhatsApp Chat, WhatsApp AI",
+   "category": "customer-support"
+  },
+  {
+   "handle": "commslayer",
+   "name": "Commslayer: AI Helpdesk & Chat",
+   "category": "customer-support"
+  },
+  {
+   "handle": "dondy-marketing-ai",
+   "name": "Dondy: WhatsApp Marketing+Chat",
+   "category": "customer-support"
+  },
+  {
+   "handle": "moosedesk",
+   "name": "Moose AI Chatbot & Live Chat",
+   "category": "customer-support"
+  },
+  {
+   "handle": "buddify-ai-discount-negotiator",
+   "name": "Buddy AI: Agentic Commerce",
+   "category": "customer-support"
+  },
+  {
+   "handle": "channelwill-chat",
+   "name": "CWILL:AI Chatbot &Live Chat",
+   "category": "customer-support"
+  },
+  {
+   "handle": "storefaq",
+   "name": "StoreFAQ: Product FAQ Chatbot",
+   "category": "customer-support"
+  },
+  {
+   "handle": "faqapp",
+   "name": "Trusted Help Center & FAQ",
+   "category": "customer-support"
+  },
+  {
+   "handle": "product-questions-and-answers-by-appifycommerce",
+   "name": "AC ‑ Questions & Answers",
+   "category": "customer-support"
+  },
+  {
+   "handle": "variant-descriptions-by-starapps",
+   "name": "Variant Descriptions King",
+   "category": "customer-support"
+  },
+  {
+   "handle": "product-description-accordion",
+   "name": "EasySlide Accordion tabs & FAQ",
+   "category": "customer-support"
+  },
+  {
+   "handle": "faqs-plus",
+   "name": "HelpLab FAQ Page, Product FAQs",
+   "category": "customer-support"
+  },
+  {
+   "handle": "form-builder-contact-form",
+   "name": "Powerful Contact Form Builder",
+   "category": "customer-support"
+  },
+  {
+   "handle": "ai-form-builder-custom-forms",
+   "name": "FormCRM Contact Form Builder",
+   "category": "customer-support"
+  },
+  {
+   "handle": "sea-survey",
+   "name": "SEA Post Purchase Survey Quiz",
+   "category": "customer-support"
+  },
+  {
+   "handle": "primy-form-builder",
+   "name": "Primy Form Builder File Upload",
+   "category": "customer-support"
+  },
+  {
+   "handle": "sellify-post-purchase-upsell",
+   "name": "Sellify Post Purchase Upsell",
+   "category": "customer-support"
+  },
+  {
+   "handle": "fairing",
+   "name": "Fairing Post Purchase Surveys",
+   "category": "customer-support"
+  },
+  {
+   "handle": "filemonk",
+   "name": "Digital Downloads ‑ Filemonk",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "essential-estimated-delivery",
+   "name": "Essent Estimated Delivery Date",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "returns-center-by-aftership",
+   "name": "AfterShip Returns & Exchanges",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "slashcart-tiktok-shop-sync",
+   "name": "TikTok Shop Integration — SPL",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "avada-pdf-invoice",
+   "name": "Avada PDF Invoice Generator",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "track123",
+   "name": "Track123 Order Tracking",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "aftership",
+   "name": "AfterShip Order Tracking",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "amazon-by-cedcommerce",
+   "name": "CedCommerce Amazon Channel",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "parcelpanel",
+   "name": "CWILL Order Tracking",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "ups-shipping-dashboard",
+   "name": "UPS Shipping (Official)",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "fulfillment-network",
+   "name": "Shopify Fulfillment Network",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "sendcloud",
+   "name": "Sendcloud | Shipping Platform",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "shipstation",
+   "name": "ShipStation Orders & Inventory",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "pirate-ship",
+   "name": "Pirate Ship: CheapARR Shipping",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "buy-with-prime",
+   "name": "Amazon MCF and Buy with Prime",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "easyship",
+   "name": "Easyship ‑ All in One Shipping",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "shiprocket",
+   "name": "Shiprocket: eCommerce Shipping",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "dhl-express-commerce",
+   "name": "DHL Express (Official)",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "billbee-de",
+   "name": "Billbee",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "whatsapp",
+   "name": "WhatsApp",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "sufio",
+   "name": "Sufio: Invoices You Can Trust",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "loop-returns",
+   "name": "Loop Returns & Exchanges",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "shopify-order-printer",
+   "name": "Shopify Order Printer",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "route",
+   "name": "Route ‑ Protection & Tracking",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "ez-label",
+   "name": "EZLabel: Australia Post Ship",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "mechanic",
+   "name": "Mechanic",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "trackipal",
+   "name": "TrackiPal PayPal Tracking Sync",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "tongtool_listing",
+   "name": "通途刊登",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "mabangerp3",
+   "name": "MabangErp3",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "syncwith",
+   "name": "SyncWith Google Sheets, Looker",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "litcommerce",
+   "name": "LitCommerce eBay Etsy Amazon +",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "dianxiaomi",
+   "name": "Dianxiaomi（店小秘）",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "ebay-integration-dpl",
+   "name": "DPL ‑ eBay Integration ",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "easyscan-inventory-and-order",
+   "name": "EasyScan Inventory & Barcode",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "bundles",
+   "name": "Bundles.app ‑ Inventory Sync",
+   "category": "orders-and-shipping"
+  },
+  {
+   "handle": "syncio",
+   "name": "Syncio Inventory Sync",
+   "category": "orders-and-shipping"
+  }
+ ],
+ "skipped": [],
+ "stopped": null
+}

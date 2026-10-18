@@ -94,7 +94,7 @@ export async function lookup(name, country = 'us', fetchFn = fetch, opts = {}) {
     guard.log({ term: name, country, outcome: 'stop', reason: r.stop })
     return { state: 'lookup_failed', reason: r.stop, stop: true }
   }
-  const v = verifyAnchor(name, r.results, { expectedDomain: opts.expectedDomain, descriptionDomain: opts.descriptionDomain })
+  const v = verifyAnchor(name, r.results, { expectedDomain: opts.expectedDomain, descriptionDomain: opts.descriptionDomain, strict: opts.strict })
   guard.log({ term: name, country, outcome: v.state, results: r.results.length })
   return opts.keepResults ? { ...v, results: r.results } : v
 }
@@ -109,7 +109,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split(/[\\/]/).p
     : args.filter((a) => !a.startsWith('--')).map((a) => ({ name: a.split('=')[0], expected_domain: a.split('=')[1] ?? null }))
   const done = []
   for (const row of rows) {
-    const v = await lookup(row.name, row.country ?? country, fetch, { expectedDomain: row.expected_domain, descriptionDomain: true, keepResults: true })
+    const v = await lookup(row.name, row.country ?? country, fetch, { expectedDomain: row.expected_domain, descriptionDomain: true, keepResults: true, strict: true })
     const top = (v.results ?? []).slice(0, 3).map((a) => ({ id: a.trackId, name: a.trackName, seller: a.sellerName, seller_url: a.sellerUrl ?? null, ratings: a.userRatingCount ?? 0 }))
     delete v.results
     done.push({ ...row, verdict: v, top3_seen: top })

@@ -102,7 +102,7 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
   for (const [k, e] of Object.entries(ledger.entries ?? {})) if (e.status === 'rejected') prior.set(k, `ledger:${e.reason}`)
   for (const d of input.discovery) if (d.verdict === 'rejected') prior.set(normKey(d.name), `discovery_candidates:${d.verdict_reason ?? 'rejected'}`)
 
-  const agg = aggregate(input.posts, { ...input, ...fileRegistry, exclude: cfg.exclude })
+  const agg = aggregate(input.posts, { ...input, ...fileRegistry, exclude: { ...cfg.exclude, ...cfg.mention_exclude } })
   const counts = agg.counts
   let rows = agg.rows
   let similar = []
@@ -222,7 +222,7 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
     // v71ap: 게이트가 막은 언급 후보 기록(기록만 — 게이트 불변). 집계 = scripts/gate-reject-log.mjs
     const gs = gateState(input.targets)
     appendRejects(dir, plan.blocked.map((b) => rejectLine({ at: now, source: 'appstore', candidate: b.c.key, reason: b.reason, active: gs.appstore_active, totalActive: gs.total_active, headroom: 0 })))
-    fs.writeFileSync(path.join(dir, 'mention-ledger.sql'), renderLedgerSql(judged, verdicts, new Set(plan.blocked.map((b) => b.c.key)), date))
+    fs.writeFileSync(path.join(dir, 'mention-ledger.sql'), renderLedgerSql(judged.filter((j) => j.stage === 'area_fit' || j.stage === 'candidate'), verdicts, new Set(plan.blocked.map((b) => b.c.key)), date))
     const entries = { ...(ledger.entries ?? {}) }
     for (const j of judged) {
       const prev = entries[j.key] ?? { first_seen: date }

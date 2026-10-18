@@ -3,7 +3,12 @@
   "rule_ver": "pnc-v4",
   "_rule_ver_history": "pnc-v1(2026-10-12 초기) → pnc-v2(2026-10-12, 남헌 v52 §1-3: 첫 --run 채택 41건의 오탐을 exclude 6갈래로 분리 · 영역별 표 · 승인 시트) → pnc-v3(2026-10-12, 남헌 v53 §1: 사람 기각 4건 영구 제외 · 지표 용어 · CDN 호스트 · 거대 기업 단독=경쟁 기준점 · 대안 맥락/신규 출시 가중 · 노트·지식관리 칸) → pnc-v4(2026-10-12, 남헌 v56 §C-2: 대형 서비스는 빼지 않고 경쟁 기준점(anchor) 후보 — 승인 시트 별도 소절(하루 영역 상한·오탐률에 안 셈) · 제품이 불분명한 단독 기업명은 exclude.company_only 로 계속 기각 · 부류 3갈래 anchor/small/new · 1~3인 팀·저가 플랜 가중).",
 
-  "_exclude": "채택 전에 기각하는 목록(정규화 키 기준, 대장에 사유와 함께 남는다). 키가 곧 기각 사유다. acronym 만 조건부 — acronym_rule.exempt_signals(앱 링크·도메인) 신호가 있으면 통과한다. 나머지는 무조건 기각. 2026-10-12 첫 --run 채택 41건에서 사람이 오탐으로 짚은 것 + 같은 결의 흔한 것. human_rejected_v53 = 남헌 v53 승인 시트에서 N 받은 4건(시트 파일이 지워져도 남도록 영구 등재). metric_term = 지표·일반 용어(MRR·ARR·ARPU 류) — 도메인 신호가 있어도 제품이 아니다.",
+  "_exclude": "채택 전에 기각하는 목록(정규화 키 기준, 대장에 사유와 함께 남는다). 키가 곧 기각 사유다. acronym 만 조건부 — acronym_rule.exempt_signals(앱 링크·도메인) 신호가 있으면 통과한다. 나머지는 무조건 기각. 2026-10-12 첫 --run 채택 41건에서 사람이 오탐으로 짚은 것 + 같은 결의 흔한 것. human_rejected_v53 = 남헌 v53 승인 시트에서 N 받은 4건(시트 파일이 지워져도 남도록 영구 등재). metric_term = 지표·일반 용어(MRR·ARR·ARPU 류) — 도메인 신호가 있어도 제품이 아니다.",
+  "_mention_exclude": "언급 루프(scripts/mention-loop.mjs) 전용 제외 목록 — exclude 와 합쳐 쓴다. 제품 이름 후보 추출(product-name-candidates)의 exclude 키 집합 시험을 건드리지 않으려고 따로 둔다(v71au ①-c).",
+  "mention_exclude": {
+    "web_infra": ["googleanalytics","googleanalytic","ga","gmail","mixpanel","producthunt","ph","googlereader","claudedesktop","jira","heroku","aws","confluence","noteforms","electron","hetzner","vscode","linux","xcode","agile","stripebilling","matomo","chrome","opensource","kanban","orgmode","selfhosting","proton","docker","kubernetes","postgres","mysql","nginx","cloudflare","github","gitlab","ubuntu","debian","windows","macos","android","ios","wordpress","shopify","stripe","paypal","excel","googlesheets","googledocs","googledrive","gcp","azure","vercel","netlify","firebase","supabase"],
+    "app_ui_ko": ["파일","다음","와이파이","통화","방식","다른거","로그인","되는거","다음페이지","매출","화면","설정","메뉴","알림","결제","가입","광고","업데이트","기능","버튼","비밀번호","계정"]
+  },
   "exclude": {
     "human_rejected_v53": ["indieweb", "mrr", "adobe", "velcdn"],
     "metric_term": ["mrr", "arr", "arpu", "arpa", "acv", "tcv", "ltv", "cac", "nrr", "grr", "nps", "mau", "dau", "wau", "gmv", "aov", "roas", "cpc", "cpm", "ctr", "cpa", "cmrr", "burnrate", "runway", "churn"],

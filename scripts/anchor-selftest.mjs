@@ -120,5 +120,19 @@ t('D-44: 한 실행 상한 60', SEARCH_RUN_MAX, 60)
   t('정책 A: 두 번째 호출 전 남은 간격만큼 기다린다', waits.join(','), '2000')
 }
 
+
+// v71au ①-b 동명이앱 방어(strict) — 실측 회귀: Pocket → "PocketApp: Send & Manage Money"(핀테크, 판매자 Abeg Technologies)
+{
+  const pocketApp = [{ trackId: 1532676793, trackName: 'PocketApp: Send & Manage Money', sellerName: 'Abeg Technologies Ltd', primaryGenreName: 'Finance', userRatingCount: 9252 }]
+  t('strict: Pocket ↔ PocketApp(핀테크) 는 일치 아님', verifyAnchor('Pocket', pocketApp, { strict: true }).state, 'no_match')
+  t('비 strict 는 옛 동작 그대로(접미 허용으로 anchored)', verifyAnchor('Pocket', pocketApp).state, 'anchored')
+  const ph = [{ trackId: 904658671, trackName: 'Product Hunt', sellerName: 'PRODUCT HUNT, INC.', primaryGenreName: 'Social Networking', userRatingCount: 3837 }]
+  t('strict: 제목 정확 일치는 통과', verifyAnchor('Product Hunt', ph, { strict: true }).state, 'anchored')
+  const fera = [{ trackId: 5, trackName: 'Fera App', sellerName: 'Fera Labs Inc', primaryGenreName: 'Productivity', userRatingCount: 900 }]
+  t('strict: 접미(App)여도 판매자 이름에 후보가 있으면 통과', verifyAnchor('Fera', fera, { strict: true }).state, 'anchored')
+  const game = [{ trackId: 6, trackName: 'Notion', sellerName: 'Notion Games', primaryGenreName: 'Games', userRatingCount: 900 }]
+  t('strict: 장르 Games 는 거부', verifyAnchor('Notion', game, { strict: true }).state, 'no_match')
+}
+
 console.log(`anchor selftest: ${pass} pass / ${fail} fail`)
 process.exit(fail ? 1 : 0)

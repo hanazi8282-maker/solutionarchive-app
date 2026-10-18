@@ -7,7 +7,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { GENERATOR_DAILY_CAP, dailyMetrics, filterCandidates, fromWindowLedger, pickDaily } from '../lib/discovery/candidate-generator.ts'
+import { GENERATOR_DAILY_CAP, dailyMetrics, filterCandidates, fromWindowLedger, pickDaily, similarAppReject } from '../lib/discovery/candidate-generator.ts'
 import { main } from './candidate-generator.mjs'
 
 let pass = 0
@@ -109,6 +109,17 @@ const c = (o) => ({ generator: 'mention', source_key: 'clien', product_ref: 'boa
   t('정적: supabase import 없음', /supabase/i.test(src.replace(/\/\/.*$/gm, '')), false)
   t('정적: fetch 호출 없음', /\bfetch\s*\(/.test(src), false)
   t('정적: INSERT/UPDATE 없음', /\b(insert|update|upsert)\s*\(/i.test(src), false)
+}
+
+// v71au ⑧ 같은 개발사 갈래 적합성 — 2026-10-19 드라이런 37건을 직접 읽어 정한 규칙의 회귀
+{
+  const c = (label, genre) => ({ generator: 'similar_app', source_key: 'appstore', product_ref: 'x:1', label, expected_yield: 10, evidence: `same_developer of kr:1 · ${genre} · ratings=100` })
+  t('유사앱: 업무용 장르 + 업무 앱은 통과', similarAppReject(c('2:us|salesforce-field-service', 'Business')), null)
+  t('유사앱: 소비자용 장르(Lifestyle) 제외', similarAppReject(c('1:kr|u-스마트홈', 'Lifestyle')), 'out_genre')
+  t('유사앱: 로고·전단 제작 앱 제외', similarAppReject(c('3:us|logo-maker-create-design', 'Business')), 'consumer_or_event')
+  t('유사앱: 행사 앱 제외', similarAppReject(c('2:us|salesforce-events', 'Business')), 'consumer_or_event')
+  t('유사앱: 개인 메일(NFD 한글) 제외', similarAppReject(c('1:kr|네이버-메일'.normalize('NFD'), 'Productivity')), 'consumer_or_event')
+  t('유사앱: window 갈래는 이 규칙을 안 탄다', similarAppReject({ ...c('1:us|otter-ai', 'Lifestyle'), generator: 'window' }), null)
 }
 
 console.log(`candidate-generator selftest: ${pass} pass · ${fail} fail`)

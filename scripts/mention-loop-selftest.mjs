@@ -272,5 +272,15 @@ t('경보: 조회 차단', safetyAlerts({ ...M, lookup_blocked: true }, [])[0].s
   t('정적: 이름 검색 경로(/search) 요청 없음', /itunes\.apple\.com\/search/.test(code), false)
 }
 
+
+// v71au ①-c 웹서비스·인프라·UI 일반어 필터 회귀 — 2026-10-18 표본 27건 중 제품이 아닌 이름(Search 27건 측정: 나머지 21건 no_match)
+{
+  const cfg = JSON.parse(fs.readFileSync(new URL('../config/product-name-discovery.json', import.meta.url), 'utf8'))
+  const junk = ['Google Analytics', 'Gmail', 'Mixpanel', 'Product Hunt', 'GA', 'Google Analytic', 'Google Reader', 'Claude Desktop', 'Jira', 'Heroku', 'AWS', 'Confluence', 'NoteForms', 'Electron', 'Hetzner', 'Org-mode', 'self-hosting', 'VS Code', 'Kanban', '로그인', '통화', '파일']
+  const norm = (x) => x.toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, '')
+  t('필터: 표본의 비제품 이름은 전부 기각', junk.filter((n) => !nameRejectReason(n, norm(n), { ...cfg.exclude, ...cfg.mention_exclude })), [])
+  t('필터: 실제 제품 이름(Fireflies)은 통과', nameRejectReason('Fireflies', 'fireflies', { ...cfg.exclude, ...cfg.mention_exclude }), null)
+}
+
 console.log(`mention-loop selftest: ${pass} pass · ${fail} fail`)
 process.exit(fail ? 1 : 0)

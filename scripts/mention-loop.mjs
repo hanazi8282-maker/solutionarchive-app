@@ -37,6 +37,7 @@ import { normKey, loadConfig, loadFileRegistry } from './product-name-candidates
 import { parseRobots, robotsVerdict } from '../lib/review/robots.ts'
 import { PRODUCT_TOKEN, USER_AGENT } from '../lib/review/runner.ts'
 import { main as registerDraft } from './candidate-register-draft.mjs'
+import { appendRejects, rejectLine } from './gate-reject-log.mjs'
 
 const kstDate = (now = new Date()) => new Date(now.getTime() + 9 * 3600_000).toISOString().slice(0, 10)
 const DEFAULT_LEDGER = 'reports/mention-ledger.json'
@@ -113,7 +114,7 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
     ;({ rows, matched: similarMatched } = mergeSimilar(rows, similar))
   }
   // 경로별 해소 건수(v71an §1-D′ 일일 지표): 링크(근거 글의 스토어 링크) · 사전(차트 피드) — 검증 전 '앱 ID 확보' 기준
-  const linkKeys = new Set(rows.filter((a) => a.app_ids.length).map((a) => a.key))
+  const linkKeys = new Set(rows.filter((a) => a.app_ids.length || a.play_pkgs?.length).map((a) => a.key))
   let dictKeys = new Set()
   if (opt('dictionary')) {
     const dict = readJson(opt('dictionary'))?.dictionary
@@ -149,7 +150,7 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
   const anchoredFit = fit.filter((j) => verdicts.get(j.key)?.state === 'anchored' && !humanNo.has(j.key))
   // 시험 기준(2글 등)으로만 통과한 것은 등록하지 않는다 — #561 CHECK·toApproved 하한 3 과 맞춘다
   const trialOnly = anchoredFit.filter((j) => j.posts.length < REGISTER_MIN_POSTS)
-  const ready = live.blocked ? [] : anchoredFit.filter((j) => j.posts.length >= REGISTER_MIN_POSTS).map((j) => ({ ...j, verdict: verdicts.get(j.key), play_pkg: null, country: anchorMap.get(j.key)?.country ?? countryOf(j) }))
+  const ready = live.blocked ? [] : anchoredFit.filter((j) => j.posts.length >= REGISTER_MIN_POSTS).map((j) => ({ ...j, verdict: verdicts.get(j.key), play_pkg: j.play_pkgs?.[0] ?? null, country: anchorMap.get(j.key)?.country ?? countryOf(j) }))
 
   // ⑦ 게이트 · ⑨ 지표
   const plan = planGate(ready, gateState(input.targets))
@@ -174,8 +175,9 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
   const alerts = safetyAlerts(metrics, ready)
   const stateOf = new Map([...verdicts].map(([k, v]) => [k, v.state]))
   log(metricsLine(metrics))
-  const pathCounts = { link: linkKeys.size, dictionary: dictKeys.size, search: [...anchorMap.keys()].length, unresolved: judged.filter((j) => (j.stage === 'candidate' || j.stage === 'area_fit') && !j.app_ids.length && !anchorMap.has(j.key)).length }
-  log(`경로별 해소(후보 기준 아님·전체 이름): 링크 ${pathCounts.link} · 사전 ${pathCounts.dictionary} · Search ${pathCounts.search} · 홈페이지/Wikidata 미구현 · 후보 중 못 찾음 ${pathCounts.unresolved}`)
+  const liveCand = judged.filter((j) => j.stage === 'candidate' || j.stage === 'area_fit')
+  const pathCounts = { link: linkKeys.size, link_play: rows.filter((a) => a.play_pkgs?.length).length, link_candidates: liveCand.filter((j) => j.app_ids.length || j.play_pkgs?.length).length, dictionary: dictKeys.size, search: [...anchorMap.keys()].length, unresolved: judged.filter((j) => (j.stage === 'candidate' || j.stage === 'area_fit') && !j.app_ids.length && !j.play_pkgs?.length && !anchorMap.has(j.key)).length }
+  log(`경로별 해소(후보 기준 아님·전체 이름): 링크 ${pathCounts.link}(플레이 ${pathCounts.link_play}) · 후보 중 링크로 해소 ${pathCounts.link_candidates}/${liveCand.length} · 사전 ${pathCounts.dictionary} · Search ${pathCounts.search} · 홈페이지/Wikidata 미구현 · 후보 중 못 찾음 ${pathCounts.unresolved}`)
   log(`입력 글 ${counts.posts} · 이름 나온 글 ${counts.posts_with_mention} · 이미 등록 ${counts.registered} · 자기 이름 ${counts.self} · 지난 기각 ${prior.size} · 기준 ${minPosts}글`)
   log(`풀 ${pool} · 종류별 글(이름 나온 글) ${Object.entries(counts.by_kind).map(([k, v]) => `${k} ${v.posts}(${v.with_mention})`).join(' · ')} · 글 단위 영역으로 올린 글 ${lifted ?? '-'} · 같은 개발사 고리 일치 ${similarMatched ?? '-'} · 기준 ${crit.id} · 시험 기준 전용(등록 안 함) ${trialOnly.length}`)
   const compareIds = (opt('compare') ?? '').split(',').filter(Boolean).map(parseCriterion)
@@ -217,6 +219,9 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
     if (approved.length) fs.writeFileSync(path.join(dir, 'mention-approved.json'), JSON.stringify(approved, null, 2) + '\n')
     const genInput = [...toGeneratorCandidates(plan), ...similar]
     if (genInput.length) fs.writeFileSync(path.join(dir, 'candidate-input.json'), JSON.stringify(genInput, null, 2) + '\n')
+    // v71ap: 게이트가 막은 언급 후보 기록(기록만 — 게이트 불변). 집계 = scripts/gate-reject-log.mjs
+    const gs = gateState(input.targets)
+    appendRejects(dir, plan.blocked.map((b) => rejectLine({ at: now, source: 'appstore', candidate: b.c.key, reason: b.reason, active: gs.appstore_active, totalActive: gs.total_active, headroom: 0 })))
     fs.writeFileSync(path.join(dir, 'mention-ledger.sql'), renderLedgerSql(judged, verdicts, new Set(plan.blocked.map((b) => b.c.key)), date))
     const entries = { ...(ledger.entries ?? {}) }
     for (const j of judged) {

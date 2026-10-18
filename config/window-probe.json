@@ -7,7 +7,7 @@
     "sorts": ["mostRecent", "mostHelpful"]
   },
   "googleplay": {
-    "windows": ["us:en", "gb:en", "ca:en", "au:en", "in:en", "sg:en", "ie:en", "nz:en", "za:en"],
+    "windows": ["us:en", "gb:en", "ca:en", "au:en", "in:en", "sg:en", "ie:en", "nz:en", "za:en", "ph:en"],
     "sorts": ["newest"]
   }
 }

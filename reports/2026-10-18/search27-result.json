@@ -1,0 +1,913 @@
+[
+ {
+  "slug": "kanban",
+  "name": "Kanban",
+  "expected_domain": null,
+  "country": "kr",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 8건)"
+  },
+  "top3_seen": [
+   {
+    "id": 1670749530,
+    "name": "Simple Kanban Board",
+    "seller": "Rinat Galiev",
+    "seller_url": null,
+    "ratings": 0
+   },
+   {
+    "id": 461504587,
+    "name": "Trello: Daily Task Tracker",
+    "seller": "Trello, Inc.",
+    "seller_url": "https://trello.com/",
+    "ratings": 235
+   },
+   {
+    "id": 1540325366,
+    "name": "To Do App - Doneit",
+    "seller": "DesignTech SIA",
+    "seller_url": "https://www.designtech.so/doneit",
+    "ratings": 42
+   }
+  ]
+ },
+ {
+  "slug": "erpnext",
+  "name": "ERPNext",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 8건)"
+  },
+  "top3_seen": [
+   {
+    "id": 6479046579,
+    "name": "Mobile Client for ERPNext",
+    "seller": "Malik Muhammad Shahid Khan",
+    "seller_url": "https://codessoft.com",
+    "ratings": 9
+   },
+   {
+    "id": 6754626633,
+    "name": "ERPNext Workflow",
+    "seller": "Midocean Technologies Private Limited",
+    "seller_url": null,
+    "ratings": 0
+   },
+   {
+    "id": 6760002884,
+    "name": "Native for ERPNext",
+    "seller": "Pedrett IT + Web AG",
+    "seller_url": null,
+    "ratings": 0
+   }
+  ]
+ },
+ {
+  "slug": "googleanalytics",
+  "name": "Google Analytics",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "anchored",
+   "appId": 881599038,
+   "trackName": "Google Analytics",
+   "sellerName": "Google LLC",
+   "domain": null,
+   "ratingCount": 5249,
+   "reason": "앱 881599038 \"Google Analytics\" · 평가 5249건"
+  },
+  "top3_seen": [
+   {
+    "id": 881599038,
+    "name": "Google Analytics",
+    "seller": "Google LLC",
+    "seller_url": null,
+    "ratings": 5249
+   },
+   {
+    "id": 1037457231,
+    "name": "Google Ads",
+    "seller": "Google LLC",
+    "seller_url": "https://ads.google.com/home/",
+    "ratings": 5077
+   },
+   {
+    "id": 6756613432,
+    "name": "Search Analytics",
+    "seller": "喜兰 梁",
+    "seller_url": null,
+    "ratings": 234
+   }
+  ]
+ },
+ {
+  "slug": "gmail",
+  "name": "Gmail",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "anchored",
+   "appId": 422689480,
+   "trackName": "Gmail - Email by Google",
+   "sellerName": "Google LLC",
+   "domain": "mail.google.com",
+   "ratingCount": 2446121,
+   "reason": "앱 422689480 \"Gmail - Email by Google\" · 평가 2446121건"
+  },
+  "top3_seen": [
+   {
+    "id": 422689480,
+    "name": "Gmail - Email by Google",
+    "seller": "Google LLC",
+    "seller_url": "https://mail.google.com",
+    "ratings": 2446121
+   },
+   {
+    "id": 544007664,
+    "name": "YouTube",
+    "seller": "Google LLC",
+    "seller_url": "https://www.youtube.com",
+    "ratings": 49473148
+   },
+   {
+    "id": 284815942,
+    "name": "Google",
+    "seller": "Google LLC",
+    "seller_url": "http://www.google.com/search/about",
+    "ratings": 5236748
+   }
+  ]
+ },
+ {
+  "slug": "mixpanel",
+  "name": "Mixpanel",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 7건)"
+  },
+  "top3_seen": [
+   {
+    "id": 6753967773,
+    "name": "Mixpanel Mobile Analytics",
+    "seller": "Adam Smith",
+    "seller_url": "https://mixpanel-mobile-analytics.lovable.app/",
+    "ratings": 3
+   },
+   {
+    "id": 6757536652,
+    "name": "Event Flow: Mixpanel Events",
+    "seller": "Mikkel Nielsen",
+    "seller_url": "https://bendixmedia.com",
+    "ratings": 0
+   },
+   {
+    "id": 6780944648,
+    "name": "Lumaq: Mixpanel, Amplitude",
+    "seller": "Ekofi Capital LLC",
+    "seller_url": null,
+    "ratings": 0
+   }
+  ]
+ },
+ {
+  "slug": "producthunt",
+  "name": "Product Hunt",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "anchored",
+   "appId": 904658671,
+   "trackName": "Product Hunt",
+   "sellerName": "PRODUCT HUNT, INC.",
+   "domain": "producthunt.com",
+   "ratingCount": 3837,
+   "reason": "앱 904658671 \"Product Hunt\" · 평가 3837건"
+  },
+  "top3_seen": [
+   {
+    "id": 904658671,
+    "name": "Product Hunt",
+    "seller": "PRODUCT HUNT, INC.",
+    "seller_url": "https://producthunt.com/apps",
+    "ratings": 3837
+   },
+   {
+    "id": 596961532,
+    "name": "Kickstarter: Projects You Love",
+    "seller": "Kickstarter, PBC",
+    "seller_url": "http://www.kickstarter.com/mobile?ref=itunes",
+    "ratings": 59275
+   },
+   {
+    "id": 1451386900,
+    "name": "Hacker Feed",
+    "seller": "Ken Toh",
+    "seller_url": null,
+    "ratings": 438
+   }
+  ]
+ },
+ {
+  "slug": "ga",
+  "name": "GA",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 7건)"
+  },
+  "top3_seen": [
+   {
+    "id": 1440430680,
+    "name": "Gacha Life",
+    "seller": "Lunime Inc.",
+    "seller_url": null,
+    "ratings": 224602
+   },
+   {
+    "id": 698255242,
+    "name": "Geometry Dash Lite",
+    "seller": "RobTop Games AB",
+    "seller_url": "http://www.robtopgames.com",
+    "ratings": 264820
+   },
+   {
+    "id": 408709785,
+    "name": "GarageBand",
+    "seller": "Apple Inc.",
+    "seller_url": "http://www.apple.com/ios/garageband",
+    "ratings": 117802
+   }
+  ]
+ },
+ {
+  "slug": "googleanalytic",
+  "name": "Google Analytic",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 5건)"
+  },
+  "top3_seen": [
+   {
+    "id": 881599038,
+    "name": "Google Analytics",
+    "seller": "Google LLC",
+    "seller_url": null,
+    "ratings": 5249
+   },
+   {
+    "id": 888530356,
+    "name": "YouTube Studio",
+    "seller": "Google LLC",
+    "seller_url": null,
+    "ratings": 26031
+   },
+   {
+    "id": 898185967,
+    "name": "Analytics for Google Analytics",
+    "seller": "Jan-Niklas FREUNDT",
+    "seller_url": "http://www.app-pocket.com/app/analytics-for-google-analytics/",
+    "ratings": 1
+   }
+  ]
+ },
+ {
+  "slug": "googlereader",
+  "name": "Google Reader",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 8건)"
+  },
+  "top3_seen": [
+   {
+    "id": 400989007,
+    "name": "Google Play Books & Audiobooks",
+    "seller": "Google LLC",
+    "seller_url": "https://play.google.com",
+    "ratings": 9642
+   },
+   {
+    "id": 842842640,
+    "name": "Google Docs",
+    "seller": "Google LLC",
+    "seller_url": "http://www.google.com/docs/about/",
+    "ratings": 3279443
+   },
+   {
+    "id": 1446876360,
+    "name": "Voice Aloud Reader",
+    "seller": "Marcin Olawski",
+    "seller_url": "https://www.codeesteem.com/",
+    "ratings": 18824
+   }
+  ]
+ },
+ {
+  "slug": "claudedesktop",
+  "name": "Claude Desktop",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 8건)"
+  },
+  "top3_seen": [
+   {
+    "id": 6473753684,
+    "name": "Claude by Anthropic",
+    "seller": "Anthropic PBC",
+    "seller_url": "https://claude.ai",
+    "ratings": 281284
+   },
+   {
+    "id": 6477489729,
+    "name": "Google Gemini",
+    "seller": "Google LLC",
+    "seller_url": "https://gemini.google.com/app/download",
+    "ratings": 2351848
+   },
+   {
+    "id": 1477376905,
+    "name": "GitHub",
+    "seller": "GitHub",
+    "seller_url": "http://github.com/mobile",
+    "ratings": 38340
+   }
+  ]
+ },
+ {
+  "slug": "aws",
+  "name": "AWS",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 8건)"
+  },
+  "top3_seen": [
+   {
+    "id": 580990573,
+    "name": "AWS Console",
+    "seller": "AMZN Mobile LLC",
+    "seller_url": "https://aws.amazon.com/console/mobile/",
+    "ratings": 6141
+   },
+   {
+    "id": 1457242918,
+    "name": "AWS Events",
+    "seller": "AMZN Mobile LLC",
+    "seller_url": "https://reinvent.awsevents.com/mobile-app/",
+    "ratings": 5286
+   },
+   {
+    "id": 6446181259,
+    "name": "Learn AWS",
+    "seller": "Price Digital Ventures, LLC",
+    "seller_url": null,
+    "ratings": 47
+   }
+  ]
+ },
+ {
+  "slug": "heroku",
+  "name": "Heroku",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 5건)"
+  },
+  "top3_seen": [
+   {
+    "id": 6503262108,
+    "name": "HK Mobile",
+    "seller": "Stratis, LLC",
+    "seller_url": "https://www.stratisglobal.com",
+    "ratings": 3
+   },
+   {
+    "id": 782057975,
+    "name": "Salesforce Authenticator",
+    "seller": "salesforce.com",
+    "seller_url": "https://www.salesforce.com/products/platform/two-factor-authentication/",
+    "ratings": 4306
+   },
+   {
+    "id": 914101977,
+    "name": "Status Hero",
+    "seller": "Matija Bogdanovic",
+    "seller_url": "http://lephantforheroku.com",
+    "ratings": 5
+   }
+  ]
+ },
+ {
+  "slug": "jira",
+  "name": "Jira",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 8건)"
+  },
+  "top3_seen": [
+   {
+    "id": 1006972087,
+    "name": "Jira Cloud by Atlassian",
+    "seller": "Atlassian Pty Ltd",
+    "seller_url": "http://www.jira.com",
+    "ratings": 40889
+   },
+   {
+    "id": 1006971684,
+    "name": "Confluence Cloud",
+    "seller": "Atlassian Pty Ltd",
+    "seller_url": "https://atlassian.com/confluence",
+    "ratings": 3690
+   },
+   {
+    "id": 1405353949,
+    "name": "Jira Data Center",
+    "seller": "Atlassian Pty Ltd",
+    "seller_url": null,
+    "ratings": 71
+   }
+  ]
+ },
+ {
+  "slug": "raindrop",
+  "name": "Raindrop",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "ambiguous",
+   "reason": "이름이 맞는 앱 2개가 서로 다른 판매자(raindroplimitedliabilitycompany, getraindropllc)"
+  },
+  "top3_seen": [
+   {
+    "id": 6450370964,
+    "name": "RainDrop - Rain Totals & Radar",
+    "seller": "Raindrop Limited Liability Company",
+    "seller_url": "https://www.raindrop.farm",
+    "ratings": 22470
+   },
+   {
+    "id": 1021913807,
+    "name": "Raindrop.io",
+    "seller": "Rustem Mussabekov",
+    "seller_url": "https://raindrop.io",
+    "ratings": 420
+   },
+   {
+    "id": 6474562429,
+    "name": "RainDrop - Free Resources",
+    "seller": "Get RainDrop, LLC",
+    "seller_url": null,
+    "ratings": 18
+   }
+  ]
+ },
+ {
+  "slug": "confluence",
+  "name": "Confluence",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 7건)"
+  },
+  "top3_seen": [
+   {
+    "id": 1006971684,
+    "name": "Confluence Cloud",
+    "seller": "Atlassian Pty Ltd",
+    "seller_url": "https://atlassian.com/confluence",
+    "ratings": 3690
+   },
+   {
+    "id": 1006972087,
+    "name": "Jira Cloud by Atlassian",
+    "seller": "Atlassian Pty Ltd",
+    "seller_url": "http://www.jira.com",
+    "ratings": 40889
+   },
+   {
+    "id": 1288365159,
+    "name": "Confluence Data Center",
+    "seller": "Atlassian Pty Ltd",
+    "seller_url": null,
+    "ratings": 73
+   }
+  ]
+ },
+ {
+  "slug": "noteforms",
+  "name": "NoteForms",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 7건)"
+  },
+  "top3_seen": [
+   {
+    "id": 410395246,
+    "name": "Microsoft OneNote",
+    "seller": "Microsoft Corporation",
+    "seller_url": "https://www.OneNote.com",
+    "ratings": 1068766
+   },
+   {
+    "id": 6471383301,
+    "name": "NoteForm",
+    "seller": "Coding Minds, Inc.",
+    "seller_url": null,
+    "ratings": 0
+   },
+   {
+    "id": 6458735203,
+    "name": "Noteshelf: AI Notes & PDF",
+    "seller": "Fluid Touch Pte. Ltd.",
+    "seller_url": "https://www.noteshelf.net",
+    "ratings": 7035
+   }
+  ]
+ },
+ {
+  "slug": "pocket",
+  "name": "Pocket",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "anchored",
+   "appId": 1532676793,
+   "trackName": "PocketApp: Send & Manage Money",
+   "sellerName": "Abeg Technologies Ltd",
+   "domain": "pocketapp.com",
+   "ratingCount": 9252,
+   "reason": "앱 1532676793 \"PocketApp: Send & Manage Money\" · 평가 9252건"
+  },
+  "top3_seen": [
+   {
+    "id": 6479970832,
+    "name": "Pokémon TCG Pocket",
+    "seller": "The Pokemon Company",
+    "seller_url": "https://tcgpocket.pokemon.com/",
+    "ratings": 696085
+   },
+   {
+    "id": 916366645,
+    "name": "Procreate Pocket",
+    "seller": "Savage Interactive Pty Ltd",
+    "seller_url": "https://procreate.com/pocket",
+    "ratings": 12725
+   },
+   {
+    "id": 1532676793,
+    "name": "PocketApp: Send & Manage Money",
+    "seller": "Abeg Technologies Ltd",
+    "seller_url": "https://pocketapp.com",
+    "ratings": 9252
+   }
+  ]
+ },
+ {
+  "slug": "screenstudio",
+  "name": "Screen Studio",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 8건)"
+  },
+  "top3_seen": [
+   {
+    "id": 1345200849,
+    "name": "Screen Recorder: Go Record",
+    "seller": "Torqued Studios LLC",
+    "seller_url": null,
+    "ratings": 111392
+   },
+   {
+    "id": 1479827719,
+    "name": "Screen Recorder",
+    "seller": "App of the Year LLC",
+    "seller_url": "https://appoftheyear.net",
+    "ratings": 34308
+   },
+   {
+    "id": 6754534534,
+    "name": "Screenfully: App Demo Creator",
+    "seller": "Amir Fahd Hadji Usop",
+    "seller_url": "https://screenfully.app",
+    "ratings": 3
+   }
+  ]
+ },
+ {
+  "slug": "electron",
+  "name": "Electron",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "ambiguous",
+   "reason": "이름이 맞는 앱 2개가 서로 다른 판매자(mahersafadi, amirkhonbahodurov)"
+  },
+  "top3_seen": [
+   {
+    "id": 6446936491,
+    "name": "Electron: Battery Widgets",
+    "seller": "Maher Safadi",
+    "seller_url": null,
+    "ratings": 3
+   },
+   {
+    "id": 6451483999,
+    "name": "Electron",
+    "seller": "Amirkhon Bahodurov",
+    "seller_url": null,
+    "ratings": 3
+   },
+   {
+    "id": 6754780102,
+    "name": "Electron Charger Configure",
+    "seller": "ELECTRON CHARGER, LLC",
+    "seller_url": null,
+    "ratings": 1
+   }
+  ]
+ },
+ {
+  "slug": "hetzner",
+  "name": "Hetzner",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 8건)"
+  },
+  "top3_seen": [
+   {
+    "id": 6758351166,
+    "name": "HeC - Unofficial Hetzner Cloud",
+    "seller": "Dorian Borovina",
+    "seller_url": "https://dorian.borovina.com",
+    "ratings": 3
+   },
+   {
+    "id": 6756284112,
+    "name": "HetzMate for Hetzner Cloud",
+    "seller": "Lars Herres",
+    "seller_url": null,
+    "ratings": 1
+   },
+   {
+    "id": 482005451,
+    "name": "Robot Mobile",
+    "seller": "Hetzner Online GmbH",
+    "seller_url": null,
+    "ratings": 0
+   }
+  ]
+ },
+ {
+  "slug": "전동칫솔",
+  "name": "전동칫솔",
+  "expected_domain": null,
+  "country": "kr",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 5건)"
+  },
+  "top3_seen": [
+   {
+    "id": 1047099766,
+    "name": "Philips Sonicare",
+    "seller": "Philips Consumer Lifestyle, B.V.",
+    "seller_url": "https://www.philips.co.kr/c-m-pe/electric-toothbrushes",
+    "ratings": 494
+   },
+   {
+    "id": 698092608,
+    "name": "Oral-B",
+    "seller": "Procter & Gamble Productions, Inc.",
+    "seller_url": null,
+    "ratings": 3034
+   },
+   {
+    "id": 1598312530,
+    "name": "usmile Oral Care",
+    "seller": "Guangzhou Stars Pulse Co.,Ltd.",
+    "seller_url": null,
+    "ratings": 0
+   }
+  ]
+ },
+ {
+  "slug": "barawave",
+  "name": "Barawave",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 7건)"
+  },
+  "top3_seen": [
+   {
+    "id": 692744543,
+    "name": "UAE BARQ",
+    "seller": "Uae Barq",
+    "seller_url": "http://uaebarq.ae/",
+    "ratings": 10
+   },
+   {
+    "id": 6760367588,
+    "name": "А-барахолка",
+    "seller": "Samvel Ofliian",
+    "seller_url": null,
+    "ratings": 0
+   },
+   {
+    "id": 1435727978,
+    "name": "BargamInfo",
+    "seller": "AAKASH GANDHI",
+    "seller_url": null,
+    "ratings": 0
+   }
+  ]
+ },
+ {
+  "slug": "bitwarden",
+  "name": "bitwarden",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 8건)"
+  },
+  "top3_seen": [
+   {
+    "id": 1137397744,
+    "name": "Bitwarden Password Manager",
+    "seller": "Bitwarden Inc",
+    "seller_url": "https://bitwarden.com",
+    "ratings": 34358
+   },
+   {
+    "id": 6497335175,
+    "name": "Bitwarden Authenticator",
+    "seller": "Bitwarden Inc",
+    "seller_url": "https://bitwarden.com",
+    "ratings": 95
+   },
+   {
+    "id": 6473799789,
+    "name": "Passwords",
+    "seller": "Apple Inc.",
+    "seller_url": null,
+    "ratings": 806838
+   }
+  ]
+ },
+ {
+  "slug": "orgmode",
+  "name": "Org-mode",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 7건)"
+  },
+  "top3_seen": [
+   {
+    "id": 1238649962,
+    "name": "beorg: To-Do List & Agenda",
+    "seller": "Apps On The Move Limited",
+    "seller_url": "https://beorg.app",
+    "ratings": 1044
+   },
+   {
+    "id": 1512580074,
+    "name": "Orgro",
+    "seller": "Aaron Madlon-Kay",
+    "seller_url": "https://orgro.org/",
+    "ratings": 13
+   },
+   {
+    "id": 1578965002,
+    "name": "Plain Org",
+    "seller": "Xenodium, Ltd.",
+    "seller_url": null,
+    "ratings": 157
+   }
+  ]
+ },
+ {
+  "slug": "proton",
+  "name": "Proton",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 6건)"
+  },
+  "top3_seen": [
+   {
+    "id": 1437005085,
+    "name": "Proton VPN: Fast & Secure",
+    "seller": "Proton AG",
+    "seller_url": "https://protonvpn.com",
+    "ratings": 120995
+   },
+   {
+    "id": 979659905,
+    "name": "Proton Mail - Encrypted Email",
+    "seller": "Proton AG",
+    "seller_url": "https://proton.me",
+    "ratings": 49095
+   },
+   {
+    "id": 1509667851,
+    "name": "Proton Drive: Cloud Storage",
+    "seller": "Proton AG",
+    "seller_url": "https://proton.me/drive",
+    "ratings": 1232
+   }
+  ]
+ },
+ {
+  "slug": "selfhosting",
+  "name": "self-hosting",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 8건)"
+  },
+  "top3_seen": [
+   {
+    "id": 889910218,
+    "name": "Zoomcar: Car rental for travel",
+    "seller": "ZOOMCAR INDIA PRIVATE LIMITED",
+    "seller_url": "https://www.zoomcar.com",
+    "ratings": 1215
+   },
+   {
+    "id": 1609464147,
+    "name": "KubeSail",
+    "seller": "Kubesail, Inc",
+    "seller_url": "https://kubesail.com",
+    "ratings": 2
+   },
+   {
+    "id": 1080444849,
+    "name": "IONOS",
+    "seller": "IONOS SE",
+    "seller_url": "https://www.ionos.com",
+    "ratings": 15271
+   }
+  ]
+ },
+ {
+  "slug": "vscode",
+  "name": "VS Code",
+  "expected_domain": null,
+  "country": "us",
+  "verdict": {
+   "state": "no_match",
+   "reason": "이름이 맞는 앱 없음(조회 7건)"
+  },
+  "top3_seen": [
+   {
+    "id": 1477376905,
+    "name": "GitHub",
+    "seller": "GitHub",
+    "seller_url": "http://github.com/mobile",
+    "ratings": 38340
+   },
+   {
+    "id": 6473753684,
+    "name": "Claude by Anthropic",
+    "seller": "Anthropic PBC",
+    "seller_url": "https://claude.ai",
+    "ratings": 281284
+   },
+   {
+    "id": 1447489375,
+    "name": "Koder Code Editor",
+    "seller": "Reny Mustika",
+    "seller_url": "https://koderapp.com",
+    "ratings": 12111
+   }
+  ]
+ }
+]

@@ -40,7 +40,9 @@ const STOP = new Set(
     'there,here,what,which,paper,pen,pencil,web,website,browser,desktop,mobile,version,webversion,app,apps,application,tool,tools,software,program,service,platform,' +
     'competitor,competitors,iphone,ipad,android,ios,mac,windows,phone,computer,pc,laptop,free,paid,premium,pro,subscription,manual,spreadsheet,spreadsheets,' +
     '이,이거,이걸,이것,이앱,그거,그걸,저거,앱,어플,어플리케이션,다른,다른앱,다른어플,타사,경쟁사,웹,웹버전,유료,무료,버전,기존,예전,예전에,원래,그냥,계속,전,이전,후,' +
-    '폰,아이폰,갤럭시,컴퓨터,노트북,종이,수기,손글씨,업데이트,광고,생각,예상,기대,처음,처음엔,한동안,오래,잘,여기,거기,회사,직장,프로그램,서비스'
+    '폰,아이폰,갤럭시,컴퓨터,노트북,종이,수기,손글씨,업데이트,광고,생각,예상,기대,처음,처음엔,한동안,오래,잘,여기,거기,회사,직장,프로그램,서비스,' +
+    // v71am(2026-10-18 표본 30건 실측): 영어 일반어·동명사가 이름으로 잡힌 오탐 23/30 — 일반어 추가
+    'just,being,having,using,trying,doing,going,most,more,many,full,both,from,keep,self,solo,when,about,build,cloud,daily,every,https,http,base,actual,current,monthly,regulated,still,also,only,even,much,very,really,then,than,into,over,after,before,while,each,such,same,own,new,old,good,best,better,worse,great,like,make,get,take,use,used,want,need,try,tried,run,work,look,find,know,think,see,come,give,say,show,help,start,stop,move,moved,그대,샴푸'
   ).split(','),
 )
 /** 일반어와 겹치는 OS 기본 앱 이름(샘플 오탐: Pages·Notes·Calendar). 제품일 수 있어도 자동 경로에서는 기각 + 사유. */
@@ -146,6 +148,8 @@ export function nameRejectReason(surface: string, key: string, exclude: Exclude 
   if (/[가-힣](님|씨)$/.test(surface)) return 'person_name'
   for (const [k, list] of Object.entries(exclude)) if (Array.isArray(list) && list.includes(key)) return k
   if (/^[a-z]+$/.test(surface) && surface.length <= 3) return 'too_short'
+  // ponytail: 소문자 단일 영단어는 제품명보다 일반어(reading·default·static)일 때가 압도적 — 표본 30건 실측. 소문자로만 적힌 진짜 제품은 놓친다(대문자 표기 언급이 있으면 그 표기가 이름이 된다)
+  if (/^[a-z]+$/.test(surface)) return 'lowercase_word'
   return null
 }
 

@@ -1,0 +1,306 @@
+{
+  "candidates": [
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1607562761",
+      "label": "5:kr|notion-캘린더",
+      "expected_yield": 117,
+      "evidence": "same_developer of kr:1232780281 · Productivity · ratings=2344 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:782057975",
+      "label": "2:us|salesforce-authenticator",
+      "expected_yield": 215,
+      "evidence": "same_developer of us:404249815 · Business · ratings=4305 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1163307568",
+      "label": "2:us|salesforce-field-service",
+      "expected_yield": 500,
+      "evidence": "same_developer of us:404249815 · Business · ratings=20963 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1021413071",
+      "label": "2:us|salesforce-events",
+      "expected_yield": 500,
+      "evidence": "same_developer of us:404249815 · Business · ratings=13049 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:916982402",
+      "label": "2:us|crm-analytics",
+      "expected_yield": 64,
+      "evidence": "same_developer of us:404249815 · Business · ratings=1294 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1585182357",
+      "label": "2:us|consumer-goods-cloud",
+      "expected_yield": 1,
+      "evidence": "same_developer of us:404249815 · Productivity · ratings=29 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1632303164",
+      "label": "2:us|salesrabbit",
+      "expected_yield": 17,
+      "evidence": "same_developer of us:879884387 · Business · ratings=347 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:592346243",
+      "label": "1:kr|네이버-캘린더-naver-calendar",
+      "expected_yield": 348,
+      "evidence": "same_developer of kr:1530010245 · Productivity · ratings=6968 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:582152066",
+      "label": "1:kr|네이버-메일",
+      "expected_yield": 100,
+      "evidence": "same_developer of kr:1530010245 · Productivity · ratings=2018 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1234216092",
+      "label": "1:kr|네이버-클로바-naver-clova",
+      "expected_yield": 51,
+      "evidence": "same_developer of kr:1530010245 · Productivity · ratings=1021 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:451086610",
+      "label": "1:kr|네이버-메모-naver-memo",
+      "expected_yield": 67,
+      "evidence": "same_developer of kr:1530010245 · Productivity · ratings=1355 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1081736402",
+      "label": "1:kr|네이버-톡톡-파트너센터",
+      "expected_yield": 10,
+      "evidence": "same_developer of kr:1530010245 · Business · ratings=218 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1521817390",
+      "label": "1:kr|네이버-스마트플레이스센터",
+      "expected_yield": 18,
+      "evidence": "same_developer of kr:1530010245 · Business · ratings=366 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "ca:6463821495",
+      "label": "4:ca|workday-events",
+      "expected_yield": 2,
+      "evidence": "same_developer of ca:316800034 · Business · ratings=46 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "ca:1006426053",
+      "label": "4:ca|peakon",
+      "expected_yield": 3,
+      "evidence": "same_developer of ca:316800034 · Business · ratings=77 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1361508774",
+      "label": "5:kr|폴라리스-뷰어-pdf-한글-오피스-문서-ᄅ",
+      "expected_yield": 500,
+      "evidence": "same_developer of kr:698070860 · Productivity · ratings=12308 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:513188658",
+      "label": "5:kr|폴라리스-오피스-모바일-hwp-pdf-ms문서",
+      "expected_yield": 320,
+      "evidence": "same_developer of kr:698070860 · Productivity · ratings=6415 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:6449719752",
+      "label": "2:us|unbound-2026",
+      "expected_yield": 5,
+      "evidence": "same_developer of us:1107711722 · Business · ratings=109 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:945578864",
+      "label": "1:kr|u-one-요금-가입-로밍-멤버십",
+      "expected_yield": 500,
+      "evidence": "same_developer of kr:6503931858 · Lifestyle · ratings=56305 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:994846408",
+      "label": "1:kr|u-스팸차단",
+      "expected_yield": 65,
+      "evidence": "same_developer of kr:6503931858 · Lifestyle · ratings=1303 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1058218637",
+      "label": "1:kr|u-스마트홈",
+      "expected_yield": 61,
+      "evidence": "same_developer of kr:6503931858 · Lifestyle · ratings=1225 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1502487714",
+      "label": "1:kr|u-우리집지킴이-u-스마트홈easy",
+      "expected_yield": 12,
+      "evidence": "same_developer of kr:6503931858 · Lifestyle · ratings=240 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1571096278",
+      "label": "1:kr|u-우리가게패키지-매장-통신부터-상권",
+      "expected_yield": 5,
+      "evidence": "same_developer of kr:6503931858 · Business · ratings=100 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:1150947831",
+      "label": "1:kr|u-0505모바일fax",
+      "expected_yield": 1,
+      "evidence": "same_developer of kr:6503931858 · Business · ratings=28 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:6670373769",
+      "label": "1:kr|u-자녀폰지킴이",
+      "expected_yield": 1,
+      "evidence": "same_developer of kr:6503931858 · Lifestyle · ratings=25 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "kr:6503284354",
+      "label": "1:kr|ai비즈콜-by-ixi-기업용",
+      "expected_yield": 2,
+      "evidence": "same_developer of kr:6503931858 · Business · ratings=51 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1458411327",
+      "label": "3:us|invitation-maker-invite-maker",
+      "expected_yield": 500,
+      "evidence": "same_developer of us:1448204455 · Business · ratings=12416 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1441027963",
+      "label": "3:us|thumbnail-banner-maker",
+      "expected_yield": 492,
+      "evidence": "same_developer of us:1448204455 · Business · ratings=9849 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1455784524",
+      "label": "3:us|flyers-advertisement-maker",
+      "expected_yield": 215,
+      "evidence": "same_developer of us:1448204455 · Business · ratings=4307 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1455008435",
+      "label": "3:us|logo-maker-create-design",
+      "expected_yield": 284,
+      "evidence": "same_developer of us:1448204455 · Business · ratings=5690 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1459531560",
+      "label": "3:us|igenius-banner-maker",
+      "expected_yield": 140,
+      "evidence": "same_developer of us:1448204455 · Photo & Video · ratings=2806 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1458226187",
+      "label": "3:us|thumbnail-maker",
+      "expected_yield": 144,
+      "evidence": "same_developer of us:1448204455 · Business · ratings=2888 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "us:1445208975",
+      "label": "3:us|poster-maker-flyer-designer",
+      "expected_yield": 11,
+      "evidence": "same_developer of us:1448204455 · Business · ratings=229 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "ca:6760173601",
+      "label": "3:ca|muse-from-meta",
+      "expected_yield": 500,
+      "evidence": "same_developer of ca:964397083 · Productivity · ratings=45976 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "ca:514643583",
+      "label": "3:ca|meta-business-suite",
+      "expected_yield": 500,
+      "evidence": "same_developer of ca:964397083 · Business · ratings=60606 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "ca:1558240027",
+      "label": "3:ca|meta-ai",
+      "expected_yield": 500,
+      "evidence": "same_developer of ca:964397083 · Productivity · ratings=24194 [추정 ×0.05]"
+    },
+    {
+      "generator": "similar_app",
+      "source_key": "appstore",
+      "product_ref": "ca:944921229",
+      "label": "3:ca|workplace-from-meta",
+      "expected_yield": 500,
+      "evidence": "same_developer of ca:964397083 · Business · ratings=16704 [추정 ×0.05]"
+    }
+  ],
+  "requests": 40,
+  "stopped": null,
+  "skipped": {
+    "low_ratings": 29,
+    "genre": 48
+  }
+}

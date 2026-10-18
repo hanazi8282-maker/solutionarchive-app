@@ -15,6 +15,7 @@
 //   --register --review=<csv>  (마) 등록 모드: CEO-staff 가 채점한 표본(≥30, 적합 ≥90%)이 통과일 때만 mention-approved.json →
 //                       candidate-register-draft 로 마이그 초안+롤백을 만든다(--migrations-dir, 기본 supabase/migrations). DB 에 쓰지 않는다
 //   --ledger=<json>     지난 대장(기각 재제안 방지·등록 이력). 기본 reports/mention-ledger.json — 기본 경로가 없으면 빈 대장, 지정했는데 없으면 중단
+//   --dictionary=<json> (v71am §1-A) appstore-chart-dictionary.mjs 결과 — 이름이 같은 후보에 차트 앱 ID 를 붙인다(링크 ID 와 같은 자리 → --lookup 검증을 탄다, 무검증 anchored 없음)
 //   --lookups=<json>    {"<앱 ID>": iTunes results[]} — 미리 조회해 둔 결과(재현용)
 //   --searched=<json>   {"<norm_key>": iTunes search results[]} — 이름 검색 결과. 검색 경로는 robots 금지라 사람 판단 뒤에만 채워진다
 //   --lookup            근거 글 속 앱스토어 링크 ID 를 iTunes lookup(루트 /lookup?id=)으로 직접 조회. robots 를 먼저 읽고 '허용'일 때만,
@@ -111,6 +112,19 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
     if (!Array.isArray(similar)) throw new Error('--similar 는 Candidate[] 또는 {candidates:[]}')
     ;({ rows, matched: similarMatched } = mergeSimilar(rows, similar))
   }
+  // 경로별 해소 건수(v71an §1-D′ 일일 지표): 링크(근거 글의 스토어 링크) · 사전(차트 피드) — 검증 전 '앱 ID 확보' 기준
+  const linkKeys = new Set(rows.filter((a) => a.app_ids.length).map((a) => a.key))
+  let dictKeys = new Set()
+  if (opt('dictionary')) {
+    const dict = readJson(opt('dictionary'))?.dictionary
+    if (!dict || typeof dict !== 'object') throw new Error('--dictionary 는 appstore-chart-dictionary.mjs 결과(.dictionary)')
+    rows = rows.map((a) => {
+      const hit = dict[a.key]
+      if (!hit) return a
+      if (!linkKeys.has(a.key)) dictKeys.add(a.key)
+      return { ...a, app_ids: [...new Set([...a.app_ids, ...hit.map((h) => h.id)])] }
+    })
+  }
   const judged = rows.map((a) => judge(a, { minPosts, minSources: crit.minSources, prior }))
   const fit = judged.filter((j) => j.stage === 'area_fit')
 
@@ -160,6 +174,8 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
   const alerts = safetyAlerts(metrics, ready)
   const stateOf = new Map([...verdicts].map(([k, v]) => [k, v.state]))
   log(metricsLine(metrics))
+  const pathCounts = { link: linkKeys.size, dictionary: dictKeys.size, search: [...anchorMap.keys()].length, unresolved: judged.filter((j) => (j.stage === 'candidate' || j.stage === 'area_fit') && !j.app_ids.length && !anchorMap.has(j.key)).length }
+  log(`경로별 해소(후보 기준 아님·전체 이름): 링크 ${pathCounts.link} · 사전 ${pathCounts.dictionary} · Search ${pathCounts.search} · 홈페이지/Wikidata 미구현 · 후보 중 못 찾음 ${pathCounts.unresolved}`)
   log(`입력 글 ${counts.posts} · 이름 나온 글 ${counts.posts_with_mention} · 이미 등록 ${counts.registered} · 자기 이름 ${counts.self} · 지난 기각 ${prior.size} · 기준 ${minPosts}글`)
   log(`풀 ${pool} · 종류별 글(이름 나온 글) ${Object.entries(counts.by_kind).map(([k, v]) => `${k} ${v.posts}(${v.with_mention})`).join(' · ')} · 글 단위 영역으로 올린 글 ${lifted ?? '-'} · 같은 개발사 고리 일치 ${similarMatched ?? '-'} · 기준 ${crit.id} · 시험 기준 전용(등록 안 함) ${trialOnly.length}`)
   const compareIds = (opt('compare') ?? '').split(',').filter(Boolean).map(parseCriterion)
@@ -187,7 +203,7 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
     log(`  - ${j.name} (${j.key}) ${j.stage} · 글 ${j.posts.length} · 소스 ${j.sources.length} · 영역 ${j.area} ${j.area_fit} · 대안탐색 ${j.alt_seek_posts} · 검증 ${verdicts.get(j.key)?.state}`)
 
   const out = {
-    at: now.toISOString(), mode: register ? 'register_draft' : 'dry_run', min_posts: minPosts, criterion: crit.id, pool, area_lifted: lifted, similar_matched: similarMatched, trial_only: trialOnly.map((j) => j.key), comparison, review_gate: gateReview, metrics, alerts, counts,
+    at: now.toISOString(), paths: pathCounts, mode: register ? 'register_draft' : 'dry_run', min_posts: minPosts, criterion: crit.id, pool, area_lifted: lifted, similar_matched: similarMatched, trial_only: trialOnly.map((j) => j.key), comparison, review_gate: gateReview, metrics, alerts, counts,
     threshold_table: thresholdTable(rows, stateOf), alt_seek_effect: altSeekEffect(judged, stateOf),
     gate: { blocked: plan.blocked.map((b) => ({ key: b.c.key, reason: b.reason })), headroom_after: plan.headroom_after },
     rows: judged.map((j) => ({ key: j.key, name: j.name, stage: j.stage, reason: j.reason, posts: j.posts.length, sources: j.sources, area: j.area, area_fit: j.area_fit, roles: j.roles, alt_seek_posts: j.alt_seek_posts, evidence: j.posts.slice(0, 5), verify: verdicts.get(j.key) ?? null })),

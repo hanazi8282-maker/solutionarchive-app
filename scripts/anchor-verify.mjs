@@ -8,12 +8,12 @@
 //    호출 근거는 소유자 예외 — 남헌 2026-10-17 v71aj D-43 정책 A "제한 허용"(docs/migration-exceptions.md 같은 날짜 항목).
 //    Apple 이 Search API 를 공식 문서로 안내하는 것과 robots 금지가 서로 어긋난다는 걸 알고 켠 예외다.
 // 정책 A 조건 — 전부 이 파일이 강제한다(셀프테스트 scripts/anchor-selftest.mjs 가 고정):
-//   · 하루 상한 SEARCH_DAILY_CAP(KST 날짜 기준, reports/<KST>/itunes-search-log.jsonl 의 n 합). 넘으면 호출 0, 'cap' 으로 멈춘다.
+//   · 한 실행(프로세스)당 SEARCH_RUN_MAX(60). 하루 상한 SEARCH_DAILY_CAP(KST 날짜 기준, reports/<KST>/itunes-search-log.jsonl 의 n 합). 넘으면 호출 0, 'cap' 으로 멈춘다.
 //   · 호출 간격 ≥ SEARCH_MIN_INTERVAL_MS(같은 프로세스 안 마지막 호출부터).
 //   · UA = lib/review/runner.ts USER_AGENT(우리 서비스 식별, 위장 없음).
 //   · 4xx·429·5xx·캡차(HTML/“captcha”)·빈 응답(본문 없음·JSON 아님·results 비었거나 배열 아님) 1건이면 즉시 중단 — 그 뒤 이 프로세스의 호출은 전부 거부.
 //   · 모든 호출을 로그 파일에 한 줄씩 남긴다(무엇을·언제·결과).
-//   경로는 /search 하나뿐이다. /lookup 은 정책 A 밖(판단 대기)이라 부르지 않는다.
+//   경로는 /search 하나뿐이다. /lookup(ID 조회)은 D-45 로 허용됐고 appstore-same-developer.mjs --allow-lookup 이 부른다.
 // 롤백 = 이 호출 경로 비활성화: SEARCH_DAILY_CAP 를 0 으로(또는 env ITUNES_SEARCH_DISABLED=1).
 import fs from 'node:fs'
 import path from 'node:path'
@@ -21,16 +21,19 @@ import { fileURLToPath } from 'node:url'
 import { USER_AGENT } from '../lib/review/runner.ts'
 import { verifyAnchor } from '../lib/review/anchor.ts'
 
-export const SEARCH_DAILY_CAP = 100
-export const SEARCH_MIN_INTERVAL_MS = 3000
+// v71am D-44(남헌 2026-10-18): 하루 상한 변수 ITUNES_SEARCH_DAILY_MAX(기본 300) · 간격 6초(분당 ≤10) · 한 실행(프로세스)당 60.
+export const SEARCH_DAILY_CAP = Number(process.env.ITUNES_SEARCH_DAILY_MAX ?? 300)
+export const SEARCH_MIN_INTERVAL_MS = 6000
+export const SEARCH_RUN_MAX = 60
 const REPORTS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'reports')
 export const kstDay = (now = new Date()) => new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10)
 
 /** 호출 가드. 파일 로그로 하루 사용량을 센다. 테스트는 logFile=null(메모리) 로 만든다. */
-export function makeGuard({ logFile = path.join(REPORTS_DIR, kstDay(), 'itunes-search-log.jsonl'), cap = SEARCH_DAILY_CAP, intervalMs = SEARCH_MIN_INTERVAL_MS, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = () => Date.now() } = {}) {
+export function makeGuard({ logFile = path.join(REPORTS_DIR, kstDay(), 'itunes-search-log.jsonl'), cap = SEARCH_DAILY_CAP, runMax = SEARCH_RUN_MAX, intervalMs = SEARCH_MIN_INTERVAL_MS, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = () => Date.now() } = {}) {
   const mem = []
   const lines = () => (logFile ? (fs.existsSync(logFile) ? fs.readFileSync(logFile, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []) : mem)
   let last = null
+  let runCalls = 0
   const g = {
     stopped: null,
     used: () => lines().reduce((s, e) => s + (e.path === '/search' ? (e.n ?? 1) : 0), 0),
@@ -38,6 +41,8 @@ export function makeGuard({ logFile = path.join(REPORTS_DIR, kstDay(), 'itunes-s
       if (process.env.ITUNES_SEARCH_DISABLED === '1') return '비활성(ITUNES_SEARCH_DISABLED=1)'
       if (g.stopped) return `이미 중단됨: ${g.stopped}`
       if (g.used() >= cap) return `하루 상한 ${cap} 도달`
+      if (runCalls >= runMax) return `한 실행 상한 ${runMax} 도달`
+      runCalls++
       const wait = last === null ? 0 : last + intervalMs - now()
       if (wait > 0) await sleep(wait)
       last = now()

@@ -1,0 +1,3164 @@
+{
+ "at": "2026-10-18T08:18:32.932Z",
+ "skipped": [],
+ "stopped": null,
+ "names": 378,
+ "dictionary": {
+  "내가당신을사랑할때보이는순간들:빈티지카메라앱": [
+   {
+    "id": "6783366739",
+    "name": "내가 당신을 사랑할 때 보이는 순간들: 빈티지 카메라앱",
+    "artist": "ironpig Inc.",
+    "country": "kr"
+   }
+  ],
+  "네이버플러스스토어": [
+   {
+    "id": "6738063154",
+    "name": "네이버플러스 스토어",
+    "artist": "NAVER Corp.",
+    "country": "kr"
+   }
+  ],
+  "netshort인기드라마및tv프로그램": [
+   {
+    "id": "6504849169",
+    "name": "NetShort - 인기 드라마 및 TV 프로그램",
+    "artist": "NETSTORY PTE. LTD.",
+    "country": "kr"
+   }
+  ],
+  "dramawave일본/한국/인기단편드라마": [
+   {
+    "id": "6670430706",
+    "name": "DramaWave -일본 / 한국 / 인기 단편 드라마",
+    "artist": "SKYWORK AI PTE LTD",
+    "country": "kr"
+   }
+  ],
+  "claudebyanthropic": [
+   {
+    "id": "6473753684",
+    "name": "Claude by Anthropic",
+    "artist": "Anthropic PBC",
+    "country": "kr"
+   },
+   {
+    "id": "6473753684",
+    "name": "Claude by Anthropic",
+    "artist": "Anthropic PBC",
+    "country": "us"
+   }
+  ],
+  "aicatch(ai캐치):ai영상생성기": [
+   {
+    "id": "6739276631",
+    "name": "AI Catch(AI 캐치): AI 영상 생성기",
+    "artist": "Prominent Fortune PTE. LTD",
+    "country": "kr"
+   }
+  ],
+  "reelshort드라마&tv실시간": [
+   {
+    "id": "1636235979",
+    "name": "ReelShort - 드라마 & TV 실시간",
+    "artist": "NewLeaf Publishing",
+    "country": "kr"
+   }
+  ],
+  "하나은행,새로워진하나원큐를경험해보세요": [
+   {
+    "id": "6743190232",
+    "name": "하나은행, 새로워진 하나원큐를 경험해 보세요",
+    "artist": "Hana Bank",
+    "country": "kr"
+   }
+  ],
+  "포켓cu": [
+   {
+    "id": "573144133",
+    "name": "포켓CU",
+    "artist": "BGFretail Co., Ltd.",
+    "country": "kr"
+   }
+  ],
+  "spctsportstiming": [
+   {
+    "id": "6523431445",
+    "name": "SPCT Sports Timing",
+    "artist": "Namgoo Lee",
+    "country": "kr"
+   }
+  ],
+  "dramabox영화와숏폼드라마": [
+   {
+    "id": "6445905219",
+    "name": "DramaBox - 영화와 숏폼 드라마",
+    "artist": "STORYMATRIX PTE. LTD.",
+    "country": "kr"
+   }
+  ],
+  "vigloo숏폼드라마": [
+   {
+    "id": "6503421271",
+    "name": "Vigloo - 숏폼드라마",
+    "artist": "Spoonlabs, Inc.",
+    "country": "kr"
+   }
+  ],
+  "nol:야놀자와인터파크의새로운이름": [
+   {
+    "id": "436731843",
+    "name": "NOL : 야놀자와 인터파크의 새로운 이름",
+    "artist": "YANOLJA CO.,LTD",
+    "country": "kr"
+   }
+  ],
+  "googlegemini": [
+   {
+    "id": "6477489729",
+    "name": "Google Gemini",
+    "artist": "Google",
+    "country": "kr"
+   },
+   {
+    "id": "6477489729",
+    "name": "Google Gemini",
+    "artist": "Google",
+    "country": "us"
+   }
+  ],
+  "101cam필름&디지털카메라": [
+   {
+    "id": "6781998623",
+    "name": "101cam - 필름 & 디지털 카메라",
+    "artist": "SNOW Corporation",
+    "country": "kr"
+   }
+  ],
+  "네이버페이": [
+   {
+    "id": "1554807824",
+    "name": "네이버페이",
+    "artist": "Naver Financial Corporation",
+    "country": "kr"
+   }
+  ],
+  "우리동네gs(gs25,gs더프레시,와인25플러스)": [
+   {
+    "id": "426644449",
+    "name": "우리동네GS (GS25, GS더프레시, 와인25플러스)",
+    "artist": "GS Retail Co., Ltd.",
+    "country": "kr"
+   }
+  ],
+  "terabox:1tb클라우드저장소&ai공간": [
+   {
+    "id": "1509453185",
+    "name": "TeraBox: 1TB 클라우드 저장소 & AI 공간",
+    "artist": "FLEXTECH INC.",
+    "country": "kr"
+   }
+  ],
+  "淘宝万能的淘宝!": [
+   {
+    "id": "387682726",
+    "name": "淘宝-万能的淘宝！",
+    "artist": "浙江淘宝网络有限公司",
+    "country": "kr"
+   }
+  ],
+  "캐치테이블": [
+   {
+    "id": "1485193566",
+    "name": "캐치테이블",
+    "artist": "WADcorp",
+    "country": "kr"
+   }
+  ],
+  "듀오링고(duolingo):언어학습": [
+   {
+    "id": "570060128",
+    "name": "듀오링고(Duolingo): 언어 학습",
+    "artist": "Duolingo",
+    "country": "kr"
+   }
+  ],
+  "chatgpt": [
+   {
+    "id": "6448311069",
+    "name": "ChatGPT",
+    "artist": "OpenAI OpCo, LLC",
+    "country": "kr"
+   },
+   {
+    "id": "6448311069",
+    "name": "ChatGPT",
+    "artist": "OpenAI OpCo, LLC",
+    "country": "us"
+   }
+  ],
+  "mnetplus": [
+   {
+    "id": "6443405421",
+    "name": "Mnet Plus",
+    "artist": "CJ ENM Co., Ltd.",
+    "country": "kr"
+   }
+  ],
+  "테이블링": [
+   {
+    "id": "1388891287",
+    "name": "테이블링",
+    "artist": "Tabling.inc",
+    "country": "kr"
+   }
+  ],
+  "tripcom트립닷컴여행할인예약": [
+   {
+    "id": "681752345",
+    "name": "Trip.com 트립닷컴 - 여행 할인 예약",
+    "artist": "Trip.com Travel Singapore Pte. Ltd.",
+    "country": "kr"
+   }
+  ],
+  "threads": [
+   {
+    "id": "6446901002",
+    "name": "Threads",
+    "artist": "Instagram, Inc.",
+    "country": "kr"
+   },
+   {
+    "id": "6446901002",
+    "name": "Threads",
+    "artist": "Instagram, Inc.",
+    "country": "us"
+   }
+  ],
+  "cgv": [
+   {
+    "id": "6738896323",
+    "name": "CGV",
+    "artist": "CJ CGV Co.ltd",
+    "country": "kr"
+   }
+  ],
+  "쿠팡이츠와우회원배달비0원": [
+   {
+    "id": "1445504255",
+    "name": "쿠팡이츠 - 와우회원 배달비 0원",
+    "artist": "Coupang Corp.",
+    "country": "kr"
+   }
+  ],
+  "mujikr": [
+   {
+    "id": "6739993593",
+    "name": "MUJI KR",
+    "artist": "MUJI KOREA CO.,LTD",
+    "country": "kr"
+   }
+  ],
+  "capcut:사진및동영상에디터": [
+   {
+    "id": "1500855883",
+    "name": "CapCut: 사진 및 동영상 에디터",
+    "artist": "Bytedance Pte. Ltd",
+    "country": "kr"
+   }
+  ],
+  "icnsmartpass(인천공항스마트패스)": [
+   {
+    "id": "6443837919",
+    "name": "ICN SMARTPASS (인천공항 스마트패스)",
+    "artist": "인천국제공항공사",
+    "country": "kr"
+   }
+  ],
+  "abccamp": [
+   {
+    "id": "6739515931",
+    "name": "ABC-CAMP",
+    "artist": "ABC Mart Korea Co.,Ltd",
+    "country": "kr"
+   }
+  ],
+  "유니클로uniqlo쇼핑": [
+   {
+    "id": "730814188",
+    "name": "유니클로 UNIQLO - 쇼핑",
+    "artist": "UNIQLO CO., LTD.",
+    "country": "kr"
+   }
+  ],
+  "롯데월드어드벤처": [
+   {
+    "id": "6744043800",
+    "name": "롯데월드 어드벤처",
+    "artist": "Hotel Lotte Co., Ltd",
+    "country": "kr"
+   }
+  ],
+  "spotify(스포티파이):뮤직&팟캐스트앱": [
+   {
+    "id": "324684580",
+    "name": "Spotify (스포티파이) : 뮤직 & 팟캐스트 앱",
+    "artist": "Spotify",
+    "country": "kr"
+   }
+  ],
+  "네이버지도장소의발견과예약,내비게이션": [
+   {
+    "id": "311867728",
+    "name": "네이버지도 - 장소의 발견과 예약, 내비게이션",
+    "artist": "NAVER Corp.",
+    "country": "kr"
+   }
+  ],
+  "bhc치킨tasty,crispy,juicy!": [
+   {
+    "id": "6740256361",
+    "name": "bhc 치킨 - Tasty, Crispy, Juicy!",
+    "artist": "Dining Brands Group Co., Ltd.",
+    "country": "kr"
+   }
+  ],
+  "후라이드참잘하는집": [
+   {
+    "id": "6798938676",
+    "name": "후라이드참잘하는집",
+    "artist": "WMPO Inc.",
+    "country": "kr"
+   }
+  ],
+  "다이소몰": [
+   {
+    "id": "1070715498",
+    "name": "다이소몰",
+    "artist": "ASUNGDAISO, Co.,Ltd.",
+    "country": "kr"
+   }
+  ],
+  "스파오spao온라인공식몰": [
+   {
+    "id": "1527037287",
+    "name": "스파오 SPAO - 온라인 공식몰",
+    "artist": "ELAND WORLD LIMITED CO., LTD",
+    "country": "kr"
+   }
+  ],
+  "모바일티머니": [
+   {
+    "id": "1470361790",
+    "name": "모바일티머니",
+    "artist": "Tmoney Co., Ltd",
+    "country": "kr"
+   }
+  ],
+  "신한슈퍼sol신한유니버셜금융앱": [
+   {
+    "id": "357484932",
+    "name": "신한 슈퍼SOL - 신한 유니버셜 금융 앱",
+    "artist": "SHINHAN BANK",
+    "country": "kr"
+   }
+  ],
+  "메가mgc커피": [
+   {
+    "id": "1473428031",
+    "name": "메가MGC커피",
+    "artist": "Annhouse Co., Ltd",
+    "country": "kr"
+   }
+  ],
+  "월드클래스": [
+   {
+    "id": "6479704195",
+    "name": "월드클래스",
+    "artist": "Bigpicture Interactive Co.,Ltd.",
+    "country": "kr"
+   }
+  ],
+  "픽앤팝내손안의가챠&쿠지샵": [
+   {
+    "id": "6752372089",
+    "name": "픽앤팝 - 내 손안의 가챠&쿠지샵",
+    "artist": "JoyToy",
+    "country": "kr"
+   }
+  ],
+  "세븐일레븐": [
+   {
+    "id": "1253773772",
+    "name": "세븐일레븐",
+    "artist": "Korea Seven Co., Ltd.",
+    "country": "kr"
+   }
+  ],
+  "범프친구들의지도": [
+   {
+    "id": "6471519217",
+    "name": "범프 - 친구들의 지도",
+    "artist": "amo",
+    "country": "kr"
+   }
+  ],
+  "카카오페이": [
+   {
+    "id": "1464496236",
+    "name": "카카오페이",
+    "artist": "kakaopay corp.",
+    "country": "kr"
+   }
+  ],
+  "googlemaps": [
+   {
+    "id": "585027354",
+    "name": "Google Maps",
+    "artist": "Google",
+    "country": "kr"
+   },
+   {
+    "id": "585027354",
+    "name": "Google Maps",
+    "artist": "Google",
+    "country": "us"
+   }
+  ],
+  "카카오t택시,세차,주차,바이크,항공,퀵": [
+   {
+    "id": "981110422",
+    "name": "카카오 T - 택시, 세차, 주차, 바이크, 항공, 퀵",
+    "artist": "Kakao Mobility Corp.",
+    "country": "kr"
+   }
+  ],
+  "uber(우버)택시호출플랫폼": [
+   {
+    "id": "368677368",
+    "name": "Uber(우버) - 택시 호출 플랫폼",
+    "artist": "Uber Technologies, Inc.",
+    "country": "kr"
+   }
+  ],
+  "temu:억만장자처럼쇼핑하기": [
+   {
+    "id": "1641486558",
+    "name": "Temu: 억만장자처럼 쇼핑하기",
+    "artist": "Temu",
+    "country": "kr"
+   }
+  ],
+  "맥도날드": [
+   {
+    "id": "1217507712",
+    "name": "맥도날드",
+    "artist": "McDonald's Global Markets LLC",
+    "country": "kr"
+   }
+  ],
+  "온라인패션스토어무신사": [
+   {
+    "id": "1003139529",
+    "name": "온라인 패션 스토어 무신사",
+    "artist": "MUSINSA Co.,Ltd",
+    "country": "kr"
+   }
+  ],
+  "discord대화,플레이,어울리기": [
+   {
+    "id": "985746746",
+    "name": "Discord - 대화, 플레이, 어울리기",
+    "artist": "Discord Inc.",
+    "country": "kr"
+   }
+  ],
+  "이마트매장쇼핑전필수!": [
+   {
+    "id": "397728319",
+    "name": "이마트 - 매장쇼핑 전 필수!",
+    "artist": "SHINSEGAE EMART",
+    "country": "kr"
+   }
+  ],
+  "카카오내비주차,발렛,전기차충전,세차,보험,중고차": [
+   {
+    "id": "417698849",
+    "name": "카카오내비 - 주차,발렛,전기차충전,세차,보험,중고차",
+    "artist": "Kakao Mobility Corp.",
+    "country": "kr"
+   }
+  ],
+  "대한민국모바일신분증": [
+   {
+    "id": "1599450372",
+    "name": "대한민국 모바일 신분증",
+    "artist": "행정안전부",
+    "country": "kr"
+   }
+  ],
+  "투썸하트": [
+   {
+    "id": "1225957208",
+    "name": "투썸하트",
+    "artist": "A TWOSOME PLACE CO., LTD",
+    "country": "kr"
+   }
+  ],
+  "카카오맵대한민국no1지도앱": [
+   {
+    "id": "304608425",
+    "name": "카카오맵 - 대한민국 No.1 지도앱",
+    "artist": "Kakao Corp.",
+    "country": "kr"
+   }
+  ],
+  "실손24": [
+   {
+    "id": "6553966660",
+    "name": "실손24",
+    "artist": "Korean Insurance Development Institute Inc.",
+    "country": "kr"
+   }
+  ],
+  "메이투meitu얼굴보정인물리터치ai기능": [
+   {
+    "id": "416048305",
+    "name": "메이투 Meitu - 얼굴보정·인물 리터치·AI기능",
+    "artist": "Meitu Technology Co., Ltd.",
+    "country": "kr"
+   }
+  ],
+  "tiktok틱톡": [
+   {
+    "id": "1235601864",
+    "name": "TikTok 틱톡",
+    "artist": "TikTok Ltd.",
+    "country": "kr"
+   }
+  ],
+  "photoism포토이즘": [
+   {
+    "id": "6747059622",
+    "name": "PHOTOISM - 포토이즘",
+    "artist": "Seobuk",
+    "country": "kr"
+   }
+  ],
+  "로밍도깨비esim–데이터가필요한순간": [
+   {
+    "id": "1525664178",
+    "name": "로밍도깨비 eSIM – 데이터가 필요한 순간",
+    "artist": "UANGEL Corp.",
+    "country": "kr"
+   }
+  ],
+  "모바일건강보험증": [
+   {
+    "id": "6444602589",
+    "name": "모바일 건강보험증",
+    "artist": "국민건강보험공단",
+    "country": "kr"
+   }
+  ],
+  "챌린저스돈이돌아오는쇼핑앱": [
+   {
+    "id": "1438855824",
+    "name": "챌린저스 - 돈이 돌아오는 쇼핑 앱",
+    "artist": "whitecube Inc.",
+    "country": "kr"
+   }
+  ],
+  "edits:비디오편집기": [
+   {
+    "id": "6738967378",
+    "name": "Edits: 비디오 편집기",
+    "artist": "Instagram, Inc.",
+    "country": "kr"
+   }
+  ],
+  "컴포즈커피": [
+   {
+    "id": "6742086811",
+    "name": "컴포즈커피",
+    "artist": "COMPOSECOFFEE",
+    "country": "kr"
+   }
+  ],
+  "alipaysimplifyyourlife": [
+   {
+    "id": "333206289",
+    "name": "Alipay - Simplify Your Life",
+    "artist": "Alipay (Hangzhou) Technology Co., Ltd.",
+    "country": "kr"
+   }
+  ],
+  "모두의카드": [
+   {
+    "id": "1538531939",
+    "name": "모두의카드",
+    "artist": "교통안전공단",
+    "country": "kr"
+   }
+  ],
+  "코레일+": [
+   {
+    "id": "1000558562",
+    "name": "코레일+",
+    "artist": "한국철도공사",
+    "country": "kr"
+   }
+  ],
+  "코스트코홀세일코리아": [
+   {
+    "id": "1477024315",
+    "name": "코스트코 홀세일 코리아",
+    "artist": "Costco Wholesale Corporation",
+    "country": "kr"
+   }
+  ],
+  "whatsappmessenger": [
+   {
+    "id": "310633997",
+    "name": "WhatsApp Messenger",
+    "artist": "WhatsApp Inc.",
+    "country": "kr"
+   },
+   {
+    "id": "310633997",
+    "name": "WhatsApp Messenger",
+    "artist": "WhatsApp Inc.",
+    "country": "us"
+   }
+  ],
+  "kfckorea": [
+   {
+    "id": "1255799839",
+    "name": "KFC Korea",
+    "artist": "KFC KOREA Co., Ltd",
+    "country": "kr"
+   }
+  ],
+  "폴센트최저가알림ᆞ가격비교ᆞ경유쇼핑ᆞ핫딜": [
+   {
+    "id": "1638569789",
+    "name": "폴센트 - 최저가 알림ㆍ가격비교ㆍ경유쇼핑ㆍ핫딜",
+    "artist": "Fallcent, Inc",
+    "country": "kr"
+   }
+  ],
+  "티머니go택시고속시외따릉이킥보드": [
+   {
+    "id": "1483433931",
+    "name": "티머니GO - 택시 고속시외 따릉이 킥보드",
+    "artist": "㈜티머니모빌리티",
+    "country": "kr"
+   }
+  ],
+  "4910:사고싶은스타일의발견": [
+   {
+    "id": "6449024239",
+    "name": "4910 : 사고 싶은 스타일의 발견",
+    "artist": "ABLY Corp., Inc.",
+    "country": "kr"
+   }
+  ],
+  "nh올원뱅크(농협은행대표플랫폼)": [
+   {
+    "id": "1641628055",
+    "name": "NH올원뱅크(농협은행 대표 플랫폼)",
+    "artist": "NH농협은행",
+    "country": "kr"
+   }
+  ],
+  "모니모(삼성금융통합앱)생명화재카드증권": [
+   {
+    "id": "379577046",
+    "name": "모니모(삼성금융통합앱) 생명 화재 카드 증권",
+    "artist": "Samsungcard Co., Ltd.",
+    "country": "kr"
+   }
+  ],
+  "아웃백outback": [
+   {
+    "id": "410254248",
+    "name": "아웃백 - OUTBACK",
+    "artist": "OUTBACK STEAKHOUSE KOREA",
+    "country": "kr"
+   }
+  ],
+  "올리브영": [
+   {
+    "id": "873779010",
+    "name": "올리브영",
+    "artist": "CJ Olive Young Corporation",
+    "country": "kr"
+   }
+  ],
+  "kream(크림)": [
+   {
+    "id": "1490580239",
+    "name": "KREAM(크림)",
+    "artist": "KREAM Corporation",
+    "country": "kr"
+   }
+  ],
+  "당근": [
+   {
+    "id": "1018769995",
+    "name": "당근",
+    "artist": "Danggeun Market Inc.",
+    "country": "kr"
+   }
+  ],
+  "네이버웹툰naverwebtoon": [
+   {
+    "id": "315795555",
+    "name": "네이버 웹툰 - Naver Webtoon",
+    "artist": "NAVER WEBTOON Ltd.",
+    "country": "kr"
+   }
+  ],
+  "피카플레이": [
+   {
+    "id": "1434266163",
+    "name": "피카플레이",
+    "artist": "미디어웹",
+    "country": "kr"
+   }
+  ],
+  "sunoai노래음악만들기": [
+   {
+    "id": "6480136315",
+    "name": "Suno - AI 노래·음악 만들기",
+    "artist": "Suno, Inc.",
+    "country": "kr"
+   }
+  ],
+  "카카오뱅크": [
+   {
+    "id": "1258016944",
+    "name": "카카오뱅크",
+    "artist": "KakaoBank Corp.",
+    "country": "kr"
+   }
+  ],
+  "쿠팡플레이": [
+   {
+    "id": "1536885649",
+    "name": "쿠팡플레이",
+    "artist": "Coupang Corp.",
+    "country": "kr"
+   }
+  ],
+  "gmail:google이제공하는이메일": [
+   {
+    "id": "422689480",
+    "name": "Gmail: Google이 제공하는 이메일",
+    "artist": "Google",
+    "country": "kr"
+   }
+  ],
+  "x": [
+   {
+    "id": "333903271",
+    "name": "X",
+    "artist": "X Corp.",
+    "country": "kr"
+   },
+   {
+    "id": "333903271",
+    "name": "X",
+    "artist": "X Corp.",
+    "country": "us"
+   }
+  ],
+  "성범죄자알림e": [
+   {
+    "id": "896534884",
+    "name": "성범죄자 알림e",
+    "artist": "Ministry of Gender Equality and Family, Republic of Korea",
+    "country": "kr"
+   }
+  ],
+  "교통민원24(이파인)": [
+   {
+    "id": "1533191520",
+    "name": "교통민원24(이파인)",
+    "artist": "경찰청",
+    "country": "kr"
+   }
+  ],
+  "컬리마켓컬리,뷰티컬리": [
+   {
+    "id": "1080244833",
+    "name": "컬리 - 마켓컬리, 뷰티컬리",
+    "artist": "Kurly Corp.",
+    "country": "kr"
+   }
+  ],
+  "facebook": [
+   {
+    "id": "284882215",
+    "name": "Facebook",
+    "artist": "Meta Platforms, Inc.",
+    "country": "kr"
+   },
+   {
+    "id": "284882215",
+    "name": "Facebook",
+    "artist": "Meta Platforms, Inc.",
+    "country": "us"
+   }
+  ],
+  "배달의민족배달팁무료배민클럽": [
+   {
+    "id": "378084485",
+    "name": "배달의민족 - 배달팁 무료 배민클럽",
+    "artist": "Woowa Bros Co., Ltd.",
+    "country": "kr"
+   }
+  ],
+  "모두의주차장주차할인/세차할인/공유주차장": [
+   {
+    "id": "780174422",
+    "name": "모두의주차장 - 주차할인/세차할인/공유주차장",
+    "artist": "Modu Company, Inc.",
+    "country": "kr"
+   }
+  ],
+  "bbq치킨": [
+   {
+    "id": "6463020512",
+    "name": "BBQ 치킨",
+    "artist": "(주)제너시스 BBQ",
+    "country": "kr"
+   }
+  ],
+  "힉스필드videoai": [
+   {
+    "id": "6808443618",
+    "name": "힉스필드 Video AI",
+    "artist": "Dongwon Ahn",
+    "country": "kr"
+   }
+  ],
+  "blackmagiccamera": [
+   {
+    "id": "6449580241",
+    "name": "Blackmagic Camera",
+    "artist": "Blackmagic Design Inc",
+    "country": "kr"
+   }
+  ],
+  "베리필름berryfilm60만팬이사랑한필터": [
+   {
+    "id": "6741474933",
+    "name": "베리필름 Berryfilm - 60만 팬이 사랑한 필터",
+    "artist": "Seungyun Kim",
+    "country": "kr"
+   }
+  ],
+  "올디oldiphonecamera": [
+   {
+    "id": "6760838876",
+    "name": "올디 Oldi - Phone Camera",
+    "artist": "Sean Cho",
+    "country": "kr"
+   }
+  ],
+  "analogwedding": [
+   {
+    "id": "992047786",
+    "name": "Analog Wedding",
+    "artist": "ordinaryfactory Inc.",
+    "country": "kr"
+   }
+  ],
+  "filmhwa(필름화)화민필터": [
+   {
+    "id": "6443723657",
+    "name": "filmhwa (필름화) - 화민 필터",
+    "artist": "ARTTIC CO., LTD.",
+    "country": "kr"
+   }
+  ],
+  "영뽀또감성구도카메라": [
+   {
+    "id": "6763737180",
+    "name": "영뽀또 - 감성 구도 카메라",
+    "artist": "Seungyun Kim",
+    "country": "kr"
+   }
+  ],
+  "gika기카독보적인올드폰감성카메라": [
+   {
+    "id": "6755822636",
+    "name": "GIKA 기카 - 독보적인 올드폰 감성 카메라",
+    "artist": "Noahproject Inc.",
+    "country": "kr"
+   }
+  ],
+  "ankimobileflashcards": [
+   {
+    "id": "373493387",
+    "name": "AnkiMobile Flashcards",
+    "artist": "Anki Software, LLC",
+    "country": "kr"
+   },
+   {
+    "id": "373493387",
+    "name": "AnkiMobile Flashcards",
+    "artist": "Anki Software, LLC",
+    "country": "us"
+   }
+  ],
+  "한국사능력": [
+   {
+    "id": "1445502301",
+    "name": "한국사 능력",
+    "artist": "별책",
+    "country": "kr"
+   }
+  ],
+  "untrapforyoutube": [
+   {
+    "id": "1637438059",
+    "name": "UnTrap for YouTube",
+    "artist": "Yevhen Tretiakov",
+    "country": "kr"
+   }
+  ],
+  "iy2k": [
+   {
+    "id": "6801799964",
+    "name": "iY2K",
+    "artist": "SANGSANGLYEOG",
+    "country": "kr"
+   }
+  ],
+  "daygrid:데일리스케줄,하루계획표": [
+   {
+    "id": "6762279908",
+    "name": "DayGrid: 데일리스케줄, 하루 계획표",
+    "artist": "ho young moon",
+    "country": "kr"
+   }
+  ],
+  "runa:rpgmaker&vnplayer": [
+   {
+    "id": "6779939767",
+    "name": "Runa: RPG Maker & VN Player",
+    "artist": "Pham Tran Thai Bao",
+    "country": "kr"
+   }
+  ],
+  "롤리즈:감성필름카메라": [
+   {
+    "id": "6805318319",
+    "name": "롤리즈: 감성 필름 카메라",
+    "artist": "마야크루",
+    "country": "kr"
+   }
+  ],
+  "无锐化相机": [
+   {
+    "id": "6504206143",
+    "name": "无锐化相机",
+    "artist": "北北 宋",
+    "country": "kr"
+   }
+  ],
+  "회독jlpt": [
+   {
+    "id": "1455054515",
+    "name": "회독JLPT",
+    "artist": "LEE YONGHEE",
+    "country": "kr"
+   }
+  ],
+  "dumbify": [
+   {
+    "id": "6480082872",
+    "name": "Dumbify",
+    "artist": "AB Apps Inc.",
+    "country": "kr"
+   }
+  ],
+  "stylebook": [
+   {
+    "id": "335709058",
+    "name": "Stylebook",
+    "artist": "left brain / right brain, LLC",
+    "country": "kr"
+   },
+   {
+    "id": "335709058",
+    "name": "Stylebook",
+    "artist": "left brain / right brain, LLC",
+    "country": "us"
+   }
+  ],
+  "socialfocus:hidedistractions": [
+   {
+    "id": "1661093205",
+    "name": "SocialFocus: Hide Distractions",
+    "artist": "Yevhen Tretiakov",
+    "country": "kr"
+   }
+  ],
+  "shadowrocket": [
+   {
+    "id": "932747118",
+    "name": "Shadowrocket",
+    "artist": "Shadow Launch Technology Limited",
+    "country": "kr"
+   },
+   {
+    "id": "932747118",
+    "name": "Shadowrocket",
+    "artist": "Shadow Launch Technology Limited",
+    "country": "us"
+   }
+  ],
+  "유니콘:safari광고차단": [
+   {
+    "id": "1046714401",
+    "name": "유니콘:Safari 광고 차단",
+    "artist": "OH NAM KWON",
+    "country": "kr"
+   }
+  ],
+  "jumpdesktop(rdp,vnc,fluid)": [
+   {
+    "id": "364876095",
+    "name": "Jump Desktop (RDP, VNC, Fluid)",
+    "artist": "Phase Five Systems",
+    "country": "kr"
+   },
+   {
+    "id": "364876095",
+    "name": "Jump Desktop (RDP, VNC, Fluid)",
+    "artist": "Phase Five Systems",
+    "country": "us"
+   }
+  ],
+  "tunert1pro": [
+   {
+    "id": "954982733",
+    "name": "Tuner T1 Pro",
+    "artist": "Bijoy Thangaraj",
+    "country": "kr"
+   }
+  ],
+  "해병ptsd알람": [
+   {
+    "id": "6815752402",
+    "name": "해병PTSD알람",
+    "artist": "Dong Chul Lee",
+    "country": "kr"
+   }
+  ],
+  "위플가계부pro": [
+   {
+    "id": "441683476",
+    "name": "위플 가계부 Pro",
+    "artist": "bumblebee",
+    "country": "kr"
+   }
+  ],
+  "tempometronome메트로놈": [
+   {
+    "id": "304731501",
+    "name": "Tempo - Metronome 메트로놈",
+    "artist": "Frozen Ape Pte. Ltd.",
+    "country": "kr"
+   }
+  ],
+  "해군ptsd알람": [
+   {
+    "id": "6803308114",
+    "name": "해군PTSD알람",
+    "artist": "Dong Chul Lee",
+    "country": "kr"
+   }
+  ],
+  "keka•": [
+   {
+    "id": "6443677513",
+    "name": "Keka •",
+    "artist": "Jorge Garcia Armero",
+    "country": "kr"
+   }
+  ],
+  "cadragedirectorsviewfinder": [
+   {
+    "id": "793232740",
+    "name": "Cadrage Director's Viewfinder",
+    "artist": "Cadrage GmbH",
+    "country": "kr"
+   }
+  ],
+  "두란노성경&사전": [
+   {
+    "id": "418750972",
+    "name": "두란노 성경&사전",
+    "artist": "Duranno",
+    "country": "kr"
+   }
+  ],
+  "playmusictheory": [
+   {
+    "id": "6800616114",
+    "name": "play_music_theory",
+    "artist": "TALA RAE SCHLOSSBERG",
+    "country": "kr"
+   },
+   {
+    "id": "6800616114",
+    "name": "play_music_theory",
+    "artist": "TALA RAE SCHLOSSBERG",
+    "country": "us"
+   }
+  ],
+  "네거티브필름룩필터": [
+   {
+    "id": "6453697787",
+    "name": "네거티브 - 필름 룩 필터.",
+    "artist": "스몰캐머러",
+    "country": "kr"
+   }
+  ],
+  "rpgplayeranrpgmakerplayer": [
+   {
+    "id": "6754986970",
+    "name": "RPGPlayer - An RPGMaker Player",
+    "artist": "Emir Han Temur",
+    "country": "kr"
+   }
+  ],
+  "folium": [
+   {
+    "id": "6498623389",
+    "name": "Folium",
+    "artist": "Jarrod Norwell",
+    "country": "kr"
+   }
+  ],
+  "텔레마케팅관리사실기|기출,공부": [
+   {
+    "id": "6793096822",
+    "name": "텔레마케팅관리사 실기 | 기출, 공부",
+    "artist": "SUIN CHOI",
+    "country": "kr"
+   }
+  ],
+  "procreatepocket": [
+   {
+    "id": "916366645",
+    "name": "Procreate Pocket",
+    "artist": "Savage Interactive Pty Ltd",
+    "country": "kr"
+   },
+   {
+    "id": "916366645",
+    "name": "Procreate Pocket",
+    "artist": "Savage Interactive Pty Ltd",
+    "country": "us"
+   }
+  ],
+  "autosleepwatch를이용한수면분석": [
+   {
+    "id": "1164801111",
+    "name": "AutoSleep - Watch를 이용한 수면 분석",
+    "artist": "Tantsissa",
+    "country": "kr"
+   }
+  ],
+  "디카로그dicalog디카카메라": [
+   {
+    "id": "6813093709",
+    "name": "디카로그 DICALOG - 디카 카메라",
+    "artist": "Logogram LC.",
+    "country": "kr"
+   }
+  ],
+  "broll[비롤]청춘필터카메라": [
+   {
+    "id": "6504192378",
+    "name": "B.ROLL [비롤] - 청춘 필터 카메라",
+    "artist": "FRONIS CO., LTD.",
+    "country": "kr"
+   }
+  ],
+  "abletonnote": [
+   {
+    "id": "1633243177",
+    "name": "Ableton Note",
+    "artist": "Ableton AG",
+    "country": "kr"
+   },
+   {
+    "id": "1633243177",
+    "name": "Ableton Note",
+    "artist": "Ableton AG",
+    "country": "us"
+   }
+  ],
+  "glimr:strumanysound": [
+   {
+    "id": "6818844637",
+    "name": "GLIMR: Strum Any Sound",
+    "artist": "Joseph Musselman",
+    "country": "kr"
+   }
+  ],
+  "대한성서공회모바일성경": [
+   {
+    "id": "524331467",
+    "name": "대한성서공회 모바일성경",
+    "artist": "Korean Bible Society",
+    "country": "kr"
+   }
+  ],
+  "autopad—ambientpadloops": [
+   {
+    "id": "1270890718",
+    "name": "AutoPad — Ambient Pad Loops",
+    "artist": "Ryan Robinson",
+    "country": "kr"
+   }
+  ],
+  "easyposmobilepro": [
+   {
+    "id": "1059599823",
+    "name": "EasyPOS Mobile Pro",
+    "artist": "KICC",
+    "country": "kr"
+   }
+  ],
+  "오리집": [
+   {
+    "id": "6817174744",
+    "name": "오리집",
+    "artist": "Beonjida",
+    "country": "kr"
+   }
+  ],
+  "비디오마스터프로": [
+   {
+    "id": "1500098830",
+    "name": "비디오 마스터 프로",
+    "artist": "Haruki Daunrodo",
+    "country": "kr"
+   }
+  ],
+  "daypic(데이픽)하루기록사진일기장": [
+   {
+    "id": "6770772768",
+    "name": "DayPic(데이픽) - 하루 기록 사진 일기장",
+    "artist": "노바링크",
+    "country": "kr"
+   }
+  ],
+  "편한가계부(광고제거)": [
+   {
+    "id": "564730202",
+    "name": "편한가계부 (광고제거)",
+    "artist": "Realbyte Inc.",
+    "country": "kr"
+   }
+  ],
+  "뭉게텍스트로스토리꾸미기": [
+   {
+    "id": "6811491086",
+    "name": "뭉게 - 텍스트로 스토리 꾸미기",
+    "artist": "Stacklog Lab",
+    "country": "kr"
+   }
+  ],
+  "workoutdoors": [
+   {
+    "id": "1241909999",
+    "name": "WorkOutDoors",
+    "artist": "CCS Ltd",
+    "country": "kr"
+   },
+   {
+    "id": "1241909999",
+    "name": "WorkOutDoors",
+    "artist": "CCS Ltd",
+    "country": "us"
+   }
+  ],
+  "analogparis": [
+   {
+    "id": "1035219562",
+    "name": "Analog Paris",
+    "artist": "ordinaryfactory Inc.",
+    "country": "kr"
+   }
+  ],
+  "회독hsk": [
+   {
+    "id": "1459671308",
+    "name": "회독HSK",
+    "artist": "LEE YONGHEE",
+    "country": "kr"
+   }
+  ],
+  "ifacialmocap": [
+   {
+    "id": "1489470545",
+    "name": "iFacialMocap",
+    "artist": "DevelopW LLC",
+    "country": "kr"
+   }
+  ],
+  "국시마스터": [
+   {
+    "id": "6761680549",
+    "name": "국시마스터",
+    "artist": "Nexture Creative",
+    "country": "kr"
+   }
+  ],
+  "irealpro": [
+   {
+    "id": "298206806",
+    "name": "iReal Pro",
+    "artist": "Technimo LLC",
+    "country": "kr"
+   },
+   {
+    "id": "298206806",
+    "name": "iReal Pro",
+    "artist": "Technimo LLC",
+    "country": "us"
+   }
+  ],
+  "goodak필름카메라구닥다리카메라필름카메라": [
+   {
+    "id": "1309638846",
+    "name": "Goodak 필름카메라 - 구닥다리 카메라 필름카메라",
+    "artist": "PSDC Creative Inc.",
+    "country": "kr"
+   }
+  ],
+  "ionsplayer": [
+   {
+    "id": "6760708915",
+    "name": "iONSPlayer",
+    "artist": "Ludan Cui",
+    "country": "kr"
+   }
+  ],
+  "analogseoul": [
+   {
+    "id": "1138248035",
+    "name": "Analog Seoul",
+    "artist": "ordinaryfactory Inc.",
+    "country": "kr"
+   }
+  ],
+  "nplayer": [
+   {
+    "id": "1116905928",
+    "name": "nPlayer",
+    "artist": "Newin Inc.",
+    "country": "kr"
+   }
+  ],
+  "tunable–tuner&metronome": [
+   {
+    "id": "608540795",
+    "name": "Tunable – Tuner & Metronome",
+    "artist": "AffinityBlue",
+    "country": "kr"
+   }
+  ],
+  "메몽메모장,투두리스트,일기": [
+   {
+    "id": "1494637370",
+    "name": "메몽 - 메모장, 투두리스트, 일기",
+    "artist": "Choongwhan Shin",
+    "country": "kr"
+   }
+  ],
+  "vidimoteforsafari": [
+   {
+    "id": "1585702412",
+    "name": "Vidimote for Safari",
+    "artist": "IOSPIRIT GmbH",
+    "country": "kr"
+   }
+  ],
+  "lysoniq": [
+   {
+    "id": "6746699177",
+    "name": "Lysoniq",
+    "artist": "Tim Fagan",
+    "country": "kr"
+   }
+  ],
+  "ultimatedrumtune": [
+   {
+    "id": "6458534300",
+    "name": "Ultimate Drum Tune",
+    "artist": "JaeMyoung Lee",
+    "country": "kr"
+   }
+  ],
+  "애드제로:광고없이쾌적한웹": [
+   {
+    "id": "6791538991",
+    "name": "애드제로: 광고 없이 쾌적한 웹",
+    "artist": "SANGSANGLYEOG",
+    "country": "kr"
+   }
+  ],
+  "momentprocameraii": [
+   {
+    "id": "6748837351",
+    "name": "Moment Pro Camera II",
+    "artist": "Moment Inc.",
+    "country": "kr"
+   },
+   {
+    "id": "6748837351",
+    "name": "Moment Pro Camera II",
+    "artist": "Moment Inc.",
+    "country": "us"
+   }
+  ],
+  "phonebuddyphonelostalert": [
+   {
+    "id": "1451559391",
+    "name": "Phone Buddy Phone Lost Alert",
+    "artist": "FRE STUDIOS LLC",
+    "country": "kr"
+   }
+  ],
+  "ybm올인올영한영플러스사전ekedic": [
+   {
+    "id": "312037975",
+    "name": "YBM 올인올 영한영 플러스 사전 - EKE DIC",
+    "artist": "DaolSoft, Co., Ltd.",
+    "country": "kr"
+   }
+  ],
+  "flstudiomobile": [
+   {
+    "id": "432850619",
+    "name": "FL Studio Mobile",
+    "artist": "Image Line Software",
+    "country": "kr"
+   },
+   {
+    "id": "432850619",
+    "name": "FL Studio Mobile",
+    "artist": "Image Line Software",
+    "country": "us"
+   }
+  ],
+  "analogbrooklyn": [
+   {
+    "id": "1138250941",
+    "name": "Analog Brooklyn",
+    "artist": "ordinaryfactory Inc.",
+    "country": "kr"
+   }
+  ],
+  "koalasampler•beatmaker": [
+   {
+    "id": "1449584007",
+    "name": "Koala Sampler • Beat Maker",
+    "artist": "Mazbox Limited",
+    "country": "kr"
+   },
+   {
+    "id": "1449584007",
+    "name": "Koala Sampler • Beat Maker",
+    "artist": "Mazbox Limited",
+    "country": "us"
+   }
+  ],
+  "impcpro2foriphone": [
+   {
+    "id": "1413887036",
+    "name": "iMPC Pro 2 for iPhone",
+    "artist": "Akai Professional",
+    "country": "kr"
+   }
+  ],
+  "handyguitarlabforg2four": [
+   {
+    "id": "1623283803",
+    "name": "Handy Guitar Lab for G2 FOUR",
+    "artist": "ZOOM Corporation",
+    "country": "kr"
+   }
+  ],
+  "북트리:도서관리&독서기록": [
+   {
+    "id": "551580603",
+    "name": "북트리: 도서관리 & 독서기록",
+    "artist": "Youngwan Choi",
+    "country": "kr"
+   }
+  ],
+  "가을날seasoncamera": [
+   {
+    "id": "1268339394",
+    "name": "가을날 - Season Camera",
+    "artist": "JIN WOOK KOO",
+    "country": "kr"
+   }
+  ],
+  "stopmotionstudiopro": [
+   {
+    "id": "640564761",
+    "name": "Stop Motion Studio Pro",
+    "artist": "CATEATER, LLC",
+    "country": "kr"
+   },
+   {
+    "id": "640564761",
+    "name": "Stop Motion Studio Pro",
+    "artist": "CATEATER, LLC",
+    "country": "us"
+   }
+  ],
+  "csmusicpro": [
+   {
+    "id": "924491991",
+    "name": "Cs Music Pro",
+    "artist": "Mike Clay",
+    "country": "kr"
+   }
+  ],
+  "mdpreview마크다운뷰어": [
+   {
+    "id": "6760341080",
+    "name": "Md Preview - 마크다운 뷰어",
+    "artist": "CyberGame Limited",
+    "country": "kr"
+   }
+  ],
+  "biomechanicsofthespinelite": [
+   {
+    "id": "1610995316",
+    "name": "Biomechanics of the Spine Lite",
+    "artist": "Anatomy Standard",
+    "country": "kr"
+   }
+  ],
+  "바둑마스터easygopro": [
+   {
+    "id": "492566615",
+    "name": "바둑 마스터 EasyGo Pro",
+    "artist": "翔 赵",
+    "country": "kr"
+   }
+  ],
+  "iiwii": [
+   {
+    "id": "6756866511",
+    "name": "IIWII",
+    "artist": "Joshua Johannes Hoffmann",
+    "country": "kr"
+   }
+  ],
+  "aasobjeq": [
+   {
+    "id": "1160030374",
+    "name": "AAS Objeq",
+    "artist": "Applied Acoustics Systems DVM Inc.",
+    "country": "kr"
+   }
+  ],
+  "카운터계수기태리숫자세기countdeck": [
+   {
+    "id": "6785126185",
+    "name": "카운터 계수기 태리 숫자세기-CountDeck",
+    "artist": "Netflowers Inc.",
+    "country": "kr"
+   }
+  ],
+  "sonicclear:watereject": [
+   {
+    "id": "6759001928",
+    "name": "SonicClear: Water Eject",
+    "artist": "Emrah Korkmaz",
+    "country": "kr"
+   }
+  ],
+  "언제오나(지하철)": [
+   {
+    "id": "6823155678",
+    "name": "언제오나(지하철)",
+    "artist": "jongin park",
+    "country": "kr"
+   }
+  ],
+  "공군ptsd알람": [
+   {
+    "id": "6812858705",
+    "name": "공군 PTSD 알람",
+    "artist": "SANGSANGLYEOG",
+    "country": "kr"
+   }
+  ],
+  "autosnore:코골이녹음기": [
+   {
+    "id": "6746705608",
+    "name": "AutoSnore: 코골이 녹음기",
+    "artist": "Tantsissa",
+    "country": "kr"
+   }
+  ],
+  "nightcap카메라:장노출촬영": [
+   {
+    "id": "754105884",
+    "name": "NightCap 카메라: 장노출 촬영",
+    "artist": "RTD",
+    "country": "kr"
+   }
+  ],
+  "comicglass": [
+   {
+    "id": "363992049",
+    "name": "ComicGlass",
+    "artist": "RR Soft",
+    "country": "kr"
+   }
+  ],
+  "tonalenergytuner&metronome": [
+   {
+    "id": "497716362",
+    "name": "TonalEnergy Tuner & Metronome",
+    "artist": "TonalEnergy, Inc",
+    "country": "kr"
+   },
+   {
+    "id": "497716362",
+    "name": "TonalEnergy Tuner & Metronome",
+    "artist": "TonalEnergy, Inc",
+    "country": "us"
+   }
+  ],
+  "멤버십위젯pro": [
+   {
+    "id": "1079178243",
+    "name": "멤버십 위젯 Pro",
+    "artist": "jaejin lee",
+    "country": "kr"
+   }
+  ],
+  "stickers손글씨사진꾸미기스티커": [
+   {
+    "id": "6762035374",
+    "name": "STICKERS - 손글씨 사진 꾸미기 스티커",
+    "artist": "DooHyun Jang",
+    "country": "kr"
+   }
+  ],
+  "watchanything시계얼굴": [
+   {
+    "id": "1461710896",
+    "name": "WatchAnything - 시계 얼굴",
+    "artist": "Marc Hofmann",
+    "country": "kr"
+   }
+  ],
+  "filmnfotoycy:travel": [
+   {
+    "id": "6736601069",
+    "name": "FilmN foto_ycy: Travel",
+    "artist": "Junmo Lee",
+    "country": "kr"
+   }
+  ],
+  "analogtokyo": [
+   {
+    "id": "961932335",
+    "name": "Analog Tokyo",
+    "artist": "ordinaryfactory Inc.",
+    "country": "kr"
+   }
+  ],
+  "analogjeju": [
+   {
+    "id": "1017225151",
+    "name": "Analog Jeju",
+    "artist": "ordinaryfactory Inc.",
+    "country": "kr"
+   }
+  ],
+  "idos3": [
+   {
+    "id": "1580768213",
+    "name": "iDOS 3",
+    "artist": "潮激 李",
+    "country": "kr"
+   }
+  ],
+  "analoglondon": [
+   {
+    "id": "1035219553",
+    "name": "Analog London",
+    "artist": "ordinaryfactory Inc.",
+    "country": "kr"
+   }
+  ],
+  "camscanner+": [
+   {
+    "id": "388624839",
+    "name": "CamScanner+",
+    "artist": "Linguan Data",
+    "country": "kr"
+   }
+  ],
+  "메챠카멜레온": [
+   {
+    "id": "6792712229",
+    "name": "메챠카멜레온",
+    "artist": "民林 孙",
+    "country": "kr"
+   }
+  ],
+  "ilsangpro": [
+   {
+    "id": "1400792124",
+    "name": "ilSang Pro",
+    "artist": "ByungHo Yu",
+    "country": "kr"
+   }
+  ],
+  "musefrommeta": [
+   {
+    "id": "6760173601",
+    "name": "Muse from Meta",
+    "artist": "Meta Platforms, Inc.",
+    "country": "us"
+   }
+  ],
+  "vinted:prelovedmarketplace": [
+   {
+    "id": "632064380",
+    "name": "Vinted: Pre-loved marketplace",
+    "artist": "Vinted Limited",
+    "country": "us"
+   }
+  ],
+  "kicklivestreaming": [
+   {
+    "id": "6446202561",
+    "name": "KICK - Live Streaming",
+    "artist": "Kick Streaming",
+    "country": "us"
+   }
+  ],
+  "netflixgamecontroller": [
+   {
+    "id": "6447582581",
+    "name": "Netflix Game Controller",
+    "artist": "Netflix, Inc.",
+    "country": "us"
+   }
+  ],
+  "tiktokproevents": [
+   {
+    "id": "6741796873",
+    "name": "TikTok Pro - Events",
+    "artist": "TikTok Ltd.",
+    "country": "us"
+   }
+  ],
+  "pinedramashortdramas": [
+   {
+    "id": "6754134922",
+    "name": "PineDrama - Short Dramas",
+    "artist": "TikTok Ltd.",
+    "country": "us"
+   }
+  ],
+  "mcdonalds": [
+   {
+    "id": "922103212",
+    "name": "McDonald's",
+    "artist": "McDonald's USA",
+    "country": "us"
+   }
+  ],
+  "kalshi:tradefootball&more": [
+   {
+    "id": "1632713844",
+    "name": "Kalshi: Trade Football & more",
+    "artist": "KalshiEX LLC",
+    "country": "us"
+   }
+  ],
+  "capcut:photo&videoeditor": [
+   {
+    "id": "1500855883",
+    "name": "CapCut: Photo & Video Editor",
+    "artist": "Bytedance Pte. Ltd",
+    "country": "us"
+   }
+  ],
+  "doordash:food,grocery,more": [
+   {
+    "id": "719972451",
+    "name": "DoorDash: Food, Grocery, More",
+    "artist": "DoorDash, Inc.",
+    "country": "us"
+   }
+  ],
+  "depopbuy&sellclothes": [
+   {
+    "id": "518684914",
+    "name": "Depop - Buy & Sell Clothes",
+    "artist": "Depop Ltd",
+    "country": "us"
+   }
+  ],
+  "temu:shoplikeabillionaire": [
+   {
+    "id": "1641486558",
+    "name": "Temu: Shop Like a Billionaire",
+    "artist": "Temu",
+    "country": "us"
+   }
+  ],
+  "uberrides,eats,hotels": [
+   {
+    "id": "368677368",
+    "name": "Uber - Rides, Eats, Hotels",
+    "artist": "Uber Technologies, Inc.",
+    "country": "us"
+   }
+  ],
+  "google": [
+   {
+    "id": "284815942",
+    "name": "Google",
+    "artist": "Google",
+    "country": "us"
+   }
+  ],
+  "tiktokvideos,shop&live": [
+   {
+    "id": "835599320",
+    "name": "TikTok - Videos, Shop & LIVE",
+    "artist": "TikTok Ltd.",
+    "country": "us"
+   }
+  ],
+  "aimaker:photovideofilters": [
+   {
+    "id": "6753982990",
+    "name": "AI Maker: Photo Video Filters",
+    "artist": "Hungry Birds",
+    "country": "us"
+   }
+  ],
+  "whatnot:shop,sell,connect": [
+   {
+    "id": "1488269261",
+    "name": "Whatnot: Shop, Sell, Connect",
+    "artist": "Whatnot Inc.",
+    "country": "us"
+   }
+  ],
+  "dramawavedramas&reels": [
+   {
+    "id": "6670430706",
+    "name": "DramaWave - Dramas & Reels",
+    "artist": "SKYWORK AI PTE LTD",
+    "country": "us"
+   }
+  ],
+  "instagram": [
+   {
+    "id": "389801252",
+    "name": "Instagram",
+    "artist": "Instagram, Inc.",
+    "country": "us"
+   }
+  ],
+  "shop:track,pay,discover": [
+   {
+    "id": "1223471316",
+    "name": "Shop: Track, Pay, Discover",
+    "artist": "Shopify Inc.",
+    "country": "us"
+   }
+  ],
+  "gmailemailbygoogle": [
+   {
+    "id": "422689480",
+    "name": "Gmail - Email by Google",
+    "artist": "Google",
+    "country": "us"
+   }
+  ],
+  "amazonshopping": [
+   {
+    "id": "297606951",
+    "name": "Amazon Shopping",
+    "artist": "AMZN Mobile LLC",
+    "country": "us"
+   }
+  ],
+  "lyft": [
+   {
+    "id": "529379082",
+    "name": "Lyft",
+    "artist": "Lyft, Inc.",
+    "country": "us"
+   }
+  ],
+  "blinkdramashortdramas": [
+   {
+    "id": "6768593043",
+    "name": "BlinkDrama - Short Dramas",
+    "artist": "Atlas Ventures Culture & Technology Limited",
+    "country": "us"
+   }
+  ],
+  "life360:familysafety&gps": [
+   {
+    "id": "384830320",
+    "name": "Life360: Family Safety & GPS",
+    "artist": "Life360",
+    "country": "us"
+   }
+  ],
+  "youtube": [
+   {
+    "id": "544007664",
+    "name": "YouTube",
+    "artist": "Google",
+    "country": "us"
+   }
+  ],
+  "spotify:musicandpodcasts": [
+   {
+    "id": "324684580",
+    "name": "Spotify: Music and Podcasts",
+    "artist": "Spotify",
+    "country": "us"
+   }
+  ],
+  "capitalonemobile": [
+   {
+    "id": "407558537",
+    "name": "Capital One Mobile",
+    "artist": "Capital One",
+    "country": "us"
+   }
+  ],
+  "amazonprimevideo": [
+   {
+    "id": "545519333",
+    "name": "Amazon Prime Video",
+    "artist": "AMZN Mobile LLC",
+    "country": "us"
+   }
+  ],
+  "walmart:shopping&savings": [
+   {
+    "id": "338137227",
+    "name": "Walmart: Shopping & Savings",
+    "artist": "Walmart",
+    "country": "us"
+   }
+  ],
+  "freecashgetpaidrealmoney": [
+   {
+    "id": "1673567402",
+    "name": "Freecash - Get Paid Real Money",
+    "artist": "Freecash - Get Paid Real Money",
+    "country": "us"
+   }
+  ],
+  "cashapp": [
+   {
+    "id": "711923939",
+    "name": "Cash App",
+    "artist": "Block, Inc.",
+    "country": "us"
+   }
+  ],
+  "telegrammessenger": [
+   {
+    "id": "686449807",
+    "name": "Telegram Messenger",
+    "artist": "Telegram FZ-LLC",
+    "country": "us"
+   }
+  ],
+  "grokai": [
+   {
+    "id": "6670324846",
+    "name": "Grok AI",
+    "artist": "X Corp.",
+    "country": "us"
+   }
+  ],
+  "vizio|watchfree+": [
+   {
+    "id": "1054033219",
+    "name": "VIZIO | WatchFree+",
+    "artist": "VIZIO",
+    "country": "us"
+   }
+  ],
+  "googlephotos:backup&edit": [
+   {
+    "id": "962194608",
+    "name": "Google Photos: Backup & Edit",
+    "artist": "Google",
+    "country": "us"
+   }
+  ],
+  "rokuremote(official)": [
+   {
+    "id": "482066631",
+    "name": "Roku Remote (Official)",
+    "artist": "ROKU INC",
+    "country": "us"
+   }
+  ],
+  "pinterest": [
+   {
+    "id": "429047995",
+    "name": "Pinterest",
+    "artist": "Pinterest, Inc.",
+    "country": "us"
+   }
+  ],
+  "venmo": [
+   {
+    "id": "351727428",
+    "name": "Venmo",
+    "artist": "Venmo",
+    "country": "us"
+   }
+  ],
+  "twitch:livestreaming": [
+   {
+    "id": "460177396",
+    "name": "Twitch: Live Streaming",
+    "artist": "Twitch Interactive, Inc.",
+    "country": "us"
+   }
+  ],
+  "ticketmasterbuy,selltickets": [
+   {
+    "id": "500003565",
+    "name": "Ticketmaster－Buy, Sell Tickets",
+    "artist": "Ticketmaster",
+    "country": "us"
+   }
+  ],
+  "zeta:aichat,story,play": [
+   {
+    "id": "1619030760",
+    "name": "zeta: AI Chat, Story, Play",
+    "artist": "Scatter Lab, Inc.",
+    "country": "us"
+   }
+  ],
+  "snapchat": [
+   {
+    "id": "447188370",
+    "name": "Snapchat",
+    "artist": "Snap, Inc.",
+    "country": "us"
+   }
+  ],
+  "youtubetv": [
+   {
+    "id": "1193350206",
+    "name": "YouTube TV",
+    "artist": "Google",
+    "country": "us"
+   }
+  ],
+  "storyreel:dramashorts&tv": [
+   {
+    "id": "6761538521",
+    "name": "StoryReel: Drama Shorts & TV",
+    "artist": "Equinox Enterprises‌ Technology Limited",
+    "country": "us"
+   }
+  ],
+  "dealseek:coupons&discounts": [
+   {
+    "id": "6745274862",
+    "name": "DealSeek: Coupons & Discounts",
+    "artist": "DealSeek LLC",
+    "country": "us"
+   }
+  ],
+  "disney+": [
+   {
+    "id": "1446075923",
+    "name": "Disney+",
+    "artist": "Disney",
+    "country": "us"
+   }
+  ],
+  "discordtalk,play,hangout": [
+   {
+    "id": "985746746",
+    "name": "Discord - Talk, Play, Hang Out",
+    "artist": "Discord Inc.",
+    "country": "us"
+   }
+  ],
+  "googlechrome": [
+   {
+    "id": "535886823",
+    "name": "Google Chrome",
+    "artist": "Google",
+    "country": "us"
+   }
+  ],
+  "paramount+": [
+   {
+    "id": "530168168",
+    "name": "Paramount+",
+    "artist": "CBS Interactive",
+    "country": "us"
+   }
+  ],
+  "tacobellfastfood&delivery": [
+   {
+    "id": "497387361",
+    "name": "Taco Bell Fast Food & Delivery",
+    "artist": "Taco Bell",
+    "country": "us"
+   }
+  ],
+  "dramaboxstreamdramashorts": [
+   {
+    "id": "6445905219",
+    "name": "DramaBox - Stream Drama Shorts",
+    "artist": "STORYMATRIX PTE. LTD.",
+    "country": "us"
+   }
+  ],
+  "ripsbytriumph": [
+   {
+    "id": "6751921248",
+    "name": "Rips by Triumph",
+    "artist": "Triumph Arcade",
+    "country": "us"
+   }
+  ],
+  "gowishyourdigitalwishlist": [
+   {
+    "id": "1605170923",
+    "name": "GoWish - Your Digital Wishlist",
+    "artist": "Onskeskyen ApS",
+    "country": "us"
+   }
+  ],
+  "paypalpay,send,save": [
+   {
+    "id": "283646709",
+    "name": "PayPal - Pay, Send, Save",
+    "artist": "PayPal, Inc.",
+    "country": "us"
+   }
+  ],
+  "peacocktv:streamtv&movies": [
+   {
+    "id": "1508186374",
+    "name": "Peacock TV: Stream TV & Movies",
+    "artist": "Peacock TV LLC",
+    "country": "us"
+   }
+  ],
+  "biblechat:dailydevotional": [
+   {
+    "id": "6448849666",
+    "name": "Bible Chat: Daily Devotional",
+    "artist": "Book Vitals Inc.",
+    "country": "us"
+   }
+  ],
+  "mapquestgpsnavigation&maps": [
+   {
+    "id": "316126557",
+    "name": "MapQuest GPS Navigation & Maps",
+    "artist": "MapQuest Holdings LLC",
+    "country": "us"
+   }
+  ],
+  "partiful:partyinvitemaker": [
+   {
+    "id": "1662982304",
+    "name": "Partiful: Party Invite Maker",
+    "artist": "Partiful",
+    "country": "us"
+   }
+  ],
+  "sheinshoppingonline": [
+   {
+    "id": "878577184",
+    "name": "SHEIN - Shopping Online",
+    "artist": "ROADGET BUSINESS PTE. LTD.",
+    "country": "us"
+   }
+  ],
+  "capitaloneshopping:savenow": [
+   {
+    "id": "1089294040",
+    "name": "Capital One Shopping: Save Now",
+    "artist": "Wikibuy, LLC",
+    "country": "us"
+   }
+  ],
+  "tlife": [
+   {
+    "id": "1111876388",
+    "name": "T-Life",
+    "artist": "T-Mobile",
+    "country": "us"
+   }
+  ],
+  "netflix": [
+   {
+    "id": "363590051",
+    "name": "Netflix",
+    "artist": "Netflix, Inc.",
+    "country": "us"
+   }
+  ],
+  "reddit": [
+   {
+    "id": "1064216828",
+    "name": "Reddit",
+    "artist": "REDDIT, INC.",
+    "country": "us"
+   }
+  ],
+  "vibeshort:aishortdramas": [
+   {
+    "id": "6758667154",
+    "name": "VibeShort: AI Short Dramas",
+    "artist": "AGILE QUADRANT MEDIA LIMITED",
+    "country": "us"
+   }
+  ],
+  "reelshortstreamdrama&tv": [
+   {
+    "id": "1636235979",
+    "name": "ReelShort - Stream Drama & TV",
+    "artist": "NewLeaf Publishing",
+    "country": "us"
+   }
+  ],
+  "edits:videoeditor": [
+   {
+    "id": "6738967378",
+    "name": "Edits: Video Editor",
+    "artist": "Instagram, Inc.",
+    "country": "us"
+   }
+  ],
+  "aliexpressshoppingapp": [
+   {
+    "id": "436672029",
+    "name": "AliExpress - Shopping App",
+    "artist": "Alibaba",
+    "country": "us"
+   }
+  ],
+  "duolingo:learnlanguages": [
+   {
+    "id": "570060128",
+    "name": "Duolingo: Learn Languages",
+    "artist": "Duolingo",
+    "country": "us"
+   }
+  ],
+  "ubereats:food&groceries": [
+   {
+    "id": "1058959277",
+    "name": "Uber Eats: Food & Groceries",
+    "artist": "Uber Technologies, Inc.",
+    "country": "us"
+   }
+  ],
+  "waymo": [
+   {
+    "id": "1343524838",
+    "name": "Waymo",
+    "artist": "Waymo LLC",
+    "country": "us"
+   }
+  ],
+  "fetch:earnrewardseveryday": [
+   {
+    "id": "1182474649",
+    "name": "Fetch: Earn Rewards Every Day",
+    "artist": "Fetch Rewards, LLC",
+    "country": "us"
+   }
+  ],
+  "costco": [
+   {
+    "id": "535509415",
+    "name": "Costco",
+    "artist": "Costco Wholesale Corporation",
+    "country": "us"
+   }
+  ],
+  "dominospizzausa": [
+   {
+    "id": "436491861",
+    "name": "Domino's Pizza USA",
+    "artist": "Domino's Pizza LLC",
+    "country": "us"
+   }
+  ],
+  "hbomax:streammovies&tv": [
+   {
+    "id": "1666653815",
+    "name": "HBO Max: Stream Movies & TV",
+    "artist": "WarnerMedia Global Digital Services, LLC",
+    "country": "us"
+   }
+  ],
+  "tubi:movies&livetv": [
+   {
+    "id": "886445756",
+    "name": "Tubi: Movies & Live TV",
+    "artist": "Tubi, Inc",
+    "country": "us"
+   }
+  ],
+  "sunoaisongs,music,lyrics": [
+   {
+    "id": "6480136315",
+    "name": "Suno - AI Songs, Music, Lyrics",
+    "artist": "Suno, Inc.",
+    "country": "us"
+   }
+  ],
+  "7brewcoffee": [
+   {
+    "id": "6762023973",
+    "name": "7 Brew Coffee",
+    "artist": "Brew Culture, LLC",
+    "country": "us"
+   }
+  ],
+  "cleanup:phonestoragecleaner": [
+   {
+    "id": "1510944943",
+    "name": "Cleanup: Phone Storage Cleaner",
+    "artist": "DEEP FLOW SOFTWARE SERVICES",
+    "country": "us"
+   }
+  ],
+  "ebayonlineshopping&selling": [
+   {
+    "id": "282614216",
+    "name": "eBay online shopping & selling",
+    "artist": "eBay Inc.",
+    "country": "us"
+   }
+  ],
+  "indeedjobsearch": [
+   {
+    "id": "309735670",
+    "name": "Indeed Job Search",
+    "artist": "Indeed Inc.",
+    "country": "us"
+   }
+  ],
+  "airbnb": [
+   {
+    "id": "401626263",
+    "name": "Airbnb",
+    "artist": "Airbnb, Inc.",
+    "country": "us"
+   }
+  ],
+  "koupon:promocodes&deals": [
+   {
+    "id": "6472232952",
+    "name": "Koupon: Promo Codes & Deals",
+    "artist": "Koupon Inc.",
+    "country": "us"
+   }
+  ],
+  "cantina:aivideo&characters": [
+   {
+    "id": "1018368216",
+    "name": "Cantina: AI Video & Characters",
+    "artist": "Cantina, Inc",
+    "country": "us"
+   }
+  ],
+  "grokbot": [
+   {
+    "id": "6794501026",
+    "name": "Grok Bot",
+    "artist": "X Corp.",
+    "country": "us"
+   }
+  ],
+  "chickfila": [
+   {
+    "id": "488818252",
+    "name": "Chick-fil-A",
+    "artist": "Chick-fil-A, Inc.",
+    "country": "us"
+   }
+  ],
+  "tvremoteuniversalcontrol": [
+   {
+    "id": "1539090879",
+    "name": "TV Remote - Universal Control",
+    "artist": "EVOLLY.APP",
+    "country": "us"
+   }
+  ],
+  "canvaaiphoto&videoeditor": [
+   {
+    "id": "897446215",
+    "name": "Canva AI Photo & Video Editor",
+    "artist": "Canva",
+    "country": "us"
+   }
+  ],
+  "googledrive": [
+   {
+    "id": "507874739",
+    "name": "Google Drive",
+    "artist": "Google",
+    "country": "us"
+   }
+  ],
+  "crimeradardispatchaudio": [
+   {
+    "id": "6746114452",
+    "name": "CrimeRadar Dispatch Audio",
+    "artist": "Scoopz Inc.",
+    "country": "us"
+   }
+  ],
+  "smartthings": [
+   {
+    "id": "1222822904",
+    "name": "SmartThings",
+    "artist": "Samsung Electronics Co., Ltd.",
+    "country": "us"
+   }
+  ],
+  "posh–create&findevents": [
+   {
+    "id": "1556928106",
+    "name": "Posh – Create & Find Events",
+    "artist": "Posh Group Inc.",
+    "country": "us"
+   }
+  ],
+  "hotschedules": [
+   {
+    "id": "294934058",
+    "name": "HotSchedules",
+    "artist": "HotSchedules",
+    "country": "us"
+   }
+  ],
+  "2amcam": [
+   {
+    "id": "6793744610",
+    "name": "2AM CAM",
+    "artist": "Aiden Magarian",
+    "country": "us"
+   }
+  ],
+  "paprikarecipemanager3": [
+   {
+    "id": "1303222868",
+    "name": "Paprika Recipe Manager 3",
+    "artist": "Hindsight Labs LLC",
+    "country": "us"
+   }
+  ],
+  "skyview®": [
+   {
+    "id": "404990064",
+    "name": "SkyView®",
+    "artist": "Terminal Eleven LLC",
+    "country": "us"
+   }
+  ],
+  "spirittalker®": [
+   {
+    "id": "1536762482",
+    "name": "Spirit Talker ®",
+    "artist": "Spotted Ghosts",
+    "country": "us"
+   }
+  ],
+  "monashfodmapdiet": [
+   {
+    "id": "586149216",
+    "name": "Monash FODMAP Diet",
+    "artist": "Monash University",
+    "country": "us"
+   }
+  ],
+  "peakfinder": [
+   {
+    "id": "357421934",
+    "name": "PeakFinder",
+    "artist": "PeakFinder GmbH",
+    "country": "us"
+   }
+  ],
+  "openscreensharing": [
+   {
+    "id": "6818992574",
+    "name": "Open Screen Sharing",
+    "artist": "Metamerism LLC",
+    "country": "us"
+   }
+  ],
+  "milgps": [
+   {
+    "id": "405835358",
+    "name": "MilGPS",
+    "artist": "Cascode Labs Pty Ltd",
+    "country": "us"
+   }
+  ],
+  "necrophonic": [
+   {
+    "id": "1396698319",
+    "name": "Necrophonic",
+    "artist": "chris rogers",
+    "country": "us"
+   }
+  ],
+  "wipr2": [
+   {
+    "id": "1662217862",
+    "name": "Wipr 2",
+    "artist": "Kaylee Calderolla",
+    "country": "us"
+   }
+  ],
+  "liveatcairradio": [
+   {
+    "id": "317809458",
+    "name": "LiveATC Air Radio",
+    "artist": "Dave Pascoe",
+    "country": "us"
+   }
+  ],
+  "wildwood:followthecrows": [
+   {
+    "id": "6786316806",
+    "name": "Wildwood: Follow the Crows",
+    "artist": "Wild In Art Ltd.",
+    "country": "us"
+   }
+  ],
+  "quickbend:conduitbending": [
+   {
+    "id": "1010311475",
+    "name": "QuickBend: Conduit Bending",
+    "artist": "Bret Hardman",
+    "country": "us"
+   }
+  ],
+  "streaks": [
+   {
+    "id": "963034692",
+    "name": "Streaks",
+    "artist": "Crunchy Bagel",
+    "country": "us"
+   }
+  ],
+  "goblintools": [
+   {
+    "id": "6449003064",
+    "name": "Goblin Tools",
+    "artist": "Skyhook",
+    "country": "us"
+   }
+  ],
+  "imovideocallsandchathd": [
+   {
+    "id": "1400579543",
+    "name": "imo video calls and chat HD",
+    "artist": "Baby Penguin",
+    "country": "us"
+   }
+  ],
+  "autosleep:watchsleeptracker": [
+   {
+    "id": "1164801111",
+    "name": "AutoSleep: Watch Sleep Tracker",
+    "artist": "Tantsissa",
+    "country": "us"
+   }
+  ],
+  "ghostsciencem3": [
+   {
+    "id": "1360656789",
+    "name": "Ghost Science M3",
+    "artist": "Michael Weber",
+    "country": "us"
+   }
+  ],
+  "threemathesecuremessenger": [
+   {
+    "id": "578665578",
+    "name": "Threema. The Secure Messenger",
+    "artist": "Threema GmbH",
+    "country": "us"
+   }
+  ],
+  "pocketgod": [
+   {
+    "id": "301387274",
+    "name": "Pocket God",
+    "artist": "Bolt Creative",
+    "country": "us"
+   }
+  ],
+  "berryfilmkoreanstylecam": [
+   {
+    "id": "6741474933",
+    "name": "BerryFilm - Korean Style Cam",
+    "artist": "Seungyun Kim",
+    "country": "us"
+   }
+  ],
+  "stayontarget1138": [
+   {
+    "id": "6796775271",
+    "name": "Stay On Target 1138",
+    "artist": "Harin Wickremasinghe",
+    "country": "us"
+   }
+  ],
+  "happycowveganfoodnearyou": [
+   {
+    "id": "435871950",
+    "name": "HappyCow - Vegan Food Near You",
+    "artist": "HappyCow",
+    "country": "us"
+   }
+  ],
+  "forscanliteforford,mazda": [
+   {
+    "id": "892347083",
+    "name": "FORScan Lite - for Ford, Mazda",
+    "artist": "Aleksei Savin",
+    "country": "us"
+   }
+  ],
+  "radarscope": [
+   {
+    "id": "288419283",
+    "name": "RadarScope",
+    "artist": "Base Velocity, LLC",
+    "country": "us"
+   }
+  ],
+  "shottracer": [
+   {
+    "id": "1140451547",
+    "name": "Shot Tracer",
+    "artist": "Visual Vertigo Software Technologies GmbH",
+    "country": "us"
+   }
+  ],
+  "noirdarkmodeforsafari": [
+   {
+    "id": "1581140954",
+    "name": "Noir - Dark Mode for Safari",
+    "artist": "Jeffrey Kuiken",
+    "country": "us"
+   }
+  ],
+  "things3": [
+   {
+    "id": "904237743",
+    "name": "Things 3",
+    "artist": "Cultured Code GmbH & Co. KG",
+    "country": "us"
+   }
+  ],
+  "stashrulebasedproxy": [
+   {
+    "id": "1596063349",
+    "name": "Stash - Rule Based Proxy",
+    "artist": "STASH NETWORKS LIMITED",
+    "country": "us"
+   }
+  ],
+  "tenuto": [
+   {
+    "id": "459313476",
+    "name": "Tenuto",
+    "artist": "musictheory.net",
+    "country": "us"
+   }
+  ],
+  "necrometer": [
+   {
+    "id": "1670762759",
+    "name": "Necrometer",
+    "artist": "chris rogers",
+    "country": "us"
+   }
+  ],
+  "photopills": [
+   {
+    "id": "596026805",
+    "name": "PhotoPills",
+    "artist": "PhotoPills S.L.",
+    "country": "us"
+   }
+  ],
+  "heartwatch:heartratemonitor": [
+   {
+    "id": "1062745479",
+    "name": "HeartWatch: Heart Rate Monitor",
+    "artist": "Tantsissa",
+    "country": "us"
+   }
+  ],
+  "cloudbabymonitor": [
+   {
+    "id": "432791399",
+    "name": "Cloud Baby Monitor",
+    "artist": "VIGI Limited",
+    "country": "us"
+   }
+  ],
+  "landnavassistant": [
+   {
+    "id": "525299323",
+    "name": "Land Nav Assistant",
+    "artist": "Gammon Applications, LLC",
+    "country": "us"
+   }
+  ],
+  "realsensiffpro": [
+   {
+    "id": "6766166468",
+    "name": "Real Sensi FF - PRO",
+    "artist": "Aurion Technologies L.L.C.",
+    "country": "us"
+   }
+  ],
+  "knots3d": [
+   {
+    "id": "453571750",
+    "name": "Knots 3D",
+    "artist": "Nynix",
+    "country": "us"
+   }
+  ],
+  "eswordlt:biblestudytogo": [
+   {
+    "id": "634158738",
+    "name": "e-Sword LT: Bible Study to Go",
+    "artist": "Rick Meyers",
+    "country": "us"
+   }
+  ],
+  "pedistat": [
+   {
+    "id": "327963391",
+    "name": "Pedi STAT",
+    "artist": "James M Kempema MD PA",
+    "country": "us"
+   }
+  ],
+  "whitenoise": [
+   {
+    "id": "289894882",
+    "name": "White Noise",
+    "artist": "TMSOFT",
+    "country": "us"
+   }
+  ],
+  "plezy:mediaserverclient": [
+   {
+    "id": "6754315964",
+    "name": "Plezy: Media Server Client",
+    "artist": "Edvard Wikhall",
+    "country": "us"
+   }
+  ],
+  "lumy": [
+   {
+    "id": "908905093",
+    "name": "Lumy",
+    "artist": "Raja Vijayaraman",
+    "country": "us"
+   }
+  ],
+  "slowshuttercam": [
+   {
+    "id": "357404131",
+    "name": "Slow Shutter Cam",
+    "artist": "Cogitap Software",
+    "country": "us"
+   }
+  ],
+  "alarmroom": [
+   {
+    "id": "6786882026",
+    "name": "ALARM ROOM",
+    "artist": "Ryan Winner",
+    "country": "us"
+   }
+  ],
+  "blueprint4track": [
+   {
+    "id": "6777792345",
+    "name": "Blueprint 4-Track",
+    "artist": "MAX B HELGEMO",
+    "country": "us"
+   }
+  ],
+  "solocatorgpsfieldcamera": [
+   {
+    "id": "582584117",
+    "name": "Solocator - GPS Field Camera",
+    "artist": "Civi Corp",
+    "country": "us"
+   }
+  ],
+  "tourtempo": [
+   {
+    "id": "329937776",
+    "name": "Tour Tempo",
+    "artist": "Tour Tempo",
+    "country": "us"
+   }
+  ],
+  "teachyourmonstertoread": [
+   {
+    "id": "828392046",
+    "name": "Teach Your Monster to Read",
+    "artist": "Teach Your Monster",
+    "country": "us"
+   }
+  ],
+  "nightcapcamera:longexposure": [
+   {
+    "id": "754105884",
+    "name": "NightCap Camera: Long Exposure",
+    "artist": "RTD",
+    "country": "us"
+   }
+  ],
+  "earthquakenetwork": [
+   {
+    "id": "1449893235",
+    "name": "Earthquake Network",
+    "artist": "Futura Innovation SRL",
+    "country": "us"
+   }
+  ],
+  "rarevisionvhs:retrocam": [
+   {
+    "id": "679454835",
+    "name": "Rarevision VHS: Retro Cam",
+    "artist": "Rarevision",
+    "country": "us"
+   }
+  ],
+  "lumafusion": [
+   {
+    "id": "1062022008",
+    "name": "LumaFusion",
+    "artist": "Luma Touch LLC",
+    "country": "us"
+   }
+  ],
+  "astroshader": [
+   {
+    "id": "6444631986",
+    "name": "AstroShader",
+    "artist": "AstroShader Limited",
+    "country": "us"
+   }
+  ],
+  "printtosize": [
+   {
+    "id": "949490225",
+    "name": "Print to Size",
+    "artist": "Clafou Ltd",
+    "country": "us"
+   }
+  ],
+  "stackthestates®": [
+   {
+    "id": "381342267",
+    "name": "Stack the States®",
+    "artist": "Freecloud Design, Inc.",
+    "country": "us"
+   }
+  ],
+  "idrumtuneprecisiondrumtuner": [
+   {
+    "id": "1234266367",
+    "name": "iDrumTune Precision Drum Tuner",
+    "artist": "RT Sixty Ltd",
+    "country": "us"
+   }
+  ],
+  "undersong": [
+   {
+    "id": "6802013758",
+    "name": "Undersong",
+    "artist": "ian johnston",
+    "country": "us"
+   }
+  ],
+  "stbemutv(pro)": [
+   {
+    "id": "1564403188",
+    "name": "StbEmuTV (Pro)",
+    "artist": "Junaid Muhammad",
+    "country": "us"
+   }
+  ],
+  "iverifybasic": [
+   {
+    "id": "1466120520",
+    "name": "iVerify Basic",
+    "artist": "iVerify",
+    "country": "us"
+   }
+  ],
+  "obdfusion": [
+   {
+    "id": "650684932",
+    "name": "OBD Fusion",
+    "artist": "OCTech, LLC",
+    "country": "us"
+   }
+  ],
+  "mylightmeterpro": [
+   {
+    "id": "583922375",
+    "name": "myLightMeter PRO",
+    "artist": "David Quiles",
+    "country": "us"
+   }
+  ],
+  "cozmorobot": [
+   {
+    "id": "6748243845",
+    "name": "Cozmo Robot",
+    "artist": "Digital Dream Labs LLC",
+    "country": "us"
+   }
+  ],
+  "iwebtvpro": [
+   {
+    "id": "1453647914",
+    "name": "iWebTV PRO",
+    "artist": "Swishly inc",
+    "country": "us"
+   }
+  ],
+  "shooter:ballisticcalculator": [
+   {
+    "id": "478462401",
+    "name": "Shooter: Ballistic Calculator",
+    "artist": "Kennedy Development Group, LLC",
+    "country": "us"
+   }
+  ],
+  "ibendpipe": [
+   {
+    "id": "339407922",
+    "name": "iBend Pipe",
+    "artist": "Francisco Alcala",
+    "country": "us"
+   }
+  ],
+  "teleguard": [
+   {
+    "id": "1505636751",
+    "name": "TeleGuard",
+    "artist": "Swisscows AG",
+    "country": "us"
+   }
+  ],
+  "sticknodesproanimator": [
+   {
+    "id": "932128168",
+    "name": "Stick Nodes Pro - Animator",
+    "artist": "ForTheLoss Games, Inc",
+    "country": "us"
+   }
+  ],
+  "youngphotoaestheticcamera": [
+   {
+    "id": "6763737180",
+    "name": "YoungPhoto - Aesthetic Camera",
+    "artist": "Seungyun Kim",
+    "country": "us"
+   }
+  ],
+  "uglyselectricalreferences": [
+   {
+    "id": "1134770838",
+    "name": "Ugly's Electrical References",
+    "artist": "Informed Publishing",
+    "country": "us"
+   }
+  ],
+  "scrivener": [
+   {
+    "id": "972387337",
+    "name": "Scrivener",
+    "artist": "Literature & Latte",
+    "country": "us"
+   }
+  ],
+  "conduit:openwebui&ai": [
+   {
+    "id": "6749840287",
+    "name": "Conduit: Open WebUI & AI",
+    "artist": "Tunap Paul",
+    "country": "us"
+   }
+  ],
+  "loon": [
+   {
+    "id": "1373567447",
+    "name": "Loon",
+    "artist": "Loon Lab Limited",
+    "country": "us"
+   }
+  ],
+  "ccw–concealedcarry50state": [
+   {
+    "id": "443321291",
+    "name": "CCW – Concealed Carry 50 State",
+    "artist": "Workman Consulting LLC",
+    "country": "us"
+   }
+  ],
+  "autosnore:snoringrecorder": [
+   {
+    "id": "6746705608",
+    "name": "AutoSnore: Snoring Recorder",
+    "artist": "Tantsissa",
+    "country": "us"
+   }
+  ],
+  "forscore": [
+   {
+    "id": "363738376",
+    "name": "forScore",
+    "artist": "forScore LLC",
+    "country": "us"
+   }
+  ],
+  "hamstudyorg": [
+   {
+    "id": "1371288324",
+    "name": "HamStudy.org",
+    "artist": "Signal Stuff",
+    "country": "us"
+   }
+  ],
+  "prepwareaviationmaintenance": [
+   {
+    "id": "338893931",
+    "name": "Prepware Aviation Maintenance",
+    "artist": "ASA",
+    "country": "us"
+   }
+  ],
+  "practiscorecompetitor": [
+   {
+    "id": "1191380081",
+    "name": "PractiScore Competitor",
+    "artist": "Eugene Kuleshov",
+    "country": "us"
+   }
+  ],
+  "air&spacefitnesscalculator": [
+   {
+    "id": "1569922923",
+    "name": "Air & Space Fitness Calculator",
+    "artist": "Patrick Smith",
+    "country": "us"
+   }
+  ],
+  "jb4mobile": [
+   {
+    "id": "794841332",
+    "name": "JB4 Mobile",
+    "artist": "Dmac Mobile Developments, LLC",
+    "country": "us"
+   }
+  ],
+  "mapperforsafari": [
+   {
+    "id": "1589391989",
+    "name": "Mapper for Safari",
+    "artist": "Alex Kitcoff",
+    "country": "us"
+   }
+  ],
+  "ravitravelryonthehop": [
+   {
+    "id": "1234214894",
+    "name": "Ravit - Ravelry on the hop",
+    "artist": "Enhancient",
+    "country": "us"
+   }
+  ],
+  "duereminders&timers": [
+   {
+    "id": "390017969",
+    "name": "Due - Reminders & Timers",
+    "artist": "Due Apps LLP",
+    "country": "us"
+   }
+  ],
+  "adguardpro:safariadblocker": [
+   {
+    "id": "1126386264",
+    "name": "AdGuard Pro: Safari Ad Blocker",
+    "artist": "Adguard Software Limited",
+    "country": "us"
+   }
+  ],
+  "istb": [
+   {
+    "id": "1497473331",
+    "name": "iSTB",
+    "artist": "Nihal Ahmed",
+    "country": "us"
+   }
+  ]
+ }
+}

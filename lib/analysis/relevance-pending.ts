@@ -6,7 +6,7 @@
 
 import { selectInputs, timestampOf } from './extract-select.ts'
 import { MAX_REVIEW_CHARS, pickSampleByRating, type RatingSampleStats } from './relevance-judge.ts'
-import { applyPrefilter, prefilterInputs, summarizePrefilter, type PrefilterConfig } from './prefilter.ts'
+import { applyPrefilter, isHnLowValue, prefilterInputs, summarizePrefilter, type PrefilterConfig } from './prefilter.ts'
 import { DEFAULT_EXCLUDED_SOURCES, DEFAULT_LAST_SOURCES, fetchAllPages, orderForJudge } from './relevance-judge-all.ts'
 import { consumerReasonOf, consumerSkipEnabled, loadAllowIds, loadConsumerTagged, loadProjectArea } from './consumer-material.ts'
 
@@ -145,7 +145,9 @@ export function createPendingFor(deps: {
     const rows = inputs as PendingInputRow[]
     const eligible = selectInputs(rows, { maxCharsTotal: Number.POSITIVE_INFINITY }).selected
     // 소비재(태그 ∪ 파생, 남헌 v61)는 미판정에서만 뺀다 — 이미 판정된 것(done)은 원래대로 빠지고 판정 행은 건드리지 않는다.
-    const undone = eligible.filter((s) => !done.has(s.input.id))
+    // v71ay C5: HN 가치 낮은 글은 표본을 자르기 전에 뺀다(on 일 때만). 삭제 아님 — 원문·판정 없음 그대로, 끄면 다시 대상이 된다.
+    const hnOn = !!prefilterCfg && prefilterCfg.hn.mode === 'on'
+    const undone = eligible.filter((s) => !done.has(s.input.id) && !(hnOn && isHnLowValue(s.input, prefilterCfg!)))
     const isC = (s: (typeof undone)[number]) => isConsumer(s.input.id, s.input.source_key)
     const consumer = undone.filter(isC).length
     const ordered = orderForJudge(consumer ? undone.filter((s) => !isC(s)) : undone, {
@@ -168,7 +170,7 @@ export function createPendingFor(deps: {
       prefilterCfg = null
       return { ...base, reviews, rating }
     }
-    const { kept, wouldDrop } = applyPrefilter(reviews, verdicts, prefilterCfg.mode)
+    const { kept, wouldDrop } = applyPrefilter(reviews, verdicts, prefilterCfg.mode, prefilterCfg.hn.mode === 'on' ? ['hn_lowvalue'] : [])
     prefilterByProject[project.id] = {
       mode: prefilterCfg.mode,
       rating_column: state.ratingColumn,

@@ -28,6 +28,13 @@
     "(카지노|바카라|토토|슬롯|홀덤)\\s*사이트",
     "^(?=.*(고수익|재택\\s*(부업|알바)|부업|급전|무직자\\s*대출|신불자\\s*대출|저신용\\s*대출|리딩방|수익\\s*보장))(?=.*(@[a-z0-9_]{3,}|https?://|t\\.me/|open\\.kakao|오픈\\s*채팅|가입\\s*코드|추천\\s*코드|문의\\s*(주세요|환영|바람|ㄱ)))"
   ],
+  "_hn_lowvalue": "v71ay C5 HN 가치 낮은 글 사전 제외. 대안·비교·가격 키워드가 없고 원문 길이가 min_chars 미만이거나 max_chars 이상이면 판정에서 뺀다(삭제 아님). mode: off | shadow(표시만) | on(실제로 뺌). env HN_PREFILTER 가 이긴다. 롤백 = off. 2026-10-19 14일 실측 17,470건: 제외 1,802건 중 관련 176건(손실 4.1%, 문턱 5%).",
+  "hn_lowvalue": {
+    "mode": "on",
+    "min_chars": 200,
+    "max_chars": 2000,
+    "keywords": ["alternative", "instead of", "switch", "migrat", "vs\\.?", "versus", "replace", "compared", "better than", "moved (to|from)", "look(ing)? for", "recommend", "competitor", "pricing", "subscription", "churn", "cancel", "갈아", "대신", "대안"]
+  },
   "_category_rule": "제품명+카테고리어 동시 포함 규칙. 일반어 겹침이 확인된 소스(sources)에만 적용한다. appstore·googleplay·hackernews 는 여기 적어도 코드가 무시한다(남헌 금지). projects 에 project_id 별 낱말이 없는 프로젝트는 적용하지 않는다(애매하면 통과). require: both(둘 다 있어야 통과) | either(하나만 있어도 통과 — 완화).",
   "category_rule": {
     "sources": ["kakao_blog", "kakao_cafe"],

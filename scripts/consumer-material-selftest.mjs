@@ -41,7 +41,8 @@ function mockDb(tables, errors = {}) {
 t('스위치 기본 on(env 없음)', consumerSkipEnabled(undefined) === true)
 t("스위치 'off'(대소문자·공백 무시)만 끈다", consumerSkipEnabled(' OFF ') === false && consumerSkipEnabled('of') === true && consumerSkipEnabled('false') === true)
 t('사유: out-consumer 영역 우선', consumerReasonOf('out-consumer', 'youtube') === 'area:out-consumer')
-t('사유: 유튜브는 어느 프로젝트든', consumerReasonOf('2', 'youtube') === 'source:youtube' && consumerReasonOf(null, 'youtube') === 'source:youtube')
+t('사유: 유튜브는 영역 없음·hold 면 소비재(소스 규칙)', consumerReasonOf('hold', 'youtube') === 'source:youtube' && consumerReasonOf(null, 'youtube') === 'source:youtube')
+t('사유: 유튜브도 영역 ①~⑤·design 프로젝트면 소비재 아님(v71au)', ['1', '2', '3', '4', '5', 'design'].every((a) => consumerReasonOf(a, 'youtube') === null))
 t('사유: 그 밖은 null', consumerReasonOf('2', 'danawa') === null && consumerReasonOf('out-founder', 'hackernews') === null)
 
 // ── 2. 하위 사용처 한 곳(dropIrrelevant) — 태그 = 관련 없음, 사람 채점이 이긴다 ──
@@ -120,7 +121,7 @@ t('사유: 그 밖은 null', consumerReasonOf('2', 'danawa') === null && consume
   const off = await createPendingFor({ ...base, skipConsumer: false, supabase: mockDb(tables, noTagTable) }).pendingFor({ id: 'pc' })
   t('스위치 off → 파생·태그 둘 다 꺼짐', off.reviews.length === 2 && off.consumer === 0)
   const ps = await createPendingFor({ ...base, excludedSources: [], supabase: mockDb(tables, noTagTable) }).pendingFor({ id: 'ps' })
-  t('SaaS 프로젝트: youtube(제외 소스 해제 시)는 파생으로 빠지고 appstore 는 남는다', ps.reviews.map((r) => r.input_id).join() === 's1' && ps.consumer === 1)
+  t('SaaS 프로젝트(영역 ②): youtube(제외 소스 해제 시)도 appstore 와 같이 남는다(v71au — 영역 ①~⑤ 는 소비재 소스 규칙에서 빠진다)', ps.reviews.map((r) => r.input_id).sort().join() === 's1,sy' && ps.consumer === 0)
   const areaErr = createPendingFor({ ...base, supabase: mockDb(tables, { ...noTagTable, analysis_projects: { code: '500', message: 'boom' } }) })
   t('영역 조회 실패 → 그 프로젝트 건너뜀(null, fail-closed)', (await areaErr.pendingFor({ id: 'pc' })) === null)
   const noCol = await createPendingFor({ ...base, supabase: mockDb(tables, { ...noTagTable, analysis_projects: { code: '42703', message: 'no col' } }) }).countFor({ id: 'pc' })
@@ -139,13 +140,13 @@ const inputs = [
   { id: 'c2', project_id: 'pc', source_key: 'danawa' },     // 새 태그 · 판정 있음 → 보류 아님
   { id: 'c3', project_id: 'pc', source_key: 'danawa' },     // 이미 태그
   { id: 'c4', project_id: 'pc', source_key: 'hackernews' }, // 사람 제외(경계 A)
-  { id: 'y1', project_id: 'ps', source_key: 'youtube' },    // 유튜브 태그 · 원래 제외 소스라 보류 아님
+  { id: 'y1', project_id: 'pc', source_key: 'youtube' },    // 유튜브 태그(소비재 영역) · 원래 제외 소스라 보류 아님
   { id: 's1', project_id: 'ps', source_key: 'appstore' },   // 태그 대상 아님
 ]
 {
   const { rows, stats } = planTags({ projects, inputs, judged: new Set(['c2']), tagged: new Set(['c3']), exclude: new Set(['c4']) })
   t('계획: 새 태그 c1·c2·y1', rows.map((r) => r.input_id).sort().join() === 'c1,c2,y1')
-  t('계획: 사유·버전', rows.find((r) => r.input_id === 'y1').reason === 'source:youtube' && rows.every((r) => r.rule_ver === 'cm-v1'))
+  t('계획: 사유·버전', rows.find((r) => r.input_id === 'y1').reason === 'area:out-consumer' && rows.every((r) => r.rule_ver === 'cm-v1'))
   t('계획: 이미 1 · 제외 1 · 판정 있음 1', stats.alreadyTagged === 1 && stats.excludedByHuman === 1 && stats.withVerdict === 1)
   t('계획: 보류 1건(c1) · 절감 = 1 × $0.0028', stats.held === 1 && stats.savingsUsd === 0 && stats.queueBefore === 3 && stats.queueAfter === 2)
   t('계획: 소비재 영역 1곳 · MARKETPLACE_SELLER 1곳', stats.consumerProjects === 1 && stats.marketplaceSeller === 1)

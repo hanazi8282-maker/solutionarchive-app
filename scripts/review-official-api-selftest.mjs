@@ -6,7 +6,8 @@
 
 import { runCollection } from '../lib/review/runner.ts'
 import { BACKFILL_PAGES, PER_PAGE, REPOS, cleanBody, decodeCursor, githubAdapter as G, maskMentions } from '../lib/review/adapters/github.ts'
-import { BOARDS as SE_BOARDS, stackexchangeAdapter as S } from '../lib/review/adapters/stackexchange.ts'
+import { BOARDS as SE_BOARDS, SITE_WEB as SE_SITE_WEB, stackexchangeAdapter as S } from '../lib/review/adapters/stackexchange.ts'
+import * as await_fs from 'node:fs'
 import { buildProductRef } from '../lib/review/target-ref.ts'
 
 let pass = 0
@@ -32,6 +33,16 @@ const page = (items) => JSON.stringify({ total_count: 999, incomplete_results: f
   t('gh: 모르는 slug · board 아님 → 요청 안 함(SSRF·0요청)', [G.nextRequest(target('github_issues', 'board:evil')), G.nextRequest(target('github_issues', 'url:https://x.y'))], [null, null])
   t('gh: 커서 page 3 → page=3', new URL(G.nextRequest(target('github_issues', 'board:twenty', JSON.stringify({ last: null, page: 3, top: 900 }))).url).searchParams.get('page'), '3')
   t('gh: 표의 저장소는 전부 owner/repo 형식', Object.values(REPOS).every((r) => /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(r)), true)
+  // v71au: 24곳 등재 마이그의 board:<slug> 가 전부 REPOS 에 있다(코드보다 먼저 적용하면 조용히 안 도는 사고 방지)
+  const mig = (await import('node:fs')).readFileSync(new URL('../supabase/migrations/20261019000010_github_issues_targets_24.sql', import.meta.url), 'utf8')
+  const migSlugs = [...mig.matchAll(/\('board:([a-z0-9-]+)',/g)].map((m) => m[1])
+  t('gh: 24곳 마이그 slug 24개 · 전부 REPOS 에 있다 · 표 40곳', [migSlugs.length, migSlugs.every((x) => x in REPOS), Object.keys(REPOS).length], [24, true, 40])
+  // v71au: SE·YouTube 마이그의 타깃이 코드와 맞는다(코드보다 먼저 적용하면 조용히 안 도는 사고 방지)
+  const rd = (n) => (await_fs).readFileSync(new URL('../supabase/migrations/' + n, import.meta.url), 'utf8')
+  const seSlugs = [...rd('20261019000030_stackexchange_enable.sql').matchAll(/\('board:([a-z0-9-]+)',/g)].map((m) => m[1])
+  t('se: 마이그 8곳 · 전부 BOARDS 에 있고 사이트 웹 호스트가 있다', [seSlugs.length, seSlugs.every((x) => SE_BOARDS[x] && SE_BOARDS[x].site in SE_SITE_WEB)], [8, true])
+  const ytRefs = [...rd('20261019000020_youtube_saas_targets.sql').matchAll(/\('(v:[^']+)', '[1-5]'/g)].map((m) => m[1])
+  t('yt: 마이그 23개 · 영상 ID 11자 · 중복 없음', [ytRefs.length, ytRefs.every((r) => /^v:[A-Za-z0-9_-]{11}$/.test(r)), new Set(ytRefs).size], [23, true, 23])
   t('gh: target-ref 가 표 slug 만 받는다', [buildProductRef('github_issues', 'board:kimai')?.productRef, buildProductRef('github_issues', 'board:nope')?.ok], ['board:kimai', false])
 }
 {

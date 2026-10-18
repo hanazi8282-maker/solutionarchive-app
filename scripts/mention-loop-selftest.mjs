@@ -278,8 +278,8 @@ t('경보: 조회 차단', safetyAlerts({ ...M, lookup_blocked: true }, [])[0].s
   const cfg = JSON.parse(fs.readFileSync(new URL('../config/product-name-discovery.json', import.meta.url), 'utf8'))
   const junk = ['Google Analytics', 'Gmail', 'Mixpanel', 'Product Hunt', 'GA', 'Google Analytic', 'Google Reader', 'Claude Desktop', 'Jira', 'Heroku', 'AWS', 'Confluence', 'NoteForms', 'Electron', 'Hetzner', 'Org-mode', 'self-hosting', 'VS Code', 'Kanban', '로그인', '통화', '파일']
   const norm = (x) => x.toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, '')
-  t('필터: 표본의 비제품 이름은 전부 기각', junk.filter((n) => !nameRejectReason(n, norm(n), cfg.exclude)), [])
-  t('필터: 실제 제품 이름(Fireflies)은 통과', nameRejectReason('Fireflies', 'fireflies', cfg.exclude), null)
+  t('필터: 표본의 비제품 이름은 전부 기각', junk.filter((n) => !nameRejectReason(n, norm(n), { ...cfg.exclude, ...cfg.mention_exclude })), [])
+  t('필터: 실제 제품 이름(Fireflies)은 통과', nameRejectReason('Fireflies', 'fireflies', { ...cfg.exclude, ...cfg.mention_exclude }), null)
 }
 
 console.log(`mention-loop selftest: ${pass} pass · ${fail} fail`)

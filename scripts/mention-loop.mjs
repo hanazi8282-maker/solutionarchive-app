@@ -102,7 +102,7 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
   for (const [k, e] of Object.entries(ledger.entries ?? {})) if (e.status === 'rejected') prior.set(k, `ledger:${e.reason}`)
   for (const d of input.discovery) if (d.verdict === 'rejected') prior.set(normKey(d.name), `discovery_candidates:${d.verdict_reason ?? 'rejected'}`)
 
-  const agg = aggregate(input.posts, { ...input, ...fileRegistry, exclude: cfg.exclude })
+  const agg = aggregate(input.posts, { ...input, ...fileRegistry, exclude: { ...cfg.exclude, ...cfg.mention_exclude } })
   const counts = agg.counts
   let rows = agg.rows
   let similar = []

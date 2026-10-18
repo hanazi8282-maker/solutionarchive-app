@@ -18,7 +18,7 @@ import path from 'node:path'
 import { stripSourceHeader } from '../review/types.ts'
 import { rng, shuffle } from './relevance-judge.ts'
 
-export const PREFILTER_RULES = ['empty', 'rating_only', 'symbols_only', 'emoji_only', 'duplicate', 'ad_template', 'category_miss'] as const
+export const PREFILTER_RULES = ['empty', 'rating_only', 'symbols_only', 'emoji_only', 'duplicate', 'ad_template', 'category_miss', 'hn_lowvalue'] as const
 export type PrefilterRule = (typeof PREFILTER_RULES)[number]
 export type PrefilterProtect = 'complaint_word' | 'low_rating' | 'english'
 export type PrefilterMode = 'shadow' | 'enforce'
@@ -37,6 +37,11 @@ export interface PrefilterConfig {
   duplicateMinChars: number
   adPatterns: RegExp[]
   category: { sources: string[]; require: 'both' | 'either'; projects: Record<string, { product: string[]; category: string[] }> }
+  /**
+   * v71ay C5: HN 가치 낮은 글 사전 제외. 대안·비교·가격 문구가 없고 원문 길이가 너무 짧거나(<minChars) 너무 긴(>=maxChars) 글.
+   * 14일 실측(17,470건): 제외 1,802건 · 그중 관련 판정 176건(4.1%). 다른 규칙과 달리 모드와 무관하게 on 이면 실제로 뺀다.
+   */
+  hn: { mode: 'off' | 'shadow' | 'on'; minChars: number; maxChars: number; keywords: RegExp | null }
 }
 
 // session-guard.json 과 같은 방식 — 스크립트는 리포 루트에서 돈다(CI·크론 모두).
@@ -81,10 +86,22 @@ export function parsePrefilterConfig(raw: unknown, env: Record<string, string | 
     }
   }
 
+  const h = (r.hn_lowvalue && typeof r.hn_lowvalue === 'object' ? r.hn_lowvalue : {}) as Record<string, unknown>
+  const hnRaw = (env.HN_PREFILTER ?? (typeof h.mode === 'string' ? h.mode : 'off')).trim().toLowerCase()
+  // 모르는 값은 off — 오타로 글이 빠지는 일은 없어야 한다.
+  const hnMode: 'off' | 'shadow' | 'on' = hnRaw === 'on' || hnRaw === 'shadow' ? hnRaw : 'off'
+  let hnKeywords: RegExp | null = null
+  try {
+    hnKeywords = strList(h.keywords).length ? new RegExp(`(${strList(h.keywords).join('|')})`, 'i') : null
+  } catch {
+    warnings.push('HN 키워드 정규식 오류 — HN 필터 끔')
+  }
+
   return {
     cfg: {
       mode,
       applySources,
+      hn: { mode: hnKeywords ? hnMode : 'off', minChars: numOr(h.min_chars, 200), maxChars: numOr(h.max_chars, 2000), keywords: hnKeywords },
       complaintWords: strList(r.complaint_words),
       lowRatingMax: numOr(r.low_rating_max, 3),
       englishMinLatin: numOr(r.english_min_latin_letters, 8),
@@ -129,6 +146,13 @@ export interface PrefilterVerdict {
   rule: PrefilterRule | null
   /** 보호 규칙으로 통과했으면 그 이유(로그용). */
   protectedBy: PrefilterProtect | null
+}
+
+/** HN 가치 낮은 글인가(모드 off 면 늘 false). 판정 후보를 자르기 전에도 쓴다 — 안 그러면 제외된 글이 매 실행 표본 자리를 차지한다. */
+export function isHnLowValue(input: { source_key?: string | null; raw_text?: string | null }, cfg: PrefilterConfig): boolean {
+  if (cfg.hn.mode === 'off' || input.source_key !== 'hackernews' || !cfg.hn.keywords) return false
+  const text = input.raw_text ?? ''
+  return (text.length < cfg.hn.minChars || text.length >= cfg.hn.maxChars) && !cfg.hn.keywords.test(text)
 }
 
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, '')
@@ -177,6 +201,9 @@ export function prefilterInputs(
     const body = stripSourceHeader(input.raw_text, { appVersion: true }).trim()
     if (body === '') { out[idx] = flag(typeof input.rating === 'number' ? 'rating_only' : 'empty'); continue }
 
+    // 영어 보호(protection)보다 먼저 — HN 은 전부 영어라 뒤에 두면 늘 보호로 통과한다.
+    if (isHnLowValue(input, cfg)) { out[idx] = flag('hn_lowvalue'); continue }
+
     const key = squash(body)
     const dup = key.length >= cfg.duplicateMinChars && seen.has(key)
     seen.add(key)
@@ -220,10 +247,13 @@ export function applyPrefilter<T extends { input_id: string }>(
   reviews: readonly T[],
   verdicts: readonly PrefilterVerdict[],
   mode: PrefilterMode,
+  /** 모드와 무관하게 실제로 빼는 규칙(HN 필터 on). */
+  alwaysDrop: readonly PrefilterRule[] = [],
 ): { kept: T[]; wouldDrop: { input_id: string; rule: PrefilterRule }[] } {
   const byId = new Map(verdicts.filter(v => v.rule).map(v => [v.input_id, v.rule as PrefilterRule]))
   const wouldDrop = reviews.filter(r => byId.has(r.input_id)).map(r => ({ input_id: r.input_id, rule: byId.get(r.input_id)! }))
-  const kept = mode === 'enforce' ? reviews.filter(r => !byId.has(r.input_id)) : [...reviews]
+  const gone = (r: T) => byId.has(r.input_id) && (mode === 'enforce' || alwaysDrop.includes(byId.get(r.input_id)!))
+  const kept = reviews.filter(r => !gone(r))
   return { kept, wouldDrop }
 }
 

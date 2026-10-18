@@ -1,0 +1,86 @@
+# 커뮤니티·서브보드·신규 제품 후보 발굴 (남헌 v71au 개정판 ④⑤⑥, 2026-10-19) — 읽기 전용 후보 생성기.
+#
+# 하는 일: ④ 씨앗 포럼 프로브(robots·categories·latest·약관)  ⑤ 등록된 Discourse 6곳의 미등록 서브보드 목록  ⑥ 공식 차트 피드의 미등록 앱 후보.
+# 하지 않는 일: DB 쓰기 0 · 커밋 0 · 타깃/소스 등록 0. 산출물은 아티팩트(reports/<KST>/*.md·*.json·*.sql 초안)로만 낸다.
+#   등록은 세션이 초안을 읽고 마이그레이션으로 한다(CLAUDE.md §10.1 "새 소스" 갈래·§10.2).
+#
+# ⛔ permissions: contents read. ⛔ 새 secret 없음 — NEXT_PUBLIC_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY 는 기존 값, 이 잡은 SELECT(registered 앱 ID 목록) 한 번만 쓴다.
+# 요청: 호스트당 3초 간격, iTunes lookup 6초 간격. 403·429·빈 응답이면 그 호스트(또는 lookup 전체)는 즉시 멈춘다(우회 없음).
+
+name: Nightly Community Discovery
+
+on:
+  schedule:
+    # 22:47 UTC = KST 07:47. 창문 발굴(22:23)·크론 감시(21:53) 뒤. 정각·30분은 피한다(미발화 실측 2026-09-01).
+    - cron: '47 22 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: community-discovery
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: echo "D=$(TZ=Asia/Seoul date +%F)" >> "$GITHUB_ENV"
+
+      - name: Selftest
+        run: |
+          node scripts/community-discovery-selftest.mjs
+          node scripts/new-product-candidates-selftest.mjs
+
+      - name: ④ communities (seed probe)
+        run: node scripts/community-discovery.mjs --mode=communities --write
+
+      - name: ⑤ sub-boards (registered Discourse sources)
+        run: node scripts/community-discovery.mjs --mode=subboards --write
+
+      # SELECT 한 번: 이미 타깃이 있는 앱스토어 앱 ID. 실패하면 ⑥ 을 건너뛴다(빈 목록으로 돌리면 전부 '미등록'으로 오판한다, §7.1).
+      - name: Registered app refs (SELECT only)
+        id: reg
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl -sf "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/review_targets?select=product_ref&source_key=eq.appstore&limit=5000" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            | node -e "const j=JSON.parse(require('fs').readFileSync(0,'utf8'));if(!Array.isArray(j)||!j.length)process.exit(1);require('fs').writeFileSync(process.env.RUNNER_TEMP+'/registered.json',JSON.stringify(j.map(x=>x.product_ref)))"
+
+      - name: ⑥ new product candidates (official chart feed + lookup)
+        if: steps.reg.outcome == 'success'
+        run: |
+          node scripts/appstore-chart-dictionary.mjs --out="$RUNNER_TEMP/chart.json"
+          node scripts/new-product-candidates.mjs --dictionary="$RUNNER_TEMP/chart.json" --registered="$RUNNER_TEMP/registered.json" --write
+
+      - name: Job summary
+        if: always()
+        run: |
+          d="$D"
+          for f in community-candidates subboard-plan new-product-candidates; do
+            [ -f "reports/$d/$f.md" ] && { echo "### $f"; head -n 12 "reports/$d/$f.md"; echo; } >> "$GITHUB_STEP_SUMMARY"
+          done || true
+
+      - name: Upload candidate files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: community-discovery-reports
+          path: reports/${{ env.D }}/
+          if-no-files-found: ignore
+          retention-days: 30

@@ -172,6 +172,8 @@ export type Agg = {
   /** 한글이 든 근거 글 수 — 앱스토어 국가(kr/us) 판정. */
   ko_posts: number
   app_ids: string[]
+  /** 근거 글 속 구글 플레이 링크의 패키지명(v71aq). 검증 전 값 — 앱스토어 앵커가 있는 후보의 play_pkg 로만 쓴다. */
+  play_pkgs?: string[]
   reject: string | null
   /** (다) 같은 개발사·비슷한 앱 고리에서 이름이 맞은 앱 ref(country:id). 검증 재료(링크 ID 와 같은 자리)일 뿐 등록 근거가 아니다. */
   similar_ref?: string | null
@@ -180,6 +182,8 @@ export type Agg = {
 /** 근거 글 과반이 한글이면 kr 스토어, 아니면 us. */
 export const countryOf = (a: Agg) => (a.ko_posts * 2 > a.posts.length ? 'kr' : 'us')
 
+// 패키지명 = 소문자·숫자·밑줄을 점으로 이은 2단 이상(com.foo.bar)
+const PLAY_LINK = /play\.google\.com\/store\/apps\/details\?(?:[^\s"'<>#]*&)?id=([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)/gi
 const APPLE_LINK = /apps\.apple\.com\/(?:[a-z]{2}\/)?app\/(?:[^/\s?#]+\/)?id(\d{5,})/gi
 
 /**
@@ -211,6 +215,7 @@ export function aggregate(posts: Post[], ctx: { projects: ProjectRow[]; targets:
     kk.posts++
     if (ms.length) kk.with_mention++
     const ids = [...String(p.raw_text ?? '').matchAll(APPLE_LINK)].map((m) => m[1])
+    const pkgs = [...String(p.raw_text ?? '').matchAll(PLAY_LINK)].map((m) => m[1].toLowerCase())
     const seenInPost = new Set<string>()
     for (const m of ms) {
       extracted.add(m.key)
@@ -224,7 +229,7 @@ export function aggregate(posts: Post[], ctx: { projects: ProjectRow[]; targets:
       }
       const a =
         by.get(m.key) ??
-        by.set(m.key, { key: m.key, name: m.surface, mentions: 0, posts: [], sources: [], areas: {}, roles: { from: 0, to: 0, alt: 0, compare: 0 }, alt_seek_posts: 0, ko_posts: 0, app_ids: [], reject: nameRejectReason(m.surface, m.key, ctx.exclude), _surf: new Map() }).get(m.key)!
+        by.set(m.key, { key: m.key, name: m.surface, mentions: 0, posts: [], sources: [], areas: {}, roles: { from: 0, to: 0, alt: 0, compare: 0 }, alt_seek_posts: 0, ko_posts: 0, app_ids: [], play_pkgs: [], reject: nameRejectReason(m.surface, m.key, ctx.exclude), _surf: new Map() }).get(m.key)!
       a.mentions++
       a.roles[m.role]++
       a._surf.set(m.surface, (a._surf.get(m.surface) ?? 0) + 1)
@@ -237,6 +242,7 @@ export function aggregate(posts: Post[], ctx: { projects: ProjectRow[]; targets:
       if (seek) a.alt_seek_posts++
       if (/[가-힣]/.test(p.raw_text ?? '')) a.ko_posts++
       for (const id of ids) if (!a.app_ids.includes(id)) a.app_ids.push(id)
+      for (const k of pkgs) if (!a.play_pkgs!.includes(k)) a.play_pkgs!.push(k)
     }
   }
   const rows: Agg[] = [...by.values()].map(({ _surf, ...a }) => ({ ...a, name: [..._surf.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))[0][0], posts: [...a.posts].sort() }))

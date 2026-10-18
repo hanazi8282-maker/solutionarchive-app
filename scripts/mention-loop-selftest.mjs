@@ -60,6 +60,16 @@ t('자기 이름 제외(Quillnote·근무툴)', [!!byKey.quillnote, !!byKey['근
 t('이미 등록된 이름 제외(Evernote)', [!!byKey.evernote, counts.registered], [false, 1])
 t('글·소스·근거 id', [byKey.inkwell.posts.length, byKey.inkwell.sources, byKey.inkwell.posts[0]], [3, ['appstore', 'googleplay'], '00000000-0000-4000-8000-000000000001'])
 t('링크 앱 ID 수집', byKey.inkwell.app_ids, ['1111111111'])
+{
+  // v71aq: 구글 플레이 링크 → 패키지명 (대소문자 무시, 중복 제거, id 앞에 다른 쿼리가 와도 인식, 패키지 모양 아니면 무시)
+  const P = (id, text) => ({ id, project_id: 'aaaaaaaa-0000-4000-8000-000000000009', source_key: 'googleplay', area_code: '5', raw_text: text })
+  const pl = aggregate([
+    P('p1', 'I moved from Zenpad to Quillnote https://play.google.com/store/apps/details?id=com.Zen.pad&hl=ko'),
+    P('p2', 'Switched from Zenpad to Quillnote https://play.google.com/store/apps/details?hl=en&id=com.zen.pad'),
+    P('p3', 'moved from Zenpad to Quillnote https://play.google.com/store/apps/details?id=notapackage'),
+  ], { projects: [], targets: [], discovery: [], exclude: EXCL })
+  t('플레이 링크 패키지명 수집(소문자·중복 제거·모양 아니면 무시)', pl.rows.find((r) => r.key === 'zenpad')?.play_pkgs, ['com.zen.pad'])
+}
 t('대안 탐색 글 가중 대상', [byKey.inkwell.alt_seek_posts, counts.alt_seek_posts], [1, 3])
 t('한국어 글 → kr 판정 재료', byKey['시프트잇'].ko_posts, 3)
 const prior = new Map([['tasklane', 'discovery_candidates:HN hits 2 < 5']])
@@ -137,7 +147,7 @@ t('경보: 조회 차단', safetyAlerts({ ...M, lookup_blocked: true }, [])[0].s
   fs.writeFileSync(ledger, JSON.stringify({ entries: {} }))
   const o = await main(args, quiet)
   t('CLI: 등록 1·차단 1(픽스처 게이트 자리 1)', [o.metrics.registered, o.metrics.gate_blocked], [1, 1])
-  t('CLI: 파일 5개(후보 생성기 입력·이름 검색 입력 포함)', fs.readdirSync(path.join(tmp, 'r', '2026-10-17')).sort(), ['anchor-verify-input.json', 'candidate-input.json', 'mention-approved.json', 'mention-ledger.sql', 'mention-loop.json'])
+  t('CLI: 파일 5~6개(거절 로그는 게이트가 막은 날만)(후보 생성기 입력·이름 검색 입력 포함)', fs.readdirSync(path.join(tmp, 'r', '2026-10-17')).filter((f) => f !== 'gate-rejects.jsonl').sort(), ['anchor-verify-input.json', 'candidate-input.json', 'mention-approved.json', 'mention-ledger.sql', 'mention-loop.json'])
   const avIn = JSON.parse(fs.readFileSync(path.join(tmp, 'r', '2026-10-17', 'anchor-verify-input.json'), 'utf8'))
   t('이름 검색 입력: 확인 불가 후보만·anchor-verify 꼴', avIn.map((r) => [r.slug, Object.keys(r).sort()]), [['driftly', ['country', 'expected_domain', 'name', 'slug']]])
   const sql = fs.readFileSync(path.join(tmp, 'r', '2026-10-17', 'mention-ledger.sql'), 'utf8')

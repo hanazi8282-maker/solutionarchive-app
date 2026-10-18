@@ -22,6 +22,7 @@ import { pathToFileURL } from 'node:url'
 import { parseProductRef as appstoreRef } from '../lib/review/adapters/appstore.ts'
 import { parseProductRef as googleplayRef } from '../lib/review/adapters/googleplay.ts'
 import { areaOf, DISCOVERY_TARGET_MAX, gateHeadroom } from '../lib/review/target-supply.ts'
+import { appendRejects, rejectLine } from './gate-reject-log.mjs'
 import { buildWindows, kstDate, loadSeen, probeWindows, readLedgerSkip, realFetch, sourceGate, windowKey, writeLedger } from './window-probe.mjs'
 import { renderRollback, renderSql } from './window-migration-draft.mjs'
 
@@ -115,7 +116,7 @@ export function planRegistration(cands, { targets, sources, state, registeredTod
     const s = state?.sources?.[c.source_key]
     const headroom = s ? gateHeadroom(c.source_key, s.active, totalActive) : 0
     const n = used[c.source_key] ?? 0
-    if (n >= headroom) { skip('gate_blocked'); continue }
+    if (n >= headroom) { skipped.push({ key: k, reason: 'gate_blocked', gate: { source: c.source_key, active: s?.active ?? null, total_active: totalActive, headroom, new_per_request: c.new_per_request ?? null } }); continue }
     if (n + (registeredToday[c.source_key] ?? 0) >= DISCOVERY_TARGET_MAX) { skip('daily_cap'); continue }
     used[c.source_key] = n + 1
     exists.add(k)
@@ -321,6 +322,8 @@ export async function main(argv, { db = null, fetchText = null, sleep = (ms) => 
   const pending = ledger.entries.filter((e) => e.status === 'pending')
   const cands = [...adoptedToday, ...pending.map((e) => ({ ...e, draftable: true }))]
   const plan = planRegistration(cands, { targets, sources, state, registeredToday })
+  // v71ap: 30% 게이트가 막은 후보를 한 줄씩 남긴다(기록만 — 게이트 로직 불변). 집계 = scripts/gate-reject-log.mjs
+  if (!dry) appendRejects(dayDir, plan.skipped.filter((s) => s.gate).map((s) => rejectLine({ source: s.gate.source, candidate: s.key, reason: s.reason, active: s.gate.active, totalActive: s.gate.total_active, headroom: s.gate.headroom, newPerRequest: s.gate.new_per_request, capRoom: null })))
   let registered = 0
   if (plan.rows.length === 0) reasons.register = cands.length === 0 ? 'no_new_candidates' : [...new Set(plan.skipped.map((s) => s.reason))].join('+')
   else if (blocked) reasons.register = 'blocked'

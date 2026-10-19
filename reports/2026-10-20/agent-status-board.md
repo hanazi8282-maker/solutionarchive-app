@@ -1,21 +1,21 @@
-(node:2212) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/runner/work/solutionarchive-app/solutionarchive-app/lib/review/target-supply.ts is not specified and it doesn't parse as CommonJS.
+(node:2443) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/runner/work/solutionarchive-app/solutionarchive-app/lib/review/target-supply.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to /home/runner/work/solutionarchive-app/solutionarchive-app/package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
 [에이전트 상태판 2026-10-20]
 | # | 에이전트 | 상태 | 마지막 실행 | 오늘 산출 | 어제 대비 | 막힌 이유 | 완료 날짜 |
 |---|---|---|---|---|---|---|---|
-| 1 | 새 회사 자동 등록(언급 루프) | 작동 [직접 실행 확인] | 2026-10-18T17:57Z | 0 | -18 (어제 18) | - | - |
+| 1 | 새 회사 자동 등록(언급 루프) | 고장 의심(24h↑ 갱신 없음) [직접 실행 확인] | 2026-10-18T17:57Z | 0 | -18 (어제 18) | 마지막 실행 27h 전 | - |
 | 2 | 해외·영어 리뷰 | 작동 [직접 실행 확인] | 2026-10-19T05:07Z | 0 | -621 (어제 621) | - | - |
 | 3 | 다국어 리뷰 | 작동 [직접 실행 확인] | 2026-10-19T05:07Z | 0 | -22 (어제 22) | - | - |
-| 4 | 새 커뮤니티 발굴 루프 | 고장 의심(24h↑ 갱신 없음) [직접 실행 확인] | 2026-10-17T08:50Z | 0 | +0 (어제 0) | 마지막 실행 56h 전 | - |
+| 4 | 새 커뮤니티 발굴 루프 | 고장 의심(24h↑ 갱신 없음) [직접 실행 확인] | 2026-10-17T08:50Z | 0 | +0 (어제 0) | 마지막 실행 60h 전 | - |
 | 5 | 하위 게시판 목록 발굴 | 미구현 [코드만 확인] | 확인 불가 | 확인 불가 | 확인 불가 | 서브보드 목록 발굴기 없음 | 구현 PR 후 날짜 확정 |
-| 6 | 검색 기반 신규 제품 발견 | 작동 [직접 실행 확인] | 2026-10-18T19:26Z | 0 | -29 (어제 29) | - | - |
+| 6 | 검색 기반 신규 제품 발견 | 고장 의심(24h↑ 갱신 없음) [직접 실행 확인] | 2026-10-18T19:26Z | 0 | -29 (어제 29) | 마지막 실행 25h 전 | - |
 | 7 | 국가·키워드·정렬 자동 발굴(창문) | 작동 [직접 실행 확인] | 2026-10-19T00:25Z | 0 | -138 (어제 138) | - | - |
 | 8 | 후보 생성기 등록 모드 | 부분 [코드만 확인] | 확인 불가 | 확인 불가 | 확인 불가 | 드라이런만(등록 모드 전환 전) | 30건 90% 확인 후 |
 | 9 | 임시→정식 자동 승격·폐기 | 미구현 [코드만 확인] | 확인 불가 | 확인 불가 | 확인 불가 | 승격·폐기 스크립트 없음 | 구현 PR 후 날짜 확정 |
 | 10 | 타깃 재고 보충(재방문 시계·게이지) | 작동 [코드만 확인] | 확인 불가 | 확인 불가 | 확인 불가 | nightly-review-collect pre-step(target-revive --auto)이 슬롯마다 실행 — 실행 시각은 reports/ 롤백 파일명이 정본 | 게이지 블록은 이 PR |
-| 11 | 공식 API 소스(GitHub·SE·YouTube) | 작동 [직접 실행 확인] | 2026-10-19T11:30Z | 0 | -4279 (어제 4279) | - | - |
+| 11 | 공식 API 소스(GitHub·SE·YouTube) | 작동 [직접 실행 확인] | 2026-10-19T19:29Z | 753 | -3526 (어제 4279) | - | - |
 | 12 | 영업(②) 우선 발굴 | 범위 밖 [코드만 확인] | 확인 불가 | 확인 불가 | 확인 불가 | 이번 개정 제외 | 기존 일정 |
 | 13 | 수확률 기반 예산 재배분 | 범위 밖 [코드만 확인] | 확인 불가 | 확인 불가 | 확인 불가 | 이번 개정 제외 | 기존 일정 |
 | 14 | 이상 반응 알림 | 범위 밖 [코드만 확인] | 확인 불가 | 확인 불가 | 확인 불가 | 이번 개정 제외 | 기존 일정 |

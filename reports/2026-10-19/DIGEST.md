@@ -54,6 +54,9 @@ _이번 실행은 해설을 생성하지 못했다 — analyst exit 1. 원자료
 - ❌ `draft` 초안 작성 + 게이트 ({"drafted":0}) — bannerbear-price-floor-unit-economics/PRICING: exit 1
 - ⏭️ `stage` 발행 대기 스테이징 — 스테이징 매니페스트 0건
 - ✅ `performance` 성과 분석 ({"raw_only":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":7})
+- ℹ️ Notion 푸시: ✅ 대기함 설명서 동기화 1150자 ✅ DISCOVERY-2026-10-19 → https://app.notion.com/p/DISCOVERY-2026-10-19-3fe100b7ffb4812b85a3d738c63d00e8 푸시 완료 — 초안 0건 · 신규케이스 0건 · 발굴 1건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-10-20-CMO 기록·재확인
 
 _실행 키 `cmo-2026-10-19-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

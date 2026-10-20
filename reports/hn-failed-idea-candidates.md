@@ -243,3 +243,15 @@
 - 작성일: 2026-10-13
 
 > A big part of why we are at where we are is that January 6 was our Beer Hall Putsch. Like the Germans, we failed to put a stop to it.
+
+## HN 50168208
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50168208
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-20 UTC)
+- 스레드: Ofcom concedes defeat in 4chan case
+- 작성자: miohtama
+- 작성일: 2026-10-20
+
+> Think of the kids the world we failed to protect by not having passport checks and government snitch at the 4chan login. But don’t worry! We will check your passport when you open your phone (already live in the UK, efforts supported by the GBP 2M secret donation of Meta to NGOs). And what’s the worst thing that could happen? No one would for sure arrest you for being critical of a foreign government. https://www.independent.co.uk/news/uk/crime/palestine-action...

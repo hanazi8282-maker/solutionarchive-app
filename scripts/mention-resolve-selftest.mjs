@@ -61,6 +61,23 @@ await t('홈페이지 읽기: robots 먼저, 못 읽음·HTML·금지면 페이�
   assert.equal(r.requests, calls.length)
 })
 
+await t('새 출시(PH) 홈페이지도 같은 함수 — robots 금지면 페이지 요청 0(예전엔 페이지 먼저 받음)', async () => {
+  const { main: newRelease } = await import('./new-release-candidates.mjs')
+  const calls = []
+  const ph = { data: { posts: { edges: [{ node: { name: 'Acme', tagline: '', website: 'https://acme.test/', votesCount: 1, createdAt: new Date().toISOString(), topics: { edges: [] } } }] } } }
+  const fetchFn = async (u) => (calls.push(u), u.includes('producthunt') ? res(200, JSON.stringify(ph)) : u.endsWith('/robots.txt') ? res(200, 'User-agent: *\nDisallow: /\n') : res(200, '<meta name="apple-itunes-app" content="app-id=1">'))
+  const old = process.env.PRODUCT_HUNT_API_TOKEN
+  process.env.PRODUCT_HUNT_API_TOKEN = 'x'
+  try {
+    const r = await newRelease([], { fetchFn, log: () => {}, gapMs: 0 })
+    assert.deepEqual(r.candidates.map((c) => [c.state, c.appstore_id]), [['robots_disallowed', null]])
+    assert.ok(!calls.includes('https://acme.test/'))
+  } finally {
+    if (old === undefined) delete process.env.PRODUCT_HUNT_API_TOKEN
+    else process.env.PRODUCT_HUNT_API_TOKEN = old
+  }
+})
+
 // ── ④ Search 연결(언급 루프 본체) ──
 const FIX = 'fixtures/discovery/mention-loop-input.json'
 const fix = JSON.parse(fs.readFileSync(FIX, 'utf8'))

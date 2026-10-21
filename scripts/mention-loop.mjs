@@ -93,19 +93,21 @@ export async function homepageAnchors(urls, { fetchFn = fetch, max = 20, gapMs =
   let stopped = null
   for (const url of urls.slice(0, max)) {
     if (requests) await new Promise((r) => setTimeout(r, gapMs))
-    const u = new URL(url)
+    let u
+    try { u = new URL(url) } catch { out.set(url, { state: 'unreadable' }); continue }
     requests++
     const rb = await fetchFn(`${u.origin}/robots.txt`, H).catch(() => null)
     if (rb && [403, 429].includes(rb.status)) { stopped = `${u.host} robots ${rb.status}`; break }
     const text = rb && rb.status === 200 ? await rb.text() : null
-    const verdict = text != null && !looksLikeMarkup(text) ? robotsVerdict(parseRobots(text), '/', PRODUCT_TOKEN) : { state: 'unverified' }
+    const verdict = text != null && !looksLikeMarkup(text) ? robotsVerdict(parseRobots(text), u.pathname || '/', PRODUCT_TOKEN) : { state: 'unverified' }
     if (verdict.state !== 'allowed') { out.set(url, { state: `robots_${verdict.state}` }); continue }
     requests++
     const res = await fetchFn(url, { ...H, redirect: 'follow' }).catch(() => null)
     if (res && [403, 429].includes(res.status)) { stopped = `${u.host} ${res.status}`; break }
     if (!res || res.status !== 200) { out.set(url, { state: 'unreadable' }); continue }
     if (res.url && bare(new URL(res.url).host) !== bare(u.host)) { out.set(url, { state: 'other_host' }); continue }
-    out.set(url, { state: 'read', ...extractStoreIds(await res.text()) })
+    const html = await res.text().catch(() => null)
+    out.set(url, html == null ? { state: 'unreadable' } : { state: 'read', ...extractStoreIds(html) })
   }
   if (stopped) log(`홈페이지 경로 중단: ${stopped}`)
   return { out, requests, stopped }

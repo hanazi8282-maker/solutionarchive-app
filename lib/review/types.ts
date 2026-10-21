@@ -508,6 +508,23 @@ export function encodeBoardCursor(c: BoardCursor): string {
   return JSON.stringify({ q: c.q, last: c.last })
 }
 
+/** 큐 맨 앞 글을 "없는 글"로 빼고 나머지 큐를 잇는다. 파싱 실패로 세지 않는다(ParseResult.missing). */
+export function skipBoardQueueHead(cur: BoardCursor): ParseResult {
+  const rest: BoardCursor = { q: cur.q.slice(1), last: cur.last }
+  return { reviews: [], nextCursor: encodeBoardCursor(rest), parseFailures: 0, filtered: 0, missing: [cur.q[0]], pauseRun: rest.q.length === 0 }
+}
+
+/**
+ * `skipNotFound` 를 선언하지 않은 어댑터의 기본값(v71ba P0-3, 러너가 부른다). `board:` 타깃의 큐 맨 앞 글이 HTTP 404 면 그 글만 뺀다.
+ * 목록 페이지(큐가 빔)·`url:` 타깃의 404 는 null — 예전대로 failed. 2026-09-30 velog 에서만 고쳤던 사고(실행 36633789150)가
+ * 게시판 어댑터 11곳에 그대로 남아 있었다: 지워진 글 하나가 그 게시판 타깃을 영구 failed 로 닫는다(재방문 시계는 exhausted 만 본다).
+ */
+export function defaultBoardSkipNotFound(ctx: ParseContext): ParseResult | null {
+  if (!parseBoardRef(ctx.productRef)) return null
+  const cur = decodeBoardCursor(ctx.cursor)
+  return cur.q.length > 0 ? skipBoardQueueHead(cur) : null
+}
+
 /**
  * 목록에서 뽑은 글 1건. 어댑터가 자기 마크업에서 이 모양으로 깎아 낸다.
  *

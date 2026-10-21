@@ -17,7 +17,7 @@
 import { createClient } from '../lib/supabase/server.ts'
 import { callGeminiRotating, parseJsonObject } from '../lib/analysis/llm.ts'
 import { dailySpent, DAILY_BUDGET_USD } from '../lib/analysis/budget.ts'
-import { parseSince } from '../lib/analysis/auto-approval.ts'
+import { capacityGuard, loadAuditWindow, parseSince } from '../lib/analysis/auto-approval.ts'
 import { outOfScopeReason } from '../lib/analysis/approval-scope.ts'
 import { chunkReviews } from '../lib/analysis/relevance-judge.ts'
 import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
@@ -35,16 +35,24 @@ const warn = (m) => { if (process.env.GITHUB_ACTIONS) console.log(`::warning::${
 const die = (m) => { console.error(`✗ ${m}`); process.exit(2) }
 const num = (v, d) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? Math.floor(n) : d }
 
-const MAX = num(process.env.RELEVANCE_SECOND_MAX, 200)
+let MAX = num(process.env.RELEVANCE_SECOND_MAX, 200)
 const BATCH = 20
 // 시간 상한 — 같은 잡(90분)의 1차가 길어져도 뒤의 자동 승인 스텝이 잘리지 않게. 걸리면 남은 건은 내일(§7.2: 몇 묶음째인지 남긴다).
-const DEADLINE_MS = num(process.env.RELEVANCE_SECOND_DEADLINE_MIN, 20) * 60_000
+let DEADLINE_MS = num(process.env.RELEVANCE_SECOND_DEADLINE_MIN, 20) * 60_000
 const startedAt = Date.now()
 const since = parseSince(process.env.AUTO_APPROVAL_SINCE) ?? parseSince(kstDate())
 if (!dry && !process.env.GEMINI_API_KEY) die('GEMINI_API_KEY 가 없다 — 2차 판정을 시작하지 않는다(2차는 gemini 고정).')
 
 const sb = await createClient()
 if (!sb) die('DB 연결 실패 — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
+
+// v71bb ⑥ 용량 상향 롤백 가드: 자동 승인 감사 정밀도 < 90%(또는 확인 불가)면 상향(v71k·v71ak: 8000건·150분)을 코드 기본(200건·20분)으로 되돌린다.
+// 리포 변수는 바꾸지 않는다 — 실행마다 다시 보고 정밀도가 회복되면 자연히 풀린다. 끄기 = RELEVANCE_CAPACITY_GUARD=off.
+if ((process.env.RELEVANCE_CAPACITY_GUARD ?? '').trim().toLowerCase() !== 'off') {
+  const g = capacityGuard({ enabled: process.env.AUTO_APPROVAL_ENABLED, since: process.env.AUTO_APPROVAL_SINCE, now: new Date(), audits: await loadAuditWindow(sb) })
+  if (g.clamp && (MAX > 200 || DEADLINE_MS > 20 * 60_000)) { warn(`용량 상향 롤백 가드 — ${g.reason} · 상한 ${MAX}→${Math.min(MAX, 200)}건 · 마감 ${DEADLINE_MS / 60_000}→${Math.min(DEADLINE_MS / 60_000, 20)}분`); MAX = Math.min(MAX, 200); DEADLINE_MS = Math.min(DEADLINE_MS, 20 * 60_000) }
+  else log(`용량 가드 — ${g.reason}`)
+}
 
 // 2차 판정 기준(남헌 v67): 1차와 같은 RELEVANCE_CRITERIA 변수 — 기본 v22, v21|old 면 옛 지시문.
 const secondV22 = !['old', 'v21'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())

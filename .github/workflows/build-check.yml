@@ -44,6 +44,9 @@ jobs:
       - run: node scripts/gauge-watch-selftest.mjs
       # 요청 0 사유(v51 §1-10): enabled 소스 24h 요청 0 에 사유 코드가 없으면 감시 경보. 행 → 사유 → Notion 입력 경계까지.
       - run: node scripts/zero-request-selftest.mjs
+      # v71ba P0-4: 구글 플레이 failed 진단(읽기 전용) · 유튜브 매일 새 영상 발굴(초안만). 네트워크·DB·키 없음.
+      - run: node scripts/googleplay-failed-diag.mjs --selftest
+      - run: node scripts/youtube-daily-videos.mjs --selftest
       # 발행 매칭·미연결 분류. 후보 집합(초안 + 칼럼 연재 편)이 좁아지면 칼럼 발행본이
       # "파이프라인 외"로 조용히 내려간다 — 그 회귀를 여기서 막는다. 네트워크·DB 없음.
       - run: node scripts/threads-match-selftest.mjs
@@ -72,6 +75,8 @@ jobs:
       - run: node scripts/session-guard-selftest.mjs
       # T2 전량 판정 — 1,000행 상한 페이지네이션 · insert-only(기존 판정·사람 채점 덮어쓰기 금지) · 소스 균등 순서 · 자기 호출 체인 종료 조건.
       - run: node scripts/relevance-judge-all-selftest.mjs
+      # unknown 재판정 드라이런(v71bb ④) — 사유 묶음 · 결정적 표본 · 실행 모드가 없다는 것(LLM·DB 쓰기 0).
+      - run: node scripts/relevance-unknown-rejudge-selftest.mjs
       # 소비재 자료 태그(남헌 v61) — 대기열 제외 · 하위 사용처 '관련 없음' 읽기 · 재개 스위치 · 일괄 도구 드라이런/--apply
       - run: node scripts/consumer-material-selftest.mjs
       # extract 하루 건수 자동 조정(남헌 v36 §2) — 스위치 off ≡ 기존 결정 · 올리기/내리기/경계 · cost 정지 제외 · 쉬는 날 안 올림.

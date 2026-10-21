@@ -3,8 +3,9 @@
 //   node scripts/relevance-judge-all-selftest.mjs     (종료코드 0 = 전부 통과)
 
 import fs from 'node:fs'
+import path from 'node:path'
 import {
-  CHAIN_STOP_REASONS, chainCarryOf, decideRelaunch, fetchAllPages, orderForJudge, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
+  CHAIN_STOP_REASONS, chainCarryOf, decideRelaunch, fetchAllPages, orderForJudge, parseExcludedSources, parseSourceList, quotaResetWaitMin, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
 import { createPendingFor } from '../lib/analysis/relevance-pending.ts'
 
@@ -174,6 +175,22 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
   t('5시간 창 확인 불가 → 멈춤', !d({ window5hPct: null }).relaunch)
   t('드라이런·스위치 off → 멈춤', !d({ dry: true }).relaunch && !d({ enabled: false }).relaunch)
 
+  // v71bb: 한도 정지 + 리셋 90분 안 → 리셋 뒤에 잇는다(10-20 s2: 11:31Z 정지, 리셋 12:00Z).
+  {
+    const at = (min) => new Date(now.getTime() + min * 60_000).toISOString()
+    const q = d({ stopReason: 'quota', judged: 0, zeroStreak: 1, quotaResetAt: at(29) })
+    t('quota + 리셋 29분 뒤 → 이어감 · 34분 쉼 · 연속 0건 안 셈', q.relaunch && q.waitMin === 34 && q.nextZeroStreak === 1)
+    t('quota + 주간 안전선 이상이어도 리셋 뒤 잇는다(창이 새로 열림)', d({ stopReason: 'quota', quotaResetAt: at(10), weeklyPct: 99 }).relaunch)
+    t('quota + 리셋 86분 뒤 → 멈춤(90분 상한 밖)', !d({ stopReason: 'quota', quotaResetAt: at(86) }).relaunch && d({ stopReason: 'quota', quotaResetAt: at(85) }).waitMin === 90)
+    t('quota + 리셋이 지났거나 모르면 → 멈춤(종전)', !d({ stopReason: 'quota', quotaResetAt: at(-1) }).relaunch && !d({ stopReason: 'quota', quotaResetAt: null }).relaunch && !d({ stopReason: 'quota', quotaResetAt: 'garbage' }).relaunch)
+    t('quota + hop 상한이면 → 멈춤', !d({ stopReason: 'quota', quotaResetAt: at(10), hop: 24 }).relaunch)
+    t('quota 외 정지 사유는 리셋 시각이 있어도 멈춤', !d({ stopReason: 'hard_cap', quotaResetAt: at(10) }).relaunch)
+    t('스위치 off·만료는 quota 리셋보다 먼저', !d({ stopReason: 'quota', quotaResetAt: at(10), enabled: false }).relaunch && !d({ stopReason: 'quota', quotaResetAt: at(10), untilMs: null }).relaunch)
+    t('quotaResetWaitMin: 경계', quotaResetWaitMin(at(85), now) === 90 && quotaResetWaitMin(at(85.5), now) === null && quotaResetWaitMin(undefined, now) === null)
+    const src = fs.readFileSync(path.join(process.cwd(), 'scripts/relevance-judge-auto.mjs'), 'utf8')
+    t('배선: 판정 스크립트가 quotaResetAt 을 넘기고, 잇는 경우는 소진 경보를 안 낸다', /decideRelaunch\(\{[\s\S]*quotaResetAt,[\s\S]*\}\)/.test(src) && /stopReason === 'quota' && !chain\.relaunch/.test(src))
+  }
+
   // 오늘 한정 완화(남헌 v61, ~2026-10-13 00:00 KST)
   const relaxUntilMs = Date.parse('2026-10-13T00:00:00+09:00')
   const inRelax = new Date(relaxUntilMs - 3_600_000)
@@ -277,6 +294,35 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
     { run_key: 'relevance-judge-2026-10-12-m2', status: 'running', summary: {}, started_at: '2026-10-12T01:05:00Z' }, // 사람이 Cancel → running 으로 남음
   ]
   t('가장 최근 행이 running(취소·죽음)이면 앞 실행의 "이어 가라"를 잇지 않는다', chainCarryOf(rows, now) === null)
+}
+
+// ── 11. v71bb 잔여 — 판정할 수 없는 미판정(본문 없음·HN 저가치)을 센다 · 1차 미판정 사유 분류 ──
+{
+  const { loadPrefilterConfig } = await import('../lib/analysis/prefilter.ts')
+  const hnCfg = loadPrefilterConfig(undefined, { HN_PREFILTER: 'on' }).cfg
+  const rows = [
+    ...Array.from({ length: 4 }, (_, i) => ({ id: `hn-${i}`, project_id: 'p9', purged_at: null, raw_text: `short hn comment ${i}`, created_at: day(i), collected_at: null, source_key: 'hackernews', rating: null })),
+    ...Array.from({ length: 2 }, (_, i) => ({ id: `nb-${i}`, project_id: 'p9', purged_at: null, raw_text: '', created_at: day(i), collected_at: null, source_key: 'googleplay', rating: 2 })),
+    ...Array.from({ length: 3 }, (_, i) => ({ id: `ok-${i}`, project_id: 'p9', purged_at: null, raw_text: `배터리가 너무 빨리 닳아서 불편합니다 ${i}`, created_at: day(i), collected_at: null, source_key: 'googleplay', rating: 2 })),
+  ]
+  const pf = createPendingFor({ supabase: mockDb({ tables: { analysis_inputs: rows, review_relevance_verdicts: [] } }), sampleSize: 1000, highRatingShare: 1, prefilterCfg: hnCfg, log: () => {}, warn: () => {}, excludedSources: [] })
+  const c = await pf.countFor({ id: 'p9' })
+  const p = await pf.pendingFor({ id: 'p9' })
+  t('잔여: countFor 근사는 9건, pendingFor 정확값은 3건 · 본문 없음 2 · HN 저가치 4', hnCfg?.hn.mode === 'on' && c.unjudged === 9 && p.unjudged === 3 && p.reviews.length === 3 && p.residue?.no_body === 2 && p.residue?.hn_low === 4)
+  const src = fs.readFileSync('scripts/relevance-judge-auto.mjs', 'utf8')
+  t('스크립트: 원문을 읽은 프로젝트는 정확값으로 미판정을 센다(근사로 체인이 헛돌지 않게) · summary 에 residue', /exactUnjudged\.get\(c\.project\.id\) \?\? c\.count\.unjudged/.test(src) && /unjudged_after: unjudgedAfter, residue,/.test(src))
+
+  const { classifyProject, mergeCounts } = await import('./relevance-unjudged-why.mjs')
+  const ctx = { done: new Set(['ok-0']), tagged: new Set(['ok-1']), allow: new Set(), excludedSources: [], skipConsumer: true, prefilterCfg: hnCfg }
+  const P = (o) => ({ id: 'p', status: 'collecting', extract_attempts: 0, area_code: '1', ...o })
+  t('사유: 상태가 후보 밖이면 전부 status:<값>', JSON.stringify(classifyProject(P({ status: 'archived' }), rows, ctx)) === JSON.stringify({ hackernews: { 'status:archived': 4 }, googleplay: { 'status:archived': 4 } }))
+  t('사유: 재추출 뒤 failed → failed_excluded', classifyProject(P({ status: 'failed', extract_attempts: 2 }), rows, ctx).googleplay.failed_excluded === 4)
+  const m = classifyProject(P({}), rows, ctx)
+  t('사유: 판정된 건 빼고 · 태그 · 본문 없음 · HN 저가치 · 대기', m.googleplay.consumer_tag === 1 && m.googleplay.no_body === 2 && m.googleplay.eligible === 1 && m.hackernews.hn_low === 4)
+  const mc = classifyProject(P({ area_code: 'out-consumer' }), rows, ctx)
+  t('사유: out-consumer 영역은 태그 표에 없어도 consumer_derived(SQL 로 태그만 빼면 미판정처럼 보이는 몫)', mc.googleplay.consumer_tag === 1 && mc.googleplay.consumer_derived === 3 && mc.hackernews.consumer_derived === 4)
+  t('사유: out-founder 영역의 대기분은 eligible_out_area', classifyProject(P({ area_code: 'out-founder' }), rows, ctx).googleplay.eligible_out_area === 1)
+  t('사유: 합치기', mergeCounts([m, m]).googleplay.no_body === 4)
 }
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} 전량 판정 셀프테스트: ${pass} pass / ${fail} fail`)

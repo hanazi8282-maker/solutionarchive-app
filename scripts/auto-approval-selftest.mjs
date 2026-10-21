@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION, criteriaKindOf } from '../lib/analysis/relevance-criteria.ts'
 import { buildRelevancePrompt, parseGradingMarkdown } from '../lib/analysis/relevance-judge.ts'
 import { SECOND_OPINION_INSTRUCTIONS, isCurrentCriteria } from '../lib/analysis/second-opinion.ts'
-import { AUDIT_DAILY, AUTO_APPROVAL_RULE, KILL, autoApprovalGate, isFullAgreement, killSwitch, scoreApproval, tripThreshold } from '../lib/analysis/auto-approval.ts'
+import { AUDIT_DAILY, AUTO_APPROVAL_RULE, CAPACITY_GUARD, KILL, autoApprovalGate, capacityGuard, isFullAgreement, killSwitch, scoreApproval, tripThreshold } from '../lib/analysis/auto-approval.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 let pass = 0, fail = 0
@@ -122,6 +122,25 @@ ok(/isFullAgreement/.test(src('scripts/relevance-auto-approve.mjs')) && /autoApp
   ok(/recordSecondOpinion\(/.test(imp) && /recordSecondOpinion\(/.test(src('scripts/relevance-second-judge-auto.mjs')) && /second_product_informative: o\.product_informative/.test(src('lib/analysis/second-opinion.ts')), '--record-second·야간 2차가 2차 정보 판정을 함께 쓴다(공용 기록 함수)')
 }
 ok(!/case_studies|case_moves/.test(src('scripts/relevance-auto-approve.mjs').replace(/^\/\/.*$/gm, '')), '집행 스크립트는 케이스 테이블을 쓰지 않는다(조건 5)')
+
+// 6) v71bb ⑥ 용량 상향 롤백 가드 — 킬스위치보다 먼저(정밀도 90%), 확인 불가면 되돌림, 자동 승인 꺼짐이면 가드 없음
+{
+  const now = new Date('2026-10-22T00:00:00Z')
+  const aud = (n, errs) => Array.from({ length: n }, (_, i) => ({ human_verdict: i < errs ? 'irrelevant' : 'relevant', human_product_informative: true, human_graded_at: new Date(now - i * 3_600_000).toISOString() }))
+  const G = (audits, o = {}) => capacityGuard({ enabled: 'true', since: '2026-09-28', now, audits, ...o })
+  ok(!G(aud(50, 3)).clamp, '가드: 오류 3/50(94%) — 상향 유지(현재 운영값)')
+  ok(G(aud(50, 6)).clamp && killSwitch(aud(50, 6), { now, since: new Date('2026-09-28') }).state === 'ok', '가드: 오류 6/50(88%) — 킬스위치(8건) 전에 용량부터 되돌린다')
+  ok(!G(aud(50, 5)).clamp, '가드: 오류 5/50 = 정확히 90% — 유지')
+  ok(G(aud(50, 9)).clamp, '가드: 킬스위치 tripped 면 되돌린다')
+  ok(G(null).clamp && G(aud(50, 0), { since: '' }).clamp, '가드: 감사 조회 실패·시행일 없음 — 확인 불가라 되돌린다')
+  ok(!G(aud(10, 2), { since: '2026-10-15' }).clamp && CAPACITY_GUARD.minN === 20, '가드: 시행 14일 안 감사 20건 미만은 정밀도 판정 전(가드 안 건다)')
+  ok(G(aud(10, 0)).clamp, '가드: 시행 14일 지났는데 최근 감사 20건 미만 = 킬스위치 unverifiable → 되돌린다')
+  ok(!capacityGuard({ enabled: 'false', since: '2026-09-28', now, audits: null }).clamp, '가드: 자동 승인 꺼짐이면 가드 없음')
+  const sj = src('scripts/relevance-second-judge-auto.mjs'), rj = src('scripts/relevance-judge-auto.mjs'), wf = src('.github/workflows/nightly-relevance.yml')
+  ok(sj.includes('MAX = Math.min(MAX, 200)') && sj.includes('DEADLINE_MS = Math.min(DEADLINE_MS, 20 * 60_000)') && sj.includes('RELEVANCE_CAPACITY_GUARD'), '배선: 2차 판정이 가드 걸리면 상한 200·마감 20분')
+  ok(rj.includes('chain = { ...chain, relaunch: false'), '배선: 1차 판정이 가드 걸리면 체인을 잇지 않는다')
+  ok((wf.match(/RELEVANCE_CAPACITY_GUARD:/g) ?? []).length === 2 && (wf.match(/AUTO_APPROVAL_ENABLED: \$\{\{ vars\.AUTO_APPROVAL_ENABLED \|\| 'false' \}\}/g) ?? []).length === 4, '배선: 1차·2차 스텝에 가드 변수(시크릿 아님)')
+}
 
 console.log(`\n${fail ? '❌' : '✅'} 자동 승인 셀프테스트: ${pass} pass / ${fail} fail`)
 process.exit(fail ? 1 : 0)

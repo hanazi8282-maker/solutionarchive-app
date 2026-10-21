@@ -425,6 +425,30 @@ export function verifyCandidate(a: Agg, { lookups = new Map<string, unknown>(), 
   return { state: 'lookup_failed', reason: `${why} — 이름 검색(itunes /search)은 robots 금지 경로라 사람 판단 대기` }
 }
 
+// ── 이름 → 앱 ID 3번 경로(v71ba): 홈페이지 메타 ──────────────────────────
+const URL_HOST = /https?:\/\/([a-z0-9][a-z0-9.-]*\.[a-z]{2,})(?=[/:?#\s)\]"'>]|$)/gi
+const NOT_HOMEPAGE = /(^|\.)(apple\.com|google\.com|ycombinator\.com|reddit\.com|github\.com|youtube\.com)$/
+/**
+ * 근거 글 속 URL 중 호스트의 한 토막이 후보 키와 같은 것(raindrop.io ↔ raindrop) → 홈페이지 루트 후보. 이름으로 도메인을 지어내지 않는다 —
+ * 글에 실제로 적힌 주소만 쓴다. 발굴 대장(discovery.homepage_url)에 같은 이름이 있으면 그것도 넣는다. 스토어·커뮤니티 호스트는 뺀다.
+ */
+export function homepageCandidates(a: Pick<Agg, 'key' | 'posts'>, rawById: Map<string, string>, discovery: DiscoveryRow[] = [], normKeyFn: (s: string) => string = (s) => s.toLowerCase()): string[] {
+  const out = new Set<string>()
+  for (const d of discovery) {
+    if (!d.homepage_url || normKeyFn(d.name) !== a.key) continue
+    try { out.add(new URL(d.homepage_url).origin + '/') } catch { /* 깨진 URL 은 버린다 */ }
+  }
+  if (a.key.length < 3) return [...out]
+  for (const id of a.posts) {
+    for (const m of String(rawById.get(id) ?? '').matchAll(URL_HOST)) {
+      const host = m[1].toLowerCase().replace(/^www\./, '')
+      if (NOT_HOMEPAGE.test(host)) continue
+      if (host.split('.').slice(0, -1).some((l) => l.replace(/-/g, '') === a.key)) out.add(`https://${host}/`)
+    }
+  }
+  return [...out].slice(0, 3)
+}
+
 // ── 이름 → 앱 ID: anchor-verify.mjs(정책 A /search, 하루 100) 와 파일로 잇기 ───────────
 /** 확인 불가 후보(area_fit 먼저, 점수 순) → anchor-verify.mjs --input 꼴. 하루 상한을 넘겨 넣지 않는다. */
 export function anchorVerifyInput(judged: Judged[], verdicts: Map<string, AnchorVerdict>, cap = 100) {

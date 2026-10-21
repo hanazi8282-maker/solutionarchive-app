@@ -31,7 +31,7 @@ import {
   type RunStats,
 } from './health.ts'
 import type { Fingerprint, ParsedReview, ReviewRequest, ReviewSourceAdapter, TargetState } from './types.ts'
-import { parseBoardRef, withSourceUrl } from './types.ts'
+import { defaultBoardSkipNotFound, parseBoardRef, withSourceUrl } from './types.ts'
 
 /** robots.txt 와 대조할 제품 토큰(RFC 9309 §2.2.1). UA 문자열 전체가 아니다. */
 export const PRODUCT_TOKEN = 'solutionarchive-review-collector'
@@ -737,9 +737,11 @@ export async function runCollection(
       }
 
       // 404 는 어댑터가 "그 글이 없다"로 받아 건너뛸 수 있으면 건너뛴다(게시판 큐의 지워진 글). 못 받으면 예전대로 failed.
+      // 어댑터가 skipNotFound 를 선언하지 않았으면 board: 큐 맨 앞 글 404 만 기본값으로 뺀다(types.ts defaultBoardSkipNotFound, v71ba).
+      const notFoundCtx = { productRef: target.productRef, cursor, lastReviewAt: baselineReviewAt }
       const notFound =
         res.status === 404
-          ? (adapter.skipNotFound?.({ productRef: target.productRef, cursor, lastReviewAt: baselineReviewAt }) ?? null)
+          ? ((adapter.skipNotFound ? adapter.skipNotFound(notFoundCtx) : defaultBoardSkipNotFound(notFoundCtx)) ?? null)
           : null
       if (!notFound && (res.status === null || res.status >= 400)) {
         outcome = res.status === null ? `요청 실패 — ${res.error}` : `HTTP ${res.status}`

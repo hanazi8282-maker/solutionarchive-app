@@ -165,6 +165,37 @@ export function autoApprovalGate(input: {
   return { on: true, reason: kill.reason, since, kill }
 }
 
+/**
+ * 용량 상향 롤백 가드(v71bb ⑥) — 자동 승인 감사 정밀도가 문턱 아래면 판정 용량을 상향 전 값으로 되돌린다(순수).
+ * 킬스위치(오류율 7% 기준, 창 50건에 오류 8건)보다 **먼저** 걸리게 정밀도 90%(오류 ≥ ceil(0.1·n))를 쓴다 — 승인을 끄기 전에 처리량부터 줄여
+ * 잘못된 승인이 쌓이는 속도를 늦춘다. 감사 n < minN 은 정밀도를 말하지 않는다(가드 안 건다 — 킬스위치 워밍업과 같은 판단).
+ * 킬스위치가 tripped·unverifiable 이거나 감사를 못 읽으면 되돌린다(§7.1 — 모르는 채 상향 용량을 유지하지 않는다).
+ * 자동 승인이 꺼져 있으면(enabled≠true) 승인 위험이 없으므로 가드도 없다.
+ * 되돌리는 값은 호출부가 정한다(코드 기본값 = 상향 전). 리포 변수는 바꾸지 않는다 — 실행마다 다시 판정해 정밀도가 회복되면 자연히 풀린다.
+ */
+export const CAPACITY_GUARD = { minPrecision: 0.9, minN: 20 } as const
+export function capacityGuard(input: { enabled: string | null | undefined; since: string | null | undefined; now: Date; audits: readonly AuditRow[] | null }): { clamp: boolean; reason: string } {
+  if (String(input.enabled ?? '').trim().toLowerCase() !== 'true') return { clamp: false, reason: '자동 승인 꺼짐 — 용량 가드 없음' }
+  const since = parseSince(input.since)
+  if (!since) return { clamp: true, reason: 'AUTO_APPROVAL_SINCE 확인 불가 — 상향 용량을 되돌린다' }
+  if (input.audits === null) return { clamp: true, reason: '감사 창 조회 실패 — 확인 불가라 상향 용량을 되돌린다' }
+  const k = killSwitch(input.audits, { now: input.now, since })
+  if (k.state === 'tripped' || k.state === 'unverifiable') return { clamp: true, reason: `킬스위치 ${k.state}: ${k.reason}` }
+  if (k.n < CAPACITY_GUARD.minN) return { clamp: false, reason: `감사 ${k.n}건(<${CAPACITY_GUARD.minN}) — 정밀도 판정 전, 가드 안 건다` }
+  const p = (k.n - k.errors) / k.n
+  return p < CAPACITY_GUARD.minPrecision
+    ? { clamp: true, reason: `감사 정밀도 ${pct(k.n - k.errors, k.n)}(${k.errors}/${k.n} 오류) < ${CAPACITY_GUARD.minPrecision * 100}% — 상향 용량을 되돌린다` }
+    : { clamp: false, reason: `감사 정밀도 ${pct(k.n - k.errors, k.n)}(${k.errors}/${k.n} 오류) ≥ ${CAPACITY_GUARD.minPrecision * 100}%` }
+}
+
+/** 가드 입력 감사 창 — relevance-auto-approve.mjs 와 같은 조회(rr-v2 승인 ∧ 사람 채점). 오류는 null(확인 불가). */
+export async function loadAuditWindow(sb: { from: (t: string) => any }): Promise<AuditRow[] | null> {
+  const { data, error } = await sb.from('review_relevance_verdicts')
+    .select('human_verdict, human_product_informative, human_graded_at')
+    .not('auto_approved_at', 'is', null).eq('auto_approval_rule', AUTO_APPROVAL_RULE).not('human_verdict', 'is', null)
+  return error ? null : (data ?? [])
+}
+
 /** 'YYYY-MM-DD'(KST 자정) 또는 ISO 시각. 못 읽으면 null. */
 export function parseSince(v: string | null | undefined): Date | null {
   const s = String(v ?? '').trim()

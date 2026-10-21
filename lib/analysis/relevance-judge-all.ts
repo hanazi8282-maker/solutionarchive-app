@@ -146,6 +146,19 @@ export const CHAIN_RELAX_MAX_HOPS = 60
 export const CHAIN_DEFAULT_ZERO_LIMIT = 2
 /** 5시간 창이 안전선 이상이면 끊지 않고 이만큼 쉬었다가 부른다(분). */
 export const CHAIN_WINDOW_WAIT_MIN = 90
+/**
+ * 한도(quota) 정지인데 CLI 가 알려 준 리셋 시각이 이 안(분)이면 끊지 않고 리셋 + 여유 뒤에 다음 실행을 부른다(v71bb).
+ * 근거: 10-20 s2 가 11:31Z 에 주간 한도로 멈췄고 리셋은 12:00Z(29분 뒤)였는데, 다음 실행은 22:07Z 정규 크론이라 10시간 반이 비었다.
+ * 상한 = relaunch job timeout(100분) 안에서 sleep 이 끝나야 하므로 CHAIN_WINDOW_WAIT_MIN 과 같은 90분(여유 포함).
+ * 리셋 뒤에도 한도면 다음 정지의 리셋 시각은 수 시간 뒤라 이 창 밖 → 체인이 멈춘다(자기 제한, 반복 없음).
+ */
+export const CHAIN_QUOTA_RESET_MARGIN_MIN = 5
+export function quotaResetWaitMin(quotaResetAt: string | null | undefined, now: Date): number | null {
+  const at = Date.parse(String(quotaResetAt ?? ''))
+  if (!Number.isFinite(at) || at <= now.getTime()) return null // 모르거나 이미 지난 시각(파싱 오류 의심) — 기다려 부르지 않는다(§7.1)
+  const w = Math.ceil((at - now.getTime()) / 60_000) + CHAIN_QUOTA_RESET_MARGIN_MIN
+  return w <= CHAIN_WINDOW_WAIT_MIN ? w : null
+}
 
 export type RelaunchInput = {
   dry: boolean
@@ -176,6 +189,8 @@ export type RelaunchInput = {
   window5hStopPct: number | null
   /** 오늘 한정 완화 만료(ms) — relevanceRelaxLive 와 같은 값을 넘긴다(relax_until 과 cap_until 중 이른 것). null = 완화 없음. */
   relaxUntilMs?: number | null
+  /** 한도 정지 때 CLI 가 알려 준 리셋 시각(ISO). 90분 안이면 리셋 뒤에 잇는다(quotaResetWaitMin). 없으면 종전대로 멈춤. */
+  quotaResetAt?: string | null
 }
 
 export type RelaunchDecision = { relaunch: boolean; reason: string; nextHop: number; nextZeroStreak: number; waitMin: number }
@@ -211,6 +226,15 @@ export function decideRelaunch(i: RelaunchInput): RelaunchDecision {
   if (!i.enabled) return stop('리포 변수 RELEVANCE_CHAIN=off')
   if (i.untilMs == null) return stop('relevance_cap_until 없음(또는 못 읽음) — 체인 꺼짐')
   if (i.now.getTime() >= i.untilMs) return stop(`만료 — ${new Date(i.untilMs).toISOString()} 지남`)
+  if (i.stopReason === 'quota') {
+    // 리셋이 곧이면 리셋 뒤에 잇는다. 주간·5시간 창 안전선은 리셋으로 창이 새로 열리므로 여기서 보지 않는다. hop 상한은 그대로 본다.
+    // 연속 0건은 세지 않는다 — 한도 정지는 "할 일이 없다"가 아니다.
+    const w = quotaResetWaitMin(i.quotaResetAt, i.now)
+    if (w != null && nextHop <= i.maxHops) {
+      return { relaunch: true, reason: `한도 정지 — 리셋 ${i.quotaResetAt} 뒤(${w}분 쉬고) 잇는다 · hop ${nextHop}/${i.maxHops}`, nextHop, nextZeroStreak: i.zeroStreak, waitMin: w }
+    }
+    return stop(`한도·오류 정지(quota)${i.quotaResetAt ? ` — 리셋 ${i.quotaResetAt} 이 ${CHAIN_WINDOW_WAIT_MIN}분 밖이거나 지났다` : ' — 리셋 시각 모름'}`)
+  }
   if (i.stopReason && (CHAIN_STOP_REASONS as readonly string[]).includes(i.stopReason)) return stop(`한도·오류 정지(${i.stopReason})`)
   const rate = i.attempted > 0 ? i.errors / i.attempted : 0
   if (rate > CHAIN_MAX_ERROR_RATE) return stop(`오류율 ${(rate * 100).toFixed(1)}% > ${CHAIN_MAX_ERROR_RATE * 100}%`)

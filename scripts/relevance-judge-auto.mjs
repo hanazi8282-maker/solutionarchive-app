@@ -49,6 +49,7 @@ import {
 import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
+import { capacityGuard, loadAuditWindow } from '../lib/analysis/auto-approval.ts'
 // 대상 순서는 야간 extract 와 같은 규칙(compareAutoPriority: SaaS 우선 → 많은 순 → projectId)을 영역 결손 축이 감싼다 — lib/analysis/area-priority.ts planAreaOrder(v37 U1).
 // 대상 상태도 야간 extract 와 한 벌(v27 옵션 A). collecting 만 보던 동안 extracted 프로젝트에 새로 들어온 수집분은
 // 판정되지 않아 T2(자동 승인·extract 선별)를 못 넘었다. 2차(relevance-second-judge-auto)는 프로젝트 상태로 거르지 않고
@@ -359,17 +360,25 @@ if (retry?.quotaProject) {
 // 원문(raw_text)은 순서대로 이번에 돌 프로젝트(최대 maxProjects)만 읽는다 — pendingFor(라운드로빈·평점 자르기·사전필터).
 const targets = []
 let examined = 0
+// v71bb: 원문을 읽은 프로젝트는 정확한 미판정(pendingFor — 본문 없음·HN 저가치 뺀 값)으로 센다. 근사(countFor)만 쓰면 판정할 수 없는
+// 잔여가 "남은 미판정"으로 남아 체인이 0건 hop 을 두 번 더 돌고 "N건 남기고 멈췄다" 경고를 낸다(10-21: 210건, 시도 0).
+const exactUnjudged = new Map()
+const residue = { no_body: 0, hn_low: 0 }
 for (const c of ready) {
   if (targets.length >= maxProjects) break
   examined += 1
   const pending = await pendingFor(c.project)
   if (pending === null) { unknownCount += 1; continue }
+  exactUnjudged.set(c.project.id, pending.unjudged ?? pending.reviews.length)
+  residue.no_body += pending.residue?.no_body ?? 0
+  residue.hn_low += pending.residue?.hn_low ?? 0
   if (pending.reviews.length === 0) continue // 머리말뿐인 입력 등 — 수 세기(근사)엔 잡혔지만 판정할 본문이 없다
   targets.push({ ...c, pending })
 }
 const remaining = ready.length - examined
-// 전체 남은 미판정(이번 실행 상한과 무관, countFor 근사). 수를 못 센 프로젝트가 있으면 하한이다.
-const unjudgedBefore = ready.reduce((s, c) => s + c.count.unjudged, 0)
+// 전체 남은 미판정(이번 실행 상한과 무관). 원문을 읽은 프로젝트는 정확값, 못 읽은 프로젝트는 countFor 근사(상한 쪽). 수를 못 센 프로젝트가 있으면 하한이다.
+const unjudgedBefore = ready.reduce((s, c) => s + (exactUnjudged.get(c.project.id) ?? c.count.unjudged), 0)
+if (residue.no_body + residue.hn_low > 0) log(`판정 대상 아님(삭제 아님, 이번에 읽은 프로젝트 ${exactUnjudged.size}개) — 본문 없음 ${residue.no_body}건 · HN 저가치(사전 제외 on) ${residue.hn_low}건`)
 const excludedTotal = ready.reduce((s, c) => s + c.count.excluded, 0)
 log(`미판정 전체 ${unjudgedBefore}건(프로젝트 ${ready.length}개${unknownCount > 0 ? ` · 원문 못 읽은 프로젝트 ${unknownCount}개 제외 — 하한` : ''}) · 제외 소스로 뺀 ${excludedTotal}건`)
 
@@ -599,7 +608,7 @@ log(sessionLine(session))
 // ── 4. 자기 호출 체인(전량 판정) — 다음 실행을 부를지. 부르는 것은 워크플로 relaunch job(GITHUB_OUTPUT relaunch=true 일 때만) ──
 // 남은 미판정: 원문을 못 읽은 프로젝트가 있으면 이번에 본 쪽이 0 이어도 "다 채웠다"고 하지 않는다(확인 불가 → 멈춤, §7.1).
 const unjudgedAfter = Math.max(0, unjudgedBefore - judgedTotal)
-const chain = decideRelaunch({
+let chain = decideRelaunch({
   dry: false, enabled: chainEnabled, now: new Date(), untilMs: guard.cfg.relevanceCapUntilMs, stopReason,
   attempted: attemptedTotal, errors: errorTotal, judged: judgedTotal,
   remaining: unjudgedAfter === 0 && unknownCount > 0 ? null : unjudgedAfter,
@@ -609,7 +618,15 @@ const chain = decideRelaunch({
   window5hPct: session.window5h_pct, window5hStopPct: guard.cfg.relevanceChainWindow5hStopPct,
   // 오늘 한정 완화(남헌 v61) — relax_until 이 지나면 decideRelaunch 가 원래 동작(주간·5시간 창 확인 불가 정지·90분 휴식·hop 24)으로 돌아간다.
   relaxUntilMs: guard.cfg.relevanceRelaxUntilMs,
+  // v71bb: 한도 정지의 리셋이 90분 안이면 relaunch job 이 그만큼 쉬고 잇는다(10-20 s2: 리셋 29분 전에 멈춰 10시간 반 공백).
+  quotaResetAt,
 })
+// v71bb ⑥ 용량 상향 롤백 가드: 자동 승인 감사 정밀도 < 90%(또는 확인 불가)면 자기 호출 체인(상향 용량)을 잇지 않는다 — 정규 크론만 남는다.
+// 끄기 = RELEVANCE_CAPACITY_GUARD=off. 리포 변수는 바꾸지 않는다(다음 실행이 다시 본다).
+if (chain.relaunch && (process.env.RELEVANCE_CAPACITY_GUARD ?? '').trim().toLowerCase() !== 'off') {
+  const g = capacityGuard({ enabled: process.env.AUTO_APPROVAL_ENABLED, since: process.env.AUTO_APPROVAL_SINCE, now: new Date(), audits: await loadAuditWindow(supabase) })
+  if (g.clamp) { chain = { ...chain, relaunch: false, waitMin: 0, reason: `용량 상향 롤백 가드 — ${g.reason}` }; warn(chain.reason) }
+}
 log(`체인 ${chain.relaunch ? '이어감' : '멈춤'} — ${chain.reason} · 미판정 ${unjudgedBefore} → ${unjudgedAfter} · 시도 ${attemptedTotal} · 오류 ${errorTotal}${deadlineHit ? ' · 마감 도달' : ''}`)
 if (!chain.relaunch && unjudgedAfter > 0 && !/드라이런|RELEVANCE_CHAIN=off|만료|relevance_cap_until 없음/.test(chain.reason)) warn(`체인이 미판정 ${unjudgedAfter}건을 남기고 멈췄다 — ${chain.reason}. 다음 크론(KST 04:03)이 다시 시작한다`)
 setOutput('relaunch', chain.relaunch ? 'true' : 'false')
@@ -621,7 +638,7 @@ await tracker.finish({
   status,
   summary: {
     projects: targets.length, judged: judgedTotal, remaining, blocker,
-    unjudged_before: unjudgedBefore, unjudged_after: unjudgedAfter, excluded_sources: excludedSources, excluded_inputs: excludedTotal,
+    unjudged_before: unjudgedBefore, unjudged_after: unjudgedAfter, residue, excluded_sources: excludedSources, excluded_inputs: excludedTotal,
     attempted: attemptedTotal, errors: errorTotal, prompt_version: PROMPT_VERSION, prompt_version_column: promptVersionColumn,
     caps: { boosted: caps.boosted, relaxed: caps.relaxed, cap_usd: capUsd, hard_cap_usd: caps.hardCapUsd, until: caps.untilMs ? new Date(caps.untilMs).toISOString() : null },
     chain: { hop: chainHop, relaunch: chain.relaunch, reason: chain.reason, next_hop: chain.nextHop, next_zero_streak: chain.nextZeroStreak, wait_min: chain.waitMin },
@@ -639,7 +656,8 @@ if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 —
 // v30 §5: 마지막 재시도까지 한도면 exit 1 — cron-watchdog 가 그 슬롯 실패를 Notion 일일 상태 로그로 올린다(기존 경로, 새 시크릿 없음).
 // r2 는 그날 마지막 재시도 자리라, 앞 재시도가 "아직 이르다"로 쉬었어도 여기서 한도면 경보한다.
 // v71o 2: s2(정규 2회차)가 한도로 멈추면 다음 기회는 19:03Z 정규뿐이라 같은 경로로 경보한다.
-const retriesExhausted = stopReason === 'quota' && ((retry != null && ((retry.retriesDone ?? 0) + 1 >= MAX_RETRIES || slot === 'r2')) || slot === 's2')
+// v71bb: 리셋 뒤 체인이 잇는 경우(chain.relaunch)는 소진이 아니다 — 경보하지 않는다.
+const retriesExhausted = stopReason === 'quota' && !chain.relaunch && ((retry != null && ((retry.retriesDone ?? 0) + 1 >= MAX_RETRIES || slot === 'r2')) || slot === 's2')
 if (retriesExhausted) {
   const m = slot === 's2'
     ? `T2 정규 2회차(s2)가 한도로 멈췄다 — 묶음 ${batchesDone}/${batchesPlanned}개. 남은 판정은 19:03Z 정규 실행. 사람이 볼 것`

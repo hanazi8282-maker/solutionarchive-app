@@ -504,6 +504,49 @@ for (const [name, adapter, ref] of [
   t(`${name}: url: 모드는 커서가 있으면 다시 안 간다`, adapter.nextRequest(target({ productRef: ref, cursor: '1' })), null)
 }
 
+// ── 지워진 글 404 가 게시판을 failed 로 닫지 않는다(v71ba, 러너 기본값 defaultBoardSkipNotFound) ─────
+// velog 만 고쳤던 2026-09-30 사고가 skipNotFound 를 안 가진 게시판 어댑터 전부에 남아 있었다. 실제 82cook 어댑터 × 러너로 본다.
+{
+  const DEAD = '/entiz/read.php?num=111'
+  const LIVE = '/entiz/read.php?num=112'
+  const runCook = async ({ productRef = 'board:15', q = [DEAD, LIVE], status404For = (p) => p.includes('num=111') }) => {
+    const urls = []
+    const row = { id: 't1', projectId: 'p1', sourceKey: '82cook', productRef, cursor: q ? encodeBoardCursor({ q, last: '110' }) : null, lastReviewAt: null, consecutiveEmpty: 0 }
+    let clock = Date.parse('2026-10-22T03:00:00+09:00')
+    const r = await runCollection(cook82Adapter, { dryRun: false, targetLimit: 1 }, {
+      now: () => new Date(clock),
+      async sleep(ms) { clock += ms },
+      async fetchText(url) {
+        clock += 10
+        if (url.endsWith('/robots.txt')) return { status: 200, body: 'User-agent: *\nDisallow: /ajax/\n' }
+        urls.push(url)
+        const p = new URL(url).pathname + new URL(url).search
+        return status404For(p) ? { status: 404, body: 'not found' } : { status: 200, body: fx('82cook', 'post-with-comments.html') }
+      },
+      store: {
+        async loadSource() { return { key: '82cook', enabled: true, minIntervalMs: 1000, dailyRequestCap: 100, requestsToday: 0 } },
+        async listDueTargets() { return [{ ...row }] },
+        async saveTargetProgress(p) { row.cursor = p.cursor; row.status = p.status },
+        async recordFingerprint() { return 'new' },
+        async appendInput() { return 'in' },
+        async linkFingerprint() {},
+      },
+    })
+    return { r, row, urls, q: row.cursor ? decodeBoardCursor(row.cursor).q : null }
+  }
+  const a = await runCook({})
+  t('404 skip: 게시판 타깃 status active(failed 아님)', a.row.status, 'active')
+  ok('404 skip: 다음 글을 요청했다', a.urls.some((u) => u.includes('num=112')))
+  t('404 skip: 건너뜀 1건', a.r.missingSkipped, 1)
+  ok('404 skip: 죽은 글이 큐에서 빠졌다', a.q && !a.q.includes(DEAD))
+  const list = await runCook({ q: null, status404For: () => true })
+  t('404 skip: 목록 페이지 404 는 예전대로 failed', list.row.status, 'failed')
+  const url = await runCook({ productRef: `url:${DEAD}`, q: null, status404For: () => true })
+  t('404 skip: url: 글 404 는 예전대로 failed', url.row.status, 'failed')
+  const e500 = await runCook({ status404For: () => false, q: [DEAD, LIVE] })
+  ok('404 skip: 정상 응답이면 건너뜀 0', e500.r.missingSkipped === 0)
+}
+
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {
   console.log('게시판 순회가 틀렸다. 남의 서버에 대한 규칙과 증분이 걸려 있는 코드다.')

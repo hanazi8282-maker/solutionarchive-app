@@ -179,6 +179,31 @@ t('URL: 커서가 있으면 더 요청하지 않는다', clienAdapter.nextReques
   t('페이저(가정): 못 읽은 57건이 실패로 잡힌다', r.parseFailures, 57)
 }
 
+// ── 가벼운 글 페이지(2026-10-22 실측, post-lite-*) ─────────────────────
+{
+  const LP = '/service/board/use/19280796'
+  const lctx = { productRef: `url:${LP}`, cursor: null }
+  const r = clienAdapter.parse(fx('post-lite-with-comments.html'), lctx)
+  t('lite: 본문 1 + 댓글 3 = 4건', r.reviews.length, 4)
+  t('lite: 파싱 실패 0', r.parseFailures, 0)
+  ok('lite: 본문에 제목과 내용', r.reviews[0].text.startsWith('[요청] 제미나이') && r.reviews[0].text.includes('사내 홍보'))
+  t('lite: 본문 작성일', r.reviews[0].writtenAt, '2026-10-21')
+  t('lite: 댓글 externalId', r.reviews[1].externalId, `${LP}#152595774`)
+  t('lite: 댓글 작성일', r.reviews[3].writtenAt, '2026-10-21')
+  ok('lite: 댓글 <br> 은 줄바꿈', r.reviews[3].text.includes('핸드폰 색상\n'))
+  ok('lite: 작성자를 저장하지 않는다', r.reviews.every((x) => x.authorMasked === null && !x.text.includes('작성자')))
+  const z = clienAdapter.parse(fx('post-lite-no-comments.html'), lctx)
+  t('lite: 댓글 0 마커 + 항목 0 = 정상(본문 1 · 실패 0)', [z.reviews.length, z.parseFailures].join('/'), '1/0')
+  const m = clienAdapter.parse(fx('post-lite-missing-comments.html'), lctx)
+  t('lite: 마커 3 인데 항목 0 = 실패 3', m.parseFailures, 3)
+  const nb = clienAdapter.parse(fx('post-lite-with-comments.html').replace('<div class="content">', '<div class="body_v2">'), lctx)
+  ok('lite: 본문 컨테이너 소실 = 실패', nb.parseFailures >= 1)
+  const nc = clienAdapter.parse(fx('post-lite-with-comments.html').replaceAll('<div class="comment">', '<div class="cmt_v2">'), lctx)
+  t('lite: 댓글 컨테이너 소실 = 실패 3', nc.parseFailures, 3)
+  // 옛 마크업은 옛 파서로 간다(분기 경계).
+  t('lite 분기: 옛 픽스처는 그대로 3+1', clienAdapter.parse(fx('post-with-comments.html'), ctx()).reviews.length, 4)
+}
+
 // ── 쓰레기 입력 ───────────────────────────────────────────────────
 for (const [name, body] of [
   ['빈 문자열', ''],

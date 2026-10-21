@@ -144,6 +144,8 @@ import {
   encodeBoardCursor,
   nextBoardCursor,
   parseBoardRef,
+  // 큐 맨 앞 글 빼기는 공용(types.ts) — 다른 게시판 어댑터는 러너 기본값(defaultBoardSkipNotFound)으로 같은 함수를 쓴다.
+  skipBoardQueueHead as skipQueueHead,
   type BoardCursor,
   type BoardListItem,
   type ParseContext,
@@ -678,18 +680,6 @@ export const velogAdapter: ReviewSourceAdapter = {
  */
 const SOFT_404_RE = /<title[^>]*>\s*404 - velog\s*<\/title>/
 
-/** 큐 맨 앞 글을 "없는 글"로 빼고 나머지 큐를 잇는다. 파싱 실패로 세지 않는다(ParseResult.missing). */
-function skipQueueHead(cur: BoardCursor): ParseResult {
-  const rest: BoardCursor = { q: cur.q.slice(1), last: cur.last }
-  return {
-    reviews: [],
-    nextCursor: encodeBoardCursor(rest),
-    parseFailures: 0,
-    filtered: 0,
-    missing: [cur.q[0]],
-    pauseRun: rest.q.length === 0,
-  }
-}
 
 /**
  * 큐에 든 경로를 **다시 검증**한다. 큐는 남의 서버가 준 목록에서 나왔고,

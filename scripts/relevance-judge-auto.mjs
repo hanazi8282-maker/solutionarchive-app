@@ -609,6 +609,8 @@ const chain = decideRelaunch({
   window5hPct: session.window5h_pct, window5hStopPct: guard.cfg.relevanceChainWindow5hStopPct,
   // 오늘 한정 완화(남헌 v61) — relax_until 이 지나면 decideRelaunch 가 원래 동작(주간·5시간 창 확인 불가 정지·90분 휴식·hop 24)으로 돌아간다.
   relaxUntilMs: guard.cfg.relevanceRelaxUntilMs,
+  // v71bb: 한도 정지의 리셋이 90분 안이면 relaunch job 이 그만큼 쉬고 잇는다(10-20 s2: 리셋 29분 전에 멈춰 10시간 반 공백).
+  quotaResetAt,
 })
 log(`체인 ${chain.relaunch ? '이어감' : '멈춤'} — ${chain.reason} · 미판정 ${unjudgedBefore} → ${unjudgedAfter} · 시도 ${attemptedTotal} · 오류 ${errorTotal}${deadlineHit ? ' · 마감 도달' : ''}`)
 if (!chain.relaunch && unjudgedAfter > 0 && !/드라이런|RELEVANCE_CHAIN=off|만료|relevance_cap_until 없음/.test(chain.reason)) warn(`체인이 미판정 ${unjudgedAfter}건을 남기고 멈췄다 — ${chain.reason}. 다음 크론(KST 04:03)이 다시 시작한다`)
@@ -639,7 +641,8 @@ if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 —
 // v30 §5: 마지막 재시도까지 한도면 exit 1 — cron-watchdog 가 그 슬롯 실패를 Notion 일일 상태 로그로 올린다(기존 경로, 새 시크릿 없음).
 // r2 는 그날 마지막 재시도 자리라, 앞 재시도가 "아직 이르다"로 쉬었어도 여기서 한도면 경보한다.
 // v71o 2: s2(정규 2회차)가 한도로 멈추면 다음 기회는 19:03Z 정규뿐이라 같은 경로로 경보한다.
-const retriesExhausted = stopReason === 'quota' && ((retry != null && ((retry.retriesDone ?? 0) + 1 >= MAX_RETRIES || slot === 'r2')) || slot === 's2')
+// v71bb: 리셋 뒤 체인이 잇는 경우(chain.relaunch)는 소진이 아니다 — 경보하지 않는다.
+const retriesExhausted = stopReason === 'quota' && !chain.relaunch && ((retry != null && ((retry.retriesDone ?? 0) + 1 >= MAX_RETRIES || slot === 'r2')) || slot === 's2')
 if (retriesExhausted) {
   const m = slot === 's2'
     ? `T2 정규 2회차(s2)가 한도로 멈췄다 — 묶음 ${batchesDone}/${batchesPlanned}개. 남은 판정은 19:03Z 정규 실행. 사람이 볼 것`

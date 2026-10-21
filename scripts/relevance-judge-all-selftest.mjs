@@ -3,8 +3,9 @@
 //   node scripts/relevance-judge-all-selftest.mjs     (종료코드 0 = 전부 통과)
 
 import fs from 'node:fs'
+import path from 'node:path'
 import {
-  CHAIN_STOP_REASONS, chainCarryOf, decideRelaunch, fetchAllPages, orderForJudge, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
+  CHAIN_STOP_REASONS, chainCarryOf, decideRelaunch, fetchAllPages, orderForJudge, parseExcludedSources, parseSourceList, quotaResetWaitMin, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
 import { createPendingFor } from '../lib/analysis/relevance-pending.ts'
 
@@ -173,6 +174,22 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
   t('5시간 창 안전선 이상 → 끊지 않고 90분 쉬고 이어감', d({ window5hPct: 55 }).relaunch && d({ window5hPct: 55 }).waitMin === 90)
   t('5시간 창 확인 불가 → 멈춤', !d({ window5hPct: null }).relaunch)
   t('드라이런·스위치 off → 멈춤', !d({ dry: true }).relaunch && !d({ enabled: false }).relaunch)
+
+  // v71bb: 한도 정지 + 리셋 90분 안 → 리셋 뒤에 잇는다(10-20 s2: 11:31Z 정지, 리셋 12:00Z).
+  {
+    const at = (min) => new Date(now.getTime() + min * 60_000).toISOString()
+    const q = d({ stopReason: 'quota', judged: 0, zeroStreak: 1, quotaResetAt: at(29) })
+    t('quota + 리셋 29분 뒤 → 이어감 · 34분 쉼 · 연속 0건 안 셈', q.relaunch && q.waitMin === 34 && q.nextZeroStreak === 1)
+    t('quota + 주간 안전선 이상이어도 리셋 뒤 잇는다(창이 새로 열림)', d({ stopReason: 'quota', quotaResetAt: at(10), weeklyPct: 99 }).relaunch)
+    t('quota + 리셋 86분 뒤 → 멈춤(90분 상한 밖)', !d({ stopReason: 'quota', quotaResetAt: at(86) }).relaunch && d({ stopReason: 'quota', quotaResetAt: at(85) }).waitMin === 90)
+    t('quota + 리셋이 지났거나 모르면 → 멈춤(종전)', !d({ stopReason: 'quota', quotaResetAt: at(-1) }).relaunch && !d({ stopReason: 'quota', quotaResetAt: null }).relaunch && !d({ stopReason: 'quota', quotaResetAt: 'garbage' }).relaunch)
+    t('quota + hop 상한이면 → 멈춤', !d({ stopReason: 'quota', quotaResetAt: at(10), hop: 24 }).relaunch)
+    t('quota 외 정지 사유는 리셋 시각이 있어도 멈춤', !d({ stopReason: 'hard_cap', quotaResetAt: at(10) }).relaunch)
+    t('스위치 off·만료는 quota 리셋보다 먼저', !d({ stopReason: 'quota', quotaResetAt: at(10), enabled: false }).relaunch && !d({ stopReason: 'quota', quotaResetAt: at(10), untilMs: null }).relaunch)
+    t('quotaResetWaitMin: 경계', quotaResetWaitMin(at(85), now) === 90 && quotaResetWaitMin(at(85.5), now) === null && quotaResetWaitMin(undefined, now) === null)
+    const src = fs.readFileSync(path.join(process.cwd(), 'scripts/relevance-judge-auto.mjs'), 'utf8')
+    t('배선: 판정 스크립트가 quotaResetAt 을 넘기고, 잇는 경우는 소진 경보를 안 낸다', /decideRelaunch\(\{[\s\S]*quotaResetAt,[\s\S]*\}\)/.test(src) && /stopReason === 'quota' && !chain\.relaunch/.test(src))
+  }
 
   // 오늘 한정 완화(남헌 v61, ~2026-10-13 00:00 KST)
   const relaxUntilMs = Date.parse('2026-10-13T00:00:00+09:00')

@@ -2,6 +2,6 @@
 BEGIN;
 UPDATE public.discovery_candidates SET verdict = 'rejected', verdict_reason = 'v71ba 롤백(mention_ledger 2026-10-21)'
  WHERE origin = 'mention' AND verdict <> 'accepted' AND last_seen_at = '2026-10-21T00:00:00+09:00'
-   AND coalesce(verdict_reason, '') NOT LIKE '새 출시 입력%'
+   AND mention_count IS NOT NULL
    AND lower(name) IN ('adp', 'production', 'raindrop', 'pocket', 'bitwarden', 'erpnext', 'table', 's3', 'render', 'screen studio', 'barawave', '전동칫솔', 'openai', 'data');
 COMMIT;

@@ -24,7 +24,7 @@ VALUES
   ('saas', 'OpenAI', '리뷰 속 언급 3글·2소스(역할 from 0/to 0/alt 1/compare 2)', NULL, NULL, NULL, 'unverified', 'area_fit(out-founder 0.667)', 'mention', 3, 3, 2, 1, ARRAY['7d6e42b1-6bc2-4abb-9c34-debe9bdd0030', 'c0d3c7f3-22c1-488d-b140-760eb262c56e', 'fafeb993-35fd-4faa-8fdd-ee0e73ad1823']::uuid[], 'out-founder', 0.667, NULL, '2026-10-21T00:00:00+09:00'),
   ('saas', 'data', '리뷰 속 언급 7글·3소스(역할 from 0/to 0/alt 1/compare 6)', NULL, NULL, NULL, 'unverified', 'area_fit(out-founder 0.429)', 'mention', 7, 7, 3, 1, ARRAY['7fa2d77f-2904-478a-a38f-08798e6790dc', '8966a93c-2f23-4837-8485-6135d039059b', '9a3ee122-dbfd-4c05-b349-09df8bdea72f', 'af634948-dc28-4b5c-95ab-9698f4bf396f', 'b25f3dbc-d16c-4470-a1c8-195e5aec68b6', 'b5b77a04-eea6-4d8f-84e6-94ced398bb08', 'f7af2a99-8634-4c73-8a72-f527a95c03e3']::uuid[], 'out-founder', 0.429, NULL, '2026-10-21T00:00:00+09:00')
 ON CONFLICT (kind, lower(name)) DO UPDATE SET mention_count = EXCLUDED.mention_count, post_count = EXCLUDED.post_count, source_count = EXCLUDED.source_count, alt_seek_posts = EXCLUDED.alt_seek_posts, evidence_input_ids = EXCLUDED.evidence_input_ids, area_code = EXCLUDED.area_code, area_fit = EXCLUDED.area_fit, gate_blocked = EXCLUDED.gate_blocked, last_seen_at = EXCLUDED.last_seen_at
-  WHERE public.discovery_candidates.origin = 'mention' AND public.discovery_candidates.verdict <> 'accepted' AND coalesce(public.discovery_candidates.verdict_reason, '') NOT LIKE '새 출시 입력%';
+  WHERE public.discovery_candidates.origin = 'mention' AND public.discovery_candidates.verdict <> 'accepted' AND public.discovery_candidates.mention_count IS NOT NULL;
 
 DO $$
 DECLARE n int;
@@ -35,4 +35,4 @@ END $$;
 
 COMMIT;
 
--- 확인: SELECT count(*) FROM public.discovery_candidates WHERE origin = 'mention' AND coalesce(verdict_reason,'') NOT LIKE '새 출시 입력%';  -- 기대 ≥ 1
+-- 확인: SELECT count(*) FROM public.discovery_candidates WHERE origin = 'mention' AND mention_count IS NOT NULL;  -- 기대 ≥ 1 (리뷰 속 언급 행)

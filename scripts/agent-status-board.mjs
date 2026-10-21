@@ -12,12 +12,12 @@ import { openDb } from './target-supply.mjs'
 
 const H = 3_600_000
 const UNK = '확인 불가'
-export const NEW_RELEASE_MARK = '새 출시 입력'
-const MENTION_ONLY = (q) => q.eq('origin', 'mention').not('verdict_reason', 'like', `${NEW_RELEASE_MARK}*`)
-/** 1번 누적 분리 — 항목마다 합산할 필터들. 새 출시 = origin new_release + 옛 mention 표식 행(마이그 20261022000020 적용 전). */
+// v71ba: 언급 대장 행은 언제나 mention_count 를 채운다. origin='mention' ∧ mention_count NULL = 새 출시 입력 우회분(소급 전).
+const MENTION_ONLY = (q) => q.eq('origin', 'mention').not('mention_count', 'is', null)
+/** 1번 누적 분리 — 항목마다 합산할 필터들. 새 출시 = origin new_release + 소급 전 mention·집계 NULL 행. */
 export const SPLIT_1 = [
   { label: '리뷰 속 언급', parts: [MENTION_ONLY] },
-  { label: '새 출시 입력', parts: [(q) => q.eq('origin', 'new_release'), (q) => q.eq('origin', 'mention').like('verdict_reason', `${NEW_RELEASE_MARK}*`)] },
+  { label: '새 출시 입력', parts: [(q) => q.eq('origin', 'new_release'), (q) => q.eq('origin', 'mention').is('mention_count', null)] },
 ]
 
 /**
@@ -26,7 +26,7 @@ export const SPLIT_1 = [
  * ponytail: 10·15 처럼 흔적이 reports/ 파일뿐인 것은 DB 근사(15 = cap_log). 정확한 마지막 실행은 Actions 로그를 읽는 별도 단계가 필요.
  */
 export const AGENTS = [
-  // v71ba: origin='mention' 18행은 새 출시 입력(CHECK 때문에 mention 으로 들어감, 표식 verdict_reason '새 출시 입력…')이었다 — 언급 산출로 세지 않는다. 누적은 두 갈래를 따로 적는다.
+  // v71ba: origin='mention' 18행은 새 출시 입력(CHECK 때문에 mention 으로 들어감, mention_count NULL)이었다 — 언급 산출로 세지 않는다. 누적은 두 갈래를 따로 적는다.
   { n: 1, name: '새 회사 자동 등록(언급 루프)', probe: { table: 'discovery_candidates', ts: 'created_at', where: MENTION_ONLY, split: SPLIT_1 }, empty: '원인: 리뷰 속 언급 후보 0행 — 대장 SQL 을 DB 에 넣는 단계 없음(scripts/mention-ledger-migrate.mjs → 마이그)' },
   { n: 2, name: '해외·영어 리뷰', probe: { table: 'analysis_inputs', ts: 'created_at', where: (q) => q.eq('lang', 'en') } },
   { n: 3, name: '다국어 리뷰', probe: { table: 'analysis_inputs', ts: 'created_at', where: (q) => q.not('lang', 'in', '(ko,en)') }, empty: '원인: ko/en 외 언어 리뷰 0건 — 타깃 미등록' },

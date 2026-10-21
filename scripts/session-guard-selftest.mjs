@@ -7,7 +7,7 @@ import os from 'node:os'
 import path from 'node:path'
 import {
   GUARDED_RUN_PREFIXES, RELEVANCE_SLOTS, capReached, chainWeeklyStopPct, capUsdOf, hardCapUsdOf, loadGuardConfig, nextRetryQueue, orderWithQueue, parseGuardConfig, pctOf, relevanceCaps, relevanceRelaxLive,
-  relevanceResumeDecision, relevanceRetryDecision, relevanceRunSuffix, retryQueueOf, runCostUsd, sessionBlock, sessionLine, spendForCap, usageSince, weeklyGate,
+  relevanceResumeDecision, relevanceRetryDecision, relevanceRunSuffix, relevanceStallDecision, stallLine, retryQueueOf, runCostUsd, sessionBlock, sessionLine, spendForCap, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, decideSlot, isQuotaBlocked, slotStateOf } from '../lib/analysis/extract-auto.ts'
 import { ClaudeCliError, CliHardCapError, callLlmWithModel, cliSpent, isQuotaFailure, setCliHardCap, tallyCli } from '../lib/analysis/llm.ts'
@@ -414,6 +414,40 @@ for (const [f, k] of [['scripts/relevance-second-judge-auto.mjs', 'relevance-sec
 t('RELEVANCE_SLOT_CRON 은 job env(모든 스텝이 같은 접미사)', /^    env:\r?\n(?:      #.*\r?\n)*      RELEVANCE_SLOT_CRON: \$\{\{ github\.event\.schedule \}\}/m.test(wf))
 t('build-check 가 이 셀프테스트를 돈다', /- run: node scripts\/session-guard-selftest\.mjs/.test(read('.github/workflows/build-check.yml')))
 t('측정 절차 문서가 있다(로컬 claude -p 금지 명시)', /workflow_dispatch/.test(read('docs/session-limit-guard.md')) && /로컬 `claude -p`/.test(read('docs/session-limit-guard.md')))
+
+// ── 판정 정체 감시(v71bb ⑮) relevanceStallDecision — 10-20 재현: 11:31Z 주간 한도 정지(s2), 리셋 12:00Z ──
+{
+  const H = 3_600_000
+  const at = (iso) => new Date(iso)
+  const q = { run_key: 'relevance-judge-2026-10-20-s2', status: 'blocked', started_at: '2026-10-20T11:23:00Z', finished_at: '2026-10-20T11:31:34Z', summary: { stop_reason: 'quota', quota_reset_at: '2026-10-20T12:00:00.000Z', judged: 0, unjudged_after: 4682 } }
+  const ghDone = (createdAt, conclusion = 'success', event = 'schedule') => ({ createdAt, updatedAt: createdAt, status: 'completed', conclusion, event })
+  const S = (rows, gh, iso) => relevanceStallDecision(rows, gh, { now: at(iso), cooldownMs: 4 * H })
+  t('정체: 리셋 전이면 대기(한도·재실행 없음)', S([q], [ghDone('2026-10-20T11:22:38Z', 'failure')], '2026-10-20T11:50:00Z').kind === 'quota_wait' && S([q], [], '2026-10-20T11:50:00Z').limit)
+  const r = S([q], [ghDone('2026-10-20T11:22:38Z', 'failure')], '2026-10-20T12:11:00Z')
+  t('정체: 리셋(+정지 30분) 지나고 그 뒤 실행 없음 → 1회 재실행 · 경보 · 한도', r.kind === 'quota_resume' && r.rerun && r.alert && r.limit)
+  t('정체: 리셋 뒤 dispatch 가 이미 있으면 다시 안 건다(1회 한정)', S([q], [ghDone('2026-10-20T12:05:00Z', 'failure', 'workflow_dispatch')], '2026-10-20T13:00:00Z').kind === 'quota_retried')
+  t('정체: 진행/대기 중이면 아무것도 안 한다', S([q], [{ createdAt: '2026-10-20T12:05:00Z', status: 'in_progress', event: 'workflow_dispatch' }], '2026-10-20T12:11:00Z').kind === 'busy')
+  t('정체: gh 미조회면 한도 재개 여부는 확인 불가(재실행 안 함)', S([q], null, '2026-10-20T12:11:00Z').kind === 'unknown' && !S([q], null, '2026-10-20T12:11:00Z').rerun)
+  t('정체: agent_runs 못 읽으면 확인 불가', S(null, [], '2026-10-20T12:11:00Z').kind === 'unknown')
+  const okRow = { run_key: 'relevance-judge-2026-10-21', status: 'ok', started_at: '2026-10-20T22:08:00Z', finished_at: '2026-10-20T23:03:00Z', summary: { judged: 2039, unjudged_after: 3392, chain: { relaunch: true } } }
+  const f2 = S([okRow], [ghDone('2026-10-21T01:00:00Z', 'failure'), ghDone('2026-10-21T00:00:00Z', 'cancelled'), ghDone('2026-10-20T23:00:00Z')], '2026-10-21T01:30:00Z')
+  t('정체: 연속 2건 실패/취소 → 1회 재실행', f2.kind === 'fail_rerun' && f2.rerun)
+  const f3 = S([okRow], [ghDone('2026-10-21T01:00:00Z', 'failure'), ghDone('2026-10-21T00:30:00Z', 'failure'), ghDone('2026-10-21T00:00:00Z', 'timed_out')], '2026-10-21T01:30:00Z')
+  t('정체: 3연속 실패 → 재실행 안 함 · 새 사건이면 경보', f3.kind === 'fail_alert' && !f3.rerun && f3.alert)
+  t('정체: 3연속 실패 경보는 45분 지나면 다시 안 올린다', !S([okRow], [ghDone('2026-10-21T01:00:00Z', 'failure'), ghDone('2026-10-21T00:30:00Z', 'failure'), ghDone('2026-10-21T00:00:00Z', 'failure')], '2026-10-21T03:00:00Z').alert)
+  t('정체: 2연속 실패라도 60분 안 dispatch 가 있으면 안 건다', !S([okRow], [ghDone('2026-10-21T01:00:00Z', 'failure', 'workflow_dispatch'), ghDone('2026-10-21T00:30:00Z', 'failure')], '2026-10-21T01:30:00Z').rerun)
+  const stopRow = { run_key: 'relevance-judge-2026-10-21-m9', status: 'ok', started_at: '2026-10-21T02:00:00Z', finished_at: '2026-10-21T02:10:00Z', summary: { judged: 0, unjudged_after: 3000, chain: { relaunch: false, reason: '체인 하나당 hop 상한 24 도달' } } }
+  const z = S([stopRow, okRow], [ghDone('2026-10-21T02:00:00Z')], '2026-10-21T05:10:00Z')
+  t('정체: 미판정 ≥500 인데 6시간 처리 0 → 경보만(재실행 안 함 — 의도된 정지일 수 있다)', z.kind === 'zero_progress' && !z.rerun && z.alert && /hop 상한/.test(z.reason))
+  t('정체: 미판정 210(<500)이면 정상으로 본다', S([{ ...stopRow, summary: { judged: 0, unjudged_after: 210 } }, okRow], [ghDone('2026-10-21T02:00:00Z')], '2026-10-21T05:10:00Z').kind === 'ok')
+  t('정체: 6시간 안에 처리가 있으면 정상', S([okRow], [ghDone('2026-10-20T22:07:00Z')], '2026-10-21T01:00:00Z').kind === 'ok')
+  t('정체: 대장 한 줄', /^- 판정 정체\(⑮ v71bb\): \[한도\]/.test(stallLine(r)) && /재실행 1회/.test(stallLine(r)))
+  const gw = read('.github/workflows/collect-gap-watchdog.yml')
+  t('정체 배선: 기존 감시 job 안(actions: write 1곳 유지) · 끄기 변수 · DRY 를 따르고 dry_run=false 를 명시해 1회만 건다',
+    (gw.match(/actions: write/g) ?? []).length === 1 && /vars\.RELEVANCE_STALL_WATCH != 'off'/.test(gw) && /steps\.stall\.outputs\.rerun == 'true'/.test(gw)
+    && /name: Judge stall rerun once[\s\S]*DRY" != "false"[\s\S]*gh workflow run nightly-relevance\.yml -R "\$GITHUB_REPOSITORY" --ref main -f dry_run=false/.test(gw))
+  t('정체 배선: bottleneck-watch 대장에 판정 정체 줄', /add "판정 정체" node scripts\/relevance-stall-watch\.mjs/.test(read('.github/workflows/bottleneck-watch.yml')))
+}
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} 세션 한도 가드 셀프테스트: ${pass} pass / ${fail} fail`)
 process.exit(fail === 0 ? 0 : 1)

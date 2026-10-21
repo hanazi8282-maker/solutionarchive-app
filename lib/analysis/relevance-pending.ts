@@ -19,6 +19,8 @@ export interface PendingResult {
   excluded?: number
   /** 소비재(태그 표 ∪ 파생 out-consumer·youtube)라 뺀 미판정 수(남헌 v61). 이미 판정된 것은 세지 않는다. */
   consumer?: number
+  /** 판정 대상이 아닌 미판정(v71bb) — no_body: T1 본문 없음 · hn_low: HN 저가치 사전 제외(on). countFor 는 이걸 미판정으로 센다. */
+  residue?: { no_body: number; hn_low: number }
   reviews: { input_id: string; text: string }[]
   /** 평점 표본 통계. 입력 0건이면 null(대상이 안 되므로 로그가 읽지 않는다). */
   rating: RatingSampleStats | null
@@ -147,7 +149,11 @@ export function createPendingFor(deps: {
     // 소비재(태그 ∪ 파생, 남헌 v61)는 미판정에서만 뺀다 — 이미 판정된 것(done)은 원래대로 빠지고 판정 행은 건드리지 않는다.
     // v71ay C5: HN 가치 낮은 글은 표본을 자르기 전에 뺀다(on 일 때만). 삭제 아님 — 원문·판정 없음 그대로, 끄면 다시 대상이 된다.
     const hnOn = !!prefilterCfg && prefilterCfg.hn.mode === 'on'
-    const undone = eligible.filter((s) => !done.has(s.input.id) && !(hnOn && isHnLowValue(s.input, prefilterCfg!)))
+    const notDone = eligible.filter((s) => !done.has(s.input.id))
+    const undone = hnOn ? notDone.filter((s) => !isHnLowValue(s.input, prefilterCfg!)) : notDone
+    // v71bb: 판정 안 하고 남는 몫을 사유별로 센다(countFor 근사가 이걸 미판정으로 세서 체인이 "210건 남김"으로 헛돈다 — 10-21).
+    //   no_body = T1 이 본문 없음(빈 원문·머리말뿐)으로 거른 미판정 · hn_low = HN 저가치(hn_lowvalue on)로 뺀 미판정. 둘 다 삭제 아님.
+    const residue = { no_body: rows.filter((r) => !done.has(r.id)).length - notDone.length, hn_low: notDone.length - undone.length }
     const isC = (s: (typeof undone)[number]) => isConsumer(s.input.id, s.input.source_key)
     const consumer = undone.filter(isC).length
     const ordered = orderForJudge(consumer ? undone.filter((s) => !isC(s)) : undone, {
@@ -157,7 +163,7 @@ export function createPendingFor(deps: {
     const selected = [...head, ...ordered.last.slice(0, Math.max(0, sampleSize - head.length))]
     const unjudged = ordered.main.length + ordered.last.length
     const reviews = selected.map((s) => ({ input_id: s.input.id as string, text: s.text.slice(0, MAX_REVIEW_CHARS) }))
-    const base = { total: selected.length, unjudged, excluded: ordered.excludedCount, consumer }
+    const base = { total: selected.length, unjudged, excluded: ordered.excludedCount, consumer, residue }
     if (!prefilterCfg) return { ...base, reviews, rating }
 
     // 사전필터(v31 항목 5) — T1 뒤 · T2 전. 중복은 조회된 입력 전체에서 센다. 효과는 T2 대상(reviews)에만.

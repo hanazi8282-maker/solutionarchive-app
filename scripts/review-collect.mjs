@@ -26,6 +26,7 @@ import { alertLine } from '../lib/review/health.ts'
 import { finishRunRow } from '../lib/review/run-log.ts'
 import { withTiming } from '../lib/review/timing.ts'
 import { loadSoftSkip } from '../lib/review/latest-health.ts'
+import { idleSkipReason } from '../lib/review/zero-request.ts'
 import { danawaAdapter } from '../lib/review/adapters/danawa.ts'
 import { appstoreAdapter } from '../lib/review/adapters/appstore.ts'
 import { hackernewsAdapter } from '../lib/review/adapters/hackernews.ts'
@@ -255,6 +256,26 @@ for (const sourceKey of sourceKeys) {
     say(`- ❌ 환경변수 미설정으로 건너뛴다: ${missingEnv.join(', ')} (차단이 아니라 우리 설정이다)`)
     sourceResults.push({ key: sourceKey, fatal: `환경변수 미설정 — ${missingEnv.join(', ')}` })
     continue
+  }
+
+  // 일감 없음 skip(v71ba P0-3, lib/review/zero-request.ts idleSkipReason) — 꺼진 소스·활성 타깃 0 은 실행 행을 만들지 않는다.
+  // 스케줄(--source=all)만. 이름을 직접 적은 실행은 지금처럼 돈다. 활성 수를 못 읽으면(null) 지금처럼 돈다(§7.1).
+  // 같은 잡의 target-revive 스텝이 먼저 돌았으므로 여기서 읽는 활성 수는 되살리기 뒤 값이다.
+  if (!explicitSources) {
+    let active = null
+    if (enabledByKey.get(sourceKey) === true) {
+      const { data, error } = await supabase.from('review_targets').select('id').eq('source_key', sourceKey).eq('status', 'active').limit(1)
+      if (error) console.log(`ℹ️ [${sourceKey}] 활성 타깃 확인 불가 — ${error.message} (지금처럼 돈다)`)
+      else active = (data ?? []).length
+    }
+    const idle = idleSkipReason(enabledByKey.get(sourceKey), active)
+    if (idle) {
+      say('')
+      say(`### \`${sourceKey}\``)
+      say(`- ⏭️ ${idle}`)
+      sourceResults.push({ key: sourceKey, skipped: true, skipReason: idle })
+      continue
+    }
   }
 
   // soft-skip(v27) — 최근 3회 연속 파싱 고장(차단 아님)이면 이번 실행에서 건너뛴다. DB 쓰기 없음(실행 행도 안 만든다).

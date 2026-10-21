@@ -90,6 +90,19 @@ t('상태판', () => {
   assert.equal(b.split('\n').filter((l) => /^\| \d+ \|/.test(l)).length, 16)
 })
 
+t('상태판 1번(v71ba): 리뷰 속 언급 / 새 출시 입력 분리', () => {
+  const b = statusBoard({ date: '2026-10-22', now: new Date('2026-10-22T06:00:00Z'), probes: { 1: { last: null, today: 0, yday: 0, split: [{ label: '리뷰 속 언급', n: 0 }, { label: '새 출시 입력', n: 18 }] } } })
+  assert.match(b, /\| 1 \| 새 회사[^|]*\| 미작동 \[직접 실행 확인\] \| 없음 \| 0 · 누적 리뷰 속 언급 0 \/ 새 출시 입력 18 \|/)
+  // 필터가 표식 행을 언급에서 빼고 새 출시 쪽에 더하는지 — 질의 빌더를 기록형 가짜로 돌린다
+  const rec = () => { const calls = []; const q = new Proxy({}, { get: (_, k) => (...a) => (calls.push([k, ...a]), q) }); return { q, calls } }
+  const one = (f) => { const r = rec(); f(r.q); return r.calls }
+  assert.deepEqual(one(AGENTS[0].probe.where), [['eq', 'origin', 'mention'], ['not', 'verdict_reason', 'like', '새 출시 입력*']])
+  assert.deepEqual(AGENTS[0].probe.split.map((s) => s.parts.map(one)), [
+    [[['eq', 'origin', 'mention'], ['not', 'verdict_reason', 'like', '새 출시 입력*']]],
+    [[['eq', 'origin', 'new_release']], [['eq', 'origin', 'mention'], ['like', 'verdict_reason', '새 출시 입력*']]],
+  ])
+})
+
 // 6
 t('정적: DB 쓰기 없음·워크플로 권한', () => {
   for (const f of ['inventory-gauge', 'limit-rollback-eval', 'agent-status-board']) {

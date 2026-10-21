@@ -279,5 +279,34 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
   t('가장 최근 행이 running(취소·죽음)이면 앞 실행의 "이어 가라"를 잇지 않는다', chainCarryOf(rows, now) === null)
 }
 
+// ── 11. v71bb 잔여 — 판정할 수 없는 미판정(본문 없음·HN 저가치)을 센다 · 1차 미판정 사유 분류 ──
+{
+  const { loadPrefilterConfig } = await import('../lib/analysis/prefilter.ts')
+  const hnCfg = loadPrefilterConfig(undefined, { HN_PREFILTER: 'on' }).cfg
+  const rows = [
+    ...Array.from({ length: 4 }, (_, i) => ({ id: `hn-${i}`, project_id: 'p9', purged_at: null, raw_text: `short hn comment ${i}`, created_at: day(i), collected_at: null, source_key: 'hackernews', rating: null })),
+    ...Array.from({ length: 2 }, (_, i) => ({ id: `nb-${i}`, project_id: 'p9', purged_at: null, raw_text: '', created_at: day(i), collected_at: null, source_key: 'googleplay', rating: 2 })),
+    ...Array.from({ length: 3 }, (_, i) => ({ id: `ok-${i}`, project_id: 'p9', purged_at: null, raw_text: `배터리가 너무 빨리 닳아서 불편합니다 ${i}`, created_at: day(i), collected_at: null, source_key: 'googleplay', rating: 2 })),
+  ]
+  const pf = createPendingFor({ supabase: mockDb({ tables: { analysis_inputs: rows, review_relevance_verdicts: [] } }), sampleSize: 1000, highRatingShare: 1, prefilterCfg: hnCfg, log: () => {}, warn: () => {}, excludedSources: [] })
+  const c = await pf.countFor({ id: 'p9' })
+  const p = await pf.pendingFor({ id: 'p9' })
+  t('잔여: countFor 근사는 9건, pendingFor 정확값은 3건 · 본문 없음 2 · HN 저가치 4', hnCfg?.hn.mode === 'on' && c.unjudged === 9 && p.unjudged === 3 && p.reviews.length === 3 && p.residue?.no_body === 2 && p.residue?.hn_low === 4)
+  const src = fs.readFileSync('scripts/relevance-judge-auto.mjs', 'utf8')
+  t('스크립트: 원문을 읽은 프로젝트는 정확값으로 미판정을 센다(근사로 체인이 헛돌지 않게) · summary 에 residue', /exactUnjudged\.get\(c\.project\.id\) \?\? c\.count\.unjudged/.test(src) && /unjudged_after: unjudgedAfter, residue,/.test(src))
+
+  const { classifyProject, mergeCounts } = await import('./relevance-unjudged-why.mjs')
+  const ctx = { done: new Set(['ok-0']), tagged: new Set(['ok-1']), allow: new Set(), excludedSources: [], skipConsumer: true, prefilterCfg: hnCfg }
+  const P = (o) => ({ id: 'p', status: 'collecting', extract_attempts: 0, area_code: '1', ...o })
+  t('사유: 상태가 후보 밖이면 전부 status:<값>', JSON.stringify(classifyProject(P({ status: 'archived' }), rows, ctx)) === JSON.stringify({ hackernews: { 'status:archived': 4 }, googleplay: { 'status:archived': 4 } }))
+  t('사유: 재추출 뒤 failed → failed_excluded', classifyProject(P({ status: 'failed', extract_attempts: 2 }), rows, ctx).googleplay.failed_excluded === 4)
+  const m = classifyProject(P({}), rows, ctx)
+  t('사유: 판정된 건 빼고 · 태그 · 본문 없음 · HN 저가치 · 대기', m.googleplay.consumer_tag === 1 && m.googleplay.no_body === 2 && m.googleplay.eligible === 1 && m.hackernews.hn_low === 4)
+  const mc = classifyProject(P({ area_code: 'out-consumer' }), rows, ctx)
+  t('사유: out-consumer 영역은 태그 표에 없어도 consumer_derived(SQL 로 태그만 빼면 미판정처럼 보이는 몫)', mc.googleplay.consumer_tag === 1 && mc.googleplay.consumer_derived === 3 && mc.hackernews.consumer_derived === 4)
+  t('사유: out-founder 영역의 대기분은 eligible_out_area', classifyProject(P({ area_code: 'out-founder' }), rows, ctx).googleplay.eligible_out_area === 1)
+  t('사유: 합치기', mergeCounts([m, m]).googleplay.no_body === 4)
+}
+
 console.log(`\n${fail === 0 ? '✅' : '❌'} 전량 판정 셀프테스트: ${pass} pass / ${fail} fail`)
 process.exit(fail === 0 ? 0 : 1)

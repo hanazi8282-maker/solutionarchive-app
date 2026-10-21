@@ -359,17 +359,25 @@ if (retry?.quotaProject) {
 // 원문(raw_text)은 순서대로 이번에 돌 프로젝트(최대 maxProjects)만 읽는다 — pendingFor(라운드로빈·평점 자르기·사전필터).
 const targets = []
 let examined = 0
+// v71bb: 원문을 읽은 프로젝트는 정확한 미판정(pendingFor — 본문 없음·HN 저가치 뺀 값)으로 센다. 근사(countFor)만 쓰면 판정할 수 없는
+// 잔여가 "남은 미판정"으로 남아 체인이 0건 hop 을 두 번 더 돌고 "N건 남기고 멈췄다" 경고를 낸다(10-21: 210건, 시도 0).
+const exactUnjudged = new Map()
+const residue = { no_body: 0, hn_low: 0 }
 for (const c of ready) {
   if (targets.length >= maxProjects) break
   examined += 1
   const pending = await pendingFor(c.project)
   if (pending === null) { unknownCount += 1; continue }
+  exactUnjudged.set(c.project.id, pending.unjudged ?? pending.reviews.length)
+  residue.no_body += pending.residue?.no_body ?? 0
+  residue.hn_low += pending.residue?.hn_low ?? 0
   if (pending.reviews.length === 0) continue // 머리말뿐인 입력 등 — 수 세기(근사)엔 잡혔지만 판정할 본문이 없다
   targets.push({ ...c, pending })
 }
 const remaining = ready.length - examined
-// 전체 남은 미판정(이번 실행 상한과 무관, countFor 근사). 수를 못 센 프로젝트가 있으면 하한이다.
-const unjudgedBefore = ready.reduce((s, c) => s + c.count.unjudged, 0)
+// 전체 남은 미판정(이번 실행 상한과 무관). 원문을 읽은 프로젝트는 정확값, 못 읽은 프로젝트는 countFor 근사(상한 쪽). 수를 못 센 프로젝트가 있으면 하한이다.
+const unjudgedBefore = ready.reduce((s, c) => s + (exactUnjudged.get(c.project.id) ?? c.count.unjudged), 0)
+if (residue.no_body + residue.hn_low > 0) log(`판정 대상 아님(삭제 아님, 이번에 읽은 프로젝트 ${exactUnjudged.size}개) — 본문 없음 ${residue.no_body}건 · HN 저가치(사전 제외 on) ${residue.hn_low}건`)
 const excludedTotal = ready.reduce((s, c) => s + c.count.excluded, 0)
 log(`미판정 전체 ${unjudgedBefore}건(프로젝트 ${ready.length}개${unknownCount > 0 ? ` · 원문 못 읽은 프로젝트 ${unknownCount}개 제외 — 하한` : ''}) · 제외 소스로 뺀 ${excludedTotal}건`)
 
@@ -623,7 +631,7 @@ await tracker.finish({
   status,
   summary: {
     projects: targets.length, judged: judgedTotal, remaining, blocker,
-    unjudged_before: unjudgedBefore, unjudged_after: unjudgedAfter, excluded_sources: excludedSources, excluded_inputs: excludedTotal,
+    unjudged_before: unjudgedBefore, unjudged_after: unjudgedAfter, residue, excluded_sources: excludedSources, excluded_inputs: excludedTotal,
     attempted: attemptedTotal, errors: errorTotal, prompt_version: PROMPT_VERSION, prompt_version_column: promptVersionColumn,
     caps: { boosted: caps.boosted, relaxed: caps.relaxed, cap_usd: capUsd, hard_cap_usd: caps.hardCapUsd, until: caps.untilMs ? new Date(caps.untilMs).toISOString() : null },
     chain: { hop: chainHop, relaunch: chain.relaunch, reason: chain.reason, next_hop: chain.nextHop, next_zero_streak: chain.nextZeroStreak, wait_min: chain.waitMin },

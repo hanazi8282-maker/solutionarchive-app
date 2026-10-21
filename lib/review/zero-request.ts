@@ -43,6 +43,18 @@ export type ZeroInput = {
 
 export type ZeroVerdict = { key: string; reasons: ZeroReason[]; runs: number; idleOk: number; failed: number; notes: string[] }
 
+/**
+ * 일감 없음 skip(v71ba P0-3) — 스케줄(--source=all) 실행에서 실행 행을 만들기 전에 건너뛸 사유. 없으면 null(지금처럼 돈다).
+ * 2026-10-22 실측: 활성 타깃 0 인 enabled 소스 14곳 + 꺼진 소스 2곳이 3일 9~16회씩 "타깃 0·요청 0" 실행 행만 남겼다(§7.2 확인 대상 소음).
+ * 3상태(§7.1): enabled 를 못 읽음(undefined)·활성 수를 못 읽음(null)은 skip 사유가 아니다 — 러너가 지금처럼 판정한다.
+ * 요청 0 감시(judgeZeroRequests)는 실행 행이 아니라 활성 타깃 수로 사유(no_active_targets)를 내므로 행이 없어도 경보가 나지 않는다.
+ */
+export function idleSkipReason(enabled: boolean | null | undefined, activeTargets: number | null): string | null {
+  if (enabled === false) return '소스 꺼짐(enabled=false) — 실행 행 없이 건너뜀'
+  if (enabled === true && activeTargets === 0) return '일감 없음 — 활성 타깃 0(되살리기·발굴 뒤 다음 슬롯에 다시 본다)'
+  return null
+}
+
 /** 최근 24h 요청 합이 0 인 enabled 소스 키. 창 안 실행이 없어도 0 이다. */
 export function zeroRequestKeys(sources: ZeroSourceRow[], runs: ZeroRunRow[], now: Date): string[] {
   const since = now.getTime() - ZERO_WINDOW_MS

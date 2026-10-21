@@ -168,7 +168,9 @@ function harness(pages, status = {}) {
   t('200 빈 응답: 차단으로 중단', `${r.requests}/${r.stats.blockedResponses}`, '1/1')
 }
 {
-  const h = harness({ '/c/feature-requests/5.json?order=created': fx('n8n-featurereq-list.json') })
+  // 상한 1 = 목록 1요청만. 예전에는 큐 첫 토픽의 404(가짜 서버에 없는 경로)가 타깃을 failed 로 닫아 큐가 19 로 남았다 —
+  // v71ba 부터 게시판 큐 404 는 그 글만 빼고 다음으로 가므로(runner defaultBoardSkipNotFound) 목록만 받게 묶어 같은 것을 본다.
+  const h = harness({ '/c/feature-requests/5.json?order=created': fx('n8n-featurereq-list.json') }, { dailyRequestCap: 1 })
   const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
   t('러너: 목록 요청 · 큐 19건 적재', `${r.requests >= 1}/${decodeBoardCursor(h.log.saves.at(-1).cursor).q.length}`, 'true/19')
 }

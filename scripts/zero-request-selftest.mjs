@@ -157,6 +157,50 @@ const TABLES = {
   fs.rmSync(dir, { recursive: true, force: true })
 }
 
+// ── 일감 없음 skip(v71ba P0-3) — 판정 + review-collect.mjs 실제 프로세스(가짜 PostgREST) ─────────
+{
+  const { idleSkipReason } = await import('../lib/review/zero-request.ts')
+  t('idle: 꺼진 소스 → skip', idleSkipReason(false, null) !== null, true)
+  t('idle: 켜짐·활성 0 → skip', idleSkipReason(true, 0) !== null, true)
+  t('idle: 켜짐·활성 ≥1 → 돈다', idleSkipReason(true, 1), null)
+  t('idle: 켜짐·활성 확인 불가(null) → 돈다(§7.1)', idleSkipReason(true, null), null)
+  t('idle: enabled 확인 불가(undefined)·활성 0 → 돈다(러너가 판정)', idleSkipReason(undefined, 0), null)
+
+  const http = await import('node:http')
+  const { spawn } = await import('node:child_process')
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
+  const run = async (args) => {
+    const seen = []
+    const server = http.createServer((req, res) => {
+      seen.push(`${req.method} ${req.url}`)
+      const u = new URL(req.url, 'http://x')
+      res.setHeader('content-type', 'application/json')
+      if (u.pathname.endsWith('/review_sources') && (u.searchParams.get('select') ?? '') === 'key,enabled')
+        return res.end(JSON.stringify([{ key: 'okky', enabled: true }, { key: 'velog', enabled: true }, { key: 'inflearn', enabled: false }]))
+      if (u.pathname.endsWith('/review_targets') && u.searchParams.get('source_key') === 'eq.velog' && u.searchParams.get('status') === 'eq.active')
+        return res.end(JSON.stringify([{ id: 't1' }]))
+      res.end('[]')
+    })
+    await new Promise((r) => server.listen(0, '127.0.0.1', r))
+    const child = spawn(process.execPath, [path.join(root, 'scripts', 'review-collect.mjs'), ...args, '--dry'], {
+      env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, NEXT_PUBLIC_SUPABASE_URL: `http://127.0.0.1:${server.address().port}`, SUPABASE_SERVICE_ROLE_KEY: 'selftest' },
+    })
+    let out = ''
+    child.stdout.on('data', (d) => (out += d))
+    child.stderr.on('data', (d) => (out += d))
+    await new Promise((r) => child.on('close', r))
+    server.close()
+    return { out, seen }
+  }
+  const all = await run(['--source=all'])
+  t('실행(all): okky 활성 0 → 일감 없음 skip', /### `okky`\s*\n- ⏭️ 일감 없음/.test(all.out), true)
+  t('실행(all): inflearn 꺼짐 → 실행 행 없이 skip', /### `inflearn`\s*\n- ⏭️ 소스 꺼짐/.test(all.out), true)
+  t('실행(all): velog 활성 1 → skip 안 함', /### `velog`\s*\n- ⏭️ (일감 없음|소스 꺼짐)/.test(all.out), false)
+  t('실행(all): 쓰기 요청 0(dry)', all.seen.filter((s) => !s.startsWith('GET') && !s.startsWith('HEAD')), [])
+  const named = await run(['--source=okky'])
+  t('실행(이름 지정): okky 는 skip 하지 않는다', [/⏭️ 일감 없음/.test(named.out), named.seen.some((s) => /review_targets\?select=id&source_key=eq\.okky&status=eq\.active&limit=1/.test(s))], [false, false])
+}
+
 if (failures.length) {
   console.error(`FAIL ${failures.length} / PASS ${passed}`)
   for (const f of failures) console.error(`  ✗ ${f}`)

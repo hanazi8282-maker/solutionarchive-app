@@ -134,6 +134,10 @@ jobs:
           RELEVANCE_CHAIN_ZERO: ${{ inputs.chain_zero || '0' }}
           # 영역 최소 판정량(v37 U1). 비면 config/areas.json floor(제안 200). 되돌리기 = 리포 변수 삭제.
           RELEVANCE_AREA_FLOOR: ${{ vars.RELEVANCE_AREA_FLOOR || '' }}
+          # v71bb ⑥ 용량 상향 롤백 가드 입력(자동 승인 감사 정밀도 < 90% 면 체인을 잇지 않는다). 변수만 — 새 시크릿 없음. 끄기 = RELEVANCE_CAPACITY_GUARD=off.
+          AUTO_APPROVAL_ENABLED: ${{ vars.AUTO_APPROVAL_ENABLED || 'false' }}
+          AUTO_APPROVAL_SINCE: ${{ vars.AUTO_APPROVAL_SINCE || '' }}
+          RELEVANCE_CAPACITY_GUARD: ${{ vars.RELEVANCE_CAPACITY_GUARD || '' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           node scripts/relevance-judge-auto.mjs \
@@ -160,6 +164,9 @@ jobs:
           RELEVANCE_SECOND_ORDER: ${{ vars.RELEVANCE_SECOND_ORDER || '' }}
           # v71p 3(A안): 영역 밖(out-* 접두어)만 2차 제외(기본 on), NULL·모르는 코드는 계속 2차. 되돌리기 = RELEVANCE_SECOND_SKIP_OUT_OF_AREA=off
           RELEVANCE_SECOND_SKIP_OUT_OF_AREA: ${{ vars.RELEVANCE_SECOND_SKIP_OUT_OF_AREA || '' }}
+          # v71bb ⑥ 용량 상향 롤백 가드: 감사 정밀도 < 90%(또는 확인 불가)면 상한·마감을 코드 기본(200건·20분)으로. 끄기 = RELEVANCE_CAPACITY_GUARD=off.
+          AUTO_APPROVAL_ENABLED: ${{ vars.AUTO_APPROVAL_ENABLED || 'false' }}
+          RELEVANCE_CAPACITY_GUARD: ${{ vars.RELEVANCE_CAPACITY_GUARD || '' }}
           # 2차 판정도 1차와 같은 기준(남헌 v67): 기본 v2.2, 리포 변수 RELEVANCE_CRITERIA=v21|old 로 되돌린다.
           RELEVANCE_CRITERIA: ${{ vars.RELEVANCE_CRITERIA || 'v22' }}
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}

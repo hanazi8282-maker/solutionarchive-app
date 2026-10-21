@@ -83,34 +83,45 @@ export async function liveLookups(ids, { fetchFn = fetch, max = 30, gapMs = 3000
 /**
  * 3번 경로(v71ba): 홈페이지 메타(<meta name="apple-itunes-app">·스토어 배지 링크) → 앱 ID. 그 호스트의 robots.txt 를 **먼저** 읽고
  * '허용'일 때만 루트 페이지 1회(못 읽은 robots·HTML robots = 확인 불가 → 안 간다). 다른 호스트로 넘어가면(www 차이 제외) 안 읽는다.
- * 403/429 1건이면 이 경로만 그 실행 중단. 요청 = robots + 페이지, 최대 max 호스트, 간격 gapMs.
+ * 403/429 를 준 호스트는 그 자리에서 그만 읽는다(그 호스트에 다시 안 감). 호스트마다 다른 사이트라 한 곳의 차단이 다른 곳을 막지 않는다 —
+ * 다만 서로 다른 호스트 3곳이 연달아 막으면 우리 쪽 문제로 보고 이 경로를 그 실행에서 멈춘다. 요청 = robots + 페이지, 최대 max 개, 간격 gapMs.
+ * (v71ba 측정: PH 홈페이지 20곳 중 첫 403 하나로 매일 경로 전체가 멈춰 스토어 앵커 0 이었다.)
  */
-export async function homepageAnchors(urls, { fetchFn = fetch, max = 20, gapMs = 3000, log = console.log } = {}) {
+export async function homepageAnchors(urls, { fetchFn = fetch, max = 20, gapMs = 3000, log = console.log, maxConsecutiveBlocks = 3 } = {}) {
   const out = new Map()
   const H = { headers: { 'user-agent': USER_AGENT }, signal: AbortSignal.timeout(15000) }
   const bare = (h) => h.replace(/^www\./, '')
+  const blockedHosts = new Set()
   let requests = 0
+  let streak = 0
   let stopped = null
+  const block = (url, u, what) => {
+    out.set(url, { state: `blocked_${what}` })
+    blockedHosts.add(bare(u.host))
+    if (++streak >= maxConsecutiveBlocks) stopped = `연속 ${streak}곳 차단(마지막 ${u.host} ${what})`
+  }
   for (const url of urls.slice(0, max)) {
-    if (requests) await new Promise((r) => setTimeout(r, gapMs))
     let u
     try { u = new URL(url) } catch { out.set(url, { state: 'unreadable' }); continue }
+    if (blockedHosts.has(bare(u.host))) { out.set(url, { state: 'blocked_host' }); continue }
+    if (requests) await new Promise((r) => setTimeout(r, gapMs))
     requests++
     const rb = await fetchFn(`${u.origin}/robots.txt`, H).catch(() => null)
-    if (rb && [403, 429].includes(rb.status)) { stopped = `${u.host} robots ${rb.status}`; break }
+    if (rb && [403, 429].includes(rb.status)) { block(url, u, `robots_${rb.status}`); if (stopped) break; continue }
     const text = rb && rb.status === 200 ? await rb.text() : null
     const verdict = text != null && !looksLikeMarkup(text) ? robotsVerdict(parseRobots(text), u.pathname || '/', PRODUCT_TOKEN) : { state: 'unverified' }
     if (verdict.state !== 'allowed') { out.set(url, { state: `robots_${verdict.state}` }); continue }
     requests++
     const res = await fetchFn(url, { ...H, redirect: 'follow' }).catch(() => null)
-    if (res && [403, 429].includes(res.status)) { stopped = `${u.host} ${res.status}`; break }
+    if (res && [403, 429].includes(res.status)) { block(url, u, String(res.status)); if (stopped) break; continue }
+    streak = 0
     if (!res || res.status !== 200) { out.set(url, { state: 'unreadable' }); continue }
     if (res.url && bare(new URL(res.url).host) !== bare(u.host)) { out.set(url, { state: 'other_host' }); continue }
     const html = await res.text().catch(() => null)
     out.set(url, html == null ? { state: 'unreadable' } : { state: 'read', ...extractStoreIds(html) })
   }
-  if (stopped) log(`홈페이지 경로 중단: ${stopped}`)
-  return { out, requests, stopped }
+  if (blockedHosts.size) log(`홈페이지 차단 호스트 ${blockedHosts.size}곳: ${[...blockedHosts].join(', ')}${stopped ? ` → 경로 중단: ${stopped}` : ''}`)
+  return { out, requests, stopped, blocked: blockedHosts.size }
 }
 
 export async function main(argv, { log = console.log, now = new Date(), fetchFn = fetch, fileRegistry = loadFileRegistry(), cfg = loadConfig(), searchGuard = null } = {}) {

@@ -56,9 +56,20 @@ await t('홈페이지 읽기: robots 먼저, 못 읽음·HTML·금지면 페이�
   assert.deepEqual(['https://nor.io/', 'https://html.io/', 'https://no.io/'].map((u) => r.out.get(u).state), ['robots_unverified', 'robots_unverified', 'robots_disallowed'])
   assert.ok(!calls.includes('https://nor.io/') && !calls.includes('https://html.io/') && !calls.includes('https://no.io/'), '금지·확인 불가 페이지는 요청 0')
   assert.equal(r.out.get('https://hop.io/').state, 'other_host')
-  assert.equal(r.stopped, 'lim.io 429')
-  assert.ok(!calls.some((u) => u.startsWith('https://after.io')), '중단 뒤 요청 0')
+  assert.equal(r.out.get('https://lim.io/').state, 'blocked_429')
+  assert.equal(r.stopped, null, '한 호스트의 429 는 다른 호스트를 막지 않는다')
+  assert.ok(calls.includes('https://after.io/robots.txt'))
   assert.equal(r.requests, calls.length)
+  assert.equal(r.blocked, 1)
+})
+await t('홈페이지: 막힌 호스트는 다시 안 감 · 서로 다른 3곳 연속 차단이면 경로 중단(그 뒤 0)', async () => {
+  const calls = []
+  const fetchFn = async (u) => (calls.push(u), res(403, ''))
+  const r = await homepageAnchors(['https://a.io/', 'https://a.io/x', 'https://b.io/', 'https://c.io/', 'https://d.io/'], { fetchFn, gapMs: 0, log: () => {} })
+  assert.deepEqual(calls, ['https://a.io/robots.txt', 'https://b.io/robots.txt', 'https://c.io/robots.txt'])
+  assert.equal(r.out.get('https://a.io/x').state, 'blocked_host')
+  assert.match(r.stopped, /연속 3곳 차단/)
+  assert.ok(!r.out.has('https://d.io/'))
 })
 
 await t('새 출시(PH) 홈페이지도 같은 함수 — robots 금지면 페이지 요청 0(예전엔 페이지 먼저 받음)', async () => {

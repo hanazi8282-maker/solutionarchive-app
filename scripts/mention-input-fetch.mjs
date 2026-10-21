@@ -38,6 +38,7 @@ for (const i of inputs) {
 const targets = await all('review_targets?select=project_id,source_key,label,product_ref,status,total_collected', 'id')
 const srcs = new Map((await all('review_sources?select=key,enabled', 'key')).map(s => [s.key, s.enabled]))
 targets.forEach(t => t.source_enabled = srcs.get(t.source_key))
-const discovery = await all('discovery_candidates?select=name,homepage_url,verdict,verdict_reason', 'id')
+// v71ba: origin·mention_count·probe_* 는 새 출시 소급(new-release-backfill.mjs)이 대상 행(origin=mention ∧ 집계 NULL)을 고르는 데 쓴다
+const discovery = await all('discovery_candidates?select=id,name,homepage_url,verdict,verdict_reason,origin,mention_count,probe_source_key,probe_ref,human_review', 'id')
 fs.writeFileSync(out, JSON.stringify({ posts, projects, targets, discovery }))
 console.log({ inputs: inputs.length, posts: posts.length, projects: projects.length, targets: targets.length, discovery: discovery.length })

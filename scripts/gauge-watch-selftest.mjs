@@ -96,10 +96,10 @@ t('상태판 1번(v71ba): 리뷰 속 언급 / 새 출시 입력 분리', () => {
   // 필터가 표식 행을 언급에서 빼고 새 출시 쪽에 더하는지 — 질의 빌더를 기록형 가짜로 돌린다
   const rec = () => { const calls = []; const q = new Proxy({}, { get: (_, k) => (...a) => (calls.push([k, ...a]), q) }); return { q, calls } }
   const one = (f) => { const r = rec(); f(r.q); return r.calls }
-  assert.deepEqual(one(AGENTS[0].probe.where), [['eq', 'origin', 'mention'], ['not', 'verdict_reason', 'like', '새 출시 입력*']])
+  assert.deepEqual(one(AGENTS[0].probe.where), [['eq', 'origin', 'mention'], ['not', 'mention_count', 'is', null]])
   assert.deepEqual(AGENTS[0].probe.split.map((s) => s.parts.map(one)), [
-    [[['eq', 'origin', 'mention'], ['not', 'verdict_reason', 'like', '새 출시 입력*']]],
-    [[['eq', 'origin', 'new_release']], [['eq', 'origin', 'mention'], ['like', 'verdict_reason', '새 출시 입력*']]],
+    [[['eq', 'origin', 'mention'], ['not', 'mention_count', 'is', null]]],
+    [[['eq', 'origin', 'new_release']], [['eq', 'origin', 'mention'], ['is', 'mention_count', null]]],
   ])
 })
 

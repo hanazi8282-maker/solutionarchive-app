@@ -51,7 +51,7 @@ export function renderMigration({ names, date, body }, file) {
     '',
     'COMMIT;',
     '',
-    '-- 확인: SELECT count(*) FROM public.discovery_candidates WHERE origin = \'mention\' AND coalesce(verdict_reason,\'\') NOT LIKE \'새 출시 입력%\';  -- 기대 ≥ 1',
+    "-- 확인: SELECT count(*) FROM public.discovery_candidates WHERE origin = 'mention' AND mention_count IS NOT NULL;  -- 기대 ≥ 1 (리뷰 속 언급 행)",
     '',
   ].join('\n')
 }
@@ -63,7 +63,7 @@ export function renderRollback({ names, date }, file) {
     'BEGIN;',
     `UPDATE public.discovery_candidates SET verdict = 'rejected', verdict_reason = ${q(`v71ba 롤백(mention_ledger ${date})`)}`,
     ` WHERE origin = 'mention' AND verdict <> 'accepted' AND last_seen_at = ${q(`${date}T00:00:00+09:00`)}`,
-    `   AND coalesce(verdict_reason, '') NOT LIKE '새 출시 입력%'`,
+    `   AND mention_count IS NOT NULL`,
     `   AND lower(name) IN (${names.map((n) => q(n.toLowerCase())).join(', ')});`,
     'COMMIT;',
     '',

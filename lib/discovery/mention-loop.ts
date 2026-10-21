@@ -568,9 +568,10 @@ export function safetyAlerts(m: Metrics, ready: Judged[], { maxLookups = 30 } = 
 
 /**
  * 대장 ON CONFLICT 갱신 조건. HN 발굴(origin NULL)·채택(accepted)·새 출시 입력 행은 덮지 않는다.
- * v71ba: 새 출시 입력이 CHECK(origin IN ('mention')) 때문에 origin='mention' 으로 들어간 행(verdict_reason '새 출시 입력…')이 있다 — 언급 집계로 덮으면 두 갈래가 섞인다.
+ * v71ba: 새 출시 입력 18행이 CHECK(origin IN ('mention')) 때문에 origin='mention' 으로 들어가 있다. 언급 대장 행은 언제나 mention_count 를
+ * 채우고 그 18행은 NULL 이다 — 이것이 두 갈래를 가르는 표지다(verdict_reason 문구는 DB 실측에서 표지가 아니었다).
  */
-export const LEDGER_UPDATE_GUARD = "public.discovery_candidates.origin = 'mention' AND public.discovery_candidates.verdict <> 'accepted' AND coalesce(public.discovery_candidates.verdict_reason, '') NOT LIKE '새 출시 입력%'"
+export const LEDGER_UPDATE_GUARD = "public.discovery_candidates.origin = 'mention' AND public.discovery_candidates.verdict <> 'accepted' AND public.discovery_candidates.mention_count IS NOT NULL"
 
 /** 대장(discovery_candidates, 마이그 20261017000021 적용 뒤) INSERT 문. */
 export function renderLedgerSql(judged: Judged[], verdicts: Map<string, AnchorVerdict>, blocked: Set<string>, date: string) {

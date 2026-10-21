@@ -1,5 +1,7 @@
 -- 20261022000010_discovery_candidates_origin_new_release 롤백 — origin CHECK 를 ('mention') 으로 되돌린다. 멱등.
--- new_release 행이 있으면 좁힌 CHECK 를 통과하지 못한다 → 그 행을 먼저 'mention' 으로 되돌린다(삭제 없음, verdict_reason 의 '새 출시 입력' 표식은 그대로 남아 있다).
+-- new_release 행이 있으면 좁힌 CHECK 를 통과하지 못한다 → 그 행을 먼저 'mention' 으로 되돌린다(삭제 없음).
+-- ⚠️ 소급 마이그(new-release-backfill.mjs 가 만든 …_new_release_backfill_v71ba.sql)를 적용했다면 그 롤백을 **먼저** 돌린다 —
+--    소급이 채운 mention_count 가 남은 채 mention 으로 돌아가면 상태판이 그 행을 리뷰 속 언급으로 센다.
 
 BEGIN;
 

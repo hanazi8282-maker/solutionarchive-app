@@ -74,6 +74,23 @@ jobs:
           D=$(TZ=Asia/Seoul date +%F)
           DICT=$(ls reports/*/appstore-chart-dictionary.json 2>/dev/null | tail -1); node scripts/mention-resolve-dryrun.mjs --input="$RUNNER_TEMP/mention-input.json" ${DICT:+--dictionary="$DICT"} --lookup --homepage --out="reports/$D/mention-resolve-dryrun.json" | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # 측정 전용 임시 브랜치(tmp/v71ba-measure) — 머지 대상 아님. 새 출시 18행 소급 초안(DB 쓰기 없음, 파일만).
+      - name: v71ba backfill draft (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        run: |
+          D=$(TZ=Asia/Seoul date +%F)
+          node scripts/new-release-backfill.mjs --rows=reports/2026-10-19/new-release-ledger.sql --input="$RUNNER_TEMP/mention-input.json" --lookup --run --date=2026-10-22 --out-dir="reports/$D/v71ba-backfill" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload v71ba backfill draft
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: v71ba-backfill
+          path: reports/*/v71ba-backfill/*
+          if-no-files-found: warn
+          retention-days: 3
+
       - name: Upload report files
         uses: actions/upload-artifact@v4
         with:

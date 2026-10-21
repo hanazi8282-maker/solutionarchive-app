@@ -49,6 +49,7 @@ import {
 import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
+import { capacityGuard, loadAuditWindow } from '../lib/analysis/auto-approval.ts'
 // 대상 순서는 야간 extract 와 같은 규칙(compareAutoPriority: SaaS 우선 → 많은 순 → projectId)을 영역 결손 축이 감싼다 — lib/analysis/area-priority.ts planAreaOrder(v37 U1).
 // 대상 상태도 야간 extract 와 한 벌(v27 옵션 A). collecting 만 보던 동안 extracted 프로젝트에 새로 들어온 수집분은
 // 판정되지 않아 T2(자동 승인·extract 선별)를 못 넘었다. 2차(relevance-second-judge-auto)는 프로젝트 상태로 거르지 않고
@@ -607,7 +608,7 @@ log(sessionLine(session))
 // ── 4. 자기 호출 체인(전량 판정) — 다음 실행을 부를지. 부르는 것은 워크플로 relaunch job(GITHUB_OUTPUT relaunch=true 일 때만) ──
 // 남은 미판정: 원문을 못 읽은 프로젝트가 있으면 이번에 본 쪽이 0 이어도 "다 채웠다"고 하지 않는다(확인 불가 → 멈춤, §7.1).
 const unjudgedAfter = Math.max(0, unjudgedBefore - judgedTotal)
-const chain = decideRelaunch({
+let chain = decideRelaunch({
   dry: false, enabled: chainEnabled, now: new Date(), untilMs: guard.cfg.relevanceCapUntilMs, stopReason,
   attempted: attemptedTotal, errors: errorTotal, judged: judgedTotal,
   remaining: unjudgedAfter === 0 && unknownCount > 0 ? null : unjudgedAfter,
@@ -620,6 +621,12 @@ const chain = decideRelaunch({
   // v71bb: 한도 정지의 리셋이 90분 안이면 relaunch job 이 그만큼 쉬고 잇는다(10-20 s2: 리셋 29분 전에 멈춰 10시간 반 공백).
   quotaResetAt,
 })
+// v71bb ⑥ 용량 상향 롤백 가드: 자동 승인 감사 정밀도 < 90%(또는 확인 불가)면 자기 호출 체인(상향 용량)을 잇지 않는다 — 정규 크론만 남는다.
+// 끄기 = RELEVANCE_CAPACITY_GUARD=off. 리포 변수는 바꾸지 않는다(다음 실행이 다시 본다).
+if (chain.relaunch && (process.env.RELEVANCE_CAPACITY_GUARD ?? '').trim().toLowerCase() !== 'off') {
+  const g = capacityGuard({ enabled: process.env.AUTO_APPROVAL_ENABLED, since: process.env.AUTO_APPROVAL_SINCE, now: new Date(), audits: await loadAuditWindow(supabase) })
+  if (g.clamp) { chain = { ...chain, relaunch: false, waitMin: 0, reason: `용량 상향 롤백 가드 — ${g.reason}` }; warn(chain.reason) }
+}
 log(`체인 ${chain.relaunch ? '이어감' : '멈춤'} — ${chain.reason} · 미판정 ${unjudgedBefore} → ${unjudgedAfter} · 시도 ${attemptedTotal} · 오류 ${errorTotal}${deadlineHit ? ' · 마감 도달' : ''}`)
 if (!chain.relaunch && unjudgedAfter > 0 && !/드라이런|RELEVANCE_CHAIN=off|만료|relevance_cap_until 없음/.test(chain.reason)) warn(`체인이 미판정 ${unjudgedAfter}건을 남기고 멈췄다 — ${chain.reason}. 다음 크론(KST 04:03)이 다시 시작한다`)
 setOutput('relaunch', chain.relaunch ? 'true' : 'false')

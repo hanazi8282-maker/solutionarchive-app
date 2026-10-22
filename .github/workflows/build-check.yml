@@ -44,6 +44,9 @@ jobs:
       - run: node scripts/gauge-watch-selftest.mjs
       # 요청 0 사유(v51 §1-10): enabled 소스 24h 요청 0 에 사유 코드가 없으면 감시 경보. 행 → 사유 → Notion 입력 경계까지.
       - run: node scripts/zero-request-selftest.mjs
+      # v71ba P0-4: 구글 플레이 failed 진단(읽기 전용) · 유튜브 매일 새 영상 발굴(초안만). 네트워크·DB·키 없음.
+      - run: node scripts/googleplay-failed-diag.mjs --selftest
+      - run: node scripts/youtube-daily-videos.mjs --selftest
       # 발행 매칭·미연결 분류. 후보 집합(초안 + 칼럼 연재 편)이 좁아지면 칼럼 발행본이
       # "파이프라인 외"로 조용히 내려간다 — 그 회귀를 여기서 막는다. 네트워크·DB 없음.
       - run: node scripts/threads-match-selftest.mjs

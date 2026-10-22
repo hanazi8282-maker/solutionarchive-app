@@ -1,0 +1,53 @@
+{
+  "_comment": "자율 발굴 C-1 ① 게시판 대장(scripts/board-discovery.mjs). proposed = 초안에 넣음 · suggested = 제안만.",
+  "entries": [
+    {
+      "source_key": "clien",
+      "product_ref": "board:cm_iphonien",
+      "label": "clien cm_iphonien 게시판 순회(자율 발굴)",
+      "posts": 19,
+      "status": "proposed",
+      "at": "2026-10-21T18:41:06.053Z"
+    },
+    {
+      "source_key": "clien",
+      "product_ref": "board:cm_mac",
+      "label": "clien cm_mac 게시판 순회(자율 발굴)",
+      "posts": 19,
+      "status": "proposed",
+      "at": "2026-10-21T18:41:06.053Z"
+    },
+    {
+      "source_key": "clien",
+      "product_ref": "board:cm_app",
+      "label": "clien cm_app 게시판 순회(자율 발굴)",
+      "posts": 19,
+      "status": "proposed",
+      "at": "2026-10-21T18:41:06.053Z"
+    },
+    {
+      "source_key": "clien",
+      "product_ref": "board:cm_andro",
+      "label": "clien cm_andro 게시판 순회(자율 발굴)",
+      "posts": 19,
+      "status": "proposed",
+      "at": "2026-10-21T18:41:06.053Z"
+    },
+    {
+      "source_key": "clien",
+      "product_ref": "board:cm_ai",
+      "label": "clien cm_ai 게시판 순회(자율 발굴)",
+      "posts": 19,
+      "status": "proposed",
+      "at": "2026-10-21T18:41:06.053Z"
+    },
+    {
+      "source_key": "clien",
+      "product_ref": "board:cm_venture",
+      "label": "clien cm_venture 게시판 순회(자율 발굴)",
+      "posts": 19,
+      "status": "proposed",
+      "at": "2026-10-21T18:41:06.053Z"
+    }
+  ]
+}

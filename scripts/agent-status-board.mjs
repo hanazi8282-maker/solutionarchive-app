@@ -12,6 +12,13 @@ import { openDb } from './target-supply.mjs'
 
 const H = 3_600_000
 const UNK = '확인 불가'
+// v71ba: 언급 대장 행은 언제나 mention_count 를 채운다. origin='mention' ∧ mention_count NULL = 새 출시 입력 우회분(소급 전).
+const MENTION_ONLY = (q) => q.eq('origin', 'mention').not('mention_count', 'is', null)
+/** 1번 누적 분리 — 항목마다 합산할 필터들. 새 출시 = origin new_release + 소급 전 mention·집계 NULL 행. */
+export const SPLIT_1 = [
+  { label: '리뷰 속 언급', parts: [MENTION_ONLY] },
+  { label: '새 출시 입력', parts: [(q) => q.eq('origin', 'new_release'), (q) => q.eq('origin', 'mention').is('mention_count', null)] },
+]
 
 /**
  * 에이전트 정의. probe = DB 에서 마지막 실행·오늘/어제 산출을 읽는 명세({table, ts, where?}), 없으면 static 칸을 쓴다.
@@ -19,7 +26,8 @@ const UNK = '확인 불가'
  * ponytail: 10·15 처럼 흔적이 reports/ 파일뿐인 것은 DB 근사(15 = cap_log). 정확한 마지막 실행은 Actions 로그를 읽는 별도 단계가 필요.
  */
 export const AGENTS = [
-  { n: 1, name: '새 회사 자동 등록(언급 루프)', probe: { table: 'discovery_candidates', ts: 'created_at', where: (q) => q.eq('origin', 'mention') }, empty: '원인: origin=mention 후보 0행 — 해소율·등록 단계 미가동' },
+  // v71ba: origin='mention' 18행은 새 출시 입력(CHECK 때문에 mention 으로 들어감, mention_count NULL)이었다 — 언급 산출로 세지 않는다. 누적은 두 갈래를 따로 적는다.
+  { n: 1, name: '새 회사 자동 등록(언급 루프)', probe: { table: 'discovery_candidates', ts: 'created_at', where: MENTION_ONLY, split: SPLIT_1 }, empty: '원인: 리뷰 속 언급 후보 0행 — 대장 SQL 을 DB 에 넣는 단계 없음(scripts/mention-ledger-migrate.mjs → 마이그)' },
   { n: 2, name: '해외·영어 리뷰', probe: { table: 'analysis_inputs', ts: 'created_at', where: (q) => q.eq('lang', 'en') } },
   { n: 3, name: '다국어 리뷰', probe: { table: 'analysis_inputs', ts: 'created_at', where: (q) => q.not('lang', 'in', '(ko,en)') }, empty: '원인: ko/en 외 언어 리뷰 0건 — 타깃 미등록' },
   { n: 4, name: '새 커뮤니티 발굴 루프', probe: { table: 'review_sources', ts: 'created_at', where: (q) => q.neq('key', 'itunes_search') }, empty: '원인: 신규 소스 행 없음(탐색 루프 미연결)' },
@@ -53,7 +61,8 @@ export function statusBoard({ date, now, probes }) {
         const age = p.last ? (now.getTime() - Date.parse(p.last)) / H : null
         const status = age === null ? '미작동' : age > 24 ? '고장 의심(24h↑ 갱신 없음)' : '작동'
         const delta = p.today - p.yday
-        row = [a.n, a.name, `${status} [직접 실행 확인]`, p.last ? p.last.slice(0, 16) + 'Z' : '없음', `${p.today}`, `${delta >= 0 ? '+' : ''}${delta} (어제 ${p.yday})`, age === null ? (a.empty ?? '실행 기록 없음') : age > 24 ? `마지막 실행 ${Math.round(age)}h 전` : '-', '-']
+        const split = p.split ? ` · 누적 ${p.split.map((x) => `${x.label} ${x.n}`).join(' / ')}` : ''
+        row = [a.n, a.name, `${status} [직접 실행 확인]`, p.last ? p.last.slice(0, 16) + 'Z' : '없음', `${p.today}${split}`, `${delta >= 0 ? '+' : ''}${delta} (어제 ${p.yday})`, age === null ? (a.empty ?? '실행 기록 없음') : age > 24 ? `마지막 실행 ${Math.round(age)}h 전` : '-', '-']
       }
     }
     L.push(`| ${row.join(' | ')} |`)
@@ -76,7 +85,13 @@ async function probe(sb, p, now) {
     if (error) throw new Error(error.message)
     return count ?? 0
   }
-  return { last: lastRow[0]?.[p.ts] ?? null, today: await win(t0, new Date(now.getTime() + 1000).toISOString()), yday: await win(y0, t0) }
+  const total = async (f) => {
+    const { count, error } = await f(sb.from(p.table).select(p.ts, { count: 'exact', head: true }))
+    if (error) throw new Error(error.message)
+    return count ?? 0
+  }
+  const split = p.split ? await Promise.all(p.split.map(async (x) => ({ label: x.label, n: (await Promise.all(x.parts.map(total))).reduce((s, v) => s + v, 0) }))) : undefined
+  return { last: lastRow[0]?.[p.ts] ?? null, today: await win(t0, new Date(now.getTime() + 1000).toISOString()), yday: await win(y0, t0), split }
 }
 
 export async function readProbes(sb, now) {

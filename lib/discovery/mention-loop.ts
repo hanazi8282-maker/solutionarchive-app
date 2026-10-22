@@ -542,7 +542,14 @@ export function safetyAlerts(m: Metrics, ready: Judged[], { maxLookups = 30 } = 
   return out
 }
 
-/** 대장(discovery_candidates, 마이그 20261017000020 적용 뒤) INSERT 문. HN 발굴 행(origin NULL)은 덮지 않는다. */
+/**
+ * 대장 ON CONFLICT 갱신 조건. HN 발굴(origin NULL)·채택(accepted)·새 출시 입력 행은 덮지 않는다.
+ * v71ba: 새 출시 입력 18행이 CHECK(origin IN ('mention')) 때문에 origin='mention' 으로 들어가 있다. 언급 대장 행은 언제나 mention_count 를
+ * 채우고 그 18행은 NULL 이다 — 이것이 두 갈래를 가르는 표지다(verdict_reason 문구는 DB 실측에서 표지가 아니었다).
+ */
+export const LEDGER_UPDATE_GUARD = "public.discovery_candidates.origin = 'mention' AND public.discovery_candidates.verdict <> 'accepted' AND public.discovery_candidates.mention_count IS NOT NULL"
+
+/** 대장(discovery_candidates, 마이그 20261017000021 적용 뒤) INSERT 문. */
 export function renderLedgerSql(judged: Judged[], verdicts: Map<string, AnchorVerdict>, blocked: Set<string>, date: string) {
   const q = (s: unknown) => (s == null ? 'NULL' : `'${String(s).replace(/'/g, "''")}'`)
   const rows = judged
@@ -560,6 +567,6 @@ export function renderLedgerSql(judged: Judged[], verdicts: Map<string, AnchorVe
     `-- 언급 루프 대장 ${date} — discovery_candidates(origin='mention'). 사람·역할 세션이 적용. HN 발굴 행(origin NULL)은 ON CONFLICT 에서 건드리지 않는다.\n` +
     `INSERT INTO public.discovery_candidates (kind, name, why, probe_source_key, probe_ref, probe_hits, verdict, verdict_reason, origin, mention_count, post_count, source_count, alt_seek_posts, evidence_input_ids, area_code, area_fit, gate_blocked, last_seen_at)\nVALUES\n` +
     rows.join(',\n') +
-    `\nON CONFLICT (kind, lower(name)) DO UPDATE SET mention_count = EXCLUDED.mention_count, post_count = EXCLUDED.post_count, source_count = EXCLUDED.source_count, alt_seek_posts = EXCLUDED.alt_seek_posts, evidence_input_ids = EXCLUDED.evidence_input_ids, area_code = EXCLUDED.area_code, area_fit = EXCLUDED.area_fit, gate_blocked = EXCLUDED.gate_blocked, last_seen_at = EXCLUDED.last_seen_at\n  WHERE public.discovery_candidates.origin = 'mention' AND public.discovery_candidates.verdict <> 'accepted';\n`
+    `\nON CONFLICT (kind, lower(name)) DO UPDATE SET mention_count = EXCLUDED.mention_count, post_count = EXCLUDED.post_count, source_count = EXCLUDED.source_count, alt_seek_posts = EXCLUDED.alt_seek_posts, evidence_input_ids = EXCLUDED.evidence_input_ids, area_code = EXCLUDED.area_code, area_fit = EXCLUDED.area_fit, gate_blocked = EXCLUDED.gate_blocked, last_seen_at = EXCLUDED.last_seen_at\n  WHERE ${LEDGER_UPDATE_GUARD};\n`
   )
 }

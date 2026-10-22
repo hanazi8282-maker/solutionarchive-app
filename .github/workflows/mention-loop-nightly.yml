@@ -3,6 +3,7 @@
 # 입력: scripts/mention-input-fetch.mjs (PostgREST SELECT 만) · 새 출시 입력: scripts/new-release-candidates.mjs (Product Hunt 공식 API + robots 허용 홈페이지만)
 # 출력: 아티팩트 mention-loop-<날짜> (mention-loop.json · mention-ledger.sql · anchor-verify-input.json · new-release-candidates.json) + 작업 요약에 단계별 건수 한 줄.
 # 적용: 대장 SQL(mention-ledger.sql)은 대화형·역할 세션이 아티팩트를 받아 적용한다(CLAUDE.md §10.1 발굴 적재 — discovery_candidates 전체 INSERT 는 허용 범위지만, 이 잡은 쓰기 권한을 쓰지 않는다).
+#   v71ba: 이 "받아 적용" 단계가 10-18 이후 한 번도 안 돌아 진짜 언급 행이 0 이었다. 경로 = `node scripts/mention-ledger-migrate.mjs --sql=<아티팩트>/mention-ledger.sql --write` → 마이그 PR → 오케스트레이터 적용.
 # 권한: contents: read. 새 secret 없음 — NEXT_PUBLIC_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY · PRODUCT_HUNT_API_TOKEN 은 전부 기존 값.
 # 되돌리기: 이 파일 삭제(또는 schedule 줄 제거). 수집 실행과 겹치지 않게 같은 concurrency 그룹을 쓴다.
 
@@ -38,6 +39,7 @@ jobs:
       - name: Selftest
         run: |
           node scripts/mention-loop-selftest.mjs
+          node scripts/mention-ledger-selftest.mjs
           node scripts/anchor-selftest.mjs
           node scripts/new-release-candidates-selftest.mjs
 

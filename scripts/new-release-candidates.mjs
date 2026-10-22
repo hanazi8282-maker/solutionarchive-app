@@ -6,12 +6,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { extractStoreIds, parsePhPosts, recentLaunches } from '../lib/discovery/new-release.ts'
-import { parseRobots, robotsVerdict } from '../lib/review/robots.ts'
-import { PRODUCT_TOKEN, USER_AGENT } from '../lib/review/runner.ts'
+import { parsePhPosts, recentLaunches } from '../lib/discovery/new-release.ts'
+import { USER_AGENT } from '../lib/review/runner.ts'
+import { homepageAnchors } from './mention-loop.mjs'
 
 const QUERY = (after) => `{ posts(order: NEWEST, first: 50, postedAfter: "${after}") { edges { node { name tagline website votesCount createdAt topics { edges { node { name } } } } } } }`
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const NONE = { appstore_id: null, play_pkg: null }
 
 export async function main(argv = process.argv.slice(2), { fetchFn = fetch, now = new Date(), log = console.log, gapMs = 3000 } = {}) {
@@ -33,32 +32,10 @@ export async function main(argv = process.argv.slice(2), { fetchFn = fetch, now 
     return { state: 'blocked', candidates: [] }
   }
   const launches = recentLaunches(parsePhPosts(await r.json()), now).filter((l) => l.website).slice(0, max)
-  const out = []
-  let stopped = null
-  for (const l of launches) {
-    try {
-      const home = await fetchFn(l.website, { headers: { 'user-agent': USER_AGENT }, redirect: 'follow', signal: AbortSignal.timeout(15000) })
-      if (home.status === 403 || home.status === 429) {
-        stopped = `홈페이지 ${home.status}`
-        break
-      }
-      if (home.status !== 200) {
-        out.push({ ...l, state: 'unreadable', ...NONE })
-        continue
-      }
-      const u = new URL(home.url)
-      const rb = await fetchFn(`${u.origin}/robots.txt`, { headers: { 'user-agent': USER_AGENT } }).catch(() => null)
-      const verdict = rb && rb.status === 200 ? robotsVerdict(parseRobots(await rb.text()), u.pathname || '/', PRODUCT_TOKEN) : { state: 'unverified' }
-      if (verdict.state !== 'allowed') {
-        out.push({ ...l, state: `robots_${verdict.state}`, ...NONE })
-        continue
-      }
-      out.push({ ...l, state: 'read', ...extractStoreIds(await home.text()) })
-    } catch {
-      out.push({ ...l, state: 'unreadable', ...NONE })
-    }
-    await sleep(gapMs)
-  }
+  // v71ba: 홈페이지 읽기는 mention-loop.mjs homepageAnchors 한 벌 — 예전엔 페이지를 먼저 받고 robots 를 나중에 봤다(금지여도 요청은 이미 나감, §7.1).
+  const h = await homepageAnchors(launches.map((l) => l.website), { fetchFn, max: launches.length, gapMs, log })
+  const out = launches.filter((l) => h.out.has(l.website)).map((l) => ({ ...l, ...NONE, ...h.out.get(l.website) }))
+  const stopped = h.stopped ? `홈페이지 ${h.stopped}` : null
   const withId = out.filter((o) => o.appstore_id || o.play_pkg)
   log(`[새 출시] PH 출시 ${launches.length} · 홈페이지 읽음 ${out.filter((o) => o.state === 'read').length} · 스토어 앵커 ${withId.length}${stopped ? ` · 중단(${stopped})` : ''}`)
   const f = opt('out')

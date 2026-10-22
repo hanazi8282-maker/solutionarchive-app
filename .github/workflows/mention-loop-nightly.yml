@@ -40,6 +40,7 @@ jobs:
         run: |
           node scripts/mention-loop-selftest.mjs
           node scripts/mention-ledger-selftest.mjs
+          node scripts/mention-resolve-selftest.mjs
           node scripts/anchor-selftest.mjs
           node scripts/new-release-candidates-selftest.mjs
 
@@ -58,10 +59,20 @@ jobs:
           D=$(TZ=Asia/Seoul date +%F)
           node scripts/new-release-candidates.mjs --out="reports/$D/new-release-candidates.json" | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # v71ba P0-2: 이름→앱 ID 해소를 ①링크 ②사전 ③홈페이지 메타 ④Search 순으로 잇는다. 그전에는 --lookup 이 빠져 링크 ID 조차 검증 안 됐고
+      #   (후보 전부 lookup_failed), Search(anchor-verify.mjs)는 어떤 워크플로에서도 불리지 않았다. Search 한도 = anchor-verify.mjs 가드
+      #   (6초·실행당 60·하루 300·403/429 즉시 중단). 하루 상한은 reports/<KST>/itunes-search-log.jsonl 로 세는데 러너가 매번 새로 받으므로,
+      #   실제 상한은 실행당 60 × 그날 실행 수다(스케줄 1회 = 60).
       - name: Mention loop (dry-run, write report files only)
         run: |
           D=$(TZ=Asia/Seoul date +%F)
-          DICT=$(ls reports/*/appstore-chart-dictionary.json 2>/dev/null | tail -1); node scripts/mention-loop.mjs --input="$RUNNER_TEMP/mention-input.json" --pool=wide ${DICT:+--dictionary="$DICT"} --write --date="$D" | tee -a "$GITHUB_STEP_SUMMARY"
+          DICT=$(ls reports/*/appstore-chart-dictionary.json 2>/dev/null | tail -1); node scripts/mention-loop.mjs --input="$RUNNER_TEMP/mention-input.json" --pool=wide ${DICT:+--dictionary="$DICT"} --lookup --homepage --search --write --date="$D" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Resolve dry-run (top 30, links first, no Search)
+        continue-on-error: true
+        run: |
+          D=$(TZ=Asia/Seoul date +%F)
+          DICT=$(ls reports/*/appstore-chart-dictionary.json 2>/dev/null | tail -1); node scripts/mention-resolve-dryrun.mjs --input="$RUNNER_TEMP/mention-input.json" ${DICT:+--dictionary="$DICT"} --lookup --homepage --out="reports/$D/mention-resolve-dryrun.json" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload report files
         uses: actions/upload-artifact@v4
@@ -73,5 +84,7 @@ jobs:
             reports/*/anchor-verify-input.json
             reports/*/new-release-candidates.json
             reports/*/gate-rejects.jsonl
+            reports/*/itunes-search-log.jsonl
+            reports/*/mention-resolve-dryrun.json
           if-no-files-found: warn
           retention-days: 14

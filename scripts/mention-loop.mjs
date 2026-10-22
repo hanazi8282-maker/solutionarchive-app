@@ -20,6 +20,10 @@
 //   --searched=<json>   {"<norm_key>": iTunes search results[]} — 이름 검색 결과. 검색 경로는 robots 금지라 사람 판단 뒤에만 채워진다
 //   --lookup            근거 글 속 앱스토어 링크 ID 를 iTunes lookup(루트 /lookup?id=)으로 직접 조회. robots 를 먼저 읽고 '허용'일 때만,
 //                       ID 당 1회·3초 간격·최대 --max-lookups(기본 30), 200 아닌 응답·빈 본문이면 그 즉시 이 경로만 중단
+//   --homepage          (v71ba §1-D′ 3번) 링크·사전으로 ID 가 없는 후보의 홈페이지(근거 글에 적힌 주소만)에서 스마트 배너 메타·스토어 배지로 ID.
+//                       robots 먼저('허용'만)·호스트당 robots+페이지 1회·3초·최대 --max-homepages(기본 20)·403/429 면 이 경로만 중단
+//   --search            (4번, 마지막 수단) 1~3번으로 못 정한 후보만 iTunes /search(robots 금지를 알고 켠 D-44 예외). 가드 = anchor-verify.mjs
+//                       makeGuard(6초·실행당 60·하루 300·403/429/빈 응답/캡차 즉시 중단·호출 로그 reports/<KST>/itunes-search-log.jsonl)
 //   --write [--date=YYYY-MM-DD] [--reports-dir=reports]
 //                       → <dir>/<date>/mention-loop.json(지표·행) · mention-approved.json(candidate-register-draft.mjs --approved 입력)
 //                         · mention-ledger.sql(discovery_candidates 대장 INSERT, 마이그 20261017000020 적용 뒤 사람·세션이 실행) · 대장 파일 갱신
@@ -31,10 +35,12 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import {
-  MIN_POSTS_DEFAULT, REGISTER_MIN_POSTS, aggregate, applyAreaVerdicts, compareCriteria, filterPool, mergeSimilar, parseCriterion, parseSampleLabels, pickSample, reviewGate, snippet, toGeneratorCandidates, anchorVerdictMap, anchorVerifyInput, altSeekEffect, countryOf, gateState, harvestPerApp, judge, metricsLine, planGate, renderLedgerSql, safetyAlerts, thresholdTable, toApproved, verifyCandidate,
+  MIN_POSTS_DEFAULT, REGISTER_MIN_POSTS, aggregate, applyAreaVerdicts, compareCriteria, filterPool, mergeSimilar, parseCriterion, parseSampleLabels, pickSample, reviewGate, snippet, toGeneratorCandidates, anchorVerdictMap, anchorVerifyInput, altSeekEffect, countryOf, gateState, harvestPerApp, homepageCandidates, judge, metricsLine, planGate, renderLedgerSql, safetyAlerts, thresholdTable, toApproved, verifyCandidate,
 } from '../lib/discovery/mention-loop.ts'
+import { extractStoreIds } from '../lib/discovery/new-release.ts'
 import { normKey, loadConfig, loadFileRegistry } from './product-name-candidates.mjs'
-import { parseRobots, robotsVerdict } from '../lib/review/robots.ts'
+import { looksLikeMarkup, parseRobots, robotsVerdict } from '../lib/review/robots.ts'
+import { lookup as searchLookup, makeGuard } from './anchor-verify.mjs'
 import { PRODUCT_TOKEN, USER_AGENT } from '../lib/review/runner.ts'
 import { main as registerDraft } from './candidate-register-draft.mjs'
 import { appendRejects, rejectLine } from './gate-reject-log.mjs'
@@ -74,7 +80,51 @@ export async function liveLookups(ids, { fetchFn = fetch, max = 30, gapMs = 3000
   return { out, requests, blocked: false }
 }
 
-export async function main(argv, { log = console.log, now = new Date(), fetchFn = fetch, fileRegistry = loadFileRegistry(), cfg = loadConfig() } = {}) {
+/**
+ * 3번 경로(v71ba): 홈페이지 메타(<meta name="apple-itunes-app">·스토어 배지 링크) → 앱 ID. 그 호스트의 robots.txt 를 **먼저** 읽고
+ * '허용'일 때만 루트 페이지 1회(못 읽은 robots·HTML robots = 확인 불가 → 안 간다). 다른 호스트로 넘어가면(www 차이 제외) 안 읽는다.
+ * 403/429 를 준 호스트는 그 자리에서 그만 읽는다(그 호스트에 다시 안 감). 호스트마다 다른 사이트라 한 곳의 차단이 다른 곳을 막지 않는다 —
+ * 다만 서로 다른 호스트 3곳이 연달아 막으면 우리 쪽 문제로 보고 이 경로를 그 실행에서 멈춘다. 요청 = robots + 페이지, 최대 max 개, 간격 gapMs.
+ * (v71ba 측정: PH 홈페이지 20곳 중 첫 403 하나로 매일 경로 전체가 멈춰 스토어 앵커 0 이었다.)
+ */
+export async function homepageAnchors(urls, { fetchFn = fetch, max = 20, gapMs = 3000, log = console.log, maxConsecutiveBlocks = 3 } = {}) {
+  const out = new Map()
+  const H = { headers: { 'user-agent': USER_AGENT }, signal: AbortSignal.timeout(15000) }
+  const bare = (h) => h.replace(/^www\./, '')
+  const blockedHosts = new Set()
+  let requests = 0
+  let streak = 0
+  let stopped = null
+  const block = (url, u, what) => {
+    out.set(url, { state: `blocked_${what}` })
+    blockedHosts.add(bare(u.host))
+    if (++streak >= maxConsecutiveBlocks) stopped = `연속 ${streak}곳 차단(마지막 ${u.host} ${what})`
+  }
+  for (const url of urls.slice(0, max)) {
+    let u
+    try { u = new URL(url) } catch { out.set(url, { state: 'unreadable' }); continue }
+    if (blockedHosts.has(bare(u.host))) { out.set(url, { state: 'blocked_host' }); continue }
+    if (requests) await new Promise((r) => setTimeout(r, gapMs))
+    requests++
+    const rb = await fetchFn(`${u.origin}/robots.txt`, H).catch(() => null)
+    if (rb && [403, 429].includes(rb.status)) { block(url, u, `robots_${rb.status}`); if (stopped) break; continue }
+    const text = rb && rb.status === 200 ? await rb.text() : null
+    const verdict = text != null && !looksLikeMarkup(text) ? robotsVerdict(parseRobots(text), u.pathname || '/', PRODUCT_TOKEN) : { state: 'unverified' }
+    if (verdict.state !== 'allowed') { out.set(url, { state: `robots_${verdict.state}` }); continue }
+    requests++
+    const res = await fetchFn(url, { ...H, redirect: 'follow' }).catch(() => null)
+    if (res && [403, 429].includes(res.status)) { block(url, u, String(res.status)); if (stopped) break; continue }
+    streak = 0
+    if (!res || res.status !== 200) { out.set(url, { state: 'unreadable' }); continue }
+    if (res.url && bare(new URL(res.url).host) !== bare(u.host)) { out.set(url, { state: 'other_host' }); continue }
+    const html = await res.text().catch(() => null)
+    out.set(url, html == null ? { state: 'unreadable' } : { state: 'read', ...extractStoreIds(html) })
+  }
+  if (blockedHosts.size) log(`홈페이지 차단 호스트 ${blockedHosts.size}곳: ${[...blockedHosts].join(', ')}${stopped ? ` → 경로 중단: ${stopped}` : ''}`)
+  return { out, requests, stopped, blocked: blockedHosts.size }
+}
+
+export async function main(argv, { log = console.log, now = new Date(), fetchFn = fetch, fileRegistry = loadFileRegistry(), cfg = loadConfig(), searchGuard = null } = {}) {
   const opt = (n) => argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3)
   const readJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'))
   if (!opt('input')) throw new Error('--input=<json> 필요 (설계 문서 §9 읽기 SQL 결과)')
@@ -128,13 +178,35 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
   }
   const judged = rows.map((a) => judge(a, { minPosts, minSources: crit.minSources, prior }))
   const fit = judged.filter((j) => j.stage === 'area_fit')
+  // 후보(area_fit 먼저·점수 순) — 3·4번 경로와 lookup 이 이 순서로 한도를 쓴다
+  const live0 = judged.filter((j) => j.stage === 'area_fit' || j.stage === 'candidate').sort((a, b) => (a.stage === 'area_fit' ? 0 : 1) - (b.stage === 'area_fit' ? 0 : 1) || b.score - a.score)
 
-  // ⑤ 검증
+  // ③ 홈페이지 메타(v71ba §1-D′ 3번) — 1·2번(링크·사전)으로 ID 가 없는 후보만. 근거 글에 적힌 주소만 쓴다
+  const rawById = new Map(input.posts.map((p) => [p.id, p.raw_text]))
+  const homeByKey = new Map()
+  for (const j of live0) if (!j.app_ids.length && !j.play_pkgs?.length) {
+    const urls = homepageCandidates(j, rawById, input.discovery, normKey)
+    if (urls.length) homeByKey.set(j.key, urls)
+  }
+  const homeKeys = new Set()
+  let home = { requests: 0, stopped: null }
+  if (argv.includes('--homepage')) {
+    const h = await homepageAnchors([...new Set([...homeByKey.values()].flat())], { fetchFn, max: Number(opt('max-homepages') ?? 20), log })
+    home = h
+    for (const [k, urls] of homeByKey) for (const u of urls) {
+      const r = h.out.get(u)
+      const j = live0.find((x) => x.key === k)
+      if (r?.appstore_id && !j.app_ids.includes(r.appstore_id)) { j.app_ids.push(r.appstore_id); homeKeys.add(k) }
+      if (r?.play_pkg && !j.play_pkgs?.includes(r.play_pkg)) { (j.play_pkgs ??= []).push(r.play_pkg); homeKeys.add(k) }
+    }
+  }
+
+  // ⑤ 검증 — 1·2·3번에서 얻은 ID 를 iTunes /lookup 으로 확인(D-45 허용)
   const lookups = new Map(Object.entries(opt('lookups') ? readJson(opt('lookups')) : {}))
   const searched = new Map(Object.entries(opt('searched') ? readJson(opt('searched')) : {}))
   let live = { requests: 0, blocked: false }
   if (argv.includes('--lookup')) {
-    const ids = [...new Set(fit.flatMap((j) => j.app_ids))].filter((id) => !lookups.has(id))
+    const ids = [...new Set(live0.flatMap((j) => j.app_ids))].filter((id) => !lookups.has(id))
     live = await liveLookups(ids, { fetchFn, max: Number(opt('max-lookups') ?? 30), log })
     for (const [k, v] of live.out) lookups.set(k, v)
   }
@@ -143,6 +215,22 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
   // 이름 검색 판정(anchor-verify.mjs 정책 A 결과 파일) — 링크·lookup 으로 못 정한 것만 채운다
   const anchorMap = opt('anchor-verdicts') ? anchorVerdictMap(readJson(opt('anchor-verdicts'))) : new Map()
   for (const [k, a] of anchorMap) if (verdicts.get(k)?.state === 'lookup_failed') verdicts.set(k, a.verdict)
+  // ④ 이름 검색(v71ba, --search) — 1~3번으로 못 정한 후보만, 마지막 수단. 한도는 anchor-verify.mjs 가드 한 벌
+  //    (6초 간격·실행당 60·하루 ITUNES_SEARCH_DAILY_MAX 300·403/429/빈 응답/캡차 1건이면 그 실행 즉시 중단·호출마다 로그). 홈페이지를 알면 판매자 도메인 대조.
+  let search = { calls: 0, stopped: null }
+  if (argv.includes('--search')) {
+    const guard = searchGuard ?? makeGuard()
+    for (const j of live0) {
+      if (verdicts.get(j.key)?.state !== 'lookup_failed') continue
+      const dom = homeByKey.get(j.key)?.[0]
+      const v = await searchLookup(j.name, countryOf(j), fetchFn, { guard, strict: true, descriptionDomain: true, expectedDomain: dom ? new URL(dom).host : null })
+      if (v.stop) { search.stopped = v.reason; break }
+      search.calls++
+      anchorMap.set(j.key, { verdict: v, country: countryOf(j) })
+      verdicts.set(j.key, v)
+    }
+    if (search.stopped) log(`이름 검색 멈춤: ${search.stopped} (${search.calls}건 조회 뒤)`)
+  }
   // 등록 표본 채점(마): 사람이 N 이라 한 키는 등록에서 뺀다
   const review = opt('review') ? parseSampleLabels(fs.readFileSync(opt('review'), 'utf8')) : null
   const gateReview = review ? reviewGate(review) : null
@@ -176,8 +264,15 @@ export async function main(argv, { log = console.log, now = new Date(), fetchFn 
   const stateOf = new Map([...verdicts].map(([k, v]) => [k, v.state]))
   log(metricsLine(metrics))
   const liveCand = judged.filter((j) => j.stage === 'candidate' || j.stage === 'area_fit')
-  const pathCounts = { link: linkKeys.size, link_play: rows.filter((a) => a.play_pkgs?.length).length, link_candidates: liveCand.filter((j) => j.app_ids.length || j.play_pkgs?.length).length, dictionary: dictKeys.size, search: [...anchorMap.keys()].length, unresolved: judged.filter((j) => (j.stage === 'candidate' || j.stage === 'area_fit') && !j.app_ids.length && !j.play_pkgs?.length && !anchorMap.has(j.key)).length }
-  log(`경로별 해소(후보 기준 아님·전체 이름): 링크 ${pathCounts.link}(플레이 ${pathCounts.link_play}) · 후보 중 링크로 해소 ${pathCounts.link_candidates}/${liveCand.length} · 사전 ${pathCounts.dictionary} · Search ${pathCounts.search} · 홈페이지/Wikidata 미구현 · 후보 중 못 찾음 ${pathCounts.unresolved}`)
+  const pathCounts = {
+    link: linkKeys.size, link_play: rows.filter((a) => a.play_pkgs?.length).length,
+    link_candidates: liveCand.filter((j) => linkKeys.has(j.key)).length, dictionary: dictKeys.size,
+    homepage_urls: homeByKey.size, homepage: homeKeys.size, homepage_requests: home.requests, homepage_stopped: home.stopped,
+    search: [...anchorMap.keys()].length, search_calls: search.calls, search_stopped: search.stopped,
+    anchored: liveCand.filter((j) => verdicts.get(j.key)?.state === 'anchored').length,
+    unresolved: liveCand.filter((j) => !j.app_ids.length && !j.play_pkgs?.length && !anchorMap.has(j.key)).length,
+  }
+  log(`경로별 해소: 링크 ${pathCounts.link}(플레이 ${pathCounts.link_play}, 전체 이름) · 후보 중 ①링크 ${pathCounts.link_candidates}/${liveCand.length} · ②사전 ${pathCounts.dictionary} · ③홈페이지 ${argv.includes('--homepage') ? `${pathCounts.homepage}(주소 있는 후보 ${pathCounts.homepage_urls}, 요청 ${pathCounts.homepage_requests}${home.stopped ? `, 중단 ${home.stopped}` : ''})` : `안 함(주소 있는 후보 ${pathCounts.homepage_urls})`} · ④Search ${pathCounts.search}${argv.includes('--search') ? `(호출 ${search.calls}${search.stopped ? `, 멈춤 ${search.stopped}` : ''})` : ''} · 검증 anchored ${pathCounts.anchored}/${liveCand.length} · 후보 중 못 찾음 ${pathCounts.unresolved}`)
   log(`입력 글 ${counts.posts} · 이름 나온 글 ${counts.posts_with_mention} · 이미 등록 ${counts.registered} · 자기 이름 ${counts.self} · 지난 기각 ${prior.size} · 기준 ${minPosts}글`)
   log(`풀 ${pool} · 종류별 글(이름 나온 글) ${Object.entries(counts.by_kind).map(([k, v]) => `${k} ${v.posts}(${v.with_mention})`).join(' · ')} · 글 단위 영역으로 올린 글 ${lifted ?? '-'} · 같은 개발사 고리 일치 ${similarMatched ?? '-'} · 기준 ${crit.id} · 시험 기준 전용(등록 안 함) ${trialOnly.length}`)
   const compareIds = (opt('compare') ?? '').split(',').filter(Boolean).map(parseCriterion)

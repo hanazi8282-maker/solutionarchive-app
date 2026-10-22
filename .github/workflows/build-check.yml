@@ -367,6 +367,8 @@ jobs:
       - run: node scripts/mention-loop-selftest.mjs
       # v71ba P0-1: 언급 대장 SQL → 마이그 감싸기(새 출시 가드)·새 출시 18행 소급 초안(앵커 3상태·집계 없으면 안 채움·행 수 검사). DB 접근 0.
       - run: node scripts/mention-ledger-selftest.mjs
+      # v71ba P0-2: 해소 경로 ③홈페이지(robots 먼저·429 중단·다른 호스트 안 읽음)·④Search(못 정한 후보만·403 즉시 중단)·/30 드라이런·워크플로 배선.
+      - run: node scripts/mention-resolve-selftest.mjs
       - run: node scripts/provisional-review-selftest.mjs
       - run: node scripts/new-release-candidates-selftest.mjs
       - run: node scripts/new-release-selftest.mjs

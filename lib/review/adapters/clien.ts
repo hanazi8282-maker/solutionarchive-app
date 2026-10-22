@@ -309,8 +309,67 @@ function parseBoardList(
   }
 }
 
+// ── 가벼운 글 페이지(2026-10-22 실측) ───────────────────────────────
+// 글 페이지가 우리 UA 에 23KB 짜리 서버 렌더로 온다(목록 페이지는 예전 그대로다). `post_article`·`comment_row` 가 없어
+// 옛 파서가 글마다 parseFailures 2 · 리뷰 0 을 냈다 — 목록은 읽히는데 새 글이 0 건인 채로 게시판 타깃이 연속 0건 문턱에 닫혔다.
+//   <article class="post"> <header> <h1>제목</h1> … <time datetime="2026-10-21T17:11:41+09:00"> … <p class="stats">조회 892 · 공감 1 · 댓글 3</p>
+//   <div class="content">본문</div> </article>
+//   <section class="comments"> <h2 id="comments-title">댓글 3</h2> <ol> <li id="comment_152595774"> … <time datetime="…"> … <div class="comment">댓글</div>
+// 픽스처: fixtures/review/clien/post-lite-*.html. 옛 마크업이 오면 옛 파서가 그대로 돈다(둘 다 지원).
+const LITE_ARTICLE = '<article class="post">'
+const LITE_TITLE_RE = /<article class="post">[\s\S]*?<h1>([\s\S]*?)<\/h1>/
+const LITE_TIME_RE = /<time datetime="(\d{4})-(\d{2})-(\d{2})T/
+/** 댓글 수 마커 — 제목 줄(`댓글 3`)이 먼저, 없으면 통계 줄. 둘 다 없으면 댓글 영역이 사라진 것이다(§7.1). */
+const LITE_COUNT_RE = /<h2 id="comments-title">\s*댓글\s*(\d+)\s*<\/h2>|<p class="stats">[^<]*댓글\s*(\d+)/
+const LITE_ROW = /<li id="comment_(\d+)">/g
+const LITE_VIEW = '<div class="comment">'
+
+function parsePostLite(body: string, p: string | null): ParseResult {
+  const reviews: ParsedReview[] = []
+  let parseFailures = 0
+  const articleAt = body.indexOf(LITE_ARTICLE)
+  const articleEnd = body.indexOf('</article>', articleAt)
+  const article = articleEnd < 0 ? '' : body.slice(articleAt, articleEnd)
+  const tm = LITE_TITLE_RE.exec(body)
+  const title = tm ? stripHtml(tm[1]) : ''
+  const contentAt = article.indexOf('<div class="content">')
+  const content = contentAt < 0 ? null : sliceDiv(article, contentAt)
+  const text = content === null ? '' : stripHtml(content)
+  if (content === null || (!title && !text)) parseFailures++
+  else {
+    const d = LITE_TIME_RE.exec(article)
+    reviews.push({ externalId: p, text: [title, text].filter(Boolean).join('\n\n'), rating: null, seller: null, authorMasked: null, writtenAt: d ? `${d[1]}-${d[2]}-${d[3]}` : null, storyId: null })
+  }
+
+  const cm = LITE_COUNT_RE.exec(body)
+  const declared = cm ? Number(cm[1] ?? cm[2]) : null
+  const secAt = body.indexOf('<section class="comments"')
+  const secEnd = secAt < 0 ? -1 : body.indexOf('</section>', secAt)
+  const sec = secAt < 0 ? '' : body.slice(secAt, secEnd < 0 ? undefined : secEnd)
+  const anchors: Array<{ id: string; at: number }> = []
+  LITE_ROW.lastIndex = 0
+  for (let m = LITE_ROW.exec(sec); m; m = LITE_ROW.exec(sec)) anchors.push({ id: m[1], at: m.index })
+  if (declared === null && anchors.length === 0) parseFailures++
+  for (let i = 0; i < anchors.length; i++) {
+    const chunk = sec.slice(anchors[i].at, i + 1 < anchors.length ? anchors[i + 1].at : sec.length)
+    const vi = chunk.indexOf(LITE_VIEW)
+    const inner = vi < 0 ? null : sliceDiv(chunk, vi)
+    if (inner === null) {
+      parseFailures++
+      continue
+    }
+    const ct = stripHtml(inner)
+    if (!ct) continue
+    const t = LITE_TIME_RE.exec(chunk)
+    reviews.push({ externalId: `${p}#${anchors[i].id}`, text: ct, rating: null, seller: null, authorMasked: null, writtenAt: t ? `${t[1]}-${t[2]}-${t[3]}` : null, storyId: p })
+  }
+  if (declared !== null && anchors.length < declared) parseFailures += declared - anchors.length
+  return { reviews, nextCursor: null, parseFailures }
+}
+
 /** 글 1건(본문 + 댓글) 파싱. `url:` 모드와 `board:` 모드가 공유한다. */
 function parsePost(body: string, p: string | null): ParseResult {
+  if (!body.includes('class="post_article"') && body.includes(LITE_ARTICLE)) return parsePostLite(body, p)
   {
     const reviews: ParsedReview[] = []
     let parseFailures = 0

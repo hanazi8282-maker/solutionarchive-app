@@ -1,0 +1,60 @@
+{
+  "windows": [
+    {
+      "key": "appstore|nz:1514139596|mostRecent",
+      "anchor_ref": "kr:1514139596",
+      "anchor_label": "07-ecommerce-ops:shopmoa",
+      "project_id": "76a995e2-d81f-43f8-930c-7560cb2ca9f5",
+      "source_key": "appstore",
+      "product_ref": "nz:1514139596",
+      "sort": "mostRecent",
+      "app": "1514139596",
+      "label": "07-ecommerce-ops:nz|shopmoa",
+      "draftable": true,
+      "requests": 1,
+      "parsed": 0,
+      "parse_failures": 0,
+      "seen_count": 0,
+      "new_count": 0,
+      "new_per_request": null,
+      "langs": {},
+      "verdict": "not_in_store",
+      "reason": "응답 표지 확인 · 리뷰 0건(스토어에 없음 또는 그 국가 리뷰 없음)",
+      "probed_at": "2026-10-23T00:45:36.450Z"
+    },
+    {
+      "key": "appstore|za:1514139596|mostRecent",
+      "anchor_ref": "kr:1514139596",
+      "anchor_label": "07-ecommerce-ops:shopmoa",
+      "project_id": "76a995e2-d81f-43f8-930c-7560cb2ca9f5",
+      "source_key": "appstore",
+      "product_ref": "za:1514139596",
+      "sort": "mostRecent",
+      "app": "1514139596",
+      "label": "07-ecommerce-ops:za|shopmoa",
+      "draftable": true,
+      "requests": 1,
+      "parsed": 0,
+      "parse_failures": 0,
+      "seen_count": 0,
+      "new_count": 0,
+      "new_per_request": null,
+      "langs": {},
+      "verdict": "not_in_store",
+      "reason": "응답 표지 확인 · 리뷰 0건(스토어에 없음 또는 그 국가 리뷰 없음)",
+      "probed_at": "2026-10-23T00:45:36.635Z"
+    }
+  ],
+  "runs": [
+    {
+      "at": "2026-10-23T00:45:36.309Z",
+      "stage": "appstore",
+      "max_requests": 160,
+      "seen": 58623,
+      "by": "window-discovery",
+      "requests": 2,
+      "aborted": null,
+      "probed": 2
+    }
+  ]
+}

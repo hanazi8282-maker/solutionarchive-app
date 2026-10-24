@@ -1,0 +1,132 @@
+{
+  "slug": "gummysearch-reddit-api-license-solo-saas-wind-down",
+  "brand_name": "GummySearch",
+  "market": "SaaS · Reddit 대화 검색·고객조사 도구(1인 창업)",
+  "geo": "US",
+  "business_model": "SAAS",
+  "buyer_type": "B2B",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "SUPPLY",
+  "reader_problem": "MAKE_BUT_NO_MONEY",
+  "outcome_status": "shutdown",
+  "period_start": "2021-05-01",
+  "period_end": "2025-11-30",
+  "summary": "GummySearch 는 Reddit 대화를 검색해 창업 아이디어와 고객 목소리를 찾아 주는 도구다. 뉴욕의 1인 창업가 Fed 가 2021년에 시작했다. 창업자 글에 따르면 등록 사용자는 13만 5천 명 이상이었다. 2025년 11월 6일 창업자는 Reddit 데이터 API 의 상업용 라이선스 계약에 이르지 못했다며 폐업을 알렸다. 2025년 11월 30일에 신규 결제를 닫았고 2026년 12월 1일에 완전 종료하며 데이터를 지운다. 창업자 글은 폐업 사유를 라이선스 합의 실패로만 적었고 매출 부족은 말하지 않았다. 제품의 재료가 전부 남의 플랫폼 데이터였고, 그 플랫폼이 허락하는 값과 이 도구의 가격대(월 $29~199대로 알려짐, 2차 출처)가 맞지 않았다는 점이 이 사례의 핵심이다. 다만 Reddit 이 실제로 어떤 조건을 제시했는지는 어디에도 공개되지 않아 확인 불가다. 매출·유료 고객 수는 출처마다 숫자가 달라(월 $35K·유료 1만 명 등 2차 주장) 이 초안은 쓰지 않았다. 창업자 1인칭 출처는 2025년 종료 글과 2022년 8월 Starter Story 인터뷰 두 건이며, 두 페이지 모두 도구가 만든 요약으로 읽어 원문과 직접 대조하지는 못했다.",
+  "tags": ["saas", "solo-founder", "platform-dependency", "api-license", "reddit", "wind-down", "lifetime-deal", "shutdown"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "PARTNERSHIP",
+      "claim": "제품의 재료를 전부 Reddit 데이터에 기댔고, 몰래 쓰는 길 대신 상업용 API 라이선스 계약을 시도했지만 Reddit 데이터 API 정책에 맞는 합의에 이르지 못했다. 창업자는 '매일 내일 잘릴까 어깨너머를 보며 사업을 하기 어렵다'며 무허가 운영을 접고 신규 판매를 닫았다. 창업자 글에는 폐업 사유가 라이선스 합의 실패로만 적혀 있고 매출 부족 언급은 없다. 배경으로, Reddit 은 2023년 4월 18일 API 유료화를 발표해 같은 해 6월 30일 시행했고 비영리·접근성 앱과 중재 도구만 예외였다. Reddit 이 실제로 제시한 조건과 값은 공개된 곳이 없어 확인 불가다",
+      "transfer_note": "내 제품이 기대는 남의 서비스(API나 데이터) 1개를 골라라. 오늘 그 서비스의 약관과 개발자 정책에서 '돈 받는 제품에 써도 되는지'와 '상업용 요금'을 찾아 한 줄로 적어라. 못 찾으면 그 서비스에 '돈 받는 제품에 써도 되나요, 값은 얼마인가요'라고 메일 한 통을 보내라.",
+      "preconditions": "내 제품(또는 만들려는 제품)이 남의 서비스 데이터에 기대고 있어야 한다. 그 서비스의 약관을 읽을 수 있고 문의할 메일이나 양식이 있어야 한다. 값이 맞지 않을 때 갈아탈 다른 데이터가 있는지는 이 사례에서 확인하지 못했다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": [
+        "bb1c5f30-75b8-4848-a8da-38ed6f466349",
+        "fb4f9cdb-50dd-419e-84c9-65864d5bbcab"
+      ]
+    },
+    {
+      "lever": "PRICING",
+      "claim": "해지한 고객 한 명이 '제품은 좋은데 매달 쓰지는 않는다'고 말한 것이 계기가 되어 평생 이용권(LTD)을 열었다. 창업자는 2022년 8월 인터뷰에서 두 달에 $50,000 어치가 팔렸고 수백 명의 새 고객과 새 용도(아이디어 검증, 시장조사 등)가 생겼다고 말했다(자기보고). 한 번 받은 돈 뒤에도 서비스를 돌리는 비용은 계속 드는데, 이 사례에서 평생 이용권이 훗날 폐업에 얼마나 영향을 줬는지는 확인 불가다. 창업자 글은 무료 플랜이 '비싸고 지속하기 어렵다'고만 적었다",
+      "transfer_note": "최근 해지했거나 안 쓰는 고객 3명에게 오늘 '왜 그만뒀나요?' 한 줄 메일을 보내라. '매달 쓰지 않아서'라는 답이 오면 1년치나 한 번 결제 상품을 따로 만들 근거다. 한 번 받은 돈 뒤에도 내가 내야 하는 외부 비용이 매달 얼마인지 먼저 계산해라.",
+      "preconditions": "해지 고객 3명의 연락처가 있어야 한다. 제품을 한 명 더 돌릴 때 드는 비용을 계산할 수 있어야 한다. 이미 고객이 없으면 첫 고객 전에는 쓸 수 없다.",
+      "outcome_direction": "mixed",
+      "metric_name": "평생 이용권(LTD) 판매액(약 2개월)",
+      "metric_before": null,
+      "metric_after": 50000,
+      "metric_unit": "USD",
+      "observed_period_start": "2021-05-01",
+      "observed_period_end": "2022-08-10",
+      "voc_inputs": []
+    },
+    {
+      "lever": "PACKAGING",
+      "claim": "무료 플랜으로 등록 사용자 13만 5천 명 이상을 모았다(창업자 글). 신규 결제가 멈추자 무료 계정은 보기·내려받기·삭제만 남기고 접었다. 창업자는 무료 쪽을 유지하는 것이 비싸고 지속하기 어렵다고 적었다. 무료 사용자 1명당 실제 비용은 글에 없어 확인 불가다",
+      "transfer_note": "무료로 쓰는 사람 수에 한 사람이 한 달에 쓰는 외부 비용(데이터 호출 요금 등)을 곱해 한 줄로 적어라. 그 값을 이번 달 유료 매출 옆에 나란히 놓고 어느 쪽이 큰지 봐라.",
+      "preconditions": "무료 사용자 수와 한 달 외부 비용 청구서를 볼 수 있어야 한다. 무료 플랜이 아직 없다면 만들기 전에 같은 곱셈을 먼저 한다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://gummysearch.com/final-chapter/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2025-11-06",
+      "snippet": "창업자 종료 글: Reddit 데이터 API 정책에 맞는 합의에 이르지 못함. 무허가로 운영하며 매일 어깨너머를 보기 어렵다. 신규 판매 11/30 종료.",
+      "supports_claim": "상업용 라이선스 합의 실패와 무허가 운영 거부, 폐업 사유가 라이선스 합의 실패로만 적힌 것(창업자 1인칭, 페이지를 도구 요약으로 읽음)",
+      "supports_metric": false,
+      "observation_key": "gummysearch-final-chapter-2025-11-06-license-failed"
+    },
+    {
+      "move": 0,
+      "url": "https://gummysearch.com/docs/gummysearch-is-now-closed-6533h",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2025-11-06",
+      "snippet": "제품 공지: Reddit Data API 상업용 라이선스 합의 불가로 종료. 2025-12-01~2026-11-30 유료만, 2026-12-01 완전 종료·데이터 삭제.",
+      "supports_claim": "종료 일정(신규 판매 2025-11-30, 완전 종료 2026-12-01)과 사유가 같은 공지로 확인됨(같은 관측이라 독립 근거 아님)",
+      "supports_metric": false,
+      "observation_key": "gummysearch-final-chapter-2025-11-06-license-failed"
+    },
+    {
+      "move": 0,
+      "url": "https://en.wikipedia.org/wiki/Reddit_API_controversy",
+      "source_tier": "tertiary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": null,
+      "snippet": "Reddit 은 2023년 4월 18일 API 유료화를 발표, 6월 30일 시행. 비영리·접근성 앱과 중재 도구는 예외, 상업 서비스는 협상 대상.",
+      "supports_claim": "Reddit 의 2023년 유료 API 전환과 예외 범위(배경 사실, GummySearch 와의 협상 내용은 아님)",
+      "supports_metric": false,
+      "observation_key": "reddit-api-controversy-2023-paid-api-announcement"
+    },
+    {
+      "move": 1,
+      "url": "https://www.starterstory.com/stories/gummysearch",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2022-08-10",
+      "snippet": "창업자 인터뷰(2022-08-10): 해지 고객의 '매달 안 쓴다'는 말에서 LTD 시작. LTD 판매 2개월에 $50,000, 첫해 매출 $60,000, 1인 창업.",
+      "supports_claim": "LTD 도입 계기와 2개월 $50,000 판매(창업자 자기보고, 인터뷰 당시 시점이며 이후 수치는 확인 불가)",
+      "supports_metric": true,
+      "observation_key": "gummysearch-starterstory-2022-08-10-ltd-50k"
+    },
+    {
+      "move": 2,
+      "url": "https://gummysearch.com/final-chapter/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2025-11-06",
+      "snippet": "창업자 글: 등록 사용자 13만 5천 명 이상. 무료 계정은 비싸고 지속하기 어려워 신규 결제 종료 후 보기·내려받기·삭제만 허용.",
+      "supports_claim": "무료 사용자 규모와 무료 플랜 유지가 지속 불가라는 창업자 서술(원인 비용 숫자는 글에 없음, 출처마다 14만 명 표기도 있어 13만 5천 명은 이 한 페이지 기준)",
+      "supports_metric": false,
+      "observation_key": "gummysearch-final-chapter-2025-11-06-free-tier-unsustainable"
+    }
+  ]
+}

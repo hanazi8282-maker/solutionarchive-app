@@ -8,6 +8,40 @@
 
 const MAX_LINES = 5
 
+/** v71be 1-1 고정 칸 상수 — 수집 신규 목표(v71au 10-19, 기준선 1,306×3)와 쓸 수 있는 정보 하한(v71be 10-25). */
+export const GOAL_COLLECT = 3917
+export const FLOOR_USABLE = 300
+
+const addDays = (ymd, n) => new Date(Date.parse(`${ymd}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10)
+const fmt = (n) => Number(n).toLocaleString('en-US')
+
+/**
+ * 매일 고정 칸 한 줄. rows = v_goal_daily [{dt,new_in,new_in_area,usable}] (null = 못 읽음 → 확인 불가, §7.1), today = KST 'YYYY-MM-DD'.
+ * "어제" 는 하루가 끝난 마지막 날이다. 수확률 = 구간 쓸 수 있는 정보 합 ÷ 수집 신규 합.
+ * 7일 값은 백필·밀린 2차 판정 해소분이 섞여 부풀 수 있어 3일 값을 같이 쓴다.
+ */
+export function goalLine(rows, today) {
+  if (!Array.isArray(rows)) return '[목표] 확인 불가(v_goal_daily 조회 실패)'
+  const by = new Map(rows.map((r) => [String(r.dt), r]))
+  const at = (d) => by.get(d) ?? { new_in: 0, new_in_area: 0, usable: 0 }
+  const days = (n) => Array.from({ length: n }, (_, i) => addDays(today, -(i + 1))) // 어제부터 거슬러
+  const sum = (ds, k) => ds.reduce((a, d) => a + Number(at(d)[k] ?? 0), 0)
+  const y = (ds) => { const n = sum(ds, 'new_in'); return n > 0 ? sum(ds, 'usable') / n : null }
+  const yest = addDays(today, -1)
+  const y7 = y(days(7)), y3 = y(days(3))
+  const need = (r) => (r && r > 0 ? fmt(Math.ceil(FLOOR_USABLE / r)) : '계산 불가')
+  const low3 = days(3).every((d) => Number(at(d).usable) < FLOOR_USABLE)
+  const pct = (a, b) => `${Math.round((a / b) * 100)}%`
+  return [
+    `[목표 ${today}]`,
+    `어제(${yest.slice(5)}) 수집 신규 ${fmt(at(yest).new_in)}(영역 안 ${fmt(at(yest).new_in_area)}) · 목표 ${fmt(GOAL_COLLECT)} 대비 ${pct(at(yest).new_in, GOAL_COLLECT)}`,
+    `쓸 수 있는 정보 ${fmt(at(yest).usable)} · 하한 ${FLOOR_USABLE} 대비 ${pct(at(yest).usable, FLOOR_USABLE)}`,
+    `최근 7일 수확률 ${y7 === null ? '계산 불가' : (y7 * 100).toFixed(1) + '%'}(최근 3일 ${y3 === null ? '계산 불가' : (y3 * 100).toFixed(1) + '%'})`,
+    `하한 ${FLOOR_USABLE} 에 필요한 수집량 ${need(y7)}건(3일 기준 ${need(y3)}건)`,
+    low3 ? '⚠ 쓸 수 있는 정보가 3일 연속 하한 미만 — 수집 확대안 필요' : null,
+  ].filter(Boolean).join(' · ')
+}
+
 /** 5줄 상한. 넘치면 마지막 줄을 "외 N건" 으로 바꾼다 — 잘린 걸 숨기지 않는다. */
 export function capLines(lines, more) {
   const xs = lines.filter(Boolean)
@@ -35,13 +69,14 @@ export function offSourcesBlock(rows, date) {
   })].join('\n')
 }
 
-export function buildReviewCollectEntry({ date, sources = [], failures = [], topProject = null, extractLine = null, runUrl = null, supply = undefined, offSources = undefined }) {
+export function buildReviewCollectEntry({ date, sources = [], failures = [], topProject = null, extractLine = null, goal = null, runUrl = null, supply = undefined, offSources = undefined }) {
   const sum = (k) => sources.reduce((a, s) => a + Number(s.stats?.[k] ?? 0), 0)
   const more = runUrl ? `Actions 실행 요약 ${runUrl}` : 'Actions 실행 요약'
 
   // v69 D7: 수집 연료계 한 줄을 맨 앞에. supply === null 은 "게이지를 못 읽었다" — 정상으로 접지 않고 그대로 적는다(§7.1). undefined 는 호출부가 게이지를 안 쓰는 경우(기존 동작).
   const fuel = supply === undefined ? null : supply === null ? '수집 연료계: 확인 불가(게이지 파일 없음 — target-revive 스텝 확인)' : supply.fuel_line
   const done = capLines([
+    goal,
     fuel,
     `리뷰 수집 ${sources.length}개 소스 — 신규 ${sum('newReviews')}건 · 파싱 ${sum('reviewsParsed')}건(실패 ${sum('parseFailures')})`,
     ...sources.map((s) => s.fatal ? `${s.key}: 실패`

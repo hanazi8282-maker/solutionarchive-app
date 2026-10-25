@@ -57,7 +57,7 @@ import { kakaoBlogAdapter, kakaoCafeAdapter } from '../lib/review/adapters/kakao
 import { wordpressAdapter } from '../lib/review/adapters/wordpress.ts'
 import { shopifyAdapter } from '../lib/review/adapters/shopify.ts'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
-import { buildReviewCollectEntry } from './review-collect-status.mjs'
+import { buildReviewCollectEntry, goalLine } from './review-collect-status.mjs'
 import { brokenSources, LOOKBACK_DAYS, runSourceHealthReport } from './review-source-health-report.mjs'
 import { PENDING_DIR } from './notion-status-log-flush.mjs'
 import { loadOffSources } from './block-stop.mjs'
@@ -561,7 +561,16 @@ if (!dryRun) {
   }
 }
 
-// extract 결론 줄 — "판단 필요"가 아니라 "실행함/실행 0회" 로 쓴다. 못 읽으면 확인 불가(§7.1).
+// v71be 1-1 매일 고정 칸 — v_goal_daily(마이그 20261026000020). 못 읽으면 '확인 불가' 줄(§7.1).
+let goal = null
+if (!dryRun) {
+  const since = new Date(Date.now() - 12 * 86_400_000).toISOString().slice(0, 10)
+  const { data, error } = await supabase.from('v_goal_daily').select('dt,new_in,new_in_area,usable').gte('dt', since)
+  goal = goalLine(error ? null : data, kstDate())
+  say(`- ${goal}`)
+}
+
+// extract 결론 줄 —"판단 필요"가 아니라 "실행함/실행 0회" 로 쓴다. 못 읽으면 확인 불가(§7.1).
 let extractLine = null
 if (!dryRun) {
   const since = new Date(Date.now() - 24 * 3600_000).toISOString()
@@ -612,7 +621,7 @@ if (extraSlot) {
     // 남헌 10-15: 매일 "[꺼진 소스]" 칸(차단 시 즉시 정지). 못 읽으면 null → "확인 불가"로 적힌다.
     const offSources = await loadOffSources(supabase)
     r = await recordStatusLog(buildReviewCollectEntry({
-      date: kstDate(), sources: sourceResults, failures, topProject, extractLine, runUrl, supply, offSources,
+      date: kstDate(), sources: sourceResults, failures, topProject, extractLine, goal, runUrl, supply, offSources,
     }))
   } catch (e) {
     r = { ok: false, stage: 'build', error: e instanceof Error ? e.message : String(e) }

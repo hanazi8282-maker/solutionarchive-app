@@ -7,9 +7,10 @@
     { "code": "2", "name": "② 영업", "kind": "area", "active": true },
     { "code": "3", "name": "③ 마케팅(직접 도구만)", "kind": "area", "active": true },
     { "code": "4", "name": "④ 인사 운영(근태·급여·평가 포함, 채용 제외)", "kind": "area", "active": true },
-    { "code": "5", "name": "⑤ 시험(리뷰 관리·글쓰기)", "kind": "area", "active": true },
-    { "code": "design", "name": "디자인(임시)", "kind": "area", "active": true },
-    { "code": "hold", "name": "보류(⑥⑦)", "kind": "hold", "active": false },
+    { "code": "5", "name": "⑤ 글쓰기·문서·노트", "kind": "area", "active": true },
+    { "code": "work", "name": "⑧ 업무관리(일정·할 일·시간)", "kind": "area", "active": true },
+    { "code": "design", "name": "⑨ 디자인", "kind": "area", "active": true },
+    { "code": "hold", "name": "⑥⑦ 보류(고객상담·이커머스 운영)", "kind": "hold", "active": false },
     { "code": "out-consumer", "name": "영역 외-소비재", "kind": "out", "active": false },
     { "code": "out-founder", "name": "영역 외-창업가 불만", "kind": "out", "active": false }
   ],

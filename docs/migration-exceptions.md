@@ -588,3 +588,4 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 데이터 UPDATE(마이그 아님): 러너 재프로브(run 39032104632)에서 entry>0 으로 확인된 앱스토어 거짓 0건 9곳을 exhausted→active · 후: 앱스토어 활성 45/160=28.1% · 롤백 `reports/2026-10-17/appstore-false-zero-revive-9-rollback.sql`
 - `20261026000020_v_goal_daily` · 새 읽기 뷰(security_invoker, anon/authenticated 회수) — 일별 수집 신규·영역 안 신규·쓸 수 있는 정보(①~⑤) · 승인: v71be 1-1 자율(add-only) · 적용 후 조회로 10-19~26 행 확인 · 롤백 파일 있음(DROP VIEW)
 - `20261026000010_area_fill_hn_products_v71be` · analysis_projects HN 제품 26개 area_code NULL→값(area_basis=manual, rule v71be-1) · 승인: v71be 1-1 자율(NULL 칸 채우기, CEO-STAFF 세션) · 후: 영역 안 26 부여, area NULL 51→25, 쓸 수 있는 정보 누적 22,538→23,228(+690) · 롤백 파일 있음(area_rule_ver=v71be-1 행만 NULL) · 남긴 NULL 25: 애매한 제품·노트류(영역 확장 기획 대상)
+- `20261026000030_area_work_vocab` · analysis_projects_area_code_check 어휘에 work(⑧ 업무관리) 추가(DROP+ADD 한 쌍, 상위집합) · v71bg · 적용: **미적용** — CC 도구 훅이 DROP 을 막아 남헌 SQL Editor 실행 대기(정확한 한 줄은 PR 본문) · 롤백 파일 있음

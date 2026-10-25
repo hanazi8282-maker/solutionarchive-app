@@ -321,7 +321,8 @@ const LITE_TITLE_RE = /<article class="post">[\s\S]*?<h1>([\s\S]*?)<\/h1>/
 const LITE_TIME_RE = /<time datetime="(\d{4})-(\d{2})-(\d{2})T/
 /** 댓글 수 마커 — 제목 줄(`댓글 3`)이 먼저, 없으면 통계 줄. 둘 다 없으면 댓글 영역이 사라진 것이다(§7.1). */
 const LITE_COUNT_RE = /<h2 id="comments-title">\s*댓글\s*(\d+)\s*<\/h2>|<p class="stats">[^<]*댓글\s*(\d+)/
-const LITE_ROW = /<li id="comment_(\d+)">/g
+// 대댓글은 `<li id="comment_N" class="reply">` — id 뒤에 속성이 붙어도 잡는다. 이전 정규식은 대댓글(~30%)을 파싱 실패로 세어 health 를 broken 으로 만들었다(2026-10-26).
+const LITE_ROW = /<li id="comment_(\d+)"[^>]*>/g
 const LITE_VIEW = '<div class="comment">'
 
 function parsePostLite(body: string, p: string | null): ParseResult {

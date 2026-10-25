@@ -369,8 +369,25 @@ export async function runExtraction(
   let parsed: Record<string, unknown>
   try {
     parsed = parseJsonObject(rawText)
-  } catch (e) {
-    return fail(`분석 결과를 해석하지 못했습니다: ${e instanceof Error ? e.message : String(e)}`)
+  } catch (e1) {
+    // 2026-10-25 nightly-extract 부분 실패(5건 중 2건)의 원인: 모델이 JSON 뒤에 잡텍스트를 붙이거나 객체를 안 냈는데 재시도가 없었다.
+    // llm.ts 의 JSON 호출과 같이 한 번만 다시 부른다(비용 1회 추가). 한도 오류는 그대로 바깥으로 올린다.
+    try {
+      const retry = await callLlmWithModel(
+        provider,
+        SYSTEM_PROMPT,
+        `${userPrompt}\n\n(직전 응답이 JSON 형식이 아니었다. 어떤 설명도 붙이지 말고 지정된 JSON 객체 하나만 출력해라.)`,
+        'extract',
+      )
+      rawText = retry.text
+      model = retry.model
+      costUsd = (costUsd ?? 0) + (retry.costUsd ?? 0)
+      console.log(`[analyze/extract] project=${projectId} JSON 해석 실패 → 1회 재호출: ${e1 instanceof Error ? e1.message : String(e1)}`)
+      parsed = parseJsonObject(rawText)
+    } catch (e2) {
+      if (isQuotaFailure(e2) || e2 instanceof CliHardCapError) return fail(describeFailure(e2), isQuotaFailure(e2), e2 instanceof CliHardCapError)
+      return fail(`분석 결과를 해석하지 못했습니다(재호출 1회 뒤에도): ${e2 instanceof Error ? e2.message : String(e2)}`)
+    }
   }
 
   const rawStage = Number(parsed.maturity_stage)

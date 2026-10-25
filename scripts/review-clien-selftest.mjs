@@ -192,6 +192,8 @@ t('URL: 커서가 있으면 더 요청하지 않는다', clienAdapter.nextReques
   t('lite: 댓글 작성일', r.reviews[3].writtenAt, '2026-10-21')
   ok('lite: 댓글 <br> 은 줄바꿈', r.reviews[3].text.includes('핸드폰 색상\n'))
   ok('lite: 작성자를 저장하지 않는다', r.reviews.every((x) => x.authorMasked === null && !x.text.includes('작성자')))
+  const rp = clienAdapter.parse(fx('post-lite-with-comments.html').replace('<li id="comment_152596588">', '<li id="comment_152596588" class="reply">'), lctx)
+  t('lite: 대댓글(class=reply)도 댓글로 센다 — 4건 · 실패 0', [rp.reviews.length, rp.parseFailures].join('/'), '4/0')
   const z = clienAdapter.parse(fx('post-lite-no-comments.html'), lctx)
   t('lite: 댓글 0 마커 + 항목 0 = 정상(본문 1 · 실패 0)', [z.reviews.length, z.parseFailures].join('/'), '1/0')
   const m = clienAdapter.parse(fx('post-lite-missing-comments.html'), lctx)

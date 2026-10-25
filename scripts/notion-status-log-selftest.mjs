@@ -13,7 +13,7 @@ assert.equal(kstDate(new Date('2026-09-13T22:30:00Z')), '2026-09-14')
 assert.equal(kstDate(new Date('2026-09-13T14:59:59Z')), '2026-09-13')
 assert.equal(kstDate(new Date('2026-09-13T15:00:00Z')), '2026-09-14')
 assert.equal(kstDate(new Date('2026-12-31T15:00:00Z')), '2027-01-01')
-import { buildReviewCollectEntry } from './review-collect-status.mjs'
+import { buildReviewCollectEntry, goalLine } from './review-collect-status.mjs'
 
 // 1) 8개 속성 · 이름 · 타입
 const long = '가'.repeat(5000)
@@ -233,3 +233,23 @@ try {
 }
 
 console.log('✅ notion-status-log-selftest: 통과')
+
+// v71be 1-1 고정 칸(goalLine): 목표·하한 대비 · 수확률 · 필요 수집량 · 3일 연속 미달 경고 · 못 읽음=확인 불가
+{
+  const rows = [
+    { dt: '2026-10-22', new_in: 2000, new_in_area: 1000, usable: 150 },
+    { dt: '2026-10-23', new_in: 3400, new_in_area: 1400, usable: 240 },
+    { dt: '2026-10-24', new_in: 3500, new_in_area: 2800, usable: 260 },
+    { dt: '2026-10-25', new_in: 4000, new_in_area: 3000, usable: 100 },
+  ]
+  const g = goalLine(rows, '2026-10-26')
+  assert.match(g, /어제\(10-25\) 수집 신규 4,000\(영역 안 3,000\) · 목표 3,917 대비 102%/)
+  assert.match(g, /쓸 수 있는 정보 100 · 하한 300 대비 33%/)
+  assert.match(g, /최근 3일 5\.\d%/) // (240+260+100)/(3400+3500+4000)
+  assert.match(g, /필요한 수집량 [\d,]+건\(3일 기준 5,\d{3}건\)/)
+  assert.ok(g.includes('3일 연속 하한 미만'), '3일 연속 300 미만이면 확대안 경고')
+  assert.ok(!goalLine([...rows.slice(0, 3), { dt: '2026-10-25', new_in: 4000, new_in_area: 3000, usable: 400 }], '2026-10-26').includes('3일 연속'), '하루라도 300 이상이면 경고 없음')
+  assert.match(goalLine(null, '2026-10-26'), /확인 불가/)
+  const e = buildReviewCollectEntry({ date: '2026-10-26', goal: g })
+  assert.ok(e.done.split('\n')[0].startsWith('[목표 2026-10-26]'), '고정 칸은 done 맨 앞 줄')
+}

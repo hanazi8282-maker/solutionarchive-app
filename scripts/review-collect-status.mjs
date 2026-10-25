@@ -35,7 +35,7 @@ export function offSourcesBlock(rows, date) {
   })].join('\n')
 }
 
-export function buildReviewCollectEntry({ date, sources = [], failures = [], topProject = null, runUrl = null, supply = undefined, offSources = undefined }) {
+export function buildReviewCollectEntry({ date, sources = [], failures = [], topProject = null, extractLine = null, runUrl = null, supply = undefined, offSources = undefined }) {
   const sum = (k) => sources.reduce((a, s) => a + Number(s.stats?.[k] ?? 0), 0)
   const more = runUrl ? `Actions 실행 요약 ${runUrl}` : 'Actions 실행 요약'
 
@@ -58,7 +58,8 @@ export function buildReviewCollectEntry({ date, sources = [], failures = [], top
 
   const next = [
     failures.length ? `실패 소스 ${failures.join(', ')} 원인 확인 — 2일 연속이면 CTO 에스컬레이션` : null,
-    topProject ? `extract 실행 여부 판단 — 누적 리뷰 최다 프로젝트 ${topProject.id} ${topProject.n}건` : null,
+    // extract 는 nightly-extract 가 자동으로 돈다(신규 ≥EXTRACT_AUTO_MIN_NEW 프로젝트). 사람 판단 줄이 아니라 결론 줄이다 — 근거는 extractLine(agent_runs).
+    topProject ? `${extractLine ?? 'extract: 자동 실행 중(nightly-extract) — 실행 이력 확인 불가'} · 누적 리뷰 최다 프로젝트 ${topProject.id} ${topProject.n}건` : null,
   ].filter(Boolean)
 
   // v69 D7 + 남헌 10-14: [자율 공급] 비고 — 재고 이상·증분형 시계 관찰 + 건너뛴 소스 수(soft-skip·꺼짐)를 매일 적는다(0이어도 적는다 — 빠진 날과 0건인 날이 구분돼야 한다, §7.1).

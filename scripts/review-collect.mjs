@@ -556,9 +556,28 @@ if (!dryRun) {
         say(`- \`${pid}\` — ${n}건`)
       }
       say('')
-      say('⛔ extract 는 자동으로 돌지 않는다. 충분하다고 판단되면 사람이 실행한다.')
+      say('extract 는 nightly-extract 가 자동으로 돈다(신규 기준 이상 프로젝트). 아래 줄이 최근 24시간 결론이다.')
     }
   }
+}
+
+// extract 결론 줄 — "판단 필요"가 아니라 "실행함/실행 0회" 로 쓴다. 못 읽으면 확인 불가(§7.1).
+let extractLine = null
+if (!dryRun) {
+  const since = new Date(Date.now() - 24 * 3600_000).toISOString()
+  const { data, error } = await supabase
+    .from('agent_runs')
+    .select('status, summary')
+    .like('run_key', 'extract-auto-%')
+    .gte('started_at', since)
+    .order('started_at', { ascending: false })
+  if (error) extractLine = `extract: 실행 이력 확인 불가(${error.code ?? error.message})`
+  else if (!data?.length) extractLine = 'extract: 최근 24시간 자동 실행 0회 — 슬롯(nightly-extract) 확인 필요'
+  else {
+    const n = (k) => data.reduce((a, r) => a + Number(r.summary?.[k] ?? 0), 0)
+    extractLine = `extract: 자동 실행함 — 최근 24시간 ${data.length}회 · 처리 ${n('done')}건 · 실패 ${n('failed')}건 · 마지막 ${data[0].status}`
+  }
+  say(`- ${extractLine}`)
 }
 
 if (dryRun) {
@@ -593,7 +612,7 @@ if (extraSlot) {
     // 남헌 10-15: 매일 "[꺼진 소스]" 칸(차단 시 즉시 정지). 못 읽으면 null → "확인 불가"로 적힌다.
     const offSources = await loadOffSources(supabase)
     r = await recordStatusLog(buildReviewCollectEntry({
-      date: kstDate(), sources: sourceResults, failures, topProject, runUrl, supply, offSources,
+      date: kstDate(), sources: sourceResults, failures, topProject, extractLine, runUrl, supply, offSources,
     }))
   } catch (e) {
     r = { ok: false, stage: 'build', error: e instanceof Error ? e.message : String(e) }

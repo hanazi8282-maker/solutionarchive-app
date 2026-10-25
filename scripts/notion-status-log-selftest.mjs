@@ -168,6 +168,9 @@ try {
   assert.ok(busy.done.startsWith('리뷰 수집 3개 소스 — 신규 3건 · 파싱 10건(실패 1)'), busy.done)
   assert.ok(busy.blocked.includes('appstore: timeout'))
   assert.ok(busy.next.includes('appstore') && busy.next.includes('p1 40건'))
+  assert.ok(!busy.next.includes('판단'), '"extract 실행 여부 판단" 질문 줄을 더 이상 쓰지 않는다')
+  const withExtract = buildReviewCollectEntry({ date: '2026-10-26', topProject: { id: 'p1', n: 40 }, extractLine: 'extract: 자동 실행함 — 최근 24시간 4회' })
+  assert.ok(withExtract.next.includes('extract: 자동 실행함 — 최근 24시간 4회') && withExtract.next.includes('p1 40건'))
   assert.equal(busy.needsHuman, false) // v17: 실패 소스는 막힘 사실
   assert.ok(busy.note.includes('actions/runs/1'))
   for (const k of ['done', 'blocked', 'next']) assert.ok(lines(busy[k]) <= 5, k)

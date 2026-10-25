@@ -93,6 +93,9 @@
 - ⏭️ `draft` 초안 작성 + 게이트 — 앵글 0건
 - ⏭️ `stage` 발행 대기 스테이징 — 스테이징 매니페스트 0건
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":9})
+- ℹ️ Notion 푸시: ce-rescue-discontinued-404100b7ffb48170a6ddfdb571f303f0 ✅ DISCOVERY-2026-10-25 → https://app.notion.com/p/DISCOVERY-2026-10-25-404100b7ffb4817a9597fffc891a13d0 푸시 완료 — 초안 0건 · 신규케이스 1건 · 발굴 1건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-10-26-CMO 기록·재확인
 
 _실행 키 `cmo-2026-10-25-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

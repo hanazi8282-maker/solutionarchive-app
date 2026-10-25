@@ -409,6 +409,94 @@ export function relevanceResumeDecision(
   return { run: false, reason: `최근 실행(${last.run_key}, ${last.status})에 체인 정보 없음 — 재개하지 않는다` }
 }
 
+/** gh run list --json createdAt,updatedAt,status,conclusion,event 한 행. */
+export type GhRun = { createdAt: string; updatedAt?: string | null; status: string; conclusion?: string | null; event?: string | null }
+
+export type StallKind = 'ok' | 'busy' | 'unknown' | 'quota_wait' | 'quota_resume' | 'quota_retried' | 'fail_rerun' | 'fail_alert' | 'zero_progress'
+export type StallDecision = { kind: StallKind; rerun: boolean; alert: boolean; limit: boolean; reason: string }
+
+const BUSY = ['queued', 'pending', 'waiting', 'requested', 'in_progress']
+const FAILED = ['failure', 'cancelled', 'timed_out', 'startup_failure']
+
+/**
+ * 판정 정체 감시(v71bb ⑮) — "미판정이 남았는데 처리가 멈췄다"를 세 갈래로 가른다(순수함수).
+ * rows = 최근 agent_runs(loadRecentRuns), gh = nightly-relevance 실행 이력(null = 못 읽음 → 실행 이력이 필요한 갈래는 확인 불가).
+ *  1. 한도 정지(quota): 리셋(또는 정지+cooldown, 정지 후 최소 30분)이 지났고 그 뒤 수동(dispatch) 실행이 없으면 1회 재실행. 지난 뒤
+ *     dispatch 가 이미 있는데도 마지막 기록이 그 정지면 재실행 안 함(quota_retried — 1회 한정). 아직 전이면 대기(quota_wait).
+ *     v30 §5 "한도 정지 뒤 리셋 시각에 재시도" 의 연장이다 — 재시도 슬롯(r1 02:03Z)이 리셋 전에 지나가 버린 날을 메운다.
+ *  2. 연속 실패/취소: 최근 끝난 실행 2건이 연속 실패면 1회 재실행(60분 안 dispatch 가 없을 때). 3건 이상이면 재실행 안 하고 경보만
+ *     — relevance-resume.yml 과 같은 "3연속 실패는 사람이 본다" 선(실행이 기록 전에 죽는 루프 방지).
+ *  3. 처리 0: 미판정 ≥ minUnjudged 인데 stallHours 동안 판정 0건 → 경보만. 재실행하지 않는다 — 체인이 멈춘 사유(hop 상한·주간 안전선·
+ *     오류율·확인 불가)는 일부러 건 정지라 기계가 되살리면 안전선을 무력화한다(relevanceResumeDecision 과 같은 판단).
+ * 진행/대기 중인 실행이 있으면 아무것도 안 한다. 로컬(-local) 행은 보지 않는다.
+ */
+export function relevanceStallDecision(
+  rows: readonly RunRow[] | null,
+  gh: readonly GhRun[] | null,
+  o: { now: Date; cooldownMs: number; stallHours?: number; minUnjudged?: number },
+): StallDecision {
+  const now = o.now.getTime()
+  const stallMs = (o.stallHours ?? 6) * 3_600_000
+  const minUnjudged = o.minUnjudged ?? 500
+  const d = (kind: StallKind, reason: string, x: Partial<StallDecision> = {}): StallDecision => ({ kind, rerun: false, alert: false, limit: false, reason, ...x })
+  if (gh && gh.some(r => BUSY.includes(r.status))) return d('busy', '판정 실행이 진행/대기 중 — 보지 않는다')
+  if (!rows) return d('unknown', '실행 이력(agent_runs) 조회 실패 — 확인 불가라 건드리지 않는다')
+  const mine = rows
+    .filter(r => r.run_key.startsWith('relevance-judge-') && !r.run_key.endsWith('-local'))
+    .sort((a, b) => Date.parse(b.started_at ?? '') - Date.parse(a.started_at ?? ''))
+  const last = mine[0]
+  if (!last) return d('unknown', '판정 실행 기록 없음(7일) — 확인 불가')
+  const dispatchedSince = (t: number) => (gh ?? []).some(r => r.event === 'workflow_dispatch' && Date.parse(r.createdAt) >= t)
+
+  if (last.status !== 'running' && isQuotaBlocked(last)) {
+    const reset = Date.parse(String(last.summary?.quota_reset_at ?? ''))
+    const fin = Date.parse(last.finished_at ?? '')
+    const due = Number.isFinite(reset) ? (Number.isFinite(fin) ? Math.max(reset, fin + 30 * 60_000) : reset) : Number.isFinite(fin) ? fin + o.cooldownMs : NaN
+    if (!Number.isFinite(due)) return d('unknown', `한도 정지(${last.run_key}) 시각 확인 불가 — 건드리지 않는다`, { limit: true })
+    const src = Number.isFinite(reset) ? 'CLI 리셋 시각' : `정지 + ${o.cooldownMs / 3_600_000}시간`
+    if (now < due) return d('quota_wait', `한도 정지(${last.run_key}) — ${new Date(due).toISOString()}(${src}) 이후 재개 가능`, { limit: true })
+    if (!gh) return d('unknown', `한도 정지(${last.run_key}) 재개 시각 지남 — 실행 이력(gh) 미조회라 재실행 여부 확인 불가`, { limit: true })
+    if (dispatchedSince(due)) return d('quota_retried', `한도 정지(${last.run_key}) 뒤 ${new Date(due).toISOString()} 이후 수동 실행이 이미 있었다 — 1회 한정이라 더 안 건다`, { limit: true })
+    return d('quota_resume', `한도 정지(${last.run_key}) 뒤 ${src} ${new Date(due).toISOString()} 지남 · 그 뒤 실행 없음 — 1회 재실행`, { rerun: true, alert: true, limit: true })
+  }
+
+  if (gh) {
+    const done = gh.filter(r => r.status === 'completed').sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    let streak = 0
+    while (streak < done.length && FAILED.includes(String(done[streak].conclusion))) streak += 1
+    if (streak >= 3) {
+      // 경보는 새 사건일 때만(가장 최근 실패가 45분 안에 끝남) — 30분 감시가 같은 사건을 매번 올리지 않게. 대장에는 매번 남는다.
+      const fresh = now - Date.parse(done[0].updatedAt ?? done[0].createdAt) <= 45 * 60_000
+      return d('fail_alert', `최근 끝난 판정 실행 ${streak}건 연속 실패/취소 — 자동 재실행 안 함(사람이 볼 것)`, { alert: fresh })
+    }
+    if (streak === 2) {
+      if (dispatchedSince(now - 60 * 60_000)) return d('fail_alert', '연속 2건 실패 · 60분 안에 수동 실행이 이미 있다 — 더 안 건다')
+      return d('fail_rerun', '최근 끝난 판정 실행 2건 연속 실패/취소 — 1회 재실행', { rerun: true, alert: true })
+    }
+  }
+
+  const left = Number(last.summary?.unjudged_after)
+  if (Number.isFinite(left) && left >= minUnjudged) {
+    const inWin = mine.filter(r => now - Date.parse(r.started_at ?? '') <= stallMs)
+    const judged = inWin.reduce((s, r) => s + (Number(r.summary?.judged) || 0), 0)
+    const lastWork = mine.find(r => (Number(r.summary?.judged) || 0) > 0)
+    const since = lastWork ? Date.parse(lastWork.finished_at ?? lastWork.started_at ?? '') : NaN
+    if (judged === 0 && (!Number.isFinite(since) || now - since >= stallMs)) {
+      // 경보는 정체가 막 stallHours 를 넘은 45분 창에서만(새 사건). 마지막 처리 기록조차 없으면 매번 대장에만.
+      const fresh = Number.isFinite(since) && now - since < stallMs + 45 * 60_000
+      const why = String((last.summary?.chain as { reason?: unknown } | undefined)?.reason ?? last.status)
+      return d('zero_progress', `미판정 ${left}건인데 ${o.stallHours ?? 6}시간 판정 0건 — 마지막 정지 사유: ${why}. 자동 재실행 안 함(의도된 정지일 수 있다)`, { alert: fresh })
+    }
+  }
+  return d('ok', `정상 — 마지막 ${last.run_key}(${last.status})${Number.isFinite(left) ? ` · 남은 미판정 ${left}` : ''}`)
+}
+
+/** 대장·요약 한 줄. */
+export function stallLine(s: StallDecision): string {
+  const tag = s.kind === 'ok' ? '정상' : s.kind === 'busy' ? '진행 중' : s.kind === 'unknown' ? '확인 불가' : s.limit ? '한도' : '정체'
+  return `- 판정 정체(⑮ v71bb): [${tag}] ${s.reason}${s.rerun ? ' → 재실행 1회' : ''}`
+}
+
 /**
  * nightly-relevance 한 실행의 run_key 접미사 — 판정(relevance-judge)과 뒤 스텝(2차·자동 승인·ca-v1)이 한 벌로 쓴다.
  * 정규 '' · 정규 2회차 '-s2' · 재시도 '-r1' · 수동 '-m<run_id>' · 로컬 '-local'. 재시도·수동이 같은 날 정규 행을 덮지 않게 한다(createTracker 는 run_key upsert).

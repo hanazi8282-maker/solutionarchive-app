@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 노트·지식관리('notes') 근거 측정 — 읽기 전용. 남헌 v53 §5 2-B(2026-10-12): 5일 뒤 영역 ⑧ 후보 제안서 재료.
+// 노트·지식관리('notes') 근거 측정 — 읽기 전용. 남헌 v53 §5 2-B(2026-10-12): 노트는 v71bg(10-26)에서 ⑤ 에 합쳐졌다 — 이 측정은 합치기 근거 재료로 남긴다(⑧ 은 업무관리).
 //
 // 대상: 'notes' 프로젝트 = analysis_projects.area_evidence 'notes:' 접두(candidate-register-draft.mjs 가 쓴다) ∪ 타깃 라벨 'notes:' 접두.
 //       비교 기준 = 영역 ① 프로젝트(area_code='1'). 폐기 원문(purged_at·raw_text NULL)은 뺀다.
@@ -81,7 +81,7 @@ export function renderMarkdown(m, meta) {
     `# 노트·지식관리(notes) 근거 측정 — ${meta.date}`,
     '',
     `읽기 전용(SELECT 만) · LLM 0회. notes 프로젝트 ${meta.notesProjects}개(${meta.notesNames.join(', ') || '-'}) · 글 ${m.n_notes}건 / 영역 ① 프로젝트 ${meta.area1Projects}개 · 글 ${m.n_area1}건 · 폐기 제외 ${meta.purged}건.${small}`,
-    `notes 판정: area_evidence 'notes:' 접두 ∪ 타깃 라벨 'notes:' 접두(영역 ①~⑤ 밖, 남헌 v53). 5일 뒤 영역 ⑧ 후보 제안서 재료.`,
+    `notes 판정: area_evidence 'notes:' 접두 ∪ 타깃 라벨 'notes:' 접두(영역 ①~⑤ 밖, 남헌 v53). 노트는 v71bg(10-26)에서 ⑤ 에 합쳐졌다 — 이 측정은 합치기 근거 재료로 남긴다(⑧ 은 업무관리).`,
     '',
     '## 1. 회의 맥락 언급 비율',
     '',

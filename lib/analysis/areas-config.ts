@@ -10,8 +10,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-/** DB CHECK(analysis_projects_area_code_check, 마이그 20261009000020)와 같은 어휘. 셀프테스트가 마이그 파일과 대조한다. */
-export const AREA_CODES = ['1', '2', '3', '4', '5', 'design', 'hold', 'out-consumer', 'out-founder'] as const
+/** DB CHECK(analysis_projects_area_code_check, 마이그 20261026000030 — 'work' 추가)와 같은 어휘. 셀프테스트가 마이그 파일과 대조한다. */
+export const AREA_CODES = ['1', '2', '3', '4', '5', 'work', 'design', 'hold', 'out-consumer', 'out-founder'] as const
 export type AreaKind = 'area' | 'hold' | 'out'
 
 export interface AreaDef {

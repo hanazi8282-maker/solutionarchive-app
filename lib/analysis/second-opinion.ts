@@ -145,7 +145,7 @@ export function secondJudgeTargetReason(r: SecondJudgeCandidate, since: Date): '
  */
 export function secondAreaGroup(areaCode: string | null | undefined, productInformative: boolean | null | undefined): 0 | 1 | 2 | 3 {
   const a = (areaCode ?? '').trim()
-  if (/^[1-5]$/.test(a)) return productInformative === true ? 0 : 1
+  if (/^([1-5]|work)$/.test(a)) return productInformative === true ? 0 : 1
   if (a === 'design' || a === 'hold') return 2
   return 3
 }

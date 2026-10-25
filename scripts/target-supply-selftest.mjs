@@ -404,7 +404,7 @@ const DB = () => ({ review_sources: SOURCES, review_source_ramp: RAMPS.map((r) =
 
   const rows = [row({ area_code: '1' }), row({ area_code: '(미부여)', projects: 3 }), row({ area_code: 'hold' })]
   const cov = areaCoverage({ rows, error: null }, cfg)
-  t('표: 설정 순서 9줄 + 뷰에만 있는 (미부여) 뒤에', cov.areas.map((c) => c.code), ['1', '2', '3', '4', '5', 'design', 'hold', 'out-consumer', 'out-founder', '(미부여)'])
+  t('표: 설정 순서 10줄 + 뷰에만 있는 (미부여) 뒤에', cov.areas.map((c) => c.code), ['1', '2', '3', '4', '5', 'work', 'design', 'hold', 'out-consumer', 'out-founder', '(미부여)'])
   t('표: (미부여) 는 대상 아님', cov.areas.at(-1).state, '대상 아님')
   const gone = areaCoverage({ rows: null, error: 'PGRST205 Could not find the table' }, cfg)
   t('뷰 없음(PGRST205): read unavailable · 모든 칸 null · 상태 확인 불가', [gone.read, gone.areas.every((c) => c.judged === null && c.pending === null && c.state === '확인 불가')], ['unavailable', true])

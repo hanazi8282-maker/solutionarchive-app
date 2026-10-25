@@ -39,8 +39,8 @@ const clone = () => JSON.parse(JSON.stringify(RAW))
 {
   const { cfg, error, warnings } = loadAreasConfig(CFG_PATH, {})
   t('실제 설정: 읽힘 · 경고 0', [error, warnings], [null, []])
-  t('실제 설정: 코드·순서', cfg.areas.map((a) => a.code), ['1', '2', '3', '4', '5', 'design', 'hold', 'out-consumer', 'out-founder'])
-  t('실제 설정: 최소량 대상 = 1~5·design', scorableAreas(cfg).map((a) => a.code), ['1', '2', '3', '4', '5', 'design'])
+  t('실제 설정: 코드·순서', cfg.areas.map((a) => a.code), ['1', '2', '3', '4', '5', 'work', 'design', 'hold', 'out-consumer', 'out-founder'])
+  t('실제 설정: 최소량 대상 = 1~5·work·design', scorableAreas(cfg).map((a) => a.code), ['1', '2', '3', '4', '5', 'work', 'design'])
   t('실제 설정: hold 비활성·kind hold · 영역 외 둘은 out', cfg.areas.filter((a) => !a.active).map((a) => `${a.code}:${a.kind}`), ['hold:hold', 'out-consumer:out', 'out-founder:out'])
   t('실제 설정: floor 200(설정)', [cfg.floor, cfg.floorSource], [200, 'config'])
   t('실제 설정: founder 5곳 · devto 없음(남헌 판단 대기)', [cfg.founderSources, cfg.founderSources.includes('devto')], [['hackernews', 'indiehackers', 'producthunt', 'disquiet', 'okky'], false])
@@ -53,11 +53,13 @@ const clone = () => JSON.parse(JSON.stringify(RAW))
 
 // ── DB 어휘·소급 규칙과 대조(설정과 DB 가 갈라지면 여기서 잡힌다) ──
 {
-  const mig = fs.readFileSync(path.join(process.cwd(), 'supabase', 'migrations', '20261009000020_analysis_projects_area.sql'), 'utf8')
+  const mig = fs.readFileSync(path.join(process.cwd(), 'supabase', 'migrations', '20261026000030_area_work_vocab.sql'), 'utf8')
   const check = /area_code IS NULL OR area_code IN \(([^)]*)\)/.exec(mig)
   const vocab = check ? [...check[1].matchAll(/'([^']+)'/g)].map((m) => m[1]) : null
   t('DB CHECK 어휘 = AREA_CODES = 설정 코드', [vocab, [...AREA_CODES]], [RAW.areas.map((a) => a.code), RAW.areas.map((a) => a.code)])
-  const founder = /coalesce\(source_key IN \(([^)]*)\), false\)/.exec(mig)
+  // founder 목록은 소급 규칙 v37-1 을 품은 원래 마이그에 있다(20261026000030 은 CHECK 어휘만 다룬다).
+  const mig0 = fs.readFileSync(path.join(process.cwd(), 'supabase', 'migrations', '20261009000020_analysis_projects_area.sql'), 'utf8')
+  const founder = /coalesce\(source_key IN \(([^)]*)\), false\)/.exec(mig0)
   t('소급 v37-1 founder 목록 = 설정', founder ? [...founder[1].matchAll(/'([^']+)'/g)].map((m) => m[1]) : null, RAW.founder_sources)
 
   // 커버리지 뷰(U3)가 SQL 에 품은 값 = 설정·코드 값. 한쪽만 바꾸면 여기서 잡힌다.
@@ -225,7 +227,7 @@ const clone = () => JSON.parse(JSON.stringify(RAW))
     const noCfg = await planAreaOrder({ cfg: null, load: async () => { throw new Error('불리면 안 됨') }, cands, warn: w })
     t('plan: 설정 없음 → off · 조회 안 함', [noCfg.axis, noCfg.reason], ['off', '영역 설정 확인 불가'])
   }
-  t('floor 줄', areaFloorLine({ 1: 54, 2: 400 }, cfg), '1 54/200(결손) · 2 400/200 · 3 0/200(결손) · 4 0/200(결손) · 5 0/200(결손) · design 0/200(결손)')
+  t('floor 줄', areaFloorLine({ 1: 54, 2: 400 }, cfg), '1 54/200(결손) · 2 400/200 · 3 0/200(결손) · 4 0/200(결손) · 5 0/200(결손) · work 0/200(결손) · design 0/200(결손)')
 
   // loadAreaContext — 모의 supabase(체인: select·not·order·range). fail[테이블] = (cols) => error|null
   const mockSb = (tables, fail = {}) => ({

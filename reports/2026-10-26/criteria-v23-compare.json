@@ -1,0 +1,32 @@
+{
+ "sample_n": 100,
+ "A_v22_vs_v22rerun": {
+  "n": 60,
+  "changed": 10
+ },
+ "A_v22_vs_v23": {
+  "n": 60,
+  "changed": 10
+ },
+ "B_v22_vs_v22rerun": {
+  "n": 40,
+  "changed": 2
+ },
+ "B_v22_vs_v23": {
+  "n": 40,
+  "changed": 11
+ },
+ "B_irrelevant_to_relevant": 6,
+ "B_v22_dist": {
+  "unknown": 8,
+  "relevant": 24,
+  "irrelevant": 8
+ },
+ "B_v23_dist": {
+  "unknown": 4,
+  "relevant": 33,
+  "irrelevant": 3
+ },
+ "A_flip_pct": 16.7,
+ "A_noise_pct": 16.7
+}

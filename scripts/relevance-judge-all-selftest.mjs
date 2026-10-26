@@ -129,7 +129,7 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
   const src = fs.readFileSync('scripts/relevance-judge-auto.mjs', 'utf8')
   t('판정 스크립트에 직접 upsert 가 없다(저장은 saveVerdictsInsertOnly 한 곳)', !/\.upsert\(/.test(src) && /saveVerdictsInsertOnly\(supabase, payload\)/.test(src))
   t('판정 행에 model·prompt_version 을 쓴다', /model: out\.model,/.test(src) && /prompt_version: PROMPT_VERSION/.test(src))
-  t('기준 스위치(v66·v67): 기본 v22, RELEVANCE_CRITERIA=v21|old 로 복귀, prompt_version 이 기준을 가른다', src.includes("process.env.RELEVANCE_CRITERIA ?? 'v22'") && src.includes("v === 'old' || v === 'v21'") && src.includes('{ criteria: criteriaMode }') && src.includes("criteriaMode === 'v22' ? RELEVANCE_V22_VERSION"))
+  t('기준 스위치(v66·v67): 기본 v22, RELEVANCE_CRITERIA=v21|old 로 복귀, prompt_version 이 기준을 가른다', src.includes("process.env.RELEVANCE_CRITERIA ?? 'v22'") && src.includes("v === 'old' || v === 'v21' || v === 'v23'") && src.includes('{ criteria: criteriaMode, areas: v23Areas }') && src.includes("criteriaMode === 'v22' ? RELEVANCE_V22_VERSION"))
   const { buildRelevancePrompt } = await import('../lib/analysis/relevance-judge.ts')
   const crit = await import('../lib/analysis/relevance-criteria.ts')
   const oldP = buildRelevancePrompt(null, [{ input_id: 'x', text: 't' }], [])

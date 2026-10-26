@@ -1,0 +1,402 @@
+{
+ "seed": "v71bi-2026-10-26",
+ "cap": 130,
+ "projects": [
+  {
+   "project_id": "94b55865-bb37-42e8-bc6a-25e893b5cddf",
+   "area": "out-consumer",
+   "total": 136,
+   "day1": 130
+  },
+  {
+   "project_id": "ee68cb68-d37e-49a3-9ca5-c1ffe0f949fb",
+   "area": "out-founder",
+   "total": 288,
+   "day1": 130
+  },
+  {
+   "project_id": "040f7610-4a38-44ac-a348-3bbeb8b16273",
+   "area": "out-founder",
+   "total": 140,
+   "day1": 130
+  },
+  {
+   "project_id": "f6f02695-7d88-4ae0-89e9-2428812f4377",
+   "area": "out-founder",
+   "total": 491,
+   "day1": 130
+  },
+  {
+   "project_id": "cb705d14-b81b-45e4-aeed-877ac4a75864",
+   "area": "out-founder",
+   "total": 202,
+   "day1": 130
+  },
+  {
+   "project_id": "7f50e8ff-a087-4b7e-9b84-28073ed1262e",
+   "area": "out-founder",
+   "total": 4,
+   "day1": 4
+  },
+  {
+   "project_id": "d404afa9-c9fc-41e4-9562-aead96b82c3d",
+   "area": "out-consumer",
+   "total": 135,
+   "day1": 130
+  },
+  {
+   "project_id": "cd0a1a19-eb42-42e1-b2c5-e8d2c13feb75",
+   "area": "out-founder",
+   "total": 450,
+   "day1": 130
+  },
+  {
+   "project_id": "277fe82e-d930-4cc7-9d27-ccdb376784e4",
+   "area": "out-founder",
+   "total": 126,
+   "day1": 126
+  },
+  {
+   "project_id": "0679b652-5f7d-420e-bd8c-d3d4b261de17",
+   "area": "out-founder",
+   "total": 454,
+   "day1": 130
+  },
+  {
+   "project_id": "fcc9a187-ae00-4655-bee2-af6d335c4741",
+   "area": "out-founder",
+   "total": 114,
+   "day1": 114
+  },
+  {
+   "project_id": "2270315d-0d3b-4b0d-8c35-d1ebe0819130",
+   "area": "out-founder",
+   "total": 239,
+   "day1": 130
+  },
+  {
+   "project_id": "3f38dd36-a393-44ac-a7d3-1da7b5a449d4",
+   "area": "out-consumer",
+   "total": 127,
+   "day1": 127
+  },
+  {
+   "project_id": "8dc6ad37-34d2-41a6-adce-85d03f0eadae",
+   "area": "out-founder",
+   "total": 483,
+   "day1": 130
+  },
+  {
+   "project_id": "156e6610-5ca1-43b2-92ff-f94ca502a3bd",
+   "area": "out-founder",
+   "total": 138,
+   "day1": 130
+  },
+  {
+   "project_id": "1cda6a4d-52d0-4a32-85fe-949264c05cb3",
+   "area": "out-consumer",
+   "total": 175,
+   "day1": 130
+  },
+  {
+   "project_id": "1fc856d5-b3aa-4b62-af33-dd597ce231d9",
+   "area": "out-founder",
+   "total": 243,
+   "day1": 130
+  },
+  {
+   "project_id": "b7214981-4924-4494-a631-d1188285343a",
+   "area": "out-founder",
+   "total": 136,
+   "day1": 130
+  },
+  {
+   "project_id": "09d1b93c-5e84-4e46-9ae4-99f0b2180f19",
+   "area": "out-founder",
+   "total": 232,
+   "day1": 130
+  },
+  {
+   "project_id": "24deadfc-7d7e-41cd-807f-2ea63dbc4080",
+   "area": "out-founder",
+   "total": 316,
+   "day1": 130
+  },
+  {
+   "project_id": "e4626523-df9d-4f92-8652-0387671768ab",
+   "area": "out-founder",
+   "total": 31,
+   "day1": 31
+  },
+  {
+   "project_id": "514d2dcc-9fc4-4522-9509-30c611b6c466",
+   "area": "out-founder",
+   "total": 152,
+   "day1": 130
+  },
+  {
+   "project_id": "d62f3caa-4828-4929-8890-776f64b77cfe",
+   "area": "out-founder",
+   "total": 294,
+   "day1": 130
+  },
+  {
+   "project_id": "5900bad5-7acc-446b-b4fe-52f9a19fa107",
+   "area": "out-founder",
+   "total": 129,
+   "day1": 129
+  },
+  {
+   "project_id": "8ce7f2a3-df87-49fa-bd65-486ce8a45377",
+   "area": "out-founder",
+   "total": 336,
+   "day1": 130
+  },
+  {
+   "project_id": "555f1d90-b267-4c31-936d-dc635b9b51a4",
+   "area": "out-founder",
+   "total": 135,
+   "day1": 130
+  },
+  {
+   "project_id": "ea629ce7-8f80-469e-9f0d-309aa9c6e8f5",
+   "area": "out-founder",
+   "total": 57,
+   "day1": 57
+  },
+  {
+   "project_id": "f6900c17-2a8f-4208-b247-55dce1aa3c75",
+   "area": "out-founder",
+   "total": 193,
+   "day1": 130
+  },
+  {
+   "project_id": "81e8ad52-3ecb-451e-b8a7-f8e29ae6634a",
+   "area": "out-founder",
+   "total": 95,
+   "day1": 95
+  },
+  {
+   "project_id": "36591cf0-f6f0-485c-b8dd-986663511754",
+   "area": "out-founder",
+   "total": 285,
+   "day1": 130
+  },
+  {
+   "project_id": "9fece18e-7edb-4544-a98a-7689c9f675ea",
+   "area": "out-founder",
+   "total": 240,
+   "day1": 130
+  },
+  {
+   "project_id": "d8bd112e-3597-466f-b9dd-7cbc599c27b5",
+   "area": "out-founder",
+   "total": 281,
+   "day1": 130
+  },
+  {
+   "project_id": "6da0dbdb-da27-4fdc-baae-a8bc694c6bf9",
+   "area": "out-founder",
+   "total": 332,
+   "day1": 130
+  },
+  {
+   "project_id": "8207483a-3995-4a28-8d47-2411b067e4d6",
+   "area": "out-founder",
+   "total": 129,
+   "day1": 129
+  },
+  {
+   "project_id": "40512422-fe34-4f95-a899-e33c23823f7c",
+   "area": "out-founder",
+   "total": 103,
+   "day1": 103
+  },
+  {
+   "project_id": "576b04d1-282a-42da-9f27-68ab9eb6b487",
+   "area": "out-founder",
+   "total": 95,
+   "day1": 95
+  },
+  {
+   "project_id": "70c5de32-9a44-4a60-8f8d-0a46226c423f",
+   "area": "out-founder",
+   "total": 28,
+   "day1": 28
+  },
+  {
+   "project_id": "30dc6823-84b0-482e-9d3c-7bdd1a229311",
+   "area": "out-founder",
+   "total": 334,
+   "day1": 130
+  },
+  {
+   "project_id": "34843cd8-8977-47b2-8a43-939169f4ed7b",
+   "area": "out-founder",
+   "total": 74,
+   "day1": 74
+  },
+  {
+   "project_id": "21d49135-fb3a-44c7-97d7-3835827aff5a",
+   "area": "out-consumer",
+   "total": 94,
+   "day1": 94
+  },
+  {
+   "project_id": "21db7c7c-939f-43d8-bd31-d9c5c61a98ec",
+   "area": "out-consumer",
+   "total": 144,
+   "day1": 130
+  },
+  {
+   "project_id": "e765b470-4d28-46f4-afec-16ece1381ecf",
+   "area": "out-founder",
+   "total": 176,
+   "day1": 130
+  },
+  {
+   "project_id": "4de346dd-cdaa-4f32-89dd-82cb7f822209",
+   "area": "out-founder",
+   "total": 22,
+   "day1": 22
+  },
+  {
+   "project_id": "7198fcf7-de0c-43c0-ae36-b4664bf6179f",
+   "area": "out-founder",
+   "total": 14,
+   "day1": 14
+  },
+  {
+   "project_id": "7bf13d4f-b8eb-45b5-a804-e045afbb775c",
+   "area": "out-founder",
+   "total": 75,
+   "day1": 75
+  },
+  {
+   "project_id": "ad2b9463-371b-4782-be4a-b218a78786fe",
+   "area": "out-founder",
+   "total": 106,
+   "day1": 106
+  },
+  {
+   "project_id": "af76cc49-4455-4c7f-be7d-206e39b9d1e8",
+   "area": "out-founder",
+   "total": 57,
+   "day1": 57
+  },
+  {
+   "project_id": "d342545e-f302-4979-a84c-af23753f607e",
+   "area": "out-founder",
+   "total": 61,
+   "day1": 61
+  },
+  {
+   "project_id": "154f704b-30a7-4f76-a888-33c6edbd35d0",
+   "area": "out-founder",
+   "total": 150,
+   "day1": 130
+  },
+  {
+   "project_id": "55d574a2-60a2-444b-88b7-8a625b857175",
+   "area": "out-consumer",
+   "total": 156,
+   "day1": 130
+  },
+  {
+   "project_id": "e429fd62-d467-43d1-a04f-fa5afa3357c6",
+   "area": "out-founder",
+   "total": 27,
+   "day1": 27
+  },
+  {
+   "project_id": "7e1c4e96-a702-4930-9d88-26dcee519fee",
+   "area": "out-founder",
+   "total": 96,
+   "day1": 96
+  },
+  {
+   "project_id": "ec1bbdbf-5082-4d9f-9a5f-2e50c9dd8b87",
+   "area": "out-founder",
+   "total": 30,
+   "day1": 30
+  },
+  {
+   "project_id": "e819f101-77da-4d42-9d50-f5248449052f",
+   "area": "out-founder",
+   "total": 580,
+   "day1": 130
+  },
+  {
+   "project_id": "d20f6310-390e-4092-9a42-10aae0635fa0",
+   "area": "out-founder",
+   "total": 8,
+   "day1": 8
+  },
+  {
+   "project_id": "fb703dec-0c5c-41c1-ad0d-34b7b0ca442c",
+   "area": "out-founder",
+   "total": 18,
+   "day1": 18
+  },
+  {
+   "project_id": "d7b2d58c-4ce8-4fee-857c-e12947882d8e",
+   "area": "out-founder",
+   "total": 45,
+   "day1": 45
+  },
+  {
+   "project_id": "00af7401-17bc-43a6-8cdb-448046b245eb",
+   "area": "out-founder",
+   "total": 29,
+   "day1": 29
+  },
+  {
+   "project_id": "e5be3615-ece3-4141-ba8f-2107d361f269",
+   "area": "out-founder",
+   "total": 5,
+   "day1": 5
+  },
+  {
+   "project_id": "fac878dc-d045-475d-8563-5bcb605d4588",
+   "area": "out-founder",
+   "total": 328,
+   "day1": 130
+  },
+  {
+   "project_id": "10109092-23af-44b8-b2ca-cf3fc4623de5",
+   "area": "out-founder",
+   "total": 39,
+   "day1": 39
+  },
+  {
+   "project_id": "39caee12-1f29-4772-bf25-b71d861ab206",
+   "area": "out-consumer",
+   "total": 5,
+   "day1": 5
+  },
+  {
+   "project_id": "bc4cbdc9-cc46-4612-a176-3ecf748d59f5",
+   "area": "out-founder",
+   "total": 2,
+   "day1": 2
+  },
+  {
+   "project_id": "e4f91568-2712-4089-8f3d-5a0556c28f33",
+   "area": "out-founder",
+   "total": 4,
+   "day1": 4
+  },
+  {
+   "project_id": "8470851a-feb8-45f0-a13e-177e01c50a85",
+   "area": "out-founder",
+   "total": 1,
+   "day1": 1
+  },
+  {
+   "project_id": "ce069cb2-d3e0-43a0-99e8-36f9f8177f5f",
+   "area": "out-consumer",
+   "total": 3,
+   "day1": 3
+  }
+ ]
+}

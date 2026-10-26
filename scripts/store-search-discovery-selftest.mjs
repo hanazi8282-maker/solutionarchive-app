@@ -122,7 +122,7 @@ t('main: producthunt no row → reason', r.gates.producthunt.reasons[0], 'review
 t('main: line has 0/4', /수집 가능 스토어 0\/4/.test(r.line), true)
 t('main: file written', fs.existsSync(path.join(tmp, '2026-10-12', 'store-search-proposals.md')), true)
 const md = fs.readFileSync(path.join(tmp, '2026-10-12', 'store-search-proposals.md'), 'utf8')
-t('main: md has area heading', md.includes('## ① 회의·통화 기록'), true)
+t('main: md has area heading', md.includes('## ① 회의록·통화 요약'), true)
 t('robots: query rule seen (shopify *q=*)', await robotsFor('https://apps.shopify.com/search?q=crm&sort_by=newest', fakeFetch), 'disallowed')
 t('robots: no query → allowed path', await robotsFor('https://apps.shopify.com/browse', fakeFetch), 'allowed')
 t('robots: 404 → unverified', await robotsFor('https://nowhere.example/search?q=a', fakeFetch), 'unverified')

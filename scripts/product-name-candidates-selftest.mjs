@@ -217,7 +217,7 @@ t('표: 채택 행(대표 영역 비율)', /\| 채택 \| Zentrova \| `appstore:i
 t('본문은 채택만 · 기각·확인불가는 나머지 파일에 사유와 함께', !/\| (기각|확인불가) \|/.test(md) && /\| 기각 \| Excel \|.*\| stopword \|/.test(rest) && /\| 확인불가 \| Brivio \|/.test(rest))
 t('영역별 소제목(areas.json 이름) · 순서 ① → ③ · 채택 없는 영역은 소제목 없음', (() => {
   const i = (s) => md.indexOf(`## ${s}`)
-  return i('① 회의·통화 기록') > 0 && i('① 회의·통화 기록') < i('③ 마케팅(직접 도구만)') && i('영역 외-창업가 불만') < 0
+  return i('① 회의록·통화 요약') > 0 && i('① 회의록·통화 요약') < i('③ 마케팅 콘텐츠·광고 소재') && i('영역 외-창업가 불만') < 0
 })())
 t('대표 영역 = 최다 영역 + 비율(flowbase: out-founder 3/5)', row('flowbase')?.area === 'out-founder' && row('flowbase').areaShare === 0.6)
 t('표: 후보 행마다 열 12개(파이프 이스케이프, 부류 집계 표 제외)', [md, rest].every((s) => s.split('\n').filter((l) => /^\| (상태|채택|확인불가|기각|경쟁 기준점) \|/.test(l)).every((l) => l.split(/(?<!\\)\|/).length === 14)))

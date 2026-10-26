@@ -289,5 +289,24 @@ t('마이그레이션이 RLS 를 켜고 정책을 만들지 않는다',
 t('마이그레이션에 미적용 표기와 확인 쿼리가 있다',
   mig.includes('**미적용**') && mig.includes('── 양성') && mig.includes('── 음성'))
 
+// ── v2.3 (v71bi) — 활성 영역은 config 에서 채우고, 영역 문구가 낡은 채로 남지 않는다 ──
+{
+  const { relevanceCriteriaV23, RELEVANCE_CRITERIA_V22, RELEVANCE_V23_VERSION } = await import('../lib/analysis/relevance-criteria.ts')
+  const areas = ['① 회의록·통화 요약', '⑧ 업무관리', '⑨ 디자인']
+  const v23 = relevanceCriteriaV23(areas)
+  t('v23: 버전 표기', v23.includes(RELEVANCE_V23_VERSION) && v23.includes('판정 기준 v2.3'))
+  t('v23: 활성 영역 이름이 질문 문장에 들어간다', v23.includes('활성 영역: ① 회의록·통화 요약 / ⑧ 업무관리 / ⑨ 디자인'))
+  t('v23: v2.2 의 영역 ①~⑤ 고정 문구가 남지 않는다', !v23.includes('영역 ①~⑤') && !v23.includes('⑤리뷰 관리'))
+  t('v23: 규칙 (16) 이 (15) 뒤에 있다', v23.indexOf('(16)') > v23.indexOf('(15)') && v23.includes('노트·지식관리 앱이면 ⑤'))
+  t('v23: 소비재 규칙 (5) 은 v2.2 와 같다', v23.includes('(5) 실물 소비재는 지금은 irrelevant.') && RELEVANCE_CRITERIA_V22.includes('(5) 실물 소비재는 지금은 irrelevant.'))
+  let threw = false; try { relevanceCriteriaV23([]) } catch { threw = true }
+  t('v23: 활성 영역이 비면 던진다(§7.1)', threw)
+  const p23 = buildRelevancePrompt(purpose, reviews, [], { criteria: 'v23', areas })
+  t('v23: 프롬프트 system 에 v2.3 기준이 실린다', p23.system.includes('판정 기준 v2.3') && !p23.system.includes('판정 기준 v2.2 로'))
+  let threw2 = false; try { buildRelevancePrompt(purpose, reviews, [], { criteria: 'v23' }) } catch { threw2 = true }
+  t('v23: areas 없이 부르면 던진다', threw2)
+  t('v22 프롬프트는 그대로다', buildRelevancePrompt(purpose, reviews, [], { criteria: 'v22' }).system.includes('영역 ①~⑤'))
+}
+
 console.log(`\n${fail === 0 ? '✅' : '❌'} 리뷰 관련성 판정 셀프테스트: ${pass} pass / ${fail} fail`)
 process.exit(fail === 0 ? 0 : 1)

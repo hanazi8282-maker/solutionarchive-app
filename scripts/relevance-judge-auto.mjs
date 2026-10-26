@@ -46,7 +46,8 @@ import {
 import {
   CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
-import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION } from '../lib/analysis/relevance-criteria.ts'
+import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION, RELEVANCE_V23_VERSION } from '../lib/analysis/relevance-criteria.ts'
+import { loadAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 import { capacityGuard, loadAuditWindow } from '../lib/analysis/auto-approval.ts'
@@ -92,10 +93,12 @@ const lastSources = parseSourceList(process.env.RELEVANCE_LAST_SOURCES, DEFAULT_
 let chainHop = Math.max(0, Math.floor(Number(process.env.RELEVANCE_CHAIN_HOP) || 0))
 let chainZero = Math.max(0, Math.floor(Number(process.env.RELEVANCE_CHAIN_ZERO) || 0))
 const chainMaxHops = num(process.env.RELEVANCE_CHAIN_MAX_HOPS, CHAIN_DEFAULT_MAX_HOPS)
-// 운영 판정 기준(남헌 v66·v67): 기본 v22. 리포 변수 RELEVANCE_CRITERIA = old | v21 | v22 로 즉시 바꾼다. prompt_version 이 어느 기준 판정인지 가른다.
-const criteriaMode = (() => { const v = (process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase(); return v === 'old' || v === 'v21' ? v : 'v22' })()
-if (!['old', 'v21', 'v22'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())) console.warn(`::warning::RELEVANCE_CRITERIA='${process.env.RELEVANCE_CRITERIA}' 는 old|v21|v22 가 아니다 — v22 로 처리한다`)
-const PROMPT_VERSION = criteriaMode === 'v22' ? RELEVANCE_V22_VERSION : criteriaMode === 'v21' ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION
+// 운영 판정 기준(남헌 v66·v67·v71bi): 기본 v22. 리포 변수 RELEVANCE_CRITERIA = old | v21 | v22 | v23 로 즉시 바꾼다. prompt_version 이 어느 기준 판정인지 가른다.
+const criteriaMode = (() => { const v = (process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase(); return v === 'old' || v === 'v21' || v === 'v23' ? v : 'v22' })()
+if (!['old', 'v21', 'v22', 'v23'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())) console.warn(`::warning::RELEVANCE_CRITERIA='${process.env.RELEVANCE_CRITERIA}' 는 old|v21|v22|v23 가 아니다 — v22 로 처리한다`)
+// v23 은 활성 영역 이름을 config/areas.json 에서 읽는다. 못 읽으면 판정을 시작하지 않는다(§7.1 — 모르는 영역표로 판정하지 않는다).
+const v23Areas = criteriaMode === 'v23' ? (() => { const { cfg, error } = loadAreasConfig(); if (!cfg) { console.error(`✗ v23 기준인데 config/areas.json 을 못 읽었다: ${error}`); process.exit(2) } return scorableAreas(cfg).map((a) => a.name) })() : undefined
+const PROMPT_VERSION = criteriaMode === 'v23' ? RELEVANCE_V23_VERSION : criteriaMode === 'v22' ? RELEVANCE_V22_VERSION : criteriaMode === 'v21' ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION
 const chainEnabled = (process.env.RELEVANCE_CHAIN ?? 'on').trim().toLowerCase() !== 'off'
 /** 표본에서 4~5점 평점 입력의 비율 상한(v31 §2.3). 바꾸는 날은 env 값 + Notion 일일 상태 로그 한 줄이 근거다. */
 const highRatingShareEnv = process.env.RELEVANCE_HIGH_RATING_SHARE
@@ -517,7 +520,7 @@ for (const { project, pending } of targets) {
         break
       }
       if (Date.now() - startedAt >= deadlineMs) { deadlineHit = true; stopReason = 'deadline'; break }
-      const out = await judgeRelevanceBatch(project, batch, examples, undefined, criteriaMode === 'old' ? undefined : { criteria: criteriaMode })
+      const out = await judgeRelevanceBatch(project, batch, examples, undefined, criteriaMode === 'old' ? undefined : { criteria: criteriaMode, areas: v23Areas })
       model = out.model
       if (out.quotaExhausted) {
         stopped = out.error ?? '한도/예산 소진'

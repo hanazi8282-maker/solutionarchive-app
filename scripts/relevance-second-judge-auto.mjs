@@ -22,9 +22,10 @@ import { outOfScopeReason } from '../lib/analysis/approval-scope.ts'
 import { chunkReviews } from '../lib/analysis/relevance-judge.ts'
 import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import {
-  SECOND_OPINION_INSTRUCTIONS, SECOND_OPINION_INSTRUCTIONS_V22, orderSecondTargets, recordSecondOpinion, secondAreaGroup, secondJudgeTargetReason,
+  SECOND_OPINION_INSTRUCTIONS, SECOND_OPINION_INSTRUCTIONS_V22, secondOpinionInstructionsV23, orderSecondTargets, recordSecondOpinion, secondAreaGroup, secondJudgeTargetReason,
   secondOpinionUserPrompt, toExportRow, validateOpinions,
 } from '../lib/analysis/second-opinion.ts'
+import { loadAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate } from './notion-status-log.mjs'
 import { relevanceRunSuffixFromEnv } from '../lib/analysis/session-guard.ts'
@@ -55,9 +56,13 @@ if ((process.env.RELEVANCE_CAPACITY_GUARD ?? '').trim().toLowerCase() !== 'off')
 }
 
 // 2차 판정 기준(남헌 v67): 1차와 같은 RELEVANCE_CRITERIA 변수 — 기본 v22, v21|old 면 옛 지시문.
-const secondV22 = !['old', 'v21'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())
-if (!['old', 'v21', 'v22'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())) warn(`RELEVANCE_CRITERIA='${process.env.RELEVANCE_CRITERIA}' 는 old|v21|v22 가 아니다 — v22 로 처리한다`)
-const secondInstructions = secondV22 ? SECOND_OPINION_INSTRUCTIONS_V22 : SECOND_OPINION_INSTRUCTIONS
+const secondMode = (process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase()
+const secondV22 = !['old', 'v21'].includes(secondMode)
+if (!['old', 'v21', 'v22', 'v23'].includes(secondMode)) warn(`RELEVANCE_CRITERIA='${process.env.RELEVANCE_CRITERIA}' 는 old|v21|v22|v23 가 아니다 — v22 로 처리한다`)
+// v23(v71bi): 활성 영역 이름을 config/areas.json 에서 읽는다. 못 읽으면 시작하지 않는다(§7.1).
+const secondInstructions = secondMode === 'v23'
+  ? (() => { const { cfg, error } = loadAreasConfig(); if (!cfg) die(`v23 기준인데 config/areas.json 을 못 읽었다: ${error}`); return secondOpinionInstructionsV23(scorableAreas(cfg).map((a) => a.name)) })()
+  : secondV22 ? SECOND_OPINION_INSTRUCTIONS_V22 : SECOND_OPINION_INSTRUCTIONS
 log(`야간 2차 판정${dry ? ' (--dry: 대상 선정만)' : ''} — provider=gemini(고정) · 기준 ${RELEVANCE_CRITERIA_VERSION} · since ${since.toISOString()}${process.env.AUTO_APPROVAL_SINCE ? '' : '(AUTO_APPROVAL_SINCE 없음 → 오늘 KST)'} · 상한 ${MAX}건`)
 
 // ── 1. 후보 — DB 에서 조건으로 거르고, JS 에서 같은 조건 + 독립성을 한 번 더 ─────

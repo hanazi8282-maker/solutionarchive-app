@@ -1,0 +1,354 @@
+{
+ "about": "같은 제품이 2개 이상 대분류로 갈린 상위 20(건수·이름만, 사전 합친 뒤 기준)",
+ "split_products_total": 85,
+ "top20": [
+  {
+   "product": "n8n",
+   "groups": [
+    {
+     "group": "노코드·자동화·내부 도구",
+     "n": 305
+    },
+    {
+     "group": "글쓰기·노트·지식관리",
+     "n": 2
+    },
+    {
+     "group": "메신저·채팅",
+     "n": 2
+    },
+    {
+     "group": "영업 도우미",
+     "n": 1
+    }
+   ],
+   "total": 310
+  },
+  {
+   "product": "obsidian",
+   "groups": [
+    {
+     "group": "글쓰기·노트·지식관리",
+     "n": 297
+    },
+    {
+     "group": "개발·인프라",
+     "n": 1
+    }
+   ],
+   "total": 298
+  },
+  {
+   "product": "gumroad",
+   "groups": [
+    {
+     "group": "결제·판매·구독 관리",
+     "n": 206
+    },
+    {
+     "group": "고객지원·헬프데스크",
+     "n": 2
+    },
+    {
+     "group": "개발·인프라",
+     "n": 1
+    }
+   ],
+   "total": 209
+  },
+  {
+   "product": "posthog",
+   "groups": [
+    {
+     "group": "웹·제품 분석",
+     "n": 184
+    },
+    {
+     "group": "개발·인프라",
+     "n": 5
+    }
+   ],
+   "total": 189
+  },
+  {
+   "product": "excalidraw",
+   "groups": [
+    {
+     "group": "디자인",
+     "n": 80
+    },
+    {
+     "group": "영상·화이트보드·화상 협업",
+     "n": 71
+    }
+   ],
+   "total": 151
+  },
+  {
+   "product": "cal.com",
+   "groups": [
+    {
+     "group": "폼·일정·전자서명",
+     "n": 99
+    },
+    {
+     "group": "개발·인프라",
+     "n": 10
+    }
+   ],
+   "total": 109
+  },
+  {
+   "product": "loom",
+   "groups": [
+    {
+     "group": "영상·화이트보드·화상 협업",
+     "n": 95
+    },
+    {
+     "group": "고객지원·헬프데스크",
+     "n": 1
+    },
+    {
+     "group": "영업 도우미",
+     "n": 1
+    }
+   ],
+   "total": 97
+  },
+  {
+   "product": "carrd",
+   "groups": [
+    {
+     "group": "웹사이트·랜딩페이지 빌더",
+     "n": 40
+    },
+    {
+     "group": "노코드·자동화·내부 도구",
+     "n": 39
+    },
+    {
+     "group": "퍼블리싱·블로그·팟캐스트",
+     "n": 15
+    },
+    {
+     "group": "웹·제품 분석",
+     "n": 1
+    }
+   ],
+   "total": 95
+  },
+  {
+   "product": "convertkit",
+   "groups": [
+    {
+     "group": "이메일·뉴스레터·메일함",
+     "n": 81
+    },
+    {
+     "group": "마케팅 콘텐츠·광고 소재",
+     "n": 9
+    },
+    {
+     "group": "웹사이트·랜딩페이지 빌더",
+     "n": 2
+    }
+   ],
+   "total": 92
+  },
+  {
+   "product": "metabase",
+   "groups": [
+    {
+     "group": "웹·제품 분석",
+     "n": 69
+    },
+    {
+     "group": "개발·인프라",
+     "n": 1
+    }
+   ],
+   "total": 70
+  },
+  {
+   "product": "claude code",
+   "groups": [
+    {
+     "group": "개발·인프라",
+     "n": 40
+    },
+    {
+     "group": "AI 어시스턴트·LLM",
+     "n": 12
+    },
+    {
+     "group": "디자인",
+     "n": 1
+    },
+    {
+     "group": "교육·강의",
+     "n": 1
+    }
+   ],
+   "total": 54
+  },
+  {
+   "product": "keygen",
+   "groups": [
+    {
+     "group": "개발·인프라",
+     "n": 29
+    },
+    {
+     "group": "결제·판매·구독 관리",
+     "n": 20
+    }
+   ],
+   "total": 49
+  },
+  {
+   "product": "claude",
+   "groups": [
+    {
+     "group": "AI 어시스턴트·LLM",
+     "n": 22
+    },
+    {
+     "group": "개발·인프라",
+     "n": 7
+    },
+    {
+     "group": "디자인",
+     "n": 2
+    },
+    {
+     "group": "고객지원·헬프데스크",
+     "n": 1
+    },
+    {
+     "group": "회계·재무·가계부",
+     "n": 1
+    },
+    {
+     "group": "글쓰기·노트·지식관리",
+     "n": 1
+    }
+   ],
+   "total": 34
+  },
+  {
+   "product": "figma",
+   "groups": [
+    {
+     "group": "디자인",
+     "n": 32
+    },
+    {
+     "group": "영상·화이트보드·화상 협업",
+     "n": 1
+    }
+   ],
+   "total": 33
+  },
+  {
+   "product": "stripe",
+   "groups": [
+    {
+     "group": "결제·판매·구독 관리",
+     "n": 24
+    },
+    {
+     "group": "회계·재무·가계부",
+     "n": 1
+    }
+   ],
+   "total": 25
+  },
+  {
+   "product": "chatgpt",
+   "groups": [
+    {
+     "group": "AI 어시스턴트·LLM",
+     "n": 7
+    },
+    {
+     "group": "웹·제품 분석",
+     "n": 2
+    },
+    {
+     "group": "개발·인프라",
+     "n": 1
+    },
+    {
+     "group": "마케팅 콘텐츠·광고 소재",
+     "n": 1
+    }
+   ],
+   "total": 11
+  },
+  {
+   "product": "macwhisper",
+   "groups": [
+    {
+     "group": "회의록·통화 요약",
+     "n": 10
+    },
+    {
+     "group": "음성 인식·받아쓰기",
+     "n": 1
+    }
+   ],
+   "total": 11
+  },
+  {
+   "product": "tldraw",
+   "groups": [
+    {
+     "group": "영상·화이트보드·화상 협업",
+     "n": 8
+    },
+    {
+     "group": "디자인",
+     "n": 2
+    }
+   ],
+   "total": 10
+  },
+  {
+   "product": "systeme.io",
+   "groups": [
+    {
+     "group": "마케팅 콘텐츠·광고 소재",
+     "n": 6
+    },
+    {
+     "group": "글쓰기·노트·지식관리",
+     "n": 2
+    },
+    {
+     "group": "이메일·뉴스레터·메일함",
+     "n": 1
+    }
+   ],
+   "total": 9
+  },
+  {
+   "product": "openclaw",
+   "groups": [
+    {
+     "group": "노코드·자동화·내부 도구",
+     "n": 6
+    },
+    {
+     "group": "개발·인프라",
+     "n": 2
+    },
+    {
+     "group": "AI 어시스턴트·LLM",
+     "n": 1
+    }
+   ],
+   "total": 9
+  }
+ ]
+}

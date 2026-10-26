@@ -1,0 +1,49 @@
+{
+ "n": 320,
+ "noise": {
+  "n": 320,
+  "changed": 24,
+  "pct": 7.5,
+  "dir": {
+   "relevant→unknown": 5,
+   "irrelevant→relevant": 2,
+   "unknown→irrelevant": 3,
+   "relevant→irrelevant": 7,
+   "irrelevant→unknown": 2,
+   "unknown→relevant": 5
+  }
+ },
+ "change_vs_run1": {
+  "n": 320,
+  "changed": 54,
+  "pct": 16.9,
+  "dir": {
+   "relevant→unknown": 10,
+   "irrelevant→relevant": 10,
+   "relevant→irrelevant": 17,
+   "irrelevant→unknown": 4,
+   "unknown→irrelevant": 5,
+   "unknown→relevant": 8
+  }
+ },
+ "change_vs_run2": {
+  "n": 320,
+  "changed": 54,
+  "pct": 16.9,
+  "dir": {
+   "relevant→unknown": 6,
+   "irrelevant→relevant": 14,
+   "relevant→irrelevant": 16,
+   "unknown→irrelevant": 7,
+   "irrelevant→unknown": 7,
+   "unknown→relevant": 4
+  }
+ },
+ "rule_attribution": {
+  "rule10_v22": 11,
+  "rule10_v23": 17,
+  "rule16_v23": 5
+ },
+ "margin_pp": 3,
+ "pass": false
+}

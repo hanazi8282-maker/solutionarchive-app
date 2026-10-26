@@ -164,6 +164,8 @@ jobs:
           RELEVANCE_SECOND_ORDER: ${{ vars.RELEVANCE_SECOND_ORDER || '' }}
           # v71p 3(A안): 영역 밖(out-* 접두어)만 2차 제외(기본 on), NULL·모르는 코드는 계속 2차. 되돌리기 = RELEVANCE_SECOND_SKIP_OUT_OF_AREA=off
           RELEVANCE_SECOND_SKIP_OUT_OF_AREA: ${{ vars.RELEVANCE_SECOND_SKIP_OUT_OF_AREA || '' }}
+          # v71bj §3: 주제 라벨이 활성 영역인 영역 밖 글의 하루 2차 판정 건수(기본 0 = 끔, 되돌리기 = 변수 삭제).
+          RELEVANCE_SECOND_TOPIC_DAILY: ${{ vars.RELEVANCE_SECOND_TOPIC_DAILY || '0' }}
           # v71bb ⑥ 용량 상향 롤백 가드: 감사 정밀도 < 90%(또는 확인 불가)면 상한·마감을 코드 기본(200건·20분)으로. 끄기 = RELEVANCE_CAPACITY_GUARD=off.
           AUTO_APPROVAL_ENABLED: ${{ vars.AUTO_APPROVAL_ENABLED || 'false' }}
           RELEVANCE_CAPACITY_GUARD: ${{ vars.RELEVANCE_CAPACITY_GUARD || '' }}

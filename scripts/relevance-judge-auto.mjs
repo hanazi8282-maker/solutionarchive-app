@@ -96,7 +96,7 @@ const chainMaxHops = num(process.env.RELEVANCE_CHAIN_MAX_HOPS, CHAIN_DEFAULT_MAX
 const criteriaMode = (() => { const v = (process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase(); return v === 'old' || v === 'v21' || v === 'v23' ? v : 'v22' })()
 if (!['old', 'v21', 'v22', 'v23'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())) console.warn(`::warning::RELEVANCE_CRITERIA='${process.env.RELEVANCE_CRITERIA}' 는 old|v21|v22|v23 가 아니다 — v22 로 처리한다`)
 // v23 은 활성 영역 이름을 config/areas.json 에서 읽는다. 못 읽으면 판정을 시작하지 않는다(§7.1 — 모르는 영역표로 판정하지 않는다).
-const v23Areas = criteriaMode === 'v23' ? (() => { const { cfg, error } = loadAreasConfig(); if (!cfg) { console.error(`✗ v23 기준인데 config/areas.json 을 못 읽었다: ${error}`); process.exit(2) } return scorableAreas(cfg).map((a) => a.name) })() : undefined
+const v23Areas = criteriaMode === 'v23' ? (() => { const { cfg, error } = loadAreasConfig(); if (!cfg) { console.error(`✗ v23 기준인데 config/areas.json 을 못 읽었다: ${error}`); process.exit(2) } const names = scorableAreas(cfg).map((a) => a.name); if (names.length === 0) { console.error('✗ v23 기준인데 활성 영역이 0개다 — 판정을 시작하지 않는다'); process.exit(2) } return names })() : undefined
 const PROMPT_VERSION = criteriaMode === 'v23' ? RELEVANCE_V23_VERSION : criteriaMode === 'v22' ? RELEVANCE_V22_VERSION : criteriaMode === 'v21' ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION
 const chainEnabled = (process.env.RELEVANCE_CHAIN ?? 'on').trim().toLowerCase() !== 'off'
 /** 표본에서 4~5점 평점 입력의 비율 상한(v31 §2.3). 바꾸는 날은 env 값 + Notion 일일 상태 로그 한 줄이 근거다. */

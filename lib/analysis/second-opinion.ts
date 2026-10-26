@@ -40,7 +40,11 @@ export const SECOND_OPINION_INSTRUCTIONS = [
 export const SECOND_OPINION_INSTRUCTIONS_V22 = SECOND_OPINION_INSTRUCTIONS.replace(RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_V22)
 
 /** 2차 판정 v2.3(남헌 v71bi) — 활성 영역 이름은 config/areas.json 에서 호출부가 넘긴다. 비면 던진다(relevanceCriteriaV23). */
-export const secondOpinionInstructionsV23 = (areas: readonly string[]): string => SECOND_OPINION_INSTRUCTIONS.replace(RELEVANCE_CRITERIA, relevanceCriteriaV23(areas))
+export const secondOpinionInstructionsV23 = (areas: readonly string[]): string => {
+  const out = SECOND_OPINION_INSTRUCTIONS.replace(RELEVANCE_CRITERIA, relevanceCriteriaV23(areas))
+  if (!out.includes('판정 기준 v2.3')) throw new Error('v2.3 2차 판정 지시문 치환 실패')
+  return out
+}
 
 /** 결과 파일이 지금 기준으로 판정됐나. 버전이 없거나 다르면 false — 옛 기준 판정은 자동 승인 입력이 아니다(§7.1: 없음을 같음으로 접지 않는다). */
 export function isCurrentCriteria(raw: unknown): boolean {

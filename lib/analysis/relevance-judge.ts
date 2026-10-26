@@ -131,6 +131,13 @@ const SYSTEM_V21 = SYSTEM.replace(
 /** 운영 1차 판정 v2.2(남헌 v67). opts.criteria='v22' 일 때만. */
 const SYSTEM_V22 = SYSTEM_V21.replace(RELEVANCE_CRITERIA_V21, RELEVANCE_CRITERIA_V22).replace('아래 판정 기준 v2.1 로', '아래 판정 기준 v2.2 로')
 
+/** 운영 1차 판정 v2.3(남헌 v71bi). 치환이 안 먹으면 v2.2 프롬프트에 v2.3 태그가 붙는 꼴이라 던진다(§7.1). */
+function systemV23(areas: readonly string[]): string {
+  const out = SYSTEM_V22.replace(RELEVANCE_CRITERIA_V22, relevanceCriteriaV23(areas)).replace('아래 판정 기준 v2.2 로', '아래 판정 기준 v2.3 로')
+  if (!out.includes('판정 기준 v2.3') || out.includes('아래 판정 기준 v2.2 로') || out.includes('활성 영역:') === false) throw new Error('v2.3 시스템 프롬프트 치환 실패')
+  return out
+}
+
 /**
  * 영상 제목 주입 옵션(기본 off — 2026-10-12, feat/youtube-video-titles).
  * 켜면 YouTube 댓글 앞에 `영상 제목: …(채널: …)` 한 줄을 붙인다. **운영 판정(relevance-judge-auto)은 이 옵션을 넘기지 않는다**
@@ -210,7 +217,7 @@ export function buildRelevancePrompt(
     `위 ${reviews.length}건 전부에 대해 지정된 JSON 배열 하나만 출력해라.`,
   ].join('\n')
   const system = opts?.criteria === 'v23'
-    ? SYSTEM_V22.replace(RELEVANCE_CRITERIA_V22, relevanceCriteriaV23(opts.areas ?? [])).replace('아래 판정 기준 v2.2 로', '아래 판정 기준 v2.3 로')
+    ? systemV23(opts.areas ?? [])
     : opts?.criteria === 'v22' ? SYSTEM_V22 : opts?.criteria === 'v21' ? SYSTEM_V21 : SYSTEM
   return { system, user, labels }
 }

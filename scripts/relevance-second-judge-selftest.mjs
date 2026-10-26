@@ -191,7 +191,7 @@ const e503 = () => new ProviderHttpError(503, 'overloaded')
 
   // 행동 대조(v71q 2): 스크립트의 실제 두 줄(skipOutOfArea·queue)을 그대로 떼어 돌린다 — 복사본이 아니라 원문이라 코드가 바뀌면 같이 깨진다.
   // 두 줄에 legacyOrder 가 없으므로 RELEVANCE_SECOND_ORDER=legacy 여도 제외는 그대로다.
-  const lines = src.split('\n').filter((l) => /^const (skipOutOfArea|queue) = /.test(l))
+  const lines = src.split('\n').filter((l) => /^(const|let) (skipOutOfArea|queue) = /.test(l))
   ok(lines.length === 2 && !lines.join().includes('legacy'), '필터 두 줄을 원문에서 찾았고 legacy 순서와 무관하다')
   const runFilter = new Function('process', 'live', 'projects', 'outOfScopeReason', `${lines.join('\n')}\nreturn queue`)
   const projs = new Map([['in0', { area_code: '1', business_model: 'SAAS' }], ['in1', { area_code: '3', business_model: null }], ['dz', { area_code: 'design', business_model: null }],

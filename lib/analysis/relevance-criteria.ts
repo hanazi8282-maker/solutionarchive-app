@@ -191,6 +191,8 @@ export const RELEVANCE_CRITERIA_V22 = [
  *  - 규칙 번호: 지시서는 "(11) 신설" 이라 했지만 v2.2 가 (11)~(15) 를 이미 쓴다 → (16) 으로 단다. 규칙 (1)~(9)·소비재 (5)는 그대로.
  *  - 영역 목록은 하드코딩하지 않는다: 호출부가 scorableAreas(cfg).map(a => a.name) 을 넘긴다. 비면 던진다(§7.1 — 모르는 영역표로 판정하지 않는다).
  * 옛 상수(RELEVANCE_CRITERIA·V21·V22)는 바이트 그대로 둔다.
+ * 이력(v71bj, 2026-10-27): 남헌이 v71bi 의 "5% 이하" 기준을 "v2.3 변동률 ≤ v2.2 재실행 잡음 + 3%p" 로 대체했다. 자연 분포 320건 사후 검증은 잡음 7.5% · 변동 16.9% 로 불합격
+ *   → RELEVANCE_CRITERIA 를 v22 로 되돌렸다(reports/2026-10-27/v23-rollout.md). 켜는 법: 리포 변수 RELEVANCE_CRITERIA=v23, 되돌리는 법: =v22.
  */
 export const RELEVANCE_V23_VERSION = 'v23-2026-10-26'
 

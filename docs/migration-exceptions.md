@@ -591,3 +591,4 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - `20261026000030_area_work_vocab` · analysis_projects_area_code_check 어휘에 work(⑧ 업무관리) 추가(DROP+ADD 한 쌍, 상위집합) · v71bg · 적용: **미적용** — CC 도구 훅이 DROP 을 막아 남헌 SQL Editor 실행 대기(정확한 한 줄은 PR 본문) · 롤백 파일 있음
 - `20261026000040_review_topic_labels` · 새 표 review_topic_labels(빈 표→라벨 적재, RLS 켬·정책 0개) · 롤백 파일 있음(삭제성이라 남헌 실행, 대신 prompt_version 으로 걸러 씀) · 승인: v71bi §3-1 자율(add-only, CC 세션) · 적용 후 열 15·RLS true·정책 0 확인 · 2026-10-27 KST
 - `20261026000030_area_work_vocab` 정정(v71bi §0-1) · 위 줄의 "미적용"은 옛말 — 2026-10-27 `pg_get_constraintdef` 에 work 포함 확인(남헌 SQL Editor 적용 완료)
+- `20261027000010_topic_label_group_norm` · review_topic_labels 에 category_group_norm 열 추가(원본 열 무변경, 새 열 NULL 칸만 채움 10,115행) · 롤백 파일 있음 · 승인: v71bj §5 자율(add-only) · 적용 후 열·값 확인 · 2026-10-27 KST

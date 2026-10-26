@@ -117,11 +117,35 @@ const legacyOrder = String(process.env.RELEVANCE_SECOND_ORDER ?? '').trim().toLo
 // 제외하지 않고 2차 판정을 쓰기 때문이다(정렬에선 여전히 그룹 3 = 맨 뒤). 삭제·skipped 마킹이 아니라 필터라 RELEVANCE_SECOND_SKIP_OUT_OF_AREA=off(또는 false·0)면
 // 즉시 원복된다. RELEVANCE_SECOND_ORDER=legacy 는 순서만 되돌리고 이 제외는 그대로 둔다. 1차 판정은 건드리지 않는다.
 const skipOutOfArea = !['off', 'false', '0'].includes(String(process.env.RELEVANCE_SECOND_SKIP_OUT_OF_AREA ?? '').trim().toLowerCase())
-const queue = skipOutOfArea ? live.filter((r) => outOfScopeReason(String(projects.get(r.project_id)?.area_code ?? '').trim().toLowerCase(), false) !== 'out-area') : live
+let queue = skipOutOfArea ? live.filter((r) => outOfScopeReason(String(projects.get(r.project_id)?.area_code ?? '').trim().toLowerCase(), false) !== 'out-area') : live
 if (skipOutOfArea) log(`영역 밖(out-*) ${live.length - queue.length}건은 2차 대기에서 제외(RELEVANCE_SECOND_SKIP_OUT_OF_AREA=off 로 원복) — 대기 ${queue.length}건`)
+// v71bj §3: 주제 라벨(review_topic_labels)이 활성 영역·이유 있음(reason/weak)인데 out-* 프로젝트에 있어 위에서 빠진 글을 하루 RELEVANCE_SECOND_TOPIC_DAILY 건까지 앞에 세운다.
+// 우선순위 ⑧→⑨→⑤→③→②→①→④. 기본 0 = 끔(되돌리기 = 변수 삭제). 라벨 조회가 실패하면 이 경로만 건너뛴다(§7.1 — 모르는 채 넣지 않는다). 이 글은 영역 밖 프로젝트라 자동 승인(rr-v2) 범위가 아니다(L-20b).
+const TOPIC_DAILY = num(process.env.RELEVANCE_SECOND_TOPIC_DAILY, 0)
+const TOPIC_PV = 'topic-v1-2026-10-26'
+const TOPIC_ORDER = ['work', 'design', '5', '3', '2', '1', '4']
+const topicRank = new Map()
+if (TOPIC_DAILY > 0 && skipOutOfArea) {
+  const queued = new Set(queue.map((r) => r.input_id))
+  const outRows = live.filter((r) => !queued.has(r.input_id))
+  const found = []; let labelErr = null
+  for (let i = 0; i < outRows.length && !labelErr; i += 100) {
+    const { data, error } = await sb.from('review_topic_labels').select('input_id, area_guess').eq('prompt_version', TOPIC_PV).in('area_guess', TOPIC_ORDER).in('reason_quality', ['reason', 'weak']).in('input_id', outRows.slice(i, i + 100).map((r) => r.input_id))
+    if (error) labelErr = error.message; else found.push(...data)
+  }
+  if (labelErr) warn(`주제 라벨 조회 실패 — 이번 실행은 라벨 경로를 건너뛴다: ${labelErr}`)
+  else {
+    const area = new Map(found.map((x) => [x.input_id, x.area_guess]))
+    const rows = outRows.filter((r) => area.has(r.input_id)).sort((a, b) => TOPIC_ORDER.indexOf(area.get(a.input_id)) - TOPIC_ORDER.indexOf(area.get(b.input_id))).slice(0, TOPIC_DAILY)
+    for (const r of rows) topicRank.set(r.input_id, TOPIC_ORDER.indexOf(area.get(r.input_id)))
+    queue = [...queue, ...rows]
+    const per = {}; for (const r of rows) per[area.get(r.input_id)] = (per[area.get(r.input_id)] ?? 0) + 1
+    log(`주제 라벨 경로 — 대기 후보 ${found.length}건 중 이번 ${rows.length}건(상한 ${TOPIC_DAILY}) 영역별 ${JSON.stringify(per)}`)
+  }
+}
 const { picked, remaining } = orderSecondTargets(queue, (pid) => projects.get(pid)?.business_model, MAX, legacyOrder
   ? { approvable: (r) => r.verdict === 'relevant' && r.product_informative === true, otherShare: Number.isFinite(OTHER_SHARE) ? OTHER_SHARE : 0.15 }
-  : { groupOf: (r) => secondAreaGroup(projects.get(r.project_id)?.area_code, r.product_informative) })
+  : { groupOf: (r) => (topicRank.has(r.input_id) ? topicRank.get(r.input_id) - 10 : secondAreaGroup(projects.get(r.project_id)?.area_code, r.product_informative)) })
 log(`후보 ${cand.length} → 대상 ${queue.length}건(원문 폐기 ${purged}) → 이번 ${picked.length}건${remaining ? ` (상한 ${MAX} 도달, 남은 ${remaining}건은 내일)` : ''} · 순서 SaaS 우선`)
 {
   // 효과 측정(v71k): 이번 실행이 고른 행의 영역 그룹 구성과 대기 전체의 그룹 구성.

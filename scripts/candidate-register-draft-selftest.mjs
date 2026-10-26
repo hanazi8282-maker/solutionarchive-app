@@ -124,8 +124,11 @@ if (fs.existsSync(committed)) {
   const fx = planRows(JSON.parse(fs.readFileSync(path.join(repo, 'fixtures', 'candidate-register', 'approved-v53.json'), 'utf8')), { date: '2026-10-12' })
   const name = '20261012000030_candidate_register_20261012'
   const lf = (f) => fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n') // Windows 체크아웃(autocrlf)에서도 같게
-  t('커밋된 초안 = 생성기(fixture approved-v53) 출력', lf(committed) === renderSql(fx, { name, rollbackName: `${name}_rollback.sql`, source: 'fixtures/candidate-register/approved-v53.json' }))
-  t('커밋된 롤백 = 생성기 출력', lf(committed.replace(/\.sql$/, '_rollback.sql')) === renderRollback(fx, { name }))
+  // 이미 적용된 마이그의 pitch 에는 당시 영역 표시명이 박혀 있다 — v71bi 영역표 이름 통일(config/areas.json) 뒤에도 같은 출력으로 재현되는지 옛 이름으로 되돌려 비교한다.
+  const OLD_NAMES = [['① 회의록·통화 요약', '① 회의·통화 기록'], ['② 영업 도우미', '② 영업'], ['③ 마케팅 콘텐츠·광고 소재', '③ 마케팅(직접 도구만)'], ['④ 인사 운영(근태·급여·평가, 채용 제외)', '④ 인사 운영(근태·급여·평가 포함, 채용 제외)']]
+  const oldNames = (x) => OLD_NAMES.reduce((acc, [n, o]) => acc.split(n).join(o), x)
+  t('커밋된 초안 = 생성기(fixture approved-v53) 출력', lf(committed) === oldNames(renderSql(fx, { name, rollbackName: `${name}_rollback.sql`, source: 'fixtures/candidate-register/approved-v53.json' })))
+  t('커밋된 롤백 = 생성기 출력', lf(committed.replace(/\.sql$/, '_rollback.sql')) === oldNames(renderRollback(fx, { name })))
   t('fixture: HubSpot CRM→2 · Evernote·Apple Notes·Bear→notes · 앵커 전부 null', JSON.stringify(fx.projects.map((p) => [p.norm_key, p.area_code])) === JSON.stringify([['hubspotcrm', '2'], ['evernote', null], ['applenotes', null], ['bear', null]]) && fx.targets.length === 0)
 } else t('커밋된 v53 초안 파일이 있어야 한다', false)
 

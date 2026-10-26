@@ -184,3 +184,31 @@ export const RELEVANCE_CRITERIA_V22 = [
   '(14) 해당 제품·영역과 무관한 홍보(다른 서비스 광고, 스팸성 링크)는 irrelevant. 자사 제품 홍보라도 기능·이유 설명이 있으면 (9)대로 relevant 가 될 수 있다.',
   '(15) 가격 비교 서비스처럼 SaaS 이지만 영역 ①~⑤ 밖이면 irrelevant 로 두고 why 를 "영역 밖:" 로 시작한다((10) 재확인).',
 ].join('\n')
+
+/**
+ * 운영 판정 기준 v2.3(남헌 v71bi, 2026-10-26) = v2.2 + 활성 영역 목록을 config/areas.json 에서 채움 + 노트/업무관리/디자인 묶음.
+ *  - v2.2 의 영역 문구(①~⑤ 고정, ⑤ 리뷰 관리)가 영역표와 어긋나 ⑧ 업무관리·⑨ 디자인·노트 앱 글이 irrelevant 로 떨어졌다.
+ *  - 규칙 번호: 지시서는 "(11) 신설" 이라 했지만 v2.2 가 (11)~(15) 를 이미 쓴다 → (16) 으로 단다. 규칙 (1)~(9)·소비재 (5)는 그대로.
+ *  - 영역 목록은 하드코딩하지 않는다: 호출부가 scorableAreas(cfg).map(a => a.name) 을 넘긴다. 비면 던진다(§7.1 — 모르는 영역표로 판정하지 않는다).
+ * 옛 상수(RELEVANCE_CRITERIA·V21·V22)는 바이트 그대로 둔다.
+ */
+export const RELEVANCE_V23_VERSION = 'v23-2026-10-26'
+
+const V23_QUESTION_OLD = '질문은 하나다: 이 글이 우리 서비스(한국 업무용 AI 소프트웨어 — 영역 ①회의·통화 기록 ②영업 ③마케팅 ④인사 운영 ⑤리뷰 관리) 기획에 쓸모가 있나.'
+const V23_RULE10_OLD = '(10) SaaS 인데 영역 ①~⑤ 밖이면 irrelevant 로 두고 why 를 "영역 밖:" 로 시작한다(소비재와 다르다).'
+const V23_RULE15_OLD = '(15) 가격 비교 서비스처럼 SaaS 이지만 영역 ①~⑤ 밖이면 irrelevant 로 두고 why 를 "영역 밖:" 로 시작한다((10) 재확인).'
+
+export function relevanceCriteriaV23(activeAreaNames: readonly string[]): string {
+  const names = activeAreaNames.map((s) => String(s).trim()).filter(Boolean)
+  if (names.length === 0) throw new Error('v2.3 판정 기준: 활성 영역 목록이 비었다 — config/areas.json 을 읽지 못했다')
+  const out = RELEVANCE_CRITERIA_V22
+    .replace(`기준 버전 ${RELEVANCE_V22_VERSION}`, `기준 버전 ${RELEVANCE_V23_VERSION}`)
+    .replace('## 판정 기준 v2.2', '## 판정 기준 v2.3')
+    .replace(V23_QUESTION_OLD, `질문은 하나다: 이 글이 우리 서비스(한국 업무용 AI 소프트웨어 — 활성 영역: ${names.join(' / ')}) 기획에 쓸모가 있나.`)
+    .replace(V23_RULE10_OLD, '(10) SaaS 인데 활성 영역 밖이거나 보류(hold) 영역(⑥ 고객상담 에이전트, ⑦ 이커머스 운영 도구, 하위 7-리뷰도구 = 쇼핑몰 리뷰 앱)이면 irrelevant 로 두고 why 를 "영역 밖:" 로 시작한다(소비재와 다르다).')
+    .replace(V23_RULE15_OLD, '(15) 가격 비교 서비스처럼 SaaS 이지만 활성 영역 밖이면 irrelevant 로 두고 why 를 "영역 밖:" 로 시작한다((10) 재확인).')
+  // 세 군데 중 하나라도 못 바꿨으면 v2.2 문구가 그대로 남은 것이다 — 조용히 넘어가지 않는다.
+  if (out.includes('영역 ①~⑤') || out.includes('⑤리뷰 관리') || out.includes('기준 버전 ' + RELEVANCE_V22_VERSION)) throw new Error('v2.3 판정 기준: v2.2 영역 문구 치환 실패')
+  const add = '\n\n[v2.3 추가 — 제품이 어느 영역에 속하나]\n(16) 제품이 노트·지식관리 앱이면 ⑤, 할 일·일정·시간·프로젝트 관리 도구면 ⑧, 디자인·화이트보드·이미지 제작 툴이면 ⑨ 안이다. 이 묶음은 제품이 어느 영역에 속하는지만 정한다. 글 자체의 쓸모는 규칙 (1)~(9)가 그대로 정한다.'
+  return out + add
+}

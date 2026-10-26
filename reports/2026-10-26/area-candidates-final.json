@@ -1,0 +1,1131 @@
+{
+ "pv": "topic-v1-2026-10-26",
+ "total": 10115,
+ "founder": 776,
+ "unknown": 576,
+ "consumer": 859,
+ "groups": [
+  {
+   "group": "노코드·자동화·내부 도구",
+   "n": 1426,
+   "projects": 22,
+   "products": 78,
+   "reason": 1230,
+   "rated": 0,
+   "ko": 4,
+   "area": {
+    "2": 5,
+    "3": 1,
+    "5": 1,
+    "other": 1336,
+    "work": 81,
+    "design": 2
+   },
+   "src": {
+    "hackernews": 142,
+    "indiehackers": 8,
+    "glide_community": 134,
+    "softr_community": 148,
+    "n8n_community": 307,
+    "make_community": 133,
+    "producthunt": 46,
+    "bubble_forum": 265,
+    "retool_community": 239,
+    "disquiet": 2,
+    "okky": 2
+   }
+  },
+  {
+   "group": "개발·인프라",
+   "n": 1388,
+   "projects": 36,
+   "products": 403,
+   "reason": 1159,
+   "rated": 0,
+   "ko": 1,
+   "area": {
+    "1": 1,
+    "5": 4,
+    "other": 1380,
+    "design": 3
+   },
+   "src": {
+    "hackernews": 1339,
+    "producthunt": 6,
+    "indiehackers": 38,
+    "n8n_community": 2,
+    "bubble_forum": 1,
+    "okky": 1,
+    "retool_community": 1
+   }
+  },
+  {
+   "group": "웹·제품 분석",
+   "n": 771,
+   "projects": 17,
+   "products": 107,
+   "reason": 625,
+   "rated": 0,
+   "ko": 6,
+   "area": {
+    "3": 4,
+    "other": 767
+   },
+   "src": {
+    "hackernews": 661,
+    "indiehackers": 18,
+    "producthunt": 85,
+    "disquiet": 5,
+    "n8n_community": 1,
+    "okky": 1
+   }
+  },
+  {
+   "group": "이메일·뉴스레터·메일함",
+   "n": 718,
+   "projects": 21,
+   "products": 76,
+   "reason": 590,
+   "rated": 0,
+   "ko": 9,
+   "area": {
+    "3": 2,
+    "5": 2,
+    "other": 714
+   },
+   "src": {
+    "indiehackers": 16,
+    "hackernews": 655,
+    "bubble_forum": 1,
+    "producthunt": 37,
+    "disquiet": 9
+   }
+  },
+  {
+   "group": "읽기·북마크·구독 리더",
+   "n": 619,
+   "projects": 11,
+   "products": 85,
+   "reason": 504,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "5": 107,
+    "other": 511,
+    "design": 1
+   },
+   "src": {
+    "hackernews": 612,
+    "producthunt": 7
+   }
+  },
+  {
+   "group": "결제·판매·구독 관리",
+   "n": 563,
+   "projects": 16,
+   "products": 93,
+   "reason": 449,
+   "rated": 0,
+   "ko": 4,
+   "area": {
+    "other": 559,
+    "hold-ecom": 3,
+    "design": 1
+   },
+   "src": {
+    "hackernews": 500,
+    "indiehackers": 18,
+    "producthunt": 40,
+    "disquiet": 4,
+    "bubble_forum": 1
+   }
+  },
+  {
+   "group": "글쓰기·노트·지식관리",
+   "n": 357,
+   "projects": 13,
+   "products": 85,
+   "reason": 311,
+   "rated": 0,
+   "ko": 5,
+   "area": {
+    "5": 357
+   },
+   "src": {
+    "hackernews": 347,
+    "indiehackers": 3,
+    "n8n_community": 2,
+    "disquiet": 3,
+    "okky": 2
+   }
+  },
+  {
+   "group": "폼·일정·전자서명",
+   "n": 345,
+   "projects": 13,
+   "products": 69,
+   "reason": 266,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "work": 92,
+    "other": 252,
+    "design": 1
+   },
+   "src": {
+    "hackernews": 313,
+    "indiehackers": 1,
+    "producthunt": 30,
+    "make_community": 1
+   }
+  },
+  {
+   "group": "영상·화이트보드·화상 협업",
+   "n": 223,
+   "projects": 16,
+   "products": 41,
+   "reason": 165,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "1": 1,
+    "3": 1,
+    "other": 109,
+    "design": 112
+   },
+   "src": {
+    "hackernews": 126,
+    "indiehackers": 4,
+    "producthunt": 93
+   }
+  },
+  {
+   "group": "퍼블리싱·블로그·팟캐스트",
+   "n": 187,
+   "projects": 16,
+   "products": 30,
+   "reason": 138,
+   "rated": 0,
+   "ko": 1,
+   "area": {
+    "3": 2,
+    "5": 26,
+    "design": 1,
+    "other": 158
+   },
+   "src": {
+    "hackernews": 117,
+    "indiehackers": 7,
+    "producthunt": 62,
+    "disquiet": 1
+   }
+  },
+  {
+   "group": "디자인",
+   "n": 179,
+   "projects": 9,
+   "products": 66,
+   "reason": 143,
+   "rated": 0,
+   "ko": 3,
+   "area": {
+    "3": 1,
+    "design": 178
+   },
+   "src": {
+    "hackernews": 175,
+    "disquiet": 3,
+    "indiehackers": 1
+   }
+  },
+  {
+   "group": "AI 어시스턴트·LLM",
+   "n": 130,
+   "projects": 12,
+   "products": 60,
+   "reason": 118,
+   "rated": 0,
+   "ko": 6,
+   "area": {
+    "1": 1,
+    "5": 1,
+    "other": 126,
+    "work": 2
+   },
+   "src": {
+    "hackernews": 117,
+    "indiehackers": 7,
+    "okky": 5,
+    "disquiet": 1
+   }
+  },
+  {
+   "group": "노트·지식관리",
+   "n": 115,
+   "projects": 10,
+   "products": 31,
+   "reason": 97,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "5": 115
+   },
+   "src": {
+    "hackernews": 115
+   }
+  },
+  {
+   "group": "마케팅 콘텐츠·광고 소재",
+   "n": 105,
+   "projects": 12,
+   "products": 54,
+   "reason": 86,
+   "rated": 0,
+   "ko": 5,
+   "area": {
+    "3": 104,
+    "hold-ecom": 1
+   },
+   "src": {
+    "indiehackers": 21,
+    "hackernews": 78,
+    "bubble_forum": 1,
+    "disquiet": 5
+   }
+  },
+  {
+   "group": "프로젝트·이슈 관리",
+   "n": 83,
+   "projects": 6,
+   "products": 15,
+   "reason": 60,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "work": 83
+   },
+   "src": {
+    "hackernews": 74,
+    "n8n_community": 1,
+    "producthunt": 8
+   }
+  },
+  {
+   "group": "생산성 올인원 앱",
+   "n": 66,
+   "projects": 11,
+   "products": 23,
+   "reason": 61,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "3": 1,
+    "5": 49,
+    "work": 15,
+    "other": 1
+   },
+   "src": {
+    "hackernews": 63,
+    "indiehackers": 3
+   }
+  },
+  {
+   "group": "회계·재무·가계부",
+   "n": 54,
+   "projects": 14,
+   "products": 24,
+   "reason": 50,
+   "rated": 0,
+   "ko": 1,
+   "area": {
+    "other": 54
+   },
+   "src": {
+    "hackernews": 52,
+    "indiehackers": 1,
+    "disquiet": 1
+   }
+  },
+  {
+   "group": "프리랜서·원격 채용",
+   "n": 48,
+   "projects": 14,
+   "products": 16,
+   "reason": 34,
+   "rated": 0,
+   "ko": 2,
+   "area": {
+    "4": 2,
+    "other": 46
+   },
+   "src": {
+    "hackernews": 42,
+    "indiehackers": 2,
+    "n8n_community": 1,
+    "bubble_forum": 1,
+    "disquiet": 2
+   }
+  },
+  {
+   "group": "고객지원·헬프데스크",
+   "n": 44,
+   "projects": 14,
+   "products": 24,
+   "reason": 35,
+   "rated": 0,
+   "ko": 2,
+   "area": {
+    "2": 3,
+    "other": 41
+   },
+   "src": {
+    "hackernews": 39,
+    "indiehackers": 3,
+    "disquiet": 2
+   }
+  },
+  {
+   "group": "디자인·프로토타이핑 툴",
+   "n": 43,
+   "projects": 3,
+   "products": 7,
+   "reason": 38,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "design": 43
+   },
+   "src": {
+    "hackernews": 43
+   }
+  },
+  {
+   "group": "회의록·통화 요약",
+   "n": 37,
+   "projects": 10,
+   "products": 22,
+   "reason": 31,
+   "rated": 0,
+   "ko": 3,
+   "area": {
+    "1": 37
+   },
+   "src": {
+    "hackernews": 32,
+    "indiehackers": 2,
+    "okky": 2,
+    "disquiet": 1
+   }
+  },
+  {
+   "group": "영업 도우미",
+   "n": 36,
+   "projects": 8,
+   "products": 14,
+   "reason": 26,
+   "rated": 0,
+   "ko": 1,
+   "area": {
+    "2": 35,
+    "other": 1
+   },
+   "src": {
+    "hackernews": 29,
+    "indiehackers": 6,
+    "disquiet": 1
+   }
+  },
+  {
+   "group": "마케팅 자동화·콘텐츠",
+   "n": 30,
+   "projects": 8,
+   "products": 20,
+   "reason": 25,
+   "rated": 0,
+   "ko": 3,
+   "area": {
+    "3": 29,
+    "other": 1
+   },
+   "src": {
+    "hackernews": 18,
+    "indiehackers": 9,
+    "disquiet": 3
+   }
+  },
+  {
+   "group": "웹사이트 빌더",
+   "n": 25,
+   "projects": 5,
+   "products": 5,
+   "reason": 19,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 23,
+    "hold-ecom": 2
+   },
+   "src": {
+    "producthunt": 20,
+    "hackernews": 5
+   }
+  },
+  {
+   "group": "웹사이트·랜딩페이지 빌더",
+   "n": 25,
+   "projects": 4,
+   "products": 3,
+   "reason": 12,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 24,
+    "design": 1
+   },
+   "src": {
+    "producthunt": 20,
+    "hackernews": 5
+   }
+  },
+  {
+   "group": "업무관리·프로젝트 관리",
+   "n": 22,
+   "projects": 6,
+   "products": 16,
+   "reason": 19,
+   "rated": 0,
+   "ko": 2,
+   "area": {
+    "work": 22
+   },
+   "src": {
+    "hackernews": 20,
+    "disquiet": 2
+   }
+  },
+  {
+   "group": "교육·강의",
+   "n": 21,
+   "projects": 9,
+   "products": 15,
+   "reason": 19,
+   "rated": 0,
+   "ko": 2,
+   "area": {
+    "1": 1,
+    "5": 2,
+    "other": 18
+   },
+   "src": {
+    "hackernews": 17,
+    "indiehackers": 2,
+    "disquiet": 2
+   }
+  },
+  {
+   "group": "영업·리드 발굴",
+   "n": 20,
+   "projects": 12,
+   "products": 12,
+   "reason": 17,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "2": 20
+   },
+   "src": {
+    "hackernews": 15,
+    "indiehackers": 3,
+    "n8n_community": 1,
+    "bubble_forum": 1
+   }
+  },
+  {
+   "group": "AI 도구",
+   "n": 18,
+   "projects": 3,
+   "products": 11,
+   "reason": 17,
+   "rated": 0,
+   "ko": 4,
+   "area": {
+    "other": 16,
+    "work": 2
+   },
+   "src": {
+    "hackernews": 14,
+    "disquiet": 3,
+    "okky": 1
+   }
+  },
+  {
+   "group": "습관·목표 관리",
+   "n": 17,
+   "projects": 1,
+   "products": 1,
+   "reason": 10,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "work": 17
+   },
+   "src": {
+    "hackernews": 17
+   }
+  },
+  {
+   "group": "마케팅 자동화·고객 메시징",
+   "n": 16,
+   "projects": 5,
+   "products": 8,
+   "reason": 14,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "2": 1,
+    "3": 11,
+    "other": 4
+   },
+   "src": {
+    "hackernews": 13,
+    "n8n_community": 2,
+    "producthunt": 1
+   }
+  },
+  {
+   "group": "인사·급여 운영",
+   "n": 15,
+   "projects": 7,
+   "products": 6,
+   "reason": 12,
+   "rated": 0,
+   "ko": 1,
+   "area": {
+    "4": 15
+   },
+   "src": {
+    "hackernews": 7,
+    "indiehackers": 7,
+    "disquiet": 1
+   }
+  },
+  {
+   "group": "영업 인텔리전스·리드 스코어링",
+   "n": 15,
+   "projects": 6,
+   "products": 7,
+   "reason": 11,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "2": 14,
+    "other": 1
+   },
+   "src": {
+    "hackernews": 8,
+    "indiehackers": 7
+   }
+  },
+  {
+   "group": "AI 검색과 콘텐츠 유입",
+   "n": 11,
+   "projects": 4,
+   "products": 6,
+   "reason": 10,
+   "rated": 0,
+   "ko": 7,
+   "area": {
+    "3": 2,
+    "other": 9
+   },
+   "src": {
+    "indiehackers": 1,
+    "hackernews": 3,
+    "disquiet": 7
+   }
+  },
+  {
+   "group": "쇼핑몰 리뷰·이커머스 운영",
+   "n": 10,
+   "projects": 3,
+   "products": 8,
+   "reason": 9,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "hold-ecom": 10
+   },
+   "src": {
+    "hackernews": 10
+   }
+  },
+  {
+   "group": "배달·마켓플레이스",
+   "n": 9,
+   "projects": 3,
+   "products": 5,
+   "reason": 8,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 4,
+    "hold-ecom": 3,
+    "out-consumer": 2
+   },
+   "src": {
+    "hackernews": 8,
+    "indiehackers": 1
+   }
+  },
+  {
+   "group": "운세·점술·라이프스타일",
+   "n": 9,
+   "projects": 6,
+   "products": 7,
+   "reason": 8,
+   "rated": 0,
+   "ko": 4,
+   "area": {
+    "other": 9
+   },
+   "src": {
+    "hackernews": 5,
+    "disquiet": 4
+   }
+  },
+  {
+   "group": "광고 플랫폼",
+   "n": 9,
+   "projects": 7,
+   "products": 5,
+   "reason": 8,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "3": 6,
+    "other": 3
+   },
+   "src": {
+    "hackernews": 8,
+    "indiehackers": 1
+   }
+  },
+  {
+   "group": "게임·퍼즐",
+   "n": 9,
+   "projects": 3,
+   "products": 4,
+   "reason": 8,
+   "rated": 0,
+   "ko": 3,
+   "area": {
+    "other": 9
+   },
+   "src": {
+    "hackernews": 6,
+    "okky": 2,
+    "disquiet": 1
+   }
+  },
+  {
+   "group": "메신저·고객 메시징",
+   "n": 9,
+   "projects": 3,
+   "products": 7,
+   "reason": 9,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 9
+   },
+   "src": {
+    "n8n_community": 6,
+    "hackernews": 3
+   }
+  },
+  {
+   "group": "목표·습관 관리",
+   "n": 7,
+   "projects": 1,
+   "products": 2,
+   "reason": 4,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "work": 7
+   },
+   "src": {
+    "hackernews": 7
+   }
+  },
+  {
+   "group": "법률·계약 검토",
+   "n": 7,
+   "projects": 4,
+   "products": 4,
+   "reason": 6,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 7
+   },
+   "src": {
+    "hackernews": 7
+   }
+  },
+  {
+   "group": "글쓰기·문서·노트",
+   "n": 6,
+   "projects": 4,
+   "products": 3,
+   "reason": 6,
+   "rated": 0,
+   "ko": 1,
+   "area": {
+    "5": 6
+   },
+   "src": {
+    "hackernews": 5,
+    "okky": 1
+   }
+  },
+  {
+   "group": "AI 이미지 생성",
+   "n": 6,
+   "projects": 5,
+   "products": 4,
+   "reason": 6,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "3": 1,
+    "design": 4,
+    "other": 1
+   },
+   "src": {
+    "hackernews": 4,
+    "indiehackers": 2
+   }
+  },
+  {
+   "group": "마케팅 콘텐츠 자동화",
+   "n": 5,
+   "projects": 4,
+   "products": 3,
+   "reason": 5,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "3": 5
+   },
+   "src": {
+    "indiehackers": 1,
+    "hackernews": 4
+   }
+  },
+  {
+   "group": "음성 인식·받아쓰기",
+   "n": 5,
+   "projects": 3,
+   "products": 5,
+   "reason": 5,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "5": 2,
+    "other": 3
+   },
+   "src": {
+    "hackernews": 5
+   }
+  },
+  {
+   "group": "이벤트·행사",
+   "n": 4,
+   "projects": 3,
+   "products": 2,
+   "reason": 2,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 4
+   },
+   "src": {
+    "indiehackers": 2,
+    "hackernews": 2
+   }
+  },
+  {
+   "group": "디자인 마켓플레이스",
+   "n": 3,
+   "projects": 3,
+   "products": 3,
+   "reason": 3,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "design": 3
+   },
+   "src": {
+    "hackernews": 3
+   }
+  },
+  {
+   "group": "프리랜서 업무 올인원",
+   "n": 3,
+   "projects": 3,
+   "products": 3,
+   "reason": 2,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "2": 1,
+    "work": 2
+   },
+   "src": {
+    "hackernews": 3
+   }
+  },
+  {
+   "group": "재고·생산 관리",
+   "n": 3,
+   "projects": 2,
+   "products": 1,
+   "reason": 3,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 3
+   },
+   "src": {
+    "hackernews": 3
+   }
+  },
+  {
+   "group": "부동산 중개",
+   "n": 3,
+   "projects": 3,
+   "products": 3,
+   "reason": 2,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 3
+   },
+   "src": {
+    "hackernews": 3
+   }
+  },
+  {
+   "group": "팀 메신저·채팅",
+   "n": 3,
+   "projects": 3,
+   "products": 2,
+   "reason": 3,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 3
+   },
+   "src": {
+    "hackernews": 3
+   }
+  },
+  {
+   "group": "검색·뉴스 서비스",
+   "n": 3,
+   "projects": 1,
+   "products": 2,
+   "reason": 2,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 3
+   },
+   "src": {
+    "hackernews": 3
+   }
+  },
+  {
+   "group": "일정 관리",
+   "n": 3,
+   "projects": 1,
+   "products": 2,
+   "reason": 1,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "work": 3
+   },
+   "src": {
+    "hackernews": 3
+   }
+  },
+  {
+   "group": "플랫폼 의존 리스크",
+   "n": 3,
+   "projects": 1,
+   "products": 3,
+   "reason": 3,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 3
+   },
+   "src": {
+    "hackernews": 3
+   }
+  },
+  {
+   "group": "영상 요약 도구",
+   "n": 2,
+   "projects": 2,
+   "products": 2,
+   "reason": 1,
+   "rated": 0,
+   "ko": 1,
+   "area": {
+    "other": 2
+   },
+   "src": {
+    "hackernews": 1,
+    "disquiet": 1
+   }
+  },
+  {
+   "group": "웹 브라우저",
+   "n": 2,
+   "projects": 2,
+   "products": 2,
+   "reason": 2,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 2
+   },
+   "src": {
+    "hackernews": 2
+   }
+  },
+  {
+   "group": "지도·항공영상 시각화",
+   "n": 2,
+   "projects": 2,
+   "products": 2,
+   "reason": 1,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 2
+   },
+   "src": {
+    "hackernews": 2
+   }
+  },
+  {
+   "group": "스포츠·게임 AI 도구",
+   "n": 1,
+   "projects": 1,
+   "products": 0,
+   "reason": 1,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 1
+   },
+   "src": {
+    "hackernews": 1
+   }
+  },
+  {
+   "group": "시장조사·설문 서비스",
+   "n": 1,
+   "projects": 1,
+   "products": 1,
+   "reason": 0,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 1
+   },
+   "src": {
+    "hackernews": 1
+   }
+  },
+  {
+   "group": "인사 운영",
+   "n": 1,
+   "projects": 1,
+   "products": 1,
+   "reason": 1,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "4": 1
+   },
+   "src": {
+    "hackernews": 1
+   }
+  },
+  {
+   "group": "B2B 소셜 네트워크",
+   "n": 1,
+   "projects": 1,
+   "products": 1,
+   "reason": 1,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 1
+   },
+   "src": {
+    "hackernews": 1
+   }
+  },
+  {
+   "group": "집중·디지털 디톡스",
+   "n": 1,
+   "projects": 1,
+   "products": 1,
+   "reason": 1,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 1
+   },
+   "src": {
+    "hackernews": 1
+   }
+  },
+  {
+   "group": "화상 협업",
+   "n": 1,
+   "projects": 1,
+   "products": 1,
+   "reason": 1,
+   "rated": 0,
+   "ko": 0,
+   "area": {
+    "other": 1
+   },
+   "src": {
+    "hackernews": 1
+   }
+  },
+  {
+   "group": "메이커 커뮤니티·프로젝트 공유",
+   "n": 1,
+   "projects": 1,
+   "products": 1,
+   "reason": 0,
+   "rated": 0,
+   "ko": 1,
+   "area": {
+    "other": 1
+   },
+   "src": {
+    "disquiet": 1
+   }
+  }
+ ]
+}

@@ -47,7 +47,6 @@ import {
   CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
 import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION, RELEVANCE_V23_VERSION } from '../lib/analysis/relevance-criteria.ts'
-import { loadAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
 import { capacityGuard, loadAuditWindow } from '../lib/analysis/auto-approval.ts'
@@ -66,7 +65,7 @@ import {
 } from '../lib/analysis/relevance-judge.ts'
 import { loadPrefilterConfig } from '../lib/analysis/prefilter.ts'
 // 영역 결손 축(v37 작업 7 U1) — 정본 config/areas.json. 못 읽으면 영역 축을 끄고 기존 순서(compareAutoPriority) 그대로.
-import { loadAreasConfig } from '../lib/analysis/areas-config.ts'
+import { loadAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
 import { areaFloorLine, loadAreaContext, planAreaOrder } from '../lib/analysis/area-priority.ts'
 import { createPendingFor } from '../lib/analysis/relevance-pending.ts'
 import { consumerSkipEnabled } from '../lib/analysis/consumer-material.ts'

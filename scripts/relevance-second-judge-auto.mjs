@@ -60,8 +60,8 @@ const secondMode = (process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase(
 const secondV22 = !['old', 'v21'].includes(secondMode)
 if (!['old', 'v21', 'v22', 'v23', 'v24'].includes(secondMode)) warn(`RELEVANCE_CRITERIA='${process.env.RELEVANCE_CRITERIA}' 는 old|v21|v22|v23|v24 가 아니다 — v22 로 처리한다`)
 // v23(v71bi): 활성 영역 이름을 config/areas.json 에서 읽는다. 못 읽으면 시작하지 않는다(§7.1).
-const secondInstructions = secondMode === 'v23'
-  ? (() => { const { cfg, error } = loadAreasConfig(); if (!cfg) die(`v23 기준인데 config/areas.json 을 못 읽었다: ${error}`); return secondOpinionInstructionsV23(scorableAreas(cfg).map((a) => a.name)) })()
+const secondInstructions = secondMode === 'v23' || secondMode === 'v24'
+  ? (() => { const { cfg, error } = loadAreasConfig(); if (!cfg) die(`${secondMode} 기준인데 config/areas.json 을 못 읽었다: ${error}`); const names = scorableAreas(cfg).map((a) => a.name); return secondMode === 'v24' ? secondOpinionInstructionsV24(names) : secondOpinionInstructionsV23(names) })()
   : secondV22 ? SECOND_OPINION_INSTRUCTIONS_V22 : SECOND_OPINION_INSTRUCTIONS
 log(`야간 2차 판정${dry ? ' (--dry: 대상 선정만)' : ''} — provider=gemini(고정) · 기준 ${RELEVANCE_CRITERIA_VERSION} · since ${since.toISOString()}${process.env.AUTO_APPROVAL_SINCE ? '' : '(AUTO_APPROVAL_SINCE 없음 → 오늘 KST)'} · 상한 ${MAX}건`)
 

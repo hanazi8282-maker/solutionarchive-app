@@ -238,8 +238,11 @@ export function relevanceCriteriaV24(activeAreaNames: readonly string[]): string
   })
   // ①·③ 가 활성 영역에 없으면 넓힐 대상이 없다 — v2.3 과 같은 글이 v2.4 이름으로 나가지 않게 던진다(§7.1).
   if (hits !== V24_WIDE.length) throw new Error('v2.4 판정 기준: 활성 영역에서 ①·③ 을 찾지 못했다 — config/areas.json 을 확인하라')
-  return relevanceCriteriaV23(names)
+  const out = relevanceCriteriaV23(names)
     .replace(`기준 버전 ${RELEVANCE_V23_VERSION}`, `기준 버전 ${RELEVANCE_V24_VERSION}`)
     .replace('## 판정 기준 v2.3', '## 판정 기준 v2.4')
     + '\n\n[v2.4 추가 — ①·③ 범위]\n(17) ①은 회의·통화 기록 일반, ③은 마케팅 도구 전반을 뜻한다(v2.2 범위). 이름의 부제(요약·콘텐츠·광고 소재)는 예시일 뿐 경계선이 아니다 — 그 영역 제품이면 규칙 (10)·(15)의 "영역 밖"으로 보내지 않는다.'
+  // 치환이 조용히 실패해 v2.3 문구로 나가면 던진다(§7.1).
+  if (!out.includes(RELEVANCE_V24_VERSION) || out.includes('기준 버전 ' + RELEVANCE_V23_VERSION)) throw new Error('v2.4 판정 기준: 버전 치환 실패')
+  return out
 }

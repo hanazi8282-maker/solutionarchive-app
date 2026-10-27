@@ -9,7 +9,7 @@ import { judgeRelevanceBatch } from '../lib/analysis/relevance-judge.ts'
 import { loadAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
 
 const arg = (k, d) => { const a = process.argv.find((x) => x.startsWith(`--${k}=`)); return a ? a.split('=')[1] : d }
-const N = Number(arg('n', 320)); const OUT = arg('out', 'reports/2026-10-27/v23-verify.json'); const SEED = 'v71bj-verify'; const CRIT = arg('criteria', 'v23')
+const N = Number(arg('n', 320)); const OUT = arg('out', `reports/2026-10-27/${arg('criteria', 'v23')}-verify.json`); const SEED = 'v71bj-verify'; const CRIT = arg('criteria', 'v23'); if (!['v23', 'v24'].includes(CRIT)) { console.error(`✗ --criteria=${CRIT} 는 v23|v24 가 아니다 — 오타면 옛 프롬프트로 조용히 돌기 때문에 시작하지 않는다`); process.exit(2) }
 const h = (id) => createHash('sha1').update(SEED + id).digest('hex')
 const sb = await createClient(); const { cfg, error } = loadAreasConfig(); if (!cfg) { console.error(error); process.exit(2) }
 const areas = scorableAreas(cfg).map((a) => a.name)
@@ -60,4 +60,5 @@ for (const r of both(a1, b)) { const k = areaOf(r); const o = (by_area[k] ??= { 
 const flips = both(a1, b).filter((r) => a1.get(r.input_id).verdict !== b.get(r.input_id).verdict).map((r) => ({ input_id: r.input_id, area: areaOf(r), v22: a1.get(r.input_id).verdict, v23: b.get(r.input_id).verdict, out_of_area_v23: /영역 밖/.test(b.get(r.input_id).why) }))
 const rep = { by_area, flips, n: sample.length, noise, change_vs_run1: change, change_vs_run2: change2, rule_attribution: rule, margin_pp: 3, failed_batches: failedBatches, status: failedBatches > 0 ? 'unverified' : 'ok', criteria: CRIT, pass: failedBatches === 0 && change.pct != null && noise.pct != null && change.pct <= noise.pct + 3 && change2.pct <= noise.pct + 3 }
 mkdirSync('reports/2026-10-27', { recursive: true }); writeFileSync(OUT, JSON.stringify(rep, null, 1)); console.log(JSON.stringify(rep, null, 1))
+if (!rep.pass && failedBatches === 0) process.exitCode = 1 // 불합격은 종료 코드 1 — 코드만 보는 쪽이 합격으로 읽지 않게
 if (failedBatches > 0) { console.error(`✗ 확인 불가: 실패 배치 ${failedBatches}건 — 합격·불합격을 말하지 않는다`); process.exit(2) }

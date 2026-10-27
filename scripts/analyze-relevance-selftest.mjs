@@ -315,6 +315,11 @@ t('마이그레이션에 미적용 표기와 확인 쿼리가 있다',
   t('v24: ①·③ 이 활성 영역에 없으면 던진다(§7.1)', threw24)
   const p24 = buildRelevancePrompt(purpose, reviews, [], { criteria: 'v24', areas: a24 })
   t('v24: 프롬프트 system 에 v2.4 기준이 실린다', p24.system.includes('판정 기준 v2.4') && !p24.system.includes('판정 기준 v2.2 로'))
+  const { secondOpinionInstructionsV24 } = await import('../lib/analysis/second-opinion.ts')
+  t('v24: 2차 지시문에 v2.4 기준이 실린다', secondOpinionInstructionsV24(a24).includes('판정 기준 v2.4'))
+  const { readFileSync } = await import('node:fs')
+  const secSrc = readFileSync(new URL('./relevance-second-judge-auto.mjs', import.meta.url), 'utf8')
+  t('v24: 야간 2차 스크립트가 v24 를 V24 지시문으로 잇는다(조용히 v22 로 가지 않는다)', secSrc.includes("secondMode === 'v24' ? secondOpinionInstructionsV24(names)"))
   t('v22 프롬프트는 그대로다', buildRelevancePrompt(purpose, reviews, [], { criteria: 'v22' }).system.includes('영역 ①~⑤'))
 }
 

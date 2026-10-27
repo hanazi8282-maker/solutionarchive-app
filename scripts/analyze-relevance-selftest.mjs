@@ -305,6 +305,16 @@ t('마이그레이션에 미적용 표기와 확인 쿼리가 있다',
   t('v23: 프롬프트 system 에 v2.3 기준이 실린다', p23.system.includes('판정 기준 v2.3') && !p23.system.includes('판정 기준 v2.2 로'))
   let threw2 = false; try { buildRelevancePrompt(purpose, reviews, [], { criteria: 'v23' }) } catch { threw2 = true }
   t('v23: areas 없이 부르면 던진다', threw2)
+  const { relevanceCriteriaV24, RELEVANCE_V24_VERSION } = await import('../lib/analysis/relevance-criteria.ts')
+  const a24 = ['① 회의록·통화 요약', '③ 마케팅 콘텐츠·광고 소재', '⑧ 업무관리']
+  const v24 = relevanceCriteriaV24(a24)
+  t('v24: 버전 표기', v24.includes(RELEVANCE_V24_VERSION) && v24.includes('판정 기준 v2.4') && !v24.includes('판정 기준 v2.3'))
+  t('v24: ①·③ 이름이 v2.2 범위로 넓어지고 ⑧ 은 그대로', v24.includes('① 회의·통화 기록 일반') && v24.includes('③ 마케팅 도구 전반') && v24.includes('⑧ 업무관리') && !v24.includes('① 회의록·통화 요약 /'))
+  t('v24: 규칙 (16)·(17) 이 있다', v24.includes('(16)') && v24.indexOf('(17)') > v24.indexOf('(16)'))
+  let threw24 = false; try { relevanceCriteriaV24(['⑧ 업무관리']) } catch { threw24 = true }
+  t('v24: ①·③ 이 활성 영역에 없으면 던진다(§7.1)', threw24)
+  const p24 = buildRelevancePrompt(purpose, reviews, [], { criteria: 'v24', areas: a24 })
+  t('v24: 프롬프트 system 에 v2.4 기준이 실린다', p24.system.includes('판정 기준 v2.4') && !p24.system.includes('판정 기준 v2.2 로'))
   t('v22 프롬프트는 그대로다', buildRelevancePrompt(purpose, reviews, [], { criteria: 'v22' }).system.includes('영역 ①~⑤'))
 }
 

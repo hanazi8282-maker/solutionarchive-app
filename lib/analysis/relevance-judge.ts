@@ -23,7 +23,7 @@ import { extractJsonArray } from '../cases/remedy-judge.ts'
 // 목적 어휘 정본은 config/reader-problems.json 이다(lib/cases/draft.ts 가 읽는다).
 import { READER_PROBLEM_LABEL } from '../cases/draft.ts'
 // "관련"의 정의는 2차 판정(second-opinion.ts)과 한 벌이다 — 여기서 고치지 말고 relevance-criteria.ts 를 고친다.
-import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, describeBusinessModel, RELEVANCE_CRITERIA_V21, RELEVANCE_CRITERIA_V22, relevanceCriteriaV23 } from './relevance-criteria.ts'
+import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, describeBusinessModel, RELEVANCE_CRITERIA_V21, RELEVANCE_CRITERIA_V22, relevanceCriteriaV23, relevanceCriteriaV24 } from './relevance-criteria.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 // YouTube 댓글 머리말 `[YouTube 댓글 · <id>]` 해석은 번역 쪽과 한 벌이다.
 import { parseSourceContext } from '../relevance-feedback/translate.ts'
@@ -131,6 +131,13 @@ const SYSTEM_V21 = SYSTEM.replace(
 /** 운영 1차 판정 v2.2(남헌 v67). opts.criteria='v22' 일 때만. */
 const SYSTEM_V22 = SYSTEM_V21.replace(RELEVANCE_CRITERIA_V21, RELEVANCE_CRITERIA_V22).replace('아래 판정 기준 v2.1 로', '아래 판정 기준 v2.2 로')
 
+/** 운영 1차 판정 v2.4(남헌 v71bk). v2.3 과 같은 치환 + ①·③ 문구 확장. */
+function systemV24(areas: readonly string[]): string {
+  const out = SYSTEM_V22.replace(RELEVANCE_CRITERIA_V22, relevanceCriteriaV24(areas)).replace('아래 판정 기준 v2.2 로', '아래 판정 기준 v2.4 로')
+  if (!out.includes('판정 기준 v2.4') || out.includes('아래 판정 기준 v2.2 로') || !out.includes('(17) ①은')) throw new Error('v2.4 시스템 프롬프트 치환 실패')
+  return out
+}
+
 /** 운영 1차 판정 v2.3(남헌 v71bi). 치환이 안 먹으면 v2.2 프롬프트에 v2.3 태그가 붙는 꼴이라 던진다(§7.1). */
 function systemV23(areas: readonly string[]): string {
   const out = SYSTEM_V22.replace(RELEVANCE_CRITERIA_V22, relevanceCriteriaV23(areas)).replace('아래 판정 기준 v2.2 로', '아래 판정 기준 v2.3 로')
@@ -151,7 +158,7 @@ export interface RelevancePromptOptions {
   /** video_id → 제목·채널(youtube_videos). 없거나 비면 프롬프트는 옵션 없을 때와 글자 하나 다르지 않다. */
   videoTitles?: ReadonlyMap<string, { title: string | null; channel: string | null }> | null
   /** 'v21' = 운영 판정 기준 v2.1(남헌 v66). 없으면 기존 기준 그대로. */
-  criteria?: 'v21' | 'v22' | 'v23'
+  criteria?: 'v21' | 'v22' | 'v23' | 'v24'
   /** v23 전용: 활성 영역 이름(번호 포함). config/areas.json scorableAreas 에서 호출부가 채운다. 비면 v23 은 던진다(§7.1). */
   areas?: readonly string[]
 }
@@ -216,7 +223,9 @@ export function buildRelevancePrompt(
     '',
     `위 ${reviews.length}건 전부에 대해 지정된 JSON 배열 하나만 출력해라.`,
   ].join('\n')
-  const system = opts?.criteria === 'v23'
+  const system = opts?.criteria === 'v24'
+    ? systemV24(opts.areas ?? [])
+    : opts?.criteria === 'v23'
     ? systemV23(opts.areas ?? [])
     : opts?.criteria === 'v22' ? SYSTEM_V22 : opts?.criteria === 'v21' ? SYSTEM_V21 : SYSTEM
   return { system, user, labels }

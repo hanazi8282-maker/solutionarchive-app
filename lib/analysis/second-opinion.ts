@@ -8,7 +8,7 @@
 //             **라벨 4개 전부 NULL 이고 불가 표시가 없는 행에만** 라벨을 채운다. verdict·human_verdict·기존 라벨은 절대 덮지 않는다.
 
 // "관련"의 정의는 1차 판정(relevance-judge.ts SYSTEM)과 같은 상수다 — 2026-09-28 기준 통일(docs/t2-relevance-criteria.md).
-import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_V22, RELEVANCE_CRITERIA_VERSION, relevanceCriteriaV23 } from './relevance-criteria.ts'
+import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_V22, RELEVANCE_CRITERIA_VERSION, relevanceCriteriaV23, relevanceCriteriaV24 } from './relevance-criteria.ts'
 import { compareAutoPriority } from './extract-auto.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 
@@ -43,6 +43,13 @@ export const SECOND_OPINION_INSTRUCTIONS_V22 = SECOND_OPINION_INSTRUCTIONS.repla
 export const secondOpinionInstructionsV23 = (areas: readonly string[]): string => {
   const out = SECOND_OPINION_INSTRUCTIONS.replace(RELEVANCE_CRITERIA, relevanceCriteriaV23(areas))
   if (!out.includes('판정 기준 v2.3')) throw new Error('v2.3 2차 판정 지시문 치환 실패')
+  return out
+}
+
+/** 2차 판정 v2.4(남헌 v71bk) — v2.3 + ①·③ 문구 확장. */
+export const secondOpinionInstructionsV24 = (areas: readonly string[]): string => {
+  const out = SECOND_OPINION_INSTRUCTIONS.replace(RELEVANCE_CRITERIA, relevanceCriteriaV24(areas))
+  if (!out.includes('판정 기준 v2.4')) throw new Error('v2.4 2차 판정 지시문 치환 실패')
   return out
 }
 

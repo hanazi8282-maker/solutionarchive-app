@@ -214,3 +214,32 @@ export function relevanceCriteriaV23(activeAreaNames: readonly string[]): string
   const add = '\n\n[v2.3 추가 — 제품이 어느 영역에 속하나]\n(16) 제품이 노트·지식관리 앱이면 ⑤, 할 일·일정·시간·프로젝트 관리 도구면 ⑧, 디자인·화이트보드·이미지 제작 툴이면 ⑨ 안이다. 이 묶음은 제품이 어느 영역에 속하는지만 정한다. 글 자체의 쓸모는 규칙 (1)~(9)가 그대로 정한다.'
   return out + add
 }
+
+/**
+ * 운영 판정 기준 v2.4(남헌 v71bk, 2026-10-27) = v2.3 에서 ①·③ 영역 문구만 v2.2 범위로 되돌린 것.
+ *  - v2.3 은 질문에 영역표의 좁은 이름("① 회의록·통화 요약", "③ 마케팅 콘텐츠·광고 소재")을 그대로 실었고, 규칙 (10) 이 그 목록 밖을 irrelevant 로 보내
+ *    ①·③ 에서 relevant→irrelevant 가 몰렸다(reports/2026-10-27/v23-rollout.md). 영역표(config/areas.json) 이름은 그대로 두고 판정 문구만 넓힌다.
+ *  - ⑧ 업무관리·⑨ 디자인·⑤ 노트 확장(규칙 (16))은 v2.3 그대로다. 영역 목록은 호출부가 넘긴 이름에서 읽는다(하드코딩 없음).
+ * 옛 상수·relevanceCriteriaV23 은 바이트 그대로 둔다.
+ */
+export const RELEVANCE_V24_VERSION = 'v24-2026-10-27'
+
+const V24_WIDE: ReadonlyArray<readonly [string, string]> = [
+  ['①', '① 회의·통화 기록 일반(회의록·통화 요약 포함)'],
+  ['③', '③ 마케팅 도구 전반(콘텐츠·광고 소재 포함)'],
+]
+
+export function relevanceCriteriaV24(activeAreaNames: readonly string[]): string {
+  let hits = 0
+  const names = activeAreaNames.map((s) => String(s).trim()).filter(Boolean).map((n) => {
+    const w = V24_WIDE.find(([mark]) => n.startsWith(mark))
+    if (w) hits++
+    return w ? w[1] : n
+  })
+  // ①·③ 가 활성 영역에 없으면 넓힐 대상이 없다 — v2.3 과 같은 글이 v2.4 이름으로 나가지 않게 던진다(§7.1).
+  if (hits !== V24_WIDE.length) throw new Error('v2.4 판정 기준: 활성 영역에서 ①·③ 을 찾지 못했다 — config/areas.json 을 확인하라')
+  return relevanceCriteriaV23(names)
+    .replace(`기준 버전 ${RELEVANCE_V23_VERSION}`, `기준 버전 ${RELEVANCE_V24_VERSION}`)
+    .replace('## 판정 기준 v2.3', '## 판정 기준 v2.4')
+    + '\n\n[v2.4 추가 — ①·③ 범위]\n(17) ①은 회의·통화 기록 일반, ③은 마케팅 도구 전반을 뜻한다(v2.2 범위). 이름의 부제(요약·콘텐츠·광고 소재)는 예시일 뿐 경계선이 아니다 — 그 영역 제품이면 규칙 (10)·(15)의 "영역 밖"으로 보내지 않는다.'
+}

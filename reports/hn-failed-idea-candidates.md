@@ -267,3 +267,15 @@
 - 작성일: 2026-10-26
 
 > Neither's only business is LLM And SpaceX LLM business is "we failed to build competition so we just rent what we bought in hardware to other companies"
+
+## HN 50278817
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50278817
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-28 UTC)
+- 스레드: Fine-tuned Qwen on my 16gb GPU to respond without the letter e
+- 작성자: jamesdutc
+- 작성일: 2026-10-28
+
+> One year in school, we were made to write essays in E-Prime: https://en.wikipedia.org/wiki/E-Prime If I remember correctly, we would have one pointed deducted for every instance we failed to eliminate. I suspect this would be nearly trivial to get train (or get an existing model) to do, but, like writing in cursive, one could argue that these activities (as absurd as they may seem…) genuinely and positively contribute to a child's growth and development. (In fact, I'm actually slowly reteaching …

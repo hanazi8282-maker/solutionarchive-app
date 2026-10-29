@@ -279,3 +279,27 @@
 - 작성일: 2026-10-28
 
 > One year in school, we were made to write essays in E-Prime: https://en.wikipedia.org/wiki/E-Prime If I remember correctly, we would have one pointed deducted for every instance we failed to eliminate. I suspect this would be nearly trivial to get train (or get an existing model) to do, but, like writing in cursive, one could argue that these activities (as absurd as they may seem…) genuinely and positively contribute to a child's growth and development. (In fact, I'm actually slowly reteaching …
+
+## HN 50295293
+
+- 판정: (미검토)
+- 매칭: `we shut down`
+- 원본: https://news.ycombinator.com/item?id=50295293
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-29 UTC)
+- 스레드: If IPv4 were land
+- 작성자: cyberax
+- 작성일: 2026-10-29
+
+> > I don't get your point. IPv6 is at "boring, just works". The majority of the worlds devices run on it dual-stack and it handles a considerable amount of traffic. Most of the world runs on IPv4. If we shut down IPv6 on the core routers tomorrow, pretty much nobody is going to blink an eye. And now I believe that we should do it and start again. The 50% stat is really mostly mobile phones on cellular networks, which remain the _only_ major success story for IPv6. Mostly because there's not enoug…
+
+## HN 50291998
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50291998
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-29 UTC)
+- 스레드: Leak Exposes 41,000 Homeland Security Workers–Including Undercover ICE Agents
+- 작성자: vrganj
+- 작성일: 2026-10-29
+
+> I agree. The most painful mistake of European foreign policy in the last decades was not swooping up Russia in the 90s. Again, the idea of "military protection" is overly primitive and simplistic. If we had integrated them in our system, we could've given them rule of law as we have done with many an applicant state (think other post-Soviet countries!) and nurtured peace through fostering mutual dependence. We failed to spread the values of enlightenment and now we are paying the price. The whol…

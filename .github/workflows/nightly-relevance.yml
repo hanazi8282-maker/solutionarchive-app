@@ -218,30 +218,9 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/relevance-eval-report.mjs | tee -a "$GITHUB_STEP_SUMMARY"
 
-      # 감사 표본 시트(남헌 v71al §2-2): 3일에 1번 자동 승인 행 20건, 모델 판정은 가리고 번호·원문 일부·빈 human_verdict 만.
-      # '3일에 1번'은 스크립트 --every 3 이 KST 날짜로 건다(아니면 DB 도 안 열고 exit 0). 하루 여러 번(재시도·정규 2회차·체인) 돌아도
-      # 한 장만 나오게 정규 19:03Z 슬롯에서만 돈다. 시트는 리포에 커밋하지 않고 아래 아티팩트로 남긴다(Notion 연동보다 단순 — 새 토큰·새 표 없음).
-      # 읽기 전용, 시크릿은 위 스텝과 같은 둘. 되돌리기 = 이 스텝과 아래 업로드 스텝 삭제.
-      - name: Audit sample sheet (every 3 days, model verdict hidden)
-        id: audit_sheet
-        if: ${{ !cancelled() && github.event.schedule == '3 19 * * *' }}
-        continue-on-error: true
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          set -o pipefail
-          node scripts/relevance-grading-sample.mjs --n 0 --audit 20 --every 3 --sheet audit-sheet | tee -a "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload audit sample sheet
-        if: ${{ !cancelled() && steps.audit_sheet.outcome == 'success' }}
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: audit-sheet-${{ github.run_id }}
-          path: audit-sheet/
-          if-no-files-found: ignore
-          retention-days: 30
+      # 감사 표본 시트는 여기서 만들지 않는다(남헌 v71br 2026-10-30). 공개 리포 Actions 아티팩트에 리뷰 원문 발췌와 모델 판정 키가
+      # 30일간 올라가 있었다(10-18·21·24·28 4건). 시트는 세션이 로컬에서 뽑아 Notion 비공개 페이지와 ~/sa-private/ 에만 둔다.
+      # 되돌리기 = 이 PR revert (revert 하면 원문이 다시 공개 아티팩트로 나간다).
 
   # 자기 호출 체인(전량 판정 — lib/analysis/relevance-judge-all.ts decideRelaunch).
   # 판정 스크립트가 relaunch=true 를 남겼을 때만 다음 workflow_dispatch 를 부른다. 세션·사람 없이 이어진다.

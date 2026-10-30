@@ -44,7 +44,7 @@ pick.sort((a, b) => h(a.id + 'x') - h(b.id + 'x'))
 const dist = {}; for (const p of pick) dist[p.src] = (dist[p.src] ?? 0) + 1
 console.log('소스 분포', JSON.stringify(dist), '셀 수', cells.size)
 const cut = (s, n) => s.replace(/\s+/g, ' ').slice(0, n) + (s.length > n ? '…' : '')
-const md = [`# [남헌 채점] T2 감사 표본 ${TAG}`, '', '각 건에 한 글자로 답하세요: **예 / 아니오 / 애매**', '질문: 이 글은 영역 ①~⑤ 안에서 쓸모 있는 정보인가? (제품·경쟁/대체재를 판단할 구체 정보가 있으면 예)', '', ...pick.map((p, i) => `### ${i + 1}. ${p.src} · 영역 ${p.area}\n${cut(p.text, 400)}\n\n답: `)].join('\n')
+const md = [`# [남헌 채점] T2 감사 표본 ${TAG}`, '', '각 건에 한 글자로 답하세요: **예 / 아니오 / 애매**', '질문: 이 글은 영역 ①~⑤·⑧ 업무관리·⑨ 디자인 안에서(hold·미부여는 어느 영역이든) 제품·경쟁·대체재 판단에 쓸모 있는 정보인가? (제품·경쟁/대체재를 판단할 구체 정보가 있으면 예)', '', ...pick.map((p, i) => `### ${i + 1}. ${p.src} · 영역 ${p.area}\n${cut(p.text, 400)}\n\n답: `)].join('\n')
 const dir = (process.env.HOME ?? process.env.USERPROFILE) + '/sa-private/grades/'
 mkdirSync(dir, { recursive: true })
 writeFileSync(dir + `${TAG}-t2-audit-sheet.md`, md, 'utf8')

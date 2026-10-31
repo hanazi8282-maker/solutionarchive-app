@@ -1,0 +1,100 @@
+{
+  "slug": "blinkmetrics-scorecard-dashboard-not-painful-pivot-done-for-you-no-channel",
+  "brand_name": "BlinkMetrics (Nathan Tyler)",
+  "market": "SaaS · 중소기업 KPI 스코어카드·리포팅",
+  "geo": "US",
+  "business_model": "SAAS",
+  "buyer_type": "B2B",
+  "purchase_frequency": "CONTRACT",
+  "price_band": "MID",
+  "bottleneck": "CONVERSION",
+  "reader_problem": "MAKE_BUT_NO_MONEY",
+  "outcome_status": "pivoted",
+  "period_start": null,
+  "period_end": null,
+  "summary": "이전에 만든 SaaS(Staging Pilot)를 Pantheon 에 판 경험이 있는 창업자가, 여러 도구의 숫자를 한 화면에 모아 주는 KPI 스코어카드(EOS 방식으로 경영하는 회사 대상)를 만들었다. '15곳의 숫자를 한 곳에 모으는 일'은 돈을 낼 만큼 아픈 문제가 아니었고, 회사들은 데이터를 진지하게 다룰 단계가 아니었다. 그래서 1분기에 커피챗 104번으로 판매 통화 24번을 만들며 사람들이 실제로 돈을 내는 것을 찾았고, 셀프서비스 대시보드를 '30일 안에 만들어 주는 서비스'(처음 5천~1만 달러 + 월 유지비)로 바꿨다. 2026-09 팟캐스트 시점에 월 1만~2만 달러 매출이지만 창업자 스스로 '확장 가능한 마케팅·영업 채널은 못 찾았다'고 하고, 다른 제품(BlinkPages)으로 방향을 또 틀고 있다. 아직 진행 중이라 결과는 열려 있다. 근거는 창업자 본인 팟캐스트 인터뷰 1건(전사본)뿐이다.",
+  "tags": ["failure", "pivot", "saas", "done-for-you", "customer-discovery", "second-time-founder"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "POSITIONING",
+      "claim": "창업자는 'EOS 로 경영하며 이미 스코어카드와 KPI 를 쓰는 회사'를 겨냥해 '비즈니스 리포트를 스프레드시트에서 영영 꺼내 주겠다'는 문구로 제품을 팔려 했다. 결과는 '많은 회사가 그것에 돈을 낼 준비도, 의향도 없었다'였다. 유료 도입으로 이어지지 않았다는 뜻이다. 이유를 창업자는 두 가지로 든다. 첫째, 하려던 일이 '15곳의 숫자 15개를 한곳에 모으는 것'이어서 '충분히 아픈 문제가 아니었다'. 둘째, 많은 회사가 데이터를 진지하게 다룰 단계에 와 있지 않았다. 몇 곳이 써 봤고 몇 곳이 냈는지는 밝히지 않았다(확인 불가).",
+      "transfer_note": "내일 할 일: 지금 만들었거나 만들려는 제품이 풀어 주는 문제를 한 문장으로 적는다. 그다음 잠재 고객 5명에게 '이 일 때문에 지난 한 달에 시간이나 돈을 얼마나 썼나요?'를 묻는다. 숫자로 답하는 사람이 한 명도 없으면, 그 문제는 돈 낼 만큼 안 아픈 것으로 본다. (이 질문은 창업자의 회고에서 끌어낸 제안이지, 창업자가 했다고 밝힌 일은 아니다.)",
+      "preconditions": "이야기를 나눌 수 있는 잠재 고객 5명이 있어야 한다. 아직 없다면 이 무브 전에 '첫 5명 찾기'부터다. 이 사례의 근거는 창업자 1인의 회고 하나이고, 몇 곳에 시도했는지는 확인되지 않았다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    },
+    {
+      "lever": "OFFER",
+      "claim": "자동으로 보여 주는 대시보드를 팔리지 않아 접고, '30일 안에 만들어 주는 서비스'로 바꿨다. 창업자는 '월 천 달러 구독은 내기 싫어해도, 처음에 1만 달러를 내고 그 뒤 월 100~200달러는 낸다'고 말하고, 처음 작업비는 5천~1만 달러라고 한다. 팟캐스트 시점(2026-09)에 월 1만~2만 달러 매출이라고 말한다. 다만 이는 창업자 본인 발언이고, 한 달 매출의 구성(새 작업비 대 유지비)이나 고객 수는 밝히지 않았다. 창업자는 '프로젝트가 잘 끝나고 고객이 만족하고 수익도 난다'고 하면서도 같은 발언 안에서 '확장 가능한 마케팅·영업 채널은 못 찾았다'고 한다. 그래서 이 무브는 성공도 실패도 아닌 혼재로 둔다.",
+      "transfer_note": "내일 할 일: 지금 팔리지 않는 자동화·대시보드 기능 중 하나를 골라, '내가 손으로 대신 해 주면 한 번에 얼마'라는 가격표를 한 줄로 쓴다. 그 가격표를 이미 아는 고객이나 대화한 적 있는 사람 3명에게 보낸다. 월 구독 가격과 '처음 한 번 + 작은 월 유지비' 두 가지를 같이 적어 어느 쪽에 반응하는지 본다.",
+      "preconditions": "그 일을 내가 직접 손으로 해 줄 수 있어야 한다(코딩·설정·글쓰기 등). 이 창업자는 앞서 SaaS 를 한 번 만들어 판 경험과 기존 인맥이 있어서, 처음 하는 사람은 같은 속도가 나오지 않을 수 있다. 월 1만~2만 달러는 창업자 자기보고 한 줄이고 수치 출처는 이 인터뷰 하나다.",
+      "outcome_direction": "mixed",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    },
+    {
+      "lever": "CHANNEL",
+      "claim": "무엇에 돈을 내는지 찾으려고 1분기에 커피챗 104번을 했고, 그중 판매 통화는 24번이 됐다(같은 고객과의 2·3차 통화 포함). 이 통화들 가운데 몇 건이 계약·견적까지 갔는지는 밝히지 않았다. 창업자는 이 방식이 서비스 쪽에서는 '확장 가능한 마케팅·영업 채널을 못 찾았다'고 인정하고, 전화로 하나씩 파는 것보다 쉬운 길을 찾으려고 웹사이트 이전 서비스(BlinkPages)를 새로 시작했다. 이 새 제품은 이 인터뷰 시점에 막 출시한 단계라 성과는 확인되지 않았다.",
+      "transfer_note": "내일 할 일: 지금까지 한 영업 대화(상담·통화·DM)를 세어 적는다. 그중 '견적을 달라'거나 '다시 만나자'고 한 건이 몇 건인지 센다. 대화 수 대비 판매 통화 수(이 창업자는 104 대비 24)를 지금 내 숫자와 나란히 놓고, 이 속도로 한 달에 몇 건 팔 수 있는지 계산한다.",
+      "preconditions": "영업 대화 기록이 최소 10건은 있어야 비율이 의미가 있다. 기록이 없으면 오늘부터 세기 시작한다. 이 사례에서 '전화 영업으로는 규모가 안 커진다'는 판단은 창업자 본인의 평가이고, 바꾼 쪽(BlinkPages)의 결과는 아직 없다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.startupsfortherestofus.com/episodes/episode-851-the-messy-middle-of-a-saas-pivot",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "startups-for-the-rest-of-us-ep851-2026-09",
+      "published_at": "2026-09-22",
+      "snippet": "(요약) 창업자: EOS 스코어카드 겨냥, '많은 회사가 돈 낼 준비·의향이 없었다'. '15곳 숫자 15개를 한곳에 모으기'는 충분히 아픈 문제가 아니었다.",
+      "supports_claim": "스코어카드 대시보드 전제가 돈 낼 만큼 아프지 않았다"
+    },
+    {
+      "move": 1,
+      "url": "https://www.startupsfortherestofus.com/episodes/episode-851-the-messy-middle-of-a-saas-pivot",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "startups-for-the-rest-of-us-ep851-2026-09",
+      "published_at": "2026-09-22",
+      "snippet": "(요약) 대시보드→30일 대행 서비스. 처음 5천~1만 달러 + 월 100~200달러. 창업자 발언상 월 매출 1만~2만 달러.",
+      "supports_claim": "대행 서비스 전환과 가격 구조, 창업자 자기보고 매출"
+    },
+    {
+      "move": 2,
+      "url": "https://www.startupsfortherestofus.com/episodes/episode-851-the-messy-middle-of-a-saas-pivot",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "startups-for-the-rest-of-us-ep851-2026-09",
+      "published_at": "2026-09-22",
+      "snippet": "(요약) 1분기 커피챗 104번→판매 통화 24번. '확장 가능한 마케팅·영업 채널은 못 찾았다'. 새 제품 BlinkPages 는 초기 출시.",
+      "supports_claim": "커피챗 대비 판매 통화 비율과 채널 부재 인정"
+    }
+  ]
+}

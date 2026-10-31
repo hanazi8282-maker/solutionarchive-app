@@ -303,3 +303,15 @@
 - 작성일: 2026-10-29
 
 > I agree. The most painful mistake of European foreign policy in the last decades was not swooping up Russia in the 90s. Again, the idea of "military protection" is overly primitive and simplistic. If we had integrated them in our system, we could've given them rule of law as we have done with many an applicant state (think other post-Soviet countries!) and nurtured peace through fostering mutual dependence. We failed to spread the values of enlightenment and now we are paying the price. The whol…
+
+## HN 50313196
+
+- 판정: (미검토)
+- 매칭: `we shut down`
+- 원본: https://news.ycombinator.com/item?id=50313196
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-10-31 UTC)
+- 스레드: Wall Street closes sharply lower as AI cash burn fears spark tech selloff
+- 작성자: notaharvardmba
+- 작성일: 2026-10-31
+
+> Covid drops were a true black swan, 6-10% drops. Justified because we shut down the world. We’re still paying for that… You have the crazy crashes like black monday and a few of the days in 08/09. But the worst times are the repricings where there’s suddenly a realization that we haven’t been paying enough attention to the true value of things, and maybe we should have been doing that. That’s the long multi year stagnating bear markets like 1999-2002. I think probably 50-75% haircut is warranted…

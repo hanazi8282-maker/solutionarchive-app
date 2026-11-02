@@ -79,12 +79,117 @@ export function viewRow(token: string, kind: ViewKind): { token: string; kind: V
 }
 
 // ── 응답 ─────────────────────────────────────────────────────────
-// 격리 설계: 결론서 HTML 은 신뢰 못 하는 입력으로 본다. 껍데기 페이지가 `<iframe sandbox="" srcdoc=…>` 로 싣는다.
-//  - sandbox="" (허용 0개): 스크립트·폼·팝업·top 이동 금지, 문서 출처는 불투명(opaque) → 쿠키·저장소·부모 DOM 접근 없음.
-//  - srcdoc 문서는 부모의 CSP 를 물려받는다 → 외부 이미지·폰트·CSS 요청도 막힌다(열람 추적 픽셀·IP 누출 방지).
+// 격리 설계: 결론서 HTML 은 신뢰 못 하는 입력으로 본다. 껍데기 페이지가 `<iframe sandbox=… srcdoc=…>` 로 싣는다.
+//  - sandbox = SANDBOX: 팝업(새 탭으로 여는 링크)만 허용. `allow-scripts`·`allow-same-origin`·`allow-forms`·
+//    `allow-top-navigation` 은 없다 → 스크립트·폼·껍데기 페이지 이동 금지, 문서 출처는 불투명(opaque) → 쿠키·저장소·부모 DOM 접근 없음.
+//  - srcdoc 문서는 부모의 CSP 를 물려받는다 → 외부 이미지·폰트·CSS 요청도 막힌다(열람 추적 픽셀·열람자 IP 외부 유출 방지).
+//    Google Fonts 도 허용하지 않는다 — 글꼴은 시스템 대체 글꼴로 그려진다.
+//  - 링크는 응답 만들 때 rewriteLinks 로 전부 새 탭(target=_blank, rel=noopener noreferrer)으로 바꾸고,
+//    http(s)·mailto·tel·# 밖의 href(javascript:·data:·상대경로 등)는 지운다. 저장된 HTML 은 건드리지 않는다.
 //  - 하단 고지 줄은 부모 문서에 있어 결론서 CSS 가 덮거나 숨길 수 없다.
-// ponytail: 외부 리소스 0 — 결론서는 인라인 CSS·data: 이미지로만 그려야 한다. 링크 클릭도 안 열린다(allow-popups 없음).
-//   링크가 필요해지면 sandbox 에 'allow-popups allow-popups-to-escape-sandbox' 만 더한다(스크립트는 계속 금지).
+export const SANDBOX = 'allow-popups allow-popups-to-escape-sandbox'
+
+// ── 링크 재작성 ──────────────────────────────────────────────────
+// 정규식 치환이 아니라 작은 토크나이저다: 모든 태그를 속성 단위로 읽어 끝 `>` 를 찾으므로, 다른 태그의 따옴표
+// 속성 안에 든 "<a" 나 ">" 에 속지 않는다. 주석·raw text 요소(script·style·textarea·title 등) 안은 건드리지 않는다.
+// ponytail: <area href> 는 다루지 않는다(결론서에 이미지맵이 없다). 스크립트가 막혀 있어 javascript: 는 어차피 안 돈다 — 이건 이중 방어다.
+const RAW_TEXT = new Set(['script', 'style', 'textarea', 'title', 'xmp', 'iframe', 'noembed', 'noframes', 'noscript', 'plaintext'])
+const SAFE_HREF = /^(https?:\/\/|mailto:|tel:|#)/
+const ATTR_NAME_OK = /^[a-z][a-z0-9_.:-]*$/
+const DROP_ATTRS = new Set(['target', 'rel', 'href', 'ping', 'referrerpolicy'])
+
+type Attr = { name: string; value: string | null }
+
+const isSpace = (c: string) => c === ' ' || c === '\t' || c === '\n' || c === '\r' || c === '\f'
+
+/** `<` 위치에서 시작 태그를 읽는다. 태그 이름·속성·끝 위치(`>` 다음). 끝이 없으면 null. */
+function readTag(html: string, start: number): { name: string; attrs: Attr[]; end: number } | null {
+  let i = start + 1
+  let name = ''
+  while (i < html.length && !isSpace(html[i]) && html[i] !== '/' && html[i] !== '>') name += html[i++]
+  const attrs: Attr[] = []
+  while (i < html.length) {
+    while (i < html.length && (isSpace(html[i]) || html[i] === '/')) i++
+    if (i >= html.length) return null
+    if (html[i] === '>') return { name: name.toLowerCase(), attrs, end: i + 1 }
+    let an = html[i++] // 첫 글자는 '=' 여도 이름에 넣는다(HTML 파서와 같다)
+    while (i < html.length && !isSpace(html[i]) && !'/>='.includes(html[i])) an += html[i++]
+    while (i < html.length && isSpace(html[i])) i++
+    let value: string | null = null
+    if (html[i] === '=') {
+      i++
+      while (i < html.length && isSpace(html[i])) i++
+      const q = html[i]
+      if (q === '"' || q === "'") {
+        const close = html.indexOf(q, i + 1)
+        if (close < 0) return null
+        value = html.slice(i + 1, close)
+        i = close + 1
+      } else {
+        let v = ''
+        while (i < html.length && !isSpace(html[i]) && html[i] !== '>') v += html[i++]
+        value = v
+      }
+    }
+    attrs.push({ name: an.toLowerCase(), value })
+  }
+  return null
+}
+
+/** 브라우저가 href 를 해석하는 꼴에 가깝게: 숫자·주요 이름 문자참조 해제 → 공백·제어문자 제거 → 소문자. */
+export function normalizeHref(raw: string): string {
+  const named: Record<string, string> = { amp: '&', colon: ':', tab: '\t', newline: '\n', sol: '/', num: '#', lpar: '(', rpar: ')', quot: '"', apos: "'" }
+  return raw
+    .replace(/&#x([0-9a-f]+);?/gi, (_, h) => String.fromCodePoint(Math.min(parseInt(h, 16), 0x10ffff)))
+    .replace(/&#([0-9]+);?/g, (_, d) => String.fromCodePoint(Math.min(parseInt(d, 10), 0x10ffff)))
+    .replace(/&([a-z]+);/gi, (m, n) => named[n.toLowerCase()] ?? m)
+    .replace(/[\u0000- \u007f-\u009f]/g, '')
+    .toLowerCase()
+}
+
+const serializeAttr = (a: Attr) => a.value === null ? a.name : `${a.name}="${a.value.replace(/"/g, '&quot;')}"`
+
+function rewriteA(attrs: Attr[]): string {
+  const href = attrs.find((a) => a.name === 'href') // 같은 속성이 둘이면 브라우저도 첫 번째를 쓴다
+  const keep = attrs.filter((a) => ATTR_NAME_OK.test(a.name) && !DROP_ATTRS.has(a.name) && !a.name.startsWith('on'))
+  if (href?.value != null && SAFE_HREF.test(normalizeHref(href.value))) keep.unshift(href)
+  return '<a' + keep.map((a) => ' ' + serializeAttr(a)).join('') + ' target="_blank" rel="noopener noreferrer">'
+}
+
+/** 결론서 HTML 의 모든 `<a>` 를 새 탭 링크로 바꾸고 위험한 href 를 지운다. 입력 문자열은 바꾸지 않는다(새 문자열 반환). */
+export function rewriteLinks(html: string): string {
+  let out = ''
+  let i = 0
+  while (i < html.length) {
+    const lt = html.indexOf('<', i)
+    if (lt < 0) { out += html.slice(i); break }
+    out += html.slice(i, lt)
+    if (html.startsWith('<!--', lt)) {
+      const close = html.indexOf('-->', lt + 4)
+      const end = close < 0 ? html.length : close + 3
+      out += html.slice(lt, end); i = end; continue
+    }
+    const next = html[lt + 1] ?? ''
+    if (!/[a-zA-Z]/.test(next)) {
+      // 끝 태그·<!doctype>·<?…>·맨 '<' — 손대지 않는다.
+      const close = /[/!?]/.test(next) ? html.indexOf('>', lt) : -1
+      const end = close < 0 ? lt + 1 : close + 1
+      out += html.slice(lt, end); i = end; continue
+    }
+    const tag = readTag(html, lt)
+    if (!tag) { out += html.slice(lt); break } // 닫히지 않은 태그 — 브라우저도 버린다
+    out += tag.name === 'a' ? rewriteA(tag.attrs) : html.slice(lt, tag.end)
+    i = tag.end
+    if (RAW_TEXT.has(tag.name)) {
+      const closeRe = new RegExp(`</${tag.name}[\\s/>]`, 'i')
+      const m = closeRe.exec(html.slice(i))
+      const end = m ? i + m.index : html.length
+      out += html.slice(i, end); i = end
+    }
+  }
+  return out
+}
+
 export const CSP = [
   "default-src 'none'",
   "style-src 'unsafe-inline'",
@@ -123,7 +228,7 @@ export function renderReportPage(reportHtml: string): string {
     + 'iframe{flex:1;border:0;width:100%}'
     + 'footer{flex:none;padding:10px 16px max(10px,env(safe-area-inset-bottom));font-size:13px;overflow-wrap:anywhere;line-height:1.5;color:#444;background:#f6f6f6;border-top:1px solid #ddd;text-align:center}'
     + '</style></head><body>'
-    + `<iframe sandbox="" referrerpolicy="no-referrer" title="결론서" srcdoc="${escapeAttr(reportHtml)}"></iframe>`
+    + `<iframe sandbox="${SANDBOX}" referrerpolicy="no-referrer" title="결론서" srcdoc="${escapeAttr(rewriteLinks(reportHtml))}"></iframe>`
     + `<footer>${FOOTER_TEXT}</footer></body></html>`
 }
 

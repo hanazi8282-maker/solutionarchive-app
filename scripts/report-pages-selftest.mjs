@@ -9,8 +9,9 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
   TOKEN_BYTES, TOKEN_RE, DUMMY_TOKEN, newToken, maskedUrl, classifyView, estimateViews, DEDUP_WINDOW_MS, viewRow,
-  responseHeaders, renderReportPage, NOT_FOUND_HTML, UNAVAILABLE_HTML, FOOTER_TEXT, CSP,
+  responseHeaders, renderReportPage, NOT_FOUND_HTML, UNAVAILABLE_HTML, FOOTER_TEXT, CSP, SANDBOX, rewriteLinks, normalizeHref,
 } from '../lib/report-pages/core.ts'
+import { FAKE_REPORT_HTML, FAKE_COUNTS } from './report-pages-fixture.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const read = (p) => readFileSync(`${ROOT}/${p}`, 'utf8')
@@ -92,7 +93,10 @@ const FAKE = '<!doctype html><html><body><h1>가짜 결론서 (셀프테스트)<
 const page = renderReportPage(FAKE)
 t('meta robots noindex', page.includes('<meta name="robots" content="noindex, nofollow, noarchive">'))
 t('meta referrer no-referrer', page.includes('<meta name="referrer" content="no-referrer">'))
-t('sandbox iframe(허용 0개)', /<iframe sandbox="" referrerpolicy="no-referrer"[^>]* srcdoc="/.test(page))
+t('sandbox iframe = 팝업만 허용', /<iframe sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer"[^>]* srcdoc="/.test(page))
+t('sandbox 에 스크립트·같은 출처·폼·top 이동 허용 없음', SANDBOX === 'allow-popups allow-popups-to-escape-sandbox'
+  && !/allow-(scripts|same-origin|forms|top-navigation|modals)/.test(SANDBOX))
+t('CSP: 외부 CSS·폰트 차단(Google Fonts 허용 없음)', !/googleapis|gstatic|https:/.test(CSP) && /style-src 'unsafe-inline'(;|$)/.test(CSP) && /font-src data:(;|$)/.test(CSP))
 t('결론서 HTML 이 껍데기에 날것으로 안 섞인다(<script>·onerror 태그 없음)', !page.includes('<script') && !page.includes('<img'))
 t('srcdoc 탈출 불가: 따옴표가 &quot; 로', !page.includes('"><script') && page.includes('&quot;&gt;&lt;script&gt;'))
 const footerAt = page.indexOf(`<footer>${FOOTER_TEXT}</footer>`)
@@ -101,6 +105,53 @@ t('고지 문구 고정', FOOTER_TEXT === "솔루션아카이브 김남헌 · ha
 for (const [n, b] of [['404', NOT_FOUND_HTML], ['503', UNAVAILABLE_HTML]]) {
   t(`${n} 본문도 noindex`, b.includes('noindex'))
 }
+
+// ── 4b. 링크 재작성(응답 때만, 저장본은 그대로) ──────────────────
+const NEW_TAB = ' target="_blank" rel="noopener noreferrer">'
+const rw = (h) => rewriteLinks(h)
+const L = [
+  // [이름, 입력, 기대 출력]
+  ['양성: 기본 https', '<a href="https://ex.test/a">x</a>', `<a href="https://ex.test/a"${NEW_TAB}x</a>`],
+  ['양성: 이미 target·rel 있음 → 덮어씀', '<a href="https://ex.test" target="_self" rel="opener">x</a>', `<a href="https://ex.test"${NEW_TAB}x</a>`],
+  ['양성: 대문자 A·HREF·TARGET', '<A HREF="https://ex.test" TARGET=_top>x</A>', `<a href="https://ex.test"${NEW_TAB}x</A>`],
+  ['양성: 따옴표 없는 속성', '<a href=https://ex.test/a?b=1 title=t>x</a>', `<a href="https://ex.test/a?b=1" title="t"${NEW_TAB}x</a>`],
+  ['양성: 중첩 따옴표(작은따옴표 안 큰따옴표)', `<a href="https://ex.test/?q='a'" title='say "hi"'>x</a>`, `<a href="https://ex.test/?q='a'" title="say &quot;hi&quot;"${NEW_TAB}x</a>`],
+  ['양성: mailto·tel·#', '<a href="mailto:a@ex.test">m</a><a href="tel:+8210">t</a><a href="#fn1">1</a>',
+    `<a href="mailto:a@ex.test"${NEW_TAB}m</a><a href="tel:+8210"${NEW_TAB}t</a><a href="#fn1"${NEW_TAB}1</a>`],
+  ['양성: 속성 없는 <a>', '<a>x</a>', `<a${NEW_TAB}x</a>`],
+  ['음성: javascript: → href 제거', '<a href="javascript:alert(1)">x</a>', `<a${NEW_TAB}x</a>`],
+  ['음성: 대소문자·앞공백 JaVaScRiPt:', '<a href="  JaVaScRiPt:alert(1)">x</a>', `<a${NEW_TAB}x</a>`],
+  ['음성: 문자참조 &#106;avascript:', '<a href="&#106;avascript:alert(1)">x</a>', `<a${NEW_TAB}x</a>`],
+  ['음성: 탭 끼운 jav&#x09;ascript:', '<a href="jav&#x09;ascript:alert(1)">x</a>', `<a${NEW_TAB}x</a>`],
+  ['음성: &colon; 쓴 javascript', '<a href="javascript&colon;alert(1)">x</a>', `<a${NEW_TAB}x</a>`],
+  ['음성: 따옴표 없는 javascript:', '<a href=javascript:alert(1)>x</a>', `<a${NEW_TAB}x</a>`],
+  ['음성: data: (값 안에 < >)', '<a href="data:text/html,<b>x</b>">x</a>', `<a${NEW_TAB}x</a>`],
+  ['음성: vbscript:·상대경로·빈 href', '<a href="vbscript:x">1</a><a href="/dashboard">2</a><a href="">3</a>', `<a${NEW_TAB}1</a><a${NEW_TAB}2</a><a${NEW_TAB}3</a>`],
+  ['음성: onclick·ping·referrerpolicy 제거', '<a href="https://ex.test" onclick="x()" ping="https://t.test" referrerpolicy="unsafe-url">x</a>', `<a href="https://ex.test"${NEW_TAB}x</a>`],
+  ['음성: 다른 태그 속성 안의 "<a" 는 태그가 아니다', '<div title="<a href=javascript:x>">y</div>', '<div title="<a href=javascript:x>">y</div>'],
+  ['음성: 주석 안은 그대로', '<!-- <a href="javascript:x"> -->', '<!-- <a href="javascript:x"> -->'],
+  ['음성: style·script 안은 그대로', '<style>a[href]{x:"<a href=1>"}</style><script>"<a>"</script>', '<style>a[href]{x:"<a href=1>"}</style><script>"<a>"</script>'],
+  ['음성: <abbr>·<area> 는 a 가 아니다', '<abbr title="t">x</abbr>', '<abbr title="t">x</abbr>'],
+  ['음성: href 두 개면 첫 번째만 본다(브라우저와 같게)', '<a href="javascript:x" href="https://ex.test">x</a>', `<a${NEW_TAB}x</a>`],
+]
+for (const [name, input, want] of L) {
+  const got = rw(input)
+  t(`링크 ${name}${got === want ? '' : ` — 실제 ${got}`}`, got === want)
+}
+t('normalizeHref: 엔티티·공백 해제', normalizeHref(' &#x4A;ava&Tab;script&colon;') === 'javascript:')
+
+const before = FAKE_REPORT_HTML
+const rendered = rewriteLinks(FAKE_REPORT_HTML)
+t('저장본(입력 문자열)은 그대로', FAKE_REPORT_HTML === before && rendered !== before)
+t(`픽스처: <a> ${FAKE_COUNTS.anchors}개 전부 새 탭`, (rendered.match(/<a\b/g) ?? []).length === FAKE_COUNTS.anchors
+  && (rendered.match(/target="_blank" rel="noopener noreferrer">/g) ?? []).length === FAKE_COUNTS.anchors)
+t(`픽스처: 출처 링크 ${FAKE_COUNTS.sourceLinks}개 href 유지`, (rendered.match(/<a href="https:\/\/example\.com\/source\/\d+/g) ?? []).length === FAKE_COUNTS.sourceLinks)
+t(`픽스처: 각주 # 링크 ${FAKE_COUNTS.hashLinks}개 유지`, (rendered.match(/<a href="#fn\d+"/g) ?? []).length === FAKE_COUNTS.hashLinks)
+t('픽스처: 위험 href 0개 · target="_self" 0개', !/href="\s*(javascript|data|jav&)/i.test(rendered) && !rendered.includes('_self'))
+t('픽스처: Google Fonts <link> 는 남지만 CSP 가 막는다(외부 출처 허용 없음)', rendered.includes('fonts.googleapis.com') && !CSP.includes('googleapis'))
+const ops = read('ops/report-pages.md')
+t('ops 한계 절: robots/noindex 충돌 · 토큰 평문 → sha256 예정', /## 한계/.test(ops) && /URL 만 색인/.test(ops) && /sha256/.test(ops))
+t('라우트 저장본 수정 없음(UPDATE 호출 없음)', !/\.update\(/.test(read('app/r/[token]/route.ts')))
 
 // ── 5. 라우트: 열거 방지·단일 404·헤더 한 곳 ─────────────────────
 const route = read('app/r/[token]/route.ts')

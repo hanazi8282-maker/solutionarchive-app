@@ -18,7 +18,9 @@
 - 열람 추정: `node scripts/report-pages.mjs views --company <slug>`
 
 결론서 HTML 은 외부 리소스를 못 부른다(CSP `default-src 'none'`). 인라인 `<style>` 과 `data:` 이미지로만 만든다.
-스크립트·링크 클릭도 동작하지 않는다(`sandbox=""`).
+Google Fonts 등 외부 글꼴·CSS 도 막힌다(열람자 IP 가 제3자에 새지 않게) — 글꼴은 시스템 대체 글꼴로 그려진다.
+스크립트는 동작하지 않는다(sandbox 에 `allow-scripts` 없음). 링크는 응답 때 전부 새 탭(`target=_blank`, `rel=noopener noreferrer`)으로
+바뀌고, http(s)·mailto·tel·# 밖의 href(javascript:·data:·상대경로)는 지워진다. 저장된 HTML 은 바뀌지 않는다.
 
 ## SQL 한 줄 절차 (Dashboard SQL Editor)
 
@@ -31,3 +33,12 @@
 
 1. 스크립트 출력에 `게시: <slug> vN → …/r/xxxx…(masked)` 가 찍혔는가.
 2. 회수 연습은 가짜 문서로만 한다 — 회수 뒤 같은 URL 이 404 인지.
+
+## 한계
+
+- **robots Disallow 와 noindex 가 부딪힌다.** robots.txt 가 `/r/` 를 막으면 규칙을 지키는 크롤러는 페이지를 받지 않으므로
+  `X-Robots-Tag: noindex` 헤더도 보지 못한다. 링크가 외부(공개 게시판·메일 아카이브 등)에 새면 본문 없이 **URL 만 색인될 여지**가 있다.
+  본문은 긁히지 않는다. 링크가 샜다고 의심되면 즉시 회수(위 SQL)한다 — 회수 뒤에는 404 다.
+- **토큰은 평문 저장이다.** DB(`report_pages.token`)가 유출되면 링크도 같이 유출된다.
+  **첫 주문 전에 sha256 해시 저장으로 바꾼다**(DB 에는 해시만, 전체 URL 은 게시 때 한 번만 보여 주는 방식).
+- **열람 수는 추정치다.** 일반 브라우저 UA 를 쓰는 메일 스캐너는 browser 로 남고, Outlook 앱 안에서 연 사람은 bot 으로 빠질 수 있다.

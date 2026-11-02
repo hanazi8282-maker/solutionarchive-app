@@ -45,6 +45,7 @@ import { resolveClaudeBinary, runClaude } from '../lib/insight/claude-cli.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
 import { createTracker } from './agent-status.mjs'
 import { recordStatusLog, kstDate } from './notion-status-log.mjs'
+import { recordCardCandidates } from './card-candidates.mjs'
 import { pushWithRetry } from './git-push-retry.mjs'
 // 토큰 없이 DB 기록만 읽는다. lib/threads/recent·token 을 여기서 import 하지 마라(§10.1).
 import { unlinkedDigestLine, UNLINKED_STEP_KEY } from '../lib/threads/unlinked-status.ts'
@@ -714,7 +715,9 @@ async function main() {
     // ★ 저장은 오케스트레이터가 한다. analyst 에게 Write 를 주지 않는다(AGENT_TOOLS).
     //   writeDigest(S8) 는 이 파일을 **읽어서** "## 개선 방안"에 박는다.
     fs.appendFileSync(path.join(reportDir, 'performance.md'), `\n\n# 해설\n\n${text}\n`, 'utf-8')
-    return { status: 'ok', counts: { commented: 1 } }
+    // v71bv: 해설 끝 `## 카드 후보` → Notion `[카드 후보 YYYY-MM-DD]` 행(KST 날짜). 실패해도 이 단계는 ok — 결과는 detail 에 남는다.
+    const card = await recordCardCandidates({ text, date: kstDate(), runUrl, pendingDir: path.join(process.cwd(), 'ops', 'state', 'status-log-pending') })
+    return { status: 'ok', counts: { commented: 1 }, detail: { card_candidates: card } }
   })
 
   // ── S9 digest ───────────────────────────────────────────────
@@ -2047,6 +2050,7 @@ function analystPrompt(raw, date) {
     '출력: 마크다운. 넓은 표 금지, 항목당 한 줄.',
     '유효 / 무효 / 보류(표본 부족) 를 반드시 분리해서 세라. 보류를 실패로도 성공으로도 세지 마라.',
     '다음 앵글 후보 3개까지, 각각 왜 지금인지 한 줄.',
+    '그 후보는 맨 끝에 `## 카드 후보` 제목 아래 `- ` 목록으로 적는다(제목 문구를 바꾸지 마라 — 기계가 읽어 Notion `[카드 후보 YYYY-MM-DD]` 행으로 올린다).',
   ].join('\n')
 }
 

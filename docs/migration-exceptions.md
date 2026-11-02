@@ -592,3 +592,4 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - `20261026000040_review_topic_labels` · 새 표 review_topic_labels(빈 표→라벨 적재, RLS 켬·정책 0개) · 롤백 파일 있음(삭제성이라 남헌 실행, 대신 prompt_version 으로 걸러 씀) · 승인: v71bi §3-1 자율(add-only, CC 세션) · 적용 후 열 15·RLS true·정책 0 확인 · 2026-10-27 KST
 - `20261026000030_area_work_vocab` 정정(v71bi §0-1) · 위 줄의 "미적용"은 옛말 — 2026-10-27 `pg_get_constraintdef` 에 work 포함 확인(남헌 SQL Editor 적용 완료)
 - `20261027000010_topic_label_group_norm` · review_topic_labels 에 category_group_norm 열 추가(원본 열 무변경, 새 열 NULL 칸만 채움 10,115행) · 롤백 파일 있음 · 승인: v71bj §5 자율(add-only) · 적용 후 열·값 확인 · 2026-10-27 KST
+- `20261102000020_indiehackers_disable` · review_sources indiehackers enabled=false(+사유·시각 두 칸, 1행 UPDATE) · 롤백 파일 있음(`_rollback.sql`, Cloudflare 해제 시 되돌림) · 승인: 남헌 2026-11-02 "기술적으로 불가능하면 끄자" 사전 승인 + 제1참모 v71bv 회신 3번 · 적용 전 enabled=t·14일 차단 1건 확인, 후 enabled=f·사유/시각 기록·타 소스 태그 0건 · 2026-11-02 KST (CC 세션, MCP apply_migration)

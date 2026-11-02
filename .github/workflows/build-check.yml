@@ -386,6 +386,10 @@ jobs:
       - run: node scripts/review-theqoo-selftest.mjs
       - run: node scripts/review-todayhumor-selftest.mjs
       - run: node scripts/review-tumblbug-selftest.mjs
+      # v71bv: 입금 안내 — env 3키·mailto 형식·계좌번호 하드코딩 0.
+      - run: node scripts/deposit-notice-selftest.mjs
+      # v71bv: 카드 후보 섹션 추출(cmo-daily → Notion `[카드 후보 YYYY-MM-DD]`).
+      - run: node scripts/card-candidates-selftest.mjs
       # 빌드가 **실제로 읽는** 값만 준다. 나머지는 요청 시점(Vercel env)에서
       # 읽히지 서버 빌드에서 읽히지 않는다. 안 쓰는 이름을 여기 적어 두면
       # "CI 에 배선돼 있으니 등록돼 있겠지"로 읽혀 진단을 헛돌게 만든다.

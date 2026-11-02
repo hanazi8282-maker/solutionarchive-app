@@ -118,6 +118,15 @@ for (const p of ['/cases/reportx', '/cases/report/x', '/cases', '/cases/search']
 }
 t('PUBLIC_PREFIXES 에 /cases 가 없다 — 정확일치로만 연다', !prefixBlock.includes("'/cases"))
 
+// 2f. 비공개 결론서 링크 `/r/{token}`(v71by) — 접두사 공개. `/r` 아래는 route 하나뿐이어야 하고 형제 경로는 닫혀 있어야 한다.
+t('공개(결론서 링크): /r/<token>', isPublicPath('/r/' + 'a'.repeat(43)))
+t('공개(robots.txt 정확일치)', isPublicPath('/robots.txt'))
+for (const p of ['/rx', '/relevance', '/relevance/grade', '/reports', '/api/r', '/api/r/x', '/robots.txtx', '/robots.txt/x']) {
+  t(`보호(결론서 공개가 형제 경로로 번지지 않는다): ${p}`, !isPublicPath(p))
+}
+const rFiles = files.filter((f) => f.startsWith('r/') && /\.(tsx?|mdx?)$/.test(f))
+t(`/r 아래 파일은 route 하나뿐 (실제 ${rFiles.join(', ') || '없음'})`, rFiles.length === 1 && rFiles[0] === 'r/[token]/route.ts')
+
 // ── 3. 세션 판정 + 서버 액션 가드 ───────────────────────────────
 const ALLOW = 'hanazi8282@gmail.com, kimnh030820@postech.ac.kr'
 const ok = (email) => async () => ({ data: { user: { email } }, error: null })

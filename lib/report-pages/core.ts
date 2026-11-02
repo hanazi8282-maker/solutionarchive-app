@@ -2,7 +2,7 @@
 // (scripts/report-pages.mjs)·셀프테스트(scripts/report-pages-selftest.mjs)가 같이 쓴다.
 // node:crypto 말고 import 가 없다 — 셀프테스트가 node 로 바로 불러 검사한다.
 //
-// 테이블: report_pages · report_views (supabase/migrations/20261103000010_report_pages.sql). 둘 다 service_role 전용.
+// 테이블: report_pages · report_views (supabase/migrations/20261103000020_report_pages.sql). 둘 다 service_role 전용.
 
 import { randomBytes } from 'node:crypto'
 

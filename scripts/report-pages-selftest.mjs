@@ -115,7 +115,7 @@ t('라우트가 결론서를 신뢰 렌더하지 않는다(dangerouslySetInnerHT
 // ── 6. 저장 칸: IP·이메일·UA 없음 ────────────────────────────────
 t('viewRow 칸 = token, kind 뿐', JSON.stringify(Object.keys(viewRow(toks[0], 'browser')).sort()) === '["kind","token"]')
 t('라우트 INSERT 는 viewRow 만', /insert\(viewRow\(token, kind\)\)/.test(route) && (route.match(/\.insert\(/g) ?? []).length === 1)
-const mig = read('supabase/migrations/20261103000010_report_pages.sql')
+const mig = read('supabase/migrations/20261103000020_report_pages.sql')
 const viewsDdl = mig.match(/CREATE TABLE IF NOT EXISTS public\.report_views \(([\s\S]*?)\n\);/)?.[1] ?? ''
 t('마이그에서 report_views DDL 추출', viewsDdl.includes('kind'))
 const cols = viewsDdl.split('\n').map((l) => l.trim().split(/\s+/)[0]).filter((c) => c && !c.startsWith('--'))
@@ -125,7 +125,7 @@ t('kind CHECK 2분류', /CHECK \(kind IN \('bot', 'browser'\)\)/.test(viewsDdl))
 t('두 표 RLS 켬 · 정책 0 · anon 회수', /report_pages ENABLE ROW LEVEL SECURITY/.test(mig) && /report_views ENABLE ROW LEVEL SECURITY/.test(mig)
   && !/CREATE POLICY/i.test(mig) && /REVOKE ALL ON public\.report_pages FROM anon, authenticated/.test(mig))
 t('토큰 CHECK 가 코드 TOKEN_RE 와 같다', mig.includes("CHECK (token ~ '^[A-Za-z0-9_-]{43}$')") && TOKEN_RE.source === '^[A-Za-z0-9_-]{43}$')
-t('롤백 파일 존재', existsSync(`${ROOT}/supabase/migrations/20261103000010_report_pages_rollback.sql`))
+t('롤백 파일 존재', existsSync(`${ROOT}/supabase/migrations/20261103000020_report_pages_rollback.sql`))
 const script = read('scripts/report-pages.mjs')
 t('관리 스크립트가 키를 출력하지 않는다', !/console\.\w+\([^)]*\bkey\b/.test(script) && !/die\([^)]*\$\{key/.test(script))
 t('관리 스크립트 기본 출력은 마스킹', script.includes('maskedUrl(BASE_URL, token)') && /if \(has\('reveal'\)\)/.test(script))

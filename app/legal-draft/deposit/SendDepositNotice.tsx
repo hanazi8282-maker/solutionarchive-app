@@ -7,9 +7,10 @@ import { depositBody, depositMailto, type DepositAccount } from '@/lib/deposit/n
 export function SendDepositNotice({ account }: { account: DepositAccount }) {
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
+  const [err, setErr] = useState('')
   const href = depositMailto(to, account, amount)
   return (
-    <form onSubmit={(e) => { e.preventDefault(); if (href) window.location.href = href }}>
+    <form onSubmit={(e) => { e.preventDefault(); if (!href) { setErr('이메일 형식을 확인해 주세요. 예: name@example.com'); return } setErr(''); window.location.href = href }}>
       <p className="pub-text">
         <label htmlFor="deposit-to">받는 사람 이메일</label>{' '}
         <input id="deposit-to" name="email" type="email" autoComplete="off" spellCheck={false} className="pub-field"
@@ -21,7 +22,8 @@ export function SendDepositNotice({ account }: { account: DepositAccount }) {
           value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="예: 300,000원…" />
       </p>
       <pre className="pub-text" style={{ whiteSpace: 'pre-wrap' }}>{depositBody(account, amount)}</pre>
-      <button type="submit" className="pub-btn pub-btn--primary" disabled={!href}>입금 안내 발송</button>
+      <p className="pub-text" aria-live="polite">{err}</p>
+      <button type="submit" className="pub-btn pub-btn--primary">입금 안내 발송</button>
     </form>
   )
 }

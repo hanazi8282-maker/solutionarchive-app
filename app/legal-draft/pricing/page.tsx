@@ -1,5 +1,5 @@
 import { DraftShell, draftMetadata } from '../DraftShell'
-import { DEPOSIT_PRODUCTS, DEPOSIT_REFUND } from '@/lib/deposit/notice'
+import { DEPOSIT_PRODUCTS, DEPOSIT_REFUND, DEPOSIT_VAT_NOTE } from '@/lib/deposit/notice'
 
 export const metadata = { ...draftMetadata, title: '요금제 안내 (초안)' }
 
@@ -12,7 +12,7 @@ export default function Page() {
       ))}
       <h2>환불</h2>
       <p className="pub-text">{DEPOSIT_REFUND}</p>
-      <p className="pub-text">[결정 필요: 부가세 포함 여부] 지금은 결제 기능이 없고 계좌 입금으로만 받는다.</p>
+      <p className="pub-text">{DEPOSIT_VAT_NOTE}</p>
     </DraftShell>
   )
 }

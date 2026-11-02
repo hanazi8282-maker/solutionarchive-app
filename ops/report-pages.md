@@ -1,7 +1,7 @@
 # 비공개 결론서 링크 `/r/{token}` 운영 절차
 
 결론서 HTML 1장을 로그인 없는 비공개 링크로 연다. 코드: `app/r/[token]/route.ts` · `lib/report-pages/core.ts`.
-테이블: `report_pages` · `report_views` (마이그 `20261103000010`, service_role 전용).
+테이블: `report_pages` · `report_views` (마이그 `20261103000020`, service_role 전용).
 이 문서에는 회사명·토큰·연락처 같은 실제 값을 적지 않는다(공개 리포). `<slug>` `<token>` 자리만 둔다.
 
 ## 하지 않는 것

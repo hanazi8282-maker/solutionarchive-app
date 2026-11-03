@@ -4861,8 +4861,11 @@
       "registered_at": "2026-10-22T00:45:49.066Z",
       "baseline_total_collected": 0,
       "new_per_request": 50,
-      "status": "adopted",
-      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql"
+      "status": "demoted",
+      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql",
+      "demoted_at": "2026-11-03T03:33:01.242Z",
+      "reason": "demoted",
+      "l4": "확인 불가 — 타깃별 요청 수 칸 없음(review_targets), 신규 글 수(total_collected 증가)로 대체"
     },
     {
       "id": "ea6cc496-a4bd-4a57-a620-0c7012e84825",
@@ -4926,8 +4929,11 @@
       "registered_at": "2026-10-22T00:45:49.066Z",
       "baseline_total_collected": 0,
       "new_per_request": 50,
-      "status": "adopted",
-      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql"
+      "status": "demoted",
+      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql",
+      "demoted_at": "2026-11-03T03:33:01.242Z",
+      "reason": "demoted",
+      "l4": "확인 불가 — 타깃별 요청 수 칸 없음(review_targets), 신규 글 수(total_collected 증가)로 대체"
     },
     {
       "id": "07680ca3-d001-42ff-8e22-ad8f8700b2be",
@@ -4978,8 +4984,9 @@
       "registered_at": "2026-10-22T00:45:49.066Z",
       "baseline_total_collected": 0,
       "new_per_request": 50,
-      "status": "adopted",
-      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql"
+      "status": "kept",
+      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql",
+      "evaluated_at": "2026-11-03T03:33:01.242Z"
     },
     {
       "id": "b043385e-5d1f-49bd-8236-124a7362824c",

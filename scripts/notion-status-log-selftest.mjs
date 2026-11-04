@@ -250,6 +250,22 @@ console.log('✅ notion-status-log-selftest: 통과')
   assert.ok(g.includes('3일 연속 하한 미만'), '3일 연속 300 미만이면 확대안 경고')
   assert.ok(!goalLine([...rows.slice(0, 3), { dt: '2026-10-25', new_in: 4000, new_in_area: 3000, usable: 400 }], '2026-10-26').includes('3일 연속'), '하루라도 300 이상이면 경고 없음')
   assert.match(goalLine(null, '2026-10-26'), /확인 불가/)
+  // v71cb: 조회 오류는 버리지 않고 줄 끝에 "— <code> <message 80자>"
+  const ge = goalLine(null, '2026-10-26', { code: '57014', message: 'canceling statement due to statement timeout' + 'x'.repeat(100) })
+  assert.match(ge, /확인 불가\(v_goal_daily 조회 실패\) — 57014 canceling statement due to statement timeout/)
+  assert.ok(ge.endsWith('x'.repeat(80 - 'canceling statement due to statement timeout'.length)), '메시지는 80자에서 자른다')
+  assert.ok(!goalLine(null, '2026-10-26').includes('—'), '오류 객체 없으면 꼬리 없음')
+  // v71cb: 행이 없는 날은 0 이 아니라 '기록 없음' — 0%·0.0% 로 접지 않는다
+  const gap = goalLine(rows.slice(0, 3), '2026-10-26') // 10-25 행 없음
+  assert.match(gap, /어제\(10-25\) 기록 없음/)
+  assert.ok(!/대비 0%/.test(gap), '기록 없는 어제를 0% 로 찍지 않는다')
+  assert.match(gap, /최근 3일 7\.\d%, 기록 없음 1일 제외/) // (240+260)/(3400+3500), 10-25 는 빼고
+  assert.ok(!gap.includes('3일 연속'), '기록 없는 날이 끼면 연속 미달 경고를 내지 않는다')
+  const none = goalLine([], '2026-10-26')
+  assert.match(none, /어제\(10-25\) 기록 없음/)
+  assert.match(none, /최근 7일 수확률 계산 불가, 기록 없음 7일 제외\(최근 3일 계산 불가, 기록 없음 3일 제외\)/)
+  assert.ok(!/0\.0%/.test(none), '빈 결과를 0.0% 로 접지 않는다')
+  assert.match(g, /최근 7일 수확률 [\d.]+%, 기록 없음 3일 제외\(최근 3일 [\d.]+%\)/, '행 4일뿐인 7일 창은 3일 제외, 3일 창은 꽉 차 표시 없음')
   const e = buildReviewCollectEntry({ date: '2026-10-26', goal: g })
   assert.ok(e.done.split('\n')[0].startsWith('[목표 2026-10-26]'), '고정 칸은 done 맨 앞 줄')
 }

@@ -566,7 +566,8 @@ let goal = null
 if (!dryRun) {
   const since = new Date(Date.now() - 12 * 86_400_000).toISOString().slice(0, 10)
   const { data, error } = await supabase.from('v_goal_daily').select('dt,new_in,new_in_area,usable').gte('dt', since)
-  goal = goalLine(error ? null : data, kstDate())
+  if (error) console.log(`::warning title=v_goal_daily::${error.code ?? ''} ${error.message}`)
+  goal = goalLine(error ? null : data, kstDate(), error)
   say(`- ${goal}`)
 }
 

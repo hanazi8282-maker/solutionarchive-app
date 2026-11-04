@@ -17,26 +17,37 @@ const fmt = (n) => Number(n).toLocaleString('en-US')
 
 /**
  * 매일 고정 칸 한 줄. rows = v_goal_daily [{dt,new_in,new_in_area,usable}] (null = 못 읽음 → 확인 불가, §7.1), today = KST 'YYYY-MM-DD'.
+ * error = 조회 오류 객체(있으면 확인 불가 줄 끝에 "— <code> <message 80자>").
  * "어제" 는 하루가 끝난 마지막 날이다. 수확률 = 구간 쓸 수 있는 정보 합 ÷ 수집 신규 합.
+ * 행이 없는 날은 0 이 아니라 '기록 없음'이다(§7.1) — 합·수확률·3일 연속 판정에서 0 으로 접지 않고 뺀다.
  * 7일 값은 백필·밀린 2차 판정 해소분이 섞여 부풀 수 있어 3일 값을 같이 쓴다.
  */
-export function goalLine(rows, today) {
-  if (!Array.isArray(rows)) return '[목표] 확인 불가(v_goal_daily 조회 실패)'
+export function goalLine(rows, today, error = null) {
+  if (!Array.isArray(rows)) {
+    const why = error ? ` — ${error.code ?? ''} ${String(error.message ?? '').slice(0, 80)}` : ''
+    return `[목표] 확인 불가(v_goal_daily 조회 실패)${why}`
+  }
   const by = new Map(rows.map((r) => [String(r.dt), r]))
-  const at = (d) => by.get(d) ?? { new_in: 0, new_in_area: 0, usable: 0 }
+  const at = (d) => by.get(d) ?? null
   const days = (n) => Array.from({ length: n }, (_, i) => addDays(today, -(i + 1))) // 어제부터 거슬러
-  const sum = (ds, k) => ds.reduce((a, d) => a + Number(at(d)[k] ?? 0), 0)
+  const has = (ds) => ds.filter((d) => at(d) !== null)
+  const sum = (ds, k) => has(ds).reduce((a, d) => a + Number(at(d)[k] ?? 0), 0)
   const y = (ds) => { const n = sum(ds, 'new_in'); return n > 0 ? sum(ds, 'usable') / n : null }
+  const miss = (ds) => { const k = ds.length - has(ds).length; return k ? `, 기록 없음 ${k}일 제외` : '' }
   const yest = addDays(today, -1)
-  const y7 = y(days(7)), y3 = y(days(3))
+  const Y = at(yest)
+  const d7 = days(7), d3 = days(3)
+  const y7 = y(d7), y3 = y(d3)
   const need = (r) => (r && r > 0 ? fmt(Math.ceil(FLOOR_USABLE / r)) : '계산 불가')
-  const low3 = days(3).every((d) => Number(at(d).usable) < FLOOR_USABLE)
+  const low3 = d3.every((d) => at(d) !== null && Number(at(d).usable) < FLOOR_USABLE) // 기록 없는 날이 끼면 "연속 미달"을 주장하지 않는다
   const pct = (a, b) => `${Math.round((a / b) * 100)}%`
+  const rate = (r) => (r === null ? '계산 불가' : (r * 100).toFixed(1) + '%')
   return [
     `[목표 ${today}]`,
-    `어제(${yest.slice(5)}) 수집 신규 ${fmt(at(yest).new_in)}(영역 안 ${fmt(at(yest).new_in_area)}) · 목표 ${fmt(GOAL_COLLECT)} 대비 ${pct(at(yest).new_in, GOAL_COLLECT)}`,
-    `쓸 수 있는 정보 ${fmt(at(yest).usable)} · 하한 ${FLOOR_USABLE} 대비 ${pct(at(yest).usable, FLOOR_USABLE)}`,
-    `최근 7일 수확률 ${y7 === null ? '계산 불가' : (y7 * 100).toFixed(1) + '%'}(최근 3일 ${y3 === null ? '계산 불가' : (y3 * 100).toFixed(1) + '%'})`,
+    Y ? `어제(${yest.slice(5)}) 수집 신규 ${fmt(Y.new_in)}(영역 안 ${fmt(Y.new_in_area)}) · 목표 ${fmt(GOAL_COLLECT)} 대비 ${pct(Y.new_in, GOAL_COLLECT)}`
+      : `어제(${yest.slice(5)}) 기록 없음(v_goal_daily 행 없음)`,
+    Y ? `쓸 수 있는 정보 ${fmt(Y.usable)} · 하한 ${FLOOR_USABLE} 대비 ${pct(Y.usable, FLOOR_USABLE)}` : null,
+    `최근 7일 수확률 ${rate(y7)}${miss(d7)}(최근 3일 ${rate(y3)}${miss(d3)})`,
     `하한 ${FLOOR_USABLE} 에 필요한 수집량 ${need(y7)}건(3일 기준 ${need(y3)}건)`,
     low3 ? '⚠ 쓸 수 있는 정보가 3일 연속 하한 미만 — 수집 확대안 필요' : null,
   ].filter(Boolean).join(' · ')

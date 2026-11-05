@@ -327,3 +327,15 @@
 - 작성일: 2026-11-03
 
 > I was thinking the other day, "why do we have kids?" The most noble, selfless reason I could think of is "so that they try again". I say, the "most noble" because people have plenty of more selfish reasons: "they'll make me feel better", "to make me a better person", "to keep up with the expectations of my friends and family", "they'll give me comfort when I'm old and frail", "they will care for me". And then no-reasons such as "it's the way things are", and "everybody does it", and "god wants i…
+
+## HN 50376590
+
+- 판정: (미검토)
+- 매칭: `we shut down`
+- 원본: https://news.ycombinator.com/item?id=50376590
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-05 UTC)
+- 스레드: A thousand fewer paths to root
+- 작성자: bottlepalm
+- 작성일: 2026-11-05
+
+> That's why I said there's a good chance we shut down the internet. An off/unconnected computer is the only way to be secure. Our stacks are so unimaginably complex that just connecting it to the network opens it up to every undiscovered vulnerability that it contains at every layer of the stack. Even disconnected, if the computer is just passively listening to bluetooth or wifi, it is vulnerable to exploits in those stacks as well. AI has already demonstrated it can zero day with ease. An AI ano…

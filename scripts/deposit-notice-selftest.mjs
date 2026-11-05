@@ -40,5 +40,15 @@ for (const f of ['lib/deposit/notice.ts', 'app/legal-draft/deposit/page.tsx', 'a
     assert.ok(!src.includes(bad), `${f}: 금지 문구 "${bad}"`)
   }
 }
+// 요금제 초안(v71by) — 상품·환불은 notice.ts 표에서만 온다(중복 문구 0), 옛 가격(30만/300만) 없음.
+{
+  const src = fs.readFileSync(new URL('../app/legal-draft/pricing/page.tsx', import.meta.url), 'utf8')
+  for (const bad of ['세금계산서', '현금영수증', '49,000', '49000', '99,000', '99000', '첫 달', '30만', '300만', '300,000', '3,000,000', '팀']) {
+    assert.ok(!src.includes(bad), `pricing/page.tsx: 금지 문구 "${bad}"`)
+  }
+  assert.ok(src.includes('DEPOSIT_PRODUCTS') && src.includes('DEPOSIT_REFUND'), 'pricing: notice.ts 표 재사용')
+  assert.ok(!src.includes('19,000') && !src.includes('29,000') && !src.includes('7일'), 'pricing: 가격·환불 문구 하드코딩(중복)')
+  assert.ok(src.includes('DraftShell') && src.includes('(초안)'), 'pricing: DRAFT 표시')
+}
 assert.ok(fs.readFileSync(new URL('../app/legal-draft/deposit/page.tsx', import.meta.url), 'utf8').includes("title: '입금 안내 (DRAFT)'"), '페이지 제목 DRAFT')
 console.log('deposit-notice-selftest: ok')

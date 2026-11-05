@@ -1,0 +1,110 @@
+# CMO 데일리 다이제스트 2026-11-03
+
+**붙여넣기 대기: 0건**
+
+## TL;DR
+
+1. 조사 1건 · 적립 1건 · 초안 0건.
+2. 막힌 단계 없음.
+3. 오늘 발행 대기 없음.
+4. ⚠️ 발행됐는데 연결 안 된 Threads 게시물 1건(가장 오래된 것 150시간 경과) — /dashboard 에서 연결 · 파이프라인 외 게시물 3건(초안 없이 직접 쓴 글 — 연결 대상 아님)
+
+## 스코어보드
+
+- 조사(new_drafts): 1건
+- 적립(committed): 1건
+- 초안(drafted): 0건
+- 스테이징(staged): 0건
+- 막힘(blocked): 0단계
+- 실패(failed): 0단계
+
+## 병목 진단
+
+- 커버리지 갭 없음 — 병목 전부 서로 다른 케이스 2곳 이상이다.
+- 매칭 가능 병목 7 / 7
+- 막히거나 실패한 단계 없음.
+
+## 독자 피드백 (최근 24시간)
+
+- 피드백 없음 (조회는 정상 — 최근 24시간 표 0건).
+
+## 개선 방안
+
+# 성과 해설 2026-11-03
+
+**결론:** 이번 판정 로그로는 어떤 규칙도 유효·무효를 말할 수 없습니다. 채점된 예측이 0건이기 때문입니다. 지금 할 일은 h168(발행 168시간 뒤) 스냅샷이 왜 안 쌓이는지 확인하는 것입니다. 앵글 선정은 커버리지 기준으로 진행할 수 있습니다.
+
+## 채점 (score-predictions)
+
+- **유효 0 / 무효 0 / 보류 6 (표본 부족)** — 항목 기준이고, 엔트리로는 보류 3개입니다.
+- **확인 불가 1건:** `LOG-20260907-01`은 연결된 발행 글이 없어 채점 대상이 아닙니다. 실패가 아닙니다.
+- 판정 로그 23개 중 예측이 달린 엔트리는 4개, 예측 항목은 7개입니다. 6 + 1 = 7이라 합계는 맞습니다.
+- `LOG-20260906-01`: 보류 2항목 (like_rate, share_rate). h168 스냅샷이 없습니다.
+- `LOG-20260907-03`: 보류 2항목 (share_rate, like_rate). h168 스냅샷이 없습니다.
+- `LOG-20260907-02`: 보류 2항목 (reply_rate, like_rate). 실측 0.0315는 있지만, 기준선 표본이 0건이라 부트스트랩 구간(4건 미만은 채점 안 함)입니다. 실측이 있어도 규칙 근거로 쓰지 않습니다.
+- 규칙별 신뢰도(C-12, G-4, G-8, H3, P-03, P-09)는 전부 유효 0 / 무효 0 / 보류 1이고 Wilson하한이 없습니다. 이 6개 규칙은 "먹힌다/안 먹힌다" 어느 쪽으로도 결론을 내지 않습니다.
+
+## 데이터 상태
+
+- 실측 스냅샷은 14개(post 8건)입니다.
+- 4건은 h1/h24/h168 창과 맞지 않는 1회성 관측(`catchup`)이라 제외했습니다. 그 글에 데이터가 없다는 뜻은 아닙니다.
+- 보류 4항목이 h168 스냅샷 부재인지, 아직 그 시점이 안 된 건지는 원자료만으로 구분되지 않습니다. 발행 시각이 없어서 **확인 불가**입니다. 둘 다 "수집 실패"라고 단정하지 않습니다.
+
+## 커버리지 갭
+
+- **매칭 가능 병목 7/7.** 케이스 2곳 미만인 병목은 없고 갭은 0입니다.
+- 케이스 수가 가장 얇은 병목은 DISTRIBUTION과 SUPPLY(각 3곳)입니다. 한 곳이 빠지면 2곳이 되어 매칭 하한에 닿습니다.
+- AWARENESS, TRUST, CONVERSION, RETENTION은 각 4곳이고, UNIT_ECONOMICS는 5곳입니다.
+- 무브 수는 TRUST 11건이 가장 많고, SUPPLY 5건이 가장 적습니다.
+
+## 다음 앵글 후보
+
+- 원자료에 무브 목록이 없어 무브 단위로는 못 고릅니다. 병목과 케이스 단위로만 제시합니다.
+- 어느 후보도 "이 훅이 먹힌다"는 근거에 기대지 않습니다. 근거는 커버리지뿐입니다.
+
+## 확인 못 한 것
+
+- 발행 글별 발행 시각과 현재 나이. h168 보류가 시점 미도래인지 수집 누락인지 가려내려면 필요합니다.
+- `LOG-20260907-01`에 발행 글이 안 붙은 이유.
+- 개별 무브 목록. 병목별 케이스명만 받았습니다.
+- 발행 누적 건수. 부트스트랩 문턱(10건)을 넘었는지 알 수 없습니다. 다만 `LOG-20260907-02`의 기준선 표본이 0건이라 아직 못 넘었을 가능성이 큽니다.
+
+## 이 해설의 자가검증
+
+- 점검한 것: 보류를 성공이나 실패로 접지 않았는지, 실측 0.0315를 근거로 쓰지 않았는지, 없는 수치를 만들지 않았는지.
+- 고친 것: 무브 단위 후보를 지어내려던 것을 케이스 단위로 낮췄습니다.
+
+## 카드 후보
+
+- SUPPLY 병목 — Fathom Analytics, Magic Spoon, Purple Innovation 중 1곳의 승인 무브. 케이스가 3곳뿐이라 가장 얇고, 이 병목은 글이 있어야 이후 성과 대조도 쌓입니다.
+- DISTRIBUTION 병목 — Figma, Testimonial.to, Zapier 중 1곳의 승인 무브. SUPPLY와 같이 3곳으로 얇은데 무브는 6건이라 고를 폭이 있습니다.
+- TRUST 병목 — Everlane, Ritual, Seed Health, Tuft & Needle 중 1곳의 승인 무브. 무브 11건으로 후보 풀이 가장 넓습니다. 보류 6항목이 풀리기 전까지 어떤 훅이 먹히는지는 모르므로, 앵글을 다양하게 시험할 자리로 적합합니다.
+
+## 다음 주 주목 지표
+
+- `like_rate` — 지난 예측이 보류다(표본 부족). 다음 주 실측을 본다.
+- `share_rate` — 지난 예측이 보류다(표본 부족). 다음 주 실측을 본다.
+- `reply_rate` — 지난 예측이 보류다(표본 부족). 다음 주 실측을 본다.
+
+## 실행 기록
+
+- 실행 키: `cmo-2026-11-03-cron` · 트리거 cron · 목표 조사 6 / 초안 2
+- 기준 날짜 2026-11-03 — 예정 크론 `17 20 * * *` 의 UTC 날짜 (실행 시각 2026-11-04T00:36:24.976Z)
+- ✅ `preflight` 사전 점검 ({"cases_reachable":1})
+- ✅ `queue` 조사 큐 선정 ({"claimed":1})
+- ✅ `research` 조사 ({"attempted":1,"agent_ok":1,"new_drafts":1})
+- ✅ `commit_cases` 케이스 적립 ({"commit_attempted":1,"committed":1,"all_draft":1,"partial_failed":0})
+- ✅ `queue_resolve` 조사 큐 정리 ({"queue_attempted":1,"queue_done":1,"queue_failed":0,"queue_unresolved":0,"queue_stalled":0,"partial_failed":0})
+- ⚠️ 열린 초안(미발행)이 있는 케이스 29곳은 형제 무브도 고르지 않았다: blue-apron-paid-acquisition-treadmill, ag1-single-sku-subscription-greens, content-goblin-low-tier-pricing-support-collapse, zapier-integration-page-seo-distribution, tuft-and-needle-amazon-review-trust, zenefits-licensing-macro-trust-collapse, juttu-nice-to-have-pricing-collapse, kite-individual-dev-pricing-collapse, peloton-owned-manufacturing-exit, seed-ds01-clinical-strain-probiotic
+- ⚠️ 영역 밖·영역 모름으로 거른 케이스 35곳: blue-apron-paid-acquisition-treadmill, pets-com-mass-awareness-negative-margin, everlane-radical-transparency-trust, ag1-single-sku-subscription-greens, zapier-integration-page-seo-distribution, tuft-and-needle-amazon-review-trust, cydoc-cost-plus-pricing-collapse, slack-bottom-up-conversion, juttu-nice-to-have-pricing-collapse, kite-individual-dev-pricing-collapse
+- ⏭️ `angle` 앵글 선정 — 쓸 수 있는 승인 무브가 0건 (승인은 사람이 한다 — 루프의 실패가 아니다)
+- ⏭️ `draft` 초안 작성 + 게이트 — 앵글 0건
+- ⏭️ `stage` 발행 대기 스테이징 — 스테이징 매니페스트 0건
+- ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":9})
+- ℹ️ Notion 푸시: holesale-saas-shutdown-40e100b7ffb481a4b61dd94481f98912 ✅ DISCOVERY-2026-11-03 → https://app.notion.com/p/DISCOVERY-2026-11-03-40e100b7ffb48155adfbe00c03419440 푸시 완료 — 초안 0건 · 신규케이스 1건 · 발굴 1건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-11-04-CMO 기록·재확인
+
+_실행 키 `cmo-2026-11-03-cron` · 상세 상태는 reports/status/DASHBOARD.md_
+
+⛔ 이 루프는 발행하지 않는다. 발행 버튼은 사람이 Threads 앱에서 직접 누른다 (CLAUDE.md §10).

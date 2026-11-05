@@ -315,3 +315,15 @@
 - 작성일: 2026-10-31
 
 > Covid drops were a true black swan, 6-10% drops. Justified because we shut down the world. We’re still paying for that… You have the crazy crashes like black monday and a few of the days in 08/09. But the worst times are the repricings where there’s suddenly a realization that we haven’t been paying enough attention to the true value of things, and maybe we should have been doing that. That’s the long multi year stagnating bear markets like 1999-2002. I think probably 50-75% haircut is warranted…
+
+## HN 50354045
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50354045
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-03 UTC)
+- 스레드: No brother of mine will play the flute
+- 작성자: dsign
+- 작성일: 2026-11-03
+
+> I was thinking the other day, "why do we have kids?" The most noble, selfless reason I could think of is "so that they try again". I say, the "most noble" because people have plenty of more selfish reasons: "they'll make me feel better", "to make me a better person", "to keep up with the expectations of my friends and family", "they'll give me comfort when I'm old and frail", "they will care for me". And then no-reasons such as "it's the way things are", and "everybody does it", and "god wants i…

@@ -5026,8 +5026,9 @@
       "registered_at": "2026-10-22T00:45:49.066Z",
       "baseline_total_collected": 0,
       "new_per_request": 50,
-      "status": "adopted",
-      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql"
+      "status": "kept",
+      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql",
+      "evaluated_at": "2026-11-05T02:37:11.672Z"
     },
     {
       "id": "21a2b333-0918-4add-8913-55a67fca1239",
@@ -5052,8 +5053,11 @@
       "registered_at": "2026-10-22T00:45:49.066Z",
       "baseline_total_collected": 0,
       "new_per_request": 50,
-      "status": "adopted",
-      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql"
+      "status": "demoted",
+      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql",
+      "demoted_at": "2026-11-05T02:37:11.672Z",
+      "reason": "demoted",
+      "l4": "확인 불가 — 타깃별 요청 수 칸 없음(review_targets), 신규 글 수(total_collected 증가)로 대체"
     },
     {
       "id": "2cb6d583-8a7f-47b1-913b-8c945bcab34e",
@@ -5091,8 +5095,11 @@
       "registered_at": "2026-10-22T00:45:49.066Z",
       "baseline_total_collected": 0,
       "new_per_request": 38,
-      "status": "adopted",
-      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql"
+      "status": "demoted",
+      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql",
+      "demoted_at": "2026-11-05T02:37:11.672Z",
+      "reason": "demoted",
+      "l4": "확인 불가 — 타깃별 요청 수 칸 없음(review_targets), 신규 글 수(total_collected 증가)로 대체"
     },
     {
       "id": "62726b81-b49b-4786-90a2-1cc6722b5b09",
@@ -5104,8 +5111,11 @@
       "registered_at": "2026-10-22T00:45:49.066Z",
       "baseline_total_collected": 0,
       "new_per_request": 36,
-      "status": "adopted",
-      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql"
+      "status": "demoted",
+      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql",
+      "demoted_at": "2026-11-05T02:37:11.672Z",
+      "reason": "demoted",
+      "l4": "확인 불가 — 타깃별 요청 수 칸 없음(review_targets), 신규 글 수(total_collected 증가)로 대체"
     },
     {
       "id": "fc240947-cc2e-4d52-b58c-9139ed2138ab",
@@ -5117,8 +5127,11 @@
       "registered_at": "2026-10-22T00:45:49.066Z",
       "baseline_total_collected": 0,
       "new_per_request": 30,
-      "status": "adopted",
-      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql"
+      "status": "demoted",
+      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql",
+      "demoted_at": "2026-11-05T02:37:11.672Z",
+      "reason": "demoted",
+      "l4": "확인 불가 — 타깃별 요청 수 칸 없음(review_targets), 신규 글 수(total_collected 증가)로 대체"
     },
     {
       "id": "db98c569-a741-41ff-912d-db78caf1f03c",
@@ -5143,8 +5156,11 @@
       "registered_at": "2026-10-22T00:45:49.066Z",
       "baseline_total_collected": 0,
       "new_per_request": 22,
-      "status": "adopted",
-      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql"
+      "status": "demoted",
+      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql",
+      "demoted_at": "2026-11-05T02:37:11.672Z",
+      "reason": "demoted",
+      "l4": "확인 불가 — 타깃별 요청 수 칸 없음(review_targets), 신규 글 수(total_collected 증가)로 대체"
     },
     {
       "id": "7ebddc51-ce96-40a7-bd6f-1ef61acd4c63",
@@ -5208,8 +5224,11 @@
       "registered_at": "2026-10-22T00:45:49.066Z",
       "baseline_total_collected": 0,
       "new_per_request": 11,
-      "status": "adopted",
-      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql"
+      "status": "demoted",
+      "rollback": "reports/2026-10-22/window-discovery-rollback-20261022T004549.sql",
+      "demoted_at": "2026-11-05T02:37:11.672Z",
+      "reason": "demoted",
+      "l4": "확인 불가 — 타깃별 요청 수 칸 없음(review_targets), 신규 글 수(total_collected 증가)로 대체"
     },
     {
       "id": "76528c12-38b5-4635-a8fc-ad43dd2269a5",

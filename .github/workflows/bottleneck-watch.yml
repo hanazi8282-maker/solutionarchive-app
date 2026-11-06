@@ -1,6 +1,6 @@
 # 병목 자동감시 — 하루 4회 읽기 전용 점검(v71au ⑮, v71am §2-3). 한도 대장·재고 게이지·한도 재평가·에이전트 상태판을 reports/<KST>/ 에 남긴다.
 #
-# 스크립트(전부 SELECT 만): bottleneck-report.mjs · inventory-gauge.mjs · limit-rollback-eval.mjs · agent-status-board.mjs
+# 스크립트(전부 SELECT 만): bottleneck-report.mjs · inventory-gauge.mjs · limit-rollback-eval.mjs · relevance-stall-watch.mjs(v71bb) · agent-status-board.mjs
 # 권한 경계(CLAUDE.md §10.1): 이 워크플로는 변수·DB 를 바꾸지 않는다. 상향 가능·롤백 판정은 "제안/안내 파일"로만 남기고, 적용은 사람·역할 세션이 한다.
 #   (daily_request_cap 자동 반영은 기존 review-request-cap pre-step 몫, 요청 상한을 내리는 변경은 자동 금지.)
 # ⛔ permissions 는 contents: read. 커밋은 push-reports 잡이 기존 봇 토큰(BOT_APP_*)으로만 — nightly-window-discovery.yml 과 같은 패턴.
@@ -72,6 +72,8 @@ jobs:
           add "병목" node scripts/bottleneck-report.mjs
           add "재고 게이지" node scripts/inventory-gauge.mjs
           add "한도 재평가" node scripts/limit-rollback-eval.mjs
+          # v71bb: 판정 정체(한도 정지·처리 0)를 대장에 남긴다. 읽기 전용 — 재실행은 collect-gap-watchdog judge-stall job 이 한다.
+          add "판정 정체" node scripts/relevance-stall-watch.mjs
           out=$(node scripts/agent-status-board.mjs 2>&1); r=$?
           [ $r -ne 0 ] && rc=1 && out="에이전트 상태판 확인 불가 — 스크립트 실패(exit $r): $(echo "$out" | tail -3)"
           printf '%s\n' "$out" > "reports/$D/agent-status-board.md"

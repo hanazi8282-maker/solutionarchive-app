@@ -33,7 +33,8 @@ jobs:
   watch:
     if: github.ref == 'refs/heads/main' && vars.GAP_WATCHDOG_ENABLED != 'false'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # v71bb: 판정 정체 스텝(npm ci 포함)을 이 job 에 얹어 5 → 10. 쓰기 권한 job 은 하나뿐이라는 선(gap-watchdog-selftest)을 지키려고 별 job 을 만들지 않았다.
+    timeout-minutes: 10
     permissions:
       contents: read
       actions: write
@@ -66,3 +67,39 @@ jobs:
           }
           check nightly-review-collect.yml "$COLLECT_MIN" -f dry_run=false -f source=all
           check nightly-relevance.yml "$JUDGE_MIN" -f dry_run=false
+
+      # 판정 정체 감시(v71bb ⑮) — 위 공백 감시는 "실행이 안 돈다"만 본다. 10-20 처럼 실행은 도는데 한도 정지로 처리 0 이 이어지면 못 잡았다
+      #   (11:31Z 주간 한도 정지, 리셋 12:00Z, 다음 실행 22:07Z — 10시간 반 공백). 판정 = lib/analysis/session-guard.ts relevanceStallDecision.
+      # 재실행 1회: 한도 정지 뒤 리셋 시각(또는 정지+4시간)이 지났는데 그 뒤 수동 실행이 없을 때 · 최근 끝난 실행 2건 연속 실패/취소일 때.
+      #   3연속 실패·"미판정 ≥500 인데 6시간 처리 0" 은 경보(Notion CTO 행, 표식 [판정 정체])만 — 의도된 정지(hop 상한·안전선)를 기계가 되살리지 않는다.
+      # 끄기: GAP_WATCHDOG_ENABLED=false(전부) · GAP_WATCHDOG_DRY≠false 면 건다고 로그만 · 판정 정체만 끄기 = 리포 변수 RELEVANCE_STALL_WATCH=off.
+      # 시크릿은 기존 값을 같은 목적(판정 실행 이력 읽기·Notion 일일 상태 로그)으로 쓴다 — 새 시크릿 없음. 권한은 이 job 그대로(넓히지 않음).
+      # 되돌리기 = 아래 네 스텝 삭제(+ timeout 5).
+      - uses: actions/checkout@v4
+        if: vars.RELEVANCE_STALL_WATCH != 'off'
+      - uses: actions/setup-node@v4
+        if: vars.RELEVANCE_STALL_WATCH != 'off'
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+        if: vars.RELEVANCE_STALL_WATCH != 'off'
+      - name: Judge stall check
+        id: stall
+        if: vars.RELEVANCE_STALL_WATCH != 'off'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+        run: |
+          set -o pipefail
+          gh run list -R "$GITHUB_REPOSITORY" --workflow nightly-relevance.yml --limit 20 --json createdAt,updatedAt,status,conclusion,event > "$RUNNER_TEMP/gh.json" || echo null > "$RUNNER_TEMP/gh.json"
+          node scripts/relevance-stall-watch.mjs --act --gh-file="$RUNNER_TEMP/gh.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Judge stall rerun once
+        if: steps.stall.outputs.rerun == 'true'
+        env:
+          REASON: ${{ steps.stall.outputs.reason }}
+        run: |
+          if [ "$DRY" != "false" ]; then echo "  → [DRY] 판정 정체 — 건다면: gh workflow run nightly-relevance.yml -f dry_run=false ($REASON)" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          gh workflow run nightly-relevance.yml -R "$GITHUB_REPOSITORY" --ref main -f dry_run=false
+          echo "  → 판정 정체 — nightly-relevance 를 1회 걸었다: $REASON" | tee -a "$GITHUB_STEP_SUMMARY"

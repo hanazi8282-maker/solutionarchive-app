@@ -25,6 +25,7 @@ for (const p of ['single', 'monthly']) {
   assert.ok(depositBody(a, p).includes('입금 확인 후 7일 이내 요청 시 100% 환불'), `${p}: 환불 문구 없음`)
   assert.match(depositBody(a, p), /DRAFT/)
 }
+assert.ok(depositBody(a, 'single').includes('표시 금액이 입금하실 금액입니다. 별도 부가세 청구는 없습니다.'), '부가세 문구 없음')
 const m = depositMailto(' a@b.co ', a, 'single')
 assert.ok(decodeURIComponent(m).includes('19,000원'))
 assert.ok(m.startsWith('mailto:a@b.co?subject='))
@@ -46,7 +47,8 @@ for (const f of ['lib/deposit/notice.ts', 'app/legal-draft/deposit/page.tsx', 'a
   for (const bad of ['세금계산서', '현금영수증', '49,000', '49000', '99,000', '99000', '첫 달', '30만', '300만', '300,000', '3,000,000', '팀']) {
     assert.ok(!src.includes(bad), `pricing/page.tsx: 금지 문구 "${bad}"`)
   }
-  assert.ok(src.includes('DEPOSIT_PRODUCTS') && src.includes('DEPOSIT_REFUND'), 'pricing: notice.ts 표 재사용')
+  assert.ok(src.includes('DEPOSIT_PRODUCTS') && src.includes('DEPOSIT_REFUND') && src.includes('DEPOSIT_VAT_NOTE'), 'pricing: notice.ts 표 재사용')
+  assert.ok(!src.includes('결정 필요') && !src.includes('별도 부가세'), 'pricing: [결정 필요]·부가세 문구 하드코딩')
   assert.ok(!src.includes('19,000') && !src.includes('29,000') && !src.includes('7일'), 'pricing: 가격·환불 문구 하드코딩(중복)')
   assert.ok(src.includes('DraftShell') && src.includes('(초안)'), 'pricing: DRAFT 표시')
 }

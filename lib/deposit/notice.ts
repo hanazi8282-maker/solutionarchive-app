@@ -25,6 +25,8 @@ export const DEPOSIT_PRODUCTS = {
 export type DepositProduct = keyof typeof DEPOSIT_PRODUCTS
 
 export const DEPOSIT_REFUND = '입금 확인 후 7일 이내 요청 시 100% 환불'
+// 부가세 문구(남헌 2026-11-03 결정 A). 요금제 초안·입금 안내 메일이 같은 문장을 쓴다.
+export const DEPOSIT_VAT_NOTE = '표시 금액이 입금하실 금액입니다. 별도 부가세 청구는 없습니다.'
 
 export function depositBody(a: DepositAccount, product: DepositProduct | ''): string {
   const p = product ? DEPOSIT_PRODUCTS[product] : null
@@ -36,6 +38,7 @@ export function depositBody(a: DepositAccount, product: DepositProduct | ''): st
     '',
     `상품: ${p ? p.label : '[상품 선택 필요]'}`,
     `금액: ${p ? p.amount : '[상품 선택 필요]'}`,
+    DEPOSIT_VAT_NOTE,
     '',
     `은행: ${a.bank}`,
     `예금주: ${a.holder}`,

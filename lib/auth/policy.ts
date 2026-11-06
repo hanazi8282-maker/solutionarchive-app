@@ -50,6 +50,11 @@ const PUBLIC_PREFIXES = [
   // 검수 화면은 `/cases/*` 에 그대로 남는다 — 남헌 2026-09-23 확정("공개 그리드는 /library 신규
   // 라우트, /cases 는 검수 유지"). auth-selftest 양성 2·음성 2(`/libraryx`, `/cases/<slug>`)가 경계를 지킨다.
   '/library',
+  // 비공개 결론서 링크 `/r/{token}`(v71by, app/r/[token]/route.ts). DM 으로 받은 사람이 로그인 없이 연다.
+  // 읽기 전용이고, 토큰(256비트 난수)을 모르면 무엇이 있는지도 알 수 없다 — 없음·회수·형식 오류가 같은 404.
+  // `/r` 아래에는 그 라우트 하나뿐이다. auth-selftest 음성(`/rx`·`/relevance`·`/api/r`)이 형제 경로로 번지지 않음을 지킨다.
+  // §10.2 예외 3(인증 경계) — PR 본문에 명시, 머지는 사람 판단.
+  '/r',
 ]
 
 /**
@@ -67,8 +72,9 @@ const PUBLIC_PREFIXES = [
  *  - `/cases/report`   아이디어 매칭 리포트 체험판(읽기 전용). 남헌 2026-09-25 결정 2 (§10.2 예외 3 승인).
  *                       아이디어 원문은 2026-10-12 부터 URL 이 아니라 30분 쿠키로 온다(lib/cases/idea-handoff.ts).
  *                       정확일치라 검수 `/cases`·`/cases/search`·`/cases/<slug>` 는 계속 잠겨 있다.
+ *  - `/robots.txt`     정적 파일(public/robots.txt, v71by). 크롤러는 익명이라 막으면 `/r/` Disallow 를 못 읽는다.
  */
-const PUBLIC_EXACT = ['/', '/opengraph-image', '/voc', '/voc/community', '/voc/card', '/cases/report']
+const PUBLIC_EXACT = ['/', '/opengraph-image', '/voc', '/voc/community', '/voc/card', '/cases/report', '/robots.txt']
 
 /** 위 공개 접두사 안이지만 사람만 부르는 경로. */
 /**

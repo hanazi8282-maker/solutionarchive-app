@@ -339,3 +339,15 @@
 - 작성일: 2026-11-05
 
 > That's why I said there's a good chance we shut down the internet. An off/unconnected computer is the only way to be secure. Our stacks are so unimaginably complex that just connecting it to the network opens it up to every undiscovered vulnerability that it contains at every layer of the stack. Even disconnected, if the computer is just passively listening to bluetooth or wifi, it is vulnerable to exploits in those stacks as well. AI has already demonstrated it can zero day with ease. An AI ano…
+
+## HN 50390274
+
+- 판정: (미검토)
+- 매칭: `pivoted away from`
+- 원본: https://news.ycombinator.com/item?id=50390274
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-06 UTC)
+- 스레드: Living Maps: Bay Area tech since 1960s
+- 작성자: pknomad
+- 작성일: 2026-11-06
+
+> Finance pivoted away from commercial banking to VC and fintech and creative got gentrified. You still have the TMT team from Goldman and the likes based in SF but you won’t see them the way you would in NYC.

@@ -5484,8 +5484,11 @@
       "registered_at": "2026-10-23T00:45:36.309Z",
       "baseline_total_collected": 0,
       "new_per_request": 9,
-      "status": "adopted",
-      "rollback": "reports/2026-10-23/window-discovery-rollback-20261023T004536.sql"
+      "status": "demoted",
+      "rollback": "reports/2026-10-23/window-discovery-rollback-20261023T004536.sql",
+      "demoted_at": "2026-11-07T02:03:42.072Z",
+      "reason": "demoted",
+      "l4": "확인 불가 — 타깃별 요청 수 칸 없음(review_targets), 신규 글 수(total_collected 증가)로 대체"
     },
     {
       "id": "3c3f4679-25d4-4646-9bbc-9c5c2f7bc031",

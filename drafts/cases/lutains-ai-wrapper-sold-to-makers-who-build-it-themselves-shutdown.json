@@ -1,0 +1,112 @@
+{
+  "slug": "lutains-ai-wrapper-sold-to-makers-who-build-it-themselves-shutdown",
+  "brand_name": "Lutains",
+  "market": "SaaS · 1인/소규모 팀 소프트웨어",
+  "geo": "FR",
+  "business_model": "SAAS",
+  "buyer_type": "B2B",
+  "purchase_frequency": "ONE_OFF",
+  "price_band": "LOW",
+  "bottleneck": "CONVERSION",
+  "reader_problem": "NO_FIRST_CUSTOMER",
+  "outcome_status": "shutdown",
+  "period_start": "2023-01-01",
+  "period_end": "2026-10-26",
+  "summary": "프랑스 2인 팀(개발자+디자이너)이 인디해커·SaaS 창업가에게 랜딩페이지 개선 AI 도구를 팔려 했다. 도구 → 사람이 해 주는 감사 서비스($149→$99)로 바꿨지만 3년 넘게 판매는 도구 1건 + 서비스 4건에 그쳤고, 2026-10-26 창업자가 접는다고 밝혔다. 창업자 본인이 꼽은 핵심 원인은 '손님으로 고른 인디해커는 AI로 48시간 안에 직접 만든다'는 것을 몇 달 전부터 알고도 방향을 바꾸지 못한 점이다.",
+  "tags": ["saas", "shutdown", "ai-wrapper", "buyer-can-self-serve", "landing-page-audit", "solo-team", "negative"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "POSITIONING",
+      "claim": "유료 손님으로 '스스로 만들 수 있는 사람'(인디해커·SaaS 창업가)을 골랐다. 창업자 본인의 종료 글: 이 손님은 AI와 에이전트를 다루고 도구를 48시간 안에 직접 만들어서 '굳이 당신이 필요 없다'. 도입할 이유가 없는 손님이라는 걸 몇 달 전부터 알았지만 손님을 바꾸지 못한 채 접었다.",
+      "transfer_note": "내일 팔고 싶은 사람 10명의 이름을 적고, 각자의 공개 글·깃허브에서 '이걸 이미 직접 만들어 쓰고 있나'를 확인한다. 절반 넘게 이미 만들었으면 그 사람들을 손님으로 두지 않는다.",
+      "preconditions": "팔려는 상품이 AI로 쉽게 따라 만들어지는 종류여야 이 확인이 의미가 있다. 손님 후보 10명을 이름으로 댈 수 있어야 한다(없으면 먼저 후보부터 찾는다). 확인함: 창업자 글에는 손님을 다시 고른 시도의 결과가 없다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": "2023-01-01",
+      "observed_period_end": "2026-10-26",
+      "voc_inputs": []
+    },
+    {
+      "lever": "CHANNEL",
+      "claim": "제품 소개 사이트 Uneed 에서 1위를 했지만 판매는 0건이었다. 런칭 당일 투표 119, 방문자 68명, 가입 6명, 판매 0. 창업자 해석: 예쁜 디자인만으로는 결제가 안 붙는다. 디렉토리 순위는 '노출'이지 '돈 낼 사람'이 아니었다.",
+      "transfer_note": "내일 지난 런칭이나 글 하나의 '방문 → 가입 → 결제' 숫자를 세 줄로 적는다. 결제가 0이면 다음 런칭 전에, 가입한 사람 중 5명에게 직접 메시지를 보내 '왜 안 샀는지'를 묻는다.",
+      "preconditions": "가입자 이메일이나 계정 목록이 있어야 한다(런칭 때 가입을 받아 둔 경우). 가입이 한 명도 없으면 이 행동은 못 하고 방문자 쪽부터 다시 본다. 확인함.",
+      "outcome_direction": "negative",
+      "metric_name": "런칭일 가입자 수 (판매 0건)",
+      "metric_before": null,
+      "metric_after": 6,
+      "metric_unit": "명",
+      "observed_period_start": "2026-04-07",
+      "observed_period_end": "2026-04-07",
+      "voc_inputs": []
+    },
+    {
+      "lever": "OFFER",
+      "claim": "AI 도구(SaaS)를 사람이 하는 랜딩페이지 감사 서비스로 바꾸고 가격을 $149에서 $99로 내렸다. 가격을 공개적으로 내린 지 몇 시간 뒤 첫 판매가 났고, 7일간 신규 방문 119명 중 결제 1건(전환 0.84%)이었다. 서비스로 바꾼 뒤 누적 판매는 여름 3건 + 이때 1건 = 4건이었고, 8일 뒤인 2026-10-26 접는다고 밝혔다. 가격 인하 효과는 1건이라 판단할 수 없다.",
+      "transfer_note": "내일 '목표 월 매출 ÷ 건당 가격'을 계산해 한 달에 몇 건을 팔아야 하는지 적고, 지난 8주 판매 건수와 나란히 놓는다. 큰 차이가 나면 가격을 내리기 전에 그 차이를 메울 방법부터 정한다.",
+      "preconditions": "건당 가격과 지난 8주 판매 건수를 세어 둔 기록이 있어야 한다. 서비스형은 팔 때마다 사람의 시간이 든다는 점도 같이 적는다. 확인함: 이 팀은 풀타임 2명이었다.",
+      "outcome_direction": "negative",
+      "metric_name": "감사 서비스 가격",
+      "metric_before": 149,
+      "metric_after": 99,
+      "metric_unit": "USD",
+      "observed_period_start": "2026-10-11",
+      "observed_period_end": "2026-10-18",
+      "voc_inputs": []
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://yoanna-lutains.writizzy.blog/p/game-over-why-we-re-shutting-everything-down-after-3-years-of-indie-hacking",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2026-10-26",
+      "snippet": "Indie hackers 'build their own tools in under 48 hours' so 'they simply don't need you'. 'We knew this for months, and we failed to pivot.'",
+      "supports_claim": "손님이 직접 만들 수 있다는 걸 알고도 방향을 못 바꿨다는 창업자 본인의 종료 글",
+      "observation_key": "lutains-shutdown-post-2026-10-26"
+    },
+    {
+      "move": 1,
+      "url": "https://yoanna-lutains.writizzy.blog/p/we-hit-1-on-uneed-here-s-what-it-actually-brought-us",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2026-04-07",
+      "snippet": "Uneed #1 launch day: 119 votes, 68 unique visitors, 6 signups, 0 sales.",
+      "supports_claim": "1위 런칭 당일 가입 6명, 판매 0건",
+      "observation_key": "lutains-uneed-launch-2026-04-07"
+    },
+    {
+      "move": 2,
+      "url": "https://yoanna-lutains.writizzy.blog/p/first-sale-in-under-a-week-after-a-major-revamp-what-we-put-in-place",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2026-10-18",
+      "snippet": "'3 sales this summer'; price lowered from $149 to $99; 119 new users in 7 days; conversion rate 0.84%; a sale came hours after the price drop.",
+      "supports_claim": "가격 $149→$99, 7일 방문 119명, 전환 0.84%, 누적 판매 3건+1건",
+      "observation_key": "lutains-first-sale-post-2026-10-18"
+    },
+    {
+      "move": 2,
+      "url": "https://yoanna-lutains.writizzy.blog/p/game-over-why-we-re-shutting-everything-down-after-3-years-of-indie-hacking",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2026-10-26",
+      "snippet": "Closing post: after 3 years, thousands of euros lost; 'we went through dozens of versions that we didn't even test on the market'.",
+      "supports_claim": "접는다는 발표와 시장 검증 없이 여러 버전을 만들었다는 회고",
+      "observation_key": "lutains-shutdown-post-2026-10-26"
+    }
+  ]
+}

@@ -351,3 +351,15 @@
 - 작성일: 2026-11-06
 
 > Finance pivoted away from commercial banking to VC and fintech and creative got gentrified. You still have the TMT team from Goldman and the likes based in SF but you won’t see them the way you would in NYC.
+
+## HN 50403483
+
+- 판정: (미검토)
+- 매칭: `pivoted away from`
+- 원본: https://news.ycombinator.com/item?id=50403483
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-07 UTC)
+- 스레드: Replit rebuilt its sandbox engine with microVMs
+- 작성자: sireat
+- 작성일: 2026-11-07
+
+> The university that I teach at used Replit a few years ago before migrating away. I used it in our larger Programming Languages courses with 200-300 students, replit was the guaranteed alternative to offer if someone had a problem with say local installation of Clojure or Go or Rust. At some point in 2023 or 2024 Replit became extremely restrictive in their Education offerings. Looking at replit front page I guess they pivoted away from Education. I can't even tell what Replit offers now as they…

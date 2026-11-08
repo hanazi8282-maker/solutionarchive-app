@@ -5812,8 +5812,9 @@
       "registered_at": "2026-10-23T00:45:36.309Z",
       "baseline_total_collected": 0,
       "new_per_request": 7,
-      "status": "adopted",
-      "rollback": "reports/2026-10-23/window-discovery-rollback-20261023T004536.sql"
+      "status": "kept",
+      "rollback": "reports/2026-10-23/window-discovery-rollback-20261023T004536.sql",
+      "evaluated_at": "2026-11-08T01:33:31.534Z"
     },
     {
       "id": "400e5aad-9b2e-427a-8204-45ec3e11e15b",

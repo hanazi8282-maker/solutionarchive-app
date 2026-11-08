@@ -1,0 +1,74 @@
+{
+  "slug": "adproval-self-service-software-before-revenue-consulting-outsold-it-shutdown",
+  "brand_name": "Adproval",
+  "market": "SaaS · 블로거-광고주 연결 셀프서비스 광고 판매 위젯",
+  "geo": "US",
+  "business_model": "OTHER",
+  "buyer_type": "B2B",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "CONVERSION",
+  "reader_problem": "MAKE_BUT_NO_MONEY",
+  "outcome_status": "shutdown",
+  "period_start": null,
+  "period_end": null,
+  "summary": "미국 대학생 창업가가 블로거가 자기 사이트에 광고 판매 위젯을 붙이고 광고주가 직접 사 가는 '완전 셀프서비스' 플랫폼을 2011년에 시작했다. 약 30만 달러를 모았지만 셀프서비스 쪽 수수료는 월 최대 200달러 수준이었고, 마지막 해에 사람이 직접 해 주는 컨설팅(관리형 서비스)으로 연 20만 달러 이상을 벌었다. 창업가는 '소프트웨어 만들기에 매출보다 시간을 더 썼다'고 돌아보며 약 6년 뒤(대략 2017) 번아웃으로 접었다. 창업가 본인 인터뷰(Failory, 2021)에 근거한다. 이식 가능한 부분은 '소프트웨어보다 손으로 하는 서비스로 먼저 돈을 받아 본다'는 순서다.",
+  "tags": ["failure", "saas", "self-service", "services-first", "concierge", "solo-founder", "burnout"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "OFFER",
+      "claim": "창업가는 '블로거가 직접 쓰는 유연한 셀프서비스'라는 이상에 매달려, 사람이 끼는 서비스 없이 소프트웨어만 팔았다. 결과로 셀프서비스에서 나온 유료 수입(수수료)은 월 최대 약 200달러에 머물렀다. 반면 마지막 해에 광고주를 위해 직접 운영해 주는 관리형 컨설팅을 시작하자 연 20만 달러 이상이 들어왔고, 창업가는 이것을 '처음부터 했어야 할 일'이라고 부른다. 돌아보며 소프트웨어를 만들기 전에 사람이 손으로 하는 버전('fake it til you make it')을 더 오래 했어야 했고, 보기 좋은 셀프서비스 소프트웨어에 매출보다 더 많은 시간을 썼다고 말한다(인터뷰 요약 기준).",
+      "transfer_note": "내일 할 일: 지금 만드는 도구가 해 주는 일을, 소프트웨어 없이 내가 직접 손으로 해 주는 조건으로 아는 사람 3명에게 '이 일을 대신 해 드릴게요, 월 얼마에 하실래요?'라고 묻는 메시지를 보낸다.",
+      "preconditions": "그 일을 내가 직접 해 줄 수 있어야 한다(이 창업가의 컨설팅 고객이 어디서 왔는지는 인터뷰에서 확인하지 못했다). 시간이 한정된 1인이라면 한 번에 받을 수 있는 고객 수는 몇 명이 한계다. 이 무브는 창업가의 사후 반성에서 끌어낸 것이고, 창업가가 처음부터 실제로 해 본 일은 아니다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    },
+    {
+      "lever": "PRICING",
+      "claim": "블로거에게는 정액 요금 없이 광고가 팔릴 때만 10% 수수료를 받고, 광고주는 처음에 무료로 열어 두었다. 사람이 몰리게 하려는 선택이었지만 돈을 내는 쪽이 사실상 없는 구조여서, 셀프서비스 수수료는 월 최대 약 200달러였다. 창업가는 이 수입 구조를 약 6년 유지했고, 개발은 시간당 85~150달러짜리 외주 개발자에게 맡기면서 월 1,500달러(5년에 걸쳐 2,000달러까지)의 급여로 버텼다.",
+      "transfer_note": "내일 할 일: 지금 무료로 쓰게 해 둔 쪽이 있다면, 그 사람 중 가장 많이 쓰는 1명에게 '월 얼마면 계속 쓰시겠어요?'라고 직접 물어 가격 후보 1개를 받아 둔다. 수수료만 받는 구조라면 '팔릴 때만' 대신 월 정액 후보 하나를 같이 적어 본다.",
+      "preconditions": "이미 써 주는 사용자가 최소 1명은 있어야 한다. 사용자가 0명이면 가격이 아니라 '첫 고객' 문제다. 이 무브는 창업가의 반성(매출 우선)에서 끌어낸 제안이다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.failory.com/interview/adproval",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "adproval-failory-interview-2021-06",
+      "published_at": "2021-06-08",
+      "snippet": "(요약) 셀프서비스 수수료 월 최대 약 $200, 마지막 해 관리형 컨설팅 연 $200k+. 창업가는 컨설팅을 '처음부터 했어야 할 일'로 회고.",
+      "supports_claim": "셀프서비스 월 약 $200 대 컨설팅 연 $200k+, 손 버전을 더 오래 했어야 했다는 회고"
+    },
+    {
+      "move": 1,
+      "url": "https://www.failory.com/interview/adproval",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "observation_key": "adproval-failory-interview-2021-06",
+      "published_at": "2021-06-08",
+      "snippet": "(요약) 블로거 10% 수수료만, 광고주 초기 무료. 총 $300k 조달, 외주 개발 시간당 $85-150, 창업가 월급 $1,500→$2,000.",
+      "supports_claim": "수수료만 받고 광고주 무료 구조, 약 6년, 외주 개발과 낮은 급여로 유지"
+    }
+  ]
+}

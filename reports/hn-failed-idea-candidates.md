@@ -363,3 +363,27 @@
 - 작성일: 2026-11-07
 
 > The university that I teach at used Replit a few years ago before migrating away. I used it in our larger Programming Languages courses with 200-300 students, replit was the guaranteed alternative to offer if someone had a problem with say local installation of Clojure or Go or Rust. At some point in 2023 or 2024 Replit became extremely restrictive in their Education offerings. Looking at replit front page I guess they pivoted away from Education. I can't even tell what Replit offers now as they…
+
+## HN 50418545
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50418545
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-10 UTC)
+- 스레드: Silicon Valley Promises AI Will Cure Disease. Drugmaker CEOs Aren't Buying It
+- 작성자: nullc
+- 작성일: 2026-11-08
+
+> "The purpose of a system is what it does" is, in my view, a statement about accountability. It's an answer to "it causes this or that harm? Well, that's not the purpose of the system". We should reject those arguments: The purposes is what it does. It takes a particular kind of rationalist-cult-addled weaponized autism to strawman this basic and important position. (not referring to you, of course :)) It might well be literally false in any specific case-- systems often have unintended and unexp…
+
+## HN 50418674
+
+- 판정: (미검토)
+- 매칭: `pivoted away from`
+- 원본: https://news.ycombinator.com/item?id=50418674
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-10 UTC)
+- 스레드: Nvidia CEO Jensen Huang's letter to staff about affair
+- 작성자: altmanaltman
+- 작성일: 2026-11-08
+
+> Yeah, but in this case they also built the pickaxes and drills and did it better than any other pickaxe and drill builder. In your analogy, they are commodities and a shop like that can be set up by anyone. But in this case, that doesn't apply. And if you look at their sales composition, they never pivoted away from gaming, but data centers clearly became ludicrously more attractive in the AI era. But they were always very good at computing triangles, perhaps the best in the world. They were luc…

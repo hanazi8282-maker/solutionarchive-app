@@ -1,6 +1,10 @@
 // 컨설팅 파이프라인 — 라우트(웹)와 scripts/consult-scenario.mjs(승인 테스트)가 같은 코드를 쓴다. 장 단위 생성기를 불러 저장한다.
 import { collectCompany } from './collect.ts'
 import { buildCh1 } from './report/ch1.ts'
+import { buildL1 } from './report/ch1-l1.ts'
+import type { Ch1 } from './report/ch1-validate.ts'
+import type { UserNumbers } from './report/ch1-l1-validate.ts'
+import { retrieveSimilar } from './cases.ts'
 import { db, setStatus, type Run } from './runs.ts'
 
 /** E0: 공개 페이지 수집 → consult_collected. 실패는 던진다(호출자가 status 를 failed 로). */
@@ -33,4 +37,20 @@ export async function diagnoseLayer0(run: Run): Promise<boolean> {
     await setStatus(run.id, 'failed', e instanceof Error ? e.message.slice(0, 300) : 'diagnose failed')
     throw e
   }
+}
+
+/** 1층 해금: 0층 진단 + 대표님 숫자 3개 → ⓐ 재계산 손실 ⓑ 후보 2+반박 ⓒ 벤치마크(보유 사례) ⓓ 메모 첫 문장. 이미 해금했으면 그대로 둔다. */
+export async function unlockLayer1(run: Run, nums: UserNumbers): Promise<boolean> {
+  const sb = await db()
+  const { data: have } = await sb.from('consult_diagnoses').select('id').eq('run_id', run.id).eq('layer', 1).maybeSingle()
+  if (have) return false
+  const { data: l0 } = await sb.from('consult_diagnoses').select('blocks').eq('run_id', run.id).eq('layer', 0).maybeSingle()
+  if (!l0) throw new Error('no_layer0')
+  const ch1 = l0.blocks as Ch1
+  const similar = await retrieveSimilar({ runId: run.id, owner: run.owner_email, category: ch1.position.category, oneLiner: run.one_liner ?? '' })
+  const { l1, costUsd, model } = await buildL1({ runId: run.id, owner: run.owner_email, ch1, nums, similar })
+  const { error } = await sb.from('consult_diagnoses').upsert({ run_id: run.id, layer: 1, blocks: l1, model, cost_usd: costUsd }, { onConflict: 'run_id,layer' })
+  if (error) throw new Error(`1층 저장 실패: ${error.message}`)
+  await setStatus(run.id, 'done', null, 'l1')
+  return true
 }

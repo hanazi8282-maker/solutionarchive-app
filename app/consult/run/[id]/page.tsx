@@ -2,7 +2,8 @@ import { notFound, redirect } from 'next/navigation'
 import { requireConsultUser } from '@/lib/consult/session'
 import { getRun, db } from '@/lib/consult/runs'
 import { TAGLINE } from '@/lib/consult/tagline'
-import type { Ch1 } from '@/lib/consult/report/ch1'
+import type { Ch1 } from '@/lib/consult/report/ch1-validate'
+import type { Ch1L1 } from '@/lib/consult/report/ch1-l1-validate'
 import { PubShell } from '../../../_pub/components/PubShell'
 import { Hero } from '../../../_pub/components/Hero'
 import { Panel } from '../../../_pub/components/Panel'
@@ -14,7 +15,7 @@ export const dynamic = 'force-dynamic'
 type Facts = { pages: { url: string; title: string; text: string }[]; thin: boolean; notes: string[] }
 
 // 진단 화면. 0층(무료 4블록)이 있으면 보여 주고, 없으면 수집 요약 + "진단 시작" 버튼.
-export default async function RunPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ busy?: string }> }) {
+export default async function RunPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ busy?: string; error?: string }> }) {
   const { id } = await params
   const sp = await searchParams
   const auth = await requireConsultUser()
@@ -22,12 +23,14 @@ export default async function RunPage({ params, searchParams }: { params: Promis
   const run = await getRun(id, auth.email)
   if (!run) notFound()
   const sb = await db()
-  const [{ data: col }, { data: dg }] = await Promise.all([
+  const [{ data: col }, { data: dg }, { data: d1 }] = await Promise.all([
     sb.from('consult_collected').select('facts,thin').eq('run_id', id).maybeSingle(),
     sb.from('consult_diagnoses').select('blocks').eq('run_id', id).eq('layer', 0).maybeSingle(),
+    sb.from('consult_diagnoses').select('blocks').eq('run_id', id).eq('layer', 1).maybeSingle(),
   ])
   const facts = (col?.facts ?? null) as Facts | null
   const ch = (dg?.blocks ?? null) as Ch1 | null
+  const l1 = (d1?.blocks ?? null) as Ch1L1 | null
   const webPages = facts?.pages.filter((p) => p.url !== 'user:one_liner') ?? []
 
   return (
@@ -58,6 +61,42 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                 <ul>{ch.similar.map((s) => <li key={s.name} className="pub-text"><b>{s.name}</b> — {s.what}</li>)}</ul>
               </Panel>
             ) : null}
+
+            {sp.error ? <Panel tone="alert" titleAs="h2" title="1층을 열지 못했습니다"><p className="pub-text">{sp.error === 'nums' ? '숫자를 확인하세요(전환율은 0~100, 나머지는 0보다 큰 숫자).' : '잠시 뒤 다시 시도하세요.'}</p></Panel> : null}
+            {l1 ? (
+              <>
+                <Panel titleAs="h2" title="내 숫자로 다시 계산한 손실">
+                  <p className="pub-text"><b>월 {l1.recalc.low_man.toLocaleString('ko-KR')}~{l1.recalc.high_man.toLocaleString('ko-KR')}만원</b></p>
+                  <ul>{l1.recalc.terms.map((t) => <li key={t.label} className="pub-caption">{t.label}: {t.low === t.high ? t.low : `${t.low}~${t.high}`}{t.user ? ' (입력하신 값)' : ' (가정)'}</li>)}</ul>
+                  {l1.recalc.note ? <p className="pub-caption">{l1.recalc.note}</p> : null}
+                </Panel>
+                {l1.candidates.map((c, i) => (
+                  <Panel key={c.title} titleAs="h2" title={`발전 방향 후보 ${i + 1}: ${c.title}`}>
+                    <p className="pub-text">{c.what}</p>
+                    <p className="pub-caption">근거: {c.why}</p>
+                    <p className="pub-caption">반박: {c.rebuttal}</p>
+                  </Panel>
+                ))}
+                <Panel titleAs="h2" title="벤치마크 위치">
+                  <p className="pub-text">{l1.benchmark.position}</p>
+                  <p className="pub-caption">근거: {l1.benchmark.basis}</p>
+                  {l1.benchmark.similar.length > 0 ? <ul>{l1.benchmark.similar.map((s) => <li key={s.name} className="pub-caption"><b>{s.name}</b> — {s.what}</li>)}</ul> : null}
+                </Panel>
+                <Panel titleAs="h2" title="결정 메모 첫 문장"><p className="pub-text"><b>{l1.memo_first}</b></p></Panel>
+              </>
+            ) : (
+              <Panel titleAs="h2" title="내 숫자를 넣으면 더 정확해집니다">
+                <form className="pub-form" action={`/api/consult/runs/${id}/unlock`} method="post">
+                  <label className="pub-text" htmlFor="audience">월 대상자 수(방문자·문의 수 등)</label>
+                  <input className="pub-field" id="audience" name="audience" inputMode="numeric" required />
+                  <label className="pub-text" htmlFor="rate_pct">현재 전환율(%)</label>
+                  <input className="pub-field" id="rate_pct" name="rate_pct" inputMode="decimal" required />
+                  <label className="pub-text" htmlFor="value_man">객단가(만원)</label>
+                  <input className="pub-field" id="value_man" name="value_man" inputMode="decimal" required />
+                  <PubButton variant="primary" size="lg">내 숫자로 다시 계산</PubButton>
+                </form>
+              </Panel>
+            )}
           </>
         ) : (
           <Panel titleAs="h2" title="수집한 정보">

@@ -3,6 +3,8 @@ import { normalizeCompanyUrl } from '../lib/consult/url.ts'
 import { robotsDecision, htmlToText } from '../lib/consult/collect.ts'
 import { validateCh1 } from '../lib/consult/report/ch1-validate.ts'
 import { costUsd } from '../lib/consult/cost.ts'
+import { validateL1, parseUserNumbers } from '../lib/consult/report/ch1-l1-validate.ts'
+import { sanitizeCaseQuery, caseLine } from '../lib/consult/cases-validate.ts'
 let pass = 0, fail = 0
 const t = (name, ok) => { if (ok) pass++; else { fail++; console.log(`❌ ${name}`) } }
 
@@ -38,6 +40,28 @@ for (const [name, mut] of [
 ]) { let threw = false; try { validateCh1(mut(okRaw), { thin: true }) } catch { threw = true } t('ch1 거절: ' + name, threw) }
 t('단가: mock 은 0', costUsd('mock', 1e6, 1e6) === 0)
 t('단가: opus 1M in/out = 90', costUsd('opus', 1e6, 1e6) === 90)
+
+// R4 — 1층 검증기: 곱셈은 코드가 한다, 사용자 숫자는 항에 그대로 들어 있어야 한다
+const nums = { audience: 1000, rate_pct: 2, value_man: 10 }
+const l1Raw = (over = {}) => ({
+  recalc: { terms: [{ label: '월 대상자', low: 1000, high: 1000, user: true }, { label: '전환율(비율)', low: 0.02, high: 0.02, user: true }, { label: '객단가', low: 10, high: 10, user: true }, { label: '놓치는 비율', low: 0.1, high: 0.3, user: false }], note: '추정' },
+  candidates: [1, 2].map((n) => ({ title: 't' + n, what: 'w', why: 'y', rebuttal: 'r' })),
+  benchmark: { position: 'p', basis: 'b' }, memo_first: '먼저 입구를 만드세요.', ...over })
+const l1 = validateL1(l1Raw(), nums)
+t('1층: 코드가 곱한다(1000x0.02x10x0.1=20, x0.3=60)', l1.recalc.low_man === 20 && l1.recalc.high_man === 60)
+const rej = (name, raw) => { let th = false; try { validateL1(raw, nums) } catch { th = true } t('1층 거절: ' + name, th) }
+rej('사용자 숫자 변조', l1Raw({ recalc: { terms: [{ label: 'a', low: 999, high: 999, user: true }, { label: 'b', low: 0.02, high: 0.02, user: true }, { label: 'c', low: 10, high: 10, user: true }], note: '' } }))
+rej('후보 1개', l1Raw({ candidates: [{ title: 't', what: 'w', why: 'y', rebuttal: 'r' }] }))
+rej('반박 없음', l1Raw({ candidates: [{ title: 't', what: 'w', why: 'y', rebuttal: '' }, { title: 't', what: 'w', why: 'y', rebuttal: 'r' }] }))
+rej('항 1개', l1Raw({ recalc: { terms: [{ label: 'a', low: 1, high: 1, user: true }], note: '' } }))
+for (const bad of [{ audience: 0 }, { audience: 'x' }, { audience: 10, rate_pct: 101 }, { audience: 10, rate_pct: 1, value_man: -1 }]) { let th = false; try { parseUserNumbers({ rate_pct: 1, value_man: 1, ...bad }) } catch { th = true } t('숫자 입력 거절: ' + JSON.stringify(bad), th) }
+t('숫자 입력: 쉼표 허용', parseUserNumbers({ audience: '1,500', rate_pct: '2.5', value_man: '10' }).audience === 1500)
+
+// R5 — 검색 질의는 허용 목록 안에서만
+t('질의: 없는 카테고리는 버림', sanitizeCaseQuery({ category: 'Crypto', mechanisms: [] }).category === null)
+t('질의: 메커니즘 허용 목록·최대 2개', sanitizeCaseQuery({ category: 'SaaS', mechanisms: ['subscription', 'x', 'pricing', 'seo-content'] }).mechanisms.length === 2)
+t('사례 한 줄: 결정 내용 없으면 버림', caseLine({ company: 'A', key_decision: '', outcome: null, grade: 'B' }) === null)
+t('사례 한 줄: 130자 이하', (caseLine({ company: 'A', key_decision: 'x'.repeat(500), outcome: 'failed', grade: 'B' })?.what.length ?? 999) <= 130)
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)
 process.exitCode = fail ? 1 : 0

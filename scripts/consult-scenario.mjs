@@ -35,3 +35,33 @@ if (nums) {
   console.log(`1층 완료 ${Math.round((Date.now() - t1) / 1000)}s · $${d1.cost_usd}`)
   console.log(JSON.stringify(d1.blocks, null, 2))
 }
+
+// 선택: 유료 단계 — --memo(결정 메모) · --measure "목표%,점검일"(ROI) 또는 --measure auto(몰랐던 사실) · --chat "질문". 웹 라우트와 같은 함수.
+if (process.argv.includes('--memo')) {
+  const { generateMemo } = await import('../lib/consult/pipeline.ts')
+  const t2 = Date.now()
+  await generateMemo(run)
+  const { data: m } = await (await db()).from('consult_memos').select('body,cost_usd').eq('run_id', run.id).eq('version', 1).single()
+  console.log(`메모 완료 ${Math.round((Date.now() - t2) / 1000)}s · $${m.cost_usd}`)
+  console.log(JSON.stringify(m.body, null, 2))
+}
+const measure = arg('measure')
+if (measure) {
+  const { createMeasureCard } = await import('../lib/consult/measure.ts')
+  const [target, due] = measure === 'auto' ? [null, null] : measure.split(',')
+  const r = await createMeasureCard(run, { target, due })
+  const { data: c } = await (await db()).from('consult_measure_cards').select('mode,title,metric_name,baseline,target,due_date,body').eq('run_id', run.id).single()
+  console.log(`측정카드 mode=${r.mode}`)
+  console.log(JSON.stringify(c, null, 2))
+}
+const q = arg('chat')
+if (q) {
+  const { chatTurn } = await import('../lib/consult/agent.ts')
+  const t3 = Date.now()
+  const a = await chatTurn(run, q)
+  const { data: tools } = await (await db()).from('consult_messages').select('content,tool').eq('run_id', run.id).eq('role', 'tool')
+  console.log(`대화 ${Math.round((Date.now() - t3) / 1000)}s · 도구 호출 ${tools.length}회: ${tools.map((t) => t.content).join(', ')}`)
+  console.log(a)
+}
+const { data: usage } = await (await db()).from('llm_usage').select('purpose,cost_usd').eq('run_id', run.id)
+console.log('비용 합계 $' + usage.reduce((a, u) => a + Number(u.cost_usd), 0).toFixed(4) + ' · ' + usage.map((u) => `${u.purpose}:$${Number(u.cost_usd).toFixed(3)}`).join(' '))

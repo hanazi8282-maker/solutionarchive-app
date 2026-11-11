@@ -5,6 +5,11 @@ import { validateCh1 } from '../lib/consult/report/ch1-validate.ts'
 import { costUsd } from '../lib/consult/cost.ts'
 import { validateL1, parseUserNumbers } from '../lib/consult/report/ch1-l1-validate.ts'
 import { sanitizeCaseQuery, caseLine } from '../lib/consult/cases-validate.ts'
+import { validateCh2 } from '../lib/consult/report/ch2-validate.ts'
+import { parseStep, validateToolArgs, recalcLoss } from '../lib/consult/agent-validate.ts'
+import { pickMode, buildRoiCard, validateUnknownFacts } from '../lib/consult/measure-validate.ts'
+import { addMonth, cleanDepositor } from '../lib/consult/period.ts'
+import { isActive } from '../lib/consult/entitlement.ts'
 let pass = 0, fail = 0
 const t = (name, ok) => { if (ok) pass++; else { fail++; console.log(`❌ ${name}`) } }
 
@@ -63,6 +68,46 @@ t('질의: 없는 카테고리는 버림', sanitizeCaseQuery({ category: 'Crypto
 t('질의: 메커니즘 허용 목록·최대 2개', sanitizeCaseQuery({ category: 'SaaS', mechanisms: ['subscription', 'x', 'pricing', 'seo-content'] }).mechanisms.length === 2)
 t('사례 한 줄: 결정 내용 없으면 버림', caseLine({ company: 'A', key_decision: '', outcome: null, grade: 'B' }) === null)
 t('사례 한 줄: 130자 이하', (caseLine({ company: 'A', key_decision: 'x'.repeat(500), outcome: 'failed', grade: 'B' })?.what.length ?? 999) <= 130)
+
+// R6 — 결정 메모 검증기
+const memoRaw = (o = {}) => ({ decision: '먼저 입구를 만드세요.', options: [{ name: 'A', pros: 'p', cons: 'c' }, { name: 'B', pros: 'p', cons: 'c' }], recommendation: { choice: 'A', reasons: ['r1', 'r2'], change_mind_if: ['x'] }, risks: [{ risk: 'r', mitigation: 'm' }], actionplan: [{ step: '입구 만들기', done_when: '가입 폼이 열린다' }, { step: '안내 보내기', done_when: '첫 10명에게 발송' }, { step: '반응 보기', done_when: '답장 3건' }], ...o })
+t('메모: 정상 통과', validateCh2(memoRaw(), '먼저 입구를 만드세요.').actionplan.length === 3)
+const rej2 = (name, raw, first = '먼저 입구를 만드세요.') => { let th = false; try { validateCh2(raw, first) } catch { th = true } t('메모 거절: ' + name, th) }
+rej2('액션플랜에 날짜(2026-11-30)', memoRaw({ actionplan: [{ step: '2026-11-30 까지 만들기', done_when: 'x' }, { step: 'a', done_when: 'b' }, { step: 'c', done_when: 'd' }] }))
+rej2('액션플랜에 날짜(11월 30일)', memoRaw({ actionplan: [{ step: 'a', done_when: '11월 30일에 끝' }, { step: 'a', done_when: 'b' }, { step: 'c', done_when: 'd' }] }))
+rej2('액션플랜에 다음 주', memoRaw({ actionplan: [{ step: '다음 주에 하기', done_when: 'x' }, { step: 'a', done_when: 'b' }, { step: 'c', done_when: 'd' }] }))
+rej2('액션플랜 2단계뿐', memoRaw({ actionplan: [{ step: 'a', done_when: 'b' }, { step: 'c', done_when: 'd' }] }))
+rej2('1층 첫 문장과 다른 결론', memoRaw(), '가격을 먼저 올리세요 지금 바로')
+rej2('90일 재측정', memoRaw({ risks: [{ risk: '90일 재측정 필요', mitigation: 'm' }] }))
+
+// R7 — 에이전트 순수부
+t('에이전트: final 파싱', parseStep({ final: '답' }).kind === 'final')
+t('에이전트: tool 파싱', parseStep({ tool: 'show_memo', args: {} }).kind === 'tool')
+for (const bad of [{}, { tool: 'drop_table' }, { final: '' }]) { let th = false; try { parseStep(bad) } catch { th = true } t('에이전트 거절: ' + JSON.stringify(bad), th) }
+{ let th = false; try { validateToolArgs('search_cases', { category: 'Crypto' }) } catch { th = true } t('도구 인자: 허용 목록 밖 카테고리 거절', th) }
+{ let th = false; try { validateToolArgs('recalc_loss', { audience: 100, rate_pct: 2, value_man: 10, leak_low: 0.5, leak_high: 0.1 }) } catch { th = true } t('도구 인자: leak_high < leak_low 거절', th) }
+t('손실 재계산: 1000x2%x10x(0.1~0.3)=20~60', recalcLoss({ audience: 1000, rate_pct: 2, value_man: 10, leak_low: 0.1, leak_high: 0.3 }).high_man === 60)
+
+// R8 — 측정카드
+t('모드: 운영 중+숫자 있음=roi', pickMode({ kind: 'company' }, true) === 'roi')
+t('모드: 창업 전=몰랐던 사실', pickMode({ kind: 'idea' }, true) === 'unknown_fact')
+t('모드: 숫자 없음=몰랐던 사실', pickMode({ kind: 'company' }, false) === 'unknown_fact')
+t('ROI 카드: 목표>현재', buildRoiCard(2, '3.5', '2026-12-31').target === 3.5)
+for (const [bt, bd] of [[2, '1'], [2, '101'], [2, 'x']]) { let th = false; try { buildRoiCard(bt, bd, '') } catch { th = true } t('ROI 카드 거절: 목표 ' + bd, th) }
+{ let th = false; try { buildRoiCard(2, '3', '12/31') } catch { th = true } t('ROI 카드 거절: 점검일 형식', th) }
+t('몰랐던 사실: 출처 있는 1개 통과', validateUnknownFacts({ facts: [{ fact: '가격 페이지가 없다', source: 'https://a.com' }] }).length === 1)
+{ let th = false; try { validateUnknownFacts({ facts: [{ fact: '출처 없음', source: '' }] }) } catch { th = true } t('몰랐던 사실 거절: 출처 없음', th) }
+{ let th = false; try { validateUnknownFacts({ facts: [{ fact: 'x'.repeat(131), source: 's' }] }) } catch { th = true } t('몰랐던 사실 거절: 130자 초과', th) }
+
+// R9 — 구독 기간·권한
+t('기간: 1/31 + 1달 = 2/28(비윤년)', addMonth(new Date('2027-01-31T00:00:00Z')).toISOString().slice(0, 10) === '2027-02-28')
+t('기간: 12/15 + 1달 = 1/15', addMonth(new Date('2026-12-15T00:00:00Z')).toISOString().slice(0, 10) === '2027-01-15')
+t('입금자명: 공백 정리', cleanDepositor('  홍  길동 ') === '홍 길동')
+{ let th = false; try { cleanDepositor('a') } catch { th = true } t('입금자명 거절: 1자', th) }
+t('권한: 활성+미래 = 유료', isActive([{ status: 'active', ends_at: '2999-01-01T00:00:00Z' }]))
+t('권한: 활성이어도 만료 = 무료', !isActive([{ status: 'active', ends_at: '2000-01-01T00:00:00Z' }]))
+t('권한: requested 는 유료 아님', !isActive([{ status: 'requested', ends_at: null }]))
+t('권한: 빈 목록은 무료', !isActive([]))
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)
 process.exitCode = fail ? 1 : 0

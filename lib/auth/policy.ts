@@ -70,6 +70,45 @@ const PUBLIC_PREFIXES = [
  */
 const PUBLIC_EXACT = ['/', '/opengraph-image', '/voc', '/voc/community', '/voc/card', '/cases/report']
 
+
+/**
+ * 컨설팅 MVP(v71ci R0, 남헌 2026-11-11) — **외부 사용자용 영역**. 내부 허용 목록과 별개의 경계다.
+ *  - 열림(로그인 없이): `/consult` 랜딩, `/consult/login`, `/consult/auth/*`(이메일 OTP 시작).
+ *  - 로그인한 누구나(허용 목록 불필요): `/consult/*` 나머지, `/api/consult/*`. 세션 이메일이 있으면 통과, 데이터는 서버가 owner_email 로 거른다.
+ *  - **허용 목록 필요**: `/consult/admin`(입금 확인·구독 활성화) — 아래 두 함수에 안 걸리므로 기존 판정으로 떨어진다.
+ *  경계 근거는 scripts/auth-selftest.mjs 의 consult 케이스가 지킨다.
+ */
+const CONSULT_OPEN = ['/consult', '/consult/login']
+const CONSULT_OPEN_PREFIX = ['/consult/auth']
+const CONSULT_ADMIN = '/consult/admin'
+
+export function isConsultOpen(pathname: string): boolean {
+  return CONSULT_OPEN.includes(pathname) || CONSULT_OPEN_PREFIX.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
+
+/** 로그인만 하면 되는 컨설팅 경로(열린 경로·관리자 경로 제외). */
+export function isConsultUserPath(pathname: string): boolean {
+  const under = (p: string) => pathname === p || pathname.startsWith(`${p}/`)
+  if (under(CONSULT_ADMIN) || isConsultOpen(pathname)) return false
+  return under('/consult') || under('/api/consult')
+}
+
+/** 컨설팅 사용자 판정 — 허용 목록 없이 "세션 이메일이 있나"만 본다. 3상태를 접지 않는다. */
+export async function resolveConsultUser(
+  getUser: (() => Promise<UserResult>) | null,
+): Promise<{ kind: 'ok'; email: string } | { kind: 'anonymous' } | { kind: 'unavailable'; detail: string }> {
+  if (!getUser) return { kind: 'unavailable', detail: 'NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY 미설정' }
+  let res: UserResult
+  try { res = await getUser() } catch (e) { return { kind: 'unavailable', detail: e instanceof Error ? e.message : String(e) } }
+  if (res.error) {
+    const s = res.error.status
+    const outage = res.error.name === 'AuthRetryableFetchError' || !s || s === 429 || s >= 500
+    return outage ? { kind: 'unavailable', detail: `${res.error.name ?? 'AuthError'}(${s ?? '-'}): ${res.error.message}` } : { kind: 'anonymous' }
+  }
+  const email = res.data.user?.email?.trim().toLowerCase() ?? ''
+  return email ? { kind: 'ok', email } : { kind: 'anonymous' }
+}
+
 /** 위 공개 접두사 안이지만 사람만 부르는 경로. */
 /**
  * 공개 정적 이미지 — `public/case-art/<slug>.jpg` 하나뿐. 로고를 구할 수 없는 폐업 케이스의 카드 썸네일

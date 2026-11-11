@@ -9,6 +9,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
   parseAllowlist, isPublicPath, resolveAuth, guardFromVerdict, denyStatus, safeNext,
+  isConsultOpen, isConsultUserPath, resolveConsultUser,
 } from '../lib/auth/policy.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -226,6 +227,21 @@ t('음성: 가드 없는 핸들러는 실패', !guardFirst('(req) {\n  const d =
 t('음성: DB 접근 뒤에 가드하면 실패', !guardFirst('(req) {\n  const d = await deps()\n  const auth = await requireAllowedUser()\n  if (!auth.ok) return x\n}'))
 t('음성: 가드를 부르고 결과를 버리면 실패', !guardFirst('(req) {\n  await requireAllowedUser()\n  const d = await deps()\n}'))
 t('양성: 가드 → 거절 반환 → DB', guardFirst('(req) {\n  const auth = await requireAllowedUser()\n  if (!auth.ok) return x\n  const d = await deps()\n}'))
+
+// v71ci R0 — 컨설팅 외부 사용자 영역. 열림 / 로그인만 / 허용 목록(관리자) 세 갈래가 섞이지 않아야 한다.
+for (const p of ['/consult', '/consult/login', '/consult/auth/otp']) t(`consult 열림: ${p}`, isConsultOpen(p) && !isConsultUserPath(p))
+for (const p of ['/consult/new', '/consult/run/abc', '/api/consult/diagnose', '/consult/loginx']) t(`consult 로그인만: ${p}`, !isConsultOpen(p) && isConsultUserPath(p))
+for (const p of ['/consult/admin', '/consult/admin/payments']) t(`consult 관리자(허용 목록): ${p}`, !isConsultOpen(p) && !isConsultUserPath(p) && !isPublicPath(p))
+for (const p of ['/consultx', '/dashboard', '/api/threads/callback']) t(`consult 아님(기존 판정 유지): ${p}`, !isConsultOpen(p) && !isConsultUserPath(p))
+t('consult 열림이 내부 공개 경로로 새지 않는다: /consult 는 isPublicPath 거짓', !isPublicPath('/consult') && !isPublicPath('/consult/new'))
+{
+  const ok = (email) => async () => ({ data: { user: { email } }, error: null })
+  t('consult 사용자: 이메일 있으면 ok(허용 목록 무관)', (await resolveConsultUser(ok('Someone@Example.com'))).email === 'someone@example.com')
+  t('consult 사용자: 세션 없음 = anonymous', (await resolveConsultUser(async () => ({ data: { user: null }, error: { name: 'AuthSessionMissingError', status: 400, message: 'x' } }))).kind === 'anonymous')
+  t('consult 사용자: 이메일 없는 계정 = anonymous', (await resolveConsultUser(ok(''))).kind === 'anonymous')
+  t('consult 사용자: 5xx = unavailable(접지 않는다)', (await resolveConsultUser(async () => ({ data: { user: null }, error: { name: 'AuthApiError', status: 503, message: 'x' } }))).kind === 'unavailable')
+  t('consult 사용자: 클라이언트 없음 = unavailable', (await resolveConsultUser(null)).kind === 'unavailable')
+}
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 허용 목록 파서 · 공개/보호 경로(크론 ${cronRoutes.length}·페이지 ${pages.length}) · 세션 3상태 판정 · 서버 액션 가드 ${guarded.length}개 + 승인된 예외 ${exempted.length}개 · API 핸들러 가드 ${guardedRoutes.length}개`)
 process.exitCode = fail ? 1 : 0

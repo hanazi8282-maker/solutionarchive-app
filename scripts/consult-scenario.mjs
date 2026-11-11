@@ -63,5 +63,26 @@ if (q) {
   console.log(`대화 ${Math.round((Date.now() - t3) / 1000)}s · 도구 호출 ${tools.length}회: ${tools.map((t) => t.content).join(', ')}`)
   console.log(a)
 }
+// 선택: 결론서 조립 — --report free|paid|cold (R11 단일 생성기. 웹 라우트와 같은 함수). 결과 토큰으로 /r/<token> 이 열린다.
+const preset = arg('report')
+if (preset) {
+  const { composeReport } = await import('../lib/consult/report/compose.ts')
+  const { coldMailLines } = await import('../lib/consult/report/mail.ts')
+  const t4 = Date.now()
+  const { token, payload } = await composeReport(run, preset, owner)
+  const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://solutionarch.vercel.app'
+  console.log(`결론서 ${preset} 완료 ${Math.round((Date.now() - t4) / 1000)}s · 장 ${payload.chapters.join(',')} · ${SITE}/r/${token}`)
+  if (preset === 'cold') {
+    const { alreadySent } = await import('../lib/consult/report/mail.ts')
+    const { readFileSync } = await import('node:fs')
+    const dup = alreadySent(readFileSync('ops/state/dm-log-reconstructed-2026-11-10.md', 'utf8'), run.company_name ?? '')
+    console.log(dup.sent ? `⚠ 이미 발송 기록이 있는 회사입니다 — 보내지 마세요: ${dup.rows.join(' / ')}` : '발송 기록 대조: 처음 보내는 회사')
+    console.log('--- 콜드메일 3줄 ---')
+    for (const l of coldMailLines({ company: run.company_name ?? '', headline: payload.ch1.headline, reportUrl: `${SITE}/r/${token}` })) console.log(l)
+    console.log('--- 5장 경쟁 지도 ---')
+    for (const c of payload.ch3to6.competitors) console.log(`${c.name} (${c.kind}) — 근거: ${c.basis}`)
+  }
+}
+
 const { data: usage } = await (await db()).from('llm_usage').select('purpose,cost_usd').eq('run_id', run.id)
 console.log('비용 합계 $' + usage.reduce((a, u) => a + Number(u.cost_usd), 0).toFixed(4) + ' · ' + usage.map((u) => `${u.purpose}:$${Number(u.cost_usd).toFixed(3)}`).join(' '))

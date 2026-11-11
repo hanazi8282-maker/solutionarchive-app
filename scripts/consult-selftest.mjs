@@ -10,6 +10,8 @@ import { parseStep, validateToolArgs, recalcLoss } from '../lib/consult/agent-va
 import { pickMode, buildRoiCard, validateUnknownFacts } from '../lib/consult/measure-validate.ts'
 import { addMonth, cleanDepositor } from '../lib/consult/period.ts'
 import { isActive } from '../lib/consult/entitlement.ts'
+import { validateCh3to6 } from '../lib/consult/report/ch3to6-validate.ts'
+import { coldMailLines, inSendWindow, alreadySent } from '../lib/consult/report/mail.ts'
 let pass = 0, fail = 0
 const t = (name, ok) => { if (ok) pass++; else { fail++; console.log(`❌ ${name}`) } }
 
@@ -108,6 +110,33 @@ t('권한: 활성+미래 = 유료', isActive([{ status: 'active', ends_at: '2999
 t('권한: 활성이어도 만료 = 무료', !isActive([{ status: 'active', ends_at: '2000-01-01T00:00:00Z' }]))
 t('권한: requested 는 유료 아님', !isActive([{ status: 'requested', ends_at: null }]))
 t('권한: 빈 목록은 무료', !isActive([]))
+
+// R11 — 3~6장 검증기·콜드메일 3줄·발송 시간
+const c36 = (o = {}) => ({ candidates: [1, 2].map((n) => ({ title: 't' + n, what: 'w', why: 'y', rebuttal: 'r' })), customers: [1, 2].map((n) => ({ who: 'w' + n, need: 'n', reach: 'r' })), competitors: [1, 2].map((n) => ({ name: 'c' + n, kind: 'k', basis: 'b' })), obstacles: [1, 2].map((n) => ({ obstacle: 'o' + n, evidence: 'e', handle: 'h' })), ...o })
+t('3~6장: 정상 통과', validateCh3to6(c36()).competitors.length === 2)
+const rej36 = (name, raw) => { let th = false; try { validateCh3to6(raw) } catch { th = true } t('3~6장 거절: ' + name, th) }
+rej36('경쟁 근거 없음', c36({ competitors: [{ name: 'a', kind: 'k', basis: '' }, { name: 'b', kind: 'k', basis: 'b' }] }))
+rej36('후보 1개', c36({ candidates: [{ title: 't', what: 'w', why: 'y', rebuttal: 'r' }] }))
+rej36('반박 없음', c36({ candidates: [{ title: 't', what: 'w', why: 'y', rebuttal: '' }, { title: 't', what: 'w', why: 'y', rebuttal: 'r' }] }))
+rej36('90일 재측정', c36({ obstacles: [{ obstacle: '90일 재측정', evidence: 'e', handle: 'h' }, { obstacle: 'o', evidence: 'e', handle: 'h' }] }))
+const mail = coldMailLines({ company: '시프티', headline: '요금 안내가 가입 직전에 끊깁니다.', reportUrl: 'https://x.test/r/abc' })
+t('콜드메일: 정확히 3줄', mail.length === 3)
+t('콜드메일: 비슷한 회사 k곳 문장 없음(Q-B 아니오)', !mail.join(' ').includes('같은 선택을 했을 때'))
+t('콜드메일: 결론서 주소·탈리 링크 포함', mail[1].includes('https://x.test/r/abc') && mail[2].includes('tally.so/r/X55kqL'))
+t('콜드메일: 헤드라인 끝 마침표 중복 없음', !mail[0].includes('..'))
+t('콜드메일: 90일 재측정 없음', !mail.join(' ').includes('90일'))
+t('발송 시간: KST 10시(UTC 01시) 가능', inSendWindow(new Date('2026-11-12T01:00:00Z')))
+t('발송 시간: KST 18시(UTC 09시) 불가', !inSendWindow(new Date('2026-11-12T09:00:00Z')))
+t('발송 시간: KST 08시(UTC 23시) 불가', !inSendWindow(new Date('2026-11-11T23:00:00Z')))
+t('발송 시간: KST 09시(UTC 00시) 가능', inSendWindow(new Date('2026-11-12T00:00:00Z')))
+
+// 7(d) 중복 발송 대조
+const LOG = ['| 발송(KST) | 수신 | 회사 | D+3 |', '|---|---|---|---|', '| 11/06 08:00 | support@shiftee.io | 시프티 | 11/09 |', '| 11/06 08:00 | wooriyo@wooriyo.com | 핀플·알파요 | 11/09 |'].join('\n')
+t('중복 발송: 시프티는 이미 발송', alreadySent(LOG, '시프티').sent)
+t('중복 발송: 표기 차이(핀플 알파요)도 잡는다', alreadySent(LOG, '핀플 알파요').sent)
+t('중복 발송: 처음 보내는 회사는 통과', !alreadySent(LOG, '크리에이지').sent)
+t('중복 발송: 이름이 비면 판단하지 않는다(전부 일치 방지)', !alreadySent(LOG, '').sent)
+t('중복 발송: 머리글·구분선 행은 회사로 세지 않는다', !alreadySent(LOG, '회사').sent)
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)
 process.exitCode = fail ? 1 : 0

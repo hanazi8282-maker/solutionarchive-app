@@ -50,6 +50,9 @@ const PUBLIC_PREFIXES = [
   // 검수 화면은 `/cases/*` 에 그대로 남는다 — 남헌 2026-09-23 확정("공개 그리드는 /library 신규
   // 라우트, /cases 는 검수 유지"). auth-selftest 양성 2·음성 2(`/libraryx`, `/cases/<slug>`)가 경계를 지킨다.
   '/library',
+  // 컨설팅 결론서 공개 읽기 전용 출구(v71ci R11) — /r/<32자리 hex 토큰>. 콜드메일 수신자가 로그인 없이 본다. 토큰을 아는 사람만, 읽기 전용, 색인 금지.
+  //   `/r` 접두사만 열린다(`/report`·`/rx` 는 닫힘 — under() 가 `${p}/` 로 비교). auth-selftest 가 경계를 지킨다.
+  '/r',
 ]
 
 /**

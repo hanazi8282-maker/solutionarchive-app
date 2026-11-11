@@ -16,15 +16,15 @@ ${UNTRUSTED_INPUT_NOTICE}
 출력은 JSON 객체 하나만:
 {"decision":"","options":[{"name":"","pros":"","cons":""}],"recommendation":{"choice":"","reasons":[""],"change_mind_if":[""]},"risks":[{"risk":"","mitigation":""}],"actionplan":[{"step":"","done_when":""}]}`
 
-export async function buildCh2(i: { runId: string; owner: string; ch1: Ch1; l1: Ch1L1 }): Promise<{ ch: Ch2; costUsd: number; model: string }> {
-  const user = `0층 진단:\n${JSON.stringify({ headline: i.ch1.headline, leak_or_gap: i.ch1.leak_or_gap, position: i.ch1.position })}\n\n1층:\n${JSON.stringify({ recalc: { low_man: i.l1.recalc.low_man, high_man: i.l1.recalc.high_man, note: i.l1.recalc.note }, candidates: i.l1.candidates, benchmark: i.l1.benchmark, memo_first: i.l1.memo_first })}`
+export async function buildCh2(i: { runId: string; owner: string; ch1: Ch1; l1: Ch1L1 | null }): Promise<{ ch: Ch2; costUsd: number; model: string }> {
+  const user = `0층 진단:\n${JSON.stringify({ headline: i.ch1.headline, leak_or_gap: i.ch1.leak_or_gap, position: i.ch1.position })}\n\n1층:\n${i.l1 ? JSON.stringify({ recalc: { low_man: i.l1.recalc.low_man, high_man: i.l1.recalc.high_man, note: i.l1.recalc.note }, candidates: i.l1.candidates, benchmark: i.l1.benchmark, memo_first: i.l1.memo_first }) : '(1층 없음 — 대표님 숫자가 없으므로 0층 진단만으로 권고하고, 확인할 숫자를 change_mind_if 에 적으세요)'}`
   let cost = 0
   let feedback = ''
   for (let attempt = 0; attempt < 2; attempt++) {
     const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'memo', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 4500 })
     cost += r.costUsd
     try {
-      return { ch: validateCh2(r.data, i.l1.memo_first), costUsd: cost, model: r.model }
+      return { ch: validateCh2(r.data, i.l1?.memo_first ?? ''), costUsd: cost, model: r.model }
     } catch (e) {
       if (attempt === 1) throw e
       feedback = `\n\n[이전 출력이 거절됐습니다: ${e instanceof Error ? e.message : String(e)}. 같은 형식으로 고쳐서 다시 출력하세요.]`

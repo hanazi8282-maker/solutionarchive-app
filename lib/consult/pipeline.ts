@@ -60,16 +60,17 @@ export async function unlockLayer1(run: Run, nums: UserNumbers): Promise<boolean
 
 /** 유료: 결론서 2장 결정 메모. 1층이 먼저 있어야 한다. 메모 1건 예산 ≤ $1.5 — 한 run 누적이 상한을 넘으면 만들지 않는다. */
 export const RUN_COST_CAP_USD = 4
-export async function generateMemo(run: Run): Promise<boolean> {
+/** allowNoLayer1: 콜드메일 결론서처럼 대표님 숫자가 없을 때 0층만으로 메모를 만든다(웹 사용자 경로는 false). */
+export async function generateMemo(run: Run, opts: { allowNoLayer1?: boolean } = {}): Promise<boolean> {
   const sb = await db()
   const { data: have } = await sb.from('consult_memos').select('id').eq('run_id', run.id).eq('version', 1).maybeSingle()
   if (have) return false
   const { data: ds } = await sb.from('consult_diagnoses').select('layer,blocks').eq('run_id', run.id)
   const l0 = ds?.find((d) => d.layer === 0)
   const l1 = ds?.find((d) => d.layer === 1)
-  if (!l0 || !l1) throw new Error('no_layer1')
+  if (!l0 || (!l1 && !opts.allowNoLayer1)) throw new Error('no_layer1')
   if ((await runCostUsd(run.id)) > RUN_COST_CAP_USD) throw new Error('cost_cap')
-  const { ch, costUsd, model } = await buildCh2({ runId: run.id, owner: run.owner_email, ch1: l0.blocks as Ch1, l1: l1.blocks as Ch1L1 })
+  const { ch, costUsd, model } = await buildCh2({ runId: run.id, owner: run.owner_email, ch1: l0.blocks as Ch1, l1: (l1?.blocks ?? null) as Ch1L1 | null })
   const { error } = await sb.from('consult_memos').upsert({ run_id: run.id, version: 1, body: ch, first_sentence: ch.decision, model, cost_usd: costUsd }, { onConflict: 'run_id,version' })
   if (error) throw new Error(`메모 저장 실패: ${error.message}`)
   await setStatus(run.id, 'done', null, 'paid')

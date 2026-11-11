@@ -8,6 +8,8 @@ import { PubShell } from '../../../_pub/components/PubShell'
 import { Hero } from '../../../_pub/components/Hero'
 import { Panel } from '../../../_pub/components/Panel'
 import { PubButton } from '../../../_pub/components/Button'
+import { hasPaidAccess } from '@/lib/consult/entitlement'
+import type { Ch2 } from '@/lib/consult/report/ch2-validate'
 
 export const metadata = { title: '진단 — 60초 진단' }
 export const dynamic = 'force-dynamic'
@@ -23,14 +25,19 @@ export default async function RunPage({ params, searchParams }: { params: Promis
   const run = await getRun(id, auth.email)
   if (!run) notFound()
   const sb = await db()
-  const [{ data: col }, { data: dg }, { data: d1 }] = await Promise.all([
+  const paid = await hasPaidAccess(auth.email).catch(() => null) // null = 확인 불가(무료로 접지 않고 안내만 한다)
+  const [{ data: col }, { data: dg }, { data: d1 }, { data: memoRow }, { data: card }, { data: msgs }] = await Promise.all([
     sb.from('consult_collected').select('facts,thin').eq('run_id', id).maybeSingle(),
     sb.from('consult_diagnoses').select('blocks').eq('run_id', id).eq('layer', 0).maybeSingle(),
     sb.from('consult_diagnoses').select('blocks').eq('run_id', id).eq('layer', 1).maybeSingle(),
+    sb.from('consult_memos').select('body').eq('run_id', id).eq('version', 1).maybeSingle(),
+    sb.from('consult_measure_cards').select('mode,title,metric_name,baseline,target,due_date,body,status').eq('run_id', id).maybeSingle(),
+    sb.from('consult_messages').select('role,content').eq('run_id', id).in('role', ['user', 'assistant']).order('id', { ascending: true }).limit(40),
   ])
   const facts = (col?.facts ?? null) as Facts | null
   const ch = (dg?.blocks ?? null) as Ch1 | null
   const l1 = (d1?.blocks ?? null) as Ch1L1 | null
+  const memo = (memoRow?.body ?? null) as Ch2 | null
   const webPages = facts?.pages.filter((p) => p.url !== 'user:one_liner') ?? []
 
   return (
@@ -83,6 +90,71 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                   {l1.benchmark.similar.length > 0 ? <ul>{l1.benchmark.similar.map((s) => <li key={s.name} className="pub-caption"><b>{s.name}</b> — {s.what}</li>)}</ul> : null}
                 </Panel>
                 <Panel titleAs="h2" title="결정 메모 첫 문장"><p className="pub-text"><b>{l1.memo_first}</b></p></Panel>
+
+                {paid === null ? <Panel tone="alert" titleAs="h2" title="구독 상태를 확인하지 못했습니다"><p className="pub-text">잠시 뒤 새로고침하세요.</p></Panel> : null}
+                {paid === false ? (
+                  <Panel titleAs="h2" title="결정 메모·에이전트·측정카드는 유료입니다">
+                    <p className="pub-text">월 29,000원. 계좌이체로 이용을 엽니다.</p>
+                    <div className="pub-actions"><a className="pub-btn pub-btn--primary" href={`/consult/pay?run=${id}`}>유료 이용 안내</a></div>
+                  </Panel>
+                ) : null}
+                {paid === true ? (
+                  <>
+                    {memo ? (
+                      <Panel titleAs="h2" title="결정 메모">
+                        <p className="pub-text"><b>{memo.decision}</b></p>
+                        {memo.options.map((o) => <p key={o.name} className="pub-caption"><b>{o.name}</b> — 장점: {o.pros} / 단점: {o.cons}</p>)}
+                        <p className="pub-text">권고: {memo.recommendation.choice}</p>
+                        <ul>{memo.recommendation.reasons.map((r) => <li key={r} className="pub-caption">{r}</li>)}</ul>
+                        <p className="pub-caption">이럴 때는 결정을 바꾸세요: {memo.recommendation.change_mind_if.join(' / ')}</p>
+                        {memo.risks.map((r) => <p key={r.risk} className="pub-caption">위험: {r.risk} → {r.mitigation}</p>)}
+                        <h3 className="pub-text"><b>액션플랜</b></h3>
+                        <ol>{memo.actionplan.map((a) => <li key={a.step} className="pub-caption">{a.step} (끝난 기준: {a.done_when})</li>)}</ol>
+                      </Panel>
+                    ) : (
+                      <Panel titleAs="h2" title="결정 메모 만들기">
+                        <form className="pub-form" action={`/api/consult/runs/${id}/memo`} method="post"><PubButton variant="primary" size="lg">결정 메모 만들기</PubButton></form>
+                      </Panel>
+                    )}
+
+                    <div id="measure" />
+                    {card ? (
+                      <Panel titleAs="h2" title={card.title}>
+                        {card.mode === 'roi' ? (
+                          <>
+                            <p className="pub-text">{(card.body as { statement?: string }).statement}</p>
+                            <p className="pub-caption">{card.metric_name}: 현재 {String(card.baseline)} → 목표 {String(card.target)}{card.due_date ? ` · 점검일 ${card.due_date}` : ''}</p>
+                          </>
+                        ) : (
+                          <ul>{((card.body as { facts?: { fact: string; source: string }[] }).facts ?? []).map((f) => <li key={f.fact} className="pub-text">{f.fact} <span className="pub-caption">(출처: {f.source})</span></li>)}</ul>
+                        )}
+                      </Panel>
+                    ) : (
+                      <Panel titleAs="h2" title="측정카드 만들기">
+                        <form className="pub-form" action={`/api/consult/runs/${id}/measure`} method="post">
+                          {run.kind === 'company' ? (
+                            <>
+                              <label className="pub-text" htmlFor="target">목표 전환율(%) — 현재 {l1.inputs.rate_pct}%</label>
+                              <input className="pub-field" id="target" name="target" inputMode="decimal" required />
+                              <label className="pub-text" htmlFor="due">점검일(선택)</label>
+                              <input className="pub-field" id="due" name="due" type="date" />
+                            </>
+                          ) : <p className="pub-caption">숫자가 없어 몰랐던 사실 카드로 만듭니다.</p>}
+                          <PubButton variant="primary" size="lg">측정카드 만들기</PubButton>
+                        </form>
+                      </Panel>
+                    )}
+
+                    <div id="chat" />
+                    <Panel titleAs="h2" title="컨설턴트에게 묻기">
+                      {(msgs ?? []).map((m, i) => <p key={i} className={m.role === 'user' ? 'pub-text' : 'pub-caption'}><b>{m.role === 'user' ? '나' : '컨설턴트'}</b>: {m.content}</p>)}
+                      <form className="pub-form" action={`/api/consult/runs/${id}/chat`} method="post">
+                        <textarea className="pub-field pub-pmf-textarea" name="message" required minLength={2} maxLength={800} placeholder="결정 메모에 대해 궁금한 것을 적으세요." />
+                        <PubButton variant="primary">질문하기</PubButton>
+                      </form>
+                    </Panel>
+                  </>
+                ) : null}
               </>
             ) : (
               <Panel titleAs="h2" title="내 숫자를 넣으면 더 정확해집니다">

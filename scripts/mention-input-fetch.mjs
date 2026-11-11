@@ -11,12 +11,17 @@ const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 if (!baseUrl || !key) throw new Error('NEXT_PUBLIC_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY 필요 — 못 읽은 것을 빈 입력으로 접지 않는다')
 const base = baseUrl + '/rest/v1/'
 const H = { apikey: key, authorization: 'Bearer ' + key }
+// 키셋 페이징(v71ci A3): 오프셋 페이징은 analysis_inputs(raw_text 포함 ~18만 행)에서 깊어질수록 느려져 57014(8초)로 죽었다.
+//   order 열은 select 에 들어 있고 유일해야 한다(전부 id·key·input_id — 호출부 그대로).
 async function all(path, order) {
   const out = []
-  for (let from = 0; ; from += 1000) {
-    const r = await fetch(base + path + (path.includes('?') ? '&' : '?') + 'order=' + order, { headers: { ...H, range: `${from}-${from + 999}`, 'range-unit': 'items' } })
+  let last = null
+  for (;;) {
+    const cur = last === null ? '' : `&${order}=gt.${encodeURIComponent(last)}`
+    const r = await fetch(base + path + (path.includes('?') ? '&' : '?') + 'order=' + order + '&limit=1000' + cur, { headers: H })
     if (!r.ok) throw new Error(path + ' ' + r.status + ' ' + (await r.text()).slice(0, 200))
     const j = await r.json(); out.push(...j); if (j.length < 1000) break
+    last = j[j.length - 1][order]
   }
   return out
 }
@@ -35,7 +40,7 @@ for (const i of inputs) {
   const kind = v && (v.human_verdict === 'relevant' || v.auto_approved_at) ? 'approved' : eff === 'relevant' ? 'relevant' : 'alt_seek'
   posts.push({ id: i.id, project_id: i.project_id, source_key: i.source_key, area_code: ap.area_code, raw_text: i.raw_text, verdict_kind: kind })
 }
-const targets = await all('review_targets?select=project_id,source_key,label,product_ref,status,total_collected', 'id')
+const targets = await all('review_targets?select=id,project_id,source_key,label,product_ref,status,total_collected', 'id')
 const srcs = new Map((await all('review_sources?select=key,enabled', 'key')).map(s => [s.key, s.enabled]))
 targets.forEach(t => t.source_enabled = srcs.get(t.source_key))
 // v71ba: origin·mention_count·probe_* 는 새 출시 소급(new-release-backfill.mjs)이 대상 행(origin=mention ∧ 집계 NULL)을 고르는 데 쓴다

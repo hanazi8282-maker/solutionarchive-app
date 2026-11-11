@@ -7,7 +7,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { denyStatus, isPublicPath, resolveAuth, verdictMessage } from './lib/auth/policy'
+import { denyStatus, isConsultOpen, isConsultUserPath, isPublicPath, resolveAuth, resolveConsultUser, verdictMessage } from './lib/auth/policy'
 
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl
@@ -30,6 +30,19 @@ export async function proxy(req: NextRequest) {
       },
     })
     : null
+
+  // 컨설팅 사용자 영역(v71ci R0) — 허용 목록 없이 로그인만 본다. /consult/admin 은 여기 안 걸려 아래 허용 목록 판정으로 간다.
+  if (isConsultUserPath(pathname)) {
+    const cu = await resolveConsultUser(sb && (() => sb.auth.getUser()))
+    if (cu.kind === 'ok') return res
+    if (cu.kind === 'unavailable') console.error(`[auth] consult session check unavailable: ${cu.detail}`)
+    const page = !pathname.startsWith('/api/') && (req.method === 'GET' || req.method === 'HEAD')
+    const d = page
+      ? NextResponse.redirect(new URL(`/consult/login?next=${encodeURIComponent(pathname + search)}`, req.url))
+      : NextResponse.json({ error: cu.kind === 'anonymous' ? '로그인이 필요합니다.' : '인증 확인 불가' }, { status: cu.kind === 'anonymous' ? 401 : 503 })
+    res.cookies.getAll().forEach((c) => d.cookies.set(c))
+    return d
+  }
 
   // ponytail: 요청마다 Supabase Auth 에 getUser 1회(네트워크). 내부 도구 트래픽이라 둔다 —
   //   느려지면 비대칭 JWT 서명키 + getClaims()(로컬 검증)로 바꾼다.

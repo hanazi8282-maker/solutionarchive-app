@@ -1,6 +1,6 @@
 // llm_usage 기록 + 단가 계산. 컨설팅의 모든 LLM 호출은 recordUsage 를 거친다(예산: 0층 ≤$0.5 · 메모 ≤$1.5 · 대화 1턴 ≈$0.05).
 // 단가는 USD/1M 토큰 추정치(입력,출력) — 실제 청구와 다를 수 있어 "추정"으로만 쓴다. 바꿀 땐 여기 한 곳.
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../supabase/server.ts'
 
 import { costUsd, type ModelTag, type Purpose } from './cost.ts'
 export { costUsd }

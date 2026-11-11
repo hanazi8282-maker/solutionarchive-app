@@ -31,6 +31,7 @@ const okRaw = { headline: '요금 안내가 가입 직전에 끊깁니다', leak
 t('ch1 정상 통과', validateCh1(okRaw, { thin: false }).loss.high_man === 120)
 for (const [name, mut] of [
   ['손실 범위 역전', (r) => ({ ...r, loss: { ...r.loss, low_man: 200 } })],
+  ['손실 범위 0~0', (r) => ({ ...r, loss: { ...r.loss, low_man: 0, high_man: 0 } })],
   ['가정 없음', (r) => ({ ...r, loss: { ...r.loss, assumptions: [] } })],
   ['headline 없음', (r) => ({ ...r, headline: '' })],
   ['금지 표현(90일 재측정)', (r) => ({ ...r, headline: '90일 재측정 하세요' })],

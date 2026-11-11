@@ -1,5 +1,5 @@
 // consult_runs 접근 — 서버 전용(service_role). 모든 조회는 owner_email 로 거른다(RLS 는 정책 0 이라 앱이 경계다).
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../supabase/server.ts'
 
 export type Run = {
   id: string

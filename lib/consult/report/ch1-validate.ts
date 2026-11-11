@@ -24,6 +24,7 @@ export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean
   const low = Number(loss.low_man)
   const high = Number(loss.high_man)
   if (!Number.isFinite(low) || !Number.isFinite(high) || low < 0 || high < low) throw new Error('진단 형식 오류: 손실 범위 숫자')
+  if (high <= 0) throw new Error('진단 형식 오류: 손실 범위가 0 — 가정을 명시한 구간으로 산출해야 함')
   const assumptions = Array.isArray(loss.assumptions) ? loss.assumptions.filter((x): x is string => typeof x === 'string').slice(0, 5) : []
   if (assumptions.length === 0) throw new Error('진단 형식 오류: 산식의 가정이 없음')
   const out: Ch1 = {

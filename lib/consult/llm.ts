@@ -2,8 +2,8 @@
 // 경로(우회 사유 로그): ① ANTHROPIC_API_KEY 있으면 Anthropic SDK 직접 ② 없으면 기존 claude-cli(구독 OAuth, 같은 회사 모델) ③ 둘 다 없거나 CONSULT_LLM=mock 이면 mock.
 //   2026-11-11 실측: Vercel 환경에 ANTHROPIC_API_KEY 없음 → ②로 동작. 키를 넣으면 코드 수정 없이 ①로 바뀐다.
 import Anthropic from '@anthropic-ai/sdk'
-import { callLlmWithModel, parseJsonObject, type LlmProvider } from '@/lib/analysis/llm.ts'
-import { recordUsage, type ModelTag, type Purpose } from './usage'
+import { callLlmWithModel, parseJsonObject, type LlmProvider } from '../analysis/llm.ts'
+import { recordUsage, type ModelTag, type Purpose } from './usage.ts'
 
 const MODEL: Record<Exclude<ModelTag, 'mock'>, string> = {
   opus: 'claude-opus-5-5',

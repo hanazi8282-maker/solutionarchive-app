@@ -20,13 +20,19 @@ async function get(url: string, ms = 8000): Promise<Response | null> {
   }
 }
 
+/** 본문 읽기 중 타임아웃·끊김도 던지지 않고 null(= 못 읽음)로 돌려준다. */
+async function readText(r: Response): Promise<string | null> {
+  try { return await r.text() } catch { return null }
+}
+
 /** 'allowed' | 'disallowed' | 'unknown'. unknown 은 가지 않는다. */
 export async function robotsVerdict(origin: string, path: string): Promise<'allowed' | 'disallowed' | 'unknown'> {
   const r = await get(`${origin}/robots.txt`, 5000)
   if (!r) return 'unknown'
   if (r.status === 404 || r.status === 410) return 'allowed'
   if (!r.ok) return 'unknown'
-  return robotsDecision((await r.text()).slice(0, 100_000), path)
+  const body = await readText(r)
+  return body === null ? 'unknown' : robotsDecision(body.slice(0, 100_000), path)
 }
 
 /** robots.txt 본문 → 판정(순수 함수, 셀프테스트 대상). */
@@ -84,14 +90,14 @@ export async function collectCompany(rawUrl: string | null, oneLiner: string | n
       const home = await get(u.href)
       if (!home || !home.ok) notes.push(`홈페이지를 읽지 못함(${home ? `HTTP ${home.status}` : '연결 실패'})`)
       else {
-        const html = (await home.text()).slice(0, MAX_BYTES)
+        const html = ((await readText(home)) ?? '').slice(0, MAX_BYTES)
         const h = htmlToText(html)
         if (h.text) pages.push({ url: u.href, ...h })
         for (const link of pickLinks(html, u)) {
           if ((await robotsVerdict(u.origin, new URL(link).pathname)) !== 'allowed') continue
           const r = await get(link)
           if (!r || !r.ok) continue
-          const p = htmlToText((await r.text()).slice(0, MAX_BYTES))
+          const p = htmlToText(((await readText(r)) ?? '').slice(0, MAX_BYTES))
           if (p.text) pages.push({ url: link, ...p })
         }
       }

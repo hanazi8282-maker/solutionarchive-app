@@ -8,6 +8,7 @@ export const metadata = { title: '진단 시작 — 60초 진단' }
 
 const MSG: Record<string, string> = {
   liner: '한 줄 설명을 10자 이상 적어 주세요.',
+  cap: '오늘은 진단 한도에 도달했습니다. 내일 다시 시도해 주세요.',
   url: '회사 주소를 확인해 주세요(https://로 시작하는 공개 주소만 가능합니다).',
 }
 

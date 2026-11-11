@@ -5,6 +5,7 @@ import { requireConsultUser } from '@/lib/consult/session'
 import { normalizeCompanyUrl } from '@/lib/consult/url'
 import { collectAndStore } from '@/lib/consult/pipeline'
 import { createRun, setStatus } from '@/lib/consult/runs'
+import { capExceeded } from '@/lib/consult/usage'
 
 export const maxDuration = 60
 
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
   if (rawUrl && !url) return back('url')
   if (kind === 'company' && !url) return back('url')
 
+  if (await capExceeded()) return back('cap')
   const run = await createRun(auth.email, { kind, name, url: url?.href ?? null, oneLiner })
   try {
     await collectAndStore(run)

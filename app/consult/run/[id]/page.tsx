@@ -8,7 +8,8 @@ import { PubShell } from '../../../_pub/components/PubShell'
 import { Hero } from '../../../_pub/components/Hero'
 import { Panel } from '../../../_pub/components/Panel'
 import { PubButton } from '../../../_pub/components/Button'
-import { hasPaidAccess } from '@/lib/consult/entitlement'
+import { hasPaidAccess, isStaff } from '@/lib/consult/entitlement'
+import { coldMailLines, inSendWindow } from '@/lib/consult/report/mail'
 import type { Ch2 } from '@/lib/consult/report/ch2-validate'
 
 export const metadata = { title: '진단 — 60초 진단' }
@@ -38,6 +39,10 @@ export default async function RunPage({ params, searchParams }: { params: Promis
   const ch = (dg?.blocks ?? null) as Ch1 | null
   const l1 = (d1?.blocks ?? null) as Ch1L1 | null
   const memo = (memoRow?.body ?? null) as Ch2 | null
+  const staff = isStaff(auth.email)
+  const { data: coldRow } = staff ? await sb.from('consult_reports').select('token,payload').eq('run_id', id).contains('chapters', ['6']).order('created_at', { ascending: false }).limit(1) : { data: null }
+  const cold = coldRow?.[0] ?? null
+  const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://solutionarch.vercel.app'
   const webPages = facts?.pages.filter((p) => p.url !== 'user:one_liner') ?? []
 
   return (
@@ -48,6 +53,32 @@ export default async function RunPage({ params, searchParams }: { params: Promis
         {run.status === 'failed' ? <Panel tone="alert" titleAs="h2" title="처리에 실패했습니다"><p className="pub-text">{run.error}</p></Panel> : null}
         {sp.busy ? <Panel titleAs="h2" title="진단 중입니다"><p className="pub-text">잠시 뒤 새로고침하세요.</p></Panel> : null}
 
+        {ch ? (
+          <Panel titleAs="h2" title="결론서">
+            <form className="pub-form" action={`/api/consult/runs/${id}/report`} method="post">
+              <input type="hidden" name="preset" value="free" />
+              <PubButton variant="ghost">결론서 열기(1장 진단)</PubButton>
+            </form>
+            {paid === true ? (
+              <form className="pub-form" action={`/api/consult/runs/${id}/report`} method="post">
+                <input type="hidden" name="preset" value="paid" />
+                <PubButton variant="ghost">결론서 열기(1·2장, 결정 메모 포함)</PubButton>
+              </form>
+            ) : null}
+            {staff ? (
+              <form className="pub-form" action={`/api/consult/runs/${id}/report`} method="post">
+                <input type="hidden" name="preset" value="cold" />
+                <PubButton variant="ghost">콜드메일용 결론서 만들기(전 장, 운영진)</PubButton>
+              </form>
+            ) : null}
+          </Panel>
+        ) : null}
+        {cold ? (
+          <Panel titleAs="h2" title="콜드메일 본문 3줄(발송은 사람이 합니다)">
+            {coldMailLines({ company: run.company_name ?? '', headline: (cold.payload as { ch1: { headline: string } }).ch1.headline, reportUrl: `${SITE}/r/${cold.token}` }).map((l) => <p key={l} className="pub-text">{l}</p>)}
+            <p className="pub-caption">{inSendWindow(new Date()) ? '지금은 발송 가능 시간(09~18시)입니다.' : '지금은 발송 시간(09~18시) 밖입니다.'} 같은 회사에 이미 보냈는지 ops/state/dm-log-reconstructed-2026-11-10.md 와 대조한 뒤 보내세요.</p>
+          </Panel>
+        ) : null}
         {ch ? (
           <>
             <Panel titleAs="h2" title={ch.leak_or_gap.kind === 'gap' ? `미개척: ${ch.leak_or_gap.title}` : `누수: ${ch.leak_or_gap.title}`}>

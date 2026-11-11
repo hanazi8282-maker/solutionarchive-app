@@ -12,7 +12,7 @@ export type Ch1L1 = {
   memo_first: string
 }
 
-const BANNED = /(90\s*일\s*재측정|액션\s*플랜)/
+const BANNED = /90\s*일\s*재측정/
 
 export function parseUserNumbers(raw: Record<string, unknown>): UserNumbers {
   const n = (v: unknown, field: string, min: number, max: number) => {

@@ -10,7 +10,7 @@ export type Ch1 = {
   thin: boolean
 }
 
-const BANNED = /(90\s*일\s*재측정|액션\s*플랜)/
+const BANNED = /90\s*일\s*재측정/
 const str = (v: unknown, max: number, field: string): string => {
   if (typeof v !== 'string' || !v.trim()) throw new Error(`진단 형식 오류: ${field} 없음`)
   return v.trim().slice(0, max)

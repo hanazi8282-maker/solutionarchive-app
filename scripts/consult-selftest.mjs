@@ -38,6 +38,7 @@ for (const [name, mut] of [
   ['headline 없음', (r) => ({ ...r, headline: '' })],
   ['금지 표현(90일 재측정)', (r) => ({ ...r, headline: '90일 재측정 하세요' })],
 ]) { let threw = false; try { validateCh1(mut(okRaw), { thin: true }) } catch { threw = true } t('ch1 거절: ' + name, threw) }
+{ let ok=true; try { validateCh1({ ...okRaw, headline: '액션플랜을 정리하세요' }, { thin: false }) } catch { ok=false } t('ch1: 액션플랜 표현은 허용', ok) }
 t('단가: mock 은 0', costUsd('mock', 1e6, 1e6) === 0)
 t('단가: opus 1M in/out = 90', costUsd('opus', 1e6, 1e6) === 90)
 

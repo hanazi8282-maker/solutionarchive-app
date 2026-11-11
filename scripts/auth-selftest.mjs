@@ -242,6 +242,13 @@ t('consult 열림이 내부 공개 경로로 새지 않는다: /consult 는 isPu
   t('consult 사용자: 5xx = unavailable(접지 않는다)', (await resolveConsultUser(async () => ({ data: { user: null }, error: { name: 'AuthApiError', status: 503, message: 'x' } }))).kind === 'unavailable')
   t('consult 사용자: 클라이언트 없음 = unavailable', (await resolveConsultUser(null)).kind === 'unavailable')
 }
+// proxy 배선 — 정책 함수만 맞아서는 부족하다(2026-11-11 프로덕션에서 /consult 가 내부 로그인으로 튕긴 사고). proxy.ts 가 열린 경로를 실제로 통과시키는지 소스로 확인한다.
+{
+  const px = readFileSync(`${ROOT}/proxy.ts`, 'utf8')
+  const early = px.indexOf('if (isPublicPath(pathname) || isConsultOpen(pathname)) return NextResponse.next()')
+  t('proxy: 열린 컨설팅 경로를 Supabase 호출 전에 통과', early >= 0 && early < px.indexOf('createServerClient('))
+  t('proxy: 컨설팅 사용자 경로는 resolveConsultUser 로 판정', px.includes('isConsultUserPath(pathname)') && px.includes('resolveConsultUser('))
+}
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 허용 목록 파서 · 공개/보호 경로(크론 ${cronRoutes.length}·페이지 ${pages.length}) · 세션 3상태 판정 · 서버 액션 가드 ${guarded.length}개 + 승인된 예외 ${exempted.length}개 · API 핸들러 가드 ${guardedRoutes.length}개`)
 process.exitCode = fail ? 1 : 0

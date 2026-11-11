@@ -11,7 +11,7 @@ import { denyStatus, isConsultOpen, isConsultUserPath, isPublicPath, resolveAuth
 
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl
-  if (isPublicPath(pathname)) return NextResponse.next()
+  if (isPublicPath(pathname) || isConsultOpen(pathname)) return NextResponse.next()
 
   // @supabase/ssr 규약: 토큰이 갱신되면 요청과 응답 양쪽에 새 쿠키를 쓴다.
   let res = NextResponse.next({ request: req })

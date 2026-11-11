@@ -81,7 +81,7 @@ const PUBLIC_EXACT = ['/', '/opengraph-image', '/voc', '/voc/community', '/voc/c
  *  - **허용 목록 필요**: `/consult/admin`(입금 확인·구독 활성화) — 아래 두 함수에 안 걸리므로 기존 판정으로 떨어진다.
  *  경계 근거는 scripts/auth-selftest.mjs 의 consult 케이스가 지킨다.
  */
-const CONSULT_OPEN = ['/consult', '/consult/login']
+const CONSULT_OPEN = ['/consult', '/consult/login', '/consult/denied']
 const CONSULT_OPEN_PREFIX = ['/consult/auth']
 const CONSULT_ADMIN = '/consult/admin'
 

@@ -36,12 +36,14 @@ t('script/style 제거', !h.text.includes('var a') && !h.text.includes('x{}'))
 t('본문 유지', h.text.includes('근태 관리') && h.text.includes('출퇴근'))
 
 // R3 — 1장 검증기(모델 출력 형식)
-const okRaw = { headline: '요금 안내가 가입 직전에 끊깁니다', leak_or_gap: { kind: 'leak', title: '가격 불투명', detail: '요금제 페이지가 없습니다.' }, position: { category: '근태 관리', where: '중소 사업장 하단', basis: '소개 페이지 기준' }, loss: { low_man: 30, high_man: 120, formula: '월 방문 x 전환 손실', assumptions: ['월 방문 3,000', '전환 1%'], note: '추정' } }
+const okRaw = { headline: '요금 안내가 가입 직전에 끊깁니다', leak_or_gap: { kind: 'leak', title: '가격 불투명', detail: '한 줄 설명은 요금제를 말하는데 메뉴와 가입 화면에는 요금 안내가 없어 가입 직전에 끊깁니다.' }, position: { category: '근태 관리', where: '중소 사업장 하단', basis: '소개 페이지 기준' }, loss: { low_man: 30, high_man: 120, formula: '월 방문 x 전환 손실', assumptions: ['월 방문 3,000', '전환 1%'], note: '추정' } }
 t('ch1 정상 통과', validateCh1(okRaw, { thin: false }).loss.high_man === 120)
 for (const [name, mut] of [
   ['손실 범위 역전', (r) => ({ ...r, loss: { ...r.loss, low_man: 200 } })],
   ['손실 범위 0~0', (r) => ({ ...r, loss: { ...r.loss, low_man: 0, high_man: 0 } })],
   ['가정 없음', (r) => ({ ...r, loss: { ...r.loss, assumptions: [] } })],
+  ['kind 없음(누수로 접지 않는다)', (r) => ({ ...r, leak_or_gap: { ...r.leak_or_gap, kind: undefined } })],
+  ['detail 너무 짧음', (r) => ({ ...r, leak_or_gap: { ...r.leak_or_gap, detail: '짧다' } })],
   ['headline 없음', (r) => ({ ...r, headline: '' })],
   ['금지 표현(90일 재측정)', (r) => ({ ...r, headline: '90일 재측정 하세요' })],
 ]) { let threw = false; try { validateCh1(mut(okRaw), { thin: true }) } catch { threw = true } t('ch1 거절: ' + name, threw) }

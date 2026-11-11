@@ -232,6 +232,9 @@ t('양성: 가드 → 거절 반환 → DB', guardFirst('(req) {\n  const auth =
 for (const p of ['/consult', '/consult/login', '/consult/auth/otp']) t(`consult 열림: ${p}`, isConsultOpen(p) && !isConsultUserPath(p))
 for (const p of ['/consult/new', '/consult/run/abc', '/api/consult/diagnose', '/consult/loginx']) t(`consult 로그인만: ${p}`, !isConsultOpen(p) && isConsultUserPath(p))
 for (const p of ['/consult/admin', '/consult/admin/payments']) t(`consult 관리자(허용 목록): ${p}`, !isConsultOpen(p) && !isConsultUserPath(p) && !isPublicPath(p))
+t('consult 안내 화면 /consult/denied 는 로그인 없이 열린다', isConsultOpen('/consult/denied') && !isConsultUserPath('/consult/denied'))
+const proxySrc = readFileSync(`${ROOT}/proxy.ts`, 'utf8')
+t('proxy: /consult/admin 거절은 내부 /login 이 아니라 /consult/denied 로 간다', proxySrc.includes("'/consult/denied'") && proxySrc.includes("pathname === '/consult/admin'"))
 for (const p of ['/consultx', '/dashboard', '/api/threads/callback']) t(`consult 아님(기존 판정 유지): ${p}`, !isConsultOpen(p) && !isConsultUserPath(p))
 t('consult 열림이 내부 공개 경로로 새지 않는다: /consult 는 isPublicPath 거짓', !isPublicPath('/consult') && !isPublicPath('/consult/new'))
 {

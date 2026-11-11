@@ -27,10 +27,13 @@ export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean
   if (high <= 0) throw new Error('진단 형식 오류: 손실 범위가 0 — 가정을 명시한 구간으로 산출해야 함')
   const assumptions = Array.isArray(loss.assumptions) ? loss.assumptions.filter((x): x is string => typeof x === 'string').slice(0, 5) : []
   if (assumptions.length === 0) throw new Error('진단 형식 오류: 산식의 가정이 없음')
+  // 누수/미개척은 모델이 근거로 골라야 한다 — 값이 없거나 다른 값이면 누수로 접지 않고 거절한다(§7.1, v71ck 4).
+  if (lg.kind !== 'leak' && lg.kind !== 'gap') throw new Error('진단 형식 오류: leak_or_gap.kind 는 leak 또는 gap')
+  if (typeof lg.detail !== 'string' || lg.detail.trim().length < 30) throw new Error('진단 형식 오류: leak_or_gap.detail 이 너무 짧음 — gap 은 비어 있는 자리, leak 은 어긋남의 증거를 적어야 함')
   const out: Ch1 = {
     headline: str(raw.headline, 80, 'headline'),
     leak_or_gap: {
-      kind: lg.kind === 'gap' ? 'gap' : 'leak',
+      kind: lg.kind,
       title: str(lg.title, 80, 'leak_or_gap.title'),
       detail: str(lg.detail, 500, 'leak_or_gap.detail'),
     },

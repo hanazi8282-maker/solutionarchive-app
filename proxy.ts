@@ -53,8 +53,10 @@ export async function proxy(req: NextRequest) {
   // 화면 이동은 /login 으로 보낸다. 로그인 화면이 같은 판정을 다시 해서 사유(로그인 필요 /
   // 허용 목록 밖 / 목록 미설정 / 확인 불가)를 그대로 보여준다. API·폼 POST 는 리디렉트 대신 상태 코드.
   const isPageView = !pathname.startsWith('/api/') && (req.method === 'GET' || req.method === 'HEAD')
+  // 컨설팅 운영진 화면은 내부 로그인이 아니라 컨설팅 전용 안내로 보낸다(v71ck 6).
+  const consultAdmin = pathname === '/consult/admin' || pathname.startsWith('/consult/admin/')
   const deny = isPageView
-    ? NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(pathname + search)}`, req.url))
+    ? NextResponse.redirect(new URL(consultAdmin ? '/consult/denied' : `/login?next=${encodeURIComponent(pathname + search)}`, req.url))
     : NextResponse.json({ error: verdictMessage(verdict) }, { status: denyStatus(verdict) })
   res.cookies.getAll().forEach((c) => deny.cookies.set(c))
   return deny

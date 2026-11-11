@@ -2,21 +2,9 @@
 // 단가는 USD/1M 토큰 추정치(입력,출력) — 실제 청구와 다를 수 있어 "추정"으로만 쓴다. 바꿀 땐 여기 한 곳.
 import { createClient } from '@/lib/supabase/server'
 
-export type ModelTag = 'opus' | 'sonnet' | 'haiku' | 'mock'
-export type Purpose = 'collect' | 'diagnosis' | 'l1' | 'memo' | 'chat' | 'measure' | 'report' | 'judge'
-
-// ponytail: 추정 단가. 정확한 청구는 Anthropic 콘솔이 정본 — 어긋나면 이 표만 고친다.
-const PRICE_PER_M: Record<ModelTag, [number, number]> = {
-  opus: [15, 75],
-  sonnet: [3, 15],
-  haiku: [0.8, 4],
-  mock: [0, 0],
-}
-
-export function costUsd(tag: ModelTag, inTok: number, outTok: number): number {
-  const [i, o] = PRICE_PER_M[tag]
-  return Math.round(((inTok * i + outTok * o) / 1_000_000) * 100000) / 100000
-}
+import { costUsd, type ModelTag, type Purpose } from './cost.ts'
+export { costUsd }
+export type { ModelTag, Purpose }
 
 export type UsageInput = {
   runId?: string | null
@@ -27,11 +15,13 @@ export type UsageInput = {
   inputTokens: number
   outputTokens: number
   meta?: Record<string, unknown>
+  /** claude-cli 처럼 호출 봉투가 실제 환산 비용을 주면 그 값을 쓴다(토큰 추정 대신). */
+  costOverride?: number | null
 }
 
 /** 쓰기 실패는 삼키지 않고 던진다 — 비용을 못 남긴 채 호출이 끝나면 예산 상한이 거짓이 된다(§7.1). */
 export async function recordUsage(u: UsageInput): Promise<number> {
-  const cost = costUsd(u.tag, u.inputTokens, u.outputTokens)
+  const cost = u.costOverride != null ? Math.round(u.costOverride * 100000) / 100000 : costUsd(u.tag, u.inputTokens, u.outputTokens)
   const sb = await createClient()
   if (!sb) throw new Error('SUPABASE 환경변수 없음 — llm_usage 를 쓸 수 없다')
   const { error } = await sb.from('llm_usage').insert({

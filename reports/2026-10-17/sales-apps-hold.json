@@ -1,0 +1,560 @@
+{
+ "_comment": "v71ad §2 ② 영업 앱 후보 — 보류 목록. 확인된 ID(리포 기존 타깃·창문 대장·공개 문서) 0개라 등록 마이그는 이 PR 에서 뺐다. robots 금지 경로(itunes.apple.com/search — Disallow: /search*)에서 얻은 값이라 확인된 ID 가 아니다. 사람 판단 전 등록·사용 금지.",
+ "incident": {
+  "date": "2026-10-17",
+  "calls": {
+   "search": 41,
+   "lookup": 4
+  },
+  "block_signals": 0,
+  "cause": "scripts/anchor-verify.mjs 와 같은 /search 경로를 \"이미 쓰는 경로\"로 보고 호출. 그 스크립트 주석은 \"robots 대상 아님\"이라고 적지만 scripts/idea-competitors.mjs 는 같은 경로를 금지로 기록 — 리포 안 모순.",
+  "stopped": "코디네이터 지시 수신 전에 호출은 이미 끝나 있었고 이후 0회."
+ },
+ "confirmed_ids": [],
+ "hold": [
+  {
+   "slug": "pipedrive",
+   "name": "Pipedrive",
+   "expected_domain": "pipedrive.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 921456160,
+    "track_name": "Pipedrive – Sales CRM",
+    "seller": "Pipedrive Inc",
+    "seller_domain": "pipedrive.com",
+    "ratings": {
+     "us": 675,
+     "kr": 5
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "zoho-crm",
+   "name": "Zoho CRM",
+   "expected_domain": "zoho.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 444908810,
+    "track_name": "Zoho CRM - Sales & Marketing",
+    "seller": "Zoho Corporation",
+    "seller_domain": "zoho.com",
+    "ratings": {
+     "us": 2691,
+     "kr": 7
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "salesforce",
+   "name": "Salesforce",
+   "expected_domain": "salesforce.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 404249815,
+    "track_name": "Salesforce",
+    "seller": "salesforce.com",
+    "seller_domain": "salesforce.com",
+    "ratings": {
+     "us": 353847,
+     "kr": 4270
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "freshsales",
+   "name": "Freshsales",
+   "expected_domain": "freshworks.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 1073125057,
+    "track_name": "Freshsales",
+    "seller": "FRESHWORKS TECHNOLOGIES PRIVATE LIMITED",
+    "seller_domain": "freshworks.com",
+    "ratings": {
+     "us": 523,
+     "kr": 0
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "close",
+   "name": "Close CRM",
+   "expected_domain": "close.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 1668836284,
+    "track_name": "Close CRM",
+    "seller": "Elastic Inc",
+    "seller_domain": "close.com",
+    "ratings": {
+     "us": 52,
+     "kr": 0
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "apollo-io",
+   "name": "Apollo.io",
+   "expected_domain": "apollo.io",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 7건)"
+   }
+  },
+  {
+   "slug": "copper",
+   "name": "Copper CRM",
+   "expected_domain": "copper.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 941438829,
+    "track_name": "Copper CRM",
+    "seller": "Copper CRM, Inc.",
+    "seller_domain": "copper.com",
+    "ratings": {
+     "us": 446,
+     "kr": 1
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "streak",
+   "name": "Streak",
+   "expected_domain": "streak.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 674067680,
+    "track_name": "Streak - CRM for Gmail",
+    "seller": "Rewardly Inc.",
+    "seller_domain": "streak.com",
+    "ratings": {
+     "us": 160,
+     "kr": 1
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "monday-sales-crm",
+   "name": "monday sales CRM",
+   "expected_domain": "monday.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 8건)"
+   }
+  },
+  {
+   "slug": "zendesk-sell",
+   "name": "Zendesk Sell",
+   "expected_domain": "zendesk.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 판매자 도메인(getbase.com) ≠ 후보 도메인(zendesk.com) — 동명 앱 가능성"
+   }
+  },
+  {
+   "slug": "insightly",
+   "name": "Insightly CRM",
+   "expected_domain": "insightly.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 563017797,
+    "track_name": "Insightly CRM",
+    "seller": "Insightly Inc",
+    "seller_domain": "insightly.com",
+    "ratings": {
+     "us": 293,
+     "kr": 0
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "less-annoying-crm",
+   "name": "Less Annoying CRM",
+   "expected_domain": "lessannoyingcrm.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 평가 5건 < 50(실사용 근거 약함)"
+   }
+  },
+  {
+   "slug": "capsule-crm",
+   "name": "Capsule",
+   "expected_domain": "capsulecrm.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 8건) — 첫 변형(Capsule) 기준. 두 번째 변형(Capsule CRM)은 앱 660292932 평가 44 < 50 으로 역시 no_match"
+   }
+  },
+  {
+   "slug": "nutshell",
+   "name": "Nutshell",
+   "expected_domain": "nutshell.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 337938121,
+    "track_name": "Nutshell – Small Business CRM",
+    "seller": "Nutshell, Inc.",
+    "seller_domain": "nutshell.com",
+    "ratings": {
+     "us": 85,
+     "kr": 0
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "bigin",
+   "name": "Bigin by Zoho CRM",
+   "expected_domain": "zoho.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 1454212098,
+    "track_name": "Bigin by Zoho CRM",
+    "seller": "Zoho Corporation",
+    "seller_domain": "zoho.com",
+    "ratings": {
+     "us": 962,
+     "kr": 2
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "salesmap",
+   "name": "세일즈맵",
+   "expected_domain": "salesmap.kr",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 평가 0건 < 50(실사용 근거 약함)"
+   }
+  },
+  {
+   "slug": "lemlist",
+   "name": "lemlist",
+   "expected_domain": "lemlist.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 1건)"
+   }
+  },
+  {
+   "slug": "reply-io",
+   "name": "Reply.io",
+   "expected_domain": "reply.io",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 8건)"
+   }
+  },
+  {
+   "slug": "attio",
+   "name": "Attio",
+   "expected_domain": "attio.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 평가 29건 < 50(실사용 근거 약함)"
+   }
+  },
+  {
+   "slug": "folk",
+   "name": "folk",
+   "expected_domain": "folk.app",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 7건)"
+   }
+  },
+  {
+   "slug": "agile-crm",
+   "name": "Agile CRM",
+   "expected_domain": "agilecrm.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 평가 33건 < 50(실사용 근거 약함)"
+   }
+  },
+  {
+   "slug": "keap",
+   "name": "Keap",
+   "expected_domain": "keap.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 1421097870,
+    "track_name": "Keap Mobile",
+    "seller": "Infusion Software, Inc.",
+    "seller_domain": "keap.com",
+    "ratings": {
+     "us": 1827,
+     "kr": 0
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "nimble",
+   "name": "Nimble",
+   "expected_domain": "nimble.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 651636273,
+    "track_name": "Nimble",
+    "seller": "Nimble, Inc.",
+    "seller_domain": "nimble.com",
+    "ratings": {
+     "us": 619,
+     "kr": 2
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "salesflare",
+   "name": "Salesflare",
+   "expected_domain": "salesflare.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 평가 9건 < 50(실사용 근거 약함)"
+   }
+  },
+  {
+   "slug": "badger-maps",
+   "name": "Badger Maps",
+   "expected_domain": "badgermapping.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 789934914,
+    "track_name": "Badger Maps: #1 Route Planner",
+    "seller": "Badger Maps, Inc.",
+    "seller_domain": "badgermapping.com",
+    "ratings": {
+     "us": 1108,
+     "kr": 0
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "spotio",
+   "name": "SPOTIO",
+   "expected_domain": "spotio.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 판매자 도메인(없음) ≠ 후보 도메인(spotio.com) — 동명 앱 가능성"
+   }
+  },
+  {
+   "slug": "lusha",
+   "name": "Lusha",
+   "expected_domain": "lusha.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 5건)"
+   }
+  },
+  {
+   "slug": "seamless-ai",
+   "name": "Seamless.AI",
+   "expected_domain": "seamless.ai",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 8건)"
+   }
+  },
+  {
+   "slug": "bitrix24",
+   "name": "Bitrix24",
+   "expected_domain": "bitrix24.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 판매자 도메인(없음) ≠ 후보 도메인(bitrix24.com) — 동명 앱 가능성"
+   }
+  },
+  {
+   "slug": "sugarcrm",
+   "name": "SugarCRM",
+   "expected_domain": "sugarcrm.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 판매자 도메인(sugarai.com) ≠ 후보 도메인(sugarcrm.com) — 동명 앱 가능성"
+   }
+  },
+  {
+   "slug": "vtiger",
+   "name": "Vtiger",
+   "expected_domain": "vtiger.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 7건)"
+   }
+  },
+  {
+   "slug": "engagebay",
+   "name": "EngageBay",
+   "expected_domain": "engagebay.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 평가 4건 < 50(실사용 근거 약함)"
+   }
+  },
+  {
+   "slug": "teamgate",
+   "name": "Teamgate",
+   "expected_domain": "teamgate.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 8건)"
+   }
+  },
+  {
+   "slug": "dynamics-365-sales",
+   "name": "Dynamics 365 Sales",
+   "expected_domain": "microsoft.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름은 맞지만 판매자 도메인(없음) ≠ 후보 도메인(microsoft.com) — 동명 앱 가능성"
+   }
+  },
+  {
+   "slug": "salesrabbit",
+   "name": "SalesRabbit",
+   "expected_domain": "salesrabbit.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 879884387,
+    "track_name": "SalesRabbit",
+    "seller": "Sales Rabbit, Inc.",
+    "seller_domain": "salesrabbit.com",
+    "ratings": {
+     "us": 1169,
+     "kr": 0
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "onepagecrm",
+   "name": "OnePageCRM",
+   "expected_domain": "onepagecrm.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 692777054,
+    "track_name": "OnePageCRM - Simple CRM System",
+    "seller": "Novus Via Ltd",
+    "seller_domain": "onepagecrm.com",
+    "ratings": {
+     "us": 384,
+     "kr": 0
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "cloze",
+   "name": "Cloze Relationship Management",
+   "expected_domain": "cloze.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 596927802,
+    "track_name": "Cloze Relationship Management",
+    "seller": "Cloze, Inc.",
+    "seller_domain": "cloze.com",
+    "ratings": {
+     "us": 2835,
+     "kr": 1
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "linkedin-sales-navigator",
+   "name": "LinkedIn Sales Navigator",
+   "expected_domain": "business.linkedin.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 910768078,
+    "track_name": "LinkedIn Sales Navigator",
+    "seller": "LinkedIn Corporation",
+    "seller_domain": "business.linkedin.com",
+    "ratings": {
+     "us": 51953,
+     "kr": 244
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "salesmate",
+   "name": "Salesmate",
+   "expected_domain": "salesmate.io",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 1114709439,
+    "track_name": "Salesmate – Sales CRM",
+    "seller": "RapidOps Inc.",
+    "seller_domain": "salesmate.io",
+    "ratings": {
+     "us": 632,
+     "kr": 1
+    },
+    "search_anchor_state": "anchored"
+   }
+  },
+  {
+   "slug": "pipeline-crm",
+   "name": "Pipeline CRM",
+   "expected_domain": "pipelinecrm.com",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "search_anchor_state": "no_match",
+    "reason": "이름이 맞는 앱 없음(조회 8건)"
+   }
+  },
+  {
+   "slug": "nocrm",
+   "name": "noCRM.io",
+   "expected_domain": "nocrm.io",
+   "status": "확인 불가(이름 검색이 robots 금지)",
+   "unconfirmed_hint": {
+    "app_id": 1079498089,
+    "track_name": "noCRM.io",
+    "seller": "POSITIVE GROUP SALES SOLUTIONS",
+    "seller_domain": "nocrm.io",
+    "ratings": {
+     "us": 59,
+     "kr": 0
+    },
+    "search_anchor_state": "anchored"
+   }
+  }
+ ],
+ "anchor_input": "reports/2026-10-17/sales-anchor-input.json"
+}

@@ -1,0 +1,456 @@
+{
+ "_comment": "앵커 검증 입력(설계만, 실행 안 함). 사람이 경로를 허용하면 그때 돌린다. 경로 후보: (a) itunes.apple.com/lookup?id=<id>&country=us — 루트 /lookup 은 문자상 허용이나 Disallow: /*/lookup? 취지와 가까워 애매(판단 대기) (b) 사람이 apps.apple.com/us/app/<slug>/id<id> 페이지를 브라우저로 직접 확인해 id 를 적어 넣기(요청 0). 판정은 lib/review/anchor.ts verifyAnchor(name, [lookup 결과], {expectedDomain}) 그대로 — 결과 1건이라 판매자 다중 판정은 무의미, 이름·평가 ≥50·도메인 3조건만 걸린다. id 칸이 비면 (b) 로 채운다.",
+ "rows": [
+  {
+   "slug": "pipedrive",
+   "name": "Pipedrive",
+   "expected_domain": "pipedrive.com",
+   "id_to_verify": 921456160,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "zoho-crm",
+   "name": "Zoho CRM",
+   "expected_domain": "zoho.com",
+   "id_to_verify": 444908810,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "salesforce",
+   "name": "Salesforce",
+   "expected_domain": "salesforce.com",
+   "id_to_verify": 404249815,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "freshsales",
+   "name": "Freshsales",
+   "expected_domain": "freshworks.com",
+   "id_to_verify": 1073125057,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "close",
+   "name": "Close CRM",
+   "expected_domain": "close.com",
+   "id_to_verify": 1668836284,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "apollo-io",
+   "name": "Apollo.io",
+   "expected_domain": "apollo.io",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "copper",
+   "name": "Copper CRM",
+   "expected_domain": "copper.com",
+   "id_to_verify": 941438829,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "streak",
+   "name": "Streak",
+   "expected_domain": "streak.com",
+   "id_to_verify": 674067680,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "monday-sales-crm",
+   "name": "monday sales CRM",
+   "expected_domain": "monday.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "zendesk-sell",
+   "name": "Zendesk Sell",
+   "expected_domain": "zendesk.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "insightly",
+   "name": "Insightly CRM",
+   "expected_domain": "insightly.com",
+   "id_to_verify": 563017797,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "less-annoying-crm",
+   "name": "Less Annoying CRM",
+   "expected_domain": "lessannoyingcrm.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "capsule-crm",
+   "name": "Capsule",
+   "expected_domain": "capsulecrm.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "nutshell",
+   "name": "Nutshell",
+   "expected_domain": "nutshell.com",
+   "id_to_verify": 337938121,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "bigin",
+   "name": "Bigin by Zoho CRM",
+   "expected_domain": "zoho.com",
+   "id_to_verify": 1454212098,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "salesmap",
+   "name": "세일즈맵",
+   "expected_domain": "salesmap.kr",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "lemlist",
+   "name": "lemlist",
+   "expected_domain": "lemlist.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "reply-io",
+   "name": "Reply.io",
+   "expected_domain": "reply.io",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "attio",
+   "name": "Attio",
+   "expected_domain": "attio.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "folk",
+   "name": "folk",
+   "expected_domain": "folk.app",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "agile-crm",
+   "name": "Agile CRM",
+   "expected_domain": "agilecrm.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "keap",
+   "name": "Keap",
+   "expected_domain": "keap.com",
+   "id_to_verify": 1421097870,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "nimble",
+   "name": "Nimble",
+   "expected_domain": "nimble.com",
+   "id_to_verify": 651636273,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "salesflare",
+   "name": "Salesflare",
+   "expected_domain": "salesflare.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "badger-maps",
+   "name": "Badger Maps",
+   "expected_domain": "badgermapping.com",
+   "id_to_verify": 789934914,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "spotio",
+   "name": "SPOTIO",
+   "expected_domain": "spotio.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "lusha",
+   "name": "Lusha",
+   "expected_domain": "lusha.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "seamless-ai",
+   "name": "Seamless.AI",
+   "expected_domain": "seamless.ai",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "bitrix24",
+   "name": "Bitrix24",
+   "expected_domain": "bitrix24.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "sugarcrm",
+   "name": "SugarCRM",
+   "expected_domain": "sugarcrm.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "vtiger",
+   "name": "Vtiger",
+   "expected_domain": "vtiger.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "engagebay",
+   "name": "EngageBay",
+   "expected_domain": "engagebay.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "teamgate",
+   "name": "Teamgate",
+   "expected_domain": "teamgate.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "dynamics-365-sales",
+   "name": "Dynamics 365 Sales",
+   "expected_domain": "microsoft.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "salesrabbit",
+   "name": "SalesRabbit",
+   "expected_domain": "salesrabbit.com",
+   "id_to_verify": 879884387,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "onepagecrm",
+   "name": "OnePageCRM",
+   "expected_domain": "onepagecrm.com",
+   "id_to_verify": 692777054,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "cloze",
+   "name": "Cloze Relationship Management",
+   "expected_domain": "cloze.com",
+   "id_to_verify": 596927802,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "linkedin-sales-navigator",
+   "name": "LinkedIn Sales Navigator",
+   "expected_domain": "business.linkedin.com",
+   "id_to_verify": 910768078,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "salesmate",
+   "name": "Salesmate",
+   "expected_domain": "salesmate.io",
+   "id_to_verify": 1114709439,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "pipeline-crm",
+   "name": "Pipeline CRM",
+   "expected_domain": "pipelinecrm.com",
+   "id_to_verify": null,
+   "id_source": "없음",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  },
+  {
+   "slug": "nocrm",
+   "name": "noCRM.io",
+   "expected_domain": "nocrm.io",
+   "id_to_verify": 1079498089,
+   "id_source": "금지 경로 관측값 — 사람 확인 필요",
+   "countries": [
+    "us",
+    "kr"
+   ]
+  }
+ ]
+}

@@ -67,18 +67,22 @@ t('단가: mock 은 0', costUsd('mock', 1e6, 1e6) === 0)
 t('단가: opus 1M in/out = 90', costUsd('opus', 1e6, 1e6) === 90)
 
 // R4 — 1층 검증기: 곱셈은 코드가 한다, 사용자 숫자는 항에 그대로 들어 있어야 한다
+// 2026-11-13 지시 §2-3: 모델은 사용자 숫자 3개만 낸다. "놓치는 비율" 가정 구간은 코드의 sensitivityTable(10/20/30%)로 대체.
 const nums = { audience: 1000, rate_pct: 2, value_man: 10 }
 const l1Raw = (over = {}) => ({
-  recalc: { terms: [{ label: '월 대상자', low: 1000, high: 1000, user: true }, { label: '전환율(비율)', low: 0.02, high: 0.02, user: true }, { label: '객단가', low: 10, high: 10, user: true }, { label: '놓치는 비율', low: 0.1, high: 0.3, user: false }], note: '추정' },
+  recalc: { terms: [{ label: '월 대상자', low: 1000, high: 1000, user: true }, { label: '전환율(비율)', low: 0.02, high: 0.02, user: true }, { label: '객단가', low: 10, high: 10, user: true }], note: '' },
   candidates: [1, 2].map((n) => ({ title: 't' + n, what: 'w', why: 'y', rebuttal: 'r' })),
   benchmark: { position: 'p', basis: 'b' }, memo_first: '먼저 입구를 만드세요.', ...over })
 const l1 = validateL1(l1Raw(), nums)
-t('1층: 코드가 곱한다(1000x0.02x10x0.1=20, x0.3=60)', l1.recalc.low_man === 20 && l1.recalc.high_man === 60)
+t('1층: 손실 범위는 민감도 10~30%(1000x2%x10x0.1=20, x0.3=60)', l1.recalc.low_man === 20 && l1.recalc.high_man === 60)
+t('1층: sensitivity 3단(10/20/30%) 포함', l1.sensitivity.length === 3 && l1.sensitivity.map((r) => r.pct).join(',') === '10,20,30' && l1.sensitivity[1].loss_man === 40)
 const rej = (name, raw) => { let th = false; try { validateL1(raw, nums) } catch { th = true } t('1층 거절: ' + name, th) }
 rej('사용자 숫자 변조', l1Raw({ recalc: { terms: [{ label: 'a', low: 999, high: 999, user: true }, { label: 'b', low: 0.02, high: 0.02, user: true }, { label: 'c', low: 10, high: 10, user: true }], note: '' } }))
 rej('후보 1개', l1Raw({ candidates: [{ title: 't', what: 'w', why: 'y', rebuttal: 'r' }] }))
 rej('반박 없음', l1Raw({ candidates: [{ title: 't', what: 'w', why: 'y', rebuttal: '' }, { title: 't', what: 'w', why: 'y', rebuttal: 'r' }] }))
 rej('항 1개', l1Raw({ recalc: { terms: [{ label: 'a', low: 1, high: 1, user: true }], note: '' } }))
+rej('항 4개(자가 발명 가정 항 금지)', l1Raw({ recalc: { terms: [{ label: 'a', low: 1000, high: 1000, user: true }, { label: 'b', low: 0.02, high: 0.02, user: true }, { label: 'c', low: 10, high: 10, user: true }, { label: '놓치는 비율', low: 0.1, high: 0.3, user: false }], note: '' } }))
+rej('항에 user:false 섞임', l1Raw({ recalc: { terms: [{ label: 'a', low: 1000, high: 1000, user: true }, { label: 'b', low: 0.02, high: 0.02, user: false }, { label: 'c', low: 10, high: 10, user: true }], note: '' } }))
 for (const bad of [{ audience: 0 }, { audience: 'x' }, { audience: 10, rate_pct: 101 }, { audience: 10, rate_pct: 1, value_man: -1 }]) { let th = false; try { parseUserNumbers({ rate_pct: 1, value_man: 1, ...bad }) } catch { th = true } t('숫자 입력 거절: ' + JSON.stringify(bad), th) }
 t('숫자 입력: 쉼표 허용', parseUserNumbers({ audience: '1,500', rate_pct: '2.5', value_man: '10' }).audience === 1500)
 

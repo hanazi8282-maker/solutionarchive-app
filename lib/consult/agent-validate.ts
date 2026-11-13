@@ -1,5 +1,6 @@
-// R7 에이전트 순수부 — 단계 파싱, 도구 인자 검증, 손실 재계산(곱셈은 코드가 한다). import 없음 — 셀프테스트가 node 로 바로 불러 검사한다.
+// R7 에이전트 순수부 — 단계 파싱, 도구 인자 검증, 손실 재계산(곱셈은 코드가 한다). 셀프테스트가 node 로 바로 불러 검사한다.
 import { CATEGORIES, MECHANISMS } from './cases-validate.ts'
+import { assertNoStatViolations } from './report/stat-lint.ts'
 
 export const TOOLS = ['search_cases', 'recalc_loss', 'show_memo', 'get_viability_rules'] as const
 export type ToolName = (typeof TOOLS)[number]
@@ -9,7 +10,11 @@ export const MAX_STEPS = 4
 
 /** 모델 출력 → 한 단계. {"tool":..,"args":{..}} 또는 {"final":".."}. 둘 다 아니면 던진다(빈 답변으로 접지 않는다). */
 export function parseStep(raw: Record<string, unknown>): Step {
-  if (typeof raw.final === 'string' && raw.final.trim()) return { kind: 'final', text: raw.final.trim().slice(0, 3000) }
+  if (typeof raw.final === 'string' && raw.final.trim()) {
+    const text = raw.final.trim().slice(0, 3000)
+    assertNoStatViolations(text, '에이전트 답변') // G6: 근거 없는 확률·변화율 서술은 답변에서도 거절한다.
+    return { kind: 'final', text }
+  }
   const tool = raw.tool
   if (typeof tool === 'string' && (TOOLS as readonly string[]).includes(tool)) {
     const args = raw.args && typeof raw.args === 'object' && !Array.isArray(raw.args) ? (raw.args as Record<string, unknown>) : {}

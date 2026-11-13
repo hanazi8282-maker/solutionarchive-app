@@ -1,7 +1,8 @@
 // 컨설팅 MVP 셀프테스트(v71ci) — 네트워크·DB 없이 도는 순수 함수만. 블록이 늘 때마다 이 파일에 케이스를 더한다.
 import { normalizeCompanyUrl } from '../lib/consult/url.ts'
 import { robotsDecision, htmlToText } from '../lib/consult/collect.ts'
-import { validateCh1 } from '../lib/consult/report/ch1-validate.ts'
+import { validateCh1, computeEvidenceLevel } from '../lib/consult/report/ch1-validate.ts'
+import { findStatViolations } from '../lib/consult/report/stat-lint.ts'
 import { costUsd } from '../lib/consult/cost.ts'
 import { validateL1, parseUserNumbers, explainLossDivergence } from '../lib/consult/report/ch1-l1-validate.ts'
 import { sanitizeCaseQuery, caseLine } from '../lib/consult/cases-validate.ts'
@@ -227,6 +228,20 @@ t('모드C1: 다리4가 먼저 끊기고 다리1이 secondary — 순서 역전 
 t('손실 어긋남 설명: 2차가 1차보다 훨씬 높음 → "높게"', /높게/.test(explainLossDivergence({ low_man: 3, high_man: 30 }, { low_man: 72, high_man: 180 })))
 t('손실 어긋남 설명: 2차가 1차보다 훨씬 낮음 → "낮게"', /낮게/.test(explainLossDivergence({ low_man: 100, high_man: 200 }, { low_man: 10, high_man: 20 })))
 t('손실 어긋남 설명: 구간이 겹치면 방향 단정 없이 "겹치는 범위"', /겹치는 범위/.test(explainLossDivergence({ low_man: 10, high_man: 50 }, { low_man: 30, high_man: 80 })))
+
+// ── [완료 묶음] G6 — 근거 충분도(코드 계산)·통계성 문장 린트 ──
+t('근거충분도: 페이지 충분+thin아님+부재주장없음 → 높음', computeEvidenceLevel({ pageCount: 4, thin: false, hasAbsenceClaim: false }) === '높음')
+t('근거충분도: thin 이면 한 단계 낮춤', computeEvidenceLevel({ pageCount: 4, thin: true, hasAbsenceClaim: false }) === '보통')
+t('근거충분도: 부재주장 있으면 한 단계 더 낮춤', computeEvidenceLevel({ pageCount: 4, thin: true, hasAbsenceClaim: true }) === '낮음')
+t('근거충분도: 페이지 0 + thin → 낮음에서 안 내려감(바닥)', computeEvidenceLevel({ pageCount: 0, thin: true, hasAbsenceClaim: true }) === '낮음')
+t('ch1: evidence_level 이 항상 채워짐(옵셔널 아님)', ['낮음', '보통', '높음'].includes(validateCh1(okRaw, { thin: false, pageCount: 4 }).evidence_level))
+
+t('통계린트: "예측 확률 50%" 문장 적발', findStatViolations('예측 확률 50% 입니다').length > 0)
+t('통계린트: "~% 더 늘어날 여지" 적발', findStatViolations('전환이 10% 더 늘어날 여지가 있습니다').length > 0)
+t('통계린트: 사용자 입력 전환율 인용은 허용(위반 0건)', findStatViolations('전환율 3.2% 이상 유지되면 계속합니다').length === 0)
+t('통계린트: 평범한 문장은 위반 0건', findStatViolations('먼저 입구를 만드세요.').length === 0)
+{ let th = false; try { validateCh2(memoRaw({ recommendation: { choice: 'A', reasons: ['전환이 10% 더 늘어날 여지가 있습니다', 'r2'], change_mind_if: ['x'] } }), '먼저 입구를 만드세요.') } catch { th = true } t('메모 거절: 통계성 문장(근거없는 변화율)', th) }
+{ let th = false; try { parseStep({ final: '예측 확률 70% 입니다' }) } catch { th = true } t('에이전트 거절: 확률 서술', th) }
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)
 process.exitCode = fail ? 1 : 0

@@ -3,8 +3,10 @@
 create table if not exists case_bank_labels (
   id uuid primary key default gen_random_uuid(),
   case_id text not null unique,
+  -- 2026-11-13: 'ss_business'(단수)로 돼 있었는데 scripts/label-case-bank.mjs는 테이블명과 같은 'ss_businesses'를 넘긴다 —
+  -- 실측으로 1309건이 라벨 적재 실패(비용만 소모, DB 미반영)한 것을 발견해 고쳤다.
   source text not null check (source in (
-    'yc_companies','ss_business','failure_ledger','idea_bank','ideaproof_ref','ss_moves','nl_saastr','nl_trends_vc','nl_lenny','nl_saas_playbook'
+    'yc_companies','ss_businesses','failure_ledger','idea_bank','ideaproof_ref','ss_moves','nl_saastr','nl_trends_vc','nl_lenny','nl_saas_playbook'
   )),
   domain text check (domain in (
     'hr_attendance','payments_billing_accounting','booking_scheduling_forms','email_marketing_automation','sales_crm',

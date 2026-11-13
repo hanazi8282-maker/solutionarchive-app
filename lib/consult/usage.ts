@@ -3,7 +3,7 @@
 import { createClient } from '../supabase/server.ts'
 
 import { costUsd, type ModelTag, type Purpose } from './cost.ts'
-import { consultAuthBypassActive } from '../auth/policy.ts'
+import { consultAuthBypassActive, CONSULT_AUTH_BYPASS_MAX_MINUTES } from '../auth/policy.ts'
 export { costUsd }
 export type { ModelTag, Purpose }
 
@@ -72,7 +72,7 @@ export async function bypassCapExceeded(
   now = new Date(),
 ): Promise<string | null> {
   if (!consultAuthBypassActive(disabledRaw, untilRaw, now)) return null
-  // 우회 창 최대 길이(90분)만큼만 거슬러 본다 — 시작 시각을 따로 기록하지 않아도 창 밖 비용은 안 섞인다.
-  const windowStart = new Date(now.getTime() - 90 * 60000).toISOString()
+  // 우회 창 최대 길이만큼만 거슬러 본다(policy.ts 와 값 공유) — 시작 시각을 따로 기록하지 않아도 창 밖 비용은 안 섞인다.
+  const windowStart = new Date(now.getTime() - CONSULT_AUTH_BYPASS_MAX_MINUTES * 60000).toISOString()
   return (await costSinceUsd(windowStart)) >= BYPASS_COST_CAP_USD ? 'bypass' : null
 }

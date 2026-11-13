@@ -9,16 +9,22 @@ export type SimilarCase = { name: string; what: string }
 const SYSTEM = `당신은 창업자의 결정을 검증하는 컨설턴트입니다. 0층 진단과 대표님이 직접 입력한 숫자 3개를 받아 1층을 JSON 으로 씁니다.
 ${UNTRUSTED_INPUT_NOTICE}
 규칙: 합니다체, 권고는 "~하세요", 별명·농담 금지, "90일 재측정" 금지("액션플랜"은 쓰되 날짜를 넣지 않습니다). 근거 없는 사실을 지어내지 않습니다.
-- recalc.terms: 대표님 숫자 3개(월 대상자 수, 현재 전환율, 객단가)만 정확히 3항으로 냅니다. 각 항은 {label, low, high, user:true}, low=high=입력값 그대로입니다(전환율은 % 숫자 그대로 또는 0~1 비율 중 하나로 일관되게). "놓치는 비율"처럼 스스로 지어낸 가정 항은 넣지 마세요(2026-11-13 실측 — 모델이 매번 다른 구간을 지어내 근거 없이 숫자만 달라졌습니다) — 그 범위는 제가 민감도 표(10/20/30%)로 따로 계산합니다.
+- recalc.terms: 대표님 숫자 3개만 정확히 3항으로 냅니다. 각 항은 {label, low, high, user:true}, low=high=입력값 그대로입니다. "놓치는 비율"처럼 스스로 지어낸 가정 항은 넣지 마세요(2026-11-13 실측 — 모델이 매번 다른 구간을 지어내 근거 없이 숫자만 달라졌습니다) — 그 범위는 제가 민감도 표(10/20/30%)로 따로 계산합니다.
+  운영 중인 회사는 세 번째 항이 현재 전환율(%, 0.01배 환산항 별도)이고, 창업 전 아이디어는 "현재 전환"이 없으므로 100(고정, 사실상 1배)을 그대로 씁니다 — 아래 "대표님 숫자"에 이미 반영돼 있습니다.
 - candidates: 발전 방향 후보 정확히 2개. 각 후보에 title, what(무엇을 하는가), why(왜 — 진단·수집 사실·유사 사례 근거), rebuttal(이 후보가 틀릴 수 있는 가장 강한 반박 1개).
 - benchmark: position(비슷한 회사들 사이에서의 위치), basis(근거). 유사 사례 목록은 아래 "비슷한 사례"에 있는 것만 인용하고 없으면 근거를 약하게 말합니다.
 - memo_first: 결정 메모의 첫 문장(권고 한 문장, "~하세요" 체, 80자 이내).
 출력은 JSON 객체 하나만:
 {"recalc":{"terms":[{"label":"","low":0,"high":0,"user":true}],"note":""},"candidates":[{"title":"","what":"","why":"","rebuttal":""},{"title":"","what":"","why":"","rebuttal":""}],"benchmark":{"position":"","basis":""},"memo_first":""}`
 
-export async function buildL1(i: { runId: string; owner: string; ch1: Ch1; nums: UserNumbers; similar: SimilarCase[] }): Promise<{ l1: Ch1L1; costUsd: number; model: string }> {
+export async function buildL1(i: { runId: string; owner: string; ch1: Ch1; nums: UserNumbers; similar: SimilarCase[]; kind?: 'company' | 'idea'; altMeans?: string }): Promise<{ l1: Ch1L1; costUsd: number; model: string }> {
   const sim = i.similar.length ? i.similar.map((c) => `- ${c.name}: ${c.what}`).join('\n') : '(보유 사례 없음)'
-  const user = `0층 진단:\n${JSON.stringify({ headline: i.ch1.headline, leak_or_gap: i.ch1.leak_or_gap, position: i.ch1.position, loss: i.ch1.loss })}\n\n대표님 숫자: 월 대상자 수 ${i.nums.audience} · 현재 전환율 ${i.nums.rate_pct}% · 객단가 ${i.nums.value_man}만원\n\n비슷한 사례:\n${sim}`
+  // 2026-11-13 지시 §2-6: 아이디어형은 "현재 전환율"이 없다 — 화면에서 접근 가능한 잠재 고객 수·지불 의사만 받고
+  // rate_pct 는 100(고정, 사실상 1배)으로 넘어온다. 현재 대체 수단은 산식에 안 넣고 맥락으로만 준다.
+  const numsLine = i.kind === 'idea'
+    ? `대표님 숫자: 접근 가능한 잠재 고객 수 ${i.nums.audience} · 도입률 ${i.nums.rate_pct}%(고정값 — 아직 운영 전이라 "현재 전환"이 없음, recalc.terms 세 번째 항에 그대로 넣으세요) · 지불 의사(월) ${i.nums.value_man}만원${i.altMeans ? `\n현재 대체 수단: ${i.altMeans}` : ''}`
+    : `대표님 숫자: 월 대상자 수 ${i.nums.audience} · 현재 전환율 ${i.nums.rate_pct}% · 객단가 ${i.nums.value_man}만원`
+  const user = `0층 진단:\n${JSON.stringify({ headline: i.ch1.headline, leak_or_gap: i.ch1.leak_or_gap, position: i.ch1.position, loss: i.ch1.loss })}\n\n${numsLine}\n\n비슷한 사례:\n${sim}`
   let cost = 0
   let feedback = ''
   for (let attempt = 0; attempt < 2; attempt++) {

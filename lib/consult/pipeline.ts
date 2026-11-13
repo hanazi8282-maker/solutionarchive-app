@@ -43,7 +43,7 @@ export async function diagnoseLayer0(run: Run): Promise<boolean> {
 }
 
 /** 1층 해금: 0층 진단 + 대표님 숫자 3개 → ⓐ 재계산 손실 ⓑ 후보 2+반박 ⓒ 벤치마크(보유 사례) ⓓ 메모 첫 문장. 이미 해금했으면 그대로 둔다. */
-export async function unlockLayer1(run: Run, nums: UserNumbers): Promise<boolean> {
+export async function unlockLayer1(run: Run, nums: UserNumbers, altMeans?: string): Promise<boolean> {
   const sb = await db()
   const { data: have } = await sb.from('consult_diagnoses').select('id').eq('run_id', run.id).eq('layer', 1).maybeSingle()
   if (have) return false
@@ -51,7 +51,7 @@ export async function unlockLayer1(run: Run, nums: UserNumbers): Promise<boolean
   if (!l0) throw new Error('no_layer0')
   const ch1 = l0.blocks as Ch1
   const similar = await retrieveSimilar({ runId: run.id, owner: run.owner_email, category: ch1.position.category, oneLiner: run.one_liner ?? '' })
-  const { l1, costUsd, model } = await buildL1({ runId: run.id, owner: run.owner_email, ch1, nums, similar })
+  const { l1, costUsd, model } = await buildL1({ runId: run.id, owner: run.owner_email, ch1, nums, similar, kind: run.kind, altMeans })
   const { error } = await sb.from('consult_diagnoses').upsert({ run_id: run.id, layer: 1, blocks: l1, model, cost_usd: costUsd }, { onConflict: 'run_id,layer' })
   if (error) throw new Error(`1층 저장 실패: ${error.message}`)
   await setStatus(run.id, 'done', null, 'l1')

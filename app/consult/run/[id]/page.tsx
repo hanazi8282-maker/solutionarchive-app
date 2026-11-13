@@ -207,12 +207,25 @@ export default async function RunPage({ params, searchParams }: { params: Promis
               <Panel titleAs="h2" title="내 숫자를 넣으면 더 정확해집니다">
                 <p className="pub-text">지금 숫자는 일반적인 가정으로 계산한 대략치입니다. 실제 진단 건수·전환율·구독료를 입력하시면 훨씬 정확한 손실 금액과 우선순위를 드립니다.</p>
                 <form className="pub-form" action={`/api/consult/runs/${id}/unlock`} method="post">
-                  <label className="pub-text" htmlFor="audience">월 대상자 수(방문자·문의 수 등)</label>
-                  <input className="pub-field" id="audience" name="audience" inputMode="numeric" required />
-                  <label className="pub-text" htmlFor="rate_pct">현재 전환율(%)</label>
-                  <input className="pub-field" id="rate_pct" name="rate_pct" inputMode="decimal" required />
-                  <label className="pub-text" htmlFor="value_man">객단가(만원)</label>
-                  <input className="pub-field" id="value_man" name="value_man" inputMode="decimal" required />
+                  {run.kind === 'idea' ? (
+                    <>
+                      <label className="pub-text" htmlFor="audience">접근 가능한 잠재 고객 수</label>
+                      <input className="pub-field" id="audience" name="audience" inputMode="numeric" required />
+                      <label className="pub-text" htmlFor="value_man">지불 의사(월, 만원)</label>
+                      <input className="pub-field" id="value_man" name="value_man" inputMode="decimal" required />
+                      <label className="pub-text" htmlFor="alt_means">현재 대체 수단(없으면 비워 두세요)</label>
+                      <input className="pub-field" id="alt_means" name="alt_means" autoComplete="off" placeholder="예: 엑셀로 직접 정리" />
+                    </>
+                  ) : (
+                    <>
+                      <label className="pub-text" htmlFor="audience">월 대상자 수(방문자·문의 수 등)</label>
+                      <input className="pub-field" id="audience" name="audience" inputMode="numeric" required />
+                      <label className="pub-text" htmlFor="rate_pct">현재 전환율(%)</label>
+                      <input className="pub-field" id="rate_pct" name="rate_pct" inputMode="decimal" required />
+                      <label className="pub-text" htmlFor="value_man">객단가(만원)</label>
+                      <input className="pub-field" id="value_man" name="value_man" inputMode="decimal" required />
+                    </>
+                  )}
                   <PubButton variant="primary" size="lg">내 숫자로 다시 계산하기</PubButton>
                 </form>
               </Panel>

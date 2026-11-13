@@ -2,12 +2,15 @@
 // 문체 규칙(v71ci §2): 합니다체, 권고는 "~하세요", 인용 130자 이하, 별명 금지, 페이지당 숫자 1개(손실 범위), "90일 재측정" 금지.
 
 // v71cl-엔진(결론서 v5): 끊긴 Fit·실패모드 라벨. config/viability_rules_v1.json 의 fit_chain.stages 순서(0~4)와 failure_modes(F1~F13) 키를 그대로 쓴다.
+// H5(2026-11-14 남헌 채점 피드백): "받은 정보가 없어서 오히려 기분이 나쁘다" — 정보가 부족해 0단계조차 판단할 근거가 없으면
+// 🟡 주의로 단정하지 않고 fit_color='⬜'(판정 보류)로 두고 missing_info 에 필요한 정보 1~2개를 적는다. 정책은 config/viability_rules_v1.json 의 insufficient_evidence_policy.
 export type Ch1Viability = {
   fit_broken_stage: 0 | 1 | 2 | 3 | 4
-  fit_color: '🟢' | '🟡' | '🔴'
+  fit_color: '🟢' | '🟡' | '🔴' | '⬜'
   fit_test_result: string // 그 단계 한 줄 테스트에 대한 판정 근거(§2 test 질문에 대한 답)
   failure_modes: string[] // F1~F13 중 0~3개. 근거 없으면 빈 배열(지어내지 않음).
   segment: 'P' | 'S' | 'M' | 'E'
+  missing_info?: string[] // fit_color==='⬜' 일 때만, 판정에 필요한 구체 정보 1~2개.
 }
 
 // H3(2026-11-14 남헌 채점 피드백): 사용자 수 0명·미출시면 손실 숫자를 내지 않는다(허황되다는 지적) — "고객 확보" 블록으로 대체.
@@ -45,7 +48,7 @@ const ABSENCE_CLAIM = /가\s*없습니다/
 const BANNED = /90\s*일\s*재측정/
 const FAILURE_MODE_IDS = new Set(['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'F13'])
 const SEGMENTS = new Set(['P', 'S', 'M', 'E'])
-const FIT_COLORS = new Set(['🟢', '🟡', '🔴'])
+const FIT_COLORS = new Set(['🟢', '🟡', '🔴', '⬜'])
 
 /** raw.viability 가 있을 때만 검증한다(없으면 undefined — 옛 캐시와 호환). 값이 있는데 틀리면 던진다(§7.1: 확인 실패를 양성으로 접지 않는다). */
 function parseViability(raw: unknown): Ch1Viability | undefined {
@@ -53,13 +56,15 @@ function parseViability(raw: unknown): Ch1Viability | undefined {
   const v = raw as Record<string, unknown>
   const stage = Number(v.fit_broken_stage)
   if (![0, 1, 2, 3, 4].includes(stage)) throw new Error('진단 형식 오류: viability.fit_broken_stage 는 0~4')
-  if (typeof v.fit_color !== 'string' || !FIT_COLORS.has(v.fit_color)) throw new Error('진단 형식 오류: viability.fit_color 는 🟢/🟡/🔴')
+  if (typeof v.fit_color !== 'string' || !FIT_COLORS.has(v.fit_color)) throw new Error('진단 형식 오류: viability.fit_color 는 🟢/🟡/🔴/⬜')
   const testResult = str(v.fit_test_result, 300, 'viability.fit_test_result')
   const fm = Array.isArray(v.failure_modes) ? v.failure_modes.filter((x): x is string => typeof x === 'string') : []
   if (fm.length > 3) throw new Error('진단 형식 오류: viability.failure_modes 는 최대 3개')
   if (fm.some((x) => !FAILURE_MODE_IDS.has(x))) throw new Error('진단 형식 오류: viability.failure_modes 는 F1~F13 중에서만')
   if (typeof v.segment !== 'string' || !SEGMENTS.has(v.segment)) throw new Error('진단 형식 오류: viability.segment 는 P/S/M/E')
-  return { fit_broken_stage: stage as 0 | 1 | 2 | 3 | 4, fit_color: v.fit_color as Ch1Viability['fit_color'], fit_test_result: testResult, failure_modes: fm, segment: v.segment as Ch1Viability['segment'] }
+  // H5: 판정 보류(⬜)면 되물을 정보 1~2개가 있어야 한다(없으면 그냥 🟡 주의를 ⬜로 바꿔 부른 것일 뿐이라 거절).
+  const missingInfo = v.fit_color === '⬜' ? strArr(v.missing_info, 1, 2, 150, 'viability.missing_info') : undefined
+  return { fit_broken_stage: stage as 0 | 1 | 2 | 3 | 4, fit_color: v.fit_color as Ch1Viability['fit_color'], fit_test_result: testResult, failure_modes: fm, segment: v.segment as Ch1Viability['segment'], missing_info: missingInfo }
 }
 const str = (v: unknown, max: number, field: string): string => {
   if (typeof v !== 'string' || !v.trim()) throw new Error(`진단 형식 오류: ${field} 없음`)

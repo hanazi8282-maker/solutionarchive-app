@@ -10,6 +10,14 @@
 
   "principle": "성공 예측 금지, 실패 진단 전용. 산출물은 성공 점수가 아니라 '가장 앞에서 끊긴 Fit + 빨간불 수치 + 참조군 분포 + 반증 가능한 결정 메모'.",
 
+  "insufficient_evidence_policy": {
+    "_note": "H5(2026-11-14 남헌 채점 피드백) — '받은 정보가 없어서 오히려 기분이 나쁘다'는 지적. 정보 부족을 부정적 판정(🟡 주의)으로 표시하지 않는다.",
+    "rule": "0단계(Founder-Market)조차 판단할 근거가 수집한 사실에 없으면 fit_color를 '⬜'(판정 보류)로 둔다. 🟡 주의로 단정하지 않는다.",
+    "fit_color_values": ["🟢", "🟡", "🔴", "⬜"],
+    "pending_requires": "fit_color='⬜' 일 때는 missing_info 에 판정에 필요한 구체 정보 1~2개를 적어, 화면이 '아래 2가지를 알려 주시면 판정합니다'로 되묻게 한다.",
+    "applies_to": "ch1.ts 0층 viability 블록(결론서 v5). V1~V13/A1~A12 정식 루브릭(scorePlan/scoreAdvice)에는 아직 적용 안 함 — 그쪽은 사람이 직접 답하는 설문이라 무응답이 이미 0점으로 처리된다(viability.ts VAnswers 주석 참고)."
+  },
+
   "segments": {
     "P": { "name": "프로슈머·마이크로 SaaS", "definition": "월 $50 미만" },
     "S": { "name": "SMB", "definition": "ACV $12K 미만" },

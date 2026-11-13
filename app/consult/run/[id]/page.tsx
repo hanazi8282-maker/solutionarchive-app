@@ -93,15 +93,21 @@ export default async function RunPage({ params, searchParams }: { params: Promis
             </Panel>
             <Panel titleAs="h2" title="손실 범위">
               <p className="pub-text"><b>월 {ch.loss.low_man.toLocaleString('ko-KR')}~{ch.loss.high_man.toLocaleString('ko-KR')}만원</b> <span className="pub-caption">({ch.thin ? '근거 없음 — 수집 정보가 얇아 업종 일반 가정' : '일반 추정 — 입력하신 숫자 없음, 업종 평균 가정'})</span></p>
+              <p className="pub-caption">근거 충분도: {ch.evidence_level}(근거 수·정보 두께·부재 주장 여부로 코드가 계산, 확률이 아닙니다)</p>
               <p className="pub-caption">산식: {ch.loss.formula}</p>
               <ul>{ch.loss.assumptions.map((a) => <li key={a} className="pub-caption">{a}</li>)}</ul>
               {ch.loss.note ? <p className="pub-caption">{ch.loss.note}</p> : null}
             </Panel>
-            {ch.similar.length > 0 ? (
-              <Panel titleAs="h2" title="비슷한 회사">
-                <ul>{ch.similar.map((s) => <li key={s.name} className="pub-text"><b>{s.name}</b> — {s.what}</li>)}</ul>
-              </Panel>
-            ) : null}
+            <Panel titleAs="h2" title="비슷한 회사">
+              {ch.similar.length > 0 ? (
+                <>
+                  <ul>{ch.similar.map((s) => <li key={s.name} className="pub-text"><b>{s.name}</b> — {s.what}</li>)}</ul>
+                  <p className="pub-caption">참고용 — 가격·전환율 지표 없음, 근거로 쓰지 말 것. 통계는 검증 중입니다.</p>
+                </>
+              ) : (
+                <p className="pub-caption">비슷한 사례를 충분히 못 찾았습니다.</p>
+              )}
+            </Panel>
 
             {sp.error ? <Panel tone="alert" titleAs="h2" title="1층을 열지 못했습니다"><p className="pub-text">{sp.error === 'nums' ? '숫자를 확인하세요(전환율은 0~100, 나머지는 0보다 큰 숫자).' : '잠시 뒤 다시 시도하세요.'}</p></Panel> : null}
             {l1 ? (

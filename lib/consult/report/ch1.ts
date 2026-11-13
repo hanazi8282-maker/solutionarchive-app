@@ -48,7 +48,7 @@ export async function buildCh1(i: Ch1Input): Promise<{ ch: Ch1; costUsd: number;
       // 2026-11-13 재검증: 3500 에서도 시프티(입력 9142토큰)가 첫 호출에서 상한에 걸려 재시도(비용 2배)됐다. CTO 트랙이 같은 증상(mode-c1·ch2)을 5000~6000 으로 올려 해결한 것과 같은 패턴으로 맞춘다.
       const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'diagnosis', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 6000 })
       cost += r.costUsd
-      return { ch: validateCh1(r.data, { thin: i.thin, similar: i.similar }), costUsd: cost, model: r.model }
+      return { ch: validateCh1(r.data, { thin: i.thin, similar: i.similar, pageCount: i.pages.length }), costUsd: cost, model: r.model }
     } catch (e) {
       // consultLlmJson 이 JSON 파싱 실패로 던진 경우도 여기서 잡아야 재시도된다 — 바깥에 있으면 첫 번째 깨진 응답에 그대로 크래시한다(실측: smart-alba.com 라이브 테스트에서 재현).
       if (attempt === 1) throw e

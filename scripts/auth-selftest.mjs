@@ -250,26 +250,26 @@ t('consult 열림이 내부 공개 경로로 새지 않는다: /consult 는 isPu
 {
   const noUser = async () => { throw new Error('bypass 가 활성화됐어야 getUser 를 안 부른다') }
   const now = new Date('2026-11-13T05:00:00Z')
-  const until90 = new Date('2026-11-13T06:30:00Z').toISOString() // +90분 정확히
-  const until91 = new Date('2026-11-13T06:31:00Z').toISOString() // +91분(상한 초과)
+  const until180 = new Date('2026-11-13T08:00:00Z').toISOString() // +180분 정확히(2026-11-13 지시서 §1-1 개정, 최초 90분)
+  const until181 = new Date('2026-11-13T08:01:00Z').toISOString() // +181분(상한 초과)
   const untilPast = new Date('2026-11-13T04:00:00Z').toISOString() // 과거(만료)
 
-  t('우회: 둘 다 올바르면 활성', consultAuthBypassActive('1', until90, now))
-  t('우회: CONSULT_AUTH_DISABLED 미설정 = 비활성', !consultAuthBypassActive(undefined, until90, now))
-  t('우회: CONSULT_AUTH_DISABLED 가 "1" 아닌 값 = 비활성', !consultAuthBypassActive('true', until90, now))
+  t('우회: 둘 다 올바르면 활성', consultAuthBypassActive('1', until180, now))
+  t('우회: CONSULT_AUTH_DISABLED 미설정 = 비활성', !consultAuthBypassActive(undefined, until180, now))
+  t('우회: CONSULT_AUTH_DISABLED 가 "1" 아닌 값 = 비활성', !consultAuthBypassActive('true', until180, now))
   t('우회: CONSULT_AUTH_DISABLED_UNTIL 미설정 = 비활성', !consultAuthBypassActive('1', undefined, now))
   t('우회: 만료 시각이 파싱 안 되면 비활성', !consultAuthBypassActive('1', 'not-a-date', now))
   t('우회: 만료 시각이 과거면 비활성(자동 복구)', !consultAuthBypassActive('1', untilPast, now))
-  t('우회: 90분 경계는 활성', consultAuthBypassActive('1', until90, now))
-  t('우회: 90분을 넘으면 비활성(최대 길이 상한)', !consultAuthBypassActive('1', until91, now))
+  t('우회: 180분 경계는 활성', consultAuthBypassActive('1', until180, now))
+  t('우회: 180분을 넘으면 비활성(최대 길이 상한)', !consultAuthBypassActive('1', until181, now))
 
   t(
     'resolveConsultUser: bypass 인자 자체를 안 넘기면 항상 비활성(기존 호출부 호환·기본 안전)',
     (await resolveConsultUser(noUser)).kind === 'unavailable',
   )
-  const r = await resolveConsultUser(noUser, { disabledRaw: '1', untilRaw: until90 })
+  const r = await resolveConsultUser(noUser, { disabledRaw: '1', untilRaw: until180 })
   t('resolveConsultUser: 우회 활성 시 getUser 를 부르지 않고 test_ 고정 사용자로 처리', r.kind === 'ok' && r.email.startsWith('test_'))
-  const r2 = await resolveConsultUser(null, { disabledRaw: '0', untilRaw: until90 })
+  const r2 = await resolveConsultUser(null, { disabledRaw: '0', untilRaw: until180 })
   t('resolveConsultUser: CONSULT_AUTH_DISABLED != "1" 이면 평소 판정(클라이언트 없음 = unavailable)', r2.kind === 'unavailable')
 }
 t('공개(결론서 출구): /r/<token>', isPublicPath('/r/0123456789abcdef0123456789abcdef'))

@@ -103,13 +103,14 @@ export function isConsultUserPath(pathname: string): boolean {
  * (`bypass` 인자 생략) 당연히 꺼져 있다.
  *  - CONSULT_AUTH_DISABLED === '1' 이어야 한다(다른 값·미설정은 전부 꺼짐).
  *  - CONSULT_AUTH_DISABLED_UNTIL 은 파싱되는 미래 시각이어야 하고, 지금부터 그 시각까지가
- *    CONSULT_AUTH_BYPASS_MAX_MINUTES(90분) 을 넘으면 꺼진다 — 만료 시각이 길게 잡혀도 90분을 못 넘는다.
+ *    CONSULT_AUTH_BYPASS_MAX_MINUTES(180분, 2026-11-13 지시서 §1-1 개정 — 최초 90분에서 상향) 을
+ *    넘으면 꺼진다 — 만료 시각이 길게 잡혀도 180분을 못 넘는다.
  *  - 만료 시각이 지나면 복구를 깜어도 자동으로 다시 로그인이 필요해진다(지시서 §1-5).
  * /consult/admin 은 이 우회가 닿지 않는다 — isConsultUserPath 가 그 경로를 원천적으로 제외해
  * resolveConsultUser 자체가 호출되지 않는다(proxy.ts, lib/consult/session.ts 공통).
  */
 export const CONSULT_BYPASS_TEST_EMAIL = 'test_consult_bypass@solutionarch.internal'
-const CONSULT_AUTH_BYPASS_MAX_MINUTES = 90
+export const CONSULT_AUTH_BYPASS_MAX_MINUTES = 180
 
 export function consultAuthBypassActive(
   disabledRaw: string | null | undefined,

@@ -21,6 +21,7 @@ export default async function ReportPage({ params }: { params: Promise<{ token: 
   if (!data) notFound()
   const p = data.payload as ReportPayload
   const c1 = p.ch1
+  const memoLabel = p.kind === 'idea' ? '사업기획서 초안' : '실행 리포트'
 
   return (
     <PubShell theme="light" footerNote="공개된 정보를 근거로 한 추정입니다. 결정은 대표님이 합니다.">
@@ -34,13 +35,22 @@ export default async function ReportPage({ params }: { params: Promise<{ token: 
           <p className="pub-text"><b>카테고리 위치: {c1.position.category}</b> — {c1.position.where}</p>
           <p className="pub-caption">근거: {c1.position.basis}</p>
           {c1.similar.length > 0 ? (<><p className="pub-text"><b>비슷한 회사</b></p><ul>{c1.similar.map((s) => <li key={s.name} className="pub-caption"><b>{s.name}</b> — {s.what}</li>)}</ul></>) : null}
-          <p className="pub-text"><b>손실 범위: 월 {c1.loss.low_man.toLocaleString('ko-KR')}~{c1.loss.high_man.toLocaleString('ko-KR')}만원</b></p>
-          <p className="pub-caption">산식: {c1.loss.formula}</p>
-          <ul>{c1.loss.assumptions.map((a) => <li key={a} className="pub-caption">{a}</li>)}</ul>
+          {c1.stage === 'none' && c1.acquisition_plan ? (
+            <>
+              <p className="pub-text"><b>고객 확보 경로</b> — 데이터가 없어 손실 숫자는 생략했습니다.</p>
+              <ul>{c1.acquisition_plan.channels.map((ac) => <li key={ac.channel} className="pub-caption">{ac.channel} — {ac.message}</li>)}</ul>
+            </>
+          ) : c1.loss ? (
+            <>
+              <p className="pub-text"><b>손실 범위: 월 {c1.loss.low_man.toLocaleString('ko-KR')}~{c1.loss.high_man.toLocaleString('ko-KR')}만원</b></p>
+              <p className="pub-caption">산식: {c1.loss.formula}</p>
+              <ul>{c1.loss.assumptions.map((a) => <li key={a} className="pub-caption">{a}</li>)}</ul>
+            </>
+          ) : null}
         </Panel>
 
         {p.ch2 ? (
-          <Panel titleAs="h2" title="2. 결정 메모">
+          <Panel titleAs="h2" title={`2. ${memoLabel}`}>
             <p className="pub-text"><b>{p.ch2.decision}</b></p>
             {p.ch2.options.map((o) => <p key={o.name} className="pub-caption"><b>{o.name}</b> — 장점: {o.pros} / 단점: {o.cons}</p>)}
             <p className="pub-text">권고: {p.ch2.recommendation.choice}</p>

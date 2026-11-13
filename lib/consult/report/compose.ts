@@ -13,6 +13,7 @@ export const PRESET_CHAPTERS: Record<Preset, string[]> = { free: ['1'], paid: ['
 
 export type ReportPayload = {
   company: string
+  kind: Run['kind'] // H2(2026-11-14): 화면이 회사형/아이디어형 이름(실행 리포트/사업기획서 초안)을 고르는 데 쓴다.
   generated_at: string
   chapters: string[]
   ch1: Ch1
@@ -37,10 +38,11 @@ export async function composeReport(run: Run, preset: Preset, createdBy: string)
 
   const payload: ReportPayload = {
     company: run.company_name ?? run.company_url ?? '창업 전 아이디어',
+    kind: run.kind,
     generated_at: new Date().toISOString(),
     chapters: want,
     ch1,
-    appendix: { assumptions: ch1.loss.assumptions, sources: [], note: '' },
+    appendix: { assumptions: ch1.loss?.assumptions ?? [], sources: [], note: '' },
   }
 
   // 2장

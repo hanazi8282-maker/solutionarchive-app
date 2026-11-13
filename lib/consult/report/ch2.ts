@@ -1,4 +1,5 @@
-// 결론서 2장 "결정 메모" 생성기(Opus, 유료). 입력: 0층 진단 + 1층 + 수집 사실 요약. 결정 문장은 1층 ⓓ 와 같아야 한다.
+// 결론서 2장 "실행 리포트"(아이디어형은 "사업기획서 초안") 생성기(Opus, 유료). 입력: 0층 진단 + 1층 + 수집 사실 요약. 결정 문장은 1층 ⓓ 와 같아야 한다.
+// H6(2026-11-14): 아이디어형 전용 재구성(사업기획서 초안 7섹션)은 별도 작업으로 미룬다 — 지금은 이름만 화면·에이전트에서 바꿨다.
 import { consultLlmJson } from '../llm.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../../llm/untrusted-input.ts'
 import type { Ch1 } from './ch1-validate.ts'

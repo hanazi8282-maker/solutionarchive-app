@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
   const rawUrl = clip(form.get('url'), 300)
   const oneLiner = clip(form.get('one_liner'), 600)
   const name = clip(form.get('name'), 80)
+  const userCountBand = (['0', '1-50', '50-500', '500+'] as const).includes(form.get('user_count_band') as never) ? (form.get('user_count_band') as '0' | '1-50' | '50-500' | '500+') : null
+  const revenueBand = (['0', '소액', '중간', '충분'] as const).includes(form.get('revenue_band') as never) ? (form.get('revenue_band') as '0' | '소액' | '중간' | '충분') : null
+  const launched = form.get('launched') === 'yes' ? true : form.get('launched') === 'no' ? false : null
   const back = (e: string) => NextResponse.redirect(new URL(`/consult/new?error=${e}`, req.url), 303)
 
   if (!oneLiner || oneLiner.length < 10) return back('liner')
@@ -32,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   if (await capExceeded()) return back('cap')
   if (await bypassCapExceeded(process.env.CONSULT_AUTH_DISABLED, process.env.CONSULT_AUTH_DISABLED_UNTIL)) return back('cap')
-  const run = await createRun(auth.email, { kind, name, url: url?.href ?? null, oneLiner })
+  const run = await createRun(auth.email, { kind, name, url: url?.href ?? null, oneLiner, userCountBand, revenueBand, launched })
   try {
     await collectAndStore(run)
   } catch (e) {

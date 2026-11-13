@@ -47,11 +47,26 @@ export default async function RunPage({ params, searchParams }: { params: Promis
   const cold = coldRow?.[0] ?? null
   const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://solutionarch.vercel.app'
   const webPages = facts?.pages.filter((p) => p.url !== 'user:one_liner') ?? []
+  // H2(2026-11-14 남헌 채점 피드백): "결정 메모"라는 말이 어색하다 — 회사형은 "실행 리포트", 아이디어형은 "사업기획서 초안".
+  const memoLabel = run.kind === 'idea' ? '사업기획서 초안' : '실행 리포트'
+  // H1: 전체 읽을 분량을 대략 세어 예상 읽기 시간을 보여준다(분당 500자 기준, 최소 1분). 순수 글자수 계산이라 LLM 비용 없음.
+  const readMinutes = (() => {
+    let chars = (ch?.headline.length ?? 0) + (ch?.leak_or_gap.detail.length ?? 0) + (ch?.position.where.length ?? 0)
+    if (memo) chars += memo.decision.length + memo.recommendation.reasons.join('').length + memo.actionplan.map((a) => a.step + a.done_when).join('').length
+    return Math.max(1, Math.ceil(chars / 500))
+  })()
 
   return (
     <PubShell theme="light" footerNote="진단은 공개된 정보를 근거로 한 추정입니다. 결정은 대표님이 합니다.">
       <div className="pub-solo">
         <Hero eyebrow="60초 진단" title={ch?.headline ?? run.company_name ?? run.company_url ?? '창업 전 아이디어'} lead={ch ? run.one_liner ?? TAGLINE : TAGLINE} />
+        {ch ? <p className="pub-caption">예상 읽기 시간: 약 {readMinutes}분</p> : null}
+        {memo ? (
+          <Panel tone="banner" titleAs="h2" title="오늘 바로 시작할 일 1개">
+            <p className="pub-text"><b>{memo.actionplan[0]?.step}</b></p>
+            <p className="pub-caption">끝난 기준: {memo.actionplan[0]?.done_when}</p>
+          </Panel>
+        ) : null}
 
         {run.status === 'failed' ? <Panel tone="alert" titleAs="h2" title="처리에 실패했습니다"><p className="pub-text">{run.error}</p></Panel> : null}
         {sp.busy ? <Panel titleAs="h2" title="진단 중입니다"><p className="pub-text">잠시 뒤 새로고침하세요.</p></Panel> : null}
@@ -65,7 +80,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
             {paid === true ? (
               <form className="pub-form" action={`/api/consult/runs/${id}/report`} method="post">
                 <input type="hidden" name="preset" value="paid" />
-                <PubButton variant="ghost">결론서 열기(1·2장, 결정 메모 포함)</PubButton>
+                <PubButton variant="ghost">결론서 열기(1·2장, {memoLabel} 포함)</PubButton>
               </form>
             ) : null}
             {staff ? (
@@ -91,13 +106,25 @@ export default async function RunPage({ params, searchParams }: { params: Promis
               <p className="pub-text">{ch.position.where}</p>
               <p className="pub-caption">근거: {ch.position.basis}</p>
             </Panel>
-            <Panel titleAs="h2" title="손실 범위">
-              <p className="pub-text"><b>월 {ch.loss.low_man.toLocaleString('ko-KR')}~{ch.loss.high_man.toLocaleString('ko-KR')}만원</b> <span className="pub-caption">({ch.thin ? '근거 없음 — 수집 정보가 얇아 업종 일반 가정' : '일반 추정 — 입력하신 숫자 없음, 업종 평균 가정'})</span></p>
-              <p className="pub-caption">근거 충분도: {ch.evidence_level}(근거 수·정보 두께·부재 주장 여부로 코드가 계산, 확률이 아닙니다)</p>
-              <p className="pub-caption">산식: {ch.loss.formula}</p>
-              <ul>{ch.loss.assumptions.map((a) => <li key={a} className="pub-caption">{a}</li>)}</ul>
-              {ch.loss.note ? <p className="pub-caption">{ch.loss.note}</p> : null}
-            </Panel>
+            {ch.stage === 'none' && ch.acquisition_plan ? (
+              <Panel titleAs="h2" title="고객 확보 경로">
+                <p className="pub-caption">데이터가 없어 손실 숫자는 생략했습니다. 지금 단계에서는 첫 고객을 모으는 쪽이 더 중요합니다.</p>
+                <h3 className="pub-text"><b>첫 고객을 얻는 길</b></h3>
+                <ul>{ch.acquisition_plan.channels.map((c) => <li key={c.channel} className="pub-text">{c.channel} — {c.message} <span className="pub-caption">(품: {c.effort})</span></li>)}</ul>
+                <p className="pub-text">{ch.acquisition_plan.market_message}</p>
+                <h3 className="pub-text"><b>수입원 후보</b></h3>
+                <ul>{ch.acquisition_plan.revenue_candidates.map((r) => <li key={r} className="pub-caption">{r}</li>)}</ul>
+                {!ch.acquisition_plan.has_basis ? <p className="pub-caption">근거 없음, 시험이 필요합니다 — 수집된 사실·사례에서 뒷받침되지 않은 일반적인 제안입니다.</p> : null}
+              </Panel>
+            ) : ch.loss ? (
+              <Panel titleAs="h2" title="손실 범위">
+                <p className="pub-text"><b>월 {ch.loss.low_man.toLocaleString('ko-KR')}~{ch.loss.high_man.toLocaleString('ko-KR')}만원</b> <span className="pub-caption">({ch.stage === 'low' ? '입력값 기반 — 대표님이 밝힌 단계로 계산' : ch.thin ? '근거 없음 — 수집 정보가 얇아 업종 일반 가정' : '추정 — 입력하신 숫자 없음, 업종 평균 가정'})</span></p>
+                <p className="pub-caption">근거 충분도: {ch.evidence_level}(근거 수·정보 두께·부재 주장 여부로 코드가 계산, 확률이 아닙니다)</p>
+                <p className="pub-caption">산식: {ch.loss.formula}</p>
+                <ul>{ch.loss.assumptions.map((a) => <li key={a} className="pub-caption">{a}</li>)}</ul>
+                {ch.loss.note ? <p className="pub-caption">{ch.loss.note}</p> : null}
+              </Panel>
+            ) : null}
             <Panel titleAs="h2" title="비슷한 회사">
               {ch.similar.length > 0 ? (
                 <>
@@ -116,7 +143,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                   <p className="pub-text"><b>월 {l1.recalc.low_man.toLocaleString('ko-KR')}~{l1.recalc.high_man.toLocaleString('ko-KR')}만원</b> <span className="pub-caption">(입력값 기반 — 대표님이 입력한 숫자로 계산, 나머지 항은 가정)</span></p>
                   <ul>{l1.recalc.terms.map((t) => <li key={t.label} className="pub-caption">{t.label}: {t.low === t.high ? t.low : `${t.low}~${t.high}`}{t.user ? ' (입력하신 값)' : ' (가정)'}</li>)}</ul>
                   {l1.recalc.note ? <p className="pub-caption">{l1.recalc.note}</p> : null}
-                  <p className="pub-caption">{explainLossDivergence(ch.loss, l1.recalc)}</p>
+                  {ch.loss ? <p className="pub-caption">{explainLossDivergence(ch.loss, l1.recalc)}</p> : null}
                 </Panel>
                 <Panel titleAs="h2" title="개선 폭별 민감도(근거 없음 — 직접 비교용)">
                   <p className="pub-caption">단일 추정 대신 개선 폭 10/20/30%일 때 월 손실을 그대로 계산해 보여드립니다. 어느 쪽도 사실로 뒷받침되지 않은 가정입니다.</p>
@@ -142,11 +169,11 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                   <p className="pub-caption">근거: {l1.benchmark.basis}</p>
                   {l1.benchmark.similar.length > 0 ? <ul>{l1.benchmark.similar.map((s) => <li key={s.name} className="pub-caption"><b>{s.name}</b> — {s.what}</li>)}</ul> : null}
                 </Panel>
-                <Panel titleAs="h2" title="결정 메모 첫 문장"><p className="pub-text"><b>{l1.memo_first}</b></p></Panel>
+                <Panel titleAs="h2" title={`${memoLabel} 첫 문장`}><p className="pub-text"><b>{l1.memo_first}</b></p></Panel>
 
                 {paid === null ? <Panel tone="alert" titleAs="h2" title="구독 상태를 확인하지 못했습니다"><p className="pub-text">잠시 뒤 새로고침하세요.</p></Panel> : null}
                 {paid === false ? (
-                  <Panel titleAs="h2" title="결정 메모·에이전트·측정카드는 유료입니다">
+                  <Panel titleAs="h2" title={`${memoLabel}·에이전트·측정카드는 유료입니다`}>
                     <p className="pub-text">월 29,000원. 계좌이체로 이용을 엽니다.</p>
                     <div className="pub-actions"><a className="pub-btn pub-btn--primary" href={`/consult/pay?run=${id}`}>유료 이용 안내</a></div>
                   </Panel>
@@ -154,7 +181,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                 {paid === true ? (
                   <>
                     {memo ? (
-                      <Panel titleAs="h2" title="결정 메모">
+                      <Panel titleAs="h2" title={memoLabel}>
                         <p className="pub-text"><b>{memo.decision}</b></p>
                         {memo.options.map((o) => <p key={o.name} className="pub-caption"><b>{o.name}</b> — 장점: {o.pros} / 단점: {o.cons}</p>)}
                         <p className="pub-text">권고: {memo.recommendation.choice}</p>
@@ -165,8 +192,8 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                         <ol>{memo.actionplan.map((a) => <li key={a.step} className="pub-caption">{a.step} (끝난 기준: {a.done_when})</li>)}</ol>
                       </Panel>
                     ) : (
-                      <Panel titleAs="h2" title="결정 메모 만들기">
-                        <form className="pub-form" action={`/api/consult/runs/${id}/memo`} method="post"><PubButton variant="primary" size="lg">결정 메모 만들기</PubButton></form>
+                      <Panel titleAs="h2" title={`${memoLabel} 만들기`}>
+                        <form className="pub-form" action={`/api/consult/runs/${id}/memo`} method="post"><PubButton variant="primary" size="lg">{memoLabel} 만들기</PubButton></form>
                       </Panel>
                     )}
 
@@ -202,7 +229,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                     <Panel titleAs="h2" title="컨설턴트에게 묻기">
                       {(msgs ?? []).map((m, i) => <p key={i} className={m.role === 'user' ? 'pub-text' : 'pub-caption'}><b>{m.role === 'user' ? '나' : '컨설턴트'}</b>: {m.content}</p>)}
                       <form className="pub-form" action={`/api/consult/runs/${id}/chat`} method="post">
-                        <textarea className="pub-field pub-pmf-textarea" name="message" required minLength={2} maxLength={800} placeholder="결정 메모에 대해 궁금한 것을 적으세요." />
+                        <textarea className="pub-field pub-pmf-textarea" name="message" required minLength={2} maxLength={800} placeholder={`${memoLabel}에 대해 궁금한 것을 적으세요.`} />
                         <PubButton variant="primary">질문하기</PubButton>
                       </form>
                     </Panel>

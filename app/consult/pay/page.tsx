@@ -32,7 +32,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
   return (
     <PubShell theme="light" footerNote="입금 확인은 영업일 기준 하루 안에 합니다. 결제 대행(PG)을 쓰지 않습니다.">
       <div className="pub-solo">
-        <Hero eyebrow="유료 이용" title={`결정 메모·에이전트·측정카드 — ${PLAN.label}`} lead="계좌이체로 입금하시면 확인 후 이용을 열어 드립니다." />
+        <Hero eyebrow="유료 이용" title={`실행 리포트·에이전트·측정카드 — ${PLAN.label}`} lead="계좌이체로 입금하시면 확인 후 이용을 열어 드립니다." />
         {sp.error && MSG[sp.error] ? <Panel tone="alert" titleAs="h2" title="확인하세요"><p className="pub-text">{MSG[sp.error]}</p></Panel> : null}
         {sp.requested ? <Panel titleAs="h2" title="요청을 접수했습니다"><p className="pub-text">아래 계좌로 입금하시면 확인 후 활성화합니다.</p></Panel> : null}
         {sp.cancelled ? <Panel titleAs="h2" title="해지 요청을 접수했습니다"><p className="pub-text">운영진이 확인 후 종료합니다.</p></Panel> : null}

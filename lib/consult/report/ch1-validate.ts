@@ -10,11 +10,21 @@ export type Ch1Viability = {
   segment: 'P' | 'S' | 'M' | 'E'
 }
 
+// H3(2026-11-14 남헌 채점 피드백): 사용자 수 0명·미출시면 손실 숫자를 내지 않는다(허황되다는 지적) — "고객 확보" 블록으로 대체.
+export type AcquisitionPlan = {
+  channels: { channel: string; message: string; effort: string }[] // 첫 10명 얻는 구체 경로 3~5개
+  market_message: string // 시장에 알리는 방법 한 문단
+  revenue_candidates: string[] // 수입원 후보 1~4개
+  has_basis: boolean // 근거(사례 은행·수집 사실)가 실제로 있었는지 — 없으면 화면이 "근거 없음, 시험이 필요합니다"로 적는다.
+}
+
 export type Ch1 = {
   headline: string
   leak_or_gap: { kind: 'leak' | 'gap'; title: string; detail: string }
   position: { category: string; where: string; basis: string }
-  loss: { low_man: number; high_man: number; formula: string; assumptions: string[]; note: string }
+  stage: 'none' | 'low' | 'full' // H3. none 이면 loss 가 없고 acquisition_plan 이 있다. 그 외엔 loss 가 있다.
+  loss?: { low_man: number; high_man: number; formula: string; assumptions: string[]; note: string }
+  acquisition_plan?: AcquisitionPlan
   similar: { name: string; what: string }[] // ③ 비슷한 회사 목록(v0) — 보유 사례가 있을 때만(R5). 없으면 빈 배열.
   thin: boolean
   viability?: Ch1Viability // v5 신규. 옛 결론서(consult_reports 캐시)에는 없을 수 있어 옵셔널 — 화면은 없으면 v4 그대로 렌더.
@@ -56,17 +66,48 @@ const str = (v: unknown, max: number, field: string): string => {
   return v.trim().slice(0, max)
 }
 
-/** 모델 출력 → Ch1. 필수 칸이 없거나 손실 범위가 숫자가 아니면 던진다(빈 값으로 접지 않는다 — CLAUDE.md §7.1). */
-export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean; similar?: Ch1['similar']; pageCount?: number }): Ch1 {
+const strArr = (v: unknown, min: number, max: number, maxLen: number, field: string): string[] => {
+  if (!Array.isArray(v) || v.length < min || v.length > max) throw new Error(`진단 형식 오류: ${field} 는 ${min}~${max}개`)
+  return v.map((x) => str(x, maxLen, field))
+}
+
+/** H3(2026-11-14): 손실 숫자 대신 고객 확보 블록. 모델이 못 내면(혹은 근거가 없으면) has_basis=false — 화면이 "근거 없음, 시험이 필요합니다"로 적는다. */
+function parseAcquisitionPlan(raw: unknown): AcquisitionPlan {
+  const v = (raw ?? {}) as Record<string, unknown>
+  const channelsRaw = Array.isArray(v.channels) ? v.channels : []
+  if (channelsRaw.length < 3 || channelsRaw.length > 5) throw new Error('진단 형식 오류: acquisition_plan.channels 는 3~5개')
+  const channels = channelsRaw.map((c, i) => {
+    const o = (c ?? {}) as Record<string, unknown>
+    return { channel: str(o.channel, 60, `channels[${i}].channel`), message: str(o.message, 200, `channels[${i}].message`), effort: str(o.effort, 100, `channels[${i}].effort`) }
+  })
+  return {
+    channels,
+    market_message: str(v.market_message, 300, 'acquisition_plan.market_message'),
+    revenue_candidates: strArr(v.revenue_candidates, 1, 4, 100, 'acquisition_plan.revenue_candidates'),
+    has_basis: v.has_basis === true,
+  }
+}
+
+/** 모델 출력 → Ch1. 필수 칸이 없거나 손실 범위가 숫자가 아니면 던진다(빈 값으로 접지 않는다 — CLAUDE.md §7.1).
+ * stage(H3): 'none' 이면 loss 대신 acquisition_plan 을 검증한다. */
+export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean; similar?: Ch1['similar']; pageCount?: number; stage?: Ch1['stage'] }): Ch1 {
+  const stage = input.stage ?? 'full'
   const lg = (raw.leak_or_gap ?? {}) as Record<string, unknown>
   const pos = (raw.position ?? {}) as Record<string, unknown>
-  const loss = (raw.loss ?? {}) as Record<string, unknown>
-  const low = Number(loss.low_man)
-  const high = Number(loss.high_man)
-  if (!Number.isFinite(low) || !Number.isFinite(high) || low < 0 || high < low) throw new Error('진단 형식 오류: 손실 범위 숫자')
-  if (high <= 0) throw new Error('진단 형식 오류: 손실 범위가 0 — 가정을 명시한 구간으로 산출해야 함')
-  const assumptions = Array.isArray(loss.assumptions) ? loss.assumptions.filter((x): x is string => typeof x === 'string').slice(0, 5) : []
-  if (assumptions.length === 0) throw new Error('진단 형식 오류: 산식의 가정이 없음')
+  let loss: Ch1['loss']
+  let acquisitionPlan: AcquisitionPlan | undefined
+  if (stage === 'none') {
+    acquisitionPlan = parseAcquisitionPlan(raw.acquisition_plan)
+  } else {
+    const l = (raw.loss ?? {}) as Record<string, unknown>
+    const low = Number(l.low_man)
+    const high = Number(l.high_man)
+    if (!Number.isFinite(low) || !Number.isFinite(high) || low < 0 || high < low) throw new Error('진단 형식 오류: 손실 범위 숫자')
+    if (high <= 0) throw new Error('진단 형식 오류: 손실 범위가 0 — 가정을 명시한 구간으로 산출해야 함')
+    const assumptions = Array.isArray(l.assumptions) ? l.assumptions.filter((x): x is string => typeof x === 'string').slice(0, 5) : []
+    if (assumptions.length === 0) throw new Error('진단 형식 오류: 산식의 가정이 없음')
+    loss = { low_man: Math.round(low), high_man: Math.round(high), formula: str(l.formula, 200, 'loss.formula'), assumptions, note: typeof l.note === 'string' ? l.note.slice(0, 200) : '' }
+  }
   // 누수/미개척은 모델이 근거로 골라야 한다 — 값이 없거나 다른 값이면 누수로 접지 않고 거절한다(§7.1, v71ck 4).
   if (lg.kind !== 'leak' && lg.kind !== 'gap') throw new Error('진단 형식 오류: leak_or_gap.kind 는 leak 또는 gap')
   if (typeof lg.detail !== 'string' || lg.detail.trim().length < 30) throw new Error('진단 형식 오류: leak_or_gap.detail 이 너무 짧음 — gap 은 비어 있는 자리, leak 은 어긋남의 증거를 적어야 함')
@@ -78,7 +119,9 @@ export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean
       detail: str(lg.detail, 500, 'leak_or_gap.detail'),
     },
     position: { category: str(pos.category, 60, 'position.category'), where: str(pos.where, 300, 'position.where'), basis: str(pos.basis, 300, 'position.basis') },
-    loss: { low_man: Math.round(low), high_man: Math.round(high), formula: str(loss.formula, 200, 'loss.formula'), assumptions, note: typeof loss.note === 'string' ? loss.note.slice(0, 200) : '' },
+    stage,
+    loss,
+    acquisition_plan: acquisitionPlan,
     similar: input.similar ?? [],
     thin: input.thin,
     viability: parseViability(raw.viability),

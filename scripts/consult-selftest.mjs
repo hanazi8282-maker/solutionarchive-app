@@ -3,7 +3,7 @@ import { normalizeCompanyUrl } from '../lib/consult/url.ts'
 import { robotsDecision, htmlToText } from '../lib/consult/collect.ts'
 import { validateCh1 } from '../lib/consult/report/ch1-validate.ts'
 import { costUsd } from '../lib/consult/cost.ts'
-import { validateL1, parseUserNumbers } from '../lib/consult/report/ch1-l1-validate.ts'
+import { validateL1, parseUserNumbers, explainLossDivergence } from '../lib/consult/report/ch1-l1-validate.ts'
 import { sanitizeCaseQuery, caseLine } from '../lib/consult/cases-validate.ts'
 import { validateCh2 } from '../lib/consult/report/ch2-validate.ts'
 import { parseStep, validateToolArgs, recalcLoss } from '../lib/consult/agent-validate.ts'
@@ -218,6 +218,11 @@ t('모드C1: 다리4가 먼저 끊기고 다리1이 secondary — 순서 역전 
 { let th = false; try { validateModeC1(modeC1Ok({ gates: gate6().slice(0, 5) })) } catch { th = true } t('모드C1: 게이트 5개(6개 미만) 거절', th) }
 { let th = false; try { validateModeC1(modeC1Ok({ gates: [...gate6().slice(0, 5), { id: 'G0.1', color: '🟡', reason: 'r' }] })) } catch { th = true } t('모드C1: 게이트 ID 중복 거절', th) }
 { let th = false; try { validateModeC1(modeC1Ok({ experiment: { what: 'x', who: 'y', n: 0, success_metric: 'z', if_fail: 'w' } })) } catch { th = true } t('모드C1: experiment.n 0 이하 거절', th) }
+
+// ── 2026-11-13 긴급·품질 지시 §2-2 — 1차·2차 손실 어긋남 자동 설명(코드만, LLM 아님) ──
+t('손실 어긋남 설명: 2차가 1차보다 훨씬 높음 → "높게"', /높게/.test(explainLossDivergence({ low_man: 3, high_man: 30 }, { low_man: 72, high_man: 180 })))
+t('손실 어긋남 설명: 2차가 1차보다 훨씬 낮음 → "낮게"', /낮게/.test(explainLossDivergence({ low_man: 100, high_man: 200 }, { low_man: 10, high_man: 20 })))
+t('손실 어긋남 설명: 구간이 겹치면 방향 단정 없이 "겹치는 범위"', /겹치는 범위/.test(explainLossDivergence({ low_man: 10, high_man: 50 }, { low_man: 30, high_man: 80 })))
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)
 process.exitCode = fail ? 1 : 0

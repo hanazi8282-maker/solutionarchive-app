@@ -69,3 +69,11 @@ export function validateL1(raw: Record<string, unknown>, inputs: UserNumbers): C
   if (BANNED.test(JSON.stringify(out))) throw new Error('1층 문체 오류: 금지 표현')
   return out
 }
+
+/** 0층 1차 추정과 1층 2차 계산이 갈리는 이유를 코드로 설명한다(LLM 아님, 2026-11-13 지시 §2-2 설계안). 구조적으로 항상 같은 이유라 항상 보여준다. */
+export function explainLossDivergence(l0: { low_man: number; high_man: number }, l1: { low_man: number; high_man: number }): string {
+  const dir = l1.low_man >= l0.high_man ? '높게' : l1.high_man <= l0.low_man ? '낮게' : null
+  const base = `1차 추정(월 ${l0.low_man.toLocaleString('ko-KR')}~${l0.high_man.toLocaleString('ko-KR')}만원)과 2차 계산(월 ${l1.low_man.toLocaleString('ko-KR')}~${l1.high_man.toLocaleString('ko-KR')}만원)`
+  if (!dir) return `${base}은 겹치는 범위가 있습니다. 1차는 업종 평균 규모로 가정했고, 2차는 대표님이 입력하신 숫자를 그대로 썼습니다.`
+  return `${base}이 다른 이유: 1차는 업종 평균 규모로 가정했고, 2차는 대표님이 입력하신 숫자를 그대로 썼기 때문입니다. 2차가 1차보다 ${dir} 나왔습니다.`
+}

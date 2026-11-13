@@ -11,6 +11,7 @@ import { PubButton } from '../../../_pub/components/Button'
 import { hasPaidAccess, isStaff } from '@/lib/consult/entitlement'
 import { coldMailLines, inSendWindow } from '@/lib/consult/report/mail'
 import type { Ch2 } from '@/lib/consult/report/ch2-validate'
+import { explainLossDivergence } from '@/lib/consult/report/ch1-l1-validate'
 
 export const metadata = { title: '진단 — 60초 진단' }
 export const dynamic = 'force-dynamic'
@@ -89,7 +90,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
               <p className="pub-caption">근거: {ch.position.basis}</p>
             </Panel>
             <Panel titleAs="h2" title="손실 범위">
-              <p className="pub-text"><b>월 {ch.loss.low_man.toLocaleString('ko-KR')}~{ch.loss.high_man.toLocaleString('ko-KR')}만원</b></p>
+              <p className="pub-text"><b>월 {ch.loss.low_man.toLocaleString('ko-KR')}~{ch.loss.high_man.toLocaleString('ko-KR')}만원</b> <span className="pub-caption">({ch.thin ? '근거 없음 — 수집 정보가 얇아 업종 일반 가정' : '일반 추정 — 입력하신 숫자 없음, 업종 평균 가정'})</span></p>
               <p className="pub-caption">산식: {ch.loss.formula}</p>
               <ul>{ch.loss.assumptions.map((a) => <li key={a} className="pub-caption">{a}</li>)}</ul>
               {ch.loss.note ? <p className="pub-caption">{ch.loss.note}</p> : null}
@@ -104,9 +105,10 @@ export default async function RunPage({ params, searchParams }: { params: Promis
             {l1 ? (
               <>
                 <Panel titleAs="h2" title="내 숫자로 다시 계산한 손실">
-                  <p className="pub-text"><b>월 {l1.recalc.low_man.toLocaleString('ko-KR')}~{l1.recalc.high_man.toLocaleString('ko-KR')}만원</b></p>
+                  <p className="pub-text"><b>월 {l1.recalc.low_man.toLocaleString('ko-KR')}~{l1.recalc.high_man.toLocaleString('ko-KR')}만원</b> <span className="pub-caption">(입력값 기반 — 대표님이 입력한 숫자로 계산, 나머지 항은 가정)</span></p>
                   <ul>{l1.recalc.terms.map((t) => <li key={t.label} className="pub-caption">{t.label}: {t.low === t.high ? t.low : `${t.low}~${t.high}`}{t.user ? ' (입력하신 값)' : ' (가정)'}</li>)}</ul>
                   {l1.recalc.note ? <p className="pub-caption">{l1.recalc.note}</p> : null}
+                  <p className="pub-caption">{explainLossDivergence(ch.loss, l1.recalc)}</p>
                 </Panel>
                 {l1.candidates.map((c, i) => (
                   <Panel key={c.title} titleAs="h2" title={`발전 방향 후보 ${i + 1}: ${c.title}`}>
@@ -189,6 +191,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
               </>
             ) : (
               <Panel titleAs="h2" title="내 숫자를 넣으면 더 정확해집니다">
+                <p className="pub-text">지금 숫자는 일반적인 가정으로 계산한 대략치입니다. 실제 진단 건수·전환율·구독료를 입력하시면 훨씬 정확한 손실 금액과 우선순위를 드립니다.</p>
                 <form className="pub-form" action={`/api/consult/runs/${id}/unlock`} method="post">
                   <label className="pub-text" htmlFor="audience">월 대상자 수(방문자·문의 수 등)</label>
                   <input className="pub-field" id="audience" name="audience" inputMode="numeric" required />
@@ -196,7 +199,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                   <input className="pub-field" id="rate_pct" name="rate_pct" inputMode="decimal" required />
                   <label className="pub-text" htmlFor="value_man">객단가(만원)</label>
                   <input className="pub-field" id="value_man" name="value_man" inputMode="decimal" required />
-                  <PubButton variant="primary" size="lg">내 숫자로 다시 계산</PubButton>
+                  <PubButton variant="primary" size="lg">내 숫자로 다시 계산하기</PubButton>
                 </form>
               </Panel>
             )}

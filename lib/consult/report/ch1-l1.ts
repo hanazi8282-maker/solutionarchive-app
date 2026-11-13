@@ -29,7 +29,8 @@ export async function buildL1(i: { runId: string; owner: string; ch1: Ch1; nums:
   let feedback = ''
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'l1', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 3500 })
+      // 2026-11-13: ch1.ts 와 같은 사유로 상향(1층도 후보 2개+반박+벤치마크로 출력이 커서 같은 상한에 걸릴 수 있다).
+      const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'l1', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 5000 })
       cost += r.costUsd
       const l1 = validateL1(r.data, i.nums)
       l1.benchmark.similar = i.similar.slice(0, 3)

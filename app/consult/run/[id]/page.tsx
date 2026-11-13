@@ -180,7 +180,34 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                 ) : null}
                 {paid === true ? (
                   <>
-                    {memo ? (
+                    {memo && run.kind === 'idea' && memo.understood ? (
+                      // H6(2026-11-14): 사업기획서 초안 7섹션 — 상단 "제가 이해한 아이디어" 카드 + 섹션1~7.
+                      <Panel titleAs="h2" title={memoLabel}>
+                        <div className="pub-callout">
+                          <p className="pub-caption"><b>제가 이해한 아이디어</b></p>
+                          <p className="pub-caption">고객: {memo.understood.customer}</p>
+                          <p className="pub-caption">문제: {memo.understood.problem}</p>
+                          <p className="pub-caption">해법: {memo.understood.solution}</p>
+                          <p className="pub-caption">수입원: {memo.understood.revenue_model}</p>
+                        </div>
+                        <h3 className="pub-text"><b>1. 한줄요약</b></h3>
+                        <p className="pub-text">{memo.decision}</p>
+                        <h3 className="pub-text"><b>2. 고객과 문제</b></h3>
+                        <p className="pub-text">{memo.customer_problem}</p>
+                        <h3 className="pub-text"><b>3. 비즈니스모델·수입원</b></h3>
+                        <p className="pub-text">{memo.business_model}</p>
+                        <h3 className="pub-text"><b>4. 시장 빈자리</b></h3>
+                        <p className="pub-text">{memo.market_gap?.detail}</p>
+                        <ul>{memo.market_gap?.competitors.map((c) => <li key={c.name} className="pub-caption">{c.name}{c.url ? ` — ${c.url}` : ''} ({c.confirmed ? '확인됨' : '추정'})</li>)}</ul>
+                        <h3 className="pub-text"><b>5. 추천이유</b></h3>
+                        <ul>{memo.recommendation.reasons.map((r) => <li key={r} className="pub-caption">{r}</li>)}</ul>
+                        <h3 className="pub-text"><b>6. 첫 고객 확보 방법</b></h3>
+                        <p className="pub-text">{memo.first_customers}</p>
+                        <h3 className="pub-text"><b>7. 검증 실험 + 액션플랜</b></h3>
+                        {memo.execution_package ? <p className="pub-caption">실험: {memo.execution_package.experiment.what} (대상: {memo.execution_package.experiment.who}, 성공 기준: {memo.execution_package.experiment.success_metric})</p> : null}
+                        <ol>{memo.actionplan.map((a) => <li key={a.step} className="pub-caption">{a.step} (끝난 기준: {a.done_when})</li>)}</ol>
+                      </Panel>
+                    ) : memo ? (
                       <Panel titleAs="h2" title={memoLabel}>
                         <p className="pub-text"><b>{memo.decision}</b></p>
                         {memo.options.map((o) => <p key={o.name} className="pub-caption"><b>{o.name}</b> — 장점: {o.pros} / 단점: {o.cons}</p>)}

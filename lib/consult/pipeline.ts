@@ -71,7 +71,7 @@ export async function generateMemo(run: Run, opts: { allowNoLayer1?: boolean } =
   const l1 = ds?.find((d) => d.layer === 1)
   if (!l0 || (!l1 && !opts.allowNoLayer1)) throw new Error('no_layer1')
   if ((await runCostUsd(run.id)) > RUN_COST_CAP_USD) throw new Error('cost_cap')
-  const { ch, costUsd, model } = await buildCh2({ runId: run.id, owner: run.owner_email, ch1: l0.blocks as Ch1, l1: (l1?.blocks ?? null) as Ch1L1 | null })
+  const { ch, costUsd, model } = await buildCh2({ runId: run.id, owner: run.owner_email, ch1: l0.blocks as Ch1, l1: (l1?.blocks ?? null) as Ch1L1 | null, kind: run.kind })
   const { error } = await sb.from('consult_memos').upsert({ run_id: run.id, version: 1, body: ch, first_sentence: ch.decision, model, cost_usd: costUsd }, { onConflict: 'run_id,version' })
   if (error) throw new Error(`메모 저장 실패: ${error.message}`)
   await setStatus(run.id, 'done', null, 'paid')

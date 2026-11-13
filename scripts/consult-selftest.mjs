@@ -65,6 +65,16 @@ for (const [name, bad] of [
   ['failure_modes 에 F14(없는 코드)', { ...viaOk, failure_modes: ['F14'] }],
   ['segment 틀림', { ...viaOk, segment: 'X' }],
 ]) { let th = false; try { validateCh1({ ...okRaw, viability: bad }, { thin: false }) } catch { th = true } t('ch1 viability 거절: ' + name, th) }
+
+// H5(2026-11-14 남헌 채점 피드백) — 판정 보류(⬜)
+const viaPending = { fit_broken_stage: 0, fit_color: '⬜', fit_test_result: '판정 보류', failure_modes: [], segment: 'S', missing_info: ['월 사용자 수', '유료 전환 여부'] }
+t('ch1: viability 판정 보류(⬜) 1~2개 통과', validateCh1({ ...okRaw, viability: viaPending }, { thin: false }).viability?.missing_info?.length === 2)
+t('ch1: viability 🟡/🔴/🟢 는 missing_info 없어도 통과(회귀 없음)', validateCh1({ ...okRaw, viability: viaOk }, { thin: false }).viability?.missing_info === undefined)
+for (const [name, bad] of [
+  ['⬜ 인데 missing_info 없음', { ...viaPending, missing_info: undefined }],
+  ['⬜ 인데 missing_info 0개', { ...viaPending, missing_info: [] }],
+  ['⬜ 인데 missing_info 3개(최대 2)', { ...viaPending, missing_info: ['a', 'b', 'c'] }],
+]) { let th = false; try { validateCh1({ ...okRaw, viability: bad }, { thin: false }) } catch { th = true } t('ch1 viability 거절: ' + name, th) }
 t('단가: mock 은 0', costUsd('mock', 1e6, 1e6) === 0)
 t('단가: opus 1M in/out = 90', costUsd('opus', 1e6, 1e6) === 90)
 

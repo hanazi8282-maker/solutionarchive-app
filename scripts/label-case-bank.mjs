@@ -1,17 +1,33 @@
 #!/usr/bin/env node
 // v71ck C-1/C-2: 사례 은행 통합 라벨링(domain/segment/outcome 등) → case_bank_labels.
-// DB에서 페이지 단위로 읽어 바로 라벨링·적재(대량 메모리 로드 없음), 동시 호출 N개, 500건 단위 체크포인트.
-// 사용(별도 터미널에서): node --env-file=.env.local scripts/label-case-bank.mjs --source yc_companies --concurrency 4 --chunk 500 [--limit 50]
+// DB에서 페이지 단위로 읽어 바로 라벨링·적재(대량 메모리 로드 없음), 동시 호출 N개, 체크포인트 단위로 저장·해제.
+// 2026-11-13 남헌 지시: 동시 실행 금지(락파일) · 묶음을 작게(기본 200) · 묶음마다 메모리 로그 · 한계 근접 시 스스로 멈춤.
+// 사용(별도 터미널에서): node --env-file=.env.local scripts/label-case-bank.mjs --source yc_companies --concurrency 4 --chunk 200 [--limit 50]
+import fs from 'node:fs'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
 
 const arg = (k, d = null) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 ? process.argv[i + 1] : d }
 const SOURCE = arg('source')
 const CONCURRENCY = Number(arg('concurrency', 4))
-const CHUNK = Number(arg('chunk', 500))
+const CHUNK = Number(arg('chunk', 200))
 const LIMIT = arg('limit') ? Number(arg('limit')) : null
 const MODEL = 'claude-haiku-5-5'
 const PRICE_IN = 0.8, PRICE_OUT = 4 // $/M tokens, lib/consult/cost.ts PRICE_PER_M.haiku
+const MEM_LIMIT_MB = Number(arg('mem-limit-mb', 1200))
+
+// 동시 실행 금지 — 같은 디렉토리에서 두 번째 라벨링 프로세스가 뜨면 즉시 멈춘다(지시 §3).
+const LOCK_PATH = 'ops/state/label-case-bank.lock'
+if (fs.existsSync(LOCK_PATH)) {
+  console.error(`[label-case-bank] 락 파일 존재(${LOCK_PATH}) — 다른 라벨링 작업이 이미 돌고 있다고 보고 즉시 종료한다. 끝났는데 남아 있으면 지우고 재실행.`)
+  process.exit(4)
+}
+fs.writeFileSync(LOCK_PATH, `${SOURCE} pid=${process.pid} started=${new Date().toISOString()}\n`)
+const releaseLock = () => { try { fs.unlinkSync(LOCK_PATH) } catch {} }
+process.on('exit', releaseLock)
+process.on('SIGINT', () => { releaseLock(); process.exit(130) })
+process.on('SIGTERM', () => { releaseLock(); process.exit(143) })
 
 const SOURCE_DEFS = {
   yc_companies: {
@@ -50,6 +66,7 @@ const def = SOURCE_DEFS[SOURCE]
 if (!def) { console.error(`--source 필요: ${Object.keys(SOURCE_DEFS).join(' | ')}`); process.exit(1) }
 
 const SYSTEM = `당신은 스타트업 사례 1건을 아래 스키마로 라벨링하는 분류기다. 근거 없으면 반드시 "unknown". 추정 금지.
+${UNTRUSTED_INPUT_NOTICE}
 domain: hr_attendance | payments_billing_accounting | booking_scheduling_forms | email_marketing_automation | sales_crm | nocode_automation | analytics | devtools_infra | content_creator_tools | ecommerce_seller_tools | other_saas | not_saas
 segment: P(월 $50 미만 프로슈머) | S(ACV<$12K) | M($12K~100K) | E(>$100K) | unknown
 buyer_type: smb_owner | team_lead | enterprise | consumer | dev | unknown
@@ -132,7 +149,8 @@ async function main() {
   const done = new Set((existing ?? []).map((r) => r.case_id))
   console.log(`[label-case-bank:${SOURCE}] 이미 라벨됨 ${done.size}`)
 
-  const PAGE = 1000
+  // 2026-11-13: DB 읽기 묶음을 CHUNK 와 같은 크기로 맞춰 "작게 읽고 처리하고 해제"가 되게 한다(지시 §3).
+  const PAGE = CHUNK
   let page = 0, totalCases = 0, totalCost = 0, totalErr = 0, grandTotal = 0
   while (true) {
     const { data: rows, error } = await sb.from(def.table).select(def.select).range(page * PAGE, page * PAGE + PAGE - 1)
@@ -158,7 +176,12 @@ async function main() {
       }
       const chunkCost = Math.round(((chunkIn * PRICE_IN + chunkOut * PRICE_OUT) / 1_000_000) * 100000) / 100000
       totalCases += toUpsert.length; totalCost += chunkCost; totalErr += chunkErr; grandTotal += chunk.length
-      console.log(`[label-case-bank:${SOURCE}] 처리 ${grandTotal} 성공 ${totalCases} 오류 ${totalErr} 이번청크비용 $${chunkCost} 누적비용 $${totalCost.toFixed(5)}`)
+      const rssMb = Math.round(process.memoryUsage().rss / 1024 / 1024)
+      console.log(`[label-case-bank:${SOURCE}] 처리 ${grandTotal} 성공 ${totalCases} 오류 ${totalErr} 이번청크비용 $${chunkCost} 누적비용 $${totalCost.toFixed(5)} 메모리 ${rssMb}MB`)
+      if (rssMb >= MEM_LIMIT_MB) {
+        console.error(`[label-case-bank:${SOURCE}] 메모리 한계(${MEM_LIMIT_MB}MB) 근접(${rssMb}MB) — 스스로 멈춘다. 체크포인트는 이미 저장됐으니 재실행하면 이어서 간다.`)
+        releaseLock(); process.exit(5)
+      }
     }
     if (LIMIT && grandTotal >= LIMIT) break
   }

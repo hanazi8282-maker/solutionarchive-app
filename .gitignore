@@ -50,6 +50,9 @@ graphify-out/
 # 리서처용 VOC 내보내기 (scripts/voc-export.mjs) — 리뷰 원문이라 공개 리포에 올리지 않는다.
 # 30일 purge 대상 데이터이고, 초안에는 input_id 만 남는다(reports/2026-09-28/researcher-voc-input-plan.md §1).
 ops/state/voc-inputs/
+# v71ck 라벨링 동시실행 방지 락 + 로컬 실행 로그(scripts/label-case-bank.mjs) — 커밋 대상 아님.
+ops/state/label-case-bank.lock
+ops/state/label-case-bank-logs/
 # 제품 이름 후보 표·기각 대장(scripts/product-name-candidates.mjs) — 리뷰 원문 인용이 들어간다. 커밋하지 않는다(v48 §2-B).
 reports/*/product-name-candidates*.md
 reports/*/rejected-candidates.json

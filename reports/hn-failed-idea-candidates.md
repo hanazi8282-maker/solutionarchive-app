@@ -387,3 +387,15 @@
 - 작성일: 2026-11-08
 
 > Yeah, but in this case they also built the pickaxes and drills and did it better than any other pickaxe and drill builder. In your analogy, they are commodities and a shop like that can be set up by anyone. But in this case, that doesn't apply. And if you look at their sales composition, they never pivoted away from gaming, but data centers clearly became ludicrously more attractive in the AI era. But they were always very good at computing triangles, perhaps the best in the world. They were luc…
+
+## HN 50490286
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50490286
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-13 UTC)
+- 스레드: Concurrent Shell Command Queues
+- 작성자: Joker_vD
+- 작성일: 2026-11-13
+
+> > just give a shell script to a LLM and ask it to add concurrency where needed. You know, I personally consider the whole LLM revolution a sort of indictment of our whole industry up to this point. We had more than thirty years to figure out and make robust, composable, reusable building blocks, that would not require fiddling and filing away the sharp edges and writing megabytes of gluing boilerplate code — and we failed. Miserably. So now LLMs come in and finally give us the reusability in a v…

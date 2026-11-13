@@ -96,10 +96,40 @@ export function isConsultUserPath(pathname: string): boolean {
   return under('/consult') || under('/api/consult')
 }
 
+/**
+ * 컨설팅 로그인 일시 우회(2026-11-13 남헌 승인, Notion "운영 로그인 일시 해제" 지시서 §1) —
+ * 운영 로그인 벽 안쪽 화면을 CC 가 로그인 없이 점검하기 위한 한시적 스위치. **환경변수 두 개가
+ * 전부 올바르게 설정돼 있지 않으면 절대 활성화되지 않는다(fail-closed)** — 호출부가 값을 안 넘기면
+ * (`bypass` 인자 생략) 당연히 꺼져 있다.
+ *  - CONSULT_AUTH_DISABLED === '1' 이어야 한다(다른 값·미설정은 전부 꺼짐).
+ *  - CONSULT_AUTH_DISABLED_UNTIL 은 파싱되는 미래 시각이어야 하고, 지금부터 그 시각까지가
+ *    CONSULT_AUTH_BYPASS_MAX_MINUTES(90분) 을 넘으면 꺼진다 — 만료 시각이 길게 잡혀도 90분을 못 넘는다.
+ *  - 만료 시각이 지나면 복구를 깜어도 자동으로 다시 로그인이 필요해진다(지시서 §1-5).
+ * /consult/admin 은 이 우회가 닿지 않는다 — isConsultUserPath 가 그 경로를 원천적으로 제외해
+ * resolveConsultUser 자체가 호출되지 않는다(proxy.ts, lib/consult/session.ts 공통).
+ */
+export const CONSULT_BYPASS_TEST_EMAIL = 'test_consult_bypass@solutionarch.internal'
+const CONSULT_AUTH_BYPASS_MAX_MINUTES = 90
+
+export function consultAuthBypassActive(
+  disabledRaw: string | null | undefined,
+  untilRaw: string | null | undefined,
+  now = new Date(),
+): boolean {
+  if (disabledRaw !== '1') return false
+  if (!untilRaw) return false
+  const until = new Date(untilRaw)
+  if (Number.isNaN(until.getTime())) return false
+  const minutesLeft = (until.getTime() - now.getTime()) / 60000
+  return minutesLeft > 0 && minutesLeft <= CONSULT_AUTH_BYPASS_MAX_MINUTES
+}
+
 /** 컨설팅 사용자 판정 — 허용 목록 없이 "세션 이메일이 있나"만 본다. 3상태를 접지 않는다. */
 export async function resolveConsultUser(
   getUser: (() => Promise<UserResult>) | null,
+  bypass?: { disabledRaw: string | null | undefined; untilRaw: string | null | undefined },
 ): Promise<{ kind: 'ok'; email: string } | { kind: 'anonymous' } | { kind: 'unavailable'; detail: string }> {
+  if (bypass && consultAuthBypassActive(bypass.disabledRaw, bypass.untilRaw)) return { kind: 'ok', email: CONSULT_BYPASS_TEST_EMAIL }
   if (!getUser) return { kind: 'unavailable', detail: 'NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY 미설정' }
   let res: UserResult
   try { res = await getUser() } catch (e) { return { kind: 'unavailable', detail: e instanceof Error ? e.message : String(e) } }

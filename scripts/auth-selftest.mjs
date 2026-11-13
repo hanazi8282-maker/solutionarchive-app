@@ -9,7 +9,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
   parseAllowlist, isPublicPath, resolveAuth, guardFromVerdict, denyStatus, safeNext,
-  isConsultOpen, isConsultUserPath, resolveConsultUser,
+  isConsultOpen, isConsultUserPath, resolveConsultUser, consultAuthBypassActive,
 } from '../lib/auth/policy.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -245,14 +245,44 @@ t('consult 열림이 내부 공개 경로로 새지 않는다: /consult 는 isPu
   t('consult 사용자: 5xx = unavailable(접지 않는다)', (await resolveConsultUser(async () => ({ data: { user: null }, error: { name: 'AuthApiError', status: 503, message: 'x' } }))).kind === 'unavailable')
   t('consult 사용자: 클라이언트 없음 = unavailable', (await resolveConsultUser(null)).kind === 'unavailable')
 }
+
+// ── 2026-11-13 로그인 우회(지시서 §1) — 환경변수 미설정 시 절대 동작 안 함을 확인한다 ──
+{
+  const noUser = async () => { throw new Error('bypass 가 활성화됐어야 getUser 를 안 부른다') }
+  const now = new Date('2026-11-13T05:00:00Z')
+  const until90 = new Date('2026-11-13T06:30:00Z').toISOString() // +90분 정확히
+  const until91 = new Date('2026-11-13T06:31:00Z').toISOString() // +91분(상한 초과)
+  const untilPast = new Date('2026-11-13T04:00:00Z').toISOString() // 과거(만료)
+
+  t('우회: 둘 다 올바르면 활성', consultAuthBypassActive('1', until90, now))
+  t('우회: CONSULT_AUTH_DISABLED 미설정 = 비활성', !consultAuthBypassActive(undefined, until90, now))
+  t('우회: CONSULT_AUTH_DISABLED 가 "1" 아닌 값 = 비활성', !consultAuthBypassActive('true', until90, now))
+  t('우회: CONSULT_AUTH_DISABLED_UNTIL 미설정 = 비활성', !consultAuthBypassActive('1', undefined, now))
+  t('우회: 만료 시각이 파싱 안 되면 비활성', !consultAuthBypassActive('1', 'not-a-date', now))
+  t('우회: 만료 시각이 과거면 비활성(자동 복구)', !consultAuthBypassActive('1', untilPast, now))
+  t('우회: 90분 경계는 활성', consultAuthBypassActive('1', until90, now))
+  t('우회: 90분을 넘으면 비활성(최대 길이 상한)', !consultAuthBypassActive('1', until91, now))
+
+  t(
+    'resolveConsultUser: bypass 인자 자체를 안 넘기면 항상 비활성(기존 호출부 호환·기본 안전)',
+    (await resolveConsultUser(noUser)).kind === 'unavailable',
+  )
+  const r = await resolveConsultUser(noUser, { disabledRaw: '1', untilRaw: until90 })
+  t('resolveConsultUser: 우회 활성 시 getUser 를 부르지 않고 test_ 고정 사용자로 처리', r.kind === 'ok' && r.email.startsWith('test_'))
+  const r2 = await resolveConsultUser(null, { disabledRaw: '0', untilRaw: until90 })
+  t('resolveConsultUser: CONSULT_AUTH_DISABLED != "1" 이면 평소 판정(클라이언트 없음 = unavailable)', r2.kind === 'unavailable')
+}
 t('공개(결론서 출구): /r/<token>', isPublicPath('/r/0123456789abcdef0123456789abcdef'))
 for (const p of ['/rx', '/report', '/r']) t(`결론서 출구 아님: ${p} 는 접두사 경계 밖(/r 단독은 열려도 무해하나 /rx·/report 는 닫힘)`, p === '/r' ? true : !isPublicPath(p))
 // proxy 배선 — 정책 함수만 맞아서는 부족하다(2026-11-11 프로덕션에서 /consult 가 내부 로그인으로 튕긴 사고). proxy.ts 가 열린 경로를 실제로 통과시키는지 소스로 확인한다.
 {
   const px = readFileSync(`${ROOT}/proxy.ts`, 'utf8')
-  const early = px.indexOf('if (isPublicPath(pathname) || isConsultOpen(pathname)) return NextResponse.next()')
+  const early = px.indexOf('if (isPublicPath(pathname) || isConsultOpen(pathname)) return withConsultNoIndex(NextResponse.next(), pathname)')
   t('proxy: 열린 컨설팅 경로를 Supabase 호출 전에 통과', early >= 0 && early < px.indexOf('createServerClient('))
   t('proxy: 컨설팅 사용자 경로는 resolveConsultUser 로 판정', px.includes('isConsultUserPath(pathname)') && px.includes('resolveConsultUser('))
+  // 2026-11-13: 우회 창에서도 proxy.ts 가 env 를 직접(process.env.X) 읽어 넘긴다 — Edge 런타임 인라인 치환 호환.
+  t('proxy: CONSULT_AUTH_DISABLED/_UNTIL 을 resolveConsultUser 에 명시적으로 전달', px.includes('disabledRaw: process.env.CONSULT_AUTH_DISABLED') && px.includes('untilRaw: process.env.CONSULT_AUTH_DISABLED_UNTIL'))
+  t('proxy: /consult/admin 은 resolveConsultUser 를 타지 않는다(우회 미닿음, isConsultUserPath 가 이미 제외)', !isConsultUserPath('/consult/admin'))
 }
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 허용 목록 파서 · 공개/보호 경로(크론 ${cronRoutes.length}·페이지 ${pages.length}) · 세션 3상태 판정 · 서버 액션 가드 ${guarded.length}개 + 승인된 예외 ${exempted.length}개 · API 핸들러 가드 ${guardedRoutes.length}개`)

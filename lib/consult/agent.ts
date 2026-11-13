@@ -1,10 +1,13 @@
 // R7 에이전트 — 진단·메모를 근거로 질문에 답한다. 도구 호출은 JSON 프로토콜(프로바이더 무관), 최대 MAX_STEPS 단계, 한 턴 예산 ≈ $0.05(Sonnet).
 // 도구: search_cases(보유 사례 조회) · recalc_loss(내 숫자로 손실 재계산 — 곱셈은 코드) · show_memo(저장된 결정 메모 조회).
+import { readFileSync } from 'node:fs'
 import { consultLlmJson } from './llm.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 import { db, type Run } from './runs.ts'
 import { MAX_STEPS, parseStep, recalcLoss, validateToolArgs, type ToolName } from './agent-validate.ts'
 import { CATEGORIES, MECHANISMS, caseLine, type CaseRow } from './cases-validate.ts'
+import { getViabilityRules } from './viability.ts'
+import type { ViabilityRules } from './viability-types.ts'
 
 const SYSTEM = `당신은 창업자의 결정을 검증하는 컨설턴트입니다. 저장된 진단과 결정 메모를 근거로 대표님의 질문에 답합니다.
 ${UNTRUSTED_INPUT_NOTICE}
@@ -13,7 +16,14 @@ ${UNTRUSTED_INPUT_NOTICE}
 - search_cases: {"category":"${CATEGORIES.join('|')}","mechanism":"${MECHANISMS.join('|')}"} 중 하나 이상 — 보유 사례(비슷한 회사) 조회
 - recalc_loss: {"audience":숫자,"rate_pct":숫자,"value_man":숫자,"leak_low":0~1,"leak_high":0~1} — 손실 재계산(곱셈은 시스템이 합니다)
 - show_memo: {} — 저장된 결정 메모 보기
+- get_viability_rules: {"segment":"P|S|M|E"} — 사전 검증 게이트·kill criteria·실패모드 조회(v71cl-엔진, 왜 이 단계에서 끊겼다고 보는지 설명할 때 씀)
 출력은 JSON 객체 하나만: 도구가 필요하면 {"tool":"이름","args":{...}}, 답할 수 있으면 {"final":"답변"}.`
+
+let viabilityRulesCache: ViabilityRules | null = null
+function loadViabilityRules(): ViabilityRules {
+  if (!viabilityRulesCache) viabilityRulesCache = JSON.parse(readFileSync(new URL('../../config/viability_rules_v1.json', import.meta.url), 'utf8'))
+  return viabilityRulesCache as ViabilityRules
+}
 
 async function runTool(tool: ToolName, args: Record<string, unknown>, run: Run): Promise<unknown> {
   const sb = await db()
@@ -22,6 +32,7 @@ async function runTool(tool: ToolName, args: Record<string, unknown>, run: Run):
     return ((data ?? []) as CaseRow[]).map(caseLine).filter(Boolean).slice(0, 3)
   }
   if (tool === 'recalc_loss') return recalcLoss(args as Parameters<typeof recalcLoss>[0])
+  if (tool === 'get_viability_rules') return getViabilityRules(loadViabilityRules(), args.segment as 'P' | 'S' | 'M' | 'E')
   const { data } = await sb.from('consult_memos').select('body').eq('run_id', run.id).eq('version', 1).maybeSingle()
   return data?.body ?? { error: '저장된 결정 메모가 없습니다.' }
 }

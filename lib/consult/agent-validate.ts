@@ -1,7 +1,7 @@
 // R7 에이전트 순수부 — 단계 파싱, 도구 인자 검증, 손실 재계산(곱셈은 코드가 한다). import 없음 — 셀프테스트가 node 로 바로 불러 검사한다.
 import { CATEGORIES, MECHANISMS } from './cases-validate.ts'
 
-export const TOOLS = ['search_cases', 'recalc_loss', 'show_memo'] as const
+export const TOOLS = ['search_cases', 'recalc_loss', 'show_memo', 'get_viability_rules'] as const
 export type ToolName = (typeof TOOLS)[number]
 export type Step = { kind: 'tool'; tool: ToolName; args: Record<string, unknown> } | { kind: 'final'; text: string }
 
@@ -35,6 +35,11 @@ export function validateToolArgs(tool: ToolName, args: Record<string, unknown>):
     const high = n('leak_high', 0, 1)
     if (high < low) throw new Error('recalc_loss: leak_high 가 leak_low 보다 작음')
     return { audience: n('audience', 1, 1e9), rate_pct: n('rate_pct', 0, 100), value_man: n('value_man', 0, 1e6), leak_low: low, leak_high: high }
+  }
+  if (tool === 'get_viability_rules') {
+    const segment = args.segment
+    if (typeof segment !== 'string' || !['P', 'S', 'M', 'E'].includes(segment)) throw new Error('get_viability_rules: segment 는 P|S|M|E 중 하나')
+    return { segment }
   }
   return {}
 }

@@ -6,7 +6,10 @@ import { resolveConsultUser } from '@/lib/auth/policy'
 
 export const getConsultUser = cache(async () => {
   const sb = await createSessionClient()
-  return resolveConsultUser(sb && (() => sb.auth.getUser()))
+  return resolveConsultUser(sb && (() => sb.auth.getUser()), {
+    disabledRaw: process.env.CONSULT_AUTH_DISABLED,
+    untilRaw: process.env.CONSULT_AUTH_DISABLED_UNTIL,
+  })
 })
 
 /** 서버 핸들러·페이지 맨 앞. 통과하면 owner_email, 아니면 사유. */

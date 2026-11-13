@@ -3,6 +3,7 @@
 import { createClient } from '../supabase/server.ts'
 
 import { costUsd, type ModelTag, type Purpose } from './cost.ts'
+import { consultAuthBypassActive } from '../auth/policy.ts'
 export { costUsd }
 export type { ModelTag, Purpose }
 
@@ -60,4 +61,18 @@ export async function capExceeded(now = new Date()): Promise<string | null> {
   if ((await costSinceUsd(month)) >= MONTH_CAP_USD) return 'month'
   if ((await costSinceUsd(day)) >= DAY_CAP_USD) return 'day'
   return null
+}
+
+/** 로그인 우회 창(2026-11-13, §1-3) 전용 상한 — 기존 일/월 상한보다 낮게 $3. 우회가 꺼져 있으면 항상 null. */
+export const BYPASS_COST_CAP_USD = Number(process.env.CONSULT_BYPASS_COST_CAP_USD ?? 3)
+
+export async function bypassCapExceeded(
+  disabledRaw: string | null | undefined,
+  untilRaw: string | null | undefined,
+  now = new Date(),
+): Promise<string | null> {
+  if (!consultAuthBypassActive(disabledRaw, untilRaw, now)) return null
+  // 우회 창 최대 길이(90분)만큼만 거슬러 본다 — 시작 시각을 따로 기록하지 않아도 창 밖 비용은 안 섞인다.
+  const windowStart = new Date(now.getTime() - 90 * 60000).toISOString()
+  return (await costSinceUsd(windowStart)) >= BYPASS_COST_CAP_USD ? 'bypass' : null
 }

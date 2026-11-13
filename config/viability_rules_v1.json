@@ -1,0 +1,233 @@
+{
+  "version": "v1",
+  "generated_at": "2026-11-13",
+  "source": {
+    "research_report": "claude/research-saas-viability-preverification-2026-11-12.md (Notion: 📚 연구 보고서 — SaaS 사업 성공여부 사전 검증 시스템, id 416100b7-ffb4-81a0-9bf6-c9a9e9d4d87b)",
+    "application_plan": "claude/formula-application-plan-2026-11-12.md (Notion id 416100b7-ffb4-81ce-bd64-f611eb42b19a)",
+    "conclusion_sample": "conclusion-sample-v5-smartalba-2026-11-13.md (Notion id 416100b7-ffb4-81a6-853b-f4c9bd259904)",
+    "note_on_naming": "지시서의 'K1~K10(kill_criteria)' 전용 번호 표는 연구 보고서·적용계획 어디에도 없음. 보고서 §1.2 Kill Criteria Top 10과 §4 실패모드 F1~F13이 그 역할을 대신한다. 이 JSON은 kill_criteria_top10(§1.2, 10건)과 failure_modes(§4, F1~F13 13건)를 그대로 분리 보존하고, K1~K10으로 임의 재번호하지 않았다."
+  },
+
+  "principle": "성공 예측 금지, 실패 진단 전용. 산출물은 성공 점수가 아니라 '가장 앞에서 끊긴 Fit + 빨간불 수치 + 참조군 분포 + 반증 가능한 결정 메모'.",
+
+  "segments": {
+    "P": { "name": "프로슈머·마이크로 SaaS", "definition": "월 $50 미만" },
+    "S": { "name": "SMB", "definition": "ACV $12K 미만" },
+    "M": { "name": "미드마켓", "definition": "ACV $12-100K" },
+    "E": { "name": "엔터프라이즈", "definition": "ACV $100K 이상" }
+  },
+
+  "evidence_tags": { "E": "벤치마크/연구 근거", "H": "실무 휴리스틱" },
+
+  "fit_chain": {
+    "cap_rule": "앞 단계가 '미확인'이면 뒤 단계 점수를 최대 1점으로 제한한다(cap). 예: 리텐션 데이터가 없는 회사의 CAC 회수기간이 우수해도 '채널-모델 Fit 확인'으로 판정하지 않는다.",
+    "stages": [
+      { "order": 0, "name": "Founder-Market", "note": "전제", "test": "이 팀은 이 고객의 문제를 왜 남보다 먼저, 싸게 알 수 있는가?", "fail_symptom": "고객 인터뷰를 섭외하지 못함, 도메인 용어 오류", "evidence": "Eisenmann 'Bad Bedfellows'; VC 설문의 팀 비중(Gompers 외: 산업 경험이 두 번째로 많이 언급된 팀 요인)" },
+      { "order": 1, "name": "Market-Product", "test": "특정 세그먼트의 코호트 리텐션이 평탄화되는가?", "fail_symptom": "리텐션이 0으로 수렴, 신규 유입으로만 성장", "evidence": "CB Insights 2023+ 폐업 431곳(사유 분류는 데이터가 충분한 기업 대상) 중 PMF 부족 43%; 오래된 101건 분석에서 '시장 수요 없음' 42%" },
+      { "order": 2, "name": "Product-Channel", "test": "제품의 가격·마찰·사용 맥락이 선택한 채널의 경제성과 맞는가?", "fail_symptom": "저가 제품을 영업으로 판매, 고가 제품을 SEO로 판매", "evidence": "ChartMogul GTM: ASP $25 미만에서 영업 조기 결합 시 신규 ARR 성장 0% vs 셀프서브 20%" },
+      { "order": 3, "name": "Channel-Model", "test": "채널 CAC를 ARPA × 총마진으로 회수할 수 있는가?", "fail_symptom": "CAC 회수기간 24개월 초과, LTV/CAC 3 미만", "evidence": "KBCM/Sapphire 2024: 중앙값 완전 반영 CAC 회수 20개월(2024E); Bessemer 세그먼트 목표" },
+      { "order": 4, "name": "Model-Market", "test": "ARPA × 도달 가능 고객 수가 목표 규모(생계형 vs VC형)를 지탱하는가?", "fail_symptom": "시장 포화, 확장 시장에서 Fit 재붕괴(Speed Trap)", "evidence": "Eisenmann 'Speed Trap'; ChartMogul: $1M 이후 $10M까지 10곳 중 1곳" }
+    ]
+  },
+
+  "kill_criteria_top10": [
+    { "n": 1, "criterion": "리텐션 곡선이 평탄화되지 않음(코호트가 0으로 수렴)", "threshold": "6-12개월 코호트에서 평탄 구간 없음", "evidence": "E", "strength": "높음(실무 합의 + ChartMogul/SaaS Capital의 리텐션-성장 상관)" },
+    { "n": 2, "criterion": "B2B GRR이 동일 ACV대 하위 사분위 미만", "threshold": "ACV $25-50K에서 NRR 97% 미만(SaaS Capital 2025 하위 사분위), GRR 85% 미만은 적신호", "evidence": "E", "strength": "높음" },
+    { "n": 3, "criterion": "저가(월 $50 미만) 프로슈머/AI 제품의 GRR 붕괴", "threshold": "GRR 40% 미만", "evidence": "E", "strength": "높음(ChartMogul 2025: 이 가격대 중앙값 GRR 23%)" },
+    { "n": 4, "criterion": "NRR 90% 미만인 B2B", "threshold": "90% 미만 기업의 성장률 중앙값 15%", "evidence": "E", "strength": "높음(SaaS Capital 2025)" },
+    { "n": 5, "criterion": "수요 검증 전 S&M/인력 확장", "threshold": "유료 고객의 반복 구매 증거 없이 영업 채용", "evidence": "H", "strength": "중간(Startup Genome 2011-12, 자기보고 기반)" },
+    { "n": 6, "criterion": "CAC 회수기간이 세그먼트 목표를 크게 초과", "threshold": "SMB 12개월, 미드마켓 18개월, 엔터프라이즈 24개월 초과(Bessemer)", "evidence": "E", "strength": "중간-높음" },
+    { "n": 7, "criterion": "저 ASP 상품에 영업 조직을 조기 결합", "threshold": "ASP $25 미만에서 영업 도입 시 신규 ARR 성장 0%(셀프서브 20% 대비)", "evidence": "E", "strength": "중간(ChartMogul GTM 보고서)" },
+    { "n": 8, "criterion": "단일 채널 의존 + 채널 비용이 ARPA를 초과", "threshold": "LTV/CAC 3x 미만", "evidence": "H", "strength": "중간(Bessemer 휴리스틱)" },
+    { "n": 9, "criterion": "지불 의사 미검증(무료 사용자만 존재)", "threshold": "프리미엄 전환율 1-2% 미만 또는 트라이얼 전환율 10% 미만", "evidence": "H", "strength": "중간(OpenView 2022: 중앙값 5%/17%)" },
+    { "n": 10, "criterion": "런웨이 12개월 미만 + 다음 마일스톤 미정", "threshold": "12개월 미만(Bessemer 'Good' 하한)", "evidence": "H", "strength": "중간" }
+  ],
+
+  "gates": {
+    "legend": { "colors": { "green": "통과", "yellow": "주의", "red": "탈락" } },
+    "stage0_prelaunch": [
+      { "id": "G0.1", "question": "특정 세그먼트(직무 × 업종 × 규모)의 고통을 고객 언어로 서술했는가?", "green": "인터뷰 15건 이상, 반복 표현 존재", "yellow": "5-15건", "red": "인터뷰 없음/'모든 소상공인'", "evidence_note": "[H] Blank/Maurya; [E] Camuffo 2020(가설 명시가 오탐 감소)" },
+      { "id": "G0.2", "question": "반증 가능한 가설과 종료 조건을 사전에 적었는가?", "green": "수치 + 기한 + 종료 조건", "yellow": "수치만 있음", "red": "없음", "evidence_note": "[E] Camuffo 2020/2024, Coali 2024" },
+      { "id": "G0.3", "question": "지불 의사 증거(선결제, LOI, 사전예약)가 있는가?", "green": "선결제/유료 파일럿", "yellow": "LOI/대기자 명단", "red": "칭찬뿐", "evidence_note": "[H]; [E] Eisenmann False Starts" },
+      { "id": "G0.4", "question": "가격대가 목표 채널 경제성과 맞는가?", "green": "P: 셀프서브, M/E: 영업", "yellow": "모호", "red": "ASP $25 미만 + 영업 계획", "evidence_note": "[E] ChartMogul GTM 2025" },
+      { "id": "G0.5", "question": "해당 범주의 기저율(reference class)을 확인했는가?", "green": "유사 사례 10건 이상의 분포", "yellow": "3-9건", "red": "성공 사례 1-2건만", "evidence_note": "[E] Lovallo, Clarke & Camerer 2012" },
+      { "id": "G0.6", "question": "왜 지금인가(타이밍)?", "green": "구체적 기술·규제·행동 변화", "yellow": "일반론", "red": "없음", "evidence_note": "[E] CB Insights: 타이밍 29%; [H] Bill Gross Idealab 분석(본 세션 미재검증)" }
+    ],
+    "stage1_first10_paid": [
+      { "id": "G1.1", "question": "10명 중 창업자 지인이 아닌 고객 비율", "green": "70% 이상", "yellow": "40-70%", "red": "40% 미만", "evidence_note": "[H]" },
+      { "id": "G1.2", "question": "첫 고객 코호트의 2-3개월 차 잔존", "green": "S/M: 80% 이상; P: 50% 이상", "yellow": "그 미만", "red": "대부분 이탈", "evidence_note": "[H] Lenny 벤치마크 비례 적용" },
+      { "id": "G1.3", "question": "'없어지면 매우 실망' 비율", "green": "40% 이상", "yellow": "25-40%", "red": "25% 미만", "evidence_note": "[H] Sean Ellis" },
+      { "id": "G1.4", "question": "고객이 같은 문제를 같은 말로 설명하는가?", "green": "예", "yellow": "부분적", "red": "고객마다 다른 문제", "evidence_note": "[H] Dunford" },
+      { "id": "G1.5", "question": "창업자의 개입 없이 온보딩이 가능한가?", "green": "P: 셀프 활성화 가능", "yellow": "수동 지원 필요", "red": "창업자 데모 없이는 불가(P일 경우)", "evidence_note": "[H]" }
+    ],
+    "stage2_mrr_1_10k": [
+      { "id": "G2.1", "question": "월간 로고 이탈률", "green": "P: 5% 미만; S: 3% 미만", "yellow": "P: 5-8%; S: 3-5%", "red": "P: 10% 이상; S: 6.5% 이상", "evidence_note": "[E] ChartMogul: ARR $300K 미만 중앙값 월 6.5%, ARPA $25 미만 6.1%(2차 인용, 재확인 필요)" },
+      { "id": "G2.2", "question": "코호트 곡선 평탄화", "green": "6개월 차 평탄", "yellow": "기울기 감소 중", "red": "계속 하락", "evidence_note": "[E] 실무 합의" },
+      { "id": "G2.3", "question": "프리미엄/트라이얼 전환", "green": "프리미엄 5% 이상 / 트라이얼 17% 이상", "yellow": "2-5% / 10-17%", "red": "2% 미만 / 10% 미만", "evidence_note": "[E] OpenView Product Benchmarks 2022 중앙값" },
+      { "id": "G2.4", "question": "반복 가능한 유입 채널 1개 이상", "green": "채널별 CAC 측정 가능", "yellow": "측정 불가하지만 유입 존재", "red": "창업자 네트워크뿐", "evidence_note": "[H] Balfour" },
+      { "id": "G2.5", "question": "(AI 래퍼일 경우) 가격대별 GRR", "green": "월 $250 이상 + GRR 70% 근접", "yellow": "$50-249 + GRR 45% 이상", "red": "월 $50 미만 + GRR 25% 미만", "evidence_note": "[E] ChartMogul AI Churn Wave 2025" }
+    ],
+    "stage3_mrr_10_100k": [
+      { "id": "G3.1", "question": "GRR(연)", "green": "S: 90% 이상; M: 91% 이상; E: 95% 이상", "yellow": "중앙값 -5%p 이내", "red": "S: 80% 미만", "evidence_note": "[E] SaaS Capital 2025(ACV $12K 미만 중앙값 90%, $250K 초과 95%)" },
+      { "id": "G3.2", "question": "NRR(연)", "green": "S: 103% 이상; M: 111% 이상", "yellow": "98-102%", "red": "90% 미만", "evidence_note": "[E] SaaS Capital 2025" },
+      { "id": "G3.3", "question": "성장률(YoY)", "green": "ARR $1M 미만에서 40% 초과", "yellow": "20-40%", "red": "0% 이하", "evidence_note": "[E] SaaS Capital 2025: ARR $1M 미만 중앙값 40%" },
+      { "id": "G3.4", "question": "CAC 회수기간", "green": "S: 12개월 미만", "yellow": "12-18개월", "red": "24개월 초과", "evidence_note": "[E] Bessemer 세그먼트 목표" },
+      { "id": "G3.5", "question": "조기 확장 징후", "green": "채용이 수요 증가를 후행", "yellow": "동행", "red": "선행(영업/마케팅 인력 > 검증된 파이프라인)", "evidence_note": "[E] Startup Genome(2011-12)" },
+      { "id": "G3.6", "question": "연간 플랜 비중", "green": "고객의 업그레이드 경로 존재", "yellow": "-", "red": "월간 전용 + 높은 이탈", "evidence_note": "[E] ChartMogul Billing 2025(월간 위주 초기 기업이 가장 빨리 성장하지만 이탈 위험 증가)" }
+    ],
+    "stage4_scaling_arr_1m_plus": [
+      { "id": "G4.1", "question": "성장률 vs 밴드 중앙값", "green": "상위 사분위(ARR $2M에서 50% 초과, $20M에서 31% 초과)", "yellow": "중앙값(ARR $1-3M 28%, $3-10M 24%)", "red": "정체(전체의 6.9%)", "evidence_note": "[E] SaaS Capital 2025" },
+      { "id": "G4.2", "question": "Rule of 40 / 효율성", "green": "40% 이상", "yellow": "15-40%", "red": "0% 미만", "evidence_note": "[E] KBCM 2024 중앙값: 2023년 4% → 2024E 15%" },
+      { "id": "G4.3", "question": "CAC 회수(완전 반영)", "green": "14개월 이하(상위 사분위)", "yellow": "20개월 전후(중앙값)", "red": "30개월 초과", "evidence_note": "[E] KBCM/Sapphire 2024" },
+      { "id": "G4.4", "question": "총마진", "green": "78% 이상(구독)", "yellow": "70-78%", "red": "60% 미만", "evidence_note": "[E] KBCM 2024: 구독 GM 약 78%, 전체 약 71%" },
+      { "id": "G4.5", "question": "Magic number", "green": "0.7 초과", "yellow": "0.5-0.7", "red": "0.5 미만", "evidence_note": "[E] KBCM 중앙값 2023-24 0.7" },
+      { "id": "G4.6", "question": "인접 시장 확장 시 Fit 재검증", "green": "신규 세그먼트 코호트 별도 추적", "yellow": "-", "red": "기존 지표 혼합", "evidence_note": "[E] Eisenmann Speed Trap" }
+    ],
+    "benchmark_interpretation_warning": "Bessemer 'Scaling to $100M'(2021, 2024 업데이트)의 ARR $1-10M 구간 평균 성장 200%/NRR 140%는 Bessemer 자체 포트폴리오 평균이며 무작위 표본이 아님(보고서 자인). 시장 전체 중앙값(SaaS Capital 2025 성장 25%, NRR 101%)과 비교하면 수 배 높으므로 VC형 상한으로만 쓰고, 탈락 기준은 SaaS Capital/KBCM 중앙값을 사용한다."
+  },
+
+  "failure_modes": {
+    "F1": { "name": "수요 부재(False Start)", "definition": "문제 검증 없이 구축", "external_signal": "리뷰 없음, 검색량 정체", "internal_metric": "활성화 후 리텐션 0 수렴", "base_rate": "PMF 부족 43%(CB Insights 2023+, n=431, 사유 분류는 데이터가 충분한 기업 대상)", "wrong_rx_to_right_rx": "마케팅 증액 → 세그먼트 축소 + 문제 인터뷰 재실시" },
+    "F2": { "name": "거짓 양성(False Positive)", "definition": "얼리어답터 반응을 시장 수요로 오인", "external_signal": "런칭 버즈 후 급감", "internal_metric": "초기 코호트만 양호, 후속 코호트 악화", "base_rate": "Eisenmann 6대 패턴 중 하나(빈도 미공개)", "wrong_rx_to_right_rx": "확장 → 코호트별 분리 분석" },
+    "F3": { "name": "조기 확장(Premature Scaling)", "definition": "수요에 앞서 인력·지출 확대", "external_signal": "채용 공고 급증 vs 리뷰 정체", "internal_metric": "S&M 비중 급증, CAC 회수기간 악화", "base_rate": "고성장 인터넷 스타트업 실패의 74%(Startup Genome 2011, 3,200개사, 자기보고)", "wrong_rx_to_right_rx": "추가 투자 유치 → 번레이트 동결, 고객 차원에 맞춰 재정렬" },
+    "F4": { "name": "자본 소진(최종 사인)", "definition": "런웨이 고갈", "external_signal": "마지막 투자 후 22개월 이상 경과(CB Insights: 폐업 기업의 마지막 투자-폐업 간격 중앙값 22개월)", "internal_metric": "런웨이 12개월 미만", "base_rate": "70%(CB Insights 2023+) — 근본 원인이 아닌 최종 사인", "wrong_rx_to_right_rx": "브리지 투자 → 상위 원인(F1-F3) 진단" },
+    "F5": { "name": "타이밍 실패", "definition": "시장·기술 성숙 전/후 진입", "external_signal": "범주 검색량 장기 정체", "internal_metric": "영업 주기 비정상적 장기화", "base_rate": "29%(CB Insights 2023+)", "wrong_rx_to_right_rx": "기능 추가 → 대기/피벗/가격 재설계" },
+    "F6": { "name": "단위경제 불량", "definition": "CAC > LTV, 마진 부족", "external_signal": "가격 페이지 잦은 변경", "internal_metric": "LTV/CAC 3 미만, GM 60% 미만", "base_rate": "19%(CB Insights 2023+)", "wrong_rx_to_right_rx": "규모의 경제 기대 → 가격 인상/세그먼트 상향" },
+    "F7": { "name": "저가 AI 관광객 이탈", "definition": "호기심 가입, 반복 가치 부재", "external_signal": "앱스토어 리뷰 급증 후 급감", "internal_metric": "월 $50 미만 GRR 23%", "base_rate": "ChartMogul 2025(AI 네이티브 n≈200)", "wrong_rx_to_right_rx": "유료 광고 → 워크플로 내재화·가격 상향" },
+    "F8": { "name": "채널-가격 불일치", "definition": "저 ASP 제품에 영업 결합", "external_signal": "영업 채용 공고 + 저가 가격표", "internal_metric": "ASP $25 미만인데 신규 ARR 성장 0%", "base_rate": "ChartMogul GTM 2025", "wrong_rx_to_right_rx": "영업 인력 증원 → 셀프서브 활성화 집중" },
+    "F9": { "name": "Bad Bedfellows", "definition": "팀/투자자/파트너 부적합", "external_signal": "공동창업자 이탈, 핵심 인력 Glassdoor 악화", "internal_metric": "의사결정 지연", "base_rate": "Eisenmann 패턴; CB Insights 2014-21 목록의 팀 문제", "wrong_rx_to_right_rx": "채용 → 역할·지분·의사결정권 재설계" },
+    "F10": { "name": "Speed Trap", "definition": "핵심 시장 포화 후 인접 시장에서 Fit 붕괴", "external_signal": "신규 세그먼트 리뷰 악화", "internal_metric": "신규 세그먼트 코호트 GRR 하락", "base_rate": "Eisenmann 후기 단계 주 실패 원인", "wrong_rx_to_right_rx": "성장 압박 유지 → 감속·핵심 세그먼트 재집중" },
+    "F11": { "name": "Help Wanted", "definition": "Fit은 유지되나 자본·경영 인재 부족", "external_signal": "경영진 공석, 펀딩 실패", "internal_metric": null, "base_rate": "Eisenmann", "wrong_rx_to_right_rx": "비용 삭감만 → 인재·자본 조달 구조 재설계" },
+    "F12": { "name": "Cascading Miracles(하드웨어·규제형)", "definition": "다수의 독립적 불확실성이 모두 성공해야 함", "external_signal": "다중 파트너 의존 공시", "internal_metric": null, "base_rate": "Eisenmann", "wrong_rx_to_right_rx": "없음(보고서 §10 참조 — 로보틱스/하드웨어는 전이성 약함)" },
+    "F13": { "name": "플랫폼/모델 의존(AI 래퍼 특유)", "definition": "상위 모델 사업자의 기능 흡수", "external_signal": "모델 사업자 신기능 발표 후 트래픽 하락", "internal_metric": "기능 차별성 상실", "base_rate": "정량 기저율 없음 [H]", "wrong_rx_to_right_rx": "프롬프트 개선 → 독점 데이터·워크플로 락인" }
+  },
+
+  "viability_rubric_v1_v13": {
+    "max_score": 39,
+    "consistency_rules": [
+      "증거가 없으면 0점, '추정' 점수는 금지",
+      "계획서 단계에서는 '주장'만 있으면 최대 1점",
+      "앞선 Fit 항목(V1-V4)이 1점 이하이면 V6-V10은 최대 1점으로 제한",
+      "각 점수에는 근거 문장 인용을 의무화"
+    ],
+    "items": {
+      "V1": { "name": "세그먼트 정의", "0": "없음/'모두'", "1": "업종만", "2": "업종 × 규모 × 직무", "3": "고객 언어로 된 고통 서술" },
+      "V2": { "name": "문제 증거", "0": "없음", "1": "창업자 주장", "2": "인터뷰 10건 이상", "3": "지불/선결제 행동 증거" },
+      "V3": { "name": "리텐션", "0": "데이터 없음", "1": "하락 지속", "2": "기울기 완화", "3": "평탄화 + 세그먼트 중앙값 이상(§3)" },
+      "V4": { "name": "지불 의사·가격", "0": "무료뿐", "1": "가격 미검증", "2": "유료 전환이 벤치마크 근접", "3": "가격 인상 후에도 전환 유지" },
+      "V5": { "name": "타이밍 근거", "0": "없음", "1": "일반론", "2": "구체적 변화 1개", "3": "측정 가능한 변화 + 경쟁 공백" },
+      "V6": { "name": "채널-제품 정합성", "0": "불일치(§F8)", "1": "채널 미정", "2": "1개 채널 측정 가능", "3": "반복 가능 + CAC 측정됨" },
+      "V7": { "name": "CAC 회수/LTV:CAC", "0": "미측정", "1": "세그먼트 목표 2배 초과", "2": "목표의 1-2배", "3": "목표 이내(SMB 12개월 미만 등)" },
+      "V8": { "name": "확장 매출/NRR", "0": "해당 없음/90% 미만", "1": "90-98%", "2": "중앙값(101% 내외)", "3": "ACV대 상위 사분위" },
+      "V9": { "name": "지출-수요 정렬", "0": "수요 선행 채용", "1": "부분 선행", "2": "동행", "3": "수요 후행" },
+      "V10": { "name": "시장 규모-모델 정합성", "0": "목표와 불일치", "1": "계산 없음", "2": "Bottom-up 계산", "3": "계산 + 인접 시장 경로" },
+      "V11": { "name": "방어 가능성", "0": "없음", "1": "'더 좋은 UX'", "2": "데이터/워크플로 락인 1개", "3": "7 Powers 중 1개 이상 실증" },
+      "V12": { "name": "팀-시장 적합성", "0": "무관", "1": "일반 경험", "2": "산업 경험", "3": "산업 경험 + 고객 접근권" },
+      "V13": { "name": "런웨이 대비 다음 게이트", "0": "12개월 미만 + 게이트 미정", "1": "12개월 미만", "2": "12-18개월", "3": "18개월 이상 + 게이트 명확" }
+    },
+    "score_bands": [
+      { "range": [0, 12], "label": "근본 미검증", "action": "Stage 0-1로 되돌아가야 함" },
+      { "range": [13, 22], "label": "부분 Fit", "action": "가장 낮은 앞단 Fit에 자원 집중" },
+      { "range": [23, 31], "label": "운영 최적화 단계", "action": "단위경제와 채널 문제" },
+      { "range": [32, 39], "label": "확장 검토 가능", "action": "Speed Trap을 감시" }
+    ],
+    "score_bands_note": "이 구간값 자체는 [H]이며, §9 백테스트로 보정되기 전까지 확률로 표기하지 않는다."
+  },
+
+  "advice_rubric_a1_a12": {
+    "max_score": 24,
+    "items": {
+      "A1": { "name": "구체성", "2점_기준": "누가·무엇을·언제까지가 명시됨", "evidence": "Chatterji 외 2019(구체적 관리 루틴의 효과)" },
+      "A2": { "name": "반증 가능성", "2점_기준": "'X가 Y 미만이면 이 조언은 틀렸다'를 명시", "evidence": "Camuffo 2020/2024" },
+      "A3": { "name": "기한·체크포인트", "2점_기준": "4-12주 내 검증 시점 명시", "evidence": "Coali 외 2024(빠른 기대 하향)" },
+      "A4": { "name": "확률 표기", "2점_기준": "핵심 예측에 확률(%) 부여", "evidence": "Tetlock(Brier 채점 전제)" },
+      "A5": { "name": "외부 시각(기저율)", "2점_기준": "기준 사례군 분포 제시", "evidence": "Lovallo 외 2012; Flyvbjerg" },
+      "A6": { "name": "근본 원인 위치", "2점_기준": "끊긴 Fit을 특정", "evidence": "§2 의존 사슬" },
+      "A7": { "name": "손실 프레이밍 + 비용", "2점_기준": "'하지 않으면 잃는 것'과 실행 비용 명시", "evidence": "손실 회피(Kahneman-Tversky) [H 적용]" },
+      "A8": { "name": "수신자 차별화", "2점_기준": "창업자가 이미 아는 것과 다른 정보 제공", "evidence": "Chatterji 2019(MBA 창업자 무반응)" },
+      "A9": { "name": "실행 가능성", "2점_기준": "현재 자원으로 실행 가능", "evidence": "Gonzalez-Uribe & Leatherbee 2018(구조화된 과제)" },
+      "A10": { "name": "대안 제시", "2점_기준": "기각한 대안 1개 이상과 이유", "evidence": "사전 부검(premortem, Klein)" },
+      "A11": { "name": "자신감 보정", "2점_기준": "확신도가 근거 강도와 일치([E]/[H] 표기)", "evidence": "Bonaccio & Dalal 2006(조언자 자신감이 수용에 영향)" },
+      "A12": { "name": "종료 조건", "2점_기준": "언제 그만둘지(kill) 명시", "evidence": "Annie Duke 'Quit'; Camuffo" }
+    },
+    "scoring_note": "각 항목 0-2점. 분량은 점수에 반영하지 않으며, 동일 내용이 반복되면 감점.",
+    "score_bands": [
+      { "range": [20, 24], "label": "우수" },
+      { "range": [14, 19], "label": "보통" },
+      { "range": [0, 13], "label": "재작성" }
+    ],
+    "gate_thresholds": { "first_month": 17, "after_first_month": 20 }
+  },
+
+  "v71cm_execution_package": {
+    "note": "v71cm(2026-11-13): 해결책 층 강화. advice_rubric_a1_a12 는 v71cl 원안(24점)을 그대로 두고, 이 블록은 그 위에 A13 하나를 더해 26점 만점으로 쓴다 — 기존 24점 샘플 재현 테스트를 깨지 않기 위해 별도 키로 둔다.",
+    "a13": { "name": "실행 패키지 포함", "2점_기준": "복붙 가능 산출물 2개 이상 + 2주 실험 설계 포함", "evidence": "v71cm §1 — 해결책 층이 얇다는 남헌 지적(2026-11-13 03:51)에 대한 보강" },
+    "max_score": 26,
+    "gate_thresholds": { "first_month": 18, "after_first_month": null },
+    "gate_thresholds_note": "v71cm 문서는 '첫 달 기준 18/26'만 명시. 이후 기준은 문서에 없음 — 비워 둠, 지어내지 않음.",
+    "execution_package_fields": ["artifacts(2~5, 복붙용 산출물)", "experiment{what,who,n,success_metric,if_fail}(2주 실험 설계)", "plan_b{name,trigger}(반증 조건 시 승격할 대안)"]
+  },
+
+  "evidence_field_schema": {
+    "per_threshold_fields": ["evidence: E|H", "source", "valid_until"],
+    "valid_until_rule": "AI 래퍼 세그먼트는 +6개월(보고서 §11: AI 네이티브 GRR이 9개월 만에 27%→40%로 이동 — 분기마다 재보정 필요)",
+    "source_basis": "ARR $1M 이상 SaaS Capital 2025, 미만 ChartMogul 2025. 한국 SMB는 글로벌 S 밴드 차용 [H], 자사 데이터로 재보정"
+  },
+
+  "reference_group_rules": {
+    "rule_1_structure_match": "반드시 구조적 변수(가격대·채널·구매자·반복 주기)로 매칭한다",
+    "rule_2_min_n": "유사 사례는 최소 10건을 제시하고 분포를 보여준다. 성공 1-2건의 인용은 금지",
+    "rule_3_include_failures": "실패 사례를 포함한다",
+    "fallback_rule": "참조군 조건을 못 채우면(10건 미만 등) 고객 본문을 노출하지 않고 '비슷한 N곳 목록(v0, 이름+what만)'으로 대체한다 — lib/consult/cases.ts retrieveSimilar 의 fallback(limit 3, case_bank_v A·B 등급만, 못 찾으면 빈 배열) 패턴을 따른다",
+    "source_basis": "Gavetti, Levinthal & Rivkin(SMJ 2005) 유추의 위험 + Lovallo, Clarke & Camerer(SMJ 2012) 기준 사례군(outside view) 우위"
+  },
+
+  "decision_memo_fields_v5": {
+    "diagnosis_chapter1": ["① 끊긴 Fit 번호와 한 줄 테스트 결과", "② 빨간불 수치(세그먼트 임계값 대비)", "③ 참조군 분포(reference_group_rules)", "④ 실패모드 라벨 F#"],
+    "decision_memo_chapter2": ["결정 1개 + 기대이익", "반증 조건(\"X가 Y 미만이면 이 조언은 틀림\")", "4-12주 체크포인트", "핵심 예측 확률(%)", "종료(kill) 조건", "기각한 대안 1개와 이유"],
+    "fixed_two_line_summary": "이미 알고 계실 것: ___ / 모르고 계셨을 것: ___",
+    "korea_vertical_block": "고객 폐업률(소매 16.8%, 음식 15.8%, 2024 국세청)을 이탈 바닥으로 분리 표기"
+  },
+
+  "backtest": {
+    "case_bank": { "success": ["Starter Story", "Trends.vc", "TrustMRR", "YC 공개 배치"], "failure": ["Failory", "CB Insights 사후분석", "공개 post-mortem"], "korea_anchor_only": ["국세청 국세통계", "중기부 창업기업 생존율"] },
+    "survival_bias_control": "동일 시점 등록 코호트(특정 월의 Product Hunt 런칭, 특정 YC 배치, IndieHackers 특정 월 등록) 단위로 표본을 뽑고, 사후 수집된 성공 스토리는 검증 세트에서 제외",
+    "matching_axes": ["세그먼트", "가격대(ARPA 밴드)", "런칭 연도(빈티지 효과)", "지역"],
+    "blind_scoring": "루브릭은 T0 시점 정보만으로 채점(결과 정보 차단), LLM은 T0 시점 스냅샷만 입력",
+    "metrics": ["Brier 점수", "보정 곡선", "AUC"],
+    "baseline": "세그먼트 기저율만 사용한 예측 — 이기지 못하면 예측 금지, 진단 전용 유지",
+    "min_n": { "per_segment_failure_min": 50, "per_segment_failure_target": 100, "total_target": 800, "segment_count": 8 },
+    "korea_data_caveat": "국세청 폐업 통계는 업종 대분류 수준이라 SaaS 단위 매칭 불가 — 기저율 앵커로만 사용"
+  },
+
+  "advice_scoring_protocol": {
+    "decision_vs_outcome": "결정 품질(루브릭, 즉시) ≠ 결과 품질(사전 등록 예측 3-5개/결론서, consult_predictions, 90일 자동 채점, 분기별 보정 곡선)",
+    "llm_judge_setup": {
+      "rubric_anchoring": true,
+      "blind_pairwise_with_order_swap": "2회",
+      "generator_judge_separation": true,
+      "length_normalization": "장황함 공격 테스트 정기 실시"
+    },
+    "human_sample_check_rate": { "first_3_months_pct": 20, "after_kappa_ge_0.6_pct": 10, "new_segment_pct": 100 },
+    "dispute_path": { "fact_error": "즉시 수정", "context_missing": "재채점", "disagreement": "양측 예측을 사전 등록해 결과로 판정" }
+  },
+
+  "non_transferable_to_hardware_robotics": {
+    "note": "보고서 §10 — 약하게만 전이됨",
+    "not_transferable": ["리텐션·NRR 기반 kill criteria(코호트 신호가 늦게 나옴)", "저비용 반복 실험(하드웨어 반복 주기는 몇 분기)", "한계비용 0 가정(BOM·제조 원가로 총마진 구조가 다름)", "실패 모드 구성(Cascading Miracles가 지배적)"]
+  },
+
+  "conclusion_sample_benchmark": {
+    "company": "슬기로운 알바관리",
+    "fit_verdict": { "broken_stage": 2, "color": "🔴", "failure_modes": ["F8", "F6"] },
+    "v_score": 12,
+    "v_max": 39,
+    "v_band": "근본 미검증",
+    "v_items": { "V1": 3, "V2": 1, "V3": 0, "V4": 1, "V5": 2, "V6": 1, "V7": 0, "V8": 0, "V9": 1, "V10": 1, "V11": 2, "V12": 0, "V13": 0 },
+    "a_score": 24,
+    "a_max": 24,
+    "a_items": { "A1": 2, "A2": 2, "A3": 2, "A4": 2, "A5": 2, "A6": 2, "A7": 2, "A8": 2, "A9": 2, "A10": 2, "A11": 2, "A12": 2 },
+    "instagram_tags": { "fit": 2, "failure_mode": "F8", "segment": "S", "tested_claim": "월 2천원 SaaS는 광고를 못 한다 — 손님 한 명값이 1,600원이라서" },
+    "use": "v71cl-엔진 생성기 출력이 이 샘플과 같은 장 구성·같은 Fit 판정(2 🔴)·A 점수 ≥17 인지 회귀 테스트 기준으로 쓴다(문장 복제가 아니라 구조·판정·표기 일치)"
+  }
+}

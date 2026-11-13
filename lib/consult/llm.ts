@@ -75,5 +75,10 @@ export async function consultLlm(o: ConsultLlmOpts): Promise<{ text: string; mod
 /** JSON 객체 응답 — 코드펜스·앞뒤 설명을 걷어 파싱한다. 파싱 실패는 던진다(빈 객체로 접지 않는다). */
 export async function consultLlmJson(o: ConsultLlmOpts): Promise<{ data: Record<string, unknown>; model: string; costUsd: number; path: string }> {
   const r = await consultLlm(o)
-  return { data: parseJsonObject(r.text), model: r.model, costUsd: r.costUsd, path: r.path }
+  try {
+    return { data: parseJsonObject(r.text), model: r.model, costUsd: r.costUsd, path: r.path }
+  } catch (e) {
+    if (process.env.CONSULT_LLM_DEBUG_DUMP) { const fs = await import('node:fs'); fs.writeFileSync(process.env.CONSULT_LLM_DEBUG_DUMP, r.text, 'utf8') }
+    throw e
+  }
 }

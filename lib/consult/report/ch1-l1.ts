@@ -22,13 +22,14 @@ export async function buildL1(i: { runId: string; owner: string; ch1: Ch1; nums:
   let cost = 0
   let feedback = ''
   for (let attempt = 0; attempt < 2; attempt++) {
-    const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'l1', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 3500 })
-    cost += r.costUsd
     try {
+      const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'l1', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 3500 })
+      cost += r.costUsd
       const l1 = validateL1(r.data, i.nums)
       l1.benchmark.similar = i.similar.slice(0, 3)
       return { l1, costUsd: cost, model: r.model }
     } catch (e) {
+      // ch1.ts 와 같은 수정: consultLlmJson 의 JSON 파싱 실패도 재시도 대상이어야 한다.
       if (attempt === 1) throw e
       feedback = `\n\n[이전 출력이 거절됐습니다: ${e instanceof Error ? e.message : String(e)}. 같은 형식으로 고쳐서 다시 출력하세요.]`
     }

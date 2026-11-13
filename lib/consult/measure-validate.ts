@@ -19,12 +19,14 @@ export function buildRoiCard(baselinePct: number, targetRaw: unknown, dueRaw: un
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || Number.isNaN(Date.parse(d))) throw new Error('점검일 형식 오류(YYYY-MM-DD)')
     due = d
   }
+  // 2026-11-13: "이 진단은 틀린 것으로 보고"는 목표 target 이 메모의 성공 기준과 코드로 연결돼 있지 않은데도 확정적으로 들려 문구를 낮췄다
+  // (target 은 화면 입력폼에서 대표님이 직접 타이핑하는 값 — 메모 execution_package.experiment.success_metric 과 별개).
   return {
     metric_name: '전환율(%)',
     baseline: baselinePct,
     target,
     due_date: due,
-    statement: `전환율이 ${baselinePct}%에서 ${target}%로 오르지 않으면 이 진단은 틀린 것으로 보고 다시 봅니다.`,
+    statement: `전환율 ${baselinePct}%를 ${target}%와, ${due ? `점검일(${due})에` : '점검일에'} 실제 숫자와 비교해 봅니다.`,
   }
 }
 

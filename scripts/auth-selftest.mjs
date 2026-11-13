@@ -263,13 +263,16 @@ t('consult 열림이 내부 공개 경로로 새지 않는다: /consult 는 isPu
   t('우회: 180분 경계는 활성', consultAuthBypassActive('1', until180, now))
   t('우회: 180분을 넘으면 비활성(최대 길이 상한)', !consultAuthBypassActive('1', until181, now))
 
+  // resolveConsultUser 는 now 를 받지 않고 내부에서 실제 벽시계를 쓴다 — 고정 과거 날짜를 쓰면 세션이 길어질수록
+  // 실제 시각이 그 날짜를 지나쳐 거짓 실패가 난다(2026-11-13 실측). 이 블록만 "지금부터 170분 뒤"로 계산한다.
+  const untilRealFuture = new Date(Date.now() + 170 * 60000).toISOString()
   t(
     'resolveConsultUser: bypass 인자 자체를 안 넘기면 항상 비활성(기존 호출부 호환·기본 안전)',
     (await resolveConsultUser(noUser)).kind === 'unavailable',
   )
-  const r = await resolveConsultUser(noUser, { disabledRaw: '1', untilRaw: until180 })
+  const r = await resolveConsultUser(noUser, { disabledRaw: '1', untilRaw: untilRealFuture })
   t('resolveConsultUser: 우회 활성 시 getUser 를 부르지 않고 test_ 고정 사용자로 처리', r.kind === 'ok' && r.email.startsWith('test_'))
-  const r2 = await resolveConsultUser(null, { disabledRaw: '0', untilRaw: until180 })
+  const r2 = await resolveConsultUser(null, { disabledRaw: '0', untilRaw: untilRealFuture })
   t('resolveConsultUser: CONSULT_AUTH_DISABLED != "1" 이면 평소 판정(클라이언트 없음 = unavailable)', r2.kind === 'unavailable')
 }
 t('공개(결론서 출구): /r/<token>', isPublicPath('/r/0123456789abcdef0123456789abcdef'))

@@ -32,7 +32,8 @@ export async function createMeasureCard(run: Run, form: { target?: unknown; due?
 
   const { data: col } = await sb.from('consult_collected').select('facts').eq('run_id', run.id).maybeSingle()
   const pages = ((col?.facts ?? { pages: [] }) as { pages: { url: string; title: string; text: string }[] }).pages
-  const user = `진단(0층): ${JSON.stringify(l0.blocks).slice(0, 2500)}\n\n수집한 사실:\n${pages.map((p) => `[${p.url}] ${p.title}\n${p.text.slice(0, 1200)}`).join('\n\n')}\n\n대표님의 한 줄 설명: ${(run.one_liner ?? '').slice(0, 300)}`
+  // 2026-11-13: ch1.ts 와 같은 절단 문제(1200자 절단이 페이지 중반의 기능 항목을 잘라낼 수 있음) 재발 방지로 올림.
+  const user = `진단(0층): ${JSON.stringify(l0.blocks).slice(0, 2500)}\n\n수집한 사실:\n${pages.map((p) => `[${p.url}] ${p.title}\n${p.text.slice(0, 2200)}`).join('\n\n')}\n\n대표님의 한 줄 설명: ${(run.one_liner ?? '').slice(0, 300)}`
   let feedback = ''
   for (let attempt = 0; attempt < 2; attempt++) {
     try {

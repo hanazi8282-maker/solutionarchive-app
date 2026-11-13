@@ -88,7 +88,7 @@ if (!def) { console.error(`--source 필요: ${Object.keys(SOURCE_DEFS).join(' | 
 
 const SYSTEM = `당신은 스타트업 사례 1건을 아래 스키마로 라벨링하는 분류기다. 근거 없으면 반드시 "unknown". 추정 금지.
 ${UNTRUSTED_INPUT_NOTICE}
-domain: hr_attendance | payments_billing_accounting | booking_scheduling_forms | email_marketing_automation | sales_crm | nocode_automation | analytics | devtools_infra | content_creator_tools | ecommerce_seller_tools | other_saas | not_saas
+domain: hr_attendance | payments_billing_accounting | booking_scheduling_forms | marketing_automation | sales_crm | nocode_automation | analytics | devtools_infra | content_creator_tools | ecommerce_seller_tools | other_saas | not_saas
 not_saas 판단 규칙(2026-11-14 남헌 결정):
 - 고객이 받는 게 "소프트웨어 사용권"이 아니라 "사람이 만든 결과물"이면 서비스업이다. 대행사·프리랜서·세팅 대행(이메일·SMS 마케팅 대행 등)은 영역(domain)과 무관하게 not_saas.
 - 교육 브랜드(강의·뉴스레터형 교육 사업)도 not_saas.
@@ -113,7 +113,7 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
 
 // DB check 제약과 같은 값 집합. 모델이 목록 밖 값(자유 텍스트)을 내면 unknown/none으로 떨어뜨린다 — 추정 금지 원칙과 같은 방향.
 const ENUMS = {
-  domain: new Set(['hr_attendance', 'payments_billing_accounting', 'booking_scheduling_forms', 'email_marketing_automation', 'sales_crm', 'nocode_automation', 'analytics', 'devtools_infra', 'content_creator_tools', 'ecommerce_seller_tools', 'other_saas', 'not_saas', 'unknown']),
+  domain: new Set(['hr_attendance', 'payments_billing_accounting', 'booking_scheduling_forms', 'marketing_automation', 'sales_crm', 'nocode_automation', 'analytics', 'devtools_infra', 'content_creator_tools', 'ecommerce_seller_tools', 'other_saas', 'not_saas', 'unknown']),
   segment: new Set(['P', 'S', 'M', 'E', 'unknown']),
   buyer_type: new Set(['smb_owner', 'team_lead', 'enterprise', 'consumer', 'dev', 'unknown']),
   channel_main: new Set(['organic_seo', 'social', 'word_of_mouth', 'direct_sales', 'partnership', 'paid_ads', 'marketplace', 'community', 'unknown']),

@@ -8,7 +8,7 @@ import { buildCh2 } from './report/ch2.ts'
 import type { Ch1L1 } from './report/ch1-l1-validate.ts'
 import { retrieveSimilar } from './cases.ts'
 import { runCostUsd } from './usage.ts'
-import { db, setStatus, type Run } from './runs.ts'
+import { db, setStatus, computeStage, type Run } from './runs.ts'
 
 /** E0: 공개 페이지 수집 → consult_collected. 실패는 던진다(호출자가 status 를 failed 로). */
 export async function collectAndStore(run: Run): Promise<void> {
@@ -31,6 +31,7 @@ export async function diagnoseLayer0(run: Run): Promise<boolean> {
     const { ch, costUsd, model } = await buildCh1({
       runId: run.id, owner: run.owner_email, kind: run.kind, name: run.company_name,
       oneLiner: run.one_liner ?? '', pages: facts.pages, thin: Boolean(col?.thin ?? true),
+      stage: computeStage(run),
     })
     const { error } = await sb.from('consult_diagnoses').upsert({ run_id: run.id, layer: 0, blocks: ch, model, cost_usd: costUsd }, { onConflict: 'run_id,layer' })
     if (error) throw new Error(`진단 저장 실패: ${error.message}`)

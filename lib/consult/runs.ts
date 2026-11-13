@@ -13,6 +13,20 @@ export type Run = {
   tier: 'free' | 'l1' | 'paid'
   error: string | null
   created_at: string
+  // H3(2026-11-14): 무료 진단 입력. null = 옛 run(단계 판단 불가 — full 로 간주, computeStage 참고).
+  user_count_band: '0' | '1-50' | '50-500' | '500+' | null
+  revenue_band: '0' | '소액' | '중간' | '충분' | null
+  launched: boolean | null
+}
+
+/** 손실 범위를 그대로 낼지(full), 입력값 기반으로만 낼지(low), 생략하고 고객 확보 블록으로 대체할지(none).
+ * 순수 함수 — H3. 사용자 수 0명이고 미출시면 none. 둘 중 하나만 걸리면 low. 그 외(매출 있거나 출시했거나 500명 이상)는 full.
+ * 옛 run(필드가 null)은 입력이 없었던 거라 기존 동작 그대로 full. */
+export function computeStage(f: { user_count_band: Run['user_count_band']; revenue_band: Run['revenue_band']; launched: Run['launched'] }): 'none' | 'low' | 'full' {
+  if (f.user_count_band == null && f.revenue_band == null && f.launched == null) return 'full'
+  if (f.user_count_band === '0' && f.launched === false) return 'none'
+  if (f.user_count_band === '0' || f.user_count_band === '1-50' || f.revenue_band === '0' || f.revenue_band === '소액') return 'low'
+  return 'full'
 }
 
 export async function db() {
@@ -23,11 +37,17 @@ export async function db() {
 
 export async function createRun(
   owner: string,
-  f: { kind: 'company' | 'idea'; name: string | null; url: string | null; oneLiner: string | null; scenario?: string | null },
+  f: {
+    kind: 'company' | 'idea'; name: string | null; url: string | null; oneLiner: string | null; scenario?: string | null
+    userCountBand?: Run['user_count_band']; revenueBand?: Run['revenue_band']; launched?: Run['launched']
+  },
 ): Promise<Run> {
   const { data, error } = await (await db())
     .from('consult_runs')
-    .insert({ owner_email: owner, kind: f.kind, company_name: f.name, company_url: f.url, one_liner: f.oneLiner, scenario: f.scenario ?? null })
+    .insert({
+      owner_email: owner, kind: f.kind, company_name: f.name, company_url: f.url, one_liner: f.oneLiner, scenario: f.scenario ?? null,
+      user_count_band: f.userCountBand ?? null, revenue_band: f.revenueBand ?? null, launched: f.launched ?? null,
+    })
     .select('*')
     .single()
   if (error || !data) throw new Error(`run 생성 실패: ${error?.message}`)

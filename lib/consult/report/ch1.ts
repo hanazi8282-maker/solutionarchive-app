@@ -17,13 +17,24 @@ export type Ch1Input = {
   pages: { url: string; title: string; text: string }[]
   thin: boolean
   similar?: { name: string; what: string }[]
+  stage?: Ch1['stage'] // H3(2026-11-14). 생략하면 'full'(옛 호출부 호환).
 }
 
-const SYSTEM = `당신은 창업자의 결정을 검증하는 컨설턴트입니다. 아래 "수집한 사실"만 근거로 진단 1장을 JSON 으로 씁니다.
+// H3(2026-11-14 남헌 채점 피드백): "사용자 0명인데 1500명을 가정해 허황돼 보인다" — 사용자 수 0명·미출시(stage='none')면
+// 손실 숫자를 전혀 내지 않고 acquisition_plan(고객 확보 블록)으로 대체한다. 그 외(stage='low'|'full')는 기존 손실 범위 그대로.
+const LOSS_BLOCK = `- 손실 범위: 손실 범위는 반드시 0보다 큰 구간(low_man < high_man, 단위: 만원/월)으로 냅니다. 사실에 숫자가 없으면 이 카테고리의 일반적인 규모를 가정으로 세우되, 모든 가정을 assumptions 에 "가정:"으로 밝히고 산식(formula)에 그대로 쓰며 note 에 "추정"이라고 적습니다. 사실처럼 단정하거나 0~0 으로 비우지 않습니다.`
+const ACQUISITION_BLOCK = `- 이 창업자는 아직 사용자가 없거나 거의 없고 서비스를 출시하지 않았습니다. 손실 범위를 지어내지 않습니다(허황된 가정 숫자를 내지 않습니다) — 대신 acquisition_plan 을 씁니다.
+  · channels: 첫 10명을 얻을 구체적 경로 3~5개. 각 channel(어디서)·message(어떤 말로 접근)·effort(대략 얼마나 품이 드는지)를 적습니다.
+  · market_message: 시장에 이 서비스를 알리는 방법 한 문단.
+  · revenue_candidates: 수입원 후보 1~4개.
+  · 근거는 반드시 수집한 사실·사례 은행에서만 가져옵니다. 쓸 근거가 전혀 없으면 has_basis 를 false 로 하고 그래도 channels 는 일반적인 통념(예: 커뮤니티에 올리기, 지인에게 부탁하기)으로 최소 3개는 채웁니다 — 비워두지 않습니다.`
+
+function buildSystem(stage: Ch1['stage']): string {
+  return `당신은 창업자의 결정을 검증하는 컨설턴트입니다. 아래 "수집한 사실"만 근거로 진단 1장을 JSON 으로 씁니다.
 ${UNTRUSTED_INPUT_NOTICE}
 규칙:
 - 합니다체. 권고는 "~하세요". 별명·농담 금지. 인용은 130자 이하.
-- 손실 범위는 반드시 0보다 큰 구간(low_man < high_man, 단위: 만원/월)으로 냅니다. 사실에 숫자가 없으면 이 카테고리의 일반적인 규모를 가정으로 세우되, 모든 가정을 assumptions 에 "가정:"으로 밝히고 산식(formula)에 그대로 쓰며 note 에 "추정"이라고 적습니다. 사실처럼 단정하거나 0~0 으로 비우지 않습니다.
+${stage === 'none' ? ACQUISITION_BLOCK : LOSS_BLOCK}
 - 정보가 얇으면(사실이 한 줄 설명뿐이면) 얇다고 인정하고, 확인해야 할 것을 leak_or_gap.detail 에 적습니다.
 - 누수와 미개척은 운영 여부가 아니라 근거로 가릅니다(v4 정답 시험지 creazy·gazet 에서 뽑은 규칙).
   · 미개척(gap) = 이미 갖춘 강점·요금제 사다리·시장 숫자로 보면 값을 낼 고객이나 결제 직전 지점이 있는데, 회사가 그 자리에 제안·노출·상품을 아직 두지 않은 경우. 예: 매출이 큰 고객층에게 맞는 최상위 연구독 안내가 없다, 가장 큰 강점이 무료 체험자의 결제 전 화면에 보이지 않는다. 처방은 "비어 있는 자리에 채우세요"이고, 지표는 그 자리를 채웠을 때 생기는 전환·승급 비율입니다.
@@ -35,19 +46,26 @@ ${UNTRUSTED_INPUT_NOTICE}
 - 부재 주장 금지(2026-11-13 실측 — 시프티 진단이 "급여 메뉴가 없다"고 썼는데 같은 입력 안에 "Payroll" 기능이 실제로 있었습니다): "~가 없습니다/없습니다"처럼 단정하기 전에 <<<수집한 사실>>> 전체에서 그 단어·기능이 정말 한 번도 안 나오는지 직접 다시 훑으세요. 못 찾았다는 확신이 없으면 "없습니다" 대신 "확인되지 않았습니다"를 쓰고, leak_or_gap.detail 에 어느 URL을 확인했는지 적으세요.
 - viability(사전 검증, v71cl-엔진): Fit 사슬은 0 Founder-Market → 1 Market-Product → 2 Product-Channel → 3 Channel-Model → 4 Model-Market 순서입니다. 수집한 사실로 가장 앞에서 끊긴 단계 하나를 고르고(앞 단계가 멀쩽하면 뒤 단계는 보지 않습니다), fit_broken_stage(0~4)·fit_color(🟢 통과/🟡 주의/🔴 탈락)·fit_test_result(그 단계 한 줄 테스트에 대한 판정과 근거)를 적습니다. failure_modes 는 아래 F1~F13 중 사실로 뒷받침되는 것만 최대 3개 고릅니다(근거 없으면 빈 배열 — 지어내지 않습니다): F1 수요 부재, F2 거짓 양성, F3 조기 확장, F4 자본 소진, F5 타이밍 실패, F6 단위경제 불량, F7 저가 AI 관광객 이탈, F8 채널-가격 불일치, F9 Bad Bedfellows, F10 Speed Trap, F11 Help Wanted, F12 Cascading Miracles, F13 플랫폼/모델 의존. segment 는 가격·고객 규모로 P(월 $50 미만)/S(ACV $12K 미만)/M($12-100K)/E($100K 이상) 중 하나를 고릅니다.
 출력은 JSON 객체 하나만:
-{"headline":"한 줄 진단(60자 이내)","leak_or_gap":{"kind":"leak|gap","title":"","detail":""},"position":{"category":"카테고리","where":"그 카테고리 안에서의 위치","basis":"그렇게 본 근거"},"loss":{"low_man":0,"high_man":0,"formula":"산식 한 줄","assumptions":["가정1","가정2"],"note":""},"viability":{"fit_broken_stage":0,"fit_color":"🔴","fit_test_result":"","failure_modes":["F8"],"segment":"S"}}`
+{"headline":"한 줄 진단(60자 이내)","leak_or_gap":{"kind":"leak|gap","title":"","detail":""},"position":{"category":"카테고리","where":"그 카테고리 안에서의 위치","basis":"그렇게 본 근거"},${stage === 'none'
+    ? `"acquisition_plan":{"channels":[{"channel":"","message":"","effort":""},{"channel":"","message":"","effort":""},{"channel":"","message":"","effort":""}],"market_message":"","revenue_candidates":["후보1"],"has_basis":false},`
+    : `"loss":{"low_man":0,"high_man":0,"formula":"산식 한 줄","assumptions":["가정1","가정2"],"note":""},`
+  }"viability":{"fit_broken_stage":0,"fit_color":"🔴","fit_test_result":"","failure_modes":["F8"],"segment":"S"}}`
+}
 
 export async function buildCh1(i: Ch1Input): Promise<{ ch: Ch1; costUsd: number; model: string }> {
   // 2026-11-13 실측: 2500자 절단이 홈페이지·overview 페이지의 "Payroll" 기능 항목(각각 idx 2690·3525)을 모델에게 전달되기 전에 잘라내 "급여 메뉴가 없다"는 거짓 단정을 냈다. 4500자로 올림(완전한 재발 방지는 아니나 실측 사고 구간을 덮는다).
   const facts = i.pages.map((p) => `[${p.url}] ${p.title}\n${p.text.slice(0, 4500)}`).join('\n\n')
   const user = `상태: ${i.kind === 'idea' ? '창업 전 아이디어' : '운영 중인 회사'}\n이름: ${i.name ?? '(미기재)'}\n정보 두께: ${i.thin ? '얇음' : '충분'}\n\n수집한 사실:\n<<<\n${facts}\n>>>`
+  const stage = i.stage ?? 'full'
+  const system = buildSystem(stage)
   let cost = 0
   let feedback = ''
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'diagnosis', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 3500 })
+      // 2026-11-13 재검증: 3500 에서도 시프티(입력 9142토큰)가 첫 호출에서 상한에 걸려 재시도(비용 2배)됐다. 6000 으로 맞춘다.
+      const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'diagnosis', tag: 'opus', system, user: user + feedback, maxTokens: 6000 })
       cost += r.costUsd
-      return { ch: validateCh1(r.data, { thin: i.thin, similar: i.similar, pageCount: i.pages.length }), costUsd: cost, model: r.model }
+      return { ch: validateCh1(r.data, { thin: i.thin, similar: i.similar, pageCount: i.pages.length, stage }), costUsd: cost, model: r.model }
     } catch (e) {
       // consultLlmJson 이 JSON 파싱 실패로 던진 경우도 여기서 잡아야 재시도된다 — 바깥에 있으면 첫 번째 깨진 응답에 그대로 크래시한다(실측: smart-alba.com 라이브 테스트에서 재현).
       if (attempt === 1) throw e

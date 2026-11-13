@@ -2,6 +2,7 @@
 import { normalizeCompanyUrl } from '../lib/consult/url.ts'
 import { robotsDecision, htmlToText } from '../lib/consult/collect.ts'
 import { validateCh1, computeEvidenceLevel } from '../lib/consult/report/ch1-validate.ts'
+import { computeStage } from '../lib/consult/runs.ts'
 import { findStatViolations } from '../lib/consult/report/stat-lint.ts'
 import { costUsd } from '../lib/consult/cost.ts'
 import { validateL1, parseUserNumbers, explainLossDivergence } from '../lib/consult/report/ch1-l1-validate.ts'
@@ -235,6 +236,17 @@ t('근거충분도: thin 이면 한 단계 낮춤', computeEvidenceLevel({ pageC
 t('근거충분도: 부재주장 있으면 한 단계 더 낮춤', computeEvidenceLevel({ pageCount: 4, thin: true, hasAbsenceClaim: true }) === '낮음')
 t('근거충분도: 페이지 0 + thin → 낮음에서 안 내려감(바닥)', computeEvidenceLevel({ pageCount: 0, thin: true, hasAbsenceClaim: true }) === '낮음')
 t('ch1: evidence_level 이 항상 채워짐(옵셔널 아님)', ['낮음', '보통', '높음'].includes(validateCh1(okRaw, { thin: false, pageCount: 4 }).evidence_level))
+
+// ── [우선순위 상향] H3 — 단계 분기(사용자 0명·미출시면 손실 생략, acquisition_plan 으로 대체) ──
+t('computeStage: 사용자0명+미출시 → none', computeStage({ user_count_band: '0', revenue_band: '0', launched: false }) === 'none')
+t('computeStage: 사용자0명이지만 출시함 → low(완전 none 아님)', computeStage({ user_count_band: '0', revenue_band: '0', launched: true }) === 'low')
+t('computeStage: 매출 충분+출시 → full', computeStage({ user_count_band: '500+', revenue_band: '충분', launched: true }) === 'full')
+t('computeStage: 옛 run(필드 전부 null) → full(기존 동작 호환)', computeStage({ user_count_band: null, revenue_band: null, launched: null }) === 'full')
+const acqRaw = { ...okRaw, loss: undefined, acquisition_plan: { channels: [{ channel: '온라인 커뮤니티', message: '무료 체험 공유', effort: '낮음' }, { channel: '지인 소개', message: '직접 부탁', effort: '낮음' }, { channel: '관련 카페', message: '후기 요청', effort: '중간' }], market_message: '커뮤니티에 사용 후기를 공유합니다.', revenue_candidates: ['월 구독료'], has_basis: false } }
+t('ch1: stage=none 이면 loss 없이 acquisition_plan 검증', validateCh1(acqRaw, { thin: true, stage: 'none' }).acquisition_plan?.channels.length === 3)
+t('ch1: stage=none 인데 loss 가 있어도 acquisition_plan 쪽만 검사(loss 무시)', validateCh1(acqRaw, { thin: true, stage: 'none' }).loss === undefined)
+{ let th = false; try { validateCh1({ ...okRaw, acquisition_plan: { channels: [{ channel: 'a', message: 'b', effort: 'c' }], market_message: 'm', revenue_candidates: ['r'], has_basis: false } }, { thin: true, stage: 'none' }) } catch { th = true } t('ch1 거절: stage=none 인데 channels 1개(3개 미만)', th) }
+t('ch1: stage=low|full 은 기존처럼 loss 필수(회귀)', validateCh1(okRaw, { thin: false, stage: 'full' }).loss?.high_man === 120)
 
 t('통계린트: "예측 확률 50%" 문장 적발', findStatViolations('예측 확률 50% 입니다').length > 0)
 t('통계린트: "~% 더 늘어날 여지" 적발', findStatViolations('전환이 10% 더 늘어날 여지가 있습니다').length > 0)

@@ -47,7 +47,7 @@ export async function buildCh1(i: Ch1Input): Promise<{ ch: Ch1; costUsd: number;
     try {
       const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'diagnosis', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 3500 })
       cost += r.costUsd
-      return { ch: validateCh1(r.data, { thin: i.thin, similar: i.similar }), costUsd: cost, model: r.model }
+      return { ch: validateCh1(r.data, { thin: i.thin, similar: i.similar, pageCount: i.pages.length }), costUsd: cost, model: r.model }
     } catch (e) {
       // consultLlmJson 이 JSON 파싱 실패로 던진 경우도 여기서 잡아야 재시도된다 — 바깥에 있으면 첫 번째 깨진 응답에 그대로 크래시한다(실측: smart-alba.com 라이브 테스트에서 재현).
       if (attempt === 1) throw e

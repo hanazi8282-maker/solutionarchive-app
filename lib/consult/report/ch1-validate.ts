@@ -18,7 +18,19 @@ export type Ch1 = {
   similar: { name: string; what: string }[] // ③ 비슷한 회사 목록(v0) — 보유 사례가 있을 때만(R5). 없으면 빈 배열.
   thin: boolean
   viability?: Ch1Viability // v5 신규. 옛 결론서(consult_reports 캐시)에는 없을 수 있어 옵셔널 — 화면은 없으면 v4 그대로 렌더.
+  evidence_level: '낮음' | '보통' | '높음' // G6(2026-11-13): LLM 이 만드는 확률 대신 코드로만 계산하는 근거 충분도.
 }
+
+/** 근거 충분도 — LLM 이 아니라 코드로만 계산한다(G6). 근거: 수집 페이지 수 · thin 여부 · 부재 주장("~가 없습니다") 존재 여부.
+ * thin 이면 한 단계 낮추고, 부재 주장이 있으면 한 단계 더 낮춘다(2026-11-13 실측 사고 — 부재 주장은 틀릴 위험이 더 크다). */
+export function computeEvidenceLevel(input: { pageCount: number; thin: boolean; hasAbsenceClaim: boolean }): Ch1['evidence_level'] {
+  let tier = input.pageCount >= 4 ? 2 : input.pageCount >= 1 ? 1 : 0 // 0=낮음 1=보통 2=높음
+  if (input.thin) tier = Math.max(0, tier - 1)
+  if (input.hasAbsenceClaim) tier = Math.max(0, tier - 1)
+  return (['낮음', '보통', '높음'] as const)[tier]
+}
+
+const ABSENCE_CLAIM = /가\s*없습니다/
 
 const BANNED = /90\s*일\s*재측정/
 const FAILURE_MODE_IDS = new Set(['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'F13'])
@@ -45,7 +57,7 @@ const str = (v: unknown, max: number, field: string): string => {
 }
 
 /** 모델 출력 → Ch1. 필수 칸이 없거나 손실 범위가 숫자가 아니면 던진다(빈 값으로 접지 않는다 — CLAUDE.md §7.1). */
-export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean; similar?: Ch1['similar'] }): Ch1 {
+export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean; similar?: Ch1['similar']; pageCount?: number }): Ch1 {
   const lg = (raw.leak_or_gap ?? {}) as Record<string, unknown>
   const pos = (raw.position ?? {}) as Record<string, unknown>
   const loss = (raw.loss ?? {}) as Record<string, unknown>
@@ -70,6 +82,11 @@ export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean
     similar: input.similar ?? [],
     thin: input.thin,
     viability: parseViability(raw.viability),
+    evidence_level: computeEvidenceLevel({
+      pageCount: input.pageCount ?? 0,
+      thin: input.thin,
+      hasAbsenceClaim: ABSENCE_CLAIM.test(`${raw.headline ?? ''} ${lg.detail ?? ''}`),
+    }),
   }
   const text = JSON.stringify(out)
   if (BANNED.test(text)) throw new Error('진단 문체 오류: 금지 표현')

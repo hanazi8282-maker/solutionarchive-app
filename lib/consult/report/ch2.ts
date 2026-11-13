@@ -13,7 +13,7 @@ ${UNTRUSTED_INPUT_NOTICE}
 - recommendation: choice(고른 선택지), reasons 2~4개(진단·1층·사례 근거), change_mind_if 1~3개(어떤 사실이 확인되면 결정을 바꾸는지).
 - risks: 1~4개, 각 risk 와 mitigation.
 - actionplan: 3~6단계. 날짜를 쓰지 않습니다(날짜·요일·"다음 주" 금지). 각 단계는 step 과 done_when(무엇이 되면 끝났다고 보는지).
-- prediction_pct: 이 결정이 맞다고 보는 핵심 예측 하나에 확률(0~100)을 붙입니다. 모르면 50에 가깝게 적되, 왜 그 확률인지 reasons 에서 다룹니다.
+- 2026-11-13 지시(G6): 확률·배수·"~% 더 늘어날 여지" 같은 통계성 숫자를 어디에도(reasons·risks·options·artifacts 전부) 쓰지 않습니다. 근거 수준은 화면이 별도로 코드로 계산해 보여주므로 당신은 그 숫자를 만들지 않습니다. 대표님이 입력한 숫자(1층 재계산·민감도 표)를 그대로 인용하는 것은 허용됩니다.
 - kill_condition: 언제 이 결정을 그만둘지(무엇이 확인되면 접는지) 한 문장.
 - rejected_alternative: 기각한 대안 1개(options 중 고르지 않은 것)와 왜 기각했는지.
 - execution_package(v71cm, 해결책 층): 창업자가 복사해서 바로 쓸 수 있는 것만 담습니다.
@@ -21,7 +21,7 @@ ${UNTRUSTED_INPUT_NOTICE}
   - experiment: 2주 실험 설계. what(무엇을 시험하는지)·who(누구에게·몇 명(n)인지는 n 필드에 숫자로)·success_metric(성공 기준 숫자)·if_fail(실패 시 다음 행동).
   - plan_b: 반증 조건이 켜지면 자동으로 넘어갈 대안 1개(options 중 고르지 않은 것을 승격)와 trigger(언제 넘어가는지).
 출력은 JSON 객체 하나만:
-{"decision":"","options":[{"name":"","pros":"","cons":""}],"recommendation":{"choice":"","reasons":[""],"change_mind_if":[""]},"risks":[{"risk":"","mitigation":""}],"actionplan":[{"step":"","done_when":""}],"prediction_pct":50,"kill_condition":"","rejected_alternative":{"name":"","reason":""},"execution_package":{"artifacts":["",""],"experiment":{"what":"","who":"","n":10,"success_metric":"","if_fail":""},"plan_b":{"name":"","trigger":""}}}`
+{"decision":"","options":[{"name":"","pros":"","cons":""}],"recommendation":{"choice":"","reasons":[""],"change_mind_if":[""]},"risks":[{"risk":"","mitigation":""}],"actionplan":[{"step":"","done_when":""}],"kill_condition":"","rejected_alternative":{"name":"","reason":""},"execution_package":{"artifacts":["",""],"experiment":{"what":"","who":"","n":10,"success_metric":"","if_fail":""},"plan_b":{"name":"","trigger":""}}}`
 
 export async function buildCh2(i: { runId: string; owner: string; ch1: Ch1; l1: Ch1L1 | null }): Promise<{ ch: Ch2; costUsd: number; model: string }> {
   const user = `0층 진단:\n${JSON.stringify({ headline: i.ch1.headline, leak_or_gap: i.ch1.leak_or_gap, position: i.ch1.position })}\n\n1층:\n${i.l1 ? JSON.stringify({ recalc: { low_man: i.l1.recalc.low_man, high_man: i.l1.recalc.high_man, note: i.l1.recalc.note }, candidates: i.l1.candidates, benchmark: i.l1.benchmark, memo_first: i.l1.memo_first }) : '(1층 없음 — 대표님 숫자가 없으므로 0층 진단만으로 권고하고, 확인할 숫자를 change_mind_if 에 적으세요)'}`

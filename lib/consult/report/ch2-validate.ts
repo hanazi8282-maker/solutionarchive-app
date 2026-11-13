@@ -1,5 +1,6 @@
-// 결론서 2장 "결정 메모" 검증기 — 순수 함수(import 없음). 유료 기능이자 결론서 v4 2장.
+// 결론서 2장 "결정 메모" 검증기 — 순수 함수(파일 내 import 는 같은 report/ 디렉토리의 순수 유틸뿐). 유료 기능이자 결론서 v4 2장.
 // 문체(v71ci §2): 합니다체, 권고는 "~하세요", 별명 금지, "90일 재측정" 금지, 액션플랜은 쓰되 날짜를 넣지 않는다(done_when 은 완료 조건이지 날짜가 아니다).
+import { assertNoStatViolations } from './stat-lint.ts'
 
 export type Ch2 = {
   decision: string // 첫 문장 = 1층 ⓓ memo_first 와 같은 결론
@@ -79,6 +80,7 @@ export function validateCh2(raw: Record<string, unknown>, memoFirst: string): Ch
   }
   const text = JSON.stringify(out)
   if (BANNED.test(text)) throw new Error('메모 문체 오류: 금지 표현')
+  assertNoStatViolations(text, '결정 메모')
   if (out.actionplan.some((a) => DATED.test(a.step) || DATED.test(a.done_when))) throw new Error('메모 형식 오류: 액션플랜에 날짜가 들어 있음')
   // 메모의 첫 문장은 1층 ⓓ 와 같은 결론이어야 한다(화면 사이 모순 방지) — 앞 20자가 같거나 포함 관계.
   const a = out.decision.replace(/\s/g, '')

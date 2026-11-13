@@ -122,6 +122,24 @@ t('메모: kill_condition 통과', memoV5.kill_condition?.includes('4주'))
 t('메모: rejected_alternative 통과', memoV5.rejected_alternative?.name === 'B')
 t('메모: v5 필드 없으면 undefined(옛 캐시 호환)', validateCh2(memoRaw(), '먼저 입구를 만드세요.').prediction_pct === undefined)
 rej2('prediction_pct 101(범위 밖)', memoRaw({ prediction_pct: 101 }))
+
+// H6(2026-11-14 남헌 채점 피드백) — 아이디어형 "사업기획서 초안" 7섹션
+const ideaRaw = (o = {}) => ({
+  ...memoRaw({ actionplan: [{ step: '오늘 랜딩 만들기', done_when: '가입 폼이 열린다' }, { step: 'a', done_when: 'b' }, { step: 'c', done_when: 'd' }, { step: 'e', done_when: 'f' }, { step: 'g', done_when: 'h' }] }),
+  understood: { customer: '소상공인', problem: '근태 기록이 수기다', solution: '앱으로 자동 기록', revenue_model: '월 구독' },
+  customer_problem: '소상공인은 종이로 근태를 기록해 급여 정산에 시간이 오래 걸립니다.',
+  business_model: '월 구독제, 사업장당 2만원.',
+  market_gap: { detail: '기존 서비스는 대기업 전용이라 소상공인용이 비어 있습니다.', competitors: [{ name: 'A사', url: 'https://a.example', confirmed: true }, { name: 'B사', url: '확인 필요', confirmed: false }, { name: 'C사', url: '확인 필요', confirmed: false }] },
+  first_customers: '지역 소상공인 커뮤니티에 직접 올리고 10명에게 무료 체험을 제공합니다.',
+  ...o,
+})
+const idea = validateCh2(ideaRaw(), '먼저 입구를 만드세요.', 'idea')
+t('ch2 idea: understood 통과', idea.understood?.customer === '소상공인')
+t('ch2 idea: market_gap 경쟁사 3곳', idea.market_gap?.competitors.length === 3)
+t('ch2 idea: actionplan 정확히 5단계', idea.actionplan.length === 5)
+{ let th = false; try { validateCh2(ideaRaw({ actionplan: [{ step: 'a', done_when: 'b' }, { step: 'c', done_when: 'd' }, { step: 'e', done_when: 'f' }] }), '먼저 입구를 만드세요.', 'idea') } catch { th = true } t('ch2 idea 거절: actionplan 3단계(아이디어형은 5단계 고정)', th) }
+{ let th = false; try { validateCh2(ideaRaw({ market_gap: { detail: 'x', competitors: [{ name: 'A', url: 'x', confirmed: true }] } }), '먼저 입구를 만드세요.', 'idea') } catch { th = true } t('ch2 idea 거절: 경쟁사 1곳(정확히 3곳)', th) }
+t('ch2 company(기존): actionplan 3~6단계 그대로(회귀 없음)', validateCh2(memoRaw(), '먼저 입구를 만드세요.', 'company').understood === undefined)
 rej2('prediction_pct 음수', memoRaw({ prediction_pct: -1 }))
 
 // v71cm — execution_package(해결책 층: 산출물·2주 실험·플랜B)

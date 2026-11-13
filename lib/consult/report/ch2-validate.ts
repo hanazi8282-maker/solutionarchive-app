@@ -18,6 +18,14 @@ export type Ch2 = {
     experiment: { what: string; who: string; n: number; success_metric: string; if_fail: string } // 2주 실험 설계
     plan_b: { name: string; trigger: string } // 반증 조건이 켜지면 넘어갈 대안(3장 후보 중 승격)
   }
+  // H6(2026-11-14 남헌 채점 피드백): "고객에게 사업기획서를 써 주는 느낌이어야 하는데 그런 부분이 전혀 없다" —
+  // 아이디어형(kind='idea') 전용 7섹션 재구성. decision=한줄요약, recommendation.reasons=추천이유,
+  // actionplan(5단계)+execution_package.experiment=검증실험 으로 기존 필드를 재사용하고, 아래 4개만 신규.
+  understood?: { customer: string; problem: string; solution: string; revenue_model: string } // 상단 "제가 이해한 아이디어" 카드. 입력에 없으면 "입력에 없음, 확인 필요".
+  customer_problem?: string // 섹션2: 고객과 문제
+  business_model?: string // 섹션3: 비즈니스모델·수입원
+  market_gap?: { detail: string; competitors: { name: string; url: string; confirmed: boolean }[] } // 섹션4: 시장 빈자리(경쟁 3곳 + 근거 URL, confirmed=사실에서 확인/unconfirmed=추정)
+  first_customers?: string // 섹션6: 첫 고객 확보 방법
 }
 
 const BANNED = /90\s*일\s*재측정/
@@ -33,8 +41,10 @@ const arr = (v: unknown, min: number, max: number, field: string): unknown[] => 
   return v
 }
 
-export function validateCh2(raw: Record<string, unknown>, memoFirst: string): Ch2 {
+export function validateCh2(raw: Record<string, unknown>, memoFirst: string, kind: 'company' | 'idea' = 'company'): Ch2 {
   const rec = (raw.recommendation ?? {}) as Record<string, unknown>
+  // H6: 아이디어형은 5단계 고정(액션플랜+검증실험 섹션이 5단계라는 전제), 회사형은 기존 3~6.
+  const [apMin, apMax] = kind === 'idea' ? [5, 5] : [3, 6]
   const out: Ch2 = {
     decision: s(raw.decision, 200, 'decision'),
     options: arr(raw.options, 2, 4, '선택지').map((o, i) => {
@@ -50,7 +60,7 @@ export function validateCh2(raw: Record<string, unknown>, memoFirst: string): Ch
       const x = (o ?? {}) as Record<string, unknown>
       return { risk: s(x.risk, 300, `위험 ${i + 1}`), mitigation: s(x.mitigation, 300, `완화 ${i + 1}`) }
     }),
-    actionplan: arr(raw.actionplan, 3, 6, '액션플랜').map((o, i) => {
+    actionplan: arr(raw.actionplan, apMin, apMax, '액션플랜').map((o, i) => {
       const x = (o ?? {}) as Record<string, unknown>
       return { step: s(x.step, 200, `단계 ${i + 1}`), done_when: s(x.done_when, 200, `단계 ${i + 1} 완료 조건`) }
     }),
@@ -77,6 +87,21 @@ export function validateCh2(raw: Record<string, unknown>, memoFirst: string): Ch
       experiment: { what: s(exp.what, 300, 'experiment.what'), who: s(exp.who, 200, 'experiment.who'), n: Math.round(n), success_metric: s(exp.success_metric, 200, 'experiment.success_metric'), if_fail: s(exp.if_fail, 200, 'experiment.if_fail') },
       plan_b: { name: s(pb.name, 120, 'plan_b.name'), trigger: s(pb.trigger, 300, 'plan_b.trigger') },
     }
+  }
+  if (kind === 'idea') {
+    const u = (raw.understood ?? {}) as Record<string, unknown>
+    out.understood = { customer: s(u.customer, 150, 'understood.customer'), problem: s(u.problem, 150, 'understood.problem'), solution: s(u.solution, 150, 'understood.solution'), revenue_model: s(u.revenue_model, 150, 'understood.revenue_model') }
+    out.customer_problem = s(raw.customer_problem, 500, 'customer_problem')
+    out.business_model = s(raw.business_model, 400, 'business_model')
+    const mg = (raw.market_gap ?? {}) as Record<string, unknown>
+    out.market_gap = {
+      detail: s(mg.detail, 400, 'market_gap.detail'),
+      competitors: arr(mg.competitors, 3, 3, 'market_gap.competitors').map((c, i) => {
+        const x = (c ?? {}) as Record<string, unknown>
+        return { name: s(x.name, 80, `market_gap.competitors[${i}].name`), url: s(x.url, 300, `market_gap.competitors[${i}].url`), confirmed: x.confirmed === true }
+      }),
+    }
+    out.first_customers = s(raw.first_customers, 400, 'first_customers')
   }
   const text = JSON.stringify(out)
   if (BANNED.test(text)) throw new Error('메모 문체 오류: 금지 표현')

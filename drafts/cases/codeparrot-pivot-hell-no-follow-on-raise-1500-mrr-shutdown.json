@@ -1,0 +1,110 @@
+{
+  "slug": "codeparrot-pivot-hell-no-follow-on-raise-1500-mrr-shutdown",
+  "brand_name": "CodeParrot",
+  "market": "SaaS · 개발자 도구",
+  "geo": "IN/US",
+  "business_model": "SAAS",
+  "buyer_type": "B2B",
+  "purchase_frequency": "REPEAT",
+  "price_band": null,
+  "bottleneck": "DISTRIBUTION",
+  "reader_problem": "MAKE_BUT_NO_MONEY",
+  "outcome_status": "shutdown",
+  "period_start": "2022-01-01",
+  "period_end": "2025-07-31",
+  "summary": "공동창업자 2명의 YC W23 개발자 도구 스타트업. 첫 제품(프로덕션 트래픽 기반 API 테스트 자동화)을 2023-03 에 출시했지만 Demo Day 에서 후속 투자를 못 받았고, 이후 Figma→코드 변환 제품으로 방향을 바꿔 가며 약 1년을 보냈다. 마지막 제품이 낸 월 반복매출(MRR)은 1,500달러로, 조달한 50만 달러(출처마다 금액이 다름)를 쓰고 2025-07 에 접었다. 창업자 본인은 이 기간을 'pivot hell' 이라 불렀다. 왜 그렇게 되었는지는 창업자 원문을 직접 열지 못해 2차 보도와 제3자 분석에 기댄 부분이 있다.",
+  "tags": ["failure", "pivot", "yc", "devtools", "shutdown", "distribution"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "POSITIONING",
+      "claim": "2023-03 Demo Day 에서 후속 투자를 받지 못한 뒤 약 1년간 제품 방향을 바꿔 가며 찾았다. 프로덕션 트래픽으로 API 테스트를 자동 생성하는 제품에서 Figma 디자인을 코드로 바꾸는 VS Code 확장으로, 마지막엔 LLM 기반 Figma→코드로 갔다. 창업자는 이 기간을 'pivot hell' 이라 부르고, 마지막 방향에서 MRR 1,500달러에 닿았지만 '뚫지 못했다'며 접었다. 바꿀 때마다 쓴 기준이나 중단 기준을 미리 정해 뒀는지는 확인되지 않는다.",
+      "transfer_note": "내일 할 일: 종이 한 장에 '30일 안에 돈 낸 사람이 몇 명이면 계속하고, 그보다 적으면 방향을 바꾸거나 접는다'를 숫자로 적는다. 방향을 바꿀 때마다 이 숫자를 새로 적고, 바꾸기 전에 지난 숫자와 비교한다. CodeParrot 가 이런 기준을 썼는지는 확인되지 않으며, 이 행동은 그 부재를 메우려는 독자 쪽 제안이다.",
+      "preconditions": "지금 파는 제품이나 팔려는 제품이 하나 있어야 한다. 유료 결제 수단(예: Stripe 링크)이 있어서 '돈 낸 사람'을 셀 수 있어야 한다. 확인 완료: 이 사례의 결과(MRR 1,500달러)는 2명 팀·YC·50만 달러 조달이 있었던 조건에서 나왔고, 혼자 하는 개발자의 결과로 그대로 옮길 수 없다.",
+      "outcome_direction": "negative",
+      "metric_name": "마지막 제품의 최고 월 반복매출(MRR)",
+      "metric_before": null,
+      "metric_after": 1500,
+      "metric_unit": "USD",
+      "observed_period_start": "2023-03-01",
+      "observed_period_end": "2025-07-31",
+      "voc_inputs": []
+    },
+    {
+      "lever": "CHANNEL",
+      "claim": "마지막 제품은 Figma 개발자가 공식 플러그인·확장 스토어에서 도구를 찾는 길에 기댄 형태였다. 제3자 분석(Failory)은 같은 시기 Vercel 은 v0 를, Figma 는 자체 코드 내보내기 기능('Make')을 개발자가 이미 쓰는 화면 안에 넣었다고 적고, CodeParrot 는 '채널을 뚫지 못했다'고 평가한다. 이 진단은 창업자의 말이 아니라 외부 분석이다.",
+      "transfer_note": "내일 할 일: 내 제품을 쓸 사람이 '이미 매일 열어 두는 화면'이 어디인지 3곳을 적고, 그중 내 제품이 그 안에 들어갈 수 있는 곳이 있는지 확인한다. 없다면 스토어 검색에만 의존하는 계획이다. 이 사례는 그 의존이 문제였다고 외부 분석가가 본 것이다.",
+      "preconditions": "내 제품을 쓸 사람이 누구인지 한 문장으로 말할 수 있어야 한다. 확인 완료: 이 진단은 2차 분석이라 창업자가 같은 이유를 들었다는 근거는 없다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://news.ycombinator.com/item?id=35201036",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2023-03-17",
+      "snippet": "Launch HN: Codeparrot (YC W23) – Automated API testing using production traffic. 창업자 royal0203 작성, 127점.",
+      "supports_claim": "첫 제품이 프로덕션 트래픽 기반 API 테스트 자동화였다는 사실(2023-03 출시)",
+      "observation_key": "hn-launch-api-testing-2023-03"
+    },
+    {
+      "move": 0,
+      "url": "https://india.entrepreneur.com/news-and-trends/yc-backed-ai-startup-codeparrot-shuts-down-after-struggles/494835",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": null,
+      "snippet": "공동창업자 Vedant Agarwala 의 LinkedIn 종료 글을 인용. 50만 달러 조달, MRR 최고 1,500달러, 엔지니어 2명 고용 후 해고.",
+      "supports_claim": "MRR 1,500달러, 50만 달러 소진, 'pivot hell' 표현",
+      "observation_key": "founder-linkedin-shutdown-post-2025-07"
+    },
+    {
+      "move": 0,
+      "url": "https://startuptalky.com/why-codeparrot-shutdown/",
+      "source_tier": "secondary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": null,
+      "snippet": "같은 LinkedIn 글 인용: Demo Day 에서 투자 못 받음, 1년간 pivot hell, 마지막 피벗 MRR 1,500달러.",
+      "supports_claim": "Demo Day 후 후속 투자 실패와 방향 전환 순서",
+      "observation_key": "founder-linkedin-shutdown-post-2025-07"
+    },
+    {
+      "move": 0,
+      "url": "https://newsletter.failory.com/p/demo-day-disaster",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2025-07-24",
+      "snippet": "Failory 분석: Demo Day 후 후속 투자 0건, 피벗 반복, 최고 MRR 약 1.5K 달러.",
+      "supports_claim": "피벗 반복과 최고 MRR 약 1,500달러",
+      "observation_key": "failory-codeparrot-analysis-2025-07"
+    },
+    {
+      "move": 1,
+      "url": "https://newsletter.failory.com/p/demo-day-disaster",
+      "source_tier": "secondary",
+      "is_self_reported": false,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2025-07-24",
+      "snippet": "\"CodeParrot never cracked the channel.\" Vercel v0, Figma 'Make' 가 같은 기능을 제공했다고 분석.",
+      "supports_claim": "플러그인 스토어 의존과 경쟁사의 내장 배포 대비",
+      "observation_key": "failory-codeparrot-analysis-2025-07"
+    }
+  ]
+}

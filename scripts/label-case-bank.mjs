@@ -29,37 +29,58 @@ process.on('exit', releaseLock)
 process.on('SIGINT', () => { releaseLock(); process.exit(130) })
 process.on('SIGTERM', () => { releaseLock(); process.exit(143) })
 
+// 2026-11-14 남헌 지시: evidence_quote 는 "사업 설명 문장"만 — 상태·결과 문구(Acquired/Inactive/폐업 등) 금지.
+// failure_ledger·ss_moves 는 애초에 "사업 설명" 컬럼이 아예 없다(실패 원인·동작 기록용 스키마) — 사업 설명이 없으므로
+// hasDescription:false 로 두고 LLM 을 부르지 않는다(비용도 아낀다). domain=unknown·evidence_quote=null 로 적재해
+// "설명 문장이 없는 행은 unknown + 라벨링 대상 제외"를 그대로 따른다. 나중에 category 기반 별도 보강은 사람 판단.
 const SOURCE_DEFS = {
   yc_companies: {
-    table: 'yc_companies', pk: 'yc_id',
+    table: 'yc_companies', pk: 'yc_id', hasDescription: true,
     caseId: (r) => `yc_companies:${r.slug}`,
-    select: 'yc_id, slug, name, one_liner, industry, subindustry, tags, team_size, location, launched_year, status, batch',
-    toText: (r) => `회사: ${r.name}\n한 줄 설명: ${r.one_liner ?? ''}\n업종: ${r.industry ?? ''} / ${r.subindustry ?? ''}\n태그: ${(r.tags ?? []).join(', ')}\n팀 규모: ${r.team_size ?? '?'}\n위치: ${r.location ?? ''}\n런칭연도: ${r.launched_year ?? '?'}\nYC 배치: ${r.batch ?? ''}\n현재 상태(YC 원문): ${r.status ?? ''}`,
+    displayName: (r) => r.name,
+    url: (r) => r.website ?? r.source_url ?? null,
+    select: 'yc_id, slug, name, website, source_url, one_liner, industry, subindustry, tags, team_size, location, launched_year, status, batch',
+    toText: (r) => `사업 설명: ${r.one_liner ?? ''}\n업종: ${r.industry ?? ''} / ${r.subindustry ?? ''}\n태그: ${(r.tags ?? []).join(', ')}`,
   },
   ss_businesses: {
-    table: 'ss_businesses', pk: 'id',
+    table: 'ss_businesses', pk: 'id', hasDescription: true,
     caseId: (r) => `ss_business:${r.source_key ?? r.id}`,
-    select: 'id, source_key, name, one_liner, category, est_monthly_revenue_num, founded_year, monetization_models, growth_channels, key_facts',
-    toText: (r) => `회사: ${r.name}\n한 줄 설명: ${r.one_liner ?? ''}\n분야: ${r.category ?? ''}\n월매출(추정): ${r.est_monthly_revenue_num ?? '?'}\n설립연도: ${r.founded_year ?? '?'}\n과금방식: ${JSON.stringify(r.monetization_models ?? [])}\n성장채널: ${JSON.stringify(r.growth_channels ?? [])}\n핵심 사실: ${JSON.stringify(r.key_facts ?? {})}`,
+    displayName: (r) => r.name,
+    url: (r) => r.website ?? null,
+    select: 'id, source_key, name, website, one_liner, category, est_monthly_revenue_num, founded_year, monetization_models, growth_channels, key_facts',
+    toText: (r) => `사업 설명: ${r.one_liner ?? ''}\n분야: ${r.category ?? ''}\n과금방식: ${JSON.stringify(r.monetization_models ?? [])}\n성장채널: ${JSON.stringify(r.growth_channels ?? [])}`,
   },
   failure_ledger: {
-    table: 'failure_ledger', pk: 'id',
+    table: 'failure_ledger', pk: 'id', hasDescription: false,
     caseId: (r) => `failure_ledger:${r.id}`,
-    select: 'id, company, category, country, founded_year, closed_year, cause_primary, cause_tags, mechanism_tags, lesson_one_line, funding_usd, extra, evidence_url',
-    toText: (r) => `회사: ${r.company}\n분야(원문): ${r.category ?? ''}\n국가: ${r.country ?? ''}\n설립~폐업: ${r.founded_year ?? '?'}~${r.closed_year ?? '?'}\n원인(기존): ${r.cause_primary ?? ''}\n원인 태그: ${r.cause_tags ?? ''}\n메커니즘: ${(r.mechanism_tags ?? []).join(', ')}\n교훈 한줄(기존): ${r.lesson_one_line ?? ''}\n투자금: ${r.funding_usd ?? '?'}\n추가정보: ${JSON.stringify(r.extra ?? {}).slice(0, 2000)}`,
+    displayName: (r) => r.company,
+    url: (r) => r.url ?? r.evidence_url ?? null,
+    select: 'id, company, category, url, evidence_url',
   },
   idea_bank: {
-    table: 'idea_bank', pk: 'id',
+    table: 'idea_bank', pk: 'id', hasDescription: true,
     caseId: (r) => `idea_bank:${r.id}`,
-    select: 'id, title, summary, category, revenue_mo, started, location, founders_count, tags, mechanism_tags, metrics',
-    toText: (r) => `제목: ${r.title ?? ''}\n요약: ${r.summary ?? ''}\n분야(원문): ${r.category ?? ''}\n월매출: ${r.revenue_mo ?? '?'}\n시작: ${r.started ?? ''}\n위치: ${r.location ?? ''}\n창업자 수: ${r.founders_count ?? '?'}\n태그: ${(r.tags ?? []).join(', ')}\n메커니즘: ${(r.mechanism_tags ?? []).join(', ')}\n지표: ${JSON.stringify(r.metrics ?? {})}`,
+    displayName: (r) => r.title,
+    url: (r) => r.website ?? null,
+    select: 'id, title, summary, website, category, revenue_mo, started, location, founders_count, tags',
+    toText: (r) => `사업 설명: ${r.summary ?? ''}\n분야(원문): ${r.category ?? ''}\n태그: ${(r.tags ?? []).join(', ')}`,
   },
   ss_moves: {
-    table: 'ss_moves', pk: 'id',
+    table: 'ss_moves', pk: 'id', hasDescription: false,
     caseId: (r) => `ss_moves:${r.slug}:${r.move_idx}`,
-    select: 'id, slug, move_idx, company, category, revenue_mo, who, blocked, move, result, lever, pattern, quote',
-    toText: (r) => `회사: ${r.company}\n분야(원문): ${r.category ?? ''}\n월매출: ${r.revenue_mo ?? '?'}\n누가 무엇을 못 했나: ${r.who ?? ''} / ${r.blocked ?? ''}\n한 동작: ${r.move ?? ''}\n결과: ${r.result ?? ''}\n레버(기존 라벨): ${r.lever ?? ''}\n패턴: ${r.pattern ?? ''}\n근거 문장: ${r.quote ?? ''}`,
+    displayName: (r) => r.company,
+    url: (r) => r.source_url ?? null,
+    select: 'id, slug, move_idx, company, category, source_url',
   },
+}
+
+/** 모델이 지어내는 게 아니라 원문에 실제로 있던 상태·결과 단어를 평가문처럼 돌려주는 사고를 막는다(2026-11-14 실측). */
+const STATUS_WORD = /^(acquired|inactive|active|closed|dead|shut\s*down|zombie|현재\s*상태|폐업|인수|종료|운영\s*중)\.?$/i
+function sanitizeEvidenceQuote(q) {
+  if (!q) return null
+  const trimmed = String(q).trim()
+  if (!trimmed || STATUS_WORD.test(trimmed)) return null
+  return trimmed.slice(0, 130)
 }
 
 const def = SOURCE_DEFS[SOURCE]
@@ -68,6 +89,10 @@ if (!def) { console.error(`--source 필요: ${Object.keys(SOURCE_DEFS).join(' | 
 const SYSTEM = `당신은 스타트업 사례 1건을 아래 스키마로 라벨링하는 분류기다. 근거 없으면 반드시 "unknown". 추정 금지.
 ${UNTRUSTED_INPUT_NOTICE}
 domain: hr_attendance | payments_billing_accounting | booking_scheduling_forms | email_marketing_automation | sales_crm | nocode_automation | analytics | devtools_infra | content_creator_tools | ecommerce_seller_tools | other_saas | not_saas
+not_saas 판단 규칙(2026-11-14 남헌 결정):
+- 고객이 받는 게 "소프트웨어 사용권"이 아니라 "사람이 만든 결과물"이면 서비스업이다. 대행사·프리랜서·세팅 대행(이메일·SMS 마케팅 대행 등)은 영역(domain)과 무관하게 not_saas.
+- 교육 브랜드(강의·뉴스레터형 교육 사업)도 not_saas.
+- 미디어 브랜드(뉴스레터 등 콘텐츠 사업)는 not_saas로 내리지 말고 content_creator_tools 같은 콘텐츠 영역 태그를 그대로 인정한다.
 segment: P(월 $50 미만 프로슈머) | S(ACV<$12K) | M($12K~100K) | E(>$100K) | unknown
 buyer_type: smb_owner | team_lead | enterprise | consumer | dev | unknown
 channel_main: organic_seo | social | word_of_mouth | direct_sales | partnership | paid_ads | marketplace | community | unknown
@@ -79,7 +104,7 @@ outcome: success | failure | acquired | zombie | unknown
 failure_mode: 실패/좀비일 때만 F1~F13 중 하나(모르면 "unknown"), 아니면 "none"
 fit_broken: 실패/좀비일 때만 가장 앞에서 끊긴 단계 0~4(모르면 "unknown"), 아니면 "none"
 kill_flags: 배열, 해당 없으면 []
-evidence_quote: 입력 원문에서 그대로 가져온 근거 문장 1개, 130자 이내, 근거 없으면 null
+evidence_quote: "사업 설명" 줄에서 그대로 가져온 문장 1개만, 130자 이내. "Acquired"·"Inactive"·"폐업" 같은 상태·결과 단어 그 자체는 절대 evidence_quote 로 쓰지 않는다(그건 outcome 필드로 가야 할 값이다) — 사업 설명 문장이 없거나 비어 있으면 null.
 confidence: high | mid | low
 반드시 JSON 객체 하나만 출력. 설명 문장 금지.`
 
@@ -88,7 +113,7 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
 
 // DB check 제약과 같은 값 집합. 모델이 목록 밖 값(자유 텍스트)을 내면 unknown/none으로 떨어뜨린다 — 추정 금지 원칙과 같은 방향.
 const ENUMS = {
-  domain: new Set(['hr_attendance', 'payments_billing_accounting', 'booking_scheduling_forms', 'email_marketing_automation', 'sales_crm', 'nocode_automation', 'analytics', 'devtools_infra', 'content_creator_tools', 'ecommerce_seller_tools', 'other_saas', 'not_saas']),
+  domain: new Set(['hr_attendance', 'payments_billing_accounting', 'booking_scheduling_forms', 'email_marketing_automation', 'sales_crm', 'nocode_automation', 'analytics', 'devtools_infra', 'content_creator_tools', 'ecommerce_seller_tools', 'other_saas', 'not_saas', 'unknown']),
   segment: new Set(['P', 'S', 'M', 'E', 'unknown']),
   buyer_type: new Set(['smb_owner', 'team_lead', 'enterprise', 'consumer', 'dev', 'unknown']),
   channel_main: new Set(['organic_seo', 'social', 'word_of_mouth', 'direct_sales', 'partnership', 'paid_ads', 'marketplace', 'community', 'unknown']),
@@ -102,7 +127,13 @@ const ENUMS = {
 }
 const clamp = (field, value, fallback) => (ENUMS[field]?.has(value) ? value : fallback)
 
+/** 사업 설명 자체가 없는 소스(failure_ledger·ss_moves)는 LLM 을 부르지 않고 unknown 으로 적재한다 — 비용 0, 지어낼 거리도 0. */
+function noDescriptionLabel(row) {
+  return { case_id: def.caseId(row), source: SOURCE, domain: 'unknown', segment: 'unknown', buyer_type: 'unknown', channel_main: 'unknown', pricing_model: 'unknown', price_band_usd_mo: 'unknown', revenue_band: 'unknown', stage_at_snapshot: 'unknown', outcome: 'unknown', failure_mode: 'none', fit_broken: 'none', kill_flags: [], evidence_quote: null, confidence: 'low', label_model: 'rule-no-description', label_run: `v71ck_${SOURCE}_no_description` }
+}
+
 async function labelOne(row) {
+  if (!def.hasDescription) return { label: noDescriptionLabel(row), inTok: 0, outTok: 0 }
   const caseId = def.caseId(row)
   const text = def.toText(row)
   const msg = await client.messages.create({
@@ -111,9 +142,12 @@ async function labelOne(row) {
   })
   const raw = msg.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
   const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] ?? '{}')
+  // 2026-11-14: 상태·결과 단어를 evidence_quote 로 잘못 가져온 경우(사고 실측) null 로 걸러내고, 그러면 domain 도
+  // "근거 없이 지어낸 분류"가 되므로 unknown 으로 같이 내린다 — 추정 금지 원칙을 quote 가 없을 때도 지킨다.
+  const quote = sanitizeEvidenceQuote(parsed.evidence_quote)
   const label = {
     case_id: caseId, source: SOURCE,
-    domain: clamp('domain', parsed.domain, 'other_saas'),
+    domain: quote ? clamp('domain', parsed.domain, 'unknown') : 'unknown',
     segment: clamp('segment', parsed.segment, 'unknown'),
     buyer_type: clamp('buyer_type', parsed.buyer_type, 'unknown'),
     channel_main: clamp('channel_main', parsed.channel_main, 'unknown'),
@@ -125,8 +159,8 @@ async function labelOne(row) {
     failure_mode: typeof parsed.failure_mode === 'string' ? parsed.failure_mode : 'none',
     fit_broken: clamp('fit_broken', parsed.fit_broken, 'none'),
     kill_flags: Array.isArray(parsed.kill_flags) ? parsed.kill_flags : [],
-    evidence_quote: parsed.evidence_quote ? String(parsed.evidence_quote).slice(0, 130) : null,
-    confidence: clamp('confidence', parsed.confidence, 'low'),
+    evidence_quote: quote,
+    confidence: quote ? clamp('confidence', parsed.confidence, 'low') : 'low',
     label_model: MODEL, label_run: `v71ck_${SOURCE}_${new Date().toISOString().slice(0, 10)}`,
   }
   return { label, inTok: msg.usage.input_tokens, outTok: msg.usage.output_tokens }
@@ -144,9 +178,15 @@ async function runPool(rows, onDone) {
 }
 
 async function main() {
-  const { data: existing, error: exErr } = await sb.from('case_bank_labels').select('case_id').eq('source', SOURCE)
-  if (exErr) { console.error('기존 라벨 조회 실패:', exErr.message); process.exit(2) }
-  const done = new Set((existing ?? []).map((r) => r.case_id))
+  // 2026-11-14 실측: PostgREST 기본 1000행 상한에 걸려 "이미 라벨됨"을 과소 집계하는 버그가 있었다
+  // (idea_bank 실제 1963건인데 1000으로 보고됨) — 끝까지 페이지네이션해서 전부 가져온다.
+  const done = new Set()
+  for (let p = 0; ; p++) {
+    const { data: existing, error: exErr } = await sb.from('case_bank_labels').select('case_id').eq('source', SOURCE).range(p * 1000, p * 1000 + 999)
+    if (exErr) { console.error('기존 라벨 조회 실패:', exErr.message); process.exit(2) }
+    for (const r of existing ?? []) done.add(r.case_id)
+    if (!existing || existing.length < 1000) break
+  }
   console.log(`[label-case-bank:${SOURCE}] 이미 라벨됨 ${done.size}`)
 
   // 2026-11-13: DB 읽기 묶음을 CHUNK 와 같은 크기로 맞춰 "작게 읽고 처리하고 해제"가 되게 한다(지시 §3).

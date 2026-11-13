@@ -20,12 +20,14 @@ export type Run = {
 }
 
 /** 손실 범위를 그대로 낼지(full), 입력값 기반으로만 낼지(low), 생략하고 고객 확보 블록으로 대체할지(none).
- * 순수 함수 — H3. 사용자 수 0명이고 미출시면 none. 둘 중 하나만 걸리면 low. 그 외(매출 있거나 출시했거나 500명 이상)는 full.
+ * 순수 함수 — H3. 사용자 수 0명이면 항상 none(출시 여부와 무관 — "실제 서비스 사용자가 0명인데 1500명을 가정"한다는
+ * 지적의 핵심이 바로 이 경우다: 이미 출시했어도 사용자가 0명이면 역시 손실 숫자를 지어낼 근거가 없다).
+ * 사용자 1~50명이거나 매출이 0·소액이면 low. 그 외(500명 이상이거나 매출이 충분)는 full.
  * 옛 run(필드가 null)은 입력이 없었던 거라 기존 동작 그대로 full. */
 export function computeStage(f: { user_count_band: Run['user_count_band']; revenue_band: Run['revenue_band']; launched: Run['launched'] }): 'none' | 'low' | 'full' {
   if (f.user_count_band == null && f.revenue_band == null && f.launched == null) return 'full'
-  if (f.user_count_band === '0' && f.launched === false) return 'none'
-  if (f.user_count_band === '0' || f.user_count_band === '1-50' || f.revenue_band === '0' || f.revenue_band === '소액') return 'low'
+  if (f.user_count_band === '0') return 'none'
+  if (f.user_count_band === '1-50' || f.revenue_band === '0' || f.revenue_band === '소액') return 'low'
   return 'full'
 }
 

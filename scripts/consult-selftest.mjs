@@ -239,7 +239,7 @@ t('ch1: evidence_level 이 항상 채워짐(옵셔널 아님)', ['낮음', '보�
 
 // ── [우선순위 상향] H3 — 단계 분기(사용자 0명·미출시면 손실 생략, acquisition_plan 으로 대체) ──
 t('computeStage: 사용자0명+미출시 → none', computeStage({ user_count_band: '0', revenue_band: '0', launched: false }) === 'none')
-t('computeStage: 사용자0명이지만 출시함 → low(완전 none 아님)', computeStage({ user_count_band: '0', revenue_band: '0', launched: true }) === 'low')
+t('computeStage: 사용자0명이면 출시 여부와 무관하게 none(이미 출시했어도 0명이면 지어낼 근거가 없음)', computeStage({ user_count_band: '0', revenue_band: '0', launched: true }) === 'none')
 t('computeStage: 매출 충분+출시 → full', computeStage({ user_count_band: '500+', revenue_band: '충분', launched: true }) === 'full')
 t('computeStage: 옛 run(필드 전부 null) → full(기존 동작 호환)', computeStage({ user_count_band: null, revenue_band: null, launched: null }) === 'full')
 const acqRaw = { ...okRaw, loss: undefined, acquisition_plan: { channels: [{ channel: '온라인 커뮤니티', message: '무료 체험 공유', effort: '낮음' }, { channel: '지인 소개', message: '직접 부탁', effort: '낮음' }, { channel: '관련 카페', message: '후기 요청', effort: '중간' }], market_message: '커뮤니티에 사용 후기를 공유합니다.', revenue_candidates: ['월 구독료'], has_basis: false } }

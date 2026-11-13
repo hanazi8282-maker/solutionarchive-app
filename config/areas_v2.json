@@ -1,0 +1,28 @@
+{
+  "_about": "areas_v2 정본(남헌 2026-11-13~14 결정). 기존 config/areas.json(①~⑨, T2 VOC 판정용)과는 별개 체계다 — 이건 case_bank_labels.domain 값·새 리뷰/커뮤니티 수집 5분야용. 출처: Notion '🗺️ [전문] areas_v2 분야 목록·수집 기준 (2026-11-14)'.",
+  "version": "v2-2026-11-14",
+  "domains": [
+    { "key": "hr_attendance", "name_ko": "근태·HR·급여", "collect": "existing", "priority": 1 },
+    { "key": "payments_billing_accounting", "name_ko": "결제·정산·회계", "collect": "new", "priority": 2 },
+    { "key": "booking_scheduling_forms", "name_ko": "예약·일정·폼·전자서명", "collect": "new", "priority": 3 },
+    { "key": "marketing_automation", "name_ko": "마케팅 자동화·이메일", "collect": "new", "priority": 4, "note": "구 email_marketing_automation, 남헌 확정 ① — 코드 반영 PR #646" },
+    { "key": "sales_crm", "name_ko": "SMB 영업·CRM", "collect": "new", "priority": 5 },
+    { "key": "ecommerce_seller_tools", "name_ko": "셀러툴", "collect": "existing_targets_only", "note": "YC Retail 폐업률 34.9% 경고 — 신규 타깃 추가 안 함" },
+    { "key": "nocode_automation", "name_ko": "노코드·자동화·내부도구", "collect": "case_bank_only" },
+    { "key": "analytics", "name_ko": "웹·제품 분석", "collect": "case_bank_only", "note": "대조군" },
+    { "key": "devtools_infra", "name_ko": "개발·인프라", "collect": "case_bank_only" },
+    { "key": "content_creator_tools", "name_ko": "콘텐츠·크리에이터 툴", "collect": "case_bank_only" },
+    { "key": "content_media", "name_ko": "뉴스레터형 미디어 브랜드", "collect": "case_bank_only", "note": "nl_* 수집분. not_saas로 내리지 않음" },
+    { "key": "other_saas", "name_ko": "기타 SaaS", "collect": "none", "note": "subtag로 세분" },
+    { "key": "not_saas", "name_ko": "SaaS 아님", "collect": "none", "note": "product_kind로 종류 기록(agency|media|education|consumer_app|physical|marketplace|unknown)" }
+  ],
+  "target_criteria": {
+    "min_reviews_overseas": 100,
+    "min_reviews_korea": 30,
+    "require_public_pricing": true,
+    "exclude_enterprise_only": true
+  },
+  "monthly_call_cap": 20000,
+  "_candidates": "표 2(해외 10·한국 5 후보, 키워드)는 Notion 정본에 그대로 있다 — CC가 실제 스토어 리뷰 수 확인 후 review_targets 에 등록(미달이면 교체). 여기 복제하지 않는다(정본 분산 방지).",
+  "_source": "https://app.notion.com/p/417100b7ffb4813da9fcdc088b655547"
+}

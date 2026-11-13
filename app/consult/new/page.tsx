@@ -33,6 +33,25 @@ export default async function ConsultNew({ searchParams }: { searchParams: Promi
             <input className="pub-field" id="url" name="url" inputMode="url" placeholder="https://example.com" maxLength={300} />
             <label className="pub-text" htmlFor="one_liner">한 줄 설명</label>
             <textarea className="pub-field pub-pmf-textarea" id="one_liner" name="one_liner" required minLength={10} maxLength={600} placeholder="누구의 어떤 문제를 어떻게 푸는 사업인가요?" />
+            <label className="pub-text" htmlFor="user_count_band">지금 사용자 수</label>
+            <select className="pub-field" id="user_count_band" name="user_count_band" defaultValue="0">
+              <option value="0">0명(아직 없음)</option>
+              <option value="1-50">1~50명</option>
+              <option value="50-500">50~500명</option>
+              <option value="500+">500명 이상</option>
+            </select>
+            <label className="pub-text" htmlFor="revenue_band">지금 월매출</label>
+            <select className="pub-field" id="revenue_band" name="revenue_band" defaultValue="0">
+              <option value="0">0원</option>
+              <option value="소액">소액(용돈 수준)</option>
+              <option value="중간">중간</option>
+              <option value="충분">충분함</option>
+            </select>
+            <label className="pub-text" htmlFor="launched">서비스를 이미 출시했나요?</label>
+            <select className="pub-field" id="launched" name="launched" defaultValue="no">
+              <option value="no">아니오, 아직 출시 전</option>
+              <option value="yes">예, 출시했음</option>
+            </select>
             <PubButton variant="primary" size="lg">진단 시작</PubButton>
           </form>
         </Panel>

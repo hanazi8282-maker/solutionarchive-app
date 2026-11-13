@@ -13,7 +13,11 @@ const liner = arg('liner')
 if (!owner || !liner) { console.error('사용법: --owner <email> --liner <한 줄 설명> [--kind company|idea] [--url ..] [--name ..] [--scenario 1]'); process.exit(64) }
 const kind = arg('kind', 'company') === 'idea' ? 'idea' : 'company'
 console.log(`LLM 경로: ${activePath()}`)
-const run = await createRun(owner, { kind, name: arg('name'), url: arg('url'), oneLiner: liner, scenario: arg('scenario') })
+// H3(2026-11-14): --users 0|1-50|50-500|500+, --revenue 0|소액|중간|충분, --launched yes|no — 안 주면 null(옛 run과 동일, full 로 간주).
+const run = await createRun(owner, {
+  kind, name: arg('name'), url: arg('url'), oneLiner: liner, scenario: arg('scenario'),
+  userCountBand: arg('users'), revenueBand: arg('revenue'), launched: arg('launched') === 'yes' ? true : arg('launched') === 'no' ? false : null,
+})
 console.log(`run ${run.id} 생성`)
 await collectAndStore(run)
 const { data: col } = await (await db()).from('consult_collected').select('thin,facts').eq('run_id', run.id).single()

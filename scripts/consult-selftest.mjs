@@ -2,6 +2,7 @@
 import { normalizeCompanyUrl } from '../lib/consult/url.ts'
 import { robotsDecision, htmlToText } from '../lib/consult/collect.ts'
 import { validateCh1, computeEvidenceLevel } from '../lib/consult/report/ch1-validate.ts'
+import { computeStage } from '../lib/consult/runs.ts'
 import { findStatViolations } from '../lib/consult/report/stat-lint.ts'
 import { costUsd } from '../lib/consult/cost.ts'
 import { validateL1, parseUserNumbers, explainLossDivergence } from '../lib/consult/report/ch1-l1-validate.ts'
@@ -64,6 +65,16 @@ for (const [name, bad] of [
   ['failure_modes 에 F14(없는 코드)', { ...viaOk, failure_modes: ['F14'] }],
   ['segment 틀림', { ...viaOk, segment: 'X' }],
 ]) { let th = false; try { validateCh1({ ...okRaw, viability: bad }, { thin: false }) } catch { th = true } t('ch1 viability 거절: ' + name, th) }
+
+// H5(2026-11-14 남헌 채점 피드백) — 판정 보류(⬜)
+const viaPending = { fit_broken_stage: 0, fit_color: '⬜', fit_test_result: '판정 보류', failure_modes: [], segment: 'S', missing_info: ['월 사용자 수', '유료 전환 여부'] }
+t('ch1: viability 판정 보류(⬜) 1~2개 통과', validateCh1({ ...okRaw, viability: viaPending }, { thin: false }).viability?.missing_info?.length === 2)
+t('ch1: viability 🟡/🔴/🟢 는 missing_info 없어도 통과(회귀 없음)', validateCh1({ ...okRaw, viability: viaOk }, { thin: false }).viability?.missing_info === undefined)
+for (const [name, bad] of [
+  ['⬜ 인데 missing_info 없음', { ...viaPending, missing_info: undefined }],
+  ['⬜ 인데 missing_info 0개', { ...viaPending, missing_info: [] }],
+  ['⬜ 인데 missing_info 3개(최대 2)', { ...viaPending, missing_info: ['a', 'b', 'c'] }],
+]) { let th = false; try { validateCh1({ ...okRaw, viability: bad }, { thin: false }) } catch { th = true } t('ch1 viability 거절: ' + name, th) }
 t('단가: mock 은 0', costUsd('mock', 1e6, 1e6) === 0)
 t('단가: opus 1M in/out = 90', costUsd('opus', 1e6, 1e6) === 90)
 
@@ -111,6 +122,24 @@ t('메모: kill_condition 통과', memoV5.kill_condition?.includes('4주'))
 t('메모: rejected_alternative 통과', memoV5.rejected_alternative?.name === 'B')
 t('메모: v5 필드 없으면 undefined(옛 캐시 호환)', validateCh2(memoRaw(), '먼저 입구를 만드세요.').prediction_pct === undefined)
 rej2('prediction_pct 101(범위 밖)', memoRaw({ prediction_pct: 101 }))
+
+// H6(2026-11-14 남헌 채점 피드백) — 아이디어형 "사업기획서 초안" 7섹션
+const ideaRaw = (o = {}) => ({
+  ...memoRaw({ actionplan: [{ step: '오늘 랜딩 만들기', done_when: '가입 폼이 열린다' }, { step: 'a', done_when: 'b' }, { step: 'c', done_when: 'd' }, { step: 'e', done_when: 'f' }, { step: 'g', done_when: 'h' }] }),
+  understood: { customer: '소상공인', problem: '근태 기록이 수기다', solution: '앱으로 자동 기록', revenue_model: '월 구독' },
+  customer_problem: '소상공인은 종이로 근태를 기록해 급여 정산에 시간이 오래 걸립니다.',
+  business_model: '월 구독제, 사업장당 2만원.',
+  market_gap: { detail: '기존 서비스는 대기업 전용이라 소상공인용이 비어 있습니다.', competitors: [{ name: 'A사', url: 'https://a.example', confirmed: true }, { name: 'B사', url: '확인 필요', confirmed: false }, { name: 'C사', url: '확인 필요', confirmed: false }] },
+  first_customers: '지역 소상공인 커뮤니티에 직접 올리고 10명에게 무료 체험을 제공합니다.',
+  ...o,
+})
+const idea = validateCh2(ideaRaw(), '먼저 입구를 만드세요.', 'idea')
+t('ch2 idea: understood 통과', idea.understood?.customer === '소상공인')
+t('ch2 idea: market_gap 경쟁사 3곳', idea.market_gap?.competitors.length === 3)
+t('ch2 idea: actionplan 정확히 5단계', idea.actionplan.length === 5)
+{ let th = false; try { validateCh2(ideaRaw({ actionplan: [{ step: 'a', done_when: 'b' }, { step: 'c', done_when: 'd' }, { step: 'e', done_when: 'f' }] }), '먼저 입구를 만드세요.', 'idea') } catch { th = true } t('ch2 idea 거절: actionplan 3단계(아이디어형은 5단계 고정)', th) }
+{ let th = false; try { validateCh2(ideaRaw({ market_gap: { detail: 'x', competitors: [{ name: 'A', url: 'x', confirmed: true }] } }), '먼저 입구를 만드세요.', 'idea') } catch { th = true } t('ch2 idea 거절: 경쟁사 1곳(정확히 3곳)', th) }
+t('ch2 company(기존): actionplan 3~6단계 그대로(회귀 없음)', validateCh2(memoRaw(), '먼저 입구를 만드세요.', 'company').understood === undefined)
 rej2('prediction_pct 음수', memoRaw({ prediction_pct: -1 }))
 
 // v71cm — execution_package(해결책 층: 산출물·2주 실험·플랜B)
@@ -235,6 +264,17 @@ t('근거충분도: thin 이면 한 단계 낮춤', computeEvidenceLevel({ pageC
 t('근거충분도: 부재주장 있으면 한 단계 더 낮춤', computeEvidenceLevel({ pageCount: 4, thin: true, hasAbsenceClaim: true }) === '낮음')
 t('근거충분도: 페이지 0 + thin → 낮음에서 안 내려감(바닥)', computeEvidenceLevel({ pageCount: 0, thin: true, hasAbsenceClaim: true }) === '낮음')
 t('ch1: evidence_level 이 항상 채워짐(옵셔널 아님)', ['낮음', '보통', '높음'].includes(validateCh1(okRaw, { thin: false, pageCount: 4 }).evidence_level))
+
+// ── [우선순위 상향] H3 — 단계 분기(사용자 0명·미출시면 손실 생략, acquisition_plan 으로 대체) ──
+t('computeStage: 사용자0명+미출시 → none', computeStage({ user_count_band: '0', revenue_band: '0', launched: false }) === 'none')
+t('computeStage: 사용자0명이면 출시 여부와 무관하게 none(이미 출시했어도 0명이면 지어낼 근거가 없음)', computeStage({ user_count_band: '0', revenue_band: '0', launched: true }) === 'none')
+t('computeStage: 매출 충분+출시 → full', computeStage({ user_count_band: '500+', revenue_band: '충분', launched: true }) === 'full')
+t('computeStage: 옛 run(필드 전부 null) → full(기존 동작 호환)', computeStage({ user_count_band: null, revenue_band: null, launched: null }) === 'full')
+const acqRaw = { ...okRaw, loss: undefined, acquisition_plan: { channels: [{ channel: '온라인 커뮤니티', message: '무료 체험 공유', effort: '낮음' }, { channel: '지인 소개', message: '직접 부탁', effort: '낮음' }, { channel: '관련 카페', message: '후기 요청', effort: '중간' }], market_message: '커뮤니티에 사용 후기를 공유합니다.', revenue_candidates: ['월 구독료'], has_basis: false } }
+t('ch1: stage=none 이면 loss 없이 acquisition_plan 검증', validateCh1(acqRaw, { thin: true, stage: 'none' }).acquisition_plan?.channels.length === 3)
+t('ch1: stage=none 인데 loss 가 있어도 acquisition_plan 쪽만 검사(loss 무시)', validateCh1(acqRaw, { thin: true, stage: 'none' }).loss === undefined)
+{ let th = false; try { validateCh1({ ...okRaw, acquisition_plan: { channels: [{ channel: 'a', message: 'b', effort: 'c' }], market_message: 'm', revenue_candidates: ['r'], has_basis: false } }, { thin: true, stage: 'none' }) } catch { th = true } t('ch1 거절: stage=none 인데 channels 1개(3개 미만)', th) }
+t('ch1: stage=low|full 은 기존처럼 loss 필수(회귀)', validateCh1(okRaw, { thin: false, stage: 'full' }).loss?.high_man === 120)
 
 t('통계린트: "예측 확률 50%" 문장 적발', findStatViolations('예측 확률 50% 입니다').length > 0)
 t('통계린트: "~% 더 늘어날 여지" 적발', findStatViolations('전환이 10% 더 늘어날 여지가 있습니다').length > 0)

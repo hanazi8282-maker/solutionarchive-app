@@ -8,7 +8,7 @@ import { buildCh2 } from './report/ch2.ts'
 import type { Ch1L1 } from './report/ch1-l1-validate.ts'
 import { retrieveSimilar } from './cases.ts'
 import { runCostUsd } from './usage.ts'
-import { db, setStatus, type Run } from './runs.ts'
+import { db, setStatus, computeStage, type Run } from './runs.ts'
 
 /** E0: 공개 페이지 수집 → consult_collected. 실패는 던진다(호출자가 status 를 failed 로). */
 export async function collectAndStore(run: Run): Promise<void> {
@@ -31,6 +31,7 @@ export async function diagnoseLayer0(run: Run): Promise<boolean> {
     const { ch, costUsd, model } = await buildCh1({
       runId: run.id, owner: run.owner_email, kind: run.kind, name: run.company_name,
       oneLiner: run.one_liner ?? '', pages: facts.pages, thin: Boolean(col?.thin ?? true),
+      stage: computeStage(run),
     })
     const { error } = await sb.from('consult_diagnoses').upsert({ run_id: run.id, layer: 0, blocks: ch, model, cost_usd: costUsd }, { onConflict: 'run_id,layer' })
     if (error) throw new Error(`진단 저장 실패: ${error.message}`)
@@ -70,7 +71,7 @@ export async function generateMemo(run: Run, opts: { allowNoLayer1?: boolean } =
   const l1 = ds?.find((d) => d.layer === 1)
   if (!l0 || (!l1 && !opts.allowNoLayer1)) throw new Error('no_layer1')
   if ((await runCostUsd(run.id)) > RUN_COST_CAP_USD) throw new Error('cost_cap')
-  const { ch, costUsd, model } = await buildCh2({ runId: run.id, owner: run.owner_email, ch1: l0.blocks as Ch1, l1: (l1?.blocks ?? null) as Ch1L1 | null })
+  const { ch, costUsd, model } = await buildCh2({ runId: run.id, owner: run.owner_email, ch1: l0.blocks as Ch1, l1: (l1?.blocks ?? null) as Ch1L1 | null, kind: run.kind })
   const { error } = await sb.from('consult_memos').upsert({ run_id: run.id, version: 1, body: ch, first_sentence: ch.decision, model, cost_usd: costUsd }, { onConflict: 'run_id,version' })
   if (error) throw new Error(`메모 저장 실패: ${error.message}`)
   await setStatus(run.id, 'done', null, 'paid')

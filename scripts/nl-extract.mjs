@@ -13,7 +13,7 @@ import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
 const GROUND = path.join(os.homedir(), 'sa-private', 'ground', 'newsletters')
 const arg = (k, d = null) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 ? process.argv[i + 1] : d }
 const STAGE = arg('stage', 'pilot') // pilot | full
-const PILOT_N = 300
+const PILOT_N = Number(arg('n', 300)) // 2026-11-14: SaaStr 1,000편 파일럿 지시 대응으로 --n 추가
 const MODEL = 'claude-haiku-5-5'
 // 단가 출처: lib/consult/cost.ts PRICE_PER_M.haiku (추정, 정확한 청구는 Anthropic 콘솔이 정본)
 const PRICE_IN = 0.8, PRICE_OUT = 4

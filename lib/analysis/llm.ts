@@ -601,6 +601,35 @@ export async function callLlmJsonWithModel(
   }
 }
 
+/** 문자열 리터럴 안에 있는 원시 제어문자(실제 줄바꿈 등)만 \n/\t 등으로 에스케이프한다.
+ *  모델이 JSON 문자열 값 안에 단락 구분용 실제 줄바꿈을 넣어 JSON.parse 가 거절하는 경우를 복구한다
+ *  (실측: smart-alba.com 라이브 테스트에서 재현, 긴 한국어 문단에서 간헐적으로 발생). 문자열 밖(구조)은 손대지 않는다. */
+function escapeRawControlCharsInStrings(text: string): string {
+  let out = ''
+  let inString = false
+  let escaped = false
+  for (const ch of text) {
+    if (inString) {
+      if (escaped) { out += ch; escaped = false; continue }
+      if (ch === '\\') { out += ch; escaped = true; continue }
+      if (ch === '"') { inString = false; out += ch; continue }
+      const code = ch.codePointAt(0) ?? 0
+      if (code < 0x20) {
+        if (ch === '\n') out += '\\n'
+        else if (ch === '\r') out += '\\r'
+        else if (ch === '\t') out += '\\t'
+        else out += '\\u' + code.toString(16).padStart(4, '0')
+        continue
+      }
+      out += ch
+    } else {
+      if (ch === '"') inString = true
+      out += ch
+    }
+  }
+  return out
+}
+
 /** 코드블록/앞뒤 잡텍스트를 방어하며 JSON 객체를 추출한다. */
 export function parseJsonObject(raw: string): Record<string, unknown> {
   const stripped = raw
@@ -614,6 +643,12 @@ export function parseJsonObject(raw: string): Record<string, unknown> {
     const start = stripped.indexOf('{')
     const end = stripped.lastIndexOf('}')
     if (start === -1 || end <= start) throw new Error('JSON object not found in model output')
-    return JSON.parse(stripped.slice(start, end + 1)) as Record<string, unknown>
+    const sliced = stripped.slice(start, end + 1)
+    try {
+      return JSON.parse(sliced) as Record<string, unknown>
+    } catch {
+      // 마지막 구조는 바꾸지 않고, 문자열 리터럴 안의 원시 제어문자만 고쳐서 한 번 더 시도한다.
+      return JSON.parse(escapeRawControlCharsInStrings(sliced)) as Record<string, unknown>
+    }
   }
 }

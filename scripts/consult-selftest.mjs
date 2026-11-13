@@ -12,6 +12,9 @@ import { addMonth, cleanDepositor } from '../lib/consult/period.ts'
 import { isActive } from '../lib/consult/entitlement.ts'
 import { validateCh3to6 } from '../lib/consult/report/ch3to6-validate.ts'
 import { coldMailLines, inSendWindow, alreadySent } from '../lib/consult/report/mail.ts'
+import { parseJsonObject } from '../lib/analysis/llm.ts'
+import { validateModeB } from '../lib/consult/report/mode-b-validate.ts'
+import { validateModeC1 } from '../lib/consult/report/mode-c1-validate.ts'
 let pass = 0, fail = 0
 const t = (name, ok) => { if (ok) pass++; else { fail++; console.log(`❌ ${name}`) } }
 
@@ -48,6 +51,18 @@ for (const [name, mut] of [
   ['금지 표현(90일 재측정)', (r) => ({ ...r, headline: '90일 재측정 하세요' })],
 ]) { let threw = false; try { validateCh1(mut(okRaw), { thin: true }) } catch { threw = true } t('ch1 거절: ' + name, threw) }
 { let ok=true; try { validateCh1({ ...okRaw, headline: '액션플랜을 정리하세요' }, { thin: false }) } catch { ok=false } t('ch1: 액션플랜 표현은 허용', ok) }
+
+// v71cl-엔진 — ch1.viability(Fit·실패모드·세그먼트)
+const viaOk = { fit_broken_stage: 2, fit_color: '🔴', fit_test_result: '제품 가격·마찰이 채널 경제성과 맞지 않음', failure_modes: ['F8', 'F6'], segment: 'S' }
+t('ch1: viability 정상 통과', validateCh1({ ...okRaw, viability: viaOk }, { thin: false }).viability?.fit_broken_stage === 2)
+t('ch1: viability 없으면 undefined(옛 캐시 호환)', validateCh1(okRaw, { thin: false }).viability === undefined)
+for (const [name, bad] of [
+  ['stage 5(범위 밖)', { ...viaOk, fit_broken_stage: 5 }],
+  ['fit_color 틀림', { ...viaOk, fit_color: 'red' }],
+  ['failure_modes 4개(최대 3)', { ...viaOk, failure_modes: ['F1', 'F2', 'F3', 'F4'] }],
+  ['failure_modes 에 F14(없는 코드)', { ...viaOk, failure_modes: ['F14'] }],
+  ['segment 틀림', { ...viaOk, segment: 'X' }],
+]) { let th = false; try { validateCh1({ ...okRaw, viability: bad }, { thin: false }) } catch { th = true } t('ch1 viability 거절: ' + name, th) }
 t('단가: mock 은 0', costUsd('mock', 1e6, 1e6) === 0)
 t('단가: opus 1M in/out = 90', costUsd('opus', 1e6, 1e6) === 90)
 
@@ -84,12 +99,31 @@ rej2('액션플랜 2단계뿐', memoRaw({ actionplan: [{ step: 'a', done_when: '
 rej2('1층 첫 문장과 다른 결론', memoRaw(), '가격을 먼저 올리세요 지금 바로')
 rej2('90일 재측정', memoRaw({ risks: [{ risk: '90일 재측정 필요', mitigation: 'm' }] }))
 
+// v71cl-엔진 — ch2 신규 필드(핵심 예측 확률·종료조건·기각 대안)
+const memoV5 = validateCh2(memoRaw({ prediction_pct: 65, kill_condition: '4주 뒤 전환율이 지금의 절반 미만이면 접는다', rejected_alternative: { name: 'B', reason: '영업 조직이 필요해 지금 자원으로 불가' } }), '먼저 입구를 만드세요.')
+t('메모: prediction_pct 통과', memoV5.prediction_pct === 65)
+t('메모: kill_condition 통과', memoV5.kill_condition?.includes('4주'))
+t('메모: rejected_alternative 통과', memoV5.rejected_alternative?.name === 'B')
+t('메모: v5 필드 없으면 undefined(옛 캐시 호환)', validateCh2(memoRaw(), '먼저 입구를 만드세요.').prediction_pct === undefined)
+rej2('prediction_pct 101(범위 밖)', memoRaw({ prediction_pct: 101 }))
+rej2('prediction_pct 음수', memoRaw({ prediction_pct: -1 }))
+
+// v71cm — execution_package(해결책 층: 산출물·2주 실험·플랜B)
+const epOk = { artifacts: ['랜딩 첫 3줄 문안', '인터뷰 질문 5개'], experiment: { what: '선결제 반응 측정', who: '사장님 15명', n: 15, success_metric: '선결제 3건', if_fail: '후보 2로 전환' }, plan_b: { name: '후보 2', trigger: '선결제 0건' } }
+const memoEp = validateCh2(memoRaw({ execution_package: epOk }), '먼저 입구를 만드세요.')
+t('메모: execution_package 통과', memoEp.execution_package?.experiment.n === 15)
+t('메모: execution_package 없으면 undefined(옛 캐시 호환)', validateCh2(memoRaw(), '먼저 입구를 만드세요.').execution_package === undefined)
+rej2('execution_package.artifacts 1개(최소 2)', memoRaw({ execution_package: { ...epOk, artifacts: ['x'] } }))
+rej2('execution_package.experiment.n 0 이하', memoRaw({ execution_package: { ...epOk, experiment: { ...epOk.experiment, n: 0 } } }))
+
 // R7 — 에이전트 순수부
 t('에이전트: final 파싱', parseStep({ final: '답' }).kind === 'final')
 t('에이전트: tool 파싱', parseStep({ tool: 'show_memo', args: {} }).kind === 'tool')
 for (const bad of [{}, { tool: 'drop_table' }, { final: '' }]) { let th = false; try { parseStep(bad) } catch { th = true } t('에이전트 거절: ' + JSON.stringify(bad), th) }
 { let th = false; try { validateToolArgs('search_cases', { category: 'Crypto' }) } catch { th = true } t('도구 인자: 허용 목록 밖 카테고리 거절', th) }
 { let th = false; try { validateToolArgs('recalc_loss', { audience: 100, rate_pct: 2, value_man: 10, leak_low: 0.5, leak_high: 0.1 }) } catch { th = true } t('도구 인자: leak_high < leak_low 거절', th) }
+t('도구 인자: get_viability_rules segment 통과', validateToolArgs('get_viability_rules', { segment: 'S' }).segment === 'S')
+{ let th = false; try { validateToolArgs('get_viability_rules', { segment: 'X' }) } catch { th = true } t('도구 인자: get_viability_rules 잘못된 segment 거절', th) }
 t('손실 재계산: 1000x2%x10x(0.1~0.3)=20~60', recalcLoss({ audience: 1000, rate_pct: 2, value_man: 10, leak_low: 0.1, leak_high: 0.3 }).high_man === 60)
 
 // R8 — 측정카드
@@ -139,6 +173,51 @@ t('중복 발송: 표기 차이(핀플 알파요)도 잡는다', alreadySent(LOG
 t('중복 발송: 처음 보내는 회사는 통과', !alreadySent(LOG, '크리에이지').sent)
 t('중복 발송: 이름이 비면 판단하지 않는다(전부 일치 방지)', !alreadySent(LOG, '').sent)
 t('중복 발송: 머리글·구분선 행은 회사로 세지 않는다', !alreadySent(LOG, '회사').sent)
+
+// lib/analysis/llm.ts parseJsonObject — 공용 유틸(소구점 파이프라인 전체가 씀). smart-alba.com 라이브 테스트에서
+// 모델이 문자열 값 안에 실제 줄바꿈을 넣어 JSON.parse 가 거절하는 경우를 재현해 추가한 복구 경로.
+t('parseJsonObject: 정상 JSON은 그대로', parseJsonObject('{"a":1}').a === 1)
+t('parseJsonObject: 코드블록 제거', parseJsonObject('```json\n{"a":1}\n```').a === 1)
+t('parseJsonObject: 앞뒤 잡텍스트 제거', parseJsonObject('여기 있습니다: {"a":1} 끝').a === 1)
+t('parseJsonObject: 문자열 안 원시 줄바꿈 복구', parseJsonObject('{"a":"줄1\n줄2"}').a === '줄1\n줄2')
+t('parseJsonObject: 문자열 안 원시 탭 복구', parseJsonObject('{"a":"칸1\t칸2"}').a === '칸1\t칸2')
+t('parseJsonObject: 구조(바깥) 줄바꿈은 그대로 구조로 처리', parseJsonObject('{\n"a":1,\n"b":2\n}').b === 2)
+{ let th = false; try { parseJsonObject('이건 JSON이 아닙니다') } catch { th = true } t('parseJsonObject: JSON 없으면 거절', th) }
+
+// v71cm 모드 B — 결정 검증(cap 규칙: 앞 다리가 비어 있으면 순서_바꿈만 가능)
+const modeBOk = (o = {}) => ({
+  two_line: { known: '29,000원은 중가대입니다.', unknown: '다리 1이 비어 있습니다.' },
+  verdict: '순서_바꿈', verdict_reason: '다리 1이 비어 있어 가격을 먼저 붙이면 안 됩니다.',
+  target_stage: 3, blocked_earlier_stage: 1,
+  reference_group: { count: 9747, note: '해결 동작 9,747건 중 가격 레버 결과율 8.6~11.0%' },
+  premortem: ['구체적이지 않았다', '이미 아는 내용이었다'],
+  falsifiable_condition: '무가격 결론서 20통 중 답장 3건 이상이면 틀림', prediction_pct: 40, kill_condition: '60통까지 답장 0이면 채널 자체를 접는다',
+  execution_package: { artifacts: ['메일 첫 줄', '측정 시트'], experiment: { what: '무가격 결론서 발송', who: '5분야 20곳', n: 20, success_metric: '답장 3건', if_fail: '폼 링크로 전환' }, plan_b: { name: '폼 링크', trigger: '답장 0건' } },
+  ...o,
+})
+t('모드B: 정상 통과(순서_바꿈)', validateModeB(modeBOk()).verdict === '순서_바꿈')
+t('모드B: cap 규칙 위반(앞 다리 비었는데 진행) 거절', (() => { let th = false; try { validateModeB(modeBOk({ verdict: '진행' })) } catch { th = true } return th })())
+t('모드B: blocked_earlier_stage 가 target_stage 보다 뒤면 거절', (() => { let th = false; try { validateModeB(modeBOk({ blocked_earlier_stage: 4 })) } catch { th = true } return th })())
+t('모드B: 잘못된 verdict 거절', (() => { let th = false; try { validateModeB(modeBOk({ verdict: '보류' })) } catch { th = true } return th })())
+t('모드B: 앞 다리 안 비었으면 진행 가능', validateModeB(modeBOk({ blocked_earlier_stage: null, verdict: '진행' })).verdict === '진행')
+
+// v71cm 모드 C1 — 아이디어 검증(게이트 6개 전부, blocked_stage 가 순서대로가 아닐 수 있음)
+const gate6 = (over = {}) => ['G0.1', 'G0.2', 'G0.3', 'G0.4', 'G0.5', 'G0.6'].map((id) => ({ id, color: '🟡', reason: 'r', ...over[id] }))
+const modeC1Ok = (o = {}) => ({
+  two_line: { known: '노쇼가 손실입니다.', unknown: '네이버 예약이 이미 공짜로 줍니다.' },
+  gates: gate6({ 'G0.2': { color: '🔴' }, 'G0.3': { color: '🔴' }, 'G0.5': { color: '🔴' } }),
+  blocked_stage: 4, secondary_blocked_stage: 1,
+  reference_group: { count: 10, note: 'YC B2B Retail 폐업률 34.9%' },
+  experiment: { what: '네이버 예약 쓰는 미용실에 질문', who: '미용실 10곳', n: 10, success_metric: '4곳 이상 노쇼 남는다고 응답', if_fail: '접는다' },
+  execution_package: { artifacts: ['인터뷰 질문 5개', '선결제 문구'], plan_b: { name: '플랫폼 밖 세그먼트', trigger: '4곳 미달' } },
+  give_up_condition: '20% 미만이면 접는다',
+  ...o,
+})
+t('모드C1: 정상 통과(게이트 6개, blocked_stage=4)', validateModeC1(modeC1Ok()).gates.length === 6 && validateModeC1(modeC1Ok()).blocked_stage === 4)
+t('모드C1: 다리4가 먼저 끊기고 다리1이 secondary — 순서 역전 허용', validateModeC1(modeC1Ok()).secondary_blocked_stage === 1)
+{ let th = false; try { validateModeC1(modeC1Ok({ gates: gate6().slice(0, 5) })) } catch { th = true } t('모드C1: 게이트 5개(6개 미만) 거절', th) }
+{ let th = false; try { validateModeC1(modeC1Ok({ gates: [...gate6().slice(0, 5), { id: 'G0.1', color: '🟡', reason: 'r' }] })) } catch { th = true } t('모드C1: 게이트 ID 중복 거절', th) }
+{ let th = false; try { validateModeC1(modeC1Ok({ experiment: { what: 'x', who: 'y', n: 0, success_metric: 'z', if_fail: 'w' } })) } catch { th = true } t('모드C1: experiment.n 0 이하 거절', th) }
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)
 process.exitCode = fail ? 1 : 0

@@ -7,11 +7,19 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { denyStatus, isConsultOpen, isConsultUserPath, isPublicPath, resolveAuth, resolveConsultUser, verdictMessage } from './lib/auth/policy'
+import { consultAuthBypassActive, denyStatus, isConsultOpen, isConsultUserPath, isPublicPath, resolveAuth, resolveConsultUser, verdictMessage } from './lib/auth/policy'
+
+// 2026-11-13 로그인 우회 창 동안 /consult 전체에 noindex(지시서 §1-4) — 우회가 꺼져 있으면 아무 영향 없다.
+function withConsultNoIndex(res: NextResponse, pathname: string): NextResponse {
+  if (pathname.startsWith('/consult') && consultAuthBypassActive(process.env.CONSULT_AUTH_DISABLED, process.env.CONSULT_AUTH_DISABLED_UNTIL)) {
+    res.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  }
+  return res
+}
 
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl
-  if (isPublicPath(pathname) || isConsultOpen(pathname)) return NextResponse.next()
+  if (isPublicPath(pathname) || isConsultOpen(pathname)) return withConsultNoIndex(NextResponse.next(), pathname)
 
   // @supabase/ssr 규약: 토큰이 갱신되면 요청과 응답 양쪽에 새 쿠키를 쓴다.
   let res = NextResponse.next({ request: req })
@@ -33,8 +41,11 @@ export async function proxy(req: NextRequest) {
 
   // 컨설팅 사용자 영역(v71ci R0) — 허용 목록 없이 로그인만 본다. /consult/admin 은 여기 안 걸려 아래 허용 목록 판정으로 간다.
   if (isConsultUserPath(pathname)) {
-    const cu = await resolveConsultUser(sb && (() => sb.auth.getUser()))
-    if (cu.kind === 'ok') return res
+    const cu = await resolveConsultUser(sb && (() => sb.auth.getUser()), {
+      disabledRaw: process.env.CONSULT_AUTH_DISABLED,
+      untilRaw: process.env.CONSULT_AUTH_DISABLED_UNTIL,
+    })
+    if (cu.kind === 'ok') return withConsultNoIndex(res, pathname)
     if (cu.kind === 'unavailable') console.error(`[auth] consult session check unavailable: ${cu.detail}`)
     const page = !pathname.startsWith('/api/') && (req.method === 'GET' || req.method === 'HEAD')
     const d = page

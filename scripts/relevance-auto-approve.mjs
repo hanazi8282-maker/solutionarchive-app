@@ -38,12 +38,21 @@ if (!sb) { console.error('✗ DB 연결 실패 — NEXT_PUBLIC_SUPABASE_URL / SU
 
 // 감사 창 = 이 규칙(rr-v2)으로 자동 승인됐고 사람 채점이 있는 행. rr-v1 승인은 섞지 않는다(태그별 창, 설계 §6).
 // 정보 열이 빈 행은 scoreApproval 이 창에서 뺀다. 조회 실패는 null 로 넘겨 게이트가 끄게 한다(§7.1).
-const { data: audits, error: auditErr } = await sb
-  .from('review_relevance_verdicts')
-  .select('human_verdict, human_product_informative, human_graded_at')
-  .not('auto_approved_at', 'is', null)
-  .eq('auto_approval_rule', AUTO_APPROVAL_RULE)
-  .not('human_verdict', 'is', null)
+// 2026-11-14: PostgREST 기본 1000행 상한에 끝까지 안 걸리는 건 지금 사람 채점 행이 적어서일 뿐이다 —
+// 늘어나면 조용히 창이 잘려 킬스위치가 낡은 수치로 판정한다(label-case-bank.mjs·t2 감사에서 실측한 같은 버그). 끝까지 읽는다.
+let audits = [], auditErr = null
+for (let from = 0; ; from += 1000) {
+  const page = await sb
+    .from('review_relevance_verdicts')
+    .select('human_verdict, human_product_informative, human_graded_at')
+    .not('auto_approved_at', 'is', null)
+    .eq('auto_approval_rule', AUTO_APPROVAL_RULE)
+    .not('human_verdict', 'is', null)
+    .range(from, from + 999)
+  if (page.error) { auditErr = page.error; break }
+  audits.push(...(page.data ?? []))
+  if ((page.data ?? []).length < 1000) break
+}
 if (auditErr && (auditErr.code === '42703' || auditErr.code === 'PGRST204')) {
   console.error(`✗ 자동 승인 컬럼이 없다(${auditErr.code}) — 마이그 20260930000027·20260930000031 미적용인데 플래그가 켜져 있다. 켜기 전에 적용하라.`)
   process.exit(2)

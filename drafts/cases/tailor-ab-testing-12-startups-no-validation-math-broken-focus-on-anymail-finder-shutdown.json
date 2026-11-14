@@ -1,0 +1,108 @@
+{
+  "slug": "tailor-ab-testing-12-startups-no-validation-math-broken-focus-on-anymail-finder-shutdown",
+  "brand_name": "Tailor (A/B testing, Joe D'elia)",
+  "market": "SaaS · 웹사이트 A/B 테스트 도구(1인 개발, '12개월 12개 창업' 도전 중 하나)",
+  "geo": null,
+  "business_model": "SAAS",
+  "buyer_type": "B2B",
+  "purchase_frequency": "REPEAT",
+  "price_band": "LOW",
+  "bottleneck": "CONVERSION",
+  "reader_problem": "NO_FIRST_CUSTOMER",
+  "outcome_status": "shutdown",
+  "period_start": null,
+  "period_end": null,
+  "summary": "Tailor 는 개발자 Joe D'elia 가 혼자 만든 웹사이트 A/B 테스트 도구다. 방문자의 10% 에게 여러 안을 보여 주고 이긴 안을 나머지 90% 에게 자동으로 보여 주는 것이 핵심이었다. 그는 자기 첫 SaaS(Anymail Finder, 당시 월 약 2,000달러)를 만지다 기존 도구가 통계에 치우쳐 있다고 느껴 만들었다. 사전 조사 없이 거의 풀타임 2개월을 들였고, 시간은 만들기 90 : 알리기 10 이었다. Product Hunt(지인이 다시 올려 줌)와 Anymail Finder 안 광고로 약 800명이 가입했지만, 가입자를 고객으로 붙잡지 못했고 의미 있는 매출이 없었다. 본인 설명으로는 계산이 처음부터 틀려 사실상 무작위로 고르는 수준이었고, 방문자가 적은 사이트는 통계적으로 의미 있는 차이가 나오지 않았으며, 큰 경쟁사는 무료 요금제를 내놓고 있었다. 그는 Tailor 를 닫고(사용자에게 코드가 사이트를 깨뜨리지 않는다고 메일), 성장하던 Anymail Finder 에 집중했다. 이 초안의 근거는 2019-04-08 Failory 인터뷰 한 건(창업자 1인칭 문답)이다. 페이지는 도구 요약으로 읽었고 원문 직접 대조는 못 했다. 제품 가격·유료 전환 수치는 찾지 못해 확인 불가다.",
+  "tags": ["saas", "solo-founder", "ab-testing", "12-startups-in-12-months", "no-validation", "build-first", "focus", "shutdown", "micro-saas"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "PRODUCT_FEATURE",
+      "claim": "만들기 전에 조사를 하지 않았고, 도구가 제 값을 하려면 방문자가 많은 사이트여야 한다는 점을 확인하지 않았다. 창업자는 인터뷰에서 사전 조사를 안 했다고 밝혔고, 방문자가 적은 사이트에서는 통계적으로 의미 있는 차이가 나오지 않았으며 자신의 계산도 처음부터 틀려 거의 무작위로 고르는 수준이었다고 말했다. 큰 경쟁사는 무료 요금제를 내놓고 있었다. 출시로 약 800명이 가입했지만 유료 고객을 만들지 못했다(의미 있는 매출 없음, 정확한 유료 전환 수는 확인 불가)",
+      "transfer_note": "내 제품이 효과를 내려면 고객에게 최소 얼마나 있어야 하는지(방문자 수, 거래 수, 팀원 수) 숫자 하나를 오늘 적어라. 그리고 내가 팔려는 사람 5명의 실제 숫자를 찾아 그 선을 넘는지 확인하라. 5명 중 넘는 사람이 없으면 아직 만들 때가 아니다.",
+      "preconditions": "내 제품의 효과가 고객 쪽 규모(방문자·데이터양 등)에 달려 있어야 이 점검이 의미가 있다. 내가 팔려는 사람 5명의 숫자를 공개 자료(사이트 트래픽 추정 도구 등)나 대화로 알아낼 수 있어야 한다. 이 선을 미리 맞췄다면 가입자가 유료로 갔을지는 이 사례에서 확인하지 못했다.",
+      "outcome_direction": "negative",
+      "metric_name": "출시 후 가입자 수",
+      "metric_before": null,
+      "metric_after": 800,
+      "metric_unit": "명",
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": [
+        "17b35a39-12fa-4f5c-97c2-0758ffd37f59",
+        "6da3a6c8-24fa-4a5d-bf28-541628228ce9"
+      ]
+    },
+    {
+      "lever": "CHANNEL",
+      "claim": "거의 풀타임 2개월 중 약 90% 를 만들기에 쓰고 알리기에는 약 10% 만 썼다. 출시는 Product Hunt(지인이 다시 올려 줌)와 자기 다른 서비스 안의 광고에 기댔고, 창업자는 트래픽이 계속 들어오고 사람들이 알아서 글을 써 줄 것이라 기대했다고 밝혔다. 약 800명이 가입했지만 그 사람들을 고객으로 바꾸는 온보딩에 실패했고, 마케팅·영업을 잘 몰랐다고 스스로 말했다. 가입자에게 무엇을 쓰려 했는지 물은 기록은 인터뷰에 없다(했는지는 확인 불가)",
+      "transfer_note": "내 제품에 가입했거나 관심을 보인 사람 중 연락처가 있는 사람 5명에게 오늘 한 줄을 보내라. '이걸로 무엇을 하려고 했나요? 막힌 게 있었나요?' 답이 한 명도 없으면, 코드를 더 쓰기 전에 그 사실부터 적어 둬라.",
+      "preconditions": "가입자나 관심 보인 사람의 연락처(이메일·DM)가 몇 명이라도 있어야 한다. 가입자가 아직 없다면 이 행동 대신 만들기 전에 쓸 대화 상대부터 찾아야 한다. 이 물음이 Tailor 의 문제를 풀었을지는 확인하지 못했다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": [
+        "6da3a6c8-24fa-4a5d-bf28-541628228ce9"
+      ]
+    },
+    {
+      "lever": "OPERATIONS",
+      "claim": "한 해에 창업 12개를 내놓는 도전을 하는 중이라 새 제품 만들기를 먼저 했고, 이미 유료 고객이 있어 월 약 2,000달러를 벌던 첫 SaaS(Anymail Finder)를 키우는 일은 뒤로 미뤘다. 그 시점에 자신은 그 서비스를 어떻게 더 키울지 몰랐다고 했다. Tailor 가 안 풀리고 Anymail Finder 가 어느 정도 성장하자 그쪽에 집중하기로 했다. 창업자는 인터뷰에서 이 도전 자체를 실수로 꼽고, 한 제품에 붙어 마케팅과 영업을 더 배웠어야 했다고 말했다. 집중한 뒤 Anymail Finder 의 매출이 얼마나 올랐는지는 이 근거에서 확인할 수 없다",
+      "transfer_note": "지금 갖고 있는 프로젝트를 전부 종이에 적고, 각각 옆에 '최근 30일에 돈을 낸 사람 수'를 써라. 0명인 프로젝트에는 30일 동안 새 기능을 붙이지 않겠다고 적고, 돈을 내는 사람이 있는 프로젝트의 고객 한 명에게 오늘 연락하라.",
+      "preconditions": "이미 돈을 내는 고객이 있는 프로젝트가 하나는 있어야 한다. 그런 프로젝트가 없다면 이 행동은 맞지 않는다. 집중이 성장으로 이어졌다는 숫자는 이 사례에서 확인하지 못했다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://www.failory.com/interview/tailor",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2019-04-08",
+      "snippet": "창업자 인터뷰: 사전 조사 없이 시작, 계산이 틀렸고 작은 사이트는 유의미한 차이가 안 나옴, 큰 경쟁사는 무료. 가입 약 800명.",
+      "supports_claim": "사전 조사 부재·제품 한계·약 800명 가입(창업자 1인칭 문답; 페이지를 도구 요약으로 읽음, 정확한 유료 전환 수는 글에 없음)",
+      "supports_metric": true,
+      "observation_key": "tailor-failory-interview-2019-04-08"
+    },
+    {
+      "move": 1,
+      "url": "https://www.failory.com/interview/tailor",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2019-04-08",
+      "snippet": "창업자 인터뷰: 시간은 만들기 90 : 마케팅 10, 트래픽이 계속 들어올 거라 기대, 온보딩 실패, 마케팅·영업을 잘 몰랐다.",
+      "supports_claim": "90:10 시간 배분·출시 후 기대와 온보딩 실패(창업자 1인칭 문답; 페이지를 도구 요약으로 읽음)",
+      "supports_metric": false,
+      "observation_key": "tailor-failory-interview-2019-04-08"
+    },
+    {
+      "move": 2,
+      "url": "https://www.failory.com/interview/tailor",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2019-04-08",
+      "snippet": "창업자 인터뷰: 첫 SaaS 월 약 2,000달러, '12개 창업' 도전을 실수로 꼽음, 한 제품에 집중해 마케팅·영업을 배웠어야 했다.",
+      "supports_claim": "12개 창업 도전·첫 SaaS 집중 결정과 창업자의 회고(창업자 1인칭 문답; 페이지를 도구 요약으로 읽음, 월 2,000달러는 자기보고)",
+      "supports_metric": false,
+      "observation_key": "tailor-failory-interview-2019-04-08"
+    }
+  ]
+}

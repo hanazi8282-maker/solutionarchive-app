@@ -111,6 +111,9 @@
 - ⏭️ `draft` 초안 작성 + 게이트 — 앵글 0건
 - ⏭️ `stage` 발행 대기 스테이징 — 스테이징 매니페스트 0건
 - ✅ `performance` 성과 분석 ({"commented":1})
+- ✅ `digest` 다이제스트·상태·커밋 ({"committed_files":9})
+- ℹ️ Notion 푸시: s://app.notion.com/p/CASE-codeparrot-pivot-hell-no-follow-on-raise-1500-mrr-shutdown-418100b7ffb4816ea9facd138c13f11d ⏭️ 발굴 — 채택·확인불가 0건 (후보 0건). 페이지를 만들지 않는다. 푸시 완료 — 초안 0건 · 신규케이스 1건 · 발굴 0건 · 스킵 0건
+- ✅ `status_log` Notion 일일 상태 로그 — 2026-11-14-CMO 기록·재확인
 
 _실행 키 `cmo-2026-11-13-cron` · 상세 상태는 reports/status/DASHBOARD.md_
 

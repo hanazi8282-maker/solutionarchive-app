@@ -26,9 +26,10 @@ export type Ch1 = {
   leak_or_gap: { kind: 'leak' | 'gap'; title: string; detail: string }
   position: { category: string; where: string; basis: string }
   stage: 'none' | 'low' | 'full' // H3. none 이면 loss 가 없고 acquisition_plan 이 있다. 그 외엔 loss 가 있다.
+  loss_unavailable?: string // P1-B: 근거 없는 가정이 필요해 손실 범위를 내지 않은 이유("직접 확인 필요: ...")
   loss?: { low_man: number; high_man: number; formula: string; assumptions: string[]; note: string }
   acquisition_plan?: AcquisitionPlan
-  similar: { name: string; what: string }[] // ③ 비슷한 회사 목록(v0) — 보유 사례가 있을 때만(R5). 없으면 빈 배열.
+  similar: { name: string; what: string; why?: string }[] // ③ 비슷한 회사 목록(v0) — 보유 사례가 있을 때만(R5). 없으면 빈 배열.
   thin: boolean
   viability?: Ch1Viability // v5 신규. 옛 결론서(consult_reports 캐시)에는 없을 수 있어 옵셔널 — 화면은 없으면 v4 그대로 렌더.
   evidence_level: '낮음' | '보통' | '높음' // G6(2026-11-13): LLM 이 만드는 확률 대신 코드로만 계산하는 근거 충분도.
@@ -95,14 +96,21 @@ function parseAcquisitionPlan(raw: unknown): AcquisitionPlan {
 
 /** 모델 출력 → Ch1. 필수 칸이 없거나 손실 범위가 숫자가 아니면 던진다(빈 값으로 접지 않는다 — CLAUDE.md §7.1).
  * stage(H3): 'none' 이면 loss 대신 acquisition_plan 을 검증한다. */
+/** P1-B 가정 라벨(넷뿐). 라벨 없는 가정은 거절한다. */
+export const ASSUMPTION_LABEL = /^\[(사용자 입력|사례 [1-9]\d*건 기반|업계 일반값|근거 없음)\]/
+
 export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean; similar?: Ch1['similar']; pageCount?: number; stage?: Ch1['stage'] }): Ch1 {
   const stage = input.stage ?? 'full'
   const lg = (raw.leak_or_gap ?? {}) as Record<string, unknown>
   const pos = (raw.position ?? {}) as Record<string, unknown>
   let loss: Ch1['loss']
+  let lossUnavailable: string | undefined
   let acquisitionPlan: AcquisitionPlan | undefined
   if (stage === 'none') {
     acquisitionPlan = parseAcquisitionPlan(raw.acquisition_plan)
+  } else if (raw.loss == null && typeof raw.loss_unavailable === 'string' && raw.loss_unavailable.trim()) {
+    // P1-B: 근거 없으면 숫자 범위 금지 — 모델이 스스로 범위를 포기하고 확인 사항을 적은 경우만 허용한다.
+    lossUnavailable = raw.loss_unavailable.trim().slice(0, 300)
   } else {
     const l = (raw.loss ?? {}) as Record<string, unknown>
     const low = Number(l.low_man)
@@ -111,6 +119,8 @@ export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean
     if (high <= 0) throw new Error('진단 형식 오류: 손실 범위가 0 — 가정을 명시한 구간으로 산출해야 함')
     const assumptions = Array.isArray(l.assumptions) ? l.assumptions.filter((x): x is string => typeof x === 'string').slice(0, 5) : []
     if (assumptions.length === 0) throw new Error('진단 형식 오류: 산식의 가정이 없음')
+    if (assumptions.some((a) => !ASSUMPTION_LABEL.test(a))) throw new Error('진단 형식 오류: 가정에 근거 라벨이 없음 — [사용자 입력]/[사례 N건 기반]/[업계 일반값]/[근거 없음] 중 하나로 시작해야 함')
+    if (assumptions.some((a) => a.startsWith('[근거 없음]'))) throw new Error('진단 형식 오류: [근거 없음] 가정이 있는데 숫자 범위를 냄 — loss 를 null 로 하고 loss_unavailable 에 직접 확인 필요 사항을 적어야 함')
     loss = { low_man: Math.round(low), high_man: Math.round(high), formula: str(l.formula, 200, 'loss.formula'), assumptions, note: typeof l.note === 'string' ? l.note.slice(0, 200) : '' }
   }
   // 누수/미개척은 모델이 근거로 골라야 한다 — 값이 없거나 다른 값이면 누수로 접지 않고 거절한다(§7.1, v71ck 4).
@@ -126,6 +136,7 @@ export function validateCh1(raw: Record<string, unknown>, input: { thin: boolean
     position: { category: str(pos.category, 60, 'position.category'), where: str(pos.where, 300, 'position.where'), basis: str(pos.basis, 300, 'position.basis') },
     stage,
     loss,
+    loss_unavailable: lossUnavailable,
     acquisition_plan: acquisitionPlan,
     similar: input.similar ?? [],
     thin: input.thin,

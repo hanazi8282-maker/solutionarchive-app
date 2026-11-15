@@ -17,6 +17,10 @@ import { coldMailLines, inSendWindow, alreadySent } from '../lib/consult/report/
 import { parseJsonObject } from '../lib/analysis/llm.ts'
 import { validateModeB } from '../lib/consult/report/mode-b-validate.ts'
 import { validateModeC1 } from '../lib/consult/report/mode-c1-validate.ts'
+import { validateModeC2 } from '../lib/consult/report/mode-c2-validate.ts'
+import { buildSystem } from '../lib/consult/report/ch1.ts'
+import { pickSimilar } from '../lib/consult/cases-validate.ts'
+import { poolKeywords } from '../lib/consult/report/mode-c2.ts'
 let pass = 0, fail = 0
 const t = (name, ok) => { if (ok) pass++; else { fail++; console.log(`❌ ${name}`) } }
 
@@ -41,7 +45,7 @@ t('script/style 제거', !h.text.includes('var a') && !h.text.includes('x{}'))
 t('본문 유지', h.text.includes('근태 관리') && h.text.includes('출퇴근'))
 
 // R3 — 1장 검증기(모델 출력 형식)
-const okRaw = { headline: '요금 안내가 가입 직전에 끊깁니다', leak_or_gap: { kind: 'leak', title: '가격 불투명', detail: '한 줄 설명은 요금제를 말하는데 메뉴와 가입 화면에는 요금 안내가 없어 가입 직전에 끊깁니다.' }, position: { category: '근태 관리', where: '중소 사업장 하단', basis: '소개 페이지 기준' }, loss: { low_man: 30, high_man: 120, formula: '월 방문 x 전환 손실', assumptions: ['월 방문 3,000', '전환 1%'], note: '추정' } }
+const okRaw = { headline: '요금 안내가 가입 직전에 끊깁니다', leak_or_gap: { kind: 'leak', title: '가격 불투명', detail: '한 줄 설명은 요금제를 말하는데 메뉴와 가입 화면에는 요금 안내가 없어 가입 직전에 끊깁니다.' }, position: { category: '근태 관리', where: '중소 사업장 하단', basis: '소개 페이지 기준' }, loss: { low_man: 30, high_man: 120, formula: '월 방문 x 전환 손실', assumptions: ['[사용자 입력] 월 방문 3,000', '[업계 일반값] 전환 1% (공개 벤치마크)'], note: '추정' } }
 t('ch1 정상 통과', validateCh1(okRaw, { thin: false }).loss.high_man === 120)
 for (const [name, mut] of [
   ['손실 범위 역전', (r) => ({ ...r, loss: { ...r.loss, low_man: 200 } })],
@@ -282,6 +286,34 @@ t('통계린트: 사용자 입력 전환율 인용은 허용(위반 0건)', find
 t('통계린트: 평범한 문장은 위반 0건', findStatViolations('먼저 입구를 만드세요.').length === 0)
 { let th = false; try { validateCh2(memoRaw({ recommendation: { choice: 'A', reasons: ['전환이 10% 더 늘어날 여지가 있습니다', 'r2'], change_mind_if: ['x'] } }), '먼저 입구를 만드세요.') } catch { th = true } t('메모 거절: 통계성 문장(근거없는 변화율)', th) }
 { let th = false; try { parseStep({ final: '예측 확률 70% 입니다' }) } catch { th = true } t('에이전트 거절: 확률 서술', th) }
+
+// v71co P2-D — 모드 C2 검증기: 풀에 있는 사례만 허용, 후보 정확히 3개, 확률 서술 금지는 생성기(stat-lint)가 맡는다.
+const c2Cand = (o = {}) => ({ name: '후보', why_now: 'w', who: 'x', price: '9,900원', how_to_sell: 'h', first_ten: 'f', reference_cases: [], failure_case: null, experiment: { what: 'a', who: 'b', n: 15, success_metric: 'm', if_fail: 'i' }, killed_bridges: ['다리 2·4 막혀 있지 않음'], ...o })
+const c2Raw = (o = {}) => ({ two_line: { known: 'k', unknown: 'u' }, conditions_summary: 'c', excluded: [{ area: '셀러툴', reason: 'r' }], candidates: [c2Cand(), c2Cand(), c2Cand()], top_pick: { index: 0, reason: 'r', give_up_condition: 'g' }, execution_package: { artifacts: ['a1', 'a2'], plan_b: { name: 'p', trigger: 't' } }, ...o })
+t('C2: 정상 입력 통과', validateModeC2(c2Raw(), []).candidates.length === 3)
+{ let th = false; try { validateModeC2(c2Raw({ candidates: [c2Cand(), c2Cand()] }), []) } catch { th = true } t('C2 거절: 후보 3개 아님', th) }
+{ let th = false; try { validateModeC2(c2Raw({ candidates: [c2Cand({ reference_cases: ['지어낸회사'] }), c2Cand(), c2Cand()] }), ['Gusto']) } catch { th = true } t('C2 거절: 풀에 없는 사례 인용(지어냄)', th) }
+t('C2: 풀에 있는 사례는 대소문자 무관 통과', validateModeC2(c2Raw({ candidates: [c2Cand({ reference_cases: ['gusto'] }), c2Cand(), c2Cand()] }), ['Gusto']).candidates[0].reference_cases[0] === 'gusto')
+{ let th = false; try { validateModeC2(c2Raw({ top_pick: { index: 3, reason: 'r', give_up_condition: 'g' } }), []) } catch { th = true } t('C2 거절: top_pick 범위 밖', th) }
+{ let th = false; try { validateModeC2(c2Raw({ candidates: [c2Cand({ killed_bridges: [] }), c2Cand(), c2Cand()] }), []) } catch { th = true } t('C2 거절: 막히지 않음 확인 문장 없음', th) }
+t('C2 풀 키워드: 영문 단어만 추가, 중복 제거', poolKeywords({ access: '소상공인 restaurant' }).filter((k) => k === 'restaurant').length === 1)
+t('B: prediction_pct 를 줘도 출력에 남지 않는다(R10 전 확률 금지)', !('prediction_pct' in validateModeB({ two_line: { known: 'k', unknown: 'u' }, verdict: '순서_바꿈', verdict_reason: 'r', target_stage: 3, blocked_earlier_stage: 1, reference_group: { count: 0, note: 'n' }, premortem: ['a', 'b'], falsifiable_condition: 'f', prediction_pct: 40, kill_condition: 'k', execution_package: { artifacts: ['a', 'b'], experiment: { what: 'w', who: 'x', n: 5, success_metric: 'm', if_fail: 'i' }, plan_b: { name: 'p', trigger: 't' } } })))
+
+// v71co P1-B — 가정값 근거 라벨. 라벨 없는 가정·[근거 없음]+숫자 범위는 거절, 범위 포기(loss_unavailable)는 허용, 프롬프트에 예시 숫자 없음.
+{ let th = false; try { validateCh1({ ...okRaw, loss: { ...okRaw.loss, assumptions: ['월 방문 3,000'] } }, { thin: false }) } catch { th = true } t('가정 라벨 없음 거절(P1-B)', th) }
+{ let th = false; try { validateCh1({ ...okRaw, loss: { ...okRaw.loss, assumptions: ['[근거 없음] 객단가'] } }, { thin: false }) } catch { th = true } t('[근거 없음] 가정 + 숫자 범위 거절(P1-B)', th) }
+t('[사례 3건 기반] 라벨 통과', validateCh1({ ...okRaw, loss: { ...okRaw.loss, assumptions: ['[사례 3건 기반] 비슷한 회사 평균'] } }, { thin: false }).loss.assumptions.length === 1)
+{ let th = false; try { validateCh1({ ...okRaw, loss: { ...okRaw.loss, assumptions: ['[사례 0건 기반] 없음'] } }, { thin: false }) } catch { th = true } t('[사례 0건 기반] 거절(N은 1 이상)', th) }
+{ const r = validateCh1({ ...okRaw, loss: null, loss_unavailable: '직접 확인 필요: 월 방문자 수' }, { thin: false }); t('근거 없으면 범위 포기(loss_unavailable) 허용', r.loss === undefined && r.loss_unavailable.startsWith('직접 확인 필요')) }
+{ let th = false; try { validateCh1({ ...okRaw, loss: null }, { thin: false }) } catch { th = true } t('loss 도 loss_unavailable 도 없으면 거절', th) }
+for (const st of ['low', 'full']) { const sys = buildSystem(st); const nums = (sys.match(/d{2,}/g) ?? []).filter((n) => !['130', '60', '80', '500'].includes(n)); t('ch1 프롬프트 예시 숫자 없음(' + st + '): ' + nums.join(','), nums.length === 0) }
+
+// v71co P1-C — 비슷한 사례 판정 결과 정리: 범위 밖 번호·중복·why 없음은 버리고, 아무것도 못 고르면 빈 배열(억지로 채우지 않음).
+{ const c = [{ name: 'A', what: 'a' }, { name: 'B', what: 'b' }, { name: 'C', what: 'c' }, { name: 'D', what: 'd' }]
+  t('pickSimilar: why 붙여 반환', pickSimilar({ picks: [{ i: 1, why: '같은 고객·과금' }] }, c, 3)[0].why === '같은 고객·과금')
+  t('pickSimilar: 범위 밖·중복·why 없음 버림', pickSimilar({ picks: [{ i: 9, why: 'x' }, { i: 1, why: 'ok' }, { i: 1, why: 'dup' }, { i: 2 }, { i: 3, why: '  ' }] }, c, 3).length === 1)
+  t('pickSimilar: 0개 선택은 빈 배열', pickSimilar({ picks: [] }, c, 3).length === 0 && pickSimilar({}, c, 3).length === 0)
+  t('pickSimilar: limit 적용·why 60자 절단', pickSimilar({ picks: [0, 1, 2, 3].map((i) => ({ i, why: 'w'.repeat(100) })) }, c, 3).length === 3 && pickSimilar({ picks: [{ i: 0, why: 'w'.repeat(100) }] }, c, 3)[0].why.length === 60) }
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)
 process.exitCode = fail ? 1 : 0

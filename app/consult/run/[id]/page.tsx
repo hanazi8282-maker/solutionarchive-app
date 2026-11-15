@@ -7,7 +7,7 @@ import type { Ch1L1 } from '@/lib/consult/report/ch1-l1-validate'
 import { PubShell } from '../../../_pub/components/PubShell'
 import { Hero } from '../../../_pub/components/Hero'
 import { Panel } from '../../../_pub/components/Panel'
-import { PubButton } from '../../../_pub/components/Button'
+import { PubButton, PubButtonLink } from '../../../_pub/components/Button'
 import { hasPaidAccess, isStaff } from '@/lib/consult/entitlement'
 import { coldMailLines, inSendWindow } from '@/lib/consult/report/mail'
 import type { Ch2 } from '@/lib/consult/report/ch2-validate'
@@ -123,12 +123,20 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                 <p className="pub-caption">산식: {ch.loss.formula}</p>
                 <ul>{ch.loss.assumptions.map((a) => <li key={a} className="pub-caption">{a}</li>)}</ul>
                 {ch.loss.note ? <p className="pub-caption">{ch.loss.note}</p> : null}
+                <p className="pub-caption">가정 앞의 라벨은 근거입니다: [사용자 입력]은 입력하신 값, [사례 N건 기반]은 수집한 사례, [업계 일반값]은 공개된 일반 수치입니다. 근거를 댈 수 없는 값으로는 범위를 내지 않습니다.</p>
+                {!l1 ? <div className="pub-actions"><PubButtonLink href="#unlock" variant="outline" size="md">내 숫자 3개 입력하고 다시 계산하기</PubButtonLink></div> : null}
+              </Panel>
+            ) : ch.loss_unavailable ? (
+              <Panel titleAs="h2" title="손실 범위">
+                <p className="pub-text">근거 없이 숫자를 만들지 않기 위해 범위를 내지 않았습니다.</p>
+                <p className="pub-caption">{ch.loss_unavailable}</p>
+                {!l1 ? <div className="pub-actions"><PubButtonLink href="#unlock" variant="outline" size="md">내 숫자 3개 입력하기</PubButtonLink></div> : null}
               </Panel>
             ) : null}
             <Panel titleAs="h2" title="비슷한 회사">
               {ch.similar.length > 0 ? (
                 <>
-                  <ul>{ch.similar.map((s) => <li key={s.name} className="pub-text"><b>{s.name}</b> — {s.what}</li>)}</ul>
+                  <ul>{ch.similar.map((s) => <li key={s.name} className="pub-text"><b>{s.name}</b> — {s.what}{s.why ? <span className="pub-caption"> (비슷한 이유: {s.why})</span> : null}</li>)}</ul>
                   <p className="pub-caption">참고용 — 가격·전환율 지표 없음, 근거로 쓰지 말 것. 통계는 검증 중입니다.</p>
                 </>
               ) : (
@@ -167,7 +175,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                 <Panel titleAs="h2" title="벤치마크 위치">
                   <p className="pub-text">{l1.benchmark.position}</p>
                   <p className="pub-caption">근거: {l1.benchmark.basis}</p>
-                  {l1.benchmark.similar.length > 0 ? <ul>{l1.benchmark.similar.map((s) => <li key={s.name} className="pub-caption"><b>{s.name}</b> — {s.what}</li>)}</ul> : null}
+                  {l1.benchmark.similar.length > 0 ? <ul>{l1.benchmark.similar.map((s) => <li key={s.name} className="pub-caption"><b>{s.name}</b> — {s.what}{s.why ? <span className="pub-caption"> (비슷한 이유: {s.why})</span> : null}</li>)}</ul> : null}
                 </Panel>
                 <Panel titleAs="h2" title={`${memoLabel} 첫 문장`}><p className="pub-text"><b>{l1.memo_first}</b></p></Panel>
 
@@ -264,7 +272,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
                 ) : null}
               </>
             ) : (
-              <Panel titleAs="h2" title="내 숫자를 넣으면 더 정확해집니다">
+              <Panel id="unlock" titleAs="h2" title="내 숫자를 넣으면 더 정확해집니다">
                 <p className="pub-text">지금 숫자는 일반적인 가정으로 계산한 대략치입니다. 실제 진단 건수·전환율·구독료를 입력하시면 훨씬 정확한 손실 금액과 우선순위를 드립니다.</p>
                 <form className="pub-form" action={`/api/consult/runs/${id}/unlock`} method="post">
                   {run.kind === 'idea' ? (

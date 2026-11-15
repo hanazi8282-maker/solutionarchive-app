@@ -2,6 +2,7 @@
 import { consultLlmJson } from '../llm.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../../llm/untrusted-input.ts'
 import { validateModeC1, type ModeC1 } from './mode-c1-validate.ts'
+import { assertNoStatViolations } from './stat-lint.ts'
 export { validateModeC1 }
 export type { ModeC1 }
 
@@ -24,20 +25,25 @@ experiment: "지금 당장 할 실험 1개"(2주, what·who·n(숫자)·success_
 execution_package: artifacts(인터뷰 질문 5개·랜딩 첫 3줄·선결제 문구 등 복붙 가능한 실제 문구 2~5개), plan_b(name·trigger).
 give_up_condition: 이 아이디어를 접어야 할 조건.
 two_line: known(이미 알고 있을 것, 60자 이내) · unknown(모르고 있었을 것 — 핵심, 120자 이내).
+공통 보강(채점표 반영): ① experiment.what 은 "2주 동안"으로 시작하고, experiment.checkpoint 에 "몇 주째에 무엇을 확인하는지"(4~12주 이내) 한 문장을 적습니다. ② loss_and_cost 에 "이 일을 하지 않으면 잃는 것"과 "실행에 드는 돈·시간"을 한 문장씩 적습니다. ③ 판정·이유 문장 끝에 근거 등급을 붙입니다: [E]=수집된 사실·사례에 근거, [H]=가설·추정(확률·퍼센트 예측은 쓰지 않습니다). ④ 끊긴 다리는 하나만 특정해 이름으로 적습니다.
 출력은 JSON 객체 하나만:
-{"two_line":{"known":"","unknown":""},"gates":[{"id":"G0.1","color":"🟢","reason":""},{"id":"G0.2","color":"🟢","reason":""},{"id":"G0.3","color":"🟢","reason":""},{"id":"G0.4","color":"🟢","reason":""},{"id":"G0.5","color":"🟢","reason":""},{"id":"G0.6","color":"🟢","reason":""}],"blocked_stage":0,"secondary_blocked_stage":null,"reference_group":{"count":0,"note":""},"experiment":{"what":"","who":"","n":10,"success_metric":"","if_fail":""},"execution_package":{"artifacts":["",""],"plan_b":{"name":"","trigger":""}},"give_up_condition":""}`
+{"two_line":{"known":"","unknown":""},"gates":[{"id":"G0.1","color":"🟢","reason":""},{"id":"G0.2","color":"🟢","reason":""},{"id":"G0.3","color":"🟢","reason":""},{"id":"G0.4","color":"🟢","reason":""},{"id":"G0.5","color":"🟢","reason":""},{"id":"G0.6","color":"🟢","reason":""}],"blocked_stage":0,"secondary_blocked_stage":null,"reference_group":{"count":0,"note":""},"experiment":{"what":"","who":"","n":10,"success_metric":"","if_fail":"","checkpoint":""},"execution_package":{"artifacts":["",""],"plan_b":{"name":"","trigger":""}},"loss_and_cost":"","give_up_condition":""}`
 
-export type ModeC1Input = { runId: string; owner: string; oneLiner: string; founderConditions: string; extra?: string }
+export type ModeC1Input = { runId: string; owner: string; oneLiner: string; founderConditions: string; extra?: string; evidence?: string; evidenceCount?: number }
 
 export async function buildModeC1(i: ModeC1Input): Promise<{ modeC1: ModeC1; costUsd: number; model: string }> {
-  const user = `아이디어: ${i.oneLiner}\n본인 조건: ${i.founderConditions}${i.extra ? `\n추가 정보: ${i.extra}` : ''}`
+  const ev = i.evidence ? `\n\n참조군 근거(사례 은행 조회 결과 — reference_group 은 이 안의 것만 인용, 없으면 근거 부족이라고 씁니다)\n<<<\n${i.evidence}\n>>>` : ''
+  const user = `아이디어: ${i.oneLiner}\n본인 조건: ${i.founderConditions}${i.extra ? `\n추가 정보: ${i.extra}` : ''}${ev}`
   let cost = 0
   let feedback = ''
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'diagnosis', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 5000 })
       cost += r.costUsd
-      return { modeC1: validateModeC1(r.data), costUsd: cost, model: r.model }
+      const modeC1 = validateModeC1(r.data)
+      if (i.evidenceCount != null) modeC1.reference_group = { count: i.evidenceCount, note: i.evidenceCount < 10 ? `근거 부족(사례 ${i.evidenceCount}건). ${modeC1.reference_group.note}` : modeC1.reference_group.note }
+      assertNoStatViolations(JSON.stringify(modeC1), '모드C1')
+      return { modeC1, costUsd: cost, model: r.model }
     } catch (e) {
       if (attempt === 1) throw e
       feedback = `\n\n[이전 출력이 거절됐습니다: ${e instanceof Error ? e.message : String(e)}. 같은 형식으로 고쳐서 다시 출력하세요.]`

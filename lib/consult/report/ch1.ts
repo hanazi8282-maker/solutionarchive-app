@@ -46,7 +46,7 @@ ${stage === 'none' ? ACQUISITION_BLOCK : LOSS_BLOCK}
   · gap 의 detail 에는 비어 있는 자리(어떤 고객·어느 지점)를 이름으로 적고, leak 의 detail 에는 어긋남의 증거(어디와 어디가 다른지)를 적습니다.
 - "90일 재측정" 표현은 쓰지 않습니다. 액션플랜은 쓰되 날짜를 넣지 않습니다.
 - 부재 주장 금지(2026-11-13 실측 — 시프티 진단이 "급여 메뉴가 없다"고 썼는데 같은 입력 안에 "Payroll" 기능이 실제로 있었습니다): "~가 없습니다/없습니다"처럼 단정하기 전에 <<<수집한 사실>>> 전체에서 그 단어·기능이 정말 한 번도 안 나오는지 직접 다시 훑으세요. 못 찾았다는 확신이 없으면 "없습니다" 대신 "확인되지 않았습니다"를 쓰고, leak_or_gap.detail 에 어느 URL을 확인했는지 적으세요.
-- viability(사전 검증, v71cl-엔진): Fit 사슬은 0 Founder-Market → 1 Market-Product → 2 Product-Channel → 3 Channel-Model → 4 Model-Market 순서입니다. 수집한 사실로 가장 앞에서 끊긴 단계 하나를 고르고(앞 단계가 멀쩽하면 뒤 단계는 보지 않습니다), fit_broken_stage(0~4)·fit_color(🟢 통과/🟡 주의/🔴 탈락)·fit_test_result(그 단계 한 줄 테스트에 대한 판정과 근거)를 적습니다. failure_modes 는 아래 F1~F13 중 사실로 뒷받침되는 것만 최대 3개 고릅니다(근거 없으면 빈 배열 — 지어내지 않습니다): F1 수요 부재, F2 거짓 양성, F3 조기 확장, F4 자본 소진, F5 타이밍 실패, F6 단위경제 불량, F7 저가 AI 관광객 이탈, F8 채널-가격 불일치, F9 Bad Bedfellows, F10 Speed Trap, F11 Help Wanted, F12 Cascading Miracles, F13 플랫폼/모델 의존. segment 는 가격·고객 규모로 P(월 $50 미만)/S(ACV $12K 미만)/M($12-100K)/E($100K 이상) 중 하나를 고릅니다.
+- viability(사전 검증, v71cl-엔진): Fit 사슬은 0 Founder-Market → 1 Market-Product → 2 Product-Channel → 3 Channel-Model → 4 Model-Market 순서입니다. 수집한 사실로 가장 앞에서 끊긴 단계 하나를 고르고(앞 단계가 멀쩽하면 뒤 단계는 보지 않습니다), fit_broken_stage(0~4)·fit_color(🟢 통과/🟡 주의/🔴 탈락)·fit_test_result(그 단계 한 줄 테스트에 대한 판정과 근거)를 적습니다. failure_modes 는 아래 F1~F13 중 사실로 뒷받침되는 것만 최대 3개 고릅니다(근거 없으면 빈 배열 — 지어내지 않습니다): F1 수요 부재, F2 거짓 양성, F3 조기 확장, F4 자본 소진, F5 타이밍 실패, F6 단위경제 불량, F7 저가 AI 관광객 이탈, F8 채널-가격 불일치, F9 Bad Bedfellows, F10 Speed Trap, F11 Help Wanted, F12 Cascading Miracles, F13 플랫폼/모델 의존. segment 는 가격·고객 규모로 P(월 $50 미만)/S(ACV $12K 미만)/M($12-100K)/E($100K 이상) 중 하나를 고릅니다. 가격·규모를 알 수 없으면 반드시 "S"로 씁니다(다른 값·빈 값·"미상"은 거절됩니다).
   · 판정 보류(⬜, 2026-11-14 남헌 채점 피드백 — "받은 정보가 없어서 오히려 기분이 나쁘다"): 수집한 사실이 너무 얇아 0단계(Founder-Market)조차 끊겼는지 판단할 근거가 없으면, 추측으로 🟡 주의를 매기지 말고 fit_color 를 "⬜"로 둡니다. 이때 fit_broken_stage 는 0, failure_modes 는 빈 배열로 두고, missing_info 에 판정하려면 꼭 필요한 구체 정보 1~2개(예: "월 사용자 수", "유료 전환 여부")를 적습니다. 정보 부족은 부정적 판정이 아니므로 fit_color 가 "⬜"일 때 fit_test_result 에는 "판정 보류"라고만 적고 탈락 이유를 쓰지 않습니다.
 출력은 JSON 객체 하나만:
 {"headline":"한 줄 진단(60자 이내)","leak_or_gap":{"kind":"leak|gap","title":"","detail":""},"position":{"category":"카테고리","where":"그 카테고리 안에서의 위치","basis":"그렇게 본 근거"},${stage === 'none'
@@ -72,6 +72,7 @@ export async function buildCh1(i: Ch1Input): Promise<{ ch: Ch1; costUsd: number;
     } catch (e) {
       // consultLlmJson 이 JSON 파싱 실패로 던진 경우도 여기서 잡아야 재시도된다 — 바깥에 있으면 첫 번째 깨진 응답에 그대로 크래시한다(실측: smart-alba.com 라이브 테스트에서 재현).
       if (attempt === 1) throw e
+      console.warn(`[consult] ch1 재시도 사유: ${e instanceof Error ? e.message : String(e)}`) // P1: 재시도 0회가 목표라 사유를 남긴다
       feedback = `
 
 [이전 출력이 거절됐습니다: ${e instanceof Error ? e.message : String(e)}. 같은 형식으로 고쳐서 다시 출력하세요.]`

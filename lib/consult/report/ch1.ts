@@ -22,14 +22,16 @@ export type Ch1Input = {
 
 // H3(2026-11-14 남헌 채점 피드백): "사용자 0명인데 1500명을 가정해 허황돼 보인다" — 사용자 수 0명·미출시(stage='none')면
 // 손실 숫자를 전혀 내지 않고 acquisition_plan(고객 확보 블록)으로 대체한다. 그 외(stage='low'|'full')는 기존 손실 범위 그대로.
-const LOSS_BLOCK = `- 손실 범위: 손실 범위는 반드시 0보다 큰 구간(low_man < high_man, 단위: 만원/월)으로 냅니다. 사실에 숫자가 없으면 이 카테고리의 일반적인 규모를 가정으로 세우되, 모든 가정을 assumptions 에 "가정:"으로 밝히고 산식(formula)에 그대로 쓰며 note 에 "추정"이라고 적습니다. 사실처럼 단정하거나 0~0 으로 비우지 않습니다.`
+const LOSS_BLOCK = `- 손실 범위(단위: 만원/월, low_man < high_man): 범위의 모든 가정은 assumptions 에 한 줄씩 쓰고, 각 줄은 반드시 근거 라벨로 시작합니다. 라벨은 넷뿐입니다: [사용자 입력](대표님이 입력한 값) / [사례 N건 기반](아래 사실·사례에 실제로 있는 N건) / [업계 일반값](널리 알려진 일반 수치 — 출처 이름을 같은 줄에 적습니다) / [근거 없음](근거를 댈 수 없는 값).
+  · [근거 없음] 가정이 하나라도 필요하면 숫자 범위를 내지 않습니다. 이때는 loss 를 null 로 두고 loss_unavailable 에 "직접 확인 필요: 무엇을 확인하면 범위를 낼 수 있는지"를 적습니다. 지어낸 규모로 범위를 채우지 않습니다.
+  · 숫자 예시는 어디에도 쓰지 않습니다. 모든 숫자는 사실·입력에서 나온 것이어야 하고 산식(formula)에 그대로 쓰며, note 에 "추정"이라고 적습니다.`
 const ACQUISITION_BLOCK = `- 이 창업자는 아직 사용자가 없거나 거의 없고 서비스를 출시하지 않았습니다. 손실 범위를 지어내지 않습니다(허황된 가정 숫자를 내지 않습니다) — 대신 acquisition_plan 을 씁니다.
   · channels: 첫 10명을 얻을 구체적 경로 3~5개. 각 channel(어디서)·message(어떤 말로 접근)·effort(대략 얼마나 품이 드는지)를 적습니다.
   · market_message: 시장에 이 서비스를 알리는 방법 한 문단.
   · revenue_candidates: 수입원 후보 1~4개.
   · 근거는 반드시 수집한 사실·사례 은행에서만 가져옵니다. 쓸 근거가 전혀 없으면 has_basis 를 false 로 하고 그래도 channels 는 일반적인 통념(예: 커뮤니티에 올리기, 지인에게 부탁하기)으로 최소 3개는 채웁니다 — 비워두지 않습니다.`
 
-function buildSystem(stage: Ch1['stage']): string {
+export function buildSystem(stage: Ch1['stage']): string {
   return `당신은 창업자의 결정을 검증하는 컨설턴트입니다. 아래 "수집한 사실"만 근거로 진단 1장을 JSON 으로 씁니다.
 ${UNTRUSTED_INPUT_NOTICE}
 규칙:
@@ -49,7 +51,7 @@ ${stage === 'none' ? ACQUISITION_BLOCK : LOSS_BLOCK}
 출력은 JSON 객체 하나만:
 {"headline":"한 줄 진단(60자 이내)","leak_or_gap":{"kind":"leak|gap","title":"","detail":""},"position":{"category":"카테고리","where":"그 카테고리 안에서의 위치","basis":"그렇게 본 근거"},${stage === 'none'
     ? `"acquisition_plan":{"channels":[{"channel":"","message":"","effort":""},{"channel":"","message":"","effort":""},{"channel":"","message":"","effort":""}],"market_message":"","revenue_candidates":["후보1"],"has_basis":false},`
-    : `"loss":{"low_man":0,"high_man":0,"formula":"산식 한 줄","assumptions":["가정1","가정2"],"note":""},`
+    : `"loss":{"low_man":0,"high_man":0,"formula":"산식 한 줄","assumptions":["[라벨] 가정1","[라벨] 가정2"],"note":""},"loss_unavailable":null,`
   }"viability":{"fit_broken_stage":0,"fit_color":"🔴","fit_test_result":"","failure_modes":["F8"],"segment":"S"}}`
 }
 

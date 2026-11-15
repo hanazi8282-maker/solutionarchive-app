@@ -25,3 +25,20 @@ export function caseLine(r: CaseRow): { name: string; what: string } | null {
   if (!name || !what) return null
   return { name: name.slice(0, 60), what: (r.outcome ? `[${r.outcome}] ` : '') + what.slice(0, 110) }
 }
+
+/** P1-C 판정 결과(모델이 고른 후보 번호 + why) → 사례 목록. 범위 밖 번호·중복·why 없음은 버린다. why 는 60자로 자른다. 순수 함수. */
+export function pickSimilar(raw: Record<string, unknown>, cands: { name: string; what: string }[], limit: number): { name: string; what: string; why: string }[] {
+  const picks = Array.isArray(raw.picks) ? raw.picks : []
+  const used = new Set<number>()
+  const out: { name: string; what: string; why: string }[] = []
+  for (const p of picks) {
+    const x = (p ?? {}) as Record<string, unknown>
+    const n = Number(x.i)
+    const why = typeof x.why === 'string' ? x.why.replace(/\s+/g, ' ').trim().slice(0, 60) : ''
+    if (!Number.isInteger(n) || n < 0 || n >= cands.length || used.has(n) || !why) continue
+    used.add(n)
+    out.push({ ...cands[n], why })
+    if (out.length >= limit) break
+  }
+  return out
+}

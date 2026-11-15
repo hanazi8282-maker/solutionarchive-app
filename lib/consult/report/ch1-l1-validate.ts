@@ -11,7 +11,7 @@ export type Ch1L1 = {
   recalc: { terms: { label: string; low: number; high: number; user: boolean }[]; low_man: number; high_man: number; note: string }
   sensitivity: SensitivityRow[] // 2026-11-13 지시 §2-3: 모델이 지어내던 "놓치는 비율 0.x~0.y" 단일 구간을 대체. 코드로만 계산(LLM 아님), 근거 없음으로 항상 표시.
   candidates: { title: string; what: string; why: string; rebuttal: string }[]
-  benchmark: { position: string; basis: string; similar: { name: string; what: string }[] }
+  benchmark: { position: string; basis: string; similar: { name: string; what: string; why?: string }[] }
   memo_first: string
 }
 

@@ -17,6 +17,8 @@ import { coldMailLines, inSendWindow, alreadySent } from '../lib/consult/report/
 import { parseJsonObject } from '../lib/analysis/llm.ts'
 import { validateModeB } from '../lib/consult/report/mode-b-validate.ts'
 import { validateModeC1 } from '../lib/consult/report/mode-c1-validate.ts'
+import { validateModeC2 } from '../lib/consult/report/mode-c2-validate.ts'
+import { poolKeywords } from '../lib/consult/report/mode-c2.ts'
 let pass = 0, fail = 0
 const t = (name, ok) => { if (ok) pass++; else { fail++; console.log(`❌ ${name}`) } }
 
@@ -282,6 +284,18 @@ t('통계린트: 사용자 입력 전환율 인용은 허용(위반 0건)', find
 t('통계린트: 평범한 문장은 위반 0건', findStatViolations('먼저 입구를 만드세요.').length === 0)
 { let th = false; try { validateCh2(memoRaw({ recommendation: { choice: 'A', reasons: ['전환이 10% 더 늘어날 여지가 있습니다', 'r2'], change_mind_if: ['x'] } }), '먼저 입구를 만드세요.') } catch { th = true } t('메모 거절: 통계성 문장(근거없는 변화율)', th) }
 { let th = false; try { parseStep({ final: '예측 확률 70% 입니다' }) } catch { th = true } t('에이전트 거절: 확률 서술', th) }
+
+// v71co P2-D — 모드 C2 검증기: 풀에 있는 사례만 허용, 후보 정확히 3개, 확률 서술 금지는 생성기(stat-lint)가 맡는다.
+const c2Cand = (o = {}) => ({ name: '후보', why_now: 'w', who: 'x', price: '9,900원', how_to_sell: 'h', first_ten: 'f', reference_cases: [], failure_case: null, experiment: { what: 'a', who: 'b', n: 15, success_metric: 'm', if_fail: 'i' }, killed_bridges: ['다리 2·4 막혀 있지 않음'], ...o })
+const c2Raw = (o = {}) => ({ two_line: { known: 'k', unknown: 'u' }, conditions_summary: 'c', excluded: [{ area: '셀러툴', reason: 'r' }], candidates: [c2Cand(), c2Cand(), c2Cand()], top_pick: { index: 0, reason: 'r', give_up_condition: 'g' }, execution_package: { artifacts: ['a1', 'a2'], plan_b: { name: 'p', trigger: 't' } }, ...o })
+t('C2: 정상 입력 통과', validateModeC2(c2Raw(), []).candidates.length === 3)
+{ let th = false; try { validateModeC2(c2Raw({ candidates: [c2Cand(), c2Cand()] }), []) } catch { th = true } t('C2 거절: 후보 3개 아님', th) }
+{ let th = false; try { validateModeC2(c2Raw({ candidates: [c2Cand({ reference_cases: ['지어낸회사'] }), c2Cand(), c2Cand()] }), ['Gusto']) } catch { th = true } t('C2 거절: 풀에 없는 사례 인용(지어냄)', th) }
+t('C2: 풀에 있는 사례는 대소문자 무관 통과', validateModeC2(c2Raw({ candidates: [c2Cand({ reference_cases: ['gusto'] }), c2Cand(), c2Cand()] }), ['Gusto']).candidates[0].reference_cases[0] === 'gusto')
+{ let th = false; try { validateModeC2(c2Raw({ top_pick: { index: 3, reason: 'r', give_up_condition: 'g' } }), []) } catch { th = true } t('C2 거절: top_pick 범위 밖', th) }
+{ let th = false; try { validateModeC2(c2Raw({ candidates: [c2Cand({ killed_bridges: [] }), c2Cand(), c2Cand()] }), []) } catch { th = true } t('C2 거절: 막히지 않음 확인 문장 없음', th) }
+t('C2 풀 키워드: 영문 단어만 추가, 중복 제거', poolKeywords({ access: '소상공인 restaurant' }).filter((k) => k === 'restaurant').length === 1)
+t('B: prediction_pct 를 줘도 출력에 남지 않는다(R10 전 확률 금지)', !('prediction_pct' in validateModeB({ two_line: { known: 'k', unknown: 'u' }, verdict: '순서_바꿈', verdict_reason: 'r', target_stage: 3, blocked_earlier_stage: 1, reference_group: { count: 0, note: 'n' }, premortem: ['a', 'b'], falsifiable_condition: 'f', prediction_pct: 40, kill_condition: 'k', execution_package: { artifacts: ['a', 'b'], experiment: { what: 'w', who: 'x', n: 5, success_metric: 'm', if_fail: 'i' }, plan_b: { name: 'p', trigger: 't' } } })))
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)
 process.exitCode = fail ? 1 : 0

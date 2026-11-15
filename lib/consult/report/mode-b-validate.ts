@@ -12,7 +12,6 @@ export type ModeB = {
   reference_group: { count: number; note: string }
   premortem: string[] // 사전 부검(6개월 뒤 실패했다면 이유) 2~4개
   falsifiable_condition: string
-  prediction_pct: number
   kill_condition: string
   execution_package: {
     artifacts: string[]
@@ -51,8 +50,7 @@ export function validateModeB(raw: Record<string, unknown>): ModeB {
   const n = Number(exp.n)
   if (!Number.isFinite(n) || n <= 0) throw new Error('모드B 형식 오류: execution_package.experiment.n 은 양수')
   const pb = (ep.plan_b ?? {}) as Record<string, unknown>
-  const pct = Number(raw.prediction_pct)
-  if (!Number.isFinite(pct) || pct < 0 || pct > 100) throw new Error('모드B 형식 오류: prediction_pct 는 0~100')
+  // v71co(R10 게이트 전): 확률 숫자는 출력하지 않는다. 모델이 prediction_pct 를 내더라도 버린다(필수 아님).
   const out: ModeB = {
     two_line: { known: s(two.known, 200, 'two_line.known'), unknown: s(two.unknown, 300, 'two_line.unknown') },
     verdict: raw.verdict as ModeBVerdict,
@@ -62,7 +60,6 @@ export function validateModeB(raw: Record<string, unknown>): ModeB {
     reference_group: { count: Math.round(rgCount), note: s(rg.note, 400, 'reference_group.note') },
     premortem: arr(raw.premortem, 2, 4, 'premortem').map((p, i) => s(p, 300, `premortem[${i}]`)),
     falsifiable_condition: s(raw.falsifiable_condition, 300, 'falsifiable_condition'),
-    prediction_pct: Math.round(pct),
     kill_condition: s(raw.kill_condition, 300, 'kill_condition'),
     execution_package: {
       artifacts,

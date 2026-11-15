@@ -3,6 +3,7 @@
 import { consultLlmJson } from '../llm.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../../llm/untrusted-input.ts'
 import { validateModeB, type ModeB } from './mode-b-validate.ts'
+import { assertNoStatViolations } from './stat-lint.ts'
 export { validateModeB }
 export type { ModeB }
 
@@ -19,12 +20,12 @@ Fit 사슬(순서, 뒤 단계는 앞 단계가 성립해야 의미 있음): 0 Fo
 5. reference_group: 비슷한 결정을 한 사례가 있으면 count(건수)와 note(분포 요약, 성공만 아니라 실패도 포함해서 설명). 없으면 count:0.
 6. premortem: "6개월 뒤 이 결정이 실패했다면 이유 3개"를 2~4개 적습니다.
 7. falsifiable_condition: 이 판정이 틀렸다고 볼 반증 조건 한 문장("X가 Y 이상/미만이면 이 판정은 틀림").
-8. prediction_pct: 이 판정이 맞다고 보는 확률(0~100).
+8. (확률·퍼센트 예측은 쓰지 않습니다.)
 9. kill_condition: 언제 이 방향을 접을지.
 10. execution_package: artifacts(2~5개, 복붙 가능한 실제 문구·산출물 — 설명이 아니라 산출물 그 자체), experiment(2주 실험: what·who·n(숫자)·success_metric·if_fail), plan_b(name·trigger — 반증 조건이 켜지면 넘어갈 대안).
 11. two_line: known(이미 알고 있을 것, 60자 이내) · unknown(모르고 있었을 것 — 이 판정의 핵심, 120자 이내).
 출력은 JSON 객체 하나만:
-{"two_line":{"known":"","unknown":""},"verdict":"진행|조건부_진행|순서_바꿈|중단","verdict_reason":"","target_stage":0,"blocked_earlier_stage":null,"reference_group":{"count":0,"note":""},"premortem":["",""],"falsifiable_condition":"","prediction_pct":50,"kill_condition":"","execution_package":{"artifacts":["",""],"experiment":{"what":"","who":"","n":10,"success_metric":"","if_fail":""},"plan_b":{"name":"","trigger":""}}}`
+{"two_line":{"known":"","unknown":""},"verdict":"진행|조건부_진행|순서_바꿈|중단","verdict_reason":"","target_stage":0,"blocked_earlier_stage":null,"reference_group":{"count":0,"note":""},"premortem":["",""],"falsifiable_condition":"","kill_condition":"","execution_package":{"artifacts":["",""],"experiment":{"what":"","who":"","n":10,"success_metric":"","if_fail":""},"plan_b":{"name":"","trigger":""}}}`
 
 export type ModeBInput = {
   runId: string
@@ -32,17 +33,23 @@ export type ModeBInput = {
   company: string
   decision: string
   context: string // 회사 현황·숫자(내부 숫자는 화면 비노출 — 입력으로만 사용)
+  evidence?: string // 사례 은행 조회 결과(참조군 근거) — 있으면 reference_group 은 이 안의 것만 인용
+  evidenceCount?: number // 위 증거에 담긴 실제 사례 수(모델이 쓴 count 를 이 값으로 덮어쓴다)
 }
 
 export async function buildModeB(i: ModeBInput): Promise<{ modeB: ModeB; costUsd: number; model: string }> {
-  const user = `회사: ${i.company}\n하려는 결정: ${i.decision}\n\n회사 현황:\n<<<\n${i.context}\n>>>`
+  const ev = i.evidence ? `\n\n참조군 근거(사례 은행 조회 결과 — reference_group 은 이 안의 것만 인용, 없으면 근거 부족이라고 씁니다)\n<<<\n${i.evidence}\n>>>` : ''
+  const user = `회사: ${i.company}\n하려는 결정: ${i.decision}\n\n회사 현황:\n<<<\n${i.context}\n>>>${ev}`
   let cost = 0
   let feedback = ''
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'diagnosis', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 3000 })
+      const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'diagnosis', tag: 'opus', system: SYSTEM, user: user + feedback, maxTokens: 4500 })
       cost += r.costUsd
-      return { modeB: validateModeB(r.data), costUsd: cost, model: r.model }
+      const modeB = validateModeB(r.data)
+      if (i.evidenceCount != null) modeB.reference_group = { count: i.evidenceCount, note: i.evidenceCount < 10 ? `근거 부족(사례 ${i.evidenceCount}건). ${modeB.reference_group.note}` : modeB.reference_group.note }
+      assertNoStatViolations(JSON.stringify(modeB), '모드B')
+      return { modeB, costUsd: cost, model: r.model }
     } catch (e) {
       if (attempt === 1) throw e
       feedback = `\n\n[이전 출력이 거절됐습니다: ${e instanceof Error ? e.message : String(e)}. 같은 형식으로 고쳐서 다시 출력하세요.]`

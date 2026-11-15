@@ -17,7 +17,7 @@ export default async function ConsultLanding() {
         <Hero eyebrow="60초 진단" title={TAGLINE} lead="회사 주소와 한 줄 설명만 넣으세요. 무료로 한 줄 진단과 손실 범위(산식 포함)를 보여 드립니다." />
         <Panel>
           <div className="pub-actions">
-            <PubButtonLink href={signedIn ? '/consult/new' : '/consult/login?next=/consult/new'} variant="primary" size="lg">
+            <PubButtonLink href={signedIn ? '/consult/start' : '/consult/login?next=/consult/start'} variant="primary" size="lg">
               {signedIn ? '진단 시작하기' : '로그인하고 진단 시작하기'}
             </PubButtonLink>
           </div>

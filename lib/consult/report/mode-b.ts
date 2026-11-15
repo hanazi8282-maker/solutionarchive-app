@@ -24,8 +24,9 @@ Fit 사슬(순서, 뒤 단계는 앞 단계가 성립해야 의미 있음): 0 Fo
 9. kill_condition: 언제 이 방향을 접을지.
 10. execution_package: artifacts(2~5개, 복붙 가능한 실제 문구·산출물 — 설명이 아니라 산출물 그 자체), experiment(2주 실험: what·who·n(숫자)·success_metric·if_fail), plan_b(name·trigger — 반증 조건이 켜지면 넘어갈 대안).
 11. two_line: known(이미 알고 있을 것, 60자 이내) · unknown(모르고 있었을 것 — 이 판정의 핵심, 120자 이내).
+공통 보강(채점표 반영): ① experiment.what 은 "2주 동안"으로 시작하고, experiment.checkpoint 에 "몇 주째에 무엇을 확인하는지"(4~12주 이내) 한 문장을 적습니다. ② loss_and_cost 에 "이 일을 하지 않으면 잃는 것"과 "실행에 드는 돈·시간"을 한 문장씩 적습니다. ③ 판정·이유 문장 끝에 근거 등급을 붙입니다: [E]=수집된 사실·사례에 근거, [H]=가설·추정(확률·퍼센트 예측은 쓰지 않습니다). ④ 끊긴 다리는 하나만 특정해 이름으로 적습니다.
 출력은 JSON 객체 하나만:
-{"two_line":{"known":"","unknown":""},"verdict":"진행|조건부_진행|순서_바꿈|중단","verdict_reason":"","target_stage":0,"blocked_earlier_stage":null,"reference_group":{"count":0,"note":""},"premortem":["",""],"falsifiable_condition":"","kill_condition":"","execution_package":{"artifacts":["",""],"experiment":{"what":"","who":"","n":10,"success_metric":"","if_fail":""},"plan_b":{"name":"","trigger":""}}}`
+{"two_line":{"known":"","unknown":""},"verdict":"진행|조건부_진행|순서_바꿈|중단","verdict_reason":"","target_stage":0,"blocked_earlier_stage":null,"reference_group":{"count":0,"note":""},"premortem":["",""],"falsifiable_condition":"","loss_and_cost":"","kill_condition":"","execution_package":{"artifacts":["",""],"experiment":{"what":"","who":"","n":10,"success_metric":"","if_fail":"","checkpoint":""},"plan_b":{"name":"","trigger":""}}}`
 
 export type ModeBInput = {
   runId: string

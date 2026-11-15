@@ -13,9 +13,10 @@ export type ModeB = {
   premortem: string[] // 사전 부검(6개월 뒤 실패했다면 이유) 2~4개
   falsifiable_condition: string
   kill_condition: string
+  loss_and_cost?: string
   execution_package: {
     artifacts: string[]
-    experiment: { what: string; who: string; n: number; success_metric: string; if_fail: string }
+    experiment: { what: string; who: string; n: number; success_metric: string; if_fail: string; checkpoint?: string }
     plan_b: { name: string; trigger: string }
   }
 }
@@ -61,9 +62,10 @@ export function validateModeB(raw: Record<string, unknown>): ModeB {
     premortem: arr(raw.premortem, 2, 4, 'premortem').map((p, i) => s(p, 300, `premortem[${i}]`)),
     falsifiable_condition: s(raw.falsifiable_condition, 300, 'falsifiable_condition'),
     kill_condition: s(raw.kill_condition, 300, 'kill_condition'),
+    loss_and_cost: typeof raw.loss_and_cost === 'string' && raw.loss_and_cost.trim() ? raw.loss_and_cost.trim().slice(0, 300) : undefined,
     execution_package: {
       artifacts,
-      experiment: { what: s(exp.what, 300, 'experiment.what'), who: s(exp.who, 200, 'experiment.who'), n: Math.round(n), success_metric: s(exp.success_metric, 200, 'experiment.success_metric'), if_fail: s(exp.if_fail, 200, 'experiment.if_fail') },
+      experiment: { what: s(exp.what, 300, 'experiment.what'), who: s(exp.who, 200, 'experiment.who'), n: Math.round(n), success_metric: s(exp.success_metric, 200, 'experiment.success_metric'), if_fail: s(exp.if_fail, 200, 'experiment.if_fail'), checkpoint: typeof exp.checkpoint === 'string' && exp.checkpoint.trim() ? exp.checkpoint.trim().slice(0, 200) : undefined },
       plan_b: { name: s(pb.name, 120, 'plan_b.name'), trigger: s(pb.trigger, 300, 'plan_b.trigger') },
     },
   }

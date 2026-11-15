@@ -21,8 +21,9 @@ ${UNTRUSTED_INPUT_NOTICE}
 5. top_pick: 1순위 후보 번호(0~2), 이유, 접어야 할 조건. 후보마다 첫 2주 실험(what·who·n(숫자)·success_metric·if_fail).
 6. execution_package: artifacts(1순위 후보용 복붙 가능한 랜딩 첫 3줄·인터뷰 질문 5개·선결제 문구 중 2~5개) + plan_b(name·trigger).
 7. two_line: known(이미 알고 있을 것, 60자) · unknown(모르고 있었을 것 — 핵심, 120자).
+공통 보강(채점표 반영): ① experiment.what 은 "2주 동안"으로 시작하고, experiment.checkpoint 에 "몇 주째에 무엇을 확인하는지"(4~12주 이내) 한 문장을 적습니다. ② loss_and_cost 에 "이 일을 하지 않으면 잃는 것"과 "실행에 드는 돈·시간"을 한 문장씩 적습니다. ③ 판정·이유 문장 끝에 근거 등급을 붙입니다: [E]=수집된 사실·사례에 근거, [H]=가설·추정(확률·퍼센트 예측은 쓰지 않습니다). ④ 끊긴 다리는 하나만 특정해 이름으로 적습니다.
 출력은 JSON 객체 하나만:
-{"two_line":{"known":"","unknown":""},"conditions_summary":"","excluded":[{"area":"","reason":""}],"candidates":[{"name":"","why_now":"","who":"","price":"","how_to_sell":"","first_ten":"","reference_cases":[],"failure_case":null,"experiment":{"what":"","who":"","n":10,"success_metric":"","if_fail":""},"killed_bridges":[""]}],"top_pick":{"index":0,"reason":"","give_up_condition":""},"execution_package":{"artifacts":["",""],"plan_b":{"name":"","trigger":""}}}`
+{"two_line":{"known":"","unknown":""},"conditions_summary":"","excluded":[{"area":"","reason":""}],"candidates":[{"name":"","why_now":"","who":"","price":"","how_to_sell":"","first_ten":"","reference_cases":[],"failure_case":null,"experiment":{"what":"","who":"","n":10,"success_metric":"","if_fail":"","checkpoint":""},"killed_bridges":[""]}],"top_pick":{"index":0,"reason":"","give_up_condition":"","loss_and_cost":""},"execution_package":{"artifacts":["",""],"plan_b":{"name":"","trigger":""}}}`
 
 export type ModeC2Input = {
   runId: string

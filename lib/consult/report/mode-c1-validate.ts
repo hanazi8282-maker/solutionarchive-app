@@ -9,9 +9,10 @@ export type ModeC1 = {
   blocked_stage: 0 | 1 | 2 | 3 | 4 // 가장 먼저 끊긴 다리(도메인상 다리4가 먼저 끊길 수도 있다 — 예: 무료 플랫폼이 이미 해결)
   secondary_blocked_stage: (0 | 1 | 2 | 3 | 4) | null // 그 다음으로 걸리는 다리(없으면 null)
   reference_group: { count: number; note: string } // 분야 기저율 포함
-  experiment: { what: string; who: string; n: number; success_metric: string; if_fail: string } // 지금 당장 할 실험 1개(2주)
+  experiment: { what: string; who: string; n: number; success_metric: string; if_fail: string; checkpoint?: string } // 지금 당장 할 실험 1개(2주)
   execution_package: { artifacts: string[]; plan_b: { name: string; trigger: string } }
   give_up_condition: string
+  loss_and_cost?: string
 }
 
 const BANNED = /90\s*일\s*재측정/
@@ -59,9 +60,10 @@ export function validateModeC1(raw: Record<string, unknown>): ModeC1 {
     blocked_stage: stage as ModeC1['blocked_stage'],
     secondary_blocked_stage: secNum as ModeC1['secondary_blocked_stage'],
     reference_group: { count: Math.round(rgCount), note: s(rg.note, 500, 'reference_group.note') },
-    experiment: { what: s(exp.what, 300, 'experiment.what'), who: s(exp.who, 200, 'experiment.who'), n: Math.round(n), success_metric: s(exp.success_metric, 200, 'experiment.success_metric'), if_fail: s(exp.if_fail, 200, 'experiment.if_fail') },
+    experiment: { what: s(exp.what, 300, 'experiment.what'), who: s(exp.who, 200, 'experiment.who'), n: Math.round(n), success_metric: s(exp.success_metric, 200, 'experiment.success_metric'), if_fail: s(exp.if_fail, 200, 'experiment.if_fail'), checkpoint: typeof exp.checkpoint === 'string' && exp.checkpoint.trim() ? exp.checkpoint.trim().slice(0, 200) : undefined },
     execution_package: { artifacts, plan_b: { name: s(pb.name, 120, 'plan_b.name'), trigger: s(pb.trigger, 300, 'plan_b.trigger') } },
     give_up_condition: s(raw.give_up_condition, 300, 'give_up_condition'),
+    loss_and_cost: typeof raw.loss_and_cost === 'string' && raw.loss_and_cost.trim() ? raw.loss_and_cost.trim().slice(0, 300) : undefined,
   }
   if (BANNED.test(JSON.stringify(out))) throw new Error('모드C1 문체 오류: 금지 표현')
   return out

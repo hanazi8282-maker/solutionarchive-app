@@ -11,7 +11,7 @@ export type C2Candidate = {
   first_ten: string
   reference_cases: string[] // 풀에 있는 이름만, 0~3개. 비면 화면에 "근거 부족"을 표시한다.
   failure_case: string | null // 풀의 실패 사례 이름, 없으면 null
-  experiment: { what: string; who: string; n: number; success_metric: string; if_fail: string }
+  experiment: { what: string; who: string; n: number; success_metric: string; if_fail: string; checkpoint?: string }
   killed_bridges: string[] // 이 후보가 다리 2·4 에서 이미 🔴 이 아니라는 확인 문장(비워 두면 안 됨)
 }
 
@@ -20,7 +20,7 @@ export type ModeC2 = {
   conditions_summary: string
   excluded: { area: string; reason: string }[]
   candidates: C2Candidate[] // 정확히 3개
-  top_pick: { index: 0 | 1 | 2; reason: string; give_up_condition: string }
+  top_pick: { index: 0 | 1 | 2; reason: string; give_up_condition: string; loss_and_cost?: string }
   execution_package: { artifacts: string[]; plan_b: { name: string; trigger: string } }
 }
 
@@ -58,7 +58,7 @@ export function validateModeC2(raw: Record<string, unknown>, allowedNames: strin
       first_ten: s(x.first_ten, 300, `candidates[${i}].first_ten`),
       reference_cases: refs,
       failure_case: fc,
-      experiment: { what: s(exp.what, 300, 'experiment.what'), who: s(exp.who, 200, 'experiment.who'), n: Math.round(n), success_metric: s(exp.success_metric, 200, 'experiment.success_metric'), if_fail: s(exp.if_fail, 200, 'experiment.if_fail') },
+      experiment: { what: s(exp.what, 300, 'experiment.what'), who: s(exp.who, 200, 'experiment.who'), n: Math.round(n), success_metric: s(exp.success_metric, 200, 'experiment.success_metric'), if_fail: s(exp.if_fail, 200, 'experiment.if_fail'), checkpoint: typeof exp.checkpoint === 'string' && exp.checkpoint.trim() ? exp.checkpoint.trim().slice(0, 200) : undefined },
       killed_bridges: arr(x.killed_bridges, 1, 3, `candidates[${i}].killed_bridges`).map((k, j) => s(k, 200, `candidates[${i}].killed_bridges[${j}]`)),
     }
   })
@@ -75,7 +75,7 @@ export function validateModeC2(raw: Record<string, unknown>, allowedNames: strin
       return { area: s(x.area, 80, `excluded[${i}].area`), reason: s(x.reason, 300, `excluded[${i}].reason`) }
     }),
     candidates,
-    top_pick: { index: idx as 0 | 1 | 2, reason: s(tp.reason, 400, 'top_pick.reason'), give_up_condition: s(tp.give_up_condition, 300, 'top_pick.give_up_condition') },
+    top_pick: { index: idx as 0 | 1 | 2, reason: s(tp.reason, 400, 'top_pick.reason'), give_up_condition: s(tp.give_up_condition, 300, 'top_pick.give_up_condition'), loss_and_cost: typeof tp.loss_and_cost === 'string' && tp.loss_and_cost.trim() ? tp.loss_and_cost.trim().slice(0, 300) : undefined },
     execution_package: {
       artifacts: arr(ep.artifacts, 2, 5, 'execution_package.artifacts').map((a, i) => s(a, 400, `execution_package.artifacts[${i}]`)),
       plan_b: { name: s(pb.name, 120, 'plan_b.name'), trigger: s(pb.trigger, 300, 'plan_b.trigger') },

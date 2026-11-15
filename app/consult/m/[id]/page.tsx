@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic'
 const STAGE = ['0 팀-시장', '1 시장-제품', '2 제품-채널', '3 채널-수익', '4 시장 자리']
 const VERDICT: Record<string, string> = { 진행: '진행', 조건부_진행: '조건부 진행', 순서_바꿈: '순서 바꿈', 중단: '중단' }
 
-type Exp = { what: string; who: string; n: number; success_metric: string; if_fail: string }
+type Exp = { what: string; who: string; n: number; success_metric: string; if_fail: string; checkpoint?: string }
 
 function Experiment({ e, title = '2주 실험' }: { e: Exp; title?: string }) {
   return (
@@ -27,6 +27,7 @@ function Experiment({ e, title = '2주 실험' }: { e: Exp; title?: string }) {
         <li>몇 명: {e.n}</li>
         <li>성공 기준: {e.success_metric}</li>
         <li>실패하면: {e.if_fail}</li>
+        {e.checkpoint ? <li>점검 시점: {e.checkpoint}</li> : null}
       </ul>
     </Panel>
   )
@@ -106,6 +107,7 @@ function ModeBView({ o }: { o: ModeB }) {
       <Experiment e={o.execution_package.experiment} />
       <Artifacts items={o.execution_package.artifacts} planB={o.execution_package.plan_b} />
       <Panel title="그만둘 조건" titleAs="h2"><p className="pub-text">{o.kill_condition}</p></Panel>
+      {o.loss_and_cost ? <Panel title="하지 않으면 잃는 것 · 드는 비용" titleAs="h2"><p className="pub-text">{o.loss_and_cost}</p></Panel> : null}
     </>
   )
 }
@@ -123,6 +125,7 @@ function ModeC1View({ o }: { o: ModeC1 }) {
       <Experiment e={o.experiment} title="지금 당장 할 실험 1개 (2주)" />
       <Artifacts items={o.execution_package.artifacts} planB={o.execution_package.plan_b} />
       <Panel title="접어야 할 조건" titleAs="h2"><p className="pub-text">{o.give_up_condition}</p></Panel>
+      {o.loss_and_cost ? <Panel title="하지 않으면 잃는 것 · 드는 비용" titleAs="h2"><p className="pub-text">{o.loss_and_cost}</p></Panel> : null}
     </>
   )
 }
@@ -146,11 +149,11 @@ function ModeC2View({ o }: { o: ModeC2 }) {
             <li>참조 사례: {c.reference_cases.length ? c.reference_cases.join(', ') : '근거 부족 — 사례 은행에서 확인된 사례가 없습니다'}</li>
             <li>실패 사례: {c.failure_case ?? '확인된 실패 사례 없음'}</li>
             <li>막혀 있지 않다는 확인: {c.killed_bridges.join(' / ')}</li>
-            <li>첫 2주 실험: {c.experiment.what} (대상 {c.experiment.who}, {c.experiment.n}명, 성공 기준 {c.experiment.success_metric}, 실패하면 {c.experiment.if_fail})</li>
+            <li>첫 2주 실험: {c.experiment.what} (대상 {c.experiment.who}, {c.experiment.n}명, 성공 기준 {c.experiment.success_metric}, 실패하면 {c.experiment.if_fail}{c.experiment.checkpoint ? `, 점검 시점 ${c.experiment.checkpoint}` : ''})</li>
           </ul>
         </Panel>
       ))}
-      <Panel title="접어야 할 조건 (1순위)" titleAs="h2"><p className="pub-text">{o.top_pick.give_up_condition}</p></Panel>
+      <Panel title="접어야 할 조건 (1순위)" titleAs="h2"><p className="pub-text">{o.top_pick.give_up_condition}</p>{o.top_pick.loss_and_cost ? <p className="pub-text"><strong>하지 않으면 잃는 것 · 드는 비용:</strong> {o.top_pick.loss_and_cost}</p> : null}</Panel>
       <Artifacts items={o.execution_package.artifacts} planB={o.execution_package.plan_b} />
     </>
   )

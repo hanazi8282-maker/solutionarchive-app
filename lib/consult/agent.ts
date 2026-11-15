@@ -56,8 +56,21 @@ export async function chatTurn(run: Run, userMessage: string): Promise<string> {
 
   let scratch = ''
   for (let step = 0; step < MAX_STEPS; step++) {
-    const r = await consultLlmJson({ runId: run.id, owner: run.owner_email, purpose: 'chat', tag: 'sonnet', system: buildSystem(run.kind), user: `${context}\n\n지금까지 대화:\n${history}\n\n대표님 질문: ${msg}${scratch}`, maxTokens: 1200 })
-    const s = parseStep(r.data)
+    // P1-D(2026-11-16 실측): 숫자 계산 질문에서 모델이 JSON 없이 글로 답해 턴 전체가 크래시했다 — 형식 오류는 한 번 되물어 고치게 하고, 그래도 안 되면 폴백으로 끝낸다.
+    let r: Awaited<ReturnType<typeof consultLlmJson>>
+    try {
+      r = await consultLlmJson({ runId: run.id, owner: run.owner_email, purpose: 'chat', tag: 'sonnet', system: buildSystem(run.kind), user: `${context}\n\n지금까지 대화:\n${history}\n\n대표님 질문: ${msg}${scratch}`, maxTokens: 1200 })
+    } catch {
+      scratch += '\n\n[형식 오류: 직전 출력이 JSON 객체가 아니었습니다. {"tool":...} 또는 {"final":"답변"} 중 JSON 객체 하나만 출력하세요.]'
+      continue
+    }
+    let s: ReturnType<typeof parseStep>
+    try {
+      s = parseStep(r.data)
+    } catch {
+      scratch += '\n\n[형식 오류: tool 또는 final 이 없습니다. {"tool":...} 또는 {"final":"답변"} 중 하나만 출력하세요.]'
+      continue
+    }
     if (s.kind === 'final') {
       await sb.from('consult_messages').insert({ run_id: run.id, role: 'assistant', content: s.text })
       return s.text

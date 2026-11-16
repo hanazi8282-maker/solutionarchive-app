@@ -52,7 +52,7 @@ export default async function SituationPage({ params, searchParams }: { params: 
                 {q.options.map((o) => <label key={o} className="pub-text"><input type="checkbox" name={q.key} value={o} /> {o}</label>)}
               </fieldset>
             ) : (
-              <div key={q.key}>
+              <div className="pub-q" key={q.key}>
                 <label className="pub-text" htmlFor={`q-${q.key}`}>{q.label}</label>
                 <select className="pub-field" id={`q-${q.key}`} name={q.key} required defaultValue="">
                   <option value="" disabled>고르세요</option>

@@ -1837,3 +1837,5 @@ a.pub-index-row .pub-index-s--2 { -webkit-line-clamp: 2; line-clamp: 2; }
 .pub-fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: var(--pub-gap-2); }
 .pub-fieldset label { display: flex; align-items: center; gap: var(--pub-gap-2); min-height: 44px; }
 @media print { .pub-actions, .pub-footer { display: none; } }
+
+.pub-q { display: grid; gap: var(--pub-gap-2); }

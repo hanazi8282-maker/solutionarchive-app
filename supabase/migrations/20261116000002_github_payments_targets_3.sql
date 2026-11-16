@@ -18,7 +18,7 @@ BEGIN
   END IF;
 END $$;
 
-CREATE TEMP TABLE _gh (ref text NOT NULL, label text NOT NULL, pitch text NOT NULL, url text NOT NULL) ON COMMIT DROP;
+CREATE TEMP TABLE _gh (ref text NOT NULL, label text NOT NULL, pitch text NOT NULL, url text NOT NULL);
 INSERT INTO _gh (ref, label, pitch, url) VALUES
   ('board:bigcapital', 'pay:gh|bigcapital', 'Bigcapital — 오픈소스 회계·장부·청구', 'https://bigcapital.app/'),
   ('board:invoiceshelf', 'pay:gh|invoiceshelf', 'InvoiceShelf — 오픈소스 청구서·견적·결제 기록', 'https://invoiceshelf.com/'),

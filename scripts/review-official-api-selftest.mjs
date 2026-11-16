@@ -36,7 +36,7 @@ const page = (items) => JSON.stringify({ total_count: 999, incomplete_results: f
   // v71au: 24곳 등재 마이그의 board:<slug> 가 전부 REPOS 에 있다(코드보다 먼저 적용하면 조용히 안 도는 사고 방지)
   const mig = (await import('node:fs')).readFileSync(new URL('../supabase/migrations/20261019000010_github_issues_targets_24.sql', import.meta.url), 'utf8')
   const migSlugs = [...mig.matchAll(/\('board:([a-z0-9-]+)',/g)].map((m) => m[1])
-  t('gh: 24곳 마이그 slug 24개 · 전부 REPOS 에 있다 · 표 40곳', [migSlugs.length, migSlugs.every((x) => x in REPOS), Object.keys(REPOS).length], [24, true, 40])
+  t('gh: 24곳 마이그 slug 24개 · 전부 REPOS 에 있다 · 표 43곳(+v71cp 결제 3)', [migSlugs.length, migSlugs.every((x) => x in REPOS), Object.keys(REPOS).length], [24, true, 43])
   // v71au: SE·YouTube 마이그의 타깃이 코드와 맞는다(코드보다 먼저 적용하면 조용히 안 도는 사고 방지)
   const rd = (n) => (await_fs).readFileSync(new URL('../supabase/migrations/' + n, import.meta.url), 'utf8')
   const seSlugs = [...rd('20261019000030_stackexchange_enable.sql').matchAll(/\('board:([a-z0-9-]+)',/g)].map((m) => m[1])

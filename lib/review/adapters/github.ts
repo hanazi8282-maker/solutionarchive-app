@@ -93,6 +93,10 @@ export const REPOS: Record<string, string> = {
   siyuan: 'siyuan-note/siyuan', // (32.32)
   zettlr: 'Zettlr/Zettlr', // (0.78)
   marktext: 'marktext/marktext', // (5.15)
+  // v71cp 결제·정산·회계(areas_v2 priority 2) — 2026-11-16 무토큰 Search 실측 최근 30일 사용자 이슈 건수 = 괄호(bigcapital 45·invoiceshelf 17·akaunting 9)
+  bigcapital: 'bigcapitalhq/bigcapital', // (45/30d)
+  invoiceshelf: 'InvoiceShelf/InvoiceShelf', // (17/30d)
+  akaunting: 'akaunting/akaunting', // (9/30d)
 }
 
 const REPO_RE = /^[A-Za-z0-9_.-]{1,39}\/[A-Za-z0-9_.-]{1,100}$/

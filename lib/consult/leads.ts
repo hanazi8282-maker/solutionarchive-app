@@ -19,7 +19,7 @@ export type LeadRow = {
   id: string; token: string; email: string; url: string; run_id: string | null; report_token: string | null
   status: 'queued' | 'generating' | 'ready' | 'failed'; error: string | null; gen_started_at: string | null
   views: number; max_depth: number; completion: Completion | null; completion_status: 'generating' | 'ready' | 'failed' | null
-  completion_result: CompletionResult | null; completion_at: string | null; created_at: string
+  completion_result: CompletionResult | null; completion_at: string | null; situation: Record<string, unknown> | null; created_at: string
 }
 
 // ---------- 접수 검증(순수) ----------

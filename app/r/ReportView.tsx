@@ -14,7 +14,7 @@ export function ReportView({ p, top, bottom }: { p: ReportPayload; top?: ReactNo
   return (
     <PubShell theme="light" footerNote="공개된 정보를 근거로 한 추정입니다. 결정은 대표님이 합니다.">
       <div className="pub-solo">
-        <Hero eyebrow={`${p.company} 결론서`} title={c1.headline} lead={TAGLINE} />
+        <Hero eyebrow={`${p.company} 결론서`} title={c1.headline} lead="새 손님을 데려올 길과, 손님이 새는 곳을 찾아 드립니다." />
         {top}
 
         <Panel titleAs="h2" title="1. 진단">

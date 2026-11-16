@@ -10,8 +10,8 @@ import { capExceeded } from './usage.ts'
 import { consultLlmJson } from './llm.ts'
 
 export const TOKEN_RE = /^[0-9a-f]{32}$/
-/** 하루 신규 접수 상한(CTO 판단 2026-11-17): 초안 1건 ≈ 전 장 생성 비용 $1 안팎 → 10건 ≈ $10. 값은 env 로 조정. */
-export const LEAD_DAILY_CAP = Number(process.env.LEAD_DAILY_CAP ?? 10)
+/** 하루 신규 접수 상한(CTO 판단 2026-11-17): 초안 1건 ≈ $1.2(2026-11-17 실측 $1.18) → 8건 ≈ $9.5, 전체 일 비용 상한 $10 안에 든다. 값은 env 로 조정. */
+export const LEAD_DAILY_CAP = Number(process.env.LEAD_DAILY_CAP ?? 8)
 export const LEAD_IP_DAILY = 3
 const STALE_GEN_MIN = 8
 

@@ -342,7 +342,7 @@ for (const st of ['low', 'full']) { const sys = buildSystem(st); const nums = (s
   t('G8 마이그: prob null CHECK·범주 칼럼', /check \(prob is null\)/.test(mig) && /add column if not exists verdict/.test(mig) && /add column if not exists evidence_count/.test(mig)) }
 
 // v71cp P2-F — 참조군 자동 발견: 주입 조회만(웹 없음), 3규칙, 근거 부족 먼저, 조회 실패는 확인 불가.
-{ const { discoverRefGroups, judgeCandidate, inferStructure, matchDomains, areasFrom, discoveryLines } = await import('../lib/consult/discover.ts')
+{ const { discoverRefGroups, judgeCandidate, inferStructure, matchDomains, areasFrom, discoveryLines, hasWord } = await import('../lib/consult/discover.ts')
   const fs = await import('node:fs')
   const read = (f) => JSON.parse(fs.readFileSync(new URL(`../config/${f}`, import.meta.url), 'utf8'))
   const areas = areasFrom(read('areas_v2.json'), read('community_keywords_v2.json'))
@@ -370,6 +370,7 @@ for (const st of ['low', 'full']) { const sys = buildSystem(st); const nums = (s
   t('P2-F: 주입 조회만 호출(분야별 1회)', calls.length === d.candidates.length && calls.includes('booking_scheduling_forms'))
   t('P2-F: 조회 실패 → not_run(근거 부족으로 접지 않음)', d.candidates.find((c) => c.domain === 'sales_crm')?.status === 'not_run')
   t('P2-F: 근거 부족 후보가 먼저', d.candidates[0].status !== 'ok' && d.candidates.at(-1).status === 'ok' && d.status === 'ok')
+  t('P2-F: 낱말 적중 — 대기가 대기업에 안 걸리고 조사 붙은 대기는 걸림', !hasWord('대기업 영업 도구', '대기') && hasWord('대기를 줄이고 싶다', '대기') && hasWord('예약 노쇼', '예약') && hasWord('payroll tool', 'payroll'))
   t('P2-F: 분야 없음 → no_domain·근거 부족 줄', (await discoverRefGroups('zzz', areas, fake)).status === 'no_domain' && discoveryLines({ status: 'no_domain', structure: {}, candidates: [] })[0].includes('근거 부족'))
   t('P2-F: 전부 조회 실패 → not_run', (await (async () => { console.error = () => {}; const r = await discoverRefGroups('노쇼 예약', areas, async () => { throw new Error('x') }); console.error = origErr; return r })()).status === 'not_run')
   const src = fs.readFileSync(new URL('../lib/consult/discover.ts', import.meta.url), 'utf8')

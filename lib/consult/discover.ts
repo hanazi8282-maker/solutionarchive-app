@@ -48,11 +48,22 @@ export function inferStructure(text: string): Record<string, string> {
   return s
 }
 
+/** 낱말 적중 — 2글자 한글은 앞이 한글이 아니고, 뒤가 한글이면 조사(을·를·이·가·은·는·의·에·도·와·과·로·으)일 때만 센다('대기'가 '대기업'에 걸리지 않게). 3글자 이상·영문은 부분 일치. */
+export function hasWord(low: string, w: string): boolean {
+  const t = w.toLowerCase()
+  if (!/^[가-힣]{2}$/.test(t)) return low.includes(t)
+  for (let i = low.indexOf(t); i >= 0; i = low.indexOf(t, i + 1)) {
+    const before = low[i - 1], after = low[i + 2]
+    if ((!before || !/[가-힣]/.test(before)) && (!after || !/[가-힣]/.test(after) || '을를이가은는의에도와과로으'.includes(after))) return true
+  }
+  return false
+}
+
 /** 입력 글 → 분야 후보(낱말 적중 수 내림차순, 최대 max). 이름(근태·HR·급여 → 근태/HR/급여)도 낱말로 쓴다. */
 export function matchDomains(text: string, areas: Area[], max = 3): Area[] {
   const low = text.toLowerCase()
   return areas
-    .map((a) => ({ a, hits: [...a.name_ko.split(/[·\s]+/), ...(a.ko ?? []), ...(a.en ?? [])].filter((w) => w.length >= 2 && low.includes(w.toLowerCase())).length }))
+    .map((a) => ({ a, hits: [...a.name_ko.split(/[·\s]+/), ...(a.ko ?? []), ...(a.en ?? [])].filter((w) => w.length >= 2 && hasWord(low, w)).length }))
     .filter((x) => x.hits > 0)
     .sort((x, y) => y.hits - x.hits)
     .slice(0, max)

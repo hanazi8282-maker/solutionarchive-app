@@ -1,4 +1,6 @@
 // 무료 초안 신청·완성본 입력 셀프테스트(v71co 개정) — 네트워크·DB 없이 도는 순수 함수만.
+import { SITUATION, parseSituation } from '../lib/consult/situation.ts'
+import { priceOf, isPaidStatus, payInstructionsOn } from '../lib/consult/lead-pay.ts'
 import { parseOptout, normalizeEmail, OPTOUT_REASONS } from '../lib/consult/optout.ts'
 import { parseLeadForm, parseCompletion, funnel, mailDraft, leadOwner, validateCompletionResult, TOKEN_RE } from '../lib/consult/leads.ts'
 let pass = 0, fail = 0
@@ -44,5 +46,16 @@ t('수신 거부: 목록 밖 이유는 null', parseOptout({ email: 'a@b.co', rea
 t('수신 거부: 메일 형식 오류·봇', parseOptout({ email: 'x' }).code === 'email' && parseOptout({ email: 'a@b.co', website: 'x' }).code === 'bot')
 t('수신 거부: 이유 4종', Object.keys(OPTOUT_REASONS).length === 4 && normalizeEmail('A@B.CO') === 'a@b.co')
 t('메일 문안에 수신 거부·개인정보 주소', mailDraft({ host: 'x.io', token: tok, base: 'https://x.test' }).includes('https://x.test/unsubscribe') && mailDraft({ host: 'x.io', token: tok, base: 'https://x.test' }).includes('https://x.test/privacy'))
+// 5·6번: 값 시험·입금 확인 판정·상황 질문
+t('값 시험: 기본 49,000 · ?p=99 만 99,000 · 그 밖은 기본', priceOf(undefined) === 49000 && priceOf('99') === 99000 && priceOf('123') === 49000 && priceOf('49') === 49000)
+t('입금 확인 전에는 열리지 않음: requested·rejected·ended 는 미결제, active 만 결제', !isPaidStatus([]) && !isPaidStatus([{ status: 'requested' }]) && !isPaidStatus([{ status: 'rejected' }, { status: 'ended' }]) && isPaidStatus([{ status: 'requested' }, { status: 'active' }]))
+t('입금 안내 문구는 기본 꺼짐(LEAD_PAY_INSTRUCTIONS=1 일 때만)', !payInstructionsOn())
+t('상황 질문: 14개·꼬리표 공유 5개·키 중복 없음', SITUATION.length === 14 && SITUATION.filter((q) => q.tagged).length === 5 && new Set(SITUATION.map((q) => q.key)).size === 14)
+const pick = (over = {}) => (k) => { if (k in over) return over[k]; const q = SITUATION.find((x) => x.key === k); return q ? [q.options[0]] : [] }
+t('상황 질문: 전부 답하면 통과(메모는 선택)', parseSituation(pick()).ok && parseSituation(pick({ note: [''] })).ok)
+t('상황 질문: 하나라도 비면 어느 칸인지 알려 줌', (() => { const r = parseSituation(pick({ goal: [] })); return !r.ok && r.missing === 'goal' })())
+t('상황 질문: 목록 밖 값·단일 질문에 둘 거절', !parseSituation(pick({ stage: ['임의'] })).ok && !parseSituation(pick({ stage: [SITUATION[0].options[0], SITUATION[0].options[1]] })).ok)
+t('상황 질문: 여러 개 가능한 질문은 중복 제거·하나 이상', (() => { const r = parseSituation(pick({ tried: ['광고', '광고', '값 조정'] })); return r.ok && r.answers.tried.length === 2 })() && !parseSituation(pick({ tried: [] })).ok)
+t('상황 질문: 메모 300자 제한', (() => { const r = parseSituation(pick({ note: ['가'.repeat(500)] })); return r.ok && r.answers.note.length === 300 })())
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 무료 초안 접수·완성본 입력·깔때기·메일 문안·토큰`)
 process.exit(fail ? 1 : 0)

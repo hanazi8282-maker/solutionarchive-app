@@ -64,13 +64,19 @@ async function loadScale(): Promise<{ cases: number | null; failures: number | n
   return { cases, failures, voices }
 }
 
-/** 실물 보기: 우리 회사 자신의 결론서 1장(실제 생성물). 못 읽으면 칸을 숨긴다(지어내지 않는다). */
-async function loadSample() {
-  const id = process.env.LANDING_SAMPLE_RUN_ID ?? 'b6775c94-b28d-463f-a893-ef1bbedad200'
+/** 실물 보기: 실제로 만든 초안의 첫 장(회사 이름은 가린다). 못 읽으면 칸을 숨긴다(지어내지 않는다). */
+type Sample = { headline: string; kind: string; title: string; detail: string; category: string; where: string }
+async function loadSample(): Promise<Sample | null> {
+  const token = process.env.LANDING_SAMPLE_REPORT_TOKEN ?? "809b69e5ed734d5f873854e0a6a1ab06"
+  const names = (process.env.LANDING_SAMPLE_MASK ?? "shiftee,시프티").split(",").map((x) => x.trim()).filter(Boolean)
+  const esc = (x: string) => x.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
+  const mask = (t: string) => names.reduce((acc, n) => acc.replace(new RegExp(esc(n), 'gi'), '○○'), t)
   try {
-    const { data } = await (await db()).from('consult_diagnoses').select('blocks').eq('run_id', id).eq('layer', 0).maybeSingle()
-    const b = data?.blocks as { headline?: string; leak_or_gap?: { kind: string; title: string; detail: string }; position?: { category: string; where: string } } | undefined
-    return b?.headline && b.leak_or_gap && b.position ? b : null
+    const { data } = await (await db()).from("consult_reports").select("payload").eq("token", token).maybeSingle()
+    const c = (data?.payload as { ch1?: { headline?: string; leak_or_gap?: { kind: string; title: string; detail: string }; position?: { category: string; where: string } } } | undefined)?.ch1
+    if (!c?.headline || !c.leak_or_gap || !c.position) return null
+    const clip = (t: string, n: number) => (t.length > n ? t.slice(0, n).trimEnd() + "…" : t)
+    return { headline: mask(c.headline), kind: c.leak_or_gap.kind, title: mask(c.leak_or_gap.title), detail: mask(clip(c.leak_or_gap.detail, 260)), category: mask(c.position.category), where: mask(clip(c.position.where, 120)) }
   } catch { return null }
 }
 
@@ -116,11 +122,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
 
         {sample ? (
           <Panel titleAs="h2" title="실물 보기">
-            <p className="pub-caption">우리 회사(솔루션아카이브) 주소로 만든 결론서 초안의 첫 장입니다. 이런 문서를 귀사 것으로 만들어 드립니다.</p>
+            <p className="pub-caption">실제 서비스 주소로 만든 결론서 초안의 첫 장입니다(회사 이름은 가렸습니다). 이런 문서를 귀사 것으로 만들어 드립니다.</p>
             <p className="pub-text"><b>{sample.headline}</b></p>
-            <p className="pub-text"><b>{sample.leak_or_gap?.kind === 'gap' ? '미개척' : '누수'}: {sample.leak_or_gap?.title}</b></p>
-            <p className="pub-caption">{sample.leak_or_gap?.detail}</p>
-            <p className="pub-caption">카테고리 위치: {sample.position?.category} — {sample.position?.where}</p>
+            <p className="pub-text"><b>{sample.kind === 'gap' ? '미개척' : '누수'}: {sample.title}</b></p>
+            <p className="pub-caption">{sample.detail}</p>
+            <p className="pub-caption">카테고리 위치: {sample.category} — {sample.where}</p>
           </Panel>
         ) : null}
 

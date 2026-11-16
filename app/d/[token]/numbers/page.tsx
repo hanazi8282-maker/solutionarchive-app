@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { funnel, getLead, hostOf, PAINS, SOURCES, stageLabel, TOKEN_RE, TRIED } from '@/lib/consult/leads'
+import { ageMin, funnel, getLead, hostOf, PAINS, SOURCES, stageLabel, TOKEN_RE, TRIED } from '@/lib/consult/leads'
 import { Panel } from '../../../_pub/components/Panel'
 import { Hero } from '../../../_pub/components/Hero'
 import { PubShell } from '../../../_pub/components/PubShell'
@@ -32,7 +32,7 @@ export default async function NumbersPage({ params, searchParams }: { params: Pr
   }
 
   const c = lead.completion
-  if (c && lead.completion_status === 'generating' && lead.completion_at && Date.now() - new Date(lead.completion_at).getTime() < 5 * 60000) {
+  if (c && lead.completion_status === 'generating' && ageMin(lead.completion_at) < 5) {
     return (
       <PubShell theme="light" footerNote="창을 닫아도 만들기는 계속됩니다.">
         <div className="pub-solo">
@@ -65,7 +65,7 @@ export default async function NumbersPage({ params, searchParams }: { params: Pr
             </ol>
           </Panel>
           <Panel titleAs="h2" title="유료본에서 더 받는 것">
-            <p className="pub-text">귀사 상황(대상 손님·값·쓸 수 있는 시간과 돈·해 본 것)을 5분 질문으로 더 받으면, 닮은 상황의 사례에서 "몇 곳이 했고 몇 곳이 됐는지, 안 된 곳은 왜 안 됐는지"를 찾아 7일 실험 꾸러미(문구·올릴 곳·합격 기준)로 드립니다.</p>
+            <p className="pub-text">귀사 상황(대상 손님·값·쓸 수 있는 시간과 돈·해 본 것)을 5분 질문으로 더 받으면, 닮은 상황의 사례에서 &ldquo;몇 곳이 했고 몇 곳이 됐는지, 안 된 곳은 왜 안 됐는지&rdquo;를 찾아 7일 실험 꾸러미(문구·올릴 곳·합격 기준)로 드립니다.</p>
             <p className="pub-caption">유료본 안내는 곧 이 화면에 열립니다. 읽고 쓸모없으면 전액 돌려 드립니다.</p>
           </Panel>
           {back}

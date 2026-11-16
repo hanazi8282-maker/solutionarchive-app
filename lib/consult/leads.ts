@@ -36,6 +36,8 @@ export function parseLeadForm(f: { url?: unknown; email?: unknown; consent?: unk
   return { ok: true, url: u.origin + (u.pathname === '/' ? '' : u.pathname), email, variant: ['a', 'b', 'c'].includes(v) ? v : 'a' }
 }
 
+/** 경과 분(서버 렌더 중 시계는 이 함수로만 읽는다 — 컴포넌트 안 Date.now 는 린트 금지). */
+export const ageMin = (iso: string | null) => (iso ? (Date.now() - new Date(iso).getTime()) / 60000 : Infinity)
 export const hostOf = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url } }
 export const leadOwner = (token: string) => `lead-${token.slice(0, 12)}@solutionarch.internal`
 export const hashIp = (ip: string) => createHash('sha256').update(`${ip}|${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''}`).digest('hex').slice(0, 24)

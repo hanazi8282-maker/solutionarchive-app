@@ -129,7 +129,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
           <div className="pub-three">
             <Panel titleAs="h3" title="초안 · 무료"><p className="pub-text">서비스 주소만 넣으면 됩니다. 바깥에서 보이는 것(화면·가격표·가입 과정·경쟁 서비스 고객 글)만으로 만든 결론서입니다.</p></Panel>
             <Panel titleAs="h3" title="완성본 · 무료"><p className="pub-text">한 달 방문·가입·유료 손님 숫자 3개와 질문 3개(1분)에 답하면, 그 숫자로 다시 계산해 손님이 새는 곳을 판정하고 새 손님 길을 귀사에 맞게 다시 순서 매깁니다.</p></Panel>
-            <Panel titleAs="h3" title="유료본"><p className="pub-text">상황 맞춤 처방 + 7일 실험 꾸러미 + 실험 뒤 다시 판정. 닮은 상황의 사례를 찾아 "몇 곳이 했고 몇 곳이 됐는지"까지 보여 드립니다.</p></Panel>
+            <Panel titleAs="h3" title="유료본"><p className="pub-text">상황 맞춤 처방 + 7일 실험 꾸러미 + 실험 뒤 다시 판정. 닮은 상황의 사례를 찾아 &ldquo;몇 곳이 했고 몇 곳이 됐는지&rdquo;까지 보여 드립니다.</p></Panel>
           </div>
         </section>
 

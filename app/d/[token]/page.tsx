@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/consult/runs'
-import { getLead, hostOf, TOKEN_RE } from '@/lib/consult/leads'
+import { ageMin, getLead, hostOf, TOKEN_RE } from '@/lib/consult/leads'
 import type { ReportPayload } from '@/lib/consult/report/compose'
 import { Panel } from '../../_pub/components/Panel'
 import { Hero } from '../../_pub/components/Hero'
@@ -23,7 +23,7 @@ export default async function LeadView({ params }: { params: Promise<{ token: st
   const host = hostOf(lead.url)
 
   if (lead.status === 'queued' || lead.status === 'generating') {
-    const stale = lead.status === 'generating' && lead.gen_started_at !== null && Date.now() - new Date(lead.gen_started_at).getTime() > 8 * 60000
+    const stale = lead.status === 'generating' && ageMin(lead.gen_started_at) > 8
     return (
       <PubShell theme="light" footerNote="이 화면은 받으신 분만 아는 주소입니다. 창을 닫아도 만들기는 계속됩니다.">
         <div className="pub-solo">

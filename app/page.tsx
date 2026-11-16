@@ -1,321 +1,159 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import type { ReactNode } from 'react'
 import { PubShell } from './_pub/components/PubShell'
-import { Hero } from './_pub/components/Hero'
-import { Section } from './_pub/components/Section'
+import { Hero } from "./_pub/components/Hero"
 import { Panel } from './_pub/components/Panel'
-import { PubButtonLink } from './_pub/components/Button'
+import { PubButton } from './_pub/components/Button'
 import { getAuthVerdict } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
-import { PubIndexRow } from './_pub/components/PubIndexRow'
-import { PubEmpty } from './_pub/components/PubEmpty'
-import { PubBrandLogo } from './_pub/components/PubBrandLogo'
-import { PubStamp } from './_pub/components/PubStamp'
-import { PubIconTile } from './_pub/components/PubIconTile'
-import { PubSteps, type PubStepItem } from './_pub/components/PubSteps'
-import { PubValueGrid, type PubValueItem } from './_pub/components/PubValueGrid'
-import { PubLogoStrip } from './_pub/components/PubLogoStrip'
-import { Reveal } from './_pub/components/Reveal'
-import { STEPS } from './_pub/steps'
-import {
-  IconAction, IconArrowRight, IconChevronDown, IconEvidence, IconGrade, IconProblem, IconSignal, IconSplit,
-} from './_pub/icons'
-import {
-  DEFAULT_SORT, approvedThisWeek, loadLibrary, loadSourceTiles, pickTodayCase, summarizeSourceTiles,
-  type LibraryCard, type LibraryResult,
-} from '@/lib/cases/library'
-import { clipTransferNote } from '@/lib/cases/detail'
-import { READER_PROBLEMS } from '@/lib/cases/draft'
-import { DEFAULT_SEARCH_KIND } from '@/lib/cases/search'
+import { db } from '@/lib/consult/runs'
 
-// 로그인 안 한 방문자가 보는 첫 화면.
-//
-// ⚠️ 이 라우트 하나만 공개다(정확일치). 판정은 lib/auth/policy.ts 의 PUBLIC_EXACT —
-//    접두사 목록에 넣으면 앱 전체가 열린다. scripts/auth-selftest.mjs 가 양성·음성을 같이 본다.
-//
-// 모양은 DESIGN.md §4 + reports/2026-09-30/design-direction-decisions.md G2(B3-1·2·3 · B4 · B5 · B6):
-// 2열 히어로(오늘의 케이스) → 로고 띠 → 작동원리 4단계 → 소스 요약 → 가치제안 6 → 최신 케이스 → 다크 배너.
-// 눈썹 라벨 없음, 공개 카피에 em 대시 없음. 숫자는 라이브 집계만, 못 셌으면 "집계 불가"(§7.1).
-
-// 정적 프리렌더 금지. 이 화면은 (1) 로그인 여부로 갈리고 (2) 축적량을 DB 에서 읽는다 —
-// 빌드 시점에 굳으면 로그인한 사람이 랜딩에 머물고, 숫자는 배포 시각에 멈춘다.
+// 로그인 안 한 방문자가 보는 첫 화면 + 상세페이지(v71co 개정 §2-1·§2-11).
+// ⚠️ 이 라우트 하나만 공개다(정확일치, lib/auth/policy.ts PUBLIC_EXACT). 가짜 후기·가짜 숫자·가짜 마감은 쓰지 않는다 — 후기 칸은 실제 후기가 생길 때까지 없다.
+// 정적 프리렌더 금지: 로그인 여부로 갈리고, 숫자(쌓은 자료)를 DB 에서 읽는다.
 export const dynamic = 'force-dynamic'
 
+const PROMISE = '새 손님을 데려올 길과, 손님이 새는 곳을 찾아 드립니다.'
 export const metadata = {
-  title: '한국 업무용 AI 소프트웨어 팀을 위한 경쟁 고객 글 결론서',
-  description:
-    '경쟁 제품의 고객 글을 대조해 만드는 결론서. 회의·통화 기록, 영업, 마케팅, 인사 운영, 리뷰 관리 영역을 다룬다.',
+  title: `${PROMISE} — 솔루션아카이브`,
+  description: '서비스 주소만 넣으세요. 귀사만을 위한 결론서 초안을 무료로 보내 드립니다. 새 손님을 데려올 길, 손님이 새는 곳, 이번 주에 할 일까지.',
 }
 
-const UNKNOWN = '집계 불가'
+// 문구 A/B/C — ?v= 로 바꿔 시험한다(신청 때 변형 이름이 같이 저장된다). 뜻은 같고 첫 줄만 다르다.
+const HEAD: Record<string, string> = {
+  a: PROMISE,
+  b: '손님이 안 느는 이유, 서비스 주소 하나로 찾아 드립니다.',
+  c: '광고비 쓰기 전에, 새 손님이 올 길부터 확인하세요.',
+}
+
+const ERR: Record<string, string> = {
+  url: '서비스 주소를 확인해 주세요(https://로 시작하는 공개 주소).',
+  email: '받을 메일 주소를 확인해 주세요.',
+  consent: '개인정보 안내에 동의해 주셔야 보내 드릴 수 있습니다.',
+  cap: '오늘 받을 수 있는 초안을 모두 접수했습니다. 내일 다시 신청해 주세요.',
+  ip: '같은 곳에서 오늘 신청할 수 있는 횟수를 넘었습니다. 내일 다시 신청해 주세요.',
+  fail: '접수하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+}
+
+function DraftForm({ id, variant }: { id: string; variant: string }) {
+  return (
+    <form className="pub-form" action="/d/new" method="post" id={id === 'top' ? 'start' : undefined}>
+      <input type="hidden" name="v" value={variant} />
+      <label className="pub-text" htmlFor={`${id}-url`}>서비스 주소</label>
+      <input className="pub-field" id={`${id}-url`} name="url" type="url" inputMode="url" autoComplete="url" required maxLength={300} placeholder="https://example.com…" />
+      <label className="pub-text" htmlFor={`${id}-email`}>초안 안내를 받을 메일</label>
+      <input className="pub-field" id={`${id}-email`} name="email" type="email" autoComplete="email" spellCheck={false} required maxLength={254} placeholder="you@company.com…" />
+      {/* 숨김 칸: 사람은 비워 둔다(자동 입력 봇 거르기) */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px' }}>
+        <label htmlFor={`${id}-web`}>웹사이트</label>
+        <input id={`${id}-web`} name="website" type="text" tabIndex={-1} autoComplete="off" />
+      </div>
+      <label className="pub-caption"><input type="checkbox" name="consent" required /> 입력한 주소와 메일을 초안을 만들고 안내하는 데만 쓰는 데 동의합니다. 수신 거부는 메일에 답장 한 줄이면 됩니다.</label>
+      <PubButton variant="primary" size="lg">무료 초안 받기</PubButton>
+    </form>
+  )
+}
+
+async function loadScale(): Promise<{ cases: number | null; failures: number | null; voices: number | null }> {
+  const sb = await createClient()
+  if (!sb) return { cases: null, failures: null, voices: null }
+  const n = async (t: string, mode: 'exact' | 'estimated') => {
+    const r = await sb.from(t).select('*', { count: mode, head: true })
+    return r.error ? null : r.count
+  }
+  const [cases, failures, voices] = await Promise.all([n('case_bank_labels', 'exact'), n('failure_ledger', 'exact'), n('analysis_inputs', 'estimated')])
+  return { cases, failures, voices }
+}
+
+/** 실물 보기: 우리 회사 자신의 결론서 1장(실제 생성물). 못 읽으면 칸을 숨긴다(지어내지 않는다). */
+async function loadSample() {
+  const id = process.env.LANDING_SAMPLE_RUN_ID ?? 'b6775c94-b28d-463f-a893-ef1bbedad200'
+  try {
+    const { data } = await (await db()).from('consult_diagnoses').select('blocks').eq('run_id', id).eq('layer', 0).maybeSingle()
+    const b = data?.blocks as { headline?: string; leak_or_gap?: { kind: string; title: string; detail: string }; position?: { category: string; where: string } } | undefined
+    return b?.headline && b.leak_or_gap && b.position ? b : null
+  } catch { return null }
+}
+
 const fmt = (n: number) => n.toLocaleString('ko-KR')
 
-/** 한 번의 조회에서 케이스·무브·근거를 같이 센다. null = 못 셌다(0 이 아니다). */
-type Counts = { cases: number | null; moves: number | null; evidence: number | null }
-
-/**
- * §7.1 — **못 읽은 것을 0 으로 접지 않는다.** 조회가 실패하면 셋 다 null,
- * 근거만 못 셌으면(`evidence_count === null`) 근거만 null.
- */
-function countsOf(result: LibraryResult | null): Counts {
-  if (!result || result.status === 'error') return { cases: null, moves: null, evidence: null }
-  const missed = result.cards.some((c) => c.evidence_count === null)
-  return {
-    cases: result.cards.length,
-    moves: result.cards.reduce((n, c) => n + c.move_count, 0),
-    evidence: missed ? null : result.cards.reduce((n, c) => n + (c.evidence_count ?? 0), 0),
-  }
-}
-
-/** B5 표기 규칙: 소수는 올림 정수 + "+"(4.4 → 5+), 정수는 그대로. */
-function perCase(evidence: number | null, cases: number | null): { label: string; raw: string } | null {
-  if (evidence === null || !cases) return null
-  const avg = evidence / cases
-  return { label: Number.isInteger(avg) ? String(avg) : `${Math.ceil(avg)}+`, raw: `${evidence} ÷ ${cases} = ${avg.toFixed(2)}` }
-}
-
-/** 랜딩 CTA 전용 알약 + 화살표 원(B6-2). 다른 공개 화면 버튼은 그대로(G3·G4 몫). */
-function PillCta({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link className="pub-btn pub-btn--primary pub-btn--lg pub-btn--pill" href={href}>
-      {children}
-      <span className="pub-btn-circle" aria-hidden="true"><IconArrowRight /></span>
-    </Link>
-  )
-}
-
-/** 히어로 오른쪽 — 오늘의 케이스 한 장을 크게(플레이트 56 + 스탬프 md). 실제 데이터라 가짜 스크린샷이 아니다. */
-function TodayCard({ card }: { card: LibraryCard }) {
-  const { study, move, move_count } = card
-  const note = clipTransferNote(move?.transfer_note, 120)
-  const summary = (study.summary ?? '').trim()
-  return (
-    <section className="pub-today" aria-labelledby="pub-today-h">
-      <h2 className="pub-today-h" id="pub-today-h">오늘 하나만 읽는다면</h2>
-      <Link className="pub-today-card" href={`/library/${study.slug}`}>
-        <span className="pub-today-head">
-          <PubBrandLogo study={study} size="md" />
-          <span className="pub-index-t" translate={study.brand_name ? 'no' : undefined}>{study.brand_name ?? '브랜드명 미기재'}</span>
-        </span>
-        {summary ? <span className="pub-index-s">{summary}</span> : null}
-        <span className="pub-index-act">
-          {note ? <><b>내일 할 행동</b> {note}</> : '가져갈 행동이 아직 안 적혀 있다 (인사이트 등급 D)'}
-        </span>
-        <span className="pub-today-foot">
-          <PubStamp move={move} />
-          <span className="pub-caption">무브 {move_count}개</span>
-        </span>
-      </Link>
-      <p className="pub-caption">승인 케이스 중 한 장을 한국 시간 날짜로 골라 하루 동안 고정한다.</p>
-    </section>
-  )
-}
-
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ v?: string; p?: string; error?: string }> }) {
   // 로그인한 사람에게 랜딩은 볼 이유가 없는 화면이다 — 종전대로 작업 화면으로 보낸다.
   const verdict = await getAuthVerdict()
   if (verdict.kind === 'allowed') redirect('/dashboard')
-
-  // 라이브러리 로더 한 벌을 그대로 쓴다(화면마다 다른 숫자가 나오지 않게).
-  // 기본 종류 필터(kind=saas)도 `/library` 첫 화면과 같다 — 여기 숫자와 그 목록이 어긋나면
-  // 방문자가 세어 보고 틀렸다고 판단한다.
-  const sb = await createClient()
-  const result = sb
-    ? await loadLibrary(sb, { problem: null, kind: DEFAULT_SEARCH_KIND, sort: DEFAULT_SORT }, 'landing')
-    : null
-  if (!result) console.error('[landing] supabase client unavailable — 숫자·최신 케이스를 비운다')
-  const failed = !result || result.status === 'error'
-  const counts = countsOf(result)
-  const cards = result?.status === 'ok' ? result.cards : []
-  const latest = cards.slice(0, 3)
-  const hiddenConsumer = result?.hidden_consumer ?? 0
-  const now = new Date()
-  const thisWeek = approvedThisWeek(result, now)
-  const today = result?.status === 'ok' ? pickTodayCase(result.cards, now) : null
-  const sources = sb ? await loadSourceTiles(sb, 'landing') : { tiles: null, hidden_zero: 0 }
-  const voc = sources.tiles ? summarizeSourceTiles(sources.tiles) : null
-  const vocTotal = voc?.total == null ? null : `${fmt(voc.total)}건`
-  const vocSources = sources.tiles ? `${sources.tiles.length}곳` : null
-
-  const n = (v: number | null, unit: string) => (v === null ? UNKNOWN : `${fmt(v)}${unit}`)
-  const avg = perCase(counts.evidence, counts.cases)
-  const withAction = failed ? null : cards.filter((c) => clipTransferNote(c.move?.transfer_note)).length
-
-  // B4 캡션 — 랜딩 상단과 같은 로더 결과(불일치 0). 못 세면 캡션만 "집계 불가", 4타일은 그대로 뜬다.
-  const captions: Pick<PubStepItem, 'caption' | 'href'>[] = [
-    { caption: `근거 ${n(counts.evidence, '건')} · ${vocTotal ? `리뷰 ${vocTotal}은` : `리뷰(${UNKNOWN})는`} 따로 VOC 피드로 간다` },
-    { caption: '2축 × A~D', href: '/library/methodology' },
-    { caption: `승인 케이스 ${n(counts.cases, '건')} · 무브 ${n(counts.moves, '개')} · ${thisWeek === null ? `이번 주 승인 ${UNKNOWN}` : `+${thisWeek} 이번 주`}` },
-    { caption: `문제 유형 ${READER_PROBLEMS.length}가지`, href: '/onboarding/quiz' },
-  ]
-  const steps: PubStepItem[] = STEPS.map((s, i) => ({ ...s, ...captions[i] }))
-
-  // B5 가치제안 6개 — 문구는 결정 문서 그대로. 라이브 숫자가 본문에 들어가는 두 장(2·6)은
-  // 못 셌으면 숫자 구절만 빼고(지어내지 않는다) 캡션은 "집계 불가".
-  const values: PubValueItem[] = [
-    {
-      icon: <IconProblem />, title: '내 문제 하나로 시작한다',
-      body: `브랜드 이름이나 회사 규모 대신, 지금 막힌 문제 ${READER_PROBLEMS.length}가지 중 하나를 고르면 그 문제를 겪은 케이스만 남는다.`,
-      stat: `문제 유형 ${READER_PROBLEMS.length}가지`,
-      source: 'config/reader-problems.json (코드 상수 READER_PROBLEMS)',
-    },
-    {
-      icon: <IconEvidence />, title: '근거가 링크로 붙어 있다',
-      body: `케이스마다 공시, 창업자 인터뷰, 기사 같은 원문 링크가${avg ? ` 평균 ${avg.label}개` : ''} 붙는다. 인용(한국어 130자·영어 240자 이내)과 게시일까지 같이 적어서 직접 확인할 수 있다.`,
-      stat: avg ? `케이스당 근거 ${avg.label}개` : `케이스당 근거 ${UNKNOWN}`,
-      source: avg ? `원 수치 ${avg.raw} (근거 ÷ 승인 케이스, 라이브 집계 lib/cases/library.ts loadLibrary)` : '라이브 집계 실패 (lib/cases/library.ts loadLibrary)',
-    },
-    {
-      icon: <IconGrade />, title: '등급을 두 축으로 적는다',
-      body: '그 수치를 믿어도 되는지(사실확인)와 내가 가져갈 게 있는지(인사이트)를 따로 A부터 D까지 적는다. 등급이 낮은 케이스도 지우지 않고 낮다고 쓴다.',
-      stat: '2축 × 4등급, 법정 공시 근거 65행',
-      source: 'lib/cases/draft.ts gradeMove · docs/evidence-rules.md §3 · drafts/cases 281행 중 is_regulatory_filing 65(23%), 2026-09-30 기준',
-    },
-    {
-      icon: <IconAction />, title: '읽고 나면 내일 할 일이 하나 생긴다',
-      body: '승인된 케이스에는 내가 내일 할 수 있는 행동 한 줄과 그 전제가 붙는다. 직접 사례를 뒤져 정리하는 것보다 빠르다 (추정).',
-      stat: withAction === null || counts.cases === null ? `내일 할 행동 ${UNKNOWN}`
-        : withAction === counts.cases ? `공개 케이스 ${fmt(counts.cases)}건 전부` : `공개 케이스 ${fmt(counts.cases)}건 중 ${fmt(withAction)}건`,
-      source: '라이브 집계: 승인 케이스 중 대표 무브에 “내일 할 행동”(transfer_note)이 있는 수 (2026-09-30 실측 15/15)',
-    },
-    {
-      icon: <IconSplit />, title: '안 된 쪽도 같이 본다',
-      body: '같은 병목에서 반대로 간 케이스를 짝으로 붙이고, 같은 소구점으로 망한 기록도 옆에 둔다. 짝이 없으면 없다고 적는다.',
-      stat: '병목 7가지 전부에서 짝 비교 가능',
-      source: '병목 7가지 짝 비교 범위 점검 7/7 (2026-09-28 기준)',
-    },
-    {
-      icon: <IconSignal />, title: '진짜 사용자 목소리에서 신호를 고른다',
-      body: `${vocSources && vocTotal ? `${vocSources}에서 모은 리뷰와 댓글 ${vocTotal} 중` : '모은 리뷰와 댓글 중'} 관련 판정을 받은 것만 짧은 발췌로 보여준다. 판정은 두 모델이 따로 하고 사람이 검사한다. 내 시장의 불만을 먼저 보는 데 도움이 된다 (추정).`,
-      stat: vocSources && vocTotal ? `소스 ${vocSources} · ${vocTotal}` : `소스 ${UNKNOWN}`,
-      source: '라이브 집계: 소스별 누적 수집 합(lib/cases/library.ts loadSourceTiles) · 2모델 판정은 CLAUDE.md §10.1 rr-v2',
-    },
-  ]
+  const sp = await searchParams
+  const variant = sp.v && sp.v in HEAD ? sp.v : 'a'
+  const price = sp.p === '99' ? '99,000' : '49,000'
+  const [scale, sample] = await Promise.all([loadScale(), loadSample()])
+  const scaleParts = [
+    scale.cases !== null ? `정리한 사례 ${fmt(scale.cases)}건` : null,
+    scale.failures !== null ? `실패 기록 ${fmt(scale.failures)}건` : null,
+    scale.voices !== null && scale.voices > 0 ? `읽은 고객 글 약 ${fmt(Math.round(scale.voices / 100) * 100)}건` : null,
+  ].filter(Boolean)
 
   return (
-    <PubShell theme="light">
-      <Hero
-        animateTitle
-        title="같은 문제에 막혔던 사례가, 그걸 어떻게 풀었는지."
-        lead="한국 업무용 AI 소프트웨어 팀을 위해, 경쟁 제품의 고객 글을 대조해 결론서를 만든다. 영역은 회의·통화 기록, 영업, 마케팅, 인사 운영, 리뷰 관리다. 사례마다 근거 등급과 내일 할 행동 한 줄이 붙는다."
-        actions={
-          <>
-            <PillCta href="/library">케이스 둘러보기</PillCta>
-            <PubButtonLink href="/onboarding/quiz" variant="outline" size="lg">내 문제로 시작</PubButtonLink>
-          </>
-        }
-        note="읽는 데는 로그인이 필요 없다. 초대된 계정만 내부 작업 화면에 들어온다."
-        aside={
-          today ? <TodayCard card={today} /> : (
-            // 케이스가 없으면 4단계 압축판(B3-1). 조회 실패와 0건은 다른 문장(§7.1).
-            <section className="pub-today" aria-labelledby="pub-today-h">
-              <h2 className="pub-today-h" id="pub-today-h">오늘 하나만 읽는다면</h2>
-              <p className="pub-caption">
-                {failed
-                  ? '케이스 목록을 읽지 못해 오늘의 케이스를 고르지 못했다. 승인 케이스가 없다는 뜻이 아니다.'
-                  : '아직 무브까지 승인된 케이스가 없어 오늘의 케이스를 고를 수 없다.'}
-              </p>
-              <PubSteps steps={STEPS} compact />
-            </section>
-          )
-        }
-      />
+    <PubShell theme="light" footerNote="솔루션아카이브는 공개된 정보와 직접 쌓은 사례로 결론서를 만듭니다. 결과는 판단 재료이고, 결정은 대표님이 합니다.">
+      <div className="pub-solo">
+        <Hero eyebrow="솔루션아카이브" title={HEAD[variant]} lead="서비스 주소만 넣으세요. 귀사만을 위한 결론서 초안을 무료로 보내 드립니다." />
+        {sp.error && ERR[sp.error] ? <Panel tone="alert" titleAs="h2" title="확인해 주세요"><p className="pub-text" role="alert">{ERR[sp.error]}</p></Panel> : null}
+        <Panel><DraftForm id="top" variant={variant} /></Panel>
 
-      {/* 로고 띠 — 5개 미만이면 PubLogoStrip 이 스스로 null(빈 Reveal 은 CSS 로 접힌다). "Trusted by" 류 문구 금지. */}
-      <Reveal>
-        <PubLogoStrip studies={cards.map((c) => ({ ...c.study, approved_at: c.study.reviewed_at ?? null }))} />
-      </Reveal>
+        <Panel titleAs="h2" title="지금 모습">
+          <p className="pub-text">서비스는 만들었습니다. 그런데 손님이 늘지 않습니다. 기능을 더 만들까, 광고를 할까, 값을 내릴까. 무엇부터 해야 할지 모르는 채로 한 달이 또 갑니다.</p>
+        </Panel>
 
-      <Section
-        title="사람이 승인한 것만 센다"
-        lead={
-          failed
-            ? '지금 집계를 못 읽었다. 0건이라는 뜻이 아니라 확인에 실패한 것이다.'
-            : `숫자는 업무용 소프트웨어 케이스 기준이다.${hiddenConsumer > 0 ? ` 범위 밖 ${hiddenConsumer}건은 라이브러리 기본 화면과 같게 빼고 셌다.` : ''}`
-        }
-      >
-        <Reveal className="pub-reveal--deep"><PubSteps steps={steps} /></Reveal>
-      </Section>
+        <Panel titleAs="h2" title="왜 여태 안 풀렸나">
+          <p className="pub-text">문제는 열심히 하지 않아서가 아닙니다. 어디가 막혔는지 모르고 고치기 때문입니다. 안 오는 건지, 와서 가입을 안 하는 건지, 쓰다 마는 건지에 따라 할 일이 완전히 다릅니다.</p>
+        </Panel>
 
-      {/* 소스별 VOC — 큰 숫자 하나 + 상위 5곳 + 나머지 접힘(B3-2). 누적 수집(dedupe 제외). 못 셌으면 "집계 불가"(§7.1). */}
-      <Section
-        title="소스별로 모은 목소리"
-        lead={
-          sources.tiles === null
-            ? '소스 목록을 읽지 못했다. 수집이 0건이라는 뜻이 아니라 확인에 실패한 것이다.'
-            : `수집기가 가져온 글·댓글의 누적 수집(중복 정리분 제외)이다.${sources.hidden_zero > 0 ? ` 아직 0건인 소스 ${sources.hidden_zero}곳은 뺐다.` : ''}`
-        }
-      >
-        {voc && voc.top.length > 0 ? (
-          <div className="pub-voc">
-            <p className="pub-voc-total"><strong>{vocTotal ?? UNKNOWN}</strong> <span>소스 {vocSources}</span></p>
-            <ul className="pub-voc-top">
-              {voc.top.map((t) => (
-                <li key={t.key}>
-                  <PubIconTile icon={<IconSignal />} size={32} />
-                  <span className="pub-voc-name">{t.name}</span>
-                  <span className="pub-voc-count">{t.count === null ? UNKNOWN : `${fmt(t.count)}건`}</span>
-                </li>
-              ))}
-            </ul>
-            {voc.rest.length > 0 ? (
-              <details className="pub-details">
-                <summary>소스 {voc.rest.length}곳 더 보기 <IconChevronDown /></summary>
-                <ul className="pub-voc-rest">
-                  {voc.rest.map((t) => (
-                    <li key={t.key}><span>{t.name}</span><span className="pub-voc-count">{t.count === null ? UNKNOWN : `${fmt(t.count)}건`}</span></li>
-                  ))}
-                </ul>
-              </details>
-            ) : null}
+        <section aria-labelledby="three-h">
+          <h2 className="pub-h2" id="three-h">우리가 하는 일 3가지</h2>
+          <div className="pub-three">
+            <Panel titleAs="h3" title="① 데려올 손님 찾기"><p className="pub-text">경쟁 서비스 고객이 남긴 불만을 읽고 <b>귀사가 데려올 수 있는 손님</b>을 찾습니다.</p></Panel>
+            <Panel titleAs="h3" title="② 실제로 한 일 보여 주기"><p className="pub-text">비슷한 처지였던 회사들이 <b>실제로 무엇을 해서 어떻게 됐는지</b> 보여 드립니다. 잘된 곳과 안 된 곳 모두요.</p></Panel>
+            <Panel titleAs="h3" title="③ 이번 주 할 일"><p className="pub-text"><b>이번 주에 바로 해 볼 일</b>을 문구까지 써서 드립니다.</p></Panel>
           </div>
-        ) : sources.tiles ? (
-          <p className="pub-text">등록된 소스는 있지만 아직 모은 글이 없다.</p>
-        ) : null}
-      </Section>
+        </section>
 
-      <Section title="사례집이 아니라 판정문에 가깝다">
-        <Reveal className="pub-reveal--deep"><PubValueGrid items={values} /></Reveal>
-      </Section>
-
-      <Section title="최신 케이스" lead="줄의 마지막 문장은 요약이 아니라 내일 할 행동이다.">
-        {latest.length > 0 ? (
-          <Reveal className="pub-reveal--deep">
-            <ul className="pub-index">
-              {latest.map(({ study, move, move_count }) => (
-                <PubIndexRow key={study.id} study={study} move={move} moveCount={move_count} />
-              ))}
-            </ul>
-          </Reveal>
-        ) : failed ? (
-          // 3상태를 가른다(§7.1): 조회 실패는 알림, "아직 0건"은 빈 상태 — 같은 문장으로 접지 않는다.
-          <Panel tone="alert" title="확인 불가. 케이스 목록 조회 실패">
-            <p className="pub-text">승인 케이스가 없다는 뜻이 아니다. 라이브러리에서 다시 시도해 볼 수 있다.</p>
+        {sample ? (
+          <Panel titleAs="h2" title="실물 보기">
+            <p className="pub-caption">우리 회사(솔루션아카이브) 주소로 만든 결론서 초안의 첫 장입니다. 이런 문서를 귀사 것으로 만들어 드립니다.</p>
+            <p className="pub-text"><b>{sample.headline}</b></p>
+            <p className="pub-text"><b>{sample.leak_or_gap?.kind === 'gap' ? '미개척' : '누수'}: {sample.leak_or_gap?.title}</b></p>
+            <p className="pub-caption">{sample.leak_or_gap?.detail}</p>
+            <p className="pub-caption">카테고리 위치: {sample.position?.category} — {sample.position?.where}</p>
           </Panel>
-        ) : (
-          <PubEmpty
-            compact
-            title="아직 승인된 케이스가 없다 (조회는 정상)"
-            description="초안은 쌓이고 있고, 사람 검수를 통과한 것만 여기 올라온다."
-          />
-        )}
-        <div className="pub-actions">
-          <PubButtonLink href="/library" variant="outline" size="sm">전체 라이브러리 보기<IconArrowRight /></PubButtonLink>
-        </div>
-      </Section>
+        ) : null}
 
-      {/* 이 화면의 유일한 다크 면. */}
-      <Panel tone="dark">
-        <div>
-          <h2 className="pub-panel-title">내 문제부터 고르면 사례가 좁혀진다</h2>
-          <p className="pub-text">7가지 문제 유형 중 하나를 고르는 것으로 시작한다. 브랜드 이름이나 규모보다 그 축이 먼저다.</p>
-        </div>
-        <div className="pub-actions">
-          <PillCta href="/onboarding/quiz">내 문제로 시작</PillCta>
-          <PubButtonLink href="/library" variant="ghost" size="lg">케이스 둘러보기</PubButtonLink>
-        </div>
-      </Panel>
+        <section aria-labelledby="tiers-h">
+          <h2 className="pub-h2" id="tiers-h">받는 것 3단계</h2>
+          <div className="pub-three">
+            <Panel titleAs="h3" title="초안 · 무료"><p className="pub-text">서비스 주소만 넣으면 됩니다. 바깥에서 보이는 것(화면·가격표·가입 과정·경쟁 서비스 고객 글)만으로 만든 결론서입니다.</p></Panel>
+            <Panel titleAs="h3" title="완성본 · 무료"><p className="pub-text">한 달 방문·가입·유료 손님 숫자 3개와 질문 3개(1분)에 답하면, 그 숫자로 다시 계산해 손님이 새는 곳을 판정하고 새 손님 길을 귀사에 맞게 다시 순서 매깁니다.</p></Panel>
+            <Panel titleAs="h3" title="유료본"><p className="pub-text">상황 맞춤 처방 + 7일 실험 꾸러미 + 실험 뒤 다시 판정. 닮은 상황의 사례를 찾아 "몇 곳이 했고 몇 곳이 됐는지"까지 보여 드립니다.</p></Panel>
+          </div>
+        </section>
+
+        <Panel titleAs="h2" title="값과 약속">
+          <p className="pub-text">유료본 {price}원. 읽고 쓸모없으면 전액 돌려 드립니다. 이유는 묻지 않습니다.</p>
+          <p className="pub-caption">유료본은 완성본을 받아 보신 뒤에 안내해 드립니다. 먼저 무료 초안으로 확인하세요.</p>
+        </Panel>
+
+        <Panel titleAs="h2" title="누가 만드나">
+          <p className="pub-text">솔루션아카이브는 작은 서비스 팀이 손님을 늘릴 길을 찾도록 돕는 곳입니다. 공개된 사례와 고객 글을 모아 두고, 귀사 상황과 닮은 것을 찾아 비교합니다.</p>
+          {scaleParts.length > 0 ? <p className="pub-caption">지금까지 쌓은 자료: {scaleParts.join(' · ')}</p> : null}
+        </Panel>
+
+        <section aria-labelledby="faq-h">
+          <h2 className="pub-h2" id="faq-h">자주 묻는 것</h2>
+          <Panel titleAs="h3" title="우리 회사 자료를 어떻게 아나요?"><p className="pub-text">공개된 것만 봅니다. 서비스 화면, 가격표, 가입 과정, 경쟁 서비스 고객이 공개로 남긴 글입니다. 로그인해야 보이는 화면은 보지 않습니다.</p></Panel>
+          <Panel titleAs="h3" title="숫자를 줘도 안전한가요?"><p className="pub-text">입력하신 숫자는 완성본을 만드는 데만 쓰고, 받으신 분의 열람 주소에서만 보입니다. 다른 곳에 공개하지 않습니다.</p></Panel>
+          <Panel titleAs="h3" title="얼마나 걸리나요?"><p className="pub-text">초안은 신청하고 2~4분, 완성본은 숫자를 낸 뒤 1분 안팎입니다.</p></Panel>
+          <Panel titleAs="h3" title="우리 분야도 되나요?"><p className="pub-text">지금은 10명 이하 SaaS 팀을 먼저 받고 있습니다. 다른 분야도 신청은 되지만, 읽을 자료가 얇으면 초안에 그렇게 적습니다.</p></Panel>
+          <Panel titleAs="h3" title="환불은 어떻게 하나요?"><p className="pub-text">유료본을 읽고 쓸모없으면 이유를 묻지 않고 전액 돌려 드립니다. 입금하신 계좌로 돌려 드립니다.</p></Panel>
+        </section>
+
+        <Panel titleAs="h2" title="귀사 것으로 받아 보세요"><DraftForm id="bottom" variant={variant} /></Panel>
+      </div>
     </PubShell>
   )
 }

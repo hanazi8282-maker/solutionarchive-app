@@ -40,6 +40,7 @@ jobs:
       # 사실 확인된 사례로 "부재 주장 오류"를 자동 검출). 2026-11-13까지 로컬 스크립트로만 있었고
       # 배포 전 아무것도 이걸 안 돌려서 PR을 막지 못했다 — 여기서 처음 CI에 배선한다.
       - run: node scripts/consult-selftest.mjs
+      - run: node scripts/lead-selftest.mjs
       # 앱 감사 A(2026-10-12): 소비재 태그 제외·인용 단일 관문·아이디어 URL 비노출·승인 취소.
       - run: node scripts/app-audit-a-selftest.mjs
       # Threads 토큰 3상태·refresh-token 크론 응답(만료·임박을 200 으로 숨기지 않는다), 크론 감시 판정.

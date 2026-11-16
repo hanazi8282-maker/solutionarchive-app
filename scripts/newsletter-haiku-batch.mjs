@@ -91,7 +91,7 @@ for (const r of res) { const k = r.custom_id[0], id = r.custom_id.slice(2).repla
   if (r.result.type !== 'succeeded') { bad[k]++; continue }
   tok.i += r.result.message.usage.input_tokens; tok.o += r.result.message.usage.output_tokens
   const o = parse(txt(r.result.message))
-  if (k === 'c') { if (!o || !KEYS.includes(o.domain)) { bad.c++; continue } dist[o.domain] = (dist[o.domain] ?? 0) + 1; ok.c++
+  if (k === 'c') { if (!o || !KEYS.includes(o.domain) || o.domain === 'content_media') { bad.c++; continue } // content_media 는 case_bank_labels CHECK 에 없음 → unknown 유지 dist[o.domain] = (dist[o.domain] ?? 0) + 1; ok.c++
     if (!has('--dry')) { const { error } = await sb.from('case_bank_labels').update({ domain: o.domain, label_model: `${MODEL}(domain)` }).eq('case_id', id).eq('domain', 'unknown'); if (error) throw error } }
   else { if (!o || typeof o.summary !== 'string' || o.summary.length < 20 || /https?:\/\//.test(o.summary)) { bad.s++; continue } ok.s++
     if (!has('--dry')) { const { error } = await sb.from('newsletter_items').update({ summary: o.summary.slice(0, 500) }).like("content_hash", id + "%").is("summary", null); if (error) throw error } } }

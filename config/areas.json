@@ -10,6 +10,7 @@
     { "code": "5", "name": "⑤ 글쓰기·문서·노트", "kind": "area", "active": true },
     { "code": "work", "name": "⑧ 업무관리", "kind": "area", "active": true },
     { "code": "design", "name": "⑨ 디자인", "kind": "area", "active": true },
+    { "code": "pay", "name": "⑩ 결제·정산·회계", "kind": "area", "active": true },
     { "code": "hold", "name": "⑥ 고객상담 에이전트·⑦ 이커머스 운영 도구(하위 7-리뷰도구) — 보류", "kind": "hold", "active": false },
     { "code": "out-consumer", "name": "영역 외-소비재", "kind": "out", "active": false },
     { "code": "out-founder", "name": "영역 외-창업가 불만", "kind": "out", "active": false }

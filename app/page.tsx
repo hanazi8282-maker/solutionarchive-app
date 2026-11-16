@@ -29,7 +29,8 @@ const ERR: Record<string, string> = {
   url: '서비스 주소를 확인해 주세요(https://로 시작하는 공개 주소).',
   email: '받을 메일 주소를 확인해 주세요.',
   consent: '개인정보 안내에 동의해 주셔야 보내 드릴 수 있습니다.',
-  cap: '오늘 받을 수 있는 초안을 모두 접수했습니다. 내일 다시 신청해 주세요.',
+  cap: '오늘 접수가 마감됐습니다. 내일 다시 신청해 주세요.',
+  optout: '이 메일 주소는 수신 거부 목록에 있어 초안을 보내 드릴 수 없습니다. 다시 받고 싶으시면 받으셨던 메일에 답장해 주세요.',
   ip: '같은 곳에서 오늘 신청할 수 있는 횟수를 넘었습니다. 내일 다시 신청해 주세요.',
   fail: '접수하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
 }
@@ -47,7 +48,7 @@ function DraftForm({ id, variant }: { id: string; variant: string }) {
         <label htmlFor={`${id}-web`}>웹사이트</label>
         <input id={`${id}-web`} name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
-      <label className="pub-caption"><input type="checkbox" name="consent" required /> 입력한 주소와 메일을 초안을 만들고 안내하는 데만 쓰는 데 동의합니다. 수신 거부는 메일에 답장 한 줄이면 됩니다.</label>
+      <label className="pub-caption"><input type="checkbox" name="consent" required /> 입력한 주소와 메일을 초안을 만들고 안내하는 데만 쓰는 것에 동의합니다. <a href="/privacy">개인정보 안내</a> · <a href="/unsubscribe">수신 거부</a></label>
       <PubButton variant="primary" size="lg">무료 초안 받기</PubButton>
     </form>
   )

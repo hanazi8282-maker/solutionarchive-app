@@ -64,6 +64,7 @@ const PUBLIC_PREFIXES = [
  * 비교하므로 우연히 막고 있지만(`'/dashboard'.startsWith('//')` 가 false), 그 한 글자에
  * 기대는 건 방어가 아니다 — `startsWith(p)` 로 한 번만 단순화하면 전 경로가 열린다.
  *  - `/`                랜딩(로그인 전 첫 화면). 로그인돼 있으면 페이지가 /dashboard 로 보낸다.
+ *  - `/privacy` `/unsubscribe` 개인정보 처리 안내·수신 거부(v71cq §2-9, 남헌 2026-11-17 지시) — 정확일치. 수신 거부 접수 POST 는 `/d/optout`(공개 `/d` 접두사 안).
  *  - `/opengraph-image` 그 랜딩의 OG 이미지(app/opengraph-image.tsx). 링크 미리보기 크롤러는
  *                       익명이라 막으면 이미지가 영영 안 뜬다. DB 를 읽지 않는 정적 문구 이미지다.
  *  - `/voc`        VOC 라이브 피드(2026-10-01 `/signals` 에서 개명 — 옛 경로는 next.config 301)(관련 판정 리뷰 발췌, 읽기 전용). 남헌 2026-09-25 위임 B항.
@@ -74,7 +75,7 @@ const PUBLIC_PREFIXES = [
  *                       아이디어 원문은 2026-10-12 부터 URL 이 아니라 30분 쿠키로 온다(lib/cases/idea-handoff.ts).
  *                       정확일치라 검수 `/cases`·`/cases/search`·`/cases/<slug>` 는 계속 잠겨 있다.
  */
-const PUBLIC_EXACT = ['/', '/opengraph-image', '/voc', '/voc/community', '/voc/card', '/cases/report']
+const PUBLIC_EXACT = ['/', '/privacy', '/unsubscribe', '/opengraph-image', '/voc', '/voc/community', '/voc/card', '/cases/report']
 
 
 /**

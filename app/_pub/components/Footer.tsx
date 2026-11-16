@@ -12,7 +12,7 @@ export function Footer({ note }: { note?: string }) {
         <Link href="/login">로그인</Link>
       </div>
       <p className="pub-caption">
-        {note ?? '허용목록 베타. 초대된 Google 계정만 로그인할 수 있다. 케이스 라이브러리와 칼럼은 로그인 없이 읽힌다.'}
+        {note ?? '로그인은 팀 작업 화면에만 필요합니다. 케이스 라이브러리와 칼럼은 로그인 없이 읽을 수 있습니다.'}
       </p>
       <p className="pub-caption">SOLUTION ARCHIVE</p>
     </footer>

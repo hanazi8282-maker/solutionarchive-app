@@ -5,6 +5,7 @@ import { modesEnabled } from '@/lib/consult/modes'
 import type { ModeB } from '@/lib/consult/report/mode-b-validate'
 import type { ModeC1 } from '@/lib/consult/report/mode-c1-validate'
 import type { ModeC2 } from '@/lib/consult/report/mode-c2-validate'
+import type { Discovery } from '@/lib/consult/discover'
 import { PubShell } from '../../../_pub/components/PubShell'
 import { Hero } from '../../../_pub/components/Hero'
 import { Panel } from '../../../_pub/components/Panel'
@@ -60,6 +61,18 @@ function Reference({ g }: { g: { count: number; note: string } }) {
   )
 }
 
+// P2-F: 사례 은행에서 자동으로 찾은 참조군. 옛 결과에는 없다(없으면 그리지 않는다). 근거 부족 후보가 먼저 온다.
+function RefGroups({ d }: { d?: Discovery }) {
+  if (!d) return null
+  return (
+    <Panel title="자동으로 찾은 비교 대상(사례 은행)" titleAs="h2">
+      {d.status === 'no_domain' ? <p className="pub-text">근거 부족 — 입력에서 분야를 특정하지 못했습니다.</p>
+        : d.status === 'not_run' && !d.candidates.length ? <p className="pub-text">확인 불가 — 사례 은행을 조회하지 못했습니다.</p>
+        : <ul className="pub-text" style={{ overflowWrap: 'anywhere' }}>{d.candidates.map((c) => <li key={c.domain}>{c.name_ko}: {c.note}{c.examples.length ? ` (예: ${c.examples.map((e) => `${e.name}${e.outcome === 'failure' ? ' · 실패' : ''}`).join(', ')})` : ''}</li>)}</ul>}
+    </Panel>
+  )
+}
+
 export default async function ModeResult({ params }: { params: Promise<{ id: string }> }) {
   if (!modesEnabled()) notFound()
   const { id } = await params
@@ -83,6 +96,7 @@ export default async function ModeResult({ params }: { params: Promise<{ id: str
     <PubShell theme="light" footerNote="결과는 공개된 정보와 수집된 사례를 근거로 한 판단 재료입니다. 확률 예측은 검증 전이라 싣지 않았습니다. 결정은 대표님이 합니다.">
       <div className="pub-solo">
         {mode === 'b' ? <ModeBView o={data.output as ModeB} /> : mode === 'c1' ? <ModeC1View o={data.output as ModeC1} /> : <ModeC2View o={data.output as ModeC2} />}
+        {mode !== 'b' ? <RefGroups d={(data.output as { refgroup?: Discovery }).refgroup} /> : null}
         <div className="pub-actions"><PubButtonLink href="/consult/start" variant="outline" size="lg">다른 모드 해보기</PubButtonLink></div>
       </div>
     </PubShell>

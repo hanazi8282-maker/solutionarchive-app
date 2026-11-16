@@ -315,5 +315,65 @@ for (const st of ['low', 'full']) { const sys = buildSystem(st); const nums = (s
   t('pickSimilar: 0개 선택은 빈 배열', pickSimilar({ picks: [] }, c, 3).length === 0 && pickSimilar({}, c, 3).length === 0)
   t('pickSimilar: limit 적용·why 60자 절단', pickSimilar({ picks: [0, 1, 2, 3].map((i) => ({ i, why: 'w'.repeat(100) })) }, c, 3).length === 3 && pickSimilar({ picks: [{ i: 0, why: 'w'.repeat(100) }] }, c, 3)[0].why.length === 60) }
 
+// v71cp G8 — 예측 기록: 범주형만(prob 항상 null), 숫자 확률 필드는 읽지 않음, 기록 실패는 던지지 않음.
+{ const { buildPredictions, recordPredictions, DUE_DAYS } = await import('../lib/consult/predictions.ts')
+  const now = new Date('2026-11-16T00:00:00Z')
+  const b = buildPredictions('r1', 'b', { verdict: '중단', verdict_reason: '앞 다리가 비었습니다', falsifiable_condition: 'f', kill_condition: 'k', prediction_pct: 40, reference_group: { count: 12 } }, now)
+  t('G8 B: 3행·verdict 범주·근거수', b.length === 3 && b[0].verdict === '중단' && b.every((r) => r.evidence_count === 12))
+  t('G8: prob 는 항상 null(R10 전)', b.every((r) => r.prob === null) && !JSON.stringify(b).includes('40'))
+  t('G8: due_at = +90일', DUE_DAYS === 90 && b[0].due_at === '2027-02-14T00:00:00.000Z')
+  const c1 = buildPredictions('r1', 'c1', { blocked_stage: 2, give_up_condition: 'g', reference_group: { count: 3 } }, now)
+  t('G8 C1: 끊긴 다리 범주', c1[0].verdict === 'blocked_stage_2' && c1.length === 2)
+  const c2 = buildPredictions('r1', 'c2', { candidates: [{ name: 'A', reference_cases: ['x', 'y'], failure_case: 'z' }], top_pick: { index: 0, reason: 'r', give_up_condition: 'g' } }, now)
+  t('G8 C2: 1순위·근거수(참조+실패)', c2[0].claim.startsWith('1순위 A') && c2[0].evidence_count === 3)
+  t('G8 결론서: viability 없으면 headline 1행', buildPredictions('r1', 'report', { headline: 'h', leak_or_gap: { kind: 'gap' }, similar: [1, 2] }, now).length === 1)
+  t('G8: 빈 결과는 0행', buildPredictions('r1', 'b', {}, now).length === 0)
+  t('G8: 메모는 prediction_pct 무시', !JSON.stringify(buildPredictions('r1', 'memo', { recommendation: { choice: 'A', change_mind_if: ['x'] }, prediction_pct: 77 }, now)).includes('77'))
+  const errSb = { from: () => ({ insert: async () => ({ error: { message: 'relation "consult_predictions" does not exist' } }) }) }
+  const throwSb = { from: () => { throw new Error('boom') } }
+  const okSb = { rows: null, from() { return { insert: async (r) => { okSb.rows = r; return { error: null } } } } }
+  const origErr = console.error; console.error = () => {}
+  t('G8: 테이블 미적용 → failed(던지지 않음)', (await recordPredictions(errSb, 'r1', 'b', { verdict: '중단', verdict_reason: 'v' })) === 'failed')
+  t('G8: 클라이언트 예외 → failed(던지지 않음)', (await recordPredictions(throwSb, 'r1', 'b', { verdict: '중단', verdict_reason: 'v' })) === 'failed')
+  console.error = origErr
+  t('G8: 정상 → recorded', (await recordPredictions(okSb, 'r1', 'c1', { blocked_stage: 1, give_up_condition: 'g' })) === 'recorded' && okSb.rows.length === 2)
+  t('G8: 남길 것 없음 → empty', (await recordPredictions(okSb, 'r1', 'b', {})) === 'empty')
+  const mig = (await import('node:fs')).readFileSync(new URL('../supabase/migrations/20261116000001_consult_predictions_categorical.sql', import.meta.url), 'utf8')
+  t('G8 마이그: prob null CHECK·범주 칼럼', /check \(prob is null\)/.test(mig) && /add column if not exists verdict/.test(mig) && /add column if not exists evidence_count/.test(mig)) }
+
+// v71cp P2-F — 참조군 자동 발견: 주입 조회만(웹 없음), 3규칙, 근거 부족 먼저, 조회 실패는 확인 불가.
+{ const { discoverRefGroups, judgeCandidate, inferStructure, matchDomains, areasFrom, discoveryLines } = await import('../lib/consult/discover.ts')
+  const fs = await import('node:fs')
+  const read = (f) => JSON.parse(fs.readFileSync(new URL(`../config/${f}`, import.meta.url), 'utf8'))
+  const areas = areasFrom(read('areas_v2.json'), read('community_keywords_v2.json'))
+  t('P2-F: areas_v2 로딩(분야 ≥5)', areas.length >= 5 && areas.some((a) => a.key === 'booking_scheduling_forms' && a.ko?.includes('노쇼')))
+  t('P2-F: 노쇼 → 예약 분야', matchDomains('미용실 노쇼를 줄이는 예약 앱', areas)[0]?.key === 'booking_scheduling_forms')
+  t('P2-F: 분야 단서 없으면 빈 배열', matchDomains('zzz qqq', areas).length === 0)
+  t('P2-F: 구조 추론(소상공인·구독)', JSON.stringify(inferStructure('소상공인 대상 월 구독')) === JSON.stringify({ buyer_type: 'smb_owner', pricing_model: 'subscription' }))
+  t('P2-F: 단서 없으면 구조 키 없음(추정 금지)', Object.keys(inferStructure('좋은 앱')).length === 0)
+  const row = (i, outcome, buyer = 'smb_owner', pricing = 'subscription') => ({ case_id: `yc_companies:Co${i}`, buyer_type: buyer, pricing_model: pricing, outcome })
+  const area = { key: 'booking_scheduling_forms', name_ko: '예약' }
+  const S = { buyer_type: 'smb_owner', pricing_model: 'subscription' }
+  const good = [...Array.from({ length: 9 }, (_, i) => row(i, 'success')), row(9, 'failure'), row(10, 'success', 'enterprise')]
+  const g = judgeCandidate(area, good, S)
+  t('P2-F: 3규칙 통과 → ok·n=10(CEM 으로 enterprise 제외)', g.status === 'ok' && g.n === 10 && g.failures === 1 && g.examples.some((e) => e.outcome === 'failure'))
+  t('P2-F: 9건 → 근거 부족', judgeCandidate(area, good.slice(1), S).note.startsWith('근거 부족') && !judgeCandidate(area, good.slice(1), S).rules.n10)
+  t('P2-F: 실패 사례 없음 → 근거 부족', judgeCandidate(area, [...good.slice(0, 9), row(11, 'success')], S).rules.hasFailure === false)
+  t('P2-F: 구조 키 없음 → 근거 부족(구조 매칭 실패)', judgeCandidate(area, good, {}).status === 'insufficient' && !judgeCandidate(area, good, {}).rules.structureMatch)
+  t('P2-F: outcome unknown 은 세지 않음', judgeCandidate(area, [...good, row(12, 'unknown')], S).n === 10)
+  t('P2-F: 출력에 확률·성공률 숫자 없음', !('p' in g) && !/%/.test(g.note))
+  const calls = []
+  const fake = async (d) => { calls.push(d); if (d === 'sales_crm') throw new Error('down'); return d === 'booking_scheduling_forms' ? good : good.slice(1) }
+  const origErr = console.error; console.error = () => {}
+  const d = await discoverRefGroups('소상공인 미용실 노쇼 예약 월 구독 CRM 고객관리', areas, fake)
+  console.error = origErr
+  t('P2-F: 주입 조회만 호출(분야별 1회)', calls.length === d.candidates.length && calls.includes('booking_scheduling_forms'))
+  t('P2-F: 조회 실패 → not_run(근거 부족으로 접지 않음)', d.candidates.find((c) => c.domain === 'sales_crm')?.status === 'not_run')
+  t('P2-F: 근거 부족 후보가 먼저', d.candidates[0].status !== 'ok' && d.candidates.at(-1).status === 'ok' && d.status === 'ok')
+  t('P2-F: 분야 없음 → no_domain·근거 부족 줄', (await discoverRefGroups('zzz', areas, fake)).status === 'no_domain' && discoveryLines({ status: 'no_domain', structure: {}, candidates: [] })[0].includes('근거 부족'))
+  t('P2-F: 전부 조회 실패 → not_run', (await (async () => { console.error = () => {}; const r = await discoverRefGroups('노쇼 예약', areas, async () => { throw new Error('x') }); console.error = origErr; return r })()).status === 'not_run')
+  const src = fs.readFileSync(new URL('../lib/consult/discover.ts', import.meta.url), 'utf8')
+  t('P2-F: 라이브 웹 호출 없음(fetch(/http)', !/\bfetch\(|https?:\/\//.test(src.replace(/^\s*\/\/.*$/gm, ''))) }
+
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)
 process.exitCode = fail ? 1 : 0

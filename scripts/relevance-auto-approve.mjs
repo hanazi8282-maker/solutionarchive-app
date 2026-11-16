@@ -16,7 +16,7 @@
 // 종료코드: 0 정상(꺼짐·킬스위치 포함 — 사유는 로그·Notion) · 2 설정/조회 실패 · 3 저장 실패
 
 import { createClient } from '../lib/supabase/server.ts'
-import { AUTO_APPROVAL_RULE, autoApprovalGate, isFullAgreement } from '../lib/analysis/auto-approval.ts'
+import { AUTO_APPROVAL_RULE, autoApprovalGate, isFullAgreement, passesRrV2ContentGuard } from '../lib/analysis/auto-approval.ts'
 import { loadScope } from '../lib/analysis/approval-scope.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate, recordStatusLog } from './notion-status-log.mjs'
@@ -109,7 +109,17 @@ const agreed = rows.filter((r) => isFullAgreement(r, gate.since))
 // L-20b(남헌 v71f): 영역 외(out-*)·소비재 태그 행은 자동 승인 후보에서 뺀다. 영역·태그를 못 읽으면 "제외 없음"이 아니라 승인 0건이다(§7.1).
 const scope = await loadScope(sb, agreed.map((r) => r.input_id))
 if (!scope.ok) { console.error(`✗ 영역·소비재 태그 조회 실패 — 승인하지 않는다: ${scope.error}`); process.exit(2) }
-const targets = agreed.filter((r) => !scope.excluded.has(r.input_id))
+const scoped = agreed.filter((r) => !scope.excluded.has(r.input_id))
+// v71cp P1-F: 내용 가드(github_issues 제외·60자 미만 제외). 글을 못 읽으면 승인 0건이다(§7.1).
+const textById = new Map()
+for (let i = 0; i < scoped.length; i += 200) {
+  const ids = scoped.slice(i, i + 200).map((r) => r.input_id)
+  const { data, error } = await sb.from('analysis_inputs').select('id, source_key, raw_text').in('id', ids)
+  if (error) { console.error(`✗ 내용 가드 조회 실패 — 승인하지 않는다: ${error.message}`); process.exit(2) }
+  data.forEach((x) => textById.set(x.id, x))
+}
+const targets = scoped.filter((r) => passesRrV2ContentGuard(textById.get(r.input_id) ?? {}))
+log(`내용 가드 제외 ${scoped.length - targets.length}건 (github_issues·60자 미만·본문 없음)`)
 const byReason = [...scope.excluded.values()].reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {})
 log(`대상 ${targets.length}건 (쿼리 ${rows.length}건 · 완전 동의 ${agreed.length}건 · 영역 외/소비재 태그 제외 ${scope.excluded.size}건 ${JSON.stringify(byReason)})`)
 if (dry) { log('--dry: 쓰지 않는다.'); process.exit(0) }

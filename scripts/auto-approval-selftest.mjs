@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION, criteriaKindOf } from '../lib/analysis/relevance-criteria.ts'
 import { buildRelevancePrompt, parseGradingMarkdown } from '../lib/analysis/relevance-judge.ts'
 import { SECOND_OPINION_INSTRUCTIONS, isCurrentCriteria } from '../lib/analysis/second-opinion.ts'
-import { AUDIT_DAILY, AUTO_APPROVAL_RULE, CAPACITY_GUARD, KILL, autoApprovalGate, capacityGuard, isFullAgreement, killSwitch, scoreApproval, tripThreshold } from '../lib/analysis/auto-approval.ts'
+import { passesRrV2ContentGuard, AUDIT_DAILY, AUTO_APPROVAL_RULE, CAPACITY_GUARD, KILL, autoApprovalGate, capacityGuard, isFullAgreement, killSwitch, scoreApproval, tripThreshold } from '../lib/analysis/auto-approval.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 let pass = 0, fail = 0
@@ -143,4 +143,16 @@ ok(!/case_studies|case_moves/.test(src('scripts/relevance-auto-approve.mjs').rep
 }
 
 console.log(`\n${fail ? '❌' : '✅'} 자동 승인 셀프테스트: ${pass} pass / ${fail} fail`)
+// v71cp P1-F 내용 가드
+{
+  const long = 'x'.repeat(80)
+  const ok = (r) => passesRrV2ContentGuard(r)
+  if (!ok({ source_key: 'appstore', raw_text: long })) { console.error('✗ 가드: 정상 글이 막힘'); process.exit(1) }
+  if (ok({ source_key: 'github_issues', raw_text: long })) { console.error('✗ 가드: github_issues 가 통과'); process.exit(1) }
+  if (ok({ source_key: 'appstore', raw_text: 'x'.repeat(59) })) { console.error('✗ 가드: 59자가 통과'); process.exit(1) }
+  if (ok({ source_key: 'appstore', raw_text: null }) || ok({ source_key: null, raw_text: long })) { console.error('✗ 가드: 못 읽은 글이 통과(§7.1)'); process.exit(1) }
+  console.log('✓ rr-v2 내용 가드 5건')
+}
+
 process.exit(fail ? 1 : 0)
+

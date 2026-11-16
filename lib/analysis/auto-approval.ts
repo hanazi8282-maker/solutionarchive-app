@@ -61,6 +61,19 @@ export function meetsRrV2(r: Pick<VerdictRow, 'verdict' | 'second_verdict' | 'pr
   return r.verdict === 'relevant' && r.second_verdict === 'relevant' && r.product_informative === true && r.second_product_informative === true
 }
 
+/**
+ * rr-v2 내용 가드(v71cp P1-F, 2026-11-16) — 승인 범위를 **좁히기만** 한다. 사람 채점 대조(자동 승인·채점 154건)에서
+ * 개발자 GitHub 이슈(9건 중 3건 오류)와 60자 미만 한 줄(13건 중 6건 오류)이 오류의 몫이 컸다. 영역 밖은 loadScope 가 이미 뺀다.
+ * 같은 154건에 세 조건(영역 안·github_issues 제외·60자 이상)을 걸면 정밀도 81.8% → 87.2%(125건 유지). 같은 표본에서 고른 문턱이라 새 표본으로 다시 잰다.
+ * 글을 못 읽었으면(text null) "통과"가 아니라 막는다(§7.1).
+ */
+export const RR_V2_MIN_TEXT = 60
+export function passesRrV2ContentGuard(r: { source_key?: string | null; raw_text?: string | null }): boolean {
+  if (r.source_key == null || r.raw_text == null) return false
+  if (r.source_key === 'github_issues') return false
+  return r.raw_text.trim().length >= RR_V2_MIN_TEXT
+}
+
 export function isFullAgreement(r: VerdictRow, since: Date): boolean {
   if (!meetsRrV2(r)) return false
   if (r.human_verdict != null || r.auto_approved_at != null) return false

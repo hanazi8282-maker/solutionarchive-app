@@ -5,6 +5,7 @@
 //   node --env-file=.env.local scripts/newsletter-haiku-batch.mjs --status | --apply [--dry]
 // 규칙: free 티어 공개 본문만(ground 에서 읽음, DB 에 본문 적재 없음) · 요약은 우리 말로 ≤300자 · 한도 초과 추정이면 제출 안 함 · 이미 값 있는 행은 덮어쓰지 않음(is null / domain=unknown 조건).
 import { createClient } from '@supabase/supabase-js'
+import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
 import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -19,10 +20,10 @@ const sha = (s) => createHash('sha256').update(s).digest('hex')
 const walk = (d) => readdirSync(d).flatMap((n) => { const p = join(d, n); return statSync(p).isDirectory() ? walk(p) : p.endsWith('.md') ? [p] : [] })
 const DOM = KEYS.map((k) => k).join(' | ')
 
-const SYS_SUM = `너는 SaaS 뉴스레터 글을 한국어로 요약한다. 출력은 JSON 한 개만: {"summary":"...","domain":"..."}.
+const SYS_SUM = `너는 SaaS 뉴스레터 글을 한국어로 요약한다. ${UNTRUSTED_INPUT_NOTICE} 출력은 JSON 한 개만: {"summary":"...","domain":"..."}.
 summary: 본문 문장을 베끼지 말고 네 말로 정확히 2문장, 공백 포함 250자 이내. 글이 다루는 사업 사실·결정·결과만. 근거 없는 숫자를 만들지 않는다.
 domain: 글이 주로 다루는 제품·사업 분야 하나 — ${DOM}. 특정 분야가 아니면 other_saas.`
-const SYS_CASE = `SaaS 사례 한 건의 분야를 고른다. 출력은 JSON 한 개만: {"domain":"..."}. 후보: ${DOM}. 판단 근거가 약하면 other_saas.`
+const SYS_CASE = `SaaS 사례 한 건의 분야를 고른다. ${UNTRUSTED_INPUT_NOTICE} 출력은 JSON 한 개만: {"domain":"..."}. 후보: ${DOM}. 판단 근거가 약하면 other_saas.`
 
 const call = async (system, user, max = 400) => {
   const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: H, body: JSON.stringify({ model: MODEL, max_tokens: max, thinking: { type: 'disabled' }, system, messages: [{ role: 'user', content: user }] }) })
@@ -92,6 +93,6 @@ for (const r of res) { const k = r.custom_id[0], id = r.custom_id.slice(2).repla
   const o = parse(txt(r.result.message))
   if (k === 'c') { if (!o || !KEYS.includes(o.domain)) { bad.c++; continue } dist[o.domain] = (dist[o.domain] ?? 0) + 1; ok.c++
     if (!has('--dry')) { const { error } = await sb.from('case_bank_labels').update({ domain: o.domain, label_model: `${MODEL}(domain)` }).eq('case_id', id).eq('domain', 'unknown'); if (error) throw error } }
-  else { if (!o || typeof o.summary !== 'string' || o.summary.length < 20) { bad.s++; continue } ok.s++
+  else { if (!o || typeof o.summary !== 'string' || o.summary.length < 20 || /https?:\/\//.test(o.summary)) { bad.s++; continue } ok.s++
     if (!has('--dry')) { const { error } = await sb.from('newsletter_items').update({ summary: o.summary.slice(0, 500) }).like("content_hash", id + "%").is("summary", null); if (error) throw error } } }
 console.log(`적용${has('--dry') ? '(dry)' : ''} · 글 요약 ${ok.s}(실패 ${bad.s}) · 사례 분야 ${ok.c}(실패 ${bad.c}) · 토큰 in ${tok.i} out ${tok.o} → 실제 약 $${((tok.i * PRICE.in + tok.o * PRICE.out) / 1e6 / 2).toFixed(2)}(배치 50%) · 분포 ${JSON.stringify(dist)}`)

@@ -5,6 +5,21 @@ import { buildModeC1 } from './report/mode-c1.ts'
 import { buildModeC2, poolKeywords, poolNames } from './report/mode-c2.ts'
 import { buildC2Pool, type C2Pool } from './report/mode-c2-pool.ts'
 import { createRun, db, setStatus, type Run } from './runs.ts'
+import { recordPredictions } from './predictions.ts'
+import { areasFrom, dbFetchLabels, discoverRefGroups, discoveryLines, type Discovery } from './discover.ts'
+import fs from 'node:fs'
+import path from 'node:path'
+
+/** 참조군 자동 발견(P2-F) — C1·C2 입력 글로 사례 은행만 조회한다. 설정을 못 읽으면 not_run(확인 불가). 던지지 않는다. */
+async function discover(sb: Awaited<ReturnType<typeof db>>, text: string): Promise<Discovery> {
+  try {
+    const read = (f: string) => JSON.parse(fs.readFileSync(path.join(process.cwd(), 'config', f), 'utf8'))
+    return await discoverRefGroups(text, areasFrom(read('areas_v2.json'), read('community_keywords_v2.json')), dbFetchLabels(sb))
+  } catch (e) {
+    console.error(`refgroup discovery failed: ${e instanceof Error ? e.message : e}`)
+    return { status: 'not_run', structure: {}, candidates: [] }
+  }
+}
 
 export type ModeKey = 'b' | 'c1' | 'c2'
 
@@ -47,14 +62,16 @@ export async function runMode(owner: string, input: ModeInput): Promise<string> 
     } else if (input.mode === 'c1') {
       const pool = await buildC2Pool(sb, poolKeywords({ access: input.idea, interests: input.conditions }))
       const ev = evidenceFrom(pool)
-      const r = await buildModeC1({ runId: run.id, owner, oneLiner: input.idea, founderConditions: input.conditions, extra: input.extra, evidence: ev.text, evidenceCount: ev.count })
-      output = r.modeC1; model = r.model; costUsd = r.costUsd
+      const refgroup = await discover(sb, `${input.idea} ${input.conditions} ${input.extra ?? ''}`)
+      const r = await buildModeC1({ runId: run.id, owner, oneLiner: input.idea, founderConditions: input.conditions, extra: input.extra, evidence: [...discoveryLines(refgroup), ev.text].join('\n'), evidenceCount: ev.count })
+      output = { ...r.modeC1, refgroup }; model = r.model; costUsd = r.costUsd
     } else {
       const r = await buildModeC2(sb, { runId: run.id, owner, tech: input.tech, capital: input.capital, hours: input.hours, access: input.access, interests: input.interests })
-      output = r.modeC2; model = r.model; costUsd = r.costUsd
+      output = { ...r.modeC2, refgroup: await discover(sb, `${input.access} ${input.interests ?? ''} ${input.tech}`) }; model = r.model; costUsd = r.costUsd
     }
     const { error } = await sb.from('consult_mode_results').upsert({ run_id: run.id, mode: input.mode, input, output, model, cost_usd: costUsd }, { onConflict: 'run_id,mode' })
     if (error) throw new Error(`모드 결과 저장 실패: ${error.message}`)
+    await recordPredictions(sb, run.id, input.mode, output) // G8 — 실패해도 던지지 않는다(로그만)
     await setStatus(run.id, 'done')
     return run.id
   } catch (e) {

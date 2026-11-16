@@ -3,6 +3,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createLead, hashIp, leadCounts, parseLeadForm, LEAD_DAILY_CAP, LEAD_IP_DAILY } from '@/lib/consult/leads'
 import { capExceeded } from '@/lib/consult/usage'
+import { isOptedOut } from '@/lib/consult/optout'
 
 export async function POST(req: NextRequest) {
   const form = await req.formData()
@@ -11,6 +12,7 @@ export async function POST(req: NextRequest) {
   if (!p.ok) return p.code === 'bot' ? NextResponse.redirect(new URL('/', req.url), 303) : back(p.code)
   const ip = hashIp((req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown')
   try {
+    if (await isOptedOut(p.email)) return back('optout')
     const n = await leadCounts(ip)
     if (n.today >= LEAD_DAILY_CAP) return back('cap')
     if (n.ip >= LEAD_IP_DAILY) return back('ip')

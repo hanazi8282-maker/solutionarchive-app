@@ -1,4 +1,5 @@
 // 무료 초안 신청·완성본 입력 셀프테스트(v71co 개정) — 네트워크·DB 없이 도는 순수 함수만.
+import { parseOptout, normalizeEmail, OPTOUT_REASONS } from '../lib/consult/optout.ts'
 import { parseLeadForm, parseCompletion, funnel, mailDraft, leadOwner, validateCompletionResult, TOKEN_RE } from '../lib/consult/leads.ts'
 let pass = 0, fail = 0
 const t = (name, ok) => { if (ok) pass++; else { fail++; console.log('❌', name) } }
@@ -37,5 +38,11 @@ t('완성본 결과 검증 통과', validateCompletionResult(okR, 3).paths.lengt
 t('stage 오류 거절', (() => { try { validateCompletionResult({ ...okR, stage: 'x' }, 3); return false } catch { return true } })())
 t('길이 모자라면 거절', (() => { try { validateCompletionResult({ ...okR, paths: okR.paths.slice(0, 2) }, 3); return false } catch { return true } })())
 
+t('수신 거부: 정상(소문자 정리·이유 선택)', (() => { const r = parseOptout({ email: ' Kim@Example.com ', reason: 'too_many' }); return r.ok && r.email === 'kim@example.com' && r.reason === 'too_many' })())
+t('수신 거부: 이유 없어도 통과(필수 아님)', parseOptout({ email: 'a@b.co' }).ok && parseOptout({ email: 'a@b.co' }).reason === null)
+t('수신 거부: 목록 밖 이유는 null', parseOptout({ email: 'a@b.co', reason: 'zzz' }).reason === null)
+t('수신 거부: 메일 형식 오류·봇', parseOptout({ email: 'x' }).code === 'email' && parseOptout({ email: 'a@b.co', website: 'x' }).code === 'bot')
+t('수신 거부: 이유 4종', Object.keys(OPTOUT_REASONS).length === 4 && normalizeEmail('A@B.CO') === 'a@b.co')
+t('메일 문안에 수신 거부·개인정보 주소', mailDraft({ host: 'x.io', token: tok, base: 'https://x.test' }).includes('https://x.test/unsubscribe') && mailDraft({ host: 'x.io', token: tok, base: 'https://x.test' }).includes('https://x.test/privacy'))
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건 — 무료 초안 접수·완성본 입력·깔때기·메일 문안·토큰`)
 process.exit(fail ? 1 : 0)

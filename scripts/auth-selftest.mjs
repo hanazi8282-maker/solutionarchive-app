@@ -50,6 +50,7 @@ for (const p of pages) {
   const shouldBePublic = p === '/' || p === '/login' || p.startsWith('/onboarding')
     || p.startsWith('/columns/read') || p.startsWith('/library') || p.startsWith('/r/') // v71ci R11 결론서 공개 출구
     || p.startsWith('/d/') // v71co 개정 무료 초안 열람·완성본 입력
+    || p === '/privacy' || p === '/unsubscribe' // v71cq §2-9 정확일치 공개
     || SIGNAL_PAGES.includes(p) // 2026-09-25 남헌 위임 B항 — 정확일치 공개(아래 2d)
     || p === '/cases/report' // 2026-09-25 남헌 결정 2 — 체험판 정확일치 공개(아래 2e)
   t(`${shouldBePublic ? '공개' : '보호'}(페이지): ${p}`, isPublicPath(p) === shouldBePublic)
@@ -278,7 +279,8 @@ t('consult 열림이 내부 공개 경로로 새지 않는다: /consult 는 isPu
 }
 t('공개(결론서 출구): /r/<token>', isPublicPath('/r/0123456789abcdef0123456789abcdef'))
 t('공개(무료 초안 열람): /d/<token>·/d/new·/d/<token>/numbers', ['/d/0123456789abcdef0123456789abcdef', '/d/new', '/d/0123456789abcdef0123456789abcdef/numbers', '/d/0123456789abcdef0123456789abcdef/complete'].every(isPublicPath))
-for (const p of ['/dx', '/dashboard', '/dashboard/d', '/consult/d']) t(`무료 초안 출구 아님: ${p} 는 닫힘`, !isPublicPath(p))
+t('공개(개인정보 안내·수신 거부·거부 접수)', ['/privacy', '/unsubscribe', '/d/optout'].every(isPublicPath))
+for (const p of ['/privacyx', '/privacy/x', '/unsubscribe/x', '/dx', '/dashboard', '/dashboard/d', '/consult/d']) t(`무료 초안 출구 아님: ${p} 는 닫힘`, !isPublicPath(p))
 for (const p of ['/rx', '/report', '/r']) t(`결론서 출구 아님: ${p} 는 접두사 경계 밖(/r 단독은 열려도 무해하나 /rx·/report 는 닫힘)`, p === '/r' ? true : !isPublicPath(p))
 // proxy 배선 — 정책 함수만 맞아서는 부족하다(2026-11-11 프로덕션에서 /consult 가 내부 로그인으로 튕긴 사고). proxy.ts 가 열린 경로를 실제로 통과시키는지 소스로 확인한다.
 {

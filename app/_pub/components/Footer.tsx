@@ -9,6 +9,8 @@ export function Footer({ note }: { note?: string }) {
         <Link href="/voc">VOC</Link>
         <Link href="/library/methodology">방법론</Link>
         <Link href="/onboarding/quiz">내 문제로 시작</Link>
+        <Link href="/privacy">개인정보 안내</Link>
+        <Link href="/unsubscribe">수신 거부</Link>
         <Link href="/login">로그인</Link>
       </div>
       <p className="pub-caption">

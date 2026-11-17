@@ -57,6 +57,18 @@ basis 의 값은 move|result|blocked|who|quote|pattern|category 중 하나이거
 customer 는 이 회사의 "돈을 내는 손님"이다(창업자 본인·잠재 방문자가 아니다). 손님 종류가 move/result/blocked/who 에 직접 드러날 때만 채우고 분야(category) 칸만 보고 채우지 않는다.
 stage/team_size/customer/price_band 는 입력에 직접 단서(예: "혼자", "팀 5명", "출시 전", "개발자 대상")가 있을 때만 채운다. 매출 숫자가 있어도 단계를 추정하지 않는다.`
 
+/** 첫 번째 균형 잡힌 JSON 객체만 읽는다(모델이 뒤에 설명을 덧붙이는 경우). */
+function firstJson(raw) {
+  const i = raw.indexOf('{'); if (i < 0) return {}
+  let d = 0, ins = false, esc = false
+  for (let k = i; k < raw.length; k++) {
+    const ch = raw[k]
+    if (ins) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') ins = false; continue }
+    if (ch === '"') ins = true; else if (ch === '{') d++; else if (ch === '}' && --d === 0) return JSON.parse(raw.slice(i, k + 1))
+  }
+  return {}
+}
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 
@@ -65,7 +77,7 @@ const textOf = (r) => `회사: ${r.company}\n분야: ${r.category ?? ''}\n누가
 async function tagOne(r) {
   const msg = await client.messages.create({ model: MODEL, max_tokens: 700, system: SYSTEM, output_config: { effort: 'low' }, messages: [{ role: 'user', content: textOf(r) }] })
   const raw = msg.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
-  const p = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] ?? '{}')
+  const p = firstJson(raw)
   const basis = typeof p.basis === 'object' && p.basis ? p.basis : {}
   const okBasis = (k) => FIELDS.includes(basis[k]) && String(r[basis[k]] ?? '').trim() !== ''
   const pick = (f, k) => (lockOk(f, p[f]) && (p[f] === 'unknown' || (okBasis(k ?? f) && !(f === 'customer' && basis.customer === 'category'))) ? p[f] : 'unknown')
@@ -120,6 +132,20 @@ if (SAMPLE) {
   }
   moves = moves.filter((r) => !done.has(r.id))
 }
+if (process.argv.includes('--recheck')) {
+  // 재판정 표본: 이미 'mixed/negative' 로 단 줄 전부 + 'positive' 41줄(결정적 추출). 다른 모델(예: opus)로 결과 분류가 같은지 본다.
+  const got = []
+  for (let p = 0; ; p++) {
+    const { data, error } = await sb.from('ss_move_tags').select('move_id,result_class').eq('label_run', 'tag_v2_sonnet').in('result_class', ['mixed', 'negative', 'positive']).range(p * 1000, p * 1000 + 999)
+    if (error) { console.error(error.message); process.exit(2) }
+    got.push(...data); if (data.length < 1000) break
+  }
+  const hh = (x) => crypto.createHash('md5').update(x + 'chk').digest('hex')
+  const pos = got.filter((x) => x.result_class === 'positive').sort((a, b) => (hh(a.move_id) < hh(b.move_id) ? -1 : 1)).slice(0, 41)
+  const want = new Set([...got.filter((x) => x.result_class !== 'positive'), ...pos].map((x) => x.move_id))
+  moves = moves.filter((r) => want.has(r.id))
+}
+if (arg('ids')) { const want = new Set(JSON.parse(fs.readFileSync(arg('ids'), 'utf8'))); moves = moves.filter((r) => want.has(r.id)) }
 if (arg('limit')) moves = moves.slice(0, Number(arg('limit')))
 console.log(`[ss-move-tag ${RUN}] 대상 ${moves.length} dry=${DRY} 장=${CHAPTERS}`)
 const results = []; let inT = 0, outT = 0, err = 0, idx = 0, lastReport = 0, buf = []

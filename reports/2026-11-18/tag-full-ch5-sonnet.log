@@ -1,0 +1,15 @@
+(node:24768) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DCU/Desktop/Cowork/SolutionArchive/lib/llm/untrusted-input.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DCU\Desktop\Cowork\SolutionArchive\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[ss-move-tag tag_v2_sonnet] 대상 4281 dry=false 장=5
+오류 01a36c11-fcf2-4221-b35d-7474cd9c43d4 Unexpected non-whitespace character after JSON at position 462 (line 3 column 1)
+오류 045059fb-9967-48ab-a4ab-a4738b3da7ea Unexpected non-whitespace character after JSON at position 495 (line 15 column 1)
+오류 0f71f0c0-c07c-474d-ad98-be8aca581109 Unexpected non-whitespace character after JSON at position 365 (line 15 column 1)
+오류 0fab94ae-9a44-4b03-b877-274e1f9fbc5a Unexpected non-whitespace character after JSON at position 436 (line 3 column 1)
+오류 3320dc72-fb0c-4ece-9184-e743b204ea0e Unexpected non-whitespace character after JSON at position 387 (line 3 column 1)
+[ss-move-tag] 1000건 누적 비용 $7.765
+[ss-move-tag] 2000건 누적 비용 $15.507
+[ss-move-tag] 3000건 누적 비용 $23.314
+[ss-move-tag] 4000건 누적 비용 $31.146
+{"run":"tag_v2_sonnet","model":"claude-sonnet-5-5","n":4250,"err":31,"cost_usd":33.1342,"per_row_usd":0.0078,"stage_known":599,"team_known":441,"customer_known":1492,"price_known":0,"result_positive":1760,"result_mixed":81,"result_negative":27,"result_none":2358,"result_unknown":24,"why_filled":1836,"cond_filled":1066,"evA":493,"evB":1393,"evC":2364}

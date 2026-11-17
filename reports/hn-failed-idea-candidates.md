@@ -411,3 +411,27 @@
 - 작성일: 2026-11-16
 
 > This I think.The board would have probably let the sleeping with a spy thing slide. It is really bad, but hey, if she is a spy she is perhaps a master manipulator and then perhaps he is even the victim; at least we could spin it that way. But the two subordinates at least one of whom was also married. That is really bad. It shows a lack of discretion. A willing to risk himself and the company for sex and a just generally shows a lack of self control and professionalism. It raises a serious chara…
+
+## HN 50538649
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50538649
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-17 UTC)
+- 스레드: Apple Services Down
+- 작성자: vrganj
+- 작성일: 2026-11-17
+
+> > I remember that every time there was a choice between a positive choice and the easy choice, the average person always chose the easy one. There were plenty of alternatives to Facebook yet billions of users went to Facebook. The whole Snowden thing probably registered less acutely than the final season of Game of Thrones with the voting public. I agree with this statement, but not with your conclusions from it. It is precisely because users don't care and choose the easy way out that we have a…
+
+## HN 50533126
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50533126
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-17 UTC)
+- 스레드: A US Federal Women's Prison Became a "Rape Club"
+- 작성자: bayindirh
+- 작성일: 2026-11-17
+
+> I think Zimbardo's Prison Experiment unearths a lot for understanding this phenomenon. When the very people who should be preventing this can be swayed to the other end both by system itself and human nature, fighting this thing becomes very hard. My point is, possibly doubling down with the old ways we know as a society is not a solution here, we need to work, do research to find new ways to prevent this from happening, because it's not a technology problem, but a social problem, and has a diff…

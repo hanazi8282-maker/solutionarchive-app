@@ -399,3 +399,15 @@
 - 작성일: 2026-11-13
 
 > > just give a shell script to a LLM and ask it to add concurrency where needed. You know, I personally consider the whole LLM revolution a sort of indictment of our whole industry up to this point. We had more than thirty years to figure out and make robust, composable, reusable building blocks, that would not require fiddling and filing away the sharp edges and writing megabytes of gluing boilerplate code — and we failed. Miserably. So now LLMs come in and finally give us the reusability in a v…
+
+## HN 50513894
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50513894
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-17 UTC)
+- 스레드: What's Next for Nvidia?
+- 작성자: etempleton
+- 작성일: 2026-11-16
+
+> This I think.The board would have probably let the sleeping with a spy thing slide. It is really bad, but hey, if she is a spy she is perhaps a master manipulator and then perhaps he is even the victim; at least we could spin it that way. But the two subordinates at least one of whom was also married. That is really bad. It shows a lack of discretion. A willing to risk himself and the company for sex and a just generally shows a lack of self control and professionalism. It raises a serious chara…

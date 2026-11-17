@@ -1830,3 +1830,12 @@ a.pub-index-row .pub-index-s--2 { -webkit-line-clamp: 2; line-clamp: 2; }
 .pub-pmf-check:hover { border-color: var(--pub-selected-edge-hover); }
 .pub-pmf-check:focus-within { outline: 2px solid var(--pub-focus); outline-offset: 2px; }
 .pub-pmf-count { font-variant-numeric: tabular-nums; }
+
+/* v71co 개정: 첫 화면·완성본 입력 보조 스타일 */
+.pub-h2 { font-size: var(--pub-size-head); letter-spacing: var(--pub-tracking-head); line-height: var(--pub-leading-head); margin: var(--pub-gap-6) 0 var(--pub-gap-3); }
+.pub-three { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--pub-gap-3); }
+.pub-fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: var(--pub-gap-2); }
+.pub-fieldset label { display: flex; align-items: center; gap: var(--pub-gap-2); min-height: 44px; }
+@media print { .pub-actions, .pub-footer { display: none; } }
+
+.pub-q { display: grid; gap: var(--pub-gap-2); }

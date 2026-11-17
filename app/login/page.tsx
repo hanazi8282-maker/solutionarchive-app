@@ -31,12 +31,12 @@ export default async function LoginPage({ searchParams }: {
   const err = typeof sp.error === 'string' ? ERRORS[sp.error] : undefined
 
   return (
-    <PubShell theme="light" footerNote="로그인은 내부 작업 화면(검수·분석)에만 필요하다. 케이스 라이브러리와 칼럼은 로그인 없이 읽힌다.">
+    <PubShell theme="light" footerNote="로그인은 팀 작업 화면(검수·분석)에만 필요합니다. 케이스 라이브러리와 칼럼은 로그인 없이 읽을 수 있습니다.">
       <div className="pub-solo">
         <Hero
           eyebrow="SOLUTION ARCHIVE"
           title="로그인"
-          lead="내부 운영 도구입니다. 허용 목록에 등록된 Google 계정만 들어올 수 있습니다."
+          lead="솔루션아카이브 팀 화면입니다. 등록된 Google 계정으로 들어오세요. 결론서 초안은 로그인 없이 첫 화면에서 받으실 수 있습니다."
         />
 
         {err ? (
@@ -55,7 +55,7 @@ export default async function LoginPage({ searchParams }: {
         )}
 
         {verdict.kind === 'forbidden' && (
-          <Panel tone="alert" titleAs="h2" title="허용되지 않은 계정">
+          <Panel tone="alert" titleAs="h2" title="이 화면에 들어올 수 없는 계정">
             <p className="pub-text">
               <span className="pub-code">{verdict.email}</span> 은(는) 허용 목록에 없습니다.
               다른 계정으로 들어오려면 로그아웃한 뒤 다시 로그인하세요.

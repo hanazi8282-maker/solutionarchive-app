@@ -26,17 +26,11 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
             title="화면을 불러오지 못했습니다"
             lead="조회나 렌더링 중 오류가 나서 확인하지 못한 상태입니다. 데이터가 0건이라는 뜻이 아닙니다."
           />
-          <Panel tone="alert" titleAs="h2" title="오류">
-            <p className="pub-text">
-              {error.message || '알 수 없는 오류'}
-              {error.digest ? ` (서버 로그 digest ${error.digest})` : ''}
-            </p>
+          <Panel tone="alert" titleAs="h2" title="잠시 문제가 생겼습니다">
+            <p className="pub-text">{error.digest ? `문의하실 때 알려 주세요: ${error.digest}` : '잠시 뒤 다시 시도해 주세요.'}</p>
             <div className="pub-actions">
-              {/* PubButton 은 onClick 을 안 받는다(README) — 클라이언트 버튼은 클래스를 직접 붙인다. */}
-              <button type="button" className="pub-btn pub-btn--primary" onClick={reset}>새로고침</button>
-              {/* 로그인 세션이 끊겨도 같은 화면이 뜬다 — 그때 여기가 출구다. */}
-              <PubButtonLink href="/login" variant="ghost">로그인 다시 하기 · 문의</PubButtonLink>
-              <PubButtonLink href="/" variant="ghost">홈으로</PubButtonLink>
+              <button type="button" className="pub-btn pub-btn--primary" onClick={reset}>다시 시도</button>
+              <PubButtonLink href="/" variant="ghost">첫 화면으로</PubButtonLink>
             </div>
           </Panel>
         </div>

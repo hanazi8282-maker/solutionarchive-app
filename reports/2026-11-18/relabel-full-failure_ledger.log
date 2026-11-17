@@ -1,0 +1,18 @@
+(node:19576) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DCU/Desktop/Cowork/SolutionArchive/lib/llm/untrusted-input.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DCU\Desktop\Cowork\SolutionArchive\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[relabel:failure_ledger] 대상 2460 · 이미 개정 0 · dry=false
+[relabel:failure_ledger] 처리 471 성공 471 오류 0 비용 $1.1245
+[relabel:failure_ledger] 처리 953 성공 953 오류 0 비용 $2.2466
+[relabel:failure_ledger] 처리 1432 성공 1432 오류 0 비용 $3.4311
+[relabel:failure_ledger] 처리 1919 성공 1919 오류 0 비용 $4.6520
+[relabel:failure_ledger] 처리 2288 성공 2288 오류 0 비용 $5.3270
+[relabel:failure_ledger] 처리 2460 성공 2460 오류 0 비용 $5.7263
+[relabel:failure_ledger] 처리 2460 성공 2460 오류 0 비용 $5.7263
+[relabel:failure_ledger] 처리 2460 성공 2460 오류 0 비용 $5.7263
+[relabel:failure_ledger] 처리 2460 성공 2460 오류 0 비용 $5.7263
+[relabel:failure_ledger] 처리 2460 성공 2460 오류 0 비용 $5.7263
+[relabel:failure_ledger] 처리 2460 성공 2460 오류 0 비용 $5.7263
+[relabel:failure_ledger] 처리 2460 성공 2460 오류 0 비용 $5.7263
+{"source":"failure_ledger","run":"v71cr_failure_ledger_relabel_20261118","dry":false,"n":2460,"low":2241,"mid":219,"high":0,"quote":1318,"outcome_unknown":1147,"domain_unknown":1607,"cost_usd":5.7263}

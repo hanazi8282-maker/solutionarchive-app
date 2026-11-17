@@ -1,0 +1,26 @@
+(node:18992) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DCU/Desktop/Cowork/SolutionArchive/lib/llm/untrusted-input.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DCU\Desktop\Cowork\SolutionArchive\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[relabel:ss_moves] 대상 1968 · 이미 개정 0 · dry=false
+[relabel:ss_moves] 처리 116 성공 116 오류 0 비용 $0.2883
+[relabel:ss_moves] 처리 232 성공 232 오류 0 비용 $0.5743
+[relabel:ss_moves] 처리 325 성공 325 오류 0 비용 $0.8018
+[relabel:ss_moves] 처리 411 성공 411 오류 0 비용 $1.0258
+[relabel:ss_moves] 처리 505 성공 505 오류 0 비용 $1.2608
+[relabel:ss_moves] 처리 617 성공 617 오류 0 비용 $1.5334
+[relabel:ss_moves] 처리 700 성공 700 오류 0 비용 $1.7341
+[relabel:ss_moves] 처리 803 성공 803 오류 0 비용 $1.9854
+[relabel:ss_moves] 처리 896 성공 896 오류 0 비용 $2.2124
+[relabel:ss_moves] 처리 996 성공 996 오류 0 비용 $2.4578
+[relabel:ss_moves] 처리 1093 성공 1093 오류 0 비용 $2.6976
+[relabel:ss_moves] 처리 1185 성공 1185 오류 0 비용 $2.9265
+[relabel:ss_moves] 처리 1304 성공 1304 오류 0 비용 $3.2270
+[relabel:ss_moves] 처리 1408 성공 1408 오류 0 비용 $3.4768
+[relabel:ss_moves] 처리 1510 성공 1510 오류 0 비용 $3.7181
+[relabel:ss_moves] 처리 1615 성공 1615 오류 0 비용 $3.9849
+[relabel:ss_moves] 처리 1720 성공 1720 오류 0 비용 $4.2403
+[relabel:ss_moves] 처리 1838 성공 1838 오류 0 비용 $4.5469
+[relabel:ss_moves] 처리 1925 성공 1925 오류 0 비용 $4.7611
+[relabel:ss_moves] 처리 1968 성공 1968 오류 0 비용 $4.8633
+{"source":"ss_moves","run":"v71cr_ss_moves_relabel_20261118","dry":false,"n":1968,"low":1673,"mid":295,"high":0,"quote":1190,"outcome_unknown":1693,"domain_unknown":888,"cost_usd":4.8633}

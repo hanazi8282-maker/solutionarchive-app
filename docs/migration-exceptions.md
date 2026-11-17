@@ -612,3 +612,6 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 2026-11-16 · 20261116000001_reddit_disabled_reason.sql · 세션 자체 판단(v71cp §1, 남헌 11/16 지시) · review_sources 1행(reddit, enabled=false) disabled_reason·disabled_at 두 칸만 변경, 삭제·타입변경 없음 · 양성 RETURNING 으로 문구 확인(enabled=false 유지) · 롤백 파일 있음(_rollback.sql)
 
 - 2026-11-18 · 20261118000001_case_bank_label_revisions.sql · 세션 자체 판단(v71cr §2·§3, 남헌 지시) · 새 표 1개 add-only(case_bank_labels 와 같은 컬럼·CHECK, UNIQUE(case_id,label_run)), RLS 켬·anon/authenticated 회수 · 양성 relrowsecurity=true·UNIQUE 존재·CHECK 13개, 음성 anon/authenticated SELECT=false · 롤백 파일 있음(_rollback.sql, DROP TABLE) · 적재 yc 748 + failure_ledger 2,460 + ss_moves 1,968 행
+
+- 2026-11-18 · 20261118000002_ss_move_tags.sql · 세션 자체 판단([꼬리표], 남헌 지시) · 새 표 1개 add-only(장별 꼬리표, ss_moves FK, UNIQUE(move_id,label_run)), RLS 켬·anon/authenticated 회수 · 양성 relrowsecurity=true·18컬럼, 음성 anon/authenticated SELECT=false · 롤백 파일 있음
+- 2026-11-18 · 20261118000003_case_bank_labels_current.sql · 세션 자체 판단([꼬리표]) · 뷰 1개 add-only(security_invoker, 개정 표 최신 줄 우선), anon/authenticated 회수 · 양성 12,224줄(원본과 동일, 개정 5,176), 음성 anon/authenticated SELECT=false, 실제 조회 sales_crm 345줄(329+16 일치) · 롤백 파일 있음(DROP VIEW)

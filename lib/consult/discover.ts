@@ -1,5 +1,5 @@
 // v71cp P2-F: 아이디어(모드 C1/C2 입력) → 경쟁사·참조군 후보 자동 발견. 라이브 웹검색·외부 스크래핑 없음.
-// 분야 = config/areas_v2.json + community_keywords_v2.json 낱말 매칭, 후보 = 사례 은행(case_bank_labels) 조회(주입). 모델 호출 없음.
+// 분야 = config/areas_v2.json + community_keywords_v2.json 낱말 매칭, 후보 = 사례 은행 최신 줄 뷰(case_bank_labels_current — 개정 표 우선) 조회(주입). 모델 호출 없음.
 // 근거 3규칙(refgroup.ts 재사용): ① CEM 매칭 n≥10(nTier≠hidden) ② 실패 사례 포함 ③ 구조 매칭(고객 유형·과금 중 1개 이상을 CEM 키로 씀).
 // 하나라도 못 맞추면 '근거 부족'을 먼저 낸다. 조회 실패는 '확인 불가'(not_run) — 근거 부족으로 접지 않는다(§7.1).
 // 확률·성공률 숫자는 내지 않는다(R10 전 — refgroup.gateOpen 이 열리기 전에는 목록과 건수만).
@@ -127,9 +127,9 @@ export function areasFrom(areasV2: { domains: { key: string; name_ko: string }[]
 // areas_v2 는 marketing_automation(PR #646)인데 case_bank_labels CHECK(20261113000001)는 email_marketing_automation — 둘 다 조회한다.
 const ALIAS: Record<string, string[]> = { marketing_automation: ['marketing_automation', 'email_marketing_automation'] }
 
-/** 실제 조회 — case_bank_labels(service_role). 오류는 던진다(discoverRefGroups 가 not_run 으로 접는다). */
+/** 실제 조회 — case_bank_labels_current(개정 표 최신 줄 우선, service_role). 오류는 던진다(discoverRefGroups 가 not_run 으로 접는다). */
 export const dbFetchLabels = (sb: Pick<SupabaseClient, 'from'>): FetchLabels => async (domain) => {
-  const { data, error } = await sb.from('case_bank_labels').select('case_id,buyer_type,pricing_model,outcome').in('domain', ALIAS[domain] ?? [domain]).neq('outcome', 'unknown').limit(1000)
+  const { data, error } = await sb.from('case_bank_labels_current').select('case_id,buyer_type,pricing_model,outcome').in('domain', ALIAS[domain] ?? [domain]).neq('outcome', 'unknown').limit(1000)
   if (error) throw new Error(error.message)
   return (data ?? []) as LabelRow[]
 }

@@ -1,0 +1,26 @@
+# v71cu S7-2: 스토어 검색 제품 발굴(iTunes Search 공개 API) 하루 1회 → discovery_candidates(origin=search) + 임시 타깃(분야당 10, 하루 30 상한). 429·403 이면 그 실행 중단.
+name: Product Discover
+on:
+  schedule:
+    - cron: '45 18 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: product-discover
+  cancel-in-progress: false
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Discover products by store search
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/product-discover.mjs

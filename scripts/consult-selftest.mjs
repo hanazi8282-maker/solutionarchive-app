@@ -376,5 +376,12 @@ for (const st of ['low', 'full']) { const sys = buildSystem(st); const nums = (s
   const src = fs.readFileSync(new URL('../lib/consult/discover.ts', import.meta.url), 'utf8')
   t('P2-F: 라이브 웹 호출 없음(fetch(/http)', !/\bfetch\(|https?:\/\//.test(src.replace(/^\s*\/\/.*$/gm, ''))) }
 
+// v71ct §4 회귀: 흐름 카드 꺼내 쓰기(깃발 OFF 면 기존 경로 그대로)·스토리 꼬리표 자동 검사
+{
+  const ok = async (f) => { try { await import(f); return true } catch (e) { console.error(String(e?.message ?? e).split(String.fromCharCode(10))[0]); return false } }
+  t('v71ct: story-flow 회귀 10건(적격·모름 감점·폴백·signal 금지·실패 포함·다른 업종·깃발 OFF·not_run)', await ok('./story-flow-selftest.mjs'))
+  t('v71ct: story-label 자동 검사(인용·숫자·근거·장 비중)', await ok('./story-label-selftest.mjs'))
+}
+
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)
 process.exitCode = fail ? 1 : 0

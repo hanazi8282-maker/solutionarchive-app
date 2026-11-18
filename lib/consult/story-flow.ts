@@ -46,7 +46,7 @@ const known = (v?: string) => v != null && v !== '' && v !== 'unknown'
 /** 상황 일치(0~1): 칸마다 같으면 1, 어느 한쪽이 모름이면 0.5(감점), 둘 다 알고 다르면 0. */
 export function situationMatch(card: FlowCard, s: Diagnosis['situation']): number {
   const pairs: [string | undefined, string][] = [[s.customer, card.customer], [s.price_band, card.price_band], [s.stage, card.stage], [s.team_size, card.team_size], [s.pricing_model, card.pricing_model]]
-  const vals = pairs.map(([a, b]) => (known(a) && known(b) ? (a === b ? 1 : 0) : 0.5))
+  const vals: number[] = pairs.map(([a, b]) => (known(a) && known(b) ? (a === b ? 1 : 0) : 0.5))
   return vals.reduce((x, y) => x + y, 0) / vals.length
 }
 const tok = (t: string) => new Set(t.toLowerCase().match(/[a-z0-9가-힣]{2,}/g) ?? [])

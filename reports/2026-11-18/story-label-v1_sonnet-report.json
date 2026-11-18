@@ -1,0 +1,317 @@
+{
+ "run": "v1_sonnet",
+ "stories": 207,
+ "episodes": 1613,
+ "episodes_per_story": 7.8,
+ "linked_to_existing_move": 674,
+ "new_episodes": 939,
+ "situation_fill_pct": {
+  "customer": 85.5,
+  "price_band": 16.9,
+  "stage": 98.1,
+  "team_size": 99,
+  "pricing_model": 82.6,
+  "revenue_band": 78.7
+ },
+ "success_tier": {
+  "S2": 92,
+  "S1": 111,
+  "S0": 4
+ },
+ "relevance_tier": {
+  "R1": 71,
+  "R3": 44,
+  "R2": 92
+ },
+ "focus_chapters_per_story": {
+  "2": 20,
+  "3": 133,
+  "4": 54
+ },
+ "stories_with_chain": 207,
+ "result_class": {
+  "positive": 1103,
+  "unknown": 241,
+  "negative": 111,
+  "none": 92,
+  "mixed": 66
+ },
+ "result_grain": {
+  "qual": 896,
+  "learned": 35,
+  "metric": 341,
+  "signal": 8
+ },
+ "evidence": {
+  "B": 1025,
+  "C": 410,
+  "A": 178
+ },
+ "by_chapter": {
+  "1": {
+   "episodes": 190,
+   "primary": 190,
+   "positive": 114,
+   "negative": 2,
+   "mixed": 3,
+   "none": 25,
+   "unknown": 46,
+   "signal": 0,
+   "metric": 24,
+   "qual": 94,
+   "learned": 1,
+   "quotes": 188
+  },
+  "2": {
+   "episodes": 78,
+   "primary": 76,
+   "positive": 56,
+   "negative": 2,
+   "mixed": 1,
+   "none": 7,
+   "unknown": 12,
+   "signal": 0,
+   "metric": 9,
+   "qual": 48,
+   "learned": 2,
+   "quotes": 77
+  },
+  "3": {
+   "episodes": 124,
+   "primary": 119,
+   "positive": 102,
+   "negative": 6,
+   "mixed": 6,
+   "none": 2,
+   "unknown": 8,
+   "signal": 0,
+   "metric": 30,
+   "qual": 72,
+   "learned": 12,
+   "quotes": 124
+  },
+  "4": {
+   "episodes": 191,
+   "primary": 188,
+   "positive": 130,
+   "negative": 16,
+   "mixed": 13,
+   "none": 13,
+   "unknown": 19,
+   "signal": 0,
+   "metric": 24,
+   "qual": 132,
+   "learned": 3,
+   "quotes": 191
+  },
+  "5": {
+   "episodes": 565,
+   "primary": 550,
+   "positive": 392,
+   "negative": 50,
+   "mixed": 25,
+   "none": 25,
+   "unknown": 73,
+   "signal": 8,
+   "metric": 159,
+   "qual": 288,
+   "learned": 12,
+   "quotes": 564
+  },
+  "6": {
+   "episodes": 159,
+   "primary": 151,
+   "positive": 109,
+   "negative": 7,
+   "mixed": 2,
+   "none": 8,
+   "unknown": 33,
+   "signal": 0,
+   "metric": 44,
+   "qual": 72,
+   "learned": 2,
+   "quotes": 156
+  },
+  "7": {
+   "episodes": 107,
+   "primary": 104,
+   "positive": 76,
+   "negative": 2,
+   "mixed": 3,
+   "none": 6,
+   "unknown": 20,
+   "signal": 0,
+   "metric": 16,
+   "qual": 65,
+   "learned": 0,
+   "quotes": 106
+  },
+  "8": {
+   "episodes": 199,
+   "primary": 197,
+   "positive": 124,
+   "negative": 26,
+   "mixed": 13,
+   "none": 6,
+   "unknown": 30,
+   "signal": 0,
+   "metric": 35,
+   "qual": 125,
+   "learned": 3,
+   "quotes": 199
+  }
+ },
+ "flow_cards_by_chapter": {
+  "1": {
+   "R1": 8,
+   "R2": 6,
+   "R3": 1,
+   "withFailure": 1
+  },
+  "2": {
+   "R1": 1,
+   "R2": 11,
+   "R3": 4,
+   "withFailure": 0
+  },
+  "3": {
+   "R1": 5,
+   "R2": 10,
+   "R3": 6,
+   "withFailure": 2
+  },
+  "4": {
+   "R1": 21,
+   "R2": 15,
+   "R3": 8,
+   "withFailure": 8
+  },
+  "5": {
+   "R1": 57,
+   "R2": 75,
+   "R3": 39,
+   "withFailure": 54
+  },
+  "6": {
+   "R1": 9,
+   "R2": 21,
+   "R3": 6,
+   "withFailure": 6
+  },
+  "7": {
+   "R1": 10,
+   "R2": 5,
+   "R3": 6,
+   "withFailure": 0
+  },
+  "8": {
+   "R1": 4,
+   "R2": 17,
+   "R3": 7,
+   "withFailure": 11
+  }
+ },
+ "top_sub_topics": [
+  [
+   "5:product_hunt_launch",
+   11
+  ],
+  [
+   "5:cold_email",
+   10
+  ],
+  [
+   "1:personal_pain_origin",
+   6
+  ],
+  [
+   "1:founder_own_pain",
+   6
+  ],
+  [
+   "1:own_pain_point",
+   5
+  ],
+  [
+   "1:personal_pain_point",
+   5
+  ],
+  [
+   "5:affiliate_program",
+   4
+  ],
+  [
+   "5:seo_blog_content",
+   4
+  ],
+  [
+   "1:scratch_own_itch",
+   4
+  ],
+  [
+   "5:word_of_mouth",
+   3
+  ],
+  [
+   "5:fb_group_answering",
+   3
+  ],
+  [
+   "5:linkedin_cold_outreach",
+   3
+  ],
+  [
+   "5:referral_program",
+   3
+  ],
+  [
+   "1:founder_pain_point",
+   3
+  ],
+  [
+   "3:landing_page_waitlist",
+   3
+  ],
+  [
+   "5:linkedin_outreach",
+   3
+  ],
+  [
+   "5:seo_keyword_content",
+   2
+  ],
+  [
+   "1:own_pain_origin",
+   2
+  ],
+  [
+   "5:referral_bonus",
+   2
+  ],
+  [
+   "5:build_in_public_twitter",
+   2
+  ],
+  [
+   "1:founder_problem_origin",
+   2
+  ],
+  [
+   "5:seo_content_blog",
+   2
+  ],
+  [
+   "3:customer_interviews",
+   2
+  ],
+  [
+   "4:nocode_mvp",
+   2
+  ],
+  [
+   "5:seo_content",
+   2
+  ]
+ ],
+ "mechanisms_distinct": 1605
+}

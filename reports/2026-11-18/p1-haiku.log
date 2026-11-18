@@ -1,0 +1,5 @@
+[story-label test_p1_haiku] set=sample50 대상 53편 dry=true 장=1,2,3,4,5,6,7,8
+[story-label] 50/53 ok=2 누적 $1.767 (5.8분)
+{"run":"test_p1_haiku","model":"claude-haiku-5-5","set":"sample50","targets":53,"n":53,"ok":4,"badJson":47,"structure":2,"err":0,"quoteTotal":24,"quoteFail":1,"numTotal":24,"numFail":0,"basisDropped":4,"epTotal":24,"truncated":47,"cost_usd":1.8678,"per_story_usd":0.0352,"minutes":6.3,"tokens":{"in":237644,"cache_write":16915,"cache_read":162384,"out":411947},"quote_fail_rate":0.0417,"number_fail_rate":0,"stopped":null}
+:null}
+runcated":0,"cost_usd":0.9699,"per_story_usd":0.0183,"minutes":2.7,"tokens":{"in":235695,"cache_write":6764,"cache_read":169100,"out":190264},"quote_fail_rate":0.1157,"number_fail_rate":0.0427,"stopped":null}

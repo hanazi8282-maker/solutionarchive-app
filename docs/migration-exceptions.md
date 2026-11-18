@@ -617,3 +617,4 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 - 2026-11-18 · 20261118000003_case_bank_labels_current.sql · 세션 자체 판단([꼬리표]) · 뷰 1개 add-only(security_invoker, 개정 표 최신 줄 우선), anon/authenticated 회수 · 양성 12,224줄(원본과 동일, 개정 5,176), 음성 anon/authenticated SELECT=false, 실제 조회 sales_crm 345줄(329+16 일치) · 롤백 파일 있음(DROP VIEW)
 
 - 2026-11-18 · 20261118000004_ss_move_tags_current.sql · 세션 자체 판단([꼬리표]) · 뷰 1개 add-only(move 별 최신 꼬리표), anon/authenticated 회수 · 양성 4,281줄(move 수와 동일), 음성 권한 없음 · 롤백 파일 있음 · 적재 ss_move_tags 4,281(Sonnet) + Opus 재판정 109
+- 2026-11-18 · 20261118000005_ss_story_flow_labels.sql · 세션 자체 판단(v71ct, 남헌 지시) · 새 표 3개(ss_story_labels·ss_episode_tags·ss_chapter_defs)+뷰 4개 add-only(security_invoker), RLS 켬·anon/authenticated 회수, 기존 표 무변경 · 양성 rls 3표·뷰 4·장 8행, 음성 anon/authenticated SELECT=false · 롤백 파일 있음(붙여넣기용 DROP, 남헌이 SQL Editor 에서)

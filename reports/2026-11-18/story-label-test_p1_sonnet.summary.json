@@ -1,0 +1,33 @@
+{
+ "summary": {
+  "run": "test_p1_sonnet",
+  "model": "claude-sonnet-5-5",
+  "set": "sample50",
+  "targets": 53,
+  "n": 53,
+  "ok": 46,
+  "badJson": 1,
+  "structure": 6,
+  "err": 0,
+  "quoteTotal": 412,
+  "quoteFail": 32,
+  "numTotal": 406,
+  "numFail": 6,
+  "basisDropped": 32,
+  "epTotal": 413,
+  "truncated": 1,
+  "cost_usd": 4.8074,
+  "per_story_usd": 0.0907,
+  "minutes": 5.9,
+  "tokens": {
+   "in": 237644,
+   "cache_write": 0,
+   "cache_read": 179246,
+   "out": 269381
+  },
+  "quote_fail_rate": 0.0777,
+  "number_fail_rate": 0.0148,
+  "stopped": null
+ },
+ "proposals": []
+}

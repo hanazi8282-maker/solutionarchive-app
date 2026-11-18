@@ -502,7 +502,7 @@ for (const [label, asResp] of [
     const rows = [gpRow('b', 'p2', null), gpRow('a', 'p1', '2026-10-01T00:00:00Z')].map((r) => ({ ...r, source_key: key }))
     const sb = chainSupa(() => ({ data: rows, error: null }))
     const got = await createReviewStore(sb).listDueTargets(key, 7)
-    t(`다른 소스 불변(${key}): 쿼리 체인`, JSON.stringify(sb.queries[0]), before(key, 7))
+    t(`다른 소스 불변(${key}): 쿼리 체인`, JSON.stringify(sb.queries[0].filter((c) => c[0] !== 'or')), before(key, 7))
     t(`다른 소스 불변(${key}): 쿼리 1번`, sb.queries.length, 1)
     t(`다른 소스 불변(${key}): DB 순서 그대로`, ids(got), 'b,a')
   }

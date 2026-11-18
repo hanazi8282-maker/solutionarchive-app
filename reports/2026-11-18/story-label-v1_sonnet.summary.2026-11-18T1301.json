@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "run": "v1_sonnet",
+  "model": "claude-sonnet-5-5",
+  "set": "ids:reports/2026-11-18/story-label-var-nonsaas25.json",
+  "targets": 25,
+  "n": 25,
+  "ok": 25,
+  "badJson": 0,
+  "structure": 0,
+  "err": 0,
+  "quoteTotal": 157,
+  "quoteFail": 0,
+  "numTotal": 159,
+  "numFail": 1,
+  "basisDropped": 1,
+  "epTotal": 159,
+  "truncated": 0,
+  "cost_usd": 1.9363,
+  "per_story_usd": 0.0775,
+  "minutes": 3.4,
+  "tokens": {
+   "in": 50,
+   "cache_write": 209554,
+   "cache_read": 58200,
+   "out": 109214
+  },
+  "quote_fail_rate": 0,
+  "number_fail_rate": 0.0063,
+  "stopped": null,
+  "variant": [],
+  "batch": 1
+ },
+ "proposals": []
+}

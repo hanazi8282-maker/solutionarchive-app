@@ -1,0 +1,41 @@
+{
+ "summary": {
+  "run": "test_cv_batch3_sonnet",
+  "model": "claude-sonnet-5-5",
+  "set": "ids:reports/2026-11-18/story-label-var-sample50.json",
+  "targets": 50,
+  "n": 50,
+  "ok": 50,
+  "badJson": 0,
+  "structure": 0,
+  "err": 0,
+  "quoteTotal": 336,
+  "quoteFail": 0,
+  "numTotal": 329,
+  "numFail": 3,
+  "basisDropped": 1,
+  "epTotal": 341,
+  "truncated": 0,
+  "cost_usd": 3.7622,
+  "per_story_usd": 0.0752,
+  "minutes": 7.5,
+  "tokens": {
+   "in": 34,
+   "cache_write": 280041,
+   "cache_read": 39576,
+   "out": 263801
+  },
+  "quote_fail_rate": 0,
+  "number_fail_rate": 0.0091,
+  "stopped": null,
+  "variant": [],
+  "batch": 3
+ },
+ "proposals": [
+  {
+   "slug": "olidrel-hub",
+   "name_ko": "자금 조달",
+   "definition_ko": "초기 자금을 직접 투입하거나 외부 투자를 받아 사업 시작 비용을 마련하는 행동"
+  }
+ ]
+}

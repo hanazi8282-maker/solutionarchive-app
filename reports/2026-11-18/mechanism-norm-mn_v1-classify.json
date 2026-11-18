@@ -1,0 +1,11 @@
+{
+ "dist": {
+  "keep_costs_below_revenue": 1,
+  "help_first_in_communities": 1
+ },
+ "done": 2,
+ "bad": 0,
+ "etc": 0,
+ "cost": 0.014744799999999999,
+ "stop": null
+}

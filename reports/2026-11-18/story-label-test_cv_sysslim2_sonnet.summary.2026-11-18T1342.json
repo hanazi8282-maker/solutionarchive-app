@@ -1,0 +1,38 @@
+{
+ "summary": {
+  "run": "test_cv_sysslim2_sonnet",
+  "model": "claude-sonnet-5-5",
+  "set": "ids:reports/2026-11-18/story-label-var-sample50.json",
+  "targets": 50,
+  "n": 50,
+  "ok": 48,
+  "badJson": 0,
+  "structure": 2,
+  "err": 0,
+  "quoteTotal": 271,
+  "quoteFail": 0,
+  "numTotal": 271,
+  "numFail": 1,
+  "basisDropped": 2,
+  "epTotal": 271,
+  "truncated": 0,
+  "cost_usd": 2.2442,
+  "per_story_usd": 0.0449,
+  "minutes": 3.9,
+  "tokens": {
+   "in": 100,
+   "cache_write": 253635,
+   "cache_read": 174386,
+   "out": 121204
+  },
+  "quote_fail_rate": 0,
+  "number_fail_rate": 0.0037,
+  "stopped": null,
+  "variant": [
+   "sys",
+   "slim2"
+  ],
+  "batch": 1
+ },
+ "proposals": []
+}

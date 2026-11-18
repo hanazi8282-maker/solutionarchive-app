@@ -1,0 +1,35 @@
+{
+ "run": "mn_v1",
+ "n": 50,
+ "judged": 50,
+ "wrong": 4,
+ "misclass_rate": 0.08,
+ "etc_in_sample": 7,
+ "wrong_examples": [
+  {
+   "mech": "show_cumulative_baseline_to_prevent_what_have_you_done_latel",
+   "action": "월간 리포트 하단에 최적화 시작 전 페이지 상태를 함께 표시했다.",
+   "got": "social_proof_reviews",
+   "better": "기타"
+  },
+  {
+   "mech": "absorb_cost_increase_to_keep_price_stable",
+   "action": "인상분을 고객에게 넘기지 않고 자사 마진을 줄여 기존 가격을 유지한다.",
+   "got": "keep_costs_below_revenue",
+   "better": "기타"
+  },
+  {
+   "mech": "filter_nonbuyers_with_small_upfront_charge",
+   "action": "무료 체험을 1달러 선결제 체험으로 바꿨다.",
+   "got": "reverse_purchase_risk",
+   "better": "lower_entry_barrier"
+  },
+  {
+   "mech": "start_from_repeated_unmet_pain",
+   "action": "수백 명의 창업자·투자자·매니저와 대화하며 생산성 도구에 대한 불만을 확인하고 창업을 결정했다.",
+   "got": "build_from_own_pain",
+   "better": "validate_by_conversations"
+  }
+ ],
+ "cost_usd": 0.128
+}

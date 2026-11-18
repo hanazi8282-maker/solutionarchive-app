@@ -1,0 +1,14 @@
+(node:18036) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DCU/Desktop/Cowork/SolutionArchive/lib/llm/untrusted-input.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DCU\Desktop\Cowork\SolutionArchive\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[story-label test_cv_sysslim_sonnet] set=ids:reports/2026-11-18/story-label-var-sample50.json 대상 50편 dry=true 장=1,2,3,4,5,6,7,8
+[story-label] 50/50 ok=50 누적 $2.662 (4.9분)
+{"run":"test_cv_sysslim_sonnet","model":"claude-sonnet-5-5","set":"ids:reports/2026-11-18/story-label-var-sample50.json","targets":50,"n":50,"ok":50,"badJson":0,"structure":0,"err":0,"quoteTotal":291,"quoteFail":1,"numTotal":291,"numFail":2,"basisDropped":3,"epTotal":291,"truncated":0,"cost_usd":2.6622,"per_story_usd":0.0532,"minutes":4.9,"tokens":{"in":100,"cache_write":253547,"cache_read":173374,"out":163051},"quote_fail_rate":0.0034,"number_fail_rate":0.0069,"stopped":null}
+(node:19028) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DCU/Desktop/Cowork/SolutionArchive/lib/llm/untrusted-input.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DCU\Desktop\Cowork\SolutionArchive\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[story-label test_cv_sysslim2_sonnet] set=ids:reports/2026-11-18/story-label-var-sample50.json 대상 50편 dry=true 장=1,2,3,4,5,6,7,8
+[story-label] 50/50 ok=48 누적 $2.244 (3.9분)
+{"run":"test_cv_sysslim2_sonnet","model":"claude-sonnet-5-5","set":"ids:reports/2026-11-18/story-label-var-sample50.json","targets":50,"n":50,"ok":48,"badJson":0,"structure":2,"err":0,"quoteTotal":271,"quoteFail":0,"numTotal":271,"numFail":1,"basisDropped":2,"epTotal":271,"truncated":0,"cost_usd":2.2442,"per_story_usd":0.0449,"minutes":3.9,"tokens":{"in":100,"cache_write":253635,"cache_read":174386,"out":121204},"quote_fail_rate":0,"number_fail_rate":0.0037,"stopped":null}

@@ -101,7 +101,7 @@ async function call(story, moves) {
   for (let a = 0; ; a++) {
     try {
       const msg = await client.messages.create({
-        model: MODEL, max_tokens: 8000, ...(THINK ? {} : TAG === 'sonnet' ? { thinking: { type: thinkOff } } : {}), ...(EFFORT || TAG !== 'sonnet' ? { output_config: { effort: EFFORT ?? 'low' } } : {}),
+        model: MODEL, max_tokens: 12000, ...(THINK ? {} : TAG === 'sonnet' ? { thinking: { type: thinkOff } } : {}), ...(EFFORT || TAG !== 'sonnet' ? { output_config: { effort: EFFORT ?? 'low' } } : {}),
         system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: buildUser(story, moves) }],
       })

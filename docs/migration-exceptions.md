@@ -618,3 +618,4 @@ dry-run: `BEGIN` + 원문 + 확인 SELECT + `ROLLBACK` 으로 선행 실행 → 
 
 - 2026-11-18 · 20261118000004_ss_move_tags_current.sql · 세션 자체 판단([꼬리표]) · 뷰 1개 add-only(move 별 최신 꼬리표), anon/authenticated 회수 · 양성 4,281줄(move 수와 동일), 음성 권한 없음 · 롤백 파일 있음 · 적재 ss_move_tags 4,281(Sonnet) + Opus 재판정 109
 - 2026-11-18 · 20261118000005_ss_story_flow_labels.sql · 세션 자체 판단(v71ct, 남헌 지시) · 새 표 3개(ss_story_labels·ss_episode_tags·ss_chapter_defs)+뷰 4개 add-only(security_invoker), RLS 켬·anon/authenticated 회수, 기존 표 무변경 · 양성 rls 3표·뷰 4·장 8행, 음성 anon/authenticated SELECT=false · 롤백 파일 있음(붙여넣기용 DROP, 남헌이 SQL Editor 에서)
+- 2026-11-18 · 20261118000006_ss_mechanism_norm.sql · 세션 자체 판단(v71ct-3, 남헌 지시) · 새 칸 2개(mechanism_norm·mechanism_norm_run, NULL 허용 추가 전용)+인덱스+뷰 재생성(ss_episode_tags_current 칸 추가)·뷰 1개(outcome_pairs_norm), anon/authenticated 회수, 기존 데이터 무변경 · 양성 칸 2·뷰 새 칸 보임·뷰 존재, 음성 anon/authenticated SELECT=false · 롤백 파일 있음(붙여넣기용) · 적재 mechanism_norm 5,238줄(구독 경로 분류, 오분류 8%·기타 8.3%)

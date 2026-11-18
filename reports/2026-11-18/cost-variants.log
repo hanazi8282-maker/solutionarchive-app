@@ -1,0 +1,35 @@
+(node:11112) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DCU/Desktop/Cowork/SolutionArchive/lib/llm/untrusted-input.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DCU\Desktop\Cowork\SolutionArchive\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[story-label test_cv_rerun_sonnet] set=ids:reports/2026-11-18/story-label-var-sample50.json 대상 50편 dry=true 장=1,2,3,4,5,6,7,8
+[story-label] 50/50 ok=50 누적 $2.975 (6.4분)
+{"run":"test_cv_rerun_sonnet","model":"claude-sonnet-5-5","set":"ids:reports/2026-11-18/story-label-var-sample50.json","targets":50,"n":50,"ok":50,"badJson":0,"structure":0,"err":0,"quoteTotal":316,"quoteFail":1,"numTotal":316,"numFail":4,"basisDropped":0,"epTotal":317,"truncated":0,"cost_usd":2.9751,"per_story_usd":0.0595,"minutes":6.4,"tokens":{"in":100,"cache_write":211667,"cache_read":325954,"out":209562},"quote_fail_rate":0.0032,"number_fail_rate":0.0127,"stopped":null}
+(node:23272) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DCU/Desktop/Cowork/SolutionArchive/lib/llm/untrusted-input.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DCU\Desktop\Cowork\SolutionArchive\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[story-label test_cv_sys_sonnet] set=ids:reports/2026-11-18/story-label-var-sample50.json 대상 50편 dry=true 장=1,2,3,4,5,6,7,8
+[story-label] 50/50 ok=50 누적 $2.972 (5.9분)
+{"run":"test_cv_sys_sonnet","model":"claude-sonnet-5-5","set":"ids:reports/2026-11-18/story-label-var-sample50.json","targets":50,"n":50,"ok":50,"badJson":0,"structure":0,"err":0,"quoteTotal":295,"quoteFail":0,"numTotal":296,"numFail":3,"basisDropped":0,"epTotal":297,"truncated":0,"cost_usd":2.972,"per_story_usd":0.0594,"minutes":5.9,"tokens":{"in":100,"cache_write":249517,"cache_read":173054,"out":195641},"quote_fail_rate":0,"number_fail_rate":0.0101,"stopped":null}
+(node:29432) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DCU/Desktop/Cowork/SolutionArchive/lib/llm/untrusted-input.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DCU\Desktop\Cowork\SolutionArchive\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[story-label test_cv_slim_sonnet] set=ids:reports/2026-11-18/story-label-var-sample50.json 대상 50편 dry=true 장=1,2,3,4,5,6,7,8
+[story-label] 50/50 ok=50 누적 $3.381 (5.0분)
+{"run":"test_cv_slim_sonnet","model":"claude-sonnet-5-5","set":"ids:reports/2026-11-18/story-label-var-sample50.json","targets":50,"n":50,"ok":50,"badJson":0,"structure":0,"err":0,"quoteTotal":297,"quoteFail":1,"numTotal":303,"numFail":2,"basisDropped":1,"epTotal":303,"truncated":0,"cost_usd":3.3807,"per_story_usd":0.0676,"minutes":5,"tokens":{"in":100,"cache_write":425571,"cache_read":116400,"out":166658},"quote_fail_rate":0.0034,"number_fail_rate":0.0066,"stopped":null}
+(node:14008) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DCU/Desktop/Cowork/SolutionArchive/lib/llm/untrusted-input.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DCU\Desktop\Cowork\SolutionArchive\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[story-label test_cv_clean_sonnet] set=ids:reports/2026-11-18/story-label-var-sample50.json 대상 50편 dry=true 장=1,2,3,4,5,6,7,8
+[story-label] 50/50 ok=50 누적 $2.184 (6.2분)
+{"run":"test_cv_clean_sonnet","model":"claude-sonnet-5-5","set":"ids:reports/2026-11-18/story-label-var-sample50.json","targets":50,"n":50,"ok":50,"badJson":0,"structure":0,"err":0,"quoteTotal":312,"quoteFail":0,"numTotal":311,"numFail":2,"basisDropped":2,"epTotal":312,"truncated":0,"cost_usd":2.1838,"per_story_usd":0.0437,"minutes":6.2,"tokens":{"in":100,"cache_write":12005,"cache_read":525505,"out":208298},"quote_fail_rate":0,"number_fail_rate":0.0064,"stopped":null}
+(node:6776) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DCU/Desktop/Cowork/SolutionArchive/lib/llm/untrusted-input.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DCU\Desktop\Cowork\SolutionArchive\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[story-label test_cv_batch3_sonnet] set=ids:reports/2026-11-18/story-label-var-sample50.json 대상 50편 dry=true 장=1,2,3,4,5,6,7,8
+[story-label] 50/50 ok=50 누적 $3.762 (7.5분)
+{"run":"test_cv_batch3_sonnet","model":"claude-sonnet-5-5","set":"ids:reports/2026-11-18/story-label-var-sample50.json","targets":50,"n":50,"ok":50,"badJson":0,"structure":0,"err":0,"quoteTotal":336,"quoteFail":0,"numTotal":329,"numFail":3,"basisDropped":1,"epTotal":341,"truncated":0,"cost_usd":3.7622,"per_story_usd":0.0752,"minutes":7.5,"tokens":{"in":34,"cache_write":280041,"cache_read":39576,"out":263801},"quote_fail_rate":0,"number_fail_rate":0.0091,"stopped":null}

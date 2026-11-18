@@ -1,0 +1,332 @@
+[
+ {
+  "key": "build_from_own_pain",
+  "name_ko": "내 문제 직접 풀기",
+  "definition_ko": "창업자 본인이 반복해 겪은 불편을 직접 해결하는 제품·서비스로 만든다.",
+  "examples": [
+   "build_for_own_pain_point",
+   "scratch_your_own_itch",
+   "build_tool_for_own_unsolved_pain"
+  ]
+ },
+ {
+  "key": "competitor_gap_opportunity",
+  "name_ko": "경쟁사 불만 공략",
+  "definition_ko": "기존 제품의 불만·복잡함·높은 가격을 읽고 더 단순하거나 나은 대안을 만든다.",
+  "examples": [
+   "build_alternative_from_competitor_complaints",
+   "find_idea_from_competitor_complaints",
+   "build_simple_alternative_to_heavy_incumbents"
+  ]
+ },
+ {
+  "key": "productize_repeated_work",
+  "name_ko": "반복 업무 제품화",
+  "definition_ko": "반복되는 맞춤 요청이나 내부 업무를 모아 누구나 쓰는 제품·셀프서비스 도구로 바꾼다.",
+  "examples": [
+   "productize_repeated_custom_requests",
+   "turn_repeated_expert_work_into_self_serve_tool",
+   "productize_own_internal_solution"
+  ]
+ },
+ {
+  "key": "read_observed_demand_signals",
+  "name_ko": "수요 신호 읽기",
+  "definition_ko": "고객의 반복 질문, 경쟁사 가격, 주변 성과 같은 관찰된 신호에서 아이템 수요를 추정한다.",
+  "examples": [
+   "pick_idea_from_observed_demand",
+   "build_from_repeated_customer_questions",
+   "infer_demand_from_competitor_pricing"
+  ]
+ },
+ {
+  "key": "narrow_to_one_niche",
+  "name_ko": "니치 좁히기",
+  "definition_ko": "손님층이나 사용 사례를 하나로 좁혀 메시지와 제품을 날카롭게 만든다.",
+  "examples": [
+   "narrow_to_one_niche_first",
+   "niche_down_to_one_industry_to_become_known_expert",
+   "narrow_target_to_one_use_case_first"
+  ]
+ },
+ {
+  "key": "pick_segment_by_ability_to_pay",
+  "name_ko": "지불여력 손님 선별",
+  "definition_ko": "돈, 위험 감수 여력, 기존 트래픽 같은 조건을 갖춘 손님층을 우선 고른다.",
+  "examples": [
+   "pick_segment_with_money_and_risk_appetite",
+   "prequalify_customers_by_funding_sustainability",
+   "serve_only_customers_with_existing_traction"
+  ]
+ },
+ {
+  "key": "say_no_to_protect_focus",
+  "name_ko": "거절로 집중 지키기",
+  "definition_ko": "맞지 않는 고객·일·곁가지 의뢰를 거절해 핵심 사업과 팀을 보호한다.",
+  "examples": [
+   "say_no_to_poor_fit_clients",
+   "say_no_to_focus_on_core_project",
+   "refuse_revenue_that_harms_team"
+  ]
+ },
+ {
+  "key": "differentiated_positioning",
+  "name_ko": "차별 포지셔닝",
+  "definition_ko": "경쟁자가 비운 신뢰·편의 자리를 정해 한 문장으로 분명히 내세운다.",
+  "examples": [
+   "position_on_unserved_trust_concern",
+   "position_as_easiest_tool_in_category",
+   "declare_one_sided_loyalty_to_remove_trust_doubt"
+  ]
+ },
+ {
+  "key": "validate_by_conversations",
+  "name_ko": "대화로 문제 검증",
+  "definition_ko": "만들기 전에 대상 고객을 인터뷰·방문해 문제의 실재와 공통 패턴을 확인한다.",
+  "examples": [
+   "validate_problem_through_interviews_before_building",
+   "interview_many_users_before_writing_code",
+   "validate_demand_by_visiting_target_customers"
+  ]
+ },
+ {
+  "key": "landing_page_demand_test",
+  "name_ko": "랜딩 수요 테스트",
+  "definition_ko": "제품 전에 랜딩페이지와 소액 광고로 가입·관심을 모아 수요를 확인한다.",
+  "examples": [
+   "test_demand_with_landing_page_before_building",
+   "validate_demand_with_landing_page_before_launch",
+   "test_demand_with_cheap_ads_before_building"
+  ]
+ },
+ {
+  "key": "prepayment_as_validation",
+  "name_ko": "선결제로 검증",
+  "definition_ko": "만들기 전에 선주문·선결제·평생권 판매로 실제 지불 의사를 확인한다.",
+  "examples": [
+   "test_commitment_with_prepayment_before_building",
+   "preorder_before_build_to_confirm_demand",
+   "presell_lifetime_deal_to_validate_demand"
+  ]
+ },
+ {
+  "key": "manual_before_software",
+  "name_ko": "수작업 먼저",
+  "definition_ko": "소프트웨어 전에 사람 손으로 서비스를 제공해 가치를 확인하고 시간 많이 드는 부분만 자동화한다.",
+  "examples": [
+   "validate_demand_with_manual_service_before_software",
+   "sell_manual_service_before_building_product",
+   "manual_first_then_automate_the_time_sinks"
+  ]
+ },
+ {
+  "key": "free_access_for_feedback",
+  "name_ko": "무료로 피드백 얻기",
+  "definition_ko": "지인·커뮤니티·초기 사용자에게 무료 이용권을 주고 솔직한 피드백을 받는다.",
+  "examples": [
+   "collect_early_feedback_from_network",
+   "trade_free_access_for_feedback",
+   "validate_with_mvp_in_known_circle"
+  ]
+ },
+ {
+  "key": "ship_minimal_mvp_fast",
+  "name_ko": "최소 제품 빠른 출시",
+  "definition_ko": "핵심 기능 하나와 마감 기한으로 범위를 줄여 며칠~몇 주 안에 내놓는다.",
+  "examples": [
+   "ship_single_core_feature_in_a_month",
+   "hard_deadline_to_avoid_build_trap",
+   "launch_minimum_version_same_day"
+  ]
+ },
+ {
+  "key": "leverage_existing_building_blocks",
+  "name_ko": "기성 도구로 만들기",
+  "definition_ko": "노코드, 외부 서비스, 기존 인프라를 빌려 직접 만드는 비용과 시간을 줄인다.",
+  "examples": [
+   "build_mvp_on_existing_infrastructure",
+   "outsource_commodity_parts_to_ship_fast",
+   "build_with_no_code_before_paying_for_code"
+  ]
+ },
+ {
+  "key": "remove_usage_friction",
+  "name_ko": "사용 마찰 제거",
+  "definition_ko": "설치·이동·검색 같은 불필요한 단계를 없애 알게 된 순간 바로 쓰게 한다.",
+  "examples": [
+   "remove_install_friction_with_link_access",
+   "deliver_via_existing_messenger_to_remove_install_friction",
+   "keep_user_in_product_when_stuck"
+  ]
+ },
+ {
+  "key": "build_from_user_feedback",
+  "name_ko": "피드백으로 개선",
+  "definition_ko": "사용자 요청을 우선순위로 삼아 기능을 더하되 유료 고객의 요청에 더 무게를 둔다.",
+  "examples": [
+   "ship_core_then_iterate_on_requests",
+   "turn_early_feedback_into_core_feature",
+   "weigh_paying_customer_feedback_over_free_users"
+  ]
+ },
+ {
+  "key": "search_intent_content",
+  "name_ko": "검색 의도 콘텐츠",
+  "definition_ko": "고객이 검색하는 질문과 낮은 경쟁 키워드에 답하는 글을 꾸준히 발행해 유입을 얻는다.",
+  "examples": [
+   "capture_active_search_intent_with_problem_content",
+   "answer_customer_questions_with_content",
+   "target_low_difficulty_high_volume_keywords"
+  ]
+ },
+ {
+  "key": "help_first_in_communities",
+  "name_ko": "커뮤니티서 먼저 돕기",
+  "definition_ko": "홍보 대신 질문에 답하고 도움을 줘 신뢰를 쌓은 뒤 제품을 자연스럽게 소개한다.",
+  "examples": [
+   "answer_helpfully_where_product_fits",
+   "earn_community_trust_by_helping_not_spamming",
+   "earn_audience_by_helping_first"
+  ]
+ },
+ {
+  "key": "launch_where_audience_gathers",
+  "name_ko": "청중 모인 곳 출시",
+  "definition_ko": "디렉터리, 큐레이션 사이트, 커뮤니티처럼 타깃이 모이는 곳에 맞춰 출시한다.",
+  "examples": [
+   "launch_on_curated_discovery_site",
+   "launch_where_target_audience_gathers",
+   "seed_early_audience_via_directories"
+  ]
+ },
+ {
+  "key": "borrow_audience_and_credibility",
+  "name_ko": "남의 청중·신뢰 빌리기",
+  "definition_ko": "이미 청중이나 권위를 가진 매체·인플루언서·리뷰어를 통해 알려지고 신뢰를 얻는다.",
+  "examples": [
+   "borrow_audience_via_existing_influence_channels",
+   "borrow_credibility_from_media_exposure",
+   "borrow_audience_via_niche_reviewers"
+  ]
+ },
+ {
+  "key": "sell_through_existing_network",
+  "name_ko": "인맥으로 첫 판매",
+  "definition_ko": "기존 인맥과 이전 거래처, 직접 연락으로 첫 고객을 확보한다.",
+  "examples": [
+   "win_first_customers_through_existing_network",
+   "sell_first_to_trusting_network",
+   "start_with_manual_outbound"
+  ]
+ },
+ {
+  "key": "design_referrals",
+  "name_ko": "추천 설계",
+  "definition_ko": "만족한 고객에게 소개를 직접 요청하거나 보상 구조를 만들어 추천이 일어나게 한다.",
+  "examples": [
+   "ask_satisfied_customers_for_referrals",
+   "two_sided_referral_incentive",
+   "ask_clients_directly_for_referrals"
+  ]
+ },
+ {
+  "key": "test_channels_then_focus",
+  "name_ko": "채널 실험 후 집중",
+  "definition_ko": "여러 채널을 시험해 안 되는 곳은 끊고 효과 있는 채널에 집중한다.",
+  "examples": [
+   "test_many_channels_then_cut_losers",
+   "drop_inefficient_paid_channel",
+   "saturate_one_channel_before_next"
+  ]
+ },
+ {
+  "key": "social_proof_reviews",
+  "name_ko": "후기로 신뢰 쌓기",
+  "definition_ko": "고객 후기와 제3자 리뷰를 모아 마케팅과 판매 전반에서 증거로 쓴다.",
+  "examples": [
+   "build_trust_through_accumulated_reviews",
+   "use_reviews_as_social_proof",
+   "third_party_proof_beats_self_published_proof"
+  ]
+ },
+ {
+  "key": "lower_entry_barrier",
+  "name_ko": "진입장벽 낮추기",
+  "definition_ko": "무료 플랜·체험·낮은 시작 가격으로 써 보게 하고 이후 수익을 최적화한다.",
+  "examples": [
+   "lower_entry_barrier_then_optimize_margin",
+   "let_product_sell_itself_via_free_tier",
+   "let_users_experience_paid_features_before_charging"
+  ]
+ },
+ {
+  "key": "raise_price_and_order_value",
+  "name_ko": "가격·객단가 올리기",
+  "definition_ko": "가격 인상, 번들, 업셀로 고객당 매출을 키운다.",
+  "examples": [
+   "raise_price_after_moving_upmarket",
+   "raise_order_value_with_bump_and_downsell",
+   "add_small_upsell_at_checkout"
+  ]
+ },
+ {
+  "key": "reverse_purchase_risk",
+  "name_ko": "구매 위험 덜어주기",
+  "definition_ko": "환불 보장, 무료 해결, 작은 파일럿으로 구매 위험을 판매자가 떠안는다.",
+  "examples": [
+   "absorb_risk_by_working_free_until_solved",
+   "reduce_purchase_risk_with_refund_and_one_time_price",
+   "lower_barrier_with_small_pilot_before_commitment"
+  ]
+ },
+ {
+  "key": "founder_touch_support",
+  "name_ko": "직접 응대·온보딩",
+  "definition_ko": "창업자가 직접 빠르게 응대·온보딩하며 배우고 이를 로드맵과 시스템으로 옮긴다.",
+  "examples": [
+   "founder_direct_support_for_customer_discovery",
+   "fast_support_response_and_accessible_docs",
+   "do_things_that_dont_scale_then_systematize_onboarding"
+  ]
+ },
+ {
+  "key": "fast_time_to_value",
+  "name_ko": "첫 사용 가치 제공",
+  "definition_ko": "템플릿·자동 설정·즉시 결과로 첫 방문에서 가치를 느끼게 한다.",
+  "examples": [
+   "enable_first_session_value_with_templates",
+   "deliver_immediate_result_at_signup",
+   "automate_setup_to_cut_time_to_value"
+  ]
+ },
+ {
+  "key": "keep_costs_below_revenue",
+  "name_ko": "비용 낮춰 버티기",
+  "definition_ko": "고정비와 지출을 매출 아래로 낮춰 흑자와 런웨이를 확보한다.",
+  "examples": [
+   "cut_burn_below_revenue",
+   "minimize_burn_to_extend_runway",
+   "avoid_fixed_costs_with_free_tiers_and_negotiation"
+  ]
+ },
+ {
+  "key": "scale_team_carefully",
+  "name_ko": "신중한 팀 확장",
+  "definition_ko": "한 번에 조금씩 채용하고 시스템과 문서화를 먼저 갖춘 뒤 위임한다.",
+  "examples": [
+   "hire_one_at_a_time_and_train_fully",
+   "build_systems_before_adding_headcount",
+   "document_processes_to_enable_delegation"
+  ]
+ },
+ {
+  "key": "refocus_when_stalled",
+  "name_ko": "막히면 방향 좁히기",
+  "definition_ko": "성장이 막히거나 사용이 줄면 손님층이나 제품 초점을 다시 정한다.",
+  "examples": [
+   "narrow_to_one_niche_when_growth_stalls",
+   "refocus_product_when_usage_declines",
+   "pivot_from_end_product_to_embedded_platform"
+  ]
+ }
+]

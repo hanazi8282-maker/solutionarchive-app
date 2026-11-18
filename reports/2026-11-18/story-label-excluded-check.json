@@ -1,0 +1,130 @@
+{
+ "excluded_short_total": 58,
+ "excluded_empty_total": 161,
+ "sampled": 30,
+ "judged": 30,
+ "actually_has_case": 24,
+ "exclusion_correct_rate": 0.2,
+ "wrongly_excluded": [
+  {
+   "slug": "fearless-business",
+   "chars": 1112,
+   "why": "Bubble로 SaaS 플랫폼을 60일 만에 구축해 운영 방식이 바뀌었고, 마케팅비 없이 유기적으로 성장해 월 $12k를 달성"
+  },
+  {
+   "slug": "ecomtent-01d96b7c-60d2-4514-8677-a743fa7facee",
+   "chars": 439,
+   "why": "주요 고객사를 확보했고 이들이 실사를 도와 $1.4M 투자 유치로 이어짐"
+  },
+  {
+   "slug": "origen-rv-accessories-ltd-09a6ff5e-f022-4dfe-b98f-34857393b940",
+   "chars": 1266,
+   "why": "아마존 브랜드 스토어를 직접 인수해 최적화한 결과 50%+ 성장, 프라임데이 매출 $250k"
+  },
+  {
+   "slug": "joker-greeting-404a5fae-c869-40c4-8828-ea4c2c18a73f",
+   "chars": 1315,
+   "why": "인하우스 디자이너를 채용하고 신규 카테고리를 추가해 매출과 고객층을 확대"
+  },
+  {
+   "slug": "furry-fellas-pet-service-llc-c6b54520-dece-4ca7-8cf6-f281ae8cb60a",
+   "chars": 692,
+   "why": "서비스 반경을 줄여 사업을 통합했고, 그 덕에 생긴 시간을 지역사회 활동에 재배분"
+  },
+  {
+   "slug": "greenrope-0200c215-f604-411e-a1c9-d95555b4e387",
+   "chars": 776,
+   "why": "새 가격 프로그램과 교육 자료를 도입한 뒤 문의가 늘어 월 4~5개 파트너를 확보"
+  },
+  {
+   "slug": "punchline-conversion-copywriting-22a0bb43-b8a5-4aba-abcc-14033168a49f",
+   "chars": 503,
+   "why": "이커머스 사업을 매각한 뒤 새 일을 찾고 싶다는 이유로 파트너와 신사업을 시작"
+  },
+  {
+   "slug": "money-talk-77c01360-9043-4168-adcc-ae7e067ed827",
+   "chars": 1226,
+   "why": "병행 부담 때문에 뉴스레터 포맷을 조정했고, 웹사이트를 열어 광고 수익 월 £1,000 첫 달성"
+  },
+  {
+   "slug": "big-star-copywriting-f63ad932-ff36-462a-8a01-17ee201a9815",
+   "chars": 1335,
+   "why": "카피라이팅 수요 감소를 이유로 디지털마케팅 중심으로 전환하고, 메시지 희석 문제로 별도 사이트를 계획"
+  },
+  {
+   "slug": "audiocipher-technologies-fdfef6fe-b2ee-4ea9-bdd3-1e05c55ca663",
+   "chars": 554,
+   "why": "B2B 에이전시 부문을 추가해 매출의 75%를 차지, LinkedIn 네트워킹으로 리드 확보"
+  },
+  {
+   "slug": "logoclothz-385cf77d-944b-4a7e-a2ac-9aa5cc3c5568",
+   "chars": 1307,
+   "why": "AI를 도입해 견적·채팅을 자동화했고 업무 효율화로 성장에 크게 기여"
+  },
+  {
+   "slug": "sievers-creative-1be03931-6952-4a19-996e-c34a08cc60dd",
+   "chars": 478,
+   "why": "간판 회사를 인수해 서비스를 통합했고, 공간이 부족해져 새 본사를 매입"
+  },
+  {
+   "slug": "ko-pack-6c6730d2-4ccc-4ab9-ba2b-0aaf5e951cfc",
+   "chars": 1295,
+   "why": "턴키 서비스를 추가했고 YTD 매출 132% 증가(홍보성 서술 비중이 큼)"
+  },
+  {
+   "slug": "cei-staffing-8325bf6c-6cfd-4552-819d-8349c300f809",
+   "chars": 629,
+   "why": "원격 근무로 전환하면서 새 시스템을 도입해 운영을 유지·개선하고 타 주 계약까지 확대"
+  },
+  {
+   "slug": "less-is-more-organizing-services-ac4febfc-f49d-495d-b070-886ce795abd5",
+   "chars": 433,
+   "why": "2022년부터 이삿짐 정리·다운사이징 신규 서비스에 집중해 높은 인기를 얻음"
+  },
+  {
+   "slug": "pricing-i-o-aa282df1-4edc-45a4-9b6f-90e6acc5d20c",
+   "chars": 628,
+   "why": "고객 수요에 대응하기 위해 인력을 약 50% 늘림"
+  },
+  {
+   "slug": "tuft-paw-8831d5a8-6c35-488c-9fbd-f747a497b6ee",
+   "chars": 793,
+   "why": "고양이 모래 구독 모델을 출시해 반복 매출과 고객 충성도를 확보"
+  },
+  {
+   "slug": "branperience-a1c27ef2-83fc-45dd-bcf4-f5eedd170f25",
+   "chars": 845,
+   "why": "수요 증가에 대응해 인력을 채용했고 그 결과 운영 규모를 확장(서술은 모호함)"
+  },
+  {
+   "slug": "stripo-014bf0d0-888a-44eb-9969-131d87caa0ed",
+   "chars": 978,
+   "why": "에디터 개편, AI·SSO 등 기능을 추가한 결과 트래픽과 연매출이 증가"
+  },
+  {
+   "slug": "flying-v-group-2ba3e4c8-88d4-491c-9716-317eab7e57f2",
+   "chars": 971,
+   "why": "SEO 디렉터를 영입해 SEO 전략을 개편했고 고객사 트래픽이 성장"
+  },
+  {
+   "slug": "projectionhub-51da1526-a0f8-4059-bffa-1d47031ec74f",
+   "chars": 1153,
+   "why": "팀을 보강하고 확장 가능한 영업·딜리버리 프로세스를 만들어 컨설팅 사업 240% 성장"
+  },
+  {
+   "slug": "trutech-tools-ltd-43366fa4-c718-4449-8db1-a4545b7a987a",
+   "chars": 1048,
+   "why": "EOS로 조직을 재구성했고, 새 웹 플랫폼 이전 후 고객 만족도가 크게 개선"
+  },
+  {
+   "slug": "million-dollar-collar-3663d526-e61c-4e62-94ab-06453b7fef48",
+   "chars": 387,
+   "why": "자체 기술 기반 셔츠 브랜드를 출시해 폭발적으로 성장, 3색에서 12색으로 확대"
+  },
+  {
+   "slug": "barn2-plugins-123c3278-bb3c-49ea-a648-f38c1e717f8f",
+   "chars": 495,
+   "why": "사용자 기반 확대를 위해 Shopify 앱을 무료로 출시하고 Shopify를 주력 성장 전략으로 삼음"
+  }
+ ]
+}

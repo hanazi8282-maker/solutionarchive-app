@@ -1,0 +1,50 @@
+[
+ {
+  "name": "rerun",
+  "compared": 50,
+  "ok": 50,
+  "chapter": 82.7,
+  "result": 72.4,
+  "causal": 94,
+  "core": 83,
+  "quote_ok": 99.7,
+  "number_ok": 98.7,
+  "usd_per_story": 0.0595,
+  "tokens_out_per_story": 4191,
+  "cache_write_per_story": 4233,
+  "core_drop_vs_rerun": null,
+  "adopt": "(기준 잡음)"
+ },
+ {
+  "name": "sysslim",
+  "compared": 50,
+  "ok": 50,
+  "chapter": 85.2,
+  "result": 76.7,
+  "causal": 88,
+  "core": 83.3,
+  "quote_ok": 99.7,
+  "number_ok": 99.3,
+  "usd_per_story": 0.0532,
+  "tokens_out_per_story": 3261,
+  "cache_write_per_story": 5071,
+  "core_drop_vs_rerun": -0.3,
+  "adopt": "채택"
+ },
+ {
+  "name": "sysslim2",
+  "compared": 48,
+  "ok": 48,
+  "chapter": 82.3,
+  "result": 68.3,
+  "causal": 91.7,
+  "core": 80.8,
+  "quote_ok": 100,
+  "number_ok": 99.6,
+  "usd_per_story": 0.0449,
+  "tokens_out_per_story": 2424,
+  "cache_write_per_story": 5073,
+  "core_drop_vs_rerun": 2.2,
+  "adopt": "불채택"
+ }
+]

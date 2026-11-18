@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "run": "test_cv_rerun_sonnet",
+  "model": "claude-sonnet-5-5",
+  "set": "ids:reports/2026-11-18/story-label-var-sample50.json",
+  "targets": 50,
+  "n": 50,
+  "ok": 50,
+  "badJson": 0,
+  "structure": 0,
+  "err": 0,
+  "quoteTotal": 316,
+  "quoteFail": 1,
+  "numTotal": 316,
+  "numFail": 4,
+  "basisDropped": 0,
+  "epTotal": 317,
+  "truncated": 0,
+  "cost_usd": 2.9751,
+  "per_story_usd": 0.0595,
+  "minutes": 6.4,
+  "tokens": {
+   "in": 100,
+   "cache_write": 211667,
+   "cache_read": 325954,
+   "out": 209562
+  },
+  "quote_fail_rate": 0.0032,
+  "number_fail_rate": 0.0127,
+  "stopped": null,
+  "variant": [],
+  "batch": 1
+ },
+ "proposals": []
+}

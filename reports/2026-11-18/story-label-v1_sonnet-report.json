@@ -1,317 +1,318 @@
 {
  "run": "v1_sonnet",
- "stories": 207,
- "episodes": 1613,
- "episodes_per_story": 7.8,
- "linked_to_existing_move": 674,
- "new_episodes": 939,
+ "stories": 788,
+ "episodes": 5238,
+ "episodes_per_story": 6.6,
+ "linked_to_existing_move": 2573,
+ "new_episodes": 2665,
  "situation_fill_pct": {
-  "customer": 85.5,
-  "price_band": 16.9,
-  "stage": 98.1,
-  "team_size": 99,
-  "pricing_model": 82.6,
-  "revenue_band": 78.7
+  "customer": 85.2,
+  "price_band": 14.2,
+  "stage": 99.1,
+  "team_size": 98.9,
+  "pricing_model": 81.9,
+  "revenue_band": 82
  },
  "success_tier": {
-  "S2": 92,
-  "S1": 111,
-  "S0": 4
+  "S2": 338,
+  "S1": 442,
+  "S0": 8
  },
  "relevance_tier": {
-  "R1": 71,
-  "R3": 44,
-  "R2": 92
+  "R1": 380,
+  "R3": 149,
+  "R2": 259
  },
  "focus_chapters_per_story": {
-  "2": 20,
-  "3": 133,
-  "4": 54
+  "1": 6,
+  "2": 68,
+  "3": 449,
+  "4": 265
  },
- "stories_with_chain": 207,
+ "stories_with_chain": 766,
  "result_class": {
-  "positive": 1103,
-  "unknown": 241,
-  "negative": 111,
-  "none": 92,
-  "mixed": 66
+  "positive": 3559,
+  "unknown": 488,
+  "negative": 472,
+  "none": 526,
+  "mixed": 193
  },
  "result_grain": {
-  "qual": 896,
-  "learned": 35,
-  "metric": 341,
-  "signal": 8
+  "qual": 2922,
+  "learned": 129,
+  "metric": 1133,
+  "signal": 40
  },
  "evidence": {
-  "B": 1025,
-  "C": 410,
-  "A": 178
+  "B": 3560,
+  "C": 1104,
+  "A": 574
  },
  "by_chapter": {
   "1": {
-   "episodes": 190,
-   "primary": 190,
-   "positive": 114,
-   "negative": 2,
-   "mixed": 3,
-   "none": 25,
-   "unknown": 46,
+   "episodes": 662,
+   "primary": 661,
+   "positive": 376,
+   "negative": 16,
+   "mixed": 4,
+   "none": 185,
+   "unknown": 81,
    "signal": 0,
-   "metric": 24,
-   "qual": 94,
-   "learned": 1,
-   "quotes": 188
+   "metric": 59,
+   "qual": 334,
+   "learned": 3,
+   "quotes": 654
   },
   "2": {
-   "episodes": 78,
-   "primary": 76,
-   "positive": 56,
-   "negative": 2,
-   "mixed": 1,
-   "none": 7,
-   "unknown": 12,
+   "episodes": 202,
+   "primary": 198,
+   "positive": 140,
+   "negative": 8,
+   "mixed": 3,
+   "none": 29,
+   "unknown": 22,
    "signal": 0,
-   "metric": 9,
-   "qual": 48,
-   "learned": 2,
-   "quotes": 77
+   "metric": 22,
+   "qual": 125,
+   "learned": 4,
+   "quotes": 198
   },
   "3": {
-   "episodes": 124,
-   "primary": 119,
-   "positive": 102,
-   "negative": 6,
-   "mixed": 6,
-   "none": 2,
-   "unknown": 8,
-   "signal": 0,
-   "metric": 30,
-   "qual": 72,
-   "learned": 12,
-   "quotes": 124
-  },
-  "4": {
-   "episodes": 191,
-   "primary": 188,
-   "positive": 130,
-   "negative": 16,
-   "mixed": 13,
-   "none": 13,
-   "unknown": 19,
-   "signal": 0,
-   "metric": 24,
-   "qual": 132,
-   "learned": 3,
-   "quotes": 191
-  },
-  "5": {
-   "episodes": 565,
-   "primary": 550,
-   "positive": 392,
-   "negative": 50,
-   "mixed": 25,
-   "none": 25,
-   "unknown": 73,
-   "signal": 8,
-   "metric": 159,
-   "qual": 288,
-   "learned": 12,
-   "quotes": 564
-  },
-  "6": {
-   "episodes": 159,
-   "primary": 151,
-   "positive": 109,
-   "negative": 7,
-   "mixed": 2,
-   "none": 8,
-   "unknown": 33,
-   "signal": 0,
-   "metric": 44,
-   "qual": 72,
-   "learned": 2,
-   "quotes": 156
-  },
-  "7": {
-   "episodes": 107,
-   "primary": 104,
-   "positive": 76,
-   "negative": 2,
-   "mixed": 3,
-   "none": 6,
-   "unknown": 20,
-   "signal": 0,
-   "metric": 16,
-   "qual": 65,
-   "learned": 0,
-   "quotes": 106
-  },
-  "8": {
-   "episodes": 199,
-   "primary": 197,
-   "positive": 124,
+   "episodes": 411,
+   "primary": 403,
+   "positive": 336,
    "negative": 26,
    "mixed": 13,
-   "none": 6,
-   "unknown": 30,
+   "none": 17,
+   "unknown": 19,
+   "signal": 3,
+   "metric": 115,
+   "qual": 227,
+   "learned": 30,
+   "quotes": 410
+  },
+  "4": {
+   "episodes": 691,
+   "primary": 680,
+   "positive": 447,
+   "negative": 74,
+   "mixed": 39,
+   "none": 85,
+   "unknown": 46,
    "signal": 0,
-   "metric": 35,
-   "qual": 125,
-   "learned": 3,
-   "quotes": 199
+   "metric": 96,
+   "qual": 457,
+   "learned": 7,
+   "quotes": 684
+  },
+  "5": {
+   "episodes": 1861,
+   "primary": 1833,
+   "positive": 1321,
+   "negative": 222,
+   "mixed": 85,
+   "none": 94,
+   "unknown": 139,
+   "signal": 36,
+   "metric": 571,
+   "qual": 961,
+   "learned": 60,
+   "quotes": 1851
+  },
+  "6": {
+   "episodes": 512,
+   "primary": 495,
+   "positive": 352,
+   "negative": 24,
+   "mixed": 14,
+   "none": 49,
+   "unknown": 73,
+   "signal": 1,
+   "metric": 125,
+   "qual": 255,
+   "learned": 9,
+   "quotes": 505
+  },
+  "7": {
+   "episodes": 361,
+   "primary": 354,
+   "positive": 254,
+   "negative": 14,
+   "mixed": 6,
+   "none": 38,
+   "unknown": 49,
+   "signal": 0,
+   "metric": 52,
+   "qual": 218,
+   "learned": 4,
+   "quotes": 359
+  },
+  "8": {
+   "episodes": 538,
+   "primary": 534,
+   "positive": 333,
+   "negative": 88,
+   "mixed": 29,
+   "none": 29,
+   "unknown": 59,
+   "signal": 0,
+   "metric": 93,
+   "qual": 345,
+   "learned": 12,
+   "quotes": 536
   }
  },
  "flow_cards_by_chapter": {
   "1": {
-   "R1": 8,
-   "R2": 6,
-   "R3": 1,
-   "withFailure": 1
+   "R1": 30,
+   "R2": 16,
+   "R3": 7,
+   "withFailure": 4
   },
   "2": {
-   "R1": 1,
-   "R2": 11,
-   "R3": 4,
-   "withFailure": 0
+   "R1": 16,
+   "R2": 25,
+   "R3": 9,
+   "withFailure": 4
   },
   "3": {
-   "R1": 5,
-   "R2": 10,
-   "R3": 6,
-   "withFailure": 2
+   "R1": 61,
+   "R2": 22,
+   "R3": 13,
+   "withFailure": 11
   },
   "4": {
-   "R1": 21,
-   "R2": 15,
-   "R3": 8,
-   "withFailure": 8
+   "R1": 96,
+   "R2": 34,
+   "R3": 32,
+   "withFailure": 38
   },
   "5": {
-   "R1": 57,
-   "R2": 75,
-   "R3": 39,
-   "withFailure": 54
+   "R1": 302,
+   "R2": 214,
+   "R3": 129,
+   "withFailure": 238
   },
   "6": {
-   "R1": 9,
-   "R2": 21,
-   "R3": 6,
-   "withFailure": 6
+   "R1": 53,
+   "R2": 52,
+   "R3": 25,
+   "withFailure": 23
   },
   "7": {
-   "R1": 10,
-   "R2": 5,
-   "R3": 6,
-   "withFailure": 0
+   "R1": 46,
+   "R2": 18,
+   "R3": 10,
+   "withFailure": 3
   },
   "8": {
-   "R1": 4,
-   "R2": 17,
-   "R3": 7,
-   "withFailure": 11
+   "R1": 38,
+   "R2": 62,
+   "R3": 28,
+   "withFailure": 45
   }
  },
  "top_sub_topics": [
   [
    "5:product_hunt_launch",
-   11
+   44
+  ],
+  [
+   "1:founder_pain_origin",
+   34
   ],
   [
    "5:cold_email",
-   10
-  ],
-  [
-   "1:personal_pain_origin",
-   6
-  ],
-  [
-   "1:founder_own_pain",
-   6
-  ],
-  [
-   "1:own_pain_point",
-   5
-  ],
-  [
-   "1:personal_pain_point",
-   5
-  ],
-  [
-   "5:affiliate_program",
-   4
+   25
   ],
   [
    "5:seo_blog_content",
-   4
+   18
   ],
   [
-   "1:scratch_own_itch",
-   4
+   "1:own_pain_point",
+   17
   ],
   [
-   "5:word_of_mouth",
-   3
+   "5:seo_howto_content",
+   16
   ],
   [
-   "5:fb_group_answering",
-   3
+   "5:affiliate_program",
+   15
   ],
   [
-   "5:linkedin_cold_outreach",
-   3
-  ],
-  [
-   "5:referral_program",
-   3
+   "1:founder_own_pain",
+   15
   ],
   [
    "1:founder_pain_point",
-   3
+   15
   ],
   [
-   "3:landing_page_waitlist",
-   3
-  ],
-  [
-   "5:linkedin_outreach",
-   3
-  ],
-  [
-   "5:seo_keyword_content",
-   2
-  ],
-  [
-   "1:own_pain_origin",
-   2
-  ],
-  [
-   "5:referral_bonus",
-   2
-  ],
-  [
-   "5:build_in_public_twitter",
-   2
-  ],
-  [
-   "1:founder_problem_origin",
-   2
-  ],
-  [
-   "5:seo_content_blog",
-   2
+   "1:personal_pain_origin",
+   13
   ],
   [
    "3:customer_interviews",
-   2
+   11
   ],
   [
-   "4:nocode_mvp",
-   2
+   "5:google_ads",
+   11
+  ],
+  [
+   "5:paid_ads",
+   11
+  ],
+  [
+   "1:own_pain_origin",
+   10
+  ],
+  [
+   "5:fb_group_answering",
+   9
+  ],
+  [
+   "5:referral_program",
+   9
+  ],
+  [
+   "1:founder_problem_origin",
+   8
+  ],
+  [
+   "5:build_in_public_twitter",
+   7
+  ],
+  [
+   "1:personal_pain_point",
+   7
+  ],
+  [
+   "1:founder_origin",
+   7
+  ],
+  [
+   "1:scratch_own_itch",
+   7
+  ],
+  [
+   "5:producthunt_launch",
+   7
+  ],
+  [
+   "5:facebook_ads",
+   7
+  ],
+  [
+   "1:founder_experience_origin",
+   6
   ],
   [
    "5:seo_content",
-   2
+   6
   ]
  ],
- "mechanisms_distinct": 1605
+ "mechanisms_distinct": 5142
 }

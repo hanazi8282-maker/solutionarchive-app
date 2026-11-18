@@ -1,0 +1,13 @@
+[story-label v1_sonnet] set=saas 대상 788편 dry=false 장=1,2,3,4,5,6,7,8
+[story-label] 50/788 ok=50 누적 $4.529 (3.7분)
+[story-label] 100/788 ok=100 누적 $8.503 (6.6분)
+[story-label] 150/788 ok=149 누적 $12.862 (9.9분)
+[story-label] 200/788 ok=197 누적 $17.467 (13.2분)
+오류 habits-garden 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"reque
+오류 hammer-creations 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"reque
+오류 gmass-inc-b9e9cf9c-98b3-418b-9b1b-b4456ce3070f 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"reque
+오류 health-haven 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"reque
+오류 heartstring 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"reque
+[story-label] 250/788 ok=207 누적 $18.284 (13.8분)
+[story-label] 300/788 ok=207 누적 $18.284 (13.9분)
+{"run":"v1_sonnet","model":"claude-sonnet-5-5","set":"saas","targets":788,"n":307,"ok":207,"badJson":1,"structure":2,"err":97,"quoteTotal":1640,"quoteFail":4,"numTotal":1565,"numFail":22,"basisDropped":29,"epTotal":1644,"truncated":0,"cost_usd":18.2837,"per_story_usd":0.0596,"minutes":13.9,"tokens":{"in":869050,"cache_write":0,"cache_read":731010,"out":1030485},"quote_fail_rate":0.0024,"number_fail_rate":0.0141,"stopped":"JSON 실패 31.9% > 5% (n=307)"}

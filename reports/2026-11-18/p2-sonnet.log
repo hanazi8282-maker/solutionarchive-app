@@ -1,0 +1,3 @@
+[story-label test_p2_sonnet] set=sample50 대상 53편 dry=true 장=1,2,3,4,5,6,7,8
+[story-label] 50/53 ok=43 누적 $4.451 (5.4분)
+{"run":"test_p2_sonnet","model":"claude-sonnet-5-5","set":"sample50","targets":53,"n":53,"ok":45,"badJson":1,"structure":7,"err":0,"quoteTotal":398,"quoteFail":2,"numTotal":391,"numFail":3,"basisDropped":19,"epTotal":398,"truncated":1,"cost_usd":4.7436,"per_story_usd":0.0895,"minutes":5.8,"tokens":{"in":237644,"cache_write":17405,"cache_read":167088,"out":261020},"quote_fail_rate":0.005,"number_fail_rate":0.0077,"stopped":null}

@@ -50,7 +50,7 @@ import {
   BUBBLE_FORUM_BOARDS, BUBBLE_FORUM_HOST,
   RETOOL_COMMUNITY_BOARDS, RETOOL_COMMUNITY_HOST,
   GLIDE_COMMUNITY_BOARDS, GLIDE_COMMUNITY_HOST,
-  SOFTR_COMMUNITY_BOARDS, SOFTR_COMMUNITY_HOST,
+  SOFTR_COMMUNITY_BOARDS, SOFTR_COMMUNITY_HOST, MAUTIC_FORUM_BOARDS, MAUTIC_FORUM_HOST, FRAPPE_FORUM_BOARDS, FRAPPE_FORUM_HOST, SUITECRM_COMMUNITY_BOARDS, SUITECRM_COMMUNITY_HOST, INVOICENINJA_FORUM_BOARDS, INVOICENINJA_FORUM_HOST, OBSIDIAN_FORUM_BOARDS, OBSIDIAN_FORUM_HOST, GHOST_FORUM_BOARDS, GHOST_FORUM_HOST, SHOPIFY_COMMUNITY_BOARDS, SHOPIFY_COMMUNITY_HOST,
 } from './adapters/discourse.ts'
 import { HOST as WP_HOST, parseProductRef as parseWordpressRef } from './adapters/wordpress.ts'
 import { REPOS as GITHUB_REPOS, WEB as GITHUB_WEB } from './adapters/github.ts'
@@ -400,7 +400,7 @@ export function postUrlOfRef(sourceKey: string | null, productRef: string | null
 }
 
 /** 본문 `[SRC:]` 머리말을 심는 게시판 순회 소스의 호스트(velog·disquiet 는 위 표에 있다). */
-const BOARD_HOSTS: Record<string, string> = { inflearn: INFLEARN_HOST, yozm: YOZM_HOST, indiehackers: INDIEHACKERS_HOST, n8n_community: N8N_COMMUNITY_HOST, make_community: MAKE_COMMUNITY_HOST, bubble_forum: BUBBLE_FORUM_HOST, retool_community: RETOOL_COMMUNITY_HOST, glide_community: GLIDE_COMMUNITY_HOST, softr_community: SOFTR_COMMUNITY_HOST, github_issues: GITHUB_WEB }
+const BOARD_HOSTS: Record<string, string> = { inflearn: INFLEARN_HOST, yozm: YOZM_HOST, indiehackers: INDIEHACKERS_HOST, n8n_community: N8N_COMMUNITY_HOST, make_community: MAKE_COMMUNITY_HOST, bubble_forum: BUBBLE_FORUM_HOST, retool_community: RETOOL_COMMUNITY_HOST, glide_community: GLIDE_COMMUNITY_HOST, softr_community: SOFTR_COMMUNITY_HOST, mautic_forum: MAUTIC_FORUM_HOST, frappe_forum: FRAPPE_FORUM_HOST, suitecrm_community: SUITECRM_COMMUNITY_HOST, invoiceninja_forum: INVOICENINJA_FORUM_HOST, obsidian_forum: OBSIDIAN_FORUM_HOST, ghost_forum: GHOST_FORUM_HOST, shopify_community: SHOPIFY_COMMUNITY_HOST, github_issues: GITHUB_WEB }
 
 /**
  * 본문 머리말에서 읽은 주소가 그 소스의 호스트인가. 머리말은 본문 맨 앞이라 옛 행(머리말 도입 전)에서는

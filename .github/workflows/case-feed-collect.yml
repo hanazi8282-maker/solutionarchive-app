@@ -1,0 +1,27 @@
+# v71cu S10: 사례 소스(TrustMRR 공식 API·RSS·HN Show/Ask) 일일 수집 → case_feed_items. 원문은 러너 임시 폴더라 남지 않는다(DB 에는 제목·주소·라벨만). 403·429 는 그 소스 실행만 중단.
+name: Case Feed Collect
+on:
+  schedule:
+    - cron: '30 20 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: case-feed-collect
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Collect case feeds
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TRUSTMRR_API_KEY: ${{ secrets.TRUSTMRR_API_KEY }}
+        run: node scripts/case-feed-collect.mjs --max-per-source 50

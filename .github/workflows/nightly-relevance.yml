@@ -158,7 +158,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           AUTO_APPROVAL_SINCE: ${{ vars.AUTO_APPROVAL_SINCE || '' }}
-          RELEVANCE_SECOND_MAX: ${{ vars.RELEVANCE_SECOND_MAX || '200' }}
+          RELEVANCE_SECOND_MAX: ${{ vars.JUDGE_DAILY_ITEMS_SECOND || vars.RELEVANCE_SECOND_MAX || '200' }}
           # v71k: 마감(분)과 순서. 되돌리기 = 변수 삭제(20분) / RELEVANCE_SECOND_ORDER=legacy(v70 순서).
           RELEVANCE_SECOND_DEADLINE_MIN: ${{ vars.RELEVANCE_SECOND_DEADLINE_MIN || '20' }}
           RELEVANCE_SECOND_ORDER: ${{ vars.RELEVANCE_SECOND_ORDER || '' }}

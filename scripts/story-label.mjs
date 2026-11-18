@@ -6,6 +6,7 @@
 // 전문은 PC ~/sa-private/ground/starterstory/starterstory_stories_3314.jsonl.gz 에서만 읽는다(DB 에 넣지 않는다).
 import fs from 'node:fs'
 import os from 'node:os'
+import { spawn } from 'node:child_process'
 import zlib from 'node:zlib'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -21,6 +22,8 @@ const TAG = arg('model', 'sonnet')
 const [MODEL, P_IN, P_OUT] = MODELS[TAG]
 const SET = arg('set', 'sample50')
 const DRY = has('dry')
+const PROVIDER = arg('provider', 'api') // api | cli(claude -p 구독 경로 — v71ct-2: API 크레딧 충전 안 함)
+const CAP_USD = arg('cap-usd') != null ? Number(arg('cap-usd')) : null // cli 전용: 이번 실행의 명목 비용 상한. 닿으면 새 호출을 시작하지 않는다(세션 가드 15% = $6.45)
 const THINK = has('thinking') // 기본은 생각 끔(출력 토큰·비용 절감, 아래 비용 방법으로 시험). --thinking 으로 켠다
 const EFFORT = arg('effort')
 const CONC = Number(arg('concurrency', 5))
@@ -31,7 +34,7 @@ const GROUND = path.join(os.homedir(), 'sa-private/ground/starterstory/starterst
 const SOURCE_KEY = 'starterstory'
 
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const client = PROVIDER === 'api' ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null
 
 // ── 데이터 로드 ───────────────────────────────────────────────
 const stories = zlib.gunzipSync(fs.readFileSync(GROUND)).toString().split('\n').filter(Boolean).map((l) => JSON.parse(l))
@@ -96,8 +99,39 @@ function pickTargets() {
 // ── 호출 ─────────────────────────────────────────────────────
 let thinkOff = 'between_tools' // 이 모델 계열이 요구하는 '생각 끔' 값(400 이 알려 주면 바꾼다)
 let inT = 0, outT = 0, cwT = 0, crT = 0
-const cost = () => (inT * P_IN + cwT * P_IN * 1.25 + crT * P_IN * 0.1 + outT * P_OUT) / 1e6
+let cliUsd = 0, cliUnknown = 0
+const cost = () => (PROVIDER === 'cli' ? cliUsd : (inT * P_IN + cwT * P_IN * 1.25 + crT * P_IN * 0.1 + outT * P_OUT) / 1e6)
+class StopRun extends Error {}
+// claude -p 한 번(구독 OAuth). ANTHROPIC_API_KEY 를 빼서 API 로 새지 않게 하고, cwd 는 임시 폴더(프로젝트 CLAUDE.md 를 안 읽게). 도구 없음·1턴.
+async function callCli(story, moves) {
+  if (CAP_USD != null && cost() + cliUnknown * 0.3 >= CAP_USD) throw new StopRun(`cap — 명목 비용 $${cost().toFixed(2)} ≥ 상한 $${CAP_USD}`)
+  const { ANTHROPIC_API_KEY: _unused, ...env } = process.env
+  const args = ['-p', '--output-format', 'json', '--max-turns', '1', '--tools', '', '--model', MODEL, '--effort', EFFORT ?? 'low', '--disable-slash-commands', '--no-session-persistence',
+    // 사용자 설정(훅·플러그인·스킬 목록)과 MCP 서버 목록이 호출마다 컨텍스트 3만 토큰을 얹는다(실측 cache_write 34k/호출) — 빼서 한도를 아낀다.
+    '--setting-sources', 'project', '--strict-mcp-config']
+  const res = await new Promise((resolve) => {
+    const ch = spawn('claude', args, { cwd: os.tmpdir(), env, stdio: ['pipe', 'pipe', 'pipe'] })
+    let out = '', err = ''
+    ch.stdout.setEncoding('utf8'); ch.stderr.setEncoding('utf8')
+    ch.stdout.on('data', (d) => { out += d }); ch.stderr.on('data', (d) => { err += d }); ch.stdin.on('error', () => {})
+    const t = setTimeout(() => ch.kill('SIGKILL'), 600_000)
+    ch.on('close', (code) => { clearTimeout(t); resolve({ code, out, err }) })
+    ch.stdin.end(`${SYSTEM}\n\n---\n\n${buildUser(story, moves)}`, 'utf8')
+  })
+  let e = null
+  try { e = JSON.parse(res.out) } catch { e = null }
+  if (typeof e?.total_cost_usd === 'number') cliUsd += e.total_cost_usd; else cliUnknown++
+  const msg = `${e?.result ?? ''} ${res.err}`.slice(0, 300)
+  if (/usage limit|limit reached|rate limit|quota|resets? at/i.test(msg) && (res.code !== 0 || e?.is_error)) throw new StopRun(`quota — ${msg.slice(0, 160)}`)
+  if (res.code !== 0 || e?.is_error || typeof e?.result !== 'string') throw new Error(`cli 실패 code=${res.code} ${msg.slice(0, 160)}`)
+  const u = e.usage ?? {}
+  inT += u.input_tokens ?? 0; outT += u.output_tokens ?? 0; crT += u.cache_read_input_tokens ?? 0; cwT += u.cache_creation_input_tokens ?? 0
+  return { raw: e.result, stop: e.stop_reason ?? null, usage: u }
+}
 async function call(story, moves) {
+  if (PROVIDER === 'cli') {
+    for (let a = 0; ; a++) { try { return await callCli(story, moves) } catch (e) { if (e instanceof StopRun || a >= 2) throw e } } // 재시도 2회 뒤 실패로 넘긴다
+  }
   for (let a = 0; ; a++) {
     try {
       const msg = await client.messages.create({
@@ -167,7 +201,7 @@ await Promise.all(Array.from({ length: CONC }, async () => {
         if (!v.ok) agg.structure++
         else { agg.ok++; rec.story = v.story; rec.episodes = v.episodes; rec.failedAttemptsFound = v.failedAttemptsFound; if (!DRY) await save(s, moves, v) }
       }
-    } catch (e) { agg.err++; agg.n++; rec.error = String(e?.message ?? e).slice(0, 200); if (agg.err <= 5) console.error('오류', s.slug, rec.error) }
+    } catch (e) { if (e instanceof StopRun) { stop = e.message; idx--; break } agg.err++; agg.n++; rec.error = String(e?.message ?? e).slice(0, 200); if (agg.err <= 5) console.error('오류', s.slug, rec.error) }
     fs.appendFileSync(OUT, JSON.stringify(rec) + '\n')
     if (agg.n % 50 === 0) console.log(`[story-label] ${agg.n}/${targets.length} ok=${agg.ok} 누적 $${cost().toFixed(3)} (${((Date.now() - t0) / 60000).toFixed(1)}분)`)
     check()

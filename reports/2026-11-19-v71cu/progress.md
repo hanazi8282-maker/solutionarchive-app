@@ -1,15 +1,16 @@
-# v71cu progress (한도 도달로 중단, 2026-11-19 02:50 KST)
+# v71cu progress (갱신 2026-11-19 ~04:00 KST)
 
-## 끝난 것
-- PR #668 머지(mechanism_norm·P4 스크립트).
-- 브랜치 `feat/v71cu-s1-s2` (push됨, PR 미생성): S1 마이그 000001(area_registry·target_area_links·롤백표), 000002(review_targets 방문 칸 5개), 000003(수집 v2 새 표 8개 + v_frontier_state) — 3개 모두 DB 적용 완료, 롤백 파일 있음.
-- S1 데이터: review_targets.area 채움(약 1,016/1,079), 4분야 링크 289(sales_crm 189·marketing_automation 96·payments 3·booking 1), review_area_verdicts 1,956행(catmap-v1). 상세 S1.md.
-- S4 시험 실행: iTunes 429 → 규칙대로 그 실행 중단. `S4-seed.log`·`S4-area4-picks.json` 확인 필요(실제 삽입 여부 미확인, 롤백은 onboard_batch='area4_20261119'로 가능).
-- S0: 서브에이전트(acb7a1c2ac3de8263)가 S0.md 작성 중 — 결과 미확인.
-- P4 라벨링: 재개 후 150/2033에서 멈춤(프로세스 없음). 같은 명령으로 재개 가능.
-
+## 끝난 것 (DB 적용 포함)
+- S0 S0.md. S1 분야 이름표(area_registry·links 289·verdicts 1,956) — PR #669 머지.
+- S2: 방문 간격·휴면·끄기 장치 코드+1회 적용(692 next_visit, 86 휴면) — #669. 판정 변수·체인 기한: PR #672.
+- S4: 4분야 앱 38개(타깃 76, onboard_batch area4_20261119) 투입. iTunes 429 때 그 실행 중단함.
+- S5-3: 새 포럼 7곳 코드+켜기 마이그(DB 적용). 끄기 짝 000005(미적용, 의도). 끄기 변수 연결.
+- S6: 뷰 4개·collect_build_report 함수(DB)·daily report 스크립트·크론 — PR #670 머지, 수동 1회 성공(collect_daily_report 오늘 1행).
+- S9: source_candidates 40행(라벨 전부). S11: lang 31.8k 채움 + 새 나라 타깃 120. S12: 품질 표시 1차(표본 40건). S13: 재배분 1회 적용. S14: 8행 표(20곳 미달).
+- 변수 12개 설정. Notion 로그 2026-11-19-기타-1(v71ct 정리) 작성·확인.
+## 진행 중 / 대기
+- PR #671(S9/S11/S14 문서·시드), #672(S13) CI 대기·머지 루프 실행 중.
+- P4 라벨링 백그라운드(약 250/1848).
 ## 남은 것
-- S0.md 확인 → S2(방문 선택 코드·판정 상한 변수 5개)·S3(페이지 넘김)·S5~S14, 크론, 점검표 21줄, 21:00 Opus 검수, final.md, Notion 로그.
-- S1 PR 생성·CI·머지. S4 iTunes 429 뒤 천천히 재실행. 구글 플레이 검색은 robots상 금지라 패키지 id 지정 방식 필요.
-- 이전 지시: 일일 로그, ≥3쌍 필터, domain_norm, P4 재개(처음 100편 재검사).
-- TrustMRR 키는 .env.local에 있음(값 출력 금지), 배포 환경 등록 필요.
+- S3(구글 플레이 깊이), S5-1/2(게시판 펼침 크론·frontier 200행), S7(제품 발굴 고치기), S8(유튜브 층), S9 발굴 크론·robots 4곳, S10(사례 소스·TrustMRR 어댑터), S12 판정 제외 연결, 방문 순서(S2-2)·HN, 점검표 21줄·Opus 검수·final.md·Notion 완료 로그, 크론 수동 1회(collect-daily-report·yield-realloc 워크플로 dispatch).
+- 새벽 지시 5건 중: 일일 로그 ✔, ≥3쌍 필터·domain_norm·Opus 재확인 미착수, P4 처음 100편 재검사(인용 99.8%·숫자 99.2%로 합격, 장 분포는 미산출).

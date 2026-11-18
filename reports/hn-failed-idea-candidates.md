@@ -435,3 +435,15 @@
 - 작성일: 2026-11-17
 
 > I think Zimbardo's Prison Experiment unearths a lot for understanding this phenomenon. When the very people who should be preventing this can be swayed to the other end both by system itself and human nature, fighting this thing becomes very hard. My point is, possibly doubling down with the old ways we know as a society is not a solution here, we need to work, do research to find new ways to prevent this from happening, because it's not a technology problem, but a social problem, and has a diff…
+
+## HN 50543613
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50543613
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-18 UTC)
+- 스레드: Apple Services Down
+- 작성자: vrganj
+- 작성일: 2026-11-18
+
+> I see your individualization as an attempt at bargaining for absolution through appeals to inevitability. In reality, of course, it is a self-fulfilling prophecy. The only way we could've prevented poor outcomes is by acting as us. As the dramatic changes of the industrial revolution have shown us, labor is immensely powerful at resisting the corrosive demands of capital if it acts in unison. Famously, the labor struggle also included dealing with scabs, or "them". These are not new ideas. They …

@@ -1,0 +1,26 @@
+# v71cu S5-2: Discourse 게시판 펼침 하루 1회(포럼 13곳, 요청 13회·간격 6초) → collect_frontier(layer=board). 403·429·JSON 아님이면 그 포럼 중단.
+name: Board Expand
+on:
+  schedule:
+    - cron: '25 19 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: board-expand
+  cancel-in-progress: false
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Expand boards
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/board-expand.mjs

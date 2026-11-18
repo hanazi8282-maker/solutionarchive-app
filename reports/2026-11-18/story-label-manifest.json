@@ -1,0 +1,13 @@
+{
+ "generated": "2026-11-18T08:24:57.465Z",
+ "local_total": 3314,
+ "db_slugs": 3065,
+ "db_slugs_with_local_text": 3065,
+ "db_slugs_missing_local": [],
+ "local_without_moves": 249,
+ "local_no_or_short_text": 219,
+ "saas_all_with_moves": 788,
+ "saas_usable": 788,
+ "all_usable": 3065,
+ "saas_definition": "DB 행동이 있고 전문 ≥1,500자 ∧ (category ∈ {saas,productivity,technology,seo,sales,communication,hiring,hr} ∨ mentions_saas). 지시서에 788 의 정의가 없어 역산."
+}

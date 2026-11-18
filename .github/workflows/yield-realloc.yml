@@ -1,0 +1,28 @@
+# v71cu S13: 주 1회(월요일 04:00 KST = 일요일 19:00 UTC) 수확률 등급으로 예산 재배분. 내리기(C·D)와 발굴 호출만, 소스를 끄지 않고 0으로 내리지 않는다. 로그 = review_source_cap_log reason 'yield:%'.
+name: Yield Realloc
+on:
+  schedule:
+    - cron: '0 19 * * 0'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yield-realloc
+  cancel-in-progress: false
+jobs:
+  realloc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Reallocate
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          COLLECT_FLOOR_SHARE: ${{ vars.COLLECT_FLOOR_SHARE }}
+          COLLECT_FLOOR_MIN_REQUESTS: ${{ vars.COLLECT_FLOOR_MIN_REQUESTS }}
+        run: node scripts/yield-realloc.mjs --apply

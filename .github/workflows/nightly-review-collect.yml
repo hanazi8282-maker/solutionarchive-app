@@ -202,6 +202,15 @@ jobs:
           SUPPLY_BLOCK_FILE: ${{ runner.temp }}/supply-block.json
         run: node scripts/target-revive.mjs --auto ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
 
+      # v71cu S2-1: 빈 타깃 방문 간격(2^n일, 최대 14일)·휴면 표시. 쓰는 칸 = next_visit_at·dormant_*(status 불변). 실패해도 수집은 돈다.
+      # 되돌리기 = review_targets.next_visit_at/dormant_at 을 NULL 로(롤백 JSON 은 이 스텝이 reports/visit-schedule/ 에 씀).
+      - name: Schedule target visits (backoff + dormant)
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/target-visit-schedule.mjs ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry' || '' }}
+
       # 끝에 소스 고장 보고(scripts/review-source-health-report.mjs)도 한다 — 고장 소스는 자동으로 끄지 않고
       # Notion CTO 행(하루 1행, 사람판단필요)에 올린다. 보고 실패·토큰 없음이면 이 스텝이 실패하고
       # ops/state/status-log-pending/ 에 폴백 파일을 남긴다 → 아래 push-pending 잡이 main 에 올린다.
@@ -210,6 +219,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
+          # v71cu S5-4 끄기 장치: true 면 11-19 이후 새로 켠 묶음(onboard_batch) 전부 건너뜀 / 쉼표 목록이면 그 묶음만. 둘 다 비면 영향 없음.
+          COLLECT_NEW_SOURCES_PAUSED: ${{ vars.COLLECT_NEW_SOURCES_PAUSED }}
+          COLLECT_ONBOARD_DISABLED_BATCHES: ${{ vars.COLLECT_ONBOARD_DISABLED_BATCHES }}
           # v69 D7: target-revive 스텝이 쓴 게이지 파일(수집 연료계·[자율 공급])을 Notion CTO 행에 싣는다.
           SUPPLY_BLOCK_FILE: ${{ runner.temp }}/supply-block.json
           # 끝에 Notion "일일 상태 로그" CTO 행 1개를 쓴다(scripts/review-collect-status.mjs).

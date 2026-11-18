@@ -1,0 +1,344 @@
+[
+ {
+  "slug": "payments_billing_accounting",
+  "name": "캐시노트",
+  "appId": "1459090715",
+  "trackName": "캐시노트",
+  "url": "https://cashnote.kr/",
+  "ratings": 13398,
+  "cc": "kr"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "머니핀",
+  "appId": "1212266512",
+  "trackName": "머니핀 - 사업하는 좋은 습관",
+  "url": "https://moneypin.biz",
+  "ratings": 730,
+  "cc": "kr"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "이지샵",
+  "appId": "1241872943",
+  "trackName": "이지샵",
+  "url": "https://www.easyshop.co.kr/taxIntro/taxIntro.kicc?",
+  "ratings": 300,
+  "cc": "kr"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "위하고",
+  "appId": "1363039300",
+  "trackName": "더존 위하고 모바일",
+  "url": "https://apps.apple.com/kr/app/%EB%8D%94%EC%A1%B4-%EC%9C%84%ED%95%98%EA%B3%A0-%EB%AA%A8%EB%B0%94%EC%9D%BC/id1363039300?uo=4",
+  "ratings": 107,
+  "cc": "kr"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "페이히어",
+  "appId": "1630122947",
+  "trackName": "페이히어",
+  "url": "https://payhere.in/?utm_source=appstore",
+  "ratings": 184,
+  "cc": "kr"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "FreshBooks",
+  "appId": "1052884030",
+  "trackName": "FreshBooks Invoicing App",
+  "url": "https://www.freshbooks.com/?utm_source=Mobile&utm_medium=iTunes-Description-Page&utm_campaign=Homepage-Marketing",
+  "ratings": 10982,
+  "cc": "us"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "Zoho Books",
+  "appId": "710446064",
+  "trackName": "Accounting App - Zoho Books",
+  "url": "https://www.zoho.com/books/accounting-mobile-apps/",
+  "ratings": 5348,
+  "cc": "us"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "Zoho Invoice",
+  "appId": "413017364",
+  "trackName": "Zoho Invoice Maker App",
+  "url": "https://www.zoho.com/invoice",
+  "ratings": 15263,
+  "cc": "us"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "Square",
+  "appId": "335393788",
+  "trackName": "Square Point of Sale (POS)",
+  "url": "https://squareup.com",
+  "ratings": 58,
+  "cc": "kr"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "PayPal Business",
+  "appId": "1053148887",
+  "trackName": "PayPal 비즈니스",
+  "url": "https://www.paypal.com/kr/webapps/mpp/home",
+  "ratings": 112,
+  "cc": "kr"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "Invoice2go",
+  "appId": "694831622",
+  "trackName": "Invoice Simple, Estimate Maker",
+  "url": "https://www.invoicesimple.com",
+  "ratings": 68,
+  "cc": "kr"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "Expensify",
+  "appId": "471713959",
+  "trackName": "Expensify - Travel & Expense",
+  "url": "https://use.expensify.com",
+  "ratings": 246,
+  "cc": "kr"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "Stripe Dashboard",
+  "appId": "978516833",
+  "trackName": "Stripe Dashboard",
+  "url": "https://stripe.com",
+  "ratings": 53,
+  "cc": "kr"
+ },
+ {
+  "slug": "payments_billing_accounting",
+  "name": "Billy",
+  "appId": "1497301126",
+  "trackName": "Baby Billy - Pregnancy & Baby",
+  "url": "https://babybilly.app/en",
+  "ratings": 242,
+  "cc": "us"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "공비서",
+  "appId": "6630372820",
+  "trackName": "공비서 | 네일샵 미용실 등 뷰티샵 예약 앱",
+  "url": "https://apps.apple.com/kr/app/%EA%B3%B5%EB%B9%84%EC%84%9C-%EB%84%A4%EC%9D%BC%EC%83%B5-%EB%AF%B8%EC%9A%A9%EC%8B%A4-%EB%93%B1-%EB%B7%B0%ED%8B%B0%EC%83%B5-%EC%98%88%EC%95%BD-%EC%95%B1/id6630372820?uo=4",
+  "ratings": 410,
+  "cc": "kr"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "Acuity Scheduling",
+  "appId": "1179146771",
+  "trackName": "Acuity: Appointment Scheduler",
+  "url": "http://www.acuityscheduling.com",
+  "ratings": 30459,
+  "cc": "us"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "Setmore",
+  "appId": "665859578",
+  "trackName": "Setmore Appointment Scheduling",
+  "url": "https://www.setmore.com",
+  "ratings": 9598,
+  "cc": "us"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "Booksy",
+  "appId": "723961236",
+  "trackName": "Booksy for Customers",
+  "url": "https://booksy.com/en-us/",
+  "ratings": 863186,
+  "cc": "us"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "Fresha",
+  "appId": "1297230801",
+  "trackName": "고객용 Fresha",
+  "url": "https://www.fresha.com/ko",
+  "ratings": 107,
+  "cc": "kr"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "Cal.com",
+  "appId": "6757157271",
+  "trackName": "Cal.com",
+  "url": "https://cal.com/app",
+  "ratings": 246,
+  "cc": "us"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "Doodle",
+  "appId": "460712294",
+  "trackName": "Joy Doodle: Movie Color & Draw",
+  "url": "https://apps.apple.com/kr/app/joy-doodle-movie-color-draw/id460712294?uo=4",
+  "ratings": 66,
+  "cc": "kr"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "Jotform",
+  "appId": "1391524277",
+  "trackName": "Jotform - Form, Sign & Survey",
+  "url": "https://www.jotform.com/",
+  "ratings": 44820,
+  "cc": "us"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "Typeform",
+  "appId": "1438100370",
+  "trackName": "VideoAsk (by Typeform)",
+  "url": "https://www.videoask.com",
+  "ratings": 505,
+  "cc": "us"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "Google Forms",
+  "appId": "1619382448",
+  "trackName": "Google Forms App",
+  "url": "https://apps.apple.com/kr/app/google-forms-app/id1619382448?uo=4",
+  "ratings": 209,
+  "cc": "kr"
+ },
+ {
+  "slug": "booking_scheduling_forms",
+  "name": "Zoho Bookings",
+  "appId": "1444416745",
+  "trackName": "Zoho Bookings",
+  "url": "http://bookings.zoho.com",
+  "ratings": 72,
+  "cc": "us"
+ },
+ {
+  "slug": "marketing_automation",
+  "name": "스티비",
+  "appId": "1559837920",
+  "trackName": "플렉스티비",
+  "url": "https://apps.apple.com/kr/app/%ED%94%8C%EB%A0%89%EC%8A%A4%ED%8B%B0%EB%B9%84/id1559837920?uo=4",
+  "ratings": 125,
+  "cc": "kr"
+ },
+ {
+  "slug": "marketing_automation",
+  "name": "Constant Contact",
+  "appId": "880731821",
+  "trackName": "Constant Contact",
+  "url": "https://www.constantcontact.com/features/mobile-marketing",
+  "ratings": 10705,
+  "cc": "us"
+ },
+ {
+  "slug": "marketing_automation",
+  "name": "Zoho Campaigns",
+  "appId": "804728901",
+  "trackName": "Zoho Campaigns-Email Marketing",
+  "url": "https://www.zoho.com/campaigns",
+  "ratings": 314,
+  "cc": "us"
+ },
+ {
+  "slug": "marketing_automation",
+  "name": "ManyChat",
+  "appId": "1460129210",
+  "trackName": "Manychat",
+  "url": "https://manychat.com/",
+  "ratings": 2194,
+  "cc": "us"
+ },
+ {
+  "slug": "marketing_automation",
+  "name": "Buffer",
+  "appId": "490474324",
+  "trackName": "Buffer: Plan & Schedule Posts",
+  "url": "https://buffer.com/",
+  "ratings": 94,
+  "cc": "kr"
+ },
+ {
+  "slug": "marketing_automation",
+  "name": "Later",
+  "appId": "784907999",
+  "trackName": "Later: Social Media Scheduler",
+  "url": "https://later.com",
+  "ratings": 2551,
+  "cc": "us"
+ },
+ {
+  "slug": "marketing_automation",
+  "name": "Linktree",
+  "appId": "1593515263",
+  "trackName": "Linktree: Link in Bio Creator",
+  "url": "https://linktr.ee",
+  "ratings": 565,
+  "cc": "kr"
+ },
+ {
+  "slug": "marketing_automation",
+  "name": "Sprout Social",
+  "appId": "475307859",
+  "trackName": "Sprout Social",
+  "url": "http://sproutsocial.com",
+  "ratings": 1289,
+  "cc": "us"
+ },
+ {
+  "slug": "marketing_automation",
+  "name": "Meta Business Suite",
+  "appId": "514643583",
+  "trackName": "Meta Business Suite",
+  "url": "https://www.facebook.com/business/news/introducing-facebook-business-suite",
+  "ratings": 4536,
+  "cc": "kr"
+ },
+ {
+  "slug": "sales_crm",
+  "name": "리멤버",
+  "appId": "840553277",
+  "trackName": "리멤버 - No.1 경력채용, 명함관리, 커뮤니티",
+  "url": "https://rememberapp.co.kr",
+  "ratings": 85250,
+  "cc": "kr"
+ },
+ {
+  "slug": "sales_crm",
+  "name": "Capsule CRM",
+  "appId": "1092333652",
+  "trackName": "Capsule Pharmacy",
+  "url": "https://www.capsule.com",
+  "ratings": 6013,
+  "cc": "us"
+ },
+ {
+  "slug": "sales_crm",
+  "name": "Nimble",
+  "appId": "1047798731",
+  "trackName": "NimbleRx",
+  "url": "https://www.nimblerx.com",
+  "ratings": 153511,
+  "cc": "us"
+ },
+ {
+  "slug": "sales_crm",
+  "name": "Apptivo",
+  "appId": "1278180903",
+  "trackName": "Apptivo All-In-One",
+  "url": "https://apps.apple.com/us/app/apptivo-all-in-one/id1278180903?uo=4",
+  "ratings": 51,
+  "cc": "us"
+ }
+]

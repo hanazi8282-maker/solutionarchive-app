@@ -55,7 +55,7 @@ function fakeSupabase() {
       single() { single = true; return b },
       then(res, rej) { return Promise.resolve(respond(table, op, single)).then(res, rej) },
     }
-    for (const m of ['eq', 'neq', 'gte', 'lte', 'in', 'not', 'order', 'limit', 'is']) b[m] = () => b
+    for (const m of ['eq', 'neq', 'gte', 'lte', 'in', 'not', 'order', 'limit', 'is', 'or']) b[m] = () => b
     return b
   }
   return { client: { from }, writes }
@@ -288,6 +288,7 @@ ok('워크플로: concurrency 유지', /concurrency:\s*\n\s+group: review-collec
       const api = {
         select() { return api },
         eq(c, v) { q.eqs[c] = v; return api },
+        or() { return api },
         order(c, o) { q.order = [c, o.ascending]; return api },
         async limit(n) {
           if (q.eqs.source_key === 'err') return { data: null, error: { message: 'PGRST205' } }
@@ -421,7 +422,7 @@ ok('워크플로: concurrency 유지', /concurrency:\s*\n\s+group: review-collec
   ok('9 dry-run 행은 세지 않는다', L.softSkipDecision([pb(1), pb(2, { dry_run: true }), pb(13)], null, now).state === 'run')
   // 로더: 읽기만 한다(select·eq·order·limit 외 호출 없음), 예외도 확인 불가로
   const calls = []
-  const q = { select: (c) => (calls.push(['select', c]), q), eq: (...a) => (calls.push(['eq', ...a]), q), order: () => q, limit: async (n) => (calls.push(['limit', n]), { data: three, error: null }) }
+  const q = { select: (c) => (calls.push(['select', c]), q), eq: (...a) => (calls.push(["eq", ...a]), q), or: () => q, order: () => q, limit: async (n) => (calls.push(['limit', n]), { data: three, error: null }) }
   const r = await L.loadSoftSkip({ from: () => q }, 'okky', now)
   ok('9 로더: skip', r.state === 'skip')
   ok('9 로더: 차단 수치를 함께 읽는다', calls.some(([k, c]) => k === 'select' && c.includes('blocked_responses')))

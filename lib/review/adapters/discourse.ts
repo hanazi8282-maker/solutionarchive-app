@@ -188,4 +188,28 @@ export const SOFTR_COMMUNITY_BOARDS: Record<string, string> = {
 }
 export const softrCommunityAdapter = makeDiscourseAdapter({ key: 'softr_community', displayName: 'Softr 커뮤니티(Discourse)', host: SOFTR_COMMUNITY_HOST, boards: SOFTR_COMMUNITY_BOARDS })
 
+
+// v71cu S5-3: 새 포럼 7곳(표준 Discourse, 2026-11-19 /categories.json 실측 — 게시판 id).
+export const MAUTIC_FORUM_HOST = 'https://forum.mautic.org'
+export const MAUTIC_FORUM_BOARDS: Record<string, string> = {support:'/c/support/8.json?order=created',ideas:'/c/ideas/14.json?order=created','general-discussion':'/c/general-discussion/6.json?order=created'}
+export const mauticForumAdapter = makeDiscourseAdapter({ key: 'mautic_forum', displayName: 'Mautic 포럼(Discourse)', host: MAUTIC_FORUM_HOST, boards: MAUTIC_FORUM_BOARDS })
+export const FRAPPE_FORUM_HOST = 'https://discuss.frappe.io'
+export const FRAPPE_FORUM_BOARDS: Record<string, string> = {erpnext:'/c/erpnext/6.json?order=created',hr:'/c/hr/22.json?order=created','business-apps':'/c/business-apps/89.json?order=created'}
+export const frappeForumAdapter = makeDiscourseAdapter({ key: 'frappe_forum', displayName: 'Frappe·ERPNext 포럼(Discourse)', host: FRAPPE_FORUM_HOST, boards: FRAPPE_FORUM_BOARDS })
+export const SUITECRM_COMMUNITY_HOST = 'https://community.suitecrm.com'
+export const SUITECRM_COMMUNITY_BOARDS: Record<string, string> = {'suitecrm-general-discussion':'/c/suitecrm-general-discussion/9.json?order=created','installation-upgrade-help':'/c/installation-upgrade-help/11.json?order=created','suggestion-box':'/c/suggestion-box/13.json?order=created'}
+export const suitecrmCommunityAdapter = makeDiscourseAdapter({ key: 'suitecrm_community', displayName: 'SuiteCRM 커뮤니티(Discourse)', host: SUITECRM_COMMUNITY_HOST, boards: SUITECRM_COMMUNITY_BOARDS })
+export const INVOICENINJA_FORUM_HOST = 'https://forum.invoiceninja.com'
+export const INVOICENINJA_FORUM_BOARDS: Record<string, string> = {'self-hosted':'/c/self-hosted/6.json?order=created',hosted:'/c/hosted/8.json?order=created'}
+export const invoiceninjaForumAdapter = makeDiscourseAdapter({ key: 'invoiceninja_forum', displayName: 'Invoice Ninja 포럼(Discourse)', host: INVOICENINJA_FORUM_HOST, boards: INVOICENINJA_FORUM_BOARDS })
+export const OBSIDIAN_FORUM_HOST = 'https://forum.obsidian.md'
+export const OBSIDIAN_FORUM_BOARDS: Record<string, string> = {'get-help':'/c/get-help/19.json?order=created','feature-requests':'/c/feature-requests/8.json?order=created','bug-reports':'/c/bug-reports/7.json?order=created'}
+export const obsidianForumAdapter = makeDiscourseAdapter({ key: 'obsidian_forum', displayName: 'Obsidian 포럼(Discourse)', host: OBSIDIAN_FORUM_HOST, boards: OBSIDIAN_FORUM_BOARDS })
+export const GHOST_FORUM_HOST = 'https://forum.ghost.org'
+export const GHOST_FORUM_BOARDS: Record<string, string> = {help:'/c/help/6.json?order=created',ideas:'/c/ideas/5.json?order=created',general:'/c/general/14.json?order=created'}
+export const ghostForumAdapter = makeDiscourseAdapter({ key: 'ghost_forum', displayName: 'Ghost 포럼(Discourse)', host: GHOST_FORUM_HOST, boards: GHOST_FORUM_BOARDS })
+export const SHOPIFY_COMMUNITY_HOST = 'https://community.shopify.com'
+export const SHOPIFY_COMMUNITY_BOARDS: Record<string, string> = {'shopify-discussion':'/c/shopify-discussion/95.json?order=created','shopify-apps':'/c/shopify-apps/186.json?order=created','payments-shipping-fulfilment':'/c/payments-shipping-fulfilment/217.json?order=created'}
+export const shopifyCommunityAdapter = makeDiscourseAdapter({ key: 'shopify_community', displayName: 'Shopify 커뮤니티(Discourse)', host: SHOPIFY_COMMUNITY_HOST, boards: SHOPIFY_COMMUNITY_BOARDS })
+
 export const __internal = { parseList, parseTopic, TOPIC_RE }

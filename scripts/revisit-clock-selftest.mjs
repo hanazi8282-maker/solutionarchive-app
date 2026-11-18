@@ -192,6 +192,7 @@ function fakePg(tables, hooks = {}) {
       insert: (p) => ((op = 'insert'), (payload = p), q),
       update: (p) => ((op = 'update'), (payload = p), q),
       eq: (c, v) => (filters.push((r) => r[c] === v), q),
+      or: () => q,
       in: (c, vs) => (filters.push((r) => vs.includes(r[c])), q),
       gte: (c, v) => (filters.push((r) => r[c] >= v), q),
       not: (c, o, v) => (filters.push((r) => !(o === 'is' && v === null ? r[c] == null : r[c] === v)), q),

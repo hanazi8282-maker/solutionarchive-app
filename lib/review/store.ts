@@ -10,6 +10,7 @@
 //    여기 있다(UNIQUE 충돌 · 옛 키 폴백 · 같은 본문 조회). 러너는 그 판정을
 //    세고 로그로만 쓴다.
 
+import { visitFilters } from './visit-schedule.ts'
 import type { createClient } from '../supabase/server.ts'
 import { CROSS_TARGET_MIN_TEXT_LEN } from './fingerprint.ts'
 import type { AppStoreSummary, RunnerStore, SourceConfig, TargetProgress } from './runner.ts'
@@ -57,11 +58,13 @@ export function createReviewStore(supabase: Supa): RunnerStore {
   /** 다른 소스 경로 — v40 이전과 같은 쿼리 그대로(회귀 단언: scripts/review-googleplay-selftest.mjs). */
   const due = async (sourceKey: string, limit: number) => {
     // 오래 안 돈 것부터. NULLS FIRST 라 한 번도 안 돈 타깃이 먼저다.
-    const { data, error } = await supabase
+    let q = supabase
       .from('review_targets')
       .select(TARGET_COLUMNS)
       .eq('source_key', sourceKey)
       .eq('status', 'active')
+    for (const f of visitFilters(process.env)) q = q.or(f)
+    const { data, error } = await q
       .order('last_run_at', { ascending: true, nullsFirst: true })
       .limit(limit)
 
@@ -76,11 +79,13 @@ export function createReviewStore(supabase: Supa): RunnerStore {
    * ponytail: limit 없이 전부 읽는다 — 활성 타깃이 PostgREST max-rows(기본 1000)에 가까워지면 상한을 걸고 페이지로 읽는다.
    */
   const googlePlayDue = async (limit: number) => {
-    const { data, error } = await supabase
+    let gq = supabase
       .from('review_targets')
       .select(`${TARGET_COLUMNS}, last_run_at`)
       .eq('source_key', GP_PRIORITY_SOURCE)
       .eq('status', 'active')
+    for (const f of visitFilters(process.env)) gq = gq.or(f)
+    const { data, error } = await gq
       .order('last_run_at', { ascending: true, nullsFirst: true })
       .order('created_at', { ascending: true })
 

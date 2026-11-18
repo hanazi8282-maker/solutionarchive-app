@@ -95,14 +95,14 @@ export interface SourceConfig {
  * 소유자 robots 예외를 여는 override 값 — 이 집합 밖의 값(오타·다른 날짜)은 예외가 아니다.
  *   owner_2026-10-05: 앱스토어 RSS(남헌 명시 예외) · owner_2026-10-06: 구글 플레이(남헌 결정, robots·약관 금지를 알고 켬)
  */
-export const OWNER_ROBOTS_OVERRIDES: ReadonlySet<string> = new Set(['owner_2026-10-05', 'owner_2026-10-06', 'owner_2026-10-14'])
+export const OWNER_ROBOTS_OVERRIDES: ReadonlySet<string> = new Set(['owner_2026-10-05', 'owner_2026-10-06', 'owner_2026-10-14', 'owner_2026-11-19'])
 
 /**
  * v70 개정 2(남헌 2026-10-14): robots Disallow 소스는 약관 위험과 같은 취급으로 수집하되 **저속**이다 —
  * 간격 2배, 일일 상한 절반(내림). 앱스토어·구글 플레이(10-05·10-06)는 남헌이 속도를 따로 정했으므로 이 집합에 없다.
  * 라벨(robots_disallowed·quote_allowed=false)은 소스 행 속성이고 여기서는 속도만 강제한다.
  */
-export const ROBOTS_DISALLOWED_SLOW_OVERRIDES: ReadonlySet<string> = new Set(['owner_2026-10-14'])
+export const ROBOTS_DISALLOWED_SLOW_OVERRIDES: ReadonlySet<string> = new Set(['owner_2026-10-14', 'owner_2026-11-19'])
 export const ROBOTS_DISALLOWED_SLOW_FACTOR = 2
 
 /** 이 소스가 v70 저속 대상인가 — 예외가 실제로 열린 소스(robotsOwnerOverride)이고 값이 저속 집합일 때만. */

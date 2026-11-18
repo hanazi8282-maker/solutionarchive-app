@@ -1,0 +1,31 @@
+# v71cu S6: 수집 브리핑 일일 집계(매일 05:00 KST = 20:00 UTC, 07:00 브리핑 전). DB 읽기 + collect_daily_report 한 줄 + Notion 일일 상태 로그 1행. 수집기를 때리지 않는다.
+name: Collect Daily Report
+on:
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: collect-daily-report
+  cancel-in-progress: false
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Build collect briefing
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+        run: node scripts/collect-daily-report.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: collect-briefing
+          path: ops/state/collect-briefing/*.md

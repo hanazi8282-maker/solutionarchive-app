@@ -13,6 +13,7 @@ import crypto from 'node:crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { buildSystem, buildUser, firstJson, validate } from '../lib/story-label/core.mjs'
+import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
 
 const arg = (k, d = null) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 ? process.argv[i + 1] : d }
 const has = (k) => process.argv.includes(`--${k}`)
@@ -57,7 +58,8 @@ const { data: defs, error: defErr } = await sb.from('ss_chapter_defs').select('c
 if (defErr) { console.error('ss_chapter_defs', defErr.message); process.exit(2) }
 const validChapters = new Set(defs.map((d) => d.chapter))
 const extraChapters = defs.filter((d) => d.chapter >= 9)
-const SYSTEM = buildSystem(extraChapters)
+// 표준 외부 텍스트 경고(CI untrusted-input-selftest 가 LLM 호출 파일에 요구한다). 첫 207편 회차에는 같은 뜻의 자체 문장만 있었다 — 라벨 기준은 같고 경고 문구만 표준화.
+const SYSTEM = `${buildSystem(extraChapters)}\n\n${UNTRUSTED_INPUT_NOTICE}`
 
 // ── 대상 집합 ────────────────────────────────────────────────
 // "SaaS 계열" 정의(지시서에 정의가 없어 역산 — 일일 로그에 근거 기록): DB 에 행동이 있고 전문이 있는 스토리 중

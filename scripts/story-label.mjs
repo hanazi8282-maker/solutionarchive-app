@@ -148,7 +148,7 @@ async function callCli(story, moves, group = null) {
   try { e = JSON.parse(res.out) } catch { e = null }
   if (typeof e?.total_cost_usd === 'number') cliUsd += e.total_cost_usd; else cliUnknown++
   const msg = `${e?.result ?? ''} ${res.err}`.slice(0, 300)
-  if (/usage limit|limit reached|rate limit|quota|resets? at/i.test(msg) && (res.code !== 0 || e?.is_error)) throw new StopRun(`quota — ${msg.slice(0, 160)}`)
+  if (/usage limit|limit reached|hit your .{0,20}limit|5-hour limit|rate limit|quota|resets? (at|[0-9])/i.test(msg) && (res.code !== 0 || e?.is_error)) throw new StopRun(`quota — ${msg.slice(0, 160)}`)
   if (res.code !== 0 || e?.is_error || typeof e?.result !== 'string') throw new Error(`cli 실패 code=${res.code} ${msg.slice(0, 160)}`)
   const u = e.usage ?? {}
   inT += u.input_tokens ?? 0; outT += u.output_tokens ?? 0; crT += u.cache_read_input_tokens ?? 0; cwT += u.cache_creation_input_tokens ?? 0

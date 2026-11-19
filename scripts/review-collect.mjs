@@ -50,6 +50,8 @@ import { inflearnAdapter } from '../lib/review/adapters/inflearn.ts'
 import { yozmAdapter } from '../lib/review/adapters/yozm.ts'
 import { indiehackersAdapter } from '../lib/review/adapters/indiehackers.ts'
 import { n8nCommunityAdapter, makeCommunityAdapter, bubbleForumAdapter, retoolCommunityAdapter, glideCommunityAdapter, softrCommunityAdapter, mauticForumAdapter, frappeForumAdapter, suitecrmCommunityAdapter, invoiceninjaForumAdapter, obsidianForumAdapter, ghostForumAdapter, shopifyCommunityAdapter } from '../lib/review/adapters/discourse.ts'
+import { dcinsideAdapter } from '../lib/review/adapters/dcinside.ts'
+import { ruliwebAdapter } from '../lib/review/adapters/ruliweb.ts'
 import { googleplayAdapter } from '../lib/review/adapters/googleplay.ts'
 import { githubAdapter } from '../lib/review/adapters/github.ts'
 import { stackexchangeAdapter } from '../lib/review/adapters/stackexchange.ts'
@@ -94,6 +96,9 @@ const ADAPTERS = {
   retool_community: retoolCommunityAdapter,
   glide_community: glideCommunityAdapter,
   softr_community: softrCommunityAdapter,
+  // v71cu S5b: robots 금지에 가까운 곳을 남헌 결정(owner_2026-11-19)으로 켠 둘. 403·429·챌린지 즉시 중단.
+  dcinside: dcinsideAdapter,
+  ruliweb: ruliwebAdapter,
   // v71ad §5(d) 공식 API 무토큰·무키(마이그 20261017000110 미적용 — 소스 행이 없으면 돌지 않는다).
   github_issues: githubAdapter,
   stackexchange: stackexchangeAdapter,

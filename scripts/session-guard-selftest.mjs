@@ -409,7 +409,7 @@ t('번역: 기록만(capReached 없음)', !/capReached/.test(read('scripts/relev
 t('extract·T2 상한 판정이 spendForCap(비용 모름 추정)을 쓴다', /spendForCap\(cliSpent\(\), /.test(ex) && /spendForCap\(cliSpent\(\), /.test(rj) && !/cliSpent\(\)\.usd\s*\n?\s*if \(.*capReached/.test(ex))
 t('T2: r2 가 한도 정지인 채 쉬면 exit 1', /slot === 'r2' && retry\.quotaPending !== false/.test(rj))
 for (const [f, k] of [['scripts/relevance-second-judge-auto.mjs', 'relevance-second-'], ['scripts/relevance-auto-approve.mjs', 'relevance-auto-approve-'], ['scripts/case-auto-approve.mjs', 'case-auto-approve-'], ['scripts/relevance-judge-auto.mjs', 'relevance-judge-']]) {
-  t(`${f}: run_key 에 슬롯 접미사(정규 행 보존)`, read(f).includes(`runKey: \`${k}\${kstDate()}\${relevanceRunSuffixFromEnv()}\``) || (k === 'relevance-judge-' && /relevanceRunSuffixFromEnv\(\)/.test(read(f)) && read(f).includes('`relevance-judge-${today}${suffix}`')))
+  t(`${f}: run_key 에 슬롯 접미사(정규 행 보존)`, ['runKey: ', 'runKey = '].some((h) => read(f).includes(`${h}\`${k}\${kstDate()}\${relevanceRunSuffixFromEnv()}\``)) || (k === 'relevance-judge-' && /relevanceRunSuffixFromEnv\(\)/.test(read(f)) && read(f).includes('`relevance-judge-${today}${suffix}`')))
 }
 t('RELEVANCE_SLOT_CRON 은 job env(모든 스텝이 같은 접미사)', /^    env:\r?\n(?:      #.*\r?\n)*      RELEVANCE_SLOT_CRON: \$\{\{ github\.event\.schedule \}\}/m.test(wf))
 t('build-check 가 이 셀프테스트를 돈다', /- run: node scripts\/session-guard-selftest\.mjs/.test(read('.github/workflows/build-check.yml')))

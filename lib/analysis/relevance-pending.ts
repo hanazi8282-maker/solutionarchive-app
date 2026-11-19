@@ -8,7 +8,7 @@ import { selectInputs, timestampOf } from './extract-select.ts'
 import { MAX_REVIEW_CHARS, pickSampleByRating, type RatingSampleStats } from './relevance-judge.ts'
 import { applyPrefilter, isHnLowValue, prefilterInputs, summarizePrefilter, type PrefilterConfig } from './prefilter.ts'
 import { DEFAULT_EXCLUDED_SOURCES, DEFAULT_LAST_SOURCES, fetchAllPages, orderForJudge } from './relevance-judge-all.ts'
-import { consumerReasonOf, consumerSkipEnabled, loadAllowIds, loadConsumerTagged, loadProjectArea } from './consumer-material.ts'
+import { consumerReasonOf, consumerSkipEnabled, isMissingTable, loadAllowIds, loadConsumerTagged, loadProjectArea } from './consumer-material.ts'
 
 export interface PendingResult {
   /** 이번 실행 표본 수(미판정 중 상한까지 고른 것, 사전필터 전). */
@@ -19,6 +19,8 @@ export interface PendingResult {
   excluded?: number
   /** 소비재(태그 표 ∪ 파생 out-consumer·youtube)라 뺀 미판정 수(남헌 v61). 이미 판정된 것은 세지 않는다. */
   consumer?: number
+  /** 품질 표시(content_quality_flags, S12)라 뺀 미판정 수. 이미 판정된 것은 세지 않는다. */
+  quality?: number
   /** 판정 대상이 아닌 미판정(v71bb) — no_body: T1 본문 없음 · hn_low: HN 저가치 사전 제외(on). countFor 는 이걸 미판정으로 센다. */
   residue?: { no_body: number; hn_low: number }
   reviews: { input_id: string; text: string }[]
@@ -27,6 +29,20 @@ export interface PendingResult {
 }
 
 type Log = (m: string) => void
+
+/**
+ * S12 품질 표시(content_quality_flags, 마이그 20261119000003) 중 판정 대기에서 뺄 것.
+ * promo 는 cq-v2 만 쓴다 — cq-v1 promo 는 오탐이 절반이라 표만 남겨 둔다(reports/2026-11-19-v71cu/S12.md). 나머지 표시는 규칙 버전 무관.
+ */
+export function qualityExcludes(flag: string, ruleVer: string): boolean {
+  if (flag === 'promo') return ruleVer === 'cq-v2'
+  return ['too_short', 'near_dup', 'quote_only', 'dev_reply'].includes(flag)
+}
+
+/** 품질 표시 제외 스위치 — 리포 변수 RELEVANCE_SKIP_QUALITY=off 만 끈다(재개 = 원래 동작). */
+export function qualitySkipEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return (env.RELEVANCE_SKIP_QUALITY ?? 'on').trim().toLowerCase() !== 'off'
+}
 type PendingInputRow = { id: string; raw_text: string | null; created_at: string | null; collected_at: string | null; source_key?: string | null; rating?: number | null }
 
 export function createPendingFor(deps: {
@@ -38,8 +54,41 @@ export function createPendingFor(deps: {
   skipConsumer?: boolean
   /** 파생 제외를 풀 input_id(기본 config/consumer-allow-ids.txt · env RELEVANCE_CONSUMER_ALLOW_FILE). 태그 표 제외는 풀지 않는다. */
   allowIds?: ReadonlySet<string>
+  /** 품질 표시 글을 대기열에서 뺄지(기본 env RELEVANCE_SKIP_QUALITY — off 만 끈다). */
+  skipQuality?: boolean
 }) {
   const { supabase, sampleSize, highRatingShare, log, warn } = deps
+  const skipQuality = deps.skipQuality ?? qualitySkipEnabled()
+  let qualityLoad: Promise<Set<string> | null> | null = null
+  /**
+   * 품질 표시 input_id 전부(한 번 읽고 실행 내내 재사용 — 표가 수천 행이라 프로젝트마다 읽지 않는다).
+   * 표 없음(마이그 미적용) → 빈 집합 + 경고(원래 동작). 그 밖 실패 → null = 확인 불가, 호출부가 그 프로젝트를 건너뛴다(소비재와 같은 fail-closed, §7.1).
+   */
+  function qualityIds(): Promise<Set<string> | null> {
+    if (!skipQuality) return Promise.resolve(new Set())
+    qualityLoad ??= (async () => {
+      let got
+      try {
+        got = await fetchAllPages<{ input_id: string; flag: string; rule_ver: string }>(() =>
+          supabase.from('content_quality_flags').select('input_id, flag, rule_ver').order('id', { ascending: true }))
+      } catch (e) {
+        warn(`품질 표시 조회 예외: ${e instanceof Error ? e.message : String(e)} — 이번 실행은 대상 프로젝트를 건너뛴다(RELEVANCE_SKIP_QUALITY=off 로 원복)`)
+        return null
+      }
+      if (isMissingTable(got.error)) {
+        warn('content_quality_flags 표가 없다(마이그 20261119000003 미적용) — 품질 표시 없이 원래대로 간다')
+        return new Set<string>()
+      }
+      if (got.error || got.truncated) {
+        warn(`품질 표시 조회 실패: ${got.error?.message ?? '상한 초과'} — 이번 실행은 대상 프로젝트를 건너뛴다(RELEVANCE_SKIP_QUALITY=off 로 원복)`)
+        return null
+      }
+      const ids = new Set((got.data ?? []).filter((r) => qualityExcludes(r.flag, r.rule_ver)).map((r) => r.input_id))
+      log(`품질 표시 — 판정 대기에서 뺄 글 ${ids.size}건(content_quality_flags, promo 는 cq-v2 만)`)
+      return ids
+    })()
+    return qualityLoad
+  }
   const excludedSources = deps.excludedSources ?? DEFAULT_EXCLUDED_SOURCES
   const lastSources = deps.lastSources ?? DEFAULT_LAST_SOURCES
   const skipConsumer = deps.skipConsumer ?? consumerSkipEnabled()
@@ -89,30 +138,34 @@ export function createPendingFor(deps: {
    * 원문을 실제로 읽는 pendingFor 는 이번에 돌 프로젝트에만 부른다(hop 마다 6.7만 행 원문 전송 방지).
    * 근사: 본문이 머리말뿐인 입력도 센다(pendingFor 가 거르는 것) → 상한 쪽 추정. 실패는 null(§7.1).
    */
-  async function countFor(project: { id: string }): Promise<{ unjudged: number; excluded: number; consumer: number; sources: string[] } | null> {
+  async function countFor(project: { id: string }): Promise<{ unjudged: number; excluded: number; consumer: number; quality: number; sources: string[] } | null> {
     const got = await fetchAllPages<{ id: string; source_key: string | null }>(() =>
       supabase.from('analysis_inputs').select('id, source_key').eq('project_id', project.id).is('purged_at', null).order('id', { ascending: true }))
     if (got.error || got.truncated) {
       console.error(`⚠️ 원문 수 조회 실패 project=${project.id}: ${got.error?.message ?? '상한 초과'}`)
       return null
     }
-    if (!got.data?.length) return { unjudged: 0, excluded: 0, consumer: 0, sources: [] }
+    if (!got.data?.length) return { unjudged: 0, excluded: 0, consumer: 0, quality: 0, sources: [] }
     const done = await judgedIdsOf(project.id)
     if (!done) return null
     const isConsumer = await consumerOf(project.id)
     if (!isConsumer) return null
+    const flagged = await qualityIds()
+    if (!flagged) return null
     let unjudged = 0
     let excluded = 0
     let consumer = 0
+    let quality = 0
     const sources = new Set<string>()
     for (const r of got.data) {
       sources.add(r.source_key ?? '(none)')
       if (done.has(r.id)) continue
-      if (isConsumer(r.id, r.source_key)) consumer += 1
+      if (flagged.has(r.id)) quality += 1
+      else if (isConsumer(r.id, r.source_key)) consumer += 1
       else if (excludedSources.includes(r.source_key ?? '(none)')) excluded += 1
       else unjudged += 1
     }
-    return { unjudged, excluded, consumer, sources: [...sources] }
+    return { unjudged, excluded, consumer, quality, sources: [...sources] }
   }
 
   /** 이 프로젝트에서 판정할 리뷰 목록. 실패는 null 로 올려 "0건" 과 가른다(§7.1). */
@@ -139,6 +192,8 @@ export function createPendingFor(deps: {
     if (!done) return null
     const isConsumer = await consumerOf(project.id)
     if (!isConsumer) return null
+    const flagged = await qualityIds()
+    if (!flagged) return null
 
     // 판정 전용 경로: T1(selectInputs)의 빈 본문·머리말만 거르기는 그대로 쓰되 12만 자 상한은 풀고(maxCharsTotal 무한),
     // **판정된 것을 먼저 뺀 뒤** 자른다 — 예전엔 상위 N 을 자른 뒤 판정된 것을 빼서, 상위 N 이 다 판정되면 그 프로젝트는 영영 0건이었다.
@@ -150,10 +205,13 @@ export function createPendingFor(deps: {
     // v71ay C5: HN 가치 낮은 글은 표본을 자르기 전에 뺀다(on 일 때만). 삭제 아님 — 원문·판정 없음 그대로, 끄면 다시 대상이 된다.
     const hnOn = !!prefilterCfg && prefilterCfg.hn.mode === 'on'
     const notDone = eligible.filter((s) => !done.has(s.input.id))
-    const undone = hnOn ? notDone.filter((s) => !isHnLowValue(s.input, prefilterCfg!)) : notDone
+    const hnKept = hnOn ? notDone.filter((s) => !isHnLowValue(s.input, prefilterCfg!)) : notDone
+    // S12: 품질 표시(content_quality_flags) 글은 미판정에서 뺀다 — 삭제·판정 행 기록 아님, RELEVANCE_SKIP_QUALITY=off 면 다시 대상.
+    const undone = flagged.size ? hnKept.filter((s) => !flagged.has(s.input.id as string)) : hnKept
+    const quality = hnKept.length - undone.length
     // v71bb: 판정 안 하고 남는 몫을 사유별로 센다(countFor 근사가 이걸 미판정으로 세서 체인이 "210건 남김"으로 헛돈다 — 10-21).
     //   no_body = T1 이 본문 없음(빈 원문·머리말뿐)으로 거른 미판정 · hn_low = HN 저가치(hn_lowvalue on)로 뺀 미판정. 둘 다 삭제 아님.
-    const residue = { no_body: rows.filter((r) => !done.has(r.id)).length - notDone.length, hn_low: notDone.length - undone.length }
+    const residue = { no_body: rows.filter((r) => !done.has(r.id)).length - notDone.length, hn_low: notDone.length - hnKept.length }
     const isC = (s: (typeof undone)[number]) => isConsumer(s.input.id, s.input.source_key)
     const consumer = undone.filter(isC).length
     const ordered = orderForJudge(consumer ? undone.filter((s) => !isC(s)) : undone, {
@@ -163,7 +221,7 @@ export function createPendingFor(deps: {
     const selected = [...head, ...ordered.last.slice(0, Math.max(0, sampleSize - head.length))]
     const unjudged = ordered.main.length + ordered.last.length
     const reviews = selected.map((s) => ({ input_id: s.input.id as string, text: s.text.slice(0, MAX_REVIEW_CHARS) }))
-    const base = { total: selected.length, unjudged, excluded: ordered.excludedCount, consumer, residue }
+    const base = { total: selected.length, unjudged, excluded: ordered.excludedCount, consumer, quality, residue }
     if (!prefilterCfg) return { ...base, reviews, rating }
 
     // 사전필터(v31 항목 5) — T1 뒤 · T2 전. 중복은 조회된 입력 전체에서 센다. 효과는 T2 대상(reviews)에만.

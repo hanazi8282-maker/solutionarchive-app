@@ -16,7 +16,7 @@
 
 import { createClient } from '../lib/supabase/server.ts'
 import { callGeminiRotating, parseJsonObject } from '../lib/analysis/llm.ts'
-import { dailySpent, DAILY_BUDGET_USD } from '../lib/analysis/budget.ts'
+import { dailySpent, DAILY_BUDGET_USD, judgeBudgetGate, judgeLedgerFrom, judgeUsdCaps, loadJudgeLedgerRows, setRunCapUsd } from '../lib/analysis/budget.ts'
 import { capacityGuard, loadAuditWindow, parseSince } from '../lib/analysis/auto-approval.ts'
 import { outOfScopeReason } from '../lib/analysis/approval-scope.ts'
 import { chunkReviews } from '../lib/analysis/relevance-judge.ts'
@@ -159,9 +159,17 @@ for (const pid of [...new Set(picked.map((r) => r.project_id))]) {
 if (dry) { log('--dry: 여기서 끝낸다. LLM 호출·DB 쓰기 없음.'); process.exit(0) }
 
 // ── 2. 판정 · 기록 ─────────────────────────────────────────────
+// 재시도(-r1/-r2)·수동(-m<run_id>) 실행이 같은 날 정규 행을 덮지 않게 판정 스텝과 같은 접미사(v30 §5).
+const runKey = `relevance-second-${kstDate()}${relevanceRunSuffixFromEnv()}`
+// 과금 상한(v71cu-3 §2a): 2차는 gemini 고정 = 과금 경로. 원장에서 오늘·이번 달 남은 몫을 이 프로세스 상한으로 건다.
+// 넘으면 reserveOrThrow → callGeminiRotating stop → 아래 blocker. 원장을 못 읽으면 판정 0건으로 멈춘다(§7.1).
+const nowGate = new Date()
+const ledgerRows = await loadJudgeLedgerRows(sb, nowGate, runKey)
+const gate = judgeBudgetGate({ metered: true, caps: judgeUsdCaps(), ledger: ledgerRows ? judgeLedgerFrom(ledgerRows, nowGate, DAILY_BUDGET_USD) : null })
+log(gate.line)
+setRunCapUsd(gate.capUsd)
 const tracker = await createTracker({
-  // 재시도(-r1/-r2)·수동(-m<run_id>) 실행이 같은 날 정규 행을 덮지 않게 판정 스텝과 같은 접미사(v30 §5).
-  runKey: `relevance-second-${kstDate()}${relevanceRunSuffixFromEnv()}`,
+  runKey,
   dept: 'cto',
   trigger: process.env.GITHUB_EVENT_NAME === 'schedule' ? 'cron' : process.env.GITHUB_ACTIONS ? 'manual' : 'local',
   gitSha: process.env.GITHUB_SHA ?? null,
@@ -171,12 +179,12 @@ await tracker.step({ stepKey: 'select', label: '2차 대상 선정', status: 'ok
 
 const c = { recorded: 0, skipped: 0, saveFailed: 0, callFailed: 0, parseFailed: 0, invalid: 0, relevant: 0, informative: 0 }
 let infoAbsent = false
-let blocker = null
+let blocker = gate.stop ? gate.line : null
 const exhausted = new Set()
 const batches = chunkReviews(picked, BATCH)
 let done = 0
 let timeCapped = false
-for (const batch of batches) {
+for (const batch of gate.stop ? [] : batches) {
   if (Date.now() - startedAt > DEADLINE_MS) { timeCapped = true; warn(`시간 상한 ${DEADLINE_MS / 60_000}분 도달 — ${done}/${batches.length}번째 묶음에서 멈춤, 남은 건은 내일`); break }
   const rows = batch.map((r) => { const p = projects.get(r.project_id); return toExportRow({ input_id: r.input_id, project_id: r.project_id, raw_text: raw.get(r.input_id).raw_text, pitch: p.product_elevator_pitch, business_model: p.business_model }) })
   const res = await callGeminiRotating(secondInstructions, secondOpinionUserPrompt(rows), 'relevance-second', { exhausted })
@@ -212,7 +220,7 @@ const spent = dailySpent()
 const status = blocker ? 'blocked' : c.saveFailed > 0 ? 'partial' : 'ok'
 if (blocker) warn(`한도로 멈췄다(${done}/${batches.length}번째 묶음) — 사유: ${blocker}. 남은 ${left}건은 내일.`)
 await tracker.step({ stepKey: 'judge', label: '2차 판정·기록', status, seq: 2, blocker, counts: c, detail: { batches: batches.length, done, time_capped: timeCapped, exhausted: [...exhausted], info_column: infoAbsent ? 'absent' : 'present' } })
-await tracker.finish({ status, summary: { ...c, picked: picked.length, left, remaining, blocker, time_capped: timeCapped, est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls } })
+await tracker.finish({ status, summary: { ...c, picked: picked.length, left, remaining, blocker, time_capped: timeCapped, est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls, billing: { metered: true, cap_usd: gate.capUsd, line: gate.line } } })
 
 log(`끝 — 기록 ${c.recorded}(관련 ${c.relevant} · 관련∧정보 ${c.informative}) · 그사이 채워져 건너뜀 ${c.skipped} · 호출 실패 ${c.callFailed} · 파싱 실패 ${c.parseFailed} · 어휘 거부/누락 ${c.invalid} · 저장 실패 ${c.saveFailed} · 남은 ${left + remaining}건 내일 · 추정 $${spent.spentUsd.toFixed(3)}(상한 $${DAILY_BUDGET_USD}) · 상태 ${status}`)
 if (!tracker.dbOk) warn('실행 상태를 agent_runs 에 남기지 못했다 — ops/state 폴백. 이 실행의 기록은 "DB 확인 불가"다')

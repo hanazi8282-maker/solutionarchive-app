@@ -102,6 +102,53 @@ ok('컨텍스트 밖이면 요청 누적이 없다', requestSpent() === null)
   resetDaily()
 }
 
+// ── 4-1) 판정 과금 상한(v71cu-3 §2a) — 일 $75 · 월 $2,000 원장 ───────
+{
+  const { judgeUsdCaps, judgeLedgerFrom, judgeBudgetGate, kstBounds, setRunCapUsd } = await import('../lib/analysis/budget.ts')
+  ok('상한 기본값 75·2000', JSON.stringify(judgeUsdCaps({})) === '{"dailyUsd":75,"monthlyUsd":2000}')
+  ok('상한은 리포 변수로 덮는다', judgeUsdCaps({ JUDGE_DAILY_USD_CAP: '10', JUDGE_MONTHLY_USD_CAP: '100' }).dailyUsd === 10)
+  ok('잘못된 값은 기본값(0·문자)', judgeUsdCaps({ JUDGE_DAILY_USD_CAP: '0', JUDGE_MONTHLY_USD_CAP: 'x' }).monthlyUsd === 2000)
+  // 2026-11-19 10:00 KST = 01:00Z. KST 날짜 경계 = 11-18 15:00Z, 달 경계 = 10-31 15:00Z.
+  const now = new Date('2026-11-19T01:00:00Z')
+  const b = kstBounds(now)
+  ok('KST 오늘 0시', b.dayStart.toISOString() === '2026-11-18T15:00:00.000Z')
+  ok('KST 이번 달 1일', b.monthStart.toISOString() === '2026-10-31T15:00:00.000Z')
+  const rows = [
+    { run_key: 'relevance-second-2026-11-19', status: 'ok', summary: { est_usd: 3 }, started_at: '2026-11-18T16:00:00Z' }, // 오늘(KST)
+    { run_key: 'relevance-judge-2026-11-18', status: 'ok', summary: { est_usd: 2 }, started_at: '2026-11-18T14:00:00Z' }, // 어제(KST) · 이번 달
+    { run_key: 'relevance-second-2026-11-19-r1', status: 'running', summary: null, started_at: '2026-11-18T20:00:00Z' }, // 죽은 실행 → 상한치
+    { run_key: 'relevance-judge-2026-11-19-r2', status: 'blocked', summary: { stop_reason: 'weekly_stop' }, started_at: '2026-11-18T21:00:00Z' }, // LLM 전 종료 → 0
+    { run_key: 'relevance-judge-2026-10-30', status: 'ok', summary: { est_usd: 99 }, started_at: '2026-10-30T00:00:00Z' }, // 지난달
+    { run_key: 'extract-auto-2026-11-19', status: 'ok', summary: { est_usd: 50 }, started_at: '2026-11-18T16:00:00Z' }, // 판정 아님
+  ]
+  const l = judgeLedgerFrom(rows, now, 15)
+  ok('원장 — 오늘 = 3 + 죽은 실행 상한 15', l.todayUsd === 18 && l.openToday === 1)
+  ok('원장 — 이번 달 = 20(지난달·판정 아닌 실행 제외)', l.monthUsd === 20 && l.openMonth === 1)
+  const caps = { dailyUsd: 75, monthlyUsd: 2000 }
+  const g = judgeBudgetGate({ metered: true, caps, ledger: l })
+  ok('과금 경로 — 남은 몫 = min(75-18, 2000-20)', g.metered && !g.stop && g.capUsd === 57)
+  ok('일 상한 도달 → 멈춤', judgeBudgetGate({ metered: true, caps, ledger: { ...l, todayUsd: 75 } }).stop)
+  ok('월 상한 도달 → 멈춤(일 몫이 남아도)', judgeBudgetGate({ metered: true, caps, ledger: { ...l, todayUsd: 0, monthUsd: 2000 } }).stop)
+  ok('과금 경로인데 원장 확인 불가 → 멈춤(§7.1)', judgeBudgetGate({ metered: true, caps, ledger: null }).stop)
+  const sub = judgeBudgetGate({ metered: false, caps, ledger: null })
+  ok('구독 경로 — 계량 불가 표시 · 멈추지 않음 · 상한 없음', !sub.stop && sub.capUsd === null && sub.line.includes('계량 불가'))
+  // 남은 몫이 실제로 호출을 막는가(로그만 남기지 않는다).
+  resetDaily()
+  setRunCapUsd(0.001)
+  ok('남은 몫을 넘기면 reserveOrThrow 가 던진다', throws(() => reserveOrThrow('judge', 10_000)))
+  setRunCapUsd(Number.POSITIVE_INFINITY)
+  resetDaily()
+  ok('몫을 풀면 다시 통과', !throws(() => reserveOrThrow('judge', 10_000)))
+  resetDaily()
+  // 배선: 두 판정 스크립트가 원장 게이트를 부르고, 1차는 claude-cli 를 계량 불가로 둔다.
+  const rj = fs.readFileSync('scripts/relevance-judge-auto.mjs', 'utf-8')
+  const r2 = fs.readFileSync('scripts/relevance-second-judge-auto.mjs', 'utf-8')
+  ok('1차 — 과금 경로만 계량(gemini·anthropic)', /const metered = provider === 'gemini' \|\| provider === 'anthropic'/.test(rj) && /setRunCapUsd\(billing\.capUsd\)/.test(rj))
+  ok('2차 — gemini 고정이라 항상 계량 · 몫 설정', /judgeBudgetGate\(\{ metered: true/.test(r2) && /setRunCapUsd\(gate\.capUsd\)/.test(r2) && /gate\.stop \? \[\] : batches/.test(r2))
+  const wf = fs.readFileSync('.github/workflows/nightly-relevance.yml', 'utf-8')
+  ok('워크플로 — 두 스텝 모두 JUDGE_*_USD_CAP 을 넘긴다', (wf.match(/JUDGE_DAILY_USD_CAP: \$\{\{ vars\.JUDGE_DAILY_USD_CAP/g) ?? []).length === 2 && (wf.match(/JUDGE_MONTHLY_USD_CAP: \$\{\{ vars\.JUDGE_MONTHLY_USD_CAP/g) ?? []).length === 2)
+}
+
 // ── 5) 진입점이 예산 컨텍스트로 감싸져 있는가 ────────────────────
 {
   const angle = fs.readFileSync('app/api/analyze/angle/route.ts', 'utf-8')

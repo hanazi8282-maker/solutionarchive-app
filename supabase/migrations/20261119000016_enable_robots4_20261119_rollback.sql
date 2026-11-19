@@ -1,4 +1,4 @@
--- 롤백 = 끄는 짝(20261119000015) 적용 + source_candidates 라벨 복원. 소스·타깃·수집분 행은 지우지 않는다(FK·수집 이력).
+-- 롤백 = 끄는 짝(20261119000017) 적용 + source_candidates 라벨 복원. 소스·타깃·수집분 행은 지우지 않는다(FK·수집 이력).
 BEGIN;
 UPDATE public.review_sources SET enabled = false, disabled_reason = 'owner_2026-11-19 robots4 롤백 (20261119000014)', disabled_at = now()
  WHERE override = 'owner_2026-11-19' AND key IN ('dcinside','ruliweb');

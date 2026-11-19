@@ -62,6 +62,10 @@ ok(/<candidate>[\s\S]*ZZ_EXTERNAL_DATA_MARKER[\s\S]*<\/candidate>/.test(tf.trans
 const qt = await import('../lib/analysis/quote-translate.ts')
 checkPrompt('quote-translate SYSTEM+user', qt.QUOTE_TRANSLATE_SYSTEM + '\n' + qt.buildQuoteTranslatePrompt([DATA]))
 
+// 사례 기반 맞춤 적용 문장(v71cu 4-1) — 진단·사례 글이 데이터로 실린다.
+const sy = await import('../lib/consult/story-flow-synthesis.ts')
+{ const p = sy.buildSynthesisPrompt({ bottleneck: 'b', story: DATA }, [{ action: DATA }]); checkPrompt('story-flow-synthesis buildSynthesisPrompt', p.system + '\n' + p.user) }
+
 const dr = await import('./discovery-run.mjs')
 checkPrompt('discovery-run proposalPrompt', dr.proposalPrompt('saas', 3, { names: new Set([`saas:${DATA}`]), acceptedByCategory: new Map(), killed: [{ kind: 'saas', name: 'k', note: DATA }] }))
 

@@ -384,6 +384,7 @@ for (const st of ['low', 'full']) { const sys = buildSystem(st); const nums = (s
   t('v71cu: story flow v2(점수식·회사당 1장·안 된 시도·폴백 순서·깃발 OFF=기존 경로·mat 폴백·인용 검증)', await ok('./story-flow-select-selftest.mjs'))
   t('v71cu B: 진단 칸 채우기·주제 신호(옵션 OFF=불변)·권장 설정 3건·비교 하니스 순수 함수·인용 검증', await ok('./story-flow-topic-selftest.mjs'))
   t('v71cu E: 평가 패킷(블라인드·같은 형식·대조군)·합격 계산 경계값·무효 판정·일치도·CLI', await ok('./story-flow-eval-selftest.mjs'))
+  t('v71cu 4-1: 사례 기반 맞춤 적용 문장(프롬프트 금지 규칙·파서 경계·근거 없는 숫자·도구 이름 차단·--synth 블라인드)·문장·낱말 경계 자르기', await ok('./story-flow-synthesis-selftest.mjs'))
 }
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)

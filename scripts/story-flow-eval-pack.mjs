@@ -12,13 +12,16 @@
 // 좋은 대조군을 사람·외부 작성자가 고를 때(E3): --dump-candidates <dir> 로 진단별 새 경로 후보 40장 + 기존 경로 후보를 <dir>/candidates.json 에 쓰고(채점자에게 주지 않음),
 //   그걸 보고 쓴 { "<진단 id>": { "cases": [{display_name, what, why, quote_orig, quote_ko}] ×3 } } 를 --good-controls <json> 으로 넣는다. 인용 원문이 후보 원문에 없으면 패킷을 쓰지 않고 종료 1.
 // --variants: base(진단 칸 채우기 + 단계 우선) · topic(칸 채우기 + 단계 우선 + 주제 신호 = STORY_FLOW_B_OPTS) · both(두 열 모두). 쉼표 목록도 된다.
+// --synth(기본 꺼짐): 모든 칸(새 경로·기존 경로·대조군)에 같은 '사례 기반 맞춤 적용 문장' 층(lib/consult/story-flow-synthesis.ts)을 같은 프롬프트로 붙인다(구독 경로 Sonnet).
+//   사례 없는 칸·합성 실패·근거 검사 실패 칸은 원래 모양 그대로 두고 key.json(notes.synth·problems)에 기록.
 // DB 쓰기·발송·깃발 변경 없음. 결론서(compose.ts)는 부르지 않는다.
 // 종료 코드: 0 = 끝까지 돎 · 1 = 돌았지만 확인 실패가 있음(빠진 진단·대조군 부족 등, key.json problems) · 2 = 입력/DB 를 못 읽음 · 64 = 사용법.
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative, resolve, isAbsolute } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { selectStoryFlow, dbLoaders, clipText, BOTTLENECK_ANSWER, STORY_FLOW_B_OPTS } from '../lib/consult/story-flow-select.ts'
+import { selectStoryFlow, dbLoaders, clipText, healClip, anchorEpisode, BOTTLENECK_ANSWER, STORY_FLOW_B_OPTS } from '../lib/consult/story-flow-select.ts'
+import { synthesize } from '../lib/consult/story-flow-synthesis.ts'
 import { BOTTLENECK_CHAPTERS } from '../lib/consult/story-flow.ts'
 import { enrichDiagnosis } from '../lib/consult/story-flow-topic.ts'
 import { AREA_NAMES, BOTTLENECK_CH, mulberry32 } from './story-flow-compare.mjs'
@@ -82,11 +85,18 @@ export function remembering(loaders) {
   const wrap = (f) => f && (async (ch) => { const xs = await f(ch); for (const c of xs) if (!cards.has(c.slug)) cards.set(c.slug, c); return xs })
   return { cards, loaders: { flowCards: wrap(loaders.flowCards), moveTags: wrap(loaders.moveTags), caseBank: wrap(loaders.caseBank) } }
 }
-const quoteKo = (cards, q) => cards.get(q.slug_internal ?? q.slug)?.episodes?.find((e) => e.episode_idx === q.episode_idx)?.quote_ko ?? null
-/** 선택 한 건 → 렌더링 항목. 내용은 selectionToSimilar 와 같다(what = 요약, why = 비슷한 이유 / 설득력 이유). 실패 표시는 앞말 대신 표시 칸으로. */
-export const pickItem = (p, cards) => ({ what: p.summary_ko, why: clipText(`${p.reasons[0]} / ${p.reasons[1]}`, 120), fail: p.fail_kind ?? null,
-  quote: p.quote ? { orig: p.quote.text, ko: quoteKo(cards, p.quote) } : null })
+// 옛 꼬리표는 quote_ko·action_ko 등이 200자에서 낱말 중간으로 잘려 저장돼 있다 — healClip 으로 문장·낱말 경계로 다시 자른다(인용 원문 quote_orig 는 자르지 않는다).
+const quoteKo = (cards, q) => healClip(cards.get(q.slug_internal ?? q.slug)?.episodes?.find((e) => e.episode_idx === q.episode_idx)?.quote_ko ?? null)
+/** 선택 한 건 → 렌더링 항목. 내용은 selectionToSimilar 와 같다(what = 요약, why = 비슷한 이유 / 설득력 이유). 실패 표시는 앞말 대신 표시 칸으로.
+ * src = 합성 층 입력(패킷에는 안 나간다): 기준 에피소드의 행동·결과·조건·어려움 + 인용 번역(인용 허용 소스일 때만 — p.quote 가 있을 때). */
+export const pickItem = (p, cards) => {
+  const ko = p.quote ? quoteKo(cards, p.quote) : null, card = cards.get(p.slug_internal), e = card ? anchorEpisode(card) : undefined
+  return { what: p.summary_ko, why: clipText(`${p.reasons[0]} / ${p.reasons[1]}`, 120), fail: p.fail_kind ?? null, quote: p.quote ? { orig: p.quote.text, ko } : null,
+    src: { action: healClip(e?.action_ko) ?? p.summary_ko, result: healClip(e?.result_ko), condition: healClip(e?.condition_ko), adversity: healClip(e?.adversity_ko), quote_ko: ko, failed: !!p.fail_kind, quote_allowed: !!p.quote } }
+}
 export const legacyItem = (x) => ({ what: x.what ?? '', why: x.why ?? '', fail: null, quote: null })
+/** 합성 층 입력 — src 가 없는 칸(기존 경로·일반론·외부 대조군)은 화면에 보이는 '무엇을 했나'(+번역)만. */
+export const synthPick = (it) => it.src ?? { action: it.what, failed: !!it.fail, quote_ko: it.quote?.ko ?? null, quote_allowed: !!it.quote }
 const picksOf = (s) => (s.recommended ? [s.recommended, ...s.alternatives] : s.alternatives ?? [])
 
 /** 일반론 템플릿(사업 무관한 상투적 조언) — 나쁜 대조군 재료. 스스로 "나쁘다"고 밝히지 않는 그럴듯한 문장으로 쓴다. */
@@ -101,8 +111,14 @@ export const GENERIC_ADVICE = [
 const shuffle = (xs, rng) => { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]] } return a }
 
 const FAIL_MARK = { negative: '잘 안 풀린 경우', mixed: '반쯤만 풀린 경우' }
-/** 결론서 한 칸 — 모든 칸(경로·대조군)이 같은 형식. 회사명 대신 '사례 N', 경로 정체는 쓰지 않는다. */
-export function renderPanel(label, items) {
+/** 합성 칸 — 모든 칸이 같은 형식. 할 일·하지 말 것이 0개면 '(없음)'. */
+export function renderSynthesis(s) {
+  return ['', '**이 고객에게(요약)**', '', s.summary_for_you, '', '**이번 주 할 일**', '',
+    ...(s.do_this_week.length ? s.do_this_week.map((x, i) => `${i + 1}. ${x.step} (사례 ${x.from_case}) — ${x.why}`) : ['- (없음)']), '', '**하지 말 것**', '',
+    ...(s.dont_do.length ? s.dont_do.map((x) => `- ${x.avoid} (사례 ${x.from_case}) — ${x.why}`) : ['- (없음)']), '', `**주의**: ${s.caveat}`]
+}
+/** 결론서 한 칸 — 모든 칸(경로·대조군)이 같은 형식. 회사명 대신 '사례 N', 경로 정체는 쓰지 않는다. synth 가 있으면 사례 아래에 합성 칸을 붙인다(사례가 없으면 붙이지 않는다). */
+export function renderPanel(label, items, synth = null) {
   const lines = [`### 결론서 ${label}`, '', '**비슷한 사례**', '']
   if (!items.length) lines.push('- (제시된 사례 없음)')
   items.forEach((x, i) => {
@@ -110,6 +126,7 @@ export function renderPanel(label, items) {
     if (x.why) lines.push(`   - 왜 비슷한가: ${x.why}`)
     if (x.quote) lines.push(`   - 원문 인용: "${x.quote.orig}"`, `   - 번역: ${x.quote.ko ? `"${x.quote.ko}"` : '(번역 없음)'}`)
   })
+  if (synth && items.length) lines.push(...renderSynthesis(synth))
   return lines.join('\n')
 }
 const SIT_KO = { stage: '단계', customer: '손님', price_band: '값대(월, 달러)', team_size: '팀 크기', pricing_model: '과금 방식' }
@@ -138,6 +155,15 @@ export const INSTRUCTIONS = [
   '응답은 form-template.json 을 채워 form.schema.json 에 맞는 JSON 하나로 돌려줍니다. packet_id 는 그대로 둡니다. 결론서에 적힌 내용 밖의 사실을 지어내지 않습니다.',
 ]
 
+/** --synth 일 때만 덧붙는 안내(합성 꺼짐 패킷은 한 글자도 안 바뀐다). */
+export const SYNTH_INSTRUCTION = '결론서에 "이 고객에게(요약)·이번 주 할 일·하지 말 것·주의" 칸이 있으면 그 칸까지 포함해 결론서 전체를 채점합니다.'
+export const SYNTH_MODEL = 'claude-sonnet-5-5'
+/** 합성 층에 주는 진단 — 채점자가 보는 진단과 같다(사업 설명·막힌 곳·상황·어려움·고객 이야기 요약 600자). 모든 칸 같은 값. */
+export function synthDiagnosis(x) {
+  const i = diagnosisInfo(x)
+  return { pitch: [i.pitch, i.business_model].filter(Boolean).join(' · '), bottleneck: i.bottleneck, situation: i.situation, adversity: i.adversity_text, story: clipText(i.customer_story, 600) }
+}
+
 /** 응답 양식(JSON Schema). 채점자 파일 — 경로·점수식 설명 없음. */
 export function formSchema() {
   const score = { type: 'integer', minimum: 0, maximum: 5 }
@@ -160,7 +186,7 @@ export function formSchema() {
  * 기존 경로가 실패하면 그 진단은 패킷에서 빼고 problems 에 남긴다(공정하지 않은 비교를 채점시키지 않는다). 한도 오류(StopRun)는 다시 던진다.
  * 새 경로가 ok 가 아니면 결론서 실경로(chooseSimilar)처럼 기존 경로 목록이 그 칸에 나간다 — key 에 fallback 으로 남긴다.
  */
-export async function buildPack({ diagnoses, seed = 20261120, variants = ['topic'], loaders, legacy, now = new Date(), mode = 'dry', goodControls = null, dumpCandidates = false }) {
+export async function buildPack({ diagnoses, seed = 20261120, variants = ['topic'], loaders, legacy, now = new Date(), mode = 'dry', goodControls = null, dumpCandidates = false, synth = null }) {
   const rng = mulberry32(seed), problems = [], goodErrors = [], candidates = [], { cards, loaders: ld } = remembering(loaders)
   if (goodControls) for (const id of Object.keys(goodControls)) if (!diagnoses.some((x) => String(x.id) === id)) goodErrors.push(`${id} 좋은 대조군의 진단 id 가 입력에 없음`)
   const done = []
@@ -204,25 +230,37 @@ export async function buildPack({ diagnoses, seed = 20261120, variants = ['topic
     o.panels.bad = shuffle([...gen.slice(0, 3 - foreign.length), ...foreign], rng)
     o.notes.bad = { generic: 3 - foreign.length, other_area: foreign.length }
   }
+  // 합성 층(--synth): 모든 칸에 같은 진단·같은 프롬프트. 칸 순서를 섞는 난수는 쓰지 않는다(합성 켜고 끄기가 칸 글자를 바꾸지 않게).
+  if (synth) for (const o of done) {
+    const sd = synthDiagnosis(o.x)
+    o.synth = {}; o.notes.synth = {}
+    for (const [kind, items] of Object.entries(o.panels)) {
+      const r = await synthesize(sd, items.map(synthPick), synth)
+      o.notes.synth[kind] = r.status === 'ok' ? { status: 'ok' } : { status: r.status, ...(r.reason ? { reason: r.reason } : {}), ...(r.unsupported ? { unsupported: r.unsupported } : {}) }
+      if (r.status === 'ok') o.synth[kind] = r.value
+      else if (r.status !== 'skipped') problems.push(`${o.x.id} ${kind} 합성 ${r.status === 'unsupported' ? '버림(근거 없는 ' + r.unsupported.join('·') + ')' : '실패: ' + r.reason} — 그 칸은 합성 없이 나감`)
+    }
+  }
   const pDiag = [], kDiag = []
   for (const o of done) {
     const kinds = shuffle(Object.keys(o.panels), rng), labelOf = Object.fromEntries(kinds.map((k, i) => [k, LABELS[i]]))
     const pairs = shuffle(variants, rng).map((v, i) => ({ pair_id: `p${i + 1}`, v, options: shuffle([labelOf.legacy, labelOf[v]], rng) }))
     pDiag.push({ id: String(o.x.id), info: diagnosisInfo(o.x),
-      panels: kinds.map((k) => ({ label: labelOf[k], markdown: renderPanel(labelOf[k], o.panels[k]),
-        items: o.panels[k].map((it, i) => ({ name: `사례 ${i + 1}`, mark: it.fail ? FAIL_MARK[it.fail] ?? FAIL_MARK.negative : null, what: it.what, why: it.why, quote_orig: it.quote?.orig ?? null, quote_ko: it.quote ? it.quote.ko : null })) })),
+      panels: kinds.map((k) => ({ label: labelOf[k], markdown: renderPanel(labelOf[k], o.panels[k], o.synth?.[k] ?? null),
+        items: o.panels[k].map((it, i) => ({ name: `사례 ${i + 1}`, mark: it.fail ? FAIL_MARK[it.fail] ?? FAIL_MARK.negative : null, what: it.what, why: it.why, quote_orig: it.quote?.orig ?? null, quote_ko: it.quote ? it.quote.ko : null })),
+        ...(synth ? { for_you: o.synth?.[k] ?? null } : {}) })),
       test1_pairs: pairs.map(({ pair_id, options }) => ({ pair_id, options })) })
     kDiag.push({ id: String(o.x.id), area: o.area, has_pitch: o.x.has_pitch, panels: Object.fromEntries(kinds.map((k) => [labelOf[k], k])),
       pairs: Object.fromEntries(pairs.map(({ pair_id, v }) => [pair_id, { variant: v, variant_label: labelOf[v], legacy_label: labelOf.legacy }])),
       notes: o.notes, condition: { chapters: o.d.chapters, situation: o.d.situation, enrich_basis: o.d.enrich_basis, topic: o.d.topic, legacy_input: o.c.legacy } })
   }
-  const body = { title: '비슷한 사례 칸 채점 패킷', instructions: INSTRUCTIONS, diagnoses: pDiag }
+  const body = { title: '비슷한 사례 칸 채점 패킷', instructions: synth ? [...INSTRUCTIONS, SYNTH_INSTRUCTION] : INSTRUCTIONS, diagnoses: pDiag }
   const packet_id = createHash('sha256').update(JSON.stringify(body)).digest('hex').slice(0, 16)
   const packet = { packet_id, ...body }
   const template = { packet_id, grader: '', round: '', diagnoses: pDiag.map((d) => ({ id: d.id,
     panels: Object.fromEntries(d.panels.map((p) => [p.label, { ...Object.fromEntries(SCORE_ITEMS.map((k) => [k, null])), tomorrow_action: '', action_concrete: null }])),
     test1: d.test1_pairs.map((p) => ({ pair_id: p.pair_id, choice: '' })) })) }
-  const key = { packet_id, generated_at: now.toISOString(), mode, seed, variants, variant_opts: Object.fromEntries(variants.map((v) => [v, VARIANT_OPTS[v]])), good_controls: goodControls ? 'external' : 'auto', problems, diagnoses: kDiag }
+  const key = { packet_id, generated_at: now.toISOString(), mode, seed, variants, variant_opts: Object.fromEntries(variants.map((v) => [v, VARIANT_OPTS[v]])), good_controls: goodControls ? 'external' : 'auto', synth: synth ? { enabled: true, model: SYNTH_MODEL, input: 'diagnosisInfo(진단 전체) — 모든 칸 같은 진단·같은 프롬프트' } : { enabled: false }, problems, diagnoses: kDiag }
   return { packet, template, key, problems, goodErrors, candidates }
 }
 
@@ -263,10 +301,10 @@ export function packetMarkdown(packet) {
 
 async function main() {
   const argv = process.argv.slice(2), has = (f) => argv.includes(`--${f}`), arg = (k) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : undefined }
-  const valued = ['--diagnoses', '--out', '--seed', '--variants', '--dump-candidates', '--good-controls'], known = new Set([...valued, '--db'])
+  const valued = ['--diagnoses', '--out', '--seed', '--variants', '--dump-candidates', '--good-controls'], known = new Set([...valued, '--db', '--synth'])
   const bad = argv.filter((a, i) => a.startsWith('--') && !known.has(a) && !(i > 0 && valued.includes(argv[i - 1])))
   const inPath = arg('diagnoses'), out = arg('out'), seed = Number(arg('seed') ?? 20261120), useDb = has('db')
-  if (bad.length || !inPath || !out || !Number.isInteger(seed)) { console.error('사용법: --diagnoses <json> --out <dir> [--seed N] [--variants base|topic|both] [--dump-candidates <dir>] [--good-controls <json>] [--db]'); process.exit(64) }
+  if (bad.length || !inPath || !out || !Number.isInteger(seed)) { console.error('사용법: --diagnoses <json> --out <dir> [--seed N] [--variants base|topic|both] [--dump-candidates <dir>] [--good-controls <json>] [--db] [--synth]'); process.exit(64) }
   let variants
   try { variants = parseVariants(arg('variants') ?? 'topic') } catch (e) { console.error(e.message); process.exit(64) }
   let raw
@@ -299,8 +337,14 @@ async function main() {
     loaders = { flowCards: async (ch) => cards.filter((c) => c.chapter === ch && c.weight >= 30) }
     legacy = async () => [] // 오프라인: 기존 경로(DB·LLM)를 돌리지 않는다 — 그 칸은 비어 나간다(연기 시험 전용, 실채점에 쓰지 않는다).
   }
+  let synth = null
+  if (has('synth')) {
+    // 구독 경로(claude -p, ANTHROPIC_API_KEY·서비스 키를 뺀 env, 도구 없이 1턴). 한도 오류(StopRun)는 buildPack 밖으로 올라와 멈춘다.
+    const { runCli } = await import('../lib/story-label/cli.mjs'), { parseJsonObject } = await import('../lib/analysis/llm.ts')
+    synth = async ({ system, user }) => parseJsonObject((await runCli({ system, user, model: SYNTH_MODEL })).text)
+  }
   let r
-  try { r = await buildPack({ diagnoses, seed, variants, loaders, legacy, mode: useDb ? 'db' : 'dry', goodControls, dumpCandidates: !!dumpDir }) } catch (e) { console.error(`멈춤: ${String(e?.message ?? e)}`); process.exit(e?.constructor?.name === 'StopRun' ? 1 : 2) }
+  try { r = await buildPack({ diagnoses, seed, variants, loaders, legacy, mode: useDb ? 'db' : 'dry', goodControls, dumpCandidates: !!dumpDir, synth }) } catch (e) { console.error(`멈춤: ${String(e?.message ?? e)}`); process.exit(e?.constructor?.name === 'StopRun' ? 1 : 2) }
   if (dumpDir) {
     mkdirSync(dumpDir, { recursive: true })
     writeFileSync(join(dumpDir, 'candidates.json'), JSON.stringify({ note: '좋은 대조군 작성용 후보 — 채점자에게 주지 않는다', mode: useDb ? 'db' : 'dry', seed, limit: CANDIDATE_LIMIT, diagnoses: r.candidates }, null, 2) + '\n')

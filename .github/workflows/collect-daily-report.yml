@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: 24
       - run: npm ci --omit=dev --ignore-scripts
+      - run: node scripts/collect-daily-report-selftest.mjs
       - name: Build collect briefing
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

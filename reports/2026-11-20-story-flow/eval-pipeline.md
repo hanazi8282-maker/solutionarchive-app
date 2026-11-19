@@ -62,6 +62,27 @@ node scripts/consult-selftest.mjs
 - 새 경로가 `ok` 가 아니면 결론서 실경로(`chooseSimilar`)처럼 그 칸에 기존 경로 목록이 나간다 — `key.json` `notes.<변형>.fallback=true`.
 - ⚠ **공개 리포.** 진단·고객 이야기가 패킷·key 에 들어간다. `--out` 은 리포 밖에 둔다(리포 안이면 경고). 커밋하지 않는다.
 
+## 좋은 대조군을 사람·외부 작성자가 고르기 (E3, 2026-11-20 추가)
+
+배경: 첫 실채점(진단 15개, Opus·Fable)에서 두 채점자 모두 **대조군 신뢰 검사 실패 → 무효**가 났다(일치도 r 0.85~0.97). 자동 좋은 대조군이 "같은 장 상위 점수 카드"라 진단과 안 맞았다(예: 콜센터 QA 서비스에 월 $2,500 이메일 클로징·Profit First 마진 사례) — 채점자가 합리적으로 낮게 준 것이다. 합격선·채점자·`PASS` 는 그대로 두고, 좋은 대조군을 실제로 좋은 것으로 넣는 경로를 더했다. `--good-controls` 가 없으면 기존 동작(자동) 그대로다.
+
+```bash
+# 1) 후보 덤프 — 진단마다 새 경로 후보 상위 40장(권장 설정 순위, 에피소드 전부) + 기존 경로 후보. 채점자에게 주지 않는다.
+node --env-file=.env.local scripts/story-flow-eval-pack.mjs --diagnoses <리포 밖>/diagnoses.json --out <리포 밖>/eval-02 --seed 20261120 --variants both --db --dump-candidates <리포 밖>/eval-02-cand
+
+# 2) <리포 밖>/eval-02-cand/candidates.json 을 보고 진단마다 좋은 사례 3건을 골라 good-controls.json 을 쓴다(사람 또는 별도 작성자 — 채점자와 다른 사람/세션).
+
+# 3) 같은 진단·시드로 다시 패킷 — 좋은 대조군 칸을 외부 작성본으로
+node --env-file=.env.local scripts/story-flow-eval-pack.mjs --diagnoses <리포 밖>/diagnoses.json --out <리포 밖>/eval-02 --seed 20261120 --variants both --db --good-controls <리포 밖>/good-controls.json
+```
+
+- `candidates.json`: `{ diagnoses: [{ id, info(진단), chapters, new_candidates: [{ cand_id, display_name, source, chapter, score, topic, failed, summary_ko, episodes: [{ chapter, episode_idx, result_class, evidence_strength, adversity_ko, action_ko, result_ko, condition_ko, quote_orig, quote_ko }] }], legacy_candidates: [{ name, what, why }] }] }`. 내부 slug 는 없다(표시용 이름 + 후보 번호).
+- `good-controls.json`: `{ "<진단 id>": { "cases": [ { "display_name", "what", "why", "quote_orig", "quote_ko" } ×3 ] } }`.
+- 렌더링은 다른 칸과 똑같다(`사례 N`, 무엇을 했나·왜 비슷한가·원문 인용·번역). `display_name` 은 key 에만 남고 패킷에 안 나간다. 칸 글자는 다른 칸처럼 시드로 섞인다(블라인드 유지 — 항상 D 로 고정하지 않는다).
+- 검사(하나라도 걸리면 **패킷·key 를 쓰지 않고 종료 1**, 후보 덤프는 씀): 진단마다 정확히 3건 · `what` 필수 · `quote_orig` 가 있으면 **같은 실행에서 다시 뽑은 그 진단의 후보 40장 원문 안에 실제로 포함**(공백·따옴표만 정규화한 부분 문자열) · 입력에 없는 진단 id 없음 · 패킷 진단이 전부 들어 있음. `quote_orig` 를 비우면 인용 줄 없이 나간다.
+- 후보는 같은 진단·시드·DB 상태에서 결정적이다. 덤프와 패킷 사이에 DB 가 바뀌어 원문이 빠지면 검사가 실패한다(안전한 쪽).
+- `key.json` `good_controls: "external" | "auto"`, 진단별 `notes.good.source`.
+
 ## 응답 형식 (form.schema.json)
 
 ```json

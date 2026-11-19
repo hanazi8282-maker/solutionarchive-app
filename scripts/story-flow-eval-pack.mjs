@@ -9,6 +9,8 @@
 //     node scripts/story-flow-eval-pack.mjs --diagnoses <리포 밖 json> --out <리포 밖 dir> [--seed 20261120] [--variants topic]
 //   실DB(오케스트레이터만 — 읽기 전용 + 기존 경로 판정 Haiku 구독 경로):
 //     node --env-file=.env.local scripts/story-flow-eval-pack.mjs --diagnoses <json> --out <dir> --seed 20261120 --variants both --db
+// 좋은 대조군을 사람·외부 작성자가 고를 때(E3): --dump-candidates <dir> 로 진단별 새 경로 후보 40장 + 기존 경로 후보를 <dir>/candidates.json 에 쓰고(채점자에게 주지 않음),
+//   그걸 보고 쓴 { "<진단 id>": { "cases": [{display_name, what, why, quote_orig, quote_ko}] ×3 } } 를 --good-controls <json> 으로 넣는다. 인용 원문이 후보 원문에 없으면 패킷을 쓰지 않고 종료 1.
 // --variants: base(진단 칸 채우기 + 단계 우선) · topic(칸 채우기 + 단계 우선 + 주제 신호 = STORY_FLOW_B_OPTS) · both(두 열 모두). 쉼표 목록도 된다.
 // DB 쓰기·발송·깃발 변경 없음. 결론서(compose.ts)는 부르지 않는다.
 // 종료 코드: 0 = 끝까지 돎 · 1 = 돌았지만 확인 실패가 있음(빠진 진단·대조군 부족 등, key.json problems) · 2 = 입력/DB 를 못 읽음 · 64 = 사용법.
@@ -158,27 +160,39 @@ export function formSchema() {
  * 기존 경로가 실패하면 그 진단은 패킷에서 빼고 problems 에 남긴다(공정하지 않은 비교를 채점시키지 않는다). 한도 오류(StopRun)는 다시 던진다.
  * 새 경로가 ok 가 아니면 결론서 실경로(chooseSimilar)처럼 기존 경로 목록이 그 칸에 나간다 — key 에 fallback 으로 남긴다.
  */
-export async function buildPack({ diagnoses, seed = 20261120, variants = ['topic'], loaders, legacy, now = new Date(), mode = 'dry' }) {
-  const rng = mulberry32(seed), problems = [], { cards, loaders: ld } = remembering(loaders)
+export async function buildPack({ diagnoses, seed = 20261120, variants = ['topic'], loaders, legacy, now = new Date(), mode = 'dry', goodControls = null, dumpCandidates = false }) {
+  const rng = mulberry32(seed), problems = [], goodErrors = [], candidates = [], { cards, loaders: ld } = remembering(loaders)
+  if (goodControls) for (const id of Object.keys(goodControls)) if (!diagnoses.some((x) => String(x.id) === id)) goodErrors.push(`${id} 좋은 대조군의 진단 id 가 입력에 없음`)
   const done = []
   for (const x of diagnoses) {
     const c = conditionFor(x), d = enrichDiagnosis(c.base, c.enrich)
-    let leg
-    try { leg = (await legacy(c.legacy)).map(legacyItem) } catch (e) {
+    let legRaw
+    try { legRaw = await legacy(c.legacy) } catch (e) {
       if (e?.constructor?.name === 'StopRun') throw e
       problems.push(`${x.id} 기존 경로 실패 — 패킷에서 뺌: ${String(e?.message ?? e).slice(0, 120)}`); continue
     }
+    const leg = legRaw.map(legacyItem)
     const out = { x, c, d, panels: { legacy: leg }, notes: { legacy_count: leg.length } }
     for (const v of variants) {
       const s = await selectStoryFlow(d, ld, { now, ...VARIANT_OPTS[v] })
       out.notes[v] = { status: s.status, note: s.note, fallback: s.status !== 'ok' }
       out.panels[v] = s.status === 'ok' ? picksOf(s).map((p) => pickItem(p, cards)) : leg
     }
-    // 좋은 대조군: 같은 장(병목) 카드 중 주제 일치(영역)·점수가 높은 것, 잘 된 사례만 3건.
-    const pool = await selectStoryFlow(d, ld, { now, topic: true, limit: 50 })
-    const good = picksOf(pool).filter((p) => p.source === 'story_flow' && !p.failed).sort((a, b) => (b.topic ?? 0) - (a.topic ?? 0) || b.score - a.score).slice(0, 3)
-    if (good.length < 3) problems.push(`${x.id} 좋은 대조군 ${good.length}건(<3)`)
-    if (good.length) out.panels.good = good.map((p) => pickItem(p, cards))
+    // 후보 덤프(사람·외부 작성자용, 채점자에게 주지 않음): 새 경로 상위 40장(권장 설정 순위) + 기존 경로 목록.
+    const cand = dumpCandidates || goodControls ? await candidatesFor(d, ld, cards, now) : null
+    if (dumpCandidates) candidates.push({ id: String(x.id), info: diagnosisInfo(x), chapters: d.chapters, new_candidates: cand, legacy_candidates: legRaw.map((l) => ({ name: l.name ?? '', what: l.what ?? '', why: l.why ?? '' })) })
+    if (goodControls) {
+      // 좋은 대조군(외부 작성): 같은 형식으로 렌더링, 인용 원문이 이 진단의 후보 원문 안에 실제로 있는지 확인.
+      const g = goodControls[String(x.id)], errs = checkGoodControl(g, cand)
+      if (errs.length) goodErrors.push(...errs.map((e) => `${x.id} ${e}`))
+      else { out.panels.good = g.cases.map((k) => ({ what: k.what, why: k.why ?? '', fail: null, quote: k.quote_orig ? { orig: k.quote_orig, ko: k.quote_ko || null } : null })); out.notes.good = { source: 'external', display_names: g.cases.map((k) => k.display_name ?? '') } }
+    } else {
+      // 좋은 대조군(자동): 같은 장(병목) 카드 중 주제 일치(영역)·점수가 높은 것, 잘 된 사례만 3건.
+      const pool = await selectStoryFlow(d, ld, { now, topic: true, limit: 50 })
+      const good = picksOf(pool).filter((p) => p.source === 'story_flow' && !p.failed).sort((a, b) => (b.topic ?? 0) - (a.topic ?? 0) || b.score - a.score).slice(0, 3)
+      if (good.length < 3) problems.push(`${x.id} 좋은 대조군 ${good.length}건(<3)`)
+      if (good.length) { out.panels.good = good.map((p) => pickItem(p, cards)); out.notes.good = { source: 'auto' } }
+    }
     out.area = String(x.area)
     done.push(out)
   }
@@ -208,8 +222,30 @@ export async function buildPack({ diagnoses, seed = 20261120, variants = ['topic
   const template = { packet_id, grader: '', round: '', diagnoses: pDiag.map((d) => ({ id: d.id,
     panels: Object.fromEntries(d.panels.map((p) => [p.label, { ...Object.fromEntries(SCORE_ITEMS.map((k) => [k, null])), tomorrow_action: '', action_concrete: null }])),
     test1: d.test1_pairs.map((p) => ({ pair_id: p.pair_id, choice: '' })) })) }
-  const key = { packet_id, generated_at: now.toISOString(), mode, seed, variants, variant_opts: Object.fromEntries(variants.map((v) => [v, VARIANT_OPTS[v]])), problems, diagnoses: kDiag }
-  return { packet, template, key, problems }
+  const key = { packet_id, generated_at: now.toISOString(), mode, seed, variants, variant_opts: Object.fromEntries(variants.map((v) => [v, VARIANT_OPTS[v]])), good_controls: goodControls ? 'external' : 'auto', problems, diagnoses: kDiag }
+  return { packet, template, key, problems, goodErrors, candidates }
+}
+
+export const CANDIDATE_LIMIT = 40
+/** 새 경로 후보 상위 40장 — 권장 설정(topic) 순위, 에피소드 전부. 내부 slug 대신 표시용 이름(selectStoryFlow 가 붙인 displayName)과 후보 번호. */
+export async function candidatesFor(d, ld, cards, now) {
+  const s = await selectStoryFlow(d, ld, { now, ...VARIANT_OPTS.topic, limit: CANDIDATE_LIMIT })
+  return picksOf(s).map((p, i) => ({ cand_id: `c${String(i + 1).padStart(2, '0')}`, display_name: p.name, source: p.source, chapter: p.chapter, score: p.score, topic: p.topic ?? null, failed: p.failed, summary_ko: p.summary_ko,
+    episodes: (cards.get(p.slug_internal)?.episodes ?? []).map((e) => ({ chapter: e.chapter, episode_idx: e.episode_idx, result_class: e.result_class, evidence_strength: e.evidence_strength,
+      adversity_ko: e.adversity_ko ?? null, action_ko: e.action_ko ?? null, result_ko: e.result_ko ?? null, condition_ko: e.condition_ko ?? null, quote_orig: e.quote_orig ?? null, quote_ko: e.quote_ko ?? null })) }))
+}
+const normQ = (s) => String(s ?? '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim()
+/** 외부 좋은 대조군 검사 — 3건, what 필수, quote_orig 가 있으면 이 진단 후보 에피소드의 원문 안에 실제로 있어야 한다(지어낸 인용 금지). 오류 문장 목록. */
+export function checkGoodControl(g, cand) {
+  if (!g || !Array.isArray(g.cases)) return ['좋은 대조군 없음(cases 배열)']
+  const errs = [], origs = (cand ?? []).flatMap((c) => c.episodes.map((e) => normQ(e.quote_orig)).filter(Boolean))
+  if (g.cases.length !== 3) errs.push(`좋은 대조군 ${g.cases.length}건(3건이어야 함)`)
+  g.cases.forEach((k, i) => {
+    if (!String(k?.what ?? '').trim()) errs.push(`좋은 대조군 ${i + 1} what 비었음`)
+    const q = normQ(k?.quote_orig)
+    if (q && !origs.some((o) => o.includes(q))) errs.push(`좋은 대조군 ${i + 1} 인용이 후보 원문에 없음: "${q.slice(0, 60)}"`)
+  })
+  return errs
 }
 
 export function packetMarkdown(packet) {
@@ -227,10 +263,10 @@ export function packetMarkdown(packet) {
 
 async function main() {
   const argv = process.argv.slice(2), has = (f) => argv.includes(`--${f}`), arg = (k) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : undefined }
-  const known = new Set(['--diagnoses', '--out', '--seed', '--variants', '--db'])
-  const bad = argv.filter((a, i) => a.startsWith('--') && !known.has(a) && !(i > 0 && ['--diagnoses', '--out', '--seed', '--variants'].includes(argv[i - 1])))
+  const valued = ['--diagnoses', '--out', '--seed', '--variants', '--dump-candidates', '--good-controls'], known = new Set([...valued, '--db'])
+  const bad = argv.filter((a, i) => a.startsWith('--') && !known.has(a) && !(i > 0 && valued.includes(argv[i - 1])))
   const inPath = arg('diagnoses'), out = arg('out'), seed = Number(arg('seed') ?? 20261120), useDb = has('db')
-  if (bad.length || !inPath || !out || !Number.isInteger(seed)) { console.error('사용법: --diagnoses <json> --out <dir> [--seed N] [--variants base|topic|both] [--db]'); process.exit(64) }
+  if (bad.length || !inPath || !out || !Number.isInteger(seed)) { console.error('사용법: --diagnoses <json> --out <dir> [--seed N] [--variants base|topic|both] [--dump-candidates <dir>] [--good-controls <json>] [--db]'); process.exit(64) }
   let variants
   try { variants = parseVariants(arg('variants') ?? 'topic') } catch (e) { console.error(e.message); process.exit(64) }
   let raw
@@ -238,8 +274,16 @@ async function main() {
   const diagnoses = Array.isArray(raw) ? raw : raw?.diagnoses
   const errs = validateDiagnoses(diagnoses)
   if (errs.length) { console.error(['진단 입력 오류:', ...errs].join('\n  ')); process.exit(2) }
-  const rel = relative(process.cwd(), resolve(out))
-  if (!rel.startsWith('..') && !isAbsolute(rel)) console.warn(`⚠ --out 이 리포 안(${rel})이다. 이 리포는 공개 — 진단·고객 이야기가 든 패킷·key 는 커밋하지 않는다.`)
+  const dumpDir = arg('dump-candidates'), gcPath = arg('good-controls')
+  let goodControls = null
+  if (gcPath) {
+    try { goodControls = JSON.parse(readFileSync(gcPath, 'utf8')) } catch (e) { console.error(`좋은 대조군 파일을 못 읽음: ${e.message}`); process.exit(2) }
+    if (!goodControls || typeof goodControls !== 'object' || Array.isArray(goodControls)) { console.error('좋은 대조군은 { "<진단 id>": { "cases": [...] } } 객체'); process.exit(2) }
+  }
+  for (const dir of [out, dumpDir].filter(Boolean)) {
+    const rel = relative(process.cwd(), resolve(dir))
+    if (!rel.startsWith('..') && !isAbsolute(rel)) console.warn(`⚠ ${dir} 이 리포 안(${rel})이다. 이 리포는 공개 — 진단·고객 이야기가 든 파일은 커밋하지 않는다.`)
+  }
 
   let loaders, legacy, sb = null
   if (useDb) {
@@ -256,7 +300,13 @@ async function main() {
     legacy = async () => [] // 오프라인: 기존 경로(DB·LLM)를 돌리지 않는다 — 그 칸은 비어 나간다(연기 시험 전용, 실채점에 쓰지 않는다).
   }
   let r
-  try { r = await buildPack({ diagnoses, seed, variants, loaders, legacy, mode: useDb ? 'db' : 'dry' }) } catch (e) { console.error(`멈춤: ${String(e?.message ?? e)}`); process.exit(e?.constructor?.name === 'StopRun' ? 1 : 2) }
+  try { r = await buildPack({ diagnoses, seed, variants, loaders, legacy, mode: useDb ? 'db' : 'dry', goodControls, dumpCandidates: !!dumpDir }) } catch (e) { console.error(`멈춤: ${String(e?.message ?? e)}`); process.exit(e?.constructor?.name === 'StopRun' ? 1 : 2) }
+  if (dumpDir) {
+    mkdirSync(dumpDir, { recursive: true })
+    writeFileSync(join(dumpDir, 'candidates.json'), JSON.stringify({ note: '좋은 대조군 작성용 후보 — 채점자에게 주지 않는다', mode: useDb ? 'db' : 'dry', seed, limit: CANDIDATE_LIMIT, diagnoses: r.candidates }, null, 2) + '\n')
+    console.log(`→ 후보(채점자에게 주지 않음): ${join(dumpDir, 'candidates.json')} · 진단 ${r.candidates.length}건`)
+  }
+  if (r.goodErrors.length) { console.error(['좋은 대조군 검사 실패 — 패킷을 쓰지 않는다:', ...r.goodErrors].join('\n  ')); process.exit(1) }
   const pdir = join(out, 'packet')
   mkdirSync(pdir, { recursive: true })
   writeFileSync(join(pdir, 'packet.json'), JSON.stringify(r.packet, null, 2) + '\n')

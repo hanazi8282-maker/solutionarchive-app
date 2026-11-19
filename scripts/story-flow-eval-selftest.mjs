@@ -95,6 +95,32 @@ await assert.rejects(buildPack({ diagnoses: DX, seed: 7, loaders, legacy: async 
 assert.equal(renderPanel('Z', []).includes('(제시된 사례 없음)'), true)
 assert.deepEqual(PACK_ITEMS, SCORE_ITEMS, '패킷·채점 항목 6개가 같다')
 
+// ── E3 후보 덤프 + 외부 좋은 대조군 ──
+const dc = await buildPack({ diagnoses: DX, seed: 7, variants: ['topic'], loaders, legacy, now, dumpCandidates: true })
+assert.equal(dc.candidates.length, 2); assert.equal(dc.key.good_controls, 'auto', '--good-controls 없으면 기존 동작(자동)')
+assert.equal(dc.packet.packet_id, one.packet.packet_id, '후보 덤프는 패킷을 바꾸지 않는다')
+const cd5 = dc.candidates.find((c) => c.id === 'syn-5')
+assert.ok(cd5.new_candidates.length > 0 && cd5.new_candidates.length <= 40 && cd5.legacy_candidates[0].name === 'Acme Legacy Corp')
+const ep0 = cd5.new_candidates.flatMap((c) => c.episodes).find((e) => e.quote_orig)
+for (const f of ['action_ko', 'result_ko', 'adversity_ko', 'condition_ko', 'quote_orig', 'quote_ko', 'chapter', 'evidence_strength', 'result_class']) assert.ok(f in ep0, `후보 에피소드에 ${f}`)
+assert.ok(!JSON.stringify(dc.candidates).includes('fxt-') && !JSON.stringify(dc.candidates).includes('fx-sales'), '후보에 내부 slug 대신 표시용 이름')
+const quoted = (id) => dc.candidates.find((c) => c.id === id).new_candidates.flatMap((c) => c.episodes).filter((e) => e.quote_orig)
+const gcFor = (id) => ({ cases: quoted(id).slice(0, 3).map((e, i) => ({ display_name: `Hidden Brand ${id}-${i}`, what: `${e.action_ko} → ${e.result_ko}`, why: '같은 손님·같은 막힘', quote_orig: e.quote_orig.split(/(?<=\.)\s/)[0], quote_ko: e.quote_ko })) })
+const GC = { 'syn-5': gcFor('syn-5'), 'syn-2': gcFor('syn-2') }
+for (const id of Object.keys(GC)) while (GC[id].cases.length < 3) GC[id].cases.push({ display_name: 'x', what: '추가 사례 — 결과 확인', why: '', quote_orig: '', quote_ko: '' })
+const ge = await buildPack({ diagnoses: DX, seed: 7, variants: ['topic'], loaders, legacy, now, goodControls: GC })
+assert.deepEqual(ge.goodErrors, []); assert.equal(ge.key.good_controls, 'external')
+const kg = ge.key.diagnoses.find((d) => d.id === 'syn-5'), pg = ge.packet.diagnoses.find((d) => d.id === 'syn-5'), gp = panelOf(pg, kg, 'good')
+assert.equal(gp.items.length, 3); assert.ok(gp.markdown.startsWith(`### 결론서 ${gp.label}\n\n**비슷한 사례**\n\n1. **사례 1**\n   - 무엇을 했나: `), '외부 대조군도 같은 형식')
+assert.ok(gp.items[0].quote_orig === GC['syn-5'].cases[0].quote_orig && gp.markdown.includes('   - 번역: '))
+assert.equal(kg.notes.good.source, 'external'); assert.ok(!JSON.stringify(ge.packet).includes('Hidden Brand'), '표시용 이름은 패킷에 안 나간다(사례 N)')
+assert.ok(!ge.problems.some((p) => /좋은 대조군/.test(p)))
+const tamper = JSON.parse(JSON.stringify(GC)); tamper['syn-5'].cases[0].quote_orig = 'We invented this quote entirely.'
+assert.ok((await buildPack({ diagnoses: DX, seed: 7, loaders, legacy, now, goodControls: tamper })).goodErrors.some((e) => /syn-5 좋은 대조군 1 인용이 후보 원문에 없음/.test(e)), '지어낸 인용 = 실패')
+assert.ok((await buildPack({ diagnoses: DX, seed: 7, loaders, legacy, now, goodControls: { 'syn-5': GC['syn-5'] } })).goodErrors.some((e) => /^syn-2 좋은 대조군 없음/.test(e)), '빠진 진단 = 실패')
+assert.ok((await buildPack({ diagnoses: DX, seed: 7, loaders, legacy, now, goodControls: { ...GC, ghost: GC['syn-2'] } })).goodErrors.some((e) => /ghost/.test(e)), '입력에 없는 진단 id = 실패')
+assert.ok((await buildPack({ diagnoses: DX, seed: 7, loaders, legacy, now, goodControls: { ...GC, 'syn-2': { cases: GC['syn-2'].cases.slice(0, 2) } } })).goodErrors.some((e) => /2건/.test(e)), '3건이 아니면 실패')
+
 // ── 합격선 상수 고정 ──
 assert.deepEqual({ ...PASS }, { MEAN_ALL_MIN: 3.8, ITEM_MEAN_MIN: 3.5, SAMPLE_ITEM_MIN: 3.0, TEST1_WIN_OR_TIE_MIN: 0.70, TEST2_CONCRETE_MIN: 0.80, NO_REGRESSION: true, BAD_CONTROL_BELOW: 3.0 })
 assert.ok(Object.isFrozen(PASS)); assert.equal(GOOD_CONTROL_MIN, 3.5)
@@ -192,6 +218,15 @@ try {
   assert.equal(s.status, 0, s.stdout + s.stderr); assert.ok(s.stdout.includes('[base] 합격') && s.stdout.includes('[topic] 합격'))
   assert.equal(run('./story-flow-eval-score.mjs', ['--key', join(tmp, 'o', 'key.json'), '--responses', join(tmp, 'opus.json'), '--MEAN_ALL_MIN', '1']).status, 64, '합격선 인자는 거부')
   assert.equal(run('./story-flow-eval-pack.mjs', ['--diagnoses', join(tmp, 'dx.json')]).status, 64)
+  // E3 CLI: 후보 덤프 → 외부 좋은 대조군 → 패킷 / 지어낸 인용이면 종료 1·패킷 안 씀
+  p = run('./story-flow-eval-pack.mjs', ['--diagnoses', join(tmp, 'dx.json'), '--out', join(tmp, 'o3'), '--dump-candidates', join(tmp, 'cand'), '--good-controls', join(tmp, 'gc.json')])
+  assert.equal(p.status, 2, '대조군 파일을 못 읽으면 2')
+  writeFileSync(join(tmp, 'gc.json'), JSON.stringify(GC)); writeFileSync(join(tmp, 'gc-bad.json'), JSON.stringify(tamper))
+  p = run('./story-flow-eval-pack.mjs', ['--diagnoses', join(tmp, 'dx.json'), '--out', join(tmp, 'o3'), '--dump-candidates', join(tmp, 'cand'), '--good-controls', join(tmp, 'gc.json')])
+  assert.equal(p.status, 0, p.stderr); assert.equal(JSON.parse(readFileSync(join(tmp, 'cand', 'candidates.json'), 'utf8')).diagnoses.length, 2)
+  assert.equal(JSON.parse(readFileSync(join(tmp, 'o3', 'key.json'), 'utf8')).good_controls, 'external')
+  p = run('./story-flow-eval-pack.mjs', ['--diagnoses', join(tmp, 'dx.json'), '--out', join(tmp, 'o4'), '--good-controls', join(tmp, 'gc-bad.json')])
+  assert.equal(p.status, 1); assert.throws(() => readFileSync(join(tmp, 'o4', 'key.json')), '검사 실패면 패킷·key 를 쓰지 않는다')
   writeFileSync(join(tmp, 'bad.json'), JSON.stringify([{ id: 'x', area: '9' }]))
   assert.equal(run('./story-flow-eval-pack.mjs', ['--diagnoses', join(tmp, 'bad.json'), '--out', join(tmp, 'o2')]).status, 2)
 } finally { rmSync(tmp, { recursive: true, force: true }) }

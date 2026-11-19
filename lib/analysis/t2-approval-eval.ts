@@ -80,7 +80,8 @@ export interface EvalResult {
   recheck: RecheckItem[]
 }
 
-export function scoreEval(rows: readonly EvalInput[]): EvalResult {
+/** extraExcluded = 이번 실행 프롬프트에 few-shot 으로 실린 input_id(v71cu P3) — 경계 사례 9건과 같이 채점에서 뺀다(누설). */
+export function scoreEval(rows: readonly EvalInput[], extraExcluded: ReadonlySet<string> = new Set()): EvalResult {
   let unjudged = 0, excluded = 0, known = 0, pos = 0, nA = 0, errors = 0, hit = 0, est = 0
   const recheck: RecheckItem[] = []
   const seen = new Set<string>()
@@ -91,7 +92,7 @@ export function scoreEval(rows: readonly EvalInput[]): EvalResult {
 
   for (const r of rows) {
     if (NARROW.has(r.input_id) && !resolved.has(r.input_id)) push(r.input_id, 'b')
-    if (EXAMPLES.has(r.input_id)) { excluded++; continue }
+    if (EXAMPLES.has(r.input_id) || extraExcluded.has(r.input_id)) { excluded++; continue }
     const a = predictA(r.first, r.second)
     const gold = goldOf(r)
     if (r.human_graded_at && typeof r.human_product_informative !== 'boolean') {

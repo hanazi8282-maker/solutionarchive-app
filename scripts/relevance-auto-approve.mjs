@@ -17,7 +17,8 @@
 
 import { createClient } from '../lib/supabase/server.ts'
 import { AUTO_APPROVAL_RULE, autoApprovalGate, isFullAgreement, passesRrV2ContentGuard } from '../lib/analysis/auto-approval.ts'
-import { loadScope } from '../lib/analysis/approval-scope.ts'
+import { loadScope, scopeOptionsFor } from '../lib/analysis/approval-scope.ts'
+import { parseInfoMode } from '../lib/analysis/relevance-criteria.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate, recordStatusLog } from './notion-status-log.mjs'
 import { relevanceRunSuffixFromEnv } from '../lib/analysis/session-guard.ts'
@@ -107,7 +108,9 @@ for (let from = 0; ; from += 1000) {
 }
 const agreed = rows.filter((r) => isFullAgreement(r, gate.since))
 // L-20b(남헌 v71f): 영역 외(out-*)·소비재 태그 행은 자동 승인 후보에서 뺀다. 영역·태그를 못 읽으면 "제외 없음"이 아니라 승인 0건이다(§7.1).
-const scope = await loadScope(sb, agreed.map((r) => r.input_id))
+// INFO_CRITERIA=v2(남헌 2026-11-19): out-founder 를 빼지 않고(태그만) 출처 제외도 하지 않는다. 기본 v1 = 옛 동작.
+const infoMode = parseInfoMode(process.env.INFO_CRITERIA).mode
+const scope = await loadScope(sb, agreed.map((r) => r.input_id), scopeOptionsFor(infoMode))
 if (!scope.ok) { console.error(`✗ 영역·소비재 태그 조회 실패 — 승인하지 않는다: ${scope.error}`); process.exit(2) }
 const scoped = agreed.filter((r) => !scope.excluded.has(r.input_id))
 // v71cp P1-F: 내용 가드(github_issues 제외·60자 미만 제외). 글을 못 읽으면 승인 0건이다(§7.1).
@@ -118,8 +121,8 @@ for (let i = 0; i < scoped.length; i += 200) {
   if (error) { console.error(`✗ 내용 가드 조회 실패 — 승인하지 않는다: ${error.message}`); process.exit(2) }
   data.forEach((x) => textById.set(x.id, x))
 }
-const targets = scoped.filter((r) => passesRrV2ContentGuard(textById.get(r.input_id) ?? {}))
-log(`내용 가드 제외 ${scoped.length - targets.length}건 (github_issues·60자 미만·본문 없음)`)
+const targets = scoped.filter((r) => passesRrV2ContentGuard(textById.get(r.input_id) ?? {}, infoMode))
+log(`내용 가드 제외 ${scoped.length - targets.length}건 (${infoMode === 'v2' ? 'info-v2: 출처 제외 없음' : 'github_issues'}·60자 미만·본문 없음)`)
 const byReason = [...scope.excluded.values()].reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {})
 log(`대상 ${targets.length}건 (쿼리 ${rows.length}건 · 완전 동의 ${agreed.length}건 · 영역 외/소비재 태그 제외 ${scope.excluded.size}건 ${JSON.stringify(byReason)})`)
 if (dry) { log('--dry: 쓰지 않는다.'); process.exit(0) }

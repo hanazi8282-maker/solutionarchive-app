@@ -113,6 +113,60 @@ export const PRODUCT_INFORMATIVE_CRITERIA = [
   'T "Lemon has some hidden fees on top of the 5% ... Paddle that have true 5% + 50¢ pricing" — 숨은 수수료 대 경쟁사 요금',
 ].join('\n')
 
+/**
+ * 정보 기준 info-v2(v71cu P2, 2026-11-19 · PR #682 수정) = 위 PRODUCT_INFORMATIVE_CRITERIA(info-v1, **바이트 그대로**) 에서 Apple Pay 예시를 T 로 뒤집고
+ * 남헌 확정 기준 (a)~(e) 를 덧붙인 것: 총평=false(11-12 감사 ①) · 기능·가치 소개글=정보 있음 · 버그 리포트=무관/기능 요청=정보 있음 · 개발자 도구=영역 안 · promo 태그(판정 불변).
+ * 11-12 감사 ②"소개 문구→false"는 남헌 기준과 반대라 넣지 않는다. 옛 판정을 같은 프롬프트로 재현할 수 있게 v1 상수는 건드리지 않고, 호출부가 `info` 옵션으로 고른다.
+ * RELEVANCE_CRITERIA_VERSION 은 올리지 않는다 — 2차 파일 import(isCurrentCriteria)가 그 값에 묶여 있다. 행별 구분은 prompt_version 접미사다.
+ * F 예시 3줄은 원문이 아니라 한 줄 요약이다 — 특정 input_id 를 싣지 않았으니 INFORMATIVE_EXAMPLE_INPUT_IDS 에 더할 것이 없다(누설 없음).
+ */
+export const INFO_CRITERIA_V1_VERSION = 'info-v1-2026-09-28'
+export const INFO_CRITERIA_VERSION = 'info-v2-2026-11-19'
+export type InfoMode = 'v1' | 'v2'
+
+const INFO_V1_HEADER = `(기준 버전 ${RELEVANCE_CRITERIA_VERSION})`
+// 남헌 확정(2026-11-19, PR #682 수정): 기능 요청 = 정보 있음. v1 의 Apple Pay F 예시("정보 없는 질문 한 줄")는 기능 요청이라 정면으로 부딪친다 → v2 에서 T 로 뒤집는다.
+const INFO_V1_APPLE_PAY = 'F "Can you support Apple Pay? https://docs.lemonsqueezy.com/..." — 정보 없는 질문 한 줄'
+/** 1차 출력 형식 줄 — v2 는 태그 키 promo 를 더한다(판정 키는 그대로). */
+const FIRST_OUTPUT_V1 = '"signal":"pain","wtp":null}].'
+const FIRST_OUTPUT_V2 = '"signal":"pain","wtp":null,"promo":false}].'
+export const PRODUCT_INFORMATIVE_CRITERIA_V2 = [
+  PRODUCT_INFORMATIVE_CRITERIA
+    .replace(INFO_V1_HEADER, `(기준 버전 ${INFO_CRITERIA_VERSION})`)
+    .replace(INFO_V1_APPLE_PAY, 'T "Can you support Apple Pay? https://docs.lemonsqueezy.com/..." — 기능 요청(원하는 기능이 이름으로 나온다)'),
+  '',
+  '[info-v2 추가 — 남헌 확정 기준 (2026-11-19). 위 판정 기준의 회사 이야기·자사 홍보·채용 공고·영역 밖 문장과 부딪치면 이 블록이 우선한다]',
+  '(a) 장점·단점을 이름 붙이지 않은 총평(좋다·편하다·만족·최고)은 info=false. 기능·비용·비교·이유 중 하나가 이름으로 나와야 true.',
+  '(b) 제품 소개·회사 소개·채용 공고라도 제품이 무엇을 해 주는지·왜 쓰는지(기능·가치)를 설명하면 relevant 이고 info=true 다. 홍보라는 이유만으로 irrelevant·false 로 두지 않는다.',
+  '(c) 이슈 트래커(GitHub 등)의 버그 리포트 — 스택 트레이스·재현 단계·버전·환경 정보가 중심인 글 — 는 irrelevant 이고 info=false 다.',
+  '    같은 곳의 기능 요청(원하는 기능·조건을 이름으로 적은 글)은 relevant 이고 info=true 다.',
+  '(d) 개발자 도구(시크릿 관리·배포·CI·API·DB·모니터링 등)는 영역 안으로 본다. 규칙 (10)·(15)의 "영역 밖"으로 보내지 않는다.',
+  '(e) 태그 promo — 글쓴이가 그 제품의 회사·창업자·직원으로서 자기 제품·회사를 알리는 글(자사 홍보·채용 공고 포함)이면 true, 아니면 false, 모르면 null.',
+  '    promo 는 표시일 뿐이다. rel·info 판정을 바꾸지 않는다 — promo=true 라도 (b)대로 판정한다.',
+  'F (요약) "정말 좋은 앱이에요, 강추" — 장단을 이름 붙이지 않은 총평',
+  'T (요약) 개발자 도구 회사의 채용 공고가 그 제품이 해결하는 문제와 기능을 설명 — 관련·정보 있음, promo=true',
+  'F (요약) 오류 로그·재현 단계·OS·버전 목록이 본문 전부인 이슈 — 버그 리포트, irrelevant',
+].join('\n')
+if (PRODUCT_INFORMATIVE_CRITERIA_V2.includes(INFO_V1_HEADER) || PRODUCT_INFORMATIVE_CRITERIA_V2.includes(INFO_V1_APPLE_PAY)) throw new Error('info-v2: v1 문구 치환 실패') // §7.1 — v1 문구로 나가지 않는다
+
+/** 프롬프트 안의 info-v1 블록을 고른 버전으로 바꾼다. v1(또는 미지정)이면 글자 하나 안 바뀐다. v1 블록이 없으면 던진다(조용히 v1 로 나가지 않게).
+ *  1차 출력 형식 줄이 있으면 promo 키도 더한다(2차 지시문에는 그 줄이 없다 — 2차는 promo 를 저장하지 않는다). */
+export function withInfoCriteria(prompt: string, info: InfoMode | null | undefined): string {
+  if (info !== 'v2') return prompt
+  if (!prompt.includes(PRODUCT_INFORMATIVE_CRITERIA)) throw new Error('info-v2: 프롬프트에 정보 기준(v1) 블록이 없다 — 치환할 자리를 못 찾았다')
+  return prompt.replace(PRODUCT_INFORMATIVE_CRITERIA, () => PRODUCT_INFORMATIVE_CRITERIA_V2).replace(FIRST_OUTPUT_V1, FIRST_OUTPUT_V2)
+}
+
+/** 리포 변수 INFO_CRITERIA → 모드. **기본 v1(꺼짐)** — 켜려면 INFO_CRITERIA=v2 를 명시한다(재측정 뒤 오케스트레이터가 설정). 그 밖 값은 v1 + 경고. */
+export function parseInfoMode(raw: string | null | undefined): { mode: InfoMode; warning: string | null } {
+  const v = String(raw ?? '').trim().toLowerCase()
+  if (v === 'v1' || v === 'v2') return { mode: v, warning: null }
+  return { mode: 'v1', warning: v ? `INFO_CRITERIA='${raw}' 는 v1|v2 가 아니다 — v1(꺼짐)로 처리한다` : null }
+}
+
+/** 판정 행 prompt_version 에 붙일 접미사. v1 은 빈 문자열 — 옛 행과 같은 값이 나와야 재현이 맞는다. */
+export const infoVersionSuffix = (info: InfoMode): string => (info === 'v2' ? `+${INFO_CRITERIA_VERSION}` : '')
+
 /** 위 경계 사례의 원문 input_id(rr39 #18·#13·#35·#27·#8·#36·#12·#19·#28). 프롬프트에 실렸으니 평가에서 뺀다(누설). */
 export const INFORMATIVE_EXAMPLE_INPUT_IDS: readonly string[] = [
   'f3e83783-577b-4e38-b0ae-591fa2ee0e90', // #18 Apple Pay 질문 — F

@@ -139,7 +139,8 @@ export async function fetchFlowCards(sb: Pick<SupabaseClient, 'from'>, chapter: 
     const cards: FlowCard[] = []
     let failed = false
     for (let p = 0; ; p++) {
-      const { data, error } = await sb.from(table).select('*').eq('chapter', chapter).gte('weight', 30).range(p * 1000, p * 1000 + 999)
+      // [F4] 쪽 사이 순서를 고정한다(ORDER BY 없으면 쪽이 바뀔 때 카드가 빠지거나 겹친다). (source_key,slug,label_run)+chapter 가 한 줄을 가른다.
+      const { data, error } = await sb.from(table).select('*').eq('chapter', chapter).gte('weight', 30).order('slug').order('label_run').order('source_key').range(p * 1000, p * 1000 + 999)
       if (error) { last = `${table}: ${error.message}`; failed = true; break }
       cards.push(...((data ?? []) as FlowCard[])); if (!data || data.length < 1000) break
     }

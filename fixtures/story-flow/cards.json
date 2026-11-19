@@ -1,44 +1,381 @@
 {
-  "_note": "합성 픽스처(실제 회사·실제 인용 아님). story_flow_cards_mat 한 줄 모양. v71cu 2-7 오프라인 샘플·2-8 인용 검증 셀프테스트 전용.",
-  "diagnoses": {
-    "area2_sales_assistant": { "label": "영역② 영업 도우미 — 써 보고 돈은 안 낸다", "chapter": 6, "chapters": [6], "situation": { "customer": "smb", "price_band": "10-49", "stage": "early_rev", "team_size": "solo", "pricing_model": "subscription" }, "adversity": "무료 체험 뒤 유료 전환이 안 된다 가격 의심", "mechanism": "reduce_purchase_doubt_by_transparency" },
-    "area5_review_writing": { "label": "영역⑤ 리뷰 관리·글쓰기 — 방문하는 사람이 적다", "chapter": 5, "chapters": [5], "situation": { "customer": "smb", "price_band": "<10", "stage": "zero_rev", "team_size": "solo" }, "adversity": "손님이 안 온다 검색 노출이 없다" }
+ "_note": "합성 픽스처(실제 회사·실제 인용 아님). story_flow_cards_mat 한 줄 모양. v71cu 2-7 오프라인 샘플·2-8 인용 검증 셀프테스트 전용.",
+ "diagnoses": {
+  "area2_sales_assistant": {
+   "label": "영역② 영업 도우미 — 써 보고 돈은 안 낸다",
+   "chapter": 6,
+   "chapters": [
+    6
+   ],
+   "situation": {
+    "customer": "smb",
+    "price_band": "10-49",
+    "stage": "early_rev",
+    "team_size": "solo",
+    "pricing_model": "subscription"
+   },
+   "adversity": "무료 체험 뒤 유료 전환이 안 된다 가격 의심",
+   "mechanism": "reduce_purchase_doubt_by_transparency"
   },
-  "cards": [
-    { "slug": "fx-sales-a", "chapter": 6, "weight": 60, "domain": "sales_assistant", "customer": "smb", "pricing_model": "subscription", "price_band": "10-49", "stage": "early_rev", "team_size": "solo", "relevance_tier": "R1", "success_tier": "S1", "created_at": "2026-06-01T00:00:00Z", "chapter_why_ko": null, "story_arc_ko": null, "principle_ko": null, "transfer_ko": null,
-      "causal_chain": [{ "from_ep": 0, "to_ep": 1, "because_ko": "가격표를 공개해 의심이 줄었다" }],
-      "episodes": [
-        { "episode_idx": 0, "chapter": 6, "role": "primary", "sub_topic": "pricing_page", "adversity_ko": "체험 뒤 유료 전환이 안 된다", "action_ko": "가격표 공개", "overcome_ko": null, "result_class": "positive", "result_grain": "metric", "result_ko": "전환 2배", "why_ko": null, "condition_ko": "월 구독일 때", "mechanism": "reduce_purchase_doubt_by_transparency", "quote_orig": "We put every price on one page and conversions doubled.", "quote_ko": "가격을 한 쪽에 다 적었더니 전환이 두 배가 됐다", "evidence_strength": "A" }
-      ] },
-    { "slug": "fx-sales-b", "chapter": 6, "weight": 40, "domain": "sales_assistant", "customer": "smb", "pricing_model": "subscription", "price_band": "50-249", "stage": "growing", "team_size": "2-10", "relevance_tier": "R1", "success_tier": "S2", "created_at": "2025-01-01T00:00:00Z", "chapter_why_ko": null, "story_arc_ko": null, "principle_ko": null, "transfer_ko": null, "causal_chain": [],
-      "episodes": [
-        { "episode_idx": 0, "chapter": 6, "role": "primary", "sub_topic": "annual_discount", "adversity_ko": "월 결제 이탈", "action_ko": "연간 할인", "overcome_ko": null, "result_class": "positive", "result_grain": "qual", "result_ko": "연간 결제가 늘었다", "why_ko": null, "condition_ko": null, "mechanism": null, "quote_orig": "Annual plans with two months free became our default.", "quote_ko": null, "evidence_strength": "B" }
-      ] },
-    { "slug": "fx-sales-b", "chapter": 6, "weight": 30, "domain": "sales_assistant", "customer": "smb", "pricing_model": "subscription", "price_band": "50-249", "stage": "growing", "team_size": "2-10", "relevance_tier": "R1", "success_tier": "S2", "created_at": "2025-01-01T00:00:00Z", "chapter_why_ko": null, "story_arc_ko": null, "principle_ko": null, "transfer_ko": null, "causal_chain": [],
-      "episodes": [
-        { "episode_idx": 1, "chapter": 6, "role": "secondary", "sub_topic": "coupon", "adversity_ko": null, "action_ko": "쿠폰", "overcome_ko": null, "result_class": "positive", "result_grain": "signal", "result_ko": "반응", "why_ko": null, "condition_ko": null, "mechanism": null, "quote_orig": null, "quote_ko": null, "evidence_strength": "C" }
-      ] },
-    { "slug": "fx-sales-c", "chapter": 6, "weight": 50, "domain": "sales_assistant", "customer": "enterprise", "pricing_model": "subscription", "price_band": "250+", "stage": "growing", "team_size": "11+", "relevance_tier": "R1", "success_tier": "S0", "created_at": "2024-01-01T00:00:00Z", "chapter_why_ko": null, "story_arc_ko": null, "principle_ko": null, "transfer_ko": null, "causal_chain": [],
-      "episodes": [
-        { "episode_idx": 0, "chapter": 6, "role": "primary", "sub_topic": "price_raise", "adversity_ko": "가격 의심", "action_ko": "가격 인상", "overcome_ko": null, "result_class": "negative", "result_grain": "qual", "result_ko": "해지가 늘었다", "why_ko": "대체재가 많았다", "condition_ko": null, "mechanism": null, "quote_orig": "Raising prices without notice cost us a third of accounts.", "quote_ko": null, "evidence_strength": "B" }
-      ] },
-    { "slug": "fx-sales-d", "chapter": 6, "weight": 30, "domain": "other", "customer": "consumer", "pricing_model": "one_time", "price_band": "<10", "stage": "unknown", "team_size": "unknown", "relevance_tier": "R3", "success_tier": "S0", "chapter_why_ko": null, "story_arc_ko": null, "principle_ko": null, "transfer_ko": null, "causal_chain": [{ "from_ep": 0, "to_ep": 0, "because_ko": "x" }],
-      "episodes": [
-        { "episode_idx": 0, "chapter": 6, "role": "primary", "sub_topic": "guarantee", "adversity_ko": "구매 의심", "action_ko": "환불 보장", "overcome_ko": null, "result_class": "positive", "result_grain": "metric", "result_ko": "구매율 상승", "why_ko": null, "condition_ko": "값이 낮을 때", "mechanism": "reduce_purchase_doubt_by_transparency", "quote_orig": "A no-questions refund made strangers willing to try.", "quote_ko": null, "evidence_strength": "A" }
-      ] },
-    { "slug": "fx-review-a", "chapter": 5, "weight": 70, "domain": "review_writing", "customer": "smb", "pricing_model": "subscription", "price_band": "<10", "stage": "zero_rev", "team_size": "solo", "relevance_tier": "R1", "success_tier": "S1", "created_at": "2026-03-01T00:00:00Z", "chapter_why_ko": null, "story_arc_ko": null, "principle_ko": null, "transfer_ko": null, "causal_chain": [],
-      "episodes": [
-        { "episode_idx": 0, "chapter": 5, "role": "primary", "sub_topic": "seo", "adversity_ko": "검색 노출이 없다", "action_ko": "질문형 글 30편", "overcome_ko": null, "result_class": "positive", "result_grain": "metric", "result_ko": "월 방문 3천", "why_ko": null, "condition_ko": null, "mechanism": null, "quote_orig": "Thirty answer-style posts brought our first three thousand visits.", "quote_ko": null, "evidence_strength": "B" }
-      ] },
-    { "slug": "fx-review-b", "chapter": 5, "weight": 40, "domain": "review_writing", "customer": "smb", "pricing_model": "unknown", "price_band": "unknown", "stage": "unknown", "team_size": "solo", "relevance_tier": "R1", "success_tier": "S0", "chapter_why_ko": null, "story_arc_ko": null, "principle_ko": null, "transfer_ko": null, "causal_chain": [],
-      "episodes": [
-        { "episode_idx": 0, "chapter": 5, "role": "primary", "sub_topic": "paid_ads", "adversity_ko": "손님이 안 온다", "action_ko": "검색 광고", "overcome_ko": null, "result_class": "mixed", "result_grain": "qual", "result_ko": "방문은 늘고 가입은 그대로", "why_ko": null, "condition_ko": null, "mechanism": null, "quote_orig": "Ads bought traffic but not signups.", "quote_ko": null, "evidence_strength": "C" }
-      ] }
-  ],
-  "move_tags": [
-    { "slug": "fx-mt-1", "company": "합성회사 일", "chapter": "5", "stage": "zero_rev", "team_size": "solo", "customer": "smb", "price_band": "<10", "action_kind": "community_post", "result_class": "positive", "result_ko": "첫 손님 20명", "why_worked_ko": null, "condition_ko": null, "evidence_strength": "B" }
-  ],
-  "case_bank": [
-    { "company": "합성사례 가", "key_decision": "지역 카페 제휴", "outcome": "success", "grade": "B" }
-  ]
+  "area5_review_writing": {
+   "label": "영역⑤ 리뷰 관리·글쓰기 — 방문하는 사람이 적다",
+   "chapter": 5,
+   "chapters": [
+    5
+   ],
+   "situation": {
+    "customer": "smb",
+    "price_band": "<10",
+    "stage": "zero_rev",
+    "team_size": "solo"
+   },
+   "adversity": "손님이 안 온다 검색 노출이 없다"
+  }
+ },
+ "cards": [
+  {
+   "source_key": "starterstory",
+   "label_run": "fx_run",
+   "slug": "fx-sales-a",
+   "chapter": 6,
+   "weight": 60,
+   "domain": "sales_assistant",
+   "customer": "smb",
+   "pricing_model": "subscription",
+   "price_band": "10-49",
+   "stage": "early_rev",
+   "team_size": "solo",
+   "relevance_tier": "R1",
+   "success_tier": "S1",
+   "created_at": "2026-06-01T00:00:00Z",
+   "chapter_why_ko": null,
+   "story_arc_ko": null,
+   "principle_ko": null,
+   "transfer_ko": null,
+   "causal_chain": [
+    {
+     "from_ep": 0,
+     "to_ep": 1,
+     "because_ko": "가격표를 공개해 의심이 줄었다"
+    }
+   ],
+   "episodes": [
+    {
+     "episode_idx": 0,
+     "chapter": 6,
+     "role": "primary",
+     "sub_topic": "pricing_page",
+     "adversity_ko": "체험 뒤 유료 전환이 안 된다",
+     "action_ko": "가격표 공개",
+     "overcome_ko": null,
+     "result_class": "positive",
+     "result_grain": "metric",
+     "result_ko": "전환 2배",
+     "why_ko": null,
+     "condition_ko": "월 구독일 때",
+     "mechanism": "reduce_purchase_doubt_by_transparency",
+     "quote_orig": "We put every price on one page and conversions doubled.",
+     "quote_ko": "가격을 한 쪽에 다 적었더니 전환이 두 배가 됐다",
+     "evidence_strength": "A"
+    }
+   ]
+  },
+  {
+   "source_key": "starterstory",
+   "label_run": "fx_run",
+   "slug": "fx-sales-b",
+   "chapter": 6,
+   "weight": 40,
+   "domain": "sales_assistant",
+   "customer": "smb",
+   "pricing_model": "subscription",
+   "price_band": "50-249",
+   "stage": "growing",
+   "team_size": "2-10",
+   "relevance_tier": "R1",
+   "success_tier": "S2",
+   "created_at": "2025-01-01T00:00:00Z",
+   "chapter_why_ko": null,
+   "story_arc_ko": null,
+   "principle_ko": null,
+   "transfer_ko": null,
+   "causal_chain": [],
+   "episodes": [
+    {
+     "episode_idx": 0,
+     "chapter": 6,
+     "role": "primary",
+     "sub_topic": "annual_discount",
+     "adversity_ko": "월 결제 이탈",
+     "action_ko": "연간 할인",
+     "overcome_ko": null,
+     "result_class": "positive",
+     "result_grain": "qual",
+     "result_ko": "연간 결제가 늘었다",
+     "why_ko": null,
+     "condition_ko": null,
+     "mechanism": null,
+     "quote_orig": "Annual plans with two months free became our default.",
+     "quote_ko": null,
+     "evidence_strength": "B"
+    }
+   ]
+  },
+  {
+   "source_key": "starterstory",
+   "label_run": "fx_run",
+   "slug": "fx-sales-b",
+   "chapter": 6,
+   "weight": 30,
+   "domain": "sales_assistant",
+   "customer": "smb",
+   "pricing_model": "subscription",
+   "price_band": "50-249",
+   "stage": "growing",
+   "team_size": "2-10",
+   "relevance_tier": "R1",
+   "success_tier": "S2",
+   "created_at": "2025-01-01T00:00:00Z",
+   "chapter_why_ko": null,
+   "story_arc_ko": null,
+   "principle_ko": null,
+   "transfer_ko": null,
+   "causal_chain": [],
+   "episodes": [
+    {
+     "episode_idx": 1,
+     "chapter": 6,
+     "role": "secondary",
+     "sub_topic": "coupon",
+     "adversity_ko": null,
+     "action_ko": "쿠폰",
+     "overcome_ko": null,
+     "result_class": "positive",
+     "result_grain": "signal",
+     "result_ko": "반응",
+     "why_ko": null,
+     "condition_ko": null,
+     "mechanism": null,
+     "quote_orig": null,
+     "quote_ko": null,
+     "evidence_strength": "C"
+    }
+   ]
+  },
+  {
+   "source_key": "starterstory",
+   "label_run": "fx_run",
+   "slug": "fx-sales-c",
+   "chapter": 6,
+   "weight": 50,
+   "domain": "sales_assistant",
+   "customer": "enterprise",
+   "pricing_model": "subscription",
+   "price_band": "250+",
+   "stage": "growing",
+   "team_size": "11+",
+   "relevance_tier": "R1",
+   "success_tier": "S0",
+   "created_at": "2024-01-01T00:00:00Z",
+   "chapter_why_ko": null,
+   "story_arc_ko": null,
+   "principle_ko": null,
+   "transfer_ko": null,
+   "causal_chain": [],
+   "episodes": [
+    {
+     "episode_idx": 0,
+     "chapter": 6,
+     "role": "primary",
+     "sub_topic": "price_raise",
+     "adversity_ko": "가격 의심",
+     "action_ko": "가격 인상",
+     "overcome_ko": null,
+     "result_class": "negative",
+     "result_grain": "qual",
+     "result_ko": "해지가 늘었다",
+     "why_ko": "대체재가 많았다",
+     "condition_ko": null,
+     "mechanism": null,
+     "quote_orig": "Raising prices without notice cost us a third of accounts.",
+     "quote_ko": null,
+     "evidence_strength": "B"
+    }
+   ]
+  },
+  {
+   "source_key": "starterstory",
+   "label_run": "fx_run",
+   "slug": "fx-sales-d",
+   "chapter": 6,
+   "weight": 30,
+   "domain": "other",
+   "customer": "consumer",
+   "pricing_model": "one_time",
+   "price_band": "<10",
+   "stage": "unknown",
+   "team_size": "unknown",
+   "relevance_tier": "R3",
+   "success_tier": "S0",
+   "chapter_why_ko": null,
+   "story_arc_ko": null,
+   "principle_ko": null,
+   "transfer_ko": null,
+   "causal_chain": [
+    {
+     "from_ep": 0,
+     "to_ep": 0,
+     "because_ko": "x"
+    }
+   ],
+   "episodes": [
+    {
+     "episode_idx": 0,
+     "chapter": 6,
+     "role": "primary",
+     "sub_topic": "guarantee",
+     "adversity_ko": "구매 의심",
+     "action_ko": "환불 보장",
+     "overcome_ko": null,
+     "result_class": "positive",
+     "result_grain": "metric",
+     "result_ko": "구매율 상승",
+     "why_ko": null,
+     "condition_ko": "값이 낮을 때",
+     "mechanism": "reduce_purchase_doubt_by_transparency",
+     "quote_orig": "A no-questions refund made strangers willing to try.",
+     "quote_ko": null,
+     "evidence_strength": "A"
+    }
+   ]
+  },
+  {
+   "source_key": "starterstory",
+   "label_run": "fx_run",
+   "slug": "fx-review-a",
+   "chapter": 5,
+   "weight": 70,
+   "domain": "review_writing",
+   "customer": "smb",
+   "pricing_model": "subscription",
+   "price_band": "<10",
+   "stage": "zero_rev",
+   "team_size": "solo",
+   "relevance_tier": "R1",
+   "success_tier": "S1",
+   "created_at": "2026-03-01T00:00:00Z",
+   "chapter_why_ko": null,
+   "story_arc_ko": null,
+   "principle_ko": null,
+   "transfer_ko": null,
+   "causal_chain": [],
+   "episodes": [
+    {
+     "episode_idx": 0,
+     "chapter": 5,
+     "role": "primary",
+     "sub_topic": "seo",
+     "adversity_ko": "검색 노출이 없다",
+     "action_ko": "질문형 글 30편",
+     "overcome_ko": null,
+     "result_class": "positive",
+     "result_grain": "metric",
+     "result_ko": "월 방문 3천",
+     "why_ko": null,
+     "condition_ko": null,
+     "mechanism": null,
+     "quote_orig": "Thirty answer-style posts brought our first three thousand visits.",
+     "quote_ko": null,
+     "evidence_strength": "B"
+    }
+   ]
+  },
+  {
+   "source_key": "starterstory",
+   "label_run": "fx_run",
+   "slug": "fx-review-b",
+   "chapter": 5,
+   "weight": 40,
+   "domain": "review_writing",
+   "customer": "smb",
+   "pricing_model": "unknown",
+   "price_band": "unknown",
+   "stage": "unknown",
+   "team_size": "solo",
+   "relevance_tier": "R1",
+   "success_tier": "S0",
+   "chapter_why_ko": null,
+   "story_arc_ko": null,
+   "principle_ko": null,
+   "transfer_ko": null,
+   "causal_chain": [],
+   "episodes": [
+    {
+     "episode_idx": 0,
+     "chapter": 5,
+     "role": "primary",
+     "sub_topic": "paid_ads",
+     "adversity_ko": "손님이 안 온다",
+     "action_ko": "검색 광고",
+     "overcome_ko": null,
+     "result_class": "mixed",
+     "result_grain": "qual",
+     "result_ko": "방문은 늘고 가입은 그대로",
+     "why_ko": null,
+     "condition_ko": null,
+     "mechanism": null,
+     "quote_orig": "Ads bought traffic but not signups.",
+     "quote_ko": null,
+     "evidence_strength": "C"
+    }
+   ]
+  }
+ ],
+ "move_tags": [
+  {
+   "slug": "fx-mt-1",
+   "company": "합성회사 일",
+   "chapter": "5",
+   "stage": "zero_rev",
+   "team_size": "solo",
+   "customer": "smb",
+   "price_band": "<10",
+   "action_kind": "community_post",
+   "result_class": "positive",
+   "result_ko": "첫 손님 20명",
+   "why_worked_ko": null,
+   "condition_ko": null,
+   "evidence_strength": "B"
+  }
+ ],
+ "case_bank": [
+  {
+   "company": "합성사례 가",
+   "key_decision": "지역 카페 제휴",
+   "outcome": "success",
+   "grade": "B"
+  }
+ ],
+ "real_inputs": {
+  "area2_sales_assistant": {
+   "label": "영역② 영업 도우미 — 실제 경로 진단(Fit 3 Channel-Model 끊김 → 6장, 매출 소액)",
+   "viability": {
+    "fit_broken_stage": 3,
+    "fit_color": "🔴"
+   },
+   "launched": true,
+   "revenue_band": "소액",
+   "adversity": "무료 체험 뒤 유료 전환이 안 된다"
+  },
+  "area5_review_writing": {
+   "label": "영역⑤ 리뷰 관리·글쓰기 — 실제 경로 진단(Fit 2 Product-Channel 끊김 → 5장, 매출 0)",
+   "viability": {
+    "fit_broken_stage": 2,
+    "fit_color": "🔴"
+   },
+   "launched": true,
+   "revenue_band": "0",
+   "adversity": "손님이 안 온다"
+  }
+ }
 }

@@ -19,6 +19,8 @@
     "status": "ok",
     "recommended": {
       "card": {
+        "source_key": "starterstory",
+        "label_run": "fx_run",
         "slug": "fx-sales-a",
         "chapter": 6,
         "weight": 60,
@@ -73,6 +75,8 @@
     "alternatives": [
       {
         "card": {
+          "source_key": "starterstory",
+          "label_run": "fx_run",
           "slug": "fx-sales-d",
           "chapter": 6,
           "weight": 30,
@@ -125,6 +129,8 @@
       },
       {
         "card": {
+          "source_key": "starterstory",
+          "label_run": "fx_run",
           "slug": "fx-sales-c",
           "chapter": 6,
           "weight": 50,
@@ -185,7 +191,7 @@
       "situation": 1,
       "persuasion": 0.9,
       "reasons": [
-        "손님·값대·단계·팀 크기이 같다, 같은 원리(reduce_purchase_doubt_by_transparency)를 쓴다",
+        "손님·값대·단계·팀 크기가 같다, 같은 원리(reduce_purchase_doubt_by_transparency)를 쓴다",
         "숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다"
       ],
       "hasFailure": false,
@@ -193,7 +199,9 @@
       "quote": {
         "slug": "fx-sales-a",
         "episode_idx": 0,
-        "text": "We put every price on one page and conversions doubled."
+        "text": "We put every price on one page and conversions doubled.",
+        "source_key": "starterstory",
+        "label_run": "fx_run"
       },
       "summary_ko": "가격표 공개 → 전환 2배"
     },
@@ -215,7 +223,9 @@
         "quote": {
           "slug": "fx-sales-d",
           "episode_idx": 0,
-          "text": "A no-questions refund made strangers willing to try."
+          "text": "A no-questions refund made strangers willing to try.",
+          "source_key": "starterstory",
+          "label_run": "fx_run"
         },
         "summary_ko": "환불 보장 → 구매율 상승"
       },
@@ -236,7 +246,9 @@
         "quote": {
           "slug": "fx-sales-c",
           "episode_idx": 0,
-          "text": "Raising prices without notice cost us a third of accounts."
+          "text": "Raising prices without notice cost us a third of accounts.",
+          "source_key": "starterstory",
+          "label_run": "fx_run"
         },
         "summary_ko": "가격 인상 → 해지가 늘었다"
       }
@@ -249,7 +261,9 @@
     "note": "장 6 · story flow 4 · 꼬리표 0 · 사례 은행 0 → 3건(story_flow)"
   },
   "quote_check": {
+    "ok": true,
     "checked": 3,
-    "mismatches": []
+    "mismatches": [],
+    "warnings": []
   }
 }

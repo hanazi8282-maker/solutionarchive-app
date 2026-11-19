@@ -45,7 +45,7 @@ const res = await loadStoryFlow({ from: () => { touched = true; throw new Error(
 assert.equal(res.status, 'off'); assert.equal(touched, false)
 // ⑨ 깃발 ON + 조회 실패는 not_run(근거 부족이 아니다 — §7.1)
 process.env.STORY_FLOW_ENABLED = 'true'
-const res2 = await loadStoryFlow({ from: () => ({ select: () => ({ eq: () => ({ gte: () => ({ range: async () => ({ data: null, error: { message: 'boom' } }) }) }) }) }) }, diag)
+const res2 = await loadStoryFlow({ from: () => ({ select: () => ({ eq: () => ({ gte: () => { const q = { order: () => q, range: async () => ({ data: null, error: { message: 'boom' } }) }; return q } }) }) }) }, diag)
 assert.equal(res2.status, 'not_run')
 // ⑩ 병목→장 대응표
 assert.deepEqual(BOTTLENECK_CHAPTERS.not_paying, [6]); assert.deepEqual(BOTTLENECK_CHAPTERS.new_channels, [5])

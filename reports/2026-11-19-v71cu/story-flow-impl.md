@@ -1,7 +1,8 @@
 # v71cu story flow 구현 (2-2 ~ 2-8)
 
 상태: **구현 완료·독립 검수 대기.** 자기검증(셀프테스트·타입·린트)만 통과했고, DB 실측·독립 리뷰는 아직이다.
-깃발 `STORY_FLOW_ENABLED` 는 건드리지 않았다(코드 기본값 OFF 그대로, 변수 변경 없음). 마이그레이션은 **파일만** 있고 적용하지 않았다.
+깃발 `STORY_FLOW_ENABLED` 는 건드리지 않았다(코드 기본값 OFF 그대로, 변수 변경 없음). **독립 검수 판정: 깃발을 켜지 말 것** (`story-flow-independent-review.md`). 아래 "수정 이력" 참고.
+마이그 `20261119000030` 은 오케스트레이터가 적용했다(9,705행, 파일 내용 그대로). 새 마이그 `20261119000031` 은 **파일만** 있고 적용하지 않았다.
 
 근거: Notion 지시서 v71ct §4 · v71ct-1 §4 원문은 이 세션에서 열어 보지 않았다(서브에이전트, 오케스트레이터 지시문 + 기존 코드 기준). 아래 "미확인" 참고.
 
@@ -69,3 +70,60 @@
 - story flow 카드의 화면 이름은 slug 그대로다(카드에 회사명 칸이 없다).
 - 원문 인용(`quote_orig`)은 `payload.story_flow` 에만 있고 화면에 안 나간다. 화면에 인용을 내기로 하면 소스별 인용 허용(`quote_allowed`) 판단이 먼저다.
 - PR CI 결과는 PR 본문/보고 참조.
+
+## 수정 이력 — 독립 검수(F1~F7) 반영, 2026-11-19
+
+깃발은 계속 OFF. DB 접근·마이그 적용 없음. 모두 추가 방식이다. 기존 `similarWhy`/`persuasiveWhy` 는 손대지 않았고, 새 경로는 V2 함수를 쓴다.
+
+- **F1 반영.** 새 경로의 이유 문장을 `similarWhyV2`·`persuasiveWhyV2` 로 바꿨다.
+  - "다른 업종, 같은 원리:" 는 진단 원리가 있고, 기준 에피소드의 원리와 실제로 같을 때만 붙는다. 그 밖에 R1 이 아닌 카드는 "다른 업종:" 만 붙는다.
+  - 조사는 받침 판별 함수 `iGa` 로 고른다(팀 크기가·단계가·손님이).
+  - 카드마다 기준 에피소드 하나(`anchorEpisode`)를 정한다. 기준 순서는 grain → 증거 → 원문 있음 → 번호다. 요약·인용·설득력 이유를 모두 그 에피소드에서 뽑는다.
+  - 남는 것: 옛 `similarWhy` 의 조사 오류는 그대로다. 옛 함수는 `loadStoryFlow` 만 쓰고, 프로덕션에서 부르는 곳은 없다.
+- **F2 반영.** `displayName` 을 추가했다.
+  - UUID 꼬리, 숫자가 섞인 6자 이상 16진 해시 꼬리, `case_bank:` 접두를 뗀다. 남은 게 없거나 기계 문자열이면 "비슷한 사례 N" 으로 쓴다.
+  - 노출 지점은 `compose.ts` 의 `toItems: selectionToSimilar` 이고, 그 안에서 `displayName` 을 적용한다.
+  - `payload.story_flow` 의 slug 는 내부용으로 남긴다. 화면에는 나가지 않는다.
+- **F3 반영.**
+  - `verifyQuotes` 는 기본이 strict 다. 원문 전체, 또는 연속된 문장 단위와 같아야 통과한다. 문장 중간에서 자른 발췌는 `not_sentence` 로 떨어진다.
+  - `--loose` 는 부분 문자열을 허용하되 경고를 단다(`mid_clause`·`short_excerpt`(40% 미만)·`negation_nearby`).
+  - 인용 0건이면 `no_quotes` 로 실패하고 종료 1이다. 샘플 생성기 안의 자체 대조는 0건을 허용하고 "독립 검증 아님"으로 표기한다.
+  - `--db` 는 원본 표 `ss_episode_tags` 를 다시 읽는다(source_key·label_run·episode_idx 까지 대조). 인용에는 source_key·label_run 을 싣는다.
+  - 원천 허용 목록: 상수 `QUOTE_SOURCE_ALLOWLIST=['starterstory']`, env `STORY_FLOW_QUOTE_SOURCES`(쉼표, 덧붙이기만)로 늘릴 수 있다. source_key 가 없는 카드는 막는다(fail-closed).
+  - 허용 목록은 story flow 카드(원문 인용을 가진 원천)에만 걸린다. 꼬리표·사례 은행 폴백은 인용이 없고, 사례 은행은 기존 legacy 경로와 같은 내용이라 걸지 않았다.
+  - starterstory 자체의 `quote_policy` 는 여전히 **확인불가**다(DB 미접근).
+- **F4 반영.**
+  - `fetchFlowCards` 는 `.order('slug').order('label_run').order('source_key')` 로 쪽 순서를 고정한다. 꼬리표 폴백은 `.order('move_id')` 를 쓴다.
+  - 기존 `story-flow-selftest` ⑨ 의 가짜 클라이언트에 `order` 를 더했다. 이유: 이게 없으면 TypeError 로 우연히 `not_run` 이 나서, 의도한 실패 경로를 시험하지 못한다.
+- **F5 반영.**
+  - 새 파일: 마이그 `20261119000031_story_flow_refresh_fn.sql`(+롤백). `refresh_story_flow_cards_mat()` 함수이고 SECURITY DEFINER, search_path='', statement_timeout 600s, 실행 권한은 service_role 만이다. **미적용**이다.
+  - 새 스크립트 `scripts/story-flow-refresh.mjs`:
+    - 기본: rpc 로 새로 고친 뒤 원본 뷰 행 수와 대조한다. 같으면 0, 다르면 1, 확인 불가면 2.
+    - `--skip-compare`: 원본 뷰 대조를 건너뛴다.
+    - `--print`: 함수가 없을 때 쓸 SQL 한 줄을 낸다.
+  - **부르는 지점:** `scripts/story-label.mjs` 회차 적재가 끝난 직후, 오케스트레이터가 `node --env-file=.env.local scripts/story-flow-refresh.mjs` 를 한 번 돌린다. 워크플로 배선은 하지 않았다. story-label 은 대화형으로만 돈다.
+- **F6 반영(옵션) + 조사(제안만, 구현 안 함).**
+  - `story-flow-samples.mjs --real-diagnosis` 를 추가했다. 픽스처 `real_inputs` 로 `diagnosisFromReport` 를 그대로 거친 진단(장 + 단계만)을 만든다. 파일 이름은 `<영역>-real.md/.json` 이다.
+  - 오프라인 결과는 `story-flow-samples/area2_sales_assistant-real.*`·`area5_review_writing-real.*` 다. 실데이터는 오케스트레이터가 `--db --real-diagnosis` 로 돌린다.
+  - 진단 칸을 더 채울 수 있는 곳:
+    - **손님·과금:** `lib/consult/discover.ts` `inferStructure(one_liner)` 가 이미 buyer_type·pricing_model 을 낱말로 뽑는다. buyer_type→customer 대응표(smb_owner→smb 등)가 필요하다.
+    - **값대:** `ch1.viability.segment`(P/S/M/E)를 쓸 수 있다. 다만 P=월 $50 미만이 `<10`·`10-49` 둘에 걸쳐 있어 거칠다. P→모름, S/M/E→`250+` 정도만 안전하다.
+    - **팀 크기:** 콜드메일 경로에는 근거가 없다. 유료 상황 질문(`situation.ts` team_size·customer_type·price_band·bottleneck)의 답이 run 에 연결되면 거기서 채울 수 있다. 연결 위치는 미확인이다.
+    - **원리(mechanism):** 진단 쪽 어휘가 없다. `cases.ts` 의 MECHANISMS 는 다른 어휘 체계라 그대로 쓸 수 없다. 원리 항은 당분간 0.5 상수로 남는다.
+- **F7 미반영(지시대로 가중치 유지), 설계 한계로 명시.**
+  - 최신성(0.05)은 원 게시일이 아니라 꼬리표를 단 시각이다. 모든 카드가 2026-11 에 꼬리표를 받아 사실상 상수다.
+  - 원리(0.15)는 실제 진단에 원리가 없어 0.075 상수다.
+  - 그래서 실제 경로의 순위는 `0.35·weight + 0.30·상황(단계 하나만 실효) + 0.15·증거` 로 정해진다.
+  - 기존 `similarity` 에 있던 역경 텍스트 일치(0.25)와 R1 우선은 새 점수식에 없다(지시서 점수식 그대로).
+
+### 수정 후 테스트
+- `consult-selftest`: 226/226 통과. 새 테스트는 기존 `story-flow-select-selftest` 묶음 안에 들어가 줄 수는 그대로다.
+- `story-flow-selftest`: 통과.
+- `story-flow-select-selftest`: 기존 ①~⑬ + 새 F1~F6 검사 전부 통과.
+- tsc(바뀐 TS 3파일) 오류 0, eslint(바뀐 파일) 오류 0.
+- 인용 CLI: 인용 0건 → 종료 1. 문장 중간 발췌 → `not_sentence`.
+
+### 오케스트레이터 몫(추가)
+1. 마이그 `20261119000031_story_flow_refresh_fn.sql` 적용 여부를 판단한다. 비파괴이고 함수 하나뿐이다. 적용 뒤 하단 양성·음성 쿼리를 돌린다.
+2. `node --env-file=.env.local scripts/story-flow-samples.mjs --db --real-diagnosis --out reports/2026-11-19-v71cu/story-flow-samples-db`
+3. `node --env-file=.env.local scripts/story-flow-quote-check.mjs --payload reports/2026-11-19-v71cu/story-flow-samples-db/area2_sales_assistant-real.json --db` — 영역⑤도 같은 식으로. 이번 대조는 원본 표로 하는 독립 대조다.

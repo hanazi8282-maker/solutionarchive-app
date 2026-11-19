@@ -30,7 +30,7 @@
       "situation": 0.9,
       "persuasion": 0.5,
       "reasons": [
-        "손님·값대·단계·팀 크기이 같다",
+        "손님·값대·단계·팀 크기가 같다",
         "숫자로 확인된 결과"
       ],
       "hasFailure": false,
@@ -38,7 +38,9 @@
       "quote": {
         "slug": "fx-review-a",
         "episode_idx": 0,
-        "text": "Thirty answer-style posts brought our first three thousand visits."
+        "text": "Thirty answer-style posts brought our first three thousand visits.",
+        "source_key": "starterstory",
+        "label_run": "fx_run"
       },
       "summary_ko": "질문형 글 30편 → 월 방문 3천"
     },
@@ -52,7 +54,7 @@
         "situation": 0.7,
         "persuasion": 0.385,
         "reasons": [
-          "손님·팀 크기이 같다",
+          "손님·팀 크기가 같다",
           "말로 확인된 결과(숫자는 없다), 안 된 시도도 함께 담겨 있다"
         ],
         "hasFailure": true,
@@ -60,7 +62,9 @@
         "quote": {
           "slug": "fx-review-b",
           "episode_idx": 0,
-          "text": "Ads bought traffic but not signups."
+          "text": "Ads bought traffic but not signups.",
+          "source_key": "starterstory",
+          "label_run": "fx_run"
         },
         "summary_ko": "검색 광고 → 방문은 늘고 가입은 그대로"
       },
@@ -73,7 +77,7 @@
         "situation": 0.9,
         "persuasion": 0.15,
         "reasons": [
-          "손님·값대·단계·팀 크기이 같다",
+          "손님·값대·단계·팀 크기가 같다",
           "결과가 원문에 적혀 있다"
         ],
         "hasFailure": false,
@@ -90,7 +94,9 @@
     "note": "장 5 · story flow 2 · 꼬리표 1 · 사례 은행 0 → 3건(story_flow+move_tags)"
   },
   "quote_check": {
+    "ok": true,
     "checked": 2,
-    "mismatches": []
+    "mismatches": [],
+    "warnings": []
   }
 }

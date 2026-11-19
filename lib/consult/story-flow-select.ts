@@ -3,12 +3,12 @@
 // DB 조회는 전부 주입(loaders) — 순수 함수만 테스트한다. 모델 호출 없음.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  type Diagnosis, type Episode, type FlowCard, BOTTLENECK_CHAPTERS, COUNTED, EVID,
-  chapterEps, crossOk, eligible, fetchFlowCards, hasFailureEp, persuasion, persuasiveWhy, similarWhy, situationMatch, storyFlowEnabled,
+  type Diagnosis, type Episode, type FlowCard, BOTTLENECK_CHAPTERS, COUNTED, EVID, GRAIN_SCORE,
+  chapterEps, crossOk, eligible, fetchFlowCards, hasFailureEp, known, persuasion, situationMatch, storyFlowEnabled,
 } from './story-flow.ts'
 
 export type Source = 'story_flow' | 'move_tags' | 'case_bank'
-export type Quote = { slug: string; episode_idx: number; text: string }
+export type Quote = { slug: string; episode_idx: number; text: string; source_key?: string; label_run?: string }
 export type ScoredPick = {
   source: Source; slug: string; name: string; chapter: number
   score: number; situation: number; persuasion: number
@@ -80,18 +80,69 @@ export function cardFromCaseBank(r: CaseBankRow, chapter: number): FlowCard | nu
 }
 
 // ── 2-4·2-5 선택 ────────────────────────────────────────────────────────────
-function firstQuote(card: FlowCard): Quote | null {
-  const e = chapterEps(card).find((x) => COUNTED.has(x.result_class) && x.quote_orig)
-  return e ? { slug: card.slug, episode_idx: e.episode_idx, text: e.quote_orig as string } : null
+type SrcCard = FlowCard & { source_key?: string; label_run?: string }
+type SrcEp = Episode & { source_key?: string; label_run?: string }
+
+/** [F3] 인용·카드로 내보내도 되는 story flow 원천(source_key). 기본 starterstory 하나. 넓히려면 env STORY_FLOW_QUOTE_SOURCES(쉼표) — 그 소스의 quote_policy 를 먼저 확인한다. source_key 가 없는 카드는 막는다(fail-closed). */
+export const QUOTE_SOURCE_ALLOWLIST = ['starterstory'] as const
+export const quoteSources = (): Set<string> => new Set((process.env.STORY_FLOW_QUOTE_SOURCES ?? '').split(',').map((x) => x.trim()).filter(Boolean).concat(QUOTE_SOURCE_ALLOWLIST))
+export const sourceAllowed = (card: SrcCard, allow = quoteSources()) => !!card.source_key && allow.has(card.source_key)
+
+/** [F1] 받침 있으면 '이', 없으면 '가'(한글이 아니면 '가'). 예: 손님이 · 팀 크기가 · 단계가. */
+export function iGa(word: string): string {
+  const c = word.trim().slice(-1).charCodeAt(0)
+  return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0 ? '이' : '가'
 }
-function toPick(card: FlowCard, d: Diagnosis, source: Source, now: Date): ScoredPick {
+/** [F1] 한 카드의 기준 에피소드 하나 — 요약·인용·설득력 이유를 모두 여기서 뽑는다. 결과 grain(metric>qual>learned>signal) → 증거 → 원문 있음 → 번호 순. */
+export function anchorEpisode(card: FlowCard): Episode | undefined {
+  return chapterEps(card).filter((e) => COUNTED.has(e.result_class))
+    .sort((a, b) => (GRAIN_SCORE[b.result_grain ?? ''] ?? 0) - (GRAIN_SCORE[a.result_grain ?? ''] ?? 0) || (EVID[b.evidence_strength] ?? 0) - (EVID[a.evidence_strength] ?? 0) || Number(!!b.quote_orig) - Number(!!a.quote_orig) || a.episode_idx - b.episode_idx)[0]
+}
+/** [F1] 비슷한 이유. "같은 원리" 는 진단 원리가 있고 기준 에피소드의 원리와 정말 같을 때만. 다른 업종인데 원리가 확인되지 않으면 "다른 업종:" 만. */
+export function similarWhyV2(card: FlowCard, d: Diagnosis, e: Episode | undefined): string {
+  const s = d.situation, same: string[] = []
+  if (known(s.customer) && s.customer === card.customer) same.push('손님')
+  if (known(s.price_band) && s.price_band === card.price_band) same.push('값대')
+  if (known(s.stage) && s.stage === card.stage) same.push('단계')
+  if (known(s.team_size) && s.team_size === card.team_size) same.push('팀 크기')
+  const mech = !!d.mechanism && e?.mechanism === d.mechanism
+  const cross = card.relevance_tier !== 'R1'
+  const sameTxt = same.length ? `${same.join('·')}${iGa(same[same.length - 1])} 같다` : ''
+  const parts = [sameTxt, mech ? `같은 원리(${d.mechanism})를 쓴다` : ''].filter(Boolean)
+  const head = cross ? (mech ? '다른 업종, 같은 원리: ' : '다른 업종: ') : ''
+  return head + (parts.join(', ') || '같은 장에서 비슷한 막힘을 겪었다')
+}
+/** [F1] 설득력 이유 — 기준 에피소드 하나만 본다(요약·인용과 같은 에피소드). 카드 단위 사실(인과 사슬·안 된 시도)은 그대로 붙인다. */
+export function persuasiveWhyV2(card: FlowCard, e: Episode | undefined): string {
+  const bits: string[] = []
+  if (e?.result_grain === 'metric') bits.push('숫자로 확인된 결과')
+  else if (e?.result_grain === 'qual') bits.push('말로 확인된 결과(숫자는 없다)')
+  if (e?.evidence_strength === 'A') bits.push('증거 등급 A')
+  if (card.causal_chain.length) bits.push('이유가 사슬로 적혀 있다')
+  if (hasFailureEp(card)) bits.push('안 된 시도도 함께 담겨 있다')
+  if (e?.condition_ko) bits.push('통하는 조건이 적혀 있다')
+  return bits.join(', ') || '결과가 원문에 적혀 있다'
+}
+const UUID_TAIL = /[-_]?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const HASH_TAIL = /[-_](?=[0-9a-f]*\d)[0-9a-f]{6,}$/i
+/** [F2] 고객 화면용 이름 — slug 의 UUID·해시 꼬리·`case_bank:` 접두를 떼고 낱말 첫 글자를 키운다. 남는 게 없거나 여전히 기계 문자열이면 "비슷한 사례 N". */
+export function displayName(raw: string, n: number): string {
+  const s = (raw ?? '').replace(/^case_bank:/, '').trim().replace(UUID_TAIL, '').replace(HASH_TAIL, '').replace(/[-_]+/g, ' ').trim()
+  const machine = (w: string) => /\d/.test(w) && /^[0-9a-f]{6,}$/i.test(w)
+  if (!/[a-z가-힣]/i.test(s) || s.split(' ').some(machine)) return `비슷한 사례 ${n}`
+  return s.replace(/(^|\s)([a-z])/g, (_, sp, ch) => sp + ch.toUpperCase()).slice(0, 60)
+}
+
+function toPick(card: SrcCard, d: Diagnosis, source: Source, now: Date): ScoredPick {
   const cross = source === 'story_flow' && card.relevance_tier !== 'R1'
-  const e = chapterEps(card).find((x) => COUNTED.has(x.result_class))
+  const e = anchorEpisode(card) as SrcEp | undefined
   return {
     source, slug: card.slug, name: card.transfer_ko && source !== 'story_flow' ? card.transfer_ko : card.slug, chapter: card.chapter,
     score: scoreCard(card, d, now), situation: Number(situationMatch(card, d.situation).toFixed(3)), persuasion: Number(persuasion(card).toFixed(3)),
-    reasons: [similarWhy(card, d, cross), persuasiveWhy(card)], hasFailure: hasFailureEp(card), crossIndustry: cross,
-    quote: source === 'story_flow' ? firstQuote(card) : null,
+    reasons: [similarWhyV2(card, d, e), persuasiveWhyV2(card, e)], hasFailure: hasFailureEp(card), crossIndustry: cross,
+    quote: source === 'story_flow' && e?.quote_orig && sourceAllowed(card)
+      ? { slug: card.slug, episode_idx: e.episode_idx, text: e.quote_orig, source_key: e.source_key ?? card.source_key, label_run: e.label_run ?? card.label_run }
+      : null,
     summary_ko: [e?.action_ko, e?.result_ko].filter(Boolean).join(' → ').slice(0, 110) || '결과 요약 없음',
   }
 }
@@ -110,12 +161,12 @@ const empty = (): Record<Source, number> => ({ story_flow: 0, move_tags: 0, case
 export async function selectStoryFlow(d: StoryDiagnosis, loaders: Loaders, opts: { now?: Date; limit?: number } = {}): Promise<Selection> {
   const now = opts.now ?? new Date(), limit = opts.limit ?? 3
   const chapters = d.chapters?.length ? d.chapters : [d.chapter]
-  const considered = empty(), errors: string[] = []
+  const considered = empty(), errors: string[] = [], allow = quoteSources()
   let flow: ScoredPick[] = []
   try {
     for (const ch of chapters) {
       const cd = { ...d, chapter: ch }
-      flow.push(...(await loaders.flowCards(ch)).filter((c) => eligible(c, ch) && crossOk(c)).map((c) => toPick(c, cd, 'story_flow', now)))
+      flow.push(...(await loaders.flowCards(ch)).filter((c) => eligible(c, ch) && crossOk(c) && sourceAllowed(c, allow)).map((c) => toPick(c, cd, 'story_flow', now)))
     }
   } catch (e) {
     return { status: 'not_run', alternatives: [], considered, note: `확인 불가 — 흐름 카드를 조회하지 못했습니다(${e instanceof Error ? e.message : e})` }
@@ -161,7 +212,7 @@ export function diagnosisFromReport(i: { bottleneck?: string | null; viability?:
 }
 
 /** 결론서 ch1.similar 와 같은 모양(name·what·why). 화면은 이 세 칸만 그린다 — 영어 원문 인용(quote)은 payload.story_flow 에만 남는다. */
-export const selectionToSimilar = (s: Selection) => (s.recommended ? [s.recommended, ...s.alternatives] : []).map((p) => ({ name: p.name, what: p.summary_ko, why: `${p.reasons[0]} / ${p.reasons[1]}`.slice(0, 120) }))
+export const selectionToSimilar = (s: Selection) => (s.recommended ? [s.recommended, ...s.alternatives] : []).map((p, i) => ({ name: displayName(p.name, i + 1), what: p.summary_ko, why: `${p.reasons[0]} / ${p.reasons[1]}`.slice(0, 120) }))
 
 /**
  * 깃발 분기 한 곳. 깃발이 'true' 가 아니면 story flow 를 부르지 않고 legacy() 결과를 그대로 돌려준다(기존 경로 100%).
@@ -178,7 +229,7 @@ export function dbLoaders(sb: Pick<SupabaseClient, 'from' | 'rpc'>): Loaders {
   return {
     flowCards: (ch) => fetchFlowCards(sb, ch),
     moveTags: async (ch) => {
-      const { data, error } = await sb.from('ss_move_tags_current').select('move_id,chapter,stage,team_size,customer,price_band,action_kind,result_class,result_ko,why_worked_ko,condition_ko,evidence_strength,created_at').eq('chapter', String(ch)).in('result_class', ['positive', 'negative', 'mixed']).limit(300)
+      const { data, error } = await sb.from('ss_move_tags_current').select('move_id,chapter,stage,team_size,customer,price_band,action_kind,result_class,result_ko,why_worked_ko,condition_ko,evidence_strength,created_at').eq('chapter', String(ch)).in('result_class', ['positive', 'negative', 'mixed']).order('move_id').limit(300)
       if (error) throw new Error(error.message)
       const ids = [...new Set((data ?? []).map((r) => r.move_id as string))]
       if (!ids.length) return []
@@ -197,7 +248,7 @@ export function dbLoaders(sb: Pick<SupabaseClient, 'from' | 'rpc'>): Loaders {
 
 // ── 2-8 인용 검증 ───────────────────────────────────────────────────────────
 const norm = (s: string) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim()
-export type QuoteCheck = { checked: number; mismatches: { slug: string; episode_idx: number; reason: 'source_missing' | 'episode_missing' | 'text_differs'; text: string }[] }
+export type QuoteCheck = { ok: boolean; checked: number; mismatches: { slug: string; episode_idx: number; reason: 'source_missing' | 'episode_missing' | 'text_differs' | 'not_sentence' | 'no_quotes'; text: string }[]; warnings: { slug: string; episode_idx: number; warn: 'mid_clause' | 'short_excerpt' | 'negation_nearby'; text: string }[] }
 /** 결론서(또는 Selection) 안의 모든 사례 인용을 원문 quote_orig 와 대조한다. 원문을 못 찾으면 불일치(확인 불가를 통과로 접지 않는다). */
 export function collectQuotes(x: unknown): Quote[] {
   const out: Quote[] = []
@@ -211,14 +262,41 @@ export function collectQuotes(x: unknown): Quote[] {
   walk(x)
   return out
 }
-export function verifyQuotes(payload: unknown, source: Record<string, Pick<Episode, 'episode_idx' | 'quote_orig'>[]>): QuoteCheck {
-  const quotes = collectQuotes(payload), mismatches: QuoteCheck['mismatches'] = []
+/** 원문을 문장으로 자른다(. ! ? 。 뒤 공백, 줄바꿈). */
+export const sentences = (t: string) => norm(t).split(/(?<=[.!?。])\s+|\n+/).map((x) => x.trim()).filter(Boolean)
+const NEG = /\b(not|no|never|without|hardly|barely|isn't|wasn't|didn't|don't|doesn't|won't|can't|couldn't)\s*$|n't\s*$/i
+/**
+ * [F3] 기본 strict: 인용이 원문 전체와 같거나, 원문의 연속된 **문장 단위**(1문장 이상)와 같아야 통과. 문장 중간에서 자른 발췌는 실패(not_sentence).
+ * loose(참고용): 부분 문자열이면 통과시키되 절 중간 시작·끝, 원문 대비 40% 미만, 바로 앞에 부정어가 있으면 경고를 단다.
+ * 인용 0건은 ok=false(no_quotes) — "확인할 게 없었다"를 통과로 접지 않는다(§7.1). 원문(source)은 결론서와 다른 경로(ss_episode_tags 원본)로 읽어야 독립 대조다.
+ * source 의 에피소드에 source_key·label_run 이 있으면 인용의 것과도 맞아야 한다.
+ */
+export function verifyQuotes(
+  payload: unknown,
+  source: Record<string, (Pick<Episode, 'episode_idx' | 'quote_orig'> & { source_key?: string; label_run?: string })[]>,
+  opts: { mode?: 'strict' | 'loose'; allowEmpty?: boolean } = {},
+): QuoteCheck {
+  const mode = opts.mode ?? 'strict'
+  const quotes = collectQuotes(payload), mismatches: QuoteCheck['mismatches'] = [], warnings: QuoteCheck['warnings'] = []
   for (const q of quotes) {
+    const base = { slug: q.slug, episode_idx: q.episode_idx, text: q.text }
     const eps = source[q.slug]
-    if (!eps) { mismatches.push({ ...q, reason: 'source_missing' }); continue }
-    const e = eps.find((x) => x.episode_idx === q.episode_idx)
-    if (!e || !e.quote_orig) { mismatches.push({ ...q, reason: 'episode_missing' }); continue }
-    if (!norm(e.quote_orig).includes(norm(q.text)) || !norm(q.text)) mismatches.push({ ...q, reason: 'text_differs' })
+    if (!eps) { mismatches.push({ ...base, reason: 'source_missing' }); continue }
+    const e = eps.find((x) => x.episode_idx === q.episode_idx && (!q.label_run || !x.label_run || x.label_run === q.label_run) && (!q.source_key || !x.source_key || x.source_key === q.source_key))
+    if (!e || !e.quote_orig) { mismatches.push({ ...base, reason: 'episode_missing' }); continue }
+    const orig = norm(e.quote_orig), qt = norm(q.text)
+    if (!qt || !orig.includes(qt)) { mismatches.push({ ...base, reason: 'text_differs' }); continue }
+    if (qt === orig) continue
+    const ss = sentences(e.quote_orig)
+    const sentenceRun = ss.some((_, i) => ss.slice(i).some((__, j) => ss.slice(i, i + j + 1).join(' ') === qt))
+    if (mode === 'strict' && !sentenceRun) { mismatches.push({ ...base, reason: 'not_sentence' }); continue }
+    if (!sentenceRun) {
+      const at = orig.indexOf(qt), before = orig.slice(0, at), after = orig.slice(at + qt.length)
+      if ((before && !/[.!?,;:]\s*$/.test(before)) || (after && !/^\s*[.!?,;:]/.test(after))) warnings.push({ ...base, warn: 'mid_clause' })
+      if (qt.length < orig.length * 0.4) warnings.push({ ...base, warn: 'short_excerpt' })
+      if (NEG.test(before)) warnings.push({ ...base, warn: 'negation_nearby' })
+    }
   }
-  return { checked: quotes.length, mismatches }
+  if (!quotes.length && !opts.allowEmpty) mismatches.push({ slug: '', episode_idx: -1, reason: 'no_quotes', text: '' })
+  return { ok: mismatches.length === 0, checked: quotes.length, mismatches, warnings }
 }

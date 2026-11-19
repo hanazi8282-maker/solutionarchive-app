@@ -180,11 +180,16 @@
     "recommended": {
       "source": "story_flow",
       "slug": "fx-sales-a",
-      "name": "fx-sales-a",
+      "slug_internal": "fx-sales-a",
+      "name": "Fx Sales A",
       "chapter": 6,
       "score": 0.6572,
       "situation": 0.6,
       "persuasion": 0.9,
+      "evidence": 1,
+      "stage": "early_rev",
+      "failed": false,
+      "fail_kind": null,
       "reasons": [
         "단계가 같다",
         "숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다"
@@ -192,7 +197,7 @@
       "hasFailure": false,
       "crossIndustry": false,
       "quote": {
-        "slug": "fx-sales-a",
+        "slug_internal": "fx-sales-a",
         "episode_idx": 0,
         "text": "We put every price on one page and conversions doubled.",
         "source_key": "starterstory",
@@ -204,11 +209,16 @@
       {
         "source": "story_flow",
         "slug": "fx-sales-d",
-        "name": "fx-sales-d",
+        "slug_internal": "fx-sales-d",
+        "name": "Fx Sales D",
         "chapter": 6,
         "score": 0.505,
         "situation": 0.5,
         "persuasion": 0.9,
+        "evidence": 1,
+        "stage": "unknown",
+        "failed": false,
+        "fail_kind": null,
         "reasons": [
           "다른 업종: 같은 장에서 비슷한 막힘을 겪었다",
           "숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다"
@@ -216,7 +226,7 @@
         "hasFailure": false,
         "crossIndustry": true,
         "quote": {
-          "slug": "fx-sales-d",
+          "slug_internal": "fx-sales-d",
           "episode_idx": 0,
           "text": "A no-questions refund made strangers willing to try.",
           "source_key": "starterstory",
@@ -227,11 +237,16 @@
       {
         "source": "story_flow",
         "slug": "fx-sales-c",
-        "name": "fx-sales-c",
+        "slug_internal": "fx-sales-c",
+        "name": "Fx Sales C",
         "chapter": 6,
         "score": 0.4619,
         "situation": 0.4,
         "persuasion": 0.46,
+        "evidence": 0.6,
+        "stage": "growing",
+        "failed": true,
+        "fail_kind": "negative",
         "reasons": [
           "같은 장에서 비슷한 막힘을 겪었다",
           "말로 확인된 결과(숫자는 없다), 안 된 시도도 함께 담겨 있다"
@@ -239,7 +254,7 @@
         "hasFailure": true,
         "crossIndustry": false,
         "quote": {
-          "slug": "fx-sales-c",
+          "slug_internal": "fx-sales-c",
           "episode_idx": 0,
           "text": "Raising prices without notice cost us a third of accounts.",
           "source_key": "starterstory",

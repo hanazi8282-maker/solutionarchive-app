@@ -127,3 +127,25 @@
 1. 마이그 `20261119000031_story_flow_refresh_fn.sql` 적용 여부를 판단한다. 비파괴이고 함수 하나뿐이다. 적용 뒤 하단 양성·음성 쿼리를 돌린다.
 2. `node --env-file=.env.local scripts/story-flow-samples.mjs --db --real-diagnosis --out reports/2026-11-19-v71cu/story-flow-samples-db`
 3. `node --env-file=.env.local scripts/story-flow-quote-check.mjs --payload reports/2026-11-19-v71cu/story-flow-samples-db/area2_sales_assistant-real.json --db` — 영역⑤도 같은 식으로. 이번 대조는 원본 표로 하는 독립 대조다.
+
+## 수정 이력 2 — 재검수(G1~G4) 반영, 2026-11-19
+
+점수식(0.35/0.30/0.15/0.15/0.05)은 바꾸지 않았다. 깃발은 OFF, 머지·DB·마이그 적용은 없다.
+
+- **G1 반영.** 기준 에피소드가 negative·mixed 인 카드는 payload 에 `failed:true`·`fail_kind` 를 남긴다.
+  - 화면 칸 `what` 앞에 문구가 붙는다: negative 는 "이 사례는 잘 안 풀린 경우입니다", mixed 는 "이 사례는 반쯤만 풀린 경우입니다".
+  - 추천 자리뿐 아니라 대안 자리에도 붙는다.
+- **G2 반영.** 점수가 같을 때 순서를 정하는 규칙만 바꿨다(점수 불변): ①상황 일치 → ②진단 단계와 같은 카드 → ③증거 등급 → ④slug.
+  - 예전 규칙의 설득력·slug 순서는 빠졌다.
+- **G3 반영(기본 OFF, 남헌 결정 대기).** `selectStoryFlow(…, { stageFirst: true })` 와 `stageFirst()` 를 추가했다.
+  - 진단 단계를 알고 있는데 1순위 카드의 단계가 알려진 다른 값이면, 2순위가 그렇지 않을 때만 둘의 자리를 바꾼다.
+  - 카드 단계가 모름이면 다르다고 보지 않는다.
+  - `compose.ts` 는 이 옵션을 켜지 않는다(셀프테스트로 고정).
+  - 샘플 두 벌 만들기: `story-flow-samples.mjs [--db] --real-diagnosis` 로 한 번, 같은 명령에 `--stage-first` 를 붙여 한 번 더 돌린다. 두 번째 파일은 `-stagefirst` 로 끝난다.
+  - 오프라인 결과는 `story-flow-samples/*-real-stagefirst.*` 다(합성 픽스처라 OFF 결과와 같다).
+- **G4 반영.** 선택이 끝난 뒤 저장본을 정리한다.
+  - `slug` 는 `cleanSlug`(UUID·해시 꼬리 제거)로, `name` 은 `displayName` 으로 바꿔 저장한다.
+  - 원문 slug 는 내부 키 `slug_internal`(카드·인용 둘 다)에만 남긴다. dedupe·폴백 중복 제거·인용 검증은 `slug_internal` 로 한다.
+  - 화면 렌더 경로 `selectionToSimilar` 의 출력에는 `slug_internal` 도 UUID 도 없다(셀프테스트로 고정).
+- 테스트: `consult-selftest` 226/226, `story-flow-selftest` 통과, `story-flow-select-selftest`(기존 + G1~G4) 통과. tsc·eslint 0.
+- 오케스트레이터 몫: 실데이터로 `node --env-file=.env.local scripts/story-flow-samples.mjs --db --real-diagnosis --out reports/2026-11-19-v71cu/story-flow-samples-db` 를 돌리고, 같은 명령에 `--stage-first` 를 붙여 한 번 더 돌린다. 두 결과(OFF/ON)를 남헌이 비교해 정한다.

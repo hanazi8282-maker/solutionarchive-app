@@ -8,10 +8,12 @@ import {
 } from './story-flow.ts'
 
 export type Source = 'story_flow' | 'move_tags' | 'case_bank'
-export type Quote = { slug: string; episode_idx: number; text: string; source_key?: string; label_run?: string }
+// [G4] 저장본(payload.story_flow)의 slug·name 에는 UUID 가 든 slug 원문을 두지 않는다. 원문 추적은 slug_internal(내부 키 — 화면 렌더 경로 selectionToSimilar 는 읽지 않는다).
+export type Quote = { slug?: string; slug_internal?: string; episode_idx: number; text: string; source_key?: string; label_run?: string }
 export type ScoredPick = {
-  source: Source; slug: string; name: string; chapter: number
-  score: number; situation: number; persuasion: number
+  source: Source; slug: string; slug_internal: string; name: string; chapter: number
+  score: number; situation: number; persuasion: number; evidence: number; stage: string
+  failed: boolean; fail_kind: 'negative' | 'mixed' | null   // [G1] 기준 에피소드가 안 된 시도 — 화면 문구에 표시가 붙는다
   reasons: [string, string]   // [비슷한 이유, 설득력 이유] — 근거 라벨에서만 만든다
   hasFailure: boolean; crossIndustry: boolean; quote: Quote | null; summary_ko: string
 }
@@ -53,9 +55,9 @@ export function scoreCard(card: FlowCard, d: Diagnosis, now = new Date()): numbe
 }
 
 /** 회사(slug)당 1장 — 가장 점수 높은 장 하나만 남긴다. */
-export function dedupeBySlug<T extends { slug: string; score: number }>(xs: T[]): T[] {
+export function dedupeBySlug<T extends { slug: string; score: number }>(xs: T[], key: (x: T) => string = (x) => x.slug): T[] {
   const best = new Map<string, T>()
-  for (const x of xs) { const b = best.get(x.slug); if (!b || x.score > b.score) best.set(x.slug, x) }
+  for (const x of xs) { const k = key(x), b = best.get(k); if (!b || x.score > b.score) best.set(k, x) }
   return [...best.values()]
 }
 
@@ -137,19 +139,29 @@ function toPick(card: SrcCard, d: Diagnosis, source: Source, now: Date): ScoredP
   const cross = source === 'story_flow' && card.relevance_tier !== 'R1'
   const e = anchorEpisode(card) as SrcEp | undefined
   return {
-    source, slug: card.slug, name: card.transfer_ko && source !== 'story_flow' ? card.transfer_ko : card.slug, chapter: card.chapter,
+    source, slug: card.slug, slug_internal: card.slug, name: card.transfer_ko && source !== 'story_flow' ? card.transfer_ko : card.slug, chapter: card.chapter,
     score: scoreCard(card, d, now), situation: Number(situationMatch(card, d.situation).toFixed(3)), persuasion: Number(persuasion(card).toFixed(3)),
+    evidence: evidenceScore(card), stage: card.stage ?? 'unknown',
+    failed: e?.result_class === 'negative' || e?.result_class === 'mixed', fail_kind: e?.result_class === 'negative' || e?.result_class === 'mixed' ? e.result_class : null,
     reasons: [similarWhyV2(card, d, e), persuasiveWhyV2(card, e)], hasFailure: hasFailureEp(card), crossIndustry: cross,
     quote: source === 'story_flow' && e?.quote_orig && sourceAllowed(card)
-      ? { slug: card.slug, episode_idx: e.episode_idx, text: e.quote_orig, source_key: e.source_key ?? card.source_key, label_run: e.label_run ?? card.label_run }
+      ? { slug_internal: card.slug, episode_idx: e.episode_idx, text: e.quote_orig, source_key: e.source_key ?? card.source_key, label_run: e.label_run ?? card.label_run }
       : null,
     summary_ko: [e?.action_ko, e?.result_ko].filter(Boolean).join(' → ').slice(0, 110) || '결과 요약 없음',
   }
 }
-/** 정렬: 병목 장(주된 장 먼저) → 점수(비중·상황·원리·증거·최신성) → 상황 일치 → 설득력 → slug. */
-function rank(xs: ScoredPick[], chapters: number[]): ScoredPick[] {
+/** 정렬: 병목 장(주된 장 먼저) → 점수. [G2] 점수가 같으면(점수 변경 아님) ①상황 일치 ②진단 단계와 같은 카드 ③증거 등급 ④slug. */
+function rank(xs: ScoredPick[], chapters: number[], stage?: string): ScoredPick[] {
   const ci = (c: number) => { const i = chapters.indexOf(c); return i < 0 ? 99 : i }
-  return [...xs].sort((a, b) => ci(a.chapter) - ci(b.chapter) || b.score - a.score || b.situation - a.situation || b.persuasion - a.persuasion || (a.slug < b.slug ? -1 : 1))
+  const st = (p: ScoredPick) => (known(stage) && p.stage === stage ? 1 : 0)
+  return [...xs].sort((a, b) => ci(a.chapter) - ci(b.chapter) || b.score - a.score || b.situation - a.situation || st(b) - st(a) || b.evidence - a.evidence || (a.slug_internal < b.slug_internal ? -1 : 1))
+}
+/** [G4] 저장용 slug — UUID·해시 꼬리를 뗀다(원문은 slug_internal). */
+export const cleanSlug = (raw: string, n: number) => raw.replace(UUID_TAIL, '').replace(HASH_TAIL, '') || `case-${n}`
+/** [G3] 추천 자리 선택 규칙(점수 아님, 순서 규칙, 기본 OFF — 남헌 결정 대기): 진단 단계를 알고 1순위 카드 단계가 알려진 다른 값이면, 2순위가 그렇지 않을 때 둘의 자리를 바꾼다(한 단계 아래로). */
+export function stageFirst(chosen: ScoredPick[], stage?: string): ScoredPick[] {
+  const off = (p?: ScoredPick) => !!p && known(stage) && known(p.stage) && p.stage !== stage
+  return chosen.length >= 2 && off(chosen[0]) && !off(chosen[1]) ? [chosen[1], chosen[0], ...chosen.slice(2)] : chosen
 }
 const empty = (): Record<Source, number> => ({ story_flow: 0, move_tags: 0, case_bank: 0 })
 
@@ -158,7 +170,7 @@ const empty = (): Record<Source, number> => ({ story_flow: 0, move_tags: 0, case
  * 후보가 2장 이상이고 "안 된 시도"(negative·mixed) 카드가 후보에 있으면 3건 안에 1건 이상 넣는다.
  * flowCards 조회 실패 = not_run(근거 부족으로 접지 않는다, §7.1). 폴백 조회 실패는 그 원천만 건너뛰고 note 에 남긴다.
  */
-export async function selectStoryFlow(d: StoryDiagnosis, loaders: Loaders, opts: { now?: Date; limit?: number } = {}): Promise<Selection> {
+export async function selectStoryFlow(d: StoryDiagnosis, loaders: Loaders, opts: { now?: Date; limit?: number; stageFirst?: boolean } = {}): Promise<Selection> {
   const now = opts.now ?? new Date(), limit = opts.limit ?? 3
   const chapters = d.chapters?.length ? d.chapters : [d.chapter]
   const considered = empty(), errors: string[] = [], allow = quoteSources()
@@ -171,17 +183,18 @@ export async function selectStoryFlow(d: StoryDiagnosis, loaders: Loaders, opts:
   } catch (e) {
     return { status: 'not_run', alternatives: [], considered, note: `확인 불가 — 흐름 카드를 조회하지 못했습니다(${e instanceof Error ? e.message : e})` }
   }
-  flow = rank(dedupeBySlug(flow), chapters); considered.story_flow = flow.length
+  const stage = d.situation.stage
+  flow = rank(dedupeBySlug(flow, (x) => x.slug_internal), chapters, stage); considered.story_flow = flow.length
 
   let pool = flow
   if (flow.length < limit) {
-    const used = new Set(flow.map((x) => x.slug))
+    const used = new Set(flow.map((x) => x.slug_internal))
     for (const [src, load] of [['move_tags', loaders.moveTags], ['case_bank', loaders.caseBank]] as const) {
       if (pool.length >= limit || !load) continue
       try {
-        const extra = rank(dedupeBySlug((await load(d.chapter)).filter((c) => eligible(c, d.chapter) && !used.has(c.slug)).map((c) => toPick(c, d, src, now))), chapters)
+        const extra = rank(dedupeBySlug((await load(d.chapter)).filter((c) => eligible(c, d.chapter) && !used.has(c.slug)).map((c) => toPick(c, d, src, now)), (x) => x.slug_internal), chapters, stage)
         considered[src] = extra.length
-        extra.forEach((x) => used.add(x.slug))
+        extra.forEach((x) => used.add(x.slug_internal))
         pool = [...pool, ...extra]
       } catch (e) { errors.push(`${src} 조회 실패: ${e instanceof Error ? e.message : e}`) }
     }
@@ -191,6 +204,8 @@ export async function selectStoryFlow(d: StoryDiagnosis, loaders: Loaders, opts:
     const f = pool.slice(limit).find((x) => x.hasFailure)
     if (f) chosen = [...chosen.slice(0, Math.min(limit, chosen.length) - 1), f]
   }
+  if (opts.stageFirst) chosen = stageFirst(chosen, stage)
+  chosen = chosen.map((p, i) => ({ ...p, slug: cleanSlug(p.slug_internal, i + 1), name: displayName(p.name, i + 1) }))
   const src = [...new Set(chosen.map((x) => x.source))].join('+') || '없음'
   const note = `장 ${chapters.join('·')} · story flow ${considered.story_flow} · 꼬리표 ${considered.move_tags} · 사례 은행 ${considered.case_bank} → ${chosen.length}건(${src})${errors.length ? ' · ' + errors.join(' / ') : ''}`
   if (chosen.length < limit) return { status: errors.length ? 'not_run' : 'insufficient', alternatives: chosen, considered, note: `사례 부족 — ${note}` }
@@ -212,7 +227,9 @@ export function diagnosisFromReport(i: { bottleneck?: string | null; viability?:
 }
 
 /** 결론서 ch1.similar 와 같은 모양(name·what·why). 화면은 이 세 칸만 그린다 — 영어 원문 인용(quote)은 payload.story_flow 에만 남는다. */
-export const selectionToSimilar = (s: Selection) => (s.recommended ? [s.recommended, ...s.alternatives] : []).map((p, i) => ({ name: displayName(p.name, i + 1), what: p.summary_ko, why: `${p.reasons[0]} / ${p.reasons[1]}`.slice(0, 120) }))
+/** [G1] 안 된 시도 카드의 화면 표시(추천 자리든 대안이든 붙는다). */
+export const FAILED_NOTE = { negative: '이 사례는 잘 안 풀린 경우입니다', mixed: '이 사례는 반쯤만 풀린 경우입니다' } as const
+export const selectionToSimilar = (s: Selection) => (s.recommended ? [s.recommended, ...s.alternatives] : []).map((p, i) => ({ name: displayName(p.name, i + 1), failed: p.failed, what: p.fail_kind ? `${FAILED_NOTE[p.fail_kind]} — ${p.summary_ko}` : p.summary_ko, why: `${p.reasons[0]} / ${p.reasons[1]}`.slice(0, 120) }))
 
 /**
  * 깃발 분기 한 곳. 깃발이 'true' 가 아니면 story flow 를 부르지 않고 legacy() 결과를 그대로 돌려준다(기존 경로 100%).
@@ -279,8 +296,9 @@ export function verifyQuotes(
   const mode = opts.mode ?? 'strict'
   const quotes = collectQuotes(payload), mismatches: QuoteCheck['mismatches'] = [], warnings: QuoteCheck['warnings'] = []
   for (const q of quotes) {
-    const base = { slug: q.slug, episode_idx: q.episode_idx, text: q.text }
-    const eps = source[q.slug]
+    const key = q.slug_internal ?? q.slug ?? ''
+    const base = { slug: key, episode_idx: q.episode_idx, text: q.text }
+    const eps = source[key]
     if (!eps) { mismatches.push({ ...base, reason: 'source_missing' }); continue }
     const e = eps.find((x) => x.episode_idx === q.episode_idx && (!q.label_run || !x.label_run || x.label_run === q.label_run) && (!q.source_key || !x.source_key || x.source_key === q.source_key))
     if (!e || !e.quote_orig) { mismatches.push({ ...base, reason: 'episode_missing' }); continue }

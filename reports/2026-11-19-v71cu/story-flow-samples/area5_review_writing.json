@@ -24,11 +24,16 @@
     "recommended": {
       "source": "story_flow",
       "slug": "fx-review-a",
-      "name": "fx-review-a",
+      "slug_internal": "fx-review-a",
+      "name": "Fx Review A",
       "chapter": 5,
       "score": 0.718,
       "situation": 0.9,
       "persuasion": 0.5,
+      "evidence": 0.6,
+      "stage": "zero_rev",
+      "failed": false,
+      "fail_kind": null,
       "reasons": [
         "손님·값대·단계·팀 크기가 같다",
         "숫자로 확인된 결과"
@@ -36,7 +41,7 @@
       "hasFailure": false,
       "crossIndustry": false,
       "quote": {
-        "slug": "fx-review-a",
+        "slug_internal": "fx-review-a",
         "episode_idx": 0,
         "text": "Thirty answer-style posts brought our first three thousand visits.",
         "source_key": "starterstory",
@@ -48,11 +53,16 @@
       {
         "source": "story_flow",
         "slug": "fx-review-b",
-        "name": "fx-review-b",
+        "slug_internal": "fx-review-b",
+        "name": "Fx Review B",
         "chapter": 5,
         "score": 0.495,
         "situation": 0.7,
         "persuasion": 0.385,
+        "evidence": 0.3,
+        "stage": "unknown",
+        "failed": true,
+        "fail_kind": "mixed",
         "reasons": [
           "손님·팀 크기가 같다",
           "말로 확인된 결과(숫자는 없다), 안 된 시도도 함께 담겨 있다"
@@ -60,7 +70,7 @@
         "hasFailure": true,
         "crossIndustry": false,
         "quote": {
-          "slug": "fx-review-b",
+          "slug_internal": "fx-review-b",
           "episode_idx": 0,
           "text": "Ads bought traffic but not signups.",
           "source_key": "starterstory",
@@ -71,11 +81,16 @@
       {
         "source": "move_tags",
         "slug": "fx-mt-1",
+        "slug_internal": "fx-mt-1",
         "name": "합성회사 일",
         "chapter": 5,
         "score": 0.635,
         "situation": 0.9,
         "persuasion": 0.15,
+        "evidence": 0.6,
+        "stage": "zero_rev",
+        "failed": false,
+        "fail_kind": null,
         "reasons": [
           "손님·값대·단계·팀 크기가 같다",
           "결과가 원문에 적혀 있다"

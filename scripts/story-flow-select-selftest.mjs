@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
 import { fetchFlowCards } from '../lib/consult/story-flow.ts'
-import { scoreCard, evidenceScore, recencyScore, dedupeBySlug, selectStoryFlow, chooseSimilar, diagnosisFromReport, selectionToSimilar, verifyQuotes, iGa, similarWhyV2, displayName, anchorEpisode, sourceAllowed, cardFromMoveTag, cardFromCaseBank, W } from '../lib/consult/story-flow-select.ts'
+import { scoreCard, evidenceScore, recencyScore, dedupeBySlug, selectStoryFlow, chooseSimilar, diagnosisFromReport, selectionToSimilar, verifyQuotes, iGa, similarWhyV2, displayName, anchorEpisode, sourceAllowed, stageFirst, FAILED_NOTE, cardFromMoveTag, cardFromCaseBank, W } from '../lib/consult/story-flow-select.ts'
 
 const fx = JSON.parse(readFileSync(new URL('../fixtures/story-flow/cards.json', import.meta.url), 'utf8'))
 const now = new Date('2026-11-19T00:00:00Z')
@@ -173,4 +173,44 @@ const pr = spawnSync(process.execPath, [new URL('./story-flow-refresh.mjs', impo
 assert.equal(pr.status, 0); assert.ok(pr.stdout.includes('REFRESH MATERIALIZED VIEW public.story_flow_cards_mat;'))
 // F6 실제 경로 진단은 장·단계만 채운다(설계 한계 고정 — 칸을 늘리면 이 테스트를 갱신한다)
 for (const v of Object.values(fx.real_inputs)) { const d = diagnosisFromReport(v); assert.ok(d && Object.keys(d.situation).join() === 'stage' && !d.mechanism) }
+// ── 재검수 수정(G1~G4) ──
+// G1 안 된 시도 카드는 payload(failed·fail_kind)와 화면 문구 모두에 표시
+s = await selectStoryFlow(dSales, { flowCards: async () => sales }, { now })
+const pc = [s.recommended, ...s.alternatives].find((p) => p.slug === 'fx-sales-c')
+assert.equal(pc.failed, true); assert.equal(pc.fail_kind, 'negative')
+assert.equal(s.recommended.failed, false)
+const failRec = { status: 'ok', recommended: { ...pc }, alternatives: [s.recommended], considered: {}, note: '' }
+const fi = selectionToSimilar(failRec)
+assert.ok(fi[0].failed === true && fi[0].what.startsWith(FAILED_NOTE.negative), '추천 자리 실패 사례에 "잘 안 풀린 경우" 표시')
+assert.ok(fi[1].failed === false && !fi[1].what.includes('안 풀린'))
+// G2 동점: 상황 일치 → 진단 단계 같은 카드 → 증거 → slug (점수식 불변)
+const dZ = { chapter: 5, situation: { stage: 'zero_rev', customer: 'smb' } }
+const base5 = fx.cards.find((c) => c.slug === 'fx-review-a')
+const tie = (slug, o) => ({ ...base5, slug, customer: 'unknown', price_band: 'unknown', team_size: 'unknown', pricing_model: 'unknown', ...o })
+const X = tie('zz-stage-match', { stage: 'zero_rev', customer: 'enterprise' }), Y = tie('aa-stage-unknown', { stage: 'unknown', customer: 'unknown' })
+assert.equal(scoreCard(X, dZ, now), scoreCard(Y, dZ, now), '점수 같음(전제)')
+s = await selectStoryFlow(dZ, { flowCards: async () => [Y, X, tie('mm-third', { stage: 'growing', weight: 40 })] }, { now })
+assert.equal(s.recommended.slug, 'zz-stage-match', '동점이면 slug 알파벳이 아니라 진단 단계가 같은 카드가 먼저')
+// G3 추천 자리 단계 우선: 기본 OFF(결과 불변), 옵션 ON 이면 단계 다른 1순위를 한 칸 아래로
+const P = (slug, stage) => ({ slug, slug_internal: slug, stage })
+assert.deepEqual(stageFirst([P('a', 'growing'), P('b', 'zero_rev'), P('c', 'growing')], 'zero_rev').map((x) => x.slug), ['b', 'a', 'c'])
+assert.deepEqual(stageFirst([P('a', 'growing'), P('b', 'growing')], 'zero_rev').map((x) => x.slug), ['a', 'b'], '둘 다 다르면 그대로')
+assert.deepEqual(stageFirst([P('a', 'unknown'), P('b', 'zero_rev')], 'zero_rev').map((x) => x.slug), ['a', 'b'], '카드 단계 모름은 다르다고 보지 않는다')
+assert.deepEqual(stageFirst([P('a', 'growing'), P('b', 'zero_rev')], undefined).map((x) => x.slug), ['a', 'b'], '진단 단계 모름이면 그대로')
+const stCards = [tie('s1-growing', { stage: 'growing', weight: 90 }), tie('s2-zero', { stage: 'zero_rev', weight: 60 }), tie('s3-zero', { stage: 'zero_rev', weight: 50 })]
+const offSel = await selectStoryFlow(dZ, { flowCards: async () => stCards }, { now })
+const onSel = await selectStoryFlow(dZ, { flowCards: async () => stCards }, { now, stageFirst: true })
+assert.equal(offSel.recommended.slug, 's1-growing', '기본 OFF — 점수 순 그대로')
+assert.equal(onSel.recommended.slug, 's2-zero'); assert.equal(onSel.alternatives[0].slug, 's1-growing')
+assert.ok(!readFileSync(new URL('../lib/consult/report/compose.ts', import.meta.url), 'utf8').includes('stageFirst'), 'compose(결론서)는 단계 우선 규칙을 켜지 않는다')
+// G4 저장본: UUID slug 원문은 slug_internal 에만, slug·name·화면 칸에는 없다
+const UU = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+const uSel = await selectStoryFlow(dSales, { flowCards: async () => uuidCards }, { now })
+const leaks = []
+const walk = (v, k) => { if (typeof v === 'string') { if (UU.test(v) && k !== 'slug_internal') leaks.push(k) } else if (v && typeof v === 'object') for (const [kk, vv] of Object.entries(v)) walk(vv, kk) }
+walk(uSel, ''); assert.deepEqual(leaks, [], 'payload.story_flow 에 slug_internal 밖 UUID 없음')
+assert.ok([uSel.recommended, ...uSel.alternatives].every((p) => UU.test(p.slug_internal) && !UU.test(p.slug) && !UU.test(p.name)))
+const uItems = selectionToSimilar(uSel)
+assert.ok(uItems.every((x) => !('slug_internal' in x) && !UU.test(JSON.stringify(x))), '화면 렌더 칸에는 내부 키·UUID 없음')
+assert.ok(verifyQuotes({ story_flow: uSel }, Object.fromEntries(uuidCards.map((c) => [c.slug, c.episodes]))).ok, '인용 검증은 slug_internal 로 원문을 찾는다')
 console.log('story-flow-select-selftest: 통과')

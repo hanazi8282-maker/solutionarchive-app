@@ -112,6 +112,14 @@ const ADAPTERS = {
   // shopify_apps = 약관 금지를 알고 남헌이 켠 소스(override owner_2026-10-08). 둘 다 403·429·빈 응답·캡차 즉시 중단(abortOnChallenge).
   wordpress_org: wordpressAdapter,
   shopify_apps: shopifyAdapter,
+  // v71cu S5-3 새 포럼 7곳(owner_2026-11-19). import 만 있고 이 맵에 빠져 첫 수집이 0건이었다(2026-11-19 원인 진단).
+  mautic_forum: mauticForumAdapter,
+  frappe_forum: frappeForumAdapter,
+  suitecrm_community: suitecrmCommunityAdapter,
+  invoiceninja_forum: invoiceninjaForumAdapter,
+  obsidian_forum: obsidianForumAdapter,
+  ghost_forum: ghostForumAdapter,
+  shopify_community: shopifyCommunityAdapter,
 }
 
 const args = process.argv.slice(2)

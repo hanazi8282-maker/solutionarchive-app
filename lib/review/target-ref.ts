@@ -36,7 +36,7 @@ import { HOST as THEQOO_HOST, parseProductRef as parseTheqooRef } from './adapte
 import { HOST as TODAYHUMOR_HOST, parseProductRef as parseTodayhumorRef } from './adapters/todayhumor.ts'
 import { HOST as TUMBLBUG_HOST, parseProductRef as parseTumblbugRef } from './adapters/tumblbug.ts'
 import { BOARDS as VELOG_BOARDS, HOST as VELOG_HOST, parseProductRef as parseVelogRef } from './adapters/velog.ts'
-import { parseProductRef as parseYoutubeRef } from './adapters/youtube.ts'
+import { parseProductRef as parseYoutubeRef, parseChannelRef as parseYoutubeChannelRef } from './adapters/youtube.ts'
 import { BOARDS as DISQUIET_BOARDS, HOST as DISQUIET_HOST, parseProductRef as parseDisquietRef } from './adapters/disquiet.ts'
 import { parseProductRef as parseProducthuntRef } from './adapters/producthunt.ts'
 import { parseProductRef as parseGoogleplayRef } from './adapters/googleplay.ts'
@@ -110,6 +110,8 @@ function googleplayRef(raw: string): RefResult {
 function youtubeRef(raw: string): RefResult {
   const s = raw.trim()
   const hint = '(예: https://www.youtube.com/watch?v=dQw4w9WgXcQ 또는 영상 ID 11자)'
+  const ch = parseYoutubeChannelRef(s)
+  if (ch) return { ok: true, productRef: `ch:${ch}` } // v71cu-2 1-4 채널 타깃
   if (!s) return { ok: false, error: `YouTube 영상 URL 또는 영상 ID 를 입력해주세요. ${hint}` }
   let id: string | null = null
   try {
@@ -349,6 +351,13 @@ export const REF_BUILDERS: Record<string, (raw: string) => RefResult> = {
   softr_community: boardOnlyRef(SOFTR_COMMUNITY_BOARDS),
   dcinside: boardOnlyRef(DCINSIDE_BOARDS),
   ruliweb: boardOnlyRef(RULIWEB_BOARDS),
+  mautic_forum: boardOnlyRef(MAUTIC_FORUM_BOARDS),
+  frappe_forum: boardOnlyRef(FRAPPE_FORUM_BOARDS),
+  suitecrm_community: boardOnlyRef(SUITECRM_COMMUNITY_BOARDS),
+  invoiceninja_forum: boardOnlyRef(INVOICENINJA_FORUM_BOARDS),
+  obsidian_forum: boardOnlyRef(OBSIDIAN_FORUM_BOARDS),
+  ghost_forum: boardOnlyRef(GHOST_FORUM_BOARDS),
+  shopify_community: boardOnlyRef(SHOPIFY_COMMUNITY_BOARDS),
   github_issues: boardOnlyRef(GITHUB_REPOS),
   stackexchange: boardOnlyRef(STACKEXCHANGE_BOARDS),
   googleplay: googleplayRef,

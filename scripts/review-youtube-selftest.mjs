@@ -13,7 +13,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { youtubeAdapter, MAX_RESULTS, parseProductRef } from '../lib/review/adapters/youtube.ts'
+import { youtubeAdapter, MAX_RESULTS, parseProductRef, parseChannelRef } from '../lib/review/adapters/youtube.ts'
 import { classifyBlockedResponse } from '../lib/review/health.ts'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -134,6 +134,19 @@ const ctx = (cursor = null) => ({ productRef: 'v:dQw4w9WgXcQ', cursor })
     'blocked',
   )
   t('표지 없는 403 은 blocked', classifyBlockedResponse('Forbidden', youtubeAdapter.quotaMarkers), 'blocked')
+}
+
+// v71cu-2 1-4: 채널 타깃 ch:UC…
+{
+  const ch = 'UC' + 'a'.repeat(22)
+  t('ch: 형식 인식', parseChannelRef('ch:' + ch), ch)
+  t('ch: 잘못된 ID 거부', parseChannelRef('ch:abc'), null)
+  process.env.YOUTUBE_API_KEY = 'x'
+  const u = youtubeAdapter.nextRequest({ productRef: 'ch:' + ch, cursor: null })?.url ?? ''
+  ok('ch: 요청이 allThreadsRelatedToChannelId 를 쓴다', u.includes('allThreadsRelatedToChannelId=' + ch) && !u.includes('videoId='))
+  const body = JSON.stringify({ items: [{ id: 'T1', snippet: { videoId: 'abcdefghijk', topLevelComment: { id: 'C1', snippet: { textOriginal: '좋아요', publishedAt: '2026-11-01T00:00:00Z' } } } }] })
+  const r = youtubeAdapter.parse(body, { productRef: 'ch:' + ch })
+  ok('ch: 파싱 1건·영상ID 접두', r.reviews.length === 1 && r.reviews[0].text.includes('abcdefghijk'))
 }
 
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)

@@ -3505,8 +3505,9 @@
       "registered_at": "2026-10-20T01:07:56.501Z",
       "baseline_total_collected": 0,
       "new_per_request": 33,
-      "status": "adopted",
-      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql"
+      "status": "kept",
+      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql",
+      "evaluated_at": "2026-11-19T03:42:55.798Z"
     },
     {
       "id": "86e293ce-5cad-4605-baf4-4a1b5856128c",
@@ -3557,8 +3558,9 @@
       "registered_at": "2026-10-20T01:07:56.501Z",
       "baseline_total_collected": 0,
       "new_per_request": 29,
-      "status": "adopted",
-      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql"
+      "status": "kept",
+      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql",
+      "evaluated_at": "2026-11-19T03:42:55.798Z"
     },
     {
       "id": "8f19f5f9-6ce6-4a04-a124-be60a04b733d",
@@ -3570,8 +3572,9 @@
       "registered_at": "2026-10-20T01:07:56.501Z",
       "baseline_total_collected": 0,
       "new_per_request": 29,
-      "status": "adopted",
-      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql"
+      "status": "kept",
+      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql",
+      "evaluated_at": "2026-11-19T03:42:55.798Z"
     },
     {
       "id": "15c6b312-859a-4605-87e7-363e1e5f2ec8",
@@ -3622,8 +3625,9 @@
       "registered_at": "2026-10-20T01:07:56.501Z",
       "baseline_total_collected": 0,
       "new_per_request": 27,
-      "status": "adopted",
-      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql"
+      "status": "kept",
+      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql",
+      "evaluated_at": "2026-11-19T03:42:55.798Z"
     },
     {
       "id": "3e5c1129-b5a2-4c39-b228-8a12fba92bed",
@@ -3674,8 +3678,9 @@
       "registered_at": "2026-10-20T01:07:56.501Z",
       "baseline_total_collected": 0,
       "new_per_request": 25,
-      "status": "adopted",
-      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql"
+      "status": "kept",
+      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql",
+      "evaluated_at": "2026-11-19T03:42:55.798Z"
     },
     {
       "id": "afd88daa-5b0f-4970-8618-cc23689757be",
@@ -3687,8 +3692,9 @@
       "registered_at": "2026-10-20T01:07:56.501Z",
       "baseline_total_collected": 0,
       "new_per_request": 25,
-      "status": "adopted",
-      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql"
+      "status": "kept",
+      "rollback": "reports/2026-10-20/window-discovery-rollback-20261020T010756.sql",
+      "evaluated_at": "2026-11-19T03:42:55.798Z"
     },
     {
       "id": "ef95c547-485e-4806-9336-f06a9d7645f6",

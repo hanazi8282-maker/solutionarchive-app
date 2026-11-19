@@ -234,6 +234,8 @@ jobs:
       #             200 으로 와도 실패로 떨어지는지, 목록 403 이 러너 공용 가드로 멈추고 소스를 끄는지.
       - run: node scripts/review-devto-selftest.mjs
       - run: node scripts/review-discourse-selftest.mjs
+      #   dcinside·ruliweb(v71cu S5b): 남헌 owner_2026-11-19 로 켠 소스. 지워진 글·챌린지·403 즉시 중단, 닉네임·이메일 미저장.
+      - run: node scripts/review-robots4-selftest.mjs
       #   github_issues·stackexchange(v71ad §5 d): 무토큰 공식 API. PR·봇·메인테이너 거름, 작성자 미저장, 403/429/400/HTML → 요청 1건 뒤 차단 중단.
       - run: node scripts/review-official-api-selftest.mjs
       - run: node scripts/anchor-selftest.mjs

@@ -167,7 +167,7 @@ function isParseBroken(r: SoftSkipRow): boolean | null {
 // enabled 는 건드리지 않는다(남헌 10-07 '켜 둔다' 결정 유지) — 읽기 전용 soft-skip 이라 사람이 --source= 로 직접 돌리면 재개된다.
 export const HALT_ON_BLOCK_SOURCES: ReadonlySet<string> = new Set([
   'shopify_apps', 'indiehackers',
-  'n8n_community', 'make_community', 'bubble_forum', 'retool_community', 'glide_community', 'softr_community', 'mautic_forum', 'frappe_forum', 'suitecrm_community', 'invoiceninja_forum', 'obsidian_forum', 'ghost_forum', 'shopify_community',
+  'n8n_community', 'make_community', 'bubble_forum', 'retool_community', 'glide_community', 'softr_community', 'mautic_forum', 'frappe_forum', 'suitecrm_community', 'invoiceninja_forum', 'obsidian_forum', 'ghost_forum', 'shopify_community', 'dcinside', 'ruliweb',
 ])
 
 /** 순수 함수. runs = 그 소스의 비-dry-run 실행(순서 무관). key 가 HALT_ON_BLOCK_SOURCES 면 최근 차단에서 멈춘다. */

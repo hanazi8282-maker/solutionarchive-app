@@ -166,7 +166,7 @@ export function gpAreaPriorityOn(v: string | undefined = process.env.GP_AREA_PRI
  * appStore 가 null(조회 실패)이면 입력 순서 그대로 돌려준다.
  * areas(프로젝트 → area_code)가 있으면 **같은 등급 안에서만** GP_AREA_ORDER 순으로 앞에 둔다. null 이면 영역 우선 없음(기존과 같은 배열).
  */
-export function orderGooglePlayTargets<T extends { projectId: string; lastRunAt: string | null; totalCollected: number }>(
+export function orderGooglePlayTargets<T extends { projectId: string; lastRunAt: string | null; totalCollected: number; revisit?: boolean }>(
   rows: T[],
   appStore: Map<string, AppStoreSummary> | null,
   repeat: boolean = GP_PRIORITY_REPEAT,
@@ -176,6 +176,8 @@ export function orderGooglePlayTargets<T extends { projectId: string; lastRunAt:
   if (!appStore) return rows
   const rank = (r: T) => {
     const a = appStore.get(r.projectId)
+    // v71cu S3: 다시 보기(exhausted ∧ ≤50건 ∧ 끝 표시 없음) — 미방문 다음, 방문 active 앞. 수집 적은 순(owed).
+    if (r.revisit) return 2
     if (r.lastRunAt === null) return a?.exhausted ? 0 : 1
     return repeat && a?.exhausted && a.collected < GP_REPEAT_BELOW ? 2 : 3
   }
@@ -183,7 +185,7 @@ export function orderGooglePlayTargets<T extends { projectId: string; lastRunAt:
     const i = areas ? areaOrder.indexOf(areas.get(r.projectId) ?? '') : -1
     return i === -1 ? areaOrder.length : i
   }
-  const owed = (r: T) => (rank(r) === 2 ? appStore.get(r.projectId)!.collected + r.totalCollected : 0)
+  const owed = (r: T) => (rank(r) === 2 ? (appStore.get(r.projectId)?.collected ?? 0) + r.totalCollected : 0)
   return [...rows].sort((x, y) => rank(x) - rank(y) || area(x) - area(y) || owed(x) - owed(y))
 }
 
@@ -879,7 +881,7 @@ export async function runCollection(
         cursor = null
         break
       }
-      if (staleStreak >= STALE_STREAK_TO_STOP) {
+      if (staleStreak >= STALE_STREAK_TO_STOP && !parsed.staleExpected) {
         outcome = `이미 본 구간 도달(연속 ${staleStreak}건)`
         status = 'active'
         break
@@ -888,8 +890,10 @@ export async function runCollection(
 
     // 어댑터 상한(maxPagesPerRun)에 걸린 증분형 타깃은 커서를 버린다 — 들고 가면 다음 실행이 더 오래된
     // 페이지부터 읽어 새 리뷰를 못 본다(types.ts maxPagesPerRun). 상한에 걸린 사실은 아래 label 에 남는다(§7.2).
+    // v71cu S3: cursorAtCap 을 선언한 어댑터(googleplay)는 버리지 않고 그 값(최신부터 + 옛 쪽 커서 보관)을 저장한다.
     const resetAtCap = outcome === '진행' && adapter.incrementalOnly === true && adapter.maxPagesPerRun != null
-    if (resetAtCap) cursor = null
+    if (resetAtCap) cursor = adapter.cursorAtCap ? adapter.cursorAtCap(cursor) : null
+    const keptAtCap = resetAtCap && cursor !== null
 
     const consecutiveEmpty = collected === 0 ? target.consecutiveEmpty + 1 : 0
 
@@ -924,7 +928,9 @@ export async function runCollection(
       !opts.dryRun &&
       !aborted &&
       status === 'active' &&
-      consecutiveEmpty >= closeAfter
+      consecutiveEmpty >= closeAfter &&
+      // v71cu S3: 옛 쪽 페이지가 남은 타깃은 "새 글 0건"이어도 고갈이 아니다 — 끝까지 내려간 뒤에 닫는다.
+      !(adapter.deepPending?.(cursor) ?? false)
     ) {
       status = 'exhausted'
       emptyClose = `연속 ${consecutiveEmpty}회 0건 → 닫음(${consecutiveEmpty}/${closeAfter})`
@@ -951,6 +957,8 @@ export async function runCollection(
     const capped = outcome === '진행'
     const label = !capped
       ? outcome
+      : keptAtCap
+        ? `페이지 상한 ${pageCap} 도달(어댑터 상한) — 다음 실행은 최신부터, 옛 쪽 커서는 보관`
       : resetAtCap
         ? `페이지 상한 ${pageCap} 도달(어댑터 상한) — 증분형이라 커서를 버리고 다음 실행은 최신부터`
         : `페이지 상한 ${pageCap} 도달 — 다음 실행에서 이어 읽는다`

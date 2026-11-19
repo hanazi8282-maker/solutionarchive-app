@@ -16,6 +16,16 @@ import { CROSS_TARGET_MIN_TEXT_LEN } from './fingerprint.ts'
 import type { AppStoreSummary, RunnerStore, SourceConfig, TargetProgress } from './runner.ts'
 import { GP_PRIORITY_APPSTORE_SOURCE, GP_PRIORITY_SOURCE, gpAreaPriorityOn, isOwnerRobotsOverride, orderGooglePlayTargets, summarizeAppStore } from './runner.ts'
 import type { Fingerprint, TargetState } from './types.ts'
+import { decodeDeep, gpDeepOn } from './adapters/googleplay.ts'
+
+/** v71cu S3: 다시 보는 exhausted 구글 플레이 타깃의 수집 상한(이하)과 실행당 개수 기본값(리포 변수 GP_REVISIT_PER_RUN, 하드 천장 200). */
+export const GP_REVISIT_MAX_COLLECTED = 50
+export const GP_REVISIT_PER_RUN_DEFAULT = 5
+/** 빈값·숫자 아님 → 기본 5, 0 = 다시 보기 끔, 200 위는 200. */
+export function gpRevisitPerRun(raw: string | undefined): number {
+  const n = raw?.trim() ? Math.floor(Number(raw)) : GP_REVISIT_PER_RUN_DEFAULT
+  return Number.isFinite(n) && n >= 0 ? Math.min(n, 200) : GP_REVISIT_PER_RUN_DEFAULT
+}
 
 type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
 
@@ -90,7 +100,31 @@ export function createReviewStore(supabase: Supa): RunnerStore {
       .order('created_at', { ascending: true })
 
     if (error) throw new Error(`타깃 조회 실패: ${error.message}`)
-    const rows = (data ?? []).map((r) => ({ ...r, projectId: r.project_id, lastRunAt: r.last_run_at, totalCollected: r.total_collected ?? 0 }))
+    const rows = (data ?? []).map((r) => ({ ...r, projectId: r.project_id, lastRunAt: r.last_run_at, totalCollected: r.total_collected ?? 0, revisit: false }))
+
+    // v71cu S3: 깊이 수집이 켜져 있으면 exhausted ∧ ≤50건 ∧ 끝 표시 없는 타깃을 실행당 GP_REVISIT_PER_RUN(기본 5)개 다시 본다.
+    // 쓰기는 러너 saveTargetProgress 그대로 — 새 글이 나오거나 옛 쪽이 남으면 active, 아니면 다시 exhausted(+끝 표시)로 닫힌다.
+    // 못 읽으면 다시 보기 없이 돈다(§7.1: ⚠️ 한 줄, 수집은 막지 않는다).
+    const revisitN = gpDeepOn() ? gpRevisitPerRun(process.env.GP_REVISIT_PER_RUN) : 0
+    if (revisitN > 0) {
+      try {
+        let rq = supabase
+          .from('review_targets')
+          .select(`${TARGET_COLUMNS}, last_run_at`)
+          .eq('source_key', GP_PRIORITY_SOURCE)
+          .eq('status', 'exhausted')
+          .lte('total_collected', GP_REVISIT_MAX_COLLECTED)
+        for (const f of visitFilters(process.env)) rq = rq.or(f)
+        const { data: ex, error: exErr } = await rq.order('total_collected', { ascending: true }).order('created_at', { ascending: true })
+        if (exErr) throw new Error(exErr.message)
+        // ponytail: 끝 표시는 JS 로 거른다(대상 ≤ 수백 행). 커지면 cursor 칸 조건을 쿼리로 내린다.
+        for (const r of (ex ?? []).filter((r) => !decodeDeep(r.cursor).end).slice(0, revisitN)) {
+          rows.push({ ...r, projectId: r.project_id, lastRunAt: r.last_run_at, totalCollected: r.total_collected ?? 0, revisit: true })
+        }
+      } catch (e) {
+        console.warn(`⚠️ [review/store] googleplay revisit (≤${GP_REVISIT_MAX_COLLECTED}) unreadable (${(e as Error).message}) — no revisit this run`)
+      }
+    }
 
     const projectIds = [...new Set(rows.map((r) => r.projectId))]
     let appStore: Map<string, AppStoreSummary> | null = null

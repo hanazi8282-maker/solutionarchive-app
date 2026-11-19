@@ -184,6 +184,11 @@ export interface ParseResult {
    */
   pauseRun?: boolean
   /**
+   * v71cu S3: 다음 페이지는 일부러 읽는 옛 쪽(back) 페이지다 — 이미 본 날짜의 리뷰가 나오는 게 정상이라
+   * 러너의 증분 종료(STALE_STREAK_TO_STOP)를 이 페이지 뒤에 걸지 않는다(옵셔널). 끝은 어댑터가 nextCursor·pauseRun 으로 낸다.
+   */
+  staleExpected?: boolean
+  /**
    * **삭제됐거나 없는 글이라 건너뛴 경로들**(옵셔널, 2026-09-30 velog soft-404).
    *
    * ⚠️ parseFailures 가 아니다 — 파서가 고장 난 게 아니라 글이 없다. reviews 에도 안 넣는다.
@@ -347,8 +352,18 @@ export interface ReviewSourceAdapter {
    *
    * ⚠️ `incrementalOnly` 와 함께 선언한 소스는 이 상한에 걸려 끝나면 **커서를 버린다**(다음 실행은 최신부터).
    *    커서를 들고 가면 다음 실행이 더 오래된 페이지부터 읽어, 새 리뷰를 영영 못 본다(runner.ts pageCap).
+   *    예외: 아래 `cursorAtCap` 을 선언한 어댑터는 버리는 대신 그 함수가 준 값을 저장한다(v71cu S3).
    */
   maxPagesPerRun?: number
+
+  /**
+   * v71cu S3: 페이지 상한에 걸려 끝났을 때 저장할 커서(옵셔널). 없으면 null(위 "버린다" 그대로).
+   * googleplay 는 "다음 실행은 최신부터 + 옛 쪽 커서(back)는 보관"을 여기서 만든다.
+   */
+  cursorAtCap?(cursor: string | null): string | null
+
+  /** v71cu S3: 이 커서에 아직 읽을 옛 쪽 페이지가 남아 있는가(옵셔널). true 면 러너가 연속 0건으로 닫지 않는다. */
+  deepPending?(cursor: string | null): boolean
 
   /**
    * **이 소스의 `externalId` 는 타깃(상품) 안에서만 유일하다 — 사이트 전역이 아니다.**

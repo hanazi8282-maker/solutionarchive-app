@@ -244,6 +244,10 @@ jobs:
           KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
           # v71v 1: 구글 플레이 같은 등급 안 영역(①>④>⑤) 우선. 미설정=on, 리포 변수 off/false/0 이면 옛 순서(한 줄 되돌리기).
           GP_AREA_PRIORITY: ${{ vars.GP_AREA_PRIORITY }}
+          # v71cu S3: 구글 플레이 깊이 수집(옛 쪽 커서·끝 표시·≤50건 exhausted 다시 보기). 미설정=on, 리포 변수 off 면 옛 동작.
+          GP_DEEP_PAGING: ${{ vars.GP_DEEP_PAGING || 'on' }}
+          # 실행당 다시 보는 exhausted ≤50 타깃 수(기본 5, 0=끔, 천장 200). 요청은 일일 상한·램프 목표 안에서만 쓴다.
+          GP_REVISIT_PER_RUN: ${{ vars.GP_REVISIT_PER_RUN }}
         run: |
           node scripts/review-collect.mjs \
             --source=${{ inputs.source || 'all' }} \

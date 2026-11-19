@@ -6,6 +6,7 @@ import {
   type Diagnosis, type Episode, type FlowCard, BOTTLENECK_CHAPTERS, COUNTED, EVID, GRAIN_SCORE,
   chapterEps, crossOk, eligible, fetchFlowCards, hasFailureEp, known, persuasion, situationMatch, storyFlowEnabled,
 } from './story-flow.ts'
+import { topicMatch, type TopicProfile } from './story-flow-topic.ts'
 
 export type Source = 'story_flow' | 'move_tags' | 'case_bank'
 // [G4] 저장본(payload.story_flow)의 slug·name 에는 UUID 가 든 slug 원문을 두지 않는다. 원문 추적은 slug_internal(내부 키 — 화면 렌더 경로 selectionToSimilar 는 읽지 않는다).
@@ -16,13 +17,20 @@ export type ScoredPick = {
   failed: boolean; fail_kind: 'negative' | 'mixed' | null   // [G1] 기준 에피소드가 안 된 시도 — 화면 문구에 표시가 붙는다
   reasons: [string, string]   // [비슷한 이유, 설득력 이유] — 근거 라벨에서만 만든다
   hasFailure: boolean; crossIndustry: boolean; quote: Quote | null; summary_ko: string
+  topic?: number   // [B2] 주제 일치(opts.topic 일 때만)
 }
 export type Selection = {
   status: 'ok' | 'insufficient' | 'not_run' | 'no_chapter'
   recommended?: ScoredPick; alternatives: ScoredPick[]
   considered: Record<Source, number>; note: string
 }
-export type StoryDiagnosis = Diagnosis & { chapters?: number[] }   // 병목이 장 여러 개면 앞이 주된 장
+export type StoryDiagnosis = Diagnosis & { chapters?: number[]; topic?: TopicProfile; enrich_basis?: Record<string, string> }   // 병목이 장 여러 개면 앞이 주된 장. topic·enrich_basis 는 [B1] enrichDiagnosis 가 채운다
+/** [B2] 선택 옵션. 전부 기본 OFF = 기존 동작 그대로(compose.ts 는 아무것도 넘기지 않는다).
+ * - stageFirst: [G3] 추천 자리 단계 우선
+ * - topic: 사업 설명 ↔ 카드 주제 일치를 상황 일치 항(0.30) 안의 6번째 칸으로 넣는다. 진단에 topic 신호가 없으면 효과 0(기존 5칸 평균 그대로). */
+export type SelectOpts = { now?: Date; limit?: number; stageFirst?: boolean; topic?: boolean }
+/** [B3] 권장 설정(남헌 결정 B안 — 켜는 결정은 따로): 단계 우선 ON + 주제 신호 ON. 진단은 enrichDiagnosis 로 채워서 넘긴다. */
+export const STORY_FLOW_B_OPTS = { stageFirst: true, topic: true } as const satisfies SelectOpts
 export type Loaders = {
   flowCards: (chapter: number) => Promise<FlowCard[]>
   moveTags?: (chapter: number) => Promise<FlowCard[]>
@@ -47,10 +55,16 @@ export function recencyScore(card: FlowCard, now: Date): number {
   const years = (now.getTime() - t) / (365.25 * 864e5)
   return Math.min(1, Math.max(0, 1 - years / RECENCY_YEARS))
 }
-/** score = 0.35×weight/100 + 0.30×상황 일치(모름=0.5) + 0.15×mechanism 일치 + 0.15×증거 + 0.05×최신성. 0~1. */
-export function scoreCard(card: FlowCard, d: Diagnosis, now = new Date()): number {
+/** [B2] 상황 일치 — topic 이 참이고 진단에 주제 신호가 있으면 기존 5칸(손님·값대·단계·팀·과금)에 주제 일치 1칸을 더한 6칸 평균, 아니면 기존 situationMatch 그대로. 가중치 0.30 은 불변. */
+export function situationWithTopic(card: FlowCard, d: StoryDiagnosis, topic = false): number {
+  const base = situationMatch(card, d.situation)
+  if (!topic || !d.topic || (!d.topic.concepts.length && !d.topic.tokens.length)) return base
+  return (base * 5 + topicMatch(card, d.topic)) / 6
+}
+/** score = 0.35×weight/100 + 0.30×상황 일치(모름=0.5) + 0.15×mechanism 일치 + 0.15×증거 + 0.05×최신성. 0~1. [B2] opts.topic 이면 상황 일치에 주제 칸이 들어간다(상수 불변). */
+export function scoreCard(card: FlowCard, d: StoryDiagnosis, now = new Date(), opts: { topic?: boolean } = {}): number {
   const weight = Math.min(1, Math.max(0, card.weight / 100))
-  const s = W.weight * weight + W.situation * situationMatch(card, d.situation) + W.mechanism * mechanismScore(card, d) + W.evidence * evidenceScore(card) + W.recency * recencyScore(card, now)
+  const s = W.weight * weight + W.situation * situationWithTopic(card, d, opts.topic) + W.mechanism * mechanismScore(card, d) + W.evidence * evidenceScore(card) + W.recency * recencyScore(card, now)
   return Number(s.toFixed(4))
 }
 
@@ -132,29 +146,54 @@ export function displayName(raw: string, n: number): string {
   const s = (raw ?? '').replace(/^case_bank:/, '').trim().replace(UUID_TAIL, '').replace(HASH_TAIL, '').replace(/[-_]+/g, ' ').trim()
   const machine = (w: string) => /\d/.test(w) && /^[0-9a-f]{6,}$/i.test(w)
   if (!/[a-z가-힣]/i.test(s) || s.split(' ').some(machine)) return `비슷한 사례 ${n}`
-  return s.replace(/(^|\s)([a-z])/g, (_, sp, ch) => sp + ch.toUpperCase()).slice(0, 60)
+  return clipText(s.replace(/(^|\s)([a-z])/g, (_, sp, ch) => sp + ch.toUpperCase()), 60)
+}
+/** 문장 끝: . ! ? 。 또는 한국어 종결(다·요·음·함·임, 뒤에 마침표 선택) 뒤 공백. "$1.2k" 처럼 공백 없는 마침표는 끝이 아니다. */
+const SENTENCE_END = /(?<=[.!?。]|[다요음함임][.!?]?)\s+/
+/**
+ * 고객 화면 문장 자르기 — 글자 수로 문장·낱말 중간을 끊지 않는다. 한도 안이면 그대로.
+ * 넘치면 한도 안에 드는 완결 문장까지만, 완결 문장이 하나도 안 들어가면 낱말(공백) 경계에서 자르고 '…'. 공백 없는 토큰($1.2k·40%)은 쪼개지 않는다.
+ */
+export function clipText(raw: string, max: number): string {
+  const t = (raw ?? '').replace(/\s+/g, ' ').trim()
+  if (t.length <= max) return t
+  let out = ''
+  for (const s of t.split(SENTENCE_END)) { const next = out ? `${out} ${s}` : s; if (next.length > max) break; out = next }
+  if (out) return out
+  const cut = t.slice(0, max).lastIndexOf(' ')
+  return `${(cut > 0 ? t.slice(0, cut) : t.slice(0, max - 1)).replace(/[\s,·:;—\-/→]+$/, '')}…`
+}
+/** [B 후속] 요약 = 행동 → 결과. 둘 다 들어가면 그대로, 행동만 들어가면 결과는 남는 자리에 문장·낱말 경계로(남는 자리가 20자 미만이면 뺀다), 행동도 넘치면 행동만 자른다. */
+export function summaryText(action: string | null | undefined, result: string | null | undefined, max = 220): string {
+  const a = (action ?? '').replace(/\s+/g, ' ').trim(), r = (result ?? '').replace(/\s+/g, ' ').trim()
+  if (!a || !r) return clipText(a || r, max)
+  if (a.length + 3 + r.length <= max) return `${a} → ${r}`
+  if (a.length + 3 + 20 <= max) return `${a} → ${clipText(r, max - a.length - 3)}`
+  return clipText(a, max)
 }
 
-function toPick(card: SrcCard, d: Diagnosis, source: Source, now: Date): ScoredPick {
+function toPick(card: SrcCard, d: StoryDiagnosis, source: Source, now: Date, topic = false): ScoredPick {
   const cross = source === 'story_flow' && card.relevance_tier !== 'R1'
   const e = anchorEpisode(card) as SrcEp | undefined
   return {
     source, slug: card.slug, slug_internal: card.slug, name: card.transfer_ko && source !== 'story_flow' ? card.transfer_ko : card.slug, chapter: card.chapter,
-    score: scoreCard(card, d, now), situation: Number(situationMatch(card, d.situation).toFixed(3)), persuasion: Number(persuasion(card).toFixed(3)),
+    score: scoreCard(card, d, now, { topic }), situation: Number(situationWithTopic(card, d, topic).toFixed(3)), persuasion: Number(persuasion(card).toFixed(3)),
     evidence: evidenceScore(card), stage: card.stage ?? 'unknown',
     failed: e?.result_class === 'negative' || e?.result_class === 'mixed', fail_kind: e?.result_class === 'negative' || e?.result_class === 'mixed' ? e.result_class : null,
     reasons: [similarWhyV2(card, d, e), persuasiveWhyV2(card, e)], hasFailure: hasFailureEp(card), crossIndustry: cross,
     quote: source === 'story_flow' && e?.quote_orig && sourceAllowed(card)
       ? { slug_internal: card.slug, episode_idx: e.episode_idx, text: e.quote_orig, source_key: e.source_key ?? card.source_key, label_run: e.label_run ?? card.label_run }
       : null,
-    summary_ko: [e?.action_ko, e?.result_ko].filter(Boolean).join(' → ').slice(0, 110) || '결과 요약 없음',
+    summary_ko: summaryText(e?.action_ko, e?.result_ko) || '결과 요약 없음',
+    ...(topic ? { topic: topicMatch(card, d.topic) } : {}),   // [B2] 옵션 ON 일 때만 기록(검토용)
   }
 }
-/** 정렬: 병목 장(주된 장 먼저) → 점수. [G2] 점수가 같으면(점수 변경 아님) ①상황 일치 ②진단 단계와 같은 카드 ③증거 등급 ④slug. */
+/** 정렬: 병목 장(주된 장 먼저) → 점수. [G2] 점수가 같으면(점수 변경 아님) ([B2] 옵션 ON 이면 주제 일치 먼저) ①상황 일치 ②진단 단계와 같은 카드 ③증거 등급 ④slug. */
 function rank(xs: ScoredPick[], chapters: number[], stage?: string): ScoredPick[] {
   const ci = (c: number) => { const i = chapters.indexOf(c); return i < 0 ? 99 : i }
   const st = (p: ScoredPick) => (known(stage) && p.stage === stage ? 1 : 0)
-  return [...xs].sort((a, b) => ci(a.chapter) - ci(b.chapter) || b.score - a.score || b.situation - a.situation || st(b) - st(a) || b.evidence - a.evidence || (a.slug_internal < b.slug_internal ? -1 : 1))
+  // [B2] 주제 점수는 옵션 ON 일 때만 있다(OFF 면 둘 다 undefined → 0, 기존 순서 그대로). 점수 동점일 때 첫 기준.
+  return [...xs].sort((a, b) => ci(a.chapter) - ci(b.chapter) || b.score - a.score || (b.topic ?? 0) - (a.topic ?? 0) || b.situation - a.situation || st(b) - st(a) || b.evidence - a.evidence || (a.slug_internal < b.slug_internal ? -1 : 1))
 }
 /** [G4] 저장용 slug — UUID·해시 꼬리를 뗀다(원문은 slug_internal). */
 export const cleanSlug = (raw: string, n: number) => raw.replace(UUID_TAIL, '').replace(HASH_TAIL, '') || `case-${n}`
@@ -170,15 +209,15 @@ const empty = (): Record<Source, number> => ({ story_flow: 0, move_tags: 0, case
  * 후보가 2장 이상이고 "안 된 시도"(negative·mixed) 카드가 후보에 있으면 3건 안에 1건 이상 넣는다.
  * flowCards 조회 실패 = not_run(근거 부족으로 접지 않는다, §7.1). 폴백 조회 실패는 그 원천만 건너뛰고 note 에 남긴다.
  */
-export async function selectStoryFlow(d: StoryDiagnosis, loaders: Loaders, opts: { now?: Date; limit?: number; stageFirst?: boolean } = {}): Promise<Selection> {
-  const now = opts.now ?? new Date(), limit = opts.limit ?? 3
+export async function selectStoryFlow(d: StoryDiagnosis, loaders: Loaders, opts: SelectOpts = {}): Promise<Selection> {
+  const now = opts.now ?? new Date(), limit = opts.limit ?? 3, topic = !!opts.topic
   const chapters = d.chapters?.length ? d.chapters : [d.chapter]
   const considered = empty(), errors: string[] = [], allow = quoteSources()
   let flow: ScoredPick[] = []
   try {
     for (const ch of chapters) {
       const cd = { ...d, chapter: ch }
-      flow.push(...(await loaders.flowCards(ch)).filter((c) => eligible(c, ch) && crossOk(c) && sourceAllowed(c, allow)).map((c) => toPick(c, cd, 'story_flow', now)))
+      flow.push(...(await loaders.flowCards(ch)).filter((c) => eligible(c, ch) && crossOk(c) && sourceAllowed(c, allow)).map((c) => toPick(c, cd, 'story_flow', now, topic)))
     }
   } catch (e) {
     return { status: 'not_run', alternatives: [], considered, note: `확인 불가 — 흐름 카드를 조회하지 못했습니다(${e instanceof Error ? e.message : e})` }
@@ -192,7 +231,7 @@ export async function selectStoryFlow(d: StoryDiagnosis, loaders: Loaders, opts:
     for (const [src, load] of [['move_tags', loaders.moveTags], ['case_bank', loaders.caseBank]] as const) {
       if (pool.length >= limit || !load) continue
       try {
-        const extra = rank(dedupeBySlug((await load(d.chapter)).filter((c) => eligible(c, d.chapter) && !used.has(c.slug)).map((c) => toPick(c, d, src, now)), (x) => x.slug_internal), chapters, stage)
+        const extra = rank(dedupeBySlug((await load(d.chapter)).filter((c) => eligible(c, d.chapter) && !used.has(c.slug)).map((c) => toPick(c, d, src, now, topic)), (x) => x.slug_internal), chapters, stage)
         considered[src] = extra.length
         extra.forEach((x) => used.add(x.slug_internal))
         pool = [...pool, ...extra]
@@ -229,7 +268,7 @@ export function diagnosisFromReport(i: { bottleneck?: string | null; viability?:
 /** 결론서 ch1.similar 와 같은 모양(name·what·why). 화면은 이 세 칸만 그린다 — 영어 원문 인용(quote)은 payload.story_flow 에만 남는다. */
 /** [G1] 안 된 시도 카드의 화면 표시(추천 자리든 대안이든 붙는다). */
 export const FAILED_NOTE = { negative: '이 사례는 잘 안 풀린 경우입니다', mixed: '이 사례는 반쯤만 풀린 경우입니다' } as const
-export const selectionToSimilar = (s: Selection) => (s.recommended ? [s.recommended, ...s.alternatives] : []).map((p, i) => ({ name: displayName(p.name, i + 1), failed: p.failed, what: p.fail_kind ? `${FAILED_NOTE[p.fail_kind]} — ${p.summary_ko}` : p.summary_ko, why: `${p.reasons[0]} / ${p.reasons[1]}`.slice(0, 120) }))
+export const selectionToSimilar = (s: Selection) => (s.recommended ? [s.recommended, ...s.alternatives] : []).map((p, i) => ({ name: displayName(p.name, i + 1), failed: p.failed, what: p.fail_kind ? `${FAILED_NOTE[p.fail_kind]} — ${p.summary_ko}` : p.summary_ko, why: clipText(`${p.reasons[0]} / ${p.reasons[1]}`, 120) }))
 
 /**
  * 깃발 분기 한 곳. 깃발이 'true' 가 아니면 story flow 를 부르지 않고 legacy() 결과를 그대로 돌려준다(기존 경로 100%).

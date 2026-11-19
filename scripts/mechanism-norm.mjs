@@ -3,7 +3,7 @@
 //   --propose            장별 표본으로 목록 초안 생성 → reports/2026-11-18/mechanism-norm-list.json (DB 쓰기 0)
 //   --classify [--dry]   목록을 고정해 전체를 배치 분류 → DB mechanism_norm (이어하기: 이미 채운 줄은 건너뜀, --redo 로 덮어씀)
 //   --audit [--n 50]     무작위 N줄을 상위 모델(Opus)이 검수 → 오분류율·기타 비율. 10% 초과면 목록을 고쳐 다시, 기타 25% 초과면 목록을 늘린다.
-//   --pairs              정리 전(outcome_pairs, sub_topic 기준)·후(outcome_pairs_norm) 장별 쌍 수
+//   --pairs              정리 전(outcome_pairs, sub_topic 기준)·후(outcome_pairs_matched 스냅샷) 장별 쌍 수
 // 구독 경로(claude -p)만 쓴다(API 크레딧 없음). 한도: 호출 수가 적다(배치 80줄).
 import fs from 'node:fs'
 import crypto from 'node:crypto'
@@ -117,10 +117,12 @@ ${listText(list)}
 
 async function pairs() {
   const rows = []
-  for (const view of ['outcome_pairs', 'outcome_pairs_norm']) {
+  // 정리 후는 스냅샷 표 outcome_pairs_matched(안 된 쪽 기준 상위 k)를 읽는다. outcome_pairs_norm 뷰는 전수 조회가 시간 초과라 읽지 않는다.
+  //   표가 비어 있으면 먼저 scripts/pair-finder-refresh.mjs. 표는 PK 순서로 넘긴다(뷰와 달리 페이지마다 다시 계산하지 않는다).
+  for (const [view, pk] of [['outcome_pairs', []], ['outcome_pairs_matched', ['lose_source', 'lose_slug', 'lose_ep', 'rank']]]) {
     const by = {}
     for (let p = 0; ; p++) {
-      const { data, error } = await sb.from(view).select('chapter').range(p * 1000, p * 1000 + 999)
+      const { data, error } = await pk.reduce((q, c) => q.order(c), sb.from(view).select('chapter')).range(p * 1000, p * 1000 + 999)
       if (error) { console.error(view, error.message); process.exit(2) }
       for (const r of data) by[r.chapter] = (by[r.chapter] ?? 0) + 1
       if (data.length < 1000) break

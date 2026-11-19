@@ -70,6 +70,7 @@ import { areaFloorLine, loadAreaContext, planAreaOrder } from '../lib/analysis/a
 import { createPendingFor, qualitySkipEnabled } from '../lib/analysis/relevance-pending.ts'
 import { consumerSkipEnabled } from '../lib/analysis/consumer-material.ts'
 import { createTracker } from './agent-status.mjs'
+import { memPeak } from './mem-peak.mjs'
 import { kstDate } from './notion-status-log.mjs'
 
 const args = process.argv.slice(2)
@@ -107,6 +108,8 @@ const highRatingShare = parsedHighShare ?? DEFAULT_HIGH_RATING_SHARE
 const maxProjects = num(process.env.RELEVANCE_MAX_PROJECTS, 30)
 
 const log = (m) => console.log(`[${new Date().toISOString()}] ${m}`)
+// v71cu-4: 메모리 피크를 끝에 한 줄(로그·워크플로 요약). 1차는 원문을 프로젝트 단위로 읽고 버려 2차 같은 통째 적재는 없다 — 재기만 한다.
+const mem = memPeak('1차 판정')
 const warn = (m) => {
   // 빨간 X(실패)도 초록(정상)도 아닌 세 번째 상태를 그대로 표시한다.
   if (process.env.GITHUB_ACTIONS) console.log(`::warning::${m}`)
@@ -657,7 +660,7 @@ setOutput('next_zero', String(chain.nextZeroStreak))
 await tracker.finish({
   status,
   summary: {
-    projects: targets.length, judged: judgedTotal, remaining, blocker,
+    projects: targets.length, judged: judgedTotal, remaining, blocker, mem_peak_mb: mem.peakMb(),
     unjudged_before: unjudgedBefore, unjudged_after: unjudgedAfter, residue, excluded_sources: excludedSources, excluded_inputs: excludedTotal,
     attempted: attemptedTotal, errors: errorTotal, prompt_version: PROMPT_VERSION, prompt_version_column: promptVersionColumn,
     caps: { boosted: caps.boosted, relaxed: caps.relaxed, cap_usd: capUsd, hard_cap_usd: caps.hardCapUsd, until: caps.untilMs ? new Date(caps.untilMs).toISOString() : null },

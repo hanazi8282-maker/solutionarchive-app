@@ -144,7 +144,7 @@ ok('컨텍스트 밖이면 요청 누적이 없다', requestSpent() === null)
   const rj = fs.readFileSync('scripts/relevance-judge-auto.mjs', 'utf-8')
   const r2 = fs.readFileSync('scripts/relevance-second-judge-auto.mjs', 'utf-8')
   ok('1차 — 과금 경로만 계량(gemini·anthropic)', /const metered = provider === 'gemini' \|\| provider === 'anthropic'/.test(rj) && /setRunCapUsd\(billing\.capUsd\)/.test(rj))
-  ok('2차 — gemini 고정이라 항상 계량 · 몫 설정', /judgeBudgetGate\(\{ metered: true/.test(r2) && /setRunCapUsd\(gate\.capUsd\)/.test(r2) && /gate\.stop \? \[\] : batches/.test(r2))
+  ok('2차 — gemini 고정이라 항상 계량 · 몫 설정', /judgeBudgetGate\(\{ metered: true/.test(r2) && /setRunCapUsd\(gate\.capUsd\)/.test(r2) && /let blocker = gate\?\.stop \? gate\.line : null/.test(r2) && /!blocker; off \+= RAW_CHUNK/.test(r2))
   const wf = fs.readFileSync('.github/workflows/nightly-relevance.yml', 'utf-8')
   ok('워크플로 — 두 스텝 모두 JUDGE_*_USD_CAP 을 넘긴다', (wf.match(/JUDGE_DAILY_USD_CAP: \$\{\{ vars\.JUDGE_DAILY_USD_CAP/g) ?? []).length === 2 && (wf.match(/JUDGE_MONTHLY_USD_CAP: \$\{\{ vars\.JUDGE_MONTHLY_USD_CAP/g) ?? []).length === 2)
 }

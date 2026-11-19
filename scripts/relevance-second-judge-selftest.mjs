@@ -187,13 +187,13 @@ const e503 = () => new ProviderHttpError(503, 'overloaded')
   const src = (await import('node:fs')).readFileSync(new URL('./relevance-second-judge-auto.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
   const { outOfScopeReason } = await import('../lib/analysis/approval-scope.ts')
   ok(src.includes("['off', 'false', '0'].includes(String(process.env.RELEVANCE_SECOND_SKIP_OUT_OF_AREA"), '제외는 기본 on, off·false·0 일 때만 꺼진다')
-  ok(src.includes("!== 'out-area') : live") && src.includes('orderSecondTargets(queue,'), '필터는 outOfScopeReason(#529)의 out-area 판정을 쓰고 대기열(queue)을 정렬에 넘긴다')
+  ok(src.includes("!== 'out-area') : withProject") && src.includes('orderSecondTargets(queue,'), '필터는 outOfScopeReason(#529)의 out-area 판정을 쓰고 대기열(queue)을 정렬에 넘긴다')
 
   // 행동 대조(v71q 2): 스크립트의 실제 두 줄(skipOutOfArea·queue)을 그대로 떼어 돌린다 — 복사본이 아니라 원문이라 코드가 바뀌면 같이 깨진다.
   // 두 줄에 legacyOrder 가 없으므로 RELEVANCE_SECOND_ORDER=legacy 여도 제외는 그대로다.
   const lines = src.split('\n').filter((l) => /^(const|let) (skipOutOfArea|queue) = /.test(l))
   ok(lines.length === 2 && !lines.join().includes('legacy'), '필터 두 줄을 원문에서 찾았고 legacy 순서와 무관하다')
-  const runFilter = new Function('process', 'live', 'projects', 'outOfScopeReason', `${lines.join('\n')}\nreturn queue`)
+  const runFilter = new Function('process', 'withProject', 'projects', 'outOfScopeReason', `${lines.join('\n')}\nreturn queue`)
   const projs = new Map([['in0', { area_code: '1', business_model: 'SAAS' }], ['in1', { area_code: '3', business_model: null }], ['dz', { area_code: 'design', business_model: null }],
     ['hd', { area_code: 'hold', business_model: 'SAAS' }], ['of', { area_code: 'out-founder', business_model: 'SAAS' }], ['oc', { area_code: ' OUT-consumer ', business_model: null }],
     ['nu', { area_code: null, business_model: null }], ['em', { area_code: '  ', business_model: 'SAAS' }], ['uk', { area_code: 'zzz', business_model: null }], ['ou', { area_code: 'outdoor', business_model: null }]])
@@ -219,6 +219,23 @@ const e503 = () => new ProviderHttpError(503, 'overloaded')
     ok(pick(undefined).every((r) => !OUT.includes(r.project_id)), `상한 ${max}: on 은 out-* 를 고르지 않는다`)
   }
   ok(orderSecondTargets(q(undefined), bmOf, 200, { groupOf }).picked.filter((r) => groupOf(r) !== 3).length === 14, '영역 안 처리량(그룹 0~2) 14건 그대로')
+}
+
+// v71cu-4 메모리 구조: 원문은 영역 밖 제외·정렬 **뒤**, RAW_CHUNK 묶음 안에서만 읽는다. 묶음마다 rss, 끝에 피크, 직전 실행 한 줄.
+{
+  const src = (await import('node:fs')).readFileSync(new URL('./relevance-second-judge-auto.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+  const rawAt = src.indexOf("select('id, raw_text, purged_at')")
+  ok(rawAt > 0 && src.split("select('id, raw_text").length === 2, '원문 조회는 한 곳뿐')
+  ok(rawAt > src.indexOf("!== 'out-area')") && rawAt > src.indexOf('const { picked: ordered } = orderSecondTargets('), '원문은 영역 밖 제외·정렬 뒤에 읽는다(id 단계 필터)')
+  ok(rawAt > src.indexOf('chunkLoop: for') && src.includes('const RAW_CHUNK = 1000') && src.includes('ordered.slice(off, off + RAW_CHUNK)'), '원문은 1,000행 묶음 루프 안에서 읽는다')
+  ok(/const raw = new Map\(\)/.test(src.slice(src.indexOf('chunkLoop: for'))), '원문 Map 은 묶음마다 새로 만든다(묶음 밖에 쌓지 않는다)')
+  ok(src.includes('rss ${mem.sample()}MB') && src.includes("memPeak('2차 판정')") && src.includes('mem_peak_mb: memPeakMb'), '묶음마다 rss · 끝에 피크 · agent_runs summary 에 mem_peak_mb')
+  ok(src.includes('이전 2차 실행 —') && src.includes("summary?.max") && !/RELEVANCE_SECOND_MAX\s*=/.test(src.replace(/process\.env\.RELEVANCE_SECOND_MAX/g, '')), '직전 실행(상한·피크·정상 종료)을 남기고, 상한은 코드가 바꾸지 않는다')
+  const { toMb, memPeak } = await import('./mem-peak.mjs')
+  ok(toMb(1_048_576 * 3) === 3 && toMb(0) === 0, 'toMb: 바이트 → MB')
+  const m = memPeak('selftest', { intervalMs: 60_000 })
+  const now = m.sample()
+  ok(Number.isInteger(now) && now > 0 && m.peakMb() >= now, `memPeak: 피크 ≥ 현재 rss (${m.peakMb()} ≥ ${now})`)
 }
 
 console.log(`relevance-second-judge selftest: ${pass} pass · ${fail} fail`)

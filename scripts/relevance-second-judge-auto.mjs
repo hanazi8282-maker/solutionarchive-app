@@ -22,7 +22,7 @@ import { callGeminiRotating, parseJsonObject } from '../lib/analysis/llm.ts'
 import { dailySpent, DAILY_BUDGET_USD, judgeBudgetGate, judgeLedgerFrom, judgeUsdCaps, loadJudgeLedgerRows, setRunCapUsd } from '../lib/analysis/budget.ts'
 import { capacityGuard, loadAuditWindow, parseSince } from '../lib/analysis/auto-approval.ts'
 import { outOfScopeReason } from '../lib/analysis/approval-scope.ts'
-import { RELEVANCE_CRITERIA_VERSION } from '../lib/analysis/relevance-criteria.ts'
+import { RELEVANCE_CRITERIA_VERSION, parseInfoMode, withInfoCriteria } from '../lib/analysis/relevance-criteria.ts'
 import {
   SECOND_OPINION_INSTRUCTIONS, SECOND_OPINION_INSTRUCTIONS_V22, secondOpinionInstructionsV23, secondOpinionInstructionsV24, orderSecondTargets, recordSecondOpinion, secondAreaGroup, secondJudgeTargetReason,
   secondOpinionUserPrompt, toExportRow, validateOpinions,
@@ -78,10 +78,13 @@ const secondMode = (process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase(
 const secondV22 = !['old', 'v21'].includes(secondMode)
 if (!['old', 'v21', 'v22', 'v23', 'v24'].includes(secondMode)) warn(`RELEVANCE_CRITERIA='${process.env.RELEVANCE_CRITERIA}' 는 old|v21|v22|v23|v24 가 아니다 — v22 로 처리한다`)
 // v23(v71bi): 활성 영역 이름을 config/areas.json 에서 읽는다. 못 읽으면 시작하지 않는다(§7.1).
-const secondInstructions = secondMode === 'v23' || secondMode === 'v24'
+// 정보 기준(v71cu P2): 1차와 같은 INFO_CRITERIA 변수(기본 v2). 2차 행에는 버전 칸이 없어 1차 prompt_version 접미사로 가른다.
+const { mode: infoMode, warning: infoWarning } = parseInfoMode(process.env.INFO_CRITERIA)
+if (infoWarning) warn(infoWarning)
+const secondInstructions = withInfoCriteria(secondMode === 'v23' || secondMode === 'v24'
   ? (() => { const { cfg, error } = loadAreasConfig(); if (!cfg) die(`${secondMode} 기준인데 config/areas.json 을 못 읽었다: ${error}`); const names = scorableAreas(cfg).map((a) => a.name); return secondMode === 'v24' ? secondOpinionInstructionsV24(names) : secondOpinionInstructionsV23(names) })()
-  : secondV22 ? SECOND_OPINION_INSTRUCTIONS_V22 : SECOND_OPINION_INSTRUCTIONS
-log(`야간 2차 판정${dry ? ' (--dry: 대상 선정만)' : ''} — provider=gemini(고정) · 기준 ${RELEVANCE_CRITERIA_VERSION} · since ${since.toISOString()}${process.env.AUTO_APPROVAL_SINCE ? '' : '(AUTO_APPROVAL_SINCE 없음 → 오늘 KST)'} · 상한 ${MAX}건`)
+  : secondV22 ? SECOND_OPINION_INSTRUCTIONS_V22 : SECOND_OPINION_INSTRUCTIONS, infoMode)
+log(`야간 2차 판정${dry ? ' (--dry: 대상 선정만)' : ''} — provider=gemini(고정) · 기준 ${RELEVANCE_CRITERIA_VERSION} · 정보 ${infoMode} · since ${since.toISOString()}${process.env.AUTO_APPROVAL_SINCE ? '' : '(AUTO_APPROVAL_SINCE 없음 → 오늘 KST)'} · 상한 ${MAX}건`)
 
 // ── 1. 후보 — DB 에서 조건으로 거르고, JS 에서 같은 조건 + 독립성을 한 번 더 (원문 없이 id·메타만) ─────
 const cand = []

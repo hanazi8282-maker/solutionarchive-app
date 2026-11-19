@@ -114,4 +114,27 @@ assert.ok(JUDGE_SYSTEM.includes(UNTRUSTED_INPUT_NOTICE))
 const harness = readFileSync(new URL('./story-flow-compare.mjs', import.meta.url), 'utf8')
 assert.ok(harness.includes("import('../lib/story-label/cli.mjs')") && !/ANTHROPIC_API_KEY\s*[:=]/.test(harness), '구독 경로 runCli 재사용')
 assert.ok(!/\.(insert|update|upsert|delete)\(/.test(harness), '하니스는 DB 에 쓰지 않는다')
+// ── B 후속: 화면 문장 잘림(문장·낱말 중간 금지, 숫자·$ 토큰 보호) ──
+const { clipText, summaryText, displayName } = await import('../lib/consult/story-flow-select.ts')
+const numLong = '9개월간 이메일 리드 100명을 모았다. 그 뒤 MRR 약 $1.2k 를 넘겼고 신규 유료 고객이 월 40% 늘었다. 광고는 쓰지 않았다. ' + '커뮤니티 답변을 매일 세 개씩 달았다. '.repeat(8)
+const c1 = clipText(numLong, 110)
+assert.ok(c1.length <= 110 && /[다.]$/.test(c1) && !c1.endsWith('…'), `완결 문장까지만: ${c1}`)
+assert.ok(c1.includes('$1.2k') && !/\$1$|\$1\.$|총 $|신규 유$/.test(c1), '$·소수점 토큰이 쪼개지지 않음')
+for (const m of [12, 25, 37, 45]) { const c = clipText('MRR 약 $1.2k 를 넘겼고 신규 유료 고객이 늘었고 광고는 쓰지 않았고 커뮤니티에 답을 달았고', m); assert.ok(c.endsWith('…') && c.length <= m, c); assert.ok(!/\$1(\.\d?)?…$|\$…$/.test(c), `토큰 보호: ${c}`); const body = c.slice(0, -1); assert.ok('MRR 약 $1.2k 를 넘겼고 신규 유료 고객이 늘었고 광고는 쓰지 않았고 커뮤니티에 답을 달았고'.split(' ').reduce((acc, w) => (acc.done || (acc.s ? acc.s + ' ' + w : w).length > body.length ? { ...acc, done: true } : { s: acc.s ? acc.s + ' ' + w : w, done: false }), { s: '', done: false }).s === body, `낱말 경계: ${c}`) }
+const koLong = '처음에는 지인에게만 알렸고 반응이 거의 없어서 동네 가게 사장님들을 한 분씩 찾아가 직접 설명하고 써 보게 했으며 그 과정에서 받은 불만을 모아 기능을 고쳤고 결국 입소문으로 가입이 늘어나기 시작했던 것이 가장 큰 전환점이었다고 회고했다'
+const c2 = clipText(koLong, 80)
+assert.ok(c2.endsWith('…') && c2.length <= 80 && koLong.startsWith(c2.slice(0, -1)) && koLong.charAt(c2.length - 1) === ' ', `한국어 긴 문장 → 낱말 경계: ${c2}`)
+const noDot = 'cold outreach to agencies with a personalised loom video for every single prospect over six months without any paid ads'
+const c3 = clipText(noDot, 50)
+assert.ok(c3.endsWith('…') && noDot.startsWith(c3.slice(0, -1)) && noDot.charAt(c3.length - 1) === ' ', `마침표 없는 긴 문장: ${c3}`)
+assert.equal(clipText('짧은 문장이다.', 110), '짧은 문장이다.', '한도 안이면 그대로')
+const sm = summaryText('콜드메일을 매주 50통 보냈다.', numLong)
+assert.ok(sm.startsWith('콜드메일을 매주 50통 보냈다. → ') && sm.length <= 220 && !/총 $|\$1$/.test(sm), `요약: 행동 전부 + 결과는 경계에서: ${sm}`)
+assert.equal(summaryText('가격표를 공개했다', '전환 2배'), '가격표를 공개했다 → 전환 2배', '짧으면 구분자 유지')
+assert.ok(summaryText('가'.repeat(250), '결과').length <= 220)
+const dn = displayName('how-we-doubled-our-product-line-and-grew-subscribers-to-180k-in-eighteen-months', 1)
+assert.ok(dn.length <= 60 && dn.endsWith('…') && 'How We Doubled Our Product Line And Grew Subscribers To 180k In Eighteen Months'.startsWith(dn.slice(0, -1)), `이름 낱말 경계: ${dn}`)
+const longWhy = { status: 'ok', recommended: { name: 'x', failed: false, fail_kind: null, summary_ko: 's', reasons: ['손님·값대·단계·팀 크기가 같다, 같은 원리(reduce_purchase_doubt_by_transparency)를 쓴다', '숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 안 된 시도도 함께 담겨 있다, 통하는 조건이 적혀 있다'] }, alternatives: [] }
+const wy = selectionToSimilar(longWhy)[0].why, full = `${longWhy.recommended.reasons[0]} / ${longWhy.recommended.reasons[1]}`
+assert.ok(wy.length <= 120 && wy.endsWith('…') && full.startsWith(wy.slice(0, -1)) && full.charAt(wy.length - 1) === ' ' || full.startsWith(wy.slice(0, -1).trimEnd()), `why 낱말 경계: ${wy}`)
 console.log('story-flow-topic-selftest: 통과')

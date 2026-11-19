@@ -146,7 +146,30 @@ export function displayName(raw: string, n: number): string {
   const s = (raw ?? '').replace(/^case_bank:/, '').trim().replace(UUID_TAIL, '').replace(HASH_TAIL, '').replace(/[-_]+/g, ' ').trim()
   const machine = (w: string) => /\d/.test(w) && /^[0-9a-f]{6,}$/i.test(w)
   if (!/[a-z가-힣]/i.test(s) || s.split(' ').some(machine)) return `비슷한 사례 ${n}`
-  return s.replace(/(^|\s)([a-z])/g, (_, sp, ch) => sp + ch.toUpperCase()).slice(0, 60)
+  return clipText(s.replace(/(^|\s)([a-z])/g, (_, sp, ch) => sp + ch.toUpperCase()), 60)
+}
+/** 문장 끝: . ! ? 。 또는 한국어 종결(다·요·음·함·임, 뒤에 마침표 선택) 뒤 공백. "$1.2k" 처럼 공백 없는 마침표는 끝이 아니다. */
+const SENTENCE_END = /(?<=[.!?。]|[다요음함임][.!?]?)\s+/
+/**
+ * 고객 화면 문장 자르기 — 글자 수로 문장·낱말 중간을 끊지 않는다. 한도 안이면 그대로.
+ * 넘치면 한도 안에 드는 완결 문장까지만, 완결 문장이 하나도 안 들어가면 낱말(공백) 경계에서 자르고 '…'. 공백 없는 토큰($1.2k·40%)은 쪼개지 않는다.
+ */
+export function clipText(raw: string, max: number): string {
+  const t = (raw ?? '').replace(/\s+/g, ' ').trim()
+  if (t.length <= max) return t
+  let out = ''
+  for (const s of t.split(SENTENCE_END)) { const next = out ? `${out} ${s}` : s; if (next.length > max) break; out = next }
+  if (out) return out
+  const cut = t.slice(0, max).lastIndexOf(' ')
+  return `${(cut > 0 ? t.slice(0, cut) : t.slice(0, max - 1)).replace(/[\s,·:;—\-/→]+$/, '')}…`
+}
+/** [B 후속] 요약 = 행동 → 결과. 둘 다 들어가면 그대로, 행동만 들어가면 결과는 남는 자리에 문장·낱말 경계로(남는 자리가 20자 미만이면 뺀다), 행동도 넘치면 행동만 자른다. */
+export function summaryText(action: string | null | undefined, result: string | null | undefined, max = 220): string {
+  const a = (action ?? '').replace(/\s+/g, ' ').trim(), r = (result ?? '').replace(/\s+/g, ' ').trim()
+  if (!a || !r) return clipText(a || r, max)
+  if (a.length + 3 + r.length <= max) return `${a} → ${r}`
+  if (a.length + 3 + 20 <= max) return `${a} → ${clipText(r, max - a.length - 3)}`
+  return clipText(a, max)
 }
 
 function toPick(card: SrcCard, d: StoryDiagnosis, source: Source, now: Date, topic = false): ScoredPick {
@@ -161,7 +184,7 @@ function toPick(card: SrcCard, d: StoryDiagnosis, source: Source, now: Date, top
     quote: source === 'story_flow' && e?.quote_orig && sourceAllowed(card)
       ? { slug_internal: card.slug, episode_idx: e.episode_idx, text: e.quote_orig, source_key: e.source_key ?? card.source_key, label_run: e.label_run ?? card.label_run }
       : null,
-    summary_ko: [e?.action_ko, e?.result_ko].filter(Boolean).join(' → ').slice(0, 110) || '결과 요약 없음',
+    summary_ko: summaryText(e?.action_ko, e?.result_ko) || '결과 요약 없음',
     ...(topic ? { topic: topicMatch(card, d.topic) } : {}),   // [B2] 옵션 ON 일 때만 기록(검토용)
   }
 }
@@ -245,7 +268,7 @@ export function diagnosisFromReport(i: { bottleneck?: string | null; viability?:
 /** 결론서 ch1.similar 와 같은 모양(name·what·why). 화면은 이 세 칸만 그린다 — 영어 원문 인용(quote)은 payload.story_flow 에만 남는다. */
 /** [G1] 안 된 시도 카드의 화면 표시(추천 자리든 대안이든 붙는다). */
 export const FAILED_NOTE = { negative: '이 사례는 잘 안 풀린 경우입니다', mixed: '이 사례는 반쯤만 풀린 경우입니다' } as const
-export const selectionToSimilar = (s: Selection) => (s.recommended ? [s.recommended, ...s.alternatives] : []).map((p, i) => ({ name: displayName(p.name, i + 1), failed: p.failed, what: p.fail_kind ? `${FAILED_NOTE[p.fail_kind]} — ${p.summary_ko}` : p.summary_ko, why: `${p.reasons[0]} / ${p.reasons[1]}`.slice(0, 120) }))
+export const selectionToSimilar = (s: Selection) => (s.recommended ? [s.recommended, ...s.alternatives] : []).map((p, i) => ({ name: displayName(p.name, i + 1), failed: p.failed, what: p.fail_kind ? `${FAILED_NOTE[p.fail_kind]} — ${p.summary_ko}` : p.summary_ko, why: clipText(`${p.reasons[0]} / ${p.reasons[1]}`, 120) }))
 
 /**
  * 깃발 분기 한 곳. 깃발이 'true' 가 아니면 story flow 를 부르지 않고 legacy() 결과를 그대로 돌려준다(기존 경로 100%).

@@ -64,6 +64,14 @@ export function parseProductRef(productRef: string): string | null {
   return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null
 }
 
+/** [v71cu-2 1-4] 채널 타깃 `ch:<UC…채널ID>` — 채널 전체 댓글 스레드(allThreadsRelatedToChannelId, 1유닛/요청). 검색(q:, 100유닛)은 어댑터가 아니라 youtube-discover 가 v: 로 바꿔 등록한다. */
+export function parseChannelRef(productRef: string): string | null {
+  const raw = (productRef ?? '').trim()
+  if (!raw.toLowerCase().startsWith('ch:')) return null
+  const id = raw.slice(3).trim()
+  return /^UC[A-Za-z0-9_-]{22}$/.test(id) ? id : null
+}
+
 function str(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
@@ -128,7 +136,8 @@ export const youtubeAdapter: ReviewSourceAdapter = {
 
   nextRequest(target: TargetState): { url: string } | null {
     const videoId = parseProductRef(target.productRef)
-    if (!videoId) return null
+    const channelId = videoId ? null : parseChannelRef(target.productRef)
+    if (!videoId && !channelId) return null
 
     const key = process.env.YOUTUBE_API_KEY
     // 키 없이 보내면 403 을 받고 러너가 그걸 차단으로 기록한다. 원인이
@@ -142,7 +151,7 @@ export const youtubeAdapter: ReviewSourceAdapter = {
       url:
         'https://www.googleapis.com/youtube/v3/commentThreads' +
         '?part=snippet' +
-        `&videoId=${encodeURIComponent(videoId)}` +
+        (videoId ? `&videoId=${encodeURIComponent(videoId)}` : `&allThreadsRelatedToChannelId=${encodeURIComponent(channelId as string)}`) +
         // ⚠️ 빼면 관련도순이 되어 증분 종료가 오작동한다.
         '&order=time' +
         `&maxResults=${MAX_RESULTS}` +
@@ -153,7 +162,7 @@ export const youtubeAdapter: ReviewSourceAdapter = {
   },
 
   parse(body: string, ctx: ParseContext): ParseResult {
-    const videoId = parseProductRef(ctx.productRef) ?? '?'
+    const videoId = parseProductRef(ctx.productRef) ?? (parseChannelRef(ctx.productRef) ? null : '?')
 
     let doc: unknown
     try {
@@ -176,7 +185,7 @@ export const youtubeAdapter: ReviewSourceAdapter = {
         parseFailures++
         continue
       }
-      const r = toReview(o, videoId)
+      const r = toReview(o, videoId ?? str(obj(o['snippet'])?.['videoId']) ?? parseChannelRef(ctx.productRef) ?? '?')
       if (r) reviews.push(r)
       else parseFailures++
     }

@@ -13,7 +13,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { youtubeAdapter, MAX_RESULTS, parseProductRef } from '../lib/review/adapters/youtube.ts'
+import { youtubeAdapter, MAX_RESULTS, parseProductRef, parseChannelRef } from '../lib/review/adapters/youtube.ts'
 import { classifyBlockedResponse } from '../lib/review/health.ts'
 
 const here = path.dirname(fileURLToPath(import.meta.url))

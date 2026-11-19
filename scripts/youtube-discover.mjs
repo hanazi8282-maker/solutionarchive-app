@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // [v71cu S8] 유튜브 발굴 층: 분야 제품 이름 × 의도 낱말(후기·리뷰·비교·단점·vs·review·alternative·honest) 검색 → 댓글 30개 이상 영상만 `v:` 타깃으로 임시 등록.
 // 할당량: 검색 YT_SEARCH_DAILY(기본 60)회, 그 밖 YT_UNITS_DAILY(기본 2000)단위. 호출마다 api_quota_log 에 더한다. 할당량 초과 응답(403 quotaExceeded)이면 그날은 끝 — 증액 신청 없음.
-// 채널 이름·작성자는 저장하지 않는다(영상 ID·검색어만). q:·ch: 타깃은 프런티어(collect_frontier layer=query/channel)에만 적는다 — 어댑터가 아직 v: 만 읽는다.
+// 채널 이름·작성자는 저장하지 않는다(영상 ID·검색어만). q:·ch: 타깃은 프런티어(collect_frontier layer=query/channel)에만 적는다 — ch: 는 어댑터가 읽으므로 타깃으로도 등록(같은 채널 댓글 30+ 영상 2개 이상, 하루 최대 3).
 // 사용: node --env-file=.env.local scripts/youtube-discover.mjs [--dry] [--max-search N]
 import { createClient } from '@supabase/supabase-js'
 const DRY = process.argv.includes('--dry')
@@ -32,6 +32,7 @@ for (let i = 0; i < products.length && queries.length < searchBudget; i++) {
   queries.push({ p, q: `${p.name} ${INTENTS[(i + dayIdx) % INTENTS.length]}` })
 }
 let stop = false, regs = 0, spentOther = 0
+const chSeen = new Map() // channelId → {n, p} — 댓글 30+ 영상이 같은 채널에서 2개 이상이면 채널 타깃(ch:)도 등록(v71cu-2 1-4). 채널 이름은 저장하지 않는다.
 for (const { p, q } of queries) {
   if (stop) break
   const sr = await fetch(`https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=8&q=${encodeURIComponent(q)}&key=${KEY}`)
@@ -41,7 +42,7 @@ for (const { p, q } of queries) {
   const ids = ((await sr.json()).items ?? []).map((x) => x.id?.videoId).filter(Boolean)
   const { data: qf } = DRY ? { data: null } : await sb.from('collect_frontier').upsert({ layer: 'query', source_key: 'youtube', ref: `q:${q}`, title: q, area_guess: p.area, discovered_by: 'youtube-discover', onboard_batch: BATCH }, { onConflict: 'source_key,layer,ref' }).select('id').single()
   if (!ids.length) continue
-  const vr = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${ids.join(',')}&key=${KEY}`)
+  const vr = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${ids.join(',')}&key=${KEY}`)
   spentOther += 1; if (!DRY) await addQuota('other', 1, UNITS_CAP)
   if (vr.status === 403 || vr.status === 429) { console.log(`videos.list ${vr.status} — 그날은 끝`); stop = true; break }
   for (const v of (await vr.json()).items ?? []) {
@@ -57,4 +58,17 @@ for (const { p, q } of queries) {
     regs++
   }
 }
+let chRegs = 0
+for (const [cid, { n, p }] of chSeen) {
+  if (DRY || n < 2 || chRegs >= 3) continue
+  const ref = `ch:${cid}`
+  const { data: dup } = await sb.from('review_targets').select('id').eq('source_key', 'youtube').eq('product_ref', ref).limit(1)
+  if (dup?.length) continue
+  const { data: t, error } = await sb.from('review_targets').insert({ project_id: p.project_id, source_key: 'youtube', product_ref: ref, label: `${p.area}:${p.name}`, area: p.area, status: 'active', onboard_batch: BATCH, layer: 'channel' }).select('id').single()
+  if (error) { console.log('ch target', error.message); continue }
+  const { data: cf } = await sb.from('collect_frontier').upsert({ layer: 'channel', source_key: 'youtube', ref, discovered_by: 'youtube-discover', target_id: t.id, area_guess: p.area, onboard_batch: BATCH }, { onConflict: 'source_key,layer,ref' }).select('id').single()
+  if (cf) await sb.from('collect_frontier_events').insert({ frontier_id: cf.id, state: 'provisional', reason: `댓글 30+ 영상 ${n}개`, stats: { videos: n } })
+  chRegs++
+}
+console.log(`채널 타깃 ${chRegs}`)
 console.log(`검색 ${queries.length}회 · 임시 등록 영상 타깃 ${regs} · other 단위 ${spentOther}`)

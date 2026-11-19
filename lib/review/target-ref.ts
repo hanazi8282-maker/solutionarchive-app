@@ -36,7 +36,7 @@ import { HOST as THEQOO_HOST, parseProductRef as parseTheqooRef } from './adapte
 import { HOST as TODAYHUMOR_HOST, parseProductRef as parseTodayhumorRef } from './adapters/todayhumor.ts'
 import { HOST as TUMBLBUG_HOST, parseProductRef as parseTumblbugRef } from './adapters/tumblbug.ts'
 import { BOARDS as VELOG_BOARDS, HOST as VELOG_HOST, parseProductRef as parseVelogRef } from './adapters/velog.ts'
-import { parseProductRef as parseYoutubeRef } from './adapters/youtube.ts'
+import { parseProductRef as parseYoutubeRef, parseChannelRef as parseYoutubeChannelRef } from './adapters/youtube.ts'
 import { BOARDS as DISQUIET_BOARDS, HOST as DISQUIET_HOST, parseProductRef as parseDisquietRef } from './adapters/disquiet.ts'
 import { parseProductRef as parseProducthuntRef } from './adapters/producthunt.ts'
 import { parseProductRef as parseGoogleplayRef } from './adapters/googleplay.ts'
@@ -108,6 +108,8 @@ function googleplayRef(raw: string): RefResult {
 function youtubeRef(raw: string): RefResult {
   const s = raw.trim()
   const hint = '(예: https://www.youtube.com/watch?v=dQw4w9WgXcQ 또는 영상 ID 11자)'
+  const ch = parseYoutubeChannelRef(s)
+  if (ch) return { ok: true, productRef: `ch:${ch}` } // v71cu-2 1-4 채널 타깃
   if (!s) return { ok: false, error: `YouTube 영상 URL 또는 영상 ID 를 입력해주세요. ${hint}` }
   let id: string | null = null
   try {

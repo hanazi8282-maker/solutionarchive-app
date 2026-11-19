@@ -22,7 +22,7 @@ import { dirname } from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
 import { impactFrequencyTags, pickGradingSample } from '../lib/analysis/relevance-judge.ts'
 import { AUDIT_DAILY } from '../lib/analysis/auto-approval.ts'
-import { loadScope } from '../lib/analysis/approval-scope.ts'
+import { loadScope, scopeOptionsFor } from '../lib/analysis/approval-scope.ts'
 import { RR39_NARROW_IRRELEVANT_INPUT_IDS } from '../lib/analysis/relevance-criteria.ts'
 import { buildAuditSheet, isSheetDay } from '../lib/analysis/audit-sheet.ts'
 
@@ -161,7 +161,7 @@ const autoColumn = verdicts.some((v) => 'auto_approved_at' in v)
 const mainPick = pickGradingSample(pool.filter((r) => !r.auto), { n, seed })
 // L-20b(남헌 v71f): 감사 풀에서 영역 외(out-*)·소비재 태그 행을 뺀다(승인 표시는 그대로 — 표본에서만 제외). 못 읽으면 중단한다(§7.1).
 const autoPool = pool.filter((r) => r.auto)
-const scope = audit > 0 ? await loadScope(supabase, autoPool.map((r) => r.input_id)) : { ok: true, excluded: new Map() }
+const scope = audit > 0 ? await loadScope(supabase, autoPool.map((r) => r.input_id), scopeOptionsFor(process.env.INFO_CRITERIA)) : { ok: true, excluded: new Map() }
 if (!scope.ok) { console.error(`✗ 영역·소비재 태그 조회 실패 — 감사 표본을 뽑지 않는다: ${scope.error}`); process.exit(2) }
 const auditPool = autoPool.filter((r) => !scope.excluded.has(r.input_id))
 if (audit > 0) console.log(`자동 승인 행 ${autoPool.length}건 중 영역 외·소비재 태그 ${scope.excluded.size}건 제외 → 감사 풀 ${auditPool.length}건`)

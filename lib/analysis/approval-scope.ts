@@ -7,14 +7,27 @@
 //
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다. `@/` 별칭·enum 을 쓰지 않는다. 셀프테스트 scripts/approval-scope-selftest.mjs.
 
+import { parseInfoMode } from './relevance-criteria.ts'
+
 export const OUT_AREA_PREFIX = 'out-'
 export const SCOPE_IN_CHUNK = 200
 
 export type ScopeReason = 'out-area' | 'consumer-tag'
 
+/** 창업가 커뮤니티 출처 프로젝트(config/areas.json). */
+export const OUT_FOUNDER = 'out-founder'
+
+export interface ScopeOptions {
+  /** INFO_CRITERIA=v2(남헌 2026-11-19 확정 — 자사 홍보·창업가 글은 빼지 않고 태그만): out-founder 를 영역 외로 빼지 않는다. 기본 false = 옛 동작. */
+  founderInScope?: boolean
+}
+
+/** INFO_CRITERIA 값 → 범위 옵션. v2 일 때만 founderInScope. 1차·2차·자동 승인·감사 표본이 같은 함수를 써서 갈라지지 않게 한다. */
+export const scopeOptionsFor = (infoCriteria: string | null | undefined): ScopeOptions => ({ founderInScope: parseInfoMode(infoCriteria).mode === 'v2' })
+
 /** 제외 사유(순수). 영역 외가 우선. 영역 NULL 은 영역 외가 아니다 — 영역 미부여일 뿐이다. */
-export function outOfScopeReason(areaCode: string | null | undefined, consumerTagged: boolean): ScopeReason | null {
-  if (typeof areaCode === 'string' && areaCode.startsWith(OUT_AREA_PREFIX)) return 'out-area'
+export function outOfScopeReason(areaCode: string | null | undefined, consumerTagged: boolean, opts: ScopeOptions = {}): ScopeReason | null {
+  if (typeof areaCode === 'string' && areaCode.startsWith(OUT_AREA_PREFIX) && !(opts.founderInScope && areaCode === OUT_FOUNDER)) return 'out-area'
   if (consumerTagged) return 'consumer-tag'
   return null
 }
@@ -29,7 +42,7 @@ export type ScopeResult =
   | { ok: false; error: string }
 
 /** input_id 목록 → 제외할 것과 사유. 못 읽은 단계가 하나라도 있으면 ok:false. */
-export async function loadScope(sb: Sb, inputIds: readonly string[]): Promise<ScopeResult> {
+export async function loadScope(sb: Sb, inputIds: readonly string[], opts: ScopeOptions = {}): Promise<ScopeResult> {
   const ids = [...new Set(inputIds)]
   const projectOf = new Map<string, string>()
   for (let i = 0; i < ids.length; i += SCOPE_IN_CHUNK) {
@@ -59,7 +72,7 @@ export async function loadScope(sb: Sb, inputIds: readonly string[]): Promise<Sc
 
   const excluded = new Map<string, ScopeReason>()
   for (const id of ids) {
-    const reason = outOfScopeReason(areaOf.get(projectOf.get(id) as string) ?? null, tagged.has(id))
+    const reason = outOfScopeReason(areaOf.get(projectOf.get(id) as string) ?? null, tagged.has(id), opts)
     if (reason) excluded.set(id, reason)
   }
   return { ok: true, excluded }

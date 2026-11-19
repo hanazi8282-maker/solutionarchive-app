@@ -1,16 +1,18 @@
-# T2 개선안 반영 대장 (2026-11-19, v71cu P4)
+# T2 개선안 반영 대장 (2026-11-19, v71cu P4 · PR #682 수정 반영)
 
 계획: `reports/2026-11-19-v71cu/T2-improvement-plan.md` §4 (메인 작업트리에 있고 아직 커밋 안 됨). 킬스위치 수치(`KILL`: p0 0.07 · 창 50 · 문턱 8)는 손대지 않았다.
+PR #682 수정 내역(남헌 확정 기준 대조·제거 목록)은 `T2-682-revision.md` 가 정본이다.
 
 | 항목 | 출처 | 상태 | 바뀐 곳 | 확인 |
 |---|---|---|---|---|
-| P1 hackernews 소스 제외 | 11-18 v71cr 보고(HN 12/50 오류) | **반영(PR 대기)** | `lib/analysis/auto-approval.ts` `RR_V2_EXCLUDED_SOURCES = {github_issues, hackernews}`. 60자 문턱은 그대로 | `auto-approval-selftest` 에 HN 음성 1건 추가. 가드에서 HN 을 빼 보면 셀프테스트가 실패하는 것도 확인함 |
-| P2 '정보 있음' 경계 문장 3개 | `docs/t2-audit-2026-11-12.md` ①~③ | **반영(PR 대기)** | `lib/analysis/relevance-criteria.ts` `PRODUCT_INFORMATIVE_CRITERIA_V2`(info-v2-2026-11-19). v1 상수는 바이트 그대로(해시 고정) | 1차·2차 모두 `INFO_CRITERIA` 변수로 고른다(기본 v2, `v1` 이면 옛 프롬프트와 글자까지 같음). 1차 판정 행 `prompt_version` 끝에 `+info-v2-2026-11-19` 가 붙는다 |
-| P2 누설 방지 | 계획 §4 P2 | 해당 없음 | F 예시 3줄은 원문이 아니라 요약이라 `INFORMATIVE_EXAMPLE_INPUT_IDS` 에 더할 id 가 없다 | — |
-| P3 하네스를 운영 프롬프트와 맞춤 | 계획 §3 사실 | **반영(PR 대기)** | `scripts/t2-approval-eval.mjs` `--criteria`(기본 v22) · `--info`(기본 v2) · 운영과 같은 few-shot 로더(`lib/analysis/relevance-examples.ts`, 실린 id 는 채점에서 뺌) · 같은 기준의 2차 지시문 · 캐시 키에 기준·info·few-shot 표시 · A∧내용 가드 채점 · 소스 분포 | `t2-approval-eval-selftest` 배선·제외 검사 추가. 실제 LLM 재측정은 아직 안 함 |
-| 재감사 표본 생성 | 계획 §5 세트 A·B·C | **스크립트만** | `scripts/t2-resample.mjs`(DB 읽기 전용, 실행 안 함) | `--selftest` 통과(소스당 8 · 합계 30 · 같은 시드는 같은 표본) |
-| 재측정·킬스위치 재계산 | 계획 §5·§6 | 미착수 | 오케스트레이터가 DB 에서 표본 생성 → 하네스 실행 → 남헌 채점(B·C) | — |
-| `AUTO_APPROVAL_SINCE` 이동 | 계획 §6 | 미착수 | 이 PR 머지 시각으로 옮기는 것은 역할 세션 판단 | — |
+| P1 hackernews 소스 제외 | 11-18 v71cr 보고(HN 12/50 오류) | **철회** (남헌 기준: 출처째 빼지 않는다) | `auto-approval.ts` 제외 집합은 main 과 같은 `{github_issues}`. `INFO_CRITERIA=v2` 면 출처 제외 없음 | `auto-approval-selftest` 가드: HN 통과·v2 github 통과·60자 유지 |
+| P2 '정보 있음' 기준 info-v2 | 11-12 감사 ① + 남헌 확정 기준 a~d | **수정(PR 대기)** | `relevance-criteria.ts` `PRODUCT_INFORMATIVE_CRITERIA_V2`. 감사 ②(소개 문구→false) 제외, Apple Pay F→T, 버그 리포트=무관·기능 요청=정보 있음, 기능·가치 소개·채용글=관련·정보 있음, 개발자 도구=영역 안, promo 태그 | **기본 v1(꺼짐)**. `INFO_CRITERIA=v2` 를 명시해야 켜진다 |
+| promo 태그 | 남헌 기준 a | **반영(PR 대기)** | 1차 출력 키 `promo` → `self_promo`, 저장은 reason 끝 `[자사홍보]`(마이그 없음) | 판정 불변을 셀프테스트로 고정 |
+| out-founder 제외 | L-20b(v71f) | **v2 에서 해제** | `approval-scope.ts` `scopeOptionsFor` — 자동 승인·2차 대기·감사 표본 셋이 같은 함수 | `approval-scope-selftest`·`relevance-second-judge-selftest` |
+| P3 하네스를 운영 프롬프트와 맞춤 | 계획 §3 사실 | **수정(PR 대기)** | `t2-approval-eval.mjs` 기본 `--criteria v24`(운영 변수값)·`--info v1`, A∧가드도 `--info` 를 따름, 전/후 명령을 파일 머리에 | `t2-approval-eval-selftest` |
+| 재감사 표본 생성 | 계획 §5 세트 A·B·C | **스크립트만** | `scripts/t2-resample.mjs`(DB 읽기 전용, 실행 안 함). 출력 파일이 있으면 덮지 않는다(같은 표본 유지) | `--selftest` 통과 |
+| 재측정·킬스위치 재계산 | 계획 §5·§6 | 미착수 | 오케스트레이터가 표본 생성 → 하네스 전/후 → `INFO_CRITERIA=v2` 설정 판단 | — |
+| `AUTO_APPROVAL_SINCE` 이동 | 계획 §6 | 미착수 | 변수를 v2 로 켠 시각으로 옮기는 것은 역할 세션 판단 | — |
 
 ## 남은 한계
 

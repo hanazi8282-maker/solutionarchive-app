@@ -85,6 +85,8 @@ export interface RelevanceVerdict extends RelevanceLabels {
   reason: string | null
   /** 자동 승인 rr-v2 추가 질문(PRODUCT_INFORMATIVE_CRITERIA). 어휘 밖·누락·호출 실패는 null — false 로 접지 않는다. */
   product_informative: boolean | null
+  /** info-v2 태그(남헌 2026-11-19): 자사 홍보·채용 글이면 true. 판정(verdict·product_informative)과 무관한 표시다. 키가 없거나 어휘 밖이면 null. */
+  self_promo?: boolean | null
 }
 
 export interface RelevanceOutcome {
@@ -244,7 +246,7 @@ function oneLine(text: string): string {
  */
 export function parseRelevanceArray(
   raw: string,
-): ({ id: string; rel: Relevance; why: string | null; product_informative: boolean | null } & RelevanceLabels)[] | null {
+): ({ id: string; rel: Relevance; why: string | null; product_informative: boolean | null; self_promo: boolean | null } & RelevanceLabels)[] | null {
   const arr = extractJsonArray(raw)
   if (!arr) return null
   return arr
@@ -263,6 +265,7 @@ export function parseRelevanceArray(
         frequency: pick(x.freq ?? x.frequency, LABEL_LEVELS),
         community_signal: pick(x.signal ?? x.community_signal, COMMUNITY_SIGNALS),
         wtp_mentioned: toBool(x.wtp ?? x.wtp_mentioned),
+        self_promo: toBool(x.promo ?? x.self_promo),
       }
     })
 }
@@ -351,6 +354,7 @@ export async function judgeRelevanceBatch(
         frequency: hit ? hit.frequency : null,
         community_signal: hit ? hit.community_signal : null,
         wtp_mentioned: hit ? hit.wtp_mentioned : null,
+        self_promo: hit ? hit.self_promo : null,
       }
     }),
   }

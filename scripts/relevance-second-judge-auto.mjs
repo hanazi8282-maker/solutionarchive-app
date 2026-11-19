@@ -21,7 +21,7 @@ import { createClient } from '../lib/supabase/server.ts'
 import { callGeminiRotating, parseJsonObject } from '../lib/analysis/llm.ts'
 import { dailySpent, DAILY_BUDGET_USD, judgeBudgetGate, judgeLedgerFrom, judgeUsdCaps, loadJudgeLedgerRows, setRunCapUsd } from '../lib/analysis/budget.ts'
 import { capacityGuard, loadAuditWindow, parseSince } from '../lib/analysis/auto-approval.ts'
-import { outOfScopeReason } from '../lib/analysis/approval-scope.ts'
+import { outOfScopeReason, scopeOptionsFor } from '../lib/analysis/approval-scope.ts'
 import { RELEVANCE_CRITERIA_VERSION, parseInfoMode, withInfoCriteria } from '../lib/analysis/relevance-criteria.ts'
 import {
   SECOND_OPINION_INSTRUCTIONS, SECOND_OPINION_INSTRUCTIONS_V22, secondOpinionInstructionsV23, secondOpinionInstructionsV24, orderSecondTargets, recordSecondOpinion, secondAreaGroup, secondJudgeTargetReason,
@@ -126,7 +126,7 @@ const legacyOrder = String(process.env.RELEVANCE_SECOND_ORDER ?? '').trim().toLo
 // 즉시 원복된다. RELEVANCE_SECOND_ORDER=legacy 는 순서만 되돌리고 이 제외는 그대로 둔다. 1차 판정은 건드리지 않는다.
 // v71cu-4: 이 제외는 원문을 읽기 **전**(id 단계)에 한다 — 예전엔 영역 밖 약 4만 행의 원문까지 읽은 뒤 버렸다.
 const skipOutOfArea = !['off', 'false', '0'].includes(String(process.env.RELEVANCE_SECOND_SKIP_OUT_OF_AREA ?? '').trim().toLowerCase())
-let queue = skipOutOfArea ? withProject.filter((r) => outOfScopeReason(String(projects.get(r.project_id)?.area_code ?? '').trim().toLowerCase(), false) !== 'out-area') : withProject
+let queue = skipOutOfArea ? withProject.filter((r) => outOfScopeReason(String(projects.get(r.project_id)?.area_code ?? '').trim().toLowerCase(), false, scopeOptionsFor(infoMode)) !== 'out-area') : withProject
 if (skipOutOfArea) log(`영역 밖(out-*) ${withProject.length - queue.length}건은 2차 대기에서 제외(원문 읽기 전, RELEVANCE_SECOND_SKIP_OUT_OF_AREA=off 로 원복) — 대기 ${queue.length}건`)
 // v71bj §3: 주제 라벨(review_topic_labels)이 활성 영역·이유 있음(reason/weak)인데 out-* 프로젝트에 있어 위에서 빠진 글을 하루 RELEVANCE_SECOND_TOPIC_DAILY 건까지 앞에 세운다.
 // 우선순위 ⑧→⑨→⑤→③→②→①→④. 기본 0 = 끔(되돌리기 = 변수 삭제). 라벨 조회가 실패하면 이 경로만 건너뛴다(§7.1 — 모르는 채 넣지 않는다). 이 글은 영역 밖 프로젝트라 자동 승인(rr-v2) 범위가 아니다(L-20b).

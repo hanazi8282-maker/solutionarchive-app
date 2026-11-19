@@ -103,6 +103,9 @@ const v23Areas = criteriaMode === 'v23' || criteriaMode === 'v24' ? (() => { con
 const { mode: infoMode, warning: infoWarning } = parseInfoMode(process.env.INFO_CRITERIA)
 if (infoWarning) console.warn(`::warning::${infoWarning}`)
 const PROMPT_VERSION = (criteriaMode === 'v24' ? RELEVANCE_V24_VERSION : criteriaMode === 'v23' ? RELEVANCE_V23_VERSION : criteriaMode === 'v22' ? RELEVANCE_V22_VERSION : criteriaMode === 'v21' ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION) + infoVersionSuffix(infoMode)
+/** v2 에서 모델이 promo=true 로 단 행만 reason 끝에 [자사홍보] 를 붙인다. v1·false·null 은 reason 그대로. */
+const PROMO_TAG = '[자사홍보]'
+function promoTagged(v, mode) { return mode === 'v2' && v.self_promo === true ? `${String(v.reason ?? '').slice(0, 480)} ${PROMO_TAG}`.trim() : v.reason }
 const chainEnabled = (process.env.RELEVANCE_CHAIN ?? 'on').trim().toLowerCase() !== 'off'
 /** 표본에서 4~5점 평점 입력의 비율 상한(v31 §2.3). 바꾸는 날은 env 값 + Notion 일일 상태 로그 한 줄이 근거다. */
 const highRatingShareEnv = process.env.RELEVANCE_HIGH_RATING_SHARE
@@ -538,7 +541,8 @@ for (const { project, pending } of targets) {
         model: out.model,
         ...(promptVersionColumn === 'absent' ? {} : { prompt_version: PROMPT_VERSION }),
         judged_at: new Date().toISOString(),
-        reason: v.reason,
+        // info-v2 promo 태그(남헌 2026-11-19): 저장 칸이 없어(마이그 없이) reason 끝에 표시만 한다("영역 밖:" 머리말을 깨지 않게). 판정 칸은 그대로다. 조회 = reason LIKE '%[자사홍보]'.
+        reason: promoTagged(v, infoMode),
         ...(infoColumn === 'absent' ? {} : { product_informative: v.product_informative }),
         ...(labelColumns === 'absent' ? {} : Object.fromEntries(LABEL_KEYS.map((k) => [k, v[k]]))),
       }))

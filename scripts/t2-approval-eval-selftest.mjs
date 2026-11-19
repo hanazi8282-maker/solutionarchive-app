@@ -94,7 +94,7 @@ ok(h.includes("if (o.error)") && h.includes('캐시 안 함'), '호출 실패는
 // 순환·4바퀴 로직은 야간 2차와 같은 헬퍼다 — 하네스에 복사본이 다시 생기면 실패(동작 검사는 relevance-second-judge-selftest).
 ok(h.includes('callGeminiRotating(') && !h.includes('round < 4'), '2차 503 모델 순환 4바퀴 = 공용 헬퍼')
 ok(h.includes('firstOpts)') && h.includes('callGeminiRotating(secondInstructions,') && h.includes('loadRelevanceExamples(') && h.includes('scoreEval(evalRows, fewShotIds)'), 'v71cu P3: 1차 운영 옵션·2차 같은 기준 지시문·운영 few-shot 로더·예시 id 채점 제외')
-ok(h.includes("opt('criteria') ?? 'v22'") && h.includes("opt('info') ?? 'v2'") && h.includes('infoVersionSuffix(info)'), 'v71cu P3: 기본 = 운영 기본값(v22·info-v2), 캐시 키에 info 버전')
+ok(h.includes("opt('criteria') ?? 'v24'") && h.includes("opt('info') ?? 'v1'") && h.includes('infoVersionSuffix(info)') && h.includes('raw_text: raw.get(r.input_id) }, info)') && h.includes('--info v1 --local-claude --out ops/state/t2-eval/pr682-before.json') && h.includes('--info v2 --local-claude --out ops/state/t2-eval/pr682-after.json'), 'PR #682: 기본 = 운영 v24 · info v1(꺼짐), 캐시 키에 info 버전, 가드도 info 를 따름, 전/후 같은 표본 명령이 머리에 있다')
 ok(!/\.(update|upsert|insert|delete)\(/.test(h), '하네스는 DB 에 쓰지 않는다')
 
 console.log(`\n${fail ? '❌' : '✅'} rr-v2 평가 하네스 셀프테스트: ${pass} pass / ${fail} fail`)

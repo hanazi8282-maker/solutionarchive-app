@@ -50,6 +50,63 @@ export function parseProductRef(productRef: string): { gl: string; hl: string; p
 /** 커서 = Play 가 준 다음 페이지 토큰 그대로. null 이면 첫 페이지. 토큰에 따옴표·역슬래시가 있으면 쓰지 않는다(본문 주입 경계). */
 const safeToken = (c: string | null) => (c && /^[A-Za-z0-9_\-=+/.]{1,2000}$/.test(c) ? c : null)
 
+// ── v71cu S3 깊이 수집 ───────────────────────────────────────────────
+// 문제(S0 Q5): 3페이지 상한에 닿으면 러너가 커서를 버리고, 새 글 0건 3회면 닫는다 → 121번째 이후 옛 리뷰는 어떤 실행도 못 읽었고,
+// exhausted 는 전부 cursor 가 빈 채라 "진짜 끝"과 "못 내려감"을 가를 수 없었다.
+// 해법: cursor 칸에 JSON 상태를 담는다(게시판 커서 선례). 매 실행 최신 쪽(head)을 먼저 읽고, 이미 본 구간에 닿으면 남은 페이지 몫으로
+// 옛 쪽 토큰(b)에서 이어 내려간다. 끝에 닿으면 {"end":1} 로 표시한다(= 진짜 고갈). 요청 상한·간격·차단 중단은 러너 그대로다.
+
+/** 깊이 수집 스위치. 코드 기본 off(옛 동작 그대로) — 워크플로가 `vars.GP_DEEP_PAGING || 'on'` 으로 켠다. 끄기 = 리포 변수 off. */
+export function gpDeepOn(v: string | undefined = process.env.GP_DEEP_PAGING): boolean {
+  return /^(on|true|1)$/i.test((v ?? '').trim())
+}
+
+/** h = 최신 쪽 이어읽기 토큰 · b = 옛 쪽 토큰 · go = 이번 요청은 b · end = 옛 쪽 끝까지 읽었다. */
+export type DeepCursor = { h?: string; b?: string; go?: 1; end?: 1 }
+
+/** 커서 문자열 → 상태. 평문 토큰(옛 형식)은 h. 못 읽는 JSON 은 빈 상태(처음부터 — 페이지 상한이 폭주를 막는다). */
+export function decodeDeep(c: string | null): DeepCursor {
+  if (!c) return {}
+  if (!c.startsWith('{')) return safeToken(c) ? { h: c } : {}
+  let o: Record<string, unknown>
+  try {
+    o = JSON.parse(c)
+  } catch {
+    return {}
+  }
+  const s: DeepCursor = {}
+  const h = safeToken(typeof o.h === 'string' ? o.h : null)
+  const b = safeToken(typeof o.b === 'string' ? o.b : null)
+  if (h) s.h = h
+  if (b) s.b = b
+  if (o.go === 1 && b) s.go = 1
+  if (o.end === 1) s.end = 1
+  return s
+}
+
+/** 상태 → 커서 문자열. h 하나뿐이면 평문 토큰(옛 형식과 같은 모양). 키 순서 고정. */
+export function encodeDeep(s: DeepCursor): string | null {
+  if (s.h && !s.b && !s.end) return s.h
+  const o: DeepCursor = {}
+  if (s.h) o.h = s.h
+  if (s.b) o.b = s.b
+  if (s.go && s.b) o.go = 1
+  if (s.end) o.end = 1
+  return Object.keys(o).length ? JSON.stringify(o) : null
+}
+
+/** 깊이 수집 다음 상태. tok = 이 페이지가 준 다음 토큰(제자리 반복이면 null), stale = 이미 본 구간에 닿음. */
+export function deepNext(s: DeepCursor, tok: string | null, stale: boolean): Pick<ParseResult, 'nextCursor' | 'pauseRun' | 'staleExpected'> {
+  const END = { nextCursor: encodeDeep({ end: 1 }), pauseRun: true }
+  const GO = (b: string) => ({ nextCursor: encodeDeep({ b, go: 1 }), staleExpected: true })
+  if (s.go) return tok ? GO(tok) : END // 옛 쪽을 읽는 중
+  if (!tok) return END // 최신 쪽에서 목록이 끝났다 = 전부 읽었다
+  if (s.end) return stale ? END : { nextCursor: encodeDeep({ h: tok, end: 1 }) } // 끝 표시된 타깃 = 옛 동작(새 것만)
+  if (s.b) return stale ? GO(s.b) : { nextCursor: encodeDeep({ h: tok, b: s.b }) } // 새 것 다 읽음 → 옛 쪽으로
+  // 상태 모름(옛 타깃·첫 방문): 최신 쪽 줄기가 곧 옛 쪽 줄기다 — 이미 본 구간이어도 끝까지 내려간다(지문이 중복 적재를 막는다).
+  return stale ? GO(tok) : { nextCursor: tok }
+}
+
 /** batchexecute f.req 본문. 내부 배열이 **문자열로 한 번 더 직렬화**되는 형태다(구글 RPC 규약). */
 export function buildBody(pkg: string, token: string | null): string {
   const inner = JSON.stringify([null, null, [2, SORT_NEWEST, [PAGE_SIZE, null, token], null, []], [pkg, 7]])
@@ -124,16 +181,38 @@ export const googleplayAdapter: ReviewSourceAdapter = {
   nextRequest(target: TargetState): ReviewRequest | null {
     const ref = parseProductRef(target.productRef)
     if (!ref) return null
-    // 커서가 있는데 쓸 수 없는 모양이면 처음부터 다시 읽지 않고 멈춘다(같은 페이지 반복 방지).
-    if (target.cursor && !safeToken(target.cursor)) return null
+    let token: string | null
+    if (target.cursor?.startsWith('{')) {
+      // v71cu S3 깊이 커서. 스위치를 끈 뒤에도 남은 JSON 은 "최신부터"로 읽는다(되돌리기 안전 — 상한에서 null 로 지워진다).
+      const s = decodeDeep(target.cursor)
+      token = gpDeepOn() ? ((s.go ? s.b : s.h) ?? null) : null
+    } else {
+      // 커서가 있는데 쓸 수 없는 모양이면 처음부터 다시 읽지 않고 멈춘다(같은 페이지 반복 방지).
+      if (target.cursor && !safeToken(target.cursor)) return null
+      token = safeToken(target.cursor)
+    }
     return {
       url: `${BATCH_URL}?hl=${ref.hl}&gl=${ref.gl}`,
       init: {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: buildBody(ref.pkg, safeToken(target.cursor)),
+        body: buildBody(ref.pkg, token),
       },
     }
+  },
+
+  /** v71cu S3: 3페이지 상한에 닿으면 최신 쪽 토큰은 버리고 옛 쪽 토큰(b)·끝 표시만 남긴다. 스위치 off 면 옛 동작(null). */
+  cursorAtCap(cursor: string | null): string | null {
+    if (!gpDeepOn()) return null
+    const s = decodeDeep(cursor)
+    if (s.end) return encodeDeep({ end: 1 })
+    const b = s.b ?? s.h // 상태 모름이면 최신 쪽 줄기가 곧 옛 쪽 줄기
+    return b ? encodeDeep({ b }) : null
+  },
+
+  /** v71cu S3: 옛 쪽 토큰이 남았으면 연속 0건으로 닫지 않는다. */
+  deepPending(cursor: string | null): boolean {
+    return gpDeepOn() && decodeDeep(cursor).b != null
   },
 
   parse(body: string, ctx: ParseContext): ParseResult {
@@ -165,7 +244,10 @@ export const googleplayAdapter: ReviewSourceAdapter = {
     const list = inner[0]
     // 리뷰가 하나도 없는 앱·마지막 다음 페이지: 페이로드는 정상인데 목록이 null/[] 다. 이건 0건 정상.
     if (list === null || (Array.isArray(list) && list.length === 0)) {
-      return { reviews: [], nextCursor: null, parseFailures: 0 }
+      // v71cu S3: 깊이 수집이면 "끝까지 읽었다"를 커서에 표시한다(진짜 고갈 — exhausted 를 빈 커서와 가른다).
+      return gpDeepOn()
+        ? { reviews: [], nextCursor: encodeDeep({ end: 1 }), pauseRun: true, parseFailures: 0 }
+        : { reviews: [], nextCursor: null, parseFailures: 0 }
     }
     if (!Array.isArray(list)) return FAIL
 
@@ -184,16 +266,27 @@ export const googleplayAdapter: ReviewSourceAdapter = {
     const slot = inner[1]
     const last = Array.isArray(slot) ? slot[slot.length - 1] : slot
     let nextCursor: string | null = null
+    let tokenBroken = false
     if (typeof last === 'string') {
       nextCursor = safeToken(last)
-      if (!nextCursor) parseFailures++ // 토큰은 왔는데 쓸 수 없는 모양
+      if (!nextCursor) { parseFailures++; tokenBroken = true } // 토큰은 왔는데 쓸 수 없는 모양
     } else if (last != null) {
       parseFailures++ // 토큰 자리에 다른 것이 있다 = 구조 변경. 끝이 아니라 못 읽음.
+      tokenBroken = true
     }
-    // 이미 본 구간(기준일보다 오래된 리뷰)에 닿았으면 더 내려가지 않는다 — 다음 실행은 최신부터(incrementalOnly).
-    // 최신순 정렬(SORT_NEWEST)이라 이 페이지에 오래된 게 있으면 다음 페이지는 전부 오래된 것이다.
-    if (ctx.lastReviewAt && reviews.some((r) => r.writtenAt != null && r.writtenAt < ctx.lastReviewAt!)) nextCursor = null
-    // 같은 토큰을 다시 받으면 제자리 반복이다(다나와 커서 버그 §7.2) — 끝으로 본다.
-    return { reviews, nextCursor: nextCursor === ctx.cursor ? null : nextCursor, parseFailures }
+    // 이미 본 구간(기준일보다 오래된 리뷰)에 닿았는가. 최신순 정렬(SORT_NEWEST)이라 이 페이지에 오래된 게 있으면 다음 페이지는 전부 오래된 것이다.
+    const stale = Boolean(ctx.lastReviewAt && reviews.some((r) => r.writtenAt != null && r.writtenAt < ctx.lastReviewAt!))
+    if (!gpDeepOn()) {
+      // 옛 동작: 이미 본 구간이면 더 내려가지 않는다 — 다음 실행은 최신부터(incrementalOnly).
+      if (stale) nextCursor = null
+      // 같은 토큰을 다시 받으면 제자리 반복이다(다나와 커서 버그 §7.2) — 끝으로 본다.
+      return { reviews, nextCursor: nextCursor === ctx.cursor ? null : nextCursor, parseFailures }
+    }
+    // v71cu S3. 토큰을 못 읽은 것은 "끝"이 아니다(§7.1) — 끝 표시를 남기지 않고 옛 동작처럼 이 타깃을 여기서 끝낸다(상태는 처음부터).
+    // ponytail: 이때 옛 쪽 토큰도 잃는다 — 다음 방문이 최신부터 다시 내려간다(지문이 중복을 막고, 비용은 요청 수뿐).
+    if (tokenBroken) return { reviews, nextCursor: null, parseFailures }
+    const s = decodeDeep(ctx.cursor)
+    const cur = (s.go ? s.b : s.h) ?? null
+    return { reviews, parseFailures, ...deepNext(s, nextCursor === cur ? null : nextCursor, stale) }
   },
 }

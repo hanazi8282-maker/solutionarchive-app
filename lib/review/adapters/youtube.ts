@@ -136,7 +136,8 @@ export const youtubeAdapter: ReviewSourceAdapter = {
 
   nextRequest(target: TargetState): { url: string } | null {
     const videoId = parseProductRef(target.productRef)
-    if (!videoId) return null
+    const channelId = videoId ? null : parseChannelRef(target.productRef)
+    if (!videoId && !channelId) return null
 
     const key = process.env.YOUTUBE_API_KEY
     // 키 없이 보내면 403 을 받고 러너가 그걸 차단으로 기록한다. 원인이

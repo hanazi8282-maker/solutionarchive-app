@@ -113,6 +113,47 @@ export const PRODUCT_INFORMATIVE_CRITERIA = [
   'T "Lemon has some hidden fees on top of the 5% ... Paddle that have true 5% + 50¢ pricing" — 숨은 수수료 대 경쟁사 요금',
 ].join('\n')
 
+/**
+ * 정보 기준 info-v2(v71cu P2, 2026-11-19) = 위 PRODUCT_INFORMATIVE_CRITERIA(info-v1, **바이트 그대로**) + 11-12 감사 제안 경계 문장 3개
+ * (docs/t2-audit-2026-11-12.md ①~③). 옛 판정을 같은 프롬프트로 재현할 수 있게 v1 상수는 건드리지 않고, 호출부가 `info` 옵션으로 고른다.
+ * RELEVANCE_CRITERIA_VERSION 은 올리지 않는다 — 2차 파일 import(isCurrentCriteria)가 그 값에 묶여 있다. 행별 구분은 prompt_version 접미사다.
+ * F 예시 3줄은 원문이 아니라 한 줄 요약이다 — 특정 input_id 를 싣지 않았으니 INFORMATIVE_EXAMPLE_INPUT_IDS 에 더할 것이 없다(누설 없음).
+ */
+export const INFO_CRITERIA_V1_VERSION = 'info-v1-2026-09-28'
+export const INFO_CRITERIA_VERSION = 'info-v2-2026-11-19'
+export type InfoMode = 'v1' | 'v2'
+
+const INFO_V1_HEADER = `(기준 버전 ${RELEVANCE_CRITERIA_VERSION})`
+export const PRODUCT_INFORMATIVE_CRITERIA_V2 = [
+  PRODUCT_INFORMATIVE_CRITERIA.replace(INFO_V1_HEADER, `(기준 버전 ${INFO_CRITERIA_VERSION})`),
+  '',
+  '[info-v2 추가 — 경계 원칙 (2026-11-12 감사)]',
+  '(a) 장점·단점을 이름 붙이지 않은 총평(좋다·편하다·만족·최고)은 info=false. 기능·비용·비교·이유 중 하나가 이름으로 나와야 true.',
+  '(b) 제품 소개·마케팅 문구를 되풀이한 글(직접 겪은 근거 없이 "매끄럽다·강력하다"를 옮김)은 info=false.',
+  '(c) 스택 트레이스·버전·환경 기재가 본문의 대부분이고 이 제품을 고르는 데 쓸 내용이 없으면 info=false 다. 자기 환경 문제라 relevant 기준에서도 irrelevant 다.',
+  'F (요약) "정말 좋은 앱이에요, 강추" — 장단을 이름 붙이지 않은 총평',
+  'F (요약) "사용자들은 매끄러운 파이프라인 관리를 높이 평가합니다" — 소개 문구 되풀이',
+  'F (요약) 오류 로그·OS·버전 목록이 본문 전부인 이슈 — 자기 환경 문제',
+].join('\n')
+if (PRODUCT_INFORMATIVE_CRITERIA_V2.includes(INFO_V1_HEADER)) throw new Error('info-v2: 머리글 버전 치환 실패') // §7.1 — v1 머리글로 나가지 않는다
+
+/** 프롬프트 안의 info-v1 블록을 고른 버전으로 바꾼다. v1(또는 미지정)이면 글자 하나 안 바뀐다. v1 블록이 없으면 던진다(조용히 v1 로 나가지 않게). */
+export function withInfoCriteria(prompt: string, info: InfoMode | null | undefined): string {
+  if (info !== 'v2') return prompt
+  if (!prompt.includes(PRODUCT_INFORMATIVE_CRITERIA)) throw new Error('info-v2: 프롬프트에 정보 기준(v1) 블록이 없다 — 치환할 자리를 못 찾았다')
+  return prompt.replace(PRODUCT_INFORMATIVE_CRITERIA, () => PRODUCT_INFORMATIVE_CRITERIA_V2)
+}
+
+/** 리포 변수 INFO_CRITERIA → 모드. 기본 v2(승인 범위를 좁히는 쪽). v1 은 옛 판정 재현용. 그 밖 값은 v2 + 경고. */
+export function parseInfoMode(raw: string | null | undefined): { mode: InfoMode; warning: string | null } {
+  const v = String(raw ?? '').trim().toLowerCase()
+  if (v === 'v1' || v === 'v2') return { mode: v, warning: null }
+  return { mode: 'v2', warning: v ? `INFO_CRITERIA='${raw}' 는 v1|v2 가 아니다 — v2 로 처리한다` : null }
+}
+
+/** 판정 행 prompt_version 에 붙일 접미사. v1 은 빈 문자열 — 옛 행과 같은 값이 나와야 재현이 맞는다. */
+export const infoVersionSuffix = (info: InfoMode): string => (info === 'v2' ? `+${INFO_CRITERIA_VERSION}` : '')
+
 /** 위 경계 사례의 원문 input_id(rr39 #18·#13·#35·#27·#8·#36·#12·#19·#28). 프롬프트에 실렸으니 평가에서 뺀다(누설). */
 export const INFORMATIVE_EXAMPLE_INPUT_IDS: readonly string[] = [
   'f3e83783-577b-4e38-b0ae-591fa2ee0e90', // #18 Apple Pay 질문 — F

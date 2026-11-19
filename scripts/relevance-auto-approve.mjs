@@ -119,7 +119,7 @@ for (let i = 0; i < scoped.length; i += 200) {
   data.forEach((x) => textById.set(x.id, x))
 }
 const targets = scoped.filter((r) => passesRrV2ContentGuard(textById.get(r.input_id) ?? {}))
-log(`내용 가드 제외 ${scoped.length - targets.length}건 (github_issues·60자 미만·본문 없음)`)
+log(`내용 가드 제외 ${scoped.length - targets.length}건 (github_issues·hackernews·60자 미만·본문 없음)`)
 const byReason = [...scope.excluded.values()].reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {})
 log(`대상 ${targets.length}건 (쿼리 ${rows.length}건 · 완전 동의 ${agreed.length}건 · 영역 외/소비재 태그 제외 ${scope.excluded.size}건 ${JSON.stringify(byReason)})`)
 if (dry) { log('--dry: 쓰지 않는다.'); process.exit(0) }

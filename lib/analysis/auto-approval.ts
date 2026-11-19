@@ -68,9 +68,11 @@ export function meetsRrV2(r: Pick<VerdictRow, 'verdict' | 'second_verdict' | 'pr
  * 글을 못 읽었으면(text null) "통과"가 아니라 막는다(§7.1).
  */
 export const RR_V2_MIN_TEXT = 60
+// v71cu P1(2026-11-19): 11-18 사람 채점 204건에서 hackernews 12/50(24%) 오류 → 소스 단위로 뺀다. 길이 문턱은 올리지 않는다(드라이런상 나쁜 거래).
+export const RR_V2_EXCLUDED_SOURCES: ReadonlySet<string> = new Set(['github_issues', 'hackernews'])
 export function passesRrV2ContentGuard(r: { source_key?: string | null; raw_text?: string | null }): boolean {
   if (r.source_key == null || r.raw_text == null) return false
-  if (r.source_key === 'github_issues') return false
+  if (RR_V2_EXCLUDED_SOURCES.has(r.source_key)) return false
   return r.raw_text.trim().length >= RR_V2_MIN_TEXT
 }
 

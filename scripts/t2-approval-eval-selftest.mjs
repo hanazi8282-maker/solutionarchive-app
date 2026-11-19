@@ -49,6 +49,9 @@ ok(r.n_A === 3 && r.errors === 1, `n_A 3 · 오류 1 (실제 ${r.n_A}·${r.error
 ok(Math.abs(r.precision - 2 / 3) < 1e-9 && Math.abs(r.recall - 2 / 3) < 1e-9, `정밀도·재현율 2/3 (실제 ${r.precision}·${r.recall})`)
 const rc = new Map(r.recheck.map((x) => [x.input_id, x.reason]))
 ok(rc.get(id(6)) === 'a' && !rc.has(id(7)) && !rc.has(INFORMATIVE_EXAMPLE_INPUT_IDS[1]), '재확인 a: 사람 모름인데 A, 예시는 빼고')
+// v71cu P3: few-shot 으로 실린 id 도 채점에서 뺀다
+const fs1 = scoreEval(rows, new Set([id(4)]))
+ok(fs1.excluded_examples === 2 && fs1.errors === 0 && fs1.n_A === 2, `few-shot id 제외: 예시 2 · A 2 · 오류 0 (실제 ${fs1.excluded_examples}·${fs1.n_A}·${fs1.errors})`)
 ok(r.gold_estimated === 0, `정보 열 채운 행만 A → 추정 0 (실제 ${r.gold_estimated})`)
 
 // 회귀(09-28 실데이터 A 0 · 재확인 57): 사람 정보 열이 전부 NULL 이어도 채점된다. 재확인은 부딪치는 행만.
@@ -90,6 +93,8 @@ ok(h.includes("원문 ${raw.size}/${ids.length}건만 읽힘") && h.includes('pr
 ok(h.includes("if (o.error)") && h.includes('캐시 안 함'), '호출 실패는 캐시하지 않는다')
 // 순환·4바퀴 로직은 야간 2차와 같은 헬퍼다 — 하네스에 복사본이 다시 생기면 실패(동작 검사는 relevance-second-judge-selftest).
 ok(h.includes('callGeminiRotating(') && !h.includes('round < 4'), '2차 503 모델 순환 4바퀴 = 공용 헬퍼')
+ok(h.includes('firstOpts)') && h.includes('callGeminiRotating(secondInstructions,') && h.includes('loadRelevanceExamples(') && h.includes('scoreEval(evalRows, fewShotIds)'), 'v71cu P3: 1차 운영 옵션·2차 같은 기준 지시문·운영 few-shot 로더·예시 id 채점 제외')
+ok(h.includes("opt('criteria') ?? 'v22'") && h.includes("opt('info') ?? 'v2'") && h.includes('infoVersionSuffix(info)'), 'v71cu P3: 기본 = 운영 기본값(v22·info-v2), 캐시 키에 info 버전')
 ok(!/\.(update|upsert|insert|delete)\(/.test(h), '하네스는 DB 에 쓰지 않는다')
 
 console.log(`\n${fail ? '❌' : '✅'} rr-v2 평가 하네스 셀프테스트: ${pass} pass / ${fail} fail`)

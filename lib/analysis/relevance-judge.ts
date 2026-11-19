@@ -23,7 +23,7 @@ import { extractJsonArray } from '../cases/remedy-judge.ts'
 // 목적 어휘 정본은 config/reader-problems.json 이다(lib/cases/draft.ts 가 읽는다).
 import { READER_PROBLEM_LABEL } from '../cases/draft.ts'
 // "관련"의 정의는 2차 판정(second-opinion.ts)과 한 벌이다 — 여기서 고치지 말고 relevance-criteria.ts 를 고친다.
-import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, describeBusinessModel, RELEVANCE_CRITERIA_V21, RELEVANCE_CRITERIA_V22, relevanceCriteriaV23, relevanceCriteriaV24 } from './relevance-criteria.ts'
+import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, describeBusinessModel, RELEVANCE_CRITERIA_V21, RELEVANCE_CRITERIA_V22, relevanceCriteriaV23, relevanceCriteriaV24, withInfoCriteria, type InfoMode } from './relevance-criteria.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 // YouTube 댓글 머리말 `[YouTube 댓글 · <id>]` 해석은 번역 쪽과 한 벌이다.
 import { parseSourceContext } from '../relevance-feedback/translate.ts'
@@ -161,6 +161,8 @@ export interface RelevancePromptOptions {
   criteria?: 'v21' | 'v22' | 'v23' | 'v24'
   /** v23 전용: 활성 영역 이름(번호 포함). config/areas.json scorableAreas 에서 호출부가 채운다. 비면 v23 은 던진다(§7.1). */
   areas?: readonly string[]
+  /** 정보 기준 버전(v71cu P2). 없거나 'v1' 이면 옛 프롬프트 그대로(재현용), 'v2' 면 info-v2 경계 문장이 들어간다. */
+  info?: InfoMode
 }
 
 /** 리뷰 한 줄 앞에 붙일 맥락. YouTube 댓글이고 제목을 알 때만. */
@@ -228,7 +230,7 @@ export function buildRelevancePrompt(
     : opts?.criteria === 'v23'
     ? systemV23(opts.areas ?? [])
     : opts?.criteria === 'v22' ? SYSTEM_V22 : opts?.criteria === 'v21' ? SYSTEM_V21 : SYSTEM
-  return { system, user, labels }
+  return { system: withInfoCriteria(system, opts?.info), user, labels }
 }
 
 /** 원문의 줄바꿈은 라벨 경계를 흐린다. 한 줄로 눕힌다. */

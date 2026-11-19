@@ -12,9 +12,9 @@
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION, criteriaKindOf } from '../lib/analysis/relevance-criteria.ts'
+import { PRODUCT_INFORMATIVE_CRITERIA, PRODUCT_INFORMATIVE_CRITERIA_V2, INFO_CRITERIA_VERSION, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION, criteriaKindOf, infoVersionSuffix, parseInfoMode, withInfoCriteria } from '../lib/analysis/relevance-criteria.ts'
 import { buildRelevancePrompt, parseGradingMarkdown } from '../lib/analysis/relevance-judge.ts'
-import { SECOND_OPINION_INSTRUCTIONS, isCurrentCriteria } from '../lib/analysis/second-opinion.ts'
+import { SECOND_OPINION_INSTRUCTIONS, SECOND_OPINION_INSTRUCTIONS_V22, isCurrentCriteria } from '../lib/analysis/second-opinion.ts'
 import { passesRrV2ContentGuard, AUDIT_DAILY, AUTO_APPROVAL_RULE, CAPACITY_GUARD, KILL, autoApprovalGate, capacityGuard, isFullAgreement, killSwitch, scoreApproval, tripThreshold } from '../lib/analysis/auto-approval.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -142,6 +142,29 @@ ok(!/case_studies|case_moves/.test(src('scripts/relevance-auto-approve.mjs').rep
   ok((wf.match(/RELEVANCE_CAPACITY_GUARD:/g) ?? []).length === 2 && (wf.match(/AUTO_APPROVAL_ENABLED: \$\{\{ vars\.AUTO_APPROVAL_ENABLED \|\| 'false' \}\}/g) ?? []).length === 4, '배선: 1차·2차 스텝에 가드 변수(시크릿 아님)')
 }
 
+// v71cu P2 — 정보 기준 info-v2 와 버전 분리(옛 판정 재현성)
+{
+  const P = { product_elevator_pitch: 'ConvertKit', business_model: 'SAAS' }, R = [{ input_id: 'x', text: 'hi' }]
+  const sys = (o) => buildRelevancePrompt(P, R, [], o).system
+  ok(createHash('sha256').update(PRODUCT_INFORMATIVE_CRITERIA).digest('hex') === 'c8d44049eb77d35188921d98b875ab068b5abd2ff52e10327f825d4f6a0f7e17', 'info-v1 상수는 바이트 그대로(해시 고정 — 옛 판정 재현)')
+  for (const c of [undefined, 'v21', 'v22']) {
+    ok(sys(c ? { criteria: c } : undefined) === sys({ ...(c ? { criteria: c } : {}), info: 'v1' }), `info v1/미지정 = 옛 프롬프트 그대로(${c ?? 'old'})`)
+    const s2 = sys({ ...(c ? { criteria: c } : {}), info: 'v2' })
+    ok(s2.includes(PRODUCT_INFORMATIVE_CRITERIA_V2) && !s2.includes(PRODUCT_INFORMATIVE_CRITERIA), `info v2 = v2 블록만 실린다(${c ?? 'old'})`)
+  }
+  ok(['장점·단점을 이름 붙이지 않은 총평', '제품 소개·마케팅 문구를 되풀이', '스택 트레이스·버전·환경 기재', INFO_CRITERIA_VERSION].every((k) => PRODUCT_INFORMATIVE_CRITERIA_V2.includes(k)), 'info-v2: 11-12 감사 경계 문장 3개 + 버전 머리글')
+  ok(PRODUCT_INFORMATIVE_CRITERIA_V2.startsWith(PRODUCT_INFORMATIVE_CRITERIA.split('\n')[0].replace(RELEVANCE_CRITERIA_VERSION, INFO_CRITERIA_VERSION)), 'info-v2: v1 본문 위에 덧붙인다(앞부분 동일, 머리글 버전만 다름)')
+  const s22 = withInfoCriteria(SECOND_OPINION_INSTRUCTIONS_V22, 'v2')
+  ok(s22.includes(PRODUCT_INFORMATIVE_CRITERIA_V2) && withInfoCriteria(SECOND_OPINION_INSTRUCTIONS_V22, 'v1') === SECOND_OPINION_INSTRUCTIONS_V22, '2차 지시문도 같은 info 블록으로 바뀐다(v1 은 그대로)')
+  let threw = false; try { withInfoCriteria('정보 블록 없음', 'v2') } catch { threw = true }
+  ok(threw, 'info-v2: 치환할 v1 블록이 없으면 던진다(조용히 v1 로 나가지 않는다)')
+  ok(parseInfoMode(undefined).mode === 'v2' && parseInfoMode('v1').mode === 'v1' && parseInfoMode('x').warning, 'INFO_CRITERIA 기본 v2 · v1 재현 · 모르는 값은 v2+경고')
+  ok(infoVersionSuffix('v1') === '' && infoVersionSuffix('v2') === `+${INFO_CRITERIA_VERSION}`, 'prompt_version 접미사: v1 은 옛 값 그대로, v2 는 +info-v2')
+  ok(RELEVANCE_CRITERIA_VERSION === 't2d-2026-09-28', '2차 import 경로 버전(isCurrentCriteria)은 그대로')
+  const rj = src('scripts/relevance-judge-auto.mjs'), r2 = src('scripts/relevance-second-judge-auto.mjs'), wf = src('.github/workflows/nightly-relevance.yml')
+  ok(rj.includes('info: infoMode') && rj.includes('+ infoVersionSuffix(infoMode)') && r2.includes('withInfoCriteria(') && (wf.match(/INFO_CRITERIA: \$\{\{ vars\.INFO_CRITERIA \|\| 'v2' \}\}/g) ?? []).length === 2, '배선: 1차·2차·워크플로가 같은 INFO_CRITERIA 를 쓴다')
+}
+
 console.log(`\n${fail ? '❌' : '✅'} 자동 승인 셀프테스트: ${pass} pass / ${fail} fail`)
 // v71cp P1-F 내용 가드
 {
@@ -149,9 +172,10 @@ console.log(`\n${fail ? '❌' : '✅'} 자동 승인 셀프테스트: ${pass} pa
   const ok = (r) => passesRrV2ContentGuard(r)
   if (!ok({ source_key: 'appstore', raw_text: long })) { console.error('✗ 가드: 정상 글이 막힘'); process.exit(1) }
   if (ok({ source_key: 'github_issues', raw_text: long })) { console.error('✗ 가드: github_issues 가 통과'); process.exit(1) }
+  if (ok({ source_key: 'hackernews', raw_text: long })) { console.error('✗ 가드: hackernews 가 통과(v71cu P1)'); process.exit(1) }
   if (ok({ source_key: 'appstore', raw_text: 'x'.repeat(59) })) { console.error('✗ 가드: 59자가 통과'); process.exit(1) }
   if (ok({ source_key: 'appstore', raw_text: null }) || ok({ source_key: null, raw_text: long })) { console.error('✗ 가드: 못 읽은 글이 통과(§7.1)'); process.exit(1) }
-  console.log('✓ rr-v2 내용 가드 5건')
+  console.log('✓ rr-v2 내용 가드 6건')
 }
 
 process.exit(fail ? 1 : 0)

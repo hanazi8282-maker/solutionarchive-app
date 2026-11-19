@@ -87,6 +87,8 @@ export interface RelevanceVerdict extends RelevanceLabels {
   product_informative: boolean | null
   /** info-v2 태그(남헌 2026-11-19): 자사 홍보·채용 글이면 true. 판정(verdict·product_informative)과 무관한 표시다. 키가 없거나 어휘 밖이면 null. */
   self_promo?: boolean | null
+  /** info-v23 후보 '정보약' 태그. true 면 product_informative 는 언제나 false 다(파서가 내린다 — 정보약을 승인 쪽으로 접지 않는다). 키가 없으면 null. */
+  info_weak?: boolean | null
 }
 
 export interface RelevanceOutcome {
@@ -246,7 +248,7 @@ function oneLine(text: string): string {
  */
 export function parseRelevanceArray(
   raw: string,
-): ({ id: string; rel: Relevance; why: string | null; product_informative: boolean | null; self_promo: boolean | null } & RelevanceLabels)[] | null {
+): ({ id: string; rel: Relevance; why: string | null; product_informative: boolean | null; self_promo: boolean | null; info_weak: boolean | null } & RelevanceLabels)[] | null {
   const arr = extractJsonArray(raw)
   if (!arr) return null
   return arr
@@ -254,18 +256,21 @@ export function parseRelevanceArray(
     .map(x => {
       const rel = String(x.rel ?? '').trim().toLowerCase()
       const why = typeof x.why === 'string' && x.why.trim() ? x.why.trim() : null
+      const weak = toBool(x.weak ?? x.info_weak)
       return {
         id: String(x.id ?? '').trim().toUpperCase(),
         // 어휘 밖 값은 unknown 이다. 'no'·'0'·'irrelevant?' 같은 응답을 무관으로 읽지 않는다.
         rel: ((RELEVANCE_VERDICTS as readonly string[]).includes(rel) ? rel : 'unknown') as Relevance,
         why,
         // 'yes'·1·'maybe' 는 null 이다 — 정보 없음(false)으로 읽지 않는다.
-        product_informative: toBool(x.info ?? x.product_informative),
+        // 정보약(weak=true)은 info=true 로 답했어도 false 로 내린다 — rr-v2 가 승인하지 않게(안전 쪽).
+        product_informative: weak === true ? false : toBool(x.info ?? x.product_informative),
         impact: pick(x.impact, LABEL_LEVELS),
         frequency: pick(x.freq ?? x.frequency, LABEL_LEVELS),
         community_signal: pick(x.signal ?? x.community_signal, COMMUNITY_SIGNALS),
         wtp_mentioned: toBool(x.wtp ?? x.wtp_mentioned),
         self_promo: toBool(x.promo ?? x.self_promo),
+        info_weak: weak,
       }
     })
 }
@@ -355,6 +360,7 @@ export async function judgeRelevanceBatch(
         community_signal: hit ? hit.community_signal : null,
         wtp_mentioned: hit ? hit.wtp_mentioned : null,
         self_promo: hit ? hit.self_promo : null,
+        info_weak: hit ? hit.info_weak : null,
       }
     }),
   }

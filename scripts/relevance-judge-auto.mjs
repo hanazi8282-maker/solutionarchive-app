@@ -46,7 +46,7 @@ import {
 import {
   CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
-import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION, RELEVANCE_V23_VERSION, RELEVANCE_V24_VERSION, infoVersionSuffix, parseInfoMode } from '../lib/analysis/relevance-criteria.ts'
+import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION, RELEVANCE_V23_VERSION, RELEVANCE_V24_VERSION, INFO_WEAK_TAG, infoVersionSuffix, parseInfoMode } from '../lib/analysis/relevance-criteria.ts'
 import { loadRelevanceExamples } from '../lib/analysis/relevance-examples.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent, judgeBudgetGate, judgeLedgerFrom, judgeUsdCaps, loadJudgeLedgerRows, setRunCapUsd } from '../lib/analysis/budget.ts'
@@ -99,13 +99,16 @@ const criteriaMode = (() => { const v = (process.env.RELEVANCE_CRITERIA ?? 'v22'
 if (!['old', 'v21', 'v22', 'v23', 'v24'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())) console.warn(`::warning::RELEVANCE_CRITERIA='${process.env.RELEVANCE_CRITERIA}' 는 old|v21|v22|v23|v24 가 아니다 — v22 로 처리한다`)
 // v23 은 활성 영역 이름을 config/areas.json 에서 읽는다. 못 읽으면 판정을 시작하지 않는다(§7.1 — 모르는 영역표로 판정하지 않는다).
 const v23Areas = criteriaMode === 'v23' || criteriaMode === 'v24' ? (() => { const { cfg, error } = loadAreasConfig(); if (!cfg) { console.error(`✗ v23 기준인데 config/areas.json 을 못 읽었다: ${error}`); process.exit(2) } const names = scorableAreas(cfg).map((a) => a.name); if (names.length === 0) { console.error('✗ v23 기준인데 활성 영역이 0개다 — 판정을 시작하지 않는다'); process.exit(2) } return names })() : undefined
-// 정보 기준(v71cu P2): 리포 변수 INFO_CRITERIA = v1 | v2(기본). v2 판정 행은 prompt_version 끝에 +info-v2-… 가 붙어 옛 판정과 갈린다.
+// 정보 기준(v71cu P2): 리포 변수 INFO_CRITERIA = v1(기본) | v2 | v23(후보, 2026-11-20). v2 판정 행은 prompt_version 끝에 +info-v2-… 가 붙어 옛 판정과 갈린다.
 const { mode: infoMode, warning: infoWarning } = parseInfoMode(process.env.INFO_CRITERIA)
 if (infoWarning) console.warn(`::warning::${infoWarning}`)
 const PROMPT_VERSION = (criteriaMode === 'v24' ? RELEVANCE_V24_VERSION : criteriaMode === 'v23' ? RELEVANCE_V23_VERSION : criteriaMode === 'v22' ? RELEVANCE_V22_VERSION : criteriaMode === 'v21' ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION) + infoVersionSuffix(infoMode)
-/** v2 에서 모델이 promo=true 로 단 행만 reason 끝에 [자사홍보] 를 붙인다. v1·false·null 은 reason 그대로. */
+/** v2·v23 에서 모델이 promo=true 로 단 행만 reason 끝에 [자사홍보] 를, v23 에서 weak=true 면 [정보약] 을 붙인다(저장 칸이 없어서 — 마이그 없이). v1·false·null 은 reason 그대로. */
 const PROMO_TAG = '[자사홍보]'
-function promoTagged(v, mode) { return mode === 'v2' && v.self_promo === true ? `${String(v.reason ?? '').slice(0, 480)} ${PROMO_TAG}`.trim() : v.reason }
+function promoTagged(v, mode) {
+  const tags = [mode !== 'v1' && v.self_promo === true ? PROMO_TAG : null, mode === 'v23' && v.info_weak === true ? INFO_WEAK_TAG : null].filter(Boolean)
+  return tags.length ? `${String(v.reason ?? '').slice(0, 470)} ${tags.join(' ')}`.trim() : v.reason
+}
 const chainEnabled = (process.env.RELEVANCE_CHAIN ?? 'on').trim().toLowerCase() !== 'off'
 /** 표본에서 4~5점 평점 입력의 비율 상한(v31 §2.3). 바꾸는 날은 env 값 + Notion 일일 상태 로그 한 줄이 근거다. */
 const highRatingShareEnv = process.env.RELEVANCE_HIGH_RATING_SHARE

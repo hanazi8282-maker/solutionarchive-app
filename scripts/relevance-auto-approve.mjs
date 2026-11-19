@@ -122,7 +122,8 @@ for (let i = 0; i < scoped.length; i += 200) {
   data.forEach((x) => textById.set(x.id, x))
 }
 const targets = scoped.filter((r) => passesRrV2ContentGuard(textById.get(r.input_id) ?? {}, infoMode))
-log(`내용 가드 제외 ${scoped.length - targets.length}건 (${infoMode === 'v2' ? 'info-v2: 출처 제외 없음' : 'github_issues'}·60자 미만·본문 없음)`)
+// INFO_CRITERIA=v23(후보): out-founder 는 v1 처럼 뺀다(규칙 d — 영역 밖), 출처 제외는 v2 처럼 없다. 정보약은 판정에서 info=false 라 meetsRrV2 가 이미 뺀다.
+log(`내용 가드 제외 ${scoped.length - targets.length}건 (${infoMode !== 'v1' ? `info-${infoMode}: 출처 제외 없음` : 'github_issues'}·60자 미만·본문 없음)`)
 const byReason = [...scope.excluded.values()].reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {})
 log(`대상 ${targets.length}건 (쿼리 ${rows.length}건 · 완전 동의 ${agreed.length}건 · 영역 외/소비재 태그 제외 ${scope.excluded.size}건 ${JSON.stringify(byReason)})`)
 if (dry) { log('--dry: 쓰지 않는다.'); process.exit(0) }

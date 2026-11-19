@@ -4,7 +4,14 @@
 //
 //   node --env-file=.env.local scripts/t2-approval-eval.mjs [--sample ops/state/t2-retest-2026-09-28/r2-sample.json]
 //        [--saas-only] [--local-claude] [--baseline <옛 1차 json>] [--out <eval.json>]
-//        [--criteria old|v21|v22|v23|v24 (기본 v22 = 운영 기본값)] [--info v1|v2 (기본 v2 = 운영 기본값)] [--no-fewshot]
+//        [--criteria old|v21|v22|v23|v24 (기본 v24 = 운영 리포 변수 RELEVANCE_CRITERIA)] [--info v1|v2 (기본 v1 = 코드 기본값·꺼짐)] [--no-fewshot]
+//
+// ▶ PR #682 재측정(오케스트레이터가 실행 — 서브에이전트는 LLM·DB 를 부르지 않았다). 전/후 같은 표본, 다른 것은 --info 하나뿐:
+//   0) node --env-file=.env.local scripts/t2-resample.mjs --new-since 2026-11-18 --seed 20261119      # → ops/state/t2-eval/resample-2026-11-19.json (A50·B20·C≤30, 한 번만 만든다)
+//   1) 전: node --env-file=.env.local scripts/t2-approval-eval.mjs --sample ops/state/t2-eval/resample-2026-11-19.json --criteria v24 --info v1 --local-claude --out ops/state/t2-eval/pr682-before.json
+//   2) 후: node --env-file=.env.local scripts/t2-approval-eval.mjs --sample ops/state/t2-eval/resample-2026-11-19.json --criteria v24 --info v2 --local-claude --out ops/state/t2-eval/pr682-after.json
+//   캐시는 TAG(기준+info+fs)별로 따로라 1)·2)가 섞이지 않는다. A∧가드 채점도 --info 를 따른다(v2 = 출처 제외 없음). 영역·소비재 제외(loadScope)는 두 쪽 다 대지 않는다.
+//   주의: 2) 의 reports/<KST>/t2-approval-eval.md 가 1) 을 덮는다 — 비교는 두 --out json 으로 한다.
 //
 // v71cu P3(2026-11-19): 운영 프롬프트와 맞춘다. 09-28 가동 근거는 criteria·few-shot 없이(t2d) 쟀는데 운영은 10-13 부터 v22 + few-shot 이었다.
 // 1차 = judgeRelevanceBatch(project, batch, few-shot, call, { criteria, areas, info }) — 운영 relevance-judge-auto.mjs 와 같은 옵션·같은 few-shot 로더
@@ -41,8 +48,8 @@ const die = (m) => { console.error(`✗ ${m}`); process.exit(2) }
 const rd = (p) => JSON.parse(fs.readFileSync(p, 'utf8'))
 
 // 기준 — 운영과 같은 스위치. 모르는 값은 조용히 바꾸지 않고 멈춘다(§7.1).
-const criteria = (opt('criteria') ?? 'v22').toLowerCase()
-const info = (opt('info') ?? 'v2').toLowerCase()
+const criteria = (opt('criteria') ?? 'v24').toLowerCase()
+const info = (opt('info') ?? 'v1').toLowerCase()
 const CRITERIA_VERSIONS = { old: RELEVANCE_CRITERIA_VERSION, v21: RELEVANCE_V21_VERSION, v22: RELEVANCE_V22_VERSION, v23: RELEVANCE_V23_VERSION, v24: RELEVANCE_V24_VERSION }
 if (!(criteria in CRITERIA_VERSIONS)) die(`--criteria 는 old|v21|v22|v23|v24 다: ${criteria}`)
 if (info !== 'v1' && info !== 'v2') die(`--info 는 v1|v2 다: ${info}`)
@@ -211,7 +218,7 @@ const evalRows = targets.map((r) => ({
 const result = scoreEval(evalRows, fewShotIds)
 // A∧가드 — 가드에 걸리는 행은 rr-v2 가 승인하지 않는다 → 판정이 있으면 not-A 로 둔다(판정 없음은 그대로 unjudged).
 const NOT_A = { verdict: 'irrelevant', product_informative: false }
-const guarded = scoreEval(evalRows.map((r) => (r.first && r.second && !passesRrV2ContentGuard({ source_key: sourceOf.get(r.input_id), raw_text: raw.get(r.input_id) }) ? { ...r, first: NOT_A } : r)), fewShotIds)
+const guarded = scoreEval(evalRows.map((r) => (r.first && r.second && !passesRrV2ContentGuard({ source_key: sourceOf.get(r.input_id), raw_text: raw.get(r.input_id) }, info) ? { ...r, first: NOT_A } : r)), fewShotIds)
 const bySource = {}
 for (const r of evalRows) { const k = sourceOf.get(r.input_id) ?? '(없음)'; bySource[k] = (bySource[k] ?? 0) + 1 }
 
@@ -242,7 +249,7 @@ fs.writeFileSync(mdPath, [
   `- 대상 ${result.n}행 · 예시 제외 ${result.excluded_examples} · 판정 빠짐(unjudged) ${result.unjudged} · 원문 폐기 제외 ${purged.length} · 사람 정보 열 ${infoColumn === 'present' ? '있음' : '없음(마이그 000031 미적용)'}`,
   `- gold 확정 ${result.gold_known}행(그중 승인해도 되는 행 ${result.gold_positive})`,
   `- **A(둘 다 관련 ∧ 둘 다 정보 있음) ${result.n_A}건 · 오류 ${result.errors}건 · 정밀도 ${pct(result.precision)} · 재현율 ${pct(result.recall)}**${result.gold_estimated ? ` — **잠정**: A 중 ${result.gold_estimated}건은 사람 정보 열이 비어 '관련=정보 있음'으로 추정한 정답` : ''}`,
-  `- **A∧내용 가드 ${guarded.n_A}건 · 오류 ${guarded.errors}건 · 정밀도 ${pct(guarded.precision)} · 재현율 ${pct(guarded.recall)}** (가드 = github_issues·hackernews 제외 · 60자 미만 제외. 영역·소비재 제외는 안 댐)`,
+  `- **A∧내용 가드 ${guarded.n_A}건 · 오류 ${guarded.errors}건 · 정밀도 ${pct(guarded.precision)} · 재현율 ${pct(guarded.recall)}** (가드 = ${info === 'v2' ? '출처 제외 없음(info-v2)' : 'github_issues 제외'} · 60자 미만 제외. 영역·소비재 제외는 안 댐)`,
   `- 기준 ${criteria} · 정보 ${info} · few-shot ${fewShot ? `켬(실린 ${fewShotIds.size}건 채점 제외)` : '끔'} · 소스 분포 ${JSON.stringify(bySource)}`,
   `- 가동 문턱(문서화만, 플래그는 사람이 켠다): n_A≥${EVAL_GATE.minNA} · 오류≤${EVAL_GATE.maxErrors} · 재현율≥${EVAL_GATE.minRecall * 100}% → ${result.meets_gate ? '충족' : '미충족'}`,
   `- 옛 프롬프트 대비 1차 verdict 일치: ${drift ? `${drift.agree}/${drift.n} (${pct(drift.pct)}) · 기준선 ${drift.baseline}` : '확인 불가(기준선 없음)'}`,

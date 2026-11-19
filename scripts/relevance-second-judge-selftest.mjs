@@ -185,21 +185,23 @@ const e503 = () => new ProviderHttpError(503, 'overloaded')
 // v71p 3 → A안(PR #539): out-* 접두어 행만 2차 제외 — 기본 on, off/false/0 이면 기존 동작. NULL·빈 값·모르는 코드는 남는다(rr-v2 자동 승인이 그 행의 2차를 쓴다).
 {
   const src = (await import('node:fs')).readFileSync(new URL('./relevance-second-judge-auto.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
-  const { outOfScopeReason } = await import('../lib/analysis/approval-scope.ts')
+  const { outOfScopeReason, scopeOptionsFor } = await import('../lib/analysis/approval-scope.ts')
   ok(src.includes("['off', 'false', '0'].includes(String(process.env.RELEVANCE_SECOND_SKIP_OUT_OF_AREA"), '제외는 기본 on, off·false·0 일 때만 꺼진다')
-  ok(src.includes("!== 'out-area') : withProject") && src.includes('orderSecondTargets(queue,'), '필터는 outOfScopeReason(#529)의 out-area 판정을 쓰고 대기열(queue)을 정렬에 넘긴다')
+  ok(src.includes("false, scopeOptionsFor(infoMode)) !== 'out-area') : withProject") && src.includes('orderSecondTargets(queue,'), '필터는 outOfScopeReason(#529)의 out-area 판정을 쓰고 대기열(queue)을 정렬에 넘긴다')
 
   // 행동 대조(v71q 2): 스크립트의 실제 두 줄(skipOutOfArea·queue)을 그대로 떼어 돌린다 — 복사본이 아니라 원문이라 코드가 바뀌면 같이 깨진다.
   // 두 줄에 legacyOrder 가 없으므로 RELEVANCE_SECOND_ORDER=legacy 여도 제외는 그대로다.
   const lines = src.split('\n').filter((l) => /^(const|let) (skipOutOfArea|queue) = /.test(l))
   ok(lines.length === 2 && !lines.join().includes('legacy'), '필터 두 줄을 원문에서 찾았고 legacy 순서와 무관하다')
-  const runFilter = new Function('process', 'withProject', 'projects', 'outOfScopeReason', `${lines.join('\n')}\nreturn queue`)
+  const runFilter = new Function('process', 'withProject', 'projects', 'outOfScopeReason', 'scopeOptionsFor', 'infoMode', `${lines.join('\n')}\nreturn queue`)
   const projs = new Map([['in0', { area_code: '1', business_model: 'SAAS' }], ['in1', { area_code: '3', business_model: null }], ['dz', { area_code: 'design', business_model: null }],
     ['hd', { area_code: 'hold', business_model: 'SAAS' }], ['of', { area_code: 'out-founder', business_model: 'SAAS' }], ['oc', { area_code: ' OUT-consumer ', business_model: null }],
     ['nu', { area_code: null, business_model: null }], ['em', { area_code: '  ', business_model: 'SAAS' }], ['uk', { area_code: 'zzz', business_model: null }], ['ou', { area_code: 'outdoor', business_model: null }]])
   const live = []
   for (const [pid, n] of [['in0', 5], ['in1', 4], ['dz', 3], ['hd', 2], ['of', 6], ['oc', 3], ['nu', 2], ['em', 2], ['uk', 1], ['ou', 1]]) for (let i = 0; i < n; i++) live.push({ input_id: `${pid}-${i}`, project_id: pid, product_informative: pid === 'in0' || i % 2 === 0 })
-  const q = (v) => runFilter({ env: v === undefined ? {} : { RELEVANCE_SECOND_SKIP_OUT_OF_AREA: v } }, live, projs, outOfScopeReason)
+  const q = (v, mode = 'v1') => runFilter({ env: v === undefined ? {} : { RELEVANCE_SECOND_SKIP_OUT_OF_AREA: v } }, live, projs, outOfScopeReason, scopeOptionsFor, mode)
+  // PR #682 수정(남헌 2026-11-19): INFO_CRITERIA=v2 면 out-founder 는 2차 대기에서 빼지 않는다(태그만). out-consumer 는 그대로 뺀다.
+  ok(q(undefined, 'v2').length === live.length - 3 && q(undefined, 'v2').some((r) => r.project_id === 'of') && !q(undefined, 'v2').some((r) => r.project_id === 'oc'), 'v2: out-founder 6건은 남고 out-consumer 3건만 빠진다')
   for (const v of ['off', 'false', '0', ' OFF ', 'False']) ok(q(v) === live, `off(${JSON.stringify(v)}) → 옛 대기열과 같은 배열·같은 행 수(${live.length})`)
   const OUT = ['of', 'oc']
   for (const v of [undefined, '', 'on', 'true', '1']) ok(q(v).length === live.length - 9 && q(v).every((r) => !OUT.includes(r.project_id)), `on(${JSON.stringify(v)}) → out-* 9건만 빠지고 ${live.length - 9}건`)

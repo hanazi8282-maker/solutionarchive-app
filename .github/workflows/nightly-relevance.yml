@@ -132,8 +132,8 @@ jobs:
           RELEVANCE_SKIP_QUALITY: ${{ vars.RELEVANCE_SKIP_QUALITY || 'on' }}
           # 판정 기준(남헌 v66·v67): 기본 v2.2, 리포 변수 RELEVANCE_CRITERIA=v21|old 로 되돌린다.
           RELEVANCE_CRITERIA: ${{ vars.RELEVANCE_CRITERIA || 'v22' }}
-          # 정보 기준(v71cu P2): 기본 info-v2, 리포 변수 INFO_CRITERIA=v1 로 옛 기준 재현.
-          INFO_CRITERIA: ${{ vars.INFO_CRITERIA || 'v2' }}
+          # 정보 기준(v71cu P2·PR #682 수정): 기본 v1(꺼짐). 재측정 뒤 리포 변수 INFO_CRITERIA=v2 로 켠다(1차·2차·자동 승인이 같은 값).
+          INFO_CRITERIA: ${{ vars.INFO_CRITERIA || 'v1' }}
           # 자기 호출 체인. 끄기 = 리포 변수 RELEVANCE_CHAIN=off(다음 hop 부터 안 부른다). 만료는 config relevance_cap_until.
           RELEVANCE_CHAIN: ${{ vars.RELEVANCE_CHAIN || 'on' }}
           RELEVANCE_CHAIN_MAX_HOPS: ${{ vars.RELEVANCE_CHAIN_MAX_HOPS || '24' }}
@@ -178,8 +178,8 @@ jobs:
           RELEVANCE_CAPACITY_GUARD: ${{ vars.RELEVANCE_CAPACITY_GUARD || '' }}
           # 2차 판정도 1차와 같은 기준(남헌 v67): 기본 v2.2, 리포 변수 RELEVANCE_CRITERIA=v21|old 로 되돌린다.
           RELEVANCE_CRITERIA: ${{ vars.RELEVANCE_CRITERIA || 'v22' }}
-          # 정보 기준(v71cu P2): 기본 info-v2, 리포 변수 INFO_CRITERIA=v1 로 옛 기준 재현.
-          INFO_CRITERIA: ${{ vars.INFO_CRITERIA || 'v2' }}
+          # 정보 기준(v71cu P2·PR #682 수정): 기본 v1(꺼짐). 재측정 뒤 리포 변수 INFO_CRITERIA=v2 로 켠다(1차·2차·자동 승인이 같은 값).
+          INFO_CRITERIA: ${{ vars.INFO_CRITERIA || 'v1' }}
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
           # 판정 과금 상한(v71cu-3 §2a): 일·월 USD. 원장(agent_runs est_usd)으로 슬롯·hop 을 합산한다. claude-cli 는 계량 불가로 표시만(청구 없음). 되돌리기 = 이 두 줄 삭제(코드 기본 75·2000).
           JUDGE_DAILY_USD_CAP: ${{ vars.JUDGE_DAILY_USD_CAP || '75' }}
@@ -201,6 +201,8 @@ jobs:
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
           AUTO_APPROVAL_ENABLED: ${{ vars.AUTO_APPROVAL_ENABLED || 'false' }}
           AUTO_APPROVAL_SINCE: ${{ vars.AUTO_APPROVAL_SINCE || '' }}
+          # 정보 기준(v71cu P2·PR #682 수정): 기본 v1(꺼짐). 재측정 뒤 리포 변수 INFO_CRITERIA=v2 로 켠다(1차·2차·자동 승인이 같은 값).
+          INFO_CRITERIA: ${{ vars.INFO_CRITERIA || 'v1' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: node scripts/relevance-auto-approve.mjs
 

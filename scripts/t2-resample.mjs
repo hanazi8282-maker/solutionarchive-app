@@ -12,7 +12,11 @@
 //   세트 C (30) — 새 소스 글: 1차·2차 완전 동의(meetsRrV2) ∧ 사람 미채점 ∧ judged_at ≥ --new-since 인 행에서 고정 시드로 30건, 소스당 최대 8건.
 //                 --sources 를 주면 그 소스만(v71cu 새 포럼 7곳·googleplay·4분야 앱·youtube 의 실제 source_key 를 넣는다). A·B 와 겹치면 뺀다.
 //   출력 = ops/state/t2-eval/resample-2026-11-19.json — [{input_id, project_id, set}] (본문 없음 — 공개 리포). 하네스 입력 그대로:
-//   node --env-file=.env.local scripts/t2-approval-eval.mjs --sample ops/state/t2-eval/resample-2026-11-19.json --criteria v22 --info v2
+//   ▶ PR #682 재측정 — 표본은 한 번만 만들고 전/후 같은 파일을 쓴다(다른 것은 --info 하나):
+//   node --env-file=.env.local scripts/t2-resample.mjs --new-since 2026-11-18 --seed 20261119
+//   node --env-file=.env.local scripts/t2-approval-eval.mjs --sample ops/state/t2-eval/resample-2026-11-19.json --criteria v24 --info v1 --local-claude --out ops/state/t2-eval/pr682-before.json
+//   node --env-file=.env.local scripts/t2-approval-eval.mjs --sample ops/state/t2-eval/resample-2026-11-19.json --criteria v24 --info v2 --local-claude --out ops/state/t2-eval/pr682-after.json
+//   (운영 기준은 리포 변수 RELEVANCE_CRITERIA=v24 다 — v22 로 재면 운영과 다른 프롬프트를 잰다.) 출력 파일이 이미 있으면 덮어쓰지 않고 멈춘다 — 같은 표본을 지킨다.
 // 종료코드: 0 완료 · 2 설정/조회 실패·건수 불일치(§7.1)
 
 import fs from 'node:fs'
@@ -116,6 +120,7 @@ console.log(`세트 C: 후보 ${pool.length}건(since ${sinceIso}${onlySources ?
 if (cRows.length < 30) console.warn(`⚠️ 세트 C 가 30건에 못 미친다(${cRows.length}) — 소스당 8 상한 또는 후보 부족. 상한을 올리지 말고 그대로 보고한다.`)
 
 const out = opt('out') ?? 'ops/state/t2-eval/resample-2026-11-19.json'
+if (fs.existsSync(out) && !args.includes('--force')) die(`${out} 가 이미 있다 — 전/후 같은 표본을 쓰려고 덮어쓰지 않는다(새로 뽑으려면 --force)`)
 fs.mkdirSync(path.dirname(out), { recursive: true })
 const rows = [
   ...win.map((r) => ({ input_id: r.input_id, project_id: r.project_id, set: 'A' })),

@@ -18,7 +18,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative, resolve, isAbsolute } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { selectStoryFlow, dbLoaders, BOTTLENECK_ANSWER, STORY_FLOW_B_OPTS } from '../lib/consult/story-flow-select.ts'
+import { selectStoryFlow, dbLoaders, clipText, BOTTLENECK_ANSWER, STORY_FLOW_B_OPTS } from '../lib/consult/story-flow-select.ts'
 import { BOTTLENECK_CHAPTERS } from '../lib/consult/story-flow.ts'
 import { enrichDiagnosis } from '../lib/consult/story-flow-topic.ts'
 import { AREA_NAMES, BOTTLENECK_CH, mulberry32 } from './story-flow-compare.mjs'
@@ -84,7 +84,7 @@ export function remembering(loaders) {
 }
 const quoteKo = (cards, q) => cards.get(q.slug_internal ?? q.slug)?.episodes?.find((e) => e.episode_idx === q.episode_idx)?.quote_ko ?? null
 /** 선택 한 건 → 렌더링 항목. 내용은 selectionToSimilar 와 같다(what = 요약, why = 비슷한 이유 / 설득력 이유). 실패 표시는 앞말 대신 표시 칸으로. */
-export const pickItem = (p, cards) => ({ what: p.summary_ko, why: `${p.reasons[0]} / ${p.reasons[1]}`.slice(0, 120), fail: p.fail_kind ?? null,
+export const pickItem = (p, cards) => ({ what: p.summary_ko, why: clipText(`${p.reasons[0]} / ${p.reasons[1]}`, 120), fail: p.fail_kind ?? null,
   quote: p.quote ? { orig: p.quote.text, ko: quoteKo(cards, p.quote) } : null })
 export const legacyItem = (x) => ({ what: x.what ?? '', why: x.why ?? '', fail: null, quote: null })
 const picksOf = (s) => (s.recommended ? [s.recommended, ...s.alternatives] : s.alternatives ?? [])

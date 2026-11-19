@@ -1,0 +1,96 @@
+{
+  "diagnosis": {
+    "label": "영역⑤ 리뷰 관리·글쓰기 — 방문하는 사람이 적다",
+    "chapter": 5,
+    "chapters": [
+      5
+    ],
+    "situation": {
+      "customer": "smb",
+      "price_band": "<10",
+      "stage": "zero_rev",
+      "team_size": "solo"
+    },
+    "adversity": "손님이 안 온다 검색 노출이 없다"
+  },
+  "before": {
+    "status": "insufficient",
+    "alternatives": [],
+    "considered": 2,
+    "note": "사례 부족 — 장 5 카드 2건(3건 미만)"
+  },
+  "after": {
+    "status": "ok",
+    "recommended": {
+      "source": "story_flow",
+      "slug": "fx-review-a",
+      "name": "fx-review-a",
+      "chapter": 5,
+      "score": 0.718,
+      "situation": 0.9,
+      "persuasion": 0.5,
+      "reasons": [
+        "손님·값대·단계·팀 크기이 같다",
+        "숫자로 확인된 결과"
+      ],
+      "hasFailure": false,
+      "crossIndustry": false,
+      "quote": {
+        "slug": "fx-review-a",
+        "episode_idx": 0,
+        "text": "Thirty answer-style posts brought our first three thousand visits."
+      },
+      "summary_ko": "질문형 글 30편 → 월 방문 3천"
+    },
+    "alternatives": [
+      {
+        "source": "story_flow",
+        "slug": "fx-review-b",
+        "name": "fx-review-b",
+        "chapter": 5,
+        "score": 0.495,
+        "situation": 0.7,
+        "persuasion": 0.385,
+        "reasons": [
+          "손님·팀 크기이 같다",
+          "말로 확인된 결과(숫자는 없다), 안 된 시도도 함께 담겨 있다"
+        ],
+        "hasFailure": true,
+        "crossIndustry": false,
+        "quote": {
+          "slug": "fx-review-b",
+          "episode_idx": 0,
+          "text": "Ads bought traffic but not signups."
+        },
+        "summary_ko": "검색 광고 → 방문은 늘고 가입은 그대로"
+      },
+      {
+        "source": "move_tags",
+        "slug": "fx-mt-1",
+        "name": "합성회사 일",
+        "chapter": 5,
+        "score": 0.635,
+        "situation": 0.9,
+        "persuasion": 0.15,
+        "reasons": [
+          "손님·값대·단계·팀 크기이 같다",
+          "결과가 원문에 적혀 있다"
+        ],
+        "hasFailure": false,
+        "crossIndustry": false,
+        "quote": null,
+        "summary_ko": "community_post → 첫 손님 20명"
+      }
+    ],
+    "considered": {
+      "story_flow": 2,
+      "move_tags": 1,
+      "case_bank": 0
+    },
+    "note": "장 5 · story flow 2 · 꼬리표 1 · 사례 은행 0 → 3건(story_flow+move_tags)"
+  },
+  "quote_check": {
+    "checked": 2,
+    "mismatches": []
+  }
+}

@@ -4,6 +4,7 @@ import { db, type Run } from '../runs.ts'
 import { diagnoseLayer0, generateMemo } from '../pipeline.ts'
 import { retrieveSimilar } from '../cases.ts'
 import { buildCh3to6 } from './ch3to6.ts'
+import { chooseSimilar, dbLoaders, diagnosisFromReport, selectStoryFlow, selectionToSimilar, type Selection } from '../story-flow-select.ts'
 import type { Ch1 } from './ch1-validate.ts'
 import type { Ch2 } from './ch2-validate.ts'
 import type { Ch3to6 } from './ch3to6-validate.ts'
@@ -20,6 +21,7 @@ export type ReportPayload = {
   ch2?: Ch2
   ch3to6?: Ch3to6
   appendix: { assumptions: string[]; sources: string[]; note: string }
+  story_flow?: Selection // [v71cu 2-6] 깃발 ON 일 때만 — 점수·이유·원문 인용(내부 검증용, 화면은 안 그린다)
 }
 
 export async function composeReport(run: Run, preset: Preset, createdBy: string): Promise<{ token: string; payload: ReportPayload }> {
@@ -33,7 +35,16 @@ export async function composeReport(run: Run, preset: Preset, createdBy: string)
   let ch1 = ds.blocks as Ch1
 
   // 비슷한 회사 목록(③, v0) — 콜드메일 전 장에서만 채운다(보유 사례가 있을 때만, 없으면 빈 목록).
-  const similar = preset === 'cold' ? await retrieveSimilar({ runId: run.id, owner: run.owner_email, category: ch1.position.category, oneLiner: run.one_liner ?? '' }) : []
+  // [v71cu 2-6] 깃발 STORY_FLOW_ENABLED='true' 일 때만 story flow 선택(chooseSimilar). 꺼져 있으면 아래 legacy 한 줄이 그대로 돈다.
+  const legacy = async () => (preset === 'cold' ? await retrieveSimilar({ runId: run.id, owner: run.owner_email, category: ch1.position.category, oneLiner: run.one_liner ?? '' }) : [])
+  const { similar, storyFlow } = await chooseSimilar({
+    legacy,
+    toItems: selectionToSimilar,
+    storyFlow: async () => {
+      const d = preset === 'cold' ? diagnosisFromReport({ viability: ch1.viability ?? null, launched: run.launched, revenue_band: run.revenue_band, adversity: ch1.leak_or_gap?.detail }) : null
+      return d ? selectStoryFlow(d, dbLoaders(sb)) : { status: 'no_chapter', alternatives: [], considered: { story_flow: 0, move_tags: 0, case_bank: 0 }, note: '병목 장을 정하지 못함 — 기존 경로' }
+    },
+  })
   if (similar.length) ch1 = { ...ch1, similar }
 
   const payload: ReportPayload = {
@@ -43,6 +54,7 @@ export async function composeReport(run: Run, preset: Preset, createdBy: string)
     chapters: want,
     ch1,
     appendix: { assumptions: ch1.loss?.assumptions ?? [], sources: [], note: '' },
+    ...(storyFlow ? { story_flow: storyFlow } : {}),
   }
 
   // 2장

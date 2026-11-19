@@ -48,7 +48,7 @@ import {
 } from '../lib/analysis/relevance-judge-all.ts'
 import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION, RELEVANCE_V23_VERSION, RELEVANCE_V24_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
-import { withLlmBudget, DAILY_BUDGET_USD, dailySpent } from '../lib/analysis/budget.ts'
+import { withLlmBudget, DAILY_BUDGET_USD, dailySpent, judgeBudgetGate, judgeLedgerFrom, judgeUsdCaps, loadJudgeLedgerRows, setRunCapUsd } from '../lib/analysis/budget.ts'
 import { capacityGuard, loadAuditWindow } from '../lib/analysis/auto-approval.ts'
 // 대상 순서는 야간 extract 와 같은 규칙(compareAutoPriority: SaaS 우선 → 많은 순 → projectId)을 영역 결손 축이 감싼다 — lib/analysis/area-priority.ts planAreaOrder(v37 U1).
 // 대상 상태도 야간 extract 와 한 벌(v27 옵션 A). collecting 만 보던 동안 extracted 프로젝트에 새로 들어온 수집분은
@@ -67,7 +67,7 @@ import { loadPrefilterConfig } from '../lib/analysis/prefilter.ts'
 // 영역 결손 축(v37 작업 7 U1) — 정본 config/areas.json. 못 읽으면 영역 축을 끄고 기존 순서(compareAutoPriority) 그대로.
 import { loadAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
 import { areaFloorLine, loadAreaContext, planAreaOrder } from '../lib/analysis/area-priority.ts'
-import { createPendingFor } from '../lib/analysis/relevance-pending.ts'
+import { createPendingFor, qualitySkipEnabled } from '../lib/analysis/relevance-pending.ts'
 import { consumerSkipEnabled } from '../lib/analysis/consumer-material.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate } from './notion-status-log.mjs'
@@ -313,6 +313,7 @@ if (failedBy.unknown > 0) warn(`extract_attempts 를 읽지 못한 failed 프로
 const candidates = []
 const seenSources = new Set()
 let consumerSkipped = 0 // 소비재 태그로 대기열에서 뺀 미판정(전부 태그된 프로젝트 포함)
+let qualitySkipped = 0 // S12 품질 표시(content_quality_flags)로 대기열에서 뺀 미판정
 for (const p of projects ?? []) {
   if (!['n/a', 'retry'].includes(relevanceFailedState(p.status, p.extract_attempts))) continue
   const count = await countFor(p)
@@ -322,6 +323,7 @@ for (const p of projects ?? []) {
   }
   for (const s of count.sources) seenSources.add(s)
   consumerSkipped += count.consumer
+  qualitySkipped += count.quality ?? 0
   if (count.unjudged === 0) continue
   candidates.push({ project: p, count })
 }
@@ -330,6 +332,7 @@ const unknownExcluded = excludedSources.filter((s) => !seenSources.has(s) && s !
 if (unknownExcluded.length > 0) warn(`RELEVANCE_EXCLUDE_SOURCES 의 ${unknownExcluded.join(',')} 는 후보 원문에 없는 소스 이름이다 — 오타인지 확인(기본 제외 youtube 는 유지)`)
 
 // 소비재 태그(남헌 v61) — 대기열에서 뺀 미판정 수. 재개 스위치 RELEVANCE_SKIP_CONSUMER=off 면 태그를 읽지 않는다(0).
+log(`품질 표시(S12) — ${qualitySkipEnabled() ? `대기열에서 뺌(후보 프로젝트의 미판정 ${qualitySkipped}건)` : 'RELEVANCE_SKIP_QUALITY=off — 표시 무시(원래 동작)'}`)
 log(`소비재 태그 — ${consumerSkipEnabled() ? `대기열에서 뺌(후보 프로젝트의 미판정 ${consumerSkipped}건 보류)` : 'RELEVANCE_SKIP_CONSUMER=off — 태그 무시(원래 동작)'}`)
 
 let unknownCount = candidates.filter((c) => c.count === null).length
@@ -446,6 +449,21 @@ if (guarded && (capUsd == null || weekly.stop)) {
   await tracker.step({ stepKey: 'guard', label: '세션 한도 가드', status: 'blocked', blocker: why, detail: { stop_reason: stopReason, weekly_pct: weekly.pct, cap_usd: capUsd } })
   await tracker.finish({ status: 'blocked', summary: { projects: 0, judged: 0, remaining: ready.length, blocker: why, stop_reason: stopReason, slot } })
   process.exit(capUsd == null ? 2 : 0)
+}
+
+// 과금 상한(v71cu-3 §2a, 일 JUDGE_DAILY_USD_CAP · 월 JUDGE_MONTHLY_USD_CAP). claude-cli(구독)는 청구가 없어 '계량 불가'로 표시만 하고,
+// gemini·anthropic 으로 되돌렸을 때만 원장(agent_runs est_usd)의 남은 몫을 이 프로세스 상한으로 건다. 원장 확인 불가면 판정 0건으로 멈춘다(§7.1).
+const metered = provider === 'gemini' || provider === 'anthropic'
+const billingNow = new Date()
+const billingRows = metered ? await loadJudgeLedgerRows(supabase, billingNow, runKey) : null
+const billing = judgeBudgetGate({ metered, caps: judgeUsdCaps(), ledger: billingRows ? judgeLedgerFrom(billingRows, billingNow, DAILY_BUDGET_USD) : null })
+log(billing.line)
+if (billing.metered) setRunCapUsd(billing.capUsd)
+if (billing.stop) {
+  warn(`${billing.line} — 판정 0건(대상 ${targets.length}건은 다음 실행)`)
+  await tracker.step({ stepKey: 'billing', label: '과금 상한', status: 'blocked', blocker: billing.line, detail: { stop_reason: 'usd_cap', cap_usd: billing.capUsd } })
+  await tracker.finish({ status: 'blocked', summary: { projects: 0, judged: 0, remaining: ready.length, blocker: billing.line, stop_reason: 'usd_cap', slot, est_usd: 0, billing: { metered: true, cap_usd: billing.capUsd, line: billing.line } } })
+  process.exit(0)
 }
 
 // ── 3. 프로젝트별 판정 ───────────────────────────────────────────
@@ -649,6 +667,8 @@ await tracker.finish({
     label_columns: labelColumns, labeled: labelColumns === 'present' ? labeledTotal : null,
     info_column: infoColumn, informative_answered: infoColumn === 'present' ? informativeTotal : null,
     est_usd: Number(spent.spentUsd.toFixed(4)), llm_calls: spent.calls,
+    // 과금 상한 — metered=false 면 '계량 불가'(구독 경로). est_usd 는 과금 경로 추정치만이다(claude-cli 명목값은 session 블록).
+    billing: { metered: billing.metered, cap_usd: billing.capUsd, line: billing.line },
   },
 })
 

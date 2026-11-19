@@ -226,7 +226,7 @@ for (const s of ['자꾸 꺼집니다', '디자인이 아쉬워요', '불만 많
     { id: 'u3', raw_text: '앱이 느려요', created_at: '2026-10-03T00:00:00Z', collected_at: null, source_key: 'danawa', rating: 2 },
     { id: 'u4', raw_text: '이미 판정된 글입니다 그냥 그래요', created_at: '2026-10-04T00:00:00Z', collected_at: null, source_key: 'danawa', rating: 3 },
   ]
-  const mock = ({ ratingMissing = false, inputs = rows } = {}) => {
+  const mock = ({ ratingMissing = false, inputs = rows, flags = null, flagsError = null } = {}) => {
     const calls = []
     return {
       calls,
@@ -245,6 +245,8 @@ for (const s of ['자꾸 꺼집니다', '디자인이 아쉬워요', '불만 많
               out = ratingMissing && /rating/.test(cols)
                 ? { data: null, error: { code: '42703', message: 'column analysis_inputs.rating does not exist' } }
                 : { data: inputs.map((r) => (ratingMissing ? Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'rating')) : r)), error: null }
+            } else if (table === 'content_quality_flags' && (flags || flagsError)) {
+              out = flagsError ? { data: null, error: flagsError } : { data: flags, error: null }
             } else out = { data: [{ input_id: 'u4' }], error: null }
             return Promise.resolve(out).then(res, rej)
           },
@@ -287,6 +289,25 @@ for (const s of ['자꾸 꺼집니다', '디자인이 아쉬워요', '불만 많
 
   const empty = await createPendingFor({ ...base, supabase: mock({ inputs: [] }), prefilterCfg: cfg }).pendingFor({ id: 'pX' })
   t('연결 — 입력 0건은 대상 아님(reviews 0, rating null)', empty.reviews.length === 0 && empty.rating === null)
+
+  // S12: 품질 표시(content_quality_flags) 글을 판정 대기에서 뺀다 — pendingFor·countFor 둘 다, promo 는 cq-v2 만.
+  const { qualityExcludes, qualitySkipEnabled } = await import('../lib/analysis/relevance-pending.ts')
+  t('품질 — promo cq-v1 은 빼지 않는다(오탐 절반)', !qualityExcludes('promo', 'cq-v1') && qualityExcludes('promo', 'cq-v2'))
+  t('품질 — too_short·near_dup·quote_only·dev_reply 는 버전 무관', ['too_short', 'near_dup', 'quote_only', 'dev_reply'].every((f) => qualityExcludes(f, 'cq-v1')) && !qualityExcludes('other', 'cq-v2'))
+  t('품질 — 스위치는 off 만 끈다', qualitySkipEnabled({}) && !qualitySkipEnabled({ RELEVANCE_SKIP_QUALITY: 'off' }) && qualitySkipEnabled({ RELEVANCE_SKIP_QUALITY: 'onn' }))
+  const flags = [{ input_id: 'u1', flag: 'too_short', rule_ver: 'cq-v1' }, { input_id: 'u3', flag: 'promo', rule_ver: 'cq-v1' }, { input_id: 'u4', flag: 'near_dup', rule_ver: 'cq-v1' }]
+  const q = createPendingFor({ ...base, supabase: mock({ flags }), prefilterCfg: null, skipQuality: true })
+  const rq = await q.pendingFor({ id: 'pX' })
+  t('품질 — 표시 글(u1)은 대기에서 빠지고 promo cq-v1(u3)은 남는다', !rq.reviews.some((r) => r.input_id === 'u1') && rq.reviews.some((r) => r.input_id === 'u3') && rq.quality === 1)
+  t('품질 — 이미 판정된 글(u4)은 품질 수에 안 센다', rq.quality === 1)
+  const cq = await q.countFor({ id: 'pX' })
+  t('품질 — countFor 도 같은 글을 미판정에서 뺀다', cq.quality === 1 && cq.unjudged === 2)
+  const qOff = await createPendingFor({ ...base, supabase: mock({ flags }), prefilterCfg: null, skipQuality: false }).pendingFor({ id: 'pX' })
+  t('품질 — off 면 원래대로(u1 포함)', qOff.reviews.some((r) => r.input_id === 'u1') && qOff.quality === 0)
+  const qMissing = await createPendingFor({ ...base, supabase: mock({ flagsError: { code: 'PGRST205', message: 'no table' } }), prefilterCfg: null, skipQuality: true }).pendingFor({ id: 'pX' })
+  t('품질 — 표 없음(마이그 미적용)은 원래대로 + 경고', qMissing.reviews.length === 3 && warns.some((w) => w.includes('content_quality_flags 표가 없다')))
+  const qFail = createPendingFor({ ...base, supabase: mock({ flagsError: { code: '57014', message: 'timeout' } }), prefilterCfg: null, skipQuality: true })
+  t('품질 — 조회 실패는 확인 불가(null) — 그 프로젝트를 건너뛴다(§7.1)', (await qFail.pendingFor({ id: 'pX' })) === null && (await qFail.countFor({ id: 'pX' })) === null)
 }
 
 // ── v71ay C5: HN 가치 낮은 글 ──

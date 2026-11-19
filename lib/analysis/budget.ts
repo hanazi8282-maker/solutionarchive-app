@@ -81,6 +81,107 @@ export function dailyBudgetFor(env: Record<string, string | undefined> = process
 }
 export const DAILY_BUDGET_USD = dailyBudgetFor()
 
+// ── 판정 과금 상한(v71cu-3 §2a) — 일 $75 · 월 $2,000 ─────────────────
+// 위 하루 상한은 **프로세스 단위**라 크론 슬롯·체인 hop 마다 다시 0 에서 시작한다(하루 3슬롯 + hop 24 면 이론상 $15 × 27).
+// 그래서 판정 스크립트(1차·2차)는 시작 때 agent_runs 원장(summary.est_usd)으로 오늘·이번 달 과금 추정 합을 읽고,
+// 남은 몫을 이 프로세스의 상한으로 건다(setRunCapUsd). 넘으면 reserveOrThrow 가 던진다 — 2차는 callGeminiRotating 이 stop 으로 받는다.
+//   · 계량 = 과금 경로(gemini·anthropic). claude-cli(구독 OAuth)는 청구가 없어 이 상한에 넣지 않고 '계량 불가'로 표시만 한다.
+//   · 날짜 경계는 KST(일일 상태 로그·reports 와 같은 날짜). 금액은 budget.ts 추정치 기준이다(실청구 아님, 과대추정 방향).
+//   · 끝나지 않은 실행(죽어서 est_usd 가 없는 행)은 0 으로 접지 않는다 — 한 프로세스가 쓸 수 있는 최대치(LLM_DAILY_BUDGET_USD)로 센다.
+
+/** 일·월 상한(리포 변수 JUDGE_DAILY_USD_CAP · JUDGE_MONTHLY_USD_CAP). 비거나 잘못된 값이면 지시값 75·2000. */
+export function judgeUsdCaps(env: Record<string, string | undefined> = process.env): { dailyUsd: number; monthlyUsd: number } {
+  return { dailyUsd: num(env.JUDGE_DAILY_USD_CAP, 75), monthlyUsd: num(env.JUDGE_MONTHLY_USD_CAP, 2000) }
+}
+
+/** 판정 실행 run_key 접두어 — 원장 합산 대상. */
+export const JUDGE_RUN_PREFIXES = ['relevance-judge-', 'relevance-second-'] as const
+
+type LedgerRow = { run_key: string; status?: string | null; summary?: { est_usd?: unknown } | null; started_at?: string | null }
+export type JudgeLedger = { todayUsd: number; monthUsd: number; openToday: number; openMonth: number }
+
+const KST_MS = 9 * 3_600_000
+/** KST 기준 오늘 0시·이번 달 1일 0시(UTC Date). */
+export function kstBounds(now: Date): { dayStart: Date; monthStart: Date } {
+  const k = new Date(now.getTime() + KST_MS)
+  const dayStart = new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate()) - KST_MS)
+  const monthStart = new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), 1) - KST_MS)
+  return { dayStart, monthStart }
+}
+
+/**
+ * 원장 행 → 오늘·이번 달 합. est_usd 가 숫자가 아닌 행(실행 중이거나 죽은 실행)은 openUpperUsd 로 센다(0 으로 접지 않는다, §7.1).
+ * ponytail: 지금 도는 자기 자신의 행도 open 으로 잡힐 수 있다 — 호출부는 자기 run_key 를 빼고 넘긴다.
+ */
+export function judgeLedgerFrom(rows: readonly LedgerRow[], now: Date, openUpperUsd: number): JudgeLedger {
+  const { dayStart, monthStart } = kstBounds(now)
+  const out = { todayUsd: 0, monthUsd: 0, openToday: 0, openMonth: 0 }
+  for (const r of rows) {
+    if (!JUDGE_RUN_PREFIXES.some(p => r.run_key.startsWith(p))) continue
+    const at = Date.parse(r.started_at ?? '')
+    if (!Number.isFinite(at) || at < monthStart.getTime()) continue
+    const est = Number(r.summary?.est_usd)
+    // 끝난 실행(status ≠ running)인데 est_usd 가 없으면 LLM 호출 전에 나간 경로(가드·주간 정지·대상 0)다 — 두 스크립트의 LLM 경로는 전부 est_usd 를 남긴다.
+    const finishedBeforeLlm = r.summary?.est_usd == null && r.status != null && r.status !== 'running'
+    const known = finishedBeforeLlm || (r.summary?.est_usd != null && Number.isFinite(est))
+    const usd = finishedBeforeLlm ? 0 : known ? est : openUpperUsd
+    out.monthUsd += usd
+    if (!known) out.openMonth += 1
+    if (at >= dayStart.getTime()) {
+      out.todayUsd += usd
+      if (!known) out.openToday += 1
+    }
+  }
+  out.todayUsd = Number(out.todayUsd.toFixed(4))
+  out.monthUsd = Number(out.monthUsd.toFixed(4))
+  return out
+}
+
+/** 원장 조회 — 이번 달(KST) 판정 실행 전부. 실패는 null(호출부가 '확인 불가'로 멈춘다). */
+export async function loadJudgeLedgerRows(supabase: { from: (t: string) => any }, now: Date, excludeRunKey?: string): Promise<LedgerRow[] | null> {
+  const { monthStart } = kstBounds(now)
+  const out: LedgerRow[] = []
+  for (let from = 0; from < 20_000; from += 1000) {
+    const { data, error } = await supabase.from('agent_runs')
+      .select('run_key, status, summary, started_at')
+      .gte('started_at', monthStart.toISOString())
+      .or(JUDGE_RUN_PREFIXES.map(p => `run_key.like.${p}*`).join(','))
+      .order('started_at', { ascending: true })
+      .range(from, from + 999)
+    if (error) return null
+    out.push(...(data ?? []))
+    if (!data || data.length < 1000) return out.filter(r => r.run_key !== excludeRunKey)
+  }
+  return null // 2만 행을 넘으면 다 못 읽은 것 — 확인 불가
+}
+
+export type JudgeBudgetGate =
+  | { metered: false; stop: false; capUsd: null; line: string }
+  | { metered: true; stop: boolean; capUsd: number; line: string }
+
+/**
+ * 이번 실행이 쓸 수 있는 과금 몫. metered=false(구독 경로)면 상한을 걸지 않고 '계량 불가'만 남긴다.
+ * metered 인데 원장을 못 읽으면(null) 멈춘다 — 모르는 채 돈을 쓰지 않는다(§7.1).
+ */
+export function judgeBudgetGate(i: { metered: boolean; caps: { dailyUsd: number; monthlyUsd: number }; ledger: JudgeLedger | null }): JudgeBudgetGate {
+  const { dailyUsd, monthlyUsd } = i.caps
+  if (!i.metered) return { metered: false, stop: false, capUsd: null, line: `과금 상한 — 계량 불가(구독 경로 claude-cli, 청구 없음 · 일 $${dailyUsd}/월 $${monthlyUsd} 미적용)` }
+  if (!i.ledger) return { metered: true, stop: true, capUsd: 0, line: `과금 상한 — 원장(agent_runs) 조회 실패, 오늘·이번 달 사용액 확인 불가라 멈춘다(일 $${dailyUsd}/월 $${monthlyUsd})` }
+  const l = i.ledger
+  const left = Math.max(0, Math.min(dailyUsd - l.todayUsd, monthlyUsd - l.monthUsd))
+  const open = l.openMonth > 0 ? ` · 끝나지 않은 실행 ${l.openMonth}건(오늘 ${l.openToday})은 상한치로 셈` : ''
+  const line = `과금 상한 — 오늘 추정 $${l.todayUsd.toFixed(2)}/$${dailyUsd} · 이번 달 $${l.monthUsd.toFixed(2)}/$${monthlyUsd} · 이번 실행 몫 $${left.toFixed(2)}${open}`
+  return { metered: true, stop: left <= 0, capUsd: Number(left.toFixed(4)), line: left <= 0 ? `${line} — 상한 도달, 멈춘다` : line }
+}
+
+/** 이 프로세스의 추가 상한(판정 원장의 남은 몫). 기본 무한 = 기존 동작. */
+let runCapUsd = Number.POSITIVE_INFINITY
+/** 이 프로세스 누적(UTC 날짜가 바뀌어도 리셋하지 않는다 — 원장 몫은 실행 단위). */
+let runUsd = 0
+export function setRunCapUsd(usd: number): void {
+  runCapUsd = usd
+}
+
 /** 한 호출에 얹어 볼 기본 출력 예상치(토큰). judge 는 100토큰대, 추출은 수천 토큰이다. */
 const ASSUMED_OUTPUT_TOKENS = 1500
 
@@ -139,6 +240,11 @@ export function reserveOrThrow(label: string, inputChars: number, now = new Date
   const est = usdFor(inputChars, ASSUMED_OUTPUT_TOKENS)
 
   if (daily.day !== today(now)) resetDaily(now)
+  if (runUsd + est > runCapUsd) {
+    throw new LlmBudgetExceededError(
+      `판정 과금 상한(일 JUDGE_DAILY_USD_CAP·월 JUDGE_MONTHLY_USD_CAP)의 남은 몫을 넘었습니다 (${label}: 이번 실행 추정 $${runUsd.toFixed(3)} + 이번 $${est.toFixed(3)} > 남은 몫 $${runCapUsd.toFixed(3)}).`,
+    )
+  }
   if (daily.usd + est > DAILY_BUDGET_USD) {
     throw new LlmBudgetExceededError(
       `LLM 하루 예산을 넘었습니다 (${label}: 오늘 추정 $${daily.usd.toFixed(3)} + 이번 $${est.toFixed(3)} > 상한 $${DAILY_BUDGET_USD}). LLM_DAILY_BUDGET_USD 로 조정합니다.`,
@@ -154,6 +260,7 @@ export function reserveOrThrow(label: string, inputChars: number, now = new Date
 
   const inputOnly = usdFor(inputChars, 0)
   daily.usd += inputOnly
+  runUsd += inputOnly
   daily.calls += 1
   if (req) {
     req.spentUsd += inputOnly
@@ -166,6 +273,7 @@ export function reserveOrThrow(label: string, inputChars: number, now = new Date
 export function chargeOutput(outputChars: number): void {
   const usd = usdFor(0, tokensOf(outputChars))
   daily.usd += usd
+  runUsd += usd
   const req = requestStore.getStore()
   if (req) req.spentUsd += usd
 }

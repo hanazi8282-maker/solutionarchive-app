@@ -117,6 +117,9 @@ jobs:
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
           # 요청당(=프로젝트 지갑) 상한(PR #329 값 유지). gemini 폴백에서 표본 200건=10호출이 기본 0.5 에 걸리지 않게.
           LLM_REQUEST_BUDGET_USD: '2'
+          # 판정 과금 상한(v71cu-3 §2a): 일·월 USD. 원장(agent_runs est_usd)으로 슬롯·hop 을 합산한다. claude-cli 는 계량 불가로 표시만(청구 없음). 되돌리기 = 이 두 줄 삭제(코드 기본 75·2000).
+          JUDGE_DAILY_USD_CAP: ${{ vars.JUDGE_DAILY_USD_CAP || '75' }}
+          JUDGE_MONTHLY_USD_CAP: ${{ vars.JUDGE_MONTHLY_USD_CAP || '2000' }}
           RELEVANCE_SAMPLE: ${{ inputs.sample || vars.RELEVANCE_SAMPLE || '1000' }}
           RELEVANCE_MAX_PROJECTS: ${{ inputs.max_projects || vars.RELEVANCE_MAX_PROJECTS || '30' }}
           RELEVANCE_DEADLINE_MIN: ${{ vars.RELEVANCE_DEADLINE_MIN || '80' }}
@@ -125,6 +128,8 @@ jobs:
           RELEVANCE_LAST_SOURCES: ${{ vars.RELEVANCE_LAST_SOURCES || '' }}
           # 소비재 태그(남헌 v61, consumer_material_tags) 입력을 대기열에서 뺀다. 재개 = 리포 변수 RELEVANCE_SKIP_CONSUMER=off.
           RELEVANCE_SKIP_CONSUMER: ${{ vars.RELEVANCE_SKIP_CONSUMER || 'on' }}
+          # S12 품질 표시(content_quality_flags: 짧은 글·중복·인용만·개발사 답글, 광고는 cq-v2 만) 글을 대기열에서 뺀다. 재개 = 리포 변수 RELEVANCE_SKIP_QUALITY=off.
+          RELEVANCE_SKIP_QUALITY: ${{ vars.RELEVANCE_SKIP_QUALITY || 'on' }}
           # 판정 기준(남헌 v66·v67): 기본 v2.2, 리포 변수 RELEVANCE_CRITERIA=v21|old 로 되돌린다.
           RELEVANCE_CRITERIA: ${{ vars.RELEVANCE_CRITERIA || 'v22' }}
           # 자기 호출 체인. 끄기 = 리포 변수 RELEVANCE_CHAIN=off(다음 hop 부터 안 부른다). 만료는 config relevance_cap_until.
@@ -172,6 +177,9 @@ jobs:
           # 2차 판정도 1차와 같은 기준(남헌 v67): 기본 v2.2, 리포 변수 RELEVANCE_CRITERIA=v21|old 로 되돌린다.
           RELEVANCE_CRITERIA: ${{ vars.RELEVANCE_CRITERIA || 'v22' }}
           LLM_DAILY_BUDGET_USD: ${{ vars.LLM_DAILY_BUDGET_USD || '5' }}
+          # 판정 과금 상한(v71cu-3 §2a): 일·월 USD. 원장(agent_runs est_usd)으로 슬롯·hop 을 합산한다. claude-cli 는 계량 불가로 표시만(청구 없음). 되돌리기 = 이 두 줄 삭제(코드 기본 75·2000).
+          JUDGE_DAILY_USD_CAP: ${{ vars.JUDGE_DAILY_USD_CAP || '75' }}
+          JUDGE_MONTHLY_USD_CAP: ${{ vars.JUDGE_MONTHLY_USD_CAP || '2000' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           node scripts/relevance-second-judge-auto.mjs \

@@ -63,6 +63,8 @@ export function withTiming(
     saveTargetProgress: (p) => timed('progress', () => s.saveTargetProgress(p)),
     recordFingerprint: (fp) => timed('persist', () => s.recordFingerprint(fp)),
     appendInput: (i) => timed('persist', () => s.appendInput(i)),
+    // 없으면 없는 채로 둔다 — 러너가 appendInput 1건씩으로 폴백한다.
+    ...(s.appendInputs ? { appendInputs: (rows: Parameters<NonNullable<RunnerStore['appendInputs']>>[0]) => timed('persist', () => s.appendInputs!(rows)) } : {}),
     linkFingerprint: (a, b, c) => timed('persist', () => s.linkFingerprint(a, b, c)),
   }
 

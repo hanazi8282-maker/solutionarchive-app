@@ -804,6 +804,8 @@ export async function collectWithRamp(args: {
   ports: RunnerPorts
   /** 이번 실행의 크론 문자열(github.event.schedule). 수동 실행·없음 = null → 슬롯 나눔 없이 하루 목표 전체. */
   slot?: string | null
+  /** 이 소스의 벽시계 마감(epoch ms) — 러너 RunOptions.deadlineAt 으로 그대로 넘긴다. 없으면 시간 상한 없음. */
+  deadlineAt?: number | null
 }): Promise<{ result: RunResult | null; fatal: string | null; targetLimit: number; notes: string[] }> {
   const { sb, adapter, dryRun, explicitTargets, ports } = args
   let loaded: Loaded
@@ -846,7 +848,7 @@ export async function collectWithRamp(args: {
   let result: RunResult | null = null
   let fatal: string | null = null
   try {
-    result = await runCollection(adapter, { dryRun, targetLimit: limit, dailyRequestTarget, maxRequestsThisRun }, ports)
+    result = await runCollection(adapter, { dryRun, targetLimit: limit, dailyRequestTarget, maxRequestsThisRun, deadlineAt: args.deadlineAt ?? null }, ports)
   } catch (e) {
     fatal = e instanceof Error ? e.message : String(e)
   }

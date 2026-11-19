@@ -2097,6 +2097,90 @@ const runMarked = (h, over = {}) =>
   t('켜진 소스가 정확히 13개다(커뮤니티 11 + hackernews + googleplay)', adapters.filter((a) => a.incrementalOnly).length, 13)
 }
 
+// ── v71cu-3 §1-1: 원문 묶음 적재 · 시간 몫 ─────────────────────────────
+// youtube 가 1행씩 저장하다 70분을 써 잡 90분 timeout 으로 cancelled 됐다(실행 44441217554). 고정하는 것:
+//   ① 한 페이지 신규 120건 → appendInputs 50·50·20 세 번, id 순서대로 지문 연결 ② 같은 페이지 같은 긴 본문은 1건만 적재
+//   ③ deadlineAt 이 지나면 다음 페이지·다음 타깃을 요청하지 않고 커서를 둔다 ④ appendInputs 없는 store 는 1건씩 폴백.
+{
+  const { INPUT_BATCH_SIZE } = await import('../lib/review/runner.ts')
+  const long = (i) => `리뷰 본문 ${i} `.padEnd(200, '가')
+  const fake = { key: 'fakeb', displayName: 'fakeb' }
+  const mk = ({ perPage, pages, batch = true, deadlineAfterFetches = null, dupLong = false }) => {
+    let clock = Date.parse('2026-11-19T00:00:00Z')
+    let fetches = 0
+    const calls = { batches: [], single: 0, links: [], urls: [], saves: [] }
+    const adapter = {
+      ...fake,
+      nextRequest: (tg) => ({ url: `https://b.test/${tg.productRef}?p=${tg.cursor ?? 0}` }),
+      parse: (body) => {
+        const p = JSON.parse(body)
+        const reviews = Array.from({ length: perPage }, (_, i) => ({
+          externalId: `${p.ref}-${p.page}-${i}`,
+          text: dupLong && i === 1 ? long(`${p.ref}-${p.page}-0`) : long(`${p.ref}-${p.page}-${i}`),
+          rating: null, seller: null, authorMasked: null, writtenAt: null,
+        }))
+        return { reviews, nextCursor: p.page + 1 < pages ? String(p.page + 1) : null, parseFailures: 0 }
+      },
+    }
+    let n = 0
+    const store = {
+      async loadSource() { return { key: 'fakeb', enabled: true, minIntervalMs: 0, dailyRequestCap: 999, requestsToday: 0 } },
+      async listDueTargets(_k, lim) { return ['t1', 't2'].slice(0, lim).map((id) => ({ id, projectId: 'p', sourceKey: 'fakeb', productRef: id, cursor: null, lastReviewAt: null, consecutiveEmpty: 0, totalCollected: 0, status: 'active' })) },
+      async saveTargetProgress(p) { calls.saves.push(p) },
+      async recordFingerprint() { return 'new' },
+      async appendInput() { calls.single++; return `s${++n}` },
+      async linkFingerprint(_s, idk, id) { calls.links.push([idk, id]) },
+    }
+    if (batch) store.appendInputs = async (rows) => { calls.batches.push(rows.length); return rows.map(() => `b${++n}`) }
+    const ports = {
+      now: () => new Date(deadlineAfterFetches !== null && fetches >= deadlineAfterFetches ? clock + 3_600_000 : clock),
+      async sleep(ms) { clock += ms },
+      async fetchText(url) {
+        if (url.endsWith('/robots.txt')) return { status: 200, body: 'User-agent: *\nAllow: /\n', finalUrl: url }
+        fetches++
+        calls.urls.push(url)
+        const u = new URL(url)
+        return { status: 200, body: JSON.stringify({ ref: u.pathname.slice(1), page: Number(u.searchParams.get('p')) }), finalUrl: url }
+      },
+      store,
+    }
+    return { adapter, ports, calls, deadlineAt: deadlineAfterFetches === null ? null : clock + 60_000 }
+  }
+
+  t('묶음 크기 50', INPUT_BATCH_SIZE, 50)
+  {
+    const h = mk({ perPage: 120, pages: 1 })
+    const r = await runCollection(h.adapter, { dryRun: false, targetLimit: 1 }, h.ports)
+    t('① 신규 120건 → 묶음 50·50·20', JSON.stringify(h.calls.batches), '[50,50,20]')
+    t('① 1건씩 적재 0회', h.calls.single, 0)
+    t('① 신규 120 · 연결 120', `${r.stats.newReviews}/${h.calls.links.length}`, '120/120')
+    t('① 연결 id 가 적재 순서와 같다(첫·51번째·마지막)', `${h.calls.links[0][1]}/${h.calls.links[50][1]}/${h.calls.links[119][1]}`, 'b1/b51/b120')
+  }
+  {
+    const h = mk({ perPage: 3, pages: 1, dupLong: true })
+    const r = await runCollection(h.adapter, { dryRun: false, targetLimit: 1 }, h.ports)
+    t('② 같은 페이지 같은 긴 본문 → 신규 2 · 본문 중복 1', `${r.stats.newReviews}/${r.stats.crossTargetDuplicates}`, '2/1')
+  }
+  {
+    const h = mk({ perPage: 2, pages: 5, deadlineAfterFetches: 2 })
+    const r = await runCollection(h.adapter, { dryRun: false, targetLimit: 2, deadlineAt: h.deadlineAt }, h.ports)
+    t('③ 마감 뒤 요청 0 — 2페이지에서 멈춤', r.requests, 2)
+    ok('③ 첫 타깃: 실행 시간 몫 도달 문구', /실행 시간 몫 도달\(\d+초\)/.test(r.perTarget[0]?.outcome ?? ''))
+    ok('③ 둘째 타깃: 요청 없이 시간 몫 문구', /실행 시간 몫 도달/.test(r.perTarget[1]?.outcome ?? ''))
+    t('③ 커서 유지(마지막 저장 cursor=2 · active)', `${h.calls.saves.at(-1)?.cursor}/${h.calls.saves.at(-1)?.status}`, '2/active')
+  }
+  {
+    const h = mk({ perPage: 2, pages: 3 })
+    const r = await runCollection(h.adapter, { dryRun: false, targetLimit: 2 }, h.ports)
+    t('③ deadlineAt 없으면 지금처럼 끝까지(2타깃×3페이지)', r.requests, 6)
+  }
+  {
+    const h = mk({ perPage: 3, pages: 1, batch: false })
+    const r = await runCollection(h.adapter, { dryRun: false, targetLimit: 1 }, h.ports)
+    t('④ appendInputs 없는 store → 1건씩 3회 · 신규 3', `${h.calls.single}/${r.stats.newReviews}`, '3/3')
+  }
+}
+
 console.log(`\n통과 ${pass}건${fail ? `, 실패 ${fail}건` : ''}`)
 if (fail) {
   console.log('러너가 틀렸다. 남의 서버에 대한 규칙이 걸려 있는 코드다.')

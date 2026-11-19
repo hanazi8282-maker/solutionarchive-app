@@ -31,6 +31,9 @@ type Supa = NonNullable<Awaited<ReturnType<typeof createClient>>>
 
 /** Postgres UNIQUE 위반. 지문 삽입에서 "이미 본 리뷰"를 뜻한다. */
 const UNIQUE_VIOLATION = '23505'
+const STATEMENT_TIMEOUT = '57014'
+/** 57014 재시도 전 대기. 2026-11-18 23:43Z 단건 INSERT 의 57014 는 같은 시각 인덱스 생성(잠금)과 겹친 것으로 추정 — 짧은 잠금이면 이만큼 뒤에 풀린다. */
+const STATEMENT_TIMEOUT_RETRY_MS = 15_000
 
 const META_COLUMNS = ['rating', 'lang', 'source_url'] as const
 
@@ -397,6 +400,41 @@ export function createReviewStore(supabase: Supa): RunnerStore {
       const { data, error } = await insert(base)
       if (error) throw new Error(`원문 적재 실패: ${error.message}`)
       return data.id
+    },
+
+    // v71cu-3 §1-1: 페이지의 신규 리뷰를 한 INSERT 로(러너가 ≤ INPUT_BATCH_SIZE 로 자른다). 1건씩 왕복하던 저장이
+    // youtube 채널 타깃에서 실행을 70분 넘게 끌었다. statement timeout(57014)은 기다렸다 **한 번만** 다시 보낸다 —
+    // 취소된 INSERT 는 롤백되므로 중복 적재가 없다. 두 번째도 실패하면 예전처럼 예외(소스 1개 fatal, 다른 소스는 계속).
+    async appendInputs(inputs): Promise<string[]> {
+      if (inputs.length === 0) return []
+      const rows = (withMeta: boolean) =>
+        inputs.map((input) => ({
+          project_id: input.projectId,
+          source_type: 'review',
+          raw_text: input.text,
+          source_key: input.sourceKey,
+          collected_at: input.collectedAt,
+          ...(withMeta ? reviewMetaColumns(input) : {}),
+        }))
+      const send = async (withMeta: boolean) => {
+        let res = await supabase.from('analysis_inputs').insert(rows(withMeta)).select('id')
+        if (res.error?.code === STATEMENT_TIMEOUT) {
+          console.warn(`[review/store] analysis_inputs batch insert (${inputs.length} rows) hit statement timeout — retrying once in ${STATEMENT_TIMEOUT_RETRY_MS}ms`)
+          await new Promise((r) => setTimeout(r, STATEMENT_TIMEOUT_RETRY_MS))
+          res = await supabase.from('analysis_inputs').insert(rows(withMeta)).select('id')
+        }
+        return res
+      }
+      if (!metaMissing) {
+        const { data, error } = await send(true)
+        if (!error) return (data ?? []).map((r) => r.id)
+        if (!isMissingMetaColumn(error)) throw new Error(`원문 적재 실패(${inputs.length}건 묶음): ${error.message}`)
+        metaMissing = true
+        console.warn('[review/store] analysis_inputs rating/lang/source_url missing (migration 20261005000001 not applied) — inserting without them')
+      }
+      const { data, error } = await send(false)
+      if (error) throw new Error(`원문 적재 실패(${inputs.length}건 묶음): ${error.message}`)
+      return (data ?? []).map((r) => r.id)
     },
 
     async linkFingerprint(sourceKey, identityKey, analysisInputId): Promise<void> {

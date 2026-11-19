@@ -18,7 +18,7 @@ import {
   type RobotsGroup,
   type RobotsState,
 } from './robots.ts'
-import { computeFingerprint } from './fingerprint.ts'
+import { computeFingerprint, CROSS_TARGET_MIN_TEXT_LEN } from './fingerprint.ts'
 import {
   judgeHealth,
   classifyBlockedResponse,
@@ -247,16 +247,12 @@ export interface RunnerStore {
    */
   recordFingerprint(fp: Fingerprint): Promise<'new' | 'duplicate' | 'revised' | 'cross-target'>
   /** analysis_inputs 에 리뷰 1건 = 1행으로 적재하고 id 를 돌려준다. */
-  appendInput(input: {
-    projectId: string
-    sourceKey: string
-    text: string
-    collectedAt: string
-    /** 아래 셋은 analysis_inputs 새 컬럼(마이그 20261005000001). 컬럼이 없으면 store 가 빼고 넣는다. */
-    rating?: number | null
-    lang?: string | null
-    sourceUrl?: string | null
-  }): Promise<string>
+  appendInput(input: AppendInputRow): Promise<string>
+  /**
+   * 여러 건을 한 INSERT 로 적재하고 **입력 순서대로** id 를 돌려준다(v71cu-3 §1-1 — 1행씩 왕복하던 저장을 묶는다).
+   * 없으면(셀프테스트 가짜 store) 러너가 appendInput 을 한 건씩 부른다.
+   */
+  appendInputs?(inputs: AppendInputRow[]): Promise<string[]>
   linkFingerprint(sourceKey: string, identityKey: string, analysisInputId: string): Promise<void>
   // ⛔ 건강도 저장(updateSourceHealth)은 없앴다(남헌 2026-09-30). 무인 러너가 review_sources 에 쓸 수 있는
   //    컬럼은 CLAUDE.md §10.1 대로 daily_request_cap 하나다(scripts/review-request-cap.mjs). 판정은 RunResult.health 로
@@ -272,6 +268,20 @@ export interface RunnerPorts {
   store: RunnerStore
 }
 
+export interface AppendInputRow {
+  projectId: string
+  sourceKey: string
+  text: string
+  collectedAt: string
+  /** 아래 셋은 analysis_inputs 새 컬럼(마이그 20261005000001). 컬럼이 없으면 store 가 빼고 넣는다. */
+  rating?: number | null
+  lang?: string | null
+  sourceUrl?: string | null
+}
+
+/** analysis_inputs 한 INSERT 에 묶는 최대 행 수(v71cu-3 §1-1). 원문이 길어(≤4천 자) 한 문장이 8초 statement_timeout 안에 끝나도록 작게 둔다. */
+export const INPUT_BATCH_SIZE = 50
+
 export interface RunOptions {
   dryRun: boolean
   /** 이 실행에서 훑을 최대 타깃 수. */
@@ -283,6 +293,12 @@ export interface RunOptions {
   dailyRequestTarget?: number | null
   /** 회당 하드 상한(v30 §2 스케줄 계획의 perRunCap = min(시간 몫, P_safe)). 없으면 하루 예산만 본다(지금과 같다). */
   maxRequestsThisRun?: number | null
+  /**
+   * 이 소스가 쓸 수 있는 벽시계 마감(epoch ms, v71cu-3 §1-1). 지나면 새 페이지를 요청하지 않고 커서를 둔 채 멈춘다.
+   * 요청 수 예산은 저장 시간을 모른다 — 2026-11-19 youtube 가 요청 43건에 저장 11,020회(70분)를 써 잡 90분 timeout 으로
+   * 통째로 cancelled 됐다(실행 44441217554). 없으면 지금과 같다(시간 상한 없음).
+   */
+  deadlineAt?: number | null
 }
 
 export interface RunResult {
@@ -609,6 +625,11 @@ export async function runCollection(
   const capOutcome = runBound ? '이번 실행 몫 도달' : rampBound ? '오늘 램프 목표 도달' : '일일 상한 도달'
 
   let aborted = false
+  // 시간 몫(opts.deadlineAt). 예산 도달과 같은 자리에서 멈춘다 — 커서·status 는 그대로 active(§7.2: 문구에 경과를 남긴다).
+  const runStartMs = ports.now().getTime()
+  const timeUp = () => opts.deadlineAt != null && ports.now().getTime() >= opts.deadlineAt
+  const timeOutcome = () =>
+    `실행 시간 몫 도달(${Math.round((ports.now().getTime() - runStartMs) / 1000)}초) — 커서 유지, 다음 실행이 이어간다`
 
   // 증분형 소스(hackernews q:)는 "끝까지 읽음"이 끝이 아니다 — 커서가 null 이어도
   // active 로 두고 다음 실행이 page 0 부터 새 댓글만 읽는다(types.ts incrementalOnly).
@@ -622,6 +643,10 @@ export async function runCollection(
     if (aborted) break
     if (requests >= budget) {
       perTarget.push({ targetId: target.id, productRef: target.productRef, outcome: capOutcome })
+      continue
+    }
+    if (timeUp()) {
+      perTarget.push({ targetId: target.id, productRef: target.productRef, outcome: timeOutcome() })
       continue
     }
 
@@ -652,6 +677,10 @@ export async function runCollection(
     for (let page = 0; page < pageCap; page++) {
       if (requests >= budget) {
         outcome = capOutcome
+        break
+      }
+      if (page > 0 && timeUp()) {
+        outcome = timeOutcome()
         break
       }
 
@@ -729,7 +758,11 @@ export async function runCollection(
         } else {
           stats.blockedResponses++
           const why = waf ? ' (AWS WAF 사람 확인 화면 — 우회하지 않는다)' : strictBlock ? ' (빈 응답·캡차 — 우회하지 않는다)' : ''
-          outcome = `차단 응답 ${res.status}${why} — 실행을 중단한다`
+          // 분류는 바꾸지 않는다(github 는 v71ad 지시로 한도 초과도 차단). 다만 로그만으로 "한도 초과"와 "진짜 차단"을
+          // 가를 수 있게 표지 유무만 남긴다(v71cu-3 §1-1 — 11-18 21:37Z github_issues 403 은 본문이 로그에 없어 못 갈랐다).
+          // 본문 자체는 찍지 않는다(GitHub 한도 메시지에 러너 IP 가 들어 있다 — 공개 리포 로그).
+          const rl = /rate limit/i.test(res.body ?? '') ? " · 본문에 'rate limit' 표지(한도 초과로 보임)" : ''
+          outcome = `차단 응답 ${res.status}${why}${rl} — 실행을 중단한다`
         }
         // 어느 쪽이든 더 두드리지 않는다. 차단이면 영구 차단에 가까워지고,
         // 쿼터면 어차피 오늘은 더 못 받는다.
@@ -1021,6 +1054,8 @@ async function ingestPage(
   let staleRun = 0
   let staleFromStart = true
   let newestDate: string | null = null
+  const pending: Array<{ identityKey: string; row: AppendInputRow }> = []
+  const pendingHashes = new Set<string>()
 
   for (const review of reviews) {
     stats.reviewsParsed++
@@ -1079,21 +1114,50 @@ async function ingestPage(
       continue
     }
 
-    const inputId = await ports.store.appendInput({
-      projectId: ctx.target.projectId,
-      sourceKey: ctx.sourceKey,
-      // 원문 주소 머리말은 여기서만 붙인다 — 지문은 위에서 머리말 없는 본문으로 이미 계산됐다(types.ts withSourceUrl).
-      text: withSourceUrl(review.text, review.sourceUrl),
-      collectedAt: ports.now().toISOString(),
-      rating: review.rating,
-      lang: review.lang ?? null,
-      sourceUrl: review.sourceUrl ?? null,
+    // 2차 방어의 같은 페이지 판: 본문 중복 조회(store)는 **연결까지 끝난 행**만 보는데, 묶어 적재하면 같은 페이지 앞 글이
+    // 아직 연결 전이다. 그래서 묶음 안의 같은 본문은 여기서 cross-target 으로 센다(1건씩 적재하던 때와 같은 결과).
+    if (fp.textLength >= CROSS_TARGET_MIN_TEXT_LEN && pendingHashes.has(fp.contentHash)) {
+      stats.crossTargetDuplicates++
+      continue
+    }
+    pendingHashes.add(fp.contentHash)
+    pending.push({
+      identityKey: fp.identityKey,
+      row: {
+        projectId: ctx.target.projectId,
+        sourceKey: ctx.sourceKey,
+        // 원문 주소 머리말은 여기서만 붙인다 — 지문은 위에서 머리말 없는 본문으로 이미 계산됐다(types.ts withSourceUrl).
+        text: withSourceUrl(review.text, review.sourceUrl),
+        collectedAt: ports.now().toISOString(),
+        rating: review.rating,
+        lang: review.lang ?? null,
+        sourceUrl: review.sourceUrl ?? null,
+      },
     })
-    await ports.store.linkFingerprint(ctx.sourceKey, fp.identityKey, inputId)
-
-    newCount++
-    stats.newReviews++
+    if (pending.length >= INPUT_BATCH_SIZE) await flush()
   }
+  await flush()
 
   return { newCount, staleRun, staleFromStart, newestDate }
+
+  // ⚠️ 지문은 이미 기록됐고 연결은 적재 뒤다 — 적재가 실패하면(예외) 그 묶음(≤50건)은 다음 실행에 'duplicate' 로 보여 다시 안 들어온다.
+  //    1건씩일 때도 같은 구멍(1건)이었다. ponytail: 묶음 크기만큼 넓어졌다 — 줄이려면 지문 INSERT 를 적재 뒤로 옮기는 RPC 가 필요하다.
+  async function flush(): Promise<void> {
+    if (pending.length === 0) return
+    const batch = pending.splice(0, pending.length)
+    const store = ports.store
+    const ids = store.appendInputs
+      ? await store.appendInputs(batch.map((b) => b.row))
+      : await (async () => {
+          const out: string[] = []
+          for (const b of batch) out.push(await store.appendInput(b.row))
+          return out
+        })()
+    if (ids.length !== batch.length) throw new Error(`원문 묶음 적재 결과 수 불일치: ${batch.length}건 보냄 · id ${ids.length}개`)
+    for (let i = 0; i < batch.length; i++) {
+      await store.linkFingerprint(ctx.sourceKey, batch[i].identityKey, ids[i])
+      newCount++
+      stats.newReviews++
+    }
+  }
 }

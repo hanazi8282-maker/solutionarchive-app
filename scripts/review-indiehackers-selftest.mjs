@@ -152,7 +152,9 @@ function harness(pages) {
   const h = harness({ [`/post/${OLD}`]: fx(FX_OLD) })
   h.log.cursor = encodeBoardCursor({ q: [`/post/${OLD}`], last: NEW })
   const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
-  t('러너: 요청 1 · 신규 60 · 실패 0', `${r.requests}/${r.stats.newReviews}/${r.stats.parseFailures}`, '1/60/0')
+  // 픽스처 한 페이지에 같은 본문(542자) 댓글이 2개다. 실제 store 는 예전에도 2번째를 본문 중복(cross-target)으로 걸렀다 —
+  // 이 가짜 store 가 그 조회를 안 해서 60 이었다. v71cu-3 묶음 적재부터는 러너가 같은 페이지 안 중복을 직접 거른다 → 59 + 1.
+  t('러너: 요청 1 · 신규 59 · 같은 페이지 본문 중복 1 · 실패 0', `${r.requests}/${r.stats.newReviews}/${r.stats.crossTargetDuplicates}/${r.stats.parseFailures}`, '1/59/1/0')
   t('러너: 타깃은 닫히지 않는다', h.log.saves.at(-1).status, 'active')
   ok('러너: 사용자 글 경로를 요청하지 않는다', h.log.urls.every((u) => /\/(robots\.txt|stories|post\/[A-Za-z0-9]{20})$/.test(new URL(u).pathname)))
 }
@@ -237,7 +239,8 @@ t('재방문 상수: 14실행(하루 2회 ≈ 7일) · 실행당 1', `${REVISIT_
   const h = harness({ [`/post/${OLD}`]: fx(FX_OLD) })
   h.log.cursor = cur({ q: [`/post/${OLD}#c`] })
   const r = await runCollection(A, { dryRun: false, targetLimit: 5 }, h.ports)
-  t('러너 재방문(처음 보는 댓글): 신규 59 = 댓글만 새로 넣는다', `${r.requests}/${r.stats.newReviews}`, '1/59')
+  // 59 - 같은 본문 댓글 1(위 '신규 59' 주석) = 58.
+  t('러너 재방문(처음 보는 댓글): 신규 58 = 댓글만 새로 넣는다(같은 본문 1건 제외)', `${r.requests}/${r.stats.newReviews}/${r.stats.crossTargetDuplicates}`, '1/58/1')
 }
 {
   // 일일 상한: 남은 1요청이면 새 글 1건만 읽고 재방문은 커서에 남긴다

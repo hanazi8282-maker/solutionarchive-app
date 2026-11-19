@@ -1,5 +1,5 @@
 -- v71cu S5b: robots 금지에 가까운 4곳 중 기술적으로 켤 수 있는 2곳(디시인사이드·루리웹) 켜기. 남헌 2026-11-19 결정(override='owner_2026-11-19', quote_policy='none').
--- 끄는 짝: 20261119000015_disable_robots4_20261119.sql · 롤백: 20261119000014_enable_robots4_20261119_rollback.sql
+-- 끄는 짝: 20261119000017_disable_robots4_20261119.sql · 롤백: 20261119000016_enable_robots4_20261119_rollback.sql
 -- 못 켠 2곳(2026-11-19 실측): Squarespace 포럼 = Cloudflare 관리형 챌린지('Just a moment…' 403) · 크롬 웹 스토어 = 리뷰가 스크립트 렌더링(HTML 에 리뷰 데이터 없음)이라 GET 어댑터로 못 읽음.
 --   → 두 곳은 소스 행을 만들지 않고 source_candidates 라벨만 '기술적으로 불가능' 으로 바꾼다. 우회하지 않는다.
 -- 약관: 디시·루리웹 모두 자동 수집 금지 계열로 라벨(seed 와 같다) — 읽은 근거는 S9 설계서·seed. robots: 디시는 `*` 허용(갤러리별 Disallow, AI 봇은 이름으로 차단 — 우리 UA 는 `*`),

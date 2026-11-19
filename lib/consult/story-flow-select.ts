@@ -279,6 +279,16 @@ export function collectQuotes(x: unknown): Quote[] {
   walk(x)
   return out
 }
+/** 인용이 가리키는 원문 slug — 원문 키 slug_internal 이 우선, 옛 payload 는 slug. 원본 표 조회·대조 모두 이 한 함수로(G4 뒤 조회 키 어긋남 재발 방지). */
+export const quoteKey = (q: Quote) => q.slug_internal ?? q.slug ?? ''
+/** --db 조회용: payload 인용들이 가리키는 원문 slug 목록(빈 값 제외). */
+export const quoteSlugs = (quotes: Quote[]) => [...new Set(quotes.map(quoteKey).filter(Boolean))]
+/** 원본 ss_episode_tags 줄 → verifyQuotes 의 source 모양(slug 별 에피소드 목록, source_key·label_run 포함). */
+export function sourceFromRows(rows: { source_key?: string; slug: string; label_run?: string; episode_idx: number; quote_orig: string | null }[]) {
+  const out: Record<string, typeof rows> = {}
+  for (const r of rows) (out[r.slug] ??= []).push(r)
+  return out
+}
 /** 원문을 문장으로 자른다(. ! ? 。 뒤 공백, 줄바꿈). */
 export const sentences = (t: string) => norm(t).split(/(?<=[.!?。])\s+|\n+/).map((x) => x.trim()).filter(Boolean)
 const NEG = /\b(not|no|never|without|hardly|barely|isn't|wasn't|didn't|don't|doesn't|won't|can't|couldn't)\s*$|n't\s*$/i
@@ -296,7 +306,7 @@ export function verifyQuotes(
   const mode = opts.mode ?? 'strict'
   const quotes = collectQuotes(payload), mismatches: QuoteCheck['mismatches'] = [], warnings: QuoteCheck['warnings'] = []
   for (const q of quotes) {
-    const key = q.slug_internal ?? q.slug ?? ''
+    const key = quoteKey(q)
     const base = { slug: key, episode_idx: q.episode_idx, text: q.text }
     const eps = source[key]
     if (!eps) { mismatches.push({ ...base, reason: 'source_missing' }); continue }

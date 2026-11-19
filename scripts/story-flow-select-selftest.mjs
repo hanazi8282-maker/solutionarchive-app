@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
 import { fetchFlowCards } from '../lib/consult/story-flow.ts'
-import { scoreCard, evidenceScore, recencyScore, dedupeBySlug, selectStoryFlow, chooseSimilar, diagnosisFromReport, selectionToSimilar, verifyQuotes, iGa, similarWhyV2, displayName, anchorEpisode, sourceAllowed, stageFirst, FAILED_NOTE, cardFromMoveTag, cardFromCaseBank, W } from '../lib/consult/story-flow-select.ts'
+import { scoreCard, evidenceScore, recencyScore, dedupeBySlug, selectStoryFlow, chooseSimilar, diagnosisFromReport, selectionToSimilar, verifyQuotes, iGa, similarWhyV2, displayName, anchorEpisode, sourceAllowed, stageFirst, FAILED_NOTE, quoteSlugs, sourceFromRows, collectQuotes, cardFromMoveTag, cardFromCaseBank, W } from '../lib/consult/story-flow-select.ts'
 
 const fx = JSON.parse(readFileSync(new URL('../fixtures/story-flow/cards.json', import.meta.url), 'utf8'))
 const now = new Date('2026-11-19T00:00:00Z')
@@ -213,4 +213,19 @@ assert.ok([uSel.recommended, ...uSel.alternatives].every((p) => UU.test(p.slug_i
 const uItems = selectionToSimilar(uSel)
 assert.ok(uItems.every((x) => !('slug_internal' in x) && !UU.test(JSON.stringify(x))), '화면 렌더 칸에는 내부 키·UUID 없음')
 assert.ok(verifyQuotes({ story_flow: uSel }, Object.fromEntries(uuidCards.map((c) => [c.slug, c.episodes]))).ok, '인용 검증은 slug_internal 로 원문을 찾는다')
+// 회귀(2026-11-19 실DB): G4 뒤 quote-check --db 가 q.slug 로 조회해 전부 source_missing — 원문 키 slug_internal 로 원본 표를 찾는다
+const samplePayload = { diagnosis: dSales, before: { status: 'ok', alternatives: [] }, after: uSel, quote_check: {} }   // story-flow-samples.mjs 출력 모양
+const qs = collectQuotes(samplePayload)
+assert.equal(qs.length, 3)
+assert.deepEqual(quoteSlugs(qs).sort(), [uSel.recommended, ...uSel.alternatives].map((p) => p.slug_internal).sort(), '조회 slug = slug_internal(UUID 포함 원문)')
+assert.ok(quoteSlugs(qs).every((x) => UU.test(x)))
+const rows = uuidCards.flatMap((c) => c.episodes.map((e) => ({ source_key: c.source_key, slug: c.slug, label_run: c.label_run, episode_idx: e.episode_idx, quote_orig: e.quote_orig })))   // ss_episode_tags 줄 모양
+const dbCheck = verifyQuotes(samplePayload, sourceFromRows(rows.filter((r) => quoteSlugs(qs).includes(r.slug))))
+assert.ok(dbCheck.ok && dbCheck.checked === 3, '원본 표 줄로 3/3 일치')
+const cleanedOnly = JSON.parse(JSON.stringify(samplePayload)); for (const q of collectQuotes(cleanedOnly)) { q.slug = q.slug_internal.replace(UU, '').replace(/-$/, ''); delete q.slug_internal }
+const co = verifyQuotes(cleanedOnly, sourceFromRows(rows))
+assert.ok(!co.ok && co.mismatches.length === 3 && co.mismatches.every((m) => m.reason === 'source_missing'), '정리된 slug 만 있는 payload 는 원문을 못 찾아 실패')
+assert.ok(!verifyQuotes(samplePayload, sourceFromRows(rows.map((r) => ({ ...r, label_run: 'other_run' })))).ok, 'label_run 이 다른 원문은 같은 인용으로 보지 않는다')
+const cli = readFileSync(new URL('./story-flow-quote-check.mjs', import.meta.url), 'utf8')
+assert.ok(cli.includes('quoteSlugs(quotes)') && cli.includes('sourceFromRows(') && !/quotes.map((q) => q.slug)/.test(cli), 'CLI --db 가 공용 조회 키 함수를 쓴다')
 console.log('story-flow-select-selftest: 통과')

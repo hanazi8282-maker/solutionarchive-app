@@ -149,3 +149,21 @@
   - 화면 렌더 경로 `selectionToSimilar` 의 출력에는 `slug_internal` 도 UUID 도 없다(셀프테스트로 고정).
 - 테스트: `consult-selftest` 226/226, `story-flow-selftest` 통과, `story-flow-select-selftest`(기존 + G1~G4) 통과. tsc·eslint 0.
 - 오케스트레이터 몫: 실데이터로 `node --env-file=.env.local scripts/story-flow-samples.mjs --db --real-diagnosis --out reports/2026-11-19-v71cu/story-flow-samples-db` 를 돌리고, 같은 명령에 `--stage-first` 를 붙여 한 번 더 돌린다. 두 결과(OFF/ON)를 남헌이 비교해 정한다.
+
+## 수정 이력 3 — 실DB 인용 검증 전부 source_missing (2026-11-20)
+
+- **원인:** G4 에서 인용의 원문 slug 를 `quote.slug_internal` 로 옮겼다. 그런데 `story-flow-quote-check.mjs --db` 는 여전히 `quotes.map(q => q.slug)` 로 조회 목록을 만들었다. 그 값이 전부 `undefined` 라 `ss_episode_tags` 조회가 0줄이 됐고, 결과는 3건 전부 `source_missing` 이었다. 샘플 생성기 쪽 문제가 아니라 CLI 의 조회 키 문제다.
+- **수정:**
+  - 공용 함수를 추가했다. `quoteKey`(slug_internal 우선, 옛 payload 는 slug), `quoteSlugs`(조회 목록), `sourceFromRows`(원본 줄 → 대조용 모양).
+  - CLI 와 `verifyQuotes` 가 같은 키 함수를 쓴다.
+  - `source_missing` 은 그대로 실패로 친다.
+- **회귀 테스트:**
+  - 샘플 JSON 모양(`before`/`after`)에 UUID 가 든 slug 를 넣었을 때, 원본 표 줄 모양으로 3/3 일치하는지 본다.
+  - 정리된 slug 만 있는 payload 는 3건 모두 `source_missing` 으로 실패해야 한다.
+  - label_run 이 다르면 실패해야 한다.
+  - CLI 가 공용 함수를 쓰는지 정적으로 확인한다.
+- **샘플 JSON 에 남은 UUID slug:** 허용으로 판단했다. 남는 곳은 세 군데다. 화면 렌더 경로(`selectionToSimilar` → ch1.similar)는 아니다.
+  - `before`: 기존 `pickFlowCards` 원자료의 card.slug
+  - `after.*.slug_internal`·`quote.slug_internal`: 원문 추적용 내부 키
+  - `quote_check.mismatches.slug`
+  - 다만 이 JSON 은 공개 리포에 커밋되므로, DB 샘플(`story-flow-samples-db/`)은 커밋하지 않는 쪽을 권한다.

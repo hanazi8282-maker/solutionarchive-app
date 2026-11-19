@@ -366,6 +366,9 @@ const AUDIT = {
   'theqoo.ts': false,
   'todayhumor.ts': false,
   'velog.ts': false,
+  // 디시·루리웹 — externalId = 정규화된 글 경로 → 사이트 전역 유일(clien 과 같은 구성).
+  'dcinside.ts': false,
+  'ruliweb.ts': false,
   // `/posts/<slug>` · `/posts/<slug>#<댓글 숫자 id>` — slug 는 사이트 전역 글 식별자다.
   'disquiet.ts': false,
   // 인프런 `/community/questions/<id>`(+ `#<답변 id>`) · 요즘IT `/magazine/detail/<id>/` — 사이트 전역 글 경로.

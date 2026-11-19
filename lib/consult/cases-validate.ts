@@ -1,4 +1,5 @@
-// R5 사례 검색 질의 검증 — 순수 함수(import 없음). 모델이 고른 카테고리·메커니즘을 허용 목록으로만 통과시킨다(없는 태그로 검색하지 않는다).
+// R5 사례 검색 질의 검증 — 순수 함수(import 는 순수 자르기 모듈 하나). 모델이 고른 카테고리·메커니즘을 허용 목록으로만 통과시킨다(없는 태그로 검색하지 않는다).
+import { clipText } from './clip-text.ts'
 export const CATEGORIES = ['SaaS', 'Education', 'HR·인사', 'Marketing', 'Finance', 'Content', 'Health', 'Productivity', 'SEO', 'Writing', 'Design', 'Technology'] as const
 export const MECHANISMS = [
   'subscription', 'seo-content', 'distribution-weak', 'community-led', 'marketplace-network', 'niche-vertical', 'freemium-plg', 'paid-ads',
@@ -18,15 +19,15 @@ export function sanitizeCaseQuery(raw: Record<string, unknown>): CaseQuery {
 
 export type CaseRow = { company: string | null; key_decision: string | null; outcome: string | null; grade: string | null }
 
-/** 화면에 내는 한 줄. 이름이 없거나 결정 내용이 없는 행은 버린다. 130자 이하(인용 규칙). */
+/** 화면에 내는 한 줄. 이름이 없거나 결정 내용이 없는 행은 버린다. 130자 이하(인용 규칙) — 문장·낱말 경계로 자른다. */
 export function caseLine(r: CaseRow): { name: string; what: string } | null {
   const name = (r.company ?? '').trim()
   const what = (r.key_decision ?? '').replace(/\s+/g, ' ').trim()
   if (!name || !what) return null
-  return { name: name.slice(0, 60), what: (r.outcome ? `[${r.outcome}] ` : '') + what.slice(0, 110) }
+  return { name: clipText(name, 60), what: (r.outcome ? `[${r.outcome}] ` : '') + clipText(what, 110) }
 }
 
-/** P1-C 판정 결과(모델이 고른 후보 번호 + why) → 사례 목록. 범위 밖 번호·중복·why 없음은 버린다. why 는 60자로 자른다. 순수 함수. */
+/** P1-C 판정 결과(모델이 고른 후보 번호 + why) → 사례 목록. 범위 밖 번호·중복·why 없음은 버린다. why 는 60자 안에서 문장·낱말 경계로 자른다. 순수 함수. */
 export function pickSimilar(raw: Record<string, unknown>, cands: { name: string; what: string }[], limit: number): { name: string; what: string; why: string }[] {
   const picks = Array.isArray(raw.picks) ? raw.picks : []
   const used = new Set<number>()
@@ -34,7 +35,7 @@ export function pickSimilar(raw: Record<string, unknown>, cands: { name: string;
   for (const p of picks) {
     const x = (p ?? {}) as Record<string, unknown>
     const n = Number(x.i)
-    const why = typeof x.why === 'string' ? x.why.replace(/\s+/g, ' ').trim().slice(0, 60) : ''
+    const why = typeof x.why === 'string' ? clipText(x.why, 60) : ''
     if (!Number.isInteger(n) || n < 0 || n >= cands.length || used.has(n) || !why) continue
     used.add(n)
     out.push({ ...cands[n], why })

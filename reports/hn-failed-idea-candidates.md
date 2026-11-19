@@ -447,3 +447,27 @@
 - 작성일: 2026-11-18
 
 > I see your individualization as an attempt at bargaining for absolution through appeals to inevitability. In reality, of course, it is a self-fulfilling prophecy. The only way we could've prevented poor outcomes is by acting as us. As the dramatic changes of the industrial revolution have shown us, labor is immensely powerful at resisting the corrosive demands of capital if it acts in unison. Famously, the labor struggle also included dealing with scabs, or "them". These are not new ideas. They …
+
+## HN 50567348
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50567348
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-19 UTC)
+- 스레드: Claude solves two open problems in the physics of black holes
+- 작성자: 00dazzle
+- 작성일: 2026-11-19
+
+> "Spinning Jenny-spun yarn" feels reflective of the constant, problematic anthropomorphizing of the machine. For how it's problematic, look at "the boiled exploded" vs. we failed to build an adequate boiler". What does it mean for Jenny to spin it? Who provided the power to it? I didn't read it all, but the word "power" does not appear in the patent, or the newspaper articles about it.
+
+## HN 50565562
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50565562
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-19 UTC)
+- 스레드: Claude solves two open problems in the physics of black holes
+- 작성자: dap
+- 작성일: 2026-11-19
+
+> "Claude solves" feels reflective of the constant, problematic anthropomorphizing of the machine. For how it's problematic, look at "it broke out of the sandbox" vs. "we failed to build an adequate sandbox". What does it mean for Claude to solve it? What was the prompt? I didn't read it all, but the word "prompt" does not appear in the blog post, either abstract, or either paper.

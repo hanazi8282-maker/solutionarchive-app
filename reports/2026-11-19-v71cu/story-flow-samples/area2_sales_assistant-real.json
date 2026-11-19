@@ -1,0 +1,279 @@
+{
+  "diagnosis": {
+    "chapter": 6,
+    "chapters": [
+      6
+    ],
+    "situation": {
+      "stage": "early_rev"
+    },
+    "adversity": "무료 체험 뒤 유료 전환이 안 된다",
+    "label": "영역② 영업 도우미 — 실제 경로 진단(Fit 3 Channel-Model 끊김 → 6장, 매출 소액)"
+  },
+  "before": {
+    "status": "ok",
+    "recommended": {
+      "card": {
+        "source_key": "starterstory",
+        "label_run": "fx_run",
+        "slug": "fx-sales-a",
+        "chapter": 6,
+        "weight": 60,
+        "domain": "sales_assistant",
+        "customer": "smb",
+        "pricing_model": "subscription",
+        "price_band": "10-49",
+        "stage": "early_rev",
+        "team_size": "solo",
+        "relevance_tier": "R1",
+        "success_tier": "S1",
+        "created_at": "2026-06-01T00:00:00Z",
+        "chapter_why_ko": null,
+        "story_arc_ko": null,
+        "principle_ko": null,
+        "transfer_ko": null,
+        "causal_chain": [
+          {
+            "from_ep": 0,
+            "to_ep": 1,
+            "because_ko": "가격표를 공개해 의심이 줄었다"
+          }
+        ],
+        "episodes": [
+          {
+            "episode_idx": 0,
+            "chapter": 6,
+            "role": "primary",
+            "sub_topic": "pricing_page",
+            "adversity_ko": "체험 뒤 유료 전환이 안 된다",
+            "action_ko": "가격표 공개",
+            "overcome_ko": null,
+            "result_class": "positive",
+            "result_grain": "metric",
+            "result_ko": "전환 2배",
+            "why_ko": null,
+            "condition_ko": "월 구독일 때",
+            "mechanism": "reduce_purchase_doubt_by_transparency",
+            "quote_orig": "We put every price on one page and conversions doubled.",
+            "quote_ko": "가격을 한 쪽에 다 적었더니 전환이 두 배가 됐다",
+            "evidence_strength": "A"
+          }
+        ]
+      },
+      "similarity": 0.685,
+      "persuasion": 0.9,
+      "similarWhy": "단계이 같다",
+      "persuasiveWhy": "숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다",
+      "crossIndustry": false,
+      "hasFailure": false
+    },
+    "alternatives": [
+      {
+        "card": {
+          "source_key": "starterstory",
+          "label_run": "fx_run",
+          "slug": "fx-sales-d",
+          "chapter": 6,
+          "weight": 30,
+          "domain": "other",
+          "customer": "consumer",
+          "pricing_model": "one_time",
+          "price_band": "<10",
+          "stage": "unknown",
+          "team_size": "unknown",
+          "relevance_tier": "R3",
+          "success_tier": "S0",
+          "chapter_why_ko": null,
+          "story_arc_ko": null,
+          "principle_ko": null,
+          "transfer_ko": null,
+          "causal_chain": [
+            {
+              "from_ep": 0,
+              "to_ep": 0,
+              "because_ko": "x"
+            }
+          ],
+          "episodes": [
+            {
+              "episode_idx": 0,
+              "chapter": 6,
+              "role": "primary",
+              "sub_topic": "guarantee",
+              "adversity_ko": "구매 의심",
+              "action_ko": "환불 보장",
+              "overcome_ko": null,
+              "result_class": "positive",
+              "result_grain": "metric",
+              "result_ko": "구매율 상승",
+              "why_ko": null,
+              "condition_ko": "값이 낮을 때",
+              "mechanism": "reduce_purchase_doubt_by_transparency",
+              "quote_orig": "A no-questions refund made strangers willing to try.",
+              "quote_ko": null,
+              "evidence_strength": "A"
+            }
+          ]
+        },
+        "similarity": 0.375,
+        "persuasion": 0.9,
+        "similarWhy": "다른 업종, 같은 원리: 같은 장에서 비슷한 막힘을 겪었다",
+        "persuasiveWhy": "숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다",
+        "crossIndustry": true,
+        "hasFailure": false
+      },
+      {
+        "card": {
+          "source_key": "starterstory",
+          "label_run": "fx_run",
+          "slug": "fx-sales-c",
+          "chapter": 6,
+          "weight": 50,
+          "domain": "sales_assistant",
+          "customer": "enterprise",
+          "pricing_model": "subscription",
+          "price_band": "250+",
+          "stage": "growing",
+          "team_size": "11+",
+          "relevance_tier": "R1",
+          "success_tier": "S0",
+          "created_at": "2024-01-01T00:00:00Z",
+          "chapter_why_ko": null,
+          "story_arc_ko": null,
+          "principle_ko": null,
+          "transfer_ko": null,
+          "causal_chain": [],
+          "episodes": [
+            {
+              "episode_idx": 0,
+              "chapter": 6,
+              "role": "primary",
+              "sub_topic": "price_raise",
+              "adversity_ko": "가격 의심",
+              "action_ko": "가격 인상",
+              "overcome_ko": null,
+              "result_class": "negative",
+              "result_grain": "qual",
+              "result_ko": "해지가 늘었다",
+              "why_ko": "대체재가 많았다",
+              "condition_ko": null,
+              "mechanism": null,
+              "quote_orig": "Raising prices without notice cost us a third of accounts.",
+              "quote_ko": null,
+              "evidence_strength": "B"
+            }
+          ]
+        },
+        "similarity": 0.315,
+        "persuasion": 0.46,
+        "similarWhy": "같은 장에서 비슷한 막힘을 겪었다",
+        "persuasiveWhy": "말로 확인된 결과(숫자는 없다), 안 된 시도도 함께 담겨 있다",
+        "crossIndustry": false,
+        "hasFailure": true
+      }
+    ],
+    "considered": 5,
+    "note": "장 6 후보 5건 중 3건"
+  },
+  "after": {
+    "status": "ok",
+    "recommended": {
+      "source": "story_flow",
+      "slug": "fx-sales-a",
+      "slug_internal": "fx-sales-a",
+      "name": "Fx Sales A",
+      "chapter": 6,
+      "score": 0.6572,
+      "situation": 0.6,
+      "persuasion": 0.9,
+      "evidence": 1,
+      "stage": "early_rev",
+      "failed": false,
+      "fail_kind": null,
+      "reasons": [
+        "단계가 같다",
+        "숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다"
+      ],
+      "hasFailure": false,
+      "crossIndustry": false,
+      "quote": {
+        "slug_internal": "fx-sales-a",
+        "episode_idx": 0,
+        "text": "We put every price on one page and conversions doubled.",
+        "source_key": "starterstory",
+        "label_run": "fx_run"
+      },
+      "summary_ko": "가격표 공개 → 전환 2배"
+    },
+    "alternatives": [
+      {
+        "source": "story_flow",
+        "slug": "fx-sales-d",
+        "slug_internal": "fx-sales-d",
+        "name": "Fx Sales D",
+        "chapter": 6,
+        "score": 0.505,
+        "situation": 0.5,
+        "persuasion": 0.9,
+        "evidence": 1,
+        "stage": "unknown",
+        "failed": false,
+        "fail_kind": null,
+        "reasons": [
+          "다른 업종: 같은 장에서 비슷한 막힘을 겪었다",
+          "숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다"
+        ],
+        "hasFailure": false,
+        "crossIndustry": true,
+        "quote": {
+          "slug_internal": "fx-sales-d",
+          "episode_idx": 0,
+          "text": "A no-questions refund made strangers willing to try.",
+          "source_key": "starterstory",
+          "label_run": "fx_run"
+        },
+        "summary_ko": "환불 보장 → 구매율 상승"
+      },
+      {
+        "source": "story_flow",
+        "slug": "fx-sales-c",
+        "slug_internal": "fx-sales-c",
+        "name": "Fx Sales C",
+        "chapter": 6,
+        "score": 0.4619,
+        "situation": 0.4,
+        "persuasion": 0.46,
+        "evidence": 0.6,
+        "stage": "growing",
+        "failed": true,
+        "fail_kind": "negative",
+        "reasons": [
+          "같은 장에서 비슷한 막힘을 겪었다",
+          "말로 확인된 결과(숫자는 없다), 안 된 시도도 함께 담겨 있다"
+        ],
+        "hasFailure": true,
+        "crossIndustry": false,
+        "quote": {
+          "slug_internal": "fx-sales-c",
+          "episode_idx": 0,
+          "text": "Raising prices without notice cost us a third of accounts.",
+          "source_key": "starterstory",
+          "label_run": "fx_run"
+        },
+        "summary_ko": "가격 인상 → 해지가 늘었다"
+      }
+    ],
+    "considered": {
+      "story_flow": 4,
+      "move_tags": 0,
+      "case_bank": 0
+    },
+    "note": "장 6 · story flow 4 · 꼬리표 0 · 사례 은행 0 → 3건(story_flow)"
+  },
+  "quote_check": {
+    "ok": true,
+    "checked": 3,
+    "mismatches": [],
+    "warnings": []
+  }
+}

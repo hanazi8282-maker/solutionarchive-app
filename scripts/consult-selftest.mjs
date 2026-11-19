@@ -381,6 +381,7 @@ for (const st of ['low', 'full']) { const sys = buildSystem(st); const nums = (s
   const ok = async (f) => { try { await import(f); return true } catch (e) { console.error(String(e?.message ?? e).split(String.fromCharCode(10))[0]); return false } }
   t('v71ct: story-flow 회귀 10건(적격·모름 감점·폴백·signal 금지·실패 포함·다른 업종·깃발 OFF·not_run)', await ok('./story-flow-selftest.mjs'))
   t('v71ct: story-label 자동 검사(인용·숫자·근거·장 비중)', await ok('./story-label-selftest.mjs'))
+  t('v71cu: story flow v2(점수식·회사당 1장·안 된 시도·폴백 순서·깃발 OFF=기존 경로·mat 폴백·인용 검증)', await ok('./story-flow-select-selftest.mjs'))
 }
 
 console.log(fail ? `실패 ${fail}건 / 통과 ${pass}건` : `통과 ${pass}건`)

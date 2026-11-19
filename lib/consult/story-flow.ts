@@ -33,16 +33,16 @@ export const BOTTLENECK_CHAPTERS: Record<string, number[]> = {
   not_arriving: [5], no_signup: [6, 5], not_using: [7, 4], not_paying: [6], churn: [7], new_channels: [5],
 }
 
-const GRAIN_SCORE: Record<string, number> = { metric: 1, qual: 0.6, learned: 0.5, signal: 0 }
-const EVID: Record<string, number> = { A: 1, B: 0.6, C: 0.3 }
-const COUNTED = new Set(['positive', 'negative', 'mixed'])
+export const GRAIN_SCORE: Record<string, number> = { metric: 1, qual: 0.6, learned: 0.5, signal: 0 }
+export const EVID: Record<string, number> = { A: 1, B: 0.6, C: 0.3 }
+export const COUNTED = new Set(['positive', 'negative', 'mixed'])
 
 /** 한 카드가 장 c 에서 쓸 수 있는가: 비중 ≥ 30, 그 장 에피소드 중 결과가 positive·negative·mixed 인 것 ≥ 1. 결과 없음·근거 없음만 거른다. */
 export function eligible(card: FlowCard, chapter: number): boolean {
   return card.chapter === chapter && card.weight >= 30 && card.episodes.some((e) => COUNTED.has(e.result_class))
 }
 
-const known = (v?: string) => v != null && v !== '' && v !== 'unknown'
+export const known = (v?: string) => v != null && v !== '' && v !== 'unknown'
 /** 상황 일치(0~1): 칸마다 같으면 1, 어느 한쪽이 모름이면 0.5(감점), 둘 다 알고 다르면 0. */
 export function situationMatch(card: FlowCard, s: Diagnosis['situation']): number {
   const pairs: [string | undefined, string][] = [[s.customer, card.customer], [s.price_band, card.price_band], [s.stage, card.stage], [s.team_size, card.team_size], [s.pricing_model, card.pricing_model]]
@@ -56,7 +56,7 @@ function overlap(a: string | undefined, b: string): number {
   const i = [...x].filter((t) => y.has(t)).length
   return i / Math.min(x.size, y.size)
 }
-const chapterEps = (card: FlowCard) => card.episodes.filter((e) => e.chapter === card.chapter)
+export const chapterEps = (card: FlowCard) => card.episodes.filter((e) => e.chapter === card.chapter)
 
 /** 비슷함(0~1): 상황 0.6 + 역경 텍스트 0.25 + mechanism 0.15. 모름은 감점이지 탈락이 아니다. */
 export function similarity(card: FlowCard, d: Diagnosis): number {
@@ -80,9 +80,9 @@ export function persuasion(card: FlowCard): number {
 export const mayClaimSuccess = (e: Pick<Episode, 'result_class' | 'result_grain'>) => e.result_class === 'positive' && (e.result_grain === 'metric' || e.result_grain === 'qual')
 
 /** 다른 업종이어도 원리가 같으면 표시. 원리 태그(mechanism)가 없으면 다른 업종 카드는 쓰지 않는다. */
-const crossOk = (card: FlowCard) => card.relevance_tier === 'R1' || chapterEps(card).some((e) => e.mechanism)
+export const crossOk = (card: FlowCard) => card.relevance_tier === 'R1' || chapterEps(card).some((e) => e.mechanism)
 
-function similarWhy(card: FlowCard, d: Diagnosis, cross: boolean): string {
+export function similarWhy(card: FlowCard, d: Diagnosis, cross: boolean): string {
   const s = d.situation, same: string[] = []
   if (known(s.customer) && s.customer === card.customer) same.push('손님')
   if (known(s.price_band) && s.price_band === card.price_band) same.push('값대')
@@ -93,7 +93,7 @@ function similarWhy(card: FlowCard, d: Diagnosis, cross: boolean): string {
   const head = cross ? '다른 업종, 같은 원리: ' : ''
   return head + (parts.filter(Boolean).join(', ') || '같은 장에서 비슷한 막힘을 겪었다')
 }
-function persuasiveWhy(card: FlowCard): string {
+export function persuasiveWhy(card: FlowCard): string {
   const eps = chapterEps(card).filter((e) => COUNTED.has(e.result_class)).sort((a, b) => (GRAIN_SCORE[b.result_grain ?? ''] ?? 0) - (GRAIN_SCORE[a.result_grain ?? ''] ?? 0))
   const e = eps[0], bits: string[] = []
   if (e?.result_grain === 'metric') bits.push('숫자로 확인된 결과')
@@ -131,17 +131,30 @@ export function pickFlowCards(cards: FlowCard[], d: Diagnosis, limit = 3): FlowR
 
 export const storyFlowEnabled = () => process.env.STORY_FLOW_ENABLED === 'true'
 
+/** [v71cu 2-2] 한 장의 카드 전부 — 먼저 story_flow_cards_mat(미리 계산, statement timeout 회피)을 읽고, 그게 없거나 오류면 기존 뷰로 폴백한다. 둘 다 실패하면 던진다. */
+export const FLOW_CARD_SOURCES = ['story_flow_cards_mat', 'story_flow_cards'] as const
+export async function fetchFlowCards(sb: Pick<SupabaseClient, 'from'>, chapter: number): Promise<FlowCard[]> {
+  let last = ''
+  for (const table of FLOW_CARD_SOURCES) {
+    const cards: FlowCard[] = []
+    let failed = false
+    for (let p = 0; ; p++) {
+      // [F4] 쪽 사이 순서를 고정한다(ORDER BY 없으면 쪽이 바뀔 때 카드가 빠지거나 겹친다). (source_key,slug,label_run)+chapter 가 한 줄을 가른다.
+      const { data, error } = await sb.from(table).select('*').eq('chapter', chapter).gte('weight', 30).order('slug').order('label_run').order('source_key').range(p * 1000, p * 1000 + 999)
+      if (error) { last = `${table}: ${error.message}`; failed = true; break }
+      cards.push(...((data ?? []) as FlowCard[])); if (!data || data.length < 1000) break
+    }
+    if (!failed) return cards
+    console.error(`story-flow source fallback: ${last}`)
+  }
+  throw new Error(last)
+}
+
 /** DB 로더 — story_flow_cards 에서 한 장의 카드를 읽는다. 깃발이 꺼져 있으면 읽지 않고 off. 오류는 던지지 않고 not_run(확인 불가 ≠ 근거 부족, §7.1). */
 export async function loadStoryFlow(sb: Pick<SupabaseClient, 'from'>, d: Diagnosis): Promise<FlowResult> {
   if (!storyFlowEnabled()) return { status: 'off', alternatives: [], considered: 0, note: 'STORY_FLOW_ENABLED 꺼짐' }
   try {
-    const cards: FlowCard[] = []
-    for (let p = 0; ; p++) {
-      const { data, error } = await sb.from('story_flow_cards').select('*').eq('chapter', d.chapter).gte('weight', 30).range(p * 1000, p * 1000 + 999)
-      if (error) throw new Error(error.message)
-      cards.push(...((data ?? []) as FlowCard[])); if (!data || data.length < 1000) break
-    }
-    return pickFlowCards(cards, d)
+    return pickFlowCards(await fetchFlowCards(sb, d.chapter), d)
   } catch (e) {
     console.error(`story-flow load failed: ${e instanceof Error ? e.message : e}`)
     return { status: 'not_run', alternatives: [], considered: 0, note: '확인 불가 — 흐름 카드를 조회하지 못했습니다' }

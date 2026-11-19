@@ -69,6 +69,8 @@ export type OpinionRow = {
   /** rr-v2 추가 질문. 생략·null = 판단 불가(옛 t2c 파일은 이 키가 없다). 불리언 아닌 값은 거부한다. */
   product_informative: boolean | null
   reason?: string | null
+  /** info-v23 후보 '정보약' 표시. 있으면 product_informative 는 false 다. */
+  weak?: true
 }
 export type DbRow = {
   input_id: string
@@ -113,7 +115,9 @@ export function validateOpinions(raw: unknown): { ok: OpinionRow[]; rejected: { 
     const info = o.product_informative == null ? null : typeof o.product_informative === 'boolean' ? o.product_informative : undefined
     if (info === undefined) return void rejected.push({ index, reason: `product_informative 불리언 아님: ${String(o.product_informative)}` })
     seen.add(id)
-    ok.push({ input_id: id, verdict: verdict as OpinionRow['verdict'], impact, frequency, community_signal: sig, wtp_mentioned: wtp, product_informative: info, reason: typeof o.reason === 'string' ? o.reason.slice(0, 500) : null })
+    // info-v23 후보 '정보약'(weak=true)은 product_informative 를 false 로 내린다 — 승인 쪽으로 접지 않는다. weak 는 불리언일 때만 읽는다(어휘 밖은 무시, 거부하지 않음).
+    const weak = o.weak === true
+    ok.push({ input_id: id, verdict: verdict as OpinionRow['verdict'], impact, frequency, community_signal: sig, wtp_mentioned: wtp, product_informative: weak ? false : info, ...(weak ? { weak: true } : {}), reason: typeof o.reason === 'string' ? o.reason.slice(0, 500) : null })
   })
   return { ok, rejected }
 }

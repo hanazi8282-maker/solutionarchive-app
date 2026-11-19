@@ -80,7 +80,8 @@ export interface EvalResult {
   recheck: RecheckItem[]
 }
 
-export function scoreEval(rows: readonly EvalInput[]): EvalResult {
+/** extraExcluded = 이번 실행 프롬프트에 few-shot 으로 실린 input_id(v71cu P3) — 경계 사례 9건과 같이 채점에서 뺀다(누설). */
+export function scoreEval(rows: readonly EvalInput[], extraExcluded: ReadonlySet<string> = new Set()): EvalResult {
   let unjudged = 0, excluded = 0, known = 0, pos = 0, nA = 0, errors = 0, hit = 0, est = 0
   const recheck: RecheckItem[] = []
   const seen = new Set<string>()
@@ -91,7 +92,7 @@ export function scoreEval(rows: readonly EvalInput[]): EvalResult {
 
   for (const r of rows) {
     if (NARROW.has(r.input_id) && !resolved.has(r.input_id)) push(r.input_id, 'b')
-    if (EXAMPLES.has(r.input_id)) { excluded++; continue }
+    if (EXAMPLES.has(r.input_id) || extraExcluded.has(r.input_id)) { excluded++; continue }
     const a = predictA(r.first, r.second)
     const gold = goldOf(r)
     if (r.human_graded_at && typeof r.human_product_informative !== 'boolean') {
@@ -115,6 +116,136 @@ export function scoreEval(rows: readonly EvalInput[]): EvalResult {
     meets_gate: unjudged === 0 && nA >= EVAL_GATE.minNA && errors <= EVAL_GATE.maxErrors && recall !== null && recall >= EVAL_GATE.minRecall,
     recheck,
   }
+}
+
+// ── v23 후보 평가 배선(2026-11-20) — --ids · --gold · --compare · 판정 못 한 원인 ──────────────
+
+/**
+ * 판정 못 한 원인. b·c·d 는 scoreEval 의 unjudged(판정 자체가 없음)를 가른다.
+ * a(모름)는 **unjudged 가 아니다** — 1차·2차가 unknown·info null 을 내면 predictA 가 false(=not-A)로 채점한다. 그래서 따로 센다.
+ */
+export type UnjudgedCause = 'b_time_quota' | 'c_structure' | 'd_other'
+const TIME_QUOTA = /timeout|timed out|ETIMEDOUT|SIGTERM|exit=null|429|402|503|quota|rate.?limit|한도|과부하|바퀴|exhausted|소진/i
+const STRUCTURE = /JSON|파싱|parse|거부|응답에 없음|어휘 밖/i
+
+/** 실패 메시지 → 원인. 한도·예산 플래그가 서면 b, 메시지로 시간·한도 → b, 구조(파싱·거부·누락) → c, 나머지 d. */
+export function classifyFailure(message: string | null | undefined, quotaExhausted = false): UnjudgedCause {
+  const m = String(message ?? '')
+  if (quotaExhausted || TIME_QUOTA.test(m)) return 'b_time_quota'
+  if (STRUCTURE.test(m)) return 'c_structure'
+  return 'd_other'
+}
+
+export interface PassFailure { cause: UnjudgedCause; detail: string }
+
+/** 행별 원인 요약. first/second 실패 맵(없으면 그 패스는 판정됨) + 판정된 행의 모름 수(a). */
+export function summarizeUnjudged(
+  rows: readonly { input_id: string; first: (Judgement & { reason?: string | null }) | null; second: Judgement | null }[],
+  firstFail: ReadonlyMap<string, PassFailure>,
+  secondFail: ReadonlyMap<string, PassFailure>,
+) {
+  const by_cause: Record<UnjudgedCause, number> = { b_time_quota: 0, c_structure: 0, d_other: 0 }
+  const by_pass = { first: 0, second: 0, both: 0 }
+  const detail: Record<string, number> = {}
+  const a = { first_unknown: 0, second_unknown: 0, first_info_null: 0, second_info_null: 0, first_unknown_no_reason: 0 }
+  let total = 0
+  for (const r of rows) {
+    const f = r.first ? null : firstFail.get(r.input_id) ?? { cause: 'd_other' as const, detail: '1차 원인 기록 없음' }
+    const s = r.second ? null : secondFail.get(r.input_id) ?? { cause: 'd_other' as const, detail: '2차 원인 기록 없음' }
+    if (f || s) {
+      total++
+      if (f && s) by_pass.both++; else if (f) by_pass.first++; else by_pass.second++
+      // 1차가 빠졌으면 1차 원인을 대표로 센다(한 행 한 원인). 자세한 건 detail 에 두 패스 다.
+      by_cause[(f ?? s)!.cause]++
+      for (const x of [f && `1차: ${f.detail}`, s && `2차: ${s.detail}`]) if (x) detail[x] = (detail[x] ?? 0) + 1
+    }
+    if (r.first?.verdict === 'unknown') { a.first_unknown++; if (!r.first.reason) a.first_unknown_no_reason++ }
+    if (r.second?.verdict === 'unknown') a.second_unknown++
+    if (r.first && r.first.product_informative === null) a.first_info_null++
+    if (r.second && r.second.product_informative === null) a.second_info_null++
+  }
+  return {
+    total_unjudged: total, by_cause, by_pass, detail,
+    a_unknown: { ...a, note: '판정은 됐지만 모름(unknown)·정보 null — scoreEval 에서 unjudged 가 아니라 not-A 로 채점된다. first_unknown_no_reason 은 응답에 그 라벨이 빠져 unknown 이 된 것으로 의심(구조 문제)' },
+  }
+}
+
+export interface IdsEntry { input_id: string; project_id: string | null; set: string | null }
+
+/** --ids 파일: ["id", …] 또는 [{input_id, project_id?, set?}, …] 또는 {rows:[…]}. 빈 id·중복은 오류로 돌려준다(조용히 버리지 않는다). */
+export function parseIdsFile(raw: unknown): { ids: IdsEntry[]; errors: string[] } {
+  const arr = Array.isArray(raw) ? raw : raw && typeof raw === 'object' && Array.isArray((raw as { rows?: unknown }).rows) ? (raw as { rows: unknown[] }).rows : null
+  if (!arr) return { ids: [], errors: ['배열 또는 {rows:[]} 가 아니다'] }
+  const ids: IdsEntry[] = [], errors: string[] = [], seen = new Set<string>()
+  arr.forEach((x, i) => {
+    const o = (typeof x === 'string' ? { input_id: x } : x ?? {}) as Record<string, unknown>
+    const id = typeof o.input_id === 'string' ? o.input_id.trim() : ''
+    if (!id) return void errors.push(`#${i}: input_id 없음`)
+    if (seen.has(id)) return void errors.push(`#${i}: 중복 ${id}`)
+    seen.add(id)
+    ids.push({ input_id: id, project_id: typeof o.project_id === 'string' ? o.project_id : null, set: typeof o.set === 'string' ? o.set : null })
+  })
+  return { ids, errors }
+}
+
+export interface GoldEntry { human_verdict: 'relevant' | 'irrelevant' | 'unknown'; human_product_informative: boolean | null; weak: boolean }
+
+/**
+ * --gold 파일 [{input_id, verdict, informative}] → 사람 채점 대신 쓸 정답.
+ * verdict: relevant|irrelevant|unknown. informative: true|false|"weak"|null — **"weak"(정보약)는 승인하면 오류(false)로 채점한다**(안전 쪽).
+ * 어휘 밖 값·중복은 오류로 돌려준다. 하네스는 오류가 하나라도 있으면 멈춘다(§7.1).
+ */
+export function parseGoldFile(raw: unknown): { gold: Map<string, GoldEntry>; errors: string[] } {
+  const gold = new Map<string, GoldEntry>(), errors: string[] = []
+  if (!Array.isArray(raw)) return { gold, errors: ['[{input_id, verdict, informative}] 배열이 아니다'] }
+  raw.forEach((x, i) => {
+    const o = (x ?? {}) as Record<string, unknown>
+    const id = typeof o.input_id === 'string' ? o.input_id.trim() : ''
+    if (!id) return void errors.push(`#${i}: input_id 없음`)
+    if (gold.has(id)) return void errors.push(`#${i}: 중복 ${id}`)
+    const v = o.verdict
+    if (v !== 'relevant' && v !== 'irrelevant' && v !== 'unknown') return void errors.push(`#${i}: verdict 어휘 밖 ${String(v)}`)
+    const inf = o.informative
+    if (!(inf === true || inf === false || inf === 'weak' || inf == null)) return void errors.push(`#${i}: informative 어휘 밖 ${String(inf)}`)
+    gold.set(id, { human_verdict: v, human_product_informative: inf === 'weak' ? false : (inf ?? null) as boolean | null, weak: inf === 'weak' })
+  })
+  return { gold, errors }
+}
+
+export interface ModeRow { input_id: string; set: string | null; source_key: string | null; gold: boolean | null; a: boolean | null; a_guard: boolean | null; first_weak: boolean | null; second_weak: boolean | null; cause: string | null }
+
+/** 행 → 세트별 소계(n · A · A 오류 · 판정 빠짐). gold null 인 A 는 오류로 세지 않는다(모름). */
+export function bySet(rows: readonly ModeRow[]): Record<string, { n: number; n_A: number; errors: number; unjudged: number }> {
+  const out: Record<string, { n: number; n_A: number; errors: number; unjudged: number }> = {}
+  for (const r of rows) {
+    const k = r.set ?? '(없음)'
+    const s = (out[k] ??= { n: 0, n_A: 0, errors: 0, unjudged: 0 })
+    s.n++
+    if (r.a === null) s.unjudged++
+    if (r.a) { s.n_A++; if (r.gold === false) s.errors++ }
+  }
+  return out
+}
+
+/** 두 모드의 같은 ID 비교 — A 가 갈린 행(어느 쪽이 맞았나 gold 로)과 두 쪽 다 판정된 행만 센 공통 집합 지표. */
+export function compareModes(a: readonly ModeRow[], b: readonly ModeRow[]) {
+  const mb = new Map(b.map((r) => [r.input_id, r]))
+  const flips: { input_id: string; set: string | null; from: boolean; to: boolean; gold: boolean | null }[] = []
+  let both = 0, onlyA = 0, onlyB = 0
+  const common = { n: 0, A_a: 0, err_a: 0, A_b: 0, err_b: 0 }
+  for (const x of a) {
+    const y = mb.get(x.input_id)
+    if (!y) { onlyA++; continue }
+    both++
+    if (x.a === null || y.a === null) continue
+    common.n++
+    if (x.a) { common.A_a++; if (x.gold === false) common.err_a++ }
+    if (y.a) { common.A_b++; if (y.gold === false) common.err_b++ }
+    if (x.a !== y.a) flips.push({ input_id: x.input_id, set: x.set, from: x.a, to: y.a, gold: x.gold })
+  }
+  const ia = new Set(a.map((x) => x.input_id))
+  for (const y of b) if (!ia.has(y.input_id)) onlyB++
+  return { both, only_first_mode: onlyA, only_second_mode: onlyB, common_judged: common, flips }
 }
 
 /** 새 1차 verdict 가 옛 프롬프트 1차 verdict 와 얼마나 같은가 — 추가 질문이 관련성 분포를 흔드는지 본다. 양쪽에 다 있는 id 만. */

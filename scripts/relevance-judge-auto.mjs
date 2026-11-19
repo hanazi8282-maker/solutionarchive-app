@@ -46,7 +46,8 @@ import {
 import {
   CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
-import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION, RELEVANCE_V23_VERSION, RELEVANCE_V24_VERSION } from '../lib/analysis/relevance-criteria.ts'
+import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION, RELEVANCE_V23_VERSION, RELEVANCE_V24_VERSION, INFO_WEAK_TAG, infoVersionSuffix, parseInfoMode } from '../lib/analysis/relevance-criteria.ts'
+import { loadRelevanceExamples } from '../lib/analysis/relevance-examples.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
 import { withLlmBudget, DAILY_BUDGET_USD, dailySpent, judgeBudgetGate, judgeLedgerFrom, judgeUsdCaps, loadJudgeLedgerRows, setRunCapUsd } from '../lib/analysis/budget.ts'
 import { capacityGuard, loadAuditWindow } from '../lib/analysis/auto-approval.ts'
@@ -98,7 +99,16 @@ const criteriaMode = (() => { const v = (process.env.RELEVANCE_CRITERIA ?? 'v22'
 if (!['old', 'v21', 'v22', 'v23', 'v24'].includes((process.env.RELEVANCE_CRITERIA ?? 'v22').trim().toLowerCase())) console.warn(`::warning::RELEVANCE_CRITERIA='${process.env.RELEVANCE_CRITERIA}' 는 old|v21|v22|v23|v24 가 아니다 — v22 로 처리한다`)
 // v23 은 활성 영역 이름을 config/areas.json 에서 읽는다. 못 읽으면 판정을 시작하지 않는다(§7.1 — 모르는 영역표로 판정하지 않는다).
 const v23Areas = criteriaMode === 'v23' || criteriaMode === 'v24' ? (() => { const { cfg, error } = loadAreasConfig(); if (!cfg) { console.error(`✗ v23 기준인데 config/areas.json 을 못 읽었다: ${error}`); process.exit(2) } const names = scorableAreas(cfg).map((a) => a.name); if (names.length === 0) { console.error('✗ v23 기준인데 활성 영역이 0개다 — 판정을 시작하지 않는다'); process.exit(2) } return names })() : undefined
-const PROMPT_VERSION = criteriaMode === 'v24' ? RELEVANCE_V24_VERSION : criteriaMode === 'v23' ? RELEVANCE_V23_VERSION : criteriaMode === 'v22' ? RELEVANCE_V22_VERSION : criteriaMode === 'v21' ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION
+// 정보 기준(v71cu P2): 리포 변수 INFO_CRITERIA = v1(기본) | v2 | v23(후보, 2026-11-20). v2 판정 행은 prompt_version 끝에 +info-v2-… 가 붙어 옛 판정과 갈린다.
+const { mode: infoMode, warning: infoWarning } = parseInfoMode(process.env.INFO_CRITERIA)
+if (infoWarning) console.warn(`::warning::${infoWarning}`)
+const PROMPT_VERSION = (criteriaMode === 'v24' ? RELEVANCE_V24_VERSION : criteriaMode === 'v23' ? RELEVANCE_V23_VERSION : criteriaMode === 'v22' ? RELEVANCE_V22_VERSION : criteriaMode === 'v21' ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION) + infoVersionSuffix(infoMode)
+/** v2·v23 에서 모델이 promo=true 로 단 행만 reason 끝에 [자사홍보] 를, v23 에서 weak=true 면 [정보약] 을 붙인다(저장 칸이 없어서 — 마이그 없이). v1·false·null 은 reason 그대로. */
+const PROMO_TAG = '[자사홍보]'
+function promoTagged(v, mode) {
+  const tags = [mode !== 'v1' && v.self_promo === true ? PROMO_TAG : null, mode === 'v23' && v.info_weak === true ? INFO_WEAK_TAG : null].filter(Boolean)
+  return tags.length ? `${String(v.reason ?? '').slice(0, 470)} ${tags.join(' ')}`.trim() : v.reason
+}
 const chainEnabled = (process.env.RELEVANCE_CHAIN ?? 'on').trim().toLowerCase() !== 'off'
 /** 표본에서 4~5점 평점 입력의 비율 상한(v31 §2.3). 바꾸는 날은 env 값 + Notion 일일 상태 로그 한 줄이 근거다. */
 const highRatingShareEnv = process.env.RELEVANCE_HIGH_RATING_SHARE
@@ -266,41 +276,9 @@ log(`사전필터 — ${prefilterCfg ? `mode=${prefilterCfg.mode} · 소스 ${pr
 // (모의 supabase 로 scripts/prefilter-selftest.mjs 가 실행 검사한다). 모든 반환에 rating 이 있다(아래 대상 로그가 읽는다).
 const { pendingFor, countFor, prefilterByProject, currentPrefilter } = createPendingFor({ supabase, sampleSize, highRatingShare, prefilterCfg, log, warn, excludedSources, lastSources })
 
-/** few-shot — 사람 채점 최근 N건. 이 프로젝트 것 우선, 모자라면 다른 프로젝트에서 채운다. */
+/** few-shot — 사람 채점 최근 N건(이 프로젝트 우선). 로더는 평가 하네스와 한 벌이다(lib/analysis/relevance-examples.ts, v71cu P3). */
 async function examplesFor(projectId) {
-  const pick = async (own) => {
-    let q = supabase
-      .from('review_relevance_verdicts')
-      .select('input_id, human_verdict, human_graded_at')
-      .not('human_verdict', 'is', null)
-      .in('human_verdict', ['relevant', 'irrelevant'])
-      .order('human_graded_at', { ascending: false, nullsFirst: false })
-      .limit(MAX_EXAMPLES)
-    q = own ? q.eq('project_id', projectId) : q.neq('project_id', projectId)
-    const { data, error } = await q
-    if (error) {
-      console.error(`⚠️ 사람 채점 조회 실패(${own ? '자기' : '타'} 프로젝트): ${error.message}`)
-      return []
-    }
-    return data ?? []
-  }
-
-  const rows = await pick(true)
-  if (rows.length < MAX_EXAMPLES) rows.push(...(await pick(false)).slice(0, MAX_EXAMPLES - rows.length))
-  if (rows.length === 0) return []
-
-  const { data: texts, error } = await supabase
-    .from('analysis_inputs')
-    .select('id, raw_text')
-    .in('id', rows.map((r) => r.input_id))
-  if (error) {
-    console.error(`⚠️ 예시 원문 조회 실패: ${error.message} — few-shot 없이 판정한다`)
-    return []
-  }
-  const byId = new Map((texts ?? []).map((t) => [t.id, t.raw_text]))
-  return rows
-    .map((r) => ({ text: byId.get(r.input_id) ?? '', verdict: r.human_verdict }))
-    .filter((e) => e.text)
+  return loadRelevanceExamples(supabase, projectId)
 }
 
 // v28 #10 — 재추출 1회 뒤에도 failed 면 판정에서 뺀다(relevanceFailedState). 첫 실패는 extract-auto 의 재추출을 기다리므로 남긴다.
@@ -540,7 +518,7 @@ for (const { project, pending } of targets) {
         break
       }
       if (Date.now() - startedAt >= deadlineMs) { deadlineHit = true; stopReason = 'deadline'; break }
-      const out = await judgeRelevanceBatch(project, batch, examples, undefined, criteriaMode === 'old' ? undefined : { criteria: criteriaMode, areas: v23Areas })
+      const out = await judgeRelevanceBatch(project, batch, examples, undefined, criteriaMode === 'old' ? { info: infoMode } : { criteria: criteriaMode, areas: v23Areas, info: infoMode })
       model = out.model
       if (out.quotaExhausted) {
         stopped = out.error ?? '한도/예산 소진'
@@ -566,7 +544,8 @@ for (const { project, pending } of targets) {
         model: out.model,
         ...(promptVersionColumn === 'absent' ? {} : { prompt_version: PROMPT_VERSION }),
         judged_at: new Date().toISOString(),
-        reason: v.reason,
+        // info-v2 promo 태그(남헌 2026-11-19): 저장 칸이 없어(마이그 없이) reason 끝에 표시만 한다("영역 밖:" 머리말을 깨지 않게). 판정 칸은 그대로다. 조회 = reason LIKE '%[자사홍보]'.
+        reason: promoTagged(v, infoMode),
         ...(infoColumn === 'absent' ? {} : { product_informative: v.product_informative }),
         ...(labelColumns === 'absent' ? {} : Object.fromEntries(LABEL_KEYS.map((k) => [k, v[k]]))),
       }))

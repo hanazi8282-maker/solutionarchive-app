@@ -68,9 +68,16 @@ export function meetsRrV2(r: Pick<VerdictRow, 'verdict' | 'second_verdict' | 'pr
  * 글을 못 읽었으면(text null) "통과"가 아니라 막는다(§7.1).
  */
 export const RR_V2_MIN_TEXT = 60
-export function passesRrV2ContentGuard(r: { source_key?: string | null; raw_text?: string | null }): boolean {
+/** v1(운영 기본) 출처 제외. PR #682 초안의 hackernews 출처 제외(P1)는 남헌 확정 기준(출처째 빼지 않는다)과 반대라 넣지 않는다. */
+export const RR_V2_EXCLUDED_SOURCES: ReadonlySet<string> = new Set(['github_issues'])
+/**
+ * info: 'v2'(INFO_CRITERIA=v2, 남헌 2026-11-19 확정) 면 출처 제외를 하지 않는다 — 버그 리포트=무관·기능 요청=정보 있음은 판정 기준(info-v2 (c))이 가른다.
+ * 60자 문턱·본문 못 읽음 차단은 두 모드 공통이다. 기본(미지정)은 v1 = main 동작 그대로.
+ */
+// info-v23 후보도 같다 — 규칙 (a) 가 버그 리포트=무관·맥락 있는 기능 요청=정보 있음을 판정에서 가른다.
+export function passesRrV2ContentGuard(r: { source_key?: string | null; raw_text?: string | null }, info?: 'v1' | 'v2' | 'v23' | null): boolean {
   if (r.source_key == null || r.raw_text == null) return false
-  if (r.source_key === 'github_issues') return false
+  if (info !== 'v2' && info !== 'v23' && RR_V2_EXCLUDED_SOURCES.has(r.source_key)) return false
   return r.raw_text.trim().length >= RR_V2_MIN_TEXT
 }
 

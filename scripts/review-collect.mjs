@@ -193,6 +193,13 @@ say(`대상 소스: ${sourceKeys.join(', ')}`)
 // ⚠️ review_collection_runs 는 **소스별로 1행**이다. 합치면 어느 소스가
 //    언제부터 망가졌는지 추적이 안 된다. 건강도 판정도 소스 단위다.
 const failures = []
+// 시간 몫(v71cu-3 §1-1). 잡 timeout-minutes 90 은 실행 전체를 끊어 **모든 뒷 소스와 보고·폴백 스텝까지** 날린다
+// (2026-11-19 02:01Z 실행 44441217554: youtube 저장 70분 → 90분 cancelled). 그래서 스크립트가 먼저 멈춘다.
+// 스크립트 전체 65분(앞 스텝 npm ci·되살리기 ~5분 + 뒤 스텝 여유 ~20분) · 소스 하나 20분(HN 최장 실측 29분은 램프 전, 지금 ~10분).
+// 걸리면 러너가 커서를 둔 채 '실행 시간 몫 도달(N초)' 로 타깃별 줄에 남긴다 — 다음 슬롯이 이어간다(§7.2: 정상 종료로 읽지 말 것).
+const SCRIPT_STARTED_AT = Date.now()
+const SCRIPT_TIME_BUDGET_MS = 65 * 60_000
+const SOURCE_TIME_MAX_MS = 20 * 60_000
 // Notion 일일 상태 로그(CTO 행) 재료. 보고 줄(say)을 다시 파싱하지 않으려고 값으로 모은다.
 const sourceResults = []
 // finishRunRow 의 "이 컬럼 묶음은 없다" 기억 — 이 실행 동안 소스마다 실패 요청을 반복하지 않게(lib/review/run-log.ts).
@@ -375,6 +382,7 @@ for (const sourceKey of sourceKeys) {
     explicitTargets,
     slot,
     ports: timing.ports,
+    deadlineAt: Math.min(started + SOURCE_TIME_MAX_MS, SCRIPT_STARTED_AT + SCRIPT_TIME_BUDGET_MS),
   })
 
   // ── 소스별 보고 ────────────────────────────────────────────────

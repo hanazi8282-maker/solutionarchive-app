@@ -30,10 +30,11 @@ const ok = (name, cond) => { assert.ok(cond, name); pass++ }
 // ── 가짜 Supabase: 모든 쓰기(update/insert/upsert/delete)를 기록한다 ─────────────
 function fakeSupabase() {
   const writes = []
-  const respond = (table, op, single) => {
+  const respond = (table, op, single, patch) => {
     const one = (row) => ({ data: single ? row : [row], error: null })
     if (op !== 'select') {
-      if (table === 'analysis_inputs') return { data: { id: 'in1' }, error: null }
+      // 묶음 INSERT(store.appendInputs, v71cu-3)는 배열로 받고 배열로 돌려준다 — 실제 PostgREST 와 같다.
+      if (table === 'analysis_inputs') return { data: Array.isArray(patch) ? patch.map((_, i) => ({ id: `in${i + 1}` })) : { id: 'in1' }, error: null }
       return { data: null, error: null }
     }
     if (table === 'review_sources') return one({ key: 'fake', enabled: true, min_interval_ms: 0, daily_request_cap: 200 })
@@ -45,15 +46,16 @@ function fakeSupabase() {
   const from = (table) => {
     let op = 'select'
     let single = false
+    let last = null
     const b = {
       select() { return b },
       update(patch) { op = 'update'; writes.push({ table, op, patch }); return b },
-      insert(patch) { op = 'insert'; writes.push({ table, op, patch }); return b },
+      insert(patch) { op = 'insert'; last = patch; writes.push({ table, op, patch }); return b },
       upsert(patch) { op = 'upsert'; writes.push({ table, op, patch }); return b },
       delete() { op = 'delete'; writes.push({ table, op, patch: {} }); return b },
       maybeSingle() { single = true; return b },
       single() { single = true; return b },
-      then(res, rej) { return Promise.resolve(respond(table, op, single)).then(res, rej) },
+      then(res, rej) { return Promise.resolve(respond(table, op, single, last)).then(res, rej) },
     }
     for (const m of ['eq', 'neq', 'gte', 'lte', 'in', 'not', 'order', 'limit', 'is', 'or']) b[m] = () => b
     return b

@@ -1,0 +1,419 @@
+{
+  "generated_at": "2026-11-19T17:04:18.136Z",
+  "mode": "dry",
+  "db": false,
+  "seed": 20261120,
+  "k": 12,
+  "opts": {
+    "stageFirst": true,
+    "topic": true
+  },
+  "tally": null,
+  "problems": [],
+  "results": [
+    {
+      "id": "fx-company-5",
+      "area": "5",
+      "url": "https://www.example-reviewpal.test",
+      "pitch": "소상공인 가게의 네이버·구글 리뷰 관리와 답글 작성을 돕는 SaaS, 월 9,900원 구독",
+      "chapter_basis": "bottleneck:AWARENESS",
+      "diagnosis": {
+        "chapters": [
+          5
+        ],
+        "situation": {
+          "customer": "smb",
+          "pricing_model": "subscription",
+          "price_band": "<10"
+        },
+        "enrich_basis": {
+          "customer": "inferStructure:smb_owner",
+          "pricing_model": "inferStructure:subscription",
+          "price_band": "글 속 월 값"
+        },
+        "topic": {
+          "concepts": [
+            "seo",
+            "review",
+            "writing",
+            "local_smb"
+          ],
+          "tokens": [
+            "소상공인",
+            "가게의",
+            "네이버",
+            "구글",
+            "리뷰",
+            "관리와",
+            "답글",
+            "작성을",
+            "돕는",
+            "saas",
+            "구독",
+            "example",
+            "reviewpal",
+            "test",
+            "관리",
+            "글쓰기",
+            "검색",
+            "노출이",
+            "없어",
+            "손님이",
+            "온다"
+          ]
+        }
+      },
+      "current": {
+        "status": "ok",
+        "items": [
+          {
+            "name": "Fx Review A",
+            "failed": false,
+            "what": "질문형 글 30편 → 월 방문 3천",
+            "why": "같은 장에서 비슷한 막힘을 겪었다 / 숫자로 확인된 결과"
+          },
+          {
+            "name": "Fxt A Attributer",
+            "failed": false,
+            "what": "게스트 포스트로 도메인 권위를 올렸다 → 검색 유입 3배",
+            "why": "같은 장에서 비슷한 막힘을 겪었다 / 숫자로 확인된 결과, 증거 등급 A"
+          },
+          {
+            "name": "Fxt M Agency",
+            "failed": true,
+            "what": "이 사례는 잘 안 풀린 경우입니다 — 고객사 인스타그램 광고를 대행했다 → 계약 해지",
+            "why": "다른 업종: 같은 장에서 비슷한 막힘을 겪었다 / 숫자로 확인된 결과, 증거 등급 A, 안 된 시도도 함께 담겨 있다"
+          }
+        ],
+        "note": "장 5 · story flow 7 · 꼬리표 0 · 사례 은행 0 → 3건(story_flow)"
+      },
+      "b": {
+        "status": "ok",
+        "items": [
+          {
+            "name": "Fx Review A",
+            "failed": false,
+            "what": "질문형 글 30편 → 월 방문 3천",
+            "why": "손님·값대가 같다 / 숫자로 확인된 결과"
+          },
+          {
+            "name": "Fxt W Reviewpages",
+            "failed": false,
+            "what": "손님 리뷰를 검색용 페이지로 공개했다 → 검색으로 들어오는 손님이 생겼다",
+            "why": "손님·값대가 같다 / 말로 확인된 결과(숫자는 없다)"
+          },
+          {
+            "name": "Fxt M Agency",
+            "failed": true,
+            "what": "이 사례는 잘 안 풀린 경우입니다 — 고객사 인스타그램 광고를 대행했다 → 계약 해지",
+            "why": "다른 업종: 손님이 같다 / 숫자로 확인된 결과, 증거 등급 A, 안 된 시도도 함께 담겨 있다"
+          }
+        ],
+        "note": "장 5 · story flow 7 · 꼬리표 0 · 사례 은행 0 → 3건(story_flow)",
+        "selection": {
+          "status": "ok",
+          "recommended": {
+            "source": "story_flow",
+            "slug": "fx-review-a",
+            "slug_internal": "fx-review-a",
+            "name": "Fx Review A",
+            "chapter": 5,
+            "score": 0.6792,
+            "situation": 0.771,
+            "persuasion": 0.5,
+            "evidence": 0.6,
+            "stage": "zero_rev",
+            "failed": false,
+            "fail_kind": null,
+            "reasons": [
+              "손님·값대가 같다",
+              "숫자로 확인된 결과"
+            ],
+            "hasFailure": false,
+            "crossIndustry": false,
+            "quote": {
+              "slug_internal": "fx-review-a",
+              "episode_idx": 0,
+              "text": "Thirty answer-style posts brought our first three thousand visits.",
+              "source_key": "starterstory",
+              "label_run": "fx_run"
+            },
+            "summary_ko": "질문형 글 30편 → 월 방문 3천",
+            "topic": 0.625
+          },
+          "alternatives": [
+            {
+              "source": "story_flow",
+              "slug": "fxt-w-reviewpages",
+              "slug_internal": "fxt-w-reviewpages",
+              "name": "Fxt W Reviewpages",
+              "chapter": 5,
+              "score": 0.584,
+              "situation": 0.765,
+              "persuasion": 0.36,
+              "evidence": 0.6,
+              "stage": "early_rev",
+              "failed": false,
+              "fail_kind": null,
+              "reasons": [
+                "손님·값대가 같다",
+                "말로 확인된 결과(숫자는 없다)"
+              ],
+              "hasFailure": false,
+              "crossIndustry": false,
+              "quote": {
+                "slug_internal": "fxt-w-reviewpages",
+                "episode_idx": 0,
+                "text": "Publishing every review as its own page finally got local shops found on Google.",
+                "source_key": "starterstory",
+                "label_run": "fx_run"
+              },
+              "summary_ko": "손님 리뷰를 검색용 페이지로 공개했다 → 검색으로 들어오는 손님이 생겼다",
+              "topic": 0.5893
+            },
+            {
+              "source": "story_flow",
+              "slug": "fxt-m-agency",
+              "slug_internal": "fxt-m-agency",
+              "name": "Fxt M Agency",
+              "chapter": 5,
+              "score": 0.5396,
+              "situation": 0.417,
+              "persuasion": 0.7,
+              "evidence": 1,
+              "stage": "growing",
+              "failed": true,
+              "fail_kind": "negative",
+              "reasons": [
+                "다른 업종: 손님이 같다",
+                "숫자로 확인된 결과, 증거 등급 A, 안 된 시도도 함께 담겨 있다"
+              ],
+              "hasFailure": true,
+              "crossIndustry": true,
+              "quote": {
+                "slug_internal": "fxt-m-agency",
+                "episode_idx": 0,
+                "text": "The ads never paid back and we lost the account.",
+                "source_key": "starterstory",
+                "label_run": "fx_run"
+              },
+              "summary_ko": "고객사 인스타그램 광고를 대행했다 → 계약 해지",
+              "topic": 0
+            }
+          ],
+          "considered": {
+            "story_flow": 7,
+            "move_tags": 0,
+            "case_bank": 0
+          },
+          "note": "장 5 · story flow 7 · 꼬리표 0 · 사례 은행 0 → 3건(story_flow)"
+        },
+        "failed_shown": 1
+      },
+      "quote_check": {
+        "ok": true,
+        "checked": 3,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "fx-company-2",
+      "area": "2",
+      "url": "https://example-salesmate.test",
+      "pitch": "1인 창업자가 만든 소상공인용 영업 도우미, 무료 체험 후 월 $19 구독",
+      "chapter_basis": "bottleneck:CONVERSION",
+      "diagnosis": {
+        "chapters": [
+          6
+        ],
+        "situation": {
+          "customer": "smb",
+          "pricing_model": "subscription",
+          "price_band": "10-49",
+          "team_size": "solo"
+        },
+        "enrich_basis": {
+          "customer": "inferStructure:smb_owner",
+          "pricing_model": "inferStructure:subscription",
+          "price_band": "글 속 월 값",
+          "team_size": "1인 명시"
+        },
+        "topic": {
+          "concepts": [
+            "sales",
+            "pricing",
+            "local_smb"
+          ],
+          "tokens": [
+            "창업자가",
+            "만든",
+            "소상공인용",
+            "영업",
+            "도우미",
+            "무료",
+            "체험",
+            "구독",
+            "example",
+            "salesmate",
+            "test",
+            "유료",
+            "전환이",
+            "된다"
+          ]
+        }
+      },
+      "current": {
+        "status": "ok",
+        "items": [
+          {
+            "name": "Fx Sales A",
+            "failed": false,
+            "what": "가격표 공개 → 전환 2배",
+            "why": "같은 장에서 비슷한 막힘을 겪었다 / 숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다"
+          },
+          {
+            "name": "Fx Sales D",
+            "failed": false,
+            "what": "환불 보장 → 구매율 상승",
+            "why": "다른 업종: 같은 장에서 비슷한 막힘을 겪었다 / 숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다"
+          },
+          {
+            "name": "Fx Sales C",
+            "failed": true,
+            "what": "이 사례는 잘 안 풀린 경우입니다 — 가격 인상 → 해지가 늘었다",
+            "why": "같은 장에서 비슷한 막힘을 겪었다 / 말로 확인된 결과(숫자는 없다), 안 된 시도도 함께 담겨 있다"
+          }
+        ],
+        "note": "장 6 · story flow 4 · 꼬리표 0 · 사례 은행 0 → 3건(story_flow)"
+      },
+      "b": {
+        "status": "ok",
+        "items": [
+          {
+            "name": "Fx Sales A",
+            "failed": false,
+            "what": "가격표 공개 → 전환 2배",
+            "why": "손님·값대·팀 크기가 같다 / 숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다"
+          },
+          {
+            "name": "Fx Sales B",
+            "failed": false,
+            "what": "연간 할인 → 연간 결제가 늘었다",
+            "why": "손님이 같다 / 말로 확인된 결과(숫자는 없다)"
+          },
+          {
+            "name": "Fx Sales C",
+            "failed": true,
+            "what": "이 사례는 잘 안 풀린 경우입니다 — 가격 인상 → 해지가 늘었다",
+            "why": "같은 장에서 비슷한 막힘을 겪었다 / 말로 확인된 결과(숫자는 없다), 안 된 시도도 함께 담겨 있다"
+          }
+        ],
+        "note": "장 6 · story flow 4 · 꼬리표 0 · 사례 은행 0 → 3건(story_flow)",
+        "selection": {
+          "status": "ok",
+          "recommended": {
+            "source": "story_flow",
+            "slug": "fx-sales-a",
+            "slug_internal": "fx-sales-a",
+            "name": "Fx Sales A",
+            "chapter": 6,
+            "score": 0.7298,
+            "situation": 0.842,
+            "persuasion": 0.9,
+            "evidence": 1,
+            "stage": "early_rev",
+            "failed": false,
+            "fail_kind": null,
+            "reasons": [
+              "손님·값대·팀 크기가 같다",
+              "숫자로 확인된 결과, 증거 등급 A, 이유가 사슬로 적혀 있다, 통하는 조건이 적혀 있다"
+            ],
+            "hasFailure": false,
+            "crossIndustry": false,
+            "quote": {
+              "slug_internal": "fx-sales-a",
+              "episode_idx": 0,
+              "text": "We put every price on one page and conversions doubled.",
+              "source_key": "starterstory",
+              "label_run": "fx_run"
+            },
+            "summary_ko": "가격표 공개 → 전환 2배",
+            "topic": 0.5524
+          },
+          "alternatives": [
+            {
+              "source": "story_flow",
+              "slug": "fx-sales-b",
+              "slug_internal": "fx-sales-b",
+              "name": "Fx Sales B",
+              "chapter": 6,
+              "score": 0.472,
+              "situation": 0.494,
+              "persuasion": 0.36,
+              "evidence": 0.6,
+              "stage": "growing",
+              "failed": false,
+              "fail_kind": null,
+              "reasons": [
+                "손님이 같다",
+                "말로 확인된 결과(숫자는 없다)"
+              ],
+              "hasFailure": false,
+              "crossIndustry": false,
+              "quote": {
+                "slug_internal": "fx-sales-b",
+                "episode_idx": 0,
+                "text": "Annual plans with two months free became our default.",
+                "source_key": "starterstory",
+                "label_run": "fx_run"
+              },
+              "summary_ko": "연간 할인 → 연간 결제가 늘었다",
+              "topic": 0.4667
+            },
+            {
+              "source": "story_flow",
+              "slug": "fx-sales-c",
+              "slug_internal": "fx-sales-c",
+              "name": "Fx Sales C",
+              "chapter": 6,
+              "score": 0.4403,
+              "situation": 0.328,
+              "persuasion": 0.46,
+              "evidence": 0.6,
+              "stage": "growing",
+              "failed": true,
+              "fail_kind": "negative",
+              "reasons": [
+                "같은 장에서 비슷한 막힘을 겪었다",
+                "말로 확인된 결과(숫자는 없다), 안 된 시도도 함께 담겨 있다"
+              ],
+              "hasFailure": true,
+              "crossIndustry": false,
+              "quote": {
+                "slug_internal": "fx-sales-c",
+                "episode_idx": 0,
+                "text": "Raising prices without notice cost us a third of accounts.",
+                "source_key": "starterstory",
+                "label_run": "fx_run"
+              },
+              "summary_ko": "가격 인상 → 해지가 늘었다",
+              "topic": 0.4667
+            }
+          ],
+          "considered": {
+            "story_flow": 4,
+            "move_tags": 0,
+            "case_bank": 0
+          },
+          "note": "장 6 · story flow 4 · 꼬리표 0 · 사례 은행 0 → 3건(story_flow)"
+        },
+        "failed_shown": 1
+      },
+      "quote_check": {
+        "ok": true,
+        "checked": 3,
+        "mismatches": []
+      }
+    }
+  ]
+}

@@ -21,17 +21,24 @@ ${UNTRUSTED_INPUT_NOTICE}
 
 export type SimilarCase = { name: string; what: string; why?: string }
 
-export async function retrieveSimilar(i: { runId: string; owner: string; category: string; oneLiner: string; limit?: number }): Promise<SimilarCase[]> {
+/** [v71cu B4] 주입(선택) — 비교 하니스(scripts/story-flow-compare.mjs)가 구독 경로 claude -p 와 읽기 전용 클라이언트를 넣는다. 비우면 기존 경로(consultLlmJson·db()) 그대로. */
+export type RetrieveDeps = {
+  llmJson?: (o: { system: string; user: string; maxTokens: number }) => Promise<{ data: Record<string, unknown> }>
+  sb?: { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown }> }
+}
+
+export async function retrieveSimilar(i: { runId: string; owner: string; category: string; oneLiner: string; limit?: number }, deps: RetrieveDeps = {}): Promise<SimilarCase[]> {
   const limit = i.limit ?? 3
+  const ask = deps.llmJson ?? ((o: { system: string; user: string; maxTokens: number }) => consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'judge', tag: 'haiku', ...o }))
   let q = { category: null as string | null, mechanisms: [] as string[] }
   try {
-    const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'judge', tag: 'haiku', system: SYSTEM, user: `카테고리: ${i.category}\n설명: ${i.oneLiner.slice(0, 300)}`, maxTokens: 200 })
+    const r = await ask({ system: SYSTEM, user: `카테고리: ${i.category}\n설명: ${i.oneLiner.slice(0, 300)}`, maxTokens: 200 })
     q = sanitizeCaseQuery(r.data)
   } catch {
     return [] // 질의를 못 만들면 사례를 붙이지 않는다 — 억지로 아무 사례나 붙이지 않는다.
   }
   if (!q.category && q.mechanisms.length === 0) return []
-  const sb = await db()
+  const sb = deps.sb ?? (await db())
   const rows: CaseRow[] = []
   const tries = q.mechanisms.length ? q.mechanisms : [null]
   for (const m of tries) {
@@ -49,7 +56,7 @@ export async function retrieveSimilar(i: { runId: string; owner: string; categor
   if (cands.length === 0) return []
   const list = cands.slice(0, 40).map((c, n) => `${n}. ${c.name} — ${c.what}`).join('\n')
   try {
-    const r = await consultLlmJson({ runId: i.runId, owner: i.owner, purpose: 'judge', tag: 'haiku', system: JUDGE, user: `사업 설명: ${i.oneLiner.slice(0, 400)}\n\n후보:\n${list}`, maxTokens: 500 })
+    const r = await ask({ system: JUDGE, user: `사업 설명: ${i.oneLiner.slice(0, 400)}\n\n후보:\n${list}`, maxTokens: 500 })
     return pickSimilar(r.data, cands.slice(0, 40), limit)
   } catch {
     return [] // 비슷한지 판정하지 못하면 붙이지 않는다(§7.1 — 판정 실패를 "비슷함"으로 접지 않는다).

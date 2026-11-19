@@ -101,6 +101,13 @@ on:
           - softr_community
           - github_issues
           - stackexchange
+          - mautic_forum
+          - frappe_forum
+          - suitecrm_community
+          - invoiceninja_forum
+          - obsidian_forum
+          - ghost_forum
+          - shopify_community
         default: all
       targets:
         description: '이번 실행에서 훑을 최대 타깃 수(비우면 소스별 램프 단계, 램프 없으면 10)'

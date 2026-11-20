@@ -99,6 +99,8 @@ jobs:
       # 영상 제목 주입(기본 off) — 옵션 없으면 판정 프롬프트가 글자 하나 안 바뀌는지, 운영 판정이 옵션을 안 넘기는지,
       # videos.list 쿼터·정책 403 분류, 측정 도구가 DB 에 안 쓰는지. 네트워크·DB 없음.
       - run: node scripts/youtube-videos-selftest.mjs
+      # [v71cu S8-2] 유튜브 q:·ch: 확장 — 쿼터 경계(초과 0회)·403/429 즉시 중단·키 파싱·중복 스킵. 네트워크·DB 없음.
+      - run: node scripts/youtube-expand-selftest.mjs
       # T2 표본 평점 우선(v31 §2.3) — 평점 없는 소스(HN·카카오·커뮤니티)는 기존 순서 그대로여야 한다.
       - run: node scripts/relevance-rating-sample-selftest.mjs
       # T2 앞 사전필터(v31 항목 5): 규칙 양성·보호 음성·shadow 무해성·카테고리 규칙 금지 소스·설정 완화·측정 seed 재현·pendingFor 연결부.

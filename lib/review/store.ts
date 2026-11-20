@@ -77,6 +77,8 @@ export function createReviewStore(supabase: Supa): RunnerStore {
       .eq('source_key', sourceKey)
       .eq('status', 'active')
     for (const f of visitFilters(process.env)) q = q.or(f)
+    // [v71cu S8-2] 유튜브 q:·ch: 확장 타깃(layer yt_query/yt_channel)은 댓글 타깃이 아니다 — 러너가 집으면 요청 0건으로 닫힌다. youtube-expand 가 읽는다.
+    q = q.or('layer.is.null,layer.not.in.(yt_query,yt_channel)')
     const { data, error } = await q
       .order('last_run_at', { ascending: true, nullsFirst: true })
       .limit(limit)

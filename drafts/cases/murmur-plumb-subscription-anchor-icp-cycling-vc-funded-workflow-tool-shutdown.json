@@ -1,0 +1,74 @@
+{
+  "slug": "murmur-plumb-subscription-anchor-icp-cycling-vc-funded-workflow-tool-shutdown",
+  "brand_name": "Murmur Labs (Plumb)",
+  "market": "SaaS · AI 업무 자동화(워크플로) 도구",
+  "geo": "US",
+  "business_model": "SAAS",
+  "buyer_type": "B2B",
+  "purchase_frequency": "REPEAT",
+  "price_band": null,
+  "bottleneck": "CONVERSION",
+  "reader_problem": "MAKE_BUT_NO_MONEY",
+  "outcome_status": "shutdown",
+  "period_start": "2020-10-13",
+  "period_end": "2025-10-10",
+  "summary": "공동창업자 2명이 2020년에 시작해 투자자와 이사회를 둔 채 5년간 제품을 세 번 갈아 만든 소프트웨어 회사다(팀 의사결정 도구 Murmur → 매니저용 1:1 준비 AI Supermanage → 시각적 워크플로 도구 Plumb). 마지막 제품 Plumb 은 '워크플로를 만든 사람이 올리고 다른 사람이 구독하는' 모델로 방향을 바꿨지만 자리를 잡지 못했고, 2025-10-08 공동창업자가 종료를 공개했다. 기술 공동창업자 Chase Adams 가 2025-10-13 에 쓴 회고에는 매출·고객 수·투자 금액이 한 건도 없다. 그래서 이 케이스의 무브는 모두 수치 없는 서술이고, 창업자 본인의 판단을 그대로 옮긴 것이다. 창업자 글에서 직접 확인한 것은 이 회고 한 건뿐이다.",
+  "tags": ["failure", "shutdown", "pivot", "vc-funded", "workflow-automation", "subscription", "icp"],
+  "researched_by": "claude-code",
+  "moves": [
+    {
+      "lever": "PACKAGING",
+      "claim": "Plumb 은 만든 사람이 워크플로를 올리고 다른 사람이 구독하는 모델로 방향을 바꿨다. 창업자는 회고에서 '구독 모델이 닻이 됐다. 한 번 그쪽으로 정하고 나니 방향을 바꿀 때마다 더 어려워졌다'고 적었다. 이 모델에 맞춰 기술 구조를 짜 버렸기 때문에, 팔리지 않을 때 가격 방식만 바꾸는 선택이 막혔다는 뜻이다. 구독이 실제로 팔렸는지를 보여 주는 숫자는 회고에 없다.",
+      "transfer_note": "내일 할 일: 지금 만드는 제품의 '돈 받는 방식'(구독·건당·한 번 결제)을 한 줄로 적는다. 결제 코드를 짜기 전에, 써 볼 만한 사람 한 명에게 그 가격과 방식 그대로 결제 링크나 청구서를 보낸다. 이 사례의 팀이 그렇게 했다는 근거는 없다. 이 행동은 '검증 전에 구조에 박지 않는다'는 독자 쪽 제안이다.",
+      "preconditions": "써 볼 만한 사람 한 명과 연락이 닿아야 한다. 결제 링크를 만들 수 있는 계정(예: Stripe)이 있어야 한다. 확인 완료: 이 사례는 투자자가 있는 여러 명 팀이었다. 혼자 하는 경우에도 '결제 방식을 먼저 검증하고 구조에 넣는다'는 순서는 같지만, 고쳐야 할 코드의 양은 다를 수 있다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    },
+    {
+      "lever": "POSITIONING",
+      "claim": "구독 모델을 시험하려고 부동산 중개인을 첫 고객층으로 골라 집중했더니 '지표가 움직였다'고 창업자는 적었다. 그런데 그 업계에서만 쓰는 매물 시스템(MLS) 연동을 만드는 데 관심이 없어 이 방향을 이어 가지 않았다. 그 뒤 컨설턴트(연동·맞춤을 더 원함)가 아니라 만들기 빠른 창작자 쪽을 골랐다. 창업자는 이 시기를 고객층을 깊이 검증하지 못한 채 갈아탄 시기로 돌아본다. 움직인 지표가 무엇이고 얼마였는지는 글에 없다. 부동산 방향을 이어 갔으면 살았다는 근거도 없다.",
+      "transfer_note": "내일 할 일: 지금까지 시도한 고객층이나 방법을 종이에 적고, 숫자가 한 번이라도 움직인 것(가입, 다시 방문 등)에 표시한다. 표시한 것마다 '접은 이유'를 한 줄로 쓴다. '고객이 안 해서'인지 '내가 하기 싫어서'인지 구분한다. 후자라면 그 일을 쪼개서 대신 해 줄 도구나 사람이 있는지 먼저 확인한다.",
+      "preconditions": "고객층이나 방법을 둘 이상 시도해 본 기록이 있어야 한다. 가입·재방문 같은 숫자를 적어 둔 자료가 있어야 한다. 확인 완료: 창업자 글에 수치가 없어 '지표가 움직였다'가 얼마였는지는 알 수 없다. 그래서 이 무브는 부동산이 맞는 답이었다는 주장이 아니라 '움직인 곳을 접은 이유를 점검하라'는 제안이다.",
+      "outcome_direction": "negative",
+      "metric_name": null,
+      "metric_before": null,
+      "metric_after": null,
+      "metric_unit": null,
+      "observed_period_start": null,
+      "observed_period_end": null,
+      "voc_inputs": []
+    }
+  ],
+  "evidence": [
+    {
+      "move": 0,
+      "url": "https://curiouslychase.com/startups/5-years-of-startup-learnings-at-murmur-labs/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2025-10-13",
+      "snippet": "기술 공동창업자 Chase Adams 의 회고: 구독 모델이 닻이 됐고 한 번 정하고 나니 방향 전환이 더 어려워졌다고 적음.",
+      "supports_claim": "구독 모델로 정한 뒤 방향 전환이 어려워졌다는 창업자의 진술",
+      "observation_key": "chase-adams-retrospective-2025-10-13"
+    },
+    {
+      "move": 1,
+      "url": "https://curiouslychase.com/startups/5-years-of-startup-learnings-at-murmur-labs/",
+      "source_tier": "primary",
+      "is_self_reported": true,
+      "is_estimate": false,
+      "is_regulatory_filing": false,
+      "published_at": "2025-10-13",
+      "snippet": "부동산 중개인에 집중하자 지표가 움직였으나 MLS 연동에 관심이 없었다고 적음. 컨설턴트 대신 창작자를 골랐다고 적음.",
+      "supports_claim": "부동산 고객층에서 지표가 움직였고 MLS 연동 때문에 이어 가지 않았다는 진술",
+      "observation_key": "chase-adams-retrospective-2025-10-13"
+    }
+  ]
+}

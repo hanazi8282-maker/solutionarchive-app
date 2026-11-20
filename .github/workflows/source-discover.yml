@@ -1,0 +1,39 @@
+# v71cu S9: 새 커뮤니티 후보 매일 발굴(엔진 지문). source_candidates 에 라벨과 함께 추가 전용 — 소스를 켜지 않는다(review_sources·review_targets 쓰기 0).
+# 스케줄은 리포 변수 COMMUNITY_FINGERPRINT_ENABLED=true 일 때만(기본 OFF). 하루 새 도메인 10곳(변수 COMMUNITY_PROBE_DAILY_MAX), 도메인당 요청 ≤5, 호스트당 4초. 403 호스트 중단·429 전체 중단.
+name: Source Discover
+on:
+  schedule:
+    - cron: '37 19 * * *'
+  workflow_dispatch:
+    inputs:
+      hosts:
+        description: '수동 씨앗 도메인(쉼표, 선택)'
+        default: ''
+      dry:
+        description: 'true 면 DB 쓰기 없음'
+        default: 'false'
+permissions:
+  contents: read
+concurrency:
+  group: source-discover
+  cancel-in-progress: false
+jobs:
+  discover:
+    if: github.event_name == 'workflow_dispatch' || vars.COMMUNITY_FINGERPRINT_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --omit=dev --ignore-scripts
+      - run: node scripts/source-discover-selftest.mjs
+      - name: Probe new community domains
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          COMMUNITY_PROBE_DAILY_MAX: ${{ vars.COMMUNITY_PROBE_DAILY_MAX || '10' }}
+          HOSTS: ${{ github.event.inputs.hosts }}
+          DRY: ${{ github.event.inputs.dry }}
+        run: node scripts/source-discover.mjs ${HOSTS:+--hosts=$HOSTS} $([ "$DRY" = "true" ] && echo --dry)

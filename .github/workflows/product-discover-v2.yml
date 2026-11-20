@@ -1,0 +1,36 @@
+# v71cu S7 v2: 제품 발굴 언급(mention)·스토어 순위(chart) 통로. 스케줄은 리포 변수 PRODUCT_DISCOVER_V2_ENABLED=true 일 때만(기본 OFF). 수동 실행(workflow_dispatch)은 늘 가능.
+# 한도: 하루 새 임시 타깃 30(분야당 10, 검색 통로와 합산)·검색 요청 40. 403·429 즉시 중단. chart 는 월요일(UTC)만.
+name: Product Discover V2
+on:
+  schedule:
+    - cron: '25 19 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'mention | chart | all'
+        default: 'all'
+      dry:
+        description: 'true 면 DB 쓰기 없음'
+        default: 'false'
+permissions:
+  contents: read
+concurrency:
+  group: product-discover
+  cancel-in-progress: false
+jobs:
+  discover:
+    if: github.event_name == 'workflow_dispatch' || vars.PRODUCT_DISCOVER_V2_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --omit=dev --ignore-scripts
+      - run: node scripts/product-discover-v2-selftest.mjs
+      - name: Discover (mention + chart)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/product-discover-v2.mjs --mode=${{ github.event.inputs.mode || 'all' }} ${{ github.event.inputs.dry == 'true' && '--dry' || '' }}

@@ -471,3 +471,15 @@
 - 작성일: 2026-11-19
 
 > "Claude solves" feels reflective of the constant, problematic anthropomorphizing of the machine. For how it's problematic, look at "it broke out of the sandbox" vs. "we failed to build an adequate sandbox". What does it mean for Claude to solve it? What was the prompt? I didn't read it all, but the word "prompt" does not appear in the blog post, either abstract, or either paper.
+
+## HN 50579768
+
+- 판정: (미검토)
+- 매칭: `we shut down`
+- 원본: https://news.ycombinator.com/item?id=50579768
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-20 UTC)
+- 스레드: Levent Alpöge claims proof of the Generalized Riemann Hypothesis [pdf]
+- 작성자: solyin
+- 작성일: 2026-11-20
+
+> Oh no! Whatever will we do! Should we shut down the whole Internet because someone, somewhere, is trying to make money? What a bastard!

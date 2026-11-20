@@ -1,0 +1,36 @@
+# v71cu S8-2: 유튜브 q:·ch: 타깃 확장(수동 실행 전용 — schedule 없음, 플래그 기본 OFF). 검색 YT_SEARCH_DAILY(60)·그 밖 YT_UNITS_DAILY(2000)−댓글수집 예약 200.
+name: YouTube Expand
+on:
+  workflow_dispatch:
+    inputs:
+      enable:
+        description: 'true 로 해야 실제로 돈다(기본 false = 아무것도 안 함)'
+        default: 'false'
+      dry:
+        description: 'true = DB 쓰기·쿼터 기록 없이 후보만 출력'
+        default: 'true'
+permissions:
+  contents: read
+concurrency:
+  group: youtube-discover
+  cancel-in-progress: false
+jobs:
+  expand:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: YouTube expand
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          YT_SEARCH_DAILY: ${{ vars.YT_SEARCH_DAILY }}
+          YT_UNITS_DAILY: ${{ vars.YT_UNITS_DAILY }}
+          YT_EXPAND_ON: ${{ inputs.enable == 'true' && '1' || '0' }}
+          DRY_FLAG: ${{ inputs.dry == 'true' && '--dry' || '' }}
+        run: node scripts/youtube-expand.mjs $DRY_FLAG

@@ -6,7 +6,8 @@
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
-import { createRun } from '../lib/consult/runs.ts'
+import { createRun, db } from '../lib/consult/runs.ts'
+import { skipThinEnabled, shouldSkipThin } from '../lib/consult/company-table.ts'
 import { collectAndStore } from '../lib/consult/pipeline.ts'
 import { composeReport } from '../lib/consult/report/compose.ts'
 import { coldMailLines, alreadySent } from '../lib/consult/report/mail.ts'
@@ -24,6 +25,13 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://solutionarch.vercel.ap
 const logs = existsSync('ops/state') ? readdirSync('ops/state').filter((f) => /^dm-log.*\.md$/.test(f)) : []
 const dup = alreadySent(logs.map((f) => readFileSync(join('ops/state', f), 'utf8')).join('\n'), company)
 if (dup.sent && !process.argv.includes('--force')) { console.log(`⚠ 이미 발송 기록이 있는 회사 — 건너뜀: ${dup.rows.join(' / ')}`); process.exit(3) }
+// [S14] 근거 얇음 회사 건너뛰기 — COMPANY_THIN_SKIP_ENABLED=true 일 때만(기본 OFF). 표가 없거나 못 읽으면 기존 경로 그대로(경고만).
+if (skipThinEnabled() && !process.argv.includes('--force')) {
+  try {
+    const { data } = await (await db()).from('company_candidates').select('thin_evidence').eq('company_name', company).maybeSingle()
+    if (shouldSkipThin(data)) { console.log(`⚠ 근거 얇음(company_candidates.thin_evidence=true) — 건너뜀: ${company}`); process.exit(6) }
+  } catch (e) { console.error('경고: company_candidates 조회 실패 — 건너뛰기 없이 진행', e?.message ?? e) }
+}
 if (await capExceeded()) { console.error('비용 상한(일·월)에 도달해 만들지 않습니다'); process.exit(4) }
 
 const run = await createRun(owner, { kind: 'company', name: company, url, oneLiner: liner, scenario: 'batch' })

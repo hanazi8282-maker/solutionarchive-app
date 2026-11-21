@@ -483,3 +483,27 @@
 - 작성일: 2026-11-20
 
 > Oh no! Whatever will we do! Should we shut down the whole Internet because someone, somewhere, is trying to make money? What a bastard!
+
+## HN 50583689
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50583689
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-21 UTC)
+- 스레드: Claude solves two open problems in the physics of black holes
+- 작성자: jibalt
+- 작성일: 2026-11-20
+
+> You seem to be the only person who didn't get the reference. And "the boiler exploded" is quite straightforward, not problematic at all. "we failed to build an adequate boiler" is an extremely dumb way to write it, says something very different, and may not be true at all. And I would note that people solve things but they don't explode, so calling that anthropomorphizing is way beyond absurd. Absurd (but not way beyond it) is saying that claiming that Claude solved it is anthropomorphizing -- t…
+
+## HN 50583559
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50583559
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-21 UTC)
+- 스레드: Claude solves two open problems in the physics of black holes
+- 작성자: jibalt
+- 작성일: 2026-11-20
+
+> > For how it's problematic, look at "it broke out of the sandbox" vs. "we failed to build an adequate sandbox". "We failed to build an adequate sandbox, which is why it was able to break out." Not problematic at all. I don't know why it's so hard for some people to understand that it is possible to build autonomous devices that gather information and make decisions based on it ... but not understanding this is dangerous.

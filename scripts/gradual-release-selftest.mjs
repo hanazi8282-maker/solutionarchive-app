@@ -191,7 +191,7 @@ const pos = order.map(at)
 const sh = (c, n) => { if (c) total++; else { fail++; console.error(`✗ ${n}`) } }
 sh(pos.every((p, i) => p > 0 && (i === 0 || p > pos[i - 1])), `(h) 승인 스크립트 순서: ${order.join(' → ')}`)
 sh(src.split('.update(').length === 2, '(h) 승인 스크립트의 UPDATE 는 한 곳뿐(점진 해제 선택을 거친다)')
-sh(at('${APPROVE_RUN_PREFIX}${kstDate()}') > 0 && real.APPROVE_RUN_PREFIX === 'relevance-auto-approve-', '(h) 재걸림 조회 접두사 = 승인 실행 runKey')
+sh(at('runKey: `relevance-auto-approve-${kstDate()}') > 0 && real.APPROVE_RUN_PREFIX === 'relevance-auto-approve-', '(h) 재걸림 조회 접두사 = 승인 실행 runKey')
 sh(!/stepKey: 'gate'[^\n]*status: 'skipped'/.test(src) && /stepKey: 'gradual'/.test(src), "(h) 점진 해제 0건 기록은 'gate' 가 아닌 'gradual' 스텝")
 const gd = src.slice(at('if (gradualDry) {'), at('const tracker ='))
 sh(gd.length > 0 && !/\.update\(|createTracker|recordStatusLog|tracker\./.test(gd) && gd.includes('loadApprovalPool(sb, since)'), '(h) --gradual-dry 는 tracker 전에 끝나고 쓰기 없음·같은 풀 함수')

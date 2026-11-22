@@ -21,7 +21,7 @@
 
 import { createClient } from '../lib/supabase/server.ts'
 import { AUTO_APPROVAL_RULE, autoApprovalGate, parseSince } from '../lib/analysis/auto-approval.ts'
-import { APPROVE_RUN_PREFIX, countBySource, decideRelease, isEnabled, kstDayRange, loadApprovalPool, loadReleaseContext, parseStage, parseStageSince, remainingToday, selectRelease, stageCap } from '../lib/analysis/gradual-release.ts'
+import { countBySource, decideRelease, isEnabled, kstDayRange, loadApprovalPool, loadReleaseContext, parseStage, parseStageSince, remainingToday, selectRelease, stageCap } from '../lib/analysis/gradual-release.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate, recordStatusLog } from './notion-status-log.mjs'
 import { relevanceRunSuffixFromEnv } from '../lib/analysis/session-guard.ts'
@@ -103,7 +103,7 @@ if (gradualDry) {
 
 const tracker = dry ? null : await createTracker({
   // 재시도(-r1/-r2)·수동(-m<run_id>) 실행이 같은 날 정규 행(감사 흔적)을 덮지 않게 판정 스텝과 같은 접미사(v30 §5).
-  runKey: `${APPROVE_RUN_PREFIX}${kstDate()}${relevanceRunSuffixFromEnv()}`,
+  runKey: `relevance-auto-approve-${kstDate()}${relevanceRunSuffixFromEnv()}`,
   dept: 'cto',
   trigger: process.env.GITHUB_EVENT_NAME === 'schedule' ? 'cron' : process.env.GITHUB_ACTIONS ? 'manual' : 'local',
   gitSha: process.env.GITHUB_SHA ?? null,

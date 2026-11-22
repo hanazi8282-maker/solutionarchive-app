@@ -12,10 +12,13 @@
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION, criteriaKindOf } from '../lib/analysis/relevance-criteria.ts'
+import { PRODUCT_INFORMATIVE_CRITERIA, PRODUCT_INFORMATIVE_CRITERIA_V2, INFO_CRITERIA_VERSION, RELEVANCE_CRITERIA, RELEVANCE_CRITERIA_VERSION, criteriaKindOf, infoVersionSuffix, parseInfoMode, withInfoCriteria } from '../lib/analysis/relevance-criteria.ts'
 import { buildRelevancePrompt, parseGradingMarkdown } from '../lib/analysis/relevance-judge.ts'
-import { SECOND_OPINION_INSTRUCTIONS, isCurrentCriteria } from '../lib/analysis/second-opinion.ts'
-import { passesRrV2ContentGuard, AUDIT_DAILY, AUTO_APPROVAL_RULE, CAPACITY_GUARD, KILL, autoApprovalGate, capacityGuard, isFullAgreement, killSwitch, scoreApproval, tripThreshold } from '../lib/analysis/auto-approval.ts'
+import { SECOND_OPINION_INSTRUCTIONS, SECOND_OPINION_INSTRUCTIONS_V22, secondOpinionInstructionsV24, isCurrentCriteria } from '../lib/analysis/second-opinion.ts'
+import { judgeRelevanceBatch } from '../lib/analysis/relevance-judge.ts'
+import { outOfScopeReason, scopeOptionsFor } from '../lib/analysis/approval-scope.ts'
+import { loadAreasConfig, scorableAreas } from '../lib/analysis/areas-config.ts'
+import { passesRrV2ContentGuard, AUDIT_DAILY, AUTO_APPROVAL_RULE, CAPACITY_GUARD, KILL, autoApprovalGate, capacityGuard, isFullAgreement, killSwitch, meetsRrV2, scoreApproval, tripThreshold } from '../lib/analysis/auto-approval.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 let pass = 0, fail = 0
@@ -142,6 +145,65 @@ ok(!/case_studies|case_moves/.test(src('scripts/relevance-auto-approve.mjs').rep
   ok((wf.match(/RELEVANCE_CAPACITY_GUARD:/g) ?? []).length === 2 && (wf.match(/AUTO_APPROVAL_ENABLED: \$\{\{ vars\.AUTO_APPROVAL_ENABLED \|\| 'false' \}\}/g) ?? []).length === 4, '배선: 1차·2차 스텝에 가드 변수(시크릿 아님)')
 }
 
+// v71cu P2 + PR #682 수정(남헌 확정 기준 2026-11-19) — info-v2 와 버전 분리(옛 판정 재현성), 기본 꺼짐, v24 결합
+{
+  const P = { product_elevator_pitch: 'ConvertKit', business_model: 'SAAS' }, R = [{ input_id: 'x', text: 'hi' }]
+  const sys = (o) => buildRelevancePrompt(P, R, [], o).system
+  const { cfg } = loadAreasConfig(); const areas = scorableAreas(cfg).map((a) => a.name)
+  ok(createHash('sha256').update(PRODUCT_INFORMATIVE_CRITERIA).digest('hex') === 'c8d44049eb77d35188921d98b875ab068b5abd2ff52e10327f825d4f6a0f7e17', 'info-v1 상수는 바이트 그대로(해시 고정 — 옛 판정 재현)')
+  for (const c of [undefined, 'v21', 'v22', 'v24']) {
+    const base = c ? { criteria: c, ...(c === 'v24' ? { areas } : {}) } : {}
+    ok(sys(c ? base : undefined) === sys({ ...base, info: 'v1' }), `info v1/미지정 = 옛 프롬프트 그대로(${c ?? 'old'})`)
+    const s2 = sys({ ...base, info: 'v2' })
+    ok(s2.includes(PRODUCT_INFORMATIVE_CRITERIA_V2) && !s2.includes(PRODUCT_INFORMATIVE_CRITERIA), `info v2 = v2 블록만 실린다(${c ?? 'old'})`)
+    ok(s2.includes('"wtp":null,"promo":false}]') && !sys(c ? base : undefined).includes('"promo"'), `info v2 = 1차 출력에 promo 태그 키, v1 엔 없음(${c ?? 'old'})`)
+  }
+  // v24(운영) 위 결합: 판정 기준 v2.4 본문은 그대로이고, 그 뒤에 v2 블록이 와서 (10)·(15)·회사 이야기 문장보다 우선한다고 적혀 있다.
+  const s24 = sys({ criteria: 'v24', areas, info: 'v2' })
+  ok(s24.includes('판정 기준 v2.4') && s24.includes('(10) SaaS 인데 활성 영역 밖') && s24.indexOf('(17) ①은') < s24.indexOf('[info-v2 추가'), 'v24 + info-v2: v2.4 본문 유지, v2 블록은 그 뒤(우선 문장 포함)')
+  ok(s24.includes('이 블록이 우선한다') && s24.includes('규칙 (10)·(15)의 "영역 밖"으로 보내지 않는다'), 'v24 + info-v2: 개발자 도구 = 영역 안((10)·(15) 덮음)')
+  const s24b = withInfoCriteria(secondOpinionInstructionsV24(areas), 'v2')
+  ok(s24b.includes(PRODUCT_INFORMATIVE_CRITERIA_V2) && s24b.includes('판정 기준 v2.4'), 'v24 2차 지시문도 같은 v2 블록(운영 2차 경로가 던지지 않는다)')
+  // 남헌 확정 기준이 들어갔고, 반대 방향 문장은 v2 에 없다
+  const V2 = PRODUCT_INFORMATIVE_CRITERIA_V2
+  ok(['장점·단점을 이름 붙이지 않은 총평', '(기능·가치)를 설명하면 relevant 이고 info=true', '버그 리포트', '기능 요청(원하는 기능·조건을 이름으로 적은 글)은 relevant 이고 info=true', '개발자 도구', '태그 promo', 'rel·info 판정을 바꾸지 않는다', INFO_CRITERIA_VERSION].every((k) => V2.includes(k)), 'info-v2: 남헌 확정 기준 (a)~(e) + 버전 머리글')
+  ok(!V2.includes('마케팅 문구를 되풀이한 글') && !V2.includes('소개 문구 되풀이') && !V2.includes('Apple Pay? https://docs.lemonsqueezy.com/..." — 정보 없는 질문 한 줄') && V2.includes('T "Can you support Apple Pay?'), 'info-v2: 반대 방향 제거 — 소개 문구→false 없음, Apple Pay(기능 요청) F→T')
+  ok(V2.startsWith(PRODUCT_INFORMATIVE_CRITERIA.split('\n')[0].replace(RELEVANCE_CRITERIA_VERSION, INFO_CRITERIA_VERSION)), 'info-v2: v1 본문 위에 덧붙인다(머리글 버전만 다름)')
+  const s22 = withInfoCriteria(SECOND_OPINION_INSTRUCTIONS_V22, 'v2')
+  ok(s22.includes(V2) && withInfoCriteria(SECOND_OPINION_INSTRUCTIONS_V22, 'v1') === SECOND_OPINION_INSTRUCTIONS_V22, '2차 지시문도 같은 info 블록으로 바뀐다(v1 은 그대로)')
+  let threw = false; try { withInfoCriteria('정보 블록 없음', 'v2') } catch { threw = true }
+  ok(threw, 'info-v2: 치환할 v1 블록이 없으면 던진다(조용히 v1 로 나가지 않는다)')
+  ok(parseInfoMode(undefined).mode === 'v1' && parseInfoMode('').mode === 'v1' && parseInfoMode('v2').mode === 'v2' && parseInfoMode('x').mode === 'v1' && parseInfoMode('x').warning, 'INFO_CRITERIA 기본 v1(꺼짐) · v2 명시해야 켜짐 · 모르는 값은 v1+경고')
+  ok(infoVersionSuffix('v1') === '' && infoVersionSuffix('v2') === `+${INFO_CRITERIA_VERSION}`, 'prompt_version 접미사: v1 은 옛 값 그대로, v2 는 +info-v2')
+  ok(RELEVANCE_CRITERIA_VERSION === 't2d-2026-09-28', '2차 import 경로 버전(isCurrentCriteria)은 그대로')
+  const rj = src('scripts/relevance-judge-auto.mjs'), r2 = src('scripts/relevance-second-judge-auto.mjs'), ra = src('scripts/relevance-auto-approve.mjs'), wf = src('.github/workflows/nightly-relevance.yml')
+  ok(rj.includes('info: infoMode') && rj.includes('+ infoVersionSuffix(infoMode)') && rj.includes('reason: promoTagged(v, infoMode)') && r2.includes('withInfoCriteria(') && r2.includes('scopeOptionsFor(infoMode)') && ra.includes('scopeOptionsFor(infoMode)') && ra.includes('passesRrV2ContentGuard(textById.get(r.input_id) ?? {}, infoMode)'), '배선: 1차·2차·자동 승인이 같은 INFO_CRITERIA 모드를 쓴다')
+  ok((wf.match(/INFO_CRITERIA: \$\{\{ vars\.INFO_CRITERIA \|\| 'v1' \}\}/g) ?? []).length === 3 && !wf.includes("vars.INFO_CRITERIA || 'v2'"), '워크플로: 1차·2차·자동 승인 3스텝, 변수 없으면 v1(머지 즉시 켜지지 않는다)')
+
+  // 회귀 — B세트 입력 예시(남헌 확정 판정). LLM 없이 가짜 응답으로 "promo 는 판정을 바꾸지 않는다"와 승인 경로(가드·범위)를 고정한다.
+  // 모델이 실제로 이렇게 답하는지는 재측정(t2-approval-eval --info v2)이 잰다. 본문은 합성 요약이다(실제 원문 아님 — 공개 리포).
+  const B = [
+    { id: 'R1', name: 'AFFiNE 버그 리포트', source: 'github_issues', area: '5', text: 'Crash on export. Steps to reproduce: 1. open 2. click export. Stack trace: TypeError at ... OS: macOS 14, version 0.17', rel: 'irrelevant', info: false, promo: false },
+    { id: 'R2', name: 'Jitsi 버그 리포트', source: 'github_issues', area: '1', text: 'Audio drops after 10 min. Environment: Ubuntu 22.04, Chrome 120, jitsi-meet 2.0.9. Logs attached: ERROR ...', rel: 'irrelevant', info: false, promo: false },
+    { id: 'R3', name: 'Doppler 채용글', source: 'hackernews', area: 'out-founder', text: 'Doppler (YC W19) is hiring. We build a secrets manager so teams stop pasting env vars in Slack; syncs secrets to every environment and CI.', rel: 'relevant', info: true, promo: true },
+    { id: 'R4', name: '기능 요청', source: 'github_issues', area: '5', text: 'Feature request: please add offline mode and end-to-end encrypted sync so we can switch from Notion.', rel: 'relevant', info: true, promo: false },
+    { id: 'R5', name: '앱 리뷰(관련 유지)', source: 'appstore', area: 'work', text: 'Switched from Todoist because recurring tasks kept breaking; this one handles them and is cheaper per seat.', rel: 'relevant', info: true, promo: false },
+  ]
+  const reviews = B.map((b) => ({ input_id: b.name, text: b.text }))
+  const fake = async () => ({ text: JSON.stringify(B.map((b) => ({ id: b.id, rel: b.rel, info: b.info, promo: b.promo, why: b.name }))), model: 'fake' })
+  const o = await judgeRelevanceBatch(P, reviews, [], fake, { criteria: 'v24', areas, info: 'v2' })
+  ok(o.verdicts.every((v, i) => v.verdict === B[i].rel && v.product_informative === B[i].info && v.self_promo === B[i].promo), 'B세트: AFFiNE·Jitsi 버그=무관, Doppler 채용글=관련·정보있음(promo=true), 기능 요청·앱 리뷰=관련 — 파싱이 그대로 싣는다')
+  const noPromo = await judgeRelevanceBatch(P, reviews, [], async () => ({ text: JSON.stringify(B.map((b) => ({ id: b.id, rel: b.rel, info: b.info, why: b.name }))), model: 'fake' }), { criteria: 'v24', areas, info: 'v2' })
+  ok(noPromo.verdicts.every((v, i) => v.verdict === o.verdicts[i].verdict && v.product_informative === o.verdicts[i].product_informative && v.self_promo === null), 'promo 키가 있든 없든 rel·info 는 같다(태그만, 판정 불변) · 없으면 null')
+  const now = new Date().toISOString()
+  const approvable = (b, mode) => meetsRrV2({ verdict: b.rel, second_verdict: b.rel, product_informative: b.info, second_product_informative: b.info, judged_at: now })
+    && outOfScopeReason(b.area, false, scopeOptionsFor(mode)) === null && passesRrV2ContentGuard({ source_key: b.source, raw_text: b.text }, mode)
+  ok(approvable(B[2], 'v2') && !approvable(B[2], 'v1'), 'B세트 Doppler(hackernews·out-founder): v2 는 승인 후보, v1 은 옛 동작대로 제외(out-founder)')
+  ok(!approvable(B[0], 'v2') && !approvable(B[1], 'v2'), 'B세트 AFFiNE·Jitsi 버그 리포트: v2 에서도 승인 안 됨(판정이 무관)')
+  ok(approvable(B[3], 'v2') && !approvable(B[3], 'v1') && approvable(B[4], 'v2') && approvable(B[4], 'v1'), 'B세트 기능 요청(github)은 v2 에서만, 앱 리뷰는 두 모드 다 승인 후보(관련 유지)')
+  ok(outOfScopeReason('out-consumer', false, scopeOptionsFor('v2')) === 'out-area' && outOfScopeReason('out-founder', false) === 'out-area', 'out-consumer 는 v2 에서도 제외 · out-founder 는 v1(기본) 에서 제외 그대로')
+}
+
 console.log(`\n${fail ? '❌' : '✅'} 자동 승인 셀프테스트: ${pass} pass / ${fail} fail`)
 // v71cp P1-F 내용 가드
 {
@@ -149,9 +211,11 @@ console.log(`\n${fail ? '❌' : '✅'} 자동 승인 셀프테스트: ${pass} pa
   const ok = (r) => passesRrV2ContentGuard(r)
   if (!ok({ source_key: 'appstore', raw_text: long })) { console.error('✗ 가드: 정상 글이 막힘'); process.exit(1) }
   if (ok({ source_key: 'github_issues', raw_text: long })) { console.error('✗ 가드: github_issues 가 통과'); process.exit(1) }
+  if (!ok({ source_key: 'hackernews', raw_text: long })) { console.error('✗ 가드: hackernews 가 막힘(출처째 제외는 남헌 기준과 반대 — PR #682 P1 제거)'); process.exit(1) }
+  if (!passesRrV2ContentGuard({ source_key: 'github_issues', raw_text: long }, 'v2') || passesRrV2ContentGuard({ source_key: 'github_issues', raw_text: 'x'.repeat(59) }, 'v2')) { console.error('✗ 가드 v2: 출처 제외 없음·60자 문턱 유지가 아니다'); process.exit(1) }
   if (ok({ source_key: 'appstore', raw_text: 'x'.repeat(59) })) { console.error('✗ 가드: 59자가 통과'); process.exit(1) }
   if (ok({ source_key: 'appstore', raw_text: null }) || ok({ source_key: null, raw_text: long })) { console.error('✗ 가드: 못 읽은 글이 통과(§7.1)'); process.exit(1) }
-  console.log('✓ rr-v2 내용 가드 5건')
+  console.log('✓ rr-v2 내용 가드 7건')
 }
 
 process.exit(fail ? 1 : 0)

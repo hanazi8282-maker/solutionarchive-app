@@ -23,7 +23,7 @@ import { extractJsonArray } from '../cases/remedy-judge.ts'
 // 목적 어휘 정본은 config/reader-problems.json 이다(lib/cases/draft.ts 가 읽는다).
 import { READER_PROBLEM_LABEL } from '../cases/draft.ts'
 // "관련"의 정의는 2차 판정(second-opinion.ts)과 한 벌이다 — 여기서 고치지 말고 relevance-criteria.ts 를 고친다.
-import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, describeBusinessModel, RELEVANCE_CRITERIA_V21, RELEVANCE_CRITERIA_V22, relevanceCriteriaV23, relevanceCriteriaV24 } from './relevance-criteria.ts'
+import { PRODUCT_INFORMATIVE_CRITERIA, RELEVANCE_CRITERIA, describeBusinessModel, RELEVANCE_CRITERIA_V21, RELEVANCE_CRITERIA_V22, relevanceCriteriaV23, relevanceCriteriaV24, withInfoCriteria, type InfoMode } from './relevance-criteria.ts'
 import { UNTRUSTED_INPUT_NOTICE } from '../llm/untrusted-input.ts'
 // YouTube 댓글 머리말 `[YouTube 댓글 · <id>]` 해석은 번역 쪽과 한 벌이다.
 import { parseSourceContext } from '../relevance-feedback/translate.ts'
@@ -85,6 +85,8 @@ export interface RelevanceVerdict extends RelevanceLabels {
   reason: string | null
   /** 자동 승인 rr-v2 추가 질문(PRODUCT_INFORMATIVE_CRITERIA). 어휘 밖·누락·호출 실패는 null — false 로 접지 않는다. */
   product_informative: boolean | null
+  /** info-v2 태그(남헌 2026-11-19): 자사 홍보·채용 글이면 true. 판정(verdict·product_informative)과 무관한 표시다. 키가 없거나 어휘 밖이면 null. */
+  self_promo?: boolean | null
 }
 
 export interface RelevanceOutcome {
@@ -161,6 +163,8 @@ export interface RelevancePromptOptions {
   criteria?: 'v21' | 'v22' | 'v23' | 'v24'
   /** v23 전용: 활성 영역 이름(번호 포함). config/areas.json scorableAreas 에서 호출부가 채운다. 비면 v23 은 던진다(§7.1). */
   areas?: readonly string[]
+  /** 정보 기준 버전(v71cu P2). 없거나 'v1' 이면 옛 프롬프트 그대로(재현용), 'v2' 면 info-v2 경계 문장이 들어간다. */
+  info?: InfoMode
 }
 
 /** 리뷰 한 줄 앞에 붙일 맥락. YouTube 댓글이고 제목을 알 때만. */
@@ -228,7 +232,7 @@ export function buildRelevancePrompt(
     : opts?.criteria === 'v23'
     ? systemV23(opts.areas ?? [])
     : opts?.criteria === 'v22' ? SYSTEM_V22 : opts?.criteria === 'v21' ? SYSTEM_V21 : SYSTEM
-  return { system, user, labels }
+  return { system: withInfoCriteria(system, opts?.info), user, labels }
 }
 
 /** 원문의 줄바꿈은 라벨 경계를 흐린다. 한 줄로 눕힌다. */
@@ -242,7 +246,7 @@ function oneLine(text: string): string {
  */
 export function parseRelevanceArray(
   raw: string,
-): ({ id: string; rel: Relevance; why: string | null; product_informative: boolean | null } & RelevanceLabels)[] | null {
+): ({ id: string; rel: Relevance; why: string | null; product_informative: boolean | null; self_promo: boolean | null } & RelevanceLabels)[] | null {
   const arr = extractJsonArray(raw)
   if (!arr) return null
   return arr
@@ -261,6 +265,7 @@ export function parseRelevanceArray(
         frequency: pick(x.freq ?? x.frequency, LABEL_LEVELS),
         community_signal: pick(x.signal ?? x.community_signal, COMMUNITY_SIGNALS),
         wtp_mentioned: toBool(x.wtp ?? x.wtp_mentioned),
+        self_promo: toBool(x.promo ?? x.self_promo),
       }
     })
 }
@@ -349,6 +354,7 @@ export async function judgeRelevanceBatch(
         frequency: hit ? hit.frequency : null,
         community_signal: hit ? hit.community_signal : null,
         wtp_mentioned: hit ? hit.wtp_mentioned : null,
+        self_promo: hit ? hit.self_promo : null,
       }
     }),
   }

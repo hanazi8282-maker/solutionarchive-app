@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // lib/analysis/approval-scope.ts — 영역 외·소비재 태그 제외(L-20b). 가짜 supabase 로 실행 검사. DB·LLM 없음.
 import assert from 'node:assert/strict'
-import { loadScope, outOfScopeReason } from '../lib/analysis/approval-scope.ts'
+import { loadScope, outOfScopeReason, scopeOptionsFor } from '../lib/analysis/approval-scope.ts'
 
 let pass = 0
 const t = async (name, fn) => { await fn(); pass++; console.log(`✓ ${name}`) }
@@ -29,6 +29,12 @@ await t('순수: out-* 가 우선, 태그는 그다음, 영역 NULL 은 영역 �
   assert.equal(outOfScopeReason('5', true), 'consumer-tag')
   assert.equal(outOfScopeReason(null, false), null)
   assert.equal(outOfScopeReason('design', false), null)
+})
+await t('PR #682 수정: INFO_CRITERIA=v2 면 out-founder 는 빼지 않는다(태그만) · 기본·v1 은 옛 동작', () => {
+  assert.equal(outOfScopeReason('out-founder', false, scopeOptionsFor('v2')), null)
+  assert.equal(outOfScopeReason('out-founder', true, scopeOptionsFor('v2')), 'consumer-tag')
+  assert.equal(outOfScopeReason('out-consumer', false, scopeOptionsFor('v2')), 'out-area')
+  for (const v of [undefined, '', 'v1', 'x']) assert.equal(outOfScopeReason('out-founder', false, scopeOptionsFor(v)), 'out-area')
 })
 await t('loadScope: 영역 외·태그만 제외하고 사유를 돌려준다', async () => {
   const r = await loadScope(fake(tables), ['a', 'b', 'c', 'd'])

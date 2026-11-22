@@ -197,6 +197,9 @@ jobs:
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
           AUTO_APPROVAL_ENABLED: ${{ vars.AUTO_APPROVAL_ENABLED || 'false' }}
           AUTO_APPROVAL_SINCE: ${{ vars.AUTO_APPROVAL_SINCE || '' }}
+          GRADUAL_RELEASE_ENABLED: ${{ vars.GRADUAL_RELEASE_ENABLED || '' }}
+          GRADUAL_RELEASE_STAGE: ${{ vars.GRADUAL_RELEASE_STAGE || '' }}
+          GRADUAL_RELEASE_STAGE_SINCE: ${{ vars.GRADUAL_RELEASE_STAGE_SINCE || '' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: node scripts/relevance-auto-approve.mjs
 

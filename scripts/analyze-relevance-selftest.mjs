@@ -323,5 +323,100 @@ t('마이그레이션에 미적용 표기와 확인 쿼리가 있다',
   t('v22 프롬프트는 그대로다', buildRelevancePrompt(purpose, reviews, [], { criteria: 'v22' }).system.includes('영역 ①~⑤'))
 }
 
+// ── v2.5 (v71db, 남헌 2026-11-22) — 추가 전용. v2.4 이하는 바이트 그대로(해시 고정), v2.5 = v2.4 + (18)~(20) ──
+{
+  const { createHash } = await import('node:crypto')
+  const { readFileSync } = await import('node:fs')
+  const C = await import('../lib/analysis/relevance-criteria.ts')
+  const S = await import('../lib/analysis/second-opinion.ts')
+  const h = (x) => createHash('sha256').update(x).digest('hex').slice(0, 16)
+  const a = ['① 회의록·통화 요약', '③ 마케팅 콘텐츠·광고 소재', '⑧ 업무관리']
+  const P = { product_elevator_pitch: 'p', business_model: 'saas' }, R = [{ input_id: 'x', text: 't' }]
+  // (a) 값은 v25 추가 전 main(e9815558)에서 잰 것. 하나라도 바뀌면 운영 v24·t2d 프롬프트가 바뀐 것이다.
+  const frozen = {
+    t2d: h(C.RELEVANCE_CRITERIA), info: h(C.PRODUCT_INFORMATIVE_CRITERIA), ver: C.RELEVANCE_CRITERIA_VERSION,
+    v21: h(C.RELEVANCE_CRITERIA_V21), v22: h(C.RELEVANCE_CRITERIA_V22), v23: h(C.relevanceCriteriaV23(a)), v24: h(C.relevanceCriteriaV24(a)),
+    sys24: h(buildRelevancePrompt(P, R, [], { criteria: 'v24', areas: a }).system), sec24: h(S.secondOpinionInstructionsV24(a)),
+  }
+  const frozenOk = JSON.stringify(frozen) === JSON.stringify({
+    t2d: '03e8b059cd199d7f', info: 'c8d44049eb77d351', ver: 't2d-2026-09-28', v21: '4891de61b3afef7d', v22: 'a543abb21bc52814',
+    v23: '198e8bec6b80b6d9', v24: '0b14c02f2ddfb851', sys24: 'c0600c2717900365', sec24: 'f2bd5d96769ab518',
+  })
+  if (!frozenOk) console.log(`  실측 해시: ${JSON.stringify(frozen)}`)
+  t('v25(a): v24 이하·t2d 상수·프롬프트가 변경 전과 바이트 동일(해시)', frozenOk)
+  const v24 = C.relevanceCriteriaV24(a), v25 = C.relevanceCriteriaV25(a)
+  t('v25: 버전 태그', C.RELEVANCE_V25_VERSION === 'v25-2026-11-22' && v25.includes(`## 판정 기준 v2.5 (기준 버전 ${C.RELEVANCE_V25_VERSION})`))
+  // (b) 머리글 두 군데만 v2.5 로 바뀌고 나머지는 v2.4 본문 그대로 + 덧붙인 블록.
+  const back = v25.replace(`기준 버전 ${C.RELEVANCE_V25_VERSION}`, `기준 버전 ${C.RELEVANCE_V24_VERSION}`).replace('## 판정 기준 v2.5', '## 판정 기준 v2.4')
+  t('v25(b): 머리글만 되돌리면 v2.4 본문이 접두이고 뒤는 v2.5 블록뿐', back.startsWith(v24) && back === v24 + C.RELEVANCE_V25_BLOCK)
+  t('v25(b): (18)~(20) 이 (17) 뒤에 순서대로', [v25.indexOf('(17)'), v25.indexOf('(18) 버그 리포트'), v25.indexOf('(19) 창업자 자사 설명'), v25.indexOf('(20) 추상적 칭찬')].every((x, i, xs) => x > 0 && (i === 0 || x > xs[i - 1])))
+  t('v25(b): 우선순위 한 줄이 블록 앞에 있다', v25.indexOf('(18)~(20)이 (9)·(14)보다 우선한다') > v25.indexOf('[v2.5 추가 — 남헌 2026-11-22]') && v25.indexOf('(18)~(20)이 (9)·(14)보다 우선한다') < v25.indexOf('(18) 버그'))
+  t('v25(b): 규칙 (1)~(17)·영역 확장은 v2.4 그대로', v25.includes('① 회의·통화 기록 일반') && v25.includes('(17) ①은') && v25.includes('(16) 제품이 노트'))
+  // (c) 시스템 프롬프트·2차 지시문
+  const p25 = buildRelevancePrompt(P, R, [], { criteria: 'v25', areas: a })
+  t('v25(c): 1차 system 에 v2.5, v2.4·v2.2 머리 문구가 남지 않는다', p25.system.includes('아래 판정 기준 v2.5 로') && p25.system.includes('(20) 추상적 칭찬') && !p25.system.includes('판정 기준 v2.4') && !p25.system.includes('기준 버전 ' + C.RELEVANCE_V24_VERSION) && !p25.system.includes('아래 판정 기준 v2.2 로'))
+  t('v25(c): 1차 system = v2.4 system 의 기준 자리만 v2.5 로 바꾼 것', p25.system === buildRelevancePrompt(P, R, [], { criteria: 'v24', areas: a }).system.replace(v24, v25).replace('아래 판정 기준 v2.4 로', '아래 판정 기준 v2.5 로'))
+  const s25 = S.secondOpinionInstructionsV25(a)
+  t('v25(c): 2차 지시문에 v2.5 와 (18)~(20), v2.4 머리글 없음', s25.includes('판정 기준 v2.5') && s25.includes('(18) 버그 리포트') && s25.includes('(20) 추상적 칭찬') && !s25.includes('판정 기준 v2.4') && s25 === S.secondOpinionInstructionsV24(a).replace(v24, v25))
+  // (d) 배선 — RELEVANCE_CRITERIA=v25 가 1차·2차 모두 v25 로 가고 prompt_version 이 v25 태그. v24 분기 문구는 그대로.
+  const auto = readFileSync(new URL('./relevance-judge-auto.mjs', import.meta.url), 'utf8')
+  const sec = readFileSync(new URL('./relevance-second-judge-auto.mjs', import.meta.url), 'utf8')
+  t('v25(d): 1차가 v25 를 받아들이고 영역을 읽는다', auto.includes("v === 'v24' || v === 'v25' ? v : 'v22'") && auto.includes("criteriaMode === 'v24' || criteriaMode === 'v25' ? (() =>") && auto.includes("'v24', 'v25'].includes"))
+  t('v25(d): 1차 prompt_version = v25-2026-11-22, v24 이하 분기는 그대로', auto.includes("criteriaMode === 'v25' ? RELEVANCE_V25_VERSION : criteriaMode === 'v24' ? RELEVANCE_V24_VERSION : criteriaMode === 'v23' ? RELEVANCE_V23_VERSION : criteriaMode === 'v22' ? RELEVANCE_V22_VERSION : criteriaMode === 'v21' ? RELEVANCE_V21_VERSION : RELEVANCE_CRITERIA_VERSION") && auto.includes('{ criteria: criteriaMode, areas: v23Areas }'))
+  t('v25(d): 2차가 v25 를 V25 지시문으로 잇는다(조용히 v22 로 가지 않는다)', sec.includes("secondMode === 'v25' ? secondOpinionInstructionsV25(names) : secondMode === 'v24' ? secondOpinionInstructionsV24(names)") && sec.includes("secondMode === 'v24' || secondMode === 'v25'") && sec.includes("'v24', 'v25'].includes(secondMode)"))
+  // (d') 1차 판정이 실제로 v25 system 을 들고 호출되는지(가짜 호출)
+  const seen = []
+  const fakeCall = async (system, user) => { seen.push(system); return { model: 'fake', text: JSON.stringify(user.match(/^R\d+\./gm).map((l) => ({ id: l.slice(0, -1), rel: 'relevant', info: false, why: 'x' }))) } }
+  const prevProvider = process.env.LLM_PROVIDER; process.env.LLM_PROVIDER = 'gemini'
+  try {
+    const o = await judgeRelevanceBatch(P, R, [], fakeCall, { criteria: 'v25', areas: a })
+    t('v25(d): judgeRelevanceBatch(criteria=v25) 가 v2.5 system 으로 부른다', seen[0] === p25.system && o.verdicts[0]?.verdict === 'relevant' && o.verdicts[0]?.product_informative === false)
+  } finally { if (prevProvider === undefined) delete process.env.LLM_PROVIDER; else process.env.LLM_PROVIDER = prevProvider }
+  // (e) 치환 실패는 던진다
+  let e1 = false; try { C.relevanceCriteriaV25(['⑧ 업무관리']) } catch { e1 = true }
+  t('v25(e): ①·③ 없으면 던진다(v24 와 같음)', e1)
+  const origReplace = String.prototype.replace
+  let e2 = false
+  String.prototype.replace = function (p, r) { return typeof p === 'string' && p.startsWith('기준 버전 v24') ? String(this) : origReplace.call(this, p, r) }
+  try { C.relevanceCriteriaV25(a) } catch (e) { e2 = /v2\.5 판정 기준: 버전 치환 실패/.test(e.message) } finally { String.prototype.replace = origReplace }
+  t('v25(e): 버전 치환이 조용히 안 먹으면 던진다(§7.1)', e2)
+  let e3 = false
+  String.prototype.replace = function (p, r) { return p === '아래 판정 기준 v2.2 로' && r === '아래 판정 기준 v2.5 로' ? String(this) : origReplace.call(this, p, r) }
+  try { buildRelevancePrompt(P, R, [], { criteria: 'v25', areas: a }) } catch (e) { e3 = /v2\.5 시스템 프롬프트 치환 실패/.test(e.message) } finally { String.prototype.replace = origReplace }
+  t('v25(e): 1차 system 치환 실패도 던진다', e3)
+  let e4 = false; try { buildRelevancePrompt(P, R, [], { criteria: 'v25' }) } catch { e4 = true }
+  t('v25(e): areas 없이 부르면 던진다', e4)
+  console.log(`  · v2.5 블록 ${C.RELEVANCE_V25_BLOCK.length}자 (v2.4 기준 ${v24.length}자 → v2.5 ${v25.length}자, +${v25.length - v24.length})`)
+
+  // ── scripts/v25-compare.mjs — DB 없음, 기본 --dry(호출 0회), 가짜 호출로 --run 경로 ──
+  const V = await import('./v25-compare.mjs')
+  const good = [
+    { key: 'k1', text: 'Mailchimp 보다 싸다', project: { pitch: 'p1', business_model: 'saas' }, gold: { verdict: 'relevant', informative: true } },
+    { key: 'k2', text: '5 estrellas', project: { pitch: 'p1', business_model: 'saas' }, gold: { verdict: 'irrelevant', informative: false } },
+    { key: 'k3', text: 'crash trace', project: { pitch: 'p2' }, source_key: 'github', gold: { verdict: 'irrelevant', informative: false } },
+  ]
+  t('compare: 올바른 입력은 통과', V.validateRows(good).errors.length === 0)
+  t('compare: 키 중복·gold 누락·빈 입력은 전부 거부', V.validateRows([good[0], good[0]]).errors.length === 1 && V.validateRows([{ ...good[0], gold: { verdict: 'unknown', informative: 1 } }]).errors.length === 2 && V.validateRows([]).errors.length === 1 && V.validateRows({}).rows.length === 0)
+  t('compare: 프로젝트별로 묶는다', V.planBatches(good).length === 2 && V.planBatches(good)[0].reviews.length === 2)
+  const st = V.promptStats(good, a)
+  t('compare: --dry 통계는 기준별 버전·system 길이', st.v24.prompt_version === C.RELEVANCE_V24_VERSION && st.v25.prompt_version === C.RELEVANCE_V25_VERSION && st.v25.system_chars - st.v24.system_chars === v25.length - v24.length)
+  const calls = []
+  const fake = async (system, user) => {
+    calls.push(system)
+    const v25on = system.includes('판정 기준 v2.5')
+    const ids = user.match(/^R\d+\./gm).map((l) => l.slice(0, -1))
+    if (!v25on && user.includes('crash')) throw new Error('boom')
+    return { model: 'fake', text: JSON.stringify(ids.map((id) => ({ id, rel: v25on ? 'irrelevant' : 'relevant', info: !v25on, why: 'x' }))) }
+  }
+  process.env.LLM_PROVIDER = 'gemini'
+  let res
+  try { res = await V.runCompare(good, a, { call: fake }) } finally { if (prevProvider === undefined) delete process.env.LLM_PROVIDER; else process.env.LLM_PROVIDER = prevProvider }
+  t('compare: v24·v25 각 묶음 수만큼 호출, 기준이 맞게 실린다', calls.length === 4 && calls.filter((s) => s.includes('판정 기준 v2.5')).length === 2 && calls.filter((s) => s.includes('아래 판정 기준 v2.4 로')).length === 2)
+  t('compare: 행별 {key, v24:{rel,info}, v25:{rel,info}}', res.rows[0].key === 'k1' && res.rows[0].v24.rel === 'relevant' && res.rows[0].v24.info === true && res.rows[0].v25.rel === 'irrelevant' && res.rows[0].v25.info === false)
+  t('compare: 호출 오류는 rel=null 로 남기고 집계 분모에서 뺀다(unknown 으로 접지 않는다)', res.rows[2].v24.rel === null && res.summary.v24.errors === 1 && res.summary.v24.judged === 2 && res.summary.v25.both_correct === 2)
+  const csrc = readFileSync(new URL('./v25-compare.mjs', import.meta.url), 'utf8')
+  t('compare: DB·서비스 키를 안 쓰고, few-shot 없이(빈 배열), --run 이 있어야만 부른다', !/supabase|SERVICE_ROLE/i.test(csrc.replace(/^\/\/.*$/gm, '')) && csrc.includes('judgeRelevanceBatch(b.purpose, b.reviews, [], call, { criteria: c, areas })') && csrc.includes("if (!run) {"))
+}
+
 console.log(`\n${fail === 0 ? '✅' : '❌'} 리뷰 관련성 판정 셀프테스트: ${pass} pass / ${fail} fail`)
 process.exit(fail === 0 ? 0 : 1)

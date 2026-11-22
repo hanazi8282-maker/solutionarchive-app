@@ -246,3 +246,29 @@ export function relevanceCriteriaV24(activeAreaNames: readonly string[]): string
   if (!out.includes(RELEVANCE_V24_VERSION) || out.includes('기준 버전 ' + RELEVANCE_V23_VERSION)) throw new Error('v2.4 판정 기준: 버전 치환 실패')
   return out
 }
+
+/**
+ * 판정 기준 v2.5(남헌 2026-11-22, v71db) = v2.4 본문 그대로 + 규칙 (18)~(20)(버그 리포트·창업자 자사 설명·추상적 칭찬).
+ * 추가 전용이다 — v2.4 이하 상수·함수는 바이트 그대로 둔다(셀프테스트가 해시로 고정). 켜는 법: 리포 변수 RELEVANCE_CRITERIA=v25, 되돌리기: =v24.
+ */
+export const RELEVANCE_V25_VERSION = 'v25-2026-11-22'
+
+export const RELEVANCE_V25_BLOCK = [
+  '',
+  '',
+  '[v2.5 추가 — 남헌 2026-11-22]',
+  '회사 이야기·자사 홍보·채용 공고와 부딪치면 (18)~(20)이 (9)·(14)보다 우선한다.',
+  '(18) 버그 리포트: 개발자에게 보내는 버그 리포트는 출처가 GitHub 이슈든 포럼이든 irrelevant. 버그 리포트 = 재현 절차·버전·환경·스택 트레이스·원인 분석이 중심이고 제품을 쓰거나 고른 경험·기준이 없는 글. 앱스토어·구글 플레이 후기처럼 사용자가 겪은 불편을 말하는 글(오류 불평 포함)이나 포럼에서 겪는 문제를 하소연하는 글은 사용자 목소리라 relevant 가 될 수 있다. 예: irrelevant — "Event Mail Scheduler crashes with SQL UndefinedFunction"류 GitHub 버그 이슈, "Composer install php ext-imap error with php 8.5"류 포럼 설치 오류 보고. relevant — "Theme keeps resetting to Default"(포럼 하소연), "[오류] 아이폰에서 필터를 클릭하면 화면이 확대돼 클릭이 안 돼요"(앱스토어 후기).',
+  '(19) 창업자 자사 설명: 창업자·직원이 자사 제품·서비스를 설명하거나 홍보하는 글도 일반 글과 같게 판단한다(자동 irrelevant 아님). 경쟁·대체재 비교, 가격, 기능, 고객이 겪는 문제 같은 구체 정보가 있으면 relevant·info=true, 이름만 나오거나 채용·창업기·매출 자랑이면 irrelevant. 예: relevant — 창업자가 Mailchimp 와 비교해 자사 위치를 설명한 Show HN 댓글, 이메일 보관이 번거롭다는 불편과 그 해결을 설명한 애드온 소개 글.',
+  '(20) 추상적 칭찬: 이유가 "혁신적이다"처럼 추상적일 뿐 구체 정보(장단점·비교·비용·기능 유무)가 없으면 relevant 여도 info=false. 용도만 있고 이유가 없는 한 줄 감탄(예: "5 estrellas, era justo lo que necesitaba para mis clases")은 irrelevant.',
+].join('\n')
+
+export function relevanceCriteriaV25(activeAreaNames: readonly string[]): string {
+  const out = relevanceCriteriaV24(activeAreaNames)
+    .replace(`기준 버전 ${RELEVANCE_V24_VERSION}`, `기준 버전 ${RELEVANCE_V25_VERSION}`)
+    .replace('## 판정 기준 v2.4', '## 판정 기준 v2.5')
+    + RELEVANCE_V25_BLOCK
+  // 치환이 조용히 실패해 v2.4 머리글로 나가면 던진다(§7.1).
+  if (!out.includes('## 판정 기준 v2.5 (기준 버전 ' + RELEVANCE_V25_VERSION + ')') || out.includes('기준 버전 ' + RELEVANCE_V24_VERSION) || out.includes('## 판정 기준 v2.4')) throw new Error('v2.5 판정 기준: 버전 치환 실패')
+  return out
+}

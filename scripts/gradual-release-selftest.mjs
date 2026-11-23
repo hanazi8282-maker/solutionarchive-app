@@ -91,6 +91,10 @@ async function checks(M, A, { quiet = false } = {}) {
   const day = [['1', 0, 500], ['2', 500, 1500], ['3', 2000, 2500], ['4', 4500, 500]]
   for (const [st, before, more] of day) ok(M.decideRelease({ ...on, stage: st, stageSince: TODAY, ctx: ctxOk({ approvedToday: before }) }).limit === more, `(b) 같은 날 ${st}단계·오늘 이미 ${before} → ${more}건 더`)
   ok(M.decideRelease({ ...on, stage: '2', ctx: ctxOk({ approvedToday: 300 }) }).limit === 1700, '(b) 2단계·오늘 이미 300(다른 슬롯) → 1700')
+  { const d0 = new Date('2026-11-22T15:00:00Z'), mid = new Date('2026-11-23T11:30:00Z'), pastSince = new Date('2026-11-23T05:48:50Z')
+    ok(M.counterStart(d0, mid).getTime() === mid.getTime(), '(v71ds) STAGE_SINCE 가 오늘 한낮이면 카운터는 그 시각부터')
+    ok(M.counterStart(d0, new Date('2026-11-20T00:00:00Z')).getTime() === d0.getTime(), '(v71ds) STAGE_SINCE 가 어제 이전이면 하루 시작부터(기존 동작)')
+    ok(M.counterStart(d0, d0).getTime() === d0.getTime() && M.counterStart(d0, pastSince).getTime() === pastSince.getTime(), '(v71ds) 같거나 늦은 쪽') }
   ok(M.decideRelease({ ...on, stage: '2', ctx: ctxOk({ approvedToday: 2000 }) }).limit === 0, '(b) 2단계·오늘 이미 2000 → 0')
   ok(M.decideRelease({ ...on, stage: '4', ctx: ctxOk({ approvedToday: 99999 }) }).limit === 0, '(b) 4단계도 상한 5000(무제한 아님)')
   ok(M.decideRelease({ ...on, stage: '5', ctx: ctxOk({ approvedToday: 99999 }) }).limit === Infinity, '(b) 5단계 상한 없음')

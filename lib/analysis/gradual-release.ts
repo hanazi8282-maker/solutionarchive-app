@@ -263,6 +263,14 @@ async function readAll(build: () => any): Promise<{ data: any[]; error: any }> {
   }
 }
 
+/**
+ * 상한 카운터의 시작 시각(v71ds) = KST 하루 시작과 STAGE_SINCE 중 늦은 쪽. 단계를 새로 시작한 날(STAGE_SINCE 가 오늘 한낮)에는
+ * 그 전에 이미 승인된 건이 새 단계 상한을 먹지 않는다. 다음 날부터는 하루 시작이 더 늦어 기존 동작과 같다.
+ */
+export function counterStart(dayStart: Date, stageSince: Date): Date {
+  return stageSince.getTime() > dayStart.getTime() ? stageSince : dayStart
+}
+
 /** 단계 판단에 필요한 DB 상태(읽기 전용). 하나라도 실패하면 ok:false(확인 불가). */
 export async function loadReleaseContext(sb: Sb, opts: { stageSince: Date; todayKst: string }): Promise<ReleaseContext> {
   const { start, end } = kstDayRange(opts.todayKst)

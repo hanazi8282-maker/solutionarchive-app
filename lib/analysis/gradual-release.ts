@@ -25,7 +25,7 @@ import { devAudienceReason } from './dev-audience-guard.ts'
 
 export const GRADUAL = {
   /**
-   * 단계 → 하루 **누적** 승인 상한(그날 이미 승인한 수 포함, 남헌 v71dl). 같은 날 1→2 로 올리면 1단계에서 승인한 500 을 빼고 1500 더.
+   * 단계 → 하루 **누적** 승인 상한(그날 이미 승인한 수 포함, 남헌 v71dl). 같은 날 1→2 로 올리면 1단계에서 승인한 500 을 빼고 1500 더. (v71ds) 단 STAGE_SINCE 가 오늘 한낮이면 그 시각 이전 승인은 세지 않는다 — 단계 재시작은 새 카운터.
    * 5단계 = 상한 없음(2026-11-23·24 에는 쓰지 않는다 — 쓰는 날은 사람이 정한다).
    */
   caps: { 1: 500, 2: 2000, 3: 4500, 4: 5000, 5: Infinity } as Record<number, number>,
@@ -263,6 +263,14 @@ async function readAll(build: () => any): Promise<{ data: any[]; error: any }> {
   }
 }
 
+/**
+ * 상한 카운터의 시작 시각(v71ds) = KST 하루 시작과 STAGE_SINCE 중 늦은 쪽. 단계를 새로 시작한 날(STAGE_SINCE 가 오늘 한낮)에는
+ * 그 전에 이미 승인된 건이 새 단계 상한을 먹지 않는다. 다음 날부터는 하루 시작이 더 늦어 기존 동작과 같다.
+ */
+export function counterStart(dayStart: Date, stageSince: Date): Date {
+  return stageSince.getTime() > dayStart.getTime() ? stageSince : dayStart
+}
+
 /** 단계 판단에 필요한 DB 상태(읽기 전용). 하나라도 실패하면 ok:false(확인 불가). */
 export async function loadReleaseContext(sb: Sb, opts: { stageSince: Date; todayKst: string }): Promise<ReleaseContext> {
   const { start, end } = kstDayRange(opts.todayKst)
@@ -271,7 +279,7 @@ export async function loadReleaseContext(sb: Sb, opts: { stageSince: Date; today
   // 뒤 슬롯에서 다시 막힐 수 있으므로 실행은 하루 앞까지 넓게 읽고, 시각 판정은 step updated_at 으로 한다.
   const runsFrom = new Date(stageStart.getTime() - 86_400_000)
   const today = await readAll(() => sb.from('review_relevance_verdicts').select('input_id')
-    .eq('auto_approval_rule', AUTO_APPROVAL_RULE).gte('auto_approved_at', start.toISOString()).lt('auto_approved_at', end.toISOString()).order('input_id'))
+    .eq('auto_approval_rule', AUTO_APPROVAL_RULE).gte('auto_approved_at', counterStart(start, stageStart).toISOString()).lt('auto_approved_at', end.toISOString()).order('input_id'))
   if (today.error) return { ok: false, error: `오늘 승인 수 조회 실패: ${today.error.message}` }
   const runs = await readAll(() => sb.from('agent_runs').select('id').like('run_key', `${APPROVE_RUN_PREFIX}%`).gte('started_at', runsFrom.toISOString()).order('id'))
   if (runs.error) return { ok: false, error: `agent_runs 조회 실패: ${runs.error.message}` }

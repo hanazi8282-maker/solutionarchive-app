@@ -91,6 +91,10 @@ async function checks(M, A, { quiet = false } = {}) {
   const day = [['1', 0, 500], ['2', 500, 1500], ['3', 2000, 2500], ['4', 4500, 500]]
   for (const [st, before, more] of day) ok(M.decideRelease({ ...on, stage: st, stageSince: TODAY, ctx: ctxOk({ approvedToday: before }) }).limit === more, `(b) 같은 날 ${st}단계·오늘 이미 ${before} → ${more}건 더`)
   ok(M.decideRelease({ ...on, stage: '2', ctx: ctxOk({ approvedToday: 300 }) }).limit === 1700, '(b) 2단계·오늘 이미 300(다른 슬롯) → 1700')
+  { const d0 = new Date('2026-11-22T15:00:00Z'), mid = new Date('2026-11-23T11:30:00Z'), pastSince = new Date('2026-11-23T05:48:50Z')
+    ok(M.counterStart(d0, mid).getTime() === mid.getTime(), '(v71ds) STAGE_SINCE 가 오늘 한낮이면 카운터는 그 시각부터')
+    ok(M.counterStart(d0, new Date('2026-11-20T00:00:00Z')).getTime() === d0.getTime(), '(v71ds) STAGE_SINCE 가 어제 이전이면 하루 시작부터(기존 동작)')
+    ok(M.counterStart(d0, d0).getTime() === d0.getTime() && M.counterStart(d0, pastSince).getTime() === pastSince.getTime(), '(v71ds) 같거나 늦은 쪽') }
   ok(M.decideRelease({ ...on, stage: '2', ctx: ctxOk({ approvedToday: 2000 }) }).limit === 0, '(b) 2단계·오늘 이미 2000 → 0')
   ok(M.decideRelease({ ...on, stage: '4', ctx: ctxOk({ approvedToday: 99999 }) }).limit === 0, '(b) 4단계도 상한 5000(무제한 아님)')
   ok(M.decideRelease({ ...on, stage: '5', ctx: ctxOk({ approvedToday: 99999 }) }).limit === Infinity, '(b) 5단계 상한 없음')
@@ -220,7 +224,7 @@ async function checks(M, A, { quiet = false } = {}) {
   })
   const cBefore = await M.loadReleaseContext(fake(kt('2026-12-10T01:00:00.000Z')), { stageSince: sinceT, todayKst: TODAY })
   ok(cBefore.ok && cBefore.trips.length === 0, '(k) 조회: 시각 STAGE_SINCE 이전 blocked(같은 날) 는 안 센다')
-  ok(cBefore.ok && M.decideRelease({ ...on, stage: '2', stageSince: T, ctx: cBefore }).limit === 1998, '(k) 조회→판정: 시각 이전 blocked 만 있으면 2단계 그대로(오늘 이미 2건 → 1998)')
+  ok(cBefore.ok && M.decideRelease({ ...on, stage: '2', stageSince: T, ctx: cBefore }).limit === 1999, '(k) 조회→판정: 시각 이전 blocked 만 있으면 2단계 그대로(STAGE_SINCE 이후 승인 1건만 센다 → 1999 — v71ds, 이전 02:00 승인 1건은 안 센다)')
   const cAfter = await M.loadReleaseContext(fake(kt('2026-12-10T04:00:00.000Z')), { stageSince: sinceT, todayKst: TODAY })
   ok(cAfter.ok && cAfter.trips.length === 1 && cAfter.trips[0] === '2026-12-10T04:00:00.000Z', '(k) 조회: 시각 전에 시작한 그날 실행이 시각 뒤에 다시 막히면 센다')
   ok(cAfter.ok && M.decideRelease({ ...on, stage: '2', stageSince: T, ctx: cAfter }).limit === 0, '(k) 조회→판정: 시각 이후 blocked → 0건')

@@ -5,9 +5,9 @@
 //   node --env-file=.env.local scripts/gradual-release-sample.mjs --stage 1 --since 2026-12-01 [--date 2026-12-02] [--seed 42] [--out <경로.md>] [--dry]
 //     --stage  기본 env GRADUAL_RELEASE_STAGE · --since 기본 env GRADUAL_RELEASE_STAGE_SINCE(단계 시작 — KST 날짜 또는 ISO UTC 시각, 머리 주석·판정용)
 //     --date   모집단 날짜(KST) 기본 오늘 — 모집단 = 그날 00:00~24:00 KST 에 rr-v2 로 승인되고 아직 사람이 안 본 글 전체
-//   v71dm: 모집단을 **지금의 승인 가드**(applyApprovalGuard — 승인 스크립트·--gradual-dry 와 같은 함수, AUTO_APPROVAL_SOURCES 포함)로 한 번 더 거른다.
-//     지금 규칙이면 승인하지 않았을 글(허용 목록 밖·개발자 대상 등)은 표본에서 빼고, 몇 건·무슨 사유인지 머리글에 적는다(조용히 빼지 않는다).
-//     AUTO_APPROVAL_SOURCES 가 이상한 값이면 확인 불가 — 표본을 만들지 않는다(종료 2).
+//   v71dm: 모집단은 거르지 않는다 — 이미 승인된 글은 가드·허용 목록과 무관하게 전부 표본 대상이다(빠지는 건 원문 없음뿐, 예전과 같다).
+//     지금의 승인 가드(applyApprovalGuard, AUTO_APPROVAL_SOURCES 포함)가 막았을 글 수만 사유별로 머리글에 적는다(집계 전용).
+//     가드를 못 읽거나 변수가 이상하면 그 집계 한 줄만 "확인 불가"로 적고 표본은 그대로 만든다.
 //
 // 형식은 relevance-grading-sample.mjs 감사 표와 같다(모델 판정 가림 · 관련/무관/모름 + 정보있음/정보없음 · 키 = 전체 uuid).
 // 채점 뒤 relevance-grading-import.mjs 로 그대로 되돌려 넣고, gradual-release-judge.mjs <이 파일> 로 통과를 판정한다.
@@ -19,7 +19,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
 import { AUTO_APPROVAL_RULE } from '../lib/analysis/auto-approval.ts'
-import { GRADUAL, applyApprovalGuard, countBySource, kstDayRange, parseSourceAllowlist, parseStage, parseStageSince, quotaSample } from '../lib/analysis/gradual-release.ts'
+import { GRADUAL, applyApprovalGuard, countBySource, kstDayRange, parseSourceAllowlist, parseStage, parseStageSince, quotaSample, stagePopulation } from '../lib/analysis/gradual-release.ts'
 import { kstDate } from './notion-status-log.mjs'
 
 const args = process.argv.slice(2)
@@ -66,20 +66,13 @@ const { data: projects, error: pErr } = await sb.from('analysis_projects').selec
 if (pErr) { console.error(`✗ 프로젝트 조회 실패: ${pErr.message}`); process.exit(2) }
 const projectById = new Map((projects ?? []).map((p) => [p.id, p.product_elevator_pitch ?? '(소개 없음)']))
 
-// 지금의 승인 가드 — 승인 스크립트와 같은 함수·같은 변수(v71dm). 못 읽으면 확인 불가(§7.1).
+// 지금의 승인 가드 — 승인 스크립트와 같은 함수·같은 변수(v71dm). 머리글 집계 전용, 모집단을 거르지 않는다.
 const al = parseSourceAllowlist(process.env.AUTO_APPROVAL_SOURCES)
-if (!al.ok) { console.error(`✗ ${al.error}`); process.exit(2) }
-const guard = await applyApprovalGuard(sb, approved.map((r) => r.input_id), { allow: al.allow })
-if (!guard.ok) { console.error(`✗ 승인 가드 조회 실패: ${guard.error}`); process.exit(2) }
-const ruleOut = {}
+const guard = al.ok ? await applyApprovalGuard(sb, approved.map((r) => r.input_id), { allow: al.allow }) : al
 
-// 원문이 없는 행은 채점할 게 없다 — 몇 건인지 적는다(조용히 빼지 않는다).
-const pool = approved
-  .map((r) => ({ ...r, source_key: textById.get(r.input_id)?.source_key ?? '(소스 미상)', text: textById.get(r.input_id)?.raw_text ?? '' }))
-  .filter((r) => r.text.trim().length > 0)
-  .filter((r) => { const why = guard.reasonOf.get(r.input_id); if (why) ruleOut[why] = (ruleOut[why] ?? 0) + 1; return !why })
+// 원문이 없는 행만 뺀다(채점할 게 없다) — 몇 건인지 적는다(조용히 빼지 않는다).
+const { pool, dropped, ruleOut } = stagePopulation(approved, textById, guard.ok ? guard.reasonOf : new Map())
 const ruleOutN = Object.values(ruleOut).reduce((a, b) => a + b, 0)
-const dropped = approved.length - pool.length - ruleOutN
 const sample = quotaSample(pool, GRADUAL.sampleSize, GRADUAL.sampleQuotas, seed)
 
 const md = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\s*[\r\n]+\s*/g, ' ').trim()
@@ -92,7 +85,9 @@ const body = [
   `# 점진 해제 ${stage}단계 통과 표본 — ${until} KST 승인분 (단계 시작 ${since})`,
   '',
   `모집단 ${pool.length}건(${until} KST rr-v2 자동 승인 ∧ 사람 채점 전${dropped ? ` · 원문 없음 ${dropped}건 제외` : ''}) 에서 ${sample.length}장 — 배분 앱스토어 ${GRADUAL.sampleQuotas.appstore} · 구글 플레이 ${GRADUAL.sampleQuotas.googleplay} · 나머지 소스 ${GRADUAL.sampleSize - GRADUAL.sampleQuotas.appstore - GRADUAL.sampleQuotas.googleplay}(모자라면 다른 소스로 채움). seed=${seed}.`,
-  `지금 승인 규칙(가드 · AUTO_APPROVAL_SOURCES=${al.allow ? [...al.allow].join(',') : '없음'})이면 승인하지 않았을 글 ${ruleOutN}건 표본에서 제외${ruleOutN ? ` — ${dist(ruleOut)}${Object.keys(guard.devAudience).length ? ` · 개발자 대상 패턴 ${dist(guard.devAudience)}` : ''}` : ''}.`,
+  guard.ok
+    ? `참고(집계만 — 표본에서 빼지 않았다): 지금 승인 규칙(가드 · AUTO_APPROVAL_SOURCES=${al.allow ? [...al.allow].join(',') : '없음'})이면 승인하지 않았을 글 ${ruleOutN}건${ruleOutN ? ` — ${dist(ruleOut)}${Object.keys(guard.devAudience).length ? ` · 개발자 대상 패턴 ${dist(guard.devAudience)}` : ''}` : ''}.`
+    : `참고: 지금 승인 규칙 집계 확인 불가 — ${guard.error}`,
   `모집단 소스 분포: ${dist(countBySource(pool))}`,
   `표본 소스 분포: ${dist(countBySource(sample))}`,
   '',

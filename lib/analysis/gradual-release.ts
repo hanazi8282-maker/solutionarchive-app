@@ -227,6 +227,18 @@ export function quotaSample<T extends { input_id: string; source_key: string }>(
   return picked.sort(byId)
 }
 
+/**
+ * 단계 통과 표본의 모집단(v71dm, 순수) — 그날 승인된 글에서 **원문 없음만** 뺀다. 지금의 승인 가드가 막았을 글도 그대로 남는다
+ * (이미 승인된 글의 품질을 재는 표본이라, 거르면 오류가 숨는다). reasonOf 는 머리글 집계(ruleOut)에만 쓴다.
+ */
+export function stagePopulation<T extends { input_id: string }>(approved: readonly T[], textById: ReadonlyMap<string, { source_key?: string | null; raw_text?: string | null }>, reasonOf: ReadonlyMap<string, string>): { pool: (T & { source_key: string; text: string })[]; dropped: number; ruleOut: Record<string, number> } {
+  const rows = approved.map((r) => ({ ...r, source_key: textById.get(r.input_id)?.source_key ?? '(소스 미상)', text: textById.get(r.input_id)?.raw_text ?? '' }))
+  const pool = rows.filter((r) => r.text.trim().length > 0)
+  const ruleOut: Record<string, number> = {}
+  for (const r of pool) { const why = reasonOf.get(r.input_id); if (why) ruleOut[why] = (ruleOut[why] ?? 0) + 1 }
+  return { pool, dropped: approved.length - pool.length, ruleOut }
+}
+
 export type StageJudgement ={ state: 'pass' | 'stop' | 'insufficient'; scored: number; errors: number; reason: string }
 
 /** 단계 통과 판정(순수). 채점(scoreApproval≠null) 30건 이상 ∧ 오류 ≤4 = 통과, 오류 ≥5 = 멈춤, 그 밖 = 확인 불가. */
@@ -286,15 +298,16 @@ export type ApprovalGuardResult =
 
 /**
  * 자동 승인 소스 허용 목록(v71dm) — 리포 변수 AUTO_APPROVAL_SOURCES(쉼표로 구분한 source_key).
- *   없음·빈 값 → allow:null = 제한 없음(오늘까지의 동작 그대로).
+ *   없음(undefined·null)·정확히 '' → allow:null = 제한 없음(오늘까지의 동작 그대로).
  *   값이 있으면 그 소스의 글만 승인 대상, 나머지는 승인하지 않고 "사람 확인 대기"로 남는다.
- *   이상한 값(빈 항목·대문자·공백 섞인 키·문자열 아님) → ok:false = 확인 불가 → 승인 0건(§7.1). "제한 없음"으로 접지 않는다.
+ *   이상한 값(공백·줄바꿈만·빈 항목·대문자·공백 섞인 키·문자열 아님) → ok:false = 확인 불가 → 승인 0건(§7.1). "제한 없음"으로 접지 않는다.
  */
 export type SourceAllowlist = { ok: true; allow: ReadonlySet<string> | null } | { ok: false; error: string }
 export function parseSourceAllowlist(v: unknown): SourceAllowlist {
   if (v === undefined || v === null) return { ok: true, allow: null }
   if (typeof v !== 'string') return { ok: false, error: `AUTO_APPROVAL_SOURCES 확인 불가(문자열 아님) — 승인 0건` }
-  if (!v.trim()) return { ok: true, allow: null }
+  // 정확히 '' 만 "없음"이다(워크플로 `vars.X || ''`). 공백·줄바꿈만 있는 값은 누가 무언가 넣으려다 실패한 것 — 확인 불가.
+  if (v === '') return { ok: true, allow: null }
   const keys = v.split(',').map((k) => k.trim())
   const bad = keys.filter((k) => !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(k))
   if (bad.length) return { ok: false, error: `AUTO_APPROVAL_SOURCES 확인 불가(${JSON.stringify(v)} — 이상한 항목 ${JSON.stringify(bad)}) — 승인 0건` }

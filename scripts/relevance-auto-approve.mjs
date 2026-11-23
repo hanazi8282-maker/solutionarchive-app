@@ -72,12 +72,13 @@ if (gradualDry) {
     approvedToday += data.length
     if (data.length < 1000) break
   }
-  const pool = await loadApprovalPool(sb, since)
+  const pool = await loadApprovalPool(sb, since, process.env.AUTO_APPROVAL_SOURCES)
   if (!pool.ok) { console.error(`✗ ${pool.error}`); process.exit(2) }
   const fmt = (m) => Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'
   console.log(`\n# 점진 해제 드라이런 — ${today} KST (⚠️ 게이트가 열렸다고 가정한 계산이다. 실제 게이트: ${gate.on ? '열림' : '닫힘'} — ${gate.reason})`)
   console.log('DB 에 쓰지 않는다. 킬스위치 재걸림·단계 내 멈춤은 반영하지 않은 "단계 상한만" 계산이다.\n')
-  console.log(`풀(쿼리) ${pool.queried} → 완전 동의 ${pool.agreed} → 영역·소비재 제외 ${fmt(pool.scopeExcluded)} → 내용 가드 탈락 github_issues ${pool.guardDrop.github_issues} · 60자 미만 ${pool.guardDrop.short} · 본문 없음 ${pool.guardDrop.missing} → 가드 통과 ${pool.targets.length}`)
+  console.log(`풀(쿼리) ${pool.queried} → 완전 동의 ${pool.agreed} → 영역·소비재 제외 ${fmt(pool.scopeExcluded)} → 내용 가드 탈락 github_issues ${pool.guardDrop.github_issues} · 60자 미만 ${pool.guardDrop.short} · 본문 없음 ${pool.guardDrop.missing} → 허용 목록 밖 ${pool.guardDrop['source-not-allowed']} → 개발자 대상 ${pool.guardDrop['dev-audience']} ${JSON.stringify(pool.devAudience)} → 가드 통과 ${pool.targets.length}`)
+  console.log(`소스 허용 목록(AUTO_APPROVAL_SOURCES): ${pool.allow ? [...pool.allow].join(', ') : '없음(제한 없음)'}`)
   console.log(`가드 통과 소스 분포: ${fmt(countBySource(pool.targets))}`)
   console.log(`오늘(KST) 이미 rr-v2 승인: ${approvedToday}\n`)
   console.log('| 단계 | 상한 | 오늘 남은 한도 | 승인 | 승인 후 남는 풀 | 소스 분포 |')
@@ -140,9 +141,10 @@ if (release.limit === 0) {
   process.exit(0)
 }
 
-const pool = await loadApprovalPool(sb, gate.since)
+const pool = await loadApprovalPool(sb, gate.since, process.env.AUTO_APPROVAL_SOURCES)
 if (!pool.ok) { console.error(`✗ ${pool.error}`); process.exit(2) }
 log(`내용 가드 제외 ${pool.guardDrop.github_issues + pool.guardDrop.short + pool.guardDrop.missing}건 (github_issues·60자 미만·본문 없음)`)
+log(`소스 허용 목록 ${pool.allow ? [...pool.allow].join(',') : '없음(제한 없음)'} — 목록 밖 ${pool.guardDrop['source-not-allowed']}건 · 개발자 대상 ${pool.guardDrop['dev-audience']}건 ${JSON.stringify(pool.devAudience)} (승인 안 함, 사람 확인 대기)`)
 const excludedN = Object.values(pool.scopeExcluded).reduce((x, y) => x + y, 0)
 log(`대상 ${pool.targets.length}건 (쿼리 ${pool.queried}건 · 완전 동의 ${pool.agreed}건 · 영역 외/소비재 태그 제외 ${excludedN}건 ${JSON.stringify(pool.scopeExcluded)})`)
 const targets = selectRelease(pool.targets, release.limit)

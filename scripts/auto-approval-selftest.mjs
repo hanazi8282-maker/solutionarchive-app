@@ -111,7 +111,7 @@ ok(r2.marks.length === 1 && r2.marks[0].verdict === 'irrelevant' && r2.blank ===
 // 배선
 ok(/--audit/.test(src('scripts/relevance-grading-sample.mjs')) && /AUDIT_DAILY/.test(src('scripts/relevance-grading-sample.mjs')), '채점표가 감사 표본을 섞는다')
 // v71dc: 대상 조회는 lib/analysis/gradual-release.ts loadApprovalPool 로 옮겼다(--gradual-dry 와 같은 코드 경로). 집행 스크립트 + 그 파일을 함께 본다.
-ok(/autoApprovalGate/.test(src('scripts/relevance-auto-approve.mjs')) && /loadApprovalPool\(sb, gate\.since\)/.test(src('scripts/relevance-auto-approve.mjs')) && /isFullAgreement\(r, since\)/.test(src('lib/analysis/gradual-release.ts')), '집행 스크립트가 게이트·판정 함수를 쓴다')
+ok(/autoApprovalGate/.test(src('scripts/relevance-auto-approve.mjs')) && /loadApprovalPool\(sb, gate\.since, process\.env\.AUTO_APPROVAL_SOURCES\)/.test(src('scripts/relevance-auto-approve.mjs')) && /isFullAgreement\(r, since\)/.test(src('lib/analysis/gradual-release.ts')), '집행 스크립트가 게이트·판정 함수를 쓴다')
 {
   const ra = src('scripts/relevance-auto-approve.mjs') + src('lib/analysis/gradual-release.ts')
   ok(/select\('human_verdict, human_product_informative, human_graded_at'\)/.test(ra) && /\.eq\('auto_approval_rule', AUTO_APPROVAL_RULE\)/.test(ra), '감사 창: 정보 열 포함·rr-v2 행만')

@@ -21,6 +21,7 @@ import type { AuditRow, VerdictRow } from './auto-approval.ts'
 import { loadScope } from './approval-scope.ts'
 import type { ScopeReason } from './approval-scope.ts'
 import { rng } from './relevance-judge.ts'
+import { devAudienceReason } from './dev-audience-guard.ts'
 
 export const GRADUAL = {
   /**
@@ -155,7 +156,14 @@ export function decideRelease(i: ReleaseInput): ReleaseDecision {
 
 export interface PoolRow extends VerdictRow { source_key: string }
 
-/** 최신(judged_at 내림차순) 우선 + 소스별 라운드 로빈으로 limit 건(순수). 소스 순서는 각 소스의 최신 글 시각 내림차순. */
+/**
+ * 최신(judged_at 내림차순) 우선 + 소스별 라운드 로빈으로 limit 건(순수). 소스 순서는 각 소스의 최신 글 시각 내림차순.
+ *
+ * ⚠️ 라운드 로빈은 소스 크기를 보지 않는다(v71dm 관찰): 한 바퀴에 소스마다 1건씩 가져가므로, 한도가 차는 k 바퀴째에
+ *   글이 k 건 이상 남은 소스는 **모두 같은 k 건**(±1)을 받는다. 2026-11-23 2단계(2,000건)에서 작은 포럼 소스들이 각 ≈77건씩
+ *   승인된 것은 이 구조와 맞는다(2,000 ÷ 소스 ≈26 ≈ 77 — DB 로 소스 수를 다시 재지는 않았다). 풀에서 몫이 작은 소스도 앱스토어와 같은 수를 받아 승인분에서 과대 대표된다.
+ *   선택 규칙(상한·순서)은 바꾸지 않았다 — 대신 AUTO_APPROVAL_SOURCES(parseSourceAllowlist)로 승인 대상 소스 자체를 좁힌다.
+ */
 export function selectRelease<T extends { input_id: string; source_key: string; judged_at?: string | null }>(rows: readonly T[], limit: number): T[] {
   if (!(limit > 0)) return []
   const t = (r: T) => { const x = Date.parse(r.judged_at ?? ''); return Number.isFinite(x) ? x : -Infinity }
@@ -268,21 +276,41 @@ export async function loadReleaseContext(sb: Sb, opts: { stageSince: Date; today
   return { ok: true, approvedToday: today.data.length, trips, stageAudits: audits.data }
 }
 
-export type GuardDrop = { github_issues: number; short: number; missing: number }
+export type GuardDrop = { github_issues: number; short: number; missing: number; 'source-not-allowed': number; 'dev-audience': number }
 /** 승인 가드에서 빠지는 사유. 'missing' = 글을 못 읽었다(확인 불가). */
 export type GuardReason = ScopeReason | keyof GuardDrop
 
 export type ApprovalGuardResult =
-  | { ok: true; reasonOf: Map<string, GuardReason>; sourceOf: Map<string, string>; scopeExcluded: Record<string, number>; guardDrop: GuardDrop }
+  | { ok: true; reasonOf: Map<string, GuardReason>; sourceOf: Map<string, string>; scopeExcluded: Record<string, number>; guardDrop: GuardDrop; devAudience: Record<string, number> }
   | { ok: false; error: string }
+
+/**
+ * 자동 승인 소스 허용 목록(v71dm) — 리포 변수 AUTO_APPROVAL_SOURCES(쉼표로 구분한 source_key).
+ *   없음·빈 값 → allow:null = 제한 없음(오늘까지의 동작 그대로).
+ *   값이 있으면 그 소스의 글만 승인 대상, 나머지는 승인하지 않고 "사람 확인 대기"로 남는다.
+ *   이상한 값(빈 항목·대문자·공백 섞인 키·문자열 아님) → ok:false = 확인 불가 → 승인 0건(§7.1). "제한 없음"으로 접지 않는다.
+ */
+export type SourceAllowlist = { ok: true; allow: ReadonlySet<string> | null } | { ok: false; error: string }
+export function parseSourceAllowlist(v: unknown): SourceAllowlist {
+  if (v === undefined || v === null) return { ok: true, allow: null }
+  if (typeof v !== 'string') return { ok: false, error: `AUTO_APPROVAL_SOURCES 확인 불가(문자열 아님) — 승인 0건` }
+  if (!v.trim()) return { ok: true, allow: null }
+  const keys = v.split(',').map((k) => k.trim())
+  const bad = keys.filter((k) => !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(k))
+  if (bad.length) return { ok: false, error: `AUTO_APPROVAL_SOURCES 확인 불가(${JSON.stringify(v)} — 이상한 항목 ${JSON.stringify(bad)}) — 승인 0건` }
+  return { ok: true, allow: new Set(keys) }
+}
 
 /**
  * 승인 가드 한 벌(v71dl) — **승인 대상 풀(loadApprovalPool)과 킬스위치 감사 창(loadGuardedAuditWindow)이 이 함수 하나를 쓴다.**
  * 조건을 복사하지 않는다(셀프테스트가 정적으로 고정): 영역 밖(area_code 'out-*')·소비재 태그 = loadScope/outOfScopeReason,
  * github_issues·본문 60자 미만·글 못 읽음 = passesRrV2ContentGuard. 사유가 없는 id 가 가드 통과다.
  * 어느 표든 못 읽으면 ok:false(§7.1) — 호출부가 승인 0건·게이트 닫힘으로 처리한다.
+ * v71dm: 내용 가드 통과분에 두 가지를 더 본다 — opts.allow(소스 허용 목록, null = 제한 없음) 밖이면 'source-not-allowed',
+ *   devAudienceReason(개발자·관리자 대상 글, 앱스토어·구글 플레이 제외)이 걸리면 'dev-audience'(패턴 id 는 devAudience 에 집계).
+ *   둘 다 AUDIT_WINDOW_EXCLUDE 에 넣지 않는다 — 감사 창은 그 행을 그대로 센다(킬스위치를 느슨하게 만들지 않는다).
  */
-export async function applyApprovalGuard(sb: Sb, inputIds: readonly string[]): Promise<ApprovalGuardResult> {
+export async function applyApprovalGuard(sb: Sb, inputIds: readonly string[], opts: { allow?: ReadonlySet<string> | null } = {}): Promise<ApprovalGuardResult> {
   const ids = [...new Set(inputIds)]
   // L-20b: 영역 외(out-*)·소비재 태그 제외.
   const scope = await loadScope(sb, ids)
@@ -296,29 +324,42 @@ export async function applyApprovalGuard(sb: Sb, inputIds: readonly string[]): P
     if (error) return { ok: false, error: `내용 가드 조회 실패: ${error.message}` }
     for (const x of data ?? []) textById.set(x.id, x)
   }
-  const guardDrop: GuardDrop = { github_issues: 0, short: 0, missing: 0 }
+  const guardDrop: GuardDrop = { github_issues: 0, short: 0, missing: 0, 'source-not-allowed': 0, 'dev-audience': 0 }
+  const devAudience: Record<string, number> = {}
   const sourceOf = new Map<string, string>()
+  const allow = opts.allow ?? null
   for (const id of scoped) {
     const x = textById.get(id) ?? {}
-    if (passesRrV2ContentGuard(x)) { sourceOf.set(id, String(x.source_key)); continue }
-    // 사유 분류(통과 판정은 위 한 줄뿐 — 여기는 집계용 이름 붙이기).
-    const why: keyof GuardDrop = x.source_key == null || x.raw_text == null ? 'missing' : x.source_key === 'github_issues' ? 'github_issues' : 'short'
+    let why: keyof GuardDrop | null = null
+    if (!passesRrV2ContentGuard(x)) {
+      // 사유 분류(통과 판정은 위 한 줄뿐 — 여기는 집계용 이름 붙이기).
+      why = x.source_key == null || x.raw_text == null ? 'missing' : x.source_key === 'github_issues' ? 'github_issues' : 'short'
+    } else if (allow !== null && !allow.has(String(x.source_key))) {
+      why = 'source-not-allowed'
+    } else {
+      const dev = devAudienceReason(x.raw_text, x.source_key)
+      if (dev) { why = 'dev-audience'; devAudience[dev] = (devAudience[dev] ?? 0) + 1 }
+    }
+    if (why === null) { sourceOf.set(id, String(x.source_key)); continue }
     guardDrop[why]++
     reasonOf.set(id, why)
   }
   const scopeExcluded = [...scope.excluded.values()].reduce<Record<string, number>>((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {})
-  return { ok: true, reasonOf, sourceOf, scopeExcluded, guardDrop }
+  return { ok: true, reasonOf, sourceOf, scopeExcluded, guardDrop, devAudience }
 }
 
 export type PoolResult =
-  | { ok: true; queried: number; agreed: number; scopeExcluded: Record<string, number>; guardDrop: GuardDrop; targets: PoolRow[] }
+  | { ok: true; queried: number; agreed: number; scopeExcluded: Record<string, number>; guardDrop: GuardDrop; devAudience: Record<string, number>; allow: ReadonlySet<string> | null; targets: PoolRow[] }
   | { ok: false; error: string }
 
 /**
  * 승인 대상 풀(읽기 전용) — relevance-auto-approve.mjs 의 실제 승인과 --gradual-dry 가 **같은 이 함수**를 쓴다.
- * 조건은 DB 쿼리와 isFullAgreement 두 번, 그다음 승인 가드(applyApprovalGuard — 영역·소비재·내용).
+ * 조건은 DB 쿼리와 isFullAgreement 두 번, 그다음 승인 가드(applyApprovalGuard — 영역·소비재·내용·소스 허용 목록·개발자 대상).
+ * sources = AUTO_APPROVAL_SOURCES 원값(호출부가 process.env 를 그대로 넘긴다). 확인 불가면 DB 를 읽기 전에 ok:false(승인 0건).
  */
-export async function loadApprovalPool(sb: Sb, since: Date): Promise<PoolResult> {
+export async function loadApprovalPool(sb: Sb, since: Date, sources?: string | null): Promise<PoolResult> {
+  const al = parseSourceAllowlist(sources)
+  if (!al.ok) return { ok: false, error: `${al.error} — 승인하지 않는다` }
   const rows: VerdictRow[] = []
   for (let from = 0; ; from += 1000) {
     const { data, error } = await sb
@@ -334,10 +375,10 @@ export async function loadApprovalPool(sb: Sb, since: Date): Promise<PoolResult>
     if (data.length < 1000) break
   }
   const agreed = rows.filter((r) => isFullAgreement(r, since))
-  const g = await applyApprovalGuard(sb, agreed.map((r) => r.input_id))
+  const g = await applyApprovalGuard(sb, agreed.map((r) => r.input_id), { allow: al.allow })
   if (!g.ok) return { ok: false, error: `${g.error} — 승인하지 않는다` }
   const targets: PoolRow[] = agreed.filter((r) => !g.reasonOf.has(r.input_id)).map((r) => ({ ...r, source_key: g.sourceOf.get(r.input_id) as string }))
-  return { ok: true, queried: rows.length, agreed: agreed.length, scopeExcluded: g.scopeExcluded, guardDrop: g.guardDrop, targets }
+  return { ok: true, queried: rows.length, agreed: agreed.length, scopeExcluded: g.scopeExcluded, guardDrop: g.guardDrop, devAudience: g.devAudience, allow: al.allow, targets }
 }
 
 /**

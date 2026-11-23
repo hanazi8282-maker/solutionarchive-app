@@ -303,7 +303,7 @@ const sh = (c, n) => { if (c) total++; else { fail++; console.error(`✗ ${n}`) 
 // (h) 승인 스크립트 정적 순서: 감사 창(가드) → 게이트 닫힘 분기 → 점진 해제 0건 분기 → 풀 조회 → UPDATE. 런키 접두사 일치.
 const src = readFileSync(join(ROOT, 'scripts/relevance-auto-approve.mjs'), 'utf8')
 const at0 = (s) => src.indexOf(s)
-const order = ['loadGuardedAuditWindow(sb)', 'const gate = autoApprovalGate(', 'if (!gate.on) {', 'const release = decideRelease(', 'if (release.limit === 0) {', 'loadApprovalPool(sb, gate.since)', 'selectRelease(pool.targets, release.limit)', '.update({ auto_approved_at']
+const order = ['loadGuardedAuditWindow(sb)', 'const gate = autoApprovalGate(', 'if (!gate.on) {', 'const release = decideRelease(', 'if (release.limit === 0) {', 'loadApprovalPool(sb, gate.since, process.env.AUTO_APPROVAL_SOURCES)', 'selectRelease(pool.targets, release.limit)', '.update({ auto_approved_at']
 const pos = order.map(at0)
 sh(pos.every((p, i) => p > 0 && (i === 0 || p > pos[i - 1])), `(h) 승인 스크립트 순서: ${order.join(' → ')}`)
 sh(src.split('.update(').length === 2, '(h) 승인 스크립트의 UPDATE 는 한 곳뿐(점진 해제 선택을 거친다)')
@@ -311,7 +311,7 @@ sh(at0('runKey: `relevance-auto-approve-${kstDate()}') > 0 && real.APPROVE_RUN_P
 sh(!/stepKey: 'gate'[^\n]*status: 'skipped'/.test(src) && /stepKey: 'gradual'/.test(src), "(h) 점진 해제 0건 기록은 'gate' 가 아닌 'gradual' 스텝")
 sh(/parseStageSince\(process\.env\.GRADUAL_RELEASE_STAGE_SINCE, todayKst, now\)/.test(src) && /stageSince: process\.env\.GRADUAL_RELEASE_STAGE_SINCE, todayKst, now, ctx/.test(src), '(h) 승인 스크립트가 STAGE_SINCE 를 현재 시각과 함께 판정')
 const gd = src.slice(at0('if (gradualDry) {'), at0('const tracker ='))
-sh(gd.length > 0 && !/\.update\(|createTracker|recordStatusLog|tracker\./.test(gd) && gd.includes('loadApprovalPool(sb, since)') && gd.includes('[1, 2, 3, 4, 5]'), '(h) --gradual-dry 는 tracker 전에 끝나고 쓰기 없음·같은 풀 함수·5단계까지')
+sh(gd.length > 0 && !/\.update\(|createTracker|recordStatusLog|tracker\./.test(gd) && gd.includes('loadApprovalPool(sb, since, process.env.AUTO_APPROVAL_SOURCES)') && gd.includes('[1, 2, 3, 4, 5]'), '(h) --gradual-dry 는 tracker 전에 끝나고 쓰기 없음·같은 풀 함수·5단계까지')
 const wf = readFileSync(join(ROOT, '.github/workflows/nightly-relevance.yml'), 'utf8')
 sh(['GRADUAL_RELEASE_ENABLED', 'GRADUAL_RELEASE_STAGE', 'GRADUAL_RELEASE_STAGE_SINCE'].every((k) => wf.includes(`${k}: \${{ vars.${k} || '' }}`)), '(h) 워크플로가 세 변수를 vars 로 읽는다(기본 빈값=꺼짐)')
 const bc = readFileSync(join(ROOT, '.github/workflows/build-check.yml'), 'utf8')
@@ -363,7 +363,7 @@ const KEEP = new Set(Object.values(FILES))
 const orig = Object.fromEntries(Object.entries(FILES).map(([k, f]) => [k, readFileSync(join(LIB, f), 'utf8')]))
 const base = mkdtempSync(join(tmpdir(), 'gradual-mut-'))
 const mutants = [
-  ['G', '내용 가드 우회', 'if (passesRrV2ContentGuard(x))', 'if (true)'],
+  ['G', '내용 가드 우회', 'if (!passesRrV2ContentGuard(x)) {', 'if (false) {'],
   ['G', '기능 꺼짐 안전 분기 제거', 'if (!base.enabled) return', 'if (false) return'],
   ['G', '오늘 승인 수 무시', 'const limit = remainingToday(cap, approvedToday)', 'const limit = cap'],
   ['G', '재걸림 무시', 'if (trips.length > 0) {', 'if (false) {'],

@@ -44,5 +44,7 @@ jobs:
           GRADUAL_RELEASE_ENABLED: ${{ vars.GRADUAL_RELEASE_ENABLED || '' }}
           GRADUAL_RELEASE_STAGE: ${{ vars.GRADUAL_RELEASE_STAGE || '' }}
           GRADUAL_RELEASE_STAGE_SINCE: ${{ vars.GRADUAL_RELEASE_STAGE_SINCE || '' }}
+          # v71dm: 자동 승인 소스 허용 목록(쉼표 구분 source_key). 빈 값 = 제한 없음. 이상한 값 = 승인 0건.
+          AUTO_APPROVAL_SOURCES: ${{ vars.AUTO_APPROVAL_SOURCES || '' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: node scripts/relevance-auto-approve.mjs

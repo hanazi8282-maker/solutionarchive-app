@@ -22,6 +22,8 @@ import { loadScope } from './approval-scope.ts'
 import type { ScopeReason } from './approval-scope.ts'
 import { rng } from './relevance-judge.ts'
 import { devAudienceReason } from './dev-audience-guard.ts'
+import { ENTRY_RULES_VERSION, entryRulesMode, entryVerdict, productNameFromUrl } from './entry-rules.ts'
+import type { EntryMode } from './entry-rules.ts'
 
 export const GRADUAL = {
   /**
@@ -369,16 +371,57 @@ export async function applyApprovalGuard(sb: Sb, inputIds: readonly string[], op
   return { ok: true, reasonOf, sourceOf, scopeExcluded, guardDrop, devAudience }
 }
 
+/** 입구 규칙(v71dx) 집계. 꺼져 있으면 PoolResult 에 아예 없다(동작·로그 그대로). */
+export type EntryRuleStats = { mode: Exclude<EntryMode, 'off'>; version: string; checked: number; blocked: number; blockedBySource: Record<string, number>; error?: string }
+
 export type PoolResult =
-  | { ok: true; queried: number; agreed: number; scopeExcluded: Record<string, number>; guardDrop: GuardDrop; devAudience: Record<string, number>; allow: ReadonlySet<string> | null; targets: PoolRow[] }
+  | { ok: true; queried: number; agreed: number; scopeExcluded: Record<string, number>; guardDrop: GuardDrop; devAudience: Record<string, number>; allow: ReadonlySet<string> | null; targets: PoolRow[]; entryRule?: EntryRuleStats }
   | { ok: false; error: string }
+
+/**
+ * 입구 규칙(v71dx) — 가드 통과분을 **좁히기만** 한다. mode 'off' 면 호출되지 않는다.
+ * shadow: 판정·집계만, targets 그대로(조회 실패도 기록만). enforce: 막힌 글을 뺀다, 조회 실패면 ok:false(확인 불가 → 승인 0건, §7.1).
+ * 제품명은 analysis_projects.competitor_url 호스트 첫 마디(productNameFromUrl) — 모르면 제품 비중 신호 없이 판정한다.
+ */
+async function applyEntryRules(sb: Sb, targets: PoolRow[], mode: Exclude<EntryMode, 'off'>): Promise<{ ok: true; targets: PoolRow[]; stats: EntryRuleStats } | { ok: false; error: string }> {
+  const stats: EntryRuleStats = { mode, version: ENTRY_RULES_VERSION, checked: 0, blocked: 0, blockedBySource: {} }
+  const ids = targets.map((r) => r.input_id)
+  const text = new Map<string, { raw_text?: string | null; project_id?: string | null }>()
+  const pname = new Map<string, string | null>()
+  let error: string | null = null
+  for (let i = 0; i < ids.length && !error; i += 200) {
+    const { data, error: e } = await sb.from('analysis_inputs').select('id, raw_text, project_id').in('id', ids.slice(i, i + 200))
+    if (e) error = `입구 규칙 원문 조회 실패: ${e.message}`
+    for (const x of data ?? []) text.set(x.id, x)
+  }
+  const pids = [...new Set([...text.values()].map((x) => x.project_id).filter((x): x is string => !!x))]
+  for (let i = 0; i < pids.length && !error; i += 100) {
+    const { data, error: e } = await sb.from('analysis_projects').select('id, competitor_url').in('id', pids.slice(i, i + 100))
+    if (e) error = `입구 규칙 프로젝트 조회 실패: ${e.message}`
+    for (const x of data ?? []) pname.set(x.id, productNameFromUrl(x.competitor_url))
+  }
+  if (error) {
+    if (mode === 'enforce') return { ok: false, error }
+    return { ok: true, targets, stats: { ...stats, error } }
+  }
+  const keep: PoolRow[] = []
+  for (const r of targets) {
+    const x = text.get(r.input_id)
+    const v = entryVerdict(x?.raw_text, r.source_key, x?.project_id ? pname.get(x.project_id) ?? null : null)
+    stats.checked++
+    if (v.pass) { keep.push(r); continue }
+    stats.blocked++
+    stats.blockedBySource[r.source_key] = (stats.blockedBySource[r.source_key] ?? 0) + 1
+  }
+  return { ok: true, targets: mode === 'enforce' ? keep : targets, stats }
+}
 
 /**
  * 승인 대상 풀(읽기 전용) — relevance-auto-approve.mjs 의 실제 승인과 --gradual-dry 가 **같은 이 함수**를 쓴다.
  * 조건은 DB 쿼리와 isFullAgreement 두 번, 그다음 승인 가드(applyApprovalGuard — 영역·소비재·내용·소스 허용 목록·개발자 대상).
  * sources = AUTO_APPROVAL_SOURCES 원값(호출부가 process.env 를 그대로 넘긴다). 확인 불가면 DB 를 읽기 전에 ok:false(승인 0건).
  */
-export async function loadApprovalPool(sb: Sb, since: Date, sources?: string | null): Promise<PoolResult> {
+export async function loadApprovalPool(sb: Sb, since: Date, sources?: string | null, entryMode: EntryMode = entryRulesMode(typeof process === 'undefined' ? null : process.env)): Promise<PoolResult> {
   const al = parseSourceAllowlist(sources)
   if (!al.ok) return { ok: false, error: `${al.error} — 승인하지 않는다` }
   const rows: VerdictRow[] = []
@@ -399,7 +442,12 @@ export async function loadApprovalPool(sb: Sb, since: Date, sources?: string | n
   const g = await applyApprovalGuard(sb, agreed.map((r) => r.input_id), { allow: al.allow })
   if (!g.ok) return { ok: false, error: `${g.error} — 승인하지 않는다` }
   const targets: PoolRow[] = agreed.filter((r) => !g.reasonOf.has(r.input_id)).map((r) => ({ ...r, source_key: g.sourceOf.get(r.input_id) as string }))
-  return { ok: true, queried: rows.length, agreed: agreed.length, scopeExcluded: g.scopeExcluded, guardDrop: g.guardDrop, devAudience: g.devAudience, allow: al.allow, targets }
+  const base = { ok: true as const, queried: rows.length, agreed: agreed.length, scopeExcluded: g.scopeExcluded, guardDrop: g.guardDrop, devAudience: g.devAudience, allow: al.allow, targets }
+  // v71dx 입구 규칙 — 꺼져 있으면(기본) 여기서 끝, 결과는 v71dm 과 같다.
+  if (entryMode === 'off') return base
+  const er = await applyEntryRules(sb, targets, entryMode)
+  if (!er.ok) return { ok: false, error: `${er.error} — 승인하지 않는다` }
+  return { ...base, targets: er.targets, entryRule: er.stats }
 }
 
 /**

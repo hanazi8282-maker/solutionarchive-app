@@ -31,8 +31,12 @@ const A_VERSION_COLON = /\bmy\s+(?:[\w.+-]+\s+){1,3}version\s+is[ \t]*:/i
 const A_PATTERNS: ReadonlyArray<readonly [string, RegExp]> = [
   // 줄 하나가 "Your software" 뿐인 양식 머리글(문장 속 "your software is great" 는 아니다)
   ['A-header-line', /^[ \t]*your software[ \t]*:?[ \t]*$/im],
-  ['A-search-first', /\bfirst,?\s+search\s+the\s+help\s+docs\s+and\s+this\s+forum\b/i],
 ]
+// 양식 안내문 "First, search the help docs and this forum" — 머리글만으로는 걸지 않는다(v71dp 남헌 결정: 양식만 쓴 사용자 글이 막혔다).
+//   같은 글에 버전 표지(아래 VERSION_TOKEN, B 와 같은 정의) ∧ 고장 표현(A_FAILURE)이 둘 다 있을 때만(버그 신고) 'A-search-first'.
+const A_SEARCH_FIRST = /\bfirst,?\s+search\s+the\s+help\s+docs\s+and\s+this\s+forum\b/i
+// 고장 표현 — 짧고 보수적인 목록(대소문자 무시·단어 경계). 이 머리글과 함께일 때만 쓴다.
+const A_FAILURE = /\b(?:fail(?:s|ed)?\s+to|does(?:n't|\s+not)\s+work|not\s+working|broken|errors?|crash(?:es|ed|ing)?|exceptions?|wrong|bugs?|regression|stack\s?trace|can't|cannot|unable\s+to)(?![\w'])/i
 
 // B — 진짜 버전 표지 + 고장 표현. 버전 표지 = v 접두(v2.1) · 세 마디(2.14.1, 각 1~3자리 — 날짜 23.11.2026 제외) ·
 //   바로 앞에 version/upgrade/update/release 낱말(“upgraded to 5.3”). 가격·평점(4.99 to 9.99, 4.5 stars)은 버전이 아니다.
@@ -88,6 +92,7 @@ export function devAudienceReason(raw: string | null | undefined, sourceKey: str
   const text = raw.slice(0, MAX_SCAN_CHARS)
   if (A_VERSION_COLON.test(text) || (text.match(A_VERSION_LINE) ?? []).length >= 2) return 'A-version-header'
   for (const [id, re] of A_PATTERNS) if (re.test(text)) return id
+  if (A_SEARCH_FIRST.test(text) && VERSION_TOKEN.test(text) && A_FAILURE.test(text)) return 'A-search-first'
   if (VERSION_TOKEN.test(text)) {
     if (B_STRONG.some((re) => re.test(text))) return 'B-version-failure'
     if (B_WEAK.filter((re) => re.test(text)).length >= 2) return 'B-version-failure'

@@ -224,7 +224,7 @@ async function checks(M, A, { quiet = false } = {}) {
   })
   const cBefore = await M.loadReleaseContext(fake(kt('2026-12-10T01:00:00.000Z')), { stageSince: sinceT, todayKst: TODAY })
   ok(cBefore.ok && cBefore.trips.length === 0, '(k) 조회: 시각 STAGE_SINCE 이전 blocked(같은 날) 는 안 센다')
-  ok(cBefore.ok && M.decideRelease({ ...on, stage: '2', stageSince: T, ctx: cBefore }).limit === 1998, '(k) 조회→판정: 시각 이전 blocked 만 있으면 2단계 그대로(오늘 이미 2건 → 1998)')
+  ok(cBefore.ok && M.decideRelease({ ...on, stage: '2', stageSince: T, ctx: cBefore }).limit === 1999, '(k) 조회→판정: 시각 이전 blocked 만 있으면 2단계 그대로(STAGE_SINCE 이후 승인 1건만 센다 → 1999 — v71ds, 이전 02:00 승인 1건은 안 센다)')
   const cAfter = await M.loadReleaseContext(fake(kt('2026-12-10T04:00:00.000Z')), { stageSince: sinceT, todayKst: TODAY })
   ok(cAfter.ok && cAfter.trips.length === 1 && cAfter.trips[0] === '2026-12-10T04:00:00.000Z', '(k) 조회: 시각 전에 시작한 그날 실행이 시각 뒤에 다시 막히면 센다')
   ok(cAfter.ok && M.decideRelease({ ...on, stage: '2', stageSince: T, ctx: cAfter }).limit === 0, '(k) 조회→판정: 시각 이후 blocked → 0건')

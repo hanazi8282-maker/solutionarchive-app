@@ -53,7 +53,8 @@ function fake(tables, fail = []) {
 const POS = {
   'A-version-header': 'Your software\nMy Acme version is: 4.1.0\nMy PHP version is: 8.2\nDescribe the problem: the scheduler does nothing at all.',
   'A-header-line': 'Your software\nWhat happens: nothing loads when I open the dashboard page.\nSteps: click save.',
-  'A-search-first': 'First, search the help docs and this forum. Then describe what you see below in as much detail as possible.',
+  // v71dp: 머리글만으로는 안 걸린다 — 버전 표지 + 고장 표현이 같이 있어야(지어낸 글)
+  'A-search-first': 'First, search the help docs and this forum. On v3.2 the export button is broken and nothing happens.',
   'B-version-failure': 'Upgraded to 2.14.1 and now the import page throws an exception, stack trace attached below for reference.',
   'C-source-phrase': 'I went through the plugin source and the sync loop never clears its cache when the vault reloads.',
   'C-code-tokens': 'The culprit is in src/sync/worker.js where Cache::flush is skipped and resetState() never runs on reload.',
@@ -117,7 +118,16 @@ async function checks(G, D) {
   ok(D.devAudienceReason('Look at helper.ts and foo() here, that is the whole thing really and nothing else.', 'hackernews') === null, '(b) C 코드 토큰 2개(<3)는 안 걸림')
   ok(D.devAudienceReason('Open the config file to change the theme color, it is easy to find and well documented.', 'hackernews') === null, '(b) D 약한 신호 1개는 안 걸림')
   ok(D.devAudienceReason('Open the config file, add a cron job for reminders and chmod the folder.', 'hackernews') === 'D-ops-signals', '(b) D 약한 신호 3개 → 걸림')
-  ok(D.devAudienceReason(null, 'hackernews') === null && D.devAudienceReason('', 'hackernews') === null, '(b) 글 없음 → null(내용 가드가 따로 막는다)')
+  // v71dp — A-search-first 는 머리글 ∧ 버전 표지 ∧ 고장 표현일 때만(지어낸 글)
+  const SF = 'First, search the help docs and this forum. '
+  ok(D.devAudienceReason(SF + 'I love how calm the writing view feels, it helps me focus every morning.', 'obsidian_forum') === null, '(b) A-search-first 머리글만 → 안 걸림')
+  ok(D.devAudienceReason(SF + 'Since I moved here the export is broken and I cannot share notes anymore.', 'obsidian_forum') === null, '(b) A-search-first 머리글 + 고장 표현만(버전 없음) → 안 걸림')
+  ok(D.devAudienceReason(SF + 'I updated to 1.4 last week and the new theme looks lovely on my tablet.', 'obsidian_forum') === null, '(b) A-search-first 머리글 + 버전만(고장 없음) → 안 걸림')
+  ok(D.devAudienceReason(SF + 'Running 2.5.1 the sync fails to start on my phone.', 'obsidian_forum') === 'A-search-first', '(b) A-search-first 머리글 + 세 마디 버전 + fails to → 걸림')
+  ok(D.devAudienceReason(SF + 'After the update to v1.9 I cannot open the vault.', 'obsidian_forum') === 'A-search-first' && D.devAudienceReason(SF + 'After the update to v1.9 I cannot open the vault.', 'appstore') === null, '(b) A-search-first 버전+cannot → 걸림, 앱스토어 면제')
+  ok(D.devAudienceReason(SF + 'Version 4.0 shows the wrongful date in the calendar header.', 'obsidian_forum') === null, '(b) A 고장 표현은 단어 경계(wrongful ≠ wrong)')
+  ok(D.devAudienceReason('On v3.2 the export button is broken and nothing happens.', 'obsidian_forum') === null && D.devAudienceReason(POS_B_WEAK, 'obsidian_forum') === 'B-version-failure', '(b) 머리글 없이 버전+고장 하나 → A 아님(B 규칙 그대로: 약한 하나는 안 걸리고 둘이면 B)')
+  ok(D.devAudienceReason(null, 'hackernews') === null &&D.devAudienceReason('', 'hackernews') === null, '(b) 글 없음 → null(내용 가드가 따로 막는다)')
   ok(D.CODE_TOKEN_MIN === 3 && D.OPS_SIGNAL_MIN === 3 && D.DEV_AUDIENCE_EXEMPT_SOURCES.size === 2, '(b) 문턱 상수 3·3·면제 2곳')
   // 10k자 적대적 글 — 역추적 폭주가 없어야 한다.
   const evil = ['my ' + 'a '.repeat(5000), '1.'.repeat(5000), 'a/'.repeat(5000), 'I went through the ' + 'x '.repeat(5000), 'x'.repeat(10000), 'Your software '.repeat(700), ('foo() ' + 'Bar::baz ').repeat(600), 'v1.2 '.repeat(2000) + 'fails to', ' \t'.repeat(5000), 'a-'.repeat(10000), 'a.'.repeat(10000), '-a'.repeat(10000), '1/'.repeat(10000), 'a_b.'.repeat(5000), 'ab/'.repeat(7000) + '!', 'A::'.repeat(7000), 'version '.repeat(2500), 'my x '.repeat(4000)]
@@ -230,6 +240,11 @@ const mutants = [
   ['D', 'B 느슨한 버전(가격·날짜도 버전)', 'const VERSION_TOKEN = /', 'const VERSION_TOKEN = /\\d+\\.\\d+|'],
   ['D', 'regression 을 강한 표현으로', '[/\\bstack\\s?trace\\b/i, /\\btraceback\\b/i]', '[/\\bstack\\s?trace\\b/i, /\\btraceback\\b/i, /\\bregression\\b/i]'],
   ['D', '날짜를 경로 토큰으로 셈', 'if (!/[A-Za-z]/.test(m)) continue', ''],
+  ['D', 'A-search-first 머리글만으로 걸림(v71dp 이전)', '(A_SEARCH_FIRST.test(text) && VERSION_TOKEN.test(text) && A_FAILURE.test(text))', '(A_SEARCH_FIRST.test(text))'],
+  ['D', 'A-search-first 버전 조건 빠짐', '(A_SEARCH_FIRST.test(text) && VERSION_TOKEN.test(text) && A_FAILURE.test(text))', '(A_SEARCH_FIRST.test(text) && A_FAILURE.test(text))'],
+  ['D', 'A-search-first 고장 조건 빠짐', '(A_SEARCH_FIRST.test(text) && VERSION_TOKEN.test(text) && A_FAILURE.test(text))', '(A_SEARCH_FIRST.test(text) && VERSION_TOKEN.test(text))'],
+  ['D', 'A-search-first 규칙 없음', "if (A_SEARCH_FIRST.test(text) && VERSION_TOKEN.test(text) && A_FAILURE.test(text)) return 'A-search-first'", ''],
+  ['D', 'A 고장 표현 단어 경계 없음', "|unable\\s+to)(?![\\w'])/i", '|unable\\s+to)/i'],
   ['D', '8,000자 상한 없음', 'const text = raw.slice(0, MAX_SCAN_CHARS)', 'const text = raw'],
   ['G', '공백만 = 제한 없음', "if (v === '') return { ok: true, allow: null }", "if (!v.trim()) return { ok: true, allow: null }"],
   ['G', '표본이 가드로 거름', 'const pool = rows.filter((r) => r.text.trim().length > 0)', 'const pool = rows.filter((r) => r.text.trim().length > 0 && !reasonOf.has(r.input_id))'],

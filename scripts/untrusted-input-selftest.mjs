@@ -105,8 +105,6 @@ export const DELEGATES = {
   'scripts/t2-approval-eval.mjs': ['lib/analysis/relevance-judge.ts', 'lib/analysis/second-opinion.ts'],
   'scripts/shadow-rejudge-v71c.mjs': ['lib/analysis/relevance-judge.ts', 'lib/analysis/second-opinion.ts'],
   'scripts/relevance-translate.mjs': ['lib/relevance-feedback/translate.ts'],
-  // v71dm 비교 — system 은 운영 v24 프롬프트(relevance-judge.ts, 문구 포함)에서 기준 블록만 바꿔 끼운다.
-  'scripts/v26-compare.mjs': ['lib/analysis/relevance-judge.ts'],
   // 경쟁사 프로필 — 프롬프트(PROFILE_SYSTEM_PROMPT)는 순수 모듈이 만들고 DB 모듈이 부른다.
   'lib/analysis/competitor-profile-db.ts': ['lib/analysis/competitor-profile.ts'],
 }

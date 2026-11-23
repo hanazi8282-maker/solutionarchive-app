@@ -201,7 +201,11 @@ export function capacityGuard(input: { enabled: string | null | undefined; since
     : { clamp: false, reason: `감사 정밀도 ${pct(k.n - k.errors, k.n)}(${k.errors}/${k.n} 오류) ≥ ${CAPACITY_GUARD.minPrecision * 100}%` }
 }
 
-/** 가드 입력 감사 창 — relevance-auto-approve.mjs 와 같은 조회(rr-v2 승인 ∧ 사람 채점). 오류는 null(확인 불가). */
+/**
+ * 용량 가드 입력 감사 창(rr-v2 승인 ∧ 사람 채점). 오류는 null(확인 불가).
+ * ⚠️ v71dl 부터 승인 스크립트의 킬스위치는 승인 가드로 거른 창(gradual-release.ts loadGuardedAuditWindow)을 쓴다. 이 함수는 거르지 않는다 —
+ *    용량 가드(capacityGuard)가 킬스위치보다 넓은(보수적인) 창으로 판정한다. 같게 맞출지는 사람 판단으로 남겼다.
+ */
 export async function loadAuditWindow(sb: { from: (t: string) => any }): Promise<AuditRow[] | null> {
   const { data, error } = await sb.from('review_relevance_verdicts')
     .select('human_verdict, human_product_informative, human_graded_at')

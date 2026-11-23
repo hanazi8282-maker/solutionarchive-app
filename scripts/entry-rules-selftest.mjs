@@ -136,10 +136,45 @@ async function checks(E, G) {
   const j = JSON.parse(JSON.stringify(E.ENTRY_RULES))
   ok(j.version === E.ENTRY_RULES_VERSION && j.thresholds.github_issues === null && typeof j.thresholds.hackernews === 'number' && j.requireAnchoredMention.includes('hackernews'), '(d) 설정 한 벌이 JSON 으로 그대로 나온다')
 
+  // (g) v71dy 보강(er-v1.2) — 지어낸 글만
+  const ALL = { setupPenalty: true, topicGate: true, nameWindow: true }
+  const BT = {
+    forumSetup: 'It keeps failing because the cron job stops. Make sure the config.php file has the right path and clear the cache.',
+    obsPlugin: 'I use the calendar view daily because it is faster than the core one; custom plugins development is fun for my vault.',
+    hnSelf: "I'm building a small tool for invoices because Acmenote got too expensive for my team. Let me know your thoughts!",
+    hnTopic: 'Compilers in general deserve more love. I learned a lot from the dragon book. Error messages matter more than syntax. I use Acmenote for notes because it is cheaper than the rest.',
+    hnLikeVerb: 'I like Acmenote a lot. It has been stable for years and the sync never lost a note.',
+    hnEnum: 'Pricing it at $20 is steep when there are other editors (Foo, Acmenote, etc) for much cheaper.',
+    hnFar: 'Acmenote came up in the thread. Weather was cold today. Trains were late. The office was empty. Lunch was soup. Then I realised the free plan is better than paid tools because it syncs.',
+  }
+  const same = (x, y) => JSON.stringify(x) === JSON.stringify(y)
+  {
+    const sample = [...Object.values(T), ...Object.values(BT)]
+    const srcs = ['hackernews', 'mautic_forum', 'obsidian_forum', 'suitecrm_community', 'youtube', 'github_issues', 'appstore']
+    ok(sample.every((t) => srcs.every((s) => { const o = V(t, s, 'Acmenote'); return same(o, E.entryVerdict(t, s, 'Acmenote', {})) && same(o, E.entryVerdict(t, s, 'Acmenote', null)) && same(o, E.entryVerdict(t, s, 'Acmenote', { setupPenalty: false, topicGate: false, nameWindow: false })) && o.version === E.ENTRY_RULES_VERSION })), '(g) 보강 꺼짐(생략·{}·null·전부 false) = er-v1.1 판정 그대로')
+    ok(['setupPenalty', 'topicGate', 'nameWindow'].every((k) => E.entryVerdict(T.hnAnchored, 'hackernews', 'Acmenote', { [k]: true }).version === E.ENTRY_RULES_VERSION_BOOST) && E.ENTRY_RULES_VERSION_BOOST === 'er-v1.2' && E.entryVerdict(T.forumDev, 'appstore', null, ALL).version === 'er-v1.2', '(g) 하나라도 켜면 버전 er-v1.2')
+    ok(E.entryVerdict(T.forumDev, 'appstore', null, ALL).pass && E.entryVerdict(T.hnAnchored, 'github_issues', 'Acmenote', ALL).pass === false && E.entryVerdict('', 'hackernews', 'Acmenote', ALL).pass === false, '(g) 보강 켜도 미적용 소스 통과·github 막음·글 없음 막음 그대로')
+    ok(Object.isFrozen(E.ENTRY_BOOST_CHOSEN) && same(E.ENTRY_BOOST_CHOSEN, ALL), '(g) 고른 변형 = a+b+c, 얼려 둠')
+    const fs0 = V(BT.forumSetup, 'mautic_forum', 'Mautic'), fsA = E.entryVerdict(BT.forumSetup, 'mautic_forum', 'Mautic', { setupPenalty: true })
+    ok(fs0.pass && !fsA.pass && fsA.reasons.some((r) => r.startsWith('setup(config-file,runtime-ops,diagnostic-list)')), `(g-a) 포럼: 설정 파일·크론·캐시·"make sure" 묶음 → (a) 켜면 막음 ${fsA.score}`)
+    ok(E.entryVerdict(BT.forumSetup, 'mautic_forum', 'Mautic', { topicGate: true, nameWindow: true }).pass, '(g-a) (a) 꺼짐이면 같은 글 통과(갈래가 서로 독립)')
+    ok(E.entryVerdict(BT.obsPlugin, 'obsidian_forum', 'Obsidian', ALL).features.setupFamilies === 0, '(g-a) 옵시디언은 플러그인 개발 묶음을 보지 않는다(커뮤니티 플러그인 = 사용자 이야기)')
+    const sb = E.entryVerdict(BT.hnSelf, 'hackernews', 'Acmenote', { setupPenalty: true })
+    ok(sb.reasons.includes('self-build -30') && sb.score === V(BT.hnSelf, 'hackernews', 'Acmenote').score - 30, '(g-a) HN: "I\'m building… let me know your thoughts" → 자기 제작 −30')
+    const tw = E.entryVerdict(BT.hnTopic, 'hackernews', 'Acmenote', { topicGate: true })
+    ok(tw.reasons.some((r) => r.startsWith('topic-weak(1/4)')) && tw.score === V(BT.hnTopic, 'hackernews', 'Acmenote').score - 27, `(g-b) HN: 4문장 중 마지막 1문장만 제품 → 주제 약함 −27 (${tw.score})`)
+    ok(E.entryVerdict('[HN: Acmenote raises prices · ▲10] ' + BT.hnTopic, 'hackernews', 'Acmenote', { topicGate: true }).reasons.every((r) => !r.startsWith('topic-weak')), '(g-b) 스레드 제목이 이 제품이면 주제 약함 아님')
+    ok(!V(BT.hnLikeVerb, 'hackernews', 'Acmenote').pass && E.entryVerdict(BT.hnLikeVerb, 'hackernews', 'Acmenote', { nameWindow: true }).pass, '(g-c) "I like X" 의 like 는 동사 — (c) 켜면 언급으로 세어 통과(er-v1.1 은 예시로 오판)')
+    ok(V(BT.hnEnum, 'hackernews', 'Acmenote').pass && !E.entryVerdict(BT.hnEnum, 'hackernews', 'Acmenote', { nameWindow: true }).pass, '(g-c) 열거 "(Foo, X, etc)" 속 언급 = 예시 → (c) 켜면 막음')
+    const far = E.entryVerdict(BT.hnFar, 'hackernews', 'Acmenote', { nameWindow: true })
+    ok(V(BT.hnFar, 'hackernews', 'Acmenote').pass && !far.pass && far.reasons.includes('window-no-judgement -25'), '(g-c) 제품명 문장 앞뒤 3문장 밖의 판단은 안 센다 → 막음')
+    ok(E.sentences('One. Two? Three! See https://x.com/a.b now.\nFour').length === 5, '(g) 문장 나누기(URL 점은 안 끊음)')
+  }
+
   // (e) 시간 상한
   const t0 = Date.now()
-  for (const s of ['a-'.repeat(20000), 'Acme '.repeat(5000), '{'.repeat(10000) + ';', '<A' + 'x'.repeat(10000)]) E.entryVerdict(s, 'hackernews', 'Acme')
-  ok(Date.now() - t0 < 2000, `(e) 적대적 긴 글 4개 < 2초 (${Date.now() - t0}ms)`)
+  for (const s of ['a-'.repeat(20000), 'Acme '.repeat(5000), '{'.repeat(10000) + ';', '<A' + 'x'.repeat(10000), 'Acme. '.repeat(3000)]) { E.entryVerdict(s, 'hackernews', 'Acme'); E.entryVerdict(s, 'hackernews', 'Acme', { setupPenalty: true, topicGate: true, nameWindow: true }) }
+  ok(Date.now() - t0 < 2000, `(e) 적대적 긴 글 5개(꺼짐·보강) < 2초 (${Date.now() - t0}ms)`)
   return { pass, fails }
 }
 
@@ -165,9 +200,19 @@ const mutants = [
   ['E', '홍보 감점 없음', 'promo: -30,', 'promo: 0,'],
   ['E', '설치 감점 없음', 'installPerStep: -10,', 'installPerStep: 0,'],
   ['E', '개발자 감점 없음', 'devPerToken: -8,', 'devPerToken: 0,'],
-  ['E', '글 없음 통과', "return { score: 0, pass: false, reasons: ['no-text'], version: ENTRY_RULES_VERSION }", 'return OFF'],
-  ['E', '미적용 소스에도 적용', 'if (!Object.hasOwn(ENTRY_RULES.thresholds, src)) return OFF', ''],
+  ['E', '글 없음 통과', "return { score: 0, pass: false, reasons: ['no-text'], version }", 'return OFF'],
+  ['E', '미적용 소스에도 적용', 'if (!Object.hasOwn(ENTRY_RULES.thresholds, src)) return anyBoost ? { ...OFF, version } : OFF', ''],
   ['E', '머리 꼬리표 안 뗌', "return text.replace(/^\\s*\\[[^\\]\\n]{0,300}\\]\\s*/, '')", 'return text'],
+  ['E', '보강 (a) 감점 없음', 'setupPerFamily: -8,', 'setupPerFamily: 0,'],
+  ['E', '보강 (a) 자기 제작 없음', 'selfBuild: -30,', 'selfBuild: 0,'],
+  ['E', '보강 (a) 옵시디언에도 플러그인 개발', "obsidian_forum: ['config-file', 'runtime-ops', 'diagnostic-list'],", "obsidian_forum: ['config-file', 'runtime-ops', 'diagnostic-list', 'plugin-dev'],"],
+  ['E', '보강 (b) 주제 감점 없음', 'topicWeak: -27,', 'topicWeak: 0,'],
+  ['E', '보강 (b) 제목 무시', 'f.titleNames = !!title && nameRegex(p).test(title)', 'f.titleNames = false'],
+  ['E', '보강 (c) like 동사 구분 없음', "(?<!\\b(?:I|we|you|they|really|also|would|'d|do|don'?t|didn'?t|not|still)\\s)like", 'like'],
+  ['E', '보강 (c) 열거 언급도 셈', 'if (ENUM_AFTER.test(t.slice(at + hit[0].length, at + hit[0].length + 45))) continue', ''],
+  ['E', '보강 (c) 창이 글 전체', 'windowSentences: 3,', 'windowSentences: 999,'],
+  ['E', '보강 켜도 버전 그대로', 'const version = anyBoost ? ENTRY_RULES_VERSION_BOOST : ENTRY_RULES_VERSION', 'const version = ENTRY_RULES_VERSION'],
+  ['E', '보강 기본 켜짐', 'setupPenalty: boost?.setupPenalty === true,', 'setupPenalty: boost?.setupPenalty !== false,'],
   ['G', '그림자인데 대상 좁힘', "targets: mode === 'enforce' ? keep : targets", 'targets: keep'],
   ['G', '적용 조회 실패를 통과로', "if (mode === 'enforce') return { ok: false, error }", ''],
   ['G', '꺼짐에도 적용', "if (entryMode === 'off') return base", ''],

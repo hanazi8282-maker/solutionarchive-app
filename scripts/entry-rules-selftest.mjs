@@ -171,9 +171,44 @@ async function checks(E, G) {
     ok(E.sentences('One. Two? Three! See https://x.com/a.b now.\nFour').length === 5, '(g) 문장 나누기(URL 점은 안 끊음)')
   }
 
+  // (h) v71ec 보강 2차(er-v1.3) — 좁히기 전용 두 갈래, 지어낸 글만
+  {
+    const V13 = { setupPenalty: true, topicGate: true, nameWindow: true, tagMatch: true, devRelease: true }
+    const C = {
+      tagOther: 'I have used Foocloud at every job for years because the reports are useful. Foocloud has a clunky interface and Foocloud pricing went up again. Foocloud support is terrible. Sending mail is a pain, so we have Acmenote.',
+      tagUrl: 'I really love this approach because it is cheaper than paying for a team plan and my team uses it daily. [0] https://www.acmenote.com/',
+      tagParen: 'Our payroll is now synced into our HR system (Acmenote) and the old portal is gone, which is great because it saves time every week.',
+      tagCompact: 'I use AcmeWriter daily because it is cheaper than the rest.',
+      devRel: 'When I save a contact the page reloads twice, a known issue since the sprint merge (issue #17592, fixed in 7.2.2 per the changelog).',
+      devFail: 'When I save a form, submissions are lost and not recorded, a known issue since the sprint merge (issue #17592, fixed in 7.2.2 per the changelog).',
+      devUx: 'When I save a contact the page reloads twice, which is annoying and frustrating, a known issue since the sprint merge (issue #17592, fixed in 7.2.2 per the changelog).',
+    }
+    const sample = [...Object.values(T), ...Object.values(BT), ...Object.values(C)]
+    const srcs = ['hackernews', 'mautic_forum', 'obsidian_forum', 'suitecrm_community', 'youtube', 'github_issues', 'appstore']
+    const CH = E.ENTRY_BOOST_CHOSEN
+    ok(sample.every((t) => srcs.every((s) => same(E.entryVerdict(t, s, 'Acmenote', CH), E.entryVerdict(t, s, 'Acmenote', { ...CH, tagMatch: false, devRelease: false })) && same(V(t, s, 'Acmenote'), E.entryVerdict(t, s, 'Acmenote', { tagMatch: false, devRelease: false })))), '(h) 새 갈래 꺼짐(false) = er-v1.2·er-v1.1 판정 그대로')
+    ok(E.ENTRY_RULES_VERSION_V13 === 'er-v1.3' && ['tagMatch', 'devRelease'].every((k) => E.entryVerdict(T.hnAnchored, 'hackernews', 'Acmenote', { [k]: true }).version === 'er-v1.3') && E.entryVerdict(T.hnAnchored, 'hackernews', 'Acmenote', CH).version === 'er-v1.2', '(h) 새 갈래 하나라도 켜면 er-v1.3, 아니면 er-v1.2')
+    ok(Object.isFrozen(E.ENTRY_BOOST_V13) && same(E.ENTRY_BOOST_V13, V13), '(h) ENTRY_BOOST_V13 = er-v1.2 고른 변형 + 두 갈래, 얼려 둠')
+    // 좁히기만: 켜서 통과가 늘어난 글이 없고 점수도 그대로
+    ok(sample.every((t) => srcs.every((s) => { const a = E.entryVerdict(t, s, 'Acmenote', CH), b = E.entryVerdict(t, s, 'Acmenote', V13); return a.score === b.score && (a.pass || !b.pass) })), '(h) 좁히기만 — 점수 불변, 통과 ⊆ er-v1.2 통과')
+    const to = E.entryVerdict(C.tagOther, 'hackernews', 'Acmenote', { tagMatch: true })
+    ok(V(C.tagOther, 'hackernews', 'Acmenote').pass && E.entryVerdict(C.tagOther, 'hackernews', 'Acmenote', CH).pass && !to.pass && to.reasons.some((r) => r.startsWith('tag-match: tag-other-product(Foocloud')), `(h-d) 다른 제품이 글을 차지하고 꼬리표 제품은 한 번 지나감 → 막음 ${to.reasons[0]}`)
+    ok(V(C.tagUrl, 'hackernews', 'Acmenote').pass && E.entryVerdict(C.tagUrl, 'hackernews', 'Acmenote', { tagMatch: true }).reasons.includes('tag-match: tag-passing-only(1)'), '(h-d) 주소(URL)로만 나온 제품 → 곁다리, 막음')
+    ok(V(C.tagParen, 'hackernews', 'Acmenote').pass && !E.entryVerdict(C.tagParen, 'hackernews', 'Acmenote', { tagMatch: true }).pass, '(h-d) 짧은 괄호 꼬리표 "(X)" 로만 나온 제품 → 막음')
+    ok(E.entryVerdict(T.hnAnchored, 'hackernews', 'Acmenote', V13).pass && E.entryVerdict(BT.hnLikeVerb, 'hackernews', 'Acmenote', V13).pass, '(h-d) 꼬리표 제품을 직접 평가·사용 보고한 글은 그대로 통과')
+    ok(E.tagFeatures(C.tagCompact, 'Acme Writer').tagSentences === 1 && E.entryVerdict(C.tagCompact, 'hackernews', 'Acme Writer', { tagMatch: true }).reasons.every((r) => !r.startsWith('tag-match')), '(h-d) 띄어쓰기 없앤 별칭("Acme Writer"→"AcmeWriter")도 꼬리표 제품')
+    ok(E.entryVerdict(C.tagOther, 'mautic_forum', 'Acmenote', { tagMatch: true }).reasons.every((r) => !r.startsWith('tag-match')), '(h-d) 단일 제품 포럼에는 꼬리표 일치를 보지 않는다')
+    const dr = E.entryVerdict(C.devRel, 'mautic_forum', 'Mautic', { devRelease: true })
+    ok(V(C.devRel, 'mautic_forum', 'Mautic').pass && !dr.pass && dr.reasons.some((r) => r.startsWith('dev-release: release-process+support-ask')), `(h-e) 스프린트·머지·이슈 번호·고쳐진 버전·known issue 빽빽, 사용자 낱말 없음 → 막음 ${dr.score}`)
+    ok(E.devReleaseFeatures(C.devFail).dense && E.entryVerdict(C.devFail, 'mautic_forum', 'Mautic', { devRelease: true }).pass,'(h-e) 같은 개발 낱말이라도 사용자가 겪은 고장(제출 유실) 보고는 막지 않는다(약한 정보)')
+    ok(E.entryVerdict(C.devUx, 'mautic_forum', 'Mautic', { devRelease: true }).pass, '(h-e) 사용자 경험 낱말(annoying·frustrating)이 개발 낱말을 상쇄 → 막지 않는다')
+    ok(E.entryVerdict(C.devRel, 'obsidian_forum', 'Obsidian', { devRelease: true }).pass === V(C.devRel, 'obsidian_forum', 'Obsidian').pass && E.entryVerdict(C.devRel, 'youtube', null, { devRelease: true }).reasons.every((r) => !r.startsWith('dev-release')), '(h-e) 옵시디언·유튜브에는 개발·릴리스 갈래를 보지 않는다')
+    ok(E.devReleaseFeatures('I love it.').dense === false && E.devReleaseFeatures(C.devRel).dense === true, '(h-e) 빽빽함 판정')
+  }
+
   // (e) 시간 상한
   const t0 = Date.now()
-  for (const s of ['a-'.repeat(20000), 'Acme '.repeat(5000), '{'.repeat(10000) + ';', '<A' + 'x'.repeat(10000), 'Acme. '.repeat(3000)]) { E.entryVerdict(s, 'hackernews', 'Acme'); E.entryVerdict(s, 'hackernews', 'Acme', { setupPenalty: true, topicGate: true, nameWindow: true }) }
+  for (const s of ['a-'.repeat(20000), 'Acme '.repeat(5000), '{'.repeat(10000) + ';', '<A' + 'x'.repeat(10000), 'Acme. '.repeat(3000), 'Foo Bar Baz. '.repeat(700)]) { E.entryVerdict(s, 'hackernews', 'Acme'); E.entryVerdict(s, 'hackernews', 'Acme', { setupPenalty: true, topicGate: true, nameWindow: true, tagMatch: true, devRelease: true }) }
   ok(Date.now() - t0 < 2000, `(e) 적대적 긴 글 5개(꺼짐·보강) < 2초 (${Date.now() - t0}ms)`)
   return { pass, fails }
 }
@@ -211,8 +246,18 @@ const mutants = [
   ['E', '보강 (c) like 동사 구분 없음', "(?<!\\b(?:I|we|you|they|really|also|would|'d|do|don'?t|didn'?t|not|still)\\s)like", 'like'],
   ['E', '보강 (c) 열거 언급도 셈', 'if (ENUM_AFTER.test(t.slice(at + hit[0].length, at + hit[0].length + 45))) continue', ''],
   ['E', '보강 (c) 창이 글 전체', 'windowSentences: 3,', 'windowSentences: 999,'],
-  ['E', '보강 켜도 버전 그대로', 'const version = anyBoost ? ENTRY_RULES_VERSION_BOOST : ENTRY_RULES_VERSION', 'const version = ENTRY_RULES_VERSION'],
+  ['E', '보강 켜도 버전 그대로', 'anyBoost ? ENTRY_RULES_VERSION_BOOST : ENTRY_RULES_VERSION', 'ENTRY_RULES_VERSION'],
   ['E', '보강 기본 켜짐', 'setupPenalty: boost?.setupPenalty === true,', 'setupPenalty: boost?.setupPenalty !== false,'],
+  ['E', '보강2 (d) 기본 켜짐', 'const tagOn = boost?.tagMatch === true', 'const tagOn = boost?.tagMatch !== false'],
+  ['E', '보강2 (e) 기본 켜짐', 'devOn = boost?.devRelease === true', 'devOn = boost?.devRelease !== false'],
+  ['E', '보강2 켜도 버전 er-v1.2', 'const version = tagOn || devOn ? ENTRY_RULES_VERSION_V13 :', 'const version = false ? ENTRY_RULES_VERSION_V13 :'],
+  ['E', '보강2 (d) URL 언급도 셈', "|| /:\\/\\/|www\\.|\\.(?:com|io|app|co|org|net)\\b/i.test(token)", ''],
+  ['E', '보강2 (d) 다른 제품 지배 안 봄', 'otherMinSentences: 3,', 'otherMinSentences: 999,'],
+  ['E', '보강2 (d) 포럼에도 꼬리표 일치', "tagMatchSources: ['hackernews'] as string[],", "tagMatchSources: ['hackernews', 'mautic_forum'] as string[],"],
+  ['E', '보강2 (d) 막지 않고 통과로', 'if (why) { pass = false;', 'if (why) { pass = true;'],
+  ['E', '보강2 (e) 고장 보고 예외 없음', 'if (df.dense && !df.visibleFailure)', 'if (df.dense)'],
+  ['E', '보강2 (e) 사용자 낱말 상쇄 없음', 'devPerUx: 3,', 'devPerUx: 0,'],
+  ['E', '보강2 (e) 옵시디언·유튜브에도', "devReleaseSources: ['hackernews', 'suitecrm_community', 'mautic_forum'] as string[],", "devReleaseSources: ['hackernews', 'suitecrm_community', 'mautic_forum', 'obsidian_forum', 'youtube'] as string[],"],
   ['G', '그림자인데 대상 좁힘', "targets: mode === 'enforce' ? keep : targets", 'targets: keep'],
   ['G', '적용 조회 실패를 통과로', "if (mode === 'enforce') return { ok: false, error }", ''],
   ['G', '꺼짐에도 적용', "if (entryMode === 'off') return base", ''],

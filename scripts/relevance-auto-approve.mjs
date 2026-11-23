@@ -13,7 +13,7 @@
 //   늘지 않으므로 사실상 사람이 감사를 채워야 풀린다(설계 §5).
 //
 //   node --env-file=.env.local scripts/relevance-auto-approve.mjs --dry
-//   node --env-file=.env.local scripts/relevance-auto-approve.mjs --gradual-dry   (점진 해제 1~4단계 드라이런 — DB 쓰기 0, 게이트 열림 가정)
+//   node --env-file=.env.local scripts/relevance-auto-approve.mjs --gradual-dry   (점진 해제 1~5단계 드라이런 — DB 쓰기 0, 게이트 열림 가정)
 //
 // 점진 해제(v71dc, lib/analysis/gradual-release.ts): 게이트가 열려도 GRADUAL_RELEASE_ENABLED≠true 면 승인 0건(안전 기본값).
 //   켜져 있으면 단계(GRADUAL_RELEASE_STAGE·_SINCE, 사람만 바꾼다)의 하루 상한 − 오늘 이미 승인한 수까지만, 최신 우선·소스 라운드 로빈으로 고른다.
@@ -21,7 +21,7 @@
 
 import { createClient } from '../lib/supabase/server.ts'
 import { AUTO_APPROVAL_RULE, autoApprovalGate, parseSince } from '../lib/analysis/auto-approval.ts'
-import { countBySource, decideRelease, isEnabled, kstDayRange, loadApprovalPool, loadReleaseContext, parseStage, parseStageSince, remainingToday, selectRelease, stageCap } from '../lib/analysis/gradual-release.ts'
+import { countBySource, decideRelease, isEnabled, kstDayRange, loadApprovalPool, loadGuardedAuditWindow, loadReleaseContext, parseStage, parseStageSince, remainingToday, selectRelease, stageCap } from '../lib/analysis/gradual-release.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate, recordStatusLog } from './notion-status-log.mjs'
 import { relevanceRunSuffixFromEnv } from '../lib/analysis/session-guard.ts'
@@ -44,28 +44,18 @@ if (!sb) { console.error('✗ DB 연결 실패 — NEXT_PUBLIC_SUPABASE_URL / SU
 
 // 감사 창 = 이 규칙(rr-v2)으로 자동 승인됐고 사람 채점이 있는 행. rr-v1 승인은 섞지 않는다(태그별 창, 설계 §6).
 // 정보 열이 빈 행은 scoreApproval 이 창에서 뺀다. 조회 실패는 null 로 넘겨 게이트가 끄게 한다(§7.1).
-// 2026-11-14: PostgREST 기본 1000행 상한에 끝까지 안 걸리는 건 지금 사람 채점 행이 적어서일 뿐이다 —
-// 늘어나면 조용히 창이 잘려 킬스위치가 낡은 수치로 판정한다(label-case-bank.mjs·t2 감사에서 실측한 같은 버그). 끝까지 읽는다.
-let audits = [], auditErr = null
-for (let from = 0; ; from += 1000) {
-  const page = await sb
-    .from('review_relevance_verdicts')
-    .select('human_verdict, human_product_informative, human_graded_at')
-    .not('auto_approved_at', 'is', null)
-    .eq('auto_approval_rule', AUTO_APPROVAL_RULE)
-    .not('human_verdict', 'is', null)
-    .range(from, from + 999)
-  if (page.error) { auditErr = page.error; break }
-  audits.push(...(page.data ?? []))
-  if ((page.data ?? []).length < 1000) break
-}
-if (auditErr && (auditErr.code === '42703' || auditErr.code === 'PGRST204')) {
-  console.error(`✗ 자동 승인 컬럼이 없다(${auditErr.code}) — 마이그 20260930000027·20260930000031 미적용인데 플래그가 켜져 있다. 켜기 전에 적용하라.`)
+// 2026-11-14: PostgREST 기본 1000행 상한에 안 걸리게 끝까지 읽는다(loadGuardedAuditWindow 안).
+// v71dl 가: 승인 가드(applyApprovalGuard — 영역 밖·소비재 태그·github_issues·60자 미만)가 지금 승인하지 않을 행은 창에서 뺀 뒤
+//   최근 50건을 잰다. 가드 조건은 대상 풀과 같은 함수에서 온다(복사본 없음). 가드 표를 못 읽으면 감사 조회 실패와 같다.
+const aw = await loadGuardedAuditWindow(sb)
+if (!aw.ok && (aw.code === '42703' || aw.code === 'PGRST204')) {
+  console.error(`✗ 자동 승인 컬럼이 없다(${aw.code}) — 마이그 20260930000027·20260930000031 미적용인데 플래그가 켜져 있다. 켜기 전에 적용하라.`)
   process.exit(2)
 }
-if (auditErr) warn(`감사 창 조회 실패: ${auditErr.message}`)
+if (!aw.ok) warn(aw.error)
+else log(`감사 창 입력: 사람 채점 rr-v2 ${aw.read}건 − 가드 밖 ${aw.read - aw.audits.length}건 ${JSON.stringify(aw.excluded)} = ${aw.audits.length}건`)
 
-const gate = autoApprovalGate({ enabled: process.env.AUTO_APPROVAL_ENABLED, since: process.env.AUTO_APPROVAL_SINCE, now, audits: auditErr ? null : audits })
+const gate = autoApprovalGate({ enabled: process.env.AUTO_APPROVAL_ENABLED, since: process.env.AUTO_APPROVAL_SINCE, now, audits: aw.ok ? aw.audits : null })
 log(`게이트: ${gate.on ? '열림' : '닫힘'} — ${gate.reason}`)
 
 // ── 점진 해제 드라이런: DB 에 쓰지 않는다(tracker·Notion·UPDATE 전에 끝난다). 대상 풀은 실제 승인과 같은 loadApprovalPool.
@@ -92,7 +82,7 @@ if (gradualDry) {
   console.log(`오늘(KST) 이미 rr-v2 승인: ${approvedToday}\n`)
   console.log('| 단계 | 상한 | 오늘 남은 한도 | 승인 | 승인 후 남는 풀 | 소스 분포 |')
   console.log('|---|---|---|---|---|---|')
-  for (const st of [1, 2, 3, 4]) {
+  for (const st of [1, 2, 3, 4, 5]) {
     const cap = stageCap(st)
     const left = remainingToday(cap, approvedToday)
     const picked = selectRelease(pool.targets, left)
@@ -133,11 +123,11 @@ if (!gate.on) {
 // ⛔ 안전 기본값: GRADUAL_RELEASE_ENABLED≠true 면 게이트가 열려도 승인 0건(종료코드 0). 상한 없는 일괄 승인 경로는 없다.
 const todayKst = kstDate(now)
 const gradualOn = isEnabled(process.env.GRADUAL_RELEASE_ENABLED)
-const stageSinceOk = gradualOn ? parseStageSince(process.env.GRADUAL_RELEASE_STAGE_SINCE, todayKst) : null
+const stageSinceOk = gradualOn ? parseStageSince(process.env.GRADUAL_RELEASE_STAGE_SINCE, todayKst, now) : null
 const ctx = gradualOn && parseStage(process.env.GRADUAL_RELEASE_STAGE) !== null && stageSinceOk
   ? await loadReleaseContext(sb, { stageSince: stageSinceOk, todayKst })
   : null
-const release = decideRelease({ enabled: process.env.GRADUAL_RELEASE_ENABLED, gateOn: gate.on, stage: process.env.GRADUAL_RELEASE_STAGE, stageSince: process.env.GRADUAL_RELEASE_STAGE_SINCE, todayKst, ctx })
+const release = decideRelease({ enabled: process.env.GRADUAL_RELEASE_ENABLED, gateOn: gate.on, stage: process.env.GRADUAL_RELEASE_STAGE, stageSince: process.env.GRADUAL_RELEASE_STAGE_SINCE, todayKst, now, ctx })
 const releaseCounts = { stage: release.stage, effective_stage: release.effectiveStage, approved_today_before: release.approvedToday, cap: release.cap === Infinity ? -1 : release.cap, limit: release.limit === Infinity ? -1 : release.limit, stage_errors: release.stageErrors }
 log(`점진 해제: ${release.reason} — ${JSON.stringify(releaseCounts)}`)
 if (release.limit === 0) {

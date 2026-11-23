@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// 점진 해제 단계 통과 표본(v71dc) — 그 단계에서 rr-v2 로 자동 승인된 글 중 소스별 층화 30건을 채점표 마크다운으로 쓴다. 읽기 전용.
+// 점진 해제 단계 통과 표본(v71dc·v71dl) — 그날(KST) rr-v2 로 자동 승인된 글에서 30건을 채점표 마크다운으로 쓴다. 읽기 전용.
+//   배분(v71dl, gradual-release.ts quotaSample): 앱스토어 10 · 구글 플레이 6 · 나머지 소스 14(소스 비례·최소 1). 모자라면 다른 소스로 채워 총 30.
 //
 //   node --env-file=.env.local scripts/gradual-release-sample.mjs --stage 1 --since 2026-12-01 [--date 2026-12-02] [--seed 42] [--out <경로.md>] [--dry]
-//     --stage  기본 env GRADUAL_RELEASE_STAGE · --since 기본 env GRADUAL_RELEASE_STAGE_SINCE(단계 시작일, KST) · --date 기본 오늘(KST, 포함)
+//     --stage  기본 env GRADUAL_RELEASE_STAGE · --since 기본 env GRADUAL_RELEASE_STAGE_SINCE(단계 시작 — KST 날짜 또는 ISO UTC 시각, 머리 주석·판정용)
+//     --date   모집단 날짜(KST) 기본 오늘 — 모집단 = 그날 00:00~24:00 KST 에 rr-v2 로 승인되고 아직 사람이 안 본 글 전체
 //
 // 형식은 relevance-grading-sample.mjs 감사 표와 같다(모델 판정 가림 · 관련/무관/모름 + 정보있음/정보없음 · 키 = 전체 uuid).
 // 채점 뒤 relevance-grading-import.mjs 로 그대로 되돌려 넣고, gradual-release-judge.mjs <이 파일> 로 통과를 판정한다.
@@ -14,7 +16,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
 import { AUTO_APPROVAL_RULE } from '../lib/analysis/auto-approval.ts'
-import { GRADUAL, countBySource, kstDayRange, parseStage, stratifiedSample } from '../lib/analysis/gradual-release.ts'
+import { GRADUAL, countBySource, kstDayRange, parseStage, parseStageSince, quotaSample } from '../lib/analysis/gradual-release.ts'
 import { kstDate } from './notion-status-log.mjs'
 
 const args = process.argv.slice(2)
@@ -26,8 +28,10 @@ const since = opt('since') ?? process.env.GRADUAL_RELEASE_STAGE_SINCE ?? ''
 const until = opt('date') ?? today
 const seed = Number(opt('seed') ?? 42)
 const DATE = /^\d{4}-\d{2}-\d{2}$/
-if (stage === null || !DATE.test(since) || !DATE.test(until) || since > until || !Number.isFinite(seed)) {
-  console.error('사용법: --stage 1~4 --since YYYY-MM-DD [--date YYYY-MM-DD(≥since)] [--seed 42] [--out 경로] [--dry]')
+const sinceAt = parseStageSince(since, today, new Date())
+// --date 는 날짜만(오늘 이후 불가). 단계 시작이 그날 끝 이후면 그날 승인분은 이 단계 것이 아니다.
+if (stage === null || sinceAt === null || !DATE.test(until) || parseStageSince(until, today, new Date()) === null || sinceAt >= kstDayRange(until).end || !Number.isFinite(seed)) {
+  console.error('사용법: --stage 1~5 --since YYYY-MM-DD|YYYY-MM-DDTHH:MM:SSZ [--date YYYY-MM-DD(≥since 날짜, ≤오늘)] [--seed 42] [--out 경로] [--dry]')
   process.exit(64)
 }
 const outPath = opt('out') ?? `reports/${today}/gradual-release-stage${stage}-sample.md`
@@ -35,8 +39,8 @@ const outPath = opt('out') ?? `reports/${today}/gradual-release-stage${stage}-sa
 const sb = await createClient()
 if (!sb) { console.error('✗ DB 연결 실패 — NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 확인'); process.exit(2) }
 
-// 모집단 = 이 단계 기간에 rr-v2 로 승인되고 아직 사람이 안 본 글. 끝까지 읽는다(1000행 상한, §7.1).
-const start = kstDayRange(since).start, end = kstDayRange(until).end
+// 모집단 = 그날(KST) rr-v2 로 승인되고 아직 사람이 안 본 글 전체(v71dl). 끝까지 읽는다(1000행 상한, §7.1).
+const { start, end } = kstDayRange(until)
 const approved = []
 for (let from = 0; ; from += 1000) {
   const { data, error } = await sb.from('review_relevance_verdicts').select('input_id, project_id, auto_approved_at')
@@ -46,7 +50,7 @@ for (let from = 0; ; from += 1000) {
   approved.push(...data)
   if (data.length < 1000) break
 }
-if (approved.length === 0) { console.log(`단계 ${stage} (${since}~${until}) 에 채점 전 rr-v2 승인 글 0건 — 표본 없음(실패 아님).`); process.exit(0) }
+if (approved.length === 0) { console.log(`단계 ${stage} (${until} KST) 에 채점 전 rr-v2 승인 글 0건 — 표본 없음(실패 아님).`); process.exit(0) }
 
 const textById = new Map()
 for (let i = 0; i < approved.length; i += 200) {
@@ -64,7 +68,7 @@ const pool = approved
   .map((r) => ({ ...r, source_key: textById.get(r.input_id)?.source_key ?? '(소스 미상)', text: textById.get(r.input_id)?.raw_text ?? '' }))
   .filter((r) => r.text.trim().length > 0)
 const dropped = approved.length - pool.length
-const sample = stratifiedSample(pool, GRADUAL.sampleSize, seed)
+const sample = quotaSample(pool, GRADUAL.sampleSize, GRADUAL.sampleQuotas, seed)
 
 const md = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\s*[\r\n]+\s*/g, ' ').trim()
 const cut = (s, n) => (String(s ?? '').length > n ? `${String(s).slice(0, n)}…` : String(s ?? ''))
@@ -73,9 +77,9 @@ const body = [
   `<!-- gradual-release stage=${stage} since=${since} until=${until} seed=${seed} -->`,
   '<!-- 이 표본을 채점해 relevance-grading-import.mjs 로 넣으면 이 글들(전부 rr-v2 자동 승인)은 rr-v2 감사 창에 들어간다 —',
   '     킬스위치(창 50 · 오류 8건) 계산에도 그대로 쓰인다. 오류(무관 또는 정보없음)가 5건 이상이면 이 단계에서 멈춘다. -->',
-  `# 점진 해제 ${stage}단계 통과 표본 — ${since} ~ ${until}`,
+  `# 점진 해제 ${stage}단계 통과 표본 — ${until} KST 승인분 (단계 시작 ${since})`,
   '',
-  `모집단 ${pool.length}건(이 기간 rr-v2 자동 승인 ∧ 사람 채점 전${dropped ? ` · 원문 없음 ${dropped}건 제외` : ''}) 에서 소스별 층화 ${sample.length}장. seed=${seed}.`,
+  `모집단 ${pool.length}건(${until} KST rr-v2 자동 승인 ∧ 사람 채점 전${dropped ? ` · 원문 없음 ${dropped}건 제외` : ''}) 에서 ${sample.length}장 — 배분 앱스토어 ${GRADUAL.sampleQuotas.appstore} · 구글 플레이 ${GRADUAL.sampleQuotas.googleplay} · 나머지 소스 ${GRADUAL.sampleSize - GRADUAL.sampleQuotas.appstore - GRADUAL.sampleQuotas.googleplay}(모자라면 다른 소스로 채움). seed=${seed}.`,
   `모집단 소스 분포: ${dist(countBySource(pool))}`,
   `표본 소스 분포: ${dist(countBySource(sample))}`,
   '',

@@ -139,6 +139,8 @@ jobs:
       - run: node scripts/second-opinion-selftest.mjs
       # T2 기준 한 벌(1차·2차 같은 상수) + 완전 동의 자동 승인 게이트·킬스위치. 픽스처만.
       - run: node scripts/auto-approval-selftest.mjs
+      # rr-v2 점진 해제: 단계표(누적 상한)·STAGE_SINCE 시각·킬스위치 가드 창·표본 배분 + 변이 시험. 가짜 supabase 만.
+      - run: node scripts/gradual-release-selftest.mjs
       # rr-v2 평가 하네스 순수 부품: gold(=감사 채점과 같은 잣대)·예시 제외·재확인 a/b·문턱. 픽스처만.
       - run: node scripts/t2-approval-eval-selftest.mjs
       # 관련성 기준 피드백(/relevance/grade·/relevance/feedback): 층 A~D 가르기·배분 6·4·3·2·빈 층 보충·같은 날 같은 묶음·

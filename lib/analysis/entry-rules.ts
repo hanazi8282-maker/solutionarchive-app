@@ -13,6 +13,7 @@
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다(절대 경로 import 가능). `@/` 별칭·enum 을 쓰지 않는다. import 없음.
 //    셀프테스트 scripts/entry-rules-selftest.mjs · 리플레이 scripts/entry-rules-replay.mjs.
 //    v71dy 보강(er-v1.2): entryVerdict 넷째 인자 EntryBoost — 기본(생략·전부 false)은 er-v1.1 그대로. 비교 scripts/entry-boost-compare.mjs.
+//    v71ec 보강 2차(er-v1.3): EntryBoost.tagMatch·devRelease(좁히기 전용, 기본 꺼짐) · 권장 객체 ENTRY_BOOST_V13 · 리플레이 scripts/entry-rules-v71ec-replay.mjs.
 
 export const ENTRY_RULES_VERSION = 'er-v1.1'
 
@@ -198,6 +199,10 @@ export interface EntryBoost {
   topicGate?: boolean
   /** (c) 제품명 문장 창: 제품명이 든 문장 앞뒤 3문장에서만 제품 판단(한계·이유·사실)을 찾는다(HN). */
   nameWindow?: boolean
+  /** (d, v71ec) 제품 꼬리표 일치: 꼬리표 제품을 직접 평가·사용 보고하는가, 다른 제품이 글을 차지했는가(HN). 막기만 한다. 켜면 버전 er-v1.3. */
+  tagMatch?: boolean
+  /** (e, v71ec) 개발·릴리스 이야기: 묶음이 빽빽하고 사용자 경험 낱말이 없으면 막는다(눈에 보이는 고장 보고는 제외). 막기만 한다. 켜면 버전 er-v1.3. */
+  devRelease?: boolean
 }
 
 /** 고른 변형(오케스트레이터가 이 객체를 그대로 넘긴다). 근거: 설계 문서 §4. */
@@ -327,6 +332,190 @@ export function boostFeatures(raw: string, sourceKey: string, project?: string |
   return f
 }
 
+// ── v71ec 보강 2차(er-v1.3) — 좁히기 전용 두 갈래(막기만 한다, 점수·통과를 늘리지 않는다). 다 꺼져 있으면 er-v1.2 와 한 글자도 다르지 않다. ──
+//   설계·리플레이: reports/2026-11-24/v71ec-entry-rules2.md · scripts/entry-rules-v71ec-replay.mjs. 낱말은 개념 묶음(글 id·문장 없음).
+
+export const ENTRY_RULES_VERSION_V13 = 'er-v1.3'
+
+/** er-v1.3 권장 변형 = er-v1.2 고른 변형 + 두 갈래(오케스트레이터가 이 객체를 그대로 넘긴다). */
+export const ENTRY_BOOST_V13: EntryBoost = Object.freeze({ setupPenalty: true, topicGate: true, nameWindow: true, tagMatch: true, devRelease: true })
+
+export const ENTRY_V13 = {
+  /** (d) 꼬리표 일치를 보는 소스 — 제품명이 글마다 다른 곳(HN)만. 단일 제품 포럼은 장소가 곧 제품이라 제품명을 안 쓴다. */
+  tagMatchSources: ['hackernews'] as string[],
+  /** (d) 제품명 문장 뒤로 대명사가 이 제품을 가리킨다고 보는 거리(문장) — 남헌 지시 창(±3)의 뒤쪽 절반. 새 제품이 주어로 나오면 거기서 끊는다. */
+  linkSentences: 3,
+  /** (d) 다른 제품이 "글을 차지했다" = 그 이름이 든 문장이 이만큼 이상이고, 꼬리표 제품 문장의 이 배수 이상. 3 = 지나가는 비교(1~2번)가 아니라 글의 대상. */
+  otherMinSentences: 3, otherRatio: 2,
+  /** (d) 괄호 속 이름이 이 낱말 수 이하면 곁다리 표기("(HiBob)", "(also X)") — 문장이 아니라 꼬리표다. */
+  parenMaxWords: 3,
+  /** (e) 개발·릴리스 이야기를 보는 소스. 옵시디언·유튜브는 이번 표본·남헌 지적 대상이 아니라 넣지 않는다(그곳 판정은 er-v1.2 그대로). */
+  devReleaseSources: ['hackernews', 'suitecrm_community', 'mautic_forum'] as string[],
+  /** (e) "빽빽함" = 서로 다른 묶음 2개 이상 ∧ 서로 다른 낱말 3개 이상 — 낱말 하나·묶음 하나는 사용자도 지나가며 쓴다. */
+  devMinFamilies: 2, devMinTokens: 3,
+  /** (e, 2회차) 사용자 경험 낱말 하나가 상쇄하는 개발 낱말 수. 3 = 문턱(3)과 같은 크기 — "사용자 낱말 하나 = 빽빽함 한 단위". */
+  devPerUx: 3,
+}
+
+/** (d) 제품명 변형: 원래 이름 · 첫 낱말("Workday HCM"→"Workday", 기존 규칙) · 띄어쓰기 없앤 꼴("iA Writer"→"iAWriter", 대소문자 무시라 "iaWriter" 도 잡힌다). */
+function tagNames(project: string): string[] {
+  const full = project.trim()
+  const out = [full]
+  const first = full.split(/\s+/)[0]
+  if (full.includes(' ') && first.length >= 4 && !/^(?:when|the|my|get)$/i.test(first)) out.push(first)
+  const compact = full.replace(/\s+/g, '')
+  if (compact !== full && compact.length >= 4) out.push(compact)
+  return out
+}
+
+/** (d) 다른 제품 이름 후보에서 뺄 낱말: 절 머리에 대문자로 오는 기능어·인사·요일·달. */
+const CAP_STOP = new Set('The This That These Those There Here It Its If In On At As And But Or So We You They He She My Our Your Their His Her What Why How When Where Who Which Not No Yes Also Then Now Just Edit Update Thanks Thank Please Sure Huh Maybe Ok Okay Hi Hello Hey Anyway Personally Unfortunately Incidentally Basically Actually Mostly Monday Tuesday Wednesday Thursday Friday Saturday Sunday January February March April May June July August September October November December English American European'.split(' '))
+/** 절 머리가 아닌 자리의 대문자 낱말(소문자 하나 이상 — 약어 API·HR·CEO 제외). */
+const CAP_WORD = /(?<=[^\s.!?:;"“(\-–—•*]\s{1,3})([A-Z][a-z][A-Za-z0-9]*)\b/g
+
+/** (d) 이 제품을 가리키는 뒷문장 표지: 대명사·"그 앱/도구". */
+const BACK_REF = /\b(?:it|its|it'?s|they|their|them|the (?:app|tool|product|service|platform|software))\b/i
+/** (d) 주변 사람·조직이 쓴다는 사용 보고("people at work use X", "our company adopted X"). */
+const USE_AROUND = /\b(?:people|colleagues|co-?workers|team|company|employer|everyone|clients?|customers?)\b[^.]{0,25}\b(?:use[sd]?|using|switched|moved|bought|adopted|rolled out|migrated)\b/i
+/** (d, 2회차) 사용 경험 동사: 도움이 됐다·감탄했다·돈을 냈다·연동해 쓴다·해지했다 — 평가 형용사 없이 경험을 말하는 꼴. */
+const EXPERIENCE = /\b(?:helps?|helped|impressed|works? (?:for|with) (?:me|us)|(?:rather|happy to|willing to) pay|paid for|pay for|sync(?:s|ed)? (?:it|them|with)|integrat(?:e|ed) (?:it|with)|deployed|rolled out|signed up|cancel(?:l?ed)?|churn(?:ed)?|gave up on)\b/i
+const FIRST_PERSON_USE =(s: string) => USER_VOICE.some(([id, re]) => (id === 'i-use' || id === 'we-use' || id === 'my-context' || id === 'i-feel') && re.test(s)) || USE_AROUND.test(s)
+
+export interface TagFeatures {
+  /** 곁다리 아닌 꼬리표 제품 문장 수. */
+  tagSentences: number
+  /** 곁다리 언급 수(예시·열거·주소·짧은 괄호·관사 붙은 소문자 보통명사). */
+  passingHits: number
+  /** 제품명 문장 자체나 이어지는 대명사 문장(+3, 새 제품 주어에서 끊김)이 평가·사용 사실을 말한다. */
+  direct: boolean
+  /** 그중 1인칭·주변 사용 보고가 있다. */
+  directUse: boolean
+  /** 가장 많이 나온 다른 제품 이름과 그 문장 수. */
+  otherTop: string | null; otherSentences: number
+  /** 다른 제품이 글을 차지했다(otherMinSentences·otherRatio). */
+  otherDominant: boolean
+}
+
+export function tagFeatures(raw: string, project: string): TagFeatures {
+  const t = stripHeader(raw.slice(0, ENTRY_MAX_SCAN))
+  const ss = sentences(t)
+  const names = tagNames(project)
+  const lowNames = new Set(names.map((n) => n.toLowerCase()))
+  const tagIdx: number[] = []
+  let passingHits = 0
+  ss.forEach((s, i) => {
+    let real = false
+    for (const n of names) {
+      for (const hit of s.matchAll(nameRegex(n))) {
+        const at = hit.index ?? 0, end = at + hit[0].length
+        const before = s.slice(Math.max(0, at - 60), at), after = s.slice(end, end + 45)
+        const token = s.slice(s.lastIndexOf(' ', at) + 1, (s.indexOf(' ', end) + 1 || s.length + 1) - 1)
+        const open = s.lastIndexOf('(', at), close = s.indexOf(')', end)
+        const paren = open >= 0 && close >= 0 && s.lastIndexOf(')', at) < open && s.slice(open + 1, close).trim().split(/\s+/).length <= ENTRY_V13.parenMaxWords
+        const passing = EXAMPLE_BEFORE_V2.test(before) || ENUM_AFTER.test(after) || /:\/\/|www\.|\.(?:com|io|app|co|org|net)\b/i.test(token) || paren
+          || (hit[0] === hit[0].toLowerCase() && /\b(?:a|an)\s+$/i.test(before))
+        if (passing) passingHits++
+        else real = true
+      }
+    }
+    if (real) tagIdx.push(i)
+  })
+  // 다른 제품: 절 머리가 아닌 자리에 대문자로 한 번이라도 나온 낱말(꼬리표 이름·기능어 제외) — 그 낱말이 든 문장 수(문장 머리 포함)
+  const cand = new Set<string>()
+  for (const s of ss) for (const m of s.matchAll(CAP_WORD)) {
+    const w = m[1]
+    if (!CAP_STOP.has(w) && !lowNames.has(w.toLowerCase()) && !names.some((n) => n.toLowerCase().includes(w.toLowerCase()))) cand.add(w)
+  }
+  const otherBySentence = new Map<string, Set<number>>()
+  const subjectOther = new Set<number>()
+  for (const w of cand) {
+    const re = new RegExp(`(?<![\\w-])${w}(?![\\w-])`)
+    const set = new Set<number>()
+    ss.forEach((s, i) => { if (re.test(s)) set.add(i) })
+    otherBySentence.set(w, set)
+  }
+  let otherTop: string | null = null, otherSentences = 0
+  for (const [w, set] of otherBySentence) if (set.size > otherSentences) { otherTop = w; otherSentences = set.size }
+  // 다른 제품이 문장 주어(첫 낱말)로 오는 문장 — 대명사 고리가 거기서 끊긴다
+  ss.forEach((s, i) => { const w = s.match(/^[^A-Za-z]*([A-Z][A-Za-z0-9]+)/)?.[1]; if (w && otherBySentence.has(w)) subjectOther.add(i) })
+  let direct = false, directUse = false
+  const tagSet = new Set(tagIdx)
+  const said = (s: string) => judged(s) || USE_AROUND.test(s) || EXPERIENCE.test(s)
+  for (const i of tagIdx) {
+    if (said(ss[i])) { direct = true; if (FIRST_PERSON_USE(ss[i])) directUse = true }
+    for (let j = i + 1; j <= i + ENTRY_V13.linkSentences && j < ss.length; j++) {
+      if (tagSet.has(j)) break
+      if (subjectOther.has(j)) break
+      // (2회차) 바로 다음 문장은 대명사 없이도 같은 이야기의 이어짐("X helps. I sync…", "with X.. and then I'd rather pay $5") — 그 뒤 문장은 대명사가 있어야 한다.
+      if ((j === i + 1 || BACK_REF.test(ss[j])) && said(ss[j])) { direct = true; if (FIRST_PERSON_USE(ss[j])) directUse = true }
+    }
+  }
+  const otherDominant = otherSentences >= ENTRY_V13.otherMinSentences && otherSentences >= ENTRY_V13.otherRatio * Math.max(1, tagIdx.length)
+  return { tagSentences: tagIdx.length, passingHits, direct, directUse, otherTop, otherSentences, otherDominant }
+}
+
+/** (e) 개발·릴리스 개념 묶음 — 만드는 사람끼리의 이야기(남헌 채점 규칙: 코드·PR·이슈·설치·업그레이드·설정 질문 = 오류). */
+const DEV_RELEASE: Record<string, Pat[]> = {
+  // 릴리스 과정: 스프린트·이슈 번호·PR·머지·커밋·브랜치·변경 이력·핵심팀·"고쳐진 버전"
+  'release-process': [
+    ['sprint', /\bsprints?\b/i], ['issue-no', /\bissues?\s+#?\d{2,}\b|(?<![\w&])#\d{3,}\b/i], ['pr', /\bPRs?\b|\bpull requests?\b/], ['merge', /\bmerg(?:e|ed|ing)\b/i],
+    ['commit', /\bcommits?\b|\bbranch(?:es)?\b/i], ['changelog', /\bchangelog\b|\brelease notes\b|\bmilestones?\b|\bbackport/i], ['core-team', /\bcore team\b|\bmaintainers?\b/i],
+    ['fixed-in', /\bfixed in (?:v(?:ersion)?\s?)?\d/i], ['tracker', /\bType:\s?Bug\b|\bPriority:\s?\w|\bopened \d{1,2}:\d\d/],
+  ],
+  // 설치·업그레이드: docroot·composer·새로/깨끗이 설치·업그레이드·버전 사이 업데이트·zip·콘솔 명령·빠진 파일·버전 번호 여럿
+  'install-upgrade': [
+    ['docroot', /\bdocroot\b/i], ['composer', /\bcomposer\b/i], ['install', /\b(?:re)?install(?:ed|ing|ation|s)?\b/i], ['upgrade', /\bupgrad(?:e|ed|es|ing)\b/i],
+    ['update-ver', /\bupdat(?:e|ed|ing) (?:from|to) (?:v(?:ersion)?\s?)?\d/i], ['zip', /\.zip\b|\bzip file\b/i], ['console', /\bbin\/console\b|\bphp \w+\.php\b|\bnpm \w+|\bdist folder\b/i],
+    ['missing-files', /\bmissing files?\b|\bfiles? (?:are|were|is|was) missing\b/i], ['versions', /\b\d+\.\d+\.\d+\b[\s\S]*\b\d+\.\d+(?:\.\d+)?\b/],
+  ],
+  // 설정·코드: 설정 화면·파일 확장자·데이터베이스·서버·코드·API 키·엔드포인트·커스터마이즈·오버라이드
+  'config-code': [
+    ['config', /\bconfig(?:uration|ure|ured)?\b/i], ['file-ext', /\b[\w-]+\.(?:php|js|json|twig|ya?ml|ini|xml|env|tpl|css)\b/i], ['database', /\bdatabase\b|\bdb\b/i],
+    ['server', /\bserver\b/i], ['code', /\bcode\b/i], ['api-key', /\bAPI(?:\s+keys?)?\b/], ['endpoint', /\bendpoints?\b/i], ['customize', /\bcustomi[sz](?:e|ed|ing|ation)\b/i],
+    ['override', /\boverrid(?:e|es|ing|den)\b/i], ['dev-tools', /\bdev(?:eloper)?\s?tools\b|\bcode editor\b|\bdocumentation\b/i],
+  ],
+  // 설정·설치 질문: "how do I", "is it normal", "do you know", 오류 로그 요청, 남의 설치를 점검시키는 말
+  // (2회차) 제품을 만들고 넓히는 이야기: 플러그인·애드온·모듈·엔진·레이아웃·설정 화면 — 쓰는 사람이 아니라 만드는 사람의 말
+  'build-extend': [
+    ['plugin', /\bplugins?\b|\badd-?ons?\b|\bbundles?\b/i], ['module', /\bmodules?\b|\bengine\b|\blayouts?\b|\bviewdefs\b/i], ['settings', /\bsettings?\b/i],
+    ['front-back', /\bfront[\s-]?end\b|\bback[\s-]?end\b/i], ['callback', /\bcallbacks?\b|\bwebhooks?\b|\bauthenticat\w*\b|\bwhitelist\w*\b/i],
+  ],
+  'support-ask': [
+    ['how-do-i', /\bhow (?:do|can|should|would) (?:I|we|you)\b/i], ['is-normal', /\bis (?:it|this|that) (?:normal|expected|a known)\b|\bknown issue\b/i], ['do-you-know', /\bdo you know\b|\bany ideas?\b|\bthanks in advance\b/i],
+    ['did-you', /\bdid you (?:test|try|check|clear)\b|\bhave you (?:tried|checked|cleared)\b|\bcan you (?:share|post|send|check)\b/i], ['error-log', /\berror logs?\b|\b(?:check|look at|share) the logs?\b|\bstack ?trace\b|\bexceptions?\b/i],
+    ['what-wrong', /\bwhat (?:is|'s) wrong\b|\bwould it be easiest\b|\bplease clarify\b/i],
+  ],
+}
+/** (e) 사용자 경험 낱말(남헌 예: annoying/great/switched/because/price) — 하나라도 있으면 개발 이야기라도 사용자 판단이 섞였다. 요청 양식·사용자 목소리·평가 재료를 그대로 쓴다. */
+const UX_WORDS = /\b(?:annoying|annoyed|great|love[sd]?|hate[sd]?|switch(?:ed|ing)?|because|price[sd]?|pricing|cost(?:s|ly)?|expensive|cheap(?:er)?|frustrat\w*|painful|confusing|clunky|ugly|disappoint\w*|wow|friction|workaround|intuitive|easier|harder)\b/i
+/** (e) 사용자가 실제로 겪은 눈에 보이는 고장(남헌: 제출 유실·보안 노출·데이터 손실 = 약한 정보, 오류 아님) — 이게 있으면 막지 않는다. */
+const VISIBLE_FAILURE = /\b(?:lost|losing|missing|disappear(?:ed|s)?|wiped|not (?:being )?(?:recorded|saved|sent|delivered|tracked|appearing)|never (?:arrived|received|recorded))\b[^.]{0,60}\b(?:submissions?|contacts?|data|emails?|records?|visits?|visitors?|leads?|activity|entries|messages?)\b|\b(?:submissions?|contacts?|data|emails?|records?|visits?|visitor activity|leads?|entries)\b[^.]{0,60}\b(?:lost|missing|disappear(?:ed|s)?|wiped|not (?:being |consistently |always )?(?:recorded|saved|sent|delivered|tracked|appearing|reflected)|stops? (?:appearing|recording|being recorded|showing))\b|\bdata loss\b|\bplain ?text\b[^.]{0,60}\bpasswords?\b|\bpasswords?\b[^.]{0,60}\bplain ?text\b|\bnot (?:very )?secure\b|\bsecurity (?:issue|hole|risk|problem|exposure|breach)\b|\b(?:exposed|leak(?:ed|s|ing)?|vulnerab\w*)\b/i
+
+export interface DevReleaseFeatures { families: string[]; tokens: string[]; ux: boolean; userVoice: boolean; visibleFailure: boolean; dense: boolean }
+
+export function devReleaseFeatures(raw: string): DevReleaseFeatures {
+  const t = stripHeader(raw.slice(0, ENTRY_MAX_SCAN))
+  const tokens: string[] = [], families: string[] = []
+  for (const [fam, pats] of Object.entries(DEV_RELEASE)) {
+    const hit = distinct(pats, t)
+    if (hit.length) { families.push(fam); tokens.push(...hit) }
+  }
+  // (2회차) 기존 개발·설치 낱말과 설정 묶음(er-v1.1·v1.2 정의 그대로)도 같은 개념이라 같은 묶음에 합쳐 센다 — 새로 정의하지 않고 재사용.
+  const merge = (fam: string, ids: string[]) => { const add = ids.map((id) => `${fam === 'install-upgrade' ? 'i' : fam === 'support-ask' ? 's' : fam === 'build-extend' ? 'b' : 'c'}:${id}`).filter((x) => !tokens.includes(x)); if (add.length) { tokens.push(...add); if (!families.includes(fam)) families.push(fam) } }
+  merge('config-code', distinct(DEV, t))
+  merge('install-upgrade', distinct(INSTALL, t))
+  for (const [k, re] of Object.entries(SETUP_FAMILIES)) if (re.test(t)) merge(k === 'diagnostic-list' ? 'support-ask' : k === 'plugin-dev' || k === 'design-proposal' || k === 'dev-tooling' ? 'build-extend' : 'config-code', [k])
+  // 요청 양식·바람·감정(i-want·request-form·users-have-to·i-feel)도 사용자 경험이다 — 한 줄 기능 요청은 약한 정보(남헌).
+  const voiceIds = USER_VOICE.filter(([id, re]) => (id === 'i-want' || id === 'request-form' || id === 'users-have-to' || id === 'i-feel') && re.test(t)).map(([id]) => id)
+  const EVAL = REASON_FACT.find(([id]) => id === 'evaluation')![1]
+  const uxWords = new Set([UX_WORDS, EVAL].flatMap((re) => (t.match(new RegExp(re.source, 'gi')) ?? []).map((w) => w.toLowerCase())))
+  const visibleFailure = VISIBLE_FAILURE.test(t)
+  // (2회차) "사용자 경험 낱말이 없다" = 개발 낱말에 묻혔다: 사용자 낱말 하나가 개발 낱말 devPerUx 개를 상쇄한다(낱말 하나로 긴 개발 답변이 통째로 살아나지 않게).
+  const uxCount = uxWords.size + voiceIds.length
+  const dense = families.length >= ENTRY_V13.devMinFamilies && tokens.length >= ENTRY_V13.devMinTokens + ENTRY_V13.devPerUx * uxCount
+  return { families, tokens, ux: uxWords.size > 0, userVoice: voiceIds.length > 0, visibleFailure, dense }
+}
+
 const OFF: EntryVerdict = { score: null, pass: true, reasons: ['source-not-covered'], version: ENTRY_RULES_VERSION }
 
 /**
@@ -335,8 +524,9 @@ const OFF: EntryVerdict = { score: null, pass: true, reasons: ['source-not-cover
  */
 export function entryVerdict(text: string | null | undefined, sourceKey: string | null | undefined, project?: string | null, boost?: EntryBoost | null): EntryVerdict {
   const B = { setupPenalty: boost?.setupPenalty === true, topicGate: boost?.topicGate === true, nameWindow: boost?.nameWindow === true }
-  const anyBoost = B.setupPenalty || B.topicGate || B.nameWindow
-  const version = anyBoost ? ENTRY_RULES_VERSION_BOOST : ENTRY_RULES_VERSION
+  const tagOn = boost?.tagMatch === true, devOn = boost?.devRelease === true
+  const anyBoost = B.setupPenalty || B.topicGate || B.nameWindow || tagOn || devOn
+  const version = tagOn || devOn ? ENTRY_RULES_VERSION_V13 : anyBoost ? ENTRY_RULES_VERSION_BOOST : ENTRY_RULES_VERSION
   const src = String(sourceKey ?? '')
   if (!Object.hasOwn(ENTRY_RULES.thresholds, src)) return anyBoost ? { ...OFF, version } : OFF
   const th = ENTRY_RULES.thresholds[src]
@@ -380,9 +570,24 @@ export function entryVerdict(text: string | null | undefined, sourceKey: string 
     pass = false
     reasons.push(mentions === 0 ? 'passing-mention: product not discussed' : 'passing-mention: no judgement near product')
   }
+  // v71ec(er-v1.3) 좁히기 전용: 점수는 그대로 두고 통과만 막는다.
+  let tf: TagFeatures | null = null, df: DevReleaseFeatures | null = null
+  if (tagOn && ENTRY_V13.tagMatchSources.includes(src) && productLike(project)) {
+    tf = tagFeatures(text, String(project))
+    const why = tf.tagSentences === 0 ? `tag-passing-only(${tf.passingHits})`
+      : !tf.direct ? 'tag-not-evaluated'
+      : tf.otherDominant && !tf.directUse ? `tag-other-product(${tf.otherTop} ${tf.otherSentences}/${tf.tagSentences})` : null
+    if (why) { pass = false; reasons.push(`tag-match: ${why}`) }
+  }
+  if (devOn && ENTRY_V13.devReleaseSources.includes(src)) {
+    df = devReleaseFeatures(text)
+    if (df.dense && !df.visibleFailure) { pass = false; reasons.push(`dev-release: ${df.families.join('+')}(${df.tokens.join(',')})`) }
+  }
   reasons.push(...parts.map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`))
   const features: Record<string, number> = { userVoice: f.userVoice.length, reasonFact: f.reasonFact.length, usageContext: f.usageContext.length, dev: f.dev.length, codeSyntax: f.codeSyntax ? 1 : 0, install: f.install.length, promo: f.promo.length, mentions: f.mentions ?? -1, anchored: f.anchored ? 1 : 0 }
   if (bf) Object.assign(features, { setupFamilies: bf.setupFamilies.length, selfBuild: bf.selfBuild ? 1 : 0, nameSentences: bf.nameSentences ?? -1, topicWeak: bf.topicWeak ? 1 : 0, windowJudged: bf.windowJudged ? 1 : 0, windowExt: bf.windowExt ? 1 : 0 })
+  if (tf) Object.assign(features, { tagSentences: tf.tagSentences, tagPassing: tf.passingHits, tagDirect: tf.direct ? 1 : 0, tagDirectUse: tf.directUse ? 1 : 0, otherSentences: tf.otherSentences })
+  if (df) Object.assign(features, { devFamilies: df.families.length, devTokens: df.tokens.length, ux: df.ux ? 1 : 0, visibleFailure: df.visibleFailure ? 1 : 0 })
   return { score, pass, reasons, version, features }
 }
 

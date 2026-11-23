@@ -88,6 +88,8 @@ export function tripThreshold(n: number, p0: number = KILL.p0): number {
 }
 
 export interface AuditRow {
+  /** v71dv: 채점 시각이 같은 행의 순서를 정하는 보조 키(오름차순). 없으면 입력 순서. */
+  input_id?: string | null
   human_verdict: string | null
   /** 사람의 "정보 있음" 판정. rr-v2 감사는 human_verdict 와 이것이 둘 다 채워진 행만 센다. */
   human_product_informative: boolean | null
@@ -126,9 +128,10 @@ export interface KillResult {
 export function killSwitch(audits: readonly AuditRow[], opts: { now: Date; since: Date; kill?: KillParams }): KillResult {
   const K = opts.kill ?? KILL
   const scored = audits
-    .map(a => ({ at: a.human_graded_at as string, score: scoreApproval(a) }))
+    .map(a => ({ at: a.human_graded_at as string, score: scoreApproval(a), id: a.input_id ?? '' }))
     .filter(a => a.score !== null)
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+    // v71dv: 최신 채점 먼저, 같은 시각이면 input_id 오름차순 — 창 50건 경계에서 어느 행이 빠지는지가 입력 순서가 아니라 규칙으로 정해진다.
+    .sort((a, b) => (Date.parse(b.at) - Date.parse(a.at)) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   const win = scored.slice(0, K.window)
   const n = win.length
   const errors = win.filter(a => a.score === 'error').length
@@ -208,7 +211,7 @@ export function capacityGuard(input: { enabled: string | null | undefined; since
  */
 export async function loadAuditWindow(sb: { from: (t: string) => any }): Promise<AuditRow[] | null> {
   const { data, error } = await sb.from('review_relevance_verdicts')
-    .select('human_verdict, human_product_informative, human_graded_at')
+    .select('input_id, human_verdict, human_product_informative, human_graded_at')
     .not('auto_approved_at', 'is', null).eq('auto_approval_rule', AUTO_APPROVAL_RULE).not('human_verdict', 'is', null)
   return error ? null : (data ?? [])
 }

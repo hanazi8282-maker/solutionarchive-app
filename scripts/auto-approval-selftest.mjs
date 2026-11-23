@@ -157,3 +157,16 @@ console.log(`\n${fail ? '❌' : '✅'} 자동 승인 셀프테스트: ${pass} pa
 
 process.exit(fail ? 1 : 0)
 
+
+// v71dv: 같은 채점 시각이면 input_id 오름차순으로 창에 남는다 — 입력 순서와 무관하게 결정적.
+{
+  const T = '2026-11-23T06:52:00.000Z', OLD = '2026-11-20T00:00:00.000Z'
+  const mk = (id, at, err) => ({ input_id: id, human_verdict: err ? 'irrelevant' : 'relevant', human_product_informative: true, human_graded_at: at })
+  // 최신 시각 30건(오류 0) + 같은 오래된 시각 30건: 20건만 창에 들어간다. 앞쪽 id 20건이 오류, 뒤쪽 10건이 정상이면 오류 20건이 창에 남아야 한다.
+  const recent = Array.from({ length: 30 }, (_, i) => mk('r' + String(i).padStart(2, '0'), T, false))
+  const old = Array.from({ length: 30 }, (_, i) => mk('o' + String(i).padStart(2, '0'), OLD, i < 20))
+  const now = new Date('2026-11-24T00:00:00Z'), since = new Date('2026-09-28T12:30:00Z')
+  const a = killSwitch([...recent, ...old], { now, since }), b = killSwitch([...recent, ...old].reverse(), { now, since }), c = killSwitch([...old, ...recent], { now, since })
+  ok(a.n === 50 && a.errors === 20, `(v71dv) 동률은 input_id 오름차순으로 자른다: 창 50건·오류 ${a.errors}(기대 20)`)
+  ok(JSON.stringify(a) === JSON.stringify(b) && JSON.stringify(a) === JSON.stringify(c), '(v71dv) 입력 순서를 뒤집어도 같은 창·같은 결과')
+}

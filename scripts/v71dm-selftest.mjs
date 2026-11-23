@@ -173,6 +173,8 @@ async function checks(G, D, V) {
   const P = { product_elevator_pitch: 'p', business_model: 'saas' }, R = [{ input_id: 'x', text: 't' }]
   const sys24 = buildRelevancePrompt(P, R, [], { criteria: 'v24', areas: a }).system
   const sys26 = V.systemV26FromV24(sys24, a)
+  const { UNTRUSTED_INPUT_NOTICE } = await import('../lib/llm/untrusted-input.ts')
+  ok(sys26.includes(UNTRUSTED_INPUT_NOTICE), '(e) v2.6 system 도 외부 입력 경고 문구를 그대로 싣는다')
   ok(sys26.includes('아래 판정 기준 v2.6 로') && !sys26.includes('판정 기준 v2.4') && sys26.replace(v26, v24).replace('아래 판정 기준 v2.6 로', '아래 판정 기준 v2.4 로') === sys24, '(e) v2.6 system = v2.4 system 에서 기준 블록·한 줄만 바뀜')
   let threw = false; try { V.systemV26FromV24(buildRelevancePrompt(P, R, [], { criteria: 'v22' }).system, a) } catch { threw = true }
   ok(threw, '(e) v2.4 프롬프트가 아니면 던진다(조용히 v2.4 로 판정하지 않음)')

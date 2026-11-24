@@ -102,7 +102,7 @@ export function validateCardV2(card: unknown, facts: CaseFacts | null): Verdict 
   if (c.version !== CARD_VERSION) errors.push(`version 이 ${CARD_VERSION} 이 아니다`)
   for (const k of FORBIDDEN_KEYS) if (k in c) errors.push(`제외된 칸이 있다: ${k}`)
   if (!str(c.situation?.text, 5)) errors.push('① 상황이 비었다')
-  const cause = c.situation?.cause
+  const cause = typeof c.situation?.cause === 'string' && c.situation.cause.trim() === '' ? undefined : c.situation?.cause // 빈 문자열 = 원인 칸을 비운 것(근거 없음)
   if (cause !== undefined && !(str(cause) && /로 보입니다\.?$/.test(cause.trim()))) errors.push('① 원인은 근거가 있을 때만 쓰고 "~로 보입니다"로 끝나야 한다')
   if (!str(c.direction, 5)) errors.push('② 해결 방향이 비었다')
   else if ((c.direction as string).split(/[.!?。]\s*/).filter((x) => x.trim()).length > 1) errors.push('② 해결 방향은 한 문장이다')

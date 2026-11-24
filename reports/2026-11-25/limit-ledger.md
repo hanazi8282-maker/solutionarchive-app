@@ -89,3 +89,18 @@ To eliminate this warning, add "type": "module" to /home/runner/work/solutionarc
 - LLM 일일 사용(과금 경로 = 2차 판정 Gemini 2716건 × 보수 단가) ≈ $2.44 / 한도 $15 (16%) [추정]
 - 상향 가능 소스(제안만):
   - 없음
+
+<!-- 2026-11-24T23:53Z -->
+병목 확인 불가 — 스크립트 실패(exit 1): To eliminate this warning, add "type": "module" to /home/runner/work/solutionarchive-app/solutionarchive-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+❌ bottleneck-report: review_sources 조회 실패: Service for this project is restricted due to the following violations: exceed_egress_quota. The project owner must upgrade their plan or remove spend caps to restore service.
+
+<!-- 2026-11-24T23:53Z -->
+재고 게이지 확인 불가 — 스크립트 실패(exit 1): To eliminate this warning, add "type": "module" to /home/runner/work/solutionarchive-app/solutionarchive-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+❌ inventory-gauge: review_sources 조회 실패: Service for this project is restricted due to the following violations: exceed_egress_quota. The project owner must upgrade their plan or remove spend caps to restore service.
+
+<!-- 2026-11-24T23:53Z -->
+한도 재평가 확인 불가 — 스크립트 실패(exit 1): To eliminate this warning, add "type": "module" to /home/runner/work/solutionarchive-app/solutionarchive-app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+❌ limit-rollback-eval: review_source_cap_log 조회 실패: Service for this project is restricted due to the following violations: exceed_egress_quota. The project owner must upgrade their plan or remove spend caps to restore service.

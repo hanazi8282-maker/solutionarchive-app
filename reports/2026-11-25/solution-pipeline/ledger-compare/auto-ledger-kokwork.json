@@ -1,0 +1,974 @@
+{
+ "slug": "kokwork",
+ "name": "콕근무",
+ "field": "근태급여",
+ "stage": "E1",
+ "customer": "smb",
+ "complaint": "알바 근무표·급여·계약서를 한 앱에 묶어 월 4,900원 구독으로 내놓았지만, 쓰는 사장님 수나 후기 같은 사용자 반응이 화면에 하나도 보이지 않는다.",
+ "evidence": "작은 가게가 근무표·출퇴근·급여를 따로 적어 불편하다는 문제를 짚었다(C6, C7, C8). 가격은 첫 매장 월 4,900원, 매장 추가 월 3,900원으로 공개돼 있지만(C21) 사용자 반응으로 정한 흔적은 없다. 앱은 서비스 중이고 30일 체험이 있다(C94, C135). 사용자 수·후기·결제 수치는 facts에 없다.",
+ "chapters": [],
+ "signals": [
+  {
+   "code": "S38",
+   "fact_ids": [
+    "C6",
+    "C7",
+    "C8"
+   ],
+   "evidence": "작은 가게는 근무표를 단톡방에, 출퇴근을 수첩에, 급여를 엑셀에 따로 적는 경우가 많습니다. 주휴수당이나 야간·연장 가산을 매달 직접 계산하다 보면 틀리기 쉽고, 근로계약서와 급여명세서는 법으로 꼭 줘야 하는데도 챙기기 번거롭습니다. 이걸 하나로 묶었습니다."
+  },
+  {
+   "code": "S02",
+   "fact_ids": [
+    "C21"
+   ],
+   "evidence": "사업자등록번호 하나당 한 번입니다. 체험이 끝난 뒤에는 첫 매장 월 4,900원, 매장을 하나 더할"
+  }
+ ],
+ "premises": {
+  "P1": "unknown",
+  "P2": "met",
+  "P5": "met",
+  "P6": "unknown",
+  "P9": "unknown",
+  "P10": "met"
+ },
+ "premises_not_in_dict": "",
+ "fix_first": "",
+ "facts": [
+  {
+   "id": "C1",
+   "text": "콕근무 · WonkeyLab",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C2",
+   "text": "알바 근무표·출결·급여 계산·급여명세서·근로계약서를 한 앱에서. 작은 가게 사장님용.",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C3",
+   "text": "알바 몇 명과 함께 가게를 꾸리는",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C4",
+   "text": "앱입니다. 근무표, 출결, 급여",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C5",
+   "text": "계산, 급여명세서, 근로계약서를 한곳에서 처리합니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C6",
+   "text": "작은 가게는 근무표를 단톡방에, 출퇴근을 수첩에, 급여를 엑셀에 따로 적는 경우가 많습니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C7",
+   "text": "주휴수당이나 야간·연장 가산을 매달 직접 계산하다 보면 틀리기 쉽고, 근로계약서와",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C8",
+   "text": "급여명세서는 법으로 꼭 줘야 하는데도 챙기기 번거롭습니다. 이걸 하나로 묶었습니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C9",
+   "text": "— 요일별 스케줄을 정해 두면 기록이 없는 날은 스케줄대로 근무한 것으로",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C10",
+   "text": "봅니다. 지각, 조퇴, 결근, 추가 근무 같은 예외만 적으면 됩니다",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C11",
+   "text": "— 시급, 주휴수당, 연장·야간·휴일 가산, 4대보험과 소득세 공제를 계산합니다",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C12",
+   "text": "— 계산한 내용으로 명세서를 발급하고 직원 앱에서 볼 수 있게 합니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C13",
+   "text": "임금대장도 내려받을 수 있습니다",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C14",
+   "text": "— 표준 양식으로 계약서를 만들고, 링크를 보내 직원이 휴대폰에서 바로 서명합니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C15",
+   "text": "서명한 계약서는 PDF로 보관됩니다",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C16",
+   "text": "— 직원은 초대 코드로 들어와 자기 근무와 급여를 확인합니다",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C17",
+   "text": "급여와 공제는 사장님이 입력한 정보로 계산한",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C18",
+   "text": "입니다. 실제로 지급하고 신고하기",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C19",
+   "text": "전에는 사장님이 직접 확인해야 합니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C20",
+   "text": "이 시작됩니다. 체험은 국세청에서 사업자 확인을 거친",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C21",
+   "text": "사업자등록번호 하나당 한 번입니다. 체험이 끝난 뒤에는 첫 매장 월 4,900원, 매장을 하나 더할",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C22",
+   "text": "때마다 월 3,900원입니다. 연간 결제는 10개월 값입니다. 구독하지 않아도 지난 기록과 발급한 서류는",
+   "url": "https://wonkeylab.kr/apps/kokwork/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C23",
+   "text": "콕근무 서비스 이용약관 · WonkeyLab",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C24",
+   "text": "시행일 2026-11-05",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C25",
+   "text": "이 약관은 WonkeyLab(이하 “회사”)이 제공하는 콕근무 앱과 관련 서비스(이하 “서비스”)의 이용",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C26",
+   "text": "조건과 절차, 회사와 이용자의 권리·의무를 정합니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C27",
+   "text": "— 이 약관에 따라 서비스를 이용하는 사장님과 직원",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C28",
+   "text": "— 매장을 만들어 직원·근무·급여·계약서를 관리하는 이용자",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C29",
+   "text": "— 사장님에게 받은 초대 코드나 링크로 매장에 들어온 이용자",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C30",
+   "text": "— 사장님이 서비스에 만든 사업장 단위",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C31",
+   "text": "— 정해진 매장 수만큼 서비스의 모든 기능을 쓸 수 있는 유료 정기결제 상품",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C32",
+   "text": "— 이용 기간이 아닌 매장의 상태. 지난 기록과 발급한 서류는 볼 수 있지만 새로",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C33",
+   "text": "기록하거나 발급할 수 없습니다",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C34",
+   "text": "제3조 (약관의 효력과 변경)",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C35",
+   "text": "이 약관은 서비스 화면 또는 이 페이지에 게시하여 효력이 생깁니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C36",
+   "text": "회사는 관련 법령을 위반하지 않는 범위에서 약관을 바꿀 수 있습니다. 바꿀 때는 시행 7일",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C37",
+   "text": "전부터(이용자에게 불리한 변경은 30일 전부터) 앱 공지 또는 이 페이지로 알립니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C38",
+   "text": "바뀐 약관에 동의하지 않으면 이용을 멈추고 탈퇴할 수 있습니다. 시행일 이후에도 계속 이용하면",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C39",
+   "text": "바뀐 약관에 동의한 것으로 봅니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C40",
+   "text": "사장님은 카카오·구글 계정 또는 이메일 인증으로 가입합니다. 직원은 사장님이 준 초대 코드로",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C41",
+   "text": "들어오며, 나중에 카카오·구글 계정을 연결할 수 있습니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C42",
+   "text": "이용자는 자신의 계정을 다른 사람에게 빌려주거나 양도할 수 없습니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C43",
+   "text": "초대 코드로 들어온 직원 계정은 로그아웃하거나 기기를 바꾸면 사장님께 코드를 다시 받아야",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C44",
+   "text": "제5조 (서비스의 내용)",
+   "url": "https://wonkeylab.kr/apps/kokwork/terms/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C45",
+   "text": "콕근무 - 알바 근무표·급여 계산 - Google Play 앱",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C46",
+   "text": "google_logo Play",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C47",
+   "text": "Google 계정으로 로그인",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C48",
+   "text": "콕근무 - 알바 근무표·급여 계산",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C49",
+   "text": "arrow_forward",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C50",
+   "text": "알바 관리, 이제 콕근무 하나로 끝내세요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C51",
+   "text": "작은 가게 사장님이 매달 하던 근무 정리·급여 계산·서류 작업을 한 앱에 모았어요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C52",
+   "text": "직원별 요일·시간을 정해 두면 매일 근무가 자동으로 잡혀요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C53",
+   "text": "지각·조퇴·결근·휴가처럼 달라진 날만 눌러서 기록하면 돼요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C54",
+   "text": "월간 근무표는 달력과 표로 한눈에 볼 수 있어요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C55",
+   "text": "■ 급여는 자동으로 계산",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C56",
+   "text": "근무 기록대로 기본급, 주휴수당, 연장·야간·휴일 가산수당을 계산해요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C57",
+   "text": "5인 이상·미만 매장 규정과 최저임금을 반영하고, 4대보험·3.3% 공제도 골라서 적용할 수 있어요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C58",
+   "text": "급여일과 정산 기간은 매장에 맞게 정할 수 있어요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C59",
+   "text": "■ 급여명세서와 임금대장",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C60",
+   "text": "급여명세서를 만들어 이미지로 카카오톡에 보내거나 PDF로 저장하세요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C61",
+   "text": "법으로 보관해야 하는 임금대장은 엑셀로 내려받을 수 있어요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C62",
+   "text": "직원 정보와 시급·근무시간이 채워진 근로계약서를 만들고, 링크로 보내 직원이 폰에서 바로 서명해요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C63",
+   "text": "서명한 계약서는 PDF로 보관돼요. 넣으면 안 되는 특약도 미리 알려 드려요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C64",
+   "text": "직원은 초대 코드로 들어와 자기 근무표와 급여를 확인할 수 있어요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C65",
+   "text": "■ 개인정보는 필요한 만큼만",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C66",
+   "text": "주민등록번호는 받지 않아요. 직원 휴대폰·계좌는 암호화해 보관하고, 퇴사하면 파기해요.",
+   "url": "https://play.google.com/store/apps/details?id=com.kokwork.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C67",
+   "text": "콕근무 개인정보처리방침 · WonkeyLab",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C68",
+   "text": "시행일 2026-11-05",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C69",
+   "text": "WonkeyLab(이하 “회사”)은 작은 가게의 근무·급여 관리 앱",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C70",
+   "text": "(이하 “서비스”)를 제공하면서",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C71",
+   "text": "「개인정보 보호법」에 따라 이용자의 개인정보를 보호하고 관련 고충을 원활하게 처리하기 위해",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C72",
+   "text": "다음과 같이 개인정보 처리방침을 수립·공개합니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C73",
+   "text": "1. 누가 어떤 정보를 처리하나요",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C74",
+   "text": "콕근무에는 두 종류의 정보가 있습니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C75",
+   "text": "사장님과 직원의 계정 정보",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C76",
+   "text": "— 로그인, 이용권, 문의처럼 회사가 서비스를 제공하기 위해",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C77",
+   "text": "직접 처리하는 정보입니다. 회사가 개인정보처리자입니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C78",
+   "text": "사장님이 입력하는 직원 정보",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C79",
+   "text": "— 직원 이름, 근무 기록, 급여, 근로계약서처럼 사장님이",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C80",
+   "text": "근로관계를 관리하려고 입력하는 정보입니다. 이 정보의 처리자는",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C81",
+   "text": "로서 사장님이 정한 목적 안에서만 저장·처리합니다.",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C82",
+   "text": "사장님은 직원에게 수집·이용 동의를 받아야 하며, 앱은 휴대폰·생년월일·계좌를 입력할 때 이를",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C83",
+   "text": "카카오 회원번호, 이메일, 이름(닉네임), 프로필 사진 주소",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C84",
+   "text": "카카오로 로그인할 때 (카카오에서 동의한 항목만)",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C85",
+   "text": "구글 계정 식별자, 이메일, 이름, 프로필 사진 주소",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C86",
+   "text": "이메일 주소, 비밀번호(되돌릴 수 없게 암호화해 저장)",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C87",
+   "text": "이메일로 가입하거나 비밀번호를 정할 때 (가입·비밀번호 찾기 때는 이메일로 인증번호를 보냄)",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C88",
+   "text": "로그인 (직원 초대 코드)",
+   "url": "https://wonkeylab.kr/apps/kokwork/privacy/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C89",
+   "text": "소개 · WonkeyLab",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C90",
+   "text": "작고 쓸모 있는 모바일 앱을 만듭니다.",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C91",
+   "text": "입니다. 1인 개발자로 앱을 만들어 직접",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C92",
+   "text": "운영합니다. 기획·개발·배포·운영을 혼자 하고, 그래서 이 사이트에 적는",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C93",
+   "text": "내용도 전부 직접 겪은 것입니다.",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C94",
+   "text": "의 앱을 서비스 중입니다.",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C95",
+   "text": "토스 미니앱과 안드로이드 양쪽에 냅니다.",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C96",
+   "text": "한 가지를 확실히 하는 앱",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C97",
+   "text": "앱마다 답해야 할 질문을 하나로 정해두고 시작하고, 그 질문에 답하는 데",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C98",
+   "text": "필요 없는 것은 넣지 않습니다. 그래서 앱 소개마다 「이런 분에게는 안",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C99",
+   "text": "맞습니다」를 함께 적어 둡니다 — 안 맞는 사람이 받아서 실망하는 것보다",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C100",
+   "text": "미리 아는 편이 낫다고 봅니다.",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C101",
+   "text": "— 한 달 용돈을 정해두고, 쓸 때마다 3초 만에 기록합니다. (토스 미니앱)",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C102",
+   "text": "— 자주 사는 농산물 시세를 담아두고, 값이 움직이면 알림을 받습니다. (토스 미니앱)",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C103",
+   "text": "— 알고리즘으로 번호를 뽑고, 용지 QR로 당첨을 확인합니다. (토스 미니앱 · Google Play)",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C104",
+   "text": "— 외화와 원화를 섞지 않고 적어, 여행 중에도 남은 돈이 보입니다. (토스 미니앱)",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C105",
+   "text": "— 구독·할부·보험·대출 — 매달 자동으로 빠지는 돈의 총액을 보여줍니다. (토스 미니앱)",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C106",
+   "text": "— 꿀벌을 랜덤으로 뽑아 세우고 강화 도박으로 키워 말벌을 막는 운빨 디펜스. (Google Play · 토스 미니앱)",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C107",
+   "text": "— 매일 1분, 오늘의 운세와 오늘의 테스트를 가볍게 봅니다. (토스 미니앱)",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C108",
+   "text": "— 졸라맨을 따라 자기 전·아침에 몸을 푸는 1분 스트레칭. (토스 미니앱)",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C109",
+   "text": "— 반죽 붓고 속 넣고 황금빛에 뒤집는, 겨울 골목 잉어빵 장사 타이쿤. (Google Play)",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C110",
+   "text": "— 가 본 시·군이 컬러로 칠해지는, 내 발로 모으는 전국 여행 지도. (토스 미니앱)",
+   "url": "https://wonkeylab.kr/about/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C111",
+   "text": "작고 쓸모 있는 모바일 앱을 만듭니다.",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C112",
+   "text": "직접 쓰고 싶은 앱을 만들어 배포하는 1인 개발 스튜디오입니다. 작게 시작해서",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C113",
+   "text": "오래 쓸 수 있게 다듬습니다.",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C114",
+   "text": "한 가지를 확실히 하는 앱",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C115",
+   "text": "계좌를 연동하고 항목을 분류하다 보면 정작 기록을 안 하게 되고, 시세 앱은 지표를",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C116",
+   "text": "늘릴수록 정작 \"지금 싼가\"를 못 읽게 됩니다. 그래서 앱마다 답해야 할 질문을 하나로",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C117",
+   "text": "지금은 여행 쪽에 가장 힘을 쏟고 있습니다.",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C118",
+   "text": "다녀온 곳을 남기는 앱, 여행 중에 쓴 돈을 적는 앱을 따로 만들고 있습니다. 한",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C119",
+   "text": "앱에 다 담으면 무거워지지만 하나씩 맡기면 각자 가볍게 끝나기 때문입니다.",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C120",
+   "text": "생활 도구와 게임도 같은 기준으로 계속 만듭니다.",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C121",
+   "text": "으로 냅니다. 설치 없이 토스 안에서 바로 열리니",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C122",
+   "text": "\"한 번 써볼까\" 하는 순간의 마찰이 거의 없고, 그 자리에서 쓸모가 있는지 없는지가",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C123",
+   "text": "빠르게 판가름 납니다. 쓸모가 확인된 앱은 안드로이드로도 냅니다.",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C124",
+   "text": "만들고 나서 겪은 것들은",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C125",
+   "text": "에 남깁니다. 심사에서 반려된 이유,",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C126",
+   "text": "정산받고 나서 해야 하는 세금 처리, 광고가 채워지는데 노출이 0이었던 이유 같은",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C127",
+   "text": "것들입니다. 대부분 한국어로 정리된 자료가 없어서 직접 알아낸 것들이라, 같은 자리에서",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C128",
+   "text": "막힌 분들이 시간을 덜 쓰시라고 적어둡니다.",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C129",
+   "text": "갈 곳을 찾고, 다녀온 것을 남기고, 쓴 돈을 적습니다. 지금 가장 힘을 쏟는",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C130",
+   "text": "외화와 원화를 섞지 않고 적어, 여행 중에도 남은 돈이 보입니다.",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C131",
+   "text": "가 본 시·군이 컬러로 칠해지는, 내 발로 모으는 전국 여행 지도.",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C132",
+   "text": "반려동물과 함께 갈 수 있는 곳을, 우리 강아지 크기에 맞춰 찾습니다.",
+   "url": "https://wonkeylab.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C133",
+   "text": "무료 체험을 한 번만 주려다 남의 체험을 태웠습니다 · WonkeyLab",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C134",
+   "text": "무료 체험을 한 번만 주려다 남의 체험을 태웠습니다",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C135",
+   "text": "탈퇴하고 다시 가입하면 30일 체험을 또 받을 수 있었습니다. 막으려고 탈퇴한 계정의 해시를 남겼고, 로그인 수단을 사업자등록번호로 보강했습니다. 그런데 사업자등록번호는 공개된 번호였습니다.",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C136",
+   "text": "· 2026-11-11 발행",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C137",
+   "text": "는 알바 근무표·급여를 관리하는 사장님용 앱입니다.",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C138",
+   "text": "구독제이고, 처음 가입하면",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C139",
+   "text": "체험을 주는 코드는 세 줄이면 됩니다. 어려운 건",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C140",
+   "text": "이걸 제대로 하려다 두 번 틀렸고, 두 번째는",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C141",
+   "text": "제가 모르는 사장님의 체험을 태우고 있었습니다.",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C142",
+   "text": "탈퇴하면 기록도 같이 지워진다",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C143",
+   "text": "처음 구조는 단순했습니다. 계정마다",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C144",
+   "text": "billing_accounts",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C145",
+   "text": "trial_ends_at",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C146",
+   "text": "을 넣습니다. 첫 매장을 만들 때 30일을 채워 줍니다.",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C147",
+   "text": "입니다. 탈퇴하면 그 행이 같이 지워집니다.",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C148",
+   "text": "같은 카카오 계정으로 다시 가입하면 체험이 또 나옵니다. 무한히요.",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C149",
+   "text": "지워지는 게 버그는 아닙니다. 탈퇴하면 지우는 게 맞습니다.",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C150",
+   "text": "지우되 한 조각만 남기는",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C151",
+   "text": "1층: 로그인 수단의 해시만 남긴다",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C152",
+   "text": "계정이 지워질 때, 그 계정이 체험을 받았었다면",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C153",
+   "text": "카카오·구글은 회원번호, 이메일은 소문자 주소입니다.",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C154",
+   "text": ".trial_claims (",
+   "url": "https://wonkeylab.kr/log/free-trial-once-per-person/",
+   "seen_at": "2026-11-24"
+  }
+ ],
+ "source": "auto",
+ "premisesRaw": {
+  "P1": "모름",
+  "P2": "추정",
+  "P5": "확정",
+  "P6": "모름",
+  "P9": "모름",
+  "P10": "확정"
+ },
+ "droppedSignals": 0
+}

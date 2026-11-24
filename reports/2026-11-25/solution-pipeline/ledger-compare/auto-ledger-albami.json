@@ -1,0 +1,593 @@
+{
+ "slug": "albami",
+ "name": "알바미",
+ "field": "근태관리",
+ "stage": "E2",
+ "customer": "smb",
+ "complaint": "알바생과 사장님이 함께 쓰는 무료 근무·급여관리 앱이 '500개 매장'이 선택했다고 알리지만, 앱스토어 평가는 19건뿐이고 유료로 이어지는 수익 구조나 가격은 화면에 보이지 않는다.",
+ "evidence": "무료 앱이며 직원 수 제한이 없다(C8, C30). 앱스토어는 '무료 · 앱 내 구입'으로 표기돼 있으나(C26) 앱 내 구입의 가격·내용은 안 보인다. '500개 매장이 선택한 앱'(C6, C28)이라는 문구가 있고 앱스토어 평가 수는 19건이다(C65). 안내가 알바생·사장님 양쪽을 향한다(C7, C11, C15).",
+ "chapters": [
+  5
+ ],
+ "signals": [
+  {
+   "code": "S10",
+   "fact_ids": [
+    "C8",
+    "C26"
+   ],
+   "evidence": "※ 직원 수 제한 없는 무료 앱입니다. 무료 · 앱 내 구입 · iPad⁠용으로 디자인됨 · macOS⁠용으로는 확인되지 않음"
+  },
+  {
+   "code": "S04",
+   "fact_ids": [
+    "C7",
+    "C11",
+    "C15"
+   ],
+   "evidence": "알바미는 알바생과 사장님이 함께 쓰는 간편한 근무·급여관리 앱입니다. ● 알바생은 더 간편하게 ● 사장님은 더 똑똑하게"
+  }
+ ],
+ "premises": {
+  "P1": "unknown",
+  "P2": "met",
+  "P5": "unmet",
+  "P6": "met",
+  "P9": "met",
+  "P10": "met"
+ },
+ "premises_not_in_dict": "",
+ "fix_first": "'무료 앱'(C8, C30)이라는 안내와 앱스토어의 '앱 내 구입'(C26) 표기가 어긋나는데, 무엇이 유료인지 화면에 없다. 또 '500개 매장'(C6)은 날짜·출처가 없고 앱스토어 평가 19건(C65)과 규모 차이가 있다.",
+ "facts": [
+  {
+   "id": "C1",
+   "text": "알바미 - 알바 관리·간편 근무·급여관리 앱 - Google Play 앱",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C2",
+   "text": "google_logo Play",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C3",
+   "text": "Google 계정으로 로그인",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C4",
+   "text": "알바미 - 알바 관리·간편 근무·급여관리 앱",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C5",
+   "text": "arrow_forward",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C6",
+   "text": "500개 매장이 선택한 앱, 알바미",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C7",
+   "text": "알바미는 알바생과 사장님이 함께 쓰는 간편한 근무·급여관리 앱입니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C8",
+   "text": "※ 직원 수 제한 없는 무료 앱입니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C9",
+   "text": "※ 혼자서도 사용할 수 있습니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C10",
+   "text": "※ 웹 관리자 사이트는 설정 메뉴에서 확인할 수 있습니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C11",
+   "text": "● 알바생은 더 간편하게",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C12",
+   "text": "- 버튼 한 번으로 출근·퇴근 기록",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C13",
+   "text": "- 오늘 근무시간과 예상 급여 바로 확인",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C14",
+   "text": "- 복잡한 입력 없이 빠르게 사용",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C15",
+   "text": "● 사장님은 더 똑똑하게",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C16",
+   "text": "- 직원 출퇴근 현황 실시간 확인",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C17",
+   "text": "- 오늘 인건비 자동 계산",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C18",
+   "text": "- 여러 직원도 한 번에 관리",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C19",
+   "text": "- 웹 관리자 사이트로 더 편리한 매장 관리",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C20",
+   "text": "● 이런 분들께 추천해요",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C21",
+   "text": "- 알바 출퇴근을 간단하게 관리하고 싶은 분",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C22",
+   "text": "- 직원 근태와 인건비를 빠르게 확인하고 싶은 사장님",
+   "url": "https://play.google.com/store/apps/details?id=com.app.worklog&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C23",
+   "text": "‎알바미 - 알바 관리·간편 근무·급여관리 앱 앱 - App Store",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C24",
+   "text": "알바미 - 알바 관리·간편 근무·급여관리 앱",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C25",
+   "text": "알바를 더 쉽게, 나를 위한 알바 관리 앱 '알바미'",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C26",
+   "text": "무료 · 앱 내 구입 · iPad⁠용으로 디자인됨 · macOS⁠용으로는 확인되지 않음",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C27",
+   "text": "SEUNGHYUN LEE",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C28",
+   "text": "500개 매장이 선택한 앱, 알바미",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C29",
+   "text": "알바미는 알바생과 사장님이 함께 쓰는 간편한 근무·급여관리 앱입니다.",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C30",
+   "text": "※ 직원 수 제한 없는 무료 앱입니다.",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C31",
+   "text": "※ 혼자서도 사용할 수 있습니다.",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C32",
+   "text": "※ 웹 관리자 사이트는 설정 메뉴에서 확인할 수 있습니다.",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C33",
+   "text": "● 알바생은 더 간편하게",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C34",
+   "text": "- 버튼 한 번으로 출근·퇴근 기록",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C35",
+   "text": "- 오늘 근무시간과 예상 급여 바로 확인",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C36",
+   "text": "- 복잡한 입력 없이 빠르게 사용",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C37",
+   "text": "● 사장님은 더 똑똑하게",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C38",
+   "text": "- 직원 출퇴근 현황 실시간 확인",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C39",
+   "text": "- 오늘 인건비 자동 계산",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C40",
+   "text": "- 여러 직원도 한 번에 관리",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C41",
+   "text": "- 웹 관리자 사이트로 더 편리한 매장 관리",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C42",
+   "text": "● 이런 분들께 추천해요",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C43",
+   "text": "- 알바 출퇴근을 간단하게 관리하고 싶은 분",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C44",
+   "text": "- 직원 근태와 인건비를 빠르게 확인하고 싶은 사장님",
+   "url": "https://apps.apple.com/kr/app/id6760959921",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C45",
+   "text": "\"resultCount\":1,",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C46",
+   "text": "{\"isGameCenterEnabled\":false,",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C47",
+   "text": "\"screenshotUrls\":[",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C48",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/4f/f4/ea/4ff4eae5-c020-d333-7f5c-ce8b31496bb8/Apple_iPhone_8_Plus_Screenshot_1.png/392x696bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C49",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/2f/58/54/2f5854e5-d2e5-86d1-927c-ddc649138b08/Apple_iPhone_8_Plus_Screenshot_2.png/392x696bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C50",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/77/95/0d/77950dc1-784a-29f4-a4ba-38821b3a490a/Apple_iPhone_8_Plus_Screenshot_3.png/392x696bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C51",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/10/98/61/109861b3-2f82-55af-270e-77462a7a32a3/Apple_iPhone_8_Plus_Screenshot_4.png/392x696bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C52",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/e7/57/44/e7574463-7de9-001e-7771-e38824ab7ed5/Apple_iPhone_8_Plus_Screenshot_5.png/392x696bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C53",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/db/c1/8b/dbc18b59-23df-c2b7-32b6-df33b9e6dc0a/Apple_iPhone_8_Plus_Screenshot_7.png/392x696bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C54",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/11/a3/7c/11a37c24-d62f-4a99-1317-496f249c6599/Apple_iPhone_8_Plus_Screenshot_6.png/392x696bb.png\"],",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C55",
+   "text": "\"ipadScreenshotUrls\":[",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C56",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/64/c0/03/64c003b5-79ff-8a6b-f898-b9e3db7406bf/Apple_iPad_Pro_12.9_Inch_Screenshot_1.png/576x768bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C57",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/f7/24/c6/f724c677-8728-7d5e-10f2-e14d63771645/Apple_iPad_Pro_12.9_Inch_Screenshot_2.png/576x768bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C58",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/04/df/01/04df019c-4377-c732-b32c-8c5941605ff3/Apple_iPad_Pro_12.9_Inch_Screenshot_3.png/576x768bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C59",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/e2/2a/88/e22a8819-fabc-8493-5095-f1d59d75b3ac/Apple_iPad_Pro_12.9_Inch_Screenshot_4.png/576x768bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C60",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/fd/04/43/fd044389-33f8-6375-a020-654f26386ac6/Apple_iPad_Pro_12.9_Inch_Screenshot_5.png/576x768bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C61",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/97/37/75/9737757e-f621-641d-34e0-041e71902c08/Apple_iPad_Pro_12.9_Inch_Screenshot_7.png/576x768bb.png\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C62",
+   "text": "\"https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ea/53/e9/ea53e935-f1cb-8a64-a44b-3ef4429ed701/Apple_iPad_Pro_12.9_Inch_Screenshot_6.png/576x768bb.png\"], \"appletvScreenshotUrls\":[],",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C63",
+   "text": "\"artworkUrl512\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/38/4e/0c/384e0c4d-885c-8f41-bee0-5f812fa0c575/AppIcon-0-0-1x_U007emarketing-0-11-0-85-220.png/512x512bb.jpg\", \"features\":[\"iosUniversal\"],",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C64",
+   "text": "\"artworkUrl60\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/38/4e/0c/384e0c4d-885c-8f41-bee0-5f812fa0c575/AppIcon-0-0-1x_U007emarketing-0-11-0-85-220.png/60x60bb.jpg\",",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C65",
+   "text": "\"trackViewUrl\":\"https://apps.apple.com/kr/app/%EC%95%8C%EB%B0%94%EB%AF%B8-%EC%95%8C%EB%B0%94-%EA%B4%80%EB%A6%AC-%EA%B0%84%ED%8E%B8-%EA%B7%BC%EB%AC%B4-%EA%B8%89%EC%97%AC%EA%B4%80%EB%A6%AC-%EC%95%B1/id6760959921?uo=4\", \"trackName\":\"알바미 - 알바 관리·간편 근무·급여관리 앱\", \"trackId\":6760959921, \"userRatingCount\":19}]",
+   "url": "https://itunes.apple.com/lookup?id=6760959921&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C66",
+   "text": "우리의 프로젝트는 일상의 사소한 아이디어로부터 시작됩니다.",
+   "url": "https://codedream.co.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C67",
+   "text": "기획부터 디자인, 개발부터 런칭까지 함께하는",
+   "url": "https://codedream.co.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C68",
+   "text": "Copyright ⓒ 2024 CODEDREAM. All rights reserved.",
+   "url": "https://codedream.co.kr/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C69",
+   "text": "개인정보 처리방침이란 이용자의 소중한 개인정보를 보호하여 안심하고 서비스를 이용할 수 있도록 회사가 서비스를 운영함에 있어 준수해야 할 지침을 말합니다. 코드드림(이하 회사 라 함)은 사용자의 개인정보를 존중하며 보호하기 위해 최선을 다하고 있습니다.",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C70",
+   "text": "회사는 「개인정보 보호법」 제30조에 따라 정보주체의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C71",
+   "text": "1. 수집하는 개인정보 항목",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C72",
+   "text": "회사는 알바미를 통해 다음과 같은 개인정보를 수집합니다.",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C73",
+   "text": "2. 개인정보의 수집 및 이용 목적",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C74",
+   "text": "회사는 다음의 목적을 위해 개인정보를 수집하고 이용합니다.",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C75",
+   "text": "1. 사용자 식별 및 회원 관리",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C76",
+   "text": "2. 서비스 제공 및 사용자 지원",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C77",
+   "text": "3. 서비스 이용 통계 분석",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C78",
+   "text": "4. 마케팅 및 광고 활용",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C79",
+   "text": "3. 개인정보 수집 조건",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C80",
+   "text": "회사는 다음과 같은 조건에 따라 개인정보를 수집합니다.",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C81",
+   "text": "1. 사용자가 자발적으로 제공한 경우: 사용자가 회원가입, 서비스 이용, 이벤트 참여 등을 위해 자발적으로 정보를 제공하는 경우",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C82",
+   "text": "2. 법적 요구에 따른 경우: 관련 법령에 따라 개인정보를 제공해야 하는 경우",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C83",
+   "text": "3. 계약 이행을 위한 경우: 사용자가 요청한 서비스 제공을 위해 필요한 경우",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C84",
+   "text": "4. 정당한 이익을 위한 경우: 회사의 정당한 이익을 위해 개인정보를 수집해야 하는 경우, 다만 이 경우에도 사용자의 권리와 자유가 우선합니다.",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C85",
+   "text": "4. 개인정보의 보유 및 이용 기간",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C86",
+   "text": "회사는 개인정보 수집 및 이용 목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다. 단, 관련 법령에 의해 보관할 필요가 있는 경우에는 해당 법령에서 정한 기간 동안 보관합니다.",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C87",
+   "text": "5. 개인정보의 제3자 제공",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C88",
+   "text": "회사는 원칙적으로 이용자의 개인정보를 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C89",
+   "text": "이용자가 사전에 동의한 경우",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C90",
+   "text": "법령의 규정에 의한 경우",
+   "url": "https://codedream.co.kr/albam/privacy",
+   "seen_at": "2026-11-24"
+  }
+ ],
+ "source": "auto",
+ "premisesRaw": {
+  "P1": "모름",
+  "P2": "확정",
+  "P5": "미충족",
+  "P6": "추정",
+  "P9": "추정",
+  "P10": "확정"
+ },
+ "droppedSignals": 0
+}

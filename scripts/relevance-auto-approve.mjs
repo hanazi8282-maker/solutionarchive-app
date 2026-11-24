@@ -21,7 +21,7 @@
 
 import { createClient } from '../lib/supabase/server.ts'
 import { AUTO_APPROVAL_RULE, autoApprovalGate, parseSince } from '../lib/analysis/auto-approval.ts'
-import { countBySource, decideRelease, isEnabled, loadApprovalPool, loadGuardedAuditWindow, loadReleaseContext, parseStage, parseStageSince, selectRelease, stageCap } from '../lib/analysis/gradual-release.ts'
+import { applyProductBrake, loadProjectIds, runApprovalLoop, countBySource, decideRelease, isEnabled, loadApprovalPool, loadGuardedAuditWindow, loadReleaseContext, parseStage, parseStageSince, selectRelease, stageCap } from '../lib/analysis/gradual-release.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate, recordStatusLog } from './notion-status-log.mjs'
 import { relevanceRunSuffixFromEnv } from '../lib/analysis/session-guard.ts'
@@ -137,34 +137,38 @@ log(`내용 가드 제외 ${pool.guardDrop.github_issues + pool.guardDrop.short 
 log(`소스 허용 목록 ${pool.allow ? [...pool.allow].join(',') : '없음(제한 없음)'} — 목록 밖 ${pool.guardDrop['source-not-allowed']}건 · 개발자 대상 ${pool.guardDrop['dev-audience']}건 ${JSON.stringify(pool.devAudience)} (승인 안 함, 사람 확인 대기)`)
 const excludedN = Object.values(pool.scopeExcluded).reduce((x, y) => x + y, 0)
 log(`대상 ${pool.targets.length}건 (쿼리 ${pool.queried}건 · 완전 동의 ${pool.agreed}건 · 영역 외/소비재 태그 제외 ${excludedN}건 ${JSON.stringify(pool.scopeExcluded)})`)
-const targets = selectRelease(pool.targets, release.limit)
+const selected = selectRelease(pool.targets, release.limit)
+// v71ee-4 C-1: 제품 점유율 브레이크 — 한 실행의 승인분에서 한 제품이 20% 를 넘으면 초과분은 대기로 남긴다. 제품을 못 읽으면 승인하지 않는다(§7.1).
+const BRAKE_SHARE = Number(process.env.PRODUCT_SHARE_BRAKE ?? '0.2')
+let targets = selected
+if (BRAKE_SHARE > 0 && BRAKE_SHARE < 1) {
+  const pj = await loadProjectIds(sb, selected.map((r) => r.input_id))
+  if (!pj.ok) { console.error(`✗ ${pj.error} — 점유율 브레이크를 못 걸어 승인하지 않는다`); process.exit(2) }
+  const br = applyProductBrake(selected, pj.projectOf, BRAKE_SHARE)
+  targets = br.kept
+  log(br.applied ? `제품 점유율 브레이크(${Math.round(BRAKE_SHARE * 100)}%): 제품당 최대 ${br.cap}건 — 선택 ${selected.length} → 승인 대상 ${targets.length}, 대기로 남김 ${br.held.length}건 ${JSON.stringify(br.heldByProject)}` : '제품 점유율 브레이크: 제품 수가 적어 걸지 않음')
+}
 const sourceOf = new Map(targets.map((r) => [r.input_id, r.source_key]))
 log(`점진 해제 선택 ${targets.length}건 (한도 ${release.limit === Infinity ? '무제한' : release.limit}) 소스 분포 ${JSON.stringify(countBySource(targets))}`)
 // 이중 확인 — 선택이 한도를 넘으면 쓰지 않는다(selectRelease 가 깨져도 상한이 지켜지게).
 if (!(targets.length <= release.limit)) { console.error(`✗ 선택 ${targets.length}건이 한도 ${release.limit} 를 넘는다 — 승인하지 않는다`); process.exit(2) }
 if (dry) { log('--dry: 쓰지 않는다.'); process.exit(0) }
 
-let approved = 0, raced = 0, failed = 0
-const approvedIds = []
+const RECHECK_EVERY = Number(process.env.APPROVAL_RECHECK_EVERY ?? '500')
 const stamp = now.toISOString()
-for (let i = 0; i < targets.length; i += 200) {
-  const ids = targets.slice(i, i + 200).map((r) => r.input_id)
-  // WHERE 에 조건을 다시 건다 — 그사이 사람이 채점했거나 2차가 바뀐 행은 덮지 않는다.
-  const { data, error } = await sb
-    .from('review_relevance_verdicts')
-    .update({ auto_approved_at: stamp, auto_approval_rule: AUTO_APPROVAL_RULE })
-    .in('input_id', ids)
-    .eq('verdict', 'relevant').eq('second_verdict', 'relevant')
-    .eq('product_informative', true).eq('second_product_informative', true)
-    .is('human_verdict', null).is('auto_approved_at', null)
-    .select('input_id')
-  if (error) { failed += ids.length; console.error(`✗ 저장 실패(${i + 1}~${i + ids.length}): ${error.message}`); continue }
-  approved += data.length
-  approvedIds.push(...data.map((x) => x.input_id))
-  raced += ids.length - data.length
-}
+// v71ee-4 C-2: 승인 루프는 lib 의 runApprovalLoop(셀프테스트가 가짜 DB 로 돌린다). N건마다 킬스위치 창을 다시 읽고 닫히면 멈춘다 — 이미 쓴 승인은 되돌리지 않는다(취소는 사람만).
+const loop = await runApprovalLoop(sb, targets, {
+  stamp, rule: AUTO_APPROVAL_RULE, recheckEvery: RECHECK_EVERY, log,
+  recheck: async () => {
+    const aw2 = await loadGuardedAuditWindow(sb)
+    const gate2 = autoApprovalGate({ enabled: process.env.AUTO_APPROVAL_ENABLED, since: process.env.AUTO_APPROVAL_SINCE, now: new Date(), audits: aw2.ok ? aw2.audits : null })
+    return { on: gate2.on, reason: gate2.reason }
+  },
+})
+const { approved, raced, failed, approvedIds, stoppedBy } = loop
+if (stoppedBy) warn(`승인 도중 게이트 닫힘 — ${approved}건에서 멈춤, 남은 ${loop.untouched}건은 대기: ${stoppedBy}`)
 
-await tracker.step({ stepKey: 'approve', label: '완전 동의 자동 승인', status: failed ? 'failed' : 'ok', seq: 2, counts: { approved, raced, failed, ...releaseCounts }, detail: { rule: AUTO_APPROVAL_RULE, gate: gate.reason, gradual: release.reason, by_source: countBySource(approvedIds.map((id) => ({ source_key: sourceOf.get(id) ?? '?' }))) } })
-await tracker.finish({ status: failed ? 'partial' : 'ok', summary: { approved, raced, failed } })
+await tracker.step({ stepKey: 'approve', label: '완전 동의 자동 승인', status: failed || stoppedBy ? 'failed' : 'ok', seq: 2, counts: { approved, raced, failed, ...releaseCounts }, blocker: stoppedBy, detail: { rule: AUTO_APPROVAL_RULE, gate: gate.reason, stopped_by: stoppedBy, gradual: release.reason, by_source: countBySource(approvedIds.map((id) => ({ source_key: sourceOf.get(id) ?? '?' }))) } })
+await tracker.finish({ status: failed || stoppedBy ? 'partial' : 'ok', summary: { approved, raced, failed, stopped_by: stoppedBy } })
 log(`끝 — 승인 ${approved} · 그사이 바뀌어 건너뜀 ${raced} · 실패 ${failed} · 게이트 ${gate.reason}`)
-process.exit(failed ? 3 : 0)
+process.exit(failed || stoppedBy ? 3 : 0)

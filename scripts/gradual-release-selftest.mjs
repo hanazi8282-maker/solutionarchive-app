@@ -95,6 +95,48 @@ async function checks(M, A, { quiet = false } = {}) {
   ok(M.decideRelease({ ...on, stage: '4', ctx: ctxOk({ approvedInStage: 99999 }) }).limit === 0, '(b) 4단계도 상한 5000(무제한 아님)')
   ok(M.decideRelease({ ...on, stage: '5', ctx: ctxOk({ approvedInStage: 99999 }) }).limit === Infinity, '(b) 5단계 상한 없음')
 
+  // (m) v71ee-4 C-1 — 제품 점유율 브레이크(순수) · v71ee-6 영역 NULL 가드
+  {
+    const mk = (p, n) => Array.from({ length: n }, (_, i) => ({ input_id: `${p}-${i}` }))
+    const rows = [...mk('A', 30), ...mk('B', 10), ...mk('C', 10), ...mk('D', 10), ...mk('E', 10), ...mk('F', 10), ...mk('G', 10), ...mk('H', 10)]
+    const po = new Map(rows.map((r) => [r.input_id, r.input_id.split('-')[0]]))
+    const b = M.applyProductBrake(rows, po, 0.2)
+    const cnt = {}; for (const r of b.kept) cnt[po.get(r.input_id)] = (cnt[po.get(r.input_id)] ?? 0) + 1
+    ok(b.applied && Math.max(...Object.values(cnt)) / b.kept.length <= 0.2 + 1e-9, '(m) 브레이크: 한 제품이 결과의 20% 를 넘지 않는다')
+    ok(b.kept.length + b.held.length === rows.length && b.held.every((r) => po.get(r.input_id) === 'A') && b.heldByProject.A === b.held.length, '(m) 브레이크: 초과분은 그 제품에서만, 나머지는 그대로(대기로 남김)')
+    ok(b.kept.filter((r) => po.get(r.input_id) === 'A').every((r, i) => r.input_id === 'A-' + i), '(m) 브레이크: 앞쪽(최신순)부터 남긴다')
+    const two = [...mk('A', 30), ...mk('B', 10)]
+    const few = M.applyProductBrake(two, new Map(two.map((r) => [r.input_id, r.input_id[0]])), 0.2)
+    ok(!few.applied && few.kept.length === 40 && few.held.length === 0, '(m) 제품이 5개 미만이면 브레이크를 걸지 않는다(20% 불가능)')
+    const unk = M.applyProductBrake([{ input_id: 'x1' }, ...rows], po, 0.2)
+    ok(unk.kept.some((r) => r.input_id === 'x1'), '(m) 제품을 모르는 행은 브레이크 대상이 아니다')
+    ok(M.applyProductBrake([], new Map(), 0.2).kept.length === 0 && M.applyProductBrake(rows, po, 0).applied === false, '(m) 빈 입력·share 0 은 그대로')
+    const S = await import('../lib/analysis/approval-scope.ts')
+    ok(S.outOfScopeReason(null, false, true) === 'area-unassigned' && S.outOfScopeReason('', false, true) === 'area-unassigned' && S.outOfScopeReason('5', false, true) === null && S.outOfScopeReason(null, false) === null, '(m) 영역 NULL: 승인 후보에서만 area-unassigned(기본 동작·감사 창은 그대로)')
+    ok(S.outOfScopeReason('out-founder', false, true) === 'out-area', '(m) out-* 는 여전히 out-area 가 우선')
+    const mt = readFileSync(join(ROOT, 'lib/analysis/gradual-release.ts'), 'utf8')
+    ok(mt.includes('{ allow: al.allow, rejectUnassigned: true }') && !mt.includes('loadScope(sb, ids, { rejectUnassigned: true'), '(m) 승인 후보 풀만 rejectUnassigned 를 켠다(감사 창 기본값은 그대로)')
+    const sc = readFileSync(join(ROOT, 'scripts/relevance-auto-approve.mjs'), 'utf8')
+    ok(sc.indexOf('applyProductBrake(') > 0 && sc.indexOf('applyProductBrake(') < sc.indexOf('runApprovalLoop(sb, targets'), '(m) 브레이크는 DB 쓰기보다 앞')
+    ok(sc.includes('runApprovalLoop(sb, targets') && sc.includes('recheckEvery: RECHECK_EVERY'), '(m) 스크립트는 lib 의 runApprovalLoop 로 승인한다')
+    // 가짜 DB 로 실제 실행: 2,000건·500건마다 재확인·두 번째 재확인에서 닫힘 → 1,200건에서 멈추고 800건은 손대지 않는다
+    const mkSb = (failAt = -1) => { const calls = []; let n = 0; return { calls, from: () => ({ update: () => { const q = { _ids: [], in: (c, ids) => (q._ids = ids, q), eq: () => q, is: () => q, select: async () => { const k = n++; calls.push(q._ids.length); return k === failAt ? { data: null, error: { message: 'boom' } } : { data: q._ids.map((input_id) => ({ input_id })), error: null } } }; return q } }) } }
+    const tg = Array.from({ length: 2000 }, (_, i) => ({ input_id: 'r' + i }))
+    let rc = 0; const verdicts = []
+    const sb1 = mkSb()
+    const r1 = await M.runApprovalLoop(sb1, tg, { stamp: 'T', rule: 'rr-v2', recheckEvery: 500, recheck: async () => { rc++; verdicts.push(rc); return rc >= 2 ? { on: false, reason: '감사 최근 50건 중 오류 8건(문턱 8)' } : { on: true, reason: 'ok' } } })
+    ok(rc === 2 && r1.approved === 1200 && r1.stoppedBy?.includes('문턱 8') && r1.untouched === 800 && sb1.calls.length === 6, '(m) 중간 재확인(가짜 DB): 600건째 열림 → 1200건째 닫힘 → 1,200건에서 멈추고 800건은 손대지 않는다')
+    let rc2 = 0
+    const r2 = await M.runApprovalLoop(mkSb(), tg, { stamp: 'T', rule: 'rr-v2', recheckEvery: 500, recheck: async () => { rc2++; return { on: true, reason: 'ok' } } })
+    ok(r2.approved === 2000 && r2.stoppedBy === null && rc2 === 3 && r2.untouched === 0, '(m) 중간 재확인(가짜 DB): 계속 열려 있으면 2,000건 전부, 재확인 3번(600·1,200·1,800건째)')
+    const r3 = await M.runApprovalLoop(mkSb(), tg, { stamp: 'T', rule: 'rr-v2', recheckEvery: 0, recheck: async () => { throw new Error('호출되면 안 됨') } })
+    ok(r3.approved === 2000, '(m) recheckEvery=0 이면 재확인 없이 끝까지')
+    const r4 = await M.runApprovalLoop(mkSb(2), tg, { stamp: 'T', rule: 'rr-v2', recheckEvery: 0, recheck: async () => ({ on: true, reason: '' }) })
+    ok(r4.failed === 200 && r4.approved === 1800, '(m) 저장 실패 묶음은 건너뛰고 실패로 센다')
+    const r5 = await M.runApprovalLoop(mkSb(), tg.slice(0, 400), { stamp: 'T', rule: 'rr-v2', recheckEvery: 100, recheck: async () => ({ on: false, reason: '읽기 실패' }) })
+    ok(r5.approved === 200 && r5.stoppedBy === '읽기 실패' && r5.untouched === 200, '(m) 재확인이 못 읽으면(on:false) 멈춘다 — 열림으로 접지 않는다')
+  }
+
   // (c)
   const rr = [
     { input_id: 'a1', source_key: 'A', judged_at: '2026-12-09T03:00:00Z' },
@@ -307,10 +349,10 @@ const sh = (c, n) => { if (c) total++; else { fail++; console.error(`✗ ${n}`) 
 // (h) 승인 스크립트 정적 순서: 감사 창(가드) → 게이트 닫힘 분기 → 점진 해제 0건 분기 → 풀 조회 → UPDATE. 런키 접두사 일치.
 const src = readFileSync(join(ROOT, 'scripts/relevance-auto-approve.mjs'), 'utf8')
 const at0 = (s) => src.indexOf(s)
-const order = ['loadGuardedAuditWindow(sb)', 'const gate = autoApprovalGate(', 'if (!gate.on) {', 'const release = decideRelease(', 'if (release.limit === 0) {', 'loadApprovalPool(sb, gate.since, process.env.AUTO_APPROVAL_SOURCES)', 'selectRelease(pool.targets, release.limit)', '.update({ auto_approved_at']
+const order = ['loadGuardedAuditWindow(sb)', 'const gate = autoApprovalGate(', 'if (!gate.on) {', 'const release = decideRelease(', 'if (release.limit === 0) {', 'loadApprovalPool(sb, gate.since, process.env.AUTO_APPROVAL_SOURCES)', 'selectRelease(pool.targets, release.limit)', 'runApprovalLoop(sb, targets']
 const pos = order.map(at0)
 sh(pos.every((p, i) => p > 0 && (i === 0 || p > pos[i - 1])), `(h) 승인 스크립트 순서: ${order.join(' → ')}`)
-sh(src.split('.update(').length === 2, '(h) 승인 스크립트의 UPDATE 는 한 곳뿐(점진 해제 선택을 거친다)')
+sh(src.split('.update(').length === 1 && readFileSync(join(ROOT, 'lib/analysis/gradual-release.ts'), 'utf8').split('.update({ auto_approved_at').length === 2, '(h) 승인 UPDATE 는 lib runApprovalLoop 한 곳뿐(스크립트는 점진 해제 선택을 거쳐 그것만 부른다)')
 sh(at0('runKey: `relevance-auto-approve-${kstDate()}') > 0 && real.APPROVE_RUN_PREFIX === 'relevance-auto-approve-', '(h) 재걸림 조회 접두사 = 승인 실행 runKey')
 sh(!/stepKey: 'gate'[^\n]*status: 'skipped'/.test(src) && /stepKey: 'gradual'/.test(src), "(h) 점진 해제 0건 기록은 'gate' 가 아닌 'gradual' 스텝")
 sh(/parseStageSince\(process\.env\.GRADUAL_RELEASE_STAGE_SINCE, todayKst, now\)/.test(src) && /stageSince: process\.env\.GRADUAL_RELEASE_STAGE_SINCE, todayKst, now, ctx/.test(src), '(h) 승인 스크립트가 STAGE_SINCE 를 현재 시각과 함께 판정')

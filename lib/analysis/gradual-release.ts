@@ -324,7 +324,7 @@ export function parseSourceAllowlist(v: unknown): SourceAllowlist {
  *   devAudienceReason(개발자·관리자 대상 글, 앱스토어·구글 플레이 제외)이 걸리면 'dev-audience'(패턴 id 는 devAudience 에 집계).
  *   둘 다 AUDIT_WINDOW_EXCLUDE 에 넣지 않는다 — 감사 창은 그 행을 그대로 센다(킬스위치를 느슨하게 만들지 않는다).
  */
-export async function applyApprovalGuard(sb: Sb, inputIds: readonly string[], opts: { allow?: ReadonlySet<string> | null } = {}): Promise<ApprovalGuardResult> {
+export async function applyApprovalGuard(sb: Sb, inputIds: readonly string[], opts: { allow?: ReadonlySet<string> | null; rejectUnassigned?: boolean } = {}): Promise<ApprovalGuardResult> {
   const ids = [...new Set(inputIds)]
   // L-20b: 영역 외(out-*)·소비재 태그 제외.
   const scope = await loadScope(sb, ids)
@@ -389,7 +389,7 @@ export async function loadApprovalPool(sb: Sb, since: Date, sources?: string | n
     if (data.length < 1000) break
   }
   const agreed = rows.filter((r) => isFullAgreement(r, since))
-  const g = await applyApprovalGuard(sb, agreed.map((r) => r.input_id), { allow: al.allow })
+  const g = await applyApprovalGuard(sb, agreed.map((r) => r.input_id), { allow: al.allow, rejectUnassigned: true })
   if (!g.ok) return { ok: false, error: `${g.error} — 승인하지 않는다` }
   const targets: PoolRow[] = agreed.filter((r) => !g.reasonOf.has(r.input_id)).map((r) => ({ ...r, source_key: g.sourceOf.get(r.input_id) as string }))
   return { ok: true, queried: rows.length, agreed: agreed.length, scopeExcluded: g.scopeExcluded, guardDrop: g.guardDrop, devAudience: g.devAudience, allow: al.allow, targets }
@@ -432,4 +432,84 @@ export async function loadGuardedAuditWindow(sb: Sb): Promise<AuditWindowResult>
     return true
   })
   return { ok: true, audits, read: rows.length, excluded }
+}
+
+
+// ── v71ee-4 C: 제품 점유율 브레이크(영구 개방 안전장치) ──
+/** 한 실행의 승인분에서 한 제품이 share(기본 20%)를 넘으면 그 제품은 초과분을 대기로 남긴다.
+ *  targets 순서(최신순·소스 라운드로빈)를 유지하고 각 제품에서 앞쪽부터 cap 건만 남긴다. cap = floor(share × 결과 건수) — 결과 건수가 cap 에 의존하므로 고정점까지 반복한다.
+ *  제품이 5개 미만이면 20% 를 지킬 수 없으므로 브레이크를 걸지 않는다(applied=false, 호출부가 사유를 적는다). projectOf 에 없는 행은 제품 미상 → 그대로 둔다(브레이크 대상 아님).
+ *  순수 함수 — DB 를 읽지 않는다. */
+export function applyProductBrake<T extends { input_id: string }>(targets: readonly T[], projectOf: ReadonlyMap<string, string>, share = 0.2): { kept: T[]; held: T[]; applied: boolean; cap: number | null; heldByProject: Record<string, number> } {
+  const known = targets.filter((t) => projectOf.has(t.input_id))
+  const projects = new Set(known.map((t) => projectOf.get(t.input_id)))
+  if (!(share > 0 && share < 1) || projects.size < Math.ceil(1 / share)) return { kept: [...targets], held: [], applied: false, cap: null, heldByProject: {} }
+  const count = new Map<string, number>()
+  for (const t of known) { const p = projectOf.get(t.input_id) as string; count.set(p, (count.get(p) ?? 0) + 1) }
+  const unknown = targets.length - known.length
+  let cap = known.length
+  for (let i = 0; i < 50; i++) {
+    const total = unknown + [...count.values()].reduce((s, c) => s + Math.min(c, cap), 0)
+    const next = Math.max(1, Math.floor(share * total))
+    if (next === cap) break
+    cap = next
+  }
+  const seen = new Map<string, number>(), kept: T[] = [], held: T[] = [], heldByProject: Record<string, number> = {}
+  for (const t of targets) {
+    const p = projectOf.get(t.input_id)
+    if (p === undefined) { kept.push(t); continue }
+    const n = seen.get(p) ?? 0
+    if (n < cap) { seen.set(p, n + 1); kept.push(t) } else { held.push(t); heldByProject[p] = (heldByProject[p] ?? 0) + 1 }
+  }
+  return { kept, held, applied: true, cap, heldByProject }
+}
+
+/** input_id → project_id (review_relevance_verdicts.project_id). 못 읽으면 ok:false — 호출부가 브레이크 없이 승인하지 않고 멈춘다(§7.1). */
+export async function loadProjectIds(sb: Sb, inputIds: readonly string[]): Promise<{ ok: true; projectOf: Map<string, string> } | { ok: false; error: string }> {
+  const projectOf = new Map<string, string>()
+  for (let i = 0; i < inputIds.length; i += 200) {
+    const { data, error } = await sb.from('review_relevance_verdicts').select('input_id, project_id').in('input_id', inputIds.slice(i, i + 200))
+    if (error) return { ok: false, error: `제품 조회 실패: ${error.code ?? ''} ${error.message}` }
+    for (const r of data ?? []) if (r.project_id) projectOf.set(r.input_id, r.project_id)
+  }
+  return { ok: true, projectOf }
+}
+
+
+// ── v71ee-4 C-2: 승인 루프(테스트 가능하게 스크립트에서 꺼냄) — 200건 묶음 UPDATE + N건마다 킬스위치 재확인 ──
+export interface ApprovalLoopOpts {
+  stamp: string
+  rule: string
+  recheckEvery: number // 0 = 끔
+  recheck: (approvedSoFar: number) => Promise<{ on: boolean; reason: string }> // 게이트를 다시 읽는다. 읽기 실패는 on:false 로 돌려준다(§7.1)
+  log?: (s: string) => void
+}
+export interface ApprovalLoopResult { approved: number; raced: number; failed: number; approvedIds: string[]; stoppedBy: string | null; untouched: number }
+export async function runApprovalLoop(sb: Sb, targets: readonly { input_id: string }[], o: ApprovalLoopOpts): Promise<ApprovalLoopResult> {
+  let approved = 0, raced = 0, failed = 0, stoppedBy: string | null = null, nextCheck = o.recheckEvery, done = 0
+  const approvedIds: string[] = []
+  for (let i = 0; i < targets.length; i += 200) {
+    const ids = targets.slice(i, i + 200).map((r) => r.input_id)
+    // WHERE 에 조건을 다시 건다 — 그사이 사람이 채점했거나 2차가 바뀐 행은 덮지 않는다.
+    const { data, error } = await sb
+      .from('review_relevance_verdicts')
+      .update({ auto_approved_at: o.stamp, auto_approval_rule: o.rule })
+      .in('input_id', ids)
+      .eq('verdict', 'relevant').eq('second_verdict', 'relevant')
+      .eq('product_informative', true).eq('second_product_informative', true)
+      .is('human_verdict', null).is('auto_approved_at', null)
+      .select('input_id')
+    done = i + ids.length
+    if (error) { failed += ids.length; o.log?.(`저장 실패(${i + 1}~${i + ids.length}): ${error.message}`); continue }
+    approved += data.length
+    approvedIds.push(...data.map((x: { input_id: string }) => x.input_id))
+    raced += ids.length - data.length
+    if (o.recheckEvery > 0 && approved >= nextCheck && done < targets.length) {
+      nextCheck = approved + o.recheckEvery
+      const g2 = await o.recheck(approved)
+      o.log?.(`중간 재확인(${approved}건째): ${g2.on ? '열림' : '닫힘'} — ${g2.reason}`)
+      if (!g2.on) { stoppedBy = g2.reason; break }
+    }
+  }
+  return { approved, raced, failed, approvedIds, stoppedBy, untouched: targets.length - done }
 }

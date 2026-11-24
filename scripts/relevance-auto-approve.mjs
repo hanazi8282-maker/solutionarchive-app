@@ -21,7 +21,7 @@
 
 import { createClient } from '../lib/supabase/server.ts'
 import { AUTO_APPROVAL_RULE, autoApprovalGate, parseSince } from '../lib/analysis/auto-approval.ts'
-import { countBySource, decideRelease, isEnabled, kstDayRange, loadApprovalPool, loadGuardedAuditWindow, loadReleaseContext, parseStage, parseStageSince, remainingToday, selectRelease, stageCap } from '../lib/analysis/gradual-release.ts'
+import { countBySource, decideRelease, isEnabled, loadApprovalPool, loadGuardedAuditWindow, loadReleaseContext, parseStage, parseStageSince, selectRelease, stageCap } from '../lib/analysis/gradual-release.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate, recordStatusLog } from './notion-status-log.mjs'
 import { relevanceRunSuffixFromEnv } from '../lib/analysis/session-guard.ts'
@@ -63,15 +63,6 @@ if (gradualDry) {
   const since = gate.since ?? parseSince(process.env.AUTO_APPROVAL_SINCE)
   if (!since) { console.error('✗ AUTO_APPROVAL_SINCE 가 없거나 날짜가 아니다 — 대상 풀을 계산할 수 없다'); process.exit(2) }
   const today = kstDate(now)
-  const { start, end } = kstDayRange(today)
-  let approvedToday = 0
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from('review_relevance_verdicts').select('input_id').eq('auto_approval_rule', AUTO_APPROVAL_RULE)
-      .gte('auto_approved_at', start.toISOString()).lt('auto_approved_at', end.toISOString()).order('input_id').range(from, from + 999)
-    if (error) { console.error(`✗ 오늘 승인 수 조회 실패: ${error.message}`); process.exit(2) }
-    approvedToday += data.length
-    if (data.length < 1000) break
-  }
   const pool = await loadApprovalPool(sb, since, process.env.AUTO_APPROVAL_SOURCES)
   if (!pool.ok) { console.error(`✗ ${pool.error}`); process.exit(2) }
   const fmt = (m) => Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'
@@ -80,14 +71,13 @@ if (gradualDry) {
   console.log(`풀(쿼리) ${pool.queried} → 완전 동의 ${pool.agreed} → 영역·소비재 제외 ${fmt(pool.scopeExcluded)} → 내용 가드 탈락 github_issues ${pool.guardDrop.github_issues} · 60자 미만 ${pool.guardDrop.short} · 본문 없음 ${pool.guardDrop.missing} → 허용 목록 밖 ${pool.guardDrop['source-not-allowed']} → 개발자 대상 ${pool.guardDrop['dev-audience']} ${JSON.stringify(pool.devAudience)} → 가드 통과 ${pool.targets.length}`)
   console.log(`소스 허용 목록(AUTO_APPROVAL_SOURCES): ${pool.allow ? [...pool.allow].join(', ') : '없음(제한 없음)'}`)
   console.log(`가드 통과 소스 분포: ${fmt(countBySource(pool.targets))}`)
-  console.log(`오늘(KST) 이미 rr-v2 승인: ${approvedToday}\n`)
-  console.log('| 단계 | 상한 | 오늘 남은 한도 | 승인 | 승인 후 남는 풀 | 소스 분포 |')
-  console.log('|---|---|---|---|---|---|')
+  console.log('각 단계 한도 = 그 단계를 새 STAGE_SINCE 로 시작했을 때의 추가분 상한이다(이전 단계 승인은 세지 않는다, v71ee-2).\n')
+  console.log('| 단계 | 상한(추가분) | 승인 | 승인 후 남는 풀 | 소스 분포 |')
+  console.log('|---|---|---|---|---|')
   for (const st of [1, 2, 3, 4, 5]) {
     const cap = stageCap(st)
-    const left = remainingToday(cap, approvedToday)
-    const picked = selectRelease(pool.targets, left)
-    console.log(`| ${st} | ${cap === Infinity ? '없음' : cap} | ${left === Infinity ? '무제한' : left} | ${picked.length} | ${pool.targets.length - picked.length} | ${fmt(countBySource(picked))} |`)
+    const picked = selectRelease(pool.targets, cap)
+    console.log(`| ${st} | ${cap === Infinity ? '없음' : cap} | ${picked.length} | ${pool.targets.length - picked.length} | ${fmt(countBySource(picked))} |`)
   }
   process.exit(0)
 }
@@ -129,7 +119,7 @@ const ctx = gradualOn && parseStage(process.env.GRADUAL_RELEASE_STAGE) !== null 
   ? await loadReleaseContext(sb, { stageSince: stageSinceOk, todayKst })
   : null
 const release = decideRelease({ enabled: process.env.GRADUAL_RELEASE_ENABLED, gateOn: gate.on, stage: process.env.GRADUAL_RELEASE_STAGE, stageSince: process.env.GRADUAL_RELEASE_STAGE_SINCE, todayKst, now, ctx })
-const releaseCounts = { stage: release.stage, effective_stage: release.effectiveStage, approved_today_before: release.approvedToday, cap: release.cap === Infinity ? -1 : release.cap, limit: release.limit === Infinity ? -1 : release.limit, stage_errors: release.stageErrors }
+const releaseCounts = { stage: release.stage, effective_stage: release.effectiveStage, approved_in_stage_before: release.approvedInStage, cap: release.cap === Infinity ? -1 : release.cap, limit: release.limit === Infinity ? -1 : release.limit, stage_errors: release.stageErrors }
 log(`점진 해제: ${release.reason} — ${JSON.stringify(releaseCounts)}`)
 if (release.limit === 0) {
   warn(`승인 0건 — ${release.reason}`)

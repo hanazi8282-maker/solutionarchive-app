@@ -8,7 +8,7 @@
 //   현재 단계   = 리포 변수 GRADUAL_RELEASE_STAGE(1~5) — 사람만 바꾼다. 그래서 "자동으로 안 올린다"가 구조로 보장된다.
 //   단계 시작   = 리포 변수 GRADUAL_RELEASE_STAGE_SINCE — KST 날짜(YYYY-MM-DD = 그날 00:00 KST) 또는 ISO UTC 시각(…Z). 사람만 바꾼다.
 //                 같은 날 단계를 올릴 때 시각을 쓰면 그 시각 전의 킬스위치 기록·단계 감사는 새 단계에 섞이지 않는다(v71dl).
-//   오늘 승인 수 = review_relevance_verdicts(rr-v2 ∧ auto_approved_at 이 오늘 KST) — 하루 여러 슬롯(04·11·15시)을 합쳐 센다.
+//   이 단계 승인 수 = review_relevance_verdicts(rr-v2 ∧ auto_approved_at ≥ STAGE_SINCE) — 날짜·슬롯과 상관없이 이 단계 시작 뒤 승인분 전부를 합쳐 센다(v71ee-2). 이전 단계 승인은 세지 않는다.
 //   킬스위치 재걸림 = agent_run_steps(relevance-auto-approve 실행의 step 'gate' ∧ blocked ∧ updated_at ≥ STAGE_SINCE) — 있으면 유효 단계 1, 오늘이면 0건.
 //     step 은 (run_id, step_key) upsert 라 같은 날 다시 막히면 updated_at 이 그 시각으로 바뀐다 — 그래서 "기록 시각" = updated_at.
 //   단계 내 멈춤 = 이 단계(STAGE_SINCE 이후) 승인 글의 사람 채점 오류 ≥ 5(scoreApproval 같은 정의) → 승인 0건. 이미 승인된 글은 취소하지 않는다.
@@ -25,10 +25,12 @@ import { devAudienceReason } from './dev-audience-guard.ts'
 
 export const GRADUAL = {
   /**
-   * 단계 → 하루 **누적** 승인 상한(그날 이미 승인한 수 포함, 남헌 v71dl). 같은 날 1→2 로 올리면 1단계에서 승인한 500 을 빼고 1500 더. (v71ds) 단 STAGE_SINCE 가 오늘 한낮이면 그 시각 이전 승인은 세지 않는다 — 단계 재시작은 새 카운터.
-   * 5단계 = 상한 없음(2026-11-23·24 에는 쓰지 않는다 — 쓰는 날은 사람이 정한다).
+   * 단계 → **이번 단계 추가분** 승인 상한(v71ee-2, 남헌 2026-11-24). STAGE_SINCE 이후 이 단계에서 승인한 건수만 센다 —
+   * 이전 단계 승인은 세지 않고, 날짜가 바뀌어도 카운터가 0 으로 돌아가지 않는다. 단계를 올릴 때 STAGE_SINCE 를 새 시각으로
+   * 바꾸면 새 카운터가 시작된다(사람만 바꾼다). 예: 3단계 = STAGE_SINCE 이후 최대 4,000건.
+   * 5단계 = 상한 없음(쓰는 날은 사람이 정한다).
    */
-  caps: { 1: 500, 2: 2000, 3: 4500, 4: 5000, 5: Infinity } as Record<number, number>,
+  caps: { 1: 500, 2: 2000, 3: 4000, 4: 5000, 5: Infinity } as Record<number, number>,
   /** 단계 통과 표본 크기. 배분은 sampleQuotas(앱스토어·구글 플레이 고정 몫, 남는 자리는 다른 소스) — quotaSample. */
   sampleSize: 30,
   sampleQuotas: { appstore: 10, googleplay: 6 } as Record<string, number>,
@@ -77,10 +79,10 @@ export function stageCap(stage: number): number {
   return c === undefined ? 0 : c
 }
 
-/** 오늘 남은 한도 = 상한 − 오늘 이미 승인한 수(0 미만이면 0). 이미 승인 수를 못 셌으면(비정상 값) 0. */
-export function remainingToday(cap: number, approvedToday: number): number {
-  if (!Number.isFinite(approvedToday) || approvedToday < 0) return 0
-  return Math.max(0, cap - approvedToday)
+/** 이 단계의 남은 한도 = 상한 − 이 단계(STAGE_SINCE 이후)에서 이미 승인한 수(0 미만이면 0). 승인 수를 못 셌으면(비정상 값) 0. */
+export function remainingInStage(cap: number, approvedInStage: number): number {
+  if (!Number.isFinite(approvedInStage) || approvedInStage < 0) return 0
+  return Math.max(0, cap - approvedInStage)
 }
 
 /** KST 날짜의 [00:00, 다음날 00:00) UTC 경계. */
@@ -102,7 +104,7 @@ export interface ReleaseInput {
 }
 
 export type ReleaseContext =
-  | { ok: true; approvedToday: number; trips: string[]; stageAudits: AuditRow[] }
+  | { ok: true; approvedInStage: number; trips: string[]; stageAudits: AuditRow[] }
   | { ok: false; error: string }
 
 export interface ReleaseDecision {
@@ -112,7 +114,7 @@ export interface ReleaseDecision {
   stage: number | null
   effectiveStage: number | null
   cap: number | null
-  approvedToday: number | null
+  approvedInStage: number | null
   stageErrors: number | null
   reason: string
 }
@@ -122,7 +124,7 @@ export interface ReleaseDecision {
  * 킬스위치 재걸림(오늘이면 0, 아니면 유효 단계 1) → 단계 내 오류 ≥5 멈춤 → 상한 − 오늘 승인.
  */
 export function decideRelease(i: ReleaseInput): ReleaseDecision {
-  const base = { enabled: isEnabled(i.enabled), stage: null, effectiveStage: null, cap: null, approvedToday: null, stageErrors: null }
+  const base = { enabled: isEnabled(i.enabled), stage: null, effectiveStage: null, cap: null, approvedInStage: null, stageErrors: null }
   // ⛔ 안전 기본값: 기능이 꺼져 있으면 게이트가 열려도 0건.
   if (!base.enabled) return { ...base, limit: 0, reason: 'GRADUAL_RELEASE_ENABLED 꺼짐(기본값) — 게이트가 열려도 승인하지 않는다' }
   if (!i.gateOn) return { ...base, limit: 0, reason: '게이트 닫힘 — 승인하지 않는다' }
@@ -132,12 +134,12 @@ export function decideRelease(i: ReleaseInput): ReleaseDecision {
   if (sinceAt === null) return { ...base, stage, limit: 0, reason: `GRADUAL_RELEASE_STAGE_SINCE 확인 불가(${JSON.stringify(i.stageSince ?? null)}) — 날짜·UTC 시각이 아니거나 미래라 승인 0건` }
   const since = String(i.stageSince).trim()
   if (!i.ctx || !i.ctx.ok) return { ...base, stage, limit: 0, reason: `단계 상태 조회 실패 — 확인 불가라 승인 0건: ${i.ctx && !i.ctx.ok ? i.ctx.error : '없음'}` }
-  const { approvedToday, stageAudits } = i.ctx
+  const { approvedInStage, stageAudits } = i.ctx
   // STAGE_SINCE 이전 기록은 이 단계의 재걸림이 아니다. 시각을 못 읽는 기록은 남긴다(아래에서 "오늘"로 본다 — §7.1).
   const trips = i.ctx.trips.filter((t) => { const x = Date.parse(t); return !Number.isFinite(x) || x >= sinceAt.getTime() })
   const todayStart = kstDayRange(i.todayKst).start.getTime()
   const stageErrors = stageAudits.filter((a) => scoreApproval(a) === 'error').length
-  const known = { ...base, stage, approvedToday, stageErrors }
+  const known = { ...base, stage, approvedInStage, stageErrors }
   if (trips.length > 0) {
     const tripsToday = trips.filter((t) => Date.parse(t) >= todayStart).length
     if (tripsToday > 0 || trips.some((t) => !Number.isFinite(Date.parse(t)))) {
@@ -149,9 +151,9 @@ export function decideRelease(i: ReleaseInput): ReleaseDecision {
     return { ...known, effectiveStage, cap: 0, limit: 0, reason: `${since} 이후 이 단계 승인 글 사람 채점 오류 ${stageErrors}건(허용 ${GRADUAL.maxErrors}) — 단계 멈춤, 승인 0건` }
   }
   const cap = stageCap(effectiveStage)
-  const limit = remainingToday(cap, approvedToday)
+  const limit = remainingInStage(cap, approvedInStage)
   const tripNote = trips.length > 0 ? ` · ${since} 이후 킬스위치 재걸림 ${trips.length}회로 단계 ${stage}→1` : ''
-  return { ...known, effectiveStage, cap, limit, reason: `단계 ${effectiveStage} 상한 ${cap === Infinity ? '없음' : cap} − 오늘 이미 ${approvedToday} = 남은 ${limit === Infinity ? '무제한' : limit}${tripNote}` }
+  return { ...known, effectiveStage, cap, limit, reason: `단계 ${effectiveStage} 상한 ${cap === Infinity ? '없음' : cap} − 이 단계에서 이미 ${approvedInStage} = 남은 ${limit === Infinity ? '무제한' : limit}${tripNote}` }
 }
 
 export interface PoolRow extends VerdictRow { source_key: string }
@@ -263,24 +265,15 @@ async function readAll(build: () => any): Promise<{ data: any[]; error: any }> {
   }
 }
 
-/**
- * 상한 카운터의 시작 시각(v71ds) = KST 하루 시작과 STAGE_SINCE 중 늦은 쪽. 단계를 새로 시작한 날(STAGE_SINCE 가 오늘 한낮)에는
- * 그 전에 이미 승인된 건이 새 단계 상한을 먹지 않는다. 다음 날부터는 하루 시작이 더 늦어 기존 동작과 같다.
- */
-export function counterStart(dayStart: Date, stageSince: Date): Date {
-  return stageSince.getTime() > dayStart.getTime() ? stageSince : dayStart
-}
-
 /** 단계 판단에 필요한 DB 상태(읽기 전용). 하나라도 실패하면 ok:false(확인 불가). */
 export async function loadReleaseContext(sb: Sb, opts: { stageSince: Date; todayKst: string }): Promise<ReleaseContext> {
-  const { start, end } = kstDayRange(opts.todayKst)
   const stageStart = opts.stageSince
   // 실행 행(run_key 하루 1개)은 그날 첫 슬롯에 만들어지고 started_at 이 그대로다 — 시각 STAGE_SINCE 보다 먼저 시작한 그날 실행이
   // 뒤 슬롯에서 다시 막힐 수 있으므로 실행은 하루 앞까지 넓게 읽고, 시각 판정은 step updated_at 으로 한다.
   const runsFrom = new Date(stageStart.getTime() - 86_400_000)
   const today = await readAll(() => sb.from('review_relevance_verdicts').select('input_id')
-    .eq('auto_approval_rule', AUTO_APPROVAL_RULE).gte('auto_approved_at', counterStart(start, stageStart).toISOString()).lt('auto_approved_at', end.toISOString()).order('input_id'))
-  if (today.error) return { ok: false, error: `오늘 승인 수 조회 실패: ${today.error.message}` }
+    .eq('auto_approval_rule', AUTO_APPROVAL_RULE).gte('auto_approved_at', stageStart.toISOString()).order('input_id'))
+  if (today.error) return { ok: false, error: `이 단계 승인 수 조회 실패: ${today.error.message}` }
   const runs = await readAll(() => sb.from('agent_runs').select('id').like('run_key', `${APPROVE_RUN_PREFIX}%`).gte('started_at', runsFrom.toISOString()).order('id'))
   if (runs.error) return { ok: false, error: `agent_runs 조회 실패: ${runs.error.message}` }
   const trips: string[] = []
@@ -293,7 +286,7 @@ export async function loadReleaseContext(sb: Sb, opts: { stageSince: Date; today
   const audits = await readAll(() => sb.from('review_relevance_verdicts').select('human_verdict, human_product_informative, human_graded_at')
     .eq('auto_approval_rule', AUTO_APPROVAL_RULE).gte('auto_approved_at', stageStart.toISOString()).not('human_verdict', 'is', null).order('input_id'))
   if (audits.error) return { ok: false, error: `단계 감사 조회 실패: ${audits.error.message}` }
-  return { ok: true, approvedToday: today.data.length, trips, stageAudits: audits.data }
+  return { ok: true, approvedInStage: today.data.length, trips, stageAudits: audits.data }
 }
 
 export type GuardDrop = { github_issues: number; short: number; missing: number; 'source-not-allowed': number; 'dev-audience': number }

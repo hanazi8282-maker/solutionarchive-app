@@ -2,7 +2,7 @@
 // 점진 해제(v71dc·v71dl, lib/analysis/gradual-release.ts) 셀프테스트 — 가짜 supabase 만(네트워크·DB·LLM 없음). 실제 승인 0건.
 //   node scripts/gradual-release-selftest.mjs
 //
-// 지키는 것: (a) 단계→누적 상한 500/2000/4500/5000/무제한 (b) 남은 한도에 오늘 이미 승인 포함·같은 날 단계 올림 (c) 최신 우선·소스 라운드 로빈
+// 지키는 것: (a) 단계→이번 단계 추가분 상한 500/2000/4000/5000/무제한 (b) 남은 한도 = 상한 − STAGE_SINCE 이후 이 단계 승인(이전 단계·이전 날짜 구분 없음, v71ee-2) (c) 최신 우선·소스 라운드 로빈
 // (d) 가드 통과분만 (e) 게이트 × 기능 4조합 — 기능 꺼짐이면 언제나 0건 (f) 킬스위치 재걸림 → 유효 단계 1·그날 0건 (g) 변수 누락·이상값 0건
 // (h) 기존 auto-approval·approval-scope 셀프테스트 통과 + 승인 스크립트에서 안전 분기가 DB 쓰기보다 앞 (i) 가드·안전 분기·문턱을 깨면 이 검사가 잡는다(변이 시험)
 // (j) v71dl 가 — 킬스위치 감사 창은 승인 가드와 같은 정의로 거른 뒤 최근 50건(문턱 8·워밍업 10 불변)
@@ -48,7 +48,7 @@ function fake(tables, fail = []) {
 
 const TODAY = '2026-12-10'
 const NOW = new Date('2026-12-10T05:00:00.000Z') // KST 12-10 14:00
-const ctxOk = (o = {}) => ({ ok: true, approvedToday: 0, trips: [], stageAudits: [], ...o })
+const ctxOk = (o = {}) => ({ ok: true, approvedInStage: 0, trips: [], stageAudits: [], ...o })
 const on = { enabled: 'true', gateOn: true, stage: '1', stageSince: '2026-12-01', todayKst: TODAY, now: NOW }
 const audit = (verdict, info) => ({ human_verdict: verdict, human_product_informative: info, human_graded_at: '2026-12-05T00:00:00Z' })
 const LONG = 'x'.repeat(80)
@@ -79,25 +79,21 @@ async function checks(M, A, { quiet = false } = {}) {
   const ok = (c, name) => { if (c) pass++; else fails.push(name) }
 
   // (a) 단계표 — 하루 누적 상한
-  ok(M.stageCap(1) === 500 && M.stageCap(2) === 2000 && M.stageCap(3) === 4500 && M.stageCap(4) === 5000 && M.stageCap(5) === Infinity, '(a) 단계→누적 상한 500/2000/4500/5000/무제한')
+  ok(M.stageCap(1) === 500 && M.stageCap(2) === 2000 && M.stageCap(3) === 4000 && M.stageCap(4) === 5000 && M.stageCap(5) === Infinity, '(a) 단계→추가분 상한 500/2000/4000/5000/무제한')
   ok(M.stageCap(0) === 0 && M.stageCap(6) === 0, '(a) 범위 밖 단계 상한 0')
   ok(M.parseStage('5') === 5 && M.parseStage('1') === 1 && ['0', '6', '1.5', 'abc', '', ' '].every((s) => M.parseStage(s) === null), '(a) 단계 변수는 1~5 정수만(그 밖 = 확인 불가)')
   ok(M.GRADUAL.sampleSize === 30 && M.GRADUAL.maxErrors === 4, '(a) 표본 30 · 통과선 오류 4건 이하 불변')
 
   // (b) 남은 한도 · 같은 날 단계 올림(누적)
-  ok(M.remainingToday(500, 450) === 50 && M.remainingToday(500, 600) === 0 && M.remainingToday(500, 0) === 500, '(b) 남은 한도 = 상한 − 오늘 승인(0 미만 0)')
-  ok(M.remainingToday(500, NaN) === 0 && M.remainingToday(500, -1) === 0, '(b) 오늘 승인 수가 이상하면 0')
-  ok(M.decideRelease({ ...on, ctx: ctxOk({ approvedToday: 450 }) }).limit === 50, '(b) 1단계·오늘 이미 450 → 이번 50')
-  const day = [['1', 0, 500], ['2', 500, 1500], ['3', 2000, 2500], ['4', 4500, 500]]
-  for (const [st, before, more] of day) ok(M.decideRelease({ ...on, stage: st, stageSince: TODAY, ctx: ctxOk({ approvedToday: before }) }).limit === more, `(b) 같은 날 ${st}단계·오늘 이미 ${before} → ${more}건 더`)
-  ok(M.decideRelease({ ...on, stage: '2', ctx: ctxOk({ approvedToday: 300 }) }).limit === 1700, '(b) 2단계·오늘 이미 300(다른 슬롯) → 1700')
-  { const d0 = new Date('2026-11-22T15:00:00Z'), mid = new Date('2026-11-23T11:30:00Z'), pastSince = new Date('2026-11-23T05:48:50Z')
-    ok(M.counterStart(d0, mid).getTime() === mid.getTime(), '(v71ds) STAGE_SINCE 가 오늘 한낮이면 카운터는 그 시각부터')
-    ok(M.counterStart(d0, new Date('2026-11-20T00:00:00Z')).getTime() === d0.getTime(), '(v71ds) STAGE_SINCE 가 어제 이전이면 하루 시작부터(기존 동작)')
-    ok(M.counterStart(d0, d0).getTime() === d0.getTime() && M.counterStart(d0, pastSince).getTime() === pastSince.getTime(), '(v71ds) 같거나 늦은 쪽') }
-  ok(M.decideRelease({ ...on, stage: '2', ctx: ctxOk({ approvedToday: 2000 }) }).limit === 0, '(b) 2단계·오늘 이미 2000 → 0')
-  ok(M.decideRelease({ ...on, stage: '4', ctx: ctxOk({ approvedToday: 99999 }) }).limit === 0, '(b) 4단계도 상한 5000(무제한 아님)')
-  ok(M.decideRelease({ ...on, stage: '5', ctx: ctxOk({ approvedToday: 99999 }) }).limit === Infinity, '(b) 5단계 상한 없음')
+  ok(M.remainingInStage(500, 450) === 50 && M.remainingInStage(500, 600) === 0 && M.remainingInStage(500, 0) === 500, '(b) 남은 한도 = 상한 − 이 단계 승인(0 미만 0)')
+  ok(M.remainingInStage(500, NaN) === 0 && M.remainingInStage(500, -1) === 0, '(b) 이 단계 승인 수가 이상하면 0')
+  ok(M.decideRelease({ ...on, ctx: ctxOk({ approvedInStage: 450 }) }).limit === 50, '(b) 1단계·이 단계에서 이미 450 → 이번 50')
+  const day = [['1', 0, 500], ['2', 0, 2000], ['3', 0, 4000], ['4', 0, 5000], ['3', 1500, 2500]] // v71ee-2: 새 단계는 추가분 상한 그대로(이전 단계 승인은 세지 않는다)
+  for (const [st, before, more] of day) ok(M.decideRelease({ ...on, stage: st, stageSince: TODAY, ctx: ctxOk({ approvedInStage: before }) }).limit === more, `(b) ${st}단계·이 단계에서 이미 ${before} → ${more}건 더`)
+  ok(M.decideRelease({ ...on, stage: '2', ctx: ctxOk({ approvedInStage: 300 }) }).limit === 1700, '(b) 2단계·이 단계에서 이미 300(다른 슬롯) → 1700')
+  ok(M.decideRelease({ ...on, stage: '2', ctx: ctxOk({ approvedInStage: 2000 }) }).limit === 0, '(b) 2단계·이 단계에서 이미 2000 → 0')
+  ok(M.decideRelease({ ...on, stage: '4', ctx: ctxOk({ approvedInStage: 99999 }) }).limit === 0, '(b) 4단계도 상한 5000(무제한 아님)')
+  ok(M.decideRelease({ ...on, stage: '5', ctx: ctxOk({ approvedInStage: 99999 }) }).limit === Infinity, '(b) 5단계 상한 없음')
 
   // (c)
   const rr = [
@@ -180,7 +176,11 @@ async function checks(M, A, { quiet = false } = {}) {
   }
   const since1201 = M.parseStageSince('2026-12-01', TODAY, NOW)
   const c = await M.loadReleaseContext(fake(ctxTables), { stageSince: since1201, todayKst: TODAY })
-  ok(c.ok && c.approvedToday === 1, '(f) 오늘(KST) rr-v2 승인만 센다(어제 23시·rr-v1 제외)')
+  ok(c.ok && c.approvedInStage === 2, '(v71ee-2) STAGE_SINCE 이후 rr-v2 승인 전부(날짜 구분 없음 — 어제 23시분 포함, rr-v1·STAGE_SINCE 이전 제외)')
+  { const late = await M.loadReleaseContext(fake(ctxTables), { stageSince: new Date('2026-12-09T15:00:00Z'), todayKst: TODAY })
+    ok(late.ok && late.approvedInStage === 1, '(v71ee-2) STAGE_SINCE 이전(어제 23:00 KST) 승인은 세지 않는다 — 새 단계 = 새 카운터') }
+  { const cap = M.stageCap(3); const atCap = M.decideRelease({ ...on, stage: '3', ctx: ctxOk({ approvedInStage: cap }) }), under = M.decideRelease({ ...on, stage: '3', ctx: ctxOk({ approvedInStage: cap - 1 }) })
+    ok(cap === 4000 && atCap.limit === 0 && under.limit === 1, '(v71ee-2) 3단계 추가분 4,000 — 정확히 4,000 에서 멈추고 3,999 에서는 1건 남는다') }
   ok(c.ok && c.trips.length === 1 && c.trips[0] === '2026-12-03T00:01:00.000Z', '(f) 재걸림 = 승인 실행의 gate∧blocked ∧ STAGE_SINCE 이후(다른 스크립트·이전·gradual 스텝 제외)')
   ok(c.ok && c.stageAudits.length === 1, '(f) 단계 감사 = STAGE_SINCE 이후 rr-v2 사람 채점')
   for (const t of ['review_relevance_verdicts', 'agent_runs', 'agent_run_steps']) {
@@ -199,9 +199,9 @@ async function checks(M, A, { quiet = false } = {}) {
   ok(M.parseStageSince(T, TODAY, NOW)?.toISOString() === '2026-12-10T03:00:00.000Z', '(k) ISO UTC 시각을 그 시각으로 읽는다')
   ok(M.parseStageSince('2026-12-10T03:00Z', TODAY, NOW)?.toISOString() === '2026-12-10T03:00:00.000Z' && M.parseStageSince('2026-12-10T03:00:00.5Z', TODAY, NOW)?.toISOString() === '2026-12-10T03:00:00.500Z', '(k) 초·밀리초 생략/포함')
   ok(M.parseStageSince('2026-12-01', TODAY, NOW)?.getTime() === new Date('2026-12-01T00:00:00+09:00').getTime() && M.parseStageSince(TODAY, TODAY, NOW)?.getTime() === M.kstDayRange(TODAY).start.getTime(), '(k) 날짜만 → 그날 00:00 KST(기존과 동일)')
-  const before = M.decideRelease({ ...on, stage: '2', stageSince: T, ctx: ctxOk({ approvedToday: 500, trips: ['2026-12-10T01:00:00.000Z'] }) })
+  const before = M.decideRelease({ ...on, stage: '2', stageSince: T, ctx: ctxOk({ approvedInStage: 500, trips: ['2026-12-10T01:00:00.000Z'] }) })
   ok(before.limit === 1500 && before.effectiveStage === 2, '(k) 시각 이전 blocked 무시 → 2단계 그대로(500 승인 후 1500 더)')
-  const after = M.decideRelease({ ...on, stage: '2', stageSince: T, ctx: ctxOk({ approvedToday: 500, trips: ['2026-12-10T01:00:00.000Z', '2026-12-10T04:00:00.000Z'] }) })
+  const after = M.decideRelease({ ...on, stage: '2', stageSince: T, ctx: ctxOk({ approvedInStage: 500, trips: ['2026-12-10T01:00:00.000Z', '2026-12-10T04:00:00.000Z'] }) })
   ok(after.limit === 0 && after.effectiveStage === 1, '(k) 시각 이후 blocked → 유효 단계 1·그날 0건')
   ok(M.decideRelease({ ...on, stage: '2', stageSince: '2026-12-10', ctx: ctxOk({ trips: ['2026-12-10T01:00:00.000Z'] }) }).limit === 0, '(k) 날짜만이면 같은 blocked(10:00 KST)는 그날 것 → 0건(기존 동작)')
   ok(M.decideRelease({ ...on, stage: '2', stageSince: '2026-12-10', ctx: ctxOk({ trips: ['2026-12-09T14:00:00.000Z'] }) }).limit === 2000, '(k) 날짜만·그 전날 23:00 KST blocked 는 이 단계 밖')
@@ -369,7 +369,8 @@ const base = mkdtempSync(join(tmpdir(), 'gradual-mut-'))
 const mutants = [
   ['G', '내용 가드 우회', 'if (!passesRrV2ContentGuard(x)) {', 'if (false) {'],
   ['G', '기능 꺼짐 안전 분기 제거', 'if (!base.enabled) return', 'if (false) return'],
-  ['G', '오늘 승인 수 무시', 'const limit = remainingToday(cap, approvedToday)', 'const limit = cap'],
+  ['G', '이 단계 승인 수 무시', 'const limit = remainingInStage(cap, approvedInStage)', 'const limit = cap'],
+  ['G', 'STAGE_SINCE 이전 승인도 센다', ".eq('auto_approval_rule', AUTO_APPROVAL_RULE).gte('auto_approved_at', stageStart.toISOString()).order('input_id'))", ".eq('auto_approval_rule', AUTO_APPROVAL_RULE).gte('auto_approved_at', '2000-01-01T00:00:00Z').order('input_id'))"],
   ['G', '재걸림 무시', 'if (trips.length > 0) {', 'if (false) {'],
   ['G', '영역·소비재 제외 우회', 'new Map<string, GuardReason>(scope.excluded)', 'new Map<string, GuardReason>()'],
   ['G', '감사 창 가드 미적용', 'if (why && AUDIT_WINDOW_EXCLUDE.has(why))', 'if (false)'],

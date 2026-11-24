@@ -21,7 +21,7 @@
 
 import { createClient } from '../lib/supabase/server.ts'
 import { AUTO_APPROVAL_RULE, autoApprovalGate, parseSince } from '../lib/analysis/auto-approval.ts'
-import { applyProductBrake, loadProjectIds, countBySource, decideRelease, isEnabled, loadApprovalPool, loadGuardedAuditWindow, loadReleaseContext, parseStage, parseStageSince, selectRelease, stageCap } from '../lib/analysis/gradual-release.ts'
+import { applyProductBrake, loadProjectIds, runApprovalLoop, countBySource, decideRelease, isEnabled, loadApprovalPool, loadGuardedAuditWindow, loadReleaseContext, parseStage, parseStageSince, selectRelease, stageCap } from '../lib/analysis/gradual-release.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate, recordStatusLog } from './notion-status-log.mjs'
 import { relevanceRunSuffixFromEnv } from '../lib/analysis/session-guard.ts'
@@ -154,35 +154,19 @@ log(`점진 해제 선택 ${targets.length}건 (한도 ${release.limit === Infin
 if (!(targets.length <= release.limit)) { console.error(`✗ 선택 ${targets.length}건이 한도 ${release.limit} 를 넘는다 — 승인하지 않는다`); process.exit(2) }
 if (dry) { log('--dry: 쓰지 않는다.'); process.exit(0) }
 
-let approved = 0, raced = 0, failed = 0
 const RECHECK_EVERY = Number(process.env.APPROVAL_RECHECK_EVERY ?? '500')
-let nextCheck = RECHECK_EVERY, stoppedBy = null
-const approvedIds = []
 const stamp = now.toISOString()
-for (let i = 0; i < targets.length; i += 200) {
-  const ids = targets.slice(i, i + 200).map((r) => r.input_id)
-  // WHERE 에 조건을 다시 건다 — 그사이 사람이 채점했거나 2차가 바뀐 행은 덮지 않는다.
-  const { data, error } = await sb
-    .from('review_relevance_verdicts')
-    .update({ auto_approved_at: stamp, auto_approval_rule: AUTO_APPROVAL_RULE })
-    .in('input_id', ids)
-    .eq('verdict', 'relevant').eq('second_verdict', 'relevant')
-    .eq('product_informative', true).eq('second_product_informative', true)
-    .is('human_verdict', null).is('auto_approved_at', null)
-    .select('input_id')
-  if (error) { failed += ids.length; console.error(`✗ 저장 실패(${i + 1}~${i + ids.length}): ${error.message}`); continue }
-  approved += data.length
-  approvedIds.push(...data.map((x) => x.input_id))
-  raced += ids.length - data.length
-  // v71ee-4 C-2: N건마다 킬스위치 창을 다시 읽는다. 닫히면(임계 도달) 즉시 멈춘다 — 이미 쓴 승인은 되돌리지 않는다(취소는 사람만).
-  if (RECHECK_EVERY > 0 && approved >= nextCheck && i + 200 < targets.length) {
-    nextCheck = approved + RECHECK_EVERY
+// v71ee-4 C-2: 승인 루프는 lib 의 runApprovalLoop(셀프테스트가 가짜 DB 로 돌린다). N건마다 킬스위치 창을 다시 읽고 닫히면 멈춘다 — 이미 쓴 승인은 되돌리지 않는다(취소는 사람만).
+const loop = await runApprovalLoop(sb, targets, {
+  stamp, rule: AUTO_APPROVAL_RULE, recheckEvery: RECHECK_EVERY, log,
+  recheck: async () => {
     const aw2 = await loadGuardedAuditWindow(sb)
     const gate2 = autoApprovalGate({ enabled: process.env.AUTO_APPROVAL_ENABLED, since: process.env.AUTO_APPROVAL_SINCE, now: new Date(), audits: aw2.ok ? aw2.audits : null })
-    log(`중간 재확인(${approved}건째): ${gate2.on ? '열림' : '닫힘'} — ${gate2.reason}`)
-    if (!gate2.on) { stoppedBy = gate2.reason; warn(`승인 도중 게이트 닫힘 — ${approved}건에서 멈춤: ${gate2.reason}`); break }
-  }
-}
+    return { on: gate2.on, reason: gate2.reason }
+  },
+})
+const { approved, raced, failed, approvedIds, stoppedBy } = loop
+if (stoppedBy) warn(`승인 도중 게이트 닫힘 — ${approved}건에서 멈춤, 남은 ${loop.untouched}건은 대기: ${stoppedBy}`)
 
 await tracker.step({ stepKey: 'approve', label: '완전 동의 자동 승인', status: failed || stoppedBy ? 'failed' : 'ok', seq: 2, counts: { approved, raced, failed, ...releaseCounts }, blocker: stoppedBy, detail: { rule: AUTO_APPROVAL_RULE, gate: gate.reason, stopped_by: stoppedBy, gradual: release.reason, by_source: countBySource(approvedIds.map((id) => ({ source_key: sourceOf.get(id) ?? '?' }))) } })
 await tracker.finish({ status: failed || stoppedBy ? 'partial' : 'ok', summary: { approved, raced, failed, stopped_by: stoppedBy } })

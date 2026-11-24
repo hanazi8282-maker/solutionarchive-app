@@ -474,3 +474,42 @@ export async function loadProjectIds(sb: Sb, inputIds: readonly string[]): Promi
   }
   return { ok: true, projectOf }
 }
+
+
+// ── v71ee-4 C-2: 승인 루프(테스트 가능하게 스크립트에서 꺼냄) — 200건 묶음 UPDATE + N건마다 킬스위치 재확인 ──
+export interface ApprovalLoopOpts {
+  stamp: string
+  rule: string
+  recheckEvery: number // 0 = 끔
+  recheck: (approvedSoFar: number) => Promise<{ on: boolean; reason: string }> // 게이트를 다시 읽는다. 읽기 실패는 on:false 로 돌려준다(§7.1)
+  log?: (s: string) => void
+}
+export interface ApprovalLoopResult { approved: number; raced: number; failed: number; approvedIds: string[]; stoppedBy: string | null; untouched: number }
+export async function runApprovalLoop(sb: Sb, targets: readonly { input_id: string }[], o: ApprovalLoopOpts): Promise<ApprovalLoopResult> {
+  let approved = 0, raced = 0, failed = 0, stoppedBy: string | null = null, nextCheck = o.recheckEvery, done = 0
+  const approvedIds: string[] = []
+  for (let i = 0; i < targets.length; i += 200) {
+    const ids = targets.slice(i, i + 200).map((r) => r.input_id)
+    // WHERE 에 조건을 다시 건다 — 그사이 사람이 채점했거나 2차가 바뀐 행은 덮지 않는다.
+    const { data, error } = await sb
+      .from('review_relevance_verdicts')
+      .update({ auto_approved_at: o.stamp, auto_approval_rule: o.rule })
+      .in('input_id', ids)
+      .eq('verdict', 'relevant').eq('second_verdict', 'relevant')
+      .eq('product_informative', true).eq('second_product_informative', true)
+      .is('human_verdict', null).is('auto_approved_at', null)
+      .select('input_id')
+    done = i + ids.length
+    if (error) { failed += ids.length; o.log?.(`저장 실패(${i + 1}~${i + ids.length}): ${error.message}`); continue }
+    approved += data.length
+    approvedIds.push(...data.map((x: { input_id: string }) => x.input_id))
+    raced += ids.length - data.length
+    if (o.recheckEvery > 0 && approved >= nextCheck && done < targets.length) {
+      nextCheck = approved + o.recheckEvery
+      const g2 = await o.recheck(approved)
+      o.log?.(`중간 재확인(${approved}건째): ${g2.on ? '열림' : '닫힘'} — ${g2.reason}`)
+      if (!g2.on) { stoppedBy = g2.reason; break }
+    }
+  }
+  return { approved, raced, failed, approvedIds, stoppedBy, untouched: targets.length - done }
+}

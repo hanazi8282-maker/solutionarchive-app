@@ -29,6 +29,14 @@ for (const c of cc) {
     fs.writeFileSync(path.join(OUT, `auto-ledger-${c.slug}.json`), JSON.stringify(led, null, 1))
     const cited = [...new Set(String(r.evidence).match(/C\d+/g) ?? [])]
     row.m1 = factCoverage(refLed.facts, cited, facts)
+    // v3: 의미 일치 — 기준 사실마다 자동 수집 facts 에 같은 뜻(같은 숫자·같은 내용)이 있는지 모델이 판정(숫자 토큰 일치는 보수적이라 함께 보고)
+    try {
+      const refCited = cited.map((id) => refLed.facts.find((x) => x.id === id)).filter(Boolean)
+      const SEM = '기준 사실 목록과 자동 수집 사실 목록을 비교한다. 기준 사실마다, 자동 수집 사실 안에 같은 내용(같은 숫자·같은 사실)이 있으면 covered 에 그 id 를 넣는다. 표현이 달라도 뜻과 숫자가 같으면 포함. 출력 JSON 하나: {"covered":["C8"]}'
+      const payload = JSON.stringify({ ref: refCited.map((x) => ({ id: x.id, text: x.text })), auto: facts.filter((x) => !x.blocked).slice(0, 80).map((x) => x.text) })
+      const j = P.jparse(await P.call('compare-semantic', P.M.judge, SEM, '<data>' + payload + '</data>'))
+      const cov = (j.covered ?? []).filter((id) => cited.includes(id)); row.m1s = { total: refCited.length, covered: cov.length }
+    } catch (e) { row.m1s = { total: 0, covered: 0, error: String(e.message).slice(0, 60) } }
     row.m2 = signalAgreement(r.signals, led.signals.map((s) => s.code)); row.refSignals = r.signals; row.autoSignals = led.signals.map((s) => s.code)
     row.m3 = premiseAgreement(refLed.premises, led.premises)
     row.autoComplaint = led.complaint; row.refComplaint = r.complaint
@@ -41,6 +49,7 @@ const sum = (f) => ok.reduce((s, x) => s + f(x), 0)
 const summary = {
   companies: rows.length, errors: rows.filter((x) => x.error).length,
   m1_fact_coverage_pct: ok.length && sum((x) => x.m1.total) ? +(100 * sum((x) => x.m1.covered) / sum((x) => x.m1.total)).toFixed(1) : null,
+  m1s_fact_semantic_pct: ok.length && sum((x) => x.m1s?.total ?? 0) ? +(100 * sum((x) => x.m1s?.covered ?? 0) / sum((x) => x.m1s?.total ?? 0)).toFixed(1) : null,
   m2_signal_recall_pct: ok.filter((x) => x.m2.recall !== null).length ? +(100 * ok.filter((x) => x.m2.recall !== null).reduce((s, x) => s + x.m2.recall, 0) / ok.filter((x) => x.m2.recall !== null).length).toFixed(1) : null,
   m2_signal_exact_pct: ok.length ? +(100 * ok.filter((x) => x.m2.exact).length / ok.length).toFixed(1) : null,
   m3_premise_agreement_pct: ok.length ? +(100 * sum((x) => x.m3.rate) / ok.length).toFixed(1) : null,

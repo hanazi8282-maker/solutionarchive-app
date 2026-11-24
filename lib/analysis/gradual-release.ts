@@ -324,7 +324,7 @@ export function parseSourceAllowlist(v: unknown): SourceAllowlist {
  *   devAudienceReason(개발자·관리자 대상 글, 앱스토어·구글 플레이 제외)이 걸리면 'dev-audience'(패턴 id 는 devAudience 에 집계).
  *   둘 다 AUDIT_WINDOW_EXCLUDE 에 넣지 않는다 — 감사 창은 그 행을 그대로 센다(킬스위치를 느슨하게 만들지 않는다).
  */
-export async function applyApprovalGuard(sb: Sb, inputIds: readonly string[], opts: { allow?: ReadonlySet<string> | null } = {}): Promise<ApprovalGuardResult> {
+export async function applyApprovalGuard(sb: Sb, inputIds: readonly string[], opts: { allow?: ReadonlySet<string> | null; rejectUnassigned?: boolean } = {}): Promise<ApprovalGuardResult> {
   const ids = [...new Set(inputIds)]
   // L-20b: 영역 외(out-*)·소비재 태그 제외.
   const scope = await loadScope(sb, ids)
@@ -389,7 +389,7 @@ export async function loadApprovalPool(sb: Sb, since: Date, sources?: string | n
     if (data.length < 1000) break
   }
   const agreed = rows.filter((r) => isFullAgreement(r, since))
-  const g = await applyApprovalGuard(sb, agreed.map((r) => r.input_id), { allow: al.allow })
+  const g = await applyApprovalGuard(sb, agreed.map((r) => r.input_id), { allow: al.allow, rejectUnassigned: true })
   if (!g.ok) return { ok: false, error: `${g.error} — 승인하지 않는다` }
   const targets: PoolRow[] = agreed.filter((r) => !g.reasonOf.has(r.input_id)).map((r) => ({ ...r, source_key: g.sourceOf.get(r.input_id) as string }))
   return { ok: true, queried: rows.length, agreed: agreed.length, scopeExcluded: g.scopeExcluded, guardDrop: g.guardDrop, devAudience: g.devAudience, allow: al.allow, targets }
@@ -432,4 +432,45 @@ export async function loadGuardedAuditWindow(sb: Sb): Promise<AuditWindowResult>
     return true
   })
   return { ok: true, audits, read: rows.length, excluded }
+}
+
+
+// ── v71ee-4 C: 제품 점유율 브레이크(영구 개방 안전장치) ──
+/** 한 실행의 승인분에서 한 제품이 share(기본 20%)를 넘으면 그 제품은 초과분을 대기로 남긴다.
+ *  targets 순서(최신순·소스 라운드로빈)를 유지하고 각 제품에서 앞쪽부터 cap 건만 남긴다. cap = floor(share × 결과 건수) — 결과 건수가 cap 에 의존하므로 고정점까지 반복한다.
+ *  제품이 5개 미만이면 20% 를 지킬 수 없으므로 브레이크를 걸지 않는다(applied=false, 호출부가 사유를 적는다). projectOf 에 없는 행은 제품 미상 → 그대로 둔다(브레이크 대상 아님).
+ *  순수 함수 — DB 를 읽지 않는다. */
+export function applyProductBrake<T extends { input_id: string }>(targets: readonly T[], projectOf: ReadonlyMap<string, string>, share = 0.2): { kept: T[]; held: T[]; applied: boolean; cap: number | null; heldByProject: Record<string, number> } {
+  const known = targets.filter((t) => projectOf.has(t.input_id))
+  const projects = new Set(known.map((t) => projectOf.get(t.input_id)))
+  if (!(share > 0 && share < 1) || projects.size < Math.ceil(1 / share)) return { kept: [...targets], held: [], applied: false, cap: null, heldByProject: {} }
+  const count = new Map<string, number>()
+  for (const t of known) { const p = projectOf.get(t.input_id) as string; count.set(p, (count.get(p) ?? 0) + 1) }
+  const unknown = targets.length - known.length
+  let cap = known.length
+  for (let i = 0; i < 50; i++) {
+    const total = unknown + [...count.values()].reduce((s, c) => s + Math.min(c, cap), 0)
+    const next = Math.max(1, Math.floor(share * total))
+    if (next === cap) break
+    cap = next
+  }
+  const seen = new Map<string, number>(), kept: T[] = [], held: T[] = [], heldByProject: Record<string, number> = {}
+  for (const t of targets) {
+    const p = projectOf.get(t.input_id)
+    if (p === undefined) { kept.push(t); continue }
+    const n = seen.get(p) ?? 0
+    if (n < cap) { seen.set(p, n + 1); kept.push(t) } else { held.push(t); heldByProject[p] = (heldByProject[p] ?? 0) + 1 }
+  }
+  return { kept, held, applied: true, cap, heldByProject }
+}
+
+/** input_id → project_id (review_relevance_verdicts.project_id). 못 읽으면 ok:false — 호출부가 브레이크 없이 승인하지 않고 멈춘다(§7.1). */
+export async function loadProjectIds(sb: Sb, inputIds: readonly string[]): Promise<{ ok: true; projectOf: Map<string, string> } | { ok: false; error: string }> {
+  const projectOf = new Map<string, string>()
+  for (let i = 0; i < inputIds.length; i += 200) {
+    const { data, error } = await sb.from('review_relevance_verdicts').select('input_id, project_id').in('input_id', inputIds.slice(i, i + 200))
+    if (error) return { ok: false, error: `제품 조회 실패: ${error.code ?? ''} ${error.message}` }
+    for (const r of data ?? []) if (r.project_id) projectOf.set(r.input_id, r.project_id)
+  }
+  return { ok: true, projectOf }
 }

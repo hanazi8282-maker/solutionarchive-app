@@ -95,6 +95,32 @@ async function checks(M, A, { quiet = false } = {}) {
   ok(M.decideRelease({ ...on, stage: '4', ctx: ctxOk({ approvedInStage: 99999 }) }).limit === 0, '(b) 4단계도 상한 5000(무제한 아님)')
   ok(M.decideRelease({ ...on, stage: '5', ctx: ctxOk({ approvedInStage: 99999 }) }).limit === Infinity, '(b) 5단계 상한 없음')
 
+  // (m) v71ee-4 C-1 — 제품 점유율 브레이크(순수) · v71ee-6 영역 NULL 가드
+  {
+    const mk = (p, n) => Array.from({ length: n }, (_, i) => ({ input_id: `${p}-${i}` }))
+    const rows = [...mk('A', 30), ...mk('B', 10), ...mk('C', 10), ...mk('D', 10), ...mk('E', 10), ...mk('F', 10), ...mk('G', 10), ...mk('H', 10)]
+    const po = new Map(rows.map((r) => [r.input_id, r.input_id.split('-')[0]]))
+    const b = M.applyProductBrake(rows, po, 0.2)
+    const cnt = {}; for (const r of b.kept) cnt[po.get(r.input_id)] = (cnt[po.get(r.input_id)] ?? 0) + 1
+    ok(b.applied && Math.max(...Object.values(cnt)) / b.kept.length <= 0.2 + 1e-9, '(m) 브레이크: 한 제품이 결과의 20% 를 넘지 않는다')
+    ok(b.kept.length + b.held.length === rows.length && b.held.every((r) => po.get(r.input_id) === 'A') && b.heldByProject.A === b.held.length, '(m) 브레이크: 초과분은 그 제품에서만, 나머지는 그대로(대기로 남김)')
+    ok(b.kept.filter((r) => po.get(r.input_id) === 'A').every((r, i) => r.input_id === 'A-' + i), '(m) 브레이크: 앞쪽(최신순)부터 남긴다')
+    const two = [...mk('A', 30), ...mk('B', 10)]
+    const few = M.applyProductBrake(two, new Map(two.map((r) => [r.input_id, r.input_id[0]])), 0.2)
+    ok(!few.applied && few.kept.length === 40 && few.held.length === 0, '(m) 제품이 5개 미만이면 브레이크를 걸지 않는다(20% 불가능)')
+    const unk = M.applyProductBrake([{ input_id: 'x1' }, ...rows], po, 0.2)
+    ok(unk.kept.some((r) => r.input_id === 'x1'), '(m) 제품을 모르는 행은 브레이크 대상이 아니다')
+    ok(M.applyProductBrake([], new Map(), 0.2).kept.length === 0 && M.applyProductBrake(rows, po, 0).applied === false, '(m) 빈 입력·share 0 은 그대로')
+    const S = await import('../lib/analysis/approval-scope.ts')
+    ok(S.outOfScopeReason(null, false, true) === 'area-unassigned' && S.outOfScopeReason('', false, true) === 'area-unassigned' && S.outOfScopeReason('5', false, true) === null && S.outOfScopeReason(null, false) === null, '(m) 영역 NULL: 승인 후보에서만 area-unassigned(기본 동작·감사 창은 그대로)')
+    ok(S.outOfScopeReason('out-founder', false, true) === 'out-area', '(m) out-* 는 여전히 out-area 가 우선')
+    const mt = readFileSync(join(ROOT, 'lib/analysis/gradual-release.ts'), 'utf8')
+    ok(mt.includes('{ allow: al.allow, rejectUnassigned: true }') && !mt.includes('loadScope(sb, ids, { rejectUnassigned: true'), '(m) 승인 후보 풀만 rejectUnassigned 를 켠다(감사 창 기본값은 그대로)')
+    const sc = readFileSync(join(ROOT, 'scripts/relevance-auto-approve.mjs'), 'utf8')
+    ok(sc.indexOf('applyProductBrake(') > 0 && sc.indexOf('applyProductBrake(') < sc.indexOf(".from('review_relevance_verdicts')"), '(m) 브레이크는 DB 쓰기보다 앞')
+    ok(sc.includes('RECHECK_EVERY > 0 && approved >= nextCheck') && /!gate2\.on\) \{[\s\S]{0,300}break/.test(sc), '(m) 승인 도중 N건마다 킬스위치 창을 다시 읽고 닫히면 멈춘다')
+  }
+
   // (c)
   const rr = [
     { input_id: 'a1', source_key: 'A', judged_at: '2026-12-09T03:00:00Z' },

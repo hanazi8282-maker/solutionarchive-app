@@ -10,11 +10,16 @@
 export const OUT_AREA_PREFIX = 'out-'
 export const SCOPE_IN_CHUNK = 200
 
-export type ScopeReason = 'out-area' | 'consumer-tag'
+export type ScopeReason = 'out-area' | 'consumer-tag' | 'area-unassigned'
 
-/** 제외 사유(순수). 영역 외가 우선. 영역 NULL 은 영역 외가 아니다 — 영역 미부여일 뿐이다. */
-export function outOfScopeReason(areaCode: string | null | undefined, consumerTagged: boolean): ScopeReason | null {
+/**
+ * 제외 사유(순수). 영역 외가 우선. 영역 NULL 은 기본적으로 영역 외가 아니다 — 영역 미부여일 뿐이다(감사 창이 쓰는 기본 동작, 그대로).
+ * v71ee-6: rejectUnassigned=true 면 영역 NULL·빈 문자열도 'area-unassigned' 로 뺀다. 승인 후보 풀에만 켠다 — NULL 이 승인 가드를 통과해
+ *   영역 밖 제품(Evernote, 5단계 승인분의 20.8%)이 나간 사고를 막는다. 영역을 부여하면(사람) 그다음 실행부터 대상이 된다.
+ */
+export function outOfScopeReason(areaCode: string | null | undefined, consumerTagged: boolean, rejectUnassigned = false): ScopeReason | null {
   if (typeof areaCode === 'string' && areaCode.startsWith(OUT_AREA_PREFIX)) return 'out-area'
+  if (rejectUnassigned && (typeof areaCode !== 'string' || areaCode.trim() === '')) return 'area-unassigned'
   if (consumerTagged) return 'consumer-tag'
   return null
 }
@@ -29,7 +34,7 @@ export type ScopeResult =
   | { ok: false; error: string }
 
 /** input_id 목록 → 제외할 것과 사유. 못 읽은 단계가 하나라도 있으면 ok:false. */
-export async function loadScope(sb: Sb, inputIds: readonly string[]): Promise<ScopeResult> {
+export async function loadScope(sb: Sb, inputIds: readonly string[], opts: { rejectUnassigned?: boolean } = {}): Promise<ScopeResult> {
   const ids = [...new Set(inputIds)]
   const projectOf = new Map<string, string>()
   for (let i = 0; i < ids.length; i += SCOPE_IN_CHUNK) {
@@ -59,7 +64,7 @@ export async function loadScope(sb: Sb, inputIds: readonly string[]): Promise<Sc
 
   const excluded = new Map<string, ScopeReason>()
   for (const id of ids) {
-    const reason = outOfScopeReason(areaOf.get(projectOf.get(id) as string) ?? null, tagged.has(id))
+    const reason = outOfScopeReason(areaOf.get(projectOf.get(id) as string) ?? null, tagged.has(id), opts.rejectUnassigned === true)
     if (reason) excluded.set(id, reason)
   }
   return { ok: true, excluded }

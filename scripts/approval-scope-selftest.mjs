@@ -28,6 +28,7 @@ await t('순수: out-* 가 우선, 태그는 그다음, 영역 NULL 은 영역 �
   assert.equal(outOfScopeReason('out-founder', true), 'out-area')
   assert.equal(outOfScopeReason('5', true), 'consumer-tag')
   assert.equal(outOfScopeReason(null, false), null)
+  assert.equal(outOfScopeReason(null, false, true), 'area-unassigned') // v71ee-6: 승인 후보 풀에서만
   assert.equal(outOfScopeReason('design', false), null)
 })
 await t('loadScope: 영역 외·태그만 제외하고 사유를 돌려준다', async () => {

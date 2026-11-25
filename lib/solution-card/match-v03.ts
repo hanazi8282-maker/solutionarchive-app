@@ -68,7 +68,7 @@ const CASE_STAGE: Record<string, string> = { prelaunch: '초기', zero_rev: '초
 export interface MatchOpts { actionPremise?: Record<string, string> /** 행동 종류 → 필요 전제(약 30줄 규칙표, 없으면 전제 배수 1) */; kinds?: ReadonlySet<string> }
 
 /** 어려움 칸이 "없음"인 사례 — 빈칸·"해당 없음"·"원문에 역경이 없다"는 설명. 카드 재료가 없으니 후보에서 뺀다.
- *  "마케팅 예산이 없었다"처럼 무엇이 없어서 어려웠던 것은 어려움이다. 추정 문장 뒤의 "(원문에 없음)"은 여기서 가리지 않는다. */
+ *  "마케팅 예산이 없었다"처럼 무엇이 없어서 어려웠던 것은 어려움이다. 추정 어려움(isEstimated)은 빼지 않는다(남헌 2026-11-26). */
 const NO_ADVERSITY = [
   /^[-–—.\s]*$/,
   /^(해당\s*(사항\s*)?)?없(음|다)\.?$/,
@@ -78,7 +78,10 @@ const NO_ADVERSITY = [
   /(역경|어려움)[^.]{0,6}원문(에|에는|상)?[^.]{0,10}(없|않)/,
   /(특별히|특별한|별도|구체적)[^.]{0,8}(역경|어려움)[^.]{0,10}(없(음|다|고)|(명시|언급|서술)(되|돼)?(어)?\s*(있)?지(는)?\s*않)/,
 ]
-export const noAdversity = (s: string | null | undefined): boolean => { const t = String(s ?? '').trim(); return NO_ADVERSITY.some((r) => r.test(t)) }
+/** 어려움 칸이 라벨 단계의 해석인 것 — 원문에 직접 없는데 상황을 조립해 적은 문장. "원문에 …"로 시작하는 설명은 해석이 아니라 '없음'이다. */
+const ESTIMATED = [/것으로\s*(보(임|인다|이나|이며)|추정)/, /추정(됨|된다)/, /볼\s*수\s*있으나/, /\([^)]*원문[^)]*(없|않|만)[^)]*\)\.?$/, /원문(상|은|에는)[^.]{0,20}(직접[^.]{0,8}않|명시되지\s*않았)/]
+export const isEstimated = (s: string | null | undefined): boolean => { const t = String(s ?? '').trim(); return !/^(원문|본문|전문|해당|없|특별|별도)/.test(t) && ESTIMATED.some((r) => r.test(t)) }
+export const noAdversity = (s: string | null | undefined): boolean => { const t = String(s ?? '').trim(); return !isEstimated(t) && NO_ADVERSITY.some((r) => r.test(t)) }
 
 /** 점수 하나. 전제 배수는 점수에 곱한다 — 카드를 빼는 이유가 아니다(낮게 줄 세울 뿐). */
 export function scoreCase(co: CompanyLabel, c: CaseRow, o: MatchOpts = {}): Candidate | null {

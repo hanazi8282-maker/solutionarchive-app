@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 원장 어댑터·슬롯 매핑·플래그 셀프테스트(v71eg-3) — 모델·DB·네트워크 없음.   node scripts/solution-ledger-slots-selftest.mjs
 import assert from 'node:assert/strict'
-import { validateLedger, ledgerFromCcInput, ledgerToLabel, factCoverage, signalAgreement, premiseAgreement, normPremise } from '../lib/solution-card/ledger.ts'
+import { validateLedger, ledgerFromCcInput, ledgerToLabel, factCoverage, signalAgreement, premiseAgreement, normPremise, cardEvidence, estimateShare } from '../lib/solution-card/ledger.ts'
 import { slotsEnabled, FLAG_NAME, cardToSolutionBox, applyCardSlots, lintDraft, LIMITS } from '../lib/solution-card/slots.ts'
 import { CARD_VERSION } from '../lib/solution-card/card-v2.ts'
 let pass = 0, fail = 0
@@ -23,4 +23,5 @@ t('슬롯에 안 맞는 카드는 넣지 않는다(단계 3 미만·빈 칸)', (
 t('플래그 OFF 면 원본 그대로, ON 이면 2장이 카드로 채워진다', () => { const draft = emptyDraft(); const off = applyCardSlots(draft, [card()], false); assert.equal(off.applied, false); assert.strictEqual(off.draft, draft); const on = applyCardSlots(draft, [card()], true); assert.equal(on.applied, true); assert.equal(on.draft.chapter2.solution_box.title, '첫 고객을 직접 찾아간다.'); assert.equal(applyCardSlots(draft, [null], true).applied, false) })
 t('한도 초과 시 카드를 줄인다(추가 제안 → 주의 → 단계 4→3)', () => { const long = 'ㅁ'.repeat(400), big = card(); big.why = long; big.fit = long; big.after = long; big.steps = [1, 2, 3, 4].map((n) => ({ title: 't' + n, how: long.slice(0, 250) })); big.cautions[0].avoid = long.slice(0, 300); const r = applyCardSlots(emptyDraft(), [big, card(), card()], true); assert.ok(r.trimmed.length > 0); assert.ok(r.trimmed[0].includes('추가 제안')) })
 t('대체 검사: 금지어·"귀사 고객이 ~합니다"·출처 주소·한도', () => { const draft = { company: 'X', chapter2: { solution_box: { title: '제목', why: '당신은 안 된다', evidence_case: '귀사 고객이 가입합니다 https://a.com', steps: ['a', 'b', 'c'], adapted: 'x', closing: 'y', caution: null }, extras: [] }, chapter3_cases: [] }; const bad = lintDraft(draft).filter((x) => !x.ok).map((x) => x.rule); assert.ok(bad.some((r) => /금지어/.test(r)) && bad.some((r) => /귀사/.test(r)) && bad.some((r) => /출처/.test(r))); assert.equal(LIMITS.body, 6800); assert.equal(LIMITS.chapter2, 2300) })
+t('근거 태그: 추정 사실·추정 사례를 표시하고 절반 이상이면 깃발', () => { const l = { ...ledgerFromCcInput(cc), signals: [{ code: 'S05', evidence: 'e', fact_ids: ['C1', 'C2'] }] }; l.facts[0].level = '추정'; l.facts[0].basis = '집계'; const a = cardEvidence(l, { adversity_ko: '예산이 없었다', quote_orig: 'q' }); assert.equal(a.case_level, '확인'); assert.ok(a.estimate); assert.deepEqual(a.company.map((x) => x.level), ['추정', '확인']); const b = cardEvidence(ledgerFromCcInput(cc), { adversity_ko: '막혔던 것으로 보인다', quote_orig: 'q' }); assert.equal(b.case_level, '추정'); assert.ok(b.case_basis.includes('q')); assert.equal(estimateShare([b]).flag, true); assert.equal(estimateShare([{ ...a, company: [] }]).flag, false) })
 console.log(`solution-ledger-slots selftest: ${pass} pass · ${fail} fail`); process.exit(fail ? 1 : 0)

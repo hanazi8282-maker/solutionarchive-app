@@ -2,9 +2,11 @@
 // 형식은 결론서 세션의 원장(Notion "[결론서→CC 입력] 초기형 12곳 진단 JSON·사실 원장 v2" + "[결론서] 실제 초기형 12곳 사실 정리")와 같다:
 //   facts[{id:'C1', text, url, seen_at}] · 한줄불편(complaint) · 근거(evidence) · 장후보 · 상황신호 · 사전에없는전제 · 먼저고칠것 · 전제판정(P2 기준 v2).
 // ⚠️ Node 타입 스트리핑 직접 로드: `@/` 별칭·enum 금지.
-import type { CompanyLabel, PremiseState } from './match-v03.ts'
+import { isEstimated, type CompanyLabel, type PremiseState } from './match-v03.ts'
 
-export type Fact = { id: string; text: string; url: string; seen_at: string; blocked?: boolean }
+/** 근거 수준(남헌 2026-11-26): 확인 = 직접 쓴 문장·공식 화면, 추정 = 공개 정보로 조립한 해석, 가설 = 더 물어봐야 함. 없으면 확인. */
+export type EvidenceLevel = '확인' | '추정' | '가설'
+export type Fact = { id: string; text: string; url: string; seen_at: string; blocked?: boolean; level?: EvidenceLevel; basis?: string }
 export type LedgerSignal = { code: string; evidence: string; fact_ids: string[] }
 export type Ledger = {
   slug: string
@@ -96,4 +98,25 @@ export function premiseAgreement(ref: Record<string, PremiseState>, auto: Record
   const per: Record<string, boolean> = {}
   for (const k of keys) per[k] = (ref[k] ?? 'unknown') === (auto[k] ?? 'unknown')
   return { per, rate: keys.length ? Object.values(per).filter(Boolean).length / keys.length : 0 }
+}
+
+export const ESTIMATE_PHRASE = '~로 보입니다. 맞는지 확인 부탁드립니다'
+export type CardEvidence = { case_level: EvidenceLevel; case_basis: string | null; company: { fact_id: string; level: EvidenceLevel; basis: string | null }[]; estimate: boolean }
+/** 카드 한 장의 근거 태그: 회사 신호가 인용한 사실의 수준 + 고른 사례 어려움이 해석인지. 추정·가설마다 어떻게 알았는지 한 줄을 붙인다. */
+export function cardEvidence(l: Ledger, c: { adversity_ko: string; quote_orig: string | null }): CardEvidence {
+  const cited = new Set(l.signals.flatMap((s) => s.fact_ids ?? []))
+  const company = l.facts.filter((f) => cited.has(f.id)).map((f) => ({ fact_id: f.id, level: f.level ?? ('확인' as EvidenceLevel), basis: f.level && f.level !== '확인' ? f.basis ?? '근거 설명 없음' : null }))
+  const est = isEstimated(c.adversity_ko)
+  return {
+    case_level: est ? '추정' : '확인',
+    case_basis: est ? `원문 인용 "${String(c.quote_orig ?? '').slice(0, 140)}" 에서 라벨 단계가 해석한 어려움(원문에 직접 없음)` : null,
+    company, estimate: est || company.some((x) => x.level !== '확인'),
+  }
+}
+/** 한 회사 결론서의 근거 중 추정·가설 비율(같은 회사 사실은 한 번만 센다). 절반 이상이면 표시한다. */
+export function estimateShare(cards: readonly CardEvidence[]): { total: number; estimated: number; flag: boolean } {
+  const seen = new Map<string, EvidenceLevel>()
+  cards.forEach((c, i) => { seen.set(`case:${i}`, c.case_level); for (const f of c.company) seen.set(`fact:${f.fact_id}`, f.level) })
+  const estimated = [...seen.values()].filter((v) => v !== '확인').length
+  return { total: seen.size, estimated, flag: seen.size > 0 && estimated * 2 >= seen.size }
 }

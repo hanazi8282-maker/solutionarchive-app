@@ -17,7 +17,7 @@ import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
 import { matchCompany, applyPortfolioRules, takeUnderCap, MAX_CASE_USES } from '../lib/solution-card/match-v03.ts'
 import { validateCardV2, CARD_VERSION } from '../lib/solution-card/card-v2.ts'
 import { SYSTEM_V2, buildUserV2 } from '../lib/solution-card/prompt-v2.ts'
-import { ledgerToLabel, ledgerFromCcInput, validateLedger, normPremise } from '../lib/solution-card/ledger.ts'
+import { ledgerToLabel, ledgerFromCcInput, validateLedger, normPremise, cardEvidence, ESTIMATE_PHRASE } from '../lib/solution-card/ledger.ts'
 import { applyCardSlots, cardToSolutionBox, lintDraft, slotsEnabled, FLAG_NAME } from '../lib/solution-card/slots.ts'
 
 const args = process.argv.slice(2)
@@ -146,10 +146,13 @@ export async function loadPool(sb, { refresh = process.argv.includes('--refresh-
 export async function makeCard(led, problem, cand) {
   const c = cand.case, facts = { problem: c.adversity_ko, action: c.action_ko, result: c.result_ko, conditions: c.condition_ko ?? '' }
   const user = buildUserV2({ company: { name: led.name, description: [led.complaint, led.evidence, led.fix_first].filter(Boolean).join(' ').slice(0, 1500) }, problem_ko: problem, facts, case_fact_id: c.id, premises: Object.entries(led.premises ?? {}).map(([k, v]) => `${k}:${v}`), evidence: c.quote_orig ? [{ quote: c.quote_orig }] : [] })
+  // 추정 근거가 섞인 카드는 처음부터 그 말투로 쓰게 한다(남헌 2026-11-26). 결과의 말투 확인은 호출부가 estimate 로 표시한다.
+  const ev = cardEvidence(led, c)
+  const hedge = ev.estimate ? `${NL}${NL}[추정 근거 — 반드시 지킨다] ${[ev.case_basis, ...ev.company.filter((x) => x.basis).map((x) => `${x.fact_id}: ${x.basis}`)].filter(Boolean).join(' / ')}${NL}추정에 기대는 문장은 "${ESTIMATE_PHRASE}" 형태로 쓰고 사실로 단정하지 않는다. 숫자는 만들지 않는다.` : ''
   let errs = [], lastBad = null
   for (let a = 0; a < 3; a++) {
     try {
-      const j = jparse(await call('card-gen', M.gen, SYSTEM_V2, user + (errs.length ? `${NL}${NL}[이전 시도의 오류 — 고쳐서 다시]${NL}${errs.join(NL)}` : '')))
+      const j = jparse(await call('card-gen', M.gen, SYSTEM_V2, user + hedge + (errs.length ? `${NL}${NL}[이전 시도의 오류 — 고쳐서 다시]${NL}${errs.join(NL)}` : '')))
       j.version = CARD_VERSION; j.internal = { ...(j.internal ?? {}), evidence: j.internal?.evidence ?? [], case_fact_ids: [c.id] }
       const v = validateCardV2(j, facts)
       if (v.ok) return { card: j, facts, tries: a + 1 }
@@ -210,7 +213,7 @@ export async function runCompany(item, pool, uses = new Map()) {
       const g = await makeCard(led, problem, cand)
       if (!g.card) { r.cards.push({ cand, card: null, note: '생성 실패/검증 불통과: ' + (g.errors ?? []).join('; '), lastBad: g.lastBad }); continue }
       const v = await verify(led, g.card)
-      r.cards.push({ cand, card: g.card, tries: g.tries, verify: v, auto: v.fit === 'O' && v.coherent === 'O' ? '자동통과후보' : '검수필요', box: cardToSolutionBox(g.card) })
+      r.cards.push({ cand, card: g.card, tries: g.tries, verify: v, evidence: cardEvidence(led, cand.case), auto: v.fit === 'O' && v.coherent === 'O' ? '자동통과후보' : '검수필요', box: cardToSolutionBox(g.card) })
     }
     if (!r.cards.some((x) => x.card)) { r.status = '카드 없음'; r.note = '생성된 카드가 검증을 통과하지 못함' }
   } catch (e) { r.status = isStop(e) ? '중단' : '실패'; r.note = String(e.message).slice(0, 160) }

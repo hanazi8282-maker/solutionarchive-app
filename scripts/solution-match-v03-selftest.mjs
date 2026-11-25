@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 매칭 v0.3 셀프테스트(v71eg B2-④) — 모델·DB 없음.   node scripts/solution-match-v03-selftest.mjs
 import assert from 'node:assert/strict'
-import { WEIGHTS, PREMISE_MULT, directionOf, scoreCase, matchCompany, applyPortfolioRules, overlap, signalFit, noAdversity, takeUnderCap } from '../lib/solution-card/match-v03.ts'
+import { WEIGHTS, PREMISE_MULT, directionOf, scoreCase, matchCompany, applyPortfolioRules, overlap, signalFit, noAdversity, takeUnderCap, isEstimated } from '../lib/solution-card/match-v03.ts'
 let pass = 0, fail = 0
 const t = (n, f) => { try { f(); pass++ } catch (e) { fail++; console.error('✗', n, '\n  ', e.message.split('\n')[0]) } }
 const mk = (i, o = {}) => ({ id: 'e' + i, slug: 's' + i, chapter: 5, domain: 'SaaS', customer: '소상공인', stage: '초기', adversity_ko: '쓰는 고객이 거의 없어 첫 고객을 못 얻었다', action_ko: '직접 연락', result_ko: '2주 만에 10명을 얻었다', result_class: 'positive', result_grain: 'outcome', evidence_strength: 'A', quote_orig: null, signals: ['S05'], action_kind: 'outreach' + i, ...o })
@@ -21,5 +21,8 @@ t('어려움이 없는 사례: 빈칸·해당 없음·원문에 없다 는 후�
   for (const s of ['', ' - ', '없음', '해당 없음', '원문에 없음.', '원문에 명시되지 않음.', '원문에 역경 언급 없음.', '원문에 명시된 역경은 없다.', '원문에 구체적 역경 없음(경쟁 환경).', '특별한 어려움은 원문에 없다.', '특별한 역경은 언급되지 않았다.', '별도 역경은 원문에 없다. 진입한 기업이 많지 않았다.']) { assert.ok(noAdversity(s), s); assert.equal(scoreCase(co, mk(1, { adversity_ko: s })), null, s) }
   for (const s of ['마케팅 예산이 없었다.', '첫 고객이 없었다.', '이탈 원인을 알 수 없었다.', '큰 어려움 없이 시작했으나 두 번째 달부터 환불이 늘었다.', '배송 과정에서 문제가 있었던 것으로 보이나 구체 내용은 원문에 없다.', '구체적 정책 내용은 원문에 없다.', '성인 학습자의 어려움을 아무도 말하지 않았다.']) assert.ok(!noAdversity(s), s) })
 t('배치 상한: 같은 사례는 2장까지, 같은 회사 안의 중복도 센다', () => { const a = scoreCase(co, mk(1)), b = scoreCase(co, mk(2)), uses = new Map(); assert.equal(takeUnderCap([a, b], uses).length, 2); assert.equal(takeUnderCap([a, a, b], uses).length, 2); assert.equal(uses.get('s1'), 2); assert.equal(takeUnderCap([a, b], uses).length, 0) })
+t('추정 어려움: 빼지 않고 태그한다 · 본 것으로 말한 문장은 확인', () => {
+  for (const s of ['담기 어려웠던 것으로 보임(원문은 변경 사실만 서술).', '방문자가 정보를 찾기 어려울 수 있었다(원문에 명시된 어려움은 없음).', '1인 운영을 혼자 감당해야 했던 것으로 보인다.', '새 라인이 필요했다고 볼 수 있으나 원문에 직접 언급은 없다.']) { assert.ok(isEstimated(s), s); assert.ok(!noAdversity(s), s) }
+  for (const s of ['마케팅 예산이 없었다.', '경쟁사는 재고가 바닥날 것으로 보였다.', '원문에 역경은 명시되지 않았다.']) assert.ok(!isEstimated(s), s) })
 t('겹침 함수', () => { assert.equal(overlap('', 'abc'), 0); assert.ok(overlap('쓰는 고객이 거의 없다', '쓰는 고객이 없다') > 0.5) })
 console.log(`solution-match-v03 selftest: ${pass} pass · ${fail} fail`); process.exit(fail ? 1 : 0)

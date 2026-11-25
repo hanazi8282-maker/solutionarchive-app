@@ -87,7 +87,8 @@ log(`야간 2차 판정${dry ? ' (--dry: 대상 선정만)' : ''} — provider=g
 const cand = []
 for (let from = 0; ; from += 1000) {
   const { data, error } = await sb.from('review_relevance_verdicts')
-    .select('input_id, project_id, verdict, model, judged_at, human_verdict, second_verdict, product_informative')
+    // human_verdict·second_verdict 는 받지 않는다(v71ek egress) — 아래 is(null) 조건이 늘 null 임을 보장하고, JS 재확인은 없는 키를 null 로 본다.
+    .select('input_id, project_id, verdict, model, judged_at, product_informative')
     .not('verdict', 'is', null).is('second_verdict', null).is('human_verdict', null)
     .gte('judged_at', since.toISOString())
     .order('input_id').range(from, from + 999)

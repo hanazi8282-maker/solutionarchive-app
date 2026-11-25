@@ -7,7 +7,7 @@
 import { selectInputs, timestampOf } from './extract-select.ts'
 import { MAX_REVIEW_CHARS, pickSampleByRating, type RatingSampleStats } from './relevance-judge.ts'
 import { applyPrefilter, isHnLowValue, prefilterInputs, summarizePrefilter, type PrefilterConfig } from './prefilter.ts'
-import { DEFAULT_EXCLUDED_SOURCES, DEFAULT_LAST_SOURCES, fetchAllPages, orderForJudge } from './relevance-judge-all.ts'
+import { DEFAULT_EXCLUDED_SOURCES, DEFAULT_LAST_SOURCES, MAX_ROWS, PAGE_SIZE, fetchAllPages, orderForJudge } from './relevance-judge-all.ts'
 import { consumerReasonOf, consumerSkipEnabled, isMissingTable, loadAllowIds, loadConsumerTagged, loadProjectArea } from './consumer-material.ts'
 
 export interface PendingResult {
@@ -56,6 +56,8 @@ export function createPendingFor(deps: {
   allowIds?: ReadonlySet<string>
   /** 품질 표시 글을 대기열에서 뺄지(기본 env RELEVANCE_SKIP_QUALITY — off 만 끈다). */
   skipQuality?: boolean
+  /** 나눠 읽기를 쓰지 않는 프로젝트(기본: 예전 조회가 시간 초과이던 곳). 셀프테스트가 바꾼다. */
+  legacyReadProjects?: readonly string[]
 }) {
   const { supabase, sampleSize, highRatingShare, log, warn } = deps
   const skipQuality = deps.skipQuality ?? qualitySkipEnabled()
@@ -133,12 +135,82 @@ export function createPendingFor(deps: {
     return new Set((got.data ?? []).map((r) => r.input_id))
   }
 
+  const LEGACY_READ_PROJECTS: ReadonlySet<string> = new Set(deps.legacyReadProjects ?? ['55d574a2-60a2-444b-88b7-8a625b857175'])
+
   /**
-   * 미판정 수만 센다 — raw_text 를 읽지 않는다(id·source_key 만). 후보 전부의 순서·체인 "남았나" 산정용.
+   * 이 프로젝트 원문 중 판정이 **없는 것**(judged=false, anti-join) 또는 **있는 것**(true)만 읽는다 — DB egress 절감(v71ek).
+   * 임베드 별칭 v = review_relevance_verdicts(FK input_id → analysis_inputs.id, PK 라 1:1). "판정 있음" = (input_id, 이 project_id) 행이 있음
+   * — judgedIdsOf 와 같은 정의라 임베드에도 project_id 를 건다. 키셋(id) 페이지: 읽는 사이 판정이 생겨도 페이지가 밀리지 않는다.
+   * 실패·상한 초과·응답 모양이 다르면 null — 호출부가 예전 방식(원문 전부 + 판정 id 전부)으로 읽고, 진짜 오류는 거기서 다시 드러난다.
+   */
+  async function splitRead<T extends { id: string; v?: unknown }>(projectId: string, cols: string, judged: boolean): Promise<T[] | null> {
+    // 이 프로젝트들은 예전 방식(전부 읽기)을 그대로 쓴다 — 예전 조회가 시간 초과로 빠지던 것이 새 조회로는 읽힐 수 있어, 동작 변경을 별도 커밋으로 연다.
+    if (LEGACY_READ_PROJECTS.has(projectId)) return null
+    const out: T[] = []
+    try {
+      for (let last: string | null = null; out.length < MAX_ROWS;) {
+        let q = supabase.from('analysis_inputs').select(`${cols}, v:review_relevance_verdicts!${judged ? 'inner' : 'left'}(input_id)`)
+          .eq('project_id', projectId).eq('v.project_id', projectId).is('purged_at', null)
+        if (!judged) q = q.is('v', null)
+        if (last !== null) q = q.gt('id', last)
+        const { data, error } = await q.order('id', { ascending: true }).limit(PAGE_SIZE)
+        if (error) throw new Error(`${error.code ?? ''} ${error.message}`)
+        for (const r of data as T[]) {
+          // 상태 코드만 믿지 않는다(§7.1): 걸러졌어야 할 행이 왔으면 서버가 이 질의를 다르게 읽은 것이다.
+          const has = Array.isArray(r.v) ? r.v.length > 0 : r.v != null
+          if (!('v' in r) || has !== judged) throw new Error('응답 모양이 다르다(v)')
+          out.push(r)
+        }
+        if (data.length < PAGE_SIZE) return out
+        last = (data[data.length - 1] as T).id
+      }
+      throw new Error('상한 초과')
+    } catch (e) {
+      log(`  · 나눠 읽기 불가 project=${projectId} — 예전 방식(전부 읽기)으로 간다: ${e instanceof Error ? e.message : String(e)}`)
+      return null
+    }
+  }
+
+  type CountResult = { unjudged: number; excluded: number; consumer: number; quality: number; sources: string[] }
+  function tally(rows: readonly { id: string; source_key: string | null }[], done: ReadonlySet<string>, isConsumer: (id: string, src: string | null) => boolean, flagged: ReadonlySet<string>): CountResult {
+    let unjudged = 0
+    let excluded = 0
+    let consumer = 0
+    let quality = 0
+    const sources = new Set<string>()
+    for (const r of rows) {
+      sources.add(r.source_key ?? '(none)')
+      if (done.has(r.id)) continue
+      if (flagged.has(r.id)) quality += 1
+      else if (isConsumer(r.id, r.source_key)) consumer += 1
+      else if (excludedSources.includes(r.source_key ?? '(none)')) excluded += 1
+      else unjudged += 1
+    }
+    return { unjudged, excluded, consumer, quality, sources: [...sources] }
+  }
+
+  /** 미판정 행만 받아 센다. null = 이 경로를 못 쓴다 → 예전 방식. */
+  async function countUnjudgedOnly(projectId: string): Promise<CountResult | null> {
+    // sources 의 유일한 사용처는 "youtube 밖 제외 소스 이름이 원문에 있나" 경고다 — 그런 이름이 있으면 판정된 원문의 소스도 필요해 예전 방식으로 간다.
+    if (excludedSources.some((s) => s !== 'youtube')) return null
+    const rows = await splitRead<{ id: string; source_key: string | null; v?: unknown }>(projectId, 'id, source_key', false)
+    if (!rows) return null
+    const isConsumer = await consumerOf(projectId)
+    if (!isConsumer) return null
+    const flagged = await qualityIds()
+    if (!flagged) return null
+    return tally(rows, new Set(), isConsumer, flagged)
+  }
+
+  /**
+   * 미판정 수만 센다 — raw_text 를 읽지 않는다(id·source_key 만, 판정 없는 행만). 후보 전부의 순서·체인 "남았나" 산정용.
    * 원문을 실제로 읽는 pendingFor 는 이번에 돌 프로젝트에만 부른다(hop 마다 6.7만 행 원문 전송 방지).
    * 근사: 본문이 머리말뿐인 입력도 센다(pendingFor 가 거르는 것) → 상한 쪽 추정. 실패는 null(§7.1).
+   * sources 는 미판정 행의 소스만 담길 수 있다(위 countUnjudgedOnly 주석).
    */
-  async function countFor(project: { id: string }): Promise<{ unjudged: number; excluded: number; consumer: number; quality: number; sources: string[] } | null> {
+  async function countFor(project: { id: string }): Promise<CountResult | null> {
+    const lean = await countUnjudgedOnly(project.id)
+    if (lean) return lean
     const got = await fetchAllPages<{ id: string; source_key: string | null }>(() =>
       supabase.from('analysis_inputs').select('id, source_key').eq('project_id', project.id).is('purged_at', null).order('id', { ascending: true }))
     if (got.error || got.truncated) {
@@ -152,28 +224,44 @@ export function createPendingFor(deps: {
     if (!isConsumer) return null
     const flagged = await qualityIds()
     if (!flagged) return null
-    let unjudged = 0
-    let excluded = 0
-    let consumer = 0
-    let quality = 0
-    const sources = new Set<string>()
-    for (const r of got.data) {
-      sources.add(r.source_key ?? '(none)')
-      if (done.has(r.id)) continue
-      if (flagged.has(r.id)) quality += 1
-      else if (isConsumer(r.id, r.source_key)) consumer += 1
-      else if (excludedSources.includes(r.source_key ?? '(none)')) excluded += 1
-      else unjudged += 1
-    }
-    return { unjudged, excluded, consumer, quality, sources: [...sources] }
+    return tally(got.data, done, isConsumer, flagged)
+  }
+
+  const BASE_COLS = 'id, raw_text, created_at, collected_at, source_key'
+
+  /**
+   * 미판정 원문을 먼저 읽는다. 고를 글이 없으면(본문 없음·HN 저가치뿐인 프로젝트) 판정된 원문은 받지 않고 끝낸다.
+   * 고를 글이 있으면 판정된 원문을 마저 받아 합친다(사전필터의 중복·전체 요약이 전부를 본다 — 예전과 같은 입력).
+   * undefined = 이 경로를 못 쓴다 → 예전 방식.
+   */
+  async function pendingSplit(project: { id: string }): Promise<PendingResult | undefined> {
+    const cols = state.ratingColumn === 'absent' ? BASE_COLS : `${BASE_COLS}, rating`
+    type Row = PendingInputRow & { v?: unknown }
+    const open = await splitRead<Row>(project.id, cols, false)
+    if (!open) return undefined
+    if (state.ratingColumn === 'unknown') state.ratingColumn = 'present'
+    const isConsumer = await consumerOf(project.id)
+    if (!isConsumer) return undefined
+    const flagged = await qualityIds()
+    if (!flagged) return undefined
+    const head = pick(open, new Set(), isConsumer, flagged)
+    // 표본 0 = 판정할 글 0. 사전필터는 빈 목록에 할 일이 없고, 호출부는 이 프로젝트를 대상에 올리지 않는다.
+    if (head.base.total === 0) return { ...head.base, reviews: [], rating: head.rating }
+    const closed = await splitRead<Row>(project.id, cols, true)
+    if (!closed) return undefined
+    const done = new Set(closed.map((r) => r.id))
+    // 예전 조회와 같은 순서(id 오름차순 — uuid 는 문자열 순서와 같다). 사이에 판정돼 양쪽에 온 행은 판정된 것으로 친다.
+    const rows = [...new Map([...open, ...closed].map((r) => [r.id, r])).values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    return finish(project.id, rows, pick(rows, done, isConsumer, flagged))
   }
 
   /** 이 프로젝트에서 판정할 리뷰 목록. 실패는 null 로 올려 "0건" 과 가른다(§7.1). */
   async function pendingFor(project: { id: string }): Promise<PendingResult | null> {
-    // 페이지로 전부 읽는다(PostgREST 기본 1,000행 상한 제거 — 전량 판정). id 로 정렬해야 페이지가 겹치거나 빠지지 않는다.
+    const lean = await pendingSplit(project)
+    if (lean !== undefined) return lean
+    // 예전 방식: 페이지로 전부 읽는다(PostgREST 기본 1,000행 상한 제거 — 전량 판정). id 로 정렬해야 페이지가 겹치거나 빠지지 않는다.
     const inputsQuery = (cols: string) => fetchAllPages<PendingInputRow>(() =>
       supabase.from('analysis_inputs').select(cols).eq('project_id', project.id).is('purged_at', null).order('id', { ascending: true }))
-    const BASE_COLS = 'id, raw_text, created_at, collected_at, source_key'
     let got = await inputsQuery(state.ratingColumn === 'absent' ? BASE_COLS : `${BASE_COLS}, rating`)
     if (got.error?.code === '42703' && state.ratingColumn !== 'absent') {
       state.ratingColumn = 'absent'
@@ -195,11 +283,16 @@ export function createPendingFor(deps: {
     const flagged = await qualityIds()
     if (!flagged) return null
 
+    const rows = inputs as PendingInputRow[]
+    return finish(project.id, rows, pick(rows, done, isConsumer, flagged))
+  }
+
+  /** 읽은 행에서 이번 표본을 고른다(순수 — 사전필터 전). */
+  function pick(rows: PendingInputRow[], done: ReadonlySet<string>, isConsumer: (id: string, src: string | null | undefined) => boolean, flagged: ReadonlySet<string>) {
     // 판정 전용 경로: T1(selectInputs)의 빈 본문·머리말만 거르기는 그대로 쓰되 12만 자 상한은 풀고(maxCharsTotal 무한),
     // **판정된 것을 먼저 뺀 뒤** 자른다 — 예전엔 상위 N 을 자른 뒤 판정된 것을 빼서, 상위 N 이 다 판정되면 그 프로젝트는 영영 0건이었다.
     // 순서(v·전량 판정): 소스 라운드로빈 · 소스 안은 최신 먼저 · 제외 소스(youtube) 빼고 · 카카오 카페·블로그는 맨 뒤.
     // 자르기는 평점 우선(v31 §2.3): 1~3점 먼저, 4~5점은 표본의 highRatingShare 만(모자라면 4~5점으로 채움 — 버리지 않고 다음 실행으로 미룬다).
-    const rows = inputs as PendingInputRow[]
     const eligible = selectInputs(rows, { maxCharsTotal: Number.POSITIVE_INFINITY }).selected
     // 소비재(태그 ∪ 파생, 남헌 v61)는 미판정에서만 뺀다 — 이미 판정된 것(done)은 원래대로 빠지고 판정 행은 건드리지 않는다.
     // v71ay C5: HN 가치 낮은 글은 표본을 자르기 전에 뺀다(on 일 때만). 삭제 아님 — 원문·판정 없음 그대로, 끄면 다시 대상이 된다.
@@ -222,20 +315,24 @@ export function createPendingFor(deps: {
     const unjudged = ordered.main.length + ordered.last.length
     const reviews = selected.map((s) => ({ input_id: s.input.id as string, text: s.text.slice(0, MAX_REVIEW_CHARS) }))
     const base = { total: selected.length, unjudged, excluded: ordered.excludedCount, consumer, quality, residue }
+    return { base, reviews, rating }
+  }
+
+  function finish(projectId: string, rows: PendingInputRow[], { base, reviews, rating }: ReturnType<typeof pick>): PendingResult {
     if (!prefilterCfg) return { ...base, reviews, rating }
 
     // 사전필터(v31 항목 5) — T1 뒤 · T2 전. 중복은 조회된 입력 전체에서 센다. 효과는 T2 대상(reviews)에만.
     // 필터가 던지면 shadow 든 enforce 든 T2 를 죽이지 않는다 — 경고하고 이번 실행은 필터를 끈다(전부 통과).
     let verdicts
     try {
-      verdicts = prefilterInputs(rows, prefilterCfg, project.id)
+      verdicts = prefilterInputs(rows as Parameters<typeof prefilterInputs>[0], prefilterCfg, projectId)
     } catch (e) {
       warn(`사전필터 예외 — 이번 실행은 필터 꺼짐(전부 통과): ${e instanceof Error ? e.message : String(e)}`)
       prefilterCfg = null
       return { ...base, reviews, rating }
     }
     const { kept, wouldDrop } = applyPrefilter(reviews, verdicts, prefilterCfg.mode, prefilterCfg.hn.mode === 'on' ? ['hn_lowvalue'] : [])
-    prefilterByProject[project.id] = {
+    prefilterByProject[projectId] = {
       mode: prefilterCfg.mode,
       rating_column: state.ratingColumn,
       project_all: summarizePrefilter(verdicts),
@@ -245,9 +342,9 @@ export function createPendingFor(deps: {
       would_drop: wouldDrop.map((w) => [w.input_id, w.rule]),
     }
     if (wouldDrop.length > 0) {
-      log(`  사전필터 ${project.id}: T2 대상 ${reviews.length}건 중 ${wouldDrop.length}건 걸림(${prefilterCfg.mode === 'shadow' ? '표시만 — 판정은 그대로' : 'enforce — 판정에서 뺌'})`)
+      log(`  사전필터 ${projectId}: T2 대상 ${reviews.length}건 중 ${wouldDrop.length}건 걸림(${prefilterCfg.mode === 'shadow' ? '표시만 — 판정은 그대로' : 'enforce — 판정에서 뺌'})`)
     }
-    return { ...base, unjudged: unjudged - (reviews.length - kept.length), reviews: kept, rating }
+    return { ...base, unjudged: base.unjudged - (reviews.length - kept.length), reviews: kept, rating }
   }
 
   /** 필터가 실행 중 꺼졌는지(예외)까지 반영한 현재 설정. select 스텝 detail 이 읽는다. */

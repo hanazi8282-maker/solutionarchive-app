@@ -86,17 +86,50 @@ export async function loadAreaContext(supabase: any, warn: Warn): Promise<AreaCo
     }
   }
 
-  const ver = await readAll((a, b) => supabase.from('review_relevance_verdicts').select('project_id').order('input_id').range(a, b))
-  if (ver.error) {
-    warn(`판정 수 조회 실패 — 영역 결손을 모른다(영역 축 끔): ${ver.error.message}`)
-    return null
-  }
-  const judged: Record<string, number> = {}
-  for (const v of ver.rows as { project_id: string }[]) {
-    const code = byProject.get(v.project_id)?.code
-    if (code && code !== 'unassigned') judged[code] = (judged[code] ?? 0) + 1
+  let judged = await countJudged(supabase, byProject)
+  if (!judged) {
+    const ver = await readAll((a, b) => supabase.from('review_relevance_verdicts').select('project_id').order('input_id').range(a, b))
+    if (ver.error) {
+      warn(`판정 수 조회 실패 — 영역 결손을 모른다(영역 축 끔): ${ver.error.message}`)
+      return null
+    }
+    judged = {}
+    for (const v of ver.rows as { project_id: string }[]) {
+      const code = byProject.get(v.project_id)?.code
+      if (code && code !== 'unassigned') judged[code] = (judged[code] ?? 0) + 1
+    }
   }
   return { column, byProject, judged }
+}
+
+/** in() 한 번에 넣는 project_id 수 — uuid 100개 ≈ 3.7KB URL. */
+const COUNT_CHUNK = 100
+
+/**
+ * 영역별 판정 수를 행 전부 대신 서버의 정확 수(count=exact)로 센다 — 판정 18만 행을 받던 자리(v71ek).
+ * null = 못 셌다(오류·수 없음·셀 프로젝트 없음) → 호출부가 예전처럼 행을 읽어 센다. 0 으로 접지 않는다(§7.1).
+ */
+async function countJudged(supabase: any, byProject: ReadonlyMap<string, ProjectArea>): Promise<Record<string, number> | null> {
+  const ids = new Map<string, string[]>()
+  for (const [id, a] of byProject) {
+    if (a.code !== 'unassigned') (ids.get(a.code) ?? ids.set(a.code, []).get(a.code)!).push(id)
+  }
+  if (ids.size === 0) return null
+  const judged: Record<string, number> = {}
+  try {
+    for (const [code, list] of ids) {
+      for (let i = 0; i < list.length; i += COUNT_CHUNK) {
+        const { count, error } = await supabase.from('review_relevance_verdicts').select('input_id', { count: 'exact' })
+          .in('project_id', list.slice(i, i + COUNT_CHUNK)).limit(1)
+        if (error || typeof count !== 'number') throw new Error(error?.message ?? '응답에 수가 없다')
+        if (count > 0) judged[code] = (judged[code] ?? 0) + count
+      }
+    }
+  } catch (e) {
+    console.log(`[영역] 판정 수 서버 세기 불가 — 판정 행을 읽어 센다: ${e instanceof Error ? e.message : String(e)}`)
+    return null
+  }
+  return judged
 }
 
 export interface AreaCandidate {

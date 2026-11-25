@@ -27,7 +27,7 @@ import { callLlmWithModel, cliSpent, requiredKeyFor, resolveProvider } from '../
 import { loadGuardConfig, sessionBlock, sessionLine } from '../lib/analysis/session-guard.ts'
 import { createTracker } from './agent-status.mjs'
 import { kstDate as kstToday } from './notion-status-log.mjs'
-import { loadAllVerdicts, isMissingRelation } from '../lib/relevance-feedback/db.ts'
+import { PICK_COLS, loadAllVerdicts, isMissingRelation } from '../lib/relevance-feedback/db.ts'
 import { pickBatch, kstDate } from '../lib/relevance-feedback/sample.ts'
 import {
   TRANSLATE_PROMPT_VERSION, TRANSLATIONS_MIGRATION, generateBackground, generateTranslation, needsWork, parseSourceContext, reuseThreadTitle,
@@ -123,7 +123,7 @@ log(`번역·배경 배치${dry ? ' (--dry: 대상 선정만)' : ''} — provide
 // 1. 대상 input_id — 화면과 같은 묶음. 판정 행은 여기서만 쓰고 앞으로 넘기지 않는다.
 let ids = onlyIds
 if (ids.length === 0) {
-  const loaded = await loadAllVerdicts(sb)
+  const loaded = await loadAllVerdicts(sb, { cols: PICK_COLS, secondOnly: true })
   if ('error' in loaded) die(`판정 행 조회 실패: ${loaded.error}`)
   const today = kstDate(new Date().toISOString()) ?? ''
   const exclude = new Set()
@@ -133,7 +133,7 @@ if (ids.length === 0) {
     for (const it of batch.items) { ids.push(it.row.input_id); exclude.add(it.row.input_id) }
   }
   ids = [...new Set(ids)]
-  log(`  · 판정 ${loaded.rows.length}행 → 묶음 ${rounds}회 = 대상 ${ids.length}건 (${today})`)
+  log(`  · 2차 판정 있는 행 ${loaded.rows.length} → 묶음 ${rounds}회 = 대상 ${ids.length}건 (${today})`)
 }
 if (ids.length === 0) { log('대상 0건 — 끝.'); process.exit(0) }
 

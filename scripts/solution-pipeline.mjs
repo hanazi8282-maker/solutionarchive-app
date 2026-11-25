@@ -83,10 +83,12 @@ ${Object.entries(SIGDICT).map(([k, v]) => `${k} ${v}`).join(NL)}
 규칙: R-D 신호의 근거는 그 신호의 상황을 직접 설명하는 fact 여야 한다(다른 신호의 결과·걸림돌을 빌리지 않음). R-E 근거 fact 가 없거나 상황을 설명 못 하면 그 신호는 붙이지 않는다. "접속 불가" fact 는 근거로 쓰지 않는다.
 P2 기준 v2(전제 P2 = 쓰는 사용자가 있다, 무료·유료 무관): 확정(외부인 흔적 2건 또는 날짜 있는 공개 수치) / 추정(운영자 글·광고문구 흔적만) / 미충족 / 모름(1년 넘은 흔적·날짜 못 읽음). 1년 안 흔적=최근 활동. P1=돈 낸 기존 고객이 있다, P5=가격이 공개돼 있다, P6=쓰는 사람 수가 의미 있게 보인다, P9=결과가 한 달 안에 보인다, P10=써 볼 수 있는 제품이 공개돼 있다.
 단계는 E0(출시 전/직후)·E1(첫 고객을 찾는 단계)·E2(첫 매출 이후)·E3(성장) 중 공개 화면 신호로 본 "추정"이다.
-출력 JSON 하나: {"name":"","field":"한 단어 분야","stage":"E1","complaint":"한줄불편: 화면에서 읽히는 이 회사의 막힌 지점을 한 문장(숫자는 facts 에 있는 것만)","evidence":"근거: C번호를 넣은 문장","chapters":[5],"signals":[{"code":"S05","fact_ids":["C8","C9"]}],"premises_not_in_dict":"","fix_first":"화면끼리 어긋난 점(있으면)","premises":{"P1":"모름","P2":"추정","P5":"확정","P6":"미충족","P9":"모름","P10":"확정"}}`
+customer 는 이 회사에 돈을 내는 손님이다: smb(소규모 사업자·팀)·consumer(개인 소비자)·enterprise(큰 조직)·creator(창작자)·dev(개발자)·unknown. 근거는 이 순서로 본다: ① 공개 가격표 — 팀·좌석·직원 수·주문 수·구독자 수처럼 사업 규모로 값을 매기는 요금제가 있으면 smb, 개인용 요금제만 있으면 consumer(창작자·개발자 전용이면 creator·dev) ② 가격표가 없으면 누구용인지 직접 말한 문장. 고객사 로고, '1위 브랜드'·'대기업부터' 같은 자랑 문구, 보안 인증, 문의형 Enterprise 요금제가 있다는 것만으로는 enterprise 가 아니다. enterprise 는 스스로 결제할 가격이 없고 대상을 대기업·공공·금융 같은 큰 조직으로 한정한 때만이다. 분야 이름만 보고 채우지 않는다. 근거 fact 가 없으면 unknown. customer_fact_ids 에 근거 C번호를 넣는다.
+출력 JSON 하나: {"name":"","field":"한 단어 분야","stage":"E1","customer":"unknown","customer_fact_ids":["C1"],"complaint":"한줄불편: 화면에서 읽히는 이 회사의 막힌 지점을 한 문장(숫자는 facts 에 있는 것만)","evidence":"근거: C번호를 넣은 문장","chapters":[5],"signals":[{"code":"S05","fact_ids":["C8","C9"]}],"premises_not_in_dict":"","fix_first":"화면끼리 어긋난 점(있으면)","premises":{"P1":"모름","P2":"추정","P5":"확정","P6":"미충족","P9":"모름","P10":"확정"}}`
+const CUSTOMERS = ['smb', 'consumer', 'enterprise', 'creator', 'dev']
 export async function extractLedger(slug, name, facts) {
   const usable = facts.filter((f) => !f.blocked)
-  const base = { slug, name, field: '', stage: 'E1', customer: 'smb', complaint: '', evidence: '', chapters: [], signals: [], premises: {}, premises_not_in_dict: '', fix_first: '', facts, source: 'auto' }
+  const base = { slug, name, field: '', stage: 'E1', customer: 'unknown', complaint: '', evidence: '', chapters: [], signals: [], premises: {}, premises_not_in_dict: '', fix_first: '', facts, source: 'auto' }
   if (usable.length < 3) return { ...base, note: '사용 가능한 사실 3건 미만(접속 불가 등)' }
   let last
   for (let a = 0; a < 3; a++) {
@@ -95,7 +97,10 @@ export async function extractLedger(slug, name, facts) {
       const byId = new Map(usable.map((f) => [f.id, f.text]))
       const signals = [], dropped = []
       for (const s of j.signals ?? []) { const ids = (s.fact_ids ?? []).filter((id) => byId.has(id)); if (/^S\d{2}$/.test(s.code ?? '') && SIGDICT[s.code] && ids.length) signals.push({ code: s.code, fact_ids: ids, evidence: ids.map((id) => byId.get(id)).join(' ') }); else dropped.push(s) }
-      return { ...base, name: j.name || name, field: j.field ?? '', stage: /^E[0-3]$/.test(j.stage) ? j.stage : 'E1', complaint: String(j.complaint ?? ''), evidence: String(j.evidence ?? ''), chapters: j.chapters ?? [], signals, premises: Object.fromEntries(Object.entries(j.premises ?? {}).map(([k, v]) => [k, normPremise(v)])), premisesRaw: j.premises ?? {}, premises_not_in_dict: String(j.premises_not_in_dict ?? ''), fix_first: String(j.fix_first ?? ''), droppedSignals: dropped.length }
+      // 고객 유형: 목록 안의 값 + 근거 fact 가 있을 때만 받는다. 아니면 unknown(점수 없음).
+      const custIds = (j.customer_fact_ids ?? []).filter((id) => byId.has(id))
+      const customer = CUSTOMERS.includes(j.customer) && custIds.length ? j.customer : 'unknown'
+      return { ...base, customer, customerFactIds: customer === 'unknown' ? [] : custIds, name: j.name || name, field: j.field ?? '', stage: /^E[0-3]$/.test(j.stage) ? j.stage : 'E1', complaint:String(j.complaint ?? ''), evidence: String(j.evidence ?? ''), chapters: j.chapters ?? [], signals, premises: Object.fromEntries(Object.entries(j.premises ?? {}).map(([k, v]) => [k, normPremise(v)])), premisesRaw: j.premises ?? {}, premises_not_in_dict: String(j.premises_not_in_dict ?? ''), fix_first: String(j.fix_first ?? ''), droppedSignals: dropped.length }
     } catch (e) { last = e; if (isStop(e)) throw e }
   }
   throw last
@@ -176,7 +181,7 @@ export async function resolveLedgers(spec) {
     out.push({ slug: `auto-${host}`.replace(/[^\w-]/g, '-'), name: host, urls })
     return out
   }
-  if (/\.json$/i.test(spec)) { const j = JSON.parse(fs.readFileSync(spec, 'utf8')); for (const l of Array.isArray(j) ? j : j.companies ? Object.values(j.companies) : [j]) out.push({ ledger: { source: 'json', customer: 'smb', field: '', stage: 'E1', complaint: '', evidence: '', chapters: [], signals: [], premises: {}, premises_not_in_dict: '', fix_first: '', ...l } }); return out }
+  if (/\.json$/i.test(spec)) { const j = JSON.parse(fs.readFileSync(spec, 'utf8')); for (const l of Array.isArray(j) ? j : j.companies ? Object.values(j.companies) : [j]) out.push({ ledger: { source: 'json', customer: 'unknown', field: '', stage: 'E1', complaint: '', evidence: '', chapters: [], signals: [], premises: {}, premises_not_in_dict: '', fix_first: '', ...l } }); return out }
   const all = real(), refs = ref(), pick = spec === 'real12' || spec === 'all12' ? all : all.filter((c) => c.slug === spec)
   if (!pick.length) throw new Error(`알 수 없는 --company: ${spec} (real12 · 실제 12곳 slug · .json · 주소)`)
   for (const c of pick) out.push({ ledger: ledgerFromCcInput(c, refs[c.slug]) })

@@ -81,7 +81,7 @@ export function scoreCase(co: CompanyLabel, c: CaseRow, o: MatchOpts = {}): Cand
     evidence: WEIGHTS.evidence * (({ A: 1, B: 0.6, C: 0.3 } as Record<string, number>)[String(c.evidence_strength)] ?? 0),
     stage: WEIGHTS.stage * (c.stage && (STAGE_NEAR[co.stage] ?? [co.stage]).includes(CASE_STAGE[c.stage] ?? c.stage) ? 1 : 0),
     number: WEIGHTS.number * (/\d/.test(c.result_ko) ? 1 : 0),
-    customer: WEIGHTS.customer * same(c.customer, co.customer),
+    customer: WEIGHTS.customer * (c.customer && c.customer !== 'unknown' ? same(c.customer, co.customer) : 0),
   }
   const raw = Object.values(parts).reduce((s, x) => s + (x || 0), 0)
   return { case: c, score: raw * mult, parts, direction: dir, signalFit: sf.how, premiseMult: mult, needPremise: need }

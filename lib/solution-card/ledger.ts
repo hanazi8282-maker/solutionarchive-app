@@ -30,7 +30,8 @@ export const normPremise = (v: unknown): PremiseState => (v === 'met' || v === '
 /** 원장 → 매칭이 읽는 회사 라벨. 근거 문장이 비어 있는 신호는 넣지 않는다(R-E). */
 export function ledgerToLabel(l: Ledger): CompanyLabel {
   return {
-    name: l.name, domain: l.field || '', customer: l.customer === 'smb' ? '소규모 사업자' : l.customer || '', stage: STAGE_KO[l.stage] ?? '초기',
+    // 고객 유형은 사례 라벨과 같은 코드(smb·consumer·…)로 비교한다. 한글로 바꾸면 어느 사례와도 같지 않다. unknown 은 비운다(점수 없음).
+    name: l.name, domain: l.field || '', customer: l.customer && l.customer !== 'unknown' ? l.customer : '', stage: STAGE_KO[l.stage] ?? '초기',
     signals: l.signals.filter((s) => String(s.evidence ?? '').trim()).map((s) => ({ code: s.code, evidence: s.evidence })),
     premises: { P1: l.premises.P1 ?? 'unknown', P2: l.premises.P2 ?? 'unknown', P10: l.premises.P10 ?? 'unknown' },
   }
@@ -40,7 +41,7 @@ export function ledgerToLabel(l: Ledger): CompanyLabel {
 export function ledgerFromCcInput(c: any, ref?: any): Ledger {
   const facts: Fact[] = (c.facts ?? []).map((f: any) => ({ id: String(f.id), text: String(f.text), url: String(f.url ?? ''), seen_at: String(f.seen_at ?? '') }))
   const byId = new Map(facts.map((f) => [f.id, f.text]))
-  const base: Ledger = { slug: c.slug, name: c.name, field: c.field ?? '', stage: c.stage ?? 'E1', customer: c.customer ?? 'smb', complaint: '', evidence: '', chapters: [], signals: [], premises: {}, premises_not_in_dict: '', fix_first: '', facts, source: 'cc-input' }
+  const base: Ledger = { slug: c.slug, name: c.name, field: c.field ?? '', stage: c.stage ?? 'E1', customer: c.customer ?? 'unknown', complaint: '', evidence: '', chapters: [], signals: [], premises: {}, premises_not_in_dict: '', fix_first: '', facts, source: 'cc-input' }
   if (!ref) return base
   const ids = (s: string) => [...new Set(String(s).match(/C\d+/g) ?? [])]
   const factIds = ids(ref.evidence ?? '')

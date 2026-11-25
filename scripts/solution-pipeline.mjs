@@ -9,6 +9,7 @@
 // 비용: B 한도(기본 $60, 하드 스톱) + A(라벨링) 사용액을 --a-used 로 받아 합계 $90 의 80%($72) 경고·100% 중단. 구독 경로라 비용은 명목.
 // 모델: 추출 = Sonnet · 카드 생성 = Sonnet · 이중 판정 = Haiku(생성과 다른 모델) · 사실·숫자 검사는 코드.
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
 import { runCli, StopRun } from '../lib/story-label/cli.mjs'
@@ -101,12 +102,39 @@ export async function extractLedger(slug, name, facts) {
 }
 
 // ── 사례 풀(읽기 전용) ──
-export async function loadPool(sb) {
-  const rd = async (table, cols) => { const out = []; for (let f = 0; ; f += 1000) { const { data, error } = await sb.from(table).select(cols).order('id').range(f, f + 999); if (error) throw new Error(`${table}: ${error.message}`); out.push(...data); if (data.length < 1000) break } return out }
+// 전송량 절감(v71ek 1): 풀 전체(약 1.4천만 바이트)를 실행마다 다시 읽지 않는다. 표 3개의 (행 수, 가장 최근 생성·라벨 시각)가
+// 로컬 사본을 만들 때와 같고 사본이 24시간 안이면 사본을 쓴다. 세 표는 추가 전용이라 새 라벨은 이 두 값 중 하나를 바꾼다.
+// ponytail: 같은 행의 제자리 수정(UPDATE)은 못 알아챈다 — 24시간 상한과 --refresh-pool 이 그 천장이다.
+const POOL_CACHE = () => process.env.SOLUTION_POOL_CACHE ?? path.join(os.homedir(), 'sa-private', 'cache', 'solution-pool.json') // 공개 리포 밖
+const POOL_TTL_MS = 24 * 3600 * 1000
+async function poolFingerprint(sb) {
+  const parts = []
+  for (const [table, at] of [['ss_episode_tags_current', 'created_at'], ['ss_story_labels_current', 'created_at'], ['case_signal_labels_v06', 'labeled_at']]) {
+    const { data, count, error } = await sb.from(table).select(at, { count: 'exact' }).order(at, { ascending: false }).limit(1)
+    if (error || typeof count !== 'number') return null // 확인 못 하면 사본을 쓰지 않는다(전체 읽기)
+    parts.push(`${table}:${count}:${data?.[0]?.[at] ?? ''}`)
+  }
+  return parts.join('|')
+}
+export async function loadPool(sb, { refresh = process.argv.includes('--refresh-pool'), cacheFile = POOL_CACHE(), now = Date.now() } = {}) {
+  const key = await poolFingerprint(sb)
+  if (key && !refresh) {
+    try {
+      const c = JSON.parse(fs.readFileSync(cacheFile, 'utf8'))
+      if (c.key === key && now - c.savedAt < POOL_TTL_MS && Array.isArray(c.pool) && c.pool.length) { log(`사례 풀 로컬 사본 사용(${c.pool.length}행)`); return c.pool }
+    } catch {} // 사본 없음·깨짐 → 전체 읽기
+  }
+  let sigFailed = false
+  const rd =async (table, cols) => { const out = []; for (let f = 0; ; f += 1000) { const { data, error } = await sb.from(table).select(cols).order('id').range(f, f + 999); if (error) throw new Error(`${table}: ${error.message}`); out.push(...data); if (data.length < 1000) break } return out }
   const eps = await rd('ss_episode_tags_current', 'id, slug, chapter, adversity_ko, action_ko, result_ko, result_class, result_grain, evidence_strength, quote_orig, condition_ko')
   const labels = {}; for (const r of await rd('ss_story_labels_current', 'id, slug, domain, customer, stage')) labels[r.slug] = r
-  const sig = {}; try { for (const r of await rd('case_signal_labels_v06', 'id, story_slug, episode_id, signal_code')) (sig[r.episode_id] ??= []).push(r.signal_code) } catch (e) { log('case_signal_labels_v06 읽기 실패 → 낱말 규칙으로 대체: ' + e.message) }
-  return eps.map((e) => ({ id: e.id, slug: e.slug, chapter: e.chapter, domain: labels[e.slug]?.domain ?? null, customer: labels[e.slug]?.customer ?? null, stage: labels[e.slug]?.stage ?? null, adversity_ko: e.adversity_ko ?? '', action_ko: e.action_ko ?? '', result_ko: e.result_ko ?? '', result_class: e.result_class, result_grain: e.result_grain, evidence_strength: e.evidence_strength, quote_orig: e.quote_orig, signals: sig[e.id] ?? [], condition_ko: e.condition_ko ?? '' }))
+  const sig = {}; try { for (const r of await rd('case_signal_labels_v06', 'id, story_slug, episode_id, signal_code')) (sig[r.episode_id] ??= []).push(r.signal_code) } catch (e) { sigFailed = true; log('case_signal_labels_v06 읽기 실패 → 낱말 규칙으로 대체: ' + e.message) }
+  const pool = eps.map((e) => ({ id: e.id, slug: e.slug, chapter: e.chapter, domain: labels[e.slug]?.domain ?? null, customer: labels[e.slug]?.customer ?? null, stage: labels[e.slug]?.stage ?? null, adversity_ko: e.adversity_ko ?? '', action_ko: e.action_ko ?? '', result_ko: e.result_ko ?? '', result_class: e.result_class, result_grain: e.result_grain, evidence_strength: e.evidence_strength, quote_orig: e.quote_orig, signals: sig[e.id] ?? [], condition_ko: e.condition_ko ?? '' }))
+  // 읽는 도중 원본이 바뀌었거나 신호 읽기가 실패한 풀은 저장하지 않는다.
+  if (key && !sigFailed && (await poolFingerprint(sb)) === key) {
+    try { fs.mkdirSync(path.dirname(cacheFile), { recursive: true }); fs.writeFileSync(cacheFile, JSON.stringify({ key, savedAt: now, pool })) } catch (e) { log('사례 풀 사본 저장 실패(계속): ' + e.message) }
+  }
+  return pool
 }
 
 // ── 카드 생성(+형식·숫자 검사 재시도 ≤2) ──

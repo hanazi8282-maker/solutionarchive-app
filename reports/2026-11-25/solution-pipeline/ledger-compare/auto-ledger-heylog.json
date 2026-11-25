@@ -1,0 +1,1173 @@
+{
+ "slug": "heylog",
+ "name": "헤이로그",
+ "field": "회의록",
+ "stage": "E1",
+ "customer": "smb",
+ "complaint": "구글 플레이와 앱스토어에 앱이 올라와 있고 무료로 쓸 수 있지만, 앱스토어 평점 수는 2개뿐이라 쓰는 사람이 아직 거의 보이지 않는다.",
+ "evidence": "앱스토어 정보에 평점 수가 2(C115)로 나오고, 사용 후기도 두 건뿐이다(C109, C110). 무료로 시작할 수 있고 앱 내 구입이 있다(C92, C40).",
+ "chapters": [
+  5
+ ],
+ "signals": [
+  {
+   "code": "S05",
+   "fact_ids": [
+    "C115",
+    "C109",
+    "C110"
+   ],
+   "evidence": "\"trackViewUrl\":\"https://apps.apple.com/kr/app/%ED%97%A4%EC%9D%B4%EB%A1%9C%EA%B7%B8-heylog-%ED%9A%8C%EC%9D%98-%EB%85%B9%EC%9D%8C%EA%B3%BC-ai-%ED%9A%8C%EC%9D%98%EB%A1%9D/id6826007797?uo=4\", \"contentAdvisoryRating\":\"4+\", \"averageUserRating\":4.5, \"artistId\":6782808070, \"artistName\":\"Ongyeol Inc.\", \"genres\":[\"생산성\", \"비즈니스\"], \"userRatingCount\":2}] 녹음하기 편하고 회의록도 꽤나 정확해서 좋네요. 원본 녹음을 들어야 할때가 있는데 다시 재생하거나 스크렙트를 확인할 수 있는점도 좋습니다! 다만 pc버전이 없는게 아쉽네요 pc에서도 이용할 수 있으면 편리할거 같아요 잘 알아듣네요~~~와우 기술 좋아졌네요 예전에는 잘 못알아듣더니 이젠 정리까지 해주네요 유용하게 잘 쓸꺼같습니다"
+  }
+ ],
+ "premises": {
+  "P1": "unknown",
+  "P2": "met",
+  "P5": "unmet",
+  "P6": "unmet",
+  "P9": "unknown",
+  "P10": "met"
+ },
+ "premises_not_in_dict": "",
+ "fix_first": "회사 소개 화면은 헤이로그를 '개발 중인 서비스'(C57, C172)라고 하는데, 구글 플레이와 앱스토어에는 이미 출시된 앱이 올라와 있다(C23, C89). 또 화면 속 시범 도입 장면(C21, C12)은 설명용 예시(C14, C57)라 실제 도입 사례가 아니다.",
+ "facts": [
+  {
+   "id": "C1",
+   "text": "헤이로그 — 이야기를 나눌 땐 편하게, 다시 꺼내볼 땐 또렷하게",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C2",
+   "text": "사람과 대화를 함께, heylog",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C3",
+   "text": "이야기를 나눌 땐 편하게,",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C4",
+   "text": "다시 꺼내볼 땐 또렷하게.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C5",
+   "text": "대화를 녹음하면 회의록으로 정리돼요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C6",
+   "text": "필요한 대목은 원문에서 확인하고 그 말을 한 참석자의 이름을 붙여 둘 수 있어요. 자리에 없던 동료에게는 링크로 전하면 됩니다.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C7",
+   "text": "제목 없이도 바로 녹음을 시작할 수 있어요. 마친 뒤 저장된 것만 확인하면 자리를 옮겨도 괜찮고, 회의록이 준비되면 알림이나 내 노트에서 다시 열 수 있어요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C8",
+   "text": "2026.09.18 · 23분 45초 · 폴더명",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C9",
+   "text": "고객 응대팀부터 작게 시작하고,",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C10",
+   "text": "운영 효과를 확인한 뒤 확대해요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C11",
+   "text": "라이트웍스의 고객 응대 기록이 여러 채널에 흩어져 있어요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C12",
+   "text": "먼저 5명이 2주간 사용하며 인수인계에 드는 수고를 확인하고, 보안 요건을 함께 검토하기로 했어요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C13",
+   "text": "명함을 찍거나 사진에서 고르면 이름과 회사를 읽어 와요. 내용을 확인하고 등록하면 이 미팅의 참석자로 추가돼요. 명함이 없으면 직접 입력해도 되고, 녹음 중이나 끝난 뒤에 추가해도 괜찮아요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C14",
+   "text": "화면의 이름과 회사는 예시예요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C15",
+   "text": "그 말을 한 사람을 연결하세요",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C16",
+   "text": "원문에서 발화자 이름을 누르세요. 등록한 참석자 중 그 말을 한 분을 고르고 연결하면, 원문에 이름이 붙어요. 필요한 발화자만 연결해도 돼요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C17",
+   "text": "확대할지는 시범 결과를 보고 이야기하죠.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C18",
+   "text": "회의록을 읽다 헷갈리면,",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C19",
+   "text": "원문에서 다시 확인하세요",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C20",
+   "text": "정리된 내용을 먼저 읽어 보세요. 확인이 필요한 대목은 원문에서 찾아보세요. 발언을 누르면 그때의 녹음을 들을 수 있어요. 필요한 내용은 고쳐서 저장하면 돼요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C21",
+   "text": "고객 응대팀 5명의 2주 시범 사용을 제안했어요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C22",
+   "text": "사용 결과를 보고 확대 여부를 검토하자는 의견이 나왔어요.",
+   "url": "https://heylog.ai",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C23",
+   "text": "헤이로그 heylog - 회의 녹음과 AI 회의록 - Google Play 앱",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C24",
+   "text": "google_logo Play",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C25",
+   "text": "Google 계정으로 로그인",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C26",
+   "text": "헤이로그 heylog - 회의 녹음과 AI 회의록",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C27",
+   "text": "사용자 상호작용 및 앱에서 바로 구매",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C28",
+   "text": "arrow_forward",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C29",
+   "text": "회의를 녹음하면 대화는 원문으로 남고, 핵심은 AI가 회의록으로 정리해요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C30",
+   "text": "합의한 내용과 다음 할 일까지 한눈에 보고, 바로 다음 행동으로 이어가세요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C31",
+   "text": "녹음은 켜 두고, 대화는 편하게",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C32",
+   "text": "녹음 버튼을 누르고 평소처럼 이야기하세요. 챙겨 둘 말이 나오면 메모를 적어 두세요. 나중에 메모에 찍힌 시간을 누르면 그때 나눈 대화부터 다시 들려요. 다른 앱을 쓰거나 화면이 꺼져도 녹음은 계속돼요. 참석자는 녹음 중에도, 끝난 뒤에도 추가할 수 있어요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C33",
+   "text": "받은 명함을 찍거나 사진에서 고르면 이름과 회사, 연락처를 읽어 와요. 내용을 확인한 뒤에 연락처로 등록하고, 회의 화면에서 등록하면 그 회의의 참석자로도 추가돼요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C34",
+   "text": "요약부터 다음 할 일까지 한곳에",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C35",
+   "text": "녹음을 마치면 핵심 요약, 합의한 내용, 다음 할 일, 안건별 맥락이 담긴 회의록이 준비돼요. 휴대폰에 있는 녹음 파일이나 동영상을 올려도 회의록이 만들어져요. 할 일에는 담당자와 기한이 함께 보이고, 정해지지 않았으면 ‘미정’으로 표시돼요. 바꾸고 싶은 내용은 직접 고쳐 저장하세요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C36",
+   "text": "중요한 말은 원문에서 다시",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C37",
+   "text": "원문에는 누가 언제 무슨 말을 했는지 차례대로 남아요. 발언을 누르면 그때의 녹음이 바로 재생돼요. 회의록을 읽다 헷갈리는 대목은 여기서 확인하세요. ‘발화자 1’처럼 표시된 이름은 참석자를 골라 연결하면 그 사람 이름으로 바뀌어요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C38",
+   "text": "회의록은 링크나 이메일로 보내세요. 링크를 받은 사람은 가입하지 않아도 읽을 수 있어요. 회의록을 고쳐 저장하면, 같은 링크를 다시 열었을 때 바뀐 내용이 보여요. 링크 공유는 언제든 끌 수 있어요. 이메일은 받는 사람을 고른 뒤 메일 앱에서 확인하고 보내면 돼요. 공유되는 건 회의록뿐이에요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C39",
+   "text": "회의 제목이나 내용으로 검색하고, 폴더로 나눠 정리하세요. 회의록은 PDF로, 녹음은 음성 파일로 내려받아 보관할 수 있어요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C40",
+   "text": "헤이로그는 무료로 시작할 수 있어요. 더 많은 회의를 기록하고 저장하려면 앱에서 요금제를 골라 구독하세요. 요금제별 가격과 제공량은 결제 전에 앱에서 보여 드려요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C41",
+   "text": "구독은 해지하기 전까지 매월 자동으로 갱신돼요. 해지는 Google Play 앱의 프로필 &gt; 결제 및 정기 결제 &gt; 정기 결제에서 하면 돼요. 해지해도 결제한 기간이 끝날 때까지 쓸 수 있어요. 앱을 지우는 것만으로는 구독이 해지되지 않아요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C42",
+   "text": "녹음하기 전에 참석자에게 녹음 사실과 목적을 알려 주세요.",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C43",
+   "text": "이용약관 https://app.heylog.ai/terms",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C44",
+   "text": "개인정보 처리방침 https://app.heylog.ai/privacy",
+   "url": "https://play.google.com/store/apps/details?id=ai.heylog.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C45",
+   "text": "Heylog | 온결 ONGYEOL",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C46",
+   "text": "Heylog · 헤이로그",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C47",
+   "text": "대화와 회의를 녹음하고, 회의록을 원문·음원으로 확인해 팀에 공유하는 서비스를 개발합니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C48",
+   "text": "미팅 장면 예시 · 녹음 상태 표시는 설명용입니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C49",
+   "text": "기록은 끝난 뒤 확인하세요",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C50",
+   "text": "제목이나 참석자 등록 없이 녹음을 시작하는 흐름을 설계합니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C51",
+   "text": "시범 운영 범위 이야기하기.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C52",
+   "text": "확대 여부는 결과를 보고 결정하기.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C53",
+   "text": "목록으로 나가도 정리는 계속돼요.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C54",
+   "text": "알림 · 회의록이 준비됐어요",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C55",
+   "text": "시범 범위의 제안서 전달 · 김하린",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C56",
+   "text": "시작 여부·일정, 확대 여부",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C57",
+   "text": "개발 중인 서비스의 사용 흐름입니다. 화면과 대화는 설명용 예시입니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C58",
+   "text": "실제 발언으로 확인하세요",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C59",
+   "text": "회의록을 요약·결정사항·할 일·안건으로 정리하고, 원문·음원과 비교해 수정하는 흐름을 설계합니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C60",
+   "text": "앱 디자인 참고 · 위 흐름 예시와 내용이 다릅니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C61",
+   "text": "이름은 자동으로 연결되지 않으며, 필요한 발화자만 선택할 수 있습니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C62",
+   "text": "명함 사진의 인식 정보를 확인·수정하거나 직접 입력합니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C63",
+   "text": "연락처를 이번 회의에 추가합니다. 미팅 후에도 가능합니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C64",
+   "text": "목소리와 맥락을 확인해 말한 참석자를 직접 선택합니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C65",
+   "text": "메일 앱이나 링크로 회의록을 공유하고, 수신자는 가입 없이 읽는 흐름으로 설계합니다.",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C66",
+   "text": "공유 링크로 무엇을 볼 수 있나요?",
+   "url": "https://ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C67",
+   "text": "매월 3,000크레딧으로 헤이로그의 모든 기능을 계속 쓸 수 있어요.",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C68",
+   "text": "매월 무료 크레딧으로 계속 이용해요.",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C69",
+   "text": "바로 녹음 · 파일 올리기",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C70",
+   "text": "전사 · 요약 · 안건 · 결정사항 · 할 일",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C71",
+   "text": "원문 · 음원으로 근거 확인",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C72",
+   "text": "이메일 · 링크 공유 (받는 사람 가입 불필요)",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C73",
+   "text": "검색 · 폴더 · 휴지통 복구",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C74",
+   "text": "PDF · Markdown · 음원 받기",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C75",
+   "text": "가볍게 시작하는 기록과 정리",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C76",
+   "text": "누적 저장 용량 10GB",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C77",
+   "text": "Free 기능 전체 포함",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C78",
+   "text": "더 많은 미팅을 기록하고 정리",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C79",
+   "text": "누적 저장 용량 64GB",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C80",
+   "text": "필요에 맞는 이용 조건 상담",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C81",
+   "text": "문의 창구를 준비하고 있어요",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C82",
+   "text": "Basic 기능 전체 포함",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C83",
+   "text": "* 월 예상 사용시간: 전사·회의록 최초 처리 기준이며, 사용량·재작성에 따라 달라집니다. 녹음 자체는 크레딧을 쓰지 않고 저장 공간을 사용해요. 연간 결제도 크레딧과 예상 사용시간은 월 기준이에요.",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C84",
+   "text": "월간 요금이 표시됩니다.",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C85",
+   "text": "Free 로 무엇을 할 수 있나요?",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C86",
+   "text": "녹음·회의록·공유 등 헤이로그의 기능을 모두 쓸 수 있어요. 매월 3,000크레딧과 누적 저장 용량 5GB 를 드려요.",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C87",
+   "text": "무료 크레딧은 어떻게 다시 채워지나요?",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C88",
+   "text": "가입한 날을 기준으로 매달 3,000크레딧으로 다시 채워져요. 남은 크레딧은 다음 달로 넘어가지 않아요. 회의록과 녹음은 그대로 남아요.",
+   "url": "https://heylog.ai/pricing/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C89",
+   "text": "‎헤이로그 heylog - 회의 녹음과 AI 회의록 앱 - App Store",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C90",
+   "text": "헤이로그 heylog - 회의 녹음과 AI 회의록",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C91",
+   "text": "녹음하면 원문과 요약, 할 일까지",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C92",
+   "text": "무료 · 앱 내 구입 · iPhone⁠용으로 디자인됨 · macOS⁠용으로는 확인되지 않음",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C93",
+   "text": "회의를 녹음하면 대화는 원문으로 남고, 핵심은 AI가 회의록으로 정리해요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C94",
+   "text": "합의한 내용과 다음 할 일까지 한눈에 보고, 바로 다음 행동으로 이어가세요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C95",
+   "text": "녹음은 켜 두고, 대화는 편하게",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C96",
+   "text": "녹음 버튼을 누르고 평소처럼 이야기하세요. 챙겨 둘 말이 나오면 메모를 적어 두세요. 나중에 메모에 찍힌 시간을 누르면 그때 나눈 대화부터 다시 들려요. 다른 앱을 쓰거나 화면이 꺼져도 녹음은 계속돼요. 참석자는 녹음 중에도, 끝난 뒤에도 추가할 수 있어요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C97",
+   "text": "받은 명함을 찍거나 사진에서 고르면 이름과 회사, 연락처를 읽어 와요. 내용을 확인한 뒤에 연락처로 등록하고, 회의 화면에서 등록하면 그 회의의 참석자로도 추가돼요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C98",
+   "text": "요약부터 다음 할 일까지 한곳에",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C99",
+   "text": "녹음을 마치면 핵심 요약, 합의한 내용, 다음 할 일, 안건별 맥락이 담긴 회의록이 준비돼요. 휴대폰에 있는 녹음 파일이나 동영상을 올려도 회의록이 만들어져요. 할 일에는 담당자와 기한이 함께 보이고, 정해지지 않았으면 ‘미정’으로 표시돼요. 바꾸고 싶은 내용은 직접 고쳐 저장하세요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C100",
+   "text": "중요한 말은 원문에서 다시",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C101",
+   "text": "원문에는 누가 언제 무슨 말을 했는지 차례대로 남아요. 발언을 누르면 그때의 녹음이 바로 재생돼요. 회의록을 읽다 헷갈리는 대목은 여기서 확인하세요. ‘발화자 1’처럼 표시된 이름은 참석자를 골라 연결하면 그 사람 이름으로 바뀌어요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C102",
+   "text": "회의록은 링크나 이메일로 보내세요. 링크를 받은 사람은 가입하지 않아도 읽을 수 있어요. 회의록을 고쳐 저장하면, 같은 링크를 다시 열었을 때 바뀐 내용이 보여요. 링크 공유는 언제든 끌 수 있어요. 이메일은 받는 사람을 고른 뒤 메일 앱에서 확인하고 보내면 돼요. 공유되는 건 회의록뿐이에요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C103",
+   "text": "회의 제목이나 내용으로 검색하고, 폴더로 나눠 정리하세요. 회의록은 PDF로, 녹음은 음성 파일로 내려받아 보관할 수 있어요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C104",
+   "text": "헤이로그는 무료로 시작할 수 있어요. 더 많은 회의를 기록하고 저장하려면 앱에서 요금제를 골라 구독하세요. 요금제별 가격과 제공량은 결제 전에 앱에서 보여 드려요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C105",
+   "text": "구독은 해지하기 전까지 매월 자동으로 갱신돼요. 해지는 iPhone 설정에서 이름을 누른 뒤 구독 메뉴에서 하면 돼요. 해지해도 결제한 기간이 끝날 때까지 쓸 수 있어요. 앱을 지우는 것만으로는 구독이 해지되지 않아요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C106",
+   "text": "녹음하기 전에 참석자에게 녹음 사실과 목적을 알려 주세요.",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C107",
+   "text": "이용약관 https://app.heylog.ai/terms",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C108",
+   "text": "개인정보 처리방침 https://app.heylog.ai/privacy",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C109",
+   "text": "녹음하기 편하고 회의록도 꽤나 정확해서 좋네요. 원본 녹음을 들어야 할때가 있는데 다시 재생하거나 스크렙트를 확인할 수 있는점도 좋습니다! 다만 pc버전이 없는게 아쉽네요 pc에서도 이용할 수 있으면 편리할거 같아요",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C110",
+   "text": "잘 알아듣네요~~~와우 기술 좋아졌네요 예전에는 잘 못알아듣더니 이젠 정리까지 해주네요 유용하게 잘 쓸꺼같습니다",
+   "url": "https://apps.apple.com/kr/app/id6826007797",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C111",
+   "text": "\"resultCount\":1,",
+   "url": "https://itunes.apple.com/lookup?id=6826007797&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C112",
+   "text": "{\"isGameCenterEnabled\":false,",
+   "url": "https://itunes.apple.com/lookup?id=6826007797&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C113",
+   "text": "\"artworkUrl512\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/49/d7/46/49d7466f-65b0-83b1-4005-544deb8f84cc/AppIcon-0-0-1x_U007ephone-0-1-85-220.png/512x512bb.jpg\",",
+   "url": "https://itunes.apple.com/lookup?id=6826007797&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C114",
+   "text": "\"artworkUrl60\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/49/d7/46/49d7466f-65b0-83b1-4005-544deb8f84cc/AppIcon-0-0-1x_U007ephone-0-1-85-220.png/60x60bb.jpg\",",
+   "url": "https://itunes.apple.com/lookup?id=6826007797&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C115",
+   "text": "\"trackViewUrl\":\"https://apps.apple.com/kr/app/%ED%97%A4%EC%9D%B4%EB%A1%9C%EA%B7%B8-heylog-%ED%9A%8C%EC%9D%98-%EB%85%B9%EC%9D%8C%EA%B3%BC-ai-%ED%9A%8C%EC%9D%98%EB%A1%9D/id6826007797?uo=4\", \"contentAdvisoryRating\":\"4+\", \"averageUserRating\":4.5, \"artistId\":6782808070, \"artistName\":\"Ongyeol Inc.\", \"genres\":[\"생산성\", \"비즈니스\"], \"userRatingCount\":2}]",
+   "url": "https://itunes.apple.com/lookup?id=6826007797&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C116",
+   "text": "온결 ONGYEOL — 공간 경험과 기기 제어를 위한 Atrilume, 대화를 기록·공유하는 Heylog",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C117",
+   "text": "새로운 공간 경험과 기기 제어를 위한",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C118",
+   "text": "대화를 기록하고 공유하는",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C119",
+   "text": "Heylog를 개발합니다.",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C120",
+   "text": "공간 경험과 생활 속 기기를 연결하는 AI 시스템 거실",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C121",
+   "text": "Atrilume 자세히 보기",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C122",
+   "text": "대화를 회의록으로 정리하고, 원문과 음원으로 확인해 공유하는 AI 서비스",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C123",
+   "text": "Heylog 자세히 보기",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C124",
+   "text": "운영해 온 회사가 만듭니다",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C125",
+   "text": "ONYOAI · 공통 기술",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C126",
+   "text": "기업용 AI 서비스를 개발·운영하며, 공통 기술을 아트리룸과 헤이로그에 활용하는 방안을 검토합니다.",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C127",
+   "text": "금융·기업 고객의 IT를 구축·운영하며 쌓은 경험을 제품 개발과 운영 조건 검토에 활용합니다.",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C128",
+   "text": "사업 현황·연혁·인증·특허 및 해외 사업 현황",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C129",
+   "text": "제품 도입과 사업 협력을",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C130",
+   "text": "Atrilume과 Heylog의 도입, IT 인프라 구축·운영, 사업 협력을 상담합니다. 관심 분야와 계획 중인 일정을 알려 주세요.",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C131",
+   "text": "개인정보 수집·이용 안내",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C132",
+   "text": "주식회사 온결 · 대표 백상운 · 사업자등록번호",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C133",
+   "text": "· 통신판매업 신고번호 제",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C134",
+   "text": "2022-서울성동-01911",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C135",
+   "text": "주소 서울특별시 성동구 성수일로10길 26 하우스디 세종타워 1108호",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C136",
+   "text": "contact@ongyeol.com",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C137",
+   "text": "· © 2026 ONGYEOL Inc. All rights reserved.",
+   "url": "https://ongyeol.com/",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C138",
+   "text": "회사 소개 | 온결 ONGYEOL",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C139",
+   "text": "기업 IT에서 쌓은 경험으로",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C140",
+   "text": "아트리룸과 헤이로그를 개발합니다.",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C141",
+   "text": "두 제품과 기술·운영 기반",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C142",
+   "text": "공간 경험과 생활 속 기기를 연결하는 AI 시스템 거실",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C143",
+   "text": "대화를 회의록으로 정리하고, 원문과 음원으로 확인해 공유하는 AI 서비스",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C144",
+   "text": "기업용 AI 서비스를 개발·운영하며, 공통 기술을 아트리룸과 헤이로그에 활용하는 방안을 검토합니다.",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C145",
+   "text": "금융·기업 고객의 IT를 구축·운영하며 쌓은 경험을 제품 개발과 운영 조건 검토에 활용합니다.",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C146",
+   "text": "회사 설립, IT 인프라 사업 시작",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C147",
+   "text": "기업부설연구소 설치, 벤처기업 인증",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C148",
+   "text": "보안 솔루션 OGdesk 출시, GS 인증 1등급",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C149",
+   "text": "ONYOAI 플랫폼 구축 시작",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C150",
+   "text": "Dell Technologies Platinum Partner",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C151",
+   "text": "GS 인증 1등급 (보안 솔루션 OGdesk)",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C152",
+   "text": "프롬프트 기반 AI 업무 관리",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C153",
+   "text": "다중 원격 카메라 화상강의",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C154",
+   "text": "바이오 정보 멀티채널 인증",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C155",
+   "text": "머신러닝 기반 전세사기 예측",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C156",
+   "text": "베트남·필리핀에서 현지 사업과 협력을 진행하고 있습니다.",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C157",
+   "text": "제품 도입·사업 협력 문의",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C158",
+   "text": "아트리룸·헤이로그 도입, IT 인프라 구축·운영, 사업 협력을 상담합니다.",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C159",
+   "text": "contact@ongyeol.com",
+   "url": "https://www.ongyeol.com/about",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C160",
+   "text": "Heylog | 온결 ONGYEOL",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C161",
+   "text": "Heylog · 헤이로그",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C162",
+   "text": "대화와 회의를 녹음하고, 회의록을 원문·음원으로 확인해 팀에 공유하는 서비스를 개발합니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C163",
+   "text": "미팅 장면 예시 · 녹음 상태 표시는 설명용입니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C164",
+   "text": "기록은 끝난 뒤 확인하세요",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C165",
+   "text": "제목이나 참석자 등록 없이 녹음을 시작하는 흐름을 설계합니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C166",
+   "text": "시범 운영 범위 이야기하기.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C167",
+   "text": "확대 여부는 결과를 보고 결정하기.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C168",
+   "text": "목록으로 나가도 정리는 계속돼요.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C169",
+   "text": "알림 · 회의록이 준비됐어요",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C170",
+   "text": "시범 범위의 제안서 전달 · 김하린",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C171",
+   "text": "시작 여부·일정, 확대 여부",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C172",
+   "text": "개발 중인 서비스의 사용 흐름입니다. 화면과 대화는 설명용 예시입니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C173",
+   "text": "실제 발언으로 확인하세요",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C174",
+   "text": "회의록을 요약·결정사항·할 일·안건으로 정리하고, 원문·음원과 비교해 수정하는 흐름을 설계합니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C175",
+   "text": "앱 디자인 참고 · 위 흐름 예시와 내용이 다릅니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C176",
+   "text": "이름은 자동으로 연결되지 않으며, 필요한 발화자만 선택할 수 있습니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C177",
+   "text": "명함 사진의 인식 정보를 확인·수정하거나 직접 입력합니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C178",
+   "text": "연락처를 이번 회의에 추가합니다. 미팅 후에도 가능합니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C179",
+   "text": "목소리와 맥락을 확인해 말한 참석자를 직접 선택합니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C180",
+   "text": "메일 앱이나 링크로 회의록을 공유하고, 수신자는 가입 없이 읽는 흐름으로 설계합니다.",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C181",
+   "text": "공유 링크로 무엇을 볼 수 있나요?",
+   "url": "https://www.ongyeol.com/heylog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C182",
+   "text": "{\"feed\":{\"author\":{\"name\":{\"label\":\"iTunes Store\"}, \"uri\":{\"label\":\"http://www.apple.com/itunes/\"}}, \"entry\":[",
+   "url": "https://itunes.apple.com/kr/rss/customerreviews/id=6826007797/sortby=mostrecent/json",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C183",
+   "text": "{\"attributes\":{\"rel\":\"alternate\", \"type\":\"text/html\", \"href\":\"https://apps.apple.com/WebObjects/MZStore.woa/wa/viewGrouping?cc=kr&id=29141\"}},",
+   "url": "https://itunes.apple.com/kr/rss/customerreviews/id=6826007797/sortby=mostrecent/json",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C184",
+   "text": "{\"attributes\":{\"rel\":\"self\", \"href\":\"https://itunes.apple.com/kr/rss/customerreviews/id=6826007797/sortby=mostrecent/json\"}},",
+   "url": "https://itunes.apple.com/kr/rss/customerreviews/id=6826007797/sortby=mostrecent/json",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C185",
+   "text": "{\"attributes\":{\"rel\":\"first\", \"href\":\"https://itunes.apple.com/kr/rss/customerreviews/page=1/id=6826007797/sortby=mostrecent/xml?urlDesc=/customerreviews/id=6826007797/sortby=mostrecent/json\"}},",
+   "url": "https://itunes.apple.com/kr/rss/customerreviews/id=6826007797/sortby=mostrecent/json",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C186",
+   "text": "{\"attributes\":{\"rel\":\"last\", \"href\":\"https://itunes.apple.com/kr/rss/customerreviews/page=1/id=6826007797/sortby=mostrecent/xml?urlDesc=/customerreviews/id=6826007797/sortby=mostrecent/json\"}},",
+   "url": "https://itunes.apple.com/kr/rss/customerreviews/id=6826007797/sortby=mostrecent/json",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C187",
+   "text": "{\"attributes\":{\"rel\":\"previous\", \"href\":\"https://itunes.apple.com/kr/rss/customerreviews/page=1/id=6826007797/sortby=mostrecent/xml?urlDesc=/customerreviews/id=6826007797/sortby=mostrecent/json\"}},",
+   "url": "https://itunes.apple.com/kr/rss/customerreviews/id=6826007797/sortby=mostrecent/json",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C188",
+   "text": "{\"attributes\":{\"rel\":\"next\", \"href\":\"https://itunes.apple.com/kr/rss/customerreviews/page=2/id=6826007797/sortby=mostrecent/xml?urlDesc=/customerreviews/id=6826007797/sortby=mostrecent/json\"}}], \"id\":{\"label\":\"https://itunes.apple.com/kr/rss/customerreviews/id=6826007797/sortby=mostrecent/json\"}}}",
+   "url": "https://itunes.apple.com/kr/rss/customerreviews/id=6826007797/sortby=mostrecent/json",
+   "seen_at": "2026-11-24"
+  }
+ ],
+ "source": "auto",
+ "premisesRaw": {
+  "P1": "모름",
+  "P2": "확정",
+  "P5": "미충족",
+  "P6": "미충족",
+  "P9": "모름",
+  "P10": "확정"
+ },
+ "droppedSignals": 0
+}

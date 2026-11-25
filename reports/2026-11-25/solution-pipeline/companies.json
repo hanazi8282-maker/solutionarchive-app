@@ -1,0 +1,15 @@
+[
+ {"id":"sent-sellerbox","name":"셀러박스(Sellerbox)","group":"sent7","url":"https://sellerbox.io/"},
+ {"id":"sent-bulsaja","name":"불사자","group":"sent7"},
+ {"id":"sent-gigg","name":"기그","group":"sent7"},
+ {"id":"sent-shopkeeper","name":"샵키퍼","group":"sent7"},
+ {"id":"sent-manage","name":"매니지","group":"sent7"},
+ {"id":"sent-chaebion","name":"채비온","group":"sent7"},
+ {"id":"sent-harudamda","name":"하루담다","group":"sent7"},
+ {"id":"new-bigin","name":"Bigin","group":"new6","url":"https://www.bigin.com/"},
+ {"id":"new-streak","name":"Streak","group":"new6","url":"https://www.streak.com/"},
+ {"id":"new-mmc","name":"Map My Customers","group":"new6","url":"https://www.mapmycustomers.com/"},
+ {"id":"new-insightly","name":"Insightly","group":"new6","url":"https://www.insightly.com/"},
+ {"id":"new-nutshell","name":"Nutshell","group":"new6","url":"https://www.nutshell.com/"},
+ {"id":"new-aircall","name":"Aircall","group":"new6","url":"https://aircall.io/"}
+]

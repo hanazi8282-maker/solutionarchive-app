@@ -1,0 +1,555 @@
+{
+ "summary": {
+  "companies": 12,
+  "errors": 0,
+  "m1_fact_coverage_pct": 27.8,
+  "m2_signal_recall_pct": 36.4,
+  "m2_signal_exact_pct": 16.7,
+  "m3_premise_agreement_pct": 61.1,
+  "m4_same_complaint_pct": 41.7,
+  "blocked_companies": [
+   "maikru(1곳)",
+   "reviewbot(1곳)"
+  ],
+  "bUsed": 0.706
+ },
+ "rows": [
+  {
+   "slug": "kokwork",
+   "name": "콕근무",
+   "urls": 7,
+   "blocked": 0,
+   "autoFacts": 154,
+   "m1": {
+    "total": 2,
+    "covered": 1,
+    "missing": [
+     "C9"
+    ]
+   },
+   "m2": {
+    "recall": 0,
+    "precision": 0,
+    "exact": false
+   },
+   "refSignals": [
+    "S05"
+   ],
+   "autoSignals": [
+    "S38",
+    "S02"
+   ],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": false,
+     "P5": true,
+     "P6": false,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.5
+   },
+   "autoComplaint": "알바 근무표·급여·계약서를 한 앱에 묶어 월 4,900원 구독으로 내놓았지만, 쓰는 사장님 수나 후기 같은 사용자 반응이 화면에 하나도 보이지 않는다.",
+   "refComplaint": "2026-11-05 첫 출시 뒤 Google Play 다운로드가 '1+'이고 리뷰 수가 표시되지 않아, 쓰는 사장님이나 돈을 낸 매장이 화면에서 보이지 않는다.",
+   "m4": {
+    "same": "O",
+    "why": "둘 다 쓰는 사장님 수나 사용자 반응이 화면에 보이지 않아 신뢰·가시성이 막힌다는 같은 지점이다."
+   }
+  },
+  {
+   "slug": "voicenote",
+   "name": "VoiceNote",
+   "urls": 4,
+   "blocked": 0,
+   "autoFacts": 88,
+   "m1": {
+    "total": 3,
+    "covered": 1,
+    "missing": [
+     "C5",
+     "C18"
+    ]
+   },
+   "m2": {
+    "recall": 0,
+    "precision": 0,
+    "exact": false
+   },
+   "refSignals": [
+    "S10",
+    "S11"
+   ],
+   "autoSignals": [
+    "S04",
+    "S37"
+   ],
+   "m3": {
+    "per": {
+     "P1": false,
+     "P2": true,
+     "P5": true,
+     "P6": true,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.6666666666666666
+   },
+   "autoComplaint": "무료 얼리 액세스로 열어 두고 유료 플랜은 '향후 도입할 수 있다'고만 해서 가격과 수익 구조가 정해지지 않았고, 대상도 부동산·보험·영업에서 법률·교육·의료·컨설팅까지 계속 넓혀 한 고객층으로 좁히지 못한 상태로 읽힌다.",
+   "refComplaint": "유료 요금이 아직 없고('얼리 액세스 — 모든 기능 무료'), 다운로드 '50+'·리뷰 미표시라 결제할 가격도 결제할 사람도 화면에 없다.",
+   "m4": {
+    "same": "O",
+    "why": "두 문장 모두 유료 가격·결제 구조가 아직 정해지지 않은 상태(무료 얼리 액세스만 있고 결제 대상·가격이 불명확)를 막힌 지점으로 가리킨다."
+   }
+  },
+  {
+   "slug": "maikru",
+   "name": "마이크루",
+   "urls": 6,
+   "blocked": 1,
+   "autoFacts": 107,
+   "m1": {
+    "total": 3,
+    "covered": 0,
+    "missing": [
+     "C6",
+     "C8",
+     "C18"
+    ]
+   },
+   "m2": {
+    "recall": 1,
+    "precision": 1,
+    "exact": true
+   },
+   "refSignals": [
+    "S10"
+   ],
+   "autoSignals": [
+    "S10"
+   ],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": true,
+     "P5": false,
+     "P6": true,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.6666666666666666
+   },
+   "autoComplaint": "자동 출퇴근 기능은 분명히 드러나 있지만, 화면에서 확인되는 사용 흔적은 무료 이용 후기뿐이고 결제 고객이나 사용자 수는 보이지 않는다.",
+   "refComplaint": "'무료라서 잘 쓰겠다'는 리뷰와 다운로드 '1천+'로 무료 사용은 보이지만, 유일한 유료 항목 '스탠다드 ₩9,900'의 월·연 구분과 무료와 달라지는 점이 화면에 없다.",
+   "m4": {
+    "same": "X",
+    "why": "a는 유료 항목(스탠다드 ₩9,900)의 월·연 구분과 무료와의 차이가 화면에 안 보인다는 가격 안내 문제이고, b는 자동 출퇴근 기능은 드러나 있지만 결제 고객·사용자 수 같은 사용 흔적이 안 보인다는 사용 실적 문제라 막힌 지점이 다르다."
+   }
+  },
+  {
+   "slug": "bossbiseo",
+   "name": "사장님비서",
+   "urls": 3,
+   "blocked": 0,
+   "autoFacts": 66,
+   "m1": {
+    "total": 5,
+    "covered": 2,
+    "missing": [
+     "C8",
+     "C19",
+     "C12"
+    ]
+   },
+   "m2": {
+    "recall": 0,
+    "precision": null,
+    "exact": false
+   },
+   "refSignals": [
+    "S11",
+    "S05"
+   ],
+   "autoSignals": [],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": false,
+     "P5": true,
+     "P6": true,
+     "P9": true,
+     "P10": true
+    },
+    "rate": 0.8333333333333334
+   },
+   "autoComplaint": "외식·자영업 사장님용 직원관리·원가·손익 앱을 Google Play에 내고 무료·유료(월 ₩4,900) 요금제도 공개했지만, 화면에는 쓰는 사람이나 고객 반응이 보이지 않는다.",
+   "refComplaint": "월 요금과 무료 범위가 화면마다 다르게 적혀(홈 ₩3,900·무료 없음 / Play·약관 프로 ₩4,900·무료 베이직) 사장님이 얼마에 무엇을 사는지 하나로 읽히지 않고, Play 다운로드는 '1+'이다.",
+   "m4": {
+    "same": "X",
+    "why": "a는 요금·무료 범위가 화면마다 달라 헷갈리는 가격 안내 문제이고, b는 쓰는 사람·고객 반응이 안 보이는 문제라 막힌 지점이 다르다."
+   }
+  },
+  {
+   "slug": "took",
+   "name": "툭 - AI 회의 정리",
+   "urls": 3,
+   "blocked": 0,
+   "autoFacts": 44,
+   "m1": {
+    "total": 4,
+    "covered": 1,
+    "missing": [
+     "C6",
+     "C7",
+     "C12"
+    ]
+   },
+   "m2": {
+    "recall": 0,
+    "precision": 0,
+    "exact": false
+   },
+   "refSignals": [
+    "S06"
+   ],
+   "autoSignals": [
+    "S04"
+   ],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": true,
+     "P5": false,
+     "P6": false,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.5
+   },
+   "autoComplaint": "회의 요약·할 일·캘린더·명함 교환·공유까지 기능을 한꺼번에 내세우고 대상도 직장인·기자·영업·학생 네 부류로 넓게 잡아, 누구에게 무엇을 먼저 팔지 화면에서 정해지지 않았다.",
+   "refComplaint": "Pro·Max 유료 구독과 출시 기념 할인이 있지만 App Store 평가가 1개이고, 운영사 홈 첫 화면에도 툭 소개가 없어 쓰는 사람이 거의 보이지 않는다.",
+   "m4": {
+    "same": "X",
+    "why": "a는 유료 구독·할인이 있어도 사용자가 거의 없고 노출이 부족한 문제이고, b는 기능과 대상이 너무 넓어 판매 타깃이 정해지지 않은 문제라서 막힌 지점이 다르다."
+   }
+  },
+  {
+   "slug": "reviewbot",
+   "name": "스마트스토어 리뷰봇",
+   "urls": 8,
+   "blocked": 1,
+   "autoFacts": 133,
+   "m1": {
+    "total": 4,
+    "covered": 0,
+    "missing": [
+     "C12",
+     "C8",
+     "C7",
+     "C27"
+    ]
+   },
+   "m2": {
+    "recall": 0,
+    "precision": 0,
+    "exact": false
+   },
+   "refSignals": [
+    "S10",
+    "S03"
+   ],
+   "autoSignals": [
+    "S18",
+    "S38"
+   ],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": true,
+     "P5": false,
+     "P6": false,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.5
+   },
+   "autoComplaint": "스마트스토어 리뷰 답글 초안을 만드는 크롬 확장을 공개하고 토큰 팩 결제도 열어 뒀지만, 화면에서 보이는 외부 사용 흔적은 스토어 리뷰 2건뿐이고 돈 낸 고객이나 사용자 수는 확인되지 않는다.",
+   "refComplaint": "Chrome 웹스토어 사용자 113명·평점 2개로 쓰는 사람은 있지만, 가입 시 무료 토큰 100개를 넘어 유료 토큰을 산 사람이 있는지는 화면에 없고, 같은 일을 하는 경쟁 확장 프로그램도 있다.",
+   "m4": {
+    "same": "X",
+    "why": "A는 사용자 수·평점 대비 유료 전환 부재와 경쟁 제품 문제이고, B는 결제 기능은 열려 있으나 외부 사용 흔적과 결제 고객이 확인되지 않는 문제라서 막힌 지점이 다르다(A는 무료 사용 후 유료 전환 미확인, B는 결제 자체 및 사용자 확인 부족)."
+   }
+  },
+  {
+   "slug": "albami",
+   "name": "알바미",
+   "urls": 5,
+   "blocked": 0,
+   "autoFacts": 90,
+   "m1": {
+    "total": 5,
+    "covered": 2,
+    "missing": [
+     "C7",
+     "C15",
+     "C23"
+    ]
+   },
+   "m2": {
+    "recall": 1,
+    "precision": 0.5,
+    "exact": false
+   },
+   "refSignals": [
+    "S10"
+   ],
+   "autoSignals": [
+    "S10",
+    "S04"
+   ],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": true,
+     "P5": false,
+     "P6": true,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.6666666666666666
+   },
+   "autoComplaint": "알바생과 사장님이 함께 쓰는 무료 근무·급여관리 앱이 '500개 매장'이 선택했다고 알리지만, 앱스토어 평가는 19건뿐이고 유료로 이어지는 수익 구조나 가격은 화면에 보이지 않는다.",
+   "refComplaint": "'500개 매장이 선택' 문구와 다운로드 '1천+'로 쓰는 매장은 있지만, 프리미엄(₩4,400)이 11월에 막 생겨 무료와 무엇이 다른지·월/연이 화면에 없고, 무료를 받치는 광고에 대한 불만 리뷰가 이어진다.",
+   "m4": {
+    "same": "O",
+    "why": "두 문장 모두 '매장이 선택했다'는 규모 표시와 달리 수익·가격 구조가 화면에 명확히 드러나지 않아 무료 사용자가 유료 전환 지점을 알기 어려운 같은 막힘을 가리킨다."
+   }
+  },
+  {
+   "slug": "albagwanri",
+   "name": "알바관리",
+   "urls": 6,
+   "blocked": 0,
+   "autoFacts": 97,
+   "m1": {
+    "total": 5,
+    "covered": 1,
+    "missing": [
+     "C19",
+     "C21",
+     "C3",
+     "C9"
+    ]
+   },
+   "m2": {
+    "recall": 0,
+    "precision": null,
+    "exact": false
+   },
+   "refSignals": [
+    "S10",
+    "S11"
+   ],
+   "autoSignals": [],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": false,
+     "P5": false,
+     "P6": true,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.5
+   },
+   "autoComplaint": "사장님용 알바 스케줄·급여 앱을 Play 스토어와 App Store에 내놨지만, 화면에는 쓰는 사람 수나 후기, 가격이 보이지 않아 실제 이용자와 결제 고객이 있는지 읽히지 않는다.",
+   "refComplaint": "Play 리뷰 5개·App Store 평가 0개로 쓰는 사장님 신호가 적고, 두 스토어 소개가 서로 다른 앱처럼 적혀 있다(Play 스케줄·급여 / App Store 출퇴근 기록이 첫 기능).",
+   "m4": {
+    "same": "O",
+    "why": "두 문장 모두 쓰는 사람·실사용 신호(후기·평가, 이용자 수)가 화면이나 스토어에서 드러나지 않는다는 같은 막힌 지점을 가리킨다."
+   }
+  },
+  {
+   "slug": "meetnote",
+   "name": "미팅노트",
+   "urls": 9,
+   "blocked": 0,
+   "autoFacts": 160,
+   "m1": {
+    "total": 5,
+    "covered": 1,
+    "missing": [
+     "C20",
+     "C21",
+     "C27",
+     "C19"
+    ]
+   },
+   "m2": {
+    "recall": 1,
+    "precision": 1,
+    "exact": true
+   },
+   "refSignals": [
+    "S11"
+   ],
+   "autoSignals": [
+    "S11"
+   ],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": false,
+     "P5": true,
+     "P6": true,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.6666666666666666
+   },
+   "autoComplaint": "앱을 받아 써 볼 수 있고 가격(최고 33,000원, VAT 포함)도 공개돼 있지만, 쓰는 사람 수나 돈 낸 고객은 화면에서 확인되지 않고, 요금 안내가 크레딧 방식과 사용자 API 키(BYOK) 방식으로 엇갈린다.",
+   "refComplaint": "크레딧 충전 상품은 있지만 App Store 평가 4개·Play 다운로드 '10+'로 쓰는 사람이 적고, 지원 페이지·약관에는 크레딧 이전의 'API 키 직접 등록' 안내가 남아 있다.",
+   "m4": {
+    "same": "X",
+    "why": "a는 앱의 인지도·다운로드 저조와 지원 문서의 BYOK 안내 잔존 문제이고, b는 사용자 수·결제 고객 미확인과 요금 안내의 크레딧 vs BYOK 방식 불일치 문제라서 막힌 지점이 다르다."
+   }
+  },
+  {
+   "slug": "remm",
+   "name": "렘",
+   "urls": 9,
+   "blocked": 0,
+   "autoFacts": 171,
+   "m1": {
+    "total": 7,
+    "covered": 3,
+    "missing": [
+     "C19",
+     "C20",
+     "C11",
+     "C26"
+    ]
+   },
+   "m2": {
+    "recall": 1,
+    "precision": 0.5,
+    "exact": false
+   },
+   "refSignals": [
+    "S11"
+   ],
+   "autoSignals": [
+    "S11",
+    "S39"
+   ],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": false,
+     "P5": true,
+     "P6": true,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.6666666666666666
+   },
+   "autoComplaint": "AI 회의록 앱을 출시해 무료 100분과 Pro 월 15,000원 요금을 공개했지만, 화면에서는 쓰는 사용자 수나 후기가 보이지 않고, 앱 안내와 블로그에서 무료 범위 설명이 서로 다르다.",
+   "refComplaint": "개인 Pro와 팀 요금제는 갖췄지만 App Store 평가 0개·Play 다운로드 '10+'로 쓰는 사람 신호가 거의 없고, 무료로 주는 분량이 화면마다 다르게 적혀 있다.",
+   "m4": {
+    "same": "O",
+    "why": "두 문장 모두 쓰는 사람 신호가 드러나지 않는 점과 무료 범위·가격 안내가 화면/채널마다 다르게 적혀 있다는 같은 막힌 지점을 가리킨다."
+   }
+  },
+  {
+   "slug": "modora",
+   "name": "모도라",
+   "urls": 10,
+   "blocked": 0,
+   "autoFacts": 181,
+   "m1": {
+    "total": 6,
+    "covered": 2,
+    "missing": [
+     "C17",
+     "C18",
+     "C7",
+     "C27"
+    ]
+   },
+   "m2": {
+    "recall": null,
+    "precision": 0,
+    "exact": false
+   },
+   "refSignals": [],
+   "autoSignals": [
+    "S03",
+    "S10",
+    "S12"
+   ],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": true,
+     "P5": true,
+     "P6": true,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.8333333333333334
+   },
+   "autoComplaint": "AI 회의록 앱은 출시되어 무료 사용자와 소수의 앱스토어 평가(4건)가 있지만, 유료 전환·신규 유입 증거가 화면에 보이지 않고 '회의를 저장하는 앱은 많다'고 하면서도 경쟁 제품 대비 차이는 '사람을 기억한다'는 문구에 의존한다.",
+   "refComplaint": "출시 4주가 안 돼 App Store 평가 4개·Play 다운로드 '10+'로 쓰는 사람이 적고, 녹음 원본을 어디에 두는지가 화면마다 다르게 적혀 있어 법률·회계·의료 손님에게 걸린다.",
+   "m4": {
+    "same": "X",
+    "why": "a는 쓰는 사람 적음·녹음 원본 보관 위치 안내가 화면마다 다름(법률·회계·의료 고객 우려)이 막힌 지점이고, b는 유료 전환·신규 유입 증거 부족과 경쟁 차별점 모호함이 막힌 지점이라 서로 다른 불편이다."
+   }
+  },
+  {
+   "slug": "heylog",
+   "name": "헤이로그",
+   "urls": 10,
+   "blocked": 0,
+   "autoFacts": 188,
+   "m1": {
+    "total": 5,
+    "covered": 1,
+    "missing": [
+     "C10",
+     "C27",
+     "C22",
+     "C19"
+    ]
+   },
+   "m2": {
+    "recall": 0,
+    "precision": 0,
+    "exact": false
+   },
+   "refSignals": [
+    "S10",
+    "S11"
+   ],
+   "autoSignals": [
+    "S05"
+   ],
+   "m3": {
+    "per": {
+     "P1": true,
+     "P2": false,
+     "P5": false,
+     "P6": false,
+     "P9": false,
+     "P10": true
+    },
+    "rate": 0.3333333333333333
+   },
+   "autoComplaint": "구글 플레이와 앱스토어에 앱이 올라와 있고 무료로 쓸 수 있지만, 앱스토어 평점 수는 2개뿐이라 쓰는 사람이 아직 거의 보이지 않는다.",
+   "refComplaint": "무료가 매달 3,000크레딧으로 다시 채워지고(약 200분), 팀 도입용 Enterprise 칸은 '문의 창구를 준비하고 있어요'이며, 운영사 소개 페이지는 아직 '개발 중인 서비스'라고 적혀 있다.",
+   "m4": {
+    "same": "X",
+    "why": "a는 무료 크레딧 재충전·Enterprise 문의 창구 미비·가격/서비스 안내 불명확이 막힌 지점이고, b는 앱스토어 평점이 적어 사용자가 보이지 않는 문제라서 막힌 지점이 다르다."
+   }
+  }
+ ]
+}

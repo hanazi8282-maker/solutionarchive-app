@@ -1,0 +1,1003 @@
+{
+ "slug": "meetnote",
+ "name": "미팅노트",
+ "field": "회의록",
+ "stage": "E1",
+ "customer": "smb",
+ "complaint": "앱을 받아 써 볼 수 있고 가격(최고 33,000원, VAT 포함)도 공개돼 있지만, 쓰는 사람 수나 돈 낸 고객은 화면에서 확인되지 않고, 요금 안내가 크레딧 방식과 사용자 API 키(BYOK) 방식으로 엇갈린다.",
+ "evidence": "앱스토어·구글플레이 배포(C9, C10)와 가입 없는 샘플(C6)이 있고 외부 후기 2건(C62, C63)이 보이지만 날짜가 없다. 사용자 수나 결제 수치는 없다(C48은 '무료·앱 내 구입'이라고만 적음). 가격은 4종 모두 시간당 같고 최고 33,000원이다(C94, C96). 요금 구조는 한쪽이 '따로 등록할 AI 키는 없고 크레딧으로 정산'(C58)이고 다른 쪽이 'API 키를 직접 등록, 요금은 사용자 계정에 청구, 마진 없음'(C75, C76)이다.",
+ "chapters": [],
+ "signals": [
+  {
+   "code": "S11",
+   "fact_ids": [
+    "C58",
+    "C75",
+    "C76"
+   ],
+   "evidence": "따로 등록할 AI 키는 없습니다. 서버에서 처리하는 기록·화자분리·요약은 비용을 크레딧으로 정산합니다. 청구됩니다. 회의록은 사용자가 등록한 키로 호출하므로 요금이 사용자 계정으로 바로 청구되고, 서비스가 그 원가에 마진을 얹지 않습니다(BYOK)."
+  }
+ ],
+ "premises": {
+  "P1": "unknown",
+  "P2": "unknown",
+  "P5": "met",
+  "P6": "unmet",
+  "P9": "met",
+  "P10": "met"
+ },
+ "premises_not_in_dict": "",
+ "fix_first": "1) 요금 안내가 어긋난다. C58은 키 등록 없이 크레딧으로 처리한다고 하고, C73~C76 FAQ는 키를 직접 등록해 사용자 계정에 청구되는 것처럼 쓴다. C93·C154는 두 방식이 모두 가능하다고 적었다. 2) 저장·전송 설명도 어긋난다. C79·C80은 키를 등록하지 않으면 외부로 나가지 않는다고 하지만, C60·C154는 키 없이 크레딧으로도 서버가 처리한다고 한다. 3) 환불·청약철회 페이지(C116~C137)는 'Dcode 스토어'의 강좌 회차·행사 환불을 다루고 있어, 회의록 크레딧 환불(C159) 안내와 맞지 않아 보인다.",
+ "facts": [
+  {
+   "id": "C1",
+   "text": "미팅노트 — 회의는 녹음만 하세요",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C2",
+   "text": "녹음부터 요약까지 한 번에",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C3",
+   "text": "미팅노트 · AI 회의록",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C4",
+   "text": "녹음이나 파일 하나면 됩니다.",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C5",
+   "text": "누가 말했는지 나눠 적고, 결정과 할 일만 남깁니다.",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C6",
+   "text": "가입 없이 샘플 둘러보기",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C7",
+   "text": "Google · Apple · 카카오 로그인",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C8",
+   "text": "iOS · Android · 웹",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C9",
+   "text": "App Store에서 받기",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C10",
+   "text": "Google Play에서 받기",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C11",
+   "text": "회의는 끝나는 순간 사라집니다",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C12",
+   "text": "두 시간짜리 음성을 되감아 듣는 사람은 없습니다.",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C13",
+   "text": "파일은 폴더에서 잊힙니다.",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C14",
+   "text": "화자가 섞인 글자 뭉치는 회의록이 아닙니다.",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C15",
+   "text": "누가 말했는지 갈라야 읽힙니다.",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C16",
+   "text": "아무도 다시 확인하지 않는다",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C17",
+   "text": "결정과 할 일이 대화 속에 묻힙니다.",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C18",
+   "text": "뽑아내야 다음 행동이 됩니다.",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C19",
+   "text": "녹음이 회의록이 되기까지",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C20",
+   "text": "전사는 항상 말한 언어 그대로, 요약은 앱 언어로 나옵니다. 두 축은 따로 고릅니다.",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C21",
+   "text": "녹음하거나 파일을 올립니다",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C22",
+   "text": "앱에서 녹음하거나 이미 있는 녹음 파일을 올립니다. 웹에서도 녹음할 수 있습니다.",
+   "url": "https://meetnote.1pass.dev",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C23",
+   "text": "회의록 - AI meeting note 녹음 - Google Play 앱",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C24",
+   "text": "google_logo Play",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C25",
+   "text": "Google 계정으로 로그인",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C26",
+   "text": "회의록 - AI meeting note 녹음",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C27",
+   "text": "arrow_forward",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C28",
+   "text": "녹음 버튼을 누르고 회의에 집중하세요. 끝나면 노트까지 만들어 둡니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C29",
+   "text": "회의가 끝날 때마다 녹음 파일만 쌓이고 정작 무엇을 정했는지는 기억에 남지 않습니다. 미팅노트는 녹음을 받아쓰고, 그 안에서 무엇이 논의됐고 무엇이 정해졌는지를 골라 정리합니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C30",
+   "text": "· 핵심 요약 — 회의 전체를 몇 줄로",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C31",
+   "text": "· 주요 논의 사항 — 오간 이야기를 주제별로",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C32",
+   "text": "· 결정 사항 — 정해진 것만 따로",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C33",
+   "text": "· 검토 사항 — 아직 정하지 못해 남은 것",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C34",
+   "text": "· 키워드와 용어 풀이 — 처음 듣는 말도 뜻과 함께",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C35",
+   "text": "■ 받아쓴 문장을 그대로 확인합니다",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C36",
+   "text": "요약만 믿기 어려울 때는 스크립트 탭에서 전체 대화를 봅니다. 화자별로 나뉘어 있고, 문장을 누르면 그 지점부터 음원이 재생됩니다. 녹음을 처음부터 다시 들을 필요가 없습니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C37",
+   "text": "■ 마음에 안 드는 문장은 고칩니다",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C38",
+   "text": "AI가 쓴 요약을 그대로 쓸 필요는 없습니다. 제목도 본문도 직접 고칠 수 있고, 고친 내용은 노트를 다시 만들어도 남습니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C39",
+   "text": "■ 손목에서 바로 녹음합니다",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C40",
+   "text": "Wear OS 워치 앱이 함께 들어 있습니다. 휴대폰을 꺼내기 어려운 자리에서는 손목에서 녹음을 시작하세요. 녹음은 휴대폰으로 넘어와 똑같이 노트가 됩니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C41",
+   "text": "■ 정리한 노트를 공유합니다",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C42",
+   "text": "링크 하나로 회의에 없던 사람에게 보냅니다. 열람 기한과 암호를 걸 수 있고, 참석자 이름을 가린 채 내보낼 수도 있습니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C43",
+   "text": "■ 쌓인 회의를 다시 찾습니다",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C44",
+   "text": "보관함에는 녹음이, 노트 탭에는 정리가 끝난 회의가 모입니다. 제목으로 검색하고, 워크스페이스별로 나눠 봅니다.",
+   "url": "https://play.google.com/store/apps/details?id=com.meetingnotes.app&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C45",
+   "text": "‎미팅노트 - AI note 회의록 요약 앱 - App Store",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C46",
+   "text": "미팅노트 - AI note 회의록 요약",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C47",
+   "text": "회의 녹음부터 화자분리·요약까지",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C48",
+   "text": "무료 · 앱 내 구입 · iPhone⁠용으로 디자인됨 · macOS⁠용으로는 확인되지 않음",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C49",
+   "text": "iPhone, Apple Watch",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C50",
+   "text": "녹음 버튼 하나로 회의 내용이 텍스트로 남습니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C51",
+   "text": "미팅노트는 녹음부터 기록, 화자분리, 요약까지 회의 하나의 흐름을 한 앱에서 처리합니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C52",
+   "text": "녹음 화면은 경과 시간과 실시간 음량 레벨을 보여줍니다. 녹음을 시작하면 참석자에게 녹음 사실을 알리라는 안내 문구가 함께 뜹니다. 이미 녹음해둔 오디오 파일도 불러와 처리할 수 있습니다. 노트마다 오디오 플레이어가 있어 녹음을 다시 들을 수 있습니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C53",
+   "text": "업로드한 녹음을 텍스트로 기록하고 화자를 구분합니다. 결과는 참석자 1, 참석자 2처럼 화자별 아바타와 이름표, 타임스탬프를 붙여 한 줄씩 정리합니다. 기록 화면에는 검색창이 있어 특정 발언을 바로 찾을 수 있습니다. 처리 상태는 업로드 중, 기록·화자분리 중, 요약 정리 중, 완료로 단계별로 표시되고, 실패한 항목은 노트 재생성으로 다시 처리할 수 있습니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C54",
+   "text": "[요약과 Follow-up]",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C55",
+   "text": "기록이 끝나면 AI가 요약을 만듭니다. 요약은 핵심 요약, 회의 목적, 결정 사항, 주요 논의 사항, 검토 사항, Follow-up 6개 섹션으로 고정 정리되고, 제목과 키워드도 함께 생성됩니다. 녹음이 끝나면 요약까지 자동으로 이어가도록 설정에서 켤 수 있습니다. 녹음, 녹음목록, 노트, 설정 네 개 탭으로 구성되어 있어 진행 중인 회의와 지난 기록을 오가기 쉽습니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C56",
+   "text": "회의록은 스페이스 단위로 묶어 관리합니다. 초대 코드로 팀원을 스페이스에 초대할 수 있고, 초대된 팀원은 회의록을 열람만 할 수 있습니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C57",
+   "text": "가입하면 무료 크레딧을 드립니다. 크레딧은 분석한 녹음 길이만큼 차감되고, 모자라면 설정 탭의 크레딧 충전에서 채웁니다. 1시간, 5시간, 10시간, 30시간 네 가지이며 쓴 만큼 사라지는 소비성 상품입니다. 자동 갱신도, 정기 결제도 없습니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C58",
+   "text": "따로 등록할 AI 키는 없습니다. 서버에서 처리하는 기록·화자분리·요약은 비용을 크레딧으로 정산합니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C59",
+   "text": "설정에서 온디바이스 처리를 켜면 기록과 요약을 기기 안에서 만듭니다. 기기용 모델을 내려받고 원본 오디오 업로드 건너뛰기를 켜면 동작합니다. 오디오가 서버로 가지 않고, 그만큼 크레딧도 쓰지 않습니다. 처리 시간은 기기 성능에 따라 달라집니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C60",
+   "text": "미팅노트 사용에는 로그인이 필요합니다. 온디바이스 처리를 켜지 않으면 앱은 녹음한 오디오를 미팅노트 서버에 업로드하고, 서버가 기록·화자분리 엔진과 요약 AI로 순서대로 전달해 처리합니다. 무엇이 어디로 전달되는지는 설정의 AI 전송 고지에서 확인할 수 있고, 동의는 언제든 철회할 수 있습니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C61",
+   "text": "미팅하는사람은 이거 무조건 필수입니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C62",
+   "text": "미팅을 화자별로 정리해서 핵심내용을 정리해주고, 주요 키워드도 알아서 해설해주는 기술미팅 진행할때 필수 앱입니다.이거쓰면 미팅 끝나고 일지쓰거나 회의록 따로 정리하는 짓 안해도 됩니다. 얘한테 시키고 그 시간에 유튜브한편 때리면 개이득입니다.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C63",
+   "text": "평소에 회의가 많아서 이런 앱을 찾고 있었는데 요약도되고 버그없이 빠르게 저장되서 만족하면서 쓰고있어요~",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C64",
+   "text": "가입할 때 이용약관·개인정보 동의를 한 화면에서 받아요.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C65",
+   "text": "이벤트·혜택 소식은 원하는 분만 받아요. 설정에서 언제든 바꿀 수 있어요.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C66",
+   "text": "회의 목록과 녹음 화면에서 소식 받기를 고를 수 있어요.",
+   "url": "https://apps.apple.com/kr/app/id6794765843",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C67",
+   "text": "녹음부터 요약까지 한 번에",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C68",
+   "text": "최종 갱신: 2026-08-13",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C69",
+   "text": "쓰다가 막히거나 잘못 동작하는 것을 찾으면 메일로 알려 주세요.",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C70",
+   "text": "support@1pass.dev",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C71",
+   "text": "회의록이 실패한 경우라면 회의 제목과 화면에 나온 실패 이유를 함께 적어 주시면",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C72",
+   "text": "확인이 빠릅니다. 오디오 원본이나 API 키는 보내지 마세요 — 확인에 필요하지 않습니다.",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C73",
+   "text": "API 키를 왜 직접 등록해야 하나요?",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C74",
+   "text": "기록과 요약을 만들려면 외부 음성인식·요약 서비스를 호출해야 하고, 그 요금은 호출한 계정에",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C75",
+   "text": "청구됩니다. 회의록은 사용자가 등록한 키로 호출하므로 요금이 사용자 계정으로 바로",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C76",
+   "text": "청구되고, 서비스가 그 원가에 마진을 얹지 않습니다(BYOK).",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C77",
+   "text": "키는 암호화해 저장하고 화면에 다시 표시하지 않으며, 설정에서 언제든 지울 수 있습니다.",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C78",
+   "text": "녹음 파일은 어디에 저장되나요?",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C79",
+   "text": "녹음 원본은 서버에 저장되고, 기록·요약을 만들 때만 사용자의 키로 외부 서비스에",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C80",
+   "text": "전송됩니다. 키를 등록하지 않으면 외부로 나가지 않습니다.",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C81",
+   "text": "보관 기간과 삭제 시 무엇이 남는지는",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C82",
+   "text": "회의 참석자 동의는 어떻게 받나요?",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C83",
+   "text": "앱은 녹음을 시작하기 전에 참석자에게 보여줄 동의 안내 화면을 띄웁니다.",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C84",
+   "text": "다만 동의를 받을 책임은 녹음하는 사용자에게 있습니다 — 이 화면은 그 과정을 돕는",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C85",
+   "text": "도구이고, 법적으로 필요한 동의를 대신 받아 주지는 않습니다.",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C86",
+   "text": "계정과 데이터를 지우려면?",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C87",
+   "text": "절차와 지워지는 항목을 정리해 뒀습니다.",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C88",
+   "text": "기록이나 요약 만들기가 실패하면?",
+   "url": "https://meetnote.1pass.dev/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C89",
+   "text": "충전 상품·가격 — 미팅노트",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C90",
+   "text": "녹음부터 요약까지 한 번에",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C91",
+   "text": "회의 녹음을 기록과 요약으로 정리하는 서비스, 회의록의 크레딧 충전 상품 안내입니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C92",
+   "text": "오디오를 올려 기록과 요약을 만들 때, 처리한 분량만큼 크레딧이 차감됩니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C93",
+   "text": "본인 API 키를 등록해 쓰는 경우(BYOK)에는 크레딧이 차감되지 않습니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C94",
+   "text": "상품 4종의 시간당 가격은 모두 같습니다. 많이 담아도 더 싸지지 않습니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C95",
+   "text": "단건 결제 기준 최고 금액은",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C96",
+   "text": "33,000원(VAT 포함)입니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C97",
+   "text": "고품질 모드로 처리하면 크레딧이 2배로 차감되어 분석 가능 분량이 절반이 됩니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C98",
+   "text": "(2026년 8월 20일 이후 충전분부터 적용)",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C99",
+   "text": "잔액은 만료가 가까운 충전분부터 사용됩니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C100",
+   "text": "유효기간이 지나 사용하지 못한 크레딧의 반환 기준은",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C101",
+   "text": "무료로 지급된 크레딧에는 기한이 없습니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C102",
+   "text": "크레딧은 즉시 제공되는 무형 서비스로, 결제가 완료되면 바로 적립됩니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C103",
+   "text": "설정 → 크레딧 → 충전",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C104",
+   "text": "모바일 앱에서는 각 스토어의 인앱결제로 같은 상품을 같은 가격에 판매합니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C105",
+   "text": "5. 내 회의는 어디로 가나",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C106",
+   "text": "회의록을 만들려면 오디오와 회의 본문이 외부 AI 서비스로 전송됩니다 —",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C107",
+   "text": "다만 앱에서 기기 내 처리를 쓰면 그 단계는 나가지 않습니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C108",
+   "text": "전송 경로는 아래 세 갈래이고,",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C109",
+   "text": "어느 쪽을 쓸지 회원님이 고릅니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C110",
+   "text": "— 이 서비스가 지정한 업체로 전송합니다.",
+   "url": "https://meetnote.1pass.dev/pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C111",
+   "text": "\"resultCount\":1,",
+   "url": "https://itunes.apple.com/lookup?id=6794765843&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C112",
+   "text": "{\"isGameCenterEnabled\":false, \"ipadScreenshotUrls\":[], \"appletvScreenshotUrls\":[],",
+   "url": "https://itunes.apple.com/lookup?id=6794765843&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C113",
+   "text": "\"artworkUrl60\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/8b/6e/41/8b6e419a-7c57-9743-3bed-a0eaf1f0d794/AppIcon-0-0-1x_U007ephone-0-1-0-85-220.png/60x60bb.jpg\",",
+   "url": "https://itunes.apple.com/lookup?id=6794765843&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C114",
+   "text": "\"artworkUrl512\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/8b/6e/41/8b6e419a-7c57-9743-3bed-a0eaf1f0d794/AppIcon-0-0-1x_U007ephone-0-1-0-85-220.png/512x512bb.jpg\",",
+   "url": "https://itunes.apple.com/lookup?id=6794765843&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C115",
+   "text": "\"artworkUrl100\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/8b/6e/41/8b6e419a-7c57-9743-3bed-a0eaf1f0d794/AppIcon-0-0-1x_U007ephone-0-1-0-85-220.png/100x100bb.jpg\", \"artistViewUrl\":\"https://apps.apple.com/kr/developer/kim-dahye/id1868391710?uo=4\", \"features\":[],",
+   "url": "https://itunes.apple.com/lookup?id=6794765843&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C116",
+   "text": "환불·청약철회 규정 — Dcode 스토어",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C117",
+   "text": "녹음부터 요약까지 한 번에",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C118",
+   "text": "최종 갱신: 2026-11-23",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C119",
+   "text": "안에 청약철회를 할 수 있습니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C120",
+   "text": "상품을 받는 시점이 결제보다 늦으면, 그 상품을 받거나",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C121",
+   "text": "제공이 시작된 날부터 7일을 셉니다. (전자상거래법 제17조 제1항)",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C122",
+   "text": "다만 이미 제공이 시작된 디지털콘텐츠와 용역은 철회가 제한될 수 있습니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C123",
+   "text": "(같은 법 제17조 제2항 제5호) 어떤 상품이 언제부터 제한되는지는",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C124",
+   "text": "아래 2절에 상품별로 적었고, 결제 화면에서도 같은 내용을 확인하고",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C125",
+   "text": "동의한 뒤에만 결제가 열립니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C126",
+   "text": "회차별로 나누어 제공하므로",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C127",
+   "text": "아직 수강하지 않은 회차",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C128",
+   "text": "에 대해 철회할 수 있습니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C129",
+   "text": "이미 수강한 회차의 금액을 뺀 나머지를 돌려드립니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C130",
+   "text": "(제17조 제2항 제5호 단서)",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C131",
+   "text": "환불 금액은 결제액을 전체 회차 수로 나눈 뒤 미수강 회차 수를 곱해 계산합니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C132",
+   "text": "환불이 처리되면 해당 강좌의 수강 권한은 회수됩니다 —",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C133",
+   "text": "철회는 계약을 끝내는 것이므로 환불을 받으면서 계속 수강할 수는 없습니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C134",
+   "text": "에 취소하면 전액 환불합니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C135",
+   "text": "행사가 시작되면 용역 제공이 개시된 것으로 보아 환불이 제한됩니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C136",
+   "text": "주최 사정으로 행사가 취소·연기되면 시점과 관계없이 전액 환불합니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C137",
+   "text": "결제일부터 7일 안에 철회할 수 있습니다.",
+   "url": "https://meetnote.1pass.dev/refund",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C138",
+   "text": "녹음부터 요약까지 한 번에",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C139",
+   "text": "시행일: 2026-11-30 · 최종 개정일: 2026-11-23",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C140",
+   "text": "이 약관은 2026-11-30부터 모든 이용자에게 시행합니다. 공지일은 2026-11-23입니다.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C141",
+   "text": "11조(계정 삭제)를 바꾸었습니다. 계정을 삭제한 뒤에도 재가입 확인용 변환값은 개인정보처리방침에서 정한 기간 동안 보관하고, 그 기간 안에 같은 신원으로 다시 가입하면 가입 무료 크레딧과 초대 보상을 드리지 않는다는 내용을 더했습니다.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C142",
+   "text": "은 2026-11-29까지 적용됩니다. 변경을 거부하려면 support@1pass.dev로 거부 의사를 보내거나 설정에서 계정을 삭제해 주세요.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C143",
+   "text": "시행일 이후에도 서비스를 계속 이용하면 변경 약관에 동의한 것으로 봅니다.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C144",
+   "text": "미팅노트는 Dcode(이하 \"회사\")가 운영하는 서비스입니다. 회의 음성을 녹음·업로드하면 음성인식(STT)으로 대화 내용을 글로 옮기고 말한 사람을 구분한 뒤 요약과 키워드를 만듭니다. 이렇게 글로 옮긴 결과를 이 약관에서는 \"기록\"이라고 부릅니다. 웹과 모바일 앱(iOS·Android)에서 같은 결과를 볼 수 있습니다.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C145",
+   "text": "기록과 요약은 기계가 만든 결과이므로 사실과 다를 수 있습니다. 중요한 판단에 쓰기 전에는 원본 녹음으로 확인해 주세요.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C146",
+   "text": "이메일과 비밀번호, Google·Apple·카카오·logi(1pass) 계정으로 가입하거나 로그인할 수 있습니다. 가입하면 개인 워크스페이스가 하나 생깁니다.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C147",
+   "text": "계정 정보는 본인이 관리합니다. 계정을 여러 사람이 함께 사용하지 마세요. 팀과 함께 보려면 팀 워크스페이스에 공유해 주세요.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C148",
+   "text": "회사는 관련 법령을 어기지 않는 범위에서 약관을 변경할 수 있습니다. 변경 내용과 시행일을 시행 7일 전부터 이 페이지에 공지합니다. 이용자에게 불리한 변경은 30일 전부터 공지하고 서비스 안 알림이나 등록된 이메일로도 알립니다.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C149",
+   "text": "공지에는 변경 내용, 시행일, 거부 방법과 시행일까지 거부하지 않으면 동의한 것으로 본다는 뜻을 명시합니다. 이용자는 시행일 전에 support@1pass.dev로 거부 의사를 보내거나 설정에서 계정을 삭제하여 변경을 거부할 수 있습니다. 시행일까지 거부하지 않으면 변경 약관에 동의한 것으로 봅니다.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C150",
+   "text": "4. 사용자 API 키 (BYOK)",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C151",
+   "text": "기록과 요약을 만들 때는",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C152",
+   "text": "사용자 본인이 등록한 API 키",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C153",
+   "text": "로 외부 서비스를 호출합니다. 외부 서비스 이용 요금은 사용자가 해당 서비스에 직접 부담하며, 회사는 그 요금을 대신 내거나 정산하지 않습니다.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C154",
+   "text": "쓸 수도 있습니다. 이때는 미팅노트가 준비한 키로 기록과 요약을 대신 만들고 크레딧을 차감합니다. 어느 경우든 데이터가 어디로 전송되는지는",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C155",
+   "text": "유료로 충전한 크레딧에는 유효기간이 있습니다. 상품 구성과 가격은",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C156",
+   "text": "에, 유효기간과 만료 후 반환 기준은",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C157",
+   "text": "등록한 키는 암호화해 저장하고 화면에 다시 표시하지 않습니다. 설정 화면에서 언제든 삭제할 수 있고, 삭제하면 이후 처리에 쓰이지 않습니다.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C158",
+   "text": "키도 크레딧도 없으면 오디오는 외부로 전송되지 않고 처리도 시작되지 않습니다. 키 사용에는 해당 외부 서비스의 약관과 사용량 한도가 함께 적용됩니다.",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C159",
+   "text": "5. 유료 크레딧의 청약철회·환불",
+   "url": "https://meetnote.1pass.dev/terms",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C160",
+   "text": "Dcode 스토어 — 미팅노트 이용권",
+   "url": "https://store.1pass.dev",
+   "seen_at": "2026-11-24"
+  }
+ ],
+ "source": "auto",
+ "premisesRaw": {
+  "P1": "모름",
+  "P2": "모름",
+  "P5": "확정",
+  "P6": "미충족",
+  "P9": "확정",
+  "P10": "확정"
+ },
+ "droppedSignals": 0
+}

@@ -1,0 +1,1077 @@
+{
+ "slug": "remm",
+ "name": "렘",
+ "field": "회의록",
+ "stage": "E2",
+ "customer": "smb",
+ "complaint": "AI 회의록 앱을 출시해 무료 100분과 Pro 월 15,000원 요금을 공개했지만, 화면에서는 쓰는 사용자 수나 후기가 보이지 않고, 앱 안내와 블로그에서 무료 범위 설명이 서로 다르다.",
+ "evidence": "앱 소개(C6)와 요금(C29)이 공개돼 있고 무료 범위가 C26(무료 100분)·C33(7일 무료 최대 150분)·C44(최대 300분, 21일)로 다르게 적혀 있다. 블로그(C93~C102)로 검색 유입을 노리지만 사용자 수·후기는 보이지 않는다. 경쟁 서비스와의 비교 글(C101, C131)은 경쟁사의 빈틈을 짚는다.",
+ "chapters": [],
+ "signals": [
+  {
+   "code": "S11",
+   "fact_ids": [
+    "C26",
+    "C33",
+    "C44"
+   ],
+   "evidence": "로그인만 하면 무료 100분을 바로 드려요. 설정할 것 없이 바로 씁니다. 신규 가입은 7일 무료(최대 150분)로 모든 기능을 써 볼 수 있습니다. 로그인만 하면 결제 정보 없이 무료 100분을 드립니다. 첫 회의록 만들기, 두 번째 기기에서 로그인, 캘린더 연결, 회의록 내보내기를 하나씩 끝낼 때마다 50분이 더 쌓여 최대 300분까지 늘어납니다. 받은 무료 시간은 가입한 날부터 21일 동안 쓸 수 있습니다. 신규 가입은 7일 무료 체험(최대 150분)으로 모든 기능을 써 볼 수 있습니다."
+  },
+  {
+   "code": "S39",
+   "fact_ids": [
+    "C131",
+    "C102"
+   ],
+   "evidence": "짧게 답하면, 2026년 10월 2일 기준으로 클로바노트 공식 안내에서 노션 연동 기능은 찾을 수 없습니다. 개인용 요금 안내에도, 기업용 요금 비교표에도 노션과 슬랙 항목이 없습니다. 노션 AI 회의록은 Business 요금제부터 씁니다. 노션 Free·Plus를 쓰는 팀이 회의록을 노션에 자동으로 쌓는 방법과 비용을 비교했습니다."
+  }
+ ],
+ "premises": {
+  "P1": "unknown",
+  "P2": "met",
+  "P5": "met",
+  "P6": "unmet",
+  "P9": "unknown",
+  "P10": "met"
+ },
+ "premises_not_in_dict": "사용자 수·후기·평점 같은 외부인 흔적이 facts에 없어 쓰는 사용자가 있는지 확인할 수 없다.",
+ "fix_first": "무료 범위 안내가 화면마다 다르다: C26은 무료 100분, C33은 7일 무료 최대 150분, C44는 최대 300분·21일, C71은 주간 구독 주 150분이다. 또 C25는 결제 정보 없이 시작한다고 하는데 C43·C37은 Pro 구독 계정이 있어야 연동된다고 한다.",
+ "facts": [
+  {
+   "id": "C1",
+   "text": "렘 - AI 회의록 - Google Play 앱",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C2",
+   "text": "google_logo Play",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C3",
+   "text": "Google 계정으로 로그인",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C4",
+   "text": "Nullpointer Studio",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C5",
+   "text": "arrow_forward",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C6",
+   "text": "렘(Remm)은 회의를 녹음하면 AI가 받아쓰고 요약하고 할 일을 뽑아, 노션·슬랙·디스코드로 자동으로 보내는 한국어 회의록 앱입니다.",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C7",
+   "text": "1. 버튼 하나로 회의 녹음",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C8",
+   "text": "2. AI가 음성을 받아쓰고 핵심을 요약",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C9",
+   "text": "3. 요약, 할 일, 전체 전사가 노트 하나로 정리",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C10",
+   "text": "4. 연결해 둔 노션·슬랙·디스코드로 자동 업로드",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C11",
+   "text": "■ 자동 업로드 (렘 Pro)",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C12",
+   "text": "• 노션 — 회의마다 지정한 데이터베이스에 페이지를 만들고, 할 일 체크 상태를 앱과 양쪽으로 맞춥니다",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C13",
+   "text": "• 슬랙 — 고른 채널에 요약과 할 일을 올립니다",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C14",
+   "text": "• 디스코드 — 채널 웹훅으로 요약과 할 일을 올립니다",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C15",
+   "text": "• 연결은 웹 콘솔(console.getremm.app)에서 한 번만 해 두면 됩니다",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C16",
+   "text": "• 원탭 녹음 — 복잡한 설정 없이 바로 시작",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C17",
+   "text": "• AI 요약 — 긴 회의도 핵심만 깔끔하게",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C18",
+   "text": "• 할 일 자동 추출 — 체크리스트로 관리",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C19",
+   "text": "• 전체 전사 보기 — 필요할 때 원문 확인",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C20",
+   "text": "• 검색 — 지난 노트를 빠르게 찾기",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C21",
+   "text": "• 처리 완료 알림 — 앱을 닫아도 끝나면 알려드려요",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C22",
+   "text": "• 회의록 양식 — 주간회의, 1:1, 킥오프, 대표보고",
+   "url": "https://play.google.com/store/apps/details?id=co.nullpointerstudio.smn&hl=ko",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C23",
+   "text": "렘(Remm) · 회의 녹음하면 요약과 할 일이 노션에",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C24",
+   "text": "iOS · Android · 노션 · 슬랙 · 디스코드",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C25",
+   "text": "결제 정보 없이 시작해요.",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C26",
+   "text": "로그인만 하면 무료 100분을 바로 드려요.",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C27",
+   "text": "App Store에서 받기",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C28",
+   "text": "Play 스토어에서 받기",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C29",
+   "text": "렘 Pro 월 15,000원 / 연 149,000원",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C30",
+   "text": "· 가입하면 무료 100분",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C31",
+   "text": "대면 회의는 폰, 온라인 회의는 맥 앱",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C32",
+   "text": "음성 보관 기간을 직접 정해요",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C33",
+   "text": "설정할 것 없이 바로 씁니다. 신규 가입은 7일 무료(최대 150분)로 모든 기능을 써 볼 수 있습니다.",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C34",
+   "text": "회의 시작할 때 한 번 누르면 끝. 앱을 닫아도 처리가 끝나면 알림이 옵니다.",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C35",
+   "text": "전체 전사, 핵심 요약, 체크리스트로 된 할 일이 노트 하나에 정리됩니다.",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C36",
+   "text": "연결한 노션 데이터베이스에 회의 페이지가 생기고, 할 일은 체크 상태까지 오갑니다.",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C37",
+   "text": "콘솔에서 노션 워크스페이스를 한 번 연결하면 이후 회의는 따로 옮길 필요가 없습니다. 노션 연동은 렘 Pro 또는 팀 요금제 계정에서 쓸 수 있습니다.",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C38",
+   "text": "회의마다 노션 페이지 자동 생성",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C39",
+   "text": "할 일 체크 상태 양방향 동기화",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C40",
+   "text": "주간회의 · 1:1 · 킥오프 · 대표보고 템플릿",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C41",
+   "text": "원하는 데이터베이스만 골라서 연결",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C42",
+   "text": "콘솔에서 노션 연결하기 →",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C43",
+   "text": "앱에서 렘 Pro를 구독한 계정으로 콘솔에 로그인해야 연결할 수 있습니다.",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C44",
+   "text": "로그인만 하면 결제 정보 없이 무료 100분을 드립니다. 첫 회의록 만들기, 두 번째 기기에서 로그인, 캘린더 연결, 회의록 내보내기를 하나씩 끝낼 때마다 50분이 더 쌓여 최대 300분까지 늘어납니다. 받은 무료 시간은 가입한 날부터 21일 동안 쓸 수 있습니다. 신규 가입은 7일 무료 체험(최대 150분)으로 모든 기능을 써 볼 수 있습니다.",
+   "url": "https://getremm.app",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C45",
+   "text": "맥용 렘(Remm) 다운로드",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C46",
+   "text": "맥에서도 회의의 양쪽을 담습니다",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C47",
+   "text": "맥용 렘은 메뉴바에만 사는 작은 앱입니다. 녹음을 누르면 내 목소리와 이 컴퓨터에서 나는 소리를 같이 받아",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C48",
+   "text": "한 파일에 담고, 멈추면 서버로 올려 회의록을 만들어 알려줍니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C49",
+   "text": "macOS 14.4 이상에서 쓸 수 있습니다. Apple 공증을 받은 앱입니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C50",
+   "text": "맥에서 받아야 설치되는 파일입니다. 폰에서 보고 있다면",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C51",
+   "text": "에서 렘 앱을 받으세요.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C52",
+   "text": "채널 1에 내 마이크, 채널 2에 컴퓨터에서 나는 소리를 담습니다. Zoom이나 Meet 상대의 목소리는",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C53",
+   "text": "스피커로 나오는 소리에서 받으니, 회의실에서 만나든 화면으로 만나든 양쪽이 남습니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C54",
+   "text": "녹음을 멈추면 바로 올라가고, 회의록이 준비되면 알림이 옵니다. 메뉴에서 최근 회의록을 바로 열 수 있습니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C55",
+   "text": "녹음은 조각 파일로 계속 저장됩니다. 맥이 갑자기 꺼지거나 앱이 죽어도 그때까지 녹음한 것은 남습니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C56",
+   "text": "캘린더에 회의 링크가 있는 일정이 시작되면 알려줍니다. 시작과 종료는 사람이 누릅니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C57",
+   "text": "녹음하는 동안 메뉴바 아이콘이 빨간 점으로 바뀝니다. 켜져 있는지 언제든 눈으로 확인할 수 있습니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C58",
+   "text": "폴더로 끌어다 놓으세요. 그다음 응용 프로그램에서 실행하면",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C59",
+   "text": "메뉴바에 아이콘이 생깁니다. 독에는 아이콘이 생기지 않습니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C60",
+   "text": "새 버전이 나오면 앱이 직접 알려주고 그 자리에서 업데이트합니다. 메뉴의",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C61",
+   "text": "으로 직접 확인할 수도 있습니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C62",
+   "text": "처음 실행하면 맥이 권한을 두 가지 묻습니다. 둘 다 녹음을 위한 것이고, 직접 허용해야 동작합니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C63",
+   "text": "내 목소리를 녹음하기 위해 씁니다. 거절하면 내 쪽 소리가 비어 있는 녹음이 됩니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C64",
+   "text": "회의 상대의 목소리, 즉 이 컴퓨터에서 나는 소리를 녹음하기 위해 씁니다. 거절하면 상대 쪽 소리가 비어 있는 녹음이 됩니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C65",
+   "text": "회의 감지를 켤 때만 묻습니다. 일정을 읽어 회의 링크가 있는지 보는 데만 쓰고, 일정을 고치거나 만들지는 않습니다.",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C66",
+   "text": "내가 녹음을 누른 동안에만",
+   "url": "https://getremm.app/mac",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C67",
+   "text": "‎렘(remm): 간편한 AI 회의록 앱 - App Store",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C68",
+   "text": "렘(remm): 간편한 AI 회의록",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C69",
+   "text": "녹음만 하면 노션·슬랙에 회의록",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C70",
+   "text": "무료 · 앱 내 구입 · iPad⁠용으로 디자인됨 · macOS⁠용으로는 확인되지 않음",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C71",
+   "text": "이제 주간 구독과 3개월 구독도 고를 수 있어요. 일주일만 써 보고 싶다면 주간 구독(주 150분), 오래 쓸 생각이라면 월간보다 저렴한 3개월 구독이 좋아요.",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C72",
+   "text": "렘(Remm)은 회의를 녹음하면 AI가 받아쓰고 요약하고 할 일을 뽑아, 노션·슬랙·디스코드로 자동으로 보내는 한국어 회의록 앱입니다.",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C73",
+   "text": "1. 버튼 하나로 회의 녹음",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C74",
+   "text": "2. AI가 음성을 받아쓰고 핵심을 요약",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C75",
+   "text": "3. 요약, 할 일, 전체 전사가 노트 하나로 정리",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C76",
+   "text": "4. 연결해 둔 노션·슬랙·디스코드로 자동 업로드",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C77",
+   "text": "■ 자동 업로드 (렘 Pro)",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C78",
+   "text": "• 노션 — 회의마다 지정한 데이터베이스에 페이지를 만들고, 할 일 체크 상태를 앱과 양쪽으로 맞춥니다",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C79",
+   "text": "• 슬랙 — 고른 채널에 요약과 할 일을 올립니다",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C80",
+   "text": "• 디스코드 — 채널 웹훅으로 요약과 할 일을 올립니다",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C81",
+   "text": "• 연결은 웹 콘솔(console.getremm.app)에서 한 번만 해 두면 됩니다",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C82",
+   "text": "• 원탭 녹음 — 복잡한 설정 없이 바로 시작",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C83",
+   "text": "• AI 요약 — 긴 회의도 핵심만 깔끔하게",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C84",
+   "text": "• 할 일 자동 추출 — 체크리스트로 관리",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C85",
+   "text": "• 전체 전사 보기 — 필요할 때 원문 확인",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C86",
+   "text": "• 검색 — 지난 노트를 빠르게 찾기",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C87",
+   "text": "• 처리 완료 알림 — 앱을 닫아도 끝나면 알려드려요",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C88",
+   "text": "• 회의록 양식 — 주간회의, 1:1, 킥오프, 대표보고",
+   "url": "https://apps.apple.com/kr/app/id6779516559",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C89",
+   "text": "\"resultCount\":1,",
+   "url": "https://itunes.apple.com/lookup?id=6779516559&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C90",
+   "text": "\"artworkUrl60\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/e5/8b/8b/e58b8b54-8d7d-212f-39d7-0f857c7d0312/AppIcon-0-0-1x_U007epad-0-1-85-220.png/60x60bb.jpg\",",
+   "url": "https://itunes.apple.com/lookup?id=6779516559&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C91",
+   "text": "\"artworkUrl512\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/e5/8b/8b/e58b8b54-8d7d-212f-39d7-0f857c7d0312/AppIcon-0-0-1x_U007epad-0-1-85-220.png/512x512bb.jpg\",",
+   "url": "https://itunes.apple.com/lookup?id=6779516559&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C92",
+   "text": "\"artworkUrl100\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/e5/8b/8b/e58b8b54-8d7d-212f-39d7-0f857c7d0312/AppIcon-0-0-1x_U007epad-0-1-85-220.png/100x100bb.jpg\", \"artistViewUrl\":\"https://apps.apple.com/kr/developer/seonggu-kim/id1764910013?uo=4\", \"isGameCenterEnabled\":false, \"advisories\":[], \"kind\":\"software\",",
+   "url": "https://itunes.apple.com/lookup?id=6779516559&country=kr",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C93",
+   "text": "렘 블로그: AI 회의록 비교와 활용 · 렘(Remm)",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C94",
+   "text": "AI 회의록 서비스 비교와 회의록 자동화 방법을 씁니다. 다른 서비스 가격은 공식 페이지에서 확인한 값만 적습니다.",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C95",
+   "text": "AI 회의록 팀 요금제 가격 비교 (2026년 10월)",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C96",
+   "text": "클로바노트 기업용, 티로, 다글로, 콜라보, 노션 AI, 렘의 팀 요금제를 3명·5명·10명 기준 1년 비용으로 계산했습니다. 공식 요금 페이지 기준.",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C97",
+   "text": "회의 끝나면 노션에 자동으로: AI 회의록 노션 연동 방식 비교",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C98",
+   "text": "AI 회의록 앱마다 노션 연동이 다릅니다. 회의마다 자동으로 데이터베이스에 쌓이는지, 버튼을 눌러 보내야 하는지 서비스별로 정리했습니다.",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C99",
+   "text": "클로바노트 노션 연동 되나요? 회의록을 노션으로 옮기는 방법",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C100",
+   "text": "클로바노트 회의록을 노션에 넣고 싶을 때 지금 쓸 수 있는 방법과, 처음부터 노션에 자동으로 쌓이게 하는 대안을 정리했습니다.",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C101",
+   "text": "노션 AI 회의록 vs 렘: 노션 Business 없이 회의록 자동화하기",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C102",
+   "text": "노션 AI 회의록은 Business 요금제부터 씁니다. 노션 Free·Plus를 쓰는 팀이 회의록을 노션에 자동으로 쌓는 방법과 비용을 비교했습니다.",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C103",
+   "text": "상호 널포인터스튜디오 · 대표 김성구, 백효인 · 사업자등록번호 243-13-02906 · 통신판매업 신고 제2025-서울마포-2218호",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C104",
+   "text": "서울특별시 마포구 와우산로 105, 5층-J322호(서교동) ·",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C105",
+   "text": "support@nullpointerstudio.co",
+   "url": "https://getremm.app/blog",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C106",
+   "text": "회의를 녹음하면 AI가 자동으로 요약하고 할 일을 정리해드리는 앱입니다. 도움이 필요하시면 아래로 문의해 주세요.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C107",
+   "text": "support@nullpointerstudio.co",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C108",
+   "text": "보통 1~2 영업일 내에 답변드립니다.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C109",
+   "text": "설정 → 렘(Remm) → 마이크 권한이 켜져 있는지 확인해 주세요.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C110",
+   "text": "설정 → 알림 권한을 켜고 앱을 다시 실행해 주세요.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C111",
+   "text": "구독을 해지하고 싶어요.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C112",
+   "text": "아이폰은 설정에서 본인 이름(Apple ID)을 누르고 구독으로 들어가 해지합니다.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C113",
+   "text": "안드로이드는 Play 스토어 앱에서 프로필을 누르고 결제 및 정기 결제, 정기 결제로 들어가 해지합니다.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C114",
+   "text": "어느 쪽이든 해지해도 남은 기간은 그대로 쓸 수 있습니다. 환불은 결제한 스토어가 처리합니다. App Store는",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C115",
+   "text": "reportaproblem.apple.com",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C116",
+   "text": "play.google.com/store/account/subscriptions",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C117",
+   "text": "구독을 복원하고 싶어요.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C118",
+   "text": "앱의 설정 화면에서 \"구매 복원\"을 눌러 주세요.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C119",
+   "text": "계정·데이터를 삭제하고 싶어요.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C120",
+   "text": "앱의 설정 화면에서 \"계정 삭제\"를 누르면 계정과 모든 노트가 영구 삭제됩니다.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C121",
+   "text": "앱이 없거나 컴퓨터에서 하고 싶다면",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C122",
+   "text": "에 같은 계정으로 로그인한 뒤",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C123",
+   "text": "탭 → \"계정 삭제\"에서도 똑같이 삭제할 수 있습니다.",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C124",
+   "text": "Notion·Slack 연동",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C125",
+   "text": "연결 방법과 자주 막히는 곳은",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C126",
+   "text": "상호 널포인터스튜디오 · 대표 김성구, 백효인 · 사업자등록번호 243-13-02906 · 통신판매업 신고 제2025-서울마포-2218호",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C127",
+   "text": "서울특별시 마포구 와우산로 105, 5층-J322호(서교동) ·",
+   "url": "https://getremm.app/support",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C128",
+   "text": "클로바노트 노션 연동 되나요? 회의록을 노션으로 옮기는 방법 · 렘(Remm)",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C129",
+   "text": "클로바노트 노션 연동 되나요? 회의록을 노션으로 옮기는 방법",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C130",
+   "text": "2026년 10월 2일 작성",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C131",
+   "text": "짧게 답하면, 2026년 10월 2일 기준으로 클로바노트 공식 안내에서 노션 연동 기능은 찾을 수 없습니다. 개인용 요금 안내에도, 기업용 요금 비교표에도 노션과 슬랙 항목이 없습니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C132",
+   "text": "렘(Remm)을 만드는 팀이 쓴 글입니다. 클로바노트는 한국어 받아쓰기를 처음 대중화한 좋은 서비스이고, 이 글은 \"노션으로 옮기는 방법\"만 다룹니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C133",
+   "text": "클로바노트 회의록을 노션에 넣는 방법",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C134",
+   "text": "1. 복사해서 붙여 넣기",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C135",
+   "text": "가장 빠른 방법입니다. 클로바노트에서 요약이나 전체 기록을 복사해 노션 페이지에 붙여 넣습니다. 한두 번은 괜찮지만, 회의가 잦으면 매번 손이 갑니다. 할 일을 노션 체크박스로 바꾸는 일도 직접 해야 합니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C136",
+   "text": "클로바노트 노트의 공유 링크를 노션 회의록 페이지에 붙여 두는 방법입니다. 원문은 클로바노트에 남고 노션에는 링크만 쌓입니다. 노션 안에서 검색해도 회의 내용은 나오지 않습니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C137",
+   "text": "3. 기업용 API로 직접 연결",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C138",
+   "text": "네이버웍스 클로바노트 기업용은 Team 요금제(회사당 월 86,500~108,000원, 부가세 별도)부터 외부 시스템 연동 API를 제공합니다. 개발자가 있다면 노션으로 보내는 연결을 직접 만들 수 있습니다. 개인용에는 없습니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C139",
+   "text": "처음부터 노션에 쌓이게 하려면",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C140",
+   "text": "회의록을 결국 노션에서 본다면, 녹음 단계부터 노션으로 보내는 서비스를 쓰는 편이 손이 덜 갑니다. 회의가 끝날 때마다 고른 데이터베이스에 페이지가 자동으로 생기는 서비스는 노션 AI 회의록, Fireflies, tl;dv, 렘 등이 있습니다. 서비스별 차이는",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C141",
+   "text": "렘은 휴대폰으로 대면 회의를 녹음하는 방식이라 클로바노트와 쓰는 법이 비슷합니다. 다른 점은 녹음이 끝난 뒤입니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C142",
+   "text": "요약과 할 일이 노션 데이터베이스에 회의 페이지로 자동으로 올라갑니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C143",
+   "text": "노션에서 할 일을 체크하면 앱에도 완료로 바뀝니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C144",
+   "text": "슬랙이나 디스코드 채널로 요약을 같이 보낼 수 있습니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C145",
+   "text": "무료로 가끔 녹음하고 텍스트만 필요하다면: 클로바노트 개인용(월 300분 무료)이 좋습니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C146",
+   "text": "회의록을 팀 노션에 매번 남겨야 한다면: 노션 자동 연동이 되는 서비스를 고르세요. 렘은 개인 월 15,000원, 팀은 1석 월 15,000원(부가세 별도)입니다.",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C147",
+   "text": "출처(2026년 10월 2일 확인):",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C148",
+   "text": "네이버웍스 클로바노트 요금",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C149",
+   "text": "렘(Remm)으로 회의록 자동화하기",
+   "url": "https://getremm.app/blog/clova-note-notion",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C150",
+   "text": "AI 회의록 팀 요금제 가격 비교 (2026년 10월) · 렘(Remm)",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C151",
+   "text": "AI 회의록 팀 요금제 가격 비교 (2026년 10월)",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C152",
+   "text": "2026년 10월 2일 작성 · 11월 2일 렘 요금 수정",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C153",
+   "text": "팀에 AI 회의록을 들이려고 요금표를 열면 단위부터 제각각입니다. 1인 월 달러, 좌석 연 원화, 회사당 월정액이 섞여 있습니다. 같은 기준으로 맞추려고 3명·5명·10명 팀이 1년 동안 내는 돈을 직접 계산했습니다.",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C154",
+   "text": "이 글은 렘(Remm)을 만드는 팀이 썼습니다. 그래서 숫자는 전부 각 서비스의 공식 요금 페이지에서 2026년 10월 2일에 확인한 값만 썼고, 렘이 불리한 경우도 그대로 적었습니다. 가격은 자주 바뀌니 결제 전에 공식 페이지를 한 번 더 확인해 주세요.",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C155",
+   "text": "한눈에 보기: 1년 비용",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C156",
+   "text": "1석 월 15,000원, 최소 3석",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C157",
+   "text": "클로바노트 기업용 Lite",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C158",
+   "text": "회사당 월 18,000~20,000원",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C159",
+   "text": "인원과 상관없이 216,000~240,000원 (월 1,000분·AI 요약 25회)",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C160",
+   "text": "클로바노트 기업용 Team",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C161",
+   "text": "회사당 월 86,500~108,000원",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C162",
+   "text": "인원과 상관없이 1,038,000~1,296,000원 (월 6,000분·AI 요약 150회)",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C163",
+   "text": "1석 연 249,000원 (런칭 특가)",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C164",
+   "text": "5석 묶음 연 864,000원",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C165",
+   "text": "노션 Business (AI 회의록 포함)",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C166",
+   "text": "1인 월 $20 (연 결제)",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C167",
+   "text": "렘은 월 요금에 12개월을 곱했습니다. 렘·클로바노트 기업용·콜라보는 부가세 별도 금액입니다. 다글로·티로·노션은 페이지에 부가세 표기가 없습니다. 티로와 노션은 달러 요금이라 1달러 1,380원으로 환산했습니다. 티로는 월 결제 기준입니다(연 결제 할인이 있지만 공식 화면에서 확정하지 못했습니다). 클로바노트 기업용은 요금 페이지에 가격이 두 개씩 나오는데, 어느 쪽이 연 약정가인지 표시가 없어 범위로 적었습니다.",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C168",
+   "text": "몇 명이냐에 따라 답이 달라집니다",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C169",
+   "text": "3~5명: 좌석제가 유리합니다",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C170",
+   "text": "작은 팀은 좌석 단위로 내는 쪽이 쌉니다. 렘은 3명 540,000원으로 표의 좌석제 중 가장 낮습니다. 5명이면 렘 900,000원, 콜라보 864,000원으로 콜라보가 조금 쌉니다. 대신 콜라보는 5석 묶음이라 3명이 써도 5명 값을 냅니다.",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C171",
+   "text": "클로바노트 기업용 Lite는 연 20만 원대로 더 쌉니다. 대신 회사 전체가 한 달에 1,000분, AI 요약 25회를 나눠 씁니다. 3명이 주 2회씩 회의를 해도 요약 횟수가 금방 바닥납니다. 렘은 1석마다 월 600분이 팀 전체에 합산되고(3석이면 1,800분), 녹음할 때마다 요약이 따로 횟수 제한 없이 만들어집니다.",
+   "url": "https://getremm.app/blog/ai-meeting-notes-team-pricing",
+   "seen_at": "2026-11-24"
+  }
+ ],
+ "source": "auto",
+ "premisesRaw": {
+  "P1": "모름",
+  "P2": "추정",
+  "P5": "확정",
+  "P6": "미충족",
+  "P9": "모름",
+  "P10": "확정"
+ },
+ "droppedSignals": 0
+}

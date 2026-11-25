@@ -1,0 +1,311 @@
+{
+ "slug": "took",
+ "name": "툭 - AI 회의 정리",
+ "field": "생산성",
+ "stage": "E1",
+ "customer": "smb",
+ "complaint": "회의 요약·할 일·캘린더·명함 교환·공유까지 기능을 한꺼번에 내세우고 대상도 직장인·기자·영업·학생 네 부류로 넓게 잡아, 누구에게 무엇을 먼저 팔지 화면에서 정해지지 않았다.",
+ "evidence": "대상 고객이 직장인·매니저(C7), PD·기자·HR(C8), 영업·컨설턴트(C9), 학생·연구자(C10)로 나뉘고, 핵심 기능도 요약·할 일·일정·명함·공유(C4, C6)로 여러 갈래다. 사용 흔적이나 후기, 사용자 수는 facts에 없다.",
+ "chapters": [
+  4
+ ],
+ "signals": [
+  {
+   "code": "S04",
+   "fact_ids": [
+    "C4",
+    "C7",
+    "C8",
+    "C9",
+    "C10"
+   ],
+   "evidence": "출시 기념 첫 달 30% 할인 중. 회의 끝나면 AI가 핵심 요약·할 일·일정까지 자동 정리. 캘린더 자동 등록 + 명함 디지털 교환 + 회의 참여자에게 공유까지. 회의는 녹음만, 정리는 툭이 합니다. - 회의가 많은 직장인·매니저·대표 - 인터뷰·미팅이 잦은 PD·기자·HR·리서처 - 외부 미팅이 많은 영업·컨설턴트 - 스터디·강의·인터뷰를 정리하는 학생·연구자"
+  }
+ ],
+ "premises": {
+  "P1": "unknown",
+  "P2": "unknown",
+  "P5": "unmet",
+  "P6": "unknown",
+  "P9": "unknown",
+  "P10": "met"
+ },
+ "premises_not_in_dict": "",
+ "fix_first": "개발사 소개 화면(C23~C44)은 미디어아트 제작사와 LA 기반 에이전시용 영문 템플릿 문구(C37), 다른 이름 Lume(C34), 미완성 자리표시 문구(C36 '여기 들어갈 문구 전달 주세요')로 채워져 있다. 앱 소개(C4~C22)와 전혀 이어지지 않아 신뢰를 해칠 수 있다.",
+ "facts": [
+  {
+   "id": "C1",
+   "text": "‎툭 - AI 회의 정리 앱 - App Store",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C2",
+   "text": "무료 · 앱 내 구입 · iPhone⁠용으로 디자인됨 · macOS⁠용으로는 확인되지 않음",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C3",
+   "text": "1DSB Co., Ltd.",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C4",
+   "text": "출시 기념 첫 달 30% 할인 중. 회의 끝나면 AI가 핵심 요약·할 일·일정까지 자동 정리. 캘린더 자동 등록 + 명함 디지털 교환 + 회의 참여자에게 공유까지. 회의는 녹음만, 정리는 툭이 합니다.",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C5",
+   "text": "회의는 녹음만 하세요. 정리는 툭이 합니다.",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C6",
+   "text": "툭(Tuuk)은 회의가 끝나는 순간 AI가 자동으로 핵심 요약, 액션 아이템, 일정까지 정리해주는 AI 동료입니다. 명함은 디지털로 교환하고, 회의 참여자에게 정리 결과를 자동으로 공유합니다.",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C7",
+   "text": "- 회의가 많은 직장인·매니저·대표",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C8",
+   "text": "- 인터뷰·미팅이 잦은 PD·기자·HR·리서처",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C9",
+   "text": "- 외부 미팅이 많은 영업·컨설턴트",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C10",
+   "text": "- 스터디·강의·인터뷰를 정리하는 학생·연구자",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C11",
+   "text": "- 핵심 요약 — 회의의 본질만 한눈에",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C12",
+   "text": "- 액션 아이템 — 누가 무엇을 언제까지 할지 자동 추출",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C13",
+   "text": "- 일정 캡처 — \"다음 주 화요일 10시 후속 미팅\" 같은 표현을 정확히 인식",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C14",
+   "text": "- 상세 요약 — 회의 흐름과 맥락까지 (Pro·Max)",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C15",
+   "text": "- 화자 분리 — 누가 무슨 말 했는지 (Pro·Max)",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C16",
+   "text": "- 외국어 미팅 → 한국어 번역 (Pro·Max)",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C17",
+   "text": "정리된 일정이 툭 캘린더에 자동 등록됩니다. 알림도 함께. 가까운 시간일수록 더 짧은 간격으로 알려줘서 놓치지 않습니다.",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C18",
+   "text": "- 톡넘버로 명함 교환 — 회원끼리는 코드 한 번에",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C19",
+   "text": "- 폰 연락처에서 명함 자동 가져오기",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C20",
+   "text": "- 명함 사진 스캔 + AI 자동 입력",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C21",
+   "text": "- 회의 끝나면 참여자에게 정리 결과 자동 공유",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C22",
+   "text": "- 화면 잠금·다른 앱 사용 중에도 끊김 없이 녹음",
+   "url": "https://apps.apple.com/kr/app/%ED%88%AD-ai-%ED%9A%8C%EC%9D%98-%EC%A0%95%EB%A6%AC/id6771241224",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C23",
+   "text": "1DANSSABA is a media art production company",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C24",
+   "text": "powered by advanced hardware and AI technology",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C25",
+   "text": "we solve challenges through customized, end-to-end solutions driven by creative thinking",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C26",
+   "text": "is more than just a team —",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C27",
+   "text": "we are a bold, innovative force shaping the future of media art",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C28",
+   "text": "GO BEYOND THE FANTASY AND MAKE IT REAL",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C29",
+   "text": "Where Imagination meets innovation",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C30",
+   "text": "To create captivating MEDIA ART",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C31",
+   "text": "Transform your ideas into REALITY with",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C32",
+   "text": "our innovative solutions",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C33",
+   "text": "Deliver outcomes By CREATIVITY AND TECHNOLOGY",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C34",
+   "text": "If you wanna stand out, gotta be outstanding. Embrace the creativity with Lume. Our designers and development rockstars are here to make your digital dreams pop.",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C35",
+   "text": "Let&#x27;s create a symphony of pixels and code that&#x27;ll leave everyone amazed. Dare to be different – let&#x27;s embark on this wild ride of creativity together!",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C36",
+   "text": "*여기 들어갈 문구 전달 주세요.*",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C37",
+   "text": "We are a global agency based in Los Angeles – a collective of passionate designers and developers",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C38",
+   "text": "concept to execution —",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C39",
+   "text": "Where technology meets aesthetics —",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C40",
+   "text": "Precision-driven execution —",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C41",
+   "text": "Innovating the future of media art —",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C42",
+   "text": "No items found.",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C43",
+   "text": "Be inspired by our insightful journal",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  },
+  {
+   "id": "C44",
+   "text": "TO THE BEYOND",
+   "url": "https://www.1dsb.com",
+   "seen_at": "2026-11-24"
+  }
+ ],
+ "source": "auto",
+ "premisesRaw": {
+  "P1": "모름",
+  "P2": "모름",
+  "P5": "미충족",
+  "P6": "모름",
+  "P9": "모름",
+  "P10": "확정"
+ },
+ "droppedSignals": 0
+}

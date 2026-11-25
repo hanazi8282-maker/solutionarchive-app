@@ -8,16 +8,27 @@ export const FEEDBACK_MIGRATION = '20260930000032_relevance_criteria_feedback.sq
 export const INFORMATIVE_MIGRATION = '20260930000031(product_informative)'
 const PAGE = 1000
 
+/** FeedbackRow 의 칸 전부 — 화면 두 곳이 읽는 것. FeedbackRow 에 칸을 더하면 여기도 더한다(셀프 점검: v71ek egress-selftest). */
+export const FEEDBACK_COLS = 'input_id, project_id, verdict, second_verdict, product_informative, second_product_informative, human_verdict, human_product_informative, human_graded_at'
+/** pickBatch 가 읽는 칸만(야간 번역 배치). */
+export const PICK_COLS = 'input_id, verdict, second_verdict, product_informative, second_product_informative, human_verdict, human_graded_at'
+
 /**
- * 판정 행 전부. '*' 로 읽는다 — 000027/000031 컬럼이 없는 DB 에서도 죽지 않고, 키 유무로 3상태를 가른다.
+ * 판정 행. 필요한 칸만 읽는다(DB egress). 000027/000031 컬럼이 없는 DB(42703)면 처음부터 '*' 전 행으로 다시 읽는다 —
+ * 그 DB 에서도 죽지 않고, 키 유무로 3상태를 가른다(columnAvailability).
+ * secondOnly = 2차 판정이 있는 행만. 층(stratumOf)은 그 행에만 생기므로 pickBatch 결과는 같다.
  * PostgREST 기본 상한(1000행)에 잘리지 않게 끝까지 넘긴다. 한 쪽이라도 실패하면 전체 실패(§7.1).
  */
-export async function loadAllVerdicts(sb: Sb): Promise<{ rows: FeedbackRow[] } | { error: string }> {
+export async function loadAllVerdicts(sb: Sb, opts: { cols?: string; secondOnly?: boolean } = {}): Promise<{ rows: FeedbackRow[] } | { error: string }> {
+  let narrow = true
   const rows: FeedbackRow[] = []
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await sb.from('review_relevance_verdicts').select('*').order('input_id').range(from, from + PAGE - 1)
+    let q = sb.from('review_relevance_verdicts').select(narrow ? opts.cols ?? FEEDBACK_COLS : '*')
+    if (narrow && opts.secondOnly) q = q.not('second_verdict', 'is', null)
+    const { data, error } = await q.order('input_id').range(from, from + PAGE - 1)
+    if (error && narrow && from === 0 && isMissingColumn(error)) { narrow = false; from -= PAGE; continue }
     if (error) return { error: `${error.code ?? ''} ${error.message}`.trim() }
-    rows.push(...((data ?? []) as FeedbackRow[]))
+    rows.push(...((data ?? []) as unknown as FeedbackRow[]))
     if (!data || data.length < PAGE) return { rows }
   }
 }

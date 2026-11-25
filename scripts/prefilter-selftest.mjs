@@ -276,7 +276,9 @@ for (const s of ['자꾸 꺼집니다', '디자인이 아쉬워요', '불만 많
   const sb3 = mock({ ratingMissing: true })
   const fb = createPendingFor({ ...base, supabase: sb3, prefilterCfg: cfg })
   const r2 = await fb.pendingFor({ id: 'pX' })
-  t('연결 — 42703 폴백: rating 없이 다시 조회', fb.state.ratingColumn === 'absent' && sb3.calls.length >= 2 && !sb3.calls[1].includes('rating') && sb3.calls[1].includes('source_key'))
+  // v71ek: 원문 조회는 나눠 읽기 시도(이 모의 DB 는 못 받는다) → 예전 방식 → rating 없이 재조회 순서다. 마지막 원문 조회만 본다.
+  const lastInputs = sb3.calls.filter((c) => c.startsWith('analysis_inputs:')).at(-1)
+  t('연결 — 42703 폴백: rating 없이 다시 조회', fb.state.ratingColumn === 'absent' && !lastInputs.includes('rating') && lastInputs.includes('source_key'))
   t('연결 — 폴백 경로에도 rating(전부 없음)', hasRating(r2) && r2.rating.none === r2.total && warns.some((w) => w.includes('42703')))
 
   const en = createPendingFor({ ...base, supabase: mock(), prefilterCfg: { ...cfg, mode: 'enforce' } })

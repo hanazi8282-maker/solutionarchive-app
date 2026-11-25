@@ -238,5 +238,14 @@ const e503 = () => new ProviderHttpError(503, 'overloaded')
   ok(Number.isInteger(now) && now > 0 && m.peakMb() >= now, `memPeak: 피크 ≥ 현재 rss (${m.peakMb()} ≥ ${now})`)
 }
 
+// v71ek egress: 후보 조회는 늘 null 인 두 칸(human_verdict·second_verdict)을 받지 않는다 — 서버 is(null) 두 조건이 있어야 성립한다.
+{
+  const src = (await import('node:fs')).readFileSync(new URL('./relevance-second-judge-auto.mjs', import.meta.url), 'utf8')
+  const cols = /\.select\('(input_id, project_id, verdict, model, judged_at[^']*)'\)/.exec(src)?.[1] ?? ''
+  ok(cols === 'input_id, project_id, verdict, model, judged_at, product_informative' && src.includes(".is('second_verdict', null).is('human_verdict', null)"), '후보 조회 칸 6개 + 서버 is(null) 두 조건')
+  const lean = Object.fromEntries(cols.split(', ').map((k) => [k, base[k] ?? null]))
+  ok(secondJudgeTargetReason(lean, since) === 'target' && secondJudgeTargetReason({ ...lean, model: 'gemini-x' }, since) === 'gemini-first', '두 칸 없이도 같은 대상 판정')
+}
+
 console.log(`relevance-second-judge selftest: ${pass} pass · ${fail} fail`)
 process.exit(fail ? 1 : 0)

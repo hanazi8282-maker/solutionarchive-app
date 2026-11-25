@@ -106,6 +106,8 @@ jobs:
       - run: node scripts/relevance-rating-sample-selftest.mjs
       # T2 앞 사전필터(v31 항목 5): 규칙 양성·보호 음성·shadow 무해성·카테고리 규칙 금지 소스·설정 완화·측정 seed 재현·pendingFor 연결부.
       - run: node scripts/prefilter-selftest.mjs
+      - run: node scripts/relevance-egress-selftest.mjs
+      - run: node scripts/relevance-verdicts-load-selftest.mjs
       # 영역 정본 config/areas.json(어휘 = DB CHECK) · T2 영역 결손 순위(결손 > 충족 > 영역 외 > hold, 열 부재 라벨 폴백) · 커버리지 뷰 SQL 값 대조(v37 작업 7).
       - run: node scripts/areas-selftest.mjs
       - run: node scripts/aspect-verdict-selftest.mjs
@@ -381,6 +383,7 @@ jobs:
       - run: node scripts/appstore-same-developer-selftest.mjs
       # 리뷰 속 언급 앱 루프(v71ad §1): 영·한 추출 규칙·오탐 5종·자기 이름 제외·검증 3상태·30% 게이트·등록 초안 경계·robots 먼저·DB 쓰기 0.
       - run: node scripts/mention-loop-selftest.mjs
+      - run: node scripts/mention-input-fetch-selftest.mjs
       # v71ba P0-1: 언급 대장 SQL → 마이그 감싸기(새 출시 가드)·새 출시 18행 소급 초안(앵커 3상태·집계 없으면 안 채움·행 수 검사). DB 접근 0.
       - run: node scripts/mention-ledger-selftest.mjs
       # v71ba P0-2: 해소 경로 ③홈페이지(robots 먼저·429 중단·다른 호스트 안 읽음)·④Search(못 정한 후보만·403 즉시 중단)·/30 드라이런·워크플로 배선.

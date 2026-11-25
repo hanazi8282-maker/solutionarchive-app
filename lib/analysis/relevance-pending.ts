@@ -56,7 +56,7 @@ export function createPendingFor(deps: {
   allowIds?: ReadonlySet<string>
   /** 품질 표시 글을 대기열에서 뺄지(기본 env RELEVANCE_SKIP_QUALITY — off 만 끈다). */
   skipQuality?: boolean
-  /** 나눠 읽기를 쓰지 않는 프로젝트(기본: 예전 조회가 시간 초과이던 곳). 셀프테스트가 바꾼다. */
+  /** 나눠 읽기를 쓰지 않는 프로젝트(기본 없음). 새 조회에 문제가 있는 프로젝트를 예전 방식에 묶을 때 쓴다. */
   legacyReadProjects?: readonly string[]
 }) {
   const { supabase, sampleSize, highRatingShare, log, warn } = deps
@@ -135,7 +135,7 @@ export function createPendingFor(deps: {
     return new Set((got.data ?? []).map((r) => r.input_id))
   }
 
-  const LEGACY_READ_PROJECTS: ReadonlySet<string> = new Set(deps.legacyReadProjects ?? ['55d574a2-60a2-444b-88b7-8a625b857175'])
+  const LEGACY_READ_PROJECTS: ReadonlySet<string> = new Set(deps.legacyReadProjects ?? [])
 
   /**
    * 이 프로젝트 원문 중 판정이 **없는 것**(judged=false, anti-join) 또는 **있는 것**(true)만 읽는다 — DB egress 절감(v71ek).

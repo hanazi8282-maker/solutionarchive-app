@@ -507,3 +507,27 @@
 - 작성일: 2026-11-20
 
 > > For how it's problematic, look at "it broke out of the sandbox" vs. "we failed to build an adequate sandbox". "We failed to build an adequate sandbox, which is why it was able to break out." Not problematic at all. I don't know why it's so hard for some people to understand that it is possible to build autonomous devices that gather information and make decisions based on it ... but not understanding this is dangerous.
+
+## HN 50623769
+
+- 판정: (미검토)
+- 매칭: `we shut down`
+- 원본: https://news.ycombinator.com/item?id=50623769
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-25 UTC)
+- 스레드: "Dario is hyping the dangers so OSS models are illegal and he stays in control"
+- 작성자: Gigachad
+- 작성일: 2026-11-24
+
+> The bad actors do not have trillions of dollars to push this technology further. If we shut down major US AI training the tech would come almost to a halt.
+
+## HN 50624760
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50624760
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-25 UTC)
+- 스레드: "Dario is hyping the dangers so OSS models are illegal and he stays in control"
+- 작성자: nkmnz
+- 작성일: 2026-11-24
+
+> A lot. Hunger is mostly a matter of corrupt or inept governments. War has been drastically reduced until non-Western powers (Russia, with support of China) started to raid countries trying to move themselves towards the West. We’ve been on a pretty good trajectory until we failed to defend our values against aggression.

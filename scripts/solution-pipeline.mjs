@@ -14,7 +14,7 @@ import path from 'node:path'
 import { createClient } from '../lib/supabase/server.ts'
 import { runCli, StopRun } from '../lib/story-label/cli.mjs'
 import { UNTRUSTED_INPUT_NOTICE } from '../lib/llm/untrusted-input.ts'
-import { matchCompany, applyPortfolioRules } from '../lib/solution-card/match-v03.ts'
+import { matchCompany, applyPortfolioRules, takeUnderCap, MAX_CASE_USES } from '../lib/solution-card/match-v03.ts'
 import { validateCardV2, CARD_VERSION } from '../lib/solution-card/card-v2.ts'
 import { SYSTEM_V2, buildUserV2 } from '../lib/solution-card/prompt-v2.ts'
 import { ledgerToLabel, ledgerFromCcInput, validateLedger, normPremise } from '../lib/solution-card/ledger.ts'
@@ -189,7 +189,8 @@ export async function resolveLedgers(spec) {
 }
 
 // ── 회사 한 곳 끝까지 ──
-export async function runCompany(item, pool) {
+// uses = 이번 배치에서 사례(이야기)를 쓴 횟수. 배치를 도는 쪽이 같은 Map 을 넘긴다.
+export async function runCompany(item, pool, uses = new Map()) {
   const r = { id: '', name: '', status: 'ok', note: '', cards: [], steps: {} }
   try {
     let led = item.ledger
@@ -202,10 +203,10 @@ export async function runCompany(item, pool) {
     const errs = validateLedger(led); if (errs.length) { r.status = '카드 없음'; r.note = '원장 검증 실패: ' + errs.slice(0, 3).join('; '); return r }
     if (!led.signals.length) { r.status = '카드 없음'; r.note = '근거 있는 상황 신호가 없음(R-E)'; return r }
     const lab = ledgerToLabel(led)
-    const m = matchCompany(lab, pool); r.match = { precedents: m.precedents, blank: m.blank, why: m.why }
+    const m = matchCompany(lab, pool.filter((c) => (uses.get(c.slug) ?? 0) < MAX_CASE_USES)); r.match = { precedents: m.precedents, blank: m.blank, why: m.why }
     if (m.blank) { r.status = '카드 없음'; r.note = m.why; return r }
     const problem = led.complaint || lab.signals.map((s) => s.evidence).join(' / ')
-    for (const cand of [...m.try, ...m.caution]) {
+    for (const cand of takeUnderCap([...m.try, ...m.caution], uses)) {
       const g = await makeCard(led, problem, cand)
       if (!g.card) { r.cards.push({ cand, card: null, note: '생성 실패/검증 불통과: ' + (g.errors ?? []).join('; '), lastBad: g.lastBad }); continue }
       const v = await verify(led, g.card)
@@ -247,8 +248,8 @@ async function main() {
   }
   const sb = await createClient(); if (!sb) throw new Error('DB 연결 실패')
   const pool = await loadPool(sb); log(`사례 풀 ${pool.length}행 · 신호 라벨 있는 행 ${pool.filter((x) => x.signals.length).length} · 회사 ${items.length}곳`)
-  const results = []
-  for (const it of items) { const r = await runCompany(it, pool); results.push(r); log(`${r.id || it.slug} ${r.status} 카드 ${r.cards.filter((x) => x.card).length}${r.note ? ' — ' + r.note : ''} · B ${cost.b.toFixed(3)}`); if (r.status === '중단') break }
+  const results = [], uses = new Map()
+  for (const it of items) { const r = await runCompany(it, pool, uses); results.push(r); log(`${r.id || it.slug} ${r.status} 카드 ${r.cards.filter((x) => x.card).length}${r.note ? ' — ' + r.note : ''} · B ${cost.b.toFixed(3)}`); if (r.status === '중단') break }
   fs.mkdirSync(OUT, { recursive: true })
   fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify({ model: M, bUsed: cost.b, aUsed: CLI.aUsed, flag: slotsEnabled(), results }, null, 1))
   fs.writeFileSync(path.join(OUT, 'review-sheet.md'), reviewSheet(results))

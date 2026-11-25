@@ -67,10 +67,23 @@ const CASE_STAGE: Record<string, string> = { prelaunch: '초기', zero_rev: '초
 
 export interface MatchOpts { actionPremise?: Record<string, string> /** 행동 종류 → 필요 전제(약 30줄 규칙표, 없으면 전제 배수 1) */; kinds?: ReadonlySet<string> }
 
+/** 어려움 칸이 "없음"인 사례 — 빈칸·"해당 없음"·"원문에 역경이 없다"는 설명. 카드 재료가 없으니 후보에서 뺀다.
+ *  "마케팅 예산이 없었다"처럼 무엇이 없어서 어려웠던 것은 어려움이다. 추정 문장 뒤의 "(원문에 없음)"은 여기서 가리지 않는다. */
+const NO_ADVERSITY = [
+  /^[-–—.\s]*$/,
+  /^(해당\s*(사항\s*)?)?없(음|다)\.?$/,
+  /해당\s*(사항\s*)?없음\.?$/,
+  /^(원문|본문|전문|기사|글)(에|에는|상)?\s*(명시(된\s*것은)?\s*)?(없(음|다)|(명시|언급)(되|돼)?(어)?\s*(있)?지(는)?\s*않)/,
+  /(원문|본문|전문)(에|에는|상)?[^.]{0,16}(역경|어려움)[^.]{0,12}(없|않)/,
+  /(역경|어려움)[^.]{0,6}원문(에|에는|상)?[^.]{0,10}(없|않)/,
+  /(특별히|특별한|별도|구체적)[^.]{0,8}(역경|어려움)[^.]{0,10}(없(음|다|고)|(명시|언급|서술)(되|돼)?(어)?\s*(있)?지(는)?\s*않)/,
+]
+export const noAdversity = (s: string | null | undefined): boolean => { const t = String(s ?? '').trim(); return NO_ADVERSITY.some((r) => r.test(t)) }
+
 /** 점수 하나. 전제 배수는 점수에 곱한다 — 카드를 빼는 이유가 아니다(낮게 줄 세울 뿐). */
 export function scoreCase(co: CompanyLabel, c: CaseRow, o: MatchOpts = {}): Candidate | null {
   const dir = directionOf(c)
-  if (!dir) return null
+  if (!dir || noAdversity(c.adversity_ko)) return null
   const sf = signalFit(co, c, o.kinds)
   const need = (c.action_kind && o.actionPremise?.[c.action_kind]) || null
   const state: PremiseState = need ? co.premises[need] ?? 'unknown' : 'met'
@@ -103,6 +116,13 @@ export function matchCompany(co: CompanyLabel, pool: readonly CaseRow[], o: Matc
   return { try: pick, caution: cautions.slice(0, 1), precedents, blank: false, why: 'ok' }
 }
 
+export const MAX_CASE_USES = 2
+
+/** 배치 안에서 같은 사례(이야기)는 MAX_CASE_USES 장까지. 고른 순서대로 담고 uses 에 적는다 — 호출부는 다음 회사의 풀에서 다 쓴 사례를 먼저 뺀다. */
+export function takeUnderCap(cands: readonly Candidate[], uses: Map<string, number>): Candidate[] {
+  return cands.filter((x) => { const n = uses.get(x.case.slug) ?? 0; if (n >= MAX_CASE_USES) return false; uses.set(x.case.slug, n + 1); return true })
+}
+
 /** 12곳 전체 규칙(§4): 같은 카드(사례)는 12곳 안에서 최대 2회, 같은 회사 안 같은 방법(행동 종류) 금지, 조건 "모름"(전제 배수 0.6)인 카드는 3번째 이후. */
 export function applyPortfolioRules(results: { company: string; cards: Candidate[] }[]): { company: string; cards: Candidate[]; dropped: { slug: string; why: string }[] }[] {
   const uses = new Map<string, number>()
@@ -110,7 +130,7 @@ export function applyPortfolioRules(results: { company: string; cards: Candidate
     const dropped: { slug: string; why: string }[] = [], kinds = new Set<string>(), out: Candidate[] = []
     for (const x of r.cards) {
       const slug = x.case.slug
-      if ((uses.get(slug) ?? 0) >= 2) { dropped.push({ slug, why: '같은 카드 12곳 안 최대 2회' }); continue }
+      if ((uses.get(slug) ?? 0) >= MAX_CASE_USES) { dropped.push({ slug, why: '같은 카드 12곳 안 최대 2회' }); continue }
       if (x.case.action_kind && kinds.has(x.case.action_kind)) { dropped.push({ slug, why: '같은 회사 안 같은 방법' }); continue }
       out.push(x)
       uses.set(slug, (uses.get(slug) ?? 0) + 1)

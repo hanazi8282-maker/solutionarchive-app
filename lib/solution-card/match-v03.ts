@@ -62,6 +62,8 @@ export function signalFit(co: CompanyLabel, c: CaseRow, kinds: ReadonlySet<strin
 
 const same = (a: string | null, b: string) => (a && b ? (a === b ? 1 : overlap(a, b) >= 0.5 ? 0.5 : 0) : 0)
 const STAGE_NEAR: Record<string, string[]> = { 초기: ['초기', '첫 매출'], '첫 매출': ['초기', '첫 매출', '성장'], 성장: ['첫 매출', '성장'] }
+/** 사례 라벨의 단계 코드(ss_story_labels.stage) → 회사 쪽 단계 말(ledger.ts STAGE_KO). 이미 같은 말이면 그대로. unknown 은 어느 단계와도 같지 않다. */
+const CASE_STAGE: Record<string, string> = { prelaunch: '초기', zero_rev: '초기', early_rev: '첫 매출', growing: '성장' }
 
 export interface MatchOpts { actionPremise?: Record<string, string> /** 행동 종류 → 필요 전제(약 30줄 규칙표, 없으면 전제 배수 1) */; kinds?: ReadonlySet<string> }
 
@@ -77,7 +79,7 @@ export function scoreCase(co: CompanyLabel, c: CaseRow, o: MatchOpts = {}): Cand
     family: WEIGHTS.family * same(c.domain, co.domain),
     signal: WEIGHTS.signal * sf.fit,
     evidence: WEIGHTS.evidence * (({ A: 1, B: 0.6, C: 0.3 } as Record<string, number>)[String(c.evidence_strength)] ?? 0),
-    stage: WEIGHTS.stage * (c.stage && (STAGE_NEAR[co.stage] ?? [co.stage]).includes(c.stage) ? 1 : 0),
+    stage: WEIGHTS.stage * (c.stage && (STAGE_NEAR[co.stage] ?? [co.stage]).includes(CASE_STAGE[c.stage] ?? c.stage) ? 1 : 0),
     number: WEIGHTS.number * (/\d/.test(c.result_ko) ? 1 : 0),
     customer: WEIGHTS.customer * same(c.customer, co.customer),
   }

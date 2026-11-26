@@ -531,3 +531,15 @@
 - 작성일: 2026-11-24
 
 > A lot. Hunger is mostly a matter of corrupt or inept governments. War has been drastically reduced until non-Western powers (Russia, with support of China) started to raid countries trying to move themselves towards the West. We’ve been on a pretty good trajectory until we failed to defend our values against aggression.
+
+## HN 50649148
+
+- 판정: (미검토)
+- 매칭: `we failed`
+- 원본: https://news.ycombinator.com/item?id=50649148
+- 검색 맥락: 자동 스윕 · 구문 9개 · 최근 7일 (Algolia search_by_date, 2026-11-26 UTC)
+- 스레드: SpaceX wins FCC approval to deploy 1M orbital data center satellites
+- 작성자: Tanoc
+- 작성일: 2026-11-25
+
+> And then it rains down on Earth and causes quite a bit of catastrophic damage. Much of late 20th century science fiction focused on this aspect specifically because it was the most likely, most tangible, and nearest in time. The basis of the fiction in that science fiction wasn't about how feasible the ionosphere cracking, ozone dissipation, or debris showers were. Because physics and chemistry are essentially immutable everyone already knew. The fiction came in how people dealt with it afterwar…

@@ -123,6 +123,8 @@ jobs:
           RELEVANCE_SAMPLE: ${{ inputs.sample || vars.RELEVANCE_SAMPLE || '1000' }}
           RELEVANCE_MAX_PROJECTS: ${{ inputs.max_projects || vars.RELEVANCE_MAX_PROJECTS || '30' }}
           RELEVANCE_DEADLINE_MIN: ${{ vars.RELEVANCE_DEADLINE_MIN || '80' }}
+          # 1차 판정 하루(KST) 상한 — 모든 슬롯·체인 hop 합산. 비었거나 숫자가 아니면 코드 기본 10000. 0 = 오늘 1차 판정 안 함.
+          JUDGE_DAILY_ITEMS_FIRST: ${{ vars.JUDGE_DAILY_ITEMS_FIRST || '' }}
           # 소스 균등: 제외는 fail-closed(값은 기본 youtube 에 더해짐, 'none' 만 전부 허용) · 맨 뒤 기본 kakao_cafe,kakao_blog('none' = 없음). 유튜브 제목 매핑이 생기면 RELEVANCE_EXCLUDE_SOURCES=none.
           RELEVANCE_EXCLUDE_SOURCES: ${{ vars.RELEVANCE_EXCLUDE_SOURCES || '' }}
           RELEVANCE_LAST_SOURCES: ${{ vars.RELEVANCE_LAST_SOURCES || '' }}

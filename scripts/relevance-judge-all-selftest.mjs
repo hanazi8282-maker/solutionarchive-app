@@ -5,7 +5,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import {
-  CHAIN_STOP_REASONS, chainCarryOf, decideRelaunch, fetchAllPages, orderForJudge, parseExcludedSources, parseSourceList, quotaResetWaitMin, saveVerdictsInsertOnly, saveWithColumnFallback,
+  CHAIN_STOP_REASONS, DEFAULT_DAILY_FIRST_CAP, chainCarryOf, dailyFirstBudget, decideRelaunch, fetchAllPages, orderForJudge, parseExcludedSources, parseSourceList, quotaResetWaitMin, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
 import { createPendingFor } from '../lib/analysis/relevance-pending.ts'
 
@@ -323,6 +323,41 @@ const judged = () => inputs.slice(0, 1500).map((r, i) => ({ input_id: r.id, proj
   t('사유: out-consumer 영역은 태그 표에 없어도 consumer_derived(SQL 로 태그만 빼면 미판정처럼 보이는 몫)', mc.googleplay.consumer_tag === 1 && mc.googleplay.consumer_derived === 3 && mc.hackernews.consumer_derived === 4)
   t('사유: out-founder 영역의 대기분은 eligible_out_area', classifyProject(P({ area_code: 'out-founder' }), rows, ctx).googleplay.eligible_out_area === 1)
   t('사유: 합치기', mergeCounts([m, m]).googleplay.no_body === 4)
+}
+
+// ── 12. 1차 판정 하루 상한(JUDGE_DAILY_ITEMS_FIRST, KST 날짜) ──
+{
+  // 모의 head count: judged_at >= gte 값인 가짜 행 수만 돌려준다.
+  const seen = []
+  const countDb = (judgedAts, result) => ({ from: () => ({ select: (_c, o) => ({ gte: (col, v) => { seen.push({ ...o, col, v }); return Promise.resolve(result ?? { count: judgedAts.filter((x) => x >= v).length, error: null }) } }) }) })
+  const at = (n, iso) => Array.from({ length: n }, () => iso)
+  const now = new Date('2026-11-27T06:00:00Z') // KST 11-27 15:00
+  const today = '2026-11-26T15:00:00.000Z' // KST 11-27 00:00
+  const b = (rows, raw, when = now) => dailyFirstBudget(countDb(rows), raw, when)
+  const under = await b(at(7, today), '10')
+  t('하루 상한 (가) 미만 — 남은 몫 3', under.used === 7 && under.left === 3 && under.cap === 10)
+  t('하루 상한 — head count 로만 읽고 KST 0시부터 센다', seen[0].head === true && seen[0].count === 'exact' && seen[0].col === 'judged_at' && seen[0].v === today)
+  const exact = await b(at(10, today), '10')
+  t('하루 상한 (나) 정확히 상한 — 남은 몫 0', exact.used === 10 && exact.left === 0)
+  const over = await b(at(13, today), '10')
+  t('하루 상한 (다) 초과 — 음수가 아니라 0', over.used === 13 && over.left === 0)
+  for (const raw of [undefined, '', '  ', 'abc', '10,000', '-1']) {
+    const r = await b(at(5, today), raw)
+    t(`하루 상한 (라) 변수 ${JSON.stringify(raw)} — 기본 10000`, DEFAULT_DAILY_FIRST_CAP === 10_000 && r.cap === 10_000 && r.left === 9_995 && r.invalid === ((raw ?? '').trim() !== ''))
+  }
+  t('하루 상한 — 변수만 바꾸면 값이 바뀐다 · 0 은 오늘 안 함', (await b([], '300')).cap === 300 && (await b([], '0')).left === 0)
+  const rows = at(10, '2026-11-27T14:59:59.000Z') // KST 11-27 23:59:59
+  t('하루 상한 (마) 날짜가 바뀌기 직전엔 닫혀 있다', (await b(rows, '10', new Date('2026-11-27T14:59:59.999Z'))).left === 0)
+  const next = await b(rows, '10', new Date('2026-11-27T15:00:00Z')) // KST 11-28 00:00
+  t('하루 상한 (마) KST 날짜가 바뀌면 0 부터 다시', next.used === 0 && next.left === 10)
+  const bad = await dailyFirstBudget(countDb([], { count: null, error: { message: 'boom' } }), '10', now)
+  const nul = await dailyFirstBudget(countDb([], { count: null, error: null }), '10', now)
+  t('하루 상한 — 조회 실패·count 없음은 0건이 아니라 error', bad.error === 'boom' && nul.error === 'count 없음' && !('left' in bad) && !('left' in nul))
+  const d = decideRelaunch({ dry: false, enabled: true, now, untilMs: now.getTime() + 1e6, stopReason: 'daily_cap', attempted: 10, errors: 0, judged: 10, remaining: 99, hop: 0, maxHops: 24, zeroStreak: 0, zeroLimit: 2, weeklyPct: 0, weeklyStopPct: 90, window5hPct: 0, window5hStopPct: 90 })
+  t('하루 상한 — 체인을 잇지 않는다', d.relaunch === false && /daily_cap/.test(d.reason))
+  const src = fs.readFileSync('scripts/relevance-judge-auto.mjs', 'utf8')
+  t('스크립트: 변수는 대상 선정 한 곳에서 읽고, 몫만큼 자르고, 못 세면 exit 2', (src.match(/process\.env\.JUDGE_DAILY_ITEMS_FIRST,/g) ?? []).length === 1 && (src.match(/dailyFirstBudget\(/g) ?? []).length === 1 && /pending\.reviews\.slice\(0, dailyLeft\)/.test(src) && /daily\.error !== null\) \{[\s\S]{0,200}process\.exit\(2\)/.test(src) && /하루 상한 도달: \$\{/.test(src))
+  t('워크플로: vars.JUDGE_DAILY_ITEMS_FIRST 를 넘긴다', /JUDGE_DAILY_ITEMS_FIRST: \$\{\{ vars\.JUDGE_DAILY_ITEMS_FIRST/.test(fs.readFileSync('.github/workflows/nightly-relevance.yml', 'utf8')))
 }
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} 전량 판정 셀프테스트: ${pass} pass / ${fail} fail`)

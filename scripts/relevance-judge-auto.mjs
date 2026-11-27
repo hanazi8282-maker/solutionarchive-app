@@ -44,7 +44,7 @@ import {
   RELEVANCE_SLOTS, capReached, chainWeeklyStopPct, relevanceCaps, relevanceRunSuffixFromEnv, spendForCap, loadGuardConfig, loadRecentRuns, relevanceRetryDecision, sessionBlock, sessionLine, usageSince, weeklyGate,
 } from '../lib/analysis/session-guard.ts'
 import {
-  CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_LAST_SOURCES, chainCarryOf, decideRelaunch, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
+  CHAIN_DEFAULT_MAX_HOPS, CHAIN_DEFAULT_ZERO_LIMIT, DEFAULT_LAST_SOURCES, chainCarryOf, dailyFirstBudget, decideRelaunch, parseExcludedSources, parseSourceList, saveVerdictsInsertOnly, saveWithColumnFallback,
 } from '../lib/analysis/relevance-judge-all.ts'
 import { RELEVANCE_CRITERIA_VERSION, RELEVANCE_V21_VERSION, RELEVANCE_V22_VERSION, RELEVANCE_V23_VERSION, RELEVANCE_V24_VERSION, RELEVANCE_V25_VERSION } from '../lib/analysis/relevance-criteria.ts'
 import { BLOCKED_ALARM_STREAK, QUOTA_COOLDOWN_MS, parseQuotaResetAt } from '../lib/analysis/extract-auto.ts'
@@ -372,8 +372,17 @@ let examined = 0
 // 잔여가 "남은 미판정"으로 남아 체인이 0건 hop 을 두 번 더 돌고 "N건 남기고 멈췄다" 경고를 낸다(10-21: 210건, 시도 0).
 const exactUnjudged = new Map()
 const residue = { no_body: 0, hn_low: 0 }
+// 하루 상한(KST): 오늘 이미 저장한 1차 판정을 빼고 남은 몫만 고른다. 슬롯·체인 hop 이 같은 몫을 나눠 쓴다. 변수를 읽는 곳은 여기 하나다.
+const daily = await dailyFirstBudget(supabase, process.env.JUDGE_DAILY_ITEMS_FIRST, new Date())
+if (daily.error !== null) {
+  console.error(`✗ 오늘 1차 판정 건수 확인 불가: ${daily.error} — 0건으로 치지 않고 멈춘다`)
+  process.exit(2)
+}
+if (daily.invalid) warn(`JUDGE_DAILY_ITEMS_FIRST='${process.env.JUDGE_DAILY_ITEMS_FIRST}' 는 0 이상의 숫자가 아니다 — 기본 ${daily.cap} 으로 간다`)
+let dailyLeft = daily.left
 for (const c of ready) {
   if (targets.length >= maxProjects) break
+  if (dailyLeft <= 0) break
   examined += 1
   const pending = await pendingFor(c.project)
   if (pending === null) { unknownCount += 1; continue }
@@ -381,7 +390,9 @@ for (const c of ready) {
   residue.no_body += pending.residue?.no_body ?? 0
   residue.hn_low += pending.residue?.hn_low ?? 0
   if (pending.reviews.length === 0) continue // 머리말뿐인 입력 등 — 수 세기(근사)엔 잡혔지만 판정할 본문이 없다
-  targets.push({ ...c, pending })
+  const reviews = pending.reviews.slice(0, dailyLeft)
+  dailyLeft -= reviews.length
+  targets.push({ ...c, pending: { ...pending, reviews } })
 }
 const remaining = ready.length - examined
 // 전체 남은 미판정(이번 실행 상한과 무관). 원문을 읽은 프로젝트는 정확값, 못 읽은 프로젝트는 countFor 근사(상한 쪽). 수를 못 센 프로젝트가 있으면 하한이다.
@@ -392,7 +403,7 @@ log(`미판정 전체 ${unjudgedBefore}건(프로젝트 ${ready.length}개${unkn
 
 log(
   `후보(${AUTO_EXTRACT_STATUSES.join('·')}) ${(projects ?? []).length}건 → 판정 대상 프로젝트 ${ready.length}건` +
-    (remaining > 0 ? ` 중 ${targets.length}건 실행 (상한 ${maxProjects}건 도달, 남은 ${remaining}건은 다음 실행)` : ' 전부 실행') +
+    (remaining > 0 ? ` 중 ${targets.length}건 실행 (${dailyLeft <= 0 ? `하루 상한 ${daily.cap}건` : `상한 ${maxProjects}건`} 도달, 남은 ${remaining}건은 다음 실행)` : ' 전부 실행') +
     (areaAxis === 'on' ? ' (순서: 공급 충분한 결손 영역 → 공급 부족 결손 영역 → 충족 영역 → 영역 외 → 보류, 결손 칸은 미판정 큰 순)' : ' (순서: SaaS 우선 → 미판정 많은 순 — 영역 축 꺼짐)'),
 )
 const areaTag = (id) => {
@@ -622,6 +633,12 @@ for (const { project, pending } of targets) {
   })
 }
 
+// 하루 상한은 정상 종료다(blocker 아님). 저장된 건수로만 본다 — 호출 오류로 몫이 남았으면 체인·다음 실행이 마저 채운다.
+if ((stopReason === null || stopReason === 'deadline') && daily.used + judgedTotal >= daily.cap) {
+  stopReason = 'daily_cap'
+  log(`하루 상한 도달: ${daily.used + judgedTotal}/${daily.cap}`)
+}
+
 const spent = dailySpent()
 const status = blocker ? 'blocked' : saveFailed > 0 ? 'partial' : 'ok'
 const cli = cliSpent()
@@ -651,7 +668,7 @@ if (chain.relaunch && (process.env.RELEVANCE_CAPACITY_GUARD ?? '').trim().toLowe
   if (g.clamp) { chain = { ...chain, relaunch: false, waitMin: 0, reason: `용량 상향 롤백 가드 — ${g.reason}` }; warn(chain.reason) }
 }
 log(`체인 ${chain.relaunch ? '이어감' : '멈춤'} — ${chain.reason} · 미판정 ${unjudgedBefore} → ${unjudgedAfter} · 시도 ${attemptedTotal} · 오류 ${errorTotal}${deadlineHit ? ' · 마감 도달' : ''}`)
-if (!chain.relaunch && unjudgedAfter > 0 && !/드라이런|RELEVANCE_CHAIN=off|만료|relevance_cap_until 없음/.test(chain.reason)) warn(`체인이 미판정 ${unjudgedAfter}건을 남기고 멈췄다 — ${chain.reason}. 다음 크론(KST 04:03)이 다시 시작한다`)
+if (!chain.relaunch && unjudgedAfter > 0 && !/드라이런|daily_cap|RELEVANCE_CHAIN=off|만료|relevance_cap_until 없음/.test(chain.reason)) warn(`체인이 미판정 ${unjudgedAfter}건을 남기고 멈췄다 — ${chain.reason}. 다음 크론(KST 04:03)이 다시 시작한다`)
 setOutput('relaunch', chain.relaunch ? 'true' : 'false')
 setOutput('wait_min', String(chain.waitMin))
 setOutput('next_hop', String(chain.nextHop))

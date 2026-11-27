@@ -6,6 +6,8 @@
 //
 // ⚠️ Node 가 타입 스트리핑으로 직접 로드한다. `@/` 별칭·enum 을 쓰지 않는다. 셀프테스트 scripts/relevance-judge-all-selftest.mjs.
 
+import { kstBounds } from './budget.ts'
+
 export const PAGE_SIZE = 1000
 /** 한 프로젝트에서 읽을 최대 행(무한 페이지 방지). 넘으면 truncated=true 로 알린다 — 조용히 자르지 않는다(§7.1). */
 export const MAX_ROWS = 200_000
@@ -217,6 +219,26 @@ export function chainCarryOf(
   return { hop: c.next_hop, zero: c.next_zero_streak, from: last.run_key }
 }
 
+/** 1차 판정 하루 상한(리포 변수 JUDGE_DAILY_ITEMS_FIRST)의 기본값 — 변수가 없거나 0 이상의 숫자가 아니면 '상한 없음'이 아니라 이 값. */
+export const DEFAULT_DAILY_FIRST_CAP = 10_000
+
+/**
+ * 1차 판정의 오늘(KST — budget.ts kstBounds) 몫. 처리 건수 = 오늘 0시 뒤 judged_at 인 판정 행 수(행은 1차 저장만 새로 만든다).
+ * count 만 받는다(head — 행 전송 0). 못 세면 error 를 올린다 — 0건으로 접지 않는다(§7.1. 없는 표는 head 가 error 없이 count=null 을 줄 수 있다).
+ */
+export async function dailyFirstBudget(
+  supabase: { from: (t: string) => any }, raw: string | undefined, now: Date,
+): Promise<{ cap: number; used: number; left: number; invalid: boolean; error: null } | { error: string }> {
+  const s = (raw ?? '').trim()
+  const ok = s !== '' && Number.isFinite(Number(s)) && Number(s) >= 0
+  const cap = ok ? Math.floor(Number(s)) : DEFAULT_DAILY_FIRST_CAP
+  const { count, error } = await supabase.from('review_relevance_verdicts')
+    .select('input_id', { count: 'exact', head: true })
+    .gte('judged_at', kstBounds(now).dayStart.toISOString())
+  if (error || typeof count !== 'number') return { error: error?.message || 'count 없음' }
+  return { cap, used: count, left: Math.max(0, cap - count), invalid: s !== '' && !ok, error: null }
+}
+
 /** 체인 종료 조건 한 벌. 위에서부터 첫 번째로 걸린 것이 사유다. 모르면(확인 불가) 멈춘다(§7.1). */
 export function decideRelaunch(i: RelaunchInput): RelaunchDecision {
   const nextZeroStreak = i.judged === 0 ? i.zeroStreak + 1 : 0
@@ -226,6 +248,7 @@ export function decideRelaunch(i: RelaunchInput): RelaunchDecision {
   if (!i.enabled) return stop('리포 변수 RELEVANCE_CHAIN=off')
   if (i.untilMs == null) return stop('relevance_cap_until 없음(또는 못 읽음) — 체인 꺼짐')
   if (i.now.getTime() >= i.untilMs) return stop(`만료 — ${new Date(i.untilMs).toISOString()} 지남`)
+  if (i.stopReason === 'daily_cap') return stop('하루 상한 도달(daily_cap) — 남은 건 다음 날')
   if (i.stopReason === 'quota') {
     // 리셋이 곧이면 리셋 뒤에 잇는다. 주간·5시간 창 안전선은 리셋으로 창이 새로 열리므로 여기서 보지 않는다. hop 상한은 그대로 본다.
     // 연속 0건은 세지 않는다 — 한도 정지는 "할 일이 없다"가 아니다.
